@@ -1,0 +1,252 @@
+#include <windows.h>
+#include "resources.h"
+
+#ifndef UPDOWN_CLASS
+#define UPDOWN_CLASS L"msctls_updown32"
+#endif
+
+MainMenu MENU DISCARDABLE
+BEGIN
+        POPUP "&File"
+        BEGIN
+                MENUITEM "&Hard Reset",           IDM_FILE_HRESET
+                MENUITEM "&Ctrl+Alt+Del",         IDM_FILE_RESET_CAD
+                MENUITEM "E&xit",                 IDM_FILE_EXIT
+        END
+        POPUP "&Disc"
+        BEGIN
+                MENUITEM "Change drive &A:...", IDM_DISC_A
+                MENUITEM "Change drive &B:...", IDM_DISC_B
+                MENUITEM "&Eject drive A:",     IDM_EJECT_A
+                MENUITEM "Eject drive B:",      IDM_EJECT_B
+                MENUITEM "&Configure hard discs...",IDM_HDCONF
+        END
+        POPUP "&Settings"
+        BEGIN
+                MENUITEM "&Configure...", IDM_CONFIG
+                POPUP "&CD-ROM"
+                BEGIN
+                        MENUITEM "&Disabled", IDM_CDROM_DISABLED
+                        MENUITEM "&Empty",IDM_CDROM_EMPTY
+                        MENUITEM "&ISO...",IDM_CDROM_ISO
+                END
+                POPUP "&Video"
+                BEGIN
+                        MENUITEM "&Resizeable window",IDM_VID_RESIZE
+                        MENUITEM "Remember size && position",IDM_VID_REMEMBER
+                        MENUITEM SEPARATOR
+                        MENUITEM "&DirectDraw", IDM_VID_DDRAW
+                        MENUITEM "Direct&3D",   IDM_VID_D3D
+                        MENUITEM SEPARATOR
+                        MENUITEM "&Fullscreen", IDM_VID_FULLSCREEN
+                        POPUP "Fullscreen &stretch mode"
+                        BEGIN
+                                MENUITEM "&Full screen stretch", IDM_VID_FS_FULL
+                                MENUITEM "&4:3", IDM_VID_FS_43
+                                MENUITEM "&Square pixels", IDM_VID_FS_SQ
+                                MENUITEM "&Integer scale", IDM_VID_FS_INT
+                        END
+                END
+                MENUITEM SEPARATOR
+                MENUITEM "&Load configuration...", IDM_CONFIG_LOAD
+                MENUITEM "&Save configuration...", IDM_CONFIG_SAVE
+        END
+        POPUP "&Misc"
+        BEGIN
+                MENUITEM "&Status", IDM_STATUS
+        END
+END
+
+ConfigureDlg DIALOGEX 0, 0, 248+40, 248+76
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Configure PCem"
+FONT 9, "Segoe UI"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,64,300,50,14, WS_TABSTOP
+    PUSHBUTTON      "Cancel",IDCANCEL,128,300,50,14, WS_TABSTOP
+    COMBOBOX        IDC_COMBO1,62,16,157,120,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBOVID,62,36,157,120,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configure", IDC_CONFIGUREVID, 224, 36, 40, 14, WS_TABSTOP
+    COMBOBOX        IDC_COMBOCPUM,62,56,157,120,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO3,62,76,102,120,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Dynamic Recompiler",IDC_CHECKDYNAREC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,169,76,99,10
+    COMBOBOX        IDC_COMBOCHC,62,96,57,120,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBOSPD,162,96,57,120,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBOSND,62,116,157,120,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configure", IDC_CONFIGURESND, 224, 116, 40, 14, WS_TABSTOP
+    EDITTEXT        IDC_MEMTEXT, 62, 136, 36, 14, ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "", IDC_MEMSPIN, UPDOWN_CLASS, UDS_ALIGNRIGHT | UDS_ARROWKEYS | UDS_NOTHOUSANDS | UDS_SETBUDDYINT, 98, 136, 12, 14
+    LTEXT           "MB", IDC_TEXT_MB, 98, 136, 10, 10
+    CONTROL         "CMS / Game Blaster",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,172,102,10
+    CONTROL         "Gravis Ultrasound",IDC_CHECKGUS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,188,102,10    
+    CONTROL         "Innovation SSI-2001",IDC_CHECKSSI,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,204,102,10
+    CONTROL         "Composite CGA",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,220,102,10
+    CONTROL         "Enable time sync",IDC_CHECKSYNC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,236,102,10
+
+    CONTROL         "Force 4:3 display ratio",IDC_CHECKFORCE43,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,172,102,10
+    CONTROL         "Composite CGA color burst",IDC_CHECKCBURST,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,188,102,10
+    CONTROL         "RGB CGA brown circuit",IDC_CHECKBROWN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,204,102,10
+    CONTROL         "EGA/(S)VGA overscan",IDC_CHECKOVERSCAN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,220,102,10
+    CONTROL         "Disk activity flash",IDC_CHECKFLASH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,236,102,10
+
+    CONTROL         "Ser. mouse instead of PS/2",IDC_CHECKSERIAL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,252,102,10
+
+    CONTROL         "Voodoo Graphics",IDC_CHECKVOODOO,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,252,102,10
+    PUSHBUTTON      "Configure", IDC_CONFIGUREVOODOO, 224, 252, 40, 14, WS_TABSTOP
+
+    LTEXT           "Joystick :",IDC_STATIC,15,268,40,10
+    COMBOBOX        IDC_COMBOJOY,62,268,157,120,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "Joystick 1...",IDC_JOY1,16,284,50,14, WS_TABSTOP
+    PUSHBUTTON      "Joystick 2...",IDC_JOY2,80,284,50,14, WS_TABSTOP
+    DEFPUSHBUTTON   "Joystick 3...",IDC_JOY3,144,284,50,14, WS_TABSTOP
+    PUSHBUTTON      "Joystick 4...",IDC_JOY4,208,284,50,14, WS_TABSTOP
+
+    LTEXT           "Machine :",IDC_STATIC,15,16,40,10
+    LTEXT           "Video :",IDC_STATIC,15,36,34,10
+    LTEXT           "CPU type :",IDC_STATIC,15,56,34,10
+    LTEXT           "CPU :",IDC_STATIC,15,76,34,10
+    LTEXT           "Cache :",IDC_STATIC,15,96,40,10
+    LTEXT           "Vid. speed :",IDC_STATIC,125,96,34,10    
+    LTEXT           "Soundcard :",IDC_STATIC,15,116,40,10
+    LTEXT           "Network  :",IDC_STATIC,125,136,34,10
+    COMBOBOX        IDC_COMBONET,162,136,57,120,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configure", IDC_CONFIGURENET, 224, 136, 40, 14, WS_TABSTOP
+    LTEXT           "Memory :",IDC_STATIC,15,136,40,10
+    LTEXT           "Drive A: :",IDC_STATIC,15,156,40,10
+    LTEXT           "Drive B: :",IDC_STATIC,125,156,40,10
+    COMBOBOX        IDC_COMBODRA,62,156,57,120,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBODRB,162,156,57,120,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+END
+
+HdConfDlg DIALOGEX 0, 0, 210, 310+4*16
+ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+ CAPTION "Configure Hard Discs"
+ FONT 8, "MS Sans Serif"
+ BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,31+12,290+64,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,101+12,290+64,50,14
+
+    LTEXT           "C:",IDC_STATIC,7,6,27,10
+    RADIOBUTTON     "Hard drive", IDC_CHDD,   7+64, 6, 53, 12 , WS_TABSTOP
+    RADIOBUTTON     "CD-ROM",     IDC_CCDROM, 7+128, 6, 53, 12 , WS_TABSTOP
+    EDITTEXT        IDC_EDIT_C_FN, 7, 6+16, 136, 12, WS_DISABLED
+    PUSHBUTTON      "...",IDC_CFILE,7 + 136,      6+16, 16, 14
+    PUSHBUTTON      "New",IDC_CNEW,7 + 136 + 16, 6+16, 24, 14
+    PUSHBUTTON      "Eject", IDC_EJECTC, 7 + 136 + 16 + 24, 6+16, 24, 14
+
+    EDITTEXT        IDC_EDIT_C_SPT,36,22+16,16,12, WS_DISABLED
+    EDITTEXT        IDC_EDIT_C_HPC,94,22+16,16,12, WS_DISABLED
+    EDITTEXT        IDC_EDIT_C_CYL,152,22+16,28,12, WS_DISABLED
+    LTEXT           "Sectors:",IDC_STATIC,7,22+16,27,10
+    LTEXT           "Heads:",IDC_STATIC,63,22+16,29,8
+    LTEXT           "Cylinders:",IDC_STATIC,120,22+16,32,12
+    LTEXT           "", IDC_TEXT_C_SIZE, 7, 38+16, 136, 12
+
+    LTEXT           "D:",IDC_STATIC,7,60+16,27,10
+    RADIOBUTTON     "Hard drive", IDC_DHDD,   7+64, 60+16, 53, 12 , WS_TABSTOP
+    RADIOBUTTON     "CD-ROM",     IDC_DCDROM, 7+128, 60+16, 53, 12 , WS_TABSTOP
+    EDITTEXT        IDC_EDIT_D_FN, 7, 60+32, 136, 12, WS_DISABLED
+    PUSHBUTTON      "...",IDC_DFILE,7 + 136,     60+32, 16, 14
+    PUSHBUTTON      "New",IDC_DNEW,7 + 136 + 16, 60+32, 24, 14
+    PUSHBUTTON      "Eject", IDC_EJECTD, 7 + 136 + 16 + 24, 60+32, 24, 14
+
+    EDITTEXT        IDC_EDIT_D_SPT,36,76+32,16,12, WS_DISABLED
+    EDITTEXT        IDC_EDIT_D_HPC,94,76+32,16,12, WS_DISABLED
+    EDITTEXT        IDC_EDIT_D_CYL,152,76+32,28,12, WS_DISABLED
+    LTEXT           "Sectors:",IDC_STATIC,7,76+32,27,10
+    LTEXT           "Heads:",IDC_STATIC,63,76+32,29,8
+    LTEXT           "Cylinders:",IDC_STATIC,120,76+32,32,12
+    LTEXT           "", IDC_TEXT_D_SIZE, 7, 92+32, 136, 12    
+
+    LTEXT           "E:",IDC_STATIC,7,114+32,27,10
+    RADIOBUTTON     "Hard drive", IDC_EHDD,   7+64, 114+32, 53, 12 , WS_TABSTOP
+    RADIOBUTTON     "CD-ROM",     IDC_ECDROM, 7+128, 114+32, 53, 12 , WS_TABSTOP
+    EDITTEXT        IDC_EDIT_E_FN, 7, 114+48, 136, 12, WS_DISABLED
+    PUSHBUTTON      "...",IDC_EFILE,7 + 136,     114+48, 16, 14
+    PUSHBUTTON      "New",IDC_ENEW,7 + 136 + 16, 114+48, 24, 14
+    PUSHBUTTON      "Eject", IDC_EJECTE, 7 + 136 + 16 + 24, 114+48, 24, 14
+
+    EDITTEXT        IDC_EDIT_E_SPT,36,130+48,16,12, WS_DISABLED
+    EDITTEXT        IDC_EDIT_E_HPC,94,130+48,16,12, WS_DISABLED
+    EDITTEXT        IDC_EDIT_E_CYL,152,130+48,28,12, WS_DISABLED
+    LTEXT           "Sectors:",IDC_STATIC,7,130+48,27,10
+    LTEXT           "Heads:",IDC_STATIC,63,130+48,29,8
+    LTEXT           "Cylinders:",IDC_STATIC,120,130+48,32,12
+    LTEXT           "", IDC_TEXT_E_SIZE, 7, 146+48, 136, 12    
+
+    LTEXT           "F:",IDC_STATIC,7,168+48,27,10
+    RADIOBUTTON     "Hard drive", IDC_FHDD,   7+64, 168+48, 53, 12 , WS_TABSTOP
+    RADIOBUTTON     "CD-ROM",     IDC_FCDROM, 7+128, 168+48, 53, 12 , WS_TABSTOP
+    EDITTEXT        IDC_EDIT_F_FN, 7, 168+64, 136, 12, WS_DISABLED
+    PUSHBUTTON      "...",IDC_FFILE,7 + 136,     168+64, 16, 14
+    PUSHBUTTON      "New",IDC_FNEW,7 + 136 + 16, 168+64, 24, 14
+    PUSHBUTTON      "Eject", IDC_EJECTF, 7 + 136 + 16 + 24, 168+64, 24, 14
+
+    EDITTEXT        IDC_EDIT_F_SPT,36,184+64,16,12, WS_DISABLED
+    EDITTEXT        IDC_EDIT_F_HPC,94,184+64,16,12, WS_DISABLED
+    EDITTEXT        IDC_EDIT_F_CYL,152,184+64,28,12, WS_DISABLED
+    LTEXT           "Sectors:",IDC_STATIC,7,184+64,27,10
+    LTEXT           "Heads:",IDC_STATIC,63,184+64,29,8
+    LTEXT           "Cylinders:",IDC_STATIC,120,184+64,32,12
+    LTEXT           "", IDC_TEXT_F_SIZE, 7, 200+64, 136, 12
+
+    LTEXT           "G:",IDC_STATIC,7,222+64,27,10
+    RADIOBUTTON     "CD-ROM",     IDC_GCDROM, 7+128, 222+64, 53, 12 , WS_TABSTOP
+
+    LTEXT           "H:",IDC_STATIC,7,262+64,27,10
+    RADIOBUTTON     "CD-ROM",     IDC_HCDROM, 7+128, 262+64, 53, 12 , WS_TABSTOP
+
+END
+
+HdNewDlg DIALOGEX 0, 0, 186, 86
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "New Hard Disc"
+FONT 9, "Segoe UI"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,31,66,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,101,66,50,14
+    
+    EDITTEXT        IDC_EDITC, 7, 6, 136, 12
+    PUSHBUTTON      "...",IDC_CFILE,7 + 136,      6, 16, 14
+    
+    EDITTEXT        IDC_EDIT1,36,22,16,12
+    EDITTEXT        IDC_EDIT2,94,22,16,12
+    EDITTEXT        IDC_EDIT3,152,22,28,12
+    LTEXT           "Sectors:",IDC_STATIC,7,22,27,10
+    LTEXT           "Heads:",IDC_STATIC,63,22,29,8
+    LTEXT           "Cylinders:",IDC_STATIC,120,22,32,12
+    LTEXT           "", IDC_TEXT1, 7, 38, 136, 12
+END
+
+HdSizeDlg DIALOGEX 0, 0, 186, 86
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Hard disc parameters"
+FONT 9, "Segoe UI"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,31,66,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,101,66,50,14
+    
+    LTEXT           "Initial settings are based on file size",IDC_STATIC,7,6,170,10
+    
+    EDITTEXT        IDC_EDIT1,36,22,16,12
+    EDITTEXT        IDC_EDIT2,94,22,16,12
+    EDITTEXT        IDC_EDIT3,152,22,28,12
+    LTEXT           "Sectors:",IDC_STATIC,7,22,27,10
+    LTEXT           "Heads:",IDC_STATIC,63,22,29,8
+    LTEXT           "Cylinders:",IDC_STATIC,120,22,32,12
+    LTEXT           "", IDC_TEXT1, 7, 38, 136, 12
+END
+
+StatusDlg DIALOGEX 0,0,186,186+20+180
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Status"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT           "1",IDC_STEXT_DEVICE,16,16,180,1000
+    LTEXT           "1",IDC_STEXT1,16,186,180,1000
+END
+
+1 24 "PCem.manifest"
+
+/* Icon by PixelOz - http://pixeloz.deviantart.com/art/Computer-Emulator-Icons-135675096 */
+100 ICON "IBMPCAT-1.ico"

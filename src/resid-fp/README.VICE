@@ -1,0 +1,14 @@
+This version of reSID has been modified for use with VICE. It is based on the
+work contained in the resid/ directory, with duplicate files removed. All
+classes have been renamed with suffix FP to avoid link-time clashes with the
+other RESID implementation.
+
+These files reuse some define terms also defined by resid. You should not mix
+resid/* and resid-fp/* files in one compile unit, or the results are probably
+invalid.
+
+In particular, libtool is not used to build the library, and there
+might be some workarounds for various substandard compilers.
+
+Please get the original version if you want to use reSID in your own
+project.

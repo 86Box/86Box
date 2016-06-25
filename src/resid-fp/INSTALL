@@ -1,0 +1,14 @@
+Unless you want to do anything fancy, just say:
+
+% ./configure
+% make
+
+ReSID-FP is compiled with a C++ compiler, so if you wish to specify compiler
+and compiler flags you must set CXX and CXXFLAGS, e.g.:
+% CXX=g++ CXXFLAGS="-g -O" ./configure
+
+In addition to normal configure flags, you may specify
+--disable-inline - Disable inlining of functions (for debugging/profiling)
+
+ReSID-FP makes no installable files. The libresid.a is linked to final
+executable automatically.

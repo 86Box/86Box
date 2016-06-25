@@ -1,0 +1,1 @@
+void compaq_init();

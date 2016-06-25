@@ -1,0 +1,50 @@
+VPATH = . dosbox resid-fp slirp
+CPP  = g++.exe
+CC   = gcc.exe
+WINDRES = windres.exe
+CFLAGS = -O3 -march=amdfam10 -mtune=amdfam10 -flto -fbranch-probabilities -fvpt -funroll-loops -fpeel-loops -ftracer -fomit-frame-pointer -ffast-math -msse -msse2 -msse3 -mfpmath=sse -mstackrealign
+BFLAGS = -DRELEASE_BUILD
+OBJ = 386.o 386_dynarec.o 386_dynarec_ops.o 808x.o acer386sx.o acerm3a.o ali1429.o amstrad.o cdrom-ioctl.o cdrom-iso.o \
+	cdrom-null.o codegen.o codegen_ops.o codegen_timing_486.o codegen_timing_686.o codegen_timing_pentium.o codegen_timing_winchip.o codegen_x86.o compaq.o config.o cpu.o dac.o \
+	device.o disc.o disc_fdi.o disc_img.o disc_sector.o dma.o fdc.o fdc37c665.o fdc37c932fr.o fdd.o fdi2raw.o gameport.o headland.o i430hx.o i430lx.o i430fx.o \
+	i430nx.o i430vx.o i440fx.o ide.o intel.o intel_flash.o io.o jim.o joystick_standard.o joystick_sw_pad.o keyboard.o keyboard_amstrad.o keyboard_at.o \
+	keyboard_olim24.o keyboard_pcjr.o keyboard_xt.o lpt.o mcr.o mem.o memregs.o model.o mouse.o mouse_ps2.o \
+	mouse_serial.o ne2000.o neat.o nethandler.o nmi.o nvr.o olivetti_m24.o opti.o pc.o pc87306.o pci.o pic.o piix.o pit.o ppi.o ps1.o rom.o \
+	scat.o serial.o sis496.o sis85c471.o sio.o sound.o sound_ad1848.o sound_adlib.o sound_adlibgold.o sound_cms.o \
+	sound_dbopl.o sound_emu8k.o sound_gus.o sound_mpu401_uart.o sound_opl.o sound_pas16.o sound_ps1.o sound_pssj.o sound_resid.o \
+	sound_sb.o sound_sb_dsp.o sound_sn76489.o sound_speaker.o sound_ssi2001.o sound_wss.o sound_ym7128.o \
+	soundopenal.o tandy_eeprom.o tandy_rom.o timer.o um8669f.o vid_ati_eeprom.o vid_ati_mach64.o vid_ati18800.o \
+	vid_ati28800.o vid_ati68860_ramdac.o vid_cga.o vid_cga_comp.o vid_cl5429.o vid_ega.o vid_et4000.o \
+	vid_et4000w32.o vid_hercules.o vid_icd2061.o vid_ics2595.o vid_incolor.o vid_mda.o \
+	vid_olivetti_m24.o vid_oti067.o vid_paradise.o vid_pc1512.o vid_pc1640.o vid_pc200.o \
+	vid_pcjr.o vid_ps1_svga.o vid_s3.o vid_s3_virge.o vid_sdac_ramdac.o vid_stg_ramdac.o vid_svga.o \
+	vid_svga_render.o vid_tandy.o vid_tandysl.o vid_tgui9440.o vid_tkd8001_ramdac.o vid_tvga.o vid_unk_ramdac.o \
+	vid_vga.o vid_voodoo.o video.o w83877f.o wd76c10.o win.o win-config.o win-d3d.o win-d3d-fs.o win-ddraw.o \
+	win-ddraw-fs.o win-ddraw-screenshot.o win-deviceconfig.o win-hdconf.o win-joystick.o win-joystickconfig.o win-keyboard.o win-midi.o win-mouse.o \
+	win-status.o win-time.o win-video.o x86seg.o x87.o xtide.o pc.res
+FMOBJ = dbopl.o
+SIDOBJ = convolve.o convolve-sse.o envelope.o extfilt.o filter.o pot.o sid.o voice.o wave6581__ST.o wave6581_P_T.o wave6581_PS_.o wave6581_PST.o wave8580__ST.o wave8580_P_T.o wave8580_PS_.o wave8580_PST.o wave.o
+SLIRPOBJ = bootp.o ip_icmp.o misc.o socket.o tcp_timer.o cksum.o ip_input.o queue.o tcp_input.o tftp.o debug.o ip_output.o sbuf.o tcp_output.o udp.o if.o mbuf.o slirp.o tcp_subr.o
+
+
+LIBS = -mwindows -lwinmm -lopenal.dll -lopenal -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 -lwsock32 -liphlpapi -lstdc++ -static-libstdc++ -static-libgcc -static
+
+PCem.exe: $(OBJ) $(FMOBJ) $(SIDOBJ) $(SLIRPOBJ)
+	$(CC) $(OBJ) $(FMOBJ) $(SIDOBJ) $(SLIRPOBJ) -o "PCem.exe" $(LIBS)
+	strip "PCem.exe"
+
+all : PCem.exe
+
+clean :
+	rm *.o
+	rm *.exe
+	rm *.res
+
+%.o : %.c
+	$(CC) $(CFLAGS) -c $<
+
+%.o : %.cc
+	$(CPP) $(CFLAGS) -c $<
+
+pc.res: pc.rc
+	$(WINDRES) -i pc.rc --input-format=rc -o pc.res -O coff 

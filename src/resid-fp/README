@@ -1,0 +1,79 @@
+Please refer to original ../resid/README file for general discussion what
+ReSID is.
+
+This is ReSID-FP, a fork of ReSID that has been adapted to floating point
+numbers. Some SSE assembly is used for vector convolutions when both the CPU
+and compiler support it. In addition, some liberties have been taken in the
+frequency region > 20 kHz which should be inaudible to humans.
+
+In the emulation front, several changes to the original ReSID (henceforth
+classical ReSID) have been made. These changes are listed here:
+
+Waveforms:
+
+- Noise waveform control via test bit is now possible.
+  (Unknown: how long does it take for the noise bits to fade with test bit on?)
+  This is used in SounDemoN's Tamaking, Bojojoing, etc, and the patch to
+  implement it in ReSID is his.
+
+- Waveform 0, the frozen DAC, is emulated, which should make the new 8-bit
+  sample player routine work.
+
+- Envelope and waveform outputs contain approximation of the imperfect DACs
+  (Unknown: are there other significant effects that affect the analog waveform
+   before it goes into filter, which should be modelled?)
+
+- I changed voice DC offsets around for 6581 to better match my R4AR 3789.
+
+Envelope:
+
+- Performance work at envelope. Validation pending, should ensure that the new
+  code behaves 100% identically to the old one.
+
+Mixer:
+
+- Experimentally, a subtle negative offset is injected into the mixer through
+  ext-in pin. This part seems, however, physically incorrect and is likely
+  removed in the future. (The coupling capacitor external to the chip must
+  eliminate any DC offset, and the ext-in circuit inside the chip has nothing
+  that could generate offsets. In the meantime, this fix still helps 8580
+  Netherworld to play more correctly.)
+
+- I removed the mixer_DC very subtle effect on 6581, as it already has 10x
+  more offsets elsewhere.
+
+Filter:
+
+- 6581 filter output contains approximation of the distortion effect
+- 8580 filter output has bp flipped in phase with the other outputs
+- 6581 resonance is slightly boosted. Potentially 8580 resonance needs to be
+  slightly stronger as well, as many songs show a bit more "punch" on the real
+  chip and one way to get more of that is increasing resonance. 10-20 %
+  increment is a practical maximum.
+
+The upshot of all this is that for i386/x86-64 hardware, ReSID-FP's more
+complicated algorithms may not seem any more expensive than the original ReSID.
+For high-quality modes, it is virtually certain that ReSID-FP is actually
+faster.
+
+Meanwhile, emulation quality should be improved. If there are bugs, I'd like
+to know about them. If the filter sounds wrong, I might be able to improve it,
+too.
+
+Here are some problematic songs, to get a feel for what's left to do:
+
+- Markus Mueller: Mechanicus
+  * the distorted guitar effect is too distorted, but don't know how/why.
+
+- Galway: Wizball
+  * the initial lead punches through with too much distortion. The "toggle"
+    between the muffled and more intense sound is too hard, even if similar
+    things do occur on the chip.
+
+Undoubtedly, many more such examples will be found. However, samplings and such
+are really valueable only if they can be made on a chip that I have modelled
+for ReSID-FP. In practice I want to know about badly-playing chips, but might
+conclude that it actually plays alright. At any event, information about sound
+issues is welcome.
+
+alankila@bel.fi
