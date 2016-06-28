@@ -297,7 +297,10 @@ int rep386(int fv)
           that high frequency timers still work okay. This amount is different
           for interpreter and recompiler*/
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);
-        
+
+        if (trap)
+                cycles_end = cycles+1; /*Force the instruction to end after only one iteration when trap flag set*/        
+
         cpu_reps++;
         
         flags_rebuild();
