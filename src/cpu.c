@@ -75,6 +75,7 @@ int cpu_use_dynarec;
 uint64_t cpu_CR4_mask;
 
 int is286, is386;
+int israpidcad;
 
 uint64_t tsc = 0;
 
