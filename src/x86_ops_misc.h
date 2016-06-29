@@ -723,7 +723,15 @@ static int opLOADALL386(uint32_t fetchdat)
 {
 	uint32_t la_addr = es + EDI;
 
-	if (is486)  return ILLEGAL;
+	if (is486 || israpidcad)
+	{
+	        cpu_state.pc = oldpc;
+
+	//        fatal("Illegal instruction %08X\n", fetchdat);
+        	pclog("Illegal instruction %08X\n", fetchdat);
+	        x86illegal();
+	        return 0;
+	}
 
 	cr0 = readmeml(0, la_addr);
         flags = readmemw(0, la_addr + 4);
