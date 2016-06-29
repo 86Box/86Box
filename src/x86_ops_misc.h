@@ -723,6 +723,8 @@ static int opLOADALL386(uint32_t fetchdat)
 {
 	uint32_t la_addr = es + EDI;
 
+	if (is486)  return ILLEGAL;
+
 	cr0 = readmeml(0, la_addr);
         flags = readmemw(0, la_addr + 4);
         eflags = readmemw(0, la_addr + 6);

@@ -13,34 +13,35 @@ extern int cpu, cpu_manufacturer;
 /*386 class CPUs*/
 #define CPU_386SX  3
 #define CPU_386DX  4
-#define CPU_486SLC 5
-#define CPU_486DLC 6
+#define CPU_RAPIDCAD	5
+#define CPU_486SLC 6
+#define CPU_486DLC 7
 
 /*486 class CPUs*/
-#define CPU_i486SX  7
-#define CPU_Am486SX 8
-#define CPU_Cx486S  9
-#define CPU_i486DX  10
-#define CPU_Am486DX 11
-#define CPU_Cx486DX 12
-#define CPU_Cx5x86  13
+#define CPU_i486SX  8
+#define CPU_Am486SX 9
+#define CPU_Cx486S  10
+#define CPU_i486DX  11
+#define CPU_Am486DX 12
+#define CPU_Cx486DX 13
+#define CPU_Cx5x86  14
 
 /*586 class CPUs*/
-#define CPU_WINCHIP 14
-#define CPU_PENTIUM 15
-#define CPU_PENTIUMMMX 16
-#define CPU_Cx6x86 	17
-#define CPU_Cx6x86MX 	18
-#define CPU_Cx6x86L 	19
-#define CPU_CxGX1 	20
-#define CPU_K5 21
-#define CPU_5K86 22
-#define CPU_K6 23
+#define CPU_WINCHIP 15
+#define CPU_PENTIUM 16
+#define CPU_PENTIUMMMX 17
+#define CPU_Cx6x86 	18
+#define CPU_Cx6x86MX 	19
+#define CPU_Cx6x86L 	20
+#define CPU_CxGX1 	21
+#define CPU_K5 22
+#define CPU_5K86 23
+#define CPU_K6 24
 
 /*686 class CPUs*/
-#define CPU_PENTIUMPRO 24
-#define CPU_PENTIUM2 25
-#define CPU_PENTIUM2D 26
+#define CPU_PENTIUMPRO 25
+#define CPU_PENTIUM2 26
+#define CPU_PENTIUM2D 27
 
 #define MANU_INTEL 0
 #define MANU_AMD   1

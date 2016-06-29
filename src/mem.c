@@ -1647,7 +1647,7 @@ void mem_write_nulll(uint32_t addr, uint32_t val, void *p)
 void mem_updatecache()
 {
         flushmmucache();
-        if (!is386)
+        if (!is386 || israpidcad)
         {
                 cachesize=256;
                 memwaitstate=0;

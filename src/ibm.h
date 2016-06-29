@@ -194,6 +194,7 @@ uint32_t dr[8];
 //#define IOPLV86 ((!(msw&1)) || (CPL<=IOPL))
 extern int cycles;
 extern int cycles_lost;
+extern int israpidcad;
 extern int is486;
 extern uint8_t opcode;
 extern int insc;
