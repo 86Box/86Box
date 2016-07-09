@@ -386,7 +386,6 @@ enum
         GFX_PHOENIX_TRIO32, /*S3 732/Trio32 (Phoenix)*/
         GFX_PHOENIX_TRIO64, /*S3 764/Trio64 (Phoenix)*/
        	GFX_INCOLOR,	/* Hercules InColor */ 
-	GFX_NEW_CGA,
 	GFX_ET4000W32C,	/*Tseng ET4000/W32p (Cardex) */
 	GFX_COMPAQ_EGA,	/*Compaq EGA*/
 	GFX_SUPER_EGA,	/*Using Chips & Technologies SuperEGA BIOS*/
