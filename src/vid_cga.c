@@ -8,14 +8,13 @@
 #include "timer.h"
 #include "video.h"
 #include "vid_cga.h"
-#include "vid_cga_comp.h"
+#include "dosbox/vid_cga_comp.h"
 
-static int i_filt[8],q_filt[8];
+#define CGA_RGB 0
+#define CGA_COMPOSITE 1
 
-static uint8_t tarray[65536];
-
-int cga_brown;
-int cga_color_burst;
+#define COMPOSITE_OLD 0
+#define COMPOSITE_NEW 1
 
 static uint8_t crtcmask[32] = 
 {
@@ -48,7 +47,8 @@ void cga_out(uint16_t addr, uint8_t val, void *p)
                 }
                 return;
                 case 0x3D8:
-                if (((cga->cgamode ^ val) & 5) != 0) {
+                if (((cga->cgamode ^ val) & 5) != 0)
+                {
                         cga->cgamode = val;
                         update_cga16_color(cga);
                 }
@@ -80,9 +80,6 @@ void cga_write(uint32_t addr, uint8_t val, void *p)
 {
         cga_t *cga = (cga_t *)p;
 //        pclog("CGA_WRITE %04X %02X\n", addr, val);
-	/* Horrible hack, I know, but it's the only way to fix the 440FX BIOS filling the VRAM with garbage until Tom fixes the memory emulation. */
-	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF2F) && (romset == ROM_440FX))  { egawrites++; return; }
-	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF77) && (romset == ROM_440FX))  { egawrites++; return; }
         cga->vram[addr & 0x3fff] = val;
         cga->charbuffer[ ((int)(((cga->dispontime - cga->vidtime) * 2) / CGACONST)) & 0xfc] = val;
         cga->charbuffer[(((int)(((cga->dispontime - cga->vidtime) * 2) / CGACONST)) & 0xfc) | 1] = val;
@@ -125,18 +122,6 @@ void cga_recalctimings(cga_t *cga)
 	cga->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
 }
 
-static int ntsc_col[8][8]=
-{
-        {0,0,0,0,0,0,0,0}, /*Black*/
-        {0,0,1,1,1,1,0,0}, /*Blue*/
-        {1,0,0,0,0,1,1,1}, /*Green*/
-        {0,0,0,0,1,1,1,1}, /*Cyan*/
-        {1,1,1,1,0,0,0,0}, /*Red*/
-        {0,1,1,1,1,0,0,0}, /*Magenta*/
-        {1,1,0,0,0,0,1,1}, /*Yellow*/
-        {1,1,1,1,1,1,1,1}  /*White*/
-};
-
 void cga_poll(void *p)
 {
         cga_t *cga = (cga_t *)p;
@@ -149,11 +134,7 @@ void cga_poll(void *p)
         int cols[4];
         int col;
         int oldsc;
-        int y_buf[8] = {0, 0, 0, 0, 0, 0, 0, 0}, y_val, y_tot;
-        int i_buf[8] = {0, 0, 0, 0, 0, 0, 0, 0}, i_val, i_tot;
-        int q_buf[8] = {0, 0, 0, 0, 0, 0, 0, 0}, q_val, q_tot;
-        int r, g, b;
-	uint8_t *tline;
+
         if (!cga->linepos)
         {
                 cga->vidtime += cga->dispofftime;
@@ -307,21 +288,12 @@ void cga_poll(void *p)
                 if (cga->cgamode & 1) x = (cga->crtc[1] << 3) + 16;
                 else                  x = (cga->crtc[1] << 4) + 16;
 
-                if (cga_comp)
+                if (cga->composite)
                 {
-					tline = (uint8_t *) buffer32->line[cga->displine];
+			for (c = 0; c < x; c++)
+				buffer32->line[cga->displine][c] = buffer->line[cga->displine][c] & 0xf;
 
-					for (c = 0; c < x; c++)
-					{
-						tarray[c] = buffer->line[cga->displine][c] & 0xf;
-					}
-
-					Composite_Process(cga, 0, x >> 2, tarray);
-
-					for (c = 0; c < x; c++)
-					{
-						((uint32_t *) tline)[c] = ((uint32_t *) tarray)[c];
-					}
+			Composite_Process(cga, 0, x >> 2, buffer32->line[cga->displine]);
                 }
 
                 cga->sc = oldsc;
@@ -386,8 +358,7 @@ void cga_poll(void *p)
                         {
                                 cga->cgadispon = 0;
                                 cga->displine = 0;
-                                // cga->vsynctime = (cga->crtc[3] >> 4) + 1;
-				cga->vsynctime = 16;
+                                cga->vsynctime = 16;
                                 if (cga->crtc[7])
                                 {
                                         if (cga->cgamode & 1) x = (cga->crtc[1] << 3) + 16;
@@ -403,7 +374,7 @@ void cga_poll(void *p)
                                         }
                                         
 startblit();
-                                        if (cga_comp) 
+                                        if (cga->composite) 
                                            video_blit_memtoscreen(0, cga->firstline - 4, 0, (cga->lastline - cga->firstline) + 8, xsize, (cga->lastline - cga->firstline) + 8);
                                         else          
                                            video_blit_memtoscreen_8(0, cga->firstline - 4, xsize, (cga->lastline - cga->firstline) + 8);
@@ -445,7 +416,8 @@ endblit();
                         cga->sc &= 31;
                         cga->ma = cga->maback;
                 }
-                if (cga->cgadispon) cga->cgastat &= ~1;
+                if (cga->cgadispon)
+                        cga->cgastat &= ~1;
                 if ((cga->sc == (cga->crtc[10] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[10] & 31) >> 1)))) 
                         cga->con = 1;
                 if (cga->cgadispon && (cga->cgamode & 1))
@@ -458,28 +430,27 @@ endblit();
 
 void cga_init(cga_t *cga)
 {
+        cga->composite = 0;
 }
 
 void *cga_standalone_init()
 {
-        int c;
-        int cga_tint = -2;
+        int display_type;
         cga_t *cga = malloc(sizeof(cga_t));
         memset(cga, 0, sizeof(cga_t));
 
+        display_type = device_get_config_int("display_type");
+        cga->composite = (display_type != CGA_RGB);
+        cga->revision = device_get_config_int("composite_type");
+
         cga->vram = malloc(0x4000);
                 
-		cga_comp_init(cga);
+	cga_comp_init(cga);
         timer_add(cga_poll, &cga->vidtime, TIMER_ALWAYS_ENABLED, cga);
         mem_mapping_add(&cga->mapping, 0xb8000, 0x08000, cga_read, NULL, NULL, cga_write, NULL, NULL,  NULL, 0, cga);
         io_sethandler(0x03d0, 0x0010, cga_in, NULL, NULL, cga_out, NULL, NULL, cga);
-		
-		for (c = 0; c < 8192; c++)
-		{
-			((uint64_t *) tarray)[c] = 0;
-		}
 
-		overscan_x = overscan_y = 16;
+        overscan_x = overscan_y = 16;
 		
         return cga;
 }
@@ -499,26 +470,62 @@ void cga_speed_changed(void *p)
         cga_recalctimings(cga);
 }
 
-device_t cga_device =
+static device_config_t cga_config[] =
 {
-        "CGA (Old)",
-        0,
-        cga_standalone_init,
-        cga_close,
-        NULL,
-        cga_speed_changed,
-        NULL,
-        NULL
+        {
+                .name = "display_type",
+                .description = "Display type",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "RGB",
+                                .value = CGA_RGB
+                        },
+                        {
+                                .description = "Composite",
+                                .value = CGA_COMPOSITE
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = CGA_RGB
+        },
+        {
+                .name = "composite_type",
+                .description = "Composite type",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "Old",
+                                .value = COMPOSITE_OLD
+                        },
+                        {
+                                .description = "New",
+                                .value = COMPOSITE_NEW
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = COMPOSITE_OLD
+        },
+        {
+                .type = -1
+        }
 };
 
-device_t cga_new_device =
+device_t cga_device =
 {
-        "CGA (New)",
+        "CGA",
         0,
         cga_standalone_init,
         cga_close,
         NULL,
         cga_speed_changed,
         NULL,
-        NULL
+        NULL,
+        cga_config
 };

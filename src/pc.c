@@ -673,8 +673,6 @@ void loadconfig(char *fn)
 
 	force_43 = config_get_int(NULL, "force_43", 0);
 	enable_overscan = config_get_int(NULL, "enable_overscan", 0);
-        cga_color_burst = config_get_int(NULL, "cga_color_burst", 1);
-        cga_brown = config_get_int(NULL, "cga_brown", 1);
         enable_flash = config_get_int(NULL, "enable_flash", 1);
 
         enable_sync = config_get_int(NULL, "enable_sync", 0);
@@ -768,8 +766,6 @@ void saveconfig()
 
         config_set_int(NULL, "force_43", force_43);
         config_set_int(NULL, "enable_overscan", enable_overscan);
-        config_set_int(NULL, "cga_color_burst", cga_color_burst);
-        config_set_int(NULL, "cga_brown", cga_brown);
         config_set_int(NULL, "enable_flash", enable_flash);
         
         config_set_int(NULL, "enable_sync", enable_sync);

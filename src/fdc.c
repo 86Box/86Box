@@ -99,13 +99,11 @@ void fdc_reset()
 	fdc_set_skip_pulses(1, 0);
 	fdd_stepping_motor_on[0] = fdd_stepping_motor_on[1] = 0;
 	fdd_track_diff[0] = fdd_track_diff[1] = 0;
-#if 0
         if (!AT)
         {
                 fdc.rate = 2;
                 // fdc_update_rate();
         }
-#endif
 	fdc_state = FDC_STATE_NORMAL;
 //        pclog("Reset FDC\n");
 }

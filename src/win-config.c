@@ -172,12 +172,6 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                 h=GetDlgItem(hdlg, IDC_CHECK4);
                 SendMessage(h, BM_SETCHECK, cga_comp, 0);
 
-                h=GetDlgItem(hdlg, IDC_CHECKCBURST);
-                SendMessage(h, BM_SETCHECK, cga_color_burst, 0);
-
-                h=GetDlgItem(hdlg, IDC_CHECKBROWN);
-                SendMessage(h, BM_SETCHECK, cga_brown, 0);
-
                 h=GetDlgItem(hdlg, IDC_CHECKFORCE43);
                 SendMessage(h, BM_SETCHECK, force_43, 0);
 
@@ -339,12 +333,6 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 
                         h = GetDlgItem(hdlg, IDC_CHECKOVERSCAN);
                         enable_overscan = SendMessage(h, BM_GETCHECK, 0, 0);
-
-                        h = GetDlgItem(hdlg, IDC_CHECKCBURST);
-                        cga_color_burst=SendMessage(h, BM_GETCHECK, 0, 0);
-
-                        h = GetDlgItem(hdlg, IDC_CHECKBROWN);
-                        cga_brown=SendMessage(h, BM_GETCHECK, 0, 0);
 
                         h = GetDlgItem(hdlg, IDC_CHECKFLASH);
                         enable_flash=SendMessage(h, BM_GETCHECK, 0, 0);
