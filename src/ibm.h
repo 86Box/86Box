@@ -393,7 +393,7 @@ enum
         GFX_MIRO_VISION964, /*S3 Vision964 (Miro Crystal)*/
 	GFX_CL_GD5446,	/*Cirrus Logic CL-GD5446*/
 	GFX_VGAWONDERXL,	/*Compaq ATI VGA Wonder XL (28800-5)*/
-	GFX_WD90C11,	/*Paradise WD90C11*/
+	GFX_WD90C11,	/*Paradise WD90C11 Standalone*/
         GFX_OTI077,     /*Oak OTI-077*/
         GFX_MAX
 };
