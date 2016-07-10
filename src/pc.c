@@ -675,7 +675,7 @@ void loadconfig(char *fn)
 	enable_overscan = config_get_int(NULL, "enable_overscan", 0);
         enable_flash = config_get_int(NULL, "enable_flash", 1);
 
-        enable_sync = config_get_int(NULL, "enable_sync", 0);
+        enable_sync = config_get_int(NULL, "enable_sync", 1);
         mouse_always_serial = config_get_int(NULL, "mouse_always_serial", 0);
 
         window_w = config_get_int(NULL, "window_w", 0);

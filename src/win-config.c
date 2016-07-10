@@ -339,7 +339,6 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 
                         h = GetDlgItem(hdlg, IDC_CHECKSYNC);
                         enable_sync = SendMessage(h, BM_GETCHECK, 0, 0);
-			update_sync();
 
                         h = GetDlgItem(hdlg, IDC_CHECKSERIAL);
                         temp_always_serial = SendMessage(h, BM_GETCHECK, 0, 0);
