@@ -71,7 +71,6 @@ void nvr_onesec(void *p)
                 {
                         nvr_update_status = RTCUIP;
                         if (!enable_sync)  rtc_tick();
-                        getnvrtime();
                         nvr_dosave = 1;
                 }
         }
@@ -79,6 +78,7 @@ void nvr_onesec(void *p)
         {
                 if (!(nvrram[RTCREGB] & RTCSET))
                 {
+                        getnvrtime();
                         /* Clear update status. */
                         nvr_update_status = 0;
 
