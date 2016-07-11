@@ -43,6 +43,13 @@
 #define MAPVK_VK_TO_VSC 0
 #endif
 
+static int do_screenshot = 0;
+static int do_reset_cad = 0;
+static int do_resethard = 0;
+#ifndef RELEASE_BUILD
+static int do_breakpoint = 0;
+#endif
+
 static int save_window_pos = 0;
 uint64_t timer_freq;
 
@@ -747,6 +754,37 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                         TranslateMessage(&messages);
                         DispatchMessage(&messages);                        
                         // if ((pcem_key[KEY_LCONTROL] || pcem_key[KEY_RCONTROL]) && pcem_key[KEY_END] && mousecapture)
+	                if (pcem_key[0x58] && pcem_key[0x41] && do_screenshot)
+                	{
+				take_screenshot();
+				do_screenshot = 0;
+	                }
+
+	                if (pcem_key[0x58] && pcem_key[0x44] && do_reset_cad)
+        	        {
+	                        pause=1;
+               	        	Sleep(100);
+       	        	        resetpc_cad();
+        	                pause=0;
+				do_reset_cad = 0;
+	                }
+
+                	if (pcem_key[0x58] && pcem_key[0x43] && do_resethard)
+        	        {
+	                        pause=1;
+               	        	Sleep(100);
+       	        	        resetpchard();
+        	                pause=0;
+				do_resethard = 0;
+	                }
+
+#ifndef RELEASE_BUILD
+	                if (pcem_key[0x57] && pcem_key[0x58] && do_breakpoint)
+                	{
+				pclog("Log breakpoint\n");
+				do_breakpoint = 0;
+	                }
+#endif
 		}
 
                 quited=1;
@@ -1297,29 +1335,23 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
                 if (pcem_key[0x58] && pcem_key[0x41])
                 {
-			take_screenshot();
+			do_screenshot = 1;
                 }
 
                 if (pcem_key[0x58] && pcem_key[0x44])
                 {
-                        pause=1;
-               	        Sleep(100);
-       	                resetpc_cad();
-                        pause=0;
+                        do_reset_cad = 1;
                 }
 
                 if (pcem_key[0x58] && pcem_key[0x43])
                 {
-                        pause=1;
-               	        Sleep(100);
-       	                resetpchard();
-                        pause=0;
+                        do_resethard = 1;
                 }
 
 #ifndef RELEASE_BUILD
                 if (pcem_key[0x57] && pcem_key[0x58])
                 {
-			pclog("Log breakpoint\n");
+			do_breakpoint = 1;
                 }
 #endif
 

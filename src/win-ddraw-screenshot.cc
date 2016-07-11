@@ -71,6 +71,8 @@ void SaveBitmap(char *szFilename,HBITMAP hBitmap)
     BITMAPINFO          bmpInfo;
     BITMAPFILEHEADER    bmpFileHeader; 
 
+    char *szMessage;
+
     do{ 
 
         hdc=GetDC(NULL);
@@ -101,7 +103,8 @@ void SaveBitmap(char *szFilename,HBITMAP hBitmap)
 
         if((fp = fopen(szFilename,"wb"))==NULL)
         {
-            MessageBox( NULL, "Unable to Create Bitmap File", "Error", MB_OK|MB_ICONERROR);
+            sprintf(szMessage, "Unable to Create Bitmap File %s", szFilename);
+            MessageBox( NULL, szMessage, "Error", MB_OK|MB_ICONERROR);
             break;
         } 
 
