@@ -146,7 +146,7 @@ void writenvr(uint16_t addr, uint8_t val, void *priv)
 
                         if ((nvraddr < RTCREGA) || (nvraddr == RTCCENTURY))
                         {
-                                if ((nvraddr != 1) || (nvraddr != 3) || (nvraddr != 5))
+                                if ((nvraddr != 1) && (nvraddr != 3) && (nvraddr != 5))
                                 {
                                         if ((old != val) && !enable_sync)
                                         {
