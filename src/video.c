@@ -467,7 +467,7 @@ void take_screenshot()
 	if ((vid_api < 0) || (vid_api > 1))  return;
 	time(&now);
 	info = localtime(&now);
-	memset(fn, 0, 1024);
+	memset(screenshot_fn, 0, 1024);
 	pclog("Video API is: %i\n", vid_api);
 	if (vid_api == 1)
 	{
