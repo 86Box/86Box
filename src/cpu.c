@@ -75,6 +75,7 @@ int cpu_use_dynarec;
 uint64_t cpu_CR4_mask;
 
 int is286, is386;
+int israpidcad;
 
 uint64_t tsc = 0;
 
@@ -228,9 +229,9 @@ CPU cpus_i386[] =
         {"i386DX/25",    CPU_386DX, 2, 25000000, 1, 0, 0x0308, 0, 0, 0},
         {"i386DX/33",    CPU_386DX, 3, 33333333, 1, 0, 0x0308, 0, 0, 0},
         {"i386DX/40",    CPU_386DX, 4, 40000000, 1, 0, 0x0308, 0, 0, 0},
-        {"RapidCAD/25",  CPU_i486DX, 2,  25000000, 1, 0, 0x404, 0, 0, CPU_SUPPORTS_DYNAREC},
-        {"RapidCAD/33",  CPU_i486DX, 3,  33333333, 1, 0, 0x404, 0, 0, CPU_SUPPORTS_DYNAREC},
-        {"RapidCAD/40",  CPU_i486DX, 4,  40000000, 1, 0, 0x404, 0, 0, CPU_SUPPORTS_DYNAREC},
+        {"RapidCAD/25",  CPU_RAPIDCAD, 2,  25000000, 1, 0, 0x404, 0, 0, 0},
+        {"RapidCAD/33",  CPU_RAPIDCAD, 3,  33333333, 1, 0, 0x404, 0, 0, 0},
+        {"RapidCAD/40",  CPU_RAPIDCAD, 4,  40000000, 1, 0, 0x404, 0, 0, 0},
         {"",             -1,        0, 0, 0}
 };
 
@@ -292,7 +293,6 @@ CPU cpus_i486[] =
         {"iDX4/100",     CPU_i486DX,10, 100000000, 3, 33333333, 0x481, 0x481, 0, CPU_SUPPORTS_DYNAREC}, /*Is on some real Intel DX2s, limit here is pretty arbitary*/
         {"Pentium OverDrive/63",       CPU_PENTIUM,     6,  62500000, 3, 25000000, 0x1531, 0x1531, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
         {"Pentium OverDrive/83",       CPU_PENTIUM,     8,  83333333, 3, 33333333, 0x1532, 0x1532, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
-        {"i386DX/33",    CPU_386DX, 3, 33333333, 1, 0, 0x0308, 0, 0, 0},
         {"",             -1,        0, 0, 0}
 };
 
@@ -582,7 +582,8 @@ void cpu_set()
         is8086   = (cpu_s->cpu_type > CPU_8088);
         is286   = (cpu_s->cpu_type >= CPU_286);
         is386    = (cpu_s->cpu_type >= CPU_386SX);
-        is486    = (cpu_s->cpu_type >= CPU_i486SX) || (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC);
+	israpidcad = (cpu_s->cpu_type == CPU_RAPIDCAD);
+        is486    = (cpu_s->cpu_type >= CPU_i486SX) || (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_RAPIDCAD);
         hasfpu   = (cpu_s->cpu_type >= CPU_i486DX);
          cpu_iscyrix = (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_Cx486S || cpu_s->cpu_type == CPU_Cx486DX || cpu_s->cpu_type == CPU_Cx5x86 || cpu_s->cpu_type == CPU_Cx6x86 || cpu_s->cpu_type == CPU_Cx6x86MX || cpu_s->cpu_type == CPU_Cx6x86L || cpu_s->cpu_type == CPU_CxGX1);
         cpu_16bitbus = (cpu_s->cpu_type == CPU_386SX || cpu_s->cpu_type == CPU_486SLC);
@@ -798,6 +799,37 @@ void cpu_set()
                 timing_jmp_rm      = 12;
                 timing_jmp_pm      = 27;
                 timing_jmp_pm_gate = 45;
+                break;
+                
+                case CPU_RAPIDCAD:
+                timing_rr  = 1; /*register dest - register src*/
+                timing_rm  = 2; /*register dest - memory src*/
+                timing_mr  = 3; /*memory dest   - register src*/
+                timing_mm  = 3;
+                timing_rml = 2; /*register dest - memory src long*/
+                timing_mrl = 3; /*memory dest   - register src long*/
+                timing_mml = 3;
+                timing_bt  = 3-1; /*branch taken*/
+                timing_bnt = 1; /*branch not taken*/
+                timing_int = 4;
+                timing_int_rm       = 26;
+                timing_int_v86      = 82;
+                timing_int_pm       = 44;
+                timing_int_pm_outer = 71;
+                timing_iret_rm       = 15;
+                timing_iret_v86      = 36; /*unknown*/
+                timing_iret_pm       = 20;
+                timing_iret_pm_outer = 36;
+                timing_call_rm = 18;
+                timing_call_pm = 20;
+                timing_call_pm_gate = 35;
+                timing_call_pm_gate_inner = 69;
+                timing_retf_rm       = 13;
+                timing_retf_pm       = 17;
+                timing_retf_pm_outer = 35;
+                timing_jmp_rm      = 17;
+                timing_jmp_pm      = 19;
+                timing_jmp_pm_gate = 32;
                 break;
                 
                 case CPU_486SLC:

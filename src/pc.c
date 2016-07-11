@@ -511,7 +511,7 @@ void runpc()
                 if (win_title_update)
                 {
                         win_title_update=0;
-                        sprintf(s, "PCem v11 [Experimental] - %i%% - %s - %s - %s", fps, model_getname(), models[model].cpu[cpu_manufacturer].cpus[cpu].name, (!mousecapture) ? "Click to capture mouse" : "Press F12-F8 or middle button to release mouse");
+                        sprintf(s, "PCem v11 [Unofficial] - %i%% - %s - %s - %s", fps, model_getname(), models[model].cpu[cpu_manufacturer].cpus[cpu].name, (!mousecapture) ? "Click to capture mouse" : "Press F12-F8 or middle button to release mouse");
                         set_window_title(s);
                 }
                 done++;
@@ -673,11 +673,9 @@ void loadconfig(char *fn)
 
 	force_43 = config_get_int(NULL, "force_43", 0);
 	enable_overscan = config_get_int(NULL, "enable_overscan", 0);
-        cga_color_burst = config_get_int(NULL, "cga_color_burst", 1);
-        cga_brown = config_get_int(NULL, "cga_brown", 1);
         enable_flash = config_get_int(NULL, "enable_flash", 1);
 
-        enable_sync = config_get_int(NULL, "enable_sync", 0);
+        enable_sync = config_get_int(NULL, "enable_sync", 1);
         mouse_always_serial = config_get_int(NULL, "mouse_always_serial", 0);
 
         window_w = config_get_int(NULL, "window_w", 0);
@@ -768,8 +766,6 @@ void saveconfig()
 
         config_set_int(NULL, "force_43", force_43);
         config_set_int(NULL, "enable_overscan", enable_overscan);
-        config_set_int(NULL, "cga_color_burst", cga_color_burst);
-        config_set_int(NULL, "cga_brown", cga_brown);
         config_set_int(NULL, "enable_flash", enable_flash);
         
         config_set_int(NULL, "enable_sync", enable_sync);

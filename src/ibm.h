@@ -194,6 +194,7 @@ uint32_t dr[8];
 //#define IOPLV86 ((!(msw&1)) || (CPL<=IOPL))
 extern int cycles;
 extern int cycles_lost;
+extern int israpidcad;
 extern int is486;
 extern uint8_t opcode;
 extern int insc;
@@ -286,7 +287,7 @@ char discfns[2][256];
 int driveempty[2];
 
 #define MDA ((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_INCOLOR) && (romset<ROM_TANDY || romset>=ROM_IBMAT))
-#define VGA ((gfxcard>=GFX_TVGA || romset==ROM_ACER386) && gfxcard!=GFX_INCOLOR && gfxcard!=GFX_NEW_CGA && gfxcard!=GFX_COMPAQ_EGA && gfxcard!=GFX_SUPER_EGA && romset!=ROM_PC1640 && romset!=ROM_PC1512 && romset!=ROM_TANDY && romset!=ROM_PC200)
+#define VGA ((gfxcard>=GFX_TVGA || romset==ROM_ACER386) && gfxcard!=GFX_INCOLOR && gfxcard!=GFX_COMPAQ_EGA && gfxcard!=GFX_SUPER_EGA && romset!=ROM_PC1640 && romset!=ROM_PC1512 && romset!=ROM_TANDY && romset!=ROM_PC200)
 #define PCJR (romset == ROM_IBMPCJR)
 #define AMIBIOS (romset==ROM_AMI386 || romset==ROM_AMI486 || romset == ROM_WIN486)
 
@@ -385,7 +386,6 @@ enum
         GFX_PHOENIX_TRIO32, /*S3 732/Trio32 (Phoenix)*/
         GFX_PHOENIX_TRIO64, /*S3 764/Trio64 (Phoenix)*/
        	GFX_INCOLOR,	/* Hercules InColor */ 
-	GFX_NEW_CGA,
 	GFX_ET4000W32C,	/*Tseng ET4000/W32p (Cardex) */
 	GFX_COMPAQ_EGA,	/*Compaq EGA*/
 	GFX_SUPER_EGA,	/*Using Chips & Technologies SuperEGA BIOS*/
@@ -393,7 +393,7 @@ enum
         GFX_MIRO_VISION964, /*S3 Vision964 (Miro Crystal)*/
 	GFX_CL_GD5446,	/*Cirrus Logic CL-GD5446*/
 	GFX_VGAWONDERXL,	/*Compaq ATI VGA Wonder XL (28800-5)*/
-	GFX_WD90C11,	/*Paradise WD90C11*/
+	GFX_WD90C11,	/*Paradise WD90C11 Standalone*/
         GFX_OTI077,     /*Oak OTI-077*/
         GFX_MAX
 };

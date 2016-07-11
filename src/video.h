@@ -75,10 +75,6 @@ extern int enable_overscan;
 extern int overscan_x, overscan_y;
 /* Forcibly stretch emulated video output to 4:3 or not. */
 extern int force_43;
-/* Enable CGA brown circuitry. */
-extern int cga_brown;
-/* Enable CGA color burst. */
-extern int cga_color_burst;
 /* Enable disk activity flash. */
 extern int enable_flash;
 

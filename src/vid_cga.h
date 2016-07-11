@@ -27,6 +27,9 @@ typedef struct cga_t
         uint8_t *vram;
         
         uint8_t charbuffer[256];
+
+	int revision;
+	int composite;
 } cga_t;
 
 void    cga_init(cga_t *cga);
@@ -37,5 +40,4 @@ uint8_t cga_read(uint32_t addr, void *p);
 void    cga_recalctimings(cga_t *cga);
 void    cga_poll(void *p);
 
-extern device_t cga_new_device;
 extern device_t cga_device;

@@ -4,6 +4,7 @@
 #include "nvr.h"
 #include "pic.h"
 #include "timer.h"
+#include "rtc.h"
 
 int oldromset;
 int nvrmask=63;
@@ -14,230 +15,16 @@ int nvr_dosave = 0;
 
 static int nvr_onesec_time = 0, nvr_onesec_cnt = 0;
 
-int enable_sync = 0;
-
-#define second	internal_time[0]
-#define minute	internal_time[1]
-#define hour	internal_time[2]
-#define day	internal_time[3]
-#define month	internal_time[4]
-#define year	internal_time[5]
-int internal_time[6];
-int days_in_month[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-
-static int is_leap(int org_year)
-{
-	if (org_year % 400 == 0)  return 1;
-	if (org_year % 100 == 0)  return 0;
-	if (org_year % 4 == 0)  return 1;
-	return 0;
-}
-
-static int get_days(int org_month, int org_year)
-{
-	if (org_month != 2)
-	{
-		return days_in_month[org_month];
-	}
-	else
-	{
-		return is_leap(org_year) ? 29 : 28;
-	}
-}
-
-static int convert_to_bcd(int number)
-{
-	int n1, n2;
-	n1 = number % 10;
-	n2 = number - n1;
-	n2 /= 10;
-	n2 <<= 4;
-	return (n2 | n1);
-}
-
-static int convert_from_bcd(int number)
-{
-	int n1, n2;
-	n1 = number & 0xF;
-	n2 = number >> 4;
-	n2 *= 10;
-	return (n2 + n1);
-}
-
-static int final_form(int isbcd, int number)
-{
-	return isbcd ? convert_to_bcd(number) : number;
-}
-
-static int original_form(int isbcd, int number)
-{
-	return isbcd ? convert_from_bcd(number) : number;
-}
-
-static void nvr_recalc_clock()
-{
-	if (second == 60)
-	{
-		second = 0;
-		minute++;
-	}
-	if (minute == 60)
-	{
-		minute = 0;
-		hour++;
-	}
-	if (hour == 24)
-	{
-		hour = 0;
-		day++;
-	}
-	if (day == (get_days(month, year) + 1))
-	{
-		day = 1;
-		month++;
-	}
-	if (month == 13)
-	{
-		month = 1;
-		year++;
-	}
-	nvr_dosave = 1;
-}
-
-static void nvr_update_internal_clock()
-{
-	second++;
-	nvr_recalc_clock();
-}
-
-void nvr_add_10sec()
-{
-	time_sleep(10000);
-	if (!enable_sync)
-	{
-		second+=10;
-		nvr_recalc_clock();
-	}
-}
-
-static int to_12_hour(int org_hour)
-{
-	int hour2 = org_hour;
-	hour2 %= 12;
-	if (!hour2)  hour2 = 12;
-	return hour2;
-}
-
-static int from_12_hour(int org_hour)
-{
-	int hour2 = org_hour & 0x7F;
-	if (hour2 == 12)  hour2 = 0;
-	if (hour & 0x80)  hour2 += 12;
-	return hour2;
-}
-
-static int week_day()
-{
-	int day_of_month = day;
-	int month2 = month;
-	int year2 = year % 100;
-	int century = ((year - year2) / 100) % 4;
-	int sum = day_of_month + month2 + year2 + century;
-	/* (sum mod 7) gives 0 for Saturday, we need it for Monday, so +5 */
-	int raw_wd = ((sum + 5) % 7);
-	/* +1 so 1 = Monday, 7 = Sunday */
-	return raw_wd + 1;
-}
-
-/* Called on every get time. */
-static void set_registers()
-{
-	int is24hour = (nvrram[0xB] & 2) ? 1 : 0;
-	int isbcd = (nvrram[0xB] & 4) ? 0 : 1;
-
-	uint8_t baknvr[10];
-
-	memcpy(baknvr,nvrram,10);
-
-	if (AMSTRAD)
-	{
-		is24hour = 1;
-		isbcd = 1;
-	}
-
-	nvrram[0] = final_form(isbcd, second);
-	nvrram[2] = final_form(isbcd, minute);
-	nvrram[4] = is24hour ? final_form(isbcd, hour) : final_form(isbcd, to_12_hour(hour));
-	nvrram[6] = week_day();
-	nvrram[7] = final_form(isbcd, day);
-	nvrram[8] = final_form(isbcd, month);
-	nvrram[9] = final_form(isbcd, (year % 100));
-
-        if (baknvr[0] != nvrram[0] ||
-            baknvr[2] != nvrram[2] ||
-            baknvr[4] != nvrram[4] ||
-            baknvr[6] != nvrram[6] ||
-            baknvr[7] != nvrram[7] ||
-            baknvr[8] != nvrram[8] ||
-            baknvr[9] != nvrram[9])
-		nvrram[0xA]|=0x80;
-}
-
-/* Called on NVR load and write. */
-static void get_registers()
-{
-	int is24hour = (nvrram[0xB] & 2) ? 1 : 0;
-	int isbcd = (nvrram[0xB] & 4) ? 0 : 1;
-
-	int temp_hour = 0;
-
-	if (AMSTRAD)
-	{
-		is24hour = 1;
-		isbcd = 1;
-	}
-
-	second = original_form(isbcd, nvrram[0]);
-	minute = original_form(isbcd, nvrram[2]);
-	hour = is24hour ? original_form(isbcd, nvrram[4]) : from_12_hour(original_form(isbcd, nvrram[4]));
-	day = original_form(isbcd, nvrram[7]);
-	month = original_form(isbcd, nvrram[8]);
-	year = original_form(isbcd, nvrram[9]) + 1900;
-}
-
 void getnvrtime()
 {
-	if (enable_sync)
-	{
-		/* Get time from host. */
-		time_get(nvrram);
-	}
-	else
-	{
-		/* Get time from internal clock. */
-		set_registers();
-	}
-}
-
-void update_sync()
-{
-	if (enable_sync)
-	{
-		/* Get time from host. */
-		time_get(nvrram);
-	}
-	else
-	{
-		/* Save time to registers but keep it as is. */
-		get_registers();
-	}
+        time_get(nvrram);
 }
 
 void nvr_recalc()
 {
         int c;
         int newrtctime;
-        c=1<<((nvrram[0xA]&0xF)-1);
+        c=1<<((nvrram[RTCREGA]&(RTCRS0|RTCRS1|RTCRS2|RTCRS3))-1);
         newrtctime=(int)(RTCCONST * c * (1 << TIMER_SHIFT));
         if (rtctime>newrtctime) rtctime=newrtctime;
 }
@@ -245,42 +32,80 @@ void nvr_recalc()
 void nvr_rtc(void *p)
 {
         int c;
-        if (!(nvrram[0xA]&0xF))
+        if (!(nvrram[RTCREGA]&(RTCRS0|RTCRS1|RTCRS2|RTCRS3)))
         {
                 rtctime=0x7fffffff;
                 return;
         }
-        c=1<<((nvrram[0xA]&0xF)-1);
+        c=1<<((nvrram[RTCREGA]&(RTCRS0|RTCRS1|RTCRS2|RTCRS3))-1);
         rtctime += (int)(RTCCONST * c * (1 << TIMER_SHIFT));
 //        pclog("RTCtime now %f\n",rtctime);
-        nvrram[0xC] |= 0x40;
-        if (nvrram[0xB]&0x40)
+        nvrram[RTCREGC] |= RTCPF;
+        if (nvrram[RTCREGB]&RTCPIE)
         {
-                nvrram[0xC]|=0x80;
+                nvrram[RTCREGC]|=RTCIRQF;
                 if (AMSTRAD) picint(2);
                 else         picint(0x100);
 //                pclog("RTC int\n");
         }
 }
 
+int nvr_update_status = 0;
+
+#define ALARM_DONTCARE	0xc0
+
+int nvr_check_alarm(int nvraddr)
+{
+        return (nvrram[nvraddr + 1] == nvrram[nvraddr] || (nvrram[nvraddr + 1] & ALARM_DONTCARE) == ALARM_DONTCARE);
+}
+
 void nvr_onesec(void *p)
 {
         nvr_onesec_cnt++;
-        if (nvr_onesec_cnt >= 100)
+        if (nvr_onesec_cnt >= 32768)
         {
                 nvr_onesec_cnt = 0;
-		/* If sync is disabled, move internal clock ahead by 1 second. */
-		if (!enable_sync)  nvr_update_internal_clock();
-                nvrram[0xC] |= 0x10;
-                if (nvrram[0xB] & 0x10)
+
+                /* If sync is disabled, move internal clock ahead by 1 second. */
+                if (!(nvrram[RTCREGB] & RTCSET))
                 {
-                        nvrram[0xC] |= 0x80;
-                        if (AMSTRAD) picint(2);
-                        else         picint(0x100);
+                        nvr_update_status = RTCUIP;
+                        if (!enable_sync)  rtc_tick();
+                        nvr_dosave = 1;
                 }
-//                pclog("RTC onesec\n");
         }
-        nvr_onesec_time += (int)(10000 * TIMER_USEC);
+        else if (nvr_onesec_cnt == 73)	/* 73 of our cycles means 244+1984 us = update in progress time per the specification. */
+        {
+                if (!(nvrram[RTCREGB] & RTCSET))
+                {
+                        getnvrtime();
+                        /* Clear update status. */
+                        nvr_update_status = 0;
+
+                        if (nvr_check_alarm(RTCSECONDS) && nvr_check_alarm(RTCMINUTES) && nvr_check_alarm(RTCHOURS))
+                        {
+                                nvrram[RTCREGC] |= RTCAF;
+                                if (nvrram[RTCREGB] & RTCAIE)
+                                {
+                                        nvrram[RTCREGC] |= RTCIRQF;
+	        	                if (AMSTRAD) picint(2);
+        		                else         picint(0x100);
+                                }
+                        }
+
+                        /* The flag and interrupt should be issued on update ended, not started. */
+                        nvrram[RTCREGC] |= RTCUF;
+                        if (nvrram[RTCREGB] & RTCUIE)
+                        {
+                                nvrram[RTCREGC] |= RTCIRQF;
+                                if (AMSTRAD) picint(2);
+                                else         picint(0x100);
+                        }
+//                pclog("RTC onesec\n");
+                }
+        }
+        /* This is correct! The real RTC's one second timer operates at 32768 Hz, not 100 Hz! */
+        nvr_onesec_time += (int)((1000000.0 / 32768.0) * TIMER_USEC);
 }
 
 void writenvr(uint16_t addr, uint8_t val, void *priv)
@@ -289,44 +114,47 @@ void writenvr(uint16_t addr, uint8_t val, void *priv)
 //        printf("Write NVR %03X %02X %02X %04X:%04X %i\n",addr,nvraddr,val,cs>>4,pc,ins);
         if (addr&1)
         {
+                if (nvraddr==RTCREGC || nvraddr==RTCREGD)  return; /* Registers C and D are read-only. There's no reason to continue. */
 //                if (nvraddr == 0x33) pclog("NVRWRITE33 %02X %04X:%04X %i\n",val,CS,pc,ins);
-		old = nvrram[nvraddr];
-                if (nvraddr >= 0xe && nvrram[nvraddr] != val) 
+                if (nvraddr > RTCREGD && nvrram[nvraddr] != val)
                    nvr_dosave = 1;
-		// if (nvraddr==0xB)  update_reg_0B(val);
-		if (nvraddr!=0xC && nvraddr!=0xD) nvrram[nvraddr]=val;
+                
+		old = nvrram[nvraddr];
+                nvrram[nvraddr]=val;
 
-		/* If not syncing the time with the host, we need to update our internal clock on write. */
-		if (!enable_sync)
-		{
-			switch(nvraddr)
-			{
-				case 0:
-				case 2:
-				case 4:
-				case 6:
-				case 7:
-				case 8:
-				case 9:
-					if (old != val)
-					{
-						get_registers();
-						nvr_dosave = 1;
-					}
-					return;
-			}
-		}
-
-                if (nvraddr==0xA)
+                if (nvraddr==RTCREGA)
                 {
 //                        pclog("NVR rate %i\n",val&0xF);
-                        if (val&0xF)
+                        if (val&(RTCRS0|RTCRS1|RTCRS2|RTCRS3))
                         {
-                                c=1<<((val&0xF)-1);
+                                c=1<<((val&(RTCRS0|RTCRS1|RTCRS2|RTCRS3))-1);
                                 rtctime += (int)(RTCCONST * c * (1 << TIMER_SHIFT));
                         }
                         else
                            rtctime = 0x7fffffff;
+                }
+		else
+		{
+                        if (nvraddr==RTCREGB)
+                        {
+                                if (((old ^ val) & RTCSET) && (val & RTCSET))
+                                {
+                                        nvrram[RTCREGA] &= ~RTCUIP;             /* This has to be done according to the datasheet. */
+                                        nvrram[RTCREGB] &= ~RTCUIE;             /* This also has to happen per the specification. */
+                                }
+                        }
+
+                        if ((nvraddr < RTCREGA) || (nvraddr == RTCCENTURY))
+                        {
+                                if ((nvraddr != 1) && (nvraddr != 3) && (nvraddr != 5))
+                                {
+                                        if ((old != val) && !enable_sync)
+                                        {
+                                                time_update(nvrram, nvraddr);
+                                                nvr_dosave = 1;
+                                        }
+                                }
+                        }
                 }
         }
         else        nvraddr=val&nvrmask;
@@ -338,20 +166,14 @@ uint8_t readnvr(uint16_t addr, void *priv)
 //        printf("Read NVR %03X %02X %02X %04X:%04X\n",addr,nvraddr,nvrram[nvraddr],cs>>4,pc);
         if (addr&1)
         {
-                if (nvraddr<=0xA) getnvrtime();
-                if (nvraddr==0xD) nvrram[0xD]|=0x80;
-                if (nvraddr==0xA)
-                {
-                        temp=nvrram[0xA];
-                        nvrram[0xA]&=~0x80;
-                        return temp;
-                }
-                if (nvraddr==0xC)
+                if (nvraddr==RTCREGA) return ((nvrram[RTCREGA] & 0x7F) | nvr_update_status);
+                if (nvraddr==RTCREGD) nvrram[RTCREGD]|=RTCVRT;
+                if (nvraddr==RTCREGC)
                 {
                         if (AMSTRAD) picintc(2);
                         else         picintc(0x100);
-                        temp=nvrram[0xC];
-                        nvrram[0xC]=0;
+                        temp=nvrram[RTCREGC];
+                        nvrram[RTCREGC]=0; /* All flags in register C are unused (always 0) or cleared on read */
                         return temp;
                 }
 //                if (AMIBIOS && nvraddr==0x36) return 0;
@@ -379,7 +201,7 @@ void loadnvr()
                 case ROM_IBMPS1_2121: f = romfopen("nvr/ibmps1_2121.nvr", "rb"); nvrmask = 127; break;
                 case ROM_CMDPC30:     f = romfopen("nvr/cmdpc30.nvr",     "rb"); nvrmask = 127; break;
                 case ROM_AMI286:      f = romfopen("nvr/ami286.nvr",      "rb"); nvrmask = 127; break;
-		case ROM_AWARD286:    f = romfopen("nvr/award286.nvr",    "rb"); nvrmask = 127; break;
+                case ROM_AWARD286:    f = romfopen("nvr/award286.nvr",    "rb"); nvrmask = 127; break;
                 case ROM_DELL200:     f = romfopen("nvr/dell200.nvr",     "rb"); nvrmask = 127; break;
                 case ROM_IBMAT386:    f = romfopen("nvr/at386.nvr",       "rb"); nvrmask = 127; break;
                 case ROM_DESKPRO_386: f = romfopen("nvr/deskpro386.nvr",  "rb"); break;
@@ -413,19 +235,22 @@ void loadnvr()
         if (!f)
         {
                 memset(nvrram,0xFF,128);
+                if (!enable_sync)
+                {
+                        nvrram[RTCSECONDS] = nvrram[RTCMINUTES] = nvrram[RTCHOURS] = 0;
+                        nvrram[RTCDOM] = nvrram[RTCMONTH] = 1;
+                        nvrram[RTCYEAR] = BCD(80);
+                        nvrram[RTCCENTURY] = BCD(19);
+                        nvrram[RTCREGB]=RTC2412;
+                }
                 return;
         }
         fread(nvrram,128,1,f);
-	if (!(feof(f)))
-		fread(internal_time,6,4,f);
-	else
-	{
-		if (!enable_sync)  get_registers();
-	}
+        if (!enable_sync)  time_update(nvrram, 0xFF);        /* Update the internal clock state based on the NVR registers. */
         fclose(f);
-        nvrram[0xA]=6;
-        nvrram[0xB]=0;
-        c=1<<((6&0xF)-1);
+        nvrram[RTCREGA]=(RTCRS1|RTCRS2);
+        nvrram[RTCREGB]=RTC2412;
+        c=1<<((nvrram[RTCREGA]&(RTCRS0|RTCRS1|RTCRS2|RTCRS3))-1);
         rtctime += (int)(RTCCONST * c * (1 << TIMER_SHIFT));
 }
 void savenvr()
@@ -443,7 +268,7 @@ void savenvr()
                 case ROM_IBMPS1_2121: f = romfopen("nvr/ibmps1_2121.nvr", "wb"); break;
                 case ROM_CMDPC30:     f = romfopen("nvr/cmdpc30.nvr",     "wb"); break;                
                 case ROM_AMI286:      f = romfopen("nvr/ami286.nvr",      "wb"); break;
-		case ROM_AWARD286:    f = romfopen("nvr/award286.nvr",    "wb"); break;
+                case ROM_AWARD286:    f = romfopen("nvr/award286.nvr",    "wb"); break;
                 case ROM_DELL200:     f = romfopen("nvr/dell200.nvr",     "wb"); break;
                 case ROM_IBMAT386:    f = romfopen("nvr/at386.nvr",       "wb"); break;
                 case ROM_DESKPRO_386: f = romfopen("nvr/deskpro386.nvr",  "wb"); break;
@@ -474,10 +299,7 @@ void savenvr()
                 case ROM_KN97:        f = romfopen("nvr/kn97.nvr",        "wb"); break;
                 default: return;
         }
-	/* If sync is disabled, save internal clock to registers. */
-	if (!enable_sync)  set_registers();
         fwrite(nvrram,128,1,f);
-	fwrite(internal_time,6,4,f);
         fclose(f);
 }
 

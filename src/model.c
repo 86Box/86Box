@@ -441,6 +441,7 @@ void at_batman_init()
 	sio_init(1);
         fdc37c665_init();
         intel_batman_init();
+        device_add(&intel_flash_bxt_ami_device);
 	if (cdrom_channel >= 4)  ide_ter_init();
 }
 
@@ -466,7 +467,7 @@ void at_plato_init()
 	fdc37c665_init();
 	/* It seems it uses the same interface as Batman. */
         intel_batman_init();
-        // device_add(&intel_flash_bxt_ami_device);
+        device_add(&intel_flash_bxt_ami_device);
 	if (cdrom_channel >= 4)  ide_ter_init();
 }
 

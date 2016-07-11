@@ -286,8 +286,6 @@ static void ddraw_fs_blit_memtoscreen_8(int x, int y, int w, int h)
                         for (xx = 0; xx < w; xx++)
 			{
                             p[xx] = pal_lookup[buffer->line[y + yy][x + xx]];
-			    /* If brown circuity is disabled, double the green component. */
-			    if ((buffer->line[y + yy][x + xx] == 0x16) && !cga_brown)  p[xx] += (p[xx] & 0xff00);
 			}
                 }
         }

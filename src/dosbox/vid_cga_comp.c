@@ -5,13 +5,10 @@
 #include <stdint.h>
 #include <math.h>
 
-#include "ibm.h"
-#include "device.h"
-#include "io.h"
-#include "mem.h"
-#include "timer.h"
-#include "video.h"
-#include "vid_cga.h"
+#include "../ibm.h"
+#include "../device.h"
+#include "../mem.h"
+#include "../vid_cga.h"
 #include "vid_cga_comp.h"
 
 int CGA_Composite_Table[1024];
@@ -145,23 +142,7 @@ void update_cga16_color(cga_t *cga) {
         video_bi = (int) (bi*iq_adjust_i + bq*iq_adjust_q);
         video_bq = (int) (-bi*iq_adjust_q + bq*iq_adjust_i);
         video_sharpness = (int) (sharpness*256/100);
-
-#if 0
-	df = fopen("CGA_Composite_Table.dmp", "wb");
-	fwrite(CGA_Composite_Table, 1024, sizeof(int), df);
-	fclose(df);
-#endif
 }
-
-#if 0
-void configure_comp(double h, uint8_t n, uint8_t bw, uint8_t b1)
-{
-	hue_offset = h;
-	new_cga = n;
-	is_bw = bw;
-	is_bpp1 = b1;
-}
-#endif
 
 static Bit8u byte_clamp(int v) {
         v >>= 13;
@@ -216,7 +197,7 @@ Bit8u * Composite_Process(cga_t *cga, Bit8u border, Bit32u blocks/*, bool double
         for (x = 0; x < 5; ++x)
                 OUT(b[x&3]);
 
-        if ((cga->cgamode & 4) != 0 || !cga_color_burst) {
+        if ((cga->cgamode & 4) != 0) {
                 // Decode
                 int* i = temp + 5;
                 Bit32u* srgb = (Bit32u *)TempLine;
@@ -255,18 +236,6 @@ Bit8u * Composite_Process(cga_t *cga, Bit8u border, Bit32u blocks/*, bool double
         }
 #undef COMPOSITE_CONVERT
 #undef OUT
-
-#if 0
-	df = fopen("temp.dmp", "ab");
-	fwrite(temp, SCALER_MAXWIDTH + 10, sizeof(int), df);
-	fclose(df);
-	df = fopen("atemp.dmp", "ab");
-	fwrite(atemp, SCALER_MAXWIDTH + 2, sizeof(int), df);
-	fclose(df);
-	df = fopen("btemp.dmp", "ab");
-	fwrite(btemp, SCALER_MAXWIDTH + 2, sizeof(int), df);
-	fclose(df);
-#endif
 
         return TempLine;
 }
@@ -343,7 +312,7 @@ void DecreaseSharpness(cga_t *cga)
 
 void cga_comp_init(cga_t *cga)
 {
-	new_cga = (gfxcard == GFX_NEW_CGA);
+	new_cga = cga->revision;
 
 	/* Making sure this gets reset after reset. */
 	brightness = 0;
