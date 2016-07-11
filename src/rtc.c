@@ -185,18 +185,19 @@ static void time_internal(struct tm **time_var)
         (*time_var)->tm_year = internal_clock.year - 1900;
 }
 
+time_t cur_time;
+struct tm* cur_time_tm;
+
 /* Periodic RTC update function
    See also: nvr_onesec() in nvr.c
  */
 void time_get(char *nvrram)
 {
-        time_t cur_time;
-        struct tm* cur_time_tm;
         int dow, mon, year;
 
         if (enable_sync)
         {
-		cur_time = time(NULL);
+		time(&cur_time);
 
                 /* Mingw doesn't support localtime_r */
                 #if __MINGW32__

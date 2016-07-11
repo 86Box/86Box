@@ -458,36 +458,40 @@ void take_screenshot()
 {
 }
 #else
+time_t now;
+struct tm *info;
+char screenshot_fn[1024];
+
 void take_screenshot()
 {
-	char fn[1024];
-	time_t now = time(0);
 	if ((vid_api < 0) || (vid_api > 1))  return;
+	time(&now);
+	info = localtime(&now);
 	memset(fn, 0, 1024);
 	pclog("Video API is: %i\n", vid_api);
 	if (vid_api == 1)
 	{
-		strftime(fn, 1024, "screenshots/%Y%m%d_%H%M%S.png", localtime(&now));
+		strftime(screenshot_fn, 1024, "screenshots\\%Y%m%d_%H%M%S.png", info);
 		if (video_fullscreen)
 		{
-			d3d_fs_take_screenshot(fn);
+			d3d_fs_take_screenshot(screenshot_fn);
 		}
 		else
 		{
 			pclog("Direct 3D...\n");
-			d3d_take_screenshot(fn);
+			d3d_take_screenshot(screenshot_fn);
 		}
 	}
 	else if (vid_api == 0)
 	{
-		strftime(fn, 1024, "screenshots/%Y%m%d_%H%M%S.bmp", localtime(&now));
+		strftime(fn, 1024, "screenshots\\%Y%m%d_%H%M%S.bmp", info);
 		if (video_fullscreen)
 		{
-			ddraw_fs_take_screenshot(fn);
+			ddraw_fs_take_screenshot(screenshot_fn);
 		}
 		else
 		{
-			ddraw_take_screenshot(fn);
+			ddraw_take_screenshot(screenshot_fn);
 		}
 	}
 }
