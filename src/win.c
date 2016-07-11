@@ -792,6 +792,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         TerminateThread(mainthreadh,0);
 //        pclog("Quited? %i\n",quited);
 //        pclog("Closepc\n");
+        savenvr();
         if (save_window_pos && window_remember)
                 saveconfig();
          closepc();
@@ -957,6 +958,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         case IDM_FILE_RESET:
                         pause=1;
                         Sleep(100);
+                        savenvr();
                         resetpc();
                         pause=0;
                         break;
@@ -964,12 +966,14 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         case IDM_FILE_HRESET:
                         pause=1;
                         Sleep(100);
+                        savenvr();
                         resetpchard();
                         pause=0;
                         break;
                         case IDM_FILE_RESET_CAD:
                         pause=1;
                         Sleep(100);
+                        savenvr();
                         resetpc_cad();
                         pause=0;
                         break;

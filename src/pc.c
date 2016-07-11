@@ -91,6 +91,7 @@ void fatal(const char *format, ...)
    vprintf(format, ap);
    va_end(ap);
    fflush(stdout);
+   savenvr();
    dumppic();
    dumpregs();
    fflush(stdout);

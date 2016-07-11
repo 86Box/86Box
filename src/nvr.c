@@ -71,7 +71,6 @@ void nvr_onesec(void *p)
                 {
                         nvr_update_status = RTCUIP;
                         if (!enable_sync)  rtc_tick();
-                        nvr_dosave = 1;
                 }
         }
         else if (nvr_onesec_cnt == 73)	/* 73 of our cycles means 244+1984 us = update in progress time per the specification. */

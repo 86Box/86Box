@@ -85,7 +85,6 @@ static void rtc_recalc()
                 internal_clock.mon = 1;
                 internal_clock.year++;
         }
-        nvr_dosave = 1;
 }
 
 /* Called when ticking the second */
