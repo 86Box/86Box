@@ -484,7 +484,7 @@ void take_screenshot()
 	}
 	else if (vid_api == 0)
 	{
-		strftime(fn, 1024, "screenshots\\%Y%m%d_%H%M%S.bmp", info);
+		strftime(screenshot_fn, 1024, "screenshots\\%Y%m%d_%H%M%S.bmp", info);
 		if (video_fullscreen)
 		{
 			ddraw_fs_take_screenshot(screenshot_fn);
