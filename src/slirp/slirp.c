@@ -161,6 +161,28 @@ debug_init("slirplog.txt",DEBUG_DEFAULT);
     inet_aton(CTL_SPECIAL, &special_addr);
 	alias_addr.s_addr = special_addr.s_addr | htonl(CTL_ALIAS);
 	getouraddr();
+
+	struct in_addr myaddr;
+	int rc;
+	inet_aton("10.0.2.15",&myaddr);
+	//YES THIS NEEDS TO PULL FROM A CONFIG FILE... but for now.
+	rc=slirp_redir(0,42323,myaddr,23);
+	pclog("ne2000 slirp redir returned %d on port 42323 -> 23\n",rc);
+	rc=slirp_redir(0,42380,myaddr,80);
+	pclog("ne2000 slirp redir returned %d on port 42380 -> 80\n",rc);
+	rc=slirp_redir(0,42443,myaddr,443);
+	pclog("ne2000 slirp redir returned %d on port 42443 -> 443\n",rc);
+	rc=slirp_redir(0,42322,myaddr,22);
+	pclog("ne2000 slirp redir returned %d on port 42322 -> 22\n",rc);
+
+	//Kali
+	rc=slirp_redir(1,2213,myaddr,2213);
+	pclog("ne2000 slirp redir returned %d on port 2213 -> 2213\n",rc);
+	rc=slirp_redir(1,2231,myaddr,2231);
+	pclog("ne2000 slirp redir returned %d on port 2231 -> 2231\n",rc);
+	rc=slirp_redir(1,2271,myaddr,2271);
+	pclog("ne2000 slirp redir returned %d on port 2271 -> 2271\n",rc);
+
     return 0;
 }
 
