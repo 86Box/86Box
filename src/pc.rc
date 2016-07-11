@@ -1,5 +1,4 @@
 #include <windows.h>
-#include "acc.h"
 #include "resources.h"
 
 #ifndef UPDOWN_CLASS
