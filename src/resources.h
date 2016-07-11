@@ -20,6 +20,7 @@
 #define IDM_VID_FS_43      40072
 #define IDM_VID_FS_SQ      40073
 #define IDM_VID_FS_INT     40074
+#define IDM_VID_SCREENSHOT 40075
 #define IDM_CDROM_ISO	   40100
 #define IDM_CDROM_EMPTY    40200
 #define IDM_CDROM_REAL     40200

@@ -1,4 +1,5 @@
 #include <windows.h>
+#include "acc.h"
 #include "resources.h"
 
 #ifndef UPDOWN_CLASS
@@ -10,7 +11,7 @@ BEGIN
         POPUP "&File"
         BEGIN
                 MENUITEM "&Hard Reset",           IDM_FILE_HRESET
-                MENUITEM "&Ctrl+Alt+Del",         IDM_FILE_RESET_CAD
+                MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",IDM_FILE_RESET_CAD
                 MENUITEM "E&xit",                 IDM_FILE_EXIT
         END
         POPUP "&Disc"
@@ -46,6 +47,8 @@ BEGIN
                                 MENUITEM "&Square pixels", IDM_VID_FS_SQ
                                 MENUITEM "&Integer scale", IDM_VID_FS_INT
                         END
+                        MENUITEM SEPARATOR
+                        MENUITEM "Take s&creenshot\tCtrl+F11", IDM_VID_SCREENSHOT
                 END
                 MENUITEM SEPARATOR
                 MENUITEM "&Load configuration...", IDM_CONFIG_LOAD
@@ -55,6 +58,12 @@ BEGIN
         BEGIN
                 MENUITEM "&Status", IDM_STATUS
         END
+END
+
+MainAccel ACCELERATORS
+BEGIN
+        VK_F11,  IDM_VID_SCREENSHOT,  CONTROL, VIRTKEY
+        VK_F12,  IDM_FILE_RESET_CAD,  CONTROL, VIRTKEY
 END
 
 ConfigureDlg DIALOGEX 0, 0, 248+40, 248+60

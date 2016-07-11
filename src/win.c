@@ -43,13 +43,6 @@
 #define MAPVK_VK_TO_VSC 0
 #endif
 
-static int do_screenshot = 0;
-static int do_reset_cad = 0;
-static int do_resethard = 0;
-#ifndef RELEASE_BUILD
-static int do_breakpoint = 0;
-#endif
-
 static int save_window_pos = 0;
 uint64_t timer_freq;
 
@@ -513,6 +506,8 @@ static void process_command_line()
         argv[argc] = NULL;
 }
 
+HANDLE hinstAcc;
+
 int WINAPI WinMain (HINSTANCE hThisInstance,
                     HINSTANCE hPrevInstance,
                     LPSTR lpszArgument,
@@ -522,8 +517,9 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         HWND hwnd;               /* This is the handle for our window */
         MSG messages;            /* Here messages to the application are saved */
         WNDCLASSEX wincl;        /* Data structure for the windowclass */
-        int c, d;
+        int c, d, bRet;
         LARGE_INTEGER qpc_freq;
+        HACCEL haccel;           /* Handle to accelerator table */
 
         process_command_line();
         
@@ -576,6 +572,11 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
         /* Make the window visible on the screen */
         ShowWindow (hwnd, nFunsterStil);
+
+        /* Load the accelerator table */
+        haccel = LoadAccelerators(hinstAcc, "MainAccel");
+        if (haccel == NULL)
+                fatal("haccel is null\n");
 
 //        win_set_window(hwnd);
         
@@ -748,43 +749,35 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                         }
                 }*/
 
-                while (GetMessage(&messages,NULL,0,0) && !quited)
+                while (((bRet = GetMessage(&messages,NULL,0,0)) != 0) && !quited)
                 {
+			if (bRet == -1)
+			{
+				fatal("bRet is -1\n");
+			}
+
                         if (messages.message==WM_QUIT) quited=1;
-                        TranslateMessage(&messages);
-                        DispatchMessage(&messages);                        
+			if (!TranslateAccelerator(hwnd, haccel, &messages))
+			{
+	                        TranslateMessage(&messages);
+	                        DispatchMessage(&messages);
+			}
                         // if ((pcem_key[KEY_LCONTROL] || pcem_key[KEY_RCONTROL]) && pcem_key[KEY_END] && mousecapture)
-	                if (pcem_key[0x58] && pcem_key[0x41] && do_screenshot)
-                	{
-				take_screenshot();
-				do_screenshot = 0;
+
+	                if (pcem_key[0x58] && pcem_key[0x42] && mousecapture)
+	                {
+	                        ClipCursor(&oldclip);
+	                        ShowCursor(TRUE);
+	                        mousecapture=0;
 	                }
 
-	                if (pcem_key[0x58] && pcem_key[0x44] && do_reset_cad)
-        	        {
-	                        pause=1;
-               	        	Sleep(100);
-       	        	        resetpc_cad();
-        	                pause=0;
-				do_reset_cad = 0;
+		         if ((pcem_key[0x1D] || pcem_key[0x9D]) && 
+		             (pcem_key[0x38] || pcem_key[0xB8]) && 
+		             (pcem_key[0x51] || pcem_key[0xD1]) &&
+		              video_fullscreen)
+			{
+				leave_fullscreen();
 	                }
-
-                	if (pcem_key[0x58] && pcem_key[0x43] && do_resethard)
-        	        {
-	                        pause=1;
-               	        	Sleep(100);
-       	        	        resetpchard();
-        	                pause=0;
-				do_resethard = 0;
-	                }
-
-#ifndef RELEASE_BUILD
-	                if (pcem_key[0x57] && pcem_key[0x58] && do_breakpoint)
-                	{
-				pclog("Log breakpoint\n");
-				do_breakpoint = 0;
-	                }
-#endif
 		}
 
                 quited=1;
@@ -1079,6 +1072,10 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         saveconfig();
                         break;
 
+			case IDM_VID_SCREENSHOT:
+			take_screenshot();
+			break;
+
                         case IDM_CONFIG_LOAD:
                         pause = 1;
                         if (!getfile(hwnd, "Configuration (*.CFG)\0*.CFG\0All files (*.*)\0*.*\0", ""))
@@ -1325,43 +1322,6 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         free(raw);
 
 		}
-
-                if (pcem_key[0x58] && pcem_key[0x42] && mousecapture)
-                {
-                        ClipCursor(&oldclip);
-                        ShowCursor(TRUE);
-                        mousecapture=0;
-                }
-
-                if (pcem_key[0x58] && pcem_key[0x41])
-                {
-			do_screenshot = 1;
-                }
-
-                if (pcem_key[0x58] && pcem_key[0x44])
-                {
-                        do_reset_cad = 1;
-                }
-
-                if (pcem_key[0x58] && pcem_key[0x43])
-                {
-                        do_resethard = 1;
-                }
-
-#ifndef RELEASE_BUILD
-                if (pcem_key[0x57] && pcem_key[0x58])
-                {
-			do_breakpoint = 1;
-                }
-#endif
-
-	         if ((pcem_key[0x1D] || pcem_key[0x9D]) && 
-	             (pcem_key[0x38] || pcem_key[0xB8]) && 
-	             (pcem_key[0x51] || pcem_key[0xD1]) &&
-	              video_fullscreen)
-		{
-			leave_fullscreen();
-                }
 		break;
 
                 case WM_SETFOCUS:
