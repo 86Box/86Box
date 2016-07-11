@@ -135,8 +135,6 @@ void writenvr(uint16_t addr, uint8_t val, void *priv)
                 }
 		else
 		{
-                        old = nvrram[nvraddr];
-                        nvrram[nvraddr]=val;
                         if (nvraddr==RTCREGB)
                         {
                                 if (((old ^ val) & RTCSET) && (val & RTCSET))
