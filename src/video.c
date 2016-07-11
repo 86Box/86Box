@@ -3,6 +3,7 @@
 #include <math.h>
 #include <time.h>
 #include "ibm.h"
+#include "config.h"
 #include "device.h"
 #include "mem.h"
 #include "video.h"
@@ -460,7 +461,8 @@ void take_screenshot()
 #else
 time_t now;
 struct tm *info;
-char screenshot_fn[1024];
+char screenshot_fn_partial[1024];
+char screenshot_fn[2048];
 
 void take_screenshot()
 {
@@ -468,10 +470,12 @@ void take_screenshot()
 	time(&now);
 	info = localtime(&now);
 	memset(screenshot_fn, 0, 1024);
+	memset(screenshot_fn_partial, 0, 2048);
 	pclog("Video API is: %i\n", vid_api);
 	if (vid_api == 1)
 	{
-		strftime(screenshot_fn, 1024, "screenshots\\%Y%m%d_%H%M%S.png", info);
+		strftime(screenshot_fn_partial, 1024, "screenshots\\%Y%m%d_%H%M%S.png", info);
+		append_filename(screenshot_fn, pcempath, screenshot_fn_partial, 2047);
 		if (video_fullscreen)
 		{
 			d3d_fs_take_screenshot(screenshot_fn);
@@ -484,7 +488,8 @@ void take_screenshot()
 	}
 	else if (vid_api == 0)
 	{
-		strftime(screenshot_fn, 1024, "screenshots\\%Y%m%d_%H%M%S.bmp", info);
+		strftime(screenshot_fn_partial, 1024, "screenshots\\%Y%m%d_%H%M%S.bmp", info);
+		append_filename(screenshot_fn, pcempath, screenshot_fn_partial, 2047);
 		if (video_fullscreen)
 		{
 			ddraw_fs_take_screenshot(screenshot_fn);
