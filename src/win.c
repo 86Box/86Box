@@ -747,49 +747,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                         TranslateMessage(&messages);
                         DispatchMessage(&messages);                        
                         // if ((pcem_key[KEY_LCONTROL] || pcem_key[KEY_RCONTROL]) && pcem_key[KEY_END] && mousecapture)
-                        if (pcem_key[0x58] && pcem_key[0x42] && mousecapture)
-                        {
-                                ClipCursor(&oldclip);
-                                ShowCursor(TRUE);
-                                mousecapture=0;
-                        }
-
-                        if (pcem_key[0x58] && pcem_key[0x41])
-                        {
-				// pclog("Taking screenshot...\n");
-				take_screenshot();
-                        }
-
-                        if (pcem_key[0x58] && pcem_key[0x44])
-                        {
-	                        pause=1;
-                	        Sleep(100);
-        	                resetpc_cad();
-	                        pause=0;
-                        }
-
-                        if (pcem_key[0x58] && pcem_key[0x43])
-                        {
-	                        pause=1;
-                	        Sleep(100);
-        	                resetpchard();
-	                        pause=0;
-                        }
-
-#ifndef RELEASE_BUILD
-                        if (pcem_key[0x57] && pcem_key[0x58])
-                        {
-				pclog("Log breakpoint\n");
-                        }
-#endif
-
-		         if ((pcem_key[0x1D] || pcem_key[0x9D]) && 
-		             (pcem_key[0x38] || pcem_key[0xB8]) && 
-		             (pcem_key[0x51] || pcem_key[0xD1]) &&
-		              video_fullscreen)
-			{
-				leave_fullscreen();
-	                }
 		}
 
                 quited=1;
@@ -1330,6 +1287,49 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         free(raw);
 
 		}
+
+                if (pcem_key[0x58] && pcem_key[0x42] && mousecapture)
+                {
+                        ClipCursor(&oldclip);
+                        ShowCursor(TRUE);
+                        mousecapture=0;
+                }
+
+                if (pcem_key[0x58] && pcem_key[0x41])
+                {
+			take_screenshot();
+                }
+
+                if (pcem_key[0x58] && pcem_key[0x44])
+                {
+                        pause=1;
+               	        Sleep(100);
+       	                resetpc_cad();
+                        pause=0;
+                }
+
+                if (pcem_key[0x58] && pcem_key[0x43])
+                {
+                        pause=1;
+               	        Sleep(100);
+       	                resetpchard();
+                        pause=0;
+                }
+
+#ifndef RELEASE_BUILD
+                if (pcem_key[0x57] && pcem_key[0x58])
+                {
+			pclog("Log breakpoint\n");
+                }
+#endif
+
+	         if ((pcem_key[0x1D] || pcem_key[0x9D]) && 
+	             (pcem_key[0x38] || pcem_key[0xB8]) && 
+	             (pcem_key[0x51] || pcem_key[0xD1]) &&
+	              video_fullscreen)
+		{
+			leave_fullscreen();
+                }
 		break;
 
                 case WM_SETFOCUS:
