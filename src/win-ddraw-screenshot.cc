@@ -71,7 +71,7 @@ void SaveBitmap(char *szFilename,HBITMAP hBitmap)
     BITMAPINFO          bmpInfo;
     BITMAPFILEHEADER    bmpFileHeader; 
 
-    char *szMessage[2048];
+    char szMessage[2048];
 
     do{ 
 
