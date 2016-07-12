@@ -165,23 +165,28 @@ debug_init("slirplog.txt",DEBUG_DEFAULT);
 	struct in_addr myaddr;
 	int rc;
 	inet_aton("10.0.2.15",&myaddr);
-	//YES THIS NEEDS TO PULL FROM A CONFIG FILE... but for now.
-	rc=slirp_redir(0,42323,myaddr,23);
-	pclog("ne2000 slirp redir returned %d on port 42323 -> 23\n",rc);
-	rc=slirp_redir(0,42380,myaddr,80);
-	pclog("ne2000 slirp redir returned %d on port 42380 -> 80\n",rc);
-	rc=slirp_redir(0,42443,myaddr,443);
-	pclog("ne2000 slirp redir returned %d on port 42443 -> 443\n",rc);
-	rc=slirp_redir(0,42322,myaddr,22);
-	pclog("ne2000 slirp redir returned %d on port 42322 -> 22\n",rc);
 
-	//Kali
-	rc=slirp_redir(1,2213,myaddr,2213);
-	pclog("ne2000 slirp redir returned %d on port 2213 -> 2213\n",rc);
-	rc=slirp_redir(1,2231,myaddr,2231);
-	pclog("ne2000 slirp redir returned %d on port 2231 -> 2231\n",rc);
-	rc=slirp_redir(1,2271,myaddr,2271);
-	pclog("ne2000 slirp redir returned %d on port 2271 -> 2271\n",rc);
+	char* category = "SLiRP Port Forwarding";
+	char key[32];
+	int i = 0, udp, from, to;
+	while (1) {
+		sprintf(key, "%d_udp", i);
+		udp = config_get_int(category, key, 0);
+		sprintf(key, "%d_from", i);
+		from = config_get_int(category, key, 0);
+		if (from < 1)
+			break;
+		sprintf(key, "%d_to", i);
+		to = config_get_int(category, key, from);
+
+		rc = slirp_redir(udp, from, myaddr, to);
+		if (rc == 0)
+			pclog("slirp redir %d -> %d successful\n", from, to);
+		else
+			pclog("slirp redir %d -> %d failed (%d)\n", from, to, rc);
+
+		i++;
+	}
 
     return 0;
 }
