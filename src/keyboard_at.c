@@ -20,6 +20,18 @@
 #define STAT_IFULL      0x02
 #define STAT_OFULL      0x01
 
+#define CCB_UNUSED      0x80
+#define CCB_TRANSLATE   0x40
+#define CCB_PCMODE      0x20
+#define CCB_ENABLEKBD   0x10
+#define CCB_IGNORELOCK  0x08
+#define CCB_SYSTEM      0x04
+#define CCB_ENABLEMINT  0x02
+#define CCB_ENABLEKINT  0x01
+
+#define CCB_MASK        0x68
+#define MODE_MASK       0x6C
+
 struct
 {
         int initialised;
@@ -240,14 +252,14 @@ void keyboard_at_write(uint16_t port, uint8_t val, void *priv)
 					/* Addition by OBattler: Scan code translate ON/OFF. */
 					// pclog("KEYBOARD_AT: Writing %02X to system register\n", val);
 					mode &= 0x93;
-					mode |= (val & 0x6C);
+					mode |= (val & MODE_MASK);
 					if (first_write)
 					{
 						/* A bit of a hack, but it will make the keyboard behave correctly, regardless
 						   of what the BIOS sets here. */
 						mode &= 0xFC;
-						dtrans = mode & 0x60;
-						if ((mode & 0x60) == 0x40)
+						dtrans = mode & (CCB_TRANSLATE | CCB_PCMODE);
+						if ((mode & (CCB_TRANSLATE | CCB_PCMODE)) == CCB_TRANSLATE)
 						{
 							/* Bit 6 on, bit 5 off, the only case in which translation is on,
 							   therefore, set to set 2. */
@@ -601,10 +613,8 @@ uint8_t keyboard_at_read(uint16_t port, void *priv)
                 return ppi.pb&~0xe0;
                 
                 case 0x64:
-                temp = keyboard_at.status;
-		temp &= 0xEB;
-		temp |= (mode & 4);
-		if (mode & 8)  temp |= STAT_LOCK;
+                temp = (keyboard_at.status & 0xFB) | (mode & CCB_SYSTEM);
+		if (mode & CCB_IGNORELOCK)  temp |= STAT_LOCK;
                 keyboard_at.status &= ~(STAT_RTIMEOUT/* | STAT_TTIMEOUT*/);
                 break;
         }
