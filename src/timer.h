@@ -51,7 +51,9 @@ void timer_set_callback(int timer, void (*callback)(void *priv));
 extern int timer_count;
 extern int timer_one;
 
-#define TIMER_SHIFT 6
+// #define TIMER_SHIFT 6
+/* Reduced by 4 in order to alleviate problems at higher CPU speed. Will be put back if a better solution is ever implemented. */
+#define TIMER_SHIFT 4
 
 extern int TIMER_USEC;
 
