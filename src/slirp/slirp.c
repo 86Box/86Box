@@ -161,6 +161,33 @@ debug_init("slirplog.txt",DEBUG_DEFAULT);
     inet_aton(CTL_SPECIAL, &special_addr);
 	alias_addr.s_addr = special_addr.s_addr | htonl(CTL_ALIAS);
 	getouraddr();
+
+	struct in_addr myaddr;
+	int rc;
+	inet_aton("10.0.2.15",&myaddr);
+
+	char* category = "SLiRP Port Forwarding";
+	char key[32];
+	int i = 0, udp, from, to;
+	while (1) {
+		sprintf(key, "%d_udp", i);
+		udp = config_get_int(category, key, 0);
+		sprintf(key, "%d_from", i);
+		from = config_get_int(category, key, 0);
+		if (from < 1)
+			break;
+		sprintf(key, "%d_to", i);
+		to = config_get_int(category, key, from);
+
+		rc = slirp_redir(udp, from, myaddr, to);
+		if (rc == 0)
+			pclog("slirp redir %d -> %d successful\n", from, to);
+		else
+			pclog("slirp redir %d -> %d failed (%d)\n", from, to, rc);
+
+		i++;
+	}
+
     return 0;
 }
 
