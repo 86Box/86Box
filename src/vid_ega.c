@@ -870,7 +870,7 @@ uint8_t ega_read(uint32_t addr, void *p)
         if (addr >= 0xb0000) addr &= 0x7fff;
         else                 addr &= 0xffff;
 
-        if (svga->chain2_read)
+        if (ega->chain2_read)
         {
 		/* Redone because the original code caused problems when using Windows 3.1 EGA driver on (S)VGA card. */
 		if (ega->oddeven_chain)
