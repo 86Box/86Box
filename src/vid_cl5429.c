@@ -352,26 +352,18 @@ void gd5429_write_linear(uint32_t addr, uint8_t val, void *p)
         }
         else if (svga->chain2_write)
         {
-		/* Redone because the original code caused problems when using Windows 3.1 EGA driver on (S)VGA card. */
-		if (svga->oddeven_chain)
-			plane = (addr & 1) | (svga->oddeven_page ? 2 : 0);
-		else
-			plane = (svga->oddeven_page ? 2 : 0);
-		mask = (1 << plane);
-		if (svga->seqregs[2] & mask)
+		if ((svga->gdcreg[6] & 0xC) == 0x4)
 		{
-			if (svga->oddeven_chain)
-				addr = ((addr & ~1) << 2) | plane;
-			else
-				addr = (addr << 2) | plane;
-			if ((!svga->extvram) && (addr >= 0x10000))  return;
-	                if (addr >= svga->vram_limit)  return;
-			if ((raddr <= 0xA0000) || (raddr >= 0xBFFFF))  return;
-			svga->vram[addr] = val;
-
-		        svga->changedvram[addr >> 12] = changeframecount;
+			writemask2 &= (svga->oddeven_page ? ~0xe : ~0xb);
 		}
-		return;
+		else
+		{
+	                writemask2 &= ~0xa;
+		}
+                if (addr & 1)
+       	                writemask2 <<= 1;
+                addr &= ~1;
+                addr <<= 2;
         }
         else
         {
