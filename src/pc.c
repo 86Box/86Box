@@ -465,7 +465,7 @@ void runpc()
                 framecount++;
                 if (framecountx>=100)
                 {
-                        pclog("onesec\n");
+                        // pclog("onesec\n");
                         framecountx=0;
                         mips=(float)insc/1000000.0f;
                         insc=0;

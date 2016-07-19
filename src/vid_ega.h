@@ -25,7 +25,7 @@ typedef struct ega_t
         uint8_t colourcompare, colournocare;
         int readmode, writemode, readplane;
         int chain4, chain2_read, chain2_write;
-	int oddeven_page;
+	int oddeven_page, oddeven_chain;
 	int enablevram, extvram;
         uint8_t writemask;
         uint32_t charseta, charsetb;
@@ -43,7 +43,7 @@ typedef struct ega_t
         int vres;
         
         int dispontime, dispofftime;
-        int vidtime;
+        int64_t vidtime;
         
         uint8_t scrblank;
         

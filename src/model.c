@@ -500,6 +500,7 @@ void at_mb500n_init()
 void at_p54tp4xe_init()
 {
         at_init();
+	memregs_init();
         mouse_always_serial ? mouse_serial_init() : mouse_ps2_init();
         pci_init(PCI_CONFIG_TYPE_1, 0xd, 0x10);
         i430fx_init();
@@ -539,6 +540,7 @@ void at_acerv35n_init()
 void at_p55t2p4_init()
 {
         at_init();
+	memregs_init();
         mouse_always_serial ? mouse_serial_init() : mouse_ps2_init();
         pci_init(PCI_CONFIG_TYPE_1, 0, 31);
         i430hx_init();
@@ -563,6 +565,7 @@ void at_i430vx_init()
 void at_p55tvp4_init()
 {
         at_init();
+	memregs_init();
         mouse_always_serial ? mouse_serial_init() : mouse_ps2_init();
         pci_init(PCI_CONFIG_TYPE_1, 0, 31);
         i430vx_init();

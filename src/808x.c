@@ -518,6 +518,7 @@ chdir(pcempath);
 /*        f=fopen("rram3.dmp","wb");
         for (c=0;c<0x8000000;c++) putc(readmemb(c+0x10000000),f);
         fclose(f);*/
+	svga_dump_vram();
         f=fopen("ram.dmp","wb");
         fwrite(ram,mem_size*1024,1,f);
         fclose(f);

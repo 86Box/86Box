@@ -1126,7 +1126,7 @@ int checkio(int port)
         // d = readmemb386l(0, tr.base + t + (port >> 3));
         d=readmemb(tr.base,t+(port>>3));
         cpl_override = 0;
-      if (d&(1<<(port&7)))  pclog("%02X %02X %08X:%04X\n",d,d&(1<<(port&7)), tr.base, t);
+      // if (d&(1<<(port&7)))  pclog("%02X %02X %08X:%04X\n",d,d&(1<<(port&7)), tr.base, t);
 	if ((port & 0xfff8) == 0x1f0)
 	{
 		// if (d&(1<<(port&7)))  fatal("Trying to read from IDE port %04X without permission\n", port);

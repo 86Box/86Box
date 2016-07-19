@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdlib.h>
 #include "ibm.h"
 #include "device.h"
@@ -55,7 +56,7 @@ char *joystick_get_button_name(int joystick, int id)
 
 typedef struct gameport_axis_t
 {
-        int count;
+        int64_t count;
         int axis_nr;
         struct gameport_t *gameport;
 } gameport_axis_t;

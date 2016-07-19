@@ -35,12 +35,10 @@ enum
         STATE_FORMAT
 };
 
-static int processed_bytes[2] = {0, 0};
-
 static int disc_sector_state[2] = {0, 0};
 static int disc_sector_track[2] = {0, 0};
 static int disc_sector_side[2] = {0, 0};
-// static int disc_sector_drive[2] = {0, 0};
+static int disc_sector_drive;
 static int disc_sector_sector[2] = {0, 0};
 static int disc_sector_n[2] = {0, 0};
 static int disc_intersector_delay[2] = {0, 0};
@@ -50,13 +48,7 @@ static int disc_gap4_delay[2] = {0, 0};
 static uint8_t disc_sector_fill[2] = {0, 0};
 static int cur_sector[2], cur_byte[2];
 static int index_count[2];
-
-int gap2 = length_gap2;
-int gap3 = length_gap3;
-int gap3_0 = length_gap3_0;
-int gap4 = raw_track_size - (((pre_gap + length_gap2 + pre_data + data_size + post_gap + length_gap3) * no_sectors) + pre_track);
-int gap4_0 = raw_track_size_0 - (((pre_gap + length_gap2 + pre_data + data_size + post_gap + length_gap3_0) * no_sectors_0) + pre_track);
-
+        
 int raw_tsize[2] = {6250, 6250};
 int gap2_size[2] = {22, 22};
 int gap3_size[2] = {0, 0};
@@ -99,8 +91,7 @@ static int get_bitcell_period(int drive)
 
 void disc_sector_readsector(int drive, int sector, int track, int side, int rate, int sector_size)
 {
-        pclog("disc_sector_readsector: fdc_period=%i img_period=%i rate=%i sector=%i track=%i side=%i\n", fdc_get_bitcell_period(), get_bitcell_period(drive), rate, sector, track, side);
-	pclog("pre_track=%i, pre_sector=%i, gap4=%i\n", pre_track, post_gap + gap3 + pre_gap + gap2 + pre_data, gap4);
+//        pclog("disc_sector_readsector: fdc_period=%i img_period=%i rate=%i sector=%i track=%i side=%i\n", fdc_get_bitcell_period(), get_bitcell_period(), rate, sector, track, side);
 
         if (sector == SECTOR_FIRST)
                 disc_sector_state[drive] = STATE_READ_FIND_FIRST_SECTOR;
@@ -110,38 +101,35 @@ void disc_sector_readsector(int drive, int sector, int track, int side, int rate
                 disc_sector_state[drive] = STATE_READ_FIND_SECTOR;
         disc_sector_track[drive] = track;
         disc_sector_side[drive]  = side;
-        // disc_sector_drive = drive;
+        disc_sector_drive = drive;
         disc_sector_sector[drive] = sector;
 	disc_sector_n[drive] = sector_size;
 	if ((cur_sector[drive] == 0) && (cur_byte[drive] == 0) && !disc_track_delay[drive])  disc_track_delay[drive] = pre_track;
         index_count[drive] = 0;
-	processed_bytes[drive] = 0;
-	// pclog("Disk poll time is: %i\n", disc_poll_time);
 }
 
 void disc_sector_writesector(int drive, int sector, int track, int side, int rate, int sector_size)
 {
-        pclog("disc_sector_writesector: fdc_period=%i img_period=%i rate=%i\n", fdc_get_bitcell_period(), get_bitcell_period(drive), rate);
+//        pclog("disc_sector_writesector: fdc_period=%i img_period=%i rate=%i\n", fdc_get_bitcell_period(), get_bitcell_period(), rate);
 
         disc_sector_state[drive] = STATE_WRITE_FIND_SECTOR;
         disc_sector_track[drive] = track;
         disc_sector_side[drive]  = side;
-        // disc_sector_drive = drive;
+        disc_sector_drive = drive;
         disc_sector_sector[drive] = sector;
 	disc_sector_n[drive] = sector_size;
 	if ((cur_sector[drive] == 0) && (cur_byte[drive] == 0) && !disc_track_delay[drive])  disc_track_delay[drive] = pre_track;
         index_count[drive] = 0;
-	processed_bytes[drive] = 0;
 }
 
 void disc_sector_readaddress(int drive, int track, int side, int rate)
 {
-        pclog("disc_sector_readaddress: fdc_period=%i img_period=%i rate=%i track=%i side=%i\n", fdc_get_bitcell_period(), get_bitcell_period(drive), rate, track, side);
+//        pclog("disc_sector_readaddress: fdc_period=%i img_period=%i rate=%i track=%i side=%i\n", fdc_get_bitcell_period(), get_bitcell_period(), rate, track, side);
 
         disc_sector_state[drive] = STATE_READ_FIND_ADDRESS;
         disc_sector_track[drive] = track;
         disc_sector_side[drive]  = side;
-        // disc_sector_drive = drive;
+        disc_sector_drive = drive;
 	if ((cur_sector[drive] == 0) && (cur_byte[drive] == 0) && !disc_track_delay[drive])
 	{
 		disc_track_delay[drive] = pre_track;
@@ -149,8 +137,6 @@ void disc_sector_readaddress(int drive, int track, int side, int rate)
 	}
 	else
 	        index_count[drive] = 0;
-
-	processed_bytes[drive] = 0;
 }
 
 void disc_sector_format(int drive, int track, int side, int rate, uint8_t fill)
@@ -158,7 +144,7 @@ void disc_sector_format(int drive, int track, int side, int rate, uint8_t fill)
         disc_sector_state[drive] = STATE_FORMAT_FIND;
         disc_sector_track[drive] = track;
         disc_sector_side[drive]  = side;
-        // disc_sector_drive = drive;
+        disc_sector_drive = drive;
         disc_sector_fill[drive]  = fill;
         index_count[drive] = 0;
 }
@@ -168,49 +154,295 @@ void disc_sector_stop(int drive)
         disc_sector_state[drive] = STATE_IDLE;
 }
 
+#if 0
+static void advance_byte()
+{
+        if (disc_intersector_delay)
+        {
+                disc_intersector_delay--;
+                return;
+        }
+        cur_byte++;
+        if (cur_byte >= (128 << disc_sector_data[disc_sector_drive][disc_sector_side][cur_sector].n))
+        {
+                cur_byte = 0;
+                cur_sector++;
+                if (cur_sector >= disc_sector_count[disc_sector_drive][disc_sector_side])
+                {
+                        cur_sector = 0;
+                        fdc_indexpulse();
+                        index_count++;
+                }
+                disc_intersector_delay = 40;
+        }
+}
+
+void disc_sector_poll()
+{
+        sector_t *s;
+        int data;
+
+        if (cur_sector >= disc_sector_count[disc_sector_drive][disc_sector_side])
+                cur_sector = 0;
+        if (cur_byte >= (128 << disc_sector_data[disc_sector_drive][disc_sector_side][cur_sector].n))
+                cur_byte = 0;
+
+        s = &disc_sector_data[disc_sector_drive][disc_sector_side][cur_sector];
+        switch (disc_sector_state)
+        {
+                case STATE_IDLE:
+                break;
+                
+                case STATE_READ_FIND_SECTOR:
+/*                pclog("STATE_READ_FIND_SECTOR: cur_sector=%i cur_byte=%i sector=%i,%i side=%i,%i track=%i,%i period=%i,%i\n",
+                        cur_sector, cur_byte,
+                        disc_sector_sector, s->r,
+                        disc_sector_side, s->h,
+                        disc_sector_track, s->c,
+                        fdc_get_bitcell_period(), get_bitcell_period());*/
+                if (index_count > 1)
+                {
+//                        pclog("Find sector not found\n");
+                        fdc_notfound();
+                        disc_sector_state = STATE_IDLE;
+                        break;
+                }
+/*                pclog("%i %i %i %i %i\n", cur_byte, disc_sector_track != s->c,
+                    disc_sector_side != s->h,
+                    disc_sector_sector != s->r,
+                    fdc_get_bitcell_period() != get_bitcell_period());*/
+                if (cur_byte || disc_sector_track != s->c ||
+                    disc_sector_side != s->h ||
+                    disc_sector_sector != s->r ||
+		    disc_sector_n != s->n ||
+                    fdc_get_bitcell_period() != get_bitcell_period() ||
+		    !fdd_can_read_medium(disc_sector_drive ^ fdd_swap) ||
+                    disc_intersector_delay)
+                {
+                        advance_byte();
+                        break;
+                }
+                disc_sector_state = STATE_READ_SECTOR;
+                case STATE_READ_SECTOR:
+//                pclog("STATE_READ_SECTOR: cur_byte=%i %i\n", cur_byte, disc_intersector_delay);
+                if (fdc_data(s->data[cur_byte]))
+                {
+//                        pclog("fdc_data failed\n");
+                        return;
+                }
+                advance_byte();
+                if (!cur_byte)
+                {
+                        disc_sector_state = STATE_IDLE;
+                        fdc_finishread();
+                }
+                break;
+
+                case STATE_READ_FIND_FIRST_SECTOR:
+		if (!(fdd_can_read_medium(disc_sector_drive ^ fdd_swap)))
+		{
+//			pclog("Medium is of a density not supported by the drive\n");
+                        fdc_notfound();
+                        disc_sector_state = STATE_IDLE;
+                        break;
+		}
+                if (cur_byte || !index_count || fdc_get_bitcell_period() != get_bitcell_period() ||
+                    disc_intersector_delay)
+                {
+                        advance_byte();
+                        break;
+                }
+                disc_sector_state = STATE_READ_FIRST_SECTOR;
+                case STATE_READ_FIRST_SECTOR:
+                if (fdc_data(s->data[cur_byte]))
+                        return;
+                advance_byte();
+                if (!cur_byte)
+                {
+                        disc_sector_state = STATE_IDLE;
+                        fdc_finishread();
+                }
+                break;
+
+                case STATE_READ_FIND_NEXT_SECTOR:
+		if (!(fdd_can_read_medium(disc_sector_drive ^ fdd_swap)))
+		{
+//			pclog("Medium is of a density not supported by the drive\n");
+                        fdc_notfound();
+                        disc_sector_state = STATE_IDLE;
+                        break;
+		}
+                if (index_count)
+                {
+//                        pclog("Find next sector hit end of track\n");
+                        fdc_notfound();
+                        disc_sector_state = STATE_IDLE;
+                        break;
+                }
+                if (cur_byte || fdc_get_bitcell_period() != get_bitcell_period() ||
+                    disc_intersector_delay)
+                {
+                        advance_byte();
+                        break;
+                }
+                disc_sector_state = STATE_READ_NEXT_SECTOR;
+                case STATE_READ_NEXT_SECTOR:
+                if (fdc_data(s->data[cur_byte]))
+                        break;
+                advance_byte();
+                if (!cur_byte)
+                {
+                        disc_sector_state = STATE_IDLE;
+                        fdc_finishread();
+                }
+                break;
+
+                case STATE_WRITE_FIND_SECTOR:
+		if (!(fdd_can_read_medium(disc_sector_drive ^ fdd_swap)))
+		{
+//			pclog("Medium is of a density not supported by the drive\n");
+                        fdc_notfound();
+                        disc_sector_state = STATE_IDLE;
+                        break;
+		}
+                if (writeprot[disc_sector_drive])
+                {
+                        fdc_writeprotect();
+                        return;
+                }
+                if (index_count > 1)
+                {
+//                        pclog("Write find sector not found\n");
+                        fdc_notfound();
+                        disc_sector_state = STATE_IDLE;
+                        break;
+                }
+                if (cur_byte || disc_sector_track != s->c ||
+                    disc_sector_side != s->h ||
+                    disc_sector_sector != s->r ||
+		    disc_sector_n != s->n ||
+                    fdc_get_bitcell_period() != get_bitcell_period() ||
+                    disc_intersector_delay)
+                {
+                        advance_byte();
+                        break;
+                }
+                disc_sector_state = STATE_WRITE_SECTOR;
+                case STATE_WRITE_SECTOR:
+                data = fdc_getdata(cur_byte == ((128 << s->n) - 1));
+                if (data == -1)
+                        break;
+                s->data[cur_byte] = data;
+                advance_byte();
+                if (!cur_byte)
+                {
+                        disc_sector_state = STATE_IDLE;
+                        disc_sector_writeback[disc_sector_drive](disc_sector_drive, disc_sector_track);
+                        fdc_finishread();
+                }
+                break;
+
+                case STATE_READ_FIND_ADDRESS:
+		if (!(fdd_can_read_medium(disc_sector_drive ^ fdd_swap)))
+		{
+//			pclog("Medium is of a density not supported by the drive\n");
+                        fdc_notfound();
+                        disc_sector_state = STATE_IDLE;
+                        break;
+		}
+                if (index_count)
+                {
+//                        pclog("Find next sector hit end of track\n");
+                        fdc_notfound();
+                        disc_sector_state = STATE_IDLE;
+                        break;
+                }
+                if (cur_byte || fdc_get_bitcell_period() != get_bitcell_period() ||
+                    disc_intersector_delay)
+                {
+                        advance_byte();
+                        break;
+                }
+                disc_sector_state = STATE_READ_ADDRESS;
+                case STATE_READ_ADDRESS:
+                fdc_sectorid(s->c, s->h, s->r, s->n, 0, 0);
+                disc_sector_state = STATE_IDLE;
+                break;
+                
+                case STATE_FORMAT_FIND:
+                if (writeprot[disc_sector_drive])
+                {
+                        fdc_writeprotect();
+                        return;
+                }
+                if (!index_count || fdc_get_bitcell_period() != get_bitcell_period() ||
+                    disc_intersector_delay)
+                {
+                        advance_byte();
+                        break;
+                }
+		if (!(fdd_can_read_medium(disc_sector_drive ^ fdd_swap)))
+		{
+//			pclog("Medium is of a density not supported by the drive\n");
+                        fdc_notfound();
+                        disc_sector_state = STATE_IDLE;
+                        break;
+		}
+                if (fdc_get_bitcell_period() != get_bitcell_period())
+                {
+                        fdc_notfound();
+                        disc_sector_state = STATE_IDLE;
+                        break;
+                }
+                disc_sector_state = STATE_FORMAT;
+                case STATE_FORMAT:
+                if (!disc_intersector_delay && fdc_get_bitcell_period() == get_bitcell_period())
+                        s->data[cur_byte] = disc_sector_fill;
+                advance_byte();
+                if (index_count == 2)
+                {
+                        disc_sector_writeback[disc_sector_drive](disc_sector_drive, disc_sector_track);
+                        fdc_finishread();
+                        disc_sector_state = STATE_IDLE;
+                }
+                break;
+        }
+}
+#endif
+
 static void index_pulse(int drive)
 {
 	if (disc_sector_state[drive] != STATE_IDLE)  fdc_indexpulse();
 }
 
-static int advance_byte(int drive)
+static void advance_byte()
 {
-	/* 0 = regular byte, 1 = missing clock pulse */
-	int type = 0;
+	int drive = disc_sector_drive;
 
-	processed_bytes[drive]++;
-	// pclog("advance_byte(%i): %i\n", drive, processed_bytes[drive]);
 	if (disc_postdata_delay[drive])
 	{
 		disc_postdata_delay[drive]--;
-		return type;
+		return;
 	}
 	if (disc_gap4_delay[drive])
 	{
 		disc_gap4_delay[drive]--;
-		return type;
+		return;
 	}
 	if (disc_track_delay[drive])
 	{
-		if ((disc_track_delay[drive] >= (pre_track - 92)) && (disc_track_delay[drive] <= (pre_track - 94)))  type = 1;
 		if (disc_track_delay[drive] == pre_track)
 		{
-			// pclog("Track index pulse!\n");
 			index_pulse(drive);
 			index_count[drive]++;
 		}
 		disc_track_delay[drive]--;
-		if (type)  pclog("advance_byte(): Track sync\n");
-		return type;
+		return;
 	}
         if (disc_intersector_delay[drive])
         {
-		if ((disc_intersector_delay[drive] >= (pre_gap + gap2_size[drive] + pre_data - 12)) && (disc_intersector_delay[drive] <= (pre_gap + gap2_size[drive] + pre_data - 14)))  type = 1;
-		if ((disc_intersector_delay[drive] >= (pre_gap + gap2_size[drive] + pre_data - 56)) && (disc_intersector_delay[drive] <= (pre_gap + gap2_size[drive] + pre_data - 58)))  type = 2;
                 disc_intersector_delay[drive]--;
-		if (type == 1)  pclog("advance_byte(): Sector address sync\n");
-		if (type == 2)  pclog("advance_byte(): Sector sync\n");
-                return type;
+                return;
         }
         cur_byte[drive]++;
         if (cur_byte[drive] >= (128 << disc_sector_data[drive][disc_sector_side[drive]][cur_sector[drive]].n))
@@ -232,22 +464,14 @@ static int advance_byte(int drive)
 			disc_intersector_delay[drive] = pre_gap + gap2_size[drive] + pre_data;
 		}
         }
-	return type;
+	return;
 }
 
-int head_byte(int drive, int h)
-{
-	return (fdd_get_head(drive) << 2) | h;
-}
-
-int disc_sector_poll(int drive)
+void disc_sector_poll()
 {
         sector_t *s;
         int data;
-
-	int do_period = 0;
-
-	int sector_type = 0;
+	int drive = disc_sector_drive;
 
         if (cur_sector[drive] >= disc_sector_count[drive][disc_sector_side[drive]])
                 cur_sector[drive] = 0;
@@ -257,70 +481,42 @@ int disc_sector_poll(int drive)
 	/* Note: Side to read from should be chosen from FDC head select rather than from the sector ID. */
         s = &disc_sector_data[drive][disc_sector_side[drive]][cur_sector[drive]];
 
-	if (fdd_stepping_motor_on[drive])
-	{
-		/* If stepping motor is on, turn off data separator. */
-		sector_type = advance_byte(drive);
-		do_period = 1;
-
-		do_period = do_period ? ((sector_type > 0) ? 2 : 1) : 0;
-		return do_period;
-	}
-
         switch (disc_sector_state[drive])
         {
                 case STATE_IDLE:
-		sector_type = advance_byte(drive);
-		do_period = 1;
+		advance_byte();
                 break;
                 
                 case STATE_READ_FIND_SECTOR:
-/*                pclog("STATE_READ_FIND_SECTOR: cur_sector=%i cur_byte=%i sector=%i,%i side=%i,%i track=%i,%i period=%i,%i\n",
-                        cur_sector[drive], cur_byte[drive],
-                        disc_sector_sector[drive], s->r,
-                        disc_sector_side[drive], s->h,
-                        disc_sector_track[drive], s->c,
-                        fdc_get_bitcell_period(), get_bitcell_period(drive));*/
                 if (index_count[drive] > 1)
                 {
-//                        pclog("Find sector not found\n");
 			pclog("READ: Sector (%i %i %i %i) not found (last: %i %i %i) (period=%i,%i)\n", s->c, s->h, s->r, s->n, disc_sector_track, disc_sector_side, disc_sector_sector, fdc_get_bitcell_period(), get_bitcell_period(drive));
                         fdc_notfound();
                         disc_sector_state[drive] = STATE_IDLE;
                         break;
                 }
-/*                pclog("%i %i %i %i %i\n", cur_byte[drive], disc_sector_track[drive] != s->c,
-                    disc_sector_side[drive] != s->h,
-                    disc_sector_sector[drive] != s->r,
-                    fdc_get_bitcell_period() != get_bitcell_period(drive));*/
                 if (cur_byte[drive] || disc_sector_track[drive] != s->c ||
-                    disc_sector_side[drive] != s->h ||
-                    disc_sector_sector[drive] != s->r ||
-		    disc_sector_n[drive] != s->n ||
-                    (fdc_get_bitcell_period() != get_bitcell_period(drive)) ||
-		    !fdd_can_read_medium(drive ^ fdd_swap) ||
-                    disc_intersector_delay[drive] || disc_track_delay[drive])
+                        disc_sector_side[drive] != s->h ||
+                        disc_sector_sector[drive] != s->r ||
+		        disc_sector_n[drive] != s->n ||
+                        (fdc_get_bitcell_period() != get_bitcell_period(drive)) ||
+		        !fdd_can_read_medium(drive ^ fdd_swap) ||
+                        disc_intersector_delay[drive] || disc_track_delay[drive])
                 {
-			// pclog("Poll: Find sector advance byte!\n");
-                        sector_type = advance_byte(drive);
-			do_period = 1;
+                        advance_byte();
                         break;
                 }
                 disc_sector_state[drive] = STATE_READ_SECTOR;
+
                 case STATE_READ_SECTOR:
-//                pclog("STATE_READ_SECTOR: cur_byte=%i %i\n", cur_byte[drive], disc_intersector_delay[drive]);
                 if (fdc_data(s->data[cur_byte[drive]]))
                 {
-//                        pclog("fdc_data failed\n");
-                        return 0;
+                        return;
                 }
-                sector_type = advance_byte(drive);
-		do_period = 1;
+                advance_byte();
                 if (!cur_byte[drive])
                 {
                         disc_sector_state[drive] = STATE_IDLE;
-			pclog("Processed bytes: %i, byte pulses: %i\n", processed_bytes[drive], bpulses[drive]);
-			// pclog("Disk poll time is: %i\n", disc_poll_time);
                         fdc_finishread(drive);
                 }
                 break;
@@ -328,30 +524,25 @@ int disc_sector_poll(int drive)
                 case STATE_READ_FIND_FIRST_SECTOR:
 		if (!fdd_can_read_medium(drive ^ fdd_swap))
 		{
-			pclog("Medium is of a density not supported by the drive\n");
                         fdc_notfound();
                         disc_sector_state[drive] = STATE_IDLE;
                         break;
 		}
                 if (cur_byte[drive] || !index_count[drive] || fdc_get_bitcell_period() != get_bitcell_period(drive) ||
-                    disc_intersector_delay[drive] || disc_track_delay[drive])
+                        disc_intersector_delay[drive] || disc_track_delay[drive])
                 {
-			// pclog("Poll: Find sector advance byte!\n");
-                        sector_type = advance_byte(drive);
-			do_period = 1;
+                        advance_byte();
                         break;
                 }
                 disc_sector_state[drive] = STATE_READ_FIRST_SECTOR;
+
                 case STATE_READ_FIRST_SECTOR:
                 if (fdc_data(s->data[cur_byte[drive]]))
-                        return 0;
-                sector_type = advance_byte(drive);
-		do_period = 1;
+                        return;
+                advance_byte();
                 if (!cur_byte[drive])
                 {
                         disc_sector_state[drive] = STATE_IDLE;
-			pclog("Processed bytes: %i, byte pulses: %i\n", processed_bytes[drive], bpulses[drive]);
-			// pclog("Disk poll time is: %i\n", disc_poll_time);
                         fdc_finishread(drive);
                 }
                 break;
@@ -359,14 +550,12 @@ int disc_sector_poll(int drive)
                 case STATE_READ_FIND_NEXT_SECTOR:
 		if (!fdd_can_read_medium(drive ^ fdd_swap))
 		{
-			pclog("Medium is of a density not supported by the drive\n");
                         fdc_notfound();
                         disc_sector_state[drive] = STATE_IDLE;
                         break;
 		}
                 if (index_count[drive] > 0)
                 {
-                        pclog("Find next sector hit end of track\n");
                         fdc_notfound();
                         disc_sector_state[drive] = STATE_IDLE;
                         break;
@@ -374,22 +563,18 @@ int disc_sector_poll(int drive)
                 if (cur_byte[drive] || (fdc_get_bitcell_period() != get_bitcell_period(drive)) ||
                     disc_intersector_delay[drive] || disc_track_delay[drive])
                 {
-			// pclog("Poll: Find sector advance byte!\n");
-                        sector_type = advance_byte(drive);
-			do_period = 1;
+                        advance_byte();
                         break;
                 }
                 disc_sector_state[drive] = STATE_READ_NEXT_SECTOR;
+
                 case STATE_READ_NEXT_SECTOR:
                 if (fdc_data(s->data[cur_byte[drive]]))
                         break;
-                sector_type = advance_byte(drive);
-		do_period = 1;
+                advance_byte();
                 if (!cur_byte[drive])
                 {
                         disc_sector_state[drive] = STATE_IDLE;
-			pclog("Processed bytes: %i, byte pulses: %i\n", processed_bytes[drive], bpulses[drive]);
-			// pclog("Disk poll time is: %i\n", disc_poll_time);
                         fdc_finishread(drive);
                 }
                 break;
@@ -397,7 +582,6 @@ int disc_sector_poll(int drive)
                 case STATE_WRITE_FIND_SECTOR:
 		if (!fdd_can_read_medium(drive ^ fdd_swap))
 		{
-			// pclog("Medium is of a density not supported by the drive\n");
                         fdc_notfound();
                         disc_sector_state[drive] = STATE_IDLE;
                         break;
@@ -405,12 +589,9 @@ int disc_sector_poll(int drive)
                 if (writeprot[drive] || swwp)
                 {
                         fdc_writeprotect();
-                        return 0;
                 }
                 if (index_count[drive] > 1)
                 {
-                        // pclog("Write find sector not found\n");
-			pclog("WRITE: Sector (%i %i %i %i) not found\n", s->c, s->h, s->r, s->n);
                         fdc_notfound();
                         disc_sector_state[drive] = STATE_IDLE;
                         break;
@@ -422,25 +603,21 @@ int disc_sector_poll(int drive)
                     (fdc_get_bitcell_period() != get_bitcell_period(drive)) ||
                     disc_intersector_delay[drive] || disc_track_delay[drive])
                 {
-			// pclog("Poll: Find sector advance byte!\n");
-                        sector_type = advance_byte(drive);
-			do_period = 1;
+                        advance_byte();
                         break;
                 }
                 disc_sector_state[drive] = STATE_WRITE_SECTOR;
+
                 case STATE_WRITE_SECTOR:
                 data = fdc_getdata(cur_byte[drive] == ((128 << s->n) - 1));
                 if (data == -1)
                         break;
                 if (!disable_write)  s->data[cur_byte[drive]] = data;
-                sector_type = advance_byte(drive);
-		do_period = 1;
+                advance_byte();
                 if (!cur_byte[drive])
                 {
                         disc_sector_state[drive] = STATE_IDLE;
                         if (!disable_write)  disc_sector_writeback[drive](drive, disc_sector_track[drive]);
-			pclog("Processed bytes: %i, byte pulses: %i\n", processed_bytes[drive], bpulses[drive]);
-			// pclog("Disk poll time is: %i\n", disc_poll_time);
                         fdc_finishread(drive);
                 }
                 break;
@@ -448,24 +625,20 @@ int disc_sector_poll(int drive)
                 case STATE_READ_FIND_ADDRESS:
 		if (!fdd_can_read_medium(drive ^ fdd_swap))
 		{
-			pclog("Medium is of a density not supported by the drive\n");
                         fdc_notfound();
                         disc_sector_state[drive] = STATE_IDLE;
                         break;
 		}
                 if (index_count[drive] > 0)
                 {
-                        pclog("Find next sector hit end of track\n");
                         fdc_notfound();
                         disc_sector_state[drive] = STATE_IDLE;
                         break;
                 }
                 if (cur_byte[drive] || (fdc_get_bitcell_period() != get_bitcell_period(drive)) ||
-                    disc_intersector_delay[drive] || disc_track_delay[drive])
+                        disc_intersector_delay[drive] || disc_track_delay[drive])
                 {
-			// pclog("Poll: Find sector advance byte!\n");
-                        sector_type = advance_byte(drive);
-			do_period = 1;
+                        advance_byte();
                         break;
                 }
                 disc_sector_state[drive] = STATE_READ_ADDRESS;
@@ -478,48 +651,37 @@ int disc_sector_poll(int drive)
                 if (writeprot[drive] || swwp)
                 {
                         fdc_writeprotect();
-                        return 0;
                 }
                 if (!index_count[drive] || (fdc_get_bitcell_period() != get_bitcell_period(drive)) ||
-                    disc_intersector_delay[drive] || disc_track_delay[drive])
+                        disc_intersector_delay[drive] || disc_track_delay[drive])
                 {
-                        sector_type = advance_byte(drive);
-			do_period = 1;
+                        advance_byte();
                         break;
                 }
 		if (!(fdd_can_read_medium(drive ^ fdd_swap)))
 		{
-			pclog("Medium is of a density not supported by the drive\n");
                         fdc_notfound();
                         disc_sector_state[drive] = STATE_IDLE;
                         break;
 		}
                 if (fdc_get_bitcell_period() != get_bitcell_period(drive))
                 {
-			pclog("Bitcell period mismatch\n");
                         fdc_notfound();
                         disc_sector_state[drive] = STATE_IDLE;
                         break;
                 }
                 disc_sector_state[drive] = STATE_FORMAT;
+
                 case STATE_FORMAT:
                 if (!disc_intersector_delay[drive] && fdc_get_bitcell_period() == get_bitcell_period(drive) && !disable_write)
                         s->data[cur_byte[drive]] = disc_sector_fill[drive];
-                sector_type = advance_byte(drive);
-		do_period = 1;
+                advance_byte();
                 if (index_count[drive] == 2)
                 {
                         if (!disable_write)  disc_sector_writeback[drive](drive, disc_sector_track[drive]);
-			pclog("Processed bytes: %i, byte pulses: %i\n", processed_bytes[drive], bpulses[drive]);
-			// pclog("Disk poll time is: %i\n", disc_poll_time);
                         fdc_finishread(drive);
                         disc_sector_state[drive] = STATE_IDLE;
                 }
                 break;
         }
-
-	// if (do_period)  pclog("disc_sector_poll(%i) = %i\n", drive, sector_type);
-	do_period = do_period ? ((sector_type > 0) ? 2 : 1) : 0;
-	return do_period;
 }
-

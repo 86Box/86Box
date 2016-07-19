@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdlib.h>
 #include "ibm.h"
 #include "device.h"
@@ -21,7 +22,7 @@ typedef struct pssj_t
         int amplitude;
         
         int irq;
-        int timer_count;
+        int64_t timer_count;
         int enable;
         
         int wave_pos;

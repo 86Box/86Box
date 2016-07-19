@@ -37,7 +37,6 @@ void svga_render_blank(svga_t *svga)
 
 void svga_render_text_40(svga_t *svga)
 {     
-	uint32_t addr_ex = 0;
 	int y_add = (enable_overscan) ? 16 : 0;
 	int x_add = y_add >> 1;
 
@@ -58,9 +57,8 @@ void svga_render_text_40(svga_t *svga)
                 for (x = 0; x < svga->hdisp; x += xinc)
                 {
                         drawcursor = ((svga->ma == svga->ca) && svga->con && svga->cursoron);
-			if (svga->oddeven_page)  addr_ex |= 0x10000;
-			chr = svga->vram[(svga->ma << 1) | addr_ex];
-			attr = svga->vram[((svga->ma << 1) + 1) | addr_ex];
+			chr = svga->vram[svga->ma << 1];
+			attr = svga->vram[(svga->ma << 1) + 1];
                         if (attr & 8) charaddr = svga->charsetb + (chr * 128);
                         else          charaddr = svga->charseta + (chr * 128);
 
@@ -105,7 +103,6 @@ void svga_render_text_40(svga_t *svga)
 
 void svga_render_text_80(svga_t *svga)
 {
-	uint32_t addr_ex = 0;
 	FILE *f;
 	int y_add = (enable_overscan) ? 16 : 0;
 	int x_add = y_add >> 1;
@@ -127,9 +124,8 @@ void svga_render_text_80(svga_t *svga)
                 for (x = 0; x < svga->hdisp; x += xinc)
                 {
                         drawcursor = ((svga->ma == svga->ca) && svga->con && svga->cursoron);
-			if (svga->oddeven_page)  addr_ex |= 0x10000;
-			chr = svga->vram[(svga->ma << 1) | addr_ex];
-			attr = svga->vram[((svga->ma << 1) + 1) | addr_ex];
+			chr = svga->vram[svga->ma << 1];
+			attr = svga->vram[(svga->ma << 1) + 1];
                         if (attr & 8) charaddr = svga->charsetb + (chr * 128);
                         else          charaddr = svga->charseta + (chr * 128);
 

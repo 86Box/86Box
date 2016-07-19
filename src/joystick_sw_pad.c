@@ -30,13 +30,13 @@
 
 typedef struct
 {
-        int poll_time;
+        int64_t poll_time;
         int poll_left;
         int poll_clock;
         uint64_t poll_data;
         int poll_mode;
                 
-        int trigger_time;
+        int64_t trigger_time;
         int data_mode;
 } sw_data;
 

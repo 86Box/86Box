@@ -121,8 +121,8 @@ extern int cpu_hasCR4;
 extern uint64_t cpu_CR4_mask;
 
 #define CPU_SUPPORTS_DYNAREC 1
-// #define CPU_REQUIRES_DYNAREC 2
-#define CPU_REQUIRES_DYNAREC 0
+#define CPU_REQUIRES_DYNAREC 2
+// #define CPU_REQUIRES_DYNAREC 0
 
 extern uint64_t tsc;
 

@@ -198,7 +198,7 @@ typedef struct voodoo_t
         int swap_count;
         
         int disp_buffer;
-        int timer_count;
+        int64_t timer_count;
         
         int line;
         svga_t *svga;

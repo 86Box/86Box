@@ -8,6 +8,6 @@ void fdi_readaddress(int drive, int sector, int side, int density);
 void fdi_format(int drive, int sector, int side, int density, uint8_t fill);
 int fdi_hole(int drive);
 int fdi_byteperiod(int drive);
-void fdi_stop(int drive);
-int fdi_poll(int drive);
+void fdi_stop();
+void fdi_poll();
 int fdi_realtrack(int track, int drive);

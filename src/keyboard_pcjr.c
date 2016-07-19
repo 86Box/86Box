@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 #include "ibm.h"
 #include "device.h"
 #include "io.h"

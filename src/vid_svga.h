@@ -33,7 +33,7 @@ typedef struct svga_t
         uint8_t colourcompare, colournocare;
         int readmode, writemode, readplane;
         int chain4, chain2_write, chain2_read;
-	int oddeven_page;
+	int oddeven_page, oddeven_chain;
 	int enablevram, extvram;
         uint8_t writemask;
         uint32_t charseta, charsetb;
@@ -53,7 +53,7 @@ typedef struct svga_t
         int bpp;
         
         int dispontime, dispofftime;
-        int vidtime;
+        int64_t vidtime;
         
         uint8_t scrblank;
         

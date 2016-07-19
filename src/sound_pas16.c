@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdlib.h>
 #include "ibm.h"
 
@@ -118,7 +119,7 @@ typedef struct pas16_t
         struct
         {
                 uint32_t l[3];
-                int c[3];
+                int64_t c[3];
                 uint8_t m[3];
                 uint8_t ctrl, ctrls[2];
                 int wp, rm[3], wm[3];

@@ -314,7 +314,6 @@ void ega_poll(void *p)
         int offset;
         uint8_t edat[4];
         int drawcursor = 0;
-	uint32_t addr_ex = 0;
 	int y_add = enable_overscan ? 14 : 0;
 	int x_add = enable_overscan ? 8 : 0;
 	int y_add_ex = enable_overscan ? 28 : 0;
@@ -363,9 +362,8 @@ void ega_poll(void *p)
 	                                        for (x = 0; x < ega->hdisp; x++)
                                 	        {
                         	                        drawcursor = ((ega->ma == ega->ca) && ega->con && ega->cursoron);
-							addr_ex = (ega->oddeven_page ? 0x10000 : 0);
-							chr = ega->vram[(ega->ma << 1) | addr_ex];
-							attr = ega->vram[((ega->ma << 1) + 1) | addr_ex];
+							chr = ega->vram[ega->ma << 1];
+							attr = ega->vram[(ega->ma << 1) + 1];
 
         	                                        if (attr & 8) charaddr = ega->charsetb + (chr * 128);
 	                                                else          charaddr = ega->charseta + (chr * 128);
@@ -726,11 +724,11 @@ void ega_write(uint32_t addr, uint8_t val, void *p)
 
         if (ega->chain2_write)
         {
-		plane = (ega->readplane & 2) | (addr & 1);
+		plane = (addr & 1) | (ega->oddeven_page ? 2 : 0);
 		mask = (1 << plane);
 		if (ega->seqregs[2] & mask)
 		{
-			addr = ((addr & ~1) << 2) | plane | (ega->oddeven_page ? 0x10000 : 0);
+			addr = (((addr & ~1) | ega->oddeven_chain) << 2) | plane;
 			if ((!ega->extvram) && (addr >= 0x10000))  return;
 	                if (addr >= 0x40000)  return;
 			if ((raddr <= 0xA0000) || (raddr >= 0xBFFFF))  return;
@@ -867,8 +865,8 @@ uint8_t ega_read(uint32_t addr, void *p)
 
         if (ega->chain2_read)
         {
-		plane = (ega->readplane & 2) | (addr & 1);
-		addr = ((addr & ~1) << 2) | plane | (ega->oddeven_page ? 0x10000 : 0);
+		plane = (addr & 1) | (ega->oddeven_page ? 2 : 0);
+		addr = (((addr & ~1) | ega->oddeven_chain) << 2) | plane;
 		if ((!ega->extvram) && (addr >= 0x10000))  return 0xff;
                 if (addr >= 0x40000)  return 0xff;
 		return ega->vram[addr];

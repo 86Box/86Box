@@ -306,6 +306,52 @@ void img_load(int drive, char *fn)
 	        else if (size <= 2000000)   { img[drive].sectors = 21; img[drive].tracks = 80; bit_rate_300 = 500; raw_tsize[drive] = 12500; } /*DMF format - used by Windows 95 - changed by OBattler to 2000000, ie. the real unformatted capacity @ 500 kbps and 300 rpm */
 	        else if (size <= 2949120)   { img[drive].sectors = 36; img[drive].tracks = 80; bit_rate_300 = 1000; raw_tsize[drive] = 25000; } /*E density*/
 
+		temp_rate = 2;
+		bpb_bps = img[drive].sector_size;
+		bpt = bpb_bps * img[drive].sectors;
+		if (bpt <= (maximum_sectors[sector_size_code(bpb_bps)][0] * bpb_bps))
+		{
+			temp_rate = 2;
+			raw_tsize[drive] = 5208;
+		}
+		else if (bpt <= (maximum_sectors[sector_size_code(bpb_bps)][1] * bpb_bps))
+		{
+			temp_rate = 2;
+			raw_tsize[drive] = 6250;
+		}
+		else if (bpt <= (maximum_sectors[sector_size_code(bpb_bps)][2] * bpb_bps))
+		{
+			temp_rate = 1;
+			raw_tsize[drive] = 7500;
+		}
+		else if (bpt <= (maximum_sectors[sector_size_code(bpb_bps)][3] * bpb_bps))
+		{
+			if (bpb_bps == 512)  max_spt = (bit_rate_300 == 500) ? 21 : 17;
+			temp_rate = (bit_rate_300 == 500) ? 0 : 4;
+			raw_tsize[drive] = (bit_rate_300 == 500) ? 12500 : 10416;
+		}
+		else if (bpt <= (maximum_sectors[sector_size_code(bpb_bps)][4] * bpb_bps))
+		{
+			if (bpb_bps == 512)  max_spt = 21;
+			pclog("max_spt is %i\n", max_spt);
+			temp_rate = 0;
+			raw_tsize[drive] = 12500;
+		}
+		else if (bpt <= (maximum_sectors[sector_size_code(bpb_bps)][5] * bpb_bps))
+		{
+			if (bpb_bps == 512)  max_spt = 41;
+			temp_rate = 3;
+			raw_tsize[drive] = 25000;
+		}
+		else					/* Image too big, eject */
+		{
+			pclog("Image is bigger than can fit on an ED floppy, ejecting...\n");
+			fclose(img[drive].f);
+			return;
+		}
+
+		pclog("Temporary rate: %i (%i bytes per track)\n", temp_rate, bpt);
+
 		img[drive].xdf_type = 0;
 	}
 	else
@@ -432,7 +478,7 @@ void img_load(int drive, char *fn)
 		gap3_size[drive] = 40;
 		pclog("WARNING: Floppy image of unknown format was inserted into drive %c:!\n", drive + 0x41);
 	}
-	gap4_size[drive] = raw_tsize[drive] - (((pre_gap + gap2_size[drive] + pre_data + data_size + post_gap + gap3_size[drive]) * img[drive].sectors) + pre_track);
+	gap4_size[drive] = raw_tsize[drive] - (((pre_gap + gap2_size[drive] + pre_data + img[drive].sector_size + post_gap + gap3_size[drive]) * img[drive].sectors) + pre_track);
 	pclog("GAP4 size: %i bytes\n", gap4_size[drive]);
 	if (img[drive].xdf_type)
 	{

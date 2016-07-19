@@ -92,7 +92,7 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 
                 h = GetDlgItem(hdlg, IDC_COMBOCPUM);
                 c = 0;
-                while (models[romstomodel[romset]].cpu[c].cpus != NULL && c < 3)
+                while (models[romstomodel[romset]].cpu[c].cpus != NULL && c < 4)
                 {
                         SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)models[romstomodel[romset]].cpu[c].name);
                         c++;

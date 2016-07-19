@@ -84,7 +84,7 @@ static struct
 
 static int sound_handlers_num;
 
-static int sound_poll_time = 0, sound_get_buffer_time = 0, sound_poll_latch;
+static int64_t sound_poll_time = 0, sound_get_buffer_time = 0, sound_poll_latch;
 int sound_pos_global = 0;
 
 int soundon = 1;

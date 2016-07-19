@@ -6,14 +6,10 @@
 #include "disc_img.h"
 #include "fdc.h"
 #include "fdd.h"
-#include "pit.h"
 #include "timer.h"
-#include "disc_sector.h"
 
 int disc_drivesel = 0;
-int disc_poll_time = 16;
-
-int poll_time[2] = {16, 16};
+int64_t disc_poll_time = 16;
 
 int disc_track[2];
 int writeprot[2], fwriteprot[2];
@@ -36,8 +32,6 @@ int fdc_ready;
 
 int drive_empty[2] = {1, 1};
 int disc_changed[2];
-
-int bpulses[2] = {0, 0};
 
 int motorspin;
 int motoron;
@@ -82,7 +76,6 @@ void disc_load(int drive, char *fn)
         FILE *f;
 //        pclog("disc_load %i %s\n", drive, fn);
 //        setejecttext(drive, "");
-	fdd_stepping_motor_on[drive] = fdd_track_diff[drive] = NULL;
         if (!fn) return;
         p = get_extension(fn);
         if (!p) return;
@@ -126,12 +119,11 @@ void disc_close(int drive)
         drives[drive].readaddress = NULL;
         drives[drive].format = NULL;
         drives[drive].realtrack = NULL;
+        drives[drive].byteperiod = NULL;
 	drives[drive].stop = NULL;
-	fdd_stepping_motor_on[drive] = fdd_track_diff[drive] = 0;
 }
 
 int disc_notfound=0;
-int not_found[2] = {0, 0};
 static int disc_period = 32;
 
 int disc_hole(int drive)
@@ -162,32 +154,24 @@ int disc_byteperiod(int drive)
 	}
 }
 
-#define ACCURATE_TIMER_USEC ((((double) cpuclock) / 1000000.0) * (double)(1 << TIMER_SHIFT))
-
-uint32_t byte_pulses = 0;
-
-#if 0
-void disc_time_adjust()
+double disc_real_period()
 {
-	if (disc_byteperiod(disc_drivesel ^ fdd_swap) == 26)
-        	disc_poll_time -= ((160.0 / 6.0) * ACCURATE_TIMER_USEC);
-	else
-	        disc_poll_time -= 25.0 * ((double) disc_byteperiod(disc_drivesel ^ fdd_swap)) * ACCURATE_TIMER_USEC;
+	int64_t dbp = disc_byteperiod(disc_drivesel ^ fdd_swap);
+	double ddbp = (double) dbp;
+
+	if (dbp == 26)  ddbp = 160.0 / 6.0;
+
+	double dusec = (double) TIMER_USEC;
+
+	return (ddbp * dusec);
 }
 
 void disc_poll()
 {
-        // disc_poll_time += disc_period * TIMER_USEC;
-	if (disc_byteperiod(disc_drivesel ^ fdd_swap) == 26)
-		disc_poll_time += ((160.0 / 6.0) * ACCURATE_TIMER_USEC);
-	else
-	        disc_poll_time += ((double) disc_byteperiod(disc_drivesel ^ fdd_swap)) * ACCURATE_TIMER_USEC;
-
-	byte_pulses++;
-	if ((byte_pulses > 6250) && (byte_pulses <= 6275))  pclog("Byte pulses is now %i!\n", byte_pulses);
+        disc_poll_time += (int64_t) disc_real_period();
 
         if (drives[disc_drivesel].poll)
-		drives[disc_drivesel].poll(disc_drivesel);
+                drives[disc_drivesel].poll();
 
         if (disc_notfound)
         {
@@ -195,79 +179,6 @@ void disc_poll()
                 if (!disc_notfound)
                         fdc_notfound();
         }
-}
-#endif
-
-// #define TIMER_SUB 441 // 736
-// #define TIMER_SUB 0
-#define TIMER_SUB 0
-
-double dt[2] = {0.0, 0.0};
-double dt2[2] = {0.0, 0.0};
-
-void disc_poll_ex(int poll_drive)
-{
-	int dp = 0;
-	double pm = 1.0;
-
-	int dbp = disc_byteperiod(poll_drive ^ fdd_swap);
-	double ddbp = (double) dbp;
-
-	double dtime = 0.0;
-
-	double dusec = (double) TIMER_USEC;
-	double dsub = (double) TIMER_SUB;
-
-	if (dbp == 26)  ddbp = 160.0 / 6.0;
-
-        if (not_found[poll_drive])
-        {
-                not_found[poll_drive]--;
-                if (!not_found[poll_drive])
-                        fdc_notfound();
-        }
-	else
-	{
-	        if (drives[poll_drive].poll)
-			dp = drives[poll_drive].poll(poll_drive);
-	}
-
-#if 0
-	if (dp == 2)
-	{
-		pm = 15.0 / 16.0;
-		pclog("SYNC byte detected\n");
-	}
-#endif
-
-	dtime = (ddbp * pm * dusec) - dsub;
-
-	poll_time[poll_drive] += (int) dtime;
-
-	dt[poll_drive] += dtime;
-	if (dp)  dt2[poll_drive] += dtime;
-
-	if (dp)  bpulses[poll_drive]++;
-
-	// if (!dp && (byte_pulses == 10416))
-	if (bpulses[poll_drive] == raw_tsize[poll_drive])
-	{
-		pclog("Sent %i byte pulses for drive %c (time: %lf | %lf)\n", raw_tsize[poll_drive], 0x41 + poll_drive, dt[poll_drive], dt2[poll_drive]);
-	        // poll_time[poll_drive] += (dbp * (2.0 / 3.0) * pm * TIMER_USEC) - TIMER_SUB;
-		// dt[poll_drive] = dt2[poll_drive] = bpulses[poll_drive] = motor_on[poll_drive] = 0;
-		// disc_stop(poll_drive ^ fdd_swap);	/* Send drive to idle state after enough byte pulses have been sent. */
-		/* Disc state is already set to idle on finish or error anyway. */
-	}
-}
-
-void disc_poll_0()
-{
-	disc_poll_ex(0);
-}
-
-void disc_poll_1()
-{
-	disc_poll_ex(1);
 }
 
 int disc_get_bitcell_period(int rate)
@@ -327,11 +238,7 @@ void disc_reset()
 {
         curdrive = 0;
         disc_period = 32;
-	fdd_stepping_motor_on[0] = fdd_track_diff[0] = 0;
-	fdd_stepping_motor_on[1] = fdd_track_diff[1] = 0;
-	// timer_add(disc_poll, &disc_poll_time, &motoron, NULL);
-	timer_add(disc_poll_0, &(poll_time[0]), &(motor_on[0]), NULL);
-	timer_add(disc_poll_1, &(poll_time[1]), &(motor_on[1]), NULL);
+	timer_add(disc_poll, &disc_poll_time, &motoron, NULL);
 }
 
 void disc_init()
@@ -360,19 +267,9 @@ void disc_readsector(int drive, int sector, int track, int side, int density, in
         drive ^= fdd_swap;
 
         if (drives[drive].readsector)
-	{
                 drives[drive].readsector(drive, sector, track, side, density, sector_size);
-		pclog("Byte pulses: %i\n", bpulses[drive]);
-		bpulses[drive] = 0;
-		dt[drive] = dt2[drive] = 0;
-		// motor_on[drive] = 1;
-		poll_time[drive] = 0;
-	}
         else
-		not_found[drive] = 1000;
-#if 0
                 disc_notfound = 1000;
-#endif
 }
 
 void disc_writesector(int drive, int sector, int track, int side, int density, int sector_size)
@@ -380,18 +277,9 @@ void disc_writesector(int drive, int sector, int track, int side, int density, i
         drive ^= fdd_swap;
 
         if (drives[drive].writesector)
-	{
                 drives[drive].writesector(drive, sector, track, side, density, sector_size);
-		bpulses[drive] = 0;
-		dt[drive] = dt2[drive] = 0;
-		// motor_on[drive] = 1;
-		poll_time[drive] = 0;
-	}
         else
-		not_found[drive] = 1000;
-#if 0
                 disc_notfound = 1000;
-#endif
 }
 
 void disc_readaddress(int drive, int track, int side, int density)
@@ -399,13 +287,7 @@ void disc_readaddress(int drive, int track, int side, int density)
         drive ^= fdd_swap;
 
         if (drives[drive].readaddress)
-	{
                 drives[drive].readaddress(drive, track, side, density);
-		bpulses[drive] = 0;
-		dt[drive] = dt2[drive] = 0;
-		// motor_on[drive] = 1;
-		poll_time[drive] = 0;
-	}
 }
 
 void disc_format(int drive, int track, int side, int density, uint8_t fill)
@@ -413,18 +295,9 @@ void disc_format(int drive, int track, int side, int density, uint8_t fill)
         drive ^= fdd_swap;
         
         if (drives[drive].format)
-	{
                 drives[drive].format(drive, track, side, density, fill);
-		bpulses[drive] = 0;
-		dt[drive] = dt2[drive] = 0;
-		// motor_on[drive] = 1;
-		poll_time[drive] = 0;
-	}
         else
-		not_found[drive] = 1000;
-#if 0
                 disc_notfound = 1000;
-#endif
 }
 
 int disc_realtrack(int drive, int track)

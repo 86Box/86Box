@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "ibm.h"
@@ -35,7 +36,7 @@ typedef struct adgold_t
         int16_t adgold_mma_out[2];
         int adgold_mma_intpos[2];
 
-        int adgold_mma_timer_count;
+        int64_t adgold_mma_timer_count;
 
         struct
         {

@@ -33,7 +33,8 @@ typedef struct pcjr_t
         int vsynctime, vadj;
         uint16_t ma, maback;
         
-        int dispontime, dispofftime, vidtime;
+        int dispontime, dispofftime;
+	int64_t vidtime;
         int firstline, lastline;
 } pcjr_t;
 

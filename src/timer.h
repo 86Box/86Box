@@ -3,7 +3,7 @@
 
 #include "cpu.h"
 
-extern int timer_start;
+extern int64_t timer_start;
 
 #define timer_start_period(cycles)                      \
         timer_start = cycles;
@@ -11,7 +11,7 @@ extern int timer_start;
 #define timer_end_period(cycles) 			\
 	do 						\
 	{						\
-                int diff = timer_start - (cycles);      \
+                int64_t diff = timer_start - ((uint64_t) cycles);  \
 		timer_count -= diff;			\
                 timer_start = cycles;                   \
 		if (timer_count <= 0)			\
@@ -24,16 +24,16 @@ extern int timer_start;
 #define timer_clock()                                                   \
 	do 						                \
 	{						                \
-                int diff;                                               \
+                int64_t diff;                                           \
                 if (AT)                                                 \
                 {                                                       \
-                        diff = timer_start - (cycles << TIMER_SHIFT);   \
-                        timer_start = cycles << TIMER_SHIFT;            \
+                        diff = timer_start - (((uint64_t) cycles) << TIMER_SHIFT);   \
+                        timer_start = ((uint64_t) cycles) << TIMER_SHIFT;            \
                 }                                                       \
                 else                                                    \
                 {                                                       \
-                        diff = timer_start - (cycles * xt_cpu_multi);   \
-                        timer_start = cycles * xt_cpu_multi;            \
+                        diff = timer_start - (((uint64_t) cycles) * xt_cpu_multi);   \
+                        timer_start = ((uint64_t) cycles) * xt_cpu_multi;            \
                 }                                                       \
 		timer_count -= diff;			                \
 		timer_process();		                        \
@@ -43,17 +43,15 @@ extern int timer_start;
 void timer_process();
 void timer_update_outstanding();
 void timer_reset();
-int timer_add(void (*callback)(void *priv), int *count, int *enable, void *priv);
+int timer_add(void (*callback)(void *priv), int64_t *count, int *enable, void *priv);
 void timer_set_callback(int timer, void (*callback)(void *priv));
 
 #define TIMER_ALWAYS_ENABLED &timer_one
 
-extern int timer_count;
+extern int64_t timer_count;
 extern int timer_one;
 
-// #define TIMER_SHIFT 6
-/* Reduced by 4 in order to alleviate problems at higher CPU speed. Will be put back if a better solution is ever implemented. */
-#define TIMER_SHIFT 4
+#define TIMER_SHIFT 6
 
 extern int TIMER_USEC;
 

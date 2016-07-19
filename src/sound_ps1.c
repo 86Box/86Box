@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdlib.h>
 #include "ibm.h"
 #include "device.h"
@@ -12,7 +13,7 @@ typedef struct ps1_audio_t
         
         uint8_t status, ctrl;
         
-        int timer_latch, timer_count, timer_enable;
+        int64_t timer_latch, timer_count, timer_enable;
         
         uint8_t fifo[2048];
         int fifo_read_idx, fifo_write_idx;

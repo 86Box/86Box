@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include "ibm.h"
 #include "io.h"
 #include "mem.h"

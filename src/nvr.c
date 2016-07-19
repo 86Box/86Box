@@ -13,7 +13,8 @@ int nvraddr;
 
 int nvr_dosave = 0;
 
-static int nvr_onesec_time = 0, nvr_onesec_cnt = 0;
+static int64_t nvr_onesec_time = 0;
+static int nvr_onesec_cnt = 0;
 
 void getnvrtime()
 {
@@ -59,10 +60,46 @@ int nvr_check_alarm(int nvraddr)
         return (nvrram[nvraddr + 1] == nvrram[nvraddr] || (nvrram[nvraddr + 1] & ALARM_DONTCARE) == ALARM_DONTCARE);
 }
 
+int64_t nvr_update_end_count = 0;
+
+void nvr_update_end(void *p)
+{
+        if (!(nvrram[RTCREGB] & RTCSET))
+        {
+                getnvrtime();
+                /* Clear update status. */
+                nvr_update_status = 0;
+
+                if (nvr_check_alarm(RTCSECONDS) && nvr_check_alarm(RTCMINUTES) && nvr_check_alarm(RTCHOURS))
+                {
+                        nvrram[RTCREGC] |= RTCAF;
+                        if (nvrram[RTCREGB] & RTCAIE)
+                        {
+                                nvrram[RTCREGC] |= RTCIRQF;
+                                if (AMSTRAD) picint(2);
+                                else         picint(0x100);
+                        }
+                }
+
+                /* The flag and interrupt should be issued on update ended, not started. */
+                nvrram[RTCREGC] |= RTCUF;
+                if (nvrram[RTCREGB] & RTCUIE)
+                {
+                        nvrram[RTCREGC] |= RTCIRQF;
+                        if (AMSTRAD) picint(2);
+                        else         picint(0x100);
+                }
+        }
+        
+//                pclog("RTC onesec\n");
+
+        nvr_update_end_count = 0;
+}
+
 void nvr_onesec(void *p)
 {
         nvr_onesec_cnt++;
-        if (nvr_onesec_cnt >= 32768)
+        if (nvr_onesec_cnt >= 100)
         {
                 nvr_onesec_cnt = 0;
 
@@ -71,40 +108,13 @@ void nvr_onesec(void *p)
                 {
                         nvr_update_status = RTCUIP;
                         if (!enable_sync)  rtc_tick();
+
+                        timer_clock();
+                        nvr_update_end_count = (int)((244.0 + 1984.0) * TIMER_USEC);
+                        timer_update_outstanding();
                 }
         }
-        else if (nvr_onesec_cnt == 73)	/* 73 of our cycles means 244+1984 us = update in progress time per the specification. */
-        {
-                if (!(nvrram[RTCREGB] & RTCSET))
-                {
-                        getnvrtime();
-                        /* Clear update status. */
-                        nvr_update_status = 0;
-
-                        if (nvr_check_alarm(RTCSECONDS) && nvr_check_alarm(RTCMINUTES) && nvr_check_alarm(RTCHOURS))
-                        {
-                                nvrram[RTCREGC] |= RTCAF;
-                                if (nvrram[RTCREGB] & RTCAIE)
-                                {
-                                        nvrram[RTCREGC] |= RTCIRQF;
-	        	                if (AMSTRAD) picint(2);
-        		                else         picint(0x100);
-                                }
-                        }
-
-                        /* The flag and interrupt should be issued on update ended, not started. */
-                        nvrram[RTCREGC] |= RTCUF;
-                        if (nvrram[RTCREGB] & RTCUIE)
-                        {
-                                nvrram[RTCREGC] |= RTCIRQF;
-                                if (AMSTRAD) picint(2);
-                                else         picint(0x100);
-                        }
-//                pclog("RTC onesec\n");
-                }
-        }
-        /* This is correct! The real RTC's one second timer operates at 32768 Hz, not 100 Hz! */
-        nvr_onesec_time += (int)((1000000.0 / 32768.0) * TIMER_USEC);
+        nvr_onesec_time += (int)(10000 * TIMER_USEC);
 }
 
 void writenvr(uint16_t addr, uint8_t val, void *priv)
@@ -307,4 +317,5 @@ void nvr_init()
         io_sethandler(0x0070, 0x0002, readnvr, NULL, NULL, writenvr, NULL, NULL,  NULL);
         timer_add(nvr_rtc, &rtctime, TIMER_ALWAYS_ENABLED, NULL);
         timer_add(nvr_onesec, &nvr_onesec_time, TIMER_ALWAYS_ENABLED, NULL);
+        timer_add(nvr_update_end, &nvr_update_end_count, &nvr_update_end_count, NULL);
 }

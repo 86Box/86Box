@@ -45,7 +45,7 @@ typedef struct sb_dsp_t
         
         int sbenable, sb_enable_i;
         
-        int sbcount, sb_count_i;
+        int64_t sbcount, sb_count_i;
         
         int sblatcho, sblatchi;
         
@@ -55,7 +55,7 @@ typedef struct sb_dsp_t
         
         int asp_data_len;
         
-        int wb_time, wb_full;
+        int64_t wb_time, wb_full;
         
         int16_t buffer[SOUNDBUFLEN * 2];
         int pos;

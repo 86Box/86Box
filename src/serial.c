@@ -16,7 +16,7 @@ enum
 SERIAL serial1, serial2;
 
 int mousepos=-1;
-int mousedelay;
+int64_t mousedelay;
 
 void serial_reset()
 {

@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,13 +43,13 @@ typedef struct gus_t
         int16_t buffer[2][SOUNDBUFLEN];
         int pos;
         
-        int samp_timer, samp_latch;
+        int64_t samp_timer, samp_latch;
         
         uint8_t *ram;
         
         int irqnext;
         
-        int timer_1, timer_2;
+        int64_t timer_1, timer_2;
         
         int irq, dma, irq_midi;
         int latch_enable;

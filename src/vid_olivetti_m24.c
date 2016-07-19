@@ -33,7 +33,8 @@ typedef struct m24_t
         uint16_t ma, maback;
         int dispon;
         
-        int dispontime, dispofftime, vidtime;
+        int dispontime, dispofftime;
+	int64_t vidtime;
         
         int firstline, lastline;
 } m24_t;

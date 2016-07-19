@@ -21,7 +21,6 @@ extern uint16_t ea_rseg;
                                 if (abrt) return 1; \
                                 if (tempi) \
                                 { \
-					pclog("No I/O permission on port %04Xh\n", port); \
                                         x86gpf("check_io_perm(): no permission",0); \
                                         return 1; \
                                 } \
@@ -45,7 +44,6 @@ extern uint16_t ea_rseg;
                                 if (abrt) return 1; \
                                 if (tempi) \
                                 { \
-					pclog("No I/O permission on port %04Xh\n", port); \
                                         x86gpf("check_io_perm(): no permission",0); \
                                         return 1; \
                                 } \
@@ -61,7 +59,7 @@ extern uint16_t ea_rseg;
                                         break; \
                                 } \
                         }
-
+#if 0
 #define CHECK_READ(chseg, low, high)  \
         if ((low < (chseg)->limit_low) || (high > (chseg)->limit_high))       \
         {                                       \
@@ -110,6 +108,52 @@ extern uint16_t ea_rseg;
 #endif
 
 #define CHECK_WRITE_REP(chseg, low, high)  \
+	if (msw&1 && !(eflags&VM_FLAG) && !((chseg)->access & 0x80))	\
+	{					\
+		if ((chseg) == &_ss)		\
+			x86ss(NULL,(chseg)->seg & 0xfffc);	\
+		else				\
+			x86np("Write (REP) to seg not present", (chseg)->seg & 0xfffc);	\
+		break;                       \
+        }
+#endif
+
+#define CHECK_READ(chseg, low, high)  \
+        if ((low < (chseg)->limit_low) || (high > (chseg)->limit_high))       \
+        {                                       \
+                x86gpf("Limit check", 0);       \
+                return 1;                       \
+	}					\
+	if (msw&1 && !(eflags&VM_FLAG) && !((chseg)->access & 0x80))	\
+	{					\
+		if ((chseg) == &_ss)		\
+			x86ss(NULL,(chseg)->seg & 0xfffc);	\
+		else				\
+			x86np("Read from seg not present", (chseg)->seg & 0xfffc);	\
+		return 1;			\
+        }
+
+#define CHECK_WRITE(chseg, low, high)  \
+        if ((low < (chseg)->limit_low) || (high > (chseg)->limit_high) || !((chseg)->access & 2))       \
+        {                                       \
+                x86gpf("Limit check", 0);       \
+                return 1;                       \
+	}					\
+	if (msw&1 && !(eflags&VM_FLAG) && !((chseg)->access & 0x80))	\
+	{					\
+		if ((chseg) == &_ss)		\
+			x86ss(NULL,(chseg)->seg & 0xfffc);	\
+		else				\
+			x86np("Write to seg not present", (chseg)->seg & 0xfffc);	\
+		return 1;			\
+        }
+
+#define CHECK_WRITE_REP(chseg, low, high)  \
+        if ((low < (chseg)->limit_low) || (high > (chseg)->limit_high))       \
+        {                                       \
+                x86gpf("Limit check", 0);       \
+                break;                       \
+	}					\
 	if (msw&1 && !(eflags&VM_FLAG) && !((chseg)->access & 0x80))	\
 	{					\
 		if ((chseg) == &_ss)		\

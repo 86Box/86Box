@@ -22,7 +22,7 @@ typedef struct
         uint8_t fifo[256];
         int fifo_read, fifo_write;
         
-        int recieve_delay;
+        int64_t recieve_delay;
 } SERIAL;
 
 extern SERIAL serial1, serial2;

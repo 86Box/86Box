@@ -15,6 +15,4 @@ int fdd_get_type(int drive);
 
 extern int fdd_swap;
 
-extern int fdd_stepping_motor_on[2];
-extern int fdd_track_diff[2];
 void fdd_init();

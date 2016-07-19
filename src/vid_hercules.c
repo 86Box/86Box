@@ -17,7 +17,7 @@ typedef struct hercules_t
         uint8_t ctrl, ctrl2, stat;
 
         int dispontime, dispofftime;
-        int vidtime;
+        int64_t vidtime;
         
         int firstline, lastline;
 

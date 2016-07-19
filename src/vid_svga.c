@@ -1,5 +1,6 @@
 /*Generic SVGA handling*/
 /*This is intended to be used by another SVGA driver, and not as a card in it's own right*/
+#include <stdio.h>
 #include <stdlib.h>
 #include "ibm.h"
 #include "mem.h"
@@ -28,6 +29,8 @@ static svga_t *svga_pri;
 static int old_overscan_color = 0;
 
 static int sense_switches = 0xE;
+
+svga_t *svga_pointer;
 
 svga_t *svga_get_pri()
 {
@@ -204,6 +207,7 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                         break;
                         case 6:
 //                                pclog("svga_out recalcmapping %p\n", svga);
+			svga->oddeven_chain = (val & 2) ? 1 : 0;
                         if ((svga->gdcreg[6] & 0xc) != (val & 0xc))
                         {
 //                                pclog("Write mapping %02X\n", val);
@@ -781,6 +785,8 @@ int svga_init(svga_t *svga, void *p, int memsize,
         svga_pri = svga;
          
         svga->ramdac_type = RAMDAC_6BIT;
+
+	svga_pointer = svga;
         
         return 0;
 }
@@ -826,11 +832,17 @@ void svga_write(uint32_t addr, uint8_t val, void *p)
         else if (svga->chain2_write)
         {
 		/* Redone because the original code caused problems when using Windows 3.1 EGA driver on (S)VGA card. */
-		plane = (svga->readplane & 2) | (addr & 1);
+		if (svga->oddeven_chain)
+			plane = (addr & 1) | (svga->oddeven_page ? 2 : 0);
+		else
+			plane = (svga->oddeven_page ? 2 : 0);
 		mask = (1 << plane);
 		if (svga->seqregs[2] & mask)
 		{
-			addr = ((addr & ~1) << 2) | plane | (svga->oddeven_page ? 0x10000 : 0);
+			if (svga->oddeven_chain)
+				addr = ((addr & ~1) << 2) | plane;
+			else
+				addr = (addr << 2) | plane;
 			if ((!svga->extvram) && (addr >= 0x10000))  return;
 	                if (addr >= svga->vram_limit)  return;
 			if ((raddr <= 0xA0000) || (raddr >= 0xBFFFF))  return;
@@ -1030,8 +1042,17 @@ uint8_t svga_read(uint32_t addr, void *p)
         else if (svga->chain2_read)
         {
 		/* Redone because the original code caused problems when using Windows 3.1 EGA driver on (S)VGA card. */
-		plane = (svga->readplane & 2) | (addr & 1);
-		addr = ((addr & ~1) << 2) | plane | (svga->oddeven_page ? 0x10000 : 0);
+		if (svga->oddeven_chain)
+		{
+			plane = (addr & 1) | (svga->oddeven_page ? 2 : 0);
+			addr = ((addr & ~1) << 2) | plane;
+		}
+		else
+		{
+			plane = (svga->oddeven_page ? 2 : 0);
+			addr = (addr << 2) | plane;
+		}
+
 	        latch_addr = (addr << 2) & 0x7fffff;
 		if ((!svga->extvram) && (addr >= 0x10000))  return 0xff;
                 if (addr >= svga->vram_limit)  return 0xff;
@@ -1085,6 +1106,8 @@ void svga_write_linear(uint32_t addr, uint8_t val, void *p)
 	uint32_t raddr = addr;
 	int plane, mask;
 
+	return;
+
 	if (!svga->enablevram)  return;
 
         cycles -= video_timing_b;
@@ -1103,11 +1126,17 @@ void svga_write_linear(uint32_t addr, uint8_t val, void *p)
         else if (svga->chain2_write)
         {
 		/* Redone because the original code caused problems when using Windows 3.1 EGA driver on (S)VGA card. */
-		plane = (svga->readplane & 2) | (addr & 1);
+		if (svga->oddeven_chain)
+			plane = (addr & 1) | (svga->oddeven_page ? 2 : 0);
+		else
+			plane = (svga->oddeven_page ? 2 : 0);
 		mask = (1 << plane);
 		if (svga->seqregs[2] & mask)
 		{
-			addr = ((addr & ~1) << 2) | plane | (svga->oddeven_page ? 0x10000 : 0);
+			if (svga->oddeven_chain)
+				addr = ((addr & ~1) << 2) | plane;
+			else
+				addr = (addr << 2) | plane;
 			addr &= 0x7fffff;
 			if ((!svga->extvram) && (addr >= 0x10000))  return;
 	                if (addr >= svga->vram_limit)  return;
@@ -1280,6 +1309,8 @@ uint8_t svga_read_linear(uint32_t addr, void *p)
         int readplane = svga->readplane;
 	int plane;
 
+	return 0xff;
+
 	if (!svga->enablevram)  return 0xff;
   
         cycles -= video_timing_b;
@@ -1297,8 +1328,17 @@ uint8_t svga_read_linear(uint32_t addr, void *p)
         else if (svga->chain2_read)
         {
 		/* Redone because the original code caused problems when using Windows 3.1 EGA driver on (S)VGA card. */
-		plane = (svga->readplane & 2) | (addr & 1);
-		addr = ((addr & ~1) << 2) | plane | (svga->oddeven_page ? 0x10000 : 0);
+		if (svga->oddeven_chain)
+		{
+			plane = (addr & 1) | (svga->oddeven_page ? 2 : 0);
+			addr = ((addr & ~1) << 2) | plane;
+		}
+		else
+		{
+			plane = (svga->oddeven_page ? 2 : 0);
+			addr = (addr << 2) | plane;
+		}
+
 		addr &= 0x7fffff;
 		if ((!svga->extvram) && (addr >= 0x10000))  return 0xff;
                 if (addr >= svga->vram_limit)  return 0xff;
@@ -1513,6 +1553,28 @@ uint32_t svga_readl(uint32_t addr, void *p)
         return *(uint32_t *)&svga->vram[addr];
 }
 
+#if 0
+void svga_write_linear(uint32_t addr, uint8_t val, void *p)
+{
+        svga_t *svga = (svga_t *)p;
+
+	if (!svga->enablevram)  return;
+        
+        egawrites += 2;
+
+        cycles -= video_timing_w;
+        cycles_lost += video_timing_w;
+
+	if (svga_output) pclog("Write LFBw %08X %04X\n", addr, val);
+        addr &= 0x7FFFFF;
+	if ((!svga->extvram) && (addr >= 0x10000))  return;
+        if (addr >= svga->vram_limit)
+                return;
+        svga->changedvram[addr >> 12] = changeframecount;
+        *(uint8_t *)&svga->vram[addr] = val;
+}
+#endif
+
 void svga_writew_linear(uint32_t addr, uint16_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
@@ -1569,6 +1631,26 @@ void svga_writel_linear(uint32_t addr, uint32_t val, void *p)
         *(uint32_t *)&svga->vram[addr] = val;
 }
 
+#if 0
+uint8_t svga_read_linear(uint32_t addr, void *p)
+{
+        svga_t *svga = (svga_t *)p;
+
+	if (!svga->enablevram)  return 0xff;
+        
+        egareads += 2;
+
+        cycles -= video_timing_w;
+        cycles_lost += video_timing_w;
+
+        addr &= 0x7FFFFF;
+	if ((!svga->extvram) && (addr >= 0x10000))  return 0xff;
+        if (addr >= svga->vram_limit) return 0xff;
+        
+        return *(uint8_t *)&svga->vram[addr];
+}
+#endif
+
 uint16_t svga_readw_linear(uint32_t addr, void *p)
 {
         svga_t *svga = (svga_t *)p;
@@ -1618,6 +1700,7 @@ void svga_add_status_info(char *s, int max_len, void *p)
         char temps[128];
         
         if (svga->chain4) strcpy(temps, "SVGA chained (possibly mode 13h)\n");
+        else if ((svga->chain2_read) || (svga->chain2_write)) sprintf(temps, "SVGA chained odd/even (r: %s, w: %s)\n", svga->chain2_read ? "ON" : "OFF", svga->chain2_write ? "ON" : "OFF");
         else              strcpy(temps, "SVGA unchained (possibly mode-X)\n");
         strncat(s, temps, max_len);
 
@@ -1628,7 +1711,21 @@ void svga_add_status_info(char *s, int max_len, void *p)
         sprintf(temps, "SVGA resolution : %i x %i\n", svga->video_res_x, svga->video_res_y);
         strncat(s, temps, max_len);
         
-        sprintf(temps, "SVGA refresh rate : %i Hz\n\n", svga->frames);
+        sprintf(temps, "SVGA refresh rate : %i Hz (%s)\n\n", svga->frames, svga->interlace ? "i" : "p");
         svga->frames = 0;
         strncat(s, temps, max_len);
+
+	sprintf(temps, "SVGA DAC in %i-bit mode\n", (svga->attrregs[0x10] & 0x80) ? 8 : 6);
+        strncat(s, temps, max_len);
+}
+
+void svga_dump_vram()
+{
+	FILE *f;
+	f = fopen("svga_ram.dmp", "wb");
+	fwrite(svga_pointer->vram, svga_pointer->vrammask + 1, 1, f);
+	fclose(f);
+	f = fopen("svga_pal.dmp", "wb");
+	fwrite(svga_pointer->pallook, 256, 1, f);
+	fclose(f);
 }

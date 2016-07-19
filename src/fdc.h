@@ -24,4 +24,3 @@ void fdc_update_densel_polarity(int densel_polarity);
 void fdc_update_densel_force(int densel_force);
 void fdc_update_drvrate(int drive, int drvrate);
 void fdc_update_drv2en(int drv2en);
-int fdc_skip_pulses(int drive);

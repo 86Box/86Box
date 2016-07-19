@@ -51,7 +51,7 @@ void atapi_insert_cdrom();
 
 extern int ideboard;
 
-extern int idecallback[3];
+extern int64_t idecallback[3];
 
 extern char ide_fn[4][512];
 

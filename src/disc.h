@@ -8,7 +8,7 @@ typedef struct
         int (*hole)(int drive);
         int (*byteperiod)(int drive);
         void (*stop)(int drive);
-        int (*poll)(int drive);
+        void (*poll)();
 	int (*realtrack)(int drive, int track);
 } DRIVE;
 
@@ -27,7 +27,6 @@ void disc_readsector(int drive, int sector, int track, int side, int density, in
 void disc_writesector(int drive, int sector, int track, int side, int density, int sector_size);
 void disc_readaddress(int drive, int track, int side, int density);
 void disc_format(int drive, int track, int side, int density, uint8_t fill);
-void disc_time_adjust();
 int disc_realtrack(int drive, int track);
 int disc_hole(int drive);
 int disc_byteperiod(int drive);
@@ -36,11 +35,8 @@ int disc_empty(int drive);
 void disc_set_rate(int drive, int drvden, int rate);
 void disc_set_drivesel(int drive);
 extern int disc_time;
-extern int disc_poll_time;
-extern int poll_time[2];
+extern int64_t disc_poll_time;
 extern int disc_drivesel;
-extern int disc_notfound;
-extern int not_found[2];
 
 void fdc_callback();
 int  fdc_data(uint8_t dat);
@@ -60,8 +56,6 @@ extern int fdc_indexcount;*/
 extern int motorspin;
 extern int motoron;
 
-extern int motor_on[2];
-
 extern int swwp;
 extern int disable_write;
 
@@ -73,10 +67,6 @@ extern int disc_track[2];
 extern int disc_changed[2];
 extern int drive_empty[2];
 extern int drive_type[2];
-
-extern uint32_t byte_pulses;
-
-extern int bpulses[2];
 
 /*Used in the Read A Track command. Only valid for disc_readsector(). */
 #define SECTOR_FIRST -2

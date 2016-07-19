@@ -210,7 +210,7 @@ extern int cpl_override;
 typedef struct PIT
 {
         uint32_t l[3];
-        int c[3];
+        int64_t c[3];
         uint8_t m[3];
         uint8_t ctrl,ctrls[3];
         int wp,rm[3],wm[3];
@@ -282,7 +282,7 @@ extern int pic_intpending;
 int intcount;
 
 
-int disctime;
+int64_t disctime;
 char discfns[2][256];
 int driveempty[2];
 
@@ -435,14 +435,14 @@ void writeega_chain4(uint32_t addr, uint8_t val);
 extern uint32_t svgarbank,svgawbank;
 
 /*Serial*/
-extern int mousedelay;
+extern int64_t mousedelay;
 
 
 /*Sound*/
 uint8_t spkstat;
 
 float spktime;
-int rtctime;
+int64_t rtctime;
 int soundtime,gustime,gustime2,vidtime;
 int ppispeakon;
 float CGACONST;
@@ -490,13 +490,13 @@ typedef struct
 PcemHDC hdc[4];
 
 /*Keyboard*/
-int keybsenddelay;
+int64_t keybsenddelay;
 
 
 /*CD-ROM*/
 extern int cdrom_drive;
 extern int old_cdrom_drive;
-extern int idecallback[3];
+extern int64_t idecallback[3];
 extern int cdrom_enabled;
 
 #define CD_STATUS_EMPTY		0
