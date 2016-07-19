@@ -1098,6 +1098,7 @@ uint8_t svga_read(uint32_t addr, void *p)
         return svga->vram[addr | readplane];
 }
 
+#if 0
 void svga_write_linear(uint32_t addr, uint8_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
@@ -1377,6 +1378,7 @@ uint8_t svga_read_linear(uint32_t addr, void *p)
 //printf("Read %02X %04X %04X\n",vram[addr|svga->readplane],addr,svga->readplane);
         return svga->vram[addr | readplane];
 }
+#endif
 
 void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 {
@@ -1553,7 +1555,6 @@ uint32_t svga_readl(uint32_t addr, void *p)
         return *(uint32_t *)&svga->vram[addr];
 }
 
-#if 0
 void svga_write_linear(uint32_t addr, uint8_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
@@ -1573,7 +1574,6 @@ void svga_write_linear(uint32_t addr, uint8_t val, void *p)
         svga->changedvram[addr >> 12] = changeframecount;
         *(uint8_t *)&svga->vram[addr] = val;
 }
-#endif
 
 void svga_writew_linear(uint32_t addr, uint16_t val, void *p)
 {
@@ -1631,7 +1631,6 @@ void svga_writel_linear(uint32_t addr, uint32_t val, void *p)
         *(uint32_t *)&svga->vram[addr] = val;
 }
 
-#if 0
 uint8_t svga_read_linear(uint32_t addr, void *p)
 {
         svga_t *svga = (svga_t *)p;
@@ -1649,7 +1648,6 @@ uint8_t svga_read_linear(uint32_t addr, void *p)
         
         return *(uint8_t *)&svga->vram[addr];
 }
-#endif
 
 uint16_t svga_readw_linear(uint32_t addr, void *p)
 {

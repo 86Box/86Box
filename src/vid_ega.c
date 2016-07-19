@@ -724,11 +724,18 @@ void ega_write(uint32_t addr, uint8_t val, void *p)
 
         if (ega->chain2_write)
         {
-		plane = (addr & 1) | (ega->oddeven_page ? 2 : 0);
+		/* Redone because the original code caused problems when using Windows 3.1 EGA driver on (S)VGA card. */
+		if (ega->oddeven_chain)
+			plane = (addr & 1) | (ega->oddeven_page ? 2 : 0);
+		else
+			plane = (ega->oddeven_page ? 2 : 0);
 		mask = (1 << plane);
 		if (ega->seqregs[2] & mask)
 		{
-			addr = (((addr & ~1) | ega->oddeven_chain) << 2) | plane;
+			if (ega->oddeven_chain)
+				addr = ((addr & ~1) << 2) | plane;
+			else
+				addr = (addr << 2) | plane;
 			if ((!ega->extvram) && (addr >= 0x10000))  return;
 	                if (addr >= 0x40000)  return;
 			if ((raddr <= 0xA0000) || (raddr >= 0xBFFFF))  return;
@@ -863,10 +870,20 @@ uint8_t ega_read(uint32_t addr, void *p)
         if (addr >= 0xb0000) addr &= 0x7fff;
         else                 addr &= 0xffff;
 
-        if (ega->chain2_read)
+        if (svga->chain2_read)
         {
-		plane = (addr & 1) | (ega->oddeven_page ? 2 : 0);
-		addr = (((addr & ~1) | ega->oddeven_chain) << 2) | plane;
+		/* Redone because the original code caused problems when using Windows 3.1 EGA driver on (S)VGA card. */
+		if (ega->oddeven_chain)
+		{
+			plane = (addr & 1) | (ega->oddeven_page ? 2 : 0);
+			addr = ((addr & ~1) << 2) | plane;
+		}
+		else
+		{
+			plane = (ega->oddeven_page ? 2 : 0);
+			addr = (addr << 2) | plane;
+		}
+
 		if ((!ega->extvram) && (addr >= 0x10000))  return 0xff;
                 if (addr >= 0x40000)  return 0xff;
 		return ega->vram[addr];
