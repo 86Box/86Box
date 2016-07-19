@@ -602,6 +602,7 @@ void at_i440fx_init()
 void at_kn97_init()
 {
         at_init();
+	memregs_init();
 	mouse_ps2_init();
         pci_init(PCI_CONFIG_TYPE_1, 0, 31);
         i440fx_init();
