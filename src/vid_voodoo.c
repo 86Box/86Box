@@ -4224,7 +4224,10 @@ void voodoo_callback(void *p)
                                 voodoo->dirty_line[voodoo->line] = 0;
                                 
                                 if (voodoo->line < voodoo->dirty_line_low)
+                                {
                                         voodoo->dirty_line_low = voodoo->line;
+                                        video_wait_for_buffer();
+                                }
                                 if (voodoo->line > voodoo->dirty_line_high)
                                         voodoo->dirty_line_high = voodoo->line;
                                 

@@ -11,6 +11,7 @@
 #include "io.h"
 #include "cpu.h"
 #include "rom.h"
+#include "thread.h"
 #include "timer.h"
 
 #include "vid_ati18800.h"
@@ -227,8 +228,8 @@ int video_timing_b, video_timing_w, video_timing_l;
 
 int video_res_x, video_res_y, video_bpp;
 
-void (*video_blit_memtoscreen)(int x, int y, int y1, int y2, int w, int h);
-void (*video_blit_memtoscreen_8)(int x, int y, int w, int h);
+void (*video_blit_memtoscreen_func)(int x, int y, int y1, int y2, int w, int h);
+void (*video_blit_memtoscreen_8_func)(int x, int y, int w, int h);
 
 void video_init()
 {
@@ -372,7 +373,20 @@ void loadfont(char *s, int format)
         }
         fclose(f);
 }
+ 
+static struct
+{
+        int x, y, y1, y2, w, h, blit8;
+        int busy;
+        int buffer_in_use;
 
+        thread_t *blit_thread;
+        event_t *wake_blit_thread;
+        event_t *blit_complete;
+        event_t *buffer_not_in_use;
+} blit_data;
+
+static void blit_thread(void *param);
 
 void initvideo()
 {
@@ -427,15 +441,88 @@ void initvideo()
         video_16to32 = malloc(4 * 65536);
         for (c = 0; c < 65536; c++)
                 video_16to32[c] = ((c & 31) << 3) | (((c >> 5) & 63) << 10) | (((c >> 11) & 31) << 19);
-
+ 
+        blit_data.wake_blit_thread = thread_create_event();
+        blit_data.blit_complete = thread_create_event();
+        blit_data.buffer_not_in_use = thread_create_event();
+        blit_data.blit_thread = thread_create(blit_thread, NULL);
 }
 
 void closevideo()
 {
-        free(video_15to32);
+        thread_kill(blit_data.blit_thread);
+        thread_destroy_event(blit_data.buffer_not_in_use);
+        thread_destroy_event(blit_data.blit_complete);
+        thread_destroy_event(blit_data.wake_blit_thread);
+
+         free(video_15to32);
         free(video_16to32);
         destroy_bitmap(buffer);
         destroy_bitmap(buffer32);
+}
+
+
+static void blit_thread(void *param)
+{
+        while (1)
+        {
+                thread_wait_event(blit_data.wake_blit_thread, -1);
+                thread_reset_event(blit_data.wake_blit_thread);
+                
+                if (blit_data.blit8)
+                        video_blit_memtoscreen_8_func(blit_data.x, blit_data.y, blit_data.w, blit_data.h);
+                else
+                        video_blit_memtoscreen_func(blit_data.x, blit_data.y, blit_data.y1, blit_data.y2, blit_data.w, blit_data.h);
+                
+                blit_data.busy = 0;
+                thread_set_event(blit_data.blit_complete);
+        }
+}
+
+void video_blit_complete()
+{
+        blit_data.buffer_in_use = 0;
+        thread_set_event(blit_data.buffer_not_in_use);
+}
+
+void video_wait_for_blit()
+{
+        while (blit_data.busy)
+                thread_wait_event(blit_data.blit_complete, -1);
+        thread_reset_event(blit_data.blit_complete);
+}
+void video_wait_for_buffer()
+{
+        while (blit_data.buffer_in_use)
+                thread_wait_event(blit_data.buffer_not_in_use, -1);
+        thread_reset_event(blit_data.buffer_not_in_use);
+}
+
+void video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
+{
+        video_wait_for_blit();
+        blit_data.busy = 1;
+        blit_data.buffer_in_use = 1;
+        blit_data.x = x;
+        blit_data.y = y;
+        blit_data.y1 = y1;
+        blit_data.y2 = y2;
+        blit_data.w = w;
+        blit_data.h = h;
+        blit_data.blit8 = 0;
+        thread_set_event(blit_data.wake_blit_thread);
+}
+
+void video_blit_memtoscreen_8(int x, int y, int w, int h)
+{
+        video_wait_for_blit();
+        blit_data.busy = 1;
+        blit_data.x = x;
+        blit_data.y = y;
+        blit_data.w = w;
+        blit_data.h = h;
+        blit_data.blit8 = 1;
+        thread_set_event(blit_data.wake_blit_thread);
 }
 
 #ifdef __unix

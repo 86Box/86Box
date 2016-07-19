@@ -67,8 +67,11 @@ extern int readflash;
 
 extern void (*video_recalctimings)();
 
-extern void (*video_blit_memtoscreen)(int x, int y, int y1, int y2, int w, int h);
-extern void (*video_blit_memtoscreen_8)(int x, int y, int w, int h);
+void video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
+void video_blit_memtoscreen_8(int x, int y, int w, int h);
+
+extern void (*video_blit_memtoscreen_func)(int x, int y, int y1, int y2, int w, int h);
+extern void (*video_blit_memtoscreen_8_func)(int x, int y, int w, int h);
 
 /* Enable EGA/(S)VGA overscan border. */
 extern int enable_overscan;
@@ -84,6 +87,9 @@ extern int video_speed;
 extern int video_res_x, video_res_y, video_bpp;
 
 extern int vid_resize;
+
+void video_wait_for_blit();
+void video_wait_for_buffer();
 
 extern int winsizex,winsizey;
 

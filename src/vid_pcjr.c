@@ -218,7 +218,10 @@ void pcjr_poll(void *p)
                         uint16_t mask = 0x1fff;
                         
                         if (pcjr->displine < pcjr->firstline)
+                        {
                                 pcjr->firstline = pcjr->displine;                                
+                                video_wait_for_buffer();
+                        }
                         pcjr->lastline = pcjr->displine;
                         cols[0] = (pcjr->array[2] & 0xf) + 16;
                         for (c = 0; c < 8; c++)

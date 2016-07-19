@@ -225,6 +225,7 @@ void mainthread(LPVOID param)
                 if (!video_fullscreen && win_doresize)
                 {
                         RECT r;
+                        video_wait_for_blit();
                         GetWindowRect(ghwnd, &r);
                         MoveWindow(ghwnd, r.left, r.top,
                                 winsizex + (GetSystemMetrics(SM_CXFIXEDFRAME) * 2),
@@ -1039,6 +1040,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
                         case IDM_VID_DDRAW: case IDM_VID_D3D:
                         startblit();
+                        video_wait_for_blit();
                         CheckMenuItem(hmenu, IDM_VID_DDRAW + vid_api, MF_UNCHECKED);
                         vid_apis[0][vid_api].close();
                         vid_api = LOWORD(wParam) - IDM_VID_DDRAW;
@@ -1056,6 +1058,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                                 MessageBox(hwnd, "Use CTRL + ALT + PAGE DOWN to return to windowed mode", "PCem", MB_OK);
                         }
                         startblit();
+                        video_wait_for_blit();
                         mouse_close();
                         vid_apis[0][vid_api].close();
                         video_fullscreen = 1;
@@ -1383,6 +1386,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 if (vid_apis[video_fullscreen][vid_api].resize)
                 {
                         startblit();
+                        video_wait_for_blit();
                         vid_apis[video_fullscreen][vid_api].resize(winsizex, winsizey);
                         endblit();
                 }

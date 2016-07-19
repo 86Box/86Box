@@ -330,7 +330,10 @@ void ega_poll(void *p)
                 if (ega->dispon)
                 {
                         if (ega->firstline == 2000) 
+                        {
                                 ega->firstline = ega->displine;
+                                video_wait_for_buffer();
+                        }
 
                         if (ega->scrblank)
                         {

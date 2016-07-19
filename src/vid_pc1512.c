@@ -180,7 +180,10 @@ static void pc1512_poll(void *p)
                 if (pc1512->dispon)
                 {
                         if (pc1512->displine < pc1512->firstline) 
+                        {
                                 pc1512->firstline = pc1512->displine;
+                                video_wait_for_buffer();
+                        }
                         pc1512->lastline = pc1512->displine;
                         for (c = 0; c < 8; c++)
                         {

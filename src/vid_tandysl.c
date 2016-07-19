@@ -284,6 +284,7 @@ static void tandysl_poll(void *p)
                         if (tandy->displine < tandy->firstline)
                         {
                                 tandy->firstline = tandy->displine;
+                                video_wait_for_buffer();
 //                                printf("Firstline %i\n",firstline);
                         }
                         tandy->lastline = tandy->displine;

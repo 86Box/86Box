@@ -11,6 +11,7 @@ extern "C" void fatal(const char *format, ...);
 extern "C" void pclog(const char *format, ...);
 
 extern "C" void device_force_redraw();
+extern "C" void video_blit_complete();
 
 void d3d_init_objects();
 void d3d_close_objects();
@@ -99,8 +100,8 @@ void d3d_init(HWND h)
         
         d3d_init_objects();
         
-        video_blit_memtoscreen = d3d_blit_memtoscreen;
-        video_blit_memtoscreen_8 = d3d_blit_memtoscreen_8;
+        video_blit_memtoscreen_func = d3d_blit_memtoscreen;
+        video_blit_memtoscreen_8_func = d3d_blit_memtoscreen_8;
 }
 
 void d3d_close_objects()
@@ -233,9 +234,31 @@ void d3d_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
         RECT r;
         uint32_t *p, *src;
         int yy;
-        
-	if (y1 == y2)
+
+        if (y1 == y2)
+        {
+                video_blit_complete();
         	return; /*Nothing to do*/
+       }
+
+        r.top    = y1;
+        r.left   = 0;
+        r.bottom = y2;
+        r.right  = 2047;
+
+        if (hr == D3D_OK)
+        {        
+                if (FAILED(d3dTexture->LockRect(0, &dr, &r, 0)))
+                   fatal("LockRect failed\n");
+        
+                for (yy = y1; yy < y2; yy++)
+                        memcpy(dr.pBits + ((yy - y1) * dr.Pitch), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
+
+                video_blit_complete();
+                d3dTexture->UnlockRect(0);
+        }
+        else
+                video_blit_complete();
 
 	d3d_verts[0].tu = d3d_verts[2].tu = d3d_verts[3].tu = 0;//0.5 / 2048.0;
         d3d_verts[0].tv = d3d_verts[3].tv = d3d_verts[4].tv = 0;//0.5 / 2048.0;
@@ -254,22 +277,6 @@ void d3d_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
                 memcpy(pVoid, d3d_verts, sizeof(d3d_verts));    // copy the vertices to the locked buffer
         if (hr == D3D_OK)
                 hr = v_buffer->Unlock();    // unlock the vertex buffer
-
-        r.top    = y1;
-        r.left   = 0;
-        r.bottom = y2;
-        r.right  = 2079;
-
-        if (hr == D3D_OK)
-        {        
-                if (FAILED(d3dTexture->LockRect(0, &dr, &r, 0)))
-                   fatal("LockRect failed\n");
-        
-                for (yy = y1; yy < y2; yy++)
-                        memcpy(dr.pBits + ((yy - y1) * dr.Pitch), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
-
-                d3dTexture->UnlockRect(0);
-        }
 
         if (hr == D3D_OK)        
                 hr = d3ddev->BeginScene();
@@ -312,25 +319,10 @@ void d3d_blit_memtoscreen_8(int x, int y, int w, int h)
         HRESULT hr = D3D_OK;
 
         if (h == 0)
+	{
+                video_blit_complete();
 		return; /*Nothing to do*/
-
-        d3d_verts[0].tu = d3d_verts[2].tu = d3d_verts[3].tu = 0;//0.5 / 2080.0;
-        d3d_verts[0].tv = d3d_verts[3].tv = d3d_verts[4].tv = 0;//0.5 / 2080.0;
-        d3d_verts[1].tu = d3d_verts[4].tu = d3d_verts[5].tu = (float)w / 2080.0;
-        d3d_verts[1].tv = d3d_verts[2].tv = d3d_verts[5].tv = (float)h / 2080.0;
-
-        GetClientRect(d3d_hwnd, &r);
-        d3d_verts[0].x = d3d_verts[2].x = d3d_verts[3].x = -0.5;
-        d3d_verts[0].y = d3d_verts[3].y = d3d_verts[4].y = -0.5;
-        d3d_verts[1].x = d3d_verts[4].x = d3d_verts[5].x = (r.right  - r.left) - 0.5;
-        d3d_verts[1].y = d3d_verts[2].y = d3d_verts[5].y = (r.bottom - r.top) - 0.5;
-
-        if (hr == D3D_OK)
-                hr = v_buffer->Lock(0, 0, (void**)&pVoid, 0);    // lock the vertex buffer
-        if (hr == D3D_OK)
-                memcpy(pVoid, d3d_verts, sizeof(d3d_verts));    // copy the vertices to the locked buffer
-        if (hr == D3D_OK)
-                hr = v_buffer->Unlock();    // unlock the vertex buffer
+        }
 
         r.top    = 0;
         r.left   = 0;
@@ -351,9 +343,12 @@ void d3d_blit_memtoscreen_8(int x, int y, int w, int h)
                                         p[xx] = pal_lookup[buffer->line[y + yy][x + xx]];
                         }
                 }
+                video_blit_complete();
 
                 d3dTexture->UnlockRect(0);
         }
+        else
+                video_blit_complete();
       
         if (hr == D3D_OK)        
                 hr = d3ddev->BeginScene();
@@ -378,8 +373,28 @@ void d3d_blit_memtoscreen_8(int x, int y, int w, int h)
                 if (hr == D3D_OK)
                         hr = d3ddev->EndScene();
         }
+        else
+                video_blit_complete();
+       
+        d3d_verts[0].tu = d3d_verts[2].tu = d3d_verts[3].tu = 0;//0.5 / 2048.0;
+        d3d_verts[0].tv = d3d_verts[3].tv = d3d_verts[4].tv = 0;//0.5 / 2048.0;
+        d3d_verts[1].tu = d3d_verts[4].tu = d3d_verts[5].tu = (float)w / 2048.0;
+        d3d_verts[1].tv = d3d_verts[2].tv = d3d_verts[5].tv = (float)h / 2048.0;
+
+        GetClientRect(d3d_hwnd, &r);
+        d3d_verts[0].x = d3d_verts[2].x = d3d_verts[3].x = -0.5;
+        d3d_verts[0].y = d3d_verts[3].y = d3d_verts[4].y = -0.5;
+        d3d_verts[1].x = d3d_verts[4].x = d3d_verts[5].x = (r.right  - r.left) - 0.5;
+        d3d_verts[1].y = d3d_verts[2].y = d3d_verts[5].y = (r.bottom - r.top) - 0.5;
 
         if (hr == D3D_OK)
+                hr = v_buffer->Lock(0, 0, (void**)&pVoid, 0);    // lock the vertex buffer
+        if (hr == D3D_OK)
+                memcpy(pVoid, d3d_verts, sizeof(d3d_verts));    // copy the vertices to the locked buffer
+        if (hr == D3D_OK)
+                hr = v_buffer->Unlock();    // unlock the vertex buffer
+
+         if (hr == D3D_OK)
                 hr = d3ddev->Present(NULL, NULL, d3d_hwnd, NULL);
         
         if (hr == D3DERR_DEVICELOST || hr == D3DERR_INVALIDCALL)

@@ -865,6 +865,7 @@ void incolor_poll(void *p)
                         if (incolor->displine < incolor->firstline)
                         {
                                 incolor->firstline = incolor->displine;
+                                video_wait_for_buffer();
                         }
                         incolor->lastline = incolor->displine;
                         if ((incolor->ctrl & INCOLOR_CTRL_GRAPH) && (incolor->ctrl2 & INCOLOR_CTRL2_GRAPH))
