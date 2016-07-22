@@ -6,6 +6,17 @@
 #include "vid_svga.h"
 #include "vid_sdac_ramdac.h"
 
+int sdac_get_clock_divider(sdac_ramdac_t *ramdac)
+{
+        switch (ramdac->command >> 4)
+        {
+		case 0x0: case 0x3: case 0x5: return 1;
+                case 0x1: case 0x2: case 0x6: case 0x7: case 0xa: case 0xc: return 2;
+                case 0x4: case 0xe: return 3;
+                default: return 1;
+        }
+}
+
 void sdac_ramdac_out(uint16_t addr, uint8_t val, sdac_ramdac_t *ramdac, svga_t *svga)
 {
 //        /*if (CS!=0xC000) */pclog("OUT RAMDAC %04X %02X %i %04X:%04X  %i\n",addr,val,sdac_ramdac.magic_count,CS,pc, sdac_ramdac.rs2);
@@ -23,45 +34,16 @@ void sdac_ramdac_out(uint16_t addr, uint8_t val, sdac_ramdac_t *ramdac, svga_t *
                 {
                         ramdac->command = val;
 //                        pclog("RAMDAC command reg now %02X\n", val);
-			// 0, 1 = 15 bpp
-			if (gfxcard == GFX_ET4000W32C)
-			{
-		                if (ramdac->command & 8)
-		                {
-		                        switch (ramdac->regs[3])
-		                        {
-		                                case 0: case 5: case 7: svga->bpp = 8;  break;
-		                                case 1: case 2: case 8: svga->bpp = 15; break;
-                		                case 3: case 6:         svga->bpp = 16; break;
-		                                case 4: case 9:         svga->bpp = 24; break;
-                                		default:                svga->bpp = 8; break;
-                		        }
-		                }
-		                else
-		                {
-		                        switch (ramdac->command >> 5)
-                		        {
-		                                case 0:  svga->bpp =  8; break;
-                		                case 5:  svga->bpp = 15; break;
-		                                case 6:  svga->bpp = 16; break;
-                		                case 7:  svga->bpp = 24; break;
-		                                default: svga->bpp =  8; break;
-                		        }
-		                }
-			}
-			else
-			{
-	                        switch (val >> 4)
-        	                {
-                	                case 0x2: case 0x3: case 0xa: svga->bpp = 15; break;
-                        	        case 0x4: case 0xe:           svga->bpp = 24; break;
-                                	case 0x5: case 0x6: case 0xc: svga->bpp = 16; break;
-	                                case 0x7:                     svga->bpp = 32; break;
+                        switch (val >> 4)
+                        {
+                                case 0x2: case 0x3: case 0xa: svga->bpp = 15; break;
+                                case 0x4: case 0xe:           svga->bpp = 24; break;
+                                case 0x5: case 0x6: case 0xc: svga->bpp = 16; break;
+                                case 0x7:                     svga->bpp = 32; break;
 
-	                                case 0: case 1: default: svga->bpp = 8; break;
-        	                }
-			}
-			pclog("SDAC: Value %02X/%02X set to %i bpp\n", val >> 4, val, svga->bpp);
+                                case 0: case 1: default: svga->bpp = 8; break;
+                        }
+			svga_recalctimings(svga);
                 }
                 //ramdac->magic_count = 0;
                 break;

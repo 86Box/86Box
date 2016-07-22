@@ -79,6 +79,38 @@ static void rebuild_axis_button_selections(HWND hdlg)
 
                 id += 2;
         }
+
+        for (c = 0; c < joystick_get_pov_count(joystick_config_type)*2; c++)
+        {
+                int sel = c;
+                                        
+                h = GetDlgItem(hdlg, id);
+                SendMessage(h, CB_RESETCONTENT, 0, 0);
+
+                if (joystick)
+                {
+                        for (d = 0; d < plat_joystick_state[joystick-1].nr_povs; d++)
+                        {
+                                char s[80];
+                                
+                                sprintf(s, "%s (X axis)", plat_joystick_state[joystick-1].pov[d].name);
+                                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)s);
+                                sprintf(s, "%s (Y axis)", plat_joystick_state[joystick-1].pov[d].name);
+                                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)s);
+                        }
+                        for (d = 0; d < plat_joystick_state[joystick-1].nr_axes; d++)
+                        {
+                                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)plat_joystick_state[joystick-1].axis[d].name);
+                        }
+                        SendMessage(h, CB_SETCURSEL, sel, 0);
+                        EnableWindow(h, TRUE);
+                }
+                else
+                        EnableWindow(h, FALSE);
+                                        
+                id += 2;
+        }
+
 }
 
 static int get_axis(HWND hdlg, int id)
@@ -95,6 +127,23 @@ static int get_axis(HWND hdlg, int id)
                 return POV_Y | (axis_sel >> 1);
         else
                 return POV_X | (axis_sel >> 1);
+}
+
+static int get_pov(HWND hdlg, int id)
+{
+        HWND h = GetDlgItem(hdlg, id);
+        int axis_sel = SendMessage(h, CB_GETCURSEL, 0, 0);
+        int nr_povs = plat_joystick_state[joystick_state[joystick_nr].plat_joystick_nr-1].nr_povs*2;
+
+        if (axis_sel < nr_povs)
+        {
+                if (axis_sel & 1)
+                        return POV_Y | (axis_sel >> 1);
+                else
+                        return POV_X | (axis_sel >> 1);
+        }
+        
+        return axis_sel - nr_povs;
 }
 
 static BOOL CALLBACK joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -120,6 +169,7 @@ static BOOL CALLBACK joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wPar
                         if (joystick_state[joystick_nr].plat_joystick_nr)
                         {
                                 int nr_axes = plat_joystick_state[joystick-1].nr_axes;
+                                int nr_povs = plat_joystick_state[joystick-1].nr_povs;
                                 for (c = 0; c < joystick_get_axis_count(joystick_config_type); c++)
                                 {
                                         int mapping = joystick_state[joystick_nr].axis_mapping[c];
@@ -137,6 +187,29 @@ static BOOL CALLBACK joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wPar
                                 {
                                         h = GetDlgItem(hdlg, id);
                                         SendMessage(h, CB_SETCURSEL, joystick_state[joystick_nr].button_mapping[c], 0);
+                                        id += 2;
+                                }
+                                for (c = 0; c < joystick_get_pov_count(joystick_config_type); c++)
+                                {
+                                        int mapping;
+                                        
+                                        h = GetDlgItem(hdlg, id);
+                                        mapping = joystick_state[joystick_nr].pov_mapping[c][0];
+                                        if (mapping & POV_X)
+                                                SendMessage(h, CB_SETCURSEL, (mapping & 3)*2, 0);
+                                        else if (mapping & POV_Y)
+                                                SendMessage(h, CB_SETCURSEL, (mapping & 3)*2 + 1, 0);
+                                        else
+                                                SendMessage(h, CB_SETCURSEL, mapping + nr_povs*2, 0);
+                                        id += 2;
+                                        h = GetDlgItem(hdlg, id);
+                                        mapping = joystick_state[joystick_nr].pov_mapping[c][1];
+                                        if (mapping & POV_X)
+                                                SendMessage(h, CB_SETCURSEL, (mapping & 3)*2, 0);
+                                        else if (mapping & POV_Y)
+                                                SendMessage(h, CB_SETCURSEL, (mapping & 3)*2 + 1, 0);
+                                        else
+                                                SendMessage(h, CB_SETCURSEL, mapping + nr_povs*2, 0);
                                         id += 2;
                                 }
                         }
@@ -172,6 +245,15 @@ static BOOL CALLBACK joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wPar
                                         {
                                                 h = GetDlgItem(hdlg, id);
                                                 joystick_state[joystick_nr].button_mapping[c] = SendMessage(h, CB_GETCURSEL, 0, 0);
+                                                id += 2;
+                                        }
+                                        for (c = 0; c < joystick_get_button_count(joystick_config_type); c++)
+                                        {
+                                                h = GetDlgItem(hdlg, id);
+                                                joystick_state[joystick_nr].pov_mapping[c][0] = get_pov(hdlg, id);
+                                                id += 2;
+                                                h = GetDlgItem(hdlg, id);
+                                                joystick_state[joystick_nr].pov_mapping[c][1] = get_pov(hdlg, id);
                                                 id += 2;
                                         }
                                 }
@@ -358,6 +440,59 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
                 y += 20;
         }                
+ 
+        for (c = 0; c < joystick_get_pov_count(type)*2; c++)
+        {
+                char s[80];
+                
+                /*Combo box*/
+                item = (DLGITEMTEMPLATE *)data;
+                item->x = 70;
+                item->y = y;
+                item->id = id++;
+                
+                item->cx = 140;
+                item->cy = 150;
+
+                item->style = WS_CHILD | WS_VISIBLE | CBS_DROPDOWN | WS_VSCROLL;
+
+                data = (uint16_t *)(item + 1);
+                *data++ = 0xFFFF;
+                *data++ = 0x0085;    // combo box class
+
+                if (c & 1)
+                        sprintf(s, "%s (Y axis)", joystick_get_pov_name(type, c/2));
+                else
+                        sprintf(s, "%s (X axis)", joystick_get_pov_name(type, c/2));
+                data += MultiByteToWideChar(CP_ACP, 0, s, -1, data, 256);
+                *data++ = 0;              // no creation data
+                        
+                if (((unsigned long)data) & 2)
+                        data++;
+
+                /*Static text*/
+                item = (DLGITEMTEMPLATE *)data;
+                item->x = 10;
+                item->y = y;
+                item->id = id++;
+                
+                item->cx = 60;
+                item->cy = 15;
+
+                item->style = WS_CHILD | WS_VISIBLE;
+
+                data = (uint16_t *)(item + 1);
+                *data++ = 0xFFFF;
+                *data++ = 0x0082;    // static class
+
+                data += MultiByteToWideChar(CP_ACP, 0, s, -1, data, 256);
+                *data++ = 0;              // no creation data
+                        
+                if (((unsigned long)data) & 2)
+                        data++;
+
+                y += 20;
+        }
 
         dlg->cdit = (id - IDC_CONFIG_BASE) + 2;
 

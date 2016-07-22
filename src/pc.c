@@ -704,6 +704,13 @@ void loadconfig(char *fn)
                                 sprintf(s, "joystick_%i_button_%i", c, d);
                                 joystick_state[c].button_mapping[d] = config_get_int("Joysticks", s, d);
                         }
+                        for (d = 0; d < joystick_get_pov_count(joystick_type); d++)
+                        {                        
+                                sprintf(s, "joystick_%i_pov_%i_x", c, d);
+                                joystick_state[c].pov_mapping[d][0] = config_get_int("Joysticks", s, d);
+                                sprintf(s, "joystick_%i_pov_%i_y", c, d);
+                                joystick_state[c].pov_mapping[d][1] = config_get_int("Joysticks", s, d);
+                        }
                 }
         }
 }
@@ -792,6 +799,13 @@ void saveconfig()
                         {                        
                                 sprintf(s, "joystick_%i_button_%i", c, d);
                                 config_set_int("Joysticks", s, joystick_state[c].button_mapping[d]);
+                        }
+                        for (d = 0; d < joystick_get_pov_count(joystick_type); d++)
+                        {                        
+                                sprintf(s, "joystick_%i_pov_%i_x", c, d);
+                                config_set_int("Joysticks", s, joystick_state[c].pov_mapping[d][0]);
+                                sprintf(s, "joystick_%i_pov_%i_y", c, d);
+                                config_set_int("Joysticks", s, joystick_state[c].pov_mapping[d][1]);
                         }
                 }
         }

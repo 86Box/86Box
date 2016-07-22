@@ -52,7 +52,8 @@ static VIDEO_CARD video_cards[] =
         {"ATI Graphics Pro Turbo (Mach64 GX)",     &mach64gx_device,            GFX_MACH64GX},
         {"ATI VGA Charger (ATI-28800)",            &ati28800_device,            GFX_VGACHARGER},
         {"ATI VGA Edge-16 (ATI-18800)",            &ati18800_device,            GFX_VGAEDGE16},
-        {"Cardex Tseng ET4000/w32p",		   &et4000w32pc_device,         GFX_ET4000W32C},
+        {"Cardex 1703-DDC (ET4000/W32P)",          &et4000w32pc_device,         GFX_ET4000W32C},
+        {"Cardex ICS5341 (ET4000/W32P)",           &et4000w32pcs_device,        GFX_ET4000W32CS},
         {"CGA",                                    &cga_device,                 GFX_CGA},
         {"Cirrus Logic CL-GD5429",                 &gd5429_device,              GFX_CL_GD5429},
         {"Diamond Stealth 32 (Tseng ET4000/w32p)", &et4000w32p_device,          GFX_ET4000W32},
@@ -388,6 +389,38 @@ static struct
 
 static void blit_thread(void *param);
 
+int calc_15to32(int c)
+{
+	int b, g, r;
+	double db, dg, dr;
+	b = (c & 31);
+	g = ((c >> 5) & 31);
+	r = ((c >> 10) & 31);
+	db = (((double) b) / 31.0) * 255.0;
+	dg = (((double) g) / 31.0) * 255.0;
+	dr = (((double) r) / 31.0) * 255.0;
+	b = (int) db;
+	g = ((int) dg) << 8;
+	r = ((int) dr) << 16;
+	return (b | g | r);
+}
+
+int calc_16to32(int c)
+{
+	int b, g, r;
+	double db, dg, dr;
+	b = (c & 31);
+	g = ((c >> 5) & 63);
+	r = ((c >> 11) & 31);
+	db = (((double) b) / 31.0) * 255.0;
+	dg = (((double) g) / 63.0) * 255.0;
+	dr = (((double) r) / 31.0) * 255.0;
+	b = (int) db;
+	g = ((int) dg) << 8;
+	r = ((int) dr) << 16;
+	return (b | g | r);
+}
+
 void initvideo()
 {
         int c, d, e;
@@ -435,12 +468,20 @@ void initvideo()
         }
 
         video_15to32 = malloc(4 * 65536);
+#if 0
         for (c = 0; c < 65536; c++)
                 video_15to32[c] = ((c & 31) << 3) | (((c >> 5) & 31) << 11) | (((c >> 10) & 31) << 19);
+#endif
+        for (c = 0; c < 65536; c++)
+                video_15to32[c] = calc_15to32(c);
 
         video_16to32 = malloc(4 * 65536);
+#if 0
         for (c = 0; c < 65536; c++)
                 video_16to32[c] = ((c & 31) << 3) | (((c >> 5) & 63) << 10) | (((c >> 11) & 31) << 19);
+#endif
+        for (c = 0; c < 65536; c++)
+                video_16to32[c] = calc_16to32(c);
  
         blit_data.wake_blit_thread = thread_create_event();
         blit_data.blit_complete = thread_create_event();

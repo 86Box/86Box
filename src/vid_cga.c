@@ -81,8 +81,11 @@ void cga_write(uint32_t addr, uint8_t val, void *p)
         cga_t *cga = (cga_t *)p;
 //        pclog("CGA_WRITE %04X %02X\n", addr, val);
         cga->vram[addr & 0x3fff] = val;
-        cga->charbuffer[ ((int)(((cga->dispontime - cga->vidtime) * 2) / CGACONST)) & 0xfc] = val;
-        cga->charbuffer[(((int)(((cga->dispontime - cga->vidtime) * 2) / CGACONST)) & 0xfc) | 1] = val;
+        if (cga->snow_enabled)
+        {
+                cga->charbuffer[ ((int)(((cga->dispontime - cga->vidtime) * 2) / CGACONST)) & 0xfc] = val;
+                cga->charbuffer[(((int)(((cga->dispontime - cga->vidtime) * 2) / CGACONST)) & 0xfc) | 1] = val;
+        }
         egawrites++;
         cycles -= 4;
 }
@@ -91,8 +94,11 @@ uint8_t cga_read(uint32_t addr, void *p)
 {
         cga_t *cga = (cga_t *)p;
         cycles -= 4;        
-        cga->charbuffer[ ((int)(((cga->dispontime - cga->vidtime) * 2) / CGACONST)) & 0xfc] = cga->vram[addr & 0x3fff];
-        cga->charbuffer[(((int)(((cga->dispontime - cga->vidtime) * 2) / CGACONST)) & 0xfc) | 1] = cga->vram[addr & 0x3fff];
+        if (cga->snow_enabled)
+        {
+                cga->charbuffer[ ((int)(((cga->dispontime - cga->vidtime) * 2) / CGACONST)) & 0xfc] = cga->vram[addr & 0x3fff];
+                cga->charbuffer[(((int)(((cga->dispontime - cga->vidtime) * 2) / CGACONST)) & 0xfc) | 1] = cga->vram[addr & 0x3fff];
+        }
         egareads++;
 //        pclog("CGA_READ %04X\n", addr);
         return cga->vram[addr & 0x3fff];
@@ -443,6 +449,7 @@ void *cga_standalone_init()
         display_type = device_get_config_int("display_type");
         cga->composite = (display_type != CGA_RGB);
         cga->revision = device_get_config_int("composite_type");
+        cga->snow_enabled = device_get_config_int("snow_enabled");
 
         cga->vram = malloc(0x4000);
                 
@@ -512,6 +519,12 @@ static device_config_t cga_config[] =
                         }
                 },
                 .default_int = COMPOSITE_OLD
+        },
+        {
+                .name = "snow_enabled",
+                .description = "Snow emulation",
+                .type = CONFIG_BINARY,
+                .default_int = 1
         },
         {
                 .type = -1

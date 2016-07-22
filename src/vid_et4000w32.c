@@ -14,6 +14,7 @@
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_icd2061.h"
+#include "vid_sdac_ramdac.h"
 #include "vid_stg_ramdac.h"
 
 #define FIFO_SIZE 65536
@@ -49,6 +50,7 @@ typedef struct et4000w32p_t
         
         svga_t svga;
         stg_ramdac_t ramdac;
+        sdac_ramdac_t sdac_ramdac;
         icd2061_t icd2061;
 
         int index;
@@ -95,6 +97,7 @@ typedef struct et4000w32p_t
         {
                 uint32_t base[3];
                 uint8_t ctrl;
+		uint8_t unk[2];
         } mmu;
 
         fifo_entry_t fifo[FIFO_SIZE];
@@ -142,12 +145,19 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
                 break;
                 
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
-                stg_ramdac_out(addr, val, &et4000->ramdac, svga);
+		if (gfxcard == GFX_ET4000W32CS)
+		{
+			sdac_ramdac_out(addr, val, &et4000->sdac_ramdac, svga);
+		}
+		else
+		{
+	                stg_ramdac_out(addr, val, &et4000->ramdac, svga);
+		}
                 return;
                 
                 case 0x3CB: /*Banking extension*/
-                svga->write_bank = (svga->write_bank & 0xfffff) | ((val & 1) << 20);
-                svga->read_bank  = (svga->read_bank  & 0xfffff) | ((val & 0x10) << 16);
+                svga->write_bank = (svga->write_bank & 0xfffff) | ((val & 3) << 20);
+                svga->read_bank  = (svga->read_bank  & 0xfffff) | ((val & 0x30) << 16);
                 et4000->banking2 = val;
                 return;
                 case 0x3CD: /*Banking*/
@@ -242,7 +252,14 @@ uint8_t et4000w32p_in(uint16_t addr, void *p)
                 break;
 
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
-                return stg_ramdac_in(addr, &et4000->ramdac, svga);
+		if (gfxcard == GFX_ET4000W32CS)
+		{
+			return sdac_ramdac_in(addr, &et4000->sdac_ramdac, svga);
+		}
+		else
+		{
+	                return stg_ramdac_in(addr, &et4000->ramdac, svga);
+		}
 
                 case 0x3CB:
                 return et4000->banking2;
@@ -304,9 +321,22 @@ void et4000w32p_recalctimings(svga_t *svga)
 	                case 2: case 3: svga->clock = cpuclock / icd2061_getfreq(&et4000->icd2061, 2); break;
         	}
 	}
-	else
+	else if (gfxcard == GFX_ET4000W32C)
 	{
 		svga->clock = cpuclock / stg_getclock((svga->miscout >> 2) & 3, &et4000->ramdac);
+	}
+	else
+	{
+		svga->clock = cpuclock / sdac_getclock((svga->miscout >> 2) & 3, &et4000->sdac_ramdac);
+		switch (sdac_get_clock_divider(&et4000->sdac_ramdac))
+		{
+			case 2:
+				svga->clock /= 2.0;
+				break;
+			case 3:
+				svga->clock /= 3.0;
+				break;
+		}
 	}
         
         switch (svga->bpp)
@@ -580,6 +610,7 @@ void et4000w32p_mmu_write(uint32_t addr, uint8_t val, void *p)
                 if ((addr & 0x7fff) >= 0x7f80)
                 {
                         et4000w32p_queue(et4000, addr & 0x7fff, val, FIFO_WRITE_BYTE);
+			pclog("MMU queue: %04X: %02X\n", addr, val);
                 }
                 else switch (addr & 0x7fff)
                 {
@@ -596,6 +627,8 @@ void et4000w32p_mmu_write(uint32_t addr, uint8_t val, void *p)
                         case 0x7f0a: et4000->mmu.base[2] = (et4000->mmu.base[2] & 0xFF00FFFF) | (val << 16); break;
                         case 0x7f0d: et4000->mmu.base[2] = (et4000->mmu.base[2] & 0x00FFFFFF) | (val << 24); break;
                         case 0x7f13: et4000->mmu.ctrl=val; break;
+			case 0x7f30: et4000->mmu.unk[0] = val; pclog("MMU Unknown 0 = %02X\n", et4000->mmu.unk[0]); break;
+			case 0x7f32: et4000->mmu.unk[1] = val; pclog("MMU Unknown 1 = %02X\n", et4000->mmu.unk[1]); break;
                 }
                 break;
         }
@@ -651,6 +684,8 @@ uint8_t et4000w32p_mmu_read(uint32_t addr, void *p)
                         case 0x7f0a: return et4000->mmu.base[2] >> 16;
                         case 0x7f0b: return et4000->mmu.base[2] >> 24;
                         case 0x7f13: return et4000->mmu.ctrl;
+                        case 0x7f30: return et4000->mmu.unk[0];
+                        case 0x7f32: return et4000->mmu.unk[1];
 
                         case 0x7f36:
                         temp = et4000->acl.status;
@@ -1224,8 +1259,11 @@ void *et4000w32p_common_init(char *biosfile)
 		}
 		else
 		{
-			pclog("No known BIOS detected or BIOS already set to 1 MB DRAM modules, maximum VRAM is 2 MB\n");
-			vram_size == 2;
+			if (gfxcard != GFX_ET4000W32CS)
+			{
+				pclog("No known BIOS detected or BIOS already set to 1 MB DRAM modules, maximum VRAM is 2 MB\n");
+				vram_size == 2;
+			}
 		}
 	}
         if (PCI)
@@ -1261,6 +1299,11 @@ void *et4000w32pc_init()
 	return et4000w32p_common_init("roms/cardex.vbi");
 }
 
+void *et4000w32pcs_init()
+{
+	return et4000w32p_common_init("roms/TSENG.BIN");
+}
+
 int et4000w32p_available()
 {
         return rom_present("roms/et4000w32.bin");
@@ -1269,6 +1312,11 @@ int et4000w32p_available()
 int et4000w32pc_available()
 {
         return rom_present("roms/cardex.vbi");
+}
+
+int et4000w32pcs_available()
+{
+        return rom_present("roms/TSENG.BIN");
 }
 
 void et4000w32p_close(void *p)
@@ -1439,11 +1487,24 @@ device_t et4000w32p_device =
 
 device_t et4000w32pc_device =
 {
-        "Cardex Tseng Labs ET4000/w32p",
+        "Cardex 1703-DDC (ET4000/W32P)",
         0,
         et4000w32pc_init,
         et4000w32p_close,
         et4000w32pc_available,
+        et4000w32p_speed_changed,
+        et4000w32p_force_redraw,
+        et4000w32p_add_status_info,
+        et4000w32pc_config
+};
+
+device_t et4000w32pcs_device =
+{
+        "Cardex ICS5341 (ET4000/W32P)",
+        0,
+        et4000w32pcs_init,
+        et4000w32p_close,
+        et4000w32pcs_available,
         et4000w32p_speed_changed,
         et4000w32p_force_redraw,
         et4000w32p_add_status_info,

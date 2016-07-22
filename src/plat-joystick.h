@@ -53,6 +53,7 @@ extern "C" {
                 int plat_joystick_nr;
                 int axis_mapping[8];
                 int button_mapping[32];
+                int pov_mapping[4][2];
         } joystick_t;
 
         #define MAX_JOYSTICKS 4

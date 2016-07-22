@@ -386,7 +386,7 @@ enum
         GFX_PHOENIX_TRIO32, /*S3 732/Trio32 (Phoenix)*/
         GFX_PHOENIX_TRIO64, /*S3 764/Trio64 (Phoenix)*/
        	GFX_INCOLOR,	/* Hercules InColor */ 
-	GFX_ET4000W32C,	/*Tseng ET4000/W32p (Cardex) */
+	GFX_ET4000W32C,	/*Tseng ET4000/W32p (Cardex) (STG RAMDAC) */
 	GFX_COMPAQ_EGA,	/*Compaq EGA*/
 	GFX_SUPER_EGA,	/*Using Chips & Technologies SuperEGA BIOS*/
 	GFX_COMPAQ_VGA,	/*Compaq/Paradise VGA*/
@@ -395,6 +395,7 @@ enum
 	GFX_VGAWONDERXL,	/*Compaq ATI VGA Wonder XL (28800-5)*/
 	GFX_WD90C11,	/*Paradise WD90C11 Standalone*/
         GFX_OTI077,     /*Oak OTI-077*/
+	GFX_ET4000W32CS,	/*Tseng ET4000/W32p (Cardex) (ICS RAMDAC) */
         GFX_MAX
 };
 

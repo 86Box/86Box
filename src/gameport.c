@@ -7,8 +7,10 @@
 #include "timer.h"
 
 #include "gameport.h"
+#include "joystick_ch_flightstick_pro.h"
 #include "joystick_standard.h"
 #include "joystick_sw_pad.h"
+#include "joystick_tm_fcs.h"
 
 int joystick_type;
 
@@ -18,7 +20,9 @@ static joystick_if_t *joystick_list[] =
         &joystick_standard_4button,
         &joystick_standard_6button,
         &joystick_standard_8button,
+        &joystick_ch_flightstick_pro,
         &joystick_sw_pad,
+        &joystick_tm_fcs,
         NULL
 };
 
@@ -44,7 +48,12 @@ int joystick_get_button_count(int joystick)
         return joystick_list[joystick]->button_count;
 }
 
-char *joystick_get_axis_name(int joystick, int id)
+int joystick_get_pov_count(int joystick)
+{
+        return joystick_list[joystick]->pov_count;
+}
+
+ char *joystick_get_axis_name(int joystick, int id)
 {
         return joystick_list[joystick]->axis_names[id];
 }
@@ -52,6 +61,11 @@ char *joystick_get_axis_name(int joystick, int id)
 char *joystick_get_button_name(int joystick, int id)
 {
         return joystick_list[joystick]->button_names[id];
+}
+
+char *joystick_get_pov_name(int joystick, int id)
+{
+        return joystick_list[joystick]->pov_names[id];
 }
 
 typedef struct gameport_axis_t
