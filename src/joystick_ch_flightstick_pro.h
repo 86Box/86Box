@@ -1,0 +1,1 @@
+extern joystick_if_t joystick_ch_flightstick_pro;
