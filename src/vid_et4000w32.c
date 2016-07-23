@@ -332,10 +332,16 @@ void et4000w32p_recalctimings(svga_t *svga)
 		svga->clock = cpuclock / sdac_getclock((svga->miscout >> 2) & 3, &et4000->sdac_ramdac);
 		switch (sdac_get_clock_divider(&et4000->sdac_ramdac))
 		{
-			case 2:
-				svga->clock /= 2.0;
+			case 1:
+				svga->clock *= 2.0;
 				break;
 			case 3:
+				svga->clock /= 1.5;
+				break;
+			case 4:
+				svga->clock /= 2.0;
+				break;
+			case 6:
 				svga->clock /= 3.0;
 				break;
 		}

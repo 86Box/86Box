@@ -6,14 +6,17 @@
 #include "vid_svga.h"
 #include "vid_sdac_ramdac.h"
 
+/* Returning divider * 2 */
 int sdac_get_clock_divider(sdac_ramdac_t *ramdac)
 {
         switch (ramdac->command >> 4)
         {
-		case 0x0: case 0x3: case 0x5: return 1;
-                case 0x1: case 0x2: case 0x6: case 0x7: case 0xa: case 0xc: return 2;
-                case 0x4: case 0xe: return 3;
-                default: return 1;
+		case 0x1: return 1;
+		case 0x0: case 0x3: case 0x5: return 2;
+		case 0x9: return 3;
+                case 0x2: case 0x6: case 0x7: case 0x8: case 0xa: case 0xc: return 4;
+                case 0x4: case 0xe: return 6;
+                default: return 2;
         }
 }
 
@@ -36,13 +39,14 @@ void sdac_ramdac_out(uint16_t addr, uint8_t val, sdac_ramdac_t *ramdac, svga_t *
 //                        pclog("RAMDAC command reg now %02X\n", val);
                         switch (val >> 4)
                         {
-                                case 0x2: case 0x3: case 0xa: svga->bpp = 15; break;
-                                case 0x4: case 0xe:           svga->bpp = 24; break;
-                                case 0x5: case 0x6: case 0xc: svga->bpp = 16; break;
+                                case 0x2: case 0x3: case 0x8: case 0xa: case 0xc: svga->bpp = 15; break;
+                                case 0x4: case 0x9: case 0xe: svga->bpp = 24; break;
+                                case 0x5: case 0x6: svga->bpp = 16; break;
                                 case 0x7:                     svga->bpp = 32; break;
 
                                 case 0: case 1: default: svga->bpp = 8; break;
                         }
+			pclog("SDAC: Set to %02X, %i bpp\n", val >> 4, svga->bpp);
 			svga_recalctimings(svga);
                 }
                 //ramdac->magic_count = 0;
