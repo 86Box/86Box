@@ -30,6 +30,7 @@ typedef struct cga_t
 
 	int revision;
 	int composite;
+	int snow_enabled;
 } cga_t;
 
 void    cga_init(cga_t *cga);
