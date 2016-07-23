@@ -88,8 +88,8 @@ uint8_t bt485_ramdac_in(uint16_t addr, bt485_ramdac_t *ramdac, svga_t *svga)
         uint8_t temp;
 //        /*if (CS!=0xC000) */pclog("IN RAMDAC %04X %04X:%04X %i\n",addr,CS,pc, ramdac->rs2);
 	uint8_t reg = addr & 3;
-	reg | = (ramdac->rs2 ? 4 : 0);
-	reg | = (ramdac->rs3 ? 8 : 0);
+	reg |= (ramdac->rs2 ? 4 : 0);
+	reg |= (ramdac->rs3 ? 8 : 0);
 	pclog("BT485 RAMDAC: Reading register %02\n", reg);
 	return 0xFF;
 
