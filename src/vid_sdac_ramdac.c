@@ -46,7 +46,6 @@ void sdac_ramdac_out(uint16_t addr, uint8_t val, sdac_ramdac_t *ramdac, svga_t *
 
                                 case 0: case 1: default: svga->bpp = 8; break;
                         }
-			pclog("SDAC: Set to %02X, %i bpp\n", val >> 4, svga->bpp);
 			svga_recalctimings(svga);
                 }
                 //ramdac->magic_count = 0;
