@@ -1239,13 +1239,21 @@ void *et4000w32p_common_init(char *biosfile)
 	if (vram_size == 4)
 	{
 		/* The ROM is hardcoded to 256k sticks, so let's patch it for 1M. */
-		if (memcmp(&((&et4000->bios_rom)->rom[0x008f]), "04/28/95 V2.10N", 15) == 0)
+		if (memcmp(&((&et4000->bios_rom)->rom[0x008f]), "06/28/94 V1.0CN", 15) == 0)
+		{
+			bios_offset = 0x01d3;
+		}
+		else if (memcmp(&((&et4000->bios_rom)->rom[0x008f]), "04/28/95 V2.10N", 15) == 0)
 		{
 			bios_offset = 0x0244;
 		}
-		if (memcmp(&((&et4000->bios_rom)->rom[0x008f]), "05/15/95 V8.00N", 15) == 0)
+		else if (memcmp(&((&et4000->bios_rom)->rom[0x008f]), "05/15/95 V8.00N", 15) == 0)
 		{
 			bios_offset = 0x027f;
+		}
+		else if (memcmp(&((&et4000->bios_rom)->rom[0x008f]), "05/17/95 V8.00N", 15) == 0)
+		{
+			bios_offset = 0x041d;
 		}
 		if (bios_offset)
 		{
@@ -1259,11 +1267,8 @@ void *et4000w32p_common_init(char *biosfile)
 		}
 		else
 		{
-			if (gfxcard != GFX_ET4000W32CS)
-			{
-				pclog("No known BIOS detected or BIOS already set to 1 MB DRAM modules, maximum VRAM is 2 MB\n");
-				vram_size == 2;
-			}
+			pclog("No known BIOS detected or BIOS already set to 1 MB DRAM modules, maximum VRAM is 2 MB\n");
+			vram_size == 2;
 		}
 	}
         if (PCI)
