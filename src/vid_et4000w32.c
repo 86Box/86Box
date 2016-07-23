@@ -286,8 +286,10 @@ uint8_t et4000w32p_in(uint16_t addr, void *p)
                 return et4000->index;
                 case 0x210B: case 0x211B: case 0x212B: case 0x213B:
                 case 0x214B: case 0x215B: case 0x216B: case 0x217B:
+/*                if (et4000->index==0xec) 
+                        return (et4000->regs[0xec] & 0xf) | 0x60; /*ET4000/W32p rev D*/ */
                 if (et4000->index==0xec) 
-                        return (et4000->regs[0xec] & 0xf) | 0x60; /*ET4000/W32p rev D*/
+                        return (et4000->regs[0xec] & 0xf) | (et4000->revision << 4); /*ET4000/W32p rev D*/
                 if (et4000->index == 0xef) 
                 {
                         if (PCI) return et4000->regs[0xef] | 0xe0;       /*PCI*/
@@ -1146,7 +1148,8 @@ uint8_t et4000w32p_pci_read(int func, int addr, void *p)
                 case 0x00: return 0x0c; /*Tseng Labs*/
                 case 0x01: return 0x10;
                 
-                case 0x02: return 0x06; /*ET4000W32p Rev D*/
+                // case 0x02: return 0x06; /*ET4000W32p Rev D*/
+		case 0x02: return et4000->revision;
                 case 0x03: return 0x32;
                 
                 case PCI_REG_COMMAND:
