@@ -1241,7 +1241,7 @@ void *et4000w32p_common_init(char *biosfile)
 		/* The ROM is hardcoded to 256k sticks, so let's patch it for 1M. */
 		if (memcmp(&((&et4000->bios_rom)->rom[0x008f]), "06/28/94 V1.0CN", 15) == 0)
 		{
-			bios_offset = 0x01d3;
+			bios_offset = 0x026d;
 		}
 		else if (memcmp(&((&et4000->bios_rom)->rom[0x008f]), "04/28/95 V2.10N", 15) == 0)
 		{
