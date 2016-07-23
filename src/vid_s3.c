@@ -863,6 +863,7 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
 					else
 					{
 						bt485_set_rs2(svga->crtc[0x43] & 2, &s3->bt485_ramdac);
+						bt485_set_rs3(0, &s3->bt485_ramdac);
 					}
 					pclog("RS2 is now %i, RS3 is now %i\n", s3->bt485_ramdac.rs2, s3->bt485_ramdac.rs3);
 				}
