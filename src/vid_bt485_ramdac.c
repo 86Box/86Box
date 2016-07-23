@@ -11,12 +11,12 @@ int bt485_get_clock_divider(bt485_ramdac_t *ramdac)
 	return 1;	/* Will be implemented later. */
 }
 
-void bt485_set_rs2(uint8_t rs2, bt485_ramdac_t *ramda)
+void bt485_set_rs2(uint8_t rs2, bt485_ramdac_t *ramdac)
 {
 	ramdac->rs2 = rs2 ? 1 : 0;
 }
 
-void bt485_set_rs3(uint8_t rs3, bt485_ramdac_t *ramda)
+void bt485_set_rs3(uint8_t rs3, bt485_ramdac_t *ramdac)
 {
 	ramdac->rs3 = rs3 ? 1 : 0;
 }
@@ -25,8 +25,8 @@ void bt485_ramdac_out(uint16_t addr, uint8_t val, bt485_ramdac_t *ramdac, svga_t
 {
 //        /*if (CS!=0xC000) */pclog("OUT RAMDAC %04X %02X %i %04X:%04X  %i\n",addr,val,sdac_ramdac.magic_count,CS,pc, sdac_ramdac.rs2);
 	uint8_t reg = addr & 3;
-	reg | = (ramdac->rs2 ? 4 : 0);
-	reg | = (ramdac->rs3 ? 8 : 0);
+	reg |= (ramdac->rs2 ? 4 : 0);
+	reg |= (ramdac->rs3 ? 8 : 0);
 	pclog("BT485 RAMDAC: Writing %02X to register %02\n", val, reg);
 	return;
 
@@ -91,7 +91,7 @@ uint8_t bt485_ramdac_in(uint16_t addr, bt485_ramdac_t *ramdac, svga_t *svga)
 	reg | = (ramdac->rs2 ? 4 : 0);
 	reg | = (ramdac->rs3 ? 8 : 0);
 	pclog("BT485 RAMDAC: Reading register %02\n", reg);
-	return;
+	return 0xFF;
 
         switch (addr)
         {
