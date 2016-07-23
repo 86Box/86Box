@@ -286,8 +286,8 @@ uint8_t et4000w32p_in(uint16_t addr, void *p)
                 return et4000->index;
                 case 0x210B: case 0x211B: case 0x212B: case 0x213B:
                 case 0x214B: case 0x215B: case 0x216B: case 0x217B:
-/*                if (et4000->index==0xec) 
-                        return (et4000->regs[0xec] & 0xf) | 0x60; /*ET4000/W32p rev D*/ */
+                // if (et4000->index==0xec) 
+                        // return (et4000->regs[0xec] & 0xf) | 0x60; /*ET4000/W32p rev D*/
                 if (et4000->index==0xec) 
                         return (et4000->regs[0xec] & 0xf) | (et4000->revision << 4); /*ET4000/W32p rev D*/
                 if (et4000->index == 0xef) 
