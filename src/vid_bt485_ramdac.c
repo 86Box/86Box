@@ -8,7 +8,7 @@
 
 int bt485_get_clock_divider(bt485_ramdac_t *ramdac)
 {
-	return 1;
+	return 1;	/* Will be implemented later. */
 }
 
 void bt485_set_rs2(uint8_t rs2, bt485_ramdac_t *ramda)
