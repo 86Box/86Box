@@ -11,11 +11,13 @@
 #include "vid_s3.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
+#include "vid_bt485_ramdac.h"
 #include "vid_sdac_ramdac.h"
 
 enum
 {
         S3_VISION864,
+        S3_VISION964,
         S3_TRIO32,
         S3_TRIO64
 };
@@ -66,6 +68,7 @@ typedef struct s3_t
         
         svga_t svga;
         sdac_ramdac_t ramdac;
+        bt485_ramdac_t bt485_ramdac;
 
         uint8_t bank;
         uint8_t ma_ext;
@@ -849,7 +852,21 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
                                 }
                         }
                         break;
-                        //case 0x55: case 0x43:
+                        case 0x55: case 0x43:
+				if (s3->chip == S3_VISION964)
+				{
+					if (svga->crtc[0x55] & 3)
+					{
+						bt485_set_rs2(svga->crtc[0x55] & 1, &s3->bt485_ramdac);
+						bt485_set_rs3(svga->crtc[0x55] & 2, &s3->bt485_ramdac);
+					}
+					else
+					{
+						bt485_set_rs2(svga->crtc[0x43] & 2, &s3->bt485_ramdac);
+					}
+					pclog("RS2 is now %i, RS3 is now %i\n", s3->bt485_ramdac.rs2, s3->bt485_ramdac.rs3);
+				}
+				break;
 //                                pclog("Write CRTC R%02X %02X\n", crtcreg, val);
                 }
                 if (old != val)
@@ -2269,21 +2286,21 @@ int s3_phoenix_trio64_available()
 
 void *s3_miro_vision964_init()
 {
-        s3_t *s3 = s3_init("roms/VISION864P.BIN", S3_VISION864);
+        s3_t *s3 = s3_init("roms/mirocrystal.VBI", S3_VISION964);
 
-        s3->id = 0xc1; /*Vision864P*/
-        s3->id_ext = s3->id_ext_pci = 0xc1;
+        s3->id = 0xd1; /*Vision964P*/
+        s3->id_ext = s3->id_ext_pci = 0xd1;
         s3->packed_mmio = 1;
 
-        s3->getclock = sdac_getclock;
-        s3->getclock_p = &s3->ramdac;
+        s3->getclock = bt485_getclock;
+        s3->getclock_p = &s3->bt485_ramdac;
 
         return s3;
 }
 
 int s3_miro_vision964_available()
 {
-        return rom_present("roms/VISION864P.BIN");
+        return rom_present("roms/mirocrystal.VBI");
 }
 
 void s3_close(void *p)
