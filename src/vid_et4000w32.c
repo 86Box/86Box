@@ -272,7 +272,6 @@ uint8_t et4000w32p_in(uint16_t addr, void *p)
                 return svga->crtc[svga->crtcreg];
                 
                 case 0x3DA:
-		if (gfxcard == GFX_ET4000W32C)  break;
                 svga->attrff = 0;
                 svga->cgastat ^= 0x30;
                 temp = svga->cgastat & 0x39;
@@ -476,8 +475,8 @@ static void et4000w32p_accel_write_fifo(et4000w32p_t *et4000, uint32_t addr, uin
                 {
                         et4000w32_blit(0xFFFFFF, ~0, 0, 0, et4000);
                 }
-                if ((et4000->acl.queued.ctrl_routing & 0x40) && !(et4000->acl.internal.ctrl_routing & 3))
-                        et4000w32_blit(4, ~0, 0, 0, et4000);
+                /* if ((et4000->acl.queued.ctrl_routing & 0x40) && !(et4000->acl.internal.ctrl_routing & 3))
+                        et4000w32_blit(4, ~0, 0, 0, et4000); */
                 break;
                 case 0x7fa4: et4000->acl.queued.mix_addr = (et4000->acl.queued.mix_addr & 0xFFFFFF00) | val;         break;
                 case 0x7fa5: et4000->acl.queued.mix_addr = (et4000->acl.queued.mix_addr & 0xFFFF00FF) | (val << 8);  break;

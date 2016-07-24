@@ -28,6 +28,7 @@ void bt485_ramdac_out(uint16_t addr, uint8_t val, bt485_ramdac_t *ramdac, svga_t
 	reg |= (ramdac->rs2 ? 4 : 0);
 	reg |= (ramdac->rs3 ? 8 : 0);
 	pclog("BT485 RAMDAC: Writing %02X to register %02X\n", val, reg);
+        svga_out(addr, val, svga);
 	return;
 
         switch (addr)
@@ -91,7 +92,7 @@ uint8_t bt485_ramdac_in(uint16_t addr, bt485_ramdac_t *ramdac, svga_t *svga)
 	reg |= (ramdac->rs2 ? 4 : 0);
 	reg |= (ramdac->rs3 ? 8 : 0);
 	pclog("BT485 RAMDAC: Reading register %02X\n", reg);
-	return 0xFF;
+        return svga_in(addr, svga);
 
         switch (addr)
         {

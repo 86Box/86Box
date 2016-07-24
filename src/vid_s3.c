@@ -921,7 +921,9 @@ uint8_t s3_in(uint16_t addr, void *p)
                 switch (svga->crtcreg)
                 {
                         case 0x2d: return 0x88;       /*Extended chip ID*/
-                        case 0x2e: return s3->id_ext; /*New chip ID*/
+			case 0x2e:
+				if ((s3->chip != S3_TRIO32) && (s3->chip != S3_TRIO64))  return 0xFF;
+				return s3->id_ext; /*New chip ID*/
                         case 0x2f: return 0;          /*Revision level*/
                         case 0x30: return s3->id;     /*Chip ID*/
                         case 0x31: return (svga->crtc[0x31] & 0xcf) | ((s3->ma_ext & 3) << 4);
@@ -2494,15 +2496,7 @@ static device_config_t s3_miro_vision964_config[] =
                                 .value = 2
                         },
                         {
-                                .description = "3 MB",
-                                .value = 2
-                        },
-                        {
                                 .description = "4 MB",
-                                .value = 4
-                        },
-                        {
-                                .description = "6 MB",
                                 .value = 4
                         },
                         {
