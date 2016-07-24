@@ -40,7 +40,7 @@ void unk_ramdac_out(uint16_t addr, uint8_t val, unk_ramdac_t *ramdac, svga_t *sv
                         }
 #endif
 			oldbpp = svga->bpp;
-                        switch ((val&1)|((val&0xC0)>>8))
+                        switch ((val&1)|((val&0xC0)>>5))
                         {
                                 case 0:
                                 svga->bpp = 8;
