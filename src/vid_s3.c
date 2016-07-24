@@ -754,7 +754,10 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
                 
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
 //                pclog("Write RAMDAC %04X %02X %04X:%04X\n", addr, val, CS, pc);
-                sdac_ramdac_out(addr, val, &s3->ramdac, svga);
+		if (s3->chip != S3_VISION964)
+	                sdac_ramdac_out(addr, val, &s3->ramdac, svga);
+		else
+	                bt485_ramdac_out(addr, val, &s3->bt485_ramdac, svga);
                 return;
 
                 case 0x3D4:
@@ -906,7 +909,10 @@ uint8_t s3_in(uint16_t addr, void *p)
                 
                 case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
 //                pclog("Read RAMDAC %04X  %04X:%04X\n", addr, CS, pc);
-                return sdac_ramdac_in(addr, &s3->ramdac, svga);
+		if (s3->chip != S3_VISION964)
+	                return sdac_ramdac_in(addr, &s3->ramdac, svga);
+		else
+	                return bt485_ramdac_in(addr, &s3->bt485_ramdac, svga);
 
                 case 0x3d4:
                 return svga->crtcreg;
