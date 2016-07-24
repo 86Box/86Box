@@ -1,6 +1,7 @@
 /*It is unknown exactly what RAMDAC this is
   It is possibly a Sierra 1502x
   It's addressed by the TLIVESA1 driver for ET4000*/
+/* Note by Tenshi: Not possibly, this *IS* a Sierra 1502x. */
 #include "ibm.h"
 #include "mem.h"
 #include "video.h"
