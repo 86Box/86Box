@@ -460,7 +460,7 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                 temp_cpu_m = SendMessage(h, CB_GETCURSEL, 0, 0);
                                 SendMessage(h, CB_RESETCONTENT, 0, 0);
                                 c = 0;
-                                while (models[temp_model].cpu[c].cpus != NULL && c < 3)
+                                while (models[temp_model].cpu[c].cpus != NULL && c < 4)
                                 {
                                         SendMessage(h,CB_ADDSTRING,0,(LPARAM)(LPCSTR)models[temp_model].cpu[c].name);
                                         c++;
