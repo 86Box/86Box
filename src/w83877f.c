@@ -374,8 +374,8 @@ process_value:
 			break;
 		case 7:
 			// pclog("W83877F Write [Reg. %02X]: %02X\n", w83877f_curreg, val);
-			if (valxor & 3)  fdc_update_rwc(0, FDDA_TYPE ? 1 : 0);
-			if (valxor & 0xC)  fdc_update_rwc(1, FDDB_TYPE ? 1 : 0);
+			if (valxor & 3)  fdc_update_rwc(0, FDDA_TYPE);
+			if (valxor & 0xC)  fdc_update_rwc(1, FDDB_TYPE);
 			break;
 		case 8:
 			// pclog("W83877F Write [Reg. %02X]: %02X\n", w83877f_curreg, val);
