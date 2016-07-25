@@ -1015,7 +1015,7 @@ uint8_t svga_read(uint32_t addr, void *p)
         addr &= svga->banked_mask;
         addr += svga->read_bank;
 
-        latch_addr = (addr << 2) & 0x7fffff;
+        latch_addr = (addr << 2) % svga->vram_limit;
         
 //        pclog("%05X %i %04X:%04X %02X %02X %i\n",addr,svga->chain4,CS,pc, vram[addr & 0x7fffff], vram[(addr << 2) & 0x7fffff], svga->readmode);
 //        pclog("%i\n", svga->readmode);
@@ -1274,7 +1274,7 @@ uint8_t svga_read_linear(uint32_t addr, void *p)
                 addr %= svga->vram_limit;
                 if (addr >= svga->vram_limit)
                    return 0xff;
-                return svga->vram[addr & 0x7fffff]; 
+                return svga->vram[addr % svga->vram_limit]; 
         }
         else if (svga->chain2_read)
         {

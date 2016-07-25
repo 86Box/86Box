@@ -458,19 +458,24 @@ void mach64_updatemapping(mach64_t *mach64)
                 svga->banked_mask = 0x7fff;
                 break;
         }
-        if (mach64->linear_base)
+        // if (mach64->linear_base)
+	if ((mach64->config_cntl & 3))
         {
                 if ((mach64->config_cntl & 3) == 2)
                 {
                         /*8 MB aperture*/
                         mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (8 << 20) - 0x4000);
                         mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - 0x4000), 0x4000);
+			mach64->config_cntl &= 0x3ff0;
+			mach64->config_cntl |= ((mach64->linear_base >> 5) << 23);
                 }
                 else
                 {
                         /*4 MB aperture*/
                         mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (4 << 20) - 0x4000);
                         mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((4 << 20) - 0x4000), 0x4000);
+			mach64->config_cntl &= 0x3ff0;
+			mach64->config_cntl |= ((mach64->linear_base >> 4) << 22);
                 }
         }
         else
@@ -2176,7 +2181,11 @@ uint8_t mach64_ext_inb(uint16_t port, void *p)
                 break;
 
                 case 0x6aec: case 0x6aed: case 0x6aee: case 0x6aef:
-                mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | ((mach64->linear_base >> 22) << 4);
+                ; mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | ((mach64->linear_base >> 22) << 4);
+		/* if ((mach64->config_cntl & 3) == 2)
+	                mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | ((mach64->linear_base >> 23) << 5);
+		else
+	                mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | ((mach64->linear_base >> 22) << 4); */
                 READ8(port, mach64->config_cntl);
                 break;
                 
@@ -2185,10 +2194,20 @@ uint8_t mach64_ext_inb(uint16_t port, void *p)
                 break;
 
                 case 0x72ec:
-                if (PCI)
-                        ret = 7 | (3 << 3); /*PCI, 256Kx16 DRAM*/
-                else
-                        ret = 6 | (3 << 3); /*VLB, 256Kx16 DRAM*/
+		if (mach64->vram_size == 8)
+		{
+	                if (PCI)
+        	                ret = 7 | (6 << 3); /*PCI, 256Kx16 DRAM*/
+	                else
+        	                ret = 6 | (6 << 3); /*VLB, 256Kx16 DRAM*/
+		}
+		else
+		{
+	                if (PCI)
+        	                ret = 7 | (3 << 3); /*PCI, 256Kx16 DRAM*/
+	                else
+        	                ret = 6 | (3 << 3); /*VLB, 256Kx16 DRAM*/
+		}
                 break;
                 case 0x72ed:
                 ret = 5 << 1; /*ATI-68860*/
@@ -2347,6 +2366,10 @@ void mach64_ext_outb(uint16_t port, uint8_t val, void *p)
 
                 case 0x6aec: case 0x6aed: case 0x6aee: case 0x6aef:
                 WRITE8(port, mach64->config_cntl, val);
+		if ((mach64->config_cntl & 3) == 2)
+			mach64->linear_base = ((mach64->config_cntl & 0x3fe0) >> 4) << 22;
+		else
+			mach64->linear_base = ((mach64->config_cntl & 0x3ff0) >> 4) << 22;
                 mach64_updatemapping(mach64);
                 break;
         }
