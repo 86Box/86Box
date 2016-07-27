@@ -481,6 +481,18 @@ void svga_recalctimings(svga_t *svga)
 }
 
 extern int cyc_total;
+uint32_t svga_mask_addr(uint32_t addr, svga_t *svga)
+{
+	if (svga->vrammask == (svga->vram_limit - 1))
+	{
+		return addr % svga->vram_limit;
+	}
+	else
+	{
+		return addr & svga->vrammask;
+	}
+}
+
 void svga_poll(void *p)
 {
         svga_t *svga = (svga_t *)p;
@@ -521,7 +533,7 @@ void svga_poll(void *p)
                 {
                         svga->hdisp_on=1;
                         
-                        svga->ma &= svga->vrammask;
+                        svga->ma = svga_mask_addr(svga->ma, svga);
                         if (svga->firstline == 2000) 
                         {
                                 svga->firstline = svga->displine;
@@ -599,7 +611,7 @@ void svga_poll(void *p)
                                 svga->maback += (svga->rowoffset << 3);
                                 if (svga->interlace)
                                         svga->maback += (svga->rowoffset << 3);
-                                svga->maback &= svga->vrammask;
+                                svga->maback = svga_mask_addr(svga->maback, svga);
                                 svga->ma = svga->maback;
                         }
                         else

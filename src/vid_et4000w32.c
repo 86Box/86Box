@@ -22,7 +22,7 @@
 #define FIFO_ENTRY_SIZE (1 << 31)
 
 #define FIFO_ENTRIES (et4000->fifo_write_idx - et4000->fifo_read_idx)
-#define FIFO_FULL    ((et4000->fifo_write_idx - et4000->fifo_read_idx) >= FIFO_SIZE)
+#define FIFO_FULL    ((et4000->fifo_write_idx - et4000->fifo_read_idx) >= (FIFO_SIZE-1))
 #define FIFO_EMPTY   (et4000->fifo_read_idx == et4000->fifo_write_idx)
 
 #define FIFO_TYPE 0xff000000
@@ -475,8 +475,8 @@ static void et4000w32p_accel_write_fifo(et4000w32p_t *et4000, uint32_t addr, uin
                 {
                         et4000w32_blit(0xFFFFFF, ~0, 0, 0, et4000);
                 }
-                /* if ((et4000->acl.queued.ctrl_routing & 0x40) && !(et4000->acl.internal.ctrl_routing & 3))
-                        et4000w32_blit(4, ~0, 0, 0, et4000); */
+                if ((et4000->acl.queued.ctrl_routing & 0x40) && !(et4000->acl.internal.ctrl_routing & 3))
+                        et4000w32_blit(4, ~0, 0, 0, et4000);
                 break;
                 case 0x7fa4: et4000->acl.queued.mix_addr = (et4000->acl.queued.mix_addr & 0xFFFFFF00) | val;         break;
                 case 0x7fa5: et4000->acl.queued.mix_addr = (et4000->acl.queued.mix_addr & 0xFFFF00FF) | (val << 8);  break;
@@ -617,7 +617,6 @@ void et4000w32p_mmu_write(uint32_t addr, uint8_t val, void *p)
                 if ((addr & 0x7fff) >= 0x7f80)
                 {
                         et4000w32p_queue(et4000, addr & 0x7fff, val, FIFO_WRITE_BYTE);
-			pclog("MMU queue: %04X: %02X\n", addr, val);
                 }
                 else switch (addr & 0x7fff)
                 {
@@ -634,8 +633,8 @@ void et4000w32p_mmu_write(uint32_t addr, uint8_t val, void *p)
                         case 0x7f0a: et4000->mmu.base[2] = (et4000->mmu.base[2] & 0xFF00FFFF) | (val << 16); break;
                         case 0x7f0d: et4000->mmu.base[2] = (et4000->mmu.base[2] & 0x00FFFFFF) | (val << 24); break;
                         case 0x7f13: et4000->mmu.ctrl=val; break;
-			case 0x7f30: et4000->mmu.unk[0] = val; pclog("MMU Unknown 0 = %02X\n", et4000->mmu.unk[0]); break;
-			case 0x7f32: et4000->mmu.unk[1] = val; pclog("MMU Unknown 1 = %02X\n", et4000->mmu.unk[1]); break;
+			case 0x7f30: et4000->mmu.unk[0] = val; break;
+			case 0x7f32: et4000->mmu.unk[1] = val; break;
                 }
                 break;
         }
@@ -877,21 +876,21 @@ void et4000w32_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et400
                 while (count--)
                 {
                         if (bltout) pclog("%i,%i : ", et4000->acl.internal.pos_x, et4000->acl.internal.pos_y);
-                        pattern = svga->vram[(et4000->acl.pattern_addr + et4000->acl.pattern_x) & 0x1fffff];
-                        source  = svga->vram[(et4000->acl.source_addr  + et4000->acl.source_x)  & 0x1fffff];
-                        if (bltout) pclog("%06X %06X ", (et4000->acl.pattern_addr + et4000->acl.pattern_x) & 0x1fffff, (et4000->acl.source_addr + et4000->acl.source_x) & 0x1fffff);
+                        pattern = svga->vram[(et4000->acl.pattern_addr + et4000->acl.pattern_x) & et4000->max_ram_mask];
+                        source  = svga->vram[(et4000->acl.source_addr  + et4000->acl.source_x)  & et4000->max_ram_mask];
+                        if (bltout) pclog("%06X %06X ", (et4000->acl.pattern_addr + et4000->acl.pattern_x) & et4000->max_ram_mask, (et4000->acl.source_addr + et4000->acl.source_x) & et4000->max_ram_mask);
                         if (cpu_input == 2)
                         {
                                 source = sdat & 0xff;
                                 sdat >>= 8;
                         }
-                        dest = svga->vram[et4000->acl.dest_addr & 0x1fffff];
+                        dest = svga->vram[et4000->acl.dest_addr & et4000->max_ram_mask];
                         out = 0;
                         if (bltout) pclog("%06X   ", et4000->acl.dest_addr);
                         if ((et4000->acl.internal.ctrl_routing & 0xa) == 8)
                         {
-                                mixdat = svga->vram[(et4000->acl.mix_addr >> 3) & 0x1fffff] & (1 << (et4000->acl.mix_addr & 7));
-                                if (bltout) pclog("%06X %02X  ", et4000->acl.mix_addr, svga->vram[(et4000->acl.mix_addr >> 3) & 0x1fffff]);
+                                mixdat = svga->vram[(et4000->acl.mix_addr >> 3) & et4000->max_ram_mask] & (1 << (et4000->acl.mix_addr & 7));
+                                if (bltout) pclog("%06X %02X  ", et4000->acl.mix_addr, svga->vram[(et4000->acl.mix_addr >> 3) & et4000->max_ram_mask]);
                         }
                         else
                         {
@@ -908,11 +907,11 @@ void et4000w32_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et400
                                 if (pattern & (1 << c)) d |= 4;
                                 if (rop & (1 << d)) out |= (1 << c);
                         }
-                        if (bltout) pclog("%06X = %02X\n", et4000->acl.dest_addr & 0x1fffff, out);
+                        if (bltout) pclog("%06X = %02X\n", et4000->acl.dest_addr & et4000->max_ram_mask, out);
                         if (!(et4000->acl.internal.ctrl_routing & 0x40))
                         {
-                                svga->vram[et4000->acl.dest_addr & 0x1fffff] = out;
-                                svga->changedvram[(et4000->acl.dest_addr & 0x1fffff) >> 12] = changeframecount;
+                                svga->vram[et4000->acl.dest_addr & et4000->max_ram_mask] = out;
+                                svga->changedvram[(et4000->acl.dest_addr & et4000->max_ram_mask) >> 12] = changeframecount;
                         }
                         else
                         {
@@ -997,22 +996,22 @@ void et4000w32_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et400
                 {
                         if (bltout) pclog("%i,%i : ", et4000->acl.internal.pos_x, et4000->acl.internal.pos_y);
                         
-                        pattern = svga->vram[(et4000->acl.pattern_addr + et4000->acl.pattern_x) & 0x1fffff];
-                        source  = svga->vram[(et4000->acl.source_addr  + et4000->acl.source_x)  & 0x1fffff];
-                        if (bltout) pclog("%i %06X %06X %02X %02X  ", et4000->acl.pattern_y, (et4000->acl.pattern_addr + et4000->acl.pattern_x) & 0x1fffff, (et4000->acl.source_addr + et4000->acl.source_x) & 0x1fffff, pattern, source);
+                        pattern = svga->vram[(et4000->acl.pattern_addr + et4000->acl.pattern_x) & et4000->max_ram_mask];
+                        source  = svga->vram[(et4000->acl.source_addr  + et4000->acl.source_x)  & et4000->max_ram_mask];
+                        if (bltout) pclog("%i %06X %06X %02X %02X  ", et4000->acl.pattern_y, (et4000->acl.pattern_addr + et4000->acl.pattern_x) & et4000->max_ram_mask, (et4000->acl.source_addr + et4000->acl.source_x) & et4000->max_ram_mask, pattern, source);
 
                         if (cpu_input == 2)
                         {
                                 source = sdat & 0xff;
                                 sdat >>= 8;
                         }
-                        dest = svga->vram[et4000->acl.dest_addr & 0x1fffff];
+                        dest = svga->vram[et4000->acl.dest_addr & et4000->max_ram_mask];
                         out = 0;
                         if (bltout) pclog("%06X %02X  %i %08X %08X  ", dest, et4000->acl.dest_addr, mix & 1, mix, et4000->acl.mix_addr);
                         if ((et4000->acl.internal.ctrl_routing & 0xa) == 8)
                         {
-                                mixdat = svga->vram[(et4000->acl.mix_addr >> 3) & 0x1fffff] & (1 << (et4000->acl.mix_addr & 7));
-                                if (bltout) pclog("%06X %02X  ", et4000->acl.mix_addr, svga->vram[(et4000->acl.mix_addr >> 3) & 0x1fffff]);
+                                mixdat = svga->vram[(et4000->acl.mix_addr >> 3) & et4000->max_ram_mask] & (1 << (et4000->acl.mix_addr & 7));
+                                if (bltout) pclog("%06X %02X  ", et4000->acl.mix_addr, svga->vram[(et4000->acl.mix_addr >> 3) & et4000->max_ram_mask]);
                         }
                         else
                         {
@@ -1029,11 +1028,11 @@ void et4000w32_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et400
                                 if (pattern & (1 << c)) d |= 4;
                                 if (rop & (1 << d)) out |= (1 << c);
                         }
-                        if (bltout) pclog("%06X = %02X\n", et4000->acl.dest_addr & 0x1fffff, out);
+                        if (bltout) pclog("%06X = %02X\n", et4000->acl.dest_addr & et4000->max_ram_mask, out);
                         if (!(et4000->acl.internal.ctrl_routing & 0x40))
                         {
-                                svga->vram[et4000->acl.dest_addr & 0x1fffff] = out;
-                                svga->changedvram[(et4000->acl.dest_addr & 0x1fffff) >> 12] = changeframecount;
+                                svga->vram[et4000->acl.dest_addr & et4000->max_ram_mask] = out;
+                                svga->changedvram[(et4000->acl.dest_addr & et4000->max_ram_mask) >> 12] = changeframecount;
                         }
                         else
                         {
@@ -1234,7 +1233,8 @@ void *et4000w32p_common_init(char *biosfile)
         
         et4000->interleaved = (vram_size == 2) ? 1 : 0;
         
-	et4000->max_ram_mask = (gfxcard == GFX_ET4000W32) ? 0x1fffff : 0x3fffff;
+	// et4000->max_ram_mask = (gfxcard == GFX_ET4000W32) ? 0x1fffff : 0x3fffff;
+	et4000->max_ram_mask = (vram_size << 20) - 1;
 	// et4000->max_ram_mask = 0x1fffff;
         
         svga_init(&et4000->svga, et4000, vram_size << 20,

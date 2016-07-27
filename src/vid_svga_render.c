@@ -97,7 +97,7 @@ void svga_render_text_40(svga_t *svga)
                         svga->ma += 4; 
                         p += xinc;
                 }
-                svga->ma &= svga->vrammask;
+                svga->ma = svga_mask_addr(svga->ma, svga);
         }
 }
 
@@ -164,7 +164,7 @@ void svga_render_text_80(svga_t *svga)
                         svga->ma += 4; 
                         p += xinc;
                 }
-                svga->ma &= svga->vrammask;
+                svga->ma = svga_mask_addr(svga->ma, svga);
         }
 }
 
@@ -204,7 +204,7 @@ void svga_render_2bpp_lowres(svga_t *svga)
                                 dat[1] = svga->vram[(svga->ma << 1) + 1];
                         }
                         svga->ma += 4; 
-                        svga->ma &= svga->vrammask;
+                        svga->ma = svga_mask_addr(svga->ma, svga);
 
                         p[0]  = p[1]  = svga->pallook[svga->egapal[(dat[0] >> 6) & 3]];
                         p[2]  = p[3]  = svga->pallook[svga->egapal[(dat[0] >> 4) & 3]];
@@ -256,7 +256,7 @@ void svga_render_2bpp_highres(svga_t *svga)
                                 dat[1] = svga->vram[(svga->ma << 1) + 1];
                         }
                         svga->ma += 4; 
-                        svga->ma &= svga->vrammask;
+                        svga->ma = svga_mask_addr(svga->ma, svga);
 
                         p[0] = svga->pallook[svga->egapal[(dat[0] >> 6) & 3]];
                         p[1] = svga->pallook[svga->egapal[(dat[0] >> 4) & 3]];
@@ -294,7 +294,7 @@ void svga_render_4bpp_lowres(svga_t *svga)
 
                         *(uint32_t *)(&edat[0]) = *(uint32_t *)(&svga->vram[svga->ma]);                        
                         svga->ma += 4; 
-                        svga->ma &= svga->vrammask;
+                        svga->ma = svga_mask_addr(svga->ma, svga);
 
                         dat = edatlookup[edat[0] >> 6][edat[1] >> 6] | (edatlookup[edat[2] >> 6][edat[3] >> 6] << 2);
                         p[0]  = p[1]  = svga->pallook[svga->egapal[(dat >> 4) & svga->plane_mask]];
@@ -345,7 +345,7 @@ void svga_render_4bpp_highres(svga_t *svga)
                         else
                                 *(uint32_t *)(&edat[0]) = *(uint32_t *)(&svga->vram[svga->ma]);
                         svga->ma += 4;
-                        svga->ma &= svga->vrammask;
+                        svga->ma = svga_mask_addr(svga->ma, svga);
 
                         dat = edatlookup[edat[0] >> 6][edat[1] >> 6] | (edatlookup[edat[2] >> 6][edat[3] >> 6] << 2);
                         p[0] = svga->pallook[svga->egapal[(dat >> 4) & svga->plane_mask]];
@@ -392,7 +392,7 @@ void svga_render_8bpp_lowres(svga_t *svga)
                         svga->ma += 4;
                         p += 8;
                 }
-                svga->ma &= svga->vrammask;
+                svga->ma = svga_mask_addr(svga->ma, svga);
         }
 
 	// return NULL;
@@ -431,7 +431,7 @@ void svga_render_8bpp_highres(svga_t *svga)
                         svga->ma += 8;
                         p += 8;
                 }
-                svga->ma &= svga->vrammask;
+                svga->ma = svga_mask_addr(svga->ma, svga);
         }
 
 	// return NULL;
@@ -465,7 +465,7 @@ void svga_render_15bpp_lowres(svga_t *svga)
                         p[x + 1] = video_15to32[dat >> 16];
                 }
                 svga->ma += x << 1; 
-                svga->ma &= svga->vrammask;
+                svga->ma = svga_mask_addr(svga->ma, svga);
         }
 }
 
@@ -503,7 +503,7 @@ void svga_render_15bpp_highres(svga_t *svga)
                         p[x + 7] = video_15to32[dat >> 16];
                 }
                 svga->ma += x << 1; 
-                svga->ma &= svga->vrammask;
+                svga->ma = svga_mask_addr(svga->ma, svga);
         }
 }
 
@@ -535,7 +535,7 @@ void svga_render_16bpp_lowres(svga_t *svga)
                         p[x + 1] = video_16to32[dat >> 16];
                 }
                 svga->ma += x << 1; 
-                svga->ma &= svga->vrammask;
+                svga->ma = svga_mask_addr(svga->ma, svga);
         }
 }
 
@@ -573,7 +573,7 @@ void svga_render_16bpp_highres(svga_t *svga)
                         p[x + 7] = video_16to32[dat >> 16];
                 }
                 svga->ma += x << 1; 
-                svga->ma &= svga->vrammask;
+                svga->ma = svga_mask_addr(svga->ma, svga);
         }
 }
 
@@ -596,7 +596,7 @@ void svga_render_24bpp_lowres(svga_t *svga)
                 {
                         fg = svga->vram[svga->ma] | (svga->vram[svga->ma + 1] << 8) | (svga->vram[svga->ma + 2] << 16);
                         svga->ma += 3; 
-                        svga->ma &= svga->vrammask;
+                        svga->ma = svga_mask_addr(svga->ma, svga);
                         ((uint32_t *)buffer32->line[svga->displine + y_add])[(x << 1) + offset + x_add] = ((uint32_t *)buffer32->line[svga->displine + y_add])[(x << 1) + 1 + offset + x_add] = fg;
                 }
         }
@@ -633,7 +633,7 @@ void svga_render_24bpp_highres(svga_t *svga)
                         
                         svga->ma += 12;
                 }
-                svga->ma &= svga->vrammask;
+                svga->ma = svga_mask_addr(svga->ma, svga);
         }
 }
 
@@ -656,7 +656,7 @@ void svga_render_32bpp_lowres(svga_t *svga)
                 {
                         fg = svga->vram[svga->ma] | (svga->vram[svga->ma + 1] << 8) | (svga->vram[svga->ma + 2] << 16);
                         svga->ma += 4; 
-                        svga->ma &= svga->vrammask;
+                        svga->ma = svga_mask_addr(svga->ma, svga);
                         ((uint32_t *)buffer32->line[svga->displine + y_add])[(x << 1) + offset + x_add] = ((uint32_t *)buffer32->line[svga->displine + y_add])[(x << 1) + 1 + offset + x_add] = fg;
                 }
         }
@@ -685,7 +685,7 @@ void svga_render_32bpp_highres(svga_t *svga)
                         p[x] = dat & 0xffffff;
                 }
                 svga->ma += 4; 
-                svga->ma &= svga->vrammask;
+                svga->ma = svga_mask_addr(svga->ma, svga);
         }
 }
 
@@ -710,7 +710,7 @@ void svga_render_ABGR8888_highres(svga_t *svga)
                         p[x] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
                 }
                 svga->ma += 4; 
-                svga->ma &= svga->vrammask;
+                svga->ma = svga_mask_addr(svga->ma, svga);
         }
 }
 
@@ -735,6 +735,6 @@ void svga_render_RGBA8888_highres(svga_t *svga)
                         p[x] = dat >> 8;
                 }
                 svga->ma += 4; 
-                svga->ma &= svga->vrammask;
+                svga->ma = svga_mask_addr(svga->ma, svga);
         }
 }

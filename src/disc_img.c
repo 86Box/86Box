@@ -362,6 +362,8 @@ void img_load(int drive, char *fn)
 		/* The rest we just set directly from the BPB. */
 		img[drive].sectors = bpb_sectors;
 		img[drive].sides = bpb_sides;
+		/* The sector size. */
+		img[drive].sector_size = bpb_bps;
 		/* Now we calculate bytes per track, which is bpb_sectors * bpb_bps. */
 		bpt = (uint32_t) bpb_sectors * (uint32_t) bpb_bps;
 		/* Now we should be able to calculate the bit rate. */
