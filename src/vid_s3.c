@@ -922,7 +922,7 @@ uint8_t s3_in(uint16_t addr, void *p)
                 {
                         case 0x2d: return 0x88;       /*Extended chip ID*/
 			case 0x2e:
-				if ((s3->chip != S3_TRIO32) && (s3->chip != S3_TRIO64))  return 0xFF;
+				// if ((s3->chip != S3_TRIO32) && (s3->chip != S3_TRIO64))  return 0xFF;
 				return s3->id_ext; /*New chip ID*/
                         case 0x2f: return 0;          /*Revision level*/
                         case 0x30: return s3->id;     /*Chip ID*/
@@ -2151,10 +2151,10 @@ static int vram_sizes[] =
         7, /*512 kB*/
         6, /*1 MB*/
         4, /*2 MB*/
-        0,
+        2, /*3 MB*/
         0, /*4 MB*/
         0,
-        0,
+        5, /*6 MB*/
         0,
         3 /*8 MB*/
 };
@@ -2194,6 +2194,7 @@ static void *s3_init(char *bios_fn, int chip)
         else
                 svga->crtc[0x36] = 1 | (3 << 2) | (1 << 4) | (vram_sizes[vram] << 5);
         svga->crtc[0x37] = 1 | (7 << 5);
+	if (s3->chip == S3_VISION964)  svga->crtc[0x37] |= 0xe;
 
         s3_io_set(s3);
 
@@ -2496,8 +2497,16 @@ static device_config_t s3_miro_vision964_config[] =
                                 .value = 2
                         },
                         {
+                                .description = "3 MB",
+                                .value = 3
+                        },
+                        {
                                 .description = "4 MB",
                                 .value = 4
+                        },
+                        {
+                                .description = "6 MB",
+                                .value = 6
                         },
                         {
                                 .description = "8 MB",
