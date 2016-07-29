@@ -183,6 +183,9 @@ void leave_fullscreen()
 
 uint64_t main_time;
 
+uint64_t start_time;
+uint64_t end_time;
+
 void mainthread(LPVOID param)
 {
         int t = 0;
@@ -205,8 +208,7 @@ void mainthread(LPVOID param)
                 old_time = new_time;
                 if (drawits > 0 && !pause)
                 {
-                        uint64_t start_time = timer_read();
-                        uint64_t end_time;
+			start_time = timer_read();
                         drawits-=10;        if (drawits>50) drawits=0;
                         runpc();
                         frames++;
