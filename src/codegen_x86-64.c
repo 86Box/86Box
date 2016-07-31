@@ -49,7 +49,7 @@ int cpu_recomp_evicted, cpu_recomp_evicted_latched;
 int cpu_recomp_reuse, cpu_recomp_reuse_latched;
 int cpu_recomp_removed, cpu_recomp_removed_latched;
 
-static uint32_t codegen_endpc;
+uint32_t codegen_endpc;
 
 int codegen_block_cycles;
 static int codegen_block_ins;
@@ -116,18 +116,54 @@ void dump_block()
         pclog("dump_block done\n");
 }
 
-static void delete_block(codeblock_t *block)
+static void add_to_block_list(codeblock_t *block)
 {
-//        pclog("delete_block: pc=%08x\n", block->pc);
-        if (block == codeblock_hash[HASH(block->phys)])
-                codeblock_hash[HASH(block->phys)] = NULL;
+        codeblock_t *block_prev = pages[block->phys >> 12].block;
 
-        if (!block->pc)
-                fatal("Deleting deleted block\n");
-        block->pc = 0;
+        if (!block->page_mask)
+                fatal("add_to_block_list - mask = 0\n");
 
-        codeblock_tree_delete(block);
+        if (block_prev)
+        {
+                block->next = block_prev;
+                block_prev->prev = block;
+                pages[block->phys >> 12].block = block;
+        }
+        else
+        {
+                block->next = NULL;
+                pages[block->phys >> 12].block = block;
+        }
+
+        if (block->next)
+        {
+                if (!block->next->pc)
+                        fatal("block->next->pc=0 %p %p %x %x\n", (void *)block->next, (void *)codeblock, block_current, block_pos);
+        }
         
+        if (block->page_mask2)
+        {
+                block_prev = pages[block->phys_2 >> 12].block_2;
+
+                if (block_prev)
+                {
+                        block->next_2 = block_prev;
+                        block_prev->prev_2 = block;
+                        pages[block->phys_2 >> 12].block_2 = block;
+                }
+                else
+                {
+                        block->next_2 = NULL;
+                        pages[block->phys_2 >> 12].block_2 = block;
+                }
+        }
+}
+
+static void remove_from_block_list(codeblock_t *block, uint32_t pc)
+{
+        if (!block->page_mask)
+                return;
+
         if (block->prev)
         {
                 block->prev->next = block->next;
@@ -164,6 +200,21 @@ static void delete_block(codeblock_t *block)
                 else
                         mem_flush_write_page(block->phys_2, 0);
         }
+}
+
+static void delete_block(codeblock_t *block)
+{
+        uint32_t old_pc = block->pc;
+
+        if (block == codeblock_hash[HASH(block->phys)])
+                codeblock_hash[HASH(block->phys)] = NULL;
+
+        if (!block->pc)
+                fatal("Deleting deleted block\n");
+        block->pc = 0;
+
+        codeblock_tree_delete(block);
+        remove_from_block_list(block, old_pc);
 }
 
 void codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr)
@@ -219,6 +270,7 @@ void codegen_block_init(uint32_t phys_addr)
         }
         block_num = HASH(phys_addr);
         codeblock_hash[block_num] = &codeblock[block_current];
+
         block->ins = 0;
         block->pc = cs + cpu_state.pc;
         block->_cs = cs;
@@ -227,7 +279,28 @@ void codegen_block_init(uint32_t phys_addr)
         block->use32 = use32;
         block->stack32 = stack32;
         block->next = block->prev = NULL;
+        block->next_2 = block->prev_2 = NULL;
+        block->page_mask = 0;
         
+        block->was_recompiled = 0;
+
+        codeblock_tree_add(block);
+}
+
+void codegen_block_start_recompile(codeblock_t *block)
+{
+        int has_evicted = 0;
+        page_t *page = &pages[block->phys >> 12];
+        
+        if (!page->block)
+                mem_flush_write_page(block->phys, cs+cpu_state.pc);
+
+        block_num = HASH(block->phys);
+        block_current = block->pnt;
+
+        if (block->pc != cs + cpu_state.pc || block->was_recompiled)
+                fatal("Recompile to used block!\n");
+
         block_pos = BLOCK_GPF_OFFSET;
 #if WIN64
         addbyte(0x48); /*XOR RCX, RCX*/
@@ -297,7 +370,7 @@ void codegen_block_init(uint32_t phys_addr)
         codegen_block_ins = 0;
         codegen_block_full_ins = 0;
 
-        recomp_page = phys_addr & ~0xfff;
+        recomp_page = block->phys & ~0xfff;
         
         codegen_flags_changed = 0;
         codegen_fpu_entered = 0;
@@ -310,51 +383,27 @@ void codegen_block_init(uint32_t phys_addr)
 
         codegen_reg_loaded[0] = codegen_reg_loaded[1] = codegen_reg_loaded[2] = codegen_reg_loaded[3] =
         codegen_reg_loaded[4] = codegen_reg_loaded[5] = codegen_reg_loaded[6] = codegen_reg_loaded[7] = 0;
+
+        block->was_recompiled = 1;
 }
 
 void codegen_block_remove()
 {
         codeblock_t *block = &codeblock[block_current];
-//if ((block->phys & ~0xfff) == 0x119000)  pclog("codegen_block_remove %08x\n", block->pc);
-//        if (block->pc == 0xb00b4ff5)
-//                pclog("Remove target block\n");
-        codeblock_hash[block_num] = NULL;
-        block->pc = 0;//xffffffff;
+
+        delete_block(block);
         cpu_recomp_removed++;
-//        pclog("Remove block %i\n", block_num);
+
         recomp_page = -1;
 }
 
-void codegen_block_end()
+void codegen_block_generate_end_mask()
 {
         codeblock_t *block = &codeblock[block_current];
-        codeblock_t *block_prev = pages[block->phys >> 12].block;
         uint32_t start_pc = (block->pc & 0xffc) | (block->phys & ~0xfff);
         uint32_t end_pc = ((codegen_endpc + 3) & 0xffc) | (block->phys & ~0xfff);
 
         block->endpc = codegen_endpc;
-
-//        if (block->pc == 0xb00b4ff5)
-//                pclog("End target block\n");
-
-        if (block_prev)
-        {
-                block->next = block_prev;
-                block_prev->prev = block;
-                pages[block->phys >> 12].block = block;
-        }
-        else
-        {
-                block->next = NULL;
-                pages[block->phys >> 12].block = block;
-        }
-
-        if (block->next)
-        {
-//                pclog("  next->pc=%08x\n", block->next->pc);
-                if (!block->next->pc)
-                        fatal("block->next->pc=0 %p %p %x %x\n", (void *)block->next, (void *)codeblock, block_current, block_pos);
-        }
 
         block->page_mask = 0;
         start_pc = block->pc & 0xffc;
@@ -383,26 +432,7 @@ void codegen_block_end()
                 if (block->phys_2 != -1)
                 {
 //                pclog("start block - %08x %08x %p %p %p  %08x\n", block->pc, block->endpc, (void *)block, (void *)block->next_2, (void *)pages[block->phys_2 >> 12].block_2, block->phys_2);
-        
-                        if (pages[block->phys_2 >> 12].block_2 == block)
-                                fatal("Block same\n");
-                        
-                        block_prev = pages[block->phys_2 >> 12].block_2;
 
-                        if (block_prev)
-                        {
-                                block->next_2 = block_prev;
-                                block_prev->prev_2 = block;
-                                pages[block->phys_2 >> 12].block_2 = block;
-//                        pclog(" pages.block_2=%p\n", (void *)block);
-                        }
-                        else
-                        {
-                                block->next_2 = NULL;
-                                pages[block->phys_2 >> 12].block_2 = block;
-//                        pclog(" pages.block_2=%p 2\n", (void *)block);
-                        }
-                
                         start_pc = 0;
                         end_pc = (block->endpc & 0xfff) >> PAGE_MASK_SHIFT;
                         for (; start_pc <= end_pc; start_pc++)
@@ -423,7 +453,19 @@ void codegen_block_end()
         }
 
 //        pclog("block_end: %08x %08x %016llx\n", block->pc, block->endpc, block->page_mask);
+        recomp_page = -1;
+}
 
+void codegen_block_end()
+{
+        codeblock_t *block = &codeblock[block_current];
+
+        codegen_block_generate_end_mask();
+        add_to_block_list(block);
+}
+
+void codegen_block_end_recompile(codeblock_t *block)
+{
         codegen_timing_block_end();
 
         if (codegen_block_cycles)
@@ -472,11 +514,13 @@ void codegen_block_end()
         
         if (block_pos > BLOCK_GPF_OFFSET)
                 fatal("Over limit!\n");
+
+        remove_from_block_list(block, block->pc);
+        block->next = block->prev = NULL;
+        block->next_2 = block->prev_2 = NULL;
+        codegen_block_generate_end_mask();
+        add_to_block_list(block);
 //        pclog("End block %i\n", block_num);
-
-        recomp_page = -1;
-
-        codeblock_tree_add(block);
 }
 
 void codegen_flush()
@@ -566,7 +610,7 @@ int opcode_0f_modrm[256] =
 
         0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, /*80*/
         1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, /*90*/
-        0, 0, 0, 1,  1, 1, 0, 0,  0, 0, 0, 1,  1, 1, 1, 1, /*a0*/
+        0, 0, 0, 1,  1, 1, 0, 0,  0, 0, 0, 1,  1, 1, 0, 1, /*a0*/
         1, 1, 1, 1,  1, 1, 1, 1,  0, 0, 1, 1,  1, 1, 1, 1, /*b0*/
 
         1, 1, 0, 0,  0, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 0, /*c0*/

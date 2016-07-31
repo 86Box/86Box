@@ -1360,7 +1360,7 @@ void exec386_dynarec(int cycs)
                         }
                 }
 
-                if (valid_block)
+                if (valid_block && block->was_recompiled)
                 {
                         void (*code)() = (void *)&block->data[BLOCK_START];
 
@@ -1377,7 +1377,7 @@ inrecomp=0;
                         insc += codeblock_ins[index];*/
 /*                        pclog("Exit block now %04X:%04X\n", CS, pc);*/
                 }
-                else if (!abrt)
+                else if (valid_block && !abrt)
                 {
                         uint32_t start_page = cpu_state.pc >> 12;
                         uint32_t start_pc = cpu_state.pc;
@@ -1388,7 +1388,7 @@ inrecomp=0;
 
                         cpu_new_blocks++;
                         
-                        codegen_block_init(phys_addr);
+                        codegen_block_start_recompile(block);
                         codegen_in_recompile = 1;
 
 //                        if (output) pclog("Recompile block at %04x:%04x  %04x %04x %04x %04x  %04x %04x  ESP=%04x %04x  %02x%02x:%02x%02x %02x%02x:%02x%02x %02x%02x:%02x%02x\n", CS, pc, AX, BX, CX, DX, SI, DI, ESP, BP, ram[0x116330+0x6df4+0xa+3], ram[0x116330+0x6df4+0xa+2], ram[0x116330+0x6df4+0xa+1], ram[0x116330+0x6df4+0xa+0], ram[0x11d136+3],ram[0x11d136+2],ram[0x11d136+1],ram[0x11d136+0], ram[(0x119abe)+0x3],ram[(0x119abe)+0x2],ram[(0x119abe)+0x1],ram[(0x119abe)+0x0]);
@@ -1451,12 +1451,88 @@ inrecomp=0;
                         }
                         
                         if (!abrt && !x86_was_reset)
+                                codegen_block_end_recompile(block);
+                       
+                        if (x86_was_reset)
+                                codegen_reset();
+
+                        codegen_in_recompile = 0;
+//                        output &= ~2;
+                }
+                else if (!abrt)
+                {
+                        /*Mark block but do not recompile*/
+                        uint32_t start_page = cpu_state.pc >> 12;
+                        uint32_t start_pc = cpu_state.pc;
+
+//                        pclog("Hash %08x %i\n", codeblock_hash_pc[HASH(cs + pc)], codeblock_page_dirty[(cs + pc) >> 12]);
+                        cpu_block_end = 0;
+                        x86_was_reset = 0;
+
+//                        cpu_new_blocks++;
+
+                        codegen_block_init(phys_addr);
+
+//                        if (output) pclog("Recompile block at %04x:%04x  %04x %04x %04x %04x  %04x %04x  ESP=%04x %04x  %02x%02x:%02x%02x %02x%02x:%02x%02x %02x%02x:%02x%02x\n", CS, pc, AX, BX, CX, DX, SI, DI, ESP, BP, ram[0x116330+0x6df4+0xa+3], ram[0x116330+0x6df4+0xa+2], ram[0x116330+0x6df4+0xa+1], ram[0x116330+0x6df4+0xa+0], ram[0x11d136+3],ram[0x11d136+2],ram[0x11d136+1],ram[0x11d136+0], ram[(0x119abe)+0x3],ram[(0x119abe)+0x2],ram[(0x119abe)+0x1],ram[(0x119abe)+0x0]);
+                        while (!cpu_block_end)
+                        {
+                                oldcs=CS;
+                                oldpc=cpu_state.pc;
+                                oldcpl=CPL;
+                                op32=use32;
+
+                                ea_seg = &_ds;
+                                ssegs = 0;
+                
+                                codegen_endpc = (cs + cpu_state.pc) + 8;
+                                fetchdat = fastreadl(cs + cpu_state.pc);
+
+                                if (!abrt)
+                                {               
+                                        trap = flags & T_FLAG;
+                                        opcode = fetchdat & 0xFF;
+                                        fetchdat >>= 8;
+
+//                                        if (output == 3)
+//                                                pclog("%04X(%06X):%04X : %08X %08X %08X %08X %04X %04X %04X(%08X) %04X %04X %04X(%08X) %08X %08X %08X SP=%04X:%08X %02X %04X %i %08X  %08X %i %i %02X %02X %02X   %02X %02X  %08x %08x\n",CS,cs,pc,EAX,EBX,ECX,EDX,CS,DS,ES,es,FS,GS,SS,ss,EDI,ESI,EBP,SS,ESP,opcode,flags,ins,0, ldt.base, CPL, stack32, pic.pend, pic.mask, pic.mask2, pic2.pend, pic2.mask, cs+pc, pccache);
+
+                                        cpu_state.pc++;
+                                                
+                                        x86_opcodes[(opcode | op32) & 0x3ff](fetchdat);
+
+                                        if (x86_was_reset)
+                                                break;
+                                }
+
+                                if (!use32) cpu_state.pc &= 0xffff;
+
+                                /*Cap source code at 4000 bytes per block; this
+                                  will prevent any block from spanning more than
+                                  2 pages. In practice this limit will never be
+                                  hit, as host block size is only 2kB*/
+                                if ((cpu_state.pc - start_pc) > 4000)
+                                        CPU_BLOCK_END();
+                                        
+                                if (trap)
+                                        CPU_BLOCK_END();
+
+
+                                if (abrt)
+                                {
+                                        codegen_block_remove();
+                                        CPU_BLOCK_END();
+                                }
+
+                                ins++;
+                                insc++;
+                        }
+                       
+                        if (!abrt && !x86_was_reset)
                                 codegen_block_end();
                         
                         if (x86_was_reset)
                                 codegen_reset();
 
-                        codegen_in_recompile = 0;
 //                        output &= ~2;
                 }
 //                        if (output && (SP & 1))
