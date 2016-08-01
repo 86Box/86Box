@@ -470,9 +470,11 @@ static int opD3_l_a32(uint32_t fetchdat)
 #define SHLD_w()                                                                \
         if (count)                                                              \
         {                                                                       \
-                uint16_t tempw = geteaw();      if (abrt) return 1;             \
-                int tempc = ((tempw << (count - 1)) & (1 << 15)) ? 1 : 0;       \
-                uint32_t templ = (tempw << 16) | cpu_state.regs[reg].w;         \
+                uint16_t tempw = geteaw();                                      \
+                int tempc; uint32_t templ;                                      \
+                if (abrt) return 1;                                             \
+                tempc = ((tempw << (count - 1)) & (1 << 15)) ? 1 : 0;           \
+                templ = (tempw << 16) | cpu_state.regs[reg].w;                  \
                 if (count <= 16) tempw =  templ >> (16 - count);                \
                 else             tempw = (templ << count) >> 16;                \
                 seteaw(tempw);                  if (abrt) return 1;             \
@@ -484,8 +486,10 @@ static int opD3_l_a32(uint32_t fetchdat)
 #define SHLD_l()                                                                \
         if (count)                                                              \
         {                                                                       \
-                uint32_t templ = geteal();      if (abrt) return 1;             \
-                int tempc = ((templ << (count - 1)) & (1 << 31)) ? 1 : 0;       \
+                uint32_t templ = geteal();                                      \
+                int tempc;                                                      \
+                if (abrt) return 1;                                             \
+                tempc = ((templ << (count - 1)) & (1 << 31)) ? 1 : 0;           \
                 templ = (templ << count) | (cpu_state.regs[reg].l >> (32 - count)); \
                 seteal(templ);                  if (abrt) return 1;             \
                 setznp32(templ);                                                \
@@ -497,9 +501,11 @@ static int opD3_l_a32(uint32_t fetchdat)
 #define SHRD_w()                                                                \
         if (count)                                                              \
         {                                                                       \
-                uint16_t tempw = geteaw();      if (abrt) return 1;             \
-                int tempc = (tempw >> (count - 1)) & 1;                         \
-                uint32_t templ = tempw | (cpu_state.regs[reg].w << 16);         \
+                uint16_t tempw = geteaw();                                      \
+                int tempc; uint32_t templ;                                      \
+                if (abrt) return 1;                                             \
+                tempc = (tempw >> (count - 1)) & 1;                             \
+                templ = tempw | (cpu_state.regs[reg].w << 16);                  \
                 tempw = templ >> count;                                         \
                 seteaw(tempw);                  if (abrt) return 1;             \
                 setznp16(tempw);                                                \
@@ -510,8 +516,10 @@ static int opD3_l_a32(uint32_t fetchdat)
 #define SHRD_l()                                                                \
         if (count)                                                              \
         {                                                                       \
-                uint32_t templ = geteal();      if (abrt) return 1;             \
-                int tempc = (templ >> (count - 1)) & 1;                         \
+                uint32_t templ = geteal();                                      \
+                int tempc;                                                      \
+                if (abrt) return 1;                                             \
+                tempc = (templ >> (count - 1)) & 1;                             \
                 templ = (templ >> count) | (cpu_state.regs[reg].l << (32 - count)); \
                 seteal(templ);                  if (abrt) return 1;             \
                 setznp32(templ);                                                \

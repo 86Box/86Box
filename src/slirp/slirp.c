@@ -129,6 +129,12 @@ void slirp_cleanup(void)
 
 int slirp_init(void)
 {
+	struct in_addr myaddr;
+	int rc;
+	char* category = "SLiRP Port Forwarding";
+	char key[32];
+	int i = 0, udp, from, to;
+
 #ifdef SLIRP_DEBUG
     //  debug_init("/tmp/slirp.log", DEBUG_DEFAULT);
     //  debug_init("slirplog.txt",DEBUG_DEFAULT);
@@ -162,13 +168,8 @@ debug_init("slirplog.txt",DEBUG_DEFAULT);
 	alias_addr.s_addr = special_addr.s_addr | htonl(CTL_ALIAS);
 	getouraddr();
 
-	struct in_addr myaddr;
-	int rc;
 	inet_aton("10.0.2.15",&myaddr);
 
-	char* category = "SLiRP Port Forwarding";
-	char key[32];
-	int i = 0, udp, from, to;
 	while (1) {
 		sprintf(key, "%d_udp", i);
 		udp = config_get_int(category, key, 0);

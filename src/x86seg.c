@@ -37,18 +37,14 @@ void pmodeint(int num, int soft);
 FILE *pclogf;
 void x86abort(const char *format, ...)
 {
-   char buf[256];
-//   return;
-   if (!pclogf)
-      pclogf=fopen("pclog.txt","wt");
-//return;
    va_list ap;
    va_start(ap, format);
-   vsprintf(buf, format, ap);
+   vprintf(format, ap);
    va_end(ap);
-   fputs(buf,pclogf);
-   fflush(pclogf);
+   fflush(stdout);
+   savenvr();
    dumpregs();
+   fflush(stdout);
    exit(-1);
 }
 

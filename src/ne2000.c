@@ -274,10 +274,9 @@ static void ne2000_setirq(ne2000_t *ne2000, int irq)
 static void ne2000_reset(int type, void *p)
 {
   ne2000_t *ne2000 = (ne2000_t *)p;
+  int i;
 
   pclog("ne2000 reset\n");
-
-  int i;
 
   // Initialise the mac address area by doubling the physical address
   ne2000->macaddr[0]  = ne2000->physaddr[0];
@@ -535,9 +534,9 @@ void ne2000_reset_write(uint32_t offset, uint16_t value, void *p)
 uint16_t ne2000_read(uint32_t address, void *p)
 {
   ne2000_t *ne2000 = (ne2000_t *)p;
+  int ret;
 
   pclog("read addr %x\n", address);
-  int ret;
 
     address &= 0xf;
 
@@ -1661,11 +1660,11 @@ void *ne2000_init()
     int rc;
 	int config_net_type;
     int net_type;
+    uint16_t addr = 0xC000;
 
     ne2000_t *ne2000 = malloc(sizeof(ne2000_t));
     memset(ne2000, 0, sizeof(ne2000_t));
 
-    uint16_t addr = 0xC000;
     if (network_card_current == 1)  addr = device_get_config_int("addr");
 	disable_netbios = device_get_config_int("disable_netbios");
     io_base = addr;

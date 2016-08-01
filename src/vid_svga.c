@@ -1027,8 +1027,8 @@ uint8_t svga_read(uint32_t addr, void *p)
         addr &= svga->banked_mask;
         addr += svga->read_bank;
 
-        // latch_addr = (addr << 2) % svga->vram_limit;
-        latch_addr = (addr << 2);
+        latch_addr = (addr << 2) % svga->vram_limit;
+        // latch_addr = (addr << 2);
         
 //        pclog("%05X %i %04X:%04X %02X %02X %i\n",addr,svga->chain4,CS,pc, vram[addr & 0x7fffff], vram[(addr << 2) & 0x7fffff], svga->readmode);
 //        pclog("%i\n", svga->readmode);
@@ -1097,6 +1097,7 @@ void svga_write_linear(uint32_t addr, uint8_t val, void *p)
         if (svga_output) pclog("Write LFB %08X %02X ", addr, val);
         if (!(svga->gdcreg[6] & 1)) 
                 svga->fullchange = 2;
+	addr -= svga->linear_base;
         if (svga->chain4 || svga->fb_only)
         {
                 writemask2=1<<(addr&3);
@@ -1281,6 +1282,8 @@ uint8_t svga_read_linear(uint32_t addr, void *p)
         cycles_lost += video_timing_b;
 
         egareads++;
+
+	addr -= svga->linear_base;
         
         if (svga->chain4 || svga->fb_only) 
         { 
@@ -1522,6 +1525,7 @@ void svga_writew_linear(uint32_t addr, uint16_t val, void *p)
 
 	if (svga_output) pclog("Write LFBw %08X %04X\n", addr, val);
         // addr %= svga->vram_limit;
+	addr -= svga->linear_base;
 	if ((!svga->extvram) && (addr >= 0x10000))  return;
         if (addr >= svga->vram_limit)
                 return;
@@ -1551,6 +1555,7 @@ void svga_writel_linear(uint32_t addr, uint32_t val, void *p)
 
 	if (svga_output) pclog("Write LFBl %08X %08X\n", addr, val);
         // addr %= svga->vram_limit;
+	addr -= svga->linear_base;
 	if ((!svga->extvram) && (addr >= 0x10000))  return;
         if (addr >= svga->vram_limit)
                 return;
@@ -1573,6 +1578,7 @@ uint16_t svga_readw_linear(uint32_t addr, void *p)
         cycles_lost += video_timing_w;
 
         // addr %= svga->vram_limit;
+	addr -= svga->linear_base;
 	if ((!svga->extvram) && (addr >= 0x10000))  return 0xffff;
         if (addr >= svga->vram_limit) return 0xffff;
         
@@ -1594,6 +1600,7 @@ uint32_t svga_readl_linear(uint32_t addr, void *p)
         cycles_lost += video_timing_l;
 
         // addr %= svga->vram_limit;
+	addr -= svga->linear_base;
 	if ((!svga->extvram) && (addr >= 0x10000))  return 0xffffffff;
         if (addr >= svga->vram_limit) return 0xffffffff;
 

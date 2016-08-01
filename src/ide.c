@@ -2129,6 +2129,10 @@ static void atapicommand(int ide_board)
 	int temp_command;
 	int alloc_length;
 	int completed;
+    uint8_t index = 0;
+	int media;
+	int format;
+	int ret;
 
 #ifndef RPCEMU_IDE
         pclog("New ATAPI command %02X %i\n",idebufferb[0],ins);
@@ -2529,7 +2533,7 @@ static void atapicommand(int ide_board)
             len = (idebufferb[7]<<8)|idebufferb[8];
             alloc_length = len;
        
-            uint8_t index = 0;
+            index = 0;
  
             /* only feature 0 is supported */
             if (idebufferb[2] != 0 || idebufferb[3] != 0)
@@ -2768,9 +2772,8 @@ static void atapicommand(int ide_board)
 
 				case GPCMD_READ_DVD_STRUCTURE:
 				temp_command = idebufferb[0];
-				int media = idebufferb[1];
-				int format = idebufferb[7];
-				int ret;
+				media = idebufferb[1];
+				format = idebufferb[7];
  
 				len = (((uint32_t) idebufferb[6])<<24)|(((uint32_t) idebufferb[7])<<16)|(((uint32_t) idebufferb[8])<<8)|((uint32_t) idebufferb[9]);
 				alloc_length = len;

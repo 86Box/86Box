@@ -213,48 +213,62 @@ static int opMOV_l_imm_a32(uint32_t fetchdat)
 
 static int opMOV_AL_a16(uint32_t fetchdat)
 {
-        uint16_t addr = getwordf();
-        uint8_t temp = readmemb(ea_seg->base, addr);      if (abrt) return 1;
+        uint16_t addr;
+        uint8_t temp;
+        addr = getwordf();
+        temp = readmemb(ea_seg->base, addr);
+        if (abrt) return 1;
         AL = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         return 0;        
 }
 static int opMOV_AL_a32(uint32_t fetchdat)
 {
-        uint32_t addr = getlong();
-        uint8_t temp = readmemb(ea_seg->base, addr);      if (abrt) return 1;
+        uint32_t addr;
+        uint8_t temp;
+        addr = getlong();
+        temp = readmemb(ea_seg->base, addr);
+        if (abrt) return 1;
         AL = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         return 0;        
 }
 static int opMOV_AX_a16(uint32_t fetchdat)
 {
-        uint16_t addr = getwordf();
-        uint16_t temp = readmemw(ea_seg->base, addr);     if (abrt) return 1;
+        uint16_t addr;
+        uint16_t temp;
+        addr = getwordf();
+        temp = readmemw(ea_seg->base, addr);     if (abrt) return 1;
         AX = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         return 0;        
 }
 static int opMOV_AX_a32(uint32_t fetchdat)
 {
-        uint32_t addr = getlong();
-        uint16_t temp = readmemw(ea_seg->base, addr);     if (abrt) return 1;
+        uint32_t addr;
+        uint16_t temp;
+        addr = getlong();
+        temp = readmemw(ea_seg->base, addr);     if (abrt) return 1;
         AX = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         return 0;        
 }
 static int opMOV_EAX_a16(uint32_t fetchdat)
 {
-        uint16_t addr = getwordf();
-        uint32_t temp = readmeml(ea_seg->base, addr);     if (abrt) return 1;
+        uint16_t addr;
+        uint32_t temp;
+        addr = getwordf();
+        temp = readmeml(ea_seg->base, addr);     if (abrt) return 1;
         EAX = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         return 0;        
 }
 static int opMOV_EAX_a32(uint32_t fetchdat)
 {
-        uint32_t addr = getlong();
-        uint32_t temp = readmeml(ea_seg->base, addr);     if (abrt) return 1;
+        uint32_t addr;
+        uint32_t temp;
+        addr = getlong();
+        temp = readmeml(ea_seg->base, addr);     if (abrt) return 1;
         EAX = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         return 0;        
@@ -262,42 +276,50 @@ static int opMOV_EAX_a32(uint32_t fetchdat)
 
 static int opMOV_a16_AL(uint32_t fetchdat)
 {
-        uint16_t addr = getwordf();
+        uint16_t addr;
+        addr = getwordf();
         writememb(ea_seg->base, addr, AL);
         CLOCK_CYCLES((is486) ? 1 : 2);
         return abrt;
 }
 static int opMOV_a32_AL(uint32_t fetchdat)
 {
-        uint32_t addr = getlong();
+        uint32_t addr;
+        addr = getlong();
         writememb(ea_seg->base, addr, AL);
         CLOCK_CYCLES((is486) ? 1 : 2);
         return abrt;
 }
 static int opMOV_a16_AX(uint32_t fetchdat)
 {
-        uint16_t addr = getwordf();
+        uint16_t addr;
+        addr = getwordf();
         writememw(ea_seg->base, addr, AX);
         CLOCK_CYCLES((is486) ? 1 : 2);
         return abrt;
 }
 static int opMOV_a32_AX(uint32_t fetchdat)
 {
-        uint32_t addr = getlong();             if (abrt) return 1;
+        uint32_t addr;
+        addr = getlong();
+        if (abrt) return 1;
         writememw(ea_seg->base, addr, AX);
         CLOCK_CYCLES((is486) ? 1 : 2);
         return abrt;
 }
 static int opMOV_a16_EAX(uint32_t fetchdat)
 {
-        uint16_t addr = getwordf();
+        uint16_t addr;
+        addr = getwordf();
         writememl(ea_seg->base, addr, EAX);
         CLOCK_CYCLES((is486) ? 1 : 2);
         return abrt;
 }
 static int opMOV_a32_EAX(uint32_t fetchdat)
 {
-        uint32_t addr = getlong();             if (abrt) return 1;
+        uint32_t addr;
+        addr = getlong();
+        if (abrt) return 1;
         writememl(ea_seg->base, addr, EAX);
         CLOCK_CYCLES((is486) ? 1 : 2);
         return abrt;
@@ -343,7 +365,9 @@ static int opLEA_l_a32(uint32_t fetchdat)
 static int opXLAT_a16(uint32_t fetchdat)
 {
         uint32_t addr = (BX + AL)&0xFFFF;
-        uint8_t temp = readmemb(ea_seg->base, addr); if (abrt) return 1;
+        uint8_t temp;
+        temp = readmemb(ea_seg->base, addr);
+        if (abrt) return 1;
         AL = temp;
         CLOCK_CYCLES(5);
         return 0;
@@ -351,7 +375,9 @@ static int opXLAT_a16(uint32_t fetchdat)
 static int opXLAT_a32(uint32_t fetchdat)
 {
         uint32_t addr = EBX + AL;
-        uint8_t temp = readmemb(ea_seg->base, addr); if (abrt) return 1;
+        uint8_t temp;
+        temp = readmemb(ea_seg->base, addr);
+        if (abrt) return 1;
         AL = temp;
         CLOCK_CYCLES(5);
         return 0;

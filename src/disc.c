@@ -156,12 +156,16 @@ int disc_byteperiod(int drive)
 
 double disc_real_period()
 {
-	int64_t dbp = disc_byteperiod(disc_drivesel ^ fdd_swap);
-	double ddbp = (double) dbp;
+	int64_t dbp;
+	double ddbp;
+	double dusec;
+
+	dbp = disc_byteperiod(disc_drivesel ^ fdd_swap);
+	ddbp = (double) dbp;
 
 	if (dbp == 26)  ddbp = 160.0 / 6.0;
 
-	double dusec = (double) TIMER_USEC;
+	dusec = (double) TIMER_USEC;
 
 	return (ddbp * dusec);
 }

@@ -116,6 +116,7 @@ void et4000_recalctimings(svga_t *svga)
         et4000_t *et4000 = (et4000_t *)svga->p;
 
         svga->ma_latch |= (svga->crtc[0x33]&3)<<16;
+        if (svga->crtc[0x35] & 1)    svga->vblankstart += 0x400;
         if (svga->crtc[0x35] & 2)    svga->vtotal += 0x400;
         if (svga->crtc[0x35] & 4)    svga->dispend += 0x400;
         if (svga->crtc[0x35] & 8)    svga->vsyncstart += 0x400;

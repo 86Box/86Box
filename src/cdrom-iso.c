@@ -329,6 +329,8 @@ void iso_reset()
 
 int iso_open(char *fn)
 {
+    struct stat st;
+
 	if (strcmp(fn, iso_path) != 0)
 	{
 		iso_changed = 1;
@@ -348,7 +350,6 @@ int iso_open(char *fn)
         fclose(iso_image);
     }
     
-    struct stat st;
     stat(iso_path, &st);
     image_size = st.st_size;
     

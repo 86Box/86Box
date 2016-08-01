@@ -401,6 +401,7 @@ void tgui_recalcmapping(tgui_t *tgui)
 	{
                 mem_mapping_disable(&svga->mapping);
                 mem_mapping_set_addr(&tgui->linear_mapping, tgui->linear_base, tgui->linear_size);
+		svga->linear_base = tgui->linear_base;
 //		pclog("Trident linear framebuffer at %08X - size %06X\n", tgui->linear_base, tgui->linear_size);
                 mem_mapping_enable(&tgui->accel_mapping);
 	}

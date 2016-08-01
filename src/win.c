@@ -906,16 +906,19 @@ HHOOK hKeyboardHook;
 
 LRESULT CALLBACK LowLevelKeyboardProc( int nCode, WPARAM wParam, LPARAM lParam )
 {
+	BOOL bControlKeyDown;
+	KBDLLHOOKSTRUCT* p;
+
         if (nCode < 0 || nCode != HC_ACTION || (!mousecapture && !video_fullscreen))
                 return CallNextHookEx( hKeyboardHook, nCode, wParam, lParam); 
 	
-	KBDLLHOOKSTRUCT* p = (KBDLLHOOKSTRUCT*)lParam;
+	p = (KBDLLHOOKSTRUCT*)lParam;
 
         if (p->vkCode == VK_TAB && p->flags & LLKHF_ALTDOWN) return 1; //disable alt-tab
         if (p->vkCode == VK_SPACE && p->flags & LLKHF_ALTDOWN) return 1; //disable alt-tab    
 	if((p->vkCode == VK_LWIN) || (p->vkCode == VK_RWIN)) return 1;//disable windows keys
 	if (p->vkCode == VK_ESCAPE && p->flags & LLKHF_ALTDOWN) return 1;//disable alt-escape
-	BOOL bControlKeyDown = GetAsyncKeyState (VK_CONTROL) >> ((sizeof(SHORT) * 8) - 1);//checks ctrl key pressed
+	bControlKeyDown = GetAsyncKeyState (VK_CONTROL) >> ((sizeof(SHORT) * 8) - 1);//checks ctrl key pressed
 	if (p->vkCode == VK_ESCAPE && bControlKeyDown) return 1; //disable ctrl-escape
 	
 	return CallNextHookEx( hKeyboardHook, nCode, wParam, lParam );

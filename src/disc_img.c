@@ -566,6 +566,8 @@ void img_seek(int drive, int track)
 	int current_xdft = img[drive].xdf_type - 1;
 
 	uint8_t sectors_fat, effective_sectors, sector_gap;		/* Needed for XDF */
+
+	int sector, current_pos, sh, sr, spos, sside;
         
         if (!img[drive].f)
                 return;
@@ -598,8 +600,6 @@ void img_seek(int drive, int track)
         disc_sector_reset(drive, 0);
         disc_sector_reset(drive, 1);
         
-	int sector, current_pos, sh, sr, spos, sside;
-
 	if (img[drive].xdf_type)
 	{
 		sectors_fat = xdf_track0[current_xdft][0];

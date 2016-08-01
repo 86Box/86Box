@@ -672,6 +672,7 @@ static void s3_virge_updatemapping(virge_t *virge)
                         break;
                 }
                 virge->linear_base &= ~(virge->linear_size - 1);
+		svga->linear_base = virge->linear_base;
 //                pclog("%08X %08X  %02X %02X %02X\n", linear_base, linear_size, crtc[0x58], crtc[0x59], crtc[0x5a]);
                 pclog("Linear framebuffer at %08X size %08X\n", virge->linear_base, virge->linear_size);
                 if (virge->linear_base == 0xa0000)

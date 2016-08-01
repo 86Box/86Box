@@ -285,6 +285,8 @@ void *paradise_pvga1a_init()
 
         svga->bpp = 8;
         svga->miscout = 1;
+
+	svga->linear_base = 0;
         
         paradise->type = PVGA1A;               
         
@@ -318,6 +320,8 @@ void *paradise_wd90c11_init()
 
         svga->bpp = 8;
         svga->miscout = 1;
+        
+	svga->linear_base = 0;
         
         paradise->type = WD90C11;               
         

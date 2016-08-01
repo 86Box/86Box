@@ -113,6 +113,8 @@ typedef struct svga_t
           card should not attempt to display anything */
         int override;
         void *p;
+
+        uint32_t linear_base;
 } svga_t;
 
 extern int svga_init(svga_t *svga, void *p, int memsize, 

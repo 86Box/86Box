@@ -1144,15 +1144,19 @@ int xout=0;
 
 int divl(uint32_t val)
 {
+        uint64_t num;
+        uint64_t quo;
+        uint32_t rem;
+        uint32_t quo32;
         if (val==0) 
         {
                 divexcp();
                 return 1;
         }
-        uint64_t num=(((uint64_t)EDX)<<32)|EAX;
-        uint64_t quo=num/val;
-        uint32_t rem=num%val;
-        uint32_t quo32=(uint32_t)(quo&0xFFFFFFFF);
+        num=(((uint64_t)EDX)<<32)|EAX;
+        quo=num/val;
+        rem=num%val;
+        quo32=(uint32_t)(quo&0xFFFFFFFF);
         if (quo!=(uint64_t)quo32) 
         {
                 divexcp();
@@ -1164,15 +1168,19 @@ int divl(uint32_t val)
 }
 int idivl(int32_t val)
 {
+        int64_t num;
+        int64_t quo;
+        int32_t rem;
+        int32_t quo32;
         if (val==0) 
         {       
                 divexcp();
                 return 1;
         }
-        int64_t num=(((uint64_t)EDX)<<32)|EAX;
-        int64_t quo=num/val;
-        int32_t rem=num%val;
-        int32_t quo32=(int32_t)(quo&0xFFFFFFFF);
+        num=(((uint64_t)EDX)<<32)|EAX;
+        quo=num/val;
+        rem=num%val;
+        quo32=(int32_t)(quo&0xFFFFFFFF);
         if (quo!=(int64_t)quo32) 
         {
                 divexcp();

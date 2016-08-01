@@ -155,9 +155,10 @@ void ati28800_recalctimings(svga_t *svga)
 void *ati28800_init()
 {
 	uint32_t memory = 512;
-	if (gfxcard == GFX_VGAWONDERXL)  device_get_config_int("memory");
+        ati28800_t *ati28800;
+	if (gfxcard == GFX_VGAWONDERXL)  memory = device_get_config_int("memory");
 	memory <<= 10;
-        ati28800_t *ati28800 = malloc(sizeof(ati28800_t));
+        ati28800 = malloc(sizeof(ati28800_t));
         memset(ati28800, 0, sizeof(ati28800_t));
 
 	if (gfxcard == GFX_VGAWONDERXL)

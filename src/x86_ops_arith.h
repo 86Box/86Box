@@ -1,20 +1,22 @@
 #define OP_ARITH(name, operation, setflags, flagops, gettempc)   \
         static int op ## name ## _b_rmw_a16(uint32_t fetchdat)                                         \
         {                                                                                       \
+                uint8_t dst;                                                                    \
+                uint8_t src;                                                                    \
                 if (gettempc) tempc = CF_SET() ? 1 : 0;                                         \
                 fetch_ea_16(fetchdat);                                                          \
                 if (mod == 3)                                                                   \
                 {                                                                               \
-                        uint8_t dst = getr8(rm);                                                \
-                        uint8_t src = getr8(reg);                                               \
+                        dst = getr8(rm);                                                        \
+                        src = getr8(reg);                                                       \
                         setflags ## 8 flagops;                                                  \
                         setr8(rm, operation);                                                   \
                         CLOCK_CYCLES(timing_rr);                                                \
                 }                                                                               \
                 else                                                                            \
                 {                                                                               \
-                        uint8_t dst = geteab();                         if (abrt) return 1;     \
-                        uint8_t src = getr8(reg);                                               \
+                        dst = geteab();                         if (abrt) return 1;             \
+                        src = getr8(reg);                                                       \
                         seteab(operation);                              if (abrt) return 1;     \
                         setflags ## 8 flagops;                                                  \
                         CLOCK_CYCLES(timing_mr);                                                \
@@ -23,20 +25,22 @@
         }                                                                                       \
         static int op ## name ## _b_rmw_a32(uint32_t fetchdat)                                         \
         {                                                                                       \
+                uint8_t dst;                                                                    \
+                uint8_t src;                                                                    \
                 if (gettempc) tempc = CF_SET() ? 1 : 0;                                         \
                 fetch_ea_32(fetchdat);                                                          \
                 if (mod == 3)                                                                   \
                 {                                                                               \
-                        uint8_t dst = getr8(rm);                                                \
-                        uint8_t src = getr8(reg);                                               \
+                        dst = getr8(rm);                                                        \
+                        src = getr8(reg);                                                       \
                         setflags ## 8 flagops;                                                  \
                         setr8(rm, operation);                                                   \
                         CLOCK_CYCLES(timing_rr);                                                \
                 }                                                                               \
                 else                                                                            \
                 {                                                                               \
-                        uint8_t dst = geteab();                         if (abrt) return 1;     \
-                        uint8_t src = getr8(reg);                                               \
+                        dst = geteab();                         if (abrt) return 1;             \
+                        src = getr8(reg);                                                       \
                         seteab(operation);                              if (abrt) return 1;     \
                         setflags ## 8 flagops;                                                  \
                         CLOCK_CYCLES(timing_mr);                                                \
@@ -46,20 +50,22 @@
                                                                                                 \
         static int op ## name ## _w_rmw_a16(uint32_t fetchdat)                                         \
         {                                                                                       \
+                uint16_t dst;                                                                   \
+                uint16_t src;                                                                   \
                 if (gettempc) tempc = CF_SET() ? 1 : 0;                                         \
                 fetch_ea_16(fetchdat);                                                          \
                 if (mod == 3)                                                                   \
                 {                                                                               \
-                        uint16_t dst = cpu_state.regs[rm].w;                                    \
-                        uint16_t src = cpu_state.regs[reg].w;                                   \
+                        dst = cpu_state.regs[rm].w;                                             \
+                        src = cpu_state.regs[reg].w;                                            \
                         setflags ## 16 flagops;                                                 \
                         cpu_state.regs[rm].w = operation;                                       \
                         CLOCK_CYCLES(timing_rr);                                                \
                 }                                                                               \
                 else                                                                            \
                 {                                                                               \
-                        uint16_t dst = geteaw();                        if (abrt) return 1;     \
-                        uint16_t src = cpu_state.regs[reg].w;                                   \
+                        dst = geteaw();                        if (abrt) return 1;              \
+                        src = cpu_state.regs[reg].w;                                            \
                         seteaw(operation);                              if (abrt) return 1;     \
                         setflags ## 16 flagops;                                                 \
                         CLOCK_CYCLES(timing_mr);                                                \
@@ -68,20 +74,22 @@
         }                                                                                       \
         static int op ## name ## _w_rmw_a32(uint32_t fetchdat)                                  \
         {                                                                                       \
+                uint16_t dst;                                                                   \
+                uint16_t src;                                                                   \
                 if (gettempc) tempc = CF_SET() ? 1 : 0;                                         \
                 fetch_ea_32(fetchdat);                                                          \
                 if (mod == 3)                                                                   \
                 {                                                                               \
-                        uint16_t dst = cpu_state.regs[rm].w;                                    \
-                        uint16_t src = cpu_state.regs[reg].w;                                   \
+                        dst = cpu_state.regs[rm].w;                                             \
+                        src = cpu_state.regs[reg].w;                                            \
                         setflags ## 16 flagops;                                                 \
                         cpu_state.regs[rm].w = operation;                                       \
                         CLOCK_CYCLES(timing_rr);                                                \
                 }                                                                               \
                 else                                                                            \
                 {                                                                               \
-                        uint16_t dst = geteaw();                        if (abrt) return 1;     \
-                        uint16_t src = cpu_state.regs[reg].w;                                   \
+                        dst = geteaw();                        if (abrt) return 1;              \
+                        src = cpu_state.regs[reg].w;                                            \
                         seteaw(operation);                              if (abrt) return 1;     \
                         setflags ## 16 flagops;                                                 \
                         CLOCK_CYCLES(timing_mr);                                                \
@@ -91,20 +99,22 @@
                                                                                                 \
         static int op ## name ## _l_rmw_a16(uint32_t fetchdat)                                         \
         {                                                                                       \
+                uint32_t dst;                                                                   \
+                uint32_t src;                                                                   \
                 if (gettempc) tempc = CF_SET() ? 1 : 0;                                         \
                 fetch_ea_16(fetchdat);                                                          \
                 if (mod == 3)                                                                   \
                 {                                                                               \
-                        uint32_t dst = cpu_state.regs[rm].l;                                    \
-                        uint32_t src = cpu_state.regs[reg].l;                                   \
+                        dst = cpu_state.regs[rm].l;                                             \
+                        src = cpu_state.regs[reg].l;                                            \
                         setflags ## 32 flagops;                                                 \
                         cpu_state.regs[rm].l = operation;                                       \
                         CLOCK_CYCLES(timing_rr);                                                \
                 }                                                                               \
                 else                                                                            \
                 {                                                                               \
-                        uint32_t dst = geteal();                        if (abrt) return 1;     \
-                        uint32_t src = cpu_state.regs[reg].l;                                   \
+                        dst = geteal();                        if (abrt) return 1;              \
+                        src = cpu_state.regs[reg].l;                                            \
                         seteal(operation);                              if (abrt) return 1;     \
                         setflags ## 32 flagops;                                                 \
                         CLOCK_CYCLES(timing_mrl);                                               \
@@ -113,20 +123,22 @@
         }                                                                                       \
         static int op ## name ## _l_rmw_a32(uint32_t fetchdat)                                         \
         {                                                                                       \
+                uint32_t dst;                                                                   \
+                uint32_t src;                                                                   \
                 if (gettempc) tempc = CF_SET() ? 1 : 0;                                         \
                 fetch_ea_32(fetchdat);                                                          \
                 if (mod == 3)                                                                   \
                 {                                                                               \
-                        uint32_t dst = cpu_state.regs[rm].l;                                    \
-                        uint32_t src = cpu_state.regs[reg].l;                                   \
+                        dst = cpu_state.regs[rm].l;                                             \
+                        src = cpu_state.regs[reg].l;                                            \
                         setflags ## 32 flagops;                                                 \
                         cpu_state.regs[rm].l = operation;                                       \
                         CLOCK_CYCLES(timing_rr);                                                \
                 }                                                                               \
                 else                                                                            \
                 {                                                                               \
-                        uint32_t dst = geteal();                        if (abrt) return 1;     \
-                        uint32_t src = cpu_state.regs[reg].l;                                   \
+                        dst = geteal();                        if (abrt) return 1;              \
+                        src = cpu_state.regs[reg].l;                                            \
                         seteal(operation);                              if (abrt) return 1;     \
                         setflags ## 32 flagops;                                                 \
                         CLOCK_CYCLES(timing_mrl);                                               \

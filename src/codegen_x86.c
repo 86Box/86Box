@@ -284,6 +284,8 @@ void codegen_block_init(uint32_t phys_addr)
         
         block->was_recompiled = 0;
 
+        recomp_page = block->phys & ~0xfff;
+        
         codeblock_tree_add(block);
 }
 

@@ -230,9 +230,9 @@ uint8_t incolor_in(uint16_t addr, void *p)
 void incolor_write(uint32_t addr, uint8_t val, void *p)
 {
         incolor_t *incolor = (incolor_t *)p;
-        egawrites++;
 
 	int plane;
+
 	unsigned char wmask = incolor->crtc[INCOLOR_CRTC_MASK];
 	unsigned char wmode = incolor->crtc[INCOLOR_CRTC_RWCTRL] & INCOLOR_RWCTRL_WRMODE;
 	unsigned char fg    = incolor->crtc[INCOLOR_CRTC_RWCOL] & 0x0F;
@@ -241,6 +241,8 @@ void incolor_write(uint32_t addr, uint8_t val, void *p)
 	unsigned char vmask;	/* Mask of bit within byte */
 	unsigned char pmask;	/* Mask of plane within colour value */
 	unsigned char latch;
+
+        egawrites++;
 
 	/* Horrible hack, I know, but it's the only way to fix the 440FX BIOS filling the VRAM with garbage until Tom fixes the memory emulation. */
 	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF2F) && (romset == ROM_440FX))  return;
@@ -301,7 +303,6 @@ void incolor_write(uint32_t addr, uint8_t val, void *p)
 uint8_t incolor_read(uint32_t addr, void *p)
 {
         incolor_t *incolor = (incolor_t *)p;
-        egareads++;
 	unsigned plane;
 	unsigned char lp    = incolor->crtc[INCOLOR_CRTC_PROTECT];
 	unsigned char value = 0;
@@ -309,6 +310,8 @@ uint8_t incolor_read(uint32_t addr, void *p)
 	unsigned char bg;	/* background colour */
 	unsigned char fg;
 	unsigned char mask, pmask;
+
+        egareads++;
 
 	addr &= 0xFFFF;
 	/* Read the four planes into latches */

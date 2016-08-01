@@ -473,6 +473,7 @@ void mach64_updatemapping(mach64_t *mach64)
                         mem_mapping_set_addr(&mach64->linear_mapping, (mach64->linear_base & 0xffc00000), (4 << 20) - 0x4000);
                         mem_mapping_set_addr(&mach64->mmio_linear_mapping, (mach64->linear_base & 0xffc00000) + ((4 << 20) - 0x4000), 0x4000);
                 }
+		svga->linear_base = mach64->linear_base;
         }
         else
         {
@@ -2593,9 +2594,8 @@ void *mach64gx_init()
 {
         int c;
         mach64_t *mach64 = malloc(sizeof(mach64_t));
-        memset(mach64, 0, sizeof(mach64_t));
-
 	uint32_t vram_amount = 0;
+        memset(mach64, 0, sizeof(mach64_t));
         
         mach64->vram_size = device_get_config_int("memory");
 	vram_amount = (mach64-> vram_size == 0) ? (1 << 19) : (mach64->vram_size << 20);

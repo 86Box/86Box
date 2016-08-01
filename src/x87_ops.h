@@ -100,16 +100,24 @@ static inline double x87_ld80()
                         uint64_t ll;
                 } eind;
 	} test;
+
+       	int64_t exp64;
+       	int64_t blah;
+       	int64_t exp64final;
+
+       	int64_t mant64;
+       	int64_t sign;
+
 	test.eind.ll = readmeml(easeg,eaaddr);
 	test.eind.ll |= (uint64_t)readmeml(easeg,eaaddr+4)<<32;
 	test.begin = readmemw(easeg,eaaddr+8);
 
-       	int64_t exp64 = (((test.begin&0x7fff) - BIAS80));
-       	int64_t blah = ((exp64 >0)?exp64:-exp64)&0x3ff;
-       	int64_t exp64final = ((exp64 >0)?blah:-blah) +BIAS64;
+       	exp64 = (((test.begin&0x7fff) - BIAS80));
+       	blah = ((exp64 >0)?exp64:-exp64)&0x3ff;
+       	exp64final = ((exp64 >0)?blah:-blah) +BIAS64;
 
-       	int64_t mant64 = (test.eind.ll >> 11) & (0xfffffffffffff);
-       	int64_t sign = (test.begin&0x8000)?1:0;
+       	mant64 = (test.eind.ll >> 11) & (0xfffffffffffff);
+       	sign = (test.begin&0x8000)?1:0;
 
         if ((test.begin & 0x7fff) == 0x7fff)
                 exp64final = 0x7ff;
@@ -134,13 +142,19 @@ static inline void x87_st80(double d)
                 } eind;
 	} test;
 	
+       	int64_t sign80;
+       	int64_t exp80;
+       	int64_t exp80final;
+       	int64_t mant80;
+       	int64_t mant80final;
+
 	test.eind.d=d;
 	
-       	int64_t sign80 = (test.eind.ll&(0x8000000000000000))?1:0;
-       	int64_t exp80 =  test.eind.ll&(0x7ff0000000000000);
-       	int64_t exp80final = (exp80>>52);
-       	int64_t mant80 = test.eind.ll&(0x000fffffffffffff);
-       	int64_t mant80final = (mant80 << 11);
+       	sign80 = (test.eind.ll&(0x8000000000000000))?1:0;
+       	exp80 =  test.eind.ll&(0x7ff0000000000000);
+       	exp80final = (exp80>>52);
+       	mant80 = test.eind.ll&(0x000fffffffffffff);
+       	mant80final = (mant80 << 11);
 
        	if (exp80final == 0x7ff) /*Infinity / Nan*/
        	{

@@ -374,6 +374,7 @@ void et4000w32p_recalcmapping(et4000w32p_t *et4000)
         if (svga->crtc[0x36] & 0x10) /*Linear frame buffer*/
         {
                 mem_mapping_set_addr(&et4000->linear_mapping, et4000->linearbase, 0x200000);
+		svga->linear_base = et4000->linearbase;
                 mem_mapping_disable(&svga->mapping);
                 mem_mapping_disable(&et4000->mmu_mapping);
         }
@@ -1087,9 +1088,9 @@ void et4000w32p_hwcursor_draw(svga_t *svga, int displine)
 {
         int x, offset;
         uint8_t dat;
-        offset = svga->hwcursor_latch.xoff;
 	int y_add = enable_overscan ? 16 : 0;
 	int x_add = enable_overscan ? 8 : 0;
+        offset = svga->hwcursor_latch.xoff;
         for (x = 0; x < 64 - svga->hwcursor_latch.xoff; x += 4)
         {
                 dat = svga->vram[svga->hwcursor_latch.addr + (offset >> 2)];

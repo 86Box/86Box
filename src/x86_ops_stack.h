@@ -294,9 +294,13 @@ static int opPOPL_a32(uint32_t fetchdat)
 
 static int opENTER_w(uint32_t fetchdat)
 {
-        uint16_t offset = getwordf();
-        int count = (fetchdat >> 16) & 0xff; cpu_state.pc++;
-        uint32_t tempEBP = EBP, tempESP = ESP, frame_ptr;
+        uint16_t offset;
+        int count;
+        uint32_t tempEBP, tempESP, frame_ptr;
+	offset = getwordf();
+	count = (fetchdat >> 16) & 0xff;
+	tempEBP = EBP, tempESP = ESP;
+	cpu_state.pc++;
         
         PUSH_W(BP); if (abrt) return 1;
         frame_ptr = ESP;
@@ -327,9 +331,13 @@ static int opENTER_w(uint32_t fetchdat)
 }
 static int opENTER_l(uint32_t fetchdat)
 {
-        uint16_t offset = getwordf();
-        int count = (fetchdat >> 16) & 0xff; cpu_state.pc++;
-        uint32_t tempEBP = EBP, tempESP = ESP, frame_ptr;
+        uint16_t offset;
+        int count;
+        uint32_t tempEBP, tempESP, frame_ptr;
+        offset = getwordf();
+        count = (fetchdat >> 16) & 0xff;
+        tempEBP = EBP, tempESP = ESP;
+	cpu_state.pc++;
         
         PUSH_L(EBP); if (abrt) return 1;
         frame_ptr = ESP;
