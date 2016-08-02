@@ -60,7 +60,7 @@ void unk_ramdac_out(uint16_t addr, uint8_t val, unk_ramdac_t *ramdac, svga_t *sv
 			{
 				svga_recalctimings(svga);
 			}
-			pclog("unk_ramdac: set to %02X (b5 = %i) [%02X], %i bpp\n", (val&1)|((val&0xC0)>>5), val & 0x20 ? 1 : 0, val, svga->bpp);
+			// pclog("unk_ramdac: set to %02X (b5 = %i) [%02X], %i bpp\n", (val&1)|((val&0xC0)>>5), val & 0x20 ? 1 : 0, val, svga->bpp);
                         return;
                 }
                 ramdac->state = 0;
