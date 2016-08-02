@@ -156,7 +156,7 @@ void *ati28800_init()
 {
 	uint32_t memory = 512;
         ati28800_t *ati28800;
-	if (gfxcard == GFX_VGAWONDERXL)  memory = device_get_config_int("memory");
+	/* if (gfxcard == GFX_VGAWONDERXL)  * / memory = device_get_config_int("memory");
 	memory <<= 10;
         ati28800 = malloc(sizeof(ati28800_t));
         memset(ati28800, 0, sizeof(ati28800_t));
@@ -227,7 +227,7 @@ void ati28800_add_status_info(char *s, int max_len, void *p)
         svga_add_status_info(s, max_len, &ati28800->svga);
 }
 
-static device_config_t compaq_ati28800_config[] =
+static device_config_t ati28800_config[] =
 {
         {
                 .name = "memory",
@@ -235,6 +235,10 @@ static device_config_t compaq_ati28800_config[] =
                 .type = CONFIG_SELECTION,
                 .selection =
                 {
+                        {
+                                .description = "256 kB",
+                                .value = 256
+                        },
                         {
                                 .description = "512 kB",
                                 .value = 512
@@ -263,7 +267,8 @@ device_t ati28800_device =
         ati28800_available,
         ati28800_speed_changed,
         ati28800_force_redraw,
-        ati28800_add_status_info
+        ati28800_add_status_info,
+	ati28800_config
 };
 
 device_t compaq_ati28800_device =
@@ -276,5 +281,5 @@ device_t compaq_ati28800_device =
         ati28800_speed_changed,
         ati28800_force_redraw,
         ati28800_add_status_info,
-	compaq_ati28800_config
+	ati28800_config
 };
