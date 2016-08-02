@@ -274,6 +274,12 @@ void mach64_out(uint16_t addr, uint8_t val, void *p)
                 break;
                 case 0x1cf:
                 mach64->regs[mach64->index & 0x3f] = val;
+                if ((mach64->index & 0x3f) == 0x2d)
+		{
+			svga->charseta = (svga->charseta & 0x3ffff) | ((((uint32_t) val) >> 4) << 18);
+			svga->charsetb = (svga->charsetb & 0x3ffff) | ((((uint32_t) val) >> 4) << 18);
+			break;
+		}
                 if ((mach64->index & 0x3f) == 0x36)
                         mach64_recalctimings(svga);
                 break;
@@ -360,11 +366,18 @@ void mach64_recalctimings(svga_t *svga)
                 svga->vtotal = (mach64->crtc_v_total_disp & 2047) + 1;
                 svga->dispend = ((mach64->crtc_v_total_disp >> 16) & 2047) + 1;
                 svga->htotal = (mach64->crtc_h_total_disp & 255) + 1;
+		if (mach64->regs[0x2d] & 8)  svga->htotal |= (mach64->regs[0x2d] & 1) ? 0x100 : 0;
                 svga->hdisp_time = svga->hdisp = ((mach64->crtc_h_total_disp >> 16) & 255) + 1;
                 svga->vsyncstart = (mach64->crtc_v_sync_strt_wid & 2047) + 1;
                 svga->rowoffset = (mach64->crtc_off_pitch >> 22);
                 svga->clock = cpuclock / mach64->ics2595.output_clock;
                 svga->ma_latch = (mach64->crtc_off_pitch & 0x1fffff) * 2;
+		if (mach64->regs[0x2d] & 8)
+		{
+			svga->ma_latch |= (((uint32_t) (mach64->regs[0x30] & 0x40)) >> 6) << 16;
+			svga->ma_latch |= (((uint32_t) (mach64->regs[0x23] & 0x10)) >> 4) << 17;
+			svga->ma_latch |= (((uint32_t) (mach64->regs[0x2d] & 0xc)) >> 2) << 18;
+		}
                 svga->linedbl = svga->rowcount = 0;
                 svga->split = 0xffffff;
                 svga->vblankstart = svga->dispend;

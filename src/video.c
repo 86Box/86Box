@@ -50,7 +50,8 @@ typedef struct
 static VIDEO_CARD video_cards[] =
 {
         {"ATI Graphics Pro Turbo (Mach64 GX)",     &mach64gx_device,            GFX_MACH64GX},
-        {"ATI VGA Charger (ATI-28800)",            &ati28800_device,            GFX_VGACHARGER},
+        {"ATI VGA Charger (ATI-28800-5)",          &ati28800_device,            GFX_VGACHARGER},
+        {"ATI VGA Wonder XL24 (ATI-28800-6)",      &ati28800_wonderxl24_device, GFX_VGAWONDERXL24},
         {"ATI VGA Edge-16 (ATI-18800)",            &ati18800_device,            GFX_VGAEDGE16},
         {"Cardex 1703-DDC (ET4000/W32P)",          &et4000w32pc_device,         GFX_ET4000W32C},
         {"Cardex ICS5341 (ET4000/W32P)",           &et4000w32pcs_device,        GFX_ET4000W32CS},
@@ -60,7 +61,7 @@ static VIDEO_CARD video_cards[] =
         {"Diamond Stealth 3D 2000 (S3 ViRGE)",     &s3_virge_device,            GFX_VIRGE},
         {"EGA",                                    &ega_device,                 GFX_EGA},
         {"Chips & Technologies SuperEGA",          &sega_device,           	GFX_SUPER_EGA},
-        {"Compaq ATI VGA Wonder XL (ATI-28800)",   &compaq_ati28800_device,     GFX_VGAWONDERXL},
+        {"Compaq ATI VGA Wonder XL (ATI-28800-5)", &compaq_ati28800_device,     GFX_VGAWONDERXL},
         {"Compaq EGA",				   &cpqega_device,           	GFX_COMPAQ_EGA},
         {"Compaq/Paradise VGA",			   &cpqvga_device,           	GFX_COMPAQ_VGA},
         {"Hercules",                               &hercules_device,            GFX_HERCULES},

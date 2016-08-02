@@ -22,6 +22,8 @@ typedef struct ati28800_t
         int index;
 } ati28800_t;
 
+void ati28800_svga_recalctimings(svga_t *svga);
+
 void ati28800_out(uint16_t addr, uint8_t val, void *p)
 {
         ati28800_t *ati28800 = (ati28800_t *)p;
@@ -42,6 +44,14 @@ void ati28800_out(uint16_t addr, uint8_t val, void *p)
                 ati28800->regs[ati28800->index] = val;
                 switch (ati28800->index)
                 {
+			case 0xad:
+			if (gfxcard == GFX_VGAWONDERXL24)
+			{
+				svga->charseta = (svga->charseta & 0x3ffff) | ((((uint32_t) val) >> 4) << 18);
+				svga->charsetb = (svga->charsetb & 0x3ffff) | ((((uint32_t) val) >> 4) << 18);
+			}
+			break;
+
                         case 0xb2:
                         case 0xbe:
                         if (ati28800->regs[0xbe] & 8) /*Read/write bank mode*/
@@ -75,7 +85,7 @@ void ati28800_out(uint16_t addr, uint8_t val, void *p)
                         if (svga->crtcreg < 0xe || svga->crtcreg > 0x10)
                         {
                                 svga->fullchange = changeframecount;
-                                svga_recalctimings(svga);
+                                ati28800_svga_recalctimings(svga);
                         }
                 }
                 break;
@@ -101,6 +111,10 @@ uint8_t ati28800_in(uint16_t addr, void *p)
                 case 0x1cf:
                 switch (ati28800->index)
                 {
+			case 0xaa:
+			temp = (gfxcard == GFX_VGAWONDERXL24) ? 6 : 5;
+			break;
+
                         case 0xb7:
                         temp = ati28800->regs[ati28800->index] & ~8;
                         if (ati_eeprom_read(&ati28800->eeprom))
@@ -133,6 +147,161 @@ uint8_t ati28800_in(uint16_t addr, void *p)
         if (addr != 0x3da) pclog("%02X  %04X:%04X\n", temp, CS,cpu_state.pc);
 #endif
         return temp;
+}
+
+void ati28800_svga_recalctimings(svga_t *svga)
+{
+        double crtcconst;
+        double _dispontime, _dispofftime, disptime;
+        int hdisp_old;
+
+        svga->vtotal = svga->crtc[6];
+        svga->dispend = svga->crtc[0x12];
+        svga->vsyncstart = svga->crtc[0x10];
+        svga->split = svga->crtc[0x18];
+        svga->vblankstart = svga->crtc[0x15];
+
+        if (svga->crtc[7] & 1)  svga->vtotal |= 0x100;
+        if (svga->crtc[7] & 32) svga->vtotal |= 0x200;
+        svga->vtotal += 2;
+
+        if (svga->crtc[7] & 2)  svga->dispend |= 0x100;
+        if (svga->crtc[7] & 64) svga->dispend |= 0x200;
+        svga->dispend++;
+
+        if (svga->crtc[7] & 4)   svga->vsyncstart |= 0x100;
+        if (svga->crtc[7] & 128) svga->vsyncstart |= 0x200;
+        svga->vsyncstart++;
+
+        if (svga->crtc[7] & 0x10) svga->split|=0x100;
+        if (svga->crtc[9] & 0x40) svga->split|=0x200;
+        svga->split++;
+        
+        if (svga->crtc[7] & 0x08) svga->vblankstart |= 0x100;
+        if (svga->crtc[9] & 0x20) svga->vblankstart |= 0x200;
+        svga->vblankstart++;
+        
+        svga->hdisp = svga->crtc[1];
+        svga->hdisp++;
+
+        svga->htotal = svga->crtc[0];
+	if ((ati28800->regs[0xad] & 8) && (gfxcard == GFX_VGAWONDERXL24))  svga->htotal |= (ati28800->regs[0xad] & 1) ? 0x100 | 0;
+        svga->htotal += 6; /*+6 is required for Tyrian*/
+
+        svga->rowoffset = svga->crtc[0x13];
+
+        svga->clock = (svga->vidclock) ? VGACONST2 : VGACONST1;
+        
+        svga->lowres = svga->attrregs[0x10] & 0x40;
+        
+        svga->interlace = 0;
+        
+        svga->ma_latch = (svga->crtc[0xc] << 8) | svga->crtc[0xd];
+
+        svga->hdisp_time = svga->hdisp;
+        svga->render = svga_render_blank;
+        if (!svga->scrblank && svga->attr_palette_enable)
+        {
+                if (!(svga->gdcreg[6] & 1)) /*Text mode*/
+                {
+                        if (svga->seqregs[1] & 8) /*40 column*/
+                        {
+                                svga->render = svga_render_text_40;
+                                svga->hdisp *= (svga->seqregs[1] & 1) ? 16 : 18;
+                        }
+                        else
+                        {
+                                svga->render = svga_render_text_80;
+                                svga->hdisp *= (svga->seqregs[1] & 1) ? 8 : 9;
+                        }
+                        svga->hdisp_old = svga->hdisp;
+                }
+                else 
+                {
+                        svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
+                        svga->hdisp_old = svga->hdisp;                        
+                        
+                        switch (svga->gdcreg[5] & 0x60)
+                        {
+                                case 0x00: /*16 colours*/
+                                if (svga->seqregs[1] & 8) /*Low res (320)*/
+                                        svga->render = svga_render_4bpp_lowres;
+                                else
+                                        svga->render = svga_render_4bpp_highres;
+                                break;
+                                case 0x20: /*4 colours*/
+                                if (svga->seqregs[1] & 8) /*Low res (320)*/
+                                        svga->render = svga_render_2bpp_lowres;
+                                else
+                                        svga->render = svga_render_2bpp_highres;
+                                break;
+                                case 0x40: case 0x60: /*256+ colours*/
+                                switch (svga->bpp)
+                                {
+                                        case 8:
+                                        if (svga->lowres)
+                                                svga->render = svga_render_8bpp_lowres;
+                                        else
+                                                svga->render = svga_render_8bpp_highres;
+                                        break;
+                                        case 15:
+                                        if (svga->lowres)
+                                                svga->render = svga_render_15bpp_lowres;
+                                        else
+                                                svga->render = svga_render_15bpp_highres;
+                                        break;
+                                        case 16:
+                                        if (svga->lowres)
+                                                svga->render = svga_render_16bpp_lowres;
+                                        else
+                                                svga->render = svga_render_16bpp_highres;
+                                        break;
+                                        case 24:
+                                        if (svga->lowres)
+                                                svga->render = svga_render_24bpp_lowres;
+                                        else
+                                                svga->render = svga_render_24bpp_highres;
+                                        break;
+                                        case 32:
+                                        if (svga->lowres)
+                                                svga->render = svga_render_32bpp_lowres;
+                                        else
+                                                svga->render = svga_render_32bpp_highres;
+                                        break;
+                                }
+                                break;
+                        }
+                }
+        }        
+
+//        pclog("svga_render %08X : %08X %08X %08X %08X %08X  %i %i %02X %i %i\n", svga_render, svga_render_text_40, svga_render_text_80, svga_render_8bpp_lowres, svga_render_8bpp_highres, svga_render_blank, scrblank,gdcreg[6]&1,gdcreg[5]&0x60,bpp,seqregs[1]&8);
+        
+        svga->linedbl = svga->crtc[9] & 0x80;
+        svga->rowcount = svga->crtc[9] & 31;
+        if (svga->recalctimings_ex) 
+                svga->recalctimings_ex(svga);
+
+        if (svga->vblankstart < svga->dispend)
+                svga->dispend = svga->vblankstart;
+
+        crtcconst = (svga->seqregs[1] & 1) ? (svga->clock * 8.0) : (svga->clock * 9.0);
+
+        disptime  = svga->htotal;
+        _dispontime = svga->hdisp_time;
+        
+//        printf("Disptime %f dispontime %f hdisp %i\n",disptime,dispontime,crtc[1]*8);
+        if (svga->seqregs[1] & 8) { disptime *= 2; _dispontime *= 2; }
+        _dispofftime = disptime - _dispontime;
+        _dispontime *= crtcconst;
+        _dispofftime *= crtcconst;
+
+	svga->dispontime = (int)(_dispontime * (1 << TIMER_SHIFT));
+	svga->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+/*        printf("SVGA horiz total %i display end %i vidclock %f\n",svga->crtc[0],svga->crtc[1],svga->clock);
+        printf("SVGA vert total %i display end %i max row %i vsync %i\n",svga->vtotal,svga->dispend,(svga->crtc[9]&31)+1,svga->vsyncstart);
+        printf("total %f on %i cycles off %i cycles frame %i sec %i %02X\n",disptime*crtcconst,svga->dispontime,svga->dispofftime,(svga->dispontime+svga->dispofftime)*svga->vtotal,(svga->dispontime+svga->dispofftime)*svga->vtotal*70,svga->seqregs[1]);
+
+        pclog("svga->render %08X\n", svga->render);*/
 }
 
 void ati28800_recalctimings(svga_t *svga)
@@ -168,6 +337,13 @@ void *ati28800_init()
 					"roms/XLODD.BIN",
 					0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
 	}
+	else if (gfxcard == GFX_VGAWONDERXL24)
+	{
+		rom_init_interleaved(&ati28800->bios_rom,
+					"roms/112-14318-102.bin",
+					"roms/112-14319-102.bin",
+					0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+	}
 	else        
 	        rom_init(&ati28800->bios_rom, "roms/bios.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         
@@ -197,6 +373,11 @@ static int compaq_ati28800_available()
         return (rom_present("roms/XLEVEN.bin") && rom_present("roms/XLODD.bin"));
 }
 
+static int ati28800_wonderxl24_available()
+{
+        return (rom_present("roms/112-14318-102.bin") && rom_present("roms/112-14319-102.bin"));
+}
+
 void ati28800_close(void *p)
 {
         ati28800_t *ati28800 = (ati28800_t *)p;
@@ -210,7 +391,7 @@ void ati28800_speed_changed(void *p)
 {
         ati28800_t *ati28800 = (ati28800_t *)p;
         
-        svga_recalctimings(&ati28800->svga);
+        ati28800_svga_recalctimings(&ati28800->svga);
 }
 
 void ati28800_force_redraw(void *p)
@@ -278,6 +459,19 @@ device_t compaq_ati28800_device =
         ati28800_init,
         ati28800_close,
         compaq_ati28800_available,
+        ati28800_speed_changed,
+        ati28800_force_redraw,
+        ati28800_add_status_info,
+	ati28800_config
+};
+
+device_t ati28800_wonderxl24_device =
+{
+        "ATI-28800 (VGA Wonder XL24)",
+        0,
+        ati28800_init,
+        ati28800_close,
+        ati28800_wonderxl24_available,
         ati28800_speed_changed,
         ati28800_force_redraw,
         ati28800_add_status_info,

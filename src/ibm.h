@@ -396,6 +396,7 @@ enum
 	GFX_WD90C11,	/*Paradise WD90C11 Standalone*/
         GFX_OTI077,     /*Oak OTI-077*/
 	GFX_ET4000W32CS,	/*Tseng ET4000/W32p (Cardex) (ICS RAMDAC) */
+	GFX_VGAWONDERXL24,	/*Compaq ATI VGA Wonder XL24 (28800-6)*/
         GFX_MAX
 };
 
