@@ -10,6 +10,7 @@
 #include "vid_ati_eeprom.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
+#include "timer.h"
 
 typedef struct ati28800_t
 {
@@ -85,7 +86,7 @@ void ati28800_out(uint16_t addr, uint8_t val, void *p)
                         if (svga->crtcreg < 0xe || svga->crtcreg > 0x10)
                         {
                                 svga->fullchange = changeframecount;
-                                ati28800_svga_recalctimings(svga);
+                                ati28800_svga_recalctimings(ati28800);
                         }
                 }
                 break;
@@ -149,11 +150,12 @@ uint8_t ati28800_in(uint16_t addr, void *p)
         return temp;
 }
 
-void ati28800_svga_recalctimings(svga_t *svga)
+void ati28800_svga_recalctimings(ati28800_t *ati28800)
 {
         double crtcconst;
         double _dispontime, _dispofftime, disptime;
         int hdisp_old;
+        svga_t *svga = &ati28800->svga;
 
         svga->vtotal = svga->crtc[6];
         svga->dispend = svga->crtc[0x12];
@@ -391,7 +393,7 @@ void ati28800_speed_changed(void *p)
 {
         ati28800_t *ati28800 = (ati28800_t *)p;
         
-        ati28800_svga_recalctimings(&ati28800->svga);
+        ati28800_svga_recalctimings(ati28800);
 }
 
 void ati28800_force_redraw(void *p)
