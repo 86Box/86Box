@@ -1632,14 +1632,3 @@ void svga_add_status_info(char *s, int max_len, void *p)
 	sprintf(temps, "SVGA DAC in %i-bit mode\n", (svga->attrregs[0x10] & 0x80) ? 8 : 6);
         strncat(s, temps, max_len);
 }
-
-void svga_dump_vram()
-{
-	FILE *f;
-	f = fopen("svga_ram.dmp", "wb");
-	fwrite(svga_pointer->vram, svga_pointer->vrammask + 1, 1, f);
-	fclose(f);
-	f = fopen("svga_pal.dmp", "wb");
-	fwrite(svga_pointer->pallook, 256, 1, f);
-	fclose(f);
-}

@@ -1084,8 +1084,14 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                         return;
 
                 case WIN_READ_MULTIPLE:
-			if (!ide->blocksize && (ide->type != IDE_CDROM))
-                           fatal("READ_MULTIPLE - blocksize = 0\n");
+                /* Fatal removed in accordance with the official ATAPI reference:
+
+				   If the Read Multiple command is attempted before the Set Multiple Mode
+                   command  has  been  executed  or  when  Read  Multiple  commands  are
+                   disabled, the Read Multiple operation is rejected with an Aborted Com-
+                   mand error. */
+			/* if (!ide->blocksize && (ide->type != IDE_CDROM))
+                           fatal("READ_MULTIPLE - blocksize = 0\n"); */
 #if 0
                         if (ide->lba) pclog("Read Multiple %i sectors from LBA addr %07X\n",ide->secount,ide->lba_addr);
                         else          pclog("Read Multiple %i sectors from sector %i cylinder %i head %i  %i\n",ide->secount,ide->sector,ide->cylinder,ide->head,ins);
@@ -1544,9 +1550,16 @@ void callbackide(int ide_board)
                 return;
 
         case WIN_READ_MULTIPLE:
-                if (IDE_DRIVE_IS_CDROM(ide)) {
+                /* According to the official ATAPI reference:
+
+				   If the Read Multiple command is attempted before the Set Multiple Mode
+                   command  has  been  executed  or  when  Read  Multiple  commands  are
+                   disabled, the Read Multiple operation is rejected with an Aborted Com-
+                   mand error. */
+				if (IDE_DRIVE_IS_CDROM(ide) || !ide->blocksize) {
                         goto abort_cmd;
                 }
+
                 addr = ide_get_sector(ide) * 512;
 //                pclog("Read multiple from %08X %i (%i) %i\n", addr, ide->blockcount, ide->blocksize, ide->secount);
                 fseeko64(ide->hdfile, addr, SEEK_SET);
