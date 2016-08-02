@@ -2767,14 +2767,6 @@ static device_config_t mach64gx_config[] =
                                 .value = 4
                         },
                         {
-                                .description = "6 MB",
-                                .value = 6
-                        },
-                        {
-                                .description = "8 MB",
-                                .value = 8
-                        },
-                        {
                                 .description = ""
                         }
                 },

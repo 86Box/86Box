@@ -427,6 +427,33 @@ static device_config_t ati28800_config[] =
                                 .value = 512
                         },
                         {
+                                .description = ""
+                        }
+                },
+                .default_int = 512
+        },
+        {
+                .type = -1
+        }
+};
+
+static device_config_t ati28800_wonderxl_config[] =
+{
+        {
+                .name = "memory",
+                .description = "Memory size",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "256 kB",
+                                .value = 256
+                        },
+                        {
+                                .description = "512 kB",
+                                .value = 512
+                        },
+                        {
                                 .description = "1 MB",
                                 .value = 1024
                         },
@@ -477,5 +504,5 @@ device_t ati28800_wonderxl24_device =
         ati28800_speed_changed,
         ati28800_force_redraw,
         ati28800_add_status_info,
-	ati28800_config
+	ati28800_wonderxl_config
 };
