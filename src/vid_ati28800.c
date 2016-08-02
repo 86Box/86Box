@@ -23,7 +23,7 @@ typedef struct ati28800_t
         int index;
 } ati28800_t;
 
-void ati28800_svga_recalctimings(svga_t *svga);
+void ati28800_svga_recalctimings(ati28800_t *ati28800);
 
 void ati28800_out(uint16_t addr, uint8_t val, void *p)
 {
@@ -187,7 +187,7 @@ void ati28800_svga_recalctimings(ati28800_t *ati28800)
         svga->hdisp++;
 
         svga->htotal = svga->crtc[0];
-	if ((ati28800->regs[0xad] & 8) && (gfxcard == GFX_VGAWONDERXL24))  svga->htotal |= (ati28800->regs[0xad] & 1) ? 0x100 | 0;
+	if ((ati28800->regs[0xad] & 8) && (gfxcard == GFX_VGAWONDERXL24))  svga->htotal |= (ati28800->regs[0xad] & 1) ? 0x100 : 0;
         svga->htotal += 6; /*+6 is required for Tyrian*/
 
         svga->rowoffset = svga->crtc[0x13];
