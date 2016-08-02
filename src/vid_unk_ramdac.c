@@ -20,34 +20,14 @@ void unk_ramdac_out(uint16_t addr, uint8_t val, unk_ramdac_t *ramdac, svga_t *sv
                         ramdac->state = 0;
 			if (val == 0xFF)  break;
                         ramdac->ctrl = val;
-#if 0
-                        switch ((val&1)|((val&0xE0)>>4))
-                        {
-                                case 0: case 1: case 2: case 3:
-                                svga->bpp = 8;
-                                break;
-				case 4: case 5:
-                                svga->bpp = 32; /* Per the spec. */
-                                break;
-                                case 6: case 7:
-                                svga->bpp = 24;
-                                break;
-                                case 8: case 9: case 0xA: case 0xB:
-                                svga->bpp = 15;
-                                break;
-                                case 0xC: case 0xD: case 0xE: case 0xF:
-                                svga->bpp = 16;
-                                break;
-                        }
-#endif
 			oldbpp = svga->bpp;
                         switch ((val&1)|((val&0xC0)>>5))
                         {
                                 case 0:
                                 svga->bpp = 8;
                                 break;
-                                case 2: case 3: case 7:
-				switch(val & 0x20)
+                                case 2: case 3:
+				switch (val & 0x20)
 				{
 					case 0x00: svga->bpp = 32; break;
 	                                case 0x20: svga->bpp = 24; break;
@@ -59,6 +39,20 @@ void unk_ramdac_out(uint16_t addr, uint8_t val, unk_ramdac_t *ramdac, svga_t *sv
                                 case 6:
                                 svga->bpp = 16;
                                 break;
+                                case 7:
+                                switch (val & 4)
+                                {
+                                        case 4:
+				                switch (val & 0x20)
+				                {
+					                case 0x00: svga->bpp = 32; break;
+	                                                case 0x20: svga->bpp = 24; break;
+				                }
+                                                break;
+                                        case 0: default:
+                                                svga->bpp = 16;
+                                                break;
+                                }
 				case 1: default:
 				break;
                         }
@@ -66,7 +60,7 @@ void unk_ramdac_out(uint16_t addr, uint8_t val, unk_ramdac_t *ramdac, svga_t *sv
 			{
 				svga_recalctimings(svga);
 			}
-			// pclog("unk_ramdac: set to %02X (b5 = %i), %i bpp\n", (val&1)|((val&0xC0)>>5), val & 0x20 ? 1 : 0, svga->bpp);
+			pclog("unk_ramdac: set to %02X (b5 = %i) [%02X], %i bpp\n", (val&1)|((val&0xC0)>>5), val & 0x20 ? 1 : 0, val, svga->bpp);
                         return;
                 }
                 ramdac->state = 0;

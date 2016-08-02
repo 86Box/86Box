@@ -39,9 +39,9 @@ void sdac_ramdac_out(uint16_t addr, uint8_t val, sdac_ramdac_t *ramdac, svga_t *
 //                        pclog("RAMDAC command reg now %02X\n", val);
                         switch (val >> 4)
                         {
-                                case 0x2: case 0x3: case 0x8: case 0xa: case 0xc: svga->bpp = 15; break;
+                                case 0x2: case 0x3: case 0x8: case 0xa: svga->bpp = 15; break;
                                 case 0x4: case 0x9: case 0xe: svga->bpp = 24; break;
-                                case 0x5: case 0x6: svga->bpp = 16; break;
+                                case 0x5: case 0x6: case 0xc: svga->bpp = 16; break;
                                 case 0x7:                     svga->bpp = 32; break;
 
                                 case 0: case 1: default: svga->bpp = 8; break;
