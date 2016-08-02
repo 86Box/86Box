@@ -156,7 +156,7 @@ void *ati28800_init()
 {
 	uint32_t memory = 512;
         ati28800_t *ati28800;
-	/* if (gfxcard == GFX_VGAWONDERXL)  * / memory = device_get_config_int("memory");
+	/* if (gfxcard == GFX_VGAWONDERXL) */  memory = device_get_config_int("memory");
 	memory <<= 10;
         ati28800 = malloc(sizeof(ati28800_t));
         memset(ati28800, 0, sizeof(ati28800_t));
