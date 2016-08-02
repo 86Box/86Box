@@ -136,8 +136,10 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                         svga->writemask = val & 0xf; 
                         break;
                         case 3:
-                        svga->charsetb = (((val >> 2) & 3) * 0x10000) + 2;
-                        svga->charseta = ((val & 3)  * 0x10000) + 2;
+                        svga->charsetb &= ~0x3ffff;
+                        svga->charseta &= ~0x3ffff;
+                        svga->charsetb |= (((val >> 2) & 3) * 0x10000) + 2;
+                        svga->charseta |= ((val & 3)  * 0x10000) + 2;
                         if (val & 0x10)
                                 svga->charseta += 0x8000;
                         if (val & 0x20)

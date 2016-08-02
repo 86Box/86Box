@@ -42,26 +42,26 @@ void ati28800_out(uint16_t addr, uint8_t val, void *p)
                 ati28800->index = val;
                 break;
                 case 0x1cf:
-                ati28800->regs[ati28800->index] = val;
-                switch (ati28800->index)
+                ati28800->regs[ati28800->index & 0x3f] = val;
+                switch (ati28800->index & 0x3f)
                 {
-			case 0xad:
-			if (gfxcard == GFX_VGAWONDERXL24)
+			case 0x2d:
+			if ((gfxcard == GFX_VGAWONDERXL24) && (val & 8))
 			{
 				svga->charseta = (svga->charseta & 0x3ffff) | ((((uint32_t) val) >> 4) << 18);
 				svga->charsetb = (svga->charsetb & 0x3ffff) | ((((uint32_t) val) >> 4) << 18);
 			}
 			break;
 
-                        case 0xb2:
-                        case 0xbe:
-                        if (ati28800->regs[0xbe] & 8) /*Read/write bank mode*/
+                        case 0x32:
+                        case 0x3e:
+                        if (ati28800->regs[0x3e] & 8) /*Read/write bank mode*/
                         {
-                                svga->read_bank  = ((ati28800->regs[0xb2] >> 5) & 7) * 0x10000;
-                                svga->write_bank = ((ati28800->regs[0xb2] >> 1) & 7) * 0x10000;
+                                svga->read_bank  = ((ati28800->regs[0x32] >> 5) & 7) * 0x10000;
+                                svga->write_bank = ((ati28800->regs[0x32] >> 1) & 7) * 0x10000;
                         }
                         else                    /*Single bank mode*/
-                                svga->read_bank = svga->write_bank = ((ati28800->regs[0xb2] >> 1) & 7) * 0x10000;
+                                svga->read_bank = svga->write_bank = ((ati28800->regs[0x32] >> 1) & 7) * 0x10000;
                         break;
                         case 0xb3:
                         ati_eeprom_write(&ati28800->eeprom, val & 8, val & 2, val & 1);
@@ -110,20 +110,20 @@ uint8_t ati28800_in(uint16_t addr, void *p)
                 temp = ati28800->index;
                 break;
                 case 0x1cf:
-                switch (ati28800->index)
+                switch (ati28800->index & 0x3f)
                 {
-			case 0xaa:
+			case 0x2a:
 			temp = (gfxcard == GFX_VGAWONDERXL24) ? 6 : 5;
 			break;
 
-                        case 0xb7:
-                        temp = ati28800->regs[ati28800->index] & ~8;
+                        case 0x37:
+                        temp = ati28800->regs[ati28800->index & 0x3f] & ~8;
                         if (ati_eeprom_read(&ati28800->eeprom))
                                 temp |= 8;
                         break;
                         
                         default:
-                        temp = ati28800->regs[ati28800->index];
+                        temp = ati28800->regs[ati28800->index & 0x3f];
                         break;
                 }
                 break;
@@ -187,7 +187,7 @@ void ati28800_svga_recalctimings(ati28800_t *ati28800)
         svga->hdisp++;
 
         svga->htotal = svga->crtc[0];
-	if ((ati28800->regs[0xad] & 8) && (gfxcard == GFX_VGAWONDERXL24))  svga->htotal |= (ati28800->regs[0xad] & 1) ? 0x100 : 0;
+	if ((ati28800->regs[0x2d] & 8) && (gfxcard == GFX_VGAWONDERXL24))  svga->htotal |= (ati28800->regs[0x2d] & 1) ? 0x100 : 0;
         svga->htotal += 6; /*+6 is required for Tyrian*/
 
         svga->rowoffset = svga->crtc[0x13];
@@ -312,7 +312,7 @@ void ati28800_recalctimings(svga_t *svga)
 #ifndef RELEASE_BUILD
         pclog("ati28800_recalctimings\n");
 #endif
-        if (!svga->scrblank && (ati28800->regs[0xb0] & 0x20)) /*Extended 256 colour modes*/
+        if (!svga->scrblank && (ati28800->regs[0x30] & 0x20)) /*Extended 256 colour modes*/
         {
 #ifndef RELEASE_BUILD
                 pclog("8bpp_highres\n");

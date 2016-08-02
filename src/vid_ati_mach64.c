@@ -276,8 +276,11 @@ void mach64_out(uint16_t addr, uint8_t val, void *p)
                 mach64->regs[mach64->index & 0x3f] = val;
                 if ((mach64->index & 0x3f) == 0x2d)
 		{
-			svga->charseta = (svga->charseta & 0x3ffff) | ((((uint32_t) val) >> 4) << 18);
-			svga->charsetb = (svga->charsetb & 0x3ffff) | ((((uint32_t) val) >> 4) << 18);
+			if (val & 8)
+			{
+				svga->charseta = (svga->charseta & 0x3ffff) | ((((uint32_t) val) >> 4) << 18);
+				svga->charsetb = (svga->charsetb & 0x3ffff) | ((((uint32_t) val) >> 4) << 18);
+			}
 			break;
 		}
                 if ((mach64->index & 0x3f) == 0x36)
