@@ -23,6 +23,7 @@
 #include "vid_et4000.h"
 #include "vid_et4000w32.h"
 #include "vid_hercules.h"
+#include "vid_incolor.h"
 #include "vid_mda.h"
 #include "vid_olivetti_m24.h"
 #include "vid_oti067.h"
