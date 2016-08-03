@@ -2297,15 +2297,15 @@ int s3_phoenix_trio64_available()
 
 void *s3_diamond_stealth64_init()
 {
-        s3_t *s3 = s3_init("roms/STEALT64.BIN", S3_TRIO64);
+        s3_t *s3 = s3_init("roms/STEALT64.BIN", S3_VISION864);
         svga_t *svga = &s3->svga;
 
-        s3->id = 0xe1; /*Trio64*/
-        s3->id_ext = s3->id_ext_pci = 0x11;
-        s3->packed_mmio = 1;
-
-        s3->getclock = s3_trio64_getclock;
-        s3->getclock_p = s3;
+        s3->id = 0xc1; /*Vision864P*/
+        s3->id_ext = s3->id_ext_pci = 0xc1;
+        s3->packed_mmio = 0;
+        
+        s3->getclock = sdac_getclock;
+        s3->getclock_p = &s3->ramdac;
 
         return s3;
 }
@@ -2530,6 +2530,14 @@ static device_config_t s3_diamond_stealth64_config[] =
                                 .value = 4
                         },
                         {
+                                .description = "6 MB",
+                                .value = 6
+                        },
+                        {
+                                .description = "8 MB",
+                                .value = 8
+                        },
+                        {
                                 .description = ""
                         }
                 },
@@ -2638,7 +2646,7 @@ device_t s3_phoenix_trio64_device =
 
 device_t s3_diamond_stealth64_device =
 {
-        "Phoenix S3 Trio64 (Diamond Stealth64)",
+        "S3 Vision864 (Diamond Stealth64)",
         0,
         s3_diamond_stealth64_init,
         s3_close,
