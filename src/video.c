@@ -66,7 +66,7 @@ static VIDEO_CARD video_cards[] =
         {"Compaq EGA",				   &cpqega_device,           	GFX_COMPAQ_EGA},
         {"Compaq/Paradise VGA",			   &cpqvga_device,           	GFX_COMPAQ_VGA},
         {"Hercules",                               &hercules_device,            GFX_HERCULES},
-        {"Hercules InColor",                       &hercules_device,            GFX_INCOLOR},
+        {"Hercules InColor",                       &incolor_device,             GFX_INCOLOR},
         {"MDA",                                    &mda_device,                 GFX_MDA},
         {"Miro Crystal S3 Vision964",              &s3_miro_vision964_device,   GFX_MIRO_VISION964},
         {"Number Nine 9FX (S3 Trio64)",            &s3_9fx_device,              GFX_N9_9FX},
