@@ -10,6 +10,7 @@
 #include "video.h"
 #include "vid_s3.h"
 #include "vid_svga.h"
+#include "vid_icd2061.h"
 #include "vid_svga_render.h"
 #include "vid_bt485_ramdac.h"
 #include "vid_sdac_ramdac.h"
@@ -69,6 +70,7 @@ typedef struct s3_t
         svga_t svga;
         sdac_ramdac_t ramdac;
         bt485_ramdac_t bt485_ramdac;
+        icd2061_t icd2061;
 
         uint8_t bank;
         uint8_t ma_ext;
@@ -734,6 +736,11 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
 
         switch (addr)
         {
+                case 0x3c2:
+		if (gfxcard == GFX_STEALTH64)
+	                icd2061_write(&s3->icd2061, (val >> 2) & 3);
+                break;
+                
                 case 0x3c5:
                 if (svga->seqaddr >= 0x10 && svga->seqaddr < 0x20)
                 {
@@ -961,7 +968,18 @@ void s3_recalctimings(svga_t *svga)
         else if (svga->crtc[0x43] & 0x04) svga->rowoffset  += 0x100;
         if (!svga->rowoffset) svga->rowoffset = 256;
         svga->interlace = svga->crtc[0x42] & 0x20;
-        svga->clock = cpuclock / s3->getclock((svga->miscout >> 2) & 3, s3->getclock_p);
+	if (gfxcard == GFX_STEALTH64)
+	{        
+	        switch ((svga->miscout >> 2) & 3)
+        	{
+                	case 0: case 1: break;
+	                case 2: case 3: svga->clock = cpuclock / icd2061_getfreq(&s3->icd2061, 2); break;
+        	}
+	}
+	else
+	{
+	        svga->clock = cpuclock / s3->getclock((svga->miscout >> 2) & 3, s3->getclock_p);
+	}
 
         switch (svga->crtc[0x67] >> 4)
         {
@@ -2295,6 +2313,26 @@ int s3_phoenix_trio64_available()
         return rom_present("roms/86c764x1.bin");
 }
 
+void *s3_diamond_stealth64_init()
+{
+        s3_t *s3 = s3_init("roms/STEALT64.BIN", S3_TRIO64);
+        svga_t *svga = &s3->svga;
+
+        s3->id = 0xe1; /*Trio64*/
+        s3->id_ext = s3->id_ext_pci = 0x11;
+        s3->packed_mmio = 1;
+
+        s3->getclock = s3_trio64_getclock;
+        s3->getclock_p = s3;
+
+        return s3;
+}
+
+int s3_diamond_stealth64_available()
+{
+        return rom_present("roms/STEALT64.BIN");
+}
+
 void *s3_miro_vision964_init()
 {
         s3_t *s3 = s3_init("roms/mirocrystal.VBI", S3_VISION964);
@@ -2481,6 +2519,45 @@ static device_config_t s3_phoenix_trio64_config[] =
         }
 };
 
+static device_config_t s3_diamond_stealth64_config[] =
+{
+        {
+                .name = "memory",
+                .description = "Memory size",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "512 KB",
+                                .value = 0
+                        },
+                        {
+                                .description = "1 MB",
+                                .value = 1
+                        },
+                        {
+                                .description = "2 MB",
+                                .value = 2
+                        },
+                        {
+                                .description = "3 MB",
+                                .value = 3
+                        },
+                        {
+                                .description = "4 MB",
+                                .value = 4
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 2
+        },
+        {
+                .type = -1
+        }
+};
+
 static device_config_t s3_miro_vision964_config[] =
 {
         {
@@ -2575,6 +2652,19 @@ device_t s3_phoenix_trio64_device =
         s3_force_redraw,
         s3_add_status_info,
         s3_phoenix_trio64_config
+};
+
+device_t s3_diamond_stealth64_device =
+{
+        "Phoenix S3 Trio64 (Diamond Stealth64)",
+        0,
+        s3_diamond_stealth64_init,
+        s3_close,
+        s3_diamond_stealth64_available,
+        s3_speed_changed,
+        s3_force_redraw,
+        s3_add_status_info,
+        s3_diamond_stealth64_config
 };
 
 device_t s3_miro_vision964_device =
