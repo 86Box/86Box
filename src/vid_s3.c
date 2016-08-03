@@ -10,7 +10,6 @@
 #include "video.h"
 #include "vid_s3.h"
 #include "vid_svga.h"
-#include "vid_icd2061.h"
 #include "vid_svga_render.h"
 #include "vid_bt485_ramdac.h"
 #include "vid_sdac_ramdac.h"
@@ -70,7 +69,6 @@ typedef struct s3_t
         svga_t svga;
         sdac_ramdac_t ramdac;
         bt485_ramdac_t bt485_ramdac;
-        icd2061_t icd2061;
 
         uint8_t bank;
         uint8_t ma_ext;
@@ -736,11 +734,6 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
 
         switch (addr)
         {
-                case 0x3c2:
-		if (gfxcard == GFX_STEALTH64)
-	                icd2061_write(&s3->icd2061, (val >> 2) & 3);
-                break;
-                
                 case 0x3c5:
                 if (svga->seqaddr >= 0x10 && svga->seqaddr < 0x20)
                 {
@@ -968,18 +961,7 @@ void s3_recalctimings(svga_t *svga)
         else if (svga->crtc[0x43] & 0x04) svga->rowoffset  += 0x100;
         if (!svga->rowoffset) svga->rowoffset = 256;
         svga->interlace = svga->crtc[0x42] & 0x20;
-	if (gfxcard == GFX_STEALTH64)
-	{        
-	        switch ((svga->miscout >> 2) & 3)
-        	{
-                	case 0: case 1: break;
-	                case 2: case 3: svga->clock = cpuclock / icd2061_getfreq(&s3->icd2061, 2); break;
-        	}
-	}
-	else
-	{
-	        svga->clock = cpuclock / s3->getclock((svga->miscout >> 2) & 3, s3->getclock_p);
-	}
+        svga->clock = cpuclock / s3->getclock((svga->miscout >> 2) & 3, s3->getclock_p);
 
         switch (svga->crtc[0x67] >> 4)
         {
