@@ -1062,7 +1062,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
         ide_irq_lower(ide);
                 ide->command=val;
                 
-                pclog("New IDE command - %02X %i %i\n",ide->command,cur_ide[ide_board],ide_board);
+                // pclog("New IDE command - %02X %i %i\n",ide->command,cur_ide[ide_board],ide_board);
                 ide->error=0;
                 switch (val)
                 {
