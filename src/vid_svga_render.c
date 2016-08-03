@@ -128,7 +128,6 @@ void svga_render_text_80(svga_t *svga)
 			attr = svga->vram[(svga->ma << 1) + 1];
                         if (attr & 8) charaddr = svga->charsetb + (chr * 128);
                         else          charaddr = svga->charseta + (chr * 128);
-			pclog("Character address is: %08X\n", charaddr);
 
                         if (drawcursor) 
                         { 
