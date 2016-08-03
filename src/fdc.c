@@ -1119,7 +1119,7 @@ void fdc_callback()
                 fdc.pretrk = fdc.params[2];
 		fdc.fifo = (fdc.params[1] & 0x20) ? 0 : 1;
 		fdc.tfifo = (fdc.params[1] & 0xF) + 1;
-		pclog("FIFO is now %02X, threshold is %02X\n", fdc.fifo, fdc.tfifo);
+		// pclog("FIFO is now %02X, threshold is %02X\n", fdc.fifo, fdc.tfifo);
                 fdc.stat = 0x80;
                 disctime = 0;
 //                picint(0x40);
