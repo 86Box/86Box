@@ -1839,7 +1839,7 @@ void callbackide(int ide_board)
                 }
 		else if (ide->packetstatus == ATAPI_STATUS_REQ_SENSE)	/*REQUEST SENSE callback #1*/
 		{
-			pclog("REQUEST SENSE callback #1: setting status to 0x5A\n");
+			// pclog("REQUEST SENSE callback #1: setting status to 0x5A\n");
 			ide->atastat = 0x58 | (ide->atastat & ERR_STAT);
 			ide_irq_raise(ide);
 		}
@@ -2148,7 +2148,7 @@ static void atapicommand(int ide_board)
 	int ret;
 
 #ifndef RPCEMU_IDE
-        pclog("New ATAPI command %02X %i\n",idebufferb[0],ins);
+        // pclog("New ATAPI command %02X %i\n",idebufferb[0],ins);
 #endif
 //        readflash=1;
         msf=idebufferb[1]&2;
