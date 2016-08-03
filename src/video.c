@@ -75,6 +75,7 @@ static VIDEO_CARD video_cards[] =
         {"OAK OTI-077",                            &oti077_device,              GFX_OTI077},
         {"Paradise Bahamas 64 (S3 Vision864)",     &s3_bahamas64_device,        GFX_BAHAMAS64},
         {"Paradise WD90C11",                       &paradise_wd90c11_device,    GFX_WD90C11},
+        {"Phoenix S3 Vision864",                   &s3_phoenix_vision864_device,GFX_PHOENIX_VISION864},
         {"Phoenix S3 Trio32",                      &s3_phoenix_trio32_device,   GFX_PHOENIX_TRIO32},
         {"Phoenix S3 Trio64",                      &s3_phoenix_trio64_device,   GFX_PHOENIX_TRIO64},
         {"S3 ViRGE/DX",                            &s3_virge_375_device,        GFX_VIRGEDX},

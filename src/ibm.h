@@ -398,6 +398,7 @@ enum
 	GFX_ET4000W32CS,	/*Tseng ET4000/W32p (Cardex) (ICS RAMDAC) */
 	GFX_VGAWONDERXL24,	/*Compaq ATI VGA Wonder XL24 (28800-6)*/
 	GFX_STEALTH64,	/*S3 Vision864 (Diamond Stealth 64)*/
+	GFX_PHOENIX_VISION864,	/*S3 Vision864 (Phoenix)*/
         GFX_MAX
 };
 

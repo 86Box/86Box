@@ -2295,6 +2295,25 @@ int s3_phoenix_trio64_available()
         return rom_present("roms/86c764x1.bin");
 }
 
+void *s3_phoenix_vision864_init()
+{
+        s3_t *s3 = s3_init("roms/86c864p.bin", S3_VISION864);
+
+        s3->id = 0xc1; /*Vision864P*/
+        s3->id_ext = s3->id_ext_pci = 0xc1;
+        s3->packed_mmio = 0;
+        
+        s3->getclock = sdac_getclock;
+        s3->getclock_p = &s3->ramdac;
+
+        return s3;
+}
+
+int s3_phoenix_vision864_available()
+{
+        return rom_present("roms/86c864p.BIN");
+}
+
 void *s3_diamond_stealth64_init()
 {
         s3_t *s3 = s3_init("roms/STEALT64.BIN", S3_VISION864);
@@ -2501,6 +2520,41 @@ static device_config_t s3_phoenix_trio64_config[] =
         }
 };
 
+static device_config_t s3_phoenix_vision864_config[] =
+{
+        {
+                .name = "memory",
+                .description = "Memory size",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "512 KB",
+                                .value = 0
+                        },
+                        {
+                                .description = "1 MB",
+                                .value = 1
+                        },
+                        {
+                                .description = "2 MB",
+                                .value = 2
+                        },
+                        {
+                                .description = "4 MB",
+                                .value = 4
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 2
+        },
+        {
+                .type = -1
+        }
+};
+
 static device_config_t s3_diamond_stealth64_config[] =
 {
         {
@@ -2528,14 +2582,6 @@ static device_config_t s3_diamond_stealth64_config[] =
                         {
                                 .description = "4 MB",
                                 .value = 4
-                        },
-                        {
-                                .description = "6 MB",
-                                .value = 6
-                        },
-                        {
-                                .description = "8 MB",
-                                .value = 8
                         },
                         {
                                 .description = ""
@@ -2642,6 +2688,19 @@ device_t s3_phoenix_trio64_device =
         s3_force_redraw,
         s3_add_status_info,
         s3_phoenix_trio64_config
+};
+
+device_t s3_phoenix_vision864_device =
+{
+        "Phoenix S3 Vision864",
+        0,
+        s3_phoenix_vision864_init,
+        s3_close,
+        s3_phoenix_vision864_available,
+        s3_speed_changed,
+        s3_force_redraw,
+        s3_add_status_info,
+        s3_phoenix_vision864_config
 };
 
 device_t s3_diamond_stealth64_device =
