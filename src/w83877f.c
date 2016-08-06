@@ -119,7 +119,7 @@ uint8_t w83877f_read(uint16_t port, void *priv);
 #define SIRTX0		((w83877f_regs[0xD] >> 6) & 1)
 #define SIRTX1		(w83877f_regs[0xD] >> 7)
 
-#define GIO0AD		(w83877f_regs[0x10] | (((uint16_t) w83877f_regs[0x10] & 7) << 8))
+#define GIO0AD		(w83877f_regs[0x10] | (((uint16_t) w83877f_regs[0x11] & 7) << 8))
 #define GIO0CADM	(w83877f_regs[0x11] >> 6)
 #define GIO1AD		(w83877f_regs[0x12] | (((uint16_t) w83877f_regs[0x13] & 7) << 8))
 #define GIO1CADM	(w83877f_regs[0x13] >> 6)
