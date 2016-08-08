@@ -41,8 +41,13 @@ static int opSYSENTER(uint32_t fetchdat)
 	pclog("Model specific registers: cs_msr=%04X, esp_msr=%08X, eip_msr=%08X\n", cs_msr, esp_msr, eip_msr);
 	pclog("Other information: eip=%08X esp=%08X eflags=%04X flags=%04X use32=%04X stack32=%i\n", cpu_state.pc, ESP, eflags, flags, use32, stack32);
 
+	if (abrt)  return 1;
+
 	ESP = esp_msr;
 	cpu_state.pc = eip_msr;
+
+        optype = CALL;                                                          \
+        cgate16 = cgate32 = 0;                                                  \
 
 	/* Set VM, RF, and IF to 0. */
 	eflags &= ~0x0003;
@@ -58,7 +63,9 @@ static int opSYSENTER(uint32_t fetchdat)
 	do_seg_load(&_ss, sysenter_ss_seg_data);
 	stack32 = 1;
 
-	cycles -= timing_jmp_pm;
+	cycles -= timing_call_pm;
+
+	optype = 0;
 
 	CPU_BLOCK_END();
 
@@ -88,8 +95,13 @@ static int opSYSEXIT(uint32_t fetchdat)
 	pclog("Model specific registers: cs_msr=%04X, esp_msr=%08X, eip_msr=%08X\n", cs_msr, esp_msr, eip_msr);
 	pclog("Other information: eip=%08X esp=%08X eflags=%04X flags=%04X use32=%04X stack32=%i ECX=%08X EDX=%08X\n", cpu_state.pc, ESP, eflags, flags, use32, stack32, ECX, EDX);
 
+	if (abrt)  return 1;
+
 	ESP = ECX;
 	cpu_state.pc = EDX;
+
+        optype = CALL;                                                          \
+        cgate16 = cgate32 = 0;                                                  \
 
 	CS = ((cs_msr + 16) & 0xFFFC) | 3;
 	make_seg_data(sysexit_cs_seg_data, 0, 0xFFFFF, 11, 1, 3, 1, 1, 1, 0);
@@ -103,7 +115,9 @@ static int opSYSEXIT(uint32_t fetchdat)
 
 	flushmmucache_cr3();
 
-	cycles -= timing_jmp_pm;
+	cycles -= timing_call_pm;
+
+	optype = 0;
 
 	CPU_BLOCK_END();
 
