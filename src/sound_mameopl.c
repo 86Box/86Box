@@ -6,7 +6,6 @@
 #include "mame/fmopl.h"
 #include "mame/ymf262.h"
 #include "sound_opl.h"
-#include "sound_dbopl.h"
 
 /*Interfaces between PCem and the actual OPL emulator*/
 
