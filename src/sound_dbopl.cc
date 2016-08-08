@@ -1,9 +1,11 @@
 #include "dosbox/dbopl.h"
+#include "dosbox/nukedopl.h"
 #include "sound_dbopl.h"
 
 static struct
 {
         DBOPL::Chip chip;
+		struct opl3_chip opl3chip;
         int addr;
         int timer[2];
         uint8_t timer_ctrl;
@@ -33,11 +35,21 @@ enum
 
 void opl_init(void (*timer_callback)(void *param, int timer, int64_t period), void *timer_param, int nr, int is_opl3)
 {
-        DBOPL::InitTables();                        
-        opl[nr].chip.Setup(48000, is_opl3);
-        opl[nr].timer_callback = timer_callback;
-        opl[nr].timer_param = timer_param;
-        opl[nr].is_opl3 = is_opl3;
+	if (!is_opl3)
+	{
+			DBOPL::InitTables();                        
+			opl[nr].chip.Setup(48000, 0);
+			opl[nr].timer_callback = timer_callback;
+			opl[nr].timer_param = timer_param;
+			opl[nr].is_opl3 = 0;	
+	}
+	else
+	{
+			OPL3_Reset(&opl[nr].opl3chip, 48000);
+			opl[nr].timer_callback = timer_callback;
+			opl[nr].timer_param = timer_param;
+			opl[nr].is_opl3 = is_opl3;	
+	}
 }
 
 void opl_status_update(int nr)
@@ -67,10 +79,18 @@ void opl_timer_over(int nr, int timer)
 void opl_write(int nr, uint16_t addr, uint8_t val)
 {
         if (!(addr & 1))
-                opl[nr].addr = (int)opl[nr].chip.WriteAddr(addr, val) & (opl[nr].is_opl3 ? 0x1ff : 0xff);
+		{
+			if (!opl[nr].is_opl3)
+                opl[nr].addr = (int)opl[nr].chip.WriteAddr(addr, val) & 0xff;
+			else
+				opl[nr].addr = (int)OPL3_WriteAddr(&opl[nr].opl3chip, addr, val) & 0x1ff;
+		}
         else
         {
-                opl[nr].chip.WriteReg(opl[nr].addr, val);
+				if (!opl[nr].is_opl3)
+					opl[nr].chip.WriteReg(opl[nr].addr, val);
+				else
+					OPL3_WriteReg(&opl[nr].opl3chip, opl[nr].addr, val);
 
                 switch (opl[nr].addr)
                 {
@@ -131,11 +151,5 @@ void opl2_update(int nr, int16_t *buffer, int samples)
 
 void opl3_update(int nr, int16_t *buffer, int samples)
 {
-        int c;
-        Bit32s buffer_32[samples*2];
-        
-        opl[nr].chip.GenerateBlock3(samples, buffer_32);
-        
-        for (c = 0; c < samples*2; c++)
-                buffer[c] = (int16_t)buffer_32[c];
+		OPL3_GenerateStream(&opl[nr].opl3chip, buffer, samples);
 }
