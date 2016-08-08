@@ -21,7 +21,7 @@ OBJ = 386.o 386_dynarec.o 386_dynarec_ops.o 808x.o acer386sx.o acerm3a.o ali1429
 	vid_vga.o vid_voodoo.o video.o w83877f.o wd76c10.o win.o win-config.o win-d3d.o win-d3d-fs.o win-ddraw.o \
 	win-ddraw-fs.o win-ddraw-screenshot.o win-deviceconfig.o win-hdconf.o win-joystick.o win-joystickconfig.o win-keyboard.o win-midi.o win-mouse.o \
 	win-status.o win-video.o x86seg.o x87.o xtide.o pc.res
-DBOBJ = dbopl.o vid_cga_comp.o
+DBOBJ = dbopl.o nukedopl.o vid_cga_comp.o
 SIDOBJ = convolve.o convolve-sse.o envelope.o extfilt.o filter.o pot.o sid.o voice.o wave6581__ST.o wave6581_P_T.o wave6581_PS_.o wave6581_PST.o wave8580__ST.o wave8580_P_T.o wave8580_PS_.o wave8580_PST.o wave.o
 SLIRPOBJ = bootp.o ip_icmp.o misc.o socket.o tcp_timer.o cksum.o ip_input.o queue.o tcp_input.o tftp.o debug.o ip_output.o sbuf.o tcp_output.o udp.o if.o mbuf.o slirp.o tcp_subr.o
 
