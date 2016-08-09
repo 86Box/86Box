@@ -40,6 +40,7 @@
 #define MCR_ERR			0x08 /* Media change request */
 
 /* ATA Commands */
+#define WIN_NOP				0x00
 #define WIN_SRST			0x08 /* ATAPI Device Reset */
 #define WIN_RECAL			0x10
 #define WIN_RESTORE			WIN_RECAL
@@ -917,16 +918,16 @@ void resetide(void)
 			
 		ide_set_signature(&ide_drives[d]);
 
-		if (ide->type == IDE_HDD)
+		if (&ide_drives[d]->type == IDE_HDD)
 		{
-			ide->dma_identify_data[0] = 7;
-			ide->dma_identify_data[1] = 7 | (1 << (val + 8));
-			ide->dma_identify_data[2] = 0x3f;
+			&ide_drives[d]->dma_identify_data[0] = 7;
+			&ide_drives[d]->dma_identify_data[1] = 7 | (1 << (val + 8));
+			&ide_drives[d]->dma_identify_data[2] = 0x3f;
 		}
-		else if (ide-.type == IDE_CDROM)
+		else if (&ide_drives[d]->type == IDE_CDROM)
 		{
-			ide->dma_identify_data[0] = ide->dma_identify_data[1] = 7;
-			ide->dma_identify_data[2] = 0x3f;
+			&ide_drives[d]->dma_identify_data[0] = &ide_drives[d]->dma_identify_data[1] = 7;
+			&ide_drives[d]->dma_identify_data[2] = 0x3f;
 		}
 	}
 		
@@ -945,6 +946,12 @@ void resetide(void)
 			}
 			
 			ide_set_signature(&ide_drives[d]);
+
+			if (&ide_drives[d]->type == IDE_CDROM)
+			{
+				&ide_drives[d]->dma_identify_data[0] = &ide_drives[d]->dma_identify_data[1] = 7;
+				&ide_drives[d]->dma_identify_data[2] = 0x3f;
+			}
 		}
 		/* REMOVE WHEN SUBMITTING TO MAINLINE - END */
 #endif
@@ -1274,6 +1281,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                 case WIN_PIDENTIFY: /* Identify Packet Device */
                 case WIN_SET_MULTIPLE_MODE: /*Set Multiple Mode*/
 //                output=1;
+				case WIN_NOP:
 				case WIN_STANDBYNOW1:
                 case WIN_SETIDLE1: /* Idle */
 				case WIN_CHECKPOWERMODE1:
@@ -1582,6 +1590,7 @@ void callbackide(int ide_board)
                         pclog("WIN_RESTORE callback on CD-ROM\n");
                         goto abort_cmd;
                 }
+		case WIN_NOP:
 		case WIN_STANDBYNOW1:
 		case WIN_SETIDLE1:
 //                pclog("WIN_RESTORE callback\n");
