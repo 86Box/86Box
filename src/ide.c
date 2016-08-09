@@ -60,8 +60,12 @@
 #define WIN_SET_MULTIPLE_MODE           0xC6
 #define WIN_READ_DMA                    0xC8
 #define WIN_WRITE_DMA                   0xCA
+#define WIN_STANDBYNOW1			0xE0
 #define WIN_SETIDLE1			0xE3
+#define WIN_CHECKPOWERMODE1		0xE5
 #define WIN_IDENTIFY			0xEC /* Ask drive to identify itself */
+#define WIN_SET_FEATURES		0xEF
+#define WIN_READ_NATIVE_MAX		0xF8
 
 /* ATAPI Commands */
 #define GPCMD_TEST_UNIT_READY           0x00
@@ -292,7 +296,7 @@ typedef struct IDE
         int board;
         uint8_t atastat;
         uint8_t error;
-        int secount,sector,cylinder,head,drive,cylprecomp;
+        int secount,sector,cylinder,head,drive,cylprecomp,select;
         uint8_t command;
         uint8_t fdisk;
         int pos;
@@ -311,6 +315,7 @@ typedef struct IDE
         uint32_t lba_addr;
         int skip512;
         int blocksize, blockcount;
+		uint16_t dma_identify_data[3];
 } IDE;
 
 IDE ide_drives[6];
@@ -520,8 +525,11 @@ static void ide_identify(IDE *ide)
 	ide->buffer[60] = (hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt) & 0xFFFF; /* Total addressable sectors (LBA) */
 	ide->buffer[61] = (hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt) >> 16;
 #endif
-	ide->buffer[63] = 7; /*Multiword DMA*/
+	// ide->buffer[63] = 7; /*Multiword DMA*/
+	ide->buffer[62] = ide->dma_identify_data[0];
+	ide->buffer[63] = ide->dma_identify_data[1];
 	ide->buffer[80] = 0xe; /*ATA-1 to ATA-3 supported*/
+	ide->buffer[88] = ide->dma_identify_data[2];
 }
 
 /**
@@ -786,6 +794,78 @@ void ide_set_signature(IDE *ide)
 	if (ide->type == IDE_HDD)  ide->drive = 0;
 }
 
+int ide_set_features(IDE *ide)
+{
+	uint8_t val = ide->secount & 7;
+
+	if (ide->type == IDE_NONE)  return 0;
+	
+	switch(ide->cylprecomp)
+	{
+		case 0x02:
+		case 0x82:
+			return 0;
+		case 0xcc:
+		case 0x66:
+		case 0xaa:
+		case 0x55:
+		case 0x05:
+		case 0x85:
+		case 0x69:
+		case 0x67:
+		case 0x96:
+		case 0x9a:
+		case 0x42:
+		case 0xc2:
+			return 1;
+		case 0x03:
+			switch(ide->secount >> 3)
+			{
+				case 0:
+				case 1:
+					dma_identify_data[0] = dma_identify_data[1] = 7;
+					dma_identify_data[2] = 0x3f;
+					break;
+				case 2:
+					if (ide->type == IDE_CDROM)  return 0;
+					dma_identify_data[0] = 7 | (1 << (val + 8));
+					dma_identify_data[1] = 7;
+					dma_identify_data[2] = 0x3f;
+					break;
+				case 4:
+					if (ide->type == IDE_CDROM)  return 0;
+					dma_identify_data[0] = 7;
+					dma_identify_data[1] = 7 | (1 << (val + 8));
+					dma_identify_data[2] = 0x3f;
+					break;
+				default:
+					return 0;
+			}
+	}
+	return 1;
+}
+
+void ide_set_sector(IDE *ide, int64_t sector_num)
+{
+	unsigned int cyl, r;
+	if (ide->select & 0x40)
+	{
+		ide->select = (ide->select & 0xf0) | (sector_num >> 24);
+		ide->hcyl = (sector_num >> 16);
+		ide->lcyl = (sector_num >> 8);
+		ide->sector = (sector_num);
+	}
+	else
+	{
+		cyl = sector_num / (hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt);
+		r = sector_num % (hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt);
+		ide->hcyl = cyl >> 8;
+		ide->lcyl = cyl;
+		ide->select = (ide->select & 0xf0) | ((r / hdc[cur_ide[ide->board]].spt) & 0x0f);
+		ide->sector = (r % hdc[cur_ide[ide->board]].spt) + 1;
+	}
+}
+
 void resetide(void)
 {
         int d;
@@ -1017,7 +1097,8 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                 dumpregs();
                 exit(-1);
         }*/
-        
+
+				ide->select = val;
                 if (cur_ide[ide_board] != ((val>>4)&1)+(ide_board<<1))
                 {
                         cur_ide[ide_board]=((val>>4)&1)+(ide_board<<1);
@@ -1181,7 +1262,9 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                 case WIN_PIDENTIFY: /* Identify Packet Device */
                 case WIN_SET_MULTIPLE_MODE: /*Set Multiple Mode*/
 //                output=1;
+				case WIN_STANDBYNOW1:
                 case WIN_SETIDLE1: /* Idle */
+				case WIN_CHECKPOWERMODE1:
                         ide->atastat = BUSY_STAT;
                         timer_process();
                         callbackide(ide_board);
@@ -1190,8 +1273,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                         return;
 
                 case WIN_IDENTIFY: /* Identify Device */
-                case 0xEF:
-				if(val == 0xEF)  pclog("IDE command EF issued\n");
+                case WIN_SET_FEATURES:
 //                        output=3;
 //                        timetolive=500;
                         ide->atastat = BUSY_STAT;
@@ -1426,6 +1508,7 @@ void callbackide(int ide_board)
         off64_t addr;
         int c;
         ext_ide = ide;
+		int64_t snum;
 //        return;
         if (ide->command==0x30) times30++;
 //        if (times30==2240) output=1;
@@ -1486,7 +1569,15 @@ void callbackide(int ide_board)
                         pclog("WIN_RESTORE callback on CD-ROM\n");
                         goto abort_cmd;
                 }
+		case WIN_STANDBYNOW1:
+		case WIN_SETIDLE1:
 //                pclog("WIN_RESTORE callback\n");
+                ide->atastat = READY_STAT | DSC_STAT;
+                ide_irq_raise(ide);
+                return;
+
+		case WIN_CHECKPOWERMODE1:
+				ide->secount = 0xFF;
                 ide->atastat = READY_STAT | DSC_STAT;
                 ide_irq_raise(ide);
                 return;
@@ -1760,10 +1851,26 @@ void callbackide(int ide_board)
                 ide_irq_raise(ide);
                 return;
                 
-        case WIN_SETIDLE1: /* Idle */
-        case 0xEF:
-                goto abort_cmd;
 
+		// case WIN_SETIDLE1: /* Idle */
+                // goto abort_cmd;
+
+		case WIN_SET_FEATURES:
+				if (!(ide_set_features(IDE *ide)))  goto abort_cmd;
+                ide->atastat = READY_STAT | DSC_STAT;
+                ide_irq_raise(ide);
+				return;
+				
+		case WIN_READ_NATIVE_MAX:
+				if (ide->type != IDE_HDD)  goto abort_cmd;
+				snum = hdc[cur_ide[ide->board]].spt;
+				snum *= hdc[cur_ide[ide->board]].hpc;
+				snum *= hdc[cur_ide[ide->board]].tracks;
+				ide_set_sector(ide, snum);
+                ide->atastat = READY_STAT | DSC_STAT;
+                ide_irq_raise(ide);
+				return;
+				
         case WIN_IDENTIFY: /* Identify Device */
 		if (ide->type == IDE_NONE)
 		{
