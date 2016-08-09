@@ -918,16 +918,16 @@ void resetide(void)
 			
 		ide_set_signature(&ide_drives[d]);
 
-		if (&ide_drives[d]->type == IDE_HDD)
+		if (ide_drives[d].type == IDE_HDD)
 		{
-			&ide_drives[d]->dma_identify_data[0] = 7;
-			&ide_drives[d]->dma_identify_data[1] = 7 | (1 << (val + 8));
-			&ide_drives[d]->dma_identify_data[2] = 0x3f;
+			ide_drives[d].dma_identify_data[0] = 7;
+			ide_drives[d].dma_identify_data[1] = 7 | (1 << (val + 8));
+			ide_drives[d].dma_identify_data[2] = 0x3f;
 		}
-		else if (&ide_drives[d]->type == IDE_CDROM)
+		else if (ide_drives[d].type == IDE_CDROM)
 		{
-			&ide_drives[d]->dma_identify_data[0] = &ide_drives[d]->dma_identify_data[1] = 7;
-			&ide_drives[d]->dma_identify_data[2] = 0x3f;
+			ide_drives[d].dma_identify_data[0] = ide_drives[d].dma_identify_data[1] = 7;
+			ide_drives[d].dma_identify_data[2] = 0x3f;
 		}
 	}
 		
@@ -947,10 +947,10 @@ void resetide(void)
 			
 			ide_set_signature(&ide_drives[d]);
 
-			if (&ide_drives[d]->type == IDE_CDROM)
+			if (ide_drives[d].type == IDE_CDROM)
 			{
-				&ide_drives[d]->dma_identify_data[0] = &ide_drives[d]->dma_identify_data[1] = 7;
-				&ide_drives[d]->dma_identify_data[2] = 0x3f;
+				ide_drives[d].dma_identify_data[0] = ide_drives[d].dma_identify_data[1] = 7;
+				ide_drives[d].dma_identify_data[2] = 0x3f;
 			}
 		}
 		/* REMOVE WHEN SUBMITTING TO MAINLINE - END */
