@@ -52,6 +52,8 @@ static int opFFREE(uint32_t fetchdat)
 
 static int opFFREEP(uint32_t fetchdat)
 {
+        FP_ENTER();
+        cpu_state.pc++;
         if (fplog) pclog("FFREEP\n");
         tag[(TOP + fetchdat) & 7] = 3; if (abrt) return 1;
         x87_pop();

@@ -938,7 +938,7 @@ OpFn OP_TABLE(fpu_df_a16)[256] =
         FBSTP_a16,     FBSTP_a16,     FBSTP_a16,     FBSTP_a16,     FBSTP_a16,     FBSTP_a16,     FBSTP_a16,     FBSTP_a16,
         FISTPiq_a16,   FISTPiq_a16,   FISTPiq_a16,   FISTPiq_a16,   FISTPiq_a16,   FISTPiq_a16,   FISTPiq_a16,   FISTPiq_a16,
 
-        ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
+        opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
@@ -976,7 +976,7 @@ OpFn OP_TABLE(fpu_df_a32)[256] =
         FBSTP_a32,     FBSTP_a32,     FBSTP_a32,     FBSTP_a32,     FBSTP_a32,     FBSTP_a32,     FBSTP_a32,     FBSTP_a32,
         FISTPiq_a32,   FISTPiq_a32,   FISTPiq_a32,   FISTPiq_a32,   FISTPiq_a32,   FISTPiq_a32,   FISTPiq_a32,   FISTPiq_a32,
 
-        ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
+        opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
@@ -1015,7 +1015,7 @@ OpFn OP_TABLE(fpu_686_df_a16)[256] =
         FBSTP_a16,     FBSTP_a16,     FBSTP_a16,     FBSTP_a16,     FBSTP_a16,     FBSTP_a16,     FBSTP_a16,     FBSTP_a16,
         FISTPiq_a16,   FISTPiq_a16,   FISTPiq_a16,   FISTPiq_a16,   FISTPiq_a16,   FISTPiq_a16,   FISTPiq_a16,   FISTPiq_a16,
 
-        ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
+        opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
@@ -1053,7 +1053,7 @@ OpFn OP_TABLE(fpu_686_df_a32)[256] =
         FBSTP_a32,     FBSTP_a32,     FBSTP_a32,     FBSTP_a32,     FBSTP_a32,     FBSTP_a32,     FBSTP_a32,     FBSTP_a32,
         FISTPiq_a32,   FISTPiq_a32,   FISTPiq_a32,   FISTPiq_a32,   FISTPiq_a32,   FISTPiq_a32,   FISTPiq_a32,   FISTPiq_a32,
 
-        ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
+        opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,      opFFREEP,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
