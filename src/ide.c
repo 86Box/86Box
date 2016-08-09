@@ -526,10 +526,10 @@ static void ide_identify(IDE *ide)
 	ide->buffer[61] = (hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt) >> 16;
 #endif
 	// ide->buffer[63] = 7; /*Multiword DMA*/
-	ide->buffer[62] = hdc[cur_ide[ide->board]].dma_identify_data[0];
-	ide->buffer[63] = hdc[cur_ide[ide->board]].dma_identify_data[1];
+	ide->buffer[62] = ide->dma_identify_data[0];
+	ide->buffer[63] = ide->dma_identify_data[1];
 	ide->buffer[80] = 0xe; /*ATA-1 to ATA-3 supported*/
-	ide->buffer[88] = hdc[cur_ide[ide->board]].dma_identify_data[2];
+	ide->buffer[88] = ide->dma_identify_data[2];
 }
 
 /**
@@ -823,20 +823,20 @@ int ide_set_features(IDE *ide)
 			{
 				case 0:
 				case 1:
-					hdc[cur_ide[ide->board]].dma_identify_data[0] = hdc[cur_ide[ide->board]].dma_identify_data[1] = 7;
-					hdc[cur_ide[ide->board]].dma_identify_data[2] = 0x3f;
+					ide->dma_identify_data[0] = ide->dma_identify_data[1] = 7;
+					ide->dma_identify_data[2] = 0x3f;
 					break;
 				case 2:
 					if (ide->type == IDE_CDROM)  return 0;
-					hdc[cur_ide[ide->board]].dma_identify_data[0] = 7 | (1 << (val + 8));
-					hdc[cur_ide[ide->board]].dma_identify_data[1] = 7;
-					hdc[cur_ide[ide->board]].dma_identify_data[2] = 0x3f;
+					ide->dma_identify_data[0] = 7 | (1 << (val + 8));
+					ide->dma_identify_data[1] = 7;
+					ide->dma_identify_data[2] = 0x3f;
 					break;
 				case 4:
 					if (ide->type == IDE_CDROM)  return 0;
-					hdc[cur_ide[ide->board]].dma_identify_data[0] = 7;
-					hdc[cur_ide[ide->board]].dma_identify_data[1] = 7 | (1 << (val + 8));
-					hdc[cur_ide[ide->board]].dma_identify_data[2] = 0x3f;
+					ide->dma_identify_data[0] = 7;
+					ide->dma_identify_data[1] = 7 | (1 << (val + 8));
+					ide->dma_identify_data[2] = 0x3f;
 					break;
 				default:
 					return 0;
@@ -851,6 +851,7 @@ void ide_set_sector(IDE *ide, int64_t sector_num)
 	if (ide->select & 0x40)
 	{
 		ide->select = (ide->select & 0xf0) | (sector_num >> 24);
+		ide->head = (sector_num >> 24);
 		ide->cylinder = (sector_num >> 8);
 		ide->sector = (sector_num);
 	}
@@ -860,6 +861,7 @@ void ide_set_sector(IDE *ide, int64_t sector_num)
 		r = sector_num % (hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt);
 		ide->cylinder = cyl;
 		ide->select = (ide->select & 0xf0) | ((r / hdc[cur_ide[ide->board]].spt) & 0x0f);
+		ide->head = ((r / hdc[cur_ide[ide->board]].spt) & 0x0f);
 		ide->sector = (r % hdc[cur_ide[ide->board]].spt) + 1;
 	}
 }
@@ -914,6 +916,18 @@ void resetide(void)
 		}
 			
 		ide_set_signature(&ide_drives[d]);
+
+		if (ide->type == IDE_HDD)
+		{
+			ide->dma_identify_data[0] = 7;
+			ide->dma_identify_data[1] = 7 | (1 << (val + 8));
+			ide->dma_identify_data[2] = 0x3f;
+		}
+		else if (ide-.type == IDE_CDROM)
+		{
+			ide->dma_identify_data[0] = ide->dma_identify_data[1] = 7;
+			ide->dma_identify_data[2] = 0x3f;
+		}
 	}
 		
 		/* REMOVE WHEN SUBMITTING TO MAINLINE - START */
@@ -1375,7 +1389,8 @@ uint8_t readide(int ide_board, uint16_t addr)
                 break;
 
         case 0x1F6: /* Drive/Head */
-                temp = (uint8_t)(ide->head | ((cur_ide[ide_board] & 1) ? 0x10 : 0) | (ide->lba ? 0x40 : 0) | 0xa0);
+                // temp = (uint8_t)(ide->head | ((cur_ide[ide_board] & 1) ? 0x10 : 0) | (ide->lba ? 0x40 : 0) | 0xa0);
+				temp = (uint8_t)ide->select;
                 break;
 
         case 0x1F7: /* Status */
