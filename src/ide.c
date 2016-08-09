@@ -1294,6 +1294,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 
                 case WIN_IDENTIFY: /* Identify Device */
                 case WIN_SET_FEATURES:
+				case WIN_READ_NATIVE_MAX:
 //                        output=3;
 //                        timetolive=500;
                         ide->atastat = BUSY_STAT;
