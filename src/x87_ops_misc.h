@@ -50,6 +50,15 @@ static int opFFREE(uint32_t fetchdat)
         return 0;
 }
 
+static int opFFREEP(uint32_t fetchdat)
+{
+        if (fplog) pclog("FFREEP\n");
+        tag[(TOP + fetchdat) & 7] = 3; if (abrt) return 1;
+        x87_pop();
+        CLOCK_CYCLES(3);
+        return 0;
+}
+
 static int opFST(uint32_t fetchdat)
 {
         FP_ENTER();

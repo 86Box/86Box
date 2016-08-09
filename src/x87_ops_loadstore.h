@@ -3,6 +3,10 @@ static int opFILDiw_a16(uint32_t fetchdat)
         int16_t temp;
         FP_ENTER();
         fetch_ea_16(fetchdat);
+	if (mod == 3)
+	{
+		return opFFREEP(fetchdat)
+	}
         if (fplog) pclog("FILDw %08X:%08X\n", easeg, eaaddr);
         temp = geteaw(); if (abrt) return 1;
         if (fplog) pclog("  %f\n", (double)temp);
@@ -15,6 +19,10 @@ static int opFILDiw_a32(uint32_t fetchdat)
         int16_t temp;
         FP_ENTER();
         fetch_ea_32(fetchdat);
+	if (mod == 3)
+	{
+		return opFFREEP(fetchdat)
+	}
         if (fplog) pclog("FILDw %08X:%08X\n", easeg, eaaddr);
         temp = geteaw(); if (abrt) return 1;
         if (fplog) pclog("  %f\n", (double)temp);
