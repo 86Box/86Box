@@ -921,7 +921,7 @@ void resetide(void)
 		if (ide_drives[d].type == IDE_HDD)
 		{
 			ide_drives[d].dma_identify_data[0] = 7;
-			ide_drives[d].dma_identify_data[1] = 7 | (1 << (val + 8));
+			ide_drives[d].dma_identify_data[1] = 7 | (1 << 15);
 			ide_drives[d].dma_identify_data[2] = 0x3f;
 		}
 		else if (ide_drives[d].type == IDE_CDROM)
