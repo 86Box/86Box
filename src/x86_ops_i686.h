@@ -33,7 +33,7 @@ static int opSYSENTER(uint32_t fetchdat)
 	pclog("SYSENTER called\n");
 
 	if (!(cr0 & 1))  return internal_illegal("SYSENTER: CPU not in protected mode");
-	if (!(cs_msr & 0xFFFC))  return internal_illegal("SYSENTER: CS MSR not zero");
+	if (!(cs_msr & 0xFFFC))  return internal_illegal("SYSENTER: CS MSR is zero");
 
 	pclog("SYSENTER started:\n");
 	pclog("CS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", CS, _cs.base, _cs.limit, _cs.access, _cs.seg, _cs.limit_low, _cs.limit_high, _cs.checked);
@@ -85,7 +85,7 @@ static int opSYSEXIT(uint32_t fetchdat)
 
 	pclog("SYSEXIT called\n");
 
-	if (!(cs_msr & 0xFFFC))  return internal_illegal("SYSEXIT: CS MSR not zero");
+	if (!(cs_msr & 0xFFFC))  return internal_illegal("SYSEXIT: CS MSR is zero");
 	if (!(cr0 & 1))  return internal_illegal("SYSEXIT: CPU not in protected mode");
 	if (CS & 3)  return internal_illegal("SYSEXIT: CPL not 0");
 
@@ -496,8 +496,8 @@ static int opSYSCALL(uint32_t fetchdat)
 	uint16_t syscall_cs_seg_data[4] = {0, 0, 0, 0};
 	uint16_t syscall_ss_seg_data[4] = {0, 0, 0, 0};
 
-	if (!(cr0 & 1))  return internal_illegal();
-	if (!AMD_SYSCALL_SB)  return internal_illegal();
+	if (!(cr0 & 1))  return internal_illegal("SYSCALL: CPU not in protected mode");
+	if (!AMD_SYSCALL_SB)  return internal_illegal("SYSCALL: AMD SYSCALL SB MSR is zero");
 
 	/* Set VM, IF, RF to 0. */
 	/* eflags &= ~0x00030200;
@@ -587,8 +587,8 @@ static int opSYSRET(uint32_t fetchdat)
 	uint16_t sysret_cs_seg_data[4] = {0, 0, 0, 0};
 	uint16_t sysret_ss_seg_data[4] = {0, 0, 0, 0};
 
-	if (!cs_msr)  return internal_illegal();
-	if (!(cr0 & 1))  return internal_illegal();
+	if (!cs_msr)  return internal_illegal("SYSRET: CS MSR is zero");
+	if (!(cr0 & 1))  return internal_illegal("SYSRET: CPU not in protected mode");
 
 	cpu_state.pc = ECX;
 

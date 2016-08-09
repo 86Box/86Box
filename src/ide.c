@@ -1191,6 +1191,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 
                 case WIN_IDENTIFY: /* Identify Device */
                 case 0xEF:
+				if(val == 0xEF)  pclog("IDE command EF issued\n");
 //                        output=3;
 //                        timetolive=500;
                         ide->atastat = BUSY_STAT;
@@ -1214,6 +1215,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                 	ide->error = ABRT_ERR;
                         ide_irq_raise(ide);
 /*                        fatal("Bad IDE command %02X\n", val);*/
+                        pclog("Bad IDE command %02X\n", val);
                         return;
                 }
                 
