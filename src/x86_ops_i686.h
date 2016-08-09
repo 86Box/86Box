@@ -1,7 +1,7 @@
-static int internal_illegal()
+static int internal_illegal(char *s)
 {
 	cpu_state.pc = oldpc;
-	x86gpf(NULL, 0);
+	x86gpf(s, 0);
 	return 1;
 }
 
@@ -32,8 +32,8 @@ static int opSYSENTER(uint32_t fetchdat)
 
 	pclog("SYSENTER called\n");
 
-	if (!(cr0 & 1))  return internal_illegal();
-	if (!(cs_msr & 0xFFFC))  return internal_illegal();
+	if (!(cr0 & 1))  return internal_illegal("SYSENTER: CPU not in protected mode");
+	if (!(cs_msr & 0xFFFC))  return internal_illegal("SYSENTER: CS MSR not zero");
 
 	pclog("SYSENTER started:\n");
 	pclog("CS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", CS, _cs.base, _cs.limit, _cs.access, _cs.seg, _cs.limit_low, _cs.limit_high, _cs.checked);
@@ -85,11 +85,11 @@ static int opSYSEXIT(uint32_t fetchdat)
 
 	pclog("SYSEXIT called\n");
 
-	if (!(cs_msr & 0xFFFC))  return internal_illegal();
-	if (!(cr0 & 1))  return internal_illegal();
-	if (CS & 3)  return internal_illegal();
+	if (!(cs_msr & 0xFFFC))  return internal_illegal("SYSEXIT: CS MSR not zero");
+	if (!(cr0 & 1))  return internal_illegal("SYSEXIT: CPU not in protected mode");
+	if (CS & 3)  return internal_illegal("SYSEXIT: CPL not 0");
 
-	pclog("SYSEXIT completed:\n");
+	pclog("SYSEXIT start:\n");
 	pclog("CS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", CS, _cs.base, _cs.limit, _cs.access, _cs.seg, _cs.limit_low, _cs.limit_high, _cs.checked);
 	pclog("SS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", SS, _ss.base, _ss.limit, _ss.access, _ss.seg, _ss.limit_low, _ss.limit_high, _ss.checked);
 	pclog("Model specific registers: cs_msr=%04X, esp_msr=%08X, eip_msr=%08X\n", cs_msr, esp_msr, eip_msr);

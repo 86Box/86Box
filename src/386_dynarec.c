@@ -270,7 +270,7 @@ void x86_int_sw(int num)
 void x86illegal()
 {
         uint16_t addr;
-//        pclog("x86 illegal %04X %08X %04X:%08X %02X\n",msw,cr0,CS,pc,opcode);
+        pclog("x86 illegal %04X %08X %04X:%08X %02X\n",msw,cr0,CS,cpu_state.pc,opcode);
         
 //        if (output)
 //        {

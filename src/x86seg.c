@@ -145,25 +145,25 @@ void x86_doabrt(int x86_abrt)
 }
 void x86gpf(char *s, uint16_t error)
 {
-        // pclog("GPF %04X : %s\n", error, s);
+        pclog("GPF %04X : %s\n", error, s);
         abrt = ABRT_GPF;
         abrt_error = error;
 }
 void x86ss(char *s, uint16_t error)
 {
-        // pclog("SS %04X\n", error);
+        pclog("SS %04X\n", error);
         abrt = ABRT_SS;
         abrt_error = error;
 }
 void x86ts(char *s, uint16_t error)
 {
-        // pclog("TS %04X\n", error);
+        pclog("TS %04X\n", error);
         abrt = ABRT_TS;
         abrt_error = error;
 }
 void x86np(char *s, uint16_t error)
 {
-        // pclog("NP %04X : %s\n", error, s);
+        pclog("NP %04X : %s\n", error, s);
         abrt = ABRT_NP;
         abrt_error = error;
 }
