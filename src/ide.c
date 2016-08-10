@@ -1117,7 +1117,6 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                 exit(-1);
         }*/
 
-				ide->select = val;
                 if (cur_ide[ide_board] != ((val>>4)&1)+(ide_board<<1))
                 {
                         cur_ide[ide_board]=((val>>4)&1)+(ide_board<<1);
@@ -1143,6 +1142,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                         }
 
                         ide = &ide_drives[cur_ide[ide_board]];
+						ide->select = val;
                 }
                                 
                 ide->head = val & 0xF;
@@ -1399,7 +1399,7 @@ uint8_t readide(int ide_board, uint16_t addr)
 
         case 0x1F6: /* Drive/Head */
                 // temp = (uint8_t)(ide->head | ((cur_ide[ide_board] & 1) ? 0x10 : 0) | (ide->lba ? 0x40 : 0) | 0xa0);
-				temp = (uint8_t)ide->select;
+				temp = ((uint8_t)ide->select & 0xEF) | ((cur_ide[ide_board] & 1) ? 0x10 : 0);
                 break;
 
         case 0x1F7: /* Status */
