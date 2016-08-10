@@ -269,12 +269,13 @@ void x86_int_sw(int num)
         CPU_BLOCK_END();
 }
 
+int prev_prev_opcode = 0;
 int prev_opcode = 0;
 
 void x86illegal()
 {
         uint16_t addr;
-        pclog("x86 illegal %04X %08X %04X:%08X %02X (prev. %02X)\n",msw,cr0,CS,cpu_state.pc,opcode,prev_opcode);
+        pclog("x86 illegal %04X %08X %04X:%08X %02X (prev. %02X, prev. prev. %02X)\n",msw,cr0,CS,cpu_state.pc,opcode,prev_opcode,prev_prev_opcode);
         
 //        if (output)
 //        {
@@ -1272,6 +1273,7 @@ void exec386_dynarec(int cycs)
                                 if (!abrt)
                                 {               
                                         trap = flags & T_FLAG;
+					prev_prev_opcode = prev_opcode;
 					prev_opcode = opcode;
                                         opcode = fetchdat & 0xFF;
                                         fetchdat >>= 8;
@@ -1424,6 +1426,7 @@ inrecomp=0;
                                 if (!abrt)
                                 {               
                                         trap = flags & T_FLAG;
+					prev_prev_opcode = prev_opcode;
 					prev_opcode = opcode;
                                         opcode = fetchdat & 0xFF;
                                         fetchdat >>= 8;
@@ -1504,6 +1507,7 @@ inrecomp=0;
                                 if (!abrt)
                                 {               
                                         trap = flags & T_FLAG;
+					prev_prev_opcode = prev_opcode;
 					prev_opcode = opcode;
                                         opcode = fetchdat & 0xFF;
                                         fetchdat >>= 8;
