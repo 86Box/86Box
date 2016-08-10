@@ -1889,7 +1889,7 @@ void callbackide(int ide_board)
 				snum = hdc[cur_ide[ide->board]].spt;
 				snum *= hdc[cur_ide[ide->board]].hpc;
 				snum *= hdc[cur_ide[ide->board]].tracks;
-				ide_set_sector(ide, snum);
+				ide_set_sector(ide, snum - 1);
                 ide->atastat = READY_STAT | DSC_STAT;
                 ide_irq_raise(ide);
 				return;
