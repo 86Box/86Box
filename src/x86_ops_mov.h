@@ -366,7 +366,7 @@ static int opXLAT_a16(uint32_t fetchdat)
 {
         uint32_t addr = (BX + AL)&0xFFFF;
         uint8_t temp;
-	last_ea = addr;
+	cpu_state.last_ea = addr;
         temp = readmemb(ea_seg->base, addr);
         if (abrt) return 1;
         AL = temp;
@@ -377,7 +377,7 @@ static int opXLAT_a32(uint32_t fetchdat)
 {
         uint32_t addr = EBX + AL;
         uint8_t temp;
-	last_ea = addr;
+	cpu_state.last_ea = addr;
         temp = readmemb(ea_seg->base, addr);
         if (abrt) return 1;
         AL = temp;

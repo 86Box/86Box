@@ -391,7 +391,7 @@ static void fetcheal()
                 easeg=*mod1seg[rm];
                 eaaddr&=0xFFFF;
         }
-	last_ea = eaaddr;
+	cpu_state.last_ea = eaaddr;
 }
 
 static inline uint8_t geteab()
