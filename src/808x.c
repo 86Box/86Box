@@ -383,11 +383,15 @@ static void fetcheal()
                         if (rm&4) FETCHADD(9);
                         else      FETCHADD(11+slowrm[rm]);
                         break;
+			case 3:
+			if (!(rm&4)) FETCHADD(2+slowrm[rm]);
+			return;
                 }
                 eaaddr+=(*mod1add[0][rm])+(*mod1add[1][rm]);
                 easeg=*mod1seg[rm];
                 eaaddr&=0xFFFF;
         }
+	last_ea = eaaddr;
 }
 
 static inline uint8_t geteab()
@@ -1173,6 +1177,7 @@ void execx86(int cycs)
                         if (ssegs) ss=oldss;
                         writememw(ss,((SP-2)&0xFFFF),ES);
                         SP-=2;
+			cpu_state.last_ea = SP;
                         cycles-=14;
                         break;
                         case 0x07: /*POP ES*/
@@ -1180,6 +1185,7 @@ void execx86(int cycs)
                         tempw=readmemw(ss,SP);
                         loadseg(tempw,&_es);
                         SP+=2;
+			cpu_state.last_ea = SP;
                         cycles-=12;
                         break;
 
@@ -1236,6 +1242,7 @@ void execx86(int cycs)
                         if (ssegs) ss=oldss;
                         writememw(ss,((SP-2)&0xFFFF),CS);
                         SP-=2;
+			cpu_state.last_ea = SP;
                         cycles-=14;
                         break;
                         case 0x0F: /*POP CS - 8088/8086 only*/
@@ -1243,6 +1250,7 @@ void execx86(int cycs)
                         tempw=readmemw(ss,SP);
                         loadseg(tempw,&_cs);
                         SP+=2;
+			cpu_state.last_ea = SP;
                         cycles-=12;
                         break;
 
@@ -1296,12 +1304,14 @@ void execx86(int cycs)
                         writememw(ss,((SP-2)&0xFFFF),SS);
                         SP-=2;
                         cycles-=14;
+			cpu_state.last_ea = SP;
                         break;
                         case 0x17: /*POP SS*/
                         if (ssegs) ss=oldss;
                         tempw=readmemw(ss,SP);
                         loadseg(tempw,&_ss);
                         SP+=2;
+			cpu_state.last_ea = SP;
                         noint=1;
                         cycles-=12;
 //                        output=1;
@@ -1360,6 +1370,7 @@ void execx86(int cycs)
                         if (ssegs) ss=oldss;
                         writememw(ss,((SP-2)&0xFFFF),DS);
                         SP-=2;
+			cpu_state.last_ea = SP;
                         cycles-=14;
                         break;
                         case 0x1F: /*POP DS*/
@@ -1368,6 +1379,7 @@ void execx86(int cycs)
                         loadseg(tempw,&_ds);
                         if (ssegs) oldds=ds;
                         SP+=2;
+			cpu_state.last_ea = SP;
                         cycles-=12;
                         break;
 
@@ -1672,6 +1684,7 @@ void execx86(int cycs)
                         case 0x54: case 0x55: case 0x56: case 0x57:
                         if (ssegs) ss=oldss;
                         SP-=2;
+			cpu_state.last_ea = SP;
                         writememw(ss,SP,cpu_state.regs[opcode&7].w);
                         cycles-=15;
                         break;
@@ -1679,6 +1692,7 @@ void execx86(int cycs)
                         case 0x5C: case 0x5D: case 0x5E: case 0x5F:
                         if (ssegs) ss=oldss;
                         SP+=2;
+			cpu_state.last_ea = SP;
                         cpu_state.regs[opcode&7].w=readmemw(ss,(SP-2)&0xFFFF);
                         cycles-=12;
                         break;
@@ -2059,7 +2073,7 @@ void execx86(int cycs)
 
                         case 0x8D: /*LEA*/
                         fetchea();
-                        cpu_state.regs[reg].w=eaaddr;
+                        cpu_state.regs[reg].w=(mod == 3)?cpu_state.last_ea:eaaddr;
                         cycles-=2;
                         break;
 
@@ -2100,6 +2114,7 @@ void execx86(int cycs)
                         if (ssegs) ss=oldss;
                         tempw=readmemw(ss,SP);
                         SP+=2;
+			cpu_state.last_ea = SP;
                         seteaw(tempw);
                         cycles-=25;
                         break;
@@ -2136,6 +2151,7 @@ void execx86(int cycs)
                         writememw(ss,(SP-2)&0xFFFF,tempw3);
                         writememw(ss,(SP-4)&0xFFFF,tempw4);
                         SP-=4;
+			cpu_state.last_ea = SP;
                         cycles-=36;
                         FETCHCLEAR();
                         break;
@@ -2146,12 +2162,14 @@ void execx86(int cycs)
                         if (ssegs) ss=oldss;
                         writememw(ss,((SP-2)&0xFFFF),flags|0xF000);
                         SP-=2;
+			cpu_state.last_ea = SP;
                         cycles-=14;
                         break;
                         case 0x9D: /*POPF*/
                         if (ssegs) ss=oldss;
                         flags=readmemw(ss,SP)&0xFFF;
                         SP+=2;
+			cpu_state.last_ea = SP;
                         cycles-=12;
                         break;
                         case 0x9E: /*SAHF*/
@@ -2881,6 +2899,7 @@ void execx86(int cycs)
                         break;
                         case 0xD7: /*XLAT*/
                         addr=BX+AL;
+			cpu_state.last_ea = addr;
                         AL=readmemb(ds+addr);
                         cycles-=11;
                         break;
@@ -2945,6 +2964,7 @@ void execx86(int cycs)
 //                        writememb(ss+((SP-1)&0xFFFF),pc>>8);
                         writememw(ss,((SP-2)&0xFFFF),cpu_state.pc);
                         SP-=2;
+			cpu_state.last_ea = SP;
                         cpu_state.pc+=tempw;
                         cycles-=23;
                         FETCHCLEAR();
@@ -3346,6 +3366,7 @@ void execx86(int cycs)
                                 if (ssegs) ss=oldss;
                                 writememw(ss,(SP-2)&0xFFFF,cpu_state.pc);
                                 SP-=2;
+				cpu_state.last_ea = SP;
                                 cpu_state.pc=tempw;
 //                        printf("FF 10\n");
                                 cycles-=((mod==3)?20:29);
@@ -3363,6 +3384,7 @@ void execx86(int cycs)
                                 writememw(ss,(SP-2)&0xFFFF,tempw3);
                                 writememw(ss,((SP-4)&0xFFFF),tempw4);
                                 SP-=4;
+				cpu_state.last_ea = SP;
                                 cycles-=53;
                                 FETCHCLEAR();
                                 break;
@@ -3387,6 +3409,7 @@ void execx86(int cycs)
                                 if (ssegs) ss=oldss;
                                 writememw(ss,((SP-2)&0xFFFF),tempw);
                                 SP-=2;
+				cpu_state.last_ea = SP;
                                 cycles-=((mod==3)?15:24);
                                 break;
 

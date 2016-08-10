@@ -28,6 +28,7 @@ static inline void fetch_ea_32_long(uint32_t rmdat)
                 if (writelookup2[addr >> 12] != -1)
                    eal_w = (uint32_t *)(writelookup2[addr >> 12] + addr);
         }
+	cpu_state.last_ea = eaaddr;
 }
 
 static inline void fetch_ea_16_long(uint32_t rmdat)
@@ -43,6 +44,7 @@ static inline void fetch_ea_16_long(uint32_t rmdat)
                 if (writelookup2[addr >> 12] != -1)
                    eal_w = (uint32_t *)(writelookup2[addr >> 12] + addr);
         }
+	cpu_state.last_ea = eaaddr;
 }
 
 #define fetch_ea_16(rmdat)              cpu_state.pc++; if (mod != 3) fetch_ea_16_long(rmdat); 

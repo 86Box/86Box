@@ -108,6 +108,7 @@ struct
         uint32_t flags_op1, flags_op2;
         
         uint32_t pc;
+	uint32_t last_ea;
 } cpu_state;
 
 /*x86reg regs[8];*/
