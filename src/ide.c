@@ -297,7 +297,7 @@ typedef struct IDE
         int board;
         uint8_t atastat;
         uint8_t error;
-        int secount,sector,cylinder,head,drive,cylprecomp,select;
+        int secount,sector,cylinder,head,drive,cylprecomp;
         uint8_t command;
         uint8_t fdisk;
         int pos;
@@ -849,9 +849,8 @@ int ide_set_features(IDE *ide)
 void ide_set_sector(IDE *ide, int64_t sector_num)
 {
 	unsigned int cyl, r;
-	if (ide->select & 0x40)
+	if (ide->lba)
 	{
-		ide->select = (ide->select & 0xf0) | (sector_num >> 24);
 		ide->head = (sector_num >> 24);
 		ide->cylinder = (sector_num >> 8);
 		ide->sector = (sector_num);
@@ -861,7 +860,6 @@ void ide_set_sector(IDE *ide, int64_t sector_num)
 		cyl = sector_num / (hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt);
 		r = sector_num % (hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt);
 		ide->cylinder = cyl;
-		ide->select = (ide->select & 0xf0) | ((r / hdc[cur_ide[ide->board]].spt) & 0x0f);
 		ide->head = ((r / hdc[cur_ide[ide->board]].spt) & 0x0f);
 		ide->sector = (r % hdc[cur_ide[ide->board]].spt) + 1;
 	}
@@ -1142,7 +1140,6 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                         }
 
                         ide = &ide_drives[cur_ide[ide_board]];
-						ide->select = val;
                 }
                                 
                 ide->head = val & 0xF;
@@ -1152,7 +1149,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                 
                 ide->lba_addr = (ide->lba_addr & 0x0FFFFFF) | ((val & 0xF) << 24);
                 ide_other->lba_addr = (ide_other->lba_addr & 0x0FFFFFF)|((val & 0xF) << 24);
-                                
+
                 ide_irq_update(ide);
                 return;
 
@@ -1398,8 +1395,7 @@ uint8_t readide(int ide_board, uint16_t addr)
                 break;
 
         case 0x1F6: /* Drive/Head */
-                // temp = (uint8_t)(ide->head | ((cur_ide[ide_board] & 1) ? 0x10 : 0) | (ide->lba ? 0x40 : 0) | 0xa0);
-				temp = ((uint8_t)ide->select & 0xEF) | ((cur_ide[ide_board] & 1) ? 0x10 : 0);
+                temp = (uint8_t)(ide->head | ((cur_ide[ide_board] & 1) ? 0x10 : 0) | (ide->lba ? 0x40 : 0) | 0xa0);
                 break;
 
         case 0x1F7: /* Status */
