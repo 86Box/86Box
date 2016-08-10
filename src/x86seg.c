@@ -145,6 +145,7 @@ void x86_doabrt(int x86_abrt)
 }
 void x86gpf(char *s, uint16_t error)
 {
+	return;
         pclog("GPF %04X : %s\n", error, s);
         abrt = ABRT_GPF;
         abrt_error = error;
