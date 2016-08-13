@@ -105,7 +105,7 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
         {
                 if (val&16) /*ICW1*/
                 {
-                        pic.mask=0xFF;
+                        pic.mask=0;
                         pic.mask2=0;
                         pic.icw=1;
                         pic.icw1=val;
@@ -222,7 +222,7 @@ void pic2_write(uint16_t addr, uint8_t val, void *priv)
         {
                 if (val&16) /*ICW1*/
                 {
-                        pic2.mask=0xFF;
+                        pic2.mask=0;
                         pic2.mask2=0;
                         pic2.icw=1;
                         pic2.icw1=val;

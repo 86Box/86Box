@@ -101,6 +101,61 @@ void svga_render_text_40(svga_t *svga)
         }
 }
 
+void svga_render_text_40_12(svga_t *svga)
+{     
+	int y_add = (enable_overscan) ? 16 : 0;
+	int x_add = (enable_overscan) ? 12 : 0;
+
+        if (svga->firstline_draw == 2000) 
+                svga->firstline_draw = svga->displine;
+        svga->lastline_draw = svga->displine;
+        
+        if (svga->fullchange)
+        {
+                uint32_t *p = &((uint32_t *)buffer32->line[svga->displine + y_add])[32 + x_add];
+                int x, xx;
+                int drawcursor;
+                uint8_t chr, attr;
+		uint16_t dat;
+                uint32_t charaddr;
+                int fg, bg;
+                int xinc = 24;
+                
+                for (x = 0; x < svga->hdisp; x += xinc)
+                {
+                        drawcursor = ((svga->ma == svga->ca) && svga->con && svga->cursoron);
+			chr = svga->vram[svga->ma << 1];
+			attr = svga->vram[(svga->ma << 1) + 1];
+                        if (attr & 8) charaddr = svga->charsetb + (chr * 128);
+                        else          charaddr = svga->charseta + (chr * 128);
+
+                        if (drawcursor) 
+                        { 
+                                bg = svga->pallook[svga->egapal[attr & 15]]; 
+                                fg = svga->pallook[svga->egapal[attr >> 4]]; 
+                        }
+                        else
+                        {
+                                fg = svga->pallook[svga->egapal[attr & 15]];
+                                bg = svga->pallook[svga->egapal[attr >> 4]];
+                                if (attr & 0x80 && svga->attrregs[0x10] & 8)
+                                {
+                                        bg = svga->pallook[svga->egapal[(attr >> 4) & 7]];
+                                        if (svga->blink & 16) 
+                                                fg = bg;
+                                }
+                        }
+
+                        dat = *(uint16_t *) &(svga->vram[charaddr + (svga->sc << 2) - 1]);
+			for (xx = 0; xx < 24; xx += 2) 
+				p[xx] = p[xx + 1] = (dat & (0x800 >> (xx >> 1))) ? fg : bg;
+                        svga->ma += 4; 
+                        p += xinc;
+                }
+                svga->ma = svga_mask_addr(svga->ma, svga);
+        }
+}
+
 void svga_render_text_80(svga_t *svga)
 {
 	FILE *f;
@@ -161,6 +216,63 @@ void svga_render_text_80(svga_t *svga)
                                 else                  
                                         p[8] = (dat & 1) ? fg : bg;
                         }
+                        svga->ma += 4; 
+                        p += xinc;
+                }
+                svga->ma = svga_mask_addr(svga->ma, svga);
+        }
+}
+
+void svga_render_text_80_12(svga_t *svga)
+{
+	FILE *f;
+	int y_add = (enable_overscan) ? 16 : 0;
+	int x_add = (enable_overscan) ? 12 : 0;
+
+        if (svga->firstline_draw == 2000) 
+                svga->firstline_draw = svga->displine;
+        svga->lastline_draw = svga->displine;
+        
+        if (svga->fullchange)
+        {
+                uint32_t *p = &((uint32_t *)buffer32->line[svga->displine + y_add])[32 + x_add];
+                int x, xx;
+                int drawcursor;
+                uint8_t chr, attr;
+		uint16_t dat;
+                uint32_t charaddr;
+                int fg, bg;
+                int xinc = 12;
+
+                for (x = 0; x < svga->hdisp; x += xinc)
+                {
+                        drawcursor = ((svga->ma == (svga->ca + 8)) && svga->con && svga->cursoron);
+			chr = svga->vram[svga->ma << 1];
+			attr = svga->vram[(svga->ma << 1) + 1];
+                        if (attr & 8) charaddr = svga->charsetb + (chr * 128);
+                        else          charaddr = svga->charseta + (chr * 128);
+
+                        if (drawcursor) 
+                        { 
+                                bg = svga->pallook[svga->egapal[attr & 15]]; 
+                                fg = svga->pallook[svga->egapal[attr >> 4]]; 
+                        }
+                        else
+                        {
+                                fg = svga->pallook[svga->egapal[attr & 15]];
+                                bg = svga->pallook[svga->egapal[attr >> 4]];
+                                if (attr & 0x80 && svga->attrregs[0x10] & 8)
+                                {
+                                        bg = svga->pallook[svga->egapal[(attr >> 4) & 7]];
+                                        if (svga->blink & 16) 
+                                                fg = bg;
+                                }
+                        }
+
+                        dat = svga->vram[charaddr + (svga->sc << 2)] << 4;
+                        dat |= ((svga->vram[charaddr + (svga->sc << 2) + 1]) >> 4);
+			for (xx = 0; xx < 12; xx++) 
+				p[xx] = (dat & (0x800 >> xx)) ? fg : bg;
                         svga->ma += 4; 
                         p += xinc;
                 }

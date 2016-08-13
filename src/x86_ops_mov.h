@@ -329,16 +329,16 @@ static int opMOV_a32_EAX(uint32_t fetchdat)
 static int opLEA_w_a16(uint32_t fetchdat)
 {
         fetch_ea_16(fetchdat);
-        // ILLEGAL_ON(mod == 3);
-        cpu_state.regs[reg].w = (mod == 3) ? (cpu_state.last_ea & 0xffff) : eaaddr;
+        ILLEGAL_ON(mod == 3);
+        cpu_state.regs[reg].w = eaaddr;
         CLOCK_CYCLES(timing_rr);
         return 0;
 }
 static int opLEA_w_a32(uint32_t fetchdat)
 {
         fetch_ea_32(fetchdat);
-        // ILLEGAL_ON(mod == 3);
-        cpu_state.regs[reg].w = (mod == 3) ? (cpu_state.last_ea & 0xffff) : eaaddr;
+        ILLEGAL_ON(mod == 3);
+        cpu_state.regs[reg].w = eaaddr;
         CLOCK_CYCLES(timing_rr);
         return 0;
 }
@@ -346,16 +346,16 @@ static int opLEA_w_a32(uint32_t fetchdat)
 static int opLEA_l_a16(uint32_t fetchdat)
 {
         fetch_ea_16(fetchdat);
-        // ILLEGAL_ON(mod == 3);
-        cpu_state.regs[reg].l = ((mod == 3) ? cpu_state.last_ea : eaaddr) & 0xffff;
+        ILLEGAL_ON(mod == 3);
+        cpu_state.regs[reg].l = eaaddr & 0xffff;
         CLOCK_CYCLES(timing_rr);
         return 0;
 }
 static int opLEA_l_a32(uint32_t fetchdat)
 {
         fetch_ea_32(fetchdat);
-        // ILLEGAL_ON(mod == 3);
-        cpu_state.regs[reg].l = (mod == 3) ? cpu_state.last_ea : eaaddr;
+        ILLEGAL_ON(mod == 3);
+        cpu_state.regs[reg].l = eaaddr;
         CLOCK_CYCLES(timing_rr);
         return 0;
 }

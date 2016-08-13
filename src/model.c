@@ -156,8 +156,10 @@ MODEL models[] =
         {"Award 430VX PCI",     ROM_430VX,       { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 256, 1,      at_i430vx_init},
         {"ASUS P/I-P55TVP4",    ROM_P55TVP4,     { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 512, 1,     at_p55tvp4_init},
         {"Epox P55-VA",         ROM_P55VA,       { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 256, 1,       at_p55va_init},
-        {"Award 440FX PCI",     ROM_440FX,     { "Intel", cpus_PentiumPro,"Klamath",    cpus_Pentium2,         "Deschutes",      cpus_Pentium2D},         0, 1,   1, 1024, 1,    at_i440fx_init},
-        {"Award KN97 (440FX PCI)",ROM_KN97,    { "Intel", cpus_PentiumPro,"Klamath",    cpus_Pentium2,         "Deschutes",      cpus_Pentium2D},         0, 1,   1, 1024, 1,    at_kn97_init},
+        {"Award 440FX PCI",     ROM_440FX,       { "Intel", cpus_PentiumPro,    "",    NULL,         "",      NULL},         0, 1,   1, 1024, 1,    at_i440fx_init},
+        {"Award KN97 (440FX PCI)",ROM_KN97,      { "Intel", cpus_PentiumPro,    "",    NULL,         "",      NULL},         0, 1,   1, 1024, 1,    at_kn97_init},
+        // {"Award 440FX PCI",     ROM_440FX,     { "Intel", cpus_PentiumPro,"Klamath",    cpus_Pentium2,         "Deschutes",      cpus_Pentium2D},         0, 1,   1, 1024, 1,    at_i440fx_init},
+        // {"Award KN97 (440FX PCI)",ROM_KN97,    { "Intel", cpus_PentiumPro,"Klamath",    cpus_Pentium2,         "Deschutes",      cpus_Pentium2D},         0, 1,   1, 1024, 1,    at_kn97_init},
         {"", -1, {"", 0, "", 0, "", 0}, 0,0,0, 0}
 };
 

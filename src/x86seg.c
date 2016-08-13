@@ -78,7 +78,7 @@ void x86_doabrt(int x86_abrt)
         
 /*        if (CS == 0x3433 && cpu_state.pc == 0x000006B0)
         {
-                pclog("Quit it\n");
+                // pclog("Quit it\n");
                 dumpregs();
                 exit(-1);
         }*/
@@ -260,7 +260,7 @@ void loadseg(uint16_t seg, x86seg *s)
                 {
                         if (s==&_ss)
                         {
-                                pclog("SS selector = NULL!\n");
+                                // pclog("SS selector = NULL!\n");
                                 x86ss(NULL,0);
                                 return;
 //                                dumpregs();
@@ -281,7 +281,7 @@ void loadseg(uint16_t seg, x86seg *s)
                 {
                         if (addr>=ldt.limit)
                         {
-                                pclog("Bigger than LDT limit %04X %04X %02X %02X %02X\n",seg,ldt.limit, opcode, opcode2, rmdat);
+                                // pclog("Bigger than LDT limit %04X %04X %02X %02X %02X\n",seg,ldt.limit, opcode, opcode2, rmdat);
 //                                dumppic();
 //                                dumpregs();
 //                                exit(-1);
@@ -294,7 +294,7 @@ void loadseg(uint16_t seg, x86seg *s)
                 {
                         if (addr>=gdt.limit)
                         {
-                                pclog("Bigger than GDT limit %04X %04X 1\n",seg,gdt.limit);
+                                // pclog("Bigger than GDT limit %04X %04X 1\n",seg,gdt.limit);
 //                                dumpregs();
 //                                exit(-1);
                                 x86gpf("loadseg(): Bigger than GDT limit",seg&~3);
@@ -312,13 +312,13 @@ void loadseg(uint16_t seg, x86seg *s)
                 {
                         if (!(seg&~3))
                         {
-                                pclog("Load SS null selector\n");
+                                // pclog("Load SS null selector\n");
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }
                         if ((seg&3)!=CPL || dpl!=CPL)
                         {
-                                pclog("Invalid SS permiss\n");
+                                // pclog("Invalid SS permiss\n");
                                 x86gpf(NULL,seg&~3);
 //                                x86abort("Invalid SS permiss for %04X!\n",seg&0xFFFC);
                                 return;
@@ -328,14 +328,14 @@ void loadseg(uint16_t seg, x86seg *s)
                                 case 0x12: case 0x13: case 0x16: case 0x17: /*r/w*/
                                 break;
                                 default:
-                                pclog("Invalid SS type\n");
+                                // pclog("Invalid SS type\n");
                                 x86gpf(NULL,seg&~3);
 //                                x86abort("Invalid SS segment type for %04X!\n",seg&0xFFFC);
                                 return;
                         }
                         if (!(segdat[2]&0x8000))
                         {
-                                pclog("Load SS not present!\n");
+                                // pclog("Load SS not present!\n");
                                 x86ss(NULL,seg&~3);
                                 return;
                         }
@@ -354,7 +354,7 @@ void loadseg(uint16_t seg, x86seg *s)
 //                                pclog("Load seg %04X %i %i %04X:%08X\n",seg,dpl,CS&3,CS,cpu_state.pc);
                                 if ((seg&3)>dpl || (CPL)>dpl)
                                 {
-                                        pclog("Data seg fail - %04X:%08X %04X %i %04X\n",CS,cpu_state.pc,seg,dpl,segdat[2]);
+                                        // pclog("Data seg fail - %04X:%08X %04X %i %04X\n",CS,cpu_state.pc,seg,dpl,segdat[2]);
                                         x86gpf(NULL,seg&~3);
 //                                        x86abort("Data segment load - level too low!\n",seg&0xFFFC);
                                         return;
@@ -363,7 +363,7 @@ void loadseg(uint16_t seg, x86seg *s)
                                 case 0x1E: case 0x1F: /*Readable conforming code*/
                                 break;
                                 default:
-                                pclog("Invalid segment type for %04X! %04X\n",seg&0xFFFC,segdat[2]);
+                                // pclog("Invalid segment type for %04X! %04X\n",seg&0xFFFC,segdat[2]);
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }
@@ -418,7 +418,7 @@ void loadcs(uint16_t seg)
 //                pclog("Load CS %04X\n",seg);
                 if (!(seg&~3))
                 {
-                        pclog("Trying to load CS with NULL selector! lcs\n");
+                        // pclog("Trying to load CS with NULL selector! lcs\n");
 //                        dumpregs();
 //                        exit(-1);
                         x86gpf(NULL,0);
@@ -430,7 +430,7 @@ void loadcs(uint16_t seg)
                 {
                         if (addr>=ldt.limit)
                         {
-                                pclog("Bigger than LDT limit %04X %04X CS\n",seg,ldt.limit);
+                                // pclog("Bigger than LDT limit %04X %04X CS\n",seg,ldt.limit);
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }
@@ -440,7 +440,7 @@ void loadcs(uint16_t seg)
                 {
                         if (addr>=gdt.limit)
                         {
-                                pclog("Bigger than GDT limit %04X %04X CS\n",seg,gdt.limit);
+                                // pclog("Bigger than GDT limit %04X %04X CS\n",seg,gdt.limit);
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }
@@ -451,7 +451,7 @@ void loadcs(uint16_t seg)
                 segdat[1]=readmemw(0,addr+2);
                 segdat[2]=readmemw(0,addr+4);
                 segdat[3]=readmemw(0,addr+6); cpl_override=0; if (abrt) return;
-                if (optype==JMP) pclog("Code seg - %04X - %04X %04X %04X %04X\n",seg,segdat[0],segdat[1],segdat[2],segdat[3]);
+                // if (optype==JMP) pclog("Code seg - %04X - %04X %04X %04X %04X\n",seg,segdat[0],segdat[1],segdat[2],segdat[3]);
 //                if (!(segdat[2]&0x8000)) x86abort("Code segment not present!\n");
 //                if (output) pclog("Segdat2 %04X\n",segdat[2]);
                 if (segdat[2]&0x1000) /*Normal code segment*/
@@ -461,7 +461,7 @@ void loadcs(uint16_t seg)
                                 if ((seg&3)>CPL)
                                 {
                                         x86gpf(NULL,seg&~3);
-                                        pclog("loadcs RPL > CPL %04X %04X %i %02X\n",segdat[2],seg,CPL,opcode);
+                                        // pclog("loadcs RPL > CPL %04X %04X %i %02X\n",segdat[2],seg,CPL,opcode);
                                         return;
                                 }
                                 if (CPL != DPL)
@@ -505,7 +505,7 @@ void loadcs(uint16_t seg)
                         switch (segdat[2]&0xF00)
                         {
                                 default:
-                                pclog("Bad CS %02X %02X %i special descriptor %03X %04X\n",opcode,rmdat,optype,segdat[2]&0xF00,seg);
+                                // pclog("Bad CS %02X %02X %i special descriptor %03X %04X\n",opcode,rmdat,optype,segdat[2]&0xF00,seg);
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }
@@ -539,7 +539,7 @@ void loadcsjmp(uint16_t seg, uint32_t oxpc)
         {
                 if (!(seg&~3))
                 {
-                        pclog("Trying to load CS with NULL selector! lcsjmp\n");
+                        // pclog("Trying to load CS with NULL selector! lcsjmp\n");
                         x86gpf(NULL,0);
                         return;
 //                        dumpregs();
@@ -550,7 +550,7 @@ void loadcsjmp(uint16_t seg, uint32_t oxpc)
                 {
                         if (addr>=ldt.limit)
                         {
-                                pclog("Bigger than LDT limit %04X %04X CS\n",seg,ldt.limit);
+                                // pclog("Bigger than LDT limit %04X %04X CS\n",seg,ldt.limit);
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }
@@ -560,7 +560,7 @@ void loadcsjmp(uint16_t seg, uint32_t oxpc)
                 {
                         if (addr>=gdt.limit)
                         {
-                                pclog("Bigger than GDT limit %04X %04X CS\n",seg,gdt.limit);
+                                // pclog("Bigger than GDT limit %04X %04X CS\n",seg,gdt.limit);
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }
@@ -620,7 +620,7 @@ void loadcsjmp(uint16_t seg, uint32_t oxpc)
 //                        pclog("System CS\n");
                         if (!(segdat[2]&0x8000))
                         {
-                                x86np("Load CS JMP system selector not present\n", seg & 0xfffc);
+                                // x86np("Load CS JMP system selector not present\n", seg & 0xfffc);
                                 return;
                         }
                         type=segdat[2]&0xF00;
@@ -662,7 +662,7 @@ void loadcsjmp(uint16_t seg, uint32_t oxpc)
 
                                 if (!(seg2&~3))
                                 {
-                                        pclog("Trying to load CS with NULL selector! lcsjmpcg\n");
+                                        // pclog("Trying to load CS with NULL selector! lcsjmpcg\n");
                                         x86gpf(NULL,0);
                                         return;
 //                                        dumpregs();
@@ -673,7 +673,7 @@ void loadcsjmp(uint16_t seg, uint32_t oxpc)
                                 {
                                         if (addr>=ldt.limit)
                                         {
-                                                pclog("Bigger than LDT limit %04X %04X CSJ\n",seg2,gdt.limit);
+                                                // pclog("Bigger than LDT limit %04X %04X CSJ\n",seg2,gdt.limit);
                                                 x86gpf(NULL,seg2&~3);
                                                 return;
                                         }
@@ -683,7 +683,7 @@ void loadcsjmp(uint16_t seg, uint32_t oxpc)
                                 {
                                         if (addr>=gdt.limit)
                                         {
-                                                pclog("Bigger than GDT limit %04X %04X CSJ\n",seg2,gdt.limit);
+                                                // pclog("Bigger than GDT limit %04X %04X CSJ\n",seg2,gdt.limit);
                                                 x86gpf(NULL,seg2&~3);
                                                 return;
                                         }
@@ -712,7 +712,7 @@ void loadcsjmp(uint16_t seg, uint32_t oxpc)
                                         case 0x1800: case 0x1900: case 0x1A00: case 0x1B00: /*Non-conforming code*/
                                         if (DPL > CPL)
                                         {
-                                                pclog("Call gate DPL > CPL");
+                                                // pclog("Call gate DPL > CPL");
                                                 x86gpf(NULL,seg2&~3);
                                                 return;
                                         }
@@ -731,7 +731,7 @@ void loadcsjmp(uint16_t seg, uint32_t oxpc)
                                         break;
 
                                         default:
-                                        pclog("JMP Call gate bad segment type\n");
+                                        // pclog("JMP Call gate bad segment type\n");
                                         x86gpf(NULL,seg2&~3);
                                         return;
                                 }
@@ -752,7 +752,7 @@ void loadcsjmp(uint16_t seg, uint32_t oxpc)
                                 return;
 
                                 default:
-                                pclog("Bad JMP CS %02X %02X %i special descriptor %03X %04X\n",opcode,rmdat,optype,segdat[2]&0xF00,seg);
+                                // pclog("Bad JMP CS %02X %02X %i special descriptor %03X %04X\n",opcode,rmdat,optype,segdat[2]&0xF00,seg);
                                 x86gpf(NULL,0);
                                 return;
 //                                dumpregs();
@@ -865,7 +865,7 @@ void loadcscall(uint16_t seg)
                 if (csout) pclog("Protected mode CS load! %04X\n",seg);
                 if (!(seg&~3))
                 {
-                        pclog("Trying to load CS with NULL selector! lcscall\n");
+                        // pclog("Trying to load CS with NULL selector! lcscall\n");
                         x86gpf(NULL,0);
                         return;
 //                        dumpregs();
@@ -876,7 +876,7 @@ void loadcscall(uint16_t seg)
                 {
                         if (addr>=ldt.limit)
                         {
-                                pclog("Bigger than LDT limit %04X %04X CSC\n",seg,gdt.limit);
+                                // pclog("Bigger than LDT limit %04X %04X CSC\n",seg,gdt.limit);
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }
@@ -886,7 +886,7 @@ void loadcscall(uint16_t seg)
                 {
                         if (addr>=gdt.limit)
                         {
-                                pclog("Bigger than GDT limit %04X %04X CSC\n",seg,gdt.limit);
+                                // pclog("Bigger than GDT limit %04X %04X CSC\n",seg,gdt.limit);
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }
@@ -908,26 +908,26 @@ void loadcscall(uint16_t seg)
                         {
                                 if ((seg&3)>CPL)
                                 {
-                                        /* if (csout) */ pclog("Not conforming, RPL > CPL\n");
+                                        /* if (csout) */ // pclog("Not conforming, RPL > CPL\n");
                                         x86gpf("loadcscall(): segment > CPL",seg&~3);
                                         return;
                                 }
                                 if (CPL != DPL)
                                 {
-                                        /* if (csout) */ pclog("Not conforming, CPL != DPL (%i %i)\n",CPL,DPL);
+                                        /* if (csout) */ // pclog("Not conforming, CPL != DPL (%i %i)\n",CPL,DPL);
                                         x86gpf(NULL,seg&~3);
                                         return;
                                 }
                         }
                         if (CPL < DPL)
                         {
-                                /* if (csout) */ pclog("CPL < DPL\n");
+                                /* if (csout) */ // pclog("CPL < DPL\n");
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }
                         if (!(segdat[2]&0x8000))
                         {
-                                /* if (csout) */ pclog("Not present\n");
+                                /* if (csout) */ // pclog("Not present\n");
                                 x86np("Load CS call not present", seg & 0xfffc);
                                 return;
                         }
@@ -998,7 +998,7 @@ void loadcscall(uint16_t seg)
                                 
                                 if (!(seg2&~3))
                                 {
-                                        pclog("Trying to load CS with NULL selector! lcscallcg\n");
+                                        // pclog("Trying to load CS with NULL selector! lcscallcg\n");
                                         x86gpf(NULL,0);
                                         return;
 //                                        dumpregs();
@@ -1009,7 +1009,7 @@ void loadcscall(uint16_t seg)
                                 {
                                         if (addr>=ldt.limit)
                                         {
-                                                pclog("Bigger than LDT limit %04X %04X CSC\n",seg2,gdt.limit);
+                                                // pclog("Bigger than LDT limit %04X %04X CSC\n",seg2,gdt.limit);
                                                 x86gpf(NULL,seg2&~3);
                                                 return;
                                         }
@@ -1019,7 +1019,7 @@ void loadcscall(uint16_t seg)
                                 {
                                         if (addr>=gdt.limit)
                                         {
-                                                pclog("Bigger than GDT limit %04X %04X CSC\n",seg2,gdt.limit);
+                                                // pclog("Bigger than GDT limit %04X %04X CSC\n",seg2,gdt.limit);
                                                 x86gpf(NULL,seg2&~3);
                                                 return;
                                         }
@@ -1073,7 +1073,7 @@ void loadcscall(uint16_t seg)
                                                 if (output) pclog("New stack %04X:%08X\n",newss,newsp);
                                                 if (!(newss&~3))
                                                 {
-                                                        pclog("Call gate loading null SS\n");
+                                                        // pclog("Call gate loading null SS\n");
                                                         x86ts(NULL,newss&~3);
                                                         return;
                                                 }
@@ -1107,7 +1107,7 @@ void loadcscall(uint16_t seg)
                                                 if (output) pclog("Read stack seg done!\n");
                                                 if (((newss & 3) != DPL) || (DPL2 != DPL))
                                                 {
-                                                        pclog("Call gate loading SS with wrong permissions  %04X %04X  %i %i   %04X %04X\n", newss, seg2, DPL, DPL2, segdat[2], segdat2[2]);
+                                                        // pclog("Call gate loading SS with wrong permissions  %04X %04X  %i %i   %04X %04X\n", newss, seg2, DPL, DPL2, segdat[2], segdat2[2]);
 //                                                        dumpregs();
 //                                                        exit(-1);
                                                         x86ts(NULL,newss&~3);
@@ -1115,13 +1115,13 @@ void loadcscall(uint16_t seg)
                                                 }
                                                 if ((segdat2[2]&0x1A00)!=0x1200)
                                                 {
-                                                        pclog("Call gate loading SS wrong type\n");
+                                                        // pclog("Call gate loading SS wrong type\n");
                                                         x86ts(NULL,newss&~3);
                                                         return;
                                                 }
                                                 if (!(segdat2[2]&0x8000))
                                                 {
-                                                        pclog("Call gate loading SS not present\n");
+                                                        // pclog("Call gate loading SS not present\n");
                                                         x86np("Call gate loading SS not present\n", newss & 0xfffc);
                                                         return;
                                                 }
@@ -1162,7 +1162,7 @@ void loadcscall(uint16_t seg)
                                                         PUSHL(oldsp2);
                                                         if (abrt)
                                                         {
-                                                                pclog("ABRT PUSHL\n");
+                                                                // pclog("ABRT PUSHL\n");
                                                                 SS = oldss;
                                                                 ESP = oldsp2;
                                                                 return;
@@ -1176,7 +1176,7 @@ void loadcscall(uint16_t seg)
                                                                         PUSHL(readmeml(oldssbase,oldsp+(count*4)));
                                                                         if (abrt)
                                                                         {
-                                                                                pclog("ABRT COPYL\n");
+                                                                                // pclog("ABRT COPYL\n");
                                                                                 SS = oldss;
                                                                                 ESP = oldsp2;
                                                                                 return;
@@ -1195,7 +1195,7 @@ void loadcscall(uint16_t seg)
                                                         PUSHW(oldsp2);
                                                         if (abrt)
                                                         {
-                                                                pclog("ABRT PUSHW\n");
+                                                                // pclog("ABRT PUSHW\n");
                                                                 SS = oldss;
                                                                 ESP = oldsp2;
                                                                 return;
@@ -1213,7 +1213,7 @@ void loadcscall(uint16_t seg)
                                                                         PUSHW(tempw);
                                                                         if (abrt)
                                                                         {
-                                                                                pclog("ABRT COPYW\n");
+                                                                                // pclog("ABRT COPYW\n");
                                                                                 SS = oldss;
                                                                                 ESP = oldsp2;
                                                                                 return;
@@ -1230,7 +1230,7 @@ void loadcscall(uint16_t seg)
                                         }
                                         else if (DPL > CPL)
                                         {
-                                                pclog("Call gate DPL > CPL");
+                                                // pclog("Call gate DPL > CPL");
                                                 x86gpf(NULL,seg2&~3);
                                                 return;
                                         }
@@ -1260,7 +1260,7 @@ void loadcscall(uint16_t seg)
                                         break;
                                         
                                         default:
-                                        pclog("Call gate bad segment type\n");
+                                        // pclog("Call gate bad segment type\n");
                                         x86gpf(NULL,seg2&~3);
                                         return;
                                 }
@@ -1274,7 +1274,7 @@ void loadcscall(uint16_t seg)
 
 
                                 default:
-                                pclog("Bad CALL special descriptor %03X\n",segdat[2]&0xF00);
+                                // pclog("Bad CALL special descriptor %03X\n",segdat[2]&0xF00);
                                 x86gpf(NULL,seg&~3);
                                 return;
 //                                dumpregs();
@@ -1321,7 +1321,7 @@ void pmoderetf(int is32, uint16_t off)
         if (output) pclog("Return to %04X:%08X\n",seg,newpc);
         if ((seg&3)<CPL)
         {
-                pclog("RETF RPL<CPL %04X %i %i %04X:%08X\n",seg,CPL,ins,CS,cpu_state.pc);
+                // pclog("RETF RPL<CPL %04X %i %i %04X:%08X\n",seg,CPL,ins,CS,cpu_state.pc);
 //                output=3;
 //                timetolive=100;
 //                dumpregs();
@@ -1332,7 +1332,7 @@ void pmoderetf(int is32, uint16_t off)
         }
         if (!(seg&~3))
         {
-                pclog("Trying to load CS with NULL selector! retf\n");
+                // pclog("Trying to load CS with NULL selector! retf\n");
 //                dumpregs();
 //                exit(-1);
                 x86gpf(NULL,0);
@@ -1343,7 +1343,7 @@ void pmoderetf(int is32, uint16_t off)
         {
                 if (addr>=ldt.limit)
                 {
-                        pclog("Bigger than LDT limit %04X %04X RETF\n",seg,ldt.limit);
+                        // pclog("Bigger than LDT limit %04X %04X RETF\n",seg,ldt.limit);
                         x86gpf(NULL,seg&~3);
                         return;
                 }
@@ -1353,7 +1353,7 @@ void pmoderetf(int is32, uint16_t off)
         {
                 if (addr>=gdt.limit)
                 {
-                        pclog("Bigger than GDT limit %04X %04X RETF\n",seg,gdt.limit);
+                        // pclog("Bigger than GDT limit %04X %04X RETF\n",seg,gdt.limit);
                         x86gpf(NULL,seg&~3);
 //                        dumpregs();
 //                        exit(-1);
@@ -1381,7 +1381,7 @@ void pmoderetf(int is32, uint16_t off)
                         case 0x1800: case 0x1900: case 0x1A00: case 0x1B00: /*Non-conforming*/
                         if (CPL != DPL)
                         {
-                                pclog("RETF non-conforming CPL != DPL\n");
+                                // pclog("RETF non-conforming CPL != DPL\n");
                                 ESP=oldsp;
                                 x86gpf(NULL,seg&~3);
                                 return;
@@ -1390,20 +1390,20 @@ void pmoderetf(int is32, uint16_t off)
                         case 0x1C00: case 0x1D00: case 0x1E00: case 0x1F00: /*Conforming*/
                         if (CPL < DPL)
                         {
-                                pclog("RETF non-conforming CPL < DPL\n");
+                                // pclog("RETF non-conforming CPL < DPL\n");
                                 ESP=oldsp;
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }
                         break;
                         default:
-                        pclog("RETF CS not code segment\n");
+                        // pclog("RETF CS not code segment\n");
                         x86gpf(NULL,seg&~3);
                         return;
                 }
                 if (!(segdat[2]&0x8000))
                 {
-                        pclog("RETF CS not present %i  %04X %04X %04X\n",ins, segdat[0], segdat[1], segdat[2]);
+                        // pclog("RETF CS not present %i  %04X %04X %04X\n",ins, segdat[0], segdat[1], segdat[2]);
                         ESP=oldsp;
                         x86np("RETF CS not present\n", seg & 0xfffc);
                         return;
@@ -1434,7 +1434,7 @@ void pmoderetf(int is32, uint16_t off)
                         case 0x1800: case 0x1900: case 0x1A00: case 0x1B00: /*Non-conforming*/
                         if ((seg&3) != DPL)
                         {
-                                pclog("RETF non-conforming RPL != DPL\n");
+                                // pclog("RETF non-conforming RPL != DPL\n");
                                 ESP=oldsp;
                                 x86gpf(NULL,seg&~3);
                                 return;
@@ -1444,7 +1444,7 @@ void pmoderetf(int is32, uint16_t off)
                         case 0x1C00: case 0x1D00: case 0x1E00: case 0x1F00: /*Conforming*/
                         if ((seg&3) < DPL)
                         {
-                                pclog("RETF non-conforming RPL < DPL\n");
+                                // pclog("RETF non-conforming RPL < DPL\n");
                                 ESP=oldsp;
                                 x86gpf(NULL,seg&~3);
                                 return;
@@ -1452,14 +1452,14 @@ void pmoderetf(int is32, uint16_t off)
                         if (output) pclog("RETF conforming, %i %i\n",seg&3, DPL);
                         break;
                         default:
-                        pclog("RETF CS not code segment\n");
+                        // pclog("RETF CS not code segment\n");
                         ESP=oldsp;
                         x86gpf(NULL,seg&~3);
                         return;
                 }
                 if (!(segdat[2]&0x8000))
                 {
-                        pclog("RETF CS not present! %i  %04X %04X %04X\n",ins, segdat[0], segdat[1], segdat[2]);
+                        // pclog("RETF CS not present! %i  %04X %04X %04X\n",ins, segdat[0], segdat[1], segdat[2]);
 
                         ESP=oldsp;
                         x86np("RETF CS not present\n", seg & 0xfffc);
@@ -1482,7 +1482,7 @@ void pmoderetf(int is32, uint16_t off)
                 if (output) pclog("Read new stack : %04X:%04X (%08X)\n", newss, newsp, ldt.base);
                 if (!(newss&~3))
                 {
-                        pclog("RETF loading null SS\n");
+                        // pclog("RETF loading null SS\n");
                         ESP=oldsp;
                         x86gpf(NULL,newss&~3);
                         return;
@@ -1492,7 +1492,7 @@ void pmoderetf(int is32, uint16_t off)
                 {
                         if (addr>=ldt.limit)
                         {
-                                pclog("Bigger than LDT limit %04X %04X RETF SS\n",newss,gdt.limit);
+                                // pclog("Bigger than LDT limit %04X %04X RETF SS\n",newss,gdt.limit);
                                 ESP=oldsp;
                                 x86gpf(NULL,newss&~3);
                                 return;
@@ -1503,7 +1503,7 @@ void pmoderetf(int is32, uint16_t off)
                 {
                         if (addr>=gdt.limit)
                         {
-                                pclog("Bigger than GDT limit %04X %04X RETF SS\n",newss,gdt.limit);
+                                // pclog("Bigger than GDT limit %04X %04X RETF SS\n",newss,gdt.limit);
                                 ESP=oldsp;
                                 x86gpf(NULL,newss&~3);
                                 return;
@@ -1519,7 +1519,7 @@ void pmoderetf(int is32, uint16_t off)
 //                if (((newss & 3) != DPL) || (DPL2 != DPL))
                 if ((newss & 3) != (seg & 3))
                 {
-                        pclog("RETF loading SS with wrong permissions %i %i  %04X %04X\n", newss & 3, seg & 3, newss, seg);
+                        // pclog("RETF loading SS with wrong permissions %i %i  %04X %04X\n", newss & 3, seg & 3, newss, seg);
                         ESP=oldsp;
 //                        output = 3;
 //                        dumpregs();
@@ -1529,7 +1529,7 @@ void pmoderetf(int is32, uint16_t off)
                 }
                 if ((segdat2[2]&0x1A00)!=0x1200)
                 {
-                        pclog("RETF loading SS wrong type\n");
+                        // pclog("RETF loading SS wrong type\n");
                         ESP=oldsp;
 //                        dumpregs();
 //                        exit(-1);
@@ -1538,14 +1538,14 @@ void pmoderetf(int is32, uint16_t off)
                 }
                 if (!(segdat2[2]&0x8000))
                 {
-                        pclog("RETF loading SS not present\n");
+                        // pclog("RETF loading SS not present\n");
                         ESP=oldsp;
                         x86np("RETF loading SS not present\n", newss & 0xfffc);
                         return;
                 }
                 if (DPL2 != (seg & 3))
                 {
-                        pclog("RETF loading SS with wrong permissions2 %i %i  %04X %04X\n", DPL2, seg & 3, newss, seg);
+                        // pclog("RETF loading SS with wrong permissions2 %i %i  %04X %04X\n", DPL2, seg & 3, newss, seg);
                         ESP=oldsp;
                         x86gpf(NULL,newss&~3);
                         return;
@@ -1609,7 +1609,7 @@ void pmodeint(int num, int soft)
         if (eflags&VM_FLAG && IOPL!=3 && soft)
         {
                 if (output) pclog("V86 banned int\n");
-                pclog("V86 banned int!\n");
+                // pclog("V86 banned int!\n");
                 x86gpf(NULL,0);
                 return;
 //                dumpregs();
@@ -1621,18 +1621,18 @@ void pmodeint(int num, int soft)
                 if (num==8)
                 {
                         /*Triple fault - reset!*/
-                        pclog("Triple fault!\n");
+                        // pclog("Triple fault!\n");
 //                        output=1;
                         softresetx86();
                 }
                 else if (num==0xD)
                 {
-                        pclog("Double fault!\n");
+                        // pclog("Double fault!\n");
                         pmodeint(8,0);
                 }
                 else
                 {
-                        pclog("INT out of range\n");
+                        // pclog("INT out of range\n");
                         x86gpf(NULL,(num*8)+2+(soft)?0:1);
                 }
                 if (output) pclog("addr >= IDT.limit\n");
@@ -1643,7 +1643,7 @@ void pmodeint(int num, int soft)
         segdat[0]=readmemw(0,addr);
         segdat[1]=readmemw(2,addr);
         segdat[2]=readmemw(4,addr);
-        segdat[3]=readmemw(6,addr); cpl_override=0; if (abrt) { pclog("Abrt reading from %08X\n",addr); return; }
+        segdat[3]=readmemw(6,addr); cpl_override=0; if (abrt) { /* pclog("Abrt reading from %08X\n",addr); */ return; }
         oaddr = addr;
 
         if (output) pclog("Addr %08X seg %04X %04X %04X %04X\n",addr,segdat[0],segdat[1],segdat[2],segdat[3]);
@@ -1668,7 +1668,7 @@ void pmodeint(int num, int soft)
 //                        if (output) pclog("Int gate %04X %i oldpc %04X pc %04X\n",type,intgatesize,oldpc,cpu_state.pc);
                         if (!(segdat[2]&0x8000))
                         {
-                                pclog("Int gate not present\n");
+                                // pclog("Int gate not present\n");
                                 x86np("Int gate not present\n", (num << 3) | 2);
                                 return;
                         }
@@ -1681,7 +1681,7 @@ void pmodeint(int num, int soft)
                         {
                                 if (addr>=ldt.limit)
                                 {
-                                        pclog("Bigger than LDT limit %04X %04X INT\n",seg,gdt.limit);
+                                        // pclog("Bigger than LDT limit %04X %04X INT\n",seg,gdt.limit);
                                         x86gpf(NULL,seg&~3);
                                         return;
                                 }
@@ -1691,7 +1691,7 @@ void pmodeint(int num, int soft)
                         {
                                 if (addr>=gdt.limit)
                                 {
-                                        pclog("Bigger than GDT limit %04X %04X INT %i\n",seg,gdt.limit,ins);
+                                        // pclog("Bigger than GDT limit %04X %04X INT %i\n",seg,gdt.limit,ins);
                                         x86gpf(NULL,seg&~3);
                                         return;
                                 }
@@ -1699,7 +1699,7 @@ void pmodeint(int num, int soft)
                         }
 /*                        if ((seg&3) < CPL)
                         {
-                                pclog("INT to higher level\n");
+                                // pclog("INT to higher level\n");
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }*/
@@ -1712,7 +1712,7 @@ void pmodeint(int num, int soft)
                         
                         if (DPL2 > CPL)
                         {
-                                pclog("INT to higher level 2\n");
+                                // pclog("INT to higher level 2\n");
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }
@@ -1725,13 +1725,13 @@ void pmodeint(int num, int soft)
                                         stack_changed=1;
                                         if (!(segdat2[2]&0x8000))
                                         {
-                                                pclog("Int gate CS not present\n");
+                                                // pclog("Int gate CS not present\n");
                                                 x86np("Int gate CS not present\n", segdat[1] & 0xfffc);
                                                 return;
                                         }
                                         if ((eflags&VM_FLAG) && DPL2)
                                         {
-                                                pclog("V86 calling int gate, DPL != 0\n");
+                                                // pclog("V86 calling int gate, DPL != 0\n");
                                                 x86gpf(NULL,segdat[1]&0xFFFC);
                                                 return;
                                         }
@@ -1754,7 +1754,7 @@ void pmodeint(int num, int soft)
                                         cpl_override=0;
                                         if (!(newss&~3))
                                         {
-                                                pclog("Int gate loading null SS\n");
+                                                // pclog("Int gate loading null SS\n");
                                                 x86ss(NULL,newss&~3);
                                                 return;
                                         }
@@ -1763,7 +1763,7 @@ void pmodeint(int num, int soft)
                                         {
                                                 if (addr>=ldt.limit)
                                                 {
-                                                        pclog("Bigger than LDT limit %04X %04X PMODEINT SS\n",newss,gdt.limit);
+                                                        // pclog("Bigger than LDT limit %04X %04X PMODEINT SS\n",newss,gdt.limit);
                                                         x86ss(NULL,newss&~3);
                                                         return;
                                                 }
@@ -1773,7 +1773,7 @@ void pmodeint(int num, int soft)
                                         {
                                                 if (addr>=gdt.limit)
                                                 {
-                                                        pclog("Bigger than GDT limit %04X %04X CSC\n",newss,gdt.limit);
+                                                        // pclog("Bigger than GDT limit %04X %04X CSC\n",newss,gdt.limit);
                                                         x86ss(NULL,newss&~3);
                                                         return;
                                                 }
@@ -1786,19 +1786,19 @@ void pmodeint(int num, int soft)
                                         segdat3[3]=readmemw(0,addr+6); cpl_override=0; if (abrt) return;
                                         if (((newss & 3) != DPL2) || (DPL3 != DPL2))
                                         {
-                                                pclog("Int gate loading SS with wrong permissions\n");
+                                                // pclog("Int gate loading SS with wrong permissions\n");
                                                 x86ss(NULL,newss&~3);
                                                 return;
                                         }
                                         if ((segdat3[2]&0x1A00)!=0x1200)
                                         {
-                                                pclog("Int gate loading SS wrong type\n");
+                                                // pclog("Int gate loading SS wrong type\n");
                                                 x86ss(NULL,newss&~3);
                                                 return;
                                         }
                                         if (!(segdat3[2]&0x8000))
                                         {
-                                                pclog("Int gate loading SS not present\n");
+                                                // pclog("Int gate loading SS not present\n");
                                                 x86np("Int gate loading SS not present\n", newss & 0xfffc);
                                                 return;
                                         }
@@ -1859,20 +1859,20 @@ void pmodeint(int num, int soft)
                                 }
                                 else if (DPL2!=CPL)
                                 {
-                                        pclog("Non-conforming int gate DPL != CPL\n");
+                                        // pclog("Non-conforming int gate DPL != CPL\n");
                                         x86gpf(NULL,seg&~3);
                                         return;
                                 }
                                 case 0x1C00: case 0x1D00: case 0x1E00: case 0x1F00: /*Conforming*/
                                 if (!(segdat2[2]&0x8000))
                                 {
-                                        pclog("Int gate CS not present\n");
+                                        // pclog("Int gate CS not present\n");
                                         x86np("Int gate CS not present\n", segdat[1] & 0xfffc);
                                         return;
                                 }
                                 if ((eflags & VM_FLAG) && DPL2<CPL)
                                 {
-                                        pclog("Int gate V86 mode DPL2<CPL\n");
+                                        // pclog("Int gate V86 mode DPL2<CPL\n");
                                         x86gpf(NULL,seg&~3);
                                         return;
                                 }
@@ -1896,7 +1896,7 @@ void pmodeint(int num, int soft)
                                 new_cpl = CS & 3;
                                 break;
                                 default:
-                                pclog("Int gate CS not code segment - %04X %04X %04X %04X\n",segdat2[0],segdat2[1],segdat2[2],segdat2[3]);
+                                // pclog("Int gate CS not code segment - %04X %04X %04X %04X\n",segdat2[0],segdat2[1],segdat2[2],segdat2[3]);
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }
@@ -1935,7 +1935,7 @@ void pmodeint(int num, int soft)
                         {
                                 if (addr>=ldt.limit)
                                 {
-                                        pclog("Bigger than LDT limit %04X %04X INT\n",seg,gdt.limit);
+                                        // pclog("Bigger than LDT limit %04X %04X INT\n",seg,gdt.limit);
                                         x86gpf(NULL,seg&~3);
                                         return;
                                 }
@@ -1945,7 +1945,7 @@ void pmodeint(int num, int soft)
                         {
                                 if (addr>=gdt.limit)
                                 {
-                                        pclog("Bigger than GDT limit %04X %04X INT %i\n",seg,gdt.limit,ins);
+                                        // pclog("Bigger than GDT limit %04X %04X INT %i\n",seg,gdt.limit,ins);
                                         x86gpf(NULL,seg&~3);
                                         return;
                                 }
@@ -1959,7 +1959,7 @@ void pmodeint(int num, int soft)
                         cpl_override=0; if (abrt) return;
                                 if (!(segdat2[2]&0x8000))
                                 {
-                                        pclog("Int task gate not present\n");
+                                        // pclog("Int task gate not present\n");
                                         x86np("Int task gate not present\n", segdat[1] & 0xfffc);
                                         return;
                                 }
@@ -1970,7 +1970,7 @@ void pmodeint(int num, int soft)
                 break;
                 
                 default:
-                pclog("Bad int gate type %04X   %04X %04X %04X %04X\n",segdat[2]&0x1F00,segdat[0],segdat[1],segdat[2],segdat[3]);
+                // pclog("Bad int gate type %04X   %04X %04X %04X %04X\n",segdat[2]&0x1F00,segdat[0],segdat[1],segdat[2],segdat[3]);
                 x86gpf(NULL,seg&~3);
                 return;
         }
@@ -1992,7 +1992,7 @@ void pmodeiret(int is32)
 //                if (output) pclog("V86 IRET\n");
                 if (IOPL!=3)
                 {
-                        pclog("V86 IRET! IOPL!=3\n");
+                        // pclog("V86 IRET! IOPL!=3\n");
                         x86gpf(NULL,0);
                         return;
                 }
@@ -2034,7 +2034,7 @@ void pmodeiret(int is32)
                 {
                         if (addr>=ldt.limit)
                         {
-                                pclog("TS Bigger than LDT limit %04X %04X IRET\n",seg,gdt.limit);
+                                // pclog("TS Bigger than LDT limit %04X %04X IRET\n",seg,gdt.limit);
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }
@@ -2044,7 +2044,7 @@ void pmodeiret(int is32)
                 {
                         if (addr>=gdt.limit)
                         {
-                                pclog("TS Bigger than GDT limit %04X %04X IRET\n",seg,gdt.limit);
+                                // pclog("TS Bigger than GDT limit %04X %04X IRET\n",seg,gdt.limit);
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }
@@ -2129,7 +2129,7 @@ void pmodeiret(int is32)
 //        pclog("Returned to %04X:%08X %04X %04X %i\n",seg,newpc,flags,tempflags, ins);
         if (!(seg&~3))
         {
-                pclog("IRET CS=0\n");
+                // pclog("IRET CS=0\n");
                 ESP = oldsp;
 //                dumpregs();
 //                exit(-1);
@@ -2143,7 +2143,7 @@ void pmodeiret(int is32)
         {
                 if (addr>=ldt.limit)
                 {
-                        pclog("Bigger than LDT limit %04X %04X IRET\n",seg,gdt.limit);
+                        // pclog("Bigger than LDT limit %04X %04X IRET\n",seg,gdt.limit);
                         ESP = oldsp;
                         x86gpf(NULL,seg&~3);
                         return;
@@ -2154,7 +2154,7 @@ void pmodeiret(int is32)
         {
                 if (addr>=gdt.limit)
                 {
-                        pclog("Bigger than GDT limit %04X %04X IRET\n",seg,gdt.limit);
+                        // pclog("Bigger than GDT limit %04X %04X IRET\n",seg,gdt.limit);
                         ESP = oldsp;
                         x86gpf(NULL,seg&~3);
                         return;
@@ -2163,7 +2163,7 @@ void pmodeiret(int is32)
         }
         if ((seg&3) < CPL)
         {
-                pclog("IRET to lower level\n");
+                // pclog("IRET to lower level\n");
                 ESP = oldsp;
                 x86gpf(NULL,seg&~3);
                 return;
@@ -2180,7 +2180,7 @@ void pmodeiret(int is32)
                 case 0x1800: case 0x1900: case 0x1A00: case 0x1B00: /*Non-conforming code*/
                 if ((seg&3) != DPL)
                 {
-                        pclog("IRET NC DPL  %04X   %04X %04X %04X %04X\n", seg, segdat[0], segdat[1], segdat[2], segdat[3]);
+                        // pclog("IRET NC DPL  %04X   %04X %04X %04X %04X\n", seg, segdat[0], segdat[1], segdat[2], segdat[3]);
                         ESP = oldsp;
 //                        dumpregs();
 //                        exit(-1);
@@ -2191,14 +2191,14 @@ void pmodeiret(int is32)
                 case 0x1C00: case 0x1D00: case 0x1E00: case 0x1F00: /*Conforming code*/
                 if ((seg&3) < DPL)
                 {
-                        pclog("IRET C DPL\n");
+                        // pclog("IRET C DPL\n");
                         ESP = oldsp;
                         x86gpf(NULL,seg&~3);
                         return;
                 }
                 break;
                 default:
-                pclog("IRET CS != code seg\n");
+                // pclog("IRET CS != code seg\n");
                 ESP = oldsp;
                 x86gpf(NULL,seg&~3);
 //                dumpregs();
@@ -2207,7 +2207,7 @@ void pmodeiret(int is32)
         }
         if (!(segdat[2]&0x8000))
         {
-                pclog("IRET CS not present %i  %04X %04X %04X\n",ins, segdat[0], segdat[1], segdat[2]);
+                // pclog("IRET CS not present %i  %04X %04X %04X\n",ins, segdat[0], segdat[1], segdat[2]);
                 ESP = oldsp;
                 x86np("IRET CS not present\n", seg & 0xfffc);
                 return;
@@ -2248,7 +2248,7 @@ void pmodeiret(int is32)
                 
                 if (!(newss&~3))
                 {
-                        pclog("IRET loading null SS\n");
+                        // pclog("IRET loading null SS\n");
                         ESP = oldsp;
                         x86gpf(NULL,newss&~3);
                         return;
@@ -2258,7 +2258,7 @@ void pmodeiret(int is32)
                 {
                         if (addr>=ldt.limit)
                         {
-                                pclog("Bigger than LDT limit %04X %04X PMODEIRET SS\n",newss,gdt.limit);
+                                // pclog("Bigger than LDT limit %04X %04X PMODEIRET SS\n",newss,gdt.limit);
                                 ESP = oldsp;
                                 x86gpf(NULL,newss&~3);
                                 return;
@@ -2269,7 +2269,7 @@ void pmodeiret(int is32)
                 {
                         if (addr>=gdt.limit)
                         {
-                                pclog("Bigger than GDT limit %04X %04X PMODEIRET\n",newss,gdt.limit);
+                                // pclog("Bigger than GDT limit %04X %04X PMODEIRET\n",newss,gdt.limit);
                                 ESP = oldsp;
                                 x86gpf(NULL,newss&~3);
                                 return;
@@ -2285,7 +2285,7 @@ void pmodeiret(int is32)
 //                if (((newss & 3) != DPL) || (DPL2 != DPL))
                 if ((newss & 3) != (seg & 3))
                 {
-                        pclog("IRET loading SS with wrong permissions  %04X %04X\n", newss, seg);
+                        // pclog("IRET loading SS with wrong permissions  %04X %04X\n", newss, seg);
                         ESP = oldsp;
 //                        dumpregs();
 //                        exit(-1);
@@ -2294,21 +2294,21 @@ void pmodeiret(int is32)
                 }
                 if ((segdat2[2]&0x1A00)!=0x1200)
                 {
-                        pclog("IRET loading SS wrong type\n");
+                        // pclog("IRET loading SS wrong type\n");
                         ESP = oldsp;
                         x86gpf(NULL,newss&~3);
                         return;
                 }
                 if (DPL2 != (seg & 3))
                 {
-                        pclog("IRET loading SS with wrong permissions2 %i %i  %04X %04X\n", DPL2, seg & 3, newss, seg);
+                        // pclog("IRET loading SS with wrong permissions2 %i %i  %04X %04X\n", DPL2, seg & 3, newss, seg);
                         ESP = oldsp;
                         x86gpf(NULL,newss&~3);
                         return;
                 }
                 if (!(segdat2[2]&0x8000))
                 {
-                        pclog("IRET loading SS not present\n");
+                        // pclog("IRET loading SS not present\n");
                         ESP = oldsp;
                         x86np("IRET loading SS not present\n", newss & 0xfffc);
                         return;
@@ -2483,14 +2483,14 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
 
                 if (eflags&VM_FLAG)
                 {
-                        pclog("Task switch V86!\n");
+                        // pclog("Task switch V86!\n");
                         x86gpf(NULL,0);
                         return;
                 }
 
                 if (!(new_cs&~3))
                 {
-                        pclog("TS loading null CS\n");
+                        // pclog("TS loading null CS\n");
                         x86gpf(NULL,0);
                         return;
                 }
@@ -2499,7 +2499,7 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                 {
                         if (addr>=ldt.limit)
                         {
-                                pclog("Bigger than LDT limit %04X %04X %04X TS\n",new_cs,ldt.limit,addr);
+                                // pclog("Bigger than LDT limit %04X %04X %04X TS\n",new_cs,ldt.limit,addr);
                                 x86gpf(NULL,0);
                                 return;
                         }
@@ -2509,7 +2509,7 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                 {
                         if (addr>=gdt.limit)
                         {
-                                pclog("Bigger than GDT limit %04X %04X TS\n",new_cs,gdt.limit);
+                                // pclog("Bigger than GDT limit %04X %04X TS\n",new_cs,gdt.limit);
                                 x86gpf(NULL,0);
                                 return;
                         }
@@ -2521,7 +2521,7 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                 segdat2[3]=readmemw(0,addr+6);
                 if (!(segdat2[2]&0x8000))
                 {
-                        pclog("TS loading CS not present\n");
+                        // pclog("TS loading CS not present\n");
                         x86np("TS loading CS not present\n", new_cs & 0xfffc);
                         return;
                 }
@@ -2530,7 +2530,7 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                         case 0x1800: case 0x1900: case 0x1A00: case 0x1B00: /*Non-conforming*/
                         if ((new_cs&3) != DPL2)
                         {
-                                pclog("TS load CS non-conforming RPL != DPL");
+                                // pclog("TS load CS non-conforming RPL != DPL");
                                 x86gpf(NULL,new_cs&~3);
                                 return;
                         }
@@ -2538,13 +2538,13 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                         case 0x1C00: case 0x1D00: case 0x1E00: case 0x1F00: /*Conforming*/
                         if ((new_cs&3) < DPL2)
                         {
-                                pclog("TS load CS non-conforming RPL < DPL");
+                                // pclog("TS load CS non-conforming RPL < DPL");
                                 x86gpf(NULL,new_cs&~3);
                                 return;
                         }
                         break;
                         default:
-                        pclog("TS load CS not code segment\n");
+                        // pclog("TS load CS not code segment\n");
                         x86gpf(NULL,new_cs&~3);
                         return;
                 }
@@ -2579,7 +2579,7 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
         }
         else
         {
-                pclog("16-bit TSS\n");
+                // pclog("16-bit TSS\n");
                 resetx86();
                 //exit(-1);
         }

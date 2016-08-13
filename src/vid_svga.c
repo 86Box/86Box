@@ -43,6 +43,19 @@ void svga_set_override(svga_t *svga, int val)
         svga->override = val;
 }
 
+typedef union pci_bar
+{
+	uint16_t word;
+	uint8_t bytes[2];
+} ichar;
+
+ichar char12x24[65536][48];
+uint8_t charedit_on = 0;
+ichar charcode;
+uint8_t charmode = 0;
+uint8_t charptr = 0;
+uint8_t charsettings = 0xEE;
+
 void svga_out(uint16_t addr, uint8_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
@@ -51,6 +64,40 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
 //        printf("OUT SVGA %03X %02X %04X:%04X\n",addr,val,CS,pc);
         switch (addr)
         {
+		case 0x32CB:
+	        printf("Write 32CB: %04X\n", val);
+		charedit_on = (val & 0x10) ? 1 : 0;
+		charsettings = val;
+		return;
+
+		case 0x22CB:
+	        printf("Write 22CB: %04X\n", val);
+		charmode = val;
+		charptr = 0;
+		return;
+
+		case 0x22CF:
+	        printf("Write 22CF: %04X\n", val);
+		// if (!charedit_on)  return;
+		switch(charmode)
+		{
+			case 1: case 2:
+				charcode.bytes[charmode - 1] = val;
+				return;
+			case 3: case 4:		/* Character bitmaps */
+				char12x24[charcode.word][charptr].bytes[(charmode & 1) ^ 1] = val;
+				charptr++;
+				charptr %= 48;
+				return;
+			case 0xAA: default:
+				return;
+		}
+		return;
+
+		case 0x22CA: case 0x22CE: case 0x32CA:
+	        printf("OUT SVGA %03X %02X %04X:%04X\n",addr,val,CS,cpu_state.pc);
+		return;
+
                 case 0x3C0:
                 if (!svga->attrff)
                 {
@@ -251,6 +298,41 @@ uint8_t svga_in(uint16_t addr, void *p)
 //        if (addr!=0x3da) pclog("Read port %04X\n",addr);
         switch (addr)
         {
+		case 0x22CA:
+		pclog("Read port %04X\n", addr);
+		return 0xAA;
+		case 0x22CB:
+		pclog("Read port %04X\n", addr);
+		// return charmode;
+		return 0xF0 | (charmode & 0x1F);
+		case 0x22CE:
+		pclog("Read port %04X\n", addr);
+		return 0xCC;
+		case 0x22CF:	/* Read character bitmap */
+		pclog("Read port %04X\n", addr);
+		// if (!charedit_on)  return 0xFF;
+		switch(charmode)
+		{
+			case 1: case 2:
+				return charcode.bytes[charmode - 1];
+			case 3: case 4:		/* Character bitmaps */
+				/* Mode 3 is low bytes, mode 4 is high bytes */
+				temp = char12x24[charcode.word][charptr].bytes[(charmode & 1) ^ 1];
+				charptr++;
+				charptr %= 48;
+				return temp;
+			case 0xAA: default:
+				return 0xFF;
+		}
+		case 0x32CA:
+		pclog("Read port %04X\n", addr);
+		return 0xEE;
+		case 0x32CB:
+		pclog("Read port %04X\n", addr);
+		return 0xEE;
+		return charsettings;
+		// return 0xEE | (charedit_on ? 0x10 : 0);
+
                 case 0x3C0: 
                 return svga->attraddr | svga->attr_palette_enable;
                 case 0x3C1: 
@@ -384,13 +466,29 @@ void svga_recalctimings(svga_t *svga)
                 {
                         if (svga->seqregs[1] & 8) /*40 column*/
                         {
-                                svga->render = svga_render_text_40;
-                                svga->hdisp *= (svga->seqregs[1] & 1) ? 16 : 18;
+				if (svga->hdisp == 120)
+				{
+	                                svga->render = svga_render_text_40_12;
+        	                        svga->hdisp *= 16;
+				}
+				else
+				{
+	                                svga->render = svga_render_text_40;
+        	                        svga->hdisp *= (svga->seqregs[1] & 1) ? 16 : 18;
+				}
                         }
                         else
                         {
-                                svga->render = svga_render_text_80;
-                                svga->hdisp *= (svga->seqregs[1] & 1) ? 8 : 9;
+				if (svga->hdisp == 120)
+				{
+	                                svga->render = svga_render_text_80_12;
+        	                        svga->hdisp *= 8;
+				}
+				else
+				{
+	                                svga->render = svga_render_text_80;
+        	                        svga->hdisp *= (svga->seqregs[1] & 1) ? 8 : 9;
+				}
                         }
                         svga->hdisp_old = svga->hdisp;
                 }
@@ -804,6 +902,10 @@ int svga_init(svga_t *svga, void *p, int memsize,
         svga->ramdac_type = RAMDAC_6BIT;
 
 	svga_pointer = svga;
+
+	io_sethandler(0x22ca, 0x0002, svga_in, NULL, NULL, svga_out, NULL, NULL, svga);
+	io_sethandler(0x22ce, 0x0002, svga_in, NULL, NULL, svga_out, NULL, NULL, svga);
+	io_sethandler(0x32ca, 0x0002, svga_in, NULL, NULL, svga_out, NULL, NULL, svga);
         
         return 0;
 }
@@ -1012,6 +1114,13 @@ void svga_write(uint32_t addr, uint8_t val, void *p)
                 svga->gdcreg[8] = wm;
                 break;
         }
+
+	if (svga->render == svga_render_text_80_12)
+	{
+		FILE *f = fopen("hecon.dmp", "wb");
+		fwrite(svga->vram, 1, svga->vram_limit, f);
+		fclose(f);
+	}
 }
 
 uint8_t svga_read(uint32_t addr, void *p)
@@ -1625,6 +1734,9 @@ void svga_add_status_info(char *s, int max_len, void *p)
         strncat(s, temps, max_len);
         
         sprintf(temps, "SVGA resolution : %i x %i\n", svga->video_res_x, svga->video_res_y);
+        strncat(s, temps, max_len);
+        
+        sprintf(temps, "SVGA horizontal display : %i\n", svga->hdisp);
         strncat(s, temps, max_len);
         
         sprintf(temps, "SVGA refresh rate : %i Hz (%s)\n\n", svga->frames, svga->interlace ? "i" : "p");

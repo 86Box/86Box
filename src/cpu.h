@@ -40,8 +40,10 @@ extern int cpu, cpu_manufacturer;
 
 /*686 class CPUs*/
 #define CPU_PENTIUMPRO 25
+/*
 #define CPU_PENTIUM2 26
-#define CPU_PENTIUM2D 27
+#define CPU_PENTIUM2D 27 */
+#define CPU_PENTIUM2D 26
 
 #define MANU_INTEL 0
 #define MANU_AMD   1

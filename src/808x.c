@@ -3404,6 +3404,7 @@ void execx86(int cycs)
                                 FETCHCLEAR();
                                 break;
                                 case 0x30: /*PUSH w*/
+                                case 0x38: /*PUSH w alias, reported by reenigne*/
                                 tempw=geteaw();
 //                                if (output) printf("PUSH %04X %i %02X %04X %04X %02X %02X\n",tempw,rm,rmdat,easeg,eaaddr,ram[0x22340+0x5638],ram[0x22340+0x5639]);
                                 if (ssegs) ss=oldss;

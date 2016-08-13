@@ -31,7 +31,7 @@ void mouse_serial_poll(int x, int y, int b)
         
         if (!(serial1.mctrl&0x10))
         {
-                pclog("Serial data %02X %02X %02X\n", mousedat[0], mousedat[1], mousedat[2]);
+                // pclog("Serial data %02X %02X %02X\n", mousedat[0], mousedat[1], mousedat[2]);
                 serial_write_fifo(&serial1, mousedat[0]);
                 serial_write_fifo(&serial1, mousedat[1]);
                 serial_write_fifo(&serial1, mousedat[2]);

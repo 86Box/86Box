@@ -501,7 +501,7 @@ void disc_sector_poll()
 		        disc_sector_n[drive] != s->n ||
                         (fdc_get_bitcell_period() != get_bitcell_period(drive)) ||
 		        !fdd_can_read_medium(drive ^ fdd_swap) ||
-                        disc_intersector_delay[drive] || disc_track_delay[drive])
+                        disc_intersector_delay[drive] || disc_postdata_delay[drive] || disc_track_delay[drive] || disc_gap4_delay[drive])
                 {
                         advance_byte();
                         break;
@@ -529,7 +529,7 @@ void disc_sector_poll()
                         break;
 		}
                 if (cur_byte[drive] || !index_count[drive] || fdc_get_bitcell_period() != get_bitcell_period(drive) ||
-                        disc_intersector_delay[drive] || disc_track_delay[drive])
+                        disc_intersector_delay[drive] || disc_postdata_delay[drive] || disc_track_delay[drive] || disc_gap4_delay[drive])
                 {
                         advance_byte();
                         break;
@@ -561,7 +561,7 @@ void disc_sector_poll()
                         break;
                 }
                 if (cur_byte[drive] || (fdc_get_bitcell_period() != get_bitcell_period(drive)) ||
-                    disc_intersector_delay[drive] || disc_track_delay[drive])
+                        disc_intersector_delay[drive] || disc_postdata_delay[drive] || disc_track_delay[drive] || disc_gap4_delay[drive])
                 {
                         advance_byte();
                         break;
@@ -601,7 +601,7 @@ void disc_sector_poll()
                     disc_sector_sector[drive] != s->r ||
 		    disc_sector_n[drive] != s->n ||
                     (fdc_get_bitcell_period() != get_bitcell_period(drive)) ||
-                    disc_intersector_delay[drive] || disc_track_delay[drive])
+                        disc_intersector_delay[drive] || disc_postdata_delay[drive] || disc_track_delay[drive] || disc_gap4_delay[drive])
                 {
                         advance_byte();
                         break;
@@ -636,7 +636,7 @@ void disc_sector_poll()
                         break;
                 }
                 if (cur_byte[drive] || (fdc_get_bitcell_period() != get_bitcell_period(drive)) ||
-                        disc_intersector_delay[drive] || disc_track_delay[drive])
+                        disc_intersector_delay[drive] || disc_postdata_delay[drive] || disc_track_delay[drive] || disc_gap4_delay[drive])
                 {
                         advance_byte();
                         break;
@@ -653,7 +653,7 @@ void disc_sector_poll()
                         fdc_writeprotect();
                 }
                 if (!index_count[drive] || (fdc_get_bitcell_period() != get_bitcell_period(drive)) ||
-                        disc_intersector_delay[drive] || disc_track_delay[drive])
+                        disc_intersector_delay[drive] || disc_postdata_delay[drive] || disc_track_delay[drive] || disc_gap4_delay[drive])
                 {
                         advance_byte();
                         break;

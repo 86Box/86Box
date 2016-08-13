@@ -616,7 +616,7 @@ uint8_t keyboard_at_read(uint16_t port, void *priv)
                 
                 case 0x64:
                 temp = (keyboard_at.status & 0xFB) | (mode & CCB_SYSTEM);
-		if (mode & CCB_IGNORELOCK)  temp |= STAT_LOCK;
+		/* if (mode & CCB_IGNORELOCK) */  temp |= STAT_LOCK;
                 keyboard_at.status &= ~(STAT_RTIMEOUT/* | STAT_TTIMEOUT*/);
                 break;
         }

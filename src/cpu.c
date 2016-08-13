@@ -524,6 +524,7 @@ CPU cpus_PentiumPro[] =
         {"",             -1,        0, 0, 0}
 };
 
+#if 0
 CPU cpus_Pentium2[] =
 {
         /*Intel Pentium II Klamath*/
@@ -548,6 +549,7 @@ CPU cpus_Pentium2D[] =
         {"Pentium II D 500", CPU_PENTIUM2D, 33, 500000000, 5, 50000000, 0x654, 0x654, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
         {"",             -1,        0, 0, 0}
 };
+#endif
 
 void cpu_set_edx()
 {
@@ -1357,7 +1359,8 @@ void cpu_set()
          	codegen_timing_set(&codegen_timing_686);
                 break;
 
-                case CPU_PENTIUM2:
+#if 0                
+		case CPU_PENTIUM2:
                 x86_setopcodes(ops_386, ops_pentium2_0f, dynarec_ops_386, dynarec_ops_pentium2_0f);
                 x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_686_da_a16;
                 x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_686_da_a32;
@@ -1388,6 +1391,7 @@ void cpu_set()
                 cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE;
          	codegen_timing_set(&codegen_timing_686);
                 break;
+#endif
 
                 case CPU_PENTIUM2D:
                 x86_setopcodes(ops_386, ops_pentium2d_0f, dynarec_ops_386, dynarec_ops_pentium2d_0f);
@@ -1778,7 +1782,7 @@ void cpu_CPUID()
                         EAX = 0;
                 break;
 
-                case CPU_PENTIUM2:
+                /* case CPU_PENTIUM2:
                 if (!EAX)
                 {
                         EAX = 0x00000002;
@@ -1802,7 +1806,7 @@ void cpu_CPUID()
 		}
                 else
                         EAX = 0;
-                break;
+                break; */
 
                 case CPU_PENTIUM2D:
                 if (!EAX)
@@ -1926,7 +1930,7 @@ void cpu_RDMSR()
  		break;
 
                 case CPU_PENTIUMPRO:
-                case CPU_PENTIUM2:
+                // case CPU_PENTIUM2:
                 case CPU_PENTIUM2D:
                 EAX = EDX = 0;
 		// pclog("RDMSR, ECX=%08X\n", ECX);
@@ -2119,7 +2123,7 @@ void cpu_WRMSR()
                 break;
 
                 case CPU_PENTIUMPRO:
-                case CPU_PENTIUM2:
+                // case CPU_PENTIUM2:
 		case CPU_PENTIUM2D:
 		// pclog("WRMSR, ECX=%08X\n", ECX);
                 switch (ECX)
