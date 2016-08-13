@@ -24,13 +24,15 @@ void pic_updatepending()
 void pic_reset()
 {
         pic.icw=0;
-        pic.mask=0xFF;
+        // pic.mask=0xFF;
+	pic.mask=0;
         pic.mask2=0;
         pic.pend=pic.ins=0;
         pic.vector=8;
         pic.read=1;
         pic2.icw=0;
-        pic2.mask=0xFF;
+        // pic2.mask=0xFF;
+	pic2.mask=0;
         pic.mask2=0;
         pic2.pend=pic2.ins=0;
         pic_intpending = 0;

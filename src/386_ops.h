@@ -153,12 +153,14 @@ static inline uint32_t POP_L_seg(uint32_t seg)
 #include "x86_ops_string.h"
 #include "x86_ops_xchg.h"
 
+static int fopcode;
+
 static int ILLEGAL(uint32_t fetchdat)
 {
         cpu_state.pc = oldpc;
 
 //        fatal("Illegal instruction %08X\n", fetchdat);
-        pclog("Illegal instruction %08X\n", fetchdat);
+        pclog("Illegal instruction %08X (%02X)\n", fetchdat, fopcode);
         x86illegal();
         return 0;
 }
@@ -166,6 +168,7 @@ static int ILLEGAL(uint32_t fetchdat)
 static int op0F_w_a16(uint32_t fetchdat)
 {
         int opcode = fetchdat & 0xff;
+	fopcode = opcode;
         cpu_state.pc++;
 
 	// pclog("A16W: 0F %02X\n", opcode);
@@ -174,6 +177,7 @@ static int op0F_w_a16(uint32_t fetchdat)
 static int op0F_l_a16(uint32_t fetchdat)
 {
         int opcode = fetchdat & 0xff;
+	fopcode = opcode;
         cpu_state.pc++;
         
 	// pclog("A16L: 0F %02X\n", opcode);
@@ -182,6 +186,7 @@ static int op0F_l_a16(uint32_t fetchdat)
 static int op0F_w_a32(uint32_t fetchdat)
 {
         int opcode = fetchdat & 0xff;
+	fopcode = opcode;
         cpu_state.pc++;
         
 	// pclog("A32W: 0F %02X\n", opcode);
@@ -190,6 +195,7 @@ static int op0F_w_a32(uint32_t fetchdat)
 static int op0F_l_a32(uint32_t fetchdat)
 {
         int opcode = fetchdat & 0xff;
+	fopcode = opcode;
         cpu_state.pc++;
         
 	// pclog("A32L: 0F %02X\n", opcode);

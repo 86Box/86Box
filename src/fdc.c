@@ -184,14 +184,18 @@ void fdc_update_enh_mode(int enh_mode)
 	fdc.enh_mode = enh_mode;
 }
 
+static void fdc_rate(int drive);
+
 int fdc_get_rwc(int drive)
 {
 	return fdc.rwc[drive];
+	fdc_rate(drive);
 }
 
 void fdc_update_rwc(int drive, int rwc)
 {
 	fdc.rwc[drive] = rwc;
+	fdc_rate(drive);
 }
 
 int fdc_get_boot_drive()
@@ -207,16 +211,21 @@ void fdc_update_boot_drive(int boot_drive)
 void fdc_update_densel_polarity(int densel_polarity)
 {
 	fdc.densel_polarity = densel_polarity;
+	fdc_rate(0);
+	fdc_rate(1);
 }
 
 void fdc_update_densel_force(int densel_force)
 {
 	fdc.densel_force = densel_force;
+	fdc_rate(0);
+	fdc_rate(1);
 }
 
 void fdc_update_drvrate(int drive, int drvrate)
 {
 	fdc.drvrate[drive] = drvrate;
+	fdc_rate(drive);
 }
 
 void fdc_update_drv2en(int drv2en)
