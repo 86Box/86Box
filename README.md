@@ -1,4 +1,4 @@
-# PCem Unofficial [![Build Status](http://polar.rol.im:8080/job/PCem-Unofficial/badge/icon)](http://polar.rol.im:8080/job/PCem-Unofficial)
+# PCem Unofficial [![Build Status](http://polar.rol.im/job/PCem-Unofficial/badge/icon)](http://polar.rol.im/job/PCem-Unofficial)
 PCem Unofficial (formerly PCem Experimental or PCem-X) is an unofficial branch of the PCem emulator, which aims to emulate IBM compatible machines from 1981-2000 period. This branch adds several emulated motherboards.
 
 ---
