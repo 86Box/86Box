@@ -16,7 +16,7 @@
                         flags &= ~(C_FLAG | V_FLAG);                                    \
                         if (temp2) flags |= C_FLAG;                                     \
                         if ((flags & C_FLAG) ^ (temp >> 7)) flags |= V_FLAG;            \
-                        CLOCK_CYCLES((mod == 3) ? 3 : 7);                                 \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                 \
                         break;                                                          \
                         case 0x08: /*ROR b,CL*/                                         \
                         while (c > 0)                                                   \
@@ -30,7 +30,7 @@
                         flags &= ~(C_FLAG | V_FLAG);                                    \
                         if (temp2) flags |= C_FLAG;                                     \
                         if ((temp ^ (temp >> 1)) & 0x40) flags |= V_FLAG;               \
-                        CLOCK_CYCLES((mod == 3) ? 3 : 7);                                 \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                 \
                         break;                                                          \
                         case 0x10: /*RCL b,CL*/                                         \
                         temp2 = flags & C_FLAG;                                         \
@@ -46,7 +46,7 @@
                         flags &= ~(C_FLAG | V_FLAG);                                    \
                         if (temp2) flags |= C_FLAG;                                     \
                         if ((flags & C_FLAG) ^ (temp >> 7)) flags |= V_FLAG;            \
-                        CLOCK_CYCLES((mod == 3) ? 9 : 10);                                \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 9 : 10);                                \
                         break;                                                          \
                         case 0x18: /*RCR b,CL*/                                         \
                         temp2 = flags & C_FLAG;                                         \
@@ -62,23 +62,23 @@
                         flags &= ~(C_FLAG | V_FLAG);                                    \
                         if (temp2) flags |= C_FLAG;                                     \
                         if ((temp ^ (temp >> 1)) & 0x40) flags |= V_FLAG;               \
-                        CLOCK_CYCLES((mod == 3) ? 9 : 10);                                \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 9 : 10);                                \
                         break;                                                          \
                         case 0x20: case 0x30: /*SHL b,CL*/                              \
                         seteab(temp << c);      if (abrt) return 1;                     \
                         set_flags_shift(FLAGS_SHL8, temp_orig, c, (temp << c) & 0xff);  \
-                        CLOCK_CYCLES((mod == 3) ? 3 : 7);                                 \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                 \
                         break;                                                          \
                         case 0x28: /*SHR b,CL*/                                         \
                         seteab(temp >> c);      if (abrt) return 1;                     \
                         set_flags_shift(FLAGS_SHR8, temp_orig, c, temp >> c);           \
-                        CLOCK_CYCLES((mod == 3) ? 3 : 7);                                 \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                 \
                         break;                                                          \
                         case 0x38: /*SAR b,CL*/                                         \
                         temp = (int8_t)temp >> c;                                       \
                         seteab(temp);           if (abrt) return 1;                     \
                         set_flags_shift(FLAGS_SAR8, temp_orig, c, temp);                \
-                        CLOCK_CYCLES((mod == 3) ? 3 : 7);                                 \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                 \
                         break;                                                          \
                 }                                                                       \
         }
@@ -101,7 +101,7 @@
                         flags &= ~(C_FLAG | V_FLAG);                                    \
                         if (temp2) flags |= C_FLAG;                                     \
                         if ((flags & C_FLAG) ^ (temp >> 15)) flags |= V_FLAG;           \
-                        CLOCK_CYCLES((mod == 3) ? 3 : 7);                                 \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                 \
                         break;                                                          \
                         case 0x08: /*ROR w, c*/                                         \
                         while (c > 0)                                                   \
@@ -115,7 +115,7 @@
                         flags &= ~(C_FLAG | V_FLAG);                                    \
                         if (temp2) flags |= C_FLAG;                                     \
                         if ((temp ^ (temp >> 1)) & 0x4000) flags |= V_FLAG;             \
-                        CLOCK_CYCLES((mod == 3) ? 3 : 7);                                 \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                 \
                         break;                                                          \
                         case 0x10: /*RCL w, c*/                                         \
                         temp2 = flags & C_FLAG;                                         \
@@ -131,7 +131,7 @@
                         flags &= ~(C_FLAG | V_FLAG);                                    \
                         if (temp2) flags |= C_FLAG;                                     \
                         if ((flags & C_FLAG) ^ (temp >> 15)) flags |= V_FLAG;           \
-                        CLOCK_CYCLES((mod == 3) ? 9 : 10);                                \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 9 : 10);                                \
                         break;                                                          \
                         case 0x18: /*RCR w, c*/                                         \
                         temp2 = flags & C_FLAG;                                         \
@@ -147,23 +147,23 @@
                         flags &= ~(C_FLAG | V_FLAG);                                    \
                         if (temp2) flags |= C_FLAG;                                     \
                         if ((temp ^ (temp >> 1)) & 0x4000) flags |= V_FLAG;             \
-                        CLOCK_CYCLES((mod == 3) ? 9 : 10);                                \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 9 : 10);                                \
                         break;                                                          \
                         case 0x20: case 0x30: /*SHL w, c*/                              \
                         seteaw(temp << c);      if (abrt) return 1;                     \
                         set_flags_shift(FLAGS_SHL16, temp_orig, c, (temp << c) & 0xffff); \
-                        CLOCK_CYCLES((mod == 3) ? 3 : 7);                                 \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                 \
                         break;                                                          \
                         case 0x28: /*SHR w, c*/                                         \
                         seteaw(temp >> c);      if (abrt) return 1;                     \
                         set_flags_shift(FLAGS_SHR16, temp_orig, c, temp >> c);          \
-                        CLOCK_CYCLES((mod == 3) ? 3 : 7);                                 \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                 \
                         break;                                                          \
                         case 0x38: /*SAR w, c*/                                         \
                         temp = (int16_t)temp >> c;                                      \
                         seteaw(temp);           if (abrt) return 1;                     \
                         set_flags_shift(FLAGS_SAR16, temp_orig, c, temp);               \
-                        CLOCK_CYCLES((mod == 3) ? 3 : 7);                                 \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                 \
                         break;                                                          \
                 }                                                                       \
         }
@@ -186,7 +186,7 @@
                         flags &= ~(C_FLAG | V_FLAG);                                    \
                         if (temp2) flags |= C_FLAG;                                     \
                         if ((flags & C_FLAG) ^ (temp >> 31)) flags |= V_FLAG;           \
-                        CLOCK_CYCLES((mod == 3) ? 3 : 7);                                 \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                 \
                         break;                                                          \
                         case 0x08: /*ROR l, c*/                                         \
                         while (c > 0)                                                   \
@@ -200,7 +200,7 @@
                         flags &= ~(C_FLAG | V_FLAG);                                    \
                         if (temp2) flags |= C_FLAG;                                     \
                         if ((temp ^ (temp >> 1)) & 0x40000000) flags |= V_FLAG;         \
-                        CLOCK_CYCLES((mod == 3) ? 3 : 7);                                 \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                 \
                         break;                                                          \
                         case 0x10: /*RCL l, c*/                                         \
                         temp2 = CF_SET();                                               \
@@ -216,7 +216,7 @@
                         flags &= ~(C_FLAG | V_FLAG);                                    \
                         if (temp2) flags |= C_FLAG;                                     \
                         if ((flags & C_FLAG) ^ (temp >> 31)) flags |= V_FLAG;           \
-                        CLOCK_CYCLES((mod == 3) ? 9 : 10);                                \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 9 : 10);                                \
                         break;                                                          \
                         case 0x18: /*RCR l, c*/                                         \
                         temp2 = flags & C_FLAG;                                         \
@@ -232,23 +232,23 @@
                         flags &= ~(C_FLAG | V_FLAG);                                    \
                         if (temp2) flags |= C_FLAG;                                     \
                         if ((temp ^ (temp >> 1)) & 0x40000000) flags |= V_FLAG;         \
-                        CLOCK_CYCLES((mod == 3) ? 9 : 10);                                \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 9 : 10);                                \
                         break;                                                          \
                         case 0x20: case 0x30: /*SHL l, c*/                              \
                         seteal(temp << c);      if (abrt) return 1;                     \
                         set_flags_shift(FLAGS_SHL32, temp_orig, c, temp << c);          \
-                        CLOCK_CYCLES((mod == 3) ? 3 : 7);                                 \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                 \
                         break;                                                          \
                         case 0x28: /*SHR l, c*/                                         \
                         seteal(temp >> c);      if (abrt) return 1;                     \
                         set_flags_shift(FLAGS_SHR32, temp_orig, c, temp >> c);          \
-                        CLOCK_CYCLES((mod == 3) ? 3 : 7);                                 \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                 \
                         break;                                                          \
                         case 0x38: /*SAR l, c*/                                         \
                         temp = (int32_t)temp >> c;                                      \
                         seteal(temp);           if (abrt) return 1;                     \
                         set_flags_shift(FLAGS_SAR32, temp_orig, c, temp);               \
-                        CLOCK_CYCLES((mod == 3) ? 3 : 7);                                 \
+                        CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                 \
                         break;                                                          \
                 }                                                                       \
         }
@@ -470,11 +470,9 @@ static int opD3_l_a32(uint32_t fetchdat)
 #define SHLD_w()                                                                \
         if (count)                                                              \
         {                                                                       \
-                uint16_t tempw = geteaw();                                      \
-                int tempc; uint32_t templ;                                      \
-                if (abrt) return 1;                                             \
-                tempc = ((tempw << (count - 1)) & (1 << 15)) ? 1 : 0;           \
-                templ = (tempw << 16) | cpu_state.regs[reg].w;                  \
+                uint16_t tempw = geteaw();      if (abrt) return 1;             \
+                int tempc = ((tempw << (count - 1)) & (1 << 15)) ? 1 : 0;       \
+                uint32_t templ = (tempw << 16) | cpu_state.regs[cpu_reg].w;         \
                 if (count <= 16) tempw =  templ >> (16 - count);                \
                 else             tempw = (templ << count) >> 16;                \
                 seteaw(tempw);                  if (abrt) return 1;             \
@@ -486,11 +484,9 @@ static int opD3_l_a32(uint32_t fetchdat)
 #define SHLD_l()                                                                \
         if (count)                                                              \
         {                                                                       \
-                uint32_t templ = geteal();                                      \
-                int tempc;                                                      \
-                if (abrt) return 1;                                             \
-                tempc = ((templ << (count - 1)) & (1 << 31)) ? 1 : 0;           \
-                templ = (templ << count) | (cpu_state.regs[reg].l >> (32 - count)); \
+                uint32_t templ = geteal();      if (abrt) return 1;             \
+                int tempc = ((templ << (count - 1)) & (1 << 31)) ? 1 : 0;       \
+                templ = (templ << count) | (cpu_state.regs[cpu_reg].l >> (32 - count)); \
                 seteal(templ);                  if (abrt) return 1;             \
                 setznp32(templ);                                                \
                 flags_rebuild();                                                \
@@ -501,11 +497,9 @@ static int opD3_l_a32(uint32_t fetchdat)
 #define SHRD_w()                                                                \
         if (count)                                                              \
         {                                                                       \
-                uint16_t tempw = geteaw();                                      \
-                int tempc; uint32_t templ;                                      \
-                if (abrt) return 1;                                             \
-                tempc = (tempw >> (count - 1)) & 1;                             \
-                templ = tempw | (cpu_state.regs[reg].w << 16);                  \
+                uint16_t tempw = geteaw();      if (abrt) return 1;             \
+                int tempc = (tempw >> (count - 1)) & 1;                         \
+                uint32_t templ = tempw | (cpu_state.regs[cpu_reg].w << 16);         \
                 tempw = templ >> count;                                         \
                 seteaw(tempw);                  if (abrt) return 1;             \
                 setznp16(tempw);                                                \
@@ -516,11 +510,9 @@ static int opD3_l_a32(uint32_t fetchdat)
 #define SHRD_l()                                                                \
         if (count)                                                              \
         {                                                                       \
-                uint32_t templ = geteal();                                      \
-                int tempc;                                                      \
-                if (abrt) return 1;                                             \
-                tempc = (templ >> (count - 1)) & 1;                             \
-                templ = (templ >> count) | (cpu_state.regs[reg].l << (32 - count)); \
+                uint32_t templ = geteal();      if (abrt) return 1;             \
+                int tempc = (templ >> (count - 1)) & 1;                         \
+                templ = (templ >> count) | (cpu_state.regs[cpu_reg].l << (32 - count)); \
                 seteal(templ);                  if (abrt) return 1;             \
                 setznp32(templ);                                                \
                 flags_rebuild();                                                \

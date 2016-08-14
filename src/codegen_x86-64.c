@@ -285,7 +285,7 @@ void codegen_block_init(uint32_t phys_addr)
         block->was_recompiled = 0;
 
         recomp_page = block->phys & ~0xfff;
-
+        
         codeblock_tree_add(block);
 }
 
@@ -530,29 +530,6 @@ void codegen_flush()
         return;
 }
 
-static int opcode_needs_tempc[256] =
-{
-        0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 1,  /*00*/
-        1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  /*10*/
-        0, 0, 0, 0,  0, 0, 1, 1,  0, 0, 0, 0,  0, 0, 1, 1,  /*20*/
-        0, 0, 0, 0,  0, 0, 1, 1,  0, 0, 0, 0,  0, 0, 1, 1,  /*30*/
-
-        0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  /*40*/
-        0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  /*50*/
-        1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  /*60*/
-        0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  /*70*/
-
-        1, 1, 1, 1,  1, 1, 1, 1,  0, 0, 0, 0,  0, 0, 0, 0,  /*80*/
-        1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  /*90*/
-        0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  /*a0*/
-        0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  /*b0*/
-
-        1, 1, 1, 1,  1, 1, 0, 0,  1, 1, 1, 1,  1, 1, 1, 1,  /*c0*/
-        1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  /*d0*/
-        1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  /*e0*/
-        1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  /*f0*/
-};
-
 static int opcode_conditional_jump[256] = 
 {
         0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 1,  /*00*/
@@ -631,7 +608,7 @@ void codegen_debug()
 
 static x86seg *codegen_generate_ea_16_long(x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, uint32_t *op_pc)
 {
-        if (!mod && rm == 6) 
+        if (!cpu_mod && cpu_rm == 6) 
         { 
                 addbyte(0xC7); /*MOVL $0,(ssegs)*/
                 addbyte(0x04);
@@ -644,7 +621,7 @@ static x86seg *codegen_generate_ea_16_long(x86seg *op_ea_seg, uint32_t fetchdat,
         {
                 int base_reg, index_reg;
                 
-                switch (rm)
+                switch (cpu_rm)
                 {
                         case 0: case 1: case 7:
                         base_reg = LOAD_REG_W(REG_BX);
@@ -659,9 +636,9 @@ static x86seg *codegen_generate_ea_16_long(x86seg *op_ea_seg, uint32_t fetchdat,
                         base_reg = LOAD_REG_W(REG_DI);
                         break;
                 }
-                if (!(rm & 4))
+                if (!(cpu_rm & 4))
                 {
-                        if (rm & 1)
+                        if (cpu_rm & 1)
                                 index_reg = LOAD_REG_W(REG_DI);
                         else
                                 index_reg = LOAD_REG_W(REG_SI);
@@ -669,10 +646,10 @@ static x86seg *codegen_generate_ea_16_long(x86seg *op_ea_seg, uint32_t fetchdat,
                 base_reg &= 7;
                 index_reg &= 7;
                 
-                switch (mod)
+                switch (cpu_mod)
                 {
                         case 0:
-                        if (rm & 4)
+                        if (cpu_rm & 4)
                         {
                                 addbyte(0x41); /*MOVZX EAX, base_reg*/
                                 addbyte(0x0f);
@@ -698,7 +675,7 @@ static x86seg *codegen_generate_ea_16_long(x86seg *op_ea_seg, uint32_t fetchdat,
                         }
                         break;
                         case 1:
-                        if (rm & 4)
+                        if (cpu_rm & 4)
                         {
                                 addbyte(0x67); /*LEA EAX, base_reg+imm8*/
                                 addbyte(0x41);
@@ -718,7 +695,7 @@ static x86seg *codegen_generate_ea_16_long(x86seg *op_ea_seg, uint32_t fetchdat,
                         (*op_pc)++;
                         break;
                         case 2:
-                        if (rm & 4)
+                        if (cpu_rm & 4)
                         {
                                 addbyte(0x67); /*LEA EAX, base_reg+imm8*/
                                 addbyte(0x41);
@@ -739,7 +716,7 @@ static x86seg *codegen_generate_ea_16_long(x86seg *op_ea_seg, uint32_t fetchdat,
                         break;
                         
                 }
-                if (mod || !(rm & 4))
+                if (cpu_mod || !(cpu_rm & 4))
                 {
                         addbyte(0x25); /*ANDL $0xffff, %eax*/
                         addlong(0xffff);
@@ -749,7 +726,7 @@ static x86seg *codegen_generate_ea_16_long(x86seg *op_ea_seg, uint32_t fetchdat,
                 addbyte(0x25);
                 addlong((uint32_t)&eaaddr);
 
-                if (mod1seg[rm] == &ss && !op_ssegs)
+                if (mod1seg[cpu_rm] == &ss && !op_ssegs)
                         op_ea_seg = &_ss;
         }
         return op_ea_seg;
@@ -759,14 +736,14 @@ static x86seg *codegen_generate_ea_32_long(x86seg *op_ea_seg, uint32_t fetchdat,
 {
         uint32_t new_eaaddr;
 
-        if (rm == 4)
+        if (cpu_rm == 4)
         {
                 uint8_t sib = fetchdat >> 8;
                 int base_reg = -1, index_reg = -1;
 
                 (*op_pc)++;
 
-                if (mod || (sib & 7) != 5)
+                if (cpu_mod || (sib & 7) != 5)
                         base_reg = LOAD_REG_L(sib & 7) & 7;
 
                 if (((sib >> 3) & 7) != 4)
@@ -774,7 +751,7 @@ static x86seg *codegen_generate_ea_32_long(x86seg *op_ea_seg, uint32_t fetchdat,
 
                 if (index_reg == -1)
                 {
-                        switch (mod)
+                        switch (cpu_mod)
                         {
                                 case 0:
                                 if ((sib & 7) == 5)
@@ -828,7 +805,7 @@ static x86seg *codegen_generate_ea_32_long(x86seg *op_ea_seg, uint32_t fetchdat,
                 }
                 else
                 {                
-                        switch (mod)
+                        switch (cpu_mod)
                         {
                                 case 0:
                                 if ((sib & 7) == 5)
@@ -892,12 +869,12 @@ static x86seg *codegen_generate_ea_32_long(x86seg *op_ea_seg, uint32_t fetchdat,
                                 break;
                         }
                 }
-                if (stack_offset && (sib & 7) == 4 && (mod || (sib & 7) != 5)) /*ESP*/
+                if (stack_offset && (sib & 7) == 4 && (cpu_mod || (sib & 7) != 5)) /*ESP*/
                 {
                         addbyte(0x05);
                         addlong(stack_offset);
                 }
-                if (((sib & 7) == 4 || (mod && (sib & 7) == 5)) && !op_ssegs)
+                if (((sib & 7) == 4 || (cpu_mod && (sib & 7) == 5)) && !op_ssegs)
                         op_ea_seg = &_ss;
 
                 addbyte(0x89); /*MOV eaaddr, EAX*/
@@ -909,7 +886,7 @@ static x86seg *codegen_generate_ea_32_long(x86seg *op_ea_seg, uint32_t fetchdat,
         {
                 int base_reg;
 
-                if (!mod && rm == 5)
+                if (!cpu_mod && cpu_rm == 5)
                 {                
                         new_eaaddr = fastreadl(cs + (*op_pc) + 1);
                         addbyte(0xC7); /*MOVL $new_eaaddr,(eaaddr)*/
@@ -920,12 +897,12 @@ static x86seg *codegen_generate_ea_32_long(x86seg *op_ea_seg, uint32_t fetchdat,
                         (*op_pc) += 4;
                         return op_ea_seg;
                 }
-                base_reg = LOAD_REG_L(rm) & 7;
-                if (mod) 
+                base_reg = LOAD_REG_L(cpu_rm) & 7;
+                if (cpu_mod) 
                 {
-                        if (rm == 5 && !op_ssegs)
+                        if (cpu_rm == 5 && !op_ssegs)
                                 op_ea_seg = &_ss;
-                        if (mod == 1) 
+                        if (cpu_mod == 1) 
                         {
                                 addbyte(0x67); /*LEA EAX, base_reg+imm8*/
                                 addbyte(0x41);
@@ -1171,20 +1148,6 @@ generate_call:
         op = op_table[((opcode >> opcode_shift) | op_32) & opcode_mask];
 //        if (output)
 //                pclog("Generate call at %08X %02X %08X %02X  %08X %08X %08X %08X %08X  %02X %02X %02X %02X\n", &codeblock[block_current][block_pos], opcode, new_pc, ram[old_pc], EAX, EBX, ECX, EDX, ESI, ram[0x7bd2+6],ram[0x7bd2+7],ram[0x7bd2+8],ram[0x7bd2+9]);
-        if (opcode_needs_tempc[opcode])
-        {
-                addbyte(0x8b);  /*MOVL (flags), %eax*/
-                addbyte(0x04);
-                addbyte(0x25);
-                addlong((uint32_t)&flags);
-                addbyte(0x83);  /*ANDL $1, %eax*/
-                addbyte(0xe0);
-                addbyte(0x01);
-                addbyte(0x89);  /*MOVL %eax, (tempc)*/
-                addbyte(0x04);
-                addbyte(0x25);
-                addlong((uint32_t)&tempc);
-        }
         if (op_ssegs != last_ssegs)
         {
                 last_ssegs = op_ssegs;
@@ -1204,30 +1167,19 @@ generate_call:
                 if (op_table == x86_dynarec_opcodes && opcode == 0x8f) /*POP*/
                         stack_offset = (op_32 & 0x100) ? 4 : 2;
 
-                mod = (fetchdat >> 6) & 3;
-                reg = (fetchdat >> 3) & 7;
-                rm = fetchdat & 7;
+                cpu_mod = (fetchdat >> 6) & 3;
+                cpu_reg = (fetchdat >> 3) & 7;
+                cpu_rm = fetchdat & 7;
 
-                addbyte(0xC7); /*MOVL $mod,(mod)*/
-                addbyte(0x04);
-                addbyte(0x25);
-                addlong((uint32_t)&mod);
-                addlong(mod);
-                addbyte(0xC7); /*MOVL $reg,(reg)*/
-                addbyte(0x04);
-                addbyte(0x25);
-                addlong((uint32_t)&reg);
-                addlong(reg);
-                addbyte(0xC7); /*MOVL $rm,(rm)*/
-                addbyte(0x04);
-                addbyte(0x25);
-                addlong((uint32_t)&rm);
-                addlong(rm);
+                addbyte(0xC7); /*MOVL $rm | mod | reg,(rm_mod_reg_data)*/
+                addbyte(0x45);
+                addbyte((uintptr_t)&cpu_state.rm_data.rm_mod_reg_data - (uintptr_t)&cpu_state);
+                addlong(cpu_rm | (cpu_mod << 8) | (cpu_reg << 16));
 
                 op_pc += pc_off;
-                if (mod != 3 && !(op_32 & 0x200))
+                if (cpu_mod != 3 && !(op_32 & 0x200))
                         op_ea_seg = codegen_generate_ea_16_long(op_ea_seg, fetchdat, op_ssegs, &op_pc);
-                if (mod != 3 &&  (op_32 & 0x200))
+                if (cpu_mod != 3 &&  (op_32 & 0x200))
                         op_ea_seg = codegen_generate_ea_32_long(op_ea_seg, fetchdat, op_ssegs, &op_pc, stack_offset);
                 op_pc -= pc_off;
         }

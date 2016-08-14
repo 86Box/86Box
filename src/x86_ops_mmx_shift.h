@@ -1,7 +1,7 @@
 #define MMX_GETSHIFT()                                                  \
-        if (mod == 3)                                                   \
+        if (cpu_mod == 3)                                                   \
         {                                                               \
-                shift = MM[rm].b[0];                                    \
+                shift = MM[cpu_rm].b[0];                                    \
                 CLOCK_CYCLES(1);                                        \
         }                                                               \
         else                                                            \
@@ -72,13 +72,13 @@ static int opPSLLW_a16(uint32_t fetchdat)
         MMX_GETSHIFT();
 
         if (shift > 15)
-                MM[reg].q = 0;
+                MM[cpu_reg].q = 0;
         else
         {
-                MM[reg].w[0] <<= shift;
-                MM[reg].w[1] <<= shift;
-                MM[reg].w[2] <<= shift;
-                MM[reg].w[3] <<= shift;
+                MM[cpu_reg].w[0] <<= shift;
+                MM[cpu_reg].w[1] <<= shift;
+                MM[cpu_reg].w[2] <<= shift;
+                MM[cpu_reg].w[3] <<= shift;
         }
 
         return 0;
@@ -93,13 +93,13 @@ static int opPSLLW_a32(uint32_t fetchdat)
         MMX_GETSHIFT();
 
         if (shift > 15)
-                MM[reg].q = 0;
+                MM[cpu_reg].q = 0;
         else
         {
-                MM[reg].w[0] <<= shift;
-                MM[reg].w[1] <<= shift;
-                MM[reg].w[2] <<= shift;
-                MM[reg].w[3] <<= shift;
+                MM[cpu_reg].w[0] <<= shift;
+                MM[cpu_reg].w[1] <<= shift;
+                MM[cpu_reg].w[2] <<= shift;
+                MM[cpu_reg].w[3] <<= shift;
         }
 
         return 0;
@@ -115,13 +115,13 @@ static int opPSRLW_a16(uint32_t fetchdat)
         MMX_GETSHIFT();
 
         if (shift > 15)
-                MM[reg].q = 0;
+                MM[cpu_reg].q = 0;
         else
         {
-                MM[reg].w[0] >>= shift;
-                MM[reg].w[1] >>= shift;
-                MM[reg].w[2] >>= shift;
-                MM[reg].w[3] >>= shift;
+                MM[cpu_reg].w[0] >>= shift;
+                MM[cpu_reg].w[1] >>= shift;
+                MM[cpu_reg].w[2] >>= shift;
+                MM[cpu_reg].w[3] >>= shift;
         }
 
         return 0;
@@ -136,13 +136,13 @@ static int opPSRLW_a32(uint32_t fetchdat)
         MMX_GETSHIFT();
 
         if (shift > 15)
-                MM[reg].q = 0;
+                MM[cpu_reg].q = 0;
         else
         {
-                MM[reg].w[0] >>= shift;
-                MM[reg].w[1] >>= shift;
-                MM[reg].w[2] >>= shift;
-                MM[reg].w[3] >>= shift;
+                MM[cpu_reg].w[0] >>= shift;
+                MM[cpu_reg].w[1] >>= shift;
+                MM[cpu_reg].w[2] >>= shift;
+                MM[cpu_reg].w[3] >>= shift;
         }
 
         return 0;
@@ -160,10 +160,10 @@ static int opPSRAW_a16(uint32_t fetchdat)
         if (shift > 15)
                 shift = 15;
 
-        MM[reg].sw[0] >>= shift;
-        MM[reg].sw[1] >>= shift;
-        MM[reg].sw[2] >>= shift;
-        MM[reg].sw[3] >>= shift;
+        MM[cpu_reg].sw[0] >>= shift;
+        MM[cpu_reg].sw[1] >>= shift;
+        MM[cpu_reg].sw[2] >>= shift;
+        MM[cpu_reg].sw[3] >>= shift;
         
         return 0;
 }
@@ -179,10 +179,10 @@ static int opPSRAW_a32(uint32_t fetchdat)
         if (shift > 15)
                 shift = 15;
 
-        MM[reg].sw[0] >>= shift;
-        MM[reg].sw[1] >>= shift;
-        MM[reg].sw[2] >>= shift;
-        MM[reg].sw[3] >>= shift;
+        MM[cpu_reg].sw[0] >>= shift;
+        MM[cpu_reg].sw[1] >>= shift;
+        MM[cpu_reg].sw[2] >>= shift;
+        MM[cpu_reg].sw[3] >>= shift;
         
         return 0;
 }
@@ -243,11 +243,11 @@ static int opPSLLD_a16(uint32_t fetchdat)
         MMX_GETSHIFT();
 
         if (shift > 31)
-                MM[reg].q = 0;
+                MM[cpu_reg].q = 0;
         else
         {
-                MM[reg].l[0] <<= shift;
-                MM[reg].l[1] <<= shift;
+                MM[cpu_reg].l[0] <<= shift;
+                MM[cpu_reg].l[1] <<= shift;
         }
 
         return 0;
@@ -262,11 +262,11 @@ static int opPSLLD_a32(uint32_t fetchdat)
         MMX_GETSHIFT();
 
         if (shift > 31)
-                MM[reg].q = 0;
+                MM[cpu_reg].q = 0;
         else
         {
-                MM[reg].l[0] <<= shift;
-                MM[reg].l[1] <<= shift;
+                MM[cpu_reg].l[0] <<= shift;
+                MM[cpu_reg].l[1] <<= shift;
         }
 
         return 0;
@@ -282,11 +282,11 @@ static int opPSRLD_a16(uint32_t fetchdat)
         MMX_GETSHIFT();
 
         if (shift > 31)
-                MM[reg].q = 0;
+                MM[cpu_reg].q = 0;
         else
         {
-                MM[reg].l[0] >>= shift;
-                MM[reg].l[1] >>= shift;
+                MM[cpu_reg].l[0] >>= shift;
+                MM[cpu_reg].l[1] >>= shift;
         }
 
         return 0;
@@ -301,11 +301,11 @@ static int opPSRLD_a32(uint32_t fetchdat)
         MMX_GETSHIFT();
 
         if (shift > 31)
-                MM[reg].q = 0;
+                MM[cpu_reg].q = 0;
         else
         {
-                MM[reg].l[0] >>= shift;
-                MM[reg].l[1] >>= shift;
+                MM[cpu_reg].l[0] >>= shift;
+                MM[cpu_reg].l[1] >>= shift;
         }
 
         return 0;
@@ -323,8 +323,8 @@ static int opPSRAD_a16(uint32_t fetchdat)
         if (shift > 31)
                 shift = 31;
 
-        MM[reg].sl[0] >>= shift;
-        MM[reg].sl[1] >>= shift;
+        MM[cpu_reg].sl[0] >>= shift;
+        MM[cpu_reg].sl[1] >>= shift;
         
         return 0;
 }
@@ -340,8 +340,8 @@ static int opPSRAD_a32(uint32_t fetchdat)
         if (shift > 31)
                 shift = 31;
 
-        MM[reg].sl[0] >>= shift;
-        MM[reg].sl[1] >>= shift;
+        MM[cpu_reg].sl[0] >>= shift;
+        MM[cpu_reg].sl[1] >>= shift;
 
         return 0;
 }
@@ -395,9 +395,9 @@ static int opPSLLQ_a16(uint32_t fetchdat)
         MMX_GETSHIFT();
 
         if (shift > 63)
-                MM[reg].q = 0;
+                MM[cpu_reg].q = 0;
         else
-                MM[reg].q <<= shift;
+                MM[cpu_reg].q <<= shift;
 
         return 0;
 }
@@ -411,9 +411,9 @@ static int opPSLLQ_a32(uint32_t fetchdat)
         MMX_GETSHIFT();
 
         if (shift > 63)
-                MM[reg].q = 0;
+                MM[cpu_reg].q = 0;
         else
-                MM[reg].q <<= shift;
+                MM[cpu_reg].q <<= shift;
 
         return 0;
 }
@@ -428,9 +428,9 @@ static int opPSRLQ_a16(uint32_t fetchdat)
         MMX_GETSHIFT();
 
         if (shift > 63)
-                MM[reg].q = 0;
+                MM[cpu_reg].q = 0;
         else
-                MM[reg].q >>= shift;
+                MM[cpu_reg].q >>= shift;
 
         return 0;
 }
@@ -444,9 +444,9 @@ static int opPSRLQ_a32(uint32_t fetchdat)
         MMX_GETSHIFT();
 
         if (shift > 63)
-                MM[reg].q = 0;
+                MM[cpu_reg].q = 0;
         else
-                MM[reg].q >>= shift;
+                MM[cpu_reg].q >>= shift;
 
         return 0;
 }

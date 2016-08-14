@@ -65,10 +65,10 @@ void refreshread() { /*pclog("Refreshread\n"); */FETCHCOMPLETE(); memcycs+=4; }
 
 #undef fetchea
 #define fetchea()   { rmdat=FETCH();  \
-                    reg=(rmdat>>3)&7;             \
-                    mod=(rmdat>>6)&3;             \
-                    rm=rmdat&7;                   \
-                    if (mod!=3) fetcheal(); }
+                    cpu_reg=(rmdat>>3)&7;             \
+                    cpu_mod=(rmdat>>6)&3;             \
+                    cpu_rm=rmdat&7;                   \
+                    if (cpu_mod!=3) fetcheal(); }
 
 void writemembl(uint32_t addr, uint8_t val);
 void writememb(uint32_t a, uint8_t v)
@@ -342,7 +342,7 @@ reg = If mod=11,  (depending on data size, 16 bits/8 bits, 32 bits=extend 16 bit
 
 int cycles=0;
 uint32_t easeg,eaaddr;
-int rm,reg,mod,rmdat;
+int rmdat;
 
 uint16_t zero=0;
 uint16_t *mod1add[2][8];
@@ -363,32 +363,32 @@ void makemod1table()
 
 static void fetcheal()
 {
-        if (!mod && rm==6) { eaaddr=getword(); easeg=ds; FETCHADD(6); }
+        if (!cpu_mod && cpu_rm==6) { eaaddr=getword(); easeg=ds; FETCHADD(6); }
         else
         {
-                switch (mod)
+                switch (cpu_mod)
                 {
                         case 0:
                         eaaddr=0;
-                        if (rm&4) FETCHADD(5);
-                        else      FETCHADD(7+slowrm[rm]);
+                        if (cpu_rm&4) FETCHADD(5);
+                        else      FETCHADD(7+slowrm[cpu_rm]);
                         break;
                         case 1:
                         eaaddr=(uint16_t)(int8_t)FETCH();
-                        if (rm&4) FETCHADD(9);
-                        else      FETCHADD(11+slowrm[rm]);
+                        if (cpu_rm&4) FETCHADD(9);
+                        else      FETCHADD(11+slowrm[cpu_rm]);
                         break;
                         case 2:
                         eaaddr=getword();
-                        if (rm&4) FETCHADD(9);
-                        else      FETCHADD(11+slowrm[rm]);
+                        if (cpu_rm&4) FETCHADD(9);
+                        else      FETCHADD(11+slowrm[cpu_rm]);
                         break;
 			case 3:
-			if (!(rm&4)) FETCHADD(2+slowrm[rm]);
+			if (!(cpu_rm&4)) FETCHADD(2+slowrm[cpu_rm]);
 			return;
                 }
-                eaaddr+=(*mod1add[0][rm])+(*mod1add[1][rm]);
-                easeg=*mod1seg[rm];
+                eaaddr+=(*mod1add[0][cpu_rm])+(*mod1add[1][cpu_rm]);
+                easeg=*mod1seg[cpu_rm];
                 eaaddr&=0xFFFF;
         }
 	cpu_state.last_ea = eaaddr;
@@ -396,35 +396,35 @@ static void fetcheal()
 
 static inline uint8_t geteab()
 {
-        if (mod == 3)
-                return (rm & 4) ? cpu_state.regs[rm & 3].b.h : cpu_state.regs[rm & 3].b.l;
+        if (cpu_mod == 3)
+                return (cpu_rm & 4) ? cpu_state.regs[cpu_rm & 3].b.h : cpu_state.regs[cpu_rm & 3].b.l;
         return readmemb(easeg+eaaddr);
 }
 
 static inline uint16_t geteaw()
 {
-        if (mod == 3)
-                return cpu_state.regs[rm].w;
+        if (cpu_mod == 3)
+                return cpu_state.regs[cpu_rm].w;
 //        if (output==3) printf("GETEAW %04X:%08X\n",easeg,eaaddr);
         return readmemw(easeg,eaaddr);
 }
 
 static inline uint16_t geteaw2()
 {
-        if (mod == 3)
-                return cpu_state.regs[rm].w;
+        if (cpu_mod == 3)
+                return cpu_state.regs[cpu_rm].w;
 //        printf("Getting addr from %04X:%04X %05X\n",easeg,eaaddr+2,easeg+eaaddr+2);
         return readmemw(easeg,(eaaddr+2)&0xFFFF);
 }
 
 static inline void seteab(uint8_t val)
 {
-        if (mod == 3)
+        if (cpu_mod == 3)
         {
-                if (rm & 4)
-                        cpu_state.regs[rm & 3].b.h = val;
+                if (cpu_rm & 4)
+                        cpu_state.regs[cpu_rm & 3].b.h = val;
                 else
-                        cpu_state.regs[rm & 3].b.l = val;
+                        cpu_state.regs[cpu_rm & 3].b.l = val;
         }
         else
         {
@@ -434,8 +434,8 @@ static inline void seteab(uint8_t val)
 
 static inline void seteaw(uint16_t val)
 {
-        if (mod == 3)
-                cpu_state.regs[rm].w = val;
+        if (cpu_mod == 3)
+                cpu_state.regs[cpu_rm].w = val;
         else
         {
                 writememw(easeg,eaaddr,val);
@@ -1133,32 +1133,32 @@ void execx86(int cycs)
 //                                readkey();
                         }*/
                         temp=geteab();
-                        setadd8(temp,getr8(reg));
-                        temp+=getr8(reg);
+                        setadd8(temp,getr8(cpu_reg));
+                        temp+=getr8(cpu_reg);
                         seteab(temp);
-                        cycles-=((mod==3)?3:24);
+                        cycles-=((cpu_mod==3)?3:24);
                         break;
                         case 0x01: /*ADD 16,reg*/
                         fetchea();
                         tempw=geteaw();
-                        setadd16(tempw, cpu_state.regs[reg].w);
-                        tempw += cpu_state.regs[reg].w;
+                        setadd16(tempw, cpu_state.regs[cpu_reg].w);
+                        tempw += cpu_state.regs[cpu_reg].w;
                         seteaw(tempw);
-                        cycles-=((mod==3)?3:24);
+                        cycles-=((cpu_mod==3)?3:24);
                         break;
-                        case 0x02: /*ADD reg,8*/
+                        case 0x02: /*ADD cpu_reg,8*/
                         fetchea();
                         temp=geteab();
-                        setadd8(getr8(reg),temp);
-                        setr8(reg,getr8(reg)+temp);
-                        cycles-=((mod==3)?3:13);
+                        setadd8(getr8(cpu_reg),temp);
+                        setr8(cpu_reg,getr8(cpu_reg)+temp);
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
-                        case 0x03: /*ADD reg,16*/
+                        case 0x03: /*ADD cpu_reg,16*/
                         fetchea();
                         tempw=geteaw();
-                        setadd16(cpu_state.regs[reg].w,tempw);
-                        cpu_state.regs[reg].w+=tempw;
-                        cycles-=((mod==3)?3:13);
+                        setadd16(cpu_state.regs[cpu_reg].w,tempw);
+                        cpu_state.regs[cpu_reg].w+=tempw;
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
                         case 0x04: /*ADD AL,#8*/
                         temp=FETCH();
@@ -1192,38 +1192,38 @@ void execx86(int cycs)
                         case 0x08: /*OR 8,reg*/
                         fetchea();
                         temp=geteab();
-                        temp|=getr8(reg);
+                        temp|=getr8(cpu_reg);
                         setznp8(temp);
                         flags&=~(C_FLAG|V_FLAG|A_FLAG);
                         seteab(temp);
-                        cycles-=((mod==3)?3:24);
+                        cycles-=((cpu_mod==3)?3:24);
                         break;
                         case 0x09: /*OR 16,reg*/
                         fetchea();
                         tempw=geteaw();
-                        tempw|=cpu_state.regs[reg].w;
+                        tempw|=cpu_state.regs[cpu_reg].w;
                         setznp16(tempw);
                         flags&=~(C_FLAG|V_FLAG|A_FLAG);
                         seteaw(tempw);
-                        cycles-=((mod==3)?3:24);
+                        cycles-=((cpu_mod==3)?3:24);
                         break;
-                        case 0x0A: /*OR reg,8*/
+                        case 0x0A: /*OR cpu_reg,8*/
                         fetchea();
                         temp=geteab();
-                        temp|=getr8(reg);
+                        temp|=getr8(cpu_reg);
                         setznp8(temp);
                         flags&=~(C_FLAG|V_FLAG|A_FLAG);
-                        setr8(reg,temp);
-                        cycles-=((mod==3)?3:13);
+                        setr8(cpu_reg,temp);
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
                         case 0x0B: /*OR reg,16*/
                         fetchea();
                         tempw=geteaw();
-                        tempw|=cpu_state.regs[reg].w;
+                        tempw|=cpu_state.regs[cpu_reg].w;
                         setznp16(tempw);
                         flags&=~(C_FLAG|V_FLAG|A_FLAG);
-                        cpu_state.regs[reg].w=tempw;
-                        cycles-=((mod==3)?3:13);
+                        cpu_state.regs[cpu_reg].w=tempw;
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
                         case 0x0C: /*OR AL,#8*/
                         AL|=FETCH();
@@ -1257,34 +1257,34 @@ void execx86(int cycs)
                         case 0x10: /*ADC 8,reg*/
                         fetchea();
                         temp=geteab();
-                        temp2=getr8(reg);
+                        temp2=getr8(cpu_reg);
                         setadc8(temp,temp2);
                         temp+=temp2+tempc;
                         seteab(temp);
-                        cycles-=((mod==3)?3:24);
+                        cycles-=((cpu_mod==3)?3:24);
                         break;
                         case 0x11: /*ADC 16,reg*/
                         fetchea();
                         tempw=geteaw();
-                        tempw2=cpu_state.regs[reg].w;
+                        tempw2=cpu_state.regs[cpu_reg].w;
                         setadc16(tempw,tempw2);
                         tempw+=tempw2+tempc;
                         seteaw(tempw);
-                        cycles-=((mod==3)?3:24);
+                        cycles-=((cpu_mod==3)?3:24);
                         break;
-                        case 0x12: /*ADC reg,8*/
+                        case 0x12: /*ADC cpu_reg,8*/
                         fetchea();
                         temp=geteab();
-                        setadc8(getr8(reg),temp);
-                        setr8(reg,getr8(reg)+temp+tempc);
-                        cycles-=((mod==3)?3:13);
+                        setadc8(getr8(cpu_reg),temp);
+                        setr8(cpu_reg,getr8(cpu_reg)+temp+tempc);
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
-                        case 0x13: /*ADC reg,16*/
+                        case 0x13: /*ADC cpu_reg,16*/
                         fetchea();
                         tempw=geteaw();
-                        setadc16(cpu_state.regs[reg].w,tempw);
-                        cpu_state.regs[reg].w+=tempw+tempc;
-                        cycles-=((mod==3)?3:13);
+                        setadc16(cpu_state.regs[cpu_reg].w,tempw);
+                        cpu_state.regs[cpu_reg].w+=tempw+tempc;
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
                         case 0x14: /*ADC AL,#8*/
                         tempw=FETCH();
@@ -1320,38 +1320,38 @@ void execx86(int cycs)
                         case 0x18: /*SBB 8,reg*/
                         fetchea();
                         temp=geteab();
-                        temp2=getr8(reg);
+                        temp2=getr8(cpu_reg);
                         setsbc8(temp,temp2);
                         temp-=(temp2+tempc);
                         seteab(temp);
-                        cycles-=((mod==3)?3:24);
+                        cycles-=((cpu_mod==3)?3:24);
                         break;
                         case 0x19: /*SBB 16,reg*/
                         fetchea();
                         tempw=geteaw();
-                        tempw2=cpu_state.regs[reg].w;
+                        tempw2=cpu_state.regs[cpu_reg].w;
 //                        printf("%04X:%04X SBB %04X-%04X,%i\n",cs>>4,pc,tempw,tempw2,tempc);
                         setsbc16(tempw,tempw2);
                         tempw-=(tempw2+tempc);
                         seteaw(tempw);
-                        cycles-=((mod==3)?3:24);
+                        cycles-=((cpu_mod==3)?3:24);
                         break;
-                        case 0x1A: /*SBB reg,8*/
+                        case 0x1A: /*SBB cpu_reg,8*/
                         fetchea();
                         temp=geteab();
-                        setsbc8(getr8(reg),temp);
-                        setr8(reg,getr8(reg)-(temp+tempc));
-                        cycles-=((mod==3)?3:13);
+                        setsbc8(getr8(cpu_reg),temp);
+                        setr8(cpu_reg,getr8(cpu_reg)-(temp+tempc));
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
-                        case 0x1B: /*SBB reg,16*/
+                        case 0x1B: /*SBB cpu_reg,16*/
                         fetchea();
                         tempw=geteaw();
-                        tempw2=cpu_state.regs[reg].w;
+                        tempw2=cpu_state.regs[cpu_reg].w;
 //                        printf("%04X:%04X SBB %04X-%04X,%i\n",cs>>4,pc,tempw,tempw2,tempc);
                         setsbc16(tempw2,tempw);
                         tempw2-=(tempw+tempc);
-                        cpu_state.regs[reg].w=tempw2;
-                        cycles-=((mod==3)?3:13);
+                        cpu_state.regs[cpu_reg].w=tempw2;
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
                         case 0x1C: /*SBB AL,#8*/
                         temp=FETCH();
@@ -1386,38 +1386,38 @@ void execx86(int cycs)
                         case 0x20: /*AND 8,reg*/
                         fetchea();
                         temp=geteab();
-                        temp&=getr8(reg);
+                        temp&=getr8(cpu_reg);
                         setznp8(temp);
                         flags&=~(C_FLAG|V_FLAG|A_FLAG);
                         seteab(temp);
-                        cycles-=((mod==3)?3:24);
+                        cycles-=((cpu_mod==3)?3:24);
                         break;
                         case 0x21: /*AND 16,reg*/
                         fetchea();
                         tempw=geteaw();
-                        tempw&=cpu_state.regs[reg].w;
+                        tempw&=cpu_state.regs[cpu_reg].w;
                         setznp16(tempw);
                         flags&=~(C_FLAG|V_FLAG|A_FLAG);
                         seteaw(tempw);
-                        cycles-=((mod==3)?3:24);
+                        cycles-=((cpu_mod==3)?3:24);
                         break;
-                        case 0x22: /*AND reg,8*/
+                        case 0x22: /*AND cpu_reg,8*/
                         fetchea();
                         temp=geteab();
-                        temp&=getr8(reg);
+                        temp&=getr8(cpu_reg);
                         setznp8(temp);
                         flags&=~(C_FLAG|V_FLAG|A_FLAG);
-                        setr8(reg,temp);
-                        cycles-=((mod==3)?3:13);
+                        setr8(cpu_reg,temp);
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
-                        case 0x23: /*AND reg,16*/
+                        case 0x23: /*AND cpu_reg,16*/
                         fetchea();
                         tempw=geteaw();
-                        tempw&=cpu_state.regs[reg].w;
+                        tempw&=cpu_state.regs[cpu_reg].w;
                         setznp16(tempw);
                         flags&=~(C_FLAG|V_FLAG|A_FLAG);
-                        cpu_state.regs[reg].w=tempw;
-                        cycles-=((mod==3)?3:13);
+                        cpu_state.regs[cpu_reg].w=tempw;
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
                         case 0x24: /*AND AL,#8*/
                         AL&=FETCH();
@@ -1465,34 +1465,34 @@ void execx86(int cycs)
                         case 0x28: /*SUB 8,reg*/
                         fetchea();
                         temp=geteab();
-                        setsub8(temp,getr8(reg));
-                        temp-=getr8(reg);
+                        setsub8(temp,getr8(cpu_reg));
+                        temp-=getr8(cpu_reg);
                         seteab(temp);
-                        cycles-=((mod==3)?3:24);
+                        cycles-=((cpu_mod==3)?3:24);
                         break;
                         case 0x29: /*SUB 16,reg*/
                         fetchea();
                         tempw=geteaw();
-//                        printf("%04X:%04X  %04X-%04X\n",cs>>4,pc,tempw,cpu_state.regs[reg].w);
-                        setsub16(tempw,cpu_state.regs[reg].w);
-                        tempw-=cpu_state.regs[reg].w;
+//                        printf("%04X:%04X  %04X-%04X\n",cs>>4,pc,tempw,cpu_state.regs[cpu_reg].w);
+                        setsub16(tempw,cpu_state.regs[cpu_reg].w);
+                        tempw-=cpu_state.regs[cpu_reg].w;
                         seteaw(tempw);
-                        cycles-=((mod==3)?3:24);
+                        cycles-=((cpu_mod==3)?3:24);
                         break;
-                        case 0x2A: /*SUB reg,8*/
+                        case 0x2A: /*SUB cpu_reg,8*/
                         fetchea();
                         temp=geteab();
-                        setsub8(getr8(reg),temp);
-                        setr8(reg,getr8(reg)-temp);
-                        cycles-=((mod==3)?3:13);
+                        setsub8(getr8(cpu_reg),temp);
+                        setr8(cpu_reg,getr8(cpu_reg)-temp);
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
-                        case 0x2B: /*SUB reg,16*/
+                        case 0x2B: /*SUB cpu_reg,16*/
                         fetchea();
                         tempw=geteaw();
-//                        printf("%04X:%04X  %04X-%04X\n",cs>>4,pc,cpu_state.regs[reg].w,tempw);
-                        setsub16(cpu_state.regs[reg].w,tempw);
-                        cpu_state.regs[reg].w-=tempw;
-                        cycles-=((mod==3)?3:13);
+//                        printf("%04X:%04X  %04X-%04X\n",cs>>4,pc,cpu_state.regs[cpu_reg].w,tempw);
+                        setsub16(cpu_state.regs[cpu_reg].w,tempw);
+                        cpu_state.regs[cpu_reg].w-=tempw;
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
                         case 0x2C: /*SUB AL,#8*/
                         temp=FETCH();
@@ -1538,38 +1538,38 @@ void execx86(int cycs)
                         case 0x30: /*XOR 8,reg*/
                         fetchea();
                         temp=geteab();
-                        temp^=getr8(reg);
+                        temp^=getr8(cpu_reg);
                         setznp8(temp);
                         flags&=~(C_FLAG|V_FLAG|A_FLAG);
                         seteab(temp);
-                        cycles-=((mod==3)?3:24);
+                        cycles-=((cpu_mod==3)?3:24);
                         break;
                         case 0x31: /*XOR 16,reg*/
                         fetchea();
                         tempw=geteaw();
-                        tempw^=cpu_state.regs[reg].w;
+                        tempw^=cpu_state.regs[cpu_reg].w;
                         setznp16(tempw);
                         flags&=~(C_FLAG|V_FLAG|A_FLAG);
                         seteaw(tempw);
-                        cycles-=((mod==3)?3:24);
+                        cycles-=((cpu_mod==3)?3:24);
                         break;
-                        case 0x32: /*XOR reg,8*/
+                        case 0x32: /*XOR cpu_reg,8*/
                         fetchea();
                         temp=geteab();
-                        temp^=getr8(reg);
+                        temp^=getr8(cpu_reg);
                         setznp8(temp);
                         flags&=~(C_FLAG|V_FLAG|A_FLAG);
-                        setr8(reg,temp);
-                        cycles-=((mod==3)?3:13);
+                        setr8(cpu_reg,temp);
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
-                        case 0x33: /*XOR reg,16*/
+                        case 0x33: /*XOR cpu_reg,16*/
                         fetchea();
                         tempw=geteaw();
-                        tempw^=cpu_state.regs[reg].w;
+                        tempw^=cpu_state.regs[cpu_reg].w;
                         setznp16(tempw);
                         flags&=~(C_FLAG|V_FLAG|A_FLAG);
-                        cpu_state.regs[reg].w=tempw;
-                        cycles-=((mod==3)?3:13);
+                        cpu_state.regs[cpu_reg].w=tempw;
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
                         case 0x34: /*XOR AL,#8*/
                         AL^=FETCH();
@@ -1609,30 +1609,30 @@ void execx86(int cycs)
                         case 0x38: /*CMP 8,reg*/
                         fetchea();
                         temp=geteab();
-//                        if (output) printf("CMP %02X-%02X\n",temp,getr8(reg));
-                        setsub8(temp,getr8(reg));
-                        cycles-=((mod==3)?3:13);
+//                        if (output) printf("CMP %02X-%02X\n",temp,getr8(cpu_reg));
+                        setsub8(temp,getr8(cpu_reg));
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
                         case 0x39: /*CMP 16,reg*/
                         fetchea();
                         tempw=geteaw();
-//                        if (output) printf("CMP %04X-%04X\n",tempw,cpu_state.regs[reg].w);
-                        setsub16(tempw,cpu_state.regs[reg].w);
-                        cycles-=((mod==3)?3:13);
+//                        if (output) printf("CMP %04X-%04X\n",tempw,cpu_state.regs[cpu_reg].w);
+                        setsub16(tempw,cpu_state.regs[cpu_reg].w);
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
-                        case 0x3A: /*CMP reg,8*/
+                        case 0x3A: /*CMP cpu_reg,8*/
                         fetchea();
                         temp=geteab();
-//                        if (output) printf("CMP %02X-%02X\n",getr8(reg),temp);
-                        setsub8(getr8(reg),temp);
-                        cycles-=((mod==3)?3:13);
+//                        if (output) printf("CMP %02X-%02X\n",getr8(cpu_reg),temp);
+                        setsub8(getr8(cpu_reg),temp);
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
-                        case 0x3B: /*CMP reg,16*/
+                        case 0x3B: /*CMP cpu_reg,16*/
                         fetchea();
                         tempw=geteaw();
-//                        printf("CMP %04X-%04X\n",cpu_state.regs[reg].w,tempw);
-                        setsub16(cpu_state.regs[reg].w,tempw);
-                        cycles-=((mod==3)?3:13);
+//                        printf("CMP %04X-%04X\n",cpu_state.regs[cpu_reg].w,tempw);
+                        setsub16(cpu_state.regs[cpu_reg].w,tempw);
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
                         case 0x3C: /*CMP AL,#8*/
                         temp=FETCH();
@@ -1812,49 +1812,49 @@ void execx86(int cycs)
                                 case 0x00: /*ADD b,#8*/
                                 setadd8(temp,temp2);
                                 seteab(temp+temp2);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x08: /*OR b,#8*/
                                 temp|=temp2;
                                 setznp8(temp);
                                 flags&=~(C_FLAG|V_FLAG|A_FLAG);
                                 seteab(temp);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x10: /*ADC b,#8*/
 //                                temp2+=(flags&C_FLAG);
                                 setadc8(temp,temp2);
                                 seteab(temp+temp2+tempc);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x18: /*SBB b,#8*/
 //                                temp2+=(flags&C_FLAG);
                                 setsbc8(temp,temp2);
                                 seteab(temp-(temp2+tempc));
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x20: /*AND b,#8*/
                                 temp&=temp2;
                                 setznp8(temp);
                                 flags&=~(C_FLAG|V_FLAG|A_FLAG);
                                 seteab(temp);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x28: /*SUB b,#8*/
                                 setsub8(temp,temp2);
                                 seteab(temp-temp2);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x30: /*XOR b,#8*/
                                 temp^=temp2;
                                 setznp8(temp);
                                 flags&=~(C_FLAG|V_FLAG|A_FLAG);
                                 seteab(temp);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x38: /*CMP b,#8*/
                                 setsub8(temp,temp2);
-                                cycles-=((mod==3)?4:14);
+                                cycles-=((cpu_mod==3)?4:14);
                                 break;
 
 //                                default:
@@ -1874,52 +1874,52 @@ void execx86(int cycs)
                                 setadd16(tempw,tempw2);
                                 tempw+=tempw2;
                                 seteaw(tempw);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x08: /*OR w,#16*/
                                 tempw|=tempw2;
                                 setznp16(tempw);
                                 flags&=~(C_FLAG|V_FLAG|A_FLAG);
                                 seteaw(tempw);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x10: /*ADC w,#16*/
 //                                tempw2+=(flags&C_FLAG);
                                 setadc16(tempw,tempw2);
                                 tempw+=tempw2+tempc;
                                 seteaw(tempw);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x20: /*AND w,#16*/
                                 tempw&=tempw2;
                                 setznp16(tempw);
                                 flags&=~(C_FLAG|V_FLAG|A_FLAG);
                                 seteaw(tempw);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x18: /*SBB w,#16*/
 //                                tempw2+=(flags&C_FLAG);
                                 setsbc16(tempw,tempw2);
                                 seteaw(tempw-(tempw2+tempc));
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x28: /*SUB w,#16*/
                                 setsub16(tempw,tempw2);
                                 tempw-=tempw2;
                                 seteaw(tempw);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x30: /*XOR w,#16*/
                                 tempw^=tempw2;
                                 setznp16(tempw);
                                 flags&=~(C_FLAG|V_FLAG|A_FLAG);
                                 seteaw(tempw);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x38: /*CMP w,#16*/
 //                                printf("CMP %04X %04X\n",tempw,tempw2);
                                 setsub16(tempw,tempw2);
-                                cycles-=((mod==3)?4:14);
+                                cycles-=((cpu_mod==3)?4:14);
                                 break;
 
 //                                default:
@@ -1940,52 +1940,52 @@ void execx86(int cycs)
                                 setadd16(tempw,tempw2);
                                 tempw+=tempw2;
                                 seteaw(tempw);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x08: /*OR w,#8*/
                                 tempw|=tempw2;
                                 setznp16(tempw);
                                 seteaw(tempw);
                                 flags&=~(C_FLAG|A_FLAG|V_FLAG);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x10: /*ADC w,#8*/
 //                                tempw2+=(flags&C_FLAG);
                                 setadc16(tempw,tempw2);
                                 tempw+=tempw2+tempc;
                                 seteaw(tempw);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x18: /*SBB w,#8*/
 //                                tempw2+=(flags&C_FLAG);
                                 setsbc16(tempw,tempw2);
                                 tempw-=(tempw2+tempc);
                                 seteaw(tempw);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x20: /*AND w,#8*/
                                 tempw&=tempw2;
                                 setznp16(tempw);
                                 seteaw(tempw);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 flags&=~(C_FLAG|A_FLAG|V_FLAG);
                                 break;
                                 case 0x28: /*SUB w,#8*/
                                 setsub16(tempw,tempw2);
                                 tempw-=tempw2;
                                 seteaw(tempw);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 break;
                                 case 0x30: /*XOR w,#8*/
                                 tempw^=tempw2;
                                 setznp16(tempw);
                                 seteaw(tempw);
-                                cycles-=((mod==3)?4:23);
+                                cycles-=((cpu_mod==3)?4:23);
                                 flags&=~(C_FLAG|A_FLAG|V_FLAG);
                                 break;
                                 case 0x38: /*CMP w,#8*/
                                 setsub16(tempw,tempw2);
-                                cycles-=((mod==3)?4:14);
+                                cycles-=((cpu_mod==3)?4:14);
                                 break;
 
 //                                default:
@@ -1998,55 +1998,55 @@ void execx86(int cycs)
                         case 0x84: /*TEST b,reg*/
                         fetchea();
                         temp=geteab();
-                        temp2=getr8(reg);
+                        temp2=getr8(cpu_reg);
                         setznp8(temp&temp2);
                         flags&=~(C_FLAG|V_FLAG|A_FLAG);
-                        cycles-=((mod==3)?3:13);
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
                         case 0x85: /*TEST w,reg*/
                         fetchea();
                         tempw=geteaw();
-                        tempw2=cpu_state.regs[reg].w;
+                        tempw2=cpu_state.regs[cpu_reg].w;
                         setznp16(tempw&tempw2);
                         flags&=~(C_FLAG|V_FLAG|A_FLAG);
-                        cycles-=((mod==3)?3:13);
+                        cycles-=((cpu_mod==3)?3:13);
                         break;
                         case 0x86: /*XCHG b,reg*/
                         fetchea();
                         temp=geteab();
-                        seteab(getr8(reg));
-                        setr8(reg,temp);
-                        cycles-=((mod==3)?4:25);
+                        seteab(getr8(cpu_reg));
+                        setr8(cpu_reg,temp);
+                        cycles-=((cpu_mod==3)?4:25);
                         break;
                         case 0x87: /*XCHG w,reg*/
                         fetchea();
                         tempw=geteaw();
-                        seteaw(cpu_state.regs[reg].w);
-                        cpu_state.regs[reg].w=tempw;
-                        cycles-=((mod==3)?4:25);
+                        seteaw(cpu_state.regs[cpu_reg].w);
+                        cpu_state.regs[cpu_reg].w=tempw;
+                        cycles-=((cpu_mod==3)?4:25);
                         break;
 
                         case 0x88: /*MOV b,reg*/
                         fetchea();
-                        seteab(getr8(reg));
-                        cycles-=((mod==3)?2:13);
+                        seteab(getr8(cpu_reg));
+                        cycles-=((cpu_mod==3)?2:13);
                         break;
                         case 0x89: /*MOV w,reg*/
                         fetchea();
-                        seteaw(cpu_state.regs[reg].w);
-                        cycles-=((mod==3)?2:13);
+                        seteaw(cpu_state.regs[cpu_reg].w);
+                        cycles-=((cpu_mod==3)?2:13);
                         break;
-                        case 0x8A: /*MOV reg,b*/
+                        case 0x8A: /*MOV cpu_reg,b*/
                         fetchea();
                         temp=geteab();
-                        setr8(reg,temp);
-                        cycles-=((mod==3)?2:12);
+                        setr8(cpu_reg,temp);
+                        cycles-=((cpu_mod==3)?2:12);
                         break;
-                        case 0x8B: /*MOV reg,w*/
+                        case 0x8B: /*MOV cpu_reg,w*/
                         fetchea();
                         tempw=geteaw();
-                        cpu_state.regs[reg].w=tempw;
-                        cycles-=((mod==3)?2:12);
+                        cpu_state.regs[cpu_reg].w=tempw;
+                        cycles-=((cpu_mod==3)?2:12);
                         break;
 
                         case 0x8C: /*MOV w,sreg*/
@@ -2068,12 +2068,12 @@ void execx86(int cycs)
                                 seteaw(SS);
                                 break;
                         }
-                        cycles-=((mod==3)?2:13);
+                        cycles-=((cpu_mod==3)?2:13);
                         break;
 
                         case 0x8D: /*LEA*/
                         fetchea();
-                        cpu_state.regs[reg].w=(mod == 3)?cpu_state.last_ea:eaaddr;
+                        cpu_state.regs[cpu_reg].w=(cpu_mod == 3)?cpu_state.last_ea:eaaddr;
                         cycles-=2;
                         break;
 
@@ -2104,7 +2104,7 @@ void execx86(int cycs)
 //				printf("SS loaded with %04X %04X:%04X %04X %04X %04X\n",ss>>4,cs>>4,pc,CX,DX,es>>4);
                                 break;
                         }
-                        cycles-=((mod==3)?2:12);
+                        cycles-=((cpu_mod==3)?2:12);
                                 skipnextprint=1;
 				noint=1;
                         break;
@@ -2320,7 +2320,7 @@ void execx86(int cycs)
                         BH=FETCH();
                         cycles-=4;
                         break;
-                        case 0xB8: case 0xB9: case 0xBA: case 0xBB: /*MOV reg,#16*/
+                        case 0xB8: case 0xB9: case 0xBA: case 0xBB: /*MOV cpu_reg,#16*/
                         case 0xBC: case 0xBD: case 0xBE: case 0xBF:
                         cpu_state.regs[opcode&7].w=getword();
                         cycles-=4;
@@ -2349,14 +2349,14 @@ void execx86(int cycs)
                         break;
                         case 0xC4: /*LES*/
                         fetchea();
-                        cpu_state.regs[reg].w=readmemw(easeg,eaaddr); //geteaw();
+                        cpu_state.regs[cpu_reg].w=readmemw(easeg,eaaddr); //geteaw();
                         tempw=readmemw(easeg,(eaaddr+2)&0xFFFF); //geteaw2();
                         loadseg(tempw,&_es);
                         cycles-=24;
                         break;
                         case 0xC5: /*LDS*/
                         fetchea();
-                        cpu_state.regs[reg].w=readmemw(easeg,eaaddr);
+                        cpu_state.regs[cpu_reg].w=readmemw(easeg,eaaddr);
                         tempw=readmemw(easeg,(eaaddr+2)&0xFFFF);
                         loadseg(tempw,&_ds);
                         if (ssegs) oldds=ds;
@@ -2366,13 +2366,13 @@ void execx86(int cycs)
                         fetchea();
                         temp=FETCH();
                         seteab(temp);
-                        cycles-=((mod==3)?4:14);
+                        cycles-=((cpu_mod==3)?4:14);
                         break;
                         case 0xC7: /*MOV w,#16*/
                         fetchea();
                         tempw=getword();
                         seteaw(tempw);
-                        cycles-=((mod==3)?4:14);
+                        cycles-=((cpu_mod==3)?4:14);
                         break;
 
 			case 0xC8: /*RETF alias*/
@@ -2459,7 +2459,7 @@ void execx86(int cycs)
 //                                setznp8(temp);
                                 if ((flags&C_FLAG)^(temp>>7)) flags|=V_FLAG;
                                 else                          flags&=~V_FLAG;
-                                cycles-=((mod==3)?2:23);
+                                cycles-=((cpu_mod==3)?2:23);
                                 break;
                                 case 0x08: /*ROR b,1*/
                                 if (temp&1) flags|=C_FLAG;
@@ -2470,7 +2470,7 @@ void execx86(int cycs)
 //                                setznp8(temp);
                                 if ((temp^(temp>>1))&0x40) flags|=V_FLAG;
                                 else                       flags&=~V_FLAG;
-                                cycles-=((mod==3)?2:23);
+                                cycles-=((cpu_mod==3)?2:23);
                                 break;
                                 case 0x10: /*RCL b,1*/
                                 temp2=flags&C_FLAG;
@@ -2482,7 +2482,7 @@ void execx86(int cycs)
 //                                setznp8(temp);
                                 if ((flags&C_FLAG)^(temp>>7)) flags|=V_FLAG;
                                 else                          flags&=~V_FLAG;
-                                cycles-=((mod==3)?2:23);
+                                cycles-=((cpu_mod==3)?2:23);
                                 break;
                                 case 0x18: /*RCR b,1*/
                                 temp2=flags&C_FLAG;
@@ -2494,7 +2494,7 @@ void execx86(int cycs)
 //                                setznp8(temp);
                                 if ((temp^(temp>>1))&0x40) flags|=V_FLAG;
                                 else                       flags&=~V_FLAG;
-                                cycles-=((mod==3)?2:23);
+                                cycles-=((cpu_mod==3)?2:23);
                                 break;
                                 case 0x20: case 0x30: /*SHL b,1*/
                                 if (temp&0x80) flags|=C_FLAG;
@@ -2504,7 +2504,7 @@ void execx86(int cycs)
                                 temp<<=1;
                                 seteab(temp);
                                 setznp8(temp);
-                                cycles-=((mod==3)?2:23);
+                                cycles-=((cpu_mod==3)?2:23);
                                 flags|=A_FLAG;
                                 break;
                                 case 0x28: /*SHR b,1*/
@@ -2515,7 +2515,7 @@ void execx86(int cycs)
                                 temp>>=1;
                                 seteab(temp);
                                 setznp8(temp);
-                                cycles-=((mod==3)?2:23);
+                                cycles-=((cpu_mod==3)?2:23);
                                 flags|=A_FLAG;
                                 break;
                                 case 0x38: /*SAR b,1*/
@@ -2525,7 +2525,7 @@ void execx86(int cycs)
                                 if (temp&0x40) temp|=0x80;
                                 seteab(temp);
                                 setznp8(temp);
-                                cycles-=((mod==3)?2:23);
+                                cycles-=((cpu_mod==3)?2:23);
                                 flags|=A_FLAG;
                                 flags&=~V_FLAG;
                                 break;
@@ -2551,7 +2551,7 @@ void execx86(int cycs)
 //                                setznp16(tempw);
                                 if ((flags&C_FLAG)^(tempw>>15)) flags|=V_FLAG;
                                 else                            flags&=~V_FLAG;
-                                cycles-=((mod==3)?2:23);
+                                cycles-=((cpu_mod==3)?2:23);
                                 break;
                                 case 0x08: /*ROR w,1*/
                                 if (tempw&1) flags|=C_FLAG;
@@ -2562,7 +2562,7 @@ void execx86(int cycs)
 //                                setznp16(tempw);
                                 if ((tempw^(tempw>>1))&0x4000) flags|=V_FLAG;
                                 else                           flags&=~V_FLAG;
-                                cycles-=((mod==3)?2:23);
+                                cycles-=((cpu_mod==3)?2:23);
                                 break;
                                 case 0x10: /*RCL w,1*/
                                 temp2=flags&C_FLAG;
@@ -2573,7 +2573,7 @@ void execx86(int cycs)
                                 seteaw(tempw);
                                 if ((flags&C_FLAG)^(tempw>>15)) flags|=V_FLAG;
                                 else                            flags&=~V_FLAG;
-                                cycles-=((mod==3)?2:23);
+                                cycles-=((cpu_mod==3)?2:23);
                                 break;
                                 case 0x18: /*RCR w,1*/
                                 temp2=flags&C_FLAG;
@@ -2585,7 +2585,7 @@ void execx86(int cycs)
 //                                setznp16(tempw);
                                 if ((tempw^(tempw>>1))&0x4000) flags|=V_FLAG;
                                 else                           flags&=~V_FLAG;
-                                cycles-=((mod==3)?2:23);
+                                cycles-=((cpu_mod==3)?2:23);
                                 break;
                                 case 0x20: case 0x30: /*SHL w,1*/
                                 if (tempw&0x8000) flags|=C_FLAG;
@@ -2595,7 +2595,7 @@ void execx86(int cycs)
                                 tempw<<=1;
                                 seteaw(tempw);
                                 setznp16(tempw);
-                                cycles-=((mod==3)?2:23);
+                                cycles-=((cpu_mod==3)?2:23);
                                 flags|=A_FLAG;
                                 break;
                                 case 0x28: /*SHR w,1*/
@@ -2606,7 +2606,7 @@ void execx86(int cycs)
                                 tempw>>=1;
                                 seteaw(tempw);
                                 setznp16(tempw);
-                                cycles-=((mod==3)?2:23);
+                                cycles-=((cpu_mod==3)?2:23);
                                 flags|=A_FLAG;
                                 break;
 
@@ -2617,7 +2617,7 @@ void execx86(int cycs)
                                 if (tempw&0x4000) tempw|=0x8000;
                                 seteaw(tempw);
                                 setznp16(tempw);
-                                cycles-=((mod==3)?2:23);
+                                cycles-=((cpu_mod==3)?2:23);
                                 flags|=A_FLAG;
                                 flags&=~V_FLAG;
                                 break;
@@ -2652,7 +2652,7 @@ void execx86(int cycs)
 //                                setznp8(temp);
                                 if ((flags&C_FLAG)^(temp>>7)) flags|=V_FLAG;
                                 else                          flags&=~V_FLAG;
-                                cycles-=((mod==3)?8:28);
+                                cycles-=((cpu_mod==3)?8:28);
                                 break;
                                 case 0x08: /*ROR b,CL*/
                                 while (c>0)
@@ -2668,7 +2668,7 @@ void execx86(int cycs)
                                 seteab(temp);
                                 if ((temp^(temp>>1))&0x40) flags|=V_FLAG;
                                 else                       flags&=~V_FLAG;
-                                cycles-=((mod==3)?8:28);
+                                cycles-=((cpu_mod==3)?8:28);
                                 break;
                                 case 0x10: /*RCL b,CL*/
 //                                printf("RCL %i %02X %02X\n",c,CL,temp);
@@ -2687,7 +2687,7 @@ void execx86(int cycs)
                                 seteab(temp);
                                 if ((flags&C_FLAG)^(temp>>7)) flags|=V_FLAG;
                                 else                          flags&=~V_FLAG;
-                                cycles-=((mod==3)?8:28);
+                                cycles-=((cpu_mod==3)?8:28);
                                 break;
                                 case 0x18: /*RCR b,CL*/
                                 while (c>0)
@@ -2706,7 +2706,7 @@ void execx86(int cycs)
                                 seteab(temp);
                                 if ((temp^(temp>>1))&0x40) flags|=V_FLAG;
                                 else                       flags&=~V_FLAG;
-                                cycles-=((mod==3)?8:28);
+                                cycles-=((cpu_mod==3)?8:28);
                                 break;
                                 case 0x20: case 0x30: /*SHL b,CL*/
                                 if ((temp<<(c-1))&0x80) flags|=C_FLAG;
@@ -2715,7 +2715,7 @@ void execx86(int cycs)
                                 seteab(temp);
                                 setznp8(temp);
                                 cycles-=(c*4);
-                                cycles-=((mod==3)?8:28);
+                                cycles-=((cpu_mod==3)?8:28);
                                 flags|=A_FLAG;
                                 break;
                                 case 0x28: /*SHR b,CL*/
@@ -2725,7 +2725,7 @@ void execx86(int cycs)
                                 seteab(temp);
                                 setznp8(temp);
                                 cycles-=(c*4);
-                                cycles-=((mod==3)?8:28);
+                                cycles-=((cpu_mod==3)?8:28);
                                 flags|=A_FLAG;
                                 break;
                                 case 0x38: /*SAR b,CL*/
@@ -2740,7 +2740,7 @@ void execx86(int cycs)
                                 }
                                 seteab(temp);
                                 setznp8(temp);
-                                cycles-=((mod==3)?8:28);
+                                cycles-=((cpu_mod==3)?8:28);
                                 flags|=A_FLAG;
                                 break;
 
@@ -2773,7 +2773,7 @@ void execx86(int cycs)
                                 seteaw(tempw);
                                 if ((flags&C_FLAG)^(tempw>>15)) flags|=V_FLAG;
                                 else                            flags&=~V_FLAG;
-                                cycles-=((mod==3)?8:28);
+                                cycles-=((cpu_mod==3)?8:28);
                                 break;
                                 case 0x08: /*ROR w,CL*/
                                 while (c>0)
@@ -2788,7 +2788,7 @@ void execx86(int cycs)
                                 seteaw(tempw);
                                 if ((tempw^(tempw>>1))&0x4000) flags|=V_FLAG;
                                 else                           flags&=~V_FLAG;
-                                cycles-=((mod==3)?8:28);
+                                cycles-=((cpu_mod==3)?8:28);
                                 break;
                                 case 0x10: /*RCL w,CL*/
                                 while (c>0)
@@ -2805,7 +2805,7 @@ void execx86(int cycs)
                                 seteaw(tempw);
                                 if ((flags&C_FLAG)^(tempw>>15)) flags|=V_FLAG;
                                 else                            flags&=~V_FLAG;
-                                cycles-=((mod==3)?8:28);
+                                cycles-=((cpu_mod==3)?8:28);
                                 break;
                                 case 0x18: /*RCR w,CL*/
                                 while (c>0)
@@ -2823,7 +2823,7 @@ void execx86(int cycs)
                                 seteaw(tempw);
                                 if ((tempw^(tempw>>1))&0x4000) flags|=V_FLAG;
                                 else                           flags&=~V_FLAG;
-                                cycles-=((mod==3)?8:28);
+                                cycles-=((cpu_mod==3)?8:28);
                                 break;
 
                                 case 0x20: case 0x30: /*SHL w,CL*/
@@ -2841,7 +2841,7 @@ void execx86(int cycs)
                                 seteaw(tempw);
                                 setznp16(tempw);
                                 cycles-=(c*4);
-                                cycles-=((mod==3)?8:28);
+                                cycles-=((cpu_mod==3)?8:28);
                                 flags|=A_FLAG;
                                 break;
 
@@ -2852,7 +2852,7 @@ void execx86(int cycs)
                                 seteaw(tempw);
                                 setznp16(tempw);
                                 cycles-=(c*4);
-                                cycles-=((mod==3)?8:28);
+                                cycles-=((cpu_mod==3)?8:28);
                                 flags|=A_FLAG;
                                 break;
 
@@ -2868,7 +2868,7 @@ void execx86(int cycs)
                                 }
                                 seteaw(tempw);
                                 setznp16(tempw);
-                                cycles-=((mod==3)?8:28);
+                                cycles-=((cpu_mod==3)?8:28);
                                 flags|=A_FLAG;
                                 break;
 
@@ -3053,18 +3053,18 @@ void execx86(int cycs)
                                 temp&=temp2;
                                 setznp8(temp);
                                 flags&=~(C_FLAG|V_FLAG|A_FLAG);
-                                cycles-=((mod==3)?5:11);
+                                cycles-=((cpu_mod==3)?5:11);
                                 break;
                                 case 0x10: /*NOT b*/
                                 temp=~temp;
                                 seteab(temp);
-                                cycles-=((mod==3)?3:24);
+                                cycles-=((cpu_mod==3)?3:24);
                                 break;
                                 case 0x18: /*NEG b*/
                                 setsub8(0,temp);
                                 temp=0-temp;
                                 seteab(temp);
-                                cycles-=((mod==3)?3:24);
+                                cycles-=((cpu_mod==3)?3:24);
                                 break;
                                 case 0x20: /*MUL AL,b*/
                                 setznp8(AL);
@@ -3190,17 +3190,17 @@ void execx86(int cycs)
                                 tempw2=getword();
                                 setznp16(tempw&tempw2);
                                 flags&=~(C_FLAG|V_FLAG|A_FLAG);
-                                cycles-=((mod==3)?5:11);
+                                cycles-=((cpu_mod==3)?5:11);
                                 break;
                                 case 0x10: /*NOT w*/
                                 seteaw(~tempw);
-                                cycles-=((mod==3)?3:24);
+                                cycles-=((cpu_mod==3)?3:24);
                                 break;
                                 case 0x18: /*NEG w*/
                                 setsub16(0,tempw);
                                 tempw=0-tempw;
                                 seteaw(tempw);
-                                cycles-=((mod==3)?3:24);
+                                cycles-=((cpu_mod==3)?3:24);
                                 break;
                                 case 0x20: /*MUL AX,w*/
                                 setznp16(AX);
@@ -3338,7 +3338,7 @@ void execx86(int cycs)
                         }
 //                        setznp8(temp2);
                         seteab(temp2);
-                        cycles-=((mod==3)?3:23);
+                        cycles-=((cpu_mod==3)?3:23);
                         break;
 
                         case 0xFF:
@@ -3350,7 +3350,7 @@ void execx86(int cycs)
                                 setadd16nc(tempw,1);
 //                                setznp16(tempw+1);
                                 seteaw(tempw+1);
-                                cycles-=((mod==3)?3:23);
+                                cycles-=((cpu_mod==3)?3:23);
                                 break;
                                 case 0x08: /*DEC w*/
                                 tempw=geteaw();
@@ -3359,7 +3359,7 @@ void execx86(int cycs)
 //                                setznp16(tempw-1);
                                 seteaw(tempw-1);
 //                                if (output) printf("DEC - %04X\n",tempw);
-                                cycles-=((mod==3)?3:23);
+                                cycles-=((cpu_mod==3)?3:23);
                                 break;
                                 case 0x10: /*CALL*/
                                 tempw=geteaw();
@@ -3369,7 +3369,7 @@ void execx86(int cycs)
 				cpu_state.last_ea = SP;
                                 cpu_state.pc=tempw;
 //                        printf("FF 10\n");
-                                cycles-=((mod==3)?20:29);
+                                cycles-=((cpu_mod==3)?20:29);
                                 FETCHCLEAR();
                                 break;
                                 case 0x18: /*CALL far*/
@@ -3391,7 +3391,7 @@ void execx86(int cycs)
                                 case 0x20: /*JMP*/
                                 cpu_state.pc=geteaw();
 //                        printf("FF 20\n");
-                                cycles-=((mod==3)?11:18);
+                                cycles-=((cpu_mod==3)?11:18);
                                 FETCHCLEAR();
                                 break;
                                 case 0x28: /*JMP far*/
@@ -3411,7 +3411,7 @@ void execx86(int cycs)
                                 writememw(ss,((SP-2)&0xFFFF),tempw);
                                 SP-=2;
 				cpu_state.last_ea = SP;
-                                cycles-=((mod==3)?15:24);
+                                cycles-=((cpu_mod==3)?15:24);
                                 break;
 
 //                                default:

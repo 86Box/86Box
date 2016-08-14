@@ -231,8 +231,8 @@ static int opPOPW_a16(uint32_t fetchdat)
                 else         SP -= 2;
         }
                         
-        if (is486) CLOCK_CYCLES((mod == 3) ? 1 : 6);
-        else       CLOCK_CYCLES((mod == 3) ? 4 : 5);
+        if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 6);
+        else       CLOCK_CYCLES((cpu_mod == 3) ? 4 : 5);
         return abrt;
 }
 static int opPOPW_a32(uint32_t fetchdat)
@@ -249,8 +249,8 @@ static int opPOPW_a32(uint32_t fetchdat)
                 else         SP -= 2;
         }
                         
-        if (is486) CLOCK_CYCLES((mod == 3) ? 1 : 6);
-        else       CLOCK_CYCLES((mod == 3) ? 4 : 5);
+        if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 6);
+        else       CLOCK_CYCLES((cpu_mod == 3) ? 4 : 5);
         return abrt;
 }
 
@@ -268,8 +268,8 @@ static int opPOPL_a16(uint32_t fetchdat)
                 else         SP -= 4;
         }
                         
-        if (is486) CLOCK_CYCLES((mod == 3) ? 1 : 6);
-        else       CLOCK_CYCLES((mod == 3) ? 4 : 5);
+        if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 6);
+        else       CLOCK_CYCLES((cpu_mod == 3) ? 4 : 5);
         return abrt;
 }
 static int opPOPL_a32(uint32_t fetchdat)
@@ -286,21 +286,17 @@ static int opPOPL_a32(uint32_t fetchdat)
                 else         SP -= 4;
         }
 
-        if (is486) CLOCK_CYCLES((mod == 3) ? 1 : 6);
-        else       CLOCK_CYCLES((mod == 3) ? 4 : 5);
+        if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 6);
+        else       CLOCK_CYCLES((cpu_mod == 3) ? 4 : 5);
         return abrt;
 }
 
 
 static int opENTER_w(uint32_t fetchdat)
 {
-        uint16_t offset;
-        int count;
-        uint32_t tempEBP, tempESP, frame_ptr;
-	offset = getwordf();
-	count = (fetchdat >> 16) & 0xff;
-	tempEBP = EBP, tempESP = ESP;
-	cpu_state.pc++;
+        uint16_t offset = getwordf();
+        int count = (fetchdat >> 16) & 0xff; cpu_state.pc++;
+        uint32_t tempEBP = EBP, tempESP = ESP, frame_ptr;
         
         PUSH_W(BP); if (abrt) return 1;
         frame_ptr = ESP;
@@ -331,13 +327,9 @@ static int opENTER_w(uint32_t fetchdat)
 }
 static int opENTER_l(uint32_t fetchdat)
 {
-        uint16_t offset;
-        int count;
-        uint32_t tempEBP, tempESP, frame_ptr;
-        offset = getwordf();
-        count = (fetchdat >> 16) & 0xff;
-        tempEBP = EBP, tempESP = ESP;
-	cpu_state.pc++;
+        uint16_t offset = getwordf();
+        int count = (fetchdat >> 16) & 0xff; cpu_state.pc++;
+        uint32_t tempEBP = EBP, tempESP = ESP, frame_ptr;
         
         PUSH_L(EBP); if (abrt) return 1;
         frame_ptr = ESP;

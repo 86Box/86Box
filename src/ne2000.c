@@ -1573,11 +1573,11 @@ void ne2000_io_set(uint16_t addr, ne2000_t *ne2000)
 		io_sethandler(addr+0x1f, 0x0001, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
 }
 
-void ne2000_io_remove(ne2000_t *ne2000)
+void ne2000_io_remove(int16_t addr, ne2000_t *ne2000)
 {
-		io_removehandler(old_base_addr, 0x0010, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
-		io_removehandler(old_base_addr+0x10, 0x0010, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
-		io_removehandler(old_base_addr+0x1f, 0x0001, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
+		io_removehandler(addr, 0x0010, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
+		io_removehandler(addr+0x10, 0x0010, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
+		io_removehandler(addr+0x1f, 0x0001, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
 }
 
 uint8_t ne2000_pci_read(int func, int addr, void *p)
@@ -1658,13 +1658,14 @@ void ne2000_pci_write(int func, int addr, uint8_t val, void *p)
                 case 0x04:
                 if (val & PCI_COMMAND_IO)
 				{
-					ne2000_io_remove(ne2000);
+					ne2000_io_remove(ne2000->base_address, ne2000);
 					ne2000_io_set(ne2000->base_address, ne2000);
 				}
                 else
 				{
-					ne2000_io_remove(ne2000);
+					ne2000_io_remove(ne2000->base_address, ne2000);
 				}
+				ne2000_pci_regs[addr] = val;
                 break;
 
 				case 0x10:
@@ -1673,7 +1674,7 @@ void ne2000_pci_write(int func, int addr, uint8_t val, void *p)
                 case 0x11: case 0x12: case 0x13:
                 /* I/O Base set. */
                 /* First, remove the old I/O, if old base was >= 0x280. */
-                ne2000_io_remove(ne2000);
+                ne2000_io_remove(ne2000->base_address, ne2000);
                 /* Then let's set  the PCI regs. */
 				ne2000_pci_bar[0].addr_regs[addr & 3] = val;
                 /* Then let's calculate the new I/O base. */
@@ -1919,7 +1920,7 @@ void *rtl8029as_init()
     memset(ne2000, 0, sizeof(ne2000_t));
 	
 	disable_netbios = device_get_config_int("disable_netbios");
-	ne2000_setirq(ne2000, 10);
+	ne2000_setirq(ne2000, (ide_ter_enabled ? 11 : 10));
 
     //net_type
     //0 pcap
@@ -1972,7 +1973,7 @@ void *rtl8029as_init()
 			bios_addr = 0xD0000;
 		}
 
-        ne2000_pci_regs[0x3C] = 10;
+        ne2000_pci_regs[0x3C] = ide_ter_enabled ? 11 : 10;
         ne2000_pci_regs[0x3D] = 1;
 
         memset(rtl8029as_eeprom, 0, 128);
@@ -2127,7 +2128,7 @@ return ne2000;
 void ne2000_close(void *p)
 {
         ne2000_t *ne2000 = (ne2000_t *)p;
-        ne2000_io_remove(ne2000);
+        ne2000_io_remove(ne2000->base_address, ne2000);
         free(ne2000);
 		
 		if(net_is_slirp) {

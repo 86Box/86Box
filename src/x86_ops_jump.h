@@ -18,8 +18,7 @@
 #define opJ(condition)                                  \
         static int opJ ## condition(uint32_t fetchdat)  \
         {                                               \
-                int8_t offset;                          \
-                offset = (int8_t)getbytef();            \
+                int8_t offset = (int8_t)getbytef();     \
                 CLOCK_CYCLES(timing_bnt);               \
                 if (cond_ ## condition)                 \
                 {                                       \
@@ -33,8 +32,7 @@
                                                         \
         static int opJ ## condition ## _w(uint32_t fetchdat)  \
         {                                               \
-                int16_t offset;                         \
-                offset = (int16_t)getwordf();           \
+                int16_t offset = (int16_t)getwordf();   \
                 CLOCK_CYCLES(timing_bnt);               \
                 if (cond_ ## condition)                 \
                 {                                       \
@@ -48,8 +46,7 @@
                                                         \
         static int opJ ## condition ## _l(uint32_t fetchdat)  \
         {                                               \
-                uint32_t offset;                        \
-                offset = getlong(); if (abrt) return 1; \
+                uint32_t offset = getlong(); if (abrt) return 1; \
                 CLOCK_CYCLES(timing_bnt);               \
                 if (cond_ ## condition)                 \
                 {                                       \
@@ -82,8 +79,7 @@ opJ(NLE)
 
 static int opLOOPNE_w(uint32_t fetchdat)
 {
-        int8_t offset;
-        offset = (int8_t)getbytef();
+        int8_t offset = (int8_t)getbytef();
         CX--;
         CLOCK_CYCLES((is486) ? 7 : 11);
         if (CX && !ZF_SET())
@@ -96,8 +92,7 @@ static int opLOOPNE_w(uint32_t fetchdat)
 }
 static int opLOOPNE_l(uint32_t fetchdat)
 {
-        int8_t offset;
-        offset = (int8_t)getbytef();
+        int8_t offset = (int8_t)getbytef();
         ECX--;
         CLOCK_CYCLES((is486) ? 7 : 11);
         if (ECX && !ZF_SET()) 
@@ -111,8 +106,7 @@ static int opLOOPNE_l(uint32_t fetchdat)
 
 static int opLOOPE_w(uint32_t fetchdat)
 {
-        int8_t offset;
-        offset = (int8_t)getbytef();
+        int8_t offset = (int8_t)getbytef();
         CX--;
         CLOCK_CYCLES((is486) ? 7 : 11);
         if (CX && ZF_SET())
@@ -125,8 +119,7 @@ static int opLOOPE_w(uint32_t fetchdat)
 }
 static int opLOOPE_l(uint32_t fetchdat)
 {
-        int8_t offset;
-        offset = (int8_t)getbytef();
+        int8_t offset = (int8_t)getbytef();
         ECX--;
         CLOCK_CYCLES((is486) ? 7 : 11);
         if (ECX && ZF_SET())
@@ -140,8 +133,7 @@ static int opLOOPE_l(uint32_t fetchdat)
 
 static int opLOOP_w(uint32_t fetchdat)
 {
-        int8_t offset;
-        offset = (int8_t)getbytef();
+        int8_t offset = (int8_t)getbytef();
         CX--;
         CLOCK_CYCLES((is486) ? 7 : 11);
         if (CX)
@@ -154,8 +146,7 @@ static int opLOOP_w(uint32_t fetchdat)
 }
 static int opLOOP_l(uint32_t fetchdat)
 {
-        int8_t offset;
-        offset = (int8_t)getbytef();
+        int8_t offset = (int8_t)getbytef();
         ECX--;
         CLOCK_CYCLES((is486) ? 7 : 11);
         if (ECX)
@@ -169,8 +160,7 @@ static int opLOOP_l(uint32_t fetchdat)
 
 static int opJCXZ(uint32_t fetchdat)
 {
-        int8_t offset;
-        offset = (int8_t)getbytef();
+        int8_t offset = (int8_t)getbytef();
         CLOCK_CYCLES(5);
         if (!CX)
         {
@@ -183,8 +173,7 @@ static int opJCXZ(uint32_t fetchdat)
 }
 static int opJECXZ(uint32_t fetchdat)
 {
-        int8_t offset;
-        offset = (int8_t)getbytef();
+        int8_t offset = (int8_t)getbytef();
         CLOCK_CYCLES(5);
         if (!ECX)
         {
@@ -199,8 +188,7 @@ static int opJECXZ(uint32_t fetchdat)
 
 static int opJMP_r8(uint32_t fetchdat)
 {
-        int8_t offset;
-        offset = (int8_t)getbytef();
+        int8_t offset = (int8_t)getbytef();
         cpu_state.pc += offset;
         CPU_BLOCK_END();
         CLOCK_CYCLES((is486) ? 3 : 7);
@@ -208,8 +196,7 @@ static int opJMP_r8(uint32_t fetchdat)
 }
 static int opJMP_r16(uint32_t fetchdat)
 {
-        int16_t offset;
-        offset = (int16_t)getwordf();
+        int16_t offset = (int16_t)getwordf();
         cpu_state.pc += offset;
         CPU_BLOCK_END();
         CLOCK_CYCLES((is486) ? 3 : 7);
@@ -217,8 +204,7 @@ static int opJMP_r16(uint32_t fetchdat)
 }
 static int opJMP_r32(uint32_t fetchdat)
 {
-        int32_t offset;
-        offset = (int32_t)getlong();            if (abrt) return 1;
+        int32_t offset = (int32_t)getlong();            if (abrt) return 1;
         cpu_state.pc += offset;
         CPU_BLOCK_END();
         CLOCK_CYCLES((is486) ? 3 : 7);
@@ -227,12 +213,9 @@ static int opJMP_r32(uint32_t fetchdat)
 
 static int opJMP_far_a16(uint32_t fetchdat)
 {
-        uint16_t addr;
-        uint16_t seg;
-        uint32_t oxpc;
-        addr = getwordf();
-        seg = getword();                       if (abrt) return 1;
-        oxpc = cpu_state.pc;
+        uint16_t addr = getwordf();
+        uint16_t seg = getword();                       if (abrt) return 1;
+        uint32_t oxpc = cpu_state.pc;
         cpu_state.pc = addr;
         loadcsjmp(seg, oxpc);
         CPU_BLOCK_END();
@@ -240,12 +223,9 @@ static int opJMP_far_a16(uint32_t fetchdat)
 }
 static int opJMP_far_a32(uint32_t fetchdat)
 {
-        uint32_t addr;
-        uint16_t seg;
-        uint32_t oxpc;
-        addr = getlong();
-        seg = getword();                       if (abrt) return 1;
-        oxpc = cpu_state.pc;
+        uint32_t addr = getlong();
+        uint16_t seg = getword();                       if (abrt) return 1;
+        uint32_t oxpc = cpu_state.pc;
         cpu_state.pc = addr;
         loadcsjmp(seg, oxpc);
         CPU_BLOCK_END();
@@ -254,8 +234,7 @@ static int opJMP_far_a32(uint32_t fetchdat)
 
 static int opCALL_r16(uint32_t fetchdat)
 {
-        int16_t addr;
-        addr = (int16_t)getwordf();
+        int16_t addr = (int16_t)getwordf();
         PUSH_W(cpu_state.pc);
         cpu_state.pc += addr;
         CPU_BLOCK_END();
@@ -264,8 +243,7 @@ static int opCALL_r16(uint32_t fetchdat)
 }
 static int opCALL_r32(uint32_t fetchdat)
 {
-        int32_t addr;
-        addr = getlong();                       if (abrt) return 1;       
+        int32_t addr = getlong();                       if (abrt) return 1;       
         PUSH_L(cpu_state.pc);
         cpu_state.pc += addr;
         CPU_BLOCK_END();
@@ -298,9 +276,8 @@ static int opRET_l(uint32_t fetchdat)
 
 static int opRET_w_imm(uint32_t fetchdat)
 {
-        uint16_t offset;
+        uint16_t offset = getwordf();
         uint16_t ret;
-        offset = getwordf();
 
         ret = POP_W();                          if (abrt) return 1;
         if (stack32) ESP += offset;
@@ -313,9 +290,8 @@ static int opRET_w_imm(uint32_t fetchdat)
 }
 static int opRET_l_imm(uint32_t fetchdat)
 {
-        uint16_t offset;
+        uint16_t offset = getwordf();
         uint32_t ret;
-        offset = getwordf();
 
         ret = POP_L();                          if (abrt) return 1;
         if (stack32) ESP += offset;

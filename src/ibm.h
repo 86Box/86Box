@@ -109,6 +109,15 @@ struct
         
         uint32_t pc;
 	uint32_t last_ea;
+        
+        union
+        {
+                struct
+                {
+                        int8_t rm, mod, reg;
+                } rm_mod_reg;
+                uint32_t rm_mod_reg_data;
+        } rm_data;
 } cpu_state;
 
 /*x86reg regs[8];*/
@@ -239,6 +248,10 @@ void setpitclock(float clock);
 int pitcount;
 
 float pit_timer0_freq();
+
+#define cpu_rm  cpu_state.rm_data.rm_mod_reg.rm
+#define cpu_mod cpu_state.rm_data.rm_mod_reg.mod
+#define cpu_reg cpu_state.rm_data.rm_mod_reg.reg
 
 
 
@@ -512,6 +525,8 @@ extern int cdrom_enabled;
 
 extern uint32_t atapi_get_cd_channel(int channel);
 extern uint32_t atapi_get_cd_volume(int channel);
+
+extern int ide_ter_enabled;
 
 void pclog(const char *format, ...);
 extern int nmi;

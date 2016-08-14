@@ -7,3 +7,5 @@ typedef struct mpu401_uart_t
 } mpu401_uart_t;
 
 void mpu401_uart_init(mpu401_uart_t *mpu, uint16_t addr);
+void mpu401_uart_set(mpu401_uart_t *mpu, uint16_t addr);
+void mpu401_uart_remove(mpu401_uart_t *mpu, uint16_t addr);

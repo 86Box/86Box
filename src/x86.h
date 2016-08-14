@@ -11,7 +11,6 @@ int ssegs;
 int firstrepcycle;
 
 uint32_t easeg,eaaddr,ealimit,ealimitw;
-int rm,reg,mod,rmdat;
 
 int skipnextprint;
 int inhlt;

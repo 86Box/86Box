@@ -726,7 +726,12 @@ void img_seek(int drive, int track)
                	        	                &img[drive].track_data[side][sector * img[drive].sector_size]);
 		}
 	}
+	for (side = img[drive].sides - 1; side >= 0; side--)
+	{
+		disc_sector_prepare_track_layout(drive, side);
+	}
 }
+
 void img_writeback(int drive, int track)
 {
         if (!img[drive].f)

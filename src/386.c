@@ -66,11 +66,11 @@ static inline void fetch_ea_32_long(uint32_t rmdat)
         eal_r = eal_w = NULL;
         easeg = ea_seg->base;
         ea_rseg = ea_seg->seg;
-        if (rm == 4)
+        if (cpu_rm == 4)
         {
                 uint8_t sib = rmdat >> 8;
                 
-                switch (mod)
+                switch (cpu_mod)
                 {
                         case 0: 
                         eaaddr = cpu_state.regs[sib & 7].l; 
@@ -87,7 +87,7 @@ static inline void fetch_ea_32_long(uint32_t rmdat)
                         break;
                 }
                 /*SIB byte present*/
-                if ((sib & 7) == 5 && !mod) 
+                if ((sib & 7) == 5 && !cpu_mod) 
                         eaaddr = getlong();
                 else if ((sib & 6) == 4 && !ssegs)
                 {
@@ -100,16 +100,16 @@ static inline void fetch_ea_32_long(uint32_t rmdat)
         }
         else
         {
-                eaaddr = cpu_state.regs[rm].l;
-                if (mod) 
+                eaaddr = cpu_state.regs[cpu_rm].l;
+                if (cpu_mod) 
                 {
-                        if (rm == 5 && !ssegs)
+                        if (cpu_rm == 5 && !ssegs)
                         {
                                 easeg = ss;
                                 ea_rseg = SS;
                                 ea_seg = &_ss;
                         }
-                        if (mod == 1) 
+                        if (cpu_mod == 1) 
                         { 
                                 eaaddr += ((uint32_t)(int8_t)(rmdat >> 8)); 
                                 cpu_state.pc++; 
@@ -119,7 +119,7 @@ static inline void fetch_ea_32_long(uint32_t rmdat)
                                 eaaddr += getlong(); 
                         }
                 }
-                else if (rm == 5) 
+                else if (cpu_rm == 5) 
                 {
                         eaaddr = getlong();
                 }
@@ -139,13 +139,13 @@ static inline void fetch_ea_16_long(uint32_t rmdat)
         eal_r = eal_w = NULL;
         easeg = ea_seg->base;
         ea_rseg = ea_seg->seg;
-        if (!mod && rm == 6) 
+        if (!cpu_mod && cpu_rm == 6) 
         { 
                 eaaddr = getword();
         }
         else
         {
-                switch (mod)
+                switch (cpu_mod)
                 {
                         case 0:
                         eaaddr = 0;
@@ -157,8 +157,8 @@ static inline void fetch_ea_16_long(uint32_t rmdat)
                         eaaddr = getword();
                         break;
                 }
-                eaaddr += (*mod1add[0][rm]) + (*mod1add[1][rm]);
-                if (mod1seg[rm] == &ss && !ssegs)
+                eaaddr += (*mod1add[0][cpu_rm]) + (*mod1add[1][cpu_rm]);
+                if (mod1seg[cpu_rm] == &ss && !ssegs)
                 {
                         easeg = ss;
                         ea_rseg = SS;
@@ -176,8 +176,8 @@ static inline void fetch_ea_16_long(uint32_t rmdat)
         }
 }
 
-#define fetch_ea_16(rmdat)              cpu_state.pc++; mod=(rmdat >> 6) & 3; reg=(rmdat >> 3) & 7; rm = rmdat & 7; if (mod != 3) { fetch_ea_16_long(rmdat); if (abrt) return 0; } 
-#define fetch_ea_32(rmdat)              cpu_state.pc++; mod=(rmdat >> 6) & 3; reg=(rmdat >> 3) & 7; rm = rmdat & 7; if (mod != 3) { fetch_ea_32_long(rmdat); } if (abrt) return 0
+#define fetch_ea_16(rmdat)              cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_16_long(rmdat); if (abrt) return 0; } 
+#define fetch_ea_32(rmdat)              cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_32_long(rmdat); } if (abrt) return 0
 
 #include "x86_flags.h"
 

@@ -8,9 +8,9 @@ static int opARPL_a16(uint32_t fetchdat)
         temp_seg = geteaw();            if (abrt) return 1;
         
         flags_rebuild();
-        if ((temp_seg & 3) < (cpu_state.regs[reg].w & 3))
+        if ((temp_seg & 3) < (cpu_state.regs[cpu_reg].w & 3))
         {
-                temp_seg = (temp_seg & 0xfffc) | (cpu_state.regs[reg].w & 3);
+                temp_seg = (temp_seg & 0xfffc) | (cpu_state.regs[cpu_reg].w & 3);
                 seteaw(temp_seg);       if (abrt) return 1;
                 flags |= Z_FLAG;
         }
@@ -30,9 +30,9 @@ static int opARPL_a32(uint32_t fetchdat)
         temp_seg = geteaw();            if (abrt) return 1;
         
         flags_rebuild();
-        if ((temp_seg & 3) < (cpu_state.regs[reg].w & 3))
+        if ((temp_seg & 3) < (cpu_state.regs[cpu_reg].w & 3))
         {
-                temp_seg = (temp_seg & 0xfffc) | (cpu_state.regs[reg].w & 3);
+                temp_seg = (temp_seg & 0xfffc) | (cpu_state.regs[cpu_reg].w & 3);
                 seteaw(temp_seg);       if (abrt) return 1;
                 flags |= Z_FLAG;
         }
@@ -78,9 +78,9 @@ static int opARPL_a32(uint32_t fetchdat)
                         flags |= Z_FLAG;                                                                        \
                         cpl_override = 1;                                                                       \
                         if (is32)                                                                               \
-                                cpu_state.regs[reg].l = readmeml(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 4) & 0xffff00;       \
+                                cpu_state.regs[cpu_reg].l = readmeml(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 4) & 0xffff00;       \
                         else                                                                                    \
-                                cpu_state.regs[reg].w = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 4) & 0xff00;         \
+                                cpu_state.regs[cpu_reg].w = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 4) & 0xff00;         \
                         cpl_override = 0;                                                                       \
                 }                                                                                               \
                 CLOCK_CYCLES(11);                                                                               \
@@ -126,16 +126,16 @@ opLAR(l_a32, fetch_ea_32, 1)
                         cpl_override = 1;                                                                       \
                         if (is32)                                                                               \
                         {                                                                                       \
-                                cpu_state.regs[reg].l = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7));      \
-                                cpu_state.regs[reg].l |= (readmemb(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 6) & 0xF) << 16;   \
+                                cpu_state.regs[cpu_reg].l = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7));      \
+                                cpu_state.regs[cpu_reg].l |= (readmemb(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 6) & 0xF) << 16;   \
                                 if (readmemb(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 6) & 0x80)     \
                                 {                                                                               \
-                                        cpu_state.regs[reg].l <<= 12;                                           \
-                                        cpu_state.regs[reg].l |= 0xFFF;                                         \
+                                        cpu_state.regs[cpu_reg].l <<= 12;                                           \
+                                        cpu_state.regs[cpu_reg].l |= 0xFFF;                                         \
                                 }                                                                               \
                         }                                                                                       \
                         else                                                                                    \
-                                cpu_state.regs[reg].w = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7));      \
+                                cpu_state.regs[cpu_reg].w = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7));      \
                         cpl_override = 0;                                                                       \
                 }                                                                                               \
                 CLOCK_CYCLES(10);                                                                               \

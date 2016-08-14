@@ -61,7 +61,7 @@ static int opINCDEC_b_a16(uint32_t fetchdat)
                 seteab(temp + 1);       if (abrt) return 1;
                 setadd8nc(temp, 1);
         }
-        CLOCK_CYCLES((mod == 3) ? timing_rr : timing_mm);
+        CLOCK_CYCLES((cpu_mod == 3) ? timing_rr : timing_mm);
         return 0;
 }
 static int opINCDEC_b_a32(uint32_t fetchdat)
@@ -81,6 +81,6 @@ static int opINCDEC_b_a32(uint32_t fetchdat)
                 seteab(temp + 1);       if (abrt) return 1;
                 setadd8nc(temp, 1);
         }
-        CLOCK_CYCLES((mod == 3) ? timing_rr : timing_mm);
+        CLOCK_CYCLES((cpu_mod == 3) ? timing_rr : timing_mm);
         return 0;
 }

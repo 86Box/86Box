@@ -63,6 +63,9 @@ typedef struct FDC
 	uint8_t fifobuf[16];
 
 	int seek_params;		/* Needed for relative seek. */
+
+	int gap, dtl;
+	int format_sectors;
 } FDC;
 
 static FDC fdc;
@@ -92,7 +95,23 @@ void fdc_reset()
         }
 //        pclog("Reset FDC\n");
 }
+
 int ins;
+
+int fdc_get_gap()
+{
+	return fdc.gap;
+}
+
+int fdc_get_dtl()
+{
+	return fdc.dtl;
+}
+
+int fdc_get_format_sectors()
+{
+	return fdc.format_sectors;
+}
 
 void fdc_reset_fifo_buf()
 {
@@ -588,11 +607,13 @@ bad_command:
 					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
                                         fdc.sector=fdc.params[3];
                                         fdc.eot[fdc.drive] = fdc.params[5];
+					fdc.gap = fdc.params[6];
+					fdc.dtl = fdc.params[7];
                                         if (fdc.config & 0x40)
 					{
 						if (fdc.params[1] != fdc.track[fdc.drive])
 						{
-                                                	fdc_seek(fdc.drive, fdc.params[1] - fdc.track[fdc.drive]);
+                                                	fdc_seek(fdc.drive, ((int) fdc.params[1]) - ((int) fdc.track[fdc.drive]));
 							fdc.track[fdc.drive] = fdc.params[1];
 						}
 					}
@@ -618,11 +639,13 @@ bad_command:
 					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
                                         fdc.sector=fdc.params[3];
                                         fdc.eot[fdc.drive] = fdc.params[5];
+					fdc.gap = fdc.params[6];
+					fdc.dtl = fdc.params[7];
                                         if (fdc.config & 0x40)
 					{
 						if (fdc.params[1] != fdc.track[fdc.drive])
 						{
-                                                	fdc_seek(fdc.drive, fdc.params[1] - fdc.track[fdc.drive]);
+                                                	fdc_seek(fdc.drive, ((int) fdc.params[1]) - ((int) fdc.track[fdc.drive]));
 							fdc.track[fdc.drive] = fdc.params[1];
 						}
 					}
@@ -644,11 +667,13 @@ bad_command:
 					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
                                         fdc.sector=fdc.params[3];
                                         fdc.eot[fdc.drive] = fdc.params[5];
+					fdc.gap = fdc.params[6];
+					fdc.dtl = fdc.params[7];
                                         if (fdc.config & 0x40)
 					{
 						if (fdc.params[1] != fdc.track[fdc.drive])
 						{
-                                                	fdc_seek(fdc.drive, fdc.params[1] - fdc.track[fdc.drive]);
+                                                	fdc_seek(fdc.drive, ((int) fdc.params[1]) - ((int) fdc.track[fdc.drive]));
 							fdc.track[fdc.drive] = fdc.params[1];
 						}
 					}
@@ -675,6 +700,9 @@ bad_command:
                                         case 0x0d: /*Format*/
 					fdc_rate(fdc.drive);
                                         fdc.head = (fdc.params[0] & 4) ? 1 : 0;
+					fdc.gap = fdc.params[3];
+					fdc.dtl = 4000000;
+					fdc.format_sectors = fdc.params[2];
                                         fdc.format_state = 1;
                                         fdc.pos = 0;
                                         fdc.stat = 0x30;

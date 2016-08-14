@@ -259,6 +259,8 @@ int readcdmode = 0;
 
 int cdrom_channel = 2;
 
+int ide_ter_enabled = 0;
+
 /* Mode sense/select stuff. */
 uint8_t mode_pages_in[256][256];
 #define PAGE_CHANGEABLE		1
@@ -3316,12 +3318,16 @@ void ide_ter_enable()
 {
         io_sethandler(0x0168, 0x0008, ide_read_ter, ide_read_ter_w, ide_read_ter_l, ide_write_ter, ide_write_ter_w, ide_write_ter_l, NULL);
         io_sethandler(0x036e, 0x0001, ide_read_ter, NULL,           NULL,           ide_write_ter, NULL,            NULL           , NULL);
+
+		ide_ter_enabled = 1;
 }
 
 void ide_ter_disable()
 {
         io_removehandler(0x0168, 0x0008, ide_read_ter, ide_read_ter_w, ide_read_ter_l, ide_write_ter, ide_write_ter_w, ide_write_ter_l, NULL);
         io_removehandler(0x036e, 0x0001, ide_read_ter, NULL,           NULL,           ide_write_ter, NULL,            NULL           , NULL);
+
+		ide_ter_enabled = 0;
 }
 
 void ide_ter_init()

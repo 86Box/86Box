@@ -136,7 +136,7 @@ static int LOAD_REG_L(int reg)
 static int LOAD_VAR_W(uintptr_t addr)
 {
         int host_reg = find_host_reg();
-        host_reg_mapping[host_reg] = reg;
+        host_reg_mapping[host_reg] = 0;
 
         addbyte(0x66); /*MOVL host_reg,[reg]*/
         addbyte(0x8b);
@@ -148,7 +148,7 @@ static int LOAD_VAR_W(uintptr_t addr)
 static int LOAD_VAR_L(uintptr_t addr)
 {
         int host_reg = find_host_reg();
-        host_reg_mapping[host_reg] = reg;
+        host_reg_mapping[host_reg] = 0;
 
         addbyte(0x8b); /*MOVL host_reg,[reg]*/
         addbyte(0x05 | (host_reg << 3));
@@ -160,7 +160,7 @@ static int LOAD_VAR_L(uintptr_t addr)
 static int LOAD_REG_IMM(uint32_t imm)
 {
         int host_reg = find_host_reg();
-        host_reg_mapping[host_reg] = reg;
+        host_reg_mapping[host_reg] = 0;
         
         addbyte(0xc7); /*MOVL host_reg, imm*/
         addbyte(0xc0 | host_reg);
@@ -172,7 +172,7 @@ static int LOAD_REG_IMM(uint32_t imm)
 static int LOAD_HOST_REG(int host_reg)
 {
         int new_host_reg = find_host_reg();
-        host_reg_mapping[new_host_reg] = reg;
+        host_reg_mapping[new_host_reg] = 0;
         
         addbyte(0x89); /*MOV new_host_reg, host_reg*/
         addbyte(0xc0 | (host_reg << 3) | new_host_reg);

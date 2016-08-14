@@ -625,5 +625,6 @@ void model_init()
         io_init();
         
 	fdc_update_is_nsc(0);
+	ide_ter_enabled = 0;
         models[model].init();
 }

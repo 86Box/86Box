@@ -4,9 +4,9 @@
 #define USATW(val) (((val) < 0) ? 0 : (((val) > 65535) ? 65535 : (val)))
 
 #define MMX_GETSRC()                                                            \
-        if (mod == 3)                                                           \
+        if (cpu_mod == 3)                                                           \
         {                                                                       \
-                src = MM[rm];                                                   \
+                src = MM[cpu_rm];                                                   \
                 CLOCK_CYCLES(1);                                                \
         }                                                                       \
         else                                                                    \

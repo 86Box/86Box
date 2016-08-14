@@ -229,9 +229,9 @@ CPU cpus_i386[] =
         {"i386DX/25",    CPU_386DX, 2, 25000000, 1, 0, 0x0308, 0, 0, 0},
         {"i386DX/33",    CPU_386DX, 3, 33333333, 1, 0, 0x0308, 0, 0, 0},
         {"i386DX/40",    CPU_386DX, 4, 40000000, 1, 0, 0x0308, 0, 0, 0},
-        {"RapidCAD/25",  CPU_RAPIDCAD, 2,  25000000, 1, 0, 0x404, 0, 0, 0},
-        {"RapidCAD/33",  CPU_RAPIDCAD, 3,  33333333, 1, 0, 0x404, 0, 0, 0},
-        {"RapidCAD/40",  CPU_RAPIDCAD, 4,  40000000, 1, 0, 0x404, 0, 0, 0},
+        {"RapidCAD/25",  CPU_RAPIDCAD, 2,  25000000, 1, 0, 0x430, 0, 0, 0},
+        {"RapidCAD/33",  CPU_RAPIDCAD, 3,  33333333, 1, 0, 0x430, 0, 0, 0},
+        {"RapidCAD/40",  CPU_RAPIDCAD, 4,  40000000, 1, 0, 0x430, 0, 0, 0},
         {"",             -1,        0, 0, 0}
 };
 
@@ -508,11 +508,18 @@ CPU cpus_K56[] =
 CPU cpus_PentiumPro[] =
 {
         /*Intel Pentium Pro and II Overdrive*/
+        {"Pentium Pro 50",   CPU_PENTIUMPRO,  5,  50000000, 1, 25000000, 0x612, 0x612, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
+        {"Pentium Pro 60" ,  CPU_PENTIUMPRO,  6,  60000000, 1, 30000000, 0x612, 0x612, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
+        {"Pentium Pro 66" ,  CPU_PENTIUMPRO,  6,  66666666, 1, 33333333, 0x612, 0x612, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
         {"Pentium Pro 75",   CPU_PENTIUMPRO,  9,  75000000, 2, 25000000, 0x612, 0x612, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
         {"Pentium Pro 150",  CPU_PENTIUMPRO, 17, 150000000, 3, 30000000, 0x612, 0x612, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
         {"Pentium Pro 166",  CPU_PENTIUMPRO, 19, 166666666, 3, 33333333, 0x617, 0x617, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
         {"Pentium Pro 180",  CPU_PENTIUMPRO, 20, 180000000, 3, 30000000, 0x617, 0x617, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
         {"Pentium Pro 200",  CPU_PENTIUMPRO, 21, 200000000, 3, 33333333, 0x617, 0x617, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
+        {"Pentium II Overdrive 50",  CPU_PENTIUM2D, 5, 50000000, 1, 25000000, 0x1632, 0x1632, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
+        {"Pentium II Overdrive 60",  CPU_PENTIUM2D, 6, 60000000, 1, 30000000, 0x1632, 0x1632, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
+        {"Pentium II Overdrive 66",  CPU_PENTIUM2D, 6, 66666666, 1, 33333333, 0x1632, 0x1632, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
+        {"Pentium II Overdrive 75",  CPU_PENTIUM2D, 9, 75000000, 2, 25000000, 0x1632, 0x1632, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
         {"Pentium II Overdrive 210",  CPU_PENTIUM2D, 22, 210000000, 4, 30000000, 0x1632, 0x1632, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
         {"Pentium II Overdrive 233",  CPU_PENTIUM2D, 24, 233333333, 4, 33333333, 0x1632, 0x1632, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
         {"Pentium II Overdrive 240",  CPU_PENTIUM2D, 25, 240000000, 4, 30000000, 0x1632, 0x1632, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
@@ -576,7 +583,7 @@ void cpu_set()
         is386    = (cpu_s->cpu_type >= CPU_386SX);
 	israpidcad = (cpu_s->cpu_type == CPU_RAPIDCAD);
         is486    = (cpu_s->cpu_type >= CPU_i486SX) || (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_RAPIDCAD);
-        hasfpu   = (cpu_s->cpu_type >= CPU_i486DX);
+        hasfpu   = (cpu_s->cpu_type >= CPU_i486DX) || (cpu_s->cpu_type == CPU_RAPIDCAD);
          cpu_iscyrix = (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_Cx486S || cpu_s->cpu_type == CPU_Cx486DX || cpu_s->cpu_type == CPU_Cx5x86 || cpu_s->cpu_type == CPU_Cx6x86 || cpu_s->cpu_type == CPU_Cx6x86MX || cpu_s->cpu_type == CPU_Cx6x86L || cpu_s->cpu_type == CPU_CxGX1);
         cpu_16bitbus = (cpu_s->cpu_type == CPU_386SX || cpu_s->cpu_type == CPU_486SLC);
         if (cpu_s->multi) 

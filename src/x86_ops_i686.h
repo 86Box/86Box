@@ -2,7 +2,7 @@ static int internal_illegal(char *s)
 {
 	cpu_state.pc = oldpc;
 	x86gpf(s, 0);
-	return 1;
+	return abrt;
 }
 
 /*	0 = Limit 0-15
@@ -150,20 +150,18 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 	{
 		pclog("Effective address %04X not on 16-byte boundary\n", eaaddr);
 		x86gpf(NULL, 0);
-		return 1;
+		return abrt;
 	}
 
 	fxinst = (rmdat >> 3) & 7;
 
-	if ((fxinst > 1) || (mod == 3))
+	if ((fxinst > 1) || (cpu_mod == 3))
 	{
-		if (fxinst > 1)  pclog("FX instruction is: %02X\n", fxinst);
-		if (mod == 3)  pclog("MOD is 3\n");
-
-		cpu_state.pc = oldpc;
+		// if (fxinst > 1)  pclog("FX instruction is: %02X\n", fxinst);
+		// if (cpu_mod == 3)  pclog("MOD is 3\n");
 
 		x86illegal();
-		return 0;
+		return abrt;
 	}
 
 	FP_ENTER();
@@ -328,20 +326,18 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 	{
 		pclog("Effective address %08X not on 16-byte boundary\n", eaaddr);
 		x86gpf(NULL, 0);
-		return 1;
+		return abrt;
 	}
 
 	fxinst = (rmdat >> 3) & 7;
 
-	if ((fxinst > 1) || (mod == 3))
+	if ((fxinst > 1) || (cpu_mod == 3))
 	{
-		if (fxinst > 1)  pclog("FX instruction is: %02X\n", fxinst);
-		if (mod == 3)  pclog("MOD is 3\n");
-
-		cpu_state.pc = oldpc;
+		// if (fxinst > 1)  pclog("FX instruction is: %02X\n", fxinst);
+		// if (cpu_mod == 3)  pclog("MOD is 3\n");
 
 		x86illegal();
-		return 0;
+		return abrt;
 	}
 
 	FP_ENTER();

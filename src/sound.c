@@ -38,6 +38,7 @@ static SOUND_CARD sound_cards[] =
         {"Sound Blaster Pro v2",  &sb_pro_v2_device},
         {"Sound Blaster 16",      &sb_16_device},
         {"Sound Blaster AWE32",   &sb_awe32_device},
+        // {"Sound Blaster AWE64 PCI",&sb_awe64pci_device},
         {"Adlib Gold",            &adgold_device},
         {"Windows Sound System",  &wss_device},        
         {"Pro Audio Spectrum 16", &pas16_device},
