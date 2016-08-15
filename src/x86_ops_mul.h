@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 static int opIMUL_w_iw_a16(uint32_t fetchdat)
 {
         int32_t templ;

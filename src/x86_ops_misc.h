@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 static int opCBW(uint32_t fetchdat)
 {
         AH = (AL & 0x80) ? 0xff : 0;

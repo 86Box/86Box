@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #define RETF_a16(stack_offset)                                  \
                 if ((msw&1) && !(eflags&VM_FLAG))               \
                 {                                               \

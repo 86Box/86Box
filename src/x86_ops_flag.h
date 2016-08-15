@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 static int opCMC(uint32_t fetchdat)
 {
         flags_rebuild();

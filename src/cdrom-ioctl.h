@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 #ifndef CDROM_IOCTL_H
 #define CDROM_IOCTL_H
 

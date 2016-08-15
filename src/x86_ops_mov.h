@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, leilei
+   see COPYING for more details
+*/
 static int opMOV_AL_imm(uint32_t fetchdat)
 {
         AL = getbytef();

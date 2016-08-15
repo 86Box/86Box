@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #define getr8 allegro_getr8
 #define setr8 allegro_setr8
 #define get_filename allegro_get_filename

@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 #define SEEK_RECALIBRATE -999
 void fdd_seek(int drive, int track_diff);
 int fdd_track0(int drive);

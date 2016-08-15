@@ -1,5 +1,6 @@
-/*RPCemu v0.6 by Tom Walker
-  IDE emulation*/
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 //#define RPCEMU_IDE
 
 #define CDROM_ISO 200

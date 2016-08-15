@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 /*Register allocation :
         EBX, ECX, EDX - emulated registers
         EAX - work register, EA storage

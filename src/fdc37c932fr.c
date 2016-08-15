@@ -1,3 +1,6 @@
+/* Copyright holders: Tenshi
+   see COPYING for more details
+*/
 /*
 	SMSC SMC fdc37c932fr Super I/O Chip
 	Used by all some Acer boards, and by the Epox P55-VA

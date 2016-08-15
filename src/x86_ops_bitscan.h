@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #define BS_common(start, end, dir, dest, time)                                  \
         flags_rebuild();                                                        \
         if (temp)                                                               \

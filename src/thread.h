@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 typedef void thread_t;
 thread_t *thread_create(void (*thread_rout)(void *param), void *param);
 void thread_kill(thread_t *handle);

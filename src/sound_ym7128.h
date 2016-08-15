@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 typedef struct ym7128_t
 {
         int a0, sci;

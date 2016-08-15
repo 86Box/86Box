@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 void serial1_init(uint16_t addr, int irq);
 void serial2_init(uint16_t addr, int irq);
 void serial1_set(uint16_t addr, int irq);

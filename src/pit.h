@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 extern double PITCONST;
 extern float cpuclock;
 void pit_init();

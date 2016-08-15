@@ -1,3 +1,6 @@
+/* Copyright holders: Mahod, Tenshi
+   see COPYING for more details
+*/
 #define BCD(X) (((X) % 10) | (((X) / 10) << 4))
 #define DCB(X) ((((X) & 0xF0) >> 4) * 10 + ((X) & 0x0F))
 

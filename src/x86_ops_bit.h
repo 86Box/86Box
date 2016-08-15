@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 static int opBT_w_r_a16(uint32_t fetchdat)
 {
         int tempc;

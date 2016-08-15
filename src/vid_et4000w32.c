@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 /*ET4000/W32p emulation (Diamond Stealth 32)*/
 /*Known bugs :
 

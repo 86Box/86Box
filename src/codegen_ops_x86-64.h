@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 /*Register allocation :
         R8-R15 - emulated registers
 */

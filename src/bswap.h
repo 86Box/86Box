@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #ifndef BSWAP_H
 #define BSWAP_H
 

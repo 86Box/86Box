@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 /*PC200 video emulation.
   CGA with some NMI stuff. But we don't need that as it's only used for TV and
   LCD displays, and we're emulating a CRT*/

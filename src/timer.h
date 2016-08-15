@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 #ifndef _TIMER_H_
 #define _TIMER_H_
 

@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 typedef struct tkd8001_ramdac_t
 {
         int state;

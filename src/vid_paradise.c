@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 /*Paradise VGA emulation
 
   PC2086, PC3086 use PVGA1A

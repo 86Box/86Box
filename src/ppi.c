@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 /*IBM 5150 cassette nonsense
   Calls F979 twice
   Expects CX to be nonzero, BX >$410 and <$540

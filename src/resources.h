@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 #define IDM_FILE_RESET     40000
 #define IDM_FILE_HRESET    40001
 #define IDM_FILE_EXIT      40002

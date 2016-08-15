@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 typedef struct sb_dsp_t
 {
         int sb_type;

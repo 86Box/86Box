@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #include "ibm.h"
 #include "io.h"
 #include "olivetti_m24.h"

@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

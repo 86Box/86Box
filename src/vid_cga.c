@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 /*CGA emulation*/
 #include <stdlib.h>
 #include <math.h>
