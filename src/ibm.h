@@ -222,7 +222,7 @@ extern int cpl_override;
 /*Timer*/
 typedef struct PIT
 {
-        uint32_t l[3];
+        uint64_t l[3];
         int64_t c[3];
         uint8_t m[3];
         uint8_t ctrl,ctrls[3];

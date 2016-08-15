@@ -22,7 +22,7 @@ typedef struct ad1848_t
         
         int freq;
         
-        int timer_count, timer_latch;
+        int64_t timer_count, timer_latch;
 
         int16_t buffer[SOUNDBUFLEN * 2];
         int pos;
