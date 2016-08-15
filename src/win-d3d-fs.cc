@@ -1,4 +1,6 @@
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 #define BITMAP WINDOWS_BITMAP
 #include <d3d9.h>
 #undef BITMAP
