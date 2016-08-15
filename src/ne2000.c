@@ -1,4 +1,4 @@
-/* Copyright holders: Peter Grehan, SA1988
+/* Copyright holders: Peter Grehan, SA1988, Tenshi
    see COPYING for more details
 */
 /////////////////////////////////////////////////////////////////////////
