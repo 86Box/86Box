@@ -13,7 +13,7 @@ int nvraddr;
 
 int nvr_dosave = 0;
 
-static int nvr_onesec_time = 0, nvr_onesec_cnt = 0;
+static int64_t nvr_onesec_time = 0, nvr_onesec_cnt = 0;
 
 void getnvrtime()
 {
@@ -59,7 +59,7 @@ int nvr_check_alarm(int nvraddr)
         return (nvrram[nvraddr + 1] == nvrram[nvraddr] || (nvrram[nvraddr + 1] & ALARM_DONTCARE) == ALARM_DONTCARE);
 }
 
-int nvr_update_end_count = 0;
+int64_t nvr_update_end_count = 0;
 
 void nvr_update_end(void *p)
 {
