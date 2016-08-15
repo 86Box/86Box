@@ -255,6 +255,20 @@ uint32_t ne2000_chipmem_read(ne2000_t *ne2000, uint32_t address, unsigned int io
 void ne2000_page0_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsigned io_len);
 void ne2000_rx_frame(void *p, const void *buf, int io_len);
 
+int ne2000_do_log = 0;
+
+void ne2000_log(const char *format, ...)
+{
+   if (ne2000_do_log)
+   {
+	va_list ap;
+	va_start(ap, format);
+	vprintf(format, ap);
+	va_end(ap);
+	fflush(stdout);
+   }
+}
+
 static void ne2000_setirq(ne2000_t *ne2000, int irq)
 {
     ne2000->base_irq = irq;
@@ -267,7 +281,7 @@ static void ne2000_reset(void *p, int reset)
   ne2000_t *ne2000 = (ne2000_t *)p;
   int i;
 
-  pclog("ne2000 reset\n");
+  ne2000_log("ne2000 reset\n");
 
 		// Initialise the mac address area by doubling the physical address
 		ne2000->macaddr[0]  = ne2000->physaddr[0];
@@ -347,17 +361,17 @@ uint32_t ne2000_read_cr(ne2000_t *ne2000)
 	(ne2000->CR.tx_packet << 2) |
 	(ne2000->CR.start     << 1) |
 	(ne2000->CR.stop));
-	pclog("%s: read CR returns 0x%02x\n", (network_card_current == 1) ? "NE2000" : "RTL8029AS", val);
+	ne2000_log("%s: read CR returns 0x%02x\n", (network_card_current == 1) ? "NE2000" : "RTL8029AS", val);
 	return val;
 }
 
 void ne2000_write_cr(ne2000_t *ne2000, uint32_t value)
 {
-	pclog("%s: wrote 0x%02x to CR\n", (network_card_current == 1) ? "NE2000" : "RTL8029AS", value);
+	ne2000_log("%s: wrote 0x%02x to CR\n", (network_card_current == 1) ? "NE2000" : "RTL8029AS", value);
 
 	// Validate remote-DMA
 	if ((value & 0x38) == 0x00) {
-		pclog("CR write - invalid rDMA value 0\n");
+		ne2000_log("CR write - invalid rDMA value 0\n");
 		value |= 0x20; /* dma_cmd == 4 is a safe default */
 	}
 
@@ -385,13 +399,13 @@ void ne2000_write_cr(ne2000_t *ne2000, uint32_t value)
 		// Set up DMA read from receive ring
 		ne2000->remote_start = ne2000->remote_dma = ne2000->bound_ptr * 256;
 		ne2000->remote_bytes = (uint16_t) ne2000_chipmem_read(ne2000, ne2000->bound_ptr * 256 + 2, 2);
-		pclog("Sending buffer #x%x length %d\n", ne2000->remote_start, ne2000->remote_bytes);
+		ne2000_log("Sending buffer #x%x length %d\n", ne2000->remote_start, ne2000->remote_bytes);
 	}
 
 	// Check for start-tx
 	if ((value & 0x04) && ne2000->TCR.loop_cntl) {
 		if (ne2000->TCR.loop_cntl != 1) {
-		  pclog("Loop mode %d not supported\n", ne2000->TCR.loop_cntl);
+		  ne2000_log("Loop mode %d not supported\n", ne2000->TCR.loop_cntl);
 		} else {
 		  ne2000_rx_frame(ne2000, &ne2000->mem[ne2000->tx_page_start*256 - BX_NE2K_MEMSTART],
 					ne2000->tx_bytes);
@@ -400,28 +414,28 @@ void ne2000_write_cr(ne2000_t *ne2000, uint32_t value)
 		if (ne2000->CR.stop || (!ne2000->CR.start && (network_card_current == 1))) {
 		  if (ne2000->tx_bytes == 0) /* njh@bandsman.co.uk */
 			return; /* Solaris9 probe */
-		  pclog("CR write - tx start, dev in reset\n");
+		  ne2000_log("CR write - tx start, dev in reset\n");
 		}
 
 		if (ne2000->tx_bytes == 0)
-		  pclog("CR write - tx start, tx bytes == 0\n");
+		  ne2000_log("CR write - tx start, tx bytes == 0\n");
 
 		// Send the packet to the system driver
 		ne2000->CR.tx_packet = 1;
 		if(net_is_slirp) 
 		{
 			slirp_input(&ne2000->mem[ne2000->tx_page_start*256 - BX_NE2K_MEMSTART], ne2000->tx_bytes);
-			pclog("ne2000 slirp sending packet\n");
+			ne2000_log("ne2000 slirp sending packet\n");
 		}
 		if(net_is_pcap && net_pcap!=NULL) 
 		{
 			_pcap_sendpacket(net_pcap, &ne2000->mem[ne2000->tx_page_start*256 - BX_NE2K_MEMSTART], ne2000->tx_bytes);
-			pclog("ne2000 pcap sending packet\n");
+			ne2000_log("ne2000 pcap sending packet\n");
 		}
 
 		// some more debug
 		if (ne2000->tx_timer_active)
-		  pclog("CR write, tx timer still active\n");
+		  ne2000_log("CR write, tx timer still active\n");
 
 		ne2000_tx_event(ne2000, value);
 	  }
@@ -453,7 +467,7 @@ uint32_t ne2000_chipmem_read(ne2000_t *ne2000, uint32_t address, unsigned int io
   uint32_t retval = 0;
 
   if ((io_len == 2) && (address & 0x1))
-    pclog("unaligned chipmem word read\n");
+    ne2000_log("unaligned chipmem word read\n");
 
   // ROM'd MAC address
   if ((address >=0) && (address <= 31)) {
@@ -480,7 +494,7 @@ uint32_t ne2000_chipmem_read(ne2000_t *ne2000, uint32_t address, unsigned int io
     return (retval);
   }
 
-  pclog("out-of-bounds chipmem read, %04X\n", address);
+  ne2000_log("out-of-bounds chipmem read, %04X\n", address);
 
   return (0xff);
 }
@@ -488,7 +502,7 @@ uint32_t ne2000_chipmem_read(ne2000_t *ne2000, uint32_t address, unsigned int io
 void ne2000_chipmem_write(ne2000_t *ne2000, uint32_t address, uint32_t value, unsigned io_len)
 {
   if ((io_len == 2) && (address & 0x1))
-    pclog("unaligned chipmem word write\n");
+    ne2000_log("unaligned chipmem word write\n");
 
   if ((address >= BX_NE2K_MEMSTART) && (address < BX_NE2K_MEMEND)) {
     ne2000->mem[address - BX_NE2K_MEMSTART] = value & 0xff;
@@ -500,7 +514,7 @@ void ne2000_chipmem_write(ne2000_t *ne2000, uint32_t address, uint32_t value, un
       ne2000->mem[address - BX_NE2K_MEMSTART + 3] = value >> 24;
     }
   } else
-    pclog("out-of-bounds chipmem write, %04X\n", address);
+    ne2000_log("out-of-bounds chipmem write, %04X\n", address);
 }
 
 //
@@ -525,11 +539,11 @@ uint32_t ne2000_asic_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_len
     // have been initialised.
     //
     if (io_len > ne2000->remote_bytes) {
-      pclog("dma read underrun iolen=%d remote_bytes=%d\n",io_len,ne2000->remote_bytes);
+      ne2000_log("dma read underrun iolen=%d remote_bytes=%d\n",io_len,ne2000->remote_bytes);
       //return 0;
     }
 
-    pclog("%s read DMA: addr=%4x remote_bytes=%d\n",(network_card_current == 1) ? "NE2000" : "RTL8029AS",ne2000->remote_dma,ne2000->remote_bytes);
+    ne2000_log("%s read DMA: addr=%4x remote_bytes=%d\n",(network_card_current == 1) ? "NE2000" : "RTL8029AS",ne2000->remote_dma,ne2000->remote_bytes);
     retval = ne2000_chipmem_read(ne2000, ne2000->remote_dma, io_len);
     //
     // The 8390 bumps the address and decreases the byte count
@@ -568,7 +582,7 @@ uint32_t ne2000_asic_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_len
     break;
 
   default:
-    pclog("asic read invalid address %04x\n", (unsigned) offset);
+    ne2000_log("asic read invalid address %04x\n", (unsigned) offset);
     break;
   }
 
@@ -577,16 +591,16 @@ uint32_t ne2000_asic_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_len
 
 void ne2000_asic_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsigned io_len)
 {
-  pclog("%s: asic write addr=0x%02x, value=0x%04x\n", (network_card_current == 1) ? "NE2000" : "RTL8029AS",(unsigned) offset, (unsigned) value);
+  ne2000_log("%s: asic write addr=0x%02x, value=0x%04x\n", (network_card_current == 1) ? "NE2000" : "RTL8029AS",(unsigned) offset, (unsigned) value);
   switch (offset) {
   case 0x0:  // Data register - see asic_read for a description
 
     if ((io_len > 1) && (ne2000->DCR.wdsize == 0)) {
-      pclog("dma write length %d on byte mode operation\n", io_len);
+      ne2000_log("dma write length %d on byte mode operation\n", io_len);
       break;
     }
     if (ne2000->remote_bytes == 0) {
-      pclog("dma write, byte count 0\n");
+      ne2000_log("dma write, byte count 0\n");
     }
 
     ne2000_chipmem_write(ne2000, ne2000->remote_dma, value, io_len);
@@ -621,7 +635,7 @@ void ne2000_asic_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsign
     break;
 
   default: // this is invalid, but happens under win95 device detection
-    pclog("asic write invalid address %04x, ignoring\n", (unsigned) offset);
+    ne2000_log("asic write invalid address %04x, ignoring\n", (unsigned) offset);
     break;
   }
 }
@@ -635,7 +649,7 @@ uint32_t ne2000_page0_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
   uint8_t value = 0;
 
   if (io_len > 1) {
-    pclog("bad length! page 0 read from register 0x%02x, len=%u\n", offset,
+    ne2000_log("bad length! page 0 read from register 0x%02x, len=%u\n", offset,
               io_len); /* encountered with win98 hardware probe */
     return value;
   }
@@ -669,7 +683,7 @@ uint32_t ne2000_page0_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
 
   case 0x6:  // FIFO
     // reading FIFO is only valid in loopback mode
-    pclog("reading FIFO not supported yet\n");
+    ne2000_log("reading FIFO not supported yet\n");
     value = ne2000->fifo;
     break;
 
@@ -696,7 +710,7 @@ uint32_t ne2000_page0_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
     if (network_card_current == 2) {
       value = 0x50;
     } else {
-      pclog("reserved read - page 0, 0xa\n");
+      ne2000_log("reserved read - page 0, 0xa\n");
       value = 0xff;
     }
     break;
@@ -705,7 +719,7 @@ uint32_t ne2000_page0_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
     if (network_card_current == 2) {
       value = 0x43;
     } else {
-      pclog("reserved read - page 0, 0xb\n");
+      ne2000_log("reserved read - page 0, 0xb\n");
       value = 0xff;
     }
     break;
@@ -734,11 +748,11 @@ uint32_t ne2000_page0_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
     break;
 
   default:
-    pclog("page 0 register 0x%02x out of range\n", offset);
+    ne2000_log("page 0 register 0x%02x out of range\n", offset);
 	break;
   }
 
-  pclog("page 0 read from register 0x%02x, value=0x%02x\n", offset, value);
+  ne2000_log("page 0 read from register 0x%02x, value=0x%02x\n", offset, value);
   return value;
 }
 
@@ -757,7 +771,7 @@ void ne2000_page0_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
     return;
   }
 
-  pclog("page 0 write to register 0x%02x, value=0x%02x\n", offset, value);
+  ne2000_log("page 0 write to register 0x%02x, value=0x%02x\n", offset, value);
 
   switch (offset) {
   case 0x1:  // PSTART
@@ -845,7 +859,7 @@ void ne2000_page0_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
   case 0xc:  // RCR
     // Check if the reserved bits are set
     if (value & 0xc0)
-      pclog("RCR write, reserved bits set\n");
+      ne2000_log("RCR write, reserved bits set\n");
 
     // Set all other bit-fields
     ne2000->RCR.errors_ok = ((value & 0x01) == 0x01);
@@ -857,29 +871,29 @@ void ne2000_page0_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
 
     // Monitor bit is a little suspicious...
     if (value & 0x20)
-      pclog("RCR write, monitor bit set!\n");
+      ne2000_log("RCR write, monitor bit set!\n");
     break;
 
   case 0xd:  // TCR
     // Check reserved bits
     if (value & 0xe0)
-      pclog("TCR write, reserved bits set\n");
+      ne2000_log("TCR write, reserved bits set\n");
 
     // Test loop mode (not supported)
     if (value & 0x06) {
       ne2000->TCR.loop_cntl = (value & 0x6) >> 1;
-      pclog("TCR write, loop mode %d not supported\n", ne2000->TCR.loop_cntl);
+      ne2000_log("TCR write, loop mode %d not supported\n", ne2000->TCR.loop_cntl);
     } else {
       ne2000->TCR.loop_cntl = 0;
     }
 
     // Inhibit-CRC not supported.
     if (value & 0x01)
-      pclog("TCR write, inhibit-CRC not supported\n");
+      ne2000_log("TCR write, inhibit-CRC not supported\n");
 
     // Auto-transmit disable very suspicious
     if (value & 0x08)
-      pclog("TCR write, auto transmit disable not supported\n");
+      ne2000_log("TCR write, auto transmit disable not supported\n");
 
     // Allow collision-offset to be set, although not used
     ne2000->TCR.coll_prio = ((value & 0x08) == 0x08);
@@ -888,14 +902,14 @@ void ne2000_page0_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
   case 0xe:  // DCR
     // the loopback mode is not suppported yet
     if (!(value & 0x08)) {
-      pclog("DCR write, loopback mode selected\n");
+      ne2000_log("DCR write, loopback mode selected\n");
     }
     // It is questionable to set longaddr and auto_rx, since they
     // aren't supported on the ne2000. Print a warning and continue
     if (value & 0x04)
-      pclog("DCR write - LAS set ???\n");
+      ne2000_log("DCR write - LAS set ???\n");
     if (value & 0x10)
-      pclog("DCR write - AR set ???\n");
+      ne2000_log("DCR write - AR set ???\n");
 
     // Set other values.
     ne2000->DCR.wdsize   = ((value & 0x01) == 0x01);
@@ -909,7 +923,7 @@ void ne2000_page0_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
   case 0xf:  // IMR
     // Check for reserved bit
     if (value & 0x80)
-      pclog("IMR write, reserved bit set\n");
+      ne2000_log("IMR write, reserved bit set\n");
 
     // Set other values
     ne2000->IMR.rx_inte    = ((value & 0x01) == 0x01);
@@ -934,7 +948,7 @@ void ne2000_page0_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
     break;
 
   default:
-    pclog("page 0 write, bad register 0x%02x\n", offset);
+    ne2000_log("page 0 write, bad register 0x%02x\n", offset);
 	break;
   }
 }
@@ -945,7 +959,7 @@ void ne2000_page0_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
 //
 uint32_t ne2000_page1_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_len)
 {
-  pclog("page 1 read from register 0x%02x, len=%u\n", offset, io_len);
+  ne2000_log("page 1 read from register 0x%02x, len=%u\n", offset, io_len);
 
   switch (offset) {
   case 0x1:  // PAR0-5
@@ -958,7 +972,7 @@ uint32_t ne2000_page1_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
     break;
 
   case 0x7:  // CURR
-    pclog("returning current page: 0x%02x\n", (ne2000->curr_page));
+    ne2000_log("returning current page: 0x%02x\n", (ne2000->curr_page));
     return (ne2000->curr_page);
 
   case 0x8:  // MAR0-7
@@ -973,7 +987,7 @@ uint32_t ne2000_page1_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
     break;
 
   default:
-    pclog("page 1 read register 0x%02x out of range\n", offset);
+    ne2000_log("page 1 read register 0x%02x out of range\n", offset);
 	break;
   }
 
@@ -982,7 +996,7 @@ uint32_t ne2000_page1_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
 
 void ne2000_page1_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsigned io_len)
 {
-  pclog("page 1 write to register 0x%02x, len=%u, value=0x%04x\n", offset,
+  ne2000_log("page 1 write to register 0x%02x, len=%u, value=0x%04x\n", offset,
             io_len, value);
 
   switch (offset) {
@@ -994,7 +1008,7 @@ void ne2000_page1_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
   case 0x6:
     ne2000->physaddr[offset - 1] = value;
     if (offset == 6) {
-      pclog("Physical address set to %02x:%02x:%02x:%02x:%02x:%02x\n",
+      ne2000_log("Physical address set to %02x:%02x:%02x:%02x:%02x:%02x\n",
                ne2000->physaddr[0],
                ne2000->physaddr[1],
                ne2000->physaddr[2],
@@ -1020,7 +1034,7 @@ void ne2000_page1_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
     break;
 
   default:
-    pclog("page 1 write register 0x%02x out of range\n", offset);
+    ne2000_log("page 1 write register 0x%02x out of range\n", offset);
 	break;
   }
 }
@@ -1031,7 +1045,7 @@ void ne2000_page1_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
 //
 uint32_t ne2000_page2_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_len)
 {
-  pclog("page 2 read from register 0x%02x, len=%u\n", offset, io_len);
+  ne2000_log("page 2 read from register 0x%02x, len=%u\n", offset, io_len);
   
   switch (offset) {
   case 0x1:  // PSTART
@@ -1059,7 +1073,7 @@ uint32_t ne2000_page2_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
   case 0x9:
   case 0xa:
   case 0xb:
-    pclog("reserved read - page 2, register 0x%02x\n", offset);
+    ne2000_log("reserved read - page 2, register 0x%02x\n", offset);
     return (0xff);
 
   case 0xc:  // RCR
@@ -1094,7 +1108,7 @@ uint32_t ne2000_page2_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
 	    (ne2000->IMR.rx_inte));
 
   default:
-    pclog("page 2 register 0x%02x out of range\n", offset);
+    ne2000_log("page 2 register 0x%02x out of range\n", offset);
 	break;
   }
 
@@ -1106,7 +1120,7 @@ void ne2000_page2_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
   // Maybe all writes here should be BX_PANIC()'d, since they
   // affect internal operation, but let them through for now
   // and print a warning.
-  pclog("page 2 write to register 0x%02x, len=%u, value=0x%04x\n", offset,
+  ne2000_log("page 2 write to register 0x%02x, len=%u, value=0x%04x\n", offset,
             io_len, value);
 
   switch (offset) {
@@ -1127,7 +1141,7 @@ void ne2000_page2_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
     break;
 
   case 0x4:
-    pclog("page 2 write to reserved register 0x04\n");
+    ne2000_log("page 2 write to reserved register 0x04\n");
     break;
 
   case 0x5:  // Local Next-packet pointer
@@ -1154,11 +1168,11 @@ void ne2000_page2_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
   case 0xd:
   case 0xe:
   case 0xf:
-    pclog("page 2 write to reserved register 0x%02x\n", offset);
+    ne2000_log("page 2 write to reserved register 0x%02x\n", offset);
     break;
 
   default:
-    pclog("page 2 write, illegal register 0x%02x\n", offset);
+    ne2000_log("page 2 write, illegal register 0x%02x\n", offset);
     break;
   }
 }
@@ -1177,25 +1191,25 @@ uint32_t ne2000_page3_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
       case 0x6:  // CONFIG3
         return (0x40);
       default:
-        pclog("page 3 read register 0x%02x attempted\n", offset);
+        ne2000_log("page 3 read register 0x%02x attempted\n", offset);
         return (0);
     }
   } else {
-    pclog("page 3 read register 0x%02x attempted\n", offset);
+    ne2000_log("page 3 read register 0x%02x attempted\n", offset);
     return (0);
   }
 }
 
 void ne2000_page3_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsigned io_len)
 {
-  pclog("page 3 write register 0x%02x attempted\n", offset);
+  ne2000_log("page 3 write register 0x%02x attempted\n", offset);
   return;
 }
 
 void ne2000_tx_timer(void *p)
 {
   ne2000_t *ne2000 = (ne2000_t *)p;
-  pclog("tx_timer\n");
+  ne2000_log("tx_timer\n");
   ne2000->CR.tx_packet = 0;
   ne2000->TSR.tx_ok = 1;
   ne2000->ISR.pkt_tx = 1;
@@ -1219,7 +1233,7 @@ void ne2000_tx_event(void *p, uint32_t val)
 //
 uint32_t ne2000_read(ne2000_t *ne2000, uint32_t address, unsigned io_len)
 {
-  pclog("%s: read addr %x, len %d\n", (network_card_current == 1) ? "NE2000" : "RTL8029AS", address, io_len);
+  ne2000_log("%s: read addr %x, len %d\n", (network_card_current == 1) ? "NE2000" : "RTL8029AS", address, io_len);
   uint32_t retval = 0;
   int offset = address - ne2000->base_address;
 
@@ -1246,7 +1260,7 @@ uint32_t ne2000_read(ne2000_t *ne2000, uint32_t address, unsigned io_len)
       break;
 
     default:
-      pclog("unknown value of pgsel in read - %d\n", ne2000->CR.pgsel);
+      ne2000_log("unknown value of pgsel in read - %d\n", ne2000->CR.pgsel);
 	  break;
     }
   }
@@ -1256,7 +1270,7 @@ uint32_t ne2000_read(ne2000_t *ne2000, uint32_t address, unsigned io_len)
 
 void ne2000_write(ne2000_t *ne2000, uint32_t address, uint32_t value, unsigned io_len)
 {
-  pclog("%s: write addr %x, value %x len %d\n", (network_card_current == 1) ? "NE2000" : "RTL8029AS", address, value, io_len);
+  ne2000_log("%s: write addr %x, value %x len %d\n", (network_card_current == 1) ? "NE2000" : "RTL8029AS", address, value, io_len);
   int offset = address - ne2000->base_address;
 
   //
@@ -1288,7 +1302,7 @@ void ne2000_write(ne2000_t *ne2000, uint32_t address, uint32_t value, unsigned i
       break;
 
     default:
-      pclog("unknown value of pgsel in write - %d\n", ne2000->CR.pgsel);
+      ne2000_log("unknown value of pgsel in write - %d\n", ne2000->CR.pgsel);
 	  break;
     }
   }
@@ -1342,7 +1356,7 @@ void ne2000_rx_frame(void *p, const void *buf, int io_len)
   static uint8_t bcast_addr[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
 
   if(io_len != 60) {
-        pclog("rx_frame with length %d\n", io_len);
+        ne2000_log("rx_frame with length %d\n", io_len);
   }
 
         //LOG_MSG("stop=%d, pagestart=%x, dcr_loop=%x, tcr_loopcntl=%x",
@@ -1375,12 +1389,12 @@ void ne2000_rx_frame(void *p, const void *buf, int io_len)
       || (avail == pages)
 #endif
       ) {
-        pclog("no space\n");
+        ne2000_log("no space\n");
     return;
   }
 
   if ((io_len < 40/*60*/) && !ne2000->RCR.runts_ok) {
-    pclog("rejected small packet, length %d\n", io_len);
+    ne2000_log("rejected small packet, length %d\n", io_len);
     return;
   }
   // some computers don't care...
@@ -1404,10 +1418,10 @@ void ne2000_rx_frame(void *p, const void *buf, int io_len)
       return;
     }
   } else {
-      pclog("rx_frame promiscuous receive\n");
+      ne2000_log("rx_frame promiscuous receive\n");
   }
 
-    pclog("rx_frame %d to %x:%x:%x:%x:%x:%x from %x:%x:%x:%x:%x:%x\n",
+    ne2000_log("rx_frame %d to %x:%x:%x:%x:%x:%x from %x:%x:%x:%x:%x:%x\n",
            io_len,
            pktbuf[0], pktbuf[1], pktbuf[2], pktbuf[3], pktbuf[4], pktbuf[5],
            pktbuf[6], pktbuf[7], pktbuf[8], pktbuf[9], pktbuf[10], pktbuf[11]);
@@ -1524,7 +1538,7 @@ if(net_is_slirp) {
                         return;
                         }
                 ne2000_rx_frame(ne2000,&qp->data,qp->len); 
-                pclog("ne2000 inQ:%d  got a %dbyte packet @%d\n",QueuePeek(slirpq),qp->len,qp);
+                ne2000_log("ne2000 inQ:%d  got a %dbyte packet @%d\n",QueuePeek(slirpq),qp->len,qp);
                 free(qp);
                 }
         fizz++;
@@ -1535,13 +1549,13 @@ if(net_is_pcap  && net_pcap!=NULL)
         data=_pcap_next(net_pcap,&h);
         if(data==0x0){goto WTF;}
         if((memcmp(data+6,maclocal,6))==0)
-            pclog("ne2000 we just saw ourselves\n");
+            ne2000_log("ne2000 we just saw ourselves\n");
         else {
              if((ne2000->DCR.loop == 0) || (ne2000->TCR.loop_cntl != 0))
                 {
                 return;
                 }
-                pclog("ne2000 pcap received a frame %d bytes\n",h.caplen);
+                ne2000_log("ne2000 pcap received a frame %d bytes\n",h.caplen);
                 ne2000_rx_frame(ne2000,data,h.caplen); 
              }
         WTF:
@@ -1584,7 +1598,7 @@ uint8_t ne2000_pci_read(int func, int addr, void *p)
 {
         ne2000_t *ne2000 = (ne2000_t *) p;
 
-        // pclog("NE2000 PCI read %08X\n", addr);
+        // ne2000_log("NE2000 PCI read %08X\n", addr);
         switch (addr)
         {
                 case 0x00:/* case 0x2C:*/ return 0xec;
@@ -1639,7 +1653,7 @@ void ne2000_update_bios(ne2000_t *ne2000)
 	{
 		mem_mapping_enable(&ne2000->bios_rom.mapping);
 		mem_mapping_set_addr(&ne2000->bios_rom.mapping, bios_addr, 0x10000);
-		pclog("Network BIOS now at: %08X\n", bios_addr);
+		ne2000_log("Network BIOS now at: %08X\n", bios_addr);
 	}
 	else
 	{
@@ -1652,7 +1666,7 @@ void ne2000_pci_write(int func, int addr, uint8_t val, void *p)
 {
         ne2000_t *ne2000 = (ne2000_t *) p;
 
-        // pclog("ne2000_pci_write: addr=%02x val=%02x\n", addr, val);
+        // ne2000_log("ne2000_pci_write: addr=%02x val=%02x\n", addr, val);
         switch (addr)
         {
                 case 0x04:
@@ -1681,7 +1695,7 @@ void ne2000_pci_write(int func, int addr, uint8_t val, void *p)
                 ne2000->base_address = ne2000_pci_bar[0].addr & 0xff00;
                 /* If the base is below 0x280, return. */
                 /* Log the new base. */
-                pclog("NE2000 RTL8029AS PCI: New I/O base is %04X\n" , ne2000->base_address);
+                ne2000_log("NE2000 RTL8029AS PCI: New I/O base is %04X\n" , ne2000->base_address);
                 /* We're done, so get out of the here. */
                 return;
 				
@@ -1698,7 +1712,7 @@ void ne2000_pci_write(int func, int addr, uint8_t val, void *p)
                 ne2000_pci_regs[addr] = val;
                 if (val != 0xFF)
                 {
-						pclog("NE2000 IRQ now: %i\n", val);
+						ne2000_log("NE2000 IRQ now: %i\n", val);
                         ne2000_setirq(ne2000, val);
                 }
                 return;
@@ -1757,7 +1771,7 @@ void *ne2000_init()
     // net_is_slirp = config_get_int(NULL, "net_type", 1);
 	/* Network type is now specified in device config. */
 	net_is_slirp = config_net_type ? 1 : 0;
-    // pclog("ne2000 pcap device %s\n",config_get_string(NULL,"pcap_device","nothing"));
+    // ne2000_log("ne2000 pcap device %s\n",config_get_string(NULL,"pcap_device","nothing"));
     
     //Check that we have a string setup, otherwise turn pcap off
     if(!strcmp("nothing",config_get_string(NULL,"pcap_device","nothing"))) {
@@ -1777,24 +1791,24 @@ void *ne2000_init()
     ne2000_reset(ne2000, BX_RESET_HARDWARE);
     vlan_handler(ne2000_poller, ne2000);
 
-    pclog("ne2000 isa init 0x%X %d\tslirp is %d net_is_pcap is %d\n",ne2000->base_address,device_get_config_int("irq"),net_is_slirp,net_is_pcap);
+    ne2000_log("ne2000 isa init 0x%X %d\tslirp is %d net_is_pcap is %d\n",ne2000->base_address,device_get_config_int("irq"),net_is_slirp,net_is_pcap);
 
     //need a switch statment for more network types.
 
     if ( net_is_slirp ) {
-    pclog("ne2000 initalizing SLiRP\n");
+    ne2000_log("ne2000 initalizing SLiRP\n");
     net_is_pcap=0;
     rc=slirp_init();
-    pclog("ne2000 slirp_init returned: %d\n",rc);
+    ne2000_log("ne2000 slirp_init returned: %d\n",rc);
     if ( rc == 0 )
         {
-        pclog("ne2000 slirp initalized!\n");
+        ne2000_log("ne2000 slirp initalized!\n");
 
         net_slirp_inited=1;
         slirpq = QueueCreate();
         net_is_slirp=1;
         fizz=0;
-        pclog("ne2000 slirpq is %x\n",&slirpq);
+        ne2000_log("ne2000 slirpq is %x\n",&slirpq);
         }
     else {
         net_slirp_inited=0;
@@ -1804,12 +1818,12 @@ void *ne2000_init()
     if ( net_is_pcap ) {        //pcap
          char errbuf[32768];
 
-        pclog("ne2000 initalizing libpcap\n");
+        ne2000_log("ne2000 initalizing libpcap\n");
         net_is_slirp=0;
          net_hLib = LoadLibraryA(net_lib_name);
             if(net_hLib==0)
             {
-            pclog("ne2000 Failed to load %s\n",net_lib_name);
+            ne2000_log("ne2000 Failed to load %s\n",net_lib_name);
             net_is_pcap=0;
             //return;
             }
@@ -1825,48 +1839,48 @@ void *ne2000_init()
     
         if(_pcap_lib_version && _pcap_open_live && _pcap_sendpacket && _pcap_setnonblock && _pcap_next && _pcap_close && _pcap_getnonblock)
                 {
-                pclog("ne2000 Pcap version [%s]\n",_pcap_lib_version());
+                ne2000_log("ne2000 Pcap version [%s]\n",_pcap_lib_version());
 
                 //if((net_pcap=_pcap_open_live("\\Device\\NPF_{0CFA803F-F443-4BB9-A83A-657029A98195}",1518,1,15,errbuf))==0)
                 if((net_pcap=_pcap_open_live(config_get_string(NULL,"pcap_device","nothing"),1518,1,15,errbuf))==0)
                         {
-                        pclog("ne2000 pcap_open_live error on %s!\n",config_get_string(NULL,"pcap_device","whatever the ethernet is"));
+                        ne2000_log("ne2000 pcap_open_live error on %s!\n",config_get_string(NULL,"pcap_device","whatever the ethernet is"));
                         net_is_pcap=0; return(ne2000);  //YUCK!!!
                         }
                 }
                 else    {       
-                pclog("%d %d %d %d %d %d %d\n",_pcap_lib_version, _pcap_open_live,_pcap_sendpacket,_pcap_setnonblock,_pcap_next,_pcap_close,_pcap_getnonblock);
+                ne2000_log("%d %d %d %d %d %d %d\n",_pcap_lib_version, _pcap_open_live,_pcap_sendpacket,_pcap_setnonblock,_pcap_next,_pcap_close,_pcap_getnonblock);
                         net_is_pcap=1;
                         }
 
                 //Time to check that we are in non-blocking mode.
                 rc=_pcap_getnonblock(net_pcap,errbuf);
-                pclog("ne2000 pcap is currently in %s mode\n",rc? "non-blocking":"blocking");
+                ne2000_log("ne2000 pcap is currently in %s mode\n",rc? "non-blocking":"blocking");
                 switch(rc)
                 {
                 case 0:
-                        pclog("ne2000 Setting interface to non-blocking mode..");
+                        ne2000_log("ne2000 Setting interface to non-blocking mode..");
                         rc=_pcap_setnonblock(net_pcap,1,errbuf);
                         if(rc==0)       {  //no errors!
-                                        pclog("..");
+                                        ne2000_log("..");
                                         rc=_pcap_getnonblock(net_pcap,errbuf);
                                         if(rc==1)       {
-                                                pclog("..!",rc);
+                                                ne2000_log("..!",rc);
                                                 net_is_pcap=1;
                                                 }
                                         else{
-                                                pclog("\tunable to set pcap into non-blocking mode!\nContinuining without pcap.\n");
+                                                ne2000_log("\tunable to set pcap into non-blocking mode!\nContinuining without pcap.\n");
                                                 net_is_pcap=0;
                                             }
                                         }//end set nonblock
-                        else{pclog("There was an unexpected error of [%s]\n\nexiting.\n",errbuf);net_is_pcap=0;}
-                        pclog("\n");
+                        else{ne2000_log("There was an unexpected error of [%s]\n\nexiting.\n",errbuf);net_is_pcap=0;}
+                        ne2000_log("\n");
                         break;
                 case 1:
-                        pclog("non blocking\n");
+                        ne2000_log("non blocking\n");
                         break;
                 default:
-                        pclog("this isn't right!!!\n");
+                        ne2000_log("this isn't right!!!\n");
                         net_is_pcap=0;
                         break;
                 }
@@ -1874,39 +1888,39 @@ void *ne2000_init()
                 if(_pcap_compile && _pcap_setfilter) {  //we can do this!
                 struct bpf_program fp;
                 char filter_exp[255];
-                pclog("ne2000 Building packet filter...");
+                ne2000_log("ne2000 Building packet filter...");
                 sprintf(filter_exp,"( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )", \
                 maclocal[0], maclocal[1], maclocal[2], maclocal[3], maclocal[4], maclocal[5],\
                 maclocal[0], maclocal[1], maclocal[2], maclocal[3], maclocal[4], maclocal[5]);
 
                 //I'm doing a MAC level filter so TCP/IP doesn't matter.
                 if (_pcap_compile(net_pcap, &fp, filter_exp, 0, 0xffffffff) == -1) {
-                        pclog("\nne2000 Couldn't compile filter\n");
+                        ne2000_log("\nne2000 Couldn't compile filter\n");
                         }
                         else    {
-                        pclog("...");
+                        ne2000_log("...");
                         if (_pcap_setfilter(net_pcap, &fp) == -1) {
-                        pclog("\nError installing pcap filter.\n");
+                        ne2000_log("\nError installing pcap filter.\n");
                                 }//end of set_filter failure
                         else    {
-                                pclog("...!\n");
+                                ne2000_log("...!\n");
                                 }
                         }
-                pclog("ne2000 Using filter\t[%s]\n",filter_exp);
+                ne2000_log("ne2000 Using filter\t[%s]\n",filter_exp);
                 //scanf(filter_exp);    //pause
                 }
                 else
                 {
-                pclog("ne2000 Your platform lacks pcap_compile & pcap_setfilter\n");
+                ne2000_log("ne2000 Your platform lacks pcap_compile & pcap_setfilter\n");
                 net_is_pcap=0;
                 }
-        pclog("ne2000 net_is_pcap is %d and net_pcap is %x\n",net_is_pcap,net_pcap);
+        ne2000_log("ne2000 net_is_pcap is %d and net_pcap is %x\n",net_is_pcap,net_pcap);
         }
     } //end pcap setup
 
     //timer_add(slirp_tic,&delay,TIMER_ALWAYS_ENABLED,NULL);
     //timer_add(keyboard_amstrad_poll, &keybsenddelay, TIMER_ALWAYS_ENABLED,  NULL);
-pclog("ne2000 is_slirp %d is_pcap %d\n",net_is_slirp,net_is_pcap);
+ne2000_log("ne2000 is_slirp %d is_pcap %d\n",net_is_slirp,net_is_pcap);
 //exit(0);
 return ne2000;
 }
@@ -1930,7 +1944,7 @@ void *rtl8029as_init()
     // net_is_slirp = config_get_int(NULL, "net_type", 1);
 	/* Network type is now specified in device config. */
 	net_is_slirp = config_net_type ? 1 : 0;
-    // pclog("ne2000 pcap device %s\n",config_get_string(NULL,"pcap_device","nothing"));
+    // ne2000_log("ne2000 pcap device %s\n",config_get_string(NULL,"pcap_device","nothing"));
     
     //Check that we have a string setup, otherwise turn pcap off
     if(!strcmp("nothing",config_get_string(NULL,"pcap_device","nothing"))) {
@@ -1990,24 +2004,24 @@ void *rtl8029as_init()
     ne2000_reset(ne2000, BX_RESET_HARDWARE);
     vlan_handler(ne2000_poller, ne2000);
 
-    pclog("ne2000 pci init 0x%X\tslirp is %d net_is_pcap is %d\n",ne2000->base_address,net_is_slirp,net_is_pcap);
+    ne2000_log("ne2000 pci init 0x%X\tslirp is %d net_is_pcap is %d\n",ne2000->base_address,net_is_slirp,net_is_pcap);
 
     //need a switch statment for more network types.
 
     if ( net_is_slirp ) {
-    pclog("ne2000 initalizing SLiRP\n");
+    ne2000_log("ne2000 initalizing SLiRP\n");
     net_is_pcap=0;
     rc=slirp_init();
-    pclog("ne2000 slirp_init returned: %d\n",rc);
+    ne2000_log("ne2000 slirp_init returned: %d\n",rc);
     if ( rc == 0 )
         {
-        pclog("ne2000 slirp initalized!\n");
+        ne2000_log("ne2000 slirp initalized!\n");
 
         net_slirp_inited=1;
         slirpq = QueueCreate();
         net_is_slirp=1;
         fizz=0;
-        pclog("ne2000 slirpq is %x\n",&slirpq);
+        ne2000_log("ne2000 slirpq is %x\n",&slirpq);
         }
     else {
         net_slirp_inited=0;
@@ -2017,12 +2031,12 @@ void *rtl8029as_init()
     if ( net_is_pcap ) {        //pcap
          char errbuf[32768];
 
-        pclog("ne2000 initalizing libpcap\n");
+        ne2000_log("ne2000 initalizing libpcap\n");
         net_is_slirp=0;
          net_hLib = LoadLibraryA(net_lib_name);
             if(net_hLib==0)
             {
-            pclog("ne2000 Failed to load %s\n",net_lib_name);
+            ne2000_log("ne2000 Failed to load %s\n",net_lib_name);
             net_is_pcap=0;
             //return;
             }
@@ -2038,48 +2052,48 @@ void *rtl8029as_init()
     
         if(_pcap_lib_version && _pcap_open_live && _pcap_sendpacket && _pcap_setnonblock && _pcap_next && _pcap_close && _pcap_getnonblock)
                 {
-                pclog("ne2000 Pcap version [%s]\n",_pcap_lib_version());
+                ne2000_log("ne2000 Pcap version [%s]\n",_pcap_lib_version());
 
                 //if((net_pcap=_pcap_open_live("\\Device\\NPF_{0CFA803F-F443-4BB9-A83A-657029A98195}",1518,1,15,errbuf))==0)
                 if((net_pcap=_pcap_open_live(config_get_string(NULL,"pcap_device","nothing"),1518,1,15,errbuf))==0)
                         {
-                        pclog("ne2000 pcap_open_live error on %s!\n",config_get_string(NULL,"pcap_device","whatever the ethernet is"));
+                        ne2000_log("ne2000 pcap_open_live error on %s!\n",config_get_string(NULL,"pcap_device","whatever the ethernet is"));
                         net_is_pcap=0; return(ne2000);  //YUCK!!!
                         }
                 }
                 else    {       
-                pclog("%d %d %d %d %d %d %d\n",_pcap_lib_version, _pcap_open_live,_pcap_sendpacket,_pcap_setnonblock,_pcap_next,_pcap_close,_pcap_getnonblock);
+                ne2000_log("%d %d %d %d %d %d %d\n",_pcap_lib_version, _pcap_open_live,_pcap_sendpacket,_pcap_setnonblock,_pcap_next,_pcap_close,_pcap_getnonblock);
                         net_is_pcap=1;
                         }
 
                 //Time to check that we are in non-blocking mode.
                 rc=_pcap_getnonblock(net_pcap,errbuf);
-                pclog("ne2000 pcap is currently in %s mode\n",rc? "non-blocking":"blocking");
+                ne2000_log("ne2000 pcap is currently in %s mode\n",rc? "non-blocking":"blocking");
                 switch(rc)
                 {
                 case 0:
-                        pclog("ne2000 Setting interface to non-blocking mode..");
+                        ne2000_log("ne2000 Setting interface to non-blocking mode..");
                         rc=_pcap_setnonblock(net_pcap,1,errbuf);
                         if(rc==0)       {  //no errors!
-                                        pclog("..");
+                                        ne2000_log("..");
                                         rc=_pcap_getnonblock(net_pcap,errbuf);
                                         if(rc==1)       {
-                                                pclog("..!",rc);
+                                                ne2000_log("..!",rc);
                                                 net_is_pcap=1;
                                                 }
                                         else{
-                                                pclog("\tunable to set pcap into non-blocking mode!\nContinuining without pcap.\n");
+                                                ne2000_log("\tunable to set pcap into non-blocking mode!\nContinuining without pcap.\n");
                                                 net_is_pcap=0;
                                             }
                                         }//end set nonblock
-                        else{pclog("There was an unexpected error of [%s]\n\nexiting.\n",errbuf);net_is_pcap=0;}
-                        pclog("\n");
+                        else{ne2000_log("There was an unexpected error of [%s]\n\nexiting.\n",errbuf);net_is_pcap=0;}
+                        ne2000_log("\n");
                         break;
                 case 1:
-                        pclog("non blocking\n");
+                        ne2000_log("non blocking\n");
                         break;
                 default:
-                        pclog("this isn't right!!!\n");
+                        ne2000_log("this isn't right!!!\n");
                         net_is_pcap=0;
                         break;
                 }
@@ -2087,39 +2101,39 @@ void *rtl8029as_init()
                 if(_pcap_compile && _pcap_setfilter) {  //we can do this!
                 struct bpf_program fp;
                 char filter_exp[255];
-                pclog("ne2000 Building packet filter...");
+                ne2000_log("ne2000 Building packet filter...");
                 sprintf(filter_exp,"( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )", \
                 maclocal[0], maclocal[1], maclocal[2], maclocal[3], maclocal[4], maclocal[5],\
                 maclocal[0], maclocal[1], maclocal[2], maclocal[3], maclocal[4], maclocal[5]);
 
                 //I'm doing a MAC level filter so TCP/IP doesn't matter.
                 if (_pcap_compile(net_pcap, &fp, filter_exp, 0, 0xffffffff) == -1) {
-                        pclog("\nne2000 Couldn't compile filter\n");
+                        ne2000_log("\nne2000 Couldn't compile filter\n");
                         }
                         else    {
-                        pclog("...");
+                        ne2000_log("...");
                         if (_pcap_setfilter(net_pcap, &fp) == -1) {
-                        pclog("\nError installing pcap filter.\n");
+                        ne2000_log("\nError installing pcap filter.\n");
                                 }//end of set_filter failure
                         else    {
-                                pclog("...!\n");
+                                ne2000_log("...!\n");
                                 }
                         }
-                pclog("ne2000 Using filter\t[%s]\n",filter_exp);
+                ne2000_log("ne2000 Using filter\t[%s]\n",filter_exp);
                 //scanf(filter_exp);    //pause
                 }
                 else
                 {
-                pclog("ne2000 Your platform lacks pcap_compile & pcap_setfilter\n");
+                ne2000_log("ne2000 Your platform lacks pcap_compile & pcap_setfilter\n");
                 net_is_pcap=0;
                 }
-        pclog("ne2000 net_is_pcap is %d and net_pcap is %x\n",net_is_pcap,net_pcap);
+        ne2000_log("ne2000 net_is_pcap is %d and net_pcap is %x\n",net_is_pcap,net_pcap);
         }
     } //end pcap setup
 
     //timer_add(slirp_tic,&delay,TIMER_ALWAYS_ENABLED,NULL);
     //timer_add(keyboard_amstrad_poll, &keybsenddelay, TIMER_ALWAYS_ENABLED,  NULL);
-pclog("ne2000 is_slirp %d is_pcap %d\n",net_is_slirp,net_is_pcap);
+ne2000_log("ne2000 is_slirp %d is_pcap %d\n",net_is_slirp,net_is_pcap);
 //exit(0);
 return ne2000;
 }
@@ -2135,15 +2149,15 @@ void ne2000_close(void *p)
 				QueueDestroy(slirpq);
 				slirp_exit(0);
 				net_slirp_inited=0;
-				pclog("ne2000 exiting slirp\n");
+				ne2000_log("ne2000 exiting slirp\n");
 				}
 		if(net_is_pcap && net_pcap!=NULL)
 				{
 				_pcap_close(net_pcap);
 				FreeLibrary(net_hLib);
-				pclog("ne2000 closing pcap\n");
+				ne2000_log("ne2000 closing pcap\n");
 				}
-		pclog("ne2000 close\n");
+		ne2000_log("ne2000 close\n");
 }
 
 static device_config_t ne2000_config[] =
@@ -2353,7 +2367,7 @@ p=(struct queuepacket *)malloc(sizeof(struct queuepacket));
 p->len=pkt_len;
 memcpy(p->data,pkt,pkt_len);
 QueueEnter(slirpq,p);
-pclog("ne2000 slirp_output %d @%d\n",pkt_len,p);
+ne2000_log("ne2000 slirp_output %d @%d\n",pkt_len,p);
 }
 
 // Instead of calling this and crashing some times
@@ -2383,6 +2397,6 @@ void slirp_tic()
         if(ret2>=0){
        slirp_select_poll(&rfds, &wfds, &xfds);
           }
-        //pclog("ne2000 slirp_tic()\n");
+        //ne2000_log("ne2000 slirp_tic()\n");
        }//end if slirp inited
 }
