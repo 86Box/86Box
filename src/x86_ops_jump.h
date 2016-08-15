@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #define cond_O   ( VF_SET())
 #define cond_NO  (!VF_SET())
 #define cond_B   ( CF_SET())

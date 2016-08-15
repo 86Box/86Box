@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #define SSATB(val) (((val) < -128) ? -128 : (((val) > 127) ? 127 : (val)))
 #define SSATW(val) (((val) < -32768) ? -32768 : (((val) > 32767) ? 32767 : (val)))
 #define USATB(val) (((val) < 0) ? 0 : (((val) > 255) ? 255 : (val)))

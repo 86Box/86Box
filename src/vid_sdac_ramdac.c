@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 /*87C716 'SDAC' true colour RAMDAC emulation*/
 /*Misidentifies as AT&T 21C504*/
 #include "ibm.h"

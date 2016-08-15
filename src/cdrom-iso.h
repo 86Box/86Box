@@ -1,3 +1,6 @@
+/* Copyright holders: RichardG867, Tenshi
+   see COPYING for more details
+*/
 #ifndef CDROM_ISO_H
 #define CDROM_ISO_H
 

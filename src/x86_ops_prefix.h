@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #define op_seg(name, seg)                                       \
 static int op ## name ## _w_a16(uint32_t fetchdat)              \
 {                                                               \

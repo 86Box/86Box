@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 //Quake timedemo demo1 - 8.1FPS
 
 //11A00 - D_SCAlloc

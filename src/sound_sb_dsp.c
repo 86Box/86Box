@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 /*Jazz sample rates :
   386-33 - 12kHz
   486-33 - 20kHz

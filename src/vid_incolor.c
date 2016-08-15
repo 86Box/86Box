@@ -1,3 +1,6 @@
+/* Copyright holders: John Elliott
+   see COPYING for more details
+*/
 /*Hercules InColor emulation*/
 
 #include <stdlib.h>

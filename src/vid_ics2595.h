@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 typedef struct ics2595_t
 {
         int oldfs3, oldfs2;

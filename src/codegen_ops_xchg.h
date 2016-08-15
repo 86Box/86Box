@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #define OP_XCHG_AX_(reg)                                                                                                                \
         static uint32_t ropXCHG_AX_ ## reg(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)       \
         {                                                                                                                               \

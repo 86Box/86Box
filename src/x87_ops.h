@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi, leilei
+   see COPYING for more details
+*/
 #include <math.h>
 #include <fenv.h>
 

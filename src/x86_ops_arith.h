@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #define OP_ARITH(name, operation, setflags, flagops, gettempc)   \
         static int op ## name ## _b_rmw_a16(uint32_t fetchdat)                                         \
         {                                                                                       \

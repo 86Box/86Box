@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 /*Elements taken into account :
         - U/V integer pairing
         - FPU/FXCH pairing

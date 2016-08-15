@@ -1,3 +1,6 @@
+/* Copyright holders: Tenshi
+   see COPYING for more details
+*/
 /*PRD format :
         
         word 0 - base address

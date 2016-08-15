@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 /*MDA emulation*/
 #include <stdlib.h>
 #include "ibm.h"

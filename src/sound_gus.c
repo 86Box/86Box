@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

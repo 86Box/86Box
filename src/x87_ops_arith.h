@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, leilei
+   see COPYING for more details
+*/
 #define opFPU(name, optype, a_size, load_var, get, use_var)     \
 static int opFADD ## name ## _a ## a_size(uint32_t fetchdat)    \
 {                                                               \

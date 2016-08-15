@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 static int opMOV_w_seg_a16(uint32_t fetchdat)
 {
         fetch_ea_16(fetchdat);

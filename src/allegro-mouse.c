@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #include "allegro-main.h"
 #include "plat-mouse.h"
 

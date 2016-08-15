@@ -1,3 +1,6 @@
+/* Copyright holders: Tenshi
+   see COPYING for more details
+*/
 /*Brooktree BT485 true colour RAMDAC emulation*/
 /*Currently only a dummy stub for logging and passing output to the generic SVGA handler*/
 #include "ibm.h"

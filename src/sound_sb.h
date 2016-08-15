@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 extern device_t sb_1_device;
 extern device_t sb_15_device;
 extern device_t sb_2_device;

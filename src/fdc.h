@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 void fdc_init();
 void fdc_add();
 void fdc_add_for_superio();

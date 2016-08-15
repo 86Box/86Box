@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 /*PC1512 CGA emulation
 
   The PC1512 extends CGA with a bit-planar 640x200x16 mode.

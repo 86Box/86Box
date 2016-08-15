@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 static int opFSTSW_AX(uint32_t fetchdat)
 {
         FP_ENTER();

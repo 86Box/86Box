@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 static int opMOV_r_CRx_a16(uint32_t fetchdat)
 {
         if ((CPL || (eflags&VM_FLAG)) && (cr0&1))

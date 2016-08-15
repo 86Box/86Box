@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 /*PCem v0.8 by Tom Walker
 
   Windows Sound System emulation*/

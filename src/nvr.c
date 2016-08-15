@@ -1,3 +1,6 @@
+/* Copyright holders: Mahod, Tenshi
+   see COPYING for more details
+*/
 #include <stdio.h>
 #include "ibm.h"
 #include "io.h"

@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 extern device_t gameport_device;
 extern device_t gameport_201_device;
 

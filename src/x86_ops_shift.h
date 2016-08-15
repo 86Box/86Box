@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #define OP_SHIFT_b(c)                                                                   \
         {                                                                               \
                 uint8_t temp_orig = temp;                                               \
