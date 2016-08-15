@@ -1,6 +1,3 @@
-/* Copyright holders: Mahod, Tenshi
-   see COPYING for more details
-*/
 /* Emulation of:
    Dallas Semiconductor DS12C887 Real Time Clock
 
@@ -19,7 +16,7 @@
 
 int enable_sync;
 
-typedef struct
+struct
 {
         int sec;
         int min;
@@ -27,16 +24,13 @@ typedef struct
         int mday;
         int mon;
         int year;
-}
-internal_clock_t;
-
-internal_clock_t internal_clock;
+} internal_clock;
 
 /* When the RTC was last updated */
-time_t rtc_set_time = 0;
+static time_t rtc_set_time = 0;
 
 /* Table for days in each month */
-int rtc_days_in_month[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+static int rtc_days_in_month[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 /* Called to determine whether the year is leap or not */
 static int rtc_is_leap(int org_year)
@@ -51,13 +45,9 @@ static int rtc_is_leap(int org_year)
 static int rtc_get_days(int org_month, int org_year)
 {
         if (org_month != 2)
-        {
                 return rtc_days_in_month[org_month];
-        }
         else
-        {
                 return rtc_is_leap(org_year) ? 29 : 28;
-        }
 }
 
 /* Called when the internal clock gets updated */
@@ -104,59 +94,36 @@ void time_update(char *nvrram, int reg)
 
         switch(reg)
         {
-                case RTCSECONDS:
-                        internal_clock.sec = (nvrram[RTCREGB] & RTCDM) ? nvrram[RTCSECONDS] : DCB(nvrram[RTCSECONDS]);
-                        break;
-                case RTCMINUTES:
-                        internal_clock.min = (nvrram[RTCREGB] & RTCDM) ? nvrram[RTCMINUTES] : DCB(nvrram[RTCMINUTES]);
-                        break;
-                case RTCHOURS:
-                        temp = (nvrram[RTCREGB] & RTCDM) ? nvrram[RTCHOURS] : DCB(nvrram[RTCHOURS]);
+                case RTC_SECONDS:
+                internal_clock.sec = (nvrram[RTC_REGB] & RTC_DM) ? nvrram[RTC_SECONDS] : DCB(nvrram[RTC_SECONDS]);
+                break;
+                case RTC_MINUTES:
+                internal_clock.min = (nvrram[RTC_REGB] & RTC_DM) ? nvrram[RTC_MINUTES] : DCB(nvrram[RTC_MINUTES]);
+                break;
+                case RTC_HOURS:
+                temp = (nvrram[RTC_REGB] & RTC_DM) ? nvrram[RTC_HOURS] : DCB(nvrram[RTC_HOURS]);
 
-                        if (nvrram[RTCREGB] & RTC2412)
-                        {
-                                internal_clock.hour = temp;
-                        }
-                        else
-                        {
-                                internal_clock.hour = ((temp & ~RTCAMPM) % 12) + ((temp & RTCAMPM) ? 12 : 0);
-                        }
-                        break;
-                case RTCDOM:
-                        internal_clock.mday = (nvrram[RTCREGB] & RTCDM) ? nvrram[RTCDOM] : DCB(nvrram[RTCDOM]);
-                        break;
-                case RTCMONTH:
-                        internal_clock.mon = (nvrram[RTCREGB] & RTCDM) ? nvrram[RTCMONTH] : DCB(nvrram[RTCMONTH]);
-                        break;
-                case RTCYEAR:
-                        internal_clock.year = (nvrram[RTCREGB] & RTCDM) ? nvrram[RTCYEAR] : DCB(nvrram[RTCYEAR]);
-                        internal_clock.year += (nvrram[RTCREGB] & RTCDM) ? 1900 : (DCB(nvrram[RTCCENTURY]) * 100);
-                        break;
-                case RTCCENTURY:
-                        if (nvrram[RTCREGB] & RTCDM)  return;
-                        internal_clock.year %= 100;
-                        internal_clock.year += (DCB(nvrram[RTCCENTURY]) * 100);
-                        break;
-                case 0xFF:        /* Load the entire internal clock state from the NVR. */
-                        internal_clock.sec = (nvrram[RTCREGB] & RTCDM) ? nvrram[RTCSECONDS] : DCB(nvrram[RTCSECONDS]);
-                        internal_clock.min = (nvrram[RTCREGB] & RTCDM) ? nvrram[RTCMINUTES] : DCB(nvrram[RTCMINUTES]);
-
-                        temp = (nvrram[RTCREGB] & RTCDM) ? nvrram[RTCHOURS] : DCB(nvrram[RTCHOURS]);
-
-                        if (nvrram[RTCREGB] & RTC2412)
-                        {
-                                internal_clock.hour = temp;
-                        }
-                        else
-                        {
-                                internal_clock.hour = ((temp & ~RTCAMPM) % 12) + ((temp & RTCAMPM) ? 12 : 0);
-                        }
-
-                        internal_clock.mday = (nvrram[RTCREGB] & RTCDM) ? nvrram[RTCDOM] : DCB(nvrram[RTCDOM]);
-                        internal_clock.mon = (nvrram[RTCREGB] & RTCDM) ? nvrram[RTCMONTH] : DCB(nvrram[RTCMONTH]);
-                        internal_clock.year = (nvrram[RTCREGB] & RTCDM) ? nvrram[RTCYEAR] : DCB(nvrram[RTCYEAR]);
-                        internal_clock.year += (nvrram[RTCREGB] & RTCDM) ? 1900 : (DCB(nvrram[RTCCENTURY]) * 100);
-                        break;
+                if (nvrram[RTC_REGB] & RTC_2412)
+                        internal_clock.hour = temp;
+                else
+                        internal_clock.hour = ((temp & ~RTC_AMPM) % 12) + ((temp & RTC_AMPM) ? 12 : 0);
+                break;
+                case RTC_DOM:
+                internal_clock.mday = (nvrram[RTC_REGB] & RTC_DM) ? nvrram[RTC_DOM] : DCB(nvrram[RTC_DOM]);
+                break;
+                case RTC_MONTH:
+                internal_clock.mon = (nvrram[RTC_REGB] & RTC_DM) ? nvrram[RTC_MONTH] : DCB(nvrram[RTC_MONTH]);
+                break;
+                case RTC_YEAR:
+                internal_clock.year = (nvrram[RTC_REGB] & RTC_DM) ? nvrram[RTC_YEAR] : DCB(nvrram[RTC_YEAR]);
+                internal_clock.year += (nvrram[RTC_REGB] & RTC_DM) ? 1900 : (DCB(nvrram[RTC_CENTURY]) * 100);
+                break;
+                case RTC_CENTURY:
+                if (nvrram[RTC_REGB] & RTC_DM)
+                        return;
+                internal_clock.year %= 100;
+                internal_clock.year += (DCB(nvrram[RTC_CENTURY]) * 100);
+                break;
         }
 }
 
@@ -174,91 +141,112 @@ static int time_week_day()
 }
 
 /* Called to get time into the internal clock */
-static void time_internal(struct tm **time_var)
+static void time_internal_get(struct tm *time_var)
 {
-        if (*time_var == NULL)  *time_var = (struct tm *) malloc(sizeof(struct tm));
-
-        (*time_var)->tm_sec = internal_clock.sec;
-        (*time_var)->tm_min = internal_clock.min;
-        (*time_var)->tm_hour = internal_clock.hour;
-        (*time_var)->tm_wday = time_week_day();
-        (*time_var)->tm_mday = internal_clock.mday;
-        (*time_var)->tm_mon = internal_clock.mon - 1;
-        (*time_var)->tm_year = internal_clock.year - 1900;
+        time_var->tm_sec = internal_clock.sec;
+        time_var->tm_min = internal_clock.min;
+        time_var->tm_hour = internal_clock.hour;
+        time_var->tm_wday = time_week_day();
+        time_var->tm_mday = internal_clock.mday;
+        time_var->tm_mon = internal_clock.mon - 1;
+        time_var->tm_year = internal_clock.year - 1900;
 }
 
-time_t cur_time;
-struct tm* cur_time_tm;
+static void time_internal_set(struct tm *time_var)
+{
+        internal_clock.sec = time_var->tm_sec;
+        internal_clock.min = time_var->tm_min;
+        internal_clock.hour = time_var->tm_hour;
+        internal_clock.mday = time_var->tm_mday;
+        internal_clock.mon = time_var->tm_mon + 1;
+        internal_clock.year = time_var->tm_year + 1900;
+}
 
-/* Periodic RTC update function
-   See also: nvr_onesec() in nvr.c
- */
-void time_get(char *nvrram)
+static void time_set_nvrram(char *nvrram, struct tm *cur_time_tm)
 {
         int dow, mon, year;
 
-        if (enable_sync)
+        if (nvrram[RTC_REGB] & RTC_DM)
         {
-		time(&cur_time);
+                nvrram[RTC_SECONDS] = cur_time_tm->tm_sec;
+                nvrram[RTC_MINUTES] = cur_time_tm->tm_min;
+                nvrram[RTC_DOW]     = cur_time_tm->tm_wday + 1;
+                nvrram[RTC_DOM]     = cur_time_tm->tm_mday;
+                nvrram[RTC_MONTH]   = cur_time_tm->tm_mon + 1;
+                nvrram[RTC_YEAR]    = cur_time_tm->tm_year % 100;
 
-                /* Mingw doesn't support localtime_r */
-                #if __MINGW32__
-                cur_time_tm = localtime(&cur_time);
-                #else
-                #if __MINGW64__
-                cur_time_tm = localtime(&cur_time);
-                #else
-                localtime_r(&cur_time, &cur_time_tm);
-                #endif
-                #endif
-        }
-        else
-        {
-                time_internal(&cur_time_tm);
-        }
-
-        if (nvrram[RTCREGB] & RTCDM)
-        {
-                nvrram[RTCSECONDS] = cur_time_tm->tm_sec;
-                nvrram[RTCMINUTES] = cur_time_tm->tm_min;
-                nvrram[RTCDOW]     = cur_time_tm->tm_wday + 1;
-                nvrram[RTCDOM]     = cur_time_tm->tm_mday;
-                nvrram[RTCMONTH]   = cur_time_tm->tm_mon + 1;
-                nvrram[RTCYEAR]    = cur_time_tm->tm_year % 100;
-
-                if (nvrram[RTCREGB] & RTC2412)
+                if (nvrram[RTC_REGB] & RTC_2412)
                 {
-                        nvrram[RTCHOURS] = cur_time_tm->tm_hour;
+                        nvrram[RTC_HOURS] = cur_time_tm->tm_hour;
                 }
                 else
                 {
-                        nvrram[RTCHOURS] = (cur_time_tm->tm_hour % 12) ? (cur_time_tm->tm_hour % 12) : 12;
+                        nvrram[RTC_HOURS] = (cur_time_tm->tm_hour % 12) ? (cur_time_tm->tm_hour % 12) : 12;
                         if (cur_time_tm->tm_hour > 11)
-                        {
-                                nvrram[RTCHOURS] |= RTCAMPM;
-                        }
+                                nvrram[RTC_HOURS] |= RTC_AMPM;
                 }
         }
         else
         {
-                nvrram[RTCSECONDS] = BCD(cur_time_tm->tm_sec);
-                nvrram[RTCMINUTES] = BCD(cur_time_tm->tm_min);
-                nvrram[RTCDOW]     = BCD(cur_time_tm->tm_wday + 1);
-                nvrram[RTCDOM]     = BCD(cur_time_tm->tm_mday);
-                nvrram[RTCMONTH]   = BCD(cur_time_tm->tm_mon + 1);
-                nvrram[RTCYEAR]    = BCD(cur_time_tm->tm_year % 100);
+                nvrram[RTC_SECONDS] = BCD(cur_time_tm->tm_sec);
+                nvrram[RTC_MINUTES] = BCD(cur_time_tm->tm_min);
+                nvrram[RTC_DOW]     = BCD(cur_time_tm->tm_wday + 1);
+                nvrram[RTC_DOM]     = BCD(cur_time_tm->tm_mday);
+                nvrram[RTC_MONTH]   = BCD(cur_time_tm->tm_mon + 1);
+                nvrram[RTC_YEAR]    = BCD(cur_time_tm->tm_year % 100);
 
-                if (nvrram[RTCREGB] & RTC2412)
+                if (nvrram[RTC_REGB] & RTC_2412)
                 {
-                        nvrram[RTCHOURS] = BCD(cur_time_tm->tm_hour);
+                        nvrram[RTC_HOURS] = BCD(cur_time_tm->tm_hour);
                 }
                 else
                 {
-                        nvrram[RTCHOURS] = (cur_time_tm->tm_hour % 12) ? BCD(cur_time_tm->tm_hour % 12) : BCD(12);
+                        nvrram[RTC_HOURS] = (cur_time_tm->tm_hour % 12) ? BCD(cur_time_tm->tm_hour % 12) : BCD(12);
                         if (cur_time_tm->tm_hour > 11)
-                        {
-                                nvrram[RTCHOURS] |= RTCAMPM;
-                        }
+                                nvrram[RTC_HOURS] |= RTC_AMPM;
                 }
         }
+}
+
+void time_internal_set_nvrram(char *nvrram)
+{
+        int temp;
+
+        /* Load the entire internal clock state from the NVR. */
+        internal_clock.sec = (nvrram[RTC_REGB] & RTC_DM) ? nvrram[RTC_SECONDS] : DCB(nvrram[RTC_SECONDS]);
+        internal_clock.min = (nvrram[RTC_REGB] & RTC_DM) ? nvrram[RTC_MINUTES] : DCB(nvrram[RTC_MINUTES]);
+
+        temp = (nvrram[RTC_REGB] & RTC_DM) ? nvrram[RTC_HOURS] : DCB(nvrram[RTC_HOURS]);
+
+        if (nvrram[RTC_REGB] & RTC_2412)
+                internal_clock.hour = temp;
+        else
+                internal_clock.hour = ((temp & ~RTC_AMPM) % 12) + ((temp & RTC_AMPM) ? 12 : 0);
+
+        internal_clock.mday = (nvrram[RTC_REGB] & RTC_DM) ? nvrram[RTC_DOM] : DCB(nvrram[RTC_DOM]);
+        internal_clock.mon = (nvrram[RTC_REGB] & RTC_DM) ? nvrram[RTC_MONTH] : DCB(nvrram[RTC_MONTH]);
+        internal_clock.year = (nvrram[RTC_REGB] & RTC_DM) ? nvrram[RTC_YEAR] : DCB(nvrram[RTC_YEAR]);
+        internal_clock.year += (nvrram[RTC_REGB] & RTC_DM) ? 1900 : (DCB(nvrram[RTC_CENTURY]) * 100);
+}
+
+void time_internal_sync(char *nvrram)
+{
+        struct tm *cur_time_tm;
+        time_t cur_time;
+
+	time(&cur_time);
+        cur_time_tm = localtime(&cur_time);
+  
+        time_internal_set(cur_time_tm);
+
+        time_set_nvrram(nvrram, cur_time_tm);
+}
+
+void time_get(char *nvrram)
+{
+        struct tm cur_time_tm;
+
+        time_internal_get(&cur_time_tm);
+
+        time_set_nvrram(nvrram, &cur_time_tm);
 }

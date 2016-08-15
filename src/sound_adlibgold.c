@@ -43,12 +43,12 @@ typedef struct adgold_t
 
         struct
         {
-                int timer0_latch, timer0_count;
-                int timerbase_latch, timerbase_count;
-                int timer1_latch, timer1_count;
-                int timer2_latch, timer2_count, timer2_read;
+                int64_t timer0_latch, timer0_count;
+                int64_t timerbase_latch, timerbase_count;
+                int64_t timer1_latch, timer1_count;
+                int64_t timer2_latch, timer2_count, timer2_read;
         
-                int voice_count[2], voice_latch[2];
+                int64_t voice_count[2], voice_latch[2];
         } adgold_mma;
 
         opl_t    opl;

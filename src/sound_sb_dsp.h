@@ -50,7 +50,7 @@ typedef struct sb_dsp_t
         
         int64_t sbcount, sb_count_i;
         
-        int sblatcho, sblatchi;
+        int64_t sblatcho, sblatchi;
         
         uint16_t sb_addr;
         

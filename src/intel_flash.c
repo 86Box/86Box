@@ -37,8 +37,6 @@ typedef struct flash_t
 	uint8_t array[131072];
 } flash_t;
 
-static flash_t flash;
-
 char flash_path[1024];
 
 static uint8_t flash_read(uint32_t addr, void *p)
@@ -163,8 +161,7 @@ void *intel_flash_init(uint8_t type)
         flash_t *flash = malloc(sizeof(flash_t));
 	char fpath[1024];
 	int i;
-	/* IMPORTANT: Do NOT zero the pointers! */
-        memset(flash, 0, sizeof(flash_t) - (6 * sizeof(void *)));
+        memset(flash, 0, sizeof(flash_t));
 
 	// pclog("Initializing Flash (type = %i)\n", type);
 
