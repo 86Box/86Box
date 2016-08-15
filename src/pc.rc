@@ -253,5 +253,5 @@ END
 
 1 24 "PCem.manifest"
 
-/* Icon by PixelOz - http://pixeloz.deviantart.com/art/Computer-Emulator-Icons-135675096 */
-100 ICON "IBMPCAT-1.ico"
+/* Icon by Devcore - https://commons.wikimedia.org/wiki/File:Icon_PC2_256x256.png */
+100 ICON "86Box.ico"
