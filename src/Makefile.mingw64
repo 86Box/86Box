@@ -28,12 +28,12 @@ SLIRPOBJ = bootp.o ip_icmp.o misc.o socket.o tcp_timer.o cksum.o ip_input.o queu
 
 LIBS = -mwindows -lwinmm -lopenal -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 -lwsock32 -liphlpapi -lstdc++ -static-libstdc++ -static-libgcc -static -lopenal.dll -lgcov -lPacket -lwpcap
 
-PCem64.exe: $(OBJ) $(DBOBJ) $(SIDOBJ) $(SLIRPOBJ)
-	$(CC) $(OBJ) $(DBOBJ) $(SIDOBJ) $(SLIRPOBJ) -o "PCem64.exe" $(LIBS)
-	strip "PCem64.exe"
-	peflags --bigaddr=false PCem64.exe
+86Box64.exe: $(OBJ) $(DBOBJ) $(SIDOBJ) $(SLIRPOBJ)
+	$(CC) $(OBJ) $(DBOBJ) $(SIDOBJ) $(SLIRPOBJ) -o "86Box64.exe" $(LIBS)
+	strip "86Box64.exe"
+	peflags --bigaddr=false 86Box64.exe
 
-all : PCem64.exe
+all : 86Box64.exe
 
 clean :
 	rm *.o
