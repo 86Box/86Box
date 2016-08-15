@@ -184,9 +184,11 @@ void *intel_flash_init(uint8_t type)
 		case ROM_MB500N:
 			strcpy(flash_path, "roms/mb500n/");
 			break;
+#if 0
 		case ROM_P54TP4XE:
 			strcpy(flash_path, "roms/p54tp4xe/");
 			break;
+#endif
 		case ROM_ACERM3A:
 			strcpy(flash_path, "roms/acerm3a/");
 			break;
@@ -196,9 +198,11 @@ void *intel_flash_init(uint8_t type)
 		case ROM_P55TVP4:
 			strcpy(flash_path, "roms/p55tvp4/");
 			break;
+#if 0
 		case ROM_P55T2P4:
 			strcpy(flash_path, "roms/p55t2p4/");
 			break;
+#endif
 		case ROM_430VX:
 			strcpy(flash_path, "roms/430vx/");
 			break;
