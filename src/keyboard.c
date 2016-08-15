@@ -444,7 +444,7 @@ void keyboard_process()
                 
         for (c = 0; c < 272; c++)
         {
-                if (pcem_key[scorder[c]])
+                if (recv_key[scorder[c]])
                         keydelay[scorder[c]]++;
                 else
                         keydelay[scorder[c]] = 0;
@@ -452,21 +452,21 @@ void keyboard_process()
 
 	for (c = 0; c < 272; c++)
         {
-                if (pcem_key[scorder[c]] != oldkey[scorder[c]])
+                if (recv_key[scorder[c]] != oldkey[scorder[c]])
                 {
-                        oldkey[scorder[c]] = pcem_key[scorder[c]];
-                        if ( pcem_key[scorder[c]] && scancodes[scorder[c]].scancodes_make[0]  == -1)
+                        oldkey[scorder[c]] = recv_key[scorder[c]];
+                        if ( recv_key[scorder[c]] && scancodes[scorder[c]].scancodes_make[0]  == -1)
                            continue;
-                        if (!pcem_key[scorder[c]] && scancodes[scorder[c]].scancodes_break[0] == -1)
+                        if (!recv_key[scorder[c]] && scancodes[scorder[c]].scancodes_break[0] == -1)
                            continue;
 			if (AT && ((mode & 3) == 3))
 			{
-				if (!set3_all_break && !pcem_key[scorder[c]] && !(set3_flags[scancodes[scorder[c]].scancodes_make[0]] & 2))
+				if (!set3_all_break && !recv_key[scorder[c]] && !(set3_flags[scancodes[scorder[c]].scancodes_make[0]] & 2))
 					continue;
 			}
 //                        pclog("Key %02X start\n", scorder[c]);
                         d = 0;
-                        if (pcem_key[scorder[c]])
+                        if (recv_key[scorder[c]])
                         {
                                 while (scancodes[scorder[c]].scancodes_make[d] != -1)
                                       keyboard_send(scancodes[scorder[c]].scancodes_make[d++]);
@@ -485,7 +485,7 @@ void keyboard_process()
 		{
 			if (scancodes[scorder[c]].scancodes_make[0] == -1)
 				continue;
-			if (!set3_all_repeat && !pcem_key[scorder[c]] && !(set3_flags[scancodes[scorder[c]].scancodes_make[0]] & 1))
+			if (!set3_all_repeat && !recv_key[scorder[c]] && !(set3_flags[scancodes[scorder[c]].scancodes_make[0]] & 1))
 				continue;
 		}
                 if (keydelay[scorder[c]] >= 30)
