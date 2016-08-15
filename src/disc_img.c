@@ -282,7 +282,7 @@ void img_load(int drive, char *fn)
 		bpb_total = size / bpb_bps;
 		fseek(img[drive].f, 0x08, SEEK_SET);
 		fread(&(img[drive].base), 1, 4, img[drive].f);
-		fseek(img[drive].f, base + 0x15, SEEK_SET);
+		fseek(img[drive].f, img[drive].base + 0x15, SEEK_SET);
 		bpb_mid = fgetc(img[drive].f);
 		if (bpb_mid < 0xF0)  bpb_mid = 0xF0;
 		fseek(img[drive].f, 0x14, SEEK_SET);
@@ -630,7 +630,7 @@ void img_seek(int drive, int track)
 
         if (img[drive].sides == 2)
         {
-                fseek(img[drive].f, base + (track * img[drive].sectors * img[drive].sector_size * 2), SEEK_SET);
+                fseek(img[drive].f, img[drive].base + (track * img[drive].sectors * img[drive].sector_size * 2), SEEK_SET);
 		// pclog("Seek: Current file position (H0) is: %08X\n", ftell(img[drive].f));
                 fread(img[drive].track_data[0], img[drive].sectors * img[drive].sector_size, 1, img[drive].f);
 		// pclog("Seek: Current file position (H1) is: %08X\n", ftell(img[drive].f));
@@ -638,7 +638,7 @@ void img_seek(int drive, int track)
         }
         else
         {
-                fseek(img[drive].f, base + (track * img[drive].sectors * img[drive].sector_size), SEEK_SET);
+                fseek(img[drive].f, img[drive].base + (track * img[drive].sectors * img[drive].sector_size), SEEK_SET);
                 fread(img[drive].track_data[0], img[drive].sectors * img[drive].sector_size, 1, img[drive].f);
         }
         
@@ -787,13 +787,13 @@ void img_writeback(int drive, int track)
 
         if (img[drive].sides == 2)
         {
-                fseek(img[drive].f, base + (track * img[drive].sectors * img[drive].sector_size * 2), SEEK_SET);
+                fseek(img[drive].f, img[drive].base + (track * img[drive].sectors * img[drive].sector_size * 2), SEEK_SET);
                 fwrite(img[drive].track_data[0], img[drive].sectors * img[drive].sector_size, 1, img[drive].f);
                 fwrite(img[drive].track_data[1], img[drive].sectors * img[drive].sector_size, 1, img[drive].f);
         }
         else
         {
-                fseek(img[drive].f, base + (track * img[drive].sectors * img[drive].sector_size), SEEK_SET);
+                fseek(img[drive].f, img[drive].base + (track * img[drive].sectors * img[drive].sector_size), SEEK_SET);
                 fwrite(img[drive].track_data[0], img[drive].sectors * img[drive].sector_size, 1, img[drive].f);
         }
 }
