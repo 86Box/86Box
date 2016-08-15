@@ -307,7 +307,7 @@ void img_load(int drive, char *fn)
 		fseek(img[drive].f, 0x1A, SEEK_SET);
 		bpb_sides = fgetc(img[drive].f);
 
-		base = 0;
+		img[drive].base = 0;
 		fdi = 0;
 
 	        fseek(img[drive].f, -1, SEEK_END);
