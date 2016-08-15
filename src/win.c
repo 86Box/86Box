@@ -567,7 +567,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         hwnd = CreateWindowEx (
                 0,                   /* Extended possibilites for variation */
                 szClassName,         /* Classname */
-                emulator_version,    /* Title Text */
+                emulator_title,      /* Title Text */
                 WS_OVERLAPPEDWINDOW&~WS_SIZEBOX, /* default window */
                 CW_USEDEFAULT,       /* Windows decides the position */
                 CW_USEDEFAULT,       /* where the window ends up on the screen */
