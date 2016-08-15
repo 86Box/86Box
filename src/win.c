@@ -525,7 +525,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         MSG messages;            /* Here messages to the application are saved */
         WNDCLASSEX wincl;        /* Data structure for the windowclass */
         int c, d, bRet;
-		char *emulator_title;
+		char emulator_title[200];
         LARGE_INTEGER qpc_freq;
         HACCEL haccel;           /* Handle to accelerator table */
 
@@ -563,6 +563,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         initmenu();
         
 		sprintf(emulator_title, "86Box v%s", emulator_version);
+
         /* The class is registered, let's create the program*/
         hwnd = CreateWindowEx (
                 0,                   /* Extended possibilites for variation */

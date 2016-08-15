@@ -82,7 +82,7 @@ void d3d_fs_init(HWND h)
 {
         int c;
         HRESULT hr;
-		char *emulator_title;
+		char emulator_title[200];
 
         d3d_fs_w = GetSystemMetrics(SM_CXSCREEN);
         d3d_fs_h = GetSystemMetrics(SM_CYSCREEN);
