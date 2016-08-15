@@ -106,14 +106,15 @@ void fdi_load(int drive, char *fn)
         fdi[drive].f = fopen(fn, "rb");
         if (!fdi[drive].f) return;
 
-	fread(header, 1, 25, f);
-	fseek(f, 0, SEEK_SET);
+	fread(header, 1, 25, fdi[drive].f);
+	fseek(fdi[drive].f, 0, SEEK_SET);
 	header[25] = 0;
 	if (strcmp(header, "Formatted Disk Image file") != 0)
 	{
 		/* This is a Japanese FDI file. */
 		pclog("fdi_load(): Japanese FDI file detected, redirecting to IMG loader\n");
-		img_load(drive, *fn);
+		fclose(fdi[drive].f);
+		img_load(drive, fn);
 		return;
 	}
 
