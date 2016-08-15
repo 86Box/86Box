@@ -6,8 +6,8 @@ extern int mousecapture;
 extern "C" {
 #endif
 
-#define szClassName "PCemMainWnd"
-#define szSubClassName "PCemSubWnd"
+#define szClassName "86BoxMainWnd"
+#define szSubClassName "86BoxSubWnd"
 
 void leave_fullscreen();
 

@@ -138,7 +138,7 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                         return TRUE;
                                 }
                                         
-                                if (MessageBox(NULL, "This will reset PCem!\nOkay to continue?", "PCem", MB_OKCANCEL) != IDOK)
+                                if (MessageBox(NULL, "This will reset 86Box!\nOkay to continue?", "86Box", MB_OKCANCEL) != IDOK)
                                 {
                                         EndDialog(hdlg, 0);
                                         return TRUE;

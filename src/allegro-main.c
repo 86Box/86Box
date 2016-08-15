@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
         }
         if (c == ROM_MAX)
         {
-                printf("No ROMs present!\nYou must have at least one romset to use PCem.");
+                printf("No ROMs present!\nYou must have at least one romset to use 86Box.");
                 return 0;
         }
 

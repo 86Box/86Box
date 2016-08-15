@@ -4,7 +4,7 @@ extern "C" {
         void keyboard_init();
         void keyboard_close();
         void keyboard_poll_host();
-        extern int pcem_key[272];
+        extern int recv_key[272];
 	extern int rawinputkey[272];
 	
 #ifndef __unix

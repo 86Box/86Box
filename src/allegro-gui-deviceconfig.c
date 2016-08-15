@@ -245,7 +245,7 @@ void deviceconfig_open(device_t *device)
                         if (!changed)
                                 return;
 
-                        if (alert("This will reset PCem!", "Okay to continue?", NULL, "OK", "Cancel", 0, 0) != 1)
+                        if (alert("This will reset 86Box!", "Okay to continue?", NULL, "OK", "Cancel", 0, 0) != 1)
                                 continue;
 
                         dialog_pos = 1;

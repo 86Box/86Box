@@ -521,6 +521,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         MSG messages;            /* Here messages to the application are saved */
         WNDCLASSEX wincl;        /* Data structure for the windowclass */
         int c, d, bRet;
+		char *emulator_title;
         LARGE_INTEGER qpc_freq;
         HACCEL haccel;           /* Handle to accelerator table */
 
@@ -557,11 +558,12 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         menu = LoadMenu(hThisInstance, TEXT("MainMenu"));
         initmenu();
         
+		sprintf(emulator_title, "86Box v%s", emulator_version);
         /* The class is registered, let's create the program*/
         hwnd = CreateWindowEx (
                 0,                   /* Extended possibilites for variation */
                 szClassName,         /* Classname */
-                "86Box v1",        /* Title Text */
+                emulator_version,    /* Title Text */
                 WS_OVERLAPPEDWINDOW&~WS_SIZEBOX, /* default window */
                 CW_USEDEFAULT,       /* Windows decides the position */
                 CW_USEDEFAULT,       /* where the window ends up on the screen */
@@ -642,7 +644,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         }
         if (c == ROM_MAX)
         {
-                MessageBox(hwnd,"No ROMs present!\nYou must have at least one romset to use PCem.","PCem fatal error",MB_OK);
+                MessageBox(hwnd,"No ROMs present!\nYou must have at least one romset to use 86Box.","86Box fatal error",MB_OK);
                 return 0;
         }
 
@@ -651,7 +653,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
         if (!c)
         {
-                if (romset!=-1) MessageBox(hwnd,"Configured romset not available.\nDefaulting to available romset.","PCem error",MB_OK);
+                if (romset!=-1) MessageBox(hwnd,"Configured romset not available.\nDefaulting to available romset.","86Box error",MB_OK);
                 for (c=0;c<ROM_MAX;c++)
                 {
                         if (romspresent[c])
@@ -671,7 +673,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
         if (!video_card_available(video_old_to_new(gfxcard)))
         {
-                if (romset!=-1) MessageBox(hwnd,"Configured video BIOS not available.\nDefaulting to available romset.","PCem error",MB_OK);
+                if (romset!=-1) MessageBox(hwnd,"Configured video BIOS not available.\nDefaulting to available romset.","86Box error",MB_OK);
                 for (c = GFX_MAX-1; c >= 0; c--)
                 {
                         if (gfx_present[c])
@@ -743,9 +745,9 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                         }
 //;                        else
 //                           sleep(0);
-                        // if ((pcem_key[KEY_LCONTROL] || pcem_key[KEY_RCONTROL]) && pcem_key[KEY_END] && mousecapture)
-                        // if ((pcem_key[KEY_LCONTROL] || pcem_key[KEY_RCONTROL]) && pcem_key[0x58] && mousecapture)
-                        // if (pcem_key[0x58] && pcem_key[0x42] && mousecapture)
+                        // if ((recv_key[KEY_LCONTROL] || recv_key[KEY_RCONTROL]) && recv_key[KEY_END] && mousecapture)
+                        // if ((recv_key[KEY_LCONTROL] || recv_key[KEY_RCONTROL]) && recv_key[0x58] && mousecapture)
+                        // if (recv_key[0x58] && recv_key[0x42] && mousecapture)
                         {
                                 ClipCursor(&oldclip);
                                 mousecapture=0;
@@ -765,18 +767,18 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	                        TranslateMessage(&messages);
 	                        DispatchMessage(&messages);
 			}
-                        // if ((pcem_key[KEY_LCONTROL] || pcem_key[KEY_RCONTROL]) && pcem_key[KEY_END] && mousecapture)
+                        // if ((recv_key[KEY_LCONTROL] || recv_key[KEY_RCONTROL]) && recv_key[KEY_END] && mousecapture)
 
-	                if (pcem_key[0x58] && pcem_key[0x42] && mousecapture)
+	                if (recv_key[0x58] && recv_key[0x42] && mousecapture)
 	                {
 	                        ClipCursor(&oldclip);
 	                        ShowCursor(TRUE);
 	                        mousecapture=0;
 	                }
 
-		         if ((pcem_key[0x1D] || pcem_key[0x9D]) && 
-		             (pcem_key[0x38] || pcem_key[0xB8]) && 
-		             (pcem_key[0x51] || pcem_key[0xD1]) &&
+		         if ((recv_key[0x1D] || recv_key[0x9D]) && 
+		             (recv_key[0x38] || recv_key[0xB8]) && 
+		             (recv_key[0x51] || recv_key[0xD1]) &&
 		              video_fullscreen)
 			{
 				leave_fullscreen();
@@ -987,7 +989,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
                         break;
                         case IDM_DISC_A:
-                        if (!getfile(hwnd,"Disc image (*.IMG;*.IMA;*.FDI)\0*.IMG;*.IMA;*.FDI\0All files (*.*)\0*.*\0",discfns[0]))
+                        if (!getfile(hwnd,"Disc image (*.12;*.144;*.360;*.720;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD)\0*.12;*.144;*.360;*.720;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD\0All files (*.*)\0*.*\0",discfns[0]))
                         {
                                 disc_close(0);
                                 disc_load(0, openfilestring);
@@ -995,7 +997,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         }
                         break;
                         case IDM_DISC_B:
-                        if (!getfile(hwnd,"Disc image (*.IMG;*.IMA;*.FDI)\0*.IMG;*.IMA;*.FDI\0All files (*.*)\0*.*\0",discfns[1]))
+                        if (!getfile(hwnd,"Disc image (*.12;*.144;*.360;*.720;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD)\0*.12;*.144;*.360;*.720;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD\0All files (*.*)\0*.*\0",discfns[1]))
                         {
                                 disc_close(1);
                                 disc_load(1, openfilestring);
@@ -1060,7 +1062,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         if (video_fullscreen_first)
                         {
                                 video_fullscreen_first = 0;
-                                MessageBox(hwnd, "Use CTRL + ALT + PAGE DOWN to return to windowed mode", "PCem", MB_OK);
+                                MessageBox(hwnd, "Use CTRL + ALT + PAGE DOWN to return to windowed mode", "86Box", MB_OK);
                         }
                         startblit();
                         video_wait_for_blit();
@@ -1092,7 +1094,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         pause = 1;
                         if (!getfile(hwnd, "Configuration (*.CFG)\0*.CFG\0All files (*.*)\0*.*\0", ""))
                         {
-                                if (MessageBox(NULL, "This will reset PCem!\nOkay to continue?", "PCem", MB_OKCANCEL) == IDOK)
+                                if (MessageBox(NULL, "This will reset 86Box!\nOkay to continue?", "86Box", MB_OKCANCEL) == IDOK)
                                 {
                                         loadconfig(openfilestring);
                                         config_save(config_file_default);
@@ -1114,7 +1116,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         case IDM_CDROM_DISABLED:
                         if (cdrom_enabled)
                         {
-                                if (MessageBox(NULL,"This will reset PCem!\nOkay to continue?","PCem",MB_OKCANCEL) != IDOK)
+                                if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
                                    break;
                         }
 			if (!cdrom_enabled)
@@ -1145,7 +1147,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         case IDM_CDROM_EMPTY:
                         if (!cdrom_enabled)
                         {
-                                if (MessageBox(NULL,"This will reset PCem!\nOkay to continue?","PCem",MB_OKCANCEL) != IDOK)
+                                if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
                                    break;
                         }
 			if ((cdrom_drive == 0) && cdrom_enabled)
@@ -1184,7 +1186,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         {
                                 if (!cdrom_enabled)
                                 {
-                                        if (MessageBox(NULL,"This will reset PCem!\nOkay to continue?","PCem",MB_OKCANCEL) != IDOK)
+                                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
                                            break;
                                 }
 				old_cdrom_drive = cdrom_drive;
@@ -1225,7 +1227,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         {
                                 if (!cdrom_enabled)
                                 {
-                                        if (MessageBox(NULL,"This will reset PCem!\nOkay to continue?","PCem",MB_OKCANCEL) != IDOK)
+                                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
                                            break;
                                 }
 				new_cdrom_drive = LOWORD(wParam)-IDM_CDROM_REAL;
@@ -1316,7 +1318,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
         				if (!(scancode & 0xf00))
 					{
                                                 rawinputkey[scancode & 0x1ff] = !(rawKB.Flags & RI_KEY_BREAK);
-						pcem_key[scancode & 0x1ff] = rawinputkey[scancode & 0x1ff];
+						recv_key[scancode & 0x1ff] = rawinputkey[scancode & 0x1ff];
 					}
         			}
 				else
@@ -1327,7 +1329,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
         				if (!(scancode & 0xf00))
 					{
                                                 rawinputkey[scancode & 0x1ff] = !(rawKB.Flags & RI_KEY_BREAK);
-						pcem_key[scancode & 0x1ff] = rawinputkey[scancode & 0x1ff];
+						recv_key[scancode & 0x1ff] = rawinputkey[scancode & 0x1ff];
 					}
 				}
                         }

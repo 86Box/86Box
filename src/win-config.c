@@ -369,7 +369,7 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                             temp_voodoo != voodoo_enabled || temp_dynarec != cpu_use_dynarec || temp_always_serial != mouse_always_serial ||
 			    temp_fda_type != fdd_get_type(0) || temp_fdb_type != fdd_get_type(1) || temp_network_card_current != network_card_current)
                         {
-                                if (MessageBox(NULL,"This will reset PCem!\nOkay to continue?","PCem",MB_OKCANCEL)==IDOK)
+                                if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL)==IDOK)
                                 {
 					savenvr();
                                         model = temp_model;

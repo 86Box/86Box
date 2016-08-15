@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "ibm.h"
 #include "disc.h"
+#include "disc_img.h"
 #include "disc_fdi.h"
 #include "fdi2raw.h"
 
@@ -99,9 +100,23 @@ int fdi_hole(int drive)
 
 void fdi_load(int drive, char *fn)
 {
+	char header[26];
+
         writeprot[drive] = fwriteprot[drive] = 1;
         fdi[drive].f = fopen(fn, "rb");
         if (!fdi[drive].f) return;
+
+	fread(char_header, 1, 25, f);
+	fseek(f, 0, SEEK_SET);
+	char_header[25] = 0;
+	if (strmp(char_header, "Formatted Disk Image file") != 0)
+	{
+		/* This is a Japanese FDI file. */
+		pclog("fdi_load(): Japanese FDI file detected, redirecting to IMG loader\n");
+		img_load(drive, *fn);
+		return;
+	}
+
         fdi[drive].h = fdi2raw_header(fdi[drive].f);
 //        if (!fdih[drive]) printf("Failed to load!\n");
         fdi[drive].lasttrack = fdi2raw_get_last_track(fdi[drive].h);

@@ -1,7 +1,7 @@
 #include "allegro-main.h"
 #include "plat-keyboard.h"
 
-int pcem_key[272];
+int recv_key[272];
 int rawinputkey[272];
 
 static int key_convert[128] =
@@ -43,7 +43,7 @@ void keyboard_poll_host()
                 if (key_idx == -1)
                         continue;
                 
-                if (key[c] != pcem_key[key_idx])
-                        pcem_key[key_idx] = key[c];
+                if (key[c] != recv_key[key_idx])
+                        recv_key[key_idx] = key[c];
         }
 }

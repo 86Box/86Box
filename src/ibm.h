@@ -503,9 +503,9 @@ typedef struct
         FILE *f;
         int spt,hpc; /*Sectors per track, heads per cylinder*/
         int tracks;
-} PcemHDC;
+} hard_disk_t;
 
-PcemHDC hdc[4];
+hard_disk_t hdc[4];
 
 /*Keyboard*/
 int64_t keybsenddelay;
@@ -567,5 +567,7 @@ extern uint32_t eip_msr;
 
 /* For the AMD K6. */
 extern uint64_t star;
+
+#define emulator_version "1.00"
 
 #define FPU_CW_Reserved_Bits (0xe0c0)

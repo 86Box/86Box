@@ -23,7 +23,7 @@ static char hd_size_new[20];
 
 static int new_cdrom_channel;
 
-static PcemHDC hdc_new[4];
+static hard_disk_t hdc_new[4];
 
 static DIALOG hdparams_dialog[]=
 {
@@ -484,7 +484,7 @@ int disc_hdconf()
 
                 if (c == 1)
                 {
-                        if (alert("This will reset PCem!", "Okay to continue?", NULL, "OK", "Cancel", 0, 0) == 1)
+                        if (alert("This will reset 86Box!", "Okay to continue?", NULL, "OK", "Cancel", 0, 0) == 1)
                         {
                                 hdc[0] = hdc_new[0];
                                 hdc[1] = hdc_new[1];

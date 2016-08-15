@@ -45,7 +45,7 @@ static BOOL CALLBACK hdnew_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
         char s[260];
         HWND h;
         int c;
-        PcemHDC hd[4];
+        hard_disk_t hd[4];
         FILE *f;
         uint8_t buf[512];
         switch (message)
@@ -77,7 +77,7 @@ static BOOL CALLBACK hdnew_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         SendMessage(h, WM_GETTEXT, 511, (LPARAM)hd_new_name);
                         if (!hd_new_name[0])
                         {
-                                MessageBox(ghwnd,"Please enter a valid filename","PCem error",MB_OK);
+                                MessageBox(ghwnd,"Please enter a valid filename","86Box error",MB_OK);
                                 return TRUE;
                         }
                         h = GetDlgItem(hdlg, IDC_EDIT1);
@@ -92,24 +92,24 @@ static BOOL CALLBACK hdnew_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         
                         if (hd_new_spt > 63)
                         {
-                                MessageBox(ghwnd, "Drive has too many sectors (maximum is 63)", "PCem error", MB_OK);
+                                MessageBox(ghwnd, "Drive has too many sectors (maximum is 63)", "86Box error", MB_OK);
                                 return TRUE;
                         }
                         if (hd_new_hpc > 16)
                         {
-                                MessageBox(ghwnd, "Drive has too many heads (maximum is 16)", "PCem error", MB_OK);
+                                MessageBox(ghwnd, "Drive has too many heads (maximum is 16)", "86Box error", MB_OK);
                                 return TRUE;
                         }
                         if (hd_new_cyl > 16383)
                         {
-                                MessageBox(ghwnd, "Drive has too many cylinders (maximum is 16383)", "PCem error", MB_OK);
+                                MessageBox(ghwnd, "Drive has too many cylinders (maximum is 16383)", "86Box error", MB_OK);
                                 return TRUE;
                         }
                         
                         f = fopen64(hd_new_name, "wb");
                         if (!f)
                         {
-                                MessageBox(ghwnd, "Can't open file for write", "PCem error", MB_OK);
+                                MessageBox(ghwnd, "Can't open file for write", "86Box error", MB_OK);
                                 return TRUE;
                         }
                         memset(buf, 0, 512);
@@ -117,7 +117,7 @@ static BOOL CALLBACK hdnew_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                             fwrite(buf, 512, 1, f);
                         fclose(f);
                         
-                        MessageBox(ghwnd, "Remember to partition and format the new drive", "PCem", MB_OK);
+                        MessageBox(ghwnd, "Remember to partition and format the new drive", "86Box", MB_OK);
                         
                         EndDialog(hdlg, 1);
                         return TRUE;
@@ -159,7 +159,7 @@ BOOL CALLBACK hdsize_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPar
 {
         char s[260];
         HWND h;
-        PcemHDC hd[2];
+        hard_disk_t hd[2];
         switch (message)
         {
                 case WM_INITDIALOG:
@@ -193,17 +193,17 @@ BOOL CALLBACK hdsize_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPar
                         
                         if (hd_new_spt > 63)
                         {
-                                MessageBox(ghwnd,"Drive has too many sectors (maximum is 63)","PCem error",MB_OK);
+                                MessageBox(ghwnd,"Drive has too many sectors (maximum is 63)","86Box error",MB_OK);
                                 return TRUE;
                         }
                         if (hd_new_hpc > 16)
                         {
-                                MessageBox(ghwnd,"Drive has too many heads (maximum is 16)","PCem error",MB_OK);
+                                MessageBox(ghwnd,"Drive has too many heads (maximum is 16)","86Box error",MB_OK);
                                 return TRUE;
                         }
                         if (hd_new_cyl > 16383)
                         {
-                                MessageBox(ghwnd,"Drive has too many cylinders (maximum is 16383)","PCem error",MB_OK);
+                                MessageBox(ghwnd,"Drive has too many cylinders (maximum is 16383)","86Box error",MB_OK);
                                 return TRUE;
                         }
                         
@@ -239,7 +239,7 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 {
         char s[260];
         HWND h;
-        PcemHDC hd[4];
+        hard_disk_t hd[4];
         FILE *f;
         off64_t sz;
         switch (message)
@@ -327,7 +327,7 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         case IDOK:
                         if (hd_changed || cdrom_channel != new_cdrom_channel)
                         {                     
-                                if (MessageBox(NULL, "This will reset PCem!\nOkay to continue?", "PCem", MB_OKCANCEL) == IDOK)
+                                if (MessageBox(NULL, "This will reset 86Box!\nOkay to continue?", "86Box", MB_OKCANCEL) == IDOK)
                                 {
                                         h = GetDlgItem(hdlg, IDC_EDIT_C_SPT);
                                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
@@ -468,7 +468,7 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                 f = fopen64(openfilestring, "rb");
                                 if (!f)
                                 {
-                                        MessageBox(ghwnd,"Can't open file for read","PCem error",MB_OK);
+                                        MessageBox(ghwnd,"Can't open file for read","86Box error",MB_OK);
                                         return TRUE;
                                 }
                                 fseeko64(f, -1, SEEK_END);
@@ -530,7 +530,7 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                 f = fopen64(openfilestring, "rb");
                                 if (!f)
                                 {
-                                        MessageBox(ghwnd,"Can't open file for read","PCem error",MB_OK);
+                                        MessageBox(ghwnd,"Can't open file for read","86Box error",MB_OK);
                                         return TRUE;
                                 }
                                 fseeko64(f, -1, SEEK_END);
@@ -592,7 +592,7 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                 f = fopen64(openfilestring, "rb");
                                 if (!f)
                                 {
-                                        MessageBox(ghwnd,"Can't open file for read","PCem error",MB_OK);
+                                        MessageBox(ghwnd,"Can't open file for read","86Box error",MB_OK);
                                         return TRUE;
                                 }
                                 fseeko64(f, -1, SEEK_END);
@@ -654,7 +654,7 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                 f = fopen64(openfilestring, "rb");
                                 if (!f)
                                 {
-                                        MessageBox(ghwnd,"Can't open file for read","PCem error",MB_OK);
+                                        MessageBox(ghwnd,"Can't open file for read","86Box error",MB_OK);
                                         return TRUE;
                                 }
                                 fseeko64(f, -1, SEEK_END);

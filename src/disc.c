@@ -59,9 +59,15 @@ static struct
 }
 loaders[]=
 {
+        {"12",  img_load,       img_close, -1},
+        {"144", img_load,       img_close, -1},
+        {"360", img_load,       img_close, -1},
+        {"720", img_load,       img_close, -1},
+        {"DSK", img_load,       img_close, -1},
+        {"FLP", img_load,       img_close, -1},
         {"IMG", img_load,       img_close, -1},
         {"IMA", img_load,       img_close, -1},
-        {"360", img_load,       img_close, -1},
+        {"VFD", img_load,       img_close, -1},
 	{"XDF", img_load,       img_close, -1},
         {"FDI", fdi_load,       fdi_close, -1},
         {0,0,0}

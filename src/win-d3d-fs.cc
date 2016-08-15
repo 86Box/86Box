@@ -77,6 +77,7 @@ void d3d_fs_init(HWND h)
 {
         int c;
         HRESULT hr;
+		char *emulator_title;
 
         d3d_fs_w = GetSystemMetrics(SM_CXSCREEN);
         d3d_fs_h = GetSystemMetrics(SM_CYSCREEN);
@@ -86,10 +87,11 @@ void d3d_fs_init(HWND h)
 
         d3d_hwnd = h;
 
+		sprintf(emulator_title, "86Box v%s", emulator_version);
         d3d_device_window = CreateWindowEx (
                 0,
                 szSubClassName,
-                "86Box v1",
+                emulator_title,
                 WS_POPUP,
                 CW_USEDEFAULT,
                 CW_USEDEFAULT,

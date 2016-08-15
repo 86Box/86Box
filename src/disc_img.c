@@ -16,6 +16,7 @@ static struct
 	int hole;
 	int byte_period;
         double bitcell_period_300rpm;
+	uint32_t base;
 } img[2];
 
 #if 0
@@ -249,10 +250,17 @@ void img_load(int drive, char *fn)
 	uint32_t bpt;
 	uint8_t max_spt;	/* Used for XDF detection. */
 	int temp_rate;
+	char ext[4];
+	int fdi;
 
 	if (!xdf_maps_initialized)  initialize_xdf_maps();	/* Initialize XDF maps, will need them to properly register sectors in tracks. */
-        
-        writeprot[drive] = 0;
+
+	ext[0] = fn[strlen(fn) - 3] | 0x60;
+	ext[1] = fn[strlen(fn) - 2] | 0x60;
+	ext[2] = fn[strlen(fn) - 1] | 0x60;
+	ext[3] = 0;
+
+	writeprot[drive] = 0;
         img[drive].f = fopen(fn, "rb+");
         if (!img[drive].f)
         {
@@ -263,20 +271,48 @@ void img_load(int drive, char *fn)
         }
         fwriteprot[drive] = writeprot[drive];
 
-	/* Read the BPB */
-	fseek(img[drive].f, 0x0B, SEEK_SET);
-	fread(&bpb_bps, 1, 2, img[drive].f);
-	fseek(img[drive].f, 0x13, SEEK_SET);
-	fread(&bpb_total, 1, 2, img[drive].f);
-	fseek(img[drive].f, 0x15, SEEK_SET);
-	bpb_mid = fgetc(img[drive].f);
-	fseek(img[drive].f, 0x18, SEEK_SET);
-	bpb_sectors = fgetc(img[drive].f);
-	fseek(img[drive].f, 0x1A, SEEK_SET);
-	bpb_sides = fgetc(img[drive].f);
+	if (strcmp(ext, "fdi") == 0)
+	{
+		/* This is a Japanese FDI image, so let's read the header */
+		pclog("img_load(): File is a Japanese FDI image...\n");
+		fseek(img[drive].f, 0x10, SEEK_SET);
+		fread(&bpb_bps, 1, 2, img[drive].f);
+		fseek(img[drive].f, 0x0C, SEEK_SET);
+		fread(&size, 1, 4, img[drive].f);
+		bpb_total = size / bpb_bps;
+		fseek(img[drive].f, 0x08, SEEK_SET);
+		fread(&(img[drive].base), 1, 4, img[drive].f);
+		fseek(img[drive].f, base + 0x15, SEEK_SET);
+		bpb_mid = fgetc(img[drive].f);
+		if (bpb_mid < 0xF0)  bpb_mid = 0xF0;
+		fseek(img[drive].f, 0x14, SEEK_SET);
+		bpb_sectors = fgetc(img[drive].f);
+		fseek(img[drive].f, 0x18, SEEK_SET);
+		bpb_sides = fgetc(img[drive].f);
 
-        fseek(img[drive].f, -1, SEEK_END);
-        size = ftell(img[drive].f) + 1;
+		fdi = 1;
+	}
+	else
+	{
+		/* Read the BPB */
+		pclog("img_load(): File is a raw image...\n");
+		fseek(img[drive].f, 0x0B, SEEK_SET);
+		fread(&bpb_bps, 1, 2, img[drive].f);
+		fseek(img[drive].f, 0x13, SEEK_SET);
+		fread(&bpb_total, 1, 2, img[drive].f);
+		fseek(img[drive].f, 0x15, SEEK_SET);
+		bpb_mid = fgetc(img[drive].f);
+		fseek(img[drive].f, 0x18, SEEK_SET);
+		bpb_sectors = fgetc(img[drive].f);
+		fseek(img[drive].f, 0x1A, SEEK_SET);
+		bpb_sides = fgetc(img[drive].f);
+
+		base = 0;
+		fdi = 0;
+
+	        fseek(img[drive].f, -1, SEEK_END);
+	        size = ftell(img[drive].f) + 1;
+	}
 
         img[drive].sides = 2;
         img[drive].sector_size = 512;
@@ -285,7 +321,7 @@ void img_load(int drive, char *fn)
 
 	pclog("BPB reports %i sides and %i bytes per sector\n", bpb_sides, bpb_bps);
 
-	if ((bpb_sides < 1) || (bpb_sides > 2) || (bpb_bps < 128) || (bpb_bps > 2048))
+	if (((bpb_sides < 1) || (bpb_sides > 2) || (bpb_bps < 128) || (bpb_bps > 2048)) && !fdi)
 	{
 		/* The BPB is giving us a wacky number of sides and/or bytes per sector, therefore it is most probably
 		   not a BPB at all, so we have to guess the parameters from file size. */
@@ -358,7 +394,16 @@ void img_load(int drive, char *fn)
 	{
 		/* The BPB readings appear to be valid, so let's set the values. */
 		/* Number of tracks = number of total sectors divided by sides times sectors per track. */
-		img[drive].tracks = ((uint32_t) bpb_total) / (((uint32_t) bpb_sides) * ((uint32_t) bpb_sectors));
+		if (fdi)
+		{
+			/* The image is a Japanese FDI, therefore we read the number of tracks from the header. */
+			fseek(img[drive].f, 0x1C, SEEK_SET);
+			fread(&(img[drive].tracks), 1, 4, img[drive].f);
+		}
+		else
+		{
+			img[drive].tracks = ((uint32_t) bpb_total) / (((uint32_t) bpb_sides) * ((uint32_t) bpb_sectors));
+		}
 		/* The rest we just set directly from the BPB. */
 		img[drive].sectors = bpb_sectors;
 		img[drive].sides = bpb_sides;
@@ -585,7 +630,7 @@ void img_seek(int drive, int track)
 
         if (img[drive].sides == 2)
         {
-                fseek(img[drive].f, track * img[drive].sectors * img[drive].sector_size * 2, SEEK_SET);
+                fseek(img[drive].f, base + (track * img[drive].sectors * img[drive].sector_size * 2), SEEK_SET);
 		// pclog("Seek: Current file position (H0) is: %08X\n", ftell(img[drive].f));
                 fread(img[drive].track_data[0], img[drive].sectors * img[drive].sector_size, 1, img[drive].f);
 		// pclog("Seek: Current file position (H1) is: %08X\n", ftell(img[drive].f));
@@ -593,7 +638,7 @@ void img_seek(int drive, int track)
         }
         else
         {
-                fseek(img[drive].f, track * img[drive].sectors * img[drive].sector_size, SEEK_SET);
+                fseek(img[drive].f, base + (track * img[drive].sectors * img[drive].sector_size), SEEK_SET);
                 fread(img[drive].track_data[0], img[drive].sectors * img[drive].sector_size, 1, img[drive].f);
         }
         
@@ -742,13 +787,13 @@ void img_writeback(int drive, int track)
 
         if (img[drive].sides == 2)
         {
-                fseek(img[drive].f, track * img[drive].sectors * img[drive].sector_size * 2, SEEK_SET);
+                fseek(img[drive].f, base + (track * img[drive].sectors * img[drive].sector_size * 2), SEEK_SET);
                 fwrite(img[drive].track_data[0], img[drive].sectors * img[drive].sector_size, 1, img[drive].f);
                 fwrite(img[drive].track_data[1], img[drive].sectors * img[drive].sector_size, 1, img[drive].f);
         }
         else
         {
-                fseek(img[drive].f, track * img[drive].sectors * img[drive].sector_size, SEEK_SET);
+                fseek(img[drive].f, base + (track * img[drive].sectors * img[drive].sector_size), SEEK_SET);
                 fwrite(img[drive].track_data[0], img[drive].sectors * img[drive].sector_size, 1, img[drive].f);
         }
 }

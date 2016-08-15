@@ -118,7 +118,7 @@ static int cdrom_disabled()
 	if (!cdrom_enabled)
 		return D_O_K;
 
-	if (alert("This will reset PCem!", "Okay to continue?", NULL, "OK", "Cancel", 0, 0) == 1)
+	if (alert("This will reset 86Box!", "Okay to continue?", NULL, "OK", "Cancel", 0, 0) == 1)
 	{
 		atapi->exit();
 		cdrom_enabled = 0;                                             
@@ -140,7 +140,7 @@ static int cdrom_empty()
 		return D_O_K;
 	}
 
-	if (alert("This will reset PCem!", "Okay to continue?", NULL, "OK", "Cancel", 0, 0) == 1)
+	if (alert("This will reset 86Box!", "Okay to continue?", NULL, "OK", "Cancel", 0, 0) == 1)
 	{
 		cdrom_drive = -1;
 		cdrom_enabled = 1;
@@ -161,7 +161,7 @@ static int cdrom_dev()
 		return D_O_K;
 	}
 
-	if (alert("This will reset PCem!", "Okay to continue?", NULL, "OK", "Cancel", 0, 0) == 1)
+	if (alert("This will reset 86Box!", "Okay to continue?", NULL, "OK", "Cancel", 0, 0) == 1)
 	{
 		cdrom_drive = 1;
 		cdrom_enabled = 1;
@@ -195,7 +195,7 @@ static MENU main_menu[]=
         {NULL,NULL,NULL,0,NULL}
 };
 
-static DIALOG pcem_gui[]=
+static DIALOG main_windows_gui[]=
 {
         {d_menu_proc,  0,   0,   0,  0, 15, 0, 0, 0, 0, 0, main_menu, NULL, NULL},
         {d_yield_proc, 0,   0,   0,  0, 15, 0, 0, 0, 0, 0, NULL,      NULL, NULL},
@@ -208,7 +208,7 @@ void gui_enter()
         int x = 1;
         infocus = 0;
 
-        dp = init_dialog(pcem_gui, 0);
+        dp = init_dialog(main_windows_gui, 0);
         show_mouse(screen);
         while (x && !(mouse_b & 2) && !key[KEY_ESC])
         {

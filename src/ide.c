@@ -510,7 +510,7 @@ static void ide_identify(IDE *ide)
 #ifdef RPCEMU_IDE
 	ide_padstr((char *) (ide->buffer + 27), "RPCemuHD", 40); /* Model */
 #else
-	ide_padstr((char *) (ide->buffer + 27), "PCemHD", 40); /* Model */
+	ide_padstr((char *) (ide->buffer + 27), "86BoxHD", 40); /* Model */
 #endif
         ide->buffer[20] = 3;   /*Buffer type*/
         ide->buffer[21] = 512; /*Buffer size*/
@@ -548,7 +548,7 @@ static void ide_atapi_identify(IDE *ide)
 #ifdef RPCEMU_IDE
 	ide_padstr((char *) (ide->buffer + 27), "RPCemuCD", 40); /* Model */
 #else
-	ide_padstr((char *) (ide->buffer + 27), "PCemCD", 40); /* Model */
+	ide_padstr((char *) (ide->buffer + 27), "86BoxCD", 40); /* Model */
 #endif
 	ide->buffer[49] = 0x200; /* LBA supported */
 }
@@ -3082,10 +3082,10 @@ static void atapicommand(int ide_board)
                         ide_padstr8(idebufferb + 8, 8, "RPCemu"); /* Vendor */
                         ide_padstr8(idebufferb + 16, 16, "RPCemuCD"); /* Product */
 #else
-                        ide_padstr8(idebufferb + 8, 8, "PCem"); /* Vendor */
-                        ide_padstr8(idebufferb + 16, 16, "PCemCD"); /* Product */
+                        ide_padstr8(idebufferb + 8, 8, "86Box"); /* Vendor */
+                        ide_padstr8(idebufferb + 16, 16, "86BoxCD"); /* Product */
 #endif
-                        ide_padstr8(idebufferb + 32, 4, "1.0"); /* Revision */
+                        ide_padstr8(idebufferb + 32, 4, emulator_version); /* Revision */
 					
                         idx = 36;
 		}

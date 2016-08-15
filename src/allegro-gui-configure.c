@@ -582,7 +582,7 @@ pclog("video_card_available : %i\n", c);
                             new_SSI2001 != SSI2001 || new_sndcard != sound_card_current || new_voodoo != voodoo_enabled ||
                             new_dynarec != cpu_use_dynarec || new_fda != fdd_get_type(0) || new_fdb != fdd_get_type(1))
                         {
-                                if (alert("This will reset PCem!", "Okay to continue?", NULL, "OK", "Cancel", 0, 0) != 1)
+                                if (alert("This will reset 86Box!", "Okay to continue?", NULL, "OK", "Cancel", 0, 0) != 1)
                                         continue;
 
                                 model = new_model;
