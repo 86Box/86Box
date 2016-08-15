@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include "86box.h"
 #include "ibm.h"
 #include "device.h"
 
