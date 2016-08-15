@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 static int opINT3(uint32_t fetchdat)
 {
         if ((cr0 & 1) && (eflags & VM_FLAG) && (IOPL != 3))

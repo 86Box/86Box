@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 void io_init();
 
 void io_sethandler(uint16_t base, int size, 

@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 /*Linux CD-ROM support via IOCTL*/
 
 #include <linux/cdrom.h>

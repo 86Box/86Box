@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 #include <string.h>
 
 #include "ibm.h"

@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #define MMX_GETSHIFT()                                                  \
         if (cpu_mod == 3)                                                   \
         {                                                               \

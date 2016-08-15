@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #define opSET(condition)                                                \
         static int opSET ## condition ## _a16(uint32_t fetchdat)        \
         {                                                               \

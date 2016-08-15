@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #define CALL_FAR_w(new_seg, new_pc)                                             \
         old_cs = CS;                                                            \
         old_pc = cpu_state.pc;                                                  \

@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 /*PC1640 video emulation.
   Mostly standard EGA, but with CGA & Hercules emulation*/
 #include <stdlib.h>

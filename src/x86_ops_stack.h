@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #define PUSH_W_OP(reg)                                                                          \
         static int opPUSH_ ## reg (uint32_t fetchdat)                                                  \
         {                                                                                       \

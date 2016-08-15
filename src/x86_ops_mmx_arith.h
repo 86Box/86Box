@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 static int opPADDB_a16(uint32_t fetchdat)
 {
         MMX_REG src;

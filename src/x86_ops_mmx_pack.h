@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 static int opPUNPCKLDQ_a16(uint32_t fetchdat)
 {
         MMX_ENTER();

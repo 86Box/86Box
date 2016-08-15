@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 /*ATI Mach64 emulation*/
 #include <stdlib.h>
 #include "ibm.h"

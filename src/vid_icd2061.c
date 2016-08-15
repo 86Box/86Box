@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 /*PCem v8.1 by Tom Walker
 
   ICD2061 clock generator emulation

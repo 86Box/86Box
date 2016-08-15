@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 /*Hercules emulation*/
 #include <stdlib.h>
 #include "ibm.h"

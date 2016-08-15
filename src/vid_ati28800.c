@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 /*ATI 28800 emulation (VGA Charger)*/
 #include <stdlib.h>
 #include "ibm.h"

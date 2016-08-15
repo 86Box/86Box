@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #include "ibm.h"
 
 uint8_t dac,dac2;

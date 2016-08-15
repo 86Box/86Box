@@ -1,3 +1,6 @@
+/* Copyright holders: Mahod, Tenshi
+   see COPYING for more details
+*/
 /* Emulation of:
    Dallas Semiconductor DS12C887 Real Time Clock
 

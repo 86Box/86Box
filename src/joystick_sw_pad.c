@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 /*Sidewinder game pad notes :
         
         - Write to 0x201 starts packet transfer (5*N or 15*N bits)

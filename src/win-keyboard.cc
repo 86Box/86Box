@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 #define UNICODE
 #include <stdio.h>
 #include <string.h>

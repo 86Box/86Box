@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi, leilei
+   see COPYING for more details
+*/
 #include "ibm.h"
 #include "cpu.h"
 #include "model.h"

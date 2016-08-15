@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 /*S3 ViRGE emulation*/
 #include <stdlib.h>
 #include "ibm.h"

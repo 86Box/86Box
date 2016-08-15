@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 /*Oak OTI067 emulation*/
 #include <stdlib.h>
 #include "ibm.h"

@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 #ifndef _MEM_H_
 #define _MEM_H_
 

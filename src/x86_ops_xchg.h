@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 static int opXCHG_b_a16(uint32_t fetchdat)
 {
         uint8_t temp;

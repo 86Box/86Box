@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 /*Win32 CD-ROM support via IOCTL*/
 
 #include <windows.h>

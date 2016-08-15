@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 FILE *romfopen(char *fn, char *mode);
 int rom_present(char *fn);
 

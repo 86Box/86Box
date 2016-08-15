@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 static int opESCAPE_d8_a16(uint32_t fetchdat)
 {
         return x86_opcodes_d8_a16[(fetchdat >> 3) & 0x1f](fetchdat);

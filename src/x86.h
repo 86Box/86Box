@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 uint16_t oldcs;
 uint32_t oldpc;
 extern uint32_t rmdat32;

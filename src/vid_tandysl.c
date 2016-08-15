@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #include <stdlib.h>
 #include <math.h>
 #include "ibm.h"

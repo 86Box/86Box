@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 static int opMOVSB_a16(uint32_t fetchdat)
 {
         uint8_t temp = readmemb(ea_seg->base, SI); if (abrt) return 1;

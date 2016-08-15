@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 static int opARPL_a16(uint32_t fetchdat)
 {
         uint16_t temp_seg;

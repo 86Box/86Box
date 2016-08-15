@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #ifdef __amd64__
 
 #include <stdlib.h>

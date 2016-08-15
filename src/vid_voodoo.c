@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, leilei
+   see COPYING for more details
+*/
 #include <stdlib.h>
 #include <stddef.h>
 #include "ibm.h"

@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #include <windows.h>
 #include <mmsystem.h>
 #include "ibm.h"

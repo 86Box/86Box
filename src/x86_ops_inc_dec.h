@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 #define INC_DEC_OP(name, reg, inc, setflags) \
         static int op ## name (uint32_t fetchdat)       \
         {                                               \

@@ -1,3 +1,6 @@
+/* Copyright holders: Tenshi
+   see COPYING for more details
+*/
 #include <stdio.h>
 #include <stdint.h>
 #define BITMAP WINDOWS_BITMAP

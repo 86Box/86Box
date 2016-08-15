@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
 static int opRDTSC(uint32_t fetchdat)
 {
         if (!cpu_hasrdtsc)

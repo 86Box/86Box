@@ -1,3 +1,6 @@
+/* Copyright holders: Sarah Walker, Tenshi
+   see COPYING for more details
+*/
 typedef struct cga_t
 {
         mem_mapping_t mapping;
