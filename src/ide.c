@@ -20,7 +20,8 @@
         #include "iomd.h"
         #include "arm.h"
 #else
-        #include "ibm.h"
+		#include "86box.h"
+		#include "ibm.h"
         #include "io.h"
         #include "pic.h"
         #include "timer.h"

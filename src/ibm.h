@@ -568,6 +568,4 @@ extern uint32_t eip_msr;
 /* For the AMD K6. */
 extern uint64_t star;
 
-#define emulator_version "1.00"
-
 #define FPU_CW_Reserved_Bits (0xe0c0)

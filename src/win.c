@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include "86box.h"
 #include "ibm.h"
 #include "cdrom-null.h"
 #include "cdrom-ioctl.h"

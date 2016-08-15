@@ -3,6 +3,7 @@
 #include <d3d9.h>
 #undef BITMAP
 #include <D3dx9tex.h>
+#include "86box.h"
 #include "resources.h"
 #include "video.h"
 #include "win-d3d-fs.h"
