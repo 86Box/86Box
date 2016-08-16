@@ -1,5 +1,43 @@
-All authors of this emulator are documented in at the top of each file in the source code.
+			GENERAL
 
-They own portions of the code, or in cases, the entirety of it.
+All authors of this emulator are documented in at the
+top of each file in the source code. They own portions
+of the code, or in cases, the entirety of it. resid-fp
+and slirp folders have their own exceptions.
 
-resid-fp and slirp folders have their own exceptions.
+		COPYRIGHT HOLDER NOTICES
+
+An example copyright holder notice would follow like
+this:
+
+	/* Copyright holders: John Snowden
+	   see COPYING for more details
+	*/
+
+John Snowden equals to your name. Your name gets listed
+in the copyright holder notice depending on the state of
+contribution. You do not have to list your real name, but
+it would be recommended to write it that way.
+
+If you see any incorrect copyrights, please refer to others
+who are developing the emulator for clarification.
+
+			LICENSE
+
+COPYING by default refers to the GNU Project's GPL v2
+license, hence "see COPYING for more details". It is the
+default source and binary distribution license. If you wish
+to use a different license for your own works/relicensing
+that is compatible this one, feel free to do so. An example
+of a copyright notice with a different licensing statement
+would be like the following:
+
+	/* Copyright holders: Edward Doe
+	   uses the MIT expat license. see
+	   https://opensource.org/licenses/MIT
+	   for more details
+	*/
+
+Your license does not have to be this one nor it does not
+have to be a URL link. It can be contained in a seperate
+file for convenience and direct access.
