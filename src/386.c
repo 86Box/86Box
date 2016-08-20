@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -17,8 +14,6 @@
 #define CPU_BLOCK_END()
 
 extern int codegen_flags_changed;
-
-x86seg *ea_seg;
 
 extern int nmi_enable;
 
@@ -44,7 +39,7 @@ int cgate32;
 
 uint8_t romext[32768];
 uint8_t *ram,*rom;
-uint32_t biosmask;
+uint16_t biosmask;
 
 uint32_t rmdat32;
 #define rmdat rmdat32
@@ -56,8 +51,6 @@ int inttype,abrt;
 
 uint32_t oldcs2;
 uint32_t oldecx;
-uint32_t op32;
-
 
 uint32_t *eal_r, *eal_w;
 
@@ -67,8 +60,8 @@ uint32_t *mod1seg[8];
 static inline void fetch_ea_32_long(uint32_t rmdat)
 {
         eal_r = eal_w = NULL;
-        easeg = ea_seg->base;
-        ea_rseg = ea_seg->seg;
+        easeg = cpu_state.ea_seg->base;
+        ea_rseg = cpu_state.ea_seg->seg;
         if (cpu_rm == 4)
         {
                 uint8_t sib = rmdat >> 8;
@@ -76,60 +69,60 @@ static inline void fetch_ea_32_long(uint32_t rmdat)
                 switch (cpu_mod)
                 {
                         case 0: 
-                        eaaddr = cpu_state.regs[sib & 7].l; 
+                        cpu_state.eaaddr = cpu_state.regs[sib & 7].l; 
                         cpu_state.pc++; 
                         break;
                         case 1: 
                         cpu_state.pc++;
-                        eaaddr = ((uint32_t)(int8_t)getbyte()) + cpu_state.regs[sib & 7].l; 
+                        cpu_state.eaaddr = ((uint32_t)(int8_t)getbyte()) + cpu_state.regs[sib & 7].l; 
 //                        pc++; 
                         break;
                         case 2: 
-                        eaaddr = (fastreadl(cs + cpu_state.pc + 1)) + cpu_state.regs[sib & 7].l; 
+                        cpu_state.eaaddr = (fastreadl(cs + cpu_state.pc + 1)) + cpu_state.regs[sib & 7].l; 
                         cpu_state.pc += 5; 
                         break;
                 }
                 /*SIB byte present*/
                 if ((sib & 7) == 5 && !cpu_mod) 
-                        eaaddr = getlong();
-                else if ((sib & 6) == 4 && !ssegs)
+                        cpu_state.eaaddr = getlong();
+                else if ((sib & 6) == 4 && !cpu_state.ssegs)
                 {
                         easeg = ss;
                         ea_rseg = SS;
-                        ea_seg = &_ss;
+                        cpu_state.ea_seg = &_ss;
                 }
                 if (((sib >> 3) & 7) != 4) 
-                        eaaddr += cpu_state.regs[(sib >> 3) & 7].l << (sib >> 6);
+                        cpu_state.eaaddr += cpu_state.regs[(sib >> 3) & 7].l << (sib >> 6);
         }
         else
         {
-                eaaddr = cpu_state.regs[cpu_rm].l;
+                cpu_state.eaaddr = cpu_state.regs[cpu_rm].l;
                 if (cpu_mod) 
                 {
-                        if (cpu_rm == 5 && !ssegs)
+                        if (cpu_rm == 5 && !cpu_state.ssegs)
                         {
                                 easeg = ss;
                                 ea_rseg = SS;
-                                ea_seg = &_ss;
+                                cpu_state.ea_seg = &_ss;
                         }
                         if (cpu_mod == 1) 
                         { 
-                                eaaddr += ((uint32_t)(int8_t)(rmdat >> 8)); 
+                                cpu_state.eaaddr += ((uint32_t)(int8_t)(rmdat >> 8)); 
                                 cpu_state.pc++; 
                         }
                         else          
                         {
-                                eaaddr += getlong(); 
+                                cpu_state.eaaddr += getlong(); 
                         }
                 }
                 else if (cpu_rm == 5) 
                 {
-                        eaaddr = getlong();
+                        cpu_state.eaaddr = getlong();
                 }
         }
-        if (easeg != 0xFFFFFFFF && ((easeg + eaaddr) & 0xFFF) <= 0xFFC)
+        if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC)
         {
-		uint32_t addr = easeg + eaaddr;
+		uint32_t addr = easeg + cpu_state.eaaddr;
                 if ( readlookup2[addr >> 12] != -1)
                 	eal_r = (uint32_t *)(readlookup2[addr >> 12] + addr);
                 if (writelookup2[addr >> 12] != -1)
@@ -140,38 +133,38 @@ static inline void fetch_ea_32_long(uint32_t rmdat)
 static inline void fetch_ea_16_long(uint32_t rmdat)
 {
         eal_r = eal_w = NULL;
-        easeg = ea_seg->base;
-        ea_rseg = ea_seg->seg;
+        easeg = cpu_state.ea_seg->base;
+        ea_rseg = cpu_state.ea_seg->seg;
         if (!cpu_mod && cpu_rm == 6) 
         { 
-                eaaddr = getword();
+                cpu_state.eaaddr = getword();
         }
         else
         {
                 switch (cpu_mod)
                 {
                         case 0:
-                        eaaddr = 0;
+                        cpu_state.eaaddr = 0;
                         break;
                         case 1:
-                        eaaddr = (uint16_t)(int8_t)(rmdat >> 8); cpu_state.pc++;
+                        cpu_state.eaaddr = (uint16_t)(int8_t)(rmdat >> 8); cpu_state.pc++;
                         break;
                         case 2:
-                        eaaddr = getword();
+                        cpu_state.eaaddr = getword();
                         break;
                 }
-                eaaddr += (*mod1add[0][cpu_rm]) + (*mod1add[1][cpu_rm]);
-                if (mod1seg[cpu_rm] == &ss && !ssegs)
+                cpu_state.eaaddr += (*mod1add[0][cpu_rm]) + (*mod1add[1][cpu_rm]);
+                if (mod1seg[cpu_rm] == &ss && !cpu_state.ssegs)
                 {
                         easeg = ss;
                         ea_rseg = SS;
-                        ea_seg = &_ss;
+                        cpu_state.ea_seg = &_ss;
                 }
-                eaaddr &= 0xFFFF;
+                cpu_state.eaaddr &= 0xFFFF;
         }
-        if (easeg != 0xFFFFFFFF && ((easeg + eaaddr) & 0xFFF) <= 0xFFC)
+        if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC)
         {
-		uint32_t addr = easeg + eaaddr;
+		uint32_t addr = easeg + cpu_state.eaaddr;
                 if ( readlookup2[addr >> 12] != -1)
                 	eal_r = (uint32_t *)(readlookup2[addr >> 12] + addr);
                 if (writelookup2[addr >> 12] != -1)
@@ -241,14 +234,14 @@ void exec386(int cycs)
 //                oldpc2=oldpc;
 opcode_realstart:
                 oldcs=CS;
-                oldpc=cpu_state.pc;
+                cpu_state.oldpc = cpu_state.pc;
                 oldcpl=CPL;
-                op32=use32;
+                cpu_state.op32 = use32;
                 
 dontprint=0;
 
-                ea_seg = &_ds;
-                ssegs = 0;
+                cpu_state.ea_seg = &_ds;
+                cpu_state.ssegs = 0;
                 
 opcodestart:
                 fetchdat = fastreadl(cs + cpu_state.pc);
@@ -264,7 +257,7 @@ opcodestart:
                                 pclog("%04X(%06X):%04X : %08X %08X %08X %08X %04X %04X %04X(%08X) %04X %04X %04X(%08X) %08X %08X %08X SP=%04X:%08X %02X %04X %i %08X  %08X %i %i %02X %02X %02X   %02X %02X %f  %02X%02X %02X%02X %02X%02X  %02X\n",CS,cs,cpu_state.pc,EAX,EBX,ECX,EDX,CS,DS,ES,es,FS,GS,SS,ss,EDI,ESI,EBP,SS,ESP,opcode,flags,ins,0, ldt.base, CPL, stack32, pic.pend, pic.mask, pic.mask2, pic2.pend, pic2.mask, pit.c[0], ram[0xB270+0x3F5], ram[0xB270+0x3F4], ram[0xB270+0x3F7], ram[0xB270+0x3F6], ram[0xB270+0x3F9], ram[0xB270+0x3F8], ram[0x4430+0x0D49]);
                         }
                         cpu_state.pc++;
-                        x86_opcodes[(opcode | op32) & 0x3ff](fetchdat);
+                        x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
                 }
 
                 if (!use32) cpu_state.pc &= 0xffff;
@@ -290,7 +283,7 @@ opcodestart:
                         {
                                 abrt = 0;
                                 CS = oldcs;
-                                cpu_state.pc = oldpc;
+                                cpu_state.pc = cpu_state.oldpc;
                                 pclog("Double fault %i\n", ins);
                                 pmodeint(8, 0);
                                 if (abrt)
@@ -327,7 +320,7 @@ opcodestart:
                 }
                 else if (nmi && nmi_enable)
                 {
-                        oldpc = cpu_state.pc;
+                        cpu_state.oldpc = cpu_state.pc;
                         oldcs = CS;
 //                        pclog("NMI\n");
                         x86_int(2);

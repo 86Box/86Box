@@ -1,11 +1,8 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 static int opRDTSC(uint32_t fetchdat)
 {
         if (!cpu_hasrdtsc)
         {
-                cpu_state.pc = oldpc;
+                cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 return 1;
         }

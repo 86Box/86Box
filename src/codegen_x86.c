@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32
 
 #include <stdlib.h>
@@ -553,7 +550,7 @@ int opcode_0f_modrm[256] =
 
         0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, /*80*/
         1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, /*90*/
-        0, 0, 0, 1,  1, 1, 0, 0,  0, 0, 0, 1,  1, 1, 1, 1, /*a0*/
+        0, 0, 0, 1,  1, 1, 0, 0,  0, 0, 0, 1,  1, 1, 0, 1, /*a0*/
         1, 1, 1, 1,  1, 1, 1, 1,  0, 0, 1, 1,  1, 1, 1, 1, /*b0*/
 
         1, 1, 0, 0,  0, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 0, /*c0*/
@@ -575,8 +572,8 @@ static x86seg *codegen_generate_ea_16_long(x86seg *op_ea_seg, uint32_t fetchdat,
         if (!cpu_mod && cpu_rm == 6) 
         { 
                 addbyte(0xC7); /*MOVL $0,(ssegs)*/
-                addbyte(0x05);
-                addlong((uint32_t)&eaaddr);
+                addbyte(0x45);
+                addbyte((uintptr_t)&cpu_state.eaaddr - (uintptr_t)&cpu_state);
                 addlong((fetchdat >> 8) & 0xffff);
                 (*op_pc) += 2;
         }
@@ -617,7 +614,7 @@ static x86seg *codegen_generate_ea_16_long(x86seg *op_ea_seg, uint32_t fetchdat,
                 addbyte(0x25); /*ANDL $0xffff, %eax*/
                 addlong(0xffff);
                 addbyte(0xa3);
-                addlong((uint32_t)&eaaddr);
+                addlong((uint32_t)&cpu_state.eaaddr);
 
                 if (mod1seg[cpu_rm] == &ss && !op_ssegs)
                         op_ea_seg = &_ss;
@@ -704,7 +701,7 @@ static x86seg *codegen_generate_ea_32_long(x86seg *op_ea_seg, uint32_t fetchdat,
                         }
                 }
                 addbyte(0xa3);
-                addlong((uint32_t)&eaaddr);
+                addlong((uint32_t)&cpu_state.eaaddr);
         }
         else
         {
@@ -712,8 +709,8 @@ static x86seg *codegen_generate_ea_32_long(x86seg *op_ea_seg, uint32_t fetchdat,
                 {                
                         new_eaaddr = fastreadl(cs + (*op_pc) + 1);
                         addbyte(0xC7); /*MOVL $new_eaaddr,(eaaddr)*/
-                        addbyte(0x05);
-                        addlong((uint32_t)&eaaddr);
+                        addbyte(0x45);
+                        addbyte((uintptr_t)&cpu_state.eaaddr - (uintptr_t)&cpu_state);
                         addlong(new_eaaddr);
                         (*op_pc) += 4;
                         return op_ea_seg;
@@ -723,7 +720,7 @@ static x86seg *codegen_generate_ea_32_long(x86seg *op_ea_seg, uint32_t fetchdat,
                 addbyte((uintptr_t)&cpu_state.regs[cpu_rm].l - (uintptr_t)&cpu_state);
 //                addbyte(0xa1); /*MOVL regs[cpu_rm].l, %eax*/
 //                addlong((uint32_t)&cpu_state.regs[cpu_rm].l);
-                eaaddr = cpu_state.regs[cpu_rm].l;
+                cpu_state.eaaddr = cpu_state.regs[cpu_rm].l;
                 if (cpu_mod) 
                 {
                         if (cpu_rm == 5 && !op_ssegs)
@@ -743,7 +740,7 @@ static x86seg *codegen_generate_ea_32_long(x86seg *op_ea_seg, uint32_t fetchdat,
                         }
                 }
                 addbyte(0xa3);
-                addlong((uint32_t)&eaaddr);
+                addlong((uint32_t)&cpu_state.eaaddr);
         }
         return op_ea_seg;
 }
@@ -961,10 +958,11 @@ generate_call:
         if (op_ssegs != last_ssegs)
         {
                 last_ssegs = op_ssegs;
-                addbyte(0xC7); /*MOVL $0,(ssegs)*/
-                addbyte(0x05);
-                addlong((uint32_t)&ssegs);
-                addlong(op_ssegs);
+
+                addbyte(0xC6); /*MOVB [ssegs],op_ssegs*/
+                addbyte(0x45);
+                addbyte((uintptr_t)&cpu_state.ssegs - (uintptr_t)&cpu_state);
+                addbyte(op_pc + pc_off);
         }
 
         if (!test_modrm ||
@@ -993,14 +991,14 @@ generate_call:
                 op_pc -= pc_off;
         }
 
-//        if (op_ea_seg != last_ea_seg)
-//        {
-//                last_ea_seg = op_ea_seg;
+        if (op_ea_seg != last_ea_seg)
+        {
+                last_ea_seg = op_ea_seg;
                 addbyte(0xC7); /*MOVL $&_ds,(ea_seg)*/
-                addbyte(0x05);
-                addlong((uint32_t)&ea_seg);
+                addbyte(0x45);
+                addbyte((uintptr_t)&cpu_state.ea_seg - (uintptr_t)&cpu_state);
                 addlong((uint32_t)op_ea_seg);
-//        }
+        }
 
         addbyte(0xC7); /*MOVL pc,new_pc*/
         addbyte(0x45);
@@ -1008,15 +1006,16 @@ generate_call:
         addlong(op_pc + pc_off);
 
         addbyte(0xC7); /*MOVL $old_pc,(oldpc)*/
-        addbyte(0x05);
-        addlong((uint32_t)&oldpc);
+        addbyte(0x45);
+        addbyte((uintptr_t)&cpu_state.oldpc - (uintptr_t)&cpu_state);
         addlong(old_pc);
+
         if (op_32 != last_op32)
         {
                 last_op32 = op_32;
                 addbyte(0xC7); /*MOVL $use32,(op32)*/
-                addbyte(0x05);
-                addlong((uint32_t)&op32);
+                addbyte(0x45);
+                addbyte((uintptr_t)&cpu_state.op32 - (uintptr_t)&cpu_state);
                 addlong(op_32);
         }
 

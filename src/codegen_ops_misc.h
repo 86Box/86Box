@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 static uint32_t ropNOP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
         return op_pc;
@@ -32,7 +29,7 @@ static uint32_t ropFF_16(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
         else
         {
                 x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
-                STORE_IMM_ADDR_L((uintptr_t)&oldpc, op_old_pc);
+                STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
                 MEM_LOAD_ADDR_EA_W(target_seg);
                 host_reg = 0;
         }
@@ -43,7 +40,7 @@ static uint32_t ropFF_16(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
                 STORE_HOST_REG_ADDR_W((uintptr_t)&codegen_temp, host_reg);
                 RELEASE_REG(host_reg);
 
-                STORE_IMM_ADDR_L((uintptr_t)&oldpc, op_old_pc);
+                STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
                 LOAD_STACK_TO_EA(-2);
                 host_reg = LOAD_REG_IMM(op_pc + 1);
                 MEM_STORE_ADDR_EA_W(&_ss, host_reg);
@@ -60,7 +57,7 @@ static uint32_t ropFF_16(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
                 case 0x30: /*PUSH*/
                 if (!host_reg)
                         host_reg = LOAD_HOST_REG(host_reg);
-                STORE_IMM_ADDR_L((uintptr_t)&oldpc, op_old_pc);
+                STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
                 LOAD_STACK_TO_EA(-2);
                 MEM_STORE_ADDR_EA_W(&_ss, host_reg);
                 SP_MODIFY(-2);
@@ -81,7 +78,7 @@ static uint32_t ropFF_32(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
         else
         {
                 x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
-                STORE_IMM_ADDR_L((uintptr_t)&oldpc, op_old_pc);
+                STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
                 MEM_LOAD_ADDR_EA_L(target_seg);
                 host_reg = 0;
         }
@@ -92,7 +89,7 @@ static uint32_t ropFF_32(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
                 STORE_HOST_REG_ADDR((uintptr_t)&codegen_temp, host_reg);
                 RELEASE_REG(host_reg);
 
-                STORE_IMM_ADDR_L((uintptr_t)&oldpc, op_old_pc);
+                STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
                 LOAD_STACK_TO_EA(-4);
                 host_reg = LOAD_REG_IMM(op_pc + 1);
                 MEM_STORE_ADDR_EA_L(&_ss, host_reg);
@@ -109,7 +106,7 @@ static uint32_t ropFF_32(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
                 case 0x30: /*PUSH*/
                 if (!host_reg)
                         host_reg = LOAD_HOST_REG(host_reg);
-                STORE_IMM_ADDR_L((uintptr_t)&oldpc, op_old_pc);
+                STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
                 LOAD_STACK_TO_EA(-4);
                 MEM_STORE_ADDR_EA_L(&_ss, host_reg);
                 SP_MODIFY(-4);

@@ -125,9 +125,9 @@ uint8_t keyboard_xt_read(uint16_t port, void *priv)
                 if (romset == ROM_IBMPC)
                 {
                         if (keyboard_xt.pb & 0x04)
-                                temp = 0x02;
+                                temp = ((mem_size-64) / 32) & 0xf;
                         else
-                                temp = 0x01;
+                                temp = ((mem_size-64) / 32) >> 4;
                 }
                 else
                 {

@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 static uint32_t ropMOVQ_q_mm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
         int host_reg1, host_reg2;
@@ -17,7 +14,7 @@ static uint32_t ropMOVQ_q_mm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, 
         {
                 x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
 
-                STORE_IMM_ADDR_L((uintptr_t)&oldpc, op_old_pc);
+                STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
                         
                 CHECK_SEG_WRITE(target_seg);
                 CHECK_SEG_LIMITS(target_seg, 7);
@@ -43,7 +40,7 @@ static uint32_t ropMOVQ_mm_q(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, 
         {
                 x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
 
-                STORE_IMM_ADDR_L((uintptr_t)&oldpc, op_old_pc);
+                STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
 
                 CHECK_SEG_READ(target_seg);
 
@@ -70,7 +67,7 @@ static uint32_t ropMOVD_l_mm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, 
         {
                 x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
 
-                STORE_IMM_ADDR_L((uintptr_t)&oldpc, op_old_pc);
+                STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
                         
                 CHECK_SEG_WRITE(target_seg);
                 CHECK_SEG_LIMITS(target_seg, 3);
@@ -93,7 +90,7 @@ static uint32_t ropMOVD_mm_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, 
         {
                 x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
 
-                STORE_IMM_ADDR_L((uintptr_t)&oldpc, op_old_pc);
+                STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
 
                 CHECK_SEG_READ(target_seg);
 
@@ -120,7 +117,7 @@ static uint32_t name(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t
         {                                                                                                       \
                 x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);                    \
                                                                                                                 \
-                STORE_IMM_ADDR_L((uintptr_t)&oldpc, op_old_pc);                                                 \
+                STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);                                                 \
                                                                                                                 \
                 CHECK_SEG_READ(target_seg);                                                                     \
                                                                                                                 \

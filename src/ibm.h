@@ -102,36 +102,6 @@ typedef union
         } b;
 } x86reg;
 
-struct
-{
-        x86reg regs[8];
-
-        int flags_op;
-        uint32_t flags_res;
-        uint32_t flags_op1, flags_op2;
-        
-        uint32_t pc;
-	uint32_t last_ea;
-        
-        union
-        {
-                struct
-                {
-                        int8_t rm, mod, reg;
-                } rm_mod_reg;
-                uint32_t rm_mod_reg_data;
-        } rm_data;
-} cpu_state;
-
-/*x86reg regs[8];*/
-
-uint16_t flags,eflags;
-uint32_t /*cs,ds,es,ss,*/oldds,oldss,olddslimit,oldsslimit,olddslimitw,oldsslimitw;
-//uint16_t msw;
-
-extern int ins,output;
-extern int cycdiff;
-
 typedef struct
 {
         uint32_t base;
@@ -142,11 +112,50 @@ typedef struct
         int checked; /*Non-zero if selector is known to be valid*/
 } x86seg;
 
+struct
+{
+        x86reg regs[8];
+
+        x86seg *ea_seg;
+        uint32_t eaaddr;
+
+        int flags_op;
+        uint32_t flags_res;
+        uint32_t flags_op1, flags_op2;
+        
+        uint32_t pc;
+        uint32_t oldpc;
+        uint32_t op32;  
+	uint32_t last_ea;
+        
+        union
+        {
+                struct
+                {
+                        int8_t rm, mod, reg;
+                } rm_mod_reg;
+                uint32_t rm_mod_reg_data;
+        } rm_data;
+        
+        int8_t ssegs;
+} cpu_state;
+
+#define COMPILE_TIME_ASSERT(expr) typedef char COMP_TIME_ASSERT[(expr) ? 1 : 0];
+
+COMPILE_TIME_ASSERT(sizeof(cpu_state) <= 128);
+
+/*x86reg regs[8];*/
+
+uint16_t flags,eflags;
+uint32_t /*cs,ds,es,ss,*/oldds,oldss,olddslimit,oldsslimit,olddslimitw,oldsslimitw;
+//uint16_t msw;
+
+extern int ins,output;
+extern int cycdiff;
+
 x86seg gdt,ldt,idt,tr;
 x86seg _cs,_ds,_es,_ss,_fs,_gs;
 x86seg _oldds;
-
-extern x86seg *ea_seg;
 
 uint32_t pccache;
 uint8_t *pccache2;

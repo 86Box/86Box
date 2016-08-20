@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 static int opARPL_a16(uint32_t fetchdat)
 {
         uint16_t temp_seg;
@@ -294,7 +291,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286)
                 base = gdt.base; //is32 ? gdt.base : (gdt.base & 0xffffff);
                 if (is286)
                         base |= 0xff000000;
-                writememl(easeg, eaaddr + 2, base);
+                writememl(easeg, cpu_state.eaaddr + 2, base);
                 CLOCK_CYCLES(7);
                 break;
                 case 0x08: /*SIDT*/
@@ -302,7 +299,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286)
                 base = idt.base;
                 if (is286)
                         base |= 0xff000000;
-                writememl(easeg, eaaddr + 2, base);
+                writememl(easeg, cpu_state.eaaddr + 2, base);
                 CLOCK_CYCLES(7);
                 break;
                 case 0x10: /*LGDT*/
@@ -314,7 +311,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286)
                 }
 //                pclog("LGDT %08X:%08X\n", easeg, eaaddr);
                 limit = geteaw();
-                base = readmeml(0, easeg + eaaddr + 2);         if (abrt) return 1;
+                base = readmeml(0, easeg + cpu_state.eaaddr + 2);         if (abrt) return 1;
 //                pclog("     %08X %04X\n", base, limit);
                 gdt.limit = limit;
                 gdt.base = base;
@@ -330,7 +327,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286)
                 }
 //                pclog("LIDT %08X:%08X\n", easeg, eaaddr);
                 limit = geteaw();
-                base = readmeml(0, easeg + eaaddr + 2);         if (abrt) return 1;
+                base = readmeml(0, easeg + cpu_state.eaaddr + 2);         if (abrt) return 1;
 //                pclog("     %08X %04X\n", base, limit);
                 idt.limit = limit;
                 idt.base = base;
@@ -364,7 +361,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286)
                                 x86gpf(NULL, 0);
                                 break;
                         }
-                        mmu_invalidate(ds + eaaddr);
+                        mmu_invalidate(ds + cpu_state.eaaddr);
                         CLOCK_CYCLES(12);
                         break;
                 }

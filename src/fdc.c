@@ -101,6 +101,23 @@ void fdc_reset()
 
 int ins;
 
+void fdc_request_next_sector_id()
+{
+	if (fdc.pcjr || !fdc.dma)
+	{
+		fdc.stat = 0xf0;
+	}
+	else
+	{
+		fdc.stat = 0xd0;
+	}
+}
+
+void fdc_stop_id_request()
+{
+	fdc.stat &= 0x7f;
+}
+
 int fdc_get_gap()
 {
 	return fdc.gap;
@@ -1070,6 +1087,7 @@ void fdc_callback()
 			disctime = 128 * (1 << TIMER_SHIFT);
 			timer_update_outstanding();
                 }                
+#if 0
                 else if (fdc.format_state == 2)
                 {
                         temp = fdc_getdata(fdc.pos == ((fdc.params[2] * 4) - 1));
@@ -1088,10 +1106,15 @@ void fdc_callback()
 			timer_update_outstanding();
                 }
                 else if (fdc.format_state == 3)
+#endif
+                else if (fdc.format_state == 2)
                 {
-//                        pclog("Format next stage track %i head %i\n", fdc.track[fdc.drive], fdc.head);
+                        pclog("Format next stage track %i head %i\n", fdc.track[fdc.drive], fdc.head);
                         disc_format(fdc.drive, fdc.track[fdc.drive], fdc.head, fdc.rate, fdc.params[4]);
+#if 0
                         fdc.format_state = 4;
+#endif
+                        fdc.format_state = 3;
                 }
                 else
                 {

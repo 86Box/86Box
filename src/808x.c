@@ -112,8 +112,6 @@ int shadowbios=0;
 int ins=0;
 //#define readmemb(a) (((a)<0xA0000)?ram[a]:readmembl(a))
 
-int ssegs;
-
 int fetchcycles=0,memcycs,fetchclocks;
 
 uint8_t prefetchqueue[6];
@@ -344,7 +342,7 @@ reg = If mod=11,  (depending on data size, 16 bits/8 bits, 32 bits=extend 16 bit
 */
 
 int cycles=0;
-uint32_t easeg,eaaddr;
+uint32_t easeg;
 int rmdat;
 
 uint16_t zero=0;
@@ -366,42 +364,40 @@ void makemod1table()
 
 static void fetcheal()
 {
-        if (!cpu_mod && cpu_rm==6) { eaaddr=getword(); easeg=ds; FETCHADD(6); }
+        if (!cpu_mod && cpu_rm==6) { cpu_state.eaaddr=getword(); easeg=ds; FETCHADD(6); }
         else
         {
                 switch (cpu_mod)
                 {
                         case 0:
-                        eaaddr=0;
+                        cpu_state.eaaddr=0;
                         if (cpu_rm&4) FETCHADD(5);
                         else      FETCHADD(7+slowrm[cpu_rm]);
                         break;
                         case 1:
-                        eaaddr=(uint16_t)(int8_t)FETCH();
+                        cpu_state.eaaddr=(uint16_t)(int8_t)FETCH();
                         if (cpu_rm&4) FETCHADD(9);
                         else      FETCHADD(11+slowrm[cpu_rm]);
                         break;
                         case 2:
-                        eaaddr=getword();
+                        cpu_state.eaaddr=getword();
                         if (cpu_rm&4) FETCHADD(9);
                         else      FETCHADD(11+slowrm[cpu_rm]);
                         break;
-			case 3:
-			if (!(cpu_rm&4)) FETCHADD(2+slowrm[cpu_rm]);
-			return;
                 }
-                eaaddr+=(*mod1add[0][cpu_rm])+(*mod1add[1][cpu_rm]);
+                cpu_state.eaaddr+=(*mod1add[0][cpu_rm])+(*mod1add[1][cpu_rm]);
                 easeg=*mod1seg[cpu_rm];
-                eaaddr&=0xFFFF;
+                cpu_state.eaaddr&=0xFFFF;
         }
-	cpu_state.last_ea = eaaddr;
+
+	cpu_state.last_ea = cpu_state.eaaddr;
 }
 
 static inline uint8_t geteab()
 {
         if (cpu_mod == 3)
                 return (cpu_rm & 4) ? cpu_state.regs[cpu_rm & 3].b.h : cpu_state.regs[cpu_rm & 3].b.l;
-        return readmemb(easeg+eaaddr);
+        return readmemb(easeg+cpu_state.eaaddr);
 }
 
 static inline uint16_t geteaw()
@@ -409,7 +405,7 @@ static inline uint16_t geteaw()
         if (cpu_mod == 3)
                 return cpu_state.regs[cpu_rm].w;
 //        if (output==3) printf("GETEAW %04X:%08X\n",easeg,eaaddr);
-        return readmemw(easeg,eaaddr);
+        return readmemw(easeg,cpu_state.eaaddr);
 }
 
 static inline uint16_t geteaw2()
@@ -417,7 +413,7 @@ static inline uint16_t geteaw2()
         if (cpu_mod == 3)
                 return cpu_state.regs[cpu_rm].w;
 //        printf("Getting addr from %04X:%04X %05X\n",easeg,eaaddr+2,easeg+eaaddr+2);
-        return readmemw(easeg,(eaaddr+2)&0xFFFF);
+        return readmemw(easeg,(cpu_state.eaaddr+2)&0xFFFF);
 }
 
 static inline void seteab(uint8_t val)
@@ -431,7 +427,7 @@ static inline void seteab(uint8_t val)
         }
         else
         {
-                writememb(easeg+eaaddr,val);
+                writememb(easeg+cpu_state.eaaddr,val);
         }
 }
 
@@ -441,7 +437,7 @@ static inline void seteaw(uint16_t val)
                 cpu_state.regs[cpu_rm].w = val;
         else
         {
-                writememw(easeg,eaaddr,val);
+                writememw(easeg,cpu_state.eaaddr,val);
 //                writememb(easeg+eaaddr+1,val>>8);
         }
 }
@@ -593,7 +589,7 @@ chdir(pcempath);
         else
            printf("AX=%04X BX=%04X CX=%04X DX=%04X DI=%04X SI=%04X BP=%04X SP=%04X\n",AX,BX,CX,DX,DI,SI,BP,SP);
         printf("PC=%04X CS=%04X DS=%04X ES=%04X SS=%04X FLAGS=%04X\n",cpu_state.pc,CS,DS,ES,SS,flags);
-        printf("%04X:%04X %04X:%04X\n",oldcs,oldpc, oldcs2, oldpc2);
+        printf("%04X:%04X %04X:%04X\n",oldcs,cpu_state.oldpc, oldcs2, oldpc2);
         printf("%i ins\n",ins);
         if (is386)
            printf("In %s mode\n",(msw&1)?((eflags&VM_FLAG)?"V86":"protected"):"real");
@@ -831,7 +827,7 @@ void rep(int fv)
         int c=CX;
         uint8_t temp2;
         uint16_t tempw,tempw2;
-        uint16_t ipc=oldpc;//pc-1;
+        uint16_t ipc=cpu_state.oldpc;//pc-1;
         int changeds=0;
         uint32_t oldds;
         startrep:
@@ -877,7 +873,7 @@ void rep(int fv)
                         c--;
                         cycles-=5;
                 }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; if (ssegs) ssegs++; FETCHCLEAR(); }
+                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
                 else firstrepcycle=1;
                 break;
                 case 0xA4: /*REP MOVSB*/
@@ -894,7 +890,7 @@ void rep(int fv)
                         FETCHADD(17-memcycs);
                 }
                 if (IRQTEST && c>0) cpu_state.pc=ipc;
-//                if (c>0) { firstrepcycle=0; pc=ipc; if (ssegs) ssegs++; FETCHCLEAR(); }
+//                if (c>0) { firstrepcycle=0; pc=ipc; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
 //                else firstrepcycle=1;
 //                }
                 break;
@@ -912,7 +908,7 @@ void rep(int fv)
                         FETCHADD(17 - memcycs);
                 }
                 if (IRQTEST && c>0) cpu_state.pc=ipc;
-//                if (c>0) { firstrepcycle=0; pc=ipc; if (ssegs) ssegs++; FETCHCLEAR(); }
+//                if (c>0) { firstrepcycle=0; pc=ipc; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
 //                else firstrepcycle=1;
 //                }
                 break;
@@ -934,7 +930,7 @@ void rep(int fv)
                         FETCHADD(30 - memcycs);
                 }
                 if (IRQTEST && c>0 && (fv==((flags&Z_FLAG)?1:0))) cpu_state.pc=ipc;
-//                if ((c>0) && (fv==((flags&Z_FLAG)?1:0))) { pc=ipc; firstrepcycle=0; if (ssegs) ssegs++; FETCHCLEAR(); }
+//                if ((c>0) && (fv==((flags&Z_FLAG)?1:0))) { pc=ipc; firstrepcycle=0; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
 //                else firstrepcycle=1;
                 break;
                 case 0xA7: /*REP CMPSW*/
@@ -954,7 +950,7 @@ void rep(int fv)
                         FETCHADD(30 - memcycs);
                 }
                 if (IRQTEST && c>0 && (fv==((flags&Z_FLAG)?1:0))) cpu_state.pc=ipc;
-//                if ((c>0) && (fv==((flags&Z_FLAG)?1:0))) { pc=ipc; firstrepcycle=0; if (ssegs) ssegs++; FETCHCLEAR(); }
+//                if ((c>0) && (fv==((flags&Z_FLAG)?1:0))) { pc=ipc; firstrepcycle=0; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
 //                else firstrepcycle=1;
 //                if (firstrepcycle) printf("REP CMPSW  %06X:%04X %06X:%04X %04X %04X\n",ds,SI,es,DI,tempw,tempw2);
                 break;
@@ -999,7 +995,7 @@ void rep(int fv)
                         c--;
                         cycles-=4;
                 }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; if (ssegs) ssegs++; FETCHCLEAR(); }
+                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
                 else firstrepcycle=1;
                 break;
                 case 0xAD: /*REP LODSW*/
@@ -1011,7 +1007,7 @@ void rep(int fv)
                         c--;
                         cycles-=4;
                 }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; if (ssegs) ssegs++; FETCHCLEAR(); }
+                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
                 else firstrepcycle=1;
                 break;
                 case 0xAE: /*REP SCASB*/
@@ -1029,7 +1025,7 @@ void rep(int fv)
                         cycles -= 15;
                 }
 //if (output)                printf("%i %i %i %i\n",c,(c>0),(fv==((flags&Z_FLAG)?1:0)),((c>0) && (fv==((flags&Z_FLAG)?1:0))));
-                if ((c>0) && (fv==((flags&Z_FLAG)?1:0)))  { cpu_state.pc=ipc; firstrepcycle=0; if (ssegs) ssegs++; FETCHCLEAR(); }
+                if ((c>0) && (fv==((flags&Z_FLAG)?1:0)))  { cpu_state.pc=ipc; firstrepcycle=0; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
                 else firstrepcycle=1;
 //                cycles-=120;
                 break;
@@ -1045,7 +1041,7 @@ void rep(int fv)
                         c--;
                         cycles -= 15;
                 }
-                if ((c>0) && (fv==((flags&Z_FLAG)?1:0)))  { cpu_state.pc=ipc; firstrepcycle=0; if (ssegs) ssegs++; FETCHCLEAR(); }
+                if ((c>0) && (fv==((flags&Z_FLAG)?1:0)))  { cpu_state.pc=ipc; firstrepcycle=0; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
                 else firstrepcycle=1;
                 break;
                 default:
@@ -1102,7 +1098,7 @@ void execx86(int cycs)
 //        if (output) printf("CLOCK %i %i\n",cycdiff,cycles);
                 fetchclocks=0;
                 oldcs=CS;
-                oldpc=cpu_state.pc;
+                cpu_state.oldpc=cpu_state.pc;
                 opcodestart:
                 opcode=FETCH();
                 tempc=flags&C_FLAG;
@@ -1177,14 +1173,14 @@ void execx86(int cycs)
                         break;
 
                         case 0x06: /*PUSH ES*/
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         writememw(ss,((SP-2)&0xFFFF),ES);
                         SP-=2;
 			cpu_state.last_ea = SP;
                         cycles-=14;
                         break;
                         case 0x07: /*POP ES*/
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         tempw=readmemw(ss,SP);
                         loadseg(tempw,&_es);
                         SP+=2;
@@ -1242,14 +1238,14 @@ void execx86(int cycs)
                         break;
 
                         case 0x0E: /*PUSH CS*/
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         writememw(ss,((SP-2)&0xFFFF),CS);
                         SP-=2;
 			cpu_state.last_ea = SP;
                         cycles-=14;
                         break;
                         case 0x0F: /*POP CS - 8088/8086 only*/
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         tempw=readmemw(ss,SP);
                         loadseg(tempw,&_cs);
                         SP+=2;
@@ -1303,14 +1299,14 @@ void execx86(int cycs)
                         break;
 
                         case 0x16: /*PUSH SS*/
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         writememw(ss,((SP-2)&0xFFFF),SS);
                         SP-=2;
                         cycles-=14;
 			cpu_state.last_ea = SP;
                         break;
                         case 0x17: /*POP SS*/
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         tempw=readmemw(ss,SP);
                         loadseg(tempw,&_ss);
                         SP+=2;
@@ -1370,17 +1366,17 @@ void execx86(int cycs)
                         break;
 
                         case 0x1E: /*PUSH DS*/
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         writememw(ss,((SP-2)&0xFFFF),DS);
                         SP-=2;
 			cpu_state.last_ea = SP;
                         cycles-=14;
                         break;
                         case 0x1F: /*POP DS*/
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         tempw=readmemw(ss,SP);
                         loadseg(tempw,&_ds);
-                        if (ssegs) oldds=ds;
+                        if (cpu_state.ssegs) oldds=ds;
                         SP+=2;
 			cpu_state.last_ea = SP;
                         cycles-=12;
@@ -1439,7 +1435,7 @@ void execx86(int cycs)
                         oldss=ss;
                         oldds=ds;
                         ds=ss=es;
-                        ssegs=2;
+                        cpu_state.ssegs=2;
                         cycles-=4;
                         goto opcodestart;
 //                        break;
@@ -1515,7 +1511,7 @@ void execx86(int cycs)
                         oldss=ss;
                         oldds=ds;
                         ds=ss=cs;
-                        ssegs=2;
+                        cpu_state.ssegs=2;
                         cycles-=4;
                         goto opcodestart;
                         case 0x2F: /*DAS*/
@@ -1591,7 +1587,7 @@ void execx86(int cycs)
                         oldss=ss;
                         oldds=ds;
                         ds=ss=ss;
-                        ssegs=2;
+                        cpu_state.ssegs=2;
                         cycles-=4;
                         goto opcodestart;
 //                        break;
@@ -1652,7 +1648,7 @@ void execx86(int cycs)
                         oldss=ss;
                         oldds=ds;
                         ds=ss=ds;
-                        ssegs=2;
+                        cpu_state.ssegs=2;
                         cycles-=4;
                         goto opcodestart;
 //                        break;
@@ -1685,7 +1681,7 @@ void execx86(int cycs)
 
                         case 0x50: case 0x51: case 0x52: case 0x53: /*PUSH r16*/
                         case 0x54: case 0x55: case 0x56: case 0x57:
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         SP-=2;
 			cpu_state.last_ea = SP;
                         writememw(ss,SP,cpu_state.regs[opcode&7].w);
@@ -1693,7 +1689,7 @@ void execx86(int cycs)
                         break;
                         case 0x58: case 0x59: case 0x5A: case 0x5B: /*POP r16*/
                         case 0x5C: case 0x5D: case 0x5E: case 0x5F:
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         SP+=2;
 			cpu_state.last_ea = SP;
                         cpu_state.regs[opcode&7].w=readmemw(ss,(SP-2)&0xFFFF);
@@ -2063,11 +2059,11 @@ void execx86(int cycs)
                                 seteaw(CS);
                                 break;
                                 case 0x18: /*DS*/
-                                if (ssegs) ds=oldds;
+                                if (cpu_state.ssegs) ds=oldds;
                                 seteaw(DS);
                                 break;
                                 case 0x10: /*SS*/
-                                if (ssegs) ss=oldss;
+                                if (cpu_state.ssegs) ss=oldss;
                                 seteaw(SS);
                                 break;
                         }
@@ -2076,7 +2072,7 @@ void execx86(int cycs)
 
                         case 0x8D: /*LEA*/
                         fetchea();
-                        cpu_state.regs[cpu_reg].w=(cpu_mod == 3)?cpu_state.last_ea:eaaddr;
+                        cpu_state.regs[cpu_reg].w=(cpu_mod == 3)?cpu_state.last_ea:cpu_state.eaaddr;
                         cycles-=2;
                         break;
 
@@ -2097,12 +2093,12 @@ void execx86(int cycs)
                                 case 0x18: /*DS*/
                                 tempw=geteaw();
                                 loadseg(tempw,&_ds);
-                                if (ssegs) oldds=ds;
+                                if (cpu_state.ssegs) oldds=ds;
                                 break;
                                 case 0x10: /*SS*/
                                 tempw=geteaw();
                                 loadseg(tempw,&_ss);
-                                if (ssegs) oldss=ss;
+                                if (cpu_state.ssegs) oldss=ss;
 //                                printf("LOAD SS %04X %04X\n",tempw,SS);
 //				printf("SS loaded with %04X %04X:%04X %04X %04X %04X\n",ss>>4,cs>>4,pc,CX,DX,es>>4);
                                 break;
@@ -2114,7 +2110,7 @@ void execx86(int cycs)
 
                         case 0x8F: /*POPW*/
                         fetchea();
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         tempw=readmemw(ss,SP);
                         SP+=2;
 			cpu_state.last_ea = SP;
@@ -2147,7 +2143,7 @@ void execx86(int cycs)
                         tempw2=getword();
                         tempw3=CS;
                         tempw4=cpu_state.pc;
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         cpu_state.pc=tempw;
 //                        printf("0x9a");
                         loadcs(tempw2);
@@ -2162,14 +2158,14 @@ void execx86(int cycs)
                         cycles-=4;
                         break;
                         case 0x9C: /*PUSHF*/
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         writememw(ss,((SP-2)&0xFFFF),flags|0xF000);
                         SP-=2;
 			cpu_state.last_ea = SP;
                         cycles-=14;
                         break;
                         case 0x9D: /*POPF*/
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         flags=readmemw(ss,SP)&0xFFF;
                         SP+=2;
 			cpu_state.last_ea = SP;
@@ -2332,7 +2328,7 @@ void execx86(int cycs)
 			case 0xC0: /*RET alias*/
                         case 0xC2: /*RET*/
                         tempw=getword();
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         cpu_state.pc=readmemw(ss,SP);
 //                        printf("C2\n");
 //                        printf("RET to %04X\n",pc);
@@ -2342,7 +2338,7 @@ void execx86(int cycs)
                         break;
 			case 0xC1: /*RET alias*/
                         case 0xC3: /*RET*/
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         cpu_state.pc=readmemw(ss,SP);
 //                        printf("C3\n");
 //                        if (output) printf("RET to %04X %05X\n",pc,ss+SP);
@@ -2352,17 +2348,17 @@ void execx86(int cycs)
                         break;
                         case 0xC4: /*LES*/
                         fetchea();
-                        cpu_state.regs[cpu_reg].w=readmemw(easeg,eaaddr); //geteaw();
-                        tempw=readmemw(easeg,(eaaddr+2)&0xFFFF); //geteaw2();
+                        cpu_state.regs[cpu_reg].w=readmemw(easeg,cpu_state.eaaddr); //geteaw();
+                        tempw=readmemw(easeg,(cpu_state.eaaddr+2)&0xFFFF); //geteaw2();
                         loadseg(tempw,&_es);
                         cycles-=24;
                         break;
                         case 0xC5: /*LDS*/
                         fetchea();
-                        cpu_state.regs[cpu_reg].w=readmemw(easeg,eaaddr);
-                        tempw=readmemw(easeg,(eaaddr+2)&0xFFFF);
+                        cpu_state.regs[cpu_reg].w=readmemw(easeg,cpu_state.eaaddr);
+                        tempw=readmemw(easeg,(cpu_state.eaaddr+2)&0xFFFF);
                         loadseg(tempw,&_ds);
-                        if (ssegs) oldds=ds;
+                        if (cpu_state.ssegs) oldds=ds;
                         cycles-=24;
                         break;
                         case 0xC6: /*MOV b,#8*/
@@ -2381,7 +2377,7 @@ void execx86(int cycs)
 			case 0xC8: /*RETF alias*/
                         case 0xCA: /*RETF*/
                         tempw=getword();
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         cpu_state.pc=readmemw(ss,SP);
 //                        printf("CA\n");
                         loadcs(readmemw(ss,SP+2));
@@ -2392,7 +2388,7 @@ void execx86(int cycs)
                         break;
 			case 0xC9: /*RETF alias*/
                         case 0xCB: /*RETF*/
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         cpu_state.pc=readmemw(ss,SP);
 //                        printf("CB\n");
                         loadcs(readmemw(ss,SP+2));
@@ -2401,7 +2397,7 @@ void execx86(int cycs)
                         FETCHCLEAR();
                         break;
                         case 0xCC: /*INT 3*/
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         writememw(ss,((SP-2)&0xFFFF),flags|0xF000);
                         writememw(ss,((SP-4)&0xFFFF),CS);
                         writememw(ss,((SP-6)&0xFFFF),cpu_state.pc);
@@ -2421,7 +2417,7 @@ void execx86(int cycs)
                         lastcs=CS;
                         temp=FETCH();
 
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         writememw(ss,((SP-2)&0xFFFF),flags|0xF000);
                         writememw(ss,((SP-4)&0xFFFF),CS);
                         writememw(ss,((SP-6)&0xFFFF),cpu_state.pc);
@@ -2436,7 +2432,7 @@ void execx86(int cycs)
                         cycles-=71;
                         break;
                         case 0xCF: /*IRET*/
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
                         tempw=CS;
                         tempw2=cpu_state.pc;
                         cpu_state.pc=readmemw(ss,SP);
@@ -2963,7 +2959,7 @@ void execx86(int cycs)
 
                         case 0xE8: /*CALL rel 16*/
                         tempw=getword();
-                        if (ssegs) ss=oldss;
+                        if (cpu_state.ssegs) ss=oldss;
 //                        writememb(ss+((SP-1)&0xFFFF),pc>>8);
                         writememw(ss,((SP-2)&0xFFFF),cpu_state.pc);
                         SP-=2;
@@ -3366,7 +3362,7 @@ void execx86(int cycs)
                                 break;
                                 case 0x10: /*CALL*/
                                 tempw=geteaw();
-                                if (ssegs) ss=oldss;
+                                if (cpu_state.ssegs) ss=oldss;
                                 writememw(ss,(SP-2)&0xFFFF,cpu_state.pc);
                                 SP-=2;
 				cpu_state.last_ea = SP;
@@ -3376,11 +3372,11 @@ void execx86(int cycs)
                                 FETCHCLEAR();
                                 break;
                                 case 0x18: /*CALL far*/
-                                tempw=readmemw(easeg,eaaddr);
-                                tempw2=readmemw(easeg,(eaaddr+2)&0xFFFF); //geteaw2();
+                                tempw=readmemw(easeg,cpu_state.eaaddr);
+                                tempw2=readmemw(easeg,(cpu_state.eaaddr+2)&0xFFFF); //geteaw2();
                                 tempw3=CS;
                                 tempw4=cpu_state.pc;
-                                if (ssegs) ss=oldss;
+                                if (cpu_state.ssegs) ss=oldss;
                                 cpu_state.pc=tempw;
 //                        printf("FF 18\n");
                                 loadcs(tempw2);
@@ -3398,9 +3394,9 @@ void execx86(int cycs)
                                 FETCHCLEAR();
                                 break;
                                 case 0x28: /*JMP far*/
-                                cpu_state.pc=readmemw(easeg,eaaddr); //geteaw();
+                                cpu_state.pc=readmemw(easeg,cpu_state.eaaddr); //geteaw();
 //                        printf("FF 28\n");
-                                loadcs(readmemw(easeg,(eaaddr+2)&0xFFFF)); //geteaw2();
+                                loadcs(readmemw(easeg,(cpu_state.eaaddr+2)&0xFFFF)); //geteaw2();
 //                                cs=loadcs(CS);
 //                                cs=CS<<4;
                                 cycles-=24;
@@ -3410,7 +3406,7 @@ void execx86(int cycs)
                                 case 0x38: /*PUSH w alias, reported by reenigne*/
                                 tempw=geteaw();
 //                                if (output) printf("PUSH %04X %i %02X %04X %04X %02X %02X\n",tempw,rm,rmdat,easeg,eaaddr,ram[0x22340+0x5638],ram[0x22340+0x5639]);
-                                if (ssegs) ss=oldss;
+                                if (cpu_state.ssegs) ss=oldss;
                                 writememw(ss,((SP-2)&0xFFFF),tempw);
                                 SP-=2;
 				cpu_state.last_ea = SP;
@@ -3447,11 +3443,11 @@ void execx86(int cycs)
                         exit(-1);
                 }
                 output = 3;*/
-                if (ssegs)
+                if (cpu_state.ssegs)
                 {
                         ds=oldds;
                         ss=oldss;
-                        ssegs=0;
+                        cpu_state.ssegs=0;
                 }
                 
 //                output = 3;
@@ -3502,7 +3498,7 @@ void execx86(int cycs)
                         FETCHCLEAR();
                         nmi_enable = 0;
                 }
-                else if (takeint && !ssegs && !noint)
+                else if (takeint && !cpu_state.ssegs && !noint)
                 {
                         temp=picinterrupt();
                         if (temp!=0xFF)

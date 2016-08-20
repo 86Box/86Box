@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*Register allocation :
         R8-R15 - emulated registers
 */
@@ -22,8 +19,7 @@ static inline int find_host_xmm_reg()
 }
 static void call(codeblock_t *block, uintptr_t func)
 {
-	// uintptr_t diff = func - (uintptr_t)&block->data[block_pos + 5];
-	intptr_t diff = func - (intptr_t)&block->data[block_pos + 5];
+	uintptr_t diff = func - (uintptr_t)&block->data[block_pos + 5];
 
         codegen_reg_loaded[0] = codegen_reg_loaded[1] = codegen_reg_loaded[2] = codegen_reg_loaded[3] = 0;
         codegen_reg_loaded[4] = codegen_reg_loaded[5] = codegen_reg_loaded[6] = codegen_reg_loaded[7] = 0;
@@ -502,7 +498,14 @@ static void STORE_IMM_REG_L(int reg, uint32_t val)
 
 static void STORE_IMM_ADDR_L(uintptr_t addr, uint32_t val)
 {
-        if (addr < 0x100000000)
+        if (addr >= (uintptr_t)&cpu_state && addr < ((uintptr_t)&cpu_state)+0x80)
+        {
+                addbyte(0xC7); /*MOVL [addr],val*/
+                addbyte(0x45);
+                addbyte(addr - (uintptr_t)&cpu_state);
+                addlong(val);
+        }
+        else if (addr < 0x100000000)
         {
                 addbyte(0xC7); /*MOVL [addr],val*/
                 addbyte(0x04);
@@ -3342,11 +3345,10 @@ static void FP_ENTER()
         addlong((uintptr_t)&cr0);
         addbyte(0xc);
         addbyte(0x74); /*JZ +*/
-        addbyte(11+5+12+5);
+        addbyte(7+5+12+5);
         addbyte(0xC7); /*MOVL [oldpc],op_old_pc*/
-        addbyte(0x04);
-        addbyte(0x25);
-        addlong((uintptr_t)&oldpc);
+        addbyte(0x45);
+        addbyte((uintptr_t)&cpu_state.oldpc - (uintptr_t)&cpu_state);
         addlong(op_old_pc);
         load_param_1_32(&codeblock[block_current], 7);
         CALL_FUNC(x86_int);
@@ -4404,11 +4406,10 @@ static void MMX_ENTER()
         addlong((uintptr_t)&cr0);
         addbyte(0xc);
         addbyte(0x74); /*JZ +*/
-        addbyte(11+5+12+5);
+        addbyte(7+5+12+5);
         addbyte(0xC7); /*MOVL [oldpc],op_old_pc*/
-        addbyte(0x04);
-        addbyte(0x25);
-        addlong((uintptr_t)&oldpc);
+        addbyte(0x45);
+        addbyte((uintptr_t)&cpu_state.oldpc - (uintptr_t)&cpu_state);
         addlong(op_old_pc);
         load_param_1_32(&codeblock[block_current], 7);
         CALL_FUNC(x86_int);

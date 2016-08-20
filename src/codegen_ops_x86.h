@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*Register allocation :
         EBX, ECX, EDX - emulated registers
         EAX - work register, EA storage
@@ -1324,7 +1321,7 @@ static x86seg *FETCH_EA_32(x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, u
                 addbyte(0x8b); /*MOVL EAX, regs[rm].l*/
                 addbyte(0x45);
                 addbyte((uint32_t)&cpu_state.regs[rm].l - (uint32_t)&EAX);
-                eaaddr = cpu_state.regs[rm].l;
+                cpu_state.eaaddr = cpu_state.regs[rm].l;
                 if (mod) 
                 {
                         if (rm == 5 && !op_ssegs)
@@ -1822,10 +1819,10 @@ static void FP_ENTER()
         addlong((uintptr_t)&cr0);
         addbyte(0xc);
         addbyte(0x74); /*JZ +*/
-        addbyte(10+7+5+5);
+        addbyte(7+7+5+5);
         addbyte(0xC7); /*MOVL [oldpc],op_old_pc*/
-        addbyte(0x05);
-        addlong((uintptr_t)&oldpc);
+        addbyte(0x45);
+        addbyte((uintptr_t)&cpu_state.oldpc - (uintptr_t)&cpu_state);
         addlong(op_old_pc);
         addbyte(0xc7); /*MOV [ESP], 7*/
         addbyte(0x04);
@@ -3066,10 +3063,10 @@ static void MMX_ENTER()
         addlong((uintptr_t)&cr0);
         addbyte(0xc);
         addbyte(0x74); /*JZ +*/
-        addbyte(10+7+5+5);
+        addbyte(7+7+5+5);
         addbyte(0xC7); /*MOVL [oldpc],op_old_pc*/
-        addbyte(0x05);
-        addlong((uintptr_t)&oldpc);
+        addbyte(0x45);
+        addbyte((uintptr_t)&cpu_state.oldpc - (uintptr_t)&cpu_state);
         addlong(op_old_pc);
         addbyte(0xc7); /*MOV [ESP], 7*/
         addbyte(0x04);

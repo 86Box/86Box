@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #define op_seg(name, seg)                                       \
 static int op ## name ## _w_a16(uint32_t fetchdat)              \
 {                                                               \
@@ -8,8 +5,8 @@ static int op ## name ## _w_a16(uint32_t fetchdat)              \
         if (abrt) return 1;                                     \
         cpu_state.pc++;                                         \
                                                                 \
-        ea_seg = &seg;                                          \
-        ssegs = 1;                                              \
+        cpu_state.ea_seg = &seg;                                          \
+        cpu_state.ssegs = 1;                                              \
         CLOCK_CYCLES(4);                                        \
                                                                 \
         return x86_opcodes[fetchdat & 0xff](fetchdat >> 8);     \
@@ -21,8 +18,8 @@ static int op ## name ## _l_a16(uint32_t fetchdat)              \
         if (abrt) return 1;                                     \
         cpu_state.pc++;                                         \
                                                                 \
-        ea_seg = &seg;                                          \
-        ssegs = 1;                                              \
+        cpu_state.ea_seg = &seg;                                          \
+        cpu_state.ssegs = 1;                                              \
         CLOCK_CYCLES(4);                                        \
                                                                 \
         return x86_opcodes[(fetchdat & 0xff) | 0x100](fetchdat >> 8);      \
@@ -34,8 +31,8 @@ static int op ## name ## _w_a32(uint32_t fetchdat)              \
         if (abrt) return 1;                                     \
         cpu_state.pc++;                                         \
                                                                 \
-        ea_seg = &seg;                                          \
-        ssegs = 1;                                              \
+        cpu_state.ea_seg = &seg;                                          \
+        cpu_state.ssegs = 1;                                              \
         CLOCK_CYCLES(4);                                        \
                                                                 \
         return x86_opcodes[(fetchdat & 0xff) | 0x200](fetchdat >> 8);      \
@@ -47,8 +44,8 @@ static int op ## name ## _l_a32(uint32_t fetchdat)              \
         if (abrt) return 1;                                     \
         cpu_state.pc++;                                         \
                                                                 \
-        ea_seg = &seg;                                          \
-        ssegs = 1;                                              \
+        cpu_state.ea_seg = &seg;                                          \
+        cpu_state.ssegs = 1;                                              \
         CLOCK_CYCLES(4);                                        \
                                                                 \
         return x86_opcodes[(fetchdat & 0xff) | 0x300](fetchdat >> 8);      \
@@ -67,9 +64,9 @@ static int op_66(uint32_t fetchdat) /*Data size select*/
         if (abrt) return 1;
         cpu_state.pc++;
 
-        op32 = ((use32 & 0x100) ^ 0x100) | (op32 & 0x200);
+        cpu_state.op32 = ((use32 & 0x100) ^ 0x100) | (cpu_state.op32 & 0x200);
         CLOCK_CYCLES(2);
-        return x86_opcodes[(fetchdat & 0xff) | op32](fetchdat >> 8);
+        return x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
 }
 static int op_67(uint32_t fetchdat) /*Address size select*/
 {
@@ -77,7 +74,7 @@ static int op_67(uint32_t fetchdat) /*Address size select*/
         if (abrt) return 1;
         cpu_state.pc++;
 
-        op32 = ((use32 & 0x200) ^ 0x200) | (op32 & 0x100);
+        cpu_state.op32 = ((use32 & 0x200) ^ 0x200) | (cpu_state.op32 & 0x100);
         CLOCK_CYCLES(2);
-        return x86_opcodes[(fetchdat & 0xff) | op32](fetchdat >> 8);
+        return x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
 }

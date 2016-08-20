@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 static int opPUNPCKLDQ_a16(uint32_t fetchdat)
 {
         MMX_ENTER();
@@ -15,7 +12,7 @@ static int opPUNPCKLDQ_a16(uint32_t fetchdat)
         {
                 uint32_t src;
         
-                src = readmeml(easeg, eaaddr); if (abrt) return 0;
+                src = readmeml(easeg, cpu_state.eaaddr); if (abrt) return 0;
                 MM[cpu_reg].l[1] = src;
 
                 CLOCK_CYCLES(2);
@@ -36,7 +33,7 @@ static int opPUNPCKLDQ_a32(uint32_t fetchdat)
         {
                 uint32_t src;
         
-                src = readmeml(easeg, eaaddr); if (abrt) return 0;
+                src = readmeml(easeg, cpu_state.eaaddr); if (abrt) return 0;
                 MM[cpu_reg].l[1] = src;
 
                 CLOCK_CYCLES(2);

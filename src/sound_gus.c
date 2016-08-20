@@ -531,8 +531,14 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                         if (gus->latch_enable == 2)
                         {
                                 gus->irq = gus_irqs[val & 7];
+
                                 if (val & 0x40)
-                                        gus->irq_midi = gus->irq;
+                                {
+                                        if (gus->irq == -1)
+                                                gus->irq = gus->irq_midi = gus_irqs[(val >> 3) & 7];
+                                        else
+                                                gus->irq_midi = gus->irq;
+                                }
                                 else
                                         gus->irq_midi = gus_irqs_midi[(val >> 3) & 7];
                         
@@ -941,19 +947,18 @@ void gus_poll_wave(void *p)
                                 if (gus->cur[d] <= gus->start[d])
                                 {
                                         int diff = gus->start[d] - gus->cur[d];
-                                        if (!(gus->rctrl[d]&4))
+
+                                        if (gus->ctrl[d]&8)
                                         {
-                                                if (!(gus->ctrl[d]&8)) 
-                                                {
-                                                        gus->ctrl[d] |= 1;
-                                                        gus->cur[d] = (gus->ctrl[d] & 0x40) ? gus->end[d] : gus->start[d];
-                                                }                                                
-                                                else 
-                                                {
-                                                        if (gus->ctrl[d]&0x10) gus->ctrl[d]^=0x40;
-                                                        gus->cur[d] = (gus->ctrl[d] & 0x40) ? (gus->end[d] - diff) : (gus->start[d] + diff);
-                                                }
+                                                if (gus->ctrl[d]&0x10) gus->ctrl[d]^=0x40;
+                                                gus->cur[d] = (gus->ctrl[d] & 0x40) ? (gus->end[d] - diff) : (gus->start[d] + diff);
                                         }
+                                        else if (!(gus->rctrl[d]&4))
+                                        {
+                                                gus->ctrl[d] |= 1;
+                                                gus->cur[d] = (gus->ctrl[d] & 0x40) ? gus->end[d] : gus->start[d];
+                                        }
+
                                         if ((gus->ctrl[d] & 0x20) && !gus->waveirqs[d])
                                         {
                                                 gus->waveirqs[d] = 1;
@@ -969,18 +974,15 @@ void gus_poll_wave(void *p)
                                 if (gus->cur[d] >= gus->end[d])
                                 {
                                         int diff = gus->cur[d] - gus->end[d];
-                                        if (!(gus->rctrl[d]&4))
+                                        if (gus->ctrl[d]&8)
                                         {
-                                                if (!(gus->ctrl[d]&8)) 
-                                                {
-                                                        gus->ctrl[d] |= 1;
-                                                        gus->cur[d] = (gus->ctrl[d] & 0x40) ? gus->end[d] : gus->start[d];
-                                                }                                                
-                                                else 
-                                                {
-                                                        if (gus->ctrl[d]&0x10) gus->ctrl[d]^=0x40;
-                                                        gus->cur[d] = (gus->ctrl[d] & 0x40) ? (gus->end[d] - diff) : (gus->start[d] + diff);
-                                                }
+                                                if (gus->ctrl[d]&0x10) gus->ctrl[d]^=0x40;
+                                                gus->cur[d] = (gus->ctrl[d] & 0x40) ? (gus->end[d] - diff) : (gus->start[d] + diff);
+                                        }
+                                        else if (!(gus->rctrl[d]&4))
+                                        {
+                                                gus->ctrl[d] |= 1;
+                                                gus->cur[d] = (gus->ctrl[d] & 0x40) ? gus->end[d] : gus->start[d];
                                         }
                                         if ((gus->ctrl[d] & 0x20) && !gus->waveirqs[d]) 
                                         {

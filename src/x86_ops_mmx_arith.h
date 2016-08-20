@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 static int opPADDB_a16(uint32_t fetchdat)
 {
         MMX_REG src;
@@ -297,8 +294,8 @@ static int opPMULLW_a16(uint32_t fetchdat)
         {
                 MMX_REG src;
         
-                src.l[0] = readmeml(easeg, eaaddr);
-                src.l[1] = readmeml(easeg, eaaddr + 4); if (abrt) return 0;
+                src.l[0] = readmeml(easeg, cpu_state.eaaddr);
+                src.l[1] = readmeml(easeg, cpu_state.eaaddr + 4); if (abrt) return 0;
                 MM[cpu_reg].w[0] *= src.w[0];
                 MM[cpu_reg].w[1] *= src.w[1];
                 MM[cpu_reg].w[2] *= src.w[2];
@@ -324,8 +321,8 @@ static int opPMULLW_a32(uint32_t fetchdat)
         {
                 MMX_REG src;
         
-                src.l[0] = readmeml(easeg, eaaddr);
-                src.l[1] = readmeml(easeg, eaaddr + 4); if (abrt) return 0;
+                src.l[0] = readmeml(easeg, cpu_state.eaaddr);
+                src.l[1] = readmeml(easeg, cpu_state.eaaddr + 4); if (abrt) return 0;
                 MM[cpu_reg].w[0] *= src.w[0];
                 MM[cpu_reg].w[1] *= src.w[1];
                 MM[cpu_reg].w[2] *= src.w[2];
@@ -352,8 +349,8 @@ static int opPMULHW_a16(uint32_t fetchdat)
         {
                 MMX_REG src;
         
-                src.l[0] = readmeml(easeg, eaaddr);
-                src.l[1] = readmeml(easeg, eaaddr + 4); if (abrt) return 0;
+                src.l[0] = readmeml(easeg, cpu_state.eaaddr);
+                src.l[1] = readmeml(easeg, cpu_state.eaaddr + 4); if (abrt) return 0;
                 MM[cpu_reg].w[0] = ((int32_t)MM[cpu_reg].sw[0] * (int32_t)src.sw[0]) >> 16;
                 MM[cpu_reg].w[1] = ((int32_t)MM[cpu_reg].sw[1] * (int32_t)src.sw[1]) >> 16;
                 MM[cpu_reg].w[2] = ((int32_t)MM[cpu_reg].sw[2] * (int32_t)src.sw[2]) >> 16;
@@ -379,8 +376,8 @@ static int opPMULHW_a32(uint32_t fetchdat)
         {
                 MMX_REG src;
         
-                src.l[0] = readmeml(easeg, eaaddr);
-                src.l[1] = readmeml(easeg, eaaddr + 4); if (abrt) return 0;
+                src.l[0] = readmeml(easeg, cpu_state.eaaddr);
+                src.l[1] = readmeml(easeg, cpu_state.eaaddr + 4); if (abrt) return 0;
                 MM[cpu_reg].w[0] = ((int32_t)MM[cpu_reg].sw[0] * (int32_t)src.sw[0]) >> 16;
                 MM[cpu_reg].w[1] = ((int32_t)MM[cpu_reg].sw[1] * (int32_t)src.sw[1]) >> 16;
                 MM[cpu_reg].w[2] = ((int32_t)MM[cpu_reg].sw[2] * (int32_t)src.sw[2]) >> 16;

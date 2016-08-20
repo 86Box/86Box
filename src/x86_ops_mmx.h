@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #define SSATB(val) (((val) < -128) ? -128 : (((val) > 127) ? 127 : (val)))
 #define SSATW(val) (((val) < -32768) ? -32768 : (((val) > 32767) ? 32767 : (val)))
 #define USATB(val) (((val) < 0) ? 0 : (((val) > 255) ? 255 : (val)))
@@ -14,14 +11,14 @@
         }                                                                       \
         else                                                                    \
         {                                                                       \
-                src.q = readmemq(easeg, eaaddr); if (abrt) return 1;            \
+                src.q = readmemq(easeg, cpu_state.eaaddr); if (abrt) return 1;            \
                 CLOCK_CYCLES(2);                                                \
         }
 
 #define MMX_ENTER()                                                     \
         if (!cpu_hasMMX)                                                \
         {                                                               \
-                cpu_state.pc = oldpc;                                   \
+                cpu_state.pc = cpu_state.oldpc;                                   \
                 x86illegal();                                           \
                 return 1;                                               \
         }                                                               \
@@ -36,7 +33,7 @@ static int opEMMS(uint32_t fetchdat)
 {
         if (!cpu_hasMMX)
         {
-                cpu_state.pc = oldpc;
+                cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 return 1;
         }

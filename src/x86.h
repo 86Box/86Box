@@ -1,8 +1,4 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 uint16_t oldcs;
-uint32_t oldpc;
 extern uint32_t rmdat32;
 int oldcpl;
 
@@ -10,10 +6,9 @@ extern int nmi_enable;
 
 int tempc;
 int cycles,output;
-int ssegs;
 int firstrepcycle;
 
-uint32_t easeg,eaaddr,ealimit,ealimitw;
+uint32_t easeg,ealimit,ealimitw;
 
 int skipnextprint;
 int inhlt;

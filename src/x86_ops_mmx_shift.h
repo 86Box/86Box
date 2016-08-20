@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #define MMX_GETSHIFT()                                                  \
         if (cpu_mod == 3)                                                   \
         {                                                               \
@@ -9,7 +6,7 @@
         }                                                               \
         else                                                            \
         {                                                               \
-                shift = readmemb(easeg, eaaddr); if (abrt) return 0;    \
+                shift = readmemb(easeg, cpu_state.eaaddr); if (abrt) return 0;    \
                 CLOCK_CYCLES(2);                                        \
         }
 
@@ -56,7 +53,7 @@ static int opPSxxW_imm(uint32_t fetchdat)
                 break;
                 default:
                 pclog("Bad PSxxW (0F 71) instruction %02X\n", op);
-                cpu_state.pc = oldpc;
+                cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 return 0;
         }
@@ -227,7 +224,7 @@ static int opPSxxD_imm(uint32_t fetchdat)
                 break;
                 default:
                 pclog("Bad PSxxD (0F 72) instruction %02X\n", op);
-                cpu_state.pc = oldpc;
+                cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 return 0;
         }
@@ -379,7 +376,7 @@ static int opPSxxQ_imm(uint32_t fetchdat)
                 break;
                 default:
                 pclog("Bad PSxxQ (0F 73) instruction %02X\n", op);
-                cpu_state.pc = oldpc;
+                cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 return 0;
         }

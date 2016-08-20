@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 static int opMOV_r_CRx_a16(uint32_t fetchdat)
 {
         if ((CPL || (eflags&VM_FLAG)) && (cr0&1))
@@ -31,7 +28,7 @@ static int opMOV_r_CRx_a16(uint32_t fetchdat)
                 }
                 default:
                 pclog("Bad read of CR%i %i\n",rmdat&7,cpu_reg);
-                cpu_state.pc = oldpc;
+                cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 break;
         }
@@ -68,7 +65,7 @@ static int opMOV_r_CRx_a32(uint32_t fetchdat)
                 }
                 default:
                 pclog("Bad read of CR%i %i\n",rmdat&7,cpu_reg);
-                cpu_state.pc = oldpc;
+                cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 break;
         }
@@ -139,7 +136,7 @@ static int opMOV_CRx_r_a16(uint32_t fetchdat)
 
                 default:
                 pclog("Bad load CR%i\n", cpu_reg);
-                cpu_state.pc = oldpc;
+                cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 break;
         }
@@ -182,7 +179,7 @@ static int opMOV_CRx_r_a32(uint32_t fetchdat)
 
                 default:
                 pclog("Bad load CR%i\n", cpu_reg);
-                cpu_state.pc = oldpc;
+                cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 break;
         }

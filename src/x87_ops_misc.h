@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 static int opFSTSW_AX(uint32_t fetchdat)
 {
         FP_ENTER();
@@ -94,32 +91,32 @@ static int opFSTP(uint32_t fetchdat)
 static int FSTOR()
 {
         FP_ENTER();
-        switch ((cr0 & 1) | (op32 & 0x100))
+        switch ((cr0 & 1) | (cpu_state.op32 & 0x100))
         {
                 case 0x000: /*16-bit real mode*/
                 case 0x001: /*16-bit protected mode*/
-                npxc = readmemw(easeg, eaaddr);
-                npxs = readmemw(easeg, eaaddr+2);
-                x87_settag(readmemw(easeg, eaaddr+4));
+                npxc = readmemw(easeg, cpu_state.eaaddr);
+                npxs = readmemw(easeg, cpu_state.eaaddr+2);
+                x87_settag(readmemw(easeg, cpu_state.eaaddr+4));
                 TOP = (npxs >> 11) & 7;
-                eaaddr += 14;
+                cpu_state.eaaddr += 14;
                 break;
                 case 0x100: /*32-bit real mode*/
                 case 0x101: /*32-bit protected mode*/
-                npxc = readmemw(easeg, eaaddr);
-                npxs = readmemw(easeg, eaaddr+4);
-                x87_settag(readmemw(easeg, eaaddr+8));
+                npxc = readmemw(easeg, cpu_state.eaaddr);
+                npxs = readmemw(easeg, cpu_state.eaaddr+4);
+                x87_settag(readmemw(easeg, cpu_state.eaaddr+8));
                 TOP = (npxs >> 11) & 7;
-                eaaddr += 28;
+                cpu_state.eaaddr += 28;
                 break;
         }
-        x87_ldmmx(&MM[0]); x87_ld_frstor(0); eaaddr += 10;
-        x87_ldmmx(&MM[1]); x87_ld_frstor(1); eaaddr += 10;
-        x87_ldmmx(&MM[2]); x87_ld_frstor(2); eaaddr += 10;
-        x87_ldmmx(&MM[3]); x87_ld_frstor(3); eaaddr += 10;
-        x87_ldmmx(&MM[4]); x87_ld_frstor(4); eaaddr += 10;
-        x87_ldmmx(&MM[5]); x87_ld_frstor(5); eaaddr += 10;
-        x87_ldmmx(&MM[6]); x87_ld_frstor(6); eaaddr += 10;
+        x87_ldmmx(&MM[0]); x87_ld_frstor(0); cpu_state.eaaddr += 10;
+        x87_ldmmx(&MM[1]); x87_ld_frstor(1); cpu_state.eaaddr += 10;
+        x87_ldmmx(&MM[2]); x87_ld_frstor(2); cpu_state.eaaddr += 10;
+        x87_ldmmx(&MM[3]); x87_ld_frstor(3); cpu_state.eaaddr += 10;
+        x87_ldmmx(&MM[4]); x87_ld_frstor(4); cpu_state.eaaddr += 10;
+        x87_ldmmx(&MM[5]); x87_ld_frstor(5); cpu_state.eaaddr += 10;
+        x87_ldmmx(&MM[6]); x87_ld_frstor(6); cpu_state.eaaddr += 10;
         x87_ldmmx(&MM[7]); x87_ld_frstor(7);
         
         ismmx = 0;
@@ -131,7 +128,7 @@ static int FSTOR()
         ismmx = 1;
 
         CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
-        if (fplog) pclog("FRSTOR %08X:%08X %i %i %04X\n", easeg, eaaddr, ismmx, TOP, x87_gettag());
+        if (fplog) pclog("FRSTOR %08X:%08X %i %i %04X\n", easeg, cpu_state.eaaddr, ismmx, TOP, x87_gettag());
         return abrt;
 }
 static int opFSTOR_a16(uint32_t fetchdat)
@@ -152,133 +149,133 @@ static int opFSTOR_a32(uint32_t fetchdat)
 static int FSAVE()
 {
         FP_ENTER();
-        if (fplog) pclog("FSAVE %08X:%08X %i\n", easeg, eaaddr, ismmx);
+        if (fplog) pclog("FSAVE %08X:%08X %i\n", easeg, cpu_state.eaaddr, ismmx);
         npxs = (npxs & ~(7 << 11)) | (TOP << 11);
 
-        switch ((cr0&1)|(op32&0x100))
+        switch ((cr0 & 1) | (cpu_state.op32 & 0x100))
         {
                 case 0x000: /*16-bit real mode*/
-                writememw(easeg,eaaddr,npxc);
-                writememw(easeg,eaaddr+2,npxs);
-                writememw(easeg,eaaddr+4,x87_gettag());
-                writememw(easeg,eaaddr+6,x87_pc_off);
-                writememw(easeg,eaaddr+10,x87_op_off);
-                eaaddr+=14;
+                writememw(easeg,cpu_state.eaaddr,npxc);
+                writememw(easeg,cpu_state.eaaddr+2,npxs);
+                writememw(easeg,cpu_state.eaaddr+4,x87_gettag());
+                writememw(easeg,cpu_state.eaaddr+6,x87_pc_off);
+                writememw(easeg,cpu_state.eaaddr+10,x87_op_off);
+                cpu_state.eaaddr+=14;
                 if (ismmx)
                 {
-                        x87_stmmx(MM[0]); eaaddr+=10;
-                        x87_stmmx(MM[1]); eaaddr+=10;
-                        x87_stmmx(MM[2]); eaaddr+=10;
-                        x87_stmmx(MM[3]); eaaddr+=10;
-                        x87_stmmx(MM[4]); eaaddr+=10;
-                        x87_stmmx(MM[5]); eaaddr+=10;
-                        x87_stmmx(MM[6]); eaaddr+=10;
+                        x87_stmmx(MM[0]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[1]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[2]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[3]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[4]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[5]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[6]); cpu_state.eaaddr+=10;
                         x87_stmmx(MM[7]);
                 }
                 else
                 {
-                        x87_st_fsave(0); eaaddr+=10;
-                        x87_st_fsave(1); eaaddr+=10;
-                        x87_st_fsave(2); eaaddr+=10;
-                        x87_st_fsave(3); eaaddr+=10;
-                        x87_st_fsave(4); eaaddr+=10;
-                        x87_st_fsave(5); eaaddr+=10;
-                        x87_st_fsave(6); eaaddr+=10;
+                        x87_st_fsave(0); cpu_state.eaaddr+=10;
+                        x87_st_fsave(1); cpu_state.eaaddr+=10;
+                        x87_st_fsave(2); cpu_state.eaaddr+=10;
+                        x87_st_fsave(3); cpu_state.eaaddr+=10;
+                        x87_st_fsave(4); cpu_state.eaaddr+=10;
+                        x87_st_fsave(5); cpu_state.eaaddr+=10;
+                        x87_st_fsave(6); cpu_state.eaaddr+=10;
                         x87_st_fsave(7);
                 }
                 break;
                 case 0x001: /*16-bit protected mode*/
-                writememw(easeg,eaaddr,npxc);
-                writememw(easeg,eaaddr+2,npxs);
-                writememw(easeg,eaaddr+4,x87_gettag());
-                writememw(easeg,eaaddr+6,x87_pc_off);
-                writememw(easeg,eaaddr+8,x87_pc_seg);
-                writememw(easeg,eaaddr+10,x87_op_off);
-                writememw(easeg,eaaddr+12,x87_op_seg);
-                eaaddr+=14;
+                writememw(easeg,cpu_state.eaaddr,npxc);
+                writememw(easeg,cpu_state.eaaddr+2,npxs);
+                writememw(easeg,cpu_state.eaaddr+4,x87_gettag());
+                writememw(easeg,cpu_state.eaaddr+6,x87_pc_off);
+                writememw(easeg,cpu_state.eaaddr+8,x87_pc_seg);
+                writememw(easeg,cpu_state.eaaddr+10,x87_op_off);
+                writememw(easeg,cpu_state.eaaddr+12,x87_op_seg);
+                cpu_state.eaaddr+=14;
                 if (ismmx)
                 {
-                        x87_stmmx(MM[0]); eaaddr+=10;
-                        x87_stmmx(MM[1]); eaaddr+=10;
-                        x87_stmmx(MM[2]); eaaddr+=10;
-                        x87_stmmx(MM[3]); eaaddr+=10;
-                        x87_stmmx(MM[4]); eaaddr+=10;
-                        x87_stmmx(MM[5]); eaaddr+=10;
-                        x87_stmmx(MM[6]); eaaddr+=10;
+                        x87_stmmx(MM[0]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[1]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[2]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[3]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[4]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[5]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[6]); cpu_state.eaaddr+=10;
                         x87_stmmx(MM[7]);
                 }
                 else
                 {
-                        x87_st_fsave(0); eaaddr+=10;
-                        x87_st_fsave(1); eaaddr+=10;
-                        x87_st_fsave(2); eaaddr+=10;
-                        x87_st_fsave(3); eaaddr+=10;
-                        x87_st_fsave(4); eaaddr+=10;
-                        x87_st_fsave(5); eaaddr+=10;
-                        x87_st_fsave(6); eaaddr+=10;
+                        x87_st_fsave(0); cpu_state.eaaddr+=10;
+                        x87_st_fsave(1); cpu_state.eaaddr+=10;
+                        x87_st_fsave(2); cpu_state.eaaddr+=10;
+                        x87_st_fsave(3); cpu_state.eaaddr+=10;
+                        x87_st_fsave(4); cpu_state.eaaddr+=10;
+                        x87_st_fsave(5); cpu_state.eaaddr+=10;
+                        x87_st_fsave(6); cpu_state.eaaddr+=10;
                         x87_st_fsave(7);
                 }
                 break;
                 case 0x100: /*32-bit real mode*/
-                writememw(easeg,eaaddr,npxc);
-                writememw(easeg,eaaddr+4,npxs);
-                writememw(easeg,eaaddr+8,x87_gettag());
-                writememw(easeg,eaaddr+12,x87_pc_off);
-                writememw(easeg,eaaddr+20,x87_op_off);
-                writememl(easeg,eaaddr+24,(x87_op_off>>16)<<12);
-                eaaddr+=28;
+                writememw(easeg,cpu_state.eaaddr,npxc);
+                writememw(easeg,cpu_state.eaaddr+4,npxs);
+                writememw(easeg,cpu_state.eaaddr+8,x87_gettag());
+                writememw(easeg,cpu_state.eaaddr+12,x87_pc_off);
+                writememw(easeg,cpu_state.eaaddr+20,x87_op_off);
+                writememl(easeg,cpu_state.eaaddr+24,(x87_op_off>>16)<<12);
+                cpu_state.eaaddr+=28;
                 if (ismmx)
                 {
-                        x87_stmmx(MM[0]); eaaddr+=10;
-                        x87_stmmx(MM[1]); eaaddr+=10;
-                        x87_stmmx(MM[2]); eaaddr+=10;
-                        x87_stmmx(MM[3]); eaaddr+=10;
-                        x87_stmmx(MM[4]); eaaddr+=10;
-                        x87_stmmx(MM[5]); eaaddr+=10;
-                        x87_stmmx(MM[6]); eaaddr+=10;
+                        x87_stmmx(MM[0]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[1]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[2]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[3]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[4]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[5]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[6]); cpu_state.eaaddr+=10;
                         x87_stmmx(MM[7]);
                 }
                 else
                 {
-                        x87_st_fsave(0); eaaddr+=10;
-                        x87_st_fsave(1); eaaddr+=10;
-                        x87_st_fsave(2); eaaddr+=10;
-                        x87_st_fsave(3); eaaddr+=10;
-                        x87_st_fsave(4); eaaddr+=10;
-                        x87_st_fsave(5); eaaddr+=10;
-                        x87_st_fsave(6); eaaddr+=10;
+                        x87_st_fsave(0); cpu_state.eaaddr+=10;
+                        x87_st_fsave(1); cpu_state.eaaddr+=10;
+                        x87_st_fsave(2); cpu_state.eaaddr+=10;
+                        x87_st_fsave(3); cpu_state.eaaddr+=10;
+                        x87_st_fsave(4); cpu_state.eaaddr+=10;
+                        x87_st_fsave(5); cpu_state.eaaddr+=10;
+                        x87_st_fsave(6); cpu_state.eaaddr+=10;
                         x87_st_fsave(7);
                 }
                 break;
                 case 0x101: /*32-bit protected mode*/
-                writememw(easeg,eaaddr,npxc);
-                writememw(easeg,eaaddr+4,npxs);
-                writememw(easeg,eaaddr+8,x87_gettag());
-                writememl(easeg,eaaddr+12,x87_pc_off);
-                writememl(easeg,eaaddr+16,x87_pc_seg);
-                writememl(easeg,eaaddr+20,x87_op_off);
-                writememl(easeg,eaaddr+24,x87_op_seg);
-                eaaddr+=28;
+                writememw(easeg,cpu_state.eaaddr,npxc);
+                writememw(easeg,cpu_state.eaaddr+4,npxs);
+                writememw(easeg,cpu_state.eaaddr+8,x87_gettag());
+                writememl(easeg,cpu_state.eaaddr+12,x87_pc_off);
+                writememl(easeg,cpu_state.eaaddr+16,x87_pc_seg);
+                writememl(easeg,cpu_state.eaaddr+20,x87_op_off);
+                writememl(easeg,cpu_state.eaaddr+24,x87_op_seg);
+                cpu_state.eaaddr+=28;
                 if (ismmx)
                 {
-                        x87_stmmx(MM[0]); eaaddr+=10;
-                        x87_stmmx(MM[1]); eaaddr+=10;
-                        x87_stmmx(MM[2]); eaaddr+=10;
-                        x87_stmmx(MM[3]); eaaddr+=10;
-                        x87_stmmx(MM[4]); eaaddr+=10;
-                        x87_stmmx(MM[5]); eaaddr+=10;
-                        x87_stmmx(MM[6]); eaaddr+=10;
+                        x87_stmmx(MM[0]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[1]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[2]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[3]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[4]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[5]); cpu_state.eaaddr+=10;
+                        x87_stmmx(MM[6]); cpu_state.eaaddr+=10;
                         x87_stmmx(MM[7]);
                 }
                 else
                 {
-                        x87_st_fsave(0); eaaddr+=10;
-                        x87_st_fsave(1); eaaddr+=10;
-                        x87_st_fsave(2); eaaddr+=10;
-                        x87_st_fsave(3); eaaddr+=10;
-                        x87_st_fsave(4); eaaddr+=10;
-                        x87_st_fsave(5); eaaddr+=10;
-                        x87_st_fsave(6); eaaddr+=10;
+                        x87_st_fsave(0); cpu_state.eaaddr+=10;
+                        x87_st_fsave(1); cpu_state.eaaddr+=10;
+                        x87_st_fsave(2); cpu_state.eaaddr+=10;
+                        x87_st_fsave(3); cpu_state.eaaddr+=10;
+                        x87_st_fsave(4); cpu_state.eaaddr+=10;
+                        x87_st_fsave(5); cpu_state.eaaddr+=10;
+                        x87_st_fsave(6); cpu_state.eaaddr+=10;
                         x87_st_fsave(7);
                 }
                 break;
@@ -305,7 +302,7 @@ static int opFSTSW_a16(uint32_t fetchdat)
 {
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FSTSW %08X:%08X\n", easeg, eaaddr);
+        if (fplog) pclog("FSTSW %08X:%08X\n", easeg, cpu_state.eaaddr);
         seteaw((npxs & 0xC7FF) | (TOP << 11));
         CLOCK_CYCLES(3);
         return abrt;
@@ -314,7 +311,7 @@ static int opFSTSW_a32(uint32_t fetchdat)
 {
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FSTSW %08X:%08X\n", easeg, eaaddr);
+        if (fplog) pclog("FSTSW %08X:%08X\n", easeg, cpu_state.eaaddr);
         seteaw((npxs & 0xC7FF) | (TOP << 11));
         CLOCK_CYCLES(3);
         return abrt;
@@ -673,21 +670,21 @@ static int opFCOS(uint32_t fetchdat)
 static int FLDENV()
 {
         FP_ENTER();
-        if (fplog) pclog("FLDENV %08X:%08X\n", easeg, eaaddr);
-        switch ((cr0 & 1) | (op32 & 0x100))
+        if (fplog) pclog("FLDENV %08X:%08X\n", easeg, cpu_state.eaaddr);
+        switch ((cr0 & 1) | (cpu_state.op32 & 0x100))
         {
                 case 0x000: /*16-bit real mode*/
                 case 0x001: /*16-bit protected mode*/
-                npxc = readmemw(easeg, eaaddr);
-                npxs = readmemw(easeg, eaaddr+2);
-                x87_settag(readmemw(easeg, eaaddr+4));
+                npxc = readmemw(easeg, cpu_state.eaaddr);
+                npxs = readmemw(easeg, cpu_state.eaaddr+2);
+                x87_settag(readmemw(easeg, cpu_state.eaaddr+4));
                 TOP = (npxs >> 11) & 7;
                 break;
                 case 0x100: /*32-bit real mode*/
                 case 0x101: /*32-bit protected mode*/
-                npxc = readmemw(easeg, eaaddr);
-                npxs = readmemw(easeg, eaaddr+4);
-                x87_settag(readmemw(easeg, eaaddr+8));
+                npxc = readmemw(easeg, cpu_state.eaaddr);
+                npxs = readmemw(easeg, cpu_state.eaaddr+4);
+                x87_settag(readmemw(easeg, cpu_state.eaaddr+8));
                 TOP = (npxs >> 11) & 7;
                 break;
         }
@@ -715,7 +712,7 @@ static int opFLDCW_a16(uint32_t fetchdat)
         uint16_t tempw;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FLDCW %08X:%08X\n", easeg, eaaddr);                        
+        if (fplog) pclog("FLDCW %08X:%08X\n", easeg, cpu_state.eaaddr);                        
         tempw = geteaw();
         if (abrt) return 1;
         npxc = tempw;
@@ -727,7 +724,7 @@ static int opFLDCW_a32(uint32_t fetchdat)
         uint16_t tempw;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FLDCW %08X:%08X\n", easeg, eaaddr);                        
+        if (fplog) pclog("FLDCW %08X:%08X\n", easeg, cpu_state.eaaddr);                        
         tempw = geteaw();
         if (abrt) return 1;
         npxc = tempw;
@@ -738,41 +735,41 @@ static int opFLDCW_a32(uint32_t fetchdat)
 static int FSTENV()
 {
         FP_ENTER();
-        if (fplog) pclog("FSTENV %08X:%08X\n", easeg, eaaddr);
-        switch ((cr0 & 1) | (op32 & 0x100))
+        if (fplog) pclog("FSTENV %08X:%08X\n", easeg, cpu_state.eaaddr);
+        switch ((cr0 & 1) | (cpu_state.op32 & 0x100))
         {
                 case 0x000: /*16-bit real mode*/
-                writememw(easeg,eaaddr,npxc);
-                writememw(easeg,eaaddr+2,npxs);
-                writememw(easeg,eaaddr+4,x87_gettag());
-                writememw(easeg,eaaddr+6,x87_pc_off);
-                writememw(easeg,eaaddr+10,x87_op_off);
+                writememw(easeg,cpu_state.eaaddr,npxc);
+                writememw(easeg,cpu_state.eaaddr+2,npxs);
+                writememw(easeg,cpu_state.eaaddr+4,x87_gettag());
+                writememw(easeg,cpu_state.eaaddr+6,x87_pc_off);
+                writememw(easeg,cpu_state.eaaddr+10,x87_op_off);
                 break;
                 case 0x001: /*16-bit protected mode*/
-                writememw(easeg,eaaddr,npxc);
-                writememw(easeg,eaaddr+2,npxs);
-                writememw(easeg,eaaddr+4,x87_gettag());
-                writememw(easeg,eaaddr+6,x87_pc_off);
-                writememw(easeg,eaaddr+8,x87_pc_seg);
-                writememw(easeg,eaaddr+10,x87_op_off);
-                writememw(easeg,eaaddr+12,x87_op_seg);
+                writememw(easeg,cpu_state.eaaddr,npxc);
+                writememw(easeg,cpu_state.eaaddr+2,npxs);
+                writememw(easeg,cpu_state.eaaddr+4,x87_gettag());
+                writememw(easeg,cpu_state.eaaddr+6,x87_pc_off);
+                writememw(easeg,cpu_state.eaaddr+8,x87_pc_seg);
+                writememw(easeg,cpu_state.eaaddr+10,x87_op_off);
+                writememw(easeg,cpu_state.eaaddr+12,x87_op_seg);
                 break;
                 case 0x100: /*32-bit real mode*/
-                writememw(easeg,eaaddr,npxc);
-                writememw(easeg,eaaddr+4,npxs);
-                writememw(easeg,eaaddr+8,x87_gettag());
-                writememw(easeg,eaaddr+12,x87_pc_off);
-                writememw(easeg,eaaddr+20,x87_op_off);
-                writememl(easeg,eaaddr+24,(x87_op_off>>16)<<12);
+                writememw(easeg,cpu_state.eaaddr,npxc);
+                writememw(easeg,cpu_state.eaaddr+4,npxs);
+                writememw(easeg,cpu_state.eaaddr+8,x87_gettag());
+                writememw(easeg,cpu_state.eaaddr+12,x87_pc_off);
+                writememw(easeg,cpu_state.eaaddr+20,x87_op_off);
+                writememl(easeg,cpu_state.eaaddr+24,(x87_op_off>>16)<<12);
                 break;
                 case 0x101: /*32-bit protected mode*/
-                writememw(easeg,eaaddr,npxc);
-                writememw(easeg,eaaddr+4,npxs);
-                writememw(easeg,eaaddr+8,x87_gettag());
-                writememl(easeg,eaaddr+12,x87_pc_off);
-                writememl(easeg,eaaddr+16,x87_pc_seg);
-                writememl(easeg,eaaddr+20,x87_op_off);
-                writememl(easeg,eaaddr+24,x87_op_seg);
+                writememw(easeg,cpu_state.eaaddr,npxc);
+                writememw(easeg,cpu_state.eaaddr+4,npxs);
+                writememw(easeg,cpu_state.eaaddr+8,x87_gettag());
+                writememl(easeg,cpu_state.eaaddr+12,x87_pc_off);
+                writememl(easeg,cpu_state.eaaddr+16,x87_pc_seg);
+                writememl(easeg,cpu_state.eaaddr+20,x87_op_off);
+                writememl(easeg,cpu_state.eaaddr+24,x87_op_seg);
                 break;
         }
         CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
@@ -798,7 +795,7 @@ static int opFSTCW_a16(uint32_t fetchdat)
 {
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FSTCW %08X:%08X\n", easeg, eaaddr);
+        if (fplog) pclog("FSTCW %08X:%08X\n", easeg, cpu_state.eaaddr);
         seteaw(npxc);
         CLOCK_CYCLES(3);
         return abrt;
@@ -807,7 +804,7 @@ static int opFSTCW_a32(uint32_t fetchdat)
 {
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FSTCW %08X:%08X\n", easeg, eaaddr);
+        if (fplog) pclog("FSTCW %08X:%08X\n", easeg, cpu_state.eaaddr);
         seteaw(npxc);
         CLOCK_CYCLES(3);
         return abrt;

@@ -75,7 +75,7 @@ void x86_doabrt(int x86_abrt)
 {
 //        ingpf = 1;
         CS = oldcs;
-        cpu_state.pc = oldpc;
+        cpu_state.pc = cpu_state.oldpc;
         _cs.access = (oldcpl << 5) | 0x80;
 //        pclog("x86_doabrt - %02X %08X  %04X:%08X  %i\n", x86_abrt, abrt_error, CS, pc, ins);
         
@@ -637,7 +637,7 @@ void loadcsjmp(uint16_t seg, uint32_t oxpc)
                                 cgate32=(type&0x800);
                                 cgate16=!cgate32;
                                 oldcs=CS;
-                                oldpc=cpu_state.pc;
+                                cpu_state.oldpc=cpu_state.pc;
                                 count=segdat[2]&31;
 #if 0
                                 if ((DPL < CPL) || (DPL < (seg&3)))

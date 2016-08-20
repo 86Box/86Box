@@ -1,13 +1,10 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 static int opBT_w_r_a16(uint32_t fetchdat)
 {
         int tempc;
         uint16_t temp;
         
         fetch_ea_16(fetchdat);
-        eaaddr += ((cpu_state.regs[cpu_reg].w / 16) * 2);     eal_r = 0;
+        cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].w / 16) * 2);     eal_r = 0;
         temp = geteaw();                        if (abrt) return 1;
         flags_rebuild();
         if (temp & (1 << (cpu_state.regs[cpu_reg].w & 15))) flags |=  C_FLAG;
@@ -21,7 +18,7 @@ static int opBT_w_r_a32(uint32_t fetchdat)
         uint16_t temp;
         
         fetch_ea_32(fetchdat);
-        eaaddr += ((cpu_state.regs[cpu_reg].w / 16) * 2);     eal_r = 0;
+        cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].w / 16) * 2);     eal_r = 0;
         temp = geteaw();                        if (abrt) return 1;
         flags_rebuild();
         if (temp & (1 << (cpu_state.regs[cpu_reg].w & 15))) flags |=  C_FLAG;
@@ -35,7 +32,7 @@ static int opBT_l_r_a16(uint32_t fetchdat)
         uint32_t temp;
         
         fetch_ea_16(fetchdat);
-        eaaddr += ((cpu_state.regs[cpu_reg].l / 32) * 4);     eal_r = 0;
+        cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].l / 32) * 4);     eal_r = 0;
         temp = geteal();                        if (abrt) return 1;
         flags_rebuild();
         if (temp & (1 << (cpu_state.regs[cpu_reg].l & 31))) flags |=  C_FLAG;
@@ -49,7 +46,7 @@ static int opBT_l_r_a32(uint32_t fetchdat)
         uint32_t temp;
         
         fetch_ea_32(fetchdat);
-        eaaddr += ((cpu_state.regs[cpu_reg].l / 32) * 4);     eal_r = 0;
+        cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].l / 32) * 4);     eal_r = 0;
         temp = geteal();                        if (abrt) return 1;
         flags_rebuild();
         if (temp & (1 << (cpu_state.regs[cpu_reg].l & 31))) flags |=  C_FLAG;
@@ -66,7 +63,7 @@ static int opBT_l_r_a32(uint32_t fetchdat)
                 uint16_t temp;                                                  \
                                                                                 \
                 fetch_ea_16(fetchdat);                                          \
-                eaaddr += ((cpu_state.regs[cpu_reg].w / 16) * 2);     eal_r = eal_w = 0;      \
+                cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].w / 16) * 2);     eal_r = eal_w = 0;      \
                 temp = geteaw();                        if (abrt) return 1;     \
                 tempc = (temp & (1 << (cpu_state.regs[cpu_reg].w & 15))) ? 1 : 0;   \
                 temp operation (1 << (cpu_state.regs[cpu_reg].w & 15));             \
@@ -84,7 +81,7 @@ static int opBT_l_r_a32(uint32_t fetchdat)
                 uint16_t temp;                                                  \
                                                                                 \
                 fetch_ea_32(fetchdat);                                          \
-                eaaddr += ((cpu_state.regs[cpu_reg].w / 16) * 2);     eal_r = eal_w = 0;      \
+                cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].w / 16) * 2);     eal_r = eal_w = 0;      \
                 temp = geteaw();                        if (abrt) return 1;     \
                 tempc = (temp & (1 << (cpu_state.regs[cpu_reg].w & 15))) ? 1 : 0;   \
                 temp operation (1 << (cpu_state.regs[cpu_reg].w & 15));             \
@@ -102,7 +99,7 @@ static int opBT_l_r_a32(uint32_t fetchdat)
                 uint32_t temp;                                                  \
                                                                                 \
                 fetch_ea_16(fetchdat);                                          \
-                eaaddr += ((cpu_state.regs[cpu_reg].l / 32) * 4);     eal_r = eal_w = 0;      \
+                cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].l / 32) * 4);     eal_r = eal_w = 0;      \
                 temp = geteal();                        if (abrt) return 1;     \
                 tempc = (temp & (1 << (cpu_state.regs[cpu_reg].l & 31))) ? 1 : 0;   \
                 temp operation (1 << (cpu_state.regs[cpu_reg].l & 31));             \
@@ -120,7 +117,7 @@ static int opBT_l_r_a32(uint32_t fetchdat)
                 uint32_t temp;                                                  \
                                                                                 \
                 fetch_ea_32(fetchdat);                                          \
-                eaaddr += ((cpu_state.regs[cpu_reg].l / 32) * 4);     eal_r = eal_w = 0;      \
+                cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].l / 32) * 4);     eal_r = eal_w = 0;      \
                 temp = geteal();                        if (abrt) return 1;     \
                 tempc = (temp & (1 << (cpu_state.regs[cpu_reg].l & 31))) ? 1 : 0;   \
                 temp operation (1 << (cpu_state.regs[cpu_reg].l & 31));             \
@@ -167,7 +164,7 @@ static int opBA_w_a16(uint32_t fetchdat)
 
                 default:
                 pclog("Bad 0F BA opcode %02X\n", rmdat & 0x38);
-                cpu_state.pc = oldpc;
+                cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 break;
         }
@@ -207,7 +204,7 @@ static int opBA_w_a32(uint32_t fetchdat)
 
                 default:
                 pclog("Bad 0F BA opcode %02X\n", rmdat & 0x38);
-                cpu_state.pc = oldpc;
+                cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 break;
         }
@@ -248,7 +245,7 @@ static int opBA_l_a16(uint32_t fetchdat)
 
                 default:
                 pclog("Bad 0F BA opcode %02X\n", rmdat & 0x38);
-                cpu_state.pc = oldpc;
+                cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 break;
         }
@@ -288,7 +285,7 @@ static int opBA_l_a32(uint32_t fetchdat)
 
                 default:
                 pclog("Bad 0F BA opcode %02X\n", rmdat & 0x38);
-                cpu_state.pc = oldpc;
+                cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 break;
         }

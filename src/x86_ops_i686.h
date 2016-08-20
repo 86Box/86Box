@@ -3,7 +3,7 @@
 */
 static int internal_illegal(char *s)
 {
-	cpu_state.pc = oldpc;
+	cpu_state.pc = cpu_state.oldpc;
 	x86gpf(s, 0);
 	return abrt;
 }
@@ -149,9 +149,9 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 
 	fetch_ea_16(fetchdat);
 
-	if (eaaddr & 0xf)
+	if (cpu_state.eaaddr & 0xf)
 	{
-		pclog("Effective address %04X not on 16-byte boundary\n", eaaddr);
+		pclog("Effective address %04X not on 16-byte boundary\n", cpu_state.eaaddr);
 		x86gpf(NULL, 0);
 		return abrt;
 	}
@@ -169,30 +169,30 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 
 	FP_ENTER();
 
-	old_eaaddr = eaaddr;
+	old_eaaddr = cpu_state.eaaddr;
 
 	if (fxinst == 1)
 	{
 		/* FXRSTOR */
 		// pclog("FXRSTOR issued\n");
 
-		npxc = readmemw(easeg, eaaddr);
-		fpus = readmemw(easeg, eaaddr + 2);
+		npxc = readmemw(easeg, cpu_state.eaaddr);
+		fpus = readmemw(easeg, cpu_state.eaaddr + 2);
 		npxc = (npxc & ~FPU_CW_Reserved_Bits) | 0x0040;
 		TOP = (fpus >> 11) & 7;
 		npxs &= fpus & ~0x3800;
 
-		/* foo = readmemw(easeg, eaaddr + 6) & 0x7FF; */
+		/* foo = readmemw(easeg, cpu_state.eaaddr + 6) & 0x7FF; */
 
-               	x87_pc_off = readmeml(easeg, eaaddr+8);
-                x87_pc_seg = readmemw(easeg, eaaddr+12);
+               	x87_pc_off = readmeml(easeg, cpu_state.eaaddr+8);
+                x87_pc_seg = readmemw(easeg, cpu_state.eaaddr+12);
 		/* if (cr0 & 1)
 		{
 			x87_pc_seg &= 0xFFFC;
 			x87_pc_seg |= ((_cs.access >> 5) & 3);
 		} */
 
-		ftwb = readmemb(easeg, eaaddr + 4);
+		ftwb = readmemb(easeg, cpu_state.eaaddr + 4);
 
 		if (ftwb & 0x01)  rec_ftw |= 0x0003;
 		if (ftwb & 0x02)  rec_ftw |= 0x000C;
@@ -203,37 +203,37 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 		if (ftwb & 0x40)  rec_ftw |= 0x3000;
 		if (ftwb & 0x80)  rec_ftw |= 0xC000;
 
-               	x87_op_off = readmeml(easeg, eaaddr+16);
-		x87_op_off |= (readmemw(easeg, eaaddr + 6) >> 12) << 16;
-                x87_op_seg = readmemw(easeg, eaaddr+20);
+               	x87_op_off = readmeml(easeg, cpu_state.eaaddr+16);
+		x87_op_off |= (readmemw(easeg, cpu_state.eaaddr + 6) >> 12) << 16;
+                x87_op_seg = readmemw(easeg, cpu_state.eaaddr+20);
 		/* if (cr0 & 1)
 		{
 			x87_op_seg &= 0xFFFC;
 			x87_op_seg |= ((_ds.access >> 5) & 3);
 		} */
 
-		eaaddr = old_eaaddr + 32;
+		cpu_state.eaaddr = old_eaaddr + 32;
 		x87_ldmmx(&MM[0]); x87_ld_frstor(0);
 
-		eaaddr = old_eaaddr + 48;
+		cpu_state.eaaddr = old_eaaddr + 48;
 		x87_ldmmx(&MM[1]); x87_ld_frstor(1);
 
-		eaaddr = old_eaaddr + 64;
+		cpu_state.eaaddr = old_eaaddr + 64;
 		x87_ldmmx(&MM[2]); x87_ld_frstor(2);
 
-		eaaddr = old_eaaddr + 80;
+		cpu_state.eaaddr = old_eaaddr + 80;
 		x87_ldmmx(&MM[3]); x87_ld_frstor(3);
 
-		eaaddr = old_eaaddr + 96;
+		cpu_state.eaaddr = old_eaaddr + 96;
 		x87_ldmmx(&MM[4]); x87_ld_frstor(4);
 
-		eaaddr = old_eaaddr + 112;
+		cpu_state.eaaddr = old_eaaddr + 112;
 		x87_ldmmx(&MM[5]); x87_ld_frstor(5);
 
-		eaaddr = old_eaaddr + 128;
+		cpu_state.eaaddr = old_eaaddr + 128;
 		x87_ldmmx(&MM[6]); x87_ld_frstor(6);
 
-		eaaddr = old_eaaddr + 144;
+		cpu_state.eaaddr = old_eaaddr + 144;
 		x87_ldmmx(&MM[7]); x87_ld_frstor(7);
 
 	        ismmx = 0;
@@ -264,42 +264,42 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 		if (twd & 0x3000 == 0x3000)  ftwb |= 0x40;
 		if (twd & 0xC000 == 0xC000)  ftwb |= 0x80;
 
-                writememw(easeg,eaaddr,npxc);
-                writememw(easeg,eaaddr+2,npxs);
-                writememb(easeg,eaaddr+4,ftwb);
+                writememw(easeg,cpu_state.eaaddr,npxc);
+                writememw(easeg,cpu_state.eaaddr+2,npxs);
+                writememb(easeg,cpu_state.eaaddr+4,ftwb);
 
-                writememw(easeg,eaaddr+6,(x87_op_off>>16)<<12);
-               	writememl(easeg,eaaddr+8,x87_pc_off);
-                writememw(easeg,eaaddr+12,x87_pc_seg);
+                writememw(easeg,cpu_state.eaaddr+6,(x87_op_off>>16)<<12);
+               	writememl(easeg,cpu_state.eaaddr+8,x87_pc_off);
+                writememw(easeg,cpu_state.eaaddr+12,x87_pc_seg);
 
-                writememl(easeg,eaaddr+16,x87_op_off);
-                writememw(easeg,eaaddr+20,x87_op_seg);
+                writememl(easeg,cpu_state.eaaddr+16,x87_op_off);
+                writememw(easeg,cpu_state.eaaddr+20,x87_op_seg);
 
-		eaaddr = old_eaaddr + 32;
+		cpu_state.eaaddr = old_eaaddr + 32;
 		ismmx ? x87_stmmx(MM[0]) : x87_st_fsave(0);
 
-		eaaddr = old_eaaddr + 48;
+		cpu_state.eaaddr = old_eaaddr + 48;
 		ismmx ? x87_stmmx(MM[1]) : x87_st_fsave(1);
 
-		eaaddr = old_eaaddr + 64;
+		cpu_state.eaaddr = old_eaaddr + 64;
 		ismmx ? x87_stmmx(MM[2]) : x87_st_fsave(2);
 
-		eaaddr = old_eaaddr + 80;
+		cpu_state.eaaddr = old_eaaddr + 80;
 		ismmx ? x87_stmmx(MM[3]) : x87_st_fsave(3);
 
-		eaaddr = old_eaaddr + 96;
+		cpu_state.eaaddr = old_eaaddr + 96;
 		ismmx ? x87_stmmx(MM[4]) : x87_st_fsave(4);
 
-		eaaddr = old_eaaddr + 112;
+		cpu_state.eaaddr = old_eaaddr + 112;
 		ismmx ? x87_stmmx(MM[5]) : x87_st_fsave(5);
 
-		eaaddr = old_eaaddr + 128;
+		cpu_state.eaaddr = old_eaaddr + 128;
 		ismmx ? x87_stmmx(MM[6]) : x87_st_fsave(6);
 
-		eaaddr = old_eaaddr + 144;
+		cpu_state.eaaddr = old_eaaddr + 144;
 		ismmx ? x87_stmmx(MM[7]) : x87_st_fsave(7);
 
-		eaaddr = old_eaaddr;
+		cpu_state.eaaddr = old_eaaddr;
 
 		CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
 
@@ -325,9 +325,9 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 
 	fetch_ea_32(fetchdat);
 
-	if (eaaddr & 0xf)
+	if (cpu_state.eaaddr & 0xf)
 	{
-		pclog("Effective address %08X not on 16-byte boundary\n", eaaddr);
+		pclog("Effective address %08X not on 16-byte boundary\n", cpu_state.eaaddr);
 		x86gpf(NULL, 0);
 		return abrt;
 	}
@@ -345,30 +345,30 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 
 	FP_ENTER();
 
-	old_eaaddr = eaaddr;
+	old_eaaddr = cpu_state.eaaddr;
 
 	if (fxinst == 1)
 	{
 		/* FXRSTOR */
 		// pclog("FXRSTOR issued\n");
 
-		npxc = readmemw(easeg, eaaddr);
-		fpus = readmemw(easeg, eaaddr + 2);
+		npxc = readmemw(easeg, cpu_state.eaaddr);
+		fpus = readmemw(easeg, cpu_state.eaaddr + 2);
 		npxc = (npxc & ~FPU_CW_Reserved_Bits) | 0x0040;
 		TOP = (fpus >> 11) & 7;
 		npxs &= fpus & ~0x3800;
 
-		/* foo = readmemw(easeg, eaaddr + 6) & 0x7FF; */
+		/* foo = readmemw(easeg, cpu_state.eaaddr + 6) & 0x7FF; */
 
-               	x87_pc_off = readmeml(easeg, eaaddr+8);
-                x87_pc_seg = readmemw(easeg, eaaddr+12);
+               	x87_pc_off = readmeml(easeg, cpu_state.eaaddr+8);
+                x87_pc_seg = readmemw(easeg, cpu_state.eaaddr+12);
 		/* if (cr0 & 1)
 		{
 			x87_pc_seg &= 0xFFFC;
 			x87_pc_seg |= ((_cs.access >> 5) & 3);
 		} */
 
-		ftwb = readmemb(easeg, eaaddr + 4);
+		ftwb = readmemb(easeg, cpu_state.eaaddr + 4);
 
 		if (ftwb & 0x01)  rec_ftw |= 0x0003;
 		if (ftwb & 0x02)  rec_ftw |= 0x000C;
@@ -379,37 +379,37 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 		if (ftwb & 0x40)  rec_ftw |= 0x3000;
 		if (ftwb & 0x80)  rec_ftw |= 0xC000;
 
-               	x87_op_off = readmeml(easeg, eaaddr+16);
-		x87_op_off |= (readmemw(easeg, eaaddr + 6) >> 12) << 16;
-                x87_op_seg = readmemw(easeg, eaaddr+20);
+               	x87_op_off = readmeml(easeg, cpu_state.eaaddr+16);
+		x87_op_off |= (readmemw(easeg, cpu_state.eaaddr + 6) >> 12) << 16;
+                x87_op_seg = readmemw(easeg, cpu_state.eaaddr+20);
 		/* if (cr0 & 1)
 		{
 			x87_op_seg &= 0xFFFC;
 			x87_op_seg |= ((_ds.access >> 5) & 3);
 		} */
 
-		eaaddr = old_eaaddr + 32;
+		cpu_state.eaaddr = old_eaaddr + 32;
 		x87_ldmmx(&MM[0]); x87_ld_frstor(0);
 
-		eaaddr = old_eaaddr + 48;
+		cpu_state.eaaddr = old_eaaddr + 48;
 		x87_ldmmx(&MM[1]); x87_ld_frstor(1);
 
-		eaaddr = old_eaaddr + 64;
+		cpu_state.eaaddr = old_eaaddr + 64;
 		x87_ldmmx(&MM[2]); x87_ld_frstor(2);
 
-		eaaddr = old_eaaddr + 80;
+		cpu_state.eaaddr = old_eaaddr + 80;
 		x87_ldmmx(&MM[3]); x87_ld_frstor(3);
 
-		eaaddr = old_eaaddr + 96;
+		cpu_state.eaaddr = old_eaaddr + 96;
 		x87_ldmmx(&MM[4]); x87_ld_frstor(4);
 
-		eaaddr = old_eaaddr + 112;
+		cpu_state.eaaddr = old_eaaddr + 112;
 		x87_ldmmx(&MM[5]); x87_ld_frstor(5);
 
-		eaaddr = old_eaaddr + 128;
+		cpu_state.eaaddr = old_eaaddr + 128;
 		x87_ldmmx(&MM[6]); x87_ld_frstor(6);
 
-		eaaddr = old_eaaddr + 144;
+		cpu_state.eaaddr = old_eaaddr + 144;
 		x87_ldmmx(&MM[7]); x87_ld_frstor(7);
 
 	        ismmx = 0;
@@ -440,42 +440,42 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 		if (twd & 0x3000 == 0x3000)  ftwb |= 0x40;
 		if (twd & 0xC000 == 0xC000)  ftwb |= 0x80;
 
-                writememw(easeg,eaaddr,npxc);
-                writememw(easeg,eaaddr+2,npxs);
-                writememb(easeg,eaaddr+4,ftwb);
+                writememw(easeg,cpu_state.eaaddr,npxc);
+                writememw(easeg,cpu_state.eaaddr+2,npxs);
+                writememb(easeg,cpu_state.eaaddr+4,ftwb);
 
-                writememw(easeg,eaaddr+6,(x87_op_off>>16)<<12);
-               	writememl(easeg,eaaddr+8,x87_pc_off);
-                writememw(easeg,eaaddr+12,x87_pc_seg);
+                writememw(easeg,cpu_state.eaaddr+6,(x87_op_off>>16)<<12);
+               	writememl(easeg,cpu_state.eaaddr+8,x87_pc_off);
+                writememw(easeg,cpu_state.eaaddr+12,x87_pc_seg);
 
-                writememl(easeg,eaaddr+16,x87_op_off);
-                writememw(easeg,eaaddr+20,x87_op_seg);
+                writememl(easeg,cpu_state.eaaddr+16,x87_op_off);
+                writememw(easeg,cpu_state.eaaddr+20,x87_op_seg);
 
-		eaaddr = old_eaaddr + 32;
+		cpu_state.eaaddr = old_eaaddr + 32;
 		ismmx ? x87_stmmx(MM[0]) : x87_st_fsave(0);
 
-		eaaddr = old_eaaddr + 48;
+		cpu_state.eaaddr = old_eaaddr + 48;
 		ismmx ? x87_stmmx(MM[1]) : x87_st_fsave(1);
 
-		eaaddr = old_eaaddr + 64;
+		cpu_state.eaaddr = old_eaaddr + 64;
 		ismmx ? x87_stmmx(MM[2]) : x87_st_fsave(2);
 
-		eaaddr = old_eaaddr + 80;
+		cpu_state.eaaddr = old_eaaddr + 80;
 		ismmx ? x87_stmmx(MM[3]) : x87_st_fsave(3);
 
-		eaaddr = old_eaaddr + 96;
+		cpu_state.eaaddr = old_eaaddr + 96;
 		ismmx ? x87_stmmx(MM[4]) : x87_st_fsave(4);
 
-		eaaddr = old_eaaddr + 112;
+		cpu_state.eaaddr = old_eaaddr + 112;
 		ismmx ? x87_stmmx(MM[5]) : x87_st_fsave(5);
 
-		eaaddr = old_eaaddr + 128;
+		cpu_state.eaaddr = old_eaaddr + 128;
 		ismmx ? x87_stmmx(MM[6]) : x87_st_fsave(6);
 
-		eaaddr = old_eaaddr + 144;
+		cpu_state.eaaddr = old_eaaddr + 144;
 		ismmx ? x87_stmmx(MM[7]) : x87_st_fsave(7);
 
-		eaaddr = old_eaaddr;
+		cpu_state.eaaddr = old_eaaddr;
 
 		CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
 

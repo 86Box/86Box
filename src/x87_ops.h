@@ -111,9 +111,9 @@ static inline double x87_ld80()
        	int64_t mant64;
        	int64_t sign;
 
-	test.eind.ll = readmeml(easeg,eaaddr);
-	test.eind.ll |= (uint64_t)readmeml(easeg,eaaddr+4)<<32;
-	test.begin = readmemw(easeg,eaaddr+8);
+	test.eind.ll = readmeml(easeg,cpu_state.eaaddr);
+	test.eind.ll |= (uint64_t)readmeml(easeg,cpu_state.eaaddr+4)<<32;
+	test.begin = readmemw(easeg,cpu_state.eaaddr+8);
 
        	exp64 = (((test.begin&0x7fff) - BIAS80));
        	blah = ((exp64 >0)?exp64:-exp64)&0x3ff;
@@ -173,9 +173,9 @@ static inline void x87_st80(double d)
        	test.begin = (((int16_t)sign80)<<15)| (int16_t)exp80final;
        	test.eind.ll = mant80final;
 
-	writememl(easeg,eaaddr,test.eind.ll);
-	writememl(easeg,eaaddr+4,test.eind.ll>>32);
-	writememw(easeg,eaaddr+8,test.begin);
+	writememl(easeg,cpu_state.eaaddr,test.eind.ll);
+	writememl(easeg,cpu_state.eaaddr+4,test.eind.ll>>32);
+	writememw(easeg,cpu_state.eaaddr+8,test.begin);
 }
 
 static inline void x87_st_fsave(int reg)
@@ -184,9 +184,9 @@ static inline void x87_st_fsave(int reg)
         
         if (tag[reg] & TAG_UINT64)
         {
-        	writememl(easeg, eaaddr, ST_i64[reg] & 0xffffffff);
-        	writememl(easeg, eaaddr + 4, ST_i64[reg] >> 32);
-        	writememw(easeg, eaaddr + 8, 0x5555);
+        	writememl(easeg, cpu_state.eaaddr, ST_i64[reg] & 0xffffffff);
+        	writememl(easeg, cpu_state.eaaddr + 4, ST_i64[reg] >> 32);
+        	writememw(easeg, cpu_state.eaaddr + 8, 0x5555);
         }
         else
                 x87_st80(ST[reg]);
@@ -198,13 +198,13 @@ static inline void x87_ld_frstor(int reg)
         
         reg = (TOP + reg) & 7;
         
-        temp = readmemw(easeg, eaaddr + 8);
+        temp = readmemw(easeg, cpu_state.eaaddr + 8);
 
         if (temp == 0x5555 && tag[reg] == 2)
         {
                 tag[reg] = TAG_UINT64;
-                ST_i64[reg] = readmeml(easeg, eaaddr);
-                ST_i64[reg] |= ((uint64_t)readmeml(easeg, eaaddr + 4) << 32);
+                ST_i64[reg] = readmeml(easeg, cpu_state.eaaddr);
+                ST_i64[reg] |= ((uint64_t)readmeml(easeg, cpu_state.eaaddr + 4) << 32);
                 ST[reg] = (double)ST_i64[reg];
         }
         else
@@ -213,16 +213,16 @@ static inline void x87_ld_frstor(int reg)
 
 static inline void x87_ldmmx(MMX_REG *r)
 {
-        r->l[0] = readmeml(easeg, eaaddr);
-        r->l[1] = readmeml(easeg, eaaddr + 4);
-        r->w[4] = readmemw(easeg, eaaddr + 8);
+        r->l[0] = readmeml(easeg, cpu_state.eaaddr);
+        r->l[1] = readmeml(easeg, cpu_state.eaaddr + 4);
+        r->w[4] = readmemw(easeg, cpu_state.eaaddr + 8);
 }
 
 static inline void x87_stmmx(MMX_REG r)
 {
-        writememl(easeg, eaaddr,     r.l[0]);
-        writememl(easeg, eaaddr + 4, r.l[1]);
-        writememw(easeg, eaaddr + 8, 0xffff);
+        writememl(easeg, cpu_state.eaaddr,     r.l[0]);
+        writememl(easeg, cpu_state.eaaddr + 4, r.l[1]);
+        writememw(easeg, cpu_state.eaaddr + 8, 0xffff);
 }
 
 static inline uint16_t x87_compare(double a, double b)
