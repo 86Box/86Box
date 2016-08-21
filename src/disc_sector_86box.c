@@ -319,11 +319,27 @@ int disc_sector_match(int drive)
 	temp = (disc_sector_track[drive] == last_sector[drive]->c);
 	temp = temp && (disc_sector_side[drive] == last_sector[drive]->h);
 	temp = temp && (disc_sector_sector[drive] == last_sector[drive]->r);
+	temp = temp && (disc_sector_n[drive] == last_sector[drive]->n);
+	return temp;
+}
+
+uint32_t disc_sector_get_data_len(int drive)
+{
 	if (disc_sector_n[drive])
 	{
-		temp = temp && (disc_sector_n[drive] == last_sector[drive]->n);
+		return (128 << ((uint32_t) disc_sector_n[drive]));
 	}
-	return temp;
+	else
+	{
+		if (fdc_get_dtl() < 128)
+		{
+			return fdc_get_dtl();
+		}
+		else
+		{
+			return (128 << ((uint32_t) disc_sector_n[drive]));
+		}
+	}
 }
 
 int disc_sector_can_read_address(int drive)
@@ -365,7 +381,7 @@ int disc_sector_read_state(int drive)
 	return temp;
 }
 
-int id_pos = 0;
+int section_pos[2] = {0, 0};
 
 typedef union
 {
@@ -385,6 +401,8 @@ void disc_sector_poll()
 	int b = 0;
 
 	int cur_id_pos = 0;
+	int cur_data_pos = 0;
+	int cur_gap3_pos = 0;
 
 	uint8_t track_byte = 0;
 	uint8_t track_index = 0;
@@ -442,7 +460,7 @@ void disc_sector_poll()
 			// pclog("Index hole hit again, format finished\n");
               		disc_sector_state[drive] = STATE_IDLE;
    		        if (!disable_write)  disc_sector_writeback[drive](drive, disc_sector_track[drive]);
-                        fdc_finishread(drive);
+                        fdc_sector_finishread(drive);
 		}
 		if ((disc_sector_state[drive] == STATE_FORMAT_FIND) && disc_sector_can_read_address(drive))
 		{
@@ -455,7 +473,7 @@ void disc_sector_poll()
 	{
 		case BYTE_ID_SYNC:
 			if (disc_sector_state[drive] != STATE_FORMAT)  break;
-			cur_id_pos = cur_track_pos[drive] - id_pos;
+			cur_id_pos = cur_track_pos[drive] - section_pos[drive];
 			if (cur_id_pos > 3)  break;
                 	data = fdc_getdata(0);
         	        if ((data == -1) && (cur_id_pos < 3))
@@ -477,6 +495,7 @@ void disc_sector_poll()
 			}
 			break;
 		case BYTE_DATA:
+			cur_data_pos = cur_track_pos[drive] - section_pos[drive];
 			if (disc_sector_read_state(drive) && (last_sector[drive] != NULL))
 			{
 				if (fdc_data(last_sector[drive]->data[data_counter[drive]]))
@@ -492,7 +511,7 @@ void disc_sector_poll()
 			}
 			if ((disc_sector_state[drive] == STATE_WRITE_SECTOR) && (last_sector[drive] != NULL))
 			{
-	                	data = fdc_getdata(cur_byte[drive] == ((128 << ((uint32_t) last_sector[drive]->n)) - 1));
+	                	data = fdc_getdata(data_counter[drive] == ((128 << ((uint32_t) last_sector[drive]->n)) - 1));
 	        	        if (data == -1)
 				{
 					/* Data failed to be sent from the FDC, abort. */
@@ -517,23 +536,22 @@ void disc_sector_poll()
 			else
 			{
 				data_counter[drive] %= (128 << ((uint32_t) last_sector[drive]->n));
-				if (!data_counter[drive])
+			}
+			break;
+		case BYTE_GAP3:
+			cur_gap3_pos = cur_track_pos[drive] - section_pos[drive];
+			if (cur_gap3_pos == (fdc_get_gap() - 1))
+			{
+				if (disc_sector_read_state(drive) && (last_sector[drive] != NULL))
 				{
-					if (disc_sector_read_state(drive) && (last_sector[drive] != NULL))
-					{
-		        	                disc_sector_state[drive] = STATE_IDLE;
-		                        	fdc_finishread(drive);
-					}
-					if ((disc_sector_state[drive] == STATE_WRITE_SECTOR) && (last_sector[drive] != NULL))
-					{
-		                	        disc_sector_state[drive] = STATE_IDLE;
-        		                	if (!disable_write)  disc_sector_writeback[drive](drive, disc_sector_track[drive]);
-	                		        fdc_finishread(drive);
-					}
-					/* if (disc_sector_state[drive] == STATE_FORMAT && (last_sector[drive] != NULL))
-					{
-						// pclog("Format: Sector fill finished\n");
-					} */
+	        	                disc_sector_state[drive] = STATE_IDLE;
+	                        	fdc_sector_finishread(drive);
+				}
+				if ((disc_sector_state[drive] == STATE_WRITE_SECTOR) && (last_sector[drive] != NULL))
+				{
+	                	        disc_sector_state[drive] = STATE_IDLE;
+       		                	if (!disable_write)  disc_sector_writeback[drive](drive, disc_sector_track[drive]);
+                		        fdc_sector_finishread(drive);
 				}
 			}
 			break;
@@ -573,10 +591,10 @@ void disc_sector_poll()
 	if (track_byte != old_track_byte)
 	{
 		// if (disc_sector_state[drive] == STATE_FORMAT)  pclog("Track byte: %02X, old: %02X\n", track_byte, old_track_byte);
+		section_pos[drive] = cur_track_pos[drive];
 		switch(track_byte)
 		{
 			case BYTE_ID_SYNC:
-				id_pos = cur_track_pos[drive];
 				if (disc_sector_state[drive] == STATE_FORMAT)
 				{
 					// pclog("Requesting next sector ID...\n");
@@ -611,7 +629,7 @@ void disc_sector_poll()
 				}
 				break;
 			case BYTE_DATA:
-				data_counter[drive] = 0;
+				// data_counter[drive] = 0;
 				switch (disc_sector_state[drive])
 				{
 					case STATE_READ_FIND_SECTOR:

@@ -242,9 +242,9 @@ typedef struct PIT
         int rereadlatch[3];
         int gate[3];
         int out[3];
-        int running[3];
-        int enabled[3];
-        int newcount[3];
+        int64_t running[3];
+        int64_t enabled[3];
+        int64_t newcount[3];
         int count[3];
         int using_timer[3];
         int initial[3];

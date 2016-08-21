@@ -20,12 +20,12 @@ static struct
 	int present;
 	void (*callback)(void *priv);
 	void *priv;
-	int *enable;
+	int64_t *enable;
 	int64_t *count;
 } timers[TIMERS_MAX];
 
 int timers_present = 0;
-int timer_one = 1;
+int64_t timer_one = 1;
 	
 int64_t timer_count = 0, timer_latch = 0;
 int64_t timer_start = 0;
@@ -99,7 +99,7 @@ void timer_reset()
 //	timer_process();
 }
 
-int timer_add(void (*callback)(void *priv), int64_t *count, int *enable, void *priv)
+int timer_add(void (*callback)(void *priv), int64_t *count, int64_t *enable, void *priv)
 {
 	if (timers_present < TIMERS_MAX)
 	{

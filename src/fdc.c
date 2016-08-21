@@ -12,7 +12,7 @@
 #include "pic.h"
 #include "timer.h"
 
-extern int motoron;
+extern int64_t motoron;
 
 static int fdc_reset_stat = 0;
 /*FDC*/
@@ -100,6 +100,32 @@ void fdc_reset()
 }
 
 int ins;
+
+int fdc_get_bitcell_period();
+
+double fdc_get_hut()
+{
+	int hut = (fdc.specify[0] & 0xF);
+	double dusec;
+	double bcp = ((double) fdc_get_bitcell_period()) / 250.0;
+	double dhut = (double) hut;
+	if (fdc_get_bitcell_period() == 3333)  bcp = 160.0 / 6.0;
+	if (hut == 0)  dhut = 16.0;
+	dusec = (double) TIMER_USEC;
+	return (bcp * dhut * dusec * 1000.0);
+}
+
+double fdc_get_hlt()
+{
+	int hlt = (fdc.specify[1] >> 1);
+	double dusec;
+	double bcp = ((double) fdc_get_bitcell_period()) / 2000.0;
+	double dhlt = (double) hlt;
+	if (fdc_get_bitcell_period() == 3333)  bcp = 20.0 / 6.0;
+	if (hlt == 0)  dhlt = 256.0;
+	dusec = (double) TIMER_USEC;
+	return (bcp * dhlt * dusec * 1000.0);
+}
 
 void fdc_request_next_sector_id()
 {
@@ -613,13 +639,13 @@ bad_command:
                                 fdc.stat=0x30;
                                 discint=fdc.command&0x1F;
         			timer_process();
-        			disctime = 1024 * (1 << TIMER_SHIFT);
+       				disctime = 1024 * (1 << TIMER_SHIFT);
         			timer_update_outstanding();
 //                                fdc.drive = fdc.params[0] & 3;
                                 disc_drivesel = fdc.drive & 1;
                                 fdc_reset_stat = 0;
                                 disc_set_drivesel(fdc.drive & 1);
-                                switch (discint)
+                                switch (discint & 0x1F)
                                 {
                                         case 2: /*Read a track*/
 					fdc_rate(fdc.drive);
@@ -639,10 +665,10 @@ bad_command:
 					}
                                         fdc.rw_track = fdc.params[1];
 //                                        pclog("Read a track track=%i head=%i sector=%i eot=%i\n", fdc.track[fdc.drive], fdc.head, fdc.sector, fdc.eot[fdc.drive]);
-                                        disc_readsector(fdc.drive, SECTOR_FIRST, fdc.params[1], fdc.head, fdc.rate, fdc.params[4]);
-                                        disctime = 0;
-                                        readflash = 1;
-                                        fdc.inread = 1;
+					disc_readsector(fdc.drive, SECTOR_FIRST, fdc.params[1], fdc.head, fdc.rate, fdc.params[4]);
+					disctime = 0;
+					readflash = 1;
+					fdc.inread = 1;
                                         break;
 
                                         case 3: /*Specify*/
@@ -669,16 +695,15 @@ bad_command:
 							fdc.track[fdc.drive] = fdc.params[1];
 						}
 					}
-                                        fdc.rw_track = fdc.params[1];
-                                        
-                                        disc_writesector(fdc.drive, fdc.sector, fdc.params[1], fdc.head, fdc.rate, fdc.params[4]);
-                                        disctime = 0;
-                                        fdc.written = 0;
-                                        readflash = 1;
-                                        fdc.pos = 0;
-                                        if (fdc.pcjr)
-                                                fdc.stat = 0xb0;
-//                                        ioc_fiq(IOC_FIQ_DISC_DATA);
+                                        fdc.rw_track = fdc.params[1];                                        
+	                                disc_writesector(fdc.drive, fdc.sector, fdc.params[1], fdc.head, fdc.rate, fdc.params[4]);
+        	                        disctime = 0;
+	                                fdc.written = 0;
+        	                        readflash = 1;
+                	                fdc.pos = 0;
+	                                if (fdc.pcjr)
+	                                        fdc.stat = 0xb0;
+        	                        // ioc_fiq(IOC_FIQ_DISC_DATA);
                                         break;
                                         
                                         case 6: /*Read data*/
@@ -698,11 +723,10 @@ bad_command:
 						}
 					}
                                         fdc.rw_track = fdc.params[1];
-                                        
-                                        disc_readsector(fdc.drive, fdc.sector, fdc.params[1], fdc.head, fdc.rate, fdc.params[4]);
-                                        disctime = 0;
-                                        readflash = 1;
-                                        fdc.inread = 1;
+                        	        disc_readsector(fdc.drive, fdc.sector, fdc.params[1], fdc.head, fdc.rate, fdc.params[4]);
+                	                disctime = 0;
+        	                        readflash = 1;
+	                                fdc.inread = 1;
                                         break;
                                         
                                         case 7: /*Recalibrate*/
@@ -758,7 +782,7 @@ bad_command:
                                         fdc.head = (fdc.params[0] & 4) ? 1 : 0;                                        
 					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
 					if (((fdc.drive ^ fdd_swap) != 1) || fdc.drv2en)
-	                                        disc_readaddress(fdc.drive, fdc.track[fdc.drive], fdc.head, fdc.rate);
+						disc_readaddress(fdc.drive, fdc.track[fdc.drive], fdc.head, fdc.rate);
 					else
 						fdc_notfound();
                                         break;
@@ -1307,6 +1331,13 @@ void fdc_finishread()
 {
         fdc.inread = 0;
         disctime = 200 * TIMER_USEC;
+//        rpclog("fdc_finishread\n");
+}
+
+void fdc_sector_finishread()
+{
+        fdc.inread = 0;
+	fdc_callback();
 //        rpclog("fdc_finishread\n");
 }
 

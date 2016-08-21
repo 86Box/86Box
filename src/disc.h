@@ -57,7 +57,7 @@ extern int fdc_ready;
 extern int fdc_indexcount;*/
 
 extern int motorspin;
-extern int motoron;
+extern int64_t motoron;
 
 extern int swwp;
 extern int disable_write;

@@ -26,7 +26,7 @@ typedef struct pssj_t
         
         int irq;
         int64_t timer_count;
-        int enable;
+        int64_t enable;
         
         int wave_pos;
         int pulse_width;

@@ -46,13 +46,13 @@ extern int64_t timer_start;
 void timer_process();
 void timer_update_outstanding();
 void timer_reset();
-int timer_add(void (*callback)(void *priv), int64_t *count, int *enable, void *priv);
+int timer_add(void (*callback)(void *priv), int64_t *count, int64_t *enable, void *priv);
 void timer_set_callback(int timer, void (*callback)(void *priv));
 
 #define TIMER_ALWAYS_ENABLED &timer_one
 
 extern int64_t timer_count;
-extern int timer_one;
+extern int64_t timer_one;
 
 #define TIMER_SHIFT 6
 

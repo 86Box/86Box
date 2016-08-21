@@ -37,7 +37,7 @@ int drive_empty[2] = {1, 1};
 int disc_changed[2];
 
 int motorspin;
-int motoron;
+int64_t motoron;
 
 int fdc_indexcount = 52;
 

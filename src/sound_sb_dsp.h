@@ -46,7 +46,7 @@ typedef struct sb_dsp_t
 
         uint8_t sb_asp_regs[256];
         
-        int sbenable, sb_enable_i;
+        int64_t sbenable, sb_enable_i;
         
         int64_t sbcount, sb_count_i;
         

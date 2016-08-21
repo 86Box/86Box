@@ -131,7 +131,7 @@ typedef struct pas16_t
                 int thit[3];
                 int delay[3];
                 int rereadlatch[3];
-                int enable[3];
+                int64_t enable[3];
         } pit;
 
         opl_t    opl;

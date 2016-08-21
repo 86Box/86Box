@@ -16,7 +16,7 @@ typedef struct ad1848_t
         
         int16_t out_l, out_r;
                 
-        int enable;
+        int64_t enable;
 
         int irq, dma;
         
