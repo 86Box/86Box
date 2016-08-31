@@ -264,6 +264,7 @@ void initpc(int argc, char *argv[])
 	disc_init();
         fdi_init();
         img_init();
+        d86f_init();
 
 	vlan_reset();	//NETWORK
 	network_card_init(network_card_current);
@@ -482,7 +483,7 @@ void runpc()
                         scycles_lost = cycles_lost;
 
                         cpu_recomp_blocks_latched = cpu_recomp_blocks;
-                        cpu_recomp_ins_latched = cpu_recomp_ins;
+                        cpu_recomp_ins_latched = cpu_state.cpu_recomp_ins;
                         cpu_recomp_full_ins_latched = cpu_recomp_full_ins;
                         cpu_new_blocks_latched = cpu_new_blocks;
                         cpu_recomp_flushes_latched = cpu_recomp_flushes;
@@ -493,7 +494,7 @@ void runpc()
                         cpu_notreps_latched = cpu_notreps;
                                                 
                         cpu_recomp_blocks = 0;
-                        cpu_recomp_ins = 0;
+                        cpu_state.cpu_recomp_ins = 0;
                         cpu_recomp_full_ins = 0;
                         cpu_new_blocks = 0;
                         cpu_recomp_flushes = 0;

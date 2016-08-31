@@ -240,9 +240,7 @@ void mda_poll(void *p)
                                                 if (ysize < 32) ysize = 200;
                                                 updatewindowsize(xsize, ysize);
                                         }
-                                startblit();
                                         video_blit_memtoscreen_8(0, mda->firstline, xsize, mda->lastline - mda->firstline);
-                                endblit();
                                         frames++;
                                         video_res_x = mda->crtc[1];
                                         video_res_y = mda->crtc[6];

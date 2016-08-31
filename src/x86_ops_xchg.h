@@ -1,12 +1,9 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 static int opXCHG_b_a16(uint32_t fetchdat)
 {
         uint8_t temp;
         fetch_ea_16(fetchdat);
-        temp = geteab();                        if (abrt) return 1;
-        seteab(getr8(cpu_reg));                     if (abrt) return 1;
+        temp = geteab();                        if (cpu_state.abrt) return 1;
+        seteab(getr8(cpu_reg));                     if (cpu_state.abrt) return 1;
         setr8(cpu_reg, temp);
         CLOCK_CYCLES((cpu_mod == 3) ? 3 : 5);
         return 0;
@@ -15,8 +12,8 @@ static int opXCHG_b_a32(uint32_t fetchdat)
 {
         uint8_t temp;
         fetch_ea_32(fetchdat);
-        temp = geteab();                        if (abrt) return 1;
-        seteab(getr8(cpu_reg));                     if (abrt) return 1;
+        temp = geteab();                        if (cpu_state.abrt) return 1;
+        seteab(getr8(cpu_reg));                     if (cpu_state.abrt) return 1;
         setr8(cpu_reg, temp);
         CLOCK_CYCLES((cpu_mod == 3) ? 3 : 5);
         return 0;
@@ -26,8 +23,8 @@ static int opXCHG_w_a16(uint32_t fetchdat)
 {
         uint16_t temp;
         fetch_ea_16(fetchdat);
-        temp = geteaw();                        if (abrt) return 1;
-        seteaw(cpu_state.regs[cpu_reg].w);          if (abrt) return 1;
+        temp = geteaw();                        if (cpu_state.abrt) return 1;
+        seteaw(cpu_state.regs[cpu_reg].w);          if (cpu_state.abrt) return 1;
         cpu_state.regs[cpu_reg].w = temp;
         CLOCK_CYCLES((cpu_mod == 3) ? 3 : 5);
         return 0;
@@ -36,8 +33,8 @@ static int opXCHG_w_a32(uint32_t fetchdat)
 {
         uint16_t temp;
         fetch_ea_32(fetchdat);
-        temp = geteaw();                        if (abrt) return 1;
-        seteaw(cpu_state.regs[cpu_reg].w);          if (abrt) return 1;
+        temp = geteaw();                        if (cpu_state.abrt) return 1;
+        seteaw(cpu_state.regs[cpu_reg].w);          if (cpu_state.abrt) return 1;
         cpu_state.regs[cpu_reg].w = temp;
         CLOCK_CYCLES((cpu_mod == 3) ? 3 : 5);
         return 0;
@@ -47,8 +44,8 @@ static int opXCHG_l_a16(uint32_t fetchdat)
 {
         uint32_t temp;
         fetch_ea_16(fetchdat);
-        temp = geteal();                        if (abrt) return 1;
-        seteal(cpu_state.regs[cpu_reg].l);          if (abrt) return 1;
+        temp = geteal();                        if (cpu_state.abrt) return 1;
+        seteal(cpu_state.regs[cpu_reg].l);          if (cpu_state.abrt) return 1;
         cpu_state.regs[cpu_reg].l = temp;
         CLOCK_CYCLES((cpu_mod == 3) ? 3 : 5);
         return 0;
@@ -57,8 +54,8 @@ static int opXCHG_l_a32(uint32_t fetchdat)
 {
         uint32_t temp;
         fetch_ea_32(fetchdat);
-        temp = geteal();                        if (abrt) return 1;
-        seteal(cpu_state.regs[cpu_reg].l);          if (abrt) return 1;
+        temp = geteal();                        if (cpu_state.abrt) return 1;
+        seteal(cpu_state.regs[cpu_reg].l);          if (cpu_state.abrt) return 1;
         cpu_state.regs[cpu_reg].l = temp;
         CLOCK_CYCLES((cpu_mod == 3) ? 3 : 5);
         return 0;

@@ -53,10 +53,6 @@ static int disc_sector_side[2] = {0, 0};
 static int disc_sector_drive;
 static int disc_sector_sector[2] = {0, 0};
 static int disc_sector_n[2] = {0, 0};
-static int disc_intersector_delay[2] = {0, 0};
-static int disc_postdata_delay[2] = {0, 0};
-static int disc_track_delay[2] = {0, 0};
-static int disc_gap4_delay[2] = {0, 0};
 static uint8_t disc_sector_fill[2] = {0, 0};
 static int cur_sector[2], cur_byte[2];
 static int index_count[2];
@@ -64,7 +60,6 @@ static int index_count[2];
 int raw_tsize[2] = {6250, 6250};
 int gap2_size[2] = {22, 22};
 int gap3_size[2] = {0, 0};
-int gap4_size[2] = {0, 0};
 
 int disc_sector_reset_state(int drive);
 
@@ -75,7 +70,6 @@ void disc_sector_reset(int drive, int side)
 	if (side == 0)
 	{
 		disc_sector_reset_state(drive);
-		// cur_track_pos[drive] = 0;
 		disc_sector_state[drive] = STATE_SEEK;
 	}
 }
@@ -209,7 +203,29 @@ int media_type = 0;
 #define BYTE_TYPE_DATA		0x04
 #define BYTE_TYPE_CRC		0x05
 
-void disc_sector_prepare_track_layout(int drive, int side)
+#define GAP3_LEN_VARIABLE	0x1B
+
+int gap3_sizes[3][2] = { {74, 36}, {77, 77}, {60, 60} };
+
+int disc_sector_get_gap3_size(int drive, int side, int track)
+{
+	if (!img_xdf_type(drive))
+	{
+		return gap3_size[drive];
+	}
+
+	switch (track)
+	{
+		case 0:
+			return gap3_sizes[img_xdf_type(drive) - 1][side];
+		default:
+			return GAP3_LEN_VARIABLE;
+	}
+
+	return 0x7A;
+}
+
+void disc_sector_prepare_track_layout(int drive, int side, int track)
 {
 	sector_t *s;
 	int i = 0;
@@ -278,18 +294,11 @@ void disc_sector_prepare_track_layout(int drive, int side)
 		i += (128 << ((int) s->n));
 		memset(track_layout[drive][side] + i, BYTE_DATA_CRC, 2);
 		i += 2;
-		memset(track_layout[drive][side] + i, BYTE_GAP3, gap3_size[drive]);
-		i += gap3_size[drive];
+		memset(track_layout[drive][side] + i, BYTE_GAP3, disc_sector_get_gap3_size(drive, side, track));
+		i += disc_sector_get_gap3_size(drive, side, track);
 	}
 
 	if (side == 0)  disc_sector_state[drive] = STATE_IDLE;
-
-#if 0
-	FILE *f = fopen("layout.dmp", "wb");
-	fwrite(track_layout[drive][side], 1, raw_tsize[drive], f);
-	fclose(f);
-	fatal("good getpccache!\n");
-#endif
 }
 
 int disc_sector_reset_state(int drive)
@@ -610,17 +619,7 @@ void disc_sector_poll()
 				if (!(disc_sector_can_read_address(drive)))  last_sector[drive] = NULL;
 
 				/* ID CRC read, if state is read address, return address */
-				if ((disc_sector_state[drive] == STATE_READ_FIND_ADDRESS) && !(disc_sector_can_read_address(drive)))
-				{
-					if (fdc_get_bitcell_period() != get_bitcell_period(drive))
-					{
-						// pclog("Unable to read sector ID: Bitcell period mismatch (%i != %i)...\n", fdc_get_bitcell_period(), get_bitcell_period(drive));
-					}
-					else
-					{
-						// pclog("Unable to read sector ID: Media type not supported by the drive...\n");
-					}
-				}
+				// if ((disc_sector_state[drive] == STATE_READ_FIND_ADDRESS) && !(disc_sector_can_read_address(drive)))
 				if ((disc_sector_state[drive] == STATE_READ_FIND_ADDRESS) && disc_sector_can_read_address(drive))
 				{
 					// pclog("Reading sector ID...\n");
@@ -633,7 +632,10 @@ void disc_sector_poll()
 				switch (disc_sector_state[drive])
 				{
 					case STATE_READ_FIND_SECTOR:
-						if (disc_sector_match(drive) && disc_sector_can_read_address(drive))  disc_sector_state[drive] = STATE_READ_SECTOR;
+						if (disc_sector_match(drive) && disc_sector_can_read_address(drive))
+						{
+							disc_sector_state[drive] = STATE_READ_SECTOR;
+						}
 						break;
 					case STATE_READ_FIND_FIRST_SECTOR:
 						if ((cur_sector[drive] == 0) && disc_sector_can_read_address(drive))  disc_sector_state[drive] = STATE_READ_FIRST_SECTOR;

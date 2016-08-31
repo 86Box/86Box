@@ -5,13 +5,13 @@ static int opARPL_a16(uint32_t fetchdat)
         NOTRM
         fetch_ea_16(fetchdat);
         pclog("ARPL_a16\n");
-        temp_seg = geteaw();            if (abrt) return 1;
+        temp_seg = geteaw();            if (cpu_state.abrt) return 1;
         
         flags_rebuild();
         if ((temp_seg & 3) < (cpu_state.regs[cpu_reg].w & 3))
         {
                 temp_seg = (temp_seg & 0xfffc) | (cpu_state.regs[cpu_reg].w & 3);
-                seteaw(temp_seg);       if (abrt) return 1;
+                seteaw(temp_seg);       if (cpu_state.abrt) return 1;
                 flags |= Z_FLAG;
         }
         else
@@ -27,13 +27,13 @@ static int opARPL_a32(uint32_t fetchdat)
         NOTRM
         fetch_ea_32(fetchdat);
         pclog("ARPL_a32\n");        
-        temp_seg = geteaw();            if (abrt) return 1;
+        temp_seg = geteaw();            if (cpu_state.abrt) return 1;
         
         flags_rebuild();
         if ((temp_seg & 3) < (cpu_state.regs[cpu_reg].w & 3))
         {
                 temp_seg = (temp_seg & 0xfffc) | (cpu_state.regs[cpu_reg].w & 3);
-                seteaw(temp_seg);       if (abrt) return 1;
+                seteaw(temp_seg);       if (cpu_state.abrt) return 1;
                 flags |= Z_FLAG;
         }
         else
@@ -52,7 +52,7 @@ static int opARPL_a32(uint32_t fetchdat)
                 NOTRM                                                                                           \
                 fetch_ea(fetchdat);                                                                             \
                                                                                                                 \
-                sel = geteaw();                 if (abrt) return 1;                                             \
+                sel = geteaw();                 if (cpu_state.abrt) return 1;                                             \
                                                                                                                 \
                 flags_rebuild();                                                                                \
                 if (!(sel & 0xfffc)) { flags &= ~Z_FLAG; return 0; } /*Null selector*/                          \
@@ -61,7 +61,7 @@ static int opARPL_a32(uint32_t fetchdat)
                 {                                                                                               \
                         cpl_override = 1;                                                                       \
                         desc = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 4);                 \
-                        cpl_override = 0;       if (abrt) return 1;                                             \
+                        cpl_override = 0;       if (cpu_state.abrt) return 1;                                             \
                 }                                                                                               \
                 flags &= ~Z_FLAG;                                                                               \
                 if ((desc & 0x1f00) == 0x000) valid = 0;                                                        \
@@ -84,7 +84,7 @@ static int opARPL_a32(uint32_t fetchdat)
                         cpl_override = 0;                                                                       \
                 }                                                                                               \
                 CLOCK_CYCLES(11);                                                                               \
-                return abrt;                                                                                    \
+                return cpu_state.abrt;                                                                                    \
         }
 
 opLAR(w_a16, fetch_ea_16, 0)
@@ -101,7 +101,7 @@ opLAR(l_a32, fetch_ea_32, 1)
                 NOTRM                                                                                           \
                 fetch_ea(fetchdat);                                                                             \
                                                                                                                 \
-                sel = geteaw();                 if (abrt) return 1;                                             \
+                sel = geteaw();                 if (cpu_state.abrt) return 1;                                             \
                 flags_rebuild();                                                                                \
                 flags &= ~Z_FLAG;                                                                               \
                 if (!(sel & 0xfffc)) return 0; /*Null selector*/                                                \
@@ -110,7 +110,7 @@ opLAR(l_a32, fetch_ea_32, 1)
                 {                                                                                               \
                         cpl_override = 1;                                                                       \
                         desc = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 4);                 \
-                        cpl_override = 0;       if (abrt) return 1;                                             \
+                        cpl_override = 0;       if (cpu_state.abrt) return 1;                                             \
                 }                                                                                               \
                 if ((desc & 0x1400) ==  0x400) valid = 0; /*Interrupt or trap or call gate*/                    \
                 if ((desc & 0x1f00) ==  0x000) valid = 0; /*Invalid*/                                           \
@@ -139,7 +139,7 @@ opLAR(l_a32, fetch_ea_32, 1)
                         cpl_override = 0;                                                                       \
                 }                                                                                               \
                 CLOCK_CYCLES(10);                                                                               \
-                return abrt;                                                                                    \
+                return cpu_state.abrt;                                                                                    \
         }
 
 opLSL(w_a16, fetch_ea_16, 0)
@@ -173,13 +173,13 @@ static int op0F00_common(uint32_t fetchdat)
                         x86gpf(NULL,0);
                         return 1;
                 }
-                sel = geteaw(); if (abrt) return 1;
+                sel = geteaw(); if (cpu_state.abrt) return 1;
                 addr = (sel & ~7) + gdt.base;
                 limit = readmemw(0, addr) + ((readmemb(0, addr + 6) & 0xf) << 16);
                 base = (readmemw(0, addr + 2)) | (readmemb(0, addr + 4) << 16) | (readmemb(0, addr + 7) << 24);
                 access = readmemb(0, addr + 5);
                 granularity = readmemb(0, addr + 6) & 0x80;
-                if (abrt) return 1;
+                if (cpu_state.abrt) return 1;
                 ldt.limit = limit;
                 ldt.access = access;
                 if (granularity)
@@ -198,13 +198,13 @@ static int op0F00_common(uint32_t fetchdat)
                         x86gpf(NULL,0);
                         break;
                 }
-                sel = geteaw(); if (abrt) return 1;
+                sel = geteaw(); if (cpu_state.abrt) return 1;
                 addr = (sel & ~7) + gdt.base;
                 limit = readmemw(0, addr) + ((readmemb(0, addr + 6) & 0xf) << 16);
                 base = (readmemw(0, addr + 2)) | (readmemb(0, addr + 4) << 16) | (readmemb(0, addr + 7) << 24);
                 access = readmemb(0, addr + 5);
                 granularity = readmemb(0, addr + 6) & 0x80;
-                if (abrt) return 1;
+                if (cpu_state.abrt) return 1;
                 tr.seg = sel;
                 tr.limit = limit;
                 tr.access = access;
@@ -217,14 +217,14 @@ static int op0F00_common(uint32_t fetchdat)
                 CLOCK_CYCLES(20);
                 break;
                 case 0x20: /*VERR*/
-                sel = geteaw();                 if (abrt) return 1;
+                sel = geteaw();                 if (cpu_state.abrt) return 1;
                 flags_rebuild();
                 flags &= ~Z_FLAG;
                 if (!(sel & 0xfffc)) return 0; /*Null selector*/
                 cpl_override = 1;
                 valid = (sel & ~7) < ((sel & 4) ? ldt.limit : gdt.limit);
                 desc = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 4);
-                cpl_override = 0;               if (abrt) return 1;
+                cpl_override = 0;               if (cpu_state.abrt) return 1;
                 if (!(desc & 0x1000)) valid = 0;
                 if ((desc & 0xC00) != 0xC00) /*Exclude conforming code segments*/
                 {
@@ -236,14 +236,14 @@ static int op0F00_common(uint32_t fetchdat)
                 CLOCK_CYCLES(20);
                 break;
                 case 0x28: /*VERW*/
-                sel = geteaw();                 if (abrt) return 1;
+                sel = geteaw();                 if (cpu_state.abrt) return 1;
                 flags_rebuild();
                 flags &= ~Z_FLAG;
                 if (!(sel & 0xfffc)) return 0; /*Null selector*/
                 cpl_override = 1;
                 valid  = (sel & ~7) < ((sel & 4) ? ldt.limit : gdt.limit);
                 desc = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 4);
-                cpl_override = 0;               if (abrt) return 1;
+                cpl_override = 0;               if (cpu_state.abrt) return 1;
                 if (!(desc & 0x1000)) valid = 0;
                 dpl = (desc >> 13) & 3; /*Check permissions*/
                 if (dpl < CPL || dpl < (sel & 3)) valid = 0;
@@ -259,7 +259,7 @@ static int op0F00_common(uint32_t fetchdat)
                 x86illegal();
                 break;
         }
-        return abrt;
+        return cpu_state.abrt;
 }
 
 static int op0F00_a16(uint32_t fetchdat)
@@ -311,7 +311,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286)
                 }
 //                pclog("LGDT %08X:%08X\n", easeg, eaaddr);
                 limit = geteaw();
-                base = readmeml(0, easeg + cpu_state.eaaddr + 2);         if (abrt) return 1;
+                base = readmeml(0, easeg + cpu_state.eaaddr + 2);         if (cpu_state.abrt) return 1;
 //                pclog("     %08X %04X\n", base, limit);
                 gdt.limit = limit;
                 gdt.base = base;
@@ -327,7 +327,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286)
                 }
 //                pclog("LIDT %08X:%08X\n", easeg, eaaddr);
                 limit = geteaw();
-                base = readmeml(0, easeg + cpu_state.eaaddr + 2);         if (abrt) return 1;
+                base = readmeml(0, easeg + cpu_state.eaaddr + 2);         if (cpu_state.abrt) return 1;
 //                pclog("     %08X %04X\n", base, limit);
                 idt.limit = limit;
                 idt.base = base;
@@ -347,7 +347,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286)
                         x86gpf(NULL, 0);
                         break;
                 }
-                tempw = geteaw();                                       if (abrt) return 1;
+                tempw = geteaw();                                       if (cpu_state.abrt) return 1;
                 if (msw & 1) tempw |= 1;
                 msw = tempw;
                 break;
@@ -372,7 +372,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286)
                 x86illegal();
                 break;
         }
-        return abrt;
+        return cpu_state.abrt;
 }
 
 static int op0F01_w_a16(uint32_t fetchdat)

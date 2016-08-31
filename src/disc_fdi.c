@@ -71,20 +71,20 @@ void fdi_init()
         fdi_setupcrc(0x1021, 0xcdb4);
 }
 
-int fdi_byteperiod(int drive)
+double fdi_byteperiod(int drive)
 {
 	switch (fdi2raw_get_bit_rate(fdi[drive].h))
 	{
 		case 1000:
-			return 8;
+			return 8.0;
 		case 500:
-			return 16;
+			return 16.0;
 		case 300:
-			return 26;
+			return 160.0 / 6.0;
 		case 250:
-			return 32;
+			return 32.0;
 		default:
-			return 32;
+			return 32.0;
 	}
 }
 

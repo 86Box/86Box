@@ -25,7 +25,7 @@ static int opMOV_w_seg_a16(uint32_t fetchdat)
         }
                         
         CLOCK_CYCLES((cpu_mod == 3) ? 2 : 3);
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opMOV_w_seg_a32(uint32_t fetchdat)
 {
@@ -54,7 +54,7 @@ static int opMOV_w_seg_a32(uint32_t fetchdat)
         }
                         
         CLOCK_CYCLES((cpu_mod == 3) ? 2 : 3);
-        return abrt;
+        return cpu_state.abrt;
 }
 
 static int opMOV_l_seg_a16(uint32_t fetchdat)
@@ -90,7 +90,7 @@ static int opMOV_l_seg_a16(uint32_t fetchdat)
         }
         
         CLOCK_CYCLES((cpu_mod == 3) ? 2 : 3);
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opMOV_l_seg_a32(uint32_t fetchdat)
 {
@@ -125,7 +125,7 @@ static int opMOV_l_seg_a32(uint32_t fetchdat)
         }
         
         CLOCK_CYCLES((cpu_mod == 3) ? 2 : 3);
-        return abrt;
+        return cpu_state.abrt;
 }
 
 static int opMOV_seg_w_a16(uint32_t fetchdat)
@@ -134,7 +134,7 @@ static int opMOV_seg_w_a16(uint32_t fetchdat)
         
         fetch_ea_16(fetchdat);
         
-        new_seg=geteaw();         if (abrt) return 1;
+        new_seg=geteaw();         if (cpu_state.abrt) return 1;
         
         switch (rmdat & 0x38)
         {
@@ -146,14 +146,14 @@ static int opMOV_seg_w_a16(uint32_t fetchdat)
                 break;
                 case 0x10: /*SS*/
                 loadseg(new_seg, &_ss);
-                if (abrt) return 1;
+                if (cpu_state.abrt) return 1;
                 cpu_state.oldpc = cpu_state.pc;
                 cpu_state.op32 = use32;
                 cpu_state.ssegs = 0;
                 cpu_state.ea_seg = &_ds;
                 fetchdat = fastreadl(cs + cpu_state.pc);
                 cpu_state.pc++;
-                if (abrt) return 1;
+                if (cpu_state.abrt) return 1;
                 x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
                 return 1;
                 case 0x20: /*FS*/
@@ -165,7 +165,7 @@ static int opMOV_seg_w_a16(uint32_t fetchdat)
         }
                         
         CLOCK_CYCLES((cpu_mod == 3) ? 2 : 5);
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opMOV_seg_w_a32(uint32_t fetchdat)
 {
@@ -173,7 +173,7 @@ static int opMOV_seg_w_a32(uint32_t fetchdat)
         
         fetch_ea_32(fetchdat);
         
-        new_seg=geteaw();         if (abrt) return 1;
+        new_seg=geteaw();         if (cpu_state.abrt) return 1;
         
         switch (rmdat & 0x38)
         {
@@ -185,14 +185,14 @@ static int opMOV_seg_w_a32(uint32_t fetchdat)
                 break;
                 case 0x10: /*SS*/
                 loadseg(new_seg, &_ss);
-                if (abrt) return 1;
+                if (cpu_state.abrt) return 1;
                 cpu_state.oldpc = cpu_state.pc;
                 cpu_state.op32 = use32;
                 cpu_state.ssegs = 0;
                 cpu_state.ea_seg = &_ds;
                 fetchdat = fastreadl(cs + cpu_state.pc);
                 cpu_state.pc++;
-                if (abrt) return 1;
+                if (cpu_state.abrt) return 1;
                 x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
                 return 1;
                 case 0x20: /*FS*/
@@ -204,7 +204,7 @@ static int opMOV_seg_w_a32(uint32_t fetchdat)
         }
                         
         CLOCK_CYCLES((cpu_mod == 3) ? 2 : 5);
-        return abrt;
+        return cpu_state.abrt;
 }
 
 
@@ -215,8 +215,8 @@ static int opLDS_w_a16(uint32_t fetchdat)
         fetch_ea_16(fetchdat);
         ILLEGAL_ON(cpu_mod == 3);
         addr = readmemw(easeg, cpu_state.eaaddr);
-        seg = readmemw(easeg, cpu_state.eaaddr + 2);      if (abrt) return 1;
-        loadseg(seg, &_ds);                     if (abrt) return 1;
+        seg = readmemw(easeg, cpu_state.eaaddr + 2);      if (cpu_state.abrt) return 1;
+        loadseg(seg, &_ds);                     if (cpu_state.abrt) return 1;
         cpu_state.regs[cpu_reg].w = addr;
  
         CLOCK_CYCLES(7);
@@ -229,8 +229,8 @@ static int opLDS_w_a32(uint32_t fetchdat)
         fetch_ea_32(fetchdat);
         ILLEGAL_ON(cpu_mod == 3);
         addr = readmemw(easeg, cpu_state.eaaddr);
-        seg = readmemw(easeg, cpu_state.eaaddr + 2);      if (abrt) return 1;
-        loadseg(seg, &_ds);                     if (abrt) return 1;
+        seg = readmemw(easeg, cpu_state.eaaddr + 2);      if (cpu_state.abrt) return 1;
+        loadseg(seg, &_ds);                     if (cpu_state.abrt) return 1;
         cpu_state.regs[cpu_reg].w = addr;
  
         CLOCK_CYCLES(7);
@@ -244,8 +244,8 @@ static int opLDS_l_a16(uint32_t fetchdat)
         fetch_ea_16(fetchdat);
         ILLEGAL_ON(cpu_mod == 3);
         addr = readmeml(easeg, cpu_state.eaaddr);
-        seg = readmemw(easeg, cpu_state.eaaddr + 4);      if (abrt) return 1;
-        loadseg(seg, &_ds);                     if (abrt) return 1;
+        seg = readmemw(easeg, cpu_state.eaaddr + 4);      if (cpu_state.abrt) return 1;
+        loadseg(seg, &_ds);                     if (cpu_state.abrt) return 1;
         cpu_state.regs[cpu_reg].l = addr;
  
         CLOCK_CYCLES(7);
@@ -259,8 +259,8 @@ static int opLDS_l_a32(uint32_t fetchdat)
         fetch_ea_32(fetchdat);
         ILLEGAL_ON(cpu_mod == 3);
         addr = readmeml(easeg, cpu_state.eaaddr);
-        seg = readmemw(easeg, cpu_state.eaaddr + 4);      if (abrt) return 1;
-        loadseg(seg, &_ds);                     if (abrt) return 1;
+        seg = readmemw(easeg, cpu_state.eaaddr + 4);      if (cpu_state.abrt) return 1;
+        loadseg(seg, &_ds);                     if (cpu_state.abrt) return 1;
         cpu_state.regs[cpu_reg].l = addr;
  
         CLOCK_CYCLES(7);
@@ -274,8 +274,8 @@ static int opLSS_w_a16(uint32_t fetchdat)
         fetch_ea_16(fetchdat);
         ILLEGAL_ON(cpu_mod == 3);
         addr = readmemw(easeg, cpu_state.eaaddr);
-        seg = readmemw(easeg, cpu_state.eaaddr + 2);      if (abrt) return 1;
-        loadseg(seg, &_ss);                     if (abrt) return 1;
+        seg = readmemw(easeg, cpu_state.eaaddr + 2);      if (cpu_state.abrt) return 1;
+        loadseg(seg, &_ss);                     if (cpu_state.abrt) return 1;
         cpu_state.regs[cpu_reg].w = addr;
  
         CLOCK_CYCLES(7);
@@ -288,8 +288,8 @@ static int opLSS_w_a32(uint32_t fetchdat)
         fetch_ea_32(fetchdat);
         ILLEGAL_ON(cpu_mod == 3);
         addr = readmemw(easeg, cpu_state.eaaddr);
-        seg = readmemw(easeg, cpu_state.eaaddr + 2);      if (abrt) return 1;
-        loadseg(seg, &_ss);                     if (abrt) return 1;
+        seg = readmemw(easeg, cpu_state.eaaddr + 2);      if (cpu_state.abrt) return 1;
+        loadseg(seg, &_ss);                     if (cpu_state.abrt) return 1;
         cpu_state.regs[cpu_reg].w = addr;
  
         CLOCK_CYCLES(7);
@@ -303,8 +303,8 @@ static int opLSS_l_a16(uint32_t fetchdat)
         fetch_ea_16(fetchdat);
         ILLEGAL_ON(cpu_mod == 3);
         addr = readmeml(easeg, cpu_state.eaaddr);
-        seg = readmemw(easeg, cpu_state.eaaddr + 4);      if (abrt) return 1;
-        loadseg(seg, &_ss);                     if (abrt) return 1;
+        seg = readmemw(easeg, cpu_state.eaaddr + 4);      if (cpu_state.abrt) return 1;
+        loadseg(seg, &_ss);                     if (cpu_state.abrt) return 1;
         cpu_state.regs[cpu_reg].l = addr;
  
         CLOCK_CYCLES(7);
@@ -318,8 +318,8 @@ static int opLSS_l_a32(uint32_t fetchdat)
         fetch_ea_32(fetchdat);
         ILLEGAL_ON(cpu_mod == 3);
         addr = readmeml(easeg, cpu_state.eaaddr);
-        seg = readmemw(easeg, cpu_state.eaaddr + 4);      if (abrt) return 1;
-        loadseg(seg, &_ss);                     if (abrt) return 1;
+        seg = readmemw(easeg, cpu_state.eaaddr + 4);      if (cpu_state.abrt) return 1;
+        loadseg(seg, &_ss);                     if (cpu_state.abrt) return 1;
         cpu_state.regs[cpu_reg].l = addr;
  
         CLOCK_CYCLES(7);
@@ -334,8 +334,8 @@ static int opLSS_l_a32(uint32_t fetchdat)
                 fetch_ea_16(fetchdat);                                          \
                 ILLEGAL_ON(cpu_mod == 3);                                           \
                 addr = readmemw(easeg, cpu_state.eaaddr);                                 \
-                seg = readmemw(easeg, cpu_state.eaaddr + 2);      if (abrt) return 1;     \
-                loadseg(seg, &sel);                     if (abrt) return 1;     \
+                seg = readmemw(easeg, cpu_state.eaaddr + 2);      if (cpu_state.abrt) return 1;     \
+                loadseg(seg, &sel);                     if (cpu_state.abrt) return 1;     \
                 cpu_state.regs[cpu_reg].w = addr;                                   \
                                                                                 \
                 CLOCK_CYCLES(7);                                                \
@@ -349,8 +349,8 @@ static int opLSS_l_a32(uint32_t fetchdat)
                 fetch_ea_32(fetchdat);                                          \
                 ILLEGAL_ON(cpu_mod == 3);                                           \
                 addr = readmemw(easeg, cpu_state.eaaddr);                                 \
-                seg = readmemw(easeg, cpu_state.eaaddr + 2);      if (abrt) return 1;     \
-                loadseg(seg, &sel);                     if (abrt) return 1;     \
+                seg = readmemw(easeg, cpu_state.eaaddr + 2);      if (cpu_state.abrt) return 1;     \
+                loadseg(seg, &sel);                     if (cpu_state.abrt) return 1;     \
                 cpu_state.regs[cpu_reg].w = addr;                                   \
                                                                                 \
                 CLOCK_CYCLES(7);                                                \
@@ -365,8 +365,8 @@ static int opLSS_l_a32(uint32_t fetchdat)
                 fetch_ea_16(fetchdat);                                          \
                 ILLEGAL_ON(cpu_mod == 3);                                           \
                 addr = readmeml(easeg, cpu_state.eaaddr);                                 \
-                seg = readmemw(easeg, cpu_state.eaaddr + 4);      if (abrt) return 1;     \
-                loadseg(seg, &sel);                     if (abrt) return 1;     \
+                seg = readmemw(easeg, cpu_state.eaaddr + 4);      if (cpu_state.abrt) return 1;     \
+                loadseg(seg, &sel);                     if (cpu_state.abrt) return 1;     \
                 cpu_state.regs[cpu_reg].l = addr;                                   \
                                                                                 \
                 CLOCK_CYCLES(7);                                                \
@@ -381,8 +381,8 @@ static int opLSS_l_a32(uint32_t fetchdat)
                 fetch_ea_32(fetchdat);                                          \
                 ILLEGAL_ON(cpu_mod == 3);                                           \
                 addr = readmeml(easeg, cpu_state.eaaddr);                                 \
-                seg = readmemw(easeg, cpu_state.eaaddr + 4);      if (abrt) return 1;     \
-                loadseg(seg, &sel);                     if (abrt) return 1;     \
+                seg = readmemw(easeg, cpu_state.eaaddr + 4);      if (cpu_state.abrt) return 1;     \
+                loadseg(seg, &sel);                     if (cpu_state.abrt) return 1;     \
                 cpu_state.regs[cpu_reg].l = addr;                                   \
                                                                                 \
                 CLOCK_CYCLES(7);                                                \

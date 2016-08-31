@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #include "mem.h"
 
 #ifdef __amd64__
@@ -242,7 +239,6 @@ void codegen_block_start_recompile(codeblock_t *block);
 void codegen_block_end_recompile(codeblock_t *block);
 void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_pc, uint32_t old_pc);
 void codegen_generate_seg_restore();
-void codegen_check_abrt();
 void codegen_set_op32();
 void codegen_flush();
 void codegen_check_flush(struct page_t *page, uint64_t mask, uint32_t phys_addr);
@@ -250,7 +246,7 @@ void codegen_check_flush(struct page_t *page, uint64_t mask, uint32_t phys_addr)
 extern int cpu_block_end;
 extern uint32_t codegen_endpc;
 
-extern int cpu_recomp_blocks, cpu_recomp_ins, cpu_recomp_full_ins, cpu_new_blocks;
+extern int cpu_recomp_blocks, cpu_recomp_full_ins, cpu_new_blocks;
 extern int cpu_recomp_blocks_latched, cpu_recomp_ins_latched, cpu_recomp_full_ins_latched, cpu_new_blocks_latched;
 extern int cpu_recomp_flushes, cpu_recomp_flushes_latched;
 extern int cpu_recomp_evicted, cpu_recomp_evicted_latched;

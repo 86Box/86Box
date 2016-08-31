@@ -7,6 +7,7 @@
 #include "disc.h"
 #include "disc_fdi.h"
 #include "disc_img.h"
+#include "disc_86f.h"
 #include "fdc.h"
 #include "fdd.h"
 #include "timer.h"
@@ -66,6 +67,7 @@ loaders[]=
         {"144", img_load,       img_close, -1},
         {"360", img_load,       img_close, -1},
         {"720", img_load,       img_close, -1},
+        {"86F", d86f_load,     d86f_close, -1},
         {"DSK", img_load,       img_close, -1},
         {"FLP", img_load,       img_close, -1},
         {"IMG", img_load,       img_close, -1},
@@ -149,7 +151,7 @@ int disc_hole(int drive)
 	}
 }
 
-int disc_byteperiod(int drive)
+double disc_byteperiod(int drive)
 {
 	drive ^= fdd_swap;
 
@@ -159,20 +161,16 @@ int disc_byteperiod(int drive)
 	}
 	else
 	{
-		return 32;
+		return 32.0;
 	}
 }
 
 double disc_real_period()
 {
-	int64_t dbp;
 	double ddbp;
 	double dusec;
 
-	dbp = disc_byteperiod(disc_drivesel ^ fdd_swap);
-	ddbp = (double) dbp;
-
-	if (dbp == 26)  ddbp = 160.0 / 6.0;
+	ddbp = disc_byteperiod(disc_drivesel ^ fdd_swap);
 
 	dusec = (double) TIMER_USEC;
 

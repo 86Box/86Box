@@ -19,7 +19,7 @@ int cpu_reps, cpu_reps_latched;
 int cpu_notreps, cpu_notreps_latched;
 
 int inrecomp = 0;
-int cpu_recomp_blocks, cpu_recomp_ins, cpu_recomp_full_ins, cpu_new_blocks;
+int cpu_recomp_blocks, cpu_recomp_full_ins, cpu_new_blocks;
 int cpu_recomp_blocks_latched, cpu_recomp_ins_latched, cpu_recomp_full_ins_latched, cpu_new_blocks_latched;
 
 int cpu_block_end = 0;
@@ -52,7 +52,7 @@ uint16_t biosmask;
 uint32_t rmdat32;
 uint32_t backupregs[16];
 int oddeven=0;
-int inttype,abrt;
+int inttype;
 
 
 uint32_t oldcs2;
@@ -178,8 +178,8 @@ static inline void fetch_ea_16_long(uint32_t rmdat)
         }
 }
 
-#define fetch_ea_16(rmdat)              cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_16_long(rmdat); if (abrt) return 1; } 
-#define fetch_ea_32(rmdat)              cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_32_long(rmdat); } if (abrt) return 1
+#define fetch_ea_16(rmdat)              cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_16_long(rmdat); if (cpu_state.abrt) return 1; } 
+#define fetch_ea_32(rmdat)              cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_32_long(rmdat); } if (cpu_state.abrt) return 1
 
 #include "x86_flags.h"
 
@@ -349,7 +349,7 @@ int rep386(int fv)
                         checkio_perm(DX);
                         temp2=inb(DX);
                         writememb(es,DI,temp2);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) DI--;
                         else              DI++;
                         c--;
@@ -365,7 +365,7 @@ int rep386(int fv)
                         checkio_perm(DX);
                         temp2=inb(DX);
                         writememb(es,EDI,temp2);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) EDI--;
                         else              EDI++;
                         c--;
@@ -381,7 +381,7 @@ int rep386(int fv)
 //                        pclog("REP INSW %04x %04x:%04x %04x\n", DX, ES, DI, CX);
                         tempw=inw(DX);
                         writememw(es,DI,tempw);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) DI-=2;
                         else              DI+=2;
                         c--;
@@ -396,7 +396,7 @@ int rep386(int fv)
                 {
                         templ=inl(DX);
                         writememl(es,DI,templ);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) DI-=4;
                         else              DI+=4;
                         c--;
@@ -411,7 +411,7 @@ int rep386(int fv)
                 {
                         tempw=inw(DX);
                         writememw(es,EDI,tempw);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) EDI-=2;
                         else              EDI+=2;
                         c--;
@@ -426,7 +426,7 @@ int rep386(int fv)
                 {
                         templ=inl(DX);
                         writememl(es,EDI,templ);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) EDI-=4;
                         else              EDI+=4;
                         c--;
@@ -440,7 +440,7 @@ int rep386(int fv)
                 if (c>0)
                 {
                         temp2 = readmemb(cpu_state.ea_seg->base, SI);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         checkio_perm(DX);
                         outb(DX,temp2);
                         if (flags&D_FLAG) SI--;
@@ -456,7 +456,7 @@ int rep386(int fv)
                 if (c>0)
                 {
                         temp2 = readmemb(cpu_state.ea_seg->base, ESI);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         checkio_perm(DX);
                         outb(DX,temp2);
                         if (flags&D_FLAG) ESI--;
@@ -472,7 +472,7 @@ int rep386(int fv)
                 if (c>0)
                 {
                         tempw = readmemw(cpu_state.ea_seg->base, SI);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
 //                        pclog("OUTSW %04X -> %04X\n",SI,tempw);
                         outw(DX,tempw);
                         if (flags&D_FLAG) SI-=2;
@@ -488,7 +488,7 @@ int rep386(int fv)
                 if (c > 0)
                 {
                         templ = readmeml(cpu_state.ea_seg->base, SI);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         outl(DX, templ);
                         if (flags & D_FLAG) SI -= 4;
                         else                SI += 4;
@@ -503,7 +503,7 @@ int rep386(int fv)
                 if (c>0)
                 {
                         tempw = readmemw(cpu_state.ea_seg->base, ESI);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         outw(DX,tempw);
                         if (flags&D_FLAG) ESI-=2;
                         else              ESI+=2;
@@ -518,7 +518,7 @@ int rep386(int fv)
                 if (c > 0)
                 {
                         templ = readmeml(cpu_state.ea_seg->base, ESI);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         outl(DX, templ);
                         if (flags & D_FLAG) ESI -= 4;
                         else                ESI += 4;
@@ -536,8 +536,8 @@ int rep386(int fv)
                 while (c > 0)
                 {
                         CHECK_WRITE_REP(&_es, DI, DI);
-                        temp2 = readmemb(cpu_state.ea_seg->base, SI); if (abrt) break;
-                        writememb(es,DI,temp2); if (abrt) break;
+                        temp2 = readmemb(cpu_state.ea_seg->base, SI); if (cpu_state.abrt) break;
+                        writememb(es,DI,temp2); if (cpu_state.abrt) break;
 //                        if (output==3) pclog("MOVSB %08X:%04X -> %08X:%04X %02X\n",ds,SI,es,DI,temp2);
                         if (flags&D_FLAG) { DI--; SI--; }
                         else              { DI++; SI++; }
@@ -555,8 +555,8 @@ int rep386(int fv)
                 while (c > 0)
                 {
                         CHECK_WRITE_REP(&_es, EDI, EDI);
-                        temp2 = readmemb(cpu_state.ea_seg->base, ESI); if (abrt) break;
-                        writememb(es,EDI,temp2); if (abrt) break;
+                        temp2 = readmemb(cpu_state.ea_seg->base, ESI); if (cpu_state.abrt) break;
+                        writememb(es,EDI,temp2); if (cpu_state.abrt) break;
                         if (flags&D_FLAG) { EDI--; ESI--; }
                         else              { EDI++; ESI++; }
                         c--;
@@ -573,8 +573,8 @@ int rep386(int fv)
                 while (c > 0)
                 {
                         CHECK_WRITE_REP(&_es, DI, DI+1);
-                        tempw = readmemw(cpu_state.ea_seg->base, SI); if (abrt) break;
-                        writememw(es,DI,tempw); if (abrt) break;
+                        tempw = readmemw(cpu_state.ea_seg->base, SI); if (cpu_state.abrt) break;
+                        writememw(es,DI,tempw); if (cpu_state.abrt) break;
                         if (flags&D_FLAG) { DI-=2; SI-=2; }
                         else              { DI+=2; SI+=2; }
                         c--;
@@ -591,9 +591,9 @@ int rep386(int fv)
                 while (c > 0)
                 {
                         CHECK_WRITE_REP(&_es, DI, DI+3);
-                        templ = readmeml(cpu_state.ea_seg->base, SI); if (abrt) break;
+                        templ = readmeml(cpu_state.ea_seg->base, SI); if (cpu_state.abrt) break;
 //                        pclog("MOVSD %08X from %08X to %08X (%04X:%08X)\n", templ, ds+SI, es+DI, CS, pc);
-                        writememl(es,DI,templ); if (abrt) break;
+                        writememl(es,DI,templ); if (cpu_state.abrt) break;
                         if (flags&D_FLAG) { DI-=4; SI-=4; }
                         else              { DI+=4; SI+=4; }
                         c--;
@@ -610,8 +610,8 @@ int rep386(int fv)
                 while (c > 0)
                 {
                         CHECK_WRITE_REP(&_es, EDI, EDI+1);
-                        tempw = readmemw(cpu_state.ea_seg->base, ESI); if (abrt) break;
-                        writememw(es,EDI,tempw); if (abrt) break;
+                        tempw = readmemw(cpu_state.ea_seg->base, ESI); if (cpu_state.abrt) break;
+                        writememw(es,EDI,tempw); if (cpu_state.abrt) break;
 //                        if (output) pclog("Written %04X from %08X to %08X %i  %08X %04X %08X %04X\n",tempw,ds+ESI,es+EDI,c,ds,ES,es,ES);
                         if (flags&D_FLAG) { EDI-=2; ESI-=2; }
                         else              { EDI+=2; ESI+=2; }
@@ -629,9 +629,9 @@ int rep386(int fv)
                 while (c > 0)
                 {
                         CHECK_WRITE_REP(&_es, EDI, EDI+3);
-                        templ = readmeml(cpu_state.ea_seg->base, ESI); if (abrt) break;
+                        templ = readmeml(cpu_state.ea_seg->base, ESI); if (cpu_state.abrt) break;
 //                        if ((EDI&0xFFFF0000)==0xA0000) cycles-=12;
-                        writememl(es,EDI,templ); if (abrt) break;
+                        writememl(es,EDI,templ); if (cpu_state.abrt) break;
 //                        if (output) pclog("Load %08X from %08X to %08X  %04X %08X  %04X %08X\n",templ,ESI,EDI,DS,ds,ES,es);
                         if (flags&D_FLAG) { EDI-=4; ESI-=4; }
                         else              { EDI+=4; ESI+=4; }
@@ -652,7 +652,7 @@ int rep386(int fv)
                 {
                         temp = readmemb(cpu_state.ea_seg->base, SI);
                         temp2=readmemb(es,DI);
-                        if (abrt) { flags=of; break; }
+                        if (cpu_state.abrt) { flags=of; break; }
                         if (flags&D_FLAG) { DI--; SI--; }
                         else              { DI++; SI++; }
                         c--;
@@ -670,7 +670,7 @@ int rep386(int fv)
                 {
                         temp = readmemb(cpu_state.ea_seg->base, ESI);
                         temp2=readmemb(es,EDI);
-                        if (abrt) { flags=of; break; }
+                        if (cpu_state.abrt) { flags=of; break; }
                         if (flags&D_FLAG) { EDI--; ESI--; }
                         else              { EDI++; ESI++; }
                         c--;
@@ -691,7 +691,7 @@ int rep386(int fv)
                         tempw2=readmemw(es,DI);
 //                        pclog("%04X %04X  %c%c %c%c\n", tempw, tempw2, tempw & 0xff, tempw >> 8, tempw2 & 0xff, tempw2 >> 8);
 
-                        if (abrt) { flags=of; break; }
+                        if (cpu_state.abrt) { flags=of; break; }
                         if (flags&D_FLAG) { DI-=2; SI-=2; }
                         else              { DI+=2; SI+=2; }
                         c--;
@@ -709,7 +709,7 @@ int rep386(int fv)
                 {
                         templ = readmeml(cpu_state.ea_seg->base, SI);
                         templ2=readmeml(es,DI);
-                        if (abrt) { flags=of; break; }
+                        if (cpu_state.abrt) { flags=of; break; }
                         if (flags&D_FLAG) { DI-=4; SI-=4; }
                         else              { DI+=4; SI+=4; }
                         c--;
@@ -727,7 +727,7 @@ int rep386(int fv)
                 {
                         tempw = readmemw(cpu_state.ea_seg->base, ESI);
                         tempw2=readmemw(es,EDI);
-                        if (abrt) { flags=of; break; }
+                        if (cpu_state.abrt) { flags=of; break; }
                         if (flags&D_FLAG) { EDI-=2; ESI-=2; }
                         else              { EDI+=2; ESI+=2; }
                         c--;
@@ -745,7 +745,7 @@ int rep386(int fv)
                 {
                         templ = readmeml(cpu_state.ea_seg->base, ESI);
                         templ2=readmeml(es,EDI);
-                        if (abrt) { flags=of; break; }
+                        if (cpu_state.abrt) { flags=of; break; }
                         if (flags&D_FLAG) { EDI-=4; ESI-=4; }
                         else              { EDI+=4; ESI+=4; }
                         c--;
@@ -762,7 +762,7 @@ int rep386(int fv)
                 {
                         CHECK_WRITE_REP(&_es, DI, DI);
                         writememb(es,DI,AL);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) DI--;
                         else              DI++;
                         c--;
@@ -780,7 +780,7 @@ int rep386(int fv)
                 {
                         CHECK_WRITE_REP(&_es, EDI, EDI);
                         writememb(es,EDI,AL);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) EDI--;
                         else              EDI++;
                         c--;
@@ -798,7 +798,7 @@ int rep386(int fv)
                 {
                         CHECK_WRITE_REP(&_es, DI, DI+1);
                         writememw(es,DI,AX);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) DI-=2;
                         else              DI+=2;
                         c--;
@@ -816,7 +816,7 @@ int rep386(int fv)
                 {
                         CHECK_WRITE_REP(&_es, EDI, EDI+1);
                         writememw(es,EDI,AX);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) EDI-=2;
                         else              EDI+=2;
                         c--;
@@ -834,7 +834,7 @@ int rep386(int fv)
                 {
                         CHECK_WRITE_REP(&_es, DI, DI+3);
                         writememl(es,DI,EAX);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) DI-=4;
                         else              DI+=4;
                         c--;
@@ -852,7 +852,7 @@ int rep386(int fv)
                 {
                         CHECK_WRITE_REP(&_es, EDI, EDI+3);
                         writememl(es,EDI,EAX);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) EDI-=4;
                         else              EDI+=4;
                         c--;
@@ -871,7 +871,7 @@ int rep386(int fv)
                 if (c>0)
                 {
                         AL = readmemb(cpu_state.ea_seg->base, SI);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) SI--;
                         else              SI++;
                         c--;
@@ -886,7 +886,7 @@ int rep386(int fv)
                 if (c>0)
                 {
                         AL = readmemb(cpu_state.ea_seg->base, ESI);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) ESI--;
                         else              ESI++;
                         c--;
@@ -901,7 +901,7 @@ int rep386(int fv)
                 if (c>0)
                 {
                         AX = readmemw(cpu_state.ea_seg->base, SI);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) SI-=2;
                         else              SI+=2;
                         c--;
@@ -916,7 +916,7 @@ int rep386(int fv)
                 if (c>0)
                 {
                         EAX = readmeml(cpu_state.ea_seg->base, SI);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) SI-=4;
                         else              SI+=4;
                         c--;
@@ -931,7 +931,7 @@ int rep386(int fv)
                 if (c>0)
                 {
                         AX = readmemw(cpu_state.ea_seg->base, ESI);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) ESI-=2;
                         else              ESI+=2;
                         c--;
@@ -946,7 +946,7 @@ int rep386(int fv)
                 if (c>0)
                 {
                         EAX = readmeml(cpu_state.ea_seg->base, ESI);
-                        if (abrt) break;
+                        if (cpu_state.abrt) break;
                         if (flags&D_FLAG) ESI-=4;
                         else              ESI+=4;
                         c--;
@@ -963,7 +963,7 @@ int rep386(int fv)
                 while ((c > 0) && (fv == tempz))
                 {
                         temp2=readmemb(es,DI);
-                        if (abrt) { flags=of; break; }
+                        if (cpu_state.abrt) { flags=of; break; }
                         setsub8(AL,temp2);
                         tempz = (ZF_SET()) ? 1 : 0;                        
                         if (flags&D_FLAG) DI--;
@@ -986,7 +986,7 @@ int rep386(int fv)
                 while ((c > 0) && (fv == tempz))
                 {
                         temp2=readmemb(es,EDI);
-                        if (abrt) { flags=of; break; }
+                        if (cpu_state.abrt) { flags=of; break; }
 //                        if (output) pclog("Compare %02X,%02X\n",temp2,AL);
                         setsub8(AL,temp2);
                         tempz = (ZF_SET()) ? 1 : 0;
@@ -1009,7 +1009,7 @@ int rep386(int fv)
                 while ((c > 0) && (fv == tempz))
                 {
                         tempw=readmemw(es,DI);
-                        if (abrt) { flags=of; break; }
+                        if (cpu_state.abrt) { flags=of; break; }
                         setsub16(AX,tempw);
                         tempz = (ZF_SET()) ? 1 : 0;
                         if (flags&D_FLAG) DI-=2;
@@ -1031,7 +1031,7 @@ int rep386(int fv)
                 while ((c > 0) && (fv == tempz))
                 {
                         templ=readmeml(es,DI);
-                        if (abrt) { flags=of; break; }
+                        if (cpu_state.abrt) { flags=of; break; }
                         setsub32(EAX,templ);
                         tempz = (ZF_SET()) ? 1 : 0;
                         if (flags&D_FLAG) DI-=4;
@@ -1053,7 +1053,7 @@ int rep386(int fv)
                 while ((c > 0) && (fv == tempz))
                 {
                         tempw=readmemw(es,EDI);
-                        if (abrt) { flags=of; break; }
+                        if (cpu_state.abrt) { flags=of; break; }
                         setsub16(AX,tempw);
                         tempz = (ZF_SET()) ? 1 : 0;
                         if (flags&D_FLAG) EDI-=2;
@@ -1075,7 +1075,7 @@ int rep386(int fv)
                 while ((c > 0) && (fv == tempz))
                 {
                         templ=readmeml(es,EDI);
-                        if (abrt) { flags=of; break; }
+                        if (cpu_state.abrt) { flags=of; break; }
                         setsub32(EAX,templ);
                         tempz = (ZF_SET()) ? 1 : 0;
                         if (flags&D_FLAG) EDI-=4;
@@ -1100,7 +1100,7 @@ int rep386(int fv)
         if (rep32&0x200) ECX=c;
         else             CX=c;
         CPU_BLOCK_END();
-        return abrt;
+        return cpu_state.abrt;
 //pclog("rep cpu_block_end=%d %p\n", cpu_block_end, (void *)&cpu_block_end);
 //        if (output) pclog("%03X %03X\n",rep32,use32);
 }
@@ -1113,7 +1113,7 @@ int checkio(int port)
         t = readmemw(tr.base, 0x66);
         cpl_override = 0;
 //        pclog("CheckIO 1 %08X  %04x %02x\n",tr.base, eflags, _cs.access);
-        if (abrt) return 0;
+        if (cpu_state.abrt) return 0;
 //        pclog("CheckIO %04X %01X %01X %02X %04X %04X %08X ",CS,CPL,IOPL,port,t,t+(port>>3),tr.base+t+(port>>3));
         if ((t+(port>>3))>tr.limit) return 1;
         cpl_override = 1;
@@ -1247,7 +1247,7 @@ void exec386_dynarec(int cycs)
                                 fetchdat = fastreadl(cs + cpu_state.pc);
 //                                if (!fetchdat)
 //                                        fatal("Dead with cache off\n");
-                                if (!abrt)
+                                if (!cpu_state.abrt)
                                 {               
                                         trap = flags & T_FLAG;
                                         opcode = fetchdat & 0xFF;
@@ -1271,7 +1271,7 @@ void exec386_dynarec(int cycs)
                                         ss=oldss;
                                         ssegs=0;
                                 }*/
-                                if (abrt)
+                                if (cpu_state.abrt)
                                         CPU_BLOCK_END();
                                 if (trap)
                                         CPU_BLOCK_END();
@@ -1293,7 +1293,7 @@ void exec386_dynarec(int cycs)
                 int valid_block = 0;
                 trap = 0;
 
-                if (block && !abrt)
+                if (block && !cpu_state.abrt)
                 {
                         page_t *page = &pages[phys_addr >> 12];
 
@@ -1367,7 +1367,7 @@ inrecomp=0;
                         insc += codeblock_ins[index];*/
 /*                        pclog("Exit block now %04X:%04X\n", CS, pc);*/
                 }
-                else if (valid_block && !abrt)
+                else if (valid_block && !cpu_state.abrt)
                 {
                         uint32_t start_page = cpu_state.pc >> 12;
                         uint32_t start_pc = cpu_state.pc;
@@ -1398,7 +1398,7 @@ inrecomp=0;
 //                                        fatal("Dead ffffffff\n");
 //                                if (!fetchdat)
 //                                        fatal("Dead\n");
-                                if (!abrt)
+                                if (!cpu_state.abrt)
                                 {               
                                         trap = flags & T_FLAG;
                                         opcode = fetchdat & 0xFF;
@@ -1430,7 +1430,7 @@ inrecomp=0;
                                         CPU_BLOCK_END();
 
 
-                                if (abrt)
+                                if (cpu_state.abrt)
                                 {
                                         codegen_block_remove();
                                         CPU_BLOCK_END();
@@ -1440,7 +1440,7 @@ inrecomp=0;
                                 insc++;
                         }
                         
-                        if (!abrt && !x86_was_reset)
+                        if (!cpu_state.abrt && !x86_was_reset)
                                 codegen_block_end_recompile(block);
                         
                         if (x86_was_reset)
@@ -1449,7 +1449,7 @@ inrecomp=0;
                         codegen_in_recompile = 0;
 //                        output &= ~2;
                 }
-                else if (!abrt)
+                else if (!cpu_state.abrt)
                 {
                         /*Mark block but do not recompile*/
                         uint32_t start_page = cpu_state.pc >> 12;
@@ -1477,7 +1477,7 @@ inrecomp=0;
                                 codegen_endpc = (cs + cpu_state.pc) + 8;
                                 fetchdat = fastreadl(cs + cpu_state.pc);
 
-                                if (!abrt)
+                                if (!cpu_state.abrt)
                                 {               
                                         trap = flags & T_FLAG;
                                         opcode = fetchdat & 0xFF;
@@ -1507,7 +1507,7 @@ inrecomp=0;
                                         CPU_BLOCK_END();
 
 
-                                if (abrt)
+                                if (cpu_state.abrt)
                                 {
                                         codegen_block_remove();
                                         CPU_BLOCK_END();
@@ -1517,7 +1517,7 @@ inrecomp=0;
                                 insc++;
                         }
                         
-                        if (!abrt && !x86_was_reset)
+                        if (!cpu_state.abrt && !x86_was_reset)
                                 codegen_block_end();
                         
                         if (x86_was_reset)
@@ -1534,22 +1534,22 @@ inrecomp=0;
                 
 //                timer_end_period(cycles);
                 
-                if (abrt)
+                if (cpu_state.abrt)
                 {
                         flags_rebuild();
-                        tempi = abrt;
-                        abrt = 0;
+                        tempi = cpu_state.abrt;
+                        cpu_state.abrt = 0;
                         x86_doabrt(tempi);
-                        if (abrt)
+                        if (cpu_state.abrt)
                         {
-                                abrt = 0;
+                                cpu_state.abrt = 0;
                                 CS = oldcs;
                                 cpu_state.pc = cpu_state.oldpc;
                                 pclog("Double fault %i\n", ins);
                                 pmodeint(8, 0);
-                                if (abrt)
+                                if (cpu_state.abrt)
                                 {
-                                        abrt = 0;
+                                        cpu_state.abrt = 0;
                                         softresetx86();
                                         pclog("Triple fault - reset\n");
                                 }

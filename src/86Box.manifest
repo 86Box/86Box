@@ -3,7 +3,7 @@
 <assemblyIdentity
     version="1.0.0.0"
     processorArchitecture="*"
-    name="PCem-X64.exe"
+    name="86Box.exe"
     type="win32"
 />
 <description>Your application description here.</description>

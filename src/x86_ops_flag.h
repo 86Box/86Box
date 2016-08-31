@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 static int opCMC(uint32_t fetchdat)
 {
         flags_rebuild();
@@ -96,7 +93,7 @@ static int opPUSHF(uint32_t fetchdat)
         flags_rebuild();
         PUSH_W(flags);
         CLOCK_CYCLES(4);
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opPUSHFD(uint32_t fetchdat)
 {
@@ -111,7 +108,7 @@ static int opPUSHFD(uint32_t fetchdat)
         flags_rebuild();
         PUSH_L(flags | (tempw << 16));
         CLOCK_CYCLES(4);
-        return abrt;
+        return cpu_state.abrt;
 }
 
 static int opPOPF_286(uint32_t fetchdat)
@@ -124,7 +121,7 @@ static int opPOPF_286(uint32_t fetchdat)
                 return 1;
         }
         
-        tempw = POP_W();                if (abrt) return 1;
+        tempw = POP_W();                if (cpu_state.abrt) return 1;
 
         if (!(msw & 1))           flags = (flags & 0x7000) | (tempw & 0x0fd5) | 2;
         else if (!(CPL))          flags = (tempw & 0x7fd5) | 2;
@@ -148,7 +145,7 @@ static int opPOPF(uint32_t fetchdat)
                 return 1;
         }
         
-        tempw = POP_W();                if (abrt) return 1;
+        tempw = POP_W();                if (cpu_state.abrt) return 1;
 
         if (!(CPL) || !(msw & 1)) flags = (tempw & 0x7fd5) | 2;
         else if (IOPLp)           flags = (flags & 0x3000) | (tempw & 0x4fd5) | 2;
@@ -171,7 +168,7 @@ static int opPOPFD(uint32_t fetchdat)
                 return 1;
         }
         
-        templ = POP_L();                if (abrt) return 1;
+        templ = POP_L();                if (cpu_state.abrt) return 1;
 
         if (!(CPL) || !(msw & 1)) flags = (templ & 0x7fd5) | 2;
         else if (IOPLp)           flags = (flags & 0x3000) | (templ & 0x4fd5) | 2;

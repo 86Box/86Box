@@ -341,7 +341,6 @@ reg = If mod=11,  (depending on data size, 16 bits/8 bits, 32 bits=extend 16 bit
       If BP or SP are in address calc, seg is SS, else DS
 */
 
-int cycles=0;
 uint32_t easeg;
 int rmdat;
 
@@ -548,7 +547,7 @@ chdir(pcempath);
         f=fopen("rram4.dmp","wb");
         for (c=0;c<0x0050000;c++) 
         {
-                abrt = 0;
+                cpu_state.abrt = 0;
                 putc(readmemb386l(0,c+0x80000000),f);
         }
         fclose(f);

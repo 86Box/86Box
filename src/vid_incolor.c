@@ -971,9 +971,7 @@ void incolor_poll(void *p)
                                                 if (ysize < 32) ysize = 200;
                                                 updatewindowsize(xsize, ysize);
                                         }
-                                startblit();
 					video_blit_memtoscreen(0, incolor->firstline, 0, incolor->lastline - incolor->firstline, xsize, incolor->lastline - incolor->firstline);
-                                endblit();
                                         frames++;
                                         if ((incolor->ctrl & INCOLOR_CTRL_GRAPH) && (incolor->ctrl2 & INCOLOR_CTRL2_GRAPH))
                                         {

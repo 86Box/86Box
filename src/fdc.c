@@ -34,6 +34,7 @@ typedef struct FDC
         int abort;
         uint8_t format_dat[256];
         int format_state;
+	int format_n;
         int tc;
         int written;
         
@@ -99,9 +100,17 @@ void fdc_reset()
 //        pclog("Reset FDC\n");
 }
 
-int ins;
-
 int fdc_get_bitcell_period();
+
+int fdc_get_format_n()
+{
+	return fdc.format_n;
+}
+
+int fdc_is_mfm()
+{
+	return (fdc.command & 0x40) ? 1 : 0;
+}
 
 double fdc_get_hut()
 {
@@ -339,6 +348,26 @@ void fdc_update_rate(int drive)
 //        pclog("fdc_update_rate: rate=%i bit_rate=%i bitcell_period=%i\n", fdc.rate, bit_rate, fdc.bitcell_period);
 }
 
+int fdc_get_bit_rate()
+{
+	switch(bit_rate)
+	{
+		case 500:
+			return 0;
+		case 300:
+			return 1;
+		case 2000:
+			return 1 | 4;
+		case 250:
+			return 2;
+		case 1000:
+			return 3;
+		default:
+			return 2;
+	}
+	return 2;
+}
+
 int fdc_get_bitcell_period()
 {
         return fdc.bitcell_period;
@@ -500,7 +529,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                         fdc.data_ready = 0;
                         
                         fdc.command=val;
-//                        pclog("Starting FDC command %02X\n",fdc.command);
+                        // pclog("Starting FDC command %02X\n",fdc.command);
                         switch (fdc.command&0x1F)
                         {
 				case 1: /*Mode*/
@@ -635,7 +664,7 @@ bad_command:
                         fdc.params[fdc.pnum++]=val;
                         if (fdc.pnum==fdc.ptot)
                         {
-//                                pclog("Got all params %02X\n", fdc.command);
+                                // pclog("Got all params %02X\n", fdc.command);
                                 fdc.stat=0x30;
                                 discint=fdc.command&0x1F;
         			timer_process();
@@ -747,6 +776,8 @@ bad_command:
 					fdc.gap = fdc.params[3];
 					fdc.dtl = 4000000;
 					fdc.format_sectors = fdc.params[2];
+					fdc.format_n = fdc.params[1];
+					if ((fdc.format_sectors == 18) && (fdc.format_n == 2))  fatal("Deliberate fatal\n");
                                         fdc.format_state = 1;
                                         fdc.pos = 0;
                                         fdc.stat = 0x30;
@@ -1111,33 +1142,10 @@ void fdc_callback()
 			disctime = 128 * (1 << TIMER_SHIFT);
 			timer_update_outstanding();
                 }                
-#if 0
                 else if (fdc.format_state == 2)
                 {
-                        temp = fdc_getdata(fdc.pos == ((fdc.params[2] * 4) - 1));
-                        if (temp == -1)
-                        {
-        			timer_process();
-        			disctime = 128 * (1 << TIMER_SHIFT);
-        			timer_update_outstanding();
-                                return;
-                        }
-                        fdc.format_dat[fdc.pos++] = temp;
-                        if (fdc.pos == (fdc.params[2] * 4))
-                                fdc.format_state = 3;
-			timer_process();
-			disctime = 128 * (1 << TIMER_SHIFT);
-			timer_update_outstanding();
-                }
-                else if (fdc.format_state == 3)
-#endif
-                else if (fdc.format_state == 2)
-                {
-                        pclog("Format next stage track %i head %i\n", fdc.track[fdc.drive], fdc.head);
+                        // pclog("Format next stage track %i head %i n %i is_mfm %i gap %i sc %i\n", fdc.track[fdc.drive], fdc.head, fdc_get_format_n(), fdc_is_mfm(), fdc_get_gap(), fdc_get_format_sectors());
                         disc_format(fdc.drive, fdc.track[fdc.drive], fdc.head, fdc.rate, fdc.params[4]);
-#if 0
-                        fdc.format_state = 4;
-#endif
                         fdc.format_state = 3;
                 }
                 else

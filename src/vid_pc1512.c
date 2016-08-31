@@ -407,14 +407,14 @@ static void pc1512_poll(void *p)
                                         if (ysize < 32) ysize = 200;
                                         updatewindowsize(xsize, (ysize << 1) + 16);
                                 }
-startblit();
+
                                 video_blit_memtoscreen_8(0, pc1512->firstline - 4, xsize, (pc1512->lastline - pc1512->firstline) + 8);
 //                                        blit(buffer,vbuf,0,firstline-4,0,0,xsize,(lastline-firstline)+8+1);
 //                                        if (vid_resize) stretch_blit(vbuf,screen,0,0,xsize,(lastline-firstline)+8+1,0,0,winsizex,winsizey);
 //                                        else            stretch_blit(vbuf,screen,0,0,xsize,(lastline-firstline)+8+1,0,0,xsize,((lastline-firstline)<<1)+16+2);
 //                                        if (readflash) rectfill(screen,winsizex-40,8,winsizex-8,14,0xFFFFFFFF);
 //                                        readflash=0;
-endblit();
+
                                 video_res_x = xsize - 16;
                                 video_res_y = ysize;
                                 if (pc1512->cgamode & 1)

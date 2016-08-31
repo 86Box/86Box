@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #define cond_O   ( VF_SET())
 #define cond_NO  (!VF_SET())
 #define cond_B   ( CF_SET())
@@ -49,7 +46,7 @@
                                                         \
         static int opJ ## condition ## _l(uint32_t fetchdat)  \
         {                                               \
-                uint32_t offset = getlong(); if (abrt) return 1; \
+                uint32_t offset = getlong(); if (cpu_state.abrt) return 1; \
                 CLOCK_CYCLES(timing_bnt);               \
                 if (cond_ ## condition)                 \
                 {                                       \
@@ -207,7 +204,7 @@ static int opJMP_r16(uint32_t fetchdat)
 }
 static int opJMP_r32(uint32_t fetchdat)
 {
-        int32_t offset = (int32_t)getlong();            if (abrt) return 1;
+        int32_t offset = (int32_t)getlong();            if (cpu_state.abrt) return 1;
         cpu_state.pc += offset;
         CPU_BLOCK_END();
         CLOCK_CYCLES((is486) ? 3 : 7);
@@ -217,7 +214,7 @@ static int opJMP_r32(uint32_t fetchdat)
 static int opJMP_far_a16(uint32_t fetchdat)
 {
         uint16_t addr = getwordf();
-        uint16_t seg = getword();                       if (abrt) return 1;
+        uint16_t seg = getword();                       if (cpu_state.abrt) return 1;
         uint32_t oxpc = cpu_state.pc;
         cpu_state.pc = addr;
         loadcsjmp(seg, oxpc);
@@ -227,7 +224,7 @@ static int opJMP_far_a16(uint32_t fetchdat)
 static int opJMP_far_a32(uint32_t fetchdat)
 {
         uint32_t addr = getlong();
-        uint16_t seg = getword();                       if (abrt) return 1;
+        uint16_t seg = getword();                       if (cpu_state.abrt) return 1;
         uint32_t oxpc = cpu_state.pc;
         cpu_state.pc = addr;
         loadcsjmp(seg, oxpc);
@@ -246,7 +243,7 @@ static int opCALL_r16(uint32_t fetchdat)
 }
 static int opCALL_r32(uint32_t fetchdat)
 {
-        int32_t addr = getlong();                       if (abrt) return 1;       
+        int32_t addr = getlong();                       if (cpu_state.abrt) return 1;       
         PUSH_L(cpu_state.pc);
         cpu_state.pc += addr;
         CPU_BLOCK_END();
@@ -258,7 +255,7 @@ static int opRET_w(uint32_t fetchdat)
 {
         uint16_t ret;
         
-        ret = POP_W();                          if (abrt) return 1;
+        ret = POP_W();                          if (cpu_state.abrt) return 1;
         cpu_state.pc = ret;
         CPU_BLOCK_END();
         
@@ -269,7 +266,7 @@ static int opRET_l(uint32_t fetchdat)
 {
         uint32_t ret;
 
-        ret = POP_L();                          if (abrt) return 1;
+        ret = POP_L();                          if (cpu_state.abrt) return 1;
         cpu_state.pc = ret;
         CPU_BLOCK_END();
         
@@ -282,7 +279,7 @@ static int opRET_w_imm(uint32_t fetchdat)
         uint16_t offset = getwordf();
         uint16_t ret;
 
-        ret = POP_W();                          if (abrt) return 1;
+        ret = POP_W();                          if (cpu_state.abrt) return 1;
         if (stack32) ESP += offset;
         else          SP += offset;       
         cpu_state.pc = ret;
@@ -296,7 +293,7 @@ static int opRET_l_imm(uint32_t fetchdat)
         uint16_t offset = getwordf();
         uint32_t ret;
 
-        ret = POP_L();                          if (abrt) return 1;
+        ret = POP_L();                          if (cpu_state.abrt) return 1;
         if (stack32) ESP += offset;
         else          SP += offset;       
         cpu_state.pc = ret;

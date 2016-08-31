@@ -5,7 +5,7 @@ int oldcpl;
 extern int nmi_enable;
 
 int tempc;
-int cycles,output;
+int output;
 int firstrepcycle;
 
 uint32_t easeg,ealimit,ealimitw;
@@ -14,7 +14,7 @@ int skipnextprint;
 int inhlt;
 
 uint8_t opcode;
-int ins,noint;
+int noint;
 
 uint16_t lastcs,lastpc;
 int timetolive,keyboardtimer;
@@ -83,7 +83,6 @@ enum
         ABRT_PF  = 0xE
 };
 
-extern int abrt;
 extern uint32_t abrt_error;
 
 void x86_doabrt(int x86_abrt);

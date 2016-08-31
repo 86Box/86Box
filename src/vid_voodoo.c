@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, leilei
-   see COPYING for more details
-*/
 #include <stdlib.h>
 #include <stddef.h>
 #include "ibm.h"
@@ -201,7 +198,7 @@ typedef struct voodoo_t
         int swap_count;
         
         int disp_buffer;
-        int64_t timer_count;
+        int timer_count;
         
         int line;
         svga_t *svga;
@@ -600,6 +597,8 @@ enum
 
         FBZ_DEPTH_BIAS = (1 << 16),
                 
+        FBZ_DEPTH_SOURCE = (1 << 20),
+        
         FBZ_PARAM_ADJUST = (1 << 26)
 };
 
@@ -611,6 +610,7 @@ enum
         TEX_I8 = 0x3,
         TEX_AI8 = 0x4,
         TEX_PAL8 = 0x5,
+        TEX_A8Y4I2Q2 = 0x9,
         TEX_R5G6B5 = 0xa,
         TEX_ARGB1555 = 0xb,
         TEX_ARGB4444 = 0xc,
@@ -1154,6 +1154,13 @@ static inline void tex_read(voodoo_state_t *state, voodoo_texture_state_t *textu
                 state->tex_a = 0xff;
                 break;
                                                         
+                case TEX_A8Y4I2Q2:
+                state->tex_r = state->palette[dat & 0xff].rgba.r;
+                state->tex_g = state->palette[dat & 0xff].rgba.g;
+                state->tex_b = state->palette[dat & 0xff].rgba.b;
+                state->tex_a = dat >> 8;
+                break;
+                
                 case TEX_R5G6B5:
                 state->tex_r = rgb565[dat].r;
                 state->tex_g = rgb565[dat].g;
@@ -1292,6 +1299,13 @@ static inline void tex_read_4(voodoo_state_t *state, voodoo_texture_state_t *tex
                 state->tex_a = 0xff;
                 break;
                                                         
+                case TEX_A8Y4I2Q2:
+                state->tex_r = (state->palette[dat[0] & 0xff].rgba.r * d[0] + state->palette[dat[1] & 0xff].rgba.r * d[1] + state->palette[dat[2] & 0xff].rgba.r * d[2] + state->palette[dat[3] & 0xff].rgba.r * d[3]) >> 8;
+                state->tex_g = (state->palette[dat[0] & 0xff].rgba.g * d[0] + state->palette[dat[1] & 0xff].rgba.g * d[1] + state->palette[dat[2] & 0xff].rgba.g * d[2] + state->palette[dat[3] & 0xff].rgba.g * d[3]) >> 8;
+                state->tex_b = (state->palette[dat[0] & 0xff].rgba.b * d[0] + state->palette[dat[1] & 0xff].rgba.b * d[1] + state->palette[dat[2] & 0xff].rgba.b * d[2] + state->palette[dat[3] & 0xff].rgba.b * d[3]) >> 8;
+                state->tex_a = ((dat[0] >> 8) * d[0] + (dat[1] >> 8) * d[1] + (dat[2] >> 8) * d[2] + (dat[3] >> 8) * d[3]) >> 8;
+                break;
+
                 case TEX_R5G6B5:
                 state->tex_r = (rgb565[dat[0]].r * d[0] + rgb565[dat[1]].r * d[1] + rgb565[dat[2]].r * d[2] + rgb565[dat[3]].r * d[3]) >> 8;
                 state->tex_g = (rgb565[dat[0]].g * d[0] + rgb565[dat[1]].g * d[1] + rgb565[dat[2]].g * d[2] + rgb565[dat[3]].g * d[3]) >> 8;
@@ -1405,7 +1419,7 @@ static inline void voodoo_get_texture(voodoo_t *voodoo, voodoo_params_t *params,
 }
 
 
-#define DEPTH_TEST()                                    \
+#define DEPTH_TEST(comp_depth)                          \
         do                                              \
         {                                               \
                 switch (depth_op)                       \
@@ -1414,42 +1428,42 @@ static inline void voodoo_get_texture(voodoo_t *voodoo, voodoo_params_t *params,
                         voodoo->fbiZFuncFail++;         \
                         goto skip_pixel;                \
                         case DEPTHOP_LESSTHAN:          \
-                        if (!(new_depth < old_depth))   \
+                        if (!(comp_depth < old_depth))  \
                         {                               \
                                 voodoo->fbiZFuncFail++; \
                                 goto skip_pixel;        \
                         }                               \
                         break;                          \
                         case DEPTHOP_EQUAL:             \
-                        if (!(new_depth == old_depth))  \
+                        if (!(comp_depth == old_depth)) \
                         {                               \
                                 voodoo->fbiZFuncFail++; \
                                 goto skip_pixel;        \
                         }                               \
                         break;                          \
                         case DEPTHOP_LESSTHANEQUAL:     \
-                        if (!(new_depth <= old_depth))  \
+                        if (!(comp_depth <= old_depth)) \
                         {                               \
                                 voodoo->fbiZFuncFail++; \
                                 goto skip_pixel;        \
                         }                               \
                         break;                          \
                         case DEPTHOP_GREATERTHAN:       \
-                        if (!(new_depth > old_depth))   \
+                        if (!(comp_depth > old_depth))  \
                         {                               \
                                 voodoo->fbiZFuncFail++; \
                                 goto skip_pixel;        \
                         }                               \
                         break;                          \
                         case DEPTHOP_NOTEQUAL:          \
-                        if (!(new_depth != old_depth))  \
+                        if (!(comp_depth != old_depth)) \
                         {                               \
                                 voodoo->fbiZFuncFail++; \
                                 goto skip_pixel;        \
                         }                               \
                         break;                          \
                         case DEPTHOP_GREATERTHANEQUAL:  \
-                        if (!(new_depth >= old_depth))  \
+                        if (!(comp_depth >= old_depth)) \
                         {                               \
                                 voodoo->fbiZFuncFail++; \
                                 goto skip_pixel;        \
@@ -1796,10 +1810,8 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
                 voodoo_draw = voodoo_get_block(voodoo, params, state, odd_even);
 #endif
               
-#if 0
         if (voodoo_output)
                 pclog("dxAB=%08x dxBC=%08x dxAC=%08x\n", state->dxAB, state->dxBC, state->dxAC);
-#endif
 //        pclog("Start %i %i\n", ystart, voodoo->fbzMode & (1 << 17));
         for (; state->y < yend; state->y++)
         {
@@ -1845,10 +1857,8 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
                 x = (x + 0x7000) >> 16;
                 x2 = (x2 + 0x7000) >> 16;
 
-#if 0
                 if (voodoo_output)
                         pclog("%03i:%03i : Ax=%08x start_x=%08x  dSdX=%016llx dx=%08x  s=%08x -> ", x, state->y, state->vertexAx << 8, start_x, params->tmu[0].dTdX, dx, state->tmu0_t);
-#endif
                         
                 state->ir += (params->dRdX * dx);
                 state->ig += (params->dGdX * dx);
@@ -1860,10 +1870,8 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
                 state->tmu0_w += (params->tmu[0].dWdX * dx);
                 state->w += (params->dWdX * dx);
 
-#if 0
                 if (voodoo_output)
                         pclog("%08llx %lli %lli\n", state->tmu0_t, state->tmu0_t >> (18+state->lod), (state->tmu0_t + (1 << 17+state->lod)) >> (18+state->lod));
-#endif
 
                 if (params->fbzMode & 1)
                 {
@@ -1919,10 +1927,8 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
                 state->fb_mem = fb_mem = &voodoo->fb_mem[params->draw_offset + (real_y * voodoo->row_width)];
                 state->aux_mem = aux_mem = &voodoo->fb_mem[params->aux_offset + (real_y * voodoo->row_width)];
                 
-#if 0
                 if (voodoo_output)
                         pclog("%03i: x=%08x x2=%08x xstart=%08x xend=%08x dx=%08x start_x2=%08x\n", state->y, x, x2, state->xstart, state->xend, dx, start_x2);
-#endif
 
                 state->pixel_count = 0;
                 state->x = x;
@@ -1940,10 +1946,8 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
                         start_x = x;
                         voodoo->pixel_count[odd_even]++;
                         voodoo->fbiPixelsIn++;
-#if 0
                         if (voodoo_output)
                                 pclog("  X=%03i T=%08x\n", x, state->tmu0_t);
-#endif
 //                        if (voodoo->fbzMode & FBZ_RGB_WMASK)
                         {
                                 int update = 1;
@@ -1984,7 +1988,7 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
                                 {
                                         uint16_t old_depth = aux_mem[x];
 
-                                        DEPTH_TEST();
+                                        DEPTH_TEST((params->fbzMode & FBZ_DEPTH_SOURCE) ? (params->zaColor & 0xffff) : new_depth);
                                 }
                                 
                                 dat = fb_mem[x];
@@ -2675,9 +2679,7 @@ static void voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
 
                 voodoo->params.swapbufferCMD = val;
 
-#if 0
                 pclog("Swap buffer %08x %d %p\n", val, voodoo->swap_count, &voodoo->swap_count);
-#endif
 //                voodoo->front_offset = params->front_offset;
                 wait_for_render_thread_idle(voodoo);
                 if (!(val & 1))
@@ -3364,7 +3366,7 @@ static void voodoo_fb_writew(uint32_t addr, uint16_t val, void *p)
                         {
                                 uint16_t old_depth = *(uint16_t *)(&voodoo->fb_mem[write_addr_aux & voodoo->fb_mask]);
 
-                                DEPTH_TEST();
+                                DEPTH_TEST(new_depth);
                         }
 
                         if ((params->fbzMode & FBZ_CHROMAKEY) &&
@@ -3505,7 +3507,7 @@ static void voodoo_fb_writel(uint32_t addr, uint32_t val, void *p)
                         {
                                 uint16_t old_depth = *(uint16_t *)(&voodoo->fb_mem[write_addr_aux & voodoo->fb_mask]);
 
-                                DEPTH_TEST();
+                                DEPTH_TEST(new_depth);
                         }
 
                         if ((params->fbzMode & FBZ_CHROMAKEY) &&
@@ -3919,7 +3921,7 @@ static void voodoo_writel(uint32_t addr, uint32_t val, void *p)
                                 }
                         }
                         else
-                                voodoo->dac_readdata = voodoo->dac_data[voodoo->dac_reg];
+                                voodoo->dac_readdata = voodoo->dac_data[voodoo->dac_readdata];
                 }
                 else
                 {
@@ -4006,16 +4008,12 @@ static void voodoo_recalcmapping(voodoo_t *voodoo)
 {
         if (voodoo->pci_enable && voodoo->memBaseAddr)
         {
-#if 0
                 pclog("voodoo_recalcmapping : memBaseAddr %08X\n", voodoo->memBaseAddr);
-#endif
                 mem_mapping_set_addr(&voodoo->mapping, voodoo->memBaseAddr, 0x01000000);
         }
         else
         {
-#if 0
                 pclog("voodoo_recalcmapping : disabled\n");
-#endif
                 mem_mapping_disable(&voodoo->mapping);
         }
 }
@@ -4024,9 +4022,7 @@ uint8_t voodoo_pci_read(int func, int addr, void *p)
 {
         voodoo_t *voodoo = (voodoo_t *)p;
 
-#if 0
         pclog("Voodoo PCI read %08X\n", addr);
-#endif
         switch (addr)
         {
                 case 0x00: return 0x1a; /*3dfx*/
@@ -4054,9 +4050,7 @@ void voodoo_pci_write(int func, int addr, uint8_t val, void *p)
 {
         voodoo_t *voodoo = (voodoo_t *)p;
         
-#if 0
         pclog("Voodoo PCI write %04X %02X\n", addr, val);
-#endif
         switch (addr)
         {
                 case 0x04:

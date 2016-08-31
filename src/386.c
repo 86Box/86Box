@@ -46,7 +46,7 @@ uint32_t rmdat32;
 #define fetchdat rmdat32
 uint32_t backupregs[16];
 extern int oddeven;
-int inttype,abrt;
+int inttype;
 
 
 uint32_t oldcs2;
@@ -172,8 +172,8 @@ static inline void fetch_ea_16_long(uint32_t rmdat)
         }
 }
 
-#define fetch_ea_16(rmdat)              cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_16_long(rmdat); if (abrt) return 0; } 
-#define fetch_ea_32(rmdat)              cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_32_long(rmdat); } if (abrt) return 0
+#define fetch_ea_16(rmdat)              cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_16_long(rmdat); if (cpu_state.abrt) return 0; } 
+#define fetch_ea_32(rmdat)              cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_32_long(rmdat); } if (cpu_state.abrt) return 0
 
 #include "x86_flags.h"
 
@@ -246,7 +246,7 @@ dontprint=0;
 opcodestart:
                 fetchdat = fastreadl(cs + cpu_state.pc);
 
-                if (!abrt)
+                if (!cpu_state.abrt)
                 {               
                         trap = flags & T_FLAG;
                         opcode = fetchdat & 0xFF;
@@ -262,11 +262,11 @@ opcodestart:
 
                 if (!use32) cpu_state.pc &= 0xffff;
 
-                if (abrt)
+                if (cpu_state.abrt)
                 {
                         flags_rebuild();
 //                        pclog("Abort\n");
-//                        if (CS == 0x228) pclog("Abort at %04X:%04X - %i %i %i\n",CS,pc,notpresent,nullseg,abrt);
+//                        if (CS == 0x228) pclog("Abort at %04X:%04X - %i %i %i\n",CS,pc,notpresent,nullseg,cpu_state.abrt);
 /*                        if (testr[0]!=EAX) pclog("EAX corrupted %08X\n",pc);
                         if (testr[1]!=EBX) pclog("EBX corrupted %08X\n",pc);
                         if (testr[2]!=ECX) pclog("ECX corrupted %08X\n",pc);
@@ -276,19 +276,19 @@ opcodestart:
                         if (testr[6]!=EBP) pclog("EBP corrupted %08X\n",pc);
                         if (testr[7]!=ESP) pclog("ESP corrupted %08X\n",pc);*/
 /*                        if (testr[8]!=flags) pclog("FLAGS corrupted %08X\n",pc);*/
-                        tempi = abrt;
-                        abrt = 0;
+                        tempi = cpu_state.abrt;
+                        cpu_state.abrt = 0;
                         x86_doabrt(tempi);
-                        if (abrt)
+                        if (cpu_state.abrt)
                         {
-                                abrt = 0;
+                                cpu_state.abrt = 0;
                                 CS = oldcs;
                                 cpu_state.pc = cpu_state.oldpc;
                                 pclog("Double fault %i\n", ins);
                                 pmodeint(8, 0);
-                                if (abrt)
+                                if (cpu_state.abrt)
                                 {
-                                        abrt = 0;
+                                        cpu_state.abrt = 0;
                                         softresetx86();
                                         pclog("Triple fault - reset\n");
                                 }

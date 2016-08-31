@@ -627,7 +627,6 @@ void ega_poll(void *p)
                                         updatewindowsize(xsize + x_add_ex, ysize + y_add_ex);
                         }
                                         
-startblit();
 			if (enable_overscan)
 			{
 				if ((x >= 160) && ((ega->lastline - ega->firstline) >= 120))
@@ -658,7 +657,6 @@ startblit();
 			}
 
                         video_blit_memtoscreen(32, 0, ega->firstline, ega->lastline + y_add_ex, xsize + x_add_ex, ega->lastline - ega->firstline + y_add_ex);
-			endblit();
 
                         frames++;
                         

@@ -22,11 +22,6 @@ static struct
 	uint32_t base;
 } img[2];
 
-#if 0
-static uint8_t xdf_track0[5][3];
-static uint8_t xdf_spt[5];
-static uint8_t xdf_map[5][24][3];
-#endif
 static uint8_t xdf_track0[3][3];
 static uint8_t xdf_spt[3];
 static uint8_t xdf_map[3][24][3];
@@ -107,41 +102,13 @@ static int gap3_sizes[5][8][256] = {	[0][1][16] = 0x54,
 /* Needed for formatting! */
 int img_realtrack(int drive, int track)
 {
-#ifdef MAINLINE
-        if ((img[drive].tracks <= 41) && fdd_doublestep_40(drive))
-#else
         if ((img[drive].tracks <= 43) && fdd_doublestep_40(drive))
-#endif
                 track /= 2;
 
 	return track;
 }
 
 void img_writeback(int drive, int track);
-
-static int img_sector_size_code(int drive)
-{
-	switch(img[drive].sector_size)
-	{
-		case 128:
-			return 0;
-		case 256:
-			return 1;
-		default:
-		case 512:
-			return 2;
-		case 1024:
-			return 3;
-		case 2048:
-			return 4;
-		case 4096:
-			return 5;
-		case 8192:
-			return 6;
-		case 16384:
-			return 7;
-	}
-}
 
 static int sector_size_code(int sector_size)
 {
@@ -165,6 +132,11 @@ static int sector_size_code(int sector_size)
 		case 16384:
 			return 7;
 	}
+}
+
+static int img_sector_size_code(int drive)
+{
+	return sector_size_code(img[drive].sector_size);
 }
 
 void img_init()
@@ -219,24 +191,6 @@ static void initialize_xdf_maps()
 	add_to_map(xdf_map[2][5], 1, 1, 4);
 	add_to_map(xdf_map[2][6], 1, 2, 5);
 	add_to_map(xdf_map[2][7], 1, 3, 7);
-
-#if 0
-	// XXDF 3.5" 2HD
-	add_to_map(xdf_track0[3], 12, 20, 4);
-	xdf_spt[3] = 2;
-	add_to_map(xdf_map[3][0], 0, 0, 5);
-	add_to_map(xdf_map[3][1], 1, 1, 6);
-	add_to_map(xdf_map[3][2], 0, 1, 6);
-	add_to_map(xdf_map[3][3], 1, 0, 5);
-
-	// XXDF 3.5" 2ED
-	add_to_map(xdf_track0[4], 21, 39, 9);
-	xdf_spt[4] = 2;
-	add_to_map(xdf_map[4][0], 0, 0, 6);
-	add_to_map(xdf_map[4][1], 1, 1, 7);
-	add_to_map(xdf_map[4][2], 0, 1, 7);
-	add_to_map(xdf_map[4][3], 1, 0, 6);
-#endif
 
 	xdf_maps_initialized = 1;
 }
@@ -485,19 +439,9 @@ void img_load(int drive, char *fn)
 							img[drive].xdf_type = 2;
 							pclog("XDF type is 2 @ %i kbps\n", bit_rate_300);
 							break;
-#if 0
-						case 24:	/* High density XXDF @ 300 rpm */
-							img[drive].xdf_type = 4;
-							break;
-#endif
 						case 46:	/* Extended density XDF */
 							img[drive].xdf_type = 3;
 							break;
-#if 0
-						case 48:	/* Extended density XXDF */
-							img[drive].xdf_type = 5;
-							break;
-#endif
 						default:	/* Unknown, as we're beyond maximum sectors, get out */
 							fclose(img[drive].f);
 							return;
@@ -516,23 +460,12 @@ void img_load(int drive, char *fn)
 	}
 
 	gap2_size[drive] = (temp_rate == 3) ? 41 : 22;
-	pclog("GAP2 size: %i bytes\n", gap2_size[drive]);
+	// pclog("GAP2 size: %i bytes\n", gap2_size[drive]);
 	gap3_size[drive] = gap3_sizes[temp_rate][sector_size_code(img[drive].sector_size)][img[drive].sectors];
-	if (gap3_size)
+	if (!gap3_size[drive])
 	{
-		pclog("GAP3 size: %i bytes\n", gap3_size[drive]);
-	}
-	else
-	{
-		// fclose(img[drive].f);
 		gap3_size[drive] = 40;
 		pclog("WARNING: Floppy image of unknown format was inserted into drive %c:!\n", drive + 0x41);
-	}
-	gap4_size[drive] = raw_tsize[drive] - (((pre_gap + gap2_size[drive] + pre_data + img[drive].sector_size + post_gap + gap3_size[drive]) * img[drive].sectors) + pre_track);
-	pclog("GAP4 size: %i bytes\n", gap4_size[drive]);
-	if (img[drive].xdf_type)
-	{
-		gap4_size[drive] = 1;
 	}
 
 	if (bit_rate_300 == 250)
@@ -592,13 +525,13 @@ int img_hole(int drive)
 	return img[drive].hole;
 }
 
-int img_byteperiod(int drive)
+double img_byteperiod(int drive)
 {
 	if (img[drive].byte_period == 29)
 	{
-		return (fdd_get_type(drive) & 1) ? 32 : 26;
+		return (fdd_get_type(drive) & 1) ? 32.0 : (160.0 / 6.0);
 	}
-	return img[drive].byte_period;
+	return (double) img[drive].byte_period;
 }
 
 void img_close(int drive)
@@ -621,11 +554,7 @@ void img_seek(int drive, int track)
                 return;
         // pclog("Seek drive=%i track=%i sectors=%i sector_size=%i sides=%i\n", drive, track, img[drive].sectors,img[drive].sector_size, img[drive].sides);
 //        pclog("  %i %i\n", drive_type[drive], img[drive].tracks);
-#ifdef MAINLINE
-        if ((img[drive].tracks <= 41) && fdd_doublestep_40(drive))
-#else
         if ((img[drive].tracks <= 43) && fdd_doublestep_40(drive))
-#endif
                 track /= 2;
 
 	// pclog("Disk seeked to track %i\n", track);
@@ -666,7 +595,7 @@ void img_seek(int drive, int track)
 					sr = xdf_track0_layout[current_xdft][sector] >> 8;
 					spos = current_pos;
 					sside = 0;
-					if (spos > (img[drive].sectors * img[drive].sector_size))
+					if (spos >= (img[drive].sectors * img[drive].sector_size))
 					{
 						spos -= (img[drive].sectors * img[drive].sector_size);
 						sside = 1;
@@ -677,67 +606,6 @@ void img_seek(int drive, int track)
 				}
 				current_pos += 512;
 			}
-#if 0
-			/* Track 0, register sectors according to track 0 map. */
-			/* First, the "Side 0" buffer, will also contain one sector from side 1. */
-			current_pos = 0;
-	                for (sector = 0; sector < sectors_fat; sector++)
-			{
-				if ((sector+0x81) >= 0x91)
-				{
-		                        disc_sector_add(drive, 0, track, 0, sector+0x85, 2,
-       			                                img[drive].bitcell_period_300rpm, 
-               			                        &img[drive].track_data[0][current_pos]);
-				}
-				else
-				{
-		                        disc_sector_add(drive, 0, track, 0, sector+0x81, 2,
-       			                                img[drive].bitcell_period_300rpm, 
-               			                        &img[drive].track_data[0][current_pos]);
-				}
-				current_pos += 512;
-			}
-                        disc_sector_add(drive, 1, track, 1, 0x81, 2,
-				img[drive].bitcell_period_300rpm, 
-				&img[drive].track_data[0][current_pos]);
-			current_pos += 512;
-	                for (sector = 0; sector < 7; sector++)
-			{
-	                        disc_sector_add(drive, 0, track, 0, sector+1, 2,
-       		                                img[drive].bitcell_period_300rpm, 
-               		                        &img[drive].track_data[0][current_pos]);
-				current_pos += 512;
-			}
-                        disc_sector_add(drive, 0, track, 0, 0x9B, 2,
-				img[drive].bitcell_period_300rpm, 
-				&img[drive].track_data[0][current_pos]);
-			current_pos += 512;
-                        disc_sector_add(drive, 0, track, 0, 0x9C, 2,
-				img[drive].bitcell_period_300rpm, 
-				&img[drive].track_data[0][current_pos]);
-			current_pos += 512;
-                        disc_sector_add(drive, 0, track, 0, 0x9D, 2,
-				img[drive].bitcell_period_300rpm, 
-				&img[drive].track_data[0][current_pos]);
-			current_pos += 512;
-                        disc_sector_add(drive, 0, track, 0, 0x9E, 2,
-				img[drive].bitcell_period_300rpm, 
-				&img[drive].track_data[0][current_pos]);
-			current_pos += 512;
-			/* Now the "Side 1" buffer, will also contain one sector from side 0. */
-			current_pos = 0;
-	                for (sector = 0; (sector < effective_sectors - 1); sector++)
-			{
-	                        disc_sector_add(drive, 1, track, 1, sector+0x82, 2,
-       		                                img[drive].bitcell_period_300rpm, 
-               		                        &img[drive].track_data[1][current_pos]);
-				current_pos += 512;
-			}
-                        disc_sector_add(drive, 0, track, 0, 8, 2,
-				img[drive].bitcell_period_300rpm, 
-				&img[drive].track_data[1][current_pos]);
-			current_pos += 512;
-#endif
 		}
 		else
 		{
@@ -776,7 +644,7 @@ void img_seek(int drive, int track)
 	}
 	for (side = img[drive].sides - 1; side >= 0; side--)
 	{
-		disc_sector_prepare_track_layout(drive, side);
+		disc_sector_prepare_track_layout(drive, side, track);
 	}
 }
 
@@ -801,3 +669,7 @@ void img_writeback(int drive, int track)
         }
 }
 
+int img_xdf_type(int drive)
+{
+	return img[drive].xdf_type;
+}

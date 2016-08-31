@@ -399,10 +399,10 @@ void m24_poll(void *p)
                                                         if (ysize < 32) ysize = 200;
                                                         updatewindowsize(xsize, ysize + 16);
                                                 }
-startblit();
+
                                                 video_blit_memtoscreen_8(0, m24->firstline - 8, xsize, (m24->lastline - m24->firstline) + 16);
                                                 frames++;
-endblit();
+
                                                 video_res_x = xsize - 16;
                                                 video_res_y = ysize;
                                                 if (m24->cgamode & 1)

@@ -119,7 +119,7 @@ static uint32_t ropFILDq(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
 
         FP_LOAD_IQ();
 
-        codegen_fpu_loaded_iq[(TOP - 1) & 7] = 1;
+        codegen_fpu_loaded_iq[(cpu_state.TOP - 1) & 7] = 1;
         
         return op_pc + 1;
 }
@@ -483,7 +483,7 @@ static uint32_t ropFSTSW_AX(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, u
         int host_reg;
         
         FP_ENTER();
-        host_reg = LOAD_VAR_W(&npxs);
+        host_reg = LOAD_VAR_W(&cpu_state.npxs);
         STORE_REG_TARGET_W_RELEASE(host_reg, REG_AX);
         
         return op_pc;
@@ -579,7 +579,7 @@ static uint32_t ropFLDCW(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
         CHECK_SEG_READ(target_seg);
         
         MEM_LOAD_ADDR_EA_W(target_seg);
-        STORE_HOST_REG_ADDR_W((uintptr_t)&npxc, 0);
+        STORE_HOST_REG_ADDR_W((uintptr_t)&cpu_state.npxc, 0);
         
         return op_pc + 1;
 }
@@ -594,7 +594,7 @@ static uint32_t ropFSTCW(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
 
         CHECK_SEG_WRITE(target_seg);
 
-        host_reg = LOAD_VAR_W((uintptr_t)&npxc);
+        host_reg = LOAD_VAR_W((uintptr_t)&cpu_state.npxc);
         MEM_STORE_ADDR_EA_W(target_seg, host_reg);
         
         return op_pc + 1;

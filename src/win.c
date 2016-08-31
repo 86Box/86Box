@@ -77,8 +77,8 @@ static struct
 int winsizex=640,winsizey=480;
 int efwinsizey=480;
 int gfx_present[GFX_MAX];
-#undef cs
-CRITICAL_SECTION cs;
+
+HANDLE ghMutex;
 
 HANDLE mainthreadh;
 
@@ -172,12 +172,12 @@ void releasemouse()
 
 void startblit()
 {
-        EnterCriticalSection(&cs);
+        WaitForSingleObject(ghMutex, INFINITE);
 }
 
 void endblit()
 {
-        LeaveCriticalSection(&cs);
+        ReleaseMutex(ghMutex);
 }
 
 void leave_fullscreen()
@@ -702,7 +702,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 ///        QueryPerformanceCounter(&counter_posold);
 //        counter_posold.QuadPart*=100;
 
-        InitializeCriticalSection(&cs);
+        ghMutex = CreateMutex(NULL, FALSE, NULL);
         mainthreadh=(HANDLE)_beginthread(mainthread,0,NULL);
         SetThreadPriority(mainthreadh, THREAD_PRIORITY_HIGHEST);
         
@@ -994,7 +994,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
                         break;
                         case IDM_DISC_A:
-                        if (!getfile(hwnd,"Disc image (*.12;*.144;*.360;*.720;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD)\0*.12;*.144;*.360;*.720;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD\0All files (*.*)\0*.*\0",discfns[0]))
+                        if (!getfile(hwnd,"Disc image (*.12;*.144;*.360;*.720;*.86F;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD)\0*.12;*.144;*.360;*.720;*.86F;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD\0All files (*.*)\0*.*\0",discfns[0]))
                         {
                                 disc_close(0);
                                 disc_load(0, openfilestring);
@@ -1002,7 +1002,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         }
                         break;
                         case IDM_DISC_B:
-                        if (!getfile(hwnd,"Disc image (*.12;*.144;*.360;*.720;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD)\0*.12;*.144;*.360;*.720;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD\0All files (*.*)\0*.*\0",discfns[1]))
+                        if (!getfile(hwnd,"Disc image (*.12;*.144;*.360;*.720;*.86F;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD)\0*.12;*.144;*.360;*.720;*.86F;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD\0All files (*.*)\0*.*\0",discfns[1]))
                         {
                                 disc_close(1);
                                 disc_load(1, openfilestring);

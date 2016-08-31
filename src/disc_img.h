@@ -10,7 +10,7 @@ void img_writesector(int drive, int sector, int track, int side, int density);
 void img_readaddress(int drive, int sector, int side, int density);
 void img_format(int drive, int sector, int side, int density);
 int img_hole(int drive);
-int img_byteperiod(int drive);
+double img_byteperiod(int drive);
 void img_stop(int drive);
 void img_poll();
 int img_realtrack(int track, int drive);

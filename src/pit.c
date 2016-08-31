@@ -318,7 +318,6 @@ static int pit_read_timer(int t)
         return pit.count[t];
 }
         
-extern int ins;
 void pit_write(uint16_t addr, uint8_t val, void *priv)
 {
         int t;

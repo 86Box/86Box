@@ -98,56 +98,56 @@ static int opMOV_SP_imm(uint32_t fetchdat)
 
 static int opMOV_EAX_imm(uint32_t fetchdat)
 {
-        uint32_t templ = getlong();     if (abrt) return 1;
+        uint32_t templ = getlong();     if (cpu_state.abrt) return 1;
         EAX = templ;
         CLOCK_CYCLES(timing_rr);
         return 0;
 }
 static int opMOV_EBX_imm(uint32_t fetchdat)
 {
-        uint32_t templ = getlong();     if (abrt) return 1;
+        uint32_t templ = getlong();     if (cpu_state.abrt) return 1;
         EBX = templ;
         CLOCK_CYCLES(timing_rr);
         return 0;
 }
 static int opMOV_ECX_imm(uint32_t fetchdat)
 {
-        uint32_t templ = getlong();     if (abrt) return 1;
+        uint32_t templ = getlong();     if (cpu_state.abrt) return 1;
         ECX = templ;
         CLOCK_CYCLES(timing_rr);
         return 0;
 }
 static int opMOV_EDX_imm(uint32_t fetchdat)
 {
-        uint32_t templ = getlong();     if (abrt) return 1;
+        uint32_t templ = getlong();     if (cpu_state.abrt) return 1;
         EDX = templ;
         CLOCK_CYCLES(timing_rr);
         return 0;
 }
 static int opMOV_ESI_imm(uint32_t fetchdat)
 {
-        uint32_t templ = getlong();     if (abrt) return 1;
+        uint32_t templ = getlong();     if (cpu_state.abrt) return 1;
         ESI = templ;
         CLOCK_CYCLES(timing_rr);
         return 0;
 }
 static int opMOV_EDI_imm(uint32_t fetchdat)
 {
-        uint32_t templ = getlong();     if (abrt) return 1;
+        uint32_t templ = getlong();     if (cpu_state.abrt) return 1;
         EDI = templ;
         CLOCK_CYCLES(timing_rr);
         return 0;
 }
 static int opMOV_EBP_imm(uint32_t fetchdat)
 {
-        uint32_t templ = getlong();     if (abrt) return 1;
+        uint32_t templ = getlong();     if (cpu_state.abrt) return 1;
         EBP = templ;
         CLOCK_CYCLES(timing_rr);
         return 0;
 }
 static int opMOV_ESP_imm(uint32_t fetchdat)
 {
-        uint32_t templ = getlong();     if (abrt) return 1;
+        uint32_t templ = getlong();     if (cpu_state.abrt) return 1;
         ESP = templ;
         CLOCK_CYCLES(timing_rr);
         return 0;
@@ -157,64 +157,64 @@ static int opMOV_b_imm_a16(uint32_t fetchdat)
 {
         uint8_t temp;
         fetch_ea_16(fetchdat);
-        temp = readmemb(cs,cpu_state.pc); cpu_state.pc++;               if (abrt) return 1;
+        temp = readmemb(cs,cpu_state.pc); cpu_state.pc++;               if (cpu_state.abrt) return 1;
         CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr);
         seteab(temp);
         CLOCK_CYCLES(timing_rr);
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opMOV_b_imm_a32(uint32_t fetchdat)
 {
         uint8_t temp;
         fetch_ea_32(fetchdat);
-        temp = getbyte();               if (abrt) return 1;
+        temp = getbyte();               if (cpu_state.abrt) return 1;
         seteab(temp);
         CLOCK_CYCLES(timing_rr);
-        return abrt;
+        return cpu_state.abrt;
 }
 
 static int opMOV_w_imm_a16(uint32_t fetchdat)
 {
         uint16_t temp;
         fetch_ea_16(fetchdat);
-        temp = getword();               if (abrt) return 1;
+        temp = getword();               if (cpu_state.abrt) return 1;
         seteaw(temp);
         CLOCK_CYCLES(timing_rr);
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opMOV_w_imm_a32(uint32_t fetchdat)
 {
         uint16_t temp;
         fetch_ea_32(fetchdat);
-        temp = getword();               if (abrt) return 1;
+        temp = getword();               if (cpu_state.abrt) return 1;
         seteaw(temp);
         CLOCK_CYCLES(timing_rr);
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opMOV_l_imm_a16(uint32_t fetchdat)
 {
         uint32_t temp;
         fetch_ea_16(fetchdat);
-        temp = getlong();               if (abrt) return 1;
+        temp = getlong();               if (cpu_state.abrt) return 1;
         seteal(temp);
         CLOCK_CYCLES(timing_rr);
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opMOV_l_imm_a32(uint32_t fetchdat)
 {
         uint32_t temp;
         fetch_ea_32(fetchdat);
-        temp = getlong();               if (abrt) return 1;
+        temp = getlong();               if (cpu_state.abrt) return 1;
         seteal(temp);
         CLOCK_CYCLES(timing_rr);
-        return abrt;
+        return cpu_state.abrt;
 }
 
 
 static int opMOV_AL_a16(uint32_t fetchdat)
 {
         uint16_t addr = getwordf();
-        uint8_t temp = readmemb(cpu_state.ea_seg->base, addr);      if (abrt) return 1;
+        uint8_t temp = readmemb(cpu_state.ea_seg->base, addr);      if (cpu_state.abrt) return 1;
         AL = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         return 0;        
@@ -222,7 +222,7 @@ static int opMOV_AL_a16(uint32_t fetchdat)
 static int opMOV_AL_a32(uint32_t fetchdat)
 {
         uint32_t addr = getlong();
-        uint8_t temp = readmemb(cpu_state.ea_seg->base, addr);      if (abrt) return 1;
+        uint8_t temp = readmemb(cpu_state.ea_seg->base, addr);      if (cpu_state.abrt) return 1;
         AL = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         return 0;        
@@ -230,7 +230,7 @@ static int opMOV_AL_a32(uint32_t fetchdat)
 static int opMOV_AX_a16(uint32_t fetchdat)
 {
         uint16_t addr = getwordf();
-        uint16_t temp = readmemw(cpu_state.ea_seg->base, addr);     if (abrt) return 1;
+        uint16_t temp = readmemw(cpu_state.ea_seg->base, addr);     if (cpu_state.abrt) return 1;
         AX = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         return 0;        
@@ -238,7 +238,7 @@ static int opMOV_AX_a16(uint32_t fetchdat)
 static int opMOV_AX_a32(uint32_t fetchdat)
 {
         uint32_t addr = getlong();
-        uint16_t temp = readmemw(cpu_state.ea_seg->base, addr);     if (abrt) return 1;
+        uint16_t temp = readmemw(cpu_state.ea_seg->base, addr);     if (cpu_state.abrt) return 1;
         AX = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         return 0;        
@@ -246,7 +246,7 @@ static int opMOV_AX_a32(uint32_t fetchdat)
 static int opMOV_EAX_a16(uint32_t fetchdat)
 {
         uint16_t addr = getwordf();
-        uint32_t temp = readmeml(cpu_state.ea_seg->base, addr);     if (abrt) return 1;
+        uint32_t temp = readmeml(cpu_state.ea_seg->base, addr);     if (cpu_state.abrt) return 1;
         EAX = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         return 0;        
@@ -254,7 +254,7 @@ static int opMOV_EAX_a16(uint32_t fetchdat)
 static int opMOV_EAX_a32(uint32_t fetchdat)
 {
         uint32_t addr = getlong();
-        uint32_t temp = readmeml(cpu_state.ea_seg->base, addr);     if (abrt) return 1;
+        uint32_t temp = readmeml(cpu_state.ea_seg->base, addr);     if (cpu_state.abrt) return 1;
         EAX = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         return 0;        
@@ -265,42 +265,42 @@ static int opMOV_a16_AL(uint32_t fetchdat)
         uint16_t addr = getwordf();
         writememb(cpu_state.ea_seg->base, addr, AL);
         CLOCK_CYCLES((is486) ? 1 : 2);
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opMOV_a32_AL(uint32_t fetchdat)
 {
         uint32_t addr = getlong();
         writememb(cpu_state.ea_seg->base, addr, AL);
         CLOCK_CYCLES((is486) ? 1 : 2);
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opMOV_a16_AX(uint32_t fetchdat)
 {
         uint16_t addr = getwordf();
         writememw(cpu_state.ea_seg->base, addr, AX);
         CLOCK_CYCLES((is486) ? 1 : 2);
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opMOV_a32_AX(uint32_t fetchdat)
 {
-        uint32_t addr = getlong();             if (abrt) return 1;
+        uint32_t addr = getlong();             if (cpu_state.abrt) return 1;
         writememw(cpu_state.ea_seg->base, addr, AX);
         CLOCK_CYCLES((is486) ? 1 : 2);
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opMOV_a16_EAX(uint32_t fetchdat)
 {
         uint16_t addr = getwordf();
         writememl(cpu_state.ea_seg->base, addr, EAX);
         CLOCK_CYCLES((is486) ? 1 : 2);
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opMOV_a32_EAX(uint32_t fetchdat)
 {
-        uint32_t addr = getlong();             if (abrt) return 1;
+        uint32_t addr = getlong();             if (cpu_state.abrt) return 1;
         writememl(cpu_state.ea_seg->base, addr, EAX);
         CLOCK_CYCLES((is486) ? 1 : 2);
-        return abrt;
+        return cpu_state.abrt;
 }
 
 
@@ -343,7 +343,7 @@ static int opLEA_l_a32(uint32_t fetchdat)
 static int opXLAT_a16(uint32_t fetchdat)
 {
         uint32_t addr = (BX + AL)&0xFFFF;
-        uint8_t temp = readmemb(cpu_state.ea_seg->base, addr); if (abrt) return 1;
+        uint8_t temp = readmemb(cpu_state.ea_seg->base, addr); if (cpu_state.abrt) return 1;
         AL = temp;
         CLOCK_CYCLES(5);
         return 0;
@@ -351,7 +351,7 @@ static int opXLAT_a16(uint32_t fetchdat)
 static int opXLAT_a32(uint32_t fetchdat)
 {
         uint32_t addr = EBX + AL;
-        uint8_t temp = readmemb(cpu_state.ea_seg->base, addr); if (abrt) return 1;
+        uint8_t temp = readmemb(cpu_state.ea_seg->base, addr); if (cpu_state.abrt) return 1;
         AL = temp;
         CLOCK_CYCLES(5);
         return 0;
@@ -371,7 +371,7 @@ static int opMOV_b_r_a16(uint32_t fetchdat)
                 seteab(getr8(cpu_reg));
                 CLOCK_CYCLES(is486 ? 1 : 2);
         }
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opMOV_b_r_a32(uint32_t fetchdat)
 {
@@ -387,7 +387,7 @@ static int opMOV_b_r_a32(uint32_t fetchdat)
                 seteab(getr8(cpu_reg));
                 CLOCK_CYCLES(is486 ? 1 : 2);
         }
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opMOV_w_r_a16(uint32_t fetchdat)
 {
@@ -403,7 +403,7 @@ static int opMOV_w_r_a16(uint32_t fetchdat)
                 seteaw(cpu_state.regs[cpu_reg].w);
                 CLOCK_CYCLES(is486 ? 1 : 2);
         }
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opMOV_w_r_a32(uint32_t fetchdat)
 {
@@ -419,7 +419,7 @@ static int opMOV_w_r_a32(uint32_t fetchdat)
                 seteaw(cpu_state.regs[cpu_reg].w);
                 CLOCK_CYCLES(is486 ? 1 : 2);
         }
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opMOV_l_r_a16(uint32_t fetchdat)
 {                       
@@ -435,7 +435,7 @@ static int opMOV_l_r_a16(uint32_t fetchdat)
                 seteal(cpu_state.regs[cpu_reg].l);
                 CLOCK_CYCLES(is486 ? 1 : 2);
         }
-        return abrt;
+        return cpu_state.abrt;
 }
 static int opMOV_l_r_a32(uint32_t fetchdat)
 {                       
@@ -451,7 +451,7 @@ static int opMOV_l_r_a32(uint32_t fetchdat)
                 seteal(cpu_state.regs[cpu_reg].l);
                 CLOCK_CYCLES(is486 ? 1 : 2);
         }
-        return abrt;
+        return cpu_state.abrt;
 }
 
 static int opMOV_r_b_a16(uint32_t fetchdat)
@@ -466,7 +466,7 @@ static int opMOV_r_b_a16(uint32_t fetchdat)
         {
                 uint8_t temp;
                 CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr);
-                temp = geteab();                if (abrt) return 1;
+                temp = geteab();                if (cpu_state.abrt) return 1;
                 setr8(cpu_reg, temp);
                 CLOCK_CYCLES(is486 ? 1 : 4);
         }
@@ -484,7 +484,7 @@ static int opMOV_r_b_a32(uint32_t fetchdat)
         {
                 uint8_t temp;
                 CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr);
-                temp = geteab();                if (abrt) return 1;
+                temp = geteab();                if (cpu_state.abrt) return 1;
                 setr8(cpu_reg, temp);
                 CLOCK_CYCLES(is486 ? 1 : 4);
         }
@@ -502,7 +502,7 @@ static int opMOV_r_w_a16(uint32_t fetchdat)
         {
                 uint16_t temp;
                 CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr+1);
-                temp = geteaw();                if (abrt) return 1;
+                temp = geteaw();                if (cpu_state.abrt) return 1;
                 cpu_state.regs[cpu_reg].w = temp;
                 CLOCK_CYCLES((is486) ? 1 : 4);
         }
@@ -520,7 +520,7 @@ static int opMOV_r_w_a32(uint32_t fetchdat)
         {
                 uint16_t temp;
                 CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr+1);
-                temp = geteaw();                if (abrt) return 1;
+                temp = geteaw();                if (cpu_state.abrt) return 1;
                 cpu_state.regs[cpu_reg].w = temp;
                 CLOCK_CYCLES((is486) ? 1 : 4);
         }
@@ -538,7 +538,7 @@ static int opMOV_r_l_a16(uint32_t fetchdat)
         {
                 uint32_t temp;
                 CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr+3);
-                temp = geteal();                if (abrt) return 1;
+                temp = geteal();                if (cpu_state.abrt) return 1;
                 cpu_state.regs[cpu_reg].l = temp;
                 CLOCK_CYCLES(is486 ? 1 : 4);
         }
@@ -556,7 +556,7 @@ static int opMOV_r_l_a32(uint32_t fetchdat)
         {
                 uint32_t temp;
                 CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr+3);
-                temp = geteal();                if (abrt) return 1;
+                temp = geteal();                if (cpu_state.abrt) return 1;
                 cpu_state.regs[cpu_reg].l = temp;
                 CLOCK_CYCLES(is486 ? 1 : 4);
         }
@@ -575,7 +575,7 @@ static int opMOV_r_l_a32(uint32_t fetchdat)
                         {                                                               \
                                 uint16_t temp;                                          \
                                 CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr+1);                   \
-                                temp = geteaw();                if (abrt) return 1;     \
+                                temp = geteaw();                if (cpu_state.abrt) return 1;     \
                                 cpu_state.regs[cpu_reg].w = temp;                           \
                         }                                                               \
                 }                                                                       \
@@ -593,7 +593,7 @@ static int opMOV_r_l_a32(uint32_t fetchdat)
                         {                                                               \
                                 uint16_t temp;                                          \
                                 CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr+1);                   \
-                                temp = geteaw();                if (abrt) return 1;     \
+                                temp = geteaw();                if (cpu_state.abrt) return 1;     \
                                 cpu_state.regs[cpu_reg].w = temp;                           \
                         }                                                               \
                 }                                                                       \
@@ -611,7 +611,7 @@ static int opMOV_r_l_a32(uint32_t fetchdat)
                         {                                                               \
                                 uint32_t temp;                                          \
                                 CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr+3);                   \
-                                temp = geteal();                if (abrt) return 1;     \
+                                temp = geteal();                if (cpu_state.abrt) return 1;     \
                                 cpu_state.regs[cpu_reg].l = temp;                           \
                         }                                                               \
                 }                                                                       \
@@ -629,7 +629,7 @@ static int opMOV_r_l_a32(uint32_t fetchdat)
                         {                                                               \
                                 uint32_t temp;                                          \
                                 CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr+3);                   \
-                                temp = geteal();                if (abrt) return 1;     \
+                                temp = geteal();                if (cpu_state.abrt) return 1;     \
                                 cpu_state.regs[cpu_reg].l = temp;                           \
                         }                                                               \
                 }                                                                       \

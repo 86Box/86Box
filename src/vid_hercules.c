@@ -275,9 +275,7 @@ void hercules_poll(void *p)
                                                 if (ysize < 32) ysize = 200;
                                                 updatewindowsize(xsize, ysize);
                                         }
-                                startblit();
                                         video_blit_memtoscreen_8(0, hercules->firstline, xsize, ysize);
-                                endblit();
                                         frames++;
                                         if ((hercules->ctrl & 2) && (hercules->ctrl2 & 1))
                                         {

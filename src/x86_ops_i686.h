@@ -5,7 +5,7 @@ static int internal_illegal(char *s)
 {
 	cpu_state.pc = cpu_state.oldpc;
 	x86gpf(s, 0);
-	return abrt;
+	return cpu_state.abrt;
 }
 
 /*	0 = Limit 0-15
@@ -44,7 +44,7 @@ static int opSYSENTER(uint32_t fetchdat)
 	pclog("Model specific registers: cs_msr=%04X, esp_msr=%08X, eip_msr=%08X\n", cs_msr, esp_msr, eip_msr);
 	pclog("Other information: eip=%08X esp=%08X eflags=%04X flags=%04X use32=%04X stack32=%i\n", cpu_state.pc, ESP, eflags, flags, use32, stack32);
 
-	if (abrt)  return 1;
+	if (cpu_state.abrt)  return 1;
 
 	ESP = esp_msr;
 	cpu_state.pc = eip_msr;
@@ -98,7 +98,7 @@ static int opSYSEXIT(uint32_t fetchdat)
 	pclog("Model specific registers: cs_msr=%04X, esp_msr=%08X, eip_msr=%08X\n", cs_msr, esp_msr, eip_msr);
 	pclog("Other information: eip=%08X esp=%08X eflags=%04X flags=%04X use32=%04X stack32=%i ECX=%08X EDX=%08X\n", cpu_state.pc, ESP, eflags, flags, use32, stack32, ECX, EDX);
 
-	if (abrt)  return 1;
+	if (cpu_state.abrt)  return 1;
 
 	ESP = ECX;
 	cpu_state.pc = EDX;
@@ -138,7 +138,7 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 	uint8_t fxinst = 0;
 	uint16_t twd = x87_gettag();
 	uint16_t old_eaaddr = 0;
-	int old_ismmx = ismmx;
+	int old_ismmx = cpu_state.ismmx;
 	uint8_t ftwb = 0;
 	uint16_t rec_ftw = 0;
 	uint16_t fpus = 0;
@@ -153,7 +153,7 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 	{
 		pclog("Effective address %04X not on 16-byte boundary\n", cpu_state.eaaddr);
 		x86gpf(NULL, 0);
-		return abrt;
+		return cpu_state.abrt;
 	}
 
 	fxinst = (rmdat >> 3) & 7;
@@ -164,7 +164,7 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 		// if (cpu_mod == 3)  pclog("MOD is 3\n");
 
 		x86illegal();
-		return abrt;
+		return cpu_state.abrt;
 	}
 
 	FP_ENTER();
@@ -176,11 +176,11 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 		/* FXRSTOR */
 		// pclog("FXRSTOR issued\n");
 
-		npxc = readmemw(easeg, cpu_state.eaaddr);
+		cpu_state.npxc = readmemw(easeg, cpu_state.eaaddr);
 		fpus = readmemw(easeg, cpu_state.eaaddr + 2);
-		npxc = (npxc & ~FPU_CW_Reserved_Bits) | 0x0040;
-		TOP = (fpus >> 11) & 7;
-		npxs &= fpus & ~0x3800;
+		cpu_state.npxc = (cpu_state.npxc & ~FPU_CW_Reserved_Bits) | 0x0040;
+		cpu_state.TOP = (fpus >> 11) & 7;
+		cpu_state.npxs &= fpus & ~0x3800;
 
 		/* foo = readmemw(easeg, cpu_state.eaaddr + 6) & 0x7FF; */
 
@@ -213,42 +213,42 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 		} */
 
 		cpu_state.eaaddr = old_eaaddr + 32;
-		x87_ldmmx(&MM[0]); x87_ld_frstor(0);
+		x87_ldmmx(&(cpu_state.MM[0]), &(cpu_state.MM_w4[0])); x87_ld_frstor(0);
 
 		cpu_state.eaaddr = old_eaaddr + 48;
-		x87_ldmmx(&MM[1]); x87_ld_frstor(1);
+		x87_ldmmx(&(cpu_state.MM[1]), &(cpu_state.MM_w4[1])); x87_ld_frstor(1);
 
 		cpu_state.eaaddr = old_eaaddr + 64;
-		x87_ldmmx(&MM[2]); x87_ld_frstor(2);
+		x87_ldmmx(&(cpu_state.MM[2]), &(cpu_state.MM_w4[2])); x87_ld_frstor(2);
 
 		cpu_state.eaaddr = old_eaaddr + 80;
-		x87_ldmmx(&MM[3]); x87_ld_frstor(3);
+		x87_ldmmx(&(cpu_state.MM[3]), &(cpu_state.MM_w4[3])); x87_ld_frstor(3);
 
 		cpu_state.eaaddr = old_eaaddr + 96;
-		x87_ldmmx(&MM[4]); x87_ld_frstor(4);
+		x87_ldmmx(&(cpu_state.MM[4]), &(cpu_state.MM_w4[4])); x87_ld_frstor(4);
 
 		cpu_state.eaaddr = old_eaaddr + 112;
-		x87_ldmmx(&MM[5]); x87_ld_frstor(5);
+		x87_ldmmx(&(cpu_state.MM[5]), &(cpu_state.MM_w4[5])); x87_ld_frstor(5);
 
 		cpu_state.eaaddr = old_eaaddr + 128;
-		x87_ldmmx(&MM[6]); x87_ld_frstor(6);
+		x87_ldmmx(&(cpu_state.MM[6]), &(cpu_state.MM_w4[6])); x87_ld_frstor(6);
 
 		cpu_state.eaaddr = old_eaaddr + 144;
-		x87_ldmmx(&MM[7]); x87_ld_frstor(7);
+		x87_ldmmx(&(cpu_state.MM[7]), &(cpu_state.MM_w4[7])); x87_ld_frstor(7);
 
-	        ismmx = 0;
+	        cpu_state.ismmx = 0;
 	        /*Horrible hack, but as PCem doesn't keep the FPU stack in 80-bit precision at all times
 	          something like this is needed*/
-	        if (MM[0].w[4] == 0xffff && MM[1].w[4] == 0xffff && MM[2].w[4] == 0xffff && MM[3].w[4] == 0xffff &&
-	            MM[4].w[4] == 0xffff && MM[5].w[4] == 0xffff && MM[6].w[4] == 0xffff && MM[7].w[4] == 0xffff &&
-       		    !TOP && !(*(uint64_t *)tag))
-	        ismmx = old_ismmx;
+	        if (cpu_state.MM[0].w[4] == 0xffff && cpu_state.MM[1].w[4] == 0xffff && cpu_state.MM[2].w[4] == 0xffff && cpu_state.MM[3].w[4] == 0xffff &&
+	            cpu_state.MM[4].w[4] == 0xffff && cpu_state.MM[5].w[4] == 0xffff && cpu_state.MM[6].w[4] == 0xffff && cpu_state.MM[7].w[4] == 0xffff &&
+       		    !cpu_state.TOP && !(*(uint64_t *)cpu_state.tag))
+	        cpu_state.ismmx = old_ismmx;
 
 		x87_settag(rec_ftw);
 
 	        CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
 
-		if(abrt)  pclog("FXRSTOR: abrt != 0\n");
+		if(cpu_state.abrt)  pclog("FXRSTOR: abrt != 0\n");
 	}
 	else
 	{
@@ -264,8 +264,8 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 		if (twd & 0x3000 == 0x3000)  ftwb |= 0x40;
 		if (twd & 0xC000 == 0xC000)  ftwb |= 0x80;
 
-                writememw(easeg,cpu_state.eaaddr,npxc);
-                writememw(easeg,cpu_state.eaaddr+2,npxs);
+                writememw(easeg,cpu_state.eaaddr,cpu_state.npxc);
+                writememw(easeg,cpu_state.eaaddr+2,cpu_state.npxs);
                 writememb(easeg,cpu_state.eaaddr+4,ftwb);
 
                 writememw(easeg,cpu_state.eaaddr+6,(x87_op_off>>16)<<12);
@@ -276,37 +276,37 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
                 writememw(easeg,cpu_state.eaaddr+20,x87_op_seg);
 
 		cpu_state.eaaddr = old_eaaddr + 32;
-		ismmx ? x87_stmmx(MM[0]) : x87_st_fsave(0);
+		cpu_state.ismmx ? x87_stmmx(cpu_state.MM[0]) : x87_st_fsave(0);
 
 		cpu_state.eaaddr = old_eaaddr + 48;
-		ismmx ? x87_stmmx(MM[1]) : x87_st_fsave(1);
+		cpu_state.ismmx ? x87_stmmx(cpu_state.MM[1]) : x87_st_fsave(1);
 
 		cpu_state.eaaddr = old_eaaddr + 64;
-		ismmx ? x87_stmmx(MM[2]) : x87_st_fsave(2);
+		cpu_state.ismmx ? x87_stmmx(cpu_state.MM[2]) : x87_st_fsave(2);
 
 		cpu_state.eaaddr = old_eaaddr + 80;
-		ismmx ? x87_stmmx(MM[3]) : x87_st_fsave(3);
+		cpu_state.ismmx ? x87_stmmx(cpu_state.MM[3]) : x87_st_fsave(3);
 
 		cpu_state.eaaddr = old_eaaddr + 96;
-		ismmx ? x87_stmmx(MM[4]) : x87_st_fsave(4);
+		cpu_state.ismmx ? x87_stmmx(cpu_state.MM[4]) : x87_st_fsave(4);
 
 		cpu_state.eaaddr = old_eaaddr + 112;
-		ismmx ? x87_stmmx(MM[5]) : x87_st_fsave(5);
+		cpu_state.ismmx ? x87_stmmx(cpu_state.MM[5]) : x87_st_fsave(5);
 
 		cpu_state.eaaddr = old_eaaddr + 128;
-		ismmx ? x87_stmmx(MM[6]) : x87_st_fsave(6);
+		cpu_state.ismmx ? x87_stmmx(cpu_state.MM[6]) : x87_st_fsave(6);
 
 		cpu_state.eaaddr = old_eaaddr + 144;
-		ismmx ? x87_stmmx(MM[7]) : x87_st_fsave(7);
+		cpu_state.ismmx ? x87_stmmx(cpu_state.MM[7]) : x87_st_fsave(7);
 
 		cpu_state.eaaddr = old_eaaddr;
 
 		CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
 
-		if(abrt)  pclog("FXSAVE: abrt != 0\n");
+		if(cpu_state.abrt)  pclog("FXSAVE: abrt != 0\n");
 	}
 
-	return abrt;
+	return cpu_state.abrt;
 }
 
 static int opFXSAVESTOR_a32(uint32_t fetchdat)
@@ -314,7 +314,7 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 	uint8_t fxinst = 0;
 	uint16_t twd = x87_gettag();
 	uint32_t old_eaaddr = 0;
-	int old_ismmx = ismmx;
+	int old_ismmx = cpu_state.ismmx;
 	uint8_t ftwb = 0;
 	uint16_t rec_ftw = 0;
 	uint16_t fpus = 0;
@@ -329,7 +329,7 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 	{
 		pclog("Effective address %08X not on 16-byte boundary\n", cpu_state.eaaddr);
 		x86gpf(NULL, 0);
-		return abrt;
+		return cpu_state.abrt;
 	}
 
 	fxinst = (rmdat >> 3) & 7;
@@ -340,7 +340,7 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 		// if (cpu_mod == 3)  pclog("MOD is 3\n");
 
 		x86illegal();
-		return abrt;
+		return cpu_state.abrt;
 	}
 
 	FP_ENTER();
@@ -352,11 +352,11 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 		/* FXRSTOR */
 		// pclog("FXRSTOR issued\n");
 
-		npxc = readmemw(easeg, cpu_state.eaaddr);
+		cpu_state.npxc = readmemw(easeg, cpu_state.eaaddr);
 		fpus = readmemw(easeg, cpu_state.eaaddr + 2);
-		npxc = (npxc & ~FPU_CW_Reserved_Bits) | 0x0040;
-		TOP = (fpus >> 11) & 7;
-		npxs &= fpus & ~0x3800;
+		cpu_state.npxc = (cpu_state.npxc & ~FPU_CW_Reserved_Bits) | 0x0040;
+		cpu_state.TOP = (fpus >> 11) & 7;
+		cpu_state.npxs &= fpus & ~0x3800;
 
 		/* foo = readmemw(easeg, cpu_state.eaaddr + 6) & 0x7FF; */
 
@@ -389,42 +389,42 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 		} */
 
 		cpu_state.eaaddr = old_eaaddr + 32;
-		x87_ldmmx(&MM[0]); x87_ld_frstor(0);
+		x87_ldmmx(&(cpu_state.MM[0]), &(cpu_state.MM_w4[0])); x87_ld_frstor(0);
 
 		cpu_state.eaaddr = old_eaaddr + 48;
-		x87_ldmmx(&MM[1]); x87_ld_frstor(1);
+		x87_ldmmx(&(cpu_state.MM[1]), &(cpu_state.MM_w4[1])); x87_ld_frstor(1);
 
 		cpu_state.eaaddr = old_eaaddr + 64;
-		x87_ldmmx(&MM[2]); x87_ld_frstor(2);
+		x87_ldmmx(&(cpu_state.MM[2]), &(cpu_state.MM_w4[2])); x87_ld_frstor(2);
 
 		cpu_state.eaaddr = old_eaaddr + 80;
-		x87_ldmmx(&MM[3]); x87_ld_frstor(3);
+		x87_ldmmx(&(cpu_state.MM[3]), &(cpu_state.MM_w4[3])); x87_ld_frstor(3);
 
 		cpu_state.eaaddr = old_eaaddr + 96;
-		x87_ldmmx(&MM[4]); x87_ld_frstor(4);
+		x87_ldmmx(&(cpu_state.MM[4]), &(cpu_state.MM_w4[4])); x87_ld_frstor(4);
 
 		cpu_state.eaaddr = old_eaaddr + 112;
-		x87_ldmmx(&MM[5]); x87_ld_frstor(5);
+		x87_ldmmx(&(cpu_state.MM[5]), &(cpu_state.MM_w4[5])); x87_ld_frstor(5);
 
 		cpu_state.eaaddr = old_eaaddr + 128;
-		x87_ldmmx(&MM[6]); x87_ld_frstor(6);
+		x87_ldmmx(&(cpu_state.MM[6]), &(cpu_state.MM_w4[6])); x87_ld_frstor(6);
 
 		cpu_state.eaaddr = old_eaaddr + 144;
-		x87_ldmmx(&MM[7]); x87_ld_frstor(7);
+		x87_ldmmx(&(cpu_state.MM[7]), &(cpu_state.MM_w4[7])); x87_ld_frstor(7);
 
-	        ismmx = 0;
+	        cpu_state.ismmx = 0;
 	        /*Horrible hack, but as PCem doesn't keep the FPU stack in 80-bit precision at all times
 	          something like this is needed*/
-	        if (MM[0].w[4] == 0xffff && MM[1].w[4] == 0xffff && MM[2].w[4] == 0xffff && MM[3].w[4] == 0xffff &&
-	            MM[4].w[4] == 0xffff && MM[5].w[4] == 0xffff && MM[6].w[4] == 0xffff && MM[7].w[4] == 0xffff &&
-       		    !TOP && !(*(uint64_t *)tag))
-	        ismmx = old_ismmx;
+	        if (cpu_state.MM[0].w[4] == 0xffff && cpu_state.MM[1].w[4] == 0xffff && cpu_state.MM[2].w[4] == 0xffff && cpu_state.MM[3].w[4] == 0xffff &&
+	            cpu_state.MM[4].w[4] == 0xffff && cpu_state.MM[5].w[4] == 0xffff && cpu_state.MM[6].w[4] == 0xffff && cpu_state.MM[7].w[4] == 0xffff &&
+       		    !cpu_state.TOP && !(*(uint64_t *)cpu_state.tag))
+	        cpu_state.ismmx = old_ismmx;
 
 		x87_settag(rec_ftw);
 
 	        CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
 
-		if(abrt)  pclog("FXRSTOR: abrt != 0\n");
+		if(cpu_state.abrt)  pclog("FXRSTOR: abrt != 0\n");
 	}
 	else
 	{
@@ -440,8 +440,8 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 		if (twd & 0x3000 == 0x3000)  ftwb |= 0x40;
 		if (twd & 0xC000 == 0xC000)  ftwb |= 0x80;
 
-                writememw(easeg,cpu_state.eaaddr,npxc);
-                writememw(easeg,cpu_state.eaaddr+2,npxs);
+                writememw(easeg,cpu_state.eaaddr,cpu_state.npxc);
+                writememw(easeg,cpu_state.eaaddr+2,cpu_state.npxs);
                 writememb(easeg,cpu_state.eaaddr+4,ftwb);
 
                 writememw(easeg,cpu_state.eaaddr+6,(x87_op_off>>16)<<12);
@@ -452,37 +452,37 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
                 writememw(easeg,cpu_state.eaaddr+20,x87_op_seg);
 
 		cpu_state.eaaddr = old_eaaddr + 32;
-		ismmx ? x87_stmmx(MM[0]) : x87_st_fsave(0);
+		cpu_state.ismmx ? x87_stmmx(cpu_state.MM[0]) : x87_st_fsave(0);
 
 		cpu_state.eaaddr = old_eaaddr + 48;
-		ismmx ? x87_stmmx(MM[1]) : x87_st_fsave(1);
+		cpu_state.ismmx ? x87_stmmx(cpu_state.MM[1]) : x87_st_fsave(1);
 
 		cpu_state.eaaddr = old_eaaddr + 64;
-		ismmx ? x87_stmmx(MM[2]) : x87_st_fsave(2);
+		cpu_state.ismmx ? x87_stmmx(cpu_state.MM[2]) : x87_st_fsave(2);
 
 		cpu_state.eaaddr = old_eaaddr + 80;
-		ismmx ? x87_stmmx(MM[3]) : x87_st_fsave(3);
+		cpu_state.ismmx ? x87_stmmx(cpu_state.MM[3]) : x87_st_fsave(3);
 
 		cpu_state.eaaddr = old_eaaddr + 96;
-		ismmx ? x87_stmmx(MM[4]) : x87_st_fsave(4);
+		cpu_state.ismmx ? x87_stmmx(cpu_state.MM[4]) : x87_st_fsave(4);
 
 		cpu_state.eaaddr = old_eaaddr + 112;
-		ismmx ? x87_stmmx(MM[5]) : x87_st_fsave(5);
+		cpu_state.ismmx ? x87_stmmx(cpu_state.MM[5]) : x87_st_fsave(5);
 
 		cpu_state.eaaddr = old_eaaddr + 128;
-		ismmx ? x87_stmmx(MM[6]) : x87_st_fsave(6);
+		cpu_state.ismmx ? x87_stmmx(cpu_state.MM[6]) : x87_st_fsave(6);
 
 		cpu_state.eaaddr = old_eaaddr + 144;
-		ismmx ? x87_stmmx(MM[7]) : x87_st_fsave(7);
+		cpu_state.ismmx ? x87_stmmx(cpu_state.MM[7]) : x87_st_fsave(7);
 
 		cpu_state.eaaddr = old_eaaddr;
 
 		CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
 
-		if(abrt)  pclog("FXSAVE: abrt != 0\n");
+		if(cpu_state.abrt)  pclog("FXSAVE: abrt != 0\n");
 	}
 
-	return abrt;
+	return cpu_state.abrt;
 }
 
 #define AMD_SYSCALL_EIP	(star & 0xFFFFFFFF)

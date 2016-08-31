@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #define RETF_a16(stack_offset)                                  \
                 if ((msw&1) && !(eflags&VM_FLAG))               \
                 {                                               \
@@ -18,7 +15,7 @@
                         cpu_state.pc = readmemw(ss, SP);        \
                         loadcs(readmemw(ss, SP + 2));           \
                 }                                               \
-                if (abrt) return 1;                             \
+                if (cpu_state.abrt) return 1;                             \
                 if (stack32) ESP += 4 + stack_offset;           \
                 else         SP  += 4 + stack_offset;           \
                 cycles -= timing_retf_rm;
@@ -40,7 +37,7 @@
                         cpu_state.pc = readmeml(ss, SP);        \
                         loadcs(readmeml(ss, SP + 4) & 0xffff);  \
                 }                                               \
-                if (abrt) return 1;                             \
+                if (cpu_state.abrt) return 1;                             \
                 if (stack32) ESP += 8 + stack_offset;           \
                 else         SP  += 8 + stack_offset;           \
                 cycles -= timing_retf_rm;
@@ -110,7 +107,7 @@ static int opIRET_286(uint32_t fetchdat)
         flags_extract();
         nmi_enable = 1;
         CPU_BLOCK_END();
-        return abrt;
+        return cpu_state.abrt;
 }
 
 static int opIRET(uint32_t fetchdat)
@@ -150,7 +147,7 @@ static int opIRET(uint32_t fetchdat)
         flags_extract();
         nmi_enable = 1;
         CPU_BLOCK_END();
-        return abrt;
+        return cpu_state.abrt;
 }
 
 static int opIRETD(uint32_t fetchdat)
@@ -192,6 +189,6 @@ static int opIRETD(uint32_t fetchdat)
         flags_extract();
         nmi_enable = 1;
         CPU_BLOCK_END();
-        return abrt;
+        return cpu_state.abrt;
 }
  

@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*Registers :
         
   alphaMode
@@ -260,6 +257,13 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                 addbyte(0xb7);
                 addbyte(0x1c);
                 addbyte(0x59);
+                if (params->fbzMode & FBZ_DEPTH_SOURCE)
+                {
+                        addbyte(0x0f); /*MOVZX EAX, zaColor[RSI]*/
+                        addbyte(0xb7);
+                        addbyte(0x86);
+                        addlong(offsetof(voodoo_params_t, zaColor));
+                }
                 addbyte(0x39); /*CMP EAX, EBX*/
                 addbyte(0xd8);
                 if (depthop == DEPTHOP_LESSTHAN)
@@ -1311,6 +1315,147 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                                 addlong(0xff000000);
                                 break;
                                                         
+                                case TEX_A8Y4I2Q2:
+                                addbyte(0x48); /*MOV RBP, state->palette[EDI]*/
+                                addbyte(0x8b);
+                                addbyte(0xaf);
+                                addlong(offsetof(voodoo_state_t, palette));
+                                addbyte(0x0f); /*MOVZX ECX, AL*/
+                                addbyte(0xb6);
+                                addbyte(0xc8);
+                                addbyte(0x66); /*MOVD XMM0, [EBP+ECX*4]*/
+                                addbyte(0x0f);
+                                addbyte(0x6e);
+                                addbyte(0x44);
+                                addbyte(0x8d);
+                                addbyte(0);
+                                addbyte(0x0f); /*MOVZX ECX, AH*/
+                                addbyte(0xb6);
+                                addbyte(0xcc);
+                                addbyte(0x66); /*PUNPCKLBW XMM0, XMM2*/
+                                addbyte(0x0f);
+                                addbyte(0x60);
+                                addbyte(0xc2);
+                                addbyte(0xc1); /*SHR EAX, 16*/
+                                addbyte(0xe8);
+                                addbyte(16);
+                                addbyte(0x66); /*PINSRW XMM0, ECX, 3*/
+                                addbyte(0x0f);
+                                addbyte(0xc4);
+                                addbyte(0xc1);
+                                addbyte(3);
+                                addbyte(0x0f); /*MOVZX ECX, AL*/
+                                addbyte(0xb6);
+                                addbyte(0xc8);
+                                addbyte(0x0f); /*MOVZX EAX, AH*/
+                                addbyte(0xb6);
+                                addbyte(0xc4);
+                                addbyte(0x66); /*MOVD XMM1, [EBP+ECX*4]*/
+                                addbyte(0x0f);
+                                addbyte(0x6e);
+                                addbyte(0x4c);
+                                addbyte(0x8d);
+                                addbyte(0);
+                                addbyte(0x66); /*PMULLW XMM0, bilinear_lookup[ESI]*/
+                                addbyte(0x0f);
+                                addbyte(0xd5);
+                                addbyte(0x06);
+                                addbyte(0x0f); /*MOVZX ECX, DL*/
+                                addbyte(0xb6);
+                                addbyte(0xca);
+                                addbyte(0x66); /*PUNPCKLBW XMM1, XMM2*/
+                                addbyte(0x0f);
+                                addbyte(0x60);
+                                addbyte(0xca);
+                                addbyte(0x66); /*PINSRW XMM1, EAX, 3*/
+                                addbyte(0x0f);
+                                addbyte(0xc4);
+                                addbyte(0xc8);
+                                addbyte(3);
+                                addbyte(0x66); /*MOVD XMM3, [EBP+ECX*4]*/
+                                addbyte(0x0f);
+                                addbyte(0x6e);
+                                addbyte(0x5c);
+                                addbyte(0x8d);
+                                addbyte(0);
+                                addbyte(0x0f); /*MOVZX ECX, DH*/
+                                addbyte(0xb6);
+                                addbyte(0xce);
+                                addbyte(0xc1); /*SHR EDX, 16*/
+                                addbyte(0xea);
+                                addbyte(16);
+                                addbyte(0x66); /*PUNPCKLBW XMM3, XMM2*/
+                                addbyte(0x0f);
+                                addbyte(0x60);
+                                addbyte(0xda);
+                                addbyte(0x66); /*PMULLW XMM1, bilinear_lookup[ESI]+0x10*/
+                                addbyte(0x0f);
+                                addbyte(0xd5);
+                                addbyte(0x4e);
+                                addbyte(0x10);
+                                addbyte(0x66); /*PINSRW XMM3, ECX, 3*/
+                                addbyte(0x0f);
+                                addbyte(0xc4);
+                                addbyte(0xd9);
+                                addbyte(3);
+                                addbyte(0x0f); /*MOVZX ECX, DL*/
+                                addbyte(0xb6);
+                                addbyte(0xca);
+                                addbyte(0x66); /*PADDW XMM0, XMM1*/
+                                addbyte(0x0f);
+                                addbyte(0xfd);
+                                addbyte(0xc1);
+                                addbyte(0x66); /*MOVD XMM1, [EBP+ECX*4]*/
+                                addbyte(0x0f);
+                                addbyte(0x6e);
+                                addbyte(0x4c);
+                                addbyte(0x8d);
+                                addbyte(0);
+                                addbyte(0x0f); /*MOVZX ECX, DH*/
+                                addbyte(0xb6);
+                                addbyte(0xce);
+                                addbyte(0x66); /*PUNPCKLBW XMM1, XMM2*/
+                                addbyte(0x0f);
+                                addbyte(0x60);
+                                addbyte(0xca);
+                                addbyte(0x66); /*PMULLW XMM3, bilinear_lookup[ESI]+0x20*/
+                                addbyte(0x0f);
+                                addbyte(0xd5);
+                                addbyte(0x5e);
+                                addbyte(0x20);
+                                addbyte(0x66); /*PINSR1 XMM1, ECX, 3*/
+                                addbyte(0x0f);
+                                addbyte(0xc4);
+                                addbyte(0xc9);
+                                addbyte(3);
+                                addbyte(0x66); /*PADDW XMM0, XMM3*/
+                                addbyte(0x0f);
+                                addbyte(0xfd);
+                                addbyte(0xc3);
+                                addbyte(0x66); /*PMULLW XMM1, bilinear_lookup[ESI]+0x30*/
+                                addbyte(0x0f);
+                                addbyte(0xd5);
+                                addbyte(0x4e);
+                                addbyte(0x30);
+                                addbyte(0x66); /*PADDW XMM0, XMM1*/
+                                addbyte(0x0f);
+                                addbyte(0xfd);
+                                addbyte(0xc1);
+                                addbyte(0x66); /*PSRLW XMM0, 8*/
+                                addbyte(0x0f);
+                                addbyte(0x71);
+                                addbyte(0xd0);
+                                addbyte(8);
+                                addbyte(0x66); /*PACKUSWB XMM0, XMM0*/
+                                addbyte(0x0f);
+                                addbyte(0x67);
+                                addbyte(0xc0);
+                                addbyte(0x66); /*MOV EAX, XMM0*/
+                                addbyte(0x0f);
+                                addbyte(0x7e);
+                                addbyte(0xc0);
+                                break;
+
                                 case TEX_R5G6B5:
                                 addbyte(0x49); /*MOV R8, rgb565*/
                                 addbyte(0xb8);
@@ -2077,6 +2222,31 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                                 addlong(0xff000000);
                                 break;
                                                         
+                                case TEX_A8Y4I2Q2:
+                                addbyte(0x48); /*MOV RBP, state->palette[EDI]*/
+                                addbyte(0x8b);
+                                addbyte(0xaf);
+                                addlong(offsetof(voodoo_state_t, palette));
+                                addbyte(0x89); /*MOV EBX, EAX*/
+                                addbyte(0xc3);
+                                addbyte(0x25); /*AND EAX, 0x000000ff*/
+                                addlong(0x000000ff);
+                                addbyte(0x8b); /*MOV EAX, [EBP+EAX*4]*/
+                                addbyte(0x44);
+                                addbyte(0x85);
+                                addbyte(0);
+                                addbyte(0xc1); /*SHL EBX, 16*/
+                                addbyte(0xe3);
+                                addbyte(16);
+                                addbyte(0x81); /*AND EBX, 0xff000000*/
+                                addbyte(0xe3);
+                                addlong(0xff000000);
+                                addbyte(0x25); /*AND EAX, 0x00ffffff*/
+                                addlong(0x00ffffff);
+                                addbyte(0x09); /*OR EAX, EBX*/
+                                addbyte(0xd8);
+                                break;
+
                                 case TEX_R5G6B5:
                                 addbyte(0x49); /*MOV R8, rgb565*/
                                 addbyte(0xb8);

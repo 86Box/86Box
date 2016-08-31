@@ -5,26 +5,17 @@ void d86f_init();
 void d86f_load(int drive, char *fn);
 void d86f_close(int drive);
 void d86f_seek(int drive, int track);
-void d86f_readsector(int drive, int sector, int track, int side, int density);
-void d86f_writesector(int drive, int sector, int track, int side, int density);
-void d86f_readaddress(int drive, int sector, int side, int density);
-void d86f_format(int drive, int sector, int side, int density);
 int d86f_hole(int drive);
-int d86f_byteperiod(int drive);
+double d86f_byteperiod(int drive);
 void d86f_stop(int drive);
 void d86f_poll();
 int d86f_realtrack(int track, int drive);
 void d86f_reset(int drive, int side);
-void d86f_add(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n, int rate, uint8_t *data);
 void d86f_readsector(int drive, int sector, int track, int side, int density, int sector_size);
 void d86f_writesector(int drive, int sector, int track, int side, int density, int sector_size);
 void d86f_readaddress(int drive, int sector, int side, int density);
 void d86f_format(int drive, int sector, int side, int density, uint8_t fill);
-void d86f_stop();
-void d86f_poll();
-void d86f_stop();
 
-extern void (*d86f_writeback[2])(int drive, int track);
 void d86f_prepare_track_layout(int drive, int side);
 
 #define length_gap0	80

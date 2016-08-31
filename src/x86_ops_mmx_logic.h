@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 static int opPAND_a16(uint32_t fetchdat)
 {
         MMX_REG src;
@@ -9,7 +6,7 @@ static int opPAND_a16(uint32_t fetchdat)
         fetch_ea_16(fetchdat);
         MMX_GETSRC();
         
-        MM[cpu_reg].q &= src.q;
+        cpu_state.MM[cpu_reg].q &= src.q;
         return 0;
 }
 static int opPAND_a32(uint32_t fetchdat)
@@ -20,7 +17,7 @@ static int opPAND_a32(uint32_t fetchdat)
         fetch_ea_32(fetchdat);
         MMX_GETSRC();
         
-        MM[cpu_reg].q &= src.q;
+        cpu_state.MM[cpu_reg].q &= src.q;
         return 0;
 }
 
@@ -32,7 +29,7 @@ static int opPANDN_a16(uint32_t fetchdat)
         fetch_ea_16(fetchdat);
         MMX_GETSRC();
         
-        MM[cpu_reg].q = ~MM[cpu_reg].q & src.q;
+        cpu_state.MM[cpu_reg].q = ~cpu_state.MM[cpu_reg].q & src.q;
         return 0;
 }
 static int opPANDN_a32(uint32_t fetchdat)
@@ -43,7 +40,7 @@ static int opPANDN_a32(uint32_t fetchdat)
         fetch_ea_32(fetchdat);
         MMX_GETSRC();
         
-        MM[cpu_reg].q = ~MM[cpu_reg].q & src.q;
+        cpu_state.MM[cpu_reg].q = ~cpu_state.MM[cpu_reg].q & src.q;
         return 0;
 }
 
@@ -55,7 +52,7 @@ static int opPOR_a16(uint32_t fetchdat)
         fetch_ea_16(fetchdat);
         MMX_GETSRC();
         
-        MM[cpu_reg].q |= src.q;
+        cpu_state.MM[cpu_reg].q |= src.q;
         return 0;
 }
 static int opPOR_a32(uint32_t fetchdat)
@@ -66,7 +63,7 @@ static int opPOR_a32(uint32_t fetchdat)
         fetch_ea_32(fetchdat);
         MMX_GETSRC();
         
-        MM[cpu_reg].q |= src.q;
+        cpu_state.MM[cpu_reg].q |= src.q;
         return 0;
 }
 
@@ -78,7 +75,7 @@ static int opPXOR_a16(uint32_t fetchdat)
         fetch_ea_16(fetchdat);
         MMX_GETSRC();
         
-        MM[cpu_reg].q ^= src.q;
+        cpu_state.MM[cpu_reg].q ^= src.q;
         return 0;
 }
 static int opPXOR_a32(uint32_t fetchdat)
@@ -89,6 +86,6 @@ static int opPXOR_a32(uint32_t fetchdat)
         fetch_ea_32(fetchdat);
         MMX_GETSRC();
         
-        MM[cpu_reg].q ^= src.q;
+        cpu_state.MM[cpu_reg].q ^= src.q;
         return 0;
 }

@@ -6,12 +6,12 @@
 #define MMX_GETSRC()                                                            \
         if (cpu_mod == 3)                                                           \
         {                                                                       \
-                src = MM[cpu_rm];                                                   \
+                src = cpu_state.MM[cpu_rm];                                                   \
                 CLOCK_CYCLES(1);                                                \
         }                                                                       \
         else                                                                    \
         {                                                                       \
-                src.q = readmemq(easeg, cpu_state.eaaddr); if (abrt) return 1;            \
+                src.q = readmemq(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;            \
                 CLOCK_CYCLES(2);                                                \
         }
 

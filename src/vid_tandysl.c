@@ -634,9 +634,9 @@ static void tandysl_poll(void *p)
                                         }
 //                                        printf("Blit %i %i\n",firstline,lastline);
 //printf("Xsize is %i\n",xsize);
-                                startblit();
+
                                         video_blit_memtoscreen_8(0, tandy->firstline-4, xsize, (tandy->lastline - tandy->firstline) + 8);
-                                endblit();
+
                                         frames++;
                                         video_res_x = xsize - 16;
                                         video_res_y = ysize;

@@ -21,7 +21,7 @@ extern uint16_t ea_rseg;
 #define check_io_perm(port) if (!IOPLp || (eflags&VM_FLAG)) \
                         { \
                                 int tempi = checkio(port); \
-                                if (abrt) return 1; \
+                                if (cpu_state.abrt) return 1; \
                                 if (tempi) \
                                 { \
                                         x86gpf("check_io_perm(): no permission",0); \
@@ -32,7 +32,7 @@ extern uint16_t ea_rseg;
 #define checkio_perm(port) if (!IOPLp || (eflags&VM_FLAG)) \
                         { \
                                 tempi = checkio(port); \
-                                if (abrt) break; \
+                                if (cpu_state.abrt) break; \
                                 if (tempi) \
                                 { \
                                         x86gpf("checkio_perm(): no permission",0); \
@@ -44,7 +44,7 @@ extern uint16_t ea_rseg;
 #define check_io_perm(port) if (msw&1 && ((CPL > IOPL) || (eflags&VM_FLAG))) \
                         { \
                                 int tempi = checkio(port); \
-                                if (abrt) return 1; \
+                                if (cpu_state.abrt) return 1; \
                                 if (tempi) \
                                 { \
                                         x86gpf("check_io_perm(): no permission",0); \
@@ -55,71 +55,13 @@ extern uint16_t ea_rseg;
 #define checkio_perm(port) if (msw&1 && ((CPL > IOPL) || (eflags&VM_FLAG))) \
                         { \
                                 tempi = checkio(port); \
-                                if (abrt) break; \
+                                if (cpu_state.abrt) break; \
                                 if (tempi) \
                                 { \
                                         x86gpf("checkio_perm(): no permission",0); \
                                         break; \
                                 } \
                         }
-#if 0
-#define CHECK_READ(chseg, low, high)  \
-        if ((low < (chseg)->limit_low) || (high > (chseg)->limit_high))       \
-        {                                       \
-                x86gpf("Limit check (READ)", 0);       \
-                return 1;                       \
-	}					\
-	if (msw&1 && !(eflags&VM_FLAG) && !((chseg)->access & 0x80))	\
-	{					\
-		if ((chseg) == &_ss)		\
-			x86ss(NULL,(chseg)->seg & 0xfffc);	\
-		else				\
-			pclog("Read from seg not present", (chseg)->seg & 0xfffc);	\
-		return 1;			\
-        }
-
-#define CHECK_WRITE(chseg, low, high)  \
-        if ((low < (chseg)->limit_low) || (high > (chseg)->limit_high) || !((chseg)->access & 2))       \
-        {                                       \
-                x86gpf("Limit check (WRITE)", 0);       \
-                return 1;                       \
-	}					\
-	if (msw&1 && !(eflags&VM_FLAG) && !((chseg)->access & 0x80))	\
-	{					\
-		if ((chseg) == &_ss)		\
-			x86ss(NULL,(chseg)->seg & 0xfffc);	\
-		else				\
-			x86np("Write to seg not present", (chseg)->seg & 0xfffc);	\
-		return 1;			\
-        }
-
-#if 0
-#define CHECK_WRITE_REP(chseg, low, high)  \
-        if ((low < (chseg)->limit_low) || (high > (chseg)->limit_high))       \
-        {                                       \
-                x86gpf("Limit check (WRITE_REP)", 0);       \
-                if (1 != 1)  break;                       \
-	}					\
-	if (msw&1 && !(eflags&VM_FLAG) && !((chseg)->access & 0x80))	\
-	{					\
-		if ((chseg) == &_ss)		\
-			x86ss(NULL,(chseg)->seg & 0xfffc);	\
-		else				\
-			x86np("Write (REP) to seg not present", (chseg)->seg & 0xfffc);	\
-		break;                       \
-        }
-#endif
-
-#define CHECK_WRITE_REP(chseg, low, high)  \
-	if (msw&1 && !(eflags&VM_FLAG) && !((chseg)->access & 0x80))	\
-	{					\
-		if ((chseg) == &_ss)		\
-			x86ss(NULL,(chseg)->seg & 0xfffc);	\
-		else				\
-			x86np("Write (REP) to seg not present", (chseg)->seg & 0xfffc);	\
-		break;                       \
-        }
-#endif
 
 #define CHECK_READ(chseg, low, high)  \
         if ((low < (chseg)->limit_low) || (high > (chseg)->limit_high))       \
@@ -183,7 +125,7 @@ static inline uint8_t fastreadb(uint32_t a)
         if ((a >> 12) == pccache) 
                 return *((uint8_t *)&pccache2[a]);
         t = getpccache(a);
-        if (abrt)
+        if (cpu_state.abrt)
                 return;
         pccache = a >> 12;
         pccache2 = t;
@@ -202,7 +144,7 @@ static inline uint16_t fastreadw(uint32_t a)
         }
         if ((a>>12)==pccache) return *((uint16_t *)&pccache2[a]);
         t = getpccache(a);
-        if (abrt)
+        if (cpu_state.abrt)
                 return;
 
         pccache = a >> 12;
@@ -219,7 +161,7 @@ static inline uint32_t fastreadl(uint32_t a)
                 if ((a>>12)!=pccache)
                 {
                         t = getpccache(a);
-                        if (abrt)
+                        if (cpu_state.abrt)
                                 return 0;
                         pccache2 = t;
                         pccache=a>>12;

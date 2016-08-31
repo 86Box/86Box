@@ -9,7 +9,7 @@ typedef struct
         void (*readaddress)(int drive, int track, int side, int density);
         void (*format)(int drive, int track, int side, int density, uint8_t fill);
         int (*hole)(int drive);
-        int (*byteperiod)(int drive);
+        double (*byteperiod)(int drive);
         void (*stop)(int drive);
         void (*poll)();
 	int (*realtrack)(int drive, int track);
@@ -32,7 +32,7 @@ void disc_readaddress(int drive, int track, int side, int density);
 void disc_format(int drive, int track, int side, int density, uint8_t fill);
 int disc_realtrack(int drive, int track);
 int disc_hole(int drive);
-int disc_byteperiod(int drive);
+double disc_byteperiod(int drive);
 void disc_stop(int drive);
 int disc_empty(int drive);
 void disc_set_rate(int drive, int drvden, int rate);
