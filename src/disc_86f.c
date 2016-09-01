@@ -59,6 +59,7 @@ static struct
 	uint8_t track_in_file;
         uint32_t track_pos[256];
 	uint16_t raw_track_size;
+	uint32_t file_size;
 } d86f[2];
 
 /* Needed for formatting! */
@@ -198,6 +199,10 @@ void d86f_load(int drive, char *fn)
 	/* Load track 0 flags as default. */
 	fseek(d86f[drive].f, d86f[drive].track_pos[0], SEEK_SET);
 	fread(&(d86f[drive].track_flags), 1, 1, d86f[drive].f);
+
+	fseek(d86f[drive].f, 0, SEEK_END);
+	d86f[drive].file_size = ftell(d86f[drive].f);
+
 	fseek(d86f[drive].f, 0, SEEK_SET);
 
         drives[drive].seek        = d86f_seek;
@@ -629,6 +634,14 @@ void d86f_format(int drive, int track, int side, int rate, uint8_t fill)
 		return;
 	}
 
+	if ((track < 0) || (track > 256))
+	{
+		fdc_writeprotect();
+		d86f_state[drive] = STATE_IDLE;
+		index_count[drive] = 0;
+		return;
+	}
+
         d86f_drive = drive;
         d86f_fill[drive]  = fill;
 	index_count[drive] = 0;
@@ -639,6 +652,19 @@ void d86f_format(int drive, int track, int side, int rate, uint8_t fill)
 	d86f[drive].track_flags |= fdc_is_mfm() ? 8 : 0;
 	memset(d86f[drive].track_data[side], 0xFF, 25000);
 	d86f_prepare_track_layout(drive, side);
+
+	if (!d86f[drive].track_in_file)
+	{
+		/* Track is absent from the file, let's add it. */
+		d86f[drive].track_pos[track] = d86f[drive].file_size;
+		d86f[drive].file_size += (2 + 50000);
+		if (d86f_get_sides(drive) == 2)
+		{
+			d86f[drive].file_size += 50000;
+		}
+		d86f[drive].track_in_file = 1;
+	}
+
         d86f_state[drive] = STATE_FORMAT_FIND;
 	format_sector_count[drive] = 0;
 }
