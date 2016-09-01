@@ -8,16 +8,6 @@
 
 #define MAX_SECTORS 256
 
-typedef struct
-{
-        uint8_t c, h, r, n;
-        int rate;
-        uint8_t *data;
-} sector_t;
-
-static sector_t d86f_data[2][2][MAX_SECTORS];
-static int d86f_count[2][2];
-
 int d86f_cur_track_pos[2] = {0, 0};
 
 enum
@@ -45,7 +35,7 @@ static int d86f_drive;
 static int d86f_sector[2] = {0, 0};
 static int d86f_n[2] = {0, 0};
 static uint8_t d86f_fill[2] = {0, 0};
-static int cur_sector[2]/*, cur_byte[2]*/;
+static int cur_sector[2];
 static int index_count[2];
 static int format_sector_count[2] = {0, 0};
         
@@ -58,7 +48,6 @@ static struct
         uint8_t track_flags;
 	uint8_t track_in_file;
         uint32_t track_pos[256];
-	uint16_t raw_track_size;
 	uint32_t file_size;
 } d86f[2];
 
@@ -74,6 +63,43 @@ int d86f_realtrack(int drive, int track)
 void d86f_writeback(int drive, int track);
 
 static uint16_t CRCTable[256];
+
+/* 0 = MFM, 1 = FM, 2 = MFM perpendicular, 3 = reserved */
+/* 4 = ISO, 0 = IBM */
+int d86f_media_type = 0;
+
+/* Bits 0-3 define byte type, bit 5 defines whether it is a per-track (0) or per-sector (1) byte, if bit 7 is set, the byte is the index hole. */
+#define BYTE_GAP0		0x00
+#define BYTE_GAP1		0x10
+#define BYTE_GAP4		0x20
+#define BYTE_GAP2		0x40
+#define BYTE_GAP3		0x50
+#define BYTE_I_SYNC		0x01
+#define BYTE_ID_SYNC		0x41
+#define BYTE_DATA_SYNC		0x51
+#define BYTE_IAM_SYNC		0x02
+#define BYTE_IDAM_SYNC		0x42
+#define BYTE_DATAAM_SYNC	0x52
+#define BYTE_IAM		0x03
+#define BYTE_IDAM		0x43
+#define BYTE_DATAAM		0x53
+#define BYTE_ID			0x44
+#define BYTE_DATA		0x54
+#define BYTE_ID_CRC		0x45
+#define BYTE_DATA_CRC		0x55
+
+#define BYTE_INDEX_HOLE		0x80	/* 1 = index hole, 0 = regular byte */
+#define BYTE_IS_SECTOR		0x40	/* 1 = per-sector, 0 = per-track */
+#define BYTE_IS_POST_TRACK	0x20	/* 1 = after all sectors, 0 = before or during all sectors */
+#define BYTE_IS_DATA		0x10	/* 1 = data, 0 = id */
+#define BYTE_TYPE		0x0F	/* 5 = crc, 4 = data, 3 = address mark, 2 = address mark sync, 1 = sync, 0 = gap */
+
+#define BYTE_TYPE_GAP		0x00
+#define BYTE_TYPE_SYNC		0x01
+#define BYTE_TYPE_AM_SYNC	0x02
+#define BYTE_TYPE_AM		0x03
+#define BYTE_TYPE_DATA		0x04
+#define BYTE_TYPE_CRC		0x05
 
 static void d86f_setupcrc(uint16_t poly, uint16_t rvalue)
 {
@@ -274,47 +300,6 @@ void d86f_close(int drive)
         d86f[drive].f = NULL;
 }
 
-char track_layout[2][2][25512];
-
-int id_positions[2][2][MAX_SECTORS];
-
-/* 0 = MFM, 1 = FM, 2 = MFM perpendicular, 3 = reserved */
-/* 4 = ISO, 0 = IBM */
-int d86f_media_type = 0;
-
-/* Bits 0-3 define byte type, bit 5 defines whether it is a per-track (0) or per-sector (1) byte, if bit 7 is set, the byte is the index hole. */
-#define BYTE_GAP0		0x00
-#define BYTE_GAP1		0x10
-#define BYTE_GAP4		0x20
-#define BYTE_GAP2		0x40
-#define BYTE_GAP3		0x50
-#define BYTE_I_SYNC		0x01
-#define BYTE_ID_SYNC		0x41
-#define BYTE_DATA_SYNC		0x51
-#define BYTE_IAM_SYNC		0x02
-#define BYTE_IDAM_SYNC		0x42
-#define BYTE_DATAAM_SYNC	0x52
-#define BYTE_IAM		0x03
-#define BYTE_IDAM		0x43
-#define BYTE_DATAAM		0x53
-#define BYTE_ID			0x44
-#define BYTE_DATA		0x54
-#define BYTE_ID_CRC		0x45
-#define BYTE_DATA_CRC		0x55
-
-#define BYTE_INDEX_HOLE		0x80	/* 1 = index hole, 0 = regular byte */
-#define BYTE_IS_SECTOR		0x40	/* 1 = per-sector, 0 = per-track */
-#define BYTE_IS_POST_TRACK	0x20	/* 1 = after all sectors, 0 = before or during all sectors */
-#define BYTE_IS_DATA		0x10	/* 1 = data, 0 = id */
-#define BYTE_TYPE		0x0F	/* 5 = crc, 4 = data, 3 = address mark, 2 = address mark sync, 1 = sync, 0 = gap */
-
-#define BYTE_TYPE_GAP		0x00
-#define BYTE_TYPE_SYNC		0x01
-#define BYTE_TYPE_AM_SYNC	0x02
-#define BYTE_TYPE_AM		0x03
-#define BYTE_TYPE_DATA		0x04
-#define BYTE_TYPE_CRC		0x05
-
 int d86f_get_sides(int drive)
 {
 	return (d86f[drive].disk_flags & 8) ? 2 : 1;
@@ -382,8 +367,6 @@ void d86f_seek(int drive, int track)
 		/* Track does not exist in the image, initialize it as unformatted. */
 		d86f[drive].track_in_file = 0;
 		d86f[drive].track_flags = 0x0A;	/* 300 rpm, MFM, 250 kbps */
-
-		d86f[drive].raw_track_size = 6250;
 		return;
 	}
 
@@ -393,19 +376,17 @@ void d86f_seek(int drive, int track)
 
 	fread(&(d86f[drive].track_flags), 1, 1, d86f[drive].f);
 
-	d86f[drive].raw_track_size = d86f_get_raw_size(drive);
-
 	fseek(d86f[drive].f, d86f[drive].track_pos[track] + 2, SEEK_SET);
-	fread(d86f[drive].track_layout[0], 1, d86f[drive].raw_track_size, d86f[drive].f);
+	fread(d86f[drive].track_layout[0], 1, d86f_get_raw_size(drive), d86f[drive].f);
 	fseek(d86f[drive].f, d86f[drive].track_pos[track] + 25002, SEEK_SET);
-	fread(d86f[drive].track_data[0], 1, d86f[drive].raw_track_size, d86f[drive].f);
+	fread(d86f[drive].track_data[0], 1, d86f_get_raw_size(drive), d86f[drive].f);
 
 	if (d86f_get_sides(drive) == 2)
 	{
 		fseek(d86f[drive].f, d86f[drive].track_pos[track] + 50002, SEEK_SET);
-		fread(d86f[drive].track_layout[1], 1, d86f[drive].raw_track_size, d86f[drive].f);
+		fread(d86f[drive].track_layout[1], 1, d86f_get_raw_size(drive), d86f[drive].f);
 		fseek(d86f[drive].f, d86f[drive].track_pos[track] + 75002, SEEK_SET);
-		fread(d86f[drive].track_data[1], 1, d86f[drive].raw_track_size, d86f[drive].f);
+		fread(d86f[drive].track_data[1], 1, d86f_get_raw_size(drive), d86f[drive].f);
 	}
 }
 
@@ -422,23 +403,21 @@ void d86f_writeback(int drive, int track)
 	fwrite(&(d86f[drive].track_flags), 1, 1, d86f[drive].f);
 
 	fseek(d86f[drive].f, d86f[drive].track_pos[track] + 2, SEEK_SET);
-	fwrite(d86f[drive].track_layout[0], 1, d86f[drive].raw_track_size, d86f[drive].f);
+	fwrite(d86f[drive].track_layout[0], 1, d86f_get_raw_size(drive), d86f[drive].f);
 	fseek(d86f[drive].f, d86f[drive].track_pos[track] + 25002, SEEK_SET);
-	fwrite(d86f[drive].track_data[0], 1, d86f[drive].raw_track_size, d86f[drive].f);
+	fwrite(d86f[drive].track_data[0], 1, d86f_get_raw_size(drive), d86f[drive].f);
 
 	if (d86f_get_sides(drive) == 2)
 	{
 		fseek(d86f[drive].f, d86f[drive].track_pos[track] + 50002, SEEK_SET);
-		fwrite(d86f[drive].track_layout[1], 1, d86f[drive].raw_track_size, d86f[drive].f);
+		fwrite(d86f[drive].track_layout[1], 1, d86f_get_raw_size(drive), d86f[drive].f);
 		fseek(d86f[drive].f, d86f[drive].track_pos[track] + 75002, SEEK_SET);
-		fwrite(d86f[drive].track_data[1], 1, d86f[drive].raw_track_size, d86f[drive].f);
+		fwrite(d86f[drive].track_data[1], 1, d86f_get_raw_size(drive), d86f[drive].f);
 	}
 }
 
 void d86f_reset(int drive, int side)
 {
-        d86f_count[drive][side] = 0;
-
 	if (side == 0)
 	{
 		index_count[drive] = 0;
@@ -794,7 +773,6 @@ static uint32_t datac[2] = {0, 0};
 
 void d86f_poll()
 {
-        sector_t *s;
         int data;
 	int drive = d86f_drive;
 	int side = d86f_side[drive];
@@ -1223,9 +1201,6 @@ void d86f_poll()
 							// pclog("Write start: %i %i %i %i, data size: %i (%i)\n", last_sector[drive].c, last_sector[drive].h, last_sector[drive].r, last_sector[drive].n, d86f_data_size(drive), d86f_n[drive]);
 						}
 						break;
-					/* case STATE_FORMAT:
-						// pclog("Format: Starting sector fill...\n");
-						break; */
 				}
 				break;
 		}
