@@ -50,31 +50,31 @@ static struct
 		.flags = 0
         },
         {       /*5.25" DD*/
-                .max_track = 41,
+                .max_track = 43,
 		.flags = FLAG_RPM_300 | FLAG_525 | FLAG_HOLE0
         },
         {       /*5.25" HD*/
-                .max_track = 82,
+                .max_track = 86,
 		.flags = FLAG_RPM_360 | FLAG_525 | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP
         },
         {       /*5.25" HD Dual RPM*/
-                .max_track = 82,
+                .max_track = 86,
 		.flags = FLAG_RPM_300 | FLAG_RPM_360 | FLAG_525 | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP
         },
         {       /*3.5" DD*/
-                .max_track = 82,
+                .max_track = 86,
 		.flags = FLAG_RPM_300 | FLAG_HOLE0
         },
         {       /*3.5" HD*/
-                .max_track = 82,
+                .max_track = 86,
 		.flags = FLAG_RPM_300 | FLAG_HOLE0 | FLAG_HOLE1
         },
         {       /*3.5" HD 3-Mode*/
-                .max_track = 82,
+                .max_track = 86,
 		.flags = FLAG_RPM_300 | FLAG_RPM_360 | FLAG_HOLE0 | FLAG_HOLE1
         },
         {       /*3.5" ED*/
-                .max_track = 82,
+                .max_track = 86,
 		.flags = FLAG_RPM_300 | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_HOLE2
         }
 };
