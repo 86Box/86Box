@@ -612,7 +612,7 @@ void svga_poll(void *p)
 
                 if (svga->displine == svga->hwcursor_latch.y+1 && svga->hwcursor_latch.ena && svga->interlace)
                 {
-                        svga->hwcursor_on = 64 - svga->hwcursor_latch.yoff;
+                        svga->hwcursor_on = 64 - (svga->hwcursor_latch.yoff + 1);
                         svga->hwcursor_oddeven = 1;
                 }
 

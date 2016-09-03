@@ -777,7 +777,6 @@ bad_command:
 					fdc.dtl = 4000000;
 					fdc.format_sectors = fdc.params[2];
 					fdc.format_n = fdc.params[1];
-					if ((fdc.format_sectors == 18) && (fdc.format_n == 2))  fatal("Deliberate fatal\n");
                                         fdc.format_state = 1;
                                         fdc.pos = 0;
                                         fdc.stat = 0x30;
