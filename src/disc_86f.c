@@ -243,38 +243,49 @@ int d86f_hole(int drive)
 	return (d86f[drive].disk_flags >> 1) & 3;
 }
 
+uint8_t d86f_track_flags(int drive)
+{
+	uint8_t tf = d86f[drive].track_flags;
+	uint8_t rr = tf & 0x27;
+	uint8_t dr = fdd_get_type(drive) & 7;
+	tf &= ~0x27;
+
+	switch (rr)
+	{
+		case 0x02:
+		case 0x21:
+			/* 1 MB unformatted medium, treat these two as equivalent. */
+			switch (dr)
+			{
+				case 0x06:
+					/* 5.25" Single-RPM HD drive, treat as 300 kbps, 360 rpm. */
+					tf |= 0x21;
+					break;
+				default:
+					/* Any other drive, treat as 250 kbps, 300 rpm. */
+					tf |= 0x02;
+					break;
+			}
+			break;
+		default:
+			tf |= rr;
+			break;
+	}
+	return tf;
+}
+
 double d86f_byteperiod(int drive)
 {
-	switch (d86f[drive].track_flags & 0x0f)
+	switch (d86f_track_flags(drive) & 0x0f)
 	{
 		case 0x02:	/* 125 kbps, FM */
-			if (!(d86f[drive].track_flags & 0x20))
-			{
-				/* 300 rpm, 125 kbps = 360 rpm, 150 kbps; so we do this trick for 360 rpm-only drives to accept them. */
-				return ((fdd_get_type(drive) & 3) == 2) ? (320.0 / 6.0) : 64.0;
-			}
 			return 64.0;
 		case 0x01:	/* 150 kbps, FM */
-			if (d86f[drive].track_flags & 0x20)
-			{
-				/* 360 rpm, 150 kbps = 300 rpm, 125 kbps; so we do this trick for 300 rpm-only drives to accept them. */
-				return ((fdd_get_type(drive) & 3) == 1) ? 64.0 : (320.0 / 6.0);
-			}
 			return 320.0 / 6.0;
 		case 0x0A:	/* 250 kbps, MFM */
 		case 0x00:	/* 250 kbps, FM */
-			if (!(d86f[drive].track_flags & 0x20))
-			{
-				/* 300 rpm, 250 kbps = 360 rpm, 300 kbps; so we do this trick for 360 rpm-only drives to accept them. */
-				return ((fdd_get_type(drive) & 3) == 2) ? (160.0 / 6.0) : 32.0;
-			}
 			return 32.0;
 		case 0x09:	/* 300 kbps, MFM */
-			if (d86f[drive].track_flags & 0x20)
-			{
-				/* 360 rpm, 300 kbps = 300 rpm, 250 kbps; so we do this trick for 300 rpm-only drives to accept them. */
-				return ((fdd_get_type(drive) & 3) == 1) ? 32.0 : (160.0 / 6.0);
-			}
 			return 160.0 / 6.0;
 		case 0x08:	/* 500 kbps, MFM */
 			return 16.0;
@@ -309,9 +320,9 @@ uint16_t d86f_get_raw_size(int drive)
 {
 	double rate = 0.0;
 	int mfm = d86f_is_mfm(drive);
-	double rpm = (d86f[drive].track_flags & 0x20) ? 360.0 : 300.0;
+	double rpm = (d86f_track_flags(drive) & 0x20) ? 360.0 : 300.0;
 	double size = 6250.0;
-	switch (d86f[drive].track_flags & 7)
+	switch (d86f_track_flags(drive) & 7)
 	{
 		case 0:
 			rate = 500.0;
@@ -411,13 +422,13 @@ void d86f_reset(int drive, int side)
 	}
 }
 
-static int get_bitcell_period(int drive)
+static int d86f_get_bitcell_period(int drive)
 {
 	double rate = 0.0;
-	int mfm = (d86f[drive].track_flags & 8) ? 1 : 0;
-	double rpm = (d86f[drive].track_flags & 0x20) ? 360.0 : 300.0;
+	int mfm = (d86f_track_flags(drive) & 8) ? 1 : 0;
+	double rpm = (d86f_track_flags(drive) & 0x20) ? 360.0 : 300.0;
 	double size = 8000.0;
-	switch (d86f[drive].track_flags & 7)
+	switch (d86f_track_flags(drive) & 7)
 	{
 		case 0:
 			rate = 500.0;
@@ -444,7 +455,7 @@ static int get_bitcell_period(int drive)
 
 void d86f_readsector(int drive, int sector, int track, int side, int rate, int sector_size)
 {
-        // pclog("d86f_readsector: fdc_period=%i img_period=%i rate=%i sector=%i track=%i side=%i\n", fdc_get_bitcell_period(), get_bitcell_period(drive), rate, sector, track, side);
+        // pclog("d86f_readsector: fdc_period=%i img_period=%i rate=%i sector=%i track=%i side=%i\n", fdc_get_bitcell_period(), d86f_get_bitcell_period(drive), rate, sector, track, side);
 
         d86f[drive].req_sector.id.c = track;
         d86f[drive].req_sector.id.h = side;
@@ -476,7 +487,7 @@ void d86f_writesector(int drive, int sector, int track, int side, int rate, int 
         d86f[drive].req_sector.id.r = sector;
 	d86f[drive].req_sector.id.n = sector_size;
 
-        // pclog("d86f_writesector: drive=%c: fdc_period=%i img_period=%i rate=%i chrn=%08X\n", drive + 0x41, fdc_get_bitcell_period(), get_bitcell_period(drive), rate, d86f[drive].req_sector.dword);
+        // pclog("d86f_writesector: drive=%c: fdc_period=%i img_period=%i rate=%i chrn=%08X\n", drive + 0x41, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive), rate, d86f[drive].req_sector.dword);
 
 	if (side && (d86f_get_sides(drive) == 1))
 	{
@@ -493,7 +504,7 @@ void d86f_writesector(int drive, int sector, int track, int side, int rate, int 
 
 void d86f_readaddress(int drive, int track, int side, int rate)
 {
-        // pclog("d86f_readaddress: fdc_period=%i img_period=%i rate=%i track=%i side=%i\n", fdc_get_bitcell_period(), get_bitcell_period(drive), rate, track, side);
+        // pclog("d86f_readaddress: fdc_period=%i img_period=%i rate=%i track=%i side=%i\n", fdc_get_bitcell_period(), d86f_get_bitcell_period(drive), rate, track, side);
 
         d86f[drive].req_sector.id.c = track;
         d86f[drive].req_sector.id.h = side;
@@ -581,7 +592,7 @@ void d86f_format(int drive, int track, int side, int rate, uint8_t fill)
         d86f[drive].req_sector.id.c = d86f[drive].cur_track;
         d86f[drive].req_sector.id.h  = side;
 
-	if (side && (d86f_get_sides(drive) == 1))
+	if ((side && (d86f_get_sides(drive) == 1)) || !d86f_valid_bit_rate(drive))
 	{
 		fdc_notfound();
 		d86f[drive].state = STATE_IDLE;
@@ -662,10 +673,28 @@ uint32_t d86f_get_data_len(int drive)
 int d86f_can_read_address(int drive)
 {
 	int temp;
-	temp = (fdc_get_bitcell_period() == get_bitcell_period(drive));
+	temp = (fdc_get_bitcell_period() == d86f_get_bitcell_period(drive));
 	temp = temp && fdd_can_read_medium(drive ^ fdd_swap);
 	temp = temp && (fdc_is_mfm() == d86f_is_mfm(drive));
 	return temp;
+}
+
+int d86f_valid_bit_rate(int drive)
+{
+	int rate = fdc_get_bit_rate();
+	switch (d86f_hole(drive))
+	{
+		case 0:	/* DD */
+			if ((rate < 1) || (rate > 2))  return 0;
+			return 1;
+		case 1:	/* HD */
+			if (rate != 0)  return 0;
+			return 1;
+		case 2:	/* ED */
+			if (rate < 3)  return 0;
+			return 1;
+	}
+	return 1;
 }
 
 int d86f_can_format(int drive)
@@ -674,6 +703,7 @@ int d86f_can_format(int drive)
 	temp = !writeprot[drive];
 	temp = temp && !swwp;
 	temp = temp && fdd_can_read_medium(drive ^ fdd_swap);
+	temp = temp & d86f_valid_bit_rate(drive);
 	return temp;
 }
 
@@ -789,7 +819,7 @@ int d86f_poll_check_notfound(int drive)
 		/* The index hole has been hit twice and we're still in a find state.
 		   This means sector finding has failed for whatever reason.
 		   Abort with sector not found and set state to idle. */
-		// pclog("d86f_poll(): Sector not found (%i %i %i %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n);
+		// pclog("d86f_poll(): Sector not found (%i %i %i %i) (%i, %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive));
 		fdc_notfound();
 		d86f[drive].state = STATE_IDLE;
 		d86f[drive].index_count = 0;
