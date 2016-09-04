@@ -107,6 +107,7 @@ void disc_load(int drive, char *fn)
                         drive_empty[drive] = 0;
                         disc_changed[drive] = 1;
                         strcpy(discfns[drive], fn);
+                        fdd_seek(drive, 0);
                         return;
                 }
                 c++;
