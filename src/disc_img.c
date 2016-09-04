@@ -108,7 +108,7 @@ int img_realtrack(int drive, int track)
 	return track;
 }
 
-void img_writeback(int drive, int track);
+void img_writeback(int drive);
 
 static int sector_size_code(int sector_size)
 {
@@ -648,7 +648,7 @@ void img_seek(int drive, int track)
 	}
 }
 
-void img_writeback(int drive, int track)
+void img_writeback(int drive)
 {
         if (!img[drive].f)
                 return;
@@ -658,13 +658,13 @@ void img_writeback(int drive, int track)
 
         if (img[drive].sides == 2)
         {
-                fseek(img[drive].f, img[drive].base + (track * img[drive].sectors * img[drive].sector_size * 2), SEEK_SET);
+                fseek(img[drive].f, img[drive].base + (disc_track[drive] * img[drive].sectors * img[drive].sector_size * 2), SEEK_SET);
                 fwrite(img[drive].track_data[0], img[drive].sectors * img[drive].sector_size, 1, img[drive].f);
                 fwrite(img[drive].track_data[1], img[drive].sectors * img[drive].sector_size, 1, img[drive].f);
         }
         else
         {
-                fseek(img[drive].f, img[drive].base + (track * img[drive].sectors * img[drive].sector_size), SEEK_SET);
+                fseek(img[drive].f, img[drive].base + (disc_track[drive] * img[drive].sectors * img[drive].sector_size), SEEK_SET);
                 fwrite(img[drive].track_data[0], img[drive].sectors * img[drive].sector_size, 1, img[drive].f);
         }
 }

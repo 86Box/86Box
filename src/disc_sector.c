@@ -19,7 +19,7 @@ typedef struct
 
 static sector_t disc_sector_data[2][2][MAX_SECTORS];
 static int disc_sector_count[2][2];
-void (*disc_sector_writeback[2])(int drive, int track);
+void (*disc_sector_writeback[2])(int drive);
 
 enum
 {
@@ -393,7 +393,7 @@ void disc_sector_poll()
                 if (!cur_byte[drive] && disc_gap_has_ended(drive))
                 {
                         disc_sector_state[drive] = STATE_IDLE;
-                        if (!disable_write)  disc_sector_writeback[drive](drive, disc_sector_track[drive]);
+                        if (!disable_write)  disc_sector_writeback[drive](drive);
                         fdc_finishread(drive);
                 }
                 break;
@@ -454,7 +454,7 @@ void disc_sector_poll()
                 advance_byte();
                 if (index_count[drive] == 2)
                 {
-                        if (!disable_write)  disc_sector_writeback[drive](drive, disc_sector_track[drive]);
+                        if (!disable_write)  disc_sector_writeback[drive](drive);
                         fdc_finishread(drive);
                         disc_sector_state[drive] = STATE_IDLE;
                 }

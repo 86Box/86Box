@@ -11,7 +11,7 @@ void disc_sector_stop();
 void disc_sector_poll();
 void disc_sector_stop();
 
-extern void (*disc_sector_writeback[2])(int drive, int track);
+extern void (*disc_sector_writeback[2])(int drive);
 void disc_sector_prepare_track_layout(int drive, int side, int track);
 
 #define length_gap0	80

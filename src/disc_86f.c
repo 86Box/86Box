@@ -86,18 +86,22 @@ static struct
 	uint8_t track_index;
 	uint8_t old_track_byte;
 	uint8_t old_track_index;
+	uint8_t cur_track;
 } d86f[2];
 
 /* Needed for formatting! */
+int d86f_is_40_track(int drive)
+{
+	return (d86f[drive].disk_flags & 1) ? 0 : 1;
+}
+
 int d86f_realtrack(int drive, int track)
 {
-        if (!(d86f[drive].track_flags & 0x40) && fdd_doublestep_40(drive))
+        if (d86f_is_40_track(drive) && fdd_doublestep_40(drive))
                 track /= 2;
 
 	return track;
 }
-
-void d86f_writeback(int drive, int track);
 
 static void d86f_setupcrc(uint16_t poly, uint16_t rvalue)
 {
@@ -296,11 +300,6 @@ int d86f_get_sides(int drive)
 	return (d86f[drive].disk_flags & 8) ? 2 : 1;
 }
 
-int d86f_is_40_track(int drive)
-{
-	return !(d86f[drive].disk_flags & 1);
-}
-
 int d86f_is_mfm(int drive)
 {
 	return (d86f[drive].track_flags & 8) ? 1 : 0;
@@ -350,6 +349,8 @@ void d86f_seek(int drive, int track)
 		memset(d86f[drive].track_data[side], 0xFF, 25000);
 	}
 
+	d86f[drive].cur_track = track;
+
 	if (!(d86f[drive].track_offset[track]))
 	{
 		/* Track does not exist in the image, initialize it as unformatted. */
@@ -373,8 +374,9 @@ void d86f_seek(int drive, int track)
 	}
 }
 
-void d86f_writeback(int drive, int track)
+void d86f_writeback(int drive)
 {
+	int track = d86f[drive].cur_track;
 	int side;
 
         if (!d86f[drive].f)
@@ -576,7 +578,7 @@ void d86f_prepare_track_layout(int drive, int side)
 
 void d86f_format(int drive, int track, int side, int rate, uint8_t fill)
 {
-        d86f[drive].req_sector.id.c = track;
+        d86f[drive].req_sector.id.c = d86f[drive].cur_track;
         d86f[drive].req_sector.id.h  = side;
 
 	if (side && (d86f_get_sides(drive) == 1))
@@ -587,7 +589,7 @@ void d86f_format(int drive, int track, int side, int rate, uint8_t fill)
 		return;
 	}
 
-	if ((track < 0) || (track > 256))
+	if ((d86f[drive].cur_track < 0) || (d86f[drive].cur_track > 256))
 	{
 		fdc_writeprotect();
 		d86f[drive].state = STATE_IDLE;
@@ -609,7 +611,7 @@ void d86f_format(int drive, int track, int side, int rate, uint8_t fill)
 	if (!d86f[drive].track_in_file)
 	{
 		/* Track is absent from the file, let's add it. */
-		d86f[drive].track_offset[track] = d86f[drive].file_size;
+		d86f[drive].track_offset[d86f[drive].cur_track] = d86f[drive].file_size;
 		d86f[drive].file_size += 50002;
 		if (d86f_get_sides(drive) == 2)
 		{
@@ -881,7 +883,7 @@ void d86f_poll_readwrite(int drive, int side)
 		max_len = fdc_get_gap();
 		if (d86f[drive].datac == (fdc_get_gap() - 1))
 		{
-    		        if (!disable_write)  d86f_writeback(drive, d86f[drive].req_sector.id.c);
+    		        if (!disable_write)  d86f_writeback(drive);
 			d86f_poll_finish(drive, side);
        	        	fdc_sector_finishread(drive);
 			return;
@@ -1047,7 +1049,7 @@ void d86f_poll_format(int drive, int side)
 	{
 		// pclog("Index hole hit again, format finished\n");
 		d86f[drive].state = STATE_IDLE;
-		if (!disable_write)  d86f_writeback(drive, d86f[drive].req_sector.id.c);
+		if (!disable_write)  d86f_writeback(drive);
 		fdc_sector_finishread(drive);
 		d86f[drive].index_count = 0;
 		d86f_poll_advancebyte(drive, side);

@@ -20,7 +20,7 @@ typedef struct
 
 static sector_t disc_sector_data[2][2][MAX_SECTORS];
 static int disc_sector_count[2][2];
-void (*disc_sector_writeback[2])(int drive, int track);
+void (*disc_sector_writeback[2])(int drive);
 
 int cur_track_pos[2] = {0, 0};
 int id_counter[2] = {0, 0};
@@ -436,7 +436,7 @@ void disc_sector_poll()
 		{
 			// pclog("Index hole hit again, format finished\n");
               		disc_sector_state[drive] = STATE_IDLE;
-   		        if (!disable_write)  disc_sector_writeback[drive](drive, disc_sector_track[drive]);
+   		        if (!disable_write)  disc_sector_writeback[drive](drive);
                         fdc_sector_finishread(drive);
 		}
 		if ((disc_sector_state[drive] == STATE_FORMAT_FIND) && disc_sector_can_read_address(drive))
@@ -527,7 +527,7 @@ void disc_sector_poll()
 				if ((disc_sector_state[drive] == STATE_WRITE_SECTOR) && (last_sector[drive] != NULL))
 				{
 	                	        disc_sector_state[drive] = STATE_IDLE;
-       		                	if (!disable_write)  disc_sector_writeback[drive](drive, disc_sector_track[drive]);
+       		                	if (!disable_write)  disc_sector_writeback[drive](drive);
                 		        fdc_sector_finishread(drive);
 				}
 			}
