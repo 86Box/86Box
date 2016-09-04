@@ -16,6 +16,8 @@ int fdd_get_head(int drive);
 void fdd_set_type(int drive, int type);
 int fdd_get_type(int drive);
 
+int fdd_get_flags(int drive);
+
 extern int fdd_swap;
 
 void fdd_init();

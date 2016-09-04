@@ -177,6 +177,11 @@ int fdd_get_type(int drive)
 	return fdd[drive].type;
 }
 
+int fdd_get_flags(int drive)
+{
+	return drive_types[fdd[drive].type].flags;
+}
+
 int fdd_is_525(int drive)
 {
         return drive_types[fdd[drive].type].flags & FLAG_525;

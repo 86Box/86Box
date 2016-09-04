@@ -247,7 +247,7 @@ uint8_t d86f_track_flags(int drive)
 {
 	uint8_t tf = d86f[drive].track_flags;
 	uint8_t rr = tf & 0x27;
-	uint8_t dr = fdd_get_type(drive) & 7;
+	uint8_t dr = fdd_get_flags(drive) & 7;
 	tf &= ~0x27;
 
 	switch (rr)
