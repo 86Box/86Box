@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 #include <stdint.h>
 #include <stdio.h>
 #define BITMAP WINDOWS_BITMAP

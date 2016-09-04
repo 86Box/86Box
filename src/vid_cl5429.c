@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*Cirrus Logic CL-GD5429 emulation*/
 #include <stdlib.h>
 #include "ibm.h"

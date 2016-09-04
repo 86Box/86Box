@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi, leilei
-   see COPYING for more details
-*/
 #ifndef _CPU_H_
 #define _CPU_H_
 

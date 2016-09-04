@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*ATI 18800 emulation (VGA Edge-16)*/
 #include <stdlib.h>
 #include "ibm.h"

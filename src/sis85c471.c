@@ -1,6 +1,3 @@
-/* Copyright holders: Tenshi
-   see COPYING for more details
-*/
 /*
 	SiS sis85c471 Super I/O Chip
 	Used by Batman's Revenge

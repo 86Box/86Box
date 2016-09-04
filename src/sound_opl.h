@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 typedef struct opl_t
 {
         int chip_nr[2];

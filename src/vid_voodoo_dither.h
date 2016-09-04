@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 uint8_t dither_rb[256][4][4] =
 {
 	{

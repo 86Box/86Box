@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #ifndef CDROM_IOCTL_H
 #define CDROM_IOCTL_H
 

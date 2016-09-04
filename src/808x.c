@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 //1B64 - Vid_SetMode (Vid_Vesa.c)
 //6689c - CONS_Printf
 /*SHR AX,1

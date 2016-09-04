@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #include <stdint.h>
 #include "ibm.h"
 #include "io.h"

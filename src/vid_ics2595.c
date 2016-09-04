@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*ICS2595 clock chip emulation
   Used by ATI Mach64*/
 

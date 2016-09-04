@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 /*MESS ROM notes :
         
         - pc2386 BIOS is corrupt (JMP at F000:FFF0 points to RAM)

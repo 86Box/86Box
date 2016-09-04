@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*ATI 68860 RAMDAC emulation (for Mach64)*/
 /*
 ATI 68860/68880 Truecolor DACs:

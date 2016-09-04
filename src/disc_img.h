@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 void img_init();
 void img_load(int drive, char *fn);
 void img_close(int drive);

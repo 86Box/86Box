@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #include "timer.h"
 
 void sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *p), void *p);

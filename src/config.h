@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 int config_get_int(char *head, char *name, int def);
 char *config_get_string(char *head, char *name, char *def);
 void config_set_int(char *head, char *name, int val);

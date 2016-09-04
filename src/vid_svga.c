@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 /*Generic SVGA handling*/
 /*This is intended to be used by another SVGA driver, and not as a card in it's own right*/
 #include <stdio.h>

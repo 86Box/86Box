@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #define BLOCK_SIZE 0x4000
 #define BLOCK_MASK 0x3fff
 #define BLOCK_START 0

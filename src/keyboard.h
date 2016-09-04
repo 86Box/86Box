@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 extern void (*keyboard_send)(uint8_t val);
 extern void (*keyboard_poll)();
 extern int keyboard_scan;

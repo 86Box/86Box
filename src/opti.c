@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*OPTi 82C495 emulation
   This is the chipset used in the AMI386 model*/
 #include "ibm.h"

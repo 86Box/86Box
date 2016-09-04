@@ -1,6 +1,3 @@
-/* Copyright holders: Tenshi
-   see COPYING for more details
-*/
 /*
 	National Semiconductors PC87306 Super I/O Chip
 	Used by Intel Advanced/EV

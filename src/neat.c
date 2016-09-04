@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*This is the chipset used in the AMI 286 clone model*/
 #include "ibm.h"
 #include "io.h"

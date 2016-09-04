@@ -1,6 +1,3 @@
-/* Copyright holders: RichardG867, Tenshi
-   see COPYING for more details
-*/
 /*ISO CD-ROM support*/
 
 #include "ibm.h"

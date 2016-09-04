@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*Trident TGUI9440 emulation*/
 #include <stdlib.h>
 #include "ibm.h"

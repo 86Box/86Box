@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 #define  _WIN32_WINNT 0x0501
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>

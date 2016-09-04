@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi, leilei
-   see COPYING for more details
-*/
 #include "x86_ops.h"
 
 

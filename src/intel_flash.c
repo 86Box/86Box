@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 #include <stdlib.h>
 #include "ibm.h"
 #include "device.h"

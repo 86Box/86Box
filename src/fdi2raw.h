@@ -1,6 +1,3 @@
-/* Copyright holders: Toni Wilen
-   see COPYING for more details
-*/
 #ifndef __FDI2RAW_H
 #define __FDI2RAW_H
 

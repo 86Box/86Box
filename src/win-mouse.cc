@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
 #include "plat-mouse.h"

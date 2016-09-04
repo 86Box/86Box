@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*Emulation of the SVGA chip in the IBM PS/1 Model 2121, or at least the
   20 MHz version.
   

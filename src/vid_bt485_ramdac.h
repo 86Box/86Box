@@ -1,6 +1,3 @@
-/* Copyright holders: Tenshi
-   see COPYING for more details
-*/
 typedef struct bt485_ramdac_t
 {
         int magic_count;

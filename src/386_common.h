@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 extern uint16_t ea_rseg;
 
 #undef readmemb

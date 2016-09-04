@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 extern HINSTANCE hinstance;
 extern HWND ghwnd;
 extern int mousecapture;

@@ -1,6 +1,3 @@
-/* Copyright holders: Mahod, Tenshi
-   see COPYING for more details
-*/
 void nvr_init();
 
 extern int enable_sync;

@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #define SHIFT(size, size2, count, res_store)                                    \
         STORE_IMM_ADDR_L((uint32_t)&cpu_state.flags_op2, count);                          \
         reg = LOAD_REG_ ## size(fetchdat & 7);                                  \

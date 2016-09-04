@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 void speaker_init();
 
 extern int speaker_mute;

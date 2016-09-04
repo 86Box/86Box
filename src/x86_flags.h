@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 enum
 {
         FLAGS_UNKNOWN,

@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 typedef struct stg_ramdac_t
 {
         int magic_count;

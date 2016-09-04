@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, SA1988
-   see COPYING for more details
-*/
 /*Trident TVGA (8900D) emulation*/
 #include <stdlib.h>
 #include "ibm.h"

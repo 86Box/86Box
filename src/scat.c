@@ -1,6 +1,3 @@
-/* Copyright holders: Greatpsycho
-   see COPYING for more details
-*/
 /*This is the chipset used in the Award 286 clone model*/
 #include "ibm.h"
 #include "io.h"

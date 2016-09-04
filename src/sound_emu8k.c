@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*12log2(r) * 4096
 
   freq = 2^((in - 0xe000) / 4096)*/
