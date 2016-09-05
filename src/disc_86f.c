@@ -1185,7 +1185,7 @@ void d86f_poll_format(int drive, int side)
 void d86f_poll()
 {
 	int drive = d86f_drive;
-	int side = d86f[drive].req_sector.id.h;
+	int side = fdd_get_head(drive);
 
 	if (d86f[drive].state == STATE_FORMAT)
 	{

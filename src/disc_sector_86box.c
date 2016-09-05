@@ -277,7 +277,7 @@ int disc_sector_reset_state(int drive)
 
 int disc_sector_find_sector(int drive)
 {
-	int side = disc_sector_side[drive];
+	int side = fdd_get_head(drive);
 	int i = 0;
 	for (i = 0; i < disc_sector_count[drive][side]; i++)
 	{
@@ -373,7 +373,7 @@ void disc_sector_poll()
         sector_t *s;
         int data;
 	int drive = disc_sector_drive;
-	int side = disc_sector_side[drive];
+	int side = fdd_get_head(drive);
 	int found_sector = 0;
 	int b = 0;
 
@@ -582,7 +582,7 @@ void disc_sector_poll()
 				found_sector = disc_sector_find_sector(drive);
 				// pclog("Found sector: %i\n", found_sector);
 				cur_sector[drive] = found_sector;
-				last_sector[drive] = &disc_sector_data[drive][disc_sector_side[drive]][found_sector];
+				last_sector[drive] = &disc_sector_data[drive][side][found_sector];
 				cur_rate[drive] = last_sector[drive]->rate;
 				if (!(disc_sector_can_read_address(drive)))  last_sector[drive] = NULL;
 

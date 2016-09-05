@@ -322,13 +322,14 @@ void fdi_poll()
 {
         int tempi, c;
         int bitcount;
-        
+	int side = fdd_get_head(drive);
+
         for (bitcount = 0; bitcount < 16; bitcount++)
         {
-        if (fdi_pos >= fdi[fdi_drive].tracklen[fdi_side][fdi_density])
+        if (fdi_pos >= fdi[fdi_drive].tracklen[side][fdi_density])
         {
                 fdi_pos = 0;
-                if (fdi[fdi_drive].tracklen[fdi_side][fdi_density]) 
+                if (fdi[fdi_drive].tracklen[side][fdi_density]) 
                         fdc_indexpulse();
                 else
                 {
@@ -340,7 +341,7 @@ void fdi_poll()
                         }
                 }
         }
-        tempi = fdi[fdi_drive].track_data[fdi_side][fdi_density][((fdi_pos >> 3) & 0xFFFF) ^ 1] & (1 << (7 - (fdi_pos & 7)));
+        tempi = fdi[fdi_drive].track_data[side][fdi_density][((fdi_pos >> 3) & 0xFFFF) ^ 1] & (1 << (7 - (fdi_pos & 7)));
         fdi_pos++;
         fdi_buffer <<= 1;
         fdi_buffer |= (tempi ? 1 : 0);
@@ -352,7 +353,7 @@ void fdi_poll()
         }
         if (!fdi_inread && !fdi_inreadaddr)
                 return;
-        if (fdi_pos == fdi[fdi_drive].trackindex[fdi_side][fdi_density])
+        if (fdi_pos == fdi[fdi_drive].trackindex[side][fdi_density])
         {
                 fdi_revs++;
                 if (fdi_revs == 3)
