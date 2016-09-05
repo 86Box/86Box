@@ -62,6 +62,7 @@ typedef union
 static struct
 {
         FILE *f;
+	uint16_t version;
 	uint8_t disk_flags;
         uint8_t track_data[2][50000];
         uint8_t track_layout[2][50000];
@@ -201,7 +202,6 @@ void d86f_load(int drive, char *fn)
 {
 	uint32_t magic = 0;
 	uint32_t len = 0;
-	uint16_t version = 0;
 
 	int i = 0;
 	int j = 0;
@@ -238,18 +238,18 @@ void d86f_load(int drive, char *fn)
 		return;
 	}
 
-	fread(&version, 2, 1, d86f[drive].f);
+	fread(&(d86f[drive].version), 2, 1, d86f[drive].f);
 
-	if ((version != 0x0100) && (version != 0x010A))
+	if ((d86f[drive].version != 0x0100) && (d86f[drive].version != 0x010A))
 	{
 		/* File is not of a recognized format version abort. */
-		pclog("86F: Unrecognized file version: %i.%02i\n", version >> 8, version & 0xFF);
+		pclog("86F: Unrecognized file version: %i.%02i\n", d86f[drive].version >> 8, d86f[drive].version & 0xFF);
 		fclose(d86f[drive].f);
 		return;
 	}
 	else
 	{
-		pclog("86F: Recognized file version: %i.%02i\n", version >> 8, version & 0xFF);
+		pclog("86F: Recognized file version: %i.%02i\n", d86f[drive].version >> 8, d86f[drive].version & 0xFF);
 	}
 
 	fread(&(d86f[drive].disk_flags), 1, 1, d86f[drive].f);
