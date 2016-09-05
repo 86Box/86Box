@@ -322,7 +322,7 @@ void fdi_poll()
 {
         int tempi, c;
         int bitcount;
-	int side = fdd_get_head(drive);
+	int side = fdd_get_head(fdi_drive);
 
         for (bitcount = 0; bitcount < 16; bitcount++)
         {
