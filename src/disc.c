@@ -106,6 +106,7 @@ void disc_load(int drive, char *fn)
                         loaders[c].load(drive, fn);
                         drive_empty[drive] = 0;
                         strcpy(discfns[drive], fn);
+			fdd_set_head(drive ^ fdd_swap, 0);
                         fdd_seek(drive ^ fdd_swap, 0);
                         disc_changed[drive] = 1;
                         return;
@@ -114,6 +115,7 @@ void disc_load(int drive, char *fn)
         }
         pclog("Couldn't load %s %s\n",fn,p);
         drive_empty[drive] = 1;
+	fdd_set_head(drive ^ fdd_swap, 0);
         discfns[drive][0] = 0;
 }
 
@@ -122,6 +124,7 @@ void disc_close(int drive)
 //        pclog("disc_close %i\n", drive);
         if (loaders[driveloaders[drive]].close) loaders[driveloaders[drive]].close(drive);
         drive_empty[drive] = 1;
+	fdd_set_head(drive ^ fdd_swap, 0);
         discfns[drive][0] = 0;
         drives[drive].hole = NULL;
         drives[drive].poll = NULL;

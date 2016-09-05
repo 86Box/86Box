@@ -978,7 +978,7 @@ void fdc_callback()
                         discint=-2;
                         fdc_int();
                         fdc.stat=0xD0;
-                        fdc.res[4]=(fdc.head?4:0)|fdc.drive;
+                        fdc.res[4]=(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
                         fdc.res[5]=fdc.res[6]=0;
                         fdc.res[7]=fdc.rw_track;
                         fdc.res[8]=fdc.head;
@@ -1015,6 +1015,7 @@ void fdc_callback()
                         if (fdc.command & 0x80)
                         {
                                 fdc.head ^= 1;
+				fdd_set_head(fdc.drive, fdd_get_head(fdc.drive ^ fdd_swap) ^ 1);
                                 if (!fdc.head)
                                 {
                                         fdc.rw_track++;
@@ -1038,7 +1039,7 @@ void fdc_callback()
                         discint=-2;
                         fdc_int();
                         fdc.stat=0xD0;
-                        fdc.res[4]=(fdc.head?4:0)|fdc.drive;
+                        fdc.res[4]=(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
                         fdc.res[5]=fdc.res[6]=0;
                         fdc.res[7]=fdc.rw_track;
                         fdc.res[8]=fdc.head;
@@ -1060,6 +1061,7 @@ void fdc_callback()
                         if (fdc.command & 0x80)
                         {
                                 fdc.head ^= 1;
+				fdd_set_head(fdc.drive, fdd_get_head(fdc.drive ^ fdd_swap) ^ 1);
                                 if (!fdc.head)
                                 {
                                         fdc.rw_track++;
@@ -1084,7 +1086,7 @@ void fdc_callback()
                         discint=-2;
                         fdc_int();
                         fdc.stat=0xD0;
-                        fdc.res[4]=(fdc.head?4:0)|fdc.drive;
+                        fdc.res[4]=(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
                         fdc.res[5]=fdc.res[6]=0;
                         fdc.res[7]=fdc.rw_track;
                         fdc.res[8]=fdc.head;
@@ -1152,7 +1154,7 @@ void fdc_callback()
                         discint=-2;
                         fdc_int();
                         fdc.stat=0xD0;
-                        fdc.res[4] = (fdc.head?4:0)|fdc.drive;
+                        fdc.res[4] = (fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
                         fdc.res[5] = fdc.res[6] = 0;
                         fdc.res[7] = fdc.track[fdc.drive];
                         fdc.res[8] = fdc.head;
@@ -1267,7 +1269,7 @@ void fdc_overrun()
 
         fdc_int();
         fdc.stat=0xD0;
-        fdc.res[4]=0x40|(fdc.head?4:0)|fdc.drive;
+        fdc.res[4]=0x40|(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
         fdc.res[5]=0x10; /*Overrun*/
         fdc.res[6]=0;
         fdc.res[7]=0;
@@ -1354,7 +1356,7 @@ void fdc_notfound()
 
         fdc_int();
         fdc.stat=0xD0;
-        fdc.res[4]=0x40|(fdc.head?4:0)|fdc.drive;
+        fdc.res[4]=0x40|(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
         fdc.res[5]=5;
         fdc.res[6]=0;
         fdc.res[7]=0;
@@ -1371,7 +1373,7 @@ void fdc_datacrcerror()
 
         fdc_int();
         fdc.stat=0xD0;
-        fdc.res[4]=0x40|(fdc.head?4:0)|fdc.drive;
+        fdc.res[4]=0x40|(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
         fdc.res[5]=0x20; /*Data error*/
         fdc.res[6]=0x20; /*Data error in data field*/
         fdc.res[7]=0;
@@ -1388,7 +1390,7 @@ void fdc_headercrcerror()
 
         fdc_int();
         fdc.stat=0xD0;
-        fdc.res[4]=0x40|(fdc.head?4:0)|fdc.drive;
+        fdc.res[4]=0x40|(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
         fdc.res[5]=0x20; /*Data error*/
         fdc.res[6]=0;
         fdc.res[7]=0;
@@ -1405,7 +1407,7 @@ void fdc_writeprotect()
 
         fdc_int();
         fdc.stat=0xD0;
-        fdc.res[4]=0x40|(fdc.head?4:0)|fdc.drive;
+        fdc.res[4]=0x40|(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
         fdc.res[5]=0x02; /*Not writeable*/
         fdc.res[6]=0;
         fdc.res[7]=0;
@@ -1472,7 +1474,7 @@ void fdc_sectorid(uint8_t track, uint8_t side, uint8_t sector, uint8_t size, uin
 //        pclog("SectorID %i %i %i %i\n", track, side, sector, size);
         fdc_int();
         fdc.stat=0xD0;
-        fdc.res[4]=(fdc.head?4:0)|fdc.drive;
+        fdc.res[4]=(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
         fdc.res[5]=0;
         fdc.res[6]=0;
         fdc.res[7]=track;
