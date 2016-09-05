@@ -105,7 +105,6 @@ void disc_load(int drive, char *fn)
                         driveloaders[drive] = c;
                         loaders[c].load(drive, fn);
                         drive_empty[drive] = 0;
-                        disc_changed[drive] = 1;
                         strcpy(discfns[drive], fn);
                         fdd_seek(drive ^ fdd_swap, 0);
                         disc_changed[drive] = 1;
