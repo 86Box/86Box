@@ -708,6 +708,10 @@ bad_command:
                                         disctime = 0;
                                         break;
 
+					case 4:
+					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
+					break;
+
                                         case 5: /*Write data*/
 					fdc_rate(fdc.drive);
                                         fdc.head=fdc.params[2];

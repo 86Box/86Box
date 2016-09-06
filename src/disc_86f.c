@@ -447,8 +447,8 @@ void d86f_seek(int drive, int track)
 
 	for (side = 0; side < d86f_get_sides(drive); side++)
 	{
-		memset(d86f[drive].track_layout[side], BYTE_GAP4, full_size);
-		memset(d86f[drive].track_data[side], 0xFF, full_size);
+		memset(d86f[drive].track_layout[side], BYTE_GAP4, 50000);
+		memset(d86f[drive].track_data[side], 0xFF, 50000);
 	}
 
 	d86f[drive].cur_track = track;
@@ -791,13 +791,6 @@ static void index_pulse(int drive)
 	if (d86f[drive].state != STATE_IDLE)  fdc_indexpulse();
 }
 
-int d86f_match(int drive)
-{
-	int temp;
-	temp = (d86f[drive].req_sector.dword == d86f[drive].last_sector.dword);
-	return temp;
-}
-
 uint32_t d86f_get_data_len(int drive)
 {
 	if (d86f[drive].req_sector.id.n)
@@ -1089,7 +1082,7 @@ void d86f_poll_find_nf(int drive, int side)
 			d86f[drive].calc_crc.word = fdc_is_mfm() ? 0xcdb4 : 0xffff;
 			// pclog("CRC reset: %02X\n", d86f[drive].track_byte);
 
-			if ((d86f[drive].state &= STATE_WRITE_FIND_SECTOR) && d86f_match(drive) && d86f_can_read_address(drive))
+			if ((d86f[drive].state == STATE_WRITE_FIND_SECTOR) && (d86f[drive].req_sector.dword == d86f[drive].last_sector.dword) && d86f_can_read_address(drive))
 			{
 				d86f[drive].track_data[side][d86f[drive].track_pos] = 0xFB;
 			}
@@ -1119,7 +1112,7 @@ void d86f_poll_find_nf(int drive, int side)
 			case BYTE_GAP2:
 				if (d86f_can_read_address(drive))
 				{
-					if (d86f_match(drive) || (d86f[drive].state == STATE_READ_FIND_ADDRESS))
+					if ((d86f[drive].req_sector.dword == d86f[drive].last_sector.dword) || (d86f[drive].state == STATE_READ_FIND_ADDRESS))
 					{
 						if (d86f[drive].track_crc.word != d86f[drive].calc_crc.word)
 						{
@@ -1150,7 +1143,7 @@ void d86f_poll_find_nf(int drive, int side)
 				{
 					case STATE_READ_FIND_SECTOR:
 					case STATE_WRITE_FIND_SECTOR:
-						if (d86f_match(drive) && d86f_can_read_address(drive))
+						if ((d86f[drive].req_sector.dword == d86f[drive].last_sector.dword) && d86f_can_read_address(drive))
 						{
 							d86f[drive].state++;
 						}
