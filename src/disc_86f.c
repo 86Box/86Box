@@ -284,7 +284,10 @@ void d86f_load(int drive, char *fn)
 	{
 		fseek(d86f[drive].f, d86f[drive].track_offset[0], SEEK_SET);
 		fread(&(d86f[drive].side_flags[0]), 1, 1, d86f[drive].f);
-		fread(&(d86f[drive].side_flags[1]), 1, 1, d86f[drive].f);
+		if (d86f_get_sides(drive) == 2)
+		{
+			fread(&(d86f[drive].side_flags[1]), 1, 1, d86f[drive].f);
+		}
 	}
 	else
 	{
@@ -436,7 +439,7 @@ void d86f_seek(int drive, int track)
 	{
 		full_size = d86f_get_array_size(drive);
 		store_size = full_size << 1;
-		flag_bytes++;
+		if (d86f_get_sides(drive) == 2)  flag_bytes++;
 	}
 
         if (d86f_is_40_track(drive) && fdd_doublestep_40(drive))
@@ -457,7 +460,10 @@ void d86f_seek(int drive, int track)
 		if (d86f[drive].version == 0x010A)
 		{
 			d86f[drive].side_flags[0] = 0x0A;	/* 300 rpm, MFM, 250 kbps */
-			d86f[drive].side_flags[1] = 0x0A;	/* 300 rpm, MFM, 250 kbps */
+			if (d86f_get_sides(drive) == 2)
+			{
+				d86f[drive].side_flags[1] = 0x0A;	/* 300 rpm, MFM, 250 kbps */
+			}
 		}
 		else
 		{
@@ -473,7 +479,10 @@ void d86f_seek(int drive, int track)
 	if (d86f[drive].version == 0x010A)
 	{
 		fread(&(d86f[drive].side_flags[0]), 1, 1, d86f[drive].f);
-		fread(&(d86f[drive].side_flags[1]), 1, 1, d86f[drive].f);
+		if (d86f_get_sides(drive) == 2)
+		{
+			fread(&(d86f[drive].side_flags[1]), 1, 1, d86f[drive].f);
+		}
 	}
 	else
 	{
@@ -500,7 +509,7 @@ void d86f_writeback(int drive)
 	{
 		full_size = d86f_get_array_size(drive);
 		store_size = full_size << 1;
-		flag_bytes++;
+		if (d86f_get_sides(drive) == 2)  flag_bytes++;
 	}
 
         if (!d86f[drive].f)
@@ -516,7 +525,10 @@ void d86f_writeback(int drive)
 	if (d86f[drive].version == 0x010A)
 	{
 		fwrite(&(d86f[drive].side_flags[0]), 1, 1, d86f[drive].f);
-		fwrite(&(d86f[drive].side_flags[1]), 1, 1, d86f[drive].f);
+		if (d86f_get_sides(drive) == 2)
+		{
+			fwrite(&(d86f[drive].side_flags[1]), 1, 1, d86f[drive].f);
+		}
 	}
 	else
 	{
@@ -717,7 +729,7 @@ void d86f_format(int drive, int track, int side, int rate, uint8_t fill)
 	{
 		full_size = d86f_get_array_size(drive);
 		store_size = full_size << 1;
-		flag_bytes++;
+		if (d86f_get_sides(drive) == 2)  flag_bytes++;
 	}
 
         d86f[drive].req_sector.id.c = d86f[drive].cur_track;

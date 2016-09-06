@@ -773,6 +773,7 @@ bad_command:
                                         case 0x0d: /*Format*/
 					fdc_rate(fdc.drive);
                                         fdc.head = (fdc.params[0] & 4) ? 1 : 0;
+					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
 					fdc.gap = fdc.params[3];
 					fdc.dtl = 4000000;
 					fdc.format_sectors = fdc.params[2];
@@ -785,6 +786,7 @@ bad_command:
                                         case 0xf: /*Seek*/
                                         fdc.stat =  1 << fdc.drive;
                                         fdc.head = (fdc.params[0] & 4) ? 1 : 0;
+					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
                                         disctime = 0;
 					if (fdc.seek_params & 0x80)
 					{
@@ -1103,9 +1105,9 @@ void fdc_callback()
                 fdc.track[fdc.drive]=0;
 //                if (!driveempty[fdc.dor & 1]) discchanged[fdc.dor & 1] = 0;
                 if (fdc.drive <= 1)
-                        fdc.st0 = 0x20 | (fdc.params[0] & 3) | (fdc.head?4:0);
+                        fdc.st0 = 0x20 | (fdc.params[0] & 3) | (fdd_get_head(fdc.drive ^ fdd_swap)?4:0);
                 else
-                        fdc.st0 = 0x68 | (fdc.params[0] & 3) | (fdc.head?4:0);
+                        fdc.st0 = 0x68 | (fdc.params[0] & 3) | (fdd_get_head(fdc.drive ^ fdd_swap)?4:0);
                 discint=-3;
 		timer_process();
 		disctime = 2048 * (1 << TIMER_SHIFT);
@@ -1119,7 +1121,7 @@ void fdc_callback()
 
                 fdc.stat    = (fdc.stat & 0xf) | 0xd0;                
                 if (fdc_reset_stat)
-                        fdc.res[9] = 0xc0 | (4 - fdc_reset_stat) | (fdc.head ? 4 : 0);
+                        fdc.res[9] = 0xc0 | (4 - fdc_reset_stat) | (fdd_get_head(fdc.drive ^ fdd_swap) ? 4 : 0);
                 else
                         fdc.res[9] = fdc.st0;
                 fdc.res[10] = fdc.track[fdc.drive];
@@ -1157,7 +1159,7 @@ void fdc_callback()
                         fdc.res[4] = (fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
                         fdc.res[5] = fdc.res[6] = 0;
                         fdc.res[7] = fdc.track[fdc.drive];
-                        fdc.res[8] = fdc.head;
+                        fdc.res[8] = fdd_get_head(fdc.drive ^ fdd_swap);
                         fdc.res[9] = fdc.format_dat[fdc.pos - 2] + 1;
                         fdc.res[10] = fdc.params[4];
                         paramstogo=7;
@@ -1171,9 +1173,9 @@ void fdc_callback()
 //                if (!driveempty[fdc.dor & 1]) discchanged[fdc.dor & 1] = 0;
 //                printf("Seeked to track %i %i\n",fdc.track[fdc.drive], fdc.drive);
                 if (fdc.drive <= 1)
-                        fdc.st0 = 0x20 | (fdc.params[0] & 3) | (fdc.head?4:0);
+                        fdc.st0 = 0x20 | (fdc.params[0] & 3) | (fdd_get_head(fdc.drive ^ fdd_swap)?4:0);
                 else
-                        fdc.st0 = 0x68 | (fdc.params[0] & 3) | (fdc.head?4:0);
+                        fdc.st0 = 0x68 | (fdc.params[0] & 3) | (fdd_get_head(fdc.drive ^ fdd_swap)?4:0);
                 discint=-3;
 		timer_process();
 		disctime = 2048 * (1 << TIMER_SHIFT);
