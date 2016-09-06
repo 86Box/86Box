@@ -1093,7 +1093,7 @@ void d86f_poll_find_nf(int drive, int side)
 			case BYTE_GAP2:
 				if (d86f_can_read_address(drive))
 				{
-					if ((d86f[drive].req_sector.dword == d86f[drive].last_sector.dword) || (d86f[drive].state == STATE_READ_FIND_ADDRESS))
+					if ((d86f[drive].req_sector.dword == d86f[drive].rw_sector_id.dword) || (d86f[drive].state == STATE_READ_FIND_ADDRESS))
 					{
 						if (d86f[drive].track_crc.word != d86f[drive].calc_crc.word)
 						{
