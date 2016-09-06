@@ -1093,7 +1093,7 @@ void d86f_poll_find_nf(int drive, int side)
 			case BYTE_GAP2:
 				if (d86f_can_read_address(drive))
 				{
-					if ((d86f[drive].req_sector.dword == d86f[drive].rw_sector_id.dword) || (d86f[drive].state == STATE_READ_FIND_ADDRESS))
+					if (((d86f[drive].req_sector.dword == d86f[drive].rw_sector_id.dword) || (d86f[drive].state == STATE_READ_FIND_ADDRESS)) && d86f_can_read_address(drive))
 					{
 						if (d86f[drive].track_crc.word != d86f[drive].calc_crc.word)
 						{
@@ -1111,7 +1111,7 @@ void d86f_poll_find_nf(int drive, int side)
 
 							// pclog("Read sector ID in find state: %i %i %i %i (sought: %i, %i, %i, %i)\n", d86f[drive].last_sector.id.c, d86f[drive].last_sector.id.h, d86f[drive].last_sector.id.r, d86f[drive].last_sector.id.n, d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n);
 
-							if ((d86f[drive].state == STATE_READ_FIND_ADDRESS) && d86f_can_read_address(drive) && (d86f[drive].last_sector.dword != 0xFFFFFFFF))
+							if ((d86f[drive].state == STATE_READ_FIND_ADDRESS) && (d86f[drive].last_sector.dword != 0xFFFFFFFF))
 							{
 								// pclog("Reading sector ID...\n");
 								fdc_sectorid(d86f[drive].last_sector.id.c, d86f[drive].last_sector.id.h, d86f[drive].last_sector.id.r, d86f[drive].last_sector.id.n, 0, 0);
