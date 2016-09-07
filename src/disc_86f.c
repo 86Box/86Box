@@ -69,6 +69,7 @@ static struct
         uint8_t track_layout[2][50000];
         uint8_t track_flags;
         uint8_t side_flags[2];
+        uint16_t index_hole_pos[2];
 	uint8_t track_in_file;
         uint32_t track_offset[256];
 	uint32_t file_size;
