@@ -12,7 +12,7 @@
 
 #include "disc_random.h"
 
-dword preconst = 0x6ED9EBA1;
+uint32_t preconst = 0x6ED9EBA1;
 
 static __inline__ uint32_t rotl32c (uint32_t x, uint32_t n)
 {
@@ -37,9 +37,9 @@ static __inline__ unsigned long long rdtsc(void)
     return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
 }
 
-static UINT4 RDTSC(void)
+static uint32_t RDTSC(void)
 {
-	return (UINT4) (rdtsc());
+	return (uint32_t) (rdtsc());
 }
 
 static void disc_random_twist(uint32_t *val)
@@ -60,7 +60,7 @@ uint8_t disc_random_generate()
 
 void disc_random_init()
 {
-	dword seed = RDTSC();
+	uint32_t seed = RDTSC();
 	srand(seed);
 	return;
 }
