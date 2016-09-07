@@ -1005,7 +1005,7 @@ void d86f_poll_finish(int drive, int side)
 	d86f[drive].last_sector.dword = 0xFFFFFFFF;
 }
 
-void d86f_poll_data(int drive, int side)
+uint8_t d86f_poll_data(int drive, int side)
 {
 	uint8_t ret = d86f[drive].track_data[side][d86f[drive].track_pos];
 	if ((d86f[drive].version == 0x0114) && (d86f[drive].track_layout[side][d86f[drive].track_pos] & BYTE_IS_FUZZY))
@@ -1030,7 +1030,7 @@ void d86f_poll_readwrite(int drive, int side)
 	if (d86f_read_state_data(drive))
 	{
 		max_len = d86f_data_size(drive);
-		data = d86f_poll_data(drive);
+		data = d86f_poll_data(drive, side);
 		if (d86f[drive].datac < d86f_get_data_len(drive))
 		{
 			fdc_data(data);
@@ -1063,7 +1063,7 @@ void d86f_poll_readwrite(int drive, int side)
 	else if (d86f_read_state_crc(drive))
 	{
 		max_len = 2;
-		d86f[drive].track_crc.bytes[d86f[drive].datac] = d86f_poll_data(drive);
+		d86f[drive].track_crc.bytes[d86f[drive].datac] = d86f_poll_data(drive, side);
 	}
 	else if (d86f[drive].state == STATE_WRITE_SECTOR_CRC)
 	{
@@ -1140,7 +1140,7 @@ void d86f_poll_find_nf(int drive, int side)
 		case BYTE_IDAM:
 			d86f[drive].calc_crc.word = fdc_is_mfm() ? 0xcdb4 : 0xffff;
 			// pclog("CRC reset: %02X\n", d86f[drive].track_byte);
-			d86f_calccrc(drive, d86f_poll_data(drive));
+			d86f_calccrc(drive, d86f_poll_data(drive, side));
 			break;
 
 		case BYTE_DATAAM:
@@ -1155,17 +1155,17 @@ void d86f_poll_find_nf(int drive, int side)
 					d86f[drive].track_layout[side][d86f[drive].track_pos] &= ~BYTE_IS_FUZZY;
 				}
 			}
-			d86f_calccrc(drive, d86f_poll_data(drive));
+			d86f_calccrc(drive, d86f_poll_data(drive, side));
 			break;
 		case BYTE_ID:
 			d86f[drive].id_pos = d86f[drive].track_pos - d86f[drive].section_pos;
-			data = d86f_poll_data(drive);
+			data = d86f_poll_data(drive, side);
 			d86f[drive].rw_sector_id.byte_array[d86f[drive].id_pos] = data;
 			d86f_calccrc(drive, data);
 			break;
 		case BYTE_ID_CRC:
 			d86f[drive].id_pos = d86f[drive].track_pos - d86f[drive].section_pos;
-			d86f[drive].track_crc.bytes[d86f[drive].id_pos] = d86f_poll_data(drive);
+			d86f[drive].track_crc.bytes[d86f[drive].id_pos] = d86f_poll_data(drive, side);
 			break;
 	}
 
