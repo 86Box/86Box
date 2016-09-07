@@ -792,13 +792,14 @@ void d86f_format(int drive, int track, int side, int rate, uint8_t fill)
 	d86f[drive].track_flags |= (fdd_getrpm(drive ^ fdd_swap) == 360) ? 0x20 : 0;
 	d86f[drive].track_flags |= fdc_get_bit_rate();
 	d86f[drive].track_flags |= fdc_is_mfm() ? 8 : 0;
-	if (d86f[drive].version == 0x010A)
+	if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114))
 	{
 		d86f[drive].side_flags[side] = d86f[drive].track_flags;
-	}
-	if (d86f[drive].version == 0x0114)
-	{
-		d86f[drive].index_hole_pos[side] = 0;
+
+		if (d86f[drive].version == 0x0114)
+		{
+			d86f[drive].index_hole_pos[side] = 0;
+		}
 	}
 	memset(d86f[drive].track_data[side], 0xFF, full_size);
 	d86f_prepare_track_layout(drive, side);
