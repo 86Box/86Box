@@ -95,6 +95,7 @@ extern int drive_type[2];
 #define BYTE_ID_CRC		0x45
 #define BYTE_DATA_CRC		0x55
 
+#define BYTE_IS_FUZZY		0x80
 #define BYTE_INDEX_HOLE		0x80	/* 1 = index hole, 0 = regular byte */
 #define BYTE_IS_SECTOR		0x40	/* 1 = per-sector, 0 = per-track */
 #define BYTE_IS_POST_TRACK	0x20	/* 1 = after all sectors, 0 = before or during all sectors */
