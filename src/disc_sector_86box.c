@@ -95,9 +95,7 @@ void disc_sector_add(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8
 
 static int get_bitcell_period(int drive)
 {
-        // return (disc_sector_data[drive][disc_sector_side[drive]][cur_sector[drive]].rate * 300) / fdd_getrpm(drive);
-	return ((&disc_sector_data[drive][0][0])->rate * 300) / fdd_getrpm(drive);
-        return (cur_rate[drive] * 300) / fdd_getrpm(drive);
+	return ((&disc_sector_data[drive][0][0])->rate * 300) / fdd_getrpm(drive ^ fdd_swap);
 }
 
 void disc_sector_readsector(int drive, int sector, int track, int side, int rate, int sector_size)

@@ -253,12 +253,14 @@ void fdc_update_is_nsc(int is_nsc)
 	fdc.is_nsc = is_nsc;
 }
 
+static void fdc_rate(int drive);
+
 void fdc_update_enh_mode(int enh_mode)
 {
 	fdc.enh_mode = enh_mode;
+	fdc_rate(0);
+	fdc_rate(1);
 }
-
-static void fdc_rate(int drive);
 
 int fdc_get_rwc(int drive)
 {
@@ -309,11 +311,11 @@ void fdc_update_drv2en(int drv2en)
 
 void fdc_update_rate(int drive)
 {
-	if ((fdc.rwc[drive] == 1) || (fdc.rwc[drive] == 2))
+	if (((fdc.rwc[drive] == 1) || (fdc.rwc[drive] == 2)) && fdc.enh_mode)
 	{
 		bit_rate = 500;
 	}
-	else if (fdc.rwc[drive] == 3)
+	else if ((fdc.rwc[drive] == 3) && fdc.enh_mode)
 	{
 		bit_rate = 250;
 	}
@@ -375,13 +377,16 @@ int fdc_get_bitcell_period()
 
 static int fdc_get_densel(int drive)
 {
-	switch (fdc.rwc[drive])
+	if (fdc.enh_mode)
 	{
-		case 1:
-		case 3:
-			return 0;
-		case 2:
-			return 1;
+		switch (fdc.rwc[drive])
+		{
+			case 1:
+			case 3:
+				return 0;
+			case 2:
+				return 1;
+		}
 	}
 
 	if (!fdc.is_nsc)
@@ -492,7 +497,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
 		if (fdc.enh_mode)
 		{
 			drive = (fdc.dor & 1) ^ fdd_swap;
-			fdc.rwc[drive] = (val & 0x30) >> 4;
+			fdc_update_rwc(drive, (val & 0x30) >> 4);
 		}
 		return;
                 case 4:

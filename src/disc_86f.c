@@ -563,7 +563,7 @@ static int d86f_get_bitcell_period(int drive)
 	if (!mfm)  rate /= 2.0;
 	size = (size * 250.0) / rate;
 	size = (size * 300.0) / rpm;
-	size = (size * fdd_getrpm(drive)) / 300.0;
+	size = (size * fdd_getrpm(drive ^ fdd_swap)) / 300.0;
 	return (int) size;
 }
 

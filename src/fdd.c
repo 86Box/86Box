@@ -39,6 +39,11 @@ static struct
 #define FLAG_HOLE2		32
 #define FLAG_DOUBLE_STEP	64
 
+#define FLAGS_RPM_NONE		0
+#define FLAGS_RPM_300_ONLY	1
+#define FLAGS_RPM_360_ONLY	2
+#define FLAGS_RPM_BOTH		3
+
 static struct
 {
         int max_track;
@@ -76,6 +81,10 @@ static struct
         {       /*3.5" ED*/
                 .max_track = 86,
 		.flags = FLAG_RPM_300 | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_HOLE2
+        },
+        {       /*3.5" ED 3-Mode*/
+                .max_track = 86,
+		.flags = FLAG_RPM_300| FLAG_RPM_360 | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_HOLE2
         }
 };
 
@@ -118,23 +127,36 @@ void fdd_set_densel(int densel)
 	fdd[1].densel = densel;
 }
 
+int fdd_get_flags(int drive)
+{
+	return drive_types[fdd[drive].type].flags;
+}
+
 int fdd_getrpm(int drive)
 {
 	int hole = disc_hole(drive);
+	int flags = 0;
 
         drive ^= fdd_swap;
+	flags = fdd_get_flags(drive);
 
-	if (!(drive_types[fdd[drive].type].flags & FLAG_RPM_360))  return 300;
-	if (!(drive_types[fdd[drive].type].flags & FLAG_RPM_300))  return 360;
+	if ((flags & 3) == FLAGS_RPM_300_ONLY)
+	{
+		return 300;
+	}
+	else if ((flags & 3) == FLAGS_RPM_360_ONLY)
+	{
+		return 360;
+	}
 
-	if (drive_types[fdd[drive].type].flags & FLAG_525)
+	if (flags & FLAG_525)
 	{
 		return fdd[drive].densel ? 360 : 300;
 	}
 	else
 	{
 		/* disc_hole(drive) returns 0 for double density media, 1 for high density, and 2 for extended density. */
-		if (hole == 1)
+		if (hole >= 1)
 		{
 			return fdd[drive].densel ? 300 : 360;
 		}
@@ -175,11 +197,6 @@ void fdd_set_type(int drive, int type)
 int fdd_get_type(int drive)
 {
 	return fdd[drive].type;
-}
-
-int fdd_get_flags(int drive)
-{
-	return drive_types[fdd[drive].type].flags;
 }
 
 int fdd_is_525(int drive)
