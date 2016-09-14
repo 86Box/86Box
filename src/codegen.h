@@ -56,9 +56,16 @@ typedef struct codeblock_t
         uint64_t page_mask, page_mask2;
         
         int was_recompiled;
+        uint32_t flags;
+        int TOP;
         
         uint8_t data[2048];
 } codeblock_t;
+
+/*Code block uses FPU*/
+#define CODEBLOCK_HAS_FPU 1
+/*Code block is always entered with the same FPU top-of-stack*/
+#define CODEBLOCK_STATIC_TOP 2
 
 static inline codeblock_t *codeblock_tree_find(uint32_t phys)
 {

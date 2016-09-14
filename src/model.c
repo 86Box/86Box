@@ -3,8 +3,10 @@
 */
 #include "ibm.h"
 #include "cpu.h"
+#include "mem.h"
 #include "model.h"
 #include "io.h"
+#include "rom.h"
 
 #include "acer386sx.h"
 #include "acerm3a.h"
@@ -96,9 +98,11 @@ void    at_acerm3a_init();
 void   at_acerv35n_init();
 // void    at_p55t2p4_init();
 void    at_p55tvp4_init();
+void       at_marl_init();
 void      at_p55va_init();
 void     at_i440fx_init();
 void       at_kn97_init();
+void  at_deskpro2k_init();
 
 int model;
 
@@ -152,13 +156,15 @@ MODEL models[] =
         {"Intel Premiere/PCI II",ROM_PLATO,      { "Intel", cpus_PentiumS5,"IDT", cpus_WinChip, "AMD",   cpus_K5, "",      NULL},         0, 1,   1, 128, 1,       at_plato_init},
         {"Intel Advanced/EV",   ROM_ENDEAVOR,    { "Intel", cpus_PentiumS5,"IDT", cpus_WinChip, "AMD",   cpus_K5, "",      NULL},         0, 1,   1, 128, 1,   at_endeavor_init},
         {"PC Partner MB500N",   ROM_MB500N,      { "Intel", cpus_PentiumS5,"IDT", cpus_WinChip, "AMD",   cpus_K5, "",      NULL},         0, 1,   1, 128, 1,     at_mb500n_init},
+        {"Intel Advanced/ATX",  ROM_THOR,        { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 256, 1,    at_endeavor_init},
         // {"ASUS P/I-P54TP4XE",   ROM_P54TP4XE,    { "Intel", cpus_PentiumS5, "IDT", cpus_WinChip, "AMD",   cpus_K5, "",     NULL},         0, 1,   1, 512, 1, at_p54tp4xe_init},
+        {"Intel Advanced/ML",   ROM_MARL,        { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 512, 1,        at_marl_init},
         {"Acer M3a",            ROM_ACERM3A,     { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 512, 1,     at_acerm3a_init},
         {"Acer V35N",           ROM_ACERV35N,    { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 512, 1,    at_acerv35n_init},
-        // {"ASUS P/I-P55T2P4",    ROM_P55T2P4,     { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 512, 1,     at_p55t2p4_init},
+        // {"ASUS P/I-P55T2P4",    ROM_P55T2P4,  { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 512, 1,     at_p55t2p4_init},
         {"Award 430VX PCI",     ROM_430VX,       { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 256, 1,      at_i430vx_init},
-        {"ASUS P/I-P55TVP4",    ROM_P55TVP4,     { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 512, 1,     at_p55tvp4_init},
         {"Epox P55-VA",         ROM_P55VA,       { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 256, 1,       at_p55va_init},
+        {"ASUS P/I-P55TVP4",    ROM_P55TVP4,     { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 256, 1,     at_p55tvp4_init},
         {"Award 440FX PCI",     ROM_440FX,       { "Intel", cpus_PentiumPro,    "",    NULL,         "",      NULL},         0, 1,   1, 1024, 1,    at_i440fx_init},
         {"Award KN97 (440FX PCI)",ROM_KN97,      { "Intel", cpus_PentiumPro,    "",    NULL,         "",      NULL},         0, 1,   1, 1024, 1,    at_kn97_init},
         // {"Award 440FX PCI",     ROM_440FX,     { "Intel", cpus_PentiumPro,"Klamath",    cpus_Pentium2,         "Deschutes",      cpus_Pentium2D},         0, 1,   1, 1024, 1,    at_i440fx_init},
@@ -476,7 +482,7 @@ void at_plato_init()
 	if (cdrom_channel >= 4)  ide_ter_init();
 }
 
-void at_endeavor_init()
+void at_advanced_common_init()
 {
         at_init();
         mouse_always_serial ? mouse_serial_init() : mouse_ps2_init();
@@ -485,8 +491,19 @@ void at_endeavor_init()
         piix_init(7);
         pc87306_init();
         intel_endeavor_init();
-        device_add(&intel_flash_bxt_ami_device);
 	if (cdrom_channel >= 4)  ide_ter_init();
+}
+
+void at_endeavor_init()
+{
+        at_advanced_common_init();
+        device_add(&intel_flash_bxt_ami_device);
+}
+
+void at_marl_init()
+{
+        at_advanced_common_init();
+        device_add(&intel_flash_100bxt_ami_device);
 }
 
 void at_mb500n_init()
@@ -521,6 +538,7 @@ void at_p54tp4xe_init()
 void at_acerm3a_init()
 {
         at_init();
+	memregs_init();
         mouse_serial_init();
         pci_init(PCI_CONFIG_TYPE_1, 0xd, 0x10);
         i430hx_init();
@@ -534,6 +552,7 @@ void at_acerm3a_init()
 void at_acerv35n_init()
 {
         at_init();
+	memregs_init();
         mouse_always_serial ? mouse_serial_init() : mouse_ps2_init();
         pci_init(PCI_CONFIG_TYPE_1, 0xd, 0x10);
         i430hx_init();
@@ -562,6 +581,7 @@ void at_p55t2p4_init()
 void at_i430vx_init()
 {
         at_init();
+	memregs_init();
         mouse_serial_init();
         pci_init(PCI_CONFIG_TYPE_1, 0, 31);
         i430vx_init();
@@ -570,6 +590,8 @@ void at_i430vx_init()
         device_add(&intel_flash_bxt_device);
 	if (cdrom_channel >= 4)  ide_ter_init();
 }
+
+// rom_t ami_ec_rom;
 
 void at_p55tvp4_init()
 {
@@ -581,12 +603,19 @@ void at_p55tvp4_init()
         piix3_init(7);
         w83877f_init();
         device_add(&intel_flash_bxt_device);
+
+        /* rom_init(&ami_ec_rom, "roms/AMIINT13.BIN", 0xd0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+        pc87306_init();
+
+        intel_endeavor_init(); */
+
 	if (cdrom_channel >= 4)  ide_ter_init();
 }
 
 void at_p55va_init()
 {
         at_init();
+	memregs_init();
         mouse_always_serial ? mouse_serial_init() : mouse_ps2_init();
         pci_init(PCI_CONFIG_TYPE_1, 0, 31);
         i430vx_init();
@@ -599,7 +628,8 @@ void at_p55va_init()
 void at_i440fx_init()
 {
         at_init();
-	mouse_ps2_init();
+	memregs_init();
+	mouse_always_serial ? mouse_serial_init() : mouse_ps2_init();
         pci_init(PCI_CONFIG_TYPE_1, 0, 31);
         i440fx_init();
         piix3_init(7);
@@ -612,7 +642,7 @@ void at_kn97_init()
 {
         at_init();
 	memregs_init();
-	mouse_ps2_init();
+	mouse_always_serial ? mouse_serial_init() : mouse_ps2_init();
         pci_init(PCI_CONFIG_TYPE_1, 0, 31);
         i440fx_init();
         piix3_init(7);

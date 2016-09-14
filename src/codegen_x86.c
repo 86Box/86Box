@@ -281,6 +281,7 @@ void codegen_block_init(uint32_t phys_addr)
         block->next = block->prev = NULL;
         block->next_2 = block->prev_2 = NULL;
         block->page_mask = 0;
+        block->flags = CODEBLOCK_STATIC_TOP;
         
         block->was_recompiled = 0;
 
@@ -359,6 +360,7 @@ void codegen_block_start_recompile(codeblock_t *block)
         
         _ds.checked = _es.checked = _fs.checked = _gs.checked = (cr0 & 1) ? 0 : 1;
 
+        block->TOP = cpu_state.TOP;
         block->was_recompiled = 1;
 }
 
@@ -484,6 +486,9 @@ void codegen_block_end_recompile(codeblock_t *block)
         codegen_block_generate_end_mask();
         add_to_block_list(block);
 //        pclog("End block %i\n", block_num);
+
+        if (!(block->flags & CODEBLOCK_HAS_FPU))
+                block->flags &= ~CODEBLOCK_STATIC_TOP;
 }
 
 void codegen_flush()
@@ -821,6 +826,7 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
                         over = 1;
                         pc_off = -1;
                         test_modrm = 0;
+                        block->flags |= CODEBLOCK_HAS_FPU;
                         break;
                         case 0xd9:
                         op_table = (op_32 & 0x200) ? x86_dynarec_opcodes_d9_a32 : x86_dynarec_opcodes_d9_a16;
@@ -829,6 +835,7 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
                         over = 1;
                         pc_off = -1;
                         test_modrm = 0;
+                        block->flags |= CODEBLOCK_HAS_FPU;
                         break;
                         case 0xda:
                         op_table = (op_32 & 0x200) ? x86_dynarec_opcodes_da_a32 : x86_dynarec_opcodes_da_a16;
@@ -837,6 +844,7 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
                         over = 1;
                         pc_off = -1;
                         test_modrm = 0;
+                        block->flags |= CODEBLOCK_HAS_FPU;
                         break;
                         case 0xdb:
                         op_table = (op_32 & 0x200) ? x86_dynarec_opcodes_db_a32 : x86_dynarec_opcodes_db_a16;
@@ -845,6 +853,7 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
                         over = 1;
                         pc_off = -1;
                         test_modrm = 0;
+                        block->flags |= CODEBLOCK_HAS_FPU;
                         break;
                         case 0xdc:
                         op_table = (op_32 & 0x200) ? x86_dynarec_opcodes_dc_a32 : x86_dynarec_opcodes_dc_a16;
@@ -854,6 +863,7 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
                         over = 1;
                         pc_off = -1;
                         test_modrm = 0;
+                        block->flags |= CODEBLOCK_HAS_FPU;
                         break;
                         case 0xdd:
                         op_table = (op_32 & 0x200) ? x86_dynarec_opcodes_dd_a32 : x86_dynarec_opcodes_dd_a16;
@@ -862,6 +872,7 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
                         over = 1;
                         pc_off = -1;
                         test_modrm = 0;
+                        block->flags |= CODEBLOCK_HAS_FPU;
                         break;
                         case 0xde:
                         op_table = (op_32 & 0x200) ? x86_dynarec_opcodes_de_a32 : x86_dynarec_opcodes_de_a16;
@@ -870,6 +881,7 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
                         over = 1;
                         pc_off = -1;
                         test_modrm = 0;
+                        block->flags |= CODEBLOCK_HAS_FPU;
                         break;
                         case 0xdf:
                         op_table = (op_32 & 0x200) ? x86_dynarec_opcodes_df_a32 : x86_dynarec_opcodes_df_a16;
@@ -878,6 +890,7 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
                         over = 1;
                         pc_off = -1;
                         test_modrm = 0;
+                        block->flags |= CODEBLOCK_HAS_FPU;
                         break;
                         
                         case 0xf0: /*LOCK*/

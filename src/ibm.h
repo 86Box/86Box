@@ -412,6 +412,9 @@ enum
 
 	ROM_440FX,	/*Unknown / 440FX / Award BIOS / SMC FDC37C665*/
 	ROM_KN97,	/*ASUS KN-97 / 440FX / Award BIOS / Winbond W8387F*/
+
+        ROM_MARL,	/*Intel Advanced/ML / 430HX / AMI BIOS / National Semiconductors PC87306*/
+        ROM_THOR,	/*Intel Advanced/ATX / 430FX / AMI BIOS / National Semiconductors PC87306*/
 	
         ROM_MAX
 };

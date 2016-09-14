@@ -1348,6 +1348,13 @@ void exec386_dynarec(int cycs)
                                                 valid_block = 0;
                                 }
                         }
+                        if (valid_block && block->was_recompiled && (block->flags & CODEBLOCK_STATIC_TOP) && block->TOP != cpu_state.TOP)
+                        {
+                                /*FPU top-of-stack does not match the value this block was compiled
+                                  with, re-compile using dynamic top-of-stack*/
+                                block->flags &= ~CODEBLOCK_STATIC_TOP;
+                                block->was_recompiled = 0;
+                        }
                 }
 
                 if (valid_block && block->was_recompiled)

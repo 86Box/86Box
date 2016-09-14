@@ -241,6 +241,8 @@ void loadnvr()
                 case ROM_P55VA:       f = romfopen("nvr/p55va.nvr",       "rb"); nvrmask = 127; break;
                 case ROM_440FX:       f = romfopen("nvr/440fx.nvr",       "rb"); nvrmask = 127; break;
                 case ROM_KN97:        f = romfopen("nvr/kn97.nvr",        "rb"); nvrmask = 127; break;
+                case ROM_MARL:        f = romfopen("nvr/marl.nvr",        "rb"); nvrmask = 127; break;
+                case ROM_THOR:        f = romfopen("nvr/thor.nvr",        "rb"); nvrmask = 127; break;
                 default: return;
         }
         if (!f)
@@ -315,6 +317,8 @@ void savenvr()
                 case ROM_P55VA:       f = romfopen("nvr/p55va.nvr",       "wb"); break;
                 case ROM_440FX:       f = romfopen("nvr/440fx.nvr",       "wb"); break;
                 case ROM_KN97:        f = romfopen("nvr/kn97.nvr",        "wb"); break;
+                case ROM_MARL:        f = romfopen("nvr/marl.nvr",        "wb"); break;
+                case ROM_THOR:        f = romfopen("nvr/thor.nvr",        "wb"); break;
                 default: return;
         }
         fwrite(nvrram,128,1,f);

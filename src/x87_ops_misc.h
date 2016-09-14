@@ -110,14 +110,14 @@ static int FSTOR()
                 cpu_state.eaaddr += 28;
                 break;
         }
-        x87_ldmmx(&cpu_state.MM[0], &cpu_state.MM_w4[0]); x87_ld_frstor(0); cpu_state.eaaddr += 10;
-        x87_ldmmx(&cpu_state.MM[1], &cpu_state.MM_w4[1]); x87_ld_frstor(1); cpu_state.eaaddr += 10;
-        x87_ldmmx(&cpu_state.MM[2], &cpu_state.MM_w4[2]); x87_ld_frstor(2); cpu_state.eaaddr += 10;
-        x87_ldmmx(&cpu_state.MM[3], &cpu_state.MM_w4[3]); x87_ld_frstor(3); cpu_state.eaaddr += 10;
-        x87_ldmmx(&cpu_state.MM[4], &cpu_state.MM_w4[4]); x87_ld_frstor(4); cpu_state.eaaddr += 10;
-        x87_ldmmx(&cpu_state.MM[5], &cpu_state.MM_w4[5]); x87_ld_frstor(5); cpu_state.eaaddr += 10;
-        x87_ldmmx(&cpu_state.MM[6], &cpu_state.MM_w4[6]); x87_ld_frstor(6); cpu_state.eaaddr += 10;
-        x87_ldmmx(&cpu_state.MM[7], &cpu_state.MM_w4[7]); x87_ld_frstor(7);
+        x87_ld_frstor(0); cpu_state.eaaddr += 10;
+        x87_ld_frstor(1); cpu_state.eaaddr += 10;
+        x87_ld_frstor(2); cpu_state.eaaddr += 10;
+        x87_ld_frstor(3); cpu_state.eaaddr += 10;
+        x87_ld_frstor(4); cpu_state.eaaddr += 10;
+        x87_ld_frstor(5); cpu_state.eaaddr += 10;
+        x87_ld_frstor(6); cpu_state.eaaddr += 10;
+        x87_ld_frstor(7);
         
         cpu_state.ismmx = 0;
         /*Horrible hack, but as PCem doesn't keep the FPU stack in 80-bit precision at all times

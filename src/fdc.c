@@ -70,6 +70,8 @@ typedef struct FDC
 
 	int gap, dtl;
 	int format_sectors;
+
+	int max_track;
 } FDC;
 
 static FDC fdc;
@@ -248,12 +250,24 @@ static void fdc_watchdog_poll(void *p)
 
 int bit_rate = 250;
 
+static void fdc_rate(int drive);
+
 void fdc_update_is_nsc(int is_nsc)
 {
+	int old_is_nsc = fdc.is_nsc;
 	fdc.is_nsc = is_nsc;
+	if (old_is_nsc != is_nsc)
+	{
+		fdc.densel_force = fdc.densel_force ^ 3;
+	}
+	fdc_rate(0);
+	fdc_rate(1);
 }
 
-static void fdc_rate(int drive);
+void fdc_update_max_track(int max_track)
+{
+	fdc.max_track = max_track;
+}
 
 void fdc_update_enh_mode(int enh_mode)
 {
@@ -289,6 +303,11 @@ void fdc_update_densel_polarity(int densel_polarity)
 	fdc.densel_polarity = densel_polarity;
 	fdc_rate(0);
 	fdc_rate(1);
+}
+
+uint8_t fdc_get_densel_polarity()
+{
+	return fdc.densel_polarity;
 }
 
 void fdc_update_densel_force(int densel_force)
@@ -774,9 +793,14 @@ bad_command:
 						fdc_notfound();
 					else
 					{
-	                                        fdc_seek(fdc.drive, -79);
+	                                        fdc_seek(fdc.drive, -fdc.max_track);
 					}
-                                        disctime = 790 * TIMER_USEC;
+                                        disctime = fdc.max_track * 10 * TIMER_USEC;
+					fdc.st0 &= 0x30;
+					if (!fdd_track0(fdc.drive))
+					{
+						fdc.st0 |= 0x30;
+					}
                                         break;
 
                                         case 0x0d: /*Format*/
@@ -815,6 +839,7 @@ bad_command:
 	                                        fdc_seek(fdc.drive, fdc.params[1] - fdc.track[fdc.drive]);
 					}
                                         disctime = 790 * TIMER_USEC;
+					fdc.st0 &= 0x30;
                                         break;
                                         
                                         case 10: /*Read sector ID*/
@@ -952,6 +977,37 @@ uint8_t fdc_read(uint16_t addr, void *priv)
         return temp;
 }
 
+void fdc_poll_readwrite_finish()
+{
+        fdc.inread = 0;
+        discint=-2;
+        fdc_int();
+        fdc.stat=0xD0;
+        fdc.res[4]=(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
+        fdc.res[5]=fdc.res[6]=0;
+        fdc.res[7]=fdc.rw_track;
+        fdc.res[8]=fdc.head;
+        fdc.res[9]=fdc.sector;
+        fdc.res[10]=fdc.params[4];
+        paramstogo=7;
+}
+
+void fdc_no_dma_end()
+{
+        disctime = 0;
+
+        fdc_int();
+        fdc.stat=0xD0;
+        fdc.res[4]=0x40|(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
+        fdc.res[5]=0x80; /*NDE (No DMA End)*/
+        fdc.res[6]=0;
+        fdc.res[7]=fdc.rw_track;
+        fdc.res[8]=fdc.head;
+        fdc.res[9]=fdc.sector;
+        fdc.res[10]=fdc.params[4];
+        paramstogo=7;
+}
+
 void fdc_callback()
 {
         int temp;
@@ -984,18 +1040,7 @@ void fdc_callback()
 //                pclog("Read a track callback, eot=%i\n", fdc.eot[fdc.drive]);
                 if (!fdc.eot[fdc.drive] || fdc.tc)
                 {
-//                        pclog("Complete\n");
-                        fdc.inread = 0;
-                        discint=-2;
-                        fdc_int();
-                        fdc.stat=0xD0;
-                        fdc.res[4]=(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
-                        fdc.res[5]=fdc.res[6]=0;
-                        fdc.res[7]=fdc.rw_track;
-                        fdc.res[8]=fdc.head;
-                        fdc.res[9]=fdc.sector;
-                        fdc.res[10]=fdc.params[4];
-                        paramstogo=7;
+			fdc_poll_readwrite_finish();
                         return;
                 }
                 else
@@ -1018,95 +1063,54 @@ void fdc_callback()
                 disctime = 0;
                 return;
                 case 5: /*Write data*/
-                readflash = 1;
-                fdc.sector++;
-                if (fdc.sector > fdc.params[5])
-                {
-                        fdc.sector = 1;
-                        if (fdc.command & 0x80)
-                        {
-                                fdc.head ^= 1;
-				fdd_set_head(fdc.drive, fdd_get_head(fdc.drive ^ fdd_swap) ^ 1);
-                                if (!fdc.head)
-                                {
-                                        fdc.rw_track++;
-//                                        fdc.track[fdc.drive]++;
-/*                                        if (fdc.track[fdc.drive] >= 79)
-                                        {
-                                                fdc.track[fdc.drive] = 79;
-                                                fdc.tc = 1;
-                                        }*/
-                                }
-                        }
-                        else
-                        {
-                                fdc.rw_track++;
-//                                fdc.track[fdc.drive]++;
-                                fdc.tc = 1;
-                        }
-                }
-                if (fdc.tc)
-                {
-                        discint=-2;
-                        fdc_int();
-                        fdc.stat=0xD0;
-                        fdc.res[4]=(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
-                        fdc.res[5]=fdc.res[6]=0;
-                        fdc.res[7]=fdc.rw_track;
-                        fdc.res[8]=fdc.head;
-                        fdc.res[9]=fdc.sector;
-                        fdc.res[10]=fdc.params[4];
-                        paramstogo=7;
-                        return;
-                }                        
-                disc_writesector(fdc.drive, fdc.sector, fdc.rw_track, fdc.head, fdc.rate, fdc.params[4]);
-//                ioc_fiq(IOC_FIQ_DISC_DATA);
-                return;
                 case 6: /*Read data*/
 //                rpclog("Read data %i\n", fdc.tc);
+		if (fdc.tc)
+		{
+			fdc_poll_readwrite_finish();
+			return;
+		}
                 readflash = 1;
-                fdc.sector++;
-                if (fdc.sector > fdc.params[5])
+                if (fdc.sector == fdc.params[5])
                 {
-                        fdc.sector = 1;
-                        if (fdc.command & 0x80)
-                        {
-                                fdc.head ^= 1;
-				fdd_set_head(fdc.drive, fdd_get_head(fdc.drive ^ fdd_swap) ^ 1);
-                                if (!fdc.head)
-                                {
-                                        fdc.rw_track++;
-//                                        fdc.track[fdc.drive]++;
-/*                                        if (fdc.track[fdc.drive] >= 79)
-                                        {
-                                                fdc.track[fdc.drive] = 79;
-                                                fdc.tc = 1;
-                                        }*/
-                                }
-                        }
-                        else
-                        {
-                                fdc.rw_track++;
-//                                fdc.track[fdc.drive]++;
-                                fdc.tc = 1;
-                        }
+			/* Reached end of track, MT bit is clear */
+			if (!(fdc.command & 0x80))
+			{
+				fdc.rw_track++;
+				fdc.sector = 1;
+				fdc_no_dma_end();
+				return;
+			}
+			/* Reached end of track, MT bit is set, head is 1 */
+			if ((fdc.head & 1))
+			{
+				fdc.rw_track++;
+				fdc.sector = 1;
+                                fdc.head &= 0xFE;
+				fdd_set_head(fdc.drive, 0);
+				fdc_no_dma_end();
+				return;
+			}
+                        if ((fdc.command & 0x80) && (fdd_get_head(fdc.drive ^ fdd_swap) == 0))
+			{
+	                        fdc.sector = 1;
+                                fdc.head |= 1;
+				fdd_set_head(fdc.drive, 1);
+			}
                 }
-                if (fdc.tc)
-                {
-                        fdc.inread = 0;
-                        discint=-2;
-                        fdc_int();
-                        fdc.stat=0xD0;
-                        fdc.res[4]=(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
-                        fdc.res[5]=fdc.res[6]=0;
-                        fdc.res[7]=fdc.rw_track;
-                        fdc.res[8]=fdc.head;
-                        fdc.res[9]=fdc.sector;
-                        fdc.res[10]=fdc.params[4];
-                        paramstogo=7;
-                        return;
-                }                        
-                disc_readsector(fdc.drive, fdc.sector, fdc.rw_track, fdc.head, fdc.rate, fdc.params[4]);
+		else if (fdc.sector < fdc.params[5])
+		{
+	                fdc.sector++;
+		}
+		switch (discint)
+		{
+			case 5:
+		                disc_writesector(fdc.drive, fdc.sector, fdc.rw_track, fdc.head, fdc.rate, fdc.params[4]);
+				break;
+			case 6:
+		                disc_readsector(fdc.drive, fdc.sector, fdc.rw_track, fdc.head, fdc.rate, fdc.params[4]);
+				break;
+		}
                 fdc.inread = 1;
                 return;
 
@@ -1275,7 +1279,7 @@ void fdc_callback()
 
 void fdc_overrun()
 {
-        disc_sector_stop(fdc.drive ^ fdd_swap);
+        disc_stop(fdc.drive);
         disctime = 0;
 
         fdc_int();
@@ -1528,6 +1532,7 @@ void fdc_add()
         io_sethandler(0x03f7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, NULL);
         fdc.pcjr = 0;
         fdc.ps1 = 0;
+	fdc.max_track = 79;
 }
 
 void fdc_add_for_superio()
@@ -1544,6 +1549,7 @@ void fdc_add_pcjr()
 	timer_add(fdc_watchdog_poll, &fdc.watchdog_timer, &fdc.watchdog_timer, &fdc);
         fdc.pcjr = 1;
         fdc.ps1 = 0;
+	fdc.max_track = 79;
 }
 
 void fdc_remove()

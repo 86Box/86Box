@@ -727,6 +727,36 @@ int loadbios()
                 fclose(f);
                 biosmask = 0x1ffff;
                 return 1;
+
+                case ROM_MARL:
+                f = romfopen("roms/marl/1008DB0_.BIO", "rb");
+                if (!f) break;
+                fseek(f, 0x80, SEEK_SET);
+                fread(rom + 0x10000, 0x10000, 1, f);                
+                fclose(f);
+                f = romfopen("roms/marl/1008DB0_.BI1", "rb");
+                if (!f) break;
+                fseek(f, 0x80, SEEK_SET);
+                fread(rom, 0xd000, 1, f);
+                fclose(f);
+                biosmask = 0x1ffff;
+                //is486=1;
+                return 1;
+
+                case ROM_THOR:
+                f = romfopen("roms/thor/1005CN0.BIO", "rb");
+                if (!f) break;
+                fseek(f, 0x80, SEEK_SET);
+                fread(rom + 0x10000, 0x10000, 1, f);                
+                fclose(f);
+                f = romfopen("roms/thor/1005CN0.BI1", "rb");
+                if (!f) break;
+                fseek(f, 0x80, SEEK_SET);
+                fread(rom, 0x10000, 1, f);
+                fclose(f);
+                biosmask = 0x1ffff;
+                //is486=1;
+                return 1;
         }
         printf("Failed to load ROM!\n");
         if (f) fclose(f);

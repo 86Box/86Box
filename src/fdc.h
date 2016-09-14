@@ -19,12 +19,14 @@ int fdc_get_bitcell_period();
 
 /* A few functions to communicate between Super I/O chips and the FDC. */
 void fdc_update_is_nsc(int is_nsc);
+void fdc_update_max_track(int max_track);
 void fdc_update_enh_mode(int enh_mode);
 int fdc_get_rwc(int drive);
 void fdc_update_rwc(int drive, int rwc);
 int fdc_get_boot_drive();
 void fdc_update_boot_drive(int boot_drive);
 void fdc_update_densel_polarity(int densel_polarity);
+uint8_t fdc_get_densel_polarity();
 void fdc_update_densel_force(int densel_force);
 void fdc_update_drvrate(int drive, int drvrate);
 void fdc_update_drv2en(int drv2en);

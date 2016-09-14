@@ -6,6 +6,7 @@
 #include "device.h"
 #include "mem.h"
 
+#define FLASH_ALLOW_16	4
 #define FLASH_IS_BXB	2
 #define FLASH_INVERT	1
 
@@ -23,7 +24,8 @@ enum
         CMD_ERASE_SETUP = 0x20,
         CMD_ERASE_CONFIRM = 0xd0,
         CMD_ERASE_SUSPEND = 0xb0,
-        CMD_PROGRAM_SETUP = 0x40
+        CMD_PROGRAM_SETUP = 0x40,
+        CMD_PROGRAM_SETUP2 = 0x10
 };
 
 typedef struct flash_t
@@ -32,6 +34,7 @@ typedef struct flash_t
 	uint32_t flash_id;
 	uint8_t type;			/* 0 = BXT, 1 = BXB */
 	uint8_t invert_high_pin;	/* 0 = no, 1 = yes */
+	uint8_t allow_word_write;	/* 0 = no, 1 = yes */
 	mem_mapping_t mapping[8], mapping_h[8];
 	uint32_t block_start[4], block_end[4], block_len[4];
 	uint8_t array[131072];
@@ -68,10 +71,35 @@ static uint8_t flash_read(uint32_t addr, void *p)
 
 static uint16_t flash_readw(uint32_t addr, void *p)
 {
+	// pclog("flash_readw(%08X)\n", addr);
         flash_t *flash = (flash_t *)p;
+	if (!flash->allow_word_write)
+	{
+		addr &= 0x1ffff;
+		if (flash->invert_high_pin)  addr ^= 0x10000;
+		return *(uint16_t *)&(flash->array[addr]);
+	}
+	if (flash->invert_high_pin)
+	{
+		addr ^= 0x10000;
+		if (addr & 0xfff00000)  *(uint16_t *)&(flash->array[addr & 0x1ffff]);
+	}
 	addr &= 0x1ffff;
-	if (flash->invert_high_pin)  addr ^= 0x10000;
-	return *(uint16_t *)&(flash->array[addr]);
+        switch (flash->command)
+        {
+		case CMD_READ_ARRAY:
+                default:
+                return *(uint16_t *)&(flash->array[addr]);
+
+                case CMD_IID:
+		// pclog("Flash Read ID 16: %08X\n", addr);
+                if (addr & 1)
+                        return 0x2274;
+                return 0x89;
+
+                case CMD_READ_STATUS:
+                return flash->status;                
+        }
 }
 
 static uint32_t flash_readl(uint32_t addr, void *p)
@@ -100,7 +128,7 @@ static void flash_write(uint32_t addr, uint8_t val, void *p)
                 case CMD_ERASE_SETUP:
                 if (val == CMD_ERASE_CONFIRM)
                 {
-                        pclog("flash_write: erase %05x\n", addr);
+                        // pclog("flash_write: erase %05x\n", addr);
 
 			for (i = 0; i < 3; i++)
 			{
@@ -114,9 +142,61 @@ static void flash_write(uint32_t addr, uint8_t val, void *p)
                 break;
                 
                 case CMD_PROGRAM_SETUP:
-                pclog("flash_write: program %05x %02x\n", addr, val);
+                case CMD_PROGRAM_SETUP2:
+                // pclog("flash_write: program %05x %02x\n", addr, val);
                 if ((addr & 0x1e000) != (flash->block_start[3] & 0x1e000))
        	                flash->array[addr] = val;
+                flash->command = CMD_READ_STATUS;
+                flash->status = 0x80;
+                break;
+                
+                default:
+                flash->command = val;
+                switch (val)
+                {
+                        case CMD_CLEAR_STATUS:
+                        flash->status = 0;
+                        break;                                
+                }
+        }
+}
+
+static void flash_writew(uint32_t addr, uint16_t val, void *p)
+{
+        flash_t *flash = (flash_t *)p;
+	int i;
+        // pclog("flash_writew : addr=%08x val=%02x command=%02x %04x:%08x\n", addr, val, flash->command, CS, cpu_state.pc);        
+
+	if (flash->invert_high_pin)
+	{
+		addr ^= 0x10000;
+		if (addr & 0xfff00000)  return;
+	}
+	addr &= 0x1ffff;
+
+        switch (flash->command)
+        {
+                case CMD_ERASE_SETUP:
+                if (val == CMD_ERASE_CONFIRM)
+                {
+                        // pclog("flash_writew: erase %05x\n", addr);
+
+			for (i = 0; i < 3; i++)
+			{
+                        	if ((addr >= flash->block_start[i]) && (addr <= flash->block_end[i]))
+                                	memset(&(flash->array[flash->block_start[i]]), 0xff, flash->block_len[i]);
+			}
+
+                        flash->status = 0x80;
+                }
+                flash->command = CMD_READ_STATUS;
+                break;
+                
+                case CMD_PROGRAM_SETUP:
+                case CMD_PROGRAM_SETUP2:
+                // pclog("flash_writew: program %05x %02x\n", addr, val);
+                if ((addr & 0x1e000) != (flash->block_start[3] & 0x1e000))
+       	                *(uint16_t *)&(flash->array[addr]) = val;
                 flash->command = CMD_READ_STATUS;
                 flash->status = 0x80;
                 break;
@@ -138,8 +218,16 @@ void intel_flash_add_mappings(flash_t *flash)
 
 	for (i = 0; i <= 7; i++)
 	{
-		mem_mapping_add(&(flash->mapping[i]), 0xe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, mem_write_nullw, mem_write_nulll, flash->array + ((i << 14) & 0x1ffff),                       MEM_MAPPING_EXTERNAL, (void *)flash);
-		mem_mapping_add(&(flash->mapping_h[i]), 0xfffe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, mem_write_nullw, mem_write_nulll, flash->array + ((i << 14) & 0x1ffff),                       0, (void *)flash);
+		if (flash->allow_word_write)
+		{
+			mem_mapping_add(&(flash->mapping[i]), 0xe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, flash_writew, mem_write_nulll, flash->array + ((i << 14) & 0x1ffff),                       MEM_MAPPING_EXTERNAL, (void *)flash);
+			mem_mapping_add(&(flash->mapping_h[i]), 0xfffe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, flash_writew, mem_write_nulll, flash->array + ((i << 14) & 0x1ffff),                       0, (void *)flash);
+		}
+		else
+		{
+			mem_mapping_add(&(flash->mapping[i]), 0xe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, mem_write_nullw, mem_write_nulll, flash->array + ((i << 14) & 0x1ffff),                       MEM_MAPPING_EXTERNAL, (void *)flash);
+			mem_mapping_add(&(flash->mapping_h[i]), 0xfffe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, mem_write_nullw, mem_write_nulll, flash->array + ((i << 14) & 0x1ffff),                       0, (void *)flash);
+		}
 	}
 }
 
@@ -150,8 +238,16 @@ void intel_flash_add_mappings_inverted(flash_t *flash)
 
 	for (i = 0; i <= 7; i++)
 	{
-		mem_mapping_add(&(flash->mapping[i]), 0xe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, mem_write_nullw, mem_write_nulll, flash->array + (((i << 14) ^ 0x10000) & 0x1ffff),                       MEM_MAPPING_EXTERNAL, (void *)flash);
-		mem_mapping_add(&(flash->mapping_h[i]), 0xfffe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, mem_write_nullw, mem_write_nulll, flash->array + (((i << 14) ^ 0x10000) & 0x1ffff),                       0, (void *)flash);
+		if (flash->allow_word_write)
+		{
+			mem_mapping_add(&(flash->mapping[i]), 0xe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, flash_writew, mem_write_nulll, flash->array + (((i << 14) ^ 0x10000) & 0x1ffff),                       MEM_MAPPING_EXTERNAL, (void *)flash);
+			mem_mapping_add(&(flash->mapping_h[i]), 0xfffe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, flash_writew, mem_write_nulll, flash->array + (((i << 14) ^ 0x10000) & 0x1ffff),                       0, (void *)flash);
+		}
+		else
+		{
+			mem_mapping_add(&(flash->mapping[i]), 0xe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, mem_write_nullw, mem_write_nulll, flash->array + (((i << 14) ^ 0x10000) & 0x1ffff),                       MEM_MAPPING_EXTERNAL, (void *)flash);
+			mem_mapping_add(&(flash->mapping_h[i]), 0xfffe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, mem_write_nullw, mem_write_nulll, flash->array + (((i << 14) ^ 0x10000) & 0x1ffff),                       0, (void *)flash);
+		}
 	}
 }
 
@@ -215,12 +311,19 @@ void *intel_flash_init(uint8_t type)
 		case ROM_KN97:
 			strcpy(flash_path, "roms/kn97/");
 			break;
+		case ROM_MARL:
+			strcpy(flash_path, "roms/marl/");
+			break;
+		case ROM_THOR:
+			strcpy(flash_path, "roms/thor/");
+			break;
 	}
 	// pclog("Flash init: Path is: %s\n", flash_path);
 
 	flash->type = (type & 2) ? 1 : 0;
 	flash->flash_id = (!flash->type) ? 0x94 : 0x95;
 	flash->invert_high_pin = (type & 1);
+	flash->allow_word_write = (type & 4) ? 1 : 0;
 
 	/* The block lengths are the same both flash types. */
 	flash->block_len[0] = 0x1c000;
@@ -321,6 +424,12 @@ void *intel_flash_bxt_ami_init()
 	return intel_flash_init(FLASH_INVERT);
 }
 
+/* For later AMI BIOS'es - Intel 28F100BXT with high address pin inverted and 16-bit write capability. */
+void *intel_flash_100bxt_ami_init()
+{
+	return intel_flash_init(FLASH_INVERT | FLASH_ALLOW_16);
+}
+
 /* For Award BIOS'es - Intel 28F001BXT with high address pin not inverted. */
 void *intel_flash_bxt_init()
 {
@@ -374,6 +483,19 @@ device_t intel_flash_bxt_ami_device =
         "Intel 28F001BXT Flash BIOS",
         0,
         intel_flash_bxt_ami_init,
+        intel_flash_close,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+};
+
+device_t intel_flash_100bxt_ami_device =
+{
+        "Intel 28F100BXT Flash BIOS",
+        0,
+        intel_flash_100bxt_ami_init,
         intel_flash_close,
         NULL,
         NULL,

@@ -177,17 +177,14 @@ static inline void x87_st_fsave(int reg)
 
 static inline void x87_ld_frstor(int reg)
 {
-        uint16_t temp;
-        
         reg = (cpu_state.TOP + reg) & 7;
         
-        temp = readmemw(easeg, cpu_state.eaaddr + 8);
+        cpu_state.MM[reg].q = readmemq(easeg, cpu_state.eaaddr);
+        cpu_state.MM_w4[reg] = readmemw(easeg, cpu_state.eaaddr + 8);
 
-        if (temp == 0x5555 && cpu_state.tag[reg] == 2)
+        if (cpu_state.MM_w4[reg] == 0x5555 && cpu_state.tag[reg] == 2)
         {
                 cpu_state.tag[reg] = TAG_UINT64;
-                cpu_state.MM[reg].q = readmeml(easeg, cpu_state.eaaddr);
-                cpu_state.MM[reg].q |= ((uint64_t)readmeml(easeg, cpu_state.eaaddr + 4) << 32);
                 cpu_state.ST[reg] = (double)cpu_state.MM[reg].q;
         }
         else
@@ -290,7 +287,6 @@ typedef union
 
 #define FP_ENTER() do                   \
         {                               \
-                flags_rebuild();        \
                 if (cr0 & 0xc)          \
                 {                       \
                         x86_int(7);     \

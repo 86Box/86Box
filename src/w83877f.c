@@ -511,6 +511,7 @@ void w83877f_init()
 	fdc_update_drvrate(0, 0);
 	fdc_update_drvrate(1, 0);
 	fdc_update_enh_mode(0);
+	fdc_update_max_track(85);
 	swwp = 0;
 	disable_write = 0;
 	fdc_update_drv2en(1);

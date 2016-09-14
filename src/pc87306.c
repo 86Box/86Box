@@ -178,7 +178,7 @@ process_value:
 			if (val & 2)
 			{
 				serial1_handler();
-				// mouse_serial_init();
+				if (mouse_always_serial)  mouse_serial_init();
 			}
 			if (val & 4)  serial2_handler();
 			
@@ -218,7 +218,7 @@ process_value:
 			if (pc87306_regs[0] & 2)
 			{
 				serial1_handler();
-	                        // mouse_serial_init();
+	                        if (mouse_always_serial)  mouse_serial_init();
 			}
 			if (pc87306_regs[0] & 4)  serial2_handler();
 			break;
@@ -237,7 +237,7 @@ process_value:
 				if (pc87306_regs[0] & 2)
 				{
 					serial1_handler();
-		                        // mouse_serial_init();
+		                        if (mouse_always_serial)  mouse_serial_init();
 				}
 				if (pc87306_regs[0] & 4)  serial2_handler();
 			}
@@ -293,6 +293,7 @@ void pc87306_init()
 	*/
 	fdc_update_is_nsc(1);
 	fdc_update_densel_polarity(1);
+	fdc_update_max_track(85);
 	fdd_swap = 0;
         io_sethandler(0x02e, 0x0002, pc87306_read, NULL, NULL, pc87306_write, NULL, NULL,  NULL);
 }
