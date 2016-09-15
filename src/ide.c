@@ -552,7 +552,10 @@ static void ide_atapi_identify(IDE *ide)
 #else
 	ide_padstr((char *) (ide->buffer + 27), "86BoxCD", 40); /* Model */
 #endif
-	ide->buffer[49] = 0x200; /* LBA supported */
+	ide->buffer[49] = 0x300; /* LBA and DMA supported */
+	ide->buffer[62] = ide->dma_identify_data[0];
+	ide->buffer[63] = ide->dma_identify_data[1];
+	ide->buffer[88] = ide->dma_identify_data[2];
 }
 
 /**
@@ -832,13 +835,13 @@ int ide_set_features(IDE *ide)
 					ide->dma_identify_data[2] = 0x3f;
 					break;
 				case 2:
-					if (ide->type == IDE_CDROM)  return 0;
+					// if (ide->type == IDE_CDROM)  return 0;
 					ide->dma_identify_data[0] = 7 | (1 << (val + 8));
 					ide->dma_identify_data[1] = 7;
 					ide->dma_identify_data[2] = 0x3f;
 					break;
 				case 4:
-					if (ide->type == IDE_CDROM)  return 0;
+					// if (ide->type == IDE_CDROM)  return 0;
 					ide->dma_identify_data[0] = 7;
 					ide->dma_identify_data[1] = 7 | (1 << (val + 8));
 					ide->dma_identify_data[2] = 0x3f;
@@ -920,15 +923,10 @@ void resetide(void)
 			
 		ide_set_signature(&ide_drives[d]);
 
-		if (ide_drives[d].type == IDE_HDD)
+		if (ide_drives[d].type != IDE_NONE)
 		{
 			ide_drives[d].dma_identify_data[0] = 7;
 			ide_drives[d].dma_identify_data[1] = 7 | (1 << 15);
-			ide_drives[d].dma_identify_data[2] = 0x3f;
-		}
-		else if (ide_drives[d].type == IDE_CDROM)
-		{
-			ide_drives[d].dma_identify_data[0] = ide_drives[d].dma_identify_data[1] = 7;
 			ide_drives[d].dma_identify_data[2] = 0x3f;
 		}
 	}
@@ -949,11 +947,9 @@ void resetide(void)
 			
 			ide_set_signature(&ide_drives[d]);
 
-			if (ide_drives[d].type == IDE_CDROM)
-			{
-				ide_drives[d].dma_identify_data[0] = ide_drives[d].dma_identify_data[1] = 7;
-				ide_drives[d].dma_identify_data[2] = 0x3f;
-			}
+			ide_drives[d].dma_identify_data[0] = 7;
+			ide_drives[d].dma_identify_data[1] = 7 | (1 << 15);
+			ide_drives[d].dma_identify_data[2] = 0x3f;
 		}
 		/* REMOVE WHEN SUBMITTING TO MAINLINE - END */
 #endif
@@ -1632,6 +1628,7 @@ void callbackide(int ide_board)
         case WIN_READ_DMA:
                 if (IDE_DRIVE_IS_CDROM(ide)) {
                         atapi->readsector(ide->buffer, ide_get_sector(ide));
+                        ide->pos=0;
                 }
                 else
                 {
