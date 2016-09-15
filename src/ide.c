@@ -1631,12 +1631,15 @@ void callbackide(int ide_board)
 
         case WIN_READ_DMA:
                 if (IDE_DRIVE_IS_CDROM(ide)) {
-                        goto abort_cmd;
+                        atapi->readsector(ide->buffer, ide_get_sector(ide));
                 }
-                addr = ide_get_sector(ide) * 512;
-                fseeko64(ide->hdfile, addr, SEEK_SET);
-                fread(ide->buffer, 512, 1, ide->hdfile);
-                ide->pos=0;
+                else
+                {
+                        addr = ide_get_sector(ide) * 512;
+                        fseeko64(ide->hdfile, addr, SEEK_SET);
+                        fread(ide->buffer, 512, 1, ide->hdfile);
+                        ide->pos=0;
+                }
                 
                 if (ide_bus_master_read_sector)
                 {
@@ -1731,9 +1734,15 @@ void callbackide(int ide_board)
                         else
                         {
                                 /*DMA successful*/
-                                addr = ide_get_sector(ide) * 512;
-                                fseeko64(ide->hdfile, addr, SEEK_SET);
-                                fwrite(ide->buffer, 512, 1, ide->hdfile);
+                                /*if(IDE_DRIVE_IS_CDROM(ide))
+                                {
+                                }
+                                else
+                                {*/
+                                        addr = ide_get_sector(ide) * 512;
+                                        fseeko64(ide->hdfile, addr, SEEK_SET);
+                                        fwrite(ide->buffer, 512, 1, ide->hdfile);
+                                //}
                                 
                                 ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 
