@@ -1000,6 +1000,7 @@ void d86f_poll_reset(int drive, int side)
 {
 	d86f[drive].state = STATE_IDLE;
 	d86f[drive].index_count = 0;
+	d86f[drive].datac = 0;
 	d86f_poll_advancebyte(drive, side);
 }
 
@@ -1025,7 +1026,6 @@ int d86f_poll_check_notfound(int drive)
 void d86f_poll_finish(int drive, int side)
 {
 	d86f_poll_reset(drive, side);
-	d86f_poll_advancebyte(drive, side);
 	d86f[drive].last_sector.dword = 0xFFFFFFFF;
 }
 
@@ -1114,23 +1114,19 @@ void d86f_poll_readwrite(int drive, int side)
 	else if (d86f[drive].state == STATE_WRITE_SECTOR_GAP3)
 	{
 		max_len = fdc_get_gap();
-		if (d86f[drive].datac == (fdc_get_gap() - 1))
+		if (!disable_write && !d86f[drive].datac)
 		{
+			d86f_poll_write(drive, side, fdc_is_mfm() ? 0x4E : 0xFF, BYTE_GAP3);
+		}
+		if (d86f[drive].datac == (max_len - 1))
+		{
+			d86f_poll_finish(drive, side);
     		        if (!disable_write)
 			{
-				d86f_poll_write(drive, side, fdc_is_mfm() ? 0x4E : 0xFF, BYTE_GAP3);
 				d86f_writeback(drive);
 			}
-			d86f_poll_finish(drive, side);
        	        	fdc_sector_finishread(drive);
 			return;
-		}
-		else
-		{
-			if (!disable_write)
-			{
-				d86f_poll_write(drive, side, fdc_is_mfm() ? 0x4E : 0xFF, BYTE_GAP3);
-			}
 		}
 	}
 
@@ -1182,9 +1178,8 @@ void d86f_poll_find_nf(int drive, int side)
 
 		case BYTE_ID:
 			d86f[drive].id_pos = d86f[drive].track_pos - d86f[drive].section_pos;
-			data = d86f[drive].track_data_byte;
-			d86f[drive].rw_sector_id.byte_array[d86f[drive].id_pos] = data;
-			d86f_calccrc(drive, data);
+			d86f[drive].rw_sector_id.byte_array[d86f[drive].id_pos] = d86f[drive].track_data_byte;
+			d86f_calccrc(drive, d86f[drive].track_data_byte);
 			break;
 		case BYTE_ID_CRC:
 			d86f[drive].id_pos = d86f[drive].track_pos - d86f[drive].section_pos;
