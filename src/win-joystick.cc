@@ -91,6 +91,8 @@ void joystick_init()
 {
         int c;
 
+	if (joystick_type == 7)  return;
+
         atexit(joystick_close);
         
         joysticks_present = 0;

@@ -463,7 +463,7 @@ void runpc()
                 keyboard_process();
 //                checkkeys();
                 pollmouse();
-                joystick_poll();
+                if (joystick_type != 7)  joystick_poll();
         endblit();
 
                 framecountx++;

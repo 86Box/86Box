@@ -425,7 +425,7 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         speedchanged();
 
                         joystick_type = temp_joystick_type;
-                        gameport_update_joystick_type();
+                        if (joystick_type != 7)  gameport_update_joystick_type();
 
                         case IDCANCEL:
                         EndDialog(hdlg, 0);
