@@ -17,6 +17,20 @@
 
 int joystick_type;
 
+joystick_if_t joystick_none =
+{
+        .name      = "No joystick",
+        .init      = NULL,
+        .close     = NULL,
+        .read      = NULL,
+        .write     = NULL,
+        .read_axis = NULL,
+        .a0_over   = NULL,
+        .max_joysticks = 0,
+        .axis_count = 0,
+        .button_count = 0
+};
+
 static joystick_if_t *joystick_list[] =
 {
         &joystick_standard,
@@ -26,6 +40,7 @@ static joystick_if_t *joystick_list[] =
         &joystick_ch_flightstick_pro,
         &joystick_sw_pad,
         &joystick_tm_fcs,
+        &joystick_none,
         NULL
 };
 
@@ -189,7 +204,15 @@ void gameport_update_joystick_type()
 
 void *gameport_init()
 {
-        gameport_t *gameport = gameport_init_common();
+        gameport_t *gameport;
+
+	if (joystick_type == 7)
+	{
+		gameport = NULL;
+		return gameport;
+	}
+
+	gamport = gameport_init_common();
 
         io_sethandler(0x0200, 0x0008, gameport_read, NULL, NULL, gameport_write, NULL, NULL, gameport);
 
@@ -198,7 +221,15 @@ void *gameport_init()
 
 void *gameport_201_init()
 {
-        gameport_t *gameport = gameport_init_common();
+        gameport_t *gameport;
+
+	if (joystick_type == 7)
+	{
+		gameport = NULL;
+		return gameport;
+	}
+
+	gameport = gameport_init_common();
 
         io_sethandler(0x0201, 0x0001, gameport_read, NULL, NULL, gameport_write, NULL, NULL, gameport);
 
@@ -208,6 +239,11 @@ void *gameport_201_init()
 void gameport_close(void *p)
 {
         gameport_t *gameport = (gameport_t *)p;
+
+	if (!p)
+	{
+		return;
+	}
         
         gameport->joystick->close(gameport->joystick_dat);
 
