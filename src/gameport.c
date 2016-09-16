@@ -212,7 +212,7 @@ void *gameport_init()
 		return gameport;
 	}
 
-	gamport = gameport_init_common();
+	gameport = gameport_init_common();
 
         io_sethandler(0x0200, 0x0008, gameport_read, NULL, NULL, gameport_write, NULL, NULL, gameport);
 
