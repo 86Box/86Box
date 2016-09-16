@@ -221,7 +221,7 @@ void xt_init()
         mouse_serial_init();
         xtide_init();
 	nmi_init();
-	device_add(&gameport_device);
+	if (joystick_type != 7)  device_add(&gameport_device);
 }
 
 void pcjr_init()
@@ -252,7 +252,7 @@ void tandy1k_init()
 	nmi_init();
 	if (romset != ROM_TANDY)
                 device_add(&tandy_eeprom_device);
-	device_add(&gameport_device);
+	if (joystick_type != 7)  device_add(&gameport_device);
 }
 void tandy1ksl2_init()
 {
@@ -266,7 +266,7 @@ void tandy1ksl2_init()
 	nmi_init();
         device_add(&tandy_rom_device);
         device_add(&tandy_eeprom_device);
-	device_add(&gameport_device);
+	if (joystick_type != 7)  device_add(&gameport_device);
 }
 
 void ams_init()
@@ -280,7 +280,7 @@ void ams_init()
         xtide_init();
 	nmi_init();
 	fdc_set_dskchg_activelow();
-	device_add(&gameport_device);
+	if (joystick_type != 7)  device_add(&gameport_device);
 }
 
 void europc_init()
@@ -292,7 +292,7 @@ void europc_init()
         mouse_serial_init();
         xtide_init();
 	nmi_init();
-	device_add(&gameport_device);
+	if (joystick_type != 7)  device_add(&gameport_device);
 }
 
 void olim24_init()
@@ -304,7 +304,7 @@ void olim24_init()
         olivetti_m24_init();
         xtide_init();
 	nmi_init();
-	device_add(&gameport_device);
+	if (joystick_type != 7)  device_add(&gameport_device);
 }
 
 void at_init()
@@ -321,7 +321,7 @@ void at_init()
            mouse_serial_init();
         nvr_init();
         pic2_init();
-	device_add(&gameport_device);
+	if (joystick_type != 7)  device_add(&gameport_device);
 }
 
 void deskpro386_init()
@@ -346,7 +346,7 @@ void ps1_common_init()
         fdc_set_dskchg_activelow();
         device_add(&ps1_audio_device);
         /*PS/1 audio uses ports 200h and 202-207h, so only initialise gameport on 201h*/
-        device_add(&gameport_201_device);
+        if (joystick_type != 7)  device_add(&gameport_201_device);
 }
  
 void ps1_m2011_init()
