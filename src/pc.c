@@ -245,8 +245,6 @@ void initpc(int argc, char *argv[])
         if (config_file)
                 saveconfig();
 
-        codegen_init();
-        
         cpuspeed2=(AT)?2:1;
 //        cpuspeed2=cpuspeed;
         atfullspeed=0;
@@ -255,6 +253,8 @@ void initpc(int argc, char *argv[])
         mem_init();
         loadbios();
         mem_add_bios();
+
+        codegen_init();
 
         device_init();        
                        

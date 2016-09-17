@@ -37,19 +37,17 @@ static uint16_t xdf_track0_layout[3][92] = {	{ 0x8100, 0x8200, 0x8300, 0x8400, 0
 						  0x8B01, 0x8C01, 0x8D01, 0x8E01, 0x8F01,      0,      0,      0,
 						       0,      0, 0x9001, 0x9101, 0x9201, 0x9301 },	/* 3.5" 2HD */
 						{ 0x8100, 0x8200, 0x8300, 0x8400, 0x8500, 0x8600, 0x8700, 0x8800,
-						  0x8900, 0x8A00, 0x8B00, 0x8C00, 0x0100, 0x0200, 0x0300, 0x0400,
-						  0x0500, 0x0600, 0x0700, 0x0800, 0x9500, 0x9600, 0x9700,      0,
-						       0,      0,      0,      0,      0,      0,      0,      0,
-                                                       0,      0, 0x8D00, 0x8E00, 0x8F00, 0x9000,      0,      0,
+						  0x8900, 0x8A00, 0x8B00, 0x8C00, 0x8D00, 0x8E00, 0x8F00, 0x9000,
+						  0x9100, 0x9200, 0x9300, 0x9400, 0x9500, 0x9600, 0x9700, 0x0100,
+						  0x0200, 0x0300, 0x0400, 0x0500, 0x0600, 0x0700, 0x0800,      0,
+                                                       0,      0,      0,      0,      0,      0,      0,      0,
 						       0,      0,      0,      0,      0, 0x9800, 0x9900, 0x9A00,
 						  0x9B00, 0x9C00, 0x9D00, 0x9E00, 0x8101, 0x8201, 0x8301, 0x8401,
-						  0x8501, 0x8601, 0x8701, 0x9100, 0x9200, 0x9300, 0x9400, 0x8801,
+						  0x8501, 0x8601, 0x8701, 0x8801,      0,      0,      0,      0,
 						  0x8901, 0x8A01, 0x8B01, 0x8C01, 0x8D01, 0x8E01, 0x8F01, 0x9001,
 						  0x9101, 0x9201, 0x9301, 0x9401, 0x9501, 0x9601, 0x9701, 0x9801,
 						  0x9901, 0x9A01, 0x9B01, 0x9C01, 0x9D01, 0x9E01, 0x9F01, 0xA001,
-						  0xA101, 0xA201, 0xA301, 0xA401 },	/* 3.5" 2ED - sectors 0x91 to 0x94 of side 0 are not written to the IMG file but
-											   we read them in from the null-filled areas in order to have them as XDFCOPY
-											   still expects their existence even if it does nothing with them. */
+						  0xA101, 0xA201, 0xA301, 0xA401 },
 						};
 
 /* First dimension is possible sector sizes (0 = 128, 7 = 16384), second is possible bit rates (250/360, 250, 300, 500/360, 500, 1000). */
@@ -434,6 +432,7 @@ void img_load(int drive, char *fn)
 					{
 						case 19:	/* High density XDF @ 360 rpm */
 							img[drive].xdf_type = 1;
+							raw_tsize[drive] = 10521;		/* Rotate at 356.4 RPM in order to fit the data. */
 							break;
 						case 23:	/* High density XDF @ 300 rpm */
 							img[drive].xdf_type = 2;
@@ -446,6 +445,7 @@ void img_load(int drive, char *fn)
 							fclose(img[drive].f);
 							return;
 					}
+					pclog("XDF type: %i\n", img[drive].xdf_type);
 				}
 				else			/* Amount of sectors per track that fits into a track, therefore not XDF */
 				{
@@ -548,7 +548,7 @@ void img_seek(int drive, int track)
 
 	uint8_t sectors_fat, effective_sectors, sector_gap;		/* Needed for XDF */
 
-	int sector, current_pos, sh, sr, spos, sside;
+	int sector, current_pos, sh, sr, sside, total;
         
         if (!img[drive].f)
                 return;
@@ -582,29 +582,24 @@ void img_seek(int drive, int track)
 		sectors_fat = xdf_track0[current_xdft][0];
 		effective_sectors = xdf_track0[current_xdft][1];
 		sector_gap = xdf_track0[current_xdft][2];
+		total = img[drive].sectors;
 
 		if (!track)
 		{
 			/* Track 0, register sectors according to track 0 layout. */
 			current_pos = 0;
-			for (sector = 0; sector < (img[drive].sectors * 2); sector++)
+			for (sector = 0; sector < (total << 1); sector++)
 			{
+				current_pos = (sector % total) << 9;
+				sside = (sector >= total) ? 1 : 0;
 				if (xdf_track0_layout[current_xdft][sector])
 				{
 					sh = xdf_track0_layout[current_xdft][sector] & 0xFF;
 					sr = xdf_track0_layout[current_xdft][sector] >> 8;
-					spos = current_pos;
-					sside = 0;
-					if (spos >= (img[drive].sectors * img[drive].sector_size))
-					{
-						spos -= (img[drive].sectors * img[drive].sector_size);
-						sside = 1;
-					}
 		                        disc_sector_add(drive, sh, track, sh, sr, 2,
        			                                img[drive].bitcell_period_300rpm, 
-               			                        &img[drive].track_data[sside][spos]);
+               			                        &img[drive].track_data[sside][current_pos]);
 				}
-				current_pos += 512;
 			}
 		}
 		else

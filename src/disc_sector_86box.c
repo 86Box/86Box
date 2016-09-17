@@ -263,6 +263,7 @@ void disc_sector_prepare_track_layout(int drive, int side, int track)
 		memset(track_layout[drive][side] + i, BYTE_GAP3, disc_sector_get_gap3_size(drive, side, track));
 		i += disc_sector_get_gap3_size(drive, side, track);
 	}
+	// pclog("Track length: %i bytes\n", i);
 
 	if (side == 0)  disc_sector_state[drive] = STATE_IDLE;
 }
@@ -378,6 +379,7 @@ void disc_sector_poll()
 	int cur_id_pos = 0;
 	int cur_data_pos = 0;
 	int cur_gap3_pos = 0;
+	int max_gap = 0;
 
 	uint8_t track_byte = 0;
 	uint8_t track_index = 0;
@@ -515,7 +517,12 @@ void disc_sector_poll()
 			break;
 		case BYTE_GAP3:
 			cur_gap3_pos = cur_track_pos[drive] - section_pos[drive];
-			if (cur_gap3_pos == (fdc_get_gap() - 1))
+			max_gap = fdc_get_gap();
+			if (max_gap > disc_sector_get_gap3_size(drive, side, disc_sector_track[drive]))
+			{
+				max_gap = disc_sector_get_gap3_size(drive, side, disc_sector_track[drive]);
+			}
+			if (cur_gap3_pos == (max_gap - 1))
 			{
 				if (disc_sector_read_state(drive) && (last_sector[drive] != NULL))
 				{

@@ -31,6 +31,7 @@ void fdc_update_densel_force(int densel_force);
 void fdc_update_drvrate(int drive, int drvrate);
 void fdc_update_drv2en(int drv2en);
 
+int fdc_get_perp();
 int fdc_get_format_n();
 int fdc_is_mfm();
 double fdc_get_hut();

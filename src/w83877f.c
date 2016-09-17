@@ -347,6 +347,11 @@ void w83877f_write(uint16_t port, uint8_t val, void *priv)
 process_value:
 	switch(w83877f_curreg)
 	{
+		case 1:
+			if (valxor & 0x80)
+			{
+				fdd_setswap((w83877f_regs[1] & 0x80) ? 1 : 0);
+			}
 		case 4:
 			if (valxor & 0x10)
 			{
@@ -515,7 +520,7 @@ void w83877f_init()
 	swwp = 0;
 	disable_write = 0;
 	fdc_update_drv2en(1);
-	fdd_swap = 0;
+	fdd_setswap(0);
 	serial1_set(0x3f8, 4);
 	serial2_set(0x2f8, 3);
 	w83877f_remap();

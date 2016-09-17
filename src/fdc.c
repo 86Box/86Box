@@ -104,6 +104,11 @@ void fdc_reset()
 
 int fdc_get_bitcell_period();
 
+int fdc_get_perp()
+{
+	return fdc.perp;
+}
+
 int fdc_get_format_n()
 {
 	return fdc.format_n;
@@ -366,7 +371,7 @@ void fdc_update_rate(int drive)
         }
 
         fdc.bitcell_period = 1000000 / bit_rate*2; /*Bitcell period in ns*/
-//        pclog("fdc_update_rate: rate=%i bit_rate=%i bitcell_period=%i\n", fdc.rate, bit_rate, fdc.bitcell_period);
+        pclog("fdc_update_rate: rate=%i bit_rate=%i bitcell_period=%i\n", fdc.rate, bit_rate, fdc.bitcell_period);
 }
 
 int fdc_get_bit_rate()
@@ -732,6 +737,13 @@ bad_command:
                                         disctime = 0;
                                         break;
 
+			                case 0x12:
+                                        fdc.stat=0x80;
+			                fdc.perp = fdc.params[0];
+					pclog("PERPENDICULAR: Set to: %02X\n", fdc.perp);
+			                disctime = 0;
+			                return;
+
 					case 4:
 					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
 					break;
@@ -810,6 +822,7 @@ bad_command:
 					fdc.gap = fdc.params[3];
 					fdc.dtl = 4000000;
 					fdc.format_sectors = fdc.params[2];
+					pclog("Formatting with %i sectors per track\n", fdc.format_sectors);
 					fdc.format_n = fdc.params[1];
                                         fdc.format_state = 1;
                                         fdc.pos = 0;
@@ -1219,13 +1232,17 @@ void fdc_callback()
                 disctime = 0;
                 return;
                 
+#if 0
                 case 0x12:
                 fdc.perp = fdc.params[0];
+		pclog("PERPENDICULAR: Set to: %02X\n", fdc.perp);
                 fdc.stat = 0x80;
                 disctime = 0;
 //                picint(0x40);
                 return;
-                case 0x13: /*Configure*/
+#endif
+
+	        case 0x13: /*Configure*/
                 fdc.config = fdc.params[1];
                 fdc.pretrk = fdc.params[2];
 		fdc.fifo = (fdc.params[1] & 0x20) ? 0 : 1;
