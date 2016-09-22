@@ -115,7 +115,8 @@ void serial2_handler()
 
 void pc87306_write(uint16_t port, uint8_t val, void *priv)
 {
-	uint8_t index = (port & 1) ? 0 : 1;
+	uint8_t index;
+	index = (port & 1) ? 0 : 1;
         int temp;
 	uint8_t valxor;
         // pclog("pc87306_write : port=%04x reg %02X = %02X locked=%i\n", port, pc87306_curreg, val, pc87306_locked);
@@ -123,6 +124,7 @@ void pc87306_write(uint16_t port, uint8_t val, void *priv)
 	if (index)
 	{
 		pc87306_curreg = val;
+		// pclog("Register set to: %02X\n", val);
 		tries = 0;
 		return;
 	}
@@ -133,6 +135,7 @@ void pc87306_write(uint16_t port, uint8_t val, void *priv)
 			if (pc87306_curreg <= 28)  valxor = val ^ pc87306_regs[pc87306_curreg];
 			if (pc87306_curreg == 0xF)  pc87306_gpio_remove();
 			if (pc87306_curreg <= 28)  pc87306_regs[pc87306_curreg] = val;
+			// pclog("Register %02X set to: %02X\n", pc87306_regs[pc87306_curreg], val);
 			tries = 0;
 			if (pc87306_curreg <= 28)  goto process_value;
 		}
@@ -142,6 +145,7 @@ void pc87306_write(uint16_t port, uint8_t val, void *priv)
 			return;
 		}
 	}
+	return;
 
 process_value:
 	switch(pc87306_curreg)
@@ -177,54 +181,73 @@ process_value:
 		                        }
 				}
 			}
-			serial1_remove();
-			serial2_remove();
-			if (val & 2)
+
+			if (valxor & 2)
 			{
-				serial1_handler();
-				// if (mouse_always_serial)  mouse_serial_init();
+				serial1_remove();
+				if (val & 2)
+				{
+					serial1_handler();
+					// if (mouse_always_serial)  mouse_serial_init();
+				}
 			}
-			if (val & 4)  serial2_handler();
+			if (valxor & 4)
+			{
+				serial2_remove();
+				if (val & 4)  serial2_handler();
+			}
 			
 			break;
 		case 1:
-			lpt1_remove();
-			if (pc87306_regs[0] & 1)
+			if (valxor & 1)
 			{
-				if (pc87306_regs[0x1B] & 0x10)
+				lpt1_remove();
+				if (pc87306_regs[0] & 1)
 				{
-					temp = (pc87306_regs[0x1B] & 0x20) >> 5;
-					if (temp)
+					if (pc87306_regs[0x1B] & 0x10)
 					{
-						lpt_port = 0x378; break;
+						temp = (pc87306_regs[0x1B] & 0x20) >> 5;
+						if (temp)
+						{
+							lpt_port = 0x378; break;
+						}
+						else
+						{
+							lpt_port = 0x278; break;
+						}
 					}
 					else
 					{
-						lpt_port = 0x278; break;
+						temp = val & 3;
+			                        switch (temp)
+        			                {
+                			                case 0: lpt_port = 0x378; break;
+                        			        case 1: lpt_port = 0x3bc; break;
+                                			case 2: lpt_port = 0x278; break;
+			                        }
 					}
+					lpt1_init(lpt_port);
+					pc87306_regs[0x19] = lpt_port >> 2;
 				}
-				else
-				{
-					temp = val & 3;
-		                        switch (temp)
-        		                {
-                		                case 0: lpt_port = 0x378; break;
-                        		        case 1: lpt_port = 0x3bc; break;
-                                		case 2: lpt_port = 0x278; break;
-		                        }
-				}
-				lpt1_init(lpt_port);
-				pc87306_regs[0x19] = lpt_port >> 2;
 			}
-			serial1_remove();
-			serial2_remove();
 
-			if (pc87306_regs[0] & 2)
+			if (valxor & 0xcc)
 			{
-				serial1_handler();
-	                        // if (mouse_always_serial)  mouse_serial_init();
+				serial1_remove();
+
+				if (pc87306_regs[0] & 2)
+				{
+					serial1_handler();
+	                	        // if (mouse_always_serial)  mouse_serial_init();
+				}
 			}
-			if (pc87306_regs[0] & 4)  serial2_handler();
+
+			if (valxor & 0xf0)
+			{
+				serial2_remove();
+
+				if (pc87306_regs[0] & 4)  serial2_handler();
+			}
 			break;
 		case 9:
 			// pclog("Setting DENSEL polarity to: %i (before: %i)\n", (val & 0x40 ? 1 : 0), fdc_get_densel_polarity());
@@ -234,7 +257,8 @@ process_value:
 			pc87306_gpio_init();
 			break;
 		case 0x1C:
-			if (valxor & 1)
+			// if (valxor & 0x25)
+			if (valxor)
 			{
 				serial1_remove();
 				serial2_remove();
@@ -257,7 +281,8 @@ uint8_t pc87306_gpio_read(uint16_t port, void *priv)
 uint8_t pc87306_read(uint16_t port, void *priv)
 {
         // pclog("pc87306_read : port=%04x reg %02X locked=%i\n", port, pc87306_curreg, pc87306_locked);
-	uint8_t index = (port & 1) ? 0 : 1;
+	uint8_t index;
+	index = (port & 1) ? 0 : 1;
 
 	if (index)
 		return pc87306_curreg;

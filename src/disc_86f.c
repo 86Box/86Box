@@ -585,13 +585,13 @@ uint16_t d86f_get_raw_size(int drive)
 	{
 		switch (d86f_get_rpm_mode(drive))
 		{
-			case 0:
+			case 1:
 				rpm_diff *= 2.0;
 				break;
-			case 1:
+			case 2:
 				rpm_diff *= 3.0;
 				break;
-			case 2:
+			case 3:
 				rpm_diff *= 4.0;
 				break;
 			default:
