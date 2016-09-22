@@ -457,7 +457,7 @@ void img_seek(int drive, int track)
 				img[drive].sector_pos_side[side][sr] = side;
 				img[drive].sector_pos[side][sr] = (sr - 1) * ssize;
 				// if (img[drive].dmf)  pclog("DMF: %i %i %i %i | %i %04X\n", id[0], id[1], id[2], id[3], side, (sr - 1) * ssize);
-				current_pos = d86f_prepare_sector(drive, side, current_pos, id, &img[drive].track_data[side][(sr - 1) * ssize], ssize, 1, img[drive].gap2_size, img[drive].gap3_size);
+				current_pos = d86f_prepare_sector(drive, side, current_pos, id, &img[drive].track_data[side][(sr - 1) * ssize], ssize, 1, img[drive].gap2_size, img[drive].gap3_size, 0);
 			}
 		}
 	}
@@ -514,14 +514,14 @@ void img_seek(int drive, int track)
 				{
 					id[3] = 2;
 					// pclog("XDF Track 0: Registering sector: %i %i %i %i\n", id[0], id[1], id[2], id[3]);
-					current_pos = d86f_prepare_sector(drive, side, current_pos, id, &img[drive].track_data[buf_side][buf_pos], ssize, 1, img[drive].gap2_size, xdf_gap3_sizes[current_xdft][!is_t0]);
+					current_pos = d86f_prepare_sector(drive, side, current_pos, id, &img[drive].track_data[buf_side][buf_pos], ssize, 1, img[drive].gap2_size, xdf_gap3_sizes[current_xdft][!is_t0], 0);
 				}
 				else
 				{
 					id[3] = id[2] & 7;
 					// pclog("XDF Track X: Registering sector: %i %i %i %i\n", id[0], id[1], id[2], id[3]);
 					ssize = (128 << id[3]);
-					current_pos = d86f_prepare_sector(drive, side, xdf_trackx_spos[current_xdft][array_sector], id, &img[drive].track_data[buf_side][buf_pos], ssize, 1, img[drive].gap2_size, xdf_gap3_sizes[current_xdft][!is_t0]);
+					current_pos = d86f_prepare_sector(drive, side, xdf_trackx_spos[current_xdft][array_sector], id, &img[drive].track_data[buf_side][buf_pos], ssize, 1, img[drive].gap2_size, xdf_gap3_sizes[current_xdft][!is_t0], 0);
 				}
 			}
 		}

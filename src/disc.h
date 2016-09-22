@@ -138,4 +138,4 @@ uint8_t* d86f_track_data(int drive, int side);
 uint8_t* d86f_track_layout(int drive, int side);
 
 uint16_t d86f_prepare_pretrack(int drive, int side, int iso, int write_data);
-uint16_t d86f_prepare_sector(int drive, int side, int pos, uint8_t *id_buf, uint8_t *data_buf, int data_len, int write_data, int gap2, int gap3);
+uint16_t d86f_prepare_sector(int drive, int side, int pos, uint8_t *id_buf, uint8_t *data_buf, int data_len, int write_data, int gap2, int gap3, int limit);
