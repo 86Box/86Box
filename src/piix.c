@@ -519,7 +519,7 @@ void piix_init(int card)
         card_piix_ide[0x0d] = 0x00;
         card_piix_ide[0x0e] = 0x00;
         card_piix_ide[0x20] = 0x01; card_piix_ide[0x21] = card_piix_ide[0x22] = card_piix_ide[0x23] = 0x00; /*Bus master interface base address*/
-        card_piix_ide[0x3C] = 14;		/* Default IRQ */
+        card_piix_ide[0x3c] = 14;		/* Default IRQ */
         card_piix_ide[0x40] = card_piix_ide[0x41] = 0x00;
         card_piix_ide[0x42] = card_piix_ide[0x43] = 0x00;
 
@@ -565,6 +565,7 @@ void piix3_init(int card)
         card_piix_ide[0x0d] = 0x00;
         card_piix_ide[0x0e] = 0x00;
         card_piix_ide[0x20] = 0x01; card_piix_ide[0x21] = card_piix_ide[0x22] = card_piix_ide[0x23] = 0x00; /*Bus master interface base address*/
+        card_piix_ide[0x3c] = 14;		/* Default IRQ */
         card_piix_ide[0x40] = card_piix_ide[0x41] = 0x00;
         card_piix_ide[0x42] = card_piix_ide[0x43] = 0x00;
 	card_piix_ide[0x44] = 0x00;

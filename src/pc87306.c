@@ -43,12 +43,14 @@ uint8_t uart_int2()
 
 uint8_t uart1_int()
 {
+	uint8_t temp;
 	temp = ((pc87306_regs[1] >> 2) & 1) ? 3 : 4;	/* 0 = IRQ 4, 1 = IRQ 3 */
 	return (pc87306_regs[0x1C] & 1) ? uart_int1() : temp;
 }
 
 uint8_t uart2_int()
 {
+	uint8_t temp;
 	temp = ((pc87306_regs[1] >> 4) & 1) ? 3 : 4;	/* 0 = IRQ 4, 1 = IRQ 3 */
 	return (pc87306_regs[0x1C] & 1) ? uart_int2() : temp;
 }
