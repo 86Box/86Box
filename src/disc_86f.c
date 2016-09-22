@@ -973,7 +973,7 @@ static void *d86f_memset(void *str, int c, size_t n, size_t s, uint16_t rs, int 
 		wrap_str[0] = (uint8_t *) str;
 		wrap_str[1] = wrap_str[0] - s;
 		temp = memset(wrap_str[0], c, wrap_n[0]);
-		if (limit)  temp = memset(wrap_str[1], c, wrap_n[1]);
+		if (!limit)  temp = memset(wrap_str[1], c, wrap_n[1]);
 	}
 	else
 	{
@@ -1001,7 +1001,7 @@ static void *d86f_memcpy(void *str1, const void *str2, size_t n, size_t s, uint1
 		wrap_str1[1] = wrap_str1[0] - s;
 		wrap_str2[1] = wrap_str2[0] + wrap_n[0];
 		temp = memcpy(wrap_str1[0], wrap_str2[0], wrap_n[0]);
-		if (limit)  temp = memcpy(wrap_str1[1], wrap_str2[1], wrap_n[1]);
+		if (!limit)  temp = memcpy(wrap_str1[1], wrap_str2[1], wrap_n[1]);
 	}
 	else
 	{
@@ -1029,7 +1029,7 @@ uint16_t d86f_prepare_sector(int drive, int side, int pos, uint8_t *id_buf, uint
 	mfm = d86f_is_mfm(drive);
 	sync_len = mfm ? 12 : 6;
 
-	d86f_memset(d86f[drive].track_layout[side] + i, BYTE_ID_SYNC, sync_len, i, rs);
+	d86f_memset(d86f[drive].track_layout[side] + i, BYTE_ID_SYNC, sync_len, i, rs, limit);
 	if (write_data)  d86f_memset(d86f[drive].track_data[side] + i, 0, sync_len, i, rs, limit);
 	i += sync_len;
 	if ((i >= rs) && limit)  return 0;
@@ -1492,13 +1492,6 @@ void d86f_poll_write(int drive, int side, uint8_t data, uint8_t type)
 	if (!d86f[drive].track_pos && d86f_mark_index_hole(drive))  d86f[drive].track_layout[side][d86f[drive].track_pos] |= BYTE_INDEX_HOLE;
 }
 
-void d86f_poll_fill(int drive, int side)
-{
-	d86f_handler[drive].write_data(drive, side, d86f[drive].id_pos, d86f[drive].fill);
-	d86f_calccrc(drive, d86f[drive].fill);
-	if (d86f[drive].calc_crc.word == 0xDC25)  pclog("d86f_poll_fill(): CRC is DC25!\n"
-}
-
 void d86f_set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 {
 	return;
@@ -1937,13 +1930,9 @@ void d86f_poll_format(int drive, int side)
 			d86f[drive].id_pos = d86f_get_pos(drive);
 			if (!disable_write)
 			{
-				// d86f_handler[drive].write_data(drive, side, d86f[drive].id_pos, d86f[drive].fill);
-				d86f_poll_fill(drive, side);
+				d86f_handler[drive].write_data(drive, side, d86f[drive].id_pos, d86f[drive].fill);
 			}
-			else
-			{
-				d86f_calccrc(drive, d86f[drive].track_data_byte);
-			}
+			d86f_calccrc(drive, d86f[drive].track_data_byte);
 			break;
 		case BYTE_ID_CRC:
 		case BYTE_DATA_CRC:
