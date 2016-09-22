@@ -1552,12 +1552,30 @@ uint8_t mem_readb_phys(uint32_t addr)
         return 0xff;
 }
 
+uint16_t mem_readw_phys(uint32_t addr)
+{
+        mem_logical_addr = 0xffffffff;
+        
+        if (_mem_read_w[addr >> 14]) 
+                return _mem_read_w[addr >> 14](addr, _mem_priv_r[addr >> 14]);
+                
+        return 0xff;
+}
+
 void mem_writeb_phys(uint32_t addr, uint8_t val)
 {
         mem_logical_addr = 0xffffffff;
         
         if (_mem_write_b[addr >> 14]) 
                 _mem_write_b[addr >> 14](addr, val, _mem_priv_w[addr >> 14]);
+}
+
+void mem_writew_phys(uint32_t addr, uint16_t val)
+{
+        mem_logical_addr = 0xffffffff;
+        
+        if (_mem_write_w[addr >> 14]) 
+                _mem_write_w[addr >> 14](addr, val, _mem_priv_w[addr >> 14]);
 }
 
 uint8_t mem_read_ram(uint32_t addr, void *priv)

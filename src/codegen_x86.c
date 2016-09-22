@@ -563,6 +563,11 @@ void codegen_init()
         mem_store_addr_ea_b = gen_MEM_STORE_ADDR_EA_B();
         block_pos = 1024;
         mem_store_addr_ea_q = gen_MEM_STORE_ADDR_EA_Q();
+        
+        asm(
+                "fstcw %0\n"
+                : "=m" (cpu_state.old_npxc)
+        );
 }
 
 void codegen_reset()

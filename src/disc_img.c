@@ -23,7 +23,7 @@ static struct
 } img[2];
 
 static uint8_t xdf_track0[3][3];
-static uint8_t xdf_spt[3];
+static uint8_t xdf_spt[3] = { 6, 8, 8 };
 static uint8_t xdf_map[3][24][3];
 static uint16_t xdf_track0_layout[3][92] = {	{ 0x8100, 0x8200, 0x8300, 0x8400, 0x8500, 0x8600, 0x8700, 0x8800,
 						  0x8101, 0x8201, 0x0100, 0x0200, 0x0300, 0x0400, 0x0500, 0x0600,
@@ -49,6 +49,7 @@ static uint16_t xdf_track0_layout[3][92] = {	{ 0x8100, 0x8200, 0x8300, 0x8400, 0
 						  0x9901, 0x9A01, 0x9B01, 0x9C01, 0x9D01, 0x9E01, 0x9F01, 0xA001,
 						  0xA101, 0xA201, 0xA301, 0xA401 },
 						};
+static uint16_t xdf_sector_pos[256];
 
 /* First dimension is possible sector sizes (0 = 128, 7 = 16384), second is possible bit rates (250/360, 250, 300, 500/360, 500, 1000). */
 /* Disks formatted at 250 kbps @ 360 RPM can be read with a 360 RPM single-RPM 5.25" drive by setting the rate to 250 kbps.
@@ -152,46 +153,9 @@ static void add_to_map(uint8_t *arr, uint8_t p1, uint8_t p2, uint8_t p3)
 
 static int xdf_maps_initialized = 0;
 
-static void initialize_xdf_maps()
-{
-	// XDF 5.25" 2HD
-	/* Adds, in this order: sectors per FAT, sectors per each side of track 0, difference between that and virtual sector number specified in BPB. */
-	add_to_map(xdf_track0[0], 9, 17, 2);
-	xdf_spt[0] = 3;
-	/* Adds, in this order: side, sequential order (not used in PCem), sector size. */
-	add_to_map(xdf_map[0][0], 0, 0, 3);
-	add_to_map(xdf_map[0][1], 0, 2, 6);
-	add_to_map(xdf_map[0][2], 1, 0, 2);
-	add_to_map(xdf_map[0][3], 0, 1, 2);
-	add_to_map(xdf_map[0][4], 1, 2, 6);
-	add_to_map(xdf_map[0][5], 1, 1, 3);
-
-	// XDF 3.5" 2HD
-	add_to_map(xdf_track0[1], 11, 19, 4);
-	xdf_spt[1] = 4;
-	add_to_map(xdf_map[1][0], 0, 0, 3);
-	add_to_map(xdf_map[1][1], 0, 2, 4);
-	add_to_map(xdf_map[1][2], 1, 3, 6);
-	add_to_map(xdf_map[1][3], 0, 1, 2);
-	add_to_map(xdf_map[1][4], 1, 1, 2);
-	add_to_map(xdf_map[1][5], 0, 3, 6);
-	add_to_map(xdf_map[1][6], 1, 0, 4);
-	add_to_map(xdf_map[1][7], 1, 2, 3);
-
-	// XDF 3.5" 2ED
-	add_to_map(xdf_track0[2], 22, 37, 9);
-	xdf_spt[2] = 4;
-	add_to_map(xdf_map[2][0], 0, 0, 3);
-	add_to_map(xdf_map[2][1], 0, 1, 4);
-	add_to_map(xdf_map[2][2], 0, 2, 5);
-	add_to_map(xdf_map[2][3], 0, 3, 7);
-	add_to_map(xdf_map[2][4], 1, 0, 3);
-	add_to_map(xdf_map[2][5], 1, 1, 4);
-	add_to_map(xdf_map[2][6], 1, 2, 5);
-	add_to_map(xdf_map[2][7], 1, 3, 7);
-
-	xdf_maps_initialized = 1;
-}
+static uint16_t xdf_trackx_layout[3][8] = {	{ 0x8300, 0x8600, 0x8201, 0x8200, 0x8601, 0x8301},
+						{ 0x8300, 0x8400, 0x8601, 0x8200, 0x8201, 0x8600, 0x8401, 0x8301},
+						{ 0x8300, 0x8400, 0x8500, 0x8700, 0x8301, 0x8401, 0x8501, 0x8701} };
 
 void img_load(int drive, char *fn)
 {
@@ -208,8 +172,6 @@ void img_load(int drive, char *fn)
 	char ext[4];
 	int fdi;
 
-	if (!xdf_maps_initialized)  initialize_xdf_maps();	/* Initialize XDF maps, will need them to properly register sectors in tracks. */
-
 	ext[0] = fn[strlen(fn) - 3] | 0x60;
 	ext[1] = fn[strlen(fn) - 2] | 0x60;
 	ext[2] = fn[strlen(fn) - 1] | 0x60;
@@ -224,6 +186,10 @@ void img_load(int drive, char *fn)
                         return;
                 writeprot[drive] = 1;
         }
+	if (ui_writeprot[drive])
+	{
+                writeprot[drive] = 1;
+	}
         fwriteprot[drive] = writeprot[drive];
 
 	if (strcmp(ext, "fdi") == 0)
@@ -432,7 +398,6 @@ void img_load(int drive, char *fn)
 					{
 						case 19:	/* High density XDF @ 360 rpm */
 							img[drive].xdf_type = 1;
-							raw_tsize[drive] = 10521;		/* Rotate at 356.4 RPM in order to fit the data. */
 							break;
 						case 23:	/* High density XDF @ 300 rpm */
 							img[drive].xdf_type = 2;
@@ -495,12 +460,6 @@ void img_load(int drive, char *fn)
 		img[drive].byte_period = 16;
 	}
 
-	if (img[drive].xdf_type)			/* In case of XDF-formatted image, write-protect */
-	{
-                writeprot[drive] = 1;
-	        fwriteprot[drive] = writeprot[drive];
-	}
-
         drives[drive].seek        = img_seek;
         drives[drive].readsector  = disc_sector_readsector;
         drives[drive].writesector = disc_sector_writesector;
@@ -546,9 +505,7 @@ void img_seek(int drive, int track)
         int side;
 	int current_xdft = img[drive].xdf_type - 1;
 
-	uint8_t sectors_fat, effective_sectors, sector_gap;		/* Needed for XDF */
-
-	int sector, current_pos, sh, sr, sside, total;
+	int sector, current_pos, sh, sr, sn, sside, total, max_pos;
         
         if (!img[drive].f)
                 return;
@@ -579,14 +536,11 @@ void img_seek(int drive, int track)
         
 	if (img[drive].xdf_type)
 	{
-		sectors_fat = xdf_track0[current_xdft][0];
-		effective_sectors = xdf_track0[current_xdft][1];
-		sector_gap = xdf_track0[current_xdft][2];
-		total = img[drive].sectors;
-
+		max_pos = (img[drive].sectors * 512);
 		if (!track)
 		{
 			/* Track 0, register sectors according to track 0 layout. */
+			total = img[drive].sectors;
 			current_pos = 0;
 			for (sector = 0; sector < (total << 1); sector++)
 			{
@@ -596,6 +550,7 @@ void img_seek(int drive, int track)
 				{
 					sh = xdf_track0_layout[current_xdft][sector] & 0xFF;
 					sr = xdf_track0_layout[current_xdft][sector] >> 8;
+					xdf_sector_pos[(sh << 8) | sr] = current_pos;
 		                        disc_sector_add(drive, sh, track, sh, sr, 2,
        			                                img[drive].bitcell_period_300rpm, 
                			                        &img[drive].track_data[sside][current_pos]);
@@ -605,25 +560,19 @@ void img_seek(int drive, int track)
 		else
 		{
 			/* Non-zero track, this will have sectors of various sizes. */
-			/* First, the "Side 0" buffer. */
+			total = xdf_spt[current_xdft] >> 1;
 			current_pos = 0;
-	                for (sector = 0; sector < xdf_spt[current_xdft]; sector++)
+			for (sector = 0; sector < xdf_spt[current_xdft]; sector++)
 			{
-	                        disc_sector_add(drive, xdf_map[current_xdft][sector][0], track, xdf_map[current_xdft][sector][0],
-						xdf_map[current_xdft][sector][2] + 0x80, xdf_map[current_xdft][sector][2],
-       		                                img[drive].bitcell_period_300rpm, 
-               		                        &img[drive].track_data[0][current_pos]);
-				current_pos += (128 << xdf_map[current_xdft][sector][2]);
-			}
-			/* Then, the "Side 1" buffer. */
-			current_pos = 0;
-	                for (sector = xdf_spt[current_xdft]; sector < (xdf_spt[current_xdft] << 1); sector++)
-			{
-	                        disc_sector_add(drive, xdf_map[current_xdft][sector][0], track, xdf_map[current_xdft][sector][0],
-						xdf_map[current_xdft][sector][2] + 0x80, xdf_map[current_xdft][sector][2],
-       		                                img[drive].bitcell_period_300rpm, 
-               		                        &img[drive].track_data[1][current_pos]);
-				current_pos += (128 << xdf_map[current_xdft][sector][2]);
+				sside = (sector >= total) ? 1 : 0;
+				sh = xdf_trackx_layout[current_xdft][sector] & 0xFF;
+				sr = xdf_trackx_layout[current_xdft][sector] >> 8;
+				sn = sr & 7;
+	                        disc_sector_add(drive, sh, track, sh, sr, sn,
+   			                        img[drive].bitcell_period_300rpm, 
+              			                &img[drive].track_data[sside][current_pos]);
+				current_pos += (128 << sn);
+				current_pos %= max_pos;
 			}
 		}
 	}
@@ -648,19 +597,19 @@ void img_writeback(int drive)
         if (!img[drive].f)
                 return;
                 
-        if (img[drive].xdf_type)
-                return; /*Should never happen*/
+        // if (img[drive].xdf_type)
+                // return; /*Should never happen*/
 
         if (img[drive].sides == 2)
         {
-                fseek(img[drive].f, img[drive].base + (disc_track[drive] * img[drive].sectors * img[drive].sector_size * 2), SEEK_SET);
+       	        fseek(img[drive].f, img[drive].base + (disc_track[drive] * img[drive].sectors * img[drive].sector_size * 2), SEEK_SET);
                 fwrite(img[drive].track_data[0], img[drive].sectors * img[drive].sector_size, 1, img[drive].f);
                 fwrite(img[drive].track_data[1], img[drive].sectors * img[drive].sector_size, 1, img[drive].f);
         }
         else
-        {
+       	{
                 fseek(img[drive].f, img[drive].base + (disc_track[drive] * img[drive].sectors * img[drive].sector_size), SEEK_SET);
-                fwrite(img[drive].track_data[0], img[drive].sectors * img[drive].sector_size, 1, img[drive].f);
+       	        fwrite(img[drive].track_data[0], img[drive].sectors * img[drive].sector_size, 1, img[drive].f);
         }
 }
 

@@ -4556,6 +4556,10 @@ static void FP_COMPARE_IL()
         FP_COMPARE_MEM();
 }
 
+static void UPDATE_NPXC(int reg)
+{
+}
+
 static void SET_BITS(uintptr_t addr, uint32_t val)
 {
         if (IS_32_ADDR(addr))

@@ -108,3 +108,34 @@ extern int drive_type[2];
 #define BYTE_TYPE_AM		0x03
 #define BYTE_TYPE_DATA		0x04
 #define BYTE_TYPE_CRC		0x05
+
+typedef union {
+	uint16_t word;
+	uint8_t bytes[2];
+} crc_t;
+
+void disc_calccrc(int drive, uint8_t byte, crc_t *crc_var);
+
+typedef struct
+{
+	uint8_t (*disk_flags)(int drive);
+	uint8_t (*side_flags)(int drive);
+        void (*writeback)(int drive);
+	void (*set_sector)(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n);
+        uint8_t (*read_data)(int drive, int side, uint16_t pos);
+        void (*write_data)(int drive, int side, uint16_t pos, uint8_t data);
+	int (*format_conditions)(int drive);
+	uint8_t check_crc;
+} d86f_handler_t;
+
+d86f_handler_t d86f_handler[2];
+
+void d86f_common_handlers(int drive);
+
+int d86f_is_40_track(int drive);
+
+uint8_t* d86f_track_data(int drive, int side);
+uint8_t* d86f_track_layout(int drive, int side);
+
+uint16_t d86f_prepare_pretrack(int drive, int side, int iso, int write_data);
+uint16_t d86f_prepare_sector(int drive, int side, int pos, uint8_t *id_buf, uint8_t *data_buf, int data_len, int write_data, int gap2, int gap3);

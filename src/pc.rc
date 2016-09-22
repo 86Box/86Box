@@ -19,9 +19,11 @@ BEGIN
         POPUP "&Disc"
         BEGIN
                 MENUITEM "Change drive &A:...", IDM_DISC_A
+                MENUITEM "Change drive A (&Write-protected):...", IDM_DISC_A_WP
                 MENUITEM "Change drive &B:...", IDM_DISC_B
+                MENUITEM "Change drive B (W&rite-protected):...", IDM_DISC_B_WP
                 MENUITEM "&Eject drive A:",     IDM_EJECT_A
-                MENUITEM "Eject drive B:",      IDM_EJECT_B
+                MENUITEM "E&ject drive B:",     IDM_EJECT_B
                 MENUITEM "&Configure hard discs...",IDM_HDCONF
         END
         POPUP "&Settings"

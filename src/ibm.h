@@ -167,6 +167,8 @@ struct
         uint16_t MM_w4[8];
         
         MMX_REG MM[8];
+        
+        uint16_t old_npxc, new_npxc;
 } cpu_state;
 
 #define cycles cpu_state._cycles
@@ -574,6 +576,8 @@ extern uint32_t atapi_get_cd_channel(int channel);
 extern uint32_t atapi_get_cd_volume(int channel);
 
 extern int ide_ter_enabled;
+
+extern int ui_writeprot[2];
 
 void pclog(const char *format, ...);
 extern int nmi;

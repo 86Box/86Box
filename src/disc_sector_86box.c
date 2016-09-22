@@ -101,6 +101,7 @@ static int get_bitcell_period(int drive)
 void disc_sector_readsector(int drive, int sector, int track, int side, int rate, int sector_size)
 {
         // pclog("disc_sector_readsector: fdc_period=%i img_period=%i rate=%i sector=%i track=%i side=%i\n", fdc_get_bitcell_period(), get_bitcell_period(drive), rate, sector, track, side);
+        // pclog("disc_sector_readsector: fdc_period=%i img_period=%i rate=%i c=%i h=%i r=%i n=%i\n", fdc_get_bitcell_period(), get_bitcell_period(drive), rate, track, side, sector, sector_size);
 
         disc_sector_track[drive] = track;
         disc_sector_side[drive]  = side;
@@ -119,6 +120,12 @@ void disc_sector_readsector(int drive, int sector, int track, int side, int rate
 void disc_sector_writesector(int drive, int sector, int track, int side, int rate, int sector_size)
 {
 //        pclog("disc_sector_writesector: fdc_period=%i img_period=%i rate=%i\n", fdc_get_bitcell_period(), get_bitcell_period(drive), rate);
+
+	if (writeprot[drive] || swwp)
+	{
+		fdc_writeprotect();
+		return;
+	}
 
         disc_sector_track[drive] = track;
         disc_sector_side[drive]  = side;
@@ -171,8 +178,6 @@ int media_type = 0;
 
 #define GAP3_LEN_VARIABLE	0x1B
 
-int gap3_sizes[3][2] = { {74, 36}, {77, 77}, {60, 60} };
-
 int disc_sector_get_gap3_size(int drive, int side, int track)
 {
 	if (!img_xdf_type(drive))
@@ -183,7 +188,7 @@ int disc_sector_get_gap3_size(int drive, int side, int track)
 	switch (track)
 	{
 		case 0:
-			return gap3_sizes[img_xdf_type(drive) - 1][side];
+			return 60;
 		default:
 			return GAP3_LEN_VARIABLE;
 	}
@@ -333,6 +338,7 @@ int disc_sector_can_format(int drive)
 	temp = temp && !swwp;
 	temp = temp && disc_sector_can_read_address(drive);
 	temp = temp && (fdc_get_format_sectors() == disc_sector_count[drive][disc_sector_side[drive]]);
+	temp = temp && (!img_xdf_type(drive));
 	return temp;
 }
 

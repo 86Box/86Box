@@ -91,7 +91,7 @@ void disc_load(int drive, char *fn)
         p = get_extension(fn);
         if (!p) return;
 //        setejecttext(drive, fn);
-        pclog("Loading :%i %s %s\n", drive, fn,p);
+        // pclog("Loading :%i %s %s\n", drive, fn,p);
         f = fopen(fn, "rb");
         if (!f) return;
         fseek(f, -1, SEEK_END);
@@ -101,7 +101,7 @@ void disc_load(int drive, char *fn)
         {
                 if (!strcasecmp(p, loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1))
                 {
-                        pclog("Loading as %s\n", p);
+                        // pclog("Loading as %s (UI write protected = %s)\n", p, ui_writeprot[drive] ? "yes" : "no");
                         driveloaders[drive] = c;
                         loaders[c].load(drive, fn);
                         drive_empty[drive] = 0;

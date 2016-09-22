@@ -32,6 +32,7 @@ static int opFINIT(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         cpu_state.npxc = 0x37F;
+        cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00);
         cpu_state.npxs = 0;
         *(uint64_t *)cpu_state.tag = 0x0303030303030303ll;
         cpu_state.TOP = 0;
@@ -96,6 +97,7 @@ static int FSTOR()
                 case 0x000: /*16-bit real mode*/
                 case 0x001: /*16-bit protected mode*/
                 cpu_state.npxc = readmemw(easeg, cpu_state.eaaddr);
+                cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (cpu_state.npxc & 0xc00);
                 cpu_state.npxs = readmemw(easeg, cpu_state.eaaddr+2);
                 x87_settag(readmemw(easeg, cpu_state.eaaddr+4));
                 cpu_state.TOP = (cpu_state.npxs >> 11) & 7;
@@ -104,6 +106,7 @@ static int FSTOR()
                 case 0x100: /*32-bit real mode*/
                 case 0x101: /*32-bit protected mode*/
                 cpu_state.npxc = readmemw(easeg, cpu_state.eaaddr);
+                cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (cpu_state.npxc & 0xc00);
                 cpu_state.npxs = readmemw(easeg, cpu_state.eaaddr+4);
                 x87_settag(readmemw(easeg, cpu_state.eaaddr+8));
                 cpu_state.TOP = (cpu_state.npxs >> 11) & 7;
@@ -676,6 +679,7 @@ static int FLDENV()
                 case 0x000: /*16-bit real mode*/
                 case 0x001: /*16-bit protected mode*/
                 cpu_state.npxc = readmemw(easeg, cpu_state.eaaddr);
+                cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (cpu_state.npxc & 0xc00);
                 cpu_state.npxs = readmemw(easeg, cpu_state.eaaddr+2);
                 x87_settag(readmemw(easeg, cpu_state.eaaddr+4));
                 cpu_state.TOP = (cpu_state.npxs >> 11) & 7;
@@ -683,6 +687,7 @@ static int FLDENV()
                 case 0x100: /*32-bit real mode*/
                 case 0x101: /*32-bit protected mode*/
                 cpu_state.npxc = readmemw(easeg, cpu_state.eaaddr);
+                cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (cpu_state.npxc & 0xc00);
                 cpu_state.npxs = readmemw(easeg, cpu_state.eaaddr+4);
                 x87_settag(readmemw(easeg, cpu_state.eaaddr+8));
                 cpu_state.TOP = (cpu_state.npxs >> 11) & 7;
@@ -716,6 +721,7 @@ static int opFLDCW_a16(uint32_t fetchdat)
         tempw = geteaw();
         if (cpu_state.abrt) return 1;
         cpu_state.npxc = tempw;
+        cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (cpu_state.npxc & 0xc00);
         CLOCK_CYCLES(4);
         return 0;
 }
@@ -728,6 +734,7 @@ static int opFLDCW_a32(uint32_t fetchdat)
         tempw = geteaw();
         if (cpu_state.abrt) return 1;
         cpu_state.npxc = tempw;
+        cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (cpu_state.npxc & 0xc00);
         CLOCK_CYCLES(4);
         return 0;
 }

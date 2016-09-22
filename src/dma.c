@@ -246,10 +246,21 @@ uint8_t _dma_read(uint32_t addr)
         return mem_readb_phys(addr);
 }
 
+uint16_t _dma_readw(uint32_t addr)
+{
+        return mem_readw_phys(addr);
+}
+
 void _dma_write(uint32_t addr, uint8_t val)
 {
         mem_writeb_phys(addr, val);
         mem_invalidate_range(addr, addr);
+}
+
+void _dma_writew(uint32_t addr, uint16_t val)
+{
+        mem_writew_phys(addr, val);
+        mem_invalidate_range(addr, addr + 1);
 }
 
 int dma_channel_read(int channel)
@@ -300,8 +311,12 @@ int dma_channel_read(int channel)
                 if ((dma16.mode[channel] & 0xC) != 8)
                         return DMA_NODATA;
 
+#if 0
                 temp =  _dma_read((dma16.ac[channel] << 1) + ((dma16.page[channel] & ~1) << 16)) |
                        (_dma_read((dma16.ac[channel] << 1) + ((dma16.page[channel] & ~1) << 16) + 1) << 8);
+#endif
+
+		temp = _dma_readw((dma16.ac[channel] << 1) + ((dma16.page[channel] & ~1) << 16));
 
                 if (dma16.mode[channel] & 0x20) dma16.ac[channel]--;
                 else                            dma16.ac[channel]++;
@@ -323,6 +338,18 @@ int dma_channel_read(int channel)
                         return temp | DMA_OVER;
                 return temp;
         }
+}
+
+void dma_channel_dump()
+{
+	int i = 0;
+	FILE *f;
+	f = fopen("dma.dmp", "wb");
+	for (i = 0; i < (21 * 512); i++)
+	{
+		fputc(mem_readb_phys((dma.page[2] << 16) + dma16.ac[2] + i), f);
+	}
+	fclose(f);
 }
 
 int dma_channel_write(int channel, uint16_t val)
@@ -368,8 +395,12 @@ int dma_channel_write(int channel, uint16_t val)
                 if ((dma16.mode[channel] & 0xC) != 4)
                         return DMA_NODATA;
 
+#if 0
                 _dma_write((dma16.ac[channel] << 1) + ((dma16.page[channel] & ~1) << 16),     val);
                 _dma_write((dma16.ac[channel] << 1) + ((dma16.page[channel] & ~1) << 16) + 1, val >> 8);                
+#endif
+
+		_dma_writew((dma16.ac[channel] << 1) + ((dma16.page[channel] & ~1) << 16),     val);
 
                 if (dma16.mode[channel]&0x20) dma16.ac[channel]--;
                 else                          dma16.ac[channel]++;

@@ -14,6 +14,8 @@
 
 extern int64_t motoron;
 
+int ui_writeprot[2] = {0, 0};
+
 static int fdc_reset_stat = 0;
 /*FDC*/
 typedef struct FDC
@@ -66,12 +68,11 @@ typedef struct FDC
 	int drv2en;
 	uint8_t fifobuf[16];
 
-	int seek_params;		/* Needed for relative seek. */
-
 	int gap, dtl;
 	int format_sectors;
 
 	int max_track;
+	int mfm;
 } FDC;
 
 static FDC fdc;
@@ -102,11 +103,37 @@ void fdc_reset()
 //        pclog("Reset FDC\n");
 }
 
+int fdc_get_drive()
+{
+	return fdc.drive;
+}
+
 int fdc_get_bitcell_period();
 
 int fdc_get_perp()
 {
+	if (!AT || fdc.pcjr || fdc.ps1)  return 0;
+
 	return fdc.perp;
+}
+
+int fdc_get_bit_rate();
+
+int fdc_get_gap2(int drive)
+{
+	int auto_gap2 = 22;
+
+	if (!AT || fdc.pcjr || fdc.ps1)  return 22;
+
+	if (fdc.perp & 3)
+	{
+		return ((fdc.perp & 3) == 3) ? 41 : 22;
+	}
+	else
+	{
+		auto_gap2 = (fdc_get_bit_rate() >= 3) ? 41 : 22;
+		return (fdc.perp & (4 << drive)) ? auto_gap2 : 22;
+	}
 }
 
 int fdc_get_format_n()
@@ -116,7 +143,7 @@ int fdc_get_format_n()
 
 int fdc_is_mfm()
 {
-	return (fdc.command & 0x40) ? 1 : 0;
+	return fdc.mfm ? 1 : 0;
 }
 
 double fdc_get_hut()
@@ -371,7 +398,7 @@ void fdc_update_rate(int drive)
         }
 
         fdc.bitcell_period = 1000000 / bit_rate*2; /*Bitcell period in ns*/
-        pclog("fdc_update_rate: rate=%i bit_rate=%i bitcell_period=%i\n", fdc.rate, bit_rate, fdc.bitcell_period);
+        // pclog("fdc_update_rate: rate=%i bit_rate=%i bitcell_period=%i\n", fdc.rate, bit_rate, fdc.bitcell_period);
 }
 
 int fdc_get_bit_rate()
@@ -506,15 +533,18 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 disctime = 128 * (1 << TIMER_SHIFT);
                                 timer_update_outstanding();
                                 discint=-1;
+				fdc.perp &= 0xfc;
                                 fdc_reset();
                         }
 			timer_process();
                         motoron = (val & 0xf0) ? 1 : 0;
 			timer_update_outstanding();
                         fdc.drive = val & 3;
+                        disc_drivesel = fdc.drive & 1;
+                        disc_set_drivesel(fdc.drive & 1);
                 }
                 fdc.dor=val;
-//                printf("DOR now %02X\n",val);
+                // printf("DOR now %02X\n",val);
                 return;
 		case 3:
 		/* TDR */
@@ -531,6 +561,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                         disctime = 128 * (1 << TIMER_SHIFT);
                         timer_update_outstanding();
                         discint=-1;
+			fdc.perp &= 0xfc;
                         fdc_reset();
                 }
                 return;
@@ -575,6 +606,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc.ptot=8;
                                 fdc.stat=0x90;
                                 fdc.pos=0;
+				fdc.mfm=(fdc.command&0x40)?1:0;
                                 break;
                                 case 3: /*Specify*/
                                 fdc.pnum=0;
@@ -592,6 +624,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc.ptot=8;
                                 fdc.stat=0x90;
                                 fdc.pos=0;
+				fdc.mfm=(fdc.command&0x40)?1:0;
 //                                readflash=1;
                                 break;
                                 case 6: /*Read data*/
@@ -599,6 +632,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc.ptot=8;
                                 fdc.stat=0x90;
                                 fdc.pos=0;
+				fdc.mfm=(fdc.command&0x40)?1:0;
                                 break;
                                 case 7: /*Recalibrate*/
                                 fdc.pnum=0;
@@ -619,6 +653,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc.ptot=1;
                                 fdc.stat=0x90;
                                 fdc.pos=0;
+				fdc.mfm=(fdc.command&0x40)?1:0;
                                 break;
                                 case 0x0d: /*Format track*/
                                 fdc.pnum=0;
@@ -626,6 +661,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc.stat=0x90;
                                 fdc.pos=0;
                                 fdc.format_state = 0;
+				fdc.mfm=(fdc.command&0x40)?1:0;
                                 break;
                                 case 15: /*Seek*/
                                 fdc.pnum=0;
@@ -645,6 +681,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc_callback();
                                 break;
                                 case 0x12: /*Set perpendicular mode*/
+				if (!AT || fdc.pcjr || fdc.ps1)  goto bad_command;
                                 fdc.pnum=0;
                                 fdc.ptot=1;
                                 fdc.stat=0x90;
@@ -739,8 +776,16 @@ bad_command:
 
 			                case 0x12:
                                         fdc.stat=0x80;
-			                fdc.perp = fdc.params[0];
-					pclog("PERPENDICULAR: Set to: %02X\n", fdc.perp);
+					if (fdc.params[0] & 0x80)
+					{
+						fdc.perp = fdc.params[0] & 0x3f;
+					}
+					else
+					{
+						fdc.perp &= 0xfc;
+						fdc.perp |= (fdc.params[0] & 0x03);
+					}
+					// pclog("PERPENDICULAR: Set to: %02X\n", fdc.perp);
 			                disctime = 0;
 			                return;
 
@@ -822,7 +867,7 @@ bad_command:
 					fdc.gap = fdc.params[3];
 					fdc.dtl = 4000000;
 					fdc.format_sectors = fdc.params[2];
-					pclog("Formatting with %i sectors per track\n", fdc.format_sectors);
+					// pclog("Formatting with %i sectors per track\n", fdc.format_sectors);
 					fdc.format_n = fdc.params[1];
                                         fdc.format_state = 1;
                                         fdc.pos = 0;
@@ -834,9 +879,9 @@ bad_command:
                                         fdc.head = (fdc.params[0] & 4) ? 1 : 0;
 					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
                                         disctime = 0;
-					if (fdc.seek_params & 0x80)
+					if (fdc.command & 0x80)
 					{
-						if (fdc.seek_params & 0x40)
+						if (fdc.command & 0x40)
 						{
 							/* Relative seek inwards. */
 							fdc_seek(fdc.drive, fdc.params[1]);
@@ -846,12 +891,13 @@ bad_command:
 							/* Relative seek outwards. */
 							fdc_seek(fdc.drive, -fdc.params[1]);
 						}
+	                                        disctime = ((int) fdc.params[1]) * 10 * TIMER_USEC;
 					}
 					else
 					{
 	                                        fdc_seek(fdc.drive, fdc.params[1] - fdc.track[fdc.drive]);
+	                                        disctime = ((int) (fdc.params[1] - fdc.track[fdc.drive])) * 10 * TIMER_USEC;
 					}
-                                        disctime = 790 * TIMER_USEC;
 					fdc.st0 &= 0x30;
                                         break;
                                         
@@ -1130,7 +1176,7 @@ void fdc_callback()
                 case 7: /*Recalibrate*/
                 fdc.track[fdc.drive]=0;
 //                if (!driveempty[fdc.dor & 1]) discchanged[fdc.dor & 1] = 0;
-                if (fdc.drive <= 1)
+                if (fdc.params[0] <= 1)
                         fdc.st0 = 0x20 | (fdc.params[0] & 3) | (fdd_get_head(fdc.drive ^ fdd_swap)?4:0);
                 else
                         fdc.st0 = 0x68 | (fdc.params[0] & 3) | (fdd_get_head(fdc.drive ^ fdd_swap)?4:0);
@@ -1147,9 +1193,15 @@ void fdc_callback()
 
                 fdc.stat    = (fdc.stat & 0xf) | 0xd0;                
                 if (fdc_reset_stat)
+		{
+			disc_stop(4 - fdc_reset_stat);
                         fdc.res[9] = 0xc0 | (4 - fdc_reset_stat) | (fdd_get_head(fdc.drive ^ fdd_swap) ? 4 : 0);
+		}
                 else
+		{
+			disc_stop(fdc.drive);
                         fdc.res[9] = fdc.st0;
+		}
                 fdc.res[10] = fdc.track[fdc.drive];
                 if (!fdc_reset_stat)
                         fdc.st0 = 0x80;
@@ -1198,7 +1250,7 @@ void fdc_callback()
                 fdc.track[fdc.drive]=fdc.params[1];
 //                if (!driveempty[fdc.dor & 1]) discchanged[fdc.dor & 1] = 0;
 //                printf("Seeked to track %i %i\n",fdc.track[fdc.drive], fdc.drive);
-                if (fdc.drive <= 1)
+                if (fdc.params[0] <= 1)
                         fdc.st0 = 0x20 | (fdc.params[0] & 3) | (fdd_get_head(fdc.drive ^ fdd_swap)?4:0);
                 else
                         fdc.st0 = 0x68 | (fdc.params[0] & 3) | (fdd_get_head(fdc.drive ^ fdd_swap)?4:0);
@@ -1232,16 +1284,6 @@ void fdc_callback()
                 disctime = 0;
                 return;
                 
-#if 0
-                case 0x12:
-                fdc.perp = fdc.params[0];
-		pclog("PERPENDICULAR: Set to: %02X\n", fdc.perp);
-                fdc.stat = 0x80;
-                disctime = 0;
-//                picint(0x40);
-                return;
-#endif
-
 	        case 0x13: /*Configure*/
                 fdc.config = fdc.params[1];
                 fdc.pretrk = fdc.params[2];
@@ -1550,6 +1592,7 @@ void fdc_add()
         fdc.pcjr = 0;
         fdc.ps1 = 0;
 	fdc.max_track = 79;
+	fdc.perp = 0;
 }
 
 void fdc_add_for_superio()
@@ -1567,6 +1610,7 @@ void fdc_add_pcjr()
         fdc.pcjr = 1;
         fdc.ps1 = 0;
 	fdc.max_track = 79;
+	fdc.perp = 0;
 }
 
 void fdc_remove()

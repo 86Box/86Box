@@ -96,6 +96,7 @@ void fatal(const char *format, ...)
    va_end(ap);
    fflush(stdout);
    savenvr();
+   saveconfig();
    dumppic();
    dumpregs();
    fflush(stdout);
@@ -360,6 +361,7 @@ void resetpc_cad()
 void resetpchard()
 {
 	savenvr();
+	saveconfig();
 
         device_close_all();
         device_init();
@@ -618,13 +620,18 @@ void loadconfig(char *fn)
         video_speed = config_get_int(NULL, "video_speed", 3);
         sound_card_current = config_get_int(NULL, "sndcard", SB2);
 
+	// d86f_unregister(0);
+	// d86f_unregister(1);
+
         p = (char *)config_get_string(NULL, "disc_a", "");
         if (p) strcpy(discfns[0], p);
         else   strcpy(discfns[0], "");
+        ui_writeprot[0] = config_get_int(NULL, "disc_a_writeprot", 0);
 
         p = (char *)config_get_string(NULL, "disc_b", "");
         if (p) strcpy(discfns[1], p);
         else   strcpy(discfns[1], "");
+        ui_writeprot[1] = config_get_int(NULL, "disc_b_writeprot", 0);
 
         mem_size = config_get_int(NULL, "mem_size", 4096);
         if (mem_size < (models[model].is_at ? models[model].min_ram*1024 : models[model].min_ram))
@@ -746,7 +753,9 @@ void saveconfig()
         config_set_int(NULL, "cache", cache);
         config_set_int(NULL, "cga_composite", cga_comp);
         config_set_string(NULL, "disc_a", discfns[0]);
+        config_set_int(NULL, "disc_a_writeprot", ui_writeprot[0]);
         config_set_string(NULL, "disc_b", discfns[1]);
+        config_set_int(NULL, "disc_b_writeprot", ui_writeprot[1]);
         config_set_int(NULL, "mem_size", mem_size);
         config_set_int(NULL, "cdrom_drive", cdrom_drive);
         config_set_int(NULL, "cdrom_enabled", cdrom_enabled);

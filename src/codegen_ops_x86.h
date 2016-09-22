@@ -2173,82 +2173,6 @@ static void FP_LOAD_REG_D(int reg, int *host_reg1, int *host_reg2)
         *host_reg2 = REG_ECX;
 }
 
-
-static double _fp_half = 0.5;
-
-static void FP_LOAD_ROUNDING()
-{
-        pclog("cpu_state.npxc %04x\n", cpu_state.npxc);
-        addbyte(0x8b); /*MOV EDX, npxc*/
-        addbyte(0x15);
-        addlong((uintptr_t)&cpu_state.npxc);
-        addbyte(0xd9); /*FSTCW [ESP+8]*/
-        addbyte(0x7c);
-        addbyte(0x24);
-        addbyte(0x08);
-        addbyte(0x89); /*MOV [ESP+12],EDX*/
-        addbyte(0x54);
-        addbyte(0x24);
-        addbyte(0x0c);
-        addbyte(0xd9); /*FLDCW [ESP+12]*/
-        addbyte(0x6c);
-        addbyte(0x24);
-        addbyte(0x0c);
-}
-static void FP_RESTORE_ROUNDING()
-{
-        addbyte(0xd9); /*FLDCW [ESP+8]*/
-        addbyte(0x6c);
-        addbyte(0x24);
-        addbyte(0x08);
-}
-
-static int32_t x87_fround32(double b)
-{
-        int64_t a, c;
-        
-        switch ((cpu_state.npxc >> 10) & 3)
-        {
-                case 0: /*Nearest*/
-                a = (int64_t)floor(b);
-                c = (int64_t)floor(b + 1.0);
-                if ((b - a) < (c - b))
-                        return a;
-                else if ((b - a) > (c - b))
-                        return c;
-                else
-                        return (a & 1) ? c : a;
-                case 1: /*Down*/
-                return (int32_t)floor(b);
-                case 2: /*Up*/
-                return (int32_t)ceil(b);
-                case 3: /*Chop*/
-                return (int32_t)b;
-        }
-}
-static int64_t x87_fround64(double b)
-{
-        int64_t a, c;
-        
-        switch ((cpu_state.npxc >> 10) & 3)
-        {
-                case 0: /*Nearest*/
-                a = (int64_t)floor(b);
-                c = (int64_t)floor(b + 1.0);
-                if ((b - a) < (c - b))
-                        return a;
-                else if ((b - a) > (c - b))
-                        return c;
-                else
-                        return (a & 1) ? c : a;
-                case 1: /*Down*/
-                return (int64_t)floor(b);
-                case 2: /*Up*/
-                return (int64_t)ceil(b);
-                case 3: /*Chop*/
-                return (int64_t)b;
-        }
-}
 static int FP_LOAD_REG_INT_W(int reg)
 {
         addbyte(0x8b); /*MOV EBX, TOP*/
@@ -2268,25 +2192,19 @@ static int FP_LOAD_REG_INT_W(int reg)
         addbyte(0xdd);
         addbyte(cpu_state_offset(ST));
         
-        addbyte(0x89); /*MOV [ESP+8], EAX*/
-        addbyte(0x44);
+        addbyte(0xd9); /*FLDCW cpu_state.new_npxc*/
+        addbyte(0x6d);
+        addbyte(cpu_state_offset(new_npxc));
+        addbyte(0xdb); /*FISTP [ESP]*/
+        addbyte(0x1c);
         addbyte(0x24);
-        addbyte(0x08);
-        
-        addbyte(0xdd); /*FSTP [ESP]*/
+        addbyte(0xd9); /*FLDCW cpu_state.old_npxc*/
+        addbyte(0x6d);
+        addbyte(cpu_state_offset(old_npxc));
+        addbyte(0x8b); /*MOV EBX, [ESP]*/
         addbyte(0x1c);
         addbyte(0x24);
 
-        CALL_FUNC(x87_fround32);
-        
-        addbyte(0x89); /*MOV EBX, EAX*/
-        addbyte(0xc3);
-        
-        addbyte(0x8b); /*MOV EAX, [ESP+8]*/
-        addbyte(0x44);
-        addbyte(0x24);
-        addbyte(0x08);
-        
         return REG_EBX;
 }
 static int FP_LOAD_REG_INT(int reg)
@@ -2308,25 +2226,19 @@ static int FP_LOAD_REG_INT(int reg)
         addbyte(0xdd);
         addbyte(cpu_state_offset(ST));
 
-        addbyte(0x89); /*MOV [ESP+8], EAX*/
-        addbyte(0x44);
+        addbyte(0xd9); /*FLDCW cpu_state.new_npxc*/
+        addbyte(0x6d);
+        addbyte(cpu_state_offset(new_npxc));
+        addbyte(0xdb); /*FISTP [ESP]*/
+        addbyte(0x1c);
         addbyte(0x24);
-        addbyte(0x08);
-        
-        addbyte(0xdd); /*FSTP [ESP]*/
+        addbyte(0xd9); /*FLDCW cpu_state.old_npxc*/
+        addbyte(0x6d);
+        addbyte(cpu_state_offset(old_npxc));
+        addbyte(0x8b); /*MOV EBX, [ESP]*/
         addbyte(0x1c);
         addbyte(0x24);
 
-        CALL_FUNC(x87_fround32);
-        
-        addbyte(0x89); /*MOV EBX, EAX*/
-        addbyte(0xc3);
-        
-        addbyte(0x8b); /*MOV EAX, [ESP+8]*/
-        addbyte(0x44);
-        addbyte(0x24);
-        addbyte(0x08);
-        
         return REG_EBX;
 }
 static void FP_LOAD_REG_INT_Q(int reg, int *host_reg1, int *host_reg2)
@@ -2378,34 +2290,29 @@ static void FP_LOAD_REG_INT_Q(int reg, int *host_reg1, int *host_reg2)
         addbyte(cpu_state_offset(MM));
         
         addbyte(0xeb); /*JMP done*/
-        addbyte(4+4+3+5+2+2+4);
+        addbyte(4+3+3+3+3+4);
         
         addbyte(0xdd); /*FLD ST[EBX*8]*/
         addbyte(0x44);
         addbyte(0xdd);
         addbyte(cpu_state_offset(ST));
 
-        addbyte(0x89); /*MOV [ESP+8], EAX*/
-        addbyte(0x44);
+        addbyte(0xd9); /*FLDCW cpu_state.new_npxc*/
+        addbyte(0x6d);
+        addbyte(cpu_state_offset(new_npxc));
+        addbyte(0xdf); /*FISTPQ [ESP]*/
+        addbyte(0x3c);
         addbyte(0x24);
-        addbyte(0x08);
-        
-        addbyte(0xdd); /*FSTP [ESP]*/
+        addbyte(0xd9); /*FLDCW cpu_state.old_npxc*/
+        addbyte(0x6d);
+        addbyte(cpu_state_offset(old_npxc));
+        addbyte(0x8b); /*MOV EBX, [ESP]*/
         addbyte(0x1c);
         addbyte(0x24);
-
-        CALL_FUNC(x87_fround64);
-        
-        addbyte(0x89); /*MOV EBX, EAX*/
-        addbyte(0xc3);
-        
-        addbyte(0x89); /*MOV ECX, EDX*/
-        addbyte(0xd1);
-
-        addbyte(0x8b); /*MOV EAX, [ESP+8]*/
-        addbyte(0x44);
+        addbyte(0x8b); /*MOV ECX, 4[ESP]*/
+        addbyte(0x4c);
         addbyte(0x24);
-        addbyte(0x08);
+        addbyte(4);
 
         *host_reg1 = REG_EBX;
         *host_reg2 = REG_ECX;
@@ -2511,31 +2418,9 @@ static void FP_OP_D(int op)
                 addbyte(0x04);
                 if (((cpu_state.npxc >> 10) & 3) && op == FPU_ADD)
                 {
-                        addbyte(0x9b); /*FSTCW [ESP+8]*/
-                        addbyte(0xd9);
-                        addbyte(0x7c);
-                        addbyte(0x24);
-                        addbyte(0x08);
-                        addbyte(0x66); /*MOV AX, [ESP+8]*/
-                        addbyte(0x8b);
-                        addbyte(0x44);
-                        addbyte(0x24);
-                        addbyte(0x08);
-                        addbyte(0x66); /*AND AX, ~(3 << 10)*/
-                        addbyte(0x25);
-                        addword(~(3 << 10));
-                        addbyte(0x66); /*OR AX, npxc & (3 << 10)*/
-                        addbyte(0x0d);
-                        addword(cpu_state.npxc & (3 << 10));
-                        addbyte(0x66); /*MOV [ESP+12], AX*/
-                        addbyte(0x89);
-                        addbyte(0x44);
-                        addbyte(0x24);
-                        addbyte(0x0c);
-                        addbyte(0xd9); /*FLDCW [ESP+12]*/
-                        addbyte(0x6c);
-                        addbyte(0x24);
-                        addbyte(0x0c);
+                        addbyte(0xd9); /*FLDCW cpu_state.new_npxc*/
+                        addbyte(0x6d);
+                        addbyte(cpu_state_offset(new_npxc));
                 }
                 addbyte(0xdd); /*FLD ST[dst][EBP]*/
                 addbyte(0x45);
@@ -2552,10 +2437,9 @@ static void FP_OP_D(int op)
                 addbyte(cpu_state_offset(ST[cpu_state.TOP]));
                 if (((cpu_state.npxc >> 10) & 3) && op == FPU_ADD)
                 {
-                        addbyte(0xd9); /*FLDCW [ESP+8]*/
-                        addbyte(0x6c);
-                        addbyte(0x24);
-                        addbyte(0x08);
+                        addbyte(0xd9); /*FLDCW cpu_state.old_npxc*/
+                        addbyte(0x6d);
+                        addbyte(cpu_state_offset(old_npxc));
                 }
         }
         else
@@ -2568,31 +2452,9 @@ static void FP_OP_D(int op)
                 addbyte(0x24);
                 if (((cpu_state.npxc >> 10) & 3) && op == FPU_ADD)
                 {
-                        addbyte(0x9b); /*FSTCW [ESP+8]*/
-                        addbyte(0xd9);
-                        addbyte(0x7c);
-                        addbyte(0x24);
-                        addbyte(0x08);
-                        addbyte(0x66); /*MOV AX, [ESP+8]*/
-                        addbyte(0x8b);
-                        addbyte(0x44);
-                        addbyte(0x24);
-                        addbyte(0x08);
-                        addbyte(0x66); /*AND AX, ~(3 << 10)*/
-                        addbyte(0x25);
-                        addword(~(3 << 10));
-                        addbyte(0x66); /*OR AX, npxc & (3 << 10)*/
-                        addbyte(0x0d);
-                        addword(cpu_state.npxc & (3 << 10));
-                        addbyte(0x66); /*MOV [ESP+12], AX*/
-                        addbyte(0x89);
-                        addbyte(0x44);
-                        addbyte(0x24);
-                        addbyte(0x0c);
-                        addbyte(0xd9); /*FLDCW [ESP+12]*/
-                        addbyte(0x6c);
-                        addbyte(0x24);
-                        addbyte(0x0c);
+                        addbyte(0xd9); /*FLDCW cpu_state.new_npxc*/
+                        addbyte(0x6d);
+                        addbyte(cpu_state_offset(new_npxc));
                 }
                 addbyte(0x89); /*MOV [ESP+4], EDX*/
                 addbyte(0x54);
@@ -2616,10 +2478,9 @@ static void FP_OP_D(int op)
                 addbyte(cpu_state_offset(ST));
                 if (((cpu_state.npxc >> 10) & 3) && op == FPU_ADD)
                 {
-                        addbyte(0xd9); /*FLDCW [ESP+8]*/
-                        addbyte(0x6c);
-                        addbyte(0x24);
-                        addbyte(0x08);
+                        addbyte(0xd9); /*FLDCW cpu_state.old_npxc*/
+                        addbyte(0x6d);
+                        addbyte(cpu_state_offset(old_npxc));
                 }
         }        
 }
@@ -3224,6 +3085,32 @@ static void FP_COMPARE_REG(int dst, int src)
                 addbyte(0x4d);
                 addbyte(cpu_state_offset(npxs) + 1);
         }
+}
+
+static void UPDATE_NPXC(int reg)
+{
+        addbyte(0x66); /*AND cpu_state.new_npxc, ~0xc00*/
+        addbyte(0x81);
+        addbyte(0x65);
+        addbyte(cpu_state_offset(new_npxc));
+        addword(~0xc00);
+        if (reg)
+        {
+                addbyte(0x66); /*AND reg, 0xc00*/
+                addbyte(0x81);
+                addbyte(0xe0 | reg);
+                addword(0xc00);
+        }
+        else
+        {
+                addbyte(0x66); /*AND AX, 0xc00*/
+                addbyte(0x25);
+                addword(0xc00);
+        }
+        addbyte(0x66); /*OR cpu_state.new_npxc, reg*/
+        addbyte(0x09);
+        addbyte(0x45 | (reg << 3));
+        addbyte(cpu_state_offset(new_npxc));
 }
 
 static int ZERO_EXTEND_W_B(int reg)

@@ -580,6 +580,7 @@ static uint32_t ropFLDCW(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
         
         MEM_LOAD_ADDR_EA_W(target_seg);
         STORE_HOST_REG_ADDR_W((uintptr_t)&cpu_state.npxc, 0);
+        UPDATE_NPXC(0);
         
         return op_pc + 1;
 }

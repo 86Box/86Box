@@ -31,6 +31,7 @@ void fdc_update_densel_force(int densel_force);
 void fdc_update_drvrate(int drive, int drvrate);
 void fdc_update_drv2en(int drv2en);
 
+int fdc_get_drive();
 int fdc_get_perp();
 int fdc_get_format_n();
 int fdc_is_mfm();
@@ -39,6 +40,7 @@ double fdc_get_hlt();
 void fdc_request_next_sector_id();
 void fdc_stop_id_request();
 int fdc_get_gap();
+int fdc_get_gap2(int drive);
 int fdc_get_dtl();
 int fdc_get_format_sectors();
 

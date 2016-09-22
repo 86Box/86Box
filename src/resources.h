@@ -10,6 +10,8 @@
 #define IDM_EJECT_A        40012
 #define IDM_EJECT_B        40013
 #define IDM_HDCONF         40014
+#define IDM_DISC_A_WP      40015
+#define IDM_DISC_B_WP      40016
 #define IDM_CONFIG         40020
 #define IDM_CONFIG_LOAD    40021
 #define IDM_CONFIG_SAVE    40022

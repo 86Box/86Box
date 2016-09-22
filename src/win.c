@@ -805,6 +805,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 //        pclog("Quited? %i\n",quited);
 //        pclog("Closepc\n");
         savenvr();
+	saveconfig();
         if (save_window_pos && window_remember)
                 saveconfig();
          closepc();
@@ -974,6 +975,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         pause=1;
                         Sleep(100);
                         savenvr();
+			saveconfig();
                         resetpc();
                         pause=0;
                         break;
@@ -982,6 +984,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         pause=1;
                         Sleep(100);
                         savenvr();
+			saveconfig();
                         resetpchard();
                         pause=0;
                         break;
@@ -989,6 +992,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         pause=1;
                         Sleep(100);
                         savenvr();
+			saveconfig();
                         resetpc_cad();
                         pause=0;
                         break;
@@ -996,17 +1000,21 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
                         break;
                         case IDM_DISC_A:
+                        case IDM_DISC_A_WP:
                         if (!getfile(hwnd,"Disc image (*.12;*.144;*.360;*.720;*.86F;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD)\0*.12;*.144;*.360;*.720;*.86F;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD\0All files (*.*)\0*.*\0",discfns[0]))
                         {
                                 disc_close(0);
+				ui_writeprot[0] = (LOWORD(wParam) == IDM_DISC_A_WP) ? 1 : 0;
                                 disc_load(0, openfilestring);
                                 saveconfig();
                         }
                         break;
                         case IDM_DISC_B:
+                        case IDM_DISC_B_WP:
                         if (!getfile(hwnd,"Disc image (*.12;*.144;*.360;*.720;*.86F;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD)\0*.12;*.144;*.360;*.720;*.86F;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD\0All files (*.*)\0*.*\0",discfns[1]))
                         {
                                 disc_close(1);
+				ui_writeprot[1] = (LOWORD(wParam) == IDM_DISC_B_WP) ? 1 : 0;
                                 disc_load(1, openfilestring);
                                 saveconfig();
                         }

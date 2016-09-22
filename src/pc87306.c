@@ -33,22 +33,24 @@ void pc87306_gpio_write(uint16_t port, uint8_t val, void *priv)
 
 uint8_t uart_int1()
 {
-	return ((pc87306_regs[0x1C] >> 2) & 1) ? 3 : 4;
+	return ((pc87306_regs[0x1C] >> 2) & 1) ? 4 : 3;
 }
 
 uint8_t uart_int2()
 {
-	return ((pc87306_regs[0x1C] >> 6) & 1) ? 3 : 4;
+	return ((pc87306_regs[0x1C] >> 6) & 1) ? 4 : 3;
 }
 
 uint8_t uart1_int()
 {
-	return (pc87306_regs[0x1C] & 1) ? uart_int1() : 4;
+	temp = ((pc87306_regs[1] >> 2) & 1) ? 3 : 4;	/* 0 = IRQ 4, 1 = IRQ 3 */
+	return (pc87306_regs[0x1C] & 1) ? uart_int1() : temp;
 }
 
 uint8_t uart2_int()
 {
-	return (pc87306_regs[0x1C] & 1) ? uart_int2() : 3;
+	temp = ((pc87306_regs[1] >> 4) & 1) ? 3 : 4;	/* 0 = IRQ 4, 1 = IRQ 3 */
+	return (pc87306_regs[0x1C] & 1) ? uart_int2() : temp;
 }
 
 void serial1_handler()
@@ -178,7 +180,7 @@ process_value:
 			if (val & 2)
 			{
 				serial1_handler();
-				if (mouse_always_serial)  mouse_serial_init();
+				// if (mouse_always_serial)  mouse_serial_init();
 			}
 			if (val & 4)  serial2_handler();
 			
@@ -218,7 +220,7 @@ process_value:
 			if (pc87306_regs[0] & 2)
 			{
 				serial1_handler();
-	                        if (mouse_always_serial)  mouse_serial_init();
+	                        // if (mouse_always_serial)  mouse_serial_init();
 			}
 			if (pc87306_regs[0] & 4)  serial2_handler();
 			break;
@@ -237,7 +239,7 @@ process_value:
 				if (pc87306_regs[0] & 2)
 				{
 					serial1_handler();
-		                        if (mouse_always_serial)  mouse_serial_init();
+		                        // if (mouse_always_serial)  mouse_serial_init();
 				}
 				if (pc87306_regs[0] & 4)  serial2_handler();
 			}
