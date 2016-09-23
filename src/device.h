@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #define CONFIG_STRING 0
 #define CONFIG_INT 1
 #define CONFIG_BINARY 2

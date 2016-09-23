@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 typedef struct
 {
         char name[24];

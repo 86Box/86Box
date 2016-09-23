@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 typedef struct ati_eeprom_t
 {
         uint16_t data[256];

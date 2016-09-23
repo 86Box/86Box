@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 typedef struct ati68860_ramdac_t
 {
         uint8_t regs[16];

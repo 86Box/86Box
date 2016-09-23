@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*Trident TKD8001 RAMDAC emulation*/
 #include "ibm.h"
 #include "mem.h"

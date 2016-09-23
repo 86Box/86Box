@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 extern int firstline_draw, lastline_draw;
 extern int displine;
 extern int sc;

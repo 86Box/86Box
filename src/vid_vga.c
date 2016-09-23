@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*IBM VGA emulation*/
 #include <stdlib.h>
 #include "ibm.h"

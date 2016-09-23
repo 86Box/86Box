@@ -1,6 +1,3 @@
-/* Copyright holders: Tenshi
-   see COPYING for more details
-*/
 /*
 	Winbond W83877F Super I/O Chip
 	Used by the Award 430HX

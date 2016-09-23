@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 static int internal_illegal(char *s)
 {
 	cpu_state.pc = cpu_state.oldpc;

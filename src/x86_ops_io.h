@@ -1,6 +1,4 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
+
 static int opIN_AL_imm(uint32_t fetchdat)
 {       
         uint16_t port = (uint16_t)getbytef();

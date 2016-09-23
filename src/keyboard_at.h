@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 void keyboard_at_init();
 void keyboard_at_reset();
 void keyboard_at_poll();

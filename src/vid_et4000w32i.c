@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*The below is (with some removals) a reasonable emulation of the ET4000/W32i blitter.
   Unfortunately the Diamond Stealth 32 is actually an ET4000/W32p! Which has a different
   blitter. If only I'd dug out and looked at the card before trying to emulate it.

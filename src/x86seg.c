@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, SA1988
-   see COPYING for more details
-*/
 //#if 0
 #include <stdio.h>
 #include <stdarg.h>

@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*um8669f :
         
   aa to 108 unlocks

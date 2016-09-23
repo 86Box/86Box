@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 static int opAAA(uint32_t fetchdat)
 {
         flags_rebuild();

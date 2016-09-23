@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #include "timer.h"
 
 typedef struct ad1848_t

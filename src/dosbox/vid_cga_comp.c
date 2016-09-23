@@ -1,7 +1,5 @@
-/* Authors: Andrew Jenner
-   Extra contributors: Tenshi
-   Distributed as is with the Unlicense (PD), see "UNLICENSE"
-*/
+/*	Code borrowed from DOSBox and adapted by OBattler.
+	Original author: reenigne. */
 
 #include <stdlib.h>
 #include <stdint.h>

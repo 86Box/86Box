@@ -1,6 +1,3 @@
-/* Copyright holders: The DOSBox Team, SA1988
-   see COPYING for more details
-*/
 #ifdef __cplusplus
 extern "C" {
 #endif

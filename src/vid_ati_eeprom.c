@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #include "ibm.h"
 #include "vid_ati_eeprom.h"
 

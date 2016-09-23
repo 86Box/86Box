@@ -1,7 +1,3 @@
-/* Authors: Andrew Jenner
-   Extra contributors: Tenshi
-   Distributed as is with the Unlicense (PD), see "UNLICENSE"
-*/
 #define Bit8u uint8_t
 #define Bit32u uint32_t
 #define Bitu unsigned int

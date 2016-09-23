@@ -1,6 +1,3 @@
-/* Copyright holders: Tenshi
-   see COPYING for more details
-*/
 #include "ibm.h"
 #include "disc.h"
 #include "disc_86f.h"

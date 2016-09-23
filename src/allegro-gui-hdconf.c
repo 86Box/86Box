@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE

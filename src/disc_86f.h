@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 void d86f_init();
 void d86f_load(int drive, char *fn);
 void d86f_close(int drive);

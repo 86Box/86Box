@@ -1,6 +1,3 @@
-/* Copyright holders: Tenshi
-   see COPYING for more details
-*/
 /*
 	0xE1 and 0xE2 Memory Registers
 	Used by just about any emulated machine

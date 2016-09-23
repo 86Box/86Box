@@ -1,6 +1,3 @@
-/* Copyright holders: The DOSBox Team, SA1988
-   see COPYING for more details
-*/
 #include "dosbox/dbopl.h"
 #include "dosbox/nukedopl.h"
 #include "sound_dbopl.h"

@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, leilei
-   see COPYING for more details
-*/
 #ifndef _X86_OPS_H
 #define _X86_OPS_H
 

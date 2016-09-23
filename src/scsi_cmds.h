@@ -1,6 +1,3 @@
-/* Copyright holders: SA1988
-   see COPYING for more details
-*/
 /* ATAPI/SCSI Commands */
 #define TEST_UNIT_READY			0x00
 #define REQUEST_SENSE         	0x03

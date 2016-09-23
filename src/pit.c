@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 /*IBM AT -
   Write B0
   Write aa55

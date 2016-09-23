@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #include "allegro-main.h"
 #include "plat-joystick.h"
 #include "device.h"

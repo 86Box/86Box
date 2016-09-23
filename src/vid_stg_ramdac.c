@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 /*STG1702 true colour RAMDAC emulation*/
 #include "ibm.h"
 #include "mem.h"

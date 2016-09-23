@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*Olivetti M24 video emulation
   Essentially double-res CGA*/
 #include <stdlib.h>

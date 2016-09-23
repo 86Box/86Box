@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 /*It is unknown exactly what RAMDAC this is
   It is possibly a Sierra 1502x
   It's addressed by the TLIVESA1 driver for ET4000*/

@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #include "ibm.h"
 #include "keyboard_at.h"
 #include "mouse.h"
