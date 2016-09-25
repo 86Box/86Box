@@ -91,6 +91,8 @@ void fdd_seek(int drive, int track_diff)
 	}
 
         fdd[drive].track += track_diff;
+
+	// pclog("Seeking %i tracks...\n", track_diff);
         
         if (fdd[drive].track < 0)
                 fdd[drive].track = 0;

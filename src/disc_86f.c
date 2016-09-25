@@ -1465,7 +1465,7 @@ int d86f_poll_check_notfound(int drive)
 		/* The index hole has been hit twice and we're still in a find state.
 		   This means sector finding has failed for whatever reason.
 		   Abort with sector not found and set state to idle. */
-		// pclog("d86f_poll(): Sector not found (%i %i %i %i) (%i, %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive));
+		pclog("d86f_poll(): Sector not found (%i %i %i %i) (%i, %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive));
 		fdc_notfound();
 		d86f[drive].state = STATE_IDLE;
 		d86f[drive].index_count = 0;
@@ -1932,7 +1932,7 @@ void d86f_poll_format(int drive, int side)
 			{
 				d86f_handler[drive].write_data(drive, side, d86f[drive].id_pos, d86f[drive].fill);
 			}
-			d86f_calccrc(drive, d86f[drive].track_data_byte);
+			d86f_calccrc(drive, d86f[drive].fill);
 			break;
 		case BYTE_ID_CRC:
 		case BYTE_DATA_CRC:

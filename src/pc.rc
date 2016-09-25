@@ -208,7 +208,7 @@ HdConfDlg DIALOGEX 0, 0, 210, 286+4*16
 
 END
 
-HdNewDlg DIALOGEX 0, 0, 186, 86
+HdNewDlg DIALOGEX 0, 0, 216, 86
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "New Hard Disc"
 FONT 9, "Segoe UI"
@@ -216,19 +216,23 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,31,66,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,101,66,50,14
     
-    EDITTEXT        IDC_EDITC, 7, 6, 136, 12
-    PUSHBUTTON      "...",IDC_CFILE,7 + 136,      6, 16, 14
+    EDITTEXT        IDC_EDITC, 7, 6, 187, 12
+    PUSHBUTTON      "...",IDC_CFILE,7 + 187,      6, 16, 14
     
     EDITTEXT        IDC_EDIT1,36,22,16,12
     EDITTEXT        IDC_EDIT2,94,22,16,12
     EDITTEXT        IDC_EDIT3,152,22,28,12
-    LTEXT           "Sectors:",IDC_STATIC,7,22,27,10
-    LTEXT           "Heads:",IDC_STATIC,63,22,29,8
-    LTEXT           "Cylinders:",IDC_STATIC,120,22,32,12
-    LTEXT           "", IDC_TEXT1, 7, 38, 136, 12
+    EDITTEXT        IDC_EDIT4,36,38,28,12
+    COMBOBOX        IDC_COMBOHDT,117,38,93,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Sectors:",IDC_STATIC,7,23,27,10
+    LTEXT           "Heads:",IDC_STATIC,63,23,29,8
+    LTEXT           "Cylinders:",IDC_STATIC,120,23,32,12
+    LTEXT           "Size:",IDC_STATIC,7,39,17,8
+    LTEXT           "MB",IDC_STATIC,68,39,10,8
+    LTEXT           "Type:",IDC_STATIC,94,39,17,8
 END
 
-HdSizeDlg DIALOGEX 0, 0, 186, 86
+HdSizeDlg DIALOGEX 0, 0, 216, 86
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Hard disc parameters"
 FONT 9, "Segoe UI"
@@ -236,15 +240,19 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,31,66,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,101,66,50,14
     
-    LTEXT           "Initial settings are based on file size",IDC_STATIC,7,6,170,10
+    LTEXT           "Initial settings are based on file size (header if HDI)",IDC_STATIC,7,6,200,10
     
     EDITTEXT        IDC_EDIT1,36,22,16,12
     EDITTEXT        IDC_EDIT2,94,22,16,12
     EDITTEXT        IDC_EDIT3,152,22,28,12
-    LTEXT           "Sectors:",IDC_STATIC,7,22,27,10
-    LTEXT           "Heads:",IDC_STATIC,63,22,29,8
-    LTEXT           "Cylinders:",IDC_STATIC,120,22,32,12
-    LTEXT           "", IDC_TEXT1, 7, 38, 136, 12
+    EDITTEXT        IDC_EDIT4,36,38,28,12
+    COMBOBOX        IDC_COMBOHDT,117,38,93,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Sectors:",IDC_STATIC,7,23,27,10
+    LTEXT           "Heads:",IDC_STATIC,63,23,29,8
+    LTEXT           "Cylinders:",IDC_STATIC,120,23,32,12
+    LTEXT           "Size:",IDC_STATIC,7,39,17,8
+    LTEXT           "MB",IDC_STATIC,68,39,10,8
+    LTEXT           "Type:",IDC_STATIC,94,39,17,8
 END
 
 StatusDlg DIALOGEX 0,0,186,186+20+180

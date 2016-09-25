@@ -550,11 +550,17 @@ char pcempath[512];
 typedef struct
 {
         FILE *f;
-        int spt,hpc; /*Sectors per track, heads per cylinder*/
-        int tracks;
+        uint64_t spt,hpc; /*Sectors per track, heads per cylinder*/
+        uint64_t tracks;
+	int is_hdi;
+        uint32_t base;
 } hard_disk_t;
 
 hard_disk_t hdc[4];
+
+uint64_t hdt[128][3];
+
+int image_is_hdi(char *s);
 
 /*Keyboard*/
 int64_t keybsenddelay;

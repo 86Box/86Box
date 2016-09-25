@@ -360,7 +360,7 @@ void img_load(int drive, char *fn)
 				img[drive].dmf = 0;
 			}
 
-			pclog("Image parameters: bit rate 300: %f, temporary rate: %i, hole: %i, XDF type: %i\n", bit_rate_300, temp_rate, img[drive].disk_flags >> 1, img[drive].xdf_type);
+			pclog("Image parameters: bit rate 300: %f, temporary rate: %i, hole: %i, DMF: %i, XDF type: %i\n", bit_rate_300, temp_rate, img[drive].disk_flags >> 1, img[drive].dmf, img[drive].xdf_type);
 			break;
 		}
 	}

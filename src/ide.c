@@ -295,6 +295,23 @@ enum
         IDE_CDROM
 };
 
+uint64_t hdt[128][3] = {	{  306,  4, 17 }, {  615,  2, 17 }, {  306,  4, 26 }, { 1024,  2, 17 }, {  697,  3, 17 }, {  306,  8, 17 }, {  614,  4, 17 }, {  615,  4, 17 },		/* 000-007 */
+			{  670,  4, 17 }, {  697,  4, 17 }, {  987,  3, 17 }, {  820,  4, 17 }, {  670,  5, 17 }, {  697,  5, 17 }, {  733,  5, 17 }, {  615,  6, 17 },		/* 008-015 */
+			{  462,  8, 17 }, {  306,  8, 26 }, {  615,  4, 26 }, { 1024,  4, 17 }, {  855,  5, 17 }, {  925,  5, 17 }, {  932,  5, 17 }, { 1024,  2, 40 },		/* 016-023 */
+			{  809,  6, 17 }, {  976,  5, 17 }, {  977,  5, 17 }, {  698,  7, 17 }, {  699,  7, 17 }, {  981,  5, 17 }, {  615,  8, 17 }, {  989,  5, 17 },		/* 024-031 */
+			{  820,  4, 26 }, { 1024,  5, 17 }, {  733,  7, 17 }, {  754,  7, 17 }, {  733,  5, 26 }, {  940,  6, 17 }, {  615,  6, 26 }, {  462,  8, 26 },		/* 032-039 */
+			{  830,  7, 17 }, {  855,  7, 17 }, {  751,  8, 17 }, { 1024,  4, 26 }, {  918,  7, 17 }, {  925,  7, 17 }, {  855,  5, 26 }, {  977,  7, 17 },		/* 040-047 */
+			{  987,  7, 17 }, { 1024,  7, 17 }, {  823,  4, 38 }, {  925,  8, 17 }, {  809,  6, 26 }, {  976,  5, 26 }, {  977,  5, 26 }, {  698,  7, 26 },		/* 048-055 */
+			{  699,  7, 26 }, {  940,  8, 17 }, {  615,  8, 26 }, { 1024,  5, 26 }, {  733,  7, 26 }, { 1024,  8, 17 }, {  823, 10, 17 }, {  754, 11, 17 },		/* 056-063 */
+			{  830, 10, 17 }, {  925,  9, 17 }, { 1224,  7, 17 }, {  940,  6, 26 }, {  855,  7, 26 }, {  751,  8, 26 }, { 1024,  9, 17 }, {  965, 10, 17 },		/* 064-071 */
+			{  969,  5, 34 }, {  980, 10, 17 }, {  960,  5, 35 }, {  918, 11, 17 }, { 1024, 10, 17 }, {  977,  7, 26 }, { 1024,  7, 26 }, { 1024, 11, 17 },		/* 072-079 */
+			{  940,  8, 26 }, {  776,  8, 33 }, {  755, 16, 17 }, { 1024, 12, 17 }, { 1024,  8, 26 }, {  823, 10, 26 }, {  830, 10, 26 }, {  925,  9, 26 },		/* 080-087 */
+			{  960,  9, 26 }, { 1024, 13, 17 }, { 1224, 11, 17 }, {  900, 15, 17 }, {  969,  7, 34 }, {  917, 15, 17 }, {  918, 15, 17 }, { 1524,  4, 39 },		/* 088-095 */
+			{ 1024,  9, 26 }, { 1024, 14, 17 }, {  965, 10, 26 }, {  980, 10, 26 }, { 1020, 15, 17 }, { 1023, 15, 17 }, { 1024, 15, 17 }, { 1024, 16, 17 },		/* 096-103 */
+			{ 1224, 15, 17 }, {  755, 16, 26 }, {  903,  8, 46 }, {  984, 10, 34 }, {  900, 15, 26 }, {  917, 15, 26 }, { 1023, 15, 26 }, {  684, 16, 38 },		/* 104-111 */
+			{ 1930,  4, 62 }, {  967, 16, 31 }, { 1013, 10, 63 }, { 1218, 15, 36 }, {  654, 16, 63 }, {  659, 16, 63 }, {  702, 16, 63 }, { 1002, 13, 63 },		/* 112-119 */
+			{  854, 16, 63 }, {  987, 16, 63 }, {  995, 16, 63 }, { 1024, 16, 63 }, { 1036, 16, 63 }, { 1120, 16, 59 }, { 1054, 16, 63 }, {    0,  0,  0 }	};	/* 119-127 */
+			
 typedef struct IDE
 {
         int type;
@@ -321,6 +338,8 @@ typedef struct IDE
         int skip512;
         int blocksize, blockcount;
 		uint16_t dma_identify_data[3];
+		int hdi,base;
+		int hdc_num;
 } IDE;
 
 IDE ide_drives[6];
@@ -342,6 +361,28 @@ int64_t idecallback[3] = {0, 0, 0};
 int cur_ide[3];
 
 uint8_t getstat(IDE *ide) { return ide->atastat; }
+
+int image_is_hdi(char *s)
+{
+	int len;
+	char ext[5] = { 0, 0, 0, 0, 0 };
+	len = strlen(s);
+	ext[0] = s[len - 4];
+	ext[1] = s[len - 3];
+	if ((ext[1] >= 0x61) && (ext[1] <= 0x7a))  ext[1] &= ~0x20;
+	ext[2] = s[len - 2];
+	if ((ext[2] >= 0x61) && (ext[2] <= 0x7a))  ext[2] &= ~0x20;
+	ext[3] = s[len - 1];
+	if ((ext[3] >= 0x61) && (ext[3] <= 0x7a))  ext[3] &= ~0x20;
+	if (strcmp(ext, ".HDI") == 0)
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
 
 static inline void ide_irq_raise(IDE *ide)
 {
@@ -704,63 +745,16 @@ static void ide_next_sector(IDE *ide)
 	}
 }
 
-#ifdef RPCEMU_IDE
 static void loadhd(IDE *ide, int d, const char *fn)
 {
-	char pathname[512];
-
-	append_filename(pathname, rpcemu_get_datadir(), fn, 512);
-
-        rpclog("Loading %s\n",pathname);
-	if (ide->hdfile == NULL) {
-		/* Try to open existing hard disk image */
-		ide->hdfile = fopen64(pathname, "rb+");
-		if (ide->hdfile == NULL) {
-			/* Failed to open existing hard disk image */
-			if (errno == ENOENT) {
-				/* Failed because it does not exist,
-				   so try to create new file */
-				ide->hdfile = fopen64(pathname, "wb+");
-				if (ide->hdfile == NULL) {
-					fatal("Cannot create file '%s': %s",
-					      pathname, strerror(errno));
-				}
-			} else {
-				/* Failed for another reason */
-				fatal("Cannot open file '%s': %s",
-				      pathname, strerror(errno));
-			}
-		}
-	}
-
-        fseek(ide->hdfile, 0xfc1, SEEK_SET);
-        ide->spt = getc(ide->hdfile);
-        ide->hpc = getc(ide->hdfile);
-        ide->skip512 = 1;
-//        rpclog("First check - spt %i hpc %i\n",ide.spt[0],ide.hpc[0]);
-        if (!ide->spt || !ide->hpc)
-        {
-                fseek(ide->hdfile, 0xdc1, SEEK_SET);
-                ide->spt = getc(ide->hdfile);
-                ide->hpc = getc(ide->hdfile);
-//                rpclog("Second check - spt %i hpc %i\n",ide.spt[0],ide.hpc[0]);
-                ide->skip512 = 0;
-                if (!ide->spt || !ide->hpc)
-                {
-                        ide->spt=63;
-                        ide->hpc=16;
-                        ide->skip512 = 1;
-//        rpclog("Final check - spt %i hpc %i\n",ide.spt[0],ide.hpc[0]);
-                }
-        }
-
-        ide->type = IDE_HDD;
-        
-        rpclog("%i %i %i\n",ide->spt,ide->hpc,ide->skip512);
-}
-#else
-static void loadhd(IDE *ide, int d, const char *fn)
-{
+	uint32_t sector_size = 512;
+	uint32_t zero = 0;
+	uint32_t full_size = 0;
+	uint32_t transl_spt = 0;
+	uint32_t transl_hpc = 0;
+	int c;
+	ide->base = 0;
+	ide->hdi = 0;
 	if (ide->hdfile == NULL) {
 		/* Try to open existing hard disk image */
 		ide->hdfile = fopen64(fn, "rb+");
@@ -776,6 +770,28 @@ static void loadhd(IDE *ide, int d, const char *fn)
 					      fn, strerror(errno));*/
 					return;
 				}
+				else
+				{
+					if (image_is_hdi(fn))
+					{
+						full_size = hdc[d].spt * hdc[d].hpc * hdc[d].tracks * 512;
+						ide->base = 0x1000;
+						ide->hdi = 1;
+						fwrite(&zero, 1, 4, ide->hdfile);
+						fwrite(&zero, 1, 4, ide->hdfile);
+						fwrite(&(ide->base), 1, 4, ide->hdfile);
+						fwrite(&full_size, 1, 4, ide->hdfile);
+						fwrite(&sector_size, 1, 4, ide->hdfile);
+						fwrite(&(hdc[d].spt), 1, 4, ide->hdfile);
+						fwrite(&(hdc[d].hpc), 1, 4, ide->hdfile);
+						fwrite(&(hdc[d].tracks), 1, 4, ide->hdfile);
+						for (c = 0; c < 0x3f8; c++)
+						{
+							fwrite(&zero, 1, 4, ide->hdfile);
+						}
+					}
+					ide->hdc_num = d;
+				}
 			} else {
 				/* Failed for another reason */
                                 ide->type = IDE_NONE;
@@ -785,13 +801,34 @@ static void loadhd(IDE *ide, int d, const char *fn)
 			}
 		}
 	}
-
+	else
+	{
+		if (image_is_hdi(fn))
+		{
+			fseek(ide->hdfile, 0x8, SEEK_SET);
+			fread(&(ide->base), 1, 4, ide->hdfile);
+			fseek(ide->hdfile, 0x10, SEEK_SET);
+			fread(&sector_size, 1, 4, ide->hdfile);
+			if (sector_size != 512)
+			{
+				/* Sector size is not 512 */
+				fclose(ide->hdfile);
+				ide->type = IDE_NONE;
+				return;
+			}
+			fread(&(hdc[d].spt), 1, 4, ide->hdfile);
+			fread(&(hdc[d].hpc), 1, 4, ide->hdfile);
+			fread(&(hdc[d].tracks), 1, 4, ide->hdfile);
+			ide->hdi = 1;
+		}
+	}
+	
         ide->spt = hdc[d].spt;
         ide->hpc = hdc[d].hpc;
         ide->tracks = hdc[d].tracks;
         ide->type = IDE_HDD;
+		ide->hdc_num = d;
 }
-#endif
 
 void ide_set_signature(IDE *ide)
 {
@@ -1524,6 +1561,7 @@ void callbackide(int ide_board)
         IDE *ide = &ide_drives[cur_ide[ide_board]];
         IDE *ide_other = &ide_drives[cur_ide[ide_board] ^ 1];
         off64_t addr;
+		uint64_t faddr;
         int c;
         ext_ide = ide;
 		int64_t snum;
@@ -1613,7 +1651,7 @@ void callbackide(int ide_board)
                 {
                         fatal("Read from other cylinder/head");
                 }*/
-                fseeko64(ide->hdfile, addr, SEEK_SET);
+                fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
                 fread(ide->buffer, 512, 1, ide->hdfile);
                 ide->pos=0;
                 ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
@@ -1633,7 +1671,7 @@ void callbackide(int ide_board)
                 else
                 {
                         addr = ide_get_sector(ide) * 512;
-                        fseeko64(ide->hdfile, addr, SEEK_SET);
+                        fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
                         fread(ide->buffer, 512, 1, ide->hdfile);
                         ide->pos=0;
                 }
@@ -1678,7 +1716,7 @@ void callbackide(int ide_board)
 
                 addr = ide_get_sector(ide) * 512;
 //                pclog("Read multiple from %08X %i (%i) %i\n", addr, ide->blockcount, ide->blocksize, ide->secount);
-                fseeko64(ide->hdfile, addr, SEEK_SET);
+                fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
                 fread(ide->buffer, 512, 1, ide->hdfile);
                 ide->pos=0;
                 ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
@@ -1702,7 +1740,7 @@ void callbackide(int ide_board)
                 }
                 addr = ide_get_sector(ide) * 512;
 //                pclog("Write sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
-                fseeko64(ide->hdfile, addr, SEEK_SET);
+                fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
                 fwrite(ide->buffer, 512, 1, ide->hdfile);
                 ide_irq_raise(ide);
                 ide->secount = (ide->secount - 1) & 0xff;
@@ -1737,7 +1775,7 @@ void callbackide(int ide_board)
                                 else
                                 {*/
                                         addr = ide_get_sector(ide) * 512;
-                                        fseeko64(ide->hdfile, addr, SEEK_SET);
+                                        fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
                                         fwrite(ide->buffer, 512, 1, ide->hdfile);
                                 //}
                                 
@@ -1767,7 +1805,7 @@ void callbackide(int ide_board)
                 }
                 addr = ide_get_sector(ide) * 512;
 //                pclog("Write sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
-                fseeko64(ide->hdfile, addr, SEEK_SET);
+                fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
                 fwrite(ide->buffer, 512, 1, ide->hdfile);
                 ide->blockcount++;
                 if (ide->blockcount >= ide->blocksize || ide->secount == 1)
@@ -1809,7 +1847,7 @@ void callbackide(int ide_board)
                 }
                 addr = ide_get_sector(ide) * 512;
 //                pclog("Format cyl %i head %i offset %08X %08X %08X secount %i\n",ide.cylinder,ide.head,addr,addr>>32,addr,ide.secount);
-                fseeko64(ide->hdfile, addr, SEEK_SET);
+                fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
                 memset(ide->buffer, 0, 512);
                 for (c=0;c<ide->secount;c++)
                 {
@@ -1845,6 +1883,28 @@ void callbackide(int ide_board)
                 }
                 ide->spt=ide->secount;
                 ide->hpc=ide->head+1;
+#if 0
+				if (ide->hdi)
+				{
+					faddr = ftello64(ide->hdfile);
+					if (hdc[ide->hdc_num].spt != ide->spt)
+					{
+						fseeko64(ide->hdfile, 0x34, SEEK_SET);
+						fwrite(&(ide->spt), 1, 4, ide->hdfile);
+					}
+					if (hdc[ide->hdc_num].hpc != ide->hpc)
+					{
+						fseeko64(ide->hdfile, 0x38, SEEK_SET);
+						fwrite(&(ide->hpc), 1, 4, ide->hdfile);
+					}
+					fseeko64(ide->hdfile, faddr, SEEK_SET);					
+				}
+#endif
+#if 0
+				/* Make sure other parts of the emulator are aware the sectors and heads have changed. */
+				hdc[ide->hdc_num].spt = ide->spt;
+				hdc[ide->hdc_num].hpc = ide->hpc;
+#endif
                 ide->atastat = READY_STAT | DSC_STAT;
 #ifndef RPCEMU_IDE
 //                pclog("SPECIFY - %i sectors per track, %i heads per cylinder  %i %i\n",ide->spt,ide->hpc,cur_ide[ide_board],ide_board);

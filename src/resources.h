@@ -66,6 +66,7 @@
 #define IDC_EDIT4  1033
 #define IDC_EDIT5  1034
 #define IDC_EDIT6  1035
+#define IDC_COMBOHDT	1036
 #define IDC_TEXT1  1040
 #define IDC_TEXT2  1041
 #define IDC_EDITC  1050
