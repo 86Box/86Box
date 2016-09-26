@@ -1125,7 +1125,6 @@ void fdc_callback()
                 paramstogo = 1;
                 discint = 0;
                 disctime = 0;
-		pclog("Sense drive status: %02X\n", fdc.res[10]);
                 return;
                 case 5: /*Write data*/
                 case 6: /*Read data*/
@@ -1204,12 +1203,23 @@ void fdc_callback()
                 fdc.stat    = (fdc.stat & 0xf) | 0xd0;                
                 if (fdc_reset_stat)
 		{
-			disc_stop(4 - fdc_reset_stat);
-                        fdc.res[9] = 0xc0 | (4 - fdc_reset_stat) | (fdd_get_head(fdc.drive ^ fdd_swap) ? 4 : 0);
+			if ((4 - fdc_reset_stat) <= 1)
+			{
+				disc_stop(4 - fdc_reset_stat);
+				fdd_set_head((4 - fdc_reset_stat) ^ fdd_swap, 0);
+                	        fdc.res[9] = 0xc0 | (4 - fdc_reset_stat) | (fdd_get_head((4 - fdc_reset_stat) ^ fdd_swap) ? 4 : 0);
+			}
+			else
+			{
+                	        fdc.res[9] = 0xc0 | (4 - fdc_reset_stat);
+			}
 		}
                 else
 		{
-			disc_stop(fdc.drive);
+			if (fdc.drive <= 1)
+			{
+				disc_stop(fdc.drive);
+			}
                         fdc.res[9] = fdc.st0;
 		}
                 fdc.res[10] = fdc.track[fdc.drive];
