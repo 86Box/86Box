@@ -61,7 +61,7 @@ static struct
 	uint16_t version;
 	uint16_t disk_flags;
         uint8_t track_data[2][50000];
-        uint8_t track_encoded_data[2][100000];
+        uint16_t track_encoded_data[2][50000];
         uint8_t track_layout[2][50000];
         uint8_t track_flags;
         uint16_t side_flags[2];
@@ -136,14 +136,14 @@ static uint16_t d86f_encode_get_data(uint8_t dat)
 {
         uint16_t temp;
         temp = 0;
-        if (dat & 0x01) temp |= 1;
-        if (dat & 0x02) temp |= 4;
-        if (dat & 0x04) temp |= 16;
-        if (dat & 0x08) temp |= 64;
-        if (dat & 0x10) temp |= 256;
-        if (dat & 0x20) temp |= 1024;
-        if (dat & 0x40) temp |= 4096;
-        if (dat & 0x80) temp |= 16384;
+        if (dat & 0x01) temp |= 256;
+        if (dat & 0x02) temp |= 1024;
+        if (dat & 0x04) temp |= 4096;
+        if (dat & 0x08) temp |= 16384;
+        if (dat & 0x10) temp |= 1;
+        if (dat & 0x20) temp |= 4;
+        if (dat & 0x40) temp |= 16;
+        if (dat & 0x80) temp |= 64;
         return temp;
 }
 
@@ -151,14 +151,14 @@ static uint16_t d86f_encode_get_clock(uint8_t dat)
 {
         uint16_t temp;
         temp = 0;
-        if (dat & 0x01) temp |= 2;
-        if (dat & 0x02) temp |= 8;
-        if (dat & 0x04) temp |= 32;
-        if (dat & 0x08) temp |= 128;
-        if (dat & 0x10) temp |= 512;
-        if (dat & 0x20) temp |= 2048;
-        if (dat & 0x40) temp |= 8192;
-        if (dat & 0x80) temp |= 32768;
+        if (dat & 0x01) temp |= 512;
+        if (dat & 0x02) temp |= 2048;
+        if (dat & 0x04) temp |= 8192;
+        if (dat & 0x08) temp |= 32768;
+        if (dat & 0x10) temp |= 2;
+        if (dat & 0x20) temp |= 8;
+        if (dat & 0x40) temp |= 32;
+        if (dat & 0x80) temp |= 128;
         return temp;
 }
 
@@ -942,7 +942,7 @@ static int d86f_get_bitcell_period(int drive)
 
 void d86f_readsector(int drive, int sector, int track, int side, int rate, int sector_size)
 {
-        pclog("d86f_readsector: fdc_period=%i img_period=%i rate=%i sector=%i track=%i side=%i\n", fdc_get_bitcell_period(), d86f_get_bitcell_period(drive), rate, sector, track, side);
+        // pclog("d86f_readsector: fdc_period=%i img_period=%i rate=%i sector=%i track=%i side=%i\n", fdc_get_bitcell_period(), d86f_get_bitcell_period(drive), rate, sector, track, side);
 
         d86f[drive].req_sector.id.c = track;
         d86f[drive].req_sector.id.h = side;
@@ -979,7 +979,7 @@ void d86f_writesector(int drive, int sector, int track, int side, int rate, int 
         d86f[drive].req_sector.id.r = sector;
 	d86f[drive].req_sector.id.n = sector_size;
 
-        pclog("d86f_writesector: drive=%c: fdc_period=%i img_period=%i rate=%i chrn=%08X\n", drive + 0x41, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive), rate, d86f[drive].req_sector.dword);
+        // pclog("d86f_writesector: drive=%c: fdc_period=%i img_period=%i rate=%i chrn=%08X\n", drive + 0x41, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive), rate, d86f[drive].req_sector.dword);
 
 	if (writeprot[drive] || swwp)
 	{
@@ -1545,12 +1545,34 @@ uint32_t d86f_get_pos(int drive)
 	return pos;
 }
 
-uint16_t d86f_encode_byte(uint8_t encoding, int sync, decoded_t b, decoded_t prev_b)
+static uint8_t decodefm(int drive, uint16_t dat)
 {
-	uint8_t val0 = b.nibbles.nibble0;
-	uint8_t val1 = b.nibbles.nibble1;
-	uint8_t val2 = prev_b.nibbles.nibble0;
-	uint16_t encoded_0, encoded_1, result;
+        uint8_t temp;
+	if (d86f_get_encoding(drive) > 1)
+	{
+		/* 2 means M2FM encoding, and 3 means GCR encoding, neither of which is supported by this emulator. */
+		return 0xFF;
+	}
+        temp = 0;
+	/* We write the encoded bytes in big endian, so we process the two 8-bit halves swapped here. */
+        if (dat & 0x0100) temp |= 1;
+        if (dat & 0x0400) temp |= 2;
+        if (dat & 0x1000) temp |= 4;
+        if (dat & 0x4000) temp |= 8;
+        if (dat & 0x0001) temp |= 16;
+        if (dat & 0x0004) temp |= 32;
+        if (dat & 0x0010) temp |= 64;
+        if (dat & 0x0040) temp |= 128;
+        return temp;
+}
+
+uint16_t d86f_encode_byte(int drive, int sync, decoded_t b, decoded_t prev_b)
+{
+	uint8_t encoding = d86f_get_encoding(drive);
+	uint8_t bits89AB = prev_b.nibbles.nibble0;
+	uint8_t bits7654 = b.nibbles.nibble1;
+	uint8_t bits3210 = b.nibbles.nibble0;
+	uint16_t encoded_7654, encoded_3210, result;
 	if (encoding > 1)  return 0xFF;
 	if (sync)
 	{
@@ -1559,9 +1581,9 @@ uint16_t d86f_encode_byte(uint8_t encoding, int sync, decoded_t b, decoded_t pre
 		{
 			switch(b.byte)
 			{
-				case 0xA1: result | d86f_encode_get_clock(0x0A);
-				case 0xC2: result | d86f_encode_get_clock(0x14);
-				case 0xF8: result | d86f_encode_get_clock(0x03);
+				case 0xA1: return result | d86f_encode_get_clock(0x0A);
+				case 0xC2: return result | d86f_encode_get_clock(0x14);
+				case 0xF8: return result | d86f_encode_get_clock(0x03);
 				case 0xFB: case 0xFE: return result | d86f_encode_get_clock(0x00);
 				case 0xFC: return result | d86f_encode_get_clock(0x01);
 			}
@@ -1575,32 +1597,12 @@ uint16_t d86f_encode_byte(uint8_t encoding, int sync, decoded_t b, decoded_t pre
 			}
 		}
 	}
-	val0 += ((val1 & 3) << 4);
-	val1 += ((val2 & 3) << 4);
-	encoded_0 = (encoding == 1) ? encoded_mfm[val0] : encoded_fm[val0];
-	encoded_1 = (encoding == 1) ? encoded_mfm[val1] : encoded_fm[val1];
-	result = (encoded_1 << 8) | encoded_0;
+	bits3210 += ((bits7654 & 3) << 4);
+	bits7654 += ((bits89AB & 3) << 4);
+	encoded_3210 = (encoding == 1) ? encoded_mfm[bits3210] : encoded_fm[bits3210];
+	encoded_7654 = (encoding == 1) ? encoded_mfm[bits7654] : encoded_fm[bits7654];
+	result = (encoded_3210 << 8) | encoded_7654;
 	return result;
-}
-
-static uint8_t decodefm(int drive, uint16_t dat)
-{
-        uint8_t temp;
-	if (d86f_get_encoding(drive) > 1)
-	{
-		/* 2 means M2FM encoding, and 3 means GCR encoding, neither of which is supported by this emulator. */
-		return 0xFF;
-	}
-        temp = 0;
-        if (dat & 0x0001) temp |= 1;
-        if (dat & 0x0004) temp |= 2;
-        if (dat & 0x0010) temp |= 4;
-        if (dat & 0x0040) temp |= 8;
-        if (dat & 0x0100) temp |= 16;
-        if (dat & 0x0400) temp |= 32;
-        if (dat & 0x1000) temp |= 64;
-        if (dat & 0x4000) temp |= 128;
-        return temp;
 }
 
 uint8_t d86f_read_byte(int drive, int side)
@@ -1649,7 +1651,7 @@ void d86f_write_byte(int drive, int side, uint8_t byte)
 			sync = 1;
 		}
 
-		d86f[drive].track_encoded_data[side][d86f[drive].track_pos] = d86f_encode_byte(d86f_get_encoding(drive), sync, dbyte, dpbyte);
+		d86f[drive].track_encoded_data[side][d86f[drive].track_pos] = d86f_encode_byte(drive, sync, dbyte, dpbyte);
 	}
 }
 
@@ -1739,7 +1741,7 @@ int d86f_poll_check_notfound(int drive)
 		/* The index hole has been hit twice and we're still in a find state.
 		   This means sector finding has failed for whatever reason.
 		   Abort with sector not found and set state to idle. */
-		pclog("d86f_poll(): Sector not found (%i %i %i %i) (%i, %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive));
+		// pclog("d86f_poll(): Sector not found (%i %i %i %i) (%i, %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive));
 		fdc_notfound();
 		d86f[drive].state = STATE_IDLE;
 		d86f[drive].index_count = 0;
@@ -1842,13 +1844,13 @@ void d86f_poll_readwrite(int drive, int side)
 			d86f_poll_reset(drive, side);
 			if ((d86f[drive].track_crc.word != d86f[drive].calc_crc.word) && d86f_handler[drive].check_crc)
 			{
-				pclog("d86f_poll(): Data CRC error (%i %i %i %i) (%04X %04X)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n, d86f[drive].track_crc.word, d86f[drive].calc_crc.word);
+				// pclog("d86f_poll(): Data CRC error (%i %i %i %i) (%04X %04X)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n, d86f[drive].track_crc.word, d86f[drive].calc_crc.word);
 				fdc_finishread();
 				fdc_datacrcerror();
 			}
 			else
 			{
-				pclog("Read finished (%i %i %i %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n);
+				// pclog("Read finished (%i %i %i %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n);
         	               	fdc_sector_finishread();
 			}
 			return;
@@ -1869,7 +1871,7 @@ void d86f_poll_readwrite(int drive, int side)
 				d86f_handler[drive].writeback(drive);
 			}
 			d86f_poll_reset(drive, side);
-			pclog("Write finished (%i %i %i %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n);
+			// pclog("Write finished (%i %i %i %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n);
        	        	fdc_sector_finishread(drive);
 			return;
 		// }
@@ -2219,8 +2221,8 @@ void d86f_poll_format(int drive, int side)
 
 	if (d86f[drive].track_index)
 	{
-		pclog("Track position %08X\n", d86f[drive].track_pos);
-		pclog("Index hole hit again, format finished\n");
+		// pclog("Track position %08X\n", d86f[drive].track_pos);
+		// pclog("Index hole hit again, format finished\n");
 		d86f[drive].state = STATE_IDLE;
 		if (!disable_write)  d86f_handler[drive].writeback(drive);
 		fdc_sector_finishread(drive);
