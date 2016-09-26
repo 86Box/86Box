@@ -107,7 +107,7 @@ void disc_load(int drive, char *fn)
                         drive_empty[drive] = 0;
                         strcpy(discfns[drive], fn);
 			fdd_set_head(drive ^ fdd_swap, 0);
-                        fdd_seek(drive ^ fdd_swap, 0);
+                        fdd_forced_seek(drive ^ fdd_swap, 0);
                         disc_changed[drive] = 1;
                         return;
                 }

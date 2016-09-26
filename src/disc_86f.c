@@ -59,11 +59,11 @@ static struct
 {
         FILE *f;
 	uint16_t version;
-	uint8_t disk_flags;
+	uint16_t disk_flags;
         uint8_t track_data[2][50000];
         uint8_t track_layout[2][50000];
         uint8_t track_flags;
-        uint8_t side_flags[2];
+        uint16_t side_flags[2];
         uint16_t index_hole_pos[2];
 	uint8_t track_in_file;
         uint32_t track_offset[256];
@@ -83,6 +83,7 @@ static struct
 	crc_t track_crc;
 	uint8_t track_byte;
 	uint8_t track_index;
+	uint8_t track_is_hole;
 	uint8_t track_fuzzy;
 	uint8_t track_data_byte;
 	uint8_t old_track_byte;
@@ -97,6 +98,67 @@ static struct
 	uint8_t id_match;
 	uint8_t data_am_counter;
 } d86f[2];
+
+uint8_t encoded_fm[64] = {	0xAA, 0xAB, 0xAE, 0xAF, 0xBA, 0xBB, 0xBE, 0xBF, 0xEA, 0xEB, 0xEE, 0xEF, 0xFA, 0xFB, 0xFE, 0xFF,
+				0xAA, 0xAB, 0xAE, 0xAF, 0xBA, 0xBB, 0xBE, 0xBF, 0xEA, 0xEB, 0xEE, 0xEF, 0xFA, 0xFB, 0xFE, 0xFF,
+				0xAA, 0xAB, 0xAE, 0xAF, 0xBA, 0xBB, 0xBE, 0xBF, 0xEA, 0xEB, 0xEE, 0xEF, 0xFA, 0xFB, 0xFE, 0xFF,
+				0xAA, 0xAB, 0xAE, 0xAF, 0xBA, 0xBB, 0xBE, 0xBF, 0xEA, 0xEB, 0xEE, 0xEF, 0xFA, 0xFB, 0xFE, 0xFF };
+
+uint8_t encoded_mfm[64] = {	0xAA, 0xA9, 0xA4, 0xA5, 0x92, 0x91, 0x94, 0x95, 0x4A, 0x49, 0x44, 0x45, 0x52, 0x51, 0x54, 0x55,
+				0x2A, 0x29, 0x24, 0x25, 0x12, 0x11, 0x14, 0x15, 0x4A, 0x49, 0x44, 0x45, 0x52, 0x51, 0x54, 0x55,
+				0xAA, 0xA9, 0xA4, 0xA5, 0x92, 0x91, 0x94, 0x95, 0x4A, 0x49, 0x44, 0x45, 0x52, 0x51, 0x54, 0x55,
+				0x2A, 0x29, 0x24, 0x25, 0x12, 0x11, 0x14, 0x15, 0x4A, 0x49, 0x44, 0x45, 0x52, 0x51, 0x54, 0x55 };
+
+typedef union {
+	uint16_t word;
+	uint8_t bytes[2];
+} encoded_t;
+
+typedef struct {
+	unsigned nibble0	:4;
+	unsigned nibble1	:4;
+} split_byte_t;
+
+typedef struct {
+	unsigned area0		:2;
+	unsigned area1		:6;
+} preceding_byte_t;
+
+typedef union {
+	uint8_t byte;
+	split_byte_t nibbles;
+	preceding_byte_t p;
+} decoded_t;
+
+static uint16_t d86f_encode_get_data(uint8_t dat)
+{
+        uint16_t temp;
+        temp = 0;
+        if (dat & 0x01) temp |= 1;
+        if (dat & 0x02) temp |= 4;
+        if (dat & 0x04) temp |= 16;
+        if (dat & 0x08) temp |= 64;
+        if (dat & 0x10) temp |= 256;
+        if (dat & 0x20) temp |= 1024;
+        if (dat & 0x40) temp |= 4096;
+        if (dat & 0x80) temp |= 16384;
+        return temp;
+}
+
+static uint16_t d86f_encode_get_clock(uint8_t dat)
+{
+        uint16_t temp;
+        temp = 0;
+        if (dat & 0x01) temp |= 2;
+        if (dat & 0x02) temp |= 8;
+        if (dat & 0x04) temp |= 32;
+        if (dat & 0x08) temp |= 128;
+        if (dat & 0x10) temp |= 512;
+        if (dat & 0x20) temp |= 2048;
+        if (dat & 0x40) temp |= 8192;
+        if (dat & 0x80) temp |= 32768;
+        return temp;
+}
 
 uint8_t* d86f_track_data(int drive, int side)
 {
@@ -250,7 +312,7 @@ int d86f_get_sides(int drive)
 
 int d86f_get_rpm_mode(int drive)
 {
-	if (d86f[drive].version != 0x0115)  return 0;
+	if ((d86f[drive].version != 0x0115) && (d86f[drive].version != 0x0132))  return 0;
 	return (d86f_handler[drive].disk_flags(drive) & 0x60) >> 5;
 }
 
@@ -264,7 +326,7 @@ int d86f_get_array_size(int drive)
 		case 0:
 		default:
 			pos = 7500;
-			if (d86f[drive].version != 0x0115)  return pos;
+			if ((d86f[drive].version != 0x0115) && (d86f[drive].version != 0x0132))  return pos;
 			switch (rm)
 			{
 				case 1:
@@ -283,7 +345,7 @@ int d86f_get_array_size(int drive)
 			break;
 		case 1:
 			pos = 12500;
-			if (d86f[drive].version != 0x0115)  return pos;
+			if ((d86f[drive].version != 0x0115) && (d86f[drive].version != 0x0132))  return pos;
 			switch (rm)
 			{
 				case 1:
@@ -302,7 +364,7 @@ int d86f_get_array_size(int drive)
 			break;
 		case 2:
 			pos = 50000;
-			if (d86f[drive].version != 0x0115)  return pos;
+			if ((d86f[drive].version != 0x0115) && (d86f[drive].version != 0x0132))  return pos;
 			switch (rm)
 			{
 				case 1:
@@ -405,7 +467,7 @@ void d86f_load(int drive, char *fn)
 
 	fread(&(d86f[drive].version), 2, 1, d86f[drive].f);
 
-	if ((d86f[drive].version != 0x0100) && (d86f[drive].version != 0x010A) && (d86f[drive].version != 0x0114) && (d86f[drive].version != 0x0115))
+	if ((d86f[drive].version != 0x0100) && (d86f[drive].version != 0x010A) && (d86f[drive].version != 0x0114) && (d86f[drive].version != 0x0115) && (d86f[drive].version != 0x0132))
 	{
 		/* File is not of a recognized format version abort. */
 		pclog("86F: Unrecognized file version: %i.%02i\n", d86f[drive].version >> 8, d86f[drive].version & 0xFF);
@@ -417,12 +479,28 @@ void d86f_load(int drive, char *fn)
 		pclog("86F: Recognized file version: %i.%02i\n", d86f[drive].version >> 8, d86f[drive].version & 0xFF);
 	}
 
-	fread(&(d86f[drive].disk_flags), 1, 1, d86f[drive].f);
+	if (d86f[drive].version < 0x0132)
+	{
+		d86f[drive].disk_flags = 0;
+		fread(&(d86f[drive].disk_flags), 1, 1, d86f[drive].f);
+	}
+	else
+	{
+		fread(&(d86f[drive].disk_flags), 2, 1, d86f[drive].f);
+	}
 
 	if (((d86f[drive].disk_flags >> 1) & 3) == 3)
 	{
 		/* Invalid disk hole. */
 		pclog("86F: Unrecognized disk hole type 3\n");
+		fclose(d86f[drive].f);
+		return;
+	}
+
+	if (d86f[drive].disk_flags & 0x100)
+	{
+		/* Zoned disk. */
+		pclog("86F: Disk is zoned (Apple or Sony)\n");
 		fclose(d86f[drive].f);
 		return;
 	}
@@ -445,7 +523,7 @@ void d86f_load(int drive, char *fn)
 
 	/* Load track 0 flags as default. */
 	d86f[drive].side_flag_bytes = d86f_get_sides(drive);
-	if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115))
+	if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))
 	{
 		if ((d86f[drive].version == 0x010A) && (d86f_get_sides(drive) == 1))
 		{
@@ -455,10 +533,11 @@ void d86f_load(int drive, char *fn)
 			if (temp & 0x80)  d86f[drive].side_flag_bytes = 2;
 		}
 		fseek(d86f[drive].f, d86f[drive].track_offset[0], SEEK_SET);
-		fread(&(d86f[drive].side_flags[0]), 1, 1, d86f[drive].f);
+		d86f[drive].side_flags[0] = d86f[drive].side_flags[1] = 0;
+		fread(&(d86f[drive].side_flags[0]), (d86f[drive].version == 0x0132) ? 2 : 1, 1, d86f[drive].f);
 		if (d86f_get_sides(drive) == 2)
 		{
-			fread(&(d86f[drive].side_flags[1]), 1, 1, d86f[drive].f);
+			fread(&(d86f[drive].side_flags[1]), (d86f[drive].version == 0x0132) ? 2 : 1, 1, d86f[drive].f);
 		}
 	}
 	else
@@ -483,11 +562,16 @@ int d86f_hole(int drive)
 	return (d86f_handler[drive].disk_flags(drive) >> 1) & 3;
 }
 
-uint8_t d86f_side_flags(int drive)
+int d86f_is_encoded(int drive)
+{
+	return (d86f_handler[drive].disk_flags(drive) >> 7) & 1;
+}
+
+uint16_t d86f_side_flags(int drive)
 {
 	int side = 0;
 	side = fdd_get_head(drive);
-	if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115))
+	if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))
 	{
 		return d86f[drive].side_flags[side];
 	}
@@ -497,16 +581,16 @@ uint8_t d86f_side_flags(int drive)
 	}
 }
 
-uint8_t d86f_track_flags(int drive)
+uint16_t d86f_track_flags(int drive)
 {
-	uint8_t tf = 0;
-	uint8_t rr = 0;
-	uint8_t dr = 0;
+	uint16_t tf = 0;
+	uint16_t rr = 0;
+	uint16_t dr = 0;
 
 	tf = d86f_handler[drive].side_flags(drive);
-	rr = tf & 0x27;
+	rr = tf & 0x67;
 	dr = fdd_get_flags(drive) & 7;
-	tf &= ~0x27;
+	tf &= ~0x67;
 
 	switch (rr)
 	{
@@ -578,10 +662,10 @@ uint16_t d86f_get_raw_size(int drive)
 	double size = 6250.0;
 
 	mfm = d86f_is_mfm(drive);
-	rpm = (d86f_track_flags(drive) & 0x20) ? 360.0 : 300.0;
+	rpm = ((d86f_track_flags(drive) & 0xE0) == 0x20) ? 360.0 : 300.0;
 	rpm_diff = rpm * 0.005;
 
-	if (d86f[drive].version == 0x0115)
+	if ((d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))
 	{
 		switch (d86f_get_rpm_mode(drive))
 		{
@@ -635,12 +719,20 @@ void d86f_seek(int drive, int track)
 	int store_size = 50000;
 	int flag_bytes = 2;
 	sides = d86f_get_sides(drive);
-	if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115))
+	if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))
 	{
 		full_size = d86f_get_array_size(drive);
 		store_size = full_size << 1;
-		if (d86f[drive].side_flag_bytes == 2)  flag_bytes++;
-		if ((d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115))  flag_bytes += 4;
+		if (d86f[drive].version == 0x0132)
+		{
+			flag_bytes++;
+			if (d86f[drive].side_flag_bytes == 2)  flag_bytes += 2;
+		}
+		else
+		{
+			if (d86f[drive].side_flag_bytes == 2)  flag_bytes++;
+		}
+		if ((d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))  flag_bytes += 4;
 	}
 
         if (d86f_is_40_track(drive) && fdd_doublestep_40(drive))
@@ -648,7 +740,7 @@ void d86f_seek(int drive, int track)
 
 	for (side = 0; side < d86f_get_sides(drive); side++)
 	{
-		memset(d86f[drive].track_layout[side], BYTE_GAP4, 50000);
+		memset(d86f[drive].track_layout[side], (d86f[drive].version == 0x0132) ? BYTE_GAP0 : BYTE_GAP4, 50000);
 		memset(d86f[drive].track_data[side], 0xFF, 50000);
 	}
 
@@ -658,7 +750,7 @@ void d86f_seek(int drive, int track)
 	{
 		/* Track does not exist in the image, initialize it as unformatted. */
 		d86f[drive].track_in_file = 0;
-		if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115))
+		if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))
 		{
 			for (side = 0; side < d86f_get_sides(drive); side++)
 			{
@@ -676,14 +768,14 @@ void d86f_seek(int drive, int track)
 
 	fseek(d86f[drive].f, d86f[drive].track_offset[track], SEEK_SET);
 
-	if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115))
+	if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))
 	{
 		for (side = 0; side < d86f[drive].side_flag_bytes; side++)
 		{
-			fread(&(d86f[drive].side_flags[side]), 1, 1, d86f[drive].f);
+			fread(&(d86f[drive].side_flags[side]), (d86f[drive].version == 0x0132) ? 2 : 1, 1, d86f[drive].f);
 		}
 
-		if ((d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115))
+		if ((d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))
 		{
 			for (side = 0; side < d86f[drive].side_flag_bytes; side++)
 			{
@@ -713,12 +805,20 @@ void d86f_writeback(int drive)
 	int full_size = 25000;
 	int store_size = 50000;
 	int flag_bytes = 2;
-	if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115))
+	if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))
 	{
 		full_size = d86f_get_array_size(drive);
 		store_size = full_size << 1;
-		if (d86f[drive].side_flag_bytes == 2)  flag_bytes++;
-		if ((d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115))  flag_bytes += 4;
+		if (d86f[drive].version == 0x0132)
+		{
+			flag_bytes++;
+			if (d86f[drive].side_flag_bytes == 2)  flag_bytes += 2;
+		}
+		else
+		{
+			if (d86f[drive].side_flag_bytes == 2)  flag_bytes++;
+		}
+		if ((d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))  flag_bytes += 4;
 	}
 
         if (!d86f[drive].f)
@@ -736,14 +836,14 @@ void d86f_writeback(int drive)
 
 	fseek(d86f[drive].f, d86f[drive].track_offset[track], SEEK_SET);
 
-	if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115))
+	if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))
 	{
 		for (side = 0; side < d86f[drive].side_flag_bytes; side++)
 		{
-			fwrite(&(d86f[drive].side_flags[side]), 1, 1, d86f[drive].f);
+			fwrite(&(d86f[drive].side_flags[side]), (d86f[drive].version == 0x0132) ? 2 : 1, 1, d86f[drive].f);
 		}
 
-		if ((d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115))
+		if ((d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))
 		{
 			for (side = 0; side < d86f[drive].side_flag_bytes; side++)
 			{
@@ -788,7 +888,7 @@ static int d86f_get_bitcell_period(int drive)
 	tflags = d86f_track_flags(drive);
 
 	mfm = (tflags & 8) ? 1 : 0;
-	rpm = (tflags & 0x20) ? 360.0 : 300.0;
+	rpm = ((tflags & 0xE0) == 0x20) ? 360.0 : 300.0;
 
 	switch (tflags & 7)
 	{
@@ -817,7 +917,7 @@ static int d86f_get_bitcell_period(int drive)
 
 void d86f_readsector(int drive, int sector, int track, int side, int rate, int sector_size)
 {
-        // pclog("d86f_readsector: fdc_period=%i img_period=%i rate=%i sector=%i track=%i side=%i\n", fdc_get_bitcell_period(), d86f_get_bitcell_period(drive), rate, sector, track, side);
+        pclog("d86f_readsector: fdc_period=%i img_period=%i rate=%i sector=%i track=%i side=%i\n", fdc_get_bitcell_period(), d86f_get_bitcell_period(drive), rate, sector, track, side);
 
         d86f[drive].req_sector.id.c = track;
         d86f[drive].req_sector.id.h = side;
@@ -919,7 +1019,7 @@ uint16_t d86f_prepare_pretrack(int drive, int side, int iso, int write_data)
 
 	d86f[drive].index_hole_pos[side] = 0;
 
-	memset(d86f[drive].track_layout[side], BYTE_GAP4, d86f_get_raw_size(drive));
+	memset(d86f[drive].track_layout[side], (d86f[drive].version == 0x0132) ? BYTE_GAP0 : BYTE_GAP4, d86f_get_raw_size(drive));
 	if (write_data)  memset(d86f[drive].track_data[side], mfm ? 0x4E : 0xFF, d86f_get_raw_size(drive));
 	i = 0;
 
@@ -1179,12 +1279,20 @@ void d86f_format(int drive, int track, int side, int rate, uint8_t fill)
 	int full_size = 25000;
 	int store_size = 50000;
 	int flag_bytes = 2;
-	if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115))
+	if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))
 	{
 		full_size = d86f_get_array_size(drive);
 		store_size = full_size << 1;
-		if (d86f[drive].side_flag_bytes == 2)  flag_bytes++;
-		if ((d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115))  flag_bytes += 4;
+		if (d86f[drive].version == 0x0132)
+		{
+			flag_bytes++;
+			if (d86f[drive].side_flag_bytes == 2)  flag_bytes += 2;
+		}
+		else
+		{
+			if (d86f[drive].side_flag_bytes == 2)  flag_bytes++;
+		}
+		if ((d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))  flag_bytes += 4;
 	}
 
         d86f[drive].req_sector.id.c = d86f[drive].cur_track;
@@ -1226,11 +1334,11 @@ void d86f_format(int drive, int track, int side, int rate, uint8_t fill)
 		d86f[drive].track_flags |= (fdd_getrpm(drive ^ fdd_swap) == 360) ? 0x20 : 0;
 		d86f[drive].track_flags |= fdc_get_bit_rate();
 		d86f[drive].track_flags |= fdc_is_mfm() ? 8 : 0;
-		if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115))
+		if ((d86f[drive].version == 0x010A) || (d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))
 		{
 			d86f[drive].side_flags[side] = d86f[drive].track_flags;
 
-			if ((d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115))
+			if ((d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))
 			{
 				d86f[drive].index_hole_pos[side] = 0;
 			}
@@ -1295,6 +1403,7 @@ int d86f_can_read_address(int drive)
 	temp = (fdc_get_bitcell_period() == d86f_get_bitcell_period(drive));
 	temp = temp && fdd_can_read_medium(drive ^ fdd_swap);
 	temp = temp && (fdc_is_mfm() == d86f_is_mfm(drive));
+	temp = temp && (d86f_get_encoding(drive) <= 1);
 	return temp;
 }
 
@@ -1394,11 +1503,120 @@ uint32_t d86f_get_pos(int drive)
 	return pos;
 }
 
+uint8_t d86f_get_encoding(int drive)
+{
+	return (d86f_track_flags(drive) & 0x18) >> 3;
+}
+
+uint16_t d86f_encode_byte(uint8_t encoding, int sync, decoded_t b, decoded_t prev_b)
+{
+	uint8_t val0 = b.nibbles.nibble0;
+	uint8_t val1 = b.nibbles.nibble1;
+	uint8_t val2 = prev_b.nibbles.nibble0;
+	uint16_t encoded_0, encoded_1, result;
+	if (encoding > 1)  return 0xFF;
+	if (sync)
+	{
+		result = d86f_encode_get_data(b);
+		if (encoding)
+		{
+			switch(b)
+			{
+				case 0xA1: result | d86f_encode_get_clock(0x0A);
+				case 0xC2: result | d86f_encode_get_clock(0x14);
+				case 0xF8: result | d86f_encode_get_clock(0x03);
+				case 0xFB: case 0xFE: return result | d86f_encode_get_clock(0x00);
+				case 0xFC: return result | d86f_encode_get_clock(0x01);
+			}
+		}
+		else
+		{
+			switch(b)
+			{
+				case 0xF8: case 0xFB: case 0xFE: return result | d86f_encode_get_clock(0xC7);
+				case 0xFC: return result | d86f_encode_get_clock(0xD7);
+			}
+		}
+	}
+	val0 += ((val1 & 3) << 4);
+	val1 += ((val2 & 3) << 4);
+	encoded_0 = (encoding == 1) ? encoded_mfm[val0] ? encoded_fm[val0];
+	encoded_1 = (encoding == 1) ? encoded_mfm[val1] ? encoded_fm[val1];
+	result = (encoded_1 << 8) | encoded_0;
+}
+
+static uint8_t decodefm(int drive, uint16_t dat)
+{
+        uint8_t temp;
+	if (d86f_get_encoding(drive) > 1)
+	{
+		/* 2 means M2FM encoding, and 3 means GCR encoding, neither of which is supported by this emulator. */
+		return 0xFF;
+	}
+        temp = 0;
+        if (dat & 0x0001) temp |= 1;
+        if (dat & 0x0004) temp |= 2;
+        if (dat & 0x0010) temp |= 4;
+        if (dat & 0x0040) temp |= 8;
+        if (dat & 0x0100) temp |= 16;
+        if (dat & 0x0400) temp |= 32;
+        if (dat & 0x1000) temp |= 64;
+        if (dat & 0x4000) temp |= 128;
+        return temp;
+}
+
+void d86f_read_byte(int drive, int side)
+{
+	if (d86f[drive].track_is_hole && (d86f[drive].version == 0x0132))
+	{
+		return 0;
+	}
+
+	if ((d86f[drive].version < 0x0132) || !d86f_is_encoded(drive))
+	{
+		return d86f[drive].track_data[side][d86f[drive].track_pos];
+	}
+	else
+	{
+		return decodefm(drive, d86f[drive].track_encoded_data[side][d86f[drive].track_pos]);
+	}
+}
+
+void d86f_write_byte(int drive, int side, uint8_t byte)
+{
+	int sync = 0;
+	d86f[drive].track_data_byte = byte;
+
+	if (d86f[drive].track_is_hole && (d86f[drive].version == 0x0132))
+	{
+		return;
+	}
+
+	if ((d86f[drive].version < 0x0132) || !d86f_is_encoded(drive))
+	{
+		d86f[drive].track_data[side][d86f[drive].track_pos] = byte;
+	}
+	else
+	{
+		if (d86f[drive].track_byte == BYTE_IAM_SYNC) ||
+		    d86f[drive].track_byte == BYTE_IAM) ||
+		    d86f[drive].track_byte == BYTE_IDAM_SYNC) ||
+		    d86f[drive].track_byte == BYTE_IDAM) ||
+		    d86f[drive].track_byte == BYTE_DATAAM_SYNC) ||
+		    d86f[drive].track_byte == BYTE_DATAAM))
+		{
+			sync = 1;
+		}
+
+		d86f[drive].track_encoded_data[side][d86f[drive].track_pos] = d86f_encode_byte(d86f_get_encoding(drive), sync, byte, d86f[drive].old_track_byte);
+	}
+}
+
 void d86f_poll_write_crc(int drive, int side)
 {
 	if (d86f[drive].state != STATE_FORMAT)  return;
 	d86f[drive].id_pos = d86f_get_pos(drive);
-	d86f[drive].track_data[side][d86f[drive].track_pos] = d86f[drive].track_data_byte = d86f[drive].calc_crc.bytes[d86f[drive].id_pos ^ 1];
+	d86f_write_byte(drive, side, d86f[drive].calc_crc.bytes[d86f[drive].id_pos ^ 1]);
 }
 
 void d86f_poll_advancebyte(int drive, int side)
@@ -1411,9 +1629,13 @@ void d86f_poll_advancebyte(int drive, int side)
 	d86f[drive].old_track_index = d86f[drive].track_index;
 	d86f[drive].old_track_data_byte = d86f[drive].track_data_byte;
 
-	if ((d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115))
+	if ((d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))
 	{
 		d86f[drive].old_track_fuzzy = d86f[drive].track_fuzzy;
+		if (d86f[drive].version == 0x0132)
+		{
+			d86f[drive].old_track_is_hole = d86f[drive].track_is_hole;
+		}
 	}
 
 	d86f[drive].track_pos++;
@@ -1424,11 +1646,21 @@ void d86f_poll_advancebyte(int drive, int side)
 		d86f[drive].track_byte = d86f[drive].track_layout[side][d86f[drive].track_pos] & ~BYTE_INDEX_HOLE;
 		d86f[drive].track_index = d86f[drive].track_layout[side][d86f[drive].track_pos] & BYTE_INDEX_HOLE;
 		d86f[drive].track_data_byte = d86f[drive].track_data[side][d86f[drive].track_pos];
+		d86f[drive].track_is_hole = 0;
 		d86f[drive].track_fuzzy = 0;
 	}
-	else if ((d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115))
+	else if ((d86f[drive].version == 0x0114) || (d86f[drive].version == 0x0115) || (d86f[drive].version == 0x0132))
 	{
 		d86f[drive].track_byte = d86f[drive].track_layout[side][d86f[drive].track_pos] & ~BYTE_IS_FUZZY;
+		if (d86f[drive].version == 0x0132)
+		{
+			d86f[drive].track_byte = d86f[drive].track_layout[side][d86f[drive].track_pos] & ~0x20;
+			d86f[drive].track_is_hole = d86f[drive].track_layout[side][d86f[drive].track_pos] & 0x20;
+		}
+		else
+		{
+			d86f[drive].track_is_hole = 0;
+		}
 		d86f[drive].track_index = (d86f[drive].track_pos == d86f[drive].index_hole_pos[side]);
 		d86f[drive].track_fuzzy = d86f[drive].track_layout[side][d86f[drive].track_pos] & BYTE_IS_FUZZY;
 
@@ -1438,7 +1670,7 @@ void d86f_poll_advancebyte(int drive, int side)
 		}
 		else
 		{
-			d86f[drive].track_data_byte = d86f[drive].track_data[side][d86f[drive].track_pos];
+			d86f[drive].track_data_byte = d86f_read_byte(drive, side);
 		}
 	}
 	else if (d86f[drive].version == 0x0063)
@@ -1446,6 +1678,7 @@ void d86f_poll_advancebyte(int drive, int side)
 		d86f[drive].track_byte = d86f[drive].track_layout[side][d86f[drive].track_pos] & ~BYTE_INDEX_HOLE;
 		d86f[drive].track_index = (d86f[drive].track_pos == 0);
 		d86f[drive].track_data_byte = d86f[drive].track_data[side][d86f[drive].track_pos];
+		d86f[drive].track_is_hole = 0;
 		d86f[drive].track_fuzzy = 0;
 	}
 }
@@ -1487,9 +1720,9 @@ int d86f_mark_index_hole(int drive)
 
 void d86f_poll_write(int drive, int side, uint8_t data, uint8_t type)
 {
-	d86f[drive].track_data[side][d86f[drive].track_pos] = d86f[drive].track_data_byte = data;
 	d86f[drive].track_layout[side][d86f[drive].track_pos] = type;
 	if (!d86f[drive].track_pos && d86f_mark_index_hole(drive))  d86f[drive].track_layout[side][d86f[drive].track_pos] |= BYTE_INDEX_HOLE;
+	d86f_write_byte(drive, side, data);
 }
 
 void d86f_set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
@@ -1544,7 +1777,6 @@ void d86f_poll_readwrite(int drive, int side)
 		{
 			d86f_handler[drive].write_data(drive, side, d86f[drive].datac, data);
 		}
-		// d86f_calccrc(drive, d86f[drive].track_data_byte);
 		d86f_calccrc(drive, data & 0xff);
 	}
 	else if (d86f_read_state_crc(drive))
@@ -1562,42 +1794,44 @@ void d86f_poll_readwrite(int drive, int side)
 	}
 	else if (d86f_read_state_gap3(drive))
 	{
-		max_len = fdc_get_gap();
-		if (d86f[drive].datac == (fdc_get_gap() - 1))
-		{
+		max_len = 1;
+		// max_len = fdc_get_gap();
+		// if (d86f[drive].datac == (fdc_get_gap() - 1))
+		// {
 			d86f_poll_reset(drive, side);
 			if ((d86f[drive].track_crc.word != d86f[drive].calc_crc.word) && d86f_handler[drive].check_crc)
 			{
-				// pclog("d86f_poll(): Data CRC error (%i %i %i %i) (%04X %04X)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n, d86f[drive].track_crc.word, d86f[drive].calc_crc.word);
+				pclog("d86f_poll(): Data CRC error (%i %i %i %i) (%04X %04X)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n, d86f[drive].track_crc.word, d86f[drive].calc_crc.word);
 				fdc_finishread();
 				fdc_datacrcerror();
 			}
 			else
 			{
-				// pclog("Read finished (%i %i %i %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n);
+				pclog("Read finished (%i %i %i %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n);
         	               	fdc_sector_finishread();
 			}
 			return;
-		}
+		// }
 	}
 	else if (d86f[drive].state == STATE_WRITE_SECTOR_GAP3)
 	{
-		max_len = fdc_get_gap();
+		// max_len = fdc_get_gap();
+		max_len = 1;
 		if (!disable_write && !d86f[drive].datac)
 		{
 			d86f_poll_write(drive, side, fdc_is_mfm() ? 0x4E : 0xFF, BYTE_GAP3);
 		}
-		if (d86f[drive].datac == (max_len - 1))
-		{
+		// if (d86f[drive].datac == (max_len - 1))
+		// {
     		        if (!disable_write)
 			{
 				d86f_handler[drive].writeback(drive);
 			}
 			d86f_poll_reset(drive, side);
-			// pclog("Write finished (%i %i %i %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n);
+			pclog("Write finished (%i %i %i %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n);
        	        	fdc_sector_finishread(drive);
 			return;
-		}
+		// }
 	}
 
 	d86f[drive].datac++;
@@ -1838,19 +2072,19 @@ void d86f_poll_format(int drive, int side)
 		case BYTE_GAP4:
 			if (!disable_write)
 			{
-				d86f[drive].track_data[side][d86f[drive].track_pos] = d86f[drive].track_data_byte = fdc_is_mfm() ? 0x4E : 0xFF;
+				d86f_write_byte(drive, side, fdc_is_mfm() ? 0x4E : 0xFF);
 			}
 			break;
 		case BYTE_IAM_SYNC:
 			if (!disable_write)
 			{
-				d86f[drive].track_data[side][d86f[drive].track_pos] = d86f[drive].track_data_byte = 0xC2;
+				d86f_write_byte(drive, side, 0xC2);
 			}
 			break;
 		case BYTE_IAM:
 			if (!disable_write)
 			{
-				d86f[drive].track_data[side][d86f[drive].track_pos] = d86f[drive].track_data_byte = 0xFC;
+				d86f_write_byte(drive, side, 0xFC);
 			}
 			break;
 		case BYTE_ID_SYNC:
@@ -1883,14 +2117,14 @@ void d86f_poll_format(int drive, int side)
 		case BYTE_DATA_SYNC:
 			if (!disable_write)
 			{
-				d86f[drive].track_data[side][d86f[drive].track_pos] = d86f[drive].track_data_byte = 0;
+				d86f_write_byte(drive, side, 0);
 			}
 			break;
 		case BYTE_IDAM_SYNC:
 		case BYTE_DATAAM_SYNC:
 			if (!disable_write)
 			{
-				d86f[drive].track_data[side][d86f[drive].track_pos] = d86f[drive].track_data_byte = 0xA1;
+				d86f_write_byte(drive, side, 0xA1);
 			}
 			if (d86f_is_mfm(drive))
 			{
@@ -1903,7 +2137,7 @@ void d86f_poll_format(int drive, int side)
 
 			if (!disable_write)
 			{
-				d86f[drive].track_data[side][d86f[drive].track_pos] = d86f[drive].track_data_byte = (d86f[drive].track_byte == BYTE_IDAM) ? 0xFE : 0xFB;
+				d86f_write_byte(drive, side, (d86f[drive].track_byte == BYTE_IDAM) ? 0xFE : 0xFB);				d86f[drive].track_data[side][d86f[drive].track_pos] = d86f[drive].track_data_byte = (d86f[drive].track_byte == BYTE_IDAM) ? 0xFE : 0xFB;
 			}
 			d86f_calccrc(drive, d86f[drive].track_data_byte);
 			break;
@@ -1913,7 +2147,7 @@ void d86f_poll_format(int drive, int side)
 			{
 				if (!disable_write)
 				{
-					d86f[drive].track_data[side][d86f[drive].track_pos] = d86f[drive].track_data_byte = d86f[drive].format_sector_id.byte_array[d86f[drive].id_pos];
+					d86f_write_byte(drive, side, d86f[drive].format_sector_id.byte_array[d86f[drive].id_pos]);
 				}
 			}
 			else

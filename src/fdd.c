@@ -81,6 +81,24 @@ static struct
 
 int fdd_swap = 0;
 
+void fdd_forced_seek(int drive, int track_diff)
+{
+        drive ^= fdd_swap;
+
+        fdd[drive].track += track_diff;
+
+	// pclog("Seeking %i tracks...\n", track_diff);
+        
+        if (fdd[drive].track < 0)
+                fdd[drive].track = 0;
+
+        if (fdd[drive].track > drive_types[fdd[drive].type].max_track)
+                fdd[drive].track = drive_types[fdd[drive].type].max_track;
+
+        disc_seek(drive, fdd[drive].track);
+        disctime = 5000;
+}
+
 void fdd_seek(int drive, int track_diff)
 {
         drive ^= fdd_swap;
