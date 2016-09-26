@@ -22,8 +22,8 @@ static struct
 	uint32_t base;
 	uint8_t gap2_size;
 	uint8_t gap3_size;
-	uint8_t disk_flags;
-	uint8_t track_flags;
+	uint16_t disk_flags;
+	uint16_t track_flags;
 	uint8_t sector_pos_side[2][256];
 	uint16_t sector_pos[2][256];
 	uint8_t current_sector_pos_side;
@@ -550,12 +550,12 @@ int img_xdf_type(int drive)
 	return img[drive].xdf_type;
 }
 
-uint8_t img_disk_flags(int drive)
+uint16_t img_disk_flags(int drive)
 {
 	return img[drive].disk_flags;
 }
 
-uint8_t img_side_flags(int drive)
+uint16_t img_side_flags(int drive)
 {
 	return img[drive].track_flags;
 }

@@ -118,8 +118,8 @@ void disc_calccrc(int drive, uint8_t byte, crc_t *crc_var);
 
 typedef struct
 {
-	uint8_t (*disk_flags)(int drive);
-	uint8_t (*side_flags)(int drive);
+	uint16_t (*disk_flags)(int drive);
+	uint16_t (*side_flags)(int drive);
         void (*writeback)(int drive);
 	void (*set_sector)(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n);
         uint8_t (*read_data)(int drive, int side, uint16_t pos);
