@@ -880,7 +880,7 @@ void d86f_writeback(int drive)
 		fseek(d86f[drive].f, d86f[drive].track_offset[track] + (side * store_size) + flag_bytes, SEEK_SET);
 		fwrite(d86f[drive].track_layout[side], 1, d86f_get_raw_size(drive), d86f[drive].f);
 		fseek(d86f[drive].f, d86f[drive].track_offset[track] + (side * store_size) + full_size + flag_bytes, SEEK_SET);
-		if if ((d86f[drive].version == 0x0132) && d86f_is_encoded(drive))
+		if ((d86f[drive].version == 0x0132) && d86f_is_encoded(drive))
 		{
 			fwrite(d86f[drive].track_encoded_data[side], 1, d86f_get_raw_size(drive) << 1, d86f[drive].f);
 		}
