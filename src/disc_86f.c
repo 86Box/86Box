@@ -473,9 +473,9 @@ void d86f_load(int drive, char *fn)
 		/* File is not of a recognized format version abort. */
 		if (d86f[drive].version == 0x0063)
 		{
-			pclog("86F: File has emulator-internal 86F version 0.99, this version is not valid in a file\n", d86f[drive].version >> 8, d86f[drive].version & 0xFF);
+			pclog("86F: File has emulator-internal version 0.99, this version is not valid in a file\n");
 		}
-		else ((d86f[drive].version >= 0x0100) && (d86f[drive].version < 0x0132))
+		else if ((d86f[drive].version >= 0x0100) && (d86f[drive].version < 0x0132))
 		{
 			pclog("86F: No longer supported development file version: %i.%02i\n", d86f[drive].version >> 8, d86f[drive].version & 0xFF);
 		}
