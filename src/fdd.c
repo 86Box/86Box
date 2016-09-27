@@ -105,6 +105,7 @@ void fdd_seek(int drive, int track_diff)
 
 	if (!track_diff)
 	{
+	        disctime = 5000;
 		return;
 	}
 

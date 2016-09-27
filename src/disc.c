@@ -183,6 +183,12 @@ double disc_real_period()
 
 void disc_poll()
 {
+	if (disc_drivesel > 1)
+	{
+		disc_poll_time += (int64_t) (32.0 * TIMER_USEC);
+		return;
+	}
+
         disc_poll_time += (int64_t) disc_real_period();
 
         if (drives[disc_drivesel].poll)

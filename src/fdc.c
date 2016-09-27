@@ -490,6 +490,8 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
 //        pclog("Write FDC %04X %02X %04X:%04X %i %02X %i rate=%i  %i\n",addr,val,cs>>4,pc,ins,fdc.st0,ins,fdc.rate, fdc.data_ready);
 	int drive;
 	int seek_time;
+	int temp_drive;
+	int temp_motoron;
 
         switch (addr&7)
         {
@@ -538,11 +540,27 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc_reset();
                         }
 			timer_process();
-                        motoron = (val & 0xf0) ? 1 : 0;
 			timer_update_outstanding();
-                        fdc.drive = val & 3;
-                        disc_drivesel = fdc.drive & 1;
-                        disc_set_drivesel(fdc.drive & 1);
+			val &= 0x3f;		/* Drives 2 and 3 are not emulated, so their motors are always forced off. */
+			temp_drive = val & 3;
+			temp_motoron = 0x10 << temp_drive;
+			temp_motoron = val & temp_motoron;
+			motoron = 0;
+			if (temp_motoron && (temp_drive <= 1))
+			{
+				/* Selected drive is drive 0 or 1 and has motor on bit set too, change drive selection. */
+	                        fdc.drive = temp_drive;
+        	                disc_drivesel = fdc.drive;
+                	        disc_set_drivesel(fdc.drive);
+	                        motoron = (val & 0xf0) ? 1 : 0;
+				val &= 0x3f;
+			}
+			else
+			{
+				/* Selected drive is either drive 2 or 3 or has motor on bit clear, turn off the motor. */
+				motoron = 0;
+				val &= 0x0f;
+			}
                 }
                 fdc.dor=val;
                 // printf("DOR now %02X\n",val);
@@ -738,9 +756,18 @@ bad_command:
        				disctime = 1024 * (1 << TIMER_SHIFT);
         			timer_update_outstanding();
 //                                fdc.drive = fdc.params[0] & 3;
-                                disc_drivesel = fdc.drive & 1;
                                 fdc_reset_stat = 0;
-                                disc_set_drivesel(fdc.drive & 1);
+				if (fdc.dor & (0x10 << fdc.drive))
+				{
+					motoron = 0;
+					disc_drivesel = fdc.drive;
+					disc_set_drivesel(fdc.drive);
+					motoron = 1;
+				}
+				else
+				{
+					motoron = 0;
+				}
                                 switch (discint & 0x1F)
                                 {
                                         case 2: /*Read a track*/
@@ -881,23 +908,31 @@ bad_command:
 						{
 							break;
 						}
-						if (fdc.command & 0x40)
+						if (fdc.params[1])
 						{
-							/* Relative seek inwards. */
-							fdc_seek(fdc.drive, fdc.params[1]);
+							if (fdc.command & 0x40)
+							{
+								/* Relative seek inwards. */
+								fdc_seek(fdc.drive, fdc.params[1]);
+							}
+							else
+							{
+								/* Relative seek outwards. */
+								fdc_seek(fdc.drive, -fdc.params[1]);
+							}
+	        	                                disctime = ((int) fdc.params[1]) * 10 * TIMER_USEC;
 						}
 						else
 						{
-							/* Relative seek outwards. */
-							fdc_seek(fdc.drive, -fdc.params[1]);
+							disctime = 10 * TIMER_USEC;
 						}
-	                                        disctime = ((int) fdc.params[1]) * 10 * TIMER_USEC;
 					}
 					else
 					{
 						seek_time = ((int) (fdc.params[1] - fdc.track[fdc.drive])) * 10 * TIMER_USEC;
 						if (!seek_time)
 						{
+							disctime = 10 * TIMER_USEC;
 							break;
 						}
 	                                        fdc_seek(fdc.drive, fdc.params[1] - fdc.track[fdc.drive]);

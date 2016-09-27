@@ -49,6 +49,9 @@
 uint8_t ethif;
 int inum;
 
+char nvr_path[260];
+int path_len;
+
 int window_w, window_h, window_x, window_y, window_remember;
 
 int start_in_fullscreen = 0;
@@ -239,7 +242,14 @@ void initpc(int argc, char *argv[])
         joystick_init();
         midi_init();
 
-        append_filename(config_file_default, pcempath, "86box.cfg", 511);        
+	if (config_file == NULL)
+	{
+	        append_filename(config_file_default, pcempath, "86box.cfg", 511);
+	}
+	else
+	{
+	        append_filename(config_file_default, pcempath, config_file, 511);
+	}
         
         loadconfig(config_file);
         pclog("Config loaded\n");
@@ -725,6 +735,28 @@ void loadconfig(char *fn)
                         }
                 }
         }
+
+	memset(nvr_path, 0, 260);
+        p = (char *)config_get_string(NULL, "nvr_path", "nvr");
+        if (p) {
+		if (strlen(p) <= 228)  strcpy(nvr_path, p);
+		else   strcpy(nvr_path, "nvr");
+	}
+        else   strcpy(nvr_path, "nvr");
+
+	if (nvr_path[strlen(nvr_path)] != '/')
+	{
+		nvr_path[strlen(nvr_path)] = '/';
+	}
+
+	path_len = strlen(nvr_path);
+}
+
+char *nvr_concat(char *to_concat)
+{
+	memset(nvr_path + path_len, 0, 260 - path_len);
+	strcpy(nvr_path + path_len, to_concat);
+	return nvr_path;
 }
 
 void saveconfig()

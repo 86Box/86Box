@@ -1964,7 +1964,7 @@ void d86f_poll_find_format(int drive, int side)
 
 	if (d86f[drive].track_index)
 	{
-		// pclog("Index hole hit, formatting track...\n");
+		pclog("Index hole hit, formatting track...\n");
 		d86f[drive].state = STATE_FORMAT;
 		return;
 	}
@@ -2089,7 +2089,7 @@ void d86f_poll_format(int drive, int side)
 	if (d86f[drive].track_index)
 	{
 		// pclog("Track position %08X\n", d86f[drive].track_pos);
-		// pclog("Index hole hit again, format finished\n");
+		pclog("Index hole hit again, format finished\n");
 		d86f[drive].state = STATE_IDLE;
 		if (!disable_write)  d86f_handler[drive].writeback(drive);
 		fdc_sector_finishread(drive);

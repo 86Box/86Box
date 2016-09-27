@@ -626,3 +626,8 @@ extern uint32_t eip_msr;
 extern uint64_t star;
 
 #define FPU_CW_Reserved_Bits (0xe0c0)
+
+extern char nvr_path[260];
+extern int path_len;
+
+char *nvr_concat(char *to_concat);
