@@ -441,6 +441,9 @@ void img_seek(int drive, int track)
                 fread(img[drive].track_data[side], img[drive].sectors * ssize, 1, img[drive].f);
 	}
 
+	d86f_reset_index_hole_pos(drive, 0);
+	d86f_reset_index_hole_pos(drive, 1);
+
 	if (!img[drive].xdf_type)
 	{
 		for (side = 0; side < img[drive].sides; side++)
