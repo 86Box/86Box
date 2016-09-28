@@ -36,6 +36,28 @@ enum
 	STATE_SEEK,
 };
 
+enum
+{
+	FMT_PRETRK_GAP0,
+	FMT_PRETRK_SYNC,
+	FMT_PRETRK_IAM,
+	FMT_PRETRK_GAP1,
+
+	FMT_SECTOR_ID_SYNC,
+	FMT_SECTOR_IDAM,
+	FMT_SECTOR_ID,
+	FMT_SECTOR_ID_CRC,
+	FMT_SECTOR_GAP2,
+	FMT_SECTOR_DATA_SYNC,
+	FMT_SECTOR_DATAAM,
+	FMT_SECTOR_DATA,
+	FMT_SECTOR_DATA_CRC,
+	FMT_SECTOR_GAP3,
+
+	FMT_POSTTRK_CHECK,
+	FMT_POSTTRK_GAP4,
+};
+
 static uint16_t CRCTable[256];
 
 static int d86f_drive;
@@ -86,11 +108,13 @@ static struct
 	uint8_t track_is_hole;
 	uint8_t track_fuzzy;
 	uint8_t track_data_byte;
+	uint16_t track_data_word;
 	uint8_t old_track_byte;
 	uint8_t old_track_index;
 	uint8_t old_track_is_hole;
 	uint8_t old_track_fuzzy;
 	uint8_t old_track_data_byte;
+	uint16_t old_track_data_word;
 	uint8_t cur_track;
 	uint8_t side_flag_bytes;
 	uint8_t wait_state;
@@ -98,6 +122,13 @@ static struct
 	uint8_t id_counter;
 	uint8_t id_match;
 	uint8_t data_am_counter;
+	uint8_t am_sync_counter;
+	uint8_t am_sync_valid;
+	uint8_t idam_found;
+	uint8_t id_was_read;
+	uint8_t id_read_state;
+	uint8_t sector_count;
+	uint8_t format_state;
 } d86f[2];
 
 uint8_t encoded_fm[64] = {	0xAA, 0xAB, 0xAE, 0xAF, 0xBA, 0xBB, 0xBE, 0xBF, 0xEA, 0xEB, 0xEE, 0xEF, 0xFA, 0xFB, 0xFE, 0xFF,
@@ -130,6 +161,21 @@ typedef union {
 	split_byte_t nibbles;
 	preceding_byte_t p;
 } decoded_t;
+
+static void d86f_new_style_reset(int drive)
+{
+	d86f[drive].id_am_counter = 0;
+	d86f[drive].id_counter = 0;
+	d86f[drive].id_match = 0;
+	d86f[drive].data_am_counter = 0;
+	d86f[drive].am_sync_counter = 0;
+	d86f[drive].am_sync_valid = 0;
+	d86f[drive].idam_found = 0;
+	d86f[drive].id_was_read = 0;
+	d86f[drive].id_read_state = 0;
+	d86f[drive].sector_count = 0;
+	d86f[drive].format_state = 0;
+}
 
 static uint16_t d86f_encode_get_data(uint8_t dat)
 {
@@ -334,10 +380,10 @@ int d86f_get_array_size(int drive)
 					pos = 7575;
 					break;
 				case 2:
-					pos = 7614;
+					pos = 7613;
 					break;
 				case 3:
-					pos = 7653;
+					pos = 7650;
 					break;
 				default:
 					pos = 7500;
@@ -350,13 +396,13 @@ int d86f_get_array_size(int drive)
 			switch (rm)
 			{
 				case 1:
-					pos = 12626;
+					pos = 12625;
 					break;
 				case 2:
-					pos = 12690;
+					pos = 12688;
 					break;
 				case 3:
-					pos = 12755;
+					pos = 12750;
 					break;
 				default:
 					pos = 12500;
@@ -369,13 +415,13 @@ int d86f_get_array_size(int drive)
 			switch (rm)
 			{
 				case 1:
-					pos = 50505;
+					pos = 50500;
 					break;
 				case 2:
-					pos = 50761;
+					pos = 50750;
 					break;
 				case 3:
-					pos = 51020;
+					pos = 51000;
 					break;
 				default:
 					pos = 50000;
@@ -384,6 +430,81 @@ int d86f_get_array_size(int drive)
 			break;
 	}
 	return pos;
+}
+
+int d86f_get_mini_size(int drive)
+{
+	int pos = 0;
+	int rm = 0;
+	rm = d86f_get_rpm_mode(drive);
+	switch (d86f_hole(drive))
+	{
+		case 0:
+		default:
+			switch (rm)
+			{
+				case 1:
+					pos = 1894;
+					break;
+				case 2:
+					pos = 1904;
+					break;
+				case 3:
+					pos = 1913;
+					break;
+				default:
+					pos = 1875;
+					break;
+			}
+			break;
+		case 1:
+			switch (rm)
+			{
+				case 1:
+					pos = 3157;
+					break;
+				case 2:
+					pos = 3172;
+					break;
+				case 3:
+					pos = 3188;
+					break;
+				default:
+					pos = 3125;
+					break;
+			}
+			break;
+		case 2:
+			pos = 50000;
+			if (d86f[drive].version != 0x0132)  return pos;
+			switch (rm)
+			{
+				case 1:
+					pos = 12625;
+					break;
+				case 2:
+					pos = 12688;
+					break;
+				case 3:
+					pos = 12750;
+					break;
+				default:
+					pos = 12500;
+					break;
+			}
+			break;
+	}
+	return pos;
+}
+
+void d86f_mini_pos(int drive, uint32_t *pos, uint32_t *bit)
+{
+	uint32_t i, j, k;
+	i = d86f[drive].track_pos;
+	j = i >> 2;
+	k = (i & 3) << 1;
+	*pos = j;
+	*bit = k;
 }
 
 int d86f_valid_bit_rate(int drive)
@@ -416,6 +537,21 @@ void d86f_common_handlers(int drive)
         drives[drive].format      = d86f_format;
         drives[drive].realtrack   = d86f_realtrack;
         drives[drive].stop        = d86f_stop;
+}
+
+int d86f_has_mini_table(int drive)
+{
+	return ((d86f_handler[drive].disk_flags(drive) >> 7) & 3) == 2;
+}
+
+int d86f_is_old_style(int drive)
+{
+	return ((d86f_handler[drive].disk_flags(drive) >> 7) & 3) < 2;
+}
+
+int d86f_is_encoded(int drive)
+{
+	return ((d86f_handler[drive].disk_flags(drive) >> 7) & 3) > 0;
 }
 
 void d86f_load(int drive, char *fn)
@@ -501,7 +637,7 @@ void d86f_load(int drive, char *fn)
 		return;
 	}
 
-	if (d86f[drive].disk_flags & 0x100)
+	if (d86f[drive].disk_flags & 0x200)
 	{
 		/* Zoned disk. */
 		pclog("86F: Disk is zoned (Apple or Sony)\n");
@@ -545,16 +681,13 @@ void d86f_load(int drive, char *fn)
 
         drives[drive].seek        = d86f_seek;
 	d86f_common_handlers(drive);
+
+	pclog("86F: Disk format is %s style and it %s a mini track layout table\n", d86f_is_old_style(drive) ? "old" : "new", d86f_has_mini_table(drive) ? "has" : "does not have");
 }
 
 int d86f_hole(int drive)
 {
 	return (d86f_handler[drive].disk_flags(drive) >> 1) & 3;
-}
-
-int d86f_is_encoded(int drive)
-{
-	return (d86f_handler[drive].disk_flags(drive) >> 7) & 1;
 }
 
 uint16_t d86f_side_flags(int drive)
@@ -696,6 +829,7 @@ uint32_t d86f_get_raw_size(int drive)
 
 void d86f_seek(int drive, int track)
 {
+	uint8_t track_id = track;
 	int sides;
         int side;
 	int full_size, store_size;
@@ -705,6 +839,14 @@ void d86f_seek(int drive, int track)
 	full_size = d86f_get_array_size(drive);
 	store_size = full_size << 1;
 	if (d86f_is_encoded(drive))  store_size += full_size;
+	if (!d86f_is_old_style(drive))
+	{
+		store_size -= full_size;
+		if (d86f_has_mini_table(drive))
+		{
+			store_size += d86f_get_mini_size(drive);
+		}
+	}
 	if (d86f_get_sides(drive) == 2)  flag_bytes += 4;
 
         if (d86f_is_40_track(drive) && fdd_doublestep_40(drive))
@@ -712,7 +854,14 @@ void d86f_seek(int drive, int track)
 
 	for (side = 0; side < d86f_get_sides(drive); side++)
 	{
-		memset(d86f[drive].track_layout[side], BYTE_GAP0, 50000);
+		if (d86f_is_old_style(drive))
+		{
+			memset(d86f[drive].track_layout[side], BYTE_GAP0, 50000);
+		}
+		else
+		{
+			memset(d86f[drive].track_layout[side], 0, 50000);
+		}
 		if (d86f_is_encoded(drive))
 		{
 			memset(d86f[drive].track_encoded_data[side], 0xFF, 50000);
@@ -750,11 +899,21 @@ void d86f_seek(int drive, int track)
 		fread(&(d86f[drive].index_hole_pos[side]), 2, 1, d86f[drive].f);
 	}
 
+	fread(&track_id, 1, 1, d86f[drive].f);
+
 	for (side = 0; side < d86f_get_sides(drive); side++)
 	{
-		fseek(d86f[drive].f, d86f[drive].track_offset[track] + (side * store_size) + flag_bytes, SEEK_SET);
-		fread(d86f[drive].track_layout[side], 1, d86f_get_raw_size(drive), d86f[drive].f);
-		fseek(d86f[drive].f, d86f[drive].track_offset[track] + (side * store_size) + full_size + flag_bytes, SEEK_SET);
+		if (d86f_is_old_style(drive))
+		{
+			fread(d86f[drive].track_layout[side], 1, d86f_get_raw_size(drive), d86f[drive].f);
+		}
+		else
+		{
+			if (d86f_has_mini_table(drive))
+			{
+				fread(d86f[drive].track_layout[side], 1, d86f_get_mini_size(drive), d86f[drive].f);
+			}
+		}
 		if (d86f_is_encoded(drive))
 		{
 			fread(d86f[drive].track_encoded_data[side], 1, d86f_get_raw_size(drive) << 1, d86f[drive].f);
@@ -777,6 +936,14 @@ void d86f_writeback(int drive)
 	full_size = d86f_get_array_size(drive);
 	store_size = full_size << 1;
 	if (d86f_is_encoded(drive))  store_size += full_size;
+	if (!d86f_is_old_style(drive))
+	{
+		store_size -= full_size;
+		if (d86f_has_mini_table(drive))
+		{
+			store_size += d86f_get_mini_size(drive);
+		}
+	}
 	if (d86f_get_sides(drive) == 2)  flag_bytes += 4;
 
         if (!d86f[drive].f)
@@ -789,7 +956,7 @@ void d86f_writeback(int drive)
                 return; /*Should never happen*/
 	}
 
-	fseek(d86f[drive].f, 7, SEEK_SET);
+	fseek(d86f[drive].f, 8, SEEK_SET);
 	fwrite(d86f[drive].track_offset, 1, 1024, d86f[drive].f);
 
 	fseek(d86f[drive].f, d86f[drive].track_offset[track], SEEK_SET);
@@ -808,9 +975,17 @@ void d86f_writeback(int drive)
 
 	for (side = 0; side < d86f_get_sides(drive); side++)
 	{
-		fseek(d86f[drive].f, d86f[drive].track_offset[track] + (side * store_size) + flag_bytes, SEEK_SET);
-		fwrite(d86f[drive].track_layout[side], 1, d86f_get_raw_size(drive), d86f[drive].f);
-		fseek(d86f[drive].f, d86f[drive].track_offset[track] + (side * store_size) + full_size + flag_bytes, SEEK_SET);
+		if (d86f_is_old_style(drive))
+		{
+			fwrite(d86f[drive].track_layout[side], 1, d86f_get_raw_size(drive), d86f[drive].f);
+		}
+		else
+		{
+			if (d86f_has_mini_table(drive))
+			{
+				fwrite(d86f[drive].track_layout[side], 1, d86f_get_mini_size(drive), d86f[drive].f);
+			}
+		}
 		if (d86f_is_encoded(drive))
 		{
 			fwrite(d86f[drive].track_encoded_data[side], 1, d86f_get_raw_size(drive) << 1, d86f[drive].f);
@@ -900,6 +1075,7 @@ void d86f_readsector(int drive, int sector, int track, int side, int rate, int s
 	d86f[drive].req_sector.id.n = sector_size;
 	d86f[drive].index_count = 0;
 	d86f[drive].wait_state = 1;
+	d86f_new_style_reset(drive);
         d86f[drive].state = STATE_READ_FIND_SECTOR;
 }
 
@@ -933,6 +1109,7 @@ void d86f_writesector(int drive, int sector, int track, int side, int rate, int 
         d86f_drive = drive;
 	d86f[drive].index_count = 0;
 	d86f[drive].wait_state = 1;
+	d86f_new_style_reset(drive);
         d86f[drive].state = STATE_WRITE_FIND_SECTOR;
 }
 
@@ -956,6 +1133,7 @@ void d86f_readaddress(int drive, int track, int side, int rate)
         d86f_drive = drive;
 	d86f[drive].index_count = 0;
 	d86f[drive].wait_state = 1;
+	d86f_new_style_reset(drive);
         d86f[drive].state = STATE_READ_FIND_ADDRESS;
 }
 
@@ -1247,6 +1425,14 @@ void d86f_format(int drive, int track, int side, int rate, uint8_t fill)
 	full_size = d86f_get_array_size(drive);
 	store_size = full_size << 1;
 	if (d86f_is_encoded(drive))  store_size += full_size;
+	if (!d86f_is_old_style(drive))
+	{
+		store_size -= full_size;
+		if (d86f_has_mini_table(drive))
+		{
+			store_size += d86f_get_mini_size(drive);
+		}
+	}
 	if (d86f_get_sides(drive) == 2)  flag_bytes += 4;
 
         d86f[drive].req_sector.id.c = d86f[drive].cur_track;
@@ -1295,12 +1481,16 @@ void d86f_format(int drive, int track, int side, int rate, uint8_t fill)
 	/* For version 0.99 (= another format proxied to the 86F handler), the track layout is fixed. */
 	if (d86f[drive].version != 0x0063)
 	{
-		d86f_prepare_track_layout(drive, side);
+		if (d86f_is_old_style(drive))
+		{
+			d86f_prepare_track_layout(drive, side);
+		}
 
 		if (!d86f[drive].track_in_file)
 		{
 			/* Track is absent from the file, let's add it. */
 			d86f[drive].track_offset[d86f[drive].cur_track] = d86f[drive].file_size;
+
 			d86f[drive].file_size += store_size + flag_bytes;
 			if (d86f_get_sides(drive) == 2)
 			{
@@ -1312,6 +1502,7 @@ void d86f_format(int drive, int track, int side, int rate, uint8_t fill)
 
 	// pclog("Formatting track %i side %i\n", d86f[drive].cur_track, side);
 
+	d86f_new_style_reset(drive);
         d86f[drive].state = STATE_FORMAT_FIND;
 }
 
@@ -1565,6 +1756,37 @@ void d86f_write_byte(int drive, int side, uint8_t byte)
 	}
 }
 
+void d86f_write_byte_direct(int drive, int side, uint8_t byte)
+{
+	decoded_t dbyte, dpbyte;
+	d86f[drive].track_data_byte = byte;
+	dbyte.byte = byte;
+	dpbyte.byte = d86f[drive].old_track_data_byte;
+
+	if (d86f[drive].track_is_hole)
+	{
+		return;
+	}
+
+	d86f[drive].track_data_byte = byte;
+	d86f[drive].track_encoded_data[side][d86f[drive].track_pos] = d86f_encode_byte(drive, 0, dbyte, dpbyte);
+	d86f[drive].track_data_word = d86f[drive].track_encoded_data[side][d86f[drive].track_pos];
+}
+
+void d86f_write_word(int drive, int side, uint16_t word)
+{
+	int sync = 0;
+
+	if (d86f[drive].track_is_hole)
+	{
+		return;
+	}
+
+	d86f[drive].track_data_byte = decodefm(drive, word);
+	d86f[drive].track_data_word = word;
+	d86f[drive].track_encoded_data[side][d86f[drive].track_pos] = word;
+}
+
 void d86f_poll_write_crc(int drive, int side)
 {
 	if (d86f[drive].state != STATE_FORMAT)  return;
@@ -1574,6 +1796,9 @@ void d86f_poll_write_crc(int drive, int side)
 
 void d86f_poll_advancebyte(int drive, int side)
 {
+	uint32_t mini_pos, mini_bit;
+	uint8_t mini_layout, temp_layout;
+
 	if (d86f_handler[drive].side_flags == NULL)
 	{
 		fatal("NULL side flags handler\n");
@@ -1583,10 +1808,30 @@ void d86f_poll_advancebyte(int drive, int side)
 	d86f[drive].old_track_data_byte = d86f[drive].track_data_byte;
 	d86f[drive].old_track_fuzzy = d86f[drive].track_fuzzy;
 	d86f[drive].old_track_is_hole = d86f[drive].track_is_hole;
+	d86f[drive].old_track_data_word = d86f[drive].track_data_word;
 
 	d86f[drive].track_pos++;
 	d86f[drive].track_pos %= d86f_get_raw_size(drive);
 
+	if (d86f_is_old_style(drive))
+	{
+		temp_layout = d86f[drive].track_layout[side][d86f[drive].track_pos];
+	}
+	else
+	{
+		if (d86f_has_mini_table(drive))
+		{
+			d86f_mini_pos(drive, &mini_pos, &mini_bit);
+			mini_layout = (d86f[drive].track_layout[side][mini_pos] >> mini_bit) & 3;
+			temp_layout = 0;
+			if (mini_layout & 1)  temp_layout |= 0x20;
+			if (mini_layout & 2)  temp_layout |= BYTE_IS_FUZZY;
+		}
+		else
+		{
+			temp_layout = 0;
+		}
+	}
 	d86f[drive].track_byte = d86f[drive].track_layout[side][d86f[drive].track_pos] & ~BYTE_IS_FUZZY;
 	d86f[drive].track_byte = d86f[drive].track_layout[side][d86f[drive].track_pos] & ~0x20;
 	d86f[drive].track_is_hole = d86f[drive].track_layout[side][d86f[drive].track_pos] & 0x20;
@@ -1600,6 +1845,31 @@ void d86f_poll_advancebyte(int drive, int side)
 	else
 	{
 		d86f[drive].track_data_byte = d86f_read_byte(drive, side);
+	}
+
+	if (d86f_is_encoded(drive))
+	{
+		if (d86f[drive].track_fuzzy && !d86f[drive].track_is_hole)
+		{
+			d86f[drive].track_data_word = disc_random_generate();
+			d86f[drive].track_data_word <<= 8;
+			d86f[drive].track_data_word |= disc_random_generate();
+		}
+		else
+		{
+			if (d86f[drive].track_is_hole)
+			{
+				d86f[drive].track_data_word = 0;
+			}
+			else
+			{
+				d86f[drive].track_data_word = d86f[drive].track_encoded_data[side][d86f[drive].track_pos];
+			}
+		}
+	}
+	else
+	{
+		d86f[drive].track_data_word = 0;
 	}
 }
 
@@ -1686,7 +1956,14 @@ void d86f_poll_readwrite(int drive, int side)
 		}
 		if (!disable_write)
 		{
-			d86f_handler[drive].write_data(drive, side, d86f[drive].datac, data);
+			if (d86f_is_old_style(drive))
+			{
+				d86f_handler[drive].write_data(drive, side, d86f[drive].datac, data);
+			}
+			else
+			{
+				d86f_write_byte_direct(drive, side, data);
+			}
 		}
 		d86f_calccrc(drive, data & 0xff);
 	}
@@ -1700,15 +1977,21 @@ void d86f_poll_readwrite(int drive, int side)
 		max_len = 2;
 		if (!disable_write)
 		{
-			d86f_poll_write(drive, side, d86f[drive].calc_crc.bytes[d86f[drive].datac ^ 1], BYTE_DATA_CRC);
+			if (d86f_is_old_style(drive))
+			{
+				d86f_poll_write(drive, side, d86f[drive].calc_crc.bytes[d86f[drive].datac ^ 1], BYTE_DATA_CRC);
+			}
+			else
+			{
+				d86f_write_byte_direct(drive, side, d86f[drive].calc_crc.bytes[d86f[drive].datac ^ 1]);
+			}
 		}
 	}
 	else if (d86f_read_state_gap3(drive))
 	{
-		max_len = 1;
-		// max_len = fdc_get_gap();
-		// if (d86f[drive].datac == (fdc_get_gap() - 1))
-		// {
+		max_len = fdc_get_gap();
+		if (d86f[drive].datac == (fdc_get_gap() - 1))
+		{
 			d86f_poll_reset(drive, side);
 			if ((d86f[drive].track_crc.word != d86f[drive].calc_crc.word) && d86f_handler[drive].check_crc)
 			{
@@ -1722,18 +2005,24 @@ void d86f_poll_readwrite(int drive, int side)
         	               	fdc_sector_finishread();
 			}
 			return;
-		// }
+		}
 	}
 	else if (d86f[drive].state == STATE_WRITE_SECTOR_GAP3)
 	{
-		// max_len = fdc_get_gap();
-		max_len = 1;
+		max_len = fdc_get_gap();
 		if (!disable_write && !d86f[drive].datac)
 		{
-			d86f_poll_write(drive, side, fdc_is_mfm() ? 0x4E : 0xFF, BYTE_GAP3);
+			if (d86f_is_old_style(drive))
+			{
+				d86f_poll_write(drive, side, fdc_is_mfm() ? 0x4E : 0xFF, BYTE_GAP3);
+			}
+			else
+			{
+				d86f_write_byte_direct(drive, side, fdc_is_mfm() ? 0x4E : 0xFF);
+			}
 		}
-		// if (d86f[drive].datac == (max_len - 1))
-		// {
+		if (d86f[drive].datac == (max_len - 1))
+		{
     		        if (!disable_write)
 			{
 				d86f_handler[drive].writeback(drive);
@@ -1742,7 +2031,7 @@ void d86f_poll_readwrite(int drive, int side)
 			// pclog("Write finished (%i %i %i %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n);
        	        	fdc_sector_finishread(drive);
 			return;
-		// }
+		}
 	}
 
 	d86f[drive].datac++;
@@ -1964,7 +2253,12 @@ void d86f_poll_find_format(int drive, int side)
 
 	if (d86f[drive].track_index)
 	{
-		pclog("Index hole hit, formatting track...\n");
+		// pclog("Index hole hit, formatting track...\n");
+		if (!d86f_is_old_style(drive))
+		{
+			d86f[drive].format_state = FMT_PRETRK_GAP0;
+			d86f[drive].sector_count = d86f[drive].datac = 0;
+		}
 		d86f[drive].state = STATE_FORMAT;
 		return;
 	}
@@ -2011,7 +2305,7 @@ void d86f_poll_format(int drive, int side)
 				{
 					d86f[drive].format_sector_id.byte_array[d86f[drive].id_pos] = data & 0xff;
 				}
-				// pclog("format_sector_id[%i] = %i\n", cur_id_pos, d86f[drive].format_sector_id.byte_array[d86f[drive].id_pos]);
+				// pclog("format_sector_id[%i] = %i\n", d86f[drive].id_pos, d86f[drive].format_sector_id.byte_array[d86f[drive].id_pos]);
        	        		if (d86f[drive].id_pos == 3)
 				{
 					fdc_stop_id_request();
@@ -2089,7 +2383,7 @@ void d86f_poll_format(int drive, int side)
 	if (d86f[drive].track_index)
 	{
 		// pclog("Track position %08X\n", d86f[drive].track_pos);
-		pclog("Index hole hit again, format finished\n");
+		// pclog("Index hole hit again, format finished\n");
 		d86f[drive].state = STATE_IDLE;
 		if (!disable_write)  d86f_handler[drive].writeback(drive);
 		fdc_sector_finishread(drive);
@@ -2132,6 +2426,438 @@ void d86f_poll_format(int drive, int side)
 	}
 }
 
+void d86f_poll_read_id(int drive, int side)
+{
+	uint16_t max_len;
+
+	if (d86f[drive].id_read_state == 0)
+	{
+		max_len = 4;
+		d86f[drive].last_sector.byte_array[d86f[drive].datac] = d86f[drive].track_data_byte;
+		d86f_calccrc(drive, d86f[drive].track_data_byte);
+	}
+	else if (d86f[drive].id_read_state == 1)
+	{
+		max_len = 2;
+		d86f[drive].track_crc.bytes[d86f[drive].datac ^ 1] = d86f[drive].track_data_byte;
+
+		if (d86f[drive].datac == 1)
+		{
+			if ((d86f[drive].track_crc.word != d86f[drive].calc_crc.word) && d86f_handler[drive].check_crc)
+			{
+				// pclog("d86f_poll(): Header CRC error (%i %i %i %i) (%04X %04X)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n, d86f[drive].track_crc.word, d86f[drive].calc_crc.word);
+				fdc_finishread();
+				fdc_headercrcerror();
+			}
+			else
+			{
+				d86f[drive].idam_found = 0;
+
+				if ((d86f[drive].req_sector.dword == d86f[drive].last_sector.dword) && (d86f[drive].state != STATE_READ_FIND_ADDRESS))
+				{
+					d86f[drive].id_was_read = 1;
+					d86f[drive].id_match = 1;
+				}
+				else
+				{
+					d86f[drive].id_was_read = 0;
+					d86f[drive].id_match = 0;
+				}
+
+				if (d86f[drive].state == STATE_READ_FIND_ADDRESS)
+				{
+					// pclog("Reading sector ID (%i %i %i %i)...\n", d86f[drive].last_sector.id.c, d86f[drive].last_sector.id.h, d86f[drive].last_sector.id.r, d86f[drive].last_sector.id.n);
+					fdc_sectorid(d86f[drive].last_sector.id.c, d86f[drive].last_sector.id.h, d86f[drive].last_sector.id.r, d86f[drive].last_sector.id.n, 0, 0);
+					d86f[drive].state = STATE_IDLE;
+					d86f[drive].index_count = 0;
+				}
+				/* else
+				{
+					pclog("Found sector ID (%i %i %i %i)...\n", d86f[drive].last_sector.id.c, d86f[drive].last_sector.id.h, d86f[drive].last_sector.id.r, d86f[drive].last_sector.id.n);
+				} */
+			}
+			return;
+		}
+	}
+
+	d86f[drive].datac++;
+	d86f_poll_advancebyte(drive, side);
+
+	if (d86f[drive].datac >= max_len)
+	{
+		d86f[drive].datac = 0;
+		d86f[drive].id_read_state++;
+		// pclog("Read ID: %04X is bigger than %04X, new state: %02X\n", d86f[drive].datac, max_len, d86f[drive].id_read_state);
+	}
+}
+
+void d86f_poll_find_am_fm(int drive, int side)
+{
+	switch (d86f[drive].track_data_word)
+	{
+		case 0x7EF5:	/* ID address mark */
+			d86f[drive].idam_found = 1;	/* Mark ID address mark as found so on the next byte, we're in the ID reading handler. */
+			d86f[drive].id_read_state = 0;
+			d86f[drive].datac = 0;
+			d86f[drive].calc_crc.word = 0xffff;
+			d86f_calccrc(drive, 0xFE);
+			break;
+		case 0x6FF5:	/* Data address mark */
+		case 0x6AF5:	/* Deleted data address mark */
+			if (d86f[drive].id_was_read)
+			{
+				if ((d86f[drive].id_match) || d86f_find_state_nf_ignore_id(drive))
+				{
+					d86f[drive].id_match = 0;	/* Invalidate ID match to avoid false positives after read. */
+					d86f[drive].calc_crc.word = 0xffff;
+					if (d86f[drive].state == STATE_WRITE_FIND_SECTOR)
+					{
+						d86f_write_byte_direct(drive, side, 0xFB);
+					}
+					d86f_calccrc(drive, d86f[drive].track_data_byte);
+					d86f[drive].datac = 0;
+					switch (d86f[drive].state)
+					{
+						case STATE_READ_FIND_SECTOR:
+						case STATE_WRITE_FIND_SECTOR:
+						case STATE_READ_FIND_FIRST_SECTOR:
+						case STATE_READ_FIND_NEXT_SECTOR:
+							d86f[drive].state++;
+							d86f_poll_advancebyte(drive, side);
+							return;
+					}
+				}
+				d86f[drive].id_was_read = 0;	/* Invalidate ID was read flag to avoid false positives after read. */
+			}
+			break;
+	}
+
+	d86f_poll_advancebyte(drive, side);
+
+	if (d86f_poll_check_notfound(drive))  return;
+}
+
+void d86f_poll_find_am_mfm(int drive, int side)
+{
+	switch (d86f[drive].track_data_word)
+	{
+		case 0x8944:
+			d86f[drive].am_sync_counter++;
+			d86f_calccrc(drive, 0xA1);
+			break;
+		case 0x5455:	/* ID address mark */
+			if (d86f[drive].am_sync_valid)
+			{
+				d86f[drive].am_sync_valid = 0;	/* Invalidate address mark sync validity flag to avoid false positives after read. */
+				d86f[drive].idam_found = 1;	/* Mark ID address mark as found so on the next byte, we're in the ID reading handler. */
+				d86f[drive].id_read_state = 0;
+				d86f[drive].datac = 0;
+				d86f_calccrc(drive, 0xFE);
+				// pclog("ID address mark found (%08X)\n", d86f[drive].track_pos);
+			}
+			break;
+		case 0x4555:	/* Data address mark */
+		case 0x4A55:	/* Deleted data address mark */
+			if (d86f[drive].id_was_read && d86f[drive].am_sync_valid)
+			{
+				if ((d86f[drive].id_match) || d86f_find_state_nf_ignore_id(drive))
+				{
+					d86f[drive].id_match = 0;	/* Invalidate ID match to avoid false positives after read. */
+					if (d86f[drive].state == STATE_WRITE_FIND_SECTOR)
+					{
+						d86f_write_byte_direct(drive, side, 0xFB);
+					}
+					d86f_calccrc(drive, d86f[drive].track_data_byte);
+					d86f[drive].datac = 0;
+					switch (d86f[drive].state)
+					{
+						case STATE_READ_FIND_SECTOR:
+						case STATE_WRITE_FIND_SECTOR:
+						case STATE_READ_FIND_FIRST_SECTOR:
+						case STATE_READ_FIND_NEXT_SECTOR:
+							// pclog("Advancing state (%04X)...\n", d86f[drive].calc_crc);
+							d86f[drive].state++;
+							d86f_poll_advancebyte(drive, side);
+							return;
+					}
+				}
+				d86f[drive].id_was_read = 0;	/* Invalidate ID was read flag to avoid false positives after read. */
+			}
+			if (d86f[drive].am_sync_valid)
+			{
+				d86f[drive].am_sync_valid = 0;	/* Invalidate address mark sync validity flag to avoid false positives after read. */
+			}
+			break;
+	}
+
+	d86f_poll_advancebyte(drive, side);
+
+	if (d86f_poll_check_notfound(drive))  return;
+
+	if (d86f[drive].idam_found)
+	{
+		return;
+	}
+
+	if (d86f[drive].track_data_word != d86f[drive].old_track_data_word)
+	{
+		switch (d86f[drive].old_track_data_word)
+		{
+			case 0x8944:	/* Address mark sync */
+				if (d86f[drive].am_sync_counter >= 3)	/* Three is the minimum but we should tolerate more than three as probably a real FDC would. */
+				{
+					switch (d86f[drive].track_data_word)
+					{
+						case 0x5455:
+						case 0x4555:
+						case 0x4A55:
+							// pclog("Sync found: %08X: %i %02X %04X\n", d86f[drive].track_pos, d86f[drive].am_sync_counter, d86f[drive].track_data_byte, d86f[drive].track_data_word);
+							d86f[drive].am_sync_valid = 1;		/* Only set it to valid if we've hit 3 A1 sync bytes AND the address mark in a row. */
+							break;
+						default:
+							d86f[drive].am_sync_valid = 0;		/* A1 sync bytes not followed by a valid address mark, invalidate it. */
+							break;
+					}
+				}
+				else
+				{
+					d86f[drive].am_sync_valid = 0;		/* Too few A1 sync bytes, set it to invalid. */
+				}
+				d86f[drive].am_sync_counter = 0;	/* Reset address mark sync counter to zero to avoid false positives the next time we hit such a sync. */
+				break;
+		}
+		switch (d86f[drive].track_data_word)
+		{
+			case 0x8944:	/* Address mark sync */
+				d86f[drive].am_sync_valid = 0;	/* Make sure to reset the address mark sync validity flag to avoid false positives after read. */
+				d86f[drive].am_sync_counter = 0;	/* Reset address mark sync counter to zero to start counting. */
+				d86f[drive].calc_crc.word = 0xffff;
+				break;
+		}
+	}
+}
+
+void d86f_poll_time_out(int drive, int side)
+{
+	if (d86f[drive].track_index)
+	{
+		// pclog("d86f_poll_find_nf(): Index pulse\n");
+		index_pulse(drive);
+		d86f[drive].index_count++;
+	}
+
+	d86f_poll_advancebyte(drive, side);
+
+	if (d86f_poll_check_notfound(drive))  return;
+}
+
+void d86f_poll_find_nf_new_style(int drive, int side)
+{
+	uint8_t mfm = 0;
+	mfm = fdc_is_mfm();
+
+	if (!d86f_can_read_address(drive))
+	{
+		d86f_poll_time_out(drive, side);	/* If we know in advance we should time out, just do nothing and wait for two index pulses to be hit, then abort the command with Sector not found. */
+		return;
+	}
+
+	if (d86f[drive].idam_found)
+	{
+		d86f_poll_read_id(drive, side);		/* A valid ID address mark was found (with A1 sync bytes if MFM), read the ID and its CRC, and verify it if needed. */
+	}
+	else
+	{
+		if (mfm)
+		{
+			d86f_poll_find_am_mfm(drive, side);	/* Finding a valid ID or data address mark, MFM method. */
+		}
+		else
+		{
+			d86f_poll_find_am_fm(drive, side);	/* Finding a valid ID or data address mark, FM method. */
+		}
+	}
+}
+
+void d86f_poll_format_new_style(int drive, int side)
+{
+        int data;
+	uint16_t max_len;
+
+	int mfm;
+	uint16_t i = 0;
+	uint16_t j = 0;
+	uint16_t sc = 0;
+	uint16_t dtl = 0;
+	int real_gap0_len = 0;
+	int real_gap1_len = 0;
+	int real_gap2_len = 0;
+	int real_gap3_len = 0;
+	int am_len = 0;
+	int sync_len = 0;
+	uint16_t iam_mfm[4] = { 0x2452, 0x2452, 0x2452, 0x5255 };
+	uint16_t idam_mfm[4] = { 0x8944, 0x8944, 0x8944, 0x5455 };
+	uint16_t dataam_mfm[4] = { 0x8944, 0x8944, 0x8944, 0x4555 };
+	uint16_t iam_fm = 0xFAF7;
+	uint16_t idam_fm = 0x7EF5;
+	uint16_t dataam_fm = 0x6FF5;
+	uint16_t gap_fill = 0x4E;
+
+	mfm = d86f_is_mfm(drive);
+	am_len = mfm ? 4 : 1;
+	real_gap0_len = mfm ? 80 : 40;
+	real_gap1_len = mfm ? 50 : 26;
+	real_gap2_len = fdc_get_gap2(drive ^ fdd_swap);
+	real_gap3_len = fdc_get_gap();
+	sync_len = mfm ? 12 : 6;
+	sc = fdc_get_format_sectors();
+	dtl = 128 << fdc_get_format_n();
+	gap_fill = mfm ? 0x4E : 0xFF;
+
+	switch(d86f[drive].format_state)
+	{
+		case FMT_POSTTRK_GAP4:
+			max_len = 60000;
+			d86f_write_byte_direct(drive, side, gap_fill);
+			break;
+		case FMT_PRETRK_GAP0:
+			max_len = real_gap0_len;
+			d86f_write_byte_direct(drive, side, gap_fill);
+			break;
+		case FMT_SECTOR_ID_SYNC:
+			if (d86f[drive].datac <= 3)
+			{
+	               		data = fdc_getdata(0);
+       		        	if ((data == -1) && (d86f[drive].datac < 3))
+				{
+					data = 0;
+				}
+				d86f[drive].format_sector_id.byte_array[d86f[drive].datac] = data & 0xff;
+				// pclog("format_sector_id[%i] = %i\n", d86f[drive].datac, d86f[drive].format_sector_id.byte_array[d86f[drive].datac]);
+       	        		if (d86f[drive].datac == 3)
+				{
+					fdc_stop_id_request();
+					// pclog("Formatting sector: %08X...\n", d86f[drive].format_sector_id.dword);
+				}
+			}
+		case FMT_PRETRK_SYNC:
+		case FMT_SECTOR_DATA_SYNC:
+			max_len = sync_len;
+			d86f_write_byte_direct(drive, side, 0x00);
+			break;
+		case FMT_PRETRK_IAM:
+			max_len = am_len;
+			if (mfm)
+			{
+				d86f_write_word(drive, side, iam_mfm[d86f[drive].datac]);
+			}
+			else
+			{
+				d86f_write_word(drive, side, iam_fm);
+			}
+			break;
+		case FMT_PRETRK_GAP1:
+			max_len = real_gap1_len;
+			d86f_write_byte_direct(drive, side, gap_fill);
+			break;
+		case FMT_SECTOR_IDAM:
+			max_len = am_len;
+			if (mfm)
+			{
+				d86f_write_word(drive, side, idam_mfm[d86f[drive].datac]);
+				d86f_calccrc(drive, d86f[drive].track_data_byte);
+			}
+			else
+			{
+				d86f_write_word(drive, side, idam_fm);
+				d86f_calccrc(drive, d86f[drive].track_data_byte);
+			}
+			break;
+		case FMT_SECTOR_ID:
+			max_len = 4;
+			d86f_write_byte_direct(drive, side, d86f[drive].format_sector_id.byte_array[d86f[drive].datac]);
+			d86f_calccrc(drive, d86f[drive].track_data_byte);
+			break;
+		case FMT_SECTOR_ID_CRC:
+		case FMT_SECTOR_DATA_CRC:
+			max_len = 2;
+			d86f_write_byte_direct(drive, side, d86f[drive].calc_crc.bytes[d86f[drive].datac ^ 1]);
+			break;
+		case FMT_SECTOR_GAP2:
+			max_len = real_gap2_len;
+			d86f_write_byte_direct(drive, side, gap_fill);
+			break;
+		case FMT_SECTOR_DATAAM:
+			max_len = am_len;
+			if (mfm)
+			{
+				d86f_write_word(drive, side, dataam_mfm[d86f[drive].datac]);
+				d86f_calccrc(drive, d86f[drive].track_data_byte);
+			}
+			else
+			{
+				d86f_write_word(drive, side, dataam_fm);
+				d86f_calccrc(drive, d86f[drive].track_data_byte);
+			}
+			break;
+		case FMT_SECTOR_DATA:
+			max_len = dtl;
+			d86f_write_byte_direct(drive, side, d86f[drive].fill);
+			d86f_calccrc(drive, d86f[drive].fill);
+			break;
+		case FMT_SECTOR_GAP3:
+			max_len = real_gap3_len;
+			d86f_write_byte_direct(drive, side, gap_fill);
+			break;
+	}
+
+	d86f[drive].datac++;
+	d86f_poll_advancebyte(drive, side);
+
+	if (d86f[drive].track_index)
+	{
+		// pclog("Track position %08X\n", d86f[drive].track_pos);
+		// pclog("Index hole hit again, format finished\n");
+		d86f[drive].state = STATE_IDLE;
+		if (!disable_write)  d86f_handler[drive].writeback(drive);
+		fdc_sector_finishread(drive);
+		d86f[drive].index_count = 0;
+		return;
+	}
+
+	if (d86f[drive].datac >= max_len)
+	{
+		d86f[drive].datac = 0;
+		d86f[drive].format_state++;
+
+		switch (d86f[drive].format_state)
+		{
+			case FMT_SECTOR_ID_SYNC:
+				fdc_request_next_sector_id();
+				break;
+			case FMT_SECTOR_IDAM:
+			case FMT_SECTOR_DATAAM:
+				d86f[drive].calc_crc.word = 0xffff;
+				break;
+			case FMT_POSTTRK_CHECK:
+				d86f[drive].sector_count++;
+				if (d86f[drive].sector_count < sc)
+				{
+					/* Sector within allotted amount, change state to SECTOR_ID_SYNC. */
+					d86f[drive].format_state = FMT_SECTOR_ID_SYNC;
+					fdc_request_next_sector_id();
+					break;
+				}
+				else
+				{
+					d86f[drive].format_state = FMT_POSTTRK_GAP4;
+					d86f[drive].sector_count = 0;
+					break;
+				}
+		}
+	}
+}
+
 void d86f_poll()
 {
 	// int drive = d86f_drive;
@@ -2140,9 +2866,15 @@ void d86f_poll()
 	drive = fdc_get_drive();
 	side = fdd_get_head(drive);
 
-	if (d86f[drive].state == STATE_FORMAT)
+	if ((d86f[drive].state == STATE_FORMAT) && d86f_is_old_style(drive))
 	{
 		d86f_poll_format(drive, side);
+		return;
+	}
+
+	if ((d86f[drive].state == STATE_FORMAT) && !d86f_is_old_style(drive))
+	{
+		d86f_poll_format_new_style(drive, side);
 		return;
 	}
 
@@ -2152,7 +2884,7 @@ void d86f_poll()
 		return;
 	}
 
-	if (d86f_find_state_nf(drive))
+	if (d86f_find_state_nf(drive) && d86f_is_old_style(drive))
 	{
 		if (d86f[drive].wait_state)
 		{
@@ -2162,6 +2894,12 @@ void d86f_poll()
 		{
 			d86f_poll_find_nf(drive, side);
 		}
+		return;
+	}
+
+	if (d86f_find_state_nf(drive) && !d86f_is_old_style(drive))
+	{
+		d86f_poll_find_nf_new_style(drive, side);
 		return;
 	}
 
