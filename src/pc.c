@@ -49,7 +49,7 @@
 uint8_t ethif;
 int inum;
 
-char nvr_path[260];
+char nvr_path[1024];
 int path_len;
 
 int window_w, window_h, window_x, window_y, window_remember;
@@ -736,10 +736,10 @@ void loadconfig(char *fn)
                 }
         }
 
-	memset(nvr_path, 0, 260);
+	memset(nvr_path, 0, 1024);
         p = (char *)config_get_string(NULL, "nvr_path", "nvr");
         if (p) {
-		if (strlen(p) <= 228)  strcpy(nvr_path, p);
+		if (strlen(p) <= 992)  strcpy(nvr_path, p);
 		else   strcpy(nvr_path, "nvr");
 	}
         else   strcpy(nvr_path, "nvr");
@@ -754,7 +754,7 @@ void loadconfig(char *fn)
 
 char *nvr_concat(char *to_concat)
 {
-	memset(nvr_path + path_len, 0, 260 - path_len);
+	memset(nvr_path + path_len, 0, 1024 - path_len);
 	strcpy(nvr_path + path_len, to_concat);
 	return nvr_path;
 }
