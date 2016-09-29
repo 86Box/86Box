@@ -560,7 +560,7 @@ hard_disk_t hdc[4];
 
 uint64_t hdt[128][3];
 
-int image_is_hdi(char *s);
+int image_is_hdi(const char *s);
 
 /*Keyboard*/
 int64_t keybsenddelay;

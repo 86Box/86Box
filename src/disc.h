@@ -138,4 +138,13 @@ uint8_t* d86f_track_data(int drive, int side);
 uint8_t* d86f_track_layout(int drive, int side);
 
 uint16_t d86f_prepare_pretrack(int drive, int side, int iso, int write_data);
-uint16_t d86f_prepare_sector(int drive, int side, int pos, uint8_t *id_buf, uint8_t *data_buf, int data_len, int write_data, int gap2, int gap3, int limit);
+uint16_t d86f_prepare_sector(int drive, int side, int pos, uint8_t *id_buf, uint8_t *data_buf, int data_len, int write_data, int gap2, int gap3, int limit, int deleted, int bad_crc);
+
+int gap3_sizes[5][8][256];
+
+void null_writeback(int drive);
+void null_poll_write_data(int drive, int side, uint16_t pos, uint8_t data);
+int null_format_conditions(int drive);
+void d86f_unregister(int drive);
+
+void d86f_reset_index_hole_pos(int drive, int side);

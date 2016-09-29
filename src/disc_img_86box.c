@@ -6,7 +6,6 @@
 #include "fdd.h"
 #include "disc.h"
 #include "disc_img.h"
-#include "disc_sector.h"
 
 static struct
 {
@@ -121,7 +120,7 @@ static uint8_t rates[6]              = { 2, 2, 1, 4, 0, 3 };
 
 static uint8_t holes[6]              = { 0, 0, 0, 1, 1, 2 };
 
-static int gap3_sizes[5][8][256] = {	[0][1][16] = 0x54,
+int gap3_sizes[5][8][256] = {	[0][1][16] = 0x54,
 				[0][2][18] = 0x6C,
 				[0][2][19] = 0x48,
 				[0][2][20] = 0x2A,
@@ -155,15 +154,6 @@ static int gap3_sizes[5][8][256] = {	[0][1][16] = 0x54,
 				[4][3][9]  = 0x74,
 				[4][3][10] = 0x74
 };
-
-/* Needed for formatting! */
-int img_realtrack(int drive, int track)
-{
-        if ((img[drive].tracks <= 43) && fdd_doublestep_40(drive))
-                track /= 2;
-
-	return track;
-}
 
 void img_writeback(int drive);
 
@@ -225,6 +215,8 @@ void img_load(int drive, char *fn)
 	ext[2] = fn[strlen(fn) - 1] | 0x60;
 	ext[3] = 0;
 
+	d86f_unregister(drive);
+
 	writeprot[drive] = 0;
         img[drive].f = fopen(fn, "rb+");
         if (!img[drive].f)
@@ -239,8 +231,6 @@ void img_load(int drive, char *fn)
                 writeprot[drive] = 1;
 	}
         fwriteprot[drive] = writeprot[drive];
-
-	d86f_unregister(drive);
 
 	if (strcmp(ext, "fdi") == 0)
 	{
@@ -406,6 +396,7 @@ void img_load(int drive, char *fn)
 
 void img_close(int drive)
 {
+	d86f_unregister(drive);
         if (img[drive].f)
                 fclose(img[drive].f);
         img[drive].f = NULL;
@@ -460,7 +451,7 @@ void img_seek(int drive, int track)
 				img[drive].sector_pos_side[side][sr] = side;
 				img[drive].sector_pos[side][sr] = (sr - 1) * ssize;
 				// if (img[drive].dmf)  pclog("DMF: %i %i %i %i | %i %04X\n", id[0], id[1], id[2], id[3], side, (sr - 1) * ssize);
-				current_pos = d86f_prepare_sector(drive, side, current_pos, id, &img[drive].track_data[side][(sr - 1) * ssize], ssize, 1, img[drive].gap2_size, img[drive].gap3_size, 0);
+				current_pos = d86f_prepare_sector(drive, side, current_pos, id, &img[drive].track_data[side][(sr - 1) * ssize], ssize, 1, img[drive].gap2_size, img[drive].gap3_size, 0, 0, 0);
 			}
 		}
 	}
@@ -517,14 +508,14 @@ void img_seek(int drive, int track)
 				{
 					id[3] = 2;
 					// pclog("XDF Track 0: Registering sector: %i %i %i %i\n", id[0], id[1], id[2], id[3]);
-					current_pos = d86f_prepare_sector(drive, side, current_pos, id, &img[drive].track_data[buf_side][buf_pos], ssize, 1, img[drive].gap2_size, xdf_gap3_sizes[current_xdft][!is_t0], 0);
+					current_pos = d86f_prepare_sector(drive, side, current_pos, id, &img[drive].track_data[buf_side][buf_pos], ssize, 1, img[drive].gap2_size, xdf_gap3_sizes[current_xdft][!is_t0], 0, 0, 0);
 				}
 				else
 				{
 					id[3] = id[2] & 7;
 					// pclog("XDF Track X: Registering sector: %i %i %i %i\n", id[0], id[1], id[2], id[3]);
 					ssize = (128 << id[3]);
-					current_pos = d86f_prepare_sector(drive, side, xdf_trackx_spos[current_xdft][array_sector], id, &img[drive].track_data[buf_side][buf_pos], ssize, 1, img[drive].gap2_size, xdf_gap3_sizes[current_xdft][!is_t0], 0);
+					current_pos = d86f_prepare_sector(drive, side, xdf_trackx_spos[current_xdft][array_sector], id, &img[drive].track_data[buf_side][buf_pos], ssize, 1, img[drive].gap2_size, xdf_gap3_sizes[current_xdft][!is_t0], 0, 0, 0);
 				}
 			}
 		}

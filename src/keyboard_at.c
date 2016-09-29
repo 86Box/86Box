@@ -542,8 +542,9 @@ void keyboard_at_write(uint16_t port, uint8_t val, void *priv)
                         break;
                         
                         case 0xc0: /*Read input port*/
-                        keyboard_at_adddata(keyboard_at.input_port | 4);
-                        keyboard_at.input_port = ((keyboard_at.input_port + 1) & 3) | (keyboard_at.input_port & 0xfc);
+                        keyboard_at_adddata((keyboard_at.input_port & 0xf0) | 0x80);
+                        // keyboard_at_adddata(keyboard_at.input_port | 4);
+                        // keyboard_at.input_port = ((keyboard_at.input_port + 1) & 3) | (keyboard_at.input_port & 0xfc);
                         break;
                         
                         case 0xc9: /*AMI - block P22 and P23 ??? */

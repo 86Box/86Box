@@ -1001,7 +1001,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         break;
                         case IDM_DISC_A:
                         case IDM_DISC_A_WP:
-                        if (!getfile(hwnd,"Disc image (*.12;*.144;*.360;*.720;*.86F;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD)\0*.12;*.144;*.360;*.720;*.86F;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD\0All files (*.*)\0*.*\0",discfns[0]))
+                        if (!getfile(hwnd,"Disc image (*.12;*.144;*.360;*.720;*.86F;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.TD0;*.VFD;*.XDF)\0*.12;*.144;*.360;*.720;*.86F;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.TD0;*.VFD;*.XDF\0All files (*.*)\0*.*\0",discfns[0]))
                         {
                                 disc_close(0);
 				ui_writeprot[0] = (LOWORD(wParam) == IDM_DISC_A_WP) ? 1 : 0;
@@ -1011,7 +1011,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         break;
                         case IDM_DISC_B:
                         case IDM_DISC_B_WP:
-                        if (!getfile(hwnd,"Disc image (*.12;*.144;*.360;*.720;*.86F;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD)\0*.12;*.144;*.360;*.720;*.86F;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.XDF;*.VFD\0All files (*.*)\0*.*\0",discfns[1]))
+                        if (!getfile(hwnd,"Disc image (*.12;*.144;*.360;*.720;*.86F;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.TD0;*.VFD;*.XDF)\0*.12;*.144;*.360;*.720;*.86F;*.DSK;*.IMG;*.IMA;*.FDI;*.FLP;*.TD0;*.VFD;*.XDF\0All files (*.*)\0*.*\0",discfns[1]))
                         {
                                 disc_close(1);
 				ui_writeprot[1] = (LOWORD(wParam) == IDM_DISC_B_WP) ? 1 : 0;

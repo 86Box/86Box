@@ -262,7 +262,7 @@ void null_poll_write_data(int drive, int side, uint16_t pos, uint8_t data)
 
 int null_format_conditions(int drive)
 {
-	return 1;
+	return 0;
 }
 
 void d86f_unregister(int drive)
@@ -1252,7 +1252,7 @@ void d86f_reset_index_hole_pos(int drive, int side)
 	d86f[drive].index_hole_pos[side] = 0;
 }
 
-uint16_t d86f_prepare_sector(int drive, int side, int pos, uint8_t *id_buf, uint8_t *data_buf, int data_len, int write_data, int gap2, int gap3, int limit)
+uint16_t d86f_prepare_sector(int drive, int side, int pos, uint8_t *id_buf, uint8_t *data_buf, int data_len, int write_data, int gap2, int gap3, int limit, int deleted, int bad_crc)
 {
 	uint16_t i = pos;
 	uint16_t j = 0;
@@ -1346,8 +1346,8 @@ uint16_t d86f_prepare_sector(int drive, int side, int pos, uint8_t *id_buf, uint
 	if (write_data)
 	{
 		if (!mfm)  d86f[drive].calc_crc.word = 0xffff;
-		d86f_memset(d86f[drive].track_data[side] + i, 0xFB, 1, i, rs, limit);
-		d86f_calccrc(drive, 0xFB);
+		d86f_memset(d86f[drive].track_data[side] + i, deleted ? 0xF8 : 0xFB, 1, i, rs, limit);
+		d86f_calccrc(drive, deleted ? 0xF8 : 0xFB);
 	}
 	i++;
 	if ((i >= rs) && limit)  return 0;
@@ -1365,8 +1365,17 @@ uint16_t d86f_prepare_sector(int drive, int side, int pos, uint8_t *id_buf, uint
 	d86f_memset(d86f[drive].track_layout[side] + i, BYTE_DATA_CRC, 2, i, rs, limit);
 	if (write_data)
 	{
-		d86f[drive].track_data[side][i] = d86f[drive].calc_crc.bytes[1];
-		d86f[drive].track_data[side][(i + 1) % rs] = d86f[drive].calc_crc.bytes[0];
+		if (bad_crc)
+		{
+			/* If sector has to be prepared with a bad CRC, just reverse the bytes and toggle the LSB of the first byte, and the CRC will automatically be wrong. */
+			d86f[drive].track_data[side][i] = d86f[drive].calc_crc.bytes[0] ^ 1;
+			d86f[drive].track_data[side][(i + 1) % rs] = d86f[drive].calc_crc.bytes[1];
+		}
+		else
+		{
+			d86f[drive].track_data[side][i] = d86f[drive].calc_crc.bytes[1];
+			d86f[drive].track_data[side][(i + 1) % rs] = d86f[drive].calc_crc.bytes[0];
+		}
 	}
 	i += 2;
 	if ((i >= rs) && limit)  return 0;
@@ -1398,7 +1407,7 @@ void d86f_prepare_track_layout(int drive, int side)
 	for (j = 0; j < sc; j++)
 	{
 		/* Always limit to prevent wraparounds when formatting! */
-		i = d86f_prepare_sector(drive, side, i, NULL, NULL, dtl, 0, real_gap2_len, real_gap3_len, 1);
+		i = d86f_prepare_sector(drive, side, i, NULL, NULL, dtl, 0, real_gap2_len, real_gap3_len, 1, 0, 0);
 	}
 }
 
@@ -1888,7 +1897,7 @@ int d86f_poll_check_notfound(int drive)
 		/* The index hole has been hit twice and we're still in a find state.
 		   This means sector finding has failed for whatever reason.
 		   Abort with sector not found and set state to idle. */
-		// pclog("d86f_poll(): Sector not found (%i %i %i %i) (%i, %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive));
+		pclog("d86f_poll(): Sector not found (%i %i %i %i) (%i, %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive));
 		fdc_notfound();
 		d86f[drive].state = STATE_IDLE;
 		d86f[drive].index_count = 0;

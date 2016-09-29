@@ -8,6 +8,7 @@
 #include "disc_fdi.h"
 #include "disc_img.h"
 #include "disc_86f.h"
+#include "disc_td0.h"
 #include "fdc.h"
 #include "fdd.h"
 #include "timer.h"
@@ -72,6 +73,7 @@ loaders[]=
         {"FLP", img_load,       img_close, -1},
         {"IMG", img_load,       img_close, -1},
         {"IMA", img_load,       img_close, -1},
+	{"TD0", td0_load,       td0_close, -1},
         {"VFD", img_load,       img_close, -1},
 	{"XDF", img_load,       img_close, -1},
         {"FDI", fdi_load,       fdi_close, -1},

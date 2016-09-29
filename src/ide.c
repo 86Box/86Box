@@ -10,6 +10,7 @@
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
 #include <errno.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -362,18 +363,20 @@ int cur_ide[3];
 
 uint8_t getstat(IDE *ide) { return ide->atastat; }
 
-int image_is_hdi(char *s)
+int image_is_hdi(const char *s)
 {
-	int len;
+	int i, len;
 	char ext[5] = { 0, 0, 0, 0, 0 };
 	len = strlen(s);
-	ext[0] = s[len - 4];
-	ext[1] = s[len - 3];
-	if ((ext[1] >= 0x61) && (ext[1] <= 0x7a))  ext[1] &= ~0x20;
-	ext[2] = s[len - 2];
-	if ((ext[2] >= 0x61) && (ext[2] <= 0x7a))  ext[2] &= ~0x20;
-	ext[3] = s[len - 1];
-	if ((ext[3] >= 0x61) && (ext[3] <= 0x7a))  ext[3] &= ~0x20;
+	if ((len < 4) || (s[0] == '.'))
+	{
+		return 0;
+	}
+	memcpy(ext, s + len - 4, 4);
+	for (i = 0; i < 4; i++)
+	{
+		ext[i] = toupper(ext[i]);
+	}
 	if (strcmp(ext, ".HDI") == 0)
 	{
 		return 1;
@@ -757,6 +760,11 @@ static void loadhd(IDE *ide, int d, const char *fn)
 	ide->hdi = 0;
 	if (ide->hdfile == NULL) {
 		/* Try to open existing hard disk image */
+		if (fn[0] == '.')
+		{
+			ide->type = IDE_NONE;
+			return;
+		}
 		ide->hdfile = fopen64(fn, "rb+");
 		if (ide->hdfile == NULL) {
 			/* Failed to open existing hard disk image */
@@ -800,34 +808,34 @@ static void loadhd(IDE *ide, int d, const char *fn)
 				return;
 			}
 		}
-	}
-	else
-	{
-		if (image_is_hdi(fn))
+		else
 		{
-			fseek(ide->hdfile, 0x8, SEEK_SET);
-			fread(&(ide->base), 1, 4, ide->hdfile);
-			fseek(ide->hdfile, 0x10, SEEK_SET);
-			fread(&sector_size, 1, 4, ide->hdfile);
-			if (sector_size != 512)
+			if (image_is_hdi(fn))
 			{
-				/* Sector size is not 512 */
-				fclose(ide->hdfile);
-				ide->type = IDE_NONE;
-				return;
+				fseek(ide->hdfile, 0x8, SEEK_SET);
+				fread(&(ide->base), 1, 4, ide->hdfile);
+				fseek(ide->hdfile, 0x10, SEEK_SET);
+				fread(&sector_size, 1, 4, ide->hdfile);
+				if (sector_size != 512)
+				{
+					/* Sector size is not 512 */
+					fclose(ide->hdfile);
+					ide->type = IDE_NONE;
+					return;
+				}
+				fread(&(hdc[d].spt), 1, 4, ide->hdfile);
+				fread(&(hdc[d].hpc), 1, 4, ide->hdfile);
+				fread(&(hdc[d].tracks), 1, 4, ide->hdfile);
+				ide->hdi = 1;
 			}
-			fread(&(hdc[d].spt), 1, 4, ide->hdfile);
-			fread(&(hdc[d].hpc), 1, 4, ide->hdfile);
-			fread(&(hdc[d].tracks), 1, 4, ide->hdfile);
-			ide->hdi = 1;
 		}
 	}
 	
-        ide->spt = hdc[d].spt;
-        ide->hpc = hdc[d].hpc;
-        ide->tracks = hdc[d].tracks;
-        ide->type = IDE_HDD;
-		ide->hdc_num = d;
+    ide->spt = hdc[d].spt;
+    ide->hpc = hdc[d].hpc;
+    ide->tracks = hdc[d].tracks;
+    ide->type = IDE_HDD;
+	ide->hdc_num = d;
 }
 
 void ide_set_signature(IDE *ide)
