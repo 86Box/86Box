@@ -473,19 +473,19 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)ide_fn[3]);
                 
                 h = GetDlgItem(hdlg, IDC_TEXT_C_SIZE);
-                sprintf(s, "Size : %imb", (((((uint64_t)hd[0].tracks*(uint64_t)hd[0].hpc)*(uint64_t)hd[0].spt)*512)/1024)/1024);
+                sprintf(s, "Size : %i MB", (hd[0].tracks*hd[0].hpc*hd[0].spt) >> 11);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
 
                 h = GetDlgItem(hdlg, IDC_TEXT_D_SIZE);
-                sprintf(s, "Size : %imb", (((((uint64_t)hd[1].tracks*(uint64_t)hd[1].hpc)*(uint64_t)hd[1].spt)*512)/1024)/1024);
+                sprintf(s, "Size : %i MB", (hd[1].tracks*hd[1].hpc*hd[1].spt) >> 11);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
 
                 h = GetDlgItem(hdlg, IDC_TEXT_E_SIZE);
-                sprintf(s, "Size : %imb", (((((uint64_t)hd[2].tracks*(uint64_t)hd[2].hpc)*(uint64_t)hd[2].spt)*512)/1024)/1024);
+                sprintf(s, "Size : %i MB", (hd[2].tracks*hd[2].hpc*hd[2].spt) >> 11);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
 
                 h = GetDlgItem(hdlg, IDC_TEXT_F_SIZE);
-                sprintf(s, "Size : %imb", (((((uint64_t)hd[3].tracks*(uint64_t)hd[3].hpc)*(uint64_t)hd[3].spt)*512)/1024)/1024);
+                sprintf(s, "Size : %i MB", (hd[3].tracks*hd[3].hpc*hd[3].spt) >> 11);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
 
                 new_cdrom_channel = cdrom_channel;
