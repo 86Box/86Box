@@ -101,6 +101,7 @@ typedef struct
 	uint16_t current_side_flags[2];
 	int track;
 	int current_sector_index[2];
+	uint8_t calculated_gap3_lengths[256][2];
 } td0_t;
 
 td0_t td0[2];
@@ -493,8 +494,9 @@ void d86f_register_td0(int drive);
 
 static const int rates[3] = { 2, 1, 0 };
 const int max_size = 4*1024*1024; // 4MB ought to be large enough for any floppy
+const int max_processed_size = 5*1024*1024;
 uint8_t imagebuf[4*1024*1024];
-uint8_t processed_buf[4*1024*1024];
+uint8_t processed_buf[5*1024*1024];
 uint8_t header[12];
 
 void td0_load(int drive, char *fn)
@@ -557,6 +559,7 @@ void td0_close(int drive)
 	d86f_unregister(drive);
 	memset(imagebuf, 0, 4*1024*1024);
 	memset(processed_buf, 0, 4*1024*1024);
+
 	for (i = 0; i < 256; i++)
 	{
 		for (j = 0; j < 2; j++)
@@ -567,9 +570,59 @@ void td0_close(int drive)
 			}
 		}
 	}
+
+	for (i = 0; i < 256; i++)
+	{
+		memset(td0[drive].side_flags[i], 0, 4);
+		memset(td0[drive].track_in_file[i], 0, 2);
+		memset(td0[drive].calculated_gap3_lengths[i], 0, 2);
+		for (j = 0; j < 2; j++)
+		{
+			memset(td0[drive].sects[i][j], 0, sizeof(td0_sector_t));
+		}
+	}
+
         if (td0[drive].f)
                 fclose(td0[drive].f);
         td0[drive].f = NULL;
+}
+
+uint32_t td0_get_raw_tsize(int drive, int track, int side, int slower_rpm)
+{
+	uint32_t size;
+	switch(td0[drive].side_flags[track][side] & 0x27)
+	{
+		case 0x22:
+			size = slower_rpm ?  5314 :  5208;
+			break;
+		default:
+		case 0x02:
+		case 0x21:
+			size = slower_rpm ?  6375 :  6250;
+			break;
+		case 0x01:
+			size = slower_rpm ?  7650 :  7500;
+			break;
+		case 0x20:
+			size = slower_rpm ? 10629 : 10416;
+			break;
+		case 0x00:
+			size = slower_rpm ? 12750 : 12500;
+			break;
+		case 0x23:
+			size = slower_rpm ? 21258 : 20833;
+			break;
+		case 0x03:
+			size = slower_rpm ? 25500 : 25000;
+			break;
+		case 0x25:
+			size = slower_rpm ? 42517 : 41666;
+			break;
+		case 0x05:
+			size = slower_rpm ? 51000 : 50000;
+			break;
+	}
+	return size;
 }
 
 int td0_initialize(int drive)
@@ -594,11 +647,31 @@ int td0_initialize(int drive)
 	uint8_t *hs;
 	uint16_t size;
 	uint8_t *dbuf = processed_buf;
+	uint32_t total_size = 0;
+	uint32_t track_size = 0;
+	uint32_t raw_tsize = 0;
+	uint32_t minimum_gap3 = 0;
+	uint32_t minimum_gap4 = 12;
 
         if (!td0[drive].f)
 	{
 		pclog("TD0: Attempted to initialize without loading a file first\n");
                 return 0;
+	}
+
+	fseek(td0[drive].f, 0, SEEK_END);
+	file_size = ftell(td0[drive].f);
+
+	if (file_size < 12)
+	{
+		pclog("TD0: File is too small to even contain the header\n");
+		return 0;
+	}
+
+	if (file_size > max_size)
+	{
+		pclog("TD0: File exceeds the maximum size\n");
+		return 0;
 	}
 
 	fseek(td0[drive].f, 0, SEEK_SET);
@@ -616,8 +689,6 @@ int td0_initialize(int drive)
 	else
 	{
 		pclog("TD0: File is uncompressed\n");
-		fseek(td0[drive].f, 0, SEEK_END);
-		file_size = ftell(td0[drive].f);
 		fseek(td0[drive].f, 12, SEEK_SET);
 		fread(imagebuf, 1, file_size - 12, td0[drive].f);
 	}
@@ -629,7 +700,6 @@ int td0_initialize(int drive)
 	if(track_spt == 255) // Empty file?
 	{
 		pclog("TD0: File has no tracks\n");
-		fclose(td0[drive].f);
 		return 0;
 	}
 
@@ -638,6 +708,8 @@ int td0_initialize(int drive)
 	{
 		case 0:					/* 5.25" 2DD in 2HD drive:	360 rpm */
 		case 2:					/* 5.25" 2HD:			360 rpm */
+			td0[drive].default_track_flags = ((header[5] & 0x7f) == 2) ? 0x20 : 0x00;
+			break;
 		case 5:					/* 8   " 2?D:			360 rpm */
 			td0[drive].default_track_flags = 0x20;
 			break;
@@ -656,6 +728,7 @@ int td0_initialize(int drive)
 	{
 		memset(td0[drive].side_flags[i], 0, 4);
 		memset(td0[drive].track_in_file[i], 0, 2);
+		memset(td0[drive].calculated_gap3_lengths[i], 0, 2);
 		for (j = 0; j < 2; j++)
 		{
 			memset(td0[drive].sects[i][j], 0, sizeof(td0_sector_t));
@@ -670,6 +743,7 @@ int td0_initialize(int drive)
 		td0[drive].side_flags[track][head] = td0[drive].default_track_flags | (fm ? 0 : 8);
 		td0[drive].track_in_file[track][head] = 1;
 		offset += 4;
+		track_size = 146;
 		for(i = 0; i < track_spt; i++)
 		{
 			hs = &imagebuf[offset];
@@ -685,6 +759,12 @@ int td0_initialize(int drive)
 			td0[drive].sects[track][head][i].data        = dbuf;
 
 			size = 128 << hs[3];
+			if ((total_size + size) >= max_processed_size)
+			{
+				pclog("TD0: Processed buffer overflow\n");
+				fclose(td0[drive].f);
+				return 0;
+			}
 
 			if(hs[4] & 0x30)
 			{
@@ -745,12 +825,40 @@ int td0_initialize(int drive)
 			}
 
 			dbuf += size;
+			total_size += size;
+			track_size += size;
 		}
+
 		track_count = track;
 
 		track_spt = imagebuf[offset];
 
-		td0[drive].track_spt[track][head] = track_spt;
+		if (track_spt != 255)
+		{
+			td0[drive].track_spt[track][head] = track_spt;
+
+			raw_tsize = td0_get_raw_tsize(drive, track, head, 0);
+			minimum_gap3 = 12 * track_spt;
+			if ((raw_tsize - track_size) < (minimum_gap3 + minimum_gap4))
+			{
+				/* If we can't fit the sectors with a reasonable minimum gap at perfect RPM, let's try 2% slower. */
+				raw_tsize = td0_get_raw_tsize(drive, track, head, 1);
+				/* Set disk flags so that rotation speed is 2% slower. */
+				td0[drive].disk_flags |= (3 << 5);
+				if ((raw_tsize - track_size) < (minimum_gap3 + minimum_gap4))
+				{
+					/* If we can't fit the sectors with a reasonable minimum gap even at 2% slower RPM, abort. */
+					pclog("TD0: Unable to fit the %i sectors in a track\n", track_spt);
+					return 0;
+				}
+			}
+			td0[drive].calculated_gap3_lengths[track][head] = (raw_tsize - track_size - minimum_gap4) / track_spt;
+		}
+	}
+
+	if ((td0[drive].disk_flags & 0x60) == 0x60)
+	{
+		pclog("TD0: Disk will rotate 2% below perfect RPM\n");
 	}
 
 	td0[drive].tracks = track_count + 1;
@@ -761,7 +869,7 @@ int td0_initialize(int drive)
 	// pclog("GAP3 length for %i %i %i is %i\n", temp_rate, td0[drive].sects[0][0][0].size, td0[drive].track_spt[0][0], td0[drive].gap3_len);
 	if (!td0[drive].gap3_len)
 	{
-		td0[drive].gap3_len = 0x0C;		/* If we can't determine the GAP3 length, assume the smallest one we possibly know of. */
+		td0[drive].gap3_len = td0[drive].calculated_gap3_lengths[0][0];		/* If we can't determine the GAP3 length, assume the smallest one we possibly know of. */
 	}
 
 	if (td0[drive].tracks > 43)  td0[drive].disk_flags |= 1;	/* If the image has more than 43 tracks, then the tracks are thin (96 tpi). */
@@ -782,7 +890,7 @@ int td0_initialize(int drive)
 	td0[drive].current_side_flags[0] = td0[drive].side_flags[0][0];
 	td0[drive].current_side_flags[1] = td0[drive].side_flags[0][1];
 
-	pclog("TD0: File loaded: %i tracks, %i sides, disk flags: %02X, side flags %02X, %02X\n", td0[drive].tracks, td0[drive].sides, td0[drive].disk_flags, td0[drive].current_side_flags[0], td0[drive].current_side_flags[1]);
+	pclog("TD0: File loaded: %i tracks, %i sides, disk flags: %02X, side flags: %02X, %02X, GAP3 length: %02X\n", td0[drive].tracks, td0[drive].sides, td0[drive].disk_flags, td0[drive].current_side_flags[0], td0[drive].current_side_flags[1], td0[drive].gap3_len);
 
 	return 1;
 }
@@ -819,6 +927,10 @@ void td0_seek(int drive, int track)
 		track_rate = td0[drive].current_side_flags[side] & 7;
 		if (!track_rate && (td0[drive].current_side_flags[side] & 0x20))  track_rate = 4;
 		track_gap3 = gap3_sizes[track_rate][td0[drive].sects[track][side][0].size][td0[drive].track_spt[track][side]];
+		if (!track_gap3)
+		{
+			td0[drive].calculated_gap3_lengths[track][side];
+		}
 
 		current_pos = d86f_prepare_pretrack(drive, side, 0, 1);
 
