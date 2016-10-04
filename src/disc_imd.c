@@ -372,12 +372,12 @@ int imd_track_is_xdf(int drive, int side, int track)
 		}
 		if ((effective_sectors == 3) && (xdf_sectors == 3))
 		{
-			td0[drive].current_side_flags[side] = 0x28;
+			imd[drive].current_side_flags[side] = 0x28;
 			return 1;		/* 5.25" 2HD XDF */
 		}
 		if ((effective_sectors == 4) && (xdf_sectors == 4))
 		{
-			td0[drive].current_side_flags[side] = 0x08;
+			imd[drive].current_side_flags[side] = 0x08;
 			return 2;		/* 3.5" 2HD XDF */
 		}
 		return 0;

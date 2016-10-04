@@ -3,6 +3,7 @@ CPP  = g++.exe
 CC   = gcc.exe
 WINDRES = windres.exe
 CFLAGS = -O3 -march=native -mtune=native -fbranch-probabilities -fvpt -funroll-loops -fpeel-loops -ftracer -fomit-frame-pointer -ffast-math -msse -msse2 -msse3 -mssse3 -mfpmath=sse -mstackrealign
+DFLAGS = -O3 -fomit-frame-pointer -msse2
 OBJ = 386.o 386_dynarec.o 386_dynarec_ops.o 808x.o acer386sx.o acerm3a.o ali1429.o amstrad.o cdrom-ioctl.o cdrom-iso.o \
 	cdrom-null.o codegen.o codegen_ops.o codegen_timing_486.o codegen_timing_686.o codegen_timing_pentium.o codegen_timing_winchip.o codegen_x86-64.o compaq.o config.o cpu.o dac.o \
 	device.o disc.o disc_86f.o disc_fdi.o disc_imd.o disc_img_86box.o disc_random.o disc_td0.o dma.o fdc.o fdc37c665.o fdc37c932fr.o fdd.o fdi2raw.o gameport.o headland.o i430hx.o i430lx.o i430fx.o \
