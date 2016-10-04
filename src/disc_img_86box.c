@@ -29,7 +29,7 @@ static struct
 	uint16_t current_sector_pos;
 } img[2];
 
-static uint8_t dmf_r[21] = { 12, 2, 13, 3, 14, 4, 15, 5, 16, 6, 17, 7, 18, 8, 19, 9, 20, 10, 21, 11, 1 };
+uint8_t dmf_r[21] = { 12, 2, 13, 3, 14, 4, 15, 5, 16, 6, 17, 7, 18, 8, 19, 9, 20, 10, 21, 11, 1 };
 static uint8_t xdf_spt[2] = { 6, 8 };
 static uint8_t xdf_logical_sectors[2][2] = { { 38, 6 }, { 46, 8 } };
 uint8_t xdf_physical_sectors[2][2] = { { 16, 3 }, { 19, 4 } };

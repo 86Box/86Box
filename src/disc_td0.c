@@ -103,6 +103,7 @@ typedef struct
 	int current_sector_index[2];
 	uint8_t calculated_gap3_lengths[256][2];
 	uint8_t xdf_ordered_pos[256][2];
+	uint8_t interleave_ordered_pos[256][2];
 } td0_t;
 
 td0_t td0[2];
@@ -654,7 +655,8 @@ int td0_initialize(int drive)
 	uint32_t track_size = 0;
 	uint32_t raw_tsize = 0;
 	uint32_t minimum_gap3 = 0;
-	uint32_t minimum_gap4 = 12;
+	// uint32_t minimum_gap4 = 12;
+	uint32_t minimum_gap4 = 0;
 
         if (!td0[drive].f)
 	{
@@ -861,20 +863,20 @@ int td0_initialize(int drive)
 
 			raw_tsize = td0_get_raw_tsize(td0[drive].side_flags[track][head], 0);
 			minimum_gap3 = 12 * track_spt;
-			if ((raw_tsize - track_size) < (minimum_gap3 + minimum_gap4))
+			if ((raw_tsize - track_size + (fm ? 73 : 146)) < (minimum_gap3 + minimum_gap4))
 			{
 				/* If we can't fit the sectors with a reasonable minimum gap at perfect RPM, let's try 2% slower. */
 				raw_tsize = td0_get_raw_tsize(td0[drive].side_flags[track][head], 1);
 				/* Set disk flags so that rotation speed is 2% slower. */
 				td0[drive].disk_flags |= (3 << 5);
-				if ((raw_tsize - track_size) < (minimum_gap3 + minimum_gap4))
+				if ((raw_tsize - track_size + (fm ? 73 : 146)) < (minimum_gap3 + minimum_gap4))
 				{
 					/* If we can't fit the sectors with a reasonable minimum gap even at 2% slower RPM, abort. */
 					pclog("TD0: Unable to fit the %i sectors in a track\n", track_spt);
 					return 0;
 				}
 			}
-			td0[drive].calculated_gap3_lengths[track][head] = (raw_tsize - track_size - minimum_gap4) / track_spt;
+			td0[drive].calculated_gap3_lengths[track][head] = (raw_tsize - track_size - minimum_gap4 + (fm ? 73 : 146)) / track_spt;
 
 			track_spt = imagebuf[offset];
 		}
@@ -1008,6 +1010,41 @@ int td0_track_is_xdf(int drive, int side, int track)
 	}
 }
 
+int td0_track_is_interleave(int drive, int side, int track)
+{
+	int i, effective_sectors;
+	int track_spt;
+
+	effective_sectors = 0;
+
+	for (i = 0; i < 256; i++)
+	{
+		td0[drive].interleave_ordered_pos[i][side] = 0;
+	}
+
+	track_spt = td0[drive].track_spt[track][side];
+
+	if (track_spt != 21)
+	{
+		return 0;
+	}
+
+	for (i = 0; i < track_spt; i++)
+	{
+		if ((td0[drive].sects[track][side][i].track == track) && (td0[drive].sects[track][side][i].head == side) && (td0[drive].sects[track][side][i].sector >= 1) && (td0[drive].sects[track][side][i].sector <= track_spt) && (td0[drive].sects[track][side][i].size == 2))
+		{
+			effective_sectors++;
+			td0[drive].interleave_ordered_pos[td0[drive].sects[track][side][i].sector][side] = i;
+		}
+	}
+
+	if (effective_sectors == track_spt)
+	{
+		return 1;
+	}
+	return 0;
+}
+
 void td0_seek(int drive, int track)
 {
         int side;
@@ -1024,6 +1061,7 @@ void td0_seek(int drive, int track)
 	int track_gap3 = 12;
 
 	int xdf_type = 0;
+	int interleave_type = 0;
 
 	int is_trackx = 0;
 
@@ -1031,6 +1069,9 @@ void td0_seek(int drive, int track)
 	int xdf_sector = 0;
 
 	int ordered_pos = 0;
+
+	int real_sector = 0;
+	int actual_sector = 0;
        
         if (!td0[drive].f)
                 return;
@@ -1064,19 +1105,31 @@ void td0_seek(int drive, int track)
 
 		xdf_type = td0_track_is_xdf(drive, side, track);
 
+		interleave_type = td0_track_is_interleave(drive, side, track);
+
 		current_pos = d86f_prepare_pretrack(drive, side, 0, 1);
 
 		if (!xdf_type)
 		{
 			for (sector = 0; sector < td0[drive].track_spt[track][side]; sector++)
 			{
-				id[0] = td0[drive].sects[track][side][sector].track;
-				id[1] = td0[drive].sects[track][side][sector].head;
-				id[2] = td0[drive].sects[track][side][sector].sector;
-				id[3] = td0[drive].sects[track][side][sector].size;
-				// pclog("TD0: %i %i %i %i (%i %i) (GPL=%i)\n", id[0], id[1], id[2], id[3], td0[drive].sects[track][side][sector].deleted, td0[drive].sects[track][side][sector].bad_crc, track_gap3);
-				ssize = 128 << ((uint32_t) td0[drive].sects[track][side][sector].size);
-				current_pos = d86f_prepare_sector(drive, side, current_pos, id, td0[drive].sects[track][side][sector].data, ssize, 1, track_gap2, track_gap3, 0, td0[drive].sects[track][side][sector].deleted, td0[drive].sects[track][side][sector].bad_crc);
+				if (interleave_type == 0)
+				{
+					real_sector = td0[drive].sects[track][side][sector].sector;
+					actual_sector = sector;
+				}
+				else
+				{
+					real_sector = dmf_r[sector];
+					actual_sector = td0[drive].interleave_ordered_pos[real_sector][side];
+				}
+				id[0] = td0[drive].sects[track][side][actual_sector].track;
+				id[1] = td0[drive].sects[track][side][actual_sector].head;
+				id[2] = real_sector;
+				id[3] = td0[drive].sects[track][side][actual_sector].size;
+				// pclog("TD0: %i %i %i %i (%i %i) (GPL=%i)\n", id[0], id[1], id[2], id[3], td0[drive].sects[track][side][actual_sector].deleted, td0[drive].sects[track][side][actual_sector].bad_crc, track_gap3);
+				ssize = 128 << ((uint32_t) td0[drive].sects[track][side][actual_sector].size);
+				current_pos = d86f_prepare_sector(drive, side, current_pos, id, td0[drive].sects[track][side][actual_sector].data, ssize, 1, track_gap2, track_gap3, 0, td0[drive].sects[track][side][actual_sector].deleted, td0[drive].sects[track][side][actual_sector].bad_crc);
 			}
 		}
 		else

@@ -36,6 +36,7 @@ static struct
 	imd_track_t tracks[256][2];
 	uint16_t current_side_flags[2];
 	uint8_t xdf_ordered_pos[256][2];
+	uint8_t interleave_ordered_pos[256][2];
 	uint8_t *current_data[2];
 	uint8_t track_buffer[2][25000];
 } imd[2];
@@ -70,7 +71,8 @@ void imd_load(int drive, char *fn)
 	uint32_t track_total = 0;
 	uint32_t raw_tsize = 0;
 	uint32_t minimum_gap3 = 0;
-	uint32_t minimum_gap4 = 12;
+	// uint32_t minimum_gap4 = 12;
+	uint32_t minimum_gap4 = 0;
 
 	d86f_unregister(drive);
 
@@ -161,6 +163,7 @@ void imd_load(int drive, char *fn)
 		if ((track_spt == 16) && (sector_size == 2))  imd[drive].tracks[track][side].side_flags |= 0x20;
 		if ((track_spt == 17) && (sector_size == 2))  imd[drive].tracks[track][side].side_flags |= 0x20;
 		if ((track_spt == 8) && (sector_size == 3))  imd[drive].tracks[track][side].side_flags |= 0x20;
+		if ((imd[drive].tracks[track][side].side_flags & 7) == 1)  imd[drive].tracks[track][side].side_flags |= 0x20;
 		imd[drive].tracks[track][side].is_present = 1;
 		imd[drive].tracks[track][side].file_offs = (buffer2 - buffer);
 		memcpy(imd[drive].tracks[track][side].params, buffer2, 5);
@@ -229,15 +232,18 @@ void imd_load(int drive, char *fn)
 		}
 		buffer2 = buffer + last_offset;
 
+		/* Leaving even GAP4: 80 : 40 */
+		/* Leaving only GAP1: 96 : 47 */
+		/* Not leaving even GAP1: 146 : 73 */
 		raw_tsize = td0_get_raw_tsize(imd[drive].tracks[track][side].side_flags, 0);
 		minimum_gap3 = 12 * track_spt;
-		if ((raw_tsize - track_total) < (minimum_gap3 + minimum_gap4))
+		if ((raw_tsize - track_total + (mfm ? 146 : 73)) < (minimum_gap3 + minimum_gap4))
 		{
 			/* If we can't fit the sectors with a reasonable minimum gap at perfect RPM, let's try 2% slower. */
 			raw_tsize = td0_get_raw_tsize(imd[drive].tracks[track][side].side_flags, 1);
 			/* Set disk flags so that rotation speed is 2% slower. */
 			imd[drive].disk_flags |= (3 << 5);
-			if ((raw_tsize - track_total) < (minimum_gap3 + minimum_gap4))
+			if ((raw_tsize - track_total + (mfm ? 146 : 73)) < (minimum_gap3 + minimum_gap4))
 			{
 				/* If we can't fit the sectors with a reasonable minimum gap even at 2% slower RPM, abort. */
 				pclog("IMD: Unable to fit the %i sectors in a track\n", track_spt);
@@ -245,7 +251,7 @@ void imd_load(int drive, char *fn)
 				return;
 			}
 		}
-		imd[drive].tracks[track][side].gap3_len = (raw_tsize - track_total - minimum_gap4) / track_spt;
+		imd[drive].tracks[track][side].gap3_len = (raw_tsize - track_total - minimum_gap4 + (mfm ? 146 : 73)) / track_spt;
 
 		imd[drive].track_count++;
 
@@ -295,7 +301,10 @@ int imd_track_is_xdf(int drive, int side, int track)
 
 	effective_sectors = xdf_sectors = high_sectors = low_sectors = 0;
 
-	memset(imd[drive].xdf_ordered_pos[side], 0, 256);
+	for (i = 0; i < 256; i++)
+	{
+		imd[drive].xdf_ordered_pos[i][side] = 0;
+	}
 
 	if (imd[drive].tracks[track][side].params[2] & 0xC0)
 	{
@@ -384,6 +393,52 @@ int imd_track_is_xdf(int drive, int side, int track)
 	}
 }
 
+int imd_track_is_interleave(int drive, int side, int track)
+{
+	int i, effective_sectors;
+	uint8_t *r_map;
+	int track_spt;
+
+	effective_sectors = 0;
+
+	for (i = 0; i < 256; i++)
+	{
+		imd[drive].interleave_ordered_pos[i][side] = 0;
+	}
+
+	track_spt = imd[drive].tracks[track][side].params[3];
+
+	r_map = imd[drive].buffer + imd[drive].tracks[track][side].r_map_offs;
+
+	if (imd[drive].tracks[track][side].params[2] & 0xC0)
+	{
+		return 0;
+	}
+	if (track_spt != 21)
+	{
+		return 0;
+	}
+	if (imd[drive].tracks[track][side].params[4] != 2)
+	{
+		return 0;
+	}
+
+	for (i = 0; i < track_spt; i++)
+	{
+		if ((r_map[i] >= 1) && (r_map[i] <= track_spt))
+		{
+			effective_sectors++;
+			imd[drive].interleave_ordered_pos[r_map[i]][side] = i;
+		}
+	}
+
+	if (effective_sectors == track_spt)
+	{
+		return 1;
+	}
+	return 0;
+}
+
 void imd_sector_to_buffer(int drive, int track, int side, uint8_t *buffer, int sector, int len)
 {
 	int i = 0;
@@ -426,6 +481,7 @@ void imd_seek(int drive, int track)
 	int track_gap3 = 12;
 
 	int xdf_type = 0;
+	int interleave_type = 0;
 
 	int is_trackx = 0;
 
@@ -433,6 +489,9 @@ void imd_seek(int drive, int track)
 	int xdf_sector = 0;
 
 	int ordered_pos = 0;
+
+	int real_sector = 0;
+	int actual_sector = 0;
 
 	uint8_t *c_map;
 	uint8_t *h_map;
@@ -456,6 +515,8 @@ void imd_seek(int drive, int track)
 	imd[drive].current_side_flags[0] = imd[drive].tracks[track][0].side_flags;
 	imd[drive].current_side_flags[1] = imd[drive].tracks[track][1].side_flags;
 
+	// pclog("IMD Seek: %02X %02X (%02X)\n", imd[drive].current_side_flags[0], imd[drive].current_side_flags[1], imd[drive].disk_flags);
+
 	d86f_reset_index_hole_pos(drive, 0);
 	d86f_reset_index_hole_pos(drive, 1);
 
@@ -463,6 +524,7 @@ void imd_seek(int drive, int track)
 	{
 		track_rate = imd[drive].current_side_flags[side] & 7;
 		if (!track_rate && (imd[drive].current_side_flags[side] & 0x20))  track_rate = 4;
+		if ((imd[drive].current_side_flags[side] & 27) == 0x21)  track_rate = 2;
 
 		r_map = imd[drive].buffer + imd[drive].tracks[track][side].r_map_offs;
 		h = imd[drive].tracks[track][side].params[2];
@@ -495,26 +557,38 @@ void imd_seek(int drive, int track)
 
 		xdf_type = imd_track_is_xdf(drive, side, track);
 
+		interleave_type = imd_track_is_interleave(drive, side, track);
+
 		current_pos = d86f_prepare_pretrack(drive, side, 0, 1);
 
 		if (!xdf_type)
 		{
 			for (sector = 0; sector < imd[drive].tracks[track][side].params[3]; sector++)
 			{
-				id[0] = (h & 0x80) ? c_map[sector] : c;
-				id[1] = (h & 0x40) ? h_map[sector] : (h & 1);
-				id[2] = r_map[sector];
-				id[3] = (n == 0xFF) ? n_map[sector] : n;
+				if (interleave_type == 0)
+				{
+					real_sector = r_map[sector];
+					actual_sector = sector;
+				}
+				else
+				{
+					real_sector = dmf_r[sector];
+					actual_sector = imd[drive].interleave_ordered_pos[real_sector][side];
+				}
+				id[0] = (h & 0x80) ? c_map[actual_sector] : c;
+				id[1] = (h & 0x40) ? h_map[actual_sector] : (h & 1);
+				id[2] = real_sector;
+				id[3] = (n == 0xFF) ? n_map[actual_sector] : n;
 				ssize = 128 << ((uint32_t) id[3]);
 				data = imd[drive].track_buffer[side] + track_buf_pos[side];
-				type = imd[drive].buffer[imd[drive].tracks[track][side].sector_data_offs[sector]];
+				type = imd[drive].buffer[imd[drive].tracks[track][side].sector_data_offs[actual_sector]];
 				type = (type >> 1) & 7;
 				deleted = bad_crc = 0;
 				if ((type == 2) || (type == 4))  deleted = 1;
 				if ((type == 3) || (type == 4))  bad_crc = 1;
 				
 				// pclog("IMD: (%i %i) %i %i %i %i (%i %i) (GPL=%i)\n", track, side, id[0], id[1], id[2], id[3], deleted, bad_crc, track_gap3);
-				imd_sector_to_buffer(drive, track, side, data, sector, ssize);
+				imd_sector_to_buffer(drive, track, side, data, actual_sector, ssize);
 				current_pos = d86f_prepare_sector(drive, side, current_pos, id, data, ssize, 1, 22, track_gap3, 0, deleted, bad_crc);
 				track_buf_pos[side] += ssize;
 			}

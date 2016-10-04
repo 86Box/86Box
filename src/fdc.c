@@ -73,6 +73,11 @@ typedef struct FDC
 
 	int max_track;
 	int mfm;
+
+	int deleted;
+	int wrong_am;
+
+	int sc;
 } FDC;
 
 static FDC fdc;
@@ -101,6 +106,21 @@ void fdc_reset()
                 // fdc_update_rate();
         }
 //        pclog("Reset FDC\n");
+}
+
+int fdc_is_deleted()
+{
+	return fdc.deleted & 1;
+}
+
+int fdc_is_sk()
+{
+	return (fdc.deleted & 0x20) ? 1 : 0;
+}
+
+void fdc_set_wrong_am()
+{
+	fdc.wrong_am = 1;
 }
 
 int fdc_get_drive()
@@ -621,6 +641,8 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 break;
 
                                 case 2: /*Read track*/
+				fdc.sc=0;
+				fdc.wrong_am=0;
                                 fdc.pnum=0;
                                 fdc.ptot=8;
                                 fdc.stat=0x90;
@@ -638,6 +660,10 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc.stat=0x90;
                                 break;
                                 case 5: /*Write data*/
+                                case 9: /*Write deleted data*/
+				fdc.sc=0;
+				fdc.wrong_am=0;
+				fdc.deleted = ((fdc.command&0x1F) == 9) ? 1 : 0;
 //                                printf("Write data!\n");
                                 fdc.pnum=0;
                                 fdc.ptot=8;
@@ -647,6 +673,13 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
 //                                readflash=1;
                                 break;
                                 case 6: /*Read data*/
+                                case 0xC: /*Read deleted data*/
+                                case 0x16: /*Verify*/
+				fdc.sc=0;
+				fdc.wrong_am=0;
+				fdc.deleted = ((fdc.command&0x1F) == 0xC) ? 1 : 0;
+				if ((fdc.command&0x1F) == 0x16)  fdc.deleted = 2;
+				fdc.deleted |= (fdc.command & 0x20);
                                 fdc.pnum=0;
                                 fdc.ptot=8;
                                 fdc.stat=0x90;
@@ -822,6 +855,7 @@ bad_command:
 					break;
 
                                         case 5: /*Write data*/
+                                        case 9: /*Write deleted data*/
 					fdc_rate(fdc.drive);
                                         fdc.head=fdc.params[2];
 					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
@@ -848,7 +882,10 @@ bad_command:
         	                        // ioc_fiq(IOC_FIQ_DISC_DATA);
                                         break;
                                         
+                                        case 0x16: /*Verify*/
+					if (fdc.params[0] & 0x80)  fdc.sc = fdc.params[7];
                                         case 6: /*Read data*/
+                                        case 0xC: /*Read deleted data*/
 					fdc_rate(fdc.drive);
                                         fdc.head=fdc.params[2];
 					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
@@ -1084,6 +1121,11 @@ void fdc_poll_readwrite_finish()
         fdc.stat=0xD0;
         fdc.res[4]=(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
         fdc.res[5]=fdc.res[6]=0;
+	if (fdc.wrong_am)
+	{
+		fdc.res[6] |= 0x40;
+		fdc.wrong_am = 0;
+	}
         fdc.res[7]=fdc.rw_track;
         fdc.res[8]=fdc.head;
         fdc.res[9]=fdc.sector;
@@ -1100,6 +1142,11 @@ void fdc_no_dma_end()
         fdc.res[4]=0x40|(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
         fdc.res[5]=0x80; /*NDE (No DMA End)*/
         fdc.res[6]=0;
+	if (fdc.wrong_am)
+	{
+		fdc.res[6] |= 0x40;
+		fdc.wrong_am = 0;
+	}
         fdc.res[7]=fdc.rw_track;
         fdc.res[8]=fdc.head;
         fdc.res[9]=fdc.sector;
@@ -1162,14 +1209,45 @@ void fdc_callback()
                 disctime = 0;
                 return;
                 case 5: /*Write data*/
+                case 9: /*Write deleted data*/
                 case 6: /*Read data*/
+                case 0xC: /*Read deleted data*/
+                case 0x1C: /*Verify*/
 //                rpclog("Read data %i\n", fdc.tc);
+		if ((discint == 6) || (discint == 0xC))
+		{
+			if (fdc.wrong_am && !(fdc.deleted & 0x20))
+			{
+				/* Mismatching data address mark and no skip, set TC. */
+				fdc.tc = 1;
+			}
+		}
 		if (fdc.tc)
 		{
 			fdc_poll_readwrite_finish();
 			return;
 		}
                 readflash = 1;
+		if ((discint == 0x16) && (fdc.params[0] & 0x80))
+		{
+			/* VERIFY command, EC set */
+			fdc.sc--;
+			if (!fdc.sc)
+			{
+				fdc_poll_readwrite_finish();
+				return;
+			}
+			/* The rest is processed normally per MT flag and EOT. */
+		}
+		else if ((discint == 0x16) && !(fdc.params[0] & 0x80))
+		{
+			/* VERIFY command, EC clear */
+			if ((fdc.sector == fdc.params[5]) && (fdc.head == (fdc.command & 0x80) ? 1 : 0))
+			{
+				fdc_poll_readwrite_finish();
+				return;
+			}
+		}
                 if (fdc.sector == fdc.params[5])
                 {
 			/* Reached end of track, MT bit is clear */
@@ -1410,6 +1488,12 @@ void fdc_overrun()
 
 int fdc_data(uint8_t data)
 {
+	if (fdc.deleted & 2)
+	{
+		/* We're in a VERIFY command, so return with 0. */
+		return 0;
+	}
+
         if (fdc.tc)
                 return 0;
 

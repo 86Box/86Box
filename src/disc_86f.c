@@ -290,6 +290,11 @@ void d86f_register_86f(int drive)
 	d86f_handler[drive].check_crc = 1;
 }
 
+void d86f_set_track_pos(int drive, uint32_t track_pos)
+{
+	d86f[drive].track_pos = track_pos;
+}
+
 /* Needed for formatting! */
 int d86f_is_40_track(int drive)
 {
@@ -2099,8 +2104,10 @@ void d86f_poll_find_nf(int drive, int side)
 {
 	uint8_t mfm = 0;
 	uint8_t am_len = 0;
+	uint8_t requested_am = 0;
 	mfm = fdc_is_mfm();
 	am_len = mfm ? 4 : 1;
+	requested_am = fdc_is_deleted() ? 0xF8 : 0xFB;
 
 	if (d86f[drive].track_index)
 	{
@@ -2137,7 +2144,19 @@ void d86f_poll_find_nf(int drive, int side)
 			{
 				if ((d86f[drive].state == STATE_WRITE_FIND_SECTOR) && (d86f[drive].data_am_counter == (am_len - 1)))
 				{
-					d86f_poll_write(drive, side, 0xFB, BYTE_DATAAM);
+					d86f_poll_write(drive, side, fdc_is_deleted() ? 0xF8 : 0xFB, BYTE_DATAAM);
+				}
+				else if ((d86f[drive].state != STATE_WRITE_FIND_SECTOR) && (d86f[drive].data_am_counter == (am_len - 1)))
+				{
+					if (d86f[drive].track_data_byte != requested_am)
+					{
+						fdc_set_wrong_am();
+						if (fdc_is_sk())
+						{
+							/* Read command in skip mode, invalidate the data AM counter in order to ignore the sector. */
+							d86f[drive].data_am_counter = 0;
+						}
+					}
 				}
 
 				d86f[drive].data_am_counter++;
@@ -2162,6 +2181,7 @@ void d86f_poll_find_nf(int drive, int side)
 			}
 			break;
 		case BYTE_ID_CRC:
+			pclog("Last sector: %08X\n", d86f[drive].last_sector.dword);
 			d86f[drive].id_pos = d86f_get_pos(drive);
 			d86f[drive].track_crc.bytes[d86f[drive].id_pos ^ 1] = d86f[drive].track_data_byte;
 			break;
@@ -2251,6 +2271,7 @@ void d86f_poll_find_nf(int drive, int side)
 						   Therefore, ensuring the data address mark acounter is at a correct length is all we need to do. */
 						if (d86f[drive].data_am_counter == am_len)
 						{
+							pclog("Changing state...\n");
 							d86f[drive].state++;
 						}
 						/* Data address mark counter always reset to 0. */
@@ -2508,6 +2529,8 @@ void d86f_poll_read_id(int drive, int side)
 
 void d86f_poll_find_am_fm(int drive, int side)
 {
+	uint16_t requested_am = fdc_is_deleted() ? 0x6AF5 : 0x6FF5;
+
 	switch (d86f[drive].track_data_word)
 	{
 		case 0x7EF5:	/* ID address mark */
@@ -2527,7 +2550,21 @@ void d86f_poll_find_am_fm(int drive, int side)
 					d86f[drive].calc_crc.word = 0xffff;
 					if (d86f[drive].state == STATE_WRITE_FIND_SECTOR)
 					{
-						d86f_write_byte_direct(drive, side, 0xFB);
+						d86f_write_byte_direct(drive, side, fdc_is_deleted() ? 0xF8 : 0xFB);
+					}
+					else
+					{
+						if (d86f[drive].track_data_word != requested_am)
+						{
+							fdc_set_wrong_am();
+							if (fdc_is_sk())
+							{
+								d86f[drive].datac = 0;
+								d86f_poll_advancebyte(drive, side);
+								d86f[drive].id_was_read = 0;	/* Invalidate ID was read flag to avoid false positives after read. */
+								return;
+							}
+						}
 					}
 					d86f_calccrc(drive, d86f[drive].track_data_byte);
 					d86f[drive].datac = 0;
@@ -2539,6 +2576,7 @@ void d86f_poll_find_am_fm(int drive, int side)
 						case STATE_READ_FIND_NEXT_SECTOR:
 							d86f[drive].state++;
 							d86f_poll_advancebyte(drive, side);
+							d86f[drive].id_was_read = 0;	/* Invalidate ID was read flag to avoid false positives after read. */
 							return;
 					}
 				}
@@ -2554,6 +2592,8 @@ void d86f_poll_find_am_fm(int drive, int side)
 
 void d86f_poll_find_am_mfm(int drive, int side)
 {
+	uint16_t requested_am = fdc_is_deleted() ? 0x4A55 : 0x4555;
+
 	switch (d86f[drive].track_data_word)
 	{
 		case 0x8944:
@@ -2580,7 +2620,21 @@ void d86f_poll_find_am_mfm(int drive, int side)
 					d86f[drive].id_match = 0;	/* Invalidate ID match to avoid false positives after read. */
 					if (d86f[drive].state == STATE_WRITE_FIND_SECTOR)
 					{
-						d86f_write_byte_direct(drive, side, 0xFB);
+						d86f_write_byte_direct(drive, side, fdc_is_deleted() ? 0xF8 : 0xFB);
+					}
+					else
+					{
+						if (d86f[drive].track_data_word != requested_am)
+						{
+							fdc_set_wrong_am();
+							if (fdc_is_sk())
+							{
+								d86f[drive].datac = 0;
+								d86f_poll_advancebyte(drive, side);
+								d86f[drive].id_was_read = 0;	/* Invalidate ID was read flag to avoid false positives after read. */
+								return;
+							}
+						}
 					}
 					d86f_calccrc(drive, d86f[drive].track_data_byte);
 					d86f[drive].datac = 0;
@@ -2593,6 +2647,7 @@ void d86f_poll_find_am_mfm(int drive, int side)
 							// pclog("Advancing state (%04X)...\n", d86f[drive].calc_crc);
 							d86f[drive].state++;
 							d86f_poll_advancebyte(drive, side);
+							d86f[drive].id_was_read = 0;	/* Invalidate ID was read flag to avoid false positives after read. */
 							return;
 					}
 				}
