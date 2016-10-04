@@ -832,10 +832,13 @@ void d86f_seek(int drive, int track)
 	uint8_t track_id = track;
 	int sides;
         int side;
+#if 0
 	int full_size, store_size;
 	int flag_bytes = 5;
+#endif
 	sides = d86f_get_sides(drive);
 
+#if 0
 	full_size = d86f_get_array_size(drive);
 	store_size = full_size << 1;
 	if (d86f_is_encoded(drive))  store_size += full_size;
@@ -848,6 +851,7 @@ void d86f_seek(int drive, int track)
 		}
 	}
 	if (d86f_get_sides(drive) == 2)  flag_bytes += 4;
+#endif
 
         if (d86f_is_40_track(drive) && fdd_doublestep_40(drive))
                 track /= 2;
@@ -905,7 +909,7 @@ void d86f_seek(int drive, int track)
 	{
 		if (d86f_is_old_style(drive))
 		{
-			fread(d86f[drive].track_layout[side], 1, d86f_get_raw_size(drive), d86f[drive].f);
+			fread(d86f[drive].track_layout[side], 1, d86f_get_array_size(drive), d86f[drive].f);
 		}
 		else
 		{
@@ -916,11 +920,11 @@ void d86f_seek(int drive, int track)
 		}
 		if (d86f_is_encoded(drive))
 		{
-			fread(d86f[drive].track_encoded_data[side], 1, d86f_get_raw_size(drive) << 1, d86f[drive].f);
+			fread(d86f[drive].track_encoded_data[side], 1, d86f_get_array_size(drive) << 1, d86f[drive].f);
 		}
 		else
 		{
-			fread(d86f[drive].track_data[side], 1, d86f_get_raw_size(drive), d86f[drive].f);
+			fread(d86f[drive].track_data[side], 1, d86f_get_array_size(drive), d86f[drive].f);
 		}
 	}
 }
@@ -930,6 +934,7 @@ void d86f_writeback(int drive)
 	int track = d86f[drive].cur_track;
 	uint8_t track_id = track;
 	int side;
+#if 0
 	int full_size, store_size;
 	int flag_bytes = 5;
 
@@ -945,6 +950,7 @@ void d86f_writeback(int drive)
 		}
 	}
 	if (d86f_get_sides(drive) == 2)  flag_bytes += 4;
+#endif
 
         if (!d86f[drive].f)
 	{
@@ -977,7 +983,7 @@ void d86f_writeback(int drive)
 	{
 		if (d86f_is_old_style(drive))
 		{
-			fwrite(d86f[drive].track_layout[side], 1, d86f_get_raw_size(drive), d86f[drive].f);
+			fwrite(d86f[drive].track_layout[side], 1, d86f_get_array_size(drive), d86f[drive].f);
 		}
 		else
 		{
@@ -988,11 +994,11 @@ void d86f_writeback(int drive)
 		}
 		if (d86f_is_encoded(drive))
 		{
-			fwrite(d86f[drive].track_encoded_data[side], 1, d86f_get_raw_size(drive) << 1, d86f[drive].f);
+			fwrite(d86f[drive].track_encoded_data[side], 1, d86f_get_array_size(drive) << 1, d86f[drive].f);
 		}
 		else
 		{
-			fwrite(d86f[drive].track_data[side], 1, d86f_get_raw_size(drive), d86f[drive].f);
+			fwrite(d86f[drive].track_data[side], 1, d86f_get_array_size(drive), d86f[drive].f);
 		}
 	}
 
@@ -1897,7 +1903,7 @@ int d86f_poll_check_notfound(int drive)
 		/* The index hole has been hit twice and we're still in a find state.
 		   This means sector finding has failed for whatever reason.
 		   Abort with sector not found and set state to idle. */
-		pclog("d86f_poll(): Sector not found (%i %i %i %i) (%i, %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive));
+		// pclog("d86f_poll(): Sector not found (%i %i %i %i) (%i, %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive));
 		fdc_notfound();
 		d86f[drive].state = STATE_IDLE;
 		d86f[drive].index_count = 0;

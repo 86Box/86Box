@@ -146,5 +146,25 @@ void null_writeback(int drive);
 void null_poll_write_data(int drive, int side, uint16_t pos, uint8_t data);
 int null_format_conditions(int drive);
 void d86f_unregister(int drive);
-
 void d86f_reset_index_hole_pos(int drive, int side);
+
+uint8_t xdf_physical_sectors[2][2];
+uint8_t xdf_gap3_sizes[2][2];
+uint16_t xdf_trackx_spos[2][8];
+
+typedef struct
+{
+	uint8_t h;
+	uint8_t r;
+} xdf_id_t;
+
+typedef union
+{
+	uint16_t word;
+	xdf_id_t id;
+} xdf_sector_t;
+
+xdf_sector_t xdf_img_layout[2][2][46];
+xdf_sector_t xdf_disk_layout[2][2][38];
+
+uint32_t td0_get_raw_tsize(int side_flags, int slower_rpm);

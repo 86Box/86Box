@@ -276,6 +276,8 @@ void initpc(int argc, char *argv[])
         fdi_init();
         img_init();
         d86f_init();
+	td0_init();
+	imd_init();
 
 	vlan_reset();	//NETWORK
 	network_card_init(network_card_current);

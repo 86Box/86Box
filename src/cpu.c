@@ -105,7 +105,9 @@ uint64_t ecx8x_msr[4] = {0, 0, 0, 0};
 uint64_t ecx116_msr = 0;
 uint64_t ecx11x_msr[4] = {0, 0, 0, 0};
 uint64_t ecx11e_msr = 0;
+uint64_t ecx186_msr = 0;
 uint64_t ecx1e0_msr = 0;
+uint64_t ecx570_msr = 0;
 
 /* AMD K5 and K6 MSR's. */
 uint64_t ecx83_msr = 0;
@@ -2000,6 +2002,10 @@ void cpu_RDMSR()
 			if (models[model].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_rdmsr;
 			EAX = eip_msr;
 			break;
+			case 0x186:
+                        EAX = ecx186_msr & 0xffffffff;
+                        EDX = ecx186_msr >> 32;
+			break;
 			case 0x1E0:
                         EAX = ecx1e0_msr & 0xffffffff;
                         EDX = ecx1e0_msr >> 32;
@@ -2040,6 +2046,10 @@ void cpu_RDMSR()
 			case 0x2FF:
                         EAX = mtrr_deftype_msr & 0xffffffff;
                         EDX = mtrr_deftype_msr >> 32;
+			break;
+			case 0x570:
+                        EAX = ecx570_msr & 0xffffffff;
+                        EDX = ecx570_msr >> 32;
 			break;
 			default:
 i686_invalid_rdmsr:
@@ -2181,6 +2191,9 @@ void cpu_WRMSR()
 			// pclog("WRMSR SYSENTER_EIP: old=%08X, new=%08X\n", eip_msr, EAX);
 			eip_msr = EAX;
 			break;
+			case 0x186:
+			ecx186_msr = EAX | ((uint64_t)EDX << 32);
+			break;			
 			case 0x1E0:
 			ecx1e0_msr = EAX | ((uint64_t)EDX << 32);
 			break;			
@@ -2209,6 +2222,9 @@ void cpu_WRMSR()
 			case 0x2FF:
 			mtrr_deftype_msr = EAX | ((uint64_t)EDX << 32);
 			break;
+			case 0x570:
+			ecx570_msr = EAX | ((uint64_t)EDX << 32);
+			break;			
 			default:
 i686_invalid_wrmsr:
 #ifndef RELEASE_BUILD

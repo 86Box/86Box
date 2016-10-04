@@ -212,6 +212,7 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                 break;
                 case 0x3C8: 
                 svga->dac_write = val; 
+                svga->dac_read = val - 1; 
                 svga->dac_pos = 0; 
                 break;
                 case 0x3C9:

@@ -32,21 +32,9 @@ static struct
 static uint8_t dmf_r[21] = { 12, 2, 13, 3, 14, 4, 15, 5, 16, 6, 17, 7, 18, 8, 19, 9, 20, 10, 21, 11, 1 };
 static uint8_t xdf_spt[2] = { 6, 8 };
 static uint8_t xdf_logical_sectors[2][2] = { { 38, 6 }, { 46, 8 } };
-static uint8_t xdf_physical_sectors[2][2] = { { 16, 3 }, { 19, 4 } };
-static uint8_t xdf_gap3_sizes[2][2] = { { 60, 69 }, { 60, 50 } };
-static uint16_t xdf_trackx_spos[2][8] = { { 0xA7F, 0xF02, 0x11B7, 0xB66, 0xE1B, 0x129E }, { 0x302, 0x7E2, 0xA52, 0x12DA, 0x572, 0xDFA, 0x106A, 0x154A } };
-
-typedef struct
-{
-	uint8_t h;
-	uint8_t r;
-} xdf_id_t;
-
-typedef union
-{
-	uint16_t word;
-	xdf_id_t id;
-} xdf_sector_t;
+uint8_t xdf_physical_sectors[2][2] = { { 16, 3 }, { 19, 4 } };
+uint8_t xdf_gap3_sizes[2][2] = { { 60, 69 }, { 60, 50 } };
+uint16_t xdf_trackx_spos[2][8] = { { 0xA7F, 0xF02, 0x11B7, 0xB66, 0xE1B, 0x129E }, { 0x302, 0x7E2, 0xA52, 0x12DA, 0x572, 0xDFA, 0x106A, 0x154A } };
 
 /* XDF: Layout of the sectors in the image. */
 xdf_sector_t xdf_img_layout[2][2][46] = {	{	{ 0x8100, 0x8200, 0x8300, 0x8400, 0x8500, 0x8600, 0x8700, 0x8800,
@@ -124,11 +112,9 @@ int gap3_sizes[5][8][256] = {	[0][1][16] = 0x54,
 				[0][2][18] = 0x6C,
 				[0][2][19] = 0x48,
 				[0][2][20] = 0x2A,
-				// [0][2][21] = 0x0C,
 				[0][2][21] = 0x08,		/* Microsoft DMFWRITE.EXE uses this, 0x0C is used by FDFORMAT. */
-				// [0][2][23] = 0x7A,
 				[0][2][23] = 0x01,
-				// [0][2][24] = 0x38,
+				[0][3][11] = 0x26,
 				[2][1][10] = 0x32,
 				[2][1][11] = 0x0C,
 				[2][1][15] = 0x36,
@@ -142,17 +128,12 @@ int gap3_sizes[5][8][256] = {	[0][1][16] = 0x54,
 				[2][3][5]  = 0x74,
 				[3][2][36] = 0x53,
 				[3][2][39] = 0x20,
-				// [3][2][46] = 0x0E,
 				[3][2][46] = 0x01,
-				// [3][2][48] = 0x51,
 				[4][1][32] = 0x36,
 				[4][2][15] = 0x54,
 				[4][2][17] = 0x23,
-				// [4][2][19] = 0x29,
 				[4][2][19] = 0x01,
-				[4][3][8]  = 0x74,
-				[4][3][9]  = 0x74,
-				[4][3][10] = 0x74
+				[4][3][8]  = 0x74
 };
 
 void img_writeback(int drive);
@@ -291,6 +272,7 @@ void img_load(int drive, char *fn)
 	        else if (size <= (180*1024))   { img[drive].sectors = 9;  img[drive].tracks = 40; img[drive].sides = 1; }
 	        else if (size <= (320*1024))   { img[drive].sectors = 8;  img[drive].tracks = 40; }
 	        else if (size <= (360*1024))   { img[drive].sectors = 9;  img[drive].tracks = 40; } /*Double density*/
+	        else if (size <= (400*1024))   { img[drive].sectors = 10; img[drive].tracks = 80; img[drive].sides = 1; } /*DEC RX50*/
 	        else if (size <= (640*1024))   { img[drive].sectors = 8;  img[drive].tracks = 80; } /*Double density 640k*/
 	        else if (size < (1024*1024))   { img[drive].sectors = 9;  img[drive].tracks = 80; } /*Double density*/
 	        else if (size <= 1228800)      { img[drive].sectors = 15; img[drive].tracks = 80; } /*High density 1.2MB*/

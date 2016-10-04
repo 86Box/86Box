@@ -102,6 +102,7 @@ typedef struct
 	int track;
 	int current_sector_index[2];
 	uint8_t calculated_gap3_lengths[256][2];
+	uint8_t xdf_ordered_pos[256][2];
 } td0_t;
 
 td0_t td0[2];
@@ -492,7 +493,7 @@ void td0_init()
 
 void d86f_register_td0(int drive);
 
-static const int rates[3] = { 2, 1, 0 };
+// static const int rates[3] = { 2, 1, 0, 2, 3 };		/* 0 = 250 kbps, 1 = 300 kbps, 2 = 500 kbps, 3 = unknown, 4 = 1000 kbps */
 const int max_size = 4*1024*1024; // 4MB ought to be large enough for any floppy
 const int max_processed_size = 5*1024*1024;
 uint8_t imagebuf[4*1024*1024];
@@ -587,10 +588,10 @@ void td0_close(int drive)
         td0[drive].f = NULL;
 }
 
-uint32_t td0_get_raw_tsize(int drive, int track, int side, int slower_rpm)
+uint32_t td0_get_raw_tsize(int side_flags, int slower_rpm)
 {
 	uint32_t size;
-	switch(td0[drive].side_flags[track][side] & 0x27)
+	switch(side_flags & 0x27)
 	{
 		case 0x22:
 			size = slower_rpm ?  5314 :  5208;
@@ -636,7 +637,8 @@ int td0_initialize(int drive)
 	int offset = 0;
 	int ret = 0;
 	int gap3_len = 0;
-	int rate = 0;
+	// int rate = 0;
+	int density = 0;
 	int i = 0;
 	int j = 0;
 	int temp_rate = 0;
@@ -648,6 +650,7 @@ int td0_initialize(int drive)
 	uint16_t size;
 	uint8_t *dbuf = processed_buf;
 	uint32_t total_size = 0;
+	uint32_t pre_sector = 0;
 	uint32_t track_size = 0;
 	uint32_t raw_tsize = 0;
 	uint32_t minimum_gap3 = 0;
@@ -703,26 +706,40 @@ int td0_initialize(int drive)
 		return 0;
 	}
 
+	density = (header[5] >> 1) & 3;
+
+	if (density == 3)
+	{
+		pclog("TD0: Unknown density\n");
+		return 0;
+	}
+
 	/* We determine RPM from the drive type as well as we possibly can. */
+	/* This byte is actually the BIOS floppy drive type read by Teledisk from the CMOS. */
 	switch(header[6])
 	{
-		case 0:					/* 5.25" 2DD in 2HD drive:	360 rpm */
-		case 2:					/* 5.25" 2HD:			360 rpm */
-			td0[drive].default_track_flags = ((header[5] & 0x7f) == 2) ? 0x20 : 0x00;
+		case 0:					/* 5.25" 360k in 1.2M drive:	360 rpm
+							   CMOS Drive type: None, value probably reused by Teledisk */
+		case 2:					/* 5.25" 1.2M			360 rpm */
+		case 5:					/* 8"/5.25"/3.5" 1.25M		360 rpm */
+			td0[drive].default_track_flags = (density == 1) ? 0x20 : 0x21;
 			break;
-		case 5:					/* 8   " 2?D:			360 rpm */
-			td0[drive].default_track_flags = 0x20;
+		case 1:					/* 5.25" 360k:			300 rpm */
+		case 3:					/* 3.5" 720k:			300 rpm */
+			td0[drive].default_track_flags = 0x02;
 			break;
-		case 1:					/* 5.25" 2DD:			300 rpm */
-		case 3:					/* 3.5 " 2DD:			300 rpm */
-		case 4:					/* 3.5 " 2HD:			300 rpm */
-		case 6:					/* 3.5 " 2ED?:			300 rpm */
-			td0[drive].default_track_flags = 0x00;	
+		case 4:					/* 3.5" 1.44M:			300 rpm */
+			td0[drive].default_track_flags = (density == 1) ? 0x00 : 0x02;
+			break;
+		case 6:					/* 3.5" 2.88M:			300 rpm */
+			td0[drive].default_track_flags = (density == 1) ? 0x00 : ((density == 2) ? 0x03 : 0x02);
 			break;
 	}
 
-	rate = (header[5] & 0x7f) >= 3 ? 0 : rates[header[5] & 0x7f];
-	td0[drive].default_track_flags |= rate;
+	td0[drive].disk_flags = header[5] & 0x06;
+
+	// rate = (header[5] & 0x7f) >= 3 ? 0 : rates[header[5] & 0x7f];
+	// td0[drive].default_track_flags |= rate;
 
 	for (i = 0; i < 256; i++)
 	{
@@ -743,7 +760,9 @@ int td0_initialize(int drive)
 		td0[drive].side_flags[track][head] = td0[drive].default_track_flags | (fm ? 0 : 8);
 		td0[drive].track_in_file[track][head] = 1;
 		offset += 4;
-		track_size = 146;
+		track_size = fm ? 73 : 146;
+		pre_sector = fm ? 42 : 60;
+		
 		for(i = 0; i < track_spt; i++)
 		{
 			hs = &imagebuf[offset];
@@ -826,23 +845,26 @@ int td0_initialize(int drive)
 
 			dbuf += size;
 			total_size += size;
-			track_size += size;
+			track_size += (pre_sector + size + 2);
 		}
 
 		track_count = track;
-
-		track_spt = imagebuf[offset];
 
 		if (track_spt != 255)
 		{
 			td0[drive].track_spt[track][head] = track_spt;
 
-			raw_tsize = td0_get_raw_tsize(drive, track, head, 0);
+			if ((td0[drive].track_spt[track][head] == 8) && (td0[drive].sects[track][head][0].size == 3))
+			{
+				td0[drive].side_flags[track][head] |= 0x20;
+			}
+
+			raw_tsize = td0_get_raw_tsize(td0[drive].side_flags[track][head], 0);
 			minimum_gap3 = 12 * track_spt;
 			if ((raw_tsize - track_size) < (minimum_gap3 + minimum_gap4))
 			{
 				/* If we can't fit the sectors with a reasonable minimum gap at perfect RPM, let's try 2% slower. */
-				raw_tsize = td0_get_raw_tsize(drive, track, head, 1);
+				raw_tsize = td0_get_raw_tsize(td0[drive].side_flags[track][head], 1);
 				/* Set disk flags so that rotation speed is 2% slower. */
 				td0[drive].disk_flags |= (3 << 5);
 				if ((raw_tsize - track_size) < (minimum_gap3 + minimum_gap4))
@@ -853,6 +875,8 @@ int td0_initialize(int drive)
 				}
 			}
 			td0[drive].calculated_gap3_lengths[track][head] = (raw_tsize - track_size - minimum_gap4) / track_spt;
+
+			track_spt = imagebuf[offset];
 		}
 	}
 
@@ -863,7 +887,7 @@ int td0_initialize(int drive)
 
 	td0[drive].tracks = track_count + 1;
 
-	temp_rate = rate;
+	temp_rate = td0[drive].default_track_flags & 7;
 	if ((td0[drive].default_track_flags & 0x27) == 0x20)  temp_rate = 4;
 	td0[drive].gap3_len = gap3_sizes[temp_rate][td0[drive].sects[0][0][0].size][td0[drive].track_spt[0][0]];
 	// pclog("GAP3 length for %i %i %i is %i\n", temp_rate, td0[drive].sects[0][0][0].size, td0[drive].track_spt[0][0], td0[drive].gap3_len);
@@ -876,14 +900,8 @@ int td0_initialize(int drive)
 
 	if(head_count == 2)
 	{
-		td0[drive].disk_flags = 8;	/* 2 sides */
+		td0[drive].disk_flags |= 8;	/* 2 sides */
 	}
-	else
-	{
-		td0[drive].disk_flags = 0;	/* 1 side */
-	}
-
-	if (td0[drive].tracks > 43)  td0[drive].disk_flags |= 1;	/* If the image has more than 43 tracks, then the tracks are thin (96 tpi). */
 
 	td0[drive].sides = head_count;
 
@@ -893,6 +911,101 @@ int td0_initialize(int drive)
 	pclog("TD0: File loaded: %i tracks, %i sides, disk flags: %02X, side flags: %02X, %02X, GAP3 length: %02X\n", td0[drive].tracks, td0[drive].sides, td0[drive].disk_flags, td0[drive].current_side_flags[0], td0[drive].current_side_flags[1], td0[drive].gap3_len);
 
 	return 1;
+}
+
+int td0_track_is_xdf(int drive, int side, int track)
+{
+	uint8_t id[4] = { 0, 0, 0, 0 };
+	int i, effective_sectors, xdf_sectors;
+	int high_sectors, low_sectors;
+	int max_high_id, expected_high_count, expected_low_count;
+
+	effective_sectors = xdf_sectors = high_sectors = low_sectors = 0;
+
+	memset(td0[drive].xdf_ordered_pos[side], 0, 256);
+
+	if (!track)
+	{
+		if ((td0[drive].track_spt[track][side] == 16) || (td0[drive].track_spt[track][side] == 19))
+		{
+			if (!side)
+			{
+				max_high_id = (td0[drive].track_spt[track][side] == 19) ? 0x8B : 0x88;
+				expected_high_count = (td0[drive].track_spt[track][side] == 19) ? 0x0B : 0x08;
+				expected_low_count = 8;
+			}
+			else
+			{
+				max_high_id = (td0[drive].track_spt[track][side] == 19) ? 0x93 : 0x90;
+				expected_high_count = (td0[drive].track_spt[track][side] == 19) ? 0x13 : 0x10;
+				expected_low_count = 0;
+			}
+			for (i = 0; i < td0[drive].track_spt[track][side]; i++)
+			{
+				id[0] = td0[drive].sects[track][side][i].track;
+				id[1] = td0[drive].sects[track][side][i].head;
+				id[2] = td0[drive].sects[track][side][i].sector;
+				id[3] = td0[drive].sects[track][side][i].size;
+				if (!(id[0]) && (id[1] == side) && (id[3] == 2))
+				{
+					if ((id[2] >= 0x81) && (id[2] <= max_high_id))
+					{
+						high_sectors++;
+						td0[drive].xdf_ordered_pos[id[2]][side] = i;
+					}
+					if ((id[2] >= 0x01) && (id[2] <= 0x08))
+					{
+						low_sectors++;
+						td0[drive].xdf_ordered_pos[id[2]][side] = i;
+					}
+				}
+			}
+			if ((high_sectors == expected_high_count) && (low_sectors == expected_low_count))
+			{
+				td0[drive].current_side_flags[side] = (td0[drive].track_spt[track][side] == 19) ?  0x08 : 0x28;
+				return (td0[drive].track_spt[track][side] == 19) ? 2 : 1;
+			}
+			// pclog("XDF: %i %i %i %i\n", high_sectors, expected_high_count, low_sectors, expected_low_count);
+			return 0;
+		}
+		else
+		{
+			// pclog("XDF: %i sectors per track (%i %i)\n", td0[drive].track_spt[track][side], track, side);
+			return 0;
+		}
+	}
+	else
+	{
+		for (i = 0; i < td0[drive].track_spt[track][side]; i++)
+		{
+			id[0] = td0[drive].sects[track][side][i].track;
+			id[1] = td0[drive].sects[track][side][i].head;
+			id[2] = td0[drive].sects[track][side][i].sector;
+			id[3] = td0[drive].sects[track][side][i].size;
+			effective_sectors++;
+			if ((id[0] == track) && (id[1] == side) && !(id[2]) && !(id[3]))
+			{
+				effective_sectors--;
+			}
+			if ((id[0] == track) && (id[1] == side) && (id[2] == (id[3] | 0x80)))
+			{
+				xdf_sectors++;
+				td0[drive].xdf_ordered_pos[id[2]][side] = i;
+			}
+		}
+		// pclog("XDF: %i %i\n", effective_sectors, xdf_sectors);
+		if ((effective_sectors == 3) && (xdf_sectors == 3))
+		{
+			td0[drive].current_side_flags[side] = 0x28;
+			return 1;		/* 5.25" 2HD XDF */
+		}
+		if ((effective_sectors == 4) && (xdf_sectors == 4))
+		{
+			td0[drive].current_side_flags[side] = 0x08;
+			return 2;		/* 3.5" 2HD XDF */
+		}
+		return 0;
+	}
 }
 
 void td0_seek(int drive, int track)
@@ -906,7 +1019,18 @@ void td0_seek(int drive, int track)
 	int ssize = 512;
 
 	int track_rate = 0;
+
+	int track_gap2 = 22;
 	int track_gap3 = 12;
+
+	int xdf_type = 0;
+
+	int is_trackx = 0;
+
+	int xdf_spt = 0;
+	int xdf_sector = 0;
+
+	int ordered_pos = 0;
        
         if (!td0[drive].f)
                 return;
@@ -914,10 +1038,14 @@ void td0_seek(int drive, int track)
         if (d86f_is_40_track(drive) && fdd_doublestep_40(drive))
                 track /= 2;
 
+	is_trackx = (track == 0) ? 0 : 1;
+
 	td0[drive].track = track;
 
 	td0[drive].current_side_flags[0] = td0[drive].side_flags[track][0];
 	td0[drive].current_side_flags[1] = td0[drive].side_flags[track][1];
+
+	// pclog("TD0 Seek: %02X %02X (%02X)\n", td0[drive].current_side_flags[0], td0[drive].current_side_flags[1], td0[drive].disk_flags);
 
 	d86f_reset_index_hole_pos(drive, 0);
 	d86f_reset_index_hole_pos(drive, 1);
@@ -929,20 +1057,51 @@ void td0_seek(int drive, int track)
 		track_gap3 = gap3_sizes[track_rate][td0[drive].sects[track][side][0].size][td0[drive].track_spt[track][side]];
 		if (!track_gap3)
 		{
-			td0[drive].calculated_gap3_lengths[track][side];
+			track_gap3 = td0[drive].calculated_gap3_lengths[track][side];
 		}
+
+		track_gap2 = ((td0[drive].current_side_flags[side] & 7) >= 3) ? 41 : 22;
+
+		xdf_type = td0_track_is_xdf(drive, side, track);
 
 		current_pos = d86f_prepare_pretrack(drive, side, 0, 1);
 
-		for (sector = 0; sector < td0[drive].track_spt[track][side]; sector++)
+		if (!xdf_type)
 		{
-			id[0] = td0[drive].sects[track][side][sector].track;
-			id[1] = td0[drive].sects[track][side][sector].head;
-			id[2] = td0[drive].sects[track][side][sector].sector;
-			id[3] = td0[drive].sects[track][side][sector].size;
-			// pclog("TD0: %i %i %i %i (%i %i) (GPL=%i)\n", id[0], id[1], id[2], id[3], td0[drive].sects[track][side][sector].deleted, td0[drive].sects[track][side][sector].bad_crc, track_gap3);
-			ssize = 128 << ((uint32_t) td0[drive].sects[track][side][sector].size);
-			current_pos = d86f_prepare_sector(drive, side, current_pos, id, td0[drive].sects[track][side][sector].data, ssize, 1, 0x22, track_gap3, 0, td0[drive].sects[track][side][sector].deleted, td0[drive].sects[track][side][sector].bad_crc);
+			for (sector = 0; sector < td0[drive].track_spt[track][side]; sector++)
+			{
+				id[0] = td0[drive].sects[track][side][sector].track;
+				id[1] = td0[drive].sects[track][side][sector].head;
+				id[2] = td0[drive].sects[track][side][sector].sector;
+				id[3] = td0[drive].sects[track][side][sector].size;
+				// pclog("TD0: %i %i %i %i (%i %i) (GPL=%i)\n", id[0], id[1], id[2], id[3], td0[drive].sects[track][side][sector].deleted, td0[drive].sects[track][side][sector].bad_crc, track_gap3);
+				ssize = 128 << ((uint32_t) td0[drive].sects[track][side][sector].size);
+				current_pos = d86f_prepare_sector(drive, side, current_pos, id, td0[drive].sects[track][side][sector].data, ssize, 1, track_gap2, track_gap3, 0, td0[drive].sects[track][side][sector].deleted, td0[drive].sects[track][side][sector].bad_crc);
+			}
+		}
+		else
+		{
+			xdf_type--;
+			xdf_spt = xdf_physical_sectors[xdf_type][is_trackx];
+			for (sector = 0; sector < xdf_spt; sector++)
+			{
+				xdf_sector = (side * xdf_spt) + sector;
+				id[0] = track;
+				id[1] = side;
+				id[2] = xdf_disk_layout[xdf_type][is_trackx][xdf_sector].id.r;
+				id[3] = is_trackx ? (id[2] & 7) : 2;
+				ssize = 128 << ((uint32_t) id[3]);
+				ordered_pos = td0[drive].xdf_ordered_pos[id[2]][side];
+				// pclog("TD0: XDF: (%i %i) %i %i %i %i (%i %i) (GPL=%i)\n", track, side, id[0], id[1], id[2], id[3], td0[drive].sects[track][side][ordered_pos].deleted, td0[drive].sects[track][side][ordered_pos].bad_crc, track_gap3);
+				if (is_trackx)
+				{
+					current_pos = d86f_prepare_sector(drive, side, xdf_trackx_spos[xdf_type][xdf_sector], id, td0[drive].sects[track][side][ordered_pos].data, ssize, 1, track_gap2, xdf_gap3_sizes[xdf_type][is_trackx], 0, td0[drive].sects[track][side][ordered_pos].deleted, td0[drive].sects[track][side][ordered_pos].bad_crc);
+				}
+				else
+				{
+					current_pos = d86f_prepare_sector(drive, side, current_pos, id, td0[drive].sects[track][side][ordered_pos].data, ssize, 1, track_gap2, xdf_gap3_sizes[xdf_type][is_trackx], 0, td0[drive].sects[track][side][ordered_pos].deleted, td0[drive].sects[track][side][ordered_pos].bad_crc);
+				}
+			}
 		}
 	}
 
@@ -957,8 +1116,10 @@ uint16_t td0_disk_flags(int drive)
 uint16_t td0_side_flags(int drive)
 {
 	int side = 0;
+	uint8_t sflags = 0;
 	side = fdd_get_head(drive);
-	return td0[drive].current_side_flags[side];
+	sflags = td0[drive].current_side_flags[side];
+	return sflags;
 }
 
 void td0_set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
