@@ -950,7 +950,7 @@ void atapi_close(void)
 	}
 }
 
-char *floppy_image_extensions = "All floppy images (*.12;*.144;*.360;*.720;*.86F;*.BIN;*.DSK;*.FDI;*.FLP;*.IMA;*.IMD;*.IMG;*.TD0;*.VFD;*.XDF)\0*.12;*.144;*.360;*.720;*.86F;*.BIN;*.DSK;*.FDI;*.FLP;*.IMA;*.IMD;*.IMG;*.TD0;*.VFD;*.XDF\0Advanced sector-based images (*.IMD;*.TD0)\0*.IMD;*.TD0\0Basic sector-based images (*.12;*.144;*.360;*.720;*.BIN;*.DSK;*.FDI;*.FLP;*.IMA;*.IMG;*.VFD;*.XDF)\0*.12;*.144;*.360;*.720;*.BIN;*.DSK;*.FDI;*.FLP;*.IMA;*.IMG;*.VFD;*.XDF\0Flux images (*.FDI)\0*.FDI\0Surface-based images (*.86F)\0*.86F\0All files (*.*)\0*.*\0";
+char *floppy_image_extensions = "All floppy images (*.12;*.144;*.360;*.720;*.86F;*.BIN;*.DSK;*.FDI;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.TD0;*.VFD;*.XDF)\0*.12;*.144;*.360;*.720;*.86F;*.BIN;*.DSK;*.FDI;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.TD0;*.VFD;*.XDF\0Advanced sector-based images (*.IMD;*.TD0)\0*.IMD;*.TD0\0Basic sector-based images (*.12;*.144;*.360;*.720;*.BIN;*.DSK;*.FDI;*.FLP;*.HDM;*.IMA;*.IMG;*.VFD;*.XDF)\0*.12;*.144;*.360;*.720;*.BIN;*.DSK;*.FDI;*.FLP;*.HDM;*.IMA;*.IMG;*.VFD;*.XDF\0Flux images (*.FDI)\0*.FDI\0Surface-based images (*.86F)\0*.86F\0All files (*.*)\0*.*\0";
 
 LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
