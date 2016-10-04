@@ -1282,9 +1282,12 @@ void fdc_callback()
 		switch (discint)
 		{
 			case 5:
+			case 9:
 		                disc_writesector(fdc.drive, fdc.sector, fdc.rw_track, fdc.head, fdc.rate, fdc.params[4]);
 				break;
 			case 6:
+			case 0xC:
+			case 0x16:
 		                disc_readsector(fdc.drive, fdc.sector, fdc.rw_track, fdc.head, fdc.rate, fdc.params[4]);
 				break;
 		}
