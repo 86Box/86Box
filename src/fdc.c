@@ -1496,7 +1496,16 @@ void fdc_callback()
                 fdc.res[8] = fdc.specify[1];
                 fdc.res[9] = fdc.eot[fdc.drive];
                 fdc.res[10] = (fdc.perp & 0x7f) | ((fdc.lock) ? 0x80 : 0);
-                paramstogo=10;
+		if (AT)
+		{
+			fdc.res[11] = fdc.config;
+			fdc.res[12] = fdc.pretrk;
+			paramstogo=12;
+		}
+		else
+		{
+	                paramstogo=10;
+		}
                 discint=0;
 		disctime = 0;
                 return;
@@ -1824,9 +1833,23 @@ void fdc_init()
 	fdc_update_densel_force(0);
 	fdc_update_drv2en(1);
 
-	fdc.fifo = fdc.tfifo = 0;
+	fdc.fifo = 0;
+	fdc.tfifo = 1;
 
 	fdd_init();
+
+	if (fdc.pcjr)
+	{
+		fdc.dma = 0;
+		fdc.specify[1] = 1;
+	}
+	else
+	{
+		fdc.dma = 1;
+		fdc.specify[1] = 0;
+	}
+	fdc.config = 0x20;
+	fdc.pretrk = 0;
 
 	swwp = 0;
 	disable_write = 0;
