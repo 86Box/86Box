@@ -580,9 +580,16 @@ void imd_seek(int drive, int track)
 				id[2] = real_sector;
 				id[3] = (n == 0xFF) ? n_map[actual_sector] : n;
 				ssize = 128 << ((uint32_t) id[3]);
-				data = imd[drive].track_buffer[side] + track_buf_pos[side];
 				type = imd[drive].buffer[imd[drive].tracks[track][side].sector_data_offs[actual_sector]];
 				type = (type >> 1) & 7;
+				if (type & 1)
+				{
+					data = &(imd[drive].buffer[imd[drive].tracks[track][side].sector_data_offs[actual_sector] + 1]);
+				}
+				else
+				{
+					data = imd[drive].track_buffer[side] + track_buf_pos[side];
+				}
 				deleted = bad_crc = 0;
 				if ((type == 2) || (type == 4))  deleted = 1;
 				if ((type == 3) || (type == 4))  bad_crc = 1;
@@ -607,12 +614,19 @@ void imd_seek(int drive, int track)
 				ssize = 128 << ((uint32_t) id[3]);
 				ordered_pos = imd[drive].xdf_ordered_pos[id[2]][side];
 
-				data = imd[drive].track_buffer[side] + track_buf_pos[side];
 				type = imd[drive].buffer[imd[drive].tracks[track][side].sector_data_offs[ordered_pos]];
 				type = (type >> 1) & 7;
 				deleted = bad_crc = 0;
 				if ((type == 2) || (type == 4))  deleted = 1;
 				if ((type == 3) || (type == 4))  bad_crc = 1;
+				if (type & 1)
+				{
+					data = &(imd[drive].buffer[imd[drive].tracks[track][side].sector_data_offs[ordered_pos] + 1]);
+				}
+				else
+				{
+					data = imd[drive].track_buffer[side] + track_buf_pos[side];
+				}
 				imd_sector_to_buffer(drive, track, side, data, ordered_pos, ssize);
 
 				if (is_trackx)

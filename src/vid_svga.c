@@ -587,13 +587,18 @@ void svga_recalctimings(svga_t *svga)
 extern int cyc_total;
 uint32_t svga_mask_addr(uint32_t addr, svga_t *svga)
 {
+	uint32_t limit_shift = 0;
+	if (!(svga->gdcreg[6] & 1))
+	{
+		limit_shift = 1;
+	}
 	if (svga->vrammask == (svga->vram_limit - 1))
 	{
-		return addr % svga->vram_limit;
+		return addr % (svga->vram_limit >> limit_shift);
 	}
 	else
 	{
-		return addr & svga->vrammask;
+		return addr & (svga->vrammask >> limit_shift);
 	}
 }
 
