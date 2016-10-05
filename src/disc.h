@@ -6,6 +6,7 @@ typedef struct
         void (*seek)(int drive, int track);
         void (*readsector)(int drive, int sector, int track, int side, int density, int sector_size);
         void (*writesector)(int drive, int sector, int track, int side, int density, int sector_size);
+        void (*comparesector)(int drive, int sector, int track, int side, int density, int sector_size);
         void (*readaddress)(int drive, int track, int side, int density);
         void (*format)(int drive, int track, int side, int density, uint8_t fill);
         int (*hole)(int drive);
@@ -28,6 +29,7 @@ void disc_poll();
 void disc_seek(int drive, int track);
 void disc_readsector(int drive, int sector, int track, int side, int density, int sector_size);
 void disc_writesector(int drive, int sector, int track, int side, int density, int sector_size);
+void disc_comparesector(int drive, int sector, int track, int side, int density, int sector_size);
 void disc_readaddress(int drive, int track, int side, int density);
 void disc_format(int drive, int track, int side, int density, uint8_t fill);
 int disc_realtrack(int drive, int track);

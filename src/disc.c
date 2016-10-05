@@ -137,6 +137,7 @@ void disc_close(int drive)
         drives[drive].seek = NULL;
         drives[drive].readsector = NULL;
         drives[drive].writesector = NULL;
+        drives[drive].comparesector = NULL;
         drives[drive].readaddress = NULL;
         drives[drive].format = NULL;
         drives[drive].realtrack = NULL;
@@ -305,6 +306,16 @@ void disc_writesector(int drive, int sector, int track, int side, int density, i
 
         if (drives[drive].writesector)
                 drives[drive].writesector(drive, sector, track, side, density, sector_size);
+        else
+                disc_notfound = 1000;
+}
+
+void disc_comparesector(int drive, int sector, int track, int side, int density, int sector_size)
+{
+        drive ^= fdd_swap;
+
+        if (drives[drive].comparesector)
+                drives[drive].comparesector(drive, sector, track, side, density, sector_size);
         else
                 disc_notfound = 1000;
 }

@@ -29,6 +29,10 @@ enum
         STATE_WRITE_SECTOR,
 	STATE_WRITE_SECTOR_CRC,
 	STATE_WRITE_SECTOR_GAP3,
+        STATE_COMPARE_FIND_SECTOR,
+        STATE_COMPARE_SECTOR,
+	STATE_COMPARE_SECTOR_CRC,
+	STATE_COMPARE_SECTOR_GAP3,
         STATE_READ_FIND_ADDRESS,
         STATE_READ_ADDRESS,
         STATE_FORMAT_FIND,
@@ -129,6 +133,7 @@ static struct
 	uint8_t id_read_state;
 	uint8_t sector_count;
 	uint8_t format_state;
+	uint16_t satisfying_bytes;
 } d86f[2];
 
 uint8_t encoded_fm[64] = {	0xAA, 0xAB, 0xAE, 0xAF, 0xBA, 0xBB, 0xBE, 0xBF, 0xEA, 0xEB, 0xEE, 0xEF, 0xFA, 0xFB, 0xFE, 0xFF,
@@ -535,6 +540,7 @@ void d86f_common_handlers(int drive)
 {
         drives[drive].readsector  = d86f_readsector;
         drives[drive].writesector = d86f_writesector;
+        drives[drive].comparesector=d86f_comparesector;
         drives[drive].readaddress = d86f_readaddress;
         drives[drive].hole        = d86f_hole;
         drives[drive].byteperiod  = d86f_byteperiod;
@@ -1084,7 +1090,7 @@ void d86f_readsector(int drive, int sector, int track, int side, int rate, int s
 	d86f[drive].rw_sector_id.dword = 0xFFFFFFFF;
 	d86f[drive].last_sector.dword = 0xFFFFFFFF;
 	d86f[drive].req_sector.id.n = sector_size;
-	d86f[drive].index_count = 0;
+	d86f[drive].index_count = d86f[drive].satisfying_bytes = 0;
 	d86f[drive].wait_state = 1;
 	d86f_new_style_reset(drive);
         d86f[drive].state = STATE_READ_FIND_SECTOR;
@@ -1118,10 +1124,44 @@ void d86f_writesector(int drive, int sector, int track, int side, int rate, int 
 	d86f[drive].rw_sector_id.dword = 0xFFFFFFFF;
 	d86f[drive].last_sector.dword = 0xFFFFFFFF;
         d86f_drive = drive;
-	d86f[drive].index_count = 0;
+	d86f[drive].index_count = d86f[drive].satisfying_bytes = 0;
 	d86f[drive].wait_state = 1;
 	d86f_new_style_reset(drive);
         d86f[drive].state = STATE_WRITE_FIND_SECTOR;
+}
+
+void d86f_comparesector(int drive, int sector, int track, int side, int rate, int sector_size)
+{
+        d86f[drive].req_sector.id.c = track;
+        d86f[drive].req_sector.id.h = side;
+        d86f[drive].req_sector.id.r = sector;
+	d86f[drive].req_sector.id.n = sector_size;
+
+        // pclog("d86f_comparesector: drive=%c: fdc_period=%i img_period=%i rate=%i chrn=%08X\n", drive + 0x41, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive), rate, d86f[drive].req_sector.dword);
+
+	if (writeprot[drive] || swwp)
+	{
+		// pclog("Write protected\n");
+		fdc_writeprotect();
+		return;
+	}
+
+	if (fdd_get_head(drive) && (d86f_get_sides(drive) == 1))
+	{
+		// pclog("Wrong side\n");
+		fdc_notfound();
+		d86f[drive].state = STATE_IDLE;
+		d86f[drive].index_count = 0;
+		return;
+	}
+
+	d86f[drive].rw_sector_id.dword = 0xFFFFFFFF;
+	d86f[drive].last_sector.dword = 0xFFFFFFFF;
+        d86f_drive = drive;
+	d86f[drive].index_count = d86f[drive].satisfying_bytes = 0;
+	d86f[drive].wait_state = 1;
+	d86f_new_style_reset(drive);
+        d86f[drive].state = STATE_COMPARE_FIND_SECTOR;
 }
 
 void d86f_readaddress(int drive, int track, int side, int rate)
@@ -1142,7 +1182,7 @@ void d86f_readaddress(int drive, int track, int side, int rate)
 	d86f[drive].rw_sector_id.dword = 0xFFFFFFFF;
 	d86f[drive].last_sector.dword = 0xFFFFFFFF;
         d86f_drive = drive;
-	d86f[drive].index_count = 0;
+	d86f[drive].index_count = d86f[drive].satisfying_bytes = 0;
 	d86f[drive].wait_state = 1;
 	d86f_new_style_reset(drive);
         d86f[drive].state = STATE_READ_FIND_ADDRESS;
@@ -1583,6 +1623,7 @@ int d86f_find_state_nf(int drive)
 	int temp;
 	temp = (d86f[drive].state == STATE_READ_FIND_SECTOR);
 	temp = temp || d86f_find_state_nf_ignore_id(drive);
+	temp = (d86f[drive].state == STATE_COMPARE_FIND_SECTOR);
 	temp = temp || (d86f[drive].state == STATE_WRITE_FIND_SECTOR);
 	temp = temp || (d86f[drive].state == STATE_READ_FIND_ADDRESS);
 	return temp;
@@ -1611,6 +1652,7 @@ int d86f_read_state_crc(int drive)
 	temp = (d86f[drive].state == STATE_READ_SECTOR_CRC);
 	temp = temp || (d86f[drive].state == STATE_READ_FIRST_SECTOR_CRC);
 	temp = temp || (d86f[drive].state == STATE_READ_NEXT_SECTOR_CRC);
+	temp = temp || (d86f[drive].state == STATE_COMPARE_SECTOR_CRC);
 	return temp;
 }
 
@@ -1620,6 +1662,7 @@ int d86f_read_state_gap3(int drive)
 	temp = (d86f[drive].state == STATE_READ_SECTOR_GAP3);
 	temp = temp || (d86f[drive].state == STATE_READ_FIRST_SECTOR_GAP3);
 	temp = temp || (d86f[drive].state == STATE_READ_NEXT_SECTOR_GAP3);
+	temp = temp || (d86f[drive].state == STATE_COMPARE_SECTOR_GAP3);
 	return temp;
 }
 
@@ -1987,6 +2030,46 @@ void d86f_poll_readwrite(int drive, int side)
 		}
 		d86f_calccrc(drive, data & 0xff);
 	}
+	else if (d86f[drive].state == STATE_COMPARE_SECTOR)
+	{
+		max_len = d86f_data_size(drive);
+
+		if (d86f[drive].datac < d86f_get_data_len(drive))
+		{
+			data = fdc_getdata(d86f[drive].datac == ((128 << ((uint32_t) d86f[drive].last_sector.id.n)) - 1));
+
+       		        if (data == -1)
+			{
+				data = 0;
+			}
+		}
+		else
+		{
+			data = 0;
+		}
+		switch(fdc_get_compare_condition())
+		{
+			case 0:		/* SCAN EQUAL */
+				if ((data == d86f[drive].track_data_byte) || (data == 0xFF))
+				{
+					d86f[drive].satisfying_bytes++;
+				}
+				break;
+			case 1:		/* SCAN LOW OR EQUAL */
+				if ((data <= d86f[drive].track_data_byte) || (data == 0xFF))
+				{
+					d86f[drive].satisfying_bytes++;
+				}
+				break;
+			case 2:		/* SCAN HIGH OR EQUAL */
+				if ((data >= d86f[drive].track_data_byte) || (data == 0xFF))
+				{
+					d86f[drive].satisfying_bytes++;
+				}
+				break;
+		}
+		d86f_calccrc(drive, data & 0xff);
+	}
 	else if (d86f_read_state_crc(drive))
 	{
 		max_len = 2;
@@ -2022,7 +2105,14 @@ void d86f_poll_readwrite(int drive, int side)
 			else
 			{
 				// pclog("Read finished (%i %i %i %i)\n", d86f[drive].req_sector.id.c, d86f[drive].req_sector.id.h, d86f[drive].req_sector.id.r, d86f[drive].req_sector.id.n);
-        	               	fdc_sector_finishread();
+				if (d86f[drive].state == STATE_COMPARE_SECTOR_GAP3)
+				{
+	        	               	fdc_sector_finishcompare((d86f[drive].satisfying_bytes == ((128 << ((uint32_t) d86f[drive].last_sector.id.n)) - 1)) ? 1 : 0);
+				}
+				else
+				{
+	        	               	fdc_sector_finishread();
+				}
 			}
 			return;
 		}
@@ -2266,6 +2356,7 @@ void d86f_poll_find_nf(int drive, int side)
 					case STATE_WRITE_FIND_SECTOR:
 					case STATE_READ_FIND_FIRST_SECTOR:
 					case STATE_READ_FIND_NEXT_SECTOR:
+					case STATE_COMPARE_FIND_SECTOR:
 						/* If the data address mark counter is anything other than 0, then either the ID matches or the FDC is in the ignore sector ID mode (ie. the READ TRACK command).
 						   Also, the bitcell period, etc. are already checked during the wait state which is designed to never end in case of a mismatch.
 						   Therefore, ensuring the data address mark acounter is at a correct length is all we need to do. */
@@ -2574,6 +2665,7 @@ void d86f_poll_find_am_fm(int drive, int side)
 						case STATE_WRITE_FIND_SECTOR:
 						case STATE_READ_FIND_FIRST_SECTOR:
 						case STATE_READ_FIND_NEXT_SECTOR:
+						case STATE_COMPARE_FIND_SECTOR:
 							d86f[drive].state++;
 							d86f_poll_advancebyte(drive, side);
 							d86f[drive].id_was_read = 0;	/* Invalidate ID was read flag to avoid false positives after read. */
@@ -2644,6 +2736,7 @@ void d86f_poll_find_am_mfm(int drive, int side)
 						case STATE_WRITE_FIND_SECTOR:
 						case STATE_READ_FIND_FIRST_SECTOR:
 						case STATE_READ_FIND_NEXT_SECTOR:
+						case STATE_COMPARE_FIND_SECTOR:
 							// pclog("Advancing state (%04X)...\n", d86f[drive].calc_crc);
 							d86f[drive].state++;
 							d86f_poll_advancebyte(drive, side);
