@@ -1598,7 +1598,7 @@ int fdc_data(uint8_t data)
                         return -1;
                 }
 
-		if (fdc.pcjr || !fdc.fifo)
+		if (fdc.pcjr || !fdc.fifo || (fdc.tfifo <= 1))
 		{
 	                fdc.dat = data;
 	                fdc.data_ready = 1;
@@ -1621,7 +1621,7 @@ int fdc_data(uint8_t data)
                 if (dma_channel_write(2, data) & DMA_OVER)
                         fdc.tc = 1;
 
-		if (!fdc.fifo)
+		if (!fdc.fifo || (fdc.tfifo <= 1))
 		{
 	                fdc.data_ready = 1;
 	                fdc.stat = 0xd0;
