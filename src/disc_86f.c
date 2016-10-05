@@ -1622,8 +1622,8 @@ int d86f_find_state_nf(int drive)
 {
 	int temp;
 	temp = (d86f[drive].state == STATE_READ_FIND_SECTOR);
+	temp = temp || (d86f[drive].state == STATE_COMPARE_FIND_SECTOR);
 	temp = temp || d86f_find_state_nf_ignore_id(drive);
-	temp = (d86f[drive].state == STATE_COMPARE_FIND_SECTOR);
 	temp = temp || (d86f[drive].state == STATE_WRITE_FIND_SECTOR);
 	temp = temp || (d86f[drive].state == STATE_READ_FIND_ADDRESS);
 	return temp;
@@ -1681,6 +1681,7 @@ int d86f_read_state(int drive)
 	temp = d86f_read_state_data(drive);
 	temp = temp || d86f_read_state_crc(drive);
 	temp = temp || d86f_read_state_gap3(drive);
+	temp = temp || (d86f[drive].state == STATE_COMPARE_SECTOR);
 	return temp;
 }
 
@@ -2271,7 +2272,7 @@ void d86f_poll_find_nf(int drive, int side)
 			}
 			break;
 		case BYTE_ID_CRC:
-			pclog("Last sector: %08X\n", d86f[drive].last_sector.dword);
+			// pclog("Last sector: %08X\n", d86f[drive].last_sector.dword);
 			d86f[drive].id_pos = d86f_get_pos(drive);
 			d86f[drive].track_crc.bytes[d86f[drive].id_pos ^ 1] = d86f[drive].track_data_byte;
 			break;
