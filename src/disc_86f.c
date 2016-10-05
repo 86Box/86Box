@@ -2363,7 +2363,7 @@ void d86f_poll_find_nf(int drive, int side)
 						   Therefore, ensuring the data address mark acounter is at a correct length is all we need to do. */
 						if (d86f[drive].data_am_counter == am_len)
 						{
-							pclog("Changing state...\n");
+							// pclog("Changing state...\n");
 							d86f[drive].state++;
 						}
 						/* Data address mark counter always reset to 0. */
