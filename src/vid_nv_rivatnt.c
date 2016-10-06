@@ -1169,6 +1169,7 @@ static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
       if (linear_addr)
       {
       	mem_mapping_set_addr(&rivatnt->linear_mapping, linear_addr, 0x1000000);
+        svga->linear_base = linear_addr;
       }
     }
     else
@@ -1210,6 +1211,7 @@ static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
       if (linear_addr)
       {
       	mem_mapping_set_addr(&rivatnt->linear_mapping, linear_addr, 0x1000000);
+        svga->linear_base = linear_addr;
       }
       else
       {
