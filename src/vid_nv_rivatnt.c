@@ -1115,6 +1115,29 @@ static uint8_t rivatnt_pci_read(int func, int addr, void *p)
   return ret;
 }
 
+static void rivatnt_reenable_svga_mappings(svga *svga)
+{
+        switch (svga->gdcreg[6] & 0xc) /*Banked framebuffer*/
+        {
+                case 0x0: /*128k at A0000*/
+                mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
+                svga->banked_mask = 0xffff;
+                break;
+                case 0x4: /*64k at A0000*/
+                mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
+                svga->banked_mask = 0xffff;
+                break;
+                case 0x8: /*32k at B0000*/
+                mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
+                svga->banked_mask = 0x7fff;
+                break;
+                case 0xC: /*32k at B8000*/
+                mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
+                svga->banked_mask = 0x7fff;
+                break;
+        }
+}
+
 static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
 {
   //pclog("RIVA TNT PCI write %02X %02X %04X:%08X\n", addr, val, CS, cpu_state.pc);
@@ -1128,14 +1151,33 @@ static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
     return;
 
     case PCI_REG_COMMAND:
+    if (romset == ROM_KN97)  return;
+    rivatnt->pci_regs[PCI_REG_COMMAND] = val & 0x27;
     if (val & PCI_COMMAND_IO)
     {
-      io_removehandler(0x03c0, 0x0020, rivatnt_in, NULL, NULL, rivatnt_out, NULL, NULL, rivatnt);
       io_sethandler(0x03c0, 0x0020, rivatnt_in, NULL, NULL, rivatnt_out, NULL, NULL, rivatnt);
+      uint32_t mmio_addr = rivatnt->pci_regs[0x13] << 24;
+      uint32_t linear_addr = rivatnt->pci_regs[0x17] << 24;
+      if (!mmio_addr && !linear_addr)
+      {
+	rivatnt_reenable_svga_mappings(svga);
+      }
+      if (mmio_addr)
+      {
+      	mem_mapping_set_addr(&rivatnt->mmio_mapping, mmio_addr, 0x1000000);
+      }
+      if (linear_addr)
+      {
+      	mem_mapping_set_addr(&rivatnt->linear_mapping, linear_addr, 0x1000000);
+      }
     }
     else
+    {
       io_removehandler(0x03c0, 0x0020, rivatnt_in, NULL, NULL, rivatnt_out, NULL, NULL, rivatnt);
-    rivatnt->pci_regs[PCI_REG_COMMAND] = val & 0x37;
+      mem_mapping_disable(&svga->mapping);
+      mem_mapping_disable(&rivatnt->mmio_mapping);
+      mem_mapping_disable(&rivatnt->linear_mapping);
+    }
     return;
 
     case 0x05:
@@ -1149,17 +1191,30 @@ static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
     case 0x13:
     {
       rivatnt->pci_regs[addr] = val;
-      uint32_t mmio_addr = val << 24;
-      mem_mapping_set_addr(&rivatnt->mmio_mapping, mmio_addr, 0x1000000);
+      uint32_t mmio_addr = rivatnt->pci_regs[0x13] << 24;
+      if (mmio_addr)
+      {
+      	mem_mapping_set_addr(&rivatnt->mmio_mapping, mmio_addr, 0x1000000);
+      }
+      else
+      {
+      	mem_mapping_disable(&rivatnt->mmio_mapping);
+      }
       return;
     }
 
     case 0x17:
     {
       rivatnt->pci_regs[addr] = val;
-      uint32_t linear_addr = (val << 24);
-      mem_mapping_set_addr(&rivatnt->linear_mapping, linear_addr, 0x1000000);
-      svga->linear_base = linear_addr;
+      uint32_t linear_addr = rivatnt->pci_regs[0x17] << 24;
+      if (lienar_addr)
+      {
+      	mem_mapping_set_addr(&rivatnt->linear_mapping, linear_addr, 0x1000000);
+      }
+      else
+      {
+      	mem_mapping_disable(&rivatnt->linear_mapping);
+      }
       return;
     }
 
@@ -1170,7 +1225,6 @@ static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
       uint32_t addr = (rivatnt->pci_regs[0x32] << 16) | (rivatnt->pci_regs[0x33] << 24);
       //                        pclog("RIVA TNT bios_rom enabled at %08x\n", addr);
       mem_mapping_set_addr(&rivatnt->bios_rom.mapping, addr, 0x8000);
-      mem_mapping_enable(&rivatnt->bios_rom.mapping);
     }
     else
     {
