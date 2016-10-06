@@ -1115,7 +1115,7 @@ static uint8_t rivatnt_pci_read(int func, int addr, void *p)
   return ret;
 }
 
-static void rivatnt_reenable_svga_mappings(svga *svga)
+static void rivatnt_reenable_svga_mappings(svga_t *svga)
 {
         switch (svga->gdcreg[6] & 0xc) /*Banked framebuffer*/
         {
@@ -1207,7 +1207,7 @@ static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
     {
       rivatnt->pci_regs[addr] = val;
       uint32_t linear_addr = rivatnt->pci_regs[0x17] << 24;
-      if (lienar_addr)
+      if (linear_addr)
       {
       	mem_mapping_set_addr(&rivatnt->linear_mapping, linear_addr, 0x1000000);
       }
