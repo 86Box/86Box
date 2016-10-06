@@ -387,6 +387,7 @@ int loadbios()
                 fread(rom+0x8000,32768,1,f);
                 fclose(f);
 //                memset(romext,0x63,0x8000);
+                mem_load_xtide_bios();
                 return 1;
 
                 case ROM_IBMPC:
