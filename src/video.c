@@ -74,6 +74,7 @@ static VIDEO_CARD video_cards[] =
         {"MDA",                                    &mda_device,                 GFX_MDA},
         {"Miro Crystal S3 Vision964",              &s3_miro_vision964_device,   GFX_MIRO_VISION964},
         {"Number Nine 9FX (S3 Trio64)",            &s3_9fx_device,              GFX_N9_9FX},
+        {"nVidia RIVA TNT (Experimental)",         &rivatnt_device,             GFX_RIVATNT},
         {"OAK OTI-067",                            &oti067_device,              GFX_OTI067},
         {"OAK OTI-077",                            &oti077_device,              GFX_OTI077},
         {"Paradise Bahamas 64 (S3 Vision864)",     &s3_bahamas64_device,        GFX_BAHAMAS64},
