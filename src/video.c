@@ -28,6 +28,7 @@
 #include "vid_hercules.h"
 #include "vid_incolor.h"
 #include "vid_mda.h"
+#include "vid_nv_rivatnt.h"
 #include "vid_olivetti_m24.h"
 #include "vid_oti067.h"
 #include "vid_paradise.h"
