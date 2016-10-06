@@ -21,7 +21,8 @@
 #include "vid_ati28800.h"
 #include "vid_ati_mach64.h"
 #include "vid_cga.h"
-#include "vid_cl5429.h"
+#include "vid_cl_ramdac.h" //vid_cl_gd.c needs this
+#include "vid_cl_gd.h"
 #include "vid_ega.h"
 #include "vid_et4000.h"
 #include "vid_et4000w32.h"
