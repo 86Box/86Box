@@ -673,7 +673,7 @@ static void riva128_pusher_run(int chanid, void *p)
     uint32_t dmaget = riva128->pfifo.channels[chanid].dmaget;
     uint32_t cmd = ((uint32_t*)svga->vram)[dmaget >> 2];
     uint32_t* params = ((uint32_t*)svga->vram)[(dmaget + 4) >> 2];
-    else if((cmd & 0xe0030003) == 0)
+    if((cmd & 0xe0030003) == 0)
     {
       //nv4 increasing method command
       uint32_t method = cmd & 0x1ffc;
