@@ -1096,6 +1096,11 @@ static uint8_t rivatnt_pci_read(int func, int addr, void *p)
     //if(CS == 0x0028) output = 3;
     break;
 
+    case 0x30: return rivatnt->pci_regs[0x30] & 0x01; /*BIOS ROM address*/
+    case 0x31: return 0x00;
+    case 0x32: return rivatnt->pci_regs[0x32];
+    case 0x33: return rivatnt->pci_regs[0x33];
+
     case 0x34: ret = 0x00; break;
 
     case 0x3c: ret = rivatnt->pci_regs[0x3c]; break;
@@ -1282,7 +1287,8 @@ static void *rivatnt_init()
 
   io_sethandler(0x03c0, 0x0020, rivatnt_in, NULL, NULL, rivatnt_out, NULL, NULL, rivatnt);
 
-  rivatnt->pci_regs[4] = 3;
+  // rivatnt->pci_regs[4] = 3;
+  rivatnt->pci_regs[4] = 7;
   rivatnt->pci_regs[5] = 0;
   rivatnt->pci_regs[6] = 0;
   rivatnt->pci_regs[7] = 2;
@@ -1291,6 +1297,10 @@ static void *rivatnt_init()
   rivatnt->pci_regs[0x2d] = 0x11;
   rivatnt->pci_regs[0x2e] = 0x16;
   rivatnt->pci_regs[0x2f] = 0x10;
+        
+  rivatnt->pci_regs[0x30] = 0x00;
+  rivatnt->pci_regs[0x32] = 0x0c;
+  rivatnt->pci_regs[0x33] = 0x00;
 
   //rivatnt->pci_regs[0x3c] = 3;
 
