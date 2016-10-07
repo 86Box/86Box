@@ -1,3 +1,7 @@
+/* Copyright holders: Sarah Walker, Tenshi, SA1988, Fabrice Bellard
+   see COPYING for more details
+*/
+/*Cirrus Logic emulation*/
 #include <stdio.h>
 #include <stdlib.h>
 #include "ibm.h"

@@ -1,4 +1,7 @@
-/*This is the CL-GD 5446 blitter, directly from QEMU*/
+/* Copyright holders:  Tenshi, SA1988, Fabrice Bellard
+   see COPYING for more details
+*/
+/*Cirrus Logic Blitter emulation*/
 #include <stdlib.h>
 #include "ibm.h"
 #include "device.h"
