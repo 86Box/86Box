@@ -1316,7 +1316,7 @@ static void *rivatnt_init()
   rivatnt_in, rivatnt_out,
   NULL, NULL);
 
-  rom_init(&rivatnt->bios_rom, "roms/NV4_diamond_revB.rom", 0xc0000, 0x8800, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+  rom_init(&rivatnt->bios_rom, "roms/NV4_diamond_revB.rom", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
   if (PCI)
     mem_mapping_disable(&rivatnt->bios_rom.mapping);
 
