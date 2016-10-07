@@ -1316,7 +1316,7 @@ static void *rivatnt_init()
   rivatnt_in, rivatnt_out,
   NULL, NULL);
 
-  rom_init(&rivatnt->bios_rom, "roms/NV4_creative.rom", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+  rom_init(&rivatnt->bios_rom, "roms/NV4_diamond_revB.rom", 0xc0000, 0x8800, 0xffff, 0, MEM_MAPPING_EXTERNAL);
   if (PCI)
     mem_mapping_disable(&rivatnt->bios_rom.mapping);
 
@@ -1384,7 +1384,7 @@ static void rivatnt_close(void *p)
 
 static int rivatnt_available()
 {
-  return rom_present("roms/NV4_creative.rom");
+  return rom_present("roms/NV4_diamond_revB.rom");
 }
 
 static void rivatnt_speed_changed(void *p)
