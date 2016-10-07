@@ -48,7 +48,7 @@ void opl_init(void (*timer_callback)(void *param, int timer, int64_t period), vo
 	}
 	else
 	{
-			OPL3_Reset(&opl[nr].opl3chip, 48000);
+			OPL3_Reset(&opl[nr].opl3chip, 49716);
 			opl[nr].timer_callback = timer_callback;
 			opl[nr].timer_param = timer_param;
 			opl[nr].is_opl3 = is_opl3;	
