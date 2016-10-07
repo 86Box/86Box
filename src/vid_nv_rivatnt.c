@@ -1226,7 +1226,7 @@ static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
     {
       uint32_t addr = (rivatnt->pci_regs[0x32] << 16) | (rivatnt->pci_regs[0x33] << 24);
       //                        pclog("RIVA TNT bios_rom enabled at %08x\n", addr);
-      mem_mapping_set_addr(&rivatnt->bios_rom.mapping, addr, 0x8000);
+      mem_mapping_set_addr(&rivatnt->bios_rom.mapping, addr, 0x10000);
     }
     else
     {
