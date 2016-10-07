@@ -463,6 +463,7 @@ enum
 	GFX_STEALTH64,	/*S3 Vision864 (Diamond Stealth 64)*/
 	GFX_PHOENIX_VISION864,	/*S3 Vision864 (Phoenix)*/
         GFX_RIVATNT,
+        GFX_RIVA128,
         GFX_MAX
 };
 
