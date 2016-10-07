@@ -225,9 +225,7 @@ uint8_t atapi_cmd_table[0x100] =
 	[GPCMD_READ_TOC_PMA_ATIP]             = CHECK_READY | ALLOW_UA,		/* Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS */
 	[GPCMD_READ_HEADER]                   = CHECK_READY,
 	[GPCMD_PLAY_AUDIO_10]                 = CHECK_READY,
-#if 0
 	[GPCMD_GET_CONFIGURATION]             = ALLOW_UA,
-#endif
 	[GPCMD_PLAY_AUDIO_MSF]                = CHECK_READY,
 	[GPCMD_GET_EVENT_STATUS_NOTIFICATION] = ALLOW_UA,
 	[GPCMD_PAUSE_RESUME]                  = CHECK_READY,
@@ -237,11 +235,11 @@ uint8_t atapi_cmd_table[0x100] =
 	[GPCMD_MODE_SENSE_10]                 = 0,
 	[GPCMD_PLAY_AUDIO_12]                 = CHECK_READY,
 	[GPCMD_READ_12]                       = CHECK_READY,
-	[GPCMD_SEND_DVD_STRUCTURE]            = CHECK_READY,		/* Read DVD structure (NOT IMPLEMENTED YET) */
+	[GPCMD_READ_DVD_STRUCTURE]            = CHECK_READY,
 	[GPCMD_SET_SPEED]                     = 0,
 	[GPCMD_MECHANISM_STATUS]              = 0,
 	[GPCMD_READ_CD]                       = CHECK_READY,
-	[0xBF] = CHECK_READY	/* Send DVD structure (NOT IMPLEMENTED YET) */
+	[GPCMD_SEND_DVD_STRUCTURE] 			  = CHECK_READY	/* Send DVD structure (NOT IMPLEMENTED YET) */
 };
 
 #define IMPLEMENTED		1
