@@ -276,6 +276,7 @@ void ams_init()
 	mem_add_bios();
         amstrad_init();
         keyboard_amstrad_init();
+		mouse_serial_init();
         nvr_init();
         xtide_init();
 	nmi_init();
@@ -300,6 +301,7 @@ void olim24_init()
         common_init();
 	mem_add_bios();
         keyboard_olim24_init();
+		mouse_serial_init();
         nvr_init();
         olivetti_m24_init();
         xtide_init();
