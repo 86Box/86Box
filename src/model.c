@@ -37,6 +37,7 @@
 #include "keyboard_xt.h"
 #include "lpt.h"
 #include "memregs.h"
+#include "mouse_amstrad.h"
 #include "mouse_ps2.h"
 #include "mouse_serial.h"
 #include "neat.h"
@@ -276,7 +277,7 @@ void ams_init()
 	mem_add_bios();
         amstrad_init();
         keyboard_amstrad_init();
-		mouse_serial_init();
+		mouse_amstrad_init();
         nvr_init();
         xtide_init();
 	nmi_init();
