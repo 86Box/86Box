@@ -2260,7 +2260,7 @@ void d86f_poll_find_nf(int drive, int side)
 			break;
 
 		case BYTE_IDAM:
-			d86f[drive].id_am_counter++;
+			if (d86f_can_read_address(drive))  d86f[drive].id_am_counter++;
 			d86f_calccrc(drive, d86f[drive].track_data_byte);
 			break;
 
