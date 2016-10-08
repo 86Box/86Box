@@ -2168,6 +2168,7 @@ int d86f_end_wait_state(int drive)
 	return temp;
 }
 
+#if 0
 void d86f_poll_find_nf_wait(int drive, int side)
 {
 	if (d86f[drive].track_index)
@@ -2190,6 +2191,7 @@ void d86f_poll_find_nf_wait(int drive, int side)
 		}
 	}
 }
+#endif
 
 void d86f_poll_find_nf(int drive, int side)
 {
@@ -3050,6 +3052,7 @@ void d86f_poll()
 
 	if (d86f_find_state_nf(drive) && d86f_is_old_style(drive))
 	{
+#if 0
 		if (d86f[drive].wait_state)
 		{
 			d86f_poll_find_nf_wait(drive, side);
@@ -3059,6 +3062,8 @@ void d86f_poll()
 			d86f_poll_find_nf(drive, side);
 		}
 		return;
+#endif
+		d86f_poll_find_nf(drive, side);
 	}
 
 	if (d86f_find_state_nf(drive) && !d86f_is_old_style(drive))
