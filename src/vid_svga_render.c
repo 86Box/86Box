@@ -740,7 +740,7 @@ void svga_render_24bpp_highres(svga_t *svga)
 
                 for (x = 0; x <= svga->hdisp; x += 4)
                 {
-                        uint32_t dat = *(uint32_t *)(&svga->vram[svga->ma, svga]);
+                        uint32_t dat = *(uint32_t *)(&svga->vram[svga->ma]);
                         p[x] = dat & 0xffffff;
                         
                         dat = *(uint32_t *)(&svga->vram[svga_mask_addr(svga->ma + 3, svga)]);
