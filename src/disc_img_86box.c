@@ -128,6 +128,8 @@ int gap3_sizes[5][8][256] = {	[0][1][16] = 0x54,
 				[2][3][5]  = 0x74,
 				[3][2][36] = 0x53,
 				[3][2][39] = 0x20,
+				[3][2][40] = 0x27,
+				[3][2][41] = 0x23,
 				[3][2][46] = 0x01,
 				[4][1][32] = 0x36,
 				[4][2][15] = 0x54,
@@ -274,15 +276,19 @@ void img_load(int drive, char *fn)
 	        else if (size <= (360*1024))   { img[drive].sectors = 9;  img[drive].tracks = 40; } /*Double density*/
 	        else if (size <= (400*1024))   { img[drive].sectors = 10; img[drive].tracks = 80; img[drive].sides = 1; } /*DEC RX50*/
 	        else if (size <= (640*1024))   { img[drive].sectors = 8;  img[drive].tracks = 80; } /*Double density 640k*/
-	        else if (size < (1024*1024))   { img[drive].sectors = 9;  img[drive].tracks = 80; } /*Double density*/
+	        else if (size <= (720*1024))   { img[drive].sectors = 9;  img[drive].tracks = 80; } /*Double density*/
+	        else if (size <= (800*1024))   { img[drive].sectors = 10; img[drive].tracks = 80; } /*Double density*/
 	        else if (size <= 1228800)      { img[drive].sectors = 15; img[drive].tracks = 80; } /*High density 1.2MB*/
 	        else if (size <= 1261568)      { img[drive].sectors =  8; img[drive].tracks = 77; img[drive].sector_size = 3; } /*High density 1.25MB Japanese format*/
 	        else if (size <= (0x1A4000-1)) { img[drive].sectors = 18; img[drive].tracks = 80; } /*High density (not supported by Tandy 1000)*/
 	        else if (size <= 1556480)      { img[drive].sectors = 19; img[drive].tracks = 80; } /*High density (not supported by Tandy 1000)*/
 	        else if (size <= 1638400)      { img[drive].sectors = 10; img[drive].tracks = 80; img[drive].sector_size = 3; } /*High density (not supported by Tandy 1000)*/
+	        else if (size <= 1720320)      { img[drive].sectors = 21; img[drive].tracks = 80; } /*DMF format - used by Windows 95 - changed by OBattler to 2000000, ie. the real unformatted capacity @ 500 kbps and 300 rpm */
+	        else if (size <= 1802240)      { img[drive].sectors = 11; img[drive].tracks = 80; img[drive].sector_size = 3; } /*High density (not supported by Tandy 1000)*/
 	        else if (size == 1884160)      { img[drive].sectors = 23; img[drive].tracks = 80; } /*XDF format - used by OS/2 Warp*/
-	        else if (size <= 2000000)      { img[drive].sectors = 21; img[drive].tracks = 80; } /*DMF format - used by Windows 95 - changed by OBattler to 2000000, ie. the real unformatted capacity @ 500 kbps and 300 rpm */
 	        else if (size <= 2949120)      { img[drive].sectors = 36; img[drive].tracks = 80; } /*E density*/
+		else if (size <= 3194880)      { img[drive].sectors = 39; img[drive].tracks = 80; } /*E density*/
+		else if (size <= 3276800)      { img[drive].sectors = 40; img[drive].tracks = 80; } /*E density*/
 		else if (size <= 3358720)      { img[drive].sectors = 41; img[drive].tracks = 80; } /*E density, maximum possible size*/
 		else
 		{
