@@ -1012,15 +1012,8 @@ static void rivatnt_out(uint16_t addr, uint8_t val, void *p)
   switch(svga->crtcreg)
   {
   case 0x1a:
-#if 0
-  if((svga->crtc[0x28] & 3) != 0)
-  {
-    if(svga->crtc[0x1a] & 2) svga_set_ramdac_type(svga, RAMDAC_6BIT);
-    else svga_set_ramdac_type(svga, RAMDAC_8BIT);
-  }
-  else svga_set_ramdac_type(svga, RAMDAC_6BIT);
-#endif
-  svga_set_ramdac_type(svga, (val & 2) ? RAMDAC_6BIT : RAMDAC_8BIT);
+  //if((svga->crtc[0x28] & 3) != 0) svga_set_ramdac_type(svga, (val & 2) ? RAMDAC_6BIT : RAMDAC_8BIT);
+  //else svga_set_ramdac_type(svga, RAMDAC_6BIT);
   svga_recalctimings(svga);
   break;
   case 0x1e:
@@ -1288,16 +1281,8 @@ static void rivatnt_recalctimings(svga_t *svga)
     break;
   }
 
-#if 0
-  if((svga->crtc[0x28] & 3) != 0)
-  {
-    if(svga->crtc[0x1a] & 2) svga_set_ramdac_type(svga, RAMDAC_6BIT);
-    else svga_set_ramdac_type(svga, RAMDAC_8BIT);
-  }
-  else svga_set_ramdac_type(svga, RAMDAC_6BIT);
-#endif
-
-  svga_set_ramdac_type(svga, (svga->crtc[0x1a] & 2) ? RAMDAC_6BIT : RAMDAC_8BIT);
+  //if((svga->crtc[0x28] & 3) != 0) svga_set_ramdac_type(svga, (svga->crtc[0x1a] & 2) ? RAMDAC_6BIT : RAMDAC_8BIT);
+  //else svga_set_ramdac_type(svga, RAMDAC_6BIT);
   
   if (((svga->miscout >> 2) & 2) == 2)
   {
