@@ -1012,6 +1012,15 @@ static void rivatnt_out(uint16_t addr, uint8_t val, void *p)
   switch(svga->crtcreg)
   {
   case 0x1a:
+#if 0
+  if((svga->crtc[0x28] & 3) != 0)
+  {
+    if(svga->crtc[0x1a] & 2) svga_set_ramdac_type(svga, RAMDAC_6BIT);
+    else svga_set_ramdac_type(svga, RAMDAC_8BIT);
+  }
+  else svga_set_ramdac_type(svga, RAMDAC_6BIT);
+#endif
+  svga_set_ramdac_type(svga, (val & 2) ? RAMDAC_6BIT : RAMDAC_8BIT);
   svga_recalctimings(svga);
   break;
   case 0x1e:
@@ -1226,7 +1235,7 @@ static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
     {
       uint32_t addr = (rivatnt->pci_regs[0x32] << 16) | (rivatnt->pci_regs[0x33] << 24);
       //                        pclog("RIVA TNT bios_rom enabled at %08x\n", addr);
-      mem_mapping_set_addr(&rivatnt->bios_rom.mapping, addr, 0x8000);
+      mem_mapping_set_addr(&rivatnt->bios_rom.mapping, addr, 0x10000);
     }
     else
     {
@@ -1279,12 +1288,16 @@ static void rivatnt_recalctimings(svga_t *svga)
     break;
   }
 
+#if 0
   if((svga->crtc[0x28] & 3) != 0)
   {
     if(svga->crtc[0x1a] & 2) svga_set_ramdac_type(svga, RAMDAC_6BIT);
     else svga_set_ramdac_type(svga, RAMDAC_8BIT);
   }
   else svga_set_ramdac_type(svga, RAMDAC_6BIT);
+#endif
+
+  svga_set_ramdac_type(svga, (svga->crtc[0x1a] & 2) ? RAMDAC_6BIT : RAMDAC_8BIT);
   
   if (((svga->miscout >> 2) & 2) == 2)
   {
@@ -1316,7 +1329,7 @@ static void *rivatnt_init()
   rivatnt_in, rivatnt_out,
   NULL, NULL);
 
-  rom_init(&rivatnt->bios_rom, "roms/NV4_creative.rom", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+  rom_init(&rivatnt->bios_rom, "roms/NV4_diamond_revB.rom", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
   if (PCI)
     mem_mapping_disable(&rivatnt->bios_rom.mapping);
 
@@ -1384,7 +1397,7 @@ static void rivatnt_close(void *p)
 
 static int rivatnt_available()
 {
-  return rom_present("roms/NV4_creative.rom");
+  return rom_present("roms/NV4_diamond_revB.rom");
 }
 
 static void rivatnt_speed_changed(void *p)
