@@ -235,11 +235,11 @@ uint8_t atapi_cmd_table[0x100] =
 	[GPCMD_MODE_SENSE_10]                 = 0,
 	[GPCMD_PLAY_AUDIO_12]                 = CHECK_READY,
 	[GPCMD_READ_12]                       = CHECK_READY,
-	[GPCMD_READ_DVD_STRUCTURE]            = CHECK_READY,		/* Read DVD structure (NOT IMPLEMENTED YET) */
+	[GPCMD_READ_DVD_STRUCTURE]            = CHECK_READY,
 	[GPCMD_SET_SPEED]                     = 0,
 	[GPCMD_MECHANISM_STATUS]              = 0,
 	[GPCMD_READ_CD]                       = CHECK_READY,
-	[GPCMD_SEND_DVD_STRUCTURE]			  = CHECK_READY	/* Send DVD structure (NOT IMPLEMENTED YET) */
+	[GPCMD_SEND_DVD_STRUCTURE] 			  = CHECK_READY	/* Send DVD structure (NOT IMPLEMENTED YET) */
 };
 
 #define IMPLEMENTED		1

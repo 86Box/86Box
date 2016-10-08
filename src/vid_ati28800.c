@@ -315,11 +315,11 @@ void ati28800_recalctimings(svga_t *svga)
 #ifndef RELEASE_BUILD
         pclog("ati28800_recalctimings\n");
 #endif
+		svga->interlace = (!svga->scrblank && (ati28800->regs[0x30] & 0x20));
+
         if (!svga->scrblank && (ati28800->regs[0x30] & 0x20)) /*Extended 256 colour modes*/
         {
-#ifndef RELEASE_BUILD
-                pclog("8bpp_highres\n");
-#endif
+				svga->bpp = 8;
                 svga->render = svga_render_8bpp_highres;
                 svga->rowoffset <<= 1;
                 svga->ma <<= 1;
