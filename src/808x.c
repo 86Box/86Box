@@ -644,7 +644,7 @@ void resetx86()
         eflags=0;
         cgate32=0;
         loadcs(0xFFFF);
-        rammask=0xFFFFFFFF;
+        rammask = AT ? 0xFFFFFFFF : 0xfffff;
         idt.base = 0;
         flags=2;
         makeznptable();

@@ -1760,8 +1760,10 @@ void svga_add_status_info(char *s, int max_len, void *p)
         char temps[128];
         
         if (svga->chain4) strcpy(temps, "SVGA chained (possibly mode 13h)\n");
-        else if ((svga->chain2_read) || (svga->chain2_write)) sprintf(temps, "SVGA chained odd/even (r: %s, w: %s, c: %s, p: %s)\n", svga->chain2_read ? "ON" : "OFF", svga->chain2_write ? "ON" : "OFF", svga->oddeven_chain ? "ON" : "OFF", svga->oddeven_page ? "lo" : "hi");
         else              strcpy(temps, "SVGA unchained (possibly mode-X)\n");
+        strncat(s, temps, max_len);
+
+        sprintf(temps, "SVGA chained odd/even (r: %s, w: %s, c: %s, p: %s)\n", svga->chain2_read ? "ON" : "OFF", svga->chain2_write ? "ON" : "OFF", svga->oddeven_chain ? "ON" : "OFF", svga->oddeven_page ? "lo" : "hi");
         strncat(s, temps, max_len);
 
         if (!svga->video_bpp) strcpy(temps, "SVGA in text mode\n");

@@ -425,67 +425,67 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                 hd_changed = 0;
                 
                 h = GetDlgItem(hdlg, IDC_EDIT_C_SPT);
-                sprintf(s, "%i", hdc[0].spt);
+                sprintf(s, "%" PRIu64, hdc[0].spt);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                 h = GetDlgItem(hdlg, IDC_EDIT_C_HPC);
-                sprintf(s, "%i", hdc[0].hpc);
+                sprintf(s, "%" PRIu64, hdc[0].hpc);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                 h = GetDlgItem(hdlg, IDC_EDIT_C_CYL);
-                sprintf(s, "%i", hdc[0].tracks);
+                sprintf(s, "%" PRIu64, hdc[0].tracks);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                 h = GetDlgItem(hdlg, IDC_EDIT_C_FN);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)ide_fn[0]);
 
                 h = GetDlgItem(hdlg, IDC_EDIT_D_SPT);
-                sprintf(s, "%i", hdc[1].spt);
+                sprintf(s, "%" PRIu64, hdc[1].spt);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                 h = GetDlgItem(hdlg, IDC_EDIT_D_HPC);
-                sprintf(s, "%i", hdc[1].hpc);
+                sprintf(s, "%" PRIu64, hdc[1].hpc);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                 h = GetDlgItem(hdlg, IDC_EDIT_D_CYL);
-                sprintf(s, "%i", hdc[1].tracks);
+                sprintf(s, "%" PRIu64, hdc[1].tracks);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                 h=  GetDlgItem(hdlg, IDC_EDIT_D_FN);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)ide_fn[1]);
                 
                 h = GetDlgItem(hdlg, IDC_EDIT_E_SPT);
-                sprintf(s, "%i", hdc[2].spt);
+                sprintf(s, "%" PRIu64, hdc[2].spt);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                 h = GetDlgItem(hdlg, IDC_EDIT_E_HPC);
-                sprintf(s, "%i", hdc[2].hpc);
+                sprintf(s, "%" PRIu64, hdc[2].hpc);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                 h = GetDlgItem(hdlg, IDC_EDIT_E_CYL);
-                sprintf(s, "%i", hdc[2].tracks);
+                sprintf(s, "%" PRIu64, hdc[2].tracks);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                 h=  GetDlgItem(hdlg, IDC_EDIT_E_FN);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)ide_fn[2]);
                 
                 h = GetDlgItem(hdlg, IDC_EDIT_F_SPT);
-                sprintf(s, "%i", hdc[3].spt);
+                sprintf(s, "%" PRIu64, hdc[3].spt);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                 h = GetDlgItem(hdlg, IDC_EDIT_F_HPC);
-                sprintf(s, "%i", hdc[3].hpc);
+                sprintf(s, "%" PRIu64, hdc[3].hpc);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                 h = GetDlgItem(hdlg, IDC_EDIT_F_CYL);
-                sprintf(s, "%i", hdc[3].tracks);
+                sprintf(s, "%" PRIu64, hdc[3].tracks);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                 h=  GetDlgItem(hdlg, IDC_EDIT_F_FN);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)ide_fn[3]);
                 
                 h = GetDlgItem(hdlg, IDC_TEXT_C_SIZE);
-                sprintf(s, "Size : %i MB", (hd[0].tracks*hd[0].hpc*hd[0].spt) >> 11);
+                sprintf(s, "Size: %" PRIu64 " MB", (hd[0].tracks*hd[0].hpc*hd[0].spt) >> 11);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
 
                 h = GetDlgItem(hdlg, IDC_TEXT_D_SIZE);
-                sprintf(s, "Size : %i MB", (hd[1].tracks*hd[1].hpc*hd[1].spt) >> 11);
+                sprintf(s, "Size: %" PRIu64 " MB", (hd[1].tracks*hd[1].hpc*hd[1].spt) >> 11);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
 
                 h = GetDlgItem(hdlg, IDC_TEXT_E_SIZE);
-                sprintf(s, "Size : %i MB", (hd[2].tracks*hd[2].hpc*hd[2].spt) >> 11);
+                sprintf(s, "Size: %" PRIu64 " MB", (hd[2].tracks*hd[2].hpc*hd[2].spt) >> 11);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
 
                 h = GetDlgItem(hdlg, IDC_TEXT_F_SIZE);
-                sprintf(s, "Size : %i MB", (hd[3].tracks*hd[3].hpc*hd[3].spt) >> 11);
+                sprintf(s, "Size: %" PRIu64 " MB", (hd[3].tracks*hd[3].hpc*hd[3].spt) >> 11);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
 
                 new_cdrom_channel = cdrom_channel;
@@ -503,49 +503,49 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                 {
                                         h = GetDlgItem(hdlg, IDC_EDIT_C_SPT);
                                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                                        sscanf(s, "%i", &hd[0].spt);
+                                        sscanf(s, "%" PRIu64, &hd[0].spt);
                                         h = GetDlgItem(hdlg, IDC_EDIT_C_HPC);
                                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                                        sscanf(s, "%i", &hd[0].hpc);
+                                        sscanf(s, "%" PRIu64, &hd[0].hpc);
                                         h = GetDlgItem(hdlg, IDC_EDIT_C_CYL);
                                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                                        sscanf(s, "%i", &hd[0].tracks);
+                                        sscanf(s, "%" PRIu64, &hd[0].tracks);
                                         h = GetDlgItem(hdlg, IDC_EDIT_C_FN);
                                         SendMessage(h, WM_GETTEXT, 511, (LPARAM)ide_fn[0]);
 
                                         h = GetDlgItem(hdlg, IDC_EDIT_D_SPT);
                                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                                        sscanf(s, "%i", &hd[1].spt);
+                                        sscanf(s, "%" PRIu64, &hd[1].spt);
                                         h = GetDlgItem(hdlg, IDC_EDIT_D_HPC);
                                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                                        sscanf(s, "%i", &hd[1].hpc);
+                                        sscanf(s, "%" PRIu64, &hd[1].hpc);
                                         h = GetDlgItem(hdlg, IDC_EDIT_D_CYL);
                                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                                        sscanf(s, "%i", &hd[1].tracks);
+                                        sscanf(s, "%" PRIu64, &hd[1].tracks);
                                         h = GetDlgItem(hdlg, IDC_EDIT_D_FN);
                                         SendMessage(h, WM_GETTEXT, 511, (LPARAM)ide_fn[1]);
                                         
                                         h = GetDlgItem(hdlg, IDC_EDIT_E_SPT);
                                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                                        sscanf(s, "%i", &hd[2].spt);
+                                        sscanf(s, "%" PRIu64, &hd[2].spt);
                                         h = GetDlgItem(hdlg, IDC_EDIT_E_HPC);
                                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                                        sscanf(s, "%i", &hd[2].hpc);
+                                        sscanf(s, "%" PRIu64, &hd[2].hpc);
                                         h = GetDlgItem(hdlg, IDC_EDIT_E_CYL);
                                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                                        sscanf(s, "%i", &hd[2].tracks);
+                                        sscanf(s, "%" PRIu64, &hd[2].tracks);
                                         h = GetDlgItem(hdlg, IDC_EDIT_E_FN);
                                         SendMessage(h, WM_GETTEXT, 511, (LPARAM)ide_fn[2]);
                                         
                                         h = GetDlgItem(hdlg, IDC_EDIT_F_SPT);
                                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                                        sscanf(s, "%i", &hd[3].spt);
+                                        sscanf(s, "%" PRIu64, &hd[3].spt);
                                         h = GetDlgItem(hdlg, IDC_EDIT_F_HPC);
                                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                                        sscanf(s, "%i", &hd[3].hpc);
+                                        sscanf(s, "%" PRIu64, &hd[3].hpc);
                                         h = GetDlgItem(hdlg, IDC_EDIT_F_CYL);
                                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                                        sscanf(s, "%i", &hd[3].tracks);
+                                        sscanf(s, "%" PRIu64, &hd[3].tracks);
                                         h = GetDlgItem(hdlg, IDC_EDIT_F_FN);
                                         SendMessage(h, WM_GETTEXT, 511, (LPARAM)ide_fn[3]);
                                         
@@ -615,19 +615,19 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         if (DialogBox(hinstance, TEXT("HdNewDlg"), hdlg, hdnew_dlgproc) == 1)
                         {
                                 h = GetDlgItem(hdlg, IDC_EDIT_C_SPT);
-                                sprintf(s, "%i", hd_new_spt);
+                                sprintf(s, "%" PRIu64, hd_new_spt);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                 h = GetDlgItem(hdlg, IDC_EDIT_C_HPC);
-                                sprintf(s, "%i", hd_new_hpc);
+                                sprintf(s, "%" PRIu64, hd_new_hpc);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                 h = GetDlgItem(hdlg, IDC_EDIT_C_CYL);
-                                sprintf(s, "%i", hd_new_cyl);
+                                sprintf(s, "%" PRIu64, hd_new_cyl);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                 h = GetDlgItem(hdlg, IDC_EDIT_C_FN);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)hd_new_name);
 
                                 h = GetDlgItem(hdlg, IDC_TEXT_C_SIZE);
-                                sprintf(s, "Size : %imb", (((((uint64_t)hd_new_cyl*(uint64_t)hd_new_hpc)*(uint64_t)hd_new_spt)*512)/1024)/1024);
+                                sprintf(s, "Size: %" PRIu64 " MB", (hd_new_cyl*hd_new_hpc*hd_new_spt) >> 11);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
 
                                 hd_changed = 1;
@@ -674,19 +674,19 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                 if (ret == 1)
                                 {
                                         h = GetDlgItem(hdlg, IDC_EDIT_C_SPT);
-                                        sprintf(s, "%i", hd_new_spt);
+                                        sprintf(s, "%" PRIu64, hd_new_spt);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                         h = GetDlgItem(hdlg, IDC_EDIT_C_HPC);
-                                        sprintf(s, "%i", hd_new_hpc);
+                                        sprintf(s, "%" PRIu64, hd_new_hpc);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                         h = GetDlgItem(hdlg, IDC_EDIT_C_CYL);
-                                        sprintf(s, "%i", hd_new_cyl);
+                                        sprintf(s, "%" PRIu64, hd_new_cyl);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                         h = GetDlgItem(hdlg, IDC_EDIT_C_FN);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)openfilestring);
 
                                         h = GetDlgItem(hdlg, IDC_TEXT_C_SIZE);
-                                        sprintf(s, "Size : %imb", (((((uint64_t)hd_new_cyl*(uint64_t)hd_new_hpc)*(uint64_t)hd_new_spt)*512)/1024)/1024);
+                                        sprintf(s, "Size: %" PRIu64 " MB", (hd_new_cyl*hd_new_hpc*hd_new_spt) >> 11);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
         
                                         hd_changed = 1;
@@ -698,19 +698,19 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         if (DialogBox(hinstance, TEXT("HdNewDlg"), hdlg, hdnew_dlgproc) == 1)
                         {
                                 h = GetDlgItem(hdlg, IDC_EDIT_D_SPT);
-                                sprintf(s, "%i", hd_new_spt);
+                                sprintf(s, "%" PRIu64, hd_new_spt);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                 h = GetDlgItem(hdlg, IDC_EDIT_D_HPC);
-                                sprintf(s, "%i", hd_new_hpc);
+                                sprintf(s, "%" PRIu64, hd_new_hpc);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                 h = GetDlgItem(hdlg, IDC_EDIT_D_CYL);
-                                sprintf(s, "%i", hd_new_cyl);
+                                sprintf(s, "%" PRIu64, hd_new_cyl);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                 h = GetDlgItem(hdlg, IDC_EDIT_D_FN);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)hd_new_name);
 
                                 h=  GetDlgItem(hdlg, IDC_TEXT_D_SIZE);
-                                sprintf(s, "Size : %imb", (((((uint64_t)hd_new_cyl*(uint64_t)hd_new_hpc)*(uint64_t)hd_new_spt)*512)/1024)/1024);
+                                sprintf(s, "Size: %" PRIu64 " MB", (hd_new_cyl*hd_new_hpc*hd_new_spt) >> 11);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
 
                                 hd_changed = 1;
@@ -757,19 +757,19 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                 if (ret == 1)
                                 {
                                         h = GetDlgItem(hdlg, IDC_EDIT_D_SPT);
-                                        sprintf(s, "%i", hd_new_spt);
+                                        sprintf(s, "%" PRIu64, hd_new_spt);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                         h = GetDlgItem(hdlg, IDC_EDIT_D_HPC);
-                                        sprintf(s, "%i", hd_new_hpc);
+                                        sprintf(s, "%" PRIu64, hd_new_hpc);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                         h = GetDlgItem(hdlg, IDC_EDIT_D_CYL);
-                                        sprintf(s, "%i", hd_new_cyl);
+                                        sprintf(s, "%" PRIu64, hd_new_cyl);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                         h = GetDlgItem(hdlg, IDC_EDIT_D_FN);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)openfilestring);
 
                                         h = GetDlgItem(hdlg, IDC_TEXT_D_SIZE);
-                                        sprintf(s, "Size : %imb", (((((uint64_t)hd_new_cyl*(uint64_t)hd_new_hpc)*(uint64_t)hd_new_spt)*512)/1024)/1024);
+                                        sprintf(s, "Size: %" PRIu64 " MB", (hd_new_cyl*hd_new_hpc*hd_new_spt) >> 11);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
         
                                         hd_changed = 1;
@@ -781,19 +781,19 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         if (DialogBox(hinstance, TEXT("HdNewDlg"), hdlg, hdnew_dlgproc) == 1)
                         {
                                 h = GetDlgItem(hdlg, IDC_EDIT_E_SPT);
-                                sprintf(s, "%i", hd_new_spt);
+                                sprintf(s, "%" PRIu64, hd_new_spt);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                 h = GetDlgItem(hdlg, IDC_EDIT_E_HPC);
-                                sprintf(s, "%i", hd_new_hpc);
+                                sprintf(s, "%" PRIu64, hd_new_hpc);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                 h = GetDlgItem(hdlg, IDC_EDIT_E_CYL);
-                                sprintf(s, "%i", hd_new_cyl);
+                                sprintf(s, "%" PRIu64, hd_new_cyl);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                 h = GetDlgItem(hdlg, IDC_EDIT_E_FN);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)hd_new_name);
 
                                 h=  GetDlgItem(hdlg, IDC_TEXT_E_SIZE);
-                                sprintf(s, "Size : %imb", (((((uint64_t)hd_new_cyl*(uint64_t)hd_new_hpc)*(uint64_t)hd_new_spt)*512)/1024)/1024);
+                                sprintf(s, "Size: %" PRIu64 " MB", (hd_new_cyl*hd_new_hpc*hd_new_spt) >> 11);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
 
                                 hd_changed = 1;
@@ -840,19 +840,19 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                 if (ret == 1)
                                 {
                                         h = GetDlgItem(hdlg, IDC_EDIT_E_SPT);
-                                        sprintf(s, "%i", hd_new_spt);
+                                        sprintf(s, "%" PRIu64, hd_new_spt);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                         h = GetDlgItem(hdlg, IDC_EDIT_E_HPC);
-                                        sprintf(s, "%i", hd_new_hpc);
+                                        sprintf(s, "%" PRIu64, hd_new_hpc);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                         h = GetDlgItem(hdlg, IDC_EDIT_E_CYL);
-                                        sprintf(s, "%i", hd_new_cyl);
+                                        sprintf(s, "%" PRIu64, hd_new_cyl);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                         h = GetDlgItem(hdlg, IDC_EDIT_E_FN);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)openfilestring);
 
                                         h = GetDlgItem(hdlg, IDC_TEXT_E_SIZE);
-                                        sprintf(s, "Size : %imb", (((((uint64_t)hd_new_cyl*(uint64_t)hd_new_hpc)*(uint64_t)hd_new_spt)*512)/1024)/1024);
+                                        sprintf(s, "Size: %" PRIu64 " MB", (hd_new_cyl*hd_new_hpc*hd_new_spt) >> 11);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
         
                                         hd_changed = 1;
@@ -864,19 +864,19 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         if (DialogBox(hinstance, TEXT("HdNewDlg"), hdlg, hdnew_dlgproc) == 1)
                         {
                                 h = GetDlgItem(hdlg, IDC_EDIT_F_SPT);
-                                sprintf(s, "%i", hd_new_spt);
+                                sprintf(s, "%" PRIu64, hd_new_spt);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                 h = GetDlgItem(hdlg, IDC_EDIT_F_HPC);
-                                sprintf(s, "%i", hd_new_hpc);
+                                sprintf(s, "%" PRIu64, hd_new_hpc);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                 h = GetDlgItem(hdlg, IDC_EDIT_F_CYL);
-                                sprintf(s, "%i", hd_new_cyl);
+                                sprintf(s, "%" PRIu64, hd_new_cyl);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                 h = GetDlgItem(hdlg, IDC_EDIT_F_FN);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)hd_new_name);
 
                                 h=  GetDlgItem(hdlg, IDC_TEXT_F_SIZE);
-                                sprintf(s, "Size : %imb", (((((uint64_t)hd_new_cyl*(uint64_t)hd_new_hpc)*(uint64_t)hd_new_spt)*512)/1024)/1024);
+                                sprintf(s, "Size: %" PRIu64 " MB", (hd_new_cyl*hd_new_hpc*hd_new_spt) >> 11);
                                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
 
                                 hd_changed = 1;
@@ -923,19 +923,19 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                 if (ret == 1)
                                 {
                                         h = GetDlgItem(hdlg, IDC_EDIT_F_SPT);
-                                        sprintf(s, "%i", hd_new_spt);
+                                        sprintf(s, "%" PRIu64, hd_new_spt);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                         h = GetDlgItem(hdlg, IDC_EDIT_F_HPC);
-                                        sprintf(s, "%i", hd_new_hpc);
+                                        sprintf(s, "%" PRIu64, hd_new_hpc);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                         h = GetDlgItem(hdlg, IDC_EDIT_F_CYL);
-                                        sprintf(s, "%i", hd_new_cyl);
+                                        sprintf(s, "%" PRIu64, hd_new_cyl);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                                         h = GetDlgItem(hdlg, IDC_EDIT_F_FN);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)openfilestring);
 
                                         h = GetDlgItem(hdlg, IDC_TEXT_F_SIZE);
-                                        sprintf(s, "Size : %imb", (((((uint64_t)hd_new_cyl*(uint64_t)hd_new_hpc)*(uint64_t)hd_new_spt)*512)/1024)/1024);
+                                        sprintf(s, "Size: %" PRIu64 " MB", (hd_new_cyl*hd_new_hpc*hd_new_spt) >> 11);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
         
                                         hd_changed = 1;
@@ -946,64 +946,64 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         case IDC_EDIT_C_SPT: case IDC_EDIT_C_HPC: case IDC_EDIT_C_CYL:
                         h = GetDlgItem(hdlg, IDC_EDIT_C_SPT);
                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                        sscanf(s, "%i", &hd[0].spt);
+                        sscanf(s, "%" PRIu64, &hd[0].spt);
                         h = GetDlgItem(hdlg, IDC_EDIT_C_HPC);
                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                        sscanf(s, "%i", &hd[0].hpc);
+                        sscanf(s, "%" PRIu64, &hd[0].hpc);
                         h = GetDlgItem(hdlg, IDC_EDIT_C_CYL);
                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                        sscanf(s, "%i", &hd[0].tracks);
+                        sscanf(s, "%" PRIu64, &hd[0].tracks);
 
                         h = GetDlgItem(hdlg, IDC_TEXT_C_SIZE);
-                        sprintf(s, "Size : %imb", ((((hd[0].tracks*hd[0].hpc)*hd[0].spt)*512)/1024)/1024);
+                        sprintf(s, "Size: %" PRIu64 " MB", (hd[0].tracks*hd[0].hpc*hd[0].spt) >> 11);
                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                         return TRUE;
 
                         case IDC_EDIT_D_SPT: case IDC_EDIT_D_HPC: case IDC_EDIT_D_CYL:
                         h = GetDlgItem(hdlg, IDC_EDIT_D_SPT);
                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                        sscanf(s, "%i", &hd[1].spt);
+                        sscanf(s, "%" PRIu64, &hd[1].spt);
                         h = GetDlgItem(hdlg, IDC_EDIT_D_HPC);
                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                        sscanf(s, "%i", &hd[1].hpc);
+                        sscanf(s, "%" PRIu64, &hd[1].hpc);
                         h = GetDlgItem(hdlg, IDC_EDIT_D_CYL);
                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                        sscanf(s, "%i", &hd[1].tracks);
+                        sscanf(s, "%" PRIu64, &hd[1].tracks);
 
                         h = GetDlgItem(hdlg, IDC_TEXT_D_SIZE);
-                        sprintf(s, "Size : %imb", ((((hd[1].tracks*hd[1].hpc)*hd[1].spt)*512)/1024)/1024);
+                        sprintf(s, "Size: %" PRIu64 " MB", (hd[1].tracks*hd[1].hpc*hd[1].spt) >> 11);
                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                         return TRUE;
 
                         case IDC_EDIT_E_SPT: case IDC_EDIT_E_HPC: case IDC_EDIT_E_CYL:
                         h = GetDlgItem(hdlg, IDC_EDIT_E_SPT);
                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                        sscanf(s, "%i", &hd[2].spt);
+                        sscanf(s, "%" PRIu64, &hd[2].spt);
                         h = GetDlgItem(hdlg, IDC_EDIT_E_HPC);
                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                        sscanf(s, "%i", &hd[2].hpc);
+                        sscanf(s, "%" PRIu64, &hd[2].hpc);
                         h = GetDlgItem(hdlg, IDC_EDIT_E_CYL);
                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                        sscanf(s, "%i", &hd[2].tracks);
+                        sscanf(s, "%" PRIu64, &hd[2].tracks);
 
                         h = GetDlgItem(hdlg, IDC_TEXT_E_SIZE);
-                        sprintf(s, "Size : %imb", ((((hd[2].tracks*hd[2].hpc)*hd[2].spt)*512)/1024)/1024);
+                        sprintf(s, "Size: %" PRIu64 " MB", (hd[2].tracks*hd[2].hpc*hd[2].spt) >> 11);
                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                         return TRUE;
 
                         case IDC_EDIT_F_SPT: case IDC_EDIT_F_HPC: case IDC_EDIT_F_CYL:
                         h = GetDlgItem(hdlg, IDC_EDIT_F_SPT);
                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                        sscanf(s, "%i", &hd[3].spt);
+                        sscanf(s, "%" PRIu64, &hd[3].spt);
                         h = GetDlgItem(hdlg, IDC_EDIT_F_HPC);
                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                        sscanf(s, "%i", &hd[3].hpc);
+                        sscanf(s, "%" PRIu64, &hd[3].hpc);
                         h = GetDlgItem(hdlg, IDC_EDIT_F_CYL);
                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
-                        sscanf(s, "%i", &hd[3].tracks);
+                        sscanf(s, "%" PRIu64, &hd[3].tracks);
 
                         h = GetDlgItem(hdlg, IDC_TEXT_F_SIZE);
-                        sprintf(s, "Size : %imb", ((((hd[3].tracks*hd[3].hpc)*hd[3].spt)*512)/1024)/1024);
+                        sprintf(s, "Size: %" PRIu64 " MB", (hd[3].tracks*hd[3].hpc*hd[3].spt) >> 11);
                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                         return TRUE;
 

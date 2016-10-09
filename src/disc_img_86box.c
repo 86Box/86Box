@@ -114,7 +114,13 @@ int gap3_sizes[5][8][256] = {	[0][1][16] = 0x54,
 				[0][2][20] = 0x2A,
 				[0][2][21] = 0x08,		/* Microsoft DMFWRITE.EXE uses this, 0x0C is used by FDFORMAT. */
 				[0][2][23] = 0x01,
+				[0][3][10] = 0x83,
 				[0][3][11] = 0x26,
+				[1][2][11] = 0x54,
+				[1][2][12] = 0x1C,
+				[1][2][13] = 0x0E,
+				[1][3][6]  = 0x79,
+				[1][3][7]  = 0x06,
 				[2][1][10] = 0x32,
 				[2][1][11] = 0x0C,
 				[2][1][15] = 0x36,
@@ -122,20 +128,29 @@ int gap3_sizes[5][8][256] = {	[0][1][16] = 0x54,
 				[2][2][8]  = 0x58,
 				[2][2][9]  = 0x50,
 				[2][2][10] = 0x2E,
-				[2][2][11] = 0x02,
 				[2][2][21] = 0x1C,
 				[2][3][4]  = 0xF0,
 				[2][3][5]  = 0x74,
 				[3][2][36] = 0x53,
-				[3][2][39] = 0x20,
-				[3][2][40] = 0x27,
-				[3][2][41] = 0x23,
+				[3][2][37] = 0x4E,
+				[3][2][38] = 0x40,
+				[3][2][39] = 0x30,
+				[3][2][40] = 0x20,
+				[3][2][41] = 0x10,
 				[3][2][46] = 0x01,
+				[3][3][18] = 0xF7,
+				[3][3][19] = 0xAF,
+				[3][3][20] = 0x6F,
+				[3][3][21] = 0x55,
+				[3][3][22] = 0x1F,
 				[4][1][32] = 0x36,
+				[4][2][14] = 0x92,
 				[4][2][15] = 0x54,
+				[4][2][16] = 0x38,
 				[4][2][17] = 0x23,
 				[4][2][19] = 0x01,
-				[4][3][8]  = 0x74
+				[4][3][8]  = 0x74,
+				[4][3][9]  = 0x24
 };
 
 void img_writeback(int drive);
@@ -278,18 +293,26 @@ void img_load(int drive, char *fn)
 	        else if (size <= (640*1024))   { img[drive].sectors = 8;  img[drive].tracks = 80; } /*Double density 640k*/
 	        else if (size <= (720*1024))   { img[drive].sectors = 9;  img[drive].tracks = 80; } /*Double density*/
 	        else if (size <= (800*1024))   { img[drive].sectors = 10; img[drive].tracks = 80; } /*Double density*/
+	        else if (size <= (880*1024))   { img[drive].sectors = 11; img[drive].tracks = 80; } /*Double density*/
+	        else if (size <= (960*1024))   { img[drive].sectors = 12; img[drive].tracks = 80; } /*Double density*/
+	        else if (size <= (1040*1024))  { img[drive].sectors = 13; img[drive].tracks = 80; } /*Double density*/
+	        else if (size <= (1120*1024))  { img[drive].sectors = 14; img[drive].tracks = 80; } /*Double density*/
 	        else if (size <= 1228800)      { img[drive].sectors = 15; img[drive].tracks = 80; } /*High density 1.2MB*/
 	        else if (size <= 1261568)      { img[drive].sectors =  8; img[drive].tracks = 77; img[drive].sector_size = 3; } /*High density 1.25MB Japanese format*/
 	        else if (size <= (0x1A4000-1)) { img[drive].sectors = 18; img[drive].tracks = 80; } /*High density (not supported by Tandy 1000)*/
 	        else if (size <= 1556480)      { img[drive].sectors = 19; img[drive].tracks = 80; } /*High density (not supported by Tandy 1000)*/
 	        else if (size <= 1638400)      { img[drive].sectors = 10; img[drive].tracks = 80; img[drive].sector_size = 3; } /*High density (not supported by Tandy 1000)*/
-	        else if (size <= 1720320)      { img[drive].sectors = 21; img[drive].tracks = 80; } /*DMF format - used by Windows 95 - changed by OBattler to 2000000, ie. the real unformatted capacity @ 500 kbps and 300 rpm */
+	        else if (size <= 1720320)      { img[drive].sectors = 21; img[drive].tracks = 80; } /*DMF format - used by Windows 95 */
+	        else if (size <= 1741824)      { img[drive].sectors = 21; img[drive].tracks = 81; }
+	        else if (size <= 1763328)      { img[drive].sectors = 21; img[drive].tracks = 82; }
 	        else if (size <= 1802240)      { img[drive].sectors = 11; img[drive].tracks = 80; img[drive].sector_size = 3; } /*High density (not supported by Tandy 1000)*/
 	        else if (size == 1884160)      { img[drive].sectors = 23; img[drive].tracks = 80; } /*XDF format - used by OS/2 Warp*/
 	        else if (size <= 2949120)      { img[drive].sectors = 36; img[drive].tracks = 80; } /*E density*/
 		else if (size <= 3194880)      { img[drive].sectors = 39; img[drive].tracks = 80; } /*E density*/
 		else if (size <= 3276800)      { img[drive].sectors = 40; img[drive].tracks = 80; } /*E density*/
 		else if (size <= 3358720)      { img[drive].sectors = 41; img[drive].tracks = 80; } /*E density, maximum possible size*/
+	        else if (size <= 3440640)      { img[drive].sectors = 21; img[drive].tracks = 80; img[drive].sector_size = 3; } /*High density (not supported by Tandy 1000)*/
+	        else if (size <= 3604480)      { img[drive].sectors = 22; img[drive].tracks = 80; img[drive].sector_size = 3; } /*High density (not supported by Tandy 1000)*/
 		else
 		{
 			pclog("Image is bigger than can fit on an ED floppy, ejecting...\n");
@@ -328,7 +351,7 @@ void img_load(int drive, char *fn)
 			temp_rate = rates[i];
 			img[drive].disk_flags = holes[i] << 1;
 			img[drive].xdf_type = (img[drive].sectors == xdf_sectors[img[drive].sector_size][i]) ? xdf_types[img[drive].sector_size][i] : 0;
-			if ((bit_rate_300 == 500.0) && (img[drive].sectors == 21) && (img[drive].sector_size == 2) && (img[drive].tracks == 80) && (img[drive].sides == 2))
+			if ((bit_rate_300 == 500.0) && (img[drive].sectors == 21) && (img[drive].sector_size == 2) && (img[drive].tracks >= 80) && (img[drive].tracks <= 82) && (img[drive].sides == 2))
 			{
 				/* This is a DMF floppy, set the flag so we know to interleave the sectors. */
 				img[drive].dmf = 1;
