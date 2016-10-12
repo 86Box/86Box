@@ -16,6 +16,7 @@
 typedef struct riva128_t
 {
   mem_mapping_t   linear_mapping;
+  mem_mapping_t    ramin_mapping;
   mem_mapping_t     mmio_mapping;
 
   rom_t bios_rom;
@@ -153,6 +154,15 @@ typedef struct riva128_t
 
 } riva128_t;
 
+//Internally, the RIVA 128 operates in a weird 38-bit color depth, with 10 bits for RGB, and 8 bits for alpha, according to envytools.
+typedef struct
+{
+  uint8_t a;
+  unsigned r : 10;
+  unsigned g : 10;
+  unsigned b : 10;
+} riva128_color_t;
+
 const char* riva128_pmc_interrupts[32] =
 {
 	"","","","","PMEDIA","","","","PFIFO","","","","PGRAPH","","","","PRAMDAC.VIDEO","","","","PTIMER","","","","PCRTC","","","","PBUS","","",""
@@ -175,6 +185,73 @@ static uint8_t riva128_in(uint16_t addr, void *p);
 static void riva128_out(uint16_t addr, uint8_t val, void *p);
 
 static void riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p);
+
+static riva128_color_t riva128_pgraph_expand_color(uint32_t ctx, uint32_t color)
+{
+  riva128_color_t ret;
+  int format = ctx & 7;
+  int alpha_enable = (ctx >> 3) & 1;
+
+  switch(format)
+  {
+    default:
+    pclog("RIVA 128 Unknown color format %i found!\n", format);
+    ret.a = 0x0;
+    break;
+    case 0:
+    ret.a = ((color >> 15) & 1) * 0xff;
+    ret.r = ((color >> 10) & 0x1f) << 5;
+    ret.g = ((color >> 5) & 0x1f) << 5;
+    ret.b = ((color >> 0) & 0x1f) << 5;
+    break;
+    case 1:
+    ret.a = ((color >> 24) & 0xff);
+    ret.r = ((color >> 16) & 0xff) << 2;
+    ret.g = ((color >> 8) & 0xff) << 2;
+    ret.b = ((color >> 0) & 0xff) << 2;
+    break;
+    case 2:
+    ret.a = ((color >> 30) & 3) * 0x55;
+    ret.r = ((color >> 20) & 0x3ff);
+    ret.g = ((color >> 10) & 0x3ff);
+    ret.b = ((color >> 0) & 0x3ff);
+    break;
+    case 3:
+    ret.a = ((color >> 8) & 0xff);
+    ret.r = ret.g = ret.b = ((color >> 0) & 0xff) << 2;
+    break;
+    case 4:
+    ret.a = ((color >> 16) & 0xffff) >> 8;
+    ret.r = ret.g = ret.b = ((color >> 0) & 0xffff) >> 6;
+    break;
+  }
+
+  if(!alpha_enable) ret.a = 0xff;
+
+  return ret;
+}
+
+static uint32_t riva128_pgraph_blend_factor(uint32_t alpha, uint32_t beta)
+{
+  if(beta == 0xff) return alpha;
+  if(alpha == 0xff) return beta;
+  alpha >>= 4;
+  beta >>= 3;
+  return (alpha * beta) >> 1;
+}
+
+static uint32_t riva128_pgraph_do_blend(uint32_t factor, uint32_t dst, uint32_t src, int is_r5g5b5)
+{
+  factor &= 0xf8;
+  if(factor == 0xf8) return src;
+  if(!factor) return dst;
+  src >>= 2; dst >>= 2;
+  if(is_r5g5b5)
+  {
+    src &= 0xf8; dst &= 0xf8;
+  }
+  return ((dst * (0x100 - factor)) + (src * factor)) >> 6;
+}
 
 static uint8_t riva128_pmc_read(uint32_t addr, void *p)
 {
@@ -1044,6 +1121,59 @@ static void riva128_out(uint16_t addr, uint8_t val, void *p)
   svga_out(addr, val, svga);
 }
 
+static uint32_t riva128_ramin_readl(uint32_t addr, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+  uint32_t ret = riva128->pramin[(addr & 0x1ffffc) >> 2];
+  return ret;
+}
+
+static uint8_t riva128_ramin_readb(uint32_t addr, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+  uint32_t ret = riva128->pramin[(addr & 0x1ffffc) >> 2];
+  ret >>= 24 - ((addr & 3) << 3);
+  return ret;
+}
+
+static uint16_t riva128_ramin_readw(uint32_t addr, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+  uint32_t ret = riva128->pramin[(addr & 0x1ffffc) >> 2];
+  ret >>= 16 - ((addr & 2) << 3);
+  return ret;
+}
+
+static void riva128_ramin_writel(uint32_t addr, uint32_t val, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+  riva128->pramin[(addr & 0x1ffffc) >> 2] = val;
+}
+
+static void riva128_ramin_writeb(uint32_t addr, uint8_t val, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+  uint32_t tmp = riva128_ramin_readl(addr,p);
+  tmp &= ~(0xff << ((addr & 3) << 3));
+  tmp |= val << ((addr & 3) << 3);
+  riva128_ramin_writel(addr, tmp, p);
+}
+
+static void riva128_ramin_writew(uint32_t addr, uint16_t val, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+  uint32_t tmp = riva128_ramin_readl(addr,p);
+  tmp &= ~(0xffff << ((addr & 2) << 4));
+  tmp |= val << ((addr & 2) << 4);
+  riva128_ramin_writel(addr, tmp, p);
+}
+
 static uint8_t riva128_pci_read(int func, int addr, void *p)
 {
   riva128_t *riva128 = (riva128_t *)p;
@@ -1154,7 +1284,8 @@ static void riva128_pci_write(int func, int addr, uint8_t val, void *p)
       }
       if (linear_addr)
       {
-      	mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0x1000000);
+      	mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0xc00000);
+        mem_mapping_set_addr(&riva128->ramin_mapping, linear_addr + 0xc00000, 0x200000);
         svga->linear_base = linear_addr;
       }
     }
@@ -1164,6 +1295,7 @@ static void riva128_pci_write(int func, int addr, uint8_t val, void *p)
       mem_mapping_disable(&svga->mapping);
       mem_mapping_disable(&riva128->mmio_mapping);
       mem_mapping_disable(&riva128->linear_mapping);
+      mem_mapping_disable(&riva128->ramin_mapping);
     }
     return;
 
@@ -1196,12 +1328,14 @@ static void riva128_pci_write(int func, int addr, uint8_t val, void *p)
       uint32_t linear_addr = riva128->pci_regs[0x17] << 24;
       if (linear_addr)
       {
-      	mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0x1000000);
+      	mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0xc00000);
+        mem_mapping_set_addr(&riva128->ramin_mapping, linear_addr + 0xc00000, 0x200000);
         svga->linear_base = linear_addr;
       }
       else
       {
       	mem_mapping_disable(&riva128->linear_mapping);
+        mem_mapping_disable(&riva128->ramin_mapping);
       }
       return;
     }
@@ -1316,6 +1450,18 @@ static void *riva128_init()
     NULL,
     0,
     riva128);
+
+  mem_mapping_add(&riva128->ramin_mapping,     0, 0,
+    riva128_ramin_readb,
+    riva128_ramin_readw,
+    riva128_ramin_readl,
+    riva128_ramin_writeb,
+    riva128_ramin_writew,
+    riva128_ramin_writel,
+    NULL,
+    0,
+    riva128);
+
   mem_mapping_add(&riva128->linear_mapping,   0, 0,
     svga_read_linear,
     svga_readw_linear,
