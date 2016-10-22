@@ -1399,12 +1399,12 @@ static void riva128_recalctimings(svga_t *svga)
     break;
   }
 
-  if((svga->crtc[0x28] & 3) != 0)
+  /*if((svga->crtc[0x28] & 3) != 0)
   {
     if(svga->crtc[0x1a] & 2) svga_set_ramdac_type(svga, RAMDAC_6BIT);
     else svga_set_ramdac_type(svga, RAMDAC_8BIT);
   }
-  else svga_set_ramdac_type(svga, RAMDAC_6BIT);
+  else svga_set_ramdac_type(svga, RAMDAC_6BIT);*/
   
   if (((svga->miscout >> 2) & 2) == 2)
   {
