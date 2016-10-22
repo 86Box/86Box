@@ -1436,7 +1436,7 @@ static void *riva128_init()
   riva128_in, riva128_out,
   NULL, NULL);
 
-  rom_init(&riva128->bios_rom, "roms/RIVA128_STB.VBI", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+  rom_init(&riva128->bios_rom, "roms/Diamond_V330_rev-e.vbi", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
   if (PCI)
     mem_mapping_disable(&riva128->bios_rom.mapping);
 
@@ -1516,7 +1516,7 @@ static void riva128_close(void *p)
 
 static int riva128_available()
 {
-  return rom_present("roms/RIVA128_STB.VBI");
+  return rom_present("roms/Diamond_V330_rev-e.vbi");
 }
 
 static void riva128_speed_changed(void *p)
