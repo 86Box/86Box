@@ -1182,10 +1182,10 @@ static uint8_t riva128_pci_read(int func, int addr, void *p)
   //pclog("RIVA 128 PCI read %02X %04X:%08X\n", addr, CS, cpu_state.pc);
   switch (addr)
   {
-    case 0x00: ret = 0xde; break; /*'nVidia'*/
-    case 0x01: ret = 0x10; break;
+    case 0x00: ret = 0xd2; break; /*'nVidia'*/
+    case 0x01: ret = 0x12; break;
 
-    case 0x02: ret = 0x20; break; /*'RIVA 128'*/
+    case 0x02: ret = 0x18; break; /*'RIVA 128'*/
     case 0x03: ret = 0x00; break;
 
     case 0x04: ret = riva128->pci_regs[0x04] & 0x37; break;
