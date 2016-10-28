@@ -1320,14 +1320,15 @@ void cpu_set()
                 break;
 
                 case CPU_K6:
+                //Timings are made similar to Pentium Pro since that's what the microarchitecture is similar to.
                 x86_setopcodes(ops_386, ops_k6_0f, dynarec_ops_386, dynarec_ops_k6_0f);
                 timing_rr  = 1; /*register dest - register src*/
-                timing_rm  = 2; /*register dest - memory src*/
-                timing_mr  = 3; /*memory dest   - register src*/
-                timing_mm  = 3;
-                timing_rml = 2; /*register dest - memory src long*/
-                timing_mrl = 3; /*memory dest   - register src long*/
-                timing_mml = 3;
+                timing_rm  = 1; /*register dest - memory src*/
+                timing_mr  = 1; /*memory dest   - register src*/
+                timing_mm  = 1;
+                timing_rml = 1; /*register dest - memory src long*/
+                timing_mrl = 1; /*memory dest   - register src long*/
+                timing_mml = 1;
                 timing_bt  = 0; /*branch taken*/
                 timing_bnt = 1; /*branch not taken*/
                 cpu_hasrdtsc = 1;
