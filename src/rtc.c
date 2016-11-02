@@ -164,8 +164,6 @@ static void time_internal_set(struct tm *time_var)
 
 static void time_set_nvrram(char *nvrram, struct tm *cur_time_tm)
 {
-        int dow, mon, year;
-
         if (nvrram[RTC_REGB] & RTC_DM)
         {
                 nvrram[RTC_SECONDS] = cur_time_tm->tm_sec;

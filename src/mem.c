@@ -665,14 +665,6 @@ int loadbios()
                 biosmask = 0x1ffff;
                 return 1;
 
-                case ROM_P54TP4XE:
-                f = romfopen("roms/p54tp4xe/T15I0302.AWD", "rb");
-                if (!f) break;
-                fread(rom,           0x20000, 1, f);                
-                fclose(f);
-                biosmask = 0x1ffff;
-                return 1;
-
                 case ROM_ACERM3A:
                 f = romfopen("roms/acerm3a/r01-b3.bin", "rb");         
                 if (!f) break;
@@ -689,22 +681,6 @@ int loadbios()
                 biosmask = 0x1ffff;
                 return 1;
 
-                case ROM_P55T2P4:
-                f = romfopen("roms/p55t2p4/0207_J2.BIN", "rb");
-                if (!f) break;
-                fread(rom,           0x20000, 1, f);                
-                fclose(f);
-                biosmask = 0x1ffff;
-                return 1;
-
-                case ROM_P55TVP4:
-                f = romfopen("roms/p55tvp4/tv5i0201.awd", "rb");
-                if (!f) break;
-                fread(rom,           0x20000, 1, f);                
-                fclose(f);
-                biosmask = 0x1ffff;
-                return 1;
-
                 case ROM_P55VA:
                 f = romfopen("roms/p55va/VA021297.BIN", "rb");
                 if (!f) break;
@@ -715,14 +691,6 @@ int loadbios()
 
                 case ROM_440FX:
 		f = romfopen("roms/440fx/NTMAW501.BIN", "rb");	/* Working Tyan BIOS. */
-                if (!f) break;
-                fread(rom,           0x20000, 1, f);                
-                fclose(f);
-                biosmask = 0x1ffff;
-                return 1;
-
-                case ROM_KN97:
-		f = romfopen("roms/kn97/NAKI0116.AWD", "rb");
                 if (!f) break;
                 fread(rom,           0x20000, 1, f);                
                 fclose(f);
@@ -1961,7 +1929,7 @@ void mem_add_bios()
 }
 
 int mem_a20_key = 0, mem_a20_alt = 0;
-static int mem_a20_state = 1;
+int mem_a20_state = 1;
 
 void mem_init()
 {

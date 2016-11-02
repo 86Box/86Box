@@ -7,7 +7,7 @@ typedef struct svga_t
         
         uint8_t crtcreg;
         uint8_t crtc[128];
-        uint8_t gdcreg[16];
+        uint8_t gdcreg[64];
         int gdcaddr;
         uint8_t attrregs[32];
         int attraddr, attrff;

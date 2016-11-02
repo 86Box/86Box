@@ -21,7 +21,7 @@ void device_add(device_t *d)
         int c = 0;
         void *priv;
         
-        while (devices[c] != NULL && c < 256)
+        while ((c < 256) && (devices[c] != NULL))
                 c++;
         
         if (c >= 256)

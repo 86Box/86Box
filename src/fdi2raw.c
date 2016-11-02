@@ -1913,8 +1913,8 @@ static int decode_lowlevel_track (FDI *fdi, int track, struct fdi_cache *cache)
 		idxp[i] = sum;
 	}
 	len = totalavg / 100000;
-	outlog("totalavg=%u index=%d (%d) maxidx=%d weakbits=%d len=%d\n",
-		totalavg, indexoffset, maxidx, weakbits, len);
+	/* outlog("totalavg=%u index=%d (%d) maxidx=%d weakbits=%d len=%d\n",
+		totalavg, indexoffset, maxidx, weakbits, len); */
 	cache->avgp = avgp;
 	cache->idxp = idxp;
 	cache->minp = minp;
@@ -2073,8 +2073,8 @@ int fdi2raw_loadrevolution_2 (FDI *fdi, uae_u16 *mfmbuf, uae_u16 *tracktiming, i
 		cache->avgp, cache->minp, cache->maxp, cache->idxp,
 		cache->maxidx, &idx, cache->pulses, mfm);
 	//fdi2_gcr_decode (fdi, totalavg, avgp, minp, maxp, idxp, idx_off1, idx_off2, idx_off3, maxidx, pulses);
-	outlog("track %d: nbits=%d avg len=%.2f weakbits=%d idx=%d\n",
-		track, bitoffset, (double)cache->totalavg / bitoffset, cache->weakbits, cache->indexoffset);
+	/* outlog("track %d: nbits=%d avg len=%.2f weakbits=%d idx=%d\n",
+		track, bitoffset, (double)cache->totalavg / bitoffset, cache->weakbits, cache->indexoffset); */
 	len = fdi->out;
 	if (cache->weakbits >= 10 && multirev)
 		*multirev = 1;
@@ -2126,8 +2126,8 @@ int fdi2raw_loadtrack (FDI *fdi, uae_u16 *mfmbuf, uae_u16 *tracktiming, int trac
 	else
 		fdi->bit_rate = 250;
 
-	outlog ("track %d: srclen: %d track_type: %02.2X, bitrate: %d\n",
-		fdi->current_track, fdi->track_src_len, fdi->track_type, fdi->bit_rate);
+	/* outlog ("track %d: srclen: %d track_type: %02.2X, bitrate: %d\n",
+		fdi->current_track, fdi->track_src_len, fdi->track_type, fdi->bit_rate); */
 
 	if ((fdi->track_type & 0xc0) == 0x80) {
 

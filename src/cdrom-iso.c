@@ -157,7 +157,6 @@ static void lba_to_msf(uint8_t *buf, int lba)
 
 static void iso_readsector_raw(uint8_t *b, int sector)
 {
-    uint32_t temp;
     if (!cdrom_drive) return;
     iso_image = fopen(iso_path, "rb");
     fseek(iso_image, sector*2048, SEEK_SET);

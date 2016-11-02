@@ -334,7 +334,6 @@ uint8_t svga_in(uint16_t addr, void *p)
 		case 0x32CB:
 		pclog("Read port %04X\n", addr);
 		return 0xEE;
-		return charsettings;
 		// return 0xEE | (charedit_on ? 0x10 : 0);
 
                 case 0x3C0: 

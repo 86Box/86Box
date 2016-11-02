@@ -751,8 +751,6 @@ static void loadhd(IDE *ide, int d, const char *fn)
 	uint32_t sector_size = 512;
 	uint32_t zero = 0;
 	uint32_t full_size = 0;
-	uint32_t transl_spt = 0;
-	uint32_t transl_hpc = 0;
 	int c;
 	ide->base = 0;
 	ide->hdi = 0;
@@ -1327,7 +1325,8 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				case WIN_CHECKPOWERMODE1:
                         ide->atastat = BUSY_STAT;
                         timer_process();
-                        callbackide(ide_board);
+						idecallback[ide_board]=30*IDE_TIME;
+                        // callbackide(ide_board);
 //                        idecallback[ide_board]=200*IDE_TIME;
                         timer_update_outstanding();
                         return;
@@ -1358,7 +1357,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                 	ide->error = ABRT_ERR;
                         ide_irq_raise(ide);
 /*                        fatal("Bad IDE command %02X\n", val);*/
-                        pclog("Bad IDE command %02X\n", val);
+                        // pclog("Bad IDE command %02X\n", val);
                         return;
                 }
                 
@@ -1640,6 +1639,9 @@ void callbackide(int ide_board)
                 return;
 
 		case WIN_CHECKPOWERMODE1:
+                if (IDE_DRIVE_IS_CDROM(ide)) {
+                        goto abort_cmd;
+                }
 				ide->secount = 0xFF;
                 ide->atastat = READY_STAT | DSC_STAT;
                 ide_irq_raise(ide);
@@ -1671,16 +1673,12 @@ void callbackide(int ide_board)
 
         case WIN_READ_DMA:
                 if (IDE_DRIVE_IS_CDROM(ide)) {
-                        atapi->readsector(ide->buffer, ide_get_sector(ide));
-                        ide->pos=0;
+                        goto abort_cmd;
                 }
-                else
-                {
-                        addr = ide_get_sector(ide) * 512;
-                        fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
-                        fread(ide->buffer, 512, 1, ide->hdfile);
-                        ide->pos=0;
-                }
+                addr = ide_get_sector(ide) * 512;
+                fseeko64(ide->hdfile, addr, SEEK_SET);
+                fread(ide->buffer, 512, 1, ide->hdfile);
+                ide->pos=0;
                 
                 if (ide_bus_master_read_sector)
                 {
@@ -1710,7 +1708,7 @@ void callbackide(int ide_board)
                 return;
 
         case WIN_READ_MULTIPLE:
-                /* According to the official ATAPI reference:
+                /* According to the official ATA reference:
 
 				   If the Read Multiple command is attempted before the Set Multiple Mode
                    command  has  been  executed  or  when  Read  Multiple  commands  are
@@ -2119,6 +2117,7 @@ static int atapi_read_structure(IDE *ide, int format,
             {
                 int layer = packet[6];
                 uint64_t total_sectors;
+				total_sectors = (uint64_t) atapi->size();
 
                 if (layer != 0)
                     return -ASC_INV_FIELD_IN_CMD_PACKET;
@@ -3209,7 +3208,6 @@ atapi_out:
                 
                 case GPCMD_SEND_DVD_STRUCTURE:
                 default:
-bad_atapi_command:
 		ide->atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
                 ide->error = (SENSE_ILLEGAL_REQUEST << 4) | ABRT_ERR;
                 if (atapi_sense.sensekey == SENSE_UNIT_ATTENTION)

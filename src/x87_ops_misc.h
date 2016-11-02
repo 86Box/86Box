@@ -75,7 +75,6 @@ static int opFST(uint32_t fetchdat)
 
 static int opFSTP(uint32_t fetchdat)
 {
-        int temp;
         FP_ENTER();
         cpu_state.pc++;
         if (fplog) pclog("FSTP\n");
@@ -507,7 +506,7 @@ static int opFYL2XP1(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         if (fplog) pclog("FYL2XP1\n");
-        ST(1) = ST(1) * (log(ST(0)+1.0) / log(2.0));
+        ST(1) = ST(1) * (log1p(ST(0)) / log(2.0));
         cpu_state.tag[(cpu_state.TOP + 1) & 7] &= ~TAG_UINT64;
         x87_pop();
         CLOCK_CYCLES(250);

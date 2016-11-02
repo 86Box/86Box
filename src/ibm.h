@@ -347,7 +347,7 @@ char discfns[2][256];
 int driveempty[2];
 
 #define MDA ((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_INCOLOR) && (romset<ROM_TANDY || romset>=ROM_IBMAT))
-#define VGA ((gfxcard>=GFX_TVGA || romset==ROM_ACER386) && gfxcard!=GFX_INCOLOR && gfxcard!=GFX_COMPAQ_EGA && gfxcard!=GFX_SUPER_EGA && romset!=ROM_PC1640 && romset!=ROM_PC1512 && romset!=ROM_TANDY && romset!=ROM_PC200)
+#define VGA ((gfxcard>=GFX_TVGA || romset==ROM_ACER386) && gfxcard!=GFX_COLORPLUS && gfxcard!=GFX_INCOLOR && gfxcard!=GFX_COMPAQ_EGA && gfxcard!=GFX_SUPER_EGA && romset!=ROM_PC1640 && romset!=ROM_PC1512 && romset!=ROM_TANDY && romset!=ROM_PC200)
 #define PCJR (romset == ROM_IBMPCJR)
 #define AMIBIOS (romset==ROM_AMI386 || romset==ROM_AMI486 || romset == ROM_WIN486)
 
@@ -413,7 +413,6 @@ enum
         ROM_P55VA,      /*Epox P55-VA / 430VX / Award BIOS / SMC FDC37C932FR*/
 
 	ROM_440FX,	/*Unknown / 440FX / Award BIOS / SMC FDC37C665*/
-	ROM_KN97,	/*ASUS KN-97 / 440FX / Award BIOS / Winbond W8387F*/
 
         ROM_MARL,	/*Intel Advanced/ML / 430HX / AMI BIOS / National Semiconductors PC87306*/
         ROM_THOR,	/*Intel Advanced/ATX / 430FX / AMI BIOS / National Semiconductors PC87306*/
@@ -448,7 +447,8 @@ enum
         GFX_VIRGEDX,    /*S3 Virge/DX*/
         GFX_PHOENIX_TRIO32, /*S3 732/Trio32 (Phoenix)*/
         GFX_PHOENIX_TRIO64, /*S3 764/Trio64 (Phoenix)*/
-       	GFX_INCOLOR,	/* Hercules InColor */ 
+       	GFX_INCOLOR,	/* Hercules InColor */
+	GFX_COLORPLUS,	/* Plantronics ColorPlus */
 	GFX_ET4000W32C,	/*Tseng ET4000/W32p (Cardex) (STG RAMDAC) */
 	GFX_COMPAQ_EGA,	/*Compaq EGA*/
 	GFX_SUPER_EGA,	/*Using Chips & Technologies SuperEGA BIOS*/
@@ -633,3 +633,5 @@ extern char nvr_path[1024];
 extern int path_len;
 
 char *nvr_concat(char *to_concat);
+
+int mem_a20_state;

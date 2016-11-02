@@ -73,7 +73,7 @@ void jim_init()
         europc_rtc.dat[3]=1;
         europc_rtc.dat[4]=1;
         europc_rtc.dat[5]=0x88;
-        if (gfxcard==GFX_CGA) viddat=0x12;
+        if (gfxcard==GFX_CGA || gfxcard == GFX_COLORPLUS) viddat=0x12;
         else if (gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_INCOLOR) viddat=3;
         else viddat=0x10;
         europc_rtc.dat[0xB]=viddat;

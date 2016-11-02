@@ -3637,7 +3637,6 @@ static void FP_FXCH(int reg)
         addbyte(0x4c);
         addbyte(0xdd);
         addbyte(cpu_state_offset(MM));
-        reg = reg;
 }
 
 

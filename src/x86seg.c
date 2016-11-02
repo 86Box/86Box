@@ -1636,7 +1636,7 @@ void pmodeint(int num, int soft)
                 else
                 {
                         // pclog("INT out of range\n");
-                        x86gpf(NULL,(num*8)+2+(soft)?0:1);
+                        x86gpf(NULL,(num*8)+2+((soft)?0:1));
                 }
                 if (output) pclog("addr >= IDT.limit\n");
                 return;

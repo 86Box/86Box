@@ -90,6 +90,7 @@ typedef struct
 	FILE *f;
 
 	int tracks;
+	int track_width;
 	int sides;
 	uint16_t disk_flags;
 	uint16_t default_track_flags;
@@ -226,7 +227,7 @@ int td0_state_next_word(td0dsk_t *state)
 	{
 		state->tdctl.ibufndx = 0;
 		state->tdctl.ibufcnt = td0_state_data_read(state, state->tdctl.inbuf,BUFSZ);
-		if(state->tdctl.ibufcnt <= 0)
+		if(state->tdctl.ibufcnt == 0)
 			return(-1);
 	}
 	while (state->getlen <= 8) { // typically reads a word at a time
@@ -503,12 +504,7 @@ uint8_t header[12];
 
 void td0_load(int drive, char *fn)
 {
-	int track;
-	int head;
-	int fm;
-	int offset = 0;
 	int ret = 0;
-	const int max_size = 4*1024*1024; // 4MB ought to be large enough for any floppy
 
 	d86f_unregister(drive);
 
@@ -740,6 +736,8 @@ int td0_initialize(int drive)
 
 	td0[drive].disk_flags = header[5] & 0x06;
 
+	td0[drive].track_width = (header[7] & 1) ^ 1;
+
 	// rate = (header[5] & 0x7f) >= 3 ? 0 : rates[header[5] & 0x7f];
 	// td0[drive].default_track_flags |= rate;
 
@@ -898,11 +896,14 @@ int td0_initialize(int drive)
 		td0[drive].gap3_len = td0[drive].calculated_gap3_lengths[0][0];		/* If we can't determine the GAP3 length, assume the smallest one we possibly know of. */
 	}
 
-	if (td0[drive].tracks > 43)  td0[drive].disk_flags |= 1;	/* If the image has more than 43 tracks, then the tracks are thin (96 tpi). */
-
 	if(head_count == 2)
 	{
 		td0[drive].disk_flags |= 8;	/* 2 sides */
+	}
+
+	if (td0[drive].tracks <= 43)
+	{
+		td0[drive].track_width &= ~1;
 	}
 
 	td0[drive].sides = head_count;
@@ -1076,7 +1077,7 @@ void td0_seek(int drive, int track)
         if (!td0[drive].f)
                 return;
 
-        if (d86f_is_40_track(drive) && fdd_doublestep_40(drive))
+        if (!td0[drive].track_width && fdd_doublestep_40(drive))
                 track /= 2;
 
 	is_trackx = (track == 0) ? 0 : 1;
@@ -1107,7 +1108,7 @@ void td0_seek(int drive, int track)
 
 		interleave_type = td0_track_is_interleave(drive, side, track);
 
-		current_pos = d86f_prepare_pretrack(drive, side, 0, 1);
+		current_pos = d86f_prepare_pretrack(drive, side, 0);
 
 		if (!xdf_type)
 		{
@@ -1129,7 +1130,7 @@ void td0_seek(int drive, int track)
 				id[3] = td0[drive].sects[track][side][actual_sector].size;
 				// pclog("TD0: %i %i %i %i (%i %i) (GPL=%i)\n", id[0], id[1], id[2], id[3], td0[drive].sects[track][side][actual_sector].deleted, td0[drive].sects[track][side][actual_sector].bad_crc, track_gap3);
 				ssize = 128 << ((uint32_t) td0[drive].sects[track][side][actual_sector].size);
-				current_pos = d86f_prepare_sector(drive, side, current_pos, id, td0[drive].sects[track][side][actual_sector].data, ssize, 1, track_gap2, track_gap3, 0, td0[drive].sects[track][side][actual_sector].deleted, td0[drive].sects[track][side][actual_sector].bad_crc);
+				current_pos = d86f_prepare_sector(drive, side, current_pos, id, td0[drive].sects[track][side][actual_sector].data, ssize, track_gap2, track_gap3, td0[drive].sects[track][side][actual_sector].deleted, td0[drive].sects[track][side][actual_sector].bad_crc);
 			}
 		}
 		else
@@ -1148,11 +1149,11 @@ void td0_seek(int drive, int track)
 				// pclog("TD0: XDF: (%i %i) %i %i %i %i (%i %i) (GPL=%i)\n", track, side, id[0], id[1], id[2], id[3], td0[drive].sects[track][side][ordered_pos].deleted, td0[drive].sects[track][side][ordered_pos].bad_crc, track_gap3);
 				if (is_trackx)
 				{
-					current_pos = d86f_prepare_sector(drive, side, xdf_trackx_spos[xdf_type][xdf_sector], id, td0[drive].sects[track][side][ordered_pos].data, ssize, 1, track_gap2, xdf_gap3_sizes[xdf_type][is_trackx], 0, td0[drive].sects[track][side][ordered_pos].deleted, td0[drive].sects[track][side][ordered_pos].bad_crc);
+					current_pos = d86f_prepare_sector(drive, side, xdf_trackx_spos[xdf_type][xdf_sector], id, td0[drive].sects[track][side][ordered_pos].data, ssize, track_gap2, xdf_gap3_sizes[xdf_type][is_trackx], td0[drive].sects[track][side][ordered_pos].deleted, td0[drive].sects[track][side][ordered_pos].bad_crc);
 				}
 				else
 				{
-					current_pos = d86f_prepare_sector(drive, side, current_pos, id, td0[drive].sects[track][side][ordered_pos].data, ssize, 1, track_gap2, xdf_gap3_sizes[xdf_type][is_trackx], 0, td0[drive].sects[track][side][ordered_pos].deleted, td0[drive].sects[track][side][ordered_pos].bad_crc);
+					current_pos = d86f_prepare_sector(drive, side, current_pos, id, td0[drive].sects[track][side][ordered_pos].data, ssize, track_gap2, xdf_gap3_sizes[xdf_type][is_trackx], td0[drive].sects[track][side][ordered_pos].deleted, td0[drive].sects[track][side][ordered_pos].bad_crc);
 				}
 			}
 		}
@@ -1193,19 +1194,18 @@ void td0_set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_
 	return;
 }
 
-uint8_t td0_poll_read_data(int drive, int side, uint16_t pos)
-{
-	return td0[drive].sects[td0[drive].track][side][td0[drive].current_sector_index[side]].data[pos];
-}
-
 void d86f_register_td0(int drive)
 {
 	d86f_handler[drive].disk_flags = td0_disk_flags;
 	d86f_handler[drive].side_flags = td0_side_flags;
 	d86f_handler[drive].writeback = null_writeback;
 	d86f_handler[drive].set_sector = td0_set_sector;
-	d86f_handler[drive].read_data = td0_poll_read_data;
-	d86f_handler[drive].write_data = null_poll_write_data;
+	d86f_handler[drive].write_data = null_write_data;
 	d86f_handler[drive].format_conditions = null_format_conditions;
+	d86f_handler[drive].extra_bit_cells = null_extra_bit_cells;
+	d86f_handler[drive].encoded_data = common_encoded_data;
+	d86f_handler[drive].read_revolution = common_read_revolution;
+	d86f_handler[drive].index_hole_pos = null_index_hole_pos;
+	d86f_handler[drive].get_raw_size = common_get_raw_size;
 	d86f_handler[drive].check_crc = 1;
 }

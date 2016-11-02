@@ -273,6 +273,7 @@ static int ioctl_get_last_block(unsigned char starttrack, int msf, int maxlen, i
         DeviceIoControl(hIOCTL,IOCTL_CDROM_READ_TOC, NULL,0,&lbtoc,sizeof(lbtoc),&size,NULL);
         ioctl_close();
         tocvalid=1;
+		d=0;
         for (c=d;c<=lbtoc.LastTrack;c++)
         {
                 uint32_t address;

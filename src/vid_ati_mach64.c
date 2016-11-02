@@ -875,6 +875,7 @@ void mach64_start_fill(mach64_t *mach64)
         mach64->accel.dst_width  = (mach64->dst_height_width >> 16) & 0x1fff;
         mach64->accel.dst_height =  mach64->dst_height_width        & 0x1fff;        
         mach64->accel.x_count = mach64->accel.dst_width;
+        mach64->accel.y_count = mach64->accel.dst_height;
         
         mach64->accel.src_x = 0;
         mach64->accel.src_y = 0;
@@ -2574,7 +2575,6 @@ void mach64_pci_write(int func, int addr, uint8_t val, void *p)
         switch (addr)
         {
                 case PCI_REG_COMMAND:
-		if (romset == ROM_KN97)  return;
                 mach64->pci_regs[PCI_REG_COMMAND] = val & 0x27;
                 if (val & PCI_COMMAND_IO)
                         mach64_io_set(mach64);

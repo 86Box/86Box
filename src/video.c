@@ -28,6 +28,7 @@
 #include "vid_et4000w32.h"
 #include "vid_hercules.h"
 #include "vid_incolor.h"
+#include "vid_colorplus.h"
 #include "vid_mda.h"
 #include "vid_nv_riva128.h"
 #include "vid_nv_rivatnt.h"
@@ -86,6 +87,7 @@ static VIDEO_CARD video_cards[] =
         {"Phoenix S3 Vision864",                   &s3_phoenix_vision864_device,GFX_PHOENIX_VISION864},
         {"Phoenix S3 Trio32",                      &s3_phoenix_trio32_device,   GFX_PHOENIX_TRIO32},
         {"Phoenix S3 Trio64",                      &s3_phoenix_trio64_device,   GFX_PHOENIX_TRIO64},
+        {"Plantronics ColorPlus",                  &colorplus_device,           GFX_COLORPLUS},
         {"S3 ViRGE/DX",                            &s3_virge_375_device,        GFX_VIRGEDX},
         {"Trident TVGA8900D",                      &tvga8900d_device,           GFX_TVGA},
         {"Tseng ET4000AX",                         &et4000_device,              GFX_ET4000},

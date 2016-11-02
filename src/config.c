@@ -121,7 +121,7 @@ void config_load(char *fn)
                 
                 c = 0;
                 
-                while (buffer[c] == ' ' && buffer[c])
+                while (buffer[c] == ' ')
                       c++;
 
                 if (!buffer[c]) continue;
@@ -281,7 +281,6 @@ char *config_get_string(char *head, char *name, char *def)
 {
         section_t *section;
         entry_t *entry;
-        int value;
 
         section = find_section(head);
         

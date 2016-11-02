@@ -1,6 +1,5 @@
 static int opBT_w_r_a16(uint32_t fetchdat)
 {
-        int tempc;
         uint16_t temp;
         
         fetch_ea_16(fetchdat);

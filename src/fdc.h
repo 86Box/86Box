@@ -52,3 +52,5 @@ void fdc_finishcompare(int satisfying);
 void fdc_finishread();
 void fdc_sector_finishcompare(int satisfying);
 void fdc_sector_finishread();
+void fdc_track_finishread(int condition);
+int fdc_is_verify();

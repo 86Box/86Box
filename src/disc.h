@@ -12,8 +12,7 @@ typedef struct
         int (*hole)(int drive);
         double (*byteperiod)(int drive);
         void (*stop)(int drive);
-        void (*poll)();
-	int (*realtrack)(int drive, int track);
+        void (*poll)(int drive);
 } DRIVE;
 
 extern DRIVE drives[2];
@@ -25,23 +24,22 @@ void disc_new(int drive, char *fn);
 void disc_close(int drive);
 void disc_init();
 void disc_reset();
-void disc_poll();
+void disc_poll(int drive);
+void disc_poll_0();
+void disc_poll_1();
 void disc_seek(int drive, int track);
 void disc_readsector(int drive, int sector, int track, int side, int density, int sector_size);
 void disc_writesector(int drive, int sector, int track, int side, int density, int sector_size);
 void disc_comparesector(int drive, int sector, int track, int side, int density, int sector_size);
 void disc_readaddress(int drive, int track, int side, int density);
 void disc_format(int drive, int track, int side, int density, uint8_t fill);
-int disc_realtrack(int drive, int track);
 int disc_hole(int drive);
 double disc_byteperiod(int drive);
 void disc_stop(int drive);
 int disc_empty(int drive);
 void disc_set_rate(int drive, int drvden, int rate);
-void disc_set_drivesel(int drive);
 extern int disc_time;
-extern int64_t disc_poll_time;
-extern int disc_drivesel;
+extern int64_t disc_poll_time[2];
 
 void fdc_callback();
 int  fdc_data(uint8_t dat);
@@ -59,7 +57,7 @@ extern int fdc_ready;
 extern int fdc_indexcount;*/
 
 extern int motorspin;
-extern int64_t motoron;
+extern int64_t motoron[2];
 
 extern int swwp;
 extern int disable_write;
@@ -116,7 +114,7 @@ typedef union {
 	uint8_t bytes[2];
 } crc_t;
 
-void disc_calccrc(int drive, uint8_t byte, crc_t *crc_var);
+void disc_calccrc(uint8_t byte, crc_t *crc_var);
 
 typedef struct
 {
@@ -127,6 +125,11 @@ typedef struct
         uint8_t (*read_data)(int drive, int side, uint16_t pos);
         void (*write_data)(int drive, int side, uint16_t pos, uint8_t data);
 	int (*format_conditions)(int drive);
+	int32_t (*extra_bit_cells)(int drive);
+        uint16_t* (*encoded_data)(int drive, int side);
+	void (*read_revolution)(int drive);
+        uint32_t (*index_hole_pos)(int drive, int side);
+	uint32_t (*get_raw_size)(int drive);
 	uint8_t check_crc;
 } d86f_handler_t;
 
@@ -136,19 +139,17 @@ void d86f_common_handlers(int drive);
 
 int d86f_is_40_track(int drive);
 
-uint8_t* d86f_track_data(int drive, int side);
-uint8_t* d86f_track_layout(int drive, int side);
+void d86f_reset_index_hole_pos(int drive, int side);
 
-uint16_t d86f_prepare_pretrack(int drive, int side, int iso, int write_data);
-uint16_t d86f_prepare_sector(int drive, int side, int pos, uint8_t *id_buf, uint8_t *data_buf, int data_len, int write_data, int gap2, int gap3, int limit, int deleted, int bad_crc);
+uint16_t d86f_prepare_pretrack(int drive, int side, int iso);
+uint16_t d86f_prepare_sector(int drive, int side, int prev_pos, uint8_t *id_buf, uint8_t *data_buf, int data_len, int gap2, int gap3, int deleted, int bad_crc);
 
 int gap3_sizes[5][8][256];
 
 void null_writeback(int drive);
-void null_poll_write_data(int drive, int side, uint16_t pos, uint8_t data);
+void null_write_data(int drive, int side, uint16_t pos, uint8_t data);
 int null_format_conditions(int drive);
 void d86f_unregister(int drive);
-void d86f_reset_index_hole_pos(int drive, int side);
 
 uint8_t dmf_r[21];
 uint8_t xdf_physical_sectors[2][2];
@@ -173,3 +174,13 @@ xdf_sector_t xdf_disk_layout[2][2][38];
 uint32_t td0_get_raw_tsize(int side_flags, int slower_rpm);
 
 void d86f_set_track_pos(int drive, uint32_t track_pos);
+
+int32_t null_extra_bit_cells(int drive);
+uint16_t* common_encoded_data(int drive, int side);
+
+void common_read_revolution(int drive);
+void null_set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n);
+
+uint32_t null_index_hole_pos(int drive, int side);
+
+uint32_t common_get_raw_size(int drive);

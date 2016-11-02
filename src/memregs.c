@@ -25,8 +25,6 @@ uint8_t memregs_read(uint16_t port, void *priv)
 
 void memregs_init()
 {
-	int i = 0;
-
 	pclog("Memory Registers Init\n");
 
         io_sethandler(0x00e1, 0x0002, memregs_read, NULL, NULL, memregs_write, NULL, NULL,  NULL);

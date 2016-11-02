@@ -14,4 +14,3 @@ int fdi_hole(int drive);
 double fdi_byteperiod(int drive);
 void fdi_stop();
 void fdi_poll();
-int fdi_realtrack(int track, int drive);

@@ -231,10 +231,8 @@ void loadnvr()
                 case ROM_MB500N:      f = romfopen(nvr_concat("mb500n.nvr"),      "rb"); nvrmask = 127; break;
                 case ROM_ACERM3A:     f = romfopen(nvr_concat("acerm3a.nvr"),     "rb"); nvrmask = 127; break;
                 case ROM_ACERV35N:    f = romfopen(nvr_concat("acerv35n.nvr"),    "rb"); nvrmask = 127; break;
-                case ROM_P55TVP4:     f = romfopen(nvr_concat("p55tvp4.nvr"),     "rb"); nvrmask = 127; break;
                 case ROM_P55VA:       f = romfopen(nvr_concat("p55va.nvr"),       "rb"); nvrmask = 127; break;
                 case ROM_440FX:       f = romfopen(nvr_concat("440fx.nvr"),       "rb"); nvrmask = 127; break;
-                case ROM_KN97:        f = romfopen(nvr_concat("kn97.nvr"),        "rb"); nvrmask = 127; break;
                 case ROM_MARL:        f = romfopen(nvr_concat("marl.nvr"),        "rb"); nvrmask = 127; break;
                 case ROM_THOR:        f = romfopen(nvr_concat("thor.nvr"),        "rb"); nvrmask = 127; break;
                 default: return;
@@ -301,10 +299,8 @@ void savenvr()
                 case ROM_MB500N:      f = romfopen(nvr_concat("mb500n.nvr"),      "wb"); break;
                 case ROM_ACERM3A:     f = romfopen(nvr_concat("acerm3a.nvr"),     "wb"); break;
                 case ROM_ACERV35N:    f = romfopen(nvr_concat("acerv35n.nvr"),    "wb"); break;
-                case ROM_P55TVP4:     f = romfopen(nvr_concat("p55tvp4.nvr"),     "wb"); break;
                 case ROM_P55VA:       f = romfopen(nvr_concat("p55va.nvr"),       "wb"); break;
                 case ROM_440FX:       f = romfopen(nvr_concat("440fx.nvr"),       "wb"); break;
-                case ROM_KN97:        f = romfopen(nvr_concat("kn97.nvr"),        "wb"); break;
                 case ROM_MARL:        f = romfopen(nvr_concat("marl.nvr"),        "wb"); break;
                 case ROM_THOR:        f = romfopen(nvr_concat("thor.nvr"),        "wb"); break;
                 default: return;

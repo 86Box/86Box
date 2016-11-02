@@ -505,7 +505,7 @@ int indump = 0;
 
 void dumpregs()
 {
-        int c,d=0,e=0,ff;
+        int c,d=0,e=0;
 #ifndef RELEASE_BUILD
         FILE *f;
         if (indump) return;
@@ -644,7 +644,14 @@ void resetx86()
         eflags=0;
         cgate32=0;
         loadcs(0xFFFF);
-        rammask = AT ? 0xFFFFFFFF : 0xfffff;
+	if (AT)
+	{
+		rammask = mem_a20_state ? 0xffffffff : 0xffefffff;
+	}
+	else
+	{
+		rammask = 0xfffff;
+	}
         idt.base = 0;
         flags=2;
         makeznptable();

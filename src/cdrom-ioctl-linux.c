@@ -210,7 +210,7 @@ static int read_toc(int fd, struct cdrom_tocentry *btoc)
 	first_track = toc_hdr.cdth_trk0;
 	last_track = toc_hdr.cdth_trk1;
 //pclog("read_toc: first_track=%i last_track=%i\n", first_track, last_track);
-	memset(btoc, 0, sizeof(btoc));
+	memset(btoc, 0, sizeof(cdrom_tocentry));
 
 	for (track = toc_hdr.cdth_trk0; track <= toc_hdr.cdth_trk1; track++)
 	{

@@ -1802,7 +1802,6 @@ static void FP_LOAD_S()
                 addbyte(0xdd); /*FSTP ST[reg][EBP]*/
                 addbyte(0x5d);
                 addbyte(cpu_state_offset(ST[(cpu_state.TOP - 1) & 7]));
-                block_current = block_current;
         }
         else
         {

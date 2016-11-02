@@ -3711,7 +3711,6 @@ static void s3_virge_pci_write(int func, int addr, uint8_t val, void *p)
                 return;
                 
                 case PCI_REG_COMMAND:
-		if (romset == ROM_KN97)  return;
                 if (val & PCI_COMMAND_IO)
                 {
                         io_removehandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);

@@ -280,25 +280,12 @@ void *intel_flash_init(uint8_t type)
 		case ROM_MB500N:
 			strcpy(flash_path, "roms/mb500n/");
 			break;
-#if 0
-		case ROM_P54TP4XE:
-			strcpy(flash_path, "roms/p54tp4xe/");
-			break;
-#endif
 		case ROM_ACERM3A:
 			strcpy(flash_path, "roms/acerm3a/");
 			break;
 		case ROM_ACERV35N:
 			strcpy(flash_path, "roms/acerv35n/");
 			break;
-		case ROM_P55TVP4:
-			strcpy(flash_path, "roms/p55tvp4/");
-			break;
-#if 0
-		case ROM_P55T2P4:
-			strcpy(flash_path, "roms/p55t2p4/");
-			break;
-#endif
 		case ROM_430VX:
 			strcpy(flash_path, "roms/430vx/");
 			break;
@@ -307,9 +294,6 @@ void *intel_flash_init(uint8_t type)
 			break;
 		case ROM_440FX:
 			strcpy(flash_path, "roms/440fx/");
-			break;
-		case ROM_KN97:
-			strcpy(flash_path, "roms/kn97/");
 			break;
 		case ROM_MARL:
 			strcpy(flash_path, "roms/marl/");
@@ -394,7 +378,6 @@ void *intel_flash_init(uint8_t type)
         }
 
 	/* Load the DMI block. */
-	memset(fpath, 0, 1024);
 	strcpy(fpath, flash_path);
 	strcat(fpath, "dmi.bin");
         f = romfopen(fpath, "rb");
@@ -405,7 +388,6 @@ void *intel_flash_init(uint8_t type)
         }
 
 	/* Load the ESCD block. */
-	memset(fpath, 0, 1024);
 	strcpy(fpath, flash_path);
 	strcat(fpath, "escd.bin");
         f = romfopen(fpath, "rb");
@@ -460,7 +442,6 @@ void intel_flash_close(void *p)
         fclose(f);
 
 	/* Save the DMI block. */
-	memset(fpath, 0, 1024);
 	strcpy(fpath, flash_path);
 	strcat(fpath, "dmi.bin");
         f = romfopen(fpath, "wb");
@@ -468,7 +449,6 @@ void intel_flash_close(void *p)
        	fclose(f);
 
 	/* Save the ESCD block. */
-	memset(fpath, 0, 1024);
 	strcpy(fpath, flash_path);
 	strcat(fpath, "escd.bin");
         f = romfopen(fpath, "wb");

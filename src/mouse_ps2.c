@@ -26,7 +26,6 @@ static struct
         uint8_t flags;
         uint8_t resolution;
         uint8_t sample_rate;
-	uint8_t type;
         
         uint8_t command;
         

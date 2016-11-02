@@ -57,7 +57,6 @@ void CopySurface(IDirectDrawSurface4 *pDDSurface)
 void DoubleLines(uint8_t *dst, uint8_t *src)
 {
 	int i = 0;
-	uint8_t temp_buf[8320];
 	for (i = 0; i < ys; i++)
 	{
 		memcpy(dst + (i * xs * 8), src + (i * xs * 4), xs * 4);

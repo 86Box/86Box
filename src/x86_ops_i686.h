@@ -255,14 +255,14 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 		/* FXSAVE */
 		// pclog("FXSAVE issued\n");
 
-		if (twd & 0x0003 == 0x0003)  ftwb |= 0x01;
-		if (twd & 0x000C == 0x000C)  ftwb |= 0x02;
-		if (twd & 0x0030 == 0x0030)  ftwb |= 0x04;
-		if (twd & 0x00C0 == 0x00C0)  ftwb |= 0x08;
-		if (twd & 0x0300 == 0x0300)  ftwb |= 0x10;
-		if (twd & 0x0C00 == 0x0C00)  ftwb |= 0x20;
-		if (twd & 0x3000 == 0x3000)  ftwb |= 0x40;
-		if (twd & 0xC000 == 0xC000)  ftwb |= 0x80;
+		if ((twd & 0x0003) == 0x0003)  ftwb |= 0x01;
+		if ((twd & 0x000C) == 0x000C)  ftwb |= 0x02;
+		if ((twd & 0x0030) == 0x0030)  ftwb |= 0x04;
+		if ((twd & 0x00C0) == 0x00C0)  ftwb |= 0x08;
+		if ((twd & 0x0300) == 0x0300)  ftwb |= 0x10;
+		if ((twd & 0x0C00) == 0x0C00)  ftwb |= 0x20;
+		if ((twd & 0x3000) == 0x3000)  ftwb |= 0x40;
+		if ((twd & 0xC000) == 0xC000)  ftwb |= 0x80;
 
                 writememw(easeg,cpu_state.eaaddr,cpu_state.npxc);
                 writememw(easeg,cpu_state.eaaddr+2,cpu_state.npxs);
@@ -431,14 +431,14 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 		/* FXSAVE */
 		// pclog("FXSAVE issued\n");
 
-		if (twd & 0x0003 == 0x0003)  ftwb |= 0x01;
-		if (twd & 0x000C == 0x000C)  ftwb |= 0x02;
-		if (twd & 0x0030 == 0x0030)  ftwb |= 0x04;
-		if (twd & 0x00C0 == 0x00C0)  ftwb |= 0x08;
-		if (twd & 0x0300 == 0x0300)  ftwb |= 0x10;
-		if (twd & 0x0C00 == 0x0C00)  ftwb |= 0x20;
-		if (twd & 0x3000 == 0x3000)  ftwb |= 0x40;
-		if (twd & 0xC000 == 0xC000)  ftwb |= 0x80;
+		if ((twd & 0x0003) == 0x0003)  ftwb |= 0x01;
+		if ((twd & 0x000C) == 0x000C)  ftwb |= 0x02;
+		if ((twd & 0x0030) == 0x0030)  ftwb |= 0x04;
+		if ((twd & 0x00C0) == 0x00C0)  ftwb |= 0x08;
+		if ((twd & 0x0300) == 0x0300)  ftwb |= 0x10;
+		if ((twd & 0x0C00) == 0x0C00)  ftwb |= 0x20;
+		if ((twd & 0x3000) == 0x3000)  ftwb |= 0x40;
+		if ((twd & 0xC000) == 0xC000)  ftwb |= 0x80;
 
                 writememw(easeg,cpu_state.eaaddr,cpu_state.npxc);
                 writememw(easeg,cpu_state.eaaddr+2,cpu_state.npxs);

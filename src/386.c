@@ -232,7 +232,6 @@ void exec386(int cycs)
 /*                        testr[8]=flags;*/
 //                oldcs2=oldcs;
 //                oldpc2=oldpc;
-opcode_realstart:
                 oldcs=CS;
                 cpu_state.oldpc = cpu_state.pc;
                 oldcpl=CPL;
@@ -243,7 +242,6 @@ dontprint=0;
                 cpu_state.ea_seg = &_ds;
                 cpu_state.ssegs = 0;
                 
-opcodestart:
                 fetchdat = fastreadl(cs + cpu_state.pc);
 
                 if (!cpu_state.abrt)

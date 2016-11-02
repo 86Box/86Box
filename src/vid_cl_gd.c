@@ -208,7 +208,7 @@ uint8_t clgd_in(uint16_t addr, void *p)
         clgd_t *clgd = (clgd_t *)p;
         svga_t *svga = &clgd->svga;
 
-        if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3d0) && !(svga->miscout & 1)) 
+        if ((((addr & 0xfff0) == 0x3d0) || (addr & 0xfff0) == 0x3d0) && !(svga->miscout & 1)) 
                 addr ^= 0x60;
         
         // if (addr != 0x3da) pclog("IN clgd %04X\n", addr);

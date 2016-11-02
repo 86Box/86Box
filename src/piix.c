@@ -35,7 +35,6 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
                 switch (addr)
                 {
                         case 0x04:
-			if (val & 0x10)  resetide();		/* Only the ASUS boards attempt to modify this register - reset IDE when that happens. Fixes soft reset on the ASUS boards. */
                         card_piix_ide[0x04] = (card_piix_ide[0x04] & ~5) | (val & 5);
                         break;
                         case 0x07:
@@ -52,18 +51,6 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
                         card_piix_ide[0x21] = val;
                         break;
                         
-#if 0
-			case 0x33:
-			/* Note by OBattler: This is a hack, but it's needed to reset the cylinders of the IDE devices. */
-			if (romset != ROM_P55T2P4)  break;
-			if (val != piix_33)
-			{
-				resetide();
-			}
-			piix_33 = val;
-			break;
-#endif
-
                         case 0x40:
                         card_piix_ide[0x40] = val;
                         break;

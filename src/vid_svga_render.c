@@ -161,7 +161,6 @@ void svga_render_text_40_12(svga_t *svga)
 
 void svga_render_text_80(svga_t *svga)
 {
-	FILE *f;
 	int y_add = (enable_overscan) ? 16 : 0;
 	int x_add = y_add >> 1;
 
@@ -228,7 +227,6 @@ void svga_render_text_80(svga_t *svga)
 
 void svga_render_text_80_12(svga_t *svga)
 {
-	FILE *f;
 	int y_add = (enable_overscan) ? 16 : 0;
 	int x_add = (enable_overscan) ? 12 : 0;
 

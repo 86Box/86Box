@@ -194,7 +194,7 @@ void fdc37c932fr_write(uint16_t port, uint8_t val, void *priv)
 			else
 			{
 				valxor = val ^ fdc37c932fr_ld_regs[fdc37c932fr_regs[7]][fdc37c932fr_curreg];
-				if ((fdc37c932fr_curreg & 0xF0 == 0x70) && (fdc37c932fr_regs[7] < 4))  return;
+				if (((fdc37c932fr_curreg & 0xF0) == 0x70) && (fdc37c932fr_regs[7] < 4))  return;
 				/* Block writes to IDE configuration. */
 				if (fdc37c932fr_regs[7] == 1)  return;
 				if (fdc37c932fr_regs[7] == 2)  return;
@@ -474,6 +474,7 @@ void fdc37c932fr_init()
 	fdc_update_rwc(1, 0);
 	fdc_update_drvrate(0, 0);
 	fdc_update_drvrate(1, 0);
+	fdc_update_max_track(79);
         io_sethandler(0xe0, 0x0006, fdc37c932fr_gpio_read, NULL, NULL, fdc37c932fr_gpio_write, NULL, NULL,  NULL);
         io_sethandler(0xea, 0x0002, fdc37c932fr_gpio_read, NULL, NULL, fdc37c932fr_gpio_write, NULL, NULL,  NULL);
         io_sethandler(0x3f0, 0x0002, fdc37c932fr_read, NULL, NULL, fdc37c932fr_write, NULL, NULL,  NULL);

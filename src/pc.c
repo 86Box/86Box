@@ -273,7 +273,7 @@ void initpc(int argc, char *argv[])
         sound_reset();
 	fdc_init();
 	disc_init();
-        fdi_init();
+	fdi_init();
         img_init();
         d86f_init();
 	td0_init();

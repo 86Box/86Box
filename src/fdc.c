@@ -12,9 +12,24 @@
 #include "pic.h"
 #include "timer.h"
 
-extern int64_t motoron;
+extern int64_t motoron[2];
 
 int ui_writeprot[2] = {0, 0};
+
+int command_has_drivesel[256] = {	[0x02] = 1,			/* READ TRACK */
+					[0x04] = 1,			/* SENSE DRIVE STATUS */
+					[0x05] = 1,			/* WRITE DATA */
+					[0x06] = 1,			/* READ DATA */
+					[0x07] = 1,			/* RECALIBRATE */
+					[0x09] = 1,			/* WRITE DELETED DATA */
+					[0x0A] = 1,			/* READ ID */
+					[0x0C] = 1,			/* READ DELETED DATA */
+					[0x0D] = 1,			/* FORMAT TRACK */
+					[0x0F] = 1,			/* SEEK, RELATIVE SEEK */
+					[0x11] = 1,			/* SCAN EQUAL */
+					[0x16] = 1,			/* VERIFY */
+					[0x19] = 1,			/* SCAN LOW OR EQUAL */
+					[0x1D] = 1	};		/* SCAN HIGH OR EQUAL */
 
 static int fdc_reset_stat = 0;
 /*FDC*/
@@ -239,7 +254,6 @@ int fdc_get_format_sectors()
 
 void fdc_reset_fifo_buf()
 {
-	int i = 0;
 	memset(fdc.fifobuf, 0, 16);
 	fdc.fifobufpos = 0;
 }
@@ -346,7 +360,6 @@ void fdc_update_enh_mode(int enh_mode)
 int fdc_get_rwc(int drive)
 {
 	return fdc.rwc[drive];
-	fdc_rate(drive);
 }
 
 void fdc_update_rwc(int drive, int rwc)
@@ -525,8 +538,6 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
 //        pclog("Write FDC %04X %02X %04X:%04X %i %02X %i rate=%i  %i\n",addr,val,cs>>4,pc,ins,fdc.st0,ins,fdc.rate, fdc.data_ready);
 	int drive;
 	int seek_time;
-	int temp_drive;
-	int temp_motoron;
 
         switch (addr&7)
         {
@@ -551,8 +562,12 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 discint=-1;
                                 fdc_reset();
                         }
-                        motoron = val & 0x01;
-                        fdc.drive = 0;
+			if (!fdd_get_flags(0))
+			{
+				val &= 0xfe;
+			}
+                        motoron[0] = val & 0x01;
+                        // fdc.drive = 0;
 /*                        if (motoron)
                                 output = 3;
                         else
@@ -577,25 +592,17 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
 			timer_process();
 			timer_update_outstanding();
 			val &= 0x3f;		/* Drives 2 and 3 are not emulated, so their motors are always forced off. */
-			temp_drive = val & 3;
-			temp_motoron = 0x10 << temp_drive;
-			temp_motoron = val & temp_motoron;
-			motoron = 0;
-			if (temp_motoron && (temp_drive <= 1))
+			/* We can now simplify this since each motor now spins separately. */
+			if (!fdd_get_flags(0 ^ fdd_swap))
 			{
-				/* Selected drive is drive 0 or 1 and has motor on bit set too, change drive selection. */
-	                        fdc.drive = temp_drive;
-        	                disc_drivesel = fdc.drive;
-                	        disc_set_drivesel(fdc.drive);
-	                        motoron = (val & 0xf0) ? 1 : 0;
-				val &= 0x3f;
+				val &= 0x2f;
 			}
-			else
+			if (!fdd_get_flags(1 ^ fdd_swap))
 			{
-				/* Selected drive is either drive 2 or 3 or has motor on bit clear, turn off the motor. */
-				motoron = 0;
-				val &= 0x0f;
+				val &= 0x1f;
 			}
+			motoron[0] = (val & 0x10);
+			motoron[1] = (val & 0x20);
                 }
                 fdc.dor=val;
                 // printf("DOR now %02X\n",val);
@@ -809,22 +816,15 @@ bad_command:
         			timer_process();
        				disctime = 1024 * (1 << TIMER_SHIFT);
         			timer_update_outstanding();
-//                                fdc.drive = fdc.params[0] & 3;
+				if (command_has_drivesel[discint & 0x1F])
+				{
+	                                fdc.drive = fdc.params[0] & 3;
+				}
                                 fdc_reset_stat = 0;
-				if (fdc.dor & (0x10 << fdc.drive))
-				{
-					motoron = 0;
-					disc_drivesel = fdc.drive;
-					disc_set_drivesel(fdc.drive);
-					motoron = 1;
-				}
-				else
-				{
-					motoron = 0;
-				}
                                 switch (discint & 0x1F)
                                 {
                                         case 2: /*Read a track*/
+					fdc_reset_fifo_buf();
 					fdc_rate(fdc.drive);
                                         fdc.head=fdc.params[2];
 					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
@@ -877,6 +877,7 @@ bad_command:
 
                                         case 5: /*Write data*/
                                         case 9: /*Write deleted data*/
+					fdc_reset_fifo_buf();
 					fdc_rate(fdc.drive);
                                         fdc.head=fdc.params[2];
 					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
@@ -900,12 +901,24 @@ bad_command:
                 	                fdc.pos = 0;
 	                                if (fdc.pcjr)
 	                                        fdc.stat = 0xb0;
+					else
+					{
+						if (fdc.dma)
+						{
+		                                        fdc.stat = 0x90;
+						}
+						else
+						{
+		                                        fdc.stat = 0xb0;
+						}
+					}
         	                        // ioc_fiq(IOC_FIQ_DISC_DATA);
                                         break;
                                         
                                         case 0x11: /*Scan equal*/
                                         case 0x19: /*Scan low or equal*/
                                         case 0x1D: /*Scan high or equal*/
+					fdc_reset_fifo_buf();
 					fdc_rate(fdc.drive);
                                         fdc.head=fdc.params[2];
 					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
@@ -929,6 +942,17 @@ bad_command:
                 	                fdc.pos = 0;
 	                                if (fdc.pcjr)
 	                                        fdc.stat = 0xb0;
+					else
+					{
+						if (fdc.dma)
+						{
+		                                        fdc.stat = 0x90;
+						}
+						else
+						{
+		                                        fdc.stat = 0xb0;
+						}
+					}
         	                        // ioc_fiq(IOC_FIQ_DISC_DATA);
                                         break;
                                         
@@ -936,6 +960,7 @@ bad_command:
 					if (fdc.params[0] & 0x80)  fdc.sc = fdc.params[7];
                                         case 6: /*Read data*/
                                         case 0xC: /*Read deleted data*/
+					fdc_reset_fifo_buf();
 					fdc_rate(fdc.drive);
                                         fdc.head=fdc.params[2];
 					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
@@ -1176,7 +1201,7 @@ void fdc_poll_readwrite_finish(int compare)
 		fdc.res[6] |= 0x40;
 		fdc.wrong_am = 0;
 	}
-	if (compare)
+	if (compare == 1)
 	{
 		if (!fdc.satisfying_sectors)
 		{
@@ -1185,6 +1210,18 @@ void fdc_poll_readwrite_finish(int compare)
 		else if (fdc.satisfying_sectors == (fdc.params[5] << ((fdc.command & 80) ? 1 : 0)))
 		{
 			fdc.res[6] |= 8;
+		}
+	}
+	else if (compare == 2)
+	{
+		if (fdc.satisfying_sectors & 1)
+		{
+			fdc.res[5] |= 0x20;
+		}
+		if (fdc.satisfying_sectors & 2)
+		{
+			fdc.res[5] |= 0x20;
+			fdc.res[6] |= 0x20;
 		}
 	}
         fdc.res[7]=fdc.rw_track;
@@ -1208,7 +1245,7 @@ void fdc_no_dma_end(int compare)
 		fdc.res[6] |= 0x40;
 		fdc.wrong_am = 0;
 	}
-	if (compare)
+	if (compare == 1)
 	{
 		if (!fdc.satisfying_sectors)
 		{
@@ -1217,6 +1254,18 @@ void fdc_no_dma_end(int compare)
 		else if (fdc.satisfying_sectors == (fdc.params[5] << ((fdc.command & 80) ? 1 : 0)))
 		{
 			fdc.res[6] |= 8;
+		}
+	}
+	else if (compare == 2)
+	{
+		if (fdc.satisfying_sectors & 1)
+		{
+			fdc.res[5] |= 0x20;
+		}
+		if (fdc.satisfying_sectors & 2)
+		{
+			fdc.res[5] |= 0x20;
+			fdc.res[6] |= 0x20;
 		}
 	}
         fdc.res[7]=fdc.rw_track;
@@ -1259,7 +1308,7 @@ void fdc_callback()
 //                pclog("Read a track callback, eot=%i\n", fdc.eot[fdc.drive]);
                 if (!fdc.eot[fdc.drive] || fdc.tc)
                 {
-			fdc_poll_readwrite_finish(0);
+			fdc_poll_readwrite_finish(2);
                         return;
                 }
                 else
@@ -1587,6 +1636,11 @@ void fdc_overrun()
         paramstogo=7;
 }
 
+int fdc_is_verify()
+{
+	return (fdc.deleted & 2) ? 1 : 0;
+}
+
 int fdc_data(uint8_t data)
 {
 	if (fdc.deleted & 2)
@@ -1662,6 +1716,14 @@ void fdc_finishread()
 {
         fdc.inread = 0;
         disctime = 200 * TIMER_USEC;
+//        rpclog("fdc_finishread\n");
+}
+
+void fdc_track_finishread(int condition)
+{
+	fdc.satisfying_sectors |= condition;
+        fdc.inread = 0;
+	fdc_callback();
 //        rpclog("fdc_finishread\n");
 }
 

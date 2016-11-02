@@ -604,12 +604,12 @@ void cpu_set()
 
         if (cpu_s->pci_speed)
         {
-                pci_nonburst_time = 3*cpu_s->rspeed / cpu_s->pci_speed;
+                pci_nonburst_time = 4*cpu_s->rspeed / cpu_s->pci_speed;
                 pci_burst_time = cpu_s->rspeed / cpu_s->pci_speed;
         }
         else
         {
-                pci_nonburst_time = 3;
+                pci_nonburst_time = 4;
                 pci_burst_time = 1;
         }
         pclog("PCI burst=%i nonburst=%i\n", pci_burst_time, pci_nonburst_time);

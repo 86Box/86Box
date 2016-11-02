@@ -461,13 +461,13 @@ uint32_t ne2000_chipmem_read(ne2000_t *ne2000, uint32_t address, unsigned int io
 
   // ROM'd MAC address
   if ((address >=0) && (address <= 31)) {
-    retval = ne2000->macaddr[address];
+    retval = ne2000->macaddr[address % 32];
     if ((io_len == 2) || (io_len == 4)) {
-      retval |= (ne2000->macaddr[address + 1] << 8);
+      retval |= (ne2000->macaddr[(address + 1) % 32] << 8);
     }
     if (io_len == 4) {
-      retval |= (ne2000->macaddr[address + 2] << 16);
-      retval |= (ne2000->macaddr[address + 3] << 24);
+      retval |= (ne2000->macaddr[(address + 2) % 32] << 16);
+      retval |= (ne2000->macaddr[(address + 3) % 32] << 24);
     }
     return (retval);
   }

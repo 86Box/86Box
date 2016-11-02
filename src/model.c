@@ -98,12 +98,10 @@ void     at_mb500n_init();
 void    at_acerm3a_init();
 void   at_acerv35n_init();
 // void    at_p55t2p4_init();
-void    at_p55tvp4_init();
+// void    at_p55tvp4_init();
 void       at_marl_init();
 void      at_p55va_init();
 void     at_i440fx_init();
-void       at_kn97_init();
-void  at_deskpro2k_init();
 
 int model;
 
@@ -165,11 +163,9 @@ MODEL models[] =
         // {"ASUS P/I-P55T2P4",    ROM_P55T2P4,  { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 512, 1,     at_p55t2p4_init},
         {"Award 430VX PCI",     ROM_430VX,       { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 256, 1,      at_i430vx_init},
         {"Epox P55-VA",         ROM_P55VA,       { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 256, 1,       at_p55va_init},
-        {"ASUS P/I-P55TVP4",    ROM_P55TVP4,     { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 256, 1,     at_p55tvp4_init},
+/*        {"ASUS P/I-P55TVP4",    ROM_P55TVP4,     { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 256, 1,     at_p55tvp4_init}, */
         {"Award 440FX PCI",     ROM_440FX,       { "Intel", cpus_PentiumPro,    "",    NULL,         "",      NULL},         0, 1,   1, 1024, 1,    at_i440fx_init},
-        {"Award KN97 (440FX PCI)",ROM_KN97,      { "Intel", cpus_PentiumPro,    "",    NULL,         "",      NULL},         0, 1,   1, 1024, 1,    at_kn97_init},
         // {"Award 440FX PCI",     ROM_440FX,     { "Intel", cpus_PentiumPro,"Klamath",    cpus_Pentium2,         "Deschutes",      cpus_Pentium2D},         0, 1,   1, 1024, 1,    at_i440fx_init},
-        // {"Award KN97 (440FX PCI)",ROM_KN97,    { "Intel", cpus_PentiumPro,"Klamath",    cpus_Pentium2,         "Deschutes",      cpus_Pentium2D},         0, 1,   1, 1024, 1,    at_kn97_init},
         {"", -1, {"", 0, "", 0, "", 0}, 0,0,0, 0}
 };
 
@@ -596,6 +592,7 @@ void at_i430vx_init()
 
 // rom_t ami_ec_rom;
 
+#if 0
 void at_p55tvp4_init()
 {
         at_init();
@@ -614,6 +611,7 @@ void at_p55tvp4_init()
 
 	if (cdrom_channel >= 4)  ide_ter_init();
 }
+#endif
 
 void at_p55va_init()
 {
@@ -637,19 +635,6 @@ void at_i440fx_init()
         i440fx_init();
         piix3_init(7);
 	fdc37c665_init();
-        device_add(&intel_flash_bxt_device);
-	if (cdrom_channel >= 4)  ide_ter_init();
-}
-
-void at_kn97_init()
-{
-        at_init();
-	memregs_init();
-	mouse_always_serial ? mouse_serial_init() : mouse_ps2_init();
-        pci_init(PCI_CONFIG_TYPE_1, 0, 31);
-        i440fx_init();
-        piix3_init(7);
-	w83877f_init();
         device_add(&intel_flash_bxt_device);
 	if (cdrom_channel >= 4)  ide_ter_init();
 }

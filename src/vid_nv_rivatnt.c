@@ -1153,7 +1153,6 @@ static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
     return;
 
     case PCI_REG_COMMAND:
-    if (romset == ROM_KN97)  return;
     rivatnt->pci_regs[PCI_REG_COMMAND] = val & 0x27;
     if (val & PCI_COMMAND_IO)
     {

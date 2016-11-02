@@ -14,11 +14,6 @@ static struct
 
 	int densel;
 
-	int drate;
-
-	int kbps;
-	int fdc_kbps;
-
 	int head;
 } fdd[2];
 
@@ -63,19 +58,19 @@ static struct
         },
         {       /*3.5" DD*/
                 .max_track = 86,
-		.flags = FLAG_RPM_300 | FLAG_HOLE0
+		.flags = FLAG_RPM_300 | FLAG_HOLE0 | FLAG_DOUBLE_STEP
         },
         {       /*3.5" HD*/
                 .max_track = 86,
-		.flags = FLAG_RPM_300 | FLAG_HOLE0 | FLAG_HOLE1
+		.flags = FLAG_RPM_300 | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP
         },
         {       /*3.5" HD 3-Mode*/
                 .max_track = 86,
-		.flags = FLAG_RPM_300 | FLAG_RPM_360 | FLAG_HOLE0 | FLAG_HOLE1
+		.flags = FLAG_RPM_300 | FLAG_RPM_360 | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP
         },
         {       /*3.5" ED*/
                 .max_track = 86,
-		.flags = FLAG_RPM_300 | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_HOLE2
+		.flags = FLAG_RPM_300 | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_HOLE2 | FLAG_DOUBLE_STEP
         }
 };
 
@@ -186,7 +181,7 @@ int fdd_can_read_medium(int drive)
 
 int fdd_doublestep_40(int drive)
 {
-        return drive_types[fdd[drive].type].flags & FLAG_DOUBLE_STEP;
+        return (drive_types[fdd[drive].type].flags & FLAG_DOUBLE_STEP) ? 1 : 0;
 }
 
 void fdd_set_type(int drive, int type)
