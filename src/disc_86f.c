@@ -2609,6 +2609,7 @@ void d86f_writeback(int drive)
 
 		fseek(d86f[drive].f, 0, SEEK_END);
 		len = ftell(d86f[drive].f);
+		len -= header_size;
 
 		fseek(d86f[drive].f, header_size, SEEK_SET);
 
@@ -2637,8 +2638,10 @@ void d86f_writeback(int drive)
 		fseek(cf, 8, SEEK_SET);
 		fwrite(&crc64, 1, 8, cf);
 
+		fseek(cf, 0, SEEK_SET);
 		d86f[drive].filebuf = (uint8_t *) malloc(len);
 		fread(d86f[drive].filebuf, 1, len, cf);
+		*(uint64_t *) &(d86f[drive].filebuf[8]) = 0xffffffffffffffff;
 
 		crc64 = (uint64_t) crc64speed(0, d86f[drive].filebuf, len);
 		free(d86f[drive].filebuf);
@@ -2660,8 +2663,10 @@ void d86f_writeback(int drive)
 		fseek(d86f[drive].f, 8, SEEK_SET);
 		fwrite(&crc64, 1, 8, d86f[drive].f);
 
+		fseek(d86f[drive].f, 0, SEEK_SET);
 		d86f[drive].filebuf = (uint8_t *) malloc(len);
 		fread(d86f[drive].filebuf, 1, len, d86f[drive].f);
+		*(uint64_t *) &(d86f[drive].filebuf[8]) = 0xffffffffffffffff;
 
 		crc64 = (uint64_t) crc64speed(0, d86f[drive].filebuf, len);
 		free(d86f[drive].filebuf);

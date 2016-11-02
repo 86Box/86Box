@@ -17,7 +17,7 @@ enum
 
 #define NR_HOST_REGS 4
 extern int host_reg_mapping[NR_HOST_REGS];
-#define NR_HOST_XMM_REGS 7
+#define NR_HOST_XMM_REGS 8
 extern int host_reg_xmm_mapping[NR_HOST_XMM_REGS];
 
 extern uint32_t mem_load_addr_ea_b;
