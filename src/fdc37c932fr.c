@@ -297,7 +297,6 @@ process_value:
 						{
 							ld_port = make_port(4);
 							serial1_set(ld_port, fdc37c932fr_ld_regs[4][0x70]);
-							mouse_serial_init();
 						}
 					}
 					break;
@@ -308,7 +307,6 @@ process_value:
 					{
 						ld_port = make_port(4);
 						serial1_set(ld_port, fdc37c932fr_ld_regs[4][0x70]);
-						mouse_serial_init();
 					}
 					break;
 			}

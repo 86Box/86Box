@@ -25,8 +25,8 @@ void mouse_serial_poll(int x, int y, int b)
 
         /*Use Microsoft format*/
         mousedat[0]=0x40;
-        mousedat[0]|=(((y / 64)&3)<<2);
-        mousedat[0]|=((x / 64)&3);
+        mousedat[0]|=(((y>>6)&3)<<2);
+        mousedat[0]|=((x>>6)&3);
         if (b&1) mousedat[0]|=0x20;
         if (b&2) mousedat[0]|=0x10;
         mousedat[1]=x&0x3F;

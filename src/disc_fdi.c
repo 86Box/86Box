@@ -81,14 +81,11 @@ uint16_t fdi_side_flags(int drive)
 	return temp_side_flags;
 }
 
-int32_t fdi_extra_bit_cells(int drive)
+int32_t fdi_extra_bit_cells(int drive, int side)
 {
-	int side = 0;
 	int density = 0;
 
 	int raw_size = 0;
-
-	side = fdd_get_head(drive);
 
 	switch (fdc_get_bit_rate())
 	{
@@ -189,12 +186,9 @@ uint32_t fdi_index_hole_pos(int drive, int side)
 	return fdi[drive].trackindex[side][density];
 }
 
-uint32_t fdi_get_raw_size(int drive)
+uint32_t fdi_get_raw_size(int drive, int side)
 {
-	int side = 0;
 	int density;
-
-	side = fdd_get_head(drive);
 
 	switch (fdc_get_bit_rate())
 	{

@@ -125,11 +125,11 @@ typedef struct
         uint8_t (*read_data)(int drive, int side, uint16_t pos);
         void (*write_data)(int drive, int side, uint16_t pos, uint8_t data);
 	int (*format_conditions)(int drive);
-	int32_t (*extra_bit_cells)(int drive);
+	int32_t (*extra_bit_cells)(int drive, int side);
         uint16_t* (*encoded_data)(int drive, int side);
 	void (*read_revolution)(int drive);
         uint32_t (*index_hole_pos)(int drive, int side);
-	uint32_t (*get_raw_size)(int drive);
+	uint32_t (*get_raw_size)(int drive, int side);
 	uint8_t check_crc;
 } d86f_handler_t;
 
@@ -175,7 +175,7 @@ uint32_t td0_get_raw_tsize(int side_flags, int slower_rpm);
 
 void d86f_set_track_pos(int drive, uint32_t track_pos);
 
-int32_t null_extra_bit_cells(int drive);
+int32_t null_extra_bit_cells(int drive, int side);
 uint16_t* common_encoded_data(int drive, int side);
 
 void common_read_revolution(int drive);
@@ -183,4 +183,4 @@ void null_set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8
 
 uint32_t null_index_hole_pos(int drive, int side);
 
-uint32_t common_get_raw_size(int drive);
+uint32_t common_get_raw_size(int drive, int side);
