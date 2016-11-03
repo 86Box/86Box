@@ -176,7 +176,7 @@ static struct __attribute__((packed))
         FILE *f;
 	uint16_t version;
 	uint16_t disk_flags;
-	int16_t extra_bit_cells;
+	int32_t extra_bit_cells;
         uint16_t track_encoded_data[2][53048];
         uint16_t track_surface_data[2][53048];
         uint16_t thin_track_encoded_data[2][2][53048];
@@ -819,7 +819,7 @@ uint32_t d86f_header_size(int drive)
 	uint32_t temp = 16;
 	if (d86f_has_extra_bit_cells(drive))
 	{
-		temp += 2;
+		temp += 4;
 	}
 	return temp;
 }
@@ -3025,8 +3025,11 @@ void d86f_load(int drive, char *fn)
 
 		if (d86f[drive].disk_flags & 0x80)
 		{
-			fread(&temp, 1, 2, tf);
-			fwrite(&temp, 1, 2, d86f[drive].f);
+			for (i = 0; i < 2; i++)
+			{
+				fread(&temp, 1, 2, tf);
+				fwrite(&temp, 1, 2, d86f[drive].f);
+			}
 		}
 
 		// temp = d86f_zlib(d86f[drive].f, tf, 1);
@@ -3104,11 +3107,11 @@ void d86f_load(int drive, char *fn)
 	d86f[drive].extra_bit_cells = 0;
 	if (d86f[drive].disk_flags & 0x80)
 	{
-		fread(&(d86f[drive].extra_bit_cells), 1, 2, d86f[drive].f);
+		fread(&(d86f[drive].extra_bit_cells), 1, 4, d86f[drive].f);
 
-		if (d86f[drive].extra_bit_cells < -2048)
+		if (d86f[drive].extra_bit_cells < -32768)
 		{
-			pclog("86F: Extra bit cells smaller than -2048\n");
+			pclog("86F: Extra bit cells smaller than -32768\n");
 			fclose(d86f[drive].f);
 			if (d86f[drive].is_compressed)
 			{
@@ -3116,9 +3119,9 @@ void d86f_load(int drive, char *fn)
 			}
 			return;
 		}
-		if (d86f[drive].extra_bit_cells > 2048)
+		if (d86f[drive].extra_bit_cells > 32768)
 		{
-			pclog("86F: Extra bit cells bigger than 2048\n");
+			pclog("86F: Extra bit cells bigger than 32768\n");
 			fclose(d86f[drive].f);
 			if (d86f[drive].is_compressed)
 			{
