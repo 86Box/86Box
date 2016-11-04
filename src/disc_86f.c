@@ -2552,7 +2552,7 @@ void d86f_write_track(int drive, int side, uint16_t *da0, uint16_t *sa0)
 
 	fwrite(&(d86f[drive].side_flags[side]), 1, 2, d86f[drive].f);
 
-	if (d86f_has_surface_desc(drive))
+	if (d86f_has_extra_bit_cells(drive))
 	{
 		fwrite(&(d86f[drive].extra_bit_cells[side]), 1, 4, d86f[drive].f);
 	}

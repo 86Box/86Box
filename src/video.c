@@ -61,8 +61,6 @@ static VIDEO_CARD video_cards[] =
         {"ATI VGA Charger (ATI-28800-5)",          &ati28800_device,            GFX_VGACHARGER},
         {"ATI VGA Wonder XL24 (ATI-28800-6)",      &ati28800_wonderxl24_device, GFX_VGAWONDERXL24},
         {"ATI VGA Edge-16 (ATI-18800)",            &ati18800_device,            GFX_VGAEDGE16},
-        {"Cardex 1703-DDC (ET4000/W32P)",          &et4000w32pc_device,         GFX_ET4000W32C},
-        {"Cardex ICS5341 (ET4000/W32P)",           &et4000w32pcs_device,        GFX_ET4000W32CS},
         {"CGA",                                    &cga_device,                 GFX_CGA},
         {"Cirrus Logic CL-GD5429",                 &gd5429_device,              GFX_CL_GD5429},
         {"Diamond Stealth 32 (Tseng ET4000/w32p)", &et4000w32p_device,          GFX_ET4000W32},

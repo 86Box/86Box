@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 #include "ibm.h"
 #include "io.h"
 #include "pic.h"
@@ -27,15 +24,13 @@ void pic_updatepending()
 void pic_reset()
 {
         pic.icw=0;
-        // pic.mask=0xFF;
-	pic.mask=0;
+        pic.mask=0xFF;
         pic.mask2=0;
         pic.pend=pic.ins=0;
         pic.vector=8;
         pic.read=1;
         pic2.icw=0;
-        // pic2.mask=0xFF;
-	pic2.mask=0;
+        pic2.mask=0xFF;
         pic.mask2=0;
         pic2.pend=pic2.ins=0;
         pic_intpending = 0;
@@ -110,7 +105,7 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
         {
                 if (val&16) /*ICW1*/
                 {
-                        pic.mask=0;
+                        pic.mask = 0;
                         pic.mask2=0;
                         pic.icw=1;
                         pic.icw1=val;
@@ -227,7 +222,7 @@ void pic2_write(uint16_t addr, uint8_t val, void *priv)
         {
                 if (val&16) /*ICW1*/
                 {
-                        pic2.mask=0;
+                        pic2.mask = 0;
                         pic2.mask2=0;
                         pic2.icw=1;
                         pic2.icw1=val;

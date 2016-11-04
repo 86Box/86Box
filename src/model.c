@@ -157,7 +157,7 @@ MODEL models[] =
         {"PC Partner MB500N",   ROM_MB500N,      { "Intel", cpus_PentiumS5,"IDT", cpus_WinChip, "AMD",   cpus_K5, "",      NULL},         0, 1,   1, 128, 1,     at_mb500n_init},
         {"Intel Advanced/ATX",  ROM_THOR,        { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 256, 1,    at_endeavor_init},
         // {"ASUS P/I-P54TP4XE",   ROM_P54TP4XE,    { "Intel", cpus_PentiumS5, "IDT", cpus_WinChip, "AMD",   cpus_K5, "",     NULL},         0, 1,   1, 512, 1, at_p54tp4xe_init},
-        {"Intel Advanced/ML",   ROM_MARL,        { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 512, 1,        at_marl_init},
+        // {"Intel Advanced/ML",   ROM_MARL,        { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 512, 1,        at_marl_init},
         {"Acer M3a",            ROM_ACERM3A,     { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 512, 1,     at_acerm3a_init},
         {"Acer V35N",           ROM_ACERV35N,    { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 512, 1,    at_acerv35n_init},
         // {"ASUS P/I-P55T2P4",    ROM_P55T2P4,  { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, 1,   1, 512, 1,     at_p55t2p4_init},
@@ -499,11 +499,13 @@ void at_endeavor_init()
         device_add(&intel_flash_bxt_ami_device);
 }
 
+#if 0
 void at_marl_init()
 {
         at_advanced_common_init();
-        device_add(&intel_flash_100bxt_ami_device);
+        // device_add(&intel_flash_100bxt_ami_device);
 }
+#endif
 
 void at_mb500n_init()
 {

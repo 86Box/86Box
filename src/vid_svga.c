@@ -927,9 +927,9 @@ int svga_init(svga_t *svga, void *p, int memsize,
 
 	svga_pointer = svga;
 
-	io_sethandler(0x22ca, 0x0002, svga_in, NULL, NULL, svga_out, NULL, NULL, svga);
+	/* io_sethandler(0x22ca, 0x0002, svga_in, NULL, NULL, svga_out, NULL, NULL, svga);
 	io_sethandler(0x22ce, 0x0002, svga_in, NULL, NULL, svga_out, NULL, NULL, svga);
-	io_sethandler(0x32ca, 0x0002, svga_in, NULL, NULL, svga_out, NULL, NULL, svga);
+	io_sethandler(0x32ca, 0x0002, svga_in, NULL, NULL, svga_out, NULL, NULL, svga); */
         
         return 0;
 }

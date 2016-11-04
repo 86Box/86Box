@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 #include "ibm.h"
 
 /*#include "sound_opl.h"
@@ -20,15 +17,15 @@ static struct
 	int present;
 	void (*callback)(void *priv);
 	void *priv;
-	int64_t *enable;
-	int64_t *count;
+	int *enable;
+	int *count;
 } timers[TIMERS_MAX];
 
 int timers_present = 0;
-int64_t timer_one = 1;
+int timer_one = 1;
 	
-int64_t timer_count = 0, timer_latch = 0;
-int64_t timer_start = 0;
+int timer_count = 0, timer_latch = 0;
+int timer_start = 0;
 
 void timer_process()
 {
@@ -36,7 +33,7 @@ void timer_process()
 	int retry;
 	int process = 0;
 	/*Get actual elapsed time*/
-	int64_t diff = timer_latch - timer_count;
+	int diff = timer_latch - timer_count;
 	int enable[TIMERS_MAX];
 
 	timer_latch = 0;
@@ -82,7 +79,7 @@ void timer_process()
 void timer_update_outstanding()
 {
 	int c;
-	timer_latch = 0x7fffffffffffffff;
+	timer_latch = 0x7fffffff;
 	for (c = 0; c < timers_present; c++)
 	{
 		if (*timers[c].enable && *timers[c].count < timer_latch)
@@ -99,7 +96,7 @@ void timer_reset()
 //	timer_process();
 }
 
-int timer_add(void (*callback)(void *priv), int64_t *count, int64_t *enable, void *priv)
+int timer_add(void (*callback)(void *priv), int *count, int *enable, void *priv)
 {
 	if (timers_present < TIMERS_MAX)
 	{

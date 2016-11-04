@@ -1,12 +1,9 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 #ifndef _TIMER_H_
 #define _TIMER_H_
 
 #include "cpu.h"
 
-extern int64_t timer_start;
+extern int timer_start;
 
 #define timer_start_period(cycles)                      \
         timer_start = cycles;
@@ -14,7 +11,7 @@ extern int64_t timer_start;
 #define timer_end_period(cycles) 			\
 	do 						\
 	{						\
-                int64_t diff = timer_start - ((uint64_t) cycles);  \
+                int diff = timer_start - (cycles);      \
 		timer_count -= diff;			\
                 timer_start = cycles;                   \
 		if (timer_count <= 0)			\
@@ -27,16 +24,16 @@ extern int64_t timer_start;
 #define timer_clock()                                                   \
 	do 						                \
 	{						                \
-                int64_t diff;                                           \
+                int diff;                                               \
                 if (AT)                                                 \
                 {                                                       \
-                        diff = timer_start - (((uint64_t) cycles) << TIMER_SHIFT);   \
-                        timer_start = ((uint64_t) cycles) << TIMER_SHIFT;            \
+                        diff = timer_start - (cycles << TIMER_SHIFT);   \
+                        timer_start = cycles << TIMER_SHIFT;            \
                 }                                                       \
                 else                                                    \
                 {                                                       \
-                        diff = timer_start - (((uint64_t) cycles) * xt_cpu_multi);   \
-                        timer_start = ((uint64_t) cycles) * xt_cpu_multi;            \
+                        diff = timer_start - (cycles * xt_cpu_multi);   \
+                        timer_start = cycles * xt_cpu_multi;            \
                 }                                                       \
 		timer_count -= diff;			                \
 		timer_process();		                        \
@@ -46,13 +43,13 @@ extern int64_t timer_start;
 void timer_process();
 void timer_update_outstanding();
 void timer_reset();
-int timer_add(void (*callback)(void *priv), int64_t *count, int64_t *enable, void *priv);
+int timer_add(void (*callback)(void *priv), int *count, int *enable, void *priv);
 void timer_set_callback(int timer, void (*callback)(void *priv));
 
 #define TIMER_ALWAYS_ENABLED &timer_one
 
-extern int64_t timer_count;
-extern int64_t timer_one;
+extern int timer_count;
+extern int timer_one;
 
 #define TIMER_SHIFT 6
 
