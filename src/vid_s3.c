@@ -1055,6 +1055,7 @@ void s3_recalctimings(svga_t *svga)
 void s3_updatemapping(s3_t *s3)
 {
         svga_t *svga = &s3->svga;
+	uint32_t lbase;
         
 //        video_write_a000_w = video_write_a000_l = NULL;
 
@@ -1124,20 +1125,30 @@ void s3_updatemapping(s3_t *s3)
                 }
                 s3->linear_base &= ~(s3->linear_size - 1);
 #endif
-		svga->linear_base = s3->linear_base;
 //                pclog("%08X %08X  %02X %02X %02X\n", linear_base, linear_size, crtc[0x58], crtc[0x59], crtc[0x5a]);
 //                pclog("Linear framebuffer at %08X size %08X\n", s3->linear_base, s3->linear_size);
 
-#if 0
-		if (s3->linear_base & 0xe0000000)
+		if ((svga->crtc[0x68] & 0x80) && (s3->chip != S3_TRIO32))
 		{
-			/* If bits 31-29 are not all clear, disable linear base. */
-                        mem_mapping_disable(&s3->linear_mapping);
-			return;
+			if (s3->linear_base & 0xe0000000)
+			{
+				/* If bits 31-29 are not all clear, disable linear base. */
+                        	mem_mapping_disable(&s3->linear_mapping);
+				return;
+			}
+			else
+			{
+				lbase = s3->linear_base & 0x1fffffff;
+			}
 		}
-#endif
+		else
+		{
+			lbase = s3->linear_base;
+		}
 
-                if (s3->linear_base == 0xa0000)
+		svga->linear_base = lbase;
+
+                if (lbase == 0xa0000)
                 {
                         mem_mapping_disable(&s3->linear_mapping);
                         if (!(svga->crtc[0x53] & 0x10))
@@ -1148,7 +1159,7 @@ void s3_updatemapping(s3_t *s3)
 //                        mem_mapping_set_addr(&s3->linear_mapping, 0xa0000, 0x10000);
                 }
                 else
-                        mem_mapping_set_addr(&s3->linear_mapping, s3->linear_base, s3->linear_size);
+                        mem_mapping_set_addr(&s3->linear_mapping, lbase, s3->linear_size);
         }
         else
                 mem_mapping_disable(&s3->linear_mapping);
