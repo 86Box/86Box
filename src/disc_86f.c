@@ -4,8 +4,8 @@
 #include <string.h>
 #include <assert.h>
 
-#include "crcspeed/crc64speed.h"
-//#include "zlib.h"
+// #include "crcspeed/crc64speed.h"
+// #include "zlib.h"
 #include "lzf/lzf.h"
 
 #include "config.h"
@@ -16,7 +16,7 @@
 #include "fdd.h"
 #include "ibm.h"
 
-#define D86FVER		0x020A
+#define D86FVER		0x020B
 
 #define CHUNK 16384
 
@@ -818,8 +818,7 @@ uint32_t d86f_has_extra_bit_cells(int drive)
 
 uint32_t d86f_header_size(int drive)
 {
-	uint32_t temp = 16;
-	return temp;
+	return 8;
 }
 
 static uint16_t d86f_encode_get_data(uint8_t dat)
@@ -2587,7 +2586,7 @@ void d86f_writeback(int drive)
 	uint8_t header[32];
 	int sides,  header_size;
         int side, thin_track;
-	uint64_t crc64;
+	// uint64_t crc64;
 	uint32_t len;
 	int i = 0;
 	int ret = 0;
@@ -2606,7 +2605,7 @@ void d86f_writeback(int drive)
 	fseek(d86f[drive].f, 0, SEEK_SET);
 	fread(header, 1, header_size, d86f[drive].f);
 
-	fseek(d86f[drive].f, 16, SEEK_SET);
+	fseek(d86f[drive].f, 8, SEEK_SET);
 	// pclog("PosEx: %08X\n", ftell(d86f[drive].f));
 	fwrite(d86f[drive].track_offset, 1, d86f_get_track_table_size(drive), d86f[drive].f);
 	// pclog("PosEx: %08X\n", ftell(d86f[drive].f));
@@ -2690,6 +2689,7 @@ void d86f_writeback(int drive)
 		free(d86f[drive].outbuf);
 		free(d86f[drive].filebuf);
 
+#ifdef DO_CRC64
 		len = ftell(cf);
 
 		fclose(cf);
@@ -2712,7 +2712,9 @@ void d86f_writeback(int drive)
 
 		/* Close the original file. */
 		fclose(cf);
+#endif
 	}
+#ifdef DO_CRC64
 	else
 	{
 		fseek(d86f[drive].f, 0, SEEK_END);
@@ -2735,6 +2737,7 @@ void d86f_writeback(int drive)
 		fseek(d86f[drive].f, 8, SEEK_SET);
 		fwrite(&crc64, 1, 8, d86f[drive].f);
 	}
+#endif
 
 	// pclog("d86f_writeback(): %08X\n", d86f[drive].track_offset[track]);
 }
@@ -2978,8 +2981,8 @@ void d86f_load(int drive, char *fn)
 	uint8_t temp_file_name[2048];
 	uint16_t temp = 0;
 	uint8_t tempb = 0;
-	uint64_t crc64 = 0;
-	uint64_t read_crc64 = 0;
+	// uint64_t crc64 = 0;
+	// uint64_t read_crc64 = 0;
 	int i = 0;
 	FILE *tf;
 
@@ -3057,6 +3060,7 @@ void d86f_load(int drive, char *fn)
 		return;
 	}
 
+#ifdef DO_CRC64
 	fseek(d86f[drive].f, 8, SEEK_SET);
 	fread(&read_crc64, 1, 8, d86f[drive].f);
 
@@ -3076,6 +3080,7 @@ void d86f_load(int drive, char *fn)
 		fclose(d86f[drive].f);
 		return;
 	}
+#endif
 
 	if (d86f[drive].is_compressed)
 	{
