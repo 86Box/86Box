@@ -3264,7 +3264,7 @@ void d86f_init()
         memset(d86f, 0, sizeof(d86f));
         d86f_setupcrc(0x1021);
 
-	crc64speed_init();
+	// crc64speed_init();
 
 	d86f[0].state = d86f[1].state = STATE_IDLE;
 }
