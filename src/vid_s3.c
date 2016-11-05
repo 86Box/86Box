@@ -1131,8 +1131,8 @@ void s3_updatemapping(s3_t *s3)
                         break;
                 }
                 s3->linear_base &= ~(s3->linear_size - 1);
-		svga->linear_base = s3->linear_base;
 #endif
+		svga->linear_base = s3->linear_base;
 //                pclog("%08X %08X  %02X %02X %02X\n", linear_base, linear_size, crtc[0x58], crtc[0x59], crtc[0x5a]);
 //                pclog("Linear framebuffer at %08X size %08X\n", s3->linear_base, s3->linear_size);
 		if (s3->linear_base & 0xe0000000)
@@ -2176,7 +2176,7 @@ uint8_t s3_pci_read(int func, int addr, void *p)
                 case 0x10: return 0x00; /*Linear frame buffer address*/
                 case 0x11: return 0x00;
                 case 0x12: return (s3->linear_base >> 16) & 0xff;
-                case 0x13: return (s3->linear_base >> 24) & 0x1f;
+                case 0x13: return (s3->linear_base >> 24) & 0xff;
 
                 case 0x30: return s3->pci_regs[0x30] & 0x01; /*BIOS ROM address*/
                 case 0x31: return 0x00;
