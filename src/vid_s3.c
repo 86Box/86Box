@@ -880,6 +880,9 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
                                 svga->hwcursor.x <<= 1;
                         break;
 
+                        case 0x53:
+                        s3_updatemapping(s3);
+                        break;
 			case 0x58:
 			s3_update_linear_size(s3);
 			s3->linear_base &= ((s3->linear_size - 1) ^ 0xffffffff);
@@ -895,10 +898,6 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
 			s3->linear_base &= 0xff00ffff;
 			s3->linear_base |= (((uint32_t) val) << 16);
 			s3->linear_base &= ((s3->linear_size - 1) ^ 0xffffffff);
-                        s3_updatemapping(s3);
-                        break;
-                        case 0x53:
-                        case 0x58:
                         s3_updatemapping(s3);
                         break;
                         
