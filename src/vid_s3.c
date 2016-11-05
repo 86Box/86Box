@@ -62,6 +62,12 @@ typedef struct
         uint32_t val;
 } fifo_entry_t;
 
+typedef union
+{
+	uint32_t dword;
+	uint8_t bytes[4];
+} bar_t;
+
 typedef struct s3_t
 {
         mem_mapping_t linear_mapping;
@@ -137,6 +143,8 @@ typedef struct s3_t
         int blitter_busy;
         uint64_t blitter_time;
         uint64_t status_time;
+
+	bar_t linear_bar;
 } s3_t;
 
 void s3_updatemapping();
@@ -723,6 +731,39 @@ static void s3_queue(s3_t *s3, uint32_t addr, uint32_t val, uint32_t type)
                 wake_fifo_thread(s3);
 }
 
+void s3_update_linear_size(s3_t *s3)
+{
+        svga_t *svga = &s3->svga;
+
+	switch (svga->crtc[0x58] & 3)
+	{
+		case 0: /*64k*/
+			s3->linear_size = 0x10000;
+                        break;
+		case 1: /*1mb*/
+                        s3->linear_size = 0x100000;
+                        break;
+		case 2: /*2mb*/
+                        s3->linear_size = 0x200000;
+                       break;
+		case 3: /*8mb*/
+			switch(s3->chip)
+			{
+				case S3_TRIO32:
+					s3->linear_size = 0x200000;
+					svga->crtc[0x58] &= 0xfe;
+					break;
+				case S3_TRIO64:
+					s3->linear_size = 0x400000;
+					break;
+				default:
+        		                s3->linear_size = 0x800000;
+					break;
+			}
+			break;
+	}
+}
+
 void s3_out(uint16_t addr, uint8_t val, void *p)
 {
         s3_t *s3 = (s3_t *)p;
@@ -839,8 +880,25 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
                                 svga->hwcursor.x <<= 1;
                         break;
 
+			case 0x58:
+			s3_update_linear_size(s3);
+			s3->linear_base &= ((s3->linear_size - 1) ^ 0xffffffff);
+                        s3_updatemapping(s3);
+                        break;
+			case 0x59:
+			s3->linear_base &= 0x00ffffff;
+			s3->linear_base |= (((uint32_t) val) << 24);
+			s3->linear_base &= ((s3->linear_size - 1) ^ 0xffffffff);
+                        s3_updatemapping(s3);
+                        break;
+			case 0x5a:
+			s3->linear_base &= 0xff00ffff;
+			s3->linear_base |= (((uint32_t) val) << 16);
+			s3->linear_base &= ((s3->linear_size - 1) ^ 0xffffffff);
+                        s3_updatemapping(s3);
+                        break;
                         case 0x53:
-                        case 0x58: case 0x59: case 0x5a:
+                        case 0x58:
                         s3_updatemapping(s3);
                         break;
                         
@@ -931,6 +989,8 @@ uint8_t s3_in(uint16_t addr, void *p)
                         case 0x31: return (svga->crtc[0x31] & 0xcf) | ((s3->ma_ext & 3) << 4);
                         case 0x35: return (svga->crtc[0x35] & 0xf0) | (s3->bank & 0xf);
                         case 0x51: return (svga->crtc[0x51] & 0xf0) | ((s3->bank >> 2) & 0xc) | ((s3->ma_ext >> 2) & 3);
+			case 0x59: return ((s3->linear_base >> 24) & 0xff);
+			case 0x5a: return ((s3->linear_base >> 16) & 0xff);
                         case 0x69: return s3->ma_ext;
                         case 0x6a: return s3->bank;
                 }
@@ -1042,6 +1102,7 @@ void s3_updatemapping(s3_t *s3)
         {
                 mem_mapping_disable(&svga->mapping);
                 
+#if 0
                 s3->linear_base = (svga->crtc[0x5a] << 16) | (svga->crtc[0x59] << 24);
                 switch (svga->crtc[0x58] & 3)
                 {
@@ -1055,13 +1116,33 @@ void s3_updatemapping(s3_t *s3)
                         s3->linear_size = 0x200000;
                         break;
                         case 3: /*8mb*/
-                        s3->linear_size = 0x800000;
+			switch(s3->chip)
+			{
+				case S3_TRIO32:
+					s3->linear_size = 0x200000;
+					svga->crtc[0x58] &= 0xfe;
+					break;
+				case S3_TRIO64:
+					s3->linear_size = 0x400000;
+					break;
+				default:
+		                        s3->linear_size = 0x800000;
+					break;
+			}
                         break;
                 }
                 s3->linear_base &= ~(s3->linear_size - 1);
 		svga->linear_base = s3->linear_base;
+#endif
 //                pclog("%08X %08X  %02X %02X %02X\n", linear_base, linear_size, crtc[0x58], crtc[0x59], crtc[0x5a]);
 //                pclog("Linear framebuffer at %08X size %08X\n", s3->linear_base, s3->linear_size);
+		if (s3->linear_base & 0xe0000000)
+		{
+			/* If bits 31-29 are not all clear, disable linear base. */
+                        mem_mapping_disable(&s3->linear_mapping);
+			return;
+		}
+
                 if (s3->linear_base == 0xa0000)
                 {
                         mem_mapping_disable(&s3->linear_mapping);
@@ -2095,8 +2176,8 @@ uint8_t s3_pci_read(int func, int addr, void *p)
                 
                 case 0x10: return 0x00; /*Linear frame buffer address*/
                 case 0x11: return 0x00;
-                case 0x12: return svga->crtc[0x5a] & 0x80;
-                case 0x13: return svga->crtc[0x59];
+                case 0x12: return (s3->linear_base >> 16) & 0xff;
+                case 0x13: return (s3->linear_base >> 24) & 0x1f;
 
                 case 0x30: return s3->pci_regs[0x30] & 0x01; /*BIOS ROM address*/
                 case 0x31: return 0x00;
@@ -2123,11 +2204,15 @@ void s3_pci_write(int func, int addr, uint8_t val, void *p)
                 break;
                 
                 case 0x12: 
-                svga->crtc[0x5a] = val & 0x80; 
+                s3->linear_base &= 0xff00ffff;
+		s3->linear_base |= (((uint32_t) val) << 16);
+		s3->linear_base &= ((s3->linear_size - 1) ^ 0xffffffff);
                 s3_updatemapping(s3); 
                 break;
                 case 0x13: 
-                svga->crtc[0x59] = val;        
+                s3->linear_base &= 0xff00ffff;
+		s3->linear_base |= (((uint32_t) val) << 24);
+		s3->linear_base &= ((s3->linear_size - 1) ^ 0xffffffff);
                 s3_updatemapping(s3); 
                 break;                
 
@@ -2195,7 +2280,8 @@ static void *s3_init(char *bios_fn, int chip)
                 svga->crtc[0x36] = 2 | (3 << 2) | (1 << 4) | (vram_sizes[vram] << 5);
         else
                 svga->crtc[0x36] = 1 | (3 << 2) | (1 << 4) | (vram_sizes[vram] << 5);
-        svga->crtc[0x37] = 1 | (7 << 5);
+	/* Set video BIOS to 32k (bit 2 = set). */
+        svga->crtc[0x37] = 5 | (7 << 5);
 	if (s3->chip == S3_VISION964)  svga->crtc[0x37] |= 0xe;
 
         s3_io_set(s3);
@@ -2207,6 +2293,8 @@ static void *s3_init(char *bios_fn, int chip)
         s3->pci_regs[0x30] = 0x00;
         s3->pci_regs[0x32] = 0x0c;
         s3->pci_regs[0x33] = 0x00;
+
+	s3->linear_size = 0x10000;
         
         s3->chip = chip;
 
