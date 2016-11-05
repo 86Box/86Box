@@ -1128,12 +1128,14 @@ void s3_updatemapping(s3_t *s3)
 //                pclog("%08X %08X  %02X %02X %02X\n", linear_base, linear_size, crtc[0x58], crtc[0x59], crtc[0x5a]);
 //                pclog("Linear framebuffer at %08X size %08X\n", s3->linear_base, s3->linear_size);
 
+#if 0
 		if (s3->linear_base & 0xe0000000)
 		{
 			/* If bits 31-29 are not all clear, disable linear base. */
                         mem_mapping_disable(&s3->linear_mapping);
 			return;
 		}
+#endif
 
                 if (s3->linear_base == 0xa0000)
                 {
