@@ -62,12 +62,6 @@ typedef struct
         uint32_t val;
 } fifo_entry_t;
 
-typedef union
-{
-	uint32_t dword;
-	uint8_t bytes[4];
-} bar_t;
-
 typedef struct s3_t
 {
         mem_mapping_t linear_mapping;
@@ -143,8 +137,6 @@ typedef struct s3_t
         int blitter_busy;
         uint64_t blitter_time;
         uint64_t status_time;
-
-	bar_t linear_bar;
 } s3_t;
 
 void s3_updatemapping();
@@ -1135,6 +1127,7 @@ void s3_updatemapping(s3_t *s3)
 		svga->linear_base = s3->linear_base;
 //                pclog("%08X %08X  %02X %02X %02X\n", linear_base, linear_size, crtc[0x58], crtc[0x59], crtc[0x5a]);
 //                pclog("Linear framebuffer at %08X size %08X\n", s3->linear_base, s3->linear_size);
+
 		if (s3->linear_base & 0xe0000000)
 		{
 			/* If bits 31-29 are not all clear, disable linear base. */
@@ -2209,7 +2202,7 @@ void s3_pci_write(int func, int addr, uint8_t val, void *p)
                 s3_updatemapping(s3); 
                 break;
                 case 0x13: 
-                s3->linear_base &= 0xff00ffff;
+                s3->linear_base &= 0x00ffffff;
 		s3->linear_base |= (((uint32_t) val) << 24);
 		s3->linear_base &= ((s3->linear_size - 1) ^ 0xffffffff);
                 s3_updatemapping(s3); 
