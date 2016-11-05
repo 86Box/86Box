@@ -106,6 +106,7 @@ uint64_t ecx116_msr = 0;
 uint64_t ecx11x_msr[4] = {0, 0, 0, 0};
 uint64_t ecx11e_msr = 0;
 uint64_t ecx186_msr = 0;
+uint64_t ecx187_msr = 0;
 uint64_t ecx1e0_msr = 0;
 uint64_t ecx570_msr = 0;
 
@@ -2006,6 +2007,10 @@ void cpu_RDMSR()
                         EAX = ecx186_msr & 0xffffffff;
                         EDX = ecx186_msr >> 32;
 			break;
+			case 0x187:
+                        EAX = ecx187_msr & 0xffffffff;
+                        EDX = ecx187_msr >> 32;
+			break;
 			case 0x1E0:
                         EAX = ecx1e0_msr & 0xffffffff;
                         EDX = ecx1e0_msr >> 32;
@@ -2193,6 +2198,9 @@ void cpu_WRMSR()
 			break;
 			case 0x186:
 			ecx186_msr = EAX | ((uint64_t)EDX << 32);
+			break;			
+			case 0x187:
+			ecx187_msr = EAX | ((uint64_t)EDX << 32);
 			break;			
 			case 0x1E0:
 			ecx1e0_msr = EAX | ((uint64_t)EDX << 32);
