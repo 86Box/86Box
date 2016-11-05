@@ -877,19 +877,19 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
                         break;
 			case 0x58:
 			s3_update_linear_size(s3);
-			s3->linear_base &= ((s3->linear_size - 1) ^ 0xffffffff);
+			// s3->linear_base &= ((s3->linear_size - 1) ^ 0xffffffff);
                         s3_updatemapping(s3);
                         break;
 			case 0x59:
 			s3->linear_base &= 0x00ffffff;
 			s3->linear_base |= (((uint32_t) val) << 24);
-			s3->linear_base &= ((s3->linear_size - 1) ^ 0xffffffff);
+			// s3->linear_base &= ((s3->linear_size - 1) ^ 0xffffffff);
                         s3_updatemapping(s3);
                         break;
 			case 0x5a:
 			s3->linear_base &= 0xff00ffff;
 			s3->linear_base |= (((uint32_t) val) << 16);
-			s3->linear_base &= ((s3->linear_size - 1) ^ 0xffffffff);
+			// s3->linear_base &= ((s3->linear_size - 1) ^ 0xffffffff);
                         s3_updatemapping(s3);
                         break;
                         
@@ -1146,7 +1146,7 @@ void s3_updatemapping(s3_t *s3)
 			lbase = s3->linear_base;
 		}
 
-		svga->linear_base = lbase;
+		svga->linear_base = lbase & ((s3->linear_size - 1) ^ 0xffffffff);
 
                 if (lbase == 0xa0000)
                 {
@@ -2181,8 +2181,8 @@ uint8_t s3_pci_read(int func, int addr, void *p)
                 
                 case 0x10: return 0x00; /*Linear frame buffer address*/
                 case 0x11: return 0x00;
-                case 0x12: return (s3->linear_base >> 16) & 0xff;
-                case 0x13: return (s3->linear_base >> 24) & 0xff;
+                case 0x12: return ((s3->linear_base & ((s3->linear_size - 1) ^ 0xffffffff)) >> 16) & 0xff;
+                case 0x13: return ((s3->linear_base & ((s3->linear_size - 1) ^ 0xffffffff)) >> 24) & 0xff;
 
                 case 0x30: return s3->pci_regs[0x30] & 0x01; /*BIOS ROM address*/
                 case 0x31: return 0x00;

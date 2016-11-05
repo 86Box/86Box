@@ -1698,6 +1698,9 @@ void ne2000_pci_write(int func, int addr, uint8_t val, void *p)
 				ne2000_update_bios(ne2000);
                 return;
 
+/* Commented out until an APIC controller is emulated for the PIIX3,
+   otherwise the RTL-8029/AS will not get an IRQ on boards using the PIIX3. */
+#if 0
                 case 0x3C:
                 ne2000_pci_regs[addr] = val;
                 if (val != 0xFF)
@@ -1706,7 +1709,8 @@ void ne2000_pci_write(int func, int addr, uint8_t val, void *p)
                         ne2000_setirq(ne2000, val);
                 }
                 return;
-        }
+#endif
+		}
 }
 
 void ne2000_rom_init(ne2000_t *ne2000, char *s)

@@ -265,8 +265,8 @@ extern int cpl_override;
 /*Timer*/
 typedef struct PIT
 {
-        uint64_t l[3];
-        int64_t c[3];
+        uint32_t l[3];
+        int c[3];
         uint8_t m[3];
         uint8_t ctrl,ctrls[3];
         int wp,rm[3],wm[3];
@@ -276,9 +276,9 @@ typedef struct PIT
         int rereadlatch[3];
         int gate[3];
         int out[3];
-        int64_t running[3];
-        int64_t enabled[3];
-        int64_t newcount[3];
+        int running[3];
+        int enabled[3];
+        int newcount[3];
         int count[3];
         int using_timer[3];
         int initial[3];
