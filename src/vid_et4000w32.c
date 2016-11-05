@@ -321,14 +321,14 @@ void et4000w32p_recalcmapping(et4000w32p_t *et4000)
         
         if (!(et4000->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM))
         {
-                pclog("Update mapping - PCI disabled\n");
+                // pclog("Update mapping - PCI disabled\n");
                 mem_mapping_disable(&svga->mapping);
                 mem_mapping_disable(&et4000->linear_mapping);
                 mem_mapping_disable(&et4000->mmu_mapping);
                 return;
         }
 
-        pclog("recalcmapping %p\n", svga);
+        // pclog("recalcmapping %p\n", svga);
         if (svga->crtc[0x36] & 0x10) /*Linear frame buffer*/
         {
                 mem_mapping_set_addr(&et4000->linear_mapping, et4000->linearbase, 0x200000);
@@ -1098,7 +1098,9 @@ uint8_t et4000w32p_pci_read(int func, int addr, void *p)
         et4000w32p_t *et4000 = (et4000w32p_t *)p;
         svga_t *svga = &et4000->svga;
 
-        pclog("ET4000 PCI read %08X\n", addr);
+	addr &= 0xff;
+
+        // pclog("ET4000 PCI read %08X\n", addr);
 
         switch (addr)
         {
@@ -1139,7 +1141,9 @@ void et4000w32p_pci_write(int func, int addr, uint8_t val, void *p)
         svga_t *svga = &et4000->svga;
 	uint32_t temp = 0;
 
-	pclog("ET4000 PCI Write: value %02X to address %08X\n");
+	addr &= 0xff;
+
+	// pclog("ET4000 PCI Write: value %02X to address %08X\n");
 
         switch (addr)
         {
