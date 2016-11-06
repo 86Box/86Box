@@ -3175,7 +3175,7 @@ void d86f_load(int drive, char *fn)
 		}
 	}
 
-	fseek(d86f[drive].f, 16, SEEK_SET);
+	fseek(d86f[drive].f, 8, SEEK_SET);
 
 	fread(d86f[drive].track_offset, 1, d86f_get_track_table_size(drive), d86f[drive].f);
 
