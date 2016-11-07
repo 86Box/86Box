@@ -14,7 +14,7 @@
 #include "fdd.h"
 #include "timer.h"
 
-int64_t disc_poll_time[2] = { 16, 16 };
+int disc_poll_time[2] = { 16, 16 };
 
 int disc_track[2];
 int writeprot[2], fwriteprot[2];
@@ -39,7 +39,7 @@ int drive_empty[2] = {1, 1};
 int disc_changed[2];
 
 int motorspin;
-int64_t motoron[2];
+int motoron[2];
 
 int fdc_indexcount = 52;
 
@@ -190,11 +190,11 @@ void disc_poll(int drive)
 {
 	if (drive > 1)
 	{
-		disc_poll_time[drive] += (int64_t) (32.0 * TIMER_USEC);
+		disc_poll_time[drive] += (int) (32.0 * TIMER_USEC);
 		return;
 	}
 
-        disc_poll_time[drive] += (int64_t) disc_real_period(drive);
+        disc_poll_time[drive] += (int) disc_real_period(drive);
 
         if (drives[drive].poll)
                 drives[drive].poll(drive);

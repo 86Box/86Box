@@ -1,7 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,13 +42,13 @@ typedef struct gus_t
         int16_t buffer[2][SOUNDBUFLEN];
         int pos;
         
-        int64_t samp_timer, samp_latch;
+        int samp_timer, samp_latch;
         
         uint8_t *ram;
         
         int irqnext;
         
-        int64_t timer_1, timer_2;
+        int timer_1, timer_2;
         
         int irq, dma, irq_midi;
         int latch_enable;
@@ -531,7 +527,7 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                         if (gus->latch_enable == 2)
                         {
                                 gus->irq = gus_irqs[val & 7];
-
+                                
                                 if (val & 0x40)
                                 {
                                         if (gus->irq == -1)
@@ -957,8 +953,8 @@ void gus_poll_wave(void *p)
                                         {
                                                 gus->ctrl[d] |= 1;
                                                 gus->cur[d] = (gus->ctrl[d] & 0x40) ? gus->end[d] : gus->start[d];
-                                        }
-
+                                        }                                                
+                                        
                                         if ((gus->ctrl[d] & 0x20) && !gus->waveirqs[d])
                                         {
                                                 gus->waveirqs[d] = 1;
@@ -974,6 +970,7 @@ void gus_poll_wave(void *p)
                                 if (gus->cur[d] >= gus->end[d])
                                 {
                                         int diff = gus->cur[d] - gus->end[d];
+
                                         if (gus->ctrl[d]&8)
                                         {
                                                 if (gus->ctrl[d]&0x10) gus->ctrl[d]^=0x40;
@@ -983,7 +980,8 @@ void gus_poll_wave(void *p)
                                         {
                                                 gus->ctrl[d] |= 1;
                                                 gus->cur[d] = (gus->ctrl[d] & 0x40) ? gus->end[d] : gus->start[d];
-                                        }
+                                        } 
+
                                         if ((gus->ctrl[d] & 0x20) && !gus->waveirqs[d]) 
                                         {
                                                 gus->waveirqs[d] = 1;

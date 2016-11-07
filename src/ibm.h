@@ -342,7 +342,7 @@ extern int pic_intpending;
 int intcount;
 
 
-int64_t disctime;
+int disctime;
 char discfns[2][256];
 int driveempty[2];
 
@@ -502,14 +502,14 @@ void writeega_chain4(uint32_t addr, uint8_t val);
 extern uint32_t svgarbank,svgawbank;
 
 /*Serial*/
-extern int64_t mousedelay;
+extern int mousedelay;
 
 
 /*Sound*/
 uint8_t spkstat;
 
 float spktime;
-int64_t rtctime;
+int rtctime;
 int soundtime,gustime,gustime2,vidtime;
 int ppispeakon;
 float CGACONST;
@@ -563,13 +563,13 @@ uint64_t hdt[128][3];
 int image_is_hdi(const char *s);
 
 /*Keyboard*/
-int64_t keybsenddelay;
+int keybsenddelay;
 
 
 /*CD-ROM*/
 extern int cdrom_drive;
 extern int old_cdrom_drive;
-extern int64_t idecallback[3];
+extern int idecallback[3];
 extern int cdrom_enabled;
 
 #define CD_STATUS_EMPTY		0

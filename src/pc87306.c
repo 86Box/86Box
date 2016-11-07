@@ -251,6 +251,7 @@ process_value:
 			break;
 		case 9:
 			// pclog("Setting DENSEL polarity to: %i (before: %i)\n", (val & 0x40 ? 1 : 0), fdc_get_densel_polarity());
+			fdc_update_enh_mode((val & 4) ? 1 : 0);
 			fdc_update_densel_polarity((val & 0x40) ? 1 : 0);
 			break;
 		case 0xF:
@@ -309,6 +310,7 @@ void pc87306_init()
 {
 	pc87306_regs[0] = 0xF;
 	pc87306_regs[1] = 0x11;
+	pc87306_regs[3] = 2;
 	pc87306_regs[5] = 0xD;
 	pc87306_regs[8] = 0x70;
 	pc87306_regs[9] = 0xFF;
@@ -321,6 +323,7 @@ void pc87306_init()
 		1 = Default, 300 rpm @ 500,300,250,1000 kbps for 3.5"
 	*/
 	fdc_update_is_nsc(1);
+	fdc_update_enh_mode(0);
 	fdc_update_densel_polarity(1);
 	fdc_update_max_track(85);
 	fdd_swap = 0;

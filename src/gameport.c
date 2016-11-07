@@ -88,7 +88,7 @@ char *joystick_get_pov_name(int joystick, int id)
 
 typedef struct gameport_axis_t
 {
-        int64_t count;
+        int count;
         int axis_nr;
         struct gameport_t *gameport;
 } gameport_axis_t;

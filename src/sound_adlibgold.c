@@ -1,7 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "ibm.h"
@@ -39,16 +35,16 @@ typedef struct adgold_t
         int16_t adgold_mma_out[2];
         int adgold_mma_intpos[2];
 
-        int64_t adgold_mma_timer_count;
+        int adgold_mma_timer_count;
 
         struct
         {
-                int64_t timer0_latch, timer0_count;
-                int64_t timerbase_latch, timerbase_count;
-                int64_t timer1_latch, timer1_count;
-                int64_t timer2_latch, timer2_count, timer2_read;
+                int timer0_latch, timer0_count;
+                int timerbase_latch, timerbase_count;
+                int timer1_latch, timer1_count;
+                int timer2_latch, timer2_count, timer2_read;
         
-                int64_t voice_count[2], voice_latch[2];
+                int voice_count[2], voice_latch[2];
         } adgold_mma;
 
         opl_t    opl;
@@ -790,7 +786,7 @@ void *adgold_init()
         for (; c >= 0; c--)
                 attenuation[c] = 0;
 
-        f = romfopen(nvr_concat("adgold.bin"), "rb");
+        f = romfopen("nvr/adgold.bin", "rb");
         if (f)
         {
                 fread(adgold->adgold_eeprom, 0x18, 1, f);
@@ -830,7 +826,7 @@ void adgold_close(void *p)
         FILE *f;
         adgold_t *adgold = (adgold_t *)p;
         
-        f = romfopen(nvr_concat("adgold.bin"), "wb");
+        f = romfopen("nvr/adgold.bin", "wb");
         if (f)
         {
                 fwrite(adgold->adgold_eeprom, 0x18, 1, f);

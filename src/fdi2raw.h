@@ -29,6 +29,7 @@ extern int fdi2raw_get_type (FDI *);
 extern int fdi2raw_get_bit_rate (FDI *);
 extern int fdi2raw_get_rotation (FDI *);
 extern int fdi2raw_get_write_protect (FDI *);
+extern int fdi2raw_get_tpi (FDI *);
 
 #ifdef __cplusplus
 }

@@ -56,7 +56,7 @@ typedef struct svga_t
         int bpp;
         
         int dispontime, dispofftime;
-        int64_t vidtime;
+        int vidtime;
         
         uint8_t scrblank;
         

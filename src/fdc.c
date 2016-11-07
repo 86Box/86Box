@@ -12,7 +12,7 @@
 #include "pic.h"
 #include "timer.h"
 
-extern int64_t motoron[2];
+extern int motoron[2];
 
 int ui_writeprot[2] = {0, 0};
 
@@ -57,7 +57,7 @@ typedef struct FDC
         
         int pcjr, ps1;
         
-        int64_t watchdog_timer;
+        int watchdog_timer;
         int watchdog_count;
 
         int data_ready;

@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*Jazz sample rates :
   386-33 - 12kHz
   486-33 - 20kHz
@@ -161,12 +158,12 @@ void sb_dsp_speed_changed(sb_dsp_t *dsp)
         if (dsp->sb_timeo < 256)
                 dsp->sblatcho = TIMER_USEC * (256 - dsp->sb_timeo);
         else
-                dsp->sblatcho = (int64_t)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_timeo - 256)));
+                dsp->sblatcho = (int)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_timeo - 256)));
 
         if (dsp->sb_timei < 256)
                 dsp->sblatchi = TIMER_USEC * (256 - dsp->sb_timei);
         else
-                dsp->sblatchi = (int64_t)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_timei - 256)));
+                dsp->sblatchi = (int)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_timei - 256)));
 }
 
 void sb_add_data(sb_dsp_t *dsp, uint8_t v)
@@ -333,7 +330,7 @@ void sb_exec_command(sb_dsp_t *dsp)
                 case 0x41: /*Set output sampling rate*/
                 case 0x42: /*Set input sampling rate*/
                 if (dsp->sb_type < SB16) break;
-                dsp->sblatcho = (int64_t)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_data[1] + (dsp->sb_data[0] << 8))));
+                dsp->sblatcho = (int)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_data[1] + (dsp->sb_data[0] << 8))));
 //                pclog("Sample rate - %ihz (%i)\n",dsp->sb_data[1]+(dsp->sb_data[0]<<8), dsp->sblatcho);
                 dsp->sb_freq = dsp->sb_data[1] + (dsp->sb_data[0] << 8);
                 dsp->sb_timeo = 256 + dsp->sb_freq;
@@ -612,7 +609,7 @@ void sb_dsp_init(sb_dsp_t *dsp, int type)
 {
         dsp->sb_type = type;
         
-        dsp->sb_irqnum = 5;
+        dsp->sb_irqnum = 7;
         dsp->sb_8_dmanum = 1;
         
         sb_doreset(dsp);

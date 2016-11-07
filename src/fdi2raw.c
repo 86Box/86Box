@@ -1996,6 +1996,11 @@ int fdi2raw_get_write_protect (FDI *fdi)
 	return fdi->write_protect;
 }
 
+int fdi2raw_get_tpi (FDI *fdi)
+{
+	return fdi->header[148];
+}
+
 FDI *fdi2raw_header(FILE *f)
 {
 	int i, offset, oldseek;

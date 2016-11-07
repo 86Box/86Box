@@ -21,7 +21,7 @@ typedef struct cga_t
         int oddeven;
 
         int dispontime, dispofftime;
-        int64_t vidtime;
+        int vidtime;
         
         int firstline, lastline;
         

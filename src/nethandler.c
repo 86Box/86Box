@@ -72,7 +72,7 @@ static struct
 
 static int vlan_handlers_num;
 
-static int64_t vlan_poller_time = 0;
+static int vlan_poller_time = 0;
 
 void vlan_handler(void (*poller)(void *p), void *p)
 //void vlan_handler(int (*can_receive)(void *p), void (*receive)(void *p, const uint8_t *buf, int size), void *p)

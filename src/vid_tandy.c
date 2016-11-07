@@ -39,7 +39,7 @@ typedef struct tandy_t
         uint16_t ma, maback;
         
         int dispontime, dispofftime;
-	int64_t vidtime;
+	int vidtime;
         int firstline, lastline;
 } tandy_t;
 

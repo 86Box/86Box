@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*Sidewinder game pad notes :
         
         - Write to 0x201 starts packet transfer (5*N or 15*N bits)
@@ -33,13 +30,13 @@
 
 typedef struct
 {
-        int64_t poll_time;
+        int poll_time;
         int poll_left;
         int poll_clock;
         uint64_t poll_data;
         int poll_mode;
                 
-        int64_t trigger_time;
+        int trigger_time;
         int data_mode;
 } sw_data;
 

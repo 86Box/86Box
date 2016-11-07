@@ -488,7 +488,7 @@ void at_advanced_common_init()
         pci_init(PCI_CONFIG_TYPE_1, 0xd, 0x10);
         i430fx_init();
         piix_init(7);
-        pc87306_init();
+        // pc87306_init();
         intel_endeavor_init();
 	if (cdrom_channel >= 4)  ide_ter_init();
 }

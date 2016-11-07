@@ -1986,6 +1986,11 @@ void d86f_poll(int drive)
 	{
 		if (!d86f_can_read_address(drive))
 		{
+			/* if (fdc_get_bitcell_period() != d86f_get_bitcell_period(drive))  pclog("Bitcell period mismatch\n");
+			if (!fdd_can_read_medium(drive ^ fdd_swap))  pclog("Drive can not read medium (hole = %01X)\n", d86f_hole(drive));
+			if (fdc_is_mfm() != d86f_is_mfm(drive))  pclog("Encoding mismatch\n");
+			if (d86f_get_encoding(drive) > 1)  pclog("Image encoding (%s) not FM or MFM\n", (d86f_get_encoding(drive) == 2) ? "M2FM" : "GCR"); */
+
 			d86f[drive].state = STATE_SECTOR_NOT_FOUND;
 		}
 	}
@@ -2114,7 +2119,7 @@ void d86f_poll(int drive)
 
 	if ((d86f[drive].index_count == 2) && (d86f[drive].state != STATE_IDLE))
 	{
-		// pclog("[State: %02X] [Side %i] Sector not found (%i != %i?) (%02X) (%08X)\n", d86f[drive].state, side, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive), d86f_handler[drive].side_flags(drive), d86f[drive].req_sector.dword);
+		// pclog("[State: %02X] [Side %i] Sector not found (%i != %i?) (%02X) (%08X) (%i)\n", d86f[drive].state, side, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive), d86f_handler[drive].side_flags(drive), d86f[drive].req_sector.dword, d86f_handler[drive].get_raw_size(drive, side));
 		d86f[drive].state = STATE_IDLE;
 		fdc_notfound();
 	}

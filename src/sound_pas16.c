@@ -1,7 +1,3 @@
-/* Copyright holders: Sarah Walker, SA1988
-   see COPYING for more details
-*/
-#include <stdint.h>
 #include <stdlib.h>
 #include "ibm.h"
 
@@ -12,7 +8,6 @@
 #include "pic.h"
 #include "pit.h"
 #include "sound.h"
-#include "sound_mpu401_uart.h"
 #include "sound_opl.h"
 #include "sound_pas16.h"
 #include "sound_sb_dsp.h"
@@ -122,8 +117,8 @@ typedef struct pas16_t
         
         struct
         {
-                uint64_t l[3];
-                int64_t c[3];
+                uint32_t l[3];
+                int c[3];
                 uint8_t m[3];
                 uint8_t ctrl, ctrls[2];
                 int wp, rm[3], wm[3];
@@ -131,11 +126,10 @@ typedef struct pas16_t
                 int thit[3];
                 int delay[3];
                 int rereadlatch[3];
-                int64_t enable[3];
+                int enable[3];
         } pit;
 
         opl_t    opl;
-        mpu401_uart_t   mpu;
         sb_dsp_t dsp;
 
         int16_t pcm_buffer[2][SOUNDBUFLEN];
@@ -147,7 +141,8 @@ static uint8_t pas16_pit_in(uint16_t port, void *priv);
 static void pas16_pit_out(uint16_t port, uint8_t val, void *priv);
 static void pas16_update(pas16_t *pas16);
 
-static int pas16_dma = 0, pas16_irq = 0;
+static int pas16_dmas[8] = {4, 1, 2, 3, 0, 5, 6, 7};
+static int pas16_irqs[16] = {0, 2, 3, 4, 5, 6, 7, 10, 11, 12, 14, 15, 0, 0, 0, 0};
 static int pas16_sb_irqs[8] = {0, 2, 3, 5, 7, 10, 11, 12};
 static int pas16_sb_dmas[8] = {0, 1, 2, 3};
 
@@ -178,11 +173,12 @@ static uint8_t pas16_in(uint16_t port, void *p)
 {
         pas16_t *pas16 = (pas16_t *)p;
         uint8_t temp;
-
-        switch (port)
+/*        if (CS == 0xCA53 && pc == 0x3AFC)
+                fatal("here");*/
+        switch ((port - pas16->base) + 0x388)
         {
                 case 0x388: case 0x389: case 0x38a: case 0x38b:
-                temp = opl3_read(port, &pas16->opl);
+                temp = opl3_read((port - pas16->base) + 0x388, &pas16->opl);
                 break;
                 
                 case 0xb88:
@@ -210,7 +206,7 @@ static uint8_t pas16_in(uint16_t port, void *p)
                 break;
 
                 case 0x2789: /*Board revision*/
-                temp = 1;
+                temp = 0;
                 break;
                 
                 case 0x7f89:
@@ -259,23 +255,32 @@ static uint8_t pas16_in(uint16_t port, void *p)
                 break;
 
                 case 0xff88: /*Board model*/
-                temp = 3; /*PAS16*/
+                temp = 4; /*PAS16*/
                 break;
                 case 0xff8b: /*Master mode read*/
                 temp = 0x20 | 0x10 | 0x01; /*AT bus, XT/AT timing*/
                 break;
         }
+/*        if (port != 0x388 && port != 0x389 && port != 0xb8b) */pclog("pas16_in : port %04X return %02X  %04X:%04X\n", port, temp, CS,cpu_state.pc);
+/*        if (CS == 0x1FF4 && pc == 0x0585)
+        {
+                if (output)
+                        fatal("here");
+                output = 3;
+        }*/
         return temp;
 }
 
 static void pas16_out(uint16_t port, uint8_t val, void *p)
 {
         pas16_t *pas16 = (pas16_t *)p;
-		pclog("pas16_out : port %04X val %02X  %04X:%04X\n", port, val, CS,cpu_state.pc);
-        switch (port)
+/*        if (port != 0x388 && port != 0x389) */pclog("pas16_out : port %04X val %02X  %04X:%04X\n", port, val, CS,cpu_state.pc);
+/*        if (CS == 0x369 && pc == 0x2AC5)
+                fatal("here\n");*/
+        switch ((port - pas16->base) + 0x388)
         {
                 case 0x388: case 0x389: case 0x38a: case 0x38b:
-                opl3_write(port, val, &pas16->opl);
+                opl3_write((port - pas16->base) + 0x388, val, &pas16->opl);
                 break;
                 
                 case 0xb88:
@@ -283,8 +288,8 @@ static void pas16_out(uint16_t port, uint8_t val, void *p)
                 break;
 
                 case 0xb89:
-				pas16_update(pas16);				
                 pas16->irq_stat &= ~val;
+//                pas16_update_irqs();
                 break;
 
                 case 0xb8a:
@@ -294,6 +299,7 @@ static void pas16_out(uint16_t port, uint8_t val, void *p)
 
                 case 0xb8b:
                 pas16->irq_ena = val;
+//                pas16_update_irqs();
                 break;
 
                 case 0xf88:
@@ -305,6 +311,8 @@ static void pas16_out(uint16_t port, uint8_t val, void *p)
                 pas16->pcm_dat = (pas16->pcm_dat & 0x00ff) | (val << 8);
                 break;               
                 case 0xf8a:
+                if ((val & PAS16_PCM_ENA) && !(pas16->pcm_ctrl & PAS16_PCM_ENA)) /*Guess*/
+                        pas16->stereo_lr = 0;
                 pas16->pcm_ctrl = val;
                 break;
                 
@@ -334,11 +342,13 @@ static void pas16_out(uint16_t port, uint8_t val, void *p)
                 break;
                 case 0xf389:
                 pas16->io_conf_2 = val;
-                pas16->dma = pas16_dma;
+                pas16->dma = pas16_dmas[val & 0x7];
+                pclog("pas16_out : set PAS DMA %i\n", pas16->dma);
                 break;
                 case 0xf38a:
                 pas16->io_conf_3 = val;
-                pas16->irq = pas16_irq;
+                pas16->irq = pas16_irqs[val & 0xf];
+                pclog("pas16_out : set PAS IRQ %i\n", pas16->irq);
                 break;
                 case 0xf38b:
                 pas16->io_conf_4 = val;
@@ -361,18 +371,20 @@ static void pas16_out(uint16_t port, uint8_t val, void *p)
                 pas16->sb_irqdma = val;
                 sb_dsp_setirq(&pas16->dsp, pas16_sb_irqs[(val >> 3) & 7]);
                 sb_dsp_setdma8(&pas16->dsp, pas16_sb_dmas[(val >> 6) & 3]);
-				pclog("pas16_out : set SB IRQ %i DMA %i\n", pas16_sb_irqs[(val >> 3) & 7], pas16_sb_dmas[(val >> 6) & 3]);
+                pclog("pas16_out : set SB IRQ %i DMA %i\n", pas16_sb_irqs[(val >> 3) & 7], pas16_sb_dmas[(val >> 6) & 3]);
                 break;
                 
-				case 0x9a01:
-				pas16->base = val << 2;
-				pclog("pas16_out : PAS16 base now at %04X\n", pas16->base);
-				break;
-				
                 default:
                 pclog("pas16_out : unknown %04X\n", port);
-				break;
         }
+        if (cpu_state.pc == 0x80048CF3)
+        {
+                if (output)
+                        fatal("here\n");
+                output = 3;
+        }
+/*        if (CS == 0x1FF4 && pc == 0x0431)
+                output = 3;*/
 }
 
 static void pas16_pit_out(uint16_t port, uint8_t val, void *p)
@@ -480,7 +492,7 @@ static uint8_t pas16_pit_in(uint16_t port, void *p)
         pas16_t *pas16 = (pas16_t *)p;
         uint8_t temp;
         int t = port & 3;
-        printf("Read PIT %04X ",port);
+//        printf("Read PIT %04X ",addr);
         switch (port & 3)
         {
                 case 0: case 1: case 2: /*Timers*/
@@ -623,58 +635,54 @@ static void pas16_pcm_poll(void *p)
                                 pclog("pas16_pcm_poll : cause IRQ %i %02X\n", pas16->irq, 1 << pas16->irq);
                                 picint(1 << pas16->irq);
                         }
-						else
-								picintc(1 << pas16->irq);
                 }
         }
 }
 
-static void pas16_io_remove(pas16_t *pas16)
+static void pas16_out_base(uint16_t port, uint8_t val, void *p)
 {
-	io_removehandler(0x0388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0x0788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0x0b88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0x0f88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0x1388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0x1788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0x2788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0x7f88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0x8388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0xbf88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0xe388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0xe788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0xeb88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0xef88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0xf388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0xf788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0xfb88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0xff88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_removehandler(0x9a01, 0x0004, NULL,	   NULL, NULL, pas16_out, NULL, NULL,  pas16);
-}
+        pas16_t *pas16 = (pas16_t *)p;
 
-static void pas16_io_set(pas16_t *pas16)
-{
-	pas16_io_remove(pas16);
-	
-	io_sethandler(0x0388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0x0788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0x0b88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0x0f88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0x1388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0x1788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0x2788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0x7f88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0x8388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0xbf88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0xe388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0xe788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0xeb88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0xef88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0xf388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0xf788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0xfb88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0xff88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
-	io_sethandler(0x9a01, 0x0004, NULL,	   NULL, NULL, pas16_out, NULL, NULL,  pas16);	
+        io_removehandler((pas16->base - 0x388) + 0x0388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_removehandler((pas16->base - 0x388) + 0x0788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_removehandler((pas16->base - 0x388) + 0x0b88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_removehandler((pas16->base - 0x388) + 0x0f88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_removehandler((pas16->base - 0x388) + 0x1388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_removehandler((pas16->base - 0x388) + 0x1788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_removehandler((pas16->base - 0x388) + 0x2788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_removehandler((pas16->base - 0x388) + 0x7f88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_removehandler((pas16->base - 0x388) + 0x8388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_removehandler((pas16->base - 0x388) + 0xbf88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_removehandler((pas16->base - 0x388) + 0xe388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_removehandler((pas16->base - 0x388) + 0xe788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_removehandler((pas16->base - 0x388) + 0xeb88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_removehandler((pas16->base - 0x388) + 0xef88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_removehandler((pas16->base - 0x388) + 0xf388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_removehandler((pas16->base - 0x388) + 0xf788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_removehandler((pas16->base - 0x388) + 0xfb88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_removehandler((pas16->base - 0x388) + 0xff88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        
+        pas16->base = val << 2;
+        pclog("pas16_write_base : PAS16 base now at %04X\n", pas16->base);
+
+        io_sethandler((pas16->base - 0x388) + 0x0388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_sethandler((pas16->base - 0x388) + 0x0788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_sethandler((pas16->base - 0x388) + 0x0b88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_sethandler((pas16->base - 0x388) + 0x0f88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_sethandler((pas16->base - 0x388) + 0x1388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_sethandler((pas16->base - 0x388) + 0x1788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_sethandler((pas16->base - 0x388) + 0x2788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_sethandler((pas16->base - 0x388) + 0x7f88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_sethandler((pas16->base - 0x388) + 0x8388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_sethandler((pas16->base - 0x388) + 0xbf88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_sethandler((pas16->base - 0x388) + 0xe388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_sethandler((pas16->base - 0x388) + 0xe788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_sethandler((pas16->base - 0x388) + 0xeb88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_sethandler((pas16->base - 0x388) + 0xef88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_sethandler((pas16->base - 0x388) + 0xf388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_sethandler((pas16->base - 0x388) + 0xf788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_sethandler((pas16->base - 0x388) + 0xfb88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
+        io_sethandler((pas16->base - 0x388) + 0xff88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
 }
 
 
@@ -706,7 +714,6 @@ void pas16_get_buffer(int32_t *buffer, int len, void *p)
         opl3_update2(&pas16->opl);
         sb_dsp_update(&pas16->dsp);
         pas16_update(pas16);
-		
         for (c = 0; c < len * 2; c++)
         {
                 buffer[c] += pas16->opl.buffer[c];
@@ -726,16 +733,12 @@ void *pas16_init()
 
         opl3_init(&pas16->opl);
         sb_dsp_init(&pas16->dsp, SB2);
-	
-		pas16_irq = device_get_config_int("irq");
-        pas16_dma = device_get_config_int("dma");
-		
-        pas16_io_set(pas16);
+
+        io_sethandler(0x9a01, 0x0001, NULL, NULL, NULL, pas16_out_base, NULL, NULL,  pas16);
         
         timer_add(pas16_pcm_poll, &pas16->pit.c[0], &pas16->pit.enable[0],  pas16);
         
         sound_add_handler(pas16_get_buffer, pas16);
-        mpu401_uart_init(&pas16->mpu, 0x330);
         
         return pas16;
 }
@@ -747,94 +750,14 @@ void pas16_close(void *p)
         free(pas16);
 }
 
-static device_config_t pas16_config[] =
-{
-        {
-                .name = "irq",
-                .description = "IRQ",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "IRQ 2",
-                                .value = 2
-                        },
-                        {
-                                .description = "IRQ 3",
-                                .value = 3
-                        },
-                        {
-                                .description = "IRQ 5",
-                                .value = 5
-                        },
-                        {
-                                .description = "IRQ 7",
-                                .value = 7
-                        },
-                        {
-                                .description = "IRQ 10",
-                                .value = 10
-                        },
-                        {
-                                .description = "IRQ 11",
-                                .value = 11
-                        },
-                        {
-                                .description = "IRQ 15",
-                                .value = 15
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 5
-        },
-        {
-                .name = "dma",
-                .description = "DMA",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "DMA 0",
-                                .value = 0
-                        },					
-                        {
-                                .description = "DMA 1",
-                                .value = 1
-                        },
-                        {
-                                .description = "DMA 3",
-                                .value = 3
-                        },
-                        {
-                                .description = "DMA 5",
-                                .value = 5
-                        },
-                        {
-                                .description = "DMA 7",
-                                .value = 7
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 1
-        },		
-        {
-                .type = -1
-        }
-};
-
 device_t pas16_device =
 {
         "Pro Audio Spectrum 16",
-        0,
+        DEVICE_NOT_WORKING,
         pas16_init,
         pas16_close,
         NULL,
         NULL,
         NULL,
-        NULL,
-		pas16_config
+        NULL
 };

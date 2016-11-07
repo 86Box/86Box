@@ -34,11 +34,14 @@ uint16_t fdi_disk_flags(int drive)
 	{
 		case 500:
 			temp_disk_flags |= 2;
+			break;
 		case 300:
 		case 250:
 			temp_disk_flags |= 0;
+			break;
 		case 1000:
 			temp_disk_flags |= 4;
+			break;
 		default:
 			temp_disk_flags |= 0;
 	}
@@ -61,12 +64,16 @@ uint16_t fdi_side_flags(int drive)
 	{
 		case 500:
 			temp_side_flags = 0;
+			break;
 		case 300:
 			temp_side_flags = 1;
+			break;
 		case 250:
 			temp_side_flags = 2;
+			break;
 		case 1000:
 			temp_side_flags = 3;
+			break;
 		default:
 			temp_side_flags = 2;
 	}
@@ -81,30 +88,53 @@ uint16_t fdi_side_flags(int drive)
 	return temp_side_flags;
 }
 
+int fdi_density()
+{
+	if (!fdc_is_mfm())
+	{
+		return 0;
+	}
+
+	switch (fdc_get_bit_rate())
+	{
+		case 0:
+			return 2;
+		case 1:
+			return 1;
+		case 2:
+			return 1;
+		case 3:
+		case 5:
+			return 3;
+		default:
+			return 1;
+	}
+}
+
 int32_t fdi_extra_bit_cells(int drive, int side)
 {
 	int density = 0;
 
 	int raw_size = 0;
 
+	density = fdi_density();
+
 	switch (fdc_get_bit_rate())
 	{
 		case 0:
 			raw_size = (fdd_getrpm(drive ^ fdd_swap) == 300) ? 200000 : 166666;
-			density = 2;
+			break;
 		case 1:
 			raw_size = (fdd_getrpm(drive ^ fdd_swap) == 300) ? 120000 : 100000;
-			density = 1;
+			break;
 		case 2:
 			raw_size = (fdd_getrpm(drive ^ fdd_swap) == 300) ? 100000 : 83333;
-			density = 1;
 		case 3:
 		case 5:
 			raw_size = (fdd_getrpm(drive ^ fdd_swap) == 300) ? 400000 : 333333;
-			density = 3;
+			break;
 		default:
 			raw_size = (fdd_getrpm(drive ^ fdd_swap) == 300) ? 100000 : 83333;
-			density = 1;
 	}
 
 	return (fdi[drive].tracklen[side][density] - raw_size);
@@ -148,7 +178,7 @@ void fdi_read_revolution(int drive)
 		{
 	                int c = fdi2raw_loadtrack(fdi[drive].h, (uint16_t *)fdi[drive].track_data[side][density],
         	                      (uint16_t *)fdi[drive].track_timing[side][density],
-	                              track * fdi[drive].sides,
+	                              (track * fdi[drive].sides) + side,
 	                              &fdi[drive].tracklen[side][density],
 	                              &fdi[drive].trackindex[side][density], NULL, density);
 			// pclog("Side 0 [%i]: len %i, index %i\n", density, fdi[drive].tracklen[side][density], fdi[drive].trackindex[side][density]);
@@ -168,20 +198,7 @@ uint32_t fdi_index_hole_pos(int drive, int side)
 {
 	int density;
 
-	switch (fdc_get_bit_rate())
-	{
-		case 0:
-			density = 2;
-		case 1:
-			density = 1;
-		case 2:
-			density = 1;
-		case 3:
-		case 5:
-			density = 3;
-		default:
-			density = 1;
-	}
+	density = fdi_density();
 
 	return fdi[drive].trackindex[side][density];
 }
@@ -190,20 +207,7 @@ uint32_t fdi_get_raw_size(int drive, int side)
 {
 	int density;
 
-	switch (fdc_get_bit_rate())
-	{
-		case 0:
-			density = 2;
-		case 1:
-			density = 1;
-		case 2:
-			density = 1;
-		case 3:
-		case 5:
-			density = 3;
-		default:
-			density = 1;
-	}
+	density = fdi_density();
 
 	return fdi[drive].tracklen[side][density];
 }
@@ -212,17 +216,7 @@ uint16_t* fdi_encoded_data(int drive, int side)
 {
 	int density = 0;
 
-        if (fdc_get_bit_rate() == 2)
-                density = 1;
-        if (fdc_get_bit_rate() == 0)
-                density = 2;
-        if (fdc_get_bit_rate() == 3)
-                density = 3;
-
-	if (!fdc_is_mfm())
-	{
-		density = 0;
-	}
+	density = fdi_density();
 
 	return (uint16_t *)fdi[drive].track_data[side][density];
 }
@@ -294,12 +288,12 @@ void fdi_seek(int drive, int track)
 {
 	if (fdd_doublestep_40(drive))
 	{
-		if (fdi[drive].lasttrack < 43)
+		if (fdi2raw_get_tpi(fdi[drive].h) < 2)
 		{
 			track /= 2;
 		}
-		// pclog("fdi_seek(): %i %i\n", fdi[drive].lasttrack, track);
 	}
+	// pclog("fdi_seek(): %i %i (%i)\n", fdi[drive].lasttrack, track);
         
         if (!fdi[drive].f)
                 return;

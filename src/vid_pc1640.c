@@ -27,7 +27,7 @@ typedef struct pc1640_t
         
         int cga_enabled;
         int dispontime, dispofftime;
-	int64_t vidtime;
+	int vidtime;
 } pc1640_t;
 
 void pc1640_out(uint16_t addr, uint8_t val, void *p)

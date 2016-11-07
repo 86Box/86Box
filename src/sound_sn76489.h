@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 enum
 {
         SN76496,
@@ -16,7 +13,7 @@ extern int sn76489_mute;
 typedef struct sn76489_t
 {
         int stat[4];
-        int64_t latch[4], count[4];
+        int latch[4], count[4];
         int freqlo[4], freqhi[4];
         int vol[4];
         uint32_t shift;

@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*PCem v0.8 by Tom Walker
 
   AD1848 CODEC emulation (Windows Sound System compatible)*/

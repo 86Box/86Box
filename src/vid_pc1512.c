@@ -39,7 +39,7 @@ typedef struct pc1512_t
         int blink;
         
         int dispontime, dispofftime;
-	int64_t vidtime;
+	int vidtime;
         int firstline, lastline;
         
         uint8_t *vram;

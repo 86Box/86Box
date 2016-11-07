@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
 #define USE_OPENAL
 #include <stdio.h>
 #include <string.h>

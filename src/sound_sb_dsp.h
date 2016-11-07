@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 typedef struct sb_dsp_t
 {
         int sb_type;
@@ -46,11 +43,11 @@ typedef struct sb_dsp_t
 
         uint8_t sb_asp_regs[256];
         
-        int64_t sbenable, sb_enable_i;
+        int sbenable, sb_enable_i;
         
-        int64_t sbcount, sb_count_i;
+        int sbcount, sb_count_i;
         
-        int64_t sblatcho, sblatchi;
+        int sblatcho, sblatchi;
         
         uint16_t sb_addr;
         
@@ -58,7 +55,7 @@ typedef struct sb_dsp_t
         
         int asp_data_len;
         
-        int64_t wb_time, wb_full;
+        int wb_time, wb_full;
         
         int16_t buffer[SOUNDBUFLEN * 2];
         int pos;

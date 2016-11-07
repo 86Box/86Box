@@ -37,7 +37,7 @@ typedef struct m24_t
         int dispon;
         
         int dispontime, dispofftime;
-	int64_t vidtime;
+	int vidtime;
         
         int firstline, lastline;
 } m24_t;

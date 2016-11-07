@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #include "timer.h"
 
 typedef struct ad1848_t
@@ -16,13 +13,13 @@ typedef struct ad1848_t
         
         int16_t out_l, out_r;
                 
-        int64_t enable;
+        int enable;
 
         int irq, dma;
         
         int freq;
         
-        int64_t timer_count, timer_latch;
+        int timer_count, timer_latch;
 
         int16_t buffer[SOUNDBUFLEN * 2];
         int pos;

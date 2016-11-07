@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #include "ibm.h"
 #include "io.h"
 #include "sound_mpu401_uart.h"
@@ -56,15 +53,5 @@ void mpu401_uart_init(mpu401_uart_t *mpu, uint16_t addr)
         mpu->status = STATUS_INPUT_NOT_READY;
         mpu->uart_mode = 0;
         
-        io_sethandler(addr, 0x0002, mpu401_uart_read, NULL, NULL, mpu401_uart_write, NULL, NULL, mpu);
-}
-
-void mpu401_uart_set(mpu401_uart_t *mpu, uint16_t addr)        
-{
-        io_sethandler(addr, 0x0002, mpu401_uart_read, NULL, NULL, mpu401_uart_write, NULL, NULL, mpu);
-}
-
-void mpu401_uart_remove(mpu401_uart_t *mpu, uint16_t addr)
-{
         io_sethandler(addr, 0x0002, mpu401_uart_read, NULL, NULL, mpu401_uart_write, NULL, NULL, mpu);
 }

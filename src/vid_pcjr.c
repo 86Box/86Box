@@ -37,7 +37,7 @@ typedef struct pcjr_t
         uint16_t ma, maback;
         
         int dispontime, dispofftime;
-	int64_t vidtime;
+	int vidtime;
         int firstline, lastline;
 } pcjr_t;
 

@@ -39,7 +39,7 @@ void disc_stop(int drive);
 int disc_empty(int drive);
 void disc_set_rate(int drive, int drvden, int rate);
 extern int disc_time;
-extern int64_t disc_poll_time[2];
+extern int disc_poll_time[2];
 
 void fdc_callback();
 int  fdc_data(uint8_t dat);
@@ -57,7 +57,7 @@ extern int fdc_ready;
 extern int fdc_indexcount;*/
 
 extern int motorspin;
-extern int64_t motoron[2];
+extern int motoron[2];
 
 extern int swwp;
 extern int disable_write;

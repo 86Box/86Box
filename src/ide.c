@@ -355,7 +355,7 @@ static void callnonreadcd(IDE *ide);
 static void callreadcd(IDE *ide);
 static void atapicommand(int ide_board);
 
-int64_t idecallback[3] = {0, 0, 0};
+int idecallback[3] = {0, 0, 0};
 
 int cur_ide[3];
 
