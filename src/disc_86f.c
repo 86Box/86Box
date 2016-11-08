@@ -1365,7 +1365,7 @@ void d86f_read_sector_id(int drive, int side, int match)
 					{
 						d86f[drive].error_condition = 0;
 						d86f[drive].state = STATE_IDLE;
-						fdc_finishread();
+						// fdc_finishread();
 						fdc_headercrcerror();
 					}
 					else if (d86f[drive].state == STATE_0A_READ_ID)
@@ -1507,7 +1507,7 @@ void d86f_read_sector_data(int drive, int side)
 					d86f[drive].data_find.sync_marks = d86f[drive].data_find.bits_obtained = d86f[drive].data_find.bytes_obtained = 0;
 					d86f[drive].error_condition = 0;
 					d86f[drive].state = STATE_IDLE;
-					fdc_finishread();
+					// fdc_finishread();
 					fdc_datacrcerror();
 				}
 				else if ((d86f[drive].calc_crc.word != d86f[drive].track_crc.word) && (d86f[drive].state == STATE_02_READ_DATA))
@@ -1966,12 +1966,10 @@ void d86f_format_track(int drive, int side)
 	}
 }
 
-void d86f_poll(int drive)
+void d86f_poll(int drive, int side)
 {
-	int side = 0;
 	int mfm = 1;
 
-	side = fdd_get_head(drive);
 	mfm = fdc_is_mfm();
 
 	if ((d86f[drive].state & 0xF8) == 0xE8)

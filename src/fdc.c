@@ -16,26 +16,30 @@ extern int motoron[2];
 
 int ui_writeprot[2] = {0, 0};
 
-int command_has_drivesel[256] = {	[0x02] = 1,			/* READ TRACK */
-					[0x04] = 1,			/* SENSE DRIVE STATUS */
-					[0x05] = 1,			/* WRITE DATA */
-					[0x06] = 1,			/* READ DATA */
+/*	Bit 0 = Has drive select
+	Bit 1 = Is read/write
+	Bit 2 = Has head select	*/
+
+int command_flags[256] = {		[0x02] = 7,			/* READ TRACK */
+					[0x04] = 5,			/* SENSE DRIVE STATUS */
+					[0x05] = 7,			/* WRITE DATA */
+					[0x06] = 7,			/* READ DATA */
 					[0x07] = 1,			/* RECALIBRATE */
-					[0x09] = 1,			/* WRITE DELETED DATA */
-					[0x0A] = 1,			/* READ ID */
-					[0x0C] = 1,			/* READ DELETED DATA */
-					[0x0D] = 1,			/* FORMAT TRACK */
-					[0x0F] = 1,			/* SEEK, RELATIVE SEEK */
-					[0x11] = 1,			/* SCAN EQUAL */
-					[0x16] = 1,			/* VERIFY */
-					[0x19] = 1,			/* SCAN LOW OR EQUAL */
-					[0x1D] = 1	};		/* SCAN HIGH OR EQUAL */
+					[0x09] = 7,			/* WRITE DELETED DATA */
+					[0x0A] = 7,			/* READ ID */
+					[0x0C] = 7,			/* READ DELETED DATA */
+					[0x0D] = 7,			/* FORMAT TRACK */
+					[0x0F] = 5,			/* SEEK, RELATIVE SEEK */
+					[0x11] = 7,			/* SCAN EQUAL */
+					[0x16] = 7,			/* VERIFY */
+					[0x19] = 7,			/* SCAN LOW OR EQUAL */
+					[0x1D] = 7	};		/* SCAN HIGH OR EQUAL */
 
 static int fdc_reset_stat = 0;
 /*FDC*/
 typedef struct FDC
 {
-        uint8_t dor,stat,command,dat,st0;
+        uint8_t dor,tdr,stat,command,dat,st0;
         int head,track[256],sector,drive,lastdrive;
         int rw_track;
         int pos;
@@ -196,28 +200,67 @@ int fdc_is_mfm()
 	return fdc.mfm ? 1 : 0;
 }
 
+double fdc_get_bit_period()
+{
+	double bcp = 4.0;
+
+	switch(fdc_get_bit_rate())
+	{
+		case 0:
+			bcp = 2.0;
+			break;
+		case 1:
+			bcp = 20.0 / 6.0;
+			break;
+		case 2:
+		default:
+			bcp = 4.0;
+			break;
+		case 3:
+			bcp = 1.0;
+			break;
+		case 5:
+			bcp = 0.5;
+			break;
+	}
+	if (!fdc_is_mfm())
+	{
+		bcp *= 2.0;
+	}
+
+	return bcp;
+}
+
 double fdc_get_hut()
 {
 	int hut = (fdc.specify[0] & 0xF);
 	double dusec;
-	double bcp = ((double) fdc_get_bitcell_period()) / 250.0;
-	double dhut = (double) hut;
-	if (fdc_get_bitcell_period() == 3333)  bcp = 160.0 / 6.0;
-	if (hut == 0)  dhut = 16.0;
+	double bcp;
+	double dhut;
+	if (!hut)
+	{
+		hut = 0x10;
+	}
+	dhut = (double) hut;
+	bcp = fdc_get_bit_period() * 8.0;
 	dusec = (double) TIMER_USEC;
-	return (bcp * dhut * dusec * 1000.0);
+	return (dhut * bcp * 1000.0 * dusec);
 }
 
 double fdc_get_hlt()
 {
 	int hlt = (fdc.specify[1] >> 1);
 	double dusec;
-	double bcp = ((double) fdc_get_bitcell_period()) / 2000.0;
-	double dhlt = (double) hlt;
-	if (fdc_get_bitcell_period() == 3333)  bcp = 20.0 / 6.0;
-	if (hlt == 0)  dhlt = 256.0;
+	double bcp;
+	double dhlt;
+	if (!hlt)
+	{
+		hlt = 0x80;
+	}	
+	dhlt = (double) hlt;
+	bcp = fdc_get_bit_period() * 8.0;
 	dusec = (double) TIMER_USEC;
-	return (bcp * dhlt * dusec * 1000.0);
+	return (dhlt * bcp * 1000.0 * dusec);
 }
 
 void fdc_request_next_sector_id()
@@ -609,6 +652,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                 return;
 		case 3:
 		/* TDR */
+		fdc.tdr = val & 3;
 		if (fdc.enh_mode)
 		{
 			drive = (fdc.dor & 1) ^ fdd_swap;
@@ -616,6 +660,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
 		}
 		return;
                 case 4:
+		val &= 0xdf;	/* Bit 5 is hardwired to 0. */
                 if (val & 0x80)
                 {
 			timer_process();
@@ -816,9 +861,18 @@ bad_command:
         			timer_process();
        				disctime = 1024 * (1 << TIMER_SHIFT);
         			timer_update_outstanding();
-				if (command_has_drivesel[discint & 0x1F])
+				if (command_flags[discint & 0x1F] & 1)
 				{
 	                                fdc.drive = fdc.params[0] & 3;
+				}
+				if (command_flags[discint & 0x1F] & 4)
+				{
+					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
+					if (command_flags[discint & 0x1F] & 2)
+					{
+						// pclog("Command %02X, loading head...\n", fdc.command);
+						disc_head_load(fdc.drive, fdd_get_head(fdc.drive ^ fdd_swap));
+					}
 				}
                                 fdc_reset_stat = 0;
                                 switch (discint & 0x1F)
@@ -1107,17 +1161,17 @@ uint8_t fdc_read(uint16_t addr, void *priv)
                           presumably implemented outside the FDC on one of the
                           motherboard's support chips.*/
                         if (fdd_is_525(drive))
-                                temp = 0x20;
+                                temp = 0x20 | fdc.tdr;
                         else if (fdd_is_ed(drive))
-                                temp = 0x10;
+                                temp = 0x10 | fdc.tdr;
                         else
-                                temp = 0x00;
+                                temp = 0x00 | fdc.tdr;
                 }
                 else if (!fdc.enh_mode)
-	                temp = 0x20;
+	                temp = fdc.tdr;
 		else
 		{
-			temp = fdc.rwc[drive] << 4;
+			temp = (fdc.rwc[drive] << 4) | fdc.tdr;
 		}
                 break;
                 case 4: /*Status*/
@@ -1188,14 +1242,18 @@ uint8_t fdc_read(uint16_t addr, void *priv)
         return temp;
 }
 
-void fdc_poll_readwrite_finish(int compare)
+void fdc_poll_common_finish(int st5, int compare)
 {
         fdc.inread = 0;
-        discint=-2;
+        // discint=-2;
+	disctime=0;
+	// pclog("Poll common finish...\n");
+	disc_head_unload(fdc.drive, fdd_get_head(fdc.drive ^ fdd_swap));
         fdc_int();
         fdc.stat=0xD0;
         fdc.res[4]=(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
-        fdc.res[5]=fdc.res[6]=0;
+        fdc.res[5]=st5;
+	fdc.res[6]=0;
 	if (fdc.wrong_am)
 	{
 		fdc.res[6] |= 0x40;
@@ -1231,48 +1289,14 @@ void fdc_poll_readwrite_finish(int compare)
         paramstogo=7;
 }
 
+void fdc_poll_readwrite_finish(int compare)
+{
+	fdc_poll_common_finish(0, compare);
+}
+
 void fdc_no_dma_end(int compare)
 {
-        disctime = 0;
-
-        fdc_int();
-        fdc.stat=0xD0;
-        fdc.res[4]=0x40|(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
-        fdc.res[5]=0x80; /*NDE (No DMA End)*/
-        fdc.res[6]=0;
-	if (fdc.wrong_am)
-	{
-		fdc.res[6] |= 0x40;
-		fdc.wrong_am = 0;
-	}
-	if (compare == 1)
-	{
-		if (!fdc.satisfying_sectors)
-		{
-			fdc.res[6] |= 4;
-		}
-		else if (fdc.satisfying_sectors == (fdc.params[5] << ((fdc.command & 80) ? 1 : 0)))
-		{
-			fdc.res[6] |= 8;
-		}
-	}
-	else if (compare == 2)
-	{
-		if (fdc.satisfying_sectors & 1)
-		{
-			fdc.res[5] |= 0x20;
-		}
-		if (fdc.satisfying_sectors & 2)
-		{
-			fdc.res[5] |= 0x20;
-			fdc.res[6] |= 0x20;
-		}
-	}
-        fdc.res[7]=fdc.rw_track;
-        fdc.res[8]=fdc.head;
-        fdc.res[9]=fdc.sector;
-        fdc.res[10]=fdc.params[4];
-        paramstogo=7;
+	fdc_poll_common_finish(0x80, compare);
 }
 
 void fdc_callback()
@@ -1619,21 +1643,32 @@ void fdc_callback()
 //        exit(-1);
 }
 
-void fdc_overrun()
+void fdc_error(int st5, int st6)
 {
-        disc_stop(fdc.drive);
+        fdc.inread = 0;
         disctime = 0;
 
+	// pclog("Error (%02X, %02X)...\n", st5, st6);
+	disc_head_unload(fdc.drive, fdd_get_head(fdc.drive ^ fdd_swap));
+	// discint=-2;
         fdc_int();
         fdc.stat=0xD0;
         fdc.res[4]=0x40|(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
-        fdc.res[5]=0x10; /*Overrun*/
-        fdc.res[6]=0;
+        fdc.res[5]=st5;
+        fdc.res[6]=st6;
         fdc.res[7]=0;
         fdc.res[8]=0;
         fdc.res[9]=0;
         fdc.res[10]=0;
         paramstogo=7;
+//        rpclog("c82c711_fdc_notfound\n");
+}
+
+void fdc_overrun()
+{
+        disc_stop(fdc.drive);
+
+	fdc_error(0x10, 0);
 }
 
 int fdc_is_verify()
@@ -1704,10 +1739,11 @@ int fdc_data(uint8_t data)
         return 0;
 }
 
-void fdc_finishcompare(int satisfying)
+/* void fdc_finishcompare(int satisfying)
 {
 	fdc.satisfying_sectors++;
         fdc.inread = 0;
+	// disc_head_unload(fdc.drive, fdd_get_head(fdc.drive ^ fdd_swap));
         disctime = 200 * TIMER_USEC;
 //        rpclog("fdc_finishread\n");
 }
@@ -1715,14 +1751,16 @@ void fdc_finishcompare(int satisfying)
 void fdc_finishread()
 {
         fdc.inread = 0;
+	// disc_head_unload(fdc.drive, fdd_get_head(fdc.drive ^ fdd_swap));
         disctime = 200 * TIMER_USEC;
 //        rpclog("fdc_finishread\n");
-}
+} */
 
 void fdc_track_finishread(int condition)
 {
 	fdc.satisfying_sectors |= condition;
         fdc.inread = 0;
+	// disc_head_unload(fdc.drive, fdd_get_head(fdc.drive ^ fdd_swap));
 	fdc_callback();
 //        rpclog("fdc_finishread\n");
 }
@@ -1731,6 +1769,7 @@ void fdc_sector_finishcompare(int satisfying)
 {
 	fdc.satisfying_sectors++;
         fdc.inread = 0;
+	// disc_head_unload(fdc.drive, fdd_get_head(fdc.drive ^ fdd_swap));
 	fdc_callback();
 //        rpclog("fdc_finishread\n");
 }
@@ -1738,75 +1777,35 @@ void fdc_sector_finishcompare(int satisfying)
 void fdc_sector_finishread()
 {
         fdc.inread = 0;
+	// disc_head_unload(fdc.drive, fdd_get_head(fdc.drive ^ fdd_swap));
 	fdc_callback();
 //        rpclog("fdc_finishread\n");
 }
 
 void fdc_notfound()
 {
-        disctime = 0;
+	fdc_error(5, 0);
 
-        fdc_int();
-        fdc.stat=0xD0;
-        fdc.res[4]=0x40|(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
-        fdc.res[5]=5;
-        fdc.res[6]=0;
-        fdc.res[7]=0;
-        fdc.res[8]=0;
-        fdc.res[9]=0;
-        fdc.res[10]=0;
-        paramstogo=7;
 //        rpclog("c82c711_fdc_notfound\n");
 }
 
 void fdc_datacrcerror()
 {
-        disctime = 0;
+	fdc_error(0x20, 0x20);
 
-        fdc_int();
-        fdc.stat=0xD0;
-        fdc.res[4]=0x40|(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
-        fdc.res[5]=0x20; /*Data error*/
-        fdc.res[6]=0x20; /*Data error in data field*/
-        fdc.res[7]=0;
-        fdc.res[8]=0;
-        fdc.res[9]=0;
-        fdc.res[10]=0;
-        paramstogo=7;
 //        rpclog("c82c711_fdc_datacrcerror\n");
 }
 
 void fdc_headercrcerror()
 {
-        disctime = 0;
+	fdc_error(0x20, 0);
 
-        fdc_int();
-        fdc.stat=0xD0;
-        fdc.res[4]=0x40|(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
-        fdc.res[5]=0x20; /*Data error*/
-        fdc.res[6]=0;
-        fdc.res[7]=0;
-        fdc.res[8]=0;
-        fdc.res[9]=0;
-        fdc.res[10]=0;
-        paramstogo=7;
 //        rpclog("c82c711_fdc_headercrcerror\n");
 }
 
 void fdc_writeprotect()
 {
-        disctime = 0;
-
-        fdc_int();
-        fdc.stat=0xD0;
-        fdc.res[4]=0x40|(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;
-        fdc.res[5]=0x02; /*Not writeable*/
-        fdc.res[6]=0;
-        fdc.res[7]=0;
-        fdc.res[8]=0;
-        fdc.res[9]=0;
-        fdc.res[10]=0;
-        paramstogo=7;
+	fdc_error(0x02, 0);
 }
 
 int fdc_getdata(int last)
@@ -1863,7 +1862,10 @@ int fdc_getdata(int last)
 
 void fdc_sectorid(uint8_t track, uint8_t side, uint8_t sector, uint8_t size, uint8_t crc1, uint8_t crc2)
 {
-//        pclog("SectorID %i %i %i %i\n", track, side, sector, size);
+        // pclog("SectorID %i %i %i %i\n", track, side, sector, size);
+        fdc.inread = 0;
+	disc_head_unload(fdc.drive, fdd_get_head(fdc.drive ^ fdd_swap));
+	disctime = 0;
         fdc_int();
         fdc.stat=0xD0;
         fdc.res[4]=(fdd_get_head(fdc.drive ^ fdd_swap)?4:0)|fdc.drive;

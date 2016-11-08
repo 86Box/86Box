@@ -14,7 +14,8 @@
 #include "fdd.h"
 #include "timer.h"
 
-int disc_poll_time[2] = { 16, 16 };
+int disc_poll_time[2][2] = { { 16, 16 }, { 16, 16 } };
+int disc_poll_enable[2][2] = { { 0, 0 }, { 0, 0 } };
 
 int disc_track[2];
 int writeprot[2], fwriteprot[2];
@@ -40,6 +41,11 @@ int disc_changed[2];
 
 int motorspin;
 int motoron[2];
+
+int do_poll[2];
+
+int head_enable[2][2] = { 0, 0 };
+int head_time[2][2] = { 0, 0 };
 
 int fdc_indexcount = 52;
 
@@ -186,18 +192,18 @@ double disc_real_period(int drive)
 	return (ddbp * dusec);
 }
 
-void disc_poll(int drive)
+void disc_poll(int drive, int head)
 {
-	if (drive > 1)
+	if ((drive > 1) || !motoron[drive])
 	{
-		disc_poll_time[drive] += (int) (32.0 * TIMER_USEC);
+		disc_poll_time[drive][head] += (int) (32.0 * TIMER_USEC);
 		return;
 	}
 
-        disc_poll_time[drive] += (int) disc_real_period(drive);
+        disc_poll_time[drive][head] += (int) disc_real_period(drive);
 
         if (drives[drive].poll)
-                drives[drive].poll(drive);
+                drives[drive].poll(drive, head);
 
         if (disc_notfound)
         {
@@ -207,14 +213,24 @@ void disc_poll(int drive)
         }
 }
 
-void disc_poll_0()
+void disc_poll_00()
 {
-	disc_poll(0);
+	disc_poll(0, 0);
 }
 
-void disc_poll_1()
+void disc_poll_01()
 {
-	disc_poll(1);
+	disc_poll(0, 1);
+}
+
+void disc_poll_10()
+{
+	disc_poll(1, 0);
+}
+
+void disc_poll_11()
+{
+	disc_poll(1, 1);
 }
 
 int disc_get_bitcell_period(int rate)
@@ -270,12 +286,126 @@ void disc_set_rate(int drive, int drvden, int rate)
         }
 }
 
+/* void disc_head_unload_no_callback(int drive, int head)
+{
+	disc_head_unload(drive, head);
+	head_callback[drive][head] = 0;
+} */
+
+void disc_head_load(int drive, int head)
+{
+	drive ^= fdd_swap;
+
+	// pclog("Head load start (%i, %i) (%i)\n", drive, head, head_time[drive][head]);
+
+	if (head_time[drive][head])
+	{
+		if (!disc_poll_enable[drive][head])
+		{
+			/* If enabling, do nothing and let it enable. */
+			// pclog("Already enabling head (%i, %i)...\n", drive, head);
+			return;
+		}
+		else
+		{
+			/* If disabling, stop the timer so it stays enabled. */
+			// pclog("Currently disabling head (%i, %i)...\n", drive, head);
+			head_time[drive][head] = 0;
+			return;
+		}
+	}
+
+	if (disc_poll_enable[drive][head])
+	{
+		/* If it's already enabled, do nothing. */
+		// pclog("Head (%i, %i) already enabled...\n", drive, head);
+		return;
+	}
+
+	/* Enable or disable not in progress, start enabling. */
+	head_time[drive][head] = fdc_get_hlt();
+
+	// pclog("Head load finished (%i, %i) (%i)\n", drive, head, head_time[drive][head]);
+}
+
+void disc_head_unload(int drive, int head)
+{
+	drive ^= fdd_swap;
+
+	// pclog("Head unload start (%i, %i) (%i)\n", drive, head, head_time[drive][head]);
+
+	if (head_time[drive][head])
+	{
+		if (disc_poll_enable[drive][head])
+		{
+			/* If disabling, do nothing and let it disable. */
+			// pclog("Already disabling head (%i, %i)...\n", drive, head);
+			return;
+		}
+		else
+		{
+			/* If enabling, stop the timer so it stays disabled. */
+			// pclog("Currently enabling head (%i, %i)...\n", drive, head);
+			head_time[drive][head] = 0;
+			return;
+		}
+	}
+
+	if (!disc_poll_enable[drive][head])
+	{
+		/* If it's already disabled, do nothing. */
+		// pclog("Head (%i, %i) already disabled...\n", drive, head);
+		return;
+	}
+
+	/* Enable or disable not in progress, start disabling. */
+	head_time[drive][head] = fdc_get_hut();
+
+	// pclog("Head unload finished (%i, %i) (%i)\n", drive, head, head_time[drive][head]);
+}
+
+void disc_head_poll_common(int drive, int head)
+{
+	disc_poll_enable[drive][head] ^= 1;
+	head_time[drive][head] = 0;
+	if (disc_poll_enable[drive][head])  disc_poll_enable[drive][head ^ 1] = 0;
+	// pclog("Head (%i, %i) %s\n", drive, head, disc_poll_enable[drive][head] ? "enabled" : "disabled");
+}
+
+void disc_head_poll_00()
+{
+	disc_head_poll_common(0, 0);
+}
+
+void disc_head_poll_01()
+{
+	disc_head_poll_common(0, 1);
+}
+
+void disc_head_poll_10()
+{
+	disc_head_poll_common(1, 0);
+}
+
+void disc_head_poll_11()
+{
+	disc_head_poll_common(1, 1);
+}
+
 void disc_reset()
 {
         curdrive = 0;
         disc_period = 32;
-	timer_add(disc_poll_0, &(disc_poll_time[0]), &(motoron[0]), NULL);
-	timer_add(disc_poll_1, &(disc_poll_time[1]), &(motoron[1]), NULL);
+
+	timer_add(disc_poll_00, &(disc_poll_time[0][0]), &(disc_poll_enable[0][0]), NULL);
+	timer_add(disc_poll_01, &(disc_poll_time[0][1]), &(disc_poll_enable[0][1]), NULL);
+	timer_add(disc_poll_10, &(disc_poll_time[1][0]), &(disc_poll_enable[1][0]), NULL);
+	timer_add(disc_poll_11, &(disc_poll_time[1][1]), &(disc_poll_enable[1][1]), NULL);
+
+	timer_add(disc_head_poll_00, &(head_time[0][0]), &(head_time[0][0]), NULL);
+	timer_add(disc_head_poll_01, &(head_time[0][1]), &(head_time[0][1]), NULL);
+	timer_add(disc_head_poll_10, &(head_time[1][0]), &(head_time[1][0]), NULL);
+	timer_add(disc_head_poll_11, &(head_time[1][1]), &(head_time[1][1]), NULL);
 }
 
 void disc_init()
