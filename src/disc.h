@@ -13,6 +13,7 @@ typedef struct
         double (*byteperiod)(int drive);
         void (*stop)(int drive);
         void (*poll)(int drive, int side);
+        void (*advance)(int drive);
 } DRIVE;
 
 extern DRIVE drives[2];

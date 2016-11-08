@@ -1309,7 +1309,7 @@ void exec386_dynarec(int cycs)
                                 if (page->code_present_mask & mask)
                                 {
                                         /*Walk page tree to see if we find the correct block*/
-                                        codeblock_t *new_block = codeblock_tree_find(phys_addr);                                        
+                                        codeblock_t *new_block = codeblock_tree_find(phys_addr, cs);                                        
                                         if (new_block)
                                         {
                                                 valid_block = (new_block->pc == cs + cpu_state.pc) && (new_block->_cs == cs) &&

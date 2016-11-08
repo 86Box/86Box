@@ -21,7 +21,7 @@ int ui_writeprot[2] = {0, 0};
 	Bit 2 = Has head select	*/
 
 int command_flags[256] = {		[0x02] = 7,			/* READ TRACK */
-					[0x04] = 5,			/* SENSE DRIVE STATUS */
+					[0x04] = 7,			/* SENSE DRIVE STATUS */
 					[0x05] = 7,			/* WRITE DATA */
 					[0x06] = 7,			/* READ DATA */
 					[0x07] = 1,			/* RECALIBRATE */
@@ -29,7 +29,7 @@ int command_flags[256] = {		[0x02] = 7,			/* READ TRACK */
 					[0x0A] = 7,			/* READ ID */
 					[0x0C] = 7,			/* READ DELETED DATA */
 					[0x0D] = 7,			/* FORMAT TRACK */
-					[0x0F] = 5,			/* SEEK, RELATIVE SEEK */
+					[0x0F] = 7,			/* SEEK, RELATIVE SEEK */
 					[0x11] = 7,			/* SCAN EQUAL */
 					[0x16] = 7,			/* VERIFY */
 					[0x19] = 7,			/* SCAN LOW OR EQUAL */
@@ -1247,7 +1247,7 @@ void fdc_poll_common_finish(int st5, int compare)
         fdc.inread = 0;
         // discint=-2;
 	disctime=0;
-	// pclog("Poll common finish...\n");
+	// pclog("Poll common finish (%02X)...\n", st5);
 	disc_head_unload(fdc.drive, fdd_get_head(fdc.drive ^ fdd_swap));
         fdc_int();
         fdc.stat=0xD0;
@@ -1340,6 +1340,7 @@ void fdc_callback()
                 fdc.inread = 1;
                 return;
                 case 4: /*Sense drive status*/
+		disc_head_unload(fdc.drive, fdd_get_head(fdc.drive ^ fdd_swap));
                 fdc.res[10] = (fdc.params[0] & 7) | 0x28;
 		if (((fdc.drive ^ fdd_swap) != 1) || fdc.drv2en)
 		{
@@ -1645,7 +1646,6 @@ void fdc_callback()
 
 void fdc_error(int st5, int st6)
 {
-        fdc.inread = 0;
         disctime = 0;
 
 	// pclog("Error (%02X, %02X)...\n", st5, st6);

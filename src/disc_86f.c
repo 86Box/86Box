@@ -191,7 +191,7 @@ static struct __attribute__((packed))
 	sector_id_t last_sector;
 	sector_id_t req_sector;
 	uint32_t index_count;
-	uint8_t state;
+	uint8_t state[2];
 	uint8_t fill;
 	uint32_t track_pos;
 	uint32_t datac;
@@ -1189,7 +1189,7 @@ void d86f_find_address_mark_fm(int drive, int side, find_t *find, uint16_t req_a
 		find->sync_marks = find->bits_obtained = find->bytes_obtained = 0;
 		find->sync_pos = 0xFFFFFFFF;
 		d86f[drive].preceding_bit[side] = d86f[drive].last_word[side] & 1;
-		d86f[drive].state++;
+		d86f[drive].state[side]++;
 		return;
 	}
 
@@ -1202,14 +1202,14 @@ void d86f_find_address_mark_fm(int drive, int side, find_t *find, uint16_t req_a
 		if (ignore_other_am & 1)
 		{
 			/* Skip mode, let's go back to finding ID. */
-			d86f[drive].state -= 2;
+			d86f[drive].state[side] -= 2;
 		}
 		else
 		{
 			/* Not skip mode, process the sector anyway. */
 			fdc_set_wrong_am();
 			d86f[drive].preceding_bit[side] = d86f[drive].last_word[side] & 1;
-			d86f[drive].state++;
+			d86f[drive].state[side]++;
 		}
 		return;
 	}
@@ -1228,7 +1228,7 @@ void d86f_write_find_address_mark_fm(int drive, int side, find_t *find)
 			d86f[drive].calc_crc.word = 0xFFFF;
 			d86f[drive].preceding_bit[side] = 1;
 			find->sync_marks = 0;
-			d86f[drive].state++;
+			d86f[drive].state[side]++;
 			return;
 		}
 	}
@@ -1262,9 +1262,9 @@ void d86f_find_address_mark_mfm(int drive, int side, find_t *find, uint16_t req_
 			disc_calccrc(decodefm(drive, d86f[drive].last_word[side]), &(d86f[drive].calc_crc));
 			find->sync_marks = find->bits_obtained = find->bytes_obtained = 0;
 			find->sync_pos = 0xFFFFFFFF;
-			// pclog("AM found (%04X) (%02X)\n", req_am, d86f[drive].state);
+			// pclog("AM found (%04X) (%02X)\n", req_am, d86f[drive].state[side]);
 			d86f[drive].preceding_bit[side] = d86f[drive].last_word[side] & 1;
-			d86f[drive].state++;
+			d86f[drive].state[side]++;
 			return;
 		}
 	}
@@ -1280,14 +1280,14 @@ void d86f_find_address_mark_mfm(int drive, int side, find_t *find, uint16_t req_
 			if (ignore_other_am & 1)
 			{
 				/* Skip mode, let's go back to finding ID. */
-				d86f[drive].state -= 2;
+				d86f[drive].state[side] -= 2;
 			}
 			else
 			{
 				/* Not skip mode, process the sector anyway. */
 				fdc_set_wrong_am();
 				d86f[drive].preceding_bit[side] = d86f[drive].last_word[side] & 1;
-				d86f[drive].state++;
+				d86f[drive].state[side]++;
 			}
 			return;
 		}
@@ -1317,7 +1317,7 @@ void d86f_write_find_address_mark_mfm(int drive, int side, find_t *find)
 			d86f[drive].calc_crc.word = 0xCDB4;
 			d86f[drive].preceding_bit[side] = 1;
 			find->sync_marks = 0;
-			d86f[drive].state++;
+			d86f[drive].state[side]++;
 			return;
 		}
 	}
@@ -1361,29 +1361,29 @@ void d86f_read_sector_id(int drive, int side, int match)
 				{
 					d86f[drive].id_find.sync_marks = d86f[drive].id_find.bits_obtained = d86f[drive].id_find.bytes_obtained = 0;
 					// printf("%04X != %04X (%08X)\n", d86f[drive].track_crc.word, d86f[drive].calc_crc.word, d86f[drive].last_sector.dword);
-					if ((d86f[drive].state != STATE_02_READ_ID) && (d86f[drive].state != STATE_0A_READ_ID))
+					if ((d86f[drive].state[side] != STATE_02_READ_ID) && (d86f[drive].state[side] != STATE_0A_READ_ID))
 					{
 						d86f[drive].error_condition = 0;
-						d86f[drive].state = STATE_IDLE;
+						d86f[drive].state[side] = STATE_IDLE;
 						// fdc_finishread();
 						fdc_headercrcerror();
 					}
-					else if (d86f[drive].state == STATE_0A_READ_ID)
+					else if (d86f[drive].state[side] == STATE_0A_READ_ID)
 					{
-						d86f[drive].state--;
+						d86f[drive].state[side]--;
 					}
 					else
 					{
 						d86f[drive].error_condition |= 1;	/* Mark that there was an ID CRC error. */
-						d86f[drive].state++;
+						d86f[drive].state[side]++;
 					}
 				}
-				else if ((d86f[drive].calc_crc.word == d86f[drive].track_crc.word) && (d86f[drive].state == STATE_0A_READ_ID))
+				else if ((d86f[drive].calc_crc.word == d86f[drive].track_crc.word) && (d86f[drive].state[side] == STATE_0A_READ_ID))
 				{
 					/* CRC is valid and this is a read sector ID command. */
 					d86f[drive].id_find.sync_marks = d86f[drive].id_find.bits_obtained = d86f[drive].id_find.bytes_obtained = d86f[drive].error_condition = 0;
 					fdc_sectorid(d86f[drive].last_sector.id.c, d86f[drive].last_sector.id.h, d86f[drive].last_sector.id.r, d86f[drive].last_sector.id.n, 0, 0);
-					d86f[drive].state = STATE_IDLE;
+					d86f[drive].state[side] = STATE_IDLE;
 				}
 				else
 				{
@@ -1392,13 +1392,13 @@ void d86f_read_sector_id(int drive, int side, int match)
 					d86f[drive].id_find.sync_marks = d86f[drive].id_find.bits_obtained = d86f[drive].id_find.bytes_obtained = 0;
 					if ((d86f[drive].last_sector.dword == d86f[drive].req_sector.dword) || !match)
 					{
-						// pclog("ID read (%02X)\n", d86f[drive].state);
+						// pclog("ID read (%02X)\n", d86f[drive].state[side]);
 						d86f_handler[drive].set_sector(drive, side, d86f[drive].last_sector.id.c, d86f[drive].last_sector.id.h, d86f[drive].last_sector.id.r, d86f[drive].last_sector.id.n);
-						d86f[drive].state++;
+						d86f[drive].state[side]++;
 					}
 					else
 					{
-						d86f[drive].state--;
+						d86f[drive].state[side]--;
 					}
 				}
 			}
@@ -1474,7 +1474,7 @@ void d86f_read_sector_data(int drive, int side)
 			if (d86f[drive].data_find.bytes_obtained < sector_len)
 			{
 				data = decodefm(drive, d86f[drive].last_word[side]);
-				if (d86f[drive].state == STATE_11_SCAN_DATA)
+				if (d86f[drive].state[side] == STATE_11_SCAN_DATA)
 				{
 					/* Scan/compare command. */
 					recv_data = d86f_get_data(drive, 0);
@@ -1484,7 +1484,7 @@ void d86f_read_sector_data(int drive, int side)
 				{
 					if (d86f[drive].data_find.bytes_obtained < d86f_get_data_len(drive))
 					{
-						if (d86f[drive].state != STATE_16_VERIFY_DATA)
+						if (d86f[drive].state[side] != STATE_16_VERIFY_DATA)
 						{
 							fdc_data(data);
 						}
@@ -1501,21 +1501,21 @@ void d86f_read_sector_data(int drive, int side)
 			if (d86f[drive].data_find.bytes_obtained == (crc_pos + fdc_get_gap()))
 			{
 				/* We've got the data. */
-				if ((d86f[drive].calc_crc.word != d86f[drive].track_crc.word) && (d86f[drive].state != STATE_02_READ_DATA))
+				if ((d86f[drive].calc_crc.word != d86f[drive].track_crc.word) && (d86f[drive].state[side] != STATE_02_READ_DATA))
 				{
 					// printf("%04X != %04X (%08X)\n", d86f[drive].track_crc.word, d86f[drive].calc_crc.word, d86f[drive].last_sector.dword);
 					d86f[drive].data_find.sync_marks = d86f[drive].data_find.bits_obtained = d86f[drive].data_find.bytes_obtained = 0;
 					d86f[drive].error_condition = 0;
-					d86f[drive].state = STATE_IDLE;
+					d86f[drive].state[side] = STATE_IDLE;
 					// fdc_finishread();
 					fdc_datacrcerror();
 				}
-				else if ((d86f[drive].calc_crc.word != d86f[drive].track_crc.word) && (d86f[drive].state == STATE_02_READ_DATA))
+				else if ((d86f[drive].calc_crc.word != d86f[drive].track_crc.word) && (d86f[drive].state[side] == STATE_02_READ_DATA))
 				{
 					// printf("%04X != %04X (%08X)\n", d86f[drive].track_crc.word, d86f[drive].calc_crc.word, d86f[drive].last_sector.dword);
 					d86f[drive].data_find.sync_marks = d86f[drive].data_find.bits_obtained = d86f[drive].data_find.bytes_obtained = 0;
 					d86f[drive].error_condition |= 2;	/* Mark that there was a data error. */
-					d86f[drive].state = STATE_IDLE;
+					d86f[drive].state[side] = STATE_IDLE;
 					fdc_track_finishread(d86f[drive].error_condition);
 				}
 				else
@@ -1523,14 +1523,14 @@ void d86f_read_sector_data(int drive, int side)
 					/* CRC is valid. */
 					d86f[drive].data_find.sync_marks = d86f[drive].data_find.bits_obtained = d86f[drive].data_find.bytes_obtained = 0;
 					d86f[drive].error_condition = 0;
-					if (d86f[drive].state == STATE_11_SCAN_DATA)
+					if (d86f[drive].state[side] == STATE_11_SCAN_DATA)
 					{
-						d86f[drive].state = STATE_IDLE;
+						d86f[drive].state[side] = STATE_IDLE;
 						fdc_sector_finishcompare((d86f[drive].satisfying_bytes == ((128 << ((uint32_t) d86f[drive].last_sector.id.n)) - 1)) ? 1 : 0);
 					}
 					else
 					{
-						d86f[drive].state = STATE_IDLE;
+						d86f[drive].state[side] = STATE_IDLE;
 						fdc_sector_finishread();
 					}
 				}
@@ -1656,7 +1656,7 @@ void d86f_write_sector_data(int drive, int side, int mfm, uint16_t am)
 				/* We've written the data. */
 				d86f[drive].data_find.sync_marks = d86f[drive].data_find.bits_obtained = d86f[drive].data_find.bytes_obtained = 0;
 				d86f[drive].error_condition = 0;
-				d86f[drive].state = STATE_IDLE;
+				d86f[drive].state[side] = STATE_IDLE;
 				d86f_handler[drive].writeback(drive);
 				fdc_sector_finishread();
 				return;
@@ -1674,34 +1674,7 @@ void d86f_advance_bit(int drive, int side)
 
 	if (d86f[drive].track_pos == d86f_handler[drive].index_hole_pos(drive, side))  d86f_handler[drive].read_revolution(drive);
 
-	if ((d86f[drive].track_pos == d86f_handler[drive].index_hole_pos(drive, side)) && (d86f[drive].state != STATE_IDLE))  d86f[drive].index_count++;
-}
-
-void d86f_advance_word(int drive, int side)
-{
-	d86f[drive].track_pos += 16;
-	d86f[drive].track_pos %= d86f_handler[drive].get_raw_size(drive, side);
-}
-
-void d86f_spin_to_index(int drive, int side)
-{
-	d86f_get_bit(drive, side);
-	d86f_get_bit(drive, side ^ 1);
-
-	d86f_advance_bit(drive, side);
-
-	if (d86f[drive].track_pos == d86f_handler[drive].index_hole_pos(drive, side))
-	{
-		if (d86f[drive].state == STATE_0D_SPIN_TO_INDEX)
-		{
-			/* When starting format, reset format state to the beginning. */
-			d86f[drive].preceding_bit[side] = 1;
-			d86f[drive].format_state = FMT_PRETRK_GAP0;
-		}
-		/* This is to make sure both READ TRACK and FORMAT TRACK command don't end prematurely. */
-		d86f[drive].index_count = 0;
-		d86f[drive].state++;
-	}
+	if ((d86f[drive].track_pos == d86f_handler[drive].index_hole_pos(drive, side)) && (d86f[drive].state[side] != STATE_IDLE))  d86f[drive].index_count++;
 }
 
 void d86f_write_direct_common(int drive, int side, uint16_t byte, uint8_t type, uint32_t pos)
@@ -1802,6 +1775,23 @@ void d86f_format_track(int drive, int side)
 	gap_fill = mfm ? 0x4E : 0xFF;
 	do_write = (d86f[drive].version == D86FVER);
 
+	if (d86f[drive].track_pos == d86f_handler[drive].index_hole_pos(drive, side))
+	{
+		/* Before we return, if the encoding is MFM, we have to make sure the clock bit of the first bit in the track is correct. */
+		if (mfm && do_write)
+		{
+			if (do_write)  d86f_write_direct_common(drive, side, gap_fill, 0, 0);
+		}
+
+		d86f[drive].state[side] = STATE_IDLE;
+		d86f_handler[drive].writeback(drive);
+		// pclog("Format finished!\n");
+		d86f[drive].error_condition = 0;
+		d86f[drive].datac = 0;
+		fdc_sector_finishread();
+		return;
+	}
+
 	switch(d86f[drive].format_state)
 	{
 		case FMT_POSTTRK_GAP4:
@@ -1813,20 +1803,24 @@ void d86f_format_track(int drive, int side)
 			if (do_write)  d86f_write_direct(drive, side, gap_fill, 0);
 			break;
 		case FMT_SECTOR_ID_SYNC:
-			if (d86f[drive].datac <= 3)
+			if ((d86f[drive].datac > 0) && (d86f[drive].datac <= 4))
 			{
 	               		data = fdc_getdata(0);
-       		        	if ((data == -1) && (d86f[drive].datac < 3))
+       		        	if ((data == -1) && (d86f[drive].datac < 4))
 				{
 					data = 0;
 				}
-				d86f[drive].format_sector_id.byte_array[d86f[drive].datac] = data & 0xff;
-				// pclog("format_sector_id[%i] = %i\n", d86f[drive].datac, d86f[drive].format_sector_id.byte_array[d86f[drive].datac]);
-       	        		if (d86f[drive].datac == 3)
+				d86f[drive].format_sector_id.byte_array[d86f[drive].datac - 1] = data & 0xff;
+				// pclog("format_sector_id[%i] = %i\n", d86f[drive].datac, d86f[drive].format_sector_id.byte_array[d86f[drive].datac - 1]);
+       	        		if (d86f[drive].datac == 4)
 				{
 					fdc_stop_id_request();
 					// pclog("Formatting sector: %08X...\n", d86f[drive].format_sector_id.dword);
 				}
+			}
+			else if (d86f[drive].datac == 0)
+			{
+				fdc_request_next_sector_id();
 			}
 		case FMT_PRETRK_SYNC:
 		case FMT_SECTOR_DATA_SYNC:
@@ -1853,6 +1847,10 @@ void d86f_format_track(int drive, int side)
 			break;
 		case FMT_SECTOR_IDAM:
 			max_len = am_len;
+			if (!d86f[drive].datac)
+			{
+				d86f[drive].calc_crc.word = 0xffff;
+			}
 			if (mfm)
 			{
 				if (do_write)  d86f_write_direct(drive, side, idam_mfm[d86f[drive].datac], 1);
@@ -1890,6 +1888,10 @@ void d86f_format_track(int drive, int side)
 			break;
 		case FMT_SECTOR_DATAAM:
 			max_len = am_len;
+			if (!d86f[drive].datac)
+			{
+				d86f[drive].calc_crc.word = 0xffff;
+			}
 			if (mfm)
 			{
 				if (do_write)  d86f_write_direct(drive, side, dataam_mfm[d86f[drive].datac], 1);
@@ -1914,56 +1916,36 @@ void d86f_format_track(int drive, int side)
 
 	d86f[drive].datac++;
 
-	d86f_advance_word(drive, side);
-
-	if (d86f[drive].track_pos == d86f_handler[drive].index_hole_pos(drive, side))
-	{
-		/* Before we return, if the encoding is MFM, we have to make sure the clock bit of the first bit in the track is correct. */
-		if (mfm && do_write)
-		{
-			if (do_write)  d86f_write_direct_common(drive, side, gap_fill, 0, 0);
-		}
-
-		d86f[drive].state = STATE_IDLE;
-		d86f_handler[drive].writeback(drive);
-		// pclog("Format finished!\n");
-		d86f[drive].error_condition = 0;
-		d86f[drive].datac = 0;
-		fdc_sector_finishread();
-		return;
-	}
-
-	if (d86f[drive].datac >= max_len)
+	if (d86f[drive].datac == max_len)
 	{
 		d86f[drive].datac = 0;
 		d86f[drive].format_state++;
 
-		switch (d86f[drive].format_state)
+		if (d86f[drive].format_state == FMT_SECTOR_GAP3)
 		{
-			case FMT_SECTOR_ID_SYNC:
+			d86f[drive].sector_count++;
+			if (d86f[drive].sector_count < sc)
+			{
+				/* Sector within allotted amount, change state to SECTOR_ID_SYNC. */
+				d86f[drive].format_state = FMT_SECTOR_ID_SYNC;
 				fdc_request_next_sector_id();
-				break;
-			case FMT_SECTOR_IDAM:
-			case FMT_SECTOR_DATAAM:
-				d86f[drive].calc_crc.word = 0xffff;
-				break;
-			case FMT_POSTTRK_CHECK:
-				d86f[drive].sector_count++;
-				if (d86f[drive].sector_count < sc)
-				{
-					/* Sector within allotted amount, change state to SECTOR_ID_SYNC. */
-					d86f[drive].format_state = FMT_SECTOR_ID_SYNC;
-					fdc_request_next_sector_id();
-					break;
-				}
-				else
-				{
-					d86f[drive].format_state = FMT_POSTTRK_GAP4;
-					d86f[drive].sector_count = 0;
-					break;
-				}
+			}
+			else
+			{
+				d86f[drive].format_state = FMT_POSTTRK_GAP4;
+				d86f[drive].sector_count = 0;
+			}
 		}
 	}
+}
+
+void d86f_advance(int drive)
+{
+	int side;
+
+	side = fdd_get_head(drive);
+
+	d86f_advance_bit(drive, side);
 }
 
 void d86f_poll(int drive, int side)
@@ -1972,15 +1954,45 @@ void d86f_poll(int drive, int side)
 
 	mfm = fdc_is_mfm();
 
-	if ((d86f[drive].state & 0xF8) == 0xE8)
+	if ((d86f[drive].state[side] == STATE_02_SPIN_TO_INDEX) || (d86f[drive].state[side] == STATE_0D_SPIN_TO_INDEX))
 	{
-		if (!d86f_can_format(drive))
+		d86f_get_bit(drive, side);
+
+		if (d86f[drive].track_pos == d86f_handler[drive].index_hole_pos(drive, side))
 		{
-			d86f[drive].state = STATE_SECTOR_NOT_FOUND;
+			if (d86f[drive].state[side] == STATE_0D_SPIN_TO_INDEX)
+			{
+				/* When starting format, reset format state to the beginning. */
+				d86f[drive].preceding_bit[side] = 1;
+				d86f[drive].format_state = FMT_PRETRK_GAP0;
+			}
+			/* This is to make sure both READ TRACK and FORMAT TRACK command don't end prematurely. */
+			d86f[drive].index_count = 0;
+			d86f[drive].state[side]++;
+			// pclog("Next step will be format proper (%i %i)\n", drive, side);
+		}
+
+		return;
+	}
+	else
+	{
+		if ((d86f[drive].index_count == 2) && (d86f[drive].state[side] != STATE_IDLE) && (d86f[drive].state[side] != STATE_0D_FORMAT_TRACK))
+		{
+			// pclog("[State: %02X] [Side %i] Sector not found (%i != %i?) (%02X) (%08X) (%i)\n", d86f[drive].state[side], side, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive), d86f_handler[drive].side_flags(drive), d86f[drive].req_sector.dword, d86f_handler[drive].get_raw_size(drive, side));
+			d86f[drive].state[side] = STATE_IDLE;
+			fdc_notfound();
 		}
 	}
 
-	if ((d86f[drive].state != STATE_IDLE) && (d86f[drive].state != STATE_SECTOR_NOT_FOUND) && ((d86f[drive].state & 0xF8) != 0xE8))
+	if ((d86f[drive].state[side] & 0xF8) == 0xE8)
+	{
+		if (!d86f_can_format(drive))
+		{
+			d86f[drive].state[side] = STATE_SECTOR_NOT_FOUND;
+		}
+	}
+
+	if ((d86f[drive].state[side] != STATE_IDLE) && (d86f[drive].state[side] != STATE_SECTOR_NOT_FOUND) && ((d86f[drive].state[side] & 0xF8) != 0xE8))
 	{
 		if (!d86f_can_read_address(drive))
 		{
@@ -1989,18 +2001,12 @@ void d86f_poll(int drive, int side)
 			if (fdc_is_mfm() != d86f_is_mfm(drive))  pclog("Encoding mismatch\n");
 			if (d86f_get_encoding(drive) > 1)  pclog("Image encoding (%s) not FM or MFM\n", (d86f_get_encoding(drive) == 2) ? "M2FM" : "GCR"); */
 
-			d86f[drive].state = STATE_SECTOR_NOT_FOUND;
+			d86f[drive].state[side] = STATE_SECTOR_NOT_FOUND;
 		}
 	}
 
-	d86f_get_bit(drive, side ^ 1);
-
-	switch(d86f[drive].state)
+	switch(d86f[drive].state[side])
 	{
-		case STATE_02_SPIN_TO_INDEX:
-		case STATE_0D_SPIN_TO_INDEX:
-			d86f_spin_to_index(drive, side);
-			return;
 		case STATE_02_FIND_ID:
 		case STATE_05_FIND_ID:
 		case STATE_09_FIND_ID:
@@ -2105,41 +2111,14 @@ void d86f_poll(int drive, int side)
 			{
 				d86f_format_track(drive, side);
 			}
-			return;
+			break;
 		case STATE_IDLE:
 		case STATE_SECTOR_NOT_FOUND:
 		default:
 			d86f_get_bit(drive, side);
 			break;
 	}
-
-	d86f_advance_bit(drive, side);
-
-	if ((d86f[drive].index_count == 2) && (d86f[drive].state != STATE_IDLE))
-	{
-		// pclog("[State: %02X] [Side %i] Sector not found (%i != %i?) (%02X) (%08X) (%i)\n", d86f[drive].state, side, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive), d86f_handler[drive].side_flags(drive), d86f[drive].req_sector.dword, d86f_handler[drive].get_raw_size(drive, side));
-		d86f[drive].state = STATE_IDLE;
-		fdc_notfound();
-	}
 }
-
-#if 0
-void d86f_poll(int drive)
-{
-	int i = 0;
-	for (i = 0; i < 16; i++)
-	{
-		d86f_bit_poll(drive);
-	}
-}
-
-void d86f_poll()
-{
-	int drive = 0;
-	drive = fdc_get_drive();
-	d86f_poll_per_drive(drive);
-}
-#endif
 
 void d86f_reset_index_hole_pos(int drive, int side)
 {
@@ -2545,7 +2524,7 @@ void d86f_seek(int drive, int track)
 		}
 	}
 
-	d86f[drive].state = STATE_IDLE;
+	d86f[drive].state[side] = STATE_IDLE;
 }
 
 void d86f_write_track(int drive, int side, uint16_t *da0, uint16_t *sa0)
@@ -2747,7 +2726,7 @@ void d86f_writeback(int drive)
 
 void d86f_stop(int drive)
 {
-        d86f[drive].state = STATE_IDLE;
+        d86f[drive].state[0] = d86f[drive].state[1] = STATE_IDLE;
 }
 
 int d86f_common_command(int drive, int sector, int track, int side, int rate, int sector_size)
@@ -2762,7 +2741,7 @@ int d86f_common_command(int drive, int sector, int track, int side, int rate, in
 	if (fdd_get_head(drive) && (d86f_get_sides(drive) == 1))
 	{
 		fdc_notfound();
-		d86f[drive].state = STATE_IDLE;
+		d86f[drive].state[side] = STATE_IDLE;
 		d86f[drive].index_count = 0;
 		return 0;
 	}
@@ -2782,11 +2761,11 @@ void d86f_readsector(int drive, int sector, int track, int side, int rate, int s
 	if (!ret)  return;
 
         if (sector == SECTOR_FIRST)
-                d86f[drive].state = STATE_02_SPIN_TO_INDEX;
+                d86f[drive].state[side] = STATE_02_SPIN_TO_INDEX;
         else if (sector == SECTOR_NEXT)
-                d86f[drive].state = STATE_02_FIND_ID;
+                d86f[drive].state[side] = STATE_02_FIND_ID;
 	else
-	        d86f[drive].state = fdc_is_deleted() ? STATE_0C_FIND_ID : (fdc_is_verify() ? STATE_16_FIND_ID : STATE_06_FIND_ID);
+	        d86f[drive].state[side] = fdc_is_deleted() ? STATE_0C_FIND_ID : (fdc_is_verify() ? STATE_16_FIND_ID : STATE_06_FIND_ID);
 }
 
 void d86f_writesector(int drive, int sector, int track, int side, int rate, int sector_size)
@@ -2796,7 +2775,7 @@ void d86f_writesector(int drive, int sector, int track, int side, int rate, int 
 	if (writeprot[drive])
 	{
 		fdc_writeprotect();
-		d86f[drive].state = STATE_IDLE;
+		d86f[drive].state[side] = STATE_IDLE;
 		d86f[drive].index_count = 0;
 		return;
 	}
@@ -2804,7 +2783,7 @@ void d86f_writesector(int drive, int sector, int track, int side, int rate, int 
 	ret = d86f_common_command(drive, sector, track, side, rate, sector_size);
 	if (!ret)  return;
 
-        d86f[drive].state = fdc_is_deleted() ? STATE_09_FIND_ID : STATE_05_FIND_ID;
+        d86f[drive].state[side] = fdc_is_deleted() ? STATE_09_FIND_ID : STATE_05_FIND_ID;
 }
 
 void d86f_comparesector(int drive, int sector, int track, int side, int rate, int sector_size)
@@ -2814,16 +2793,16 @@ void d86f_comparesector(int drive, int sector, int track, int side, int rate, in
 	ret = d86f_common_command(drive, sector, track, side, rate, sector_size);
 	if (!ret)  return;
 
-        d86f[drive].state = STATE_11_FIND_ID;
+        d86f[drive].state[side] = STATE_11_FIND_ID;
 }
 
 void d86f_readaddress(int drive, int track, int side, int rate)
 {
 	if (fdd_get_head(drive) && (d86f_get_sides(drive) == 1))
 	{
-		pclog("Trying to access the second side of a single-sided disk\n");
+		// pclog("Trying to access the second side of a single-sided disk\n");
 		fdc_notfound();
-		d86f[drive].state = STATE_IDLE;
+		d86f[drive].state[side] = STATE_IDLE;
 		d86f[drive].index_count = 0;
 		return;
 	}
@@ -2832,7 +2811,7 @@ void d86f_readaddress(int drive, int track, int side, int rate)
 	d86f[drive].data_find.sync_marks = d86f[drive].data_find.bits_obtained = d86f[drive].data_find.bytes_obtained = 0;
 	d86f[drive].index_count = d86f[drive].error_condition = d86f[drive].satisfying_bytes = 0;
 
-        d86f[drive].state = STATE_0A_FIND_ID;
+        d86f[drive].state[side] = STATE_0A_FIND_ID;
 }
 
 void d86f_add_track(int drive, int track, int side)
@@ -2882,7 +2861,7 @@ void d86f_common_format(int drive, int track, int side, int rate, uint8_t fill, 
 	if (writeprot[drive])
 	{
 		fdc_writeprotect();
-		d86f[drive].state = STATE_IDLE;
+		d86f[drive].state[side] = STATE_IDLE;
 		d86f[drive].index_count = 0;
 		return;
 	}
@@ -2890,7 +2869,7 @@ void d86f_common_format(int drive, int track, int side, int rate, uint8_t fill, 
 	if ((side && (d86f_get_sides(drive) == 1)) || !(d86f_can_format(drive)))
 	{
 		fdc_notfound();
-		d86f[drive].state = STATE_IDLE;
+		d86f[drive].state[side] = STATE_IDLE;
 		d86f[drive].index_count = 0;
 		return;
 	}
@@ -2903,7 +2882,7 @@ void d86f_common_format(int drive, int track, int side, int rate, uint8_t fill, 
 		{
 			// pclog("Track above 256\n");
 			fdc_writeprotect();
-			d86f[drive].state = STATE_IDLE;
+			d86f[drive].state[side] = STATE_IDLE;
 			d86f[drive].index_count = 0;
 			return;
 		}
@@ -2950,7 +2929,7 @@ void d86f_common_format(int drive, int track, int side, int rate, uint8_t fill, 
 	d86f[drive].data_find.sync_marks = d86f[drive].data_find.bits_obtained = d86f[drive].data_find.bytes_obtained = 0;
 	d86f[drive].index_count = d86f[drive].error_condition = d86f[drive].satisfying_bytes = d86f[drive].sector_count = 0;
 
-        d86f[drive].state = STATE_0D_SPIN_TO_INDEX;
+        d86f[drive].state[side] = STATE_0D_SPIN_TO_INDEX;
 }
 
 void d86f_proxy_format(int drive, int track, int side, int rate, uint8_t fill)
@@ -2974,6 +2953,7 @@ void d86f_common_handlers(int drive)
         drives[drive].poll        = d86f_poll;
         drives[drive].format      = d86f_proxy_format;
         drives[drive].stop        = d86f_stop;
+        drives[drive].advance     = d86f_advance;
 }
 
 void d86f_load(int drive, char *fn)
@@ -3269,7 +3249,8 @@ void d86f_init()
 
 	// crc64speed_init();
 
-	d86f[0].state = d86f[1].state = STATE_IDLE;
+	d86f[0].state[0] = d86f[0].state[1] = STATE_IDLE;
+	d86f[1].state[0] = d86f[1].state[1] = STATE_IDLE;
 }
 
 void d86f_close(int drive)

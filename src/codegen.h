@@ -59,6 +59,8 @@ typedef struct codeblock_t
         uint32_t flags;
         int TOP;
         
+        uint64_t cmp;
+
         uint8_t data[2048];
 } codeblock_t;
 
@@ -67,15 +69,16 @@ typedef struct codeblock_t
 /*Code block is always entered with the same FPU top-of-stack*/
 #define CODEBLOCK_STATIC_TOP 2
 
-static inline codeblock_t *codeblock_tree_find(uint32_t phys)
+static inline codeblock_t *codeblock_tree_find(uint32_t phys, uint32_t _cs)
 {
         codeblock_t *block = pages[phys >> 12].head;
+	uint64_t a = _cs | ((uint64_t)phys << 32);
         
         while (block)
         {
-                if (phys == block->phys)
+                if (a == block->cmp)
                         break;
-                else if (phys < block->phys)
+                else if (a < block->cmp)
                         block = block->left;
                 else
                         block = block->right;
@@ -88,6 +91,9 @@ static inline void codeblock_tree_add(codeblock_t *new_block)
 {
         codeblock_t *block = pages[new_block->phys >> 12].head;
         
+        uint64_t a = new_block->_cs | ((uint64_t)new_block->phys << 32);
+        new_block->cmp = a;
+
         if (!block)
         {
                 pages[new_block->phys >> 12].head = new_block;
@@ -96,17 +102,18 @@ static inline void codeblock_tree_add(codeblock_t *new_block)
         else
         {
                 codeblock_t *old_block = NULL;
+
                 while (block)
                 {
                         old_block = block;
                         
-                        if (new_block->phys < old_block->phys)
+                        if (a < old_block->cmp)
                                 block = block->left;
                         else
                                 block = block->right;
                 }
                 
-                if (new_block->phys < old_block->phys)
+                if (a < old_block->cmp)
                         old_block->left = new_block;
                 else
                         old_block->right = new_block;

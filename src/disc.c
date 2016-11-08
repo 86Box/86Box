@@ -211,6 +211,15 @@ void disc_poll(int drive, int head)
                 if (!disc_notfound)
                         fdc_notfound();
         }
+
+	/* If both heads are enabled and this is head 1, do not advance to avoid double advancing. */
+	if ((disc_poll_enable[drive][head] && disc_poll_enable[drive][head ^ 1]) && head)
+	{
+		return;
+	}
+
+	if (drives[drive].advance)
+		drives[drive].advance(drive);
 }
 
 void disc_poll_00()
@@ -368,7 +377,6 @@ void disc_head_poll_common(int drive, int head)
 {
 	disc_poll_enable[drive][head] ^= 1;
 	head_time[drive][head] = 0;
-	if (disc_poll_enable[drive][head])  disc_poll_enable[drive][head ^ 1] = 0;
 	// pclog("Head (%i, %i) %s\n", drive, head, disc_poll_enable[drive][head] ? "enabled" : "disabled");
 }
 
