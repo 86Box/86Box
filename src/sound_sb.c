@@ -444,11 +444,14 @@ void *sb_pro_v2_init()
 void *sb_16_init()
 {
         sb_t *sb = malloc(sizeof(sb_t));
+        uint16_t addr = device_get_config_int("addr");        
         memset(sb, 0, sizeof(sb_t));
 
         opl3_init(&sb->opl);
         sb_dsp_init(&sb->dsp, SB16);
-        sb_dsp_setaddr(&sb->dsp, 0x0220);
+        sb_dsp_setaddr(&sb->dsp, addr);
+        sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
+        sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
         sb_mixer_init(&sb->mixer);
         io_sethandler(0x0220, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
         io_sethandler(0x0228, 0x0002, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
@@ -482,12 +485,15 @@ int sb_awe32_available()
 void *sb_awe32_init()
 {
         sb_t *sb = malloc(sizeof(sb_t));
+        uint16_t addr = device_get_config_int("addr");        
         int onboard_ram = device_get_config_int("onboard_ram");
         memset(sb, 0, sizeof(sb_t));
 
         opl3_init(&sb->opl);
         sb_dsp_init(&sb->dsp, SB16 + 1);
-        sb_dsp_setaddr(&sb->dsp, 0x0220);
+        sb_dsp_setaddr(&sb->dsp, addr);
+        sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
+        sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
         sb_mixer_init(&sb->mixer);
         io_sethandler(0x0220, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
         io_sethandler(0x0228, 0x0002, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
@@ -699,6 +705,75 @@ static device_config_t sb_pro_config[] =
 static device_config_t sb_16_config[] =
 {
         {
+                .name = "addr",
+                .description = "Address",
+                .type = CONFIG_BINARY,
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "0x220",
+                                .value = 0x220
+                        },
+                        {
+                                .description = "0x240",
+                                .value = 0x240
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 0x220
+        },
+        {
+                .name = "irq",
+                .description = "IRQ",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "IRQ 2",
+                                .value = 2
+                        },
+                        {
+                                .description = "IRQ 5",
+                                .value = 5
+                        },
+                        {
+                                .description = "IRQ 7",
+                                .value = 7
+                        },
+                        {
+                                .description = "IRQ 10",
+                                .value = 10
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 5
+        },
+        {
+                .name = "dma",
+                .description = "DMA",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "DMA 1",
+                                .value = 1
+                        },
+                        {
+                                .description = "DMA 3",
+                                .value = 3
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 1
+        },
+        {
                 .name = "midi",
                 .description = "MIDI out device",
                 .type = CONFIG_MIDI,
@@ -711,6 +786,75 @@ static device_config_t sb_16_config[] =
 
 static device_config_t sb_awe32_config[] =
 {
+        {
+                .name = "addr",
+                .description = "Address",
+                .type = CONFIG_BINARY,
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "0x220",
+                                .value = 0x220
+                        },
+                        {
+                                .description = "0x240",
+                                .value = 0x240
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 0x220
+        },
+        {
+                .name = "irq",
+                .description = "IRQ",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "IRQ 2",
+                                .value = 2
+                        },
+                        {
+                                .description = "IRQ 5",
+                                .value = 5
+                        },
+                        {
+                                .description = "IRQ 7",
+                                .value = 7
+                        },
+                        {
+                                .description = "IRQ 10",
+                                .value = 10
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 5
+        },
+        {
+                .name = "dma",
+                .description = "DMA",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "DMA 1",
+                                .value = 1
+                        },
+                        {
+                                .description = "DMA 3",
+                                .value = 3
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 1
+        },
         {
                 .name = "midi",
                 .description = "MIDI out device",

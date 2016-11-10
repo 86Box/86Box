@@ -12,8 +12,7 @@ typedef struct
         int (*hole)(int drive);
         double (*byteperiod)(int drive);
         void (*stop)(int drive);
-        void (*poll)(int drive, int side);
-        void (*advance)(int drive);
+        void (*poll)(int drive);
 } DRIVE;
 
 extern DRIVE drives[2];
@@ -25,11 +24,9 @@ void disc_new(int drive, char *fn);
 void disc_close(int drive);
 void disc_init();
 void disc_reset();
-void disc_poll(int drive, int head);
-void disc_poll_00();
-void disc_poll_00();
-void disc_poll_10();
-void disc_poll_11();
+void disc_poll(int drive);
+void disc_poll_0();
+void disc_poll_1();
 void disc_seek(int drive, int track);
 void disc_readsector(int drive, int sector, int track, int side, int density, int sector_size);
 void disc_writesector(int drive, int sector, int track, int side, int density, int sector_size);
@@ -42,7 +39,7 @@ void disc_stop(int drive);
 int disc_empty(int drive);
 void disc_set_rate(int drive, int drvden, int rate);
 extern int disc_time;
-extern int disc_poll_time[2][2];
+extern int disc_poll_time[2];
 
 void fdc_callback();
 int  fdc_data(uint8_t dat);
@@ -187,6 +184,3 @@ void null_set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8
 uint32_t null_index_hole_pos(int drive, int side);
 
 uint32_t common_get_raw_size(int drive, int side);
-
-void disc_head_load(int drive, int head);
-void disc_head_unload(int drive, int head);

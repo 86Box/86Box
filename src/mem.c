@@ -713,12 +713,12 @@ int loadbios()
                 return 1;
 
                 case ROM_THOR:
-                f = romfopen("roms/thor/1005CN0.BIO", "rb");
+                f = romfopen("roms/thor/1006CN0_.BIO", "rb");
                 if (!f) break;
                 fseek(f, 0x80, SEEK_SET);
                 fread(rom + 0x10000, 0x10000, 1, f);                
                 fclose(f);
-                f = romfopen("roms/thor/1005CN0.BI1", "rb");
+                f = romfopen("roms/thor/1006CN0_.BI1", "rb");
                 if (!f) break;
                 fseek(f, 0x80, SEEK_SET);
                 fread(rom, 0x10000, 1, f);

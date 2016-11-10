@@ -609,7 +609,7 @@ void sb_dsp_init(sb_dsp_t *dsp, int type)
 {
         dsp->sb_type = type;
         
-        dsp->sb_irqnum = 7;
+        dsp->sb_irqnum = 5;
         dsp->sb_8_dmanum = 1;
         
         sb_doreset(dsp);
