@@ -1382,7 +1382,8 @@ void d86f_read_sector_id(int drive, int side, int match)
 						if (d86f[drive].state == STATE_02_READ_ID)
 						{
 							/* READ TRACK command, we need some special handling here. */
-							if (d86f[drive].last_sector.dword != fdc_get_read_track_sector().dword)
+							/* Code corrected: Only the C, H, and N portions of the sector ID are compared, the R portion (the sector number) is ignored. */
+							if ((d86f[drive].last_sector.id.c != fdc_get_read_track_sector().id.c) || (d86f[drive].last_sector.id.h != fdc_get_read_track_sector().id.h) || (d86f[drive].last_sector.id.n != fdc_get_read_track_sector().id.n))
 							{
 								d86f[drive].error_condition |= 4;	/* Mark that the sector ID is not the one expected by the FDC. */
 								/* Make sure we use the sector size from the FDC. */
