@@ -14,6 +14,7 @@
 #include "amstrad.h"
 #include "compaq.h"
 #include "device.h"
+#include "disc.h"
 #include "dma.h"
 #include "fdc.h"
 #include "fdc37c665.h"

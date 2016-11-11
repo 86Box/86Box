@@ -31,6 +31,7 @@ void fdc_update_densel_force(int densel_force);
 void fdc_update_drvrate(int drive, int drvrate);
 void fdc_update_drv2en(int drv2en);
 
+sector_id_t fdc_get_read_track_sector();
 int fdc_get_compare_condition();
 int fdc_is_deleted();
 int fdc_is_sk();

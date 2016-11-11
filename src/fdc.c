@@ -7,6 +7,7 @@
 
 #include "disc.h"
 #include "dma.h"
+#include "fdc.h"
 #include "fdd.h"
 #include "io.h"
 #include "pic.h"
@@ -94,6 +95,8 @@ typedef struct FDC
 
 	int sc;
 	int satisfying_sectors;
+
+	sector_id_t read_track_sector;
 } FDC;
 
 static FDC fdc;
@@ -122,6 +125,11 @@ void fdc_reset()
                 // fdc_update_rate();
         }
 //        pclog("Reset FDC\n");
+}
+
+sector_id_t fdc_get_read_track_sector()
+{
+	return fdc.read_track_sector;
 }
 
 int fdc_get_compare_condition()
@@ -836,6 +844,10 @@ bad_command:
                                         fdc.eot[fdc.drive] = fdc.params[5];
 					fdc.gap = fdc.params[6];
 					fdc.dtl = fdc.params[7];
+					fdc.read_track_sector.id.c = fdc.params[1];
+					fdc.read_track_sector.id.h = fdc.params[2];
+					fdc.read_track_sector.id.r = 1;
+					fdc.read_track_sector.id.n = fdc.params[4];
                                         if (fdc.config & 0x40)
 					{
 						if (fdc.params[1] != fdc.track[fdc.drive])
@@ -1281,6 +1293,7 @@ void fdc_callback()
                 case 2: /*Read track*/
                 readflash = 1;
                 fdc.eot[fdc.drive]--;
+		fdc.read_track_sector.id.r++;
 //                pclog("Read a track callback, eot=%i\n", fdc.eot[fdc.drive]);
                 if (!fdc.eot[fdc.drive] || fdc.tc)
                 {

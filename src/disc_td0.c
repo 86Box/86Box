@@ -15,10 +15,10 @@
  */
 
 #include "ibm.h"
-#include "fdc.h"
-#include "fdd.h"
 #include "disc.h"
 #include "disc_td0.h"
+#include "fdc.h"
+#include "fdd.h"
 
 #include <stdlib.h>
 

@@ -8,6 +8,7 @@
 #include "mem.h"
 #include "codegen.h"
 #include "cpu.h"
+#include "disc.h"
 #include "fdc.h"
 #include "timer.h"
 

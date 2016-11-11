@@ -9,6 +9,7 @@
 #include "ibm.h"
 #include "ide.h"
 
+#include "disc.h"
 #include "fdc.h"
 #include "fdd.h"
 #include "io.h"

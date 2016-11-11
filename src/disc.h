@@ -184,3 +184,18 @@ void null_set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8
 uint32_t null_index_hole_pos(int drive, int side);
 
 uint32_t common_get_raw_size(int drive, int side);
+
+typedef struct
+{
+	uint8_t c;
+	uint8_t h;
+	uint8_t r;
+	uint8_t n;
+} sector_id_fields_t;
+
+typedef union
+{
+	uint32_t dword;
+	uint8_t byte_array[4];
+	sector_id_fields_t id;
+} sector_id_t;

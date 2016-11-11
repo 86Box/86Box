@@ -3,6 +3,7 @@
 */
 #include "ibm.h"
 
+#include "disc.h"
 #include "dma.h"
 #include "fdc.h"
 #include "io.h"

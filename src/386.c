@@ -6,6 +6,7 @@
 #include "x87.h"
 #include "mem.h"
 #include "cpu.h"
+#include "disc.h"
 #include "fdc.h"
 #include "timer.h"
 

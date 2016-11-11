@@ -89,21 +89,6 @@ enum
 
 static uint16_t CRCTable[256];
 
-typedef struct
-{
-	uint8_t c;
-	uint8_t h;
-	uint8_t r;
-	uint8_t n;
-} sector_id_fields_t;
-
-typedef union
-{
-	uint32_t dword;
-	uint8_t byte_array[4];
-	sector_id_fields_t id;
-} sector_id_t;
-
 typedef struct __attribute__((packed))
 {
 	uint8_t buffer[10];
@@ -1394,6 +1379,17 @@ void d86f_read_sector_id(int drive, int side, int match)
 					{
 						// pclog("ID read (%02X)\n", d86f[drive].state);
 						d86f_handler[drive].set_sector(drive, side, d86f[drive].last_sector.id.c, d86f[drive].last_sector.id.h, d86f[drive].last_sector.id.r, d86f[drive].last_sector.id.n);
+						if (d86f[drive].state == STATE_02_READ_ID)
+						{
+							/* READ TRACK command, we need some special handling here. */
+							if (d86f[drive].last_sector.dword != fdc_get_read_track_sector().dword)
+							{
+								d86f[drive].error_condition |= 4;	/* Mark that the sector ID is not the one expected by the FDC. */
+								/* Make sure we use the sector size from the FDC. */
+								d86f[drive].last_sector.id.n = fdc_get_read_track_sector().id.n;
+							}
+							/* If the two ID's are identical, then we do not need to do anything regarding the sector size. */
+						}
 						d86f[drive].state++;
 					}
 					else

@@ -2,10 +2,10 @@
    see COPYING for more details
 */
 #include "ibm.h"
-#include "fdc.h"
-#include "fdd.h"
 #include "disc.h"
 #include "disc_img.h"
+#include "fdc.h"
+#include "fdd.h"
 
 static struct
 {

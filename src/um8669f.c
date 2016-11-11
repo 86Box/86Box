@@ -41,6 +41,7 @@ COM2 :
 
 #include "ibm.h"
 
+#include "disc.h"
 #include "fdc.h"
 #include "io.h"
 #include "lpt.h"
