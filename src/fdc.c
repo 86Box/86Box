@@ -1240,6 +1240,10 @@ void fdc_poll_common_finish(int compare, int st5)
 			fdc.res[5] |= 0x20;
 			fdc.res[6] |= 0x20;
 		}
+		if (fdc.satisfying_sectors & 4)
+		{
+			fdc.res[5] |= 0x04;
+		}
 	}
         fdc.res[7]=fdc.rw_track;
         fdc.res[8]=fdc.head;
