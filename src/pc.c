@@ -24,6 +24,9 @@
 #include "fdd.h"
 #include "gameport.h"
 #include "sound_gus.h"
+#include "aha154x.h"
+#include "cdrom.h"
+#include "scsi.h"
 #include "ide.h"
 #include "keyboard.h"
 #include "keyboard_at.h"
@@ -57,6 +60,7 @@ int window_w, window_h, window_x, window_y, window_remember;
 int start_in_fullscreen = 0;
 int frame = 0;
 
+int scsi_cdrom_enabled, atapi_cdrom_enabled;
 int cdrom_enabled;
 int CPUID;
 int vid_resize, vid_api;
@@ -289,6 +293,12 @@ void initpc(int argc, char *argv[])
         loadnvr();
         sound_init();
         resetide();
+		if (aha154x_enabled)
+		{
+			SCSIReset(&ScsiDrives[scsi_cdrom_id], scsi_cdrom_id);
+			AdaptecInit(scsi_cdrom_id);
+		}
+		
 	if ((cdrom_drive == -1) || (cdrom_drive == 0))
 	        cdrom_null_open(cdrom_drive);	
 	else
@@ -407,7 +417,13 @@ void resetpchard()
         pc_reset();
         
         resetide();
-        
+		
+		if (aha154x_enabled)
+		{
+			SCSIReset(&ScsiDrives[scsi_cdrom_id], scsi_cdrom_id);
+			AdaptecInit(scsi_cdrom_id);
+		} 
+ 
         loadnvr();
 
 //        cpuspeed2 = (AT)?2:1;
@@ -567,7 +583,7 @@ void speedchanged()
 
 void closepc()
 {
-        atapi->exit();
+        cdrom->exit();
 //        ioctl_close();
         dumppic();
 //        output=7;
@@ -611,6 +627,7 @@ void loadconfig(char *fn)
         GUS = config_get_int(NULL, "gus", 0);
         SSI2001 = config_get_int(NULL, "ssi2001", 0);
         voodoo_enabled = config_get_int(NULL, "voodoo", 0);
+		aha154x_enabled = config_get_int(NULL, "aha154x", 0);
 
 	//network
 	ethif = config_get_int(NULL, "netinterface", 1);
@@ -653,8 +670,12 @@ void loadconfig(char *fn)
 		old_cdrom_drive = cdrom_drive;
         cdrom_enabled = config_get_int(NULL, "cdrom_enabled", 0);
 
-        cdrom_channel = config_get_int(NULL, "cdrom_channel", 2);
+		atapi_cdrom_enabled = config_get_int(NULL, "atapi_cdrom_enabled", 1);
+        atapi_cdrom_channel = config_get_int(NULL, "atapi_cdrom_channel", 2);
 
+		scsi_cdrom_enabled = config_get_int(NULL, "scsi_cdrom_enabled", 0);
+        scsi_cdrom_id = config_get_int(NULL, "scsi_cdrom_id", 3);		
+		
         p = (char *)config_get_string(NULL, "cdrom_path", "");
         if (p) strcpy(iso_path, p);
         else   strcpy(iso_path, "");
@@ -769,6 +790,7 @@ void saveconfig()
         config_set_int(NULL, "gus", GUS);
         config_set_int(NULL, "ssi2001", SSI2001);
         config_set_int(NULL, "voodoo", voodoo_enabled);
+		config_set_int(NULL, "aha154x", aha154x_enabled);
 
 	config_set_int(NULL, "netinterface", ethif);
 	config_set_int(NULL, "netcard", network_card_current);
@@ -793,7 +815,13 @@ void saveconfig()
         config_set_int(NULL, "mem_size", mem_size);
         config_set_int(NULL, "cdrom_drive", cdrom_drive);
         config_set_int(NULL, "cdrom_enabled", cdrom_enabled);
-        config_set_int(NULL, "cdrom_channel", cdrom_channel);
+		
+        config_set_int(NULL, "atapi_cdrom_enabled", atapi_cdrom_enabled);		
+        config_set_int(NULL, "atapi_cdrom_channel", atapi_cdrom_channel);
+		
+        config_set_int(NULL, "scsi_cdrom_enabled", scsi_cdrom_enabled);		
+		config_set_int(NULL, "scsi_cdrom_id", scsi_cdrom_id);
+		
         config_set_string(NULL, "cdrom_path", iso_path);
         config_set_int(NULL, "vid_resize", vid_resize);
         config_set_int(NULL, "vid_api", vid_api);

@@ -2,12 +2,12 @@
    see COPYING for more details
 */
 #include "ibm.h"
-#include "ide.h"
+#include "cdrom.h"
 #include "cdrom-ioctl.h"
 
 int cdrom_drive;
 
-static ATAPI null_atapi;
+static CDROM null_cdrom;
 
 void cdrom_null_audio_callback(int16_t *output, int len)
 {
@@ -101,7 +101,7 @@ void cdrom_null_reset()
 
 int cdrom_null_open(char d)
 {
-        atapi = &null_atapi;
+        cdrom = &null_cdrom;
         return 0;
 }
 
@@ -118,7 +118,7 @@ static int null_is_track_audio(uint32_t pos, int ismsf)
 	return 0;
 }
 
-static ATAPI null_atapi =
+static CDROM null_cdrom =
 {
         null_ready,
 		null_medium_changed,

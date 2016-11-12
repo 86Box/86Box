@@ -1,4 +1,4 @@
-/* Copyright holders: Sarah Walker
+/* Copyright holders: Sarah Walker, SA1988
    see COPYING for more details
 */
 void dma_init();
@@ -17,3 +17,5 @@ void writedma2(uint8_t temp);
 
 int dma_channel_read(int channel);
 int dma_channel_write(int channel, uint16_t val);
+
+size_t PageLengthReadWrite(uint32_t Address, size_t TotalSize);

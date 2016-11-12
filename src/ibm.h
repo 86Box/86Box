@@ -351,7 +351,7 @@ int driveempty[2];
 #define PCJR (romset == ROM_IBMPCJR)
 #define AMIBIOS (romset==ROM_AMI386 || romset==ROM_AMI486 || romset == ROM_WIN486)
 
-int GAMEBLASTER, GUS, SSI2001, voodoo_enabled;
+int GAMEBLASTER, GUS, SSI2001, voodoo_enabled, aha154x_enabled;
 extern int AMSTRAD, AT, is286, is386, PCI, TANDY;
 
 enum
@@ -571,6 +571,7 @@ extern int cdrom_drive;
 extern int old_cdrom_drive;
 extern int idecallback[3];
 extern int cdrom_enabled;
+extern int atapi_cdrom_enabled, scsi_cdrom_enabled;
 
 #define CD_STATUS_EMPTY		0
 #define CD_STATUS_DATA_ONLY	1
@@ -578,10 +579,13 @@ extern int cdrom_enabled;
 #define CD_STATUS_PAUSED	3
 #define CD_STATUS_STOPPED	4
 
-extern uint32_t atapi_get_cd_channel(int channel);
-extern uint32_t atapi_get_cd_volume(int channel);
+extern uint32_t SCSIGetCDVolume(int channel);
+extern uint32_t SCSIGetCDChannel(int channel);
 
 extern int ide_ter_enabled;
+
+#define MIN(a, b) 				((a) < (b) ? (a) : (b))
+#define ELEMENTS(Array)         (sizeof(Array) / sizeof((Array)[0]))
 
 extern int ui_writeprot[2];
 

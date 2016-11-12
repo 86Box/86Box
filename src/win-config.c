@@ -43,6 +43,7 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 	int temp_network_interface_current;
 	int temp_always_serial;
         int temp_joystick_type;
+		int temp_aha154x;
         
         UDACCEL accel;
 //        pclog("Dialog msg %i %08X\n",message,message);
@@ -193,6 +194,9 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                 h=GetDlgItem(hdlg, IDC_CHECKVOODOO);
                 SendMessage(h, BM_SETCHECK, voodoo_enabled, 0);
 
+                h=GetDlgItem(hdlg, IDC_CHECK_AHA154X);
+                SendMessage(h, BM_SETCHECK, aha154x_enabled, 0);				
+				
                 cpu_flags = models[romstomodel[romset]].cpu[cpu_manufacturer].cpus[cpu].cpu_flags;
                 h=GetDlgItem(hdlg, IDC_CHECKDYNAREC);
                 if (!(cpu_flags & CPU_SUPPORTS_DYNAREC) || (cpu_flags & CPU_REQUIRES_DYNAREC))
@@ -349,6 +353,9 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         h = GetDlgItem(hdlg, IDC_CHECKVOODOO);
                         temp_voodoo = SendMessage(h, BM_GETCHECK, 0, 0);
 
+                        h = GetDlgItem(hdlg, IDC_CHECK_AHA154X);
+                        temp_aha154x = SendMessage(h, BM_GETCHECK, 0, 0);						
+						
                         h = GetDlgItem(hdlg, IDC_COMBOSND);
                         temp_sound_card_current = settings_list_to_sound[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
@@ -370,7 +377,7 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                             fpu != hasfpu || temp_GAMEBLASTER != GAMEBLASTER || temp_GUS != GUS ||
                             temp_SSI2001 != SSI2001 || temp_sound_card_current != sound_card_current ||
                             temp_voodoo != voodoo_enabled || temp_dynarec != cpu_use_dynarec || temp_always_serial != mouse_always_serial ||
-			    temp_fda_type != fdd_get_type(0) || temp_fdb_type != fdd_get_type(1) || temp_network_card_current != network_card_current)
+			    temp_fda_type != fdd_get_type(0) || temp_fdb_type != fdd_get_type(1) || temp_network_card_current != network_card_current || temp_aha154x != aha154x_enabled)
                         {
                                 if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL)==IDOK)
                                 {
@@ -386,6 +393,7 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                         SSI2001 = temp_SSI2001;
                                         sound_card_current = temp_sound_card_current;
                                         voodoo_enabled = temp_voodoo;
+										aha154x_enabled = temp_aha154x;
                                         cpu_use_dynarec = temp_dynarec;
 
 					fdd_set_type(0, temp_fda_type);

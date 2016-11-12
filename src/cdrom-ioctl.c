@@ -7,16 +7,16 @@
 #include <io.h>
 #include "ntddcdrm.h"
 #include "ibm.h"
-#include "ide.h"
+#include "cdrom.h"
 #include "cdrom-ioctl.h"
 
 int cdrom_drive;
 int old_cdrom_drive;
 
-static ATAPI ioctl_atapi;
+static CDROM ioctl_cdrom;
 
 static uint32_t last_block = 0;
-static uint32_t cdrom_capacity = 0;
+uint32_t cdrom_capacity = 0;
 static int ioctl_inited = 0;
 static char ioctl_path[8];
 void ioctl_close(void);
@@ -273,7 +273,6 @@ static int ioctl_get_last_block(unsigned char starttrack, int msf, int maxlen, i
         DeviceIoControl(hIOCTL,IOCTL_CDROM_READ_TOC, NULL,0,&lbtoc,sizeof(lbtoc),&size,NULL);
         ioctl_close();
         tocvalid=1;
-		d=0;
         for (c=d;c<=lbtoc.LastTrack;c++)
         {
                 uint32_t address;
@@ -701,7 +700,7 @@ int ioctl_open(char d)
 	{
                 //fatal("IOCTL");
         }
-        atapi=&ioctl_atapi;
+        cdrom=&ioctl_cdrom;
         if (!ioctl_inited)
         {
                 ioctl_inited=1;
@@ -727,7 +726,7 @@ static void ioctl_exit(void)
         tocvalid=0;
 }
 
-static ATAPI ioctl_atapi=
+static CDROM ioctl_cdrom=
 {
         ioctl_ready,
 	ioctl_medium_changed,

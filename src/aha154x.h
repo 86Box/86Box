@@ -1,0 +1,1 @@
+extern void AdaptecInit(uint8_t Id);

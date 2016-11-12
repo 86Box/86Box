@@ -25,7 +25,7 @@
 #include "video.h"
 #include "resources.h"
 #include "cpu.h"
-#include "ide.h"
+#include "cdrom.h"
 #include "model.h"
 #include "nethandler.h"
 #include "nvr.h"
@@ -934,7 +934,7 @@ LRESULT CALLBACK LowLevelKeyboardProc( int nCode, WPARAM wParam, LPARAM lParam )
 	return CallNextHookEx( hKeyboardHook, nCode, wParam, lParam );
 }
 
-void atapi_close(void)
+void cdrom_close(void)
 {
 	switch (cdrom_drive)
 	{
@@ -1141,9 +1141,9 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			{
 				/* Switching from disabled to disabled. Do nothing. */
 				break;
-			} 
-			atapi->exit();
-			atapi_close();
+			}
+			cdrom->exit();
+			cdrom_close();
                         cdrom_null_open(0);
                         CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_UNCHECKED);
                         CheckMenuItem(hmenu, IDM_CDROM_DISABLED,           MF_CHECKED);
@@ -1173,13 +1173,13 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				/* Switch from empty to empty. Do nothing. */
 				break;
 			}
-			atapi->exit();
-			atapi_close();
+			cdrom->exit();
+			cdrom_close();
                         cdrom_null_open(0);
 			if (cdrom_enabled)
 			{
 				/* Signal disc change to the emulated machine. */
-				atapi_insert_cdrom();
+				SCSICDROM_Insert();
 			}
                         CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_UNCHECKED);
                         CheckMenuItem(hmenu, IDM_CDROM_DISABLED,           MF_UNCHECKED);
@@ -1214,13 +1214,13 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					/* Switching from ISO to the same ISO. Do nothing. */
 					break;
 				}
-				atapi->exit();
-				atapi_close();
+				cdrom->exit();
+				cdrom_close();
 				iso_open(temp_iso_path);
 				if (cdrom_enabled)
 				{
 					/* Signal disc change to the emulated machine. */
-					atapi_insert_cdrom();
+					SCSICDROM_Insert();
 				}
                                 CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_UNCHECKED);
                                 CheckMenuItem(hmenu, IDM_CDROM_DISABLED,           MF_UNCHECKED);
@@ -1255,13 +1255,13 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					break;
 				}
 				old_cdrom_drive = cdrom_drive;
-				atapi->exit();
-				atapi_close();
+				cdrom->exit();
+				cdrom_close();
                                 ioctl_open(new_cdrom_drive);
 				if (cdrom_enabled)
 				{
 					/* Signal disc change to the emulated machine. */
-					atapi_insert_cdrom();
+					SCSICDROM_Insert();
 				}
                                 CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_UNCHECKED);
                                 CheckMenuItem(hmenu, IDM_CDROM_DISABLED,           MF_UNCHECKED);

@@ -110,20 +110,20 @@ static void sound_cd_thread(void *param)
                 ioctl_audio_callback(cd_buffer, CD_BUFLEN*2);
                 if (soundon)
                 {
-                        int32_t atapi_vol_l = atapi_get_cd_volume(0);
-                        int32_t atapi_vol_r = atapi_get_cd_volume(1);
+                        int32_t audio_vol_l = SCSIGetCDVolume(0);
+                        int32_t audio_vol_r = SCSIGetCDVolume(1);
                         int channel_select[2];
                         
-                        channel_select[0] = atapi_get_cd_channel(0);
-                        channel_select[1] = atapi_get_cd_channel(1);
+                        channel_select[0] = SCSIGetCDChannel(0);
+                        channel_select[1] = SCSIGetCDChannel(1);
                         
                         for (c = 0; c < CD_BUFLEN*2; c += 2)
                         {
                                 int32_t cd_buffer_temp[2] = {0, 0};
                                 
-        			/*First, adjust input from drive according to ATAPI volume.*/
-        			cd_buffer[c]   = ((int32_t)cd_buffer[c]   * atapi_vol_l) / 255;
-                                cd_buffer[c+1] = ((int32_t)cd_buffer[c+1] * atapi_vol_r) / 255;
+        			/*First, adjust input from drive according to ATAPI/SCSI volume.*/
+        			cd_buffer[c]   = ((int32_t)cd_buffer[c]   * audio_vol_l) / 255;
+                                cd_buffer[c+1] = ((int32_t)cd_buffer[c+1] * audio_vol_r) / 255;
 
                                 /*Apply ATAPI channel select*/
                                 if (channel_select[0] & 1)
