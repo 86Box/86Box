@@ -289,6 +289,7 @@ typedef struct Adaptec_t
 
 Adaptec_t AdaptecLUN;
 
+static void AdaptecSCSIRequestSetup(Adaptec_t *Adaptec, uint32_t CCBPointer);
 static void AdaptecStartMailbox(Adaptec_t *Adaptec);
 
 typedef void (*AdaptecMemCopyCallback)(Adaptec_t *Adaptec, uint32_t Addr, SGBUF *SegmentBuffer,
@@ -548,12 +549,6 @@ static int AdaptecScatterGatherBufferWalker(Adaptec_t *Adaptec, AdaptecRequests_
 	DataPointer = ADDR_TO_U32(AdaptecRequests->CmdBlock.DataPointer);
 	DataLength = ADDR_TO_U32(AdaptecRequests->CmdBlock.DataLength);
 
-	if (AdaptecRequests->CmdBlock.Cdb[0] == GPCMD_TEST_UNIT_READY)
-	{		
-		AdaptecRequests->CmdBlock.ControlByte = 3;
-		DataLength = 6;
-	}
-	
 	AdaptecLog("Adaptec: S/G Buffer Walker\n");
 	AdaptecLog("Data Length=%u\n", DataLength);
 	AdaptecLog("Data Buffer Copy=%u\n", Copy);
@@ -972,7 +967,7 @@ static void AdaptecSCSIRequestSetup(Adaptec_t *Adaptec, uint32_t CCBPointer)
 {	
 	AdaptecRequests_t *AdaptecRequests = &Adaptec->AdaptecRequests;
 	CCB CmdBlock;
-	
+
 	uint32_t CCBUSize = sizeof(CCB);
 	void *Data = (void *)&CmdBlock;
 	uint32_t l = PageLengthReadWrite(CCBPointer, CCBUSize);
@@ -981,14 +976,11 @@ static void AdaptecSCSIRequestSetup(Adaptec_t *Adaptec, uint32_t CCBPointer)
 	CCBPointer += l;
 	Data -= l;
 	CCBUSize += l;
-
-	pclog("Scanning SCSI Target ID %d\n", CmdBlock.Id);
 	
+	pclog("Scanning SCSI Target ID %d\n", CmdBlock.Id);	
+
 	if (CmdBlock.Id == scsi_cdrom_id && CmdBlock.Lun == 0)
 	{
-		if (CmdBlock.Cdb[0] == GPCMD_TEST_UNIT_READY)
-			CmdBlock.ControlByte = 3;
-		
 		pclog("SCSI Target ID %d detected and working\n", CmdBlock.Id);
 		
 		SCSI *Scsi = &ScsiDrives[CmdBlock.Id];
@@ -1006,12 +998,7 @@ static void AdaptecSCSIRequestSetup(Adaptec_t *Adaptec, uint32_t CCBPointer)
 		
 		pclog("Control Byte Transfer Direction %02X\n", CmdBlock.ControlByte);
 		
-		if (CmdBlock.ControlByte == 3)
-		{
-			pclog("Adaptec No Transfer\n");
-			SCSINoTransfer(Scsi, CmdBlock.Id);
-		}
-		else if (CmdBlock.ControlByte == CCB_DATA_XFER_OUT)
+		if (CmdBlock.ControlByte == CCB_DATA_XFER_OUT)
 		{
 			pclog("Adaptec Write Transfer\n");
 			SCSIWriteTransfer(Scsi, CmdBlock.Id);
@@ -1021,10 +1008,19 @@ static void AdaptecSCSIRequestSetup(Adaptec_t *Adaptec, uint32_t CCBPointer)
 			pclog("Adaptec Read Transfer\n");
 			SCSIReadTransfer(Scsi, CmdBlock.Id);
 		}
+		else
+		{
+			AdaptecMailboxIn(Adaptec, AdaptecRequests->CCBPointer, &CmdBlock, CCB_INVALID_DIRECTION, SCSI_STATUS_OK,
+					MBI_ERROR);			
+		}
 		
 		SCSISendCommand(Scsi, CmdBlock.Id, CmdBlock.Cdb, CmdBlock.CdbLength, BufferSize, AdaptecRequests->RequestSenseBuffer, SenseLength);
 
 		AdaptecRequestComplete(Scsi, Adaptec, AdaptecRequests);
+	}
+	else
+	{
+		CmdBlock.Id++;
 	}
 }
 

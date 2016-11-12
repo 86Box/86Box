@@ -19,14 +19,6 @@ uint8_t SCSIDeviceIsPresent(SCSI *Scsi)
 	return (scsi_cdrom_id < 7 && Scsi->LunType != SCSI_NONE);
 }
 
-void SCSINoTransfer(SCSI *Scsi, uint8_t Id)
-{
-	pclog("SCSI: No Transfer\n");
-	SGBUF SegmentBuffer;
-	SegmentBufferInit(&SegmentBuffer, &Scsi->SegmentData, 1);
-	pfnIoRequestCopyFromBuffer(0, &SegmentBuffer, Scsi->SegmentData.Length);	
-}
-
 void SCSIReadTransfer(SCSI *Scsi, uint8_t Id)
 {
 	if (Scsi->LunType == SCSI_CDROM)

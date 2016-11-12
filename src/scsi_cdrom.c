@@ -436,8 +436,6 @@ void SCSICDROM_RunCommand(SCSI *Scsi, uint8_t Id, uint8_t *Cdb)
 	switch (Scsi->Cdb[0])
 	{
 			case GPCMD_TEST_UNIT_READY:
-			SCSINoTransfer(Scsi, Id);
-			
 			ScsiStatus = SCSI_STATUS_OK;
 			SCSISenseCodeOk();
 			ScsiCallback[Id]=50*SCSI_TIME;
@@ -481,8 +479,6 @@ void SCSICDROM_RunCommand(SCSI *Scsi, uint8_t Id, uint8_t *Cdb)
 			break;
 			
 			case GPCMD_SET_SPEED:
-			SCSINoTransfer(Scsi, Id);
-			
 			ScsiStatus = SCSI_STATUS_OK;
 			SCSISenseCodeOk();
 			ScsiCallback[Id]=50*SCSI_TIME;
@@ -900,9 +896,6 @@ void SCSICDROM_RunCommand(SCSI *Scsi, uint8_t Id, uint8_t *Cdb)
 			}
 					
 			cdrom->playaudio(Scsi->BufferPosition, Scsi->SegmentData.Length, (Scsi->Cdb[0] == GPCMD_PLAY_AUDIO_MSF) ? 1 : 0);
-			
-			SCSINoTransfer(Scsi, Id);
-			
 			ScsiStatus = SCSI_STATUS_OK;
 			SCSISenseCodeOk();
 			ScsiCallback[Id]=50*SCSI_TIME;
@@ -1014,8 +1007,6 @@ void SCSICDROM_RunCommand(SCSI *Scsi, uint8_t Id, uint8_t *Cdb)
 			if (!Scsi->Cdb[4])        cdrom->stop();
 			else if (Scsi->Cdb[4]==2) cdrom->eject();
 			else                	  cdrom->load();
-			SCSINoTransfer(Scsi, Id);
-			
 			ScsiStatus = SCSI_STATUS_OK;
 			SCSISenseCodeOk();
 			ScsiCallback[Id]=50*SCSI_TIME;
@@ -1120,8 +1111,6 @@ SCSIOut:
 			break;
 			
 			case GPCMD_PREVENT_REMOVAL:
-			SCSINoTransfer(Scsi, Id);
-			
 			ScsiStatus = SCSI_STATUS_OK;
 			SCSISenseCodeOk();
 			ScsiCallback[Id]=50*SCSI_TIME;
@@ -1130,8 +1119,6 @@ SCSIOut:
 			case GPCMD_PAUSE_RESUME:
 			if (Scsi->Cdb[8]&1) 	cdrom->resume();
 			else            		cdrom->pause();
-			SCSINoTransfer(Scsi, Id);
-			
 			ScsiStatus = SCSI_STATUS_OK;
 			SCSISenseCodeOk();
 			ScsiCallback[Id]=50*SCSI_TIME;
@@ -1140,9 +1127,6 @@ SCSIOut:
 			case GPCMD_SEEK:
 			Scsi->BufferPosition = (Scsi->Cdb[3]<<16)|(Scsi->Cdb[4]<<8)|Scsi->Cdb[5];
 			cdrom->seek(Scsi->BufferPosition);
-			
-			SCSINoTransfer(Scsi, Id);
-			
 			ScsiStatus = SCSI_STATUS_OK;
 			SCSISenseCodeOk();
 			ScsiCallback[Id]=50*SCSI_TIME;
@@ -1171,9 +1155,6 @@ SCSIOut:
 
 			case GPCMD_STOP_PLAY_SCAN:
 			cdrom->stop();
-			
-			SCSINoTransfer(Scsi, Id);
-			
 			ScsiStatus = SCSI_STATUS_OK;
 			SCSISenseCodeOk();
 			ScsiCallback[Id]=50*SCSI_TIME;

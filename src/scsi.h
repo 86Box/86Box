@@ -204,7 +204,6 @@ uint32_t (*pfnIoRequestCopyFromBuffer)(uint32_t OffDst, SGBUF *SegmentBuffer,
 uint32_t (*pfnIoRequestCopyToBuffer)(uint32_t OffSrc, SGBUF *SegmentBuffer,
 										uint32_t Copy);
 										
-void SCSINoTransfer(SCSI *Scsi, uint8_t Id);
 void SCSIReadTransfer(SCSI *Scsi, uint8_t Id);
 void SCSIWriteTransfer(SCSI *Scsi, uint8_t Id);									
 										
