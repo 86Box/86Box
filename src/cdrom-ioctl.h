@@ -7,6 +7,8 @@
 /* this header file lists the functions provided by
    various platform specific cdrom-ioctl files */
 
+extern uint32_t cdrom_capacity;
+   
 extern int ioctl_open(char d);
 extern void ioctl_reset();
 

@@ -7,6 +7,8 @@
 /* this header file lists the functions provided by
    various platform specific cdrom-ioctl files */
 
+extern uint32_t last_block;
+   
 extern char iso_path[1024];
 
 extern int iso_open(char *fn);

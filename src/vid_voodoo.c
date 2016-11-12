@@ -11,8 +11,6 @@
 #include "vid_voodoo.h"
 #include "vid_voodoo_dither.h"
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
 #define CLAMP(x) (((x) < 0) ? 0 : (((x) > 0xff) ? 0xff : (x)))
 #define CLAMP16(x) (((x) < 0) ? 0 : (((x) > 0xffff) ? 0xffff : (x)))
 

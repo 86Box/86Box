@@ -4,13 +4,13 @@
 /*ISO CD-ROM support*/
 
 #include "ibm.h"
-#include "ide.h"
+#include "cdrom.h"
 #include "cdrom-iso.h"
 #include <sys/stat.h>
 
-static ATAPI iso_atapi;
+static CDROM iso_cdrom;
 
-static uint32_t last_block = 0;
+uint32_t last_block = 0;
 static uint64_t image_size = 0;
 static int iso_inited = 0;
 char iso_path[1024];
@@ -157,6 +157,7 @@ static void lba_to_msf(uint8_t *buf, int lba)
 
 static void iso_readsector_raw(uint8_t *b, int sector)
 {
+    uint32_t temp;
     if (!cdrom_drive) return;
     iso_image = fopen(iso_path, "rb");
     fseek(iso_image, sector*2048, SEEK_SET);
@@ -313,7 +314,7 @@ static uint32_t iso_size()
 {
     unsigned char b[4096];
 
-    atapi->readtoc(b, 0, 0, 4096, 0);
+    cdrom->readtoc(b, 0, 0, 4096, 0);
     
     return last_block;
 }
@@ -345,7 +346,7 @@ int iso_open(char *fn)
         pclog("Path is %s\n", iso_path);
     }
     iso_image = fopen(iso_path, "rb");
-    atapi = &iso_atapi;
+    cdrom = &iso_cdrom;
     if (!iso_inited || iso_changed)
     {
         if (!iso_inited)  iso_inited = 1;
@@ -375,7 +376,7 @@ static int iso_is_track_audio(uint32_t pos, int ismsf)
 	return 0;
 }
 
-static ATAPI iso_atapi = 
+static CDROM iso_cdrom = 
 {
         iso_ready,
 		iso_medium_changed,

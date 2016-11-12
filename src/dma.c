@@ -422,3 +422,16 @@ int dma_channel_write(int channel, uint16_t val)
         }
         return 0;
 }
+
+size_t PageLengthReadWrite(uint32_t Address, size_t TotalSize)
+{
+	size_t l;
+	uint32_t Page;
+
+	Page = Address & 4095;
+	l = (Page + 4096) - Address;
+	if (l > TotalSize)
+		l = TotalSize;
+
+	return l;
+}

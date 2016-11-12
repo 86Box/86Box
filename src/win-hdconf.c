@@ -488,7 +488,7 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                 sprintf(s, "Size: %" PRIu64 " MB", (hd[3].tracks*hd[3].hpc*hd[3].spt) >> 11);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
 
-                new_cdrom_channel = cdrom_channel;
+                new_cdrom_channel = atapi_cdrom_channel;
 
                 update_hdd_cdrom(hdlg);
                 return TRUE;
@@ -497,7 +497,7 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                 switch (LOWORD(wParam))
                 {
                         case IDOK:
-                        if (hd_changed || cdrom_channel != new_cdrom_channel)
+                        if (hd_changed || atapi_cdrom_channel != new_cdrom_channel)
                         {                     
                                 if (MessageBox(NULL, "This will reset 86Box!\nOkay to continue?", "86Box", MB_OKCANCEL) == IDOK)
                                 {
@@ -554,7 +554,7 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                         hdc[2] = hd[2];
                                         hdc[3] = hd[3];
 
-                                        cdrom_channel = new_cdrom_channel;
+                                        atapi_cdrom_channel = new_cdrom_channel;
                                         
                                         saveconfig();
                                                                                 
