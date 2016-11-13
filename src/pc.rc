@@ -40,8 +40,12 @@ BEGIN
                         MENUITEM "&Enabled",IDM_SCSI_ENABLED
                         POPUP "&Base address"
                         BEGIN
-                                MENUITEM "33&0",IDM_SCSI_BASE330
-                                MENUITEM "33&4",IDM_SCSI_BASE334
+                                MENUITEM "0x&130",IDM_SCSI_BASE130
+                                MENUITEM "0x13&4",IDM_SCSI_BASE134
+                                MENUITEM "0x&230",IDM_SCSI_BASE230
+                                MENUITEM "0&x234",IDM_SCSI_BASE234
+                                MENUITEM "0x33&0",IDM_SCSI_BASE330
+                                MENUITEM "&0x334",IDM_SCSI_BASE334
                         END
                         POPUP "&IRQ"
                         BEGIN
@@ -49,6 +53,8 @@ BEGIN
                                 MENUITEM "1&0",IDM_SCSI_IRQ10
                                 MENUITEM "1&1",IDM_SCSI_IRQ11
                                 MENUITEM "1&2",IDM_SCSI_IRQ12
+                                MENUITEM "1&4",IDM_SCSI_IRQ14
+                                MENUITEM "1&5",IDM_SCSI_IRQ15
                         END
                         POPUP "&DMA channel"
                         BEGIN
