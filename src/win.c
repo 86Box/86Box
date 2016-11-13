@@ -1198,7 +1198,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			pause = 0;
 			break;
                         
-                        case SCSI_ENABLED:
+                        case IDM_SCSI_ENABLED:
                         if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
 			{
 				break;
