@@ -27,14 +27,15 @@ BEGIN
                 MENUITEM "E&ject drive B:",     IDM_EJECT_B
                 MENUITEM SEPARATOR
                 MENUITEM "&Configure hard discs...",IDM_HDCONF
-                POPUP "&CD-ROM"
+                POPUP "C&D-ROM"
                 BEGIN
-                        MENUITEM "&Disabled", IDM_CDROM_DISABLED
+                        MENUITEM "&Enabled", IDM_CDROM_ENABLED
                         MENUITEM "&SCSI", IDM_CDROM_SCSI
                         MENUITEM SEPARATOR
                         MENUITEM "&Empty",IDM_CDROM_EMPTY
                         MENUITEM "&ISO...",IDM_CDROM_ISO
                 END
+                MENUITEM "&SCSI controller enabled",IDM_SCSI_ENABLED
         END
         POPUP "&Settings"
         BEGIN

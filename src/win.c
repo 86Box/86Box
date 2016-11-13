@@ -321,8 +321,8 @@ static void initmenu(void)
         int c;
         HMENU m;
         char s[32];
-        m=GetSubMenu(menu,1); /*Disc*/
-        m=GetSubMenu(m,9); /*CD-ROM*/
+        m=GetSubMenu(menu,2); /*Settings*/
+        m=GetSubMenu(m,5); /*CD-ROM*/
 
         /* Loop through each Windows drive letter and test to see if
            it's a CDROM */
@@ -619,11 +619,14 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	// pclog("Checking CD-ROM menu item...\n");        
 
         /* Note by Kiririn: I've redone this since the CD-ROM can be disabled but still have something inside it. */
-        if (!cdrom_enabled)
-           CheckMenuItem(menu, IDM_CDROM_DISABLED, MF_CHECKED);
+        if (cdrom_enabled)
+           CheckMenuItem(menu, IDM_CDROM_ENABLED, MF_CHECKED);
 
         if (scsi_cdrom_enabled)
            CheckMenuItem(menu, IDM_CDROM_SCSI, MF_CHECKED);
+
+        if (aha154x_enabled)
+           CheckMenuItem(menu, IDM_SCSI_ENABLED, MF_CHECKED);
 
 	if (cdrom_drive == 200)
 		CheckMenuItem(menu, IDM_CDROM_ISO, MF_CHECKED);
@@ -1167,7 +1170,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         }
                         break;
 #endif
-                        case IDM_CDROM_DISABLED:
+                        case IDM_CDROM_ENABLED:
                         if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
 			{
 				break;
@@ -1175,7 +1178,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			pause = 1;
 			Sleep(100);
 			cdrom_enabled ^= 1;                                             
-			CheckMenuItem(hmenu, IDM_CDROM_DISABLED, cdrom_enabled ? MF_UNCHECKED : MF_CHECKED);
+			CheckMenuItem(hmenu, IDM_CDROM_ENABLED, cdrom_enabled ? MF_CHECKED : MF_UNCHECKED);
 			saveconfig();
 			resetpchard();
 			pause = 0;
@@ -1189,7 +1192,21 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			pause = 1;
 			Sleep(100);
 			scsi_cdrom_enabled ^= 1;                                             
-			CheckMenuItem(hmenu, IDM_CDROM_DISABLED, scsi_cdrom_enabled ? MF_CHECKED : MF_UNCHECKED);
+			CheckMenuItem(hmenu, IDM_CDROM_SCSI, scsi_cdrom_enabled ? MF_CHECKED : MF_UNCHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
+                        case SCSI_ENABLED:
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			aha154x_enabled ^= 1;                                             
+			CheckMenuItem(hmenu, IDM_SCSI_ENABLED, aha_154x_enabled ? MF_CHECKED : MF_UNCHECKED);
 			saveconfig();
 			resetpchard();
 			pause = 0;
@@ -1216,7 +1233,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				SCSICDROM_Insert();
 			}
                         CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_UNCHECKED);
-                        CheckMenuItem(hmenu, IDM_CDROM_DISABLED,           MF_UNCHECKED);
+                        // CheckMenuItem(hmenu, IDM_CDROM_DISABLED,           MF_UNCHECKED);
 						CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_UNCHECKED);
 						old_cdrom_drive = cdrom_drive;
                         cdrom_drive=0;
@@ -1258,7 +1275,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					SCSICDROM_Insert();
 				}
                                 CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_UNCHECKED);
-                                CheckMenuItem(hmenu, IDM_CDROM_DISABLED,           MF_UNCHECKED);
+                                // CheckMenuItem(hmenu, IDM_CDROM_DISABLED,           MF_UNCHECKED);
                                 CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_UNCHECKED);
 				cdrom_drive = 200;
                                 CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_CHECKED);
@@ -1300,7 +1317,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					SCSICDROM_Insert();
 				}
                                 CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_UNCHECKED);
-                                CheckMenuItem(hmenu, IDM_CDROM_DISABLED,           MF_UNCHECKED);
+                                // CheckMenuItem(hmenu, IDM_CDROM_DISABLED,           MF_UNCHECKED);
                                 CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_UNCHECKED);
                                 cdrom_drive = new_cdrom_drive;
                                 CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_CHECKED);
