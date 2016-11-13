@@ -60,7 +60,7 @@ int window_w, window_h, window_x, window_y, window_remember;
 int start_in_fullscreen = 0;
 int frame = 0;
 
-int scsi_cdrom_enabled, atapi_cdrom_enabled;
+int scsi_cdrom_enabled;
 int cdrom_enabled;
 int CPUID;
 int vid_resize, vid_api;
@@ -670,7 +670,6 @@ void loadconfig(char *fn)
 		old_cdrom_drive = cdrom_drive;
         cdrom_enabled = config_get_int(NULL, "cdrom_enabled", 0);
 
-		atapi_cdrom_enabled = config_get_int(NULL, "atapi_cdrom_enabled", 1);
         atapi_cdrom_channel = config_get_int(NULL, "atapi_cdrom_channel", 2);
 
 		scsi_cdrom_enabled = config_get_int(NULL, "scsi_cdrom_enabled", 0);
@@ -816,7 +815,6 @@ void saveconfig()
         config_set_int(NULL, "cdrom_drive", cdrom_drive);
         config_set_int(NULL, "cdrom_enabled", cdrom_enabled);
 		
-        config_set_int(NULL, "atapi_cdrom_enabled", atapi_cdrom_enabled);		
         config_set_int(NULL, "atapi_cdrom_channel", atapi_cdrom_channel);
 		
         config_set_int(NULL, "scsi_cdrom_enabled", scsi_cdrom_enabled);		

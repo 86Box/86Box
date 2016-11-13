@@ -321,8 +321,8 @@ static void initmenu(void)
         int c;
         HMENU m;
         char s[32];
-        m=GetSubMenu(menu,2); /*Settings*/
-        m=GetSubMenu(m,1); /*CD-ROM*/
+        m=GetSubMenu(menu,1); /*Disc*/
+        m=GetSubMenu(m,9); /*CD-ROM*/
 
         /* Loop through each Windows drive letter and test to see if
            it's a CDROM */
@@ -617,15 +617,19 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_MINIMIZEBOX);
 
 	// pclog("Checking CD-ROM menu item...\n");        
+
+        /* Note by Kiririn: I've redone this since the CD-ROM can be disabled but still have something inside it. */
         if (!cdrom_enabled)
            CheckMenuItem(menu, IDM_CDROM_DISABLED, MF_CHECKED);
-        else           
-		{
-			if (cdrom_drive == 200)
-				CheckMenuItem(menu, IDM_CDROM_ISO, MF_CHECKED);
-			else
-				CheckMenuItem(menu, IDM_CDROM_REAL + cdrom_drive, MF_CHECKED);
-		}
+
+        if (scsi_cdrom_enabled)
+           CheckMenuItem(menu, IDM_CDROM_SCSI, MF_CHECKED);
+
+	if (cdrom_drive == 200)
+		CheckMenuItem(menu, IDM_CDROM_ISO, MF_CHECKED);
+	else
+		CheckMenuItem(menu, IDM_CDROM_REAL + cdrom_drive, MF_CHECKED);
+
 	// pclog("Checking video resize menu item...\n");        
         if (vid_resize) CheckMenuItem(menu, IDM_VID_RESIZE, MF_CHECKED);
 	// pclog("Checking video API menu item...\n");        
@@ -1131,6 +1135,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         pause = 0;
                         break;
                         
+#if 0
                         case IDM_CDROM_DISABLED:
                         if (cdrom_enabled)
                         {
@@ -1161,14 +1166,43 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                                 pause = 0;
                         }
                         break;
+#endif
+                        case IDM_CDROM_DISABLED:
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			cdrom_enabled ^= 1;                                             
+			CheckMenuItem(hmenu, IDM_CDROM_DISABLED, cdrom_enabled ? MF_UNCHECKED : MF_CHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
+                        case IDM_CDROM_SCSI:
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			scsi_cdrom_enabled ^= 1;                                             
+			CheckMenuItem(hmenu, IDM_CDROM_DISABLED, scsi_cdrom_enabled ? MF_CHECKED : MF_UNCHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
                         
                         case IDM_CDROM_EMPTY:
-                        if (!cdrom_enabled)
+                        /* if (!cdrom_enabled)
                         {
                                 if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
                                    break;
-                        }
-			if ((cdrom_drive == 0) && cdrom_enabled)
+                        } */
+			// if ((cdrom_drive == 0) && cdrom_enabled)
+			if (cdrom_drive == 0)
 			{
 				/* Switch from empty to empty. Do nothing. */
 				break;
@@ -1188,7 +1222,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         cdrom_drive=0;
                         CheckMenuItem(hmenu, IDM_CDROM_EMPTY, MF_CHECKED);
                         saveconfig();
-                        if (!cdrom_enabled)
+                        /* if (!cdrom_enabled)
                         {
                                 pause = 1;
                                 Sleep(100);
@@ -1196,20 +1230,21 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                                 saveconfig();
                                 resetpchard();
                                 pause = 0;
-                        }
+                        } */
                         break;
 
                         case IDM_CDROM_ISO:
                         if (!getfile(hwnd,"CD-ROM image (*.ISO)\0*.ISO\0All files (*.*)\0*.*\0",iso_path))
                         {
-                                if (!cdrom_enabled)
+                                /* if (!cdrom_enabled)
                                 {
                                         if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
                                            break;
-                                }
+                                } */
 				old_cdrom_drive = cdrom_drive;
 				strcpy(temp_iso_path, openfilestring);
-				if ((strcmp(iso_path, temp_iso_path) == 0) && (cdrom_drive == 200) && cdrom_enabled)
+				// if ((strcmp(iso_path, temp_iso_path) == 0) && (cdrom_drive == 200) && cdrom_enabled)
+				if ((strcmp(iso_path, temp_iso_path) == 0) && (cdrom_drive == 200))
 				{
 					/* Switching from ISO to the same ISO. Do nothing. */
 					break;
@@ -1228,7 +1263,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				cdrom_drive = 200;
                                 CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_CHECKED);
                                 saveconfig();
-                                if (!cdrom_enabled)
+                                /* if (!cdrom_enabled)
                                 {
                                         pause = 1;
                                         Sleep(100);
@@ -1236,20 +1271,21 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                                         saveconfig();
                                         resetpchard();
                                         pause = 0;
-                                }
+                                } */
                         }
 			break;
 
                         default:
                         if (LOWORD(wParam)>IDM_CDROM_REAL && LOWORD(wParam)<(IDM_CDROM_REAL+100))
                         {
-                                if (!cdrom_enabled)
+                                /* if (!cdrom_enabled)
                                 {
                                         if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
                                            break;
-                                }
+                                } */
 				new_cdrom_drive = LOWORD(wParam)-IDM_CDROM_REAL;
-				if ((cdrom_drive == new_cdrom_drive) && cdrom_enabled)
+				// if ((cdrom_drive == new_cdrom_drive) && cdrom_enabled)
+				if (cdrom_drive == new_cdrom_drive)
 				{
 					/* Switching to the same drive. Do nothing. */
 					break;
@@ -1269,7 +1305,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                                 cdrom_drive = new_cdrom_drive;
                                 CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_CHECKED);
                                 saveconfig();
-                                if (!cdrom_enabled)
+                                /* if (!cdrom_enabled)
                                 {
                                         pause = 1;
                                         Sleep(100);
@@ -1277,7 +1313,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                                         saveconfig();
                                         resetpchard();
                                         pause = 0;
-                                }
+                                } */
                         }
                         break;
                 }

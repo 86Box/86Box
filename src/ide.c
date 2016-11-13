@@ -629,10 +629,9 @@ void resetide(void)
 	{
 		ide_drives[d].packetstatus = 0xFF;
 
-		if ((atapi_cdrom_channel == d) && atapi_cdrom_enabled)
+		if ((atapi_cdrom_channel == d) && cdrom_enabled && !scsi_cdrom_enabled)
 		{
-			if (cdrom_enabled)
-				ide_drives[d].type = IDE_CDROM;
+			ide_drives[d].type = IDE_CDROM;
 		}
 		else
 		{
@@ -654,10 +653,9 @@ void resetide(void)
 		{
 			ide_drives[d].packetstatus = 0xFF;
 
-			if ((atapi_cdrom_channel == d) && atapi_cdrom_enabled)
+			if ((atapi_cdrom_channel == d) && cdrom_enabled && !scsi_cdrom_enabled)
 			{
-				if (cdrom_enabled)
-					ide_drives[d].type = IDE_CDROM;
+				ide_drives[d].type = IDE_CDROM;
 			}
 			else
 			{

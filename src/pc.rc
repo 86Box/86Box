@@ -20,21 +20,28 @@ BEGIN
         BEGIN
                 MENUITEM "Change drive &A:...", IDM_DISC_A
                 MENUITEM "Change drive A (&Write-protected):...", IDM_DISC_A_WP
+                MENUITEM "&Eject drive A:",     IDM_EJECT_A
+                MENUITEM SEPARATOR
                 MENUITEM "Change drive &B:...", IDM_DISC_B
                 MENUITEM "Change drive B (W&rite-protected):...", IDM_DISC_B_WP
-                MENUITEM "&Eject drive A:",     IDM_EJECT_A
                 MENUITEM "E&ject drive B:",     IDM_EJECT_B
+                MENUITEM SEPARATOR
                 MENUITEM "&Configure hard discs...",IDM_HDCONF
+                POPUP "&CD-ROM"
+                BEGIN
+                        MENUITEM "&Disabled", IDM_CDROM_DISABLED
+                        MENUITEM "&SCSI", IDM_CDROM_SCSI
+                        MENUITEM SEPARATOR
+                        MENUITEM "&Empty",IDM_CDROM_EMPTY
+                        MENUITEM "&ISO...",IDM_CDROM_ISO
+                END
         END
         POPUP "&Settings"
         BEGIN
                 MENUITEM "&Configure...", IDM_CONFIG
-                POPUP "&CD-ROM"
-                BEGIN
-                        MENUITEM "&Disabled", IDM_CDROM_DISABLED
-                        MENUITEM "&Empty",IDM_CDROM_EMPTY
-                        MENUITEM "&ISO...",IDM_CDROM_ISO
-                END
+                MENUITEM "&Load configuration...", IDM_CONFIG_LOAD
+                MENUITEM "&Save configuration...", IDM_CONFIG_SAVE
+                MENUITEM SEPARATOR
                 POPUP "&Video"
                 BEGIN
                         MENUITEM "&Resizeable window",IDM_VID_RESIZE
@@ -54,12 +61,6 @@ BEGIN
                         MENUITEM SEPARATOR
                         MENUITEM "Take s&creenshot\tCtrl+F11", IDM_VID_SCREENSHOT
                 END
-                MENUITEM SEPARATOR
-                MENUITEM "&Load configuration...", IDM_CONFIG_LOAD
-                MENUITEM "&Save configuration...", IDM_CONFIG_SAVE
-        END
-        POPUP "&Misc"
-        BEGIN
                 MENUITEM "&Status", IDM_STATUS
         END
 END

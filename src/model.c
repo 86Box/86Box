@@ -429,7 +429,7 @@ void at_sis496_init()
         mouse_serial_init();
         pci_init(PCI_CONFIG_TYPE_1, 0, 31);
         device_add(&sis496_device);
-	ide_ter_init();
+	if ((atapi_cdrom_channel >= 4) && (atapi_cdrom_channel <= 5) && cdrom_enabled && !scsi_cdrom_enabled)  ide_ter_init();
 }
 
 void at_r418_init()
@@ -440,7 +440,7 @@ void at_r418_init()
         pci_init(PCI_CONFIG_TYPE_1, 0, 31);
         fdc37c665_init();
         device_add(&sis496_device);
-	if (atapi_cdrom_channel >= 4)  ide_ter_init();
+	if ((atapi_cdrom_channel >= 4) && (atapi_cdrom_channel <= 5) && cdrom_enabled && !scsi_cdrom_enabled)  ide_ter_init();
 }
 
 void at_batman_init()
@@ -453,7 +453,7 @@ void at_batman_init()
         fdc37c665_init();
         intel_batman_init();
         device_add(&intel_flash_bxt_ami_device);
-	if (atapi_cdrom_channel >= 4)  ide_ter_init();
+	if ((atapi_cdrom_channel >= 4) && (atapi_cdrom_channel <= 5) && cdrom_enabled && !scsi_cdrom_enabled)  ide_ter_init();
 }
 
 void at_586mc1_init()
@@ -479,7 +479,7 @@ void at_plato_init()
 	/* It seems it uses the same interface as Batman. */
         intel_batman_init();
         device_add(&intel_flash_bxt_ami_device);
-	if (atapi_cdrom_channel >= 4)  ide_ter_init();
+	if ((atapi_cdrom_channel >= 4) && (atapi_cdrom_channel <= 5) && cdrom_enabled && !scsi_cdrom_enabled)  ide_ter_init();
 }
 
 void at_advanced_common_init()
@@ -491,7 +491,7 @@ void at_advanced_common_init()
         piix_init(7);
         // pc87306_init();
         intel_endeavor_init();
-	if (atapi_cdrom_channel >= 4)  ide_ter_init();
+	if ((atapi_cdrom_channel >= 4) && (atapi_cdrom_channel <= 5) && cdrom_enabled && !scsi_cdrom_enabled)  ide_ter_init();
 }
 
 void at_endeavor_init()
@@ -518,7 +518,7 @@ void at_mb500n_init()
         fdc37c665_init();
         intel_endeavor_init();
         device_add(&intel_flash_bxt_device);
-	if (atapi_cdrom_channel >= 4)  ide_ter_init();
+	if ((atapi_cdrom_channel >= 4) && (atapi_cdrom_channel <= 5) && cdrom_enabled && !scsi_cdrom_enabled)  ide_ter_init();
 }
 
 #if 0
@@ -533,7 +533,7 @@ void at_p54tp4xe_init()
         fdc37c665_init();
         intel_endeavor_init();
         device_add(&intel_flash_bxt_device);
-	if (atapi_cdrom_channel >= 4)  ide_ter_init();
+	if ((atapi_cdrom_channel >= 4) && (atapi_cdrom_channel <= 5) && cdrom_enabled && !scsi_cdrom_enabled)  ide_ter_init();
 }
 #endif
 
@@ -548,7 +548,7 @@ void at_acerm3a_init()
         fdc37c932fr_init();
         acerm3a_io_init();
         device_add(&intel_flash_bxb_device);
-	if (atapi_cdrom_channel >= 4)  ide_ter_init();
+	if ((atapi_cdrom_channel >= 4) && (atapi_cdrom_channel <= 5) && cdrom_enabled && !scsi_cdrom_enabled)  ide_ter_init();
 }
 
 void at_acerv35n_init()
@@ -562,7 +562,7 @@ void at_acerv35n_init()
         fdc37c932fr_init();
         acerm3a_io_init();
         device_add(&intel_flash_bxb_device);
-	if (atapi_cdrom_channel >= 4)  ide_ter_init();
+	if ((atapi_cdrom_channel >= 4) && (atapi_cdrom_channel <= 5) && cdrom_enabled && !scsi_cdrom_enabled)  ide_ter_init();
 }
 
 #if 0
@@ -576,7 +576,7 @@ void at_p55t2p4_init()
         piix3_init(7);
         w83877f_init();
         device_add(&intel_flash_bxt_device);
-	if (atapi_cdrom_channel >= 4)  ide_ter_init();
+	if ((atapi_cdrom_channel >= 4) && (atapi_cdrom_channel <= 5) && cdrom_enabled && !scsi_cdrom_enabled)  ide_ter_init();
 }
 #endif
 
@@ -590,7 +590,7 @@ void at_i430vx_init()
         piix3_init(7);
         um8669f_init();
         device_add(&intel_flash_bxt_device);
-	if (atapi_cdrom_channel >= 4)  ide_ter_init();
+	if ((atapi_cdrom_channel >= 4) && (atapi_cdrom_channel <= 5) && cdrom_enabled && !scsi_cdrom_enabled)  ide_ter_init();
 }
 
 // rom_t ami_ec_rom;
@@ -612,7 +612,7 @@ void at_p55tvp4_init()
 
         intel_endeavor_init(); */
 
-	if (atapi_cdrom_channel >= 4)  ide_ter_init();
+	if ((atapi_cdrom_channel >= 4) && (atapi_cdrom_channel <= 5) && cdrom_enabled && !scsi_cdrom_enabled)  ide_ter_init();
 }
 #endif
 
@@ -626,7 +626,7 @@ void at_p55va_init()
         piix3_init(7);
         fdc37c932fr_init();
         device_add(&intel_flash_bxt_device);
-	if (atapi_cdrom_channel >= 4)  ide_ter_init();
+	if ((atapi_cdrom_channel >= 4) && (atapi_cdrom_channel <= 5) && cdrom_enabled && !scsi_cdrom_enabled)  ide_ter_init();
 }
 
 void at_i440fx_init()
@@ -639,7 +639,7 @@ void at_i440fx_init()
         piix3_init(7);
 	fdc37c665_init();
         device_add(&intel_flash_bxt_device);
-	if (atapi_cdrom_channel >= 4)  ide_ter_init();
+	if ((atapi_cdrom_channel >= 4) && (atapi_cdrom_channel <= 5) && cdrom_enabled && !scsi_cdrom_enabled)  ide_ter_init();
 }
 
 void model_init()
