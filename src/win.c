@@ -1052,7 +1052,7 @@ void cdrom_close(void)
 
 char *floppy_image_extensions = "All floppy images (*.12;*.144;*.360;*.720;*.86F;*.BIN;*.DSK;*.FDI;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.TD0;*.VFD;*.XDF)\0*.12;*.144;*.360;*.720;*.86F;*.BIN;*.DSK;*.FDI;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.TD0;*.VFD;*.XDF\0Advanced sector-based images (*.IMD;*.TD0)\0*.IMD;*.TD0\0Basic sector-based images (*.12;*.144;*.360;*.720;*.BIN;*.DSK;*.FDI;*.FLP;*.HDM;*.IMA;*.IMG;*.VFD;*.XDF)\0*.12;*.144;*.360;*.720;*.BIN;*.DSK;*.FDI;*.FLP;*.HDM;*.IMA;*.IMG;*.VFD;*.XDF\0Flux images (*.FDI)\0*.FDI\0Surface-based images (*.86F)\0*.86F\0All files (*.*)\0*.*\0";
 
-int scsi_set_base(int base, int id)
+int scsi_set_base(HMENU hmenu, int base, int id)
 {
 	if (scsi_base == base)
 	{
@@ -1078,7 +1078,7 @@ int scsi_set_base(int base, int id)
 	return 1;
 }
 
-int scsi_set_irq(int base, int id)
+int scsi_set_irq(HMENU hmenu, int base, int id)
 {
 	if (scsi_irq == irq)
 	{
@@ -1104,7 +1104,7 @@ int scsi_set_irq(int base, int id)
 	return 1;
 }
 
-int scsi_set_dma(int base, int id)
+int scsi_set_dma(HMENU hmenu, int base, int id)
 {
 	if (scsi_dma == dma)
 	{
@@ -1381,105 +1381,105 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			break;
                         
                         case IDM_SCSI_BASE130:
-			if (scsi_set_base(0x130, IDM_SCSI_BASE130) == 0)
+			if (scsi_set_base(hmenu, 0x130, IDM_SCSI_BASE130) == 0)
 			{
 				break;
 			}
 			break;
                         
                         case IDM_SCSI_BASE134:
-			if (scsi_set_base(0x134, IDM_SCSI_BASE134) == 0)
+			if (scsi_set_base(hmenu, 0x134, IDM_SCSI_BASE134) == 0)
 			{
 				break;
 			}
 			break;
                         
                         case IDM_SCSI_BASE230:
-			if (scsi_set_base(0x230, IDM_SCSI_BASE230) == 0)
+			if (scsi_set_base(hmenu, 0x230, IDM_SCSI_BASE230) == 0)
 			{
 				break;
 			}
 			break;
                         
                         case IDM_SCSI_BASE234:
-			if (scsi_set_base(0x234, IDM_SCSI_BASE234) == 0)
+			if (scsi_set_base(hmenu, 0x234, IDM_SCSI_BASE234) == 0)
 			{
 				break;
 			}
 			break;
                         
                         case IDM_SCSI_BASE330:
-			if (scsi_set_base(0x330, IDM_SCSI_BASE330) == 0)
+			if (scsi_set_base(hmenu, 0x330, IDM_SCSI_BASE330) == 0)
 			{
 				break;
 			}
 			break;
                         
                         case IDM_SCSI_BASE334:
-			if (scsi_set_base(0x334, IDM_SCSI_BASE334) == 0)
+			if (scsi_set_base(hmenu, 0x334, IDM_SCSI_BASE334) == 0)
 			{
 				break;
 			}
 			break;
                         
                         case IDM_SCSI_IRQ9:
-			if (scsi_set_irq(9, IDM_SCSI_IRQ9) == 0)
+			if (scsi_set_irq(hmenu, 9, IDM_SCSI_IRQ9) == 0)
 			{
 				break;
 			}
 			break;
                         
                         case IDM_SCSI_IRQ10:
-			if (scsi_set_irq(10, IDM_SCSI_IRQ10) == 0)
+			if (scsi_set_irq(hmenu, 10, IDM_SCSI_IRQ10) == 0)
 			{
 				break;
 			}
 			break;
                         
                         case IDM_SCSI_IRQ11:
-			if (scsi_set_irq(11, IDM_SCSI_IRQ11) == 0)
+			if (scsi_set_irq(hmenu, 11, IDM_SCSI_IRQ11) == 0)
 			{
 				break;
 			}
 			break;
                         
                         case IDM_SCSI_IRQ12:
-			if (scsi_set_irq(12, IDM_SCSI_IRQ12) == 0)
+			if (scsi_set_irq(hmenu, 12, IDM_SCSI_IRQ12) == 0)
 			{
 				break;
 			}
 			break;
                         
                         case IDM_SCSI_IRQ14:
-			if (scsi_set_irq(14, IDM_SCSI_IRQ14) == 0)
+			if (scsi_set_irq(hmenu, 14, IDM_SCSI_IRQ14) == 0)
 			{
 				break;
 			}
 			break;
                         
                         case IDM_SCSI_IRQ15:
-			if (scsi_set_irq(15, IDM_SCSI_IRQ15) == 0)
+			if (scsi_set_irq(hmenu, 15, IDM_SCSI_IRQ15) == 0)
 			{
 				break;
 			}
 			break;
                         
                         case IDM_SCSI_DMA5:
-			if (scsi_set_dma(5, IDM_SCSI_DMA5) == 0)
+			if (scsi_set_dma(hmenu, 5, IDM_SCSI_DMA5) == 0)
 			{
 				break;
 			}
 			break;
                         
                         case IDM_SCSI_DMA6:
-			if (scsi_set_dma(6, IDM_SCSI_DMA6) == 0)
+			if (scsi_set_dma(hmenu, 6, IDM_SCSI_DMA6) == 0)
 			{
 				break;
 			}
 			break;
                         
                         case IDM_SCSI_DMA7:
-			if (scsi_set_dma(7, IDM_SCSI_DMA7) == 0)
+			if (scsi_set_dma(hmenu, 7, IDM_SCSI_DMA7) == 0)
 			{
 				break;
 			}

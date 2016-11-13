@@ -631,7 +631,7 @@ void loadconfig(char *fn)
 
 	scsi_base = config_get_int(NULL, "scsi_base", 0x330);
 	scsi_irq = config_get_int(NULL, "scsi_irq", 11);
-	scsi_dma = config_get_int(NULL, "scsi_dma", 5);
+	scsi_dma = config_get_int(NULL, "scsi_dma", 6);
 
 	//network
 	ethif = config_get_int(NULL, "netinterface", 1);
