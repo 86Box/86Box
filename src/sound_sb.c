@@ -1,4 +1,4 @@
-#include <stdlib.h>
+
 #include "ibm.h"
 #include "device.h"
 #include "sound_emu8k.h"
@@ -822,7 +822,7 @@ static device_config_t sb_16_config[] =
                                 .description = ""
                         }
                 },
-                .default_int = 1
+                .default_int = 5
         },
         {
                 .name = "midi",
@@ -953,7 +953,7 @@ static device_config_t sb_awe32_config[] =
                                 .description = ""
                         }
                 },
-                .default_int = 1
+                .default_int = 5
         },
         {
                 .name = "midi",
