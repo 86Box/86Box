@@ -1,6 +1,3 @@
-/* Copyright holders: leilei
-   see COPYING for more details
-*/
 /*Elements taken into account :
         - X/Y pairing
         - FPU/FXCH pairing

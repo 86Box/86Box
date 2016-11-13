@@ -10,6 +10,8 @@
 #define BLOCK_EXIT_OFFSET 0x7f0
 #define BLOCK_GPF_OFFSET (BLOCK_EXIT_OFFSET - 20)
 
+#define BLOCK_MAX 1720
+
 enum
 {
         OP_RET = 0xc3
@@ -28,3 +30,13 @@ extern uint32_t mem_store_addr_ea_b;
 extern uint32_t mem_store_addr_ea_w;
 extern uint32_t mem_store_addr_ea_l;
 extern uint32_t mem_store_addr_ea_q;
+
+extern uint32_t mem_load_addr_ea_b_no_abrt;
+extern uint32_t mem_store_addr_ea_b_no_abrt;
+extern uint32_t mem_load_addr_ea_w_no_abrt;
+extern uint32_t mem_store_addr_ea_w_no_abrt;
+extern uint32_t mem_load_addr_ea_l_no_abrt;
+extern uint32_t mem_store_addr_ea_l_no_abrt;
+extern uint32_t mem_check_write;
+extern uint32_t mem_check_write_w;
+extern uint32_t mem_check_write_l;

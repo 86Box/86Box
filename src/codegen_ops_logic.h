@@ -2,17 +2,36 @@
         static uint32_t rop ## name ## _b_rmw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)    \
         {                                                                                                                               \
                 int src_reg, dst_reg;                                                                                                   \
+                x86seg *target_seg;                                                                                                     \
                                                                                                                                         \
-                if ((fetchdat & 0xc0) != 0xc0)                                                                                          \
-                        return 0;                                                                                                       \
-                                                                                                                                        \
-                dst_reg = LOAD_REG_B(fetchdat & 7);                                                                                     \
+                if ((fetchdat & 0xc0) == 0xc0)                                                                                          \
+                {                                                                                                                       \
+                        dst_reg = LOAD_REG_B(fetchdat & 7);                                                                             \
+                }                                                                                                                       \
+                else                                                                                                                    \
+                {                                                                                                                       \
+                        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);                                            \
+                        STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);                                                       \
+                        SAVE_EA();                                                                                                      \
+                        MEM_CHECK_WRITE(target_seg);                                                                                              \
+                        dst_reg = MEM_LOAD_ADDR_EA_B_NO_ABRT(target_seg);                                                               \
+                }                                                                                                                       \
                 STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_ZN8);                                                                       \
                 src_reg = LOAD_REG_B((fetchdat >> 3) & 7);                                                                              \
                 op ## _HOST_REG_B(dst_reg, src_reg);                                                                                    \
                 STORE_HOST_REG_ADDR_BL((uintptr_t)&cpu_state.flags_res, dst_reg);                                                                  \
-                if (writeback) STORE_REG_B_RELEASE(dst_reg);                                                                            \
-                else           RELEASE_REG(dst_reg);                                                                                    \
+                if (writeback)                                                                                                          \
+                {                                                                                                                       \
+                        if ((fetchdat & 0xc0) == 0xc0)                                                                                          \
+                                STORE_REG_B_RELEASE(dst_reg);                                                                            \
+                        else                                                                                                            \
+                        {                                                                                                               \
+                                LOAD_EA();                                                                                              \
+                                MEM_STORE_ADDR_EA_B_NO_ABRT(target_seg, dst_reg);                                                       \
+                        }                                                                                                               \
+                }                                                                                                                       \
+                else                                                                                                                    \
+                        RELEASE_REG(dst_reg);                                                                                    \
                 RELEASE_REG(src_reg);                                                                                                   \
                                                                                                                                         \
                 return op_pc + 1;                                                                                                       \
@@ -20,17 +39,36 @@
         static uint32_t rop ## name ## _w_rmw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)    \
         {                                                                                                                               \
                 int src_reg, dst_reg;                                                                                                   \
+                x86seg *target_seg;                                                                                                     \
                                                                                                                                         \
-                if ((fetchdat & 0xc0) != 0xc0)                                                                                          \
-                        return 0;                                                                                                       \
-                                                                                                                                        \
-                dst_reg = LOAD_REG_W(fetchdat & 7);                                                                                     \
+                if ((fetchdat & 0xc0) == 0xc0)                                                                                          \
+                {                                                                                                                       \
+                        dst_reg = LOAD_REG_W(fetchdat & 7);                                                                             \
+                }                                                                                                                       \
+                else                                                                                                                    \
+                {                                                                                                                       \
+                        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);                                            \
+                        STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);                                                       \
+                        SAVE_EA();                                                                                                      \
+                        MEM_CHECK_WRITE_W(target_seg);                                                                                              \
+                        dst_reg = MEM_LOAD_ADDR_EA_W_NO_ABRT(target_seg);                                                               \
+                }                                                                                                                       \
                 STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_ZN16);                                                                      \
                 src_reg = LOAD_REG_W((fetchdat >> 3) & 7);                                                                              \
                 op ## _HOST_REG_W(dst_reg, src_reg);                                                                                    \
                 STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_res, dst_reg);                                                                  \
-                if (writeback) STORE_REG_W_RELEASE(dst_reg);                                                                            \
-                else           RELEASE_REG(dst_reg);                                                                                    \
+                if (writeback)                                                                                                          \
+                {                                                                                                                       \
+                        if ((fetchdat & 0xc0) == 0xc0)                                                                                          \
+                                STORE_REG_W_RELEASE(dst_reg);                                                                            \
+                        else                                                                                                            \
+                        {                                                                                                               \
+                                LOAD_EA();                                                                                              \
+                                MEM_STORE_ADDR_EA_W_NO_ABRT(target_seg, dst_reg);                                                       \
+                        }                                                                                                               \
+                }                                                                                                                       \
+                else                                                                                                                    \
+                        RELEASE_REG(dst_reg);                                                                                    \
                 RELEASE_REG(src_reg);                                                                                                   \
                                                                                                                                         \
                 return op_pc + 1;                                                                                                       \
@@ -38,17 +76,36 @@
         static uint32_t rop ## name ## _l_rmw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)    \
         {                                                                                                                               \
                 int src_reg, dst_reg;                                                                                                   \
+                x86seg *target_seg;                                                                                                     \
                                                                                                                                         \
-                if ((fetchdat & 0xc0) != 0xc0)                                                                                          \
-                        return 0;                                                                                                       \
-                                                                                                                                        \
-                dst_reg = LOAD_REG_L(fetchdat & 7);                                                                                     \
+                if ((fetchdat & 0xc0) == 0xc0)                                                                                          \
+                {                                                                                                                       \
+                        dst_reg = LOAD_REG_L(fetchdat & 7);                                                                             \
+                }                                                                                                                       \
+                else                                                                                                                    \
+                {                                                                                                                       \
+                        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);                                            \
+                        STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);                                                       \
+                        SAVE_EA();                                                                                                      \
+                        MEM_CHECK_WRITE_L(target_seg);                                                                                              \
+                        dst_reg = MEM_LOAD_ADDR_EA_L_NO_ABRT(target_seg);                                                               \
+                }                                                                                                                       \
                 STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_ZN32);                                                                      \
                 src_reg = LOAD_REG_L((fetchdat >> 3) & 7);                                                                              \
                 op ## _HOST_REG_L(dst_reg, src_reg);                                                                                    \
                 STORE_HOST_REG_ADDR((uintptr_t)&cpu_state.flags_res, dst_reg);                                                                     \
-                if (writeback) STORE_REG_L_RELEASE(dst_reg);                                                                            \
-                else           RELEASE_REG(dst_reg);                                                                                    \
+                if (writeback)                                                                                                          \
+                {                                                                                                                       \
+                        if ((fetchdat & 0xc0) == 0xc0)                                                                                          \
+                                STORE_REG_L_RELEASE(dst_reg);                                                                            \
+                        else                                                                                                            \
+                        {                                                                                                               \
+                                LOAD_EA();                                                                                              \
+                                MEM_STORE_ADDR_EA_L_NO_ABRT(target_seg, dst_reg);                                                       \
+                        }                                                                                                               \
+                }                                                                                                                       \
+                else                                                                                                                    \
+                        RELEASE_REG(dst_reg);                                                                                    \
                 RELEASE_REG(src_reg);                                                                                                   \
                                                                                                                                         \
                 return op_pc + 1;                                                                                                       \

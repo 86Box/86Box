@@ -60,7 +60,7 @@ typedef struct codeblock_t
         int TOP;
         
         uint64_t cmp;
-
+        
         uint8_t data[2048];
 } codeblock_t;
 
@@ -72,7 +72,7 @@ typedef struct codeblock_t
 static inline codeblock_t *codeblock_tree_find(uint32_t phys, uint32_t _cs)
 {
         codeblock_t *block = pages[phys >> 12].head;
-	uint64_t a = _cs | ((uint64_t)phys << 32);
+        uint64_t a = _cs | ((uint64_t)phys << 32);
         
         while (block)
         {
@@ -90,10 +90,9 @@ static inline codeblock_t *codeblock_tree_find(uint32_t phys, uint32_t _cs)
 static inline void codeblock_tree_add(codeblock_t *new_block)
 {
         codeblock_t *block = pages[new_block->phys >> 12].head;
-        
         uint64_t a = new_block->_cs | ((uint64_t)new_block->phys << 32);
         new_block->cmp = a;
-
+                
         if (!block)
         {
                 pages[new_block->phys >> 12].head = new_block;
@@ -102,11 +101,10 @@ static inline void codeblock_tree_add(codeblock_t *new_block)
         else
         {
                 codeblock_t *old_block = NULL;
-
+                
                 while (block)
                 {
                         old_block = block;
-                        
                         if (a < old_block->cmp)
                                 block = block->left;
                         else
@@ -302,7 +300,7 @@ extern int block_pos;
 static inline void addbyte(uint8_t val)
 {
         codeblock[block_current].data[block_pos++] = val;
-        if (block_pos >= 1760)
+        if (block_pos >= BLOCK_MAX)
         {
                 CPU_BLOCK_END();
         }
@@ -312,7 +310,7 @@ static inline void addword(uint16_t val)
 {
         *(uint16_t *)&codeblock[block_current].data[block_pos] = val;
         block_pos += 2;
-        if (block_pos >= 1720)
+        if (block_pos >= BLOCK_MAX)
         {
                 CPU_BLOCK_END();
         }
@@ -322,7 +320,7 @@ static inline void addlong(uint32_t val)
 {
         *(uint32_t *)&codeblock[block_current].data[block_pos] = val;
         block_pos += 4;
-        if (block_pos >= 1720)
+        if (block_pos >= BLOCK_MAX)
         {
                 CPU_BLOCK_END();
         }
@@ -332,7 +330,7 @@ static inline void addquad(uint64_t val)
 {
         *(uint64_t *)&codeblock[block_current].data[block_pos] = val;
         block_pos += 8;
-        if (block_pos >= 1720)
+        if (block_pos >= BLOCK_MAX)
         {
                 CPU_BLOCK_END();
         }

@@ -671,6 +671,18 @@ static void MEM_LOAD_ADDR_EA_B(x86seg *seg)
 
         host_reg_mapping[0] = 8;
 }
+static int MEM_LOAD_ADDR_EA_B_NO_ABRT(x86seg *seg)
+{
+        addbyte(0x8b); /*MOVL EDX, seg->base*/
+        addbyte(0x05 | (REG_EDX << 3));
+        addlong((uint32_t)&seg->base);
+        addbyte(0xe8); /*CALL mem_load_addr_ea_b_no_abrt*/
+        addlong(mem_load_addr_ea_b_no_abrt - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+
+        host_reg_mapping[REG_ECX] = 8;
+        
+        return REG_ECX;
+}
 static void MEM_LOAD_ADDR_EA_W(x86seg *seg)
 {
         addbyte(0x8b); /*MOVL EDX, seg->base*/
@@ -680,6 +692,18 @@ static void MEM_LOAD_ADDR_EA_W(x86seg *seg)
         addlong(mem_load_addr_ea_w - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
 
         host_reg_mapping[0] = 8;
+}
+static int MEM_LOAD_ADDR_EA_W_NO_ABRT(x86seg *seg)
+{
+        addbyte(0x8b); /*MOVL EDX, seg->base*/
+        addbyte(0x05 | (REG_EDX << 3));
+        addlong((uint32_t)&seg->base);
+        addbyte(0xe8); /*CALL mem_load_addr_ea_w_no_abrt*/
+        addlong(mem_load_addr_ea_w_no_abrt - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+
+        host_reg_mapping[REG_ECX] = 8;
+        
+        return REG_ECX;
 }
 static void MEM_LOAD_ADDR_EA_L(x86seg *seg)
 {
@@ -691,6 +715,18 @@ static void MEM_LOAD_ADDR_EA_L(x86seg *seg)
 
 
         host_reg_mapping[0] = 8;
+}
+static int MEM_LOAD_ADDR_EA_L_NO_ABRT(x86seg *seg)
+{
+        addbyte(0x8b); /*MOVL EDX, seg->base*/
+        addbyte(0x05 | (REG_EDX << 3));
+        addlong((uint32_t)&seg->base);
+        addbyte(0xe8); /*CALL mem_load_addr_ea_l_no_abrt*/
+        addlong(mem_load_addr_ea_l_no_abrt - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+
+        host_reg_mapping[REG_ECX] = 8;
+        
+        return REG_ECX;
 }
 
 static void MEM_LOAD_ADDR_EA_Q(x86seg *seg)
@@ -736,6 +772,19 @@ static void MEM_STORE_ADDR_EA_B(x86seg *seg, int host_reg)
         addbyte(0xe8); /*CALL mem_store_addr_ea_b*/
         addlong(mem_store_addr_ea_b - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
 }
+static void MEM_STORE_ADDR_EA_B_NO_ABRT(x86seg *seg, int host_reg)
+{
+        addbyte(0x8b); /*MOVL ESI, seg->base*/
+        addbyte(0x05 | (REG_ESI << 3));
+        addlong((uint32_t)&seg->base);
+        if (host_reg != REG_ECX)
+        {
+                addbyte(0x89); /*MOV ECX, host_reg*/
+                addbyte(0xc0 | REG_ECX | (host_reg << 3));
+        }
+        addbyte(0xe8); /*CALL mem_store_addr_ea_b_no_abrt*/
+        addlong(mem_store_addr_ea_b_no_abrt - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+}
 static void MEM_STORE_ADDR_EA_W(x86seg *seg, int host_reg)
 {
         addbyte(0x8b); /*MOVL ESI, seg->base*/
@@ -749,6 +798,19 @@ static void MEM_STORE_ADDR_EA_W(x86seg *seg, int host_reg)
         addbyte(0xe8); /*CALL mem_store_addr_ea_w*/
         addlong(mem_store_addr_ea_w - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
 }
+static void MEM_STORE_ADDR_EA_W_NO_ABRT(x86seg *seg, int host_reg)
+{
+        addbyte(0x8b); /*MOVL ESI, seg->base*/
+        addbyte(0x05 | (REG_ESI << 3));
+        addlong((uint32_t)&seg->base);
+        if (host_reg != REG_ECX)
+        {
+                addbyte(0x89); /*MOV ECX, host_reg*/
+                addbyte(0xc0 | REG_ECX | (host_reg << 3));
+        }
+        addbyte(0xe8); /*CALL mem_store_addr_ea_w_no_abrt*/
+        addlong(mem_store_addr_ea_w_no_abrt - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+}
 static void MEM_STORE_ADDR_EA_L(x86seg *seg, int host_reg)
 {
         addbyte(0x8b); /*MOVL ESI, seg->base*/
@@ -761,6 +823,19 @@ static void MEM_STORE_ADDR_EA_L(x86seg *seg, int host_reg)
         }
         addbyte(0xe8); /*CALL mem_store_addr_ea_l*/
         addlong(mem_store_addr_ea_l - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+}
+static void MEM_STORE_ADDR_EA_L_NO_ABRT(x86seg *seg, int host_reg)
+{
+        addbyte(0x8b); /*MOVL ESI, seg->base*/
+        addbyte(0x05 | (REG_ESI << 3));
+        addlong((uint32_t)&seg->base);
+        if (host_reg != REG_ECX)
+        {
+                addbyte(0x89); /*MOV ECX, host_reg*/
+                addbyte(0xc0 | REG_ECX | (host_reg << 3));
+        }
+        addbyte(0xe8); /*CALL mem_store_addr_ea_l_no_abrt*/
+        addlong(mem_store_addr_ea_l_no_abrt - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
 }
 static void MEM_STORE_ADDR_EA_Q(x86seg *seg, int host_reg, int host_reg2)
 {
@@ -1802,6 +1877,7 @@ static void FP_LOAD_S()
                 addbyte(0xdd); /*FSTP ST[reg][EBP]*/
                 addbyte(0x5d);
                 addbyte(cpu_state_offset(ST[(cpu_state.TOP - 1) & 7]));
+                block_current = block_current;
         }
         else
         {
@@ -3539,4 +3615,51 @@ static void MMX_PSLLQ_imm(int dst_reg, int amount)
         addbyte(0x73);
         addbyte(0xc0 | dst_reg | 0x30);
         addbyte(amount);
+}
+
+
+static void SAVE_EA()
+{
+        addbyte(0x89); /*MOV [ESP+12], EAX*/
+        addbyte(0x44);
+        addbyte(0x24);
+        addbyte(12);
+}
+static void LOAD_EA()
+{
+        addbyte(0x8b); /*MOV EAX, [ESP+12]*/
+        addbyte(0x44);
+        addbyte(0x24);
+        addbyte(12);
+}
+
+static void MEM_CHECK_WRITE(x86seg *seg)
+{
+        CHECK_SEG_WRITE(seg);
+        addbyte(0x8b); /*MOVL ESI, seg->base*/
+        addbyte(0x05 | (REG_ESI << 3));
+        addlong((uint32_t)&seg->base);
+        addbyte(0xe8); /*CALL mem_check_write*/
+        addlong(mem_check_write - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+        LOAD_EA();
+}
+static void MEM_CHECK_WRITE_W(x86seg *seg)
+{
+        CHECK_SEG_WRITE(seg);
+        addbyte(0x8b); /*MOVL ESI, seg->base*/
+        addbyte(0x05 | (REG_ESI << 3));
+        addlong((uint32_t)&seg->base);
+        addbyte(0xe8); /*CALL mem_check_write_w*/
+        addlong(mem_check_write_w - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+        LOAD_EA();
+}
+static void MEM_CHECK_WRITE_L(x86seg *seg)
+{
+        CHECK_SEG_WRITE(seg);
+        addbyte(0x8b); /*MOVL ESI, seg->base*/
+        addbyte(0x05 | (REG_ESI << 3));
+        addlong((uint32_t)&seg->base);
+        addbyte(0xe8); /*CALL mem_check_write_l*/
+        addlong(mem_check_write_l - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+        LOAD_EA();
 }

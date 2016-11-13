@@ -1668,35 +1668,40 @@ static void MEM_STORE_ADDR_IMM_L(x86seg *seg, uint32_t addr, int host_reg)
 
 static void STORE_HOST_REG_ADDR_BL(uintptr_t addr, int host_reg)
 {
+        int temp_reg = REG_ECX;
+        
+        if (host_reg_mapping[REG_ECX] != -1)
+                temp_reg = REG_EBX;
+                
         if (host_reg & 0x10)
         {
                 if (host_reg & 8)
                         addbyte(0x41); 
-                addbyte(0x0f); /*MOVZX EBX, host_reg*/
+                addbyte(0x0f); /*MOVZX temp_reg, host_reg*/
                 addbyte(0xb7);
-                addbyte(0xc0 | (REG_ECX << 3) | (host_reg & 7));
-                addbyte(0xc1); /*SHR EBX, 8*/
-                addbyte(0xe8 | REG_ECX);
+                addbyte(0xc0 | (temp_reg << 3) | (host_reg & 7));
+                addbyte(0xc1); /*SHR temp_reg, 8*/
+                addbyte(0xe8 | temp_reg);
                 addbyte(8);
         }
         else
         {
                 if (host_reg & 8)
                         addbyte(0x41); 
-                addbyte(0x0f); /*MOVZX EBX, host_reg*/
+                addbyte(0x0f); /*MOVZX temp_reg, host_reg*/
                 addbyte(0xb6);
-                addbyte(0xc0 | (REG_ECX << 3) | (host_reg & 7));
+                addbyte(0xc0 | (temp_reg << 3) | (host_reg & 7));
         }
         if (addr >= (uintptr_t)&cpu_state && addr < ((uintptr_t)&cpu_state)+0x100)
         {
-                addbyte(0x89); /*MOV addr, ECX*/
-                addbyte(0x45 | (REG_ECX << 3));
+                addbyte(0x89); /*MOV addr, temp_reg*/
+                addbyte(0x45 | (temp_reg << 3));
                 addbyte((uint32_t)addr - (uint32_t)&cpu_state - 128);
         }
         else if (IS_32_ADDR(addr))
         {
-                addbyte(0x89); /*MOV addr, ECX*/
-                addbyte(0x04 | (REG_ECX << 3));
+                addbyte(0x89); /*MOV addr, temp_reg*/
+                addbyte(0x04 | (temp_reg << 3));
                 addbyte(0x25);
                 addlong(addr);
         }
@@ -1705,27 +1710,32 @@ static void STORE_HOST_REG_ADDR_BL(uintptr_t addr, int host_reg)
                 addbyte(0x48); /*MOV RSI, addr*/
                 addbyte(0xb8 | REG_ESI);
                 addquad((uint64_t)addr);
-                addbyte(0x89); /*MOV [RSI], ECX*/
-                addbyte(0x0e);
+                addbyte(0x89); /*MOV [RSI], temp_reg*/
+                addbyte(0x06 | (temp_reg << 3));
         }
 }
 static void STORE_HOST_REG_ADDR_WL(uintptr_t addr, int host_reg)
 {
+        int temp_reg = REG_ECX;
+        
+        if (host_reg_mapping[REG_ECX] != -1)
+                temp_reg = REG_EBX;
+                
         if (host_reg & 8)
                 addbyte(0x41); 
-        addbyte(0x0f); /*MOVZX ECX, host_reg*/
+        addbyte(0x0f); /*MOVZX temp_reg, host_reg*/
         addbyte(0xb7);
-        addbyte(0xc0 | (REG_ECX << 3) | (host_reg & 7));
+        addbyte(0xc0 | (temp_reg << 3) | (host_reg & 7));
         if (addr >= (uintptr_t)&cpu_state && addr < ((uintptr_t)&cpu_state)+0x100)
         {
-                addbyte(0x89); /*MOV addr, ECX*/
-                addbyte(0x45 | (REG_ECX << 3));
+                addbyte(0x89); /*MOV addr, temp_reg*/
+                addbyte(0x45 | (temp_reg << 3));
                 addbyte((uint32_t)addr - (uint32_t)&cpu_state - 128);
         }
         else if (IS_32_ADDR(addr))
         {
-                addbyte(0x89); /*MOV addr, ECX*/
-                addbyte(0x04 | (REG_ECX << 3));
+                addbyte(0x89); /*MOV addr, temp_reg*/
+                addbyte(0x04 | (temp_reg << 3));
                 addbyte(0x25);
                 addlong(addr);
         }
@@ -1734,8 +1744,8 @@ static void STORE_HOST_REG_ADDR_WL(uintptr_t addr, int host_reg)
                 addbyte(0x48); /*MOV RSI, addr*/
                 addbyte(0xb8 | REG_ESI);
                 addquad((uint64_t)addr);
-                addbyte(0x89); /*MOV [RSI], ECX*/
-                addbyte(0x0e);
+                addbyte(0x89); /*MOV [RSI], temp_reg*/
+                addbyte(0x06 | (temp_reg << 3));
         }
 }
 static void STORE_HOST_REG_ADDR_W(uintptr_t addr, int host_reg)
@@ -1926,69 +1936,6 @@ static void AND_HOST_REG_B(int dst_reg, int src_reg)
                         addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
                 }                
         }
-#if 0
-        else if (dst_reg & 8)
-        {
-                if (dst_reg & 0x10)
-                {
-                        if (src_reg & 0x10)
-                        {
-                                addbyte(0x66); /*SHL src_reg, 8*/
-                                addbyte(0xc1);
-                                addbyte(0xe0 | src_reg);
-                                addbyte(0x08);
-                                addbyte(0x66); /*OR src_reg, 0xff*/
-                                addbyte(0x81);
-                                addbyte(0xc8 | src_reg);
-                                addword(0xff);
-                        }
-                        addbyte(0x66); /*ANDW dst_reg, src_reg*/
-                        addbyte(0x41);
-                        addbyte(0x21);
-                        addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
-                }
-                else
-                {
-                        addbyte(0x41); /*ANDB dst_reg, src_reg*/
-                        addbyte(0x20);
-                        addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
-                }
-        }
-        else if (src_reg & 8)
-        {
-                if (src_reg & 0x10)
-                {
-                        addbyte(0x66); /*OR src_reg, 0xff*/
-                        addbyte(0x81);
-                        addbyte(0xc8 | src_reg);
-                        addword(0xff);
-                }
-                        if (src_reg & 0x10)
-                        {
-                                addbyte(0x66); /*SHL src_reg, 8*/
-                                addbyte(0xc1);
-                                addbyte(0xe0 | src_reg);
-                                addbyte(0x08);
-                                addbyte(0x66); /*OR src_reg, 0xff*/
-                                addbyte(0x81);
-                                addbyte(0xc8 | src_reg);
-                                addword(0xff);
-                        }
-                        addbyte(0x66); /*ANDW dst_reg, src_reg*/
-                        addbyte(0x41);
-                        addbyte(0x21);
-                        addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
-                }
-                else
-                {
-                        addbyte(0x41); /*ANDB dst_reg, src_reg*/
-                        addbyte(0x20);
-                        addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
-                }
-        }
-        else
-                fatal("!(dst_reg & src_reg & 8) b %i %i\n", dst_reg, src_reg);
-#endif
 }
 static void AND_HOST_REG_W(int dst_reg, int src_reg)
 {
@@ -2207,8 +2154,58 @@ static void OR_HOST_REG_B(int dst_reg, int src_reg)
                         addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
                 }
         }
+        else if (src_reg & 8)
+        {
+                if (dst_reg & 0x10)
+                {
+                        addbyte(0xc1); /*SHR dst_reg, 8*/
+                        addbyte(0xe8 | (dst_reg & 7));
+                        addbyte(8);
+                }
+                if (src_reg & 0x10)
+                {
+                        addbyte(0x41); /*MOVZX EBX, src_reg*/
+                        addbyte(0x0f);
+                        addbyte(0xb7);
+                        addbyte(0xd8 | (src_reg & 7));
+                        addbyte(0xc1); /*SHR EBX, 8*/
+                        addbyte(0xeb);
+                        addbyte(8);
+                        addbyte(0x08); /*ORB dst_reg, EBX*/
+                        addbyte(0xd8 | (dst_reg & 7));
+                }
+                else
+                {
+                        addbyte(0x44); /*ORB dst_reg, src_reg*/
+                        addbyte(0x08);
+                        addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
+                }                
+        }
         else
-                fatal("!(dst_reg & src_reg & 8)\n");
+        {
+                if (dst_reg & 0x10)
+                {
+                        addbyte(0xc1); /*SHR dst_reg, 8*/
+                        addbyte(0xe8 | (dst_reg & 7));
+                        addbyte(8);
+                }
+                if (src_reg & 0x10)
+                {
+                        addbyte(0x0f); /*MOVZX EBX, src_reg*/
+                        addbyte(0xb7);
+                        addbyte(0xd8 | (src_reg & 7));
+                        addbyte(0xc1); /*SHR EBX, 8*/
+                        addbyte(0xeb);
+                        addbyte(8);
+                        addbyte(0x08); /*ORB dst_reg, EBX*/
+                        addbyte(0xd8 | (dst_reg & 7));
+                }
+                else
+                {
+                        addbyte(0x08); /*ORB dst_reg, src_reg*/
+                        addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
+                }                
+        }
 }
 static void OR_HOST_REG_W(int dst_reg, int src_reg)
 {
@@ -2226,8 +2223,19 @@ static void OR_HOST_REG_W(int dst_reg, int src_reg)
                 addbyte(0x09);
                 addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
         }
+        else if (src_reg & 8)
+        {
+                addbyte(0x66); /*ORW dst_reg, src_reg*/
+                addbyte(0x44);
+                addbyte(0x09);
+                addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
+        }
         else
-                fatal("!(dst_reg & src_reg & 8)\n");
+        {
+                addbyte(0x66); /*ORW dst_reg, src_reg*/
+                addbyte(0x09);
+                addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
+        }
 }
 static void OR_HOST_REG_L(int dst_reg, int src_reg)
 {
@@ -2243,8 +2251,17 @@ static void OR_HOST_REG_L(int dst_reg, int src_reg)
                 addbyte(0x09);
                 addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
         }
+        else if (src_reg & 8)
+        {
+                addbyte(0x44); /*ORL dst_reg, src_reg*/
+                addbyte(0x09);
+                addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
+        }
         else
-                fatal("!(dst_reg & src_reg & 8)\n");
+        {
+                addbyte(0x09); /*ORW dst_reg, src_reg*/
+                addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
+        }
 }
 static void OR_HOST_REG_IMM(int host_reg, uint32_t imm)
 {
@@ -2264,7 +2281,12 @@ static void OR_HOST_REG_IMM(int host_reg, uint32_t imm)
                 addlong(imm);
         }
         else
-                fatal("OR to bad register\n");
+        {
+                addbyte(0x81); /*ORL host_reg, imm*/
+                addbyte(0xc8 | (host_reg & 7));
+                addlong(imm);
+        }
+//                fatal("OR to bad register\n");
 }
 
 static void XOR_HOST_REG_B(int dst_reg, int src_reg)
@@ -2336,8 +2358,58 @@ static void XOR_HOST_REG_B(int dst_reg, int src_reg)
                         addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
                 }
         }
+        else if (src_reg & 8)
+        {
+                if (dst_reg & 0x10)
+                {
+                        addbyte(0xc1); /*SHR dst_reg, 8*/
+                        addbyte(0xe8 | (dst_reg & 7));
+                        addbyte(8);
+                }
+                if (src_reg & 0x10)
+                {
+                        addbyte(0x41); /*MOVZX EBX, src_reg*/
+                        addbyte(0x0f);
+                        addbyte(0xb7);
+                        addbyte(0xd8 | (src_reg & 7));
+                        addbyte(0xc1); /*SHR EBX, 8*/
+                        addbyte(0xeb);
+                        addbyte(8);
+                        addbyte(0x30); /*XORB dst_reg, EBX*/
+                        addbyte(0xd8 | (dst_reg & 7));
+                }
+                else
+                {
+                        addbyte(0x44); /*XORB dst_reg, src_reg*/
+                        addbyte(0x30);
+                        addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
+                }                
+        }
         else
-                fatal("!(dst_reg & src_reg & 8)\n");
+        {
+                if (dst_reg & 0x10)
+                {
+                        addbyte(0xc1); /*SHR dst_reg, 8*/
+                        addbyte(0xe8 | (dst_reg & 7));
+                        addbyte(8);
+                }
+                if (src_reg & 0x10)
+                {
+                        addbyte(0x0f); /*MOVZX EBX, src_reg*/
+                        addbyte(0xb7);
+                        addbyte(0xd8 | (src_reg & 7));
+                        addbyte(0xc1); /*SHR EBX, 8*/
+                        addbyte(0xeb);
+                        addbyte(8);
+                        addbyte(0x30); /*XORB dst_reg, EBX*/
+                        addbyte(0xd8 | (dst_reg & 7));
+                }
+                else
+                {
+                        addbyte(0x30); /*XORB dst_reg, src_reg*/
+                        addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
+                }                
+        }
 }
 static void XOR_HOST_REG_W(int dst_reg, int src_reg)
 {
@@ -2355,8 +2427,19 @@ static void XOR_HOST_REG_W(int dst_reg, int src_reg)
                 addbyte(0x31);
                 addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
         }
+        else if (src_reg & 8)
+        {
+                addbyte(0x66); /*XORW dst_reg, src_reg*/
+                addbyte(0x44);
+                addbyte(0x31);
+                addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
+        }
         else
-                fatal("!(dst_reg & src_reg & 8)\n");
+        {
+                addbyte(0x66); /*XORW dst_reg, src_reg*/
+                addbyte(0x31);
+                addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
+        }
 }
 static void XOR_HOST_REG_L(int dst_reg, int src_reg)
 {
@@ -2372,8 +2455,17 @@ static void XOR_HOST_REG_L(int dst_reg, int src_reg)
                 addbyte(0x31);
                 addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
         }
+        else if (src_reg & 8)
+        {
+                addbyte(0x44); /*XORW dst_reg, src_reg*/
+                addbyte(0x31);
+                addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
+        }
         else
-                fatal("!(dst_reg & src_reg & 8)\n");
+        {
+                addbyte(0x31); /*XORW dst_reg, src_reg*/
+                addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
+        }
 }
 static void XOR_HOST_REG_IMM(int host_reg, uint32_t imm)
 {
@@ -2393,7 +2485,12 @@ static void XOR_HOST_REG_IMM(int host_reg, uint32_t imm)
                 addlong(imm);
         }
         else
-                fatal("XOR to bad register\n");
+        {
+                addbyte(0x81); /*ORL host_reg, imm*/
+                addbyte(0xf0 | (host_reg & 7));
+                addlong(imm);
+        }
+//                fatal("XOR to bad register\n");
 }
 
 static void ADD_HOST_REG_B(int dst_reg, int src_reg)
@@ -2465,6 +2562,28 @@ static void ADD_HOST_REG_B(int dst_reg, int src_reg)
                         addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
                 }
         }
+        else if (src_reg & 8)
+        {
+                if (src_reg & 0x10)
+                {
+                        addbyte(0x66); /*MOVW AX, src_reg*/
+                        addbyte(0x44);
+                        addbyte(0x89);
+                        addbyte(0xc0 | ((src_reg & 7) << 3));
+                        addbyte(0x66); /*SHR AX, 8*/
+                        addbyte(0xc1);
+                        addbyte(0xe8);
+                        addbyte(8);
+                        addbyte(0x00); /*ADDB dst_reg, AL*/
+                        addbyte(0xc0 | (dst_reg & 7));
+                }
+                else
+                {
+                        addbyte(0x44); /*ADDB dst_reg, src_reg*/
+                        addbyte(0x00);
+                        addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
+                }
+        }
         else
                 fatal("!(dst_reg & src_reg & 8)\n");
 }
@@ -2484,6 +2603,13 @@ static void ADD_HOST_REG_W(int dst_reg, int src_reg)
                 addbyte(0x01);
                 addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
         }
+        else if (src_reg & 8)
+        {
+                addbyte(0x66); /*ADDW dst_reg, src_reg*/
+                addbyte(0x44);
+                addbyte(0x01);
+                addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
+        }
         else
                 fatal("!(dst_reg & src_reg & 8)\n");
 }
@@ -2498,6 +2624,12 @@ static void ADD_HOST_REG_L(int dst_reg, int src_reg)
         else if (dst_reg & 8)
         {
                 addbyte(0x41); /*ADDL dst_reg, src_reg*/
+                addbyte(0x01);
+                addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
+        }
+        else if (src_reg & 8)
+        {
+                addbyte(0x44); /*ADDL dst_reg, src_reg*/
                 addbyte(0x01);
                 addbyte(0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3));
         }
@@ -2737,15 +2869,17 @@ static void ADD_HOST_REG_IMM_B(int host_reg, uint8_t imm)
         if (host_reg & 0x10)
         {
                 addbyte(0x66); /*ADDW host_reg, imm*/
-                addbyte(0x41);
+                if (host_reg & 8)
+                        addbyte(0x41);
                 addbyte(0x81);
                 addbyte(0xC0 | (host_reg & 7));
                 addword(imm << 8);
         }
         else
         {
-                addbyte(0x41); /*ADDB host_reg, imm*/
-                addbyte(0x80);
+                if (host_reg & 8)
+                        addbyte(0x41);
+                addbyte(0x80); /*ADDB host_reg, imm*/
                 addbyte(0xC0 | (host_reg & 7));
                 addbyte(imm);
         }
@@ -2753,15 +2887,17 @@ static void ADD_HOST_REG_IMM_B(int host_reg, uint8_t imm)
 static void ADD_HOST_REG_IMM_W(int host_reg, uint16_t imm)
 {
         addbyte(0x66); /*ADDW host_reg, imm*/
-        addbyte(0x41);
+        if (host_reg & 8)
+                addbyte(0x41);
         addbyte(0x81);
         addbyte(0xC0 | (host_reg & 7));
         addword(imm);
 }
 static void ADD_HOST_REG_IMM(int host_reg, uint32_t imm)
 {
-        addbyte(0x41); /*ADDL host_reg, imm*/
-        addbyte(0x81);
+        if (host_reg & 8)
+                addbyte(0x41);
+        addbyte(0x81);  /*ADDL host_reg, imm*/
         addbyte(0xC0 | (host_reg & 7));
         addlong(imm);
 }
@@ -3637,6 +3773,7 @@ static void FP_FXCH(int reg)
         addbyte(0x4c);
         addbyte(0xdd);
         addbyte(cpu_state_offset(MM));
+        reg = reg;
 }
 
 
@@ -4992,4 +5129,795 @@ static void MMX_PSLLQ_imm(int dst_reg, int amount)
         addbyte(0x73);
         addbyte(0xc0 | dst_reg | 0x30);
         addbyte(amount);
+}
+
+
+static void SAVE_EA()
+{
+        addbyte(0x89); /*MOV [ESP+0x24], EAX*/
+        addbyte(0x44);
+        addbyte(0x24);
+        addbyte(0x24);
+}
+static void LOAD_EA()
+{
+        addbyte(0x8b); /*MOV EAX, [ESP+0x24]*/
+        addbyte(0x44);
+        addbyte(0x24);
+        addbyte(0x24);
+}
+
+static void MEM_CHECK_WRITE(x86seg *seg)
+{
+        uint8_t *jump1, *jump2;
+        
+        CHECK_SEG_WRITE(seg);
+
+        if (IS_32_ADDR(&seg->base))
+        {
+                addbyte(0x8b); /*MOV ESI, seg->base*/
+                addbyte(0x34);
+                addbyte(0x25);
+                addlong((uint32_t)&seg->base);
+        }
+        else
+        {
+                addbyte(0x48); /*MOV RSI, &addr*/
+                addbyte(0xb8 | REG_ESI);
+                addquad((uint64_t)&seg->base);
+                addbyte(0x8b); /*MOV ESI, [RSI]*/
+                addbyte(0x36);
+        }
+
+
+        /*seg = ESI, addr = EAX*/
+        
+        addbyte(0x67); /*LEA EDI, [EAX+ESI]*/
+        addbyte(0x8d);
+        addbyte(0x3c);
+        addbyte(0x30);
+        addbyte(0x83); /*CMP cr0, 0*/
+        addbyte(0x3c);
+        addbyte(0x25);
+        addlong((uint32_t)&cr0);
+        addbyte(0);
+        addbyte(0x79); /*JNS +*/
+        jump1 = &codeblock[block_current].data[block_pos];
+        addbyte(0);
+//        addbyte(0xc3); /*RET*/
+        addbyte(0xc1); /*SHR EDI, 12*/
+        addbyte(0xef);
+        addbyte(12);
+        addbyte(0x83); /*CMP ESI, -1*/
+        addbyte(0xfe);
+        addbyte(-1);
+        addbyte(0x74); /*JE slowpath*/
+        addbyte(10);
+        addbyte(0x83); /*CMP writelookup2[RDI*8],-1*/
+        addbyte(0x3c);
+        addbyte(0xfd);
+        addlong((uint32_t)writelookup2);
+        addbyte(-1);
+        addbyte(0x75); /*JNE +*/
+        jump2 = &codeblock[block_current].data[block_pos];
+        addbyte(0);
+//        addbyte(0xc3); /*RET*/
+        
+        /*slowpath:*/
+        addbyte(0x67); /*LEA EDI, [EAX+ESI]*/
+        addbyte(0x8d);
+        addbyte(0x3c);
+        addbyte(0x30);
+
+
+        load_param_1_reg_32(REG_EDI);
+        load_param_2_32(&codeblock[block_current], 1);
+
+
+//        addbyte(0x6a); /*PUSH 1*/
+//        addbyte(1);
+//        addbyte(0x57); /*PUSH EDI*/
+        call(&codeblock[block_current], mmutranslatereal);
+//        addbyte(0x48); /*ADD ESP, 8*/
+//        addbyte(0x83);
+//        addbyte(0xc4);
+//        addbyte(8);
+        addbyte(0x80); /*CMP abrt, 0*/
+        addbyte(0x7d);
+        addbyte(cpu_state_offset(abrt));
+        addbyte(0);
+        addbyte(0x0f); /*JNE mem_abrt_rout*/
+        addbyte(0x85);
+        addlong((uintptr_t)&codeblock[block_current].data[BLOCK_EXIT_OFFSET] - ((uint32_t)(&codeblock[block_current].data[block_pos]) + 4));
+//        addbyte(0xc3); /*RET*/
+        *jump1 = (uintptr_t)&codeblock[block_current].data[block_pos] - (uintptr_t)jump1 - 1;
+        *jump2 = (uintptr_t)&codeblock[block_current].data[block_pos] - (uintptr_t)jump2 - 1;
+
+
+
+//        addbyte(0xe8); /*CALL mem_store_addr_ea_b*/
+//        addlong(mem_check_write - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+        LOAD_EA();
+}
+
+static void MEM_CHECK_WRITE_W(x86seg *seg)
+{
+        uint8_t *jump1, *jump2, *jump3, *jump4;
+        int jump_pos;
+        
+        CHECK_SEG_WRITE(seg);
+
+        if (IS_32_ADDR(&seg->base))
+        {
+                addbyte(0x8b); /*MOV ESI, seg->base*/
+                addbyte(0x34);
+                addbyte(0x25);
+                addlong((uint32_t)&seg->base);
+        }
+        else
+        {
+                addbyte(0x48); /*MOV RSI, &addr*/
+                addbyte(0xb8 | REG_ESI);
+                addquad((uint64_t)&seg->base);
+                addbyte(0x8b); /*MOV ESI, [RSI]*/
+                addbyte(0x36);
+        }
+
+
+        /*seg = ESI, addr = EAX*/
+        
+        addbyte(0x67); /*LEA EDI, [EAX+ESI]*/
+        addbyte(0x8d);
+        addbyte(0x3c);
+        addbyte(0x30);
+        addbyte(0x83); /*CMP cr0, 0*/
+        addbyte(0x3c);
+        addbyte(0x25);
+        addlong((uint32_t)&cr0);
+        addbyte(0);
+        addbyte(0x79); /*JNS +*/
+        jump1 = &codeblock[block_current].data[block_pos];
+        addbyte(0);
+        addbyte(0x83); /*CMP ESI, -1*/
+        addbyte(0xfe);
+        addbyte(-1);
+        addbyte(0x8d); /*LEA ESI, 1[EDI]*/
+        addbyte(0x77);
+        addbyte(0x01);
+        addbyte(0x74); /*JE slowpath*/
+        jump4 = &codeblock[block_current].data[block_pos];
+        addbyte(0);
+        addbyte(0x89); /*MOV EBX, EDI*/
+        addbyte(0xfb);
+        addbyte(0xc1); /*SHR EDI, 12*/
+        addbyte(0xef);
+        addbyte(12);
+        addbyte(0xc1); /*SHR ESI, 12*/
+        addbyte(0xee);
+        addbyte(12);
+        addbyte(0x83); /*CMP writelookup2[RDI*8],-1*/
+        addbyte(0x3c);
+        addbyte(0xfd);
+        addlong((uint32_t)writelookup2);
+        addbyte(-1);
+        addbyte(0x74); /*JE +*/
+        jump2 = &codeblock[block_current].data[block_pos];
+        addbyte(0);
+        addbyte(0x83); /*CMP writelookup2[RSI*8],-1*/
+        addbyte(0x3c);
+        addbyte(0xf5);
+        addlong((uint32_t)writelookup2);
+        addbyte(-1);
+        addbyte(0x75); /*JNE +*/
+        jump3 = &codeblock[block_current].data[block_pos];
+        addbyte(0);
+        
+        /*slowpath:*/
+        *jump2 = (uintptr_t)&codeblock[block_current].data[block_pos] - (uintptr_t)jump2 - 1;
+        *jump4 = (uintptr_t)&codeblock[block_current].data[block_pos] - (uintptr_t)jump4 - 1;
+        jump_pos = block_pos;
+        load_param_1_reg_32(REG_EBX);
+        load_param_2_32(&codeblock[block_current], 1);
+        call(&codeblock[block_current], mmutranslatereal);
+        addbyte(0x83); /*ADD EBX, 1*/
+        addbyte(0xc3);
+        addbyte(1);
+        addbyte(0x80); /*CMP abrt, 0*/
+        addbyte(0x7d);
+        addbyte(cpu_state_offset(abrt));
+        addbyte(0);
+        addbyte(0x0f); /*JNE mem_abrt_rout*/
+        addbyte(0x85);
+        addlong((uintptr_t)&codeblock[block_current].data[BLOCK_EXIT_OFFSET] - ((uint32_t)(&codeblock[block_current].data[block_pos]) + 4));
+        /*If bits 0-11 of the address are now 0 then this crosses a page, so loop back*/
+        addbyte(0xf7); /*TEST $fff, EBX*/
+        addbyte(0xc3);
+        addlong(0xfff);
+        addbyte(0x74); /*JNE slowpath*/
+        addbyte(jump_pos - block_pos - 1);
+
+        *jump1 = (uintptr_t)&codeblock[block_current].data[block_pos] - (uintptr_t)jump1 - 1;
+        *jump3 = (uintptr_t)&codeblock[block_current].data[block_pos] - (uintptr_t)jump3 - 1;
+
+        LOAD_EA();
+}
+
+static void MEM_CHECK_WRITE_L(x86seg *seg)
+{
+        uint8_t *jump1, *jump2, *jump3, *jump4;
+        int jump_pos;
+        
+        CHECK_SEG_WRITE(seg);
+
+        if (IS_32_ADDR(&seg->base))
+        {
+                addbyte(0x8b); /*MOV ESI, seg->base*/
+                addbyte(0x34);
+                addbyte(0x25);
+                addlong((uint32_t)&seg->base);
+        }
+        else
+        {
+                addbyte(0x48); /*MOV RSI, &addr*/
+                addbyte(0xb8 | REG_ESI);
+                addquad((uint64_t)&seg->base);
+                addbyte(0x8b); /*MOV ESI, [RSI]*/
+                addbyte(0x36);
+        }
+
+
+        /*seg = ESI, addr = EAX*/
+        
+        addbyte(0x67); /*LEA EDI, [EAX+ESI]*/
+        addbyte(0x8d);
+        addbyte(0x3c);
+        addbyte(0x30);
+        addbyte(0x83); /*CMP cr0, 0*/
+        addbyte(0x3c);
+        addbyte(0x25);
+        addlong((uint32_t)&cr0);
+        addbyte(0);
+        addbyte(0x79); /*JNS +*/
+        jump1 = &codeblock[block_current].data[block_pos];
+        addbyte(0);
+        addbyte(0x83); /*CMP ESI, -1*/
+        addbyte(0xfe);
+        addbyte(-1);
+        addbyte(0x8d); /*LEA ESI, 3[EDI]*/
+        addbyte(0x77);
+        addbyte(0x03);
+        addbyte(0x74); /*JE slowpath*/
+        jump4 = &codeblock[block_current].data[block_pos];
+        addbyte(0);
+        addbyte(0x89); /*MOV EBX, EDI*/
+        addbyte(0xfb);
+        addbyte(0xc1); /*SHR EDI, 12*/
+        addbyte(0xef);
+        addbyte(12);
+        addbyte(0xc1); /*SHR ESI, 12*/
+        addbyte(0xee);
+        addbyte(12);
+        addbyte(0x83); /*CMP writelookup2[RDI*8],-1*/
+        addbyte(0x3c);
+        addbyte(0xfd);
+        addlong((uint32_t)writelookup2);
+        addbyte(-1);
+        addbyte(0x74); /*JE slowpath*/
+        jump2 = &codeblock[block_current].data[block_pos];
+        addbyte(0);
+        addbyte(0x83); /*CMP writelookup2[RSI*8],-1*/
+        addbyte(0x3c);
+        addbyte(0xf5);
+        addlong((uint32_t)writelookup2);
+        addbyte(-1);
+        addbyte(0x75); /*JNE +*/
+        jump3 = &codeblock[block_current].data[block_pos];
+        addbyte(0);
+        
+        /*slowpath:*/
+        *jump2 = (uintptr_t)&codeblock[block_current].data[block_pos] - (uintptr_t)jump2 - 1;
+        *jump4 = (uintptr_t)&codeblock[block_current].data[block_pos] - (uintptr_t)jump4 - 1;
+        jump_pos = block_pos;
+        load_param_1_reg_32(REG_EBX);
+        load_param_2_32(&codeblock[block_current], 1);
+        call(&codeblock[block_current], mmutranslatereal);
+        addbyte(0x83); /*ADD EBX, 3*/
+        addbyte(0xc3);
+        addbyte(3);
+        addbyte(0x80); /*CMP abrt, 0*/
+        addbyte(0x7d);
+        addbyte(cpu_state_offset(abrt));
+        addbyte(0);
+        addbyte(0x0f); /*JNE mem_abrt_rout*/
+        addbyte(0x85);
+        addlong((uintptr_t)&codeblock[block_current].data[BLOCK_EXIT_OFFSET] - ((uint32_t)(&codeblock[block_current].data[block_pos]) + 4));
+        /*If bits 0-11 of the address are now 0 then this crosses a page, so loop back*/
+        addbyte(0xf7); /*TEST $ffc, EBX*/
+        addbyte(0xc3);
+        addlong(0xffc);
+        addbyte(0x74); /*JE slowpath*/
+        addbyte(jump_pos - block_pos - 1);
+
+        *jump1 = (uintptr_t)&codeblock[block_current].data[block_pos] - (uintptr_t)jump1 - 1;
+        *jump3 = (uintptr_t)&codeblock[block_current].data[block_pos] - (uintptr_t)jump3 - 1;
+
+        LOAD_EA();
+}
+
+static int MEM_LOAD_ADDR_EA_B_NO_ABRT(x86seg *seg)
+{
+        if (IS_32_ADDR(&seg->base))
+        {
+                addbyte(0x8b); /*MOVL ECX, seg->base*/
+                addbyte(0x0c);
+                addbyte(0x25);
+                addlong((uint32_t)&seg->base);
+        }
+        else
+        {
+                addbyte(0x48); /*MOV RSI, &seg->base*/
+                addbyte(0xb8 | REG_ESI);
+                addquad((uint64_t)&seg->base);
+                addbyte(0x8b); /*MOV ECX, [RSI]*/
+                addbyte(0x0e);
+        }
+        addbyte(0x67); /*LEA ESI, (EAX,ECX)*/
+        addbyte(0x8d);
+        addbyte(0x34);
+        addbyte(0x08);
+        addbyte(0x89); /*MOV EDI, ESI*/
+        addbyte(0xf7);
+        addbyte(0xc1); /*SHR ESI, 12*/
+        addbyte(0xe8 | REG_ESI);
+        addbyte(12);
+	if (IS_32_ADDR(readlookup2))
+	{
+	        addbyte(0x67); /*MOV RSI, readlookup2[ESI*8]*/
+	        addbyte(0x48);
+	        addbyte(0x8b);
+	        addbyte(0x34);
+	        addbyte(0xf5);
+	        addlong((uint32_t)readlookup2);
+	}
+	else
+	{
+		addbyte(0x48); /*MOV RDX, readlookup2*/
+		addbyte(0xb8 | REG_EDX);
+		addquad((uint64_t)readlookup2);
+		addbyte(0x48); /*MOV RSI, [RDX+RSI*8]*/
+		addbyte(0x8b);
+		addbyte(0x34);
+		addbyte(0xf2);
+	}
+        addbyte(0x83); /*CMP ESI, -1*/
+        addbyte(0xf8 | REG_ESI);
+        addbyte(-1);
+        addbyte(0x74); /*JE slowpath*/
+        addbyte(3+2);
+        addbyte(0x8b); /*MOV AL,[RDI+RSI]*/
+        addbyte(0x04);
+        addbyte(REG_EDI | (REG_ESI << 3));
+        addbyte(0xeb); /*JMP done*/
+        addbyte(2+2+12);
+        /*slowpath:*/
+        load_param_1_reg_32(REG_ECX);
+        load_param_2_reg_32(REG_EAX);
+        call_long(readmemb386l);
+        addbyte(0x89); /*MOV ECX, EAX*/
+        addbyte(0xc1);
+        /*done:*/
+
+        host_reg_mapping[REG_ECX] = 8;
+        
+        return REG_ECX;
+}
+static int MEM_LOAD_ADDR_EA_W_NO_ABRT(x86seg *seg)
+{
+        if (IS_32_ADDR(&seg->base))
+        {
+                addbyte(0x8b); /*MOVL ECX, seg->base*/
+                addbyte(0x0c);
+                addbyte(0x25);
+                addlong((uint32_t)&seg->base);
+        }
+        else
+        {
+                addbyte(0x48); /*MOV RSI, &seg->base*/
+                addbyte(0xb8 | REG_ESI);
+                addquad((uint64_t)&seg->base);
+                addbyte(0x8b); /*MOV ECX, [RSI]*/
+                addbyte(0x0e);
+        }
+        addbyte(0x67); /*LEA ESI, (EAX,ECX)*/
+        addbyte(0x8d);
+        addbyte(0x34);
+        addbyte(0x08);
+        addbyte(0x67); /*LEA EDI, 1[ESI]*/
+        addbyte(0x8d);
+        addbyte(0x7e);
+        addbyte(0x01);
+        addbyte(0xc1); /*SHR ESI, 12*/
+        addbyte(0xe8 | REG_ESI);
+        addbyte(12);
+        addbyte(0xf7); /*TEST EDI, 0xfff*/
+        addbyte(0xc7);
+        addlong(0xfff);
+	if (IS_32_ADDR(readlookup2))
+	{
+	        addbyte(0x67); /*MOV RSI, readlookup2[ESI*8]*/
+	        addbyte(0x48);
+	        addbyte(0x8b);
+	        addbyte(0x34);
+	        addbyte(0xf5);
+	        addlong((uint32_t)readlookup2);
+	}
+	else
+	{
+		addbyte(0x48); /*MOV RDX, readlookup2*/
+		addbyte(0xb8 | REG_EDX);
+		addquad((uint64_t)readlookup2);
+		addbyte(0x48); /*MOV RSI, [RDX+RSI*8]*/
+		addbyte(0x8b);
+		addbyte(0x34);
+		addbyte(0xf2);
+	}
+        addbyte(0x74); /*JE slowpath*/
+        addbyte(3+2+5+2);
+        addbyte(0x83); /*CMP ESI, -1*/
+        addbyte(0xf8 | REG_ESI);
+        addbyte(-1);
+        addbyte(0x74); /*JE slowpath*/
+        addbyte(5+2);
+        addbyte(0x66); /*MOV AX,-1[RDI+RSI]*/
+        addbyte(0x8b);
+        addbyte(0x44);
+        addbyte(REG_EDI | (REG_ESI << 3));
+        addbyte(-1);
+        addbyte(0xeb); /*JMP done*/
+        addbyte(2+2+12);
+        /*slowpath:*/
+        load_param_1_reg_32(REG_ECX);
+        load_param_2_reg_32(REG_EAX);
+        call_long(readmemwl);
+        addbyte(0x89); /*MOV ECX, EAX*/
+        addbyte(0xc1);
+        /*done:*/
+
+        host_reg_mapping[REG_ECX] = 8;
+        
+        return REG_ECX;
+}
+static int MEM_LOAD_ADDR_EA_L_NO_ABRT(x86seg *seg)
+{
+        if (IS_32_ADDR(&seg->base))
+        {
+                addbyte(0x8b); /*MOVL ECX, seg->base*/
+                addbyte(0x0c);
+                addbyte(0x25);
+                addlong((uint32_t)&seg->base);
+        }
+        else
+        {
+                addbyte(0x48); /*MOV RSI, &seg->base*/
+                addbyte(0xb8 | REG_ESI);
+                addquad((uint64_t)&seg->base);
+                addbyte(0x8b); /*MOV ECX, [RSI]*/
+                addbyte(0x0e);
+        }
+        addbyte(0x67); /*LEA ESI, (EAX,ECX)*/
+        addbyte(0x8d);
+        addbyte(0x34);
+        addbyte(0x08);
+        addbyte(0x67); /*LEA EDI, 3[ESI]*/
+        addbyte(0x8d);
+        addbyte(0x7e);
+        addbyte(0x03);
+        addbyte(0xc1); /*SHR ESI, 12*/
+        addbyte(0xe8 | REG_ESI);
+        addbyte(12);
+        addbyte(0xf7); /*TEST EDI, 0xffc*/
+        addbyte(0xc7);
+        addlong(0xffc);
+	if (IS_32_ADDR(readlookup2))
+	{
+	        addbyte(0x67); /*MOV RSI, readlookup2[ESI*8]*/
+	        addbyte(0x48);
+	        addbyte(0x8b);
+	        addbyte(0x34);
+	        addbyte(0xf5);
+	        addlong((uint32_t)readlookup2);
+	}
+	else
+	{
+		addbyte(0x48); /*MOV RDX, readlookup2*/
+		addbyte(0xb8 | REG_EDX);
+		addquad((uint64_t)readlookup2);
+		addbyte(0x48); /*MOV RSI, [RDX+RSI*8]*/
+		addbyte(0x8b);
+		addbyte(0x34);
+		addbyte(0xf2);
+	}
+        addbyte(0x74); /*JE slowpath*/
+        addbyte(3+2+4+2);
+        addbyte(0x83); /*CMP ESI, -1*/
+        addbyte(0xf8 | REG_ESI);
+        addbyte(-1);
+        addbyte(0x74); /*JE slowpath*/
+        addbyte(4+2);
+        addbyte(0x8b); /*MOV EAX,-3[RDI+RSI]*/
+        addbyte(0x44);
+        addbyte(REG_EDI | (REG_ESI << 3));
+        addbyte(-3);
+        addbyte(0xeb); /*JMP done*/
+        addbyte(2+2+12);
+        /*slowpath:*/
+        load_param_1_reg_32(REG_ECX);
+        load_param_2_reg_32(REG_EAX);
+        call_long(readmemll);
+        addbyte(0x89); /*MOV ECX, EAX*/
+        addbyte(0xc1);
+        /*done:*/
+
+        host_reg_mapping[REG_ECX] = 8;
+        
+        return REG_ECX;
+}
+
+static void MEM_STORE_ADDR_EA_B_NO_ABRT(x86seg *seg, int host_reg)
+{
+        if (host_reg & 0x10)
+        {
+                /*Handle high byte of register*/
+                if (host_reg & 8)
+                {
+                        addbyte(0x45); /*MOVL R8, host_reg*/
+                        addbyte(0x89);
+                        addbyte(0xc0 | ((host_reg & 7) << 3));
+                }
+                else
+                {
+                        addbyte(0x41); /*MOVL R8, host_reg*/
+                        addbyte(0x89);
+                        addbyte(0xc0 | ((host_reg & 7) << 3));
+                }
+                addbyte(0x66); /*SHR R8, 8*/
+                addbyte(0x41);
+                addbyte(0xc1);
+                addbyte(0xe8);
+                addbyte(8);
+                host_reg = 8;
+        }
+        if (IS_32_ADDR(&seg->base))
+        {
+                addbyte(0x8b); /*MOVL EBX, seg->base*/
+                addbyte(0x1c);
+                addbyte(0x25);
+                addlong((uint32_t)&seg->base);
+        }
+        else
+        {
+                addbyte(0x48); /*MOV RSI, &seg->base*/
+                addbyte(0xb8 | REG_ESI);
+                addquad((uint64_t)&seg->base);
+                addbyte(0x8b); /*MOV EBX, [RSI]*/
+                addbyte(0x1e);
+        }
+        addbyte(0x67); /*LEA ESI, (EAX,EBX)*/
+        addbyte(0x8d);
+        addbyte(0x34);
+        addbyte(0x18);
+        addbyte(0x89); /*MOV EDI, ESI*/
+        addbyte(0xf7);
+        addbyte(0xc1); /*SHR ESI, 12*/
+        addbyte(0xe8 | REG_ESI);
+        addbyte(12);
+	if (IS_32_ADDR(writelookup2))
+	{
+	        addbyte(0x67); /*MOV RSI, writelookup2[ESI*8]*/
+	        addbyte(0x48);
+	        addbyte(0x8b);
+	        addbyte(0x34);
+	        addbyte(0xf5);
+	        addlong((uint32_t)writelookup2);
+	}
+	else
+	{
+		addbyte(0x48); /*MOV RDX, writelookup2*/
+		addbyte(0xb8 | REG_EDX);
+		addquad((uint64_t)writelookup2);
+		addbyte(0x48); /*MOV RSI, [RDX+RSI*8]*/
+		addbyte(0x8b);
+		addbyte(0x34);
+		addbyte(0xf2);
+	}
+        addbyte(0x83); /*CMP ESI, -1*/
+        addbyte(0xf8 | REG_ESI);
+        addbyte(-1);
+        addbyte(0x74); /*JE slowpath*/
+        addbyte(((host_reg & 8) ? 4:3)+2);
+        if (host_reg & 8)
+        {
+                addbyte(0x44); /*MOV [RDI+RSI],host_reg*/
+                addbyte(0x88);
+                addbyte(0x04 | ((host_reg & 7) << 3));
+                addbyte(REG_EDI | (REG_ESI << 3));
+        }
+        else
+        {
+                addbyte(0x88); /*MOV [RDI+RSI],host_reg*/
+                addbyte(0x04 | (host_reg << 3));
+                addbyte(REG_EDI | (REG_ESI << 3));
+        }
+        addbyte(0xeb); /*JMP done*/
+        addbyte(2+2+3+12);
+        /*slowpath:*/
+        load_param_3_reg_32(host_reg);
+        load_param_1_reg_32(REG_EBX);
+        load_param_2_reg_32(REG_EAX);
+        call_long(writememb386l);
+        /*done:*/
+}
+static void MEM_STORE_ADDR_EA_W_NO_ABRT(x86seg *seg, int host_reg)
+{
+        if (IS_32_ADDR(&seg->base))
+        {
+                addbyte(0x8b); /*MOVL EBX, seg->base*/
+                addbyte(0x1c);
+                addbyte(0x25);
+                addlong((uint32_t)&seg->base);
+        }
+        else
+        {
+                addbyte(0x48); /*MOV RSI, &seg->base*/
+                addbyte(0xb8 | REG_ESI);
+                addquad((uint64_t)&seg->base);
+                addbyte(0x8b); /*MOV EBX, [RSI]*/
+                addbyte(0x1e);
+        }
+        addbyte(0x67); /*LEA ESI, (EAX,EBX)*/
+        addbyte(0x8d);
+        addbyte(0x34);
+        addbyte(0x18);
+        addbyte(0x67); /*LEA EDI, 1[ESI]*/
+        addbyte(0x8d);
+        addbyte(0x7e);
+        addbyte(0x01);
+        addbyte(0xc1); /*SHR ESI, 12*/
+        addbyte(0xe8 | REG_ESI);
+        addbyte(12);
+        addbyte(0xf7); /*TEST EDI, 0xfff*/
+        addbyte(0xc7);
+        addlong(0xfff);
+	if (IS_32_ADDR(writelookup2))
+	{
+	        addbyte(0x67); /*MOV RSI, writelookup2[ESI*8]*/
+	        addbyte(0x48);
+	        addbyte(0x8b);
+	        addbyte(0x34);
+	        addbyte(0xf5);
+	        addlong((uint32_t)writelookup2);
+	}
+	else
+	{
+		addbyte(0x48); /*MOV RDX, writelookup2*/
+		addbyte(0xb8 | REG_EDX);
+		addquad((uint64_t)writelookup2);
+		addbyte(0x48); /*MOV RSI, [RDX+RSI*8]*/
+		addbyte(0x8b);
+		addbyte(0x34);
+		addbyte(0xf2);
+	}
+        addbyte(0x74); /*JE slowpath*/
+        addbyte(3+2+((host_reg & 8) ? 6:5)+2);
+        addbyte(0x83); /*CMP ESI, -1*/
+        addbyte(0xf8 | REG_ESI);
+        addbyte(-1);
+        addbyte(0x74); /*JE slowpath*/
+        addbyte(((host_reg & 8) ? 6:5)+2);
+        if (host_reg & 8)
+        {
+                addbyte(0x66); /*MOV -1[RDI+RSI],host_reg*/
+                addbyte(0x44);
+                addbyte(0x89);
+                addbyte(0x44 | ((host_reg & 7) << 3));
+                addbyte(REG_EDI | (REG_ESI << 3));
+                addbyte(-1);
+        }
+        else
+        {
+                addbyte(0x66); /*MOV -1[RDI+RSI],host_reg*/
+                addbyte(0x89);
+                addbyte(0x44 | (host_reg << 3));
+                addbyte(REG_EDI | (REG_ESI << 3));
+                addbyte(-1);
+        }
+        addbyte(0xeb); /*JMP done*/
+        addbyte(2+2+3+12);
+        /*slowpath:*/
+        load_param_3_reg_32(host_reg);
+        load_param_1_reg_32(REG_EBX);
+        load_param_2_reg_32(REG_EAX);
+        call_long(writememwl);
+        /*done:*/
+}
+static void MEM_STORE_ADDR_EA_L_NO_ABRT(x86seg *seg, int host_reg)
+{
+        if (IS_32_ADDR(&seg->base))
+        {
+                addbyte(0x8b); /*MOVL EBX, seg->base*/
+                addbyte(0x1c);
+                addbyte(0x25);
+                addlong((uint32_t)&seg->base);
+        }
+        else
+        {
+                addbyte(0x48); /*MOV RSI, &seg->base*/
+                addbyte(0xb8 | REG_ESI);
+                addquad((uint64_t)&seg->base);
+                addbyte(0x8b); /*MOV EBX, [RSI]*/
+                addbyte(0x1e);
+        }
+        addbyte(0x67); /*LEA ESI, (EAX,EBX)*/
+        addbyte(0x8d);
+        addbyte(0x34);
+        addbyte(0x18);
+        addbyte(0x67); /*LEA EDI, 3[ESI]*/
+        addbyte(0x8d);
+        addbyte(0x7e);
+        addbyte(0x03);
+        addbyte(0xc1); /*SHR ESI, 12*/
+        addbyte(0xe8 | REG_ESI);
+        addbyte(12);
+        addbyte(0xf7); /*TEST EDI, 0xffc*/
+        addbyte(0xc7);
+        addlong(0xffc);
+	if (IS_32_ADDR(writelookup2))
+	{
+	        addbyte(0x67); /*MOV RSI, writelookup2[ESI*8]*/
+	        addbyte(0x48);
+	        addbyte(0x8b);
+	        addbyte(0x34);
+	        addbyte(0xf5);
+	        addlong((uint32_t)writelookup2);
+	}
+	else
+	{
+		addbyte(0x48); /*MOV RDX, writelookup2*/
+		addbyte(0xb8 | REG_EDX);
+		addquad((uint64_t)writelookup2);
+		addbyte(0x48); /*MOV RSI, [RDX+RSI*8]*/
+		addbyte(0x8b);
+		addbyte(0x34);
+		addbyte(0xf2);
+	}
+        addbyte(0x74); /*JE slowpath*/
+        addbyte(3+2+((host_reg & 8) ? 5:4)+2);
+        addbyte(0x83); /*CMP ESI, -1*/
+        addbyte(0xf8 | REG_ESI);
+        addbyte(-1);
+        addbyte(0x74); /*JE slowpath*/
+        addbyte(((host_reg & 8) ? 5:4)+2);
+        if (host_reg & 8)
+        {
+                addbyte(0x44); /*MOV -3[RDI+RSI],host_reg*/
+                addbyte(0x89);
+                addbyte(0x44 | ((host_reg & 7) << 3));
+                addbyte(REG_EDI | (REG_ESI << 3));
+                addbyte(-3);
+        }
+        else
+        {
+                addbyte(0x89); /*MOV -3[RDI+RSI],host_reg*/
+                addbyte(0x44 | (host_reg << 3));
+                addbyte(REG_EDI | (REG_ESI << 3));
+                addbyte(-3);
+        }
+        addbyte(0xeb); /*JMP done*/
+        addbyte(2+2+3+12);
+        /*slowpath:*/
+        load_param_3_reg_32(host_reg);
+        load_param_1_reg_32(REG_EBX);
+        load_param_2_reg_32(REG_EAX);
+        call_long(writememll);
+        /*done:*/
 }

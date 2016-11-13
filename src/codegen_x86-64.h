@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #define BLOCK_SIZE 0x4000
 #define BLOCK_MASK 0x3fff
 #define BLOCK_START 0
@@ -12,6 +9,8 @@
 
 #define BLOCK_EXIT_OFFSET 0x7e0
 #define BLOCK_GPF_OFFSET (BLOCK_EXIT_OFFSET - 20)
+
+#define BLOCK_MAX 1650
 
 enum
 {
