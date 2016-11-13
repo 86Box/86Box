@@ -1078,7 +1078,7 @@ int scsi_set_base(HMENU hmenu, int base, int id)
 	return 1;
 }
 
-int scsi_set_irq(HMENU hmenu, int base, int id)
+int scsi_set_irq(HMENU hmenu, int irq, int id)
 {
 	if (scsi_irq == irq)
 	{
@@ -1104,7 +1104,7 @@ int scsi_set_irq(HMENU hmenu, int base, int id)
 	return 1;
 }
 
-int scsi_set_dma(HMENU hmenu, int base, int id)
+int scsi_set_dma(HMENU hmenu, int dma, int id)
 {
 	if (scsi_dma == dma)
 	{
