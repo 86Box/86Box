@@ -218,6 +218,12 @@ void dma_page_write(uint16_t addr, uint8_t val, void *priv)
                 case 3:
                 dma.page[1] = (AT) ? val : val & 0xf;
                 break;
+		case 0x7:
+		if (is386)
+		{
+                	dma.page[0] = (AT) ? val : val & 0xf;
+		}
+		break;
                 case 0x9:
                 dma16.page[2] = val;
                 break;
@@ -313,7 +319,7 @@ int dma_channel_read(int channel)
         else
         {
                 channel &= 3;
-                if (dma16.m & (1 << channel))
+                if ((dma16.m & (1 << channel)) || (dma16.m & 1))
                         return DMA_NODATA;
                 if ((dma16.mode[channel] & 0xC) != 8)
                         return DMA_NODATA;
@@ -337,7 +343,13 @@ int dma_channel_read(int channel)
                                 dma16.ac[channel] = dma16.ab[channel];
                         }
                         else
+			{
                                 dma16.m |= (1 << channel);
+				if (!channel)
+				{
+					dma16.m |= 0xf;
+				}
+			}
                         dma16.stat |= (1 << channel);
                 }
 
@@ -397,7 +409,7 @@ int dma_channel_write(int channel, uint16_t val)
         else
         {
                 channel &= 3;
-                if (dma16.m & (1 << channel))
+                if ((dma16.m & (1 << channel)) || (dma16.m & 1))
                         return DMA_NODATA;
                 if ((dma16.mode[channel] & 0xC) != 4)
                         return DMA_NODATA;
@@ -419,11 +431,15 @@ int dma_channel_write(int channel, uint16_t val)
                                 dma16.cc[channel] = dma16.cb[channel] + 1;
                                 dma16.ac[channel] = dma16.ab[channel];
                         }
-                                dma16.m |= (1 << channel);
+                        dma16.m |= (1 << channel);
+			if (!channel)
+			{
+				dma16.m |= 0xf;
+			}
                         dma16.stat |= (1 << channel);
                 }
 
-                if (dma.m & (1 << channel))
+                if ((dma.m & (1 << channel)) || (dma.m & 1))
                         return DMA_OVER;
         }
         return 0;
