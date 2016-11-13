@@ -1206,7 +1206,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			pause = 1;
 			Sleep(100);
 			aha154x_enabled ^= 1;                                             
-			CheckMenuItem(hmenu, IDM_SCSI_ENABLED, aha_154x_enabled ? MF_CHECKED : MF_UNCHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_ENABLED, aha154x_enabled ? MF_CHECKED : MF_UNCHECKED);
 			saveconfig();
 			resetpchard();
 			pause = 0;
