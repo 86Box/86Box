@@ -277,6 +277,13 @@ void sb_16_mixer_write(uint16_t addr, uint8_t val, void *p)
                         if (val & 2) sb->dsp.sb_irqnum = 5;
                         if (val & 4) sb->dsp.sb_irqnum = 7;
                         if (val & 8) sb->dsp.sb_irqnum = 10;
+			case 0x81:
+			if (val & 1) sb->dsp.sb_8_dmanum = 0;
+			if (val & 2) sb->dsp.sb_8_dmanum = 1;
+			if (val & 8) sb->dsp.sb_8_dmanum = 3;
+			if (val & 0x20) sb->dsp.sb_16_dmanum = 5;
+			if (val & 0x40) sb->dsp.sb_16_dmanum = 6;
+			if (val & 0x80) sb->dsp.sb_16_dmanum = 7;
                         break;
                 }
                 mixer->master_l = sb_att[mixer->regs[0x30] >> 3];
@@ -303,6 +310,7 @@ uint8_t sb_16_mixer_read(uint16_t addr, void *p)
 {
         sb_t *sb = (sb_t *)p;
         sb_mixer_t *mixer = &sb->mixer;
+	uint8_t temp = 0;
 
         if (!(addr & 1))
                 return mixer->index;
@@ -319,7 +327,38 @@ uint8_t sb_16_mixer_read(uint16_t addr, void *p)
                 }
                 break;
                 case 0x81:
-                return 0x22; /*DMA 1 and 5*/
+		switch (sb->dsp.sb_8_dmanum)
+		{
+			case 0:
+				temp = 1;
+				break;
+			case 1:
+				temp = 2;
+				break;
+			case 3:
+				temp = 8;
+				break;
+			default:
+				temp = 0;
+				break;
+		}
+		switch (sb->dsp.sb_16_dmanum)
+		{
+			case 5:
+				temp |= 0x20;
+				break;
+			case 6:
+				temp |= 0x40;
+				break;
+			case 7:
+				temp |= 0x80;
+				break;
+			default:
+				temp |= 0x00;
+				break;
+		}
+                // return 0x22; /*DMA 1 and 5*/
+		return temp;
                 case 0x82:
                 return ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0);
         }

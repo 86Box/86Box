@@ -290,7 +290,7 @@ typedef struct Adaptec_t
 Adaptec_t AdaptecLUN;
 
 int scsi_base = 0x330;
-int scsi_dma = 5;
+int scsi_dma = 6;
 int scsi_irq = 11;
 
 static void AdaptecSCSIRequestSetup(Adaptec_t *Adaptec, uint32_t CCBPointer);
@@ -831,7 +831,7 @@ void AdaptecWrite(uint16_t Port, uint8_t Val, void *p)
 				
 				case 0x0B:
 				Adaptec->DataBuf[0] = (1 << Adaptec->DmaChannel);
-				
+
 				/* if (Adaptec->DmaChannel >= 0)
 					AdaptecSetDMAChannel(Adaptec->DmaPort1, Adaptec->DmaData1,
 										Adaptec->DmaPort2, Adaptec->DmaData2); */
