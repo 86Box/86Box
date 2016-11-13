@@ -218,6 +218,12 @@ void dma_page_write(uint16_t addr, uint8_t val, void *priv)
                 case 3:
                 dma.page[1] = (AT) ? val : val & 0xf;
                 break;
+                case 0x9:
+                dma16.page[2] = val;
+                break;
+                case 0xa:
+                dma16.page[3] = val;
+                break;
                 case 0xb:
                 dma16.page[1] = val;
                 break;
