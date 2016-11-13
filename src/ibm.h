@@ -637,3 +637,5 @@ extern int path_len;
 char *nvr_concat(char *to_concat);
 
 int mem_a20_state;
+
+void fatal(const char *format, ...);
