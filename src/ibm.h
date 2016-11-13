@@ -639,3 +639,5 @@ char *nvr_concat(char *to_concat);
 int mem_a20_state;
 
 void fatal(const char *format, ...);
+
+extern int scsi_base, scsi_irq, scsi_dma;

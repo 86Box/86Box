@@ -289,6 +289,10 @@ typedef struct Adaptec_t
 
 Adaptec_t AdaptecLUN;
 
+int scsi_base = 0x330;
+int scsi_dma = 5;
+int scsi_irq = 11;
+
 static void AdaptecSCSIRequestSetup(Adaptec_t *Adaptec, uint32_t CCBPointer);
 static void AdaptecStartMailbox(Adaptec_t *Adaptec);
 
@@ -309,11 +313,11 @@ void AdaptecLog(const char *format, ...)
    }
 }
 
-static void AdaptecSetDMAChannel(int DmaPort1, int DmaData1, int DmaPort2, int DmaData2)
+/* static void AdaptecSetDMAChannel(int DmaPort1, int DmaData1, int DmaPort2, int DmaData2)
 {
 	dma_channel_write(DmaPort1, DmaData1);
 	dma_channel_write(DmaPort2, DmaData2);
-}
+} */
 								
 static void AdaptecClearInterrupt(Adaptec_t *Adaptec)
 {
@@ -828,9 +832,9 @@ void AdaptecWrite(uint16_t Port, uint8_t Val, void *p)
 				case 0x0B:
 				Adaptec->DataBuf[0] = (1 << Adaptec->DmaChannel);
 				
-				if (Adaptec->DmaChannel >= 0)
+				/* if (Adaptec->DmaChannel >= 0)
 					AdaptecSetDMAChannel(Adaptec->DmaPort1, Adaptec->DmaData1,
-										Adaptec->DmaPort2, Adaptec->DmaData2);
+										Adaptec->DmaPort2, Adaptec->DmaData2); */
 	
 				Adaptec->DataBuf[1] = (1 << (Adaptec->Irq - 9));
 				Adaptec->DataBuf[2] = 7;
@@ -1093,8 +1097,8 @@ void AdaptecCallback(void *p)
 
 void AdaptecInit(uint8_t Id)
 {
-	AdaptecLUN.Irq = 11;
-	AdaptecLUN.DmaChannel = 6;
+	AdaptecLUN.Irq = scsi_irq;
+	AdaptecLUN.DmaChannel = scsi_dma;
 
 	AdaptecLUN.DmaPort1 = 0xD6;
 	AdaptecLUN.DmaData1 = 0xD4;
@@ -1104,7 +1108,7 @@ void AdaptecInit(uint8_t Id)
 	pfnIoRequestCopyFromBuffer     	= AdaptecIoRequestCopyFromBuffer;
 	pfnIoRequestCopyToBuffer       	= AdaptecIoRequestCopyToBuffer;	
 
-	io_sethandler(0x0334, 0x0004, AdaptecRead, NULL, NULL, AdaptecWrite, NULL, NULL, NULL);
+	io_sethandler(scsi_base, 0x0004, AdaptecRead, NULL, NULL, AdaptecWrite, NULL, NULL, NULL);
 	timer_add(AdaptecCallback, &ScsiCallback[Id], &ScsiCallback[Id], NULL);
 
 	AdaptecReset(&AdaptecLUN);

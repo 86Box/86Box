@@ -452,13 +452,14 @@ void *sb_16_init()
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
+        sb_dsp_setdma16(&sb->dsp, device_get_config_int("dma16"));
         sb_mixer_init(&sb->mixer);
         io_sethandler(0x0220, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
         io_sethandler(0x0228, 0x0002, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
         io_sethandler(0x0388, 0x0002, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
         io_sethandler(0x0224, 0x0002, sb_16_mixer_read, NULL, NULL, sb_16_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_opl3, sb);
-        mpu401_uart_init(&sb->mpu, 0x330);
+        mpu401_uart_init(&sb->mpu, device_get_config_int("addr401"));
 
         sb->mixer.regs[0x30] = 31 << 3;
         sb->mixer.regs[0x31] = 31 << 3;
@@ -494,13 +495,14 @@ void *sb_awe32_init()
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
+        sb_dsp_setdma16(&sb->dsp, device_get_config_int("dma16"));
         sb_mixer_init(&sb->mixer);
         io_sethandler(0x0220, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
         io_sethandler(0x0228, 0x0002, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
         io_sethandler(0x0388, 0x0002, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
         io_sethandler(0x0224, 0x0002, sb_16_mixer_read, NULL, NULL, sb_16_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_emu8k, sb);
-        mpu401_uart_init(&sb->mpu, 0x330);       
+        mpu401_uart_init(&sb->mpu, device_get_config_int("addr401"));
         emu8k_init(&sb->emu8k, onboard_ram);
 
         sb->mixer.regs[0x30] = 31 << 3;
@@ -726,6 +728,27 @@ static device_config_t sb_16_config[] =
                 .default_int = 0x220
         },
         {
+                .name = "addr401",
+                .description = "MPU-401 Address",
+                .type = CONFIG_BINARY,
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "0x300",
+                                .value = 0x300
+                        },
+                        {
+                                .description = "0x330",
+                                .value = 0x330
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 0x330
+        },
+        {
                 .name = "irq",
                 .description = "IRQ",
                 .type = CONFIG_SELECTION,
@@ -755,10 +778,14 @@ static device_config_t sb_16_config[] =
         },
         {
                 .name = "dma",
-                .description = "DMA",
+                .description = "Low DMA channel",
                 .type = CONFIG_SELECTION,
                 .selection =
                 {
+                        {
+                                .description = "DMA 0",
+                                .value = 0
+                        },
                         {
                                 .description = "DMA 1",
                                 .value = 1
@@ -766,6 +793,30 @@ static device_config_t sb_16_config[] =
                         {
                                 .description = "DMA 3",
                                 .value = 3
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 1
+        },
+        {
+                .name = "dma16",
+                .description = "High DMA channel",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "DMA 5",
+                                .value = 5
+                        },
+                        {
+                                .description = "DMA 6",
+                                .value = 6
+                        },
+                        {
+                                .description = "DMA 7",
+                                .value = 7
                         },
                         {
                                 .description = ""
@@ -808,6 +859,27 @@ static device_config_t sb_awe32_config[] =
                 .default_int = 0x220
         },
         {
+                .name = "addr401",
+                .description = "MPU-401 Address",
+                .type = CONFIG_BINARY,
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "0x300",
+                                .value = 0x300
+                        },
+                        {
+                                .description = "0x330",
+                                .value = 0x330
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 0x330
+        },
+        {
                 .name = "irq",
                 .description = "IRQ",
                 .type = CONFIG_SELECTION,
@@ -837,10 +909,14 @@ static device_config_t sb_awe32_config[] =
         },
         {
                 .name = "dma",
-                .description = "DMA",
+                .description = "Low DMA channel",
                 .type = CONFIG_SELECTION,
                 .selection =
                 {
+                        {
+                                .description = "DMA 0",
+                                .value = 0
+                        },
                         {
                                 .description = "DMA 1",
                                 .value = 1
@@ -848,6 +924,30 @@ static device_config_t sb_awe32_config[] =
                         {
                                 .description = "DMA 3",
                                 .value = 3
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 1
+        },
+        {
+                .name = "dma16",
+                .description = "High DMA channel",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "DMA 5",
+                                .value = 5
+                        },
+                        {
+                                .description = "DMA 6",
+                                .value = 6
+                        },
+                        {
+                                .description = "DMA 7",
+                                .value = 7
                         },
                         {
                                 .description = ""

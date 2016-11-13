@@ -253,11 +253,11 @@ void sb_8_write_dma(sb_dsp_t *dsp, uint8_t val)
 }
 uint16_t sb_16_read_dma(sb_dsp_t *dsp)
 {
-        return dma_channel_read(5);
+        return dma_channel_read(dsp->sb_16_dmanum);
 }
 void sb_16_write_dma(sb_dsp_t *dsp, uint16_t val)
 {
-        dma_channel_write(5, val);
+        dma_channel_write(dsp->sb_16_dmanum, val);
 }
 
 void sb_dsp_setirq(sb_dsp_t *dsp, int irq)
@@ -268,6 +268,11 @@ void sb_dsp_setirq(sb_dsp_t *dsp, int irq)
 void sb_dsp_setdma8(sb_dsp_t *dsp, int dma)
 {
         dsp->sb_8_dmanum = dma;
+}
+
+void sb_dsp_setdma16(sb_dsp_t *dsp, int dma)
+{
+        dsp->sb_16_dmanum = dma;
 }
 
 void sb_exec_command(sb_dsp_t *dsp)
@@ -611,6 +616,7 @@ void sb_dsp_init(sb_dsp_t *dsp, int type)
         
         dsp->sb_irqnum = 5;
         dsp->sb_8_dmanum = 1;
+        dsp->sb_16_dmanum = 5;
         
         sb_doreset(dsp);
 

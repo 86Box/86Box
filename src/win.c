@@ -628,6 +628,77 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         if (aha154x_enabled)
            CheckMenuItem(menu, IDM_SCSI_ENABLED, MF_CHECKED);
 
+        if (scsi_base == 0x330)
+	{
+           CheckMenuItem(menu, IDM_SCSI_BASE330, MF_CHECKED);
+           CheckMenuItem(menu, IDM_SCSI_BASE334, MF_UNCHECKED);
+	}
+        else if (scsi_base == 0x334)
+	{
+           CheckMenuItem(menu, IDM_SCSI_BASE330, MF_UNCHECKED);
+           CheckMenuItem(menu, IDM_SCSI_BASE334, MF_CHECKED);
+	}
+	else
+	{
+		fatal("Unrecognized SCSI base address\n");
+	}
+
+        if (scsi_irq == 9)
+	{
+           CheckMenuItem(menu, IDM_SCSI_IRQ9, MF_CHECKED);
+           CheckMenuItem(menu, IDM_SCSI_IRQ10, MF_UNCHECKED);
+           CheckMenuItem(menu, IDM_SCSI_IRQ11, MF_UNCHECKED);
+           CheckMenuItem(menu, IDM_SCSI_IRQ12, MF_UNCHECKED);
+	}
+        else if (scsi_irq == 10)
+	{
+           CheckMenuItem(menu, IDM_SCSI_IRQ9, MF_UNCHECKED);
+           CheckMenuItem(menu, IDM_SCSI_IRQ10, MF_CHECKED);
+           CheckMenuItem(menu, IDM_SCSI_IRQ11, MF_UNCHECKED);
+           CheckMenuItem(menu, IDM_SCSI_IRQ12, MF_UNCHECKED);
+	}
+        else if (scsi_irq == 11)
+	{
+           CheckMenuItem(menu, IDM_SCSI_IRQ9, MF_UNCHECKED);
+           CheckMenuItem(menu, IDM_SCSI_IRQ10, MF_UNCHECKED);
+           CheckMenuItem(menu, IDM_SCSI_IRQ11, MF_CHECKED);
+           CheckMenuItem(menu, IDM_SCSI_IRQ12, MF_UNCHECKED);
+	}
+        else if (scsi_irq == 12)
+	{
+           CheckMenuItem(menu, IDM_SCSI_IRQ9, MF_UNCHECKED);
+           CheckMenuItem(menu, IDM_SCSI_IRQ10, MF_UNCHECKED);
+           CheckMenuItem(menu, IDM_SCSI_IRQ11, MF_UNCHECKED);
+           CheckMenuItem(menu, IDM_SCSI_IRQ12, MF_CHECKED);
+	}
+	else
+	{
+		fatal("Unrecognized SCSI IRQ\n");
+	}
+
+        if (scsi_dma == 5)
+	{
+           CheckMenuItem(menu, IDM_SCSI_DMA5, MF_CHECKED);
+           CheckMenuItem(menu, IDM_SCSI_DMA6, MF_UNCHECKED);
+           CheckMenuItem(menu, IDM_SCSI_DMA7, MF_UNCHECKED);
+	}
+        else if (scsi_dma == 6)
+	{
+           CheckMenuItem(menu, IDM_SCSI_DMA5, MF_UNCHECKED);
+           CheckMenuItem(menu, IDM_SCSI_DMA6, MF_CHECKED);
+           CheckMenuItem(menu, IDM_SCSI_DMA7, MF_UNCHECKED);
+	}
+        else if (scsi_dma == 7)
+	{
+           CheckMenuItem(menu, IDM_SCSI_DMA5, MF_UNCHECKED);
+           CheckMenuItem(menu, IDM_SCSI_DMA6, MF_UNCHECKED);
+           CheckMenuItem(menu, IDM_SCSI_DMA7, MF_CHECKED);
+	}
+	else
+	{
+		fatal("Unrecognized SCSI DMA address\n");
+	}
+
 	if (cdrom_drive == 200)
 		CheckMenuItem(menu, IDM_CDROM_ISO, MF_CHECKED);
 	else
@@ -1207,6 +1278,188 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			Sleep(100);
 			aha154x_enabled ^= 1;                                             
 			CheckMenuItem(hmenu, IDM_SCSI_ENABLED, aha154x_enabled ? MF_CHECKED : MF_UNCHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
+                        case IDM_SCSI_BASE330:
+			if (scsi_base == 0x330)
+			{
+				break;
+			}
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			scsi_base = 0x330;
+			CheckMenuItem(hmenu, IDM_SCSI_BASE330, MF_CHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_BASE334, MF_UNCHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
+                        case IDM_SCSI_BASE334:
+			if (scsi_base == 0x334)
+			{
+				break;
+			}
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			scsi_base = 0x334;
+			CheckMenuItem(hmenu, IDM_SCSI_BASE330, MF_UNCHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_BASE334, MF_CHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
+                        case IDM_SCSI_IRQ9:
+			if (scsi_irq == 9)
+			{
+				break;
+			}
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			scsi_irq = 9;
+			CheckMenuItem(hmenu, IDM_SCSI_IRQ9, MF_CHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_IRQ10, MF_UNCHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_IRQ11, MF_UNCHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_IRQ12, MF_UNCHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
+                        case IDM_SCSI_IRQ10:
+			if (scsi_irq == 10)
+			{
+				break;
+			}
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			scsi_irq = 10;
+			CheckMenuItem(hmenu, IDM_SCSI_IRQ9, MF_UNCHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_IRQ10, MF_CHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_IRQ11, MF_UNCHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_IRQ12, MF_UNCHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
+                        case IDM_SCSI_IRQ11:
+			if (scsi_irq == 11)
+			{
+				break;
+			}
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			scsi_irq = 11;
+			CheckMenuItem(hmenu, IDM_SCSI_IRQ9, MF_UNCHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_IRQ10, MF_UNCHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_IRQ11, MF_CHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_IRQ12, MF_UNCHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
+                        case IDM_SCSI_IRQ12:
+			if (scsi_irq == 12)
+			{
+				break;
+			}
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			scsi_irq = 12;
+			CheckMenuItem(hmenu, IDM_SCSI_IRQ9, MF_UNCHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_IRQ10, MF_UNCHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_IRQ11, MF_UNCHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_IRQ12, MF_CHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
+                        case IDM_SCSI_DMA5:
+			if (scsi_dma == 5)
+			{
+				break;
+			}
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			scsi_dma = 5;
+			CheckMenuItem(hmenu, IDM_SCSI_DMA5, MF_CHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_DMA6, MF_UNCHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_DMA7, MF_UNCHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
+                        case IDM_SCSI_DMA6:
+			if (scsi_dma == 6)
+			{
+				break;
+			}
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			scsi_dma = 6;
+			CheckMenuItem(hmenu, IDM_SCSI_DMA5, MF_UNCHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_DMA6, MF_CHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_DMA7, MF_UNCHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
+                        case IDM_SCSI_DMA7:
+			if (scsi_dma == 7)
+			{
+				break;
+			}
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			scsi_dma = 7;
+			CheckMenuItem(hmenu, IDM_SCSI_DMA5, MF_UNCHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_DMA6, MF_UNCHECKED);
+			CheckMenuItem(hmenu, IDM_SCSI_DMA7, MF_CHECKED);
 			saveconfig();
 			resetpchard();
 			pause = 0;

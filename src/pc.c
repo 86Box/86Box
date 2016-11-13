@@ -629,6 +629,10 @@ void loadconfig(char *fn)
         voodoo_enabled = config_get_int(NULL, "voodoo", 0);
 		aha154x_enabled = config_get_int(NULL, "aha154x", 0);
 
+	scsi_base = config_get_int(NULL, "scsi_base", 0x330);
+	scsi_irq = config_get_int(NULL, "scsi_irq", 11);
+	scsi_dma = config_get_int(NULL, "scsi_dma", 5);
+
 	//network
 	ethif = config_get_int(NULL, "netinterface", 1);
         if (ethif >= inum)
@@ -790,6 +794,10 @@ void saveconfig()
         config_set_int(NULL, "ssi2001", SSI2001);
         config_set_int(NULL, "voodoo", voodoo_enabled);
 		config_set_int(NULL, "aha154x", aha154x_enabled);
+
+	config_set_int(NULL, "scsi_base", scsi_base);
+	config_set_int(NULL, "scsi_irq", scsi_irq);
+	config_set_int(NULL, "scsi_dma", scsi_dma);
 
 	config_set_int(NULL, "netinterface", ethif);
 	config_set_int(NULL, "netcard", network_card_current);

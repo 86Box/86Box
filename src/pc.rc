@@ -35,7 +35,28 @@ BEGIN
                         MENUITEM "&Empty",IDM_CDROM_EMPTY
                         MENUITEM "&ISO...",IDM_CDROM_ISO
                 END
-                MENUITEM "&SCSI controller enabled",IDM_SCSI_ENABLED
+                POPUP "&SCSI controller"
+                BEGIN
+                        MENUITEM "&Enabled",IDM_SCSI_ENABLED
+                        POPUP "&Base address"
+                        BEGIN
+                                MENUITEM "33&0",IDM_SCSI_BASE330
+                                MENUITEM "33&4",IDM_SCSI_BASE334
+                        END
+                        POPUP "&IRQ"
+                        BEGIN
+                                MENUITEM "&9",IDM_SCSI_IRQ9
+                                MENUITEM "1&0",IDM_SCSI_IRQ10
+                                MENUITEM "1&1",IDM_SCSI_IRQ11
+                                MENUITEM "1&2",IDM_SCSI_IRQ12
+                        END
+                        POPUP "&DMA channel"
+                        BEGIN
+                                MENUITEM "&5",IDM_SCSI_DMA5
+                                MENUITEM "&6",IDM_SCSI_DMA6
+                                MENUITEM "&7",IDM_SCSI_DMA7
+                        END
+                END
         END
         POPUP "&Settings"
         BEGIN
