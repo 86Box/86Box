@@ -117,7 +117,12 @@ void dma_write(uint16_t addr, uint8_t val, void *priv)
                 
                 case 0xd: /*Master clear*/
                 dma.wp = 0;
+                dma.stat = 0;
                 dma.m = 0xf;
+                return;
+                
+                case 0xe: /*Mask reset*/
+                dma.m = 0;
                 return;
                 
                 case 0xf: /*Mask write*/
@@ -194,7 +199,12 @@ void dma16_write(uint16_t addr, uint8_t val, void *priv)
                 
                 case 0xd: /*Master clear*/
                 dma16.wp = 0;
+                dma16.stat = 0;
                 dma16.m = 0xf;
+                return;
+                
+                case 0xe: /*Mask reset*/
+                dma16.m = 0;
                 return;
                 
                 case 0xf: /*Mask write*/
