@@ -117,10 +117,19 @@ typedef struct riva128_t
 
   struct
   {
-	uint32_t obj_handle[16][8];
-	uint8_t obj_class[16][8];
+	uint32_t obj_handle[8];
+	uint8_t obj_class[8];
 	
 	uint32_t intr;
+  uint32_t intr_en;
+
+  uint32_t invalid;
+  uint32_t invalid_en;
+
+  uint32_t uclip_xmin, uclip_ymin, uclip_xmax, uclip_ymax;
+  uint32_t oclip_xmin, oclip_ymin, oclip_xmax, oclip_ymax;
+
+  uint32_t beta;
   } pgraph;
   
   struct
@@ -593,9 +602,110 @@ static uint8_t riva128_pgraph_read(uint32_t addr, void *p)
   case 0x400101: ret = (riva128->pgraph.intr >> 8) & 0xff; break;
   case 0x400102: ret = (riva128->pgraph.intr >> 16) & 0xff; break;
   case 0x400103: ret = (riva128->pgraph.intr >> 24) & 0xff; break;
+  case 0x400104: ret = riva128->pgraph.invalid & 0xff; break;
+  case 0x400105: ret = (riva128->pgraph.invalid >> 8) & 0xff; break;
+  case 0x400106: ret = (riva128->pgraph.invalid >> 16) & 0xff; break;
+  case 0x400107: ret = (riva128->pgraph.invalid >> 24) & 0xff; break;
+  case 0x400140: ret = riva128->pgraph.intr_en & 0xff; break;
+  case 0x400141: ret = (riva128->pgraph.intr_en >> 8) & 0xff; break;
+  case 0x400142: ret = (riva128->pgraph.intr_en >> 16) & 0xff; break;
+  case 0x400143: ret = (riva128->pgraph.intr_en >> 24) & 0xff; break;
+  case 0x400144: ret = riva128->pgraph.invalid_en & 0xff; break;
+  case 0x400145: ret = (riva128->pgraph.invalid_en >> 8) & 0xff; break;
+  case 0x400146: ret = (riva128->pgraph.invalid_en >> 16) & 0xff; break;
+  case 0x400147: ret = (riva128->pgraph.invalid_en >> 24) & 0xff; break;
+
+  case 0x40053c: ret = riva128->pgraph.uclip_xmin & 0xff; break;
+  case 0x40053d: ret = (riva128->pgraph.uclip_xmin >> 8) & 0xff; break;
+  case 0x40053e: ret = (riva128->pgraph.uclip_xmin >> 16) & 0xff; break;
+  case 0x40053f: ret = (riva128->pgraph.uclip_xmin >> 24) & 0xff; break;
+  case 0x400540: ret = riva128->pgraph.uclip_ymin & 0xff; break;
+  case 0x400541: ret = (riva128->pgraph.uclip_ymin >> 8) & 0xff; break;
+  case 0x400542: ret = (riva128->pgraph.uclip_ymin >> 16) & 0xff; break;
+  case 0x400543: ret = (riva128->pgraph.uclip_ymin >> 24) & 0xff; break;
+  case 0x400544: ret = riva128->pgraph.uclip_xmax & 0xff; break;
+  case 0x400545: ret = (riva128->pgraph.uclip_xmax >> 8) & 0xff; break;
+  case 0x400546: ret = (riva128->pgraph.uclip_xmax >> 16) & 0xff; break;
+  case 0x400547: ret = (riva128->pgraph.uclip_xmax >> 24) & 0xff; break;
+  case 0x400548: ret = riva128->pgraph.uclip_ymax & 0xff; break;
+  case 0x400549: ret = (riva128->pgraph.uclip_ymax >> 8) & 0xff; break;
+  case 0x40054a: ret = (riva128->pgraph.uclip_ymax >> 16) & 0xff; break;
+  case 0x40054b: ret = (riva128->pgraph.uclip_ymax >> 24) & 0xff; break;
+  case 0x400560: ret = riva128->pgraph.oclip_xmin & 0xff; break;
+  case 0x400561: ret = (riva128->pgraph.oclip_xmin >> 8) & 0xff; break;
+  case 0x400562: ret = (riva128->pgraph.oclip_xmin >> 16) & 0xff; break;
+  case 0x400563: ret = (riva128->pgraph.oclip_xmin >> 24) & 0xff; break;
+  case 0x400564: ret = riva128->pgraph.oclip_ymin & 0xff; break;
+  case 0x400565: ret = (riva128->pgraph.oclip_ymin >> 8) & 0xff; break;
+  case 0x400566: ret = (riva128->pgraph.oclip_ymin >> 16) & 0xff; break;
+  case 0x400567: ret = (riva128->pgraph.oclip_ymin >> 24) & 0xff; break;
+  case 0x400568: ret = riva128->pgraph.oclip_xmax & 0xff; break;
+  case 0x400569: ret = (riva128->pgraph.oclip_xmax >> 8) & 0xff; break;
+  case 0x40056a: ret = (riva128->pgraph.oclip_xmax >> 16) & 0xff; break;
+  case 0x40056b: ret = (riva128->pgraph.oclip_xmax >> 24) & 0xff; break;
+  case 0x40056c: ret = riva128->pgraph.oclip_ymax & 0xff; break;
+  case 0x40056d: ret = (riva128->pgraph.oclip_ymax >> 8) & 0xff; break;
+  case 0x40056e: ret = (riva128->pgraph.oclip_ymax >> 16) & 0xff; break;
+  case 0x40056f: ret = (riva128->pgraph.oclip_ymax >> 24) & 0xff; break;
+  case 0x400640: ret = riva128->pgraph.beta & 0xff; break;
+  case 0x400641: ret = (riva128->pgraph.beta >> 8) & 0xff; break;
+  case 0x400642: ret = (riva128->pgraph.beta >> 16) & 0xff; break;
+  case 0x400643: ret = (riva128->pgraph.beta >> 24) & 0xff; break;
   }
 
   return ret;
+}
+
+static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+  pclog("RIVA 128 PGRAPH write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
+
+  switch(addr)
+  {
+  case 0x400100:
+  riva128->pgraph.intr &= ~val;
+  break;
+  case 0x400104:
+  riva128->pgraph.invalid &= ~val;
+  break;
+  case 0x400140:
+  riva128->pgraph.intr_en = val;
+  break;
+  case 0x400144:
+  riva128->pgraph.invalid_en = val;
+  break;
+  case 0x40053c:
+  riva128->pgraph.uclip_xmin = val & 0x3ffff;
+  break;
+  case 0x400540:
+  riva128->pgraph.uclip_ymin = val & 0x3ffff;
+  break;
+  case 0x400544:
+  riva128->pgraph.uclip_xmax = val & 0x3ffff;
+  break;
+  case 0x400548:
+  riva128->pgraph.uclip_ymax = val & 0x3ffff;
+  break;
+  case 0x400560:
+  riva128->pgraph.oclip_xmin = val & 0x3ffff;
+  break;
+  case 0x400564:
+  riva128->pgraph.oclip_ymin = val & 0x3ffff;
+  break;
+  case 0x400568:
+  riva128->pgraph.oclip_xmax = val & 0x3ffff;
+  break;
+  case 0x40056c:
+  riva128->pgraph.oclip_ymax = val & 0x3ffff;
+  break;
+  case 0x400640:
+  uint32_t tmp = val & 0x7f800000;
+  if(val & 0x80000000) tmp = 0;
+  riva128->pgraph.beta = tmp;
+  break;
+  }
 }
 
 static uint8_t riva128_pramdac_read(uint32_t addr, void *p)
@@ -705,13 +815,13 @@ static uint8_t riva128_ramht_lookup(uint32_t handle, void *p)
   return objclass;
 }
 
-static void riva128_pgraph_exec_method(int chanid, int subchanid, int offset, uint32_t val, void *p)
+static void riva128_pgraph_exec_method(int subchanid, int offset, uint32_t val, void *p)
 {
   riva128_t *riva128 = (riva128_t *)p;
   svga_t *svga = &riva128->svga;
-  pclog("RIVA 128 PGRAPH executing method %04X with object class on channel %01X %04X:%08X\n", offset, riva128->pgraph.obj_class[chanid][subchanid], chanid, val, CS, cpu_state.pc);
+  pclog("RIVA 128 PGRAPH executing method %04X with object class on channel %01X %04X:%08X\n", offset, riva128->pgraph.obj_class[subchanid], chanid, val, CS, cpu_state.pc);
 
-  switch(riva128->pgraph.obj_class[chanid][subchanid])
+  switch(riva128->pgraph.obj_class[subchanid])
   {
     case 0x30:
     //NV1_NULL
@@ -730,8 +840,8 @@ static void riva128_puller_exec_method(int chanid, int subchanid, int offset, ui
 	//These methods are executed by the puller itself.
 	if(offset == 0)
 	{
-		riva128->pgraph.obj_handle[chanid][subchanid] = val;
-		riva128->pgraph.obj_class[chanid][subchanid] = riva128_ramht_lookup(val, riva128);
+		riva128->pgraph.obj_handle[subchanid] = val;
+		riva128->pgraph.obj_class[subchanid] = riva128_ramht_lookup(val, riva128);
 	}
   }
   else
@@ -752,7 +862,7 @@ static void riva128_pusher_run(int chanid, void *p)
     uint32_t* params = ((uint32_t*)svga->vram)[(dmaget + 4) >> 2];
     if((cmd & 0xe0030003) == 0)
     {
-      //nv4 increasing method command
+      //nv3 increasing method command
       uint32_t method = cmd & 0x1ffc;
       int subchannel = (cmd >> 13) & 7;
       int method_count = (cmd >> 18) & 0x7ff;
