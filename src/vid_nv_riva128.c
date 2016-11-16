@@ -119,6 +119,8 @@ typedef struct riva128_t
   {
 	uint32_t obj_handle[8];
 	uint8_t obj_class[8];
+
+  uint32_t debug[4];
 	
 	uint32_t intr;
   uint32_t intr_en;
@@ -704,10 +706,12 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
   riva128->pgraph.oclip_ymax = val & 0x3ffff;
   break;
   case 0x400640:
-  uint32_t tmp = val & 0x7f800000;
-  if(val & 0x80000000) tmp = 0;
-  riva128->pgraph.beta = tmp;
-  break;
+  {
+    uint32_t tmp = val & 0x7f800000;
+    if(val & 0x80000000) tmp = 0;
+    riva128->pgraph.beta = tmp;
+    break;
+  }
   }
 }
 
@@ -822,7 +826,7 @@ static void riva128_pgraph_exec_method(int subchanid, int offset, uint32_t val, 
 {
   riva128_t *riva128 = (riva128_t *)p;
   svga_t *svga = &riva128->svga;
-  pclog("RIVA 128 PGRAPH executing method %04X with object class on channel %01X %04X:%08X\n", offset, riva128->pgraph.obj_class[subchanid], chanid, val, CS, cpu_state.pc);
+  pclog("RIVA 128 PGRAPH executing method %04X with object class on subchannel %01X %04X:%08X\n", offset, riva128->pgraph.obj_class[subchanid], subchanid, val, CS, cpu_state.pc);
 
   switch(riva128->pgraph.obj_class[subchanid])
   {
@@ -849,7 +853,7 @@ static void riva128_puller_exec_method(int chanid, int subchanid, int offset, ui
   }
   else
   {
-	riva128_pgraph_exec_method(chanid, subchanid, offset, val, riva128);
+	riva128_pgraph_exec_method(subchanid, offset, val, riva128);
   }
 }
 
