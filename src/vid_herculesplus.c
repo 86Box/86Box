@@ -31,7 +31,7 @@
 #define HERCULESPLUS_STATUS_HSYNC 0x01		/* horizontal sync */
 #define HERCULESPLUS_STATUS_LIGHT 0x02
 #define HERCULESPLUS_STATUS_VIDEO 0x08
-#define HERCULESPLUS_STATUS_ID    0x50		/* Card identification */
+#define HERCULESPLUS_STATUS_ID    0x10		/* Card identification */
 #define HERCULESPLUS_STATUS_VSYNC 0x80		/* -vertical sync */
 
 /* configuration switch register */
@@ -41,99 +41,6 @@
 /* extended mode register */
 #define HERCULESPLUS_XMODE_RAMFONT 0x01
 #define HERCULESPLUS_XMODE_90COL   0x02
-
-
-/* Read/write control */
-#define HERCULESPLUS_RWCTRL_WRMODE   0x30
-#define HERCULESPLUS_RWCTRL_POLARITY 0x40
-
-/* exception register */
-#define HERCULESPLUS_EXCEPT_CURSOR  0x0F		/* Cursor colour */
-#define HERCULESPLUS_EXCEPT_PALETTE 0x10		/* Enable palette register */
-#define HERCULESPLUS_EXCEPT_ALTATTR 0x20		/* Use alternate attributes */
-
-
-
-/* Default palette */
-static unsigned char defpal[16] = 
-{
-	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-	0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F
-};
-
-static uint32_t herculesplus_rgb[64];
-
-/* Mapping of inks to RGB */
-static unsigned char init_rgb[64][3] =
-{
-				// rgbRGB
-        { 0x00, 0x00, 0x00 },	// 000000
-        { 0x00, 0x00, 0xaa },	// 000001
-        { 0x00, 0xaa, 0x00 },	// 000010
-        { 0x00, 0xaa, 0xaa },	// 000011
-        { 0xaa, 0x00, 0x00 },	// 000100
-        { 0xaa, 0x00, 0xaa },	// 000101
-        { 0xaa, 0xaa, 0x00 },	// 000110
-        { 0xaa, 0xaa, 0xaa },	// 000111
-        { 0x00, 0x00, 0x55 },	// 001000
-        { 0x00, 0x00, 0xff },	// 001001
-        { 0x00, 0xaa, 0x55 },	// 001010
-        { 0x00, 0xaa, 0xff },	// 001011
-        { 0xaa, 0x00, 0x55 },	// 001100
-        { 0xaa, 0x00, 0xff },	// 001101
-        { 0xaa, 0xaa, 0x55 },	// 001110
-        { 0xaa, 0xaa, 0xff },	// 001111
-        { 0x00, 0x55, 0x00 },	// 010000
-        { 0x00, 0x55, 0xaa },	// 010001
-        { 0x00, 0xff, 0x00 },	// 010010
-        { 0x00, 0xff, 0xaa },	// 010011
-        { 0xaa, 0x55, 0x00 },	// 010100
-        { 0xaa, 0x55, 0xaa },	// 010101
-        { 0xaa, 0xff, 0x00 },	// 010110
-        { 0xaa, 0xff, 0xaa },	// 010111
-        { 0x00, 0x55, 0x55 },	// 011000
-        { 0x00, 0x55, 0xff },	// 011001
-        { 0x00, 0xff, 0x55 },	// 011010
-        { 0x00, 0xff, 0xff },	// 011011
-        { 0xaa, 0x55, 0x55 },	// 011100
-        { 0xaa, 0x55, 0xff },	// 011101
-        { 0xaa, 0xff, 0x55 },	// 011110
-        { 0xaa, 0xff, 0xff },	// 011111
-        { 0x55, 0x00, 0x00 },	// 100000
-        { 0x55, 0x00, 0xaa },	// 100001
-        { 0x55, 0xaa, 0x00 },	// 100010
-        { 0x55, 0xaa, 0xaa },	// 100011
-        { 0xff, 0x00, 0x00 },	// 100100
-        { 0xff, 0x00, 0xaa },	// 100101
-        { 0xff, 0xaa, 0x00 },	// 100110
-        { 0xff, 0xaa, 0xaa },	// 100111
-        { 0x55, 0x00, 0x55 },	// 101000
-        { 0x55, 0x00, 0xff },	// 101001
-        { 0x55, 0xaa, 0x55 },	// 101010
-        { 0x55, 0xaa, 0xff },	// 101011
-        { 0xff, 0x00, 0x55 },	// 101100
-        { 0xff, 0x00, 0xff },	// 101101
-        { 0xff, 0xaa, 0x55 },	// 101110
-        { 0xff, 0xaa, 0xff },	// 101111
-        { 0x55, 0x55, 0x00 },	// 110000
-        { 0x55, 0x55, 0xaa },	// 110001
-        { 0x55, 0xff, 0x00 },	// 110010
-        { 0x55, 0xff, 0xaa },	// 110011
-        { 0xff, 0x55, 0x00 },	// 110100
-        { 0xff, 0x55, 0xaa },	// 110101
-        { 0xff, 0xff, 0x00 },	// 110110
-        { 0xff, 0xff, 0xaa },	// 110111
-        { 0x55, 0x55, 0x55 },	// 111000
-        { 0x55, 0x55, 0xff },	// 111001
-        { 0x55, 0xff, 0x55 },	// 111010
-        { 0x55, 0xff, 0xff },	// 111011
-        { 0xff, 0x55, 0x55 },	// 111100
-        { 0xff, 0x55, 0xff },	// 111101
-        { 0xff, 0xff, 0x55 },	// 111110
-        { 0xff, 0xff, 0xff },	// 111111
-};
-
-
 
 typedef struct herculesplus_t
 {
@@ -163,6 +70,7 @@ void herculesplus_recalctimings(herculesplus_t *herculesplus);
 void herculesplus_write(uint32_t addr, uint8_t val, void *p);
 uint8_t herculesplus_read(uint32_t addr, void *p);
 
+static int mdacols[256][2][2];
 
 void herculesplus_out(uint16_t addr, uint8_t val, void *p)
 {
@@ -218,15 +126,6 @@ void herculesplus_write(uint32_t addr, uint8_t val, void *p)
 {
         herculesplus_t *herculesplus = (herculesplus_t *)p;
 
-	unsigned char wmask = herculesplus->crtc[HERCULESPLUS_CRTC_MASK];
-	unsigned char wmode = herculesplus->crtc[HERCULESPLUS_CRTC_RWCTRL] & HERCULESPLUS_RWCTRL_WRMODE;
-	unsigned char fg    = herculesplus->crtc[HERCULESPLUS_CRTC_RWCOL] & 0x0F;
-	unsigned char bg    = (herculesplus->crtc[HERCULESPLUS_CRTC_RWCOL] >> 4)&0x0F;
-	unsigned char w;
-	unsigned char vmask;	/* Mask of bit within byte */
-	unsigned char pmask;	/* Mask of plane within colour value */
-	unsigned char latch;
-
         egawrites++;
 
 	/* Horrible hack, I know, but it's the only way to fix the 440FX BIOS filling the VRAM with garbage until Tom fixes the memory emulation. */
@@ -241,13 +140,6 @@ void herculesplus_write(uint32_t addr, uint8_t val, void *p)
 uint8_t herculesplus_read(uint32_t addr, void *p)
 {
         herculesplus_t *herculesplus = (herculesplus_t *)p;
-	unsigned plane;
-	unsigned char lp    = herculesplus->crtc[HERCULESPLUS_CRTC_PROTECT];
-	unsigned char value = 0;
-	unsigned char dc;	/* "don't care" register */
-	unsigned char bg;	/* background colour */
-	unsigned char fg;
-	unsigned char mask, pmask;
 
         egareads++;
 
@@ -314,9 +206,6 @@ static void herculesplus_draw_char_rom(herculesplus_t *herculesplus, int x, uint
 	}
 	ull = ((attr & 0x07) == 1) ? 13 : 0xffff;
 
-	fg = herculesplus_rgb[defpal[ifg]];
-	bg = herculesplus_rgb[defpal[ibg]];
-
 	if (herculesplus->crtc[HERCULESPLUS_CRTC_XMODE] & HERCULESPLUS_XMODE_90COL) 
 	{
 		elg = 0;
@@ -347,7 +236,7 @@ static void herculesplus_draw_char_rom(herculesplus_t *herculesplus, int x, uint
 	}
 	for (i = 0; i < cw; i++) 
 	{
-		((uint32_t *)buffer32->line[herculesplus->displine])[x * cw + i] = (val & 0x100) ? fg : bg;
+		buffer->line[herculesplus->displine][x * cw + i] = (val & 0x100) ? ifg : ibg;
 		val = val << 1;
 	}
 }
@@ -422,7 +311,7 @@ static void herculesplus_draw_char_ram4(herculesplus_t *herculesplus, int x, uin
 	
 		if (elg) 
 		{
-			val |= (val[0] >> 1) & 1;
+			val |= (val >> 1) & 1;
 		}
 	}
 	for (i = 0; i < cw; i++) 
@@ -431,17 +320,9 @@ static void herculesplus_draw_char_ram4(herculesplus_t *herculesplus, int x, uin
 		cfg = 0;
 		pmask = 1;
 		/* cfg = colour of foreground pixels */
-		if (altattr && (attr & 0x77) == 0) cfg = ibg; /* 'blank' attribute */
-		if (palette)
-		{
-			fg = herculesplus_rgb[herculesplus->palette[cfg]];
-		} 
-		else 
-		{
-			fg = herculesplus_rgb[defpal[cfg]];
-		}
+		if ((attr & 0x77) == 0) cfg = ibg; /* 'blank' attribute */
 		
-		((uint32_t *)buffer32->line[herculesplus->displine])[x * cw + i] = fg;
+		buffer->line[herculesplus->displine][x * cw + i] = mdacols[attr][blink][cfg];
 		val = val << 1;
 	}
 }
@@ -543,8 +424,7 @@ static void herculesplus_draw_char_ram48(herculesplus_t *herculesplus, int x, ui
 	for (i = 0; i < cw; i++) 
 	{
 		/* Generate pixel colour */
-		cfg = 0;
-		pmask = 1;
+		cfg = val & 0x100;
 		if (herculesplus->sc == oll)
 		{
 			cfg = olc ^ ibg;	/* Strikethrough */
@@ -555,18 +435,13 @@ static void herculesplus_draw_char_ram48(herculesplus_t *herculesplus, int x, ui
 		}
 		else
 		{
-            cfg |= (ibg & pmask);
+            		cfg |= ibg;
 		}
 		
-		((uint32_t *)buffer32->line[herculesplus->displine])[x * cw + i] = fg;
+		buffer->line[herculesplus->displine][(x * cw) + i] = mdacols[attr][blink][cfg];
 		val = val << 1;
 	}
 }
-
-
-
-
-
 
 static void herculesplus_text_line(herculesplus_t *herculesplus, uint16_t ca)
 {
@@ -600,9 +475,8 @@ static void herculesplus_text_line(herculesplus_t *herculesplus, uint16_t ca)
                 if (drawcursor)
                 {
 			int cw = HERCULESPLUS_CW;
-			uint8_t ink = (attr & 0x08) | 7;
 
-			col = defpal[ink];
+			col = mdacols[attr][0][1];
 			for (c = 0; c < cw; c++)
 			{
 				((uint32_t *)buffer32->line[herculesplus->displine])[x * cw + c] = col;
@@ -618,7 +492,7 @@ static void herculesplus_graphics_line(herculesplus_t *herculesplus)
 	uint16_t ca;
 	int x, c, plane, col;
 	uint8_t ink;
-	uint8_t val;
+	uint16_t val;
 
 	/* Graphics mode. */
         ca = (herculesplus->sc & 3) * 0x2000;
@@ -627,15 +501,15 @@ static void herculesplus_graphics_line(herculesplus_t *herculesplus)
 
 	for (x = 0; x < herculesplus->crtc[1]; x++)
 	{
-		val = herculesplus->vram[((herculesplus->ma << 1) & 0x1fff) + ca + 0x10000 * plane]
+		val = (herculesplus->vram[((herculesplus->ma << 1) & 0x1fff) + ca + 0x10000 * plane] << 8)
+		| herculesplus->vram[((herculesplus->ma << 1) & 0x1fff) + ca + 0x10000 * plane + 1];
 
 		herculesplus->ma++;
-		for (c = 0; c < 8; c++)
+		for (c = 0; c < 16; c++)
 		{
 			val >>= 1;
-			col = defpal[val & 1];
 
-			((uint32_t *)buffer32->line[herculesplus->displine])[(x << 4) + c] = herculesplus_rgb[col];
+			((uint32_t *)buffer32->line[herculesplus->displine])[(x << 4) + c] = (val & 1) ? 7 : 0;
 		}
 	}
 }
@@ -808,18 +682,24 @@ void *herculesplus_init()
         mem_mapping_add(&herculesplus->mapping, 0xb0000, 0x10000, herculesplus_read, NULL, NULL, herculesplus_write, NULL, NULL,  NULL, 0, herculesplus);
         io_sethandler(0x03b0, 0x0010, herculesplus_in, NULL, NULL, herculesplus_out, NULL, NULL, herculesplus);
 
-	for (c = 0; c < 64; c++)
-	{
-		herculesplus_rgb[c] = makecol32(init_rgb[c][0], init_rgb[c][1], init_rgb[c][2]);
-	}
-
-/* Initialise CRTC regs to safe values */
-	herculesplus->crtc[HERCULESPLUS_CRTC_MASK  ] = 0x0F; /* All planes displayed */
-	for (c = 0; c < 16; c++) 
-	{
-		herculesplus->palette[c] = defpal[c];
-	}
-	herculesplus->palette_idx = 0;
+	for (c = 0; c < 256; c++)
+        {
+                mdacols[c][0][0] = mdacols[c][1][0] = mdacols[c][1][1] = 16;
+                if (c & 8) mdacols[c][0][1] = 15 + 16;
+                else       mdacols[c][0][1] =  7 + 16;
+        }
+        mdacols[0x70][0][1] = 16;
+        mdacols[0x70][0][0] = mdacols[0x70][1][0] = mdacols[0x70][1][1] = 16 + 15;
+        mdacols[0xF0][0][1] = 16;
+        mdacols[0xF0][0][0] = mdacols[0xF0][1][0] = mdacols[0xF0][1][1] = 16 + 15;
+        mdacols[0x78][0][1] = 16 + 7;
+        mdacols[0x78][0][0] = mdacols[0x78][1][0] = mdacols[0x78][1][1] = 16 + 15;
+        mdacols[0xF8][0][1] = 16 + 7;
+        mdacols[0xF8][0][0] = mdacols[0xF8][1][0] = mdacols[0xF8][1][1] = 16 + 15;
+        mdacols[0x00][0][1] = mdacols[0x00][1][1] = 16;
+        mdacols[0x08][0][1] = mdacols[0x08][1][1] = 16;
+        mdacols[0x80][0][1] = mdacols[0x80][1][1] = 16;
+        mdacols[0x88][0][1] = mdacols[0x88][1][1] = 16;
 
         return herculesplus;
 }
