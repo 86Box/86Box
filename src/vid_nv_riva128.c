@@ -676,6 +676,9 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
   case 0x400144:
   riva128->pgraph.invalid_en = val;
   break;
+  case 0x400180:
+  riva128->pgraph.debug[1] &= ~1; //Clear recent volatile reset bit on object switch.
+  break;
   case 0x40053c:
   riva128->pgraph.uclip_xmin = val & 0x3ffff;
   break;
