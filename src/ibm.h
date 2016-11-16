@@ -462,6 +462,7 @@ enum
 	GFX_PHOENIX_VISION864,	/*S3 Vision864 (Phoenix)*/
         GFX_RIVATNT,
         GFX_RIVA128,
+        GFX_HERCULESPLUS,
         GFX_MAX
 };
 

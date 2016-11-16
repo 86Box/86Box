@@ -27,6 +27,7 @@
 #include "vid_et4000.h"
 #include "vid_et4000w32.h"
 #include "vid_hercules.h"
+#include "vid_herculesplus.h"
 #include "vid_incolor.h"
 #include "vid_colorplus.h"
 #include "vid_mda.h"
@@ -72,6 +73,7 @@ static VIDEO_CARD video_cards[] =
         {"Compaq EGA",				   &cpqega_device,           	GFX_COMPAQ_EGA},
         {"Compaq/Paradise VGA",			   &cpqvga_device,           	GFX_COMPAQ_VGA},
         {"Hercules",                               &hercules_device,            GFX_HERCULES},
+        {"Hercules Plus",                          &herculesplus_device,        GFX_HERCULESPLUS},
         {"Hercules InColor",                       &incolor_device,             GFX_INCOLOR},
         {"MDA",                                    &mda_device,                 GFX_MDA},
         {"Miro Crystal S3 Vision964",              &s3_miro_vision964_device,   GFX_MIRO_VISION964},
