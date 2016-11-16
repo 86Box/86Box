@@ -849,7 +849,7 @@ static void riva128_puller_exec_method(int chanid, int subchanid, int offset, ui
   }
   else
   {
-	riva128_pgraph_exec_method(chanid, subchanid, offset, val, riva128);
+	riva128_pgraph_exec_method(subchanid, offset, val, riva128);
   }
 }
 
