@@ -436,7 +436,14 @@ static void incolor_draw_char_rom(incolor_t *incolor, int x, uint8_t chr, uint8_
 	}
 
 	/* ELG set to stretch 8px character to 9px */
-	elg = ((chr >= 0xc0) && (chr <= 0xdf));
+	if (incolor->crtc[INCOLOR_CRTC_XMODE] & INCOLOR_XMODE_90COL) 
+	{
+		elg = 0;
+	} 
+	else 
+	{
+		elg = ((chr >= 0xc0) && (chr <= 0xdf));
+	}
 
 	fnt = &(fontdatm[chr][incolor->sc]);
 
