@@ -66,7 +66,7 @@ static void null_readsector(uint8_t *b, int sector)
 {
 }
 
-static void null_readsector_raw(uint8_t *b, int sector)
+static void null_readsector_raw(uint8_t *b, int sector, int ismsf)
 {
 }
 

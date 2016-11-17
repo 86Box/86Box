@@ -14,28 +14,122 @@ static uint32_t ropSTD(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32
         return op_pc;
 }
 
-static uint32_t codegen_temp;
-static uint32_t ropFF_16(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+static uint32_t ropFE(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
+        x86seg *target_seg;
         int host_reg;
-        
-        if ((fetchdat & 0x38) != 0x10 && (fetchdat & 0x38) != 0x20)// && (fetchdat & 0x38) != 0x30)
+
+        if ((fetchdat & 0x30) != 0x00)
                 return 0;
+
+        CALL_FUNC(flags_rebuild_c);
         
         if ((fetchdat & 0xc0) == 0xc0)
-        {
-                host_reg = LOAD_REG_W(fetchdat & 7);
-        }
+                host_reg = LOAD_REG_B(fetchdat & 7);
         else
         {
-                x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
+                target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
                 STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
-                MEM_LOAD_ADDR_EA_W(target_seg);
-                host_reg = 0;
+
+                SAVE_EA();
+                MEM_CHECK_WRITE(target_seg);
+                host_reg = MEM_LOAD_ADDR_EA_B_NO_ABRT(target_seg);
         }
         
         switch (fetchdat & 0x38)
         {
+                case 0x00: /*INC*/
+                STORE_HOST_REG_ADDR_BL((uint32_t)&cpu_state.flags_op1, host_reg);
+                ADD_HOST_REG_IMM_B(host_reg, 1);
+                STORE_IMM_ADDR_L((uint32_t)&cpu_state.flags_op2, 1);
+                STORE_IMM_ADDR_L((uint32_t)&cpu_state.flags_op, FLAGS_INC8);
+                STORE_HOST_REG_ADDR_BL((uint32_t)&cpu_state.flags_res, host_reg);
+                break;
+                case 0x08: /*DEC*/
+                STORE_HOST_REG_ADDR_BL((uint32_t)&cpu_state.flags_op1, host_reg);
+                SUB_HOST_REG_IMM_B(host_reg, 1);
+                STORE_IMM_ADDR_L((uint32_t)&cpu_state.flags_op2, 1);
+                STORE_IMM_ADDR_L((uint32_t)&cpu_state.flags_op, FLAGS_DEC8);
+                STORE_HOST_REG_ADDR_BL((uint32_t)&cpu_state.flags_res, host_reg);
+                break;
+        }
+
+        if ((fetchdat & 0xc0) == 0xc0)
+                STORE_REG_B_RELEASE(host_reg);
+        else
+        {
+                LOAD_EA();
+                MEM_STORE_ADDR_EA_B_NO_ABRT(target_seg, host_reg);
+        }
+        codegen_flags_changed = 1;
+        
+        return op_pc + 1;
+}
+static uint32_t codegen_temp;
+static uint32_t ropFF_16(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+{
+        x86seg *target_seg;
+        int host_reg;
+        
+        if ((fetchdat & 0x30) != 0x00 && (fetchdat & 0x38) != 0x10 && (fetchdat & 0x38) != 0x20)// && (fetchdat & 0x38) != 0x30)
+                return 0;
+
+        if ((fetchdat & 0x30) == 0x00)
+                CALL_FUNC(flags_rebuild_c);
+
+        if ((fetchdat & 0xc0) == 0xc0)
+                host_reg = LOAD_REG_W(fetchdat & 7);
+        else
+        {
+                target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
+                STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
+
+                if ((fetchdat & 0x30) != 0x00)
+                {
+                        MEM_LOAD_ADDR_EA_W(target_seg);
+                        host_reg = 0;
+                }
+                else
+                {
+                        SAVE_EA();
+                        MEM_CHECK_WRITE_W(target_seg);
+                        host_reg = MEM_LOAD_ADDR_EA_W_NO_ABRT(target_seg);
+                }
+        }
+        
+        switch (fetchdat & 0x38)
+        {
+                case 0x00: /*INC*/
+                STORE_HOST_REG_ADDR_WL((uint32_t)&cpu_state.flags_op1, host_reg);
+                ADD_HOST_REG_IMM_W(host_reg, 1);
+                STORE_IMM_ADDR_L((uint32_t)&cpu_state.flags_op2, 1);
+                STORE_IMM_ADDR_L((uint32_t)&cpu_state.flags_op, FLAGS_INC16);
+                STORE_HOST_REG_ADDR_WL((uint32_t)&cpu_state.flags_res, host_reg);
+                if ((fetchdat & 0xc0) == 0xc0)
+                        STORE_REG_W_RELEASE(host_reg);
+                else
+                {
+                        LOAD_EA();
+                        MEM_STORE_ADDR_EA_W_NO_ABRT(target_seg, host_reg);
+                }
+                codegen_flags_changed = 1;
+                return op_pc + 1;
+                case 0x08: /*DEC*/
+                STORE_HOST_REG_ADDR_WL((uint32_t)&cpu_state.flags_op1, host_reg);
+                SUB_HOST_REG_IMM_W(host_reg, 1);
+                STORE_IMM_ADDR_L((uint32_t)&cpu_state.flags_op2, 1);
+                STORE_IMM_ADDR_L((uint32_t)&cpu_state.flags_op, FLAGS_DEC16);
+                STORE_HOST_REG_ADDR_WL((uint32_t)&cpu_state.flags_res, host_reg);
+                if ((fetchdat & 0xc0) == 0xc0)
+                        STORE_REG_W_RELEASE(host_reg);
+                else
+                {
+                        LOAD_EA();
+                        MEM_STORE_ADDR_EA_W_NO_ABRT(target_seg, host_reg);
+                }
+                codegen_flags_changed = 1;
+                return op_pc + 1;
+
                 case 0x10: /*CALL*/
                 STORE_HOST_REG_ADDR_W((uintptr_t)&codegen_temp, host_reg);
                 RELEASE_REG(host_reg);
@@ -66,25 +160,68 @@ static uint32_t ropFF_16(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
 }
 static uint32_t ropFF_32(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
+        x86seg *target_seg;
         int host_reg;
         
-        if ((fetchdat & 0x38) != 0x10 && (fetchdat & 0x38) != 0x20)// && (fetchdat & 0x38) != 0x30)
+        if ((fetchdat & 0x30) != 0x00 && (fetchdat & 0x38) != 0x10 && (fetchdat & 0x38) != 0x20)// && (fetchdat & 0x38) != 0x30)
                 return 0;
+
+        if ((fetchdat & 0x30) == 0x00)
+                CALL_FUNC(flags_rebuild_c);
         
         if ((fetchdat & 0xc0) == 0xc0)
-        {
                 host_reg = LOAD_REG_L(fetchdat & 7);
-        }
         else
         {
-                x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
+                target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
                 STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
-                MEM_LOAD_ADDR_EA_L(target_seg);
-                host_reg = 0;
+
+                if ((fetchdat & 0x30) != 0x00)
+                {
+                        MEM_LOAD_ADDR_EA_L(target_seg);
+                        host_reg = 0;
+                }
+                else
+                {
+                        SAVE_EA();
+                        MEM_CHECK_WRITE_L(target_seg);
+                        host_reg = MEM_LOAD_ADDR_EA_L_NO_ABRT(target_seg);
+                }
         }
         
         switch (fetchdat & 0x38)
         {
+                case 0x00: /*INC*/
+                STORE_HOST_REG_ADDR((uint32_t)&cpu_state.flags_op1, host_reg);
+                ADD_HOST_REG_IMM(host_reg, 1);
+                STORE_IMM_ADDR_L((uint32_t)&cpu_state.flags_op2, 1);
+                STORE_IMM_ADDR_L((uint32_t)&cpu_state.flags_op, FLAGS_INC32);
+                STORE_HOST_REG_ADDR((uint32_t)&cpu_state.flags_res, host_reg);
+                if ((fetchdat & 0xc0) == 0xc0)
+                        STORE_REG_L_RELEASE(host_reg);
+                else
+                {
+                        LOAD_EA();
+                        MEM_STORE_ADDR_EA_L_NO_ABRT(target_seg, host_reg);
+                }
+                codegen_flags_changed = 1;
+                return op_pc + 1;
+                case 0x08: /*DEC*/
+                STORE_HOST_REG_ADDR((uint32_t)&cpu_state.flags_op1, host_reg);
+                SUB_HOST_REG_IMM(host_reg, 1);
+                STORE_IMM_ADDR_L((uint32_t)&cpu_state.flags_op2, 1);
+                STORE_IMM_ADDR_L((uint32_t)&cpu_state.flags_op, FLAGS_DEC32);
+                STORE_HOST_REG_ADDR((uint32_t)&cpu_state.flags_res, host_reg);
+                if ((fetchdat & 0xc0) == 0xc0)
+                        STORE_REG_L_RELEASE(host_reg);
+                else
+                {
+                        LOAD_EA();
+                        MEM_STORE_ADDR_EA_L_NO_ABRT(target_seg, host_reg);
+                }
+                codegen_flags_changed = 1;
+                return op_pc + 1;
+
                 case 0x10: /*CALL*/
                 STORE_HOST_REG_ADDR((uintptr_t)&codegen_temp, host_reg);
                 RELEASE_REG(host_reg);

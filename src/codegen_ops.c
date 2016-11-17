@@ -47,7 +47,7 @@ RecompOpFn recomp_opcodes[512] =
 /*c0*/  ropC0,          ropC1_w,        ropRET_imm_16,  ropRET_16,      NULL,           NULL,           ropMOV_b_imm,   ropMOV_w_imm,   NULL,           ropLEAVE_16,    NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*d0*/  ropD0,          ropD1_w,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*e0*/  NULL,           NULL,           ropLOOP,        ropJCXZ,        NULL,           NULL,           NULL,           NULL,           ropCALL_r16,    ropJMP_r16,     NULL,           ropJMP_r8,      NULL,           NULL,           NULL,           NULL,
-/*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropF6,          ropF7_w,        NULL,           NULL,           NULL,           NULL,           ropCLD,         ropSTD,         NULL,           ropFF_16,
+/*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropF6,          ropF7_w,        NULL,           NULL,           NULL,           NULL,           ropCLD,         ropSTD,         ropFE,          ropFF_16,
 
         /*32-bit data*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
@@ -69,7 +69,7 @@ RecompOpFn recomp_opcodes[512] =
 /*c0*/  ropC0,          ropC1_l,        ropRET_imm_32,  ropRET_32,      NULL,           NULL,           ropMOV_b_imm,   ropMOV_l_imm,   NULL,           ropLEAVE_32,    NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*d0*/  ropD0,          ropD1_l,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*e0*/  NULL,           NULL,           ropLOOP,        ropJCXZ,        NULL,           NULL,           NULL,           NULL,           ropCALL_r32,    ropJMP_r32,     NULL,           ropJMP_r8,      NULL,           NULL,           NULL,           NULL,
-/*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropF6,          ropF7_l,        NULL,           NULL,           NULL,           NULL,           ropCLD,         ropSTD,         NULL,           ropFF_32
+/*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropF6,          ropF7_l,        NULL,           NULL,           NULL,           NULL,           ropCLD,         ropSTD,         ropFE,          ropFF_32
 };
 
 RecompOpFn recomp_opcodes_0f[512] =

@@ -25,13 +25,17 @@ uint8_t SCSICommandTable[0x100] =
 	[GPCMD_INQUIRY]                       = ALLOW_UA,
 	[GPCMD_MODE_SELECT_6]                 = 0,
 	[GPCMD_MODE_SENSE_6]                  = 0,
-	[GPCMD_START_STOP_UNIT]               = 0,
+	[GPCMD_START_STOP_UNIT]               = CHECK_READY,
 	[GPCMD_PREVENT_REMOVAL]               = CHECK_READY,
 	[GPCMD_READ_CDROM_CAPACITY]           = CHECK_READY,
 	[GPCMD_READ_10]                       = CHECK_READY,
 	[GPCMD_SEEK]                          = CHECK_READY | NONDATA,
 	[GPCMD_READ_SUBCHANNEL]               = CHECK_READY,
-	[GPCMD_READ_TOC_PMA_ATIP]             = CHECK_READY | ALLOW_UA,		/* Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS */
+	[GPCMD_READ_TOC_PMA_ATIP]             = CHECK_READY | ALLOW_UA,		/* Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS
+										   NOTE: The ATAPI reference says otherwise, but I think this is a question of
+											 interpreting things right - the UNIT ATTENTION condition we have here
+											 is a tradition from not ready to ready, by definition the drive
+											 eventually becomes ready, make the condition go away. */
 	[GPCMD_READ_HEADER]                   = CHECK_READY,
 	[GPCMD_PLAY_AUDIO_10]                 = CHECK_READY,
 	[GPCMD_GET_CONFIGURATION]             = ALLOW_UA,
@@ -45,7 +49,9 @@ uint8_t SCSICommandTable[0x100] =
 	[GPCMD_PLAY_AUDIO_12]                 = CHECK_READY,
 	[GPCMD_READ_12]                       = CHECK_READY,
 	[GPCMD_READ_DVD_STRUCTURE]            = CHECK_READY,
+	[GPCMD_READ_CD_MSF]                   = CHECK_READY,
 	[GPCMD_SET_SPEED]                     = 0,
+	[GPCMD_PLAY_CD]                       = CHECK_READY,
 	[GPCMD_MECHANISM_STATUS]              = 0,
 	[GPCMD_READ_CD]                       = CHECK_READY,
 	[GPCMD_SEND_DVD_STRUCTURE]			  = CHECK_READY
@@ -359,9 +365,12 @@ uint32_t SCSICDROMEventStatus(uint8_t *buffer)
 
 void SCSICDROM_Insert()
 {
+	SCSISense.UnitAttention=1;
+#if 0
 	SCSISense.SenseKey=SENSE_UNIT_ATTENTION;
 	SCSISense.Asc=ASC_MEDIUM_MAY_HAVE_CHANGED;
 	SCSISense.Ascq=0;
+#endif
 }
 
 int cd_status = CD_STATUS_EMPTY;
@@ -557,7 +566,7 @@ void SCSICDROM_RunCommand(SCSI *Scsi, uint8_t Id, uint8_t *Cdb)
 			if (RCdMode == 0x10)
 				cdrom->readsector(Scsi->SegmentData.Address,Scsi->SectorLba);
 			else
-				cdrom->readsector_raw(Scsi->SegmentData.Address,Scsi->SectorLba);
+				cdrom->readsector_raw(Scsi->SegmentData.Address,Scsi->SectorLba, 0);
 				
 			readcdmode = (RCdMode == 0xF8);
 			
@@ -1181,7 +1190,7 @@ void SCSICDROM_CallRead(SCSI *Scsi, uint8_t Id)
 	pclog("Continue Read command! %i blocks left\n", Scsi->SectorLen);
 
 	if (readcdmode)
-		cdrom->readsector_raw(Scsi->SegmentData.Address, Scsi->SectorLba);
+		cdrom->readsector_raw(Scsi->SegmentData.Address, Scsi->SectorLba, 0);
 	else
 		cdrom->readsector(Scsi->SegmentData.Address, Scsi->SectorLba);
 

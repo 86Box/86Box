@@ -28,42 +28,42 @@ void iso_audio_callback(int16_t *output, int len)
 
 void iso_audio_stop()
 {
-    pclog("iso_audio_stop stub\n");
+    // pclog("iso_audio_stop stub\n");
 }
 
 static int get_track_nr(uint32_t pos)
 {
-    pclog("get_track_nr stub\n");
+    // pclog("get_track_nr stub\n");
     return 0;
 }
 
 static void iso_playaudio(uint32_t pos, uint32_t len, int ismsf)
 {
-    pclog("iso_playaudio stub\n");
+    // pclog("iso_playaudio stub\n");
     return;
 }
 
 static void iso_pause(void)
 {
-    pclog("iso_pause stub\n");
+    // pclog("iso_pause stub\n");
     return;
 }
 
 static void iso_resume(void)
 {
-    pclog("iso_resume stub\n");
+    // pclog("iso_resume stub\n");
     return;
 }
 
 static void iso_stop(void)
 {
-    pclog("iso_stop stub\n");
+    // pclog("iso_stop stub\n");
     return;
 }
 
 static void iso_seek(uint32_t pos)
 {
-    pclog("iso_seek stub\n");
+    // pclog("iso_seek stub\n");
     return;
 }
 
@@ -112,18 +112,18 @@ static int iso_medium_changed(void)
 
 static uint8_t iso_getcurrentsubchannel(uint8_t *b, int msf)
 {
-    pclog("iso_getcurrentsubchannel stub\n");
+    // pclog("iso_getcurrentsubchannel stub\n");
     return 0;
 }
 
 static void iso_eject(void)
 {
-    pclog("iso_eject stub\n");
+    // pclog("iso_eject stub\n");
 }
 
 static void iso_load(void)
 {
-    pclog("iso_load stub\n");
+    // pclog("iso_load stub\n");
 }
 
 static void iso_readsector(uint8_t *b, int sector)
@@ -137,12 +137,18 @@ static void iso_readsector(uint8_t *b, int sector)
 
 static void lba_to_msf(uint8_t *buf, int lba)
 {
+#if 0
 	double dlba = (double) lba + 150;
 	buf[2] = (uint8_t) (((uint32_t) dlba) % 75);
 	dlba /= 75;
 	buf[1] = (uint8_t) (((uint32_t) dlba) % 60);
 	dlba /= 60;
 	buf[0] = (uint8_t) dlba;
+#endif
+    lba += 150;
+    buf[0] = (lba / 75) / 60;
+    buf[1] = (lba / 75) % 60;
+	buf[2] = lba % 75;
 }
 
 #if 0
@@ -155,10 +161,24 @@ static void lba_to_msf(uint8_t *buf, int lba)
 }
 #endif
 
-static void iso_readsector_raw(uint8_t *b, int sector)
+static void iso_readsector_raw(uint8_t *b, int sector, int ismsf)
 {
     uint32_t temp;
     if (!cdrom_drive) return;
+	memset(b, 0, 2856);
+	if (ismsf)
+	{
+		int m = (sector >> 16) & 0xff;
+		int s = (sector >> 8) & 0xff;
+		int f = sector & 0xff;
+		sector = (m * 60 * 75) + (s * 75) + f;
+		if (sector < 150)
+		{
+			memset(b, 0, 2856);
+			return;
+		}
+		sector -= 150;
+	}
     iso_image = fopen(iso_path, "rb");
     fseek(iso_image, sector*2048, SEEK_SET);
     fread(b+16, 2048, 1, iso_image);
@@ -174,6 +194,8 @@ static void iso_readsector_raw(uint8_t *b, int sector)
     b += 4;
     b += 2048;
     memset(b, 0, 288);
+	b += 288;
+    memset(b, 0, 392);
 }
 
 static int iso_readtoc(unsigned char *buf, unsigned char start_track, int msf, int maxlen, int single)
@@ -343,7 +365,7 @@ int iso_open(char *fn)
     if (!iso_inited || iso_changed)
     {
         sprintf(iso_path, "%s", fn);
-        pclog("Path is %s\n", iso_path);
+        // pclog("Path is %s\n", iso_path);
     }
     iso_image = fopen(iso_path, "rb");
     cdrom = &iso_cdrom;

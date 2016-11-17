@@ -33,7 +33,9 @@
 #define GPCMD_PLAY_AUDIO_12		0xa5
 #define GPCMD_READ_12                   0xa8
 #define GPCMD_READ_DVD_STRUCTURE	0xad	/* For reading. */
+#define GPCMD_READ_CD_MSF		0xb9
 #define GPCMD_SET_SPEED			0xbb
+#define GPCMD_PLAY_CD			0xbc
 #define GPCMD_MECHANISM_STATUS		0xbd
 #define GPCMD_READ_CD			0xbe
 #define GPCMD_SEND_DVD_STRUCTURE	0xbf	/* This is for writing only, irrelevant to PCem. */
@@ -166,6 +168,7 @@ extern uint8_t scsi_cdrom_id;
 
 struct
 {
+	uint8_t UnitAttention;
 	uint8_t SenseKey;
 	uint8_t Asc;
 	uint8_t Ascq;		

@@ -167,6 +167,49 @@ int ide_ter_enabled = 0;
 
 uint8_t getstat(IDE *ide) { return ide->atastat; }
 
+#define MSFtoLBA(m,s,f)  ((((m*60)+s)*75)+f)
+
+typedef struct __attribute__((packed))
+{
+	uint8_t user_data[2048];
+	uint8_t ecc[288];
+} m1_data_t;
+
+typedef struct __attribute__((packed))
+{
+	uint8_t sub_header[8];
+	uint8_t user_data[2328];
+} m2_data_t;
+
+typedef union __attribute__((packed))
+{
+	m1_data_t m1_data;
+	m2_data_t m2_data;
+	uint8_t raw_data[2352];
+} sector_data_t;
+
+typedef struct __attribute__((packed))
+{
+	uint8_t sync[12];
+	uint8_t header[4];
+	sector_data_t data;
+	uint8_t c2[296];
+	uint8_t subchannel_raw[96];
+	uint8_t subchannel_q[16];
+	uint8_t subchannel_rw[96];
+} cdrom_sector_t;
+
+typedef union __attribute__((packed))
+{
+	cdrom_sector_t cdrom_sector;
+	uint8_t buffer[2856];
+} sector_buffer_t;
+
+sector_buffer_t cdrom_sector_buffer;
+
+int cdrom_sector_type, cdrom_sector_flags;
+int cdrom_sector_size, cdrom_sector_ismsf;
+
 int image_is_hdi(const char *s)
 {
 	int i, len;
@@ -381,10 +424,8 @@ static void ide_atapi_identify(IDE *ide)
 	ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
 	ide_padstr((char *) (ide->buffer + 23), emulator_version, 8); /* Firmware */
 	ide_padstr((char *) (ide->buffer + 27), "86BoxCD", 40); /* Model */
-	ide->buffer[49] = 0x300; /* LBA and DMA supported */
-	ide->buffer[62] = ide->dma_identify_data[0];
-	ide->buffer[63] = ide->dma_identify_data[1];
-	ide->buffer[88] = ide->dma_identify_data[2];
+	ide->buffer[49] = 0x200; /* LBA supported */
+	ide->buffer[51] = 2 << 8; /*PIO timing mode*/
 }
 
 /*
@@ -551,6 +592,10 @@ int ide_set_features(IDE *ide)
 		case 0xc2:
 			return 1;
 		case 0x03:
+			if (ide->type == IDE_CDROM)
+			{
+				return 0;
+			}
 			switch(ide->secount >> 3)
 			{
 				case 0:
@@ -678,6 +723,8 @@ void resetide(void)
 //        ide_drives[1].type = IDE_CDROM;
 
 		page_flags[GPMODE_CDROM_AUDIO_PAGE] &= ~PAGE_CHANGED;
+
+		SCSISense.UnitAttention = 0;
 }
 
 int idetimes=0;
@@ -1791,6 +1838,282 @@ static void atapi_sense_clear(int command, int ignore_ua)
 	}
 }
 
+static int cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type)
+{
+	if ((cdrom_sector_flags & 0x06) == 0x02)
+	{
+		/* Add error flags. */
+		memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.c2, 294);
+		cdrom_sector_size += 294;
+	}
+	else if ((cdrom_sector_flags & 0x06) == 0x04)
+	{
+		/* Add error flags. */
+		memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.c2, 296);
+		cdrom_sector_size += 296;
+	}
+	else if ((cdrom_sector_flags & 0x06) == 0x06)
+	{
+		pclog("Invalid error flags\n");
+		return 0;
+	}
+	
+	/* if (real_sector_type == 1)
+	{ */
+		if ((cdrom_sector_flags & 0x700) == 0x100)
+		{
+			memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.subchannel_raw, 96);
+			cdrom_sector_size += 96;
+		}
+		else if ((cdrom_sector_flags & 0x700) == 0x200)
+		{
+			memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.subchannel_q, 16);
+			cdrom_sector_size += 16;
+		}
+		else if ((cdrom_sector_flags & 0x700) == 0x400)
+		{
+			memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.subchannel_rw, 96);
+			cdrom_sector_size += 96;
+		}
+		else if (((cdrom_sector_flags & 0x700) == 0x300) || ((cdrom_sector_flags & 0x700) > 0x400))
+		{
+			pclog("Invalid subchannel data flags\n");
+			return 0;
+		}
+	// }
+	
+	// pclog("CD-ROM sector size after processing: %i (%i, %i) [%04X]\n", cdrom_sector_size, cdrom_sector_type, real_sector_type, cdrom_sector_flags);
+
+	return cdrom_sector_size;
+}
+
+static int cdrom_LBAtoMSF_accurate(IDE *ide)
+{
+	int temp_pos;
+	int m, s, f;
+	
+	temp_pos = ide->cdpos;
+	f = temp_pos % 75;
+	temp_pos -= f;
+	temp_pos /= 75;
+	s = temp_pos % 60;
+	temp_pos -= s;
+	temp_pos /= 60;
+	m = temp_pos;
+	
+	return ((m << 16) | (s << 8) | f);
+}
+
+static int cdrom_read_data(IDE *ide, uint8_t *buffer)
+{
+	int real_sector_type;
+	uint8_t *b;
+	uint8_t *temp_b;
+	int is_audio;
+	int real_pos;
+	
+	b = temp_b = buffer;
+	
+	if  (cdrom_sector_ismsf)
+	{
+		real_pos = cdrom_LBAtoMSF_accurate(ide);
+	}
+	else
+	{
+		real_pos = ide->cdpos;
+	}
+
+	memset(cdrom_sector_buffer.buffer, 0, 2856);
+
+	cdrom->readsector_raw(cdrom_sector_buffer.buffer, real_pos, cdrom_sector_ismsf);
+	is_audio = cdrom->is_track_audio(real_pos, cdrom_sector_ismsf);
+
+	if (!(cdrom_sector_flags & 0xf0))		/* 0x00 and 0x08 are illegal modes */
+	{
+		return 0;
+	}
+	
+	if (cdrom->is_track_audio(ide->cdpos, 0))
+	{
+		real_sector_type = 1;
+		
+		if (cdrom_sector_type > 1)
+		{
+			return 0;
+		}
+		else
+		{
+			memcpy(b, cdrom_sector_buffer.buffer, 2352);
+			cdrom_sector_size = 2352;
+		}
+	}
+	else
+	{
+		if ((cdrom_sector_flags & 0x18) == 0x08)		/* EDC/ECC without user data is an illegal mode */
+		{
+			return 0;
+		}
+
+		cdrom_sector_size = 0;
+
+		if (cdrom_sector_flags & 0x80)		/* Sync */
+		{
+			memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.sync, 12);
+			cdrom_sector_size += 12;
+			temp_b += 12;
+		}
+		if (cdrom_sector_flags & 0x20)		/* Header */
+		{
+			memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.header, 4);
+			cdrom_sector_size += 4;
+			temp_b += 4;
+		}
+		
+		switch(cdrom_sector_buffer.cdrom_sector.header[3])
+		{
+			case 1:
+				real_sector_type = 2;	/* Mode 1 */
+				break;
+			case 2:
+				real_sector_type = 3;	/* Mode 2 */
+				break;
+			default:
+				return 0;
+		}
+
+		if (real_sector_type == 2)
+		{
+			if ((cdrom_sector_type == 0) || (cdrom_sector_type == 2))
+			{
+				/* Mode 1 sector, expected type is 1 type. */
+				if (cdrom_sector_flags & 0x40)		/* Sub-header */
+				{
+					if (!(cdrom_sector_flags & 0x10))		/* No user data */
+					{
+						memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.user_data, 8);
+						cdrom_sector_size += 8;
+						temp_b += 8;
+					}
+				}
+				if (cdrom_sector_flags & 0x10)		/* User data */
+				{
+					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.user_data, 2048);
+					cdrom_sector_size += 2048;
+					temp_b += 2048;
+				}
+				if (cdrom_sector_flags & 0x08)		/* EDC/ECC */
+				{
+					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.ecc, 288);
+					cdrom_sector_size += 288;
+					temp_b += 288;
+				}
+			}
+			else
+			{
+				return 0;
+			}
+		}
+		else if (real_sector_type == 3)
+		{
+			if ((cdrom_sector_type == 0) || (cdrom_sector_type == 3))
+			{
+				/* Mode 2 sector, non-XA mode. */
+				if (cdrom_sector_flags & 0x40)		/* Sub-header */
+				{
+					if (!(cdrom_sector_flags & 0x10))		/* No user data */
+					{
+						memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 8);
+						cdrom_sector_size += 8;
+						temp_b += 8;
+					}
+				}
+				if (cdrom_sector_flags & 0x10)		/* User data */
+				{
+					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 2328);
+					cdrom_sector_size += 8;
+					temp_b += 8;
+					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.user_data, 2328);
+					cdrom_sector_size += 2328;
+					temp_b += 2328;
+				}
+			}
+			else if (cdrom_sector_type == 4)
+			{
+				/* Mode 2 sector, XA Form 1 mode */
+				if ((cdrom_sector_flags & 0xf0) == 0x30)
+				{
+					return 0;
+				}
+				if (((cdrom_sector_flags & 0xf8) >= 0xa8) || ((cdrom_sector_flags & 0xf8) <= 0xd8))
+				{
+					return 0;
+				}
+				if (cdrom_sector_flags & 0x40)		/* Sub-header */
+				{
+					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 8);
+					cdrom_sector_size += 8;
+					temp_b += 8;
+				}
+				if (cdrom_sector_flags & 0x10)		/* User data */
+				{
+					if ((cdrom_sector_flags & 0xf0) == 0x10)
+					{
+						/* The data is alone, include sub-header. */
+						memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 8);
+						cdrom_sector_size += 8;
+						temp_b += 8;
+					}
+					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.user_data, 2040);
+					cdrom_sector_size += 2040;
+					temp_b += 2040;
+				}
+				if (cdrom_sector_flags & 0x08)		/* EDC/ECC */
+				{
+					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.user_data + 2040, 288);
+					cdrom_sector_size += 288;
+					temp_b += 288;
+				}
+			}
+			else if (cdrom_sector_type == 5)
+			{
+				/* Mode 2 sector, XA Form 2 mode */
+				if ((cdrom_sector_flags & 0xf0) == 0x30)
+				{
+					return 0;
+				}
+				if (((cdrom_sector_flags & 0xf8) >= 0xa8) || ((cdrom_sector_flags & 0xf8) <= 0xd8))
+				{
+					return 0;
+				}
+				/* Mode 2 sector, XA Form 1 mode */
+				if (cdrom_sector_flags & 0x40)		/* Sub-header */
+				{
+					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 8);
+					cdrom_sector_size += 8;
+					temp_b += 8;
+				}
+				if (cdrom_sector_flags & 0x10)		/* User data */
+				{
+					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.user_data, 2328);
+					cdrom_sector_size += 2328;
+					temp_b += 2328;
+				}
+			}
+			else
+			{
+				return 0;
+			}
+		}
+		else
+		{
+			return 0;
+		}
+	}
+
+	// pclog("CD-ROM sector size: %i (%i, %i) [%04X]\n", cdrom_sector_size, cdrom_sector_type, real_sector_type, cdrom_sector_flags);
+	return cdrom_add_error_and_subchannel(b, real_sector_type);
+}
+
 static void atapicommand(int ide_board)
 {
 	IDE *ide = &ide_drives[cur_ide[ide_board]];
@@ -1802,7 +2125,6 @@ static void atapicommand(int ide_board)
 	int pos=0;
 	unsigned char temp;
 	uint32_t size;
-	int is_error;
 	uint8_t page_code;
 	int max_len;
 	unsigned idx = 0;
@@ -1818,7 +2140,7 @@ static void atapicommand(int ide_board)
 	int ret;
 
 #if 0
-	pclog("ATAPI command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, %i\n",idebufferb[0],SCSISense.SenseKey,SCSISense.Asc,SCSISense.Ascq,ins);
+	pclog("ATAPI command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, %i, Unit attention: %i\n",idebufferb[0],SCSISense.SenseKey,SCSISense.Asc,SCSISense.Ascq,ins,SCSISense.UnitAttention);
 		
 	int CdbLength;
 	for (CdbLength = 1; CdbLength < 12; CdbLength++)
@@ -1828,39 +2150,44 @@ static void atapicommand(int ide_board)
 	msf=idebufferb[1]&2;
 	ide->cdlen=0;
 
-	is_error = 0;
-
 	if (cdrom->medium_changed())
 	{
 		SCSICDROM_Insert();
 	}
-	/*If UNIT_ATTENTION is set, error out with NOT_READY.
-	  VIDE-CDD.SYS will then issue a READ_TOC, which can pass through UNIT_ATTENTION and will clear sense.
-	  NT 3.1 / AZTIDECD.SYS will then issue a REQUEST_SENSE, which can also pass through UNIT_ATTENTION but will clear sense AFTER sending it back.
-	  In any case, if the command cannot pass through, set our state to errored.*/
-	if (!(SCSICommandTable[idebufferb[0]] & ALLOW_UA) && SCSISense.SenseKey == SENSE_UNIT_ATTENTION)
+
+	if (!cdrom->ready() && SCSISense.UnitAttention)
 	{
-		atapi_cmd_error(ide, SCSISense.SenseKey, SCSISense.Asc, SCSISense.Ascq);
-		is_error = 1;
+		/* If the drive is not ready, there is no reason to keep the
+			UNIT ATTENTION condition present, as we only use it to mark
+			disc changes. */
+		SCSISense.UnitAttention = 0;
 	}
-	/*Unless the command issued was a REQUEST_SENSE or TEST_UNIT_READY, clear sense.
-          This is important because both VIDE-CDD.SYS and NT 3.1 / AZTIDECD.SYS rely on this behaving VERY specifically.
-          VIDE-CDD.SYS will clear sense through READ_TOC, while NT 3.1 / AZTIDECD.SYS will issue a REQUEST_SENSE.*/
-	if ((idebufferb[0]!=GPCMD_REQUEST_SENSE) && (idebufferb[0]!=GPCMD_TEST_UNIT_READY))
+	
+	/* If the UNIT ATTENTION condition is set and the command does not allow
+		execution under it, error out and report the condition. */
+	if (!(SCSICommandTable[idebufferb[0]] & ALLOW_UA) && SCSISense.UnitAttention)
 	{
-		/* GPCMD_TEST_UNIT_READY is NOT supposed to clear sense! */
+		// pclog("UNIT ATTENTION: Command not allowed to pass through\n");
+		atapi_cmd_error(ide, SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
+		return;
+	}
+
+	if (idebufferb[0] == GPCMD_READ_TOC_PMA_ATIP)
+	{
+		SCSISense.UnitAttention = 0;
+	}
+
+	/* Unless the command is REQUEST SENSE, clear the sense. This will *NOT*
+		the UNIT ATTENTION condition if it's set. */
+	if (idebufferb[0]!=GPCMD_REQUEST_SENSE)
+	{
 		atapi_sense_clear(idebufferb[0], 1);
 	}
 
-	/*If our state has been set to errored, clear it, and return.*/
-	if (is_error)
-	{
-		is_error = 0;
-		return;
-	}
-		
+	/* Next it's time for NOT READY. */
 	if ((SCSICommandTable[idebufferb[0]] & CHECK_READY) && !cdrom->ready())
 	{
+		// pclog("Not ready\n");
 		atapi_cmd_error(ide, SENSE_NOT_READY, ASC_MEDIUM_NOT_PRESENT, 0);
 		SCSISense.SenseKey = SENSE_NOT_READY;
 		SCSISense.Asc = ASC_MEDIUM_NOT_PRESENT;
@@ -1868,6 +2195,8 @@ static void atapicommand(int ide_board)
 		return;
 	}
 
+	// pclog("Continuing with command\n");
+		
 	prev_status = cd_status;
 	cd_status = cdrom->status();
 	if (((prev_status == CD_STATUS_PLAYING) || (prev_status == CD_STATUS_PAUSED)) && ((cd_status != CD_STATUS_PLAYING) && (cd_status != CD_STATUS_PAUSED)))
@@ -1911,11 +2240,20 @@ static void atapicommand(int ide_board)
 				idebufferb[13]=SCSISense.Ascq;
 			}
 		}
-		else
+		else if ((SCSISense.SenseKey == 0) && (cd_status >= CD_STATUS_PLAYING))
 		{
 			idebufferb[2]=SENSE_ILLEGAL_REQUEST;
 			idebufferb[12]=ASC_AUDIO_PLAY_OPERATION;
 			idebufferb[13]=(cd_status == CD_STATUS_PLAYING) ? ASCQ_AUDIO_PLAY_OPERATION_IN_PROGRESS : ASCQ_AUDIO_PLAY_OPERATION_PAUSED;
+		}
+		else
+		{
+			if (SCSISense.UnitAttention)
+			{
+				idebufferb[2]=SENSE_UNIT_ATTENTION;
+				idebufferb[12]=ASC_MEDIUM_MAY_HAVE_CHANGED;
+				idebufferb[13]=0;
+			}
 		}
 
 		idebufferb[7]=10;
@@ -1923,6 +2261,13 @@ static void atapicommand(int ide_board)
 		// pclog("REQUEST SENSE start\n");
 		atapi_command_ready(ide_board, 18);
 
+		if (idebufferb[2] == SENSE_UNIT_ATTENTION)
+		{
+			/* If the last remaining sense is unit attention, clear
+				that condition. */
+			SCSISense.UnitAttention = 0;
+		}
+		
 		/* Clear the sense stuff as per the spec. */
 		atapi_sense_clear(temp_command, 0);
                 break;
@@ -2005,56 +2350,71 @@ static void atapicommand(int ide_board)
                 return;
                 
         case GPCMD_READ_CD:
-//                pclog("Read CD : start LBA %02X%02X%02X%02X Length %02X%02X%02X Flags %02X\n",idebufferb[2],idebufferb[3],idebufferb[4],idebufferb[5],idebufferb[6],idebufferb[7],idebufferb[8],idebufferb[9]);
-		rcdmode = idebufferb[9] & 0xF8;
-                if ((rcdmode != 0x10) && (rcdmode != 0xF8))
-                {
-                        ide->atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
-                        ide->error = (SENSE_ILLEGAL_REQUEST << 4) | ABRT_ERR;
-                        if (SCSISense.SenseKey == SENSE_UNIT_ATTENTION)
-                                ide->error |= MCR_ERR;
-                        SCSISense.Asc = ASC_ILLEGAL_OPCODE;
-                        ide->packetstatus = ATAPI_STATUS_ERROR;
-                        idecallback[ide_board]=50*IDE_TIME;
-                        break;
-//                        pclog("Bad flags bits %02X\n",idebufferb[9]);
-//                        exit(-1);
-                }
-/*                if (idebufferb[6] || idebufferb[7] || (idebufferb[8]!=1))
-                {
-                        pclog("More than 1 sector!\n");
-                        exit(-1);
-                }*/
-                ide->cdlen=(idebufferb[6]<<16)|(idebufferb[7]<<8)|idebufferb[8];
-                ide->cdpos=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
-//                pclog("Read at %08X %08X\n",ide.cdpos,ide.cdpos*2048);
-		if (rcdmode == 0x10)
-                        cdrom->readsector(idebufferb,ide->cdpos);
-		else
-	                cdrom->readsector_raw(idebufferb,ide->cdpos);
+		case GPCMD_READ_CD_MSF:
+//          pclog("Read CD : start LBA %02X%02X%02X%02X Length %02X%02X%02X Flags %02X\n",idebufferb[2],idebufferb[3],idebufferb[4],idebufferb[5],idebufferb[6],idebufferb[7],idebufferb[8],idebufferb[9]);
+			if (idebufferb[0] == GPCMD_READ_CD_MSF)
+			{
+				ide->cdpos=MSFtoLBA(idebufferb[3],idebufferb[4],idebufferb[5]);
+				ide->cdlen=MSFtoLBA(idebufferb[6],idebufferb[7],idebufferb[8]);
+
+				ide->cdlen -= ide->cdpos;
+				ide->cdlen++;
+				
+				cdrom_sector_ismsf = 1;
+			}
+			else
+			{
+				ide->cdlen=(idebufferb[6]<<16)|(idebufferb[7]<<8)|idebufferb[8];
+				ide->cdpos=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
+
+				cdrom_sector_ismsf = 0;
+			}
+
+			cdrom_sector_type = (idebufferb[1] >> 2) & 7;
+			cdrom_sector_flags = idebufferb[9] || (((uint32_t) idebufferb[10]) << 8);
+
+			ret = cdrom_read_data(ide, idebufferb);
+				
+            if (!ret)
+            {
+                ide->atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
+                ide->error = (SENSE_ILLEGAL_REQUEST << 4) | ABRT_ERR;
+                if (SCSISense.SenseKey == SENSE_UNIT_ATTENTION)
+				{
+                    ide->error |= MCR_ERR;
+				}
+                SCSISense.Asc = ASC_ILLEGAL_OPCODE;
+                ide->packetstatus = ATAPI_STATUS_ERROR;
+                idecallback[ide_board]=50*IDE_TIME;
+                break;
+//              pclog("Bad flags bits %02X\n",idebufferb[9]);
+//              exit(-1);
+            }
+
+//			pclog("Read at %08X %08X\n",ide.cdpos,ide.cdpos*2048);
+
 #ifndef RPCEMU_IDE
-                readflash=1;
+            readflash=1;
 #endif
-		readcdmode = (rcdmode == 0xF8);
-                ide->cdpos++;
-                ide->cdlen--;
-                if (ide->cdlen >= 0)
-                        ide->packetstatus = ATAPI_STATUS_READCD;
-                else
-                        ide->packetstatus = ATAPI_STATUS_DATA;
-                ide->cylinder=(idebufferb[9] == 0x10) ? 2048 : 2352;
-                ide->secount=2;
-                ide->pos=0;
-                idecallback[ide_board]=60*IDE_TIME;
-                ide->packlen=(idebufferb[9] == 0x10) ? 2048 : 2352;
-                return;
+
+            ide->cdpos++;
+            ide->cdlen--;
+            if (ide->cdlen >= 0)
+                ide->packetstatus = ATAPI_STATUS_READCD;
+            else
+                ide->packetstatus = ATAPI_STATUS_DATA;
+            ide->cylinder=cdrom_sector_size;
+            ide->secount=2;
+            ide->pos=0;
+            idecallback[ide_board]=60*IDE_TIME;
+            ide->packlen=cdrom_sector_size;
+            return;
 
 		case GPCMD_READ_6:
 		case GPCMD_READ_10:
 		case GPCMD_READ_12:
 //                pclog("Read 10 : start LBA %02X%02X%02X%02X Length %02X%02X%02X Flags %02X\n",idebufferb[2],idebufferb[3],idebufferb[4],idebufferb[5],idebufferb[6],idebufferb[7],idebufferb[8],idebufferb[9]);
-
-		readcdmode = 0;
+		cdrom_sector_ismsf = 0;
 
 		if (idebufferb[0] == GPCMD_READ_6)
 		{
@@ -2071,7 +2431,8 @@ static void atapicommand(int ide_board)
 			ide->cdlen=(((uint32_t) idebufferb[6])<<24)|(((uint32_t) idebufferb[7])<<16)|(((uint32_t) idebufferb[8])<<8)|((uint32_t) idebufferb[9]);
 			ide->cdpos=(((uint32_t) idebufferb[2])<<24)|(((uint32_t) idebufferb[3])<<16)|(((uint32_t) idebufferb[4])<<8)|((uint32_t) idebufferb[5]);
 		}
-                if (!ide->cdlen)
+
+				if (!ide->cdlen)
                 {
 //                        pclog("All done - callback set\n");
                         ide->packetstatus = ATAPI_STATUS_COMPLETE;
@@ -2079,7 +2440,11 @@ static void atapicommand(int ide_board)
                         break;
                 }
 
-                cdrom->readsector(idebufferb,ide->cdpos);
+				cdrom_sector_type = 0;
+				cdrom_sector_flags = 0x10;
+
+				ret = cdrom_read_data(ide, idebufferb);
+
 #ifndef RPCEMU_IDE
                 readflash=1;
 #endif
@@ -2716,6 +3081,8 @@ static void callnonreadcd(IDE *ide)		/* Callabck for non-Read CD commands */
 
 static void callreadcd(IDE *ide)
 {
+		int ret;
+
         ide_irq_lower(ide);
         if (ide->cdlen<=0)
         {
@@ -2726,22 +3093,21 @@ static void callreadcd(IDE *ide)
         }
 //        pclog("Continue readcd! %i blocks left\n",ide->cdlen);
         ide->atastat = BUSY_STAT;
-        
-	if (readcdmode)
-		cdrom->readsector_raw((uint8_t *) ide->buffer, ide->cdpos);
-	else
-		cdrom->readsector((uint8_t *) ide->buffer, ide->cdpos);
+
+		ret = cdrom_read_data(ide, (uint8_t *) ide->buffer);
+
 #ifndef RPCEMU_IDE
         readflash=1;
 #endif
+
         ide->cdpos++;
         ide->cdlen--;
         ide->packetstatus = ATAPI_STATUS_READCD;
-        ide->cylinder=readcdmode ? 2352 : 2048;
+        ide->cylinder=cdrom_sector_size;
         ide->secount=2;
         ide->pos=0;
         idecallback[ide->board]=60*IDE_TIME;
-        ide->packlen=readcdmode ? 2352 : 2048;
+        ide->packlen=cdrom_sector_size;
 }
 
 
