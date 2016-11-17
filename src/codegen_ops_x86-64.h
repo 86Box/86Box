@@ -5147,6 +5147,8 @@ static void LOAD_EA()
         addbyte(0x24);
 }
 
+#define MEM_CHECK_WRITE_B MEM_CHECK_WRITE
+
 static void MEM_CHECK_WRITE(x86seg *seg)
 {
         uint8_t *jump1, *jump2;
