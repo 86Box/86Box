@@ -1763,6 +1763,9 @@ static void *riva128_init()
   riva128_t *riva128 = malloc(sizeof(riva128_t));
   memset(riva128, 0, sizeof(riva128_t));
 
+  riva128->card_id = 0x03;
+  riva128->is_nv3t = 0;
+
   riva128->memory_size = device_get_config_int("memory");
 
   svga_init(&riva128->svga, riva128, riva128->memory_size << 20,
@@ -1957,6 +1960,9 @@ static void *rivatnt_init()
 {
   riva128_t *riva128 = malloc(sizeof(riva128_t));
   memset(riva128, 0, sizeof(riva128_t));
+
+  riva128->card_id = 0x04;
+  riva128->is_nv3t = 0;
 
   riva128->memory_size = device_get_config_int("memory");
 
