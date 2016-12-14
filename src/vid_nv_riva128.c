@@ -23,6 +23,9 @@ typedef struct riva128_t
 
   svga_t svga;
 
+  uint8_t card_id;
+  int is_nv3t;
+
   uint32_t linear_base, linear_size;
 
   uint16_t rma_addr;
@@ -272,7 +275,30 @@ static uint8_t riva128_pmc_read(uint32_t addr, void *p)
 
   //pclog("RIVA 128 PMC read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
 
-  switch(addr)
+  if(riva128->card_id == 0x03) switch(addr)
+  {
+  case 0x000000: ret = 0x11; break;
+  case 0x000001: ret = 0x01; break;
+  case 0x000002: ret = 0x03; break;
+  case 0x000003: ret = 0x00; break;
+  case 0x000100: ret = riva128->pmc.intr & 0xff; break;
+  case 0x000101: ret = (riva128->pmc.intr >> 8) & 0xff; break;
+  case 0x000102: ret = (riva128->pmc.intr >> 16) & 0xff; break;
+  case 0x000103: ret = (riva128->pmc.intr >> 24) & 0xff; break;
+  case 0x000140: ret = riva128->pmc.intr & 0xff; break;
+  case 0x000141: ret = (riva128->pmc.intr_en  >> 8) & 0xff; break;
+  case 0x000142: ret = (riva128->pmc.intr_en >> 16) & 0xff; break;
+  case 0x000143: ret = (riva128->pmc.intr_en >> 24) & 0xff; break;
+  case 0x000160: ret = riva128->pmc.intr_line & 0xff; break;
+  case 0x000161: ret = (riva128->pmc.intr_line >> 8) & 0xff; break;
+  case 0x000162: ret = (riva128->pmc.intr_line >> 16) & 0xff; break;
+  case 0x000163: ret = (riva128->pmc.intr_line >> 24) & 0xff; break;
+  case 0x000200: ret = riva128->pmc.enable & 0xff; break;
+  case 0x000201: ret = (riva128->pmc.enable >> 8) & 0xff; break;
+  case 0x000202: ret = (riva128->pmc.enable >> 16) & 0xff; break;
+  case 0x000203: ret = (riva128->pmc.enable >> 24) & 0xff; break;
+  }
+  else if(riva128->card_id == 0x04) switch(addr)
   {
   case 0x000000: ret = 0x00; break;
   case 0x000001: ret = 0x40; break;
@@ -535,12 +561,32 @@ static uint8_t riva128_pfb_read(uint32_t addr, void *p)
   {
   case 0x100000:
   {
-    switch(riva128->memory_size)
+    switch(riva128->card_id)
     {
-    case 2: ret = 1;
-    case 3: ret = 2;
+      case 0x03:
+      {
+        switch(riva128->memory_size)
+        {
+        case 1: case 8: ret = 0;
+        case 2: ret = 1;
+        case 4: ret = 2;
+        }
+        ret |= 0x04;
+        break;
+      }
+      case 0x04:
+      {
+        switch(riva128->memory_size)
+        {
+        case 4: ret = 1; break;
+        case 8: ret = 2; break;
+        case 16: ret = 3; break;
+        case 32: ret = 0; break;
+        }
+        ret |= 0x14;
+        break;
+      }
     }
-    ret |= 0x04;
     break;
   }
   case 0x100200: ret = riva128->pfb.config_0 & 0xff; break;
@@ -678,6 +724,10 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
   case 0x400144:
   riva128->pgraph.invalid_en = val;
   break;
+  }
+
+  if(riva128->card_id == 0x03) switch(addr)
+  {
   case 0x400180:
   riva128->pgraph.debug[1] &= ~1; //Clear recent volatile reset bit on object switch.
   break;
@@ -867,6 +917,11 @@ static void riva128_pusher_run(int chanid, void *p)
     uint32_t dmaget = riva128->pfifo.channels[chanid].dmaget;
     uint32_t cmd = ((uint32_t*)svga->vram)[dmaget >> 2];
     uint32_t* params = ((uint32_t*)svga->vram)[(dmaget + 4) >> 2];
+    if((cmd & 0xe0000003) == 0x20000000)
+    {
+      //old nv4 jump command
+      riva128->pfifo.channels[chanid].dmaget = cmd & 0x1ffffffc;
+    }
     if((cmd & 0xe0030003) == 0)
     {
       //nv3 increasing method command
@@ -1348,6 +1403,63 @@ static uint8_t riva128_pci_read(int func, int addr, void *p)
   return ret;
 }
 
+static uint8_t rivatnt_pci_read(int func, int addr, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+  uint8_t ret = 0;
+  //pclog("RIVA 128 PCI read %02X %04X:%08X\n", addr, CS, cpu_state.pc);
+  switch (addr)
+  {
+    case 0x00: ret = 0xde; break; /*'nVidia'*/
+    case 0x01: ret = 0x10; break;
+
+    case 0x02: ret = 0x20; break; /*'RIVA TNT'*/
+    case 0x03: ret = 0x00; break;
+
+    case 0x04: ret = riva128->pci_regs[0x04] & 0x37; break;
+    case 0x05: ret = riva128->pci_regs[0x05] & 0x01; break;
+
+    case 0x06: ret = 0x20; break;
+    case 0x07: ret = riva128->pci_regs[0x07] & 0x73; break;
+
+    case 0x08: ret = 0x01; break; /*Revision ID*/
+    case 0x09: ret = 0; break; /*Programming interface*/
+
+    case 0x0a: ret = 0x00; break; /*Supports VGA interface*/
+    case 0x0b: ret = 0x03; /*output = 3; */break;
+
+    case 0x0e: ret = 0x00; break; /*Header type*/
+
+    case 0x13:
+    case 0x17:
+    ret = riva128->pci_regs[addr];
+    break;
+
+    case 0x2c: case 0x2d: case 0x2e: case 0x2f:
+    ret = riva128->pci_regs[addr];
+    //if(CS == 0x0028) output = 3;
+    break;
+
+    case 0x30: return riva128->pci_regs[0x30] & 0x01; /*BIOS ROM address*/
+    case 0x31: return 0x00;
+    case 0x32: return riva128->pci_regs[0x32];
+    case 0x33: return riva128->pci_regs[0x33];
+
+    case 0x34: ret = 0x00; break;
+
+    case 0x3c: ret = riva128->pci_regs[0x3c]; break;
+
+    case 0x3d: ret = 0x01; break; /*INTA*/
+
+    case 0x3e: ret = 0x03; break;
+    case 0x3f: ret = 0x01; break;
+
+  }
+  //        pclog("%02X\n", ret);
+  return ret;
+}
+
 static void riva128_reenable_svga_mappings(svga_t *svga)
 {
         switch (svga->gdcreg[6] & 0xc) /*Banked framebuffer*/
@@ -1467,6 +1579,112 @@ static void riva128_pci_write(int func, int addr, uint8_t val, void *p)
     else
     {
       //                        pclog("RIVA 128 bios_rom disabled\n");
+      mem_mapping_disable(&riva128->bios_rom.mapping);
+    }
+    return;
+
+    case 0x3c:
+    riva128->pci_regs[0x3c] = val & 0x0f;
+    return;
+
+    case 0x40: case 0x41: case 0x42: case 0x43:
+    riva128->pci_regs[addr - 0x14] = val; //0x40-0x43 are ways to write to 0x2c-0x2f
+    return;
+  }
+}
+
+static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
+{
+  //pclog("RIVA 128 PCI write %02X %02X %04X:%08X\n", addr, val, CS, cpu_state.pc);
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+  switch (addr)
+  {
+    case 0x00: case 0x01: case 0x02: case 0x03:
+    case 0x08: case 0x09: case 0x0a: case 0x0b:
+    case 0x3d: case 0x3e: case 0x3f:
+    return;
+
+    case PCI_REG_COMMAND:
+    riva128->pci_regs[PCI_REG_COMMAND] = val & 0x27;
+    if (val & PCI_COMMAND_IO)
+    {
+      io_sethandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
+      uint32_t mmio_addr = riva128->pci_regs[0x13] << 24;
+      uint32_t linear_addr = riva128->pci_regs[0x17] << 24;
+      if (!mmio_addr && !linear_addr)
+      {
+	riva128_reenable_svga_mappings(svga);
+      }
+      if (mmio_addr)
+      {
+      	mem_mapping_set_addr(&riva128->mmio_mapping, mmio_addr, 0x1000000);
+      }
+      if (linear_addr)
+      {
+      	mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0x1000000);
+        svga->linear_base = linear_addr;
+      }
+    }
+    else
+    {
+      io_removehandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
+      mem_mapping_disable(&svga->mapping);
+      mem_mapping_disable(&riva128->mmio_mapping);
+      mem_mapping_disable(&riva128->linear_mapping);
+    }
+    return;
+
+    case 0x05:
+    riva128->pci_regs[0x05] = val & 0x01;
+    return;
+
+    case 0x07:
+    riva128->pci_regs[0x07] = (riva128->pci_regs[0x07] & 0x8f) | (val & 0x70);
+    return;
+
+    case 0x13:
+    {
+      riva128->pci_regs[addr] = val;
+      uint32_t mmio_addr = riva128->pci_regs[0x13] << 24;
+      if (mmio_addr)
+      {
+      	mem_mapping_set_addr(&riva128->mmio_mapping, mmio_addr, 0x1000000);
+      }
+      else
+      {
+      	mem_mapping_disable(&riva128->mmio_mapping);
+      }
+      return;
+    }
+
+    case 0x17:
+    {
+      riva128->pci_regs[addr] = val;
+      uint32_t linear_addr = riva128->pci_regs[0x17] << 24;
+      if (linear_addr)
+      {
+      	mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0x1000000);
+        svga->linear_base = linear_addr;
+      }
+      else
+      {
+      	mem_mapping_disable(&riva128->linear_mapping);
+      }
+      return;
+    }
+
+    case 0x30: case 0x32: case 0x33:
+    riva128->pci_regs[addr] = val;
+    if (riva128->pci_regs[0x30] & 0x01)
+    {
+      uint32_t addr = (riva128->pci_regs[0x32] << 16) | (riva128->pci_regs[0x33] << 24);
+      //                        pclog("RIVA TNT bios_rom enabled at %08x\n", addr);
+      mem_mapping_set_addr(&riva128->bios_rom.mapping, addr, 0x10000);
+    }
+    else
+    {
+      //                        pclog("RIVA TNT bios_rom disabled\n");
       mem_mapping_disable(&riva128->bios_rom.mapping);
     }
     return;
@@ -1665,12 +1883,51 @@ static device_config_t riva128_config[] =
     .selection =
     {
       {
+        .description = "1 MB",
+        .value = 1
+      },
+      {
         .description = "2 MB",
         .value = 2
       },
       {
         .description = "4 MB",
         .value = 4
+      },
+      {
+        .description = ""
+      }
+    },
+    .default_int = 4
+  },
+  {
+    .type = -1
+  }
+};
+
+static device_config_t riva128zx_config[] =
+{
+  {
+    .name = "memory",
+    .description = "Memory size",
+    .type = CONFIG_SELECTION,
+    .selection =
+    {
+      {
+        .description = "1 MB",
+        .value = 1
+      },
+      {
+        .description = "2 MB",
+        .value = 2
+      },
+      {
+        .description = "4 MB",
+        .value = 4
+      },
+      {
+        .description = "8 MB",
+        .value = 8
       },
       {
         .description = ""
@@ -1695,3 +1952,152 @@ device_t riva128_device =
         riva128_add_status_info,
         riva128_config
 };
+
+static void *rivatnt_init()
+{
+  riva128_t *riva128 = malloc(sizeof(riva128_t));
+  memset(riva128, 0, sizeof(riva128_t));
+
+  riva128->memory_size = device_get_config_int("memory");
+
+  svga_init(&riva128->svga, riva128, riva128->memory_size << 20,
+  riva128_recalctimings,
+  riva128_in, riva128_out,
+  NULL, NULL);
+
+  rom_init(&riva128->bios_rom, "roms/NV4_diamond_revB.rom", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+  if (PCI)
+    mem_mapping_disable(&riva128->bios_rom.mapping);
+
+  mem_mapping_add(&riva128->mmio_mapping,     0, 0,
+    riva128_mmio_read,
+    riva128_mmio_read_w,
+    riva128_mmio_read_l,
+    riva128_mmio_write,
+    riva128_mmio_write_w,
+    riva128_mmio_write_l,
+    NULL,
+    0,
+    riva128);
+  mem_mapping_add(&riva128->linear_mapping,   0, 0,
+    svga_read_linear,
+    svga_readw_linear,
+    svga_readl_linear,
+    svga_write_linear,
+    svga_writew_linear,
+    svga_writel_linear,
+    NULL,
+    0,
+    &riva128->svga);
+
+  io_sethandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
+
+  // riva128->pci_regs[4] = 3;
+  riva128->pci_regs[4] = 7;
+  riva128->pci_regs[5] = 0;
+  riva128->pci_regs[6] = 0;
+  riva128->pci_regs[7] = 2;
+  
+  riva128->pci_regs[0x2c] = 0x02;
+  riva128->pci_regs[0x2d] = 0x11;
+  riva128->pci_regs[0x2e] = 0x16;
+  riva128->pci_regs[0x2f] = 0x10;
+        
+  riva128->pci_regs[0x30] = 0x00;
+  riva128->pci_regs[0x32] = 0x0c;
+  riva128->pci_regs[0x33] = 0x00;
+
+  //riva128->pci_regs[0x3c] = 3;
+
+  riva128->pmc.intr = 0;
+  riva128->pbus.intr = 0;
+  riva128->pfifo.intr = 0;
+  riva128->pgraph.intr = 0;
+  
+  pci_add(rivatnt_pci_read, rivatnt_pci_write, riva128);
+
+  return riva128;
+}
+
+static void rivatnt_close(void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  FILE *f = fopen("vram.dmp", "wb");
+  fwrite(riva128->svga.vram, 4 << 20, 1, f);
+  fclose(f);
+
+  svga_close(&riva128->svga);
+
+  free(riva128);
+}
+
+static int rivatnt_available()
+{
+  return rom_present("roms/NV4_diamond_revB.rom");
+}
+
+static void rivatnt_speed_changed(void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+
+  svga_recalctimings(&riva128->svga);
+}
+
+static void rivatnt_force_redraw(void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+
+  riva128->svga.fullchange = changeframecount;
+}
+
+static void rivatnt_add_status_info(char *s, int max_len, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+
+  svga_add_status_info(s, max_len, &riva128->svga);
+}
+
+static device_config_t rivatnt_config[] =
+{
+  {
+    .name = "memory",
+    .description = "Memory size",
+    .type = CONFIG_SELECTION,
+    .selection =
+    {
+      {
+        .description = "4 MB",
+        .value = 4
+      },
+      {
+        .description = "8 MB",
+        .value = 8
+      },
+      {
+        .description = "16 MB",
+        .value = 16
+      },
+      {
+        .description = ""
+      }
+    },
+    .default_int = 16
+  },
+  {
+    .type = -1
+  }
+};
+
+device_t rivatnt_device =
+{
+        "nVidia RIVA TNT",
+        0,
+        rivatnt_init,
+        rivatnt_close,
+        rivatnt_available,
+        rivatnt_speed_changed,
+        rivatnt_force_redraw,
+        rivatnt_add_status_info,
+        rivatnt_config
+};
+
