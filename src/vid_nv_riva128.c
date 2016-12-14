@@ -576,7 +576,7 @@ static uint8_t riva128_pfb_read(uint32_t addr, void *p)
       }
       case 0x04:
       {
-        switch(rivatnt->memory_size)
+        switch(riva128->memory_size)
         {
         case 4: ret = 1; break;
         case 8: ret = 2; break;
@@ -725,7 +725,7 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
   riva128->pgraph.invalid_en = val;
   break;
   }
-  
+
   if(riva128->card_id == 0x03) switch(addr)
   {
   case 0x400180:
@@ -920,7 +920,7 @@ static void riva128_pusher_run(int chanid, void *p)
     if((cmd & 0xe0000003) == 0x20000000)
     {
       //old nv4 jump command
-      rivatnt->pfifo.channels[chanid].dmaget = cmd & 0x1ffffffc;
+      riva128->pfifo.channels[chanid].dmaget = cmd & 0x1ffffffc;
     }
     if((cmd & 0xe0030003) == 0)
     {
