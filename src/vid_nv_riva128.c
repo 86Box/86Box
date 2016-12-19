@@ -123,7 +123,7 @@ typedef struct riva128_t
 	uint32_t obj_handle[8];
 	uint8_t obj_class[8];
 
-  uint32_t debug[4];
+  uint32_t debug[5];
 	
 	uint32_t intr;
   uint32_t intr_en;
@@ -131,8 +131,18 @@ typedef struct riva128_t
   uint32_t invalid;
   uint32_t invalid_en;
 
+  uint32_t ctx_switch;
+  uint32_t ctx_control;
+  uint32_t ctx_user;
+  uint32_t ctx_cache[8];
+
+  uint32_t fifo_enable;
+
   uint32_t uclip_xmin, uclip_ymin, uclip_xmax, uclip_ymax;
   uint32_t oclip_xmin, oclip_ymin, oclip_xmax, oclip_ymax;
+
+  uint32_t src_canvas_min, src_canvas_max;
+  uint32_t dst_canvas_min, dst_canvas_max;
 
   uint32_t beta;
   } pgraph;
@@ -646,6 +656,23 @@ static uint8_t riva128_pgraph_read(uint32_t addr, void *p)
 
   switch(addr)
   {
+  case 0x400080: ret = riva128->pgraph.debug[0] & 0xff; break;
+  case 0x400081: ret = (riva128->pgraph.debug[0] >> 8) & 0xff; break;
+  case 0x400082: ret = (riva128->pgraph.debug[0] >> 16) & 0xff; break;
+  case 0x400083: ret = (riva128->pgraph.debug[0] >> 24) & 0xff; break;
+  case 0x400084: ret = riva128->pgraph.debug[1] & 0xff; break;
+  case 0x400085: ret = (riva128->pgraph.debug[1] >> 8) & 0xff; break;
+  case 0x400086: ret = (riva128->pgraph.debug[1] >> 16) & 0xff; break;
+  case 0x400087: ret = (riva128->pgraph.debug[1] >> 24) & 0xff; break;
+  case 0x400088: ret = riva128->pgraph.debug[2] & 0xff; break;
+  case 0x400089: ret = (riva128->pgraph.debug[2] >> 8) & 0xff; break;
+  case 0x40008a: ret = (riva128->pgraph.debug[2] >> 16) & 0xff; break;
+  case 0x40008b: ret = (riva128->pgraph.debug[2] >> 24) & 0xff; break;
+  case 0x40008c: ret = riva128->pgraph.debug[3] & 0xff; break;
+  case 0x40008d: ret = (riva128->pgraph.debug[3] >> 8) & 0xff; break;
+  case 0x40008e: ret = (riva128->pgraph.debug[3] >> 16) & 0xff; break;
+  case 0x40008f: ret = (riva128->pgraph.debug[3] >> 24) & 0xff; break;
+
   case 0x400100: ret = riva128->pgraph.intr & 0xff; break;
   case 0x400101: ret = (riva128->pgraph.intr >> 8) & 0xff; break;
   case 0x400102: ret = (riva128->pgraph.intr >> 16) & 0xff; break;
@@ -663,6 +690,27 @@ static uint8_t riva128_pgraph_read(uint32_t addr, void *p)
   case 0x400146: ret = (riva128->pgraph.invalid_en >> 16) & 0xff; break;
   case 0x400147: ret = (riva128->pgraph.invalid_en >> 24) & 0xff; break;
 
+  case 0x400180: ret = riva128->pgraph.ctx_switch & 0xff; break;
+  case 0x400181: ret = (riva128->pgraph.ctx_switch >> 8) & 0xff; break;
+  case 0x400182: ret = (riva128->pgraph.ctx_switch >> 16) & 0xff; break;
+  case 0x400183: ret = (riva128->pgraph.ctx_switch >> 24) & 0xff; break;
+
+  case 0x400190: ret = riva128->pgraph.ctx_control & 0xff; break;
+  case 0x400191: ret = (riva128->pgraph.ctx_control >> 8) & 0xff; break;
+  case 0x400192: ret = (riva128->pgraph.ctx_control >> 16) & 0xff; break;
+  case 0x400193: ret = (riva128->pgraph.ctx_control >> 24) & 0xff; break;
+  case 0x400194: ret = riva128->pgraph.ctx_user & 0xff; break;
+  case 0x400195: ret = (riva128->pgraph.ctx_user >> 8) & 0xff; break;
+  case 0x400196: ret = (riva128->pgraph.ctx_user >> 16) & 0xff; break;
+  case 0x400197: ret = (riva128->pgraph.ctx_user >> 24) & 0xff; break;
+
+  case 0x4001a0 ... 0x4001bf: ret = (riva128->pgraph.ctx_cache[(addr & 0x1c) >> 2] >> ((addr & 3) << 3)) & 0xff; break;
+
+  case 0x4006a4: ret = riva128->pgraph.fifo_enable & 1; break;
+  }
+
+  if(riva128->card_id == 0x03) switch(addr)
+  {
   case 0x40053c: ret = riva128->pgraph.uclip_xmin & 0xff; break;
   case 0x40053d: ret = (riva128->pgraph.uclip_xmin >> 8) & 0xff; break;
   case 0x40053e: ret = (riva128->pgraph.uclip_xmin >> 16) & 0xff; break;
@@ -720,16 +768,44 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
   break;
   case 0x400140:
   riva128->pgraph.intr_en = val;
+  if(riva128->card_id == 0x03) riva128->pgraph.intr_en &= 0x11111111;
+  else if(riva128->card_id < 0x10) riva128->pgraph.intr_en &= 0x00011311;
   break;
   case 0x400144:
-  riva128->pgraph.invalid_en = val;
+  if(riva128->card_id == 0x03)
+  {
+    riva128->pgraph.invalid_en = val;
+    riva128->pgraph.invalid_en &= 0x00011111;
+  }
   break;
   }
 
   if(riva128->card_id == 0x03) switch(addr)
   {
+  case 0x400080:
+  riva128->pgraph.debug[0] = val & 0x13311110;
+  break;
+  case 0x400084:
+  riva128->pgraph.debug[1] = val & 0x10113301;
+  break;
+  case 0x400088:
+  riva128->pgraph.debug[2] = val & 0x1133f111;
+  break;
+  case 0x40008c:
+  riva128->pgraph.debug[3] = val & 0x1173ff31;
+  break;
   case 0x400180:
   riva128->pgraph.debug[1] &= ~1; //Clear recent volatile reset bit on object switch.
+  riva128->pgraph.ctx_switch = val & 0x3ff3f71f;
+  break;
+  case 0x400190:
+  riva128->pgraph.ctx_control = val & 0x11010103;
+  break;
+  case 0x400194:
+  riva128->pgraph.ctx_user = val & 0x7f1fe000;
+  break;
+  case 0x4001a0 ... 0x4001bc:
+  riva128->pgraph.ctx_cache[(addr & 0x1c) >> 2] = val & 0x3ff3f71f;
   break;
   case 0x40053c:
   riva128->pgraph.uclip_xmin = val & 0x3ffff;
@@ -742,6 +818,18 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
   break;
   case 0x400548:
   riva128->pgraph.uclip_ymax = val & 0x3ffff;
+  break;
+  case 0x400550:
+  riva128->pgraph.src_canvas_min = val & (riva128->is_nv3t ? 0x7fff07ff : 0x3fff07ff);
+  break;
+  case 0x400554:
+  riva128->pgraph.src_canvas_max = val & (riva128->is_nv3t ? 0x7fff07ff : 0x3fff07ff);
+  break;
+  case 0x400558:
+  riva128->pgraph.dst_canvas_min = val & (riva128->is_nv3t ? 0x7fff07ff : 0x3fff07ff);
+  break;
+  case 0x40055c:
+  riva128->pgraph.dst_canvas_max = val & (riva128->is_nv3t ? 0x7fff07ff : 0x3fff07ff);
   break;
   case 0x400560:
   riva128->pgraph.oclip_xmin = val & 0x3ffff;
@@ -762,6 +850,24 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
     riva128->pgraph.beta = tmp;
     break;
   }
+  case 0x4006a4:
+  riva128->pgraph.fifo_enable = val & 1;
+  break;
+  }
+  else if(riva128->card_id < 0x10) switch(addr)
+  {
+  case 0x400080:
+  riva128->pgraph.debug[0] = val & 0x1337f000;
+  break;
+  case 0x400084:
+  riva128->pgraph.debug[1] = val & ((riva128->card_id == 0x04) ? 0x72113101 : 0xf2ffb701);
+  break;
+  case 0x400088:
+  riva128->pgraph.debug[2] = val & 0x11d7fff1;
+  break;
+  case 0x40008c:
+  riva128->pgraph.debug[3] = val & ((riva128->card_id == 0x04) ? 0x11ffff33 : 0xfbffff73);
+  break;
   }
 }
 
