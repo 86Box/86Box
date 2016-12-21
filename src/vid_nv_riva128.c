@@ -1013,7 +1013,7 @@ static void riva128_pusher_run(int chanid, void *p)
     uint32_t dmaget = riva128->pfifo.channels[chanid].dmaget;
     uint32_t cmd = ((uint32_t*)svga->vram)[dmaget >> 2];
     uint32_t* params = ((uint32_t*)svga->vram)[(dmaget + 4) >> 2];
-    if((cmd & 0xe0000003) == 0x20000000)
+    if(((cmd & 0xe0000003) == 0x20000000) && (riva128->card_id >= 0x04))
     {
       //old nv4 jump command
       riva128->pfifo.channels[chanid].dmaget = cmd & 0x1ffffffc;
