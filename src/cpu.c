@@ -508,6 +508,15 @@ CPU cpus_K56[] =
         {"K6 (Model 7) 233",      CPU_K6,    24, 233333333, 4, 33333333, 0x570, 0x570, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
         {"K6 (Model 7) 266",      CPU_K6,    26, 266666666, 4, 33333333, 0x570, 0x570, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
         {"K6 (Model 7) 300",      CPU_K6,    28, 300000000, 5, 33333333, 0x570, 0x570, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
+        {"K6-2 (Model 8) 233",      CPU_K6,    24, 233333333, 4, 33333333, 0x580, 0x580, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
+        {"K6-2 (Model 8) 266",      CPU_K6,    26, 266666666, 4, 33333333, 0x580, 0x580, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
+        {"K6-2 (Model 8) 300",      CPU_K6,    28, 300000000, 5, 33333333, 0x580, 0x580, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
+        {"K6-2 (Model 8) 333",      CPU_K6,    28, 333333333, 6, 33333333, 0x580, 0x580, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
+        {"K6-2 (Model 8) 366",      CPU_K6,    28, 366666666, 7, 33333333, 0x58c, 0x58c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
+        {"K6-2 (Model 8) 400",      CPU_K6,    28, 400000000, 8, 33333333, 0x58c, 0x58c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
+        {"K6-2 (Model 8) 500",      CPU_K6,    28, 500000000, 5, 100000000, 0x58c, 0x58c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
+        {"K6-3 (Model 13) 400",      CPU_K6,    28, 400000000, 8, 33333333, 0x58d, 0x58d, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
+        {"K6-3 (Model 13) 500",      CPU_K6,    28, 500000000, 5, 100000000, 0x58d, 0x58d, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC},
         {"",             -1,        0, 0, 0}
 };
 
@@ -1321,14 +1330,15 @@ void cpu_set()
                 break;
 
                 case CPU_K6:
+                //Timings are made similar to Pentium Pro since that's what the microarchitecture is similar to.
                 x86_setopcodes(ops_386, ops_k6_0f, dynarec_ops_386, dynarec_ops_k6_0f);
                 timing_rr  = 1; /*register dest - register src*/
-                timing_rm  = 2; /*register dest - memory src*/
-                timing_mr  = 3; /*memory dest   - register src*/
-                timing_mm  = 3;
-                timing_rml = 2; /*register dest - memory src long*/
-                timing_mrl = 3; /*memory dest   - register src long*/
-                timing_mml = 3;
+                timing_rm  = 1; /*register dest - memory src*/
+                timing_mr  = 1; /*memory dest   - register src*/
+                timing_mm  = 1;
+                timing_rml = 1; /*register dest - memory src long*/
+                timing_mrl = 1; /*memory dest   - register src long*/
+                timing_mml = 1;
                 timing_bt  = 0; /*branch taken*/
                 timing_bnt = 1; /*branch not taken*/
                 cpu_hasrdtsc = 1;
