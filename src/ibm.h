@@ -463,6 +463,7 @@ enum
         GFX_RIVATNT,
         GFX_RIVA128,
         GFX_HERCULESPLUS,
+        GFX_RIVATNT2,
         GFX_MAX
 };
 

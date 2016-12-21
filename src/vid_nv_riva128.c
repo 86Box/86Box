@@ -302,6 +302,13 @@ static uint8_t riva128_pmc_read(uint32_t addr, void *p)
   case 0x000002: ret = 0x00; break;
   case 0x000003: ret = 0x00; break;
   }
+  else if(riva128->card_id == 0x05) switch(addr)
+  {
+  case 0x000000: ret = 0x00; break;
+  case 0x000001: ret = 0x40; break;
+  case 0x000002: ret = 0x10; break;
+  case 0x000003: ret = 0x00; break;
+  }
   switch(addr)
   {
   case 0x000100: ret = riva128->pmc.intr & 0xff; break;
@@ -574,7 +581,7 @@ static uint8_t riva128_pfb_read(uint32_t addr, void *p)
         ret |= 0x04;
         break;
       }
-      case 0x04:
+      case 0x04: case 0x05:
       {
         switch(riva128->memory_size)
         {
@@ -2150,5 +2157,191 @@ device_t rivatnt_device =
         rivatnt_force_redraw,
         rivatnt_add_status_info,
         rivatnt_config
+};
+
+static void *rivatnt2_init()
+{
+  riva128_t *riva128 = malloc(sizeof(riva128_t));
+  memset(riva128, 0, sizeof(riva128_t));
+
+  riva128->card_id = 0x05;
+  riva128->is_nv3t = 0;
+
+  int model = device_get_config_int("model");
+
+  riva128->vendor_id = 0x10de;
+  riva128->device_id = ((model > 1) ? 0x0029 : 0x0028);
+
+  riva128->memory_size = device_get_config_int("memory");
+
+  svga_init(&riva128->svga, riva128, riva128->memory_size << 20,
+  riva128_recalctimings,
+  riva128_in, riva128_out,
+  NULL, NULL);
+
+  switch(model)
+  {
+    case 0: rom_init(&riva128->bios_rom, "roms/NV5diamond.bin", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL); break;
+    case 1: rom_init(&riva128->bios_rom, "roms/inno3d64bit.BIN", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL); break;
+    case 2: rom_init(&riva128->bios_rom, "roms/creative.BIN", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL); break;
+  }
+  if (PCI)
+    mem_mapping_disable(&riva128->bios_rom.mapping);
+
+  mem_mapping_add(&riva128->mmio_mapping,     0, 0,
+    riva128_mmio_read,
+    riva128_mmio_read_w,
+    riva128_mmio_read_l,
+    riva128_mmio_write,
+    riva128_mmio_write_w,
+    riva128_mmio_write_l,
+    NULL,
+    0,
+    riva128);
+  mem_mapping_add(&riva128->linear_mapping,   0, 0,
+    svga_read_linear,
+    svga_readw_linear,
+    svga_readl_linear,
+    svga_write_linear,
+    svga_writew_linear,
+    svga_writel_linear,
+    NULL,
+    0,
+    &riva128->svga);
+
+  io_sethandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
+
+  // riva128->pci_regs[4] = 3;
+  riva128->pci_regs[4] = 7;
+  riva128->pci_regs[5] = 0;
+  riva128->pci_regs[6] = 0;
+  riva128->pci_regs[7] = 2;
+  
+  riva128->pci_regs[0x2c] = 0x02;
+  riva128->pci_regs[0x2d] = 0x11;
+  riva128->pci_regs[0x2e] = 0x16;
+  riva128->pci_regs[0x2f] = 0x10;
+        
+  riva128->pci_regs[0x30] = 0x00;
+  riva128->pci_regs[0x32] = 0x0c;
+  riva128->pci_regs[0x33] = 0x00;
+
+  //riva128->pci_regs[0x3c] = 3;
+
+  riva128->pmc.intr = 0;
+  riva128->pbus.intr = 0;
+  riva128->pfifo.intr = 0;
+  riva128->pgraph.intr = 0;
+  
+  pci_add(riva128_pci_read, rivatnt_pci_write, riva128);
+
+  return riva128;
+}
+
+static void rivatnt2_close(void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  FILE *f = fopen("vram.dmp", "wb");
+  fwrite(riva128->svga.vram, 4 << 20, 1, f);
+  fclose(f);
+
+  svga_close(&riva128->svga);
+
+  free(riva128);
+}
+
+static int rivatnt2_available()
+{
+  return rom_present("roms/NV5diamond.bin") || rom_present("roms/inno3d64bit.BIN") || rom_present("roms/creative.BIN");
+}
+
+static void rivatnt2_speed_changed(void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+
+  svga_recalctimings(&riva128->svga);
+}
+
+static void rivatnt2_force_redraw(void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+
+  riva128->svga.fullchange = changeframecount;
+}
+
+static void rivatnt2_add_status_info(char *s, int max_len, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+
+  svga_add_status_info(s, max_len, &riva128->svga);
+}
+
+static device_config_t rivatnt2_config[] =
+{
+  {
+    .name = "model",
+    .description = "Card model",
+    .type = CONFIG_SELECTION,
+    .selection =
+    {
+      {
+        .description = "Vanilla TNT2",
+        .value = 0,
+      },
+      {
+        .description = "TNT2 Pro",
+        .value = 1,
+      },
+      {
+        .description = "TNT2 Ultra",
+        .value = 2,
+      },
+    },
+    .default_int = 0
+  },
+  {
+    .name = "memory",
+    .description = "Memory size",
+    .type = CONFIG_SELECTION,
+    .selection =
+    {
+      {
+        .description = "4 MB",
+        .value = 4
+      },
+      {
+        .description = "8 MB",
+        .value = 8
+      },
+      {
+        .description = "16 MB",
+        .value = 16
+      },
+      {
+        .description = "32 MB",
+        .value = 32
+      },
+      {
+        .description = ""
+      }
+    },
+    .default_int = 32
+  },
+  {
+    .type = -1
+  }
+};
+
+device_t rivatnt2_device =
+{
+        "nVidia RIVA TNT2",
+        0,
+        rivatnt2_init,
+        rivatnt2_close,
+        rivatnt2_available,
+        rivatnt2_speed_changed,
+        rivatnt2_force_redraw,
+        rivatnt2_add_status_info,
+        rivatnt2_config
 };
 
