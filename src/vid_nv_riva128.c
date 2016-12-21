@@ -26,6 +26,9 @@ typedef struct riva128_t
   uint8_t card_id;
   int is_nv3t;
 
+  uint16_t vendor_id;
+  uint16_t device_id;
+
   uint32_t linear_base, linear_size;
 
   uint16_t rma_addr;
@@ -291,22 +294,6 @@ static uint8_t riva128_pmc_read(uint32_t addr, void *p)
   case 0x000001: ret = 0x01; break;
   case 0x000002: ret = 0x03; break;
   case 0x000003: ret = 0x00; break;
-  case 0x000100: ret = riva128->pmc.intr & 0xff; break;
-  case 0x000101: ret = (riva128->pmc.intr >> 8) & 0xff; break;
-  case 0x000102: ret = (riva128->pmc.intr >> 16) & 0xff; break;
-  case 0x000103: ret = (riva128->pmc.intr >> 24) & 0xff; break;
-  case 0x000140: ret = riva128->pmc.intr & 0xff; break;
-  case 0x000141: ret = (riva128->pmc.intr_en  >> 8) & 0xff; break;
-  case 0x000142: ret = (riva128->pmc.intr_en >> 16) & 0xff; break;
-  case 0x000143: ret = (riva128->pmc.intr_en >> 24) & 0xff; break;
-  case 0x000160: ret = riva128->pmc.intr_line & 0xff; break;
-  case 0x000161: ret = (riva128->pmc.intr_line >> 8) & 0xff; break;
-  case 0x000162: ret = (riva128->pmc.intr_line >> 16) & 0xff; break;
-  case 0x000163: ret = (riva128->pmc.intr_line >> 24) & 0xff; break;
-  case 0x000200: ret = riva128->pmc.enable & 0xff; break;
-  case 0x000201: ret = (riva128->pmc.enable >> 8) & 0xff; break;
-  case 0x000202: ret = (riva128->pmc.enable >> 16) & 0xff; break;
-  case 0x000203: ret = (riva128->pmc.enable >> 24) & 0xff; break;
   }
   else if(riva128->card_id == 0x04) switch(addr)
   {
@@ -314,6 +301,9 @@ static uint8_t riva128_pmc_read(uint32_t addr, void *p)
   case 0x000001: ret = 0x40; break;
   case 0x000002: ret = 0x00; break;
   case 0x000003: ret = 0x00; break;
+  }
+  switch(addr)
+  {
   case 0x000100: ret = riva128->pmc.intr & 0xff; break;
   case 0x000101: ret = (riva128->pmc.intr >> 8) & 0xff; break;
   case 0x000102: ret = (riva128->pmc.intr >> 16) & 0xff; break;
@@ -1460,68 +1450,11 @@ static uint8_t riva128_pci_read(int func, int addr, void *p)
   //pclog("RIVA 128 PCI read %02X %04X:%08X\n", addr, CS, cpu_state.pc);
   switch (addr)
   {
-    case 0x00: ret = 0xd2; break; /*'nVidia'*/
-    case 0x01: ret = 0x12; break;
+    case 0x00: ret = riva128->vendor_id & 0xff; break;
+    case 0x01: ret = riva128->vendor_id >> 8; break;
 
-    case 0x02: ret = 0x18; break; /*'RIVA 128'*/
-    case 0x03: ret = 0x00; break;
-
-    case 0x04: ret = riva128->pci_regs[0x04] & 0x37; break;
-    case 0x05: ret = riva128->pci_regs[0x05] & 0x01; break;
-
-    case 0x06: ret = 0x20; break;
-    case 0x07: ret = riva128->pci_regs[0x07] & 0x73; break;
-
-    case 0x08: ret = 0x01; break; /*Revision ID*/
-    case 0x09: ret = 0; break; /*Programming interface*/
-
-    case 0x0a: ret = 0x00; break; /*Supports VGA interface*/
-    case 0x0b: ret = 0x03; /*output = 3; */break;
-
-    case 0x0e: ret = 0x00; break; /*Header type*/
-
-    case 0x13:
-    case 0x17:
-    ret = riva128->pci_regs[addr];
-    break;
-
-    case 0x2c: case 0x2d: case 0x2e: case 0x2f:
-    ret = riva128->pci_regs[addr];
-    //if(CS == 0x0028) output = 3;
-    break;
-
-    case 0x30: return riva128->pci_regs[0x30] & 0x01; /*BIOS ROM address*/
-    case 0x31: return 0x00;
-    case 0x32: return riva128->pci_regs[0x32];
-    case 0x33: return riva128->pci_regs[0x33];
-
-    case 0x34: ret = 0x00; break;
-
-    case 0x3c: ret = riva128->pci_regs[0x3c]; break;
-
-    case 0x3d: ret = 0x01; break; /*INTA*/
-
-    case 0x3e: ret = 0x03; break;
-    case 0x3f: ret = 0x01; break;
-
-  }
-  //        pclog("%02X\n", ret);
-  return ret;
-}
-
-static uint8_t rivatnt_pci_read(int func, int addr, void *p)
-{
-  riva128_t *riva128 = (riva128_t *)p;
-  svga_t *svga = &riva128->svga;
-  uint8_t ret = 0;
-  //pclog("RIVA 128 PCI read %02X %04X:%08X\n", addr, CS, cpu_state.pc);
-  switch (addr)
-  {
-    case 0x00: ret = 0xde; break; /*'nVidia'*/
-    case 0x01: ret = 0x10; break;
-
-    case 0x02: ret = 0x20; break; /*'RIVA TNT'*/
-    case 0x03: ret = 0x00; break;
+    case 0x02: ret = riva128->device_id & 0xff; break;
+    case 0x03: ret = riva128->device_id >> 8; break;
 
     case 0x04: ret = riva128->pci_regs[0x04] & 0x37; break;
     case 0x05: ret = riva128->pci_regs[0x05] & 0x01; break;
@@ -1872,6 +1805,9 @@ static void *riva128_init()
   riva128->card_id = 0x03;
   riva128->is_nv3t = 0;
 
+  riva128->vendor_id = 0x12d2;
+  riva128->device_id = 0x0018;
+
   riva128->memory_size = device_get_config_int("memory");
 
   svga_init(&riva128->svga, riva128, riva128->memory_size << 20,
@@ -2070,6 +2006,9 @@ static void *rivatnt_init()
   riva128->card_id = 0x04;
   riva128->is_nv3t = 0;
 
+  riva128->vendor_id = 0x10de;
+  riva128->device_id = 0x0020;
+
   riva128->memory_size = device_get_config_int("memory");
 
   svga_init(&riva128->svga, riva128, riva128->memory_size << 20,
@@ -2126,7 +2065,7 @@ static void *rivatnt_init()
   riva128->pfifo.intr = 0;
   riva128->pgraph.intr = 0;
   
-  pci_add(rivatnt_pci_read, rivatnt_pci_write, riva128);
+  pci_add(riva128_pci_read, rivatnt_pci_write, riva128);
 
   return riva128;
 }
