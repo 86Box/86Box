@@ -1268,9 +1268,10 @@ static void riva128_ptimer_tick(void *p)
 
   time *= 1000;
 
+  uint64_t tmp = riva128->ptimer.time;
   riva128->ptimer.time += time << 5;
 
-  if(riva128->ptimer.time == riva128->ptimer.alarm) riva128_ptimer_interrupt(0, riva128);
+  if((tmp < riva128.ptimer.alarm) && (riva128->ptimer.time >= riva128->ptimer.alarm)) riva128_ptimer_interrupt(0, riva128);
 }
 
 static void riva128_mclk_poll(void *p)
