@@ -106,7 +106,12 @@ typedef struct riva128_t
   
   struct
   {
-	uint32_t time;
+    uint32_t intr, intr_en;
+
+	  uint64_t time;
+    uint32_t alarm;
+
+    uint16_t clock_mul, clock_div;
   } ptimer;
   
   struct
@@ -177,7 +182,8 @@ typedef struct riva128_t
 	uint8_t addr; //actually 7 bits
   } i2c;
   
-  int coretime;
+  int mtime, mfreq;
+  int nvtime, nvfreq;
 
 } riva128_t;
 
@@ -544,16 +550,75 @@ static uint8_t riva128_ptimer_read(uint32_t addr, void *p)
 
   switch(addr)
   {
+  case 0x009100: ret = riva128->ptimer.intr & 0xff; break;
+  case 0x009101: ret = (riva128->ptimer.intr >> 8) & 0xff; break;
+  case 0x009102: ret = (riva128->ptimer.intr >> 16) & 0xff; break;
+  case 0x009103: ret = (riva128->ptimer.intr >> 24) & 0xff; break;
+  case 0x009140: ret = riva128->ptimer.intr & 0xff; break;
+  case 0x009141: ret = (riva128->ptimer.intr_en  >> 8) & 0xff; break;
+  case 0x009142: ret = (riva128->ptimer.intr_en >> 16) & 0xff; break;
+  case 0x009143: ret = (riva128->ptimer.intr_en >> 24) & 0xff; break;
+  case 0x009200: ret = riva128->ptimer.clock_div & 0xff; break;
+  case 0x009201: ret = (riva128->ptimer.clock_div >> 8) & 0xff; break;
+  case 0x009202: ret = (riva128->ptimer.clock_div >> 16) & 0xff; break;
+  case 0x009203: ret = (riva128->ptimer.clock_div >> 24) & 0xff; break;
+  case 0x009210: ret = riva128->ptimer.clock_mul & 0xff; break;
+  case 0x009211: ret = (riva128->ptimer.clock_mul  >> 8) & 0xff; break;
+  case 0x009212: ret = (riva128->ptimer.clock_mul >> 16) & 0xff; break;
+  case 0x009213: ret = (riva128->ptimer.clock_mul >> 24) & 0xff; break;
   case 0x009400: ret = riva128->ptimer.time & 0xff; break;
   case 0x009401: ret = (riva128->ptimer.time >> 8) & 0xff; break;
   case 0x009402: ret = (riva128->ptimer.time >> 16) & 0xff; break;
   case 0x009403: ret = (riva128->ptimer.time >> 24) & 0xff; break;
+  case 0x009410: ret = (riva128->ptimer.time >> 32) & 0xff; break;
+  case 0x009411: ret = (riva128->ptimer.time >> 40) & 0xff; break;
+  case 0x009412: ret = (riva128->ptimer.time >> 48) & 0xff; break;
+  case 0x009413: ret = (riva128->ptimer.time >> 56) & 0xff; break;
+  case 0x009420: ret = riva128->ptimer.alarm & 0xff; break;
+  case 0x009421: ret = (riva128->ptimer.alarm >> 8) & 0xff; break;
+  case 0x009422: ret = (riva128->ptimer.alarm >> 16) & 0xff; break;
+  case 0x009423: ret = (riva128->ptimer.alarm >> 24) & 0xff; break;
   }
-
-  //TODO: gross hack to make NT4 happy for the time being.
-  riva128->ptimer.time += 0x10000;
   
   return ret;
+}
+
+static void riva128_ptimer_write(uint32_t addr, uint32_t val, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+  pclog("RIVA 128 PTIMER write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
+
+  switch(addr)
+  {
+  case 0x009100:
+  riva128->ptimer.intr &= ~val;
+  break;
+  case 0x009140:
+  riva128->ptimer.intr_en = val;
+  break;
+  case 0x009200:
+  if(!(val & 0xffff)) val = 1;
+  riva128->ptimer.clock_div = val & 0xffff;
+  break;
+  case 0x009210:
+  if((val & 0xffff) > riva128->ptimer.clock_div) val = riva128->ptimer.clock_div;
+  riva128->ptimer.clock_mul = val & 0xffff;
+  break;
+  case 0x009420:
+  riva128->ptimer.alarm = val & 0xffffffe0;
+  break;
+  }
+}
+
+static void riva128_ptimer_interrupt(int num, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+
+  riva128->ptimer.intr &= ~(1 << num);
+
+  riva128_pmc_interrupt(20, riva128);
 }
 
 static uint8_t riva128_pfb_read(uint32_t addr, void *p)
@@ -916,12 +981,14 @@ static void riva128_pramdac_write(uint32_t addr, uint32_t val, void *p)
   riva128->pramdac.nv_m = val & 0xff;
   riva128->pramdac.nv_n = (val >> 8) & 0xff;
   riva128->pramdac.nv_p = (val >> 16) & 7;
+  svga_recalctimings(svga);
   break;
   case 0x680504:
   riva128->pramdac.mpll = val;
   riva128->pramdac.m_m = val & 0xff;
   riva128->pramdac.m_n = (val >> 8) & 0xff;
   riva128->pramdac.m_p = (val >> 16) & 7;
+  svga_recalctimings(svga);
   break;
   case 0x680508:
   riva128->pramdac.vpll = val;
@@ -1192,10 +1259,38 @@ static void riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p)
   }
 }
 
-static void riva128_poll(void *p)
+static void riva128_ptimer_tick(void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+	svga_t *svga = &riva128->svga;
+
+  uint64_t time = riva128->ptimer.clock_mul - riva128->ptimer.clock_div;
+
+  time *= 1000;
+
+  riva128->ptimer.time += time << 5;
+
+  if(riva128->ptimer.time == riva128->ptimer.alarm) riva128_ptimer_interrupt(0, riva128);
+}
+
+static void riva128_mclk_poll(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 	svga_t *svga = &riva128->svga;
+
+  if(riva128->card_id == 0x03) riva128_ptimer_tick(riva128);
+
+  riva128->mtime += cpuclock / riva128->mfreq;
+}
+
+static void riva128_nvclk_poll(void *p)
+{
+	riva128_t *riva128 = (riva128_t *)p;
+	svga_t *svga = &riva128->svga;
+
+  if(riva128->card_id > 0x40 && riva128->card_id != 0x03) riva128_ptimer_tick(riva128);
+
+  riva128->nvtime += cpuclock / riva128->nvfreq;
 }
 
 static uint8_t riva128_rma_in(uint16_t addr, void *p)
@@ -1786,22 +1881,43 @@ static void riva128_recalctimings(svga_t *svga)
   }
   else svga_set_ramdac_type(svga, RAMDAC_6BIT);*/
   
+  double freq;
+
   if (((svga->miscout >> 2) & 2) == 2)
   {
-	double freq = 0;
-	
-	//if(riva128->pextdev.boot0 & 0x40) freq = 14318180.0;
-	freq = 13500000.0;
+	  freq = 13500000.0;
 
-	if(riva128->pramdac.v_m == 0) freq = 0;
+	  if(riva128->pramdac.v_m == 0) freq = 0;
+	  else
+	  {
+	  	freq = (freq * riva128->pramdac.v_n) / (1 << riva128->pramdac.v_p) / riva128->pramdac.v_m;
+	  	//pclog("RIVA 128 Pixel clock is %f Hz\n", freq);
+	  }
+	
+    svga->clock = cpuclock / freq;
+  }
+
+  freq = 13500.0;
+
+	if(riva128->pramdac.nv_m == 0) freq = 0;
 	else
 	{
-		freq = (freq * riva128->pramdac.v_n) / (1 << riva128->pramdac.v_p) / riva128->pramdac.v_m;
-		//pclog("RIVA 128 Pixel clock is %f Hz\n", freq);
+		freq = (freq * riva128->pramdac.nv_n) / (1 << riva128->pramdac.nv_p) / riva128->pramdac.nv_m;
+		//pclog("RIVA 128 Core clock is %f Hz\n", freq);
 	}
-	
-        svga->clock = cpuclock / freq;
-  }
+
+  riva128->mfreq = freq;
+
+  freq = 13500.0;
+
+	if(riva128->pramdac.m_m == 0) freq = 0;
+	else
+	{
+		freq = (freq * riva128->pramdac.m_n) / (1 << riva128->pramdac.m_p) / riva128->pramdac.m_m;
+		//pclog("RIVA 128 Core clock is %f Hz\n", freq);
+	}
+
+  riva128->nvfreq = freq;
 }
 
 static void *riva128_init()
@@ -1884,6 +2000,18 @@ static void *riva128_init()
   riva128->pgraph.intr = 0;
   
   pci_add(riva128_pci_read, riva128_pci_write, riva128);
+
+  //Some bullshit default values so that the emulator won't shit itself trying to boot. These'll be overwritten by the video BIOS anyway.
+  riva128->pramdac.m_m = 0x03;
+  riva128->pramdac.m_n = 0xc2;
+  riva128->pramdac.m_p = 0x0d;
+
+  riva128->pramdac.nv_m = 0x03;
+  riva128->pramdac.nv_n = 0xc2;
+  riva128->pramdac.nv_p = 0x0d;
+
+  timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
+  timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
 
   return riva128;
 }
@@ -2074,6 +2202,18 @@ static void *rivatnt_init()
   
   pci_add(riva128_pci_read, rivatnt_pci_write, riva128);
 
+  //Some bullshit default values so that the emulator won't shit itself trying to boot. These'll be overwritten by the video BIOS anyway.
+  riva128->pramdac.m_m = 0x03;
+  riva128->pramdac.m_n = 0xc2;
+  riva128->pramdac.m_p = 0x0d;
+
+  riva128->pramdac.nv_m = 0x03;
+  riva128->pramdac.nv_n = 0xc2;
+  riva128->pramdac.nv_p = 0x0d;
+
+  timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
+  timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
+
   return riva128;
 }
 
@@ -2234,6 +2374,18 @@ static void *rivatnt2_init()
   riva128->pgraph.intr = 0;
   
   pci_add(riva128_pci_read, rivatnt_pci_write, riva128);
+
+  //Some bullshit default values so that the emulator won't shit itself trying to boot. These'll be overwritten by the video BIOS anyway.
+  riva128->pramdac.m_m = 0x03;
+  riva128->pramdac.m_n = 0xc2;
+  riva128->pramdac.m_p = 0x0d;
+
+  riva128->pramdac.nv_m = 0x03;
+  riva128->pramdac.nv_n = 0xc2;
+  riva128->pramdac.nv_p = 0x0d;
+
+  timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
+  timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
 
   return riva128;
 }
