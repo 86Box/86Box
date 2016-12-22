@@ -580,6 +580,9 @@ static uint8_t riva128_ptimer_read(uint32_t addr, void *p)
   case 0x009423: ret = (riva128->ptimer.alarm >> 24) & 0xff; break;
   }
   
+  //TODO: NECESSARY SPEED HACK. DO NOT REMOVE THIS.
+  riva128->ptimer.time += 0x10000;
+
   return ret;
 }
 
@@ -1271,7 +1274,7 @@ static void riva128_ptimer_tick(void *p)
   uint64_t tmp = riva128->ptimer.time;
   riva128->ptimer.time += time << 5;
 
-  if((tmp < riva128.ptimer.alarm) && (riva128->ptimer.time >= riva128->ptimer.alarm)) riva128_ptimer_interrupt(0, riva128);
+  if((tmp < riva128->ptimer.alarm) && (riva128->ptimer.time >= riva128->ptimer.alarm)) riva128_ptimer_interrupt(0, riva128);
 }
 
 static void riva128_mclk_poll(void *p)
@@ -2385,8 +2388,8 @@ static void *rivatnt2_init()
   riva128->pramdac.nv_n = 0xc2;
   riva128->pramdac.nv_p = 0x0d;
 
-  timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
-  timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
+  //timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
+  //timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
 
   return riva128;
 }
