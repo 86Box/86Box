@@ -4,7 +4,11 @@
 #ifndef __SCSI_H__
 #define __SCSI_H__
 
-#include "scattergather.h"
+//#include "scattergather.h"
+
+#include "timer.h"
+
+#define SCSI_TIME (5 * 100 * (1 << TIMER_SHIFT))
 
 /* SCSI Commands */
 #define GPCMD_TEST_UNIT_READY           0x00
@@ -138,6 +142,8 @@
 #define MMC_PROFILE_HDDVD_RW_DL         0x005A
 #define MMC_PROFILE_INVALID             0xFFFF
 
+#define WRITEDATA		0x10
+#define READDATA		8
 #define NONDATA			4
 #define CHECK_READY		2
 #define ALLOW_UA		1
@@ -162,8 +168,12 @@ extern uint8_t page_current;
 uint32_t DataLength;
 uint32_t DataPointer;
 
-extern uint8_t ScsiStatus;
-extern int ScsiCallback[7];
+int SectorLBA;
+int SectorLen;
+
+extern uint8_t SCSIStatus;
+extern uint8_t SCSIPhase;
+extern int SCSICallback[7];
 extern uint8_t scsi_cdrom_id;
 
 struct
@@ -181,52 +191,81 @@ extern int prev_status;
 #define SCSI_HDD 1 /*not present yet*/
 #define SCSI_CDROM 2
 
-// extern sector_buffer_t cdrom_sector_buffer;
+#define MSFtoLBA(m,s,f)  ((((m*60)+s)*75)+f)
 
-// extern int cdrom_sector_type, cdrom_sector_flags;
-// extern int cdrom_sector_size, cdrom_sector_ismsf;
-
-typedef struct SCSI
+typedef struct __attribute__((packed))
 {
-	uint8_t Cdb[32];
-	uint8_t CdbLength;
-	SGBUF SegmentBuffer;
-	int SectorLen;
-	int SectorLba;
-	int BufferLength;
-	int BufferPosition;
-	SGSEG SegmentData;
+	uint8_t user_data[2048];
+	uint8_t ecc[288];
+} m1_data_t;
+
+typedef struct __attribute__((packed))
+{
+	uint8_t sub_header[8];
+	uint8_t user_data[2328];
+} m2_data_t;
+
+typedef union __attribute__((packed))
+{
+	m1_data_t m1_data;
+	m2_data_t m2_data;
+	uint8_t raw_data[2352];
+} sector_data_t;
+
+typedef struct __attribute__((packed))
+{
+	uint8_t sync[12];
+	uint8_t header[4];
+	sector_data_t data;
+	uint8_t c2[296];
+	uint8_t subchannel_raw[96];
+	uint8_t subchannel_q[16];
+	uint8_t subchannel_rw[96];
+} cdrom_sector_t;
+
+typedef union __attribute__((packed))
+{
+	cdrom_sector_t cdrom_sector;
+	uint8_t buffer[2856];
+} sector_buffer_t;
+
+extern sector_buffer_t cdrom_sector_buffer;
+
+extern int cdrom_sector_type, cdrom_sector_flags;
+extern int cdrom_sector_size, cdrom_sector_ismsf;
+
+#define SCSI_PHASE_DATAOUT ( 0 )
+#define SCSI_PHASE_DATAIN ( 1 )
+#define SCSI_PHASE_COMMAND ( 2 )
+#define SCSI_PHASE_STATUS ( 3 )
+#define SCSI_PHASE_MESSAGE_OUT ( 6 )
+#define SCSI_PHASE_MESSAGE_IN ( 7 )
+#define SCSI_PHASE_BUS_FREE ( 8 )
+#define SCSI_PHASE_SELECT ( 9 )
+
+#define BUFFER_LEN 262144
+
+struct
+{
+	uint32_t buffer_size;
+	uint32_t pos;
+	uint8_t *Cdb;
+	uint8_t CmdBuffer[BUFFER_LEN];
+	uint32_t CmdBufferLength;
 	int LunType;
-	uint8_t PacketStatus;
-	int ReadCDCallback;
-	int RequestSenseEnabled;
-	void *p;
-} SCSI;
+	uint32_t InitLength;
+} SCSIDevices[7];
 
-SCSI ScsiDrives[7];
+extern void SCSIReset(uint8_t Id);
 
-void SCSIQueryResidual(SCSI *Scsi, uint32_t *Residual);
+uint32_t SCSICDROMModeSense(uint8_t *buf, uint32_t pos, uint8_t type);
+uint8_t SCSICDROMSetProfile(uint8_t *buf, uint8_t *index, uint16_t profile);
+int SCSICDROMReadDVDStructure(int format, const uint8_t *packet, uint8_t *buf);
+uint32_t SCSICDROMEventStatus(uint8_t *buffer);
+void SCSICDROM_Insert();
 
-void SCSISendCommand(SCSI *Scsi, uint8_t Id, uint8_t *Cdb, uint8_t CdbLength,
-					uint32_t DataBufferLength, uint8_t *SenseBufferPointer, 
-					uint8_t SenseBufferLength);
-
-uint32_t (*pfnIoRequestCopyFromBuffer)(uint32_t OffDst, SGBUF *SegmentBuffer,
-										uint32_t Copy);
-uint32_t (*pfnIoRequestCopyToBuffer)(uint32_t OffSrc, SGBUF *SegmentBuffer,
-										uint32_t Copy);									
-void SCSIReadTransfer(SCSI *Scsi, uint8_t Id);
-void SCSIWriteTransfer(SCSI *Scsi, uint8_t Id);									
-										
-extern void SCSIReset(SCSI *Scsi, uint8_t Id);
-
-extern uint32_t SCSICDROMModeSense(uint8_t *buf, uint32_t pos, uint8_t type);
-extern uint8_t SCSICDROMSetProfile(uint8_t *buf, uint8_t *index, uint16_t profile);
-extern int SCSICDROMReadDVDStructure(int format, const uint8_t *packet, uint8_t *buf);
-extern uint32_t SCSICDROMEventStatus(uint8_t *buffer);
-
-extern void SCSICDROM_ReadyHandler(int IsReady);
-extern void SCSICDROM_Insert();
-// extern int cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type);
+int cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type);
+int cdrom_LBAtoMSF_accurate();
+int cdrom_read_data(uint8_t *buffer);
 
 #endif

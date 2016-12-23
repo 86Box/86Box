@@ -1,4 +1,4 @@
-/* Copyright holders: SA1988
+/* Copyright holders: SA1988, Tenshi
    see COPYING for more details
 */
 /*SCSI layer emulation*/
@@ -11,98 +11,101 @@
 #include "cdrom.h"
 #include "scsi.h"
 
-int ScsiCallback[7] = {0,0,0,0,0,0,0};
+#include "timer.h"
+
+int SCSICallback[7] = {0,0,0,0,0,0,0};
 uint8_t scsi_cdrom_id = 3; /*common setting*/
 
-void SCSIQueryResidual(SCSI *Scsi, uint32_t *Residual)
+//Get the transfer length of the command
+void SCSIGetLength(uint8_t id, int *datalen)
 {
-	*Residual = ScsiStatus == SCSI_STATUS_OK ? 0 : Scsi->SegmentData.Length;
+	*datalen = SCSIDevices[id].CmdBufferLength;
 }
 
-static uint32_t SCSICopyFromBuffer(uint32_t OffDst, SGBUF *SegmentBuffer,
-										uint32_t Copy)
+//Execute SCSI command
+void SCSIExecCommand(uint8_t id, uint8_t *cdb)
 {
-	const SGSEG *SegmentArray = SegmentBuffer->SegmentPtr;
-	unsigned SegmentNum = SegmentBuffer->SegmentNum;
-	uint32_t Copied = 0;
+	SCSICDROM_Command(id, cdb);
+}
+
+//Read pending data from the resulting SCSI command
+void SCSIReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
+{
+	SCSICDROM_ReadData(id, cdb, data, datalen);
+}
+
+//Write pending data to the resulting SCSI command
+void SCSIWriteData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
+{
+	SCSICDROM_WriteData(id, cdb, data, datalen);
+}
+
+/////
+void SCSIDMAResetPosition(uint8_t Id)
+{
+	//Reset position in memory after reaching the 
+	SCSIDevices[Id].pos = 0;
+}
+
+//Read data from buffer with given position in buffer memory
+void SCSIRead(uint8_t Id, uint32_t len_size)
+{
+	if (!len_size) //If there's no data, don't try to do anything.
+		return;
 	
-	SGBUF SegmentBuffer2;
-	SegmentBufferInit(&SegmentBuffer2, SegmentArray, SegmentNum);
-		
-	SegmentBufferAdvance(&SegmentBuffer2, OffDst);
-	Copied = SegmentBufferCopy(&SegmentBuffer2, SegmentBuffer, Copy);
-
-	return Copied;
-}
-
-static uint32_t SCSICopyToBuffer(uint32_t OffSrc, SGBUF *SegmentBuffer,
-										uint32_t Copy)
-{
-	const SGSEG *SegmentArray = SegmentBuffer->SegmentPtr;
-	unsigned SegmentNum = SegmentBuffer->SegmentNum;
-	uint32_t Copied = 0;
+	int c;
 	
-	SGBUF SegmentBuffer2;
-	SegmentBufferInit(&SegmentBuffer2, SegmentArray, SegmentNum);
-		
-	SegmentBufferAdvance(&SegmentBuffer2, OffSrc);
-	Copied = SegmentBufferCopy(&SegmentBuffer2, SegmentBuffer, Copy);
-
-	return Copied;
-}
-
-void SCSIWriteTransfer(SCSI *Scsi, uint8_t Id)
-{	
-	if ((Scsi->BufferPosition >= prefix_len + 4) && (page_flags[page_current] & PAGE_CHANGEABLE))
+	for (c = 0; c <= len_size; c++) //Count as many bytes as the length of the buffer is requested
 	{
-		mode_pages_in[page_current][Scsi->BufferPosition - prefix_len - 4] = Scsi->SegmentData.Address[Scsi->BufferPosition - 2];
-		mode_pages_in[page_current][Scsi->BufferPosition - prefix_len - 3] = Scsi->SegmentData.Address[Scsi->BufferPosition - 1];
+		memcpy(SCSIDevices[Id].CmdBuffer, SCSIDevices[Id].CmdBuffer + SCSIDevices[Id].pos, len_size);
+		SCSIDevices[Id].pos = c;
+		
+		//pclog("SCSI Read: position at %i\n", SCSIDevices[Id].pos);
 	}
-	SGBUF SegmentBuffer;
-	SCSICopyToBuffer(Scsi->SegmentData.Length, &SegmentBuffer, 1);
-	pfnIoRequestCopyToBuffer(0, &SegmentBuffer, Scsi->SegmentData.Length);		
 }
 
-void SCSIReadTransfer(SCSI *Scsi, uint8_t Id)
+//Write data to buffer with given position in buffer memory
+void SCSIWrite(uint8_t Id, uint32_t len_size)
 {
-	SCSICDROM_ReadCallback(Scsi, Id);
+	if (!len_size) //If there's no data, don't try to do anything.
+		return;	
 	
-	SGBUF SegmentBuffer;
-	SCSICopyFromBuffer(Scsi->SegmentData.Length, &SegmentBuffer, 1);
-	pfnIoRequestCopyFromBuffer(0, &SegmentBuffer, Scsi->SegmentData.Length);
-}
+	int c;
+	
+	for (c = 0; c <= len_size; c++) //Count as many bytes as the length of the buffer is requested
+	{
+		memcpy(SCSIDevices[Id].CmdBuffer + SCSIDevices[Id].pos, SCSIDevices[Id].CmdBuffer, len_size);
+		SCSIDevices[Id].pos = c;
+		
+		//Mode Sense/Select stuff
+		if ((SCSIDevices[Id].pos >= prefix_len+4) && (page_flags[page_current] & PAGE_CHANGEABLE))
+		{
+			mode_pages_in[page_current][SCSIDevices[Id].pos - prefix_len - 4] = SCSIDevices[Id].CmdBuffer[SCSIDevices[Id].pos - 2];
+			mode_pages_in[page_current][SCSIDevices[Id].pos - prefix_len - 3] = SCSIDevices[Id].CmdBuffer[SCSIDevices[Id].pos - 1];
+		}
 
-void SCSISendCommand(SCSI *Scsi, uint8_t Id, uint8_t *Cdb, uint8_t CdbLength, uint32_t DataBufferLength, uint8_t *SenseBufferPointer, uint8_t SenseBufferLength)
+		//pclog("SCSI Write: position at %i\n", SCSIDevices[Id].pos);			
+	}
+}
+/////
+
+//Initialization function for the SCSI layer
+void SCSIReset(uint8_t Id) 
 {
-	uint32_t i;
-	for (i = 0; i < CdbLength; i++)
-		pclog("Cdb[%d]=0x%02X\n", i, Cdb[i]);
-	
-	Scsi->CdbLength = CdbLength;
-	
-	pclog("SCSI CD-ROM in ID %d\n", Id);
-	SCSICDROM_RunCommand(Scsi, Id, Cdb, SenseBufferLength, SenseBufferPointer, DataBufferLength);
-}
-
-void SCSIReset(SCSI *Scsi, uint8_t Id)
-{	
 	page_flags[GPMODE_CDROM_AUDIO_PAGE] &= 0xFD;		/* Clear changed flag for CDROM AUDIO mode page. */
 	memset(mode_pages_in[GPMODE_CDROM_AUDIO_PAGE], 0, 256);	/* Clear the page itself. */
-	
-	if (scsi_cdrom_enabled)
+
+	if (cdrom_enabled && scsi_cdrom_enabled)
 	{
-		if (cdrom_enabled)
-		{
-			Scsi->LunType = SCSI_CDROM;
-		}
+		SCSICallback[Id]=0;
+		SCSIDevices[Id].LunType = SCSI_CDROM;
 	}
 	else
 	{
-		Scsi->LunType = SCSI_NONE;
-	}	
-	
-	pfnIoRequestCopyFromBuffer = SCSICopyFromBuffer;
-	pfnIoRequestCopyToBuffer = SCSICopyToBuffer;	
-	
+		SCSIDevices[Id].LunType = SCSI_NONE;
+	}
+
 	page_flags[GPMODE_CDROM_AUDIO_PAGE] &= ~PAGE_CHANGED;
+	
+	SCSISense.UnitAttention = 0;
 }

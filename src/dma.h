@@ -19,5 +19,5 @@ void writedma2(uint8_t temp);
 int dma_channel_read(int channel);
 int dma_channel_write(int channel, uint16_t val);
 
-void DMAPageRead(uint32_t PhysAddress, void *DataRead, size_t TotalSize);
-void DMAPageWrite(uint32_t PhysAddress, const void *DataWrite, size_t TotalSize);
+void DMAPageRead(uint32_t PhysAddress, void *DataRead, uint32_t TotalSize);
+void DMAPageWrite(uint32_t PhysAddress, const void *DataWrite, uint32_t TotalSize);

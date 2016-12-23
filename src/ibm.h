@@ -345,7 +345,7 @@ int driveempty[4];
 #define PCJR (romset == ROM_IBMPCJR)
 #define AMIBIOS (romset==ROM_AMI386SX || romset==ROM_AMI486 || romset == ROM_WIN486)
 
-int GAMEBLASTER, GUS, SSI2001, voodoo_enabled, aha154x_enabled;
+int GAMEBLASTER, GUS, SSI2001, voodoo_enabled, buslogic_enabled;
 extern int AMSTRAD, AT, is286, is386, PCI, TANDY;
 
 enum
