@@ -626,7 +626,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         if (scsi_cdrom_enabled)
            CheckMenuItem(menu, IDM_CDROM_SCSI, MF_CHECKED);
 
-        if (aha154x_enabled)
+        if (buslogic_enabled)
            CheckMenuItem(menu, IDM_SCSI_ENABLED, MF_CHECKED);
 
         CheckMenuItem(menu, IDM_SCSI_BASE130, MF_UNCHECKED);
@@ -1429,8 +1429,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			}
 			pause = 1;
 			Sleep(100);
-			aha154x_enabled ^= 1;                                             
-			CheckMenuItem(hmenu, IDM_SCSI_ENABLED, aha154x_enabled ? MF_CHECKED : MF_UNCHECKED);
+			buslogic_enabled ^= 1;                                             
+			CheckMenuItem(hmenu, IDM_SCSI_ENABLED, buslogic_enabled ? MF_CHECKED : MF_UNCHECKED);
 			saveconfig();
 			resetpchard();
 			pause = 0;

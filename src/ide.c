@@ -125,7 +125,6 @@ typedef struct IDE
         int spt,hpc;
         int tracks;
         int packetstatus;
-        int cdpos,cdlen;
         uint8_t asc;
         int reset;
         FILE *hdfile;
@@ -166,49 +165,6 @@ int atapi_cdrom_channel = 2;
 int ide_ter_enabled = 0;
 
 uint8_t getstat(IDE *ide) { return ide->atastat; }
-
-#define MSFtoLBA(m,s,f)  ((((m*60)+s)*75)+f)
-
-typedef struct __attribute__((packed))
-{
-	uint8_t user_data[2048];
-	uint8_t ecc[288];
-} m1_data_t;
-
-typedef struct __attribute__((packed))
-{
-	uint8_t sub_header[8];
-	uint8_t user_data[2328];
-} m2_data_t;
-
-typedef union __attribute__((packed))
-{
-	m1_data_t m1_data;
-	m2_data_t m2_data;
-	uint8_t raw_data[2352];
-} sector_data_t;
-
-typedef struct __attribute__((packed))
-{
-	uint8_t sync[12];
-	uint8_t header[4];
-	sector_data_t data;
-	uint8_t c2[296];
-	uint8_t subchannel_raw[96];
-	uint8_t subchannel_q[16];
-	uint8_t subchannel_rw[96];
-} cdrom_sector_t;
-
-typedef union __attribute__((packed))
-{
-	cdrom_sector_t cdrom_sector;
-	uint8_t buffer[2856];
-} sector_buffer_t;
-
-sector_buffer_t cdrom_sector_buffer;
-
-int cdrom_sector_type, cdrom_sector_flags;
-int cdrom_sector_size, cdrom_sector_ismsf;
 
 int image_is_hdi(const char *s)
 {
@@ -1907,266 +1863,6 @@ static void atapi_sense_clear(int command, int ignore_ua)
 	}
 }
 
-static int cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type)
-{
-	if ((cdrom_sector_flags & 0x06) == 0x02)
-	{
-		/* Add error flags. */
-		memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.c2, 294);
-		cdrom_sector_size += 294;
-	}
-	else if ((cdrom_sector_flags & 0x06) == 0x04)
-	{
-		/* Add error flags. */
-		memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.c2, 296);
-		cdrom_sector_size += 296;
-	}
-	else if ((cdrom_sector_flags & 0x06) == 0x06)
-	{
-		// pclog("Invalid error flags\n");
-		return 0;
-	}
-	
-	/* if (real_sector_type == 1)
-	{ */
-		if ((cdrom_sector_flags & 0x700) == 0x100)
-		{
-			memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.subchannel_raw, 96);
-			cdrom_sector_size += 96;
-		}
-		else if ((cdrom_sector_flags & 0x700) == 0x200)
-		{
-			memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.subchannel_q, 16);
-			cdrom_sector_size += 16;
-		}
-		else if ((cdrom_sector_flags & 0x700) == 0x400)
-		{
-			memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.subchannel_rw, 96);
-			cdrom_sector_size += 96;
-		}
-		else if (((cdrom_sector_flags & 0x700) == 0x300) || ((cdrom_sector_flags & 0x700) > 0x400))
-		{
-			// pclog("Invalid subchannel data flags\n");
-			return 0;
-		}
-	// }
-	
-	// pclog("CD-ROM sector size after processing: %i (%i, %i) [%04X]\n", cdrom_sector_size, cdrom_sector_type, real_sector_type, cdrom_sector_flags);
-
-	return cdrom_sector_size;
-}
-
-static int cdrom_LBAtoMSF_accurate(IDE *ide)
-{
-	int temp_pos;
-	int m, s, f;
-	
-	temp_pos = ide->cdpos + 150;
-	f = temp_pos % 75;
-	temp_pos -= f;
-	temp_pos /= 75;
-	s = temp_pos % 60;
-	temp_pos -= s;
-	temp_pos /= 60;
-	m = temp_pos;
-	
-	return ((m << 16) | (s << 8) | f);
-}
-
-static int cdrom_read_data(IDE *ide, uint8_t *buffer)
-{
-	int real_sector_type;
-	uint8_t *b;
-	uint8_t *temp_b;
-	int is_audio;
-	int real_pos;
-	
-	b = temp_b = buffer;
-	
-	if  (cdrom_sector_ismsf)
-	{
-		real_pos = cdrom_LBAtoMSF_accurate(ide);
-	}
-	else
-	{
-		real_pos = ide->cdpos;
-	}
-
-	memset(cdrom_sector_buffer.buffer, 0, 2856);
-
-	// is_audio = cdrom->is_track_audio(real_pos, cdrom_sector_ismsf);
-	real_sector_type = cdrom->sector_data_type(real_pos, cdrom_sector_ismsf);
-	// pclog("Sector type: %i\n", real_sector_type);
-	
-	if ((cdrom_sector_type > 0) && (cdrom_sector_type < 6))
-	{
-		if (real_sector_type != cdrom_sector_type)
-		{
-			return 0;
-		}
-	}
-	else if (cdrom_sector_type == 6)
-	{
-		/* READ (6), READ (10), READ (12) */
-		if ((real_sector_type != 2) && (real_sector_type != 4))
-		{
-			return 0;
-		}
-	}
-
-	if (!(cdrom_sector_flags & 0xf0))		/* 0x00 and 0x08 are illegal modes */
-	{
-		return 0;
-	}
-
-	cdrom->readsector_raw(cdrom_sector_buffer.buffer, real_pos, cdrom_sector_ismsf);
-	
-	if (real_sector_type == 1)
-	{
-		memcpy(b, cdrom_sector_buffer.buffer, 2352);
-		cdrom_sector_size = 2352;
-	}
-	else
-	{
-		if ((cdrom_sector_flags & 0x18) == 0x08)		/* EDC/ECC without user data is an illegal mode */
-		{
-			return 0;
-		}
-
-		cdrom_sector_size = 0;
-
-		if (cdrom_sector_flags & 0x80)		/* Sync */
-		{
-			memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.sync, 12);
-			cdrom_sector_size += 12;
-			temp_b += 12;
-		}
-		if (cdrom_sector_flags & 0x20)		/* Header */
-		{
-			memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.header, 4);
-			cdrom_sector_size += 4;
-			temp_b += 4;
-		}
-		
-		if (real_sector_type == 2)
-		{
-			/* Mode 1 sector, expected type is 1 type. */
-			if (cdrom_sector_flags & 0x40)		/* Sub-header */
-			{
-				if (!(cdrom_sector_flags & 0x10))		/* No user data */
-				{
-					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.user_data, 8);
-					cdrom_sector_size += 8;
-					temp_b += 8;
-				}
-			}
-			if (cdrom_sector_flags & 0x10)		/* User data */
-			{
-				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.user_data, 2048);
-				cdrom_sector_size += 2048;
-				temp_b += 2048;
-			}
-			if (cdrom_sector_flags & 0x08)		/* EDC/ECC */
-			{
-				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.ecc, 288);
-				cdrom_sector_size += 288;
-				temp_b += 288;
-			}
-		}
-		else if (real_sector_type == 3)
-		{
-			/* Mode 2 sector, non-XA mode. */
-			if (cdrom_sector_flags & 0x40)		/* Sub-header */
-			{
-				if (!(cdrom_sector_flags & 0x10))		/* No user data */
-				{
-					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 8);
-					cdrom_sector_size += 8;
-					temp_b += 8;
-				}
-			}
-			if (cdrom_sector_flags & 0x10)		/* User data */
-			{
-				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 2328);
-				cdrom_sector_size += 8;
-				temp_b += 8;
-				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.user_data, 2328);
-				cdrom_sector_size += 2328;
-				temp_b += 2328;
-			}
-		}
-		else if (real_sector_type == 4)
-		{
-			/* Mode 2 sector, XA Form 1 mode */
-			if ((cdrom_sector_flags & 0xf0) == 0x30)
-			{
-				return 0;
-			}
-			if (((cdrom_sector_flags & 0xf8) >= 0xa8) && ((cdrom_sector_flags & 0xf8) <= 0xd8))
-			{
-				return 0;
-			}
-			if (cdrom_sector_flags & 0x40)		/* Sub-header */
-			{
-				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 8);
-				cdrom_sector_size += 8;
-				temp_b += 8;
-			}
-			if (cdrom_sector_flags & 0x10)		/* User data */
-			{
-				if ((cdrom_sector_flags & 0xf0) == 0x10)
-				{
-					/* The data is alone, include sub-header. */
-					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 8);
-					cdrom_sector_size += 8;
-					temp_b += 8;
-				}
-				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.user_data, 2040);
-				cdrom_sector_size += 2040;
-				temp_b += 2040;
-			}
-			if (cdrom_sector_flags & 0x08)		/* EDC/ECC */
-			{
-				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.user_data + 2040, 288);
-				cdrom_sector_size += 288;
-				temp_b += 288;
-			}
-		}
-		else if (real_sector_type == 5)
-		{
-			/* Mode 2 sector, XA Form 2 mode */
-			if ((cdrom_sector_flags & 0xf0) == 0x30)
-			{
-				return 0;
-			}
-			if (((cdrom_sector_flags & 0xf8) >= 0xa8) || ((cdrom_sector_flags & 0xf8) <= 0xd8))
-			{
-				return 0;
-			}
-			/* Mode 2 sector, XA Form 1 mode */
-			if (cdrom_sector_flags & 0x40)		/* Sub-header */
-			{
-				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 8);
-				cdrom_sector_size += 8;
-				temp_b += 8;
-			}
-			if (cdrom_sector_flags & 0x10)		/* User data */
-			{
-				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.user_data, 2328);
-				cdrom_sector_size += 2328;
-				temp_b += 2328;
-			}
-		}
-		else
-		{
-			return 0;
-		}
-	}
-
-	// pclog("CD-ROM sector size: %i (%i, %i) [%04X]\n", cdrom_sector_size, cdrom_sector_type, real_sector_type, cdrom_sector_flags);
-	return cdrom_add_error_and_subchannel(b, real_sector_type);
-}
-
 static void atapicommand(int ide_board)
 {
 	IDE *ide = &ide_drives[cur_ide[ide_board]];
@@ -2202,7 +1898,7 @@ static void atapicommand(int ide_board)
 #endif
 	
 	msf=idebufferb[1]&2;
-	ide->cdlen=0;
+	SectorLen=0;
 
 	if (cdrom->medium_changed())
 	{
@@ -2412,18 +2108,18 @@ static void atapicommand(int ide_board)
 //          pclog("Read CD : start LBA %02X%02X%02X%02X Length %02X%02X%02X Flags %02X\n",idebufferb[2],idebufferb[3],idebufferb[4],idebufferb[5],idebufferb[6],idebufferb[7],idebufferb[8],idebufferb[9]);
 			if (idebufferb[0] == GPCMD_READ_CD_MSF)
 			{
-				ide->cdpos=MSFtoLBA(idebufferb[3],idebufferb[4],idebufferb[5]);
-				ide->cdlen=MSFtoLBA(idebufferb[6],idebufferb[7],idebufferb[8]);
+				SectorLBA=MSFtoLBA(idebufferb[3],idebufferb[4],idebufferb[5]);
+				SectorLen=MSFtoLBA(idebufferb[6],idebufferb[7],idebufferb[8]);
 
-				ide->cdlen -= ide->cdpos;
-				ide->cdlen++;
+				SectorLen -= SectorLBA;
+				SectorLen++;
 				
 				cdrom_sector_ismsf = 1;
 			}
 			else
 			{
-				ide->cdlen=(idebufferb[6]<<16)|(idebufferb[7]<<8)|idebufferb[8];
-				ide->cdpos=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
+				SectorLen=(idebufferb[6]<<16)|(idebufferb[7]<<8)|idebufferb[8];
+				SectorLBA=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
 
 				cdrom_sector_ismsf = 0;
 			}
@@ -2431,7 +2127,7 @@ static void atapicommand(int ide_board)
 			cdrom_sector_type = (idebufferb[1] >> 2) & 7;
 			cdrom_sector_flags = idebufferb[9] || (((uint32_t) idebufferb[10]) << 8);
 
-			if (ide->cdpos > (cdrom->size() - 1))
+			if (SectorLBA > (cdrom->size() - 1))
             {
 				pclog("Trying to read beyond the end of disc\n");
                 ide->atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
@@ -2446,7 +2142,7 @@ static void atapicommand(int ide_board)
                 break;
 			}
 			
-			ret = cdrom_read_data(ide, idebufferb);
+			ret = cdrom_read_data(idebufferb);
 				
             if (!ret)
             {
@@ -2466,9 +2162,9 @@ static void atapicommand(int ide_board)
             readflash=1;
 #endif
 
-            ide->cdpos++;
-            ide->cdlen--;
-            if (ide->cdlen >= 0)
+            SectorLBA++;
+            SectorLen--;
+            if (SectorLen >= 0)
                 ide->packetstatus = ATAPI_STATUS_READCD;
             else
                 ide->packetstatus = ATAPI_STATUS_DATA;
@@ -2487,21 +2183,21 @@ static void atapicommand(int ide_board)
 
 		if (idebufferb[0] == GPCMD_READ_6)
 		{
-			ide->cdlen=idebufferb[4];
-			ide->cdpos=((((uint32_t) idebufferb[1]) & 0x1f)<<16)|(((uint32_t) idebufferb[2])<<8)|((uint32_t) idebufferb[3]);
+			SectorLen=idebufferb[4];
+			SectorLBA=((((uint32_t) idebufferb[1]) & 0x1f)<<16)|(((uint32_t) idebufferb[2])<<8)|((uint32_t) idebufferb[3]);
 		}
 		else if (idebufferb[0] == GPCMD_READ_10)
 		{
-			ide->cdlen=(idebufferb[7]<<8)|idebufferb[8];
-			ide->cdpos=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
+			SectorLen=(idebufferb[7]<<8)|idebufferb[8];
+			SectorLBA=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
 		}
 		else
 		{
-			ide->cdlen=(((uint32_t) idebufferb[6])<<24)|(((uint32_t) idebufferb[7])<<16)|(((uint32_t) idebufferb[8])<<8)|((uint32_t) idebufferb[9]);
-			ide->cdpos=(((uint32_t) idebufferb[2])<<24)|(((uint32_t) idebufferb[3])<<16)|(((uint32_t) idebufferb[4])<<8)|((uint32_t) idebufferb[5]);
+			SectorLen=(((uint32_t) idebufferb[6])<<24)|(((uint32_t) idebufferb[7])<<16)|(((uint32_t) idebufferb[8])<<8)|((uint32_t) idebufferb[9]);
+			SectorLBA=(((uint32_t) idebufferb[2])<<24)|(((uint32_t) idebufferb[3])<<16)|(((uint32_t) idebufferb[4])<<8)|((uint32_t) idebufferb[5]);
 		}
 
-			if (ide->cdpos > (cdrom->size() - 1))
+			if (SectorLBA > (cdrom->size() - 1))
             {
 				pclog("Trying to read beyond the end of disc\n");
                 ide->atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
@@ -2516,7 +2212,7 @@ static void atapicommand(int ide_board)
                 break;
 			}
 			
-				if (!ide->cdlen)
+				if (!SectorLen)
                 {
 //                        pclog("All done - callback set\n");
                         ide->packetstatus = ATAPI_STATUS_COMPLETE;
@@ -2527,7 +2223,7 @@ static void atapicommand(int ide_board)
 				cdrom_sector_type = 6;
 				cdrom_sector_flags = 0x10;
 
-				ret = cdrom_read_data(ide, idebufferb);
+				ret = cdrom_read_data(idebufferb);
 
             if (!ret)
             {
@@ -2544,9 +2240,9 @@ static void atapicommand(int ide_board)
 #ifndef RPCEMU_IDE
                 readflash=1;
 #endif
-                ide->cdpos++;
-                ide->cdlen--;
-                if (ide->cdlen >= 0)
+                SectorLBA++;
+                SectorLen--;
+                if (SectorLen >= 0)
                         ide->packetstatus = ATAPI_STATUS_READCD;
                 else
                         ide->packetstatus = ATAPI_STATUS_DATA;
@@ -2564,15 +2260,15 @@ static void atapicommand(int ide_board)
 				}
 				else
 				{
-					ide->cdlen=(idebufferb[7]<<8)|idebufferb[8];
-					ide->cdpos=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
+					SectorLen=(idebufferb[7]<<8)|idebufferb[8];
+					SectorLBA=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
 					if (msf)
 					{
 						real_pos = cdrom_LBAtoMSF_accurate(ide);
 					}
 					else
 					{
-						real_pos = ide->cdpos;
+						real_pos = SectorLBA;
 					}
 					idebufferb[4] = (real_pos >> 24);
 					idebufferb[5] = ((real_pos >> 16) & 0xff);
@@ -3200,24 +2896,24 @@ static void callreadcd(IDE *ide)
 		int ret;
 
         ide_irq_lower(ide);
-        if (ide->cdlen<=0)
+        if (SectorLen<=0)
         {
 //                pclog("All done - callback set\n");
                 ide->packetstatus = ATAPI_STATUS_COMPLETE;
                 idecallback[ide->board]=20*IDE_TIME;
                 return;
         }
-//        pclog("Continue readcd! %i blocks left\n",ide->cdlen);
+//        pclog("Continue readcd! %i blocks left\n",SectorLen);
         ide->atastat = BUSY_STAT;
 
-		ret = cdrom_read_data(ide, (uint8_t *) ide->buffer);
+		ret = cdrom_read_data((uint8_t *) ide->buffer);
 
 #ifndef RPCEMU_IDE
         readflash=1;
 #endif
 
-        ide->cdpos++;
-        ide->cdlen--;
+        SectorLBA++;
+        SectorLen--;
         ide->packetstatus = ATAPI_STATUS_READCD;
         ide->cylinder=cdrom_sector_size;
         ide->secount=2;

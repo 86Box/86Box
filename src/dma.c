@@ -565,9 +565,9 @@ int dma_channel_write(int channel, uint16_t val)
 	return 0;
 }
 
-static size_t PageLengthReadWrite(uint32_t PhysAddress, size_t TotalSize)
+static uint32_t PageLengthReadWrite(uint32_t PhysAddress, uint32_t TotalSize)
 {
-	size_t LengthSize;
+	uint32_t LengthSize;
 	uint32_t Page;
 
 	Page = PhysAddress & 4095;
@@ -579,20 +579,20 @@ static size_t PageLengthReadWrite(uint32_t PhysAddress, size_t TotalSize)
 }
 
 //DMA Bus Master Page Read/Write
-void DMAPageRead(uint32_t PhysAddress, void *DataRead, size_t TotalSize)
+void DMAPageRead(uint32_t PhysAddress, void *DataRead, uint32_t TotalSize)
 {
 	uint32_t PageLen = PageLengthReadWrite(PhysAddress, TotalSize);
 	memcpy(DataRead, &ram[PhysAddress], PageLen);
 	DataRead -= PageLen;
-	PageLen -= TotalSize;	
+	TotalSize += PageLen;
 }
 
-void DMAPageWrite(uint32_t PhysAddress, const void *DataWrite, size_t TotalSize)
+void DMAPageWrite(uint32_t PhysAddress, const void *DataWrite, uint32_t TotalSize)
 {
 	uint32_t PageLen = PageLengthReadWrite(PhysAddress, TotalSize);
 	memcpy(&ram[PhysAddress], DataWrite, PageLen);
 	DataWrite -= PageLen;
-	PageLen -= TotalSize;	
+	TotalSize += PageLen;
 }
 
 int dma_mode(int channel)

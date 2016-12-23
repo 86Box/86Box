@@ -23,7 +23,7 @@
 #include "fdd.h"
 #include "gameport.h"
 #include "sound_gus.h"
-#include "aha154x.h"
+#include "buslogic.h"
 #include "cdrom.h"
 #include "scsi.h"
 #include "ide.h"
@@ -292,10 +292,10 @@ void initpc(int argc, char *argv[])
         loadnvr();
         sound_init();
         resetide();
-		if (aha154x_enabled)
+		if (buslogic_enabled)
 		{
-			SCSIReset(&ScsiDrives[scsi_cdrom_id], scsi_cdrom_id);
-			AdaptecInit(scsi_cdrom_id);
+			SCSIReset(scsi_cdrom_id);
+			device_add(&BuslogicDevice);
 		}
 		
 	if ((cdrom_drive == -1) || (cdrom_drive == 0))
@@ -419,11 +419,11 @@ void resetpchard()
         
         resetide();
 		
-		if (aha154x_enabled)
+		if (buslogic_enabled)
 		{
-			SCSIReset(&ScsiDrives[scsi_cdrom_id], scsi_cdrom_id);
-			AdaptecInit(scsi_cdrom_id);
-		} 
+			SCSIReset(scsi_cdrom_id);
+			device_add(&BuslogicDevice);
+		}
  
         loadnvr();
 
@@ -626,7 +626,7 @@ void loadconfig(char *fn)
         GUS = config_get_int(NULL, "gus", 0);
         SSI2001 = config_get_int(NULL, "ssi2001", 0);
         voodoo_enabled = config_get_int(NULL, "voodoo", 0);
-		aha154x_enabled = config_get_int(NULL, "aha154x", 0);
+		buslogic_enabled = config_get_int(NULL, "buslogic", 0);
 
 	scsi_base = config_get_int(NULL, "scsi_base", 0x330);
 	scsi_irq = config_get_int(NULL, "scsi_irq", 11);
@@ -814,7 +814,7 @@ void saveconfig()
         config_set_int(NULL, "gus", GUS);
         config_set_int(NULL, "ssi2001", SSI2001);
         config_set_int(NULL, "voodoo", voodoo_enabled);
-		config_set_int(NULL, "aha154x", aha154x_enabled);
+		config_set_int(NULL, "buslogic", buslogic_enabled);
 
 	config_set_int(NULL, "scsi_base", scsi_base);
 	config_set_int(NULL, "scsi_irq", scsi_irq);
