@@ -9,15 +9,20 @@ int pic_intpending;
 
 void pic_updatepending()
 {
+	uint16_t temp_pending = 0;
         if ((pic2.pend&~pic2.mask)&~pic2.mask2)
                 pic.pend |= (1 << 2);
         else
                 pic.pend &= ~(1 << 2);
         pic_intpending = (pic.pend & ~pic.mask) & ~pic.mask2;
         if (!((pic.mask | pic.mask2) & (1 << 2)))
-                pic_intpending |= ((pic2.pend&~pic2.mask)&~pic2.mask2);
+	{
+		temp_pending = ((pic2.pend&~pic2.mask)&~pic2.mask2);
+		temp_pending <<= 8;
+                pic_intpending |= temp_pending;
+	}
 /*        pclog("pic_intpending = %i  %02X %02X %02X %02X\n", pic_intpending, pic.ins, pic.pend, pic.mask, pic.mask2);
-        pclog("                    %02X %02X %02X %02X %i %i\n", pic2.ins, pic2.pend, pic2.mask, pic2.mask2, ((pic.mask | pic.mask2) & (1 << 2)), ((pic2.pend&~pic2.mask)&~pic2.mask2));*/
+        pclog("                    %02X %02X %02X %02X %i %i\n", pic2.ins, pic2.pend, pic2.mask, pic2.mask2, ((pic.mask | pic.mask2) & (1 << 2)), ((pic2.pend&~pic2.mask)&~pic2.mask2)); */
 }
 
 
@@ -45,6 +50,7 @@ void pic_update_mask(uint8_t *mask, uint8_t ins)
                 if (ins & (1 << c))
                 {
                         *mask = 0xff << c;
+			// pclog("Mask is: %02X\n", *mask);
                         return;
                 }
         }
@@ -73,9 +79,10 @@ static void pic_autoeoi()
 void pic_write(uint16_t addr, uint8_t val, void *priv)
 {
         int c;
-//        pclog("Write PIC %04X %02X %04X(%06X):%04X\n",addr,val,CS,cs,pc);
+        // if (addr&1)  pclog("Write PIC %04X %02X %04X(%06X):%04X\n",addr,val,CS,cs,cpu_state.pc);
         if (addr&1)
         {
+		// pclog("PIC ICW is: %i\n", pic.icw);
                 switch (pic.icw)
                 {
                         case 0: /*OCW1*/
@@ -85,7 +92,7 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                         case 1: /*ICW2*/
                         pic.vector=val&0xF8;
-//                        printf("PIC vector now %02X\n",pic.vector);
+                        // printf("PIC vector now %02X\n",pic.vector);
            //             output=1;
                         if (pic.icw1&2) pic.icw=3;
                         else            pic.icw=2;
@@ -96,7 +103,7 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                         case 3: /*ICW4*/
                         pic.icw4 = val;
-//                        pclog("ICW4 = %02x\n", val);
+                        // pclog("ICW4 = %02x\n", val);
                         pic.icw=0;
                         break;
                 }
@@ -105,6 +112,7 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
         {
                 if (val&16) /*ICW1*/
                 {
+                        // pclog("ICW1 = %02x\n", val);
                         pic.mask = 0;
                         pic.mask2=0;
                         pic.icw=1;
@@ -120,7 +128,7 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
 //                                pclog("Specific EOI - %02X %i\n",pic.ins,1<<(val&7));
                                 pic.ins&=~(1<<(val&7));
                                 pic_update_mask(&pic.mask2, pic.ins);
-                                if (val == 2 && (pic2.pend&~pic2.mask)&~pic2.mask2)
+                                if ((val&7) == 2 && (pic2.pend&~pic2.mask)&~pic2.mask2)
                                         pic.pend |= (1 << 2);
 //                                pic.pend&=(1<<(val&7));
 //                                if ((val&7)==1) pollkeywaiting();
@@ -285,6 +293,7 @@ int pic_current[16];
 
 void picint(uint16_t num)
 {
+	int old_pend = pic_intpending;
         if (AT && num == (1 << 2))
                 num = 1 << 9;
 //        pclog("picint : %04X\n", num);
@@ -299,8 +308,15 @@ void picint(uint16_t num)
         {
                 pic.pend|=num;
         }
-//        pclog("picint : PEND now %02X %02X\n", pic.pend, pic2.pend);
+/* if (num == 0x40)
+{
+        pclog("picint : PEND now %02X %02X\n", pic.pend, pic2.pend);
+} */
         pic_updatepending();
+/*	if (num == 0x40)
+	{
+		pclog("Processing FDC interrupt, pending: %s, previously pending: %s, masked: %s, masked (2): %s, T: %s, I: %s\n", (pic_intpending & num) ? "yes" : "no", (old_pend & num) ? "yes" : "no", (pic.mask & num) ? "yes" : "no", (pic.mask2 & num) ? "yes" : "no", (flags & 0x100) ? "yes" : "no", (flags&I_FLAG) ? "yes" : "no");
+	} */
 }
 
 void picintlevel(uint16_t num)

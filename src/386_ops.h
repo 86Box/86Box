@@ -175,6 +175,8 @@ static int op0F_w_a16(uint32_t fetchdat)
         cpu_state.pc++;
 
 	// pclog("A16W: 0F %02X\n", opcode);
+	PREFETCH_PREFIX();
+
         return x86_opcodes_0f[opcode](fetchdat >> 8);
 }
 static int op0F_l_a16(uint32_t fetchdat)
@@ -184,6 +186,8 @@ static int op0F_l_a16(uint32_t fetchdat)
         cpu_state.pc++;
         
 	// pclog("A16L: 0F %02X\n", opcode);
+	PREFETCH_PREFIX();
+
         return x86_opcodes_0f[opcode | 0x100](fetchdat >> 8);
 }
 static int op0F_w_a32(uint32_t fetchdat)
@@ -193,6 +197,8 @@ static int op0F_w_a32(uint32_t fetchdat)
         cpu_state.pc++;
         
 	// pclog("A32W: 0F %02X\n", opcode);
+	PREFETCH_PREFIX();
+
         return x86_opcodes_0f[opcode | 0x200](fetchdat >> 8);
 }
 static int op0F_l_a32(uint32_t fetchdat)
@@ -202,6 +208,8 @@ static int op0F_l_a32(uint32_t fetchdat)
         cpu_state.pc++;
         
 	// pclog("A32L: 0F %02X\n", opcode);
+	PREFETCH_PREFIX();
+
         return x86_opcodes_0f[opcode | 0x300](fetchdat >> 8);
 }
 

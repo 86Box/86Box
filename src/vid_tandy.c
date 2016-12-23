@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #include <stdlib.h>
 #include <math.h>
 #include "ibm.h"
@@ -10,8 +7,10 @@
 #include "timer.h"
 #include "video.h"
 #include "vid_tandy.h"
+#include "dosbox/vid_cga_comp.h"
 
-static int i_filt[8],q_filt[8];
+#define TANDY_RGB 0
+#define TANDY_COMPOSITE 1
 
 typedef struct tandy_t
 {
@@ -38,9 +37,10 @@ typedef struct tandy_t
         int vsynctime, vadj;
         uint16_t ma, maback;
         
-        int dispontime, dispofftime;
-	int vidtime;
+        int dispontime, dispofftime, vidtime;
         int firstline, lastline;
+        
+        int composite;
 } tandy_t;
 
 static uint8_t crtcmask[32] = 
@@ -76,6 +76,7 @@ void tandy_out(uint16_t addr, uint8_t val, void *p)
                 return;
                 case 0x3d8:
                 tandy->mode = val;
+                update_cga16_color(tandy->mode);
                 return;
                 case 0x3d9:
                 tandy->col = val;
@@ -471,60 +472,15 @@ void tandy_poll(void *p)
                 }
                 if (tandy->mode & 1) x = (tandy->crtc[1] << 3) + 16;
                 else                 x = (tandy->crtc[1] << 4) + 16;
-                if (cga_comp)
+
+                if (tandy->composite)
                 {
-                        for (c = 0; c < x; c++)
-                        {
-                                y_buf[(c << 1) & 6] = ntsc_col[buffer->line[tandy->displine][c] & 7][(c << 1) & 6] ? 0x6000 : 0;
-                                y_buf[(c << 1) & 6] += (buffer->line[tandy->displine][c] & 8) ? 0x3000 : 0;
-                                i_buf[(c << 1) & 6] = y_buf[(c << 1) & 6] * i_filt[(c << 1) & 6];
-                                q_buf[(c << 1) & 6] = y_buf[(c << 1) & 6] * q_filt[(c << 1) & 6];
-                                y_tot = y_buf[0] + y_buf[1] + y_buf[2] + y_buf[3] + y_buf[4] + y_buf[5] + y_buf[6] + y_buf[7];
-                                i_tot = i_buf[0] + i_buf[1] + i_buf[2] + i_buf[3] + i_buf[4] + i_buf[5] + i_buf[6] + i_buf[7];
-                                q_tot = q_buf[0] + q_buf[1] + q_buf[2] + q_buf[3] + q_buf[4] + q_buf[5] + q_buf[6] + q_buf[7];
+			for (c = 0; c < x; c++)
+				buffer32->line[tandy->displine][c] = buffer->line[tandy->displine][c] & 0xf;
 
-                                y_val = y_tot >> 10;
-                                if (y_val > 255) y_val = 255;
-                                y_val <<= 16;
-                                i_val = i_tot >> 12;
-                                if (i_val >  39041) i_val =  39041;
-                                if (i_val < -39041) i_val = -39041;
-                                q_val = q_tot >> 12;
-                                if (q_val >  34249) q_val =  34249;
-                                if (q_val < -34249) q_val = -34249;
-
-                                r = (y_val + 249*i_val + 159*q_val) >> 16;
-                                g = (y_val -  70*i_val - 166*q_val) >> 16;
-                                b = (y_val - 283*i_val + 436*q_val) >> 16;
-
-                                y_buf[((c << 1) & 6) + 1] = ntsc_col[buffer->line[tandy->displine][c] & 7][((c << 1) & 6) + 1] ? 0x6000 : 0;
-                                y_buf[((c << 1) & 6) + 1] += (buffer->line[tandy->displine][c] & 8) ? 0x3000 : 0;
-                                i_buf[((c << 1) & 6) + 1] = y_buf[((c << 1) & 6) + 1] * i_filt[((c << 1) & 6) + 1];
-                                q_buf[((c << 1) & 6) + 1] = y_buf[((c << 1) & 6) + 1] * q_filt[((c << 1) & 6) + 1];
-                                y_tot = y_buf[0] + y_buf[1] + y_buf[2] + y_buf[3] + y_buf[4] + y_buf[5] + y_buf[6] + y_buf[7];
-                                i_tot = i_buf[0] + i_buf[1] + i_buf[2] + i_buf[3] + i_buf[4] + i_buf[5] + i_buf[6] + i_buf[7];
-                                q_tot = q_buf[0] + q_buf[1] + q_buf[2] + q_buf[3] + q_buf[4] + q_buf[5] + q_buf[6] + q_buf[7];
-
-                                y_val = y_tot >> 10;
-                                if (y_val > 255) y_val = 255;
-                                y_val <<= 16;
-                                i_val = i_tot >> 12;
-                                if (i_val >  39041) i_val =  39041;
-                                if (i_val < -39041) i_val = -39041;
-                                q_val = q_tot >> 12;
-                                if (q_val >  34249) q_val =  34249;
-                                if (q_val < -34249) q_val = -34249;
-
-                                r = (y_val + 249*i_val + 159*q_val) >> 16;
-                                g = (y_val -  70*i_val - 166*q_val) >> 16;
-                                b = (y_val - 283*i_val + 436*q_val) >> 16;
-                                if (r > 511) r = 511;
-                                if (g > 511) g = 511;
-                                if (b > 511) b = 511;
-
-                                ((uint32_t *)buffer32->line[tandy->displine])[c] = makecol32(r / 2, g / 2, b / 2);
-                        }
+			Composite_Process(tandy->mode, 0, x >> 2, buffer32->line[tandy->displine]);
                 }
+
                 tandy->sc = oldsc;
                 if (tandy->vc == tandy->crtc[7] && !tandy->sc)
                 {
@@ -619,7 +575,7 @@ void tandy_poll(void *p)
 //                                        printf("Blit %i %i\n",firstline,lastline);
 //printf("Xsize is %i\n",xsize);
 
-                                        if (cga_comp) 
+                                        if (tandy->composite) 
                                            video_blit_memtoscreen(0, tandy->firstline-4, 0, (tandy->lastline - tandy->firstline) + 8, xsize, (tandy->lastline - tandy->firstline) + 8);
                                         else          
                                            video_blit_memtoscreen_8(0, tandy->firstline-4, xsize, (tandy->lastline - tandy->firstline) + 8);
@@ -677,19 +633,17 @@ void tandy_poll(void *p)
 
 void *tandy_init()
 {
-        int c;
-        int tandy_tint = -2;
+        int display_type;
         tandy_t *tandy = malloc(sizeof(tandy_t));
         memset(tandy, 0, sizeof(tandy_t));
 
+        display_type = model_get_config_int("display_type");
+        tandy->composite = (display_type != TANDY_RGB);
+
+	cga_comp_init(1);
         tandy->memctrl = -1;
         tandy->base = (mem_size - 128) * 1024;
         
-        for (c = 0; c < 8; c++)
-        {
-                i_filt[c] = 512.0 * cos((3.14 * (tandy_tint + c * 4) / 16.0) - 33.0 / 180.0);
-                q_filt[c] = 512.0 * sin((3.14 * (tandy_tint + c * 4) / 16.0) - 33.0 / 180.0);
-        }
         timer_add(tandy_poll, &tandy->vidtime, TIMER_ALWAYS_ENABLED, tandy);
         mem_mapping_add(&tandy->mapping, 0xb8000, 0x08000, tandy_read, NULL, NULL, tandy_write, NULL, NULL,  NULL, 0, tandy);
         mem_mapping_add(&tandy->ram_mapping, 0x80000, 0x20000, tandy_ram_read, NULL, NULL, tandy_ram_write, NULL, NULL,  NULL, 0, tandy);
@@ -698,8 +652,6 @@ void *tandy_init()
         io_sethandler(0x03d0, 0x0010, tandy_in, NULL, NULL, tandy_out, NULL, NULL, tandy);
         io_sethandler(0x00a0, 0x0001, tandy_in, NULL, NULL, tandy_out, NULL, NULL, tandy);
         tandy->b8000_mask = 0x3fff;
-
-	overscan_x = overscan_y = 16;
         
         return tandy;
 }
@@ -728,4 +680,58 @@ device_t tandy_device =
         tandy_speed_changed,
         NULL,
         NULL
+};
+
+static device_config_t tandy_config[] =
+{
+        {
+                .name = "display_type",
+                .description = "Display type",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "RGB",
+                                .value = TANDY_RGB
+                        },
+                        {
+                                .description = "Composite",
+                                .value = TANDY_COMPOSITE
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = TANDY_RGB
+        },
+        {
+                .type = -1
+        }
+};
+
+/*These aren't really devices as such - more of a convenient way to hook in the
+  config information*/
+device_t tandy1000_device =
+{
+        "Tandy 1000",
+        0,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        tandy_config
+};
+device_t tandy1000hx_device =
+{
+        "Tandy 1000HX",
+        0,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        tandy_config
 };

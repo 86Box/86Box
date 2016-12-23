@@ -216,7 +216,10 @@ void ps1_m2121_write(uint16_t port, uint8_t val, void *p)
         {
                 case 0x0092:
                 if (val & 1)
+		{
                         softresetx86();
+			cpu_set_edx();
+		}
                 ps1_92 = val & ~1;
                 mem_a20_alt = val & 2;
                 mem_a20_recalc();

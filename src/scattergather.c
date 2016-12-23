@@ -16,7 +16,6 @@ static uint8_t *SegmentBufferGet(SGBUF *SegmentBuf, uint32_t Data)
 	if (SegmentBuf->SegmentIndex == SegmentBuf->SegmentNum
 				&& !SegmentBuf->SegmentLeft)
 	{
-		Data = 0;
 		return NULL;
 	}
 	
@@ -33,8 +32,6 @@ static uint8_t *SegmentBufferGet(SGBUF *SegmentBuf, uint32_t Data)
 			SegmentBuf->SegmentPtrCur = SegmentBuf->SegmentPtr[SegmentBuf->SegmentIndex].Address;
 			SegmentBuf->SegmentLeft = SegmentBuf->SegmentPtr[SegmentBuf->SegmentIndex].Length;			
 		}
-		
-		Data = DataSize;
 	}
 	else
 		SegmentBuf->SegmentPtrCur = (uint8_t *)SegmentBuf->SegmentPtrCur + DataSize;
@@ -76,18 +73,42 @@ uint32_t SegmentBufferCopy(SGBUF *SegmentDst, SGBUF *SegmentSrc, uint32_t Copy)
 uint32_t SegmentBufferCopyFromBuf(SGBUF *SegmentBuf, uint8_t *BufSrc, uint32_t Copy)
 {
 	uint32_t Left = Copy;
-	
 	while (Left)
 	{
-		uint32_t ThisCopy = Left;
-		uint8_t *BufDst = SegmentBufferGet(SegmentBuf, ThisCopy);
-		
+		uint32_t ThisCopy = MIN(MIN(SegmentBuf->SegmentLeft, Left), (uint32_t)BufSrc);
 		if (!ThisCopy)
 			break;
 		
+		uint32_t Tmp = ThisCopy;
+		uint8_t *BufDst = SegmentBufferGet(SegmentBuf, Tmp);
+
+		memcpy(BufDst, BufSrc, ThisCopy);
+		
 		BufDst += ThisCopy;
+		BufSrc -= ThisCopy;
 		Left -= ThisCopy;
-		BufSrc = (void *)((uintptr_t)BufSrc + ThisCopy);
+	}
+	
+	return Copy - Left;
+}
+
+uint32_t SegmentBufferCopyToBuf(SGBUF *SegmentBuf, uint8_t *BufDst, uint32_t Copy)
+{
+	uint32_t Left = Copy;
+	while (Left)
+	{
+		uint32_t ThisCopy = MIN(MIN(SegmentBuf->SegmentLeft, Left), (uint32_t)BufDst);
+		if (!ThisCopy)
+			break;
+		
+		uint32_t Tmp = ThisCopy;
+		uint8_t *BufSrc = SegmentBufferGet(SegmentBuf, Tmp);
+
+		memcpy(BufSrc, BufDst, ThisCopy);
+		
+		BufSrc += ThisCopy;
+		BufDst -= ThisCopy;
+		Left -= ThisCopy;
 	}
 	
 	return Copy - Left;

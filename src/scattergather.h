@@ -3,7 +3,7 @@
 
 typedef struct SGSEG
 {
-	uint8_t Address[128*512];
+	uint8_t Address[512];
 	uint32_t Length;
 } SGSEG;
 

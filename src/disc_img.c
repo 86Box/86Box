@@ -27,7 +27,7 @@ static struct
 	uint16_t sector_pos[2][256];
 	uint8_t current_sector_pos_side;
 	uint16_t current_sector_pos;
-} img[2];
+} img[FDD_NUM];
 
 uint8_t dmf_r[21] = { 12, 2, 13, 3, 14, 4, 15, 5, 16, 6, 17, 7, 18, 8, 19, 9, 20, 10, 21, 11, 1 };
 static uint8_t xdf_spt[2] = { 6, 8 };
@@ -193,6 +193,32 @@ void img_init()
 
 void d86f_register_img(int drive);
 
+int bps_is_valid(uint16_t bps)
+{
+	int i;
+	for (i = 0; i <= 8; i++)
+	{
+		if (bps == (128 << i))
+		{
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int first_byte_is_valid(uint8_t first_byte)
+{
+	switch(first_byte)
+	{
+		case 0x60:
+		case 0xE9:
+		case 0xEB:
+			return 1;
+		default:
+			return 0;
+	}
+}
+
 void img_load(int drive, char *fn)
 {
         int size;
@@ -208,6 +234,7 @@ void img_load(int drive, char *fn)
 	char ext[4];
 	int fdi;
 	int i;
+	uint8_t first_byte;
 
 	ext[0] = fn[strlen(fn) - 3] | 0x60;
 	ext[1] = fn[strlen(fn) - 2] | 0x60;
@@ -256,6 +283,8 @@ void img_load(int drive, char *fn)
 	{
 		/* Read the BPB */
 		pclog("img_load(): File is a raw image...\n");
+		fseek(img[drive].f, 0x00, SEEK_SET);
+		first_byte = fgetc(img[drive].f);
 		fseek(img[drive].f, 0x0B, SEEK_SET);
 		fread(&bpb_bps, 1, 2, img[drive].f);
 		fseek(img[drive].f, 0x13, SEEK_SET);
@@ -281,7 +310,7 @@ void img_load(int drive, char *fn)
 
 	pclog("BPB reports %i sides and %i bytes per sector\n", bpb_sides, bpb_bps);
 
-	if (((bpb_sides < 1) || (bpb_sides > 2) || (bpb_bps < 128) || (bpb_bps > 2048)) && !fdi)
+	if (((bpb_sides < 1) || (bpb_sides > 2) || !bps_is_valid(bpb_bps) || !first_byte_is_valid(first_byte)) && !fdi)
 	{
 		/* The BPB is giving us a wacky number of sides and/or bytes per sector, therefore it is most probably
 		   not a BPB at all, so we have to guess the parameters from file size. */

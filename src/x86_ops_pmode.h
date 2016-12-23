@@ -18,6 +18,7 @@ static int opARPL_a16(uint32_t fetchdat)
                 flags &= ~Z_FLAG;
         
         CLOCK_CYCLES(is486 ? 9 : 20);
+        PREFETCH_RUN(is486 ? 9 : 20, 2, rmdat, 1,0,1,0, 0);
         return 0;
 }
 static int opARPL_a32(uint32_t fetchdat)
@@ -40,10 +41,11 @@ static int opARPL_a32(uint32_t fetchdat)
                 flags &= ~Z_FLAG;
         
         CLOCK_CYCLES(is486 ? 9 : 20);
+        PREFETCH_RUN(is486 ? 9 : 20, 2, rmdat, 1,0,1,0, 1);
         return 0;
 }
 
-#define opLAR(name, fetch_ea, is32)                                                                             \
+#define opLAR(name, fetch_ea, is32, ea32)                                                                             \
         static int opLAR_ ## name(uint32_t fetchdat)                                                            \
         {                                                                                                       \
                 int valid;                                                                                      \
@@ -84,15 +86,16 @@ static int opARPL_a32(uint32_t fetchdat)
                         cpl_override = 0;                                                                       \
                 }                                                                                               \
                 CLOCK_CYCLES(11);                                                                               \
+                PREFETCH_RUN(11, 2, rmdat, 2,0,0,0, ea32); \
                 return cpu_state.abrt;                                                                                    \
         }
 
-opLAR(w_a16, fetch_ea_16, 0)
-opLAR(w_a32, fetch_ea_32, 0)
-opLAR(l_a16, fetch_ea_16, 1)
-opLAR(l_a32, fetch_ea_32, 1)
+opLAR(w_a16, fetch_ea_16, 0, 0)
+opLAR(w_a32, fetch_ea_32, 0, 1)
+opLAR(l_a16, fetch_ea_16, 1, 0)
+opLAR(l_a32, fetch_ea_32, 1, 1)
 
-#define opLSL(name, fetch_ea, is32)                                                                             \
+#define opLSL(name, fetch_ea, is32, ea32)                                                                             \
         static int opLSL_ ## name(uint32_t fetchdat)                                                            \
         {                                                                                                       \
                 int valid;                                                                                      \
@@ -139,16 +142,17 @@ opLAR(l_a32, fetch_ea_32, 1)
                         cpl_override = 0;                                                                       \
                 }                                                                                               \
                 CLOCK_CYCLES(10);                                                                               \
+                PREFETCH_RUN(10, 2, rmdat, 4,0,0,0, ea32); \
                 return cpu_state.abrt;                                                                                    \
         }
 
-opLSL(w_a16, fetch_ea_16, 0)
-opLSL(w_a32, fetch_ea_32, 0)
-opLSL(l_a16, fetch_ea_16, 1)
-opLSL(l_a32, fetch_ea_32, 1)
+opLSL(w_a16, fetch_ea_16, 0, 0)
+opLSL(w_a32, fetch_ea_32, 0, 1)
+opLSL(l_a16, fetch_ea_16, 1, 0)
+opLSL(l_a32, fetch_ea_32, 1, 1)
 
 
-static int op0F00_common(uint32_t fetchdat)
+static int op0F00_common(uint32_t fetchdat, int ea32)
 {
         int dpl, valid, granularity;
         uint32_t addr, base, limit;
@@ -161,10 +165,12 @@ static int op0F00_common(uint32_t fetchdat)
                 case 0x00: /*SLDT*/
                 seteaw(ldt.seg);
                 CLOCK_CYCLES(4);
+                PREFETCH_RUN(4, 2, rmdat, 0,0,(cpu_mod == 3) ? 0:1,0, ea32);
                 break;
                 case 0x08: /*STR*/
                 seteaw(tr.seg);
                 CLOCK_CYCLES(4);
+                PREFETCH_RUN(4, 2, rmdat, 0,0,(cpu_mod == 3) ? 0:1,0, ea32);
                 break;
                 case 0x10: /*LLDT*/
                 if ((CPL || eflags&VM_FLAG) && (cr0&1))
@@ -190,6 +196,7 @@ static int op0F00_common(uint32_t fetchdat)
                 ldt.base = base;
                 ldt.seg = sel;
                 CLOCK_CYCLES(20);
+                PREFETCH_RUN(20, 2, rmdat, (cpu_mod == 3) ? 0:1,2,0,0, ea32);
                 break;
                 case 0x18: /*LTR*/
                 if ((CPL || eflags&VM_FLAG) && (cr0&1))
@@ -215,6 +222,7 @@ static int op0F00_common(uint32_t fetchdat)
                 }
                 tr.base = base;
                 CLOCK_CYCLES(20);
+                PREFETCH_RUN(20, 2, rmdat, (cpu_mod == 3) ? 0:1,2,0,0, ea32);
                 break;
                 case 0x20: /*VERR*/
                 sel = geteaw();                 if (cpu_state.abrt) return 1;
@@ -234,6 +242,7 @@ static int op0F00_common(uint32_t fetchdat)
                 if ((desc & 0x0800) && !(desc & 0x0200)) valid = 0; /*Non-readable code*/
                 if (valid) flags |= Z_FLAG;
                 CLOCK_CYCLES(20);
+                PREFETCH_RUN(20, 2, rmdat, (cpu_mod == 3) ? 1:2,0,0,0, ea32);
                 break;
                 case 0x28: /*VERW*/
                 sel = geteaw();                 if (cpu_state.abrt) return 1;
@@ -251,6 +260,7 @@ static int op0F00_common(uint32_t fetchdat)
                 if (!(desc & 0x0200)) valid = 0; /*Read-only data*/
                 if (valid) flags |= Z_FLAG;
                 CLOCK_CYCLES(20);
+                PREFETCH_RUN(20, 2, rmdat, (cpu_mod == 3) ? 1:2,0,0,0, ea32);
                 break;
 
                 default:
@@ -268,7 +278,7 @@ static int op0F00_a16(uint32_t fetchdat)
 
         fetch_ea_16(fetchdat);
         
-        return op0F00_common(fetchdat);
+        return op0F00_common(fetchdat, 0);
 }
 static int op0F00_a32(uint32_t fetchdat)
 {
@@ -276,10 +286,10 @@ static int op0F00_a32(uint32_t fetchdat)
 
         fetch_ea_32(fetchdat);
         
-        return op0F00_common(fetchdat);
+        return op0F00_common(fetchdat, 1);
 }
 
-static int op0F01_common(uint32_t fetchdat, int is32, int is286)
+static int op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
 {
         uint32_t base;
         uint16_t limit, tempw;
@@ -293,6 +303,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286)
                         base |= 0xff000000;
                 writememl(easeg, cpu_state.eaaddr + 2, base);
                 CLOCK_CYCLES(7);
+                PREFETCH_RUN(7, 2, rmdat, 0,0,1,1, ea32);
                 break;
                 case 0x08: /*SIDT*/
                 seteaw(idt.limit);
@@ -301,6 +312,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286)
                         base |= 0xff000000;
                 writememl(easeg, cpu_state.eaaddr + 2, base);
                 CLOCK_CYCLES(7);
+                PREFETCH_RUN(7, 2, rmdat, 0,0,1,1, ea32);
                 break;
                 case 0x10: /*LGDT*/
                 if ((CPL || eflags&VM_FLAG) && (cr0&1))
@@ -317,6 +329,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286)
                 gdt.base = base;
                 if (!is32) gdt.base &= 0xffffff;
                 CLOCK_CYCLES(11);
+                PREFETCH_RUN(11, 2, rmdat, 1,1,0,0, ea32);
                 break;
                 case 0x18: /*LIDT*/
                 if ((CPL || eflags&VM_FLAG) && (cr0&1))
@@ -333,12 +346,14 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286)
                 idt.base = base;
                 if (!is32) idt.base &= 0xffffff;
                 CLOCK_CYCLES(11);
+                PREFETCH_RUN(11, 2, rmdat, 1,1,0,0, ea32);
                 break;
 
                 case 0x20: /*SMSW*/
                 if (is486) seteaw(msw);
                 else       seteaw(msw | 0xFF00);
                 CLOCK_CYCLES(2);
+                PREFETCH_RUN(2, 2, rmdat, 0,0,(cpu_mod == 3) ? 0:1,0, ea32);
                 break;
                 case 0x30: /*LMSW*/
                 if ((CPL || eflags&VM_FLAG) && (msw&1))
@@ -350,6 +365,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286)
                 tempw = geteaw();                                       if (cpu_state.abrt) return 1;
                 if (msw & 1) tempw |= 1;
                 msw = tempw;
+                PREFETCH_RUN(2, 2, rmdat, 0,0,(cpu_mod == 3) ? 0:1,0, ea32);
                 break;
 
                 case 0x38: /*INVLPG*/
@@ -363,6 +379,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286)
                         }
                         mmu_invalidate(ds + cpu_state.eaaddr);
                         CLOCK_CYCLES(12);
+                        PREFETCH_RUN(12, 2, rmdat, 0,0,0,0, ea32);
                         break;
                 }
 
@@ -379,30 +396,30 @@ static int op0F01_w_a16(uint32_t fetchdat)
 {
         fetch_ea_16(fetchdat);
         
-        return op0F01_common(fetchdat, 0, 0);
+        return op0F01_common(fetchdat, 0, 0, 0);
 }
 static int op0F01_w_a32(uint32_t fetchdat)
 {
         fetch_ea_32(fetchdat);
         
-        return op0F01_common(fetchdat, 0, 0);
+        return op0F01_common(fetchdat, 0, 0, 1);
 }
 static int op0F01_l_a16(uint32_t fetchdat)
 {
         fetch_ea_16(fetchdat);
         
-        return op0F01_common(fetchdat, 1, 0);
+        return op0F01_common(fetchdat, 1, 0, 0);
 }
 static int op0F01_l_a32(uint32_t fetchdat)
 {
         fetch_ea_32(fetchdat);
         
-        return op0F01_common(fetchdat, 1, 0);
+        return op0F01_common(fetchdat, 1, 0, 1);
 }
 
 static int op0F01_286(uint32_t fetchdat)
 {
         fetch_ea_16(fetchdat);
         
-        return op0F01_common(fetchdat, 0, 1);
+        return op0F01_common(fetchdat, 0, 1, 0);
 }

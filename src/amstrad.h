@@ -1,5 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 void amstrad_init();
 
+extern mouse_t mouse_amstrad;

@@ -525,16 +525,6 @@ static inline int codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, v
                         addbyte(0xd5);
                         addbyte(0x4e);
                         addbyte(0x10);
-                        addbyte(0x66); /*PSRLW XMM0, 8*/
-                        addbyte(0x0f);
-                        addbyte(0x71);
-                        addbyte(0xd0 | 0);
-                        addbyte(8);
-                        addbyte(0x66); /*PSRLW XMM1, 8*/
-                        addbyte(0x0f);
-                        addbyte(0x71);
-                        addbyte(0xd0 | 1);
-                        addbyte(8);
                         addbyte(0x66); /*PADDW XMM0, XMM1*/
                         addbyte(0x0f);
                         addbyte(0xfd);
@@ -552,6 +542,11 @@ static inline int codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, v
                         addbyte(0x0f);
                         addbyte(0xfd);
                         addbyte(0xc0 | 1 | (0 << 3));
+                        addbyte(0x66); /*PSRLW XMM0, 8*/
+                        addbyte(0x0f);
+                        addbyte(0x71);
+                        addbyte(0xd0 | 0);
+                        addbyte(8);
                         addbyte(0x66); /*PACKUSWB XMM0, XMM0*/
                         addbyte(0x0f);
                         addbyte(0x67);
@@ -1542,7 +1537,7 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                         addbyte(0xfb);
                         addbyte(0xc1); /*SHR EBX, 24*/
                         addbyte(0xeb);
-                        addbyte(0x24);
+                        addbyte(24);
                         break;
                         case TCA_MSELECT_AOTHER:
                         addbyte(0x66); /*MOV EBX, XMM3*/
@@ -1551,7 +1546,7 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                         addbyte(0xdb);
                         addbyte(0xc1); /*SHR EBX, 24*/
                         addbyte(0xeb);
-                        addbyte(0x24);
+                        addbyte(24);
                         break;
                         case TCA_MSELECT_ALOCAL:
                         addbyte(0x66); /*MOV EBX, XMM7*/
@@ -1560,7 +1555,7 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                         addbyte(0xfb);
                         addbyte(0xc1); /*SHR EBX, 24*/
                         addbyte(0xeb);
-                        addbyte(0x24);
+                        addbyte(24);
                         break;
                         case TCA_MSELECT_DETAIL:
                         addbyte(0xbb); /*MOV EBX, params->detail_bias[1]*/
@@ -1647,9 +1642,20 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                 addbyte(0x7e);
                 addbyte(0xc1);
         }
+        if (cc_mselect == CC_MSELECT_TEXRGB)
+        {
+                addbyte(0xf3); /*MOVD XMM4, XMM0*/
+                addbyte(0x0f);
+                addbyte(0x7e);
+                addbyte(0xe0);
+        }
 
         if ((params->fbzMode & FBZ_CHROMAKEY))
         {
+                addbyte(0x66); /*MOVD EAX, XMM0*/
+                addbyte(0x0f);
+                addbyte(0x7e);
+                addbyte(0xc0);
                 addbyte(0x8b); /*MOV EBX, params->chromaKey[ESI]*/
                 addbyte(0x9e);
                 addlong(offsetof(voodoo_params_t, chromaKey));
@@ -2108,6 +2114,16 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                         addbyte(0x9f);
                         addlong(offsetof(voodoo_state_t, tex_a));
                         addbyte(2);
+                        break;
+                        case CC_MSELECT_TEXRGB:
+                        addbyte(0x66); /*PUNPCKLBW XMM4, XMM2*/
+                        addbyte(0x0f);
+                        addbyte(0x60);
+                        addbyte(0xe2);
+                        addbyte(0xf3); /*MOVQ XMM3, XMM4*/
+                        addbyte(0x0f);
+                        addbyte(0x7e);
+                        addbyte(0xdc);
                         break;
                         default:
                         addbyte(0x66); /*PXOR XMM3, XMM3*/

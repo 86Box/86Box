@@ -7,7 +7,7 @@
 #define printf pclog
 
 /*Memory*/
-uint8_t *ram,*vram;
+uint8_t *ram;
 
 uint32_t rammask;
 
@@ -60,10 +60,8 @@ void outl(uint16_t port, uint32_t val);
 
 FILE *romfopen(char *fn, char *mode);
 extern int shadowbios,shadowbios_write;
-extern int cache;
 extern int mem_size;
 extern int readlnum,writelnum;
-extern int memwaitstate;
 
 
 /*Processor*/
@@ -182,8 +180,7 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state) <= 128);
 /*x86reg regs[8];*/
 
 uint16_t flags,eflags;
-uint32_t /*cs,ds,es,ss,*/oldds,oldss,olddslimit,oldsslimit,olddslimitw,oldsslimitw;
-//uint16_t msw;
+uint32_t oldds,oldss,olddslimit,oldsslimit,olddslimitw,oldsslimitw;
 
 extern int ins,output;
 extern int cycdiff;
@@ -198,7 +195,6 @@ uint8_t *pccache2;
   _cs,_ds,_es,_ss are the segment structures
   CS,DS,ES,SS is the 16-bit data
   cs,ds,es,ss are defines to the bases*/
-//uint16_t CS,DS,ES,SS;
 #define CS _cs.seg
 #define DS _ds.seg
 #define ES _es.seg
@@ -252,6 +248,7 @@ uint32_t dr[8];
 extern int cycles_lost;
 extern int israpidcad;
 extern int is486;
+extern int is_pentium;
 extern uint8_t opcode;
 extern int insc;
 extern int fpucount;
@@ -291,7 +288,6 @@ typedef struct PIT
 
 PIT pit;
 void setpitclock(float clock);
-int pitcount;
 
 float pit_timer0_freq();
 
@@ -325,7 +321,6 @@ typedef struct PPI
 } PPI;
 
 PPI ppi;
-extern int key_inhibit;
 
 
 /*PIC*/
@@ -339,17 +334,16 @@ typedef struct PIC
 
 PIC pic,pic2;
 extern int pic_intpending;
-int intcount;
 
 
 int disctime;
-char discfns[2][256];
-int driveempty[2];
+char discfns[4][256];
+int driveempty[4];
 
-#define MDA ((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_INCOLOR) && (romset<ROM_TANDY || romset>=ROM_IBMAT))
-#define VGA ((gfxcard>=GFX_TVGA || romset==ROM_ACER386) && gfxcard!=GFX_COLORPLUS && gfxcard!=GFX_INCOLOR && gfxcard!=GFX_COMPAQ_EGA && gfxcard!=GFX_SUPER_EGA && romset!=ROM_PC1640 && romset!=ROM_PC1512 && romset!=ROM_TANDY && romset!=ROM_PC200)
+#define MDA ((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_HERCULESPLUS || gfxcard==GFX_INCOLOR) && (romset<ROM_TANDY || romset>=ROM_IBMAT))
+#define VGA ((gfxcard>=GFX_TVGA || romset==ROM_ACER386) && gfxcard!=GFX_COLORPLUS && gfxcard!=GFX_INCOLOR && gfxcard!=GFX_WY700 && gfxcard!=GFX_COMPAQ_EGA && gfxcard!=GFX_SUPER_EGA && gfxcard!=GFX_HERCULESPLUS && romset!=ROM_PC1640 && romset!=ROM_PC1512 && romset!=ROM_TANDY && romset!=ROM_PC200)
 #define PCJR (romset == ROM_IBMPCJR)
-#define AMIBIOS (romset==ROM_AMI386 || romset==ROM_AMI486 || romset == ROM_WIN486)
+#define AMIBIOS (romset==ROM_AMI386SX || romset==ROM_AMI486 || romset == ROM_WIN486)
 
 int GAMEBLASTER, GUS, SSI2001, voodoo_enabled, aha154x_enabled;
 extern int AMSTRAD, AT, is286, is386, PCI, TANDY;
@@ -387,7 +381,7 @@ enum
         ROM_IBMAT386,
         ROM_ACER386,
         ROM_MEGAPC,
-        ROM_AMI386,
+        ROM_AMI386SX,
         ROM_AMI486,
         ROM_WIN486,
         ROM_PCI486,
@@ -398,6 +392,9 @@ enum
         ROM_IBMPS1_2011,
         ROM_DESKPRO_386,	
         ROM_IBMPS1_2121,
+
+        ROM_AMI386DX_OPTI495,
+        ROM_MR386DX_OPTI495,
 
         ROM_DTK486,     /*DTK PKM-0038S E-2 / SiS 471 / Award BIOS / SiS 85C471*/
         ROM_VLI486SV2G, /*ASUS VL/I-486SV2G / SiS 471 / Award BIOS / SiS 85C471*/
@@ -416,6 +413,8 @@ enum
 
         ROM_MARL,	/*Intel Advanced/ML / 430HX / AMI BIOS / National Semiconductors PC87306*/
         ROM_THOR,	/*Intel Advanced/ATX / 430FX / AMI BIOS / National Semiconductors PC87306*/
+        ROM_MRTHOR,	/*Intel Advanced/ATX / 430FX / MR.BIOS / National Semiconductors PC87306*/
+        ROM_POWERMATE_V,/*NEC PowerMate V / 430FX / Phoenix BIOS / SMC FDC37C665*/
 	
         ROM_MAX
 };
@@ -449,6 +448,7 @@ enum
         GFX_PHOENIX_TRIO64, /*S3 764/Trio64 (Phoenix)*/
        	GFX_INCOLOR,	/* Hercules InColor */
 	GFX_COLORPLUS,	/* Plantronics ColorPlus */
+	GFX_WY700,	/* Wyse 700 */
 	GFX_COMPAQ_EGA,	/*Compaq EGA*/
 	GFX_SUPER_EGA,	/*Using Chips & Technologies SuperEGA BIOS*/
 	GFX_COMPAQ_VGA,	/*Compaq/Paradise VGA*/
@@ -463,6 +463,8 @@ enum
         GFX_RIVATNT,
         GFX_RIVA128,
         GFX_HERCULESPLUS,
+        GFX_RIVATNT2,
+
         GFX_MAX
 };
 
@@ -474,44 +476,15 @@ int cpuspeed;
 
 
 /*Video*/
-void (*pollvideo)();
-void pollega();
 int readflash;
-uint8_t hercctrl;
-int slowega,egacycles,egacycles2;
-extern uint8_t gdcreg[16];
 extern int egareads,egawrites;
-extern int cga_comp;
 extern int vid_resize;
 extern int vid_api;
 extern int winsizex,winsizey;
-extern int chain4;
-
-uint8_t readvram(uint16_t addr);
-void writevram(uint16_t addr, uint8_t val);
-void writevramgen(uint16_t addr, uint8_t val);
-
-uint8_t readtandyvram(uint16_t addr);
-void writetandy(uint16_t addr, uint8_t val);
-void writetandyvram(uint16_t addr, uint8_t val);
-
-extern int et4k_b8000;
 extern int changeframecount;
-extern uint8_t changedvram[(8192*1024)/1024];
-
-void writeega_chain4(uint32_t addr, uint8_t val);
-extern uint32_t svgarbank,svgawbank;
-
-/*Serial*/
-extern int mousedelay;
 
 
 /*Sound*/
-uint8_t spkstat;
-
-float spktime;
-int rtctime;
-int soundtime,gustime,gustime2,vidtime;
 int ppispeakon;
 float CGACONST;
 float MDACONST;
@@ -523,10 +496,6 @@ int gated,speakval,speakon;
 
 
 /*Sound Blaster*/
-/*int sbenable,sblatchi,sblatcho,sbcount,sb_enable_i,sb_count_i;
-int16_t sbdat;*/
-void setsbclock(float clock);
-
 #define SADLIB    1     /*No DSP*/
 #define SB1       2     /*DSP v1.05*/
 #define SB15      3     /*DSP v2.00*/
@@ -537,11 +506,6 @@ void setsbclock(float clock);
 #define SADGOLD   8     /*AdLib Gold*/
 #define SND_WSS   9     /*Windows Sound System*/
 #define SND_PAS16 10    /*Pro Audio Spectrum 16*/
-
-int sbtype;
-
-int clocks[3][12][4];
-int at70hz;
 
 char pcempath[512];
 
@@ -557,7 +521,7 @@ typedef struct
         uint32_t base;
 } hard_disk_t;
 
-hard_disk_t hdc[4];
+hard_disk_t hdc[6];
 
 uint64_t hdt[128][3];
 
@@ -588,20 +552,14 @@ extern int ide_ter_enabled;
 #define MIN(a, b) 				((a) < (b) ? (a) : (b))
 #define ELEMENTS(Array)         (sizeof(Array) / sizeof((Array)[0]))
 
-extern int ui_writeprot[2];
+extern int ui_writeprot[4];
 
 void pclog(const char *format, ...);
 extern int nmi;
 
-extern int times;
-
 
 extern float isa_timing, bus_timing;
 
-extern int frame;
-
-
-uint8_t *vramp;
 
 uint64_t timer_read();
 extern uint64_t timer_freq;
@@ -617,7 +575,6 @@ void resetpc_cad();
 
 extern int start_in_fullscreen;
 extern int window_w, window_h, window_x, window_y, window_remember;
-extern int mouse_always_serial;
 
 extern uint64_t pmc[2];
 

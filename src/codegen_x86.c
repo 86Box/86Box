@@ -550,17 +550,21 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_B_NO_ABRT()
         addbyte(0x83); /*ADD ESP, 8*/
         addbyte(0xc4);
         addbyte(8);
+#ifndef RELEASE_BUILD
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
         addbyte(cpu_state_offset(abrt));
         addbyte(0);
+#endif
         addbyte(0x0f); /*MOVZX ECX, AL*/
         addbyte(0xb6);
         addbyte(0xc8);
+#ifndef RELEASE_BUILD
         addbyte(0x75); /*JNE mem_abrt_rout*/
         addbyte(1);
+#endif
         addbyte(0xc3); /*RET*/
-        
+#ifndef RELEASE_BUILD        
         addbyte(0xc7); /*MOV [ESP], gen_MEM_LOAD_ADDR_EA_B_NO_ABRT_err*/
         addbyte(0x04);
         addbyte(0x24);
@@ -568,7 +572,7 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_B_NO_ABRT()
         addbyte(0xe8); /*CALL fatal*/
         addlong((uint32_t)fatal - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
         /*Should not return!*/
-        
+#endif        
         return addr;
 }
 
@@ -615,17 +619,21 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_W_NO_ABRT()
         addbyte(0x83); /*ADD ESP, 8*/
         addbyte(0xc4);
         addbyte(8);
+#ifndef RELEASE_BUILD
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
         addbyte(cpu_state_offset(abrt));
         addbyte(0);
+#endif
         addbyte(0x0f); /*MOVZX ECX, AX*/
         addbyte(0xb7);
         addbyte(0xc8);
+#ifndef RELEASE_BUILD
         addbyte(0x75); /*JNE mem_abrt_rout*/
         addbyte(1);
+#endif
         addbyte(0xc3); /*RET*/
-
+#ifndef RELEASE_BUILD
         addbyte(0xc7); /*MOV [ESP], gen_MEM_LOAD_ADDR_EA_W_NO_ABRT_err*/
         addbyte(0x04);
         addbyte(0x24);
@@ -633,7 +641,7 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_W_NO_ABRT()
         addbyte(0xe8); /*CALL fatal*/
         addlong((uint32_t)fatal - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
         /*Should not return!*/
-        
+#endif
         return addr;
 }
 
@@ -681,14 +689,16 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_L_NO_ABRT()
         addbyte(8);
         addbyte(0x89); /*MOV ECX, EAX*/
         addbyte(0xc1);
+#ifndef RELEASE_BUILD
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
         addbyte(cpu_state_offset(abrt));
         addbyte(0);
         addbyte(0x75); /*JNE mem_abrt_rout*/
         addbyte(1);
+#endif
         addbyte(0xc3); /*RET*/
-
+#ifndef RELEASE_BUILD
         addbyte(0x83); /*SUBL 4,%esp*/
         addbyte(0xEC);
         addbyte(4);
@@ -699,7 +709,7 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_L_NO_ABRT()
         addbyte(0xe8); /*CALL fatal*/
         addlong((uint32_t)fatal - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
         /*Should not return!*/
-        
+#endif        
         return addr;
 }
 
@@ -740,14 +750,16 @@ static uint32_t gen_MEM_STORE_ADDR_EA_B_NO_ABRT()
         addbyte(0x83); /*ADD ESP, 12*/
         addbyte(0xc4);
         addbyte(12);
+#ifndef RELEASE_BUILD
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
         addbyte(cpu_state_offset(abrt));
         addbyte(0);
         addbyte(0x75); /*JNE mem_abrt_rout*/
         addbyte(1);
+#endif
         addbyte(0xc3); /*RET*/
-        
+#ifndef RELEASE_BUILD        
         addbyte(0xc7); /*MOV [ESP], gen_MEM_STORE_ADDR_EA_B_NO_ABRT_err*/
         addbyte(0x04);
         addbyte(0x24);
@@ -755,7 +767,7 @@ static uint32_t gen_MEM_STORE_ADDR_EA_B_NO_ABRT()
         addbyte(0xe8); /*CALL fatal*/
         addlong((uint32_t)fatal - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
         /*Should not return!*/
-
+#endif
         return addr;
 }
 
@@ -804,14 +816,16 @@ static uint32_t gen_MEM_STORE_ADDR_EA_W_NO_ABRT()
         addbyte(0x83); /*ADD ESP, 12*/
         addbyte(0xc4);
         addbyte(12);
+#ifndef RELEASE_BUILD
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
         addbyte(cpu_state_offset(abrt));
         addbyte(0);
         addbyte(0x75); /*JNE mem_abrt_rout*/
         addbyte(1);
+#endif
         addbyte(0xc3); /*RET*/
-
+#ifndef RELEASE_BUILD
         addbyte(0xc7); /*MOV [ESP], gen_MEM_STORE_ADDR_EA_W_NO_ABRT_err*/
         addbyte(0x04);
         addbyte(0x24);
@@ -819,7 +833,7 @@ static uint32_t gen_MEM_STORE_ADDR_EA_W_NO_ABRT()
         addbyte(0xe8); /*CALL fatal*/
         addlong((uint32_t)fatal - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
         /*Should not return!*/
-
+#endif
         return addr;
 }
 
@@ -867,14 +881,16 @@ static uint32_t gen_MEM_STORE_ADDR_EA_L_NO_ABRT()
         addbyte(0x83); /*ADD ESP, 12*/
         addbyte(0xc4);
         addbyte(12);
+#ifndef RELEASE_BUILD
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
         addbyte(cpu_state_offset(abrt));
         addbyte(0);
         addbyte(0x75); /*JNE mem_abrt_rout*/
         addbyte(1);
+#endif
         addbyte(0xc3); /*RET*/
-
+#ifndef RELEASE_BUILD
         addbyte(0xc7); /*MOV [ESP], gen_MEM_STORE_ADDR_EA_W_NO_ABRT_err*/
         addbyte(0x04);
         addbyte(0x24);
@@ -882,7 +898,7 @@ static uint32_t gen_MEM_STORE_ADDR_EA_L_NO_ABRT()
         addbyte(0xe8); /*CALL fatal*/
         addlong((uint32_t)fatal - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
         /*Should not return!*/
-
+#endif
         return addr;
 }
 

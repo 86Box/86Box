@@ -27,6 +27,7 @@
 #include "cpu.h"
 #include "cdrom.h"
 #include "model.h"
+#include "mouse.h"
 #include "nethandler.h"
 #include "nvr.h"
 #include "sound.h"
@@ -322,7 +323,7 @@ static void initmenu(void)
         HMENU m;
         char s[32];
         m=GetSubMenu(menu,1); /*Disc*/
-        m=GetSubMenu(m,9); /*CD-ROM*/
+        m=GetSubMenu(m,17); /*CD-ROM*/
 
         /* Loop through each Windows drive letter and test to see if
            it's a CDROM */
@@ -722,9 +723,17 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	}
 
 	if (cdrom_drive == 200)
+	{
 		CheckMenuItem(menu, IDM_CDROM_ISO, MF_CHECKED);
+	}
 	else
+	{
 		CheckMenuItem(menu, IDM_CDROM_REAL + cdrom_drive, MF_CHECKED);
+	}
+
+	CheckMenuItem(menu, IDM_VID_FORCE43, force_43 ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_OVERSCAN, enable_overscan ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_FLASH, enable_flash ? MF_CHECKED : MF_UNCHECKED);
 
 	// pclog("Checking video resize menu item...\n");        
         if (vid_resize) CheckMenuItem(menu, IDM_VID_RESIZE, MF_CHECKED);
@@ -1127,6 +1136,13 @@ int scsi_set_dma(HMENU hmenu, int dma, int id)
 	return 1;
 }
 
+void video_toggle_option(HMENU hmenu, int *val, int id)
+{
+	*val ^= 1;
+	CheckMenuItem(hmenu, id, *val ? MF_CHECKED : MF_UNCHECKED);
+	saveconfig();
+}
+
 LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
         HMENU hmenu;
@@ -1176,32 +1192,60 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         case IDM_FILE_EXIT:
                         PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
                         break;
-                        case IDM_DISC_A:
-                        case IDM_DISC_A_WP:
+                        case IDM_DISC_1:
+                        case IDM_DISC_1_WP:
                         if (!getfile(hwnd, floppy_image_extensions, discfns[0]))
                         {
                                 disc_close(0);
-				ui_writeprot[0] = (LOWORD(wParam) == IDM_DISC_A_WP) ? 1 : 0;
+				ui_writeprot[0] = (LOWORD(wParam) == IDM_DISC_1_WP) ? 1 : 0;
                                 disc_load(0, openfilestring);
                                 saveconfig();
                         }
                         break;
-                        case IDM_DISC_B:
-                        case IDM_DISC_B_WP:
+                        case IDM_DISC_2:
+                        case IDM_DISC_2_WP:
                         if (!getfile(hwnd, floppy_image_extensions, discfns[1]))
                         {
                                 disc_close(1);
-				ui_writeprot[1] = (LOWORD(wParam) == IDM_DISC_B_WP) ? 1 : 0;
+				ui_writeprot[1] = (LOWORD(wParam) == IDM_DISC_2_WP) ? 1 : 0;
                                 disc_load(1, openfilestring);
                                 saveconfig();
                         }
                         break;
-                        case IDM_EJECT_A:
+                        case IDM_DISC_3:
+                        case IDM_DISC_3_WP:
+                        if (!getfile(hwnd, floppy_image_extensions, discfns[2]))
+                        {
+                                disc_close(2);
+				ui_writeprot[2] = (LOWORD(wParam) == IDM_DISC_3_WP) ? 1 : 0;
+                                disc_load(2, openfilestring);
+                                saveconfig();
+                        }
+                        break;
+                        case IDM_DISC_4:
+                        case IDM_DISC_4_WP:
+                        if (!getfile(hwnd, floppy_image_extensions, discfns[3]))
+                        {
+                                disc_close(3);
+				ui_writeprot[3] = (LOWORD(wParam) == IDM_DISC_4_WP) ? 1 : 0;
+                                disc_load(3, openfilestring);
+                                saveconfig();
+                        }
+                        break;
+                        case IDM_EJECT_1:
                         disc_close(0);
                         saveconfig();
                         break;
-                        case IDM_EJECT_B:
+                        case IDM_EJECT_2:
                         disc_close(1);
+                        saveconfig();
+                        break;
+                        case IDM_EJECT_3:
+                        disc_close(2);
+                        saveconfig();
+                        break;
+                        case IDM_EJECT_4:
+                        disc_close(3);
                         saveconfig();
                         break;
                         case IDM_HDCONF:
@@ -1278,6 +1322,18 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         CheckMenuItem(hmenu, IDM_VID_FS_FULL + video_fullscreen_scale, MF_CHECKED);
                         saveconfig();
                         break;
+
+			case IDM_VID_FORCE43:
+			video_toggle_option(hmenu, &force_43, IDM_VID_FORCE43);
+			break;
+
+			case IDM_VID_OVERSCAN:
+			video_toggle_option(hmenu, &enable_overscan, IDM_VID_OVERSCAN);
+			break;
+
+			case IDM_VID_FLASH:
+			video_toggle_option(hmenu, &enable_flash, IDM_VID_FLASH);
+			break;
 
 			case IDM_VID_SCREENSHOT:
 			take_screenshot();
@@ -1723,7 +1779,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 break;
 
                 case WM_MBUTTONUP:
-                releasemouse();
+                if (!(mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON))
+                        releasemouse();
                 break;
 
                 case WM_ENTERMENULOOP:

@@ -59,7 +59,7 @@ static BOOL CALLBACK status_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 #endif*/
                         segareads,
                         segawrites,
-                        clockrate - (sreadlnum*memwaitstate) - (swritelnum*memwaitstate) - scycles_lost,
+                        clockrate - scycles_lost,
                         pit_timer0_freq(),
                         ((double)main_time * 100.0) / status_diff,
                         ((double)main_time * 100.0) / timer_freq

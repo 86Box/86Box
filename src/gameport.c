@@ -197,9 +197,12 @@ void gameport_update_joystick_type()
 {
         gameport_t *gameport = gameport_global;
         
-        gameport->joystick->close(gameport->joystick_dat);        
-        gameport->joystick = joystick_list[joystick_type];
-        gameport->joystick_dat = gameport->joystick->init();
+	if (gameport)
+	{
+	        gameport->joystick->close(gameport->joystick_dat);        
+        	gameport->joystick = joystick_list[joystick_type];
+	        gameport->joystick_dat = gameport->joystick->init();
+	}
 }
 
 void *gameport_init()

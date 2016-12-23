@@ -15,7 +15,7 @@ static struct
 	int densel;
 
 	int head;
-} fdd[2];
+} fdd[FDD_NUM];
 
 /* Flags:
    Bit 0:	300 rpm supported;
@@ -25,6 +25,9 @@ static struct
    Bit 4:	high density supported;
    Bit 5:	extended density supported;
    Bit 6:	double step for 40-track media;
+   Bit 7:	invert DENSEL polarity;
+   Bit 8:	ignore DENSEL;
+   Bit 9:	drive is a PS/2 drive;
 */
 #define FLAG_RPM_300		1
 #define FLAG_RPM_360		2
@@ -33,6 +36,9 @@ static struct
 #define FLAG_HOLE1		16
 #define FLAG_HOLE2		32
 #define FLAG_DOUBLE_STEP	64
+#define FLAG_INVERT_DENSEL	128
+#define FLAG_IGNORE_DENSEL	256
+#define FLAG_PS2		512
 
 static struct
 {
@@ -60,9 +66,17 @@ static struct
                 .max_track = 86,
 		.flags = FLAG_RPM_300 | FLAG_HOLE0 | FLAG_DOUBLE_STEP
         },
+        {       /*3.5" HD PS/2*/
+                .max_track = 86,
+		.flags = FLAG_RPM_300 | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_INVERT_DENSEL | FLAG_PS2
+        },
         {       /*3.5" HD*/
                 .max_track = 86,
 		.flags = FLAG_RPM_300 | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP
+        },
+        {       /*3.5" HD PC-98*/
+                .max_track = 86,
+		.flags = FLAG_RPM_300 | FLAG_RPM_360 | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_INVERT_DENSEL
         },
         {       /*3.5" HD 3-Mode*/
                 .max_track = 86,
@@ -78,7 +92,7 @@ int fdd_swap = 0;
 
 void fdd_forced_seek(int drive, int track_diff)
 {
-        drive ^= fdd_swap;
+        drive = real_drive(drive);
 
         fdd[drive].track += track_diff;
 
@@ -96,7 +110,7 @@ void fdd_forced_seek(int drive, int track_diff)
 
 void fdd_seek(int drive, int track_diff)
 {
-        drive ^= fdd_swap;
+        drive = real_drive(drive);
 
 	if (!track_diff)
 	{
@@ -121,7 +135,7 @@ void fdd_seek(int drive, int track_diff)
 
 int fdd_track0(int drive)
 {
-        drive ^= fdd_swap;
+        drive = real_drive(drive);
 
 	/* If drive is disabled, TRK0 never gets set. */
 	if (!drive_types[fdd[drive].type].max_track)  return 0;
@@ -131,29 +145,49 @@ int fdd_track0(int drive)
 
 void fdd_set_densel(int densel)
 {
-	fdd[0].densel = densel;
-	fdd[1].densel = densel;
+	int i = 0;
+
+	for (i = 0; i < 4; i++)
+	{
+		if (drive_types[fdd[i].type].flags & FLAG_INVERT_DENSEL)
+		{
+			fdd[i].densel = densel ^ 1;
+		}
+		else
+		{
+			fdd[i].densel = densel;
+		}
+	}
 }
 
 int fdd_getrpm(int drive)
 {
 	int hole = disc_hole(drive);
 
-        drive ^= fdd_swap;
+	int densel = 0;
+
+        drive = real_drive(drive);
+
+	densel = fdd[drive].densel;
+
+	if (drive_types[fdd[drive].type].flags & FLAG_INVERT_DENSEL)
+	{
+		densel ^= 1;
+	}
 
 	if (!(drive_types[fdd[drive].type].flags & FLAG_RPM_360))  return 300;
 	if (!(drive_types[fdd[drive].type].flags & FLAG_RPM_300))  return 360;
 
 	if (drive_types[fdd[drive].type].flags & FLAG_525)
 	{
-		return fdd[drive].densel ? 360 : 300;
+		return densel ? 360 : 300;
 	}
 	else
 	{
 		/* disc_hole(drive) returns 0 for double density media, 1 for high density, and 2 for extended density. */
 		if (hole == 1)
 		{
-			return fdd[drive].densel ? 300 : 360;
+			return densel ? 300 : 360;
 		}
 		else
 		{
@@ -171,7 +205,7 @@ int fdd_can_read_medium(int drive)
 {
 	int hole = disc_hole(drive);
 
-	drive ^= fdd_swap;
+	drive = real_drive(drive);
 
 	hole = 1 << (hole + 3);
 
@@ -186,7 +220,12 @@ int fdd_doublestep_40(int drive)
 
 void fdd_set_type(int drive, int type)
 {
+	int old_type = fdd[drive].type;
 	fdd[drive].type = type;
+	if ((drive_types[old_type].flags ^ drive_types[type].flags) & FLAG_INVERT_DENSEL)
+	{
+		fdd[drive].densel ^= 1;
+	}
 }
 
 int fdd_get_type(int drive)
@@ -211,13 +250,25 @@ int fdd_is_ed(int drive)
 
 void fdd_set_head(int drive, int head)
 {
-	drive ^= fdd_swap;
+	drive = real_drive(drive);
 	fdd[drive].head = head;
 }
 
 int fdd_get_head(int drive)
 {
 	return fdd[drive].head;
+}
+
+int fdd_get_densel(int drive)
+{
+	if (drive_types[fdd[drive].type].flags & FLAG_INVERT_DENSEL)
+	{
+		return fdd[drive].densel ^ 1;
+	}
+	else
+	{
+		return fdd[drive].densel;
+	}
 }
 
 void fdd_init()

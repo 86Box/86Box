@@ -145,7 +145,7 @@ IDE ide_drives[6];
 
 IDE *ext_ide;
 
-char ide_fn[4][512];
+char ide_fn[6][512];
 
 int (*ide_bus_master_read_sector)(int channel, uint8_t *data);
 int (*ide_bus_master_write_sector)(int channel, uint8_t *data);
@@ -298,6 +298,7 @@ static inline void ide_irq_lower(IDE *ide)
 #endif
 //	}
 	ide->irqstat=0;
+	// ide->service=0;
 }
 
 int get_irq(uint8_t board)
@@ -305,6 +306,13 @@ int get_irq(uint8_t board)
 	if (board == 0)  return 1 << 14;
 	else if (board == 1)  return 1 << 15;
 	else if (board == 2)  return 1 << 10;
+}
+
+int get_pic_mask(uint8_t board)
+{
+	if (board == 0)  return 1 << 6;
+	else if (board == 1)  return 1 << 7;
+	else if (board == 2)  return 1 << 2;
 }
 
 void ide_irq_update(IDE *ide)
@@ -326,9 +334,9 @@ void ide_irq_update(IDE *ide)
         else if ((pic2.pend|pic2.ins)&0x40)
             picintc((ide->board)?(1<<15):(1<<14));
 #else
-	if (ide->irqstat && !((pic2.pend|pic2.ins)&0x40) && !(ide->fdisk & 2))
+	if (ide->irqstat && !((pic2.pend|pic2.ins)&get_pic_mask(ide->board)) && !(ide->fdisk & 2))
             picint(get_irq(ide->board));
-        else if ((pic2.pend|pic2.ins)&0x40)
+        else if ((pic2.pend|pic2.ins)&get_pic_mask(ide->board))
             picintc(get_irq(ide->board));
 #endif
 #endif
@@ -385,9 +393,15 @@ ide_padstr8(uint8_t *buf, int buf_size, const char *src)
  */
 static void ide_identify(IDE *ide)
 {
+	int c, h, s;
+
 	memset(ide->buffer, 0, 512);
 
 	//ide->buffer[1] = 101; /* Cylinders */
+	
+	c = hdc[cur_ide[ide->board]].tracks; /* Cylinders */
+	h = hdc[cur_ide[ide->board]].hpc;  /* Heads */
+	s = hdc[cur_ide[ide->board]].spt;  /* Sectors */
 
 	ide->buffer[1] = hdc[cur_ide[ide->board]].tracks; /* Cylinders */
 	ide->buffer[3] = hdc[cur_ide[ide->board]].hpc;  /* Heads */
@@ -399,7 +413,11 @@ static void ide_identify(IDE *ide)
 	ide->buffer[21] = 512; /*Buffer size*/
 	ide->buffer[47] = 16;  /*Max sectors on multiple transfer command*/
 	ide->buffer[48] = 1;   /*Dword transfers supported*/
-	ide->buffer[49] = (1 << 9) | (1 << 8); /* LBA and DMA supported */
+	ide->buffer[49] = (1 << 8); /* LBA and DMA supported */
+	if ((c > 1024) || (h > 16) || (s > 63))
+	{
+		ide->buffer[49] |= (1 << 9);
+	}
 	ide->buffer[50] = 0x4000; /* Capabilities */
 	ide->buffer[51] = 2 << 8; /*PIO timing mode*/
 	ide->buffer[52] = 2 << 8; /*DMA timing mode*/
@@ -670,7 +688,13 @@ void resetide(void)
 
 	idecallback[0]=idecallback[1]=0;
 
-	for (d = 0; d < 4; d++)
+#ifdef MAINLINE
+#define IDE_DRIVES 4
+#else
+#define IDE_DRIVES 6
+#endif
+	
+	for (d = 0; d < IDE_DRIVES; d++)
 	{
 		ide_drives[d].packetstatus = 0xFF;
 
@@ -691,29 +715,9 @@ void resetide(void)
 			ide_drives[d].dma_identify_data[1] = 7 | (1 << 15);
 			ide_drives[d].dma_identify_data[2] = 0x3f;
 		}
+
+		ide_drives[d].error = 1;
 	}
-		
-		/* REMOVE WHEN SUBMITTING TO MAINLINE - START */
-		for (d = 4; d < 6; d++)
-		{
-			ide_drives[d].packetstatus = 0xFF;
-
-			if ((atapi_cdrom_channel == d) && cdrom_enabled && !scsi_cdrom_enabled)
-			{
-				ide_drives[d].type = IDE_CDROM;
-			}
-			else
-			{
-				ide_drives[d].type = IDE_NONE;
-			}
-			
-			ide_set_signature(&ide_drives[d]);
-
-			ide_drives[d].dma_identify_data[0] = 7;
-			ide_drives[d].dma_identify_data[1] = 7 | (1 << 15);
-			ide_drives[d].dma_identify_data[2] = 0x3f;
-		}
-		/* REMOVE WHEN SUBMITTING TO MAINLINE - END */
 		
         cur_ide[0] = 0;
         cur_ide[1] = 2;
@@ -804,13 +808,13 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
         IDE *ide_other = &ide_drives[cur_ide[ide_board] ^ 1];
 
 //        if ((cr0&1) && !(eflags&VM_FLAG))
-//         pclog("WriteIDE %04X %02X from %04X(%08X):%08X %i\n", addr, val, CS, cs, pc, ins);
-//        return;
+			// pclog("WriteIDE %04X %02X from %04X(%08X):%08X %i\n", addr, val, CS, cs, cpu_state.pc, ins);
+		//        return;
         addr|=0x80;
 		/* ONLY FOR EXPERIMENTAL */
 		addr|=0x10;			/* 1F0 | 10 = 1F0, 1E8 | 10 = 1F8 */
 		addr&=0xFFF7;		/* 1F0 & FFF7 = 1F0, 1F8 | FFF7 = 1F0 */
-//        if (ide_board) pclog("Write IDEb %04X %02X %04X(%08X):%04X %i  %02X %02X\n",addr,val,CS,cs,pc,ins,ide->atastat,ide_drives[0].atastat);
+        // if (ide_board) pclog("Write IDEb %04X %02X %04X(%08X):%04X %i  %02X %02X\n",addr,val,CS,cs,pc,ins,ide->atastat,ide_drives[0].atastat);
         /*if (idedebug) */
 //        pclog("Write IDE %08X %02X %04X:%08X\n",addr,val,CS,pc);
 //        int c;
@@ -898,11 +902,15 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                 ide->lba_addr = (ide->lba_addr & 0x0FFFFFF) | ((val & 0xF) << 24);
                 ide_other->lba_addr = (ide_other->lba_addr & 0x0FFFFFF)|((val & 0xF) << 24);
 
-                ide_irq_update(ide);
+				ide_irq_update(ide);
                 return;
 
         case 0x1F7: /* Command register */
-        if (ide->type == IDE_NONE) return;
+        if (ide->type == IDE_NONE)
+		{
+			ide->error=1;
+			return;
+		}
 //                pclog("IDE command %02X drive %i\n",val,ide.drive);
         ide_irq_lower(ide);
                 ide->command=val;
@@ -1076,7 +1084,14 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			timer_process();
                         idecallback[ide_board]=500*IDE_TIME;
                         timer_update_outstanding();
-                        ide->reset = ide_other->reset = 1;
+						if (ide->type != IDE_NONE)
+						{
+							ide->reset = 1;
+						}
+						if (ide_other->type != IDE_NONE)
+						{
+							ide->reset = 1;
+						}
                         ide->atastat = ide_other->atastat = BUSY_STAT;
 //                        pclog("IDE Reset %i\n", ide_board);
                 }
@@ -1102,7 +1117,16 @@ uint8_t readide(int ide_board, uint16_t addr)
 //         pclog("ReadIDE %04X  from %04X(%08X):%08X\n", addr, CS, cs, pc);
 //        return 0xFF;
 
-        if (ide->type == IDE_NONE && (addr == 0x1f0 || addr == 0x1f7)) return 0;
+        if (ide->type == IDE_NONE && (addr == 0x1f0 || addr == 0x1f7))
+		{
+			// pclog("Reading empty IDE channel (%04X)\n", addr);
+			if (addr == 0x1f7)
+			{
+				/* This is apparently required for an empty ID channel. */
+				return 0x20;
+			}
+			return 0;
+		}
 //        /*if (addr!=0x1F7 && addr!=0x3F6) */pclog("Read IDEb %04X %02X %02X %i %04X:%04X %i  %04X\n",addr,ide->atastat,(ide->atastat & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0),cur_ide[ide_board],CS,pc,ide_board, BX);
 //rpclog("Read IDE %08X %08X %02X\n",addr,PC,iomd.irqb.mask);
         switch (addr)
@@ -1115,39 +1139,83 @@ uint8_t readide(int ide_board, uint16_t addr)
                 
         case 0x1F1: /* Error */
 //        pclog("Read error %02X\n",ide.error);
-                temp = ide->error;
+				if (ide->type == IDE_NONE)
+				{
+					temp = 1;
+				}
+				else
+				{
+					temp = ide->error;
+				}
                 break;
 
         case 0x1F2: /* Sector count */
 //        pclog("Read sector count %02X\n",ide->secount);
-                temp = (uint8_t)ide->secount;
+				if (ide->type == IDE_NONE)
+				{
+					temp = 1;
+				}
+				else
+				{
+					temp = (uint8_t)ide->secount;
+				}
                 break;
 
         case 0x1F3: /* Sector */
-                temp = (uint8_t)ide->sector;
+				if (ide->type == IDE_NONE)
+				{
+					temp = 1;
+				}
+				else
+				{
+					temp = (uint8_t)ide->sector;
+				}
                 break;
 
         case 0x1F4: /* Cylinder low */
 //        pclog("Read cyl low %02X\n",ide.cylinder&0xFF);
-                temp = (uint8_t)(ide->cylinder&0xFF);
+				if (ide->type == IDE_NONE)
+				{
+					temp = 0xFF;
+				}
+				else
+				{
+					temp = (uint8_t)(ide->cylinder&0xFF);
+				}
                 break;
 
         case 0x1F5: /* Cylinder high */
 //        pclog("Read cyl low %02X\n",ide.cylinder>>8);
-                temp = (uint8_t)(ide->cylinder>>8);
+				if (ide->type == IDE_NONE)
+				{
+					temp = 0xFF;
+				}
+				else
+				{
+					temp = (uint8_t)(ide->cylinder>>8);
+				}
                 break;
 
         case 0x1F6: /* Drive/Head */
-                temp = (uint8_t)(ide->head | ((cur_ide[ide_board] & 1) ? 0x10 : 0) | (ide->lba ? 0x40 : 0) | 0xa0);
+				if (ide->type == IDE_NONE)
+				{
+					temp = (uint8_t)(((cur_ide[ide_board] & 1) ? 0x10 : 0) | 0xa0);
+				}
+				else
+				{
+					temp = (uint8_t)(ide->head | ((cur_ide[ide_board] & 1) ? 0x10 : 0) | (ide->lba ? 0x40 : 0) | 0xa0);
+				}
                 break;
 
         case 0x1F7: /* Status */
-                if (ide->type == IDE_NONE)
+#if 0
+				if (ide->type == IDE_NONE)
                 {
 //                        pclog("Return status 00\n");
-                        temp = 0;
+                        temp = DSC_STAT;
                         break;
                 }
+#endif
                 ide_irq_lower(ide);
                 if (ide->type == IDE_CDROM)
                 {
@@ -1168,7 +1236,7 @@ uint8_t readide(int ide_board, uint16_t addr)
                 if (ide->type == IDE_NONE)
                 {
 //                        pclog("Return status 00\n");
-                        temp = 0;
+                        temp = DSC_STAT;
                         break;
                 }
                 if (ide->type == IDE_CDROM)
@@ -1184,8 +1252,8 @@ uint8_t readide(int ide_board, uint16_t addr)
                 }
                 break;
         }
-//        if (ide_board) pclog("Read IDEb %04X %02X   %02X %02X %i %04X:%04X %i\n", addr, temp, ide->atastat,(ide->atastat & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0),cur_ide[ide_board],CS,pc,ide_board);
-        return temp;
+        ///* if (ide_board) */  pclog("Read IDEb %04X %02X   %02X %02X %i %04X:%04X %i\n", addr, temp, ide->atastat,(ide->atastat & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0),cur_ide[ide_board],CS,cpu_state.pc,ide_board);
+		return temp;
 //        fatal("Bad IDE read %04X\n", addr);
 }
 
@@ -1267,8 +1335,8 @@ void callbackide(int ide_board)
         if (ide->command==0x30) times30++;
 //        if (times30==2240) output=1;
         //if (times30==2471 && ide->command==0xA0) output=1;
-///*if (ide_board) */pclog("CALLBACK %02X %i %i  %i\n",ide->command,times30,ide->reset,cur_ide[ide_board]);
-//        if (times30==1294)
+		///*if (ide_board) */pclog("CALLBACK %02X %i %i  %i\n",ide->command,times30,ide->reset,cur_ide[ide_board]);
+		//        if (times30==1294)
 //                output=1;
         if (ide->reset)
         {
@@ -1654,6 +1722,7 @@ void callbackide(int ide_board)
         case WIN_IDENTIFY: /* Identify Device */
 		if (ide->type == IDE_NONE)
 		{
+			ide_set_signature(ide);
 			goto abort_cmd;
 		}
                 if (IDE_DRIVE_IS_CDROM(ide))
@@ -1854,7 +1923,7 @@ static int cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type)
 	}
 	else if ((cdrom_sector_flags & 0x06) == 0x06)
 	{
-		pclog("Invalid error flags\n");
+		// pclog("Invalid error flags\n");
 		return 0;
 	}
 	
@@ -1877,7 +1946,7 @@ static int cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type)
 		}
 		else if (((cdrom_sector_flags & 0x700) == 0x300) || ((cdrom_sector_flags & 0x700) > 0x400))
 		{
-			pclog("Invalid subchannel data flags\n");
+			// pclog("Invalid subchannel data flags\n");
 			return 0;
 		}
 	// }
@@ -1892,7 +1961,7 @@ static int cdrom_LBAtoMSF_accurate(IDE *ide)
 	int temp_pos;
 	int m, s, f;
 	
-	temp_pos = ide->cdpos;
+	temp_pos = ide->cdpos + 150;
 	f = temp_pos % 75;
 	temp_pos -= f;
 	temp_pos /= 75;
@@ -1925,27 +1994,37 @@ static int cdrom_read_data(IDE *ide, uint8_t *buffer)
 
 	memset(cdrom_sector_buffer.buffer, 0, 2856);
 
-	cdrom->readsector_raw(cdrom_sector_buffer.buffer, real_pos, cdrom_sector_ismsf);
-	is_audio = cdrom->is_track_audio(real_pos, cdrom_sector_ismsf);
+	// is_audio = cdrom->is_track_audio(real_pos, cdrom_sector_ismsf);
+	real_sector_type = cdrom->sector_data_type(real_pos, cdrom_sector_ismsf);
+	// pclog("Sector type: %i\n", real_sector_type);
+	
+	if ((cdrom_sector_type > 0) && (cdrom_sector_type < 6))
+	{
+		if (real_sector_type != cdrom_sector_type)
+		{
+			return 0;
+		}
+	}
+	else if (cdrom_sector_type == 6)
+	{
+		/* READ (6), READ (10), READ (12) */
+		if ((real_sector_type != 2) && (real_sector_type != 4))
+		{
+			return 0;
+		}
+	}
 
 	if (!(cdrom_sector_flags & 0xf0))		/* 0x00 and 0x08 are illegal modes */
 	{
 		return 0;
 	}
+
+	cdrom->readsector_raw(cdrom_sector_buffer.buffer, real_pos, cdrom_sector_ismsf);
 	
-	if (cdrom->is_track_audio(ide->cdpos, 0))
+	if (real_sector_type == 1)
 	{
-		real_sector_type = 1;
-		
-		if (cdrom_sector_type > 1)
-		{
-			return 0;
-		}
-		else
-		{
-			memcpy(b, cdrom_sector_buffer.buffer, 2352);
-			cdrom_sector_size = 2352;
-		}
+		memcpy(b, cdrom_sector_buffer.buffer, 2352);
+		cdrom_sector_size = 2352;
 	}
 	else
 	{
@@ -1969,139 +2048,113 @@ static int cdrom_read_data(IDE *ide, uint8_t *buffer)
 			temp_b += 4;
 		}
 		
-		switch(cdrom_sector_buffer.cdrom_sector.header[3])
-		{
-			case 1:
-				real_sector_type = 2;	/* Mode 1 */
-				break;
-			case 2:
-				real_sector_type = 3;	/* Mode 2 */
-				break;
-			default:
-				return 0;
-		}
-
 		if (real_sector_type == 2)
 		{
-			if ((cdrom_sector_type == 0) || (cdrom_sector_type == 2))
+			/* Mode 1 sector, expected type is 1 type. */
+			if (cdrom_sector_flags & 0x40)		/* Sub-header */
 			{
-				/* Mode 1 sector, expected type is 1 type. */
-				if (cdrom_sector_flags & 0x40)		/* Sub-header */
+				if (!(cdrom_sector_flags & 0x10))		/* No user data */
 				{
-					if (!(cdrom_sector_flags & 0x10))		/* No user data */
-					{
-						memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.user_data, 8);
-						cdrom_sector_size += 8;
-						temp_b += 8;
-					}
-				}
-				if (cdrom_sector_flags & 0x10)		/* User data */
-				{
-					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.user_data, 2048);
-					cdrom_sector_size += 2048;
-					temp_b += 2048;
-				}
-				if (cdrom_sector_flags & 0x08)		/* EDC/ECC */
-				{
-					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.ecc, 288);
-					cdrom_sector_size += 288;
-					temp_b += 288;
+					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.user_data, 8);
+					cdrom_sector_size += 8;
+					temp_b += 8;
 				}
 			}
-			else
+			if (cdrom_sector_flags & 0x10)		/* User data */
 			{
-				return 0;
+				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.user_data, 2048);
+				cdrom_sector_size += 2048;
+				temp_b += 2048;
+			}
+			if (cdrom_sector_flags & 0x08)		/* EDC/ECC */
+			{
+				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.ecc, 288);
+				cdrom_sector_size += 288;
+				temp_b += 288;
 			}
 		}
 		else if (real_sector_type == 3)
 		{
-			if ((cdrom_sector_type == 0) || (cdrom_sector_type == 3))
+			/* Mode 2 sector, non-XA mode. */
+			if (cdrom_sector_flags & 0x40)		/* Sub-header */
 			{
-				/* Mode 2 sector, non-XA mode. */
-				if (cdrom_sector_flags & 0x40)		/* Sub-header */
-				{
-					if (!(cdrom_sector_flags & 0x10))		/* No user data */
-					{
-						memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 8);
-						cdrom_sector_size += 8;
-						temp_b += 8;
-					}
-				}
-				if (cdrom_sector_flags & 0x10)		/* User data */
-				{
-					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 2328);
-					cdrom_sector_size += 8;
-					temp_b += 8;
-					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.user_data, 2328);
-					cdrom_sector_size += 2328;
-					temp_b += 2328;
-				}
-			}
-			else if (cdrom_sector_type == 4)
-			{
-				/* Mode 2 sector, XA Form 1 mode */
-				if ((cdrom_sector_flags & 0xf0) == 0x30)
-				{
-					return 0;
-				}
-				if (((cdrom_sector_flags & 0xf8) >= 0xa8) || ((cdrom_sector_flags & 0xf8) <= 0xd8))
-				{
-					return 0;
-				}
-				if (cdrom_sector_flags & 0x40)		/* Sub-header */
+				if (!(cdrom_sector_flags & 0x10))		/* No user data */
 				{
 					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 8);
 					cdrom_sector_size += 8;
 					temp_b += 8;
 				}
-				if (cdrom_sector_flags & 0x10)		/* User data */
-				{
-					if ((cdrom_sector_flags & 0xf0) == 0x10)
-					{
-						/* The data is alone, include sub-header. */
-						memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 8);
-						cdrom_sector_size += 8;
-						temp_b += 8;
-					}
-					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.user_data, 2040);
-					cdrom_sector_size += 2040;
-					temp_b += 2040;
-				}
-				if (cdrom_sector_flags & 0x08)		/* EDC/ECC */
-				{
-					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.user_data + 2040, 288);
-					cdrom_sector_size += 288;
-					temp_b += 288;
-				}
 			}
-			else if (cdrom_sector_type == 5)
+			if (cdrom_sector_flags & 0x10)		/* User data */
 			{
-				/* Mode 2 sector, XA Form 2 mode */
-				if ((cdrom_sector_flags & 0xf0) == 0x30)
-				{
-					return 0;
-				}
-				if (((cdrom_sector_flags & 0xf8) >= 0xa8) || ((cdrom_sector_flags & 0xf8) <= 0xd8))
-				{
-					return 0;
-				}
-				/* Mode 2 sector, XA Form 1 mode */
-				if (cdrom_sector_flags & 0x40)		/* Sub-header */
-				{
-					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 8);
-					cdrom_sector_size += 8;
-					temp_b += 8;
-				}
-				if (cdrom_sector_flags & 0x10)		/* User data */
-				{
-					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.user_data, 2328);
-					cdrom_sector_size += 2328;
-					temp_b += 2328;
-				}
+				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 2328);
+				cdrom_sector_size += 8;
+				temp_b += 8;
+				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.user_data, 2328);
+				cdrom_sector_size += 2328;
+				temp_b += 2328;
 			}
-			else
+		}
+		else if (real_sector_type == 4)
+		{
+			/* Mode 2 sector, XA Form 1 mode */
+			if ((cdrom_sector_flags & 0xf0) == 0x30)
 			{
 				return 0;
+			}
+			if (((cdrom_sector_flags & 0xf8) >= 0xa8) && ((cdrom_sector_flags & 0xf8) <= 0xd8))
+			{
+				return 0;
+			}
+			if (cdrom_sector_flags & 0x40)		/* Sub-header */
+			{
+				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 8);
+				cdrom_sector_size += 8;
+				temp_b += 8;
+			}
+			if (cdrom_sector_flags & 0x10)		/* User data */
+			{
+				if ((cdrom_sector_flags & 0xf0) == 0x10)
+				{
+					/* The data is alone, include sub-header. */
+					memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 8);
+					cdrom_sector_size += 8;
+					temp_b += 8;
+				}
+				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.user_data, 2040);
+				cdrom_sector_size += 2040;
+				temp_b += 2040;
+			}
+			if (cdrom_sector_flags & 0x08)		/* EDC/ECC */
+			{
+				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.user_data + 2040, 288);
+				cdrom_sector_size += 288;
+				temp_b += 288;
+			}
+		}
+		else if (real_sector_type == 5)
+		{
+			/* Mode 2 sector, XA Form 2 mode */
+			if ((cdrom_sector_flags & 0xf0) == 0x30)
+			{
+				return 0;
+			}
+			if (((cdrom_sector_flags & 0xf8) >= 0xa8) || ((cdrom_sector_flags & 0xf8) <= 0xd8))
+			{
+				return 0;
+			}
+			/* Mode 2 sector, XA Form 1 mode */
+			if (cdrom_sector_flags & 0x40)		/* Sub-header */
+			{
+				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.sub_header, 8);
+				cdrom_sector_size += 8;
+				temp_b += 8;
+			}
+			if (cdrom_sector_flags & 0x10)		/* User data */
+			{
+				memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m2_data.user_data, 2328);
+				cdrom_sector_size += 2328;
+				temp_b += 2328;
 			}
 		}
 		else
@@ -2138,6 +2191,7 @@ static void atapicommand(int ide_board)
 	int media;
 	int format;
 	int ret;
+	int real_pos;
 
 #if 0
 	pclog("ATAPI command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, %i, Unit attention: %i\n",idebufferb[0],SCSISense.SenseKey,SCSISense.Asc,SCSISense.Ascq,ins,SCSISense.UnitAttention);
@@ -2152,6 +2206,7 @@ static void atapicommand(int ide_board)
 
 	if (cdrom->medium_changed())
 	{
+		// pclog("Medium has changed...\n");
 		SCSICDROM_Insert();
 	}
 
@@ -2240,14 +2295,16 @@ static void atapicommand(int ide_board)
 				idebufferb[13]=SCSISense.Ascq;
 			}
 		}
-		else if ((SCSISense.SenseKey == 0) && (cd_status >= CD_STATUS_PLAYING))
+		else if ((SCSISense.SenseKey == 0) && (cd_status >= CD_STATUS_PLAYING) && (cd_status != CD_STATUS_STOPPED))
 		{
+			// pclog("CD-ROM drive is in audio phase\n");
 			idebufferb[2]=SENSE_ILLEGAL_REQUEST;
 			idebufferb[12]=ASC_AUDIO_PLAY_OPERATION;
 			idebufferb[13]=(cd_status == CD_STATUS_PLAYING) ? ASCQ_AUDIO_PLAY_OPERATION_IN_PROGRESS : ASCQ_AUDIO_PLAY_OPERATION_PAUSED;
 		}
 		else
 		{
+			// pclog("Returning Unit Attention\n");
 			if (SCSISense.UnitAttention)
 			{
 				idebufferb[2]=SENSE_UNIT_ATTENTION;
@@ -2265,6 +2322,7 @@ static void atapicommand(int ide_board)
 		{
 			/* If the last remaining sense is unit attention, clear
 				that condition. */
+			// pclog("Unit attention cleared");
 			SCSISense.UnitAttention = 0;
 		}
 		
@@ -2373,16 +2431,27 @@ static void atapicommand(int ide_board)
 			cdrom_sector_type = (idebufferb[1] >> 2) & 7;
 			cdrom_sector_flags = idebufferb[9] || (((uint32_t) idebufferb[10]) << 8);
 
-			ret = cdrom_read_data(ide, idebufferb);
-				
-            if (!ret)
+			if (ide->cdpos > (cdrom->size() - 1))
             {
+				pclog("Trying to read beyond the end of disc\n");
                 ide->atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
                 ide->error = (SENSE_ILLEGAL_REQUEST << 4) | ABRT_ERR;
                 if (SCSISense.SenseKey == SENSE_UNIT_ATTENTION)
 				{
                     ide->error |= MCR_ERR;
 				}
+                SCSISense.Asc = ASC_ILLEGAL_OPCODE;
+                ide->packetstatus = ATAPI_STATUS_ERROR;
+                idecallback[ide_board]=50*IDE_TIME;
+                break;
+			}
+			
+			ret = cdrom_read_data(ide, idebufferb);
+				
+            if (!ret)
+            {
+                ide->atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
+                ide->error = (SENSE_ILLEGAL_REQUEST << 4) | ABRT_ERR;
                 SCSISense.Asc = ASC_ILLEGAL_OPCODE;
                 ide->packetstatus = ATAPI_STATUS_ERROR;
                 idecallback[ide_board]=50*IDE_TIME;
@@ -2432,6 +2501,21 @@ static void atapicommand(int ide_board)
 			ide->cdpos=(((uint32_t) idebufferb[2])<<24)|(((uint32_t) idebufferb[3])<<16)|(((uint32_t) idebufferb[4])<<8)|((uint32_t) idebufferb[5]);
 		}
 
+			if (ide->cdpos > (cdrom->size() - 1))
+            {
+				pclog("Trying to read beyond the end of disc\n");
+                ide->atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
+                ide->error = (SENSE_ILLEGAL_REQUEST << 4) | ABRT_ERR;
+                if (SCSISense.SenseKey == SENSE_UNIT_ATTENTION)
+				{
+                    ide->error |= MCR_ERR;
+				}
+                SCSISense.Asc = ASC_ILLEGAL_OPCODE;
+                ide->packetstatus = ATAPI_STATUS_ERROR;
+                idecallback[ide_board]=50*IDE_TIME;
+                break;
+			}
+			
 				if (!ide->cdlen)
                 {
 //                        pclog("All done - callback set\n");
@@ -2440,10 +2524,22 @@ static void atapicommand(int ide_board)
                         break;
                 }
 
-				cdrom_sector_type = 0;
+				cdrom_sector_type = 6;
 				cdrom_sector_flags = 0x10;
 
 				ret = cdrom_read_data(ide, idebufferb);
+
+            if (!ret)
+            {
+                ide->atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
+                ide->error = (SENSE_ILLEGAL_REQUEST << 4) | ABRT_ERR;
+                SCSISense.Asc = ASC_ILLEGAL_OPCODE;
+                ide->packetstatus = ATAPI_STATUS_ERROR;
+                idecallback[ide_board]=50*IDE_TIME;
+                break;
+//              pclog("Bad flags bits %02X\n",idebufferb[9]);
+//              exit(-1);
+            }
 
 #ifndef RPCEMU_IDE
                 readflash=1;
@@ -2462,23 +2558,31 @@ static void atapicommand(int ide_board)
                 return;
 
         case GPCMD_READ_HEADER:
-                if (msf)
-                {
-                        ide->atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
-                        ide->error = (SENSE_ILLEGAL_REQUEST << 4) | ABRT_ERR;
-                        if (SCSISense.SenseKey == SENSE_UNIT_ATTENTION)
-                                ide->error |= MCR_ERR;
-                        SCSISense.SenseKey = ASC_ILLEGAL_OPCODE;
-                        ide->packetstatus = ATAPI_STATUS_ERROR;
-                        idecallback[ide_board]=50*IDE_TIME;
-                        break;
-//                        pclog("Read Header MSF!\n");
-//                        exit(-1);
-                }
-                for (c=0;c<4;c++) idebufferb[c+4]=idebufferb[c+2];
-                idebufferb[0]=1; /*2048 bytes user data*/
-                idebufferb[1]=idebufferb[2]=idebufferb[3]=0;
+				if (cdrom->read_header)
+				{
+					cdrom->read_header(idebufferb, idebufferb);
+				}
+				else
+				{
+					ide->cdlen=(idebufferb[7]<<8)|idebufferb[8];
+					ide->cdpos=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
+					if (msf)
+					{
+						real_pos = cdrom_LBAtoMSF_accurate(ide);
+					}
+					else
+					{
+						real_pos = ide->cdpos;
+					}
+					idebufferb[4] = (real_pos >> 24);
+					idebufferb[5] = ((real_pos >> 16) & 0xff);
+					idebufferb[6] = ((real_pos >> 8) & 0xff);
+					idebufferb[7] = real_pos & 0xff;
+					idebufferb[0]=1; /*2048 bytes user data*/
+					idebufferb[1]=idebufferb[2]=idebufferb[3]=0;
+				}
                 
+				len = 8;
                 ide->packetstatus = ATAPI_STATUS_DATA;
                 ide->cylinder=8;
                 ide->secount=2;
@@ -2722,14 +2826,21 @@ static void atapicommand(int ide_board)
                 break;
                 
 		case GPCMD_READ_DISC_INFORMATION:
-		idebufferb[1] = 32;
-		idebufferb[2] = 0xe; /* last session complete, disc finalized */
-		idebufferb[3] = 1; /* first track on disc */
-		idebufferb[4] = 1; /* # of sessions */
-		idebufferb[5] = 1; /* first track of last session */
-		idebufferb[6] = 1; /* last track of last session */
-		idebufferb[7] = 0x20; /* unrestricted use */
-		idebufferb[8] = 0x00; /* CD-ROM */
+		if (cdrom->read_disc_information)
+		{
+			cdrom->read_disc_information(idebufferb);
+		}
+		else
+		{
+			idebufferb[1] = 32;
+			idebufferb[2] = 0xe; /* last session complete, disc finalized */
+			idebufferb[3] = 1; /* first track on disc */
+			idebufferb[4] = 1; /* # of sessions */
+			idebufferb[5] = 1; /* first track of last session */
+			idebufferb[6] = 1; /* last track of last session */
+			idebufferb[7] = 0x20; /* unrestricted use */
+			idebufferb[8] = 0x00; /* CD-ROM */
+		}
 			
 		len=34;
 		ide->packetstatus = ATAPI_STATUS_DATA;
@@ -2743,8 +2854,6 @@ static void atapicommand(int ide_board)
                 case GPCMD_PLAY_AUDIO_10:
                 case GPCMD_PLAY_AUDIO_12:
                 case GPCMD_PLAY_AUDIO_MSF:
-		/*This is apparently deprecated in the ATAPI spec, and apparently
-                  has been since 1995 (!). Hence I'm having to guess most of it*/
 		if (idebufferb[0] == GPCMD_PLAY_AUDIO_10)
 		{
 			pos=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
@@ -2752,6 +2861,8 @@ static void atapicommand(int ide_board)
 		}
 		else if (idebufferb[0] == GPCMD_PLAY_AUDIO_MSF)
 		{
+			/*This is apparently deprecated in the ATAPI spec, and apparently
+				has been since 1995 (!). Hence I'm having to guess most of it*/
 			pos=(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
 			len=(idebufferb[6]<<16)|(idebufferb[7]<<8)|idebufferb[8];
 		}
@@ -3019,19 +3130,24 @@ atapi_out:
                 break;
 
                 case GPCMD_READ_CDROM_CAPACITY:
-		atapi_command_send_init(ide, temp_command, 8, 8);
-                size = cdrom->size();
-                idebufferb[0] = (size >> 24) & 0xff;
-                idebufferb[1] = (size >> 16) & 0xff;
-                idebufferb[2] = (size >> 8) & 0xff;
-                idebufferb[3] = size & 0xff;
-                idebufferb[4] = (2048 >> 24) & 0xff;
-                idebufferb[5] = (2048 >> 16) & 0xff;
-                idebufferb[6] = (2048 >> 8) & 0xff;
-                idebufferb[7] = 2048 & 0xff;
-                len=8;
-		atapi_command_ready(ide_board, len);
-                break;
+				atapi_command_send_init(ide, temp_command, 8, 8);
+				if (cdrom->read_capacity)
+				{
+					cdrom->read_capacity(idebufferb);
+				}
+				else
+				{
+					size = cdrom->size() - 1;		/* IMPORTANT: What's returned is the last LBA block. */
+					memset(idebufferb, 0, 8);
+					idebufferb[0] = (size >> 24) & 0xff;
+					idebufferb[1] = (size >> 16) & 0xff;
+					idebufferb[2] = (size >> 8) & 0xff;
+					idebufferb[3] = size & 0xff;
+					idebufferb[6] = 8;				/* 2048 = 0x0800 */
+				}
+				len=8;
+				atapi_command_ready(ide_board, len);
+				break;
                 
                 case GPCMD_SEND_DVD_STRUCTURE:
                 default:

@@ -1,7 +1,5 @@
-/* Authors: Andrew Jenner
-   Extra contributors: Tenshi
-   Distributed as is with the Unlicense (PD), see "UNLICENSE"
-*/
+/*	Code borrowed from DOSBox and adapted by OBattler.
+	Original author: reenigne. */
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -69,38 +67,30 @@ static Bit8u byte_clamp_other(int v) { return v < 0 ? 0 : (v > 255 ? 255 : v); }
 
 FILE *df;
 
-void update_cga16_color(cga_t *cga) {
+void update_cga16_color(uint8_t cgamode) {
 	int x;
 	Bit32u x2;
-        double i0, i3, mode_saturation, c, i, v, r, g, b, q, a, s, iq_adjust_i, iq_adjust_q;
-
-        static const double ri = 0.9563;
-        static const double rq = 0.6210;
-        static const double gi = -0.2721;
-        static const double gq = -0.6474;
-        static const double bi = -1.1069;
-        static const double bq = 1.7046;
 
         if (!new_cga) {
                 min_v = chroma_multiplexer[0] + intensity[0];
                 max_v = chroma_multiplexer[255] + intensity[3];
         }
         else {
-                i0 = intensity[0];
-                i3 = intensity[3];
+                double i0 = intensity[0];
+                double i3 = intensity[3];
                 min_v = NEW_CGA(chroma_multiplexer[0], i0, i0, i0, i0);
                 max_v = NEW_CGA(chroma_multiplexer[255], i3, i3, i3, i3);
         }
         mode_contrast = 256/(max_v - min_v);
         mode_brightness = -min_v*mode_contrast;
-        if ((cga->cgamode & 3) == 1)
+        if ((cgamode & 3) == 1)
                 mode_hue = 14;
         else
                 mode_hue = 4;
 
         mode_contrast *= contrast * (new_cga ? 1.2 : 1)/100;             // new CGA: 120%
         mode_brightness += (new_cga ? brightness-10 : brightness)*5;     // new CGA: -10
-        mode_saturation = (new_cga ? 4.35 : 2.9)*saturation/100;  // new CGA: 150%
+        double mode_saturation = (new_cga ? 4.35 : 2.9)*saturation/100;  // new CGA: 150%
 
         for (x = 0; x < 1024; ++x) {
                 int phase = x & 3;
@@ -108,33 +98,42 @@ void update_cga16_color(cga_t *cga) {
                 int left = (x >> 6) & 15;
                 int rc = right;
                 int lc = left;
-                if ((cga->cgamode & 4) != 0) {
+                if ((cgamode & 4) != 0) {
                         rc = (right & 8) | ((right & 7) != 0 ? 7 : 0);
                         lc = (left & 8) | ((left & 7) != 0 ? 7 : 0);
                 }
-                c = chroma_multiplexer[((lc & 7) << 5) | ((rc & 7) << 2) | phase];
-                i = intensity[(left >> 3) | ((right >> 2) & 2)];
+                double c =
+                        chroma_multiplexer[((lc & 7) << 5) | ((rc & 7) << 2) | phase];
+                double i = intensity[(left >> 3) | ((right >> 2) & 2)];
+                double v;
                 if (!new_cga)
                         v = c + i;
                 else {
-                        r = intensity[((left >> 2) & 1) | ((right >> 1) & 2)];
-                        g = intensity[((left >> 1) & 1) | (right & 2)];
-                        b = intensity[(left & 1) | ((right << 1) & 2)];
+                        double r = intensity[((left >> 2) & 1) | ((right >> 1) & 2)];
+                        double g = intensity[((left >> 1) & 1) | (right & 2)];
+                        double b = intensity[(left & 1) | ((right << 1) & 2)];
                         v = NEW_CGA(c, i, r, g, b);
                 }
                 CGA_Composite_Table[x] = (int) (v*mode_contrast + mode_brightness);
         }
 
-        i = CGA_Composite_Table[6*68] - CGA_Composite_Table[6*68 + 2];
-        q = CGA_Composite_Table[6*68 + 1] - CGA_Composite_Table[6*68 + 3];
+        double i = CGA_Composite_Table[6*68] - CGA_Composite_Table[6*68 + 2];
+        double q = CGA_Composite_Table[6*68 + 1] - CGA_Composite_Table[6*68 + 3];
 
-        a = tau*(33 + 90 + hue_offset + mode_hue)/360.0;
-        c = cos(a);
-        s = sin(a);
-        r = 256*mode_saturation/sqrt(i*i+q*q);
+        double a = tau*(33 + 90 + hue_offset + mode_hue)/360.0;
+        double c = cos(a);
+        double s = sin(a);
+        double r = 256*mode_saturation/sqrt(i*i+q*q);
 
-        iq_adjust_i = -(i*c + q*s)*r;
-        iq_adjust_q = (q*c - i*s)*r;
+        double iq_adjust_i = -(i*c + q*s)*r;
+        double iq_adjust_q = (q*c - i*s)*r;
+
+        static const double ri = 0.9563;
+        static const double rq = 0.6210;
+        static const double gi = -0.2721;
+        static const double gq = -0.6474;
+        static const double bi = -1.1069;
+        static const double bq = 1.7046;
 
         video_ri = (int) (ri*iq_adjust_i + rq*iq_adjust_q);
         video_rq = (int) (-ri*iq_adjust_q + rq*iq_adjust_i);
@@ -157,7 +156,7 @@ static int temp[SCALER_MAXWIDTH + 10]={0};
 static int atemp[SCALER_MAXWIDTH + 2]={0};
 static int btemp[SCALER_MAXWIDTH + 2]={0};
 
-Bit8u * Composite_Process(cga_t *cga, Bit8u border, Bit32u blocks/*, bool doublewidth*/, Bit8u *TempLine)
+Bit8u * Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks/*, bool doublewidth*/, Bit8u *TempLine)
 {
 	int x;
 	Bit32u x2;
@@ -187,8 +186,6 @@ Bit8u * Composite_Process(cga_t *cga, Bit8u border, Bit32u blocks/*, bool double
         int* o = temp;
         Bit8u* rgbi = TempLine;
         int* b = &CGA_Composite_Table[border*68];
-        int *i, *ap, *bp;
-        Bit32u* srgb;
         for (x = 0; x < 4; ++x)
                 OUT(b[(x+3)&3]);
         OUT(CGA_Composite_Table[(border<<6) | ((*rgbi)<<2) | 3]);
@@ -200,10 +197,10 @@ Bit8u * Composite_Process(cga_t *cga, Bit8u border, Bit32u blocks/*, bool double
         for (x = 0; x < 5; ++x)
                 OUT(b[x&3]);
 
-        if ((cga->cgamode & 4) != 0) {
+        if ((cgamode & 4) != 0) {
                 // Decode
-                i = temp + 5;
-                srgb = (Bit32u *)TempLine;
+                int* i = temp + 5;
+                Bit32u* srgb = (Bit32u *)TempLine;
                 for (x2 = 0; x2 < blocks*4; ++x2) {
                         int c = (i[0]+i[0])<<3;
                         int d = (i[-1]+i[1])<<3;
@@ -215,9 +212,9 @@ Bit8u * Composite_Process(cga_t *cga, Bit8u border, Bit32u blocks/*, bool double
         }
         else {
                 // Store chroma
-                i = temp + 4;
-                ap = atemp + 1;
-                bp = btemp + 1;
+                int* i = temp + 4;
+                int* ap = atemp + 1;
+                int* bp = btemp + 1;
                 for (x = -1; x < w + 1; ++x) {
                         ap[x] = i[-4]-((i[-2]-i[0]+i[2])<<1)+i[4];
                         bp[x] = (i[-3]-i[-1]+i[1]-i[3])<<1;
@@ -228,7 +225,7 @@ Bit8u * Composite_Process(cga_t *cga, Bit8u border, Bit32u blocks/*, bool double
                 i = temp + 5;
                 i[-1] = (i[-1]<<3) - ap[-1];
                 i[0] = (i[0]<<3) - ap[0];
-                srgb = (Bit32u *)TempLine;
+                Bit32u* srgb = (Bit32u *)TempLine;
                 for (x2 = 0; x2 < blocks; ++x2) {
                         int y,a,b,c,d,rr,gg,bb;
                         COMPOSITE_CONVERT(a, b);
@@ -243,79 +240,79 @@ Bit8u * Composite_Process(cga_t *cga, Bit8u border, Bit32u blocks/*, bool double
         return TempLine;
 }
 
-void IncreaseHue(cga_t *cga)
+void IncreaseHue(uint8_t cgamode)
 {
 	hue_offset += 5.0;
 
-	update_cga16_color(cga);
+	update_cga16_color(cgamode);
 }
 
-void DecreaseHue(cga_t *cga)
+void DecreaseHue(uint8_t cgamode)
 {
 	hue_offset -= 5.0;
 
-	update_cga16_color(cga);
+	update_cga16_color(cgamode);
 }
 
-void IncreaseSaturation(cga_t *cga)
+void IncreaseSaturation(uint8_t cgamode)
 {
 	saturation += 5;
 
-	update_cga16_color(cga);
+	update_cga16_color(cgamode);
 }
 
-void DecreaseSaturation(cga_t *cga)
+void DecreaseSaturation(uint8_t cgamode)
 {
 	saturation -= 5;
 
-	update_cga16_color(cga);
+	update_cga16_color(cgamode);
 }
 
-void IncreaseContrast(cga_t *cga)
+void IncreaseContrast(uint8_t cgamode)
 {
 	contrast += 5;
 
-	update_cga16_color(cga);
+	update_cga16_color(cgamode);
 }
 
-void DecreaseContrast(cga_t *cga)
+void DecreaseContrast(uint8_t cgamode)
 {
 	contrast -= 5;
 
-	update_cga16_color(cga);
+	update_cga16_color(cgamode);
 }
 
-void IncreaseBrightness(cga_t *cga)
+void IncreaseBrightness(uint8_t cgamode)
 {
 	brightness += 5;
 
-	update_cga16_color(cga);
+	update_cga16_color(cgamode);
 }
 
-void DecreaseBrightness(cga_t *cga)
+void DecreaseBrightness(uint8_t cgamode)
 {
 	brightness -= 5;
 
-	update_cga16_color(cga);
+	update_cga16_color(cgamode);
 }
 
-void IncreaseSharpness(cga_t *cga)
+void IncreaseSharpness(uint8_t cgamode)
 {
 	sharpness += 10;
 
-	update_cga16_color(cga);
+	update_cga16_color(cgamode);
 }
 
-void DecreaseSharpness(cga_t *cga)
+void DecreaseSharpness(uint8_t cgamode)
 {
 	sharpness -= 10;
 
-	update_cga16_color(cga);
+	update_cga16_color(cgamode);
 }
 
-void cga_comp_init(cga_t *cga)
+void cga_comp_init(int revision)
 {
-	new_cga = cga->revision;
+	new_cga = revision;
 
 	/* Making sure this gets reset after reset. */
 	brightness = 0;
@@ -324,5 +321,5 @@ void cga_comp_init(cga_t *cga)
 	sharpness = 0;
 	hue_offset = 0;
 
-	update_cga16_color(cga);
+	update_cga16_color(0);
 }

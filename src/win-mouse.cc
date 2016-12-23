@@ -14,12 +14,12 @@ extern "C" void pclog(const char *format, ...);
 extern "C" void mouse_init();
 extern "C" void mouse_close();
 extern "C" void mouse_poll_host();
-extern "C" void mouse_get_mickeys(int *x, int *y);
+extern "C" void mouse_get_mickeys(int *x, int *y, int *z);
 
 static LPDIRECTINPUT8 lpdi;
 static LPDIRECTINPUTDEVICE8 lpdi_mouse = NULL;
 static DIMOUSESTATE mousestate;
-static int mouse_x = 0, mouse_y = 0;
+static int mouse_x = 0, mouse_y = 0, mouse_z = 0;
 int mouse_buttons = 0;
 
 void mouse_init()
@@ -61,13 +61,15 @@ void mouse_poll_host()
            mouse_buttons |= 4;
         mouse_x += mousestate.lX;
         mouse_y += mousestate.lY;        
+        mouse_z += mousestate.lZ/120;
         if (!mousecapture && !video_fullscreen)
            mouse_x = mouse_y = mouse_buttons = 0;
 }
 
-void mouse_get_mickeys(int *x, int *y)
+void mouse_get_mickeys(int *x, int *y, int *z)
 {
         *x = mouse_x;
         *y = mouse_y;
-        mouse_x = mouse_y = 0;
+        *z = mouse_z;
+        mouse_x = mouse_y = mouse_z = 0;
 }

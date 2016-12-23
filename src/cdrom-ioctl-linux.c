@@ -420,16 +420,6 @@ static void ioctl_load(void)
 	cdrom_capacity = ioctl_get_last_block(0, 0, 4096, 0);
 }
 
-static void ioctl_readsector(uint8_t *b, int sector)
-{
-	int cdrom = open("/dev/cdrom", O_RDONLY|O_NONBLOCK);
-        if (cdrom <= 0)
-		return;
-        lseek(cdrom, sector*2048, SEEK_SET);
-        read(cdrom, b, 2048);
-	close(cdrom);
-}
-
 union
 {
 	struct cdrom_msf *msf;
@@ -439,6 +429,11 @@ union
 static int lba_to_msf(int lba)
 {
         return (((lba / 75) / 60) << 16) + (((lba / 75) % 60) << 8) + (lba % 75);
+}
+
+static int ioctl_sector_data_type(int sector, int ismsf)
+{
+	return 2;	/* Always Mode 1 */
 }
 
 static void ioctl_readsector_raw(uint8_t *b, int sector)
@@ -711,7 +706,10 @@ static ATAPI ioctl_atapi=
         ioctl_readtoc_session,
 	ioctl_readtoc_raw,
         ioctl_getcurrentsubchannel,
-        ioctl_readsector,
+        NULL,
+        NULL,
+        NULL,
+		ioctl_sector_data_type,
 	ioctl_readsector_raw,
         ioctl_playaudio,
         ioctl_seek,

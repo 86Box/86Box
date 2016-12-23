@@ -67,6 +67,7 @@ void intel_batman_init()
 }
 
 
+#if 0
 uint8_t endeavor_brdconfig(uint16_t port, void *p)
 {
 //        pclog("endeavor_brdconfig read port=%04x\n", port);
@@ -82,3 +83,4 @@ void intel_endeavor_init()
 {
         io_sethandler(0x0079, 0x0001, endeavor_brdconfig, NULL, NULL, NULL, NULL, NULL, NULL);
 }
+#endif

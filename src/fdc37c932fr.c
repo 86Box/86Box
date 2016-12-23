@@ -14,7 +14,6 @@
 #include "ide.h"
 #include "io.h"
 #include "lpt.h"
-#include "mouse_serial.h"
 #include "serial.h"
 #include "fdc37c932fr.h"
 
@@ -245,6 +244,8 @@ process_value:
 					if (valxor & 0xC)  fdc_update_densel_force((val & 0xC) >> 2);
 					break;
 				case 0xF2:
+					if (valxor & 0xC0)  fdc_update_rwc(3, (valxor & 0xC0) >> 6);
+					if (valxor & 0x30)  fdc_update_rwc(2, (valxor & 0x30) >> 4);
 					if (valxor & 0x0C)  fdc_update_rwc(1, (valxor & 0x0C) >> 2);
 					if (valxor & 0x03)  fdc_update_rwc(0, (valxor & 0x03));
 					break;
@@ -253,6 +254,12 @@ process_value:
 					break;
 				case 0xF5:
 					if (valxor & 0x18)  fdc_update_drvrate(1, (val & 0x18) >> 3);
+					break;
+				case 0xF6:
+					if (valxor & 0x18)  fdc_update_drvrate(2, (val & 0x18) >> 3);
+					break;
+				case 0xF7:
+					if (valxor & 0x18)  fdc_update_drvrate(3, (val & 0x18) >> 3);
 					break;
 			}
 			break;
@@ -471,8 +478,12 @@ void fdc37c932fr_init()
 	fdd_swap = 0;
 	fdc_update_rwc(0, 0);
 	fdc_update_rwc(1, 0);
+	fdc_update_rwc(2, 0);
+	fdc_update_rwc(3, 0);
 	fdc_update_drvrate(0, 0);
 	fdc_update_drvrate(1, 0);
+	fdc_update_drvrate(2, 0);
+	fdc_update_drvrate(3, 0);
 	fdc_update_max_track(79);
         io_sethandler(0xe0, 0x0006, fdc37c932fr_gpio_read, NULL, NULL, fdc37c932fr_gpio_write, NULL, NULL,  NULL);
         io_sethandler(0xea, 0x0002, fdc37c932fr_gpio_read, NULL, NULL, fdc37c932fr_gpio_write, NULL, NULL,  NULL);

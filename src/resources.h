@@ -5,13 +5,13 @@
 #define IDM_FILE_HRESET    40001
 #define IDM_FILE_EXIT      40002
 #define IDM_FILE_RESET_CAD 40003
-#define IDM_DISC_A         40010
-#define IDM_DISC_B         40011
-#define IDM_EJECT_A        40012
-#define IDM_EJECT_B        40013
+#define IDM_DISC_1         40010
+#define IDM_DISC_2         40011
+#define IDM_EJECT_1        40012
+#define IDM_EJECT_2        40013
 #define IDM_HDCONF         40014
-#define IDM_DISC_A_WP      40015
-#define IDM_DISC_B_WP      40016
+#define IDM_DISC_1_WP      40015
+#define IDM_DISC_2_WP      40016
 #define IDM_CONFIG         40020
 #define IDM_CONFIG_LOAD    40021
 #define IDM_CONFIG_SAVE    40022
@@ -25,7 +25,16 @@
 #define IDM_VID_FS_43      40072
 #define IDM_VID_FS_SQ      40073
 #define IDM_VID_FS_INT     40074
-#define IDM_VID_SCREENSHOT 40075
+#define IDM_VID_FORCE43    40075
+#define IDM_VID_OVERSCAN   40076
+#define IDM_VID_FLASH      40077
+#define IDM_VID_SCREENSHOT 40078
+#define IDM_DISC_3         40079
+#define IDM_DISC_4         40080
+#define IDM_EJECT_3        40081
+#define IDM_EJECT_4        40082
+#define IDM_DISC_3_WP      40083
+#define IDM_DISC_4_WP      40084
 #define IDM_CDROM_ISO	   40100
 #define IDM_CDROM_EMPTY    40200
 #define IDM_CDROM_REAL     40200
@@ -56,28 +65,25 @@
 #define IDC_COMBO386 1005
 #define IDC_COMBO486 1006
 #define IDC_COMBOSND 1007
-#define IDC_COMBOCHC 1008
-#define IDC_COMBONET 1009
+#define IDC_COMBONET 1008
 #define IDC_COMBOCPUM 1060
 #define IDC_COMBOSPD  1061
-#define IDC_COMBODRA  1062
-#define IDC_COMBODRB  1063
+#define IDC_COMBODR1  1062
+#define IDC_COMBODR2  1063
 #define IDC_COMBOJOY  1064
+#define IDC_COMBOWS  1065
+#define IDC_COMBOMOUSE 1066
+#define IDC_COMBODR3  1067
+#define IDC_COMBODR4  1068
 #define IDC_CHECK1 1010
 #define IDC_CHECK2 1011
 #define IDC_CHECK3 1012
-#define IDC_CHECK4 1013
-#define IDC_CHECKGUS 1014
-#define IDC_CHECKSSI 1015
-#define IDC_CHECKVOODOO 1016
-#define IDC_CHECKDYNAREC 1017
-#define IDC_CHECK_AHA154X 1018
+#define IDC_CHECKGUS 1013
+#define IDC_CHECKSSI 1014
+#define IDC_CHECKVOODOO 1015
+#define IDC_CHECKDYNAREC 1016
 #define IDC_STATIC 1020
-#define IDC_CHECKFORCE43 1021
-#define IDC_CHECKOVERSCAN 1022
-#define IDC_CHECKFLASH 1023
 #define IDC_CHECKSYNC 1024
-#define IDC_CHECKSERIAL 1025
 #define IDC_EDIT1  1030
 #define IDC_EDIT2  1031
 #define IDC_EDIT3  1032
@@ -103,6 +109,14 @@
 #define IDC_FNEW   1063
 #define IDC_EJECTE 1064
 #define IDC_EJECTF 1065
+#define IDC_EDITG  1066
+#define IDC_GFILE  1067
+#define IDC_GNEW   1068
+#define IDC_EDITH  1069
+#define IDC_HFILE  1070
+#define IDC_HNEW   1071
+#define IDC_EJECTG 1072
+#define IDC_EJECTH 1073
 #define IDC_MEMSPIN 1070
 #define IDC_MEMTEXT 1071
 #define IDC_CHDD   1080
@@ -113,8 +127,10 @@
 #define IDC_ECDROM 1085
 #define IDC_FHDD   1086
 #define IDC_FCDROM 1087
-#define IDC_GCDROM 1088
-#define IDC_HCDROM 1089
+#define IDC_GHDD   1088
+#define IDC_GCDROM 1089
+#define IDC_HHDD   1090
+#define IDC_HCDROM 1091
 #define IDC_STEXT1 1100
 #define IDC_STEXT2 1101
 #define IDC_STEXT3 1102
@@ -138,19 +154,30 @@
 #define IDC_EDIT_F_SPT  1209
 #define IDC_EDIT_F_HPC  1210
 #define IDC_EDIT_F_CYL  1211
+#define IDC_EDIT_G_SPT  1212
+#define IDC_EDIT_G_HPC  1213
+#define IDC_EDIT_G_CYL  1214
+#define IDC_EDIT_H_SPT  1215
+#define IDC_EDIT_H_HPC  1216
+#define IDC_EDIT_H_CYL  1217
 #define IDC_TEXT_C_SIZE 1220
 #define IDC_TEXT_D_SIZE 1221
 #define IDC_TEXT_E_SIZE 1222
 #define IDC_TEXT_F_SIZE 1223
+#define IDC_TEXT_G_SIZE 1224
+#define IDC_TEXT_H_SIZE 1225
 #define IDC_EDIT_C_FN   1230
 #define IDC_EDIT_D_FN   1231
 #define IDC_EDIT_E_FN   1232
 #define IDC_EDIT_F_FN   1233
+#define IDC_EDIT_G_FN   1234
+#define IDC_EDIT_H_FN   1235
 
 #define IDC_CONFIGUREVID 1200
 #define IDC_CONFIGURESND 1201
 #define IDC_CONFIGUREVOODOO 1202
-#define IDC_CONFIGURENET 1203
+#define IDC_CONFIGUREMOD 1203
+#define IDC_CONFIGURENET 1204
 #define IDC_JOY1 1210
 #define IDC_JOY2 1211
 #define IDC_JOY3 1212
@@ -160,3 +187,13 @@
 
 #define WM_RESETD3D WM_USER
 #define WM_LEAVEFULLSCREEN WM_USER + 1
+
+#define C_BASE 6		/* End at 38. */
+#define D_BASE 60		/* End at 92. */
+#define E_BASE 114		/* End at 146. */
+#define F_BASE 168		/* End at 200. */
+#define G_BASE 222		/* End at 254. */
+#define H_BASE 276		/* End at 308. */
+#define CMD_BASE 334
+#define DLG_HEIGHT 366
+

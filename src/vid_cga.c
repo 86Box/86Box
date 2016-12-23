@@ -53,7 +53,7 @@ void cga_out(uint16_t addr, uint8_t val, void *p)
                 if (((cga->cgamode ^ val) & 5) != 0)
                 {
                         cga->cgamode = val;
-                        update_cga16_color(cga);
+                        update_cga16_color(cga->cgamode);
                 }
                 cga->cgamode = val;
                 return;
@@ -303,7 +303,7 @@ void cga_poll(void *p)
 			for (c = 0; c < x; c++)
 				buffer32->line[cga->displine][c] = buffer->line[cga->displine][c] & 0xf;
 
-			Composite_Process(cga, 0, x >> 2, buffer32->line[cga->displine]);
+			Composite_Process(cga->cgamode, 0, x >> 2, buffer32->line[cga->displine]);
                 }
 
                 cga->sc = oldsc;
@@ -455,7 +455,7 @@ void *cga_standalone_init()
 
         cga->vram = malloc(0x4000);
                 
-	cga_comp_init(cga);
+	cga_comp_init(cga->revision);
         timer_add(cga_poll, &cga->vidtime, TIMER_ALWAYS_ENABLED, cga);
         mem_mapping_add(&cga->mapping, 0xb8000, 0x08000, cga_read, NULL, NULL, cga_write, NULL, NULL,  NULL, 0, cga);
         io_sethandler(0x03d0, 0x0010, cga_in, NULL, NULL, cga_out, NULL, NULL, cga);

@@ -107,7 +107,7 @@ typedef struct
 	uint8_t interleave_ordered_pos[256][2];
 } td0_t;
 
-td0_t td0[2];
+td0_t td0[FDD_NUM];
 
 
 void floppy_image_read(int drive, char *buffer, uint32_t offset, uint32_t len)

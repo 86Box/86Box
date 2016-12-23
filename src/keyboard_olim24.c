@@ -1,8 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
-#include <stdint.h>
-
 #include "ibm.h"
 #include "io.h"
 #include "mem.h"
@@ -152,7 +147,7 @@ void keyboard_olim24_write(uint16_t port, uint8_t val, void *priv)
                 timer_process();
                 timer_update_outstanding();
 
-		speaker_update();
+                speaker_update();
                 speaker_gated = val & 1;
                 speaker_enable = val & 2;
                 if (speaker_enable) 
@@ -221,84 +216,123 @@ void keyboard_olim24_reset()
         mouse_scancodes[6] = 0x50;
 }
 
-static int mouse_x = 0, mouse_y = 0, mouse_b = 0;
-void mouse_olim24_poll(int x, int y, int b)
+typedef struct mouse_olim24_t
 {
-        mouse_x += x;
-        mouse_y += y;
+        int x, y, b;
+} mouse_olim24_t;
 
-        pclog("mouse_poll - %i, %i  %i, %i\n", x, y, mouse_x, mouse_y);
+void mouse_olim24_poll(int x, int y, int z, int b, void *p)
+{
+        mouse_olim24_t *mouse = (mouse_olim24_t *)p;
         
-        if (((key_queue_end - key_queue_start) & 0xf) > 14) return;
-        if ((b & 1) && !(mouse_b & 1))
-           keyboard_olim24_adddata(mouse_scancodes[0]);
-        if (!(b & 1) && (mouse_b & 1))
-           keyboard_olim24_adddata(mouse_scancodes[0] | 0x80);
-        mouse_b = (mouse_b & ~1) | (b & 1);
+        mouse->x += x;
+        mouse->y += y;
+
+//        pclog("mouse_poll - %i, %i  %i, %i\n", x, y, mouse->x, mouse->y);
         
-        if (((key_queue_end - key_queue_start) & 0xf) > 14) return;
-        if ((b & 2) && !(mouse_b & 2))
-           keyboard_olim24_adddata(mouse_scancodes[2]);
-        if (!(b & 2) && (mouse_b & 2))
-           keyboard_olim24_adddata(mouse_scancodes[2] | 0x80);
-        mouse_b = (mouse_b & ~2) | (b & 2);
+        if (((key_queue_end - key_queue_start) & 0xf) > 14)
+                return;
+        if ((b & 1) && !(mouse->b & 1))
+                keyboard_olim24_adddata(mouse_scancodes[0]);
+        if (!(b & 1) && (mouse->b & 1))
+                keyboard_olim24_adddata(mouse_scancodes[0] | 0x80);
+        mouse->b = (mouse->b & ~1) | (b & 1);
         
-        if (((key_queue_end - key_queue_start) & 0xf) > 14) return;
-        if ((b & 4) && !(mouse_b & 4))
-           keyboard_olim24_adddata(mouse_scancodes[1]);
-        if (!(b & 4) && (mouse_b & 4))
-           keyboard_olim24_adddata(mouse_scancodes[1] | 0x80);
-        mouse_b = (mouse_b & ~4) | (b & 4);
+        if (((key_queue_end - key_queue_start) & 0xf) > 14)
+                return;
+        if ((b & 2) && !(mouse->b & 2))
+                keyboard_olim24_adddata(mouse_scancodes[2]);
+        if (!(b & 2) && (mouse->b & 2))
+                keyboard_olim24_adddata(mouse_scancodes[2] | 0x80);
+        mouse->b = (mouse->b & ~2) | (b & 2);
+        
+        if (((key_queue_end - key_queue_start) & 0xf) > 14)
+                return;
+        if ((b & 4) && !(mouse->b & 4))
+                keyboard_olim24_adddata(mouse_scancodes[1]);
+        if (!(b & 4) && (mouse->b & 4))
+                keyboard_olim24_adddata(mouse_scancodes[1] | 0x80);
+        mouse->b = (mouse->b & ~4) | (b & 4);
         
         if (keyboard_olim24.mouse_mode)
         {
-                if (((key_queue_end - key_queue_start) & 0xf) > 12) return;
-                if (!mouse_x && !mouse_y) return;
+                if (((key_queue_end - key_queue_start) & 0xf) > 12)
+                        return;
+                if (!mouse->x && !mouse->y)
+                        return;
                 
-                mouse_y = -mouse_y;
+                mouse->y = -mouse->y;
                 
-                if (mouse_x < -127) mouse_x = -127;
-                if (mouse_x >  127) mouse_x =  127;
-                if (mouse_x < -127) mouse_x = 0x80 | ((-mouse_x) & 0x7f);
+                if (mouse->x < -127) mouse->x = -127;
+                if (mouse->x >  127) mouse->x =  127;
+                if (mouse->x < -127) mouse->x = 0x80 | ((-mouse->x) & 0x7f);
 
-                if (mouse_y < -127) mouse_y = -127;
-                if (mouse_y >  127) mouse_y =  127;
-                if (mouse_y < -127) mouse_y = 0x80 | ((-mouse_y) & 0x7f);
+                if (mouse->y < -127) mouse->y = -127;
+                if (mouse->y >  127) mouse->y =  127;
+                if (mouse->y < -127) mouse->y = 0x80 | ((-mouse->y) & 0x7f);
                 
                 keyboard_olim24_adddata(0xfe);
-                keyboard_olim24_adddata(mouse_x);
-                keyboard_olim24_adddata(mouse_y);
+                keyboard_olim24_adddata(mouse->x);
+                keyboard_olim24_adddata(mouse->y);
                 
-                mouse_x = mouse_y = 0;
+                mouse->x = mouse->y = 0;
         }
         else
         {   
-                while (mouse_x < -4)
+                while (mouse->x < -4)
                 {
-                        if (((key_queue_end - key_queue_start) & 0xf) > 14) return;
-                        mouse_x+=4;
+                        if (((key_queue_end - key_queue_start) & 0xf) > 14)
+                                return;
+                        mouse->x += 4;
                         keyboard_olim24_adddata(mouse_scancodes[3]);
                 }
-                while (mouse_x > 4)
+                while (mouse->x > 4)
                 {
-                        if (((key_queue_end - key_queue_start) & 0xf) > 14) return;
-                        mouse_x-=4;
+                        if (((key_queue_end - key_queue_start) & 0xf) > 14)
+                                return;
+                        mouse->x -= 4;
                         keyboard_olim24_adddata(mouse_scancodes[4]);
                 }
-                while (mouse_y < -4)
+                while (mouse->y < -4)
                 {
-                        if (((key_queue_end - key_queue_start) & 0xf) > 14) return;
-                        mouse_y+=4;
+                        if (((key_queue_end - key_queue_start) & 0xf) > 14)
+                                return;
+                        mouse->y += 4;
                         keyboard_olim24_adddata(mouse_scancodes[5]);
                 }
-                while (mouse_y > 4)
+                while (mouse->y > 4)
                 {
-                        if (((key_queue_end - key_queue_start) & 0xf) > 14) return;
-                        mouse_y-=4;
+                        if (((key_queue_end - key_queue_start) & 0xf) > 14)
+                                return;
+                        mouse->y -= 4;
                         keyboard_olim24_adddata(mouse_scancodes[6]);
                 }
         }
 }
+
+static void *mouse_olim24_init()
+{
+        mouse_olim24_t *mouse = (mouse_olim24_t *)malloc(sizeof(mouse_olim24_t));
+        memset(mouse, 0, sizeof(mouse_olim24_t));
+                
+        return mouse;
+}
+
+static void mouse_olim24_close(void *p)
+{
+        mouse_olim24_t *mouse = (mouse_olim24_t *)p;
+        
+        free(mouse);
+}
+
+mouse_t mouse_olim24 =
+{
+        "Olivetti M24 mouse",
+        mouse_olim24_init,
+        mouse_olim24_close,
+        mouse_olim24_poll,
+        MOUSE_TYPE_OLIM24
+};
 
 void keyboard_olim24_init()
 {
@@ -308,7 +342,6 @@ void keyboard_olim24_init()
         keyboard_olim24_reset();
         keyboard_send = keyboard_olim24_adddata;
         keyboard_poll = keyboard_olim24_poll;
-        mouse_poll    = mouse_olim24_poll;
         
         timer_add(keyboard_olim24_poll, &keybsenddelay, TIMER_ALWAYS_ENABLED,  NULL);
 }

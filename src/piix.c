@@ -35,10 +35,11 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
                 switch (addr)
                 {
                         case 0x04:
-                        card_piix_ide[0x04] = (card_piix_ide[0x04] & ~5) | (val & 5);
+                        card_piix_ide[0x04] = (val & 5) | 2;
                         break;
                         case 0x07:
-                        card_piix_ide[0x07] = (card_piix_ide[0x07] & ~0x38) | (val & 0x38);
+                        card_piix_ide[0x07] = val & 0x3e;
+			// card_piix_ide[0x07] = (card_piix_ide[0x07] & ~0x38) | (val & 0x38);
                         break;
                         case 0x0d:
                         card_piix_ide[0x0d] = val;
@@ -86,7 +87,7 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
                         if (card_piix_ide[0x04] & 1)
                                 io_sethandler(base, 0x10, piix_bus_master_read, NULL, NULL, piix_bus_master_write, NULL, NULL,  NULL);
                 }
-//                pclog("PIIX write %02X %02X\n", addr, val);
+                // pclog("PIIX write %02X %02X\n", addr, val);
         }
         else
         {
@@ -97,7 +98,32 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
                         case 0x0e:
                         return;
                 }
-		if (addr == 0x6A)
+		if (addr == 0x4C)
+		{
+			if (!((val ^ card_piix[addr]) & 0x80))
+			{
+		                card_piix[addr] = val;
+				return;
+			}
+
+	                card_piix[addr] = val;
+			if (val & 0x80)
+			{
+				if (piix_type == 3)
+				{
+					dma_alias_remove();
+				}
+				else
+				{
+					dma_alias_remove_piix();
+				}
+			}
+			else
+			{
+				dma_alias_set();
+			}
+		}
+		else if (addr == 0x6A)
 		{
 			if (piix_type == 1)
 				card_piix[addr] = (val & 0xFC) | (card_piix[addr] | 3);
@@ -117,11 +143,11 @@ uint8_t piix_read(int func, int addr, void *priv)
 
         if (func == 1) /*IDE*/
         {
-//                pclog("PIIX IDE read %02X %02X\n", addr, card_piix_ide[addr]);                
+                // pclog("PIIX IDE read %02X %02X\n", addr, card_piix_ide[addr]);                
 
 		if (addr == 4)
 		{
-			return (card_piix_ide[addr] & 4) | 3;
+			return (card_piix_ide[addr] & 5) | 2;
 		}
 		else if (addr == 5)
 		{
@@ -141,7 +167,7 @@ uint8_t piix_read(int func, int addr, void *priv)
 		}
 		else if (addr == 0x20)
 		{
-			return card_piix_ide[addr] & 0xF1;
+			return (card_piix_ide[addr] & 0xF0) | 1;
 		}
 		else if (addr == 0x22)
 		{
@@ -470,10 +496,10 @@ void piix_bus_master_set_irq(int channel)
         piix_busmaster[channel].status |= 4;
 }
 
-void piix_init(int card)
+static int reset_reg = 0;
+
+void piix_reset()
 {
-        pci_add_specific(card, piix_read, piix_write, NULL);
-        
         memset(card_piix, 0, 256);
         card_piix[0x00] = 0x86; card_piix[0x01] = 0x80; /*Intel*/
         card_piix[0x02] = 0x2e; card_piix[0x03] = 0x12; /*82371FB (PIIX)*/
@@ -509,16 +535,10 @@ void piix_init(int card)
         card_piix_ide[0x3c] = 14;		/* Default IRQ */
         card_piix_ide[0x40] = card_piix_ide[0x41] = 0x00;
         card_piix_ide[0x42] = card_piix_ide[0x43] = 0x00;
-
-	piix_type = 1;
-        
-        ide_set_bus_master(piix_bus_master_sector_read, piix_bus_master_sector_write, piix_bus_master_set_irq);
 }
 
-void piix3_init(int card)
+void piix3_reset()
 {
-        pci_add_specific(card, piix_read, piix_write, NULL);
-        
         memset(card_piix, 0, 256);
         card_piix[0x00] = 0x86; card_piix[0x01] = 0x80; /*Intel*/
         card_piix[0x02] = 0x00; card_piix[0x03] = 0x70; /*82371SB (PIIX3)*/
@@ -556,8 +576,78 @@ void piix3_init(int card)
         card_piix_ide[0x40] = card_piix_ide[0x41] = 0x00;
         card_piix_ide[0x42] = card_piix_ide[0x43] = 0x00;
 	card_piix_ide[0x44] = 0x00;
+}
+
+static uint8_t rc_read(uint16_t port, void *priv)
+{
+	return reset_reg & 0xfb;
+}
+
+static void rc_write(uint16_t port, uint8_t val, void *priv)
+{
+	if (!(reset_reg & 4) && (val & 4))
+	{
+		if (reset_reg & 2)
+		{
+			// pclog("PIIX: Hard reset\n");
+			resetpchard();
+		}
+		else
+		{
+			// pclog("PIIX: Soft reset\n");
+			if (piix_type == 3)
+			{
+				piix3_reset();
+			}
+			else
+			{
+				piix_reset();
+			}
+			resetide();
+			softresetx86();
+		}
+	}
+	reset_reg = val;
+}
+
+void piix_init(int card)
+{
+        pci_add_specific(card, piix_read, piix_write, NULL);
+
+	piix_reset();
+
+	reset_reg = 0;
+
+	piix_type = 1;
+        
+        ide_set_bus_master(piix_bus_master_sector_read, piix_bus_master_sector_write, piix_bus_master_set_irq);
+
+        io_sethandler(0x0cf9, 0x0001, rc_read, NULL, NULL, rc_write, NULL, NULL, NULL);
+
+	port_92_reset();
+
+	port_92_add();
+
+	dma_alias_set();
+}
+
+void piix3_init(int card)
+{
+        pci_add_specific(card, piix_read, piix_write, NULL);
+        
+	piix3_reset();
+
+	reset_reg = 0;
 
 	piix_type = 3;
         
         ide_set_bus_master(piix_bus_master_sector_read, piix_bus_master_sector_write, piix_bus_master_set_irq);
+
+        io_sethandler(0x0cf9, 0x0001, rc_read, NULL, NULL, rc_write, NULL, NULL, NULL);
+
+	port_92_reset();
+
+	port_92_add();
+
+	dma_alias_set();
 }

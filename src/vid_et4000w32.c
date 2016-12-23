@@ -1119,11 +1119,11 @@ uint8_t et4000w32p_pci_read(int func, int addr, void *p)
                 case 0x09: return 0; /*Programming interface*/
                 
                 case 0x0a: return 0x00; /*Supports VGA interface, XGA compatible*/
-                case 0x0b: return 0x03;
+                case 0x0b: return is_pentium ? 0x03 : 0x00;	/* This has to be done in order to make this card work with the two 486 PCI machines. */
                 
                 case 0x10: return 0x00; /*Linear frame buffer address*/
                 case 0x11: return 0x00;
-		case 0x12: return (et4000->linearbase >> 16) & 0xff;
+		case 0x12: return 0x00;
 		case 0x13: return (et4000->linearbase >> 24);
 
                 case 0x30: return et4000->pci_regs[0x30] & 0x01; /*BIOS ROM address*/
@@ -1157,9 +1157,10 @@ void et4000w32p_pci_write(int func, int addr, uint8_t val, void *p)
                 break;
 
                 case 0x13: 
-		et4000->linearbase &= 0xffff0000; 
-                et4000->linearbase =  (et4000->pci_regs[0x12] << 16) | (et4000->pci_regs[0x13] << 24);
-		svga->crtc[0x30] = ((et4000->linearbase & 0x3fc00000) >> 22);
+		et4000->linearbase &= 0x00c00000; 
+                et4000->linearbase = (et4000->pci_regs[0x13] << 24);
+		svga->crtc[0x30] &= 3;
+		svga->crtc[0x30] = ((et4000->linearbase & 0x3f000000) >> 22);
                 et4000w32p_recalcmapping(et4000); 
                 break;
 

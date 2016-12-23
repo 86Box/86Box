@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #include <stdlib.h>
 #include <math.h>
 #include "ibm.h"
@@ -11,7 +8,8 @@
 #include "video.h"
 #include "vid_pcjr.h"
 
-static int i_filt[8],q_filt[8];
+#define PCJR_RGB 0
+#define PCJR_COMPOSITE 1
 
 typedef struct pcjr_t
 {
@@ -36,9 +34,10 @@ typedef struct pcjr_t
         int vsynctime, vadj;
         uint16_t ma, maback;
         
-        int dispontime, dispofftime;
-	int vidtime;
+        int dispontime, dispofftime, vidtime;
         int firstline, lastline;
+        
+        int composite;
 } pcjr_t;
 
 static uint8_t crtcmask[32] = 
@@ -82,6 +81,8 @@ void pcjr_out(uint16_t addr, uint8_t val, void *p)
                         if (pcjr->array_index & 0x10)
                                 val &= 0x0f;
                         pcjr->array[pcjr->array_index & 0x1f] = val;
+                        if (!(pcjr->array_index & 0x1f))
+                                update_cga16_color(val);
                 }
                 pcjr->array_ff = !pcjr->array_ff;
                 break;
@@ -222,7 +223,7 @@ void pcjr_poll(void *p)
                         
                         if (pcjr->displine < pcjr->firstline)
                         {
-                                pcjr->firstline = pcjr->displine;                                
+                                pcjr->firstline = pcjr->displine;
                                 video_wait_for_buffer();
                         }
                         pcjr->lastline = pcjr->displine;
@@ -431,59 +432,12 @@ void pcjr_poll(void *p)
                 }
                 if (pcjr->array[0] & 1) x = (pcjr->crtc[1] << 3) + 16;
                 else                    x = (pcjr->crtc[1] << 4) + 16;
-                if (cga_comp)
+                if (pcjr->composite)
                 {
-                        for (c = 0; c < x; c++)
-                        {
-                                y_buf[(c << 1) & 6] = ntsc_col[buffer->line[pcjr->displine][c] & 7][(c << 1) & 6] ? 0x6000 : 0;
-                                y_buf[(c << 1) & 6] += (buffer->line[pcjr->displine][c] & 8) ? 0x3000 : 0;
-                                i_buf[(c << 1) & 6] = y_buf[(c << 1) & 6] * i_filt[(c << 1) & 6];
-                                q_buf[(c << 1) & 6] = y_buf[(c << 1) & 6] * q_filt[(c << 1) & 6];
-                                y_tot = y_buf[0] + y_buf[1] + y_buf[2] + y_buf[3] + y_buf[4] + y_buf[5] + y_buf[6] + y_buf[7];
-                                i_tot = i_buf[0] + i_buf[1] + i_buf[2] + i_buf[3] + i_buf[4] + i_buf[5] + i_buf[6] + i_buf[7];
-                                q_tot = q_buf[0] + q_buf[1] + q_buf[2] + q_buf[3] + q_buf[4] + q_buf[5] + q_buf[6] + q_buf[7];
+			for (c = 0; c < x; c++)
+				buffer32->line[pcjr->displine][c] = buffer->line[pcjr->displine][c] & 0xf;
 
-                                y_val = y_tot >> 10;
-                                if (y_val > 255) y_val = 255;
-                                y_val <<= 16;
-                                i_val = i_tot >> 12;
-                                if (i_val >  39041) i_val =  39041;
-                                if (i_val < -39041) i_val = -39041;
-                                q_val = q_tot >> 12;
-                                if (q_val >  34249) q_val =  34249;
-                                if (q_val < -34249) q_val = -34249;
-
-                                r = (y_val + 249*i_val + 159*q_val) >> 16;
-                                g = (y_val -  70*i_val - 166*q_val) >> 16;
-                                b = (y_val - 283*i_val + 436*q_val) >> 16;
-
-                                y_buf[((c << 1) & 6) + 1] = ntsc_col[buffer->line[pcjr->displine][c] & 7][((c << 1) & 6) + 1] ? 0x6000 : 0;
-                                y_buf[((c << 1) & 6) + 1] += (buffer->line[pcjr->displine][c] & 8) ? 0x3000 : 0;
-                                i_buf[((c << 1) & 6) + 1] = y_buf[((c << 1) & 6) + 1] * i_filt[((c << 1) & 6) + 1];
-                                q_buf[((c << 1) & 6) + 1] = y_buf[((c << 1) & 6) + 1] * q_filt[((c << 1) & 6) + 1];
-                                y_tot = y_buf[0] + y_buf[1] + y_buf[2] + y_buf[3] + y_buf[4] + y_buf[5] + y_buf[6] + y_buf[7];
-                                i_tot = i_buf[0] + i_buf[1] + i_buf[2] + i_buf[3] + i_buf[4] + i_buf[5] + i_buf[6] + i_buf[7];
-                                q_tot = q_buf[0] + q_buf[1] + q_buf[2] + q_buf[3] + q_buf[4] + q_buf[5] + q_buf[6] + q_buf[7];
-
-                                y_val = y_tot >> 10;
-                                if (y_val > 255) y_val = 255;
-                                y_val <<= 16;
-                                i_val = i_tot >> 12;
-                                if (i_val >  39041) i_val =  39041;
-                                if (i_val < -39041) i_val = -39041;
-                                q_val = q_tot >> 12;
-                                if (q_val >  34249) q_val =  34249;
-                                if (q_val < -34249) q_val = -34249;
-
-                                r = (y_val + 249*i_val + 159*q_val) >> 16;
-                                g = (y_val -  70*i_val - 166*q_val) >> 16;
-                                b = (y_val - 283*i_val + 436*q_val) >> 16;
-                                if (r > 511) r = 511;
-                                if (g > 511) g = 511;
-                                if (b > 511) b = 511;
-
-                                ((uint32_t *)buffer32->line[pcjr->displine])[c] = makecol32(r / 2, g / 2, b / 2);
-                        }
+			Composite_Process(pcjr->array[0], 0, x >> 2, buffer32->line[pcjr->displine]);
                 }
                 pcjr->sc = oldsc;
                 if (pcjr->vc == pcjr->crtc[7] && !pcjr->sc)
@@ -581,7 +535,7 @@ void pcjr_poll(void *p)
 //                                        printf("Blit %i %i\n",firstline,lastline);
 //printf("Xsize is %i\n",xsize);
 
-                                        if (cga_comp) 
+                                        if (pcjr->composite) 
                                            video_blit_memtoscreen(0, pcjr->firstline-4, 0, (pcjr->lastline - pcjr->firstline) + 8, xsize, (pcjr->lastline - pcjr->firstline) + 8);
                                         else          
                                            video_blit_memtoscreen_8(0, pcjr->firstline-4, xsize, (pcjr->lastline - pcjr->firstline) + 8);
@@ -608,22 +562,18 @@ void pcjr_poll(void *p)
 
 static void *pcjr_video_init()
 {
-        int c;
-        int pcjr_tint = -2;
+        int display_type;
         pcjr_t *pcjr = malloc(sizeof(pcjr_t));
         memset(pcjr, 0, sizeof(pcjr_t));
 
+        display_type = model_get_config_int("display_type");
+        pcjr->composite = (display_type != PCJR_RGB);
+
         pcjr->memctrl = -1;
         
-        for (c = 0; c < 8; c++)
-        {
-                i_filt[c] = 512.0 * cos((3.14 * (pcjr_tint + c * 4) / 16.0) - 33.0 / 180.0);
-                q_filt[c] = 512.0 * sin((3.14 * (pcjr_tint + c * 4) / 16.0) - 33.0 / 180.0);
-        }
         timer_add(pcjr_poll, &pcjr->vidtime, TIMER_ALWAYS_ENABLED, pcjr);
         mem_mapping_add(&pcjr->mapping, 0xb8000, 0x08000, pcjr_read, NULL, NULL, pcjr_write, NULL, NULL,  NULL, 0, pcjr);
         io_sethandler(0x03d0, 0x0010, pcjr_in, NULL, NULL, pcjr_out, NULL, NULL, pcjr);
-	overscan_x = overscan_y = 16;
         return pcjr;
 }
 
@@ -651,4 +601,46 @@ device_t pcjr_video_device =
         pcjr_speed_changed,
         NULL,
         NULL
+};
+
+static device_config_t pcjr_config[] =
+{
+        {
+                .name = "display_type",
+                .description = "Display type",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "RGB",
+                                .value = PCJR_RGB
+                        },
+                        {
+                                .description = "Composite",
+                                .value = PCJR_COMPOSITE
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = PCJR_RGB
+        },
+        {
+                .type = -1
+        }
+};
+
+/*This isn't really a device as such - more of a convenient way to hook in the
+  config information*/
+device_t pcjr_device =
+{
+        "IBM PCjr",
+        0,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        pcjr_config
 };

@@ -2,8 +2,6 @@
 
 void sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *p), void *p);
 
-extern int sbtype;
-
 extern int sound_card_current;
 
 int sound_card_available(int card);

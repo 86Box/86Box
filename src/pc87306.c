@@ -13,7 +13,6 @@
 #include "fdd.h"
 #include "io.h"
 #include "lpt.h"
-#include "mouse_serial.h"
 #include "serial.h"
 #include "pc87306.h"
 
@@ -23,29 +22,36 @@ static uint8_t pc87306_regs[29];
 static uint8_t pc87306_gpio[2] = {0xFF, 0xFF};
 static uint8_t tries;
 static uint16_t lpt_port;
+static int power_down = 0;
 
 void pc87306_gpio_remove();
 void pc87306_gpio_init();
 
 void pc87306_gpio_write(uint16_t port, uint8_t val, void *priv)
 {
+	if (port & 1)
+	{
+		return;
+	}
 	pc87306_gpio[port & 1] = val;
 }
 
 uint8_t uart_int1()
 {
-	return ((pc87306_regs[0x1C] >> 2) & 1) ? 4 : 3;
+	/* 0: IRQ3, 1: IRQ4 */
+	return ((pc87306_regs[0x1C] >> 2) & 1) ? 3 : 4;
 }
 
 uint8_t uart_int2()
 {
-	return ((pc87306_regs[0x1C] >> 6) & 1) ? 4 : 3;
+	return ((pc87306_regs[0x1C] >> 6) & 1) ? 3 : 4;
 }
 
 uint8_t uart1_int()
 {
 	uint8_t temp;
 	temp = ((pc87306_regs[1] >> 2) & 1) ? 3 : 4;	/* 0 = IRQ 4, 1 = IRQ 3 */
+	// pclog("UART 1 set to IRQ %i\n", (pc87306_regs[0x1C] & 1) ? uart_int1() : temp);
 	return (pc87306_regs[0x1C] & 1) ? uart_int1() : temp;
 }
 
@@ -53,7 +59,37 @@ uint8_t uart2_int()
 {
 	uint8_t temp;
 	temp = ((pc87306_regs[1] >> 4) & 1) ? 3 : 4;	/* 0 = IRQ 4, 1 = IRQ 3 */
+	// pclog("UART 2 set to IRQ %i\n", (pc87306_regs[0x1C] & 1) ? uart_int2() : temp);
 	return (pc87306_regs[0x1C] & 1) ? uart_int2() : temp;
+}
+
+void lpt1_handler()
+{
+        int temp;
+	if (pc87306_regs[0x1B] & 0x10)
+	{
+		temp = (pc87306_regs[0x1B] & 0x20) >> 5;
+		if (temp)
+		{
+			lpt_port = 0x378;
+		}
+		else
+		{
+			lpt_port = 0x278;
+		}
+	}
+	else
+	{
+		temp = pc87306_regs[0x01] & 3;
+		switch (temp)
+		{
+			case 0: lpt_port = 0x378;
+			case 1: lpt_port = 0x3bc;
+			case 2: lpt_port = 0x278;
+		}
+	}
+	lpt1_init(lpt_port);
+	pc87306_regs[0x19] = lpt_port >> 2;
 }
 
 void serial1_handler()
@@ -124,7 +160,7 @@ void pc87306_write(uint16_t port, uint8_t val, void *priv)
 
 	if (index)
 	{
-		pc87306_curreg = val;
+		pc87306_curreg = val & 0x1f;
 		// pclog("Register set to: %02X\n", val);
 		tries = 0;
 		return;
@@ -135,10 +171,13 @@ void pc87306_write(uint16_t port, uint8_t val, void *priv)
 		{
 			if (pc87306_curreg <= 28)  valxor = val ^ pc87306_regs[pc87306_curreg];
 			if (pc87306_curreg == 0xF)  pc87306_gpio_remove();
-			if (pc87306_curreg <= 28)  pc87306_regs[pc87306_curreg] = val;
-			// pclog("Register %02X set to: %02X\n", pc87306_regs[pc87306_curreg], val);
+			if ((pc87306_curreg <= 28) && (pc87306_curreg != 8))
+			{
+				pc87306_regs[pc87306_curreg] = val;
+				// pclog("Register %02X set to: %02X (was: %02X)\n", pc87306_curreg, val, pc87306_regs[pc87306_curreg]);
+			}
 			tries = 0;
-			if (pc87306_curreg <= 28)  goto process_value;
+			if ((pc87306_curreg <= 28) && (pc87306_curreg != 8))  goto process_value;
 		}
 		else
 		{
@@ -155,32 +194,10 @@ process_value:
 			if (valxor & 1)
 			{
 				lpt1_remove();
-				lpt2_remove();
 			}
 			if ((valxor & 1) && (val & 1))
 			{
-				if (pc87306_regs[0x1B] & 0x10)
-				{
-					temp = (pc87306_regs[0x1B] & 0x20) >> 5;
-					if (temp)
-					{
-						lpt1_init(0x378); break;
-					}
-					else
-					{
-						lpt1_init(0x278); break;
-					}
-				}
-				else
-				{
-	        	                temp = pc87306_regs[1] & 3;
-		                        switch (temp)
-        		                {
-                		                case 0: lpt1_init(0x378); break;
-                        		        case 1: lpt1_init(0x3bc); break;
-                                		case 2: lpt1_init(0x278); break;
-		                        }
-				}
+				lpt1_handler();
 			}
 
 			if (valxor & 2)
@@ -189,13 +206,15 @@ process_value:
 				if (val & 2)
 				{
 					serial1_handler();
-					// if (mouse_always_serial)  mouse_serial_init();
 				}
 			}
 			if (valxor & 4)
 			{
 				serial2_remove();
-				if (val & 4)  serial2_handler();
+				if (val & 4)
+				{
+					serial2_handler();
+				}
 			}
 			
 			break;
@@ -205,30 +224,7 @@ process_value:
 				lpt1_remove();
 				if (pc87306_regs[0] & 1)
 				{
-					if (pc87306_regs[0x1B] & 0x10)
-					{
-						temp = (pc87306_regs[0x1B] & 0x20) >> 5;
-						if (temp)
-						{
-							lpt_port = 0x378; break;
-						}
-						else
-						{
-							lpt_port = 0x278; break;
-						}
-					}
-					else
-					{
-						temp = val & 3;
-			                        switch (temp)
-        			                {
-                			                case 0: lpt_port = 0x378; break;
-                        			        case 1: lpt_port = 0x3bc; break;
-                                			case 2: lpt_port = 0x278; break;
-			                        }
-					}
-					lpt1_init(lpt_port);
-					pc87306_regs[0x19] = lpt_port >> 2;
+					lpt1_handler();
 				}
 			}
 
@@ -239,7 +235,6 @@ process_value:
 				if (pc87306_regs[0] & 2)
 				{
 					serial1_handler();
-	                	        // if (mouse_always_serial)  mouse_serial_init();
 				}
 			}
 
@@ -247,11 +242,30 @@ process_value:
 			{
 				serial2_remove();
 
-				if (pc87306_regs[0] & 4)  serial2_handler();
+				if (pc87306_regs[0] & 4)
+				{
+					serial2_handler();
+				}
+			}
+			break;
+		case 2:
+			lpt1_remove();
+			serial1_remove();
+			serial2_remove();
+			if (val & 1)
+			{
+				pc87306_regs[0] &= 0xb0;
+			}
+			else
+			{
+				lpt1_handler();
+				serial1_handler();
+				// serial2_handler();
+				pc87306_regs[0] |= 0x4b;
 			}
 			break;
 		case 9:
-			// pclog("Setting DENSEL polarity to: %i (before: %i)\n", (val & 0x40 ? 1 : 0), fdc_get_densel_polarity());
+			pclog("Setting DENSEL polarity to: %i (before: %i)\n", (val & 0x40 ? 1 : 0), fdc_get_densel_polarity());
 			fdc_update_enh_mode((val & 4) ? 1 : 0);
 			fdc_update_densel_polarity((val & 0x40) ? 1 : 0);
 			break;
@@ -267,7 +281,6 @@ process_value:
 				if (pc87306_regs[0] & 2)
 				{
 					serial1_handler();
-		                        // if (mouse_always_serial)  mouse_serial_init();
 				}
 				if (pc87306_regs[0] & 4)  serial2_handler();
 			}
@@ -277,6 +290,10 @@ process_value:
 
 uint8_t pc87306_gpio_read(uint16_t port, void *priv)
 {
+	if (port & 1)
+	{
+		return 0xfb;	/* Bit 2 clear, since we don't emulate the on-board audio. */
+	}
 	return pc87306_gpio[port & 1];
 }
 
@@ -286,14 +303,35 @@ uint8_t pc87306_read(uint16_t port, void *priv)
 	uint8_t index;
 	index = (port & 1) ? 0 : 1;
 
+	tries = 0;
+
 	if (index)
-		return pc87306_curreg;
+	{
+		// pclog("PC87306: Read value %02X at the index register\n", pc87306_curreg & 0x1f);
+		return pc87306_curreg & 0x1f;
+	}
 	else
 	{
 	        if (pc87306_curreg >= 28)
+		{
+			// pclog("PC87306: Read invalid at data register, index %02X\n", pc87306_curreg);
 			return 0xff;
+		}
+		else if (pc87306_curreg == 8)
+		{
+			// pclog("PC87306: Read ID at data register, index 08\n");
+			return 0x70;
+		}
+		else if (pc87306_curreg == 5)
+		{
+			// pclog("PC87306: Read value %02X at data register, index 05\n", pc87306_regs[pc87306_curreg] | 4);
+			return pc87306_regs[pc87306_curreg] | 4;
+		}
 		else
+		{
+			// pclog("PC87306: Read value %02X at data register, index %02X\n", pc87306_regs[pc87306_curreg], pc87306_curreg);
 			return pc87306_regs[pc87306_curreg];
+		}
 	}
 }
 
@@ -309,13 +347,19 @@ void pc87306_gpio_init()
 
 void pc87306_init()
 {
-	pc87306_regs[0] = 0xF;
-	pc87306_regs[1] = 0x11;
+	memset(pc87306_regs, 0, 29);
+	lpt2_remove();
+
+	// pc87306_regs[0] = 0xF;
+	pc87306_regs[0] = 0x4B;
+	// pc87306_regs[1] = 0x11;
+	pc87306_regs[1] = 0x01;
 	pc87306_regs[3] = 2;
 	pc87306_regs[5] = 0xD;
 	pc87306_regs[8] = 0x70;
 	pc87306_regs[9] = 0xFF;
 	pc87306_regs[0xF] = 0x1E;
+	pc87306_regs[0x12] = 0x30;
 	pc87306_regs[0x19] = 0xDE;
 	pc87306_regs[0x1B] = 0x10;
 	pc87306_regs[0x1C] = 0;

@@ -1,7 +1,13 @@
 /* Copyright holders: SA1988
    see COPYING for more details
 */
-/*Adaptec 154x SCSI emulation*/
+/*Adaptec 154x SCSI emulation and clones (including Buslogic ISA adapters)*/
+
+/* 
+ToDo:
+Improve support for DOS, Windows 3.x and Windows 9x as well as NT.	
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -81,17 +87,75 @@ typedef struct
 #define CMD_RETSETUP   					0x0D    // return setup data
 #define CMD_ECHO        				0x1F    // ECHO command data
 
+/** Structure for the INQUIRE_SETUP_INFORMATION reply. */
+typedef struct ReplyInquireSetupInformationSynchronousValue
+{
+    uint8_t uOffset :         4;
+    uint8_t uTransferPeriod : 3;
+    uint8_t fSynchronous :    1;
+}ReplyInquireSetupInformationSynchronousValue;
+
+typedef struct ReplyInquireSetupInformation
+{
+    uint8_t fSynchronousInitiationEnabled : 1;
+    uint8_t fParityCheckingEnabled :        1;
+    uint8_t uReserved1 :           6;
+    uint8_t uBusTransferRate;
+    uint8_t uPreemptTimeOnBus;
+    uint8_t uTimeOffBus;
+    uint8_t cMailbox;
+    addr24  MailboxAddress;
+    ReplyInquireSetupInformationSynchronousValue SynchronousValuesId0To7[8];
+    uint8_t uDisconnectPermittedId0To7;
+    uint8_t uSignature;
+    uint8_t uCharacterD;
+    uint8_t uHostBusType;
+    uint8_t uWideTransferPermittedId0To7;
+    uint8_t uWideTransfersActiveId0To7;
+    ReplyInquireSetupInformationSynchronousValue SynchronousValuesId8To15[8];
+    uint8_t uDisconnectPermittedId8To15;
+    uint8_t uReserved2;
+    uint8_t uWideTransferPermittedId8To15;
+    uint8_t uWideTransfersActiveId8To15;
+} ReplyInquireSetupInformation;
+
+/** Structure for the INQUIRE_EXTENDED_SETUP_INFORMATION. */
+#pragma pack(1)
+typedef struct ReplyInquireExtendedSetupInformation
+{
+    uint8_t       uBusType;
+    uint8_t       uBiosAddress;
+    uint16_t      u16ScatterGatherLimit;
+    uint8_t       cMailbox;
+    uint32_t      uMailboxAddressBase;
+    uint8_t 		uReserved1 : 2;
+    uint8_t         fFastEISA : 1;
+    uint8_t 		uReserved2 : 3;
+    uint8_t          fLevelSensitiveInterrupt : 1;
+    uint8_t 		uReserved3 : 1;
+    uint8_t 		aFirmwareRevision[3];
+    uint8_t          fHostWideSCSI : 1;
+    uint8_t          fHostDifferentialSCSI : 1;
+    uint8_t          fHostSupportsSCAM : 1;
+    uint8_t          fHostUltraSCSI : 1;
+    uint8_t          fHostSmartTermination : 1;
+    uint8_t 		uReserved4 : 3;
+} ReplyInquireExtendedSetupInformation;
+#pragma pack()
+
 typedef struct MailboxInit_t
 {
 	uint8_t Count;
 	addr24 Address;
 } MailboxInit_t;
 
+#pragma pack(1)
 typedef struct MailboxInitExtended_t
 {
 	uint8_t Count;
 	uint32_t Address;
 } MailboxInitExtended_t;
+#pragma pack()
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -132,8 +196,22 @@ typedef struct Mailbox_t
 
 typedef struct Mailbox32_t
 {
-	uint8_t CmdStatus;
 	uint32_t CCBPointer;
+	union
+	{
+		struct
+		{
+			uint8_t Reserved[3];
+			uint8_t ActionCode;
+		} out;
+		struct
+		{
+			uint8_t HostStatus;
+			uint8_t TargetStatus;
+			uint8_t Reserved;
+			uint8_t CompletionCode;
+		} in;
+	} u;
 } Mailbox32_t;
 
 
@@ -205,7 +283,7 @@ typedef struct Mailbox32_t
 //
 //    Byte 15   Target Status
 //
-//    See SCSI.H files for these statuses.
+//    See scsi.h files for these statuses.
 //
 
 //
@@ -215,6 +293,29 @@ typedef struct Mailbox32_t
 //
 //    Bytes 18 through 18+n-1, where n=size of CDB  Command Descriptor Block
 //
+
+typedef struct CCB32
+{
+	uint8_t Opcode;
+	uint8_t Reserved1:3;
+	uint8_t ControlByte:2;
+	uint8_t TagQueued:1;
+	uint8_t QueueTag:2;
+	uint8_t CdbLength;
+	uint8_t RequestSenseLength;
+	uint32_t DataLength;
+	uint32_t DataPointer;
+	uint8_t Reserved2[2];
+	uint8_t HostStatus;
+	uint8_t TargetStatus;
+	uint8_t Id;
+	uint8_t Lun:5;
+	uint8_t LegacyTagEnable:1;
+	uint8_t LegacyQueueTag:2;
+	uint8_t Cdb[12];
+	uint8_t Reserved3[6];
+	uint32_t SensePointer;
+} CCB32;
 
 typedef struct CCB
 {
@@ -234,6 +335,28 @@ typedef struct CCB
 	uint8_t Cdb[12];
 } CCB;
 
+typedef struct CCBC
+{
+	uint8_t Opcode;
+	uint8_t Pad1:3;
+	uint8_t ControlByte:2;
+	uint8_t Pad2:3;
+	uint8_t CdbLength;
+	uint8_t RequestSenseLength;
+	uint8_t Pad3[10];
+	uint8_t HostStatus;
+	uint8_t TargetStatus;
+	uint8_t Pad4[2];
+	uint8_t Cdb[12];
+} CCBC;
+
+typedef union CCBU
+{
+	CCB32 new;
+	CCB   old;
+	CCBC  common;
+} CCBU;
+
 ///////////////////////////////////////////////////////////////////////////////
 //
 // Scatter/Gather Segment List Definitions
@@ -244,7 +367,13 @@ typedef struct CCB
 // Adapter limits
 //
 
-#define MAX_SG_DESCRIPTORS 17
+#define MAX_SG_DESCRIPTORS 32
+
+typedef struct SGE32
+{
+	uint32_t Segment;
+	uint32_t SegmentPointer;
+} SGE32;
 
 typedef struct SGE
 {
@@ -254,17 +383,20 @@ typedef struct SGE
 
 typedef struct AdaptecRequests_t
 {
-	CCB CmdBlock;
+	CCBU CmdBlock;
 	uint8_t *RequestSenseBuffer;
 	uint32_t CCBPointer;
+	int Is24bit;
 } AdaptecRequests_t;
 
 typedef struct Adaptec_t
 {
+	rom_t BiosRom;
 	AdaptecRequests_t AdaptecRequests;
 	uint8_t Status;
 	uint8_t Interrupt;
 	uint8_t Geometry;
+	uint8_t Control;
 	uint8_t Command;
 	uint8_t CmdBuf[5];
 	uint8_t CmdParam;
@@ -279,15 +411,11 @@ typedef struct Adaptec_t
 	uint32_t MailboxInPosCur;
 	int Irq;
 	int DmaChannel;
-	int DmaPort1, DmaData1;
-	int DmaPort2, DmaData2;
-	int BusOn;
-	int BusOff;
-	int DmaSpeed;
-	int ScsiBios;
+	int IrqEnabled;
+	int Mbx24bit;
 } Adaptec_t;
 
-Adaptec_t AdaptecLUN;
+Adaptec_t AdaptecLUN[7];
 
 int scsi_base = 0x330;
 int scsi_dma = 6;
@@ -312,13 +440,7 @@ void AdaptecLog(const char *format, ...)
 		fflush(stdout);
    }
 }
-
-/* static void AdaptecSetDMAChannel(int DmaPort1, int DmaData1, int DmaPort2, int DmaData2)
-{
-	dma_channel_write(DmaPort1, DmaData1);
-	dma_channel_write(DmaPort2, DmaData2);
-} */
-								
+					
 static void AdaptecClearInterrupt(Adaptec_t *Adaptec)
 {
 	AdaptecLog("Adaptec: Clearing Interrupt 0x%02X\n", Adaptec->Interrupt);
@@ -333,10 +455,21 @@ static void AdaptecReset(Adaptec_t *Adaptec)
 	Adaptec->Command = 0xFF;
 	Adaptec->CmdParam = 0;
 	Adaptec->CmdParamLeft = 0;
+	Adaptec->IrqEnabled = 1;
 	Adaptec->MailboxOutPosCur = 0;
 	Adaptec->MailboxInPosCur = 0;
 		
 	AdaptecClearInterrupt(Adaptec);
+}
+
+static void AdaptecResetControl(Adaptec_t *Adaptec, uint8_t Reset)
+{
+	AdaptecReset(Adaptec);
+	if (Reset)
+	{
+		Adaptec->Status |= STAT_STST;
+		Adaptec->Status &= ~STAT_IDLE;				
+	}	
 }
 
 static void AdaptecCommandComplete(Adaptec_t *Adaptec)
@@ -354,76 +487,45 @@ static void AdaptecCommandComplete(Adaptec_t *Adaptec)
 	Adaptec->Command = 0xFF;
 	Adaptec->CmdParam = 0;
 }
-	
-static void AdaptecInitReset(Adaptec_t *Adaptec, int Reset)
-{
-	AdaptecReset(Adaptec);
-	if (Reset)
-	{
-		Adaptec->Status |= STAT_STST;
-		Adaptec->Status &= ~STAT_IDLE;
-	}
-}
 
-static void AdaptecMailboxLogInformation(Mailbox_t *Mailbox)
-{
-	AdaptecLog("Adaptec: Mailbox Dump Log\n");
-	AdaptecLog("CCB Pointer=%#x\n", ADDR_TO_U32(Mailbox->CCBPointer));
-	AdaptecLog("Command or Status Code=%02X\n", Mailbox->CmdStatus);
-}
-
-static void AdaptecCCBLogInformation(CCB *CmdBlock)
-{
-	pclog("Adaptec: CCB Dump Log\n");
-	pclog("Opcode=%#x\n", CmdBlock->Opcode);
-	pclog("Data Direction=%u\n", CmdBlock->ControlByte);
-	pclog("Cdb Length=%d\n", CmdBlock->CdbLength);
-	pclog("Sense Length=%u\n", CmdBlock->RequestSenseLength);
-	pclog("Data Length=%u\n", ADDR_TO_U32(CmdBlock->DataLength));
-	pclog("Data Pointer=%u\n", ADDR_TO_U32(CmdBlock->DataPointer));
-	pclog("Host Adapter Status=0x%02X\n", CmdBlock->HostStatus);
-	pclog("Target Device Status=0x%02X\n", CmdBlock->TargetStatus);
-	pclog("Cdb[0]=%#x\n", CmdBlock->Cdb[0]);
-	pclog("Cdb[1]=%#x\n", CmdBlock->Cdb[1]);
-}
-
-static void AdaptecMailboxIn(Adaptec_t *Adaptec, uint32_t CCBPointer, CCB *CmdBlock, uint8_t HostStatus, uint8_t TargetStatus, uint8_t MailboxCompletionCode)
+static void AdaptecMailboxIn(Adaptec_t *Adaptec, uint32_t CCBPointer, CCBU *CmdBlock, 
+			uint8_t HostStatus, uint8_t TargetStatus, uint8_t MailboxCompletionCode)
 {	
 	Mailbox32_t Mailbox32;
 	Mailbox_t MailboxIn;
 	
 	Mailbox32.CCBPointer = CCBPointer;
-	Mailbox32.CmdStatus = MailboxCompletionCode;
-
-	uint32_t Incoming = Adaptec->MailboxInAddr + (Adaptec->MailboxInPosCur * sizeof(Mailbox_t));
+	Mailbox32.u.in.HostStatus = HostStatus;
+	Mailbox32.u.in.TargetStatus = TargetStatus;
+	Mailbox32.u.in.CompletionCode = MailboxCompletionCode;
+	
+	uint32_t Incoming = Adaptec->MailboxInAddr + (Adaptec->MailboxInPosCur * (Adaptec->Mbx24bit ? sizeof(Mailbox_t) : sizeof(Mailbox32_t)));
 
 	if (MailboxCompletionCode != MBI_NOT_FOUND)
 	{
-		CmdBlock->HostStatus = HostStatus;
-		CmdBlock->TargetStatus = TargetStatus;
-
-		uint32_t CCBSize = offsetof(CCB, Cdb);
-		const void *Data = (const void *)&CmdBlock;
-		uint32_t l = PageLengthReadWrite(CCBPointer, CCBSize);
-		//AdaptecBufferWrite(&Adaptec->AdaptecRequests, Incoming, &MailboxIn, sizeof(Mailbox_t));
-		memcpy(&ram[CCBPointer], Data, l);
-		CCBPointer += l;
-		Data -= l;
-		CCBSize += l;		
+		CmdBlock->common.HostStatus = HostStatus;
+		CmdBlock->common.TargetStatus = TargetStatus;		
+		
+		//Rewrite the CCB up to the CDB.
+		DMAPageWrite(CCBPointer, CmdBlock, offsetof(CCBC, Cdb));
 	}
 	
-	MailboxIn.CmdStatus = Mailbox32.CmdStatus;
-	U32_TO_ADDR(MailboxIn.CCBPointer, Mailbox32.CCBPointer);
-	AdaptecLog("Adaptec: Mailbox: status code=0x%02X, CCB at 0x%08X\n", MailboxIn.CmdStatus, ADDR_TO_U32(MailboxIn.CCBPointer));
-	
-	uint32_t MailboxSize = sizeof(Mailbox_t);
-	const void *Data = (const void *)&MailboxIn;
-	uint32_t l = PageLengthReadWrite(Incoming, MailboxSize);
-	//AdaptecBufferWrite(&Adaptec->AdaptecRequests, Incoming, &MailboxIn, sizeof(Mailbox_t));
-	memcpy(&ram[Incoming], Data, l);
-	Incoming += l;
-	Data -= l;
-	MailboxSize += l;
+	pclog("Host Status 0x%02X, TargetStatus 0x%02X\n", HostStatus, TargetStatus);
+
+	if (Adaptec->Mbx24bit)
+	{
+		MailboxIn.CmdStatus = Mailbox32.u.in.CompletionCode;
+		U32_TO_ADDR(MailboxIn.CCBPointer, Mailbox32.CCBPointer);
+		pclog("Mailbox 24-bit: Status=0x%02X, CCB at 0x%08X\n", MailboxIn.CmdStatus, ADDR_TO_U32(MailboxIn.CCBPointer));
+		
+		DMAPageWrite(Incoming, &MailboxIn, sizeof(Mailbox_t));
+	}
+	else
+	{
+		pclog("Mailbox 32-bit: Status=0x%02X, CCB at 0x%08X\n", Mailbox32.u.in.CompletionCode, Mailbox32.CCBPointer);
+		
+		DMAPageWrite(Incoming, &Mailbox32, sizeof(Mailbox32_t));		
+	}
 	
 	Adaptec->MailboxInPosCur++;
 	if (Adaptec->MailboxInPosCur > Adaptec->MailboxCount)
@@ -433,55 +535,74 @@ static void AdaptecMailboxIn(Adaptec_t *Adaptec, uint32_t CCBPointer, CCB *CmdBl
 	picint(1 << Adaptec->Irq);
 }
 
-static void AdaptecReadSGEntries(uint32_t SGList, uint32_t Entries, SGE *SG)
+static void AdaptecReadSGEntries(int Is24bit, uint32_t SGList, uint32_t Entries, SGE32 *SG)
 {
-	uint32_t SGSize = Entries * sizeof(SGE);
-	void *Data = (void *)SG;
-	uint32_t l = PageLengthReadWrite(SGList, SGSize);
-	//AdaptecBufferRead(&Adaptec->AdaptecRequests, SGList, SG, Entries * sizeof(SGE));
-	memcpy(Data, &ram[SGList], l);
-	SGList += l;
-	Data -= l;
-	SGSize += l;
+	if (Is24bit)
+	{
+		uint32_t i;
+		SGE SGE24[MAX_SG_DESCRIPTORS];
+		
+		DMAPageRead(SGList, &SGE24, Entries * sizeof(SGE));
+
+		for (i=0;i<Entries;++i)
+		{
+			//Convert the 24-bit entries into 32-bit entries.
+			SG[i].Segment = ADDR_TO_U32(SGE24[i].Segment);
+			SG[i].SegmentPointer = ADDR_TO_U32(SGE24[i].SegmentPointer);
+		}
+	}
+	else
+	{
+		DMAPageRead(SGList, SG, Entries * sizeof(SGE32));		
+	}
 }
 
-static void AdaptecQueryDataBufferSize(Adaptec_t *Adaptec, CCB *CmdBlock, uint32_t *pBufferSize)
+static void AdaptecQueryDataBufferSize(Adaptec_t *Adaptec, CCBU *CmdBlock, int Is24bit, uint32_t *pBufferSize)
 {	
 	uint32_t BufferSize = 0;
 	
-	DataPointer = ADDR_TO_U32(CmdBlock->DataPointer);
-	DataLength = ADDR_TO_U32(CmdBlock->DataLength);
-	
-	if (DataLength)
+	if (Is24bit)
 	{
-		if (CmdBlock->Opcode == SCATTER_GATHER_COMMAND ||
-			CmdBlock->Opcode == SCATTER_GATHER_COMMAND_RES)
+		DataPointer = ADDR_TO_U32(CmdBlock->old.DataPointer);
+		DataLength = ADDR_TO_U32(CmdBlock->old.DataLength);
+	}
+	else
+	{
+		DataPointer = CmdBlock->new.DataPointer;
+		DataLength = CmdBlock->new.DataLength;		
+	}
+	
+	if (DataLength && (CmdBlock->common.Opcode != 3))
+	{
+		if (CmdBlock->common.Opcode == SCATTER_GATHER_COMMAND ||
+			CmdBlock->common.Opcode == SCATTER_GATHER_COMMAND_RES)
 		{
 			uint32_t ScatterGatherRead;
 			uint32_t ScatterEntry;
-			SGE ScatterGatherBuffer[MAX_SG_DESCRIPTORS];
-			uint32_t ScatterGatherLeft = DataLength / sizeof(SGE);
+			SGE32 ScatterGatherBuffer[MAX_SG_DESCRIPTORS];
+			uint32_t ScatterGatherLeft = DataLength / (Is24bit ? sizeof(SGE) : sizeof(SGE32));
 			uint32_t ScatterGatherAddrCurrent = DataPointer;
-					
+						
 			do
 			{
 				ScatterGatherRead = (ScatterGatherLeft < ELEMENTS(ScatterGatherBuffer))
 									? ScatterGatherLeft : ELEMENTS(ScatterGatherBuffer);
-						
+							
 				ScatterGatherLeft -= ScatterGatherRead;
 
-				AdaptecReadSGEntries(ScatterGatherAddrCurrent, ScatterGatherRead, ScatterGatherBuffer);
-						
+				AdaptecReadSGEntries(Is24bit, ScatterGatherAddrCurrent, ScatterGatherRead, ScatterGatherBuffer);
+							
 				for (ScatterEntry = 0; ScatterEntry < ScatterGatherRead; ScatterEntry++)
-					BufferSize += ADDR_TO_U32(ScatterGatherBuffer[ScatterEntry].Segment);
-						
-				ScatterGatherAddrCurrent += ScatterGatherRead * sizeof(SGE);
+					BufferSize += ScatterGatherBuffer[ScatterEntry].Segment;
+							
+				ScatterGatherAddrCurrent += ScatterGatherRead * (Is24bit ? sizeof(SGE) : sizeof(SGE32));
 			} while (ScatterGatherLeft > 0);
-					
+				
+			AdaptecLog("Adaptec: Query Data Buffer\n");
 			AdaptecLog("Adaptec: Data Buffer Size=%u\n", BufferSize);
 		}
-		else if (CmdBlock->Opcode == SCSI_INITIATOR_COMMAND ||
-				CmdBlock->Opcode == SCSI_INITIATOR_COMMAND_RES)
+		else if (CmdBlock->common.Opcode == SCSI_INITIATOR_COMMAND ||
+				CmdBlock->common.Opcode == SCSI_INITIATOR_COMMAND_RES)
 			BufferSize = DataLength;
 	}
 
@@ -501,15 +622,8 @@ static void AdaptecCopyBufferFromGuestWorker(Adaptec_t *Adaptec, uint32_t Addres
 		uint32_t Segment = Copy;
 		uint8_t *SegmentPointer = SegmentBufferGetNextSegment(SegmentBuffer, Segment);
 
-		uint32_t SegmentSize = Segment;
-		void *Data = (void *)SegmentPointer;
-		uint32_t l = PageLengthReadWrite(Address, SegmentSize);
-		//AdaptecBufferRead(&Adaptec->AdaptecRequests, Address, SegmentPointer, Segment);
-		memcpy(Data, &ram[Address], l);
-		Address += l;
-		Data -= l;
-		SegmentSize += l;
-		
+		DMAPageRead(Address, SegmentPointer, Segment);
+
 		Address += Segment;
 		Copy -= Segment;
 	}
@@ -528,14 +642,7 @@ static void AdaptecCopyBufferToGuestWorker(Adaptec_t *Adaptec, uint32_t Address,
 		uint32_t Segment = Copy;
 		uint8_t *SegmentPointer = SegmentBufferGetNextSegment(SegmentBuffer, Segment);
 		
-		uint32_t SegmentSize = Segment;
-		const void *Data = (const void *)SegmentPointer;
-		uint32_t l = PageLengthReadWrite(Address, SegmentSize);
-		//AdaptecBufferWrite(&Adaptec->AdaptecRequests, Address, SegmentPointer, Segment);
-		memcpy(&ram[Address], Data, l);
-		Address += l;
-		Data -= l;
-		SegmentSize += l;
+		DMAPageWrite(Address, SegmentPointer, Segment);
 
 		Address += Segment;
 		Copy -= Segment;
@@ -549,26 +656,35 @@ static int AdaptecScatterGatherBufferWalker(Adaptec_t *Adaptec, AdaptecRequests_
 	uint32_t Copied = 0;
 	
 	Copy += Skip;
-	
-	DataPointer = ADDR_TO_U32(AdaptecRequests->CmdBlock.DataPointer);
-	DataLength = ADDR_TO_U32(AdaptecRequests->CmdBlock.DataLength);
 
-	AdaptecLog("Adaptec: S/G Buffer Walker\n");
-	AdaptecLog("Data Length=%u\n", DataLength);
-	AdaptecLog("Data Buffer Copy=%u\n", Copy);
-	
-	if ((DataLength > 0) && (AdaptecRequests->CmdBlock.ControlByte == CCB_DATA_XFER_IN || 
-		AdaptecRequests->CmdBlock.ControlByte == CCB_DATA_XFER_OUT))
+	if (AdaptecRequests->Is24bit)
 	{
-		if (AdaptecRequests->CmdBlock.Opcode == SCATTER_GATHER_COMMAND ||
-			AdaptecRequests->CmdBlock.Opcode == SCATTER_GATHER_COMMAND_RES)
+		DataPointer = ADDR_TO_U32(AdaptecRequests->CmdBlock.old.DataPointer);
+		DataLength = ADDR_TO_U32(AdaptecRequests->CmdBlock.old.DataLength);
+	}
+	else
+	{
+		DataPointer = AdaptecRequests->CmdBlock.new.DataPointer;
+		DataLength = AdaptecRequests->CmdBlock.new.DataLength;		
+	}
+	
+	/*Mostly a hack for NT 1991 as the CCB describes a 2K buffer, but Test Unit Ready is executed
+		and it returns no data, the buffer must be left alone*/
+	if (AdaptecRequests->CmdBlock.common.Cdb[0] == GPCMD_TEST_UNIT_READY)
+		DataLength = 0;
+	
+	if ((DataLength > 0) && (AdaptecRequests->CmdBlock.common.ControlByte == CCB_DATA_XFER_IN || 
+		AdaptecRequests->CmdBlock.common.ControlByte == CCB_DATA_XFER_OUT))
+	{
+		if (AdaptecRequests->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND ||
+			AdaptecRequests->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES)
 		{
 			uint32_t ScatterGatherRead;
 			uint32_t ScatterEntry;
-			SGE ScatterGatherBuffer[MAX_SG_DESCRIPTORS];
-			uint32_t ScatterGatherLeft = DataLength / sizeof(SGE);
+			SGE32 ScatterGatherBuffer[MAX_SG_DESCRIPTORS];
+			uint32_t ScatterGatherLeft = DataLength / (AdaptecRequests->Is24bit ? sizeof(SGE) : sizeof(SGE32));
 			uint32_t ScatterGatherAddrCurrent = DataPointer;
-					
+						
 			do
 			{
 				ScatterGatherRead = (ScatterGatherLeft < ELEMENTS(ScatterGatherBuffer))
@@ -576,42 +692,44 @@ static int AdaptecScatterGatherBufferWalker(Adaptec_t *Adaptec, AdaptecRequests_
 						
 				ScatterGatherLeft -= ScatterGatherRead;
 
-				AdaptecReadSGEntries(ScatterGatherAddrCurrent, ScatterGatherRead, ScatterGatherBuffer);
+				AdaptecReadSGEntries(AdaptecRequests->Is24bit, ScatterGatherAddrCurrent, ScatterGatherRead, ScatterGatherBuffer);
 
 				for (ScatterEntry = 0; ScatterEntry < ScatterGatherRead; ScatterEntry++)
 				{
 					uint32_t Address;
 					uint32_t CopyThis;
-							
+								
 					AdaptecLog("Adaptec: Scatter Entry=%u\n", ScatterEntry);
-							
-					Address = ADDR_TO_U32(ScatterGatherBuffer[ScatterEntry].SegmentPointer);
-					CopyThis = MIN(Copy, ADDR_TO_U32(ScatterGatherBuffer[ScatterEntry].Segment));
-							
-					AdaptecLog("Adaptec: S/G Address=0x%04X, Copy=%u", Address, CopyThis);
-							
+								
+					Address = ScatterGatherBuffer[ScatterEntry].SegmentPointer;
+					CopyThis = MIN(Copy, ScatterGatherBuffer[ScatterEntry].Segment);
+								
+					AdaptecLog("Adaptec: S/G Address=0x%04X, Copy=%u\n", Address, CopyThis);
+								
 					IoCopyWorker(Adaptec, Address, SegmentBuffer, CopyThis, &Skip);
 					Copied += CopyThis;
 					Copy -= CopyThis;
 				}
-						
+							
 				ScatterGatherAddrCurrent += ScatterGatherRead * sizeof(SGE);
 			} while (ScatterGatherLeft > 0 && Copy > 0);
 		}
-		else if (AdaptecRequests->CmdBlock.Opcode == SCSI_INITIATOR_COMMAND ||
-				AdaptecRequests->CmdBlock.Opcode == SCSI_INITIATOR_COMMAND_RES)
+		else if (AdaptecRequests->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND ||
+			AdaptecRequests->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES)
 		{
 			uint32_t Address = DataPointer;
-					
+						
 			AdaptecLog("Adaptec: Non-scattered buffer\n");
-			pclog("Data Pointer=%#x\n", DataPointer);
-			pclog("Data Length=%u\n", DataLength);
+			AdaptecLog("Data Pointer=%#x\n", DataPointer);
+			AdaptecLog("Data Length=%u\n", DataLength);
 			AdaptecLog("Pointer Address=%#x\n", Address);
-					
+			
 			IoCopyWorker(Adaptec, Address, SegmentBuffer, MIN(DataLength, Copy), &Skip);
 			Copied += MIN(DataLength, Copy);				
 		}
 	}
+	
+	pclog("Opcode %02X\n", AdaptecRequests->CmdBlock.common.Opcode);
 	
 	return Copied - MIN(Skip, Copied);
 }
@@ -630,7 +748,7 @@ static int AdaptecCopySegmentBufferFromGuest(Adaptec_t *Adaptec, AdaptecRequests
 
 uint8_t AdaptecRead(uint16_t Port, void *p)
 {
-	Adaptec_t *Adaptec = &AdaptecLUN;
+	Adaptec_t *Adaptec = &AdaptecLUN[scsi_cdrom_id];
 	uint8_t Temp;
 	
 	switch (Port & 3)
@@ -660,11 +778,6 @@ uint8_t AdaptecRead(uint16_t Port, void *p)
 		
 		case 2:
 		Temp = Adaptec->Interrupt;
-		if (Adaptec->ScsiBios)
-		{
-			Adaptec->Interrupt = INTR_MBIF | INTR_ANY;
-			picint(1 << Adaptec->Irq);
-		}
 		break;
 		
 		case 3:
@@ -678,18 +791,16 @@ uint8_t AdaptecRead(uint16_t Port, void *p)
 
 void AdaptecWrite(uint16_t Port, uint8_t Val, void *p)
 {
-	Adaptec_t *Adaptec = &AdaptecLUN;
-	AdaptecLog("Adaptec: Write Port 0x%02X, Value %02X\n", Port, Val);
+	Adaptec_t *Adaptec = &AdaptecLUN[scsi_cdrom_id];
+	pclog("Adaptec: Write Port 0x%02X, Value %02X\n", Port, Val);
 	
 	switch (Port & 3)
 	{
 		case 0:
 		if ((Val & CTRL_HRST) || (Val & CTRL_SRST))
-		{
-			int HardReset = !!(Val & CTRL_HRST);
-
-			AdaptecLog("Adaptec: %s reset\n", HardReset ? "hard" : "soft");
-			AdaptecInitReset(Adaptec, HardReset);
+		{	
+			uint8_t Reset = !!(Val & CTRL_HRST);
+			AdaptecResetControl(Adaptec, Reset);
 			break;
 		}
 		
@@ -700,10 +811,7 @@ void AdaptecWrite(uint16_t Port, uint8_t Val, void *p)
 		case 1:
 		if ((Val == 0x02) && (Adaptec->Command == 0xFF))
 		{
-			if (Adaptec->MailboxCount)
-			{
-				ScsiCallback[scsi_cdrom_id] = 1;
-			}
+			ScsiCallback[scsi_cdrom_id] = 1;
 			break;
 		}
 		
@@ -713,16 +821,16 @@ void AdaptecWrite(uint16_t Port, uint8_t Val, void *p)
 			Adaptec->CmdParam = 0;
 			
 			Adaptec->Status &= ~(STAT_INVCMD | STAT_IDLE);
-			AdaptecLog("Adaptec: Operation Code 0x%02X\n", Val);
+			pclog("Adaptec: Operation Code 0x%02X\n", Val);
 			switch (Adaptec->Command)
 			{
-				case 0x03:
 				case 0x00:
+				case 0x03:
 				case 0x04:
-				case 0x84:
-				case 0x85:
 				case 0x0A:
 				case 0x0B:
+				case 0x84:
+				case 0x85:
 				Adaptec->CmdParamLeft = 0;
 				break;
 				
@@ -731,6 +839,10 @@ void AdaptecWrite(uint16_t Port, uint8_t Val, void *p)
 				case 0x09:
 				case 0x0D:
 				case 0x1F:
+				case 0x21:
+				case 0x8B:
+				case 0x8D:
+				case 0x25:
 				Adaptec->CmdParamLeft = 1;
 				break;
 				
@@ -740,6 +852,10 @@ void AdaptecWrite(uint16_t Port, uint8_t Val, void *p)
 				
 				case 0x01:
 				Adaptec->CmdParamLeft = sizeof(MailboxInit_t);
+				break;
+				
+				case 0x81:
+				Adaptec->CmdParamLeft = sizeof(MailboxInitExtended_t);
 				break;
 
 				case 0x28:
@@ -757,6 +873,7 @@ void AdaptecWrite(uint16_t Port, uint8_t Val, void *p)
 		
 		if (!Adaptec->CmdParamLeft)
 		{
+			pclog("Running Operation Code 0x%02X\n", Adaptec->Command);
 			switch (Adaptec->Command)
 			{
 				case 0x00:
@@ -765,8 +882,10 @@ void AdaptecWrite(uint16_t Port, uint8_t Val, void *p)
 				
 				case 0x01:
 				{
-					MailboxInit_t *MailboxInit = (MailboxInit_t *)Adaptec->CmdBuf;
+					Adaptec->Mbx24bit = 1;
 					
+					MailboxInit_t *MailboxInit = (MailboxInit_t *)Adaptec->CmdBuf;
+
 					Adaptec->MailboxCount = MailboxInit->Count;
 					Adaptec->MailboxOutAddr = ADDR_TO_U32(MailboxInit->Address);
 					Adaptec->MailboxInAddr = Adaptec->MailboxOutAddr + (Adaptec->MailboxCount * sizeof(Mailbox_t));
@@ -774,10 +893,30 @@ void AdaptecWrite(uint16_t Port, uint8_t Val, void *p)
 					AdaptecLog("Adaptec Initialize Mailbox Command\n");
 					AdaptecLog("Mailbox Out Address=0x%08X\n", Adaptec->MailboxOutAddr);
 					AdaptecLog("Mailbox In Address=0x%08X\n", Adaptec->MailboxInAddr);
-					AdaptecLog("Initialized Mailbox, %d entries at 0x%08X\n", MailboxInit->Count, ADDR_TO_U32(MailboxInit->Address));
+					pclog("Initialized Mailbox, %d entries at 0x%08X\n", MailboxInit->Count, ADDR_TO_U32(MailboxInit->Address));
 				
 					Adaptec->Status &= ~STAT_INIT;
 					Adaptec->DataReplyLeft = 0;
+				}
+				break;
+				
+				case 0x81:
+				{
+					Adaptec->Mbx24bit = 0;
+					
+					MailboxInitExtended_t *MailboxInit = (MailboxInitExtended_t *)Adaptec->CmdBuf;
+
+					Adaptec->MailboxCount = MailboxInit->Count;
+					Adaptec->MailboxOutAddr = MailboxInit->Address;
+					Adaptec->MailboxInAddr = MailboxInit->Address + (Adaptec->MailboxCount * sizeof(Mailbox32_t));
+				
+					AdaptecLog("Adaptec Extended Initialize Mailbox Command\n");
+					AdaptecLog("Mailbox Out Address=0x%08X\n", Adaptec->MailboxOutAddr);
+					AdaptecLog("Mailbox In Address=0x%08X\n", Adaptec->MailboxInAddr);
+					pclog("Initialized Extended Mailbox, %d entries at 0x%08X\n", MailboxInit->Count, MailboxInit->Address);
+				
+					Adaptec->Status &= ~STAT_INIT;
+					Adaptec->DataReplyLeft = 0;					
 				}
 				break;
 				
@@ -785,20 +924,20 @@ void AdaptecWrite(uint16_t Port, uint8_t Val, void *p)
 				break;
 				
 				case 0x04:
-				Adaptec->DataBuf[0] = 'A';
-				Adaptec->DataBuf[1] = '0';
-				Adaptec->DataBuf[2] = '3';
-				Adaptec->DataBuf[3] = '1';
+				Adaptec->DataBuf[0] = 0x41;
+				Adaptec->DataBuf[1] = 0x41; 
+				Adaptec->DataBuf[2] = '4';
+				Adaptec->DataBuf[3] = '7';
 				Adaptec->DataReplyLeft = 4;
 				break;
 
 				case 0x84:
 				Adaptec->DataBuf[0] = '0';
 				Adaptec->DataReplyLeft = 1;
-				break;
-				
+				break;				
+
 				case 0x85:
-				Adaptec->DataBuf[0] = 'A';
+				Adaptec->DataBuf[0] = 'M';
 				Adaptec->DataReplyLeft = 1;
 				break;
 				
@@ -807,18 +946,18 @@ void AdaptecWrite(uint16_t Port, uint8_t Val, void *p)
 				break;
 				
 				case 0x07:
-				Adaptec->BusOn = Adaptec->CmdBuf[0];
 				Adaptec->DataReplyLeft = 0;
+				pclog("Bus-on time: %d\n", Adaptec->CmdBuf[0]);
 				break;
 				
 				case 0x08:
-				Adaptec->BusOff = Adaptec->CmdBuf[0];
-				Adaptec->DataReplyLeft = 0;
+				Adaptec->DataReplyLeft = 0;				
+				pclog("Bus-off time: %d\n", Adaptec->CmdBuf[0]);
 				break;
 				
 				case 0x09:
-				Adaptec->DmaSpeed = Adaptec->CmdBuf[0];
-				Adaptec->DataReplyLeft = 0;
+				Adaptec->DataReplyLeft = 0;				
+				pclog("DMA transfer rate: %02X\n", Adaptec->CmdBuf[0]);
 				break;
 				
 				case 0x0A:
@@ -831,26 +970,61 @@ void AdaptecWrite(uint16_t Port, uint8_t Val, void *p)
 				
 				case 0x0B:
 				Adaptec->DataBuf[0] = (1 << Adaptec->DmaChannel);
-
-				/* if (Adaptec->DmaChannel >= 0)
-					AdaptecSetDMAChannel(Adaptec->DmaPort1, Adaptec->DmaData1,
-										Adaptec->DmaPort2, Adaptec->DmaData2); */
-	
 				Adaptec->DataBuf[1] = (1 << (Adaptec->Irq - 9));
 				Adaptec->DataBuf[2] = 7;
 				Adaptec->DataReplyLeft = 3;
 				break;
 				
 				case 0x0D:
-				Adaptec->DataReplyLeft = Adaptec->CmdBuf[0];
-				Adaptec->DataBuf[1] = Adaptec->DmaSpeed;
-				Adaptec->DataBuf[2] = Adaptec->BusOn;
-				Adaptec->DataBuf[3] = Adaptec->BusOff;
-				Adaptec->DataBuf[4] = Adaptec->MailboxCount;
-				Adaptec->DataBuf[5] = Adaptec->MailboxOutAddr&0xFF;
-				Adaptec->DataBuf[6] = (Adaptec->MailboxOutAddr>>8);
-				Adaptec->DataBuf[7] = (Adaptec->MailboxOutAddr>>16);
-				Adaptec->DataBuf[8+scsi_cdrom_id] = 1;
+				{
+					Adaptec->DataReplyLeft = Adaptec->CmdBuf[0];
+
+					ReplyInquireSetupInformation *Reply = (ReplyInquireSetupInformation *)Adaptec->DataBuf;
+
+					Reply->fSynchronousInitiationEnabled = 1;
+					Reply->fParityCheckingEnabled = 1;
+					Reply->cMailbox = Adaptec->MailboxCount;
+					U32_TO_ADDR(Reply->MailboxAddress, Adaptec->MailboxOutAddr);
+					Reply->uSignature = 'B';
+					/* The 'D' signature prevents Adaptec's OS/2 drivers from getting too
+					 * friendly with BusLogic hardware and upsetting the HBA state.
+					 */
+					Reply->uCharacterD = 'D';      /* BusLogic model. */
+					Reply->uHostBusType = 'A';     /* ISA bus. */
+				}
+				break;
+				
+				case 0x8B:
+				{
+					int i;
+		
+					/* The reply length is set by the guest and is found in the first byte of the command buffer. */
+					Adaptec->DataReplyLeft = Adaptec->CmdBuf[0];
+					memset(Adaptec->DataBuf, 0, Adaptec->DataReplyLeft);
+					const char aModelName[] = "542B ";  /* Trailing \0 is fine, that's the filler anyway. */
+					int cCharsToTransfer =   Adaptec->DataReplyLeft <= sizeof(aModelName)
+										   ? Adaptec->DataReplyLeft
+										   : sizeof(aModelName);
+
+					for (i = 0; i < cCharsToTransfer; i++)
+						Adaptec->DataBuf[i] = aModelName[i];
+				
+				}
+				break;
+				
+				case 0x8D:
+				{
+					Adaptec->DataReplyLeft = Adaptec->CmdBuf[0];
+					ReplyInquireExtendedSetupInformation *Reply = (ReplyInquireExtendedSetupInformation *)Adaptec->DataBuf;
+
+					Reply->uBusType = 'A';         /* ISA style */
+					Reply->u16ScatterGatherLimit = 16;
+					Reply->cMailbox = Adaptec->MailboxCount;
+					Reply->uMailboxAddressBase = Adaptec->MailboxOutAddr;
+					Reply->fLevelSensitiveInterrupt = 1;
+					memcpy(Reply->aFirmwareRevision, "70M", sizeof(Reply->aFirmwareRevision));
+					
+				}
 				break;
 				
 				case 0x1F:
@@ -858,11 +1032,25 @@ void AdaptecWrite(uint16_t Port, uint8_t Val, void *p)
 				Adaptec->DataReplyLeft = 1;
 				break;
 				
+				case 0x21:
+				if (Adaptec->CmdParam == 1)
+					Adaptec->CmdParamLeft = Adaptec->CmdBuf[0];
+				
+				Adaptec->DataReplyLeft = 0;
+				break;
+				
+				case 0x25:
+				if (Adaptec->CmdBuf[0] == 0)
+					Adaptec->IrqEnabled = 0;
+				else
+					Adaptec->IrqEnabled = 1;
+				break;
+				
 				case 0x28:
 				case 0x29:
 				Adaptec->DataReplyLeft = 0;
 				Adaptec->Status |= STAT_INVCMD;
-				break;
+				break;				
 			}
 		}
 		
@@ -873,9 +1061,11 @@ void AdaptecWrite(uint16_t Port, uint8_t Val, void *p)
 		break;
 		
 		case 2:
+		Adaptec->Irq = Val;
 		break;
 		
 		case 3:
+		Adaptec->Geometry = Val;
 		break;
 	}
 }
@@ -892,64 +1082,40 @@ static uint8_t AdaptecConvertSenseLength(uint8_t RequestSenseLength)
 
 static void AdaptecSenseBufferAllocate(AdaptecRequests_t *AdaptecRequests)
 {
-	uint8_t SenseLength = AdaptecConvertSenseLength(AdaptecRequests->CmdBlock.RequestSenseLength);
+	uint8_t SenseLength = AdaptecConvertSenseLength(AdaptecRequests->CmdBlock.common.RequestSenseLength);
 	
-	AdaptecRequests->RequestSenseBuffer = malloc(SenseLength);
+	if (SenseLength)
+		AdaptecRequests->RequestSenseBuffer = malloc(SenseLength);
 }
 
 static void AdaptecSenseBufferFree(AdaptecRequests_t *AdaptecRequests, int Copy)
 {
-	uint8_t SenseLength = AdaptecConvertSenseLength(AdaptecRequests->CmdBlock.RequestSenseLength);
-		
+	uint8_t SenseLength = AdaptecConvertSenseLength(AdaptecRequests->CmdBlock.common.RequestSenseLength);	
+	
 	if (Copy && SenseLength)
 	{
 		uint32_t SenseBufferAddress;
-			
-		SenseBufferAddress = AdaptecRequests->CCBPointer;
-		SenseBufferAddress += AdaptecRequests->CmdBlock.CdbLength + offsetof(CCB, Cdb);
 		
-		uint32_t SenseSize = SenseLength;
-		const void *Data = (const void *)AdaptecRequests->RequestSenseBuffer;
-		uint32_t l = PageLengthReadWrite(SenseBufferAddress, SenseSize);
-		//AdaptecBufferWrite(AdaptecRequests, SenseBufferAddress, AdaptecRequests->RequestSenseBuffer, SenseLength);
-		memcpy(&ram[SenseBufferAddress], Data, l);
-		SenseBufferAddress += l;
-		Data -= l;
-		SenseSize += l;
+		/*The Sense address, in 32-bit mode, is located in the Sense Pointer of the CCB, but in 
+		24-bit mode, it is located at the end of the Command Descriptor Block. */
+		
+		if (AdaptecRequests->Is24bit)
+		{
+			SenseBufferAddress = AdaptecRequests->CCBPointer;
+			SenseBufferAddress += AdaptecRequests->CmdBlock.common.CdbLength + offsetof(CCB, Cdb);
+		}
+		else
+			SenseBufferAddress = AdaptecRequests->CmdBlock.new.SensePointer;
+		
+		DMAPageWrite(SenseBufferAddress, AdaptecRequests->RequestSenseBuffer, SenseLength);		
 	}
+	//Free the sense buffer when needed.
 	free(AdaptecRequests->RequestSenseBuffer);
-}
-
-static void AdaptecRequestComplete(SCSI *Scsi, Adaptec_t *Adaptec,
-									AdaptecRequests_t *AdaptecRequests)
-{	
-	if (AdaptecRequests->RequestSenseBuffer)
-		AdaptecSenseBufferFree(AdaptecRequests, (ScsiStatus != SCSI_STATUS_OK));
-	
-	if (AdaptecRequests->CmdBlock.Opcode == SCSI_INITIATOR_COMMAND_RES ||
-		AdaptecRequests->CmdBlock.Opcode == SCATTER_GATHER_COMMAND_RES)
-	{
-		uint32_t Residual = 0;
-		SCSIQueryResidual(Scsi, &Residual);
-		U32_TO_ADDR(AdaptecRequests->CmdBlock.DataLength, Residual);
-	}
-	
-	uint8_t Status = ScsiStatus;
-	uint32_t CCBPointer = AdaptecRequests->CCBPointer;
-	CCB CmdBlock;
-	memcpy(&CmdBlock, &AdaptecRequests->CmdBlock, sizeof(CCB));
-	
-	if (Status == SCSI_STATUS_OK)
-		AdaptecMailboxIn(Adaptec, CCBPointer, &CmdBlock, CCB_COMPLETE, SCSI_STATUS_OK,
-					MBI_SUCCESS);
-	else if (Status == SCSI_STATUS_CHECK_CONDITION)
-		AdaptecMailboxIn(Adaptec, CCBPointer, &CmdBlock, CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION,
-					MBI_ERROR);
 }
 
 uint32_t AdaptecIoRequestCopyFromBuffer(uint32_t OffDst, SGBUF *SegmentBuffer, uint32_t Copy)
 {
-	Adaptec_t *Adaptec = &AdaptecLUN;
+	Adaptec_t *Adaptec = &AdaptecLUN[scsi_cdrom_id];
 	uint32_t Copied = 0;
 	
 	Copied = AdaptecCopySegmentBufferToGuest(Adaptec, &Adaptec->AdaptecRequests, SegmentBuffer, OffDst, Copy);
@@ -959,72 +1125,98 @@ uint32_t AdaptecIoRequestCopyFromBuffer(uint32_t OffDst, SGBUF *SegmentBuffer, u
 
 uint32_t AdaptecIoRequestCopyToBuffer(uint32_t OffSrc, SGBUF *SegmentBuffer, uint32_t Copy)
 {
-	Adaptec_t *Adaptec = &AdaptecLUN;
+	Adaptec_t *Adaptec = &AdaptecLUN[scsi_cdrom_id];
 	uint32_t Copied = 0;
 	
 	Copied = AdaptecCopySegmentBufferFromGuest(Adaptec, &Adaptec->AdaptecRequests, SegmentBuffer, OffSrc, Copy);
 	
-	return Copied;	
+	return Copied;
+}
+
+static void AdaptecSCSIRequestComplete(Adaptec_t *Adaptec, AdaptecRequests_t *AdaptecRequests)
+{
+	if (AdaptecRequests->RequestSenseBuffer)
+		AdaptecSenseBufferFree(AdaptecRequests, (ScsiStatus != SCSI_STATUS_OK));
+	
+	uint8_t Status = ScsiStatus;
+	uint32_t CCBPointer = AdaptecRequests->CCBPointer;
+	CCBU CmdBlock;
+	memcpy(&CmdBlock, &AdaptecRequests->CmdBlock, sizeof(CCBU));
+	
+	if (Status == SCSI_STATUS_OK)
+	{
+		//A Good status must return good results.
+		AdaptecMailboxIn(Adaptec, CCBPointer, &CmdBlock, CCB_COMPLETE, SCSI_STATUS_OK,
+													MBI_SUCCESS);
+	}
+	else if (ScsiStatus == SCSI_STATUS_CHECK_CONDITION)
+	{
+		AdaptecMailboxIn(Adaptec, CCBPointer, &CmdBlock, CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION,
+													MBI_ERROR);
+	}
 }
 
 static void AdaptecSCSIRequestSetup(Adaptec_t *Adaptec, uint32_t CCBPointer)
 {	
 	AdaptecRequests_t *AdaptecRequests = &Adaptec->AdaptecRequests;
-	CCB CmdBlock;
+	CCBU CmdBlock;
 
-	uint32_t CCBUSize = sizeof(CCB);
-	void *Data = (void *)&CmdBlock;
-	uint32_t l = PageLengthReadWrite(CCBPointer, CCBUSize);
-	//AdaptecBufferRead(&Adaptec->AdaptecRequests, CCBPointer, &CmdBlock, sizeof(CCBU));
-	memcpy(Data, &ram[CCBPointer], l);
-	CCBPointer += l;
-	Data -= l;
-	CCBUSize += l;
+	//Fetch data from the Command Control Block.
+	DMAPageRead(CCBPointer, &CmdBlock, sizeof(CCB32));
 	
-	pclog("Scanning SCSI Target ID %d\n", CmdBlock.Id);	
+	uint8_t Id = Adaptec->Mbx24bit ? CmdBlock.old.Id : CmdBlock.new.Id;
+	uint8_t Lun = Adaptec->Mbx24bit ? CmdBlock.old.Lun : CmdBlock.new.Lun;
 
-	if (CmdBlock.Id == scsi_cdrom_id && CmdBlock.Lun == 0)
-	{
-		pclog("SCSI Target ID %d detected and working\n", CmdBlock.Id);
-		
-		SCSI *Scsi = &ScsiDrives[CmdBlock.Id];
-
-		AdaptecRequests->CCBPointer = CCBPointer - 30;
-
-		memcpy(&AdaptecRequests->CmdBlock, &CmdBlock, sizeof(CmdBlock));
-
-		AdaptecSenseBufferAllocate(AdaptecRequests);
-				
-		uint32_t BufferSize = 0;
-		AdaptecQueryDataBufferSize(Adaptec, &CmdBlock, &BufferSize);
-				
-		uint8_t SenseLength = AdaptecConvertSenseLength(CmdBlock.RequestSenseLength);
-		
-		pclog("Control Byte Transfer Direction %02X\n", CmdBlock.ControlByte);
-		
-		if (CmdBlock.ControlByte == CCB_DATA_XFER_OUT)
+	pclog("Scanning SCSI Target ID %d\n", Id);
+	
+	if (Id < ELEMENTS(ScsiDrives))
+	{	
+		if (Id == scsi_cdrom_id && Lun == 0)
 		{
-			pclog("Adaptec Write Transfer\n");
-			SCSIWriteTransfer(Scsi, CmdBlock.Id);
-		}
-		else if (CmdBlock.ControlByte == CCB_DATA_XFER_IN)
-		{
-			pclog("Adaptec Read Transfer\n");
-			SCSIReadTransfer(Scsi, CmdBlock.Id);
+			int retcode;
+			
+			pclog("SCSI Target ID %d detected and working\n", Id);
+							
+			SCSI *Scsi = &ScsiDrives[Id];
+				
+			AdaptecRequests->CCBPointer = CCBPointer;
+			AdaptecRequests->Is24bit = Adaptec->Mbx24bit;
+				
+			memcpy(&AdaptecRequests->CmdBlock, &CmdBlock, sizeof(CmdBlock));
+
+			uint8_t SenseLength = AdaptecConvertSenseLength(CmdBlock.common.RequestSenseLength);			
+			
+			AdaptecSenseBufferAllocate(AdaptecRequests);
+						
+			uint32_t BufferSize = 0;
+			AdaptecQueryDataBufferSize(Adaptec, &AdaptecRequests->CmdBlock, AdaptecRequests->Is24bit, &BufferSize);
+			
+			if (CmdBlock.common.ControlByte == CCB_DATA_XFER_IN)
+			{
+				SCSIReadTransfer(Scsi, Id);
+			}
+			else if (CmdBlock.common.ControlByte == CCB_DATA_XFER_OUT)
+			{
+				SCSIWriteTransfer(Scsi, Id);
+			}		
+			
+			SCSISendCommand(Scsi, Id, AdaptecRequests->CmdBlock.common.Cdb, AdaptecRequests->CmdBlock.common.CdbLength, BufferSize, AdaptecRequests->RequestSenseBuffer, SenseLength);
+
+			AdaptecSCSIRequestComplete(Adaptec, AdaptecRequests);
+			
+			pclog("Status %02X, Sense Key %02X, Asc %02X, Ascq %02X\n", ScsiStatus, SCSISense.SenseKey, SCSISense.Asc, SCSISense.Ascq);			
+			pclog("Transfer Control %02X\n", CmdBlock.common.ControlByte);
 		}
 		else
 		{
-			AdaptecMailboxIn(Adaptec, AdaptecRequests->CCBPointer, &CmdBlock, CCB_INVALID_DIRECTION, SCSI_STATUS_OK,
-					MBI_ERROR);			
+			AdaptecMailboxIn(Adaptec, CCBPointer, &CmdBlock, CCB_SELECTION_TIMEOUT, SCSI_STATUS_OK,
+													MBI_ERROR);
 		}
-		
-		SCSISendCommand(Scsi, CmdBlock.Id, CmdBlock.Cdb, CmdBlock.CdbLength, BufferSize, AdaptecRequests->RequestSenseBuffer, SenseLength);
-
-		AdaptecRequestComplete(Scsi, Adaptec, AdaptecRequests);
 	}
 	else
 	{
-		CmdBlock.Id++;
+		AdaptecMailboxIn(Adaptec, CCBPointer, &CmdBlock, CCB_INVALID_CCB, SCSI_STATUS_OK,
+													MBI_ERROR);		
 	}
 }
 
@@ -1032,19 +1224,22 @@ static uint32_t AdaptecMailboxOut(Adaptec_t *Adaptec, Mailbox32_t *Mailbox32)
 {	
 	Mailbox_t MailboxOut;
 	uint32_t Outgoing;
+	
+	if (Adaptec->Mbx24bit)
+	{
+		Outgoing = Adaptec->MailboxOutAddr + (Adaptec->MailboxOutPosCur * sizeof(Mailbox_t));
+	
+		DMAPageRead(Outgoing, &MailboxOut, sizeof(Mailbox_t));
 
-	Outgoing = Adaptec->MailboxOutAddr + (Adaptec->MailboxOutPosCur * sizeof(Mailbox_t));
-	uint32_t MailboxSize = sizeof(Mailbox_t);
-	void *Data = (void *)&MailboxOut;
-	uint32_t l = PageLengthReadWrite(Outgoing, MailboxSize);
-	//AdaptecBufferRead(&Adaptec->AdaptecRequests, Outgoing, &MailboxOut, sizeof(Mailbox_t));
-	memcpy(Data, &ram[Outgoing], l);
-	Outgoing += l;
-	Data -= l;
-	MailboxSize += l;
-		
-	Mailbox32->CCBPointer = ADDR_TO_U32(MailboxOut.CCBPointer);
-	Mailbox32->CmdStatus = MailboxOut.CmdStatus;
+		Mailbox32->CCBPointer = ADDR_TO_U32(MailboxOut.CCBPointer);
+		Mailbox32->u.out.ActionCode = MailboxOut.CmdStatus;
+	}
+	else
+	{
+		Outgoing = Adaptec->MailboxOutAddr + (Adaptec->MailboxOutPosCur * sizeof(Mailbox32_t));
+
+		DMAPageRead(Outgoing, Mailbox32, sizeof(Mailbox32_t));	
+	}
 	
 	return Outgoing;
 }
@@ -1054,62 +1249,54 @@ static void AdaptecStartMailbox(Adaptec_t *Adaptec)
 	Mailbox32_t Mailbox32;
 	Mailbox_t MailboxOut;
 	uint32_t Outgoing;
+
+	uint8_t MailboxOutCur = Adaptec->MailboxOutPosCur;
 	
-	uint8_t MailboxPosCur = Adaptec->MailboxOutPosCur;
-	
-	do 
+	do
 	{
 		Outgoing = AdaptecMailboxOut(Adaptec, &Mailbox32);
 		Adaptec->MailboxOutPosCur = (Adaptec->MailboxOutPosCur + 1) % Adaptec->MailboxCount;
-
-	} while ((MailboxPosCur != Adaptec->MailboxOutPosCur) && (Mailbox32.CmdStatus == MBO_FREE));
-
-	AdaptecLog("Adaptec: Got loaded mailbox at slot %u, CCB phys 0x%08X\n", Adaptec->MailboxOutPosCur, Mailbox32.CCBPointer);
-
-	uint8_t CmdStatus = MBO_FREE;
-	unsigned CodeOffset = offsetof(Mailbox_t, CmdStatus);
+	} while (Mailbox32.u.out.ActionCode == MBO_FREE && MailboxOutCur != Adaptec->MailboxOutPosCur);
 	
-	uint32_t MailboxOffset = Outgoing + CodeOffset;
-	uint32_t CmdStatusSize = sizeof(CmdStatus);
-	const void *Data = (const void *)&CmdStatus;
-	uint32_t l = PageLengthReadWrite(MailboxOffset, CmdStatusSize);
-	//AdaptecBufferRead(&Adaptec->AdaptecRequests, Outgoing, &MailboxOut, sizeof(Mailbox_t));
-	memcpy(&ram[MailboxOffset], Data, l);
-	MailboxOffset += l;
-	Data -= l;
-	CmdStatusSize += l;	
+	Adaptec->MailboxOutPosCur = MailboxOutCur;
+	
+	uint8_t CmdStatus = MBO_FREE;
+	uint32_t CodeOffset = Adaptec->Mbx24bit ? offsetof(Mailbox_t, CmdStatus) : offsetof(Mailbox32_t, u.out.ActionCode);
 
-	Mailbox32.CmdStatus = MBO_START;
-	AdaptecSCSIRequestSetup(Adaptec, Mailbox32.CCBPointer);
+	DMAPageWrite(Outgoing + CodeOffset, &CmdStatus, sizeof(CmdStatus));
+	
+	if (Mailbox32.u.out.ActionCode == MBO_START)
+	{
+		Adaptec->MailboxOutPosCur = 1; //Make sure that at least one outgoing mailbox is loaded.
+		pclog("Start Mailbox Command\n");
+		AdaptecSCSIRequestSetup(Adaptec, Mailbox32.CCBPointer);		
+	}
 }
 
 void AdaptecCallback(void *p)
 {
-	Adaptec_t *Adaptec = &AdaptecLUN;
+	Adaptec_t *Adaptec = &AdaptecLUN[scsi_cdrom_id];
 
 	ScsiCallback[scsi_cdrom_id] = 0;
 	
-	if (Adaptec->MailboxCount)
-	{
-		AdaptecStartMailbox(Adaptec);		
-	}
+	AdaptecStartMailbox(Adaptec);
 }
 
-void AdaptecInit(uint8_t Id)
+void AdaptecInit()
 {
-	AdaptecLUN.Irq = scsi_irq;
-	AdaptecLUN.DmaChannel = scsi_dma;
+	Adaptec_t *Adaptec = &AdaptecLUN[scsi_cdrom_id];
 
-	AdaptecLUN.DmaPort1 = 0xD6;
-	AdaptecLUN.DmaData1 = 0xD4;
-	AdaptecLUN.DmaPort2 = 0xC2;
-	AdaptecLUN.DmaData2 = 0x02;		
+	Adaptec->Irq = scsi_irq;
+	Adaptec->DmaChannel = scsi_dma;
 
 	pfnIoRequestCopyFromBuffer     	= AdaptecIoRequestCopyFromBuffer;
-	pfnIoRequestCopyToBuffer       	= AdaptecIoRequestCopyToBuffer;	
+	pfnIoRequestCopyToBuffer       	= AdaptecIoRequestCopyToBuffer;
 
 	io_sethandler(scsi_base, 0x0004, AdaptecRead, NULL, NULL, AdaptecWrite, NULL, NULL, NULL);
-	timer_add(AdaptecCallback, &ScsiCallback[Id], &ScsiCallback[Id], NULL);
+	timer_add(AdaptecCallback, &ScsiCallback[scsi_cdrom_id], &ScsiCallback[scsi_cdrom_id], NULL);
+	pclog("Adaptec on port 0x%04X\n", scsi_base);
 
-	AdaptecReset(&AdaptecLUN);
+	AdaptecReset(Adaptec);
+	Adaptec->Status |= STAT_STST;
+	Adaptec->Status &= ~STAT_IDLE;
 }

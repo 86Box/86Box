@@ -8,12 +8,11 @@
 
 #include "ibm.h"
 
+#include "disc.h"
 #include "fdc.h"
 #include "fdd.h"
-#include "disc.h"
 #include "io.h"
 #include "lpt.h"
-// #include "mouse_serial.h"
 #include "serial.h"
 #include "w83877f.h"
 
@@ -364,7 +363,6 @@ process_value:
 				if (!(w83877f_regs[4] & 0x20))
 				{
 					serial1_set(make_port(0x24), (w83877f_regs[0x28] & 0xF0) >> 8);
-					// mouse_serial_init();
 				}
 			}
 			if (valxor & 0x80)
@@ -384,6 +382,8 @@ process_value:
 			// pclog("W83877F Write [Reg. %02X]: %02X\n", w83877f_curreg, val);
 			if (valxor & 3)  fdc_update_rwc(0, FDDA_TYPE);
 			if (valxor & 0xC)  fdc_update_rwc(1, FDDB_TYPE);
+			if (valxor & 0x30)  fdc_update_rwc(2, FDDC_TYPE);
+			if (valxor & 0xC0)  fdc_update_rwc(3, FDDD_TYPE);
 			break;
 		case 8:
 			// pclog("W83877F Write [Reg. %02X]: %02X\n", w83877f_curreg, val);
@@ -426,7 +426,6 @@ process_value:
 				if (!(w83877f_regs[4] & 0x20))
 				{
 					serial1_set(make_port(0x24), (w83877f_regs[0x28] & 0xF0) >> 8);
-					// mouse_serial_init();
 				}
 			}
 			break;
@@ -448,7 +447,6 @@ process_value:
 				if (!(w83877f_regs[4] & 0x20))
 				{
 					serial1_set(make_port(0x24), (w83877f_regs[0x28] & 0xF0) >> 8);
-					// mouse_serial_init();
 				}
 			}
 			break;

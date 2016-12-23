@@ -37,6 +37,38 @@ void sio_write(int func, int addr, uint8_t val, void *priv)
                         return;
                 }
                 card_sio[addr] = val;
+		if (addr == 0x40)
+		{
+			if (!((val ^ card_sio[addr]) & 0x40))
+			{
+				return;
+			}
+
+			if (val & 0x40)
+			{
+				dma_alias_remove();
+			}
+			else
+			{
+				dma_alias_set();
+			}
+		}
+		else if (addr == 0x4f)
+		{
+			if (!((val ^ card_sio[addr]) & 0x40))
+			{
+				return;
+			}
+
+			if (val & 0x40)
+			{
+				port_92_add();
+			}
+			else
+			{
+				port_92_remove();
+			}
+		}
         }
 }
 
@@ -50,10 +82,10 @@ uint8_t sio_read(int func, int addr, void *priv)
 	return card_sio[addr];
 }
 
-void sio_init(int card)
+static int reset_reg = 0;
+
+void sio_reset()
 {
-        pci_add_specific(card, sio_read, sio_write, NULL);
-        
         memset(card_sio, 0, 256);
         card_sio[0x00] = 0x86; card_sio[0x01] = 0x80; /*Intel*/
         card_sio[0x02] = 0x84; card_sio[0x03] = 0x04; /*82378ZB (SIO)*/
@@ -75,4 +107,46 @@ void sio_init(int card)
 	card_sio[0x80] = 0x78;
 	card_sio[0xA0] = 0x08;
 	card_sio[0xA8] = 0x0F;
+}
+
+static uint8_t rc_read(uint16_t port, void *priv)
+{
+	return reset_reg & 0xfb;
+}
+
+static void rc_write(uint16_t port, uint8_t val, void *priv)
+{
+	if (!(reset_reg & 4) && (val & 4))
+	{
+		if (reset_reg & 2)
+		{
+			// pclog("SIO: Hard reset\n");
+			resetpchard();
+		}
+		else
+		{
+			// pclog("SIO: Soft reset\n");
+			sio_reset();
+			resetide();
+			softresetx86();
+		}
+	}
+	reset_reg = val;
+}
+
+void sio_init(int card)
+{
+        pci_add_specific(card, sio_read, sio_write, NULL);
+
+	sio_reset();        
+
+	reset_reg = 0;
+
+        io_sethandler(0x0cf9, 0x0001, rc_read, NULL, NULL, rc_write, NULL, NULL, NULL);
+
+	port_92_reset();
+
+        port_92_add();
+
+	dma_alias_set();
 }

@@ -31,6 +31,13 @@ void fdc_update_densel_force(int densel_force);
 void fdc_update_drvrate(int drive, int drvrate);
 void fdc_update_drv2en(int drv2en);
 
+void fdc_noidam();
+void fdc_nosector();
+void fdc_nodataam();
+void fdc_cannotformat();
+void fdc_wrongcylinder();
+void fdc_badcylinder();
+
 sector_id_t fdc_get_read_track_sector();
 int fdc_get_compare_condition();
 int fdc_is_deleted();
@@ -55,3 +62,5 @@ void fdc_sector_finishcompare(int satisfying);
 void fdc_sector_finishread();
 void fdc_track_finishread(int condition);
 int fdc_is_verify();
+
+int real_drive(int drive);

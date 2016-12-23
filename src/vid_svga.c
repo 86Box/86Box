@@ -235,7 +235,7 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                         if (svga->ramdac_type == RAMDAC_8BIT)
                                 svga->pallook[svga->dac_write] = makecol32(svga->vgapal[svga->dac_write].r, svga->vgapal[svga->dac_write].g, svga->vgapal[svga->dac_write].b);
                         else
-                                svga->pallook[svga->dac_write] = makecol32((svga->vgapal[svga->dac_write].r & 0x3f) * 4, (svga->vgapal[svga->dac_write].g & 0x3f) * 4, (svga->vgapal[svga->dac_write].b & 0x3f) * 4); 
+                                svga->pallook[svga->dac_write] = makecol32(video_6to8[svga->vgapal[svga->dac_write].r], video_6to8[svga->vgapal[svga->dac_write].g], video_6to8[svga->vgapal[svga->dac_write].b]);
                         svga->dac_pos = 0; 
                         svga->dac_write = (svga->dac_write + 1) & 255; 
                         break;
@@ -408,7 +408,7 @@ void svga_set_ramdac_type(svga_t *svga, int type)
                         if (svga->ramdac_type == RAMDAC_8BIT)
                                 svga->pallook[c] = makecol32(svga->vgapal[c].r, svga->vgapal[c].g, svga->vgapal[c].b);
                         else
-                                svga->pallook[c] = makecol32((svga->vgapal[c].r & 0x3f) * 4, (svga->vgapal[c].g & 0x3f) * 4, (svga->vgapal[c].b & 0x3f) * 4); 
+                                svga->pallook[c] = makecol32(video_6to8[svga->vgapal[c].r], video_6to8[svga->vgapal[c].g], video_6to8[svga->vgapal[c].b]); 
                 }
         }
 }
@@ -919,7 +919,6 @@ int svga_init(svga_t *svga, void *p, int memsize,
         mem_mapping_add(&svga->mapping, 0xa0000, 0x20000, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel, NULL, 0, svga);
 
         timer_add(svga_poll, &svga->vidtime, TIMER_ALWAYS_ENABLED, svga);
-        vramp = svga->vram;
         
         svga_pri = svga;
          
@@ -942,8 +941,6 @@ void svga_close(svga_t *svga)
         svga_pri = NULL;
 }
 
-#define egacycles 1
-#define egacycles2 1
 void svga_write(uint32_t addr, uint8_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;

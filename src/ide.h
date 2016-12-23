@@ -26,7 +26,7 @@ extern int ideboard;
 
 extern int idecallback[3];
 
-extern char ide_fn[4][512];
+extern char ide_fn[6][512];
 
 extern int atapi_cdrom_channel;
 

@@ -40,7 +40,7 @@ static struct
 	uint8_t interleave_ordered_pos[256][2];
 	uint8_t *current_data[2];
 	uint8_t track_buffer[2][25000];
-} imd[2];
+} imd[FDD_NUM];
 
 void imd_init()
 {

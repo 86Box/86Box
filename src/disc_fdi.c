@@ -24,7 +24,7 @@ static struct
         int trackindex[2][4];
         
         int lasttrack;
-} fdi[2];
+} fdi[FDD_NUM];
 
 uint16_t fdi_disk_flags(int drive)
 {
@@ -117,24 +117,28 @@ int32_t fdi_extra_bit_cells(int drive, int side)
 
 	int raw_size = 0;
 
+	int is_300_rpm = 0;
+
 	density = fdi_density();
+
+	is_300_rpm = (fdd_getrpm(real_drive(drive)) == 300);
 
 	switch (fdc_get_bit_rate())
 	{
 		case 0:
-			raw_size = (fdd_getrpm(drive ^ fdd_swap) == 300) ? 200000 : 166666;
+			raw_size = is_300_rpm ? 200000 : 166666;
 			break;
 		case 1:
-			raw_size = (fdd_getrpm(drive ^ fdd_swap) == 300) ? 120000 : 100000;
+			raw_size = is_300_rpm ? 120000 : 100000;
 			break;
 		case 2:
-			raw_size = (fdd_getrpm(drive ^ fdd_swap) == 300) ? 100000 : 83333;
+			raw_size = is_300_rpm ? 100000 : 83333;
 		case 3:
 		case 5:
-			raw_size = (fdd_getrpm(drive ^ fdd_swap) == 300) ? 400000 : 333333;
+			raw_size = is_300_rpm ? 400000 : 333333;
 			break;
 		default:
-			raw_size = (fdd_getrpm(drive ^ fdd_swap) == 300) ? 100000 : 83333;
+			raw_size = is_300_rpm ? 100000 : 83333;
 	}
 
 	return (fdi[drive].tracklen[side][density] - raw_size);

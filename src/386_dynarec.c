@@ -38,7 +38,6 @@ int cpl_override=0;
 
 int has_fpu;
 int fpucount=0;
-int times;
 uint16_t rds;
 uint16_t ea_rseg;
 
@@ -48,7 +47,6 @@ int cgate32;
 
 uint8_t romext[32768];
 uint8_t *ram,*rom;
-uint16_t biosmask;
 
 uint32_t rmdat32;
 uint32_t backupregs[16];
@@ -135,6 +133,7 @@ static inline void fetch_ea_32_long(uint32_t rmdat)
                 if (writelookup2[addr >> 12] != -1)
                    eal_w = (uint32_t *)(writelookup2[addr >> 12] + addr);
         }
+	cpu_state.last_ea = cpu_state.eaaddr;
 }
 
 static inline void fetch_ea_16_long(uint32_t rmdat)
@@ -177,6 +176,7 @@ static inline void fetch_ea_16_long(uint32_t rmdat)
                 if (writelookup2[addr >> 12] != -1)
                    eal_w = (uint32_t *)(writelookup2[addr >> 12] + addr);
         }
+	cpu_state.last_ea = cpu_state.eaaddr;
 }
 
 #define fetch_ea_16(rmdat)              cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_16_long(rmdat); if (cpu_state.abrt) return 1; } 
@@ -275,6 +275,89 @@ void x86illegal()
         x86_int(6);
 }
 
+/*Prefetch emulation is a fairly simplistic model:
+  - All instruction bytes must be fetched before it starts.
+  - Cycles used for non-instruction memory accesses are counted and subtracted
+    from the total cycles taken
+  - Any remaining cycles are used to refill the prefetch queue.
+
+  Note that this is only used for 286 / 386 systems. It is disabled when the
+  internal cache on 486+ CPUs is enabled.
+*/
+static int prefetch_bytes = 0;
+static int prefetch_prefixes = 0;
+
+static void prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int writes, int writes_l, int ea32)
+{
+        int mem_cycles = reads*cpu_cycles_read + reads_l*cpu_cycles_read_l + writes*cpu_cycles_write + writes_l*cpu_cycles_write_l;
+
+        if (instr_cycles < mem_cycles)
+                instr_cycles = mem_cycles;
+
+        prefetch_bytes -= prefetch_prefixes;
+        prefetch_bytes -= bytes;
+        if (modrm != -1)
+        {
+                if (ea32)
+                {
+                        if ((modrm & 7) == 4)
+                        {
+                                if ((modrm & 0x700) == 0x500)
+                                        prefetch_bytes -= 5;
+                                else if ((modrm & 0xc0) == 0x40)
+                                        prefetch_bytes -= 2;
+                                else if ((modrm & 0xc0) == 0x80)
+                                        prefetch_bytes -= 5;
+                        }
+                        else
+                        {
+                                if ((modrm & 0xc7) == 0x05)
+                                        prefetch_bytes -= 4;
+                                else if ((modrm & 0xc0) == 0x40)
+                                        prefetch_bytes--;
+                                else if ((modrm & 0xc0) == 0x80)
+                                        prefetch_bytes -= 4;
+                        }
+                }
+                else
+                {
+                        if ((modrm & 0xc7) == 0x06)
+                                prefetch_bytes -= 2;
+                        else if ((modrm & 0xc0) != 0xc0)
+                                prefetch_bytes -= ((modrm & 0xc0) >> 6);
+                }
+        }
+        
+        /* Fill up prefetch queue */
+        while (prefetch_bytes < 0)
+        {
+                prefetch_bytes += cpu_prefetch_width;
+                cycles -= cpu_prefetch_cycles;
+        }
+        
+        /* Subtract cycles used for memory access by instruction */
+        instr_cycles -= mem_cycles;
+        
+        while (instr_cycles >= cpu_prefetch_cycles)
+        {
+                prefetch_bytes += cpu_prefetch_width;
+                instr_cycles -= cpu_prefetch_cycles;
+        }
+        
+        prefetch_prefixes = 0;
+}
+
+static void prefetch_flush()
+{
+        prefetch_bytes = 0;
+}
+
+#define PREFETCH_RUN(instr_cycles, bytes, modrm, reads, reads_l, writes, writes_l, ea32) \
+        do { if (cpu_prefetch_cycles) prefetch_run(instr_cycles, bytes, modrm, reads, reads_l, writes, writes_l, ea32); } while (0)
+
+#define PREFETCH_PREFIX() prefetch_prefixes++
+#define PREFETCH_FLUSH() prefetch_flush()
+
 
 int rep386(int fv)
 {
@@ -292,6 +375,7 @@ int rep386(int fv)
           that high frequency timers still work okay. This amount is different
           for interpreter and recompiler*/
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);
+        int reads = 0, reads_l = 0, writes = 0, writes_l = 0, total_cycles = 0;
 
         if (trap)
                 cycles_end = cycles+1; /*Force the instruction to end after only one iteration when trap flag set*/
@@ -320,28 +404,36 @@ int rep386(int fv)
                 break;
                 case 0x26: case 0x126: case 0x226: case 0x326: /*ES:*/
                 cpu_state.ea_seg = &_es;
+                PREFETCH_PREFIX();
                 goto startrep;
                 break;
                 case 0x2E: case 0x12E: case 0x22E: case 0x32E: /*CS:*/
                 cpu_state.ea_seg = &_cs;
+                PREFETCH_PREFIX();
                 goto startrep;
                 case 0x36: case 0x136: case 0x236: case 0x336: /*SS:*/
                 cpu_state.ea_seg = &_ss;
+                PREFETCH_PREFIX();
                 goto startrep;
                 case 0x3E: case 0x13E: case 0x23E: case 0x33E: /*DS:*/
                 cpu_state.ea_seg = &_ds;
+                PREFETCH_PREFIX();
                 goto startrep;
                 case 0x64: case 0x164: case 0x264: case 0x364: /*FS:*/
                 cpu_state.ea_seg = &_fs;
+                PREFETCH_PREFIX();
                 goto startrep;
                 case 0x65: case 0x165: case 0x265: case 0x365: /*GS:*/
                 cpu_state.ea_seg = &_gs;
+                PREFETCH_PREFIX();
                 goto startrep;
                 case 0x66: case 0x166: case 0x266: case 0x366: /*Data size prefix*/
                 rep32 = (rep32 & 0x200) | ((use32 ^ 0x100) & 0x100);
+                PREFETCH_PREFIX();
                 goto startrep;
                 case 0x67: case 0x167: case 0x267: case 0x367:  /*Address size prefix*/
                 rep32 = (rep32 & 0x100) | ((use32 ^ 0x200) & 0x200);
+                PREFETCH_PREFIX();
                 goto startrep;
                 case 0x6C: case 0x16C: /*REP INSB*/
 //                cpu_notreps++;
@@ -355,6 +447,7 @@ int rep386(int fv)
                         else              DI++;
                         c--;
                         cycles-=15;
+                        reads++; writes++; total_cycles += 15;
                 }
                 if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
                 else firstrepcycle=1;
@@ -371,6 +464,7 @@ int rep386(int fv)
                         else              EDI++;
                         c--;
                         cycles-=15;
+                        reads++; writes++; total_cycles += 15;
                 }
                 if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
                 else firstrepcycle=1;
@@ -387,6 +481,7 @@ int rep386(int fv)
                         else              DI+=2;
                         c--;
                         cycles-=15;
+                        reads++; writes++; total_cycles += 15;
                 }
                 if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
                 else firstrepcycle=1;
@@ -402,6 +497,7 @@ int rep386(int fv)
                         else              DI+=4;
                         c--;
                         cycles-=15;
+                        reads_l++; writes_l++; total_cycles += 15;
                 }
                 if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
                 else firstrepcycle=1;
@@ -417,6 +513,7 @@ int rep386(int fv)
                         else              EDI+=2;
                         c--;
                         cycles-=15;
+                        reads++; writes++; total_cycles += 15;
                 }
                 if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
                 else firstrepcycle=1;
@@ -432,6 +529,7 @@ int rep386(int fv)
                         else              EDI+=4;
                         c--;
                         cycles-=15;
+                        reads_l++; writes_l++; total_cycles += 15;
                 }
                 if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
                 else firstrepcycle=1;
@@ -448,6 +546,7 @@ int rep386(int fv)
                         else              SI++;
                         c--;
                         cycles-=14;
+                        reads++; writes++; total_cycles += 14;
                 }
                 if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
                 else firstrepcycle=1;
@@ -464,6 +563,7 @@ int rep386(int fv)
                         else              ESI++;
                         c--;
                         cycles-=14;
+                        reads++; writes++; total_cycles += 14;
                 }
                 if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
                 else firstrepcycle=1;
@@ -480,6 +580,7 @@ int rep386(int fv)
                         else              SI+=2;
                         c--;
                         cycles-=14;
+                        reads++; writes++; total_cycles += 14;
                 }
                 if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
                 else firstrepcycle=1;
@@ -495,6 +596,7 @@ int rep386(int fv)
                         else                SI += 4;
                         c--;
                         cycles -= 14;
+                        reads_l++; writes_l++; total_cycles += 14;
                 }
                 if (c > 0) { firstrepcycle = 0; cpu_state.pc = ipc; }
                 else firstrepcycle = 1;
@@ -510,6 +612,7 @@ int rep386(int fv)
                         else              ESI+=2;
                         c--;
                         cycles-=14;
+                        reads++; writes++; total_cycles += 14;
                 }
                 if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
                 else firstrepcycle=1;
@@ -525,6 +628,7 @@ int rep386(int fv)
                         else                ESI += 4;
                         c--;
                         cycles -= 14;
+                        reads_l++; writes_l++; total_cycles += 14;
                 }
                 if (c > 0) { firstrepcycle = 0; cpu_state.pc = ipc; }
                 else firstrepcycle = 1;
@@ -545,6 +649,7 @@ int rep386(int fv)
                         c--;
                         cycles-=(is486)?3:4;
                         ins++;
+                        reads++; writes++; total_cycles += is486 ? 3 : 4;
                         if (cycles < cycles_end)
                                 break;
                 }
@@ -563,6 +668,7 @@ int rep386(int fv)
                         c--;
                         cycles-=(is486)?3:4;
                         ins++;
+                        reads++; writes++; total_cycles += is486 ? 3 : 4;
                         if (cycles < cycles_end)
                                 break;
                 }
@@ -581,6 +687,7 @@ int rep386(int fv)
                         c--;
                         cycles-=(is486)?3:4;
                         ins++;
+                        reads++; writes++; total_cycles += is486 ? 3 : 4;
                         if (cycles < cycles_end)
                                 break;
                 }
@@ -600,6 +707,7 @@ int rep386(int fv)
                         c--;
                         cycles-=(is486)?3:4;
                         ins++;
+                        reads_l++; writes_l++; total_cycles += is486 ? 3 : 4;
                         if (cycles < cycles_end)
                                 break;
                 }
@@ -619,6 +727,7 @@ int rep386(int fv)
                         c--;
                         cycles-=(is486)?3:4;
                         ins++;
+                        reads++; writes++; total_cycles += is486 ? 3 : 4;
                         if (cycles < cycles_end)
                                 break;
                 }
@@ -639,6 +748,7 @@ int rep386(int fv)
                         c--;
                         cycles-=(is486)?3:4;
                         ins++;
+                        reads_l++; writes_l++; total_cycles += is486 ? 3 : 4;
                         if (cycles < cycles_end)
                                 break;
                 }
@@ -658,6 +768,7 @@ int rep386(int fv)
                         else              { DI++; SI++; }
                         c--;
                         cycles-=(is486)?7:9;
+                        reads += 2; total_cycles += is486 ? 7 : 9;
                         setsub8(temp,temp2);
                         tempz = (ZF_SET()) ? 1 : 0;
                 }
@@ -676,6 +787,7 @@ int rep386(int fv)
                         else              { EDI++; ESI++; }
                         c--;
                         cycles-=(is486)?7:9;
+                        reads += 2; total_cycles += is486 ? 7 : 9;
                         setsub8(temp,temp2);
                         tempz = (ZF_SET()) ? 1 : 0;
                 }
@@ -697,6 +809,7 @@ int rep386(int fv)
                         else              { DI+=2; SI+=2; }
                         c--;
                         cycles-=(is486)?7:9;
+                        reads += 2; total_cycles += is486 ? 7 : 9;
                         setsub16(tempw,tempw2);
                         tempz = (ZF_SET()) ? 1 : 0;
                 }
@@ -715,6 +828,7 @@ int rep386(int fv)
                         else              { DI+=4; SI+=4; }
                         c--;
                         cycles-=(is486)?7:9;
+                        reads_l += 2; total_cycles += is486 ? 7 : 9;
                         setsub32(templ,templ2);
                         tempz = (ZF_SET()) ? 1 : 0;
                 }
@@ -733,6 +847,7 @@ int rep386(int fv)
                         else              { EDI+=2; ESI+=2; }
                         c--;
                         cycles-=(is486)?7:9;
+                        reads += 2; total_cycles += is486 ? 7 : 9;
                         setsub16(tempw,tempw2);
                         tempz = (ZF_SET()) ? 1 : 0;
                 }
@@ -751,6 +866,7 @@ int rep386(int fv)
                         else              { EDI+=4; ESI+=4; }
                         c--;
                         cycles-=(is486)?7:9;
+                        reads_l += 2; total_cycles += is486 ? 7 : 9;
                         setsub32(templ,templ2);
                         tempz = (ZF_SET()) ? 1 : 0;
                 }
@@ -768,6 +884,7 @@ int rep386(int fv)
                         else              DI++;
                         c--;
                         cycles-=(is486)?4:5;
+                        writes++; total_cycles += is486 ? 4 : 5;
                         ins++;
                         if (cycles < cycles_end)
                                 break;
@@ -786,6 +903,7 @@ int rep386(int fv)
                         else              EDI++;
                         c--;
                         cycles-=(is486)?4:5;
+                        writes++; total_cycles += is486 ? 4 : 5;
                         ins++;
                         if (cycles < cycles_end)
                                 break;
@@ -804,6 +922,7 @@ int rep386(int fv)
                         else              DI+=2;
                         c--;
                         cycles-=(is486)?4:5;
+                        writes++; total_cycles += is486 ? 4 : 5;
                         ins++;
                         if (cycles < cycles_end)
                                 break;
@@ -822,6 +941,7 @@ int rep386(int fv)
                         else              EDI+=2;
                         c--;
                         cycles-=(is486)?4:5;
+                        writes++; total_cycles += is486 ? 4 : 5;
                         ins++;
                         if (cycles < cycles_end)
                                 break;
@@ -840,6 +960,7 @@ int rep386(int fv)
                         else              DI+=4;
                         c--;
                         cycles-=(is486)?4:5;
+                        writes_l++; total_cycles += is486 ? 4 : 5;
                         ins++;
                         if (cycles < cycles_end)
                                 break;
@@ -858,6 +979,7 @@ int rep386(int fv)
                         else              EDI+=4;
                         c--;
                         cycles-=(is486)?4:5;
+                        writes_l++; total_cycles += is486 ? 4 : 5;
                         ins++;
                         if (cycles < cycles_end)
                                 break;
@@ -877,6 +999,7 @@ int rep386(int fv)
                         else              SI++;
                         c--;
                         cycles-=5;
+                        reads++; total_cycles += 5;
                 }
                 if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
                 else firstrepcycle=1;
@@ -892,6 +1015,7 @@ int rep386(int fv)
                         else              ESI++;
                         c--;
                         cycles-=5;
+                        reads++; total_cycles += 5;
                 }
                 if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
                 else firstrepcycle=1;
@@ -907,6 +1031,7 @@ int rep386(int fv)
                         else              SI+=2;
                         c--;
                         cycles-=5;
+                        reads++; total_cycles += 5;
                 }
                 if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
                 else firstrepcycle=1;
@@ -922,6 +1047,7 @@ int rep386(int fv)
                         else              SI+=4;
                         c--;
                         cycles-=5;
+                        reads_l++; total_cycles += 5;
                 }
                 if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
                 else firstrepcycle=1;
@@ -937,6 +1063,7 @@ int rep386(int fv)
                         else              ESI+=2;
                         c--;
                         cycles-=5;
+                        reads++; total_cycles += 5;
                 }
                 if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
                 else firstrepcycle=1;
@@ -952,6 +1079,7 @@ int rep386(int fv)
                         else              ESI+=4;
                         c--;
                         cycles-=5;
+                        reads_l++; total_cycles += 5;
                 }
                 if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
                 else firstrepcycle=1;
@@ -971,6 +1099,7 @@ int rep386(int fv)
                         else              DI++;
                         c--;
                         cycles-=(is486)?5:8;
+                        reads++; total_cycles += is486 ? 5 : 8;
                         ins++;
                         if (cycles < cycles_end)
                                 break;
@@ -995,6 +1124,7 @@ int rep386(int fv)
                         else              EDI++;
                         c--;
                         cycles-=(is486)?5:8;
+                        reads++; total_cycles += is486 ? 5 : 8;
                         ins++;
                         if (cycles < cycles_end)
                                 break;
@@ -1017,6 +1147,7 @@ int rep386(int fv)
                         else              DI+=2;
                         c--;
                         cycles-=(is486)?5:8;
+                        reads++; total_cycles += is486 ? 5 : 8;
                         ins++;
                         if (cycles < cycles_end)
                                 break;
@@ -1039,6 +1170,7 @@ int rep386(int fv)
                         else              DI+=4;
                         c--;
                         cycles-=(is486)?5:8;
+                        reads_l++; total_cycles += is486 ? 5 : 8;
                         ins++;
                         if (cycles < cycles_end)
                                 break;
@@ -1061,6 +1193,7 @@ int rep386(int fv)
                         else              EDI+=2;
                         c--;
                         cycles-=(is486)?5:8;
+                        reads++; total_cycles += is486 ? 5 : 8;
                         ins++;
                         if (cycles < cycles_end)
                                 break;
@@ -1083,6 +1216,7 @@ int rep386(int fv)
                         else              EDI+=4;
                         c--;
                         cycles-=(is486)?5:8;
+                        reads_l++; total_cycles += is486 ? 5 : 8;
                         ins++;
                         if (cycles < cycles_end)
                                 break;
@@ -1101,6 +1235,7 @@ int rep386(int fv)
         if (rep32&0x200) ECX=c;
         else             CX=c;
         CPU_BLOCK_END();
+        PREFETCH_RUN(total_cycles, 1, -1, reads, reads_l, writes, writes_l, 0);
         return cpu_state.abrt;
 //pclog("rep cpu_block_end=%d %p\n", cpu_block_end, (void *)&cpu_block_end);
 //        if (output) pclog("%03X %03X\n",rep32,use32);
@@ -1310,7 +1445,7 @@ void exec386_dynarec(int cycs)
                                 if (page->code_present_mask & mask)
                                 {
                                         /*Walk page tree to see if we find the correct block*/
-                                        codeblock_t *new_block = codeblock_tree_find(phys_addr, cs);                                        
+                                        codeblock_t *new_block = codeblock_tree_find(phys_addr, cs);
                                         if (new_block)
                                         {
                                                 valid_block = (new_block->pc == cs + cpu_state.pc) && (new_block->_cs == cs) &&
@@ -1559,6 +1694,7 @@ inrecomp=0;
                                 {
                                         cpu_state.abrt = 0;
                                         softresetx86();
+					cpu_set_edx();
                                         pclog("Triple fault - reset\n");
                                 }
                         }
@@ -1597,10 +1733,18 @@ inrecomp=0;
                                 flags_rebuild();
                                 if (msw&1)
                                 {
+					/* if (temp == 0x0E)
+					{
+						pclog("Servicing FDC interupt (p)!\n");
+					} */
                                         pmodeint(temp,0);
                                 }
                                 else
                                 {
+					/* if (temp == 0x0E)
+					{
+						pclog("Servicing FDC interupt (r)!\n");
+					} */
                                         writememw(ss,(SP-2)&0xFFFF,flags);
                                         writememw(ss,(SP-4)&0xFFFF,CS);
                                         writememw(ss,(SP-6)&0xFFFF,cpu_state.pc);
@@ -1613,6 +1757,10 @@ inrecomp=0;
                                         loadcs(readmemw(0,addr+2));
                                 }
                         }
+			/* else
+			{
+				pclog("Servicing pending interrupt 0xFF (!)!\n");
+			} */
                 }
         }
                 timer_end_period(cycles << TIMER_SHIFT);

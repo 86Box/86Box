@@ -5,6 +5,7 @@ static int opMOVSB_a16(uint32_t fetchdat)
         if (flags & D_FLAG) { DI--; SI--; }
         else                { DI++; SI++; }
         CLOCK_CYCLES(7);
+        PREFETCH_RUN(7, 1, -1, 1,0,1,0, 0);
         return 0;
 }
 static int opMOVSB_a32(uint32_t fetchdat)
@@ -14,6 +15,7 @@ static int opMOVSB_a32(uint32_t fetchdat)
         if (flags & D_FLAG) { EDI--; ESI--; }
         else                { EDI++; ESI++; }
         CLOCK_CYCLES(7);
+        PREFETCH_RUN(7, 1, -1, 1,0,1,0, 1);
         return 0;
 }
 
@@ -24,6 +26,7 @@ static int opMOVSW_a16(uint32_t fetchdat)
         if (flags & D_FLAG) { DI -= 2; SI -= 2; }
         else                { DI += 2; SI += 2; }
         CLOCK_CYCLES(7);
+        PREFETCH_RUN(7, 1, -1, 1,0,1,0, 0);
         return 0;
 }
 static int opMOVSW_a32(uint32_t fetchdat)
@@ -33,6 +36,7 @@ static int opMOVSW_a32(uint32_t fetchdat)
         if (flags & D_FLAG) { EDI -= 2; ESI -= 2; }
         else                { EDI += 2; ESI += 2; }
         CLOCK_CYCLES(7);
+        PREFETCH_RUN(7, 1, -1, 1,0,1,0, 1);
         return 0;
 }
 
@@ -43,6 +47,7 @@ static int opMOVSL_a16(uint32_t fetchdat)
         if (flags & D_FLAG) { DI -= 4; SI -= 4; }
         else                { DI += 4; SI += 4; }
         CLOCK_CYCLES(7);
+        PREFETCH_RUN(7, 1, -1, 0,1,0,1, 0);
         return 0;
 }
 static int opMOVSL_a32(uint32_t fetchdat)
@@ -52,6 +57,7 @@ static int opMOVSL_a32(uint32_t fetchdat)
         if (flags & D_FLAG) { EDI -= 4; ESI -= 4; }
         else                { EDI += 4; ESI += 4; }
         CLOCK_CYCLES(7);
+        PREFETCH_RUN(7, 1, -1, 0,1,0,1, 1);
         return 0;
 }
 
@@ -64,6 +70,7 @@ static int opCMPSB_a16(uint32_t fetchdat)
         if (flags & D_FLAG) { DI--; SI--; }
         else                { DI++; SI++; }
         CLOCK_CYCLES((is486) ? 8 : 10);
+        PREFETCH_RUN((is486) ? 8 : 10, 1, -1, 2,0,0,0, 0);
         return 0;
 }
 static int opCMPSB_a32(uint32_t fetchdat)
@@ -74,6 +81,7 @@ static int opCMPSB_a32(uint32_t fetchdat)
         if (flags & D_FLAG) { EDI--; ESI--; }
         else                { EDI++; ESI++; }
         CLOCK_CYCLES((is486) ? 8 : 10);
+        PREFETCH_RUN((is486) ? 8 : 10, 1, -1, 2,0,0,0, 1);
         return 0;
 }
 
@@ -85,6 +93,7 @@ static int opCMPSW_a16(uint32_t fetchdat)
         if (flags & D_FLAG) { DI -= 2; SI -= 2; }
         else                { DI += 2; SI += 2; }
         CLOCK_CYCLES((is486) ? 8 : 10);
+        PREFETCH_RUN((is486) ? 8 : 10, 1, -1, 2,0,0,0, 0);
         return 0;
 }
 static int opCMPSW_a32(uint32_t fetchdat)
@@ -95,6 +104,7 @@ static int opCMPSW_a32(uint32_t fetchdat)
         if (flags & D_FLAG) { EDI -= 2; ESI -= 2; }
         else                { EDI += 2; ESI += 2; }
         CLOCK_CYCLES((is486) ? 8 : 10);
+        PREFETCH_RUN((is486) ? 8 : 10, 1, -1, 2,0,0,0, 1);
         return 0;
 }
 
@@ -106,6 +116,7 @@ static int opCMPSL_a16(uint32_t fetchdat)
         if (flags & D_FLAG) { DI -= 4; SI -= 4; }
         else                { DI += 4; SI += 4; }
         CLOCK_CYCLES((is486) ? 8 : 10);
+        PREFETCH_RUN((is486) ? 8 : 10, 1, -1, 0,2,0,0, 0);
         return 0;
 }
 static int opCMPSL_a32(uint32_t fetchdat)
@@ -116,6 +127,7 @@ static int opCMPSL_a32(uint32_t fetchdat)
         if (flags & D_FLAG) { EDI -= 4; ESI -= 4; }
         else                { EDI += 4; ESI += 4; }
         CLOCK_CYCLES((is486) ? 8 : 10);
+        PREFETCH_RUN((is486) ? 8 : 10, 1, -1, 0,2,0,0, 1);
         return 0;
 }
 
@@ -125,6 +137,7 @@ static int opSTOSB_a16(uint32_t fetchdat)
         if (flags & D_FLAG) DI--;
         else                DI++;
         CLOCK_CYCLES(4);
+        PREFETCH_RUN(4, 1, -1, 0,0,1,0, 0);
         return 0;
 }
 static int opSTOSB_a32(uint32_t fetchdat)
@@ -133,6 +146,7 @@ static int opSTOSB_a32(uint32_t fetchdat)
         if (flags & D_FLAG) EDI--;
         else                EDI++;
         CLOCK_CYCLES(4);
+        PREFETCH_RUN(4, 1, -1, 0,0,1,0, 1);
         return 0;
 }
 
@@ -142,6 +156,7 @@ static int opSTOSW_a16(uint32_t fetchdat)
         if (flags & D_FLAG) DI -= 2;
         else                DI += 2;
         CLOCK_CYCLES(4);
+        PREFETCH_RUN(4, 1, -1, 0,0,1,0, 0);
         return 0;
 }
 static int opSTOSW_a32(uint32_t fetchdat)
@@ -150,6 +165,7 @@ static int opSTOSW_a32(uint32_t fetchdat)
         if (flags & D_FLAG) EDI -= 2;
         else                EDI += 2;
         CLOCK_CYCLES(4);
+        PREFETCH_RUN(4, 1, -1, 0,0,1,0, 1);
         return 0;
 }
 
@@ -159,6 +175,7 @@ static int opSTOSL_a16(uint32_t fetchdat)
         if (flags & D_FLAG) DI -= 4;
         else                DI += 4;
         CLOCK_CYCLES(4);
+        PREFETCH_RUN(4, 1, -1, 0,0,0,1, 0);
         return 0;
 }
 static int opSTOSL_a32(uint32_t fetchdat)
@@ -167,6 +184,7 @@ static int opSTOSL_a32(uint32_t fetchdat)
         if (flags & D_FLAG) EDI -= 4;
         else                EDI += 4;
         CLOCK_CYCLES(4);
+        PREFETCH_RUN(4, 1, -1, 0,0,0,1, 1);
         return 0;
 }
 
@@ -178,6 +196,7 @@ static int opLODSB_a16(uint32_t fetchdat)
         if (flags & D_FLAG) SI--;
         else                SI++;
         CLOCK_CYCLES(5);
+        PREFETCH_RUN(5, 1, -1, 1,0,0,0, 0);
         return 0;
 }
 static int opLODSB_a32(uint32_t fetchdat)
@@ -187,6 +206,7 @@ static int opLODSB_a32(uint32_t fetchdat)
         if (flags & D_FLAG) ESI--;
         else                ESI++;
         CLOCK_CYCLES(5);
+        PREFETCH_RUN(5, 1, -1, 1,0,0,0, 1);
         return 0;
 }
 
@@ -197,6 +217,7 @@ static int opLODSW_a16(uint32_t fetchdat)
         if (flags & D_FLAG) SI -= 2;
         else                SI += 2;
         CLOCK_CYCLES(5);
+        PREFETCH_RUN(5, 1, -1, 1,0,0,0, 0);
         return 0;
 }
 static int opLODSW_a32(uint32_t fetchdat)
@@ -206,6 +227,7 @@ static int opLODSW_a32(uint32_t fetchdat)
         if (flags & D_FLAG) ESI -= 2;
         else                ESI += 2;
         CLOCK_CYCLES(5);
+        PREFETCH_RUN(5, 1, -1, 1,0,0,0, 1);
         return 0;
 }
 
@@ -216,6 +238,7 @@ static int opLODSL_a16(uint32_t fetchdat)
         if (flags & D_FLAG) SI -= 4;
         else                SI += 4;
         CLOCK_CYCLES(5);
+        PREFETCH_RUN(5, 1, -1, 0,1,0,0, 0);
         return 0;
 }
 static int opLODSL_a32(uint32_t fetchdat)
@@ -225,6 +248,7 @@ static int opLODSL_a32(uint32_t fetchdat)
         if (flags & D_FLAG) ESI -= 4;
         else                ESI += 4;
         CLOCK_CYCLES(5);
+        PREFETCH_RUN(5, 1, -1, 0,1,0,0, 1);
         return 0;
 }
 
@@ -236,6 +260,7 @@ static int opSCASB_a16(uint32_t fetchdat)
         if (flags & D_FLAG) DI--;
         else                DI++;
         CLOCK_CYCLES(7);
+        PREFETCH_RUN(7, 1, -1, 1,0,0,0, 0);
         return 0;
 }
 static int opSCASB_a32(uint32_t fetchdat)
@@ -245,6 +270,7 @@ static int opSCASB_a32(uint32_t fetchdat)
         if (flags & D_FLAG) EDI--;
         else                EDI++;
         CLOCK_CYCLES(7);
+        PREFETCH_RUN(7, 1, -1, 1,0,0,0, 1);
         return 0;
 }
 
@@ -255,6 +281,7 @@ static int opSCASW_a16(uint32_t fetchdat)
         if (flags & D_FLAG) DI -= 2;
         else                DI += 2;
         CLOCK_CYCLES(7);
+        PREFETCH_RUN(7, 1, -1, 1,0,0,0, 0);
         return 0;
 }
 static int opSCASW_a32(uint32_t fetchdat)
@@ -264,6 +291,7 @@ static int opSCASW_a32(uint32_t fetchdat)
         if (flags & D_FLAG) EDI -= 2;
         else                EDI += 2;
         CLOCK_CYCLES(7);
+        PREFETCH_RUN(7, 1, -1, 1,0,0,0, 1);
         return 0;
 }
 
@@ -274,6 +302,7 @@ static int opSCASL_a16(uint32_t fetchdat)
         if (flags & D_FLAG) DI -= 4;
         else                DI += 4;
         CLOCK_CYCLES(7);
+        PREFETCH_RUN(7, 1, -1, 0,1,0,0, 0);
         return 0;
 }
 static int opSCASL_a32(uint32_t fetchdat)
@@ -283,6 +312,7 @@ static int opSCASL_a32(uint32_t fetchdat)
         if (flags & D_FLAG) EDI -= 4;
         else                EDI += 4;
         CLOCK_CYCLES(7);
+        PREFETCH_RUN(7, 1, -1, 0,1,0,0, 1);
         return 0;
 }
 
@@ -295,6 +325,7 @@ static int opINSB_a16(uint32_t fetchdat)
         if (flags & D_FLAG) DI--;
         else                DI++;
         CLOCK_CYCLES(15);
+        PREFETCH_RUN(15, 1, -1, 1,0,1,0, 0);
         return 0;
 }
 static int opINSB_a32(uint32_t fetchdat)
@@ -306,6 +337,7 @@ static int opINSB_a32(uint32_t fetchdat)
         if (flags & D_FLAG) EDI--;
         else                EDI++;
         CLOCK_CYCLES(15);
+        PREFETCH_RUN(15, 1, -1, 1,0,1,0, 1);
         return 0;
 }
 
@@ -319,6 +351,7 @@ static int opINSW_a16(uint32_t fetchdat)
         if (flags & D_FLAG) DI -= 2;
         else                DI += 2;
         CLOCK_CYCLES(15);
+        PREFETCH_RUN(15, 1, -1, 1,0,1,0, 0);
         return 0;
 }
 static int opINSW_a32(uint32_t fetchdat)
@@ -331,6 +364,7 @@ static int opINSW_a32(uint32_t fetchdat)
         if (flags & D_FLAG) EDI -= 2;
         else                EDI += 2;
         CLOCK_CYCLES(15);
+        PREFETCH_RUN(15, 1, -1, 1,0,1,0, 1);
         return 0;
 }
 
@@ -346,6 +380,7 @@ static int opINSL_a16(uint32_t fetchdat)
         if (flags & D_FLAG) DI -= 4;
         else                DI += 4;
         CLOCK_CYCLES(15);
+        PREFETCH_RUN(15, 1, -1, 0,1,0,1, 0);
         return 0;
 }
 static int opINSL_a32(uint32_t fetchdat)
@@ -360,6 +395,7 @@ static int opINSL_a32(uint32_t fetchdat)
         if (flags & D_FLAG) EDI -= 4;
         else                EDI += 4;
         CLOCK_CYCLES(15);
+        PREFETCH_RUN(15, 1, -1, 0,1,0,1, 1);
         return 0;
 }
 
@@ -371,6 +407,7 @@ static int opOUTSB_a16(uint32_t fetchdat)
         else                SI++;
         outb(DX, temp);
         CLOCK_CYCLES(14);
+        PREFETCH_RUN(14, 1, -1, 1,0,1,0, 0);
         return 0;
 }
 static int opOUTSB_a32(uint32_t fetchdat)
@@ -381,6 +418,7 @@ static int opOUTSB_a32(uint32_t fetchdat)
         else                ESI++;
         outb(DX, temp);
         CLOCK_CYCLES(14);
+        PREFETCH_RUN(14, 1, -1, 1,0,1,0, 1);
         return 0;
 }
 
@@ -393,6 +431,7 @@ static int opOUTSW_a16(uint32_t fetchdat)
         else                SI += 2;
         outw(DX, temp);
         CLOCK_CYCLES(14);
+        PREFETCH_RUN(14, 1, -1, 1,0,1,0, 0);
         return 0;
 }
 static int opOUTSW_a32(uint32_t fetchdat)
@@ -404,6 +443,7 @@ static int opOUTSW_a32(uint32_t fetchdat)
         else                ESI += 2;
         outw(DX, temp);
         CLOCK_CYCLES(14);
+        PREFETCH_RUN(14, 1, -1, 1,0,1,0, 1);
         return 0;
 }
 
@@ -418,6 +458,7 @@ static int opOUTSL_a16(uint32_t fetchdat)
         else                SI += 4;
         outl(EDX, temp);
         CLOCK_CYCLES(14);
+        PREFETCH_RUN(14, 1, -1, 0,1,0,1, 0);
         return 0;
 }
 static int opOUTSL_a32(uint32_t fetchdat)
@@ -431,5 +472,6 @@ static int opOUTSL_a32(uint32_t fetchdat)
         else                ESI += 4;
         outl(EDX, temp);
         CLOCK_CYCLES(14);
+        PREFETCH_RUN(14, 1, -1, 0,1,0,1, 1);
         return 0;
 }

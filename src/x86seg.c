@@ -1627,6 +1627,7 @@ void pmodeint(int num, int soft)
                         // pclog("Triple fault!\n");
 //                        output=1;
                         softresetx86();
+			cpu_set_edx();
                 }
                 else if (num==0xD)
                 {

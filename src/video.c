@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <time.h>
+#include <time.h>1
 #include "ibm.h"
 #include "config.h"
 #include "device.h"
@@ -47,6 +47,7 @@
 #include "vid_tgui9440.h"
 #include "vid_tvga.h"
 #include "vid_vga.h"
+#include "vid_wy700.h"
 
 typedef struct
 {
@@ -79,6 +80,8 @@ static VIDEO_CARD video_cards[] =
         {"Number Nine 9FX (S3 Trio64)",            &s3_9fx_device,              GFX_N9_9FX},
         {"nVidia RIVA 128 (Experimental)",         &riva128_device,             GFX_RIVA128},
         {"nVidia RIVA TNT (Experimental)",         &rivatnt_device,             GFX_RIVATNT},
+        {"nVidia TNT2 (Experimental)",             &rivatnt2_device,            GFX_RIVATNT2},
+
         {"OAK OTI-067",                            &oti067_device,              GFX_OTI067},
         {"OAK OTI-077",                            &oti077_device,              GFX_OTI077},
         {"Paradise Bahamas 64 (S3 Vision864)",     &s3_bahamas64_device,        GFX_BAHAMAS64},
@@ -92,6 +95,7 @@ static VIDEO_CARD video_cards[] =
         {"Tseng ET4000AX",                         &et4000_device,              GFX_ET4000},
         {"Trident TGUI9440",                       &tgui9440_device,            GFX_TGUI9440},
         {"VGA",                                    &vga_device,                 GFX_VGA},
+        {"Wyse 700",                               &wy700_device,               GFX_WY700},
         {"",                                       NULL,                        0}
 };
 
@@ -152,7 +156,7 @@ int video_new_to_old(int card)
 }
 
 int video_fullscreen = 0, video_fullscreen_scale, video_fullscreen_first;
-uint32_t *video_15to32, *video_16to32;
+uint32_t *video_6to8, *video_15to32, *video_16to32;
 
 int egareads=0,egawrites=0;
 int changeframecount=2;
@@ -312,6 +316,7 @@ BITMAP *buffer, *buffer32;
 
 uint8_t fontdat[256][8];
 uint8_t fontdatm[256][16];
+uint8_t fontdatw[512][32];	/* Wyse700 font */
 
 int xsize=1,ysize=1;
 
@@ -322,10 +327,12 @@ void loadfont(char *s, int format)
         FILE *f=romfopen(s,"rb");
         int c,d;
         if (!f)
-           return;
-
-        if (!format)
+	{
+		return;
+	}
+	switch (format)
         {
+		case 0:	/* MDA */
                 for (c=0;c<256;c++)
                 {
                         for (d=0;d<8;d++)
@@ -348,9 +355,8 @@ void loadfont(char *s, int format)
                                 fontdat[c][d]=getc(f);
                         }
                 }
-        }
-        else if (format == 1)
-        {
+		break;
+		case 1:	/* PC200 */
                 for (c=0;c<256;c++)
                 {
                         for (d=0;d<8;d++)
@@ -360,7 +366,7 @@ void loadfont(char *s, int format)
                 }
                 for (c=0;c<256;c++)
                 {
-                        for (d=0;d<8;d++)
+                       	for (d=0;d<8;d++)
                         {
                                 fontdatm[c][d+8]=getc(f);
                         }
@@ -374,16 +380,26 @@ void loadfont(char *s, int format)
                         }
                         for (d=0;d<8;d++) getc(f);                
                 }
-        }
-        else
-        {
+		break;
+		default:
+		case 2:	/* CGA */
                 for (c=0;c<256;c++)
                 {
-                        for (d=0;d<8;d++)
+                       	for (d=0;d<8;d++)
                         {
                                 fontdat[c][d]=getc(f);
                         }
                 }
+		break;
+		case 3: /* Wyse 700 */
+                for (c=0;c<512;c++)
+                {
+                        for (d=0;d<32;d++)
+                        {
+                                fontdatw[c][d]=getc(f);
+                        }
+                }
+		break;
         }
         fclose(f);
 }
@@ -401,6 +417,25 @@ static struct
 } blit_data;
 
 static void blit_thread(void *param);
+
+int calc_6to8(int c)
+{
+	int ic, i8;
+	double dc, d8;
+	ic = c;
+	if (ic == 64)
+	{
+		ic = 63;
+	}
+	else
+	{
+		ic &= 0x3f;
+	}
+	dc = (double) ic;
+	d8 = (ic / 63.0) * 255.0;
+	i8 = (int) d8;
+	return i8 & 0xff;
+}
 
 int calc_15to32(int c)
 {
@@ -480,6 +515,10 @@ void initvideo()
                 }
         }
 
+	video_6to8 = malloc(4 * 256);
+	for (c = 0; c < 256; c++)
+		video_6to8[c] = calc_6to8(c);
+
         video_15to32 = malloc(4 * 65536);
 #if 0
         for (c = 0; c < 65536; c++)
@@ -509,7 +548,8 @@ void closevideo()
         thread_destroy_event(blit_data.blit_complete);
         thread_destroy_event(blit_data.wake_blit_thread);
 
-         free(video_15to32);
+        free(video_6to8);
+        free(video_15to32);
         free(video_16to32);
         destroy_bitmap(buffer);
         destroy_bitmap(buffer32);

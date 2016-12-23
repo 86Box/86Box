@@ -145,6 +145,18 @@ static int LOAD_VAR_W(uintptr_t addr)
 
         return host_reg;
 }
+static int LOAD_VAR_WL(uintptr_t addr)
+{
+        int host_reg = find_host_reg();
+        host_reg_mapping[host_reg] = 0;
+        
+        addbyte(0x0f); /*MOVZX host_reg, [addr]*/
+        addbyte(0xb7);
+        addbyte(0x05 | (host_reg << 3));
+        addlong((uint32_t)addr);
+        
+        return host_reg;
+}
 static int LOAD_VAR_L(uintptr_t addr)
 {
         int host_reg = find_host_reg();
@@ -688,6 +700,19 @@ static void MEM_LOAD_ADDR_EA_W(x86seg *seg)
         addbyte(0x8b); /*MOVL EDX, seg->base*/
         addbyte(0x05 | (REG_EDX << 3));
         addlong((uint32_t)&seg->base);
+        addbyte(0xe8); /*CALL mem_load_addr_ea_w*/
+        addlong(mem_load_addr_ea_w - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+
+        host_reg_mapping[0] = 8;
+}
+static void MEM_LOAD_ADDR_EA_W_OFFSET(x86seg *seg, int offset)
+{
+        addbyte(0x8b); /*MOVL EDX, seg->base*/
+        addbyte(0x05 | (REG_EDX << 3));
+        addlong((uint32_t)&seg->base);
+        addbyte(0x83); /*ADD EAX, offset*/
+        addbyte(0xc0);
+        addbyte(offset);
         addbyte(0xe8); /*CALL mem_load_addr_ea_w*/
         addlong(mem_load_addr_ea_w - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
 
@@ -2169,6 +2194,59 @@ static void FP_LOAD_IQ()
         }
 }
 
+static void FP_LOAD_IMM_Q(uint64_t v)
+{
+        if (codeblock[block_current].flags & CODEBLOCK_STATIC_TOP)
+        {
+                addbyte(0xc7); /*MOV ST[reg][EBP], v*/
+                addbyte(0x45);
+                addbyte(cpu_state_offset(ST[(cpu_state.TOP - 1) & 7]));
+                addlong(v & 0xffffffff);
+                addbyte(0xc7); /*MOV ST[reg][EBP]+4, v*/
+                addbyte(0x45);
+                addbyte(cpu_state_offset(ST[(cpu_state.TOP - 1) & 7]) + 4);
+                addlong(v  >> 32);
+                addbyte(0xc6); /*MOVB TOP[EBP], (TOP-1) & 7*/
+                addbyte(0x45);
+                addbyte(cpu_state_offset(TOP));
+                addbyte((cpu_state.TOP - 1) & 7);
+                addbyte(0xc6); /*MOVB tag[reg][EBP], 1:0*/
+                addbyte(0x45);
+                addbyte(cpu_state_offset(tag[(cpu_state.TOP - 1) & 7]));
+                addbyte(v ? 0 : 1);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOV EBX, TOP*/
+                addbyte(0x5d);
+                addbyte(cpu_state_offset(TOP));
+                addbyte(0x83); /*SUB EBX, 1*/
+                addbyte(0xeb);
+                addbyte(1);
+                addbyte(0x83); /*AND EBX, 7*/
+                addbyte(0xe3);
+                addbyte(7);
+                addbyte(0xc7); /*MOV ST[EBP+EBX*8], v*/
+                addbyte(0x44);
+                addbyte(0xdd);
+                addbyte(cpu_state_offset(ST));
+                addlong(v & 0xffffffff);
+                addbyte(0xc7); /*MOV ST[EBP+EBX*8]+4, v*/
+                addbyte(0x44);
+                addbyte(0xdd);
+                addbyte(cpu_state_offset(ST) + 4);
+                addlong(v >> 32);
+                addbyte(0xc6); /*MOVB tag[reg][EBP], 1:0*/
+                addbyte(0x44);
+                addbyte(0x1d);
+                addbyte(cpu_state_offset(tag[0]));
+                addbyte(v ? 0 : 1);
+                addbyte(0x89); /*MOV TOP, EBX*/
+                addbyte(0x5d);
+                addbyte(cpu_state_offset(TOP));
+        }
+}
+
 static int FP_LOAD_REG(int reg)
 {
         if (codeblock[block_current].flags & CODEBLOCK_STATIC_TOP)
@@ -2418,6 +2496,42 @@ static void FP_POP()
                 addbyte(3);
                 addbyte(0x04); /*ADD AL, 1*/
                 addbyte(1);
+                addbyte(0x24); /*AND AL, 7*/
+                addbyte(7);
+                addbyte(0x88); /*MOV TOP, AL*/
+                addbyte(0x45);
+                addbyte(cpu_state_offset(TOP));
+        }
+}
+static void FP_POP2()
+{
+        if (codeblock[block_current].flags & CODEBLOCK_STATIC_TOP)
+        {
+                addbyte(0xc6); /*MOVB tag[0][EBP], 3*/
+                addbyte(0x45);
+                addbyte(cpu_state_offset(tag[cpu_state.TOP]));
+                addbyte(3);
+                addbyte(0xc6); /*MOVB tag[1][EBP], 3*/
+                addbyte(0x45);
+                addbyte(cpu_state_offset(tag[(cpu_state.TOP+1)&7]));
+                addbyte(3);
+                addbyte(0xc6); /*MOVB TOP[EBP], (TOP+2) & 7*/
+                addbyte(0x45);
+                addbyte(cpu_state_offset(TOP));
+                addbyte((cpu_state.TOP + 2) & 7);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOV EAX, TOP*/
+                addbyte(0x45);
+                addbyte(cpu_state_offset(TOP));
+                addbyte(0xc6); /*MOVB tag[EAX], 3*/
+                addbyte(0x44);
+                addbyte(0x05);
+                addbyte(cpu_state_offset(tag[0]));
+                addbyte(3);
+                addbyte(0x04); /*ADD AL, 2*/
+                addbyte(2);
                 addbyte(0x24); /*AND AL, 7*/
                 addbyte(7);
                 addbyte(0x88); /*MOV TOP, AL*/
@@ -3162,6 +3276,47 @@ static void FP_COMPARE_REG(int dst, int src)
         }
 }
 
+static void FP_FCHS()
+{
+        if (codeblock[block_current].flags & CODEBLOCK_STATIC_TOP)
+        {
+                addbyte(0xdd); /*FLD ST[0][EBP]*/
+                addbyte(0x45);
+                addbyte(cpu_state_offset(ST[cpu_state.TOP]));
+                addbyte(0xd9); /*FCHS*/
+                addbyte(0xe0);
+                addbyte(0x80); /*AND tag[dst][EBP], ~TAG_UINT64*/
+                addbyte(0x65);
+                addbyte(cpu_state_offset(tag[cpu_state.TOP]));
+                addbyte(~TAG_UINT64);
+                addbyte(0xdd); /*FSTP ST[dst][EBP]*/
+                addbyte(0x5d);
+                addbyte(cpu_state_offset(ST[cpu_state.TOP]));
+        }
+        else
+        {
+                addbyte(0x8b); /*MOV EAX, TOP*/
+                addbyte(0x45);
+                addbyte(cpu_state_offset(TOP));
+
+                addbyte(0xdd); /*FLD [ESI+EAX*8]*/
+                addbyte(0x44);
+                addbyte(0xc5);
+                addbyte(cpu_state_offset(ST));
+                addbyte(0x80); /*AND tag[EAX], ~TAG_UINT64*/
+                addbyte(0x64);
+                addbyte(0x05);
+                addbyte(cpu_state_offset(tag[0]));
+                addbyte(~TAG_UINT64);
+                addbyte(0xd9); /*FCHS*/
+                addbyte(0xe0);
+                addbyte(0xdd); /*FSTP ST[EAX*8]*/
+                addbyte(0x5c);
+                addbyte(0xc5);
+                addbyte(cpu_state_offset(ST));
+        }
+}
+
 static void UPDATE_NPXC(int reg)
 {
         addbyte(0x66); /*AND cpu_state.new_npxc, ~0xc00*/
@@ -3663,4 +3818,24 @@ static void MEM_CHECK_WRITE_L(x86seg *seg)
         addbyte(0xe8); /*CALL mem_check_write_l*/
         addlong(mem_check_write_l - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
         LOAD_EA();
+}
+
+static void LOAD_SEG(int host_reg, void *seg)
+{
+        addbyte(0xc7); /*MOV [ESP+4], seg*/
+        addbyte(0x44);
+        addbyte(0x24);
+        addbyte(4);
+        addlong((uint32_t)seg);
+        addbyte(0x89); /*MOV [ESP], host_reg*/
+        addbyte(0x04 | (host_reg << 3));
+        addbyte(0x24);
+        CALL_FUNC(loadseg);
+        addbyte(0x80); /*CMP abrt, 0*/
+        addbyte(0x7d);
+        addbyte(cpu_state_offset(abrt));
+        addbyte(0);
+        addbyte(0x0f); /*JNE end*/
+        addbyte(0x85);
+        addlong(BLOCK_EXIT_OFFSET - (block_pos + 4));
 }

@@ -101,7 +101,6 @@ int oldcpl;
 
 int tempc;
 uint8_t opcode;
-int times=0;
 uint16_t pc2,pc3;
 int noint=0;
 
@@ -640,6 +639,8 @@ void resetx86()
                 cr0 = 1 << 30;
         else
                 cr0 = 0;
+        cpu_cache_int_enabled = 0;
+        cpu_update_waitstates();
         cr4 = 0;
         eflags=0;
         cgate32=0;
@@ -667,6 +668,7 @@ void resetx86()
         x86seg_reset();
         codegen_reset();
         x86_was_reset = 1;
+	port_92_clear_reset();
 }
 
 void softresetx86()
@@ -689,6 +691,7 @@ void softresetx86()
         idt.base = 0;
         x86seg_reset();
         x86_was_reset = 1;
+	port_92_clear_reset();
 }
 
 static void setznp8(uint8_t val)

@@ -59,7 +59,6 @@ void pit_reset()
         pit.m[0]=pit.m[1]=pit.m[2]=0;
         pit.ctrls[0]=pit.ctrls[1]=pit.ctrls[2]=0;
         pit.thit[0]=1;
-        spkstat=0;
         pit.gate[0] = pit.gate[1] = 1;
         pit.gate[2] = 0;
         pit.using_timer[0] = pit.using_timer[1] = pit.using_timer[2] = 1;

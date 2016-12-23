@@ -11,6 +11,8 @@
 #include "vid_voodoo.h"
 #include "vid_voodoo_dither.h"
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
 #define CLAMP(x) (((x) < 0) ? 0 : (((x) > 0xff) ? 0xff : (x)))
 #define CLAMP16(x) (((x) < 0) ? 0 : (((x) > 0xffff) ? 0xffff : (x)))
 
@@ -300,7 +302,8 @@ typedef struct voodoo_t
         volatile int params_read_idx[2], params_write_idx;
         
         uint32_t cmdfifo_base, cmdfifo_end;
-        int cmdfifo_rp, cmdfifo_depth_rd, cmdfifo_depth_wr;
+        int cmdfifo_rp;
+        volatile int cmdfifo_depth_rd, cmdfifo_depth_wr;
         uint32_t cmdfifo_amin, cmdfifo_amax;
         
         uint32_t sSetupMode;
@@ -318,6 +321,9 @@ typedef struct voodoo_t
         int flush;
 
         int scrfilter;
+	int scrfilterEnabled;
+	int scrfilterThreshold;
+	int scrfilterThresholdOld;
 
         uint32_t last_write_addr;
 
@@ -368,9 +374,12 @@ typedef struct voodoo_t
         int buffer_cutoff;
 
         int read_time, write_time, burst_time;
-        
-        uint16_t thefilter[1024][1024]; // pixel filter, feeding from one or two
-        uint16_t thefilterg[1024][1024]; // for green
+
+        int wake_timer;
+                
+        uint8_t thefilter[256][256]; // pixel filter, feeding from one or two
+        uint8_t thefilterg[256][256]; // for green
+        uint8_t thefilterb[256][256]; // for blue
 
         /* the voodoo adds purple lines for some reason */
         uint16_t purpleline[1024];
@@ -547,6 +556,8 @@ enum
         SST_vSync = 0x224,
         SST_clutData = 0x228,
         SST_dacData = 0x22c,
+
+	SST_scrFilter = 0x230,
 
         SST_hvRetrace = 0x240,
         SST_fbiInit5 = 0x244,
@@ -831,7 +842,8 @@ enum
         CC_MSELECT_CLOCAL = 1,
         CC_MSELECT_AOTHER = 2,
         CC_MSELECT_ALOCAL = 3,
-        CC_MSELECT_TEX    = 4
+        CC_MSELECT_TEX    = 4,
+        CC_MSELECT_TEXRGB = 5
 };
 
 enum
@@ -960,6 +972,8 @@ enum
 
 #define TEXTUREMODE_LOCAL_MASK 0x00643000
 #define TEXTUREMODE_LOCAL  0x00241000
+
+static void voodoo_threshold_check(voodoo_t *voodoo);
 
 static void voodoo_update_ncc(voodoo_t *voodoo, int tmu)
 {
@@ -1841,18 +1855,20 @@ static inline void voodoo_tmu_fetch(voodoo_t *voodoo, voodoo_params_t *params, v
         if (params->textureMode[tmu] & 1)
         {
                 int64_t _w = 0;
-                if (state->tmu1_w)
-                        _w = (int64_t)((1ULL << 48) / state->tmu1_w);
 
                 if (tmu)
                 {
-                        state->tex_s = (int32_t)(((state->tmu1_s >> 14) * _w) >> 30);
-                        state->tex_t = (int32_t)(((state->tmu1_t >> 14)  * _w) >> 30);
+                        if (state->tmu1_w)
+                                _w = (int64_t)((1ULL << 48) / state->tmu1_w);
+                        state->tex_s = (int32_t)(((((state->tmu1_s + (1 << 13)) >> 14) * _w) + (1 << 29))  >> 30);
+                        state->tex_t = (int32_t)(((((state->tmu1_t + (1 << 13))  >> 14)  * _w) + (1 << 29))  >> 30);
                 }
                 else
                 {
-                        state->tex_s = (int32_t)(((state->tmu0_s >> 14) * _w) >> 30);
-                        state->tex_t = (int32_t)(((state->tmu0_t >> 14)  * _w) >> 30);
+                        if (state->tmu0_w)
+                                _w = (int64_t)((1ULL << 48) / state->tmu0_w);
+                        state->tex_s = (int32_t)(((((state->tmu0_s + (1 << 13))  >> 14) * _w) + (1 << 29)) >> 30);
+                        state->tex_t = (int32_t)(((((state->tmu0_t + (1 << 13))  >> 14)  * _w) + (1 << 29))  >> 30);
                 }
 
                 state->lod = state->tmu[tmu].lod + (fastlog(_w) - (19 << 8));
@@ -2443,7 +2459,7 @@ static inline voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *para
                 factor_a = state->lod_frac[0];
                 break;
         }
-        if (!a_reverse)
+        if (a_reverse)
                 a = (a * ((factor_a ^ 0xff) + 1)) >> 8;
         else
                 a = (a * (factor_a + 1)) >> 8;
@@ -2953,6 +2969,11 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
                                         msel_g = state->tex_a[0];
                                         msel_b = state->tex_a[0];
                                         break;
+                                        case CC_MSELECT_TEXRGB:
+                                        msel_r = state->tex_r[0];
+                                        msel_g = state->tex_g[0];
+                                        msel_b = state->tex_b[0];
+                                        break;
 
                                         default:
                                                 fatal("Bad cc_mselect %i\n", cc_mselect);
@@ -3433,7 +3454,8 @@ enum
         
         SETUPMODE_STRIP_MODE = (1 << 16),
         SETUPMODE_CULLING_ENABLE = (1 << 17),
-        SETUPMODE_CULLING_SIGN = (1 << 18)
+        SETUPMODE_CULLING_SIGN = (1 << 18),
+        SETUPMODE_DISABLE_PINGPONG = (1 << 19)
 };
 
 static void triangle_setup(voodoo_t *voodoo)
@@ -3511,7 +3533,13 @@ static void triangle_setup(voodoo_t *voodoo)
         area = dxAB * dyBC - dxBC * dyAB;
 
         if (area == 0.0)
+        {
+                if ((voodoo->sSetupMode & SETUPMODE_CULLING_ENABLE) &&
+                    !(voodoo->sSetupMode & SETUPMODE_DISABLE_PINGPONG))
+                        voodoo->sSetupMode ^= SETUPMODE_CULLING_SIGN;
+                
                 return;
+        }
                 
         dxAB /= area;
         dxBC /= area;
@@ -3520,14 +3548,18 @@ static void triangle_setup(voodoo_t *voodoo)
 
         if (voodoo->sSetupMode & SETUPMODE_CULLING_ENABLE)
         {
+                int cull_sign = voodoo->sSetupMode & SETUPMODE_CULLING_SIGN;
                 int sign = (area < 0.0);
                 
+                if (!(voodoo->sSetupMode & SETUPMODE_DISABLE_PINGPONG))
+                        voodoo->sSetupMode ^= SETUPMODE_CULLING_SIGN;
+
                 if (reverse_cull)
                         sign = !sign;
                 
-                if ((voodoo->sSetupMode & SETUPMODE_CULLING_SIGN) && sign)
+                if (cull_sign && sign)
                         return;
-                if (!(voodoo->sSetupMode & SETUPMODE_CULLING_SIGN) && !sign)
+                if (!cull_sign && !sign)
                         return;
         }
         
@@ -3964,6 +3996,24 @@ enum
         CHIP_TREX2 = 0x8
 };
 
+static void wait_for_swap_complete(voodoo_t *voodoo)
+{
+        while (voodoo->swap_pending)
+        {
+                thread_wait_event(voodoo->wake_fifo_thread, -1);
+                thread_reset_event(voodoo->wake_fifo_thread);
+                if ((voodoo->swap_pending && voodoo->flush) || FIFO_ENTRIES == 65536)
+                {
+                        /*Main thread is waiting for FIFO to empty, so skip vsync wait and just swap*/
+                        memset(voodoo->dirty_line, 1, 1024);
+                        voodoo->front_offset = voodoo->params.front_offset;
+                        voodoo->swap_count--;
+                        voodoo->swap_pending = 0;
+                        break;
+                }
+        }
+}
+
 static void voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
 {
         voodoo_t *voodoo = (voodoo_t *)p;
@@ -4011,26 +4061,22 @@ static void voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
                         voodoo->front_offset = voodoo->params.front_offset;
                         voodoo->swap_count--;
                 }
+                else if (TRIPLE_BUFFER)
+                {
+                        if (voodoo->swap_pending)
+                                wait_for_swap_complete(voodoo);
+                                
+                        voodoo->swap_interval = (val >> 1) & 0xff;
+                        voodoo->swap_offset = voodoo->params.front_offset;
+                        voodoo->swap_pending = 1;                        
+                }
                 else
                 {
                         voodoo->swap_interval = (val >> 1) & 0xff;
                         voodoo->swap_offset = voodoo->params.front_offset;
                         voodoo->swap_pending = 1;
 
-                        while (voodoo->swap_pending)
-                        {
-                                thread_wait_event(voodoo->wake_fifo_thread, -1);
-                                thread_reset_event(voodoo->wake_fifo_thread);
-                                if ((voodoo->swap_pending && voodoo->flush) || FIFO_ENTRIES == 65536)
-                                {
-                                        /*Main thread is waiting for FIFO to empty, so skip vsync wait and just swap*/
-                                        memset(voodoo->dirty_line, 1, 1024);
-                                        voodoo->front_offset = voodoo->params.front_offset;
-                                        voodoo->swap_count--;
-                                        voodoo->swap_pending = 0;
-                                        break;
-                                }
-                        }
+                        wait_for_swap_complete(voodoo);
                 }
                 voodoo->cmd_read++;
                 break;
@@ -5169,6 +5215,10 @@ static void voodoo_fb_writew(uint32_t addr, uint16_t val, void *p)
                 alpha_data = colour_data.a;
                 write_mask = LFB_WRITE_COLOUR;
                 break;
+                case LFB_FORMAT_DEPTH:
+                depth_data = val;
+                write_mask = LFB_WRITE_DEPTH;
+                break;
                 
                 default:
                 fatal("voodoo_fb_writew : bad LFB format %08X\n", voodoo->lfbMode);
@@ -5446,8 +5496,32 @@ static void voodoo_tex_writel(uint32_t addr, uint32_t val, void *p)
         *(uint32_t *)(&voodoo->tex_mem[tmu][addr & voodoo->texture_mask]) = val;
 }
 
+#define WAKE_DELAY (TIMER_USEC * 100)
 static inline void wake_fifo_thread(voodoo_t *voodoo)
 {
+        if (!voodoo->wake_timer)
+        {
+                /*Don't wake FIFO thread immediately - if we do that it will probably
+                  process one word and go back to sleep, requiring it to be woken on
+                  almost every write. Instead, wait a short while so that the CPU
+                  emulation writes more data so we have more batched-up work.*/
+                timer_process();
+                voodoo->wake_timer = WAKE_DELAY;
+                timer_update_outstanding();
+        }
+}
+
+static inline void wake_fifo_thread_now(voodoo_t *voodoo)
+{
+        thread_set_event(voodoo->wake_fifo_thread); /*Wake up FIFO thread if moving from idle*/
+}
+
+static void voodoo_wake_timer(void *p)
+{
+        voodoo_t *voodoo = (voodoo_t *)p;
+        
+        voodoo->wake_timer = 0;
+
         thread_set_event(voodoo->wake_fifo_thread); /*Wake up FIFO thread if moving from idle*/
 }
 
@@ -5487,7 +5561,7 @@ static uint16_t voodoo_readw(uint32_t addr, void *p)
                 voodoo->flush = 1;
                 while (!FIFO_EMPTY)
                 {
-                        wake_fifo_thread(voodoo);
+                        wake_fifo_thread_now(voodoo);
                         thread_wait_event(voodoo->fifo_not_full_event, 1);
                 }
                 wait_for_render_thread_idle(voodoo);
@@ -5517,7 +5591,7 @@ static uint32_t voodoo_readl(uint32_t addr, void *p)
                 voodoo->flush = 1;
                 while (!FIFO_EMPTY)
                 {
-                        wake_fifo_thread(voodoo);
+                        wake_fifo_thread_now(voodoo);
                         thread_wait_event(voodoo->fifo_not_full_event, 1);
                 }
                 wait_for_render_thread_idle(voodoo);
@@ -5547,7 +5621,7 @@ static uint32_t voodoo_readl(uint32_t addr, void *p)
                 voodoo->flush = 1;
                 while (!FIFO_EMPTY)
                 {
-                        wake_fifo_thread(voodoo);
+                        wake_fifo_thread_now(voodoo);
                         thread_wait_event(voodoo->fifo_not_full_event, 1);
                 }
                 wait_for_render_thread_idle(voodoo);
@@ -5708,7 +5782,7 @@ static void voodoo_writel(uint32_t addr, uint32_t val, void *p)
                 *(uint32_t *)&voodoo->fb_mem[(voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask] = val;
                 voodoo->cmdfifo_depth_wr++;
                 if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) < 20)
-                        thread_set_event(voodoo->wake_fifo_thread);
+                        wake_fifo_thread(voodoo);
         }
         else switch (addr & 0x3fc)
         {
@@ -5876,6 +5950,19 @@ static void voodoo_writel(uint32_t addr, uint32_t val, void *p)
                         voodoo_pixelclock_update(voodoo);
                 }
                 break;
+
+		case SST_scrFilter:
+		if (voodoo->initEnable & 0x01)
+		{
+			voodoo->scrfilterEnabled = 1;
+			voodoo->scrfilterThreshold = val; 	/* update the threshold values and generate a new lookup table if necessary */
+		
+			if (val < 1) 
+				voodoo->scrfilterEnabled = 0;
+			voodoo_threshold_check(voodoo);		
+			pclog("Voodoo Filter: %06x\n", val);
+		}
+		break;
 
                 case SST_fbiInit5:
                 if (voodoo->initEnable & 0x01)
@@ -6316,22 +6403,25 @@ static void voodoo_calc_clutData(voodoo_t *voodoo)
         }
 }
 
-#define FILTCAP 64.0f /* Needs tuning to match DAC */
-#define FILTCAPG (FILTCAP / 2)
+
+
+#define FILTDIV 256
+
+static int FILTCAP, FILTCAPG, FILTCAPB = 0;	/* color filter threshold values */
 
 static void voodoo_generate_filter(voodoo_t *voodoo)
 {
-        int g, h, i;
-        float difference, diffg;
-        float color;
-        float thiscol, thiscolg, lined;
+        int g, h;
+        float difference, diffg, diffb;
+        float thiscol, thiscolg, thiscolb, lined;
 
-        for (g=0;g<1024;g++)         // pixel 1
+        for (g=0;g<FILTDIV;g++)         // pixel 1
         {
-                for (h=0;h<1024;h++)      // pixel 2
+                for (h=0;h<FILTDIV;h++)      // pixel 2
                 {
-                        difference = h - g;
-                        diffg = difference / 2;
+                        difference = (float)(h - g);
+                        diffg = difference;
+                        diffb = difference;
 
                         if (difference > FILTCAP)
                                 difference = FILTCAP;
@@ -6343,28 +6433,65 @@ static void voodoo_generate_filter(voodoo_t *voodoo)
                         if (diffg < -FILTCAPG)
                                 diffg = -FILTCAPG;
 
-                        thiscol = g + (difference / 3);
-                        thiscolg = g + (diffg / 3);
+                        if (diffb > FILTCAPB)
+                                diffb = FILTCAPB;
+                        if (diffb < -FILTCAPB)
+                                diffb = -FILTCAPB;
+
+			thiscol =  g + (difference / 2);
+			thiscolg =  g + (diffg / 2);		/* need these divides so we can actually undither! */
+			thiscolb =  g + (diffb / 2);
 
                         if (thiscol < 0)
                                 thiscol = 0;
-                        if (thiscol > 1023)
-                                thiscol = 1023;
+                        if (thiscol > FILTDIV-1)
+                                thiscol = FILTDIV-1;
 
                         if (thiscolg < 0)
                                 thiscolg = 0;
-                        if (thiscolg > 1023)
-                                thiscolg = 1023;
+                        if (thiscolg > FILTDIV-1)
+                                thiscolg = FILTDIV-1;
+
+                        if (thiscolb < 0)
+                                thiscolb = 0;
+                        if (thiscolb > FILTDIV-1)
+                                thiscolb = FILTDIV-1;
 
                         voodoo->thefilter[g][h] = thiscol;
                         voodoo->thefilterg[g][h] = thiscolg;
+                        voodoo->thefilterb[g][h] = thiscolb;
                 }
 
-                lined = g + 4;
-                if (lined > 1023)
-                        lined = 1023;
+                lined = g + 3;
+                if (lined > 255)
+                        lined = 255;
                 voodoo->purpleline[g] = lined;
         }
+}
+
+static void voodoo_threshold_check(voodoo_t *voodoo)
+{
+	int r, g, b;
+
+	if (!voodoo->scrfilterEnabled)
+		return;	/* considered disabled; don't check and generate */
+
+	/* Check for changes, to generate anew table */
+	if (voodoo->scrfilterThreshold != voodoo->scrfilterThresholdOld)
+	{
+		r = (voodoo->scrfilterThreshold >> 16) & 0xFF;
+		g = (voodoo->scrfilterThreshold >> 8 ) & 0xFF;
+		b = voodoo->scrfilterThreshold & 0xFF;
+		
+		FILTCAP = r;
+		FILTCAPG = g;
+		FILTCAPB = b;
+		
+		pclog("Voodoo Filter Threshold Check: %06x - RED %i GREEN %i BLUE %i\n", voodoo->scrfilterThreshold, r, g, b);	
+
+		voodoo->scrfilterThresholdOld = voodoo->scrfilterThreshold;
+		voodoo_generate_filter(voodoo);
+	}
 }
 
 static void voodoo_filterline(voodoo_t *voodoo, uint16_t *fil, int column, uint16_t *src, int line)
@@ -6374,41 +6501,42 @@ static void voodoo_filterline(voodoo_t *voodoo, uint16_t *fil, int column, uint1
 	/* 16 to 32-bit */
         for (x=0; x<column;x++)
         {
-                fil[x*3] = ((src[x] & 31) << 5);
-                fil[x*3+1] = (((src[x] >> 5) & 63) << 4);
-                fil[x*3+2] = (((src[x] >> 11) & 31) << 5);
+                fil[x*3] = ((src[x] & 31) << 3);
+                fil[x*3+1] = (((src[x] >> 5) & 63) << 2);		/* Shift to 32-bit */
+                fil[x*3+2] = (((src[x] >> 11) & 31) << 3);		
         }
+
         fil[x*3] = 0;
-        fil[x*3+1] = 0;
+        fil[x*3+1] = 0;							/* Keep the compiler happy */
         fil[x*3+2] = 0;
 
         /* filtering time */
 
-        for (x=1; x<column-1;x++)
+        for (x=1; x<column;x++)
         {
-                fil[x*3]   = voodoo->thefilter[fil[x*3]][fil[(x-1)*3]];
-                fil[x*3+1] = voodoo->thefilterg[fil[x*3+1]][fil[(x-1)*3+1]];
-                fil[x*3+2] = voodoo->thefilter[fil[x*3+2]][fil[(x-1)*3+2]];
+                fil[(x-1)*3]   = voodoo->thefilterb[fil[x*3]][fil[	(x-1)		*3]];
+                fil[(x-1)*3+1] = voodoo->thefilterg[fil[x*3+1]][fil[	(x-1)		*3+1]];
+                fil[(x-1)*3+2] = voodoo->thefilter[fil[x*3+2]][fil[	(x-1)		*3+2]];
+        }
+        for (x=0; x<column-1;x++)
+        {
+                fil[(x)*3]   = voodoo->thefilterb[fil[x*3]][fil[		(x+1)		*3]];
+                fil[(x)*3+1] = voodoo->thefilterg[fil[x*3+1]][fil[	(x+1)		*3+1]];
+                fil[(x)*3+2] = voodoo->thefilter[fil[x*3+2]][fil[	(x+1)		*3+2]];
         }
         for (x=1; x<column-1;x++)
         {
-                fil[x*3]   = voodoo->thefilter[fil[x*3]][fil[(x-1)*3]];
-                fil[x*3+1] = voodoo->thefilterg[fil[x*3+1]][fil[(x-1)*3+1]];
-                fil[x*3+2] = voodoo->thefilter[fil[x*3+2]][fil[(x-1)*3+2]];
+                fil[(x-1)*3]   = voodoo->thefilterb[fil[x*3]][fil[	(x-1)		*3]];
+                fil[(x-1)*3+1] = voodoo->thefilterg[fil[x*3+1]][fil[	(x-1)		*3+1]];
+                fil[(x-1)*3+2] = voodoo->thefilter[fil[x*3+2]][fil[	(x-1)		*3+2]];
         }
-        for (x=1; x<column-1;x++)
+        for (x=1; x<column;x++)
         {
-                fil[x*3]   = voodoo->thefilter[fil[x*3]][fil[(x-1)*3]];
-                fil[x*3+1] = voodoo->thefilterg[fil[x*3+1]][fil[(x-1)*3+1]];
-                fil[x*3+2] = voodoo->thefilter[fil[x*3+2]][fil[(x-1)*3+2]];
+                fil[(x-1)*3]   = voodoo->thefilterb[fil[x*3]][fil[	(x-1)		*3]];
+                fil[(x-1)*3+1] = voodoo->thefilterg[fil[x*3+1]][fil[	(x-1)		*3+1]]; 
+                fil[(x-1)*3+2] = voodoo->thefilter[fil[x*3+2]][fil[	(x-1)		*3+2]]; 
         }
 
-        for (x=0; x<column;x++)
-        {
-                fil[x*3]   = (voodoo->thefilter[fil[x*3]][fil[(x+1)*3]]) >> 2;
-                fil[x*3+1] = (voodoo->thefilterg[fil[x*3+1]][fil[(x+1)*3+1]]) >> 2;
-                fil[x*3+2] = (voodoo->thefilter[fil[x*3+2]][fil[(x+1)*3+2]]) >> 2;
-        }
 
         /* lines */
 
@@ -6448,7 +6576,7 @@ void voodoo_callback(void *p)
                                 if (voodoo->line > voodoo->dirty_line_high)
                                         voodoo->dirty_line_high = voodoo->line;
                                 
-                                if (voodoo->scrfilter)
+                                if (voodoo->scrfilter && voodoo->scrfilterEnabled)
                                 {
                                         int j, offset;
                                         uint16_t fil[(voodoo->h_disp + 1) * 3];              /* interleaved 24-bit RGB */
@@ -6493,7 +6621,7 @@ void voodoo_callback(void *p)
                 if (voodoo->line == voodoo->v_disp)
                 {
                         if (voodoo->dirty_line_high > voodoo->dirty_line_low)
-                                svga_doblit(0, voodoo->v_disp, voodoo->h_disp, voodoo->v_disp, voodoo->svga);
+                                svga_doblit(0, voodoo->v_disp, voodoo->h_disp, voodoo->v_disp-1, voodoo->svga);
                         if (voodoo->clutData_dirty)
                         {
                                 voodoo->clutData_dirty = 0;
@@ -6643,6 +6771,8 @@ void *voodoo_init()
         voodoo->render_thread[0] = thread_create(render_thread_1, voodoo);
         if (voodoo->render_threads == 2)
                 voodoo->render_thread[1] = thread_create(render_thread_2, voodoo);
+
+        timer_add(voodoo_wake_timer, &voodoo->wake_timer, &voodoo->wake_timer, (void *)voodoo);
         
         for (c = 0; c < 0x100; c++)
         {

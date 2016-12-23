@@ -14,6 +14,17 @@ static uint32_t ropSTD(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32
         return op_pc;
 }
 
+static uint32_t ropCLI(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+{
+        CLEAR_BITS((uintptr_t)&flags, I_FLAG);
+        return op_pc;
+}
+static uint32_t ropSTI(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+{
+        SET_BITS((uintptr_t)&flags, I_FLAG);
+        return op_pc;
+}
+
 static uint32_t ropFE(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
         x86seg *target_seg;
@@ -71,7 +82,7 @@ static uint32_t ropFF_16(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
         x86seg *target_seg;
         int host_reg;
         
-        if ((fetchdat & 0x30) != 0x00 && (fetchdat & 0x38) != 0x10 && (fetchdat & 0x38) != 0x20)// && (fetchdat & 0x38) != 0x30)
+        if ((fetchdat & 0x30) != 0x00 && (fetchdat & 0x08))
                 return 0;
 
         if ((fetchdat & 0x30) == 0x00)
@@ -163,7 +174,7 @@ static uint32_t ropFF_32(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
         x86seg *target_seg;
         int host_reg;
         
-        if ((fetchdat & 0x30) != 0x00 && (fetchdat & 0x38) != 0x10 && (fetchdat & 0x38) != 0x20)// && (fetchdat & 0x38) != 0x30)
+        if ((fetchdat & 0x30) != 0x00 && (fetchdat & 0x08))
                 return 0;
 
         if ((fetchdat & 0x30) == 0x00)

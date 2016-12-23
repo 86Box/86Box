@@ -1,6 +1,8 @@
 /* Copyright holders: Sarah Walker, Tenshi
    see COPYING for more details
 */
+#define FDD_NUM		4
+
 typedef struct
 {
         void (*seek)(int drive, int track);
@@ -15,7 +17,7 @@ typedef struct
         void (*poll)(int drive);
 } DRIVE;
 
-extern DRIVE drives[2];
+extern DRIVE drives[FDD_NUM];
 
 extern int curdrive;
 
@@ -39,13 +41,12 @@ void disc_stop(int drive);
 int disc_empty(int drive);
 void disc_set_rate(int drive, int drvden, int rate);
 extern int disc_time;
-extern int disc_poll_time[2];
+extern int disc_poll_time[FDD_NUM];
 
 void fdc_callback();
 int  fdc_data(uint8_t dat);
 void fdc_spindown();
 void fdc_finishread();
-void fdc_notfound();
 void fdc_datacrcerror();
 void fdc_headercrcerror();
 void fdc_writeprotect();
@@ -57,7 +58,7 @@ extern int fdc_ready;
 extern int fdc_indexcount;*/
 
 extern int motorspin;
-extern int motoron[2];
+extern int motoron[FDD_NUM];
 
 extern int swwp;
 extern int disable_write;
@@ -65,16 +66,17 @@ extern int disable_write;
 extern int defaultwriteprot;
 //extern char discfns[4][260];
 
-extern int writeprot[2], fwriteprot[2];
-extern int disc_track[2];
-extern int disc_changed[2];
-extern int drive_empty[2];
-extern int drive_type[2];
+extern int writeprot[FDD_NUM], fwriteprot[FDD_NUM];
+extern int disc_track[FDD_NUM];
+extern int disc_changed[FDD_NUM];
+extern int drive_empty[FDD_NUM];
+extern int drive_type[FDD_NUM];
 
 /*Used in the Read A Track command. Only valid for disc_readsector(). */
 #define SECTOR_FIRST -2
 #define SECTOR_NEXT  -1
 
+#if 0
 /* Bits 0-3 define byte type, bit 5 defines whether it is a per-track (0) or per-sector (1) byte, if bit 7 is set, the byte is the index hole. */
 #define BYTE_GAP0		0x00
 #define BYTE_GAP1		0x10
@@ -108,6 +110,7 @@ extern int drive_type[2];
 #define BYTE_TYPE_AM		0x03
 #define BYTE_TYPE_DATA		0x04
 #define BYTE_TYPE_CRC		0x05
+#endif
 
 typedef union {
 	uint16_t word;
@@ -133,7 +136,7 @@ typedef struct
 	uint8_t check_crc;
 } d86f_handler_t;
 
-d86f_handler_t d86f_handler[2];
+d86f_handler_t d86f_handler[FDD_NUM];
 
 void d86f_common_handlers(int drive);
 

@@ -53,12 +53,11 @@ static unsigned char isram[0x10000];
 static uint8_t ff_array[0x1000];
 
 int mem_size;
-int cache=4;
 uint32_t biosmask;
 int readlnum=0,writelnum=0;
 int cachesize=256;
 
-uint8_t *ram,*rom,*vram;
+uint8_t *ram,*rom;
 uint8_t romext[32768];
 
 static void mem_load_xtide_bios()
@@ -109,9 +108,10 @@ int loadbios()
         int c;
         
         loadfont("roms/mda.rom", 0);
-        
+	loadfont("roms/wy700.rom", 3);
+
         biosmask = 0xffff;
-        
+
         memset(romext,0xff,0x8000);
         memset(rom, 0xff, 0x20000);
         
@@ -344,7 +344,7 @@ int loadbios()
                 fread(rom,65536,1,f);
                 fclose(f);
                 return 1;*/
-                case ROM_AMI386: /*This uses the OPTi 82C495 chipset*/
+                case ROM_AMI386SX:
 //                f=romfopen("roms/at386/at386.bin","rb");
                 f=romfopen("roms/ami386/ami386.bin","rb");
                 if (!f) break;
@@ -352,6 +352,18 @@ int loadbios()
                 fclose(f);
                 return 1;
 
+                case ROM_AMI386DX_OPTI495: /*This uses the OPTi 82C495 chipset*/
+                f=romfopen("roms/ami386dx/OPT495SX.AMI","rb");
+                if (!f) break;
+                fread(rom,65536,1,f);
+                fclose(f);
+                return 1;
+                case ROM_MR386DX_OPTI495: /*This uses the OPTi 82C495 chipset*/
+                f=romfopen("roms/mr386dx/OPT495SX.MR","rb");
+                if (!f) break;
+                fread(rom,65536,1,f);
+                fclose(f);
+                return 1;
 
                 case ROM_ACER386:
                 f=romfopen("roms/acer386/acer386.bin","rb");
@@ -665,6 +677,24 @@ int loadbios()
                 biosmask = 0x1ffff;
                 return 1;
 
+#if 0
+                case ROM_POWERMATE_V:
+                f = romfopen("roms/powermate_v/BIOS.ROM", "rb");	/* Works */
+                if (!f) break;
+                fread(rom,           0x20000, 1, f);                
+                fclose(f);
+                biosmask = 0x1ffff;
+                return 1;
+#endif
+
+                case ROM_P54TP4XE:
+                f = romfopen("roms/p54tp4xe/T15I0302.AWD", "rb");
+                if (!f) break;
+                fread(rom,           0x20000, 1, f);                
+                fclose(f);
+                biosmask = 0x1ffff;
+                return 1;
+
                 case ROM_ACERM3A:
                 f = romfopen("roms/acerm3a/r01-b3.bin", "rb");         
                 if (!f) break;
@@ -683,6 +713,22 @@ int loadbios()
 
                 case ROM_P55VA:
                 f = romfopen("roms/p55va/VA021297.BIN", "rb");
+                if (!f) break;
+                fread(rom,           0x20000, 1, f);                
+                fclose(f);
+                biosmask = 0x1ffff;
+                return 1;
+
+                case ROM_P55T2P4:
+                f = romfopen("roms/p55t2p4/0207_J2.BIN", "rb");
+                if (!f) break;
+                fread(rom,           0x20000, 1, f);                
+                fclose(f);
+                biosmask = 0x1ffff;
+                return 1;
+
+                case ROM_P55TVP4:
+                f = romfopen("roms/p55tvp4/TV5I0204.AWD", "rb");
                 if (!f) break;
                 fread(rom,           0x20000, 1, f);                
                 fclose(f);
@@ -725,6 +771,14 @@ int loadbios()
                 fclose(f);
                 biosmask = 0x1ffff;
                 //is486=1;
+                return 1;
+
+                case ROM_MRTHOR:
+                f = romfopen("roms/mrthor/MR_ATX.BIO", "rb");
+                if (!f) break;
+                fread(rom,           0x20000, 1, f);                
+                fclose(f);
+                biosmask = 0x1ffff;
                 return 1;
         }
         printf("Failed to load ROM!\n");
@@ -991,13 +1045,6 @@ void mmu_invalidate(uint32_t addr)
         flushmmucache_cr3();
 }
 
-int memspeed[11]={256,320,384,512,640,768,1024,1152,1280,1536,1920};
-int memwaitstate;
-
-static int cachelookup[256];
-static uint8_t *cachelookup2;
-static int cachelnext;
-
 void addreadlookup(uint32_t virt, uint32_t phys)
 {
 //        return;
@@ -1016,17 +1063,6 @@ void addreadlookup(uint32_t virt, uint32_t phys)
                 return;
         }
         
-        
-        if (!cachelookup2[phys >> 12])
-        {
-                readlnum++;
-                cycles-=memwaitstate;
-                if (cachelookup[cachelnext] != 0xffffffff)
-                   cachelookup2[cachelookup[cachelnext]] = 0;
-                cachelookup[cachelnext] = phys >> 12;
-                cachelookup2[phys >> 12] = 1;
-                cachelnext = (cachelnext + 1) & (cachesize - 1);
-        }
         
         if (readlookup[readlnext]!=0xFFFFFFFF)
         {
@@ -1059,18 +1095,6 @@ void addwritelookup(uint32_t virt, uint32_t phys)
                 return;
         }
         
-        if (!cachelookup2[phys >> 12])
-        {
-                writelnum++;
-                cycles-=memwaitstate;
-                if (cachelookup[cachelnext] != 0xffffffff)
-                   cachelookup2[cachelookup[cachelnext]] = 0;
-                cachelookup[cachelnext] = phys >> 12;
-                cachelookup2[phys >> 12] = 1;
-                cachelnext = (cachelnext + 1) & (cachesize - 1);
-        }
-        
-        cycles-=memwaitstate;
         if (writelookup[writelnext] != -1)
         {
                 page_lookup[writelookup[writelnext]] = NULL;
@@ -1662,29 +1686,6 @@ void mem_write_nulll(uint32_t addr, uint32_t val, void *p)
 {
 }
 
-void mem_updatecache()
-{
-        flushmmucache();
-        if (!is386 || israpidcad)
-        {
-                cachesize=256;
-                memwaitstate=0;
-                return;
-        }
-        if (cpu_16bitbus)
-           memwaitstate = 512 * ((cpu_multi >= 2) ? 2 : cpu_multi);
-        else
-           memwaitstate = 384 * ((cpu_multi >= 2) ? 2 : cpu_multi); //memspeed[cpuspeed];        
-        switch (cache)
-        {
-                case 0: cachesize=32; break;
-                case 1: cachesize=64; break;
-                case 2: cachesize=128; break;
-                case 3: cachesize=256; break;
-                case 4: cachesize=256; memwaitstate=0; break;
-        }
-}
-
 void mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
 {
         start_addr &= ~PAGE_MASK_MASK;
@@ -1937,10 +1938,8 @@ void mem_init()
 
         ram = malloc((mem_size + 384) * 1024);
         rom = malloc(0x20000);
-        vram = malloc(0x800000);
         readlookup2  = malloc(1024 * 1024 * sizeof(uintptr_t));
         writelookup2 = malloc(1024 * 1024 * sizeof(uintptr_t));
-        cachelookup2 = malloc(1024 * 1024);
         biosmask = 0xffff;
         pages = malloc((((mem_size + 384) * 1024) >> 12) * sizeof(page_t));
         page_lookup = malloc((1 << 20) * sizeof(page_t *));
@@ -1988,7 +1987,7 @@ void mem_init()
         if (mem_size > 1024)
                 mem_mapping_add(&ram_high_mapping, 0x100000, ((mem_size - 1024) * 1024), mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + 0x100000, MEM_MAPPING_INTERNAL, NULL);
 	if (mem_size > 768)
-	       	mem_mapping_add(&ram_mid_mapping,   0xc0000, 0x40000, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + 0xc0000,  MEM_MAPPING_INTERNAL, NULL);
+		mem_mapping_add(&ram_mid_mapping,   0xc0000, 0x40000, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + 0xc0000,  MEM_MAPPING_INTERNAL, NULL);
  
         mem_mapping_add(&romext_mapping,  0xc8000, 0x08000, mem_read_romext, mem_read_romextw, mem_read_romextl, NULL, NULL, NULL,   romext, 0, NULL);
 //        pclog("Mem resize %i %i\n",mem_size,c);
@@ -2064,7 +2063,7 @@ void mem_resize()
         if (mem_size > 1024)
                 mem_mapping_add(&ram_high_mapping, 0x100000, (mem_size - 1024) * 1024, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + 0x100000, MEM_MAPPING_INTERNAL, NULL);
 	if (mem_size > 768)
-	        mem_mapping_add(&ram_mid_mapping,   0xc0000, 0x40000, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + 0xc0000,  MEM_MAPPING_INTERNAL, NULL);
+        	mem_mapping_add(&ram_mid_mapping,   0xc0000, 0x40000, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + 0xc0000,  MEM_MAPPING_INTERNAL, NULL);
  
         mem_mapping_add(&romext_mapping,  0xc8000, 0x08000, mem_read_romext, mem_read_romextw, mem_read_romextl, NULL, NULL, NULL,   romext, 0, NULL);
 
@@ -2087,6 +2086,30 @@ void mem_reset_page_blocks()
         }
 }
 
+void mem_reset()
+{
+        int c;
+
+	mem_reset_page_blocks();
+
+        memset(isram, 0, sizeof(isram));
+        for (c = 0; c < (mem_size / 256); c++)
+        {
+                isram[c] = 1;
+                if (c >= 0xa && c <= 0xf) 
+                        isram[c] = 0;
+        }
+
+        mem_set_mem_state(0x000000, (mem_size > 640) ? 0xa0000 : mem_size * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+        mem_set_mem_state(0x0c0000, 0x40000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+        mem_set_mem_state(0x100000, (mem_size - 1024) * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+
+        mem_a20_key = 2;
+        mem_a20_recalc();
+}
+
+static int port_92_reg = 0;
+
 void mem_a20_recalc()
 {
         int state = mem_a20_key | mem_a20_alt;
@@ -2103,6 +2126,49 @@ void mem_a20_recalc()
         }
 //        pclog("rammask now %08X\n", rammask);
         mem_a20_state = state;
+}
+
+static uint8_t port_92_read(uint16_t port, void *priv)
+{
+	return (port_92_reg & 3) | 0x24;
+}
+
+static void port_92_write(uint16_t port, uint8_t val, void *priv)
+{
+	mem_a20_alt = val & 2;
+	mem_a20_recalc();
+
+	if (!(port_92_reg & 1) && (val & 1))
+	{
+		// pclog("Port 92: Soft reset\n");
+		softresetx86();
+	}
+
+	port_92_reg = val & 3;
+
+	mem_a20_recalc();
+}
+
+void port_92_clear_reset()
+{
+	port_92_reg &= 2;
+}
+
+void port_92_add()
+{
+	io_sethandler(0x0092, 0x0001, port_92_read, NULL, NULL, port_92_write, NULL, NULL, NULL);
+}
+
+void port_92_remove()
+{
+	io_removehandler(0x0092, 0x0001, port_92_read, NULL, NULL, port_92_write, NULL, NULL, NULL);
+}
+
+void port_92_reset()
+{
+	port_92_reg = 0;
+	mem_a20_alt = 0;
+	mem_a20_recalc();
 }
 
 uint32_t get_phys_virt,get_phys_phys;

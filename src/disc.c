@@ -14,20 +14,19 @@
 #include "fdd.h"
 #include "timer.h"
 
-int disc_poll_time[2] = { 16, 16 };
+int disc_poll_time[FDD_NUM] = { 16, 16, 16, 16 };
 
-int disc_track[2];
-int writeprot[2], fwriteprot[2];
+int disc_track[FDD_NUM];
+int writeprot[FDD_NUM], fwriteprot[FDD_NUM];
 
-DRIVE drives[2];
-int drive_type[2];
+DRIVE drives[FDD_NUM];
+int drive_type[FDD_NUM];
 
 int curdrive = 0;
 
 int swwp = 0;
 int disable_write = 0;
 
-//char discfns[2][260] = {"", ""};
 int defaultwriteprot = 0;
 
 int fdc_time;
@@ -35,11 +34,11 @@ int disc_time;
 
 int fdc_ready;
 
-int drive_empty[2] = {1, 1};
-int disc_changed[2];
+int drive_empty[FDD_NUM] = {1, 1, 1, 1};
+int disc_changed[FDD_NUM];
 
 int motorspin;
-int motoron[2];
+int motoron[FDD_NUM];
 
 int fdc_indexcount = 52;
 
@@ -111,8 +110,8 @@ void disc_load(int drive, char *fn)
                         loaders[c].load(drive, fn);
                         drive_empty[drive] = 0;
                         strcpy(discfns[drive], fn);
-			fdd_set_head(drive ^ fdd_swap, 0);
-                        fdd_forced_seek(drive ^ fdd_swap, 0);
+			// fdd_set_head(real_drive(drive), 0);
+                        fdd_forced_seek(real_drive(drive), 0);
                         disc_changed[drive] = 1;
                         return;
                 }
@@ -120,7 +119,7 @@ void disc_load(int drive, char *fn)
         }
         pclog("Couldn't load %s %s\n",fn,p);
         drive_empty[drive] = 1;
-	fdd_set_head(drive ^ fdd_swap, 0);
+	fdd_set_head(real_drive(drive), 0);
         discfns[drive][0] = 0;
 }
 
@@ -129,7 +128,7 @@ void disc_close(int drive)
 //        pclog("disc_close %i\n", drive);
         if (loaders[driveloaders[drive]].close) loaders[driveloaders[drive]].close(drive);
         drive_empty[drive] = 1;
-	fdd_set_head(drive ^ fdd_swap, 0);
+	fdd_set_head(real_drive(drive), 0);
         discfns[drive][0] = 0;
         drives[drive].hole = NULL;
         drives[drive].poll = NULL;
@@ -148,7 +147,7 @@ static int disc_period = 32;
 
 int disc_hole(int drive)
 {
-	drive ^= fdd_swap;
+	drive = real_drive(drive);
 
 	if (drives[drive].hole)
 	{
@@ -162,7 +161,7 @@ int disc_hole(int drive)
 
 double disc_byteperiod(int drive)
 {
-	drive ^= fdd_swap;
+	drive = real_drive(drive);
 
 	if (drives[drive].byteperiod)
 	{
@@ -179,7 +178,7 @@ double disc_real_period(int drive)
 	double ddbp;
 	double dusec;
 
-	ddbp = disc_byteperiod(drive ^ fdd_swap);
+	ddbp = disc_byteperiod(real_drive(drive));
 
 	dusec = (double) TIMER_USEC;
 
@@ -188,7 +187,7 @@ double disc_real_period(int drive)
 
 void disc_poll(int drive)
 {
-	if (drive > 1)
+	if (drive >= FDD_NUM)
 	{
 		disc_poll_time[drive] += (int) (32.0 * TIMER_USEC);
 		return;
@@ -203,7 +202,7 @@ void disc_poll(int drive)
         {
                 disc_notfound--;
                 if (!disc_notfound)
-                        fdc_notfound();
+                        fdc_noidam();
         }
 }
 
@@ -215,6 +214,16 @@ void disc_poll_0()
 void disc_poll_1()
 {
 	disc_poll(1);
+}
+
+void disc_poll_2()
+{
+	disc_poll(2);
+}
+
+void disc_poll_3()
+{
+	disc_poll(3);
 }
 
 int disc_get_bitcell_period(int rate)
@@ -276,18 +285,20 @@ void disc_reset()
         disc_period = 32;
 	timer_add(disc_poll_0, &(disc_poll_time[0]), &(motoron[0]), NULL);
 	timer_add(disc_poll_1, &(disc_poll_time[1]), &(motoron[1]), NULL);
+	timer_add(disc_poll_2, &(disc_poll_time[2]), &(motoron[2]), NULL);
+	timer_add(disc_poll_3, &(disc_poll_time[3]), &(motoron[3]), NULL);
 }
 
 void disc_init()
 {
 //        pclog("disc_init %p\n", drives);
-        drives[0].poll = drives[1].poll = 0;
-        drives[0].seek = drives[1].seek = 0;
-        drives[0].readsector = drives[1].readsector = 0;
+        drives[0].poll = drives[1].poll = drives[2].poll = drives[3].poll = 0;
+        drives[0].seek = drives[1].seek = drives[2].seek = drives[3].seek = 0;
+        drives[0].readsector = drives[1].readsector = drives[2].readsector = drives[3].readsector = 0;
         disc_reset();
 }
 
-int oldtrack[2] = {0, 0};
+int oldtrack[FDD_NUM] = {0, 0, 0, 0};
 void disc_seek(int drive, int track)
 {
 //        pclog("disc_seek: drive=%i track=%i\n", drive, track);
@@ -301,7 +312,7 @@ void disc_seek(int drive, int track)
 
 void disc_readsector(int drive, int sector, int track, int side, int density, int sector_size)
 {
-        drive ^= fdd_swap;
+        drive = real_drive(drive);
 
         if (drives[drive].readsector)
                 drives[drive].readsector(drive, sector, track, side, density, sector_size);
@@ -311,7 +322,7 @@ void disc_readsector(int drive, int sector, int track, int side, int density, in
 
 void disc_writesector(int drive, int sector, int track, int side, int density, int sector_size)
 {
-        drive ^= fdd_swap;
+        drive = real_drive(drive);
 
         if (drives[drive].writesector)
                 drives[drive].writesector(drive, sector, track, side, density, sector_size);
@@ -321,7 +332,7 @@ void disc_writesector(int drive, int sector, int track, int side, int density, i
 
 void disc_comparesector(int drive, int sector, int track, int side, int density, int sector_size)
 {
-        drive ^= fdd_swap;
+        drive = real_drive(drive);
 
         if (drives[drive].comparesector)
                 drives[drive].comparesector(drive, sector, track, side, density, sector_size);
@@ -331,7 +342,7 @@ void disc_comparesector(int drive, int sector, int track, int side, int density,
 
 void disc_readaddress(int drive, int track, int side, int density)
 {
-        drive ^= fdd_swap;
+        drive = real_drive(drive);
 
         if (drives[drive].readaddress)
                 drives[drive].readaddress(drive, track, side, density);
@@ -339,7 +350,7 @@ void disc_readaddress(int drive, int track, int side, int density)
 
 void disc_format(int drive, int track, int side, int density, uint8_t fill)
 {
-        drive ^= fdd_swap;
+        drive = real_drive(drive);
         
         if (drives[drive].format)
                 drives[drive].format(drive, track, side, density, fill);
@@ -349,7 +360,7 @@ void disc_format(int drive, int track, int side, int density, uint8_t fill)
 
 void disc_stop(int drive)
 {
-        drive ^= fdd_swap;
+        drive = real_drive(drive);
         
         if (drives[drive].stop)
                 drives[drive].stop(drive);

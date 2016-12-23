@@ -477,6 +477,14 @@ static uint32_t ropFSUBRP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
         return op_pc;
 }
 
+static uint32_t ropFCOMPP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+{
+        FP_ENTER();
+        FP_COMPARE_REG(0, 1);
+        FP_POP2();
+       
+        return op_pc;
+}
 
 static uint32_t ropFSTSW_AX(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
@@ -600,3 +608,31 @@ static uint32_t ropFSTCW(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
         
         return op_pc + 1;
 }
+
+
+static uint32_t ropFCHS(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+{
+        FP_ENTER();
+        FP_FCHS();
+       
+        return op_pc;
+}
+
+#define opFLDimm(name, v)                                                                                                       \
+        static uint32_t ropFLD ## name(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)   \
+        {                                                                                                                       \
+                static double fp_imm = v;                                                                                       \
+                                                                                                                                \
+                FP_ENTER();                                                                                                     \
+                FP_LOAD_IMM_Q(*(uint64_t *)&fp_imm);                                                                            \
+                                                                                                                                \
+                return op_pc;                                                                                                   \
+        }
+
+opFLDimm(1, 1.0)
+opFLDimm(L2T, 3.3219280948873623)
+opFLDimm(L2E, 1.4426950408889634);
+opFLDimm(PI, 3.141592653589793);
+opFLDimm(EG2, 0.3010299956639812);
+opFLDimm(LN2, 0.693147180559945);
+opFLDimm(Z, 0.0)

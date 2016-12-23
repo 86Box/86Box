@@ -126,40 +126,18 @@ static void iso_load(void)
     // pclog("iso_load stub\n");
 }
 
-static void iso_readsector(uint8_t *b, int sector)
-{
-    if (!cdrom_drive) return;
-    iso_image = fopen(iso_path, "rb");
-    fseek(iso_image,sector*2048,SEEK_SET);
-    fread(b,2048,1,iso_image);
-    fclose(iso_image);
-}
-
 static void lba_to_msf(uint8_t *buf, int lba)
 {
-#if 0
-	double dlba = (double) lba + 150;
-	buf[2] = (uint8_t) (((uint32_t) dlba) % 75);
-	dlba /= 75;
-	buf[1] = (uint8_t) (((uint32_t) dlba) % 60);
-	dlba /= 60;
-	buf[0] = (uint8_t) dlba;
-#endif
     lba += 150;
     buf[0] = (lba / 75) / 60;
     buf[1] = (lba / 75) % 60;
 	buf[2] = lba % 75;
 }
 
-#if 0
-static void lba_to_msf(uint8_t *buf, int lba)
+static int iso_sector_data_type(int sector, int ismsf)
 {
-    lba += 150;
-    buf[0] = (lba / 75) / 60;
-    buf[1] = (lba / 75) % 60;
-    buf[2] = lba % 75;
+	return 2;	/* Always Mode 1 */
 }
-#endif
 
 static void iso_readsector_raw(uint8_t *b, int sector, int ismsf)
 {
@@ -406,7 +384,10 @@ static CDROM iso_cdrom =
         iso_readtoc_session,
         iso_readtoc_raw,
         iso_getcurrentsubchannel,
-        iso_readsector,
+        NULL,
+        NULL,
+        NULL,
+		iso_sector_data_type,
         iso_readsector_raw,
         iso_playaudio,
         iso_seek,

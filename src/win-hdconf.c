@@ -39,8 +39,12 @@ static void update_hdd_cdrom(HWND hdlg)
         SendMessage(h, BM_SETCHECK, (new_cdrom_channel == 3) ? 0 : 1, 0);
         h = GetDlgItem(hdlg, IDC_FCDROM);
         SendMessage(h, BM_SETCHECK, (new_cdrom_channel == 3) ? 1 : 0, 0);
+        h = GetDlgItem(hdlg, IDC_GHDD);
+        SendMessage(h, BM_SETCHECK, (new_cdrom_channel == 4) ? 0 : 1, 0);
         h = GetDlgItem(hdlg, IDC_GCDROM);
         SendMessage(h, BM_SETCHECK, (new_cdrom_channel == 4) ? 1 : 0, 0);
+        h = GetDlgItem(hdlg, IDC_HHDD);
+        SendMessage(h, BM_SETCHECK, (new_cdrom_channel == 5) ? 0 : 1, 0);
         h = GetDlgItem(hdlg, IDC_HCDROM);
         SendMessage(h, BM_SETCHECK, (new_cdrom_channel == 5) ? 1 : 0, 0);
 }
@@ -408,7 +412,7 @@ BOOL CALLBACK hdsize_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPar
 static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
         HWND h;
-        hard_disk_t hd[4];
+        hard_disk_t hd[6];
         FILE *f;
         off64_t sz;
 	int ret;
@@ -422,6 +426,8 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                 hd[1] = hdc[1];
                 hd[2] = hdc[2];
                 hd[3] = hdc[3];
+                hd[4] = hdc[4];
+                hd[5] = hdc[5];
                 hd_changed = 0;
                 
                 h = GetDlgItem(hdlg, IDC_EDIT_C_SPT);
@@ -472,6 +478,30 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                 h=  GetDlgItem(hdlg, IDC_EDIT_F_FN);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)ide_fn[3]);
                 
+                h = GetDlgItem(hdlg, IDC_EDIT_G_SPT);
+                sprintf(s, "%" PRIu64, hdc[4].spt);
+                SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                h = GetDlgItem(hdlg, IDC_EDIT_G_HPC);
+                sprintf(s, "%" PRIu64, hdc[4].hpc);
+                SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                h = GetDlgItem(hdlg, IDC_EDIT_G_CYL);
+                sprintf(s, "%" PRIu64, hdc[4].tracks);
+                SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                h=  GetDlgItem(hdlg, IDC_EDIT_G_FN);
+                SendMessage(h, WM_SETTEXT, 0, (LPARAM)ide_fn[4]);
+                
+                h = GetDlgItem(hdlg, IDC_EDIT_H_SPT);
+                sprintf(s, "%" PRIu64, hdc[5].spt);
+                SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                h = GetDlgItem(hdlg, IDC_EDIT_H_HPC);
+                sprintf(s, "%" PRIu64, hdc[5].hpc);
+                SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                h = GetDlgItem(hdlg, IDC_EDIT_H_CYL);
+                sprintf(s, "%" PRIu64, hdc[5].tracks);
+                SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                h=  GetDlgItem(hdlg, IDC_EDIT_H_FN);
+                SendMessage(h, WM_SETTEXT, 0, (LPARAM)ide_fn[5]);
+                
                 h = GetDlgItem(hdlg, IDC_TEXT_C_SIZE);
                 sprintf(s, "Size: %" PRIu64 " MB", (hd[0].tracks*hd[0].hpc*hd[0].spt) >> 11);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
@@ -486,6 +516,14 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 
                 h = GetDlgItem(hdlg, IDC_TEXT_F_SIZE);
                 sprintf(s, "Size: %" PRIu64 " MB", (hd[3].tracks*hd[3].hpc*hd[3].spt) >> 11);
+                SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+
+                h = GetDlgItem(hdlg, IDC_TEXT_G_SIZE);
+                sprintf(s, "Size: %" PRIu64 " MB", (hd[4].tracks*hd[4].hpc*hd[4].spt) >> 11);
+                SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+
+                h = GetDlgItem(hdlg, IDC_TEXT_H_SIZE);
+                sprintf(s, "Size: %" PRIu64 " MB", (hd[5].tracks*hd[5].hpc*hd[5].spt) >> 11);
                 SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
 
                 new_cdrom_channel = atapi_cdrom_channel;
@@ -549,10 +587,36 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                         h = GetDlgItem(hdlg, IDC_EDIT_F_FN);
                                         SendMessage(h, WM_GETTEXT, 511, (LPARAM)ide_fn[3]);
                                         
+                                        h = GetDlgItem(hdlg, IDC_EDIT_G_SPT);
+                                        SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
+                                        sscanf(s, "%" PRIu64, &hd[4].spt);
+                                        h = GetDlgItem(hdlg, IDC_EDIT_G_HPC);
+                                        SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
+                                        sscanf(s, "%" PRIu64, &hd[4].hpc);
+                                        h = GetDlgItem(hdlg, IDC_EDIT_G_CYL);
+                                        SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
+                                        sscanf(s, "%" PRIu64, &hd[4].tracks);
+                                        h = GetDlgItem(hdlg, IDC_EDIT_G_FN);
+                                        SendMessage(h, WM_GETTEXT, 511, (LPARAM)ide_fn[4]);
+                                        
+                                        h = GetDlgItem(hdlg, IDC_EDIT_H_SPT);
+                                        SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
+                                        sscanf(s, "%" PRIu64, &hd[5].spt);
+                                        h = GetDlgItem(hdlg, IDC_EDIT_H_HPC);
+                                        SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
+                                        sscanf(s, "%" PRIu64, &hd[5].hpc);
+                                        h = GetDlgItem(hdlg, IDC_EDIT_H_CYL);
+                                        SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
+                                        sscanf(s, "%" PRIu64, &hd[5].tracks);
+                                        h = GetDlgItem(hdlg, IDC_EDIT_H_FN);
+                                        SendMessage(h, WM_GETTEXT, 511, (LPARAM)ide_fn[5]);
+                                        
                                         hdc[0] = hd[0];
                                         hdc[1] = hd[1];
                                         hdc[2] = hd[2];
                                         hdc[3] = hd[3];
+                                        hdc[4] = hd[4];
+                                        hdc[5] = hd[5];
 
                                         atapi_cdrom_channel = new_cdrom_channel;
                                         
@@ -608,6 +672,28 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         SetDlgItemText(hdlg, IDC_EDIT_F_HPC, "0");
                         SetDlgItemText(hdlg, IDC_EDIT_F_CYL, "0");
                         SetDlgItemText(hdlg, IDC_EDIT_F_FN, "");
+                        hd_changed = 1;
+                        return TRUE;
+                        case IDC_EJECTG:
+                        hd[4].spt = 0;
+                        hd[4].hpc = 0;
+                        hd[4].tracks = 0;
+                        ide_fn[4][0] = 0;
+                        SetDlgItemText(hdlg, IDC_EDIT_G_SPT, "0");
+                        SetDlgItemText(hdlg, IDC_EDIT_G_HPC, "0");
+                        SetDlgItemText(hdlg, IDC_EDIT_G_CYL, "0");
+                        SetDlgItemText(hdlg, IDC_EDIT_G_FN, "");
+                        hd_changed = 1;
+                        return TRUE;
+                        case IDC_EJECTH:
+                        hd[5].spt = 0;
+                        hd[5].hpc = 0;
+                        hd[5].tracks = 0;
+                        ide_fn[5][0] = 0;
+                        SetDlgItemText(hdlg, IDC_EDIT_H_SPT, "0");
+                        SetDlgItemText(hdlg, IDC_EDIT_H_HPC, "0");
+                        SetDlgItemText(hdlg, IDC_EDIT_H_CYL, "0");
+                        SetDlgItemText(hdlg, IDC_EDIT_H_FN, "");
                         hd_changed = 1;
                         return TRUE;
                         
@@ -943,6 +1029,172 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         }
                         return TRUE;
 
+                        case IDC_GNEW:
+                        if (DialogBox(hinstance, TEXT("HdNewDlg"), hdlg, hdnew_dlgproc) == 1)
+                        {
+                                h = GetDlgItem(hdlg, IDC_EDIT_G_SPT);
+                                sprintf(s, "%" PRIu64, hd_new_spt);
+                                SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                                h = GetDlgItem(hdlg, IDC_EDIT_G_HPC);
+                                sprintf(s, "%" PRIu64, hd_new_hpc);
+                                SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                                h = GetDlgItem(hdlg, IDC_EDIT_G_CYL);
+                                sprintf(s, "%" PRIu64, hd_new_cyl);
+                                SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                                h = GetDlgItem(hdlg, IDC_EDIT_G_FN);
+                                SendMessage(h, WM_SETTEXT, 0, (LPARAM)hd_new_name);
+
+                                h=  GetDlgItem(hdlg, IDC_TEXT_G_SIZE);
+                                sprintf(s, "Size: %" PRIu64 " MB", (hd_new_cyl*hd_new_hpc*hd_new_spt) >> 11);
+                                SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+
+                                hd_changed = 1;
+                        }                              
+                        return TRUE;
+                        
+                        case IDC_GFILE:
+                        if (!getfile(hdlg, "Hard disc image (*.HDI;*.IMA;*.IMG;*.VHD)\0*.HDI;*.IMA;*.IMG;*.VHD\0All files (*.*)\0*.*\0", ""))
+                        {
+                                f = fopen64(openfilestring, "rb");
+                                if (!f)
+                                {
+                                        MessageBox(ghwnd,"Can't open file for read","86Box error",MB_OK);
+                                        return TRUE;
+                                }
+
+				if (image_is_hdi(openfilestring))
+				{
+					fseeko64(f, 0x10, SEEK_END);
+					fread(&sector_size, 1, 4, f);
+					if (sector_size != 512)
+					{
+						MessageBox(ghwnd,"HDI image with a sector size that is not 512","86Box error",MB_OK);
+						fclose(f);
+						return TRUE;
+					}
+					fread(&hd_new_spt, 1, 4, f);
+					fread(&hd_new_hpc, 1, 4, f);
+					fread(&hd_new_cyl, 1, 4, f);
+
+					ret = 1;
+				}
+				else
+				{
+	                                fseeko64(f, -1, SEEK_END);
+        	                        sz = ftello64(f) + 1;
+                	                fclose(f);
+	                                hd_new_spt = 63;
+        	                        hd_new_hpc = 16;
+                	                hd_new_cyl = ((sz / 512) / 16) / 63;
+
+					ret = DialogBox(hinstance, TEXT("HdSizeDlg"), hdlg, hdsize_dlgproc);
+                                }
+                                if (ret == 1)
+                                {
+                                        h = GetDlgItem(hdlg, IDC_EDIT_G_SPT);
+                                        sprintf(s, "%" PRIu64, hd_new_spt);
+                                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                                        h = GetDlgItem(hdlg, IDC_EDIT_G_HPC);
+                                        sprintf(s, "%" PRIu64, hd_new_hpc);
+                                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                                        h = GetDlgItem(hdlg, IDC_EDIT_G_CYL);
+                                        sprintf(s, "%" PRIu64, hd_new_cyl);
+                                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                                        h = GetDlgItem(hdlg, IDC_EDIT_G_FN);
+                                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)openfilestring);
+
+                                        h = GetDlgItem(hdlg, IDC_TEXT_G_SIZE);
+                                        sprintf(s, "Size: %" PRIu64 " MB", (hd_new_cyl*hd_new_hpc*hd_new_spt) >> 11);
+                                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+        
+                                        hd_changed = 1;
+                                }
+                        }
+                        return TRUE;
+
+                        case IDC_HNEW:
+                        if (DialogBox(hinstance, TEXT("HdNewDlg"), hdlg, hdnew_dlgproc) == 1)
+                        {
+                                h = GetDlgItem(hdlg, IDC_EDIT_H_SPT);
+                                sprintf(s, "%" PRIu64, hd_new_spt);
+                                SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                                h = GetDlgItem(hdlg, IDC_EDIT_H_HPC);
+                                sprintf(s, "%" PRIu64, hd_new_hpc);
+                                SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                                h = GetDlgItem(hdlg, IDC_EDIT_H_CYL);
+                                sprintf(s, "%" PRIu64, hd_new_cyl);
+                                SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                                h = GetDlgItem(hdlg, IDC_EDIT_H_FN);
+                                SendMessage(h, WM_SETTEXT, 0, (LPARAM)hd_new_name);
+
+                                h=  GetDlgItem(hdlg, IDC_TEXT_H_SIZE);
+                                sprintf(s, "Size: %" PRIu64 " MB", (hd_new_cyl*hd_new_hpc*hd_new_spt) >> 11);
+                                SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+
+                                hd_changed = 1;
+                        }                              
+                        return TRUE;
+                        
+                        case IDC_HFILE:
+                        if (!getfile(hdlg, "Hard disc image (*.HDI;*.IMA;*.IMG;*.VHD)\0*.HDI;*.IMA;*.IMG;*.VHD\0All files (*.*)\0*.*\0", ""))
+                        {
+                                f = fopen64(openfilestring, "rb");
+                                if (!f)
+                                {
+                                        MessageBox(ghwnd,"Can't open file for read","86Box error",MB_OK);
+                                        return TRUE;
+                                }
+
+				if (image_is_hdi(openfilestring))
+				{
+					fseeko64(f, 0x10, SEEK_END);
+					fread(&sector_size, 1, 4, f);
+					if (sector_size != 512)
+					{
+						MessageBox(ghwnd,"HDI image with a sector size that is not 512","86Box error",MB_OK);
+						fclose(f);
+						return TRUE;
+					}
+					fread(&hd_new_spt, 1, 4, f);
+					fread(&hd_new_hpc, 1, 4, f);
+					fread(&hd_new_cyl, 1, 4, f);
+
+					ret = 1;
+				}
+				else
+				{
+	                                fseeko64(f, -1, SEEK_END);
+        	                        sz = ftello64(f) + 1;
+                	                fclose(f);
+	                                hd_new_spt = 63;
+        	                        hd_new_hpc = 16;
+                	                hd_new_cyl = ((sz / 512) / 16) / 63;
+
+					ret = DialogBox(hinstance, TEXT("HdSizeDlg"), hdlg, hdsize_dlgproc);
+                                }
+                                if (ret == 1)
+                                {
+                                        h = GetDlgItem(hdlg, IDC_EDIT_H_SPT);
+                                        sprintf(s, "%" PRIu64, hd_new_spt);
+                                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                                        h = GetDlgItem(hdlg, IDC_EDIT_H_HPC);
+                                        sprintf(s, "%" PRIu64, hd_new_hpc);
+                                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                                        h = GetDlgItem(hdlg, IDC_EDIT_H_CYL);
+                                        sprintf(s, "%" PRIu64, hd_new_cyl);
+                                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                                        h = GetDlgItem(hdlg, IDC_EDIT_H_FN);
+                                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)openfilestring);
+
+                                        h = GetDlgItem(hdlg, IDC_TEXT_H_SIZE);
+                                        sprintf(s, "Size: %" PRIu64 " MB", (hd_new_cyl*hd_new_hpc*hd_new_spt) >> 11);
+                                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+        
+                                        hd_changed = 1;
+                                }
+                        }
+                        return TRUE;
+
                         case IDC_EDIT_C_SPT: case IDC_EDIT_C_HPC: case IDC_EDIT_C_CYL:
                         h = GetDlgItem(hdlg, IDC_EDIT_C_SPT);
                         SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
@@ -1007,6 +1259,38 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
                         return TRUE;
 
+                        case IDC_EDIT_G_SPT: case IDC_EDIT_G_HPC: case IDC_EDIT_G_CYL:
+                        h = GetDlgItem(hdlg, IDC_EDIT_G_SPT);
+                        SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
+                        sscanf(s, "%" PRIu64, &hd[4].spt);
+                        h = GetDlgItem(hdlg, IDC_EDIT_G_HPC);
+                        SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
+                        sscanf(s, "%" PRIu64, &hd[4].hpc);
+                        h = GetDlgItem(hdlg, IDC_EDIT_G_CYL);
+                        SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
+                        sscanf(s, "%" PRIu64, &hd[4].tracks);
+
+                        h = GetDlgItem(hdlg, IDC_TEXT_G_SIZE);
+                        sprintf(s, "Size: %" PRIu64 " MB", (hd[4].tracks*hd[4].hpc*hd[4].spt) >> 11);
+                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                        return TRUE;
+
+                        case IDC_EDIT_H_SPT: case IDC_EDIT_H_HPC: case IDC_EDIT_H_CYL:
+                        h = GetDlgItem(hdlg, IDC_EDIT_H_SPT);
+                        SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
+                        sscanf(s, "%" PRIu64, &hd[5].spt);
+                        h = GetDlgItem(hdlg, IDC_EDIT_H_HPC);
+                        SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
+                        sscanf(s, "%" PRIu64, &hd[5].hpc);
+                        h = GetDlgItem(hdlg, IDC_EDIT_H_CYL);
+                        SendMessage(h, WM_GETTEXT, 255, (LPARAM)s);
+                        sscanf(s, "%" PRIu64, &hd[5].tracks);
+
+                        h = GetDlgItem(hdlg, IDC_TEXT_H_SIZE);
+                        sprintf(s, "Size: %" PRIu64 " MB", (hd[5].tracks*hd[5].hpc*hd[5].spt) >> 11);
+                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                        return TRUE;
+
                         case IDC_CHDD:
                         if (new_cdrom_channel == 0)
                                 new_cdrom_channel = -1;
@@ -1024,6 +1308,16 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         return TRUE;
                         case IDC_FHDD:
                         if (new_cdrom_channel == 3)
+                                new_cdrom_channel = -1;
+                        update_hdd_cdrom(hdlg);
+                        return TRUE;
+                        case IDC_GHDD:
+                        if (new_cdrom_channel == 4)
+                                new_cdrom_channel = -1;
+                        update_hdd_cdrom(hdlg);
+                        return TRUE;
+                        case IDC_HHDD:
+                        if (new_cdrom_channel == 5)
                                 new_cdrom_channel = -1;
                         update_hdd_cdrom(hdlg);
                         return TRUE;

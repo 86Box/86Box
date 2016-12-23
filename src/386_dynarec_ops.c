@@ -28,6 +28,7 @@ static inline void fetch_ea_32_long(uint32_t rmdat)
                 if (writelookup2[addr >> 12] != -1)
                    eal_w = (uint32_t *)(writelookup2[addr >> 12] + addr);
         }
+	cpu_state.last_ea = cpu_state.eaaddr;
 }
 
 static inline void fetch_ea_16_long(uint32_t rmdat)
@@ -43,12 +44,16 @@ static inline void fetch_ea_16_long(uint32_t rmdat)
                 if (writelookup2[addr >> 12] != -1)
                    eal_w = (uint32_t *)(writelookup2[addr >> 12] + addr);
         }
+	cpu_state.last_ea = cpu_state.eaaddr;
 }
 
 #define fetch_ea_16(rmdat)              cpu_state.pc++; if (cpu_mod != 3) fetch_ea_16_long(rmdat); 
 #define fetch_ea_32(rmdat)              cpu_state.pc++; if (cpu_mod != 3) fetch_ea_32_long(rmdat); 
 
 
+#define PREFETCH_RUN(instr_cycles, bytes, modrm, reads, read_ls, writes, write_ls, ea32)
+#define PREFETCH_PREFIX()
+#define PREFETCH_FLUSH()
 
 #define OP_TABLE(name) dynarec_ops_ ## name
 #define CLOCK_CYCLES(c) 

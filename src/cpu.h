@@ -78,14 +78,19 @@ typedef struct
         uint32_t cpuid_model;
         uint16_t cyrix_id;
         int cpu_flags;
+        int mem_read_cycles, mem_write_cycles;
+        int cache_read_cycles, cache_write_cycles;
 } CPU;
 
 extern CPU cpus_8088[];
 extern CPU cpus_8086[];
 extern CPU cpus_286[];
 extern CPU cpus_i386[];
+extern CPU cpus_i386DX[];
 extern CPU cpus_Am386[];
+extern CPU cpus_Am386DX[];
 extern CPU cpus_486SDLC[];
+extern CPU cpus_486DLC[];
 extern CPU cpus_i486[];
 extern CPU cpus_Am486[];
 extern CPU cpus_Cx486[];
@@ -129,6 +134,11 @@ extern uint64_t cpu_CR4_mask;
 #define CPU_REQUIRES_DYNAREC 2
 // #define CPU_REQUIRES_DYNAREC 0
 
+extern int cpu_cycles_read, cpu_cycles_read_l, cpu_cycles_write, cpu_cycles_write_l;
+extern int cpu_prefetch_cycles, cpu_prefetch_width;
+extern int cpu_waitstates;
+extern int cpu_cache_int_enabled, cpu_cache_ext_enabled;
+
 extern uint64_t tsc;
 
 void cyrix_write(uint16_t addr, uint8_t val, void *priv);
@@ -148,5 +158,7 @@ extern int xt_cpu_multi;
 #define ISA_CYCLES_SHIFT 6
 extern int isa_cycles;
 #define ISA_CYCLES(x) ((x * isa_cycles) >> ISA_CYCLES_SHIFT)
+
+void cpu_update_waitstates();
 
 #endif

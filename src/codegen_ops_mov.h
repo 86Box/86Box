@@ -504,3 +504,153 @@ static uint32_t ropMOVSX_l_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, 
         
         return op_pc + 1;
 }
+
+static uint32_t ropMOV_w_seg(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+{
+        int host_reg;
+
+        switch (fetchdat & 0x38)
+        {
+                case 0x00: /*ES*/
+                host_reg = LOAD_VAR_WL(&ES);
+                break;
+                case 0x08: /*CS*/
+                host_reg = LOAD_VAR_WL(&CS);
+                break;
+                case 0x18: /*DS*/
+                host_reg = LOAD_VAR_WL(&DS);
+                break;
+                case 0x10: /*SS*/
+                host_reg = LOAD_VAR_WL(&SS);
+                break;
+                case 0x20: /*FS*/
+                host_reg = LOAD_VAR_WL(&FS);
+                break;
+                case 0x28: /*GS*/
+                host_reg = LOAD_VAR_WL(&GS);
+                break;
+                default:
+                return 0;
+        }
+        
+        if ((fetchdat & 0xc0) == 0xc0)
+        {
+                if (op_32 & 0x100)
+                        STORE_REG_TARGET_L_RELEASE(host_reg, fetchdat & 7);
+                else
+                        STORE_REG_TARGET_W_RELEASE(host_reg, fetchdat & 7);
+        }
+        else
+        {
+                x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
+
+                STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
+                        
+                CHECK_SEG_WRITE(target_seg);
+                CHECK_SEG_LIMITS(target_seg, 1);
+
+                MEM_STORE_ADDR_EA_W(target_seg, host_reg);
+                RELEASE_REG(host_reg);
+        }
+        
+        return op_pc + 1;
+}
+static uint32_t ropMOV_seg_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+{
+        int host_reg;
+
+        switch (fetchdat & 0x38)
+        {
+                case 0x00: /*ES*/
+                case 0x18: /*DS*/
+                case 0x20: /*FS*/
+                case 0x28: /*GS*/
+                break;
+                case 0x10: /*SS*/
+                default:
+                return 0;
+        }
+
+        STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
+                
+        if ((fetchdat & 0xc0) == 0xc0)
+                host_reg = LOAD_REG_W(fetchdat & 7);
+        else
+        {
+                x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
+
+                CHECK_SEG_READ(target_seg);
+                MEM_LOAD_ADDR_EA_W(target_seg);
+                
+                host_reg = 0;
+        }
+        
+        switch (fetchdat & 0x38)
+        {
+                case 0x00: /*ES*/
+                LOAD_SEG(host_reg, &_es);
+                break;
+                case 0x18: /*DS*/
+                LOAD_SEG(host_reg, &_ds);
+                break;
+                case 0x20: /*FS*/
+                LOAD_SEG(host_reg, &_fs);
+                break;
+                case 0x28: /*GS*/
+                LOAD_SEG(host_reg, &_gs);
+                break;
+        }
+                
+        return op_pc + 1;
+}
+
+#define ropLseg(seg, rseg) \
+static uint32_t ropL ## seg(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)      \
+{                                                                                                                       \
+        int dest_reg = (fetchdat >> 3) & 7;                                                                             \
+        x86seg *target_seg;                                                                                             \
+                                                                                                                        \
+        if ((fetchdat & 0xc0) == 0xc0)                                                                                  \
+                return 0;                                                                                               \
+                                                                                                                        \
+        STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);                                                       \
+        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);                                            \
+        SAVE_EA();                                                                                                      \
+                                                                                                                        \
+        if (op_32 & 0x100)                                                                                              \
+        {                                                                                                               \
+                MEM_LOAD_ADDR_EA_L(target_seg);                                                                         \
+                STORE_HOST_REG_ADDR((uintptr_t)&codegen_temp, 0);                                                       \
+                LOAD_EA();                                                                                              \
+                MEM_LOAD_ADDR_EA_W_OFFSET(target_seg, 4);                                                               \
+        }                                                                                                               \
+        else                                                                                                            \
+        {                                                                                                               \
+                MEM_LOAD_ADDR_EA_W(target_seg);                                                                         \
+                STORE_HOST_REG_ADDR_W((uintptr_t)&codegen_temp, 0);                                                     \
+                LOAD_EA();                                                                                              \
+                MEM_LOAD_ADDR_EA_W_OFFSET(target_seg, 2);                                                               \
+        }                                                                                                               \
+        LOAD_SEG(0, &rseg);                                                                                             \
+        if (op_32 & 0x100)                                                                                              \
+        {                                                                                                               \
+                                                                                                                        \
+                int host_reg = LOAD_VAR_L((uintptr_t)&codegen_temp);                                                    \
+                STORE_REG_TARGET_L_RELEASE(host_reg, dest_reg);                                                         \
+        }                                                                                                               \
+        else                                                                                                            \
+        {                                                                                                               \
+                int host_reg = LOAD_VAR_W((uintptr_t)&codegen_temp);                                                    \
+                STORE_REG_TARGET_W_RELEASE(host_reg, dest_reg);                                                         \
+        }                                                                                                               \
+                                                                                                                        \
+        if (&rseg == &_ss)                                                                                              \
+                CPU_BLOCK_END(); /*Instruction might change stack size, so end block here*/                             \
+        return op_pc + 1;                                                                                               \
+}
+
+ropLseg(DS, _ds)
+ropLseg(ES, _es)
+ropLseg(FS, _fs)
+ropLseg(GS, _gs)
+ropLseg(SS, _ss)

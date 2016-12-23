@@ -21,11 +21,12 @@ typedef struct
         
         int irq;
 
-        void (*rcr_callback)(void *p);
+        void (*rcr_callback)(struct SERIAL *serial, void *p);
+        void *rcr_callback_p;
         uint8_t fifo[256];
         int fifo_read, fifo_write;
         
-        int64_t recieve_delay;
+        int recieve_delay;
 } SERIAL;
 
 extern SERIAL serial1, serial2;

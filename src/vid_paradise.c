@@ -240,8 +240,6 @@ void paradise_recalctimings(svga_t *svga)
                 svga->render = svga_render_8bpp_highres;
 }
 
-#define egacycles 1
-#define egacycles2 1
 void paradise_write(uint32_t addr, uint8_t val, void *p)
 {
         paradise_t *paradise = (paradise_t *)p;

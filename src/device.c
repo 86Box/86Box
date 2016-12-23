@@ -1,9 +1,8 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 #include "ibm.h"
 #include "config.h"
+#include "cpu.h"
 #include "device.h"
+#include "model.h"
 #include "sound.h"
 
 static void *device_priv[256];
@@ -19,9 +18,9 @@ void device_init()
 void device_add(device_t *d)
 {
         int c = 0;
-        void *priv;
+        void *priv = NULL;
         
-        while ((c < 256) && (devices[c] != NULL))
+        while (devices[c] != NULL && c < 256)
                 c++;
         
         if (c >= 256)
@@ -29,9 +28,12 @@ void device_add(device_t *d)
         
         current_device = d;
         
-        priv = d->init();
-        if (priv == NULL)
-                fatal("device_add : device init failed\n");
+        if (d->init != NULL)
+        {
+                priv = d->init();
+                if (priv == NULL)
+                        fatal("device_add : device init failed\n");
+        }
         
         devices[c] = d;
         device_priv[c] = priv;        
@@ -45,7 +47,8 @@ void device_close_all()
         {
                 if (devices[c] != NULL)
                 {
-                        devices[c]->close(device_priv[c]);
+                        if (devices[c]->close != NULL)
+                                devices[c]->close(device_priv[c]);
                         devices[c] = device_priv[c] = NULL;
                 }
         }
@@ -77,8 +80,8 @@ void device_speed_changed()
                         }
                 }
         }
-
-	sound_speed_changed();
+        
+        sound_speed_changed();
 }
 
 void device_force_redraw()
@@ -133,6 +136,46 @@ char *device_get_config_string(char *s)
         {
                 if (!strcmp(s, config->name))
                         return config_get_string(current_device->name, s, config->default_string);
+
+                config++;
+        }
+        return NULL;
+}
+
+int model_get_config_int(char *s)
+{
+        device_t *device = model_getdevice(model);
+        device_config_t *config;
+
+        if (!device)
+                return 0;                
+
+        config = device->config;
+        
+        while (config->type != -1)
+        {
+                if (!strcmp(s, config->name))
+                        return config_get_int(device->name, s, config->default_int);
+
+                config++;
+        }
+        return 0;
+}
+
+char *model_get_config_string(char *s)
+{
+        device_t *device = model_getdevice(model);
+        device_config_t *config;
+        
+        if (!device)
+                return 0;                
+
+        config = device->config;
+        
+        while (config->type != -1)
+        {
+                if (!strcmp(s, config->name))
+                        return config_get_string(device->name, s, config->default_string);
 
                 config++;
         }

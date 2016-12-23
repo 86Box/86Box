@@ -176,6 +176,12 @@ void *intel_flash_init(uint8_t type)
 		case ROM_MB500N:
 			strcpy(flash_path, "roms/mb500n/");
 			break;
+		case ROM_POWERMATE_V:
+			strcpy(flash_path, "roms/powermate_v/");
+			break;
+		case ROM_P54TP4XE:
+			strcpy(flash_path, "roms/p54tp4xe/");
+			break;
 		case ROM_ACERM3A:
 			strcpy(flash_path, "roms/acerm3a/");
 			break;
@@ -188,6 +194,12 @@ void *intel_flash_init(uint8_t type)
 		case ROM_P55VA:
 			strcpy(flash_path, "roms/p55va/");
 			break;
+		case ROM_P55T2P4:
+			strcpy(flash_path, "roms/p55t2p4/");
+			break;
+		case ROM_P55TVP4:
+			strcpy(flash_path, "roms/p55tvp4/");
+			break;
 		case ROM_440FX:
 			strcpy(flash_path, "roms/440fx/");
 			break;
@@ -196,6 +208,9 @@ void *intel_flash_init(uint8_t type)
 			break;
 		case ROM_THOR:
 			strcpy(flash_path, "roms/thor/");
+			break;
+		case ROM_MRTHOR:
+			strcpy(flash_path, "roms/mrthor/");
 			break;
 		default:
                 fatal("intel_flash_init on unsupported ROM set %i\n", romset);

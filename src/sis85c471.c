@@ -14,7 +14,6 @@
 #include "fdd.h"
 #include "io.h"
 #include "lpt.h"
-#include "mouse_serial.h"
 #include "serial.h"
 #include "sis85c471.h"
 
@@ -63,7 +62,6 @@ process_value:
 				{
 					serial1_init(0x3f8, 4);
 					serial2_init(0x2f8, 3);
-					mouse_serial_init();
 				}
 				else
 				{

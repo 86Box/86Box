@@ -38,7 +38,9 @@ void d86f_prepare_track_layout(int drive, int side);
 #define pre_data	length_sync + length_am
 #define post_gap	length_crc
 
+#if 0
 extern int raw_tsize[2];
 extern int gap2_size[2];
 extern int gap3_size[2];
 extern int gap4_size[2];
+#endif

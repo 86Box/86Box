@@ -424,23 +424,6 @@ static void ioctl_load(void)
 		cdrom_capacity = ioctl_get_last_block(0, 0, 4096, 0);
 }
 
-static void ioctl_readsector(uint8_t *b, int sector)
-{
-        LARGE_INTEGER pos;
-        long size;
-        if (!cdrom_drive) return;
-
-	if (ioctl_cd_state == CD_PLAYING)
-		return;
-
-        ioctl_cd_state = CD_STOPPED;        
-        pos.QuadPart=sector*2048;
-        ioctl_open(0);
-        SetFilePointer(hIOCTL,pos.LowPart,&pos.HighPart,FILE_BEGIN);
-        ReadFile(hIOCTL,b,2048,&size,NULL);
-        ioctl_close();
-}
-
 static int is_track_audio(uint32_t pos)
 {
         int c;
@@ -490,137 +473,209 @@ static int ioctl_is_track_audio(uint32_t pos, int ismsf)
 	return is_track_audio(pos);
 }
 
-/* Direct SCSI read in MSF mode. */
-int SCSIReadMSF(uint8_t *b, int sector)
+static int SCSICommand(const UCHAR *cdb, UCHAR *buf, uint32_t len)
 {
   HANDLE fh;
   DWORD ioctl_bytes;
   DWORD out_size;
+  int ioctl_rv = 0;
+  UCHAR tbuf[2856];
+  struct sptd_with_sense
+  {
+    SCSI_PASS_THROUGH_DIRECT s;
+    UCHAR sense[128];
+  } sptd;
+
+  memset(&sptd, 0, sizeof(sptd));
+  sptd.s.Length = sizeof(sptd.s);
+  // sptd.s.CdbLength = sizeof(cdb);
+  sptd.s.CdbLength = 12;
+  sptd.s.DataIn = SCSI_IOCTL_DATA_IN;
+  sptd.s.TimeOutValue = 30;
+  sptd.s.DataBuffer = tbuf;
+  sptd.s.DataTransferLength = len;
+  sptd.s.SenseInfoLength = sizeof(sptd.sense);
+  sptd.s.SenseInfoOffset = offsetof(struct sptd_with_sense, sense);
+
+	// memcpy(sptd.s.Cdb, cdb, sizeof(cdb));
+	memcpy(sptd.s.Cdb, cdb, 12);
+	ioctl_rv = DeviceIoControl(hIOCTL, IOCTL_SCSI_PASS_THROUGH_DIRECT, &sptd, sizeof(sptd), &sptd, sizeof(sptd), &ioctl_bytes, NULL);
+	memcpy(buf, sptd.s.DataBuffer, len);
+
+  return ioctl_rv;
+}
+
+static void ioctl_read_capacity(uint8_t *b)
+{
+	const UCHAR cdb[] = { 0x25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	UCHAR buf[16];
+
+	ioctl_open(0);
+
+	SCSICommand(cdb, buf, 16);
+	
+	memcpy(b, buf, 8);
+	
+	ioctl_close();
+}
+
+static void ioctl_read_header(uint8_t *in_cdb, uint8_t *b)
+{
+	const UCHAR cdb[12];
+	UCHAR buf[16];
+
+	ioctl_open(0);
+
+	memcpy(cdb, in_cdb, 12);
+	SCSICommand(cdb, buf, 16);
+	
+	memcpy(b, buf, 8);
+	
+	ioctl_close();
+}
+
+static void ioctl_read_disc_information(uint8_t *b)
+{
+	const UCHAR cdb[] = { 0x51, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	UCHAR buf[68];
+
+	ioctl_open(0);
+
+	SCSICommand(cdb, buf, 68);
+	
+	memcpy(b, buf, 34);
+	
+	ioctl_close();
+}
+
+static int SCSIReadCommon(const UCHAR *cdb_0, const UCHAR *cdb_1, const UCHAR *cdb_2, const UCHAR *cdb_4, uint8_t *b, UCHAR *buf)
+{
   int ioctl_rv;
+
+  ioctl_open(0);
+ 
+	/* Fill the buffer with zeroes. */
+	memset(b, 0, 2856);
+  
+	ioctl_rv = SCSICommand(cdb_0, buf, 2856);
+	memcpy(b, buf, 2648);
+
+	/* Next, try to read RAW subchannel data. */
+	ioctl_rv += SCSICommand(cdb_1, buf, 2856);
+	memcpy(b + 2648, buf + 2648, 96);
+
+	/* Next, try to read Q subchannel data. */
+	ioctl_rv += SCSICommand(cdb_2, buf, 2856);
+	memcpy(b + 2648 + 96, buf + 2648, 16);
+
+	/* Next, try to read R - W subchannel data. */
+	ioctl_rv += SCSICommand(cdb_4, buf, 2856);
+	memcpy(b + 2648 + 96 + 16, buf + 2648, 96);
+
+  ioctl_close();
+  
+    // pclog("rv: %i\n", ioctl_rv);
+
+	return ioctl_rv;
+}
+
+/* Direct SCSI read in MSF mode. */
+static int SCSIReadMSF(uint8_t *b, int sector)
+{
   const UCHAR cdb_0[] = { 0xB9, 0, 0, ((sector >> 16) & 0xff), ((sector >> 8) & 0xff), (sector & 0xff), ((sector >> 16) & 0xff), ((sector >> 8) & 0xff), (sector & 0xff), 0xFC, 0, 0 };
   const UCHAR cdb_1[] = { 0xB9, 0, 0, ((sector >> 16) & 0xff), ((sector >> 8) & 0xff), (sector & 0xff), ((sector >> 16) & 0xff), ((sector >> 8) & 0xff), (sector & 0xff), 0xFC, 1, 0 };
   const UCHAR cdb_2[] = { 0xB9, 0, 0, ((sector >> 16) & 0xff), ((sector >> 8) & 0xff), (sector & 0xff), ((sector >> 16) & 0xff), ((sector >> 8) & 0xff), (sector & 0xff), 0xFC, 2, 0 };
   const UCHAR cdb_4[] = { 0xB9, 0, 0, ((sector >> 16) & 0xff), ((sector >> 8) & 0xff), (sector & 0xff), ((sector >> 16) & 0xff), ((sector >> 8) & 0xff), (sector & 0xff), 0xFC, 4, 0 };
   UCHAR buf[2856];
-  struct sptd_with_sense
-  {
-    SCSI_PASS_THROUGH_DIRECT s;
-    UCHAR sense[128];
-  } sptd;
 
-  ioctl_open(0);
-
-  memset(&sptd, 0, sizeof(sptd));
-  sptd.s.Length = sizeof(sptd.s);
-  sptd.s.CdbLength = sizeof(cdb_0);		/* All 4 of our CDB's are identically sized, therefore we can take this shortcut. */
-  sptd.s.DataIn = SCSI_IOCTL_DATA_IN;
-  sptd.s.TimeOutValue = 30;
-  sptd.s.DataBuffer = buf;
-  sptd.s.DataTransferLength = 2856;
-  sptd.s.SenseInfoLength = sizeof(sptd.sense);
-  sptd.s.SenseInfoOffset = offsetof(struct sptd_with_sense, sense);
-
-	/* Fill the buffer with zeroes. */
-	memset(b, 0, 2856);
-  
-	/* First, read without subchannel data so we at least have *SOMETHING*. */
-	memcpy(sptd.s.Cdb, cdb_0, sizeof(cdb_0));
-	ioctl_rv = DeviceIoControl(hIOCTL, IOCTL_SCSI_PASS_THROUGH_DIRECT, &sptd, sizeof(sptd), &sptd, sizeof(sptd), &ioctl_bytes, NULL);
-	// pclog("Read (%i) without subchannel data: %s\n", sector, ioctl_rv ? "SUCCESS" : "FAILURE");
-	memcpy(b, sptd.s.DataBuffer, 2648);
-
-	/* Next, try to read RAW subchannel data. */
-	memcpy(sptd.s.Cdb, cdb_1, sizeof(cdb_1));
-	ioctl_rv += DeviceIoControl(hIOCTL, IOCTL_SCSI_PASS_THROUGH_DIRECT, &sptd, sizeof(sptd), &sptd, sizeof(sptd), &ioctl_bytes, NULL);
-	// pclog("Read (%i) with RAW subchannel data: %s\n", sector, ioctl_rv ? "SUCCESS" : "FAILURE");
-	memcpy(b + 2648, sptd.s.DataBuffer + 2648, 96);
-
-	/* Next, try to read Q subchannel data. */
-	memcpy(sptd.s.Cdb, cdb_2, sizeof(cdb_2));
-	ioctl_rv += DeviceIoControl(hIOCTL, IOCTL_SCSI_PASS_THROUGH_DIRECT, &sptd, sizeof(sptd), &sptd, sizeof(sptd), &ioctl_bytes, NULL);
-	// pclog("Read (%i) with Q subchannel data: %s\n", sector, ioctl_rv ? "SUCCESS" : "FAILURE");
-	memcpy(b + 2648 + 96, sptd.s.DataBuffer + 2648, 16);
-
-	/* Next, try to read R - W subchannel data. */
-	memcpy(sptd.s.Cdb, cdb_4, sizeof(cdb_4));
-	ioctl_rv += DeviceIoControl(hIOCTL, IOCTL_SCSI_PASS_THROUGH_DIRECT, &sptd, sizeof(sptd), &sptd, sizeof(sptd), &ioctl_bytes, NULL);
-	// pclog("Read (%i) with R - W subchannel data: %s\n", sector, ioctl_rv ? "SUCCESS" : "FAILURE");
-	memcpy(b + 2648 + 96 + 16, sptd.s.DataBuffer + 2648, 96);
-
-  ioctl_close();
-
-  return ioctl_rv;
+  return SCSIReadCommon(cdb_0, cdb_1, cdb_2, cdb_4, b, buf);
 }
 
 /* Direct SCSI read in LBA mode. */
-void SCSIRead(uint8_t *b, int sector)
+static void SCSIRead(uint8_t *b, int sector)
 {
-  HANDLE fh;
-  DWORD ioctl_bytes;
-  DWORD out_size;
-  BOOL ioctl_rv;
   const UCHAR cdb_0[] = { 0xBE, 0, (sector >> 24), ((sector >> 16) & 0xff), ((sector >> 8) & 0xff), (sector & 0xff), 0, 0, 1, 0xFC, 0, 0 };
   const UCHAR cdb_1[] = { 0xBE, 0, (sector >> 24), ((sector >> 16) & 0xff), ((sector >> 8) & 0xff), (sector & 0xff), 0, 0, 1, 0xFC, 1, 0 };
   const UCHAR cdb_2[] = { 0xBE, 0, (sector >> 24), ((sector >> 16) & 0xff), ((sector >> 8) & 0xff), (sector & 0xff), 0, 0, 1, 0xFC, 2, 0 };
   const UCHAR cdb_4[] = { 0xBE, 0, (sector >> 24), ((sector >> 16) & 0xff), ((sector >> 8) & 0xff), (sector & 0xff), 0, 0, 1, 0xFC, 4, 0 };
   UCHAR buf[2856];
-  struct sptd_with_sense
+
+  SCSIReadCommon(cdb_0, cdb_1, cdb_2, cdb_4, b, buf);
+  return;
+}
+
+static uint32_t msf_to_lba32(int lba)
+{
+	int m = (lba >> 16) & 0xff;
+	int s = (lba >> 8) & 0xff;
+	int f = lba & 0xff;
+	return (m * 60 * 75) + (s * 75) + f;
+}
+
+static int ioctl_get_type(UCHAR *cdb, UCHAR *buf)
+{
+  int i = 0;
+  int ioctl_rv = 0;
+  
+  for (i = 2; i <= 5; i++)
   {
-    SCSI_PASS_THROUGH_DIRECT s;
-    UCHAR sense[128];
-  } sptd;
+	  cdb[1] = i << 2;
+	  ioctl_rv = SCSICommand(cdb, buf, 2352);
+	  if (ioctl_rv)
+	  {
+		  return i;
+	  }
+  }
+  return 0;
+}
+
+static int ioctl_sector_data_type(int sector, int ismsf)
+{
+  int ioctl_rv = 0;
+  const UCHAR cdb_lba[] = { 0xBE, 0, (sector >> 24), ((sector >> 16) & 0xff), ((sector >> 8) & 0xff), (sector & 0xff), 0, 0, 1, 0x10, 0, 0 };
+  const UCHAR cdb_msf[] = { 0xB9, 0, 0, ((sector >> 16) & 0xff), ((sector >> 8) & 0xff), (sector & 0xff), ((sector >> 16) & 0xff), ((sector >> 8) & 0xff), (sector & 0xff), 0x10, 0, 0 };
+  UCHAR buf[2352];
 
   ioctl_open(0);
 
-  memset(&sptd, 0, sizeof(sptd));
-  sptd.s.Length = sizeof(sptd.s);
-  sptd.s.CdbLength = sizeof(cdb_0);		/* All 4 of our CDB's are identically sized, therefore we can take this shortcut. */
-  sptd.s.DataIn = SCSI_IOCTL_DATA_IN;
-  sptd.s.TimeOutValue = 30;
-  sptd.s.DataBuffer = buf;
-  sptd.s.DataTransferLength = 2856;
-  sptd.s.SenseInfoLength = sizeof(sptd.sense);
-  sptd.s.SenseInfoOffset = offsetof(struct sptd_with_sense, sense);
-
-	/* Fill the buffer with zeroes. */
-	memset(b, 0, 2856);
+  if (ioctl_is_track_audio(sector, ismsf))
+  {
+	  return 1;
+  }
   
-	/* First, read without subchannel data so we at least have *SOMETHING*. */
-	memcpy(sptd.s.Cdb, cdb_0, sizeof(cdb_0));
-	ioctl_rv = DeviceIoControl(hIOCTL, IOCTL_SCSI_PASS_THROUGH_DIRECT, &sptd, sizeof(sptd), &sptd, sizeof(sptd), &ioctl_bytes, NULL);
-	// pclog("Read (%i) without subchannel data: %s\n", sector, ioctl_rv ? "SUCCESS" : "FAILURE");
-	memcpy(b, sptd.s.DataBuffer, 2648);
+  if (ismsf)
+  {
+	  ioctl_rv = ioctl_get_type(cdb_msf, buf);
+  }
+  else
+  {
+	  ioctl_rv = ioctl_get_type(cdb_lba, buf);
+  }
 
-	/* Next, try to read RAW subchannel data. */
-	memcpy(sptd.s.Cdb, cdb_1, sizeof(cdb_1));
-	ioctl_rv = DeviceIoControl(hIOCTL, IOCTL_SCSI_PASS_THROUGH_DIRECT, &sptd, sizeof(sptd), &sptd, sizeof(sptd), &ioctl_bytes, NULL);
-	// pclog("Read (%i) with RAW subchannel data: %s\n", sector, ioctl_rv ? "SUCCESS" : "FAILURE");
-	memcpy(b + 2648, sptd.s.DataBuffer + 2648, 96);
-
-	/* Next, try to read Q subchannel data. */
-	memcpy(sptd.s.Cdb, cdb_2, sizeof(cdb_2));
-	ioctl_rv = DeviceIoControl(hIOCTL, IOCTL_SCSI_PASS_THROUGH_DIRECT, &sptd, sizeof(sptd), &sptd, sizeof(sptd), &ioctl_bytes, NULL);
-	// pclog("Read (%i) with Q subchannel data: %s\n", sector, ioctl_rv ? "SUCCESS" : "FAILURE");
-	memcpy(b + 2648 + 96, sptd.s.DataBuffer + 2648, 16);
-
-	/* Next, try to read R - W subchannel data. */
-	memcpy(sptd.s.Cdb, cdb_4, sizeof(cdb_4));
-	ioctl_rv = DeviceIoControl(hIOCTL, IOCTL_SCSI_PASS_THROUGH_DIRECT, &sptd, sizeof(sptd), &sptd, sizeof(sptd), &ioctl_bytes, NULL);
-	// pclog("Read (%i) with R - W subchannel data: %s\n", sector, ioctl_rv ? "SUCCESS" : "FAILURE");
-	memcpy(b + 2648 + 96 + 16, sptd.s.DataBuffer + 2648, 96);
-
+  if (ioctl_rv)
+  {
+	  ioctl_close();
+	  return ioctl_rv;
+  }
+  
+  if (ismsf)
+  {
+	  sector = msf_to_lba32(sector);
+	  if (sector < 150)
+	  {
+		  ioctl_close();
+		  return 0;
+	  }
+	  sector -= 150;
+	  ioctl_rv = ioctl_get_type(cdb_lba, buf);
+  }
+  
   ioctl_close();
-
-  return;
+  return ioctl_rv;
 }
 
 static void ioctl_readsector_raw(uint8_t *b, int sector, int ismsf)
 {
-		RAW_READ_INFO in;
-        LARGE_INTEGER pos;
-		DWORD count = 0;
-        long size;
-		uint32_t temp;
         if (!cdrom_drive) return;
 		if (ioctl_cd_state == CD_PLAYING)
 			return;
@@ -629,16 +684,13 @@ static void ioctl_readsector_raw(uint8_t *b, int sector, int ismsf)
 		{
 			if (!SCSIReadMSF(b, sector))
 			{
-				int m = (sector >> 16) & 0xff;
-				int s = (sector >> 8) & 0xff;
-				int f = sector & 0xff;
-				sector = (m * 60 * 75) + (s * 75) + f;
+				sector = msf_to_lba32(sector);
 				if (sector < 150)
 				{
 					memset(b, 0, 2856);
 					return;
 				}
-				sector += 150;
+				sector -= 150;
 				SCSIRead(b, sector);
 			}
 		}
@@ -805,7 +857,15 @@ static int ioctl_readtoc_raw(unsigned char *b, int maxlen)
 
 static uint32_t ioctl_size()
 {
-        return cdrom_capacity;
+		uint8_t capacity_buffer[8];
+		uint32_t capacity = 0;
+		ioctl_read_capacity(capacity_buffer);
+		capacity = ((uint32_t) capacity_buffer[0]) << 24;
+		capacity |= ((uint32_t) capacity_buffer[1]) << 16;
+		capacity |= ((uint32_t) capacity_buffer[2]) << 8;
+		capacity |= (uint32_t) capacity_buffer[3];
+		return capacity + 1;
+        // return cdrom_capacity;
 }
 
 static int ioctl_status()
@@ -891,13 +951,16 @@ static void ioctl_exit(void)
 static CDROM ioctl_cdrom=
 {
         ioctl_ready,
-	ioctl_medium_changed,
+		ioctl_medium_changed,
         ioctl_readtoc,
         ioctl_readtoc_session,
-	ioctl_readtoc_raw,
+		ioctl_readtoc_raw,
         ioctl_getcurrentsubchannel,
-        ioctl_readsector,
-	ioctl_readsector_raw,
+		ioctl_read_capacity,
+		ioctl_read_header,
+		ioctl_read_disc_information,
+		ioctl_sector_data_type,
+		ioctl_readsector_raw,
         ioctl_playaudio,
         ioctl_seek,
         ioctl_load,
@@ -905,8 +968,8 @@ static CDROM ioctl_cdrom=
         ioctl_pause,
         ioctl_resume,
         ioctl_size,
-	ioctl_status,
-	ioctl_is_track_audio,
+		ioctl_status,
+		ioctl_is_track_audio,
         ioctl_stop,
         ioctl_exit
 };

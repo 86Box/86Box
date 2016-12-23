@@ -28,7 +28,7 @@ static void write_lock(uint8_t val)
 
 void fdc37c665_write(uint16_t port, uint8_t val, void *priv)
 {
-        pclog("Write SuperIO %04x %02x\n", port, val);
+        // pclog("Write SuperIO %04x %02x\n", port, val);
         if (fdc37c665_lock[0] == 0x55 && fdc37c665_lock[1] == 0x55)
         {
                 if (port == 0x3f0)
@@ -130,7 +130,7 @@ void fdc37c665_write(uint16_t port, uint8_t val, void *priv)
 
 uint8_t fdc37c665_read(uint16_t port, void *priv)
 {
-        pclog("Read SuperIO %04x %02x\n", port, fdc37c665_curreg);
+        // pclog("Read SuperIO %04x %02x\n", port, fdc37c665_curreg);
         if (fdc37c665_lock[0] == 0x55 && fdc37c665_lock[1] == 0x55)
         {
                 if (port == 0x3f1)

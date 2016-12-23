@@ -62,8 +62,9 @@ static void null_load(void)
 {
 }
 
-static void null_readsector(uint8_t *b, int sector)
+static int null_sector_data_type(int sector, int ismsf)
 {
+	return 0;
 }
 
 static void null_readsector_raw(uint8_t *b, int sector, int ismsf)
@@ -126,7 +127,10 @@ static CDROM null_cdrom =
         null_readtoc_session,
 		null_readtoc_raw,
         null_getcurrentsubchannel,
-        null_readsector,
+        NULL,
+        NULL,
+        NULL,
+		null_sector_data_type,
 		null_readsector_raw,
         null_playaudio,
         null_seek,

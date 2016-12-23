@@ -29,7 +29,6 @@ extern int cpl_override;
 
 int has_fpu;
 extern int fpucount;
-int times;
 uint16_t rds;
 uint16_t ea_rseg;
 
@@ -40,7 +39,6 @@ int cgate32;
 
 uint8_t romext[32768];
 uint8_t *ram,*rom;
-uint16_t biosmask;
 
 uint32_t rmdat32;
 #define rmdat rmdat32
@@ -289,6 +287,7 @@ dontprint=0;
                                 {
                                         cpu_state.abrt = 0;
                                         softresetx86();
+					cpu_set_edx();
                                         pclog("Triple fault - reset\n");
                                 }
                         }

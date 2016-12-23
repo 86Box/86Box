@@ -9,7 +9,6 @@
 #include "device.h"
 
 #include "ali1429.h"
-#include "amstrad.h"
 #include "cdrom-ioctl.h"
 #include "disc.h"
 #include "mem.h"
@@ -46,6 +45,7 @@
 #include "timer.h"
 #include "vid_voodoo.h"
 #include "video.h"
+#include "amstrad.h"
 #include "nethandler.h"
 #define NE2000      1
 #define RTL8029AS   2
@@ -58,7 +58,6 @@ int path_len;
 int window_w, window_h, window_x, window_y, window_remember;
 
 int start_in_fullscreen = 0;
-int frame = 0;
 
 int scsi_cdrom_enabled;
 int cdrom_enabled;
@@ -75,7 +74,6 @@ extern int readlnum,writelnum;
 void fullspeed();
 
 int framecount,fps;
-int intcount;
 
 int output;
 int atfullspeed;
@@ -115,15 +113,15 @@ uint8_t cgastat;
 int pollmouse_delay = 2;
 void pollmouse()
 {
-        int x,y;
+        int x, y, z;
 //        return;
         pollmouse_delay--;
         if (pollmouse_delay) return;
         pollmouse_delay = 2;
         mouse_poll_host();
-        mouse_get_mickeys(&x,&y);
+        mouse_get_mickeys(&x, &y, &z);
         if (mouse_poll)
-           mouse_poll(x, y, mouse_buttons);
+           mouse_poll(x, y, z, mouse_buttons);
 //        if (mousecapture) position_mouse(64,64);
 }
 
@@ -187,7 +185,6 @@ void pc_reset()
 {
         cpu_set();
         resetx86();
-        mem_updatecache();
         //timer_reset();
         dma_reset();
         fdc_reset();
@@ -288,6 +285,8 @@ void initpc(int argc, char *argv[])
 
         disc_load(0, discfns[0]);
         disc_load(1, discfns[1]);
+        disc_load(2, discfns[2]);
+        disc_load(3, discfns[3]);
                 
         //loadfont();
         loadnvr();
@@ -386,6 +385,7 @@ void resetpchard()
 	saveconfig();
 
         device_close_all();
+	mouse_emu_close();
         device_init();
         
         midi_close();
@@ -398,6 +398,7 @@ void resetpchard()
 	disc_reset();
         
         model_init();
+	mouse_emu_init();
 	// mem_add_bios();
         video_init();
         speaker_init();        
@@ -435,6 +436,8 @@ void resetpchard()
         
         keyboard_at_reset();
         
+	cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
+
 //        output=3;
 
 	if ((cdrom_drive == -1) || (cdrom_drive == 0))
@@ -539,19 +542,16 @@ void runpc()
                         egareads=egawrites=0;
                         cycles_lost = 0;
                         mmuflush=0;
-                        intcount=0;
-                        intcount=pitcount=0;
                         emu_fps = frames;
                         frames = 0;
                 }
                 if (win_title_update)
                 {
                         win_title_update=0;
-                        sprintf(s, "86Box v%s - %i%% - %s - %s - %s", emulator_version, fps, model_getname(), models[model].cpu[cpu_manufacturer].cpus[cpu].name, (!mousecapture) ? "Click to capture mouse" : "Press F12-F8 or middle button to release mouse");
+                        sprintf(s, "86Box v%s - %i%% - %s - %s - %s", emulator_version, fps, model_getname(), models[model].cpu[cpu_manufacturer].cpus[cpu].name, (!mousecapture) ? "Click to capture mouse" : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? "Press F12-F8 to release mouse" : "Press F12-F8 or middle button to release mouse"));
                         set_window_title(s);
                 }
                 done++;
-                frame++;
 }
 
 void fullspeed()
@@ -577,7 +577,6 @@ void speedchanged()
                 setpitclock(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed);
         else
                 setpitclock(14318184.0);
-        mem_updatecache();
         nvr_recalc();
 }
 
@@ -591,6 +590,8 @@ void closepc()
 //        while (1) runpc();
         disc_close(0);
         disc_close(1);
+        disc_close(2);
+        disc_close(3);
         dumpregs();
         closevideo();
         device_close_all();
@@ -609,8 +610,6 @@ void closepc()
 }
 
 END_OF_MAIN();*/
-
-int cga_comp=0;
 
 void loadconfig(char *fn)
 {
@@ -649,6 +648,8 @@ void loadconfig(char *fn)
         cpu = config_get_int(NULL, "cpu", 0);
         cpu_use_dynarec = config_get_int(NULL, "cpu_use_dynarec", 0);
         
+	cpu_waitstates = config_get_int(NULL, "cpu_waitstates", 0);
+                
         gfxcard = config_get_int(NULL, "gfxcard", 0);
         video_speed = config_get_int(NULL, "video_speed", 3);
         sound_card_current = config_get_int(NULL, "sndcard", SB2);
@@ -666,9 +667,19 @@ void loadconfig(char *fn)
         else   strcpy(discfns[1], "");
         ui_writeprot[1] = config_get_int(NULL, "disc_b_writeprot", 0);
 
+        p = (char *)config_get_string(NULL, "disc_3", "");
+        if (p) strcpy(discfns[2], p);
+        else   strcpy(discfns[2], "");
+        ui_writeprot[2] = config_get_int(NULL, "disc_3_writeprot", 0);
+
+        p = (char *)config_get_string(NULL, "disc_4", "");
+        if (p) strcpy(discfns[3], p);
+        else   strcpy(discfns[3], "");
+        ui_writeprot[3] = config_get_int(NULL, "disc_4_writeprot", 0);
+
         mem_size = config_get_int(NULL, "mem_size", 4096);
-        if (mem_size < (models[model].is_at ? models[model].min_ram*1024 : models[model].min_ram))
-                mem_size = (models[model].is_at ? models[model].min_ram*1024 : models[model].min_ram);
+        if (mem_size < ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram))
+                mem_size = ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram);
 
         cdrom_drive = config_get_int(NULL, "cdrom_drive", 0);
 		old_cdrom_drive = cdrom_drive;
@@ -682,10 +693,6 @@ void loadconfig(char *fn)
         p = (char *)config_get_string(NULL, "cdrom_path", "");
         if (p) strcpy(iso_path, p);
         else   strcpy(iso_path, "");
-        
-        slowega = config_get_int(NULL, "slow_video", 1);
-        cache = config_get_int(NULL, "cache", 3);
-        cga_comp = config_get_int(NULL, "cga_composite", 0);
         
         vid_resize = config_get_int(NULL, "vid_resize", 0);
         vid_api = config_get_int(NULL, "vid_api", 0);
@@ -716,16 +723,29 @@ void loadconfig(char *fn)
         p = (char *)config_get_string(NULL, "hdf_fn", "");
         if (p) strcpy(ide_fn[3], p);
         else   strcpy(ide_fn[3], "");
+        hdc[4].spt = config_get_int(NULL, "hdg_sectors", 0);
+        hdc[4].hpc = config_get_int(NULL, "hdg_heads", 0);
+        hdc[4].tracks = config_get_int(NULL, "hdg_cylinders", 0);
+        p = (char *)config_get_string(NULL, "hdg_fn", "");
+        if (p) strcpy(ide_fn[4], p);
+        else   strcpy(ide_fn[4], "");
+        hdc[5].spt = config_get_int(NULL, "hdh_sectors", 0);
+        hdc[5].hpc = config_get_int(NULL, "hdh_heads", 0);
+        hdc[5].tracks = config_get_int(NULL, "hdh_cylinders", 0);
+        p = (char *)config_get_string(NULL, "hdh_fn", "");
+        if (p) strcpy(ide_fn[5], p);
+        else   strcpy(ide_fn[5], "");
 
-	fdd_set_type(0, config_get_int(NULL, "drive_a_type", 7));
-        fdd_set_type(1, config_get_int(NULL, "drive_b_type", 7));
+	fdd_set_type(0, config_get_int(NULL, "drive_a_type", 1));
+        fdd_set_type(1, config_get_int(NULL, "drive_b_type", 1));
+        fdd_set_type(2, config_get_int(NULL, "drive_3_type", 1));
+        fdd_set_type(3, config_get_int(NULL, "drive_4_type", 1));
 
 	force_43 = config_get_int(NULL, "force_43", 0);
 	enable_overscan = config_get_int(NULL, "enable_overscan", 0);
         enable_flash = config_get_int(NULL, "enable_flash", 1);
 
         enable_sync = config_get_int(NULL, "enable_sync", 1);
-        mouse_always_serial = config_get_int(NULL, "mouse_always_serial", 0);
 
         window_w = config_get_int(NULL, "window_w", 0);
         window_h = config_get_int(NULL, "window_h", 0);
@@ -734,6 +754,7 @@ void loadconfig(char *fn)
         window_remember = config_get_int(NULL, "window_remember", 0);
 
         joystick_type = config_get_int(NULL, "joystick_type", 0);
+	mouse_type = config_get_int(NULL, "mouse_type", 0);
 
         for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++)
         {
@@ -806,19 +827,21 @@ void saveconfig()
         config_set_int(NULL, "cpu_manufacturer", cpu_manufacturer);
         config_set_int(NULL, "cpu", cpu);
         config_set_int(NULL, "cpu_use_dynarec", cpu_use_dynarec);
+	config_set_int(NULL, "cpu_waitstates", cpu_waitstates);
         
         config_set_int(NULL, "gfxcard", gfxcard);
         config_set_int(NULL, "video_speed", video_speed);
         config_set_int(NULL, "sndcard", sound_card_current);
         config_set_int(NULL, "cpu_speed", cpuspeed);
         config_set_int(NULL, "has_fpu", hasfpu);
-        config_set_int(NULL, "slow_video", slowega);
-        config_set_int(NULL, "cache", cache);
-        config_set_int(NULL, "cga_composite", cga_comp);
         config_set_string(NULL, "disc_a", discfns[0]);
         config_set_int(NULL, "disc_a_writeprot", ui_writeprot[0]);
         config_set_string(NULL, "disc_b", discfns[1]);
         config_set_int(NULL, "disc_b_writeprot", ui_writeprot[1]);
+        config_set_string(NULL, "disc_3", discfns[2]);
+        config_set_int(NULL, "disc_3_writeprot", ui_writeprot[2]);
+        config_set_string(NULL, "disc_4", discfns[3]);
+        config_set_int(NULL, "disc_4_writeprot", ui_writeprot[3]);
         config_set_int(NULL, "mem_size", mem_size);
         config_set_int(NULL, "cdrom_drive", cdrom_drive);
         config_set_int(NULL, "cdrom_enabled", cdrom_enabled);
@@ -850,18 +873,28 @@ void saveconfig()
         config_set_int(NULL, "hdf_heads", hdc[3].hpc);
         config_set_int(NULL, "hdf_cylinders", hdc[3].tracks);
         config_set_string(NULL, "hdf_fn", ide_fn[3]);
+        config_set_int(NULL, "hdg_sectors", hdc[4].spt);
+        config_set_int(NULL, "hdg_heads", hdc[4].hpc);
+        config_set_int(NULL, "hdg_cylinders", hdc[4].tracks);
+        config_set_string(NULL, "hdg_fn", ide_fn[4]);
+        config_set_int(NULL, "hdh_sectors", hdc[5].spt);
+        config_set_int(NULL, "hdh_heads", hdc[5].hpc);
+        config_set_int(NULL, "hdh_cylinders", hdc[5].tracks);
+        config_set_string(NULL, "hdh_fn", ide_fn[5]);
 
         config_set_int(NULL, "drive_a_type", fdd_get_type(0));
         config_set_int(NULL, "drive_b_type", fdd_get_type(1));
+        config_set_int(NULL, "drive_3_type", fdd_get_type(2));
+        config_set_int(NULL, "drive_4_type", fdd_get_type(3));
 
         config_set_int(NULL, "force_43", force_43);
         config_set_int(NULL, "enable_overscan", enable_overscan);
         config_set_int(NULL, "enable_flash", enable_flash);
         
         config_set_int(NULL, "enable_sync", enable_sync);
-        config_set_int(NULL, "mouse_always_serial", mouse_always_serial);
 
         config_set_int(NULL, "joystick_type", joystick_type);
+        config_set_int(NULL, "mouse_type", mouse_type);
 
         for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++)
         {

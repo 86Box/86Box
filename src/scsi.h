@@ -181,6 +181,11 @@ extern int prev_status;
 #define SCSI_HDD 1 /*not present yet*/
 #define SCSI_CDROM 2
 
+// extern sector_buffer_t cdrom_sector_buffer;
+
+// extern int cdrom_sector_type, cdrom_sector_flags;
+// extern int cdrom_sector_size, cdrom_sector_ismsf;
+
 typedef struct SCSI
 {
 	uint8_t Cdb[32];
@@ -188,9 +193,13 @@ typedef struct SCSI
 	SGBUF SegmentBuffer;
 	int SectorLen;
 	int SectorLba;
+	int BufferLength;
 	int BufferPosition;
 	SGSEG SegmentData;
 	int LunType;
+	uint8_t PacketStatus;
+	int ReadCDCallback;
+	int RequestSenseEnabled;
 	void *p;
 } SCSI;
 
@@ -198,15 +207,14 @@ SCSI ScsiDrives[7];
 
 void SCSIQueryResidual(SCSI *Scsi, uint32_t *Residual);
 
-void SCSISendCommand(SCSI *Scsi, uint8_t Id, uint8_t *Cdb, uint8_t CdbLength, 
-									uint32_t BufferLength, uint8_t *SenseBufferPointer, 
-									uint8_t SenseBufferLength);
+void SCSISendCommand(SCSI *Scsi, uint8_t Id, uint8_t *Cdb, uint8_t CdbLength,
+					uint32_t DataBufferLength, uint8_t *SenseBufferPointer, 
+					uint8_t SenseBufferLength);
 
 uint32_t (*pfnIoRequestCopyFromBuffer)(uint32_t OffDst, SGBUF *SegmentBuffer,
 										uint32_t Copy);
 uint32_t (*pfnIoRequestCopyToBuffer)(uint32_t OffSrc, SGBUF *SegmentBuffer,
-										uint32_t Copy);
-										
+										uint32_t Copy);									
 void SCSIReadTransfer(SCSI *Scsi, uint8_t Id);
 void SCSIWriteTransfer(SCSI *Scsi, uint8_t Id);									
 										
@@ -217,6 +225,8 @@ extern uint8_t SCSICDROMSetProfile(uint8_t *buf, uint8_t *index, uint16_t profil
 extern int SCSICDROMReadDVDStructure(int format, const uint8_t *packet, uint8_t *buf);
 extern uint32_t SCSICDROMEventStatus(uint8_t *buffer);
 
+extern void SCSICDROM_ReadyHandler(int IsReady);
 extern void SCSICDROM_Insert();
+// extern int cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type);
 
 #endif

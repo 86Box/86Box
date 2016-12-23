@@ -1,4 +1,4 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 extern device_t tandy_device;
+
+extern device_t tandy1000_device;
+extern device_t tandy1000hx_device;
