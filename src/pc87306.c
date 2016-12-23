@@ -265,7 +265,7 @@ process_value:
 			}
 			break;
 		case 9:
-			pclog("Setting DENSEL polarity to: %i (before: %i)\n", (val & 0x40 ? 1 : 0), fdc_get_densel_polarity());
+			// pclog("Setting DENSEL polarity to: %i (before: %i)\n", (val & 0x40 ? 1 : 0), fdc_get_densel_polarity());
 			fdc_update_enh_mode((val & 4) ? 1 : 0);
 			fdc_update_densel_polarity((val & 0x40) ? 1 : 0);
 			break;
