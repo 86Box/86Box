@@ -1976,7 +1976,7 @@ static void atapicommand(int ide_board)
 
 		idebufferb[0]=0x80|0x70;
 
-		if ((SCSISense.SenseKey > 0) || (cd_status < CD_STATUS_PLAYING))
+		if ((SCSISense.SenseKey > 0) && ((cd_status < CD_STATUS_PLAYING) || (cd_status == CD_STATUS_STOPPED)))
 		{
 			if (completed)
 			{

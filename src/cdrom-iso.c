@@ -95,10 +95,11 @@ static int iso_medium_changed(void)
 	{
 		return 0;
 	}
+
 	if (old_cdrom_drive != cdrom_drive)
 	{
 		old_cdrom_drive = cdrom_drive;
-		return 0;
+		return 1;
 	}
 	
 	if (iso_changed)

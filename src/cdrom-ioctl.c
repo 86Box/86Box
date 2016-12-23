@@ -303,17 +303,20 @@ static int ioctl_medium_changed(void)
                 if (cdrom_drive != old_cdrom_drive)
                         old_cdrom_drive = cdrom_drive;
 				cdrom_capacity = ioctl_get_last_block(0, 0, 4096, 0);
-                return 0;
+                return 1;
         }
-        if ((ltoc.TrackData[ltoc.LastTrack].Address[1] != toc.TrackData[toc.LastTrack].Address[1]) ||
-            (ltoc.TrackData[ltoc.LastTrack].Address[2] != toc.TrackData[toc.LastTrack].Address[2]) ||
-            (ltoc.TrackData[ltoc.LastTrack].Address[3] != toc.TrackData[toc.LastTrack].Address[3]))
-	{
-                ioctl_cd_state = CD_STOPPED;
-                toc = ltoc;
-				cdrom_capacity = ioctl_get_last_block(0, 0, 4096, 0);
-		return 1; /* TOC mismatches. */
-	}
+		else
+		{
+			if ((ltoc.TrackData[ltoc.LastTrack].Address[1] != toc.TrackData[toc.LastTrack].Address[1]) ||
+				(ltoc.TrackData[ltoc.LastTrack].Address[2] != toc.TrackData[toc.LastTrack].Address[2]) ||
+				(ltoc.TrackData[ltoc.LastTrack].Address[3] != toc.TrackData[toc.LastTrack].Address[3]))
+			{
+					ioctl_cd_state = CD_STOPPED;
+					toc = ltoc;
+					cdrom_capacity = ioctl_get_last_block(0, 0, 4096, 0);
+					return 1; /* TOC mismatches. */
+			}
+		}
         return 0; /* None of the above, return 0. */
 }
 
