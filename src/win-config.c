@@ -445,6 +445,7 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                         sound_card_current = temp_sound_card_current;
                                         voodoo_enabled = temp_voodoo;
                                         cpu_use_dynarec = temp_dynarec;
+                                        mouse_type = temp_mouse_type;
 
 					fdd_set_type(0, temp_fd1_type);
 					fdd_set_type(1, temp_fd2_type);
