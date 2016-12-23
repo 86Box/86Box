@@ -104,7 +104,7 @@ static int iso_medium_changed(void)
 	if (iso_changed)
 	{
 		iso_changed = 0;
-		return 0;
+		return 1;
 	}
 
 	return 0;
