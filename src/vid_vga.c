@@ -120,9 +120,9 @@ void *trigem_unk_init()
 
         io_sethandler(0x03c0, 0x0020, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
 
-	io_sethandler(0x22ca, 0x0002, svga_in, NULL, NULL, svga_out, NULL, NULL, svga);
-	io_sethandler(0x22ce, 0x0002, svga_in, NULL, NULL, svga_out, NULL, NULL, svga);
-	io_sethandler(0x32ca, 0x0002, svga_in, NULL, NULL, svga_out, NULL, NULL, svga);
+	io_sethandler(0x22ca, 0x0002, svga_in, NULL, NULL, vga_out, NULL, NULL, vga);
+	io_sethandler(0x22ce, 0x0002, svga_in, NULL, NULL, vga_out, NULL, NULL, vga);
+	io_sethandler(0x32ca, 0x0002, svga_in, NULL, NULL, vga_out, NULL, NULL, vga);
 
         vga->svga.bpp = 8;
         vga->svga.miscout = 1;
