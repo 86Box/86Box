@@ -105,6 +105,31 @@ void *vga_init()
         return vga;
 }
 
+void *trigem_unk_init()
+{
+        vga_t *vga = malloc(sizeof(vga_t));
+        memset(vga, 0, sizeof(vga_t));
+
+        rom_init(&vga->bios_rom, "roms/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
+
+        svga_init(&vga->svga, vga, 1 << 18, /*256kb*/
+                   NULL,
+                   vga_in, vga_out,
+                   NULL,
+                   NULL);
+
+        io_sethandler(0x03c0, 0x0020, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
+
+	io_sethandler(0x22ca, 0x0002, svga_in, NULL, NULL, svga_out, NULL, NULL, svga);
+	io_sethandler(0x22ce, 0x0002, svga_in, NULL, NULL, svga_out, NULL, NULL, svga);
+	io_sethandler(0x32ca, 0x0002, svga_in, NULL, NULL, svga_out, NULL, NULL, svga);
+
+        vga->svga.bpp = 8;
+        vga->svga.miscout = 1;
+        
+        return vga;
+}
+
 /*PS/1 uses a standard VGA controller, but with no option ROM*/
 void *ps1vga_init()
 {
@@ -165,6 +190,17 @@ device_t vga_device =
         "VGA",
         0,
         vga_init,
+        vga_close,
+        vga_available,
+        vga_speed_changed,
+        vga_force_redraw,
+        vga_add_status_info
+};
+device_t trigem_unk_device =
+{
+        "VGA",
+        0,
+        trigem_unk_init,
         vga_close,
         vga_available,
         vga_speed_changed,

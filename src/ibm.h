@@ -465,6 +465,7 @@ enum
         GFX_HERCULESPLUS,
         GFX_RIVATNT2,
 
+	GFX_TRIGEM_UNK,
         GFX_MAX
 };
 
