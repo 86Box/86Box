@@ -1459,6 +1459,7 @@ void fdc_callback()
                 case -1: /*Reset*/
 //rpclog("Reset\n");
                 fdc_int();
+		fdc.fintr = 0;
 		memset(fdc.pcn, 0, 4);
                 fdc_reset_stat = 4;
                 return;
