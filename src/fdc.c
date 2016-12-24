@@ -1184,12 +1184,9 @@ bad_command:
 							timer_update_outstanding();
 							break;
 						}
-						else
-						{
-					                fdc.pcn[fdc.params[0] & 3] = fdc.params[1];
-						}
 
 	                                        fdc_seek(fdc.drive, fdc.params[1] - fdc.pcn[fdc.params[0] & 3]);
+				                fdc.pcn[fdc.params[0] & 3] = fdc.params[1];
 						if (seek_time < 0)  seek_time = -seek_time;
 	                                        disctime = seek_time;
 					}
