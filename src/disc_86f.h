@@ -14,8 +14,8 @@ void d86f_reset(int drive, int side);
 void d86f_readsector(int drive, int sector, int track, int side, int density, int sector_size);
 void d86f_writesector(int drive, int sector, int track, int side, int density, int sector_size);
 void d86f_comparesector(int drive, int sector, int track, int side, int rate, int sector_size);
-void d86f_readaddress(int drive, int sector, int side, int density);
-void d86f_format(int drive, int sector, int side, int density, uint8_t fill);
+void d86f_readaddress(int drive, int side, int density);
+void d86f_format(int drive, int side, int density, uint8_t fill);
 
 void d86f_prepare_track_layout(int drive, int side);
 

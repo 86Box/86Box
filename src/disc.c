@@ -340,20 +340,20 @@ void disc_comparesector(int drive, int sector, int track, int side, int density,
                 disc_notfound = 1000;
 }
 
-void disc_readaddress(int drive, int track, int side, int density)
+void disc_readaddress(int drive, int side, int density)
 {
         drive = real_drive(drive);
 
         if (drives[drive].readaddress)
-                drives[drive].readaddress(drive, track, side, density);
+                drives[drive].readaddress(drive, side, density);
 }
 
-void disc_format(int drive, int track, int side, int density, uint8_t fill)
+void disc_format(int drive, int side, int density, uint8_t fill)
 {
         drive = real_drive(drive);
         
         if (drives[drive].format)
-                drives[drive].format(drive, track, side, density, fill);
+                drives[drive].format(drive, side, density, fill);
         else
                 disc_notfound = 1000;
 }

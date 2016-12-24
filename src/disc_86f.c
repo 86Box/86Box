@@ -2861,7 +2861,7 @@ void d86f_comparesector(int drive, int sector, int track, int side, int rate, in
         d86f[drive].state = STATE_11_FIND_ID;
 }
 
-void d86f_readaddress(int drive, int track, int side, int rate)
+void d86f_readaddress(int drive, int side, int rate)
 {
 	// pclog("Reading sector ID on drive %i...\n", drive);
 
@@ -2921,7 +2921,7 @@ void d86f_add_track(int drive, int track, int side)
 	}
 }
 
-void d86f_common_format(int drive, int track, int side, int rate, uint8_t fill, int proxy)
+void d86f_common_format(int drive, int side, int rate, uint8_t fill, int proxy)
 {
 	int i = 0;
 	uint16_t temp, temp2;
@@ -3002,14 +3002,14 @@ void d86f_common_format(int drive, int track, int side, int rate, uint8_t fill, 
         d86f[drive].state = STATE_0D_SPIN_TO_INDEX;
 }
 
-void d86f_proxy_format(int drive, int track, int side, int rate, uint8_t fill)
+void d86f_proxy_format(int drive, int side, int rate, uint8_t fill)
 {
-	d86f_common_format(drive, track, side, rate, fill, 1);
+	d86f_common_format(drive, side, rate, fill, 1);
 }
 
-void d86f_format(int drive, int track, int side, int rate, uint8_t fill)
+void d86f_format(int drive, int side, int rate, uint8_t fill)
 {
-	d86f_common_format(drive, track, side, rate, fill, 0);
+	d86f_common_format(drive, side, rate, fill, 0);
 }
 
 void d86f_common_handlers(int drive)
