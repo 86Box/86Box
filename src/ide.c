@@ -1890,6 +1890,7 @@ static void atapicommand(int ide_board)
 	int format;
 	int ret;
 	int real_pos;
+	int track = 0;
 
 	// pclog("ATAPI command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, %i, Unit attention: %i\n",idebufferb[0],SCSISense.SenseKey,SCSISense.Asc,SCSISense.Ascq,ins,SCSISense.UnitAttention);
 		
@@ -2555,6 +2556,11 @@ static void atapicommand(int ide_board)
 		max_len <<= 8;
 		max_len |= idebufferb[8];
 		
+		track = ((uint32_t) idebufferb[2]) << 24;
+		track |= ((uint32_t) idebufferb[3]) << 16;
+		track |= ((uint32_t) idebufferb[4]) << 8;
+		track |= (uint32_t) idebufferb[5];
+		
 		if (cdrom->read_track_information)
 		{
 			cdrom->read_track_information(idebufferb, idebufferb);
@@ -2566,7 +2572,7 @@ static void atapicommand(int ide_board)
 		}
 		else
 		{
-			if ((idebufferb[3] != 1) || (idebufferb[2] != 1))
+			if (((idebufferb[1] & 0x03) != 1) || (track != 1))
 			{
 				ide->atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
 				ide->error = (SENSE_ILLEGAL_REQUEST << 4) | ABRT_ERR;

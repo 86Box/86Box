@@ -1158,6 +1158,7 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
 	unsigned char Temp;
 	int read_length = 0;
 	int max_length = 0;
+	int track = 0;
 	
 	msf = cdb[1] & 2;
 	
@@ -1559,6 +1560,11 @@ SCSIOut:
 		max_length <<= 8;
 		max_length |= SCSIDevices[id].Cdb[8];
 
+		track = ((uint32_t) idebufferb[2]) << 24;
+		track |= ((uint32_t) idebufferb[3]) << 16;
+		track |= ((uint32_t) idebufferb[4]) << 8;
+		track |= (uint32_t) idebufferb[5];
+
 		if (cdrom->read_track_information)
 		{
 			cdrom->read_track_information(SCSIDevices[id].Cdb, SCSIDevices[id].CmdBuffer);
@@ -1570,7 +1576,7 @@ SCSIOut:
 		}
 		else
 		{
-			if ((SCSIDevices[id].Cdb[3] != 1) || (SCSIDevices[id].Cdb[2] != 1))
+			if (((SCSIDevices[id].Cdb[1] & 0x03) != 1) || (track != 1))
 			{
 				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
 				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
