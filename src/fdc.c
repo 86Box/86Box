@@ -923,7 +923,14 @@ bad_command:
                                         fdc.rw_track = fdc.params[1];
 //                                        pclog("Read a track track=%i head=%i sector=%i eot=%i\n", fdc.pcn[fdc.params[0] & 3], fdc.head, fdc.sector, fdc.eot[fdc.drive]);
 					disc_readsector(fdc.drive, SECTOR_FIRST, fdc.params[1], fdc.head, fdc.rate, fdc.params[4]);
-					fdc.stat |= 0x40;
+					if (fdc.pcjr || !fdc.dma)
+					{
+						fdc.stat = 0x70;
+					}
+					else
+					{
+						fdc.stat = 0x50;
+					}
 					disctime = 0;
 					readflash = 1;
 					fdc.inread = 1;
@@ -973,18 +980,13 @@ bad_command:
 	                                fdc.written = 0;
         	                        readflash = 1;
                 	                fdc.pos = 0;
-	                                if (fdc.pcjr)
-	                                        fdc.stat = 0xb0;
+					if (fdc.pcjr || !fdc.dma)
+					{
+						fdc.stat = 0xb0;
+					}
 					else
 					{
-						if (fdc.dma)
-						{
-		                                        fdc.stat = 0x90;
-						}
-						else
-						{
-		                                        fdc.stat = 0xb0;
-						}
+						fdc.stat = 0x90;
 					}
         	                        // ioc_fiq(IOC_FIQ_DISC_DATA);
                                         break;
@@ -1007,18 +1009,13 @@ bad_command:
 	                                fdc.written = 0;
         	                        readflash = 1;
                 	                fdc.pos = 0;
-	                                if (fdc.pcjr)
-	                                        fdc.stat = 0xb0;
+					if (fdc.pcjr || !fdc.dma)
+					{
+						fdc.stat = 0xb0;
+					}
 					else
 					{
-						if (fdc.dma)
-						{
-		                                        fdc.stat = 0x90;
-						}
-						else
-						{
-		                                        fdc.stat = 0xb0;
-						}
+						fdc.stat = 0x90;
 					}
         	                        // ioc_fiq(IOC_FIQ_DISC_DATA);
                                         break;
@@ -1047,7 +1044,14 @@ bad_command:
 					}
 					// dma_c2_mode();
                         	        disc_readsector(fdc.drive, fdc.sector, fdc.params[1], fdc.head, fdc.rate, fdc.params[4]);
-					fdc.stat |= 0x40;
+					if (fdc.pcjr || !fdc.dma)
+					{
+						fdc.stat = 0x70;
+					}
+					else
+					{
+						fdc.stat = 0x50;
+					}
                 	                disctime = 0;
         	                        readflash = 1;
 	                                fdc.inread = 1;
@@ -1201,10 +1205,19 @@ bad_command:
 					if ((real_drive(fdc.drive) != 1) || fdc.drv2en)
 					{
 						disc_readaddress(fdc.drive, fdc.head, fdc.rate);
-						fdc.stat |= 0x50;
+						if (fdc.pcjr || !fdc.dma)
+						{
+							fdc.stat |= 0x70;
+						}
+						else
+						{
+							fdc.stat |= 0x50;
+						}
 					}
 					else
+					{
 						fdc_noidam();
+					}
                                         break;
                                 }
                         }
@@ -1363,7 +1376,7 @@ uint8_t fdc_read(uint16_t addr, void *priv)
 
 void fdc_poll_common_finish(int compare, int st5)
 {
-        fdc_int();
+        // fdc_int();
 	fdc.fintr = 0;
         fdc.stat=0xD0;
         fdc.res[4]=(fdd_get_head(real_drive(fdc.drive))?4:0)|fdc.rw_drive;
@@ -1474,13 +1487,24 @@ void fdc_callback()
 //                pclog("Read a track callback, eot=%i\n", fdc.eot[fdc.drive]);
                 if (!fdc.eot[fdc.drive] || fdc.tc)
                 {
+			if (!fdc.tc)
+			{
+				fdc_int();
+			}
 			fdc_poll_readwrite_finish(2);
                         return;
                 }
                 else
 		{
                         disc_readsector(fdc.drive, SECTOR_NEXT, fdc.rw_track, fdc.head, fdc.rate, fdc.params[4]);
-			fdc.stat |= 0x40;
+			if (fdc.pcjr || !fdc.dma)
+			{
+				fdc.stat = 0x70;
+			}
+			else
+			{
+				fdc.stat = 0x50;
+			}
 		}
                 fdc.inread = 1;
                 return;
@@ -1541,6 +1565,7 @@ void fdc_callback()
 			if (!fdc.sc)
 			{
 				fdc.sector++;
+				fdc_int();
 				fdc_poll_readwrite_finish(0);
 				return;
 			}
@@ -1552,18 +1577,27 @@ void fdc_callback()
 			if ((fdc.sector == old_sector) && (fdc.head == (fdc.command & 0x80) ? 1 : 0))
 			{
 				fdc.sector++;
+				fdc_int();
 				fdc_poll_readwrite_finish(0);
 				return;
 			}
 		}
-                if (fdc.sector == fdc.params[5])
+                if ((fdc.sector == fdc.params[5]) || (fdc.sector == 255))
                 {
 			/* Reached end of track, MT bit is clear */
 			if (!(fdc.command & 0x80))
 			{
 				fdc.rw_track++;
 				fdc.sector = 1;
-				fdc_no_dma_end(compare);
+				fdc_int();
+				if (old_sector == 255)
+				{
+					fdc_no_dma_end(compare);
+				}
+				else
+				{
+					fdc_poll_readwrite_finish(compare);
+				}
 				return;
 			}
 			/* Reached end of track, MT bit is set, head is 1 */
@@ -1573,7 +1607,15 @@ void fdc_callback()
 				fdc.sector = 1;
                                 fdc.head &= 0xFE;
 				fdd_set_head(fdc.drive, 0);
-				fdc_no_dma_end(compare);
+				fdc_int();
+				if (old_sector == 255)
+				{
+					fdc_no_dma_end(compare);
+				}
+				else
+				{
+					fdc_poll_readwrite_finish(compare);
+				}
 				return;
 			}
                         if ((fdc.command & 0x80) && (fdd_get_head(real_drive(fdc.drive)) == 0))
@@ -1598,7 +1640,14 @@ void fdc_callback()
 			case 0xC:
 			case 0x16:
 		                disc_readsector(fdc.drive, fdc.sector, fdc.rw_track, fdc.head, fdc.rate, fdc.params[4]);
-				fdc.stat |= 0x40;
+				if (fdc.pcjr || !fdc.dma)
+				{
+					fdc.stat = 0x70;
+				}
+				else
+				{
+					fdc.stat = 0x50;
+				}
 				break;
 			case 0x11:
 			case 0x19:
@@ -1684,7 +1733,10 @@ void fdc_callback()
                 else
                 {
                         discint=-2;
-                        fdc_int();
+			if (!fdc.tc)
+			{
+	                        fdc_int();
+			}
 			fdc.fintr = 0;
                         fdc.stat=0xD0;
                         fdc.res[4] = (fdd_get_head(real_drive(fdc.drive))?4:0)|fdc.drive;
@@ -1887,15 +1939,24 @@ int fdc_data(uint8_t data)
         else
         {
 		result = dma_channel_write(2, data);
-                if (result & DMA_OVER)
-		{
-                        fdc.tc = 1;
-			// pclog("DMA overrun!\n");
-			return -1;
-		}
 
         	if (fdc.tc)
+		{
+			/* If we've already TC'd, transfer no further data. */
                 	return -1;
+		}
+
+                if (result & DMA_OVER)
+		{
+			/* If this is the last byte in the DMA, inform the host there's this one last byte to transfer,
+			   then return with error. */
+			// pclog("DMA overrun!\n");
+                        fdc.tc = 1;
+	                fdc.data_ready = 1;
+	                fdc.stat = 0xd0;
+			fdc_int();
+			return -1;
+		}
 
 		if (!fdc.fifo || (fdc.tfifo <= 1))
 		{
@@ -2030,14 +2091,26 @@ int fdc_getdata(int last)
 	                data = fdc.dat;
 
 	                if (!last)
+			{
         	                fdc.stat = 0xb0;
+			}
+			else
+			{
+				fdc.stat = 0x30;
+			}
 		}
 		else
 		{
 			data = fdc_fifo_buf_read();
 
 	                if (!last && (fdc.fifobufpos == 0))
+			{
         	                fdc.stat = 0xb0;
+			}
+			else
+			{
+				fdc.stat = 0x30;
+			}
 		}
         }
         else
@@ -2047,18 +2120,34 @@ int fdc_getdata(int last)
 		if (!fdc.fifo)
 		{
 			if (!last)
+			{
 				fdc.stat = 0x90;
+			}
+			else
+			{
+				fdc.stat = 0x10;
+			}
 		}
 		else
 		{
 			fdc_fifo_buf_advance();
 
 	                if (!last && (fdc.fifobufpos == 0))
+			{
         	                fdc.stat = 0x90;
+			}
+			else
+			{
+				fdc.stat = 0x10;
+			}
 		}
 
                 if (data & DMA_OVER)
+		{
                         fdc.tc = 1;
+			fdc.stat = 0x10;
+			fdc_int();
+		}
         }
         
         fdc.written = 0;
