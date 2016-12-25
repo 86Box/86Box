@@ -107,6 +107,7 @@ uint64_t mtrr_deftype_msr = 0;
 uint64_t ecx17_msr = 0;
 uint64_t ecx79_msr = 0;
 uint64_t ecx8x_msr[4] = {0, 0, 0, 0};
+uint64_t ecxc2_msr = 0;
 uint64_t ecx116_msr = 0;
 uint64_t ecx11x_msr[4] = {0, 0, 0, 0};
 uint64_t ecx11e_msr = 0;
@@ -1988,6 +1989,10 @@ void cpu_RDMSR()
                         EAX = ecx8x_msr[ECX - 0x88] & 0xffffffff;
                         EDX = ecx8x_msr[ECX - 0x88] >> 32;
 			break;
+                        case 0xC2:
+                        EAX = ecxc2_msr & 0xffffffff;
+                        EDX = ecxc2_msr >> 32;
+                        break;
 			case 0xFE:
                         EAX = mtrr_cap_msr & 0xffffffff;
                         EDX = mtrr_cap_msr >> 32;
@@ -2182,6 +2187,9 @@ void cpu_WRMSR()
 			break;
 			case 0x88 ... 0x8B:
 			ecx8x_msr[ECX - 0x88] = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC2:
+			ecxc2_msr = EAX | ((uint64_t)EDX << 32);
 			break;
 			case 0xFE:
 			mtrr_cap_msr = EAX | ((uint64_t)EDX << 32);
