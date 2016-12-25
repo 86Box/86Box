@@ -8,7 +8,7 @@ typedef struct CDROM
         int (*medium_changed)(void);
         int (*readtoc)(uint8_t *b, uint8_t starttrack, int msf, int maxlen, int single);
         int (*readtoc_session)(uint8_t *b, int msf, int maxlen);
-        int (*readtoc_raw)(uint8_t *b, int maxlen);
+        int (*readtoc_raw)(uint8_t *b, int msf, int maxlen);
         uint8_t (*getcurrentsubchannel)(uint8_t *b, int msf);
         void (*read_capacity)(uint8_t *b);
 	void (*read_header)(uint8_t *in_cdb, uint8_t *b);

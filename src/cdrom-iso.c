@@ -221,6 +221,10 @@ static int iso_readtoc(unsigned char *buf, unsigned char start_track, int msf, i
         *q++ = last_block;
     }
     len = q - buf;
+	if (len > maxlen)
+	{
+		len = maxlen;
+	}
     buf[0] = (uint8_t)(((len-2) >> 8) & 0xff);
     buf[1] = (uint8_t)((len-2) & 0xff);
     return len;
@@ -243,10 +247,14 @@ static int iso_readtoc_session(unsigned char *buf, int msf, int maxlen)
     *q++ = 0; /* frame */
     *q++ = 0;
 
+	if (maxlen < 12)
+	{
+		return maxlen;
+	}
     return 12;
 }
 
-static int iso_readtoc_raw(unsigned char *buf, int maxlen)
+static int iso_readtoc_raw(unsigned char *buf, int msf, int maxlen)
 {
     uint8_t *q;
     int len;
@@ -288,9 +296,19 @@ static int iso_readtoc_raw(unsigned char *buf, int maxlen)
     *q++ = 0; /* frame */
     last_block = image_size >> 11;
     /* this is raw, must be msf */
-	*q++ = 0; /* reserved */
-    lba_to_msf(q, last_block);
-    q += 3;
+	if (msf)
+	{
+		*q++ = 0; /* reserved */
+		lba_to_msf(q, last_block);
+		q += 3;
+	}
+	else
+	{
+		*q++ = (last_block >> 24) & 0xff;
+		*q++ = (last_block >> 16) & 0xff;
+		*q++ = (last_block >> 8) & 0xff;
+		*q++ = last_block & 0xff;
+	}
 
     *q++ = 1; /* session number */
     *q++ = 0x14; /* ADR, control */
@@ -300,12 +318,25 @@ static int iso_readtoc_raw(unsigned char *buf, int maxlen)
     *q++ = 0; /* sec */
     *q++ = 0; /* frame */
     /* same here */
-    *q++ = 0;
-    *q++ = 0;
-    *q++ = 0;
-    *q++ = 0;
+	if (msf)
+	{
+		*q++ = 0; /* reserved */
+		lba_to_msf(q, 0);
+		q += 3;
+	}
+	else
+	{
+		*q++ = 0;
+		*q++ = 0;
+		*q++ = 0;
+		*q++ = 0;
+	}
     
     len = q - buf;
+	if (len > maxlen)
+	{
+		len = maxlen;
+	}
     buf[0] = (uint8_t)(((len-2) >> 8) & 0xff);
     buf[1] = (uint8_t)((len-2) & 0xff);
     return len;

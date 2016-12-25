@@ -482,7 +482,7 @@ static int SCSICommand(const UCHAR *cdb, UCHAR *buf, uint32_t len)
   DWORD ioctl_bytes;
   DWORD out_size;
   int ioctl_rv = 0;
-  UCHAR tbuf[2856];
+  UCHAR tbuf[65535];
   struct sptd_with_sense
   {
     SCSI_PASS_THROUGH_DIRECT s;
@@ -759,6 +759,10 @@ static int ioctl_readtoc(unsigned char *b, unsigned char starttrack, int msf, in
                 }
                 if (single) break;
         }
+		if (len > maxlen)
+		{
+			len = maxlen;
+		}
         b[0] = (uint8_t)(((len-2) >> 8) & 0xff);
         b[1] = (uint8_t)((len-2) & 0xff);
 /*        pclog("Table of Contents (%i bytes) : \n",size);
@@ -811,9 +815,45 @@ static int ioctl_readtoc_session(unsigned char *b, int msf, int maxlen)
                 b[len++]=temp;
         }
 
-	return len;
+		if (len > maxlen)
+		{
+			len = maxlen;
+		}
+		b[0] = ((len - 2) >> 8) & 0xff;
+		b[1] = (len - 2) & 0xff;
+		return len;
 }
 
+static void ioctl_readtoc_raw(uint8_t *b, int msf, int maxlen)
+{
+	UCHAR cdb[12];
+	UCHAR buf[65535];
+	
+	int len = 0;
+
+	ioctl_open(0);
+	
+	cdb[0] = 0x43;
+	cdb[1] = msf ? 2 : 0;
+	cdb[2] = 2;
+	cdb[3] = cdb[4] = cdb[5] = cdb[6] = 0;
+	cdb[7] = (maxlen >> 8) & 0xff;
+	cdb[8] = maxlen & 0xff;
+	cdb[9] = cdb[10] = cdb[11] = 0;
+	
+	SCSICommand(cdb, buf, 65535);
+	
+	len = buf[0];
+	len <<= 8;
+	len |= buf[1];
+	len += 2;
+	
+	memcpy(b, buf, len);
+	
+	ioctl_close();
+}
+
+#if 0
 static int ioctl_readtoc_raw(unsigned char *b, int maxlen)
 {
         int len=4;
@@ -854,9 +894,13 @@ static int ioctl_readtoc_raw(unsigned char *b, int maxlen)
 		b[len++]=toc.Descriptors[i].Msf[1];
 		b[len++]=toc.Descriptors[i].Msf[2];
 	}
+	
+	b[0] = (len >> 8) & 0xff;
+	b[1] = len & 0xff;
 
 	return len;
 }
+#endif
 
 static uint32_t ioctl_size()
 {

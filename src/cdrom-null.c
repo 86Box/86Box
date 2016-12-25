@@ -81,7 +81,7 @@ static int null_readtoc_session(unsigned char *b, int msf, int maxlen)
 		return 0;
 }
 
-static int null_readtoc_raw(unsigned char *b, int maxlen)
+static int null_readtoc_raw(unsigned char *b, int msf, int maxlen)
 {
 		return 0;
 }

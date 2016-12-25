@@ -1114,6 +1114,7 @@ uint8_t readide(int ide_board, uint16_t addr)
 				else
 				{
 					temp = (uint8_t)ide->secount;
+					// pclog("Returning sector count: %i\n", temp);
 				}
                 break;
 
@@ -1698,13 +1699,14 @@ void callbackide(int ide_board)
 
         case WIN_PACKETCMD: /* ATAPI Packet */
                 if (!IDE_DRIVE_IS_CDROM(ide)) goto abort_cmd;
-//                pclog("Packet callback! %i %08X\n",ide->packetstatus,ide);
+                // pclog("Packet callback! %i %08X\n",ide->packetstatus,ide);
 
                 if (ide->packetstatus == ATAPI_STATUS_IDLE)
                 {
 			readcdmode=0;
                         ide->pos=0;
-                        ide->secount = (uint8_t)((ide->secount&0xF8)|1);
+                        // ide->secount = (uint8_t)((ide->secount&0xF8)|1);
+						ide->secount = 1;
                         ide->atastat = READY_STAT | DRQ_STAT |(ide->atastat&ERR_STAT);
                         //ide_irq_raise(ide);
 //                        pclog("1 Preparing to recieve packet max DRQ count %04X\n",ide->cylinder);
@@ -1818,7 +1820,7 @@ void atapi_command_send_init(IDE *ide, uint8_t command, int req_length, int allo
 
 	if ((ide->cylinder & 1) && !(alloc_length <= ide->cylinder))
 	{
-		pclog("Odd byte count (0x%04x) to ATAPI command 0x%02x, using 0x%04x\n", ide->cylinder, command, ide->cylinder - 1);
+		// pclog("Odd byte count (0x%04x) to ATAPI command 0x%02x, using 0x%04x\n", ide->cylinder, command, ide->cylinder - 1);
 		ide->cylinder--;
 	}
 	
@@ -1889,9 +1891,9 @@ static void atapicommand(int ide_board)
 	int ret;
 	int real_pos;
 
-#if 0
-	pclog("ATAPI command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, %i, Unit attention: %i\n",idebufferb[0],SCSISense.SenseKey,SCSISense.Asc,SCSISense.Ascq,ins,SCSISense.UnitAttention);
+	// pclog("ATAPI command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, %i, Unit attention: %i\n",idebufferb[0],SCSISense.SenseKey,SCSISense.Asc,SCSISense.Ascq,ins,SCSISense.UnitAttention);
 		
+#if 0
 	int CdbLength;
 	for (CdbLength = 1; CdbLength < 12; CdbLength++)
 		pclog("ATAPI CDB[%d] = 0x%02X\n", CdbLength, idebufferb[CdbLength]);
@@ -2076,7 +2078,7 @@ static void atapicommand(int ide_board)
 			case 2: /*Raw*/
 			// pclog("ATAPI: READ TOC type requested: Raw TOC\n");
 			len=idebufferb[8]+(idebufferb[7]<<8);
-			len=cdrom->readtoc_raw(idebufferb,len);
+			len=cdrom->readtoc_raw(idebufferb,msf,len);
 			break;
                         default:
 			// pclog("ATAPI: Unknown READ TOC type requested: %i\n", (idebufferb[9]>>6));
@@ -2101,6 +2103,7 @@ static void atapicommand(int ide_board)
                 ide->pos=0;
                 idecallback[ide_board]=60*IDE_TIME;
                 ide->packlen=len;
+				// pclog("READ_TOC_PMA_ATIP format %02X, length %i (%i)\n", toc_format, ide->cylinder, idebufferb[1]);
                 return;
                 
         case GPCMD_READ_CD:
@@ -2297,7 +2300,7 @@ static void atapicommand(int ide_board)
 			len=(idebufferb[8]|(idebufferb[7]<<8));
 
                 temp=idebufferb[2] & 0x3F;
-
+				
 		memset(idebufferb, 0, len);
 		alloc_length = len;
 		// for (c=0;c<len;c++) idebufferb[c]=0;
@@ -2854,6 +2857,7 @@ atapi_out:
 		SCSISense.SenseKey = SENSE_ILLEGAL_REQUEST;
                 SCSISense.Asc = ASC_ILLEGAL_OPCODE;
                 ide->packetstatus = ATAPI_STATUS_ERROR;
+				ide->secount = 3;
                 idecallback[ide_board]=50*IDE_TIME;
                 break;
 

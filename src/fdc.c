@@ -666,7 +666,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
 			} */
                 }
                 fdc.dor=val;
-                // printf("DOR now %02X (%04X:%04X)\n",val, CS, cpu_state.pc);
+                printf("DOR now %02X (%04X:%04X)\n",val, CS, cpu_state.pc);
                 return;
 		case 3:
 		/* TDR */
@@ -686,10 +686,10 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
 			fdc.perp &= 0xfc;
                         fdc_reset();
                 }
-		// pclog("DSR now: %02X\n", val);
+		pclog("DSR now: %02X\n", val);
                 return;
                 case 5: /*Command register*/
-		// pclog("CMD now: %02X\n", val);
+		pclog("CMD now: %02X\n", val);
                 if ((fdc.stat & 0xf0) == 0xb0)
                 {
 			if (fdc.pcjr || !fdc.fifo)
@@ -793,6 +793,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc.stat |= 0x90;
                                 break;
                                 case 8: /*Sense interrupt status*/
+				if (!fdc.fintr && !fdc_reset_stat)  pclog("Attempted SENSE INTERRUPT STATUS without FINTR\n");
 				if (!fdc.fintr && !fdc_reset_stat)  goto bad_command;			
 //                                printf("Sense interrupt status %i\n",curdrive);
                                 fdc.lastdrive = fdc.drive;
@@ -1216,7 +1217,7 @@ bad_command:
                 case 7:
                         if (!AT) return;
                 fdc.rate=val&3;
-		// pclog("Rate now: %i\n", val & 3);
+		pclog("Rate now: %i\n", val & 3);
 
                 disc_3f7=val;
                 return;
@@ -1254,7 +1255,7 @@ uint8_t fdc_read(uint16_t addr, void *priv)
                 break;
 		case 2:
 		temp = fdc.dor;
-		// pclog("Read DOR: %02X\n", fdc.dor);
+		pclog("Read DOR: %02X\n", fdc.dor);
 		break;
                 case 3:
                 drive = real_drive(fdc.dor & 3);
@@ -1284,7 +1285,7 @@ uint8_t fdc_read(uint16_t addr, void *priv)
 			return 0;
 		}
                 temp=fdc.stat;
-		// pclog("Read MSR: %02X\n", fdc.stat);
+		pclog("Read MSR: %02X\n", fdc.stat);
                 break;
                 case 5: /*Data*/
                 fdc.stat&=~0x80;
@@ -1296,14 +1297,14 @@ uint8_t fdc_read(uint16_t addr, void *priv)
 			{
 				temp = fdc_fifo_buf_read();
 			}
-			// pclog("Read DAT: %02X\n", temp);
+			pclog("Read DAT: %02X\n", temp);
                         break;
                 }
                 if (paramstogo)
                 {
                         paramstogo--;
                         temp=fdc.res[10 - paramstogo];
-			// pclog("Read result: %02X\n", temp);
+			pclog("Read result: %02X\n", temp);
 //                        pclog("Read param %i %02X\n",10-paramstogo,temp);
                         if (!paramstogo)
                         {
@@ -1322,15 +1323,16 @@ uint8_t fdc_read(uint16_t addr, void *priv)
                                 fdc.stat = 0x80;
                         lastbyte=0;
                         temp=fdc.dat;
-			// pclog("Read DAT: %02X\n", temp);
+			pclog("Read DAT: %02X\n", temp);
                         fdc.data_ready = 0;
                 }
-                if (discint==0xA) 
+		/* What the heck is this even doing?! */
+                /* if (discint==0xA) 
 		{
 			timer_process();
 			disctime = 1024 * (1 << TIMER_SHIFT);
 			timer_update_outstanding();
-		}
+		} */
                 fdc.stat &= 0xf0;
                 break;
                 case 7: /*Disk change*/
@@ -1345,7 +1347,7 @@ uint8_t fdc_read(uint16_t addr, void *priv)
 		{
 			temp |= 0x7F;
 		}
-		// pclog("Read CCR: %02X\n", temp);
+		pclog("Read CCR: %02X\n", temp);
 //                printf("- DC %i %02X %02X %i %i - ",fdc.dor & 3, fdc.dor, 0x10 << (fdc.dor & 3), discchanged[fdc.dor & 1], driveempty[fdc.dor & 1]);
 //                discchanged[fdc.dor&1]=0;
                 break;
