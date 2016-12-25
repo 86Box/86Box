@@ -537,6 +537,40 @@ static void ioctl_read_header(uint8_t *in_cdb, uint8_t *b)
 	ioctl_close();
 }
 
+static void ioctl_read_track_information(uint8_t *in_cdb, uint8_t *b)
+{
+	int maxlen = 0;
+	int len = 0;
+	
+	const UCHAR cdb[12];
+	UCHAR buf[65535];
+
+	maxlen = in_cdb[7];
+	maxlen <<= 8;
+	maxlen |= in_cdb[8];
+	
+	ioctl_open(0);
+
+	memcpy(cdb, in_cdb, 12);
+	SCSICommand(cdb, buf, 65535);
+
+	len = buf[0];
+	len <<= 8;
+	len |= buf[1];
+	len += 2;
+	
+	if (len > maxlen)
+	{
+		len = maxlen;
+		buf[0] = ((maxlen - 2) >> 8) * 0xff;
+		buf[1] = (maxlen - 2) & 0xff;
+	}
+	
+	memcpy(b, buf, len);
+	
+	ioctl_close();
+}
+
 static void ioctl_read_disc_information(uint8_t *b)
 {
 	const UCHAR cdb[] = { 0x51, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
