@@ -1396,7 +1396,7 @@ SCSIOut:
 			break;
 				
 			case 2: /*Raw*/
-			datalen = cdrom->readtoc_raw(SCSIDevices[id].CmdBuffer, datalen);
+			datalen = cdrom->readtoc_raw(SCSIDevices[id].CmdBuffer, msf, datalen);
 			break;
 		}
 		break;
