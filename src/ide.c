@@ -2551,24 +2551,36 @@ static void atapicommand(int ide_board)
 		break;
 		
 		case GPCMD_READ_TRACK_INFORMATION:
-		if ((idebufferb[3] != 1) || (idebufferb[2] != 1))
-		{
-			ide->atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
-			ide->error = (SENSE_ILLEGAL_REQUEST << 4) | ABRT_ERR;
-			if (SCSISense.SenseKey == SENSE_UNIT_ATTENTION)
-				ide->error |= MCR_ERR;
-			SCSISense.Asc = ASC_INV_FIELD_IN_CMD_PACKET;
-			ide->packetstatus = ATAPI_STATUS_ERROR;
-			idecallback[ide_board]=50*IDE_TIME;
-			return;
-		}		
+		max_len = idebufferb[7];
+		max_len <<= 8;
+		max_len |= idebufferb[8];
 		
 		if (cdrom->read_track_information)
 		{
 			cdrom->read_track_information(idebufferb, idebufferb);
+			
+			len = idebufferb[0];
+			len <<= 8;
+			len |= idebufferb[1];
+			len += 2;
 		}
 		else
 		{
+			if ((idebufferb[3] != 1) || (idebufferb[2] != 1))
+			{
+				ide->atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
+				ide->error = (SENSE_ILLEGAL_REQUEST << 4) | ABRT_ERR;
+				/* if (SCSISense.SenseKey == SENSE_UNIT_ATTENTION)
+					ide->error |= MCR_ERR; */
+				SCSISense.Asc = ASC_INV_FIELD_IN_CMD_PACKET;
+				ide->packetstatus = ATAPI_STATUS_ERROR;
+				idecallback[ide_board]=50*IDE_TIME;
+				return;
+			}
+
+			len = 36;
+
+			idebufferb[0] = 0;
 			idebufferb[1] = 34;
 			idebufferb[2] = 1; /* track number (LSB) */
 			idebufferb[3] = 1; /* session number (LSB) */
@@ -2583,8 +2595,14 @@ static void atapicommand(int ide_board)
 			idebufferb[32] = 0; /* track number (MSB) */
 			idebufferb[33] = 0; /* session number (MSB) */
 		}
-			
-		len=36;
+
+		if (len > max_len)
+		{
+			len = max_len;
+			idebufferb[0] = ((max_len - 2) >> 8) & 0xff;
+			idebufferb[1] = (max_len - 2) & 0xff;
+		}
+		
 		ide->packetstatus = ATAPI_STATUS_DATA;
 		ide->cylinder=len;
 		ide->secount=2;

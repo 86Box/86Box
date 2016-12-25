@@ -46,6 +46,7 @@ uint8_t SCSICommandTable[0x100] =
 	[GPCMD_PAUSE_RESUME]                  = CHECK_READY,
 	[GPCMD_STOP_PLAY_SCAN]                = CHECK_READY,
 	[GPCMD_READ_DISC_INFORMATION]         = CHECK_READY,
+	[GPCMD_READ_TRACK_INFORMATION]        = CHECK_READY,
 	[GPCMD_MODE_SELECT_10]                = 0,
 	[GPCMD_MODE_SENSE_10]                 = 0,
 	[GPCMD_PLAY_AUDIO_12]                 = CHECK_READY,
@@ -1156,6 +1157,7 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
 	unsigned PreambleLen;
 	unsigned char Temp;
 	int read_length = 0;
+	int max_length = 0;
 	
 	msf = cdb[1] & 2;
 	
@@ -1553,24 +1555,34 @@ SCSIOut:
 		break;
 	
 		case GPCMD_READ_TRACK_INFORMATION:
-		if ((SCSIDevices[id].Cdb[3] != 1) || (SCSIDevices[id].Cdb[2] != 1))
-		{
-			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
-			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
-			if (SCSISense.UnitAttention)
-			{
-				SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-			}
-			SCSICallback[id]=50*SCSI_TIME;
-			return;		
-		}
+		max_length = SCSIDevices[id].Cdb[7];
+		max_length <<= 8;
+		max_length |= SCSIDevices[id].Cdb[8];
 
 		if (cdrom->read_track_information)
 		{
 			cdrom->read_track_information(SCSIDevices[id].Cdb, SCSIDevices[id].CmdBuffer);
+
+			datalen = SCSIDevices[id].CmdBuffer[0];
+			datalen <<= 8;
+			datalen |= SCSIDevices[id].CmdBuffer[1];
+			datalen += 2;
 		}
 		else
 		{
+			if ((SCSIDevices[id].Cdb[3] != 1) || (SCSIDevices[id].Cdb[2] != 1))
+			{
+				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
+				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
+				if (SCSISense.UnitAttention)
+				{
+					SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
+				}
+				SCSICallback[id]=50*SCSI_TIME;
+				return;		
+			}
+
+			datalen = 36;
 			SCSIDevices[id].CmdBuffer[1] = 34;
 			SCSIDevices[id].CmdBuffer[2] = 1; /* track number (LSB) */
 			SCSIDevices[id].CmdBuffer[3] = 1; /* session number (LSB) */
@@ -1585,6 +1597,13 @@ SCSIOut:
 			SCSIDevices[id].CmdBuffer[32] = 0; /* track number (MSB) */
 			SCSIDevices[id].CmdBuffer[33] = 0; /* session number (MSB) */
 		} 
+
+		if (datalen > max_length)
+		{
+			datalen = max_length;
+			SCSIDevices[id].CmdBuffer[0] = ((max_length - 2) >> 8) & 0xff;
+			SCSIDevices[id].CmdBuffer[1] = (max_length - 2) & 0xff;
+		}
 		break;
 	
 		case GPCMD_READ_DVD_STRUCTURE:
