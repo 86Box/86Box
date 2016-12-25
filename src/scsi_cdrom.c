@@ -1159,6 +1159,7 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
 	int read_length = 0;
 	int max_length = 0;
 	int track = 0;
+	int ret = 0;
 	
 	msf = cdb[1] & 2;
 	
@@ -1567,7 +1568,19 @@ SCSIOut:
 
 		if (cdrom->read_track_information)
 		{
-			cdrom->read_track_information(SCSIDevices[id].Cdb, SCSIDevices[id].CmdBuffer);
+			ret = cdrom->read_track_information(SCSIDevices[id].Cdb, SCSIDevices[id].CmdBuffer);
+
+			if (!ret)
+			{
+				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
+				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
+				if (SCSISense.UnitAttention)
+				{
+					SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
+				}
+				SCSICallback[id]=50*SCSI_TIME;
+				return;		
+			}
 
 			datalen = SCSIDevices[id].CmdBuffer[0];
 			datalen <<= 8;

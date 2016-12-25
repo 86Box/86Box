@@ -2563,7 +2563,17 @@ static void atapicommand(int ide_board)
 		
 		if (cdrom->read_track_information)
 		{
-			cdrom->read_track_information(idebufferb, idebufferb);
+			ret = cdrom->read_track_information(idebufferb, idebufferb);
+			
+			if (!ret)
+			{
+				ide->atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
+				ide->error = (SENSE_ILLEGAL_REQUEST << 4) | ABRT_ERR;
+				SCSISense.Asc = ASC_INV_FIELD_IN_CMD_PACKET;
+				ide->packetstatus = ATAPI_STATUS_ERROR;
+				idecallback[ide_board]=50*IDE_TIME;
+				return;
+			}
 			
 			len = idebufferb[0];
 			len <<= 8;
@@ -2576,8 +2586,6 @@ static void atapicommand(int ide_board)
 			{
 				ide->atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
 				ide->error = (SENSE_ILLEGAL_REQUEST << 4) | ABRT_ERR;
-				/* if (SCSISense.SenseKey == SENSE_UNIT_ATTENTION)
-					ide->error |= MCR_ERR; */
 				SCSISense.Asc = ASC_INV_FIELD_IN_CMD_PACKET;
 				ide->packetstatus = ATAPI_STATUS_ERROR;
 				idecallback[ide_board]=50*IDE_TIME;

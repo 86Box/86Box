@@ -71,6 +71,11 @@ static void null_readsector_raw(uint8_t *b, int sector, int ismsf)
 {
 }
 
+static int null_read_track_information(uint8_t *in_cdb, uint8_t *b)
+{
+		return 0;
+}
+
 static int null_readtoc(unsigned char *b, unsigned char starttrack, int msf, int maxlen, int single)
 {
         return 0;

@@ -13,7 +13,7 @@ typedef struct CDROM
         void (*read_capacity)(uint8_t *b);
 		void (*read_header)(uint8_t *in_cdb, uint8_t *b);
         void (*read_disc_information)(uint8_t *b);
-		void (*read_track_information)(uint8_t *in_cdb, uint8_t *b);
+		int (*read_track_information)(uint8_t *in_cdb, uint8_t *b);
 		int (*sector_data_type)(int sector, int ismsf);
         void (*readsector_raw)(uint8_t *b, int sector, int ismsf);
         void (*playaudio)(uint32_t pos, uint32_t len, int ismsf);
