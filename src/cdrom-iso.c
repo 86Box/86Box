@@ -419,6 +419,7 @@ static CDROM iso_cdrom =
         NULL,
         NULL,
         NULL,
+		NULL,
 		iso_sector_data_type,
         iso_readsector_raw,
         iso_playaudio,

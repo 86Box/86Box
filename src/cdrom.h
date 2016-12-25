@@ -11,9 +11,10 @@ typedef struct CDROM
         int (*readtoc_raw)(uint8_t *b, int msf, int maxlen);
         uint8_t (*getcurrentsubchannel)(uint8_t *b, int msf);
         void (*read_capacity)(uint8_t *b);
-	void (*read_header)(uint8_t *in_cdb, uint8_t *b);
+		void (*read_header)(uint8_t *in_cdb, uint8_t *b);
         void (*read_disc_information)(uint8_t *b);
-	int (*sector_data_type)(int sector, int ismsf);
+		void (*read_track_information)(uint8_t *in_cdb, uint8_t *b);
+		int (*sector_data_type)(int sector, int ismsf);
         void (*readsector_raw)(uint8_t *b, int sector, int ismsf);
         void (*playaudio)(uint32_t pos, uint32_t len, int ismsf);
         void (*seek)(uint32_t pos);

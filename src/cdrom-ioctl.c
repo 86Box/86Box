@@ -1040,6 +1040,7 @@ static CDROM ioctl_cdrom=
 		ioctl_read_capacity,
 		ioctl_read_header,
 		ioctl_read_disc_information,
+		ioctl_read_track_information,
 		ioctl_sector_data_type,
 		ioctl_readsector_raw,
         ioctl_playaudio,

@@ -1036,6 +1036,15 @@ void SCSICDROM_Command(uint8_t id, uint8_t *cdb)
 		SCSIDMAResetPosition(id);
 		break;
 		
+		case GPCMD_READ_TRACK_INFORMATION:
+		SCSIPhase = SCSI_PHASE_DATAIN;
+		SCSIStatus = SCSI_STATUS_OK;
+		SCSICallback[id]=60*SCSI_TIME;
+		SCSIDevices[id].CmdBufferLength = 36;
+		
+		SCSIDMAResetPosition(id);
+		break;		
+		
 		case GPCMD_READ_DVD_STRUCTURE:		
 		{
 			int len;
@@ -1542,7 +1551,42 @@ SCSIOut:
 			SCSIDevices[id].CmdBuffer[8] = 0x00; /* CD-ROM */
 		}
 		break;
-		
+	
+		case GPCMD_READ_TRACK_INFORMATION:
+		if ((SCSIDevices[id].Cdb[3] != 1) || (SCSIDevices[id].Cdb[2] != 1))
+		{
+			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
+			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
+			if (SCSISense.UnitAttention)
+			{
+				SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
+			}
+			SCSICallback[id]=50*SCSI_TIME;
+			return;		
+		}
+
+		if (cdrom->read_track_information)
+		{
+			cdrom->read_track_information(SCSIDevices[id].Cdb, SCSIDevices[id].CmdBuffer);
+		}
+		else
+		{
+			SCSIDevices[id].CmdBuffer[1] = 34;
+			SCSIDevices[id].CmdBuffer[2] = 1; /* track number (LSB) */
+			SCSIDevices[id].CmdBuffer[3] = 1; /* session number (LSB) */
+			SCSIDevices[id].CmdBuffer[5] = (0 << 5) | (0 << 4) | (4 << 0); /* not damaged, primary copy, data track */
+			SCSIDevices[id].CmdBuffer[6] = (0 << 7) | (0 << 6) | (0 << 5) | (0 << 6) | (1 << 0); /* not reserved track, not blank, not packet writing, not fixed packet, data mode 1 */
+			SCSIDevices[id].CmdBuffer[7] = (0 << 1) | (0 << 0); /* last recorded address not valid, next recordable address not valid */
+			SCSIDevices[id].CmdBuffer[8] = 0; /* track start address is 0 */
+			SCSIDevices[id].CmdBuffer[24] = (cdrom->size() >> 24) & 0xff; /* track size */
+			SCSIDevices[id].CmdBuffer[25] = (cdrom->size() >> 16) & 0xff; /* track size */
+			SCSIDevices[id].CmdBuffer[26] = (cdrom->size() >> 8) & 0xff; /* track size */
+			SCSIDevices[id].CmdBuffer[27] = cdrom->size() & 0xff; /* track size */
+			SCSIDevices[id].CmdBuffer[32] = 0; /* track number (MSB) */
+			SCSIDevices[id].CmdBuffer[33] = 0; /* session number (MSB) */
+		} 
+		break;
+	
 		case GPCMD_READ_DVD_STRUCTURE:
 		memset(SCSIDevices[id].CmdBuffer, 0, datalen > 256 * 512 + 4 ? 256 * 512 + 4 : datalen);
 				

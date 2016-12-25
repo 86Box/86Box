@@ -2549,6 +2549,49 @@ static void atapicommand(int ide_board)
 		idecallback[ide_board]=60*IDE_TIME;
 		ide->packlen=len;			
 		break;
+		
+		case GPCMD_READ_TRACK_INFORMATION:
+		if ((idebufferb[3] != 1) || (idebufferb[2] != 1))
+		{
+			ide->atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
+			ide->error = (SENSE_ILLEGAL_REQUEST << 4) | ABRT_ERR;
+			if (SCSISense.SenseKey == SENSE_UNIT_ATTENTION)
+				ide->error |= MCR_ERR;
+			SCSISense.Asc = ASC_INV_FIELD_IN_CMD_PACKET;
+			ide->packetstatus = ATAPI_STATUS_ERROR;
+			idecallback[ide_board]=50*IDE_TIME;
+			return;
+		}		
+		
+		if (cdrom->read_track_information)
+		{
+			cdrom->read_track_information(idebufferb, idebufferb);
+		}
+		else
+		{
+			idebufferb[1] = 34;
+			idebufferb[2] = 1; /* track number (LSB) */
+			idebufferb[3] = 1; /* session number (LSB) */
+			idebufferb[5] = (0 << 5) | (0 << 4) | (4 << 0); /* not damaged, primary copy, data track */
+			idebufferb[6] = (0 << 7) | (0 << 6) | (0 << 5) | (0 << 6) | (1 << 0); /* not reserved track, not blank, not packet writing, not fixed packet, data mode 1 */
+			idebufferb[7] = (0 << 1) | (0 << 0); /* last recorded address not valid, next recordable address not valid */
+			idebufferb[8] = 0; /* track start address is 0 */
+			idebufferb[24] = (cdrom->size() >> 24) & 0xff; /* track size */
+			idebufferb[25] = (cdrom->size() >> 16) & 0xff; /* track size */
+			idebufferb[26] = (cdrom->size() >> 8) & 0xff; /* track size */
+			idebufferb[27] = cdrom->size() & 0xff; /* track size */
+			idebufferb[32] = 0; /* track number (MSB) */
+			idebufferb[33] = 0; /* session number (MSB) */
+		}
+			
+		len=36;
+		ide->packetstatus = ATAPI_STATUS_DATA;
+		ide->cylinder=len;
+		ide->secount=2;
+		ide->pos=0;
+		idecallback[ide_board]=60*IDE_TIME;
+		ide->packlen=len;			
+		break;		
 
                 case GPCMD_PLAY_AUDIO_10:
                 case GPCMD_PLAY_AUDIO_12:
