@@ -482,7 +482,7 @@ static int SCSICommand(const UCHAR *cdb, UCHAR *buf, uint32_t len)
   DWORD ioctl_bytes;
   DWORD out_size;
   int ioctl_rv = 0;
-  UCHAR tbuf[65535];
+  UCHAR tbuf[65536];
   struct sptd_with_sense
   {
     SCSI_PASS_THROUGH_DIRECT s;
@@ -545,7 +545,7 @@ static int ioctl_read_track_information(uint8_t *in_cdb, uint8_t *b)
 	int ret = 0;
 	
 	const UCHAR cdb[12];
-	UCHAR buf[65535];
+	UCHAR buf[65536];
 
 	maxlen = in_cdb[7];
 	maxlen <<= 8;
@@ -554,7 +554,7 @@ static int ioctl_read_track_information(uint8_t *in_cdb, uint8_t *b)
 	ioctl_open(0);
 
 	memcpy(cdb, in_cdb, 12);
-	ret = SCSICommand(cdb, buf, 65535);
+	ret = SCSICommand(cdb, buf, 65536);
 	
 	if (!ret)
 	{
@@ -870,7 +870,7 @@ static int ioctl_readtoc_session(unsigned char *b, int msf, int maxlen)
 static void ioctl_readtoc_raw(uint8_t *b, int msf, int maxlen)
 {
 	UCHAR cdb[12];
-	UCHAR buf[65535];
+	UCHAR buf[65536];
 	
 	int len = 0;
 
@@ -884,7 +884,7 @@ static void ioctl_readtoc_raw(uint8_t *b, int msf, int maxlen)
 	cdb[8] = maxlen & 0xff;
 	cdb[9] = cdb[10] = cdb[11] = 0;
 	
-	SCSICommand(cdb, buf, 65535);
+	SCSICommand(cdb, buf, 65536);
 	
 	len = buf[0];
 	len <<= 8;
