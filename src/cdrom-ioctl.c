@@ -554,7 +554,7 @@ static int ioctl_read_track_information(uint8_t *in_cdb, uint8_t *b)
 	ioctl_open(0);
 
 	memcpy(cdb, in_cdb, 12);
-	ret = SCSICommand(cdb, buf, 65536);
+	ret = SCSICommand(cdb, buf, 65535);
 	
 	if (!ret)
 	{
@@ -884,7 +884,7 @@ static void ioctl_readtoc_raw(uint8_t *b, int msf, int maxlen)
 	cdb[8] = maxlen & 0xff;
 	cdb[9] = cdb[10] = cdb[11] = 0;
 	
-	SCSICommand(cdb, buf, 65536);
+	SCSICommand(cdb, buf, 65535);
 	
 	len = buf[0];
 	len <<= 8;
