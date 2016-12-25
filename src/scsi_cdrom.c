@@ -1561,10 +1561,10 @@ SCSIOut:
 		max_length <<= 8;
 		max_length |= SCSIDevices[id].Cdb[8];
 
-		track = ((uint32_t) idebufferb[2]) << 24;
-		track |= ((uint32_t) idebufferb[3]) << 16;
-		track |= ((uint32_t) idebufferb[4]) << 8;
-		track |= (uint32_t) idebufferb[5];
+		track = ((uint32_t) SCSIDevices[id].Cdb[2]) << 24;
+		track |= ((uint32_t) SCSIDevices[id].Cdb[3]) << 16;
+		track |= ((uint32_t) SCSIDevices[id].Cdb[4]) << 8;
+		track |= (uint32_t) SCSIDevices[id].Cdb[5];
 
 		if (cdrom->read_track_information)
 		{
