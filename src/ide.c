@@ -2923,7 +2923,7 @@ atapi_out:
 				atapi_command_ready(ide_board, len);
 				break;
                 
-                case GPCMD_SEND_DVD_STRUCTURE:
+                // case GPCMD_SEND_DVD_STRUCTURE:
                 default:
 		ide->atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
                 ide->error = (SENSE_ILLEGAL_REQUEST << 4) | ABRT_ERR;

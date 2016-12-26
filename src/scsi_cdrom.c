@@ -57,7 +57,7 @@ uint8_t SCSICommandTable[0x100] =
 	[GPCMD_PLAY_CD]                       = CHECK_READY,
 	[GPCMD_MECHANISM_STATUS]              = 0,
 	[GPCMD_READ_CD]                       = CHECK_READY | READDATA,
-	[GPCMD_SEND_DVD_STRUCTURE]			  = CHECK_READY
+	[GPCMD_SEND_DVD_STRUCTURE]	      = CHECK_READY
 };
 
 uint8_t mode_sense_pages[0x40] =
@@ -98,6 +98,8 @@ void SCSISenseCodeError(uint8_t SenseKey, uint8_t Asc, uint8_t Ascq)
 	SCSISense.SenseKey=SenseKey;
 	SCSISense.Asc=Asc;
 	SCSISense.Ascq=Ascq;
+	SCSIPhase = SCSI_PHASE_STATUS;		/* This *HAS* to be done, SCSIPhase is the same thing that ATAPI returns in IDE sector count, so after any error,
+						   status phase (3) is correct. */
 }
 
 static void
@@ -780,10 +782,6 @@ void SCSICDROM_Command(uint8_t id, uint8_t *cdb)
 			pclog("Trying to read beyond the end of disc\n");
 			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
 			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0);
-			if (SCSISense.UnitAttention)
-			{
-				SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-			}
 			SCSICallback[id]=50*SCSI_TIME;
 			break;
 		}		
@@ -808,6 +806,24 @@ void SCSICDROM_Command(uint8_t id, uint8_t *cdb)
 		return;
 		
 		case GPCMD_INQUIRY:
+		if (cdb[2] == 0x83)
+		{
+			if (SCSIDevices[id].CmdBufferLength < 28)
+			{
+				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;					
+				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_DATA_PHASE_ERROR, 0x00);
+				SCSICallback[id]=50*SCSI_TIME;
+				return;
+			}
+		}
+		if ((cdb[2] != 0x00) && (cdb[2] != 0x83))
+		{
+			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;				
+			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
+			SCSICallback[id]=50*SCSI_TIME;
+			return;
+		}
+
 		SCSIPhase = SCSI_PHASE_DATAIN;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=60*SCSI_TIME;
@@ -835,6 +851,14 @@ void SCSICDROM_Command(uint8_t id, uint8_t *cdb)
 		
 		case GPCMD_MODE_SENSE_6:
 		case GPCMD_MODE_SENSE_10:
+		if (!(mode_sense_pages[cdb[2] & 0x3f] & IMPLEMENTED))
+		{
+			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;	
+			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
+			SCSICallback[id]=50*SCSI_TIME;
+			return;
+		}
+
 		SCSIPhase = SCSI_PHASE_DATAIN;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=60*SCSI_TIME;
@@ -899,6 +923,14 @@ void SCSICDROM_Command(uint8_t id, uint8_t *cdb)
 		break;
 
 		case GPCMD_READ_SUBCHANNEL:
+		if (cdb[3] != 1)
+		{
+			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
+			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0x00);
+			SCSICallback[id]=50*SCSI_TIME;
+			return;
+		}
+
 		SCSIPhase = SCSI_PHASE_DATAIN;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=1000*SCSI_TIME;
@@ -1142,6 +1174,13 @@ void SCSICDROM_Command(uint8_t id, uint8_t *cdb)
 		
 		SCSIDMAResetPosition(id);
 		break;
+
+                // case GPCMD_SEND_DVD_STRUCTURE:
+                default:
+		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
+		SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0);
+		SCSICallback[id]=50*SCSI_TIME;
+                break;
 	}
 }
 
@@ -1267,13 +1306,6 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
 				break;
 
 				case 0x83:
-				if (Idx + 24 > SCSIDevices[id].CmdBufferLength)
-				{
-					SCSIStatus = SCSI_STATUS_CHECK_CONDITION;					
-					SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_DATA_PHASE_ERROR, 0x00);
-					SCSICallback[id]=50*SCSI_TIME;
-					return;
-				}
 				SCSIDevices[id].CmdBuffer[Idx++] = 0x02;
 				SCSIDevices[id].CmdBuffer[Idx++] = 0x00;
 				SCSIDevices[id].CmdBuffer[Idx++] = 0x00;
@@ -1296,12 +1328,6 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
 				ScsiPadStr8(SCSIDevices[id].CmdBuffer + Idx, 20, "53R141"); /* Product */
 				Idx += 20;
 				break;
-					
-				default:
-				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;				
-				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
-				SCSICallback[id]=50*SCSI_TIME;
-				return;
 			}
 		}
 		else
@@ -1330,18 +1356,8 @@ SCSIOut:
 		
 		case GPCMD_MODE_SENSE_6:
 		case GPCMD_MODE_SENSE_10:
-		Temp = cdb[2] & 0x3f;
-
 		memset(SCSIDevices[id].CmdBuffer, 0, datalen);
 
-		if (!(mode_sense_pages[Temp] & IMPLEMENTED))
-		{
-			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;	
-			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
-			SCSICallback[id]=50*SCSI_TIME;
-			return;
-		}
-				
 		if (cdb[0] == GPCMD_MODE_SENSE_6)
 		{
 			datalen = SCSICDROMModeSense(SCSIDevices[id].CmdBuffer, 4, Temp);
@@ -1376,17 +1392,6 @@ SCSIOut:
 		break;
 		
 		case GPCMD_READ_SUBCHANNEL:
-		if (cdb[3] != 1)
-		{
-			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
-			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0x00);
-			if (SCSISense.UnitAttention)
-			{
-				SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-			}
-			SCSICallback[id]=50*SCSI_TIME;
-			break;
-		}
 		SectorLBA = 0;
 		SCSIDevices[id].CmdBuffer[SectorLBA++] = 0;
 		SCSIDevices[id].CmdBuffer[SectorLBA++] = 0; /*Audio status*/
