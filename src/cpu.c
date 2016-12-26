@@ -1993,10 +1993,6 @@ void cpu_RDMSR()
                         EAX = msr_ia32_pmc[ECX - 0xC1] & 0xffffffff;
                         EDX = msr_ia32_pmc[ECX - 0xC1] >> 32;
 			break;
-                        case 0xC2:
-                        EAX = ecxc2_msr & 0xffffffff;
-                        EDX = ecxc2_msr >> 32;
-                        break;
 			case 0xFE:
                         EAX = mtrr_cap_msr & 0xffffffff;
                         EDX = mtrr_cap_msr >> 32;
