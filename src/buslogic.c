@@ -189,7 +189,7 @@ typedef struct ReplyInquireSetupInformationSynchronousValue
     uint8_t fSynchronous :    1;
 }ReplyInquireSetupInformationSynchronousValue;
 
-typedef struct ReplyInquireSetupInformationBuslogic
+typedef struct ReplyInquireSetupInformation
 {
     uint8_t fSynchronousInitiationEnabled : 1;
     uint8_t fParityCheckingEnabled :        1;
@@ -211,31 +211,7 @@ typedef struct ReplyInquireSetupInformationBuslogic
     uint8_t uReserved2;
     uint8_t uWideTransferPermittedId8To15;
     uint8_t uWideTransfersActiveId8To15;
-} ReplyInquireSetupInformationBuslogic;
-
-typedef struct ReplyInquireSetupInformationAha154x
-{
-    uint8_t fSynchronousInitiationEnabled : 1;
-    uint8_t fParityCheckingEnabled :        1;
-    uint8_t uReserved1 :           6;
-    uint8_t uBusTransferRate;
-    uint8_t uPreemptTimeOnBus;
-    uint8_t uTimeOffBus;
-    uint8_t cMailbox;
-    addr24  MailboxAddress;
-    ReplyInquireSetupInformationSynchronousValue SynchronousValuesId0To7[8];
-    uint8_t uDisconnectPermittedId0To7;
-    uint8_t uSignature;
-    uint8_t uCharacterD;
-    uint8_t uHostBusType;
-    uint8_t uWideTransferPermittedId0To7;
-    uint8_t uWideTransfersActiveId0To7;
-    ReplyInquireSetupInformationSynchronousValue SynchronousValuesId8To15[8];
-    uint8_t uDisconnectPermittedId8To15;
-    uint8_t uReserved2;
-    uint8_t uWideTransferPermittedId8To15;
-    uint8_t uWideTransfersActiveId8To15;
-} ReplyInquireSetupInformationAha154x;
+} ReplyInquireSetupInformation;
 
 /** Structure for the INQUIRE_EXTENDED_SETUP_INFORMATION. */
 #pragma pack(1)
