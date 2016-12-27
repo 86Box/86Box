@@ -681,7 +681,7 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 {	
 	if (lun > 0)
 	{
-		SCSISenseCodeError(SENSE_UNIT_ATTENTION, 0x25, 0);
+		SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_ILLEGAL_OPCODE, 0);
 		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
 		SCSICallback[id]=50*SCSI_TIME;
 		return;
@@ -922,8 +922,8 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 		break;
 		
 		case GPCMD_SEEK:
-		SectorLBA = (cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
-		cdrom->seek(SectorLBA);
+		SCSIDevices[id].lba_pos = (cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
+		cdrom->seek(SCSIDevices[id].lba_pos);
 		
 		SCSIPhase = SCSI_PHASE_STATUS;
 		SCSIStatus = SCSI_STATUS_OK;
@@ -1004,22 +1004,22 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 		case GPCMD_PLAY_AUDIO_12:
 		if (cdb[0] == GPCMD_PLAY_AUDIO_10)
 		{
-			SectorLBA = (cdb[2]<<24)|(cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
-			SectorLen = (cdb[7]<<8)|cdb[8];
+			SCSIDevices[id].lba_pos = (cdb[2]<<24)|(cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
+			SCSIDevices[id].lba_len = (cdb[7]<<8)|cdb[8];
 		}
 		else if (cdb[0] == GPCMD_PLAY_AUDIO_MSF)
 		{
-			SectorLBA = (cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
-			SectorLen = (cdb[6]<<16)|(cdb[7]<<8)|cdb[8];
+			SCSIDevices[id].lba_pos = (cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
+			SCSIDevices[id].lba_len = (cdb[6]<<16)|(cdb[7]<<8)|cdb[8];
 		}
 		else
 		{
-			SectorLBA = (cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
-			SectorLen = (cdb[7]<<16)|(cdb[8]<<8)|cdb[9];
+			SCSIDevices[id].lba_pos = (cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
+			SCSIDevices[id].lba_len = (cdb[7]<<16)|(cdb[8]<<8)|cdb[9];
 		}
 
 		if ((cdrom_drive < 1) || (cdrom_drive == 200) || (cd_status <= CD_STATUS_DATA_ONLY) ||
-			!cdrom->is_track_audio(SectorLBA, (cdb[0] == GPCMD_PLAY_AUDIO_MSF) ? 1 : 0))
+			!cdrom->is_track_audio(SCSIDevices[id].lba_pos, (cdb[0] == GPCMD_PLAY_AUDIO_MSF) ? 1 : 0))
 		{
 			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
 			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_MODE_FOR_THIS_TRACK, 0x00);
@@ -1027,7 +1027,7 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 			break;
 		}
 			
-		cdrom->playaudio(SectorLBA, SectorLen, (cdb[0] == GPCMD_PLAY_AUDIO_MSF) ? 1 : 0);
+		cdrom->playaudio(SCSIDevices[id].lba_pos, SCSIDevices[id].lba_len, (cdb[0] == GPCMD_PLAY_AUDIO_MSF) ? 1 : 0);
 		SCSIPhase = SCSI_PHASE_STATUS;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=50*SCSI_TIME;
@@ -1266,9 +1266,11 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
 		case GPCMD_READ_6:
 		case GPCMD_READ_10:
 		case GPCMD_READ_12:
-		pclog("Total data length requested: %d\n", datalen);
-        while (datalen > 0)
-        {
+		//pclog("Total data length requested: %d\n", datalen);
+		while (datalen > 0)
+		{
+			SCSICallback[id]=0; //Strongly required for proper speed sync, otherwise slowness in the emulator.
+			
             read_length = cdrom_read_data(data); //Fill the buffer the data it needs
             if (!read_length)
             {
@@ -1281,12 +1283,10 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
             {
 				//Continue reading data until the sector length is 0.
 				data += read_length;
-				
-				//Decrease the length left once it's processed.
 				datalen -= read_length;
             }
            
-			pclog("True LBA: %d, buffer half: %d\n", SectorLBA, SectorLen * 2048);
+			//pclog("True LBA: %d, buffer half: %d\n", SectorLBA, SectorLen * 2048);
 				
 			SectorLBA++;
 			SectorLen--;
@@ -1296,7 +1296,7 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
 				break;
 			}
 		}
-		return;
+		break;
 		
 		case GPCMD_INQUIRY:
 		if (cdb[1] & 1)
@@ -1404,11 +1404,11 @@ SCSIOut:
 		break;
 		
 		case GPCMD_READ_SUBCHANNEL:
-		SectorLBA = 0;
-		SCSIDevices[id].CmdBuffer[SectorLBA++] = 0;
-		SCSIDevices[id].CmdBuffer[SectorLBA++] = 0; /*Audio status*/
-		SCSIDevices[id].CmdBuffer[SectorLBA++] = 0; SCSIDevices[id].CmdBuffer[SectorLBA++] = 0; /*Subchannel length*/
-		SCSIDevices[id].CmdBuffer[SectorLBA++] = 1; /*Format code*/
+		SCSIDevices[id].lba_pos = 0;
+		SCSIDevices[id].CmdBuffer[SCSIDevices[id].lba_pos++] = 0;
+		SCSIDevices[id].CmdBuffer[SCSIDevices[id].lba_pos++] = 0; /*Audio status*/
+		SCSIDevices[id].CmdBuffer[SCSIDevices[id].lba_pos++] = 0; SCSIDevices[id].CmdBuffer[SCSIDevices[id].lba_pos++] = 0; /*Subchannel length*/
+		SCSIDevices[id].CmdBuffer[SCSIDevices[id].lba_pos++] = 1; /*Format code*/
 		SCSIDevices[id].CmdBuffer[1] = cdrom->getcurrentsubchannel(&SCSIDevices[id].CmdBuffer[5], msf);
 		break;
 		
@@ -1683,8 +1683,10 @@ SCSIOut:
         case GPCMD_READ_CD_MSF:
         case GPCMD_READ_CD:
 		//pclog("Total data length requested: %d\n", datalen);
-        while (datalen > 0)
+		while (datalen > 0)
         {
+			SCSICallback[id]=0; //Strongly required for proper speed sync, otherwise slowness in the emulator.
+			
             read_length = cdrom_read_data(data); //Fill the buffer the data it needs
             if (!read_length)
             {
@@ -1697,9 +1699,6 @@ SCSIOut:
             {
 				//Continue reading data until the sector length is 0.
 				data += read_length;
-				
-				//Decrease the length left once it's processed.
-				datalen -= read_length;
             }
            
             //pclog("True LBA: %d, buffer half: %d\n", SectorLBA, SectorLen * cdrom_sector_size);
@@ -1712,7 +1711,7 @@ SCSIOut:
 				break;
 			}
 		}
-		return;
+		break;
 		
 		case GPCMD_MECHANISM_STATUS:
 		SCSIDevices[id].CmdBuffer[0] = 0;
