@@ -1281,6 +1281,9 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
             {
 				//Continue reading data until the sector length is 0.
 				data += read_length;
+				
+				//Decrease the length left once it's processed.
+				datalen -= read_length;
             }
            
 			pclog("True LBA: %d, buffer half: %d\n", SectorLBA, SectorLen * 2048);
@@ -1694,6 +1697,9 @@ SCSIOut:
             {
 				//Continue reading data until the sector length is 0.
 				data += read_length;
+				
+				//Decrease the length left once it's processed.
+				datalen -= read_length;
             }
            
             //pclog("True LBA: %d, buffer half: %d\n", SectorLBA, SectorLen * cdrom_sector_size);
