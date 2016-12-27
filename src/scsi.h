@@ -246,6 +246,7 @@ extern int cdrom_sector_size, cdrom_sector_ismsf;
 
 struct
 {	
+	int lba_pos, lba_len;
 	uint32_t buffer_size;
 	uint32_t pos;
 	uint8_t *Cdb;
