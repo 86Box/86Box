@@ -23,9 +23,9 @@ void SCSIGetLength(uint8_t id, int *datalen)
 }
 
 //Execute SCSI command
-void SCSIExecCommand(uint8_t id, uint8_t *cdb)
+void SCSIExecCommand(uint8_t id, uint8_t lun, uint8_t *cdb)
 {
-	SCSICDROM_Command(id, cdb);
+	SCSICDROM_Command(id, lun, cdb);
 }
 
 //Read pending data from the resulting SCSI command
@@ -43,7 +43,7 @@ void SCSIWriteData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
 /////
 void SCSIDMAResetPosition(uint8_t Id)
 {
-	//Reset position in memory after reaching the 
+	//Reset position in memory after reaching its limit
 	SCSIDevices[Id].pos = 0;
 }
 
@@ -90,21 +90,33 @@ void SCSIWrite(uint8_t Id, uint32_t len_size)
 /////
 
 //Initialization function for the SCSI layer
-void SCSIReset(uint8_t Id) 
+void SCSIReset(void)
 {
 	page_flags[GPMODE_CDROM_AUDIO_PAGE] &= 0xFD;		/* Clear changed flag for CDROM AUDIO mode page. */
 	memset(mode_pages_in[GPMODE_CDROM_AUDIO_PAGE], 0, 256);	/* Clear the page itself. */
 
-	if (cdrom_enabled && scsi_cdrom_enabled)
+	int drive;
+	
+	SCSICallback[0]=0;
+	SCSICallback[1]=0;
+	SCSICallback[2]=0;
+	SCSICallback[3]=0;
+	SCSICallback[4]=0;
+	SCSICallback[5]=0;
+	SCSICallback[6]=0;
+	
+	for (drive=0;drive<7;drive++)
 	{
-		SCSICallback[Id]=0;
-		SCSIDevices[Id].LunType = SCSI_CDROM;
+		if ((scsi_cdrom_id == drive) && cdrom_enabled && scsi_cdrom_enabled)
+		{
+			SCSIDevices[drive].LunType = SCSI_CDROM;
+		}
+		else
+		{
+			SCSIDevices[drive].LunType = SCSI_NONE;
+		}
 	}
-	else
-	{
-		SCSIDevices[Id].LunType = SCSI_NONE;
-	}
-
+	
 	page_flags[GPMODE_CDROM_AUDIO_PAGE] &= ~PAGE_CHANGED;
 	
 	SCSISense.UnitAttention = 0;
