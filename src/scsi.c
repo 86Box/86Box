@@ -13,7 +13,7 @@
 
 #include "timer.h"
 
-int SCSICallback[7] = {0,0,0,0,0,0,0};
+int SCSICallback[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 uint8_t scsi_cdrom_id = 3; /*common setting*/
 
 //Get the transfer length of the command
@@ -104,8 +104,17 @@ void SCSIReset(void)
 	SCSICallback[4]=0;
 	SCSICallback[5]=0;
 	SCSICallback[6]=0;
+	SCSICallback[7]=0;
+	SCSICallback[8]=0;
+	SCSICallback[9]=0;
+	SCSICallback[10]=0;
+	SCSICallback[11]=0;
+	SCSICallback[12]=0;
+	SCSICallback[13]=0;
+	SCSICallback[14]=0;
+	SCSICallback[15]=0;
 	
-	for (drive=0;drive<7;drive++)
+	for (drive=0;drive<16;drive++)
 	{
 		if ((scsi_cdrom_id == drive) && cdrom_enabled && scsi_cdrom_enabled)
 		{

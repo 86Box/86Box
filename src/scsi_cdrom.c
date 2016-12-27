@@ -681,13 +681,12 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 {	
 	if (lun > 0)
 	{
-		//pclog("Invalid LUN, only LUN 0 is supported\n");
+		SCSISenseCodeError(SENSE_UNIT_ATTENTION, 0x25, 0);
 		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
-		SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0);
 		SCSICallback[id]=50*SCSI_TIME;
-		return;		
+		return;
 	}
-	
+
 	if (cdrom->medium_changed())
 	{
 		//pclog("Media changed\n");
@@ -710,7 +709,6 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 		SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
 		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
 		SCSICallback[id]=50*SCSI_TIME;
-		return;
 	}
 
 	/* Unless the command is REQUEST SENSE, clear the sense. This will *NOT*
@@ -1268,7 +1266,7 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
 		case GPCMD_READ_6:
 		case GPCMD_READ_10:
 		case GPCMD_READ_12:
-		//pclog("Total data length requested: %d\n", datalen);
+		pclog("Total data length requested: %d\n", datalen);
         while (datalen > 0)
         {
             read_length = cdrom_read_data(data); //Fill the buffer the data it needs
@@ -1285,7 +1283,7 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
 				data += read_length;
             }
            
-			//pclog("True LBA: %d, buffer half: %d\n", SectorLBA, SectorLen * 2048);
+			pclog("True LBA: %d, buffer half: %d\n", SectorLBA, SectorLen * 2048);
 				
 			SectorLBA++;
 			SectorLen--;
