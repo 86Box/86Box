@@ -579,9 +579,9 @@ static uint8_t riva128_ptimer_read(uint32_t addr, void *p)
   case 0x009422: ret = (riva128->ptimer.alarm >> 16) & 0xff; break;
   case 0x009423: ret = (riva128->ptimer.alarm >> 24) & 0xff; break;
   }
-  
-  //TODO: NECESSARY SPEED HACK. DO NOT REMOVE THIS.
-  riva128->ptimer.time += 0x10000;
+
+
+  //riva128->ptimer.time += 0x10000;
 
   return ret;
 }
@@ -1157,7 +1157,8 @@ static uint8_t riva128_mmio_read(uint32_t addr, void *p)
 
   addr &= 0xffffff;
 
-  pclog("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
+  //This logging condition is necessary to prevent A CATASTROPHIC LOG BLOWUP when polling PTIMER. DO NOT REMOVE.
+  if(!((addr >= 0x009000) && (addr <= 0x009fff))) pclog("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
 
   switch(addr)
   {
@@ -2388,8 +2389,8 @@ static void *rivatnt2_init()
   riva128->pramdac.nv_n = 0xc2;
   riva128->pramdac.nv_p = 0x0d;
 
-  //timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
-  //timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
+  timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
+  timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
 
   return riva128;
 }
