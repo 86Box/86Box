@@ -174,7 +174,7 @@ int SectorLen;
 
 extern uint8_t SCSIStatus;
 extern uint8_t SCSIPhase;
-extern int SCSICallback[7];
+extern int SCSICallback[16];
 extern uint8_t scsi_cdrom_id;
 
 struct
@@ -253,7 +253,7 @@ struct
 	uint32_t CmdBufferLength;
 	int LunType;
 	uint32_t InitLength;
-} SCSIDevices[7];
+} SCSIDevices[16];
 
 extern void SCSIReset(void);
 
