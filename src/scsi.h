@@ -244,20 +244,18 @@ extern int cdrom_sector_size, cdrom_sector_ismsf;
 #define SCSI_PHASE_BUS_FREE ( 8 )
 #define SCSI_PHASE_SELECT ( 9 )
 
-#define BUFFER_LEN 262144
-
 struct
-{
+{	
 	uint32_t buffer_size;
 	uint32_t pos;
 	uint8_t *Cdb;
-	uint8_t CmdBuffer[BUFFER_LEN];
+	uint8_t CmdBuffer[262144];
 	uint32_t CmdBufferLength;
 	int LunType;
 	uint32_t InitLength;
 } SCSIDevices[7];
 
-extern void SCSIReset(uint8_t Id);
+extern void SCSIReset(void);
 
 uint32_t SCSICDROMModeSense(uint8_t *buf, uint32_t pos, uint8_t type);
 uint8_t SCSICDROMSetProfile(uint8_t *buf, uint8_t *index, uint16_t profile);

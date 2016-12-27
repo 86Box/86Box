@@ -23,14 +23,14 @@ uint8_t SCSICommandTable[0x100] =
 {
 	[GPCMD_TEST_UNIT_READY]               = CHECK_READY | NONDATA,
 	[GPCMD_REQUEST_SENSE]                 = ALLOW_UA,
-	[GPCMD_READ_6]                        = CHECK_READY | READDATA,
+	[GPCMD_READ_6]                        = CHECK_READY,
 	[GPCMD_INQUIRY]                       = ALLOW_UA,
 	[GPCMD_MODE_SELECT_6]                 = 0,
 	[GPCMD_MODE_SENSE_6]                  = 0,
 	[GPCMD_START_STOP_UNIT]               = CHECK_READY,
 	[GPCMD_PREVENT_REMOVAL]               = CHECK_READY,
 	[GPCMD_READ_CDROM_CAPACITY]           = CHECK_READY,
-	[GPCMD_READ_10]                       = CHECK_READY | READDATA,
+	[GPCMD_READ_10]                       = CHECK_READY,
 	[GPCMD_SEEK]                          = CHECK_READY | NONDATA,
 	[GPCMD_READ_SUBCHANNEL]               = CHECK_READY,
 	[GPCMD_READ_TOC_PMA_ATIP]             = CHECK_READY | ALLOW_UA,		/* Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS
@@ -50,14 +50,14 @@ uint8_t SCSICommandTable[0x100] =
 	[GPCMD_MODE_SELECT_10]                = 0,
 	[GPCMD_MODE_SENSE_10]                 = 0,
 	[GPCMD_PLAY_AUDIO_12]                 = CHECK_READY,
-	[GPCMD_READ_12]                       = CHECK_READY | READDATA,
+	[GPCMD_READ_12]                       = CHECK_READY,
 	[GPCMD_READ_DVD_STRUCTURE]            = CHECK_READY,
-	[GPCMD_READ_CD_MSF]                   = CHECK_READY | READDATA,
+	[GPCMD_READ_CD_MSF]                   = CHECK_READY,
 	[GPCMD_SET_SPEED]                     = 0,
 	[GPCMD_PLAY_CD]                       = CHECK_READY,
 	[GPCMD_MECHANISM_STATUS]              = 0,
-	[GPCMD_READ_CD]                       = CHECK_READY | READDATA,
-	[GPCMD_SEND_DVD_STRUCTURE]	      = CHECK_READY
+	[GPCMD_READ_CD]                       = CHECK_READY,
+	[GPCMD_SEND_DVD_STRUCTURE]	      	  = CHECK_READY
 };
 
 uint8_t mode_sense_pages[0x40] =
@@ -677,14 +677,23 @@ static int SCSICDROM_TOC(uint8_t id, uint8_t *cdb)
 	return TocFormat;
 }
 
-void SCSICDROM_Command(uint8_t id, uint8_t *cdb)
-{
-	if (cdrom->medium_changed())
+void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
+{	
+	if (lun > 0)
 	{
-		pclog("Media changed\n");
-		SCSICDROM_Insert();
+		//pclog("Invalid LUN, only LUN 0 is supported\n");
+		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
+		SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0);
+		SCSICallback[id]=50*SCSI_TIME;
+		return;		
 	}
 	
+	if (cdrom->medium_changed())
+	{
+		//pclog("Media changed\n");
+		SCSICDROM_Insert();
+	}
+
 	if (!cdrom->ready() && SCSISense.UnitAttention)
 	{
 		/* If the drive is not ready, there is no reason to keep the
@@ -697,7 +706,7 @@ void SCSICDROM_Command(uint8_t id, uint8_t *cdb)
 		execution under it, error out and report the condition. */
 	if (!(SCSICommandTable[cdb[0]] & ALLOW_UA) && SCSISense.UnitAttention)
 	{
-		pclog("UNIT ATTENTION: Command not allowed to pass through\n");
+		//pclog("UNIT ATTENTION: Command not allowed to pass through\n");
 		SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
 		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
 		SCSICallback[id]=50*SCSI_TIME;
@@ -714,12 +723,14 @@ void SCSICDROM_Command(uint8_t id, uint8_t *cdb)
 	/* Next it's time for NOT READY. */
 	if ((SCSICommandTable[cdb[0]] & CHECK_READY) && !cdrom->ready())
 	{
-		pclog("Not ready\n");
+		//pclog("Not ready\n");
 		SCSISenseCodeError(SENSE_NOT_READY, ASC_MEDIUM_NOT_PRESENT, 0);
 		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
 		SCSICallback[id]=50*SCSI_TIME;
 		return;
 	}
+	
+	SCSICallback[id] = 0;
 	
 	prev_status = cd_status;
 	cd_status = cdrom->status();
@@ -779,12 +790,12 @@ void SCSICDROM_Command(uint8_t id, uint8_t *cdb)
 		
 		if (SectorLBA > (cdrom->size() - 1))
 		{
-			pclog("Trying to read beyond the end of disc\n");
+			//pclog("Trying to read beyond the end of disc\n");
 			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
 			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0);
 			SCSICallback[id]=50*SCSI_TIME;
 			break;
-		}		
+		}
 		
 		if (!SectorLen)
 		{
@@ -1137,7 +1148,7 @@ void SCSICDROM_Command(uint8_t id, uint8_t *cdb)
 		
 		if (SectorLBA > (cdrom->size() - 1))
 		{
-			pclog("Trying to read beyond the end of disc\n");
+			//pclog("Trying to read beyond the end of disc\n");
 			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
 			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0);
 			if (SCSISense.UnitAttention)
@@ -1176,11 +1187,11 @@ void SCSICDROM_Command(uint8_t id, uint8_t *cdb)
 		break;
 
                 // case GPCMD_SEND_DVD_STRUCTURE:
-                default:
+		default:
 		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
 		SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0);
 		SCSICallback[id]=50*SCSI_TIME;
-                break;
+		break;
 	}
 }
 
@@ -1201,7 +1212,7 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
 	int ret = 0;
 	
 	msf = cdb[1] & 2;
-	
+
 	switch (cdb[0])
 	{
 		case GPCMD_REQUEST_SENSE:
@@ -1257,7 +1268,7 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
 		case GPCMD_READ_6:
 		case GPCMD_READ_10:
 		case GPCMD_READ_12:
-		pclog("Total data length requested: %d\n", datalen);
+		//pclog("Total data length requested: %d\n", datalen);
         while (datalen > 0)
         {
             read_length = cdrom_read_data(data); //Fill the buffer the data it needs
@@ -1274,7 +1285,7 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
 				data += read_length;
             }
            
-            pclog("True LBA: %d, buffer half: %d\n", SectorLBA, SectorLen * 2048);
+			//pclog("True LBA: %d, buffer half: %d\n", SectorLBA, SectorLen * 2048);
 				
 			SectorLBA++;
 			SectorLen--;
@@ -1284,7 +1295,7 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
 				break;
 			}
 		}
-		break;
+		return;
 		
 		case GPCMD_INQUIRY:
 		if (cdb[1] & 1)
@@ -1371,7 +1382,7 @@ SCSIOut:
 			SCSIDevices[id].CmdBuffer[1] = (datalen - 2)&255;
 			SCSIDevices[id].CmdBuffer[2] = 3; /*120mm data CD-ROM*/
 		}
-		break;
+		return;
 		
 		case GPCMD_READ_CDROM_CAPACITY:
 		if (cdrom->read_capacity)
@@ -1388,7 +1399,7 @@ SCSIOut:
 			SCSIDevices[id].CmdBuffer[3] = Size & 0xff;
 			SCSIDevices[id].CmdBuffer[6] = 8;				/* 2048 = 0x0800 */
 		}
-		pclog("Sector size %04X\n", Size);
+		//pclog("Sector size %i\n", Size);
 		break;
 		
 		case GPCMD_READ_SUBCHANNEL:
@@ -1417,7 +1428,7 @@ SCSIOut:
 			datalen = cdrom->readtoc_raw(SCSIDevices[id].CmdBuffer, msf, datalen);
 			break;
 		}
-		break;
+		return;
 		
 		case GPCMD_READ_HEADER:
 		if (cdrom->read_header)
@@ -1443,7 +1454,7 @@ SCSIOut:
 			SCSIDevices[id].CmdBuffer[0]=1; /*2048 bytes user data*/
 			SCSIDevices[id].CmdBuffer[1]=SCSIDevices[id].CmdBuffer[2]=SCSIDevices[id].CmdBuffer[3]=0;
 		}
-		break;
+		return;
 		
 		case GPCMD_GET_CONFIGURATION:
 		Index = 0;
@@ -1670,7 +1681,7 @@ SCSIOut:
 		
         case GPCMD_READ_CD_MSF:
         case GPCMD_READ_CD:
-		pclog("Total data length requested: %d\n", datalen);
+		//pclog("Total data length requested: %d\n", datalen);
         while (datalen > 0)
         {
             read_length = cdrom_read_data(data); //Fill the buffer the data it needs
@@ -1687,7 +1698,7 @@ SCSIOut:
 				data += read_length;
             }
            
-            pclog("True LBA: %d, buffer half: %d\n", SectorLBA, SectorLen * cdrom_sector_size);
+            //pclog("True LBA: %d, buffer half: %d\n", SectorLBA, SectorLen * cdrom_sector_size);
 				
 			SectorLBA++;
 			SectorLen--;
@@ -1697,7 +1708,7 @@ SCSIOut:
 				break;
 			}
 		}
-		break;
+		return;
 		
 		case GPCMD_MECHANISM_STATUS:
 		SCSIDevices[id].CmdBuffer[0] = 0;
