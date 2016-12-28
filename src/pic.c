@@ -10,16 +10,22 @@ int pic_intpending;
 void pic_updatepending()
 {
 	uint16_t temp_pending = 0;
-        if ((pic2.pend&~pic2.mask)&~pic2.mask2)
-                pic.pend |= (1 << 2);
-        else
-                pic.pend &= ~(1 << 2);
-        pic_intpending = (pic.pend & ~pic.mask) & ~pic.mask2;
-        if (!((pic.mask | pic.mask2) & (1 << 2)))
+	if (AT)
 	{
-		temp_pending = ((pic2.pend&~pic2.mask)&~pic2.mask2);
-		temp_pending <<= 8;
-                pic_intpending |= temp_pending;
+	        if ((pic2.pend&~pic2.mask)&~pic2.mask2)
+        	        pic.pend |= (1 << 2);
+	        else
+        	        pic.pend &= ~(1 << 2);
+	}
+        pic_intpending = (pic.pend & ~pic.mask) & ~pic.mask2;
+	if (AT)
+	{
+	        if (!((pic.mask | pic.mask2) & (1 << 2)))
+		{
+			temp_pending = ((pic2.pend&~pic2.mask)&~pic2.mask2);
+			temp_pending <<= 8;
+        	        pic_intpending |= temp_pending;
+		}
 	}
 /*        pclog("pic_intpending = %i  %02X %02X %02X %02X\n", pic_intpending, pic.ins, pic.pend, pic.mask, pic.mask2);
         pclog("                    %02X %02X %02X %02X %i %i\n", pic2.ins, pic2.pend, pic2.mask, pic2.mask2, ((pic.mask | pic.mask2) & (1 << 2)), ((pic2.pend&~pic2.mask)&~pic2.mask2)); */
@@ -128,8 +134,11 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
 //                                pclog("Specific EOI - %02X %i\n",pic.ins,1<<(val&7));
                                 pic.ins&=~(1<<(val&7));
                                 pic_update_mask(&pic.mask2, pic.ins);
-                                if ((val&7) == 2 && (pic2.pend&~pic2.mask)&~pic2.mask2)
-                                        pic.pend |= (1 << 2);
+				if (AT)
+				{
+	                                if ((val&7) == 2 && (pic2.pend&~pic2.mask)&~pic2.mask2)
+        	                                pic.pend |= (1 << 2);
+				}
 //                                pic.pend&=(1<<(val&7));
 //                                if ((val&7)==1) pollkeywaiting();
                                 pic_updatepending();
@@ -143,8 +152,11 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
                                                 pic.ins&=~(1<<c);
                                                 pic_update_mask(&pic.mask2, pic.ins);
 
-                                                if (c == 2 && (pic2.pend&~pic2.mask)&~pic2.mask2)
-                                                        pic.pend |= (1 << 2);
+						if (AT)
+						{
+	                                                if (c == 2 && (pic2.pend&~pic2.mask)&~pic2.mask2)
+        	                                                pic.pend |= (1 << 2);
+						}
 
                                                 if (c==1 && keywaiting)
                                                 {
@@ -389,7 +401,22 @@ uint8_t picinterrupt()
                         return c+pic.vector;
                 }
         }
-        if (temp & (1 << 2))
+        if ((temp & (1 << 2)) && !AT)
+        {
+                if (temp & (1 << 2))
+                {
+                        pic.pend &= ~(1 << 2);
+                        pic.ins |= (1 << 2);
+                        pic_update_mask(&pic.mask2, pic.ins);                      
+                        pic_updatepending();
+                        
+                        if (pic.icw4 & 0x02)
+                                pic_autoeoi();
+                                
+                        return c+pic.vector;
+                }
+	}
+        if ((temp & (1 << 2)) && AT)
         {
                 uint8_t temp2 = pic2.pend & ~pic2.mask;
                 for (c = 0; c < 8; c++)
@@ -434,6 +461,9 @@ uint8_t picinterrupt()
 void dumppic()
 {
         pclog("PIC1 : MASK %02X PEND %02X INS %02X VECTOR %02X\n",pic.mask,pic.pend,pic.ins,pic.vector);
-        pclog("PIC2 : MASK %02X PEND %02X INS %02X VECTOR %02X\n",pic2.mask,pic2.pend,pic2.ins,pic2.vector);
+	if (AT)
+	{
+	        pclog("PIC2 : MASK %02X PEND %02X INS %02X VECTOR %02X\n",pic2.mask,pic2.pend,pic2.ins,pic2.vector);
+	}
 }
 
