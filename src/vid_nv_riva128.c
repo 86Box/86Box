@@ -128,31 +128,41 @@ typedef struct riva128_t
 
   struct
   {
-	uint32_t obj_handle[8];
-	uint8_t obj_class[8];
+    int pgraph_speedhack;
 
-  uint32_t debug[5];
+	  uint32_t obj_handle[8];
+	  uint8_t obj_class[8];
+
+    uint32_t debug[5];
 	
-	uint32_t intr;
-  uint32_t intr_en;
+	  uint32_t intr;
+    uint32_t intr_en;
 
-  uint32_t invalid;
-  uint32_t invalid_en;
+    uint32_t invalid;
+    uint32_t invalid_en;
 
-  uint32_t ctx_switch;
-  uint32_t ctx_control;
-  uint32_t ctx_user;
-  uint32_t ctx_cache[8];
+    uint32_t ctx_switch[5];
+    uint32_t ctx_control;
+    uint32_t ctx_user;
+    uint32_t ctx_cache[8][5];
 
-  uint32_t fifo_enable;
+    uint32_t fifo_enable;
 
-  uint32_t uclip_xmin, uclip_ymin, uclip_xmax, uclip_ymax;
-  uint32_t oclip_xmin, oclip_ymin, oclip_xmax, oclip_ymax;
+    uint32_t uclip_xmin, uclip_ymin, uclip_xmax, uclip_ymax;
+    uint32_t oclip_xmin, oclip_ymin, oclip_xmax, oclip_ymax;
 
-  uint32_t src_canvas_min, src_canvas_max;
-  uint32_t dst_canvas_min, dst_canvas_max;
+    uint32_t src_canvas_min, src_canvas_max;
+    uint32_t dst_canvas_min, dst_canvas_max;
 
-  uint32_t beta;
+    uint32_t beta;
+
+    uint32_t notify;
+
+    struct
+    {
+      uint32_t point_color;
+      int32_t point_x[0x20], point_y[0x20];
+    } speedhack;
   } pgraph;
   
   struct
@@ -286,6 +296,14 @@ static uint32_t riva128_pgraph_do_blend(uint32_t factor, uint32_t dst, uint32_t 
   return ((dst * (0x100 - factor)) + (src * factor)) >> 6;
 }
 
+static uint8_t riva128_pgraph_draw_point(int offset, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+
+  svga->vram[(riva128->pgraph.speedhack.point_y[offset] * riva128->pfb.width) + riva128->pgraph.speedhack.point_x[offset]] = riva128->pgraph.speedhack.point_color;
+}
+
 static uint8_t riva128_pmc_read(uint32_t addr, void *p)
 {
   riva128_t *riva128 = (riva128_t *)p;
@@ -363,7 +381,7 @@ static void riva128_pmc_interrupt(int num, void *p)
   riva128_t *riva128 = (riva128_t *)p;
   svga_t *svga = &riva128->svga;
 
-  riva128->pmc.intr &= ~(1 << num);
+  riva128->pmc.intr |= (1 << num);
 
   picint(1 << riva128->pci_regs[0x3c]);
 }
@@ -535,7 +553,7 @@ static void riva128_pfifo_interrupt(int num, void *p)
   riva128_t *riva128 = (riva128_t *)p;
   svga_t *svga = &riva128->svga;
 
-  riva128->pfifo.intr &= ~(1 << num);
+  riva128->pfifo.intr |= (1 << num);
 
   riva128_pmc_interrupt(8, riva128);
 }
@@ -619,7 +637,7 @@ static void riva128_ptimer_interrupt(int num, void *p)
   riva128_t *riva128 = (riva128_t *)p;
   svga_t *svga = &riva128->svga;
 
-  riva128->ptimer.intr &= ~(1 << num);
+  riva128->ptimer.intr |= (1 << num);
 
   riva128_pmc_interrupt(20, riva128);
 }
@@ -755,10 +773,10 @@ static uint8_t riva128_pgraph_read(uint32_t addr, void *p)
   case 0x400146: ret = (riva128->pgraph.invalid_en >> 16) & 0xff; break;
   case 0x400147: ret = (riva128->pgraph.invalid_en >> 24) & 0xff; break;
 
-  case 0x400180: ret = riva128->pgraph.ctx_switch & 0xff; break;
-  case 0x400181: ret = (riva128->pgraph.ctx_switch >> 8) & 0xff; break;
-  case 0x400182: ret = (riva128->pgraph.ctx_switch >> 16) & 0xff; break;
-  case 0x400183: ret = (riva128->pgraph.ctx_switch >> 24) & 0xff; break;
+  case 0x400180: ret = riva128->pgraph.ctx_switch[0] & 0xff; break;
+  case 0x400181: ret = (riva128->pgraph.ctx_switch[0] >> 8) & 0xff; break;
+  case 0x400182: ret = (riva128->pgraph.ctx_switch[0] >> 16) & 0xff; break;
+  case 0x400183: ret = (riva128->pgraph.ctx_switch[0] >> 24) & 0xff; break;
 
   case 0x400190: ret = riva128->pgraph.ctx_control & 0xff; break;
   case 0x400191: ret = (riva128->pgraph.ctx_control >> 8) & 0xff; break;
@@ -769,7 +787,7 @@ static uint8_t riva128_pgraph_read(uint32_t addr, void *p)
   case 0x400196: ret = (riva128->pgraph.ctx_user >> 16) & 0xff; break;
   case 0x400197: ret = (riva128->pgraph.ctx_user >> 24) & 0xff; break;
 
-  case 0x4001a0 ... 0x4001bf: ret = (riva128->pgraph.ctx_cache[(addr & 0x1c) >> 2] >> ((addr & 3) << 3)) & 0xff; break;
+  case 0x4001a0 ... 0x4001bf: ret = (riva128->pgraph.ctx_cache[(addr & 0x1c) >> 2][0] >> ((addr & 3) << 3)) & 0xff; break;
 
   case 0x4006a4: ret = riva128->pgraph.fifo_enable & 1; break;
   }
@@ -812,6 +830,10 @@ static uint8_t riva128_pgraph_read(uint32_t addr, void *p)
   case 0x400641: ret = (riva128->pgraph.beta >> 8) & 0xff; break;
   case 0x400642: ret = (riva128->pgraph.beta >> 16) & 0xff; break;
   case 0x400643: ret = (riva128->pgraph.beta >> 24) & 0xff; break;
+  case 0x400684: ret = riva128->pgraph.notify & 0xff; break;
+  case 0x400685: ret = (riva128->pgraph.notify >> 8) & 0xff; break;
+  case 0x400686: ret = (riva128->pgraph.notify >> 16) & 0xff; break;
+  case 0x400687: ret = (riva128->pgraph.notify >> 24) & 0xff; break;
   }
 
   return ret;
@@ -861,7 +883,7 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
   break;
   case 0x400180:
   riva128->pgraph.debug[1] &= ~1; //Clear recent volatile reset bit on object switch.
-  riva128->pgraph.ctx_switch = val & 0x3ff3f71f;
+  riva128->pgraph.ctx_switch[0] = val & 0x3ff3f71f;
   break;
   case 0x400190:
   riva128->pgraph.ctx_control = val & 0x11010103;
@@ -870,7 +892,7 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
   riva128->pgraph.ctx_user = val & 0x7f1fe000;
   break;
   case 0x4001a0 ... 0x4001bc:
-  riva128->pgraph.ctx_cache[(addr & 0x1c) >> 2] = val & 0x3ff3f71f;
+  riva128->pgraph.ctx_cache[(addr & 0x1c) >> 2][0] = val & 0x3ff3f71f;
   break;
   case 0x40053c:
   riva128->pgraph.uclip_xmin = val & 0x3ffff;
@@ -915,6 +937,9 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
     riva128->pgraph.beta = tmp;
     break;
   }
+  case 0x400684:
+  riva128->pgraph.notify = val & 0x0011ffff;
+  break;
   case 0x4006a4:
   riva128->pgraph.fifo_enable = val & 1;
   break;
@@ -934,6 +959,26 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
   riva128->pgraph.debug[3] = val & ((riva128->card_id == 0x04) ? 0x11ffff33 : 0xfbffff73);
   break;
   }
+}
+
+static void riva128_pgraph_interrupt(int num, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+
+  riva128->pgraph.intr |= (1 << num);
+
+  riva128_pmc_interrupt(12, riva128);
+}
+
+static void riva128_pgraph_invalid_interrupt(int num, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+
+  riva128->pgraph.invalid |= (1 << num);
+
+  riva128_pgraph_interrupt(0, riva128);
 }
 
 static uint8_t riva128_pramdac_read(uint32_t addr, void *p)
@@ -1045,7 +1090,79 @@ static uint8_t riva128_ramht_lookup(uint32_t handle, void *p)
   return objclass;
 }
 
-static void riva128_pgraph_exec_method(int subchanid, int offset, uint32_t val, void *p)
+static void riva128_pgraph_point_exec_method_speedhack(int offset, uint32_t val, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+
+  switch(offset)
+  {
+    case 0x0104:
+    {
+      //NOTIFY
+      if(!(riva128->pgraph.invalid & 0x10000))
+      {
+        if(riva128->pgraph.notify & 0x10000)
+        {
+          riva128_pgraph_invalid_interrupt(12, riva128);
+          riva128->pgraph.fifo_enable = 0;
+        }
+      }
+
+      if(!(riva128->pgraph.invalid & 0x10000) && !(riva128->pgraph.invalid & 0x10))
+      {
+        riva128->pgraph.notify |= 1 << 16;
+        riva128->pgraph.notify |= (val & 0xf) << 20;
+      }
+      break;
+    }
+    case 0x0304:
+    {
+      //COLOR
+      riva128->pgraph.speedhack.point_color = val;
+      break;
+    }
+    case 0x0400 ... 0x47c:
+    {
+      riva128->pgraph.speedhack.point_x[(offset & 0x7c) >> 2] = val & 0xffff;
+      riva128->pgraph.speedhack.point_y[(offset & 0x7c) >> 2] = val >> 16;
+      riva128_pgraph_draw_point((offset & 0x7c) >> 2, riva128);
+      break;
+    }
+    break;
+  }
+}
+
+static void riva128_pgraph_gdi_exec_method_speedhack(int offset, uint32_t val, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+
+  switch(offset)
+  {
+    case 0x0104:
+    {
+      //NOTIFY
+      if(!(riva128->pgraph.invalid & 0x10000))
+      {
+        if(riva128->pgraph.notify & 0x10000)
+        {
+          riva128_pgraph_invalid_interrupt(12, riva128);
+          riva128->pgraph.fifo_enable = 0;
+        }
+      }
+
+      if(!(riva128->pgraph.invalid & 0x10000) && !(riva128->pgraph.invalid & 0x10))
+      {
+        riva128->pgraph.notify |= 1 << 16;
+        riva128->pgraph.notify |= (val & 0xf) << 20;
+      }
+      break;
+    }
+  }
+}
+
+static void riva128_pgraph_exec_method_speedhack(int subchanid, int offset, uint32_t val, void *p)
 {
   riva128_t *riva128 = (riva128_t *)p;
   svga_t *svga = &riva128->svga;
@@ -1053,9 +1170,18 @@ static void riva128_pgraph_exec_method(int subchanid, int offset, uint32_t val, 
 
   switch(riva128->pgraph.obj_class[subchanid])
   {
-    case 0x30:
-    //NV1_NULL
-    return;
+    case 0x08:
+    {
+      //NV1_POINT
+      riva128_pgraph_point_exec_method_speedhack(offset, val, riva128);
+      break;
+    }
+    case 0x0c:
+    {
+      //NV3_GDI
+      riva128_pgraph_gdi_exec_method_speedhack(offset, val, riva128);
+      break;
+    } 
   }
 }
 
@@ -1065,18 +1191,25 @@ static void riva128_puller_exec_method(int chanid, int subchanid, int offset, ui
   svga_t *svga = &riva128->svga;
   pclog("RIVA 128 Puller executing method %04X on channel %01X[%01X] %04X:%08X\n", offset, chanid, subchanid, val, CS, cpu_state.pc);
   
-  if(offset < 0x100)
+  if(riva128->pgraph.pgraph_speedhack)
   {
-	//These methods are executed by the puller itself.
-	if(offset == 0)
-	{
-		riva128->pgraph.obj_handle[subchanid] = val;
-		riva128->pgraph.obj_class[subchanid] = riva128_ramht_lookup(val, riva128);
-	}
+    if(offset < 0x100)
+    {
+	    //These methods are executed by the puller itself.
+	    if(offset == 0)
+	    {
+		    riva128->pgraph.obj_handle[subchanid] = val;
+		    riva128->pgraph.obj_class[subchanid] = riva128_ramht_lookup(val, riva128);
+  	  }
+    }
+    else
+    {
+      if(riva128->card_id == 0x03) riva128_pgraph_exec_method_speedhack(subchanid, offset, val, riva128);
+    }
   }
   else
   {
-	riva128_pgraph_exec_method(subchanid, offset, val, riva128);
+    pclog("RIVA 128 That was a bad idea, turning off the PGRAPH speedhack.\n");
   }
 }
 
@@ -1938,6 +2071,8 @@ static void *riva128_init()
 
   riva128->memory_size = device_get_config_int("memory");
 
+  riva128->pgraph.pgraph_speedhack = device_get_config_int("pgraph_speedhack");
+
   svga_init(&riva128->svga, riva128, riva128->memory_size << 20,
   riva128_recalctimings,
   riva128_in, riva128_out,
@@ -2092,6 +2227,27 @@ static device_config_t riva128_config[] =
 
 static device_config_t riva128zx_config[] =
 {
+  {
+    .name = "pgraph_speedhack",
+    .description = "PGRAPH speedhack",
+    .type = CONFIG_SELECTION,
+    .selection =
+    {
+      {
+        .description = "Off",
+        .value = 0,
+      },
+      {
+        .description = "On",
+        .value = 1,
+      },
+      {
+        .description = ""
+      }
+    },
+    //DO NOT TURN THIS OFF YET. THE PGRAPH SPEEDHACK IS CURRENTLY NECESSARY FOR WORKING EMULATION.
+    .default_int = 1
+  },
   {
     .name = "memory",
     .description = "Memory size",
