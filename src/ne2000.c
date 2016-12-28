@@ -1928,7 +1928,7 @@ void *rtl8029as_init()
     memset(ne2000, 0, sizeof(ne2000_t));
 	
 	disable_netbios = device_get_config_int("disable_netbios");
-	ne2000_setirq(ne2000, (ide_ter_enabled ? 11 : 10));
+    ne2000_setirq(ne2000, device_get_config_int("irq"));
 
     //net_type
     //0 pcap
@@ -1981,7 +1981,8 @@ void *rtl8029as_init()
 			bios_addr = 0xD0000;
 		}
 
-        ne2000_pci_regs[0x3C] = ide_ter_enabled ? 11 : 10;
+        // ne2000_pci_regs[0x3C] = ide_ter_enabled ? 11 : 10;
+		ne2000_pci_regs[0x3C] = device_get_config_int("irq");
         ne2000_pci_regs[0x3D] = 1;
 
         memset(rtl8029as_eeprom, 0, 128);
@@ -2274,6 +2275,38 @@ static device_config_t ne2000_config[] =
 
 static device_config_t rtl8029as_config[] =
 {
+        {
+                .name = "irq",
+                .description = "IRQ",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "IRQ 3",
+                                .value = 3
+                        },
+                        {
+                                .description = "IRQ 5",
+                                .value = 5
+                        },
+                        {
+                                .description = "IRQ 7",
+                                .value = 7
+                        },
+                        {
+                                .description = "IRQ 10",
+                                .value = 10
+                        },
+                        {
+                                .description = "IRQ 11",
+                                .value = 11
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 10
+        },
         {
                 .name = "net_type",
                 .description = "Network type",

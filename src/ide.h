@@ -14,19 +14,25 @@ extern void callbackide(int ide_board);
 extern void resetide(void);
 extern void ide_init();
 extern void ide_ter_init();
+extern void ide_qua_init();
 extern void ide_pri_enable();
 extern void ide_sec_enable();
 extern void ide_ter_enable();
+extern void ide_qua_enable();
 extern void ide_pri_disable();
 extern void ide_sec_disable();
 extern void ide_ter_disable();
+extern void ide_qua_disable();
 extern void ide_set_bus_master(int (*read_sector)(int channel, uint8_t *data), int (*write_sector)(int channel, uint8_t *data), void (*set_irq)(int channel));
 
 extern int ideboard;
 
-extern int idecallback[3];
+extern int ide34_enable[2];
+extern int ide34_irq[2];
 
-extern char ide_fn[6][512];
+extern int idecallback[4];
+
+extern char ide_fn[IDE_NUM][512];
 
 extern int atapi_cdrom_channel;
 

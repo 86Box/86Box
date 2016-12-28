@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include "86box.h"
 #include "ibm.h"
+#include "ide.h"
 #include "cdrom-null.h"
 #include "cdrom-ioctl.h"
 #include "cdrom-iso.h"
@@ -626,6 +627,84 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         if (scsi_cdrom_enabled)
            CheckMenuItem(menu, IDM_CDROM_SCSI, MF_CHECKED);
 
+        if (ide34_enable[0])
+           CheckMenuItem(menu, IDM_IDE_TER_ENABLED, MF_CHECKED);
+
+        CheckMenuItem(menu, IDM_IDE_TER_IRQ9, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_IDE_TER_IRQ10, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_IDE_TER_IRQ11, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_IDE_TER_IRQ12, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_IDE_TER_IRQ14, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_IDE_TER_IRQ15, MF_UNCHECKED);
+
+        if (ide34_irq[0] == 9)
+	{
+           CheckMenuItem(menu, IDM_IDE_TER_IRQ9, MF_CHECKED);
+	}
+        else if (ide34_irq[0] == 10)
+	{
+           CheckMenuItem(menu, IDM_IDE_TER_IRQ10, MF_CHECKED);
+	}
+        else if (ide34_irq[0] == 11)
+	{
+           CheckMenuItem(menu, IDM_IDE_TER_IRQ11, MF_CHECKED);
+	}
+        else if (ide34_irq[0] == 12)
+	{
+           CheckMenuItem(menu, IDM_IDE_TER_IRQ12, MF_CHECKED);
+	}
+        else if (ide34_irq[0] == 14)
+	{
+           CheckMenuItem(menu, IDM_IDE_TER_IRQ14, MF_CHECKED);
+	}
+        else if (ide34_irq[0] == 15)
+	{
+           CheckMenuItem(menu, IDM_IDE_TER_IRQ15, MF_CHECKED);
+	}
+	else
+	{
+		fatal("Unrecognized tertiary IDE controller IRQ\n");
+	}
+
+        if (ide34_enable[1])
+           CheckMenuItem(menu, IDM_IDE_QUA_ENABLED, MF_CHECKED);
+
+        CheckMenuItem(menu, IDM_IDE_QUA_IRQ9, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_IDE_QUA_IRQ10, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_IDE_QUA_IRQ11, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_IDE_QUA_IRQ12, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_IDE_QUA_IRQ14, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_IDE_QUA_IRQ15, MF_UNCHECKED);
+
+        if (ide34_irq[1] == 9)
+	{
+           CheckMenuItem(menu, IDM_IDE_QUA_IRQ9, MF_CHECKED);
+	}
+        else if (ide34_irq[1] == 10)
+	{
+           CheckMenuItem(menu, IDM_IDE_QUA_IRQ10, MF_CHECKED);
+	}
+        else if (ide34_irq[1] == 11)
+	{
+           CheckMenuItem(menu, IDM_IDE_QUA_IRQ11, MF_CHECKED);
+	}
+        else if (ide34_irq[1] == 12)
+	{
+           CheckMenuItem(menu, IDM_IDE_QUA_IRQ12, MF_CHECKED);
+	}
+        else if (ide34_irq[1] == 14)
+	{
+           CheckMenuItem(menu, IDM_IDE_QUA_IRQ14, MF_CHECKED);
+	}
+        else if (ide34_irq[1] == 15)
+	{
+           CheckMenuItem(menu, IDM_IDE_QUA_IRQ15, MF_CHECKED);
+	}
+	else
+	{
+		fatal("Unrecognized quaternary IDE controller IRQ\n");
+	}
+
         if (buslogic_enabled)
            CheckMenuItem(menu, IDM_SCSI_ENABLED, MF_CHECKED);
 
@@ -1059,7 +1138,59 @@ void cdrom_close(void)
 	}
 }
 
-char *floppy_image_extensions = "All floppy images (*.12;*.144;*.360;*.720;*.86F;*.BIN;*.DSK;*.FDI;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.TD0;*.VFD;*.XDF)\0*.12;*.144;*.360;*.720;*.86F;*.BIN;*.DSK;*.FDI;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.TD0;*.VFD;*.XDF\0Advanced sector-based images (*.IMD;*.TD0)\0*.IMD;*.TD0\0Basic sector-based images (*.12;*.144;*.360;*.720;*.BIN;*.DSK;*.FDI;*.FLP;*.HDM;*.IMA;*.IMG;*.VFD;*.XDF)\0*.12;*.144;*.360;*.720;*.BIN;*.DSK;*.FDI;*.FLP;*.HDM;*.IMA;*.IMG;*.VFD;*.XDF\0Flux images (*.FDI)\0*.FDI\0Surface-based images (*.86F)\0*.86F\0All files (*.*)\0*.*\0";
+char *floppy_image_extensions = "All floppy images (*.001;*.002;*.003;*.004;*.005;*.006;*.007;*.008;*.009;*.010;*.12;*.144;*.360;*.720;*.86F;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.TD0;*.VFD;*.XDF)\0*.001;*.002;*.003;*.004;*.005;*.006;*.007;*.008;*.009;*.010;*.12;*.144;*.360;*.720;*.86F;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.TD0;*.VFD;*.XDF\0Advanced sector-based images (*.IMD;*.TD0)\0*.IMD;*.TD0\0Basic sector-based images (*.001;*.002;*.003;*.004;*.005;*.006;*.007;*.008;*.009;*.010;*.12;*.144;*.360;*.720;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FLP;*.HDM;*.IMA;*.IMG;*.VFD;*.XDF)\0*.001;*.002;*.003;*.004;*.005;*.006;*.007;*.008;*.009;*.010;*.12;*.144;*.360;*.720;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FLP;*.HDM;*.IMA;*.IMG;*.VFD;*.XDF\0Flux images (*.FDI)\0*.FDI\0Surface-based images (*.86F)\0*.86F\0All files (*.*)\0*.*\0";
+
+int ide_ter_set_irq(HMENU hmenu, int irq, int id)
+{
+	if (ide34_irq[0] == irq)
+	{
+		return 0;
+	}
+        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+	{
+		return 0;
+	}
+	pause = 1;
+	Sleep(100);
+	ide34_irq[0] = irq;
+	CheckMenuItem(hmenu, IDM_IDE_TER_IRQ9, MF_UNCHECKED);
+	CheckMenuItem(hmenu, IDM_IDE_TER_IRQ10, MF_UNCHECKED);
+	CheckMenuItem(hmenu, IDM_IDE_TER_IRQ11, MF_UNCHECKED);
+	CheckMenuItem(hmenu, IDM_IDE_TER_IRQ12, MF_UNCHECKED);
+	CheckMenuItem(hmenu, IDM_IDE_TER_IRQ14, MF_UNCHECKED);
+	CheckMenuItem(hmenu, IDM_IDE_TER_IRQ15, MF_UNCHECKED);
+	CheckMenuItem(hmenu, id, MF_CHECKED);
+	saveconfig();
+	resetpchard();
+	pause = 0;
+	return 1;
+}
+
+int ide_qua_set_irq(HMENU hmenu, int irq, int id)
+{
+	if (ide34_irq[1] == irq)
+	{
+		return 0;
+	}
+        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+	{
+		return 0;
+	}
+	pause = 1;
+	Sleep(100);
+	ide34_irq[1] = irq;
+	CheckMenuItem(hmenu, IDM_IDE_QUA_IRQ9, MF_UNCHECKED);
+	CheckMenuItem(hmenu, IDM_IDE_QUA_IRQ10, MF_UNCHECKED);
+	CheckMenuItem(hmenu, IDM_IDE_QUA_IRQ11, MF_UNCHECKED);
+	CheckMenuItem(hmenu, IDM_IDE_QUA_IRQ12, MF_UNCHECKED);
+	CheckMenuItem(hmenu, IDM_IDE_QUA_IRQ14, MF_UNCHECKED);
+	CheckMenuItem(hmenu, IDM_IDE_QUA_IRQ15, MF_UNCHECKED);
+	CheckMenuItem(hmenu, id, MF_CHECKED);
+	saveconfig();
+	resetpchard();
+	pause = 0;
+	return 1;
+}
 
 int scsi_set_base(HMENU hmenu, int base, int id)
 {
@@ -1415,11 +1546,87 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			}
 			pause = 1;
 			Sleep(100);
-			scsi_cdrom_enabled ^= 1;                                             
+			scsi_cdrom_enabled ^= 1;
 			CheckMenuItem(hmenu, IDM_CDROM_SCSI, scsi_cdrom_enabled ? MF_CHECKED : MF_UNCHECKED);
 			saveconfig();
 			resetpchard();
 			pause = 0;
+			break;
+                        
+                        case IDM_IDE_TER_ENABLED:
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			ide34_enable[0] ^= 1;
+			CheckMenuItem(hmenu, IDM_SCSI_ENABLED, ide34_enable[0] ? MF_CHECKED : MF_UNCHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
+                        case IDM_IDE_TER_IRQ9:
+			ide_ter_set_irq(hmenu, 9, IDM_SCSI_IRQ9);
+			break;
+                        
+                        case IDM_IDE_TER_IRQ10:
+			ide_ter_set_irq(hmenu, 10, IDM_SCSI_IRQ10);
+			break;
+                        
+                        case IDM_IDE_TER_IRQ11:
+			ide_ter_set_irq(hmenu, 11, IDM_SCSI_IRQ11);
+			break;
+                        
+                        case IDM_IDE_TER_IRQ12:
+			ide_ter_set_irq(hmenu, 12, IDM_SCSI_IRQ12);
+			break;
+                        
+                        case IDM_IDE_TER_IRQ14:
+			ide_ter_set_irq(hmenu, 14, IDM_SCSI_IRQ14);
+			break;
+                        
+                        case IDM_IDE_TER_IRQ15:
+			ide_ter_set_irq(hmenu, 15, IDM_SCSI_IRQ15);
+			break;
+                        
+                        case IDM_IDE_QUA_ENABLED:
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			ide34_enable[1] ^= 1;
+			CheckMenuItem(hmenu, IDM_SCSI_ENABLED, ide34_enable[1] ? MF_CHECKED : MF_UNCHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
+                        case IDM_IDE_QUA_IRQ9:
+			ide_qua_set_irq(hmenu, 9, IDM_SCSI_IRQ9);
+			break;
+                        
+                        case IDM_IDE_QUA_IRQ10:
+			ide_qua_set_irq(hmenu, 10, IDM_SCSI_IRQ10);
+			break;
+                        
+                        case IDM_IDE_QUA_IRQ11:
+			ide_qua_set_irq(hmenu, 11, IDM_SCSI_IRQ11);
+			break;
+                        
+                        case IDM_IDE_QUA_IRQ12:
+			ide_qua_set_irq(hmenu, 12, IDM_SCSI_IRQ12);
+			break;
+                        
+                        case IDM_IDE_QUA_IRQ14:
+			ide_qua_set_irq(hmenu, 14, IDM_SCSI_IRQ14);
+			break;
+                        
+                        case IDM_IDE_QUA_IRQ15:
+			ide_qua_set_irq(hmenu, 15, IDM_SCSI_IRQ15);
 			break;
                         
                         case IDM_SCSI_ENABLED:
@@ -1429,7 +1636,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			}
 			pause = 1;
 			Sleep(100);
-			buslogic_enabled ^= 1;                                             
+			buslogic_enabled ^= 1;
 			CheckMenuItem(hmenu, IDM_SCSI_ENABLED, buslogic_enabled ? MF_CHECKED : MF_UNCHECKED);
 			saveconfig();
 			resetpchard();
@@ -1437,108 +1644,63 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			break;
                         
                         case IDM_SCSI_BASE130:
-			if (scsi_set_base(hmenu, 0x130, IDM_SCSI_BASE130) == 0)
-			{
-				break;
-			}
+			scsi_set_base(hmenu, 0x130, IDM_SCSI_BASE130);
 			break;
                         
                         case IDM_SCSI_BASE134:
-			if (scsi_set_base(hmenu, 0x134, IDM_SCSI_BASE134) == 0)
-			{
-				break;
-			}
+			scsi_set_base(hmenu, 0x134, IDM_SCSI_BASE134);
 			break;
                         
                         case IDM_SCSI_BASE230:
-			if (scsi_set_base(hmenu, 0x230, IDM_SCSI_BASE230) == 0)
-			{
-				break;
-			}
+			scsi_set_base(hmenu, 0x230, IDM_SCSI_BASE230);
 			break;
                         
                         case IDM_SCSI_BASE234:
-			if (scsi_set_base(hmenu, 0x234, IDM_SCSI_BASE234) == 0)
-			{
-				break;
-			}
+			scsi_set_base(hmenu, 0x234, IDM_SCSI_BASE234);
 			break;
                         
                         case IDM_SCSI_BASE330:
-			if (scsi_set_base(hmenu, 0x330, IDM_SCSI_BASE330) == 0)
-			{
-				break;
-			}
+			scsi_set_base(hmenu, 0x330, IDM_SCSI_BASE330);
 			break;
                         
                         case IDM_SCSI_BASE334:
-			if (scsi_set_base(hmenu, 0x334, IDM_SCSI_BASE334) == 0)
-			{
-				break;
-			}
+			scsi_set_base(hmenu, 0x334, IDM_SCSI_BASE334);
 			break;
                         
                         case IDM_SCSI_IRQ9:
-			if (scsi_set_irq(hmenu, 9, IDM_SCSI_IRQ9) == 0)
-			{
-				break;
-			}
+			scsi_set_irq(hmenu, 9, IDM_SCSI_IRQ9);
 			break;
                         
                         case IDM_SCSI_IRQ10:
-			if (scsi_set_irq(hmenu, 10, IDM_SCSI_IRQ10) == 0)
-			{
-				break;
-			}
+			scsi_set_irq(hmenu, 10, IDM_SCSI_IRQ10);
 			break;
                         
                         case IDM_SCSI_IRQ11:
-			if (scsi_set_irq(hmenu, 11, IDM_SCSI_IRQ11) == 0)
-			{
-				break;
-			}
+			scsi_set_irq(hmenu, 11, IDM_SCSI_IRQ11);
 			break;
                         
                         case IDM_SCSI_IRQ12:
-			if (scsi_set_irq(hmenu, 12, IDM_SCSI_IRQ12) == 0)
-			{
-				break;
-			}
+			scsi_set_irq(hmenu, 12, IDM_SCSI_IRQ12);
 			break;
                         
                         case IDM_SCSI_IRQ14:
-			if (scsi_set_irq(hmenu, 14, IDM_SCSI_IRQ14) == 0)
-			{
-				break;
-			}
+			scsi_set_irq(hmenu, 14, IDM_SCSI_IRQ14);
 			break;
                         
                         case IDM_SCSI_IRQ15:
-			if (scsi_set_irq(hmenu, 15, IDM_SCSI_IRQ15) == 0)
-			{
-				break;
-			}
+			scsi_set_irq(hmenu, 15, IDM_SCSI_IRQ15);
 			break;
                         
                         case IDM_SCSI_DMA5:
-			if (scsi_set_dma(hmenu, 5, IDM_SCSI_DMA5) == 0)
-			{
-				break;
-			}
+			scsi_set_dma(hmenu, 5, IDM_SCSI_DMA5);
 			break;
                         
                         case IDM_SCSI_DMA6:
-			if (scsi_set_dma(hmenu, 6, IDM_SCSI_DMA6) == 0)
-			{
-				break;
-			}
+			scsi_set_dma(hmenu, 6, IDM_SCSI_DMA6);
 			break;
                         
                         case IDM_SCSI_DMA7:
-			if (scsi_set_dma(hmenu, 7, IDM_SCSI_DMA7) == 0)
-			{
-				break;
-			}
+			scsi_set_dma(hmenu, 7, IDM_SCSI_DMA7);
 			break;
                         
                         case IDM_CDROM_EMPTY:

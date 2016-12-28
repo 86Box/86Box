@@ -1,6 +1,8 @@
 /* Copyright holders: Sarah Walker, Tenshi
    see COPYING for more details
 */
+#include <stdlib.h>
+
 #include "ibm.h"
 #include "disc.h"
 #include "disc_img.h"
@@ -27,6 +29,10 @@ static struct
 	uint16_t sector_pos[2][256];
 	uint8_t current_sector_pos_side;
 	uint16_t current_sector_pos;
+	uint8_t *cqm_data;
+	uint8_t is_cqm;
+	uint8_t interleave;
+	uint8_t skew;
 } img[FDD_NUM];
 
 uint8_t dmf_r[21] = { 12, 2, 13, 3, 14, 4, 15, 5, 16, 6, 17, 7, 18, 8, 19, 9, 20, 10, 21, 11, 1 };
@@ -232,9 +238,13 @@ void img_load(int drive, char *fn)
 	uint8_t max_spt;	/* Used for XDF detection. */
 	int temp_rate;
 	char ext[4];
-	int fdi;
+	int fdi, cqm;
 	int i;
-	uint8_t first_byte;
+	uint8_t first_byte, second_byte;
+	uint16_t comment_len = 0;
+	int16_t block_len = 0;
+	uint32_t cur_pos = 0;
+	uint8_t rep_byte = 0;
 
 	ext[0] = fn[strlen(fn) - 3] | 0x60;
 	ext[1] = fn[strlen(fn) - 2] | 0x60;
@@ -258,6 +268,10 @@ void img_load(int drive, char *fn)
 	}
         fwriteprot[drive] = writeprot[drive];
 
+	fdi = cqm = 0;
+
+	img[drive].interleave = img[drive].skew = 0;
+
 	if (strcmp(ext, "fdi") == 0)
 	{
 		/* This is a Japanese FDI image, so let's read the header */
@@ -278,23 +292,94 @@ void img_load(int drive, char *fn)
 		bpb_sides = fgetc(img[drive].f);
 
 		fdi = 1;
+		cqm = 0;
 	}
 	else
 	{
-		/* Read the BPB */
-		pclog("img_load(): File is a raw image...\n");
+		/* Read the first type bytes. */
 		fseek(img[drive].f, 0x00, SEEK_SET);
 		first_byte = fgetc(img[drive].f);
-		fseek(img[drive].f, 0x0B, SEEK_SET);
-		fread(&bpb_bps, 1, 2, img[drive].f);
-		fseek(img[drive].f, 0x13, SEEK_SET);
-		fread(&bpb_total, 1, 2, img[drive].f);
-		fseek(img[drive].f, 0x15, SEEK_SET);
-		bpb_mid = fgetc(img[drive].f);
-		fseek(img[drive].f, 0x18, SEEK_SET);
-		bpb_sectors = fgetc(img[drive].f);
-		fseek(img[drive].f, 0x1A, SEEK_SET);
-		bpb_sides = fgetc(img[drive].f);
+		fseek(img[drive].f, 0x01, SEEK_SET);
+		second_byte = fgetc(img[drive].f);
+
+		if (((first_byte == 'C') && (second_byte == 'Q')) || ((first_byte == 'c') && (second_byte == 'q')))
+		{
+			pclog("img_load(): File is a CopyQM image...\n");
+
+	                fwriteprot[drive] = writeprot[drive] = 1;
+
+			fseek(img[drive].f, 0x03, SEEK_SET);
+			fread(&bpb_bps, 1, 2, img[drive].f);
+			/* fseek(img[drive].f, 0x0B, SEEK_SET);
+			fread(&bpb_total, 1, 2, img[drive].f); */
+			fseek(img[drive].f, 0x10, SEEK_SET);
+			bpb_sectors = fgetc(img[drive].f);
+			fseek(img[drive].f, 0x12, SEEK_SET);
+			bpb_sides = fgetc(img[drive].f);
+			fseek(img[drive].f, 0x5B, SEEK_SET);
+			img[drive].tracks = fgetc(img[drive].f);
+
+			bpb_total = ((uint16_t) bpb_sectors) * ((uint16_t) bpb_sides) * img[drive].tracks;
+
+			fseek(img[drive].f, 0x74, SEEK_SET);
+			img[drive].interleave = fgetc(img[drive].f);
+			fseek(img[drive].f, 0x75, SEEK_SET);
+			img[drive].skew = fgetc(img[drive].f);
+
+			img[drive].cqm_data = (uint8_t *) malloc(((uint32_t) bpb_total) * ((uint32_t) bpb_bps));
+			memset(img[drive].cqm_data, 0xf6, ((uint32_t) bpb_total) * ((uint32_t) bpb_bps));
+
+			fseek(img[drive].f, 0x6F, SEEK_SET);
+			fread(&comment_len, 1, 2, img[drive].f);
+
+		        fseek(img[drive].f, -1, SEEK_END);
+		        size = ftell(img[drive].f) + 1;
+
+			fseek(img[drive].f, 133 + comment_len, SEEK_SET);
+
+			cur_pos = 0;
+
+			while(!feof(img[drive].f))
+			{
+				fread(&block_len, 1, 2, img[drive].f);
+
+				if (!feof(img[drive].f))
+				{
+					if (block_len < 0)
+					{
+						rep_byte = fgetc(img[drive].f);
+						block_len = -block_len;
+						memset(img[drive].cqm_data + cur_pos, rep_byte, block_len);
+						cur_pos += block_len;
+					}
+					else if (block_len > 0)
+					{
+						fread(img[drive].cqm_data + cur_pos, 1, block_len, img[drive].f);
+						cur_pos += block_len;
+					}
+				}
+			}
+			printf("Finished reading CopyQM image data\n");
+
+			cqm = 1;
+		}
+		else
+		{
+			/* Read the BPB */
+			pclog("img_load(): File is a raw image...\n");
+			fseek(img[drive].f, 0x0B, SEEK_SET);
+			fread(&bpb_bps, 1, 2, img[drive].f);
+			fseek(img[drive].f, 0x13, SEEK_SET);
+			fread(&bpb_total, 1, 2, img[drive].f);
+			fseek(img[drive].f, 0x15, SEEK_SET);
+			bpb_mid = fgetc(img[drive].f);
+			fseek(img[drive].f, 0x18, SEEK_SET);
+			bpb_sectors = fgetc(img[drive].f);
+			fseek(img[drive].f, 0x1A, SEEK_SET);
+			bpb_sides = fgetc(img[drive].f);
+
+			cqm = 0;
+		}
 
 		img[drive].base = 0;
 		fdi = 0;
@@ -308,9 +393,9 @@ void img_load(int drive, char *fn)
 
 	img[drive].hole = 0;
 
-	pclog("BPB reports %i sides and %i bytes per sector\n", bpb_sides, bpb_bps);
+	pclog("BPB reports %i sides and %i bytes per sector (%i sectors total)\n", bpb_sides, bpb_bps, bpb_total);
 
-	if (((bpb_sides < 1) || (bpb_sides > 2) || !bps_is_valid(bpb_bps) || !first_byte_is_valid(first_byte)) && !fdi)
+	if (((bpb_sides < 1) || (bpb_sides > 2) || !bps_is_valid(bpb_bps) || !first_byte_is_valid(first_byte)) && !fdi && !cqm)
 	{
 		/* The BPB is giving us a wacky number of sides and/or bytes per sector, therefore it is most probably
 		   not a BPB at all, so we have to guess the parameters from file size. */
@@ -364,8 +449,11 @@ void img_load(int drive, char *fn)
 		}
 		else
 		{
-			/* Number of tracks = number of total sectors divided by sides times sectors per track. */
-			img[drive].tracks = ((uint32_t) bpb_total) / (((uint32_t) bpb_sides) * ((uint32_t) bpb_sectors));
+			if (!cqm)
+			{
+				/* Number of tracks = number of total sectors divided by sides times sectors per track. */
+				img[drive].tracks = ((uint32_t) bpb_total) / (((uint32_t) bpb_sides) * ((uint32_t) bpb_sectors));
+			}
 		}
 		/* The rest we just set directly from the BPB. */
 		img[drive].sectors = bpb_sectors;
@@ -430,6 +518,8 @@ void img_load(int drive, char *fn)
 	img[drive].track_flags |= temp_rate & 3;			/* Data rate. */
 	if (temp_rate & 4)  img[drive].track_flags |= 0x20;		/* RPM. */
 
+	img[drive].is_cqm = cqm;
+
 	pclog("Disk flags: %i, track flags: %i\n", img[drive].disk_flags, img[drive].track_flags);
 
 	d86f_register_img(drive);
@@ -444,6 +534,8 @@ void img_close(int drive)
 	d86f_unregister(drive);
         if (img[drive].f)
                 fclose(img[drive].f);
+        if (img[drive].cqm_data)
+                free(img[drive].cqm_data);
         img[drive].f = NULL;
 }
 
@@ -478,6 +570,7 @@ void img_seek(int drive, int track)
 	int is_t0, sector, current_pos, img_pos, sr, sside, total, array_sector, buf_side, buf_pos;
 
 	int ssize = 128 << ((int) img[drive].sector_size);
+	uint32_t cur_pos = 0;
         
         if (!img[drive].f)
                 return;
@@ -489,16 +582,30 @@ void img_seek(int drive, int track)
 
 	is_t0 = (track == 0) ? 1 : 0;
 
-	fseek(img[drive].f, img[drive].base + (track * img[drive].sectors * ssize * img[drive].sides), SEEK_SET);
+	if (!img[drive].is_cqm)
+	{
+		fseek(img[drive].f, img[drive].base + (track * img[drive].sectors * ssize * img[drive].sides), SEEK_SET);
+	}
+
 	for (side = 0; side < img[drive].sides; side++)
 	{
-                fread(img[drive].track_data[side], img[drive].sectors * ssize, 1, img[drive].f);
+		if (img[drive].is_cqm)
+		{
+			cur_pos = (track * img[drive].sectors * ssize * img[drive].sides) + (side * img[drive].sectors * ssize);
+			// pclog("Current position: %i... ", cur_pos);
+			memcpy(img[drive].track_data[side], img[drive].cqm_data + cur_pos, img[drive].sectors * ssize);
+			// pclog("done!\n");
+		}
+		else
+		{
+	                fread(img[drive].track_data[side], img[drive].sectors * ssize, 1, img[drive].f);
+		}
 	}
 
 	d86f_reset_index_hole_pos(drive, 0);
 	d86f_reset_index_hole_pos(drive, 1);
 
-	if (!img[drive].xdf_type)
+	if (!img[drive].xdf_type || img[drive].is_cqm)
 	{
 		for (side = 0; side < img[drive].sides; side++)
 		{
@@ -507,13 +614,32 @@ void img_seek(int drive, int track)
 			for (sector = 0; sector < img[drive].sectors; sector++)
 			{
 				// sr = img[drive].dmf ? (dmf_r[sector]) : (sector + 1);
-				if (img[drive].gap3_size < 68)
+				if (img[drive].is_cqm)
 				{
-					sr = interleave(sector, 1, img[drive].sectors);
+					if (img[drive].interleave)
+					{
+						sr = interleave(sector, img[drive].skew, img[drive].sectors);
+					}
+					else
+					{
+						sr = sector + 1;
+						sr += img[drive].skew;
+						if (sr > img[drive].sectors)
+						{
+							sr -= img[drive].sectors;
+						}
+					}
 				}
 				else
 				{
-					sr = img[drive].dmf ? (dmf_r[sector]) : (sector + 1);
+					if (img[drive].gap3_size < 68)
+					{
+						sr = interleave(sector, 1, img[drive].sectors);
+					}
+					else
+					{
+						sr = img[drive].dmf ? (dmf_r[sector]) : (sector + 1);
+					}
 				}
 				id[0] = track;
 				id[1] = side;
@@ -522,7 +648,14 @@ void img_seek(int drive, int track)
 				img[drive].sector_pos_side[side][sr] = side;
 				img[drive].sector_pos[side][sr] = (sr - 1) * ssize;
 				// pclog("Seek: %i %i %i %i | %i %04X\n", id[0], id[1], id[2], id[3], side, (sr - 1) * ssize);
-				current_pos = d86f_prepare_sector(drive, side, current_pos, id, &img[drive].track_data[side][(sr - 1) * ssize], ssize, img[drive].gap2_size, img[drive].gap3_size, 0, 0);
+				if (img[drive].is_cqm)
+				{
+					current_pos = d86f_prepare_sector(drive, side, current_pos, id, &img[drive].track_data[side][sector * ssize], ssize, img[drive].gap2_size, img[drive].gap3_size, 0, 0);
+				}
+				else
+				{
+					current_pos = d86f_prepare_sector(drive, side, current_pos, id, &img[drive].track_data[side][(sr - 1) * ssize], ssize, img[drive].gap2_size, img[drive].gap3_size, 0, 0);
+				}
 			}
 		}
 	}
@@ -602,6 +735,9 @@ void img_writeback(int drive)
 
         if (!img[drive].f)
                 return;
+
+	if (img[drive].is_cqm)
+		return;
                 
 	fseek(img[drive].f, img[drive].base + (img[drive].track * img[drive].sectors * ssize * img[drive].sides), SEEK_SET);
 	for (side = 0; side < img[drive].sides; side++)

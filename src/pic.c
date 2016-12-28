@@ -73,8 +73,11 @@ static void pic_autoeoi()
                         pic.ins&=~(1<<c);
                         pic_update_mask(&pic.mask2, pic.ins);
 
-                        if (c == 2 && (pic2.pend&~pic2.mask)&~pic2.mask2)
-                                pic.pend |= (1 << 2);
+			if (AT)
+			{
+	                        if (c == 2 && (pic2.pend&~pic2.mask)&~pic2.mask2)
+	                                pic.pend |= (1 << 2);
+			}
 
                         pic_updatepending();
                         return;
@@ -306,12 +309,17 @@ int pic_current[16];
 void picint(uint16_t num)
 {
 	int old_pend = pic_intpending;
-        if (AT && num == (1 << 2))
+        if (AT && (num == (1 << 2)))
                 num = 1 << 9;
 //        pclog("picint : %04X\n", num);
 //        if (num == 0x10) pclog("PICINT 10\n");
         if (num>0xFF)
         {
+		if (!AT)
+		{
+			return;
+		}
+
                 pic2.pend|=(num>>8);
                 if ((pic2.pend&~pic2.mask)&~pic2.mask2)
                         pic.pend |= (1 << 2);
@@ -335,7 +343,7 @@ void picintlevel(uint16_t num)
 {
         int c = 0;
         while (!(num & (1 << c))) c++;
-        if (AT && c == 2)
+        if (AT && (c == 2))
         {
                 c = 9;
                 num = 1 << 9;
@@ -346,6 +354,11 @@ void picintlevel(uint16_t num)
                 pic_current[c]=1;
                 if (num>0xFF)
                 {
+			if (!AT)
+			{
+				return;
+			}
+
                         pic2.pend|=(num>>8);
                 }
                 else
@@ -361,7 +374,7 @@ void picintc(uint16_t num)
         if (!num)
                 return;
         while (!(num & (1 << c))) c++;
-        if (AT && c == 2)
+        if (AT && (c == 2))
         {
                 c = 9;
                 num = 1 << 9;
@@ -371,6 +384,11 @@ void picintc(uint16_t num)
 
         if (num > 0xff)
         {
+		if (!AT)
+		{
+			return;
+		}
+
                 pic2.pend &= ~(num >> 8);
                 if (!((pic2.pend&~pic2.mask)&~pic2.mask2))
                         pic.pend &= ~(1 << 2);
@@ -427,7 +445,7 @@ uint8_t picinterrupt()
                                 pic2.ins |= (1 << c);
                                 pic_update_mask(&pic2.mask2, pic2.ins);
                         
-                                pic.pend &= ~(1 << c);
+                                // pic.pend &= ~(1 << c);
                                 pic.ins |= (1 << 2); /*Cascade IRQ*/
                                 pic_update_mask(&pic.mask2, pic.ins);
 

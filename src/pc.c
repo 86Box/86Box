@@ -403,6 +403,19 @@ void resetpchard()
         video_init();
         speaker_init();        
 
+	ide_ter_disable();
+	ide_qua_disable();
+
+	if (ide34_enable[0])
+	{
+		ide_ter_init();
+	}
+
+	if (ide34_enable[1])
+	{
+		ide_qua_init();
+	}
+
 	vlan_reset();	//NETWORK
 	network_card_init(network_card_current);      
 
@@ -735,6 +748,23 @@ void loadconfig(char *fn)
         p = (char *)config_get_string(NULL, "hdh_fn", "");
         if (p) strcpy(ide_fn[5], p);
         else   strcpy(ide_fn[5], "");
+        hdc[6].spt = config_get_int(NULL, "hdi_sectors", 0);
+        hdc[6].hpc = config_get_int(NULL, "hdi_heads", 0);
+        hdc[6].tracks = config_get_int(NULL, "hdi_cylinders", 0);
+        p = (char *)config_get_string(NULL, "hdi_fn", "");
+        if (p) strcpy(ide_fn[6], p);
+        else   strcpy(ide_fn[6], "");
+        hdc[7].spt = config_get_int(NULL, "hdj_sectors", 0);
+        hdc[7].hpc = config_get_int(NULL, "hdj_heads", 0);
+        hdc[7].tracks = config_get_int(NULL, "hdj_cylinders", 0);
+        p = (char *)config_get_string(NULL, "hdj_fn", "");
+        if (p) strcpy(ide_fn[7], p);
+        else   strcpy(ide_fn[7], "");
+
+	ide34_enable[0] = config_get_int(NULL, "ide_ter_enable", 0);
+	ide34_irq[0] = config_get_int(NULL, "ide_ter_irq", 10);
+	ide34_enable[1] = config_get_int(NULL, "ide_qua_enable", 0);
+	ide34_irq[1] = config_get_int(NULL, "ide_qua_irq", 11);
 
 	fdd_set_type(0, config_get_int(NULL, "drive_a_type", 1));
         fdd_set_type(1, config_get_int(NULL, "drive_b_type", 1));
@@ -881,6 +911,19 @@ void saveconfig()
         config_set_int(NULL, "hdh_heads", hdc[5].hpc);
         config_set_int(NULL, "hdh_cylinders", hdc[5].tracks);
         config_set_string(NULL, "hdh_fn", ide_fn[5]);
+        config_set_int(NULL, "hdi_sectors", hdc[6].spt);
+        config_set_int(NULL, "hdi_heads", hdc[6].hpc);
+        config_set_int(NULL, "hdi_cylinders", hdc[6].tracks);
+        config_set_string(NULL, "hdi_fn", ide_fn[6]);
+        config_set_int(NULL, "hdj_sectors", hdc[7].spt);
+        config_set_int(NULL, "hdj_heads", hdc[7].hpc);
+        config_set_int(NULL, "hdj_cylinders", hdc[7].tracks);
+        config_set_string(NULL, "hdj_fn", ide_fn[7]);
+
+        config_set_int(NULL, "ide_ter_enable", ide34_enable[0]);
+        config_set_int(NULL, "ide_ter_irq", ide34_irq[0]);
+        config_set_int(NULL, "ide_qua_enable", ide34_enable[1]);
+        config_set_int(NULL, "ide_qua_irq", ide34_irq[1]);
 
         config_set_int(NULL, "drive_a_type", fdd_get_type(0));
         config_set_int(NULL, "drive_b_type", fdd_get_type(1));

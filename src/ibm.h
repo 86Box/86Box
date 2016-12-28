@@ -522,7 +522,9 @@ typedef struct
         uint32_t base;
 } hard_disk_t;
 
-hard_disk_t hdc[6];
+#define IDE_NUM		8
+
+hard_disk_t hdc[IDE_NUM];
 
 uint64_t hdt[128][3];
 
@@ -535,7 +537,7 @@ int keybsenddelay;
 /*CD-ROM*/
 extern int cdrom_drive;
 extern int old_cdrom_drive;
-extern int idecallback[3];
+extern int idecallback[4];
 extern int cdrom_enabled;
 extern int scsi_cdrom_enabled;
 
@@ -547,8 +549,6 @@ extern int scsi_cdrom_enabled;
 
 extern uint32_t SCSIGetCDVolume(int channel);
 extern uint32_t SCSIGetCDChannel(int channel);
-
-extern int ide_ter_enabled;
 
 #define MIN(a, b) 				((a) < (b) ? (a) : (b))
 #define ELEMENTS(Array)         (sizeof(Array) / sizeof((Array)[0]))

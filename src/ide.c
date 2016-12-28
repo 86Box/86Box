@@ -140,11 +140,11 @@ typedef struct IDE
 		int hdc_num;
 } IDE;
 
-IDE ide_drives[6];
+IDE ide_drives[IDE_NUM];
 
 IDE *ext_ide;
 
-char ide_fn[6][512];
+char ide_fn[IDE_NUM][512];
 
 int (*ide_bus_master_read_sector)(int channel, uint8_t *data);
 int (*ide_bus_master_write_sector)(int channel, uint8_t *data);
@@ -154,15 +154,13 @@ static void callnonreadcd(IDE *ide);
 static void callreadcd(IDE *ide);
 static void atapicommand(int ide_board);
 
-int idecallback[3] = {0, 0, 0};
+int idecallback[4] = {0, 0, 0, 0};
 
-int cur_ide[3];
+int cur_ide[4];
 
 int atapi_command = 0;
 
 int atapi_cdrom_channel = 2;
-
-int ide_ter_enabled = 0;
 
 uint8_t getstat(IDE *ide) { return ide->atastat; }
 
@@ -190,6 +188,9 @@ int image_is_hdi(const char *s)
 	}
 }
 
+int ide34_enable[2] = { 0, 0 };
+int ide34_irq[2] = { 10, 11 };
+
 static inline void ide_irq_raise(IDE *ide)
 {
 //        pclog("IDE_IRQ_RAISE\n");
@@ -211,7 +212,10 @@ static inline void ide_irq_raise(IDE *ide)
 						picint(1 << 15);
 						break;
 					case 2:
-						picint(1 << 10);
+						picint(1 << ide34_irq[0]);
+						break;
+					case 3:
+						picint(1 << ide34_irq[1]);
 						break;
 				}
 #endif
@@ -247,7 +251,10 @@ static inline void ide_irq_lower(IDE *ide)
 						picintc(1 << 15);
 						break;
 					case 2:
-						picintc(1 << 10);
+						picintc(1 << ide34_irq[0]);
+						break;
+					case 3:
+						picintc(1 << ide34_irq[1]);
 						break;
 				}
 #endif
@@ -261,14 +268,16 @@ int get_irq(uint8_t board)
 {
 	if (board == 0)  return 1 << 14;
 	else if (board == 1)  return 1 << 15;
-	else if (board == 2)  return 1 << 10;
+	else if (board == 2)  return 1 << ide34_irq[0];
+	else if (board == 3)  return 1 << ide34_irq[1];
 }
 
 int get_pic_mask(uint8_t board)
 {
 	if (board == 0)  return 1 << 6;
 	else if (board == 1)  return 1 << 7;
-	else if (board == 2)  return 1 << 2;
+	else if (board == 2)  return 1 << (ide34_irq[0] & 7);
+	else if (board == 3)  return 1 << (ide34_irq[1] & 7);
 }
 
 void ide_irq_update(IDE *ide)
@@ -620,7 +629,7 @@ void resetide(void)
         int d;
 
         /* Close hard disk image files (if previously open) */
-        for (d = 0; d < 4; d++) {
+        for (d = 0; d < IDE_NUM; d++) {
                 ide_drives[d].type = IDE_NONE;
                 if (ide_drives[d].hdfile != NULL) {
                         fclose(ide_drives[d].hdfile);
@@ -631,23 +640,16 @@ void resetide(void)
                 ide_drives[d].board = (d & 2) ? 1 : 0;
         }
 		
-		for (d = 4; d < 6; d++)
-		{
-                ide_drives[d].type = IDE_NONE;
-                ide_drives[d].atastat = READY_STAT | DSC_STAT;
-                ide_drives[d].service = 0;
-                ide_drives[d].board = 2;
-		}
-		
 	page_flags[GPMODE_CDROM_AUDIO_PAGE] &= 0xFD;		/* Clear changed flag for CDROM AUDIO mode page. */
 	memset(mode_pages_in[GPMODE_CDROM_AUDIO_PAGE], 0, 256);	/* Clear the page itself. */
 
 	idecallback[0]=idecallback[1]=0;
+	idecallback[2]=idecallback[3]=0;
 
 #ifdef MAINLINE
 #define IDE_DRIVES 4
 #else
-#define IDE_DRIVES 6
+#define IDE_DRIVES IDE_NUM
 #endif
 	
 	for (d = 0; d < IDE_DRIVES; d++)
@@ -679,6 +681,7 @@ void resetide(void)
         cur_ide[1] = 2;
 
         cur_ide[2] = 4;
+        cur_ide[3] = 8;
         
 //        ide_drives[1].type = IDE_CDROM;
 
@@ -1798,6 +1801,12 @@ void ide_callback_ter()
 {
 	idecallback[2] = 0;
 	callbackide(2);
+}
+
+void ide_callback_qua()
+{
+	idecallback[3] = 0;
+	callbackide(3);
 }
 
 /*ATAPI CD-ROM emulation*/
@@ -3078,6 +3087,31 @@ uint32_t ide_read_ter_l(uint16_t addr, void *priv)
 {
         return readidel(2);
 }
+
+void ide_write_qua(uint16_t addr, uint8_t val, void *priv)
+{
+        writeide(3, addr, val);
+}
+void ide_write_qua_w(uint16_t addr, uint16_t val, void *priv)
+{
+        writeidew(3, val);
+}
+void ide_write_qua_l(uint16_t addr, uint32_t val, void *priv)
+{
+        writeidel(3, val);
+}
+uint8_t ide_read_qua(uint16_t addr, void *priv)
+{
+        return readide(3, addr);
+}
+uint16_t ide_read_qua_w(uint16_t addr, void *priv)
+{
+        return readidew(3);
+}
+uint32_t ide_read_qua_l(uint16_t addr, void *priv)
+{
+        return readidel(3);
+}
 /* *** REMOVE FROM CODE SUBMITTED TO MAINLINE - END *** */
 
 void ide_pri_enable()
@@ -3109,16 +3143,12 @@ void ide_ter_enable()
 {
         io_sethandler(0x0168, 0x0008, ide_read_ter, ide_read_ter_w, ide_read_ter_l, ide_write_ter, ide_write_ter_w, ide_write_ter_l, NULL);
         io_sethandler(0x036e, 0x0001, ide_read_ter, NULL,           NULL,           ide_write_ter, NULL,            NULL           , NULL);
-
-		ide_ter_enabled = 1;
 }
 
 void ide_ter_disable()
 {
         io_removehandler(0x0168, 0x0008, ide_read_ter, ide_read_ter_w, ide_read_ter_l, ide_write_ter, ide_write_ter_w, ide_write_ter_l, NULL);
         io_removehandler(0x036e, 0x0001, ide_read_ter, NULL,           NULL,           ide_write_ter, NULL,            NULL           , NULL);
-
-		ide_ter_enabled = 0;
 }
 
 void ide_ter_init()
@@ -3126,6 +3156,25 @@ void ide_ter_init()
 		ide_ter_enable();
 
         timer_add(ide_callback_ter, &idecallback[2], &idecallback[2],  NULL);
+}
+
+void ide_qua_enable()
+{
+        io_sethandler(0x01e8, 0x0008, ide_read_qua, ide_read_qua_w, ide_read_qua_l, ide_write_qua, ide_write_qua_w, ide_write_qua_l, NULL);
+        io_sethandler(0x03ee, 0x0001, ide_read_qua, NULL,           NULL,           ide_write_qua, NULL,            NULL           , NULL);
+}
+
+void ide_qua_disable()
+{
+        io_removehandler(0x01e8, 0x0008, ide_read_qua, ide_read_qua_w, ide_read_qua_l, ide_write_qua, ide_write_qua_w, ide_write_qua_l, NULL);
+        io_removehandler(0x03ee, 0x0001, ide_read_qua, NULL,           NULL,           ide_write_qua, NULL,            NULL           , NULL);
+}
+
+void ide_qua_init()
+{
+		ide_qua_enable();
+
+        timer_add(ide_callback_qua, &idecallback[3], &idecallback[3],  NULL);
 }
 /* *** REMOVE FROM CODE SUBMITTED TO MAINLINE - END *** */
 
