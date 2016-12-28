@@ -155,6 +155,14 @@ typedef struct riva128_t
     uint32_t dst_canvas_min, dst_canvas_max;
 
     uint32_t beta;
+
+    uint32_t notify;
+
+    struct
+    {
+      uint32_t point_color;
+      int32_t point_x[0x20], point_y[0x20];
+    } speedhack;
   } pgraph;
   
   struct
@@ -288,6 +296,14 @@ static uint32_t riva128_pgraph_do_blend(uint32_t factor, uint32_t dst, uint32_t 
   return ((dst * (0x100 - factor)) + (src * factor)) >> 6;
 }
 
+static uint8_t riva128_pgraph_draw_point(int offset, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+
+  svga->vram[(riva128->pgraph.speedhack.point_y[offset] * riva128->pfb.width) + riva128->pgraph.speedhack.point_x[offset]] = riva128->pgraph.speedhack.point_color;
+}
+
 static uint8_t riva128_pmc_read(uint32_t addr, void *p)
 {
   riva128_t *riva128 = (riva128_t *)p;
@@ -365,7 +381,7 @@ static void riva128_pmc_interrupt(int num, void *p)
   riva128_t *riva128 = (riva128_t *)p;
   svga_t *svga = &riva128->svga;
 
-  riva128->pmc.intr &= ~(1 << num);
+  riva128->pmc.intr |= (1 << num);
 
   picint(1 << riva128->pci_regs[0x3c]);
 }
@@ -537,7 +553,7 @@ static void riva128_pfifo_interrupt(int num, void *p)
   riva128_t *riva128 = (riva128_t *)p;
   svga_t *svga = &riva128->svga;
 
-  riva128->pfifo.intr &= ~(1 << num);
+  riva128->pfifo.intr |= (1 << num);
 
   riva128_pmc_interrupt(8, riva128);
 }
@@ -621,7 +637,7 @@ static void riva128_ptimer_interrupt(int num, void *p)
   riva128_t *riva128 = (riva128_t *)p;
   svga_t *svga = &riva128->svga;
 
-  riva128->ptimer.intr &= ~(1 << num);
+  riva128->ptimer.intr |= (1 << num);
 
   riva128_pmc_interrupt(20, riva128);
 }
@@ -814,6 +830,10 @@ static uint8_t riva128_pgraph_read(uint32_t addr, void *p)
   case 0x400641: ret = (riva128->pgraph.beta >> 8) & 0xff; break;
   case 0x400642: ret = (riva128->pgraph.beta >> 16) & 0xff; break;
   case 0x400643: ret = (riva128->pgraph.beta >> 24) & 0xff; break;
+  case 0x400684: ret = riva128->pgraph.notify & 0xff; break;
+  case 0x400685: ret = (riva128->pgraph.notify >> 8) & 0xff; break;
+  case 0x400686: ret = (riva128->pgraph.notify >> 16) & 0xff; break;
+  case 0x400687: ret = (riva128->pgraph.notify >> 24) & 0xff; break;
   }
 
   return ret;
@@ -917,6 +937,9 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
     riva128->pgraph.beta = tmp;
     break;
   }
+  case 0x400684:
+  riva128->pgraph.notify = val & 0x0011ffff;
+  break;
   case 0x4006a4:
   riva128->pgraph.fifo_enable = val & 1;
   break;
@@ -936,6 +959,26 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
   riva128->pgraph.debug[3] = val & ((riva128->card_id == 0x04) ? 0x11ffff33 : 0xfbffff73);
   break;
   }
+}
+
+static void riva128_pgraph_interrupt(int num, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+
+  riva128->pgraph.intr |= (1 << num);
+
+  riva128_pmc_interrupt(12, riva128);
+}
+
+static void riva128_pgraph_invalid_interrupt(int num, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+
+  riva128->pgraph.invalid |= (1 << num);
+
+  riva128_pgraph_interrupt(0, riva128);
 }
 
 static uint8_t riva128_pramdac_read(uint32_t addr, void *p)
@@ -1047,6 +1090,78 @@ static uint8_t riva128_ramht_lookup(uint32_t handle, void *p)
   return objclass;
 }
 
+static void riva128_pgraph_point_exec_method_speedhack(int offset, uint32_t val, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+
+  switch(offset)
+  {
+    case 0x0104:
+    {
+      //NOTIFY
+      if(!(riva128->pgraph.invalid & 0x10000))
+      {
+        if(riva128->pgraph.notify & 0x10000)
+        {
+          riva128_pgraph_invalid_interrupt(12, riva128);
+          riva128->pgraph.fifo_enable = 0;
+        }
+      }
+
+      if(!(riva128->pgraph.invalid & 0x10000) && !(riva128->pgraph.invalid & 0x10))
+      {
+        riva128->pgraph.notify |= 1 << 16;
+        riva128->pgraph.notify |= (val & 0xf) << 20;
+      }
+      break;
+    }
+    case 0x0304:
+    {
+      //COLOR
+      riva128->pgraph.speedhack.point_color = val;
+      break;
+    }
+    case 0x0400 ... 0x47c:
+    {
+      riva128->pgraph.speedhack.point_x[(offset & 0x7c) >> 2] = val & 0xffff;
+      riva128->pgraph.speedhack.point_y[(offset & 0x7c) >> 2] = val >> 16;
+      riva128_pgraph_draw_point((offset & 0x7c) >> 2, riva128);
+      break;
+    }
+    break;
+  }
+}
+
+static void riva128_pgraph_gdi_exec_method_speedhack(int offset, uint32_t val, void *p)
+{
+  riva128_t *riva128 = (riva128_t *)p;
+  svga_t *svga = &riva128->svga;
+
+  switch(offset)
+  {
+    case 0x0104:
+    {
+      //NOTIFY
+      if(!(riva128->pgraph.invalid & 0x10000))
+      {
+        if(riva128->pgraph.notify & 0x10000)
+        {
+          riva128_pgraph_invalid_interrupt(12, riva128);
+          riva128->pgraph.fifo_enable = 0;
+        }
+      }
+
+      if(!(riva128->pgraph.invalid & 0x10000) && !(riva128->pgraph.invalid & 0x10))
+      {
+        riva128->pgraph.notify |= 1 << 16;
+        riva128->pgraph.notify |= (val & 0xf) << 20;
+      }
+      break;
+    }
+  }
+}
+
 static void riva128_pgraph_exec_method_speedhack(int subchanid, int offset, uint32_t val, void *p)
 {
   riva128_t *riva128 = (riva128_t *)p;
@@ -1055,9 +1170,18 @@ static void riva128_pgraph_exec_method_speedhack(int subchanid, int offset, uint
 
   switch(riva128->pgraph.obj_class[subchanid])
   {
-    case 0x30:
-    //NV1_NULL
-    return;
+    case 0x08:
+    {
+      //NV1_POINT
+      riva128_pgraph_point_exec_method_speedhack(offset, val, riva128);
+      break;
+    }
+    case 0x0c:
+    {
+      //NV3_GDI
+      riva128_pgraph_gdi_exec_method_speedhack(offset, val, riva128);
+      break;
+    } 
   }
 }
 
@@ -1080,7 +1204,7 @@ static void riva128_puller_exec_method(int chanid, int subchanid, int offset, ui
     }
     else
     {
-	    riva128_pgraph_exec_method_speedhack(subchanid, offset, val, riva128);
+      if(riva128->card_id == 0x03) riva128_pgraph_exec_method_speedhack(subchanid, offset, val, riva128);
     }
   }
   else
@@ -2120,7 +2244,7 @@ static device_config_t riva128zx_config[] =
       {
         .description = ""
       }
-    }
+    },
     //DO NOT TURN THIS OFF YET. THE PGRAPH SPEEDHACK IS CURRENTLY NECESSARY FOR WORKING EMULATION.
     .default_int = 1
   },
