@@ -922,9 +922,9 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 		SCSIDMAResetPosition(id);
 		break;
 		
-		case GPCMD_SEEK6:
+		case GPCMD_SEEK_6:
 		case GPCMD_SEEK:
-		if (cbd[0] == GPCMD_SEEK6)
+		if (cbd[0] == GPCMD_SEEK_6)
 		{
 			SCSIDevices[id].lba_pos = (cdb[2]<<8)|cdb[3];
 		}
