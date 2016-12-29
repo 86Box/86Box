@@ -27,8 +27,8 @@ extern void ide_set_bus_master(int (*read_sector)(int channel, uint8_t *data), i
 
 extern int ideboard;
 
-extern int ide34_enable[2];
-extern int ide34_irq[2];
+extern int ide_enable[4];
+extern int ide_irq[4];
 
 extern int idecallback[4];
 

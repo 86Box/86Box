@@ -406,12 +406,12 @@ void resetpchard()
 	ide_ter_disable();
 	ide_qua_disable();
 
-	if (ide34_enable[0])
+	if (ide_enable[2])
 	{
 		ide_ter_init();
 	}
 
-	if (ide34_enable[1])
+	if (ide_enable[3])
 	{
 		ide_qua_init();
 	}
@@ -761,10 +761,10 @@ void loadconfig(char *fn)
         if (p) strcpy(ide_fn[7], p);
         else   strcpy(ide_fn[7], "");
 
-	ide34_enable[0] = config_get_int(NULL, "ide_ter_enable", 0);
-	ide34_irq[0] = config_get_int(NULL, "ide_ter_irq", 10);
-	ide34_enable[1] = config_get_int(NULL, "ide_qua_enable", 0);
-	ide34_irq[1] = config_get_int(NULL, "ide_qua_irq", 11);
+	ide_enable[2] = config_get_int(NULL, "ide_ter_enable", 0);
+	ide_irq[2] = config_get_int(NULL, "ide_ter_irq", 10);
+	ide_enable[3] = config_get_int(NULL, "ide_qua_enable", 0);
+	ide_irq[3] = config_get_int(NULL, "ide_qua_irq", 11);
 
 	fdd_set_type(0, config_get_int(NULL, "drive_a_type", 1));
         fdd_set_type(1, config_get_int(NULL, "drive_b_type", 1));
@@ -920,10 +920,10 @@ void saveconfig()
         config_set_int(NULL, "hdj_cylinders", hdc[7].tracks);
         config_set_string(NULL, "hdj_fn", ide_fn[7]);
 
-        config_set_int(NULL, "ide_ter_enable", ide34_enable[0]);
-        config_set_int(NULL, "ide_ter_irq", ide34_irq[0]);
-        config_set_int(NULL, "ide_qua_enable", ide34_enable[1]);
-        config_set_int(NULL, "ide_qua_irq", ide34_irq[1]);
+        config_set_int(NULL, "ide_ter_enable", ide_enable[2]);
+        config_set_int(NULL, "ide_ter_irq", ide_irq[2]);
+        config_set_int(NULL, "ide_qua_enable", ide_enable[3]);
+        config_set_int(NULL, "ide_qua_irq", ide_irq[3]);
 
         config_set_int(NULL, "drive_a_type", fdd_get_type(0));
         config_set_int(NULL, "drive_b_type", fdd_get_type(1));

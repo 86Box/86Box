@@ -349,9 +349,9 @@ void img_load(int drive, char *fn)
 					{
 						rep_byte = fgetc(img[drive].f);
 						block_len = -block_len;
-						if (img[drive].cqm_data + cur_pos + block_len) > ((uint32_t) bpb_total) * ((uint32_t) bpb_bps))
+						if ((cur_pos + block_len) > ((uint32_t) bpb_total) * ((uint32_t) bpb_bps))
 						{
-							block_len = ((uint32_t) bpb_total) * ((uint32_t) bpb_bps) - (img[drive].cqm_data + cur_pos);
+							block_len = ((uint32_t) bpb_total) * ((uint32_t) bpb_bps) - cur_pos;
 							memset(img[drive].cqm_data + cur_pos, rep_byte, block_len);
 							break;
 						}
@@ -363,9 +363,9 @@ void img_load(int drive, char *fn)
 					}
 					else if (block_len > 0)
 					{
-						if (img[drive].cqm_data + cur_pos + block_len) > ((uint32_t) bpb_total) * ((uint32_t) bpb_bps))
+						if ((cur_pos + block_len) > ((uint32_t) bpb_total) * ((uint32_t) bpb_bps))
 						{
-							block_len = ((uint32_t) bpb_total) * ((uint32_t) bpb_bps) - (img[drive].cqm_data + cur_pos);
+							block_len = ((uint32_t) bpb_total) * ((uint32_t) bpb_bps) - cur_pos;
 							fread(img[drive].cqm_data + cur_pos, 1, block_len, img[drive].f);
 							break;
 						}

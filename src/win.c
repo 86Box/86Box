@@ -627,7 +627,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         if (scsi_cdrom_enabled)
            CheckMenuItem(menu, IDM_CDROM_SCSI, MF_CHECKED);
 
-        if (ide34_enable[0])
+        if (ide_enable[2])
            CheckMenuItem(menu, IDM_IDE_TER_ENABLED, MF_CHECKED);
 
         CheckMenuItem(menu, IDM_IDE_TER_IRQ9, MF_UNCHECKED);
@@ -637,27 +637,27 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         CheckMenuItem(menu, IDM_IDE_TER_IRQ14, MF_UNCHECKED);
         CheckMenuItem(menu, IDM_IDE_TER_IRQ15, MF_UNCHECKED);
 
-        if (ide34_irq[0] == 9)
+        if (ide_irq[2] == 9)
 	{
            CheckMenuItem(menu, IDM_IDE_TER_IRQ9, MF_CHECKED);
 	}
-        else if (ide34_irq[0] == 10)
+        else if (ide_irq[2] == 10)
 	{
            CheckMenuItem(menu, IDM_IDE_TER_IRQ10, MF_CHECKED);
 	}
-        else if (ide34_irq[0] == 11)
+        else if (ide_irq[2] == 11)
 	{
            CheckMenuItem(menu, IDM_IDE_TER_IRQ11, MF_CHECKED);
 	}
-        else if (ide34_irq[0] == 12)
+        else if (ide_irq[2] == 12)
 	{
            CheckMenuItem(menu, IDM_IDE_TER_IRQ12, MF_CHECKED);
 	}
-        else if (ide34_irq[0] == 14)
+        else if (ide_irq[2] == 14)
 	{
            CheckMenuItem(menu, IDM_IDE_TER_IRQ14, MF_CHECKED);
 	}
-        else if (ide34_irq[0] == 15)
+        else if (ide_irq[2] == 15)
 	{
            CheckMenuItem(menu, IDM_IDE_TER_IRQ15, MF_CHECKED);
 	}
@@ -666,7 +666,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 		fatal("Unrecognized tertiary IDE controller IRQ\n");
 	}
 
-        if (ide34_enable[1])
+        if (ide_enable[3])
            CheckMenuItem(menu, IDM_IDE_QUA_ENABLED, MF_CHECKED);
 
         CheckMenuItem(menu, IDM_IDE_QUA_IRQ9, MF_UNCHECKED);
@@ -676,27 +676,27 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         CheckMenuItem(menu, IDM_IDE_QUA_IRQ14, MF_UNCHECKED);
         CheckMenuItem(menu, IDM_IDE_QUA_IRQ15, MF_UNCHECKED);
 
-        if (ide34_irq[1] == 9)
+        if (ide_irq[3] == 9)
 	{
            CheckMenuItem(menu, IDM_IDE_QUA_IRQ9, MF_CHECKED);
 	}
-        else if (ide34_irq[1] == 10)
+        else if (ide_irq[3] == 10)
 	{
            CheckMenuItem(menu, IDM_IDE_QUA_IRQ10, MF_CHECKED);
 	}
-        else if (ide34_irq[1] == 11)
+        else if (ide_irq[3] == 11)
 	{
            CheckMenuItem(menu, IDM_IDE_QUA_IRQ11, MF_CHECKED);
 	}
-        else if (ide34_irq[1] == 12)
+        else if (ide_irq[3] == 12)
 	{
            CheckMenuItem(menu, IDM_IDE_QUA_IRQ12, MF_CHECKED);
 	}
-        else if (ide34_irq[1] == 14)
+        else if (ide_irq[3] == 14)
 	{
            CheckMenuItem(menu, IDM_IDE_QUA_IRQ14, MF_CHECKED);
 	}
-        else if (ide34_irq[1] == 15)
+        else if (ide_irq[3] == 15)
 	{
            CheckMenuItem(menu, IDM_IDE_QUA_IRQ15, MF_CHECKED);
 	}
@@ -1142,7 +1142,7 @@ char *floppy_image_extensions = "All floppy images (*.001;*.002;*.003;*.004;*.00
 
 int ide_ter_set_irq(HMENU hmenu, int irq, int id)
 {
-	if (ide34_irq[0] == irq)
+	if (ide_irq[2] == irq)
 	{
 		return 0;
 	}
@@ -1152,7 +1152,7 @@ int ide_ter_set_irq(HMENU hmenu, int irq, int id)
 	}
 	pause = 1;
 	Sleep(100);
-	ide34_irq[0] = irq;
+	ide_irq[2] = irq;
 	CheckMenuItem(hmenu, IDM_IDE_TER_IRQ9, MF_UNCHECKED);
 	CheckMenuItem(hmenu, IDM_IDE_TER_IRQ10, MF_UNCHECKED);
 	CheckMenuItem(hmenu, IDM_IDE_TER_IRQ11, MF_UNCHECKED);
@@ -1168,7 +1168,7 @@ int ide_ter_set_irq(HMENU hmenu, int irq, int id)
 
 int ide_qua_set_irq(HMENU hmenu, int irq, int id)
 {
-	if (ide34_irq[1] == irq)
+	if (ide_irq[3] == irq)
 	{
 		return 0;
 	}
@@ -1178,7 +1178,7 @@ int ide_qua_set_irq(HMENU hmenu, int irq, int id)
 	}
 	pause = 1;
 	Sleep(100);
-	ide34_irq[1] = irq;
+	ide_irq[3] = irq;
 	CheckMenuItem(hmenu, IDM_IDE_QUA_IRQ9, MF_UNCHECKED);
 	CheckMenuItem(hmenu, IDM_IDE_QUA_IRQ10, MF_UNCHECKED);
 	CheckMenuItem(hmenu, IDM_IDE_QUA_IRQ11, MF_UNCHECKED);
@@ -1560,35 +1560,35 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			}
 			pause = 1;
 			Sleep(100);
-			ide34_enable[0] ^= 1;
-			CheckMenuItem(hmenu, IDM_SCSI_ENABLED, ide34_enable[0] ? MF_CHECKED : MF_UNCHECKED);
+			ide_enable[2] ^= 1;
+			CheckMenuItem(hmenu, IDM_IDE_TER_ENABLED, ide_enable[2] ? MF_CHECKED : MF_UNCHECKED);
 			saveconfig();
 			resetpchard();
 			pause = 0;
 			break;
                         
                         case IDM_IDE_TER_IRQ9:
-			ide_ter_set_irq(hmenu, 9, IDM_SCSI_IRQ9);
+			ide_ter_set_irq(hmenu, 9, IDM_IDE_TER_IRQ9);
 			break;
                         
                         case IDM_IDE_TER_IRQ10:
-			ide_ter_set_irq(hmenu, 10, IDM_SCSI_IRQ10);
+			ide_ter_set_irq(hmenu, 10, IDM_IDE_TER_IRQ10);
 			break;
                         
                         case IDM_IDE_TER_IRQ11:
-			ide_ter_set_irq(hmenu, 11, IDM_SCSI_IRQ11);
+			ide_ter_set_irq(hmenu, 11, IDM_IDE_TER_IRQ11);
 			break;
                         
                         case IDM_IDE_TER_IRQ12:
-			ide_ter_set_irq(hmenu, 12, IDM_SCSI_IRQ12);
+			ide_ter_set_irq(hmenu, 12, IDM_IDE_TER_IRQ12);
 			break;
                         
                         case IDM_IDE_TER_IRQ14:
-			ide_ter_set_irq(hmenu, 14, IDM_SCSI_IRQ14);
+			ide_ter_set_irq(hmenu, 14, IDM_IDE_TER_IRQ14);
 			break;
                         
                         case IDM_IDE_TER_IRQ15:
-			ide_ter_set_irq(hmenu, 15, IDM_SCSI_IRQ15);
+			ide_ter_set_irq(hmenu, 15, IDM_IDE_TER_IRQ15);
 			break;
                         
                         case IDM_IDE_QUA_ENABLED:
@@ -1598,35 +1598,35 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			}
 			pause = 1;
 			Sleep(100);
-			ide34_enable[1] ^= 1;
-			CheckMenuItem(hmenu, IDM_SCSI_ENABLED, ide34_enable[1] ? MF_CHECKED : MF_UNCHECKED);
+			ide_enable[3] ^= 1;
+			CheckMenuItem(hmenu, IDM_IDE_QUA_ENABLED, ide_enable[3] ? MF_CHECKED : MF_UNCHECKED);
 			saveconfig();
 			resetpchard();
 			pause = 0;
 			break;
                         
                         case IDM_IDE_QUA_IRQ9:
-			ide_qua_set_irq(hmenu, 9, IDM_SCSI_IRQ9);
+			ide_qua_set_irq(hmenu, 9, IDM_IDE_QUA_IRQ9);
 			break;
                         
                         case IDM_IDE_QUA_IRQ10:
-			ide_qua_set_irq(hmenu, 10, IDM_SCSI_IRQ10);
+			ide_qua_set_irq(hmenu, 10, IDM_IDE_QUA_IRQ10);
 			break;
                         
                         case IDM_IDE_QUA_IRQ11:
-			ide_qua_set_irq(hmenu, 11, IDM_SCSI_IRQ11);
+			ide_qua_set_irq(hmenu, 11, IDM_IDE_QUA_IRQ11);
 			break;
                         
                         case IDM_IDE_QUA_IRQ12:
-			ide_qua_set_irq(hmenu, 12, IDM_SCSI_IRQ12);
+			ide_qua_set_irq(hmenu, 12, IDM_IDE_QUA_IRQ12);
 			break;
                         
                         case IDM_IDE_QUA_IRQ14:
-			ide_qua_set_irq(hmenu, 14, IDM_SCSI_IRQ14);
+			ide_qua_set_irq(hmenu, 14, IDM_IDE_QUA_IRQ14);
 			break;
                         
                         case IDM_IDE_QUA_IRQ15:
-			ide_qua_set_irq(hmenu, 15, IDM_SCSI_IRQ15);
+			ide_qua_set_irq(hmenu, 15, IDM_IDE_QUA_IRQ15);
 			break;
                         
                         case IDM_SCSI_ENABLED:
