@@ -710,6 +710,12 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 		SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
 		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
 		SCSICallback[id]=50*SCSI_TIME;
+		return;
+	}
+
+	if (cdb[0] == GPCMD_READ_TOC_PMA_ATIP)
+	{
+		SCSISense.UnitAttention = 0;
 	}
 
 	/* Unless the command is REQUEST SENSE, clear the sense. This will *NOT*
