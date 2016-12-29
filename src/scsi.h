@@ -14,7 +14,7 @@
 #define GPCMD_TEST_UNIT_READY           0x00
 #define GPCMD_REQUEST_SENSE		0x03
 #define GPCMD_READ_6			0x08
-#define GPCMD_SEEK_6			0x0B
+#define GPCMD_SEEK_6			0x0b
 #define GPCMD_INQUIRY			0x12
 #define GPCMD_MODE_SELECT_6		0x15
 #define GPCMD_MODE_SENSE_6		0x1a
@@ -22,7 +22,7 @@
 #define GPCMD_PREVENT_REMOVAL          	0x1e
 #define GPCMD_READ_CDROM_CAPACITY	0x25
 #define GPCMD_READ_10                   0x28
-#define GPCMD_SEEK			0x2b
+#define GPCMD_SEEK_10			0x2b
 #define GPCMD_READ_SUBCHANNEL		0x42
 #define GPCMD_READ_TOC_PMA_ATIP		0x43
 #define GPCMD_READ_HEADER		0x44
@@ -144,8 +144,6 @@
 #define MMC_PROFILE_HDDVD_RW_DL         0x005A
 #define MMC_PROFILE_INVALID             0xFFFF
 
-#define WRITEDATA		0x10
-#define READDATA		8
 #define NONDATA			4
 #define CHECK_READY		2
 #define ALLOW_UA		1
@@ -248,16 +246,14 @@ extern int cdrom_sector_size, cdrom_sector_ismsf;
 struct
 {	
 	int lba_pos, lba_len;
-	uint32_t buffer_size;
 	uint32_t pos;
-	uint8_t *Cdb;
 	uint8_t CmdBuffer[262144];
 	uint32_t CmdBufferLength;
 	int LunType;
 	uint32_t InitLength;
 } SCSIDevices[16];
 
-extern void SCSIReset(void);
+extern void SCSIReset(uint8_t Id);
 
 uint32_t SCSICDROMModeSense(uint8_t *buf, uint32_t pos, uint8_t type);
 uint8_t SCSICDROMSetProfile(uint8_t *buf, uint8_t *index, uint16_t profile);

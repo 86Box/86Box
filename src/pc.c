@@ -294,7 +294,7 @@ void initpc(int argc, char *argv[])
         resetide();
 		if (buslogic_enabled)
 		{
-			SCSIReset();
+			SCSIReset(scsi_cdrom_id);
 			device_add(&BuslogicDevice);
 		}
 		
@@ -434,7 +434,7 @@ void resetpchard()
 		
 		if (buslogic_enabled)
 		{
-			SCSIReset();
+			SCSIReset(scsi_cdrom_id);
 			device_add(&BuslogicDevice);
 		}
  
