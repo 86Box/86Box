@@ -14,6 +14,7 @@
 #define GPCMD_TEST_UNIT_READY           0x00
 #define GPCMD_REQUEST_SENSE		0x03
 #define GPCMD_READ_6			0x08
+#define GPCMD_SEEK_6			0x0B
 #define GPCMD_INQUIRY			0x12
 #define GPCMD_MODE_SELECT_6		0x15
 #define GPCMD_MODE_SENSE_6		0x1a

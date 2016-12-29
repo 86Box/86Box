@@ -2692,8 +2692,16 @@ atapi_out:
 			idecallback[ide_board]=50*IDE_TIME;
 			break;
 
+		case GPCMD_SEEK_6:
 		case GPCMD_SEEK:
-			pos=(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
+			if (idebufferb[0] == GPCMD_SEEK_6)
+			{
+				pos=(idebufferb[2]<<8)|idebufferb[3];
+			}
+			else
+			{
+				pos=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
+			}
 			cdrom->seek(pos);
 			ide->packetstatus = ATAPI_STATUS_COMPLETE;
 			idecallback[ide_board]=50*IDE_TIME;

@@ -31,6 +31,7 @@ uint8_t SCSICommandTable[0x100] =
 	[GPCMD_PREVENT_REMOVAL]               = CHECK_READY,
 	[GPCMD_READ_CDROM_CAPACITY]           = CHECK_READY,
 	[GPCMD_READ_10]                       = CHECK_READY,
+	[GPCMD_SEEK_6]                        = CHECK_READY | NONDATA,
 	[GPCMD_SEEK]                          = CHECK_READY | NONDATA,
 	[GPCMD_READ_SUBCHANNEL]               = CHECK_READY,
 	[GPCMD_READ_TOC_PMA_ATIP]             = CHECK_READY | ALLOW_UA,		/* Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS
@@ -921,8 +922,16 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 		SCSIDMAResetPosition(id);
 		break;
 		
+		case GPCMD_SEEK6:
 		case GPCMD_SEEK:
-		SCSIDevices[id].lba_pos = (cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
+		if (cbd[0] == GPCMD_SEEK6)
+		{
+			SCSIDevices[id].lba_pos = (cdb[2]<<8)|cdb[3];
+		}
+		else
+		{
+			SCSIDevices[id].lba_pos = (cdb[2]<<24)|(cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
+		}
 		cdrom->seek(SCSIDevices[id].lba_pos);
 		
 		SCSIPhase = SCSI_PHASE_STATUS;
