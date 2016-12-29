@@ -24,6 +24,7 @@ uint8_t SCSICommandTable[0x100] =
 	[GPCMD_TEST_UNIT_READY]               = CHECK_READY | NONDATA,
 	[GPCMD_REQUEST_SENSE]                 = ALLOW_UA,
 	[GPCMD_READ_6]                        = CHECK_READY,
+	[GPCMD_SEEK_6]                        = CHECK_READY | NONDATA,
 	[GPCMD_INQUIRY]                       = ALLOW_UA,
 	[GPCMD_MODE_SELECT_6]                 = 0,
 	[GPCMD_MODE_SENSE_6]                  = 0,
@@ -31,8 +32,7 @@ uint8_t SCSICommandTable[0x100] =
 	[GPCMD_PREVENT_REMOVAL]               = CHECK_READY,
 	[GPCMD_READ_CDROM_CAPACITY]           = CHECK_READY,
 	[GPCMD_READ_10]                       = CHECK_READY,
-	[GPCMD_SEEK_6]                        = CHECK_READY | NONDATA,
-	[GPCMD_SEEK]                          = CHECK_READY | NONDATA,
+	[GPCMD_SEEK_10]                       = CHECK_READY | NONDATA,
 	[GPCMD_READ_SUBCHANNEL]               = CHECK_READY,
 	[GPCMD_READ_TOC_PMA_ATIP]             = CHECK_READY | ALLOW_UA,		/* Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS
 										   NOTE: The ATAPI reference says otherwise, but I think this is a question of
@@ -680,17 +680,34 @@ static int SCSICDROM_TOC(uint8_t id, uint8_t *cdb)
 
 void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 {	
+	int len;
+	int pos=0;
+	int DVDRet;
+	uint8_t Index = 0;
+	int real_pos;	
+	int msf;
+	uint32_t Size;
+	unsigned Idx = 0;
+	unsigned SizeIndex;
+	unsigned PreambleLen;
+	unsigned char Temp;
+	int max_length = 0;
+	int track = 0;
+	int ret = 0;
+	
 	if (lun > 0)
 	{
-		SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_ILLEGAL_OPCODE, 0);
+		SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_INV_FIELD_IN_CMD_PACKET, 0);
 		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
 		SCSICallback[id]=50*SCSI_TIME;
 		return;
 	}
 
+	msf = cdb[1] & 2;
+	
 	if (cdrom->medium_changed())
 	{
-		//pclog("Media changed\n");
+		pclog("Media changed\n");
 		SCSICDROM_Insert();
 	}
 
@@ -706,17 +723,15 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 		execution under it, error out and report the condition. */
 	if (!(SCSICommandTable[cdb[0]] & ALLOW_UA) && SCSISense.UnitAttention)
 	{
-		//pclog("UNIT ATTENTION: Command not allowed to pass through\n");
+		pclog("UNIT ATTENTION: Command not allowed to pass through\n");
 		SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
 		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
 		SCSICallback[id]=50*SCSI_TIME;
 		return;
 	}
-
+	
 	if (cdb[0] == GPCMD_READ_TOC_PMA_ATIP)
-	{
 		SCSISense.UnitAttention = 0;
-	}
 
 	/* Unless the command is REQUEST SENSE, clear the sense. This will *NOT*
 		clear the UNIT ATTENTION condition if it's set. */
@@ -728,15 +743,13 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 	/* Next it's time for NOT READY. */
 	if ((SCSICommandTable[cdb[0]] & CHECK_READY) && !cdrom->ready())
 	{
-		//pclog("Not ready\n");
+		pclog("Not ready\n");
 		SCSISenseCodeError(SENSE_NOT_READY, ASC_MEDIUM_NOT_PRESENT, 0);
 		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
 		SCSICallback[id]=50*SCSI_TIME;
 		return;
 	}
-	
-	SCSICallback[id] = 0;
-	
+
 	prev_status = cd_status;
 	cd_status = cdrom->status();
 	if (((prev_status == CD_STATUS_PLAYING) || (prev_status == CD_STATUS_PAUSED)) && ((cd_status != CD_STATUS_PLAYING) && (cd_status != CD_STATUS_PAUSED)))
@@ -754,22 +767,65 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 		SCSIPhase = SCSI_PHASE_STATUS;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=50*SCSI_TIME;
-		SCSIDevices[id].CmdBufferLength = 0;
 		break;
 
 		case GPCMD_REQUEST_SENSE:
+		len = cdb[4];
+		
+		/*Will return 18 bytes of 0*/
+		memset(SCSIDevices[id].CmdBuffer,0,512);
+
+		SCSIDevices[id].CmdBuffer[0]=0x80|0x70;
+
+		if ((SCSISense.SenseKey > 0) || (cd_status < CD_STATUS_PLAYING))
+		{
+			if (SenseCompleted)
+			{
+				SCSIDevices[id].CmdBuffer[2]=SENSE_ILLEGAL_REQUEST;
+				SCSIDevices[id].CmdBuffer[12]=ASC_AUDIO_PLAY_OPERATION;
+				SCSIDevices[id].CmdBuffer[13]=ASCQ_AUDIO_PLAY_OPERATION_COMPLETED;
+			}
+			else
+			{
+				SCSIDevices[id].CmdBuffer[2]=SCSISense.SenseKey;
+				SCSIDevices[id].CmdBuffer[12]=SCSISense.Asc;
+				SCSIDevices[id].CmdBuffer[13]=SCSISense.Ascq;
+			}
+		}
+		else if ((SCSISense.SenseKey == 0) && (cd_status >= CD_STATUS_PLAYING) && (cd_status != CD_STATUS_STOPPED))
+		{
+			SCSIDevices[id].CmdBuffer[2]=SENSE_ILLEGAL_REQUEST;
+			SCSIDevices[id].CmdBuffer[12]=ASC_AUDIO_PLAY_OPERATION;
+			SCSIDevices[id].CmdBuffer[13]=(cd_status == CD_STATUS_PLAYING) ? ASCQ_AUDIO_PLAY_OPERATION_IN_PROGRESS : ASCQ_AUDIO_PLAY_OPERATION_PAUSED;
+		}
+		else
+		{
+			if (SCSISense.UnitAttention)
+			{
+				SCSIDevices[id].CmdBuffer[2]=SENSE_UNIT_ATTENTION;
+				SCSIDevices[id].CmdBuffer[12]=ASC_MEDIUM_MAY_HAVE_CHANGED;
+				SCSIDevices[id].CmdBuffer[13]=0;
+			}
+		}
+
+		SCSIDevices[id].CmdBuffer[7]=10;
+		
 		SCSIPhase = SCSI_PHASE_DATAIN;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=60*SCSI_TIME;
+		SCSIDevices[id].CmdBufferLength = len;
 		
-		if (cdb[4] == 0)
-			SCSIDevices[id].CmdBufferLength = 4;
-		else if (cdb[4] > 18)
-			SCSIDevices[id].CmdBufferLength = 18;
-		else
-			SCSIDevices[id].CmdBufferLength = cdb[4];
+		SCSIDMAResetPosition(id);		
 		
-		SCSIDMAResetPosition(id);
+		if (SCSIDevices[id].CmdBuffer[2] == SENSE_UNIT_ATTENTION)
+		{
+			/* If the last remaining sense is unit attention, clear
+				that condition. */
+			SCSISense.UnitAttention = 0;
+		}
+		
+		/* Clear the sense stuff as per the spec. */
+		SCSIClearSense(cdb[0], 0);
 		break;
 		
 		case GPCMD_READ_6:
@@ -820,53 +876,151 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 		
 		SCSIDMAResetPosition(id);
 		return;
-		
-		case GPCMD_INQUIRY:
-		if (cdb[2] == 0x83)
+	
+		case GPCMD_SEEK_6:
+		case GPCMD_SEEK_10:
+		if (cdb[0] == GPCMD_SEEK_6)
 		{
-			if (SCSIDevices[id].CmdBufferLength < 28)
+			pos = (cdb[2]<<8)|cdb[3];
+		}
+		else
+		{
+			pos = (cdb[2]<<24)|(cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
+		}
+		cdrom->seek(SCSIDevices[id].lba_pos);
+		
+		SCSIPhase = SCSI_PHASE_STATUS;
+		SCSIStatus = SCSI_STATUS_OK;
+		SCSICallback[id]=50*SCSI_TIME;
+		break;
+	
+		case GPCMD_INQUIRY:
+		max_length = cdb[4];
+		
+		if (cdb[1] & 1)
+		{
+			PreambleLen = 4;
+			SizeIndex = 3;
+						
+			SCSIDevices[id].CmdBuffer[Idx++] = 05;
+			SCSIDevices[id].CmdBuffer[Idx++] = cdb[2];
+			SCSIDevices[id].CmdBuffer[Idx++] = 0;
+						
+			Idx++;
+
+			switch (cdb[2])
 			{
-				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;					
-				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_DATA_PHASE_ERROR, 0x00);
+				case 0x00:
+				SCSIDevices[id].CmdBuffer[Idx++] = 0x00;
+				SCSIDevices[id].CmdBuffer[Idx++] = 0x83;
+				break;
+
+				case 0x83:
+				if (Idx + 24 > max_length)
+				{
+					SCSIStatus = SCSI_STATUS_CHECK_CONDITION;					
+					SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_DATA_PHASE_ERROR, 0x00);
+					SCSICallback[id]=50*SCSI_TIME;
+					return;					
+				}
+				SCSIDevices[id].CmdBuffer[Idx++] = 0x02;
+				SCSIDevices[id].CmdBuffer[Idx++] = 0x00;
+				SCSIDevices[id].CmdBuffer[Idx++] = 0x00;
+				SCSIDevices[id].CmdBuffer[Idx++] = 20;
+				ScsiPadStr8(SCSIDevices[id].CmdBuffer + Idx, 20, "53R141");	/* Serial */
+				Idx += 20;
+
+				if (Idx + 72 > SCSIDevices[id].CmdBufferLength)
+				{
+					goto SCSIOut;
+				}
+				SCSIDevices[id].CmdBuffer[Idx++] = 0x02;
+				SCSIDevices[id].CmdBuffer[Idx++] = 0x01;
+				SCSIDevices[id].CmdBuffer[Idx++] = 0x00;
+				SCSIDevices[id].CmdBuffer[Idx++] = 68;
+				ScsiPadStr8(SCSIDevices[id].CmdBuffer + Idx, 8, "86Box"); /* Vendor */
+				Idx += 8;
+				ScsiPadStr8(SCSIDevices[id].CmdBuffer + Idx, 40, "86BoxCD 1.00"); /* Product */
+				Idx += 40;
+				ScsiPadStr8(SCSIDevices[id].CmdBuffer + Idx, 20, "53R141"); /* Product */
+				Idx += 20;
+				break;
+				
+				default:
+				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;				
+				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
 				SCSICallback[id]=50*SCSI_TIME;
 				return;
 			}
 		}
-		if ((cdb[2] != 0x00) && (cdb[2] != 0x83))
+		else
 		{
-			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;				
-			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
-			SCSICallback[id]=50*SCSI_TIME;
-			return;
-		}
+			PreambleLen = 5;
+			SizeIndex = 4;
 
+			SCSIDevices[id].CmdBuffer[0] = 0x05; /*CD-ROM*/
+			SCSIDevices[id].CmdBuffer[1] = 0x80; /*Removable*/
+			SCSIDevices[id].CmdBuffer[2] = 0;
+			SCSIDevices[id].CmdBuffer[3] = 0x21;
+			SCSIDevices[id].CmdBuffer[4] = 31;
+			SCSIDevices[id].CmdBuffer[5] = 0;
+			SCSIDevices[id].CmdBuffer[6] = 0;
+			SCSIDevices[id].CmdBuffer[7] = 0;
+			ScsiPadStr8(SCSIDevices[id].CmdBuffer + 8, 8, "86Box"); /* Vendor */
+			ScsiPadStr8(SCSIDevices[id].CmdBuffer + 16, 16, "86BoxCD"); /* Product */
+			ScsiPadStr8(SCSIDevices[id].CmdBuffer + 32, 4, emulator_version); /* Revision */
+			
+			Idx = 36;
+		}
+		
+SCSIOut:
+		SCSIDevices[id].CmdBuffer[SizeIndex] = Idx - PreambleLen;
+		len=Idx;
+		
 		SCSIPhase = SCSI_PHASE_DATAIN;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=60*SCSI_TIME;
-		SCSIDevices[id].CmdBufferLength = cdb[4];
+		SCSIDevices[id].CmdBufferLength = len;
 		
 		SCSIDMAResetPosition(id);
 		break;
 		
 		case GPCMD_MODE_SELECT_6:
 		case GPCMD_MODE_SELECT_10:
-		SCSIPhase = SCSI_PHASE_DATAOUT;
-		SCSIStatus = SCSI_STATUS_OK;
-		SCSICallback[id]=60*SCSI_TIME;
 		if (cdb[0] == GPCMD_MODE_SELECT_6)
 		{
-			SCSIDevices[id].CmdBufferLength = cdb[4];
+			len = cdb[4];
+			prefix_len = 6;
 		}
 		else
 		{
-			SCSIDevices[id].CmdBufferLength = (cdb[7]<<8)|cdb[8];
+			len = (cdb[7]<<8)|cdb[8];
+			prefix_len = 10;
 		}
 		
+		page_current = cdb[2];
+		if (page_flags[page_current] & PAGE_CHANGEABLE)
+				page_flags[GPMODE_CDROM_AUDIO_PAGE] |= PAGE_CHANGED;		
+		
+		SCSIPhase = SCSI_PHASE_DATAOUT;
+		SCSIStatus = SCSI_STATUS_OK;
+		SCSICallback[id]=60*SCSI_TIME;
+		SCSIDevices[id].CmdBufferLength = len;
+
 		SCSIDMAResetPosition(id);
 		return;
 		
 		case GPCMD_MODE_SENSE_6:
 		case GPCMD_MODE_SENSE_10:
+		if (cdb[0] == GPCMD_MODE_SENSE_6)
+			len = cdb[4];
+		else
+			len = (cdb[7]<<8)|cdb[8];
+
+		Temp = cdb[2] & 0x3F;
+		
+		memset(SCSIDevices[id].CmdBuffer, 0, len);
+		
 		if (!(mode_sense_pages[cdb[2] & 0x3f] & IMPLEMENTED))
 		{
 			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;	
@@ -875,17 +1029,24 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 			return;
 		}
 
-		SCSIPhase = SCSI_PHASE_DATAIN;
-		SCSIStatus = SCSI_STATUS_OK;
-		SCSICallback[id]=60*SCSI_TIME;
 		if (cdb[0] == GPCMD_MODE_SENSE_6)
 		{
-			SCSIDevices[id].CmdBufferLength = cdb[4];
+			len = SCSICDROMModeSense(SCSIDevices[id].CmdBuffer, 4, Temp);
+			SCSIDevices[id].CmdBuffer[0] = len - 1;
+			SCSIDevices[id].CmdBuffer[1] = 3; /*120mm data CD-ROM*/
 		}
 		else
 		{
-			SCSIDevices[id].CmdBufferLength = (cdb[7]<<8)|cdb[8];
-		}
+			len = SCSICDROMModeSense(SCSIDevices[id].CmdBuffer, 8, Temp);
+			SCSIDevices[id].CmdBuffer[0] = (len - 2)>>8;
+			SCSIDevices[id].CmdBuffer[1] = (len - 2)&255;
+			SCSIDevices[id].CmdBuffer[2] = 3; /*120mm data CD-ROM*/
+		}		
+		
+		SCSIPhase = SCSI_PHASE_DATAIN;
+		SCSIStatus = SCSI_STATUS_OK;
+		SCSICallback[id]=60*SCSI_TIME;
+		SCSIDevices[id].CmdBufferLength = len;
 		
 		SCSIDMAResetPosition(id);
 		return;
@@ -909,17 +1070,30 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 		SCSIPhase = SCSI_PHASE_STATUS;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=50*SCSI_TIME;
-		SCSIDevices[id].CmdBufferLength = 0;
 		break;
 		
 		case GPCMD_PREVENT_REMOVAL:
 		SCSIPhase = SCSI_PHASE_STATUS;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=50*SCSI_TIME;
-		SCSIDevices[id].CmdBufferLength = 0;
 		break;
 
 		case GPCMD_READ_CDROM_CAPACITY:
+		if (cdrom->read_capacity)
+		{
+			cdrom->read_capacity(SCSIDevices[id].CmdBuffer);
+		}
+		else
+		{
+			Size = cdrom->size() - 1;		/* IMPORTANT: What's returned is the last LBA block. */
+			memset(SCSIDevices[id].CmdBuffer, 0, 8);
+			SCSIDevices[id].CmdBuffer[0] = (Size >> 24) & 0xff;
+			SCSIDevices[id].CmdBuffer[1] = (Size >> 16) & 0xff;
+			SCSIDevices[id].CmdBuffer[2] = (Size >> 8) & 0xff;
+			SCSIDevices[id].CmdBuffer[3] = Size & 0xff;
+			SCSIDevices[id].CmdBuffer[6] = 8;				/* 2048 = 0x0800 */
+		}		
+		
 		SCSIPhase = SCSI_PHASE_DATAIN;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=60*SCSI_TIME;
@@ -927,85 +1101,98 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 		
 		SCSIDMAResetPosition(id);
 		break;
-		
-		case GPCMD_SEEK_6:
-		case GPCMD_SEEK:
-		if (cdb[0] == GPCMD_SEEK_6)
-		{
-			SCSIDevices[id].lba_pos = (cdb[2]<<8)|cdb[3];
-		}
-		else
-		{
-			SCSIDevices[id].lba_pos = (cdb[2]<<24)|(cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
-		}
-		cdrom->seek(SCSIDevices[id].lba_pos);
-		
-		SCSIPhase = SCSI_PHASE_STATUS;
-		SCSIStatus = SCSI_STATUS_OK;
-		SCSICallback[id]=50*SCSI_TIME;
-		SCSIDevices[id].CmdBufferLength = 0;
-		break;
 
 		case GPCMD_READ_SUBCHANNEL:
+		Temp = cdb[2] & 0x40;
 		if (cdb[3] != 1)
 		{
 			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
 			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0x00);
 			SCSICallback[id]=50*SCSI_TIME;
-			return;
+			break;
 		}
-
+		
+		pos = 0;
+		SCSIDevices[id].CmdBuffer[pos++] = 0;
+		SCSIDevices[id].CmdBuffer[pos++] = 0; /*Audio status*/
+		SCSIDevices[id].CmdBuffer[pos++] = 0; SCSIDevices[id].CmdBuffer[pos++] = 0; /*Subchannel length*/
+		SCSIDevices[id].CmdBuffer[pos++] = 1; /*Format code*/
+		SCSIDevices[id].CmdBuffer[1] = cdrom->getcurrentsubchannel(&SCSIDevices[id].CmdBuffer[5], msf);		
+		len = 16;
+		if (!Temp)
+			len = 4;
+				
 		SCSIPhase = SCSI_PHASE_DATAIN;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=1000*SCSI_TIME;
-		SCSIDevices[id].CmdBufferLength = (cdb[7]<<8)|cdb[8];
-		
-		if (!(cdb[2] & 0x40))
-			SCSIDevices[id].CmdBufferLength = 4;
-		else
-			SCSIDevices[id].CmdBufferLength = 16;
-		
+		SCSIDevices[id].CmdBufferLength = len;
+
 		SCSIDMAResetPosition(id);
 		break;
 
 		case GPCMD_READ_TOC_PMA_ATIP:
+		switch (SCSICDROM_TOC(id, cdb))
 		{
-			int len;
-			
-			switch (SCSICDROM_TOC(id, cdb))
+			case 0: /*Normal*/
+			len = cdb[8]|(cdb[7]<<8);
+			len = cdrom->readtoc(SCSIDevices[id].CmdBuffer, cdb[6], msf, len, 0);
+			break;
+				
+			case 1: /*Multi session*/
+			len = cdb[8]|(cdb[7]<<8);
+			len = cdrom->readtoc_session(SCSIDevices[id].CmdBuffer, msf, len);
+			SCSIDevices[id].CmdBuffer[0] = 0; 
+			SCSIDevices[id].CmdBuffer[1] = 0xA;
+			break;
+				
+			case 2: /*Raw*/
+			len = cdb[8]|(cdb[7]<<8);
+			len = cdrom->readtoc_raw(SCSIDevices[id].CmdBuffer, msf, len);
+			break;
+						  
+			default:
+			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
+			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
+			if (SCSISense.UnitAttention)
 			{
-				case 0: /*Normal*/
-				len = cdb[8]|(cdb[7]<<8);
-				break;
-					
-				case 1: /*Multi session*/
-				len = cdb[8]|(cdb[7]<<8);
-				break;
-					
-				case 2: /*Raw*/
-				len = cdb[8]|(cdb[7]<<8);
-				break;
-							  
-				default:
-				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
-				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
-				if (SCSISense.UnitAttention)
-				{
-					SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-				}
-				SCSICallback[id]=50*SCSI_TIME;
-				return;
+				SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
 			}
-			SCSIPhase = SCSI_PHASE_DATAIN;
-			SCSIStatus = SCSI_STATUS_OK;
-			SCSICallback[id]=60*SCSI_TIME;
-			SCSIDevices[id].CmdBufferLength = len;
-			
-			SCSIDMAResetPosition(id);
+			SCSICallback[id]=50*SCSI_TIME;
+			return;
 		}
+		SCSIPhase = SCSI_PHASE_DATAIN;
+		SCSIStatus = SCSI_STATUS_OK;
+		SCSICallback[id]=60*SCSI_TIME;
+		SCSIDevices[id].CmdBufferLength = len;
+		
+		SCSIDMAResetPosition(id);
 		return;
 	
 		case GPCMD_READ_HEADER:
+		if (cdrom->read_header)
+		{
+			cdrom->read_header(cdb, SCSIDevices[id].CmdBuffer);
+		}
+		else
+		{
+			SectorLen=(cdb[7]<<8)|cdb[8];
+			SectorLBA=(cdb[2]<<24)|(cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
+			if (msf)
+			{
+				real_pos = cdrom_LBAtoMSF_accurate();
+			}
+			else
+			{
+				real_pos = SectorLBA;
+			}
+			SCSIDevices[id].CmdBuffer[4] = (real_pos >> 24);
+			SCSIDevices[id].CmdBuffer[5] = ((real_pos >> 16) & 0xff);
+			SCSIDevices[id].CmdBuffer[6] = ((real_pos >> 8) & 0xff);
+			SCSIDevices[id].CmdBuffer[7] = real_pos & 0xff;
+			SCSIDevices[id].CmdBuffer[0]=1; /*2048 bytes user data*/
+			SCSIDevices[id].CmdBuffer[1]=SCSIDevices[id].CmdBuffer[2]=SCSIDevices[id].CmdBuffer[3]=0;
+		}		
+		
 		SCSIPhase = SCSI_PHASE_DATAIN;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=60*SCSI_TIME;
@@ -1019,22 +1206,22 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 		case GPCMD_PLAY_AUDIO_12:
 		if (cdb[0] == GPCMD_PLAY_AUDIO_10)
 		{
-			SCSIDevices[id].lba_pos = (cdb[2]<<24)|(cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
-			SCSIDevices[id].lba_len = (cdb[7]<<8)|cdb[8];
+			pos = (cdb[2]<<24)|(cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
+			len = (cdb[7]<<8)|cdb[8];
 		}
 		else if (cdb[0] == GPCMD_PLAY_AUDIO_MSF)
 		{
-			SCSIDevices[id].lba_pos = (cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
-			SCSIDevices[id].lba_len = (cdb[6]<<16)|(cdb[7]<<8)|cdb[8];
+			pos = (cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
+			len = (cdb[6]<<16)|(cdb[7]<<8)|cdb[8];
 		}
 		else
 		{
-			SCSIDevices[id].lba_pos = (cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
-			SCSIDevices[id].lba_len = (cdb[7]<<16)|(cdb[8]<<8)|cdb[9];
+			pos = (cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
+			len = (cdb[7]<<16)|(cdb[8]<<8)|cdb[9];
 		}
 
 		if ((cdrom_drive < 1) || (cdrom_drive == 200) || (cd_status <= CD_STATUS_DATA_ONLY) ||
-			!cdrom->is_track_audio(SCSIDevices[id].lba_pos, (cdb[0] == GPCMD_PLAY_AUDIO_MSF) ? 1 : 0))
+			!cdrom->is_track_audio(pos, (cdb[0] == GPCMD_PLAY_AUDIO_MSF) ? 1 : 0))
 		{
 			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
 			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_MODE_FOR_THIS_TRACK, 0x00);
@@ -1042,27 +1229,122 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 			break;
 		}
 			
-		cdrom->playaudio(SCSIDevices[id].lba_pos, SCSIDevices[id].lba_len, (cdb[0] == GPCMD_PLAY_AUDIO_MSF) ? 1 : 0);
+		cdrom->playaudio(pos, len, (cdb[0] == GPCMD_PLAY_AUDIO_MSF) ? 1 : 0);
 		SCSIPhase = SCSI_PHASE_STATUS;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=50*SCSI_TIME;
-		SCSIDevices[id].CmdBufferLength = 0;
 		break;
 		
 		case GPCMD_GET_CONFIGURATION:
+		len = (cdb[7]<<8)|cdb[8];
+		
+		Index = 0;
+ 
+		/* only feature 0 is supported */
+		if (cdb[2] != 0 || cdb[3] != 0)
+		{
+			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
+			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
+			SCSICallback[id]=50*SCSI_TIME;
+			return;
+		}
+ 
+		/*
+		* XXX: avoid overflow for io_buffer if length is bigger than
+		*      the size of that buffer (dimensioned to max number of
+		*      sectors to transfer at once)
+		*
+		*      Only a problem if the feature/profiles grow.
+		*/
+		if (len > 512) /* XXX: assume 1 sector */
+			len = 512;
+
+		memset(SCSIDevices[id].CmdBuffer, 0, len);
+		/*
+		* the number of sectors from the media tells us which profile
+		* to use as current.  0 means there is no media
+		*/
+		if (len > CD_MAX_SECTORS )
+		{
+			SCSIDevices[id].CmdBuffer[6] = (MMC_PROFILE_DVD_ROM >> 8) & 0xff;
+			SCSIDevices[id].CmdBuffer[7] = MMC_PROFILE_DVD_ROM & 0xff;
+		}
+		else if (len <= CD_MAX_SECTORS)
+		{
+			SCSIDevices[id].CmdBuffer[6] = (MMC_PROFILE_CD_ROM >> 8) & 0xff;
+			SCSIDevices[id].CmdBuffer[7] = MMC_PROFILE_CD_ROM & 0xff;
+		}
+		SCSIDevices[id].CmdBuffer[10] = 0x02 | 0x01; /* persistent and current */
+		len = 12; /* headers: 8 + 4 */
+		len += SCSICDROMSetProfile(SCSIDevices[id].CmdBuffer, &Index, MMC_PROFILE_DVD_ROM);
+		len += SCSICDROMSetProfile(SCSIDevices[id].CmdBuffer, &Index, MMC_PROFILE_CD_ROM);
+		SCSIDevices[id].CmdBuffer[0] = ((len-4) >> 24) & 0xff;
+		SCSIDevices[id].CmdBuffer[1] = ((len-4) >> 16) & 0xff;
+		SCSIDevices[id].CmdBuffer[2] = ((len-4) >> 8) & 0xff;
+		SCSIDevices[id].CmdBuffer[3] = (len-4) & 0xff;		
+		
 		SCSIPhase = SCSI_PHASE_DATAIN;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=60*SCSI_TIME;
-		SCSIDevices[id].CmdBufferLength = (cdb[7]<<8)|cdb[8];
+		SCSIDevices[id].CmdBufferLength = len;
 		
 		SCSIDMAResetPosition(id);
 		break;
 		
 		case GPCMD_GET_EVENT_STATUS_NOTIFICATION:
+		gesn_cdb = (void *)cdb;
+		gesn_event_header = (void *)SCSIDevices[id].CmdBuffer;
+			
+		/* It is fine by the MMC spec to not support async mode operations */
+		if (!(gesn_cdb->polled & 0x01))
+		{   /* asynchronous mode */
+			/* Only pollign is supported, asynchronous mode is not. */
+			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;				
+			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
+			SCSICallback[id]=50*SCSI_TIME;
+			return;
+		}
+			
+		/* polling mode operation */
+			
+		/*
+		* These are the supported events.
+		*
+		* We currently only support requests of the 'media' type.
+		* Notification class requests and supported event classes are bitmasks,
+		* but they are built from the same values as the "notification class"
+		* field.
+		*/
+		gesn_event_header->supported_events = 1 << GESN_MEDIA;
+			
+		/*
+		* We use |= below to set the class field; other bits in this byte
+		* are reserved now but this is useful to do if we have to use the
+		* reserved fields later.
+		*/
+		gesn_event_header->notification_class = 0;
+			
+		/*
+		* Responses to requests are to be based on request priority.  The
+		* notification_class_request_type enum above specifies the
+		* priority: upper elements are higher prio than lower ones.
+		*/
+		if (gesn_cdb->class & (1 << GESN_MEDIA))
+		{
+			gesn_event_header->notification_class |= GESN_MEDIA;
+			len = SCSICDROMEventStatus(SCSIDevices[id].CmdBuffer);
+		}
+		else
+		{
+			gesn_event_header->notification_class = 0x80; /* No event available */
+			SCSIDevices[id].CmdBufferLength = sizeof(*gesn_event_header);
+		}
+		gesn_event_header->len = len - sizeof(*gesn_event_header);		
+		
 		SCSIPhase = SCSI_PHASE_DATAIN;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=60*SCSI_TIME;
-		SCSIDevices[id].CmdBufferLength = 8;
+		SCSIDevices[id].CmdBufferLength = len;
 		
 		SCSIDMAResetPosition(id);
 		break;
@@ -1073,7 +1355,6 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 		SCSIPhase = SCSI_PHASE_STATUS;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=50*SCSI_TIME;
-		SCSIDevices[id].CmdBufferLength = 0;
 		break;
 		
 		case GPCMD_STOP_PLAY_SCAN:
@@ -1081,61 +1362,177 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 		SCSIPhase = SCSI_PHASE_STATUS;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=50*SCSI_TIME;
-		SCSIDevices[id].CmdBufferLength = 0;
 		break;
 		
 		case GPCMD_READ_DISC_INFORMATION:
+		if (cdrom->read_disc_information)
+		{
+			cdrom->read_disc_information(SCSIDevices[id].CmdBuffer);
+		}
+		else
+		{
+			SCSIDevices[id].CmdBuffer[1] = 32;
+			SCSIDevices[id].CmdBuffer[2] = 0xe; /* last session complete, disc finalized */
+			SCSIDevices[id].CmdBuffer[3] = 1; /* first track on disc */
+			SCSIDevices[id].CmdBuffer[4] = 1; /* # of sessions */
+			SCSIDevices[id].CmdBuffer[5] = 1; /* first track of last session */
+			SCSIDevices[id].CmdBuffer[6] = 1; /* last track of last session */
+			SCSIDevices[id].CmdBuffer[7] = 0x20; /* unrestricted use */
+			SCSIDevices[id].CmdBuffer[8] = 0x00; /* CD-ROM */
+		}		
+		
 		SCSIPhase = SCSI_PHASE_DATAIN;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=60*SCSI_TIME;
 		SCSIDevices[id].CmdBufferLength = 34;
 		
 		SCSIDMAResetPosition(id);
-		break;
-		
+		break;		
+	
 		case GPCMD_READ_TRACK_INFORMATION:
+		max_length = cdb[7];
+		max_length <<= 8;
+		max_length |= cdb[8];
+
+		track = ((uint32_t) cdb[2]) << 24;
+		track |= ((uint32_t) cdb[3]) << 16;
+		track |= ((uint32_t) cdb[4]) << 8;
+		track |= (uint32_t) cdb[5];
+
+		if (cdrom->read_track_information)
+		{
+			ret = cdrom->read_track_information(cdb, SCSIDevices[id].CmdBuffer);
+
+			if (!ret)
+			{
+				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
+				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
+				if (SCSISense.UnitAttention)
+				{
+					SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
+				}
+				SCSICallback[id]=50*SCSI_TIME;
+				return;		
+			}
+
+			len = SCSIDevices[id].CmdBuffer[0];
+			len <<= 8;
+			len |= SCSIDevices[id].CmdBuffer[1];
+			len += 2;
+		}
+		else
+		{
+			if (((cdb[1] & 0x03) != 1) || (track != 1))
+			{
+				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
+				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
+				if (SCSISense.UnitAttention)
+				{
+					SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
+				}
+				SCSICallback[id]=50*SCSI_TIME;
+				return;		
+			}
+
+			len = 36;
+			SCSIDevices[id].CmdBuffer[1] = 34;
+			SCSIDevices[id].CmdBuffer[2] = 1; /* track number (LSB) */
+			SCSIDevices[id].CmdBuffer[3] = 1; /* session number (LSB) */
+			SCSIDevices[id].CmdBuffer[5] = (0 << 5) | (0 << 4) | (4 << 0); /* not damaged, primary copy, data track */
+			SCSIDevices[id].CmdBuffer[6] = (0 << 7) | (0 << 6) | (0 << 5) | (0 << 6) | (1 << 0); /* not reserved track, not blank, not packet writing, not fixed packet, data mode 1 */
+			SCSIDevices[id].CmdBuffer[7] = (0 << 1) | (0 << 0); /* last recorded address not valid, next recordable address not valid */
+			SCSIDevices[id].CmdBuffer[8] = 0; /* track start address is 0 */
+			SCSIDevices[id].CmdBuffer[24] = (cdrom->size() >> 24) & 0xff; /* track size */
+			SCSIDevices[id].CmdBuffer[25] = (cdrom->size() >> 16) & 0xff; /* track size */
+			SCSIDevices[id].CmdBuffer[26] = (cdrom->size() >> 8) & 0xff; /* track size */
+			SCSIDevices[id].CmdBuffer[27] = cdrom->size() & 0xff; /* track size */
+			SCSIDevices[id].CmdBuffer[32] = 0; /* track number (MSB) */
+			SCSIDevices[id].CmdBuffer[33] = 0; /* session number (MSB) */
+		} 
+
+		if (len > max_length)
+		{
+			len = max_length;
+			SCSIDevices[id].CmdBuffer[0] = ((max_length - 2) >> 8) & 0xff;
+			SCSIDevices[id].CmdBuffer[1] = (max_length - 2) & 0xff;
+		}		
+		
 		SCSIPhase = SCSI_PHASE_DATAIN;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=60*SCSI_TIME;
-		SCSIDevices[id].CmdBufferLength = 36;
+		SCSIDevices[id].CmdBufferLength = len;
 		
 		SCSIDMAResetPosition(id);
-		break;		
-		
-		case GPCMD_READ_DVD_STRUCTURE:		
+		break;
+	
+		case GPCMD_READ_DVD_STRUCTURE:
+		len = (cdb[6]<<24)|(cdb[7]<<16)|(cdb[8]<<8)|cdb[9];
+			
+		if (cdb[7] < 0xff) 
 		{
-			int len;
-			
-			len = (cdb[6]<<24)|(cdb[7]<<16)|(cdb[8]<<8)|cdb[9];
-			
-			if (cdb[7] < 0xff) 
+			if (len <= CD_MAX_SECTORS) 
 			{
-				if (len <= CD_MAX_SECTORS) 
+				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;				
+				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INCOMPATIBLE_FORMAT, 0x00);
+				SCSICallback[id]=50*SCSI_TIME;
+				break;
+			} 
+			else
+			{
+				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;				
+				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
+				if (SCSISense.UnitAttention)
 				{
-					SCSIStatus = SCSI_STATUS_CHECK_CONDITION;				
-					SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INCOMPATIBLE_FORMAT, 0x00);
-					SCSICallback[id]=50*SCSI_TIME;
-					break;
-				} 
+					SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
+				}
+				SCSICallback[id]=50*SCSI_TIME;
+				return;
+			}
+		}			
+		
+		memset(SCSIDevices[id].CmdBuffer, 0, len > 256 * 512 + 4 ? 256 * 512 + 4 : len);
+				
+		switch (cdb[7]) 
+		{
+			case 0x00 ... 0x7f:
+			case 0xff:
+			if (cdb[1] == 0) 
+			{
+				DVDRet = SCSICDROMReadDVDStructure(cdb[7], cdb, SCSIDevices[id].CmdBuffer);
+	 
+				if (DVDRet < 0)
+				{
+					SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, -DVDRet, 0x00);
+				}
 				else
 				{
-					SCSIStatus = SCSI_STATUS_CHECK_CONDITION;				
-					SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
-					if (SCSISense.UnitAttention)
-					{
-						SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-					}
-					SCSICallback[id]=50*SCSI_TIME;
-					return;
+					SCSIPhase = SCSI_PHASE_DATAIN;
+					SCSIStatus = SCSI_STATUS_OK;
+					SCSICallback[id]=60*SCSI_TIME;
+					SCSIDevices[id].CmdBufferLength = len;
+					
+					SCSIDMAResetPosition(id);
 				}
-			}		
-		
-			SCSIPhase = SCSI_PHASE_DATAIN;
-			SCSIStatus = SCSI_STATUS_OK;
-			SCSICallback[id]=60*SCSI_TIME;
-			SCSIDevices[id].CmdBufferLength = len;
-			
-			SCSIDMAResetPosition(id);
+				break;
+			}
+			/* TODO: BD support, fall through for now */
+	 
+			/* Generic disk structures */
+			case 0x80: /* TODO: AACS volume identifier */
+			case 0x81: /* TODO: AACS media serial number */
+			case 0x82: /* TODO: AACS media identifier */
+			case 0x83: /* TODO: AACS media key block */
+			case 0x90: /* TODO: List of recognized format layers */
+			case 0xc0: /* TODO: Write protection status */
+			default:
+			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
+			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
+			if (SCSISense.UnitAttention)
+			{
+				SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
+			}
+			SCSICallback[id]=50*SCSI_TIME;
+			return;
 		}
 		break;
 		
@@ -1187,10 +1584,18 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 		SCSIPhase = SCSI_PHASE_STATUS;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=50*SCSI_TIME;
-		SCSIDevices[id].CmdBufferLength = 0;
 		break;
 		
 		case GPCMD_MECHANISM_STATUS:
+		SCSIDevices[id].CmdBuffer[0] = 0;
+		SCSIDevices[id].CmdBuffer[1] = 0;
+		SCSIDevices[id].CmdBuffer[2] = 0;
+		SCSIDevices[id].CmdBuffer[3] = 0;
+		SCSIDevices[id].CmdBuffer[4] = 0;
+		SCSIDevices[id].CmdBuffer[5] = 1;
+		SCSIDevices[id].CmdBuffer[6] = 0;
+		SCSIDevices[id].CmdBuffer[7] = 0;		
+		
 		SCSIPhase = SCSI_PHASE_DATAIN;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=60*SCSI_TIME;
@@ -1198,94 +1603,23 @@ void SCSICDROM_Command(uint8_t id, uint8_t lun, uint8_t *cdb)
 		
 		SCSIDMAResetPosition(id);
 		break;
-
-                // case GPCMD_SEND_DVD_STRUCTURE:
-		default:
-		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
-		SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0);
-		SCSICallback[id]=50*SCSI_TIME;
-		break;
 	}
 }
 
 void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
 {
-	int DVDRet;
-	uint8_t Index = 0;
-	int real_pos;	
-	int msf;
-	uint32_t Size;
-	unsigned Idx = 0;
-	unsigned SizeIndex;
-	unsigned PreambleLen;
-	unsigned char Temp;
-	int read_length = 0;
-	int max_length = 0;
-	int track = 0;
-	int ret = 0;
+	int read_length = 0;	
 	
-	msf = cdb[1] & 2;
-
 	switch (cdb[0])
 	{
-		case GPCMD_REQUEST_SENSE:
-		/*Will return 18 bytes of 0*/
-		memset(SCSIDevices[id].CmdBuffer,0,512);
-
-		SCSIDevices[id].CmdBuffer[0]=0x80|0x70;
-
-		if ((SCSISense.SenseKey > 0) || (cd_status < CD_STATUS_PLAYING))
-		{
-			if (SenseCompleted)
-			{
-				SCSIDevices[id].CmdBuffer[2]=SENSE_ILLEGAL_REQUEST;
-				SCSIDevices[id].CmdBuffer[12]=ASC_AUDIO_PLAY_OPERATION;
-				SCSIDevices[id].CmdBuffer[13]=ASCQ_AUDIO_PLAY_OPERATION_COMPLETED;
-			}
-			else
-			{
-				SCSIDevices[id].CmdBuffer[2]=SCSISense.SenseKey;
-				SCSIDevices[id].CmdBuffer[12]=SCSISense.Asc;
-				SCSIDevices[id].CmdBuffer[13]=SCSISense.Ascq;
-			}
-		}
-		else if ((SCSISense.SenseKey == 0) && (cd_status >= CD_STATUS_PLAYING) && (cd_status != CD_STATUS_STOPPED))
-		{
-			SCSIDevices[id].CmdBuffer[2]=SENSE_ILLEGAL_REQUEST;
-			SCSIDevices[id].CmdBuffer[12]=ASC_AUDIO_PLAY_OPERATION;
-			SCSIDevices[id].CmdBuffer[13]=(cd_status == CD_STATUS_PLAYING) ? ASCQ_AUDIO_PLAY_OPERATION_IN_PROGRESS : ASCQ_AUDIO_PLAY_OPERATION_PAUSED;
-		}
-		else
-		{
-			if (SCSISense.UnitAttention)
-			{
-				SCSIDevices[id].CmdBuffer[2]=SENSE_UNIT_ATTENTION;
-				SCSIDevices[id].CmdBuffer[12]=ASC_MEDIUM_MAY_HAVE_CHANGED;
-				SCSIDevices[id].CmdBuffer[13]=0;
-			}
-		}
-
-		SCSIDevices[id].CmdBuffer[7]=10;
-
-		if (SCSIDevices[id].CmdBuffer[2] == SENSE_UNIT_ATTENTION)
-		{
-			/* If the last remaining sense is unit attention, clear
-				that condition. */
-			SCSISense.UnitAttention = 0;
-		}
-		
-		/* Clear the sense stuff as per the spec. */
-		SCSIClearSense(cdb[0], 0);
-		break;
-		
 		case GPCMD_READ_6:
 		case GPCMD_READ_10:
 		case GPCMD_READ_12:
+        case GPCMD_READ_CD_MSF:
+        case GPCMD_READ_CD:
 		//pclog("Total data length requested: %d\n", datalen);
 		while (datalen > 0)
 		{
-			SCSICallback[id]=0; //Strongly required for proper speed sync, otherwise slowness in the emulator.
-			
             read_length = cdrom_read_data(data); //Fill the buffer the data it needs
             if (!read_length)
             {
@@ -1311,454 +1645,6 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
 				break;
 			}
 		}
-		break;
-		
-		case GPCMD_INQUIRY:
-		if (cdb[1] & 1)
-		{
-			PreambleLen = 4;
-			SizeIndex = 3;
-						
-			SCSIDevices[id].CmdBuffer[Idx++] = 05;
-			SCSIDevices[id].CmdBuffer[Idx++] = cdb[2];
-			SCSIDevices[id].CmdBuffer[Idx++] = 0;
-						
-			Idx++;
-
-			switch (cdb[2])
-			{
-				case 0x00:
-				SCSIDevices[id].CmdBuffer[Idx++] = 0x00;
-				SCSIDevices[id].CmdBuffer[Idx++] = 0x83;
-				break;
-
-				case 0x83:
-				SCSIDevices[id].CmdBuffer[Idx++] = 0x02;
-				SCSIDevices[id].CmdBuffer[Idx++] = 0x00;
-				SCSIDevices[id].CmdBuffer[Idx++] = 0x00;
-				SCSIDevices[id].CmdBuffer[Idx++] = 20;
-				ScsiPadStr8(SCSIDevices[id].CmdBuffer + Idx, 20, "53R141");	/* Serial */
-				Idx += 20;
-
-				if (Idx + 72 > SCSIDevices[id].CmdBufferLength)
-				{
-					goto SCSIOut;
-				}
-				SCSIDevices[id].CmdBuffer[Idx++] = 0x02;
-				SCSIDevices[id].CmdBuffer[Idx++] = 0x01;
-				SCSIDevices[id].CmdBuffer[Idx++] = 0x00;
-				SCSIDevices[id].CmdBuffer[Idx++] = 68;
-				ScsiPadStr8(SCSIDevices[id].CmdBuffer + Idx, 8, "86Box"); /* Vendor */
-				Idx += 8;
-				ScsiPadStr8(SCSIDevices[id].CmdBuffer + Idx, 40, "86BoxCD 1.00"); /* Product */
-				Idx += 40;
-				ScsiPadStr8(SCSIDevices[id].CmdBuffer + Idx, 20, "53R141"); /* Product */
-				Idx += 20;
-				break;
-			}
-		}
-		else
-		{
-			PreambleLen = 5;
-			SizeIndex = 4;
-
-			SCSIDevices[id].CmdBuffer[0] = 0x05; /*CD-ROM*/
-			SCSIDevices[id].CmdBuffer[1] = 0x80; /*Removable*/
-			SCSIDevices[id].CmdBuffer[2] = 0;
-			SCSIDevices[id].CmdBuffer[3] = 0x21;
-			SCSIDevices[id].CmdBuffer[4] = 31;
-			SCSIDevices[id].CmdBuffer[5] = 0;
-			SCSIDevices[id].CmdBuffer[6] = 0;
-			SCSIDevices[id].CmdBuffer[7] = 0;
-			ScsiPadStr8(SCSIDevices[id].CmdBuffer + 8, 8, "86Box"); /* Vendor */
-			ScsiPadStr8(SCSIDevices[id].CmdBuffer + 16, 16, "86BoxCD"); /* Product */
-			ScsiPadStr8(SCSIDevices[id].CmdBuffer + 32, 4, emulator_version); /* Revision */
-			
-			Idx = 36;
-		}
-		
-SCSIOut:
-		SCSIDevices[id].CmdBuffer[SizeIndex] = Idx - PreambleLen;
-		break;
-		
-		case GPCMD_MODE_SENSE_6:
-		case GPCMD_MODE_SENSE_10:
-		memset(SCSIDevices[id].CmdBuffer, 0, datalen);
-
-		if (cdb[0] == GPCMD_MODE_SENSE_6)
-		{
-			datalen = SCSICDROMModeSense(SCSIDevices[id].CmdBuffer, 4, Temp);
-			SCSIDevices[id].CmdBuffer[0] = datalen - 1;
-			SCSIDevices[id].CmdBuffer[1] = 3; /*120mm data CD-ROM*/		
-		}
-		else
-		{
-			datalen = SCSICDROMModeSense(SCSIDevices[id].CmdBuffer, 8, Temp);
-			SCSIDevices[id].CmdBuffer[0] = (datalen - 2)>>8;
-			SCSIDevices[id].CmdBuffer[1] = (datalen - 2)&255;
-			SCSIDevices[id].CmdBuffer[2] = 3; /*120mm data CD-ROM*/
-		}
-		return;
-		
-		case GPCMD_READ_CDROM_CAPACITY:
-		if (cdrom->read_capacity)
-		{
-			cdrom->read_capacity(SCSIDevices[id].CmdBuffer);
-		}
-		else
-		{
-			Size = cdrom->size() - 1;		/* IMPORTANT: What's returned is the last LBA block. */
-			memset(SCSIDevices[id].CmdBuffer, 0, 8);
-			SCSIDevices[id].CmdBuffer[0] = (Size >> 24) & 0xff;
-			SCSIDevices[id].CmdBuffer[1] = (Size >> 16) & 0xff;
-			SCSIDevices[id].CmdBuffer[2] = (Size >> 8) & 0xff;
-			SCSIDevices[id].CmdBuffer[3] = Size & 0xff;
-			SCSIDevices[id].CmdBuffer[6] = 8;				/* 2048 = 0x0800 */
-		}
-		//pclog("Sector size %i\n", Size);
-		break;
-		
-		case GPCMD_READ_SUBCHANNEL:
-		SCSIDevices[id].lba_pos = 0;
-		SCSIDevices[id].CmdBuffer[SCSIDevices[id].lba_pos++] = 0;
-		SCSIDevices[id].CmdBuffer[SCSIDevices[id].lba_pos++] = 0; /*Audio status*/
-		SCSIDevices[id].CmdBuffer[SCSIDevices[id].lba_pos++] = 0; SCSIDevices[id].CmdBuffer[SCSIDevices[id].lba_pos++] = 0; /*Subchannel length*/
-		SCSIDevices[id].CmdBuffer[SCSIDevices[id].lba_pos++] = 1; /*Format code*/
-		SCSIDevices[id].CmdBuffer[1] = cdrom->getcurrentsubchannel(&SCSIDevices[id].CmdBuffer[5], msf);
-		break;
-		
-		case GPCMD_READ_TOC_PMA_ATIP:
-		switch (SCSICDROM_TOC(id, cdb))
-		{
-			case 0: /*Normal*/
-			datalen = cdrom->readtoc(SCSIDevices[id].CmdBuffer, cdb[6], msf, datalen, 0);
-			break;
-				
-			case 1: /*Multi session*/
-			datalen = cdrom->readtoc_session(SCSIDevices[id].CmdBuffer, msf, datalen);
-			SCSIDevices[id].CmdBuffer[0] = 0; 
-			SCSIDevices[id].CmdBuffer[1] = 0xA;
-			break;
-				
-			case 2: /*Raw*/
-			datalen = cdrom->readtoc_raw(SCSIDevices[id].CmdBuffer, msf, datalen);
-			break;
-		}
-		return;
-		
-		case GPCMD_READ_HEADER:
-		if (cdrom->read_header)
-		{
-			cdrom->read_header(cdb, SCSIDevices[id].CmdBuffer);
-		}
-		else
-		{
-			SectorLen=(cdb[7]<<8)|cdb[8];
-			SectorLBA=(cdb[2]<<24)|(cdb[3]<<16)|(cdb[4]<<8)|cdb[5];
-			if (msf)
-			{
-				real_pos = cdrom_LBAtoMSF_accurate();
-			}
-			else
-			{
-				real_pos = SectorLBA;
-			}
-			SCSIDevices[id].CmdBuffer[4] = (real_pos >> 24);
-			SCSIDevices[id].CmdBuffer[5] = ((real_pos >> 16) & 0xff);
-			SCSIDevices[id].CmdBuffer[6] = ((real_pos >> 8) & 0xff);
-			SCSIDevices[id].CmdBuffer[7] = real_pos & 0xff;
-			SCSIDevices[id].CmdBuffer[0]=1; /*2048 bytes user data*/
-			SCSIDevices[id].CmdBuffer[1]=SCSIDevices[id].CmdBuffer[2]=SCSIDevices[id].CmdBuffer[3]=0;
-		}
-		return;
-		
-		case GPCMD_GET_CONFIGURATION:
-		Index = 0;
- 
-		/* only feature 0 is supported */
-		if (cdb[2] != 0 || cdb[3] != 0)
-		{
-			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
-			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
-			SCSICallback[id]=50*SCSI_TIME;
-			return;
-		}
- 
-		/*
-		* XXX: avoid overflow for io_buffer if length is bigger than
-		*      the size of that buffer (dimensioned to max number of
-		*      sectors to transfer at once)
-		*
-		*      Only a problem if the feature/profiles grow.
-		*/
-		if (datalen > 512) /* XXX: assume 1 sector */
-			datalen = 512;
-
-		memset(SCSIDevices[id].CmdBuffer, 0, datalen);
-		/*
-		* the number of sectors from the media tells us which profile
-		* to use as current.  0 means there is no media
-		*/
-		if (datalen > CD_MAX_SECTORS )
-		{
-			SCSIDevices[id].CmdBuffer[6] = (MMC_PROFILE_DVD_ROM >> 8) & 0xff;
-			SCSIDevices[id].CmdBuffer[7] = MMC_PROFILE_DVD_ROM & 0xff;
-		}
-		else if (datalen <= CD_MAX_SECTORS)
-		{
-			SCSIDevices[id].CmdBuffer[6] = (MMC_PROFILE_CD_ROM >> 8) & 0xff;
-			SCSIDevices[id].CmdBuffer[7] = MMC_PROFILE_CD_ROM & 0xff;
-		}
-		SCSIDevices[id].CmdBuffer[10] = 0x02 | 0x01; /* persistent and current */
-		datalen = 12; /* headers: 8 + 4 */
-		datalen += SCSICDROMSetProfile(SCSIDevices[id].CmdBuffer, &Index, MMC_PROFILE_DVD_ROM);
-		datalen += SCSICDROMSetProfile(SCSIDevices[id].CmdBuffer, &Index, MMC_PROFILE_CD_ROM);
-		SCSIDevices[id].CmdBuffer[0] = ((datalen-4) >> 24) & 0xff;
-		SCSIDevices[id].CmdBuffer[1] = ((datalen-4) >> 16) & 0xff;
-		SCSIDevices[id].CmdBuffer[2] = ((datalen-4) >> 8) & 0xff;
-		SCSIDevices[id].CmdBuffer[3] = (datalen-4) & 0xff;
-		break;
-		
-		case GPCMD_GET_EVENT_STATUS_NOTIFICATION:
-		gesn_cdb = (void *)cdb;
-		gesn_event_header = (void *)SCSIDevices[id].CmdBuffer;
-			
-		/* It is fine by the MMC spec to not support async mode operations */
-		if (!(gesn_cdb->polled & 0x01))
-		{   /* asynchronous mode */
-			/* Only pollign is supported, asynchronous mode is not. */
-			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;				
-			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
-			SCSICallback[id]=50*SCSI_TIME;
-			return;
-		}
-			
-		/* polling mode operation */
-			
-		/*
-		* These are the supported events.
-		*
-		* We currently only support requests of the 'media' type.
-		* Notification class requests and supported event classes are bitmasks,
-		* but they are built from the same values as the "notification class"
-		* field.
-		*/
-		gesn_event_header->supported_events = 1 << GESN_MEDIA;
-			
-		/*
-		* We use |= below to set the class field; other bits in this byte
-		* are reserved now but this is useful to do if we have to use the
-		* reserved fields later.
-		*/
-		gesn_event_header->notification_class = 0;
-			
-		/*
-		* Responses to requests are to be based on request priority.  The
-		* notification_class_request_type enum above specifies the
-		* priority: upper elements are higher prio than lower ones.
-		*/
-		if (gesn_cdb->class & (1 << GESN_MEDIA))
-		{
-			gesn_event_header->notification_class |= GESN_MEDIA;
-			datalen = SCSICDROMEventStatus(SCSIDevices[id].CmdBuffer);
-		}
-		else
-		{
-			gesn_event_header->notification_class = 0x80; /* No event available */
-			datalen = sizeof(*gesn_event_header);
-		}
-		gesn_event_header->len = datalen - sizeof(*gesn_event_header);
-		break;
-		
-		case GPCMD_READ_DISC_INFORMATION:
-		if (cdrom->read_disc_information)
-		{
-			cdrom->read_disc_information(SCSIDevices[id].CmdBuffer);
-		}
-		else
-		{
-			SCSIDevices[id].CmdBuffer[1] = 32;
-			SCSIDevices[id].CmdBuffer[2] = 0xe; /* last session complete, disc finalized */
-			SCSIDevices[id].CmdBuffer[3] = 1; /* first track on disc */
-			SCSIDevices[id].CmdBuffer[4] = 1; /* # of sessions */
-			SCSIDevices[id].CmdBuffer[5] = 1; /* first track of last session */
-			SCSIDevices[id].CmdBuffer[6] = 1; /* last track of last session */
-			SCSIDevices[id].CmdBuffer[7] = 0x20; /* unrestricted use */
-			SCSIDevices[id].CmdBuffer[8] = 0x00; /* CD-ROM */
-		}
-		break;
-	
-		case GPCMD_READ_TRACK_INFORMATION:
-		max_length = SCSIDevices[id].Cdb[7];
-		max_length <<= 8;
-		max_length |= SCSIDevices[id].Cdb[8];
-
-		track = ((uint32_t) SCSIDevices[id].Cdb[2]) << 24;
-		track |= ((uint32_t) SCSIDevices[id].Cdb[3]) << 16;
-		track |= ((uint32_t) SCSIDevices[id].Cdb[4]) << 8;
-		track |= (uint32_t) SCSIDevices[id].Cdb[5];
-
-		if (cdrom->read_track_information)
-		{
-			ret = cdrom->read_track_information(SCSIDevices[id].Cdb, SCSIDevices[id].CmdBuffer);
-
-			if (!ret)
-			{
-				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
-				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
-				if (SCSISense.UnitAttention)
-				{
-					SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-				}
-				SCSICallback[id]=50*SCSI_TIME;
-				return;		
-			}
-
-			datalen = SCSIDevices[id].CmdBuffer[0];
-			datalen <<= 8;
-			datalen |= SCSIDevices[id].CmdBuffer[1];
-			datalen += 2;
-		}
-		else
-		{
-			if (((SCSIDevices[id].Cdb[1] & 0x03) != 1) || (track != 1))
-			{
-				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
-				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
-				if (SCSISense.UnitAttention)
-				{
-					SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-				}
-				SCSICallback[id]=50*SCSI_TIME;
-				return;		
-			}
-
-			datalen = 36;
-			SCSIDevices[id].CmdBuffer[1] = 34;
-			SCSIDevices[id].CmdBuffer[2] = 1; /* track number (LSB) */
-			SCSIDevices[id].CmdBuffer[3] = 1; /* session number (LSB) */
-			SCSIDevices[id].CmdBuffer[5] = (0 << 5) | (0 << 4) | (4 << 0); /* not damaged, primary copy, data track */
-			SCSIDevices[id].CmdBuffer[6] = (0 << 7) | (0 << 6) | (0 << 5) | (0 << 6) | (1 << 0); /* not reserved track, not blank, not packet writing, not fixed packet, data mode 1 */
-			SCSIDevices[id].CmdBuffer[7] = (0 << 1) | (0 << 0); /* last recorded address not valid, next recordable address not valid */
-			SCSIDevices[id].CmdBuffer[8] = 0; /* track start address is 0 */
-			SCSIDevices[id].CmdBuffer[24] = (cdrom->size() >> 24) & 0xff; /* track size */
-			SCSIDevices[id].CmdBuffer[25] = (cdrom->size() >> 16) & 0xff; /* track size */
-			SCSIDevices[id].CmdBuffer[26] = (cdrom->size() >> 8) & 0xff; /* track size */
-			SCSIDevices[id].CmdBuffer[27] = cdrom->size() & 0xff; /* track size */
-			SCSIDevices[id].CmdBuffer[32] = 0; /* track number (MSB) */
-			SCSIDevices[id].CmdBuffer[33] = 0; /* session number (MSB) */
-		} 
-
-		if (datalen > max_length)
-		{
-			datalen = max_length;
-			SCSIDevices[id].CmdBuffer[0] = ((max_length - 2) >> 8) & 0xff;
-			SCSIDevices[id].CmdBuffer[1] = (max_length - 2) & 0xff;
-		}
-		break;
-	
-		case GPCMD_READ_DVD_STRUCTURE:
-		memset(SCSIDevices[id].CmdBuffer, 0, datalen > 256 * 512 + 4 ? 256 * 512 + 4 : datalen);
-				
-		switch (cdb[7]) 
-		{
-			case 0x00 ... 0x7f:
-			case 0xff:
-			if (cdb[1] == 0) 
-			{
-				DVDRet = SCSICDROMReadDVDStructure(cdb[7], cdb, SCSIDevices[id].CmdBuffer);
-	 
-				if (DVDRet < 0)
-				{
-					SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, -DVDRet, 0x00);
-				}
-				break;
-			}
-			/* TODO: BD support, fall through for now */
-	 
-			/* Generic disk structures */
-			case 0x80: /* TODO: AACS volume identifier */
-			case 0x81: /* TODO: AACS media serial number */
-			case 0x82: /* TODO: AACS media identifier */
-			case 0x83: /* TODO: AACS media key block */
-			case 0x90: /* TODO: List of recognized format layers */
-			case 0xc0: /* TODO: Write protection status */
-			default:
-			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
-			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
-			if (SCSISense.UnitAttention)
-			{
-				SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-			}
-			SCSICallback[id]=50*SCSI_TIME;
-			return;
-		}
-		break;
-		
-        case GPCMD_READ_CD_MSF:
-        case GPCMD_READ_CD:
-		//pclog("Total data length requested: %d\n", datalen);
-		while (datalen > 0)
-        {
-			SCSICallback[id]=0; //Strongly required for proper speed sync, otherwise slowness in the emulator.
-			
-            read_length = cdrom_read_data(data); //Fill the buffer the data it needs
-            if (!read_length)
-            {
-                SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
-                SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0);
-                SCSICallback[id]=50*SCSI_TIME;
-                break;
-            }
-            else
-            {
-				//Continue reading data until the sector length is 0.
-				data += read_length;
-            }
-           
-            //pclog("True LBA: %d, buffer half: %d\n", SectorLBA, SectorLen * cdrom_sector_size);
-				
-			SectorLBA++;
-			SectorLen--;
-
-			if (SectorLen == 0)
-			{
-				break;
-			}
-		}
-		break;
-		
-		case GPCMD_MECHANISM_STATUS:
-		SCSIDevices[id].CmdBuffer[0] = 0;
-		SCSIDevices[id].CmdBuffer[1] = 0;
-		SCSIDevices[id].CmdBuffer[2] = 0;
-		SCSIDevices[id].CmdBuffer[3] = 0;
-		SCSIDevices[id].CmdBuffer[4] = 0;
-		SCSIDevices[id].CmdBuffer[5] = 1;
-		SCSIDevices[id].CmdBuffer[6] = 0;
-		SCSIDevices[id].CmdBuffer[7] = 0;
-		break;
-	}
-}
-
-void SCSICDROM_WriteData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
-{
-	switch (cdb[0])
-	{
-		case GPCMD_MODE_SELECT_6:
-		case GPCMD_MODE_SELECT_10:		
-		if (cdb[0] == GPCMD_MODE_SELECT_6)
-		{
-			prefix_len = 6;
-		}
-		else
-		{
-			prefix_len = 10;
-		}
-		
-		page_current = cdb[2];
-		if (page_flags[page_current] & PAGE_CHANGEABLE)
-				page_flags[GPMODE_CDROM_AUDIO_PAGE] |= PAGE_CHANGED;
 		break;
 	}
 }

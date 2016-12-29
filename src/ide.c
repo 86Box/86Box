@@ -1762,7 +1762,7 @@ static void atapi_illegal_opcode(IDE *ide)
 static void atapi_invalid_field(IDE *ide)
 {
 	SCSISense.SenseKey = SENSE_ILLEGAL_REQUEST;
-	SCSISense.Asc = ASC_ILLEGAL_OPCODE;
+	SCSISense.Asc = ASC_INV_FIELD_IN_CMD_PACKET;
 	SCSISense.Ascq = 0;
 	atapi_cmd_error(ide, SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0);
 	ide->atastat = 0x53;
@@ -2693,7 +2693,7 @@ atapi_out:
 			break;
 
 		case GPCMD_SEEK_6:
-		case GPCMD_SEEK:
+		case GPCMD_SEEK_10:
 			if (idebufferb[0] == GPCMD_SEEK_6)
 			{
 				pos=(idebufferb[2]<<8)|idebufferb[3];
