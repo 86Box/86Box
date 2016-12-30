@@ -1765,16 +1765,15 @@ void *ne2000_init()
     // net_is_slirp = config_get_int(NULL, "net_type", 1);
 	/* Network type is now specified in device config. */
 	net_is_slirp = config_net_type ? 1 : 0;
+	net_is_pcap = config_net_type ? 0 : 1;
+	if(!strcmp("nothing", config_get_string(NULL, "pcap_device", "nothing")))
+	{
+		net_is_pcap = 0;
+		net_is_slirp = 1;
+	}
+	pclog("net_is_pcap = %i, net_is_slirp = %i\n", net_is_pcap, net_is_slirp);
+		
     // ne2000_log("ne2000 pcap device %s\n",config_get_string(NULL,"pcap_device","nothing"));
-    
-    //Check that we have a string setup, otherwise turn pcap off
-    if(!strcmp("nothing",config_get_string(NULL,"pcap_device","nothing"))) {
-        net_is_pcap = 0;
-        }
-    else {
-    if( net_is_slirp == 0) 
-        net_is_pcap = 1;
-    }
 
     ne2000_io_set(ne2000->base_address, ne2000);
 	memcpy(ne2000->physaddr, maclocal, 6);
@@ -1938,16 +1937,13 @@ void *rtl8029as_init()
     // net_is_slirp = config_get_int(NULL, "net_type", 1);
 	/* Network type is now specified in device config. */
 	net_is_slirp = config_net_type ? 1 : 0;
+	net_is_pcap = config_net_type ? 0 : 1;
+	if(!strcmp("nothing", config_get_string(NULL, "pcap_device", "nothing")))
+	{
+		net_is_pcap = 0;
+		net_is_slirp = 1;
+	}
     // ne2000_log("ne2000 pcap device %s\n",config_get_string(NULL,"pcap_device","nothing"));
-    
-    //Check that we have a string setup, otherwise turn pcap off
-    if(!strcmp("nothing",config_get_string(NULL,"pcap_device","nothing"))) {
-        net_is_pcap = 0;
-        }
-    else {
-    if( net_is_slirp == 0) 
-        net_is_pcap = 1;
-    }
 
         pci_add(ne2000_pci_read, ne2000_pci_write, ne2000);
 	
