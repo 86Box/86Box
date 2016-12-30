@@ -323,7 +323,7 @@ void img_load(int drive, char *fn)
 
 			fseek(img[drive].f, 0x74, SEEK_SET);
 			img[drive].interleave = fgetc(img[drive].f);
-			fseek(img[drive].f, 0x75, SEEK_SET);
+			fseek(img[drive].f, 0x76, SEEK_SET);
 			img[drive].skew = fgetc(img[drive].f);
 
 			img[drive].cqm_data = (uint8_t *) malloc(((uint32_t) bpb_total) * ((uint32_t) bpb_bps));
@@ -666,14 +666,7 @@ void img_seek(int drive, int track)
 				img[drive].sector_pos_side[side][sr] = side;
 				img[drive].sector_pos[side][sr] = (sr - 1) * ssize;
 				// pclog("Seek: %i %i %i %i | %i %04X\n", id[0], id[1], id[2], id[3], side, (sr - 1) * ssize);
-				if (img[drive].is_cqm)
-				{
-					current_pos = d86f_prepare_sector(drive, side, current_pos, id, &img[drive].track_data[side][sector * ssize], ssize, img[drive].gap2_size, img[drive].gap3_size, 0, 0);
-				}
-				else
-				{
-					current_pos = d86f_prepare_sector(drive, side, current_pos, id, &img[drive].track_data[side][(sr - 1) * ssize], ssize, img[drive].gap2_size, img[drive].gap3_size, 0, 0);
-				}
+				current_pos = d86f_prepare_sector(drive, side, current_pos, id, &img[drive].track_data[side][(sr - 1) * ssize], ssize, img[drive].gap2_size, img[drive].gap3_size, 0, 0);
 			}
 		}
 	}
