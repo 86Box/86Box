@@ -1923,11 +1923,14 @@ void *rtl8029as_init()
     int rc;
 	int config_net_type;
     int net_type;
+	int irq;
     ne2000_t *ne2000 = malloc(sizeof(ne2000_t));
     memset(ne2000, 0, sizeof(ne2000_t));
 	
 	disable_netbios = device_get_config_int("disable_netbios");
-    ne2000_setirq(ne2000, device_get_config_int("irq"));
+	
+	irq = device_get_config_int("irq");
+    ne2000_setirq(ne2000, irq);
 
     //net_type
     //0 pcap
@@ -1943,6 +1946,8 @@ void *rtl8029as_init()
 		net_is_pcap = 0;
 		net_is_slirp = 1;
 	}
+	pclog("net_is_pcap = %i, net_is_slirp = %i\n", net_is_pcap, net_is_slirp);
+
     // ne2000_log("ne2000 pcap device %s\n",config_get_string(NULL,"pcap_device","nothing"));
 
         pci_add(ne2000_pci_read, ne2000_pci_write, ne2000);
@@ -1978,7 +1983,8 @@ void *rtl8029as_init()
 		}
 
         // ne2000_pci_regs[0x3C] = ide_ter_enabled ? 11 : 10;
-		ne2000_pci_regs[0x3C] = device_get_config_int("irq");
+		ne2000_pci_regs[0x3C] = irq;
+		pclog("RTL8029AS IRQ: %i\n", ne2000_pci_regs[0x3C]);
         ne2000_pci_regs[0x3D] = 1;
 
         memset(rtl8029as_eeprom, 0, 128);
