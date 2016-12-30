@@ -25,7 +25,7 @@
 
 #include "buslogic.h"
 
-typedef struct
+typedef struct __attribute__((packed))
 {
 	uint8_t hi;
 	uint8_t mid;
@@ -91,7 +91,7 @@ typedef struct
  * in host adapter RAM and contains several
  * configuration parameters.
  */
-typedef struct AutoSCSIRam
+typedef struct AutoSCSIRam __attribute__((packed))
 {
     uint8_t       aInternalSignature[2];
     uint8_t       cbInformation;
@@ -172,7 +172,7 @@ typedef union HostAdapterLocalRam
     /** Byte view. */
     uint8_t u8View[256];
     /** Structured view. */
-    struct
+    struct __attribute__((packed))
     {
         /** Offset 0 - 63 is for BIOS. */
         uint8_t     u8Bios[64];
@@ -182,14 +182,14 @@ typedef union HostAdapterLocalRam
 } HostAdapterLocalRam;
 
 /** Structure for the INQUIRE_SETUP_INFORMATION reply. */
-typedef struct ReplyInquireSetupInformationSynchronousValue
+typedef struct ReplyInquireSetupInformationSynchronousValue __attribute__((packed))
 {
     uint8_t uOffset :         4;
     uint8_t uTransferPeriod : 3;
     uint8_t fSynchronous :    1;
 }ReplyInquireSetupInformationSynchronousValue;
 
-typedef struct ReplyInquireSetupInformation
+typedef struct ReplyInquireSetupInformation __attribute__((packed))
 {
     uint8_t fSynchronousInitiationEnabled : 1;
     uint8_t fParityCheckingEnabled :        1;
@@ -215,7 +215,7 @@ typedef struct ReplyInquireSetupInformation
 
 /** Structure for the INQUIRE_EXTENDED_SETUP_INFORMATION. */
 #pragma pack(1)
-typedef struct ReplyInquireExtendedSetupInformation
+typedef struct ReplyInquireExtendedSetupInformation __attribute__((packed))
 {
     uint8_t       uBusType;
     uint8_t       uBiosAddress;
@@ -237,14 +237,14 @@ typedef struct ReplyInquireExtendedSetupInformation
 } ReplyInquireExtendedSetupInformation;
 #pragma pack()
 
-typedef struct MailboxInit_t
+typedef struct MailboxInit_t __attribute__((packed))
 {
 	uint8_t Count;
 	addr24 Address;
 } MailboxInit_t;
 
 #pragma pack(1)
-typedef struct MailboxInitExtended_t
+typedef struct MailboxInitExtended_t __attribute__((packed))
 {
 	uint8_t Count;
 	uint32_t Address;
@@ -282,13 +282,13 @@ typedef struct MailboxInitExtended_t
 #define MBI_NOT_FOUND             0x03
 #define MBI_ERROR                 0x04
 
-typedef struct Mailbox_t
+typedef struct Mailbox_t __attribute__((packed))
 {
 	uint8_t CmdStatus;
 	addr24 CCBPointer;
 } Mailbox_t;
 
-typedef struct Mailbox32_t
+typedef struct Mailbox32_t __attribute__((packed))
 {
 	uint32_t CCBPointer;
 	union
@@ -388,7 +388,7 @@ typedef struct Mailbox32_t
 //    Bytes 18 through 18+n-1, where n=size of CDB  Command Descriptor Block
 //
 
-typedef struct CCB32
+typedef struct CCB32 __attribute__((packed))
 {
 	uint8_t Opcode;
 	uint8_t Reserved1:3;
@@ -411,7 +411,7 @@ typedef struct CCB32
 	uint32_t SensePointer;
 } CCB32;
 
-typedef struct CCB
+typedef struct CCB __attribute__((packed))
 {
 	uint8_t Opcode;
 	uint8_t Lun:3;
@@ -429,7 +429,7 @@ typedef struct CCB
 	uint8_t Cdb[12];
 } CCB;
 
-typedef struct CCBC
+typedef struct CCBC __attribute__((packed))
 {
 	uint8_t Opcode;
 	uint8_t Pad1:3;
@@ -444,7 +444,7 @@ typedef struct CCBC
 	uint8_t Cdb[12];
 } CCBC;
 
-typedef union CCBU
+typedef union CCBU __attribute__((packed))
 {
 	CCB32 new;
 	CCB   old;
@@ -463,19 +463,19 @@ typedef union CCBU
 
 #define MAX_SG_DESCRIPTORS 32
 
-typedef struct SGE32
+typedef struct SGE32 __attribute__((packed))
 {
 	uint32_t Segment;
 	uint32_t SegmentPointer;
 } SGE32;
 
-typedef struct SGE
+typedef struct SGE __attribute__((packed))
 {
 	addr24 Segment;
 	addr24 SegmentPointer;
 } SGE;
 
-typedef struct BuslogicRequests_t
+typedef struct BuslogicRequests_t __attribute__((packed))
 {
 	CCBU CmdBlock;
 	uint8_t *RequestSenseBuffer;
@@ -485,7 +485,7 @@ typedef struct BuslogicRequests_t
 	uint8_t LUN;
 } BuslogicRequests_t;
 
-typedef struct Buslogic_t
+typedef struct Buslogic_t __attribute__((packed))
 {
 	rom_t bios;
 	int UseLocalRam;
