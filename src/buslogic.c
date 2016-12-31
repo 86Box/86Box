@@ -513,7 +513,6 @@ typedef struct __attribute__((packed)) Buslogic_t
 	int DmaChannel;
 	int IrqEnabled;
 	int Mbx24bit;
-	int CommandEnable;
 } Buslogic_t;
 
 int scsi_base = 0x330;
@@ -521,6 +520,8 @@ int scsi_dma = 6;
 int scsi_irq = 11;
 
 int buslogic_do_log = 0;
+
+static void BuslogicStartMailbox(Buslogic_t *Buslogic);
 
 void BuslogicLog(const char *format, ...)
 {
@@ -636,13 +637,13 @@ static void BuslogicMailboxIn(Buslogic_t *Buslogic, uint32_t CCBPointer, CCBU *C
 	{
 		MailboxIn.CmdStatus = Mailbox32.u.in.CompletionCode;
 		U32_TO_ADDR(MailboxIn.CCBPointer, Mailbox32.CCBPointer);
-		BuslogicLog("Mailbox 24-bit: Status=0x%02X, CCB at 0x%08X\n", MailboxIn.CmdStatus, ADDR_TO_U32(MailboxIn.CCBPointer));
+		BuslogicLog("Mailbox 24-bit: Status=0x%02X, CCB at 0x%04X\n", MailboxIn.CmdStatus, ADDR_TO_U32(MailboxIn.CCBPointer));
 		
 		DMAPageWrite(Incoming, &MailboxIn, sizeof(Mailbox_t));
 	}
 	else
 	{
-		BuslogicLog("Mailbox 32-bit: Status=0x%02X, CCB at 0x%08X\n", Mailbox32.u.in.CompletionCode, Mailbox32.CCBPointer);
+		BuslogicLog("Mailbox 32-bit: Status=0x%02X, CCB at 0x%04X\n", Mailbox32.u.in.CompletionCode, Mailbox32.CCBPointer);
 		
 		DMAPageWrite(Incoming, &Mailbox32, sizeof(Mailbox32_t));		
 	}
@@ -690,7 +691,10 @@ void BuslogicDataBufferAllocate(BuslogicRequests_t *BuslogicRequests, CCBU *CmdB
 		DataLength = CmdBlock->new.DataLength;		
 	}
 	
-	pclog("Data Buffer write: length %d, pointer 0x%04X\n", DataLength, DataPointer);	
+	if (CmdBlock->common.Cdb[0] == GPCMD_TEST_UNIT_READY)
+		DataLength = 0;
+	
+	BuslogicLog("Data Buffer write: length %d, pointer 0x%04X\n", DataLength, DataPointer);	
 
 	if (DataLength && CmdBlock->common.ControlByte != 0x03)
 	{		
@@ -727,11 +731,12 @@ void BuslogicDataBufferAllocate(BuslogicRequests_t *BuslogicRequests, CCBU *CmdB
 			SCSIDevices[scsi_cdrom_id].InitLength = DataToTransfer;
 			
 			//If the control byte is 0x00, it means that the transfer direction is set up by the SCSI command without
-			//checking its length, so do this procedure for both no length/read/write commands.
+			//checking its length, so do this procedure for both no read/write commands.
 			if (CmdBlock->common.ControlByte == CCB_DATA_XFER_OUT || CmdBlock->common.ControlByte == 0x00)
 			{
 				ScatterGatherLeft = DataLength / (Is24bit ? sizeof(SGE) : sizeof(SGE32));
 				ScatterGatherAddrCurrent = DataPointer;
+				uint8_t *DataBuffer = (uint8_t *)SCSIDevices[scsi_cdrom_id].CmdBuffer;
 				
 				do
 				{
@@ -749,7 +754,8 @@ void BuslogicDataBufferAllocate(BuslogicRequests_t *BuslogicRequests, CCBU *CmdB
 						Address = ScatterGatherBuffer[ScatterEntry].SegmentPointer;
 						DataToTransfer = ScatterGatherBuffer[ScatterEntry].Segment;
 						
-						DMAPageRead(Address, SCSIDevices[scsi_cdrom_id].CmdBuffer, DataToTransfer);
+						DMAPageRead(Address, DataBuffer, DataToTransfer);
+						DataBuffer += DataToTransfer;
 					}
 									
 					ScatterGatherAddrCurrent += ScatterGatherRead * (Is24bit ? sizeof(SGE) : sizeof(SGE32));
@@ -779,11 +785,14 @@ void BuslogicDataBufferFree(BuslogicRequests_t *BuslogicRequests)
 		DataPointer = BuslogicRequests->CmdBlock.new.DataPointer;
 		DataLength = BuslogicRequests->CmdBlock.new.DataLength;		
 	}
-
-	pclog("Data Buffer read: length %d, pointer 0x%04X\n", DataLength, DataPointer);
+	
+	if (BuslogicRequests->CmdBlock.common.Cdb[0] == GPCMD_TEST_UNIT_READY)
+		DataLength = 0;
+	
+	BuslogicLog("Data Buffer read: length %d, pointer 0x%04X\n", DataLength, DataPointer);
 	
 	//If the control byte is 0x00, it means that the transfer direction is set up by the SCSI command without
-	//checking its length, so do this procedure for both no length/read/write commands.
+	//checking its length, so do this procedure for both read/write commands.
 	if (DataLength > 0 && (BuslogicRequests->CmdBlock.common.ControlByte == CCB_DATA_XFER_IN ||
 		BuslogicRequests->CmdBlock.common.ControlByte == 0x00))
 	{	
@@ -795,6 +804,7 @@ void BuslogicDataBufferFree(BuslogicRequests_t *BuslogicRequests)
 			SGE32 ScatterGatherBuffer[MAX_SG_DESCRIPTORS];
 			uint32_t ScatterGatherLeft = DataLength / (BuslogicRequests->Is24bit ? sizeof(SGE) : sizeof(SGE32));
 			uint32_t ScatterGatherAddrCurrent = DataPointer;
+			uint8_t *DataBuffer = (uint8_t *)SCSIDevices[scsi_cdrom_id].CmdBuffer;
 			
 			do
 			{
@@ -813,7 +823,8 @@ void BuslogicDataBufferFree(BuslogicRequests_t *BuslogicRequests)
 					Address = ScatterGatherBuffer[ScatterEntry].SegmentPointer;
 					DataToTransfer = ScatterGatherBuffer[ScatterEntry].Segment;
 
-					DMAPageWrite(Address, SCSIDevices[scsi_cdrom_id].CmdBuffer, DataToTransfer);
+					DMAPageWrite(Address, DataBuffer, DataToTransfer);
+					DataBuffer += DataToTransfer;
 				}
 					
 				ScatterGatherAddrCurrent += ScatterGatherRead * (BuslogicRequests->Is24bit ? sizeof(SGE) : sizeof(SGE32));
@@ -826,6 +837,21 @@ void BuslogicDataBufferFree(BuslogicRequests_t *BuslogicRequests)
 			DMAPageWrite(Address, SCSIDevices[scsi_cdrom_id].CmdBuffer, SCSIDevices[scsi_cdrom_id].InitLength);
 		}
 	}
+	
+	if (BuslogicRequests->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES ||
+		BuslogicRequests->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES)
+	{
+		if (BuslogicRequests->Is24bit)
+		{
+			U32_TO_ADDR(BuslogicRequests->CmdBlock.old.DataLength, SCSIDevices[scsi_cdrom_id].InitLength);
+			BuslogicLog("24-bit Residual data length for reading: %d\n", ADDR_TO_U32(BuslogicRequests->CmdBlock.old.DataLength));
+		}
+		else
+		{
+			BuslogicRequests->CmdBlock.new.DataLength = SCSIDevices[scsi_cdrom_id].InitLength;
+			BuslogicLog("32-bit Residual data length for reading: %d\n", BuslogicRequests->CmdBlock.new.DataLength);
+		}
+	}	
 }
 
 uint8_t BuslogicRead(uint16_t Port, void *p)
@@ -1273,7 +1299,7 @@ static uint8_t BuslogicConvertSenseLength(uint8_t RequestSenseLength)
 	else if (RequestSenseLength == 1)
 		RequestSenseLength = 0;
 	
-	pclog("Request Sense length %i\n", RequestSenseLength);
+	BuslogicLog("Request Sense length %i\n", RequestSenseLength);
 	
 	return RequestSenseLength;
 }
@@ -1305,10 +1331,9 @@ static void BuslogicSenseBufferFree(BuslogicRequests_t *BuslogicRequests, int Co
 		else
 		{
 			SenseBufferAddress = BuslogicRequests->CmdBlock.new.SensePointer;
-			SenseBufferAddress += BuslogicRequests->CmdBlock.common.CdbLength + offsetof(CCB32, Cdb);
 		}
 		
-		pclog("Request Sense address: %02X\n", SenseBufferAddress);
+		BuslogicLog("Request Sense address: %02X\n", SenseBufferAddress);
 		
 		DMAPageWrite(SenseBufferAddress, BuslogicRequests->RequestSenseBuffer, SenseLength);		
 	}
@@ -1316,31 +1341,7 @@ static void BuslogicSenseBufferFree(BuslogicRequests_t *BuslogicRequests, int Co
 	free(BuslogicRequests->RequestSenseBuffer);
 }
 
-static void BuslogicSCSIRequestComplete(Buslogic_t *Buslogic, BuslogicRequests_t *BuslogicRequests)
-{	
-	uint8_t Status = SCSIStatus;
-	uint32_t CCBPointer = BuslogicRequests->CCBPointer;
-	CCBU CmdBlock;
-	memcpy(&CmdBlock, &BuslogicRequests->CmdBlock, sizeof(CCBU));
-
-	BuslogicDataBufferFree(BuslogicRequests);
-	
-	if (BuslogicRequests->RequestSenseBuffer)
-		BuslogicSenseBufferFree(BuslogicRequests, (Status != SCSI_STATUS_OK));	
-
-	if (Status == SCSI_STATUS_OK)
-	{
-		BuslogicMailboxIn(Buslogic, CCBPointer, &CmdBlock, CCB_COMPLETE, SCSI_STATUS_OK,
-						MBI_SUCCESS);
-	}
-	else if (Status == SCSI_STATUS_CHECK_CONDITION)
-	{
-		BuslogicMailboxIn(Buslogic, CCBPointer, &CmdBlock, CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION,
-								MBI_ERROR);
-	}
-}
-
-static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer)
+static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 {	
 	BuslogicRequests_t *BuslogicRequests = &Buslogic->BuslogicRequests;
 	CCBU CmdBlock;
@@ -1358,7 +1359,7 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer)
 	BuslogicLog("Scanning SCSI Target ID %i\n", Id);		
 	
 	//Only SCSI CD-ROMs are supported at the moment, SCSI hard disk support will come soon.
-	if (Id == scsi_cdrom_id)
+	if (Id == scsi_cdrom_id && Lun == 0)
 	{
 		BuslogicLog("SCSI Target ID %i detected and working\n", Id);
 
@@ -1367,69 +1368,118 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer)
 
 		memcpy(&BuslogicRequests->CmdBlock, &CmdBlock, sizeof(CmdBlock));
 		
-		BuslogicSenseBufferAllocate(BuslogicRequests);
-		
-		BuslogicDataBufferAllocate(BuslogicRequests, &BuslogicRequests->CmdBlock, BuslogicRequests->Is24bit);
-		
-		uint32_t i;
-		
-		pclog("SCSI Cdb[0]=0x%02X\n", BuslogicRequests->CmdBlock.common.Cdb[0]);
-		for (i = 1; i < BuslogicRequests->CmdBlock.common.CdbLength; i++)
-			pclog("SCSI Cdb[%i]=%i\n", i, BuslogicRequests->CmdBlock.common.Cdb[i]);
-		
-		pclog("Transfer Control %02X\n", BuslogicRequests->CmdBlock.common.ControlByte);
-		pclog("CDB Length %i\n", BuslogicRequests->CmdBlock.common.CdbLength);	
-		pclog("CCB Opcode %x\n", BuslogicRequests->CmdBlock.common.Opcode);
-		
-		//First, get the data buffer otherwise putting it after the 
-		//exec function results into not getting read/write commands right and
-		//failing to detect the device.
-		
-		if (CmdBlock.common.ControlByte == CCB_DATA_XFER_IN)
+		if (Mailbox32->u.out.ActionCode == MBO_START)
 		{
-			SCSIRead(Id, SCSIDevices[Id].InitLength);
-		}
-		else if (CmdBlock.common.ControlByte == CCB_DATA_XFER_OUT)
-		{
-			SCSIWrite(Id, SCSIDevices[Id].InitLength);
-		}
+			BuslogicSenseBufferAllocate(BuslogicRequests);
+			
+			BuslogicDataBufferAllocate(BuslogicRequests, &BuslogicRequests->CmdBlock, BuslogicRequests->Is24bit);
 		
-		//Finally, execute the SCSI command immediately and get the transfer length.
-		SCSIPhase = SCSI_PHASE_COMMAND;
-		SCSIExecCommand(Id, Lun, BuslogicRequests->CmdBlock.common.Cdb);
-		SCSIGetLength(Id, &SCSIDevices[Id].InitLength);
-		
-		if (SCSIPhase == SCSI_PHASE_DATAIN)
-		{
-			SCSIReadData(Id, BuslogicRequests->CmdBlock.common.Cdb, SCSIDevices[Id].CmdBuffer, SCSIDevices[Id].InitLength);
-		}
+			/* If the UNIT ATTENTION condition is set and the command does not allow
+				execution under it, error out and report the condition. */
+			if (!(SCSICommandTable[BuslogicRequests->CmdBlock.common.Cdb[0]] & ALLOW_UA) && SCSISense.UnitAttention)
+			{
+				SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
+				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
+				SCSICallback[Id]=50*SCSI_TIME;
+			}
+			
+			/* Unless the command is REQUEST SENSE, clear the sense. This will *NOT*
+				clear the UNIT ATTENTION condition if it's set. */
+			if (BuslogicRequests->CmdBlock.common.Cdb[0]!=GPCMD_REQUEST_SENSE)
+			{
+				if (SCSISense.UnitAttention)
+				{
+					SCSISense.UnitAttention = 0;
+					SCSIClearSense(BuslogicRequests->CmdBlock.common.Cdb[0], 0);
+					SCSIStatus = SCSI_STATUS_OK;
+					BuslogicMailboxIn(Buslogic, BuslogicRequests->CCBPointer, &BuslogicRequests->CmdBlock, CCB_COMPLETE, SCSI_STATUS_OK,
+							MBI_SUCCESS);
+				}
+			}
 
-		if (BuslogicRequests->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES ||
-			BuslogicRequests->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES)
-		{
-			if (BuslogicRequests->Is24bit)
+			/* Next it's time for NOT READY. */
+			if ((SCSICommandTable[BuslogicRequests->CmdBlock.common.Cdb[0]] & CHECK_READY) && !cdrom->ready())
 			{
-				U32_TO_ADDR(BuslogicRequests->CmdBlock.old.DataLength, SCSIDevices[Id].InitLength);
-				BuslogicLog("24-bit Residual data length for reading: %d\n", ADDR_TO_U32(BuslogicRequests->CmdBlock.old.DataLength));
-			}
-			else
+				BuslogicLog("Not ready\n");
+				SCSISenseCodeError(SENSE_NOT_READY, ASC_MEDIUM_NOT_PRESENT, 0);
+				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
+				SCSICallback[Id]=50*SCSI_TIME;
+				BuslogicMailboxIn(Buslogic, BuslogicRequests->CCBPointer, &BuslogicRequests->CmdBlock, CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION,
+										MBI_ERROR);
+				return;
+			}			
+		
+			uint8_t SenseLength = BuslogicConvertSenseLength(BuslogicRequests->CmdBlock.common.RequestSenseLength);
+				
+			uint32_t i;
+			
+			BuslogicLog("SCSI Cdb[0]=0x%02X\n", BuslogicRequests->CmdBlock.common.Cdb[0]);
+			for (i = 1; i < BuslogicRequests->CmdBlock.common.CdbLength; i++)
+				BuslogicLog("SCSI Cdb[%i]=%i\n", i, BuslogicRequests->CmdBlock.common.Cdb[i]);
+			
+			BuslogicLog("Transfer Control %02X\n", BuslogicRequests->CmdBlock.common.ControlByte);
+			BuslogicLog("CDB Length %i\n", BuslogicRequests->CmdBlock.common.CdbLength);	
+			BuslogicLog("CCB Opcode %x\n", BuslogicRequests->CmdBlock.common.Opcode);
+			
+			//First, get the data buffer otherwise putting it after the 
+			//exec function results into not getting read/write commands right and
+			//failing to detect the device.
+			
+			if (CmdBlock.common.ControlByte == CCB_DATA_XFER_IN)
 			{
-				BuslogicRequests->CmdBlock.new.DataLength = SCSIDevices[Id].InitLength;
-				BuslogicLog("32-bit Residual data length for reading: %d\n", BuslogicRequests->CmdBlock.new.DataLength);
+				SCSIRead(Id, SCSIDevices[Id].InitLength);
 			}
+			else if (CmdBlock.common.ControlByte == CCB_DATA_XFER_OUT)
+			{
+				SCSIWrite(Id, SCSIDevices[Id].InitLength);
+			}
+		
+			//Finally, execute the SCSI command immediately and get the transfer length.
+
+			SCSIPhase = SCSI_PHASE_COMMAND;
+			SCSIExecCommand(Id, BuslogicRequests->CmdBlock.common.Cdb, SenseLength);
+			SCSIGetLength(Id, &SCSIDevices[Id].InitLength);
+		
+			if (SCSIPhase == SCSI_PHASE_DATAIN)
+			{
+				SCSIReadData(Id, BuslogicRequests->CmdBlock.common.Cdb, SCSIDevices[Id].CmdBuffer, SCSIDevices[Id].InitLength,SenseLength);
+			}
+		
+	
+			BuslogicDataBufferFree(BuslogicRequests);
+		
+			if (BuslogicRequests->RequestSenseBuffer)
+				BuslogicSenseBufferFree(BuslogicRequests, (SCSIStatus != SCSI_STATUS_OK));	
 		}
 		
 		BuslogicLog("Request complete\n");
-		BuslogicSCSIRequestComplete(Buslogic, BuslogicRequests);
+		BuslogicLog("SCSI Status %002X, Sense %02X, Asc %02X, Ascq %02X\n", SCSIStatus, SCSISense.SenseKey, SCSISense.Asc, SCSISense.Ascq);
+		
+		if (SCSIStatus == SCSI_STATUS_OK)
+		{
+			BuslogicMailboxIn(Buslogic, BuslogicRequests->CCBPointer, &BuslogicRequests->CmdBlock, CCB_COMPLETE, SCSI_STATUS_OK,
+							MBI_SUCCESS);
+		}
+		else if (SCSIStatus == SCSI_STATUS_CHECK_CONDITION)
+		{
+			BuslogicMailboxIn(Buslogic, BuslogicRequests->CCBPointer, &BuslogicRequests->CmdBlock, CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION,
+									MBI_ERROR);
+		}
 	}
 	else
 	{
-		BuslogicDataBufferFree(BuslogicRequests);
-		
-		if (BuslogicRequests->RequestSenseBuffer)
-			BuslogicSenseBufferFree(BuslogicRequests, 1);
+		if (Mailbox32->u.out.ActionCode == MBO_START)
+		{
+			BuslogicDataBufferFree(BuslogicRequests);
+			
+			if (BuslogicRequests->RequestSenseBuffer)
+				BuslogicSenseBufferFree(BuslogicRequests, 1);
+		}
 		
 		BuslogicMailboxIn(Buslogic, CCBPointer, &CmdBlock, CCB_SELECTION_TIMEOUT, SCSI_STATUS_OK, MBI_ERROR);
+		
+		if (Mailbox32->u.out.ActionCode == MBO_START)
+			BuslogicStartMailbox(Buslogic);
 	}
 }
 
@@ -1443,35 +1493,6 @@ static void BuslogicSCSIRequestAbort(Buslogic_t *Buslogic, uint32_t CCBPointer)
 
 	//Only SCSI CD-ROMs are supported at the moment, SCSI hard disk support will come soon.
 	BuslogicMailboxIn(Buslogic, CCBPointer, &CmdBlock, 0x26, SCSI_STATUS_OK, MBI_NOT_FOUND);
-}
-
-static void BuslogicSCSIRequestFree(Buslogic_t *Buslogic, uint32_t CCBPointer)
-{	
-	BuslogicRequests_t *BuslogicRequests = &Buslogic->BuslogicRequests;
-	CCBU CmdBlock;
-	uint8_t Id, Lun;
-
-	//Fetch data from the Command Control Block.
-	DMAPageRead(CCBPointer, &CmdBlock, sizeof(CCB32));
-	
-	BuslogicRequests->TargetID = Buslogic->Mbx24bit ? CmdBlock.old.Id : CmdBlock.new.Id;
-	
-	Id = BuslogicRequests->TargetID;
-	
-	//Only SCSI CD-ROMs are supported at the moment, SCSI hard disk support will come soon.
-	if (Id == scsi_cdrom_id)
-	{
-		BuslogicSCSIRequestComplete(Buslogic, BuslogicRequests);
-	}
-	else
-	{
-		BuslogicDataBufferFree(BuslogicRequests);
-		
-		if (BuslogicRequests->RequestSenseBuffer)
-			BuslogicSenseBufferFree(BuslogicRequests, 1);
-		
-		BuslogicMailboxIn(Buslogic, CCBPointer, &CmdBlock, CCB_SELECTION_TIMEOUT, SCSI_STATUS_OK, MBI_ERROR);
-	}
 }
 
 static uint32_t BuslogicMailboxOut(Buslogic_t *Buslogic, Mailbox32_t *Mailbox32)
@@ -1517,20 +1538,15 @@ static void BuslogicStartMailbox(Buslogic_t *Buslogic)
 
 	DMAPageWrite(Outgoing + CodeOffset, &CmdStatus, sizeof(CmdStatus));	
 	
-	if (Mailbox32.u.out.ActionCode == MBO_START)
+	if (Mailbox32.u.out.ActionCode == MBO_START || Mailbox32.u.out.ActionCode == MBO_FREE)
 	{
 		BuslogicLog("Start Mailbox Command\n");
-		BuslogicSCSIRequestSetup(Buslogic, Mailbox32.CCBPointer);
+		BuslogicSCSIRequestSetup(Buslogic, Mailbox32.CCBPointer, &Mailbox32);
 	} 
 	else if (Mailbox32.u.out.ActionCode == MBO_ABORT)
 	{
 		BuslogicLog("Abort Mailbox Command\n");
 		BuslogicSCSIRequestAbort(Buslogic, Mailbox32.CCBPointer);		
-	}
-	else
-	{
-		BuslogicLog("Free Mailbox Command\n");
-		BuslogicSCSIRequestFree(Buslogic, Mailbox32.CCBPointer);
 	}
 }
 
@@ -1539,8 +1555,10 @@ void BuslogicCommandCallback(void *p)
 	Buslogic_t *Buslogic = (Buslogic_t *)p;
 	
 	SCSICallback[scsi_cdrom_id] = 0;
-	if (Buslogic->MailboxCount)	
+	if (Buslogic->MailboxCount)
+	{
 		BuslogicStartMailbox(Buslogic);
+	}
 }
 
 void *BuslogicInit()
@@ -1552,12 +1570,11 @@ void *BuslogicInit()
 	Buslogic->DmaChannel = scsi_dma;	
 
 	io_sethandler(scsi_base, 0x0004, BuslogicRead, NULL, NULL, BuslogicWrite, NULL, NULL, Buslogic);
-	
 	timer_add(BuslogicCommandCallback, &SCSICallback[scsi_cdrom_id], &SCSICallback[scsi_cdrom_id], Buslogic);
 	
 	BuslogicLog("Buslogic on port 0x%04X\n", scsi_base);
 	
-	BuslogicReset(Buslogic);
+	BuslogicResetControl(Buslogic, CTRL_HRST);
 	
 	return Buslogic;
 }
