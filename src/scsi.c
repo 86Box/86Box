@@ -23,9 +23,9 @@ void SCSIGetLength(uint8_t id, int *datalen)
 }
 
 //Execute SCSI command
-void SCSIExecCommand(uint8_t id, uint8_t lun, uint8_t *cdb)
+void SCSIExecCommand(uint8_t id, uint8_t *cdb, uint8_t sense)
 {
-	SCSICDROM_Command(id, lun, cdb);
+	SCSICDROM_Command(id, cdb, sense);
 }
 
 //Read pending data from the resulting SCSI command
