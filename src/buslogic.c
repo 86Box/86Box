@@ -1373,43 +1373,65 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer, 
 			BuslogicSenseBufferAllocate(BuslogicRequests);
 			
 			BuslogicDataBufferAllocate(BuslogicRequests, &BuslogicRequests->CmdBlock, BuslogicRequests->Is24bit);
+
+			uint8_t SenseLength = BuslogicConvertSenseLength(BuslogicRequests->CmdBlock.common.RequestSenseLength);
 		
-			/* If the UNIT ATTENTION condition is set and the command does not allow
-				execution under it, error out and report the condition. */
-			if (!(SCSICommandTable[BuslogicRequests->CmdBlock.common.Cdb[0]] & ALLOW_UA) && SCSISense.UnitAttention)
+			if ((CmdBlock.common.ControlByte != 0x03) && (CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND))
 			{
-				SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
-				SCSICallback[Id]=50*SCSI_TIME;
-			}
-			
-			/* Unless the command is REQUEST SENSE, clear the sense. This will *NOT*
-				clear the UNIT ATTENTION condition if it's set. */
-			if (BuslogicRequests->CmdBlock.common.Cdb[0]!=GPCMD_REQUEST_SENSE)
-			{
-				if (SCSISense.UnitAttention)
+				if (cdrom->medium_changed())
 				{
+					pclog("Media changed\n");
+					SCSICDROM_Insert();
+				}
+
+				if (!cdrom->ready() && SCSISense.UnitAttention)
+				{
+					/* If the drive is not ready, there is no reason to keep the
+					   UNIT ATTENTION condition present, as we only use it to mark
+					   disc changes. */
 					SCSISense.UnitAttention = 0;
+				}
+	
+				/* If the UNIT ATTENTION condition is set and the command does not allow
+				   execution under it, error out and report the condition. */
+				if (SCSISense.UnitAttention == 1)
+				{
+					SCSISense.UnitAttention = 2;
+					if (!(SCSICommandTable[BuslogicRequests->CmdBlock.common.Cdb[0]] & ALLOW_UA))
+					{
+						SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
+						SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
+						SCSICallback[Id]=50*SCSI_TIME;
+						BuslogicMailboxIn(Buslogic, BuslogicRequests->CCBPointer, &BuslogicRequests->CmdBlock, CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION, MBI_ERROR);
+						return;
+					}
+				}
+				else if (SCSISense.UnitAttention == 2)
+				{
+					if (BuslogicRequests->CmdBlock.common.Cdb[0]!=GPCMD_REQUEST_SENSE)
+					{
+						SCSISense.UnitAttention = 0;
+					}
+				}
+			
+				/* Unless the command is REQUEST SENSE, clear the sense. This will *NOT*
+				   clear the UNIT ATTENTION condition if it's set. */
+				if (BuslogicRequests->CmdBlock.common.Cdb[0]!=GPCMD_REQUEST_SENSE)
+				{
 					SCSIClearSense(BuslogicRequests->CmdBlock.common.Cdb[0], 0);
-					SCSIStatus = SCSI_STATUS_OK;
-					BuslogicMailboxIn(Buslogic, BuslogicRequests->CCBPointer, &BuslogicRequests->CmdBlock, CCB_COMPLETE, SCSI_STATUS_OK,
-							MBI_SUCCESS);
+				}
+
+				/* Next it's time for NOT READY. */
+				if ((SCSICommandTable[BuslogicRequests->CmdBlock.common.Cdb[0]] & CHECK_READY) && !cdrom->ready())
+				{
+					BuslogicLog("Not ready\n");
+					SCSISenseCodeError(SENSE_NOT_READY, ASC_MEDIUM_NOT_PRESENT, 0);
+					SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
+					SCSICallback[Id]=50*SCSI_TIME;
+					BuslogicMailboxIn(Buslogic, BuslogicRequests->CCBPointer, &BuslogicRequests->CmdBlock, CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION, MBI_ERROR);
+					return;
 				}
 			}
-
-			/* Next it's time for NOT READY. */
-			if ((SCSICommandTable[BuslogicRequests->CmdBlock.common.Cdb[0]] & CHECK_READY) && !cdrom->ready())
-			{
-				BuslogicLog("Not ready\n");
-				SCSISenseCodeError(SENSE_NOT_READY, ASC_MEDIUM_NOT_PRESENT, 0);
-				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
-				SCSICallback[Id]=50*SCSI_TIME;
-				BuslogicMailboxIn(Buslogic, BuslogicRequests->CCBPointer, &BuslogicRequests->CmdBlock, CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION,
-										MBI_ERROR);
-				return;
-			}			
-		
-			uint8_t SenseLength = BuslogicConvertSenseLength(BuslogicRequests->CmdBlock.common.RequestSenseLength);
 				
 			uint32_t i;
 			

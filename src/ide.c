@@ -1771,7 +1771,7 @@ static void atapi_invalid_field(IDE *ide)
 static void atapi_illegal_mode(IDE *ide)
 {
 	SCSISense.SenseKey = SENSE_ILLEGAL_REQUEST;
-	SCSISense.Asc = ASC_ILLEGAL_OPCODE;
+	SCSISense.Asc = ASC_ILLEGAL_MODE_FOR_THIS_TRACK;
 	SCSISense.Ascq = 0;
 	atapi_cmd_error(ide, SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_MODE_FOR_THIS_TRACK, 0);
 }
@@ -1779,7 +1779,7 @@ static void atapi_illegal_mode(IDE *ide)
 static void atapi_incompatible_format(IDE *ide)
 {
 	SCSISense.SenseKey = SENSE_ILLEGAL_REQUEST;
-	SCSISense.Asc = ASC_ILLEGAL_OPCODE;
+	SCSISense.Asc = ASC_INCOMPATIBLE_FORMAT;
 	SCSISense.Ascq = 0;
 	atapi_cmd_error(ide, SENSE_ILLEGAL_REQUEST, ASC_INCOMPATIBLE_FORMAT, 0);
 }
@@ -1787,7 +1787,7 @@ static void atapi_incompatible_format(IDE *ide)
 static void atapi_data_phase_error(IDE *ide)
 {
 	SCSISense.SenseKey = SENSE_ILLEGAL_REQUEST;
-	SCSISense.Asc = ASC_ILLEGAL_OPCODE;
+	SCSISense.Asc = ASC_DATA_PHASE_ERROR;
 	SCSISense.Ascq = 0;
 	atapi_cmd_error(ide, SENSE_ILLEGAL_REQUEST, ASC_DATA_PHASE_ERROR, 0);
 }
@@ -1848,16 +1848,22 @@ static void atapicommand(int ide_board)
 	
 	/* If the UNIT ATTENTION condition is set and the command does not allow
 		execution under it, error out and report the condition. */
-	if (!(SCSICommandTable[idebufferb[0]] & ALLOW_UA) && SCSISense.UnitAttention)
+	if (SCSISense.UnitAttention == 1)
 	{
-		// pclog("UNIT ATTENTION: Command not allowed to pass through\n");
-		atapi_cmd_error(ide, SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-		return;
+		SCSISense.UnitAttention = 2;
+		if (!(SCSICommandTable[idebufferb[0]] & ALLOW_UA))
+		{
+			// pclog("UNIT ATTENTION: Command not allowed to pass through\n");
+			atapi_cmd_error(ide, SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
+			return;
+		}
 	}
-
-	if (idebufferb[0] == GPCMD_READ_TOC_PMA_ATIP)
+	else if (SCSISense.UnitAttention == 2)
 	{
-		SCSISense.UnitAttention = 0;
+		if (idebufferb[0]!=GPCMD_REQUEST_SENSE)
+		{
+			SCSISense.UnitAttention = 0;
+		}
 	}
 
 	/* Unless the command is REQUEST SENSE, clear the sense. This will *NOT*

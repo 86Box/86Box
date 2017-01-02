@@ -34,11 +34,11 @@ uint8_t SCSICommandTable[0x100] =
 	[GPCMD_READ_10]                       = CHECK_READY,
 	[GPCMD_SEEK_10]                       = CHECK_READY | NONDATA,
 	[GPCMD_READ_SUBCHANNEL]               = CHECK_READY,
-	[GPCMD_READ_TOC_PMA_ATIP]             = CHECK_READY | ALLOW_UA,		/* Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS
+	[GPCMD_READ_TOC_PMA_ATIP]             = CHECK_READY,			/* Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS
 										   NOTE: The ATAPI reference says otherwise, but I think this is a question of
-											 interpreting things right - the UNIT ATTENTION condition we have here
-											 is a tradition from not ready to ready, by definition the drive
-											 eventually becomes ready, make the condition go away. */
+										   interpreting things right - the UNIT ATTENTION condition we have here
+										   is a tradition from not ready to ready, by definition the drive
+										   eventually becomes ready, make the condition go away. */
 	[GPCMD_READ_HEADER]                   = CHECK_READY,
 	[GPCMD_PLAY_AUDIO_10]                 = CHECK_READY,
 	[GPCMD_GET_CONFIGURATION]             = ALLOW_UA,
@@ -754,48 +754,6 @@ void SCSICDROM_Command(uint8_t id, uint8_t *cdb, uint8_t sense)
 	int ret = 0;
 
 	msf = cdb[1] & 2;
-	
-	if (cdrom->medium_changed())
-	{
-		pclog("Media changed\n");
-		SCSICDROM_Insert();
-	}
-
-	if (!cdrom->ready() && SCSISense.UnitAttention)
-	{
-		/* If the drive is not ready, there is no reason to keep the
-			UNIT ATTENTION condition present, as we only use it to mark
-			disc changes. */
-		SCSISense.UnitAttention = 0;
-	}
-	
-	/* If the UNIT ATTENTION condition is set and the command does not allow
-		execution under it, error out and report the condition. */
-#if 0
-	if (!(SCSICommandTable[cdb[0]] & ALLOW_UA) && SCSISense.UnitAttention)
-	{
-		pclog("UNIT ATTENTION\n");
-		SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
-		SCSICallback[id]=50*SCSI_TIME;
-		return;
-	}
-#endif
-	
-	if (cdb[0] == GPCMD_READ_TOC_PMA_ATIP)
-		SCSISense.UnitAttention = 0;
-
-#if 0
-	/* Next it's time for NOT READY. */
-	if ((SCSICommandTable[cdb[0]] & CHECK_READY) && !cdrom->ready())
-	{
-		pclog("Not ready\n");
-		SCSISenseCodeError(SENSE_NOT_READY, ASC_MEDIUM_NOT_PRESENT, 0);
-		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
-		SCSICallback[id]=50*SCSI_TIME;
-		return;
-	}
-#endif
 
 	prev_status = cd_status;
 	cd_status = cdrom->status();
@@ -845,7 +803,7 @@ void SCSICDROM_Command(uint8_t id, uint8_t *cdb, uint8_t sense)
 		{
 			pclog("Trying to read beyond the end of disc\n");
 			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
-			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0);
+			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0);
 			SCSICallback[id]=50*SCSI_TIME;
 			break;
 		}
@@ -1047,7 +1005,7 @@ SCSIOut:
 		if (cdb[4]!=2 && cdb[4]!=3 && cdb[4])
 		{
 			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
-			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0x00);
+			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
 			SCSICallback[id]=50*SCSI_TIME;
 			break;
 		}
@@ -1095,7 +1053,7 @@ SCSIOut:
 		if (cdb[3] != 1)
 		{
 			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
-			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0x00);
+			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
 			SCSICallback[id]=50*SCSI_TIME;
 			break;
 		}
@@ -1141,10 +1099,6 @@ SCSIOut:
 			default:
 			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
 			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
-			if (SCSISense.UnitAttention)
-			{
-				SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-			}
 			SCSICallback[id]=50*SCSI_TIME;
 			return;
 		}
@@ -1395,10 +1349,6 @@ SCSIOut:
 			{
 				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
 				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
-				if (SCSISense.UnitAttention)
-				{
-					SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-				}
 				SCSICallback[id]=50*SCSI_TIME;
 				return;		
 			}
@@ -1414,10 +1364,6 @@ SCSIOut:
 			{
 				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
 				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
-				if (SCSISense.UnitAttention)
-				{
-					SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-				}
 				SCSICallback[id]=50*SCSI_TIME;
 				return;		
 			}
@@ -1469,10 +1415,6 @@ SCSIOut:
 			{
 				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;				
 				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
-				if (SCSISense.UnitAttention)
-				{
-					SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-				}
 				SCSICallback[id]=50*SCSI_TIME;
 				return;
 			}
@@ -1515,10 +1457,6 @@ SCSIOut:
 			default:
 			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
 			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
-			if (SCSISense.UnitAttention)
-			{
-				SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-			}
 			SCSICallback[id]=50*SCSI_TIME;
 			return;
 		}
@@ -1548,11 +1486,7 @@ SCSIOut:
 		{
 			//pclog("Trying to read beyond the end of disc\n");
 			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
-			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0);
-			if (SCSISense.UnitAttention)
-			{
-				SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-			}
+			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0);
 			SCSICallback[id]=50*SCSI_TIME;
 			break;
 		}		
@@ -1612,7 +1546,7 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen, ui
 			if (!read_length)
 			{
 				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;				
-				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0x00);
+				SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
 				SCSICallback[id]=50*SCSI_TIME;
 				break;
 			}

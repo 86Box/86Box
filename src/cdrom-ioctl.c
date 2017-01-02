@@ -303,7 +303,14 @@ static int ioctl_medium_changed(void)
                 if (cdrom_drive != old_cdrom_drive)
                         old_cdrom_drive = cdrom_drive;
 				cdrom_capacity = ioctl_get_last_block(0, 0, 4096, 0);
-                return 1;
+				if (cdrom_drive == old_cdrom_drive)
+				{
+					return 1;
+				}
+				else
+				{
+					return 0;
+				}
         }
 		else
 		{
