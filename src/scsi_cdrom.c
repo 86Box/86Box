@@ -642,7 +642,7 @@ int cdrom_read_data(uint8_t *buffer)
 
 void SCSIClearSense(uint8_t Command, uint8_t IgnoreUA)
 {
-	if ((SCSISense.SenseKey == SENSE_UNIT_ATTENTION) || IgnoreUA || (SCSISense.SenseKey == SENSE_ILLEGAL_REQUEST && SCSISense.Asc == ASC_INV_FIELD_IN_CMD_PACKET))
+	if ((SCSISense.SenseKey == SENSE_UNIT_ATTENTION) || IgnoreUA)
 	{
 		pclog("Sense cleared\n");	
 		ScsiPrev=Command;
@@ -697,6 +697,64 @@ void SCSICDROM_Command(uint8_t id, uint8_t *cmdbuffer, uint8_t *cdb)
 	int ret = 0;
 
 	msf = cdb[1] & 2;
+	
+	//The not ready/unit attention stuff below is only for the Adaptec!
+	//The Buslogic one is located in buslogic.c.	
+	
+	if (!scsi_model)
+	{
+		if (cdrom->medium_changed())
+		{
+			pclog("Media changed\n");
+			SCSICDROM_Insert();
+		}
+		
+		if (!cdrom->ready() && SCSISense.UnitAttention)
+		{
+			/* If the drive is not ready, there is no reason to keep the
+			   UNIT ATTENTION condition present, as we only use it to mark
+			   disc changes. */
+			SCSISense.UnitAttention = 0;
+		}
+
+		/* If the UNIT ATTENTION condition is set and the command does not allow
+		   execution under it, error out and report the condition. */
+		if (SCSISense.UnitAttention == 1)
+		{
+			SCSISense.UnitAttention = 2;
+			if (!(SCSICommandTable[cdb[0]] & ALLOW_UA))
+			{
+				SCSISenseCodeError(SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
+				SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
+				SCSICallback[id]=50*SCSI_TIME;
+				return;
+			}
+		}
+		else if (SCSISense.UnitAttention == 2)
+		{
+			if (cdb[0]!=GPCMD_REQUEST_SENSE)
+			{
+				SCSISense.UnitAttention = 0;
+			}
+		}
+
+		/* Unless the command is REQUEST SENSE, clear the sense. This will *NOT*
+		   clear the UNIT ATTENTION condition if it's set. */
+		if (cdb[0]!=GPCMD_REQUEST_SENSE)
+		{
+			SCSIClearSense(cdb[0], 0);
+		}
+
+		/* Next it's time for NOT READY. */
+		if ((SCSICommandTable[cdb[0]] & CHECK_READY) && !cdrom->ready())
+		{
+			pclog("Not ready\n");
+			SCSISenseCodeError(SENSE_NOT_READY, ASC_MEDIUM_NOT_PRESENT, 0);
+			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
+			SCSICallback[id]=50*SCSI_TIME;
+			return;
+		}
+	}
 	
 	prev_status = cd_status;
 	cd_status = cdrom->status();
@@ -773,7 +831,9 @@ void SCSICDROM_Command(uint8_t id, uint8_t *cmdbuffer, uint8_t *cdb)
 		}
 
 		/* Clear the sense stuff as per the spec. */
-		SCSIClearSense(cdb[0], 0);
+		ScsiPrev=cdb[0];
+		if (cdrom->ready())
+			SCSISenseCodeOk();
 		return;
 		
 		case GPCMD_READ_6:
@@ -1529,6 +1589,8 @@ SCSIOut:
 		SCSIDMAResetPosition(id);
 		break;
 	}
+	
+	
 }
 
 void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
@@ -1542,7 +1604,7 @@ void SCSICDROM_ReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
 		case GPCMD_READ_12:
         case GPCMD_READ_CD_MSF:
         case GPCMD_READ_CD:
-		pclog("Total data length requested: %d\n", datalen);		
+		pclog("Total data length requested: %d\n", datalen);
 		while (datalen > 0)
 		{
 			read_length = cdrom_read_data(data); //Fill the buffer the data it needs
