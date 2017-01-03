@@ -23,9 +23,9 @@ void SCSIGetLength(uint8_t id, int *datalen)
 }
 
 //Execute SCSI command
-void SCSIExecCommand(uint8_t id, uint8_t *cdb, uint8_t sense)
+void SCSIExecCommand(uint8_t id, uint8_t *buffer, uint8_t *cdb)
 {
-	SCSICDROM_Command(id, cdb, sense);
+	SCSICDROM_Command(id, buffer, cdb);
 }
 
 //Read pending data from the resulting SCSI command
@@ -42,7 +42,7 @@ void SCSIDMAResetPosition(uint8_t Id)
 }
 
 //Read data from buffer with given position in buffer memory
-void SCSIRead(uint8_t Id, uint32_t len_size)
+void SCSIRead(uint8_t Id, uint8_t *dstbuf, uint8_t *srcbuf, uint32_t len_size)
 {
 	if (!len_size) //If there's no data, don't try to do anything.
 		return;
@@ -51,7 +51,7 @@ void SCSIRead(uint8_t Id, uint32_t len_size)
 	
 	for (c = 0; c <= len_size; c++) //Count as many bytes as the length of the buffer is requested
 	{
-		memcpy(SCSIDevices[Id].CmdBuffer, SCSIDevices[Id].CmdBuffer + SCSIDevices[Id].pos, len_size);
+		memcpy(dstbuf, srcbuf + SCSIDevices[Id].pos, len_size);
 		SCSIDevices[Id].pos = c;
 		
 		//pclog("SCSI Read: position at %i\n", SCSIDevices[Id].pos);
@@ -59,24 +59,14 @@ void SCSIRead(uint8_t Id, uint32_t len_size)
 }
 
 //Write data to buffer with given position in buffer memory
-void SCSIWrite(uint8_t Id, uint32_t len_size)
+void SCSIWrite(uint8_t Id, uint8_t *srcbuf, uint8_t *dstbuf, uint32_t len_size)
 {
-	if (!len_size) //If there's no data, don't try to do anything.
-		return;	
-	
 	int c;
 	
 	for (c = 0; c <= len_size; c++) //Count as many bytes as the length of the buffer is requested
 	{
-		memcpy(SCSIDevices[Id].CmdBuffer + SCSIDevices[Id].pos, SCSIDevices[Id].CmdBuffer, len_size);
+		memcpy(srcbuf + SCSIDevices[Id].pos, dstbuf, len_size);
 		SCSIDevices[Id].pos = c;
-		
-		//Mode Sense/Select stuff
-		if ((SCSIDevices[Id].pos >= prefix_len+4) && (page_flags[page_current] & PAGE_CHANGEABLE))
-		{
-			mode_pages_in[page_current][SCSIDevices[Id].pos - prefix_len - 4] = SCSIDevices[Id].CmdBuffer[SCSIDevices[Id].pos - 2];
-			mode_pages_in[page_current][SCSIDevices[Id].pos - prefix_len - 3] = SCSIDevices[Id].CmdBuffer[SCSIDevices[Id].pos - 1];
-		}
 
 		//pclog("SCSI Write: position at %i\n", SCSIDevices[Id].pos);			
 	}
