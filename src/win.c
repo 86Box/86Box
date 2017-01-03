@@ -708,6 +708,22 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         if (buslogic_enabled)
            CheckMenuItem(menu, IDM_SCSI_ENABLED, MF_CHECKED);
 
+        CheckMenuItem(menu, IDM_SCSI_MODEL0, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_SCSI_MODEL1, MF_UNCHECKED);
+
+        if (scsi_model == 0)
+	{
+           CheckMenuItem(menu, IDM_SCSI_MODEL0, MF_CHECKED);
+	}
+        else if (scsi_model == 1)
+	{
+           CheckMenuItem(menu, IDM_SCSI_MODEL1, MF_CHECKED);
+	}
+	else
+	{
+		fatal("Unrecognized SCSI model\n");
+	}
+
         CheckMenuItem(menu, IDM_SCSI_BASE130, MF_UNCHECKED);
         CheckMenuItem(menu, IDM_SCSI_BASE134, MF_UNCHECKED);
         CheckMenuItem(menu, IDM_SCSI_BASE230, MF_UNCHECKED);
@@ -1192,6 +1208,28 @@ int ide_qua_set_irq(HMENU hmenu, int irq, int id)
 	return 1;
 }
 
+int scsi_set_model(HMENU hmenu, int model, int id)
+{
+	if (scsi_model == model)
+	{
+		return 0;
+	}
+        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+	{
+		return 0;
+	}
+	pause = 1;
+	Sleep(100);
+	scsi_model = model;
+	CheckMenuItem(hmenu, IDM_SCSI_MODEL0, MF_UNCHECKED);
+	CheckMenuItem(hmenu, IDM_SCSI_MODEL1, MF_UNCHECKED);
+	CheckMenuItem(hmenu, id, MF_CHECKED);
+	saveconfig();
+	resetpchard();
+	pause = 0;
+	return 1;
+}
+
 int scsi_set_base(HMENU hmenu, int base, int id)
 {
 	if (scsi_base == base)
@@ -1641,6 +1679,14 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			saveconfig();
 			resetpchard();
 			pause = 0;
+			break;
+                        
+                        case IDM_SCSI_MODEL0:
+			scsi_set_base(hmenu, 0, IDM_SCSI_MODEL0);
+			break;
+                        
+                        case IDM_SCSI_MODEL1:
+			scsi_set_base(hmenu, 1, IDM_SCSI_MODEL1);
 			break;
                         
                         case IDM_SCSI_BASE130:

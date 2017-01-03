@@ -515,6 +515,7 @@ typedef struct __attribute__((packed)) Buslogic_t
 	int Mbx24bit;
 } Buslogic_t;
 
+int scsi_model = 1;
 int scsi_base = 0x330;
 int scsi_dma = 6;
 int scsi_irq = 11;
@@ -1034,7 +1035,7 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				
 				case 0x04:
 				Buslogic->DataBuf[0] = 0x41;
-				Buslogic->DataBuf[1] = 0x41;
+				Buslogic->DataBuf[1] = scsi_model ? 0x41 : 0x30;
 				Buslogic->DataBuf[2] = '5';
 				Buslogic->DataBuf[3] = '0';
 				Buslogic->DataReplyLeft = 4;

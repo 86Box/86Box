@@ -71,6 +71,11 @@ BEGIN
                 POPUP "&SCSI controller"
                 BEGIN
                         MENUITEM "&Enabled",IDM_SCSI_ENABLED
+                        POPUP "&Model"
+                        BEGIN
+                                MENUITEM "&Adaptec AHA-154x",IDM_SCSI_MODEL0
+                                MENUITEM "&BusLogic BT-542B",IDM_SCSI_MODEL1
+                        END
                         POPUP "&Base address"
                         BEGIN
                                 MENUITEM "0x&130",IDM_SCSI_BASE130
