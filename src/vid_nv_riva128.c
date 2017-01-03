@@ -1313,6 +1313,9 @@ static uint8_t riva128_mmio_read(uint32_t addr, void *p)
   case 0x101000 ... 0x101fff:
   ret = riva128_pextdev_read(addr, riva128);
   break;
+  case 0x300000 ... 0x30ffff:
+  ret = riva128->bios_rom.rom[addr & riva128->bios_rom.mask];
+  break;
   case 0x6013b4 ... 0x6013b5: case 0x6013d4 ... 0x6013d5: case 0x0c03c2 ... 0x0c03c5: case 0x0c03cc ... 0x0c03cf:
   ret = riva128_in(addr & 0xfff, riva128);
   break;
