@@ -1776,9 +1776,17 @@ static void riva128_pci_write(int func, int addr, uint8_t val, void *p)
 
     case PCI_REG_COMMAND:
     riva128->pci_regs[PCI_REG_COMMAND] = val & 0x27;
+    io_removehandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
+    mem_mapping_disable(&svga->mapping);
+    mem_mapping_disable(&riva128->mmio_mapping);
+    mem_mapping_disable(&riva128->linear_mapping);
+    mem_mapping_disable(&riva128->ramin_mapping);
     if (val & PCI_COMMAND_IO)
     {
       io_sethandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
+    }
+    if (val & PCI_COMMAND_MEM)
+    {
       uint32_t mmio_addr = riva128->pci_regs[0x13] << 24;
       uint32_t linear_addr = riva128->pci_regs[0x17] << 24;
       if (!mmio_addr && !linear_addr)
@@ -1796,14 +1804,6 @@ static void riva128_pci_write(int func, int addr, uint8_t val, void *p)
         svga->linear_base = linear_addr;
       }
     }
-    else
-    {
-      io_removehandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
-      mem_mapping_disable(&svga->mapping);
-      mem_mapping_disable(&riva128->mmio_mapping);
-      mem_mapping_disable(&riva128->linear_mapping);
-      mem_mapping_disable(&riva128->ramin_mapping);
-    }
     return;
 
     case 0x05:
@@ -1818,13 +1818,10 @@ static void riva128_pci_write(int func, int addr, uint8_t val, void *p)
     {
       riva128->pci_regs[addr] = val;
       uint32_t mmio_addr = riva128->pci_regs[0x13] << 24;
+      mem_mapping_disable(&riva128->mmio_mapping);
       if (mmio_addr)
       {
       	mem_mapping_set_addr(&riva128->mmio_mapping, mmio_addr, 0x1000000);
-      }
-      else
-      {
-      	mem_mapping_disable(&riva128->mmio_mapping);
       }
       return;
     }
@@ -1833,32 +1830,25 @@ static void riva128_pci_write(int func, int addr, uint8_t val, void *p)
     {
       riva128->pci_regs[addr] = val;
       uint32_t linear_addr = riva128->pci_regs[0x17] << 24;
+      mem_mapping_disable(&riva128->linear_mapping);
+      mem_mapping_disable(&riva128->ramin_mapping);
       if (linear_addr)
       {
       	mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0xc00000);
         mem_mapping_set_addr(&riva128->ramin_mapping, linear_addr + 0xc00000, 0x200000);
         svga->linear_base = linear_addr;
       }
-      else
-      {
-      	mem_mapping_disable(&riva128->linear_mapping);
-        mem_mapping_disable(&riva128->ramin_mapping);
-      }
       return;
     }
 
     case 0x30: case 0x32: case 0x33:
     riva128->pci_regs[addr] = val;
+    mem_mapping_disable(&riva128->bios_rom.mapping);
     if (riva128->pci_regs[0x30] & 0x01)
     {
       uint32_t addr = (riva128->pci_regs[0x32] << 16) | (riva128->pci_regs[0x33] << 24);
       //                        pclog("RIVA 128 bios_rom enabled at %08x\n", addr);
       mem_mapping_set_addr(&riva128->bios_rom.mapping, addr, 0x8000);
-    }
-    else
-    {
-      //                        pclog("RIVA 128 bios_rom disabled\n");
-      mem_mapping_disable(&riva128->bios_rom.mapping);
     }
     return;
 
@@ -1886,9 +1876,16 @@ static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
 
     case PCI_REG_COMMAND:
     riva128->pci_regs[PCI_REG_COMMAND] = val & 0x27;
+    io_removehandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
+    mem_mapping_disable(&svga->mapping);
+    mem_mapping_disable(&riva128->mmio_mapping);
+    mem_mapping_disable(&riva128->linear_mapping);
     if (val & PCI_COMMAND_IO)
     {
       io_sethandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
+    }
+    if (val & PCI_COMMAND_MEM)
+    {
       uint32_t mmio_addr = riva128->pci_regs[0x13] << 24;
       uint32_t linear_addr = riva128->pci_regs[0x17] << 24;
       if (!mmio_addr && !linear_addr)
@@ -1905,13 +1902,6 @@ static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
         svga->linear_base = linear_addr;
       }
     }
-    else
-    {
-      io_removehandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
-      mem_mapping_disable(&svga->mapping);
-      mem_mapping_disable(&riva128->mmio_mapping);
-      mem_mapping_disable(&riva128->linear_mapping);
-    }
     return;
 
     case 0x05:
@@ -1926,13 +1916,10 @@ static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
     {
       riva128->pci_regs[addr] = val;
       uint32_t mmio_addr = riva128->pci_regs[0x13] << 24;
+      mem_mapping_disable(&riva128->mmio_mapping);
       if (mmio_addr)
       {
       	mem_mapping_set_addr(&riva128->mmio_mapping, mmio_addr, 0x1000000);
-      }
-      else
-      {
-      	mem_mapping_disable(&riva128->mmio_mapping);
       }
       return;
     }
@@ -1941,30 +1928,23 @@ static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
     {
       riva128->pci_regs[addr] = val;
       uint32_t linear_addr = riva128->pci_regs[0x17] << 24;
+      mem_mapping_disable(&riva128->linear_mapping);
       if (linear_addr)
       {
       	mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0x1000000);
         svga->linear_base = linear_addr;
-      }
-      else
-      {
-      	mem_mapping_disable(&riva128->linear_mapping);
       }
       return;
     }
 
     case 0x30: case 0x32: case 0x33:
     riva128->pci_regs[addr] = val;
+    mem_mapping_disable(&riva128->bios_rom.mapping);
     if (riva128->pci_regs[0x30] & 0x01)
     {
       uint32_t addr = (riva128->pci_regs[0x32] << 16) | (riva128->pci_regs[0x33] << 24);
       //                        pclog("RIVA TNT bios_rom enabled at %08x\n", addr);
       mem_mapping_set_addr(&riva128->bios_rom.mapping, addr, 0x10000);
-    }
-    else
-    {
-      //                        pclog("RIVA TNT bios_rom disabled\n");
-      mem_mapping_disable(&riva128->bios_rom.mapping);
     }
     return;
 
