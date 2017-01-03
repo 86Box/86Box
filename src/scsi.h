@@ -171,6 +171,8 @@ uint32_t DataPointer;
 int SectorLBA;
 int SectorLen;
 
+int MediaPresent;
+
 extern uint8_t SCSIStatus;
 extern uint8_t SCSIPhase;
 extern int SCSICallback[16];
@@ -178,6 +180,8 @@ extern uint8_t scsi_cdrom_id;
 
 struct
 {
+	uint8_t SenseBuffer[18];
+	uint8_t SenseLength;	
 	uint8_t UnitAttention;
 	uint8_t SenseKey;
 	uint8_t Asc;
@@ -245,9 +249,8 @@ extern int cdrom_sector_size, cdrom_sector_ismsf;
 
 struct
 {	
-	int lba_pos, lba_len;
 	uint32_t pos;
-	uint8_t CmdBuffer[262144];
+	uint8_t CmdBuffer[512*512];
 	uint32_t CmdBufferLength;
 	int LunType;
 	uint32_t InitLength;
