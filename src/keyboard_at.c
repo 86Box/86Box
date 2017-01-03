@@ -224,6 +224,7 @@ void keyboard_at_adddata_mouse(uint8_t val)
 
 void keyboard_at_write(uint16_t port, uint8_t val, void *priv)
 {
+	int i = 0;
 //        pclog("keyboard_at : write %04X %02X %i  %02X\n", port, val, keyboard_at.key_wantdata, ram[8]);
 /*        if (ram[8] == 0xc3) 
         {
@@ -240,6 +241,8 @@ void keyboard_at_write(uint16_t port, uint8_t val, void *priv)
                         {
 				case 0x40 ... 0x5f:				/* 0x40 - 0x5F are aliases for 0x60-0x7F */
 				keyboard_at.command |= 0x20;
+				goto write_register;
+
                                 case 0x60: case 0x61: case 0x62: case 0x63:
                                 case 0x64: case 0x65: case 0x66: case 0x67:
                                 case 0x68: case 0x69: case 0x6a: case 0x6b:
@@ -248,6 +251,8 @@ void keyboard_at_write(uint16_t port, uint8_t val, void *priv)
                                 case 0x74: case 0x75: case 0x76: case 0x77:
                                 case 0x78: case 0x79: case 0x7a: case 0x7b:
                                 case 0x7c: case 0x7d: case 0x7e: case 0x7f:
+
+write_register:
                                 keyboard_at.mem[keyboard_at.command & 0x1f] = val;
                                 if (keyboard_at.command == 0x60)
                                 {
@@ -473,6 +478,8 @@ void keyboard_at_write(uint16_t port, uint8_t val, void *priv)
                 {
 			case 0x00 ... 0x1f:
 			val |= 0x20;				/* 0x00-0x1f are aliases for 0x20-0x3f */
+                        keyboard_at_adddata(keyboard_at.mem[val & 0x1f]);
+                        break;
 
                         case 0x20: case 0x21: case 0x22: case 0x23:
                         case 0x24: case 0x25: case 0x26: case 0x27:
@@ -536,6 +543,16 @@ void keyboard_at_write(uint16_t port, uint8_t val, void *priv)
                         keyboard_at_adddata(0x00); /*no error*/
                         break;
                         
+                        case 0xac: /*Diagnostic dump*/
+			for (i = 0; i < 16; i++)
+			{
+	                        keyboard_at_adddata(keyboard_at.mem[i]);
+			}
+                        keyboard_at_adddata((keyboard_at.input_port & 0xf0) | 0x80);
+                        keyboard_at_adddata(keyboard_at.output_port);
+                        keyboard_at_adddata(keyboard_at.status);
+                        break;
+                        
                         case 0xad: /*Disable keyboard*/
                         keyboard_at.mem[0] |=  0x10;
                         break;
@@ -587,7 +604,17 @@ void keyboard_at_write(uint16_t port, uint8_t val, void *priv)
                         
                         case 0xef: /*??? - sent by AMI486*/
                         break;
-                        
+
+			case 0xf0 ... 0xff:
+			if (!(val & 1))
+			{
+				/* Pin 0 selected. */
+	                        softresetx86(); /*Pulse reset!*/
+				cpu_set_edx();
+			}
+			break;
+
+#if 0
                         case 0xfe: /*Pulse output port - pin 0 selected - x86 reset*/
                         softresetx86(); /*Pulse reset!*/
 			cpu_set_edx();
@@ -595,6 +622,7 @@ void keyboard_at_write(uint16_t port, uint8_t val, void *priv)
                                                 
                         case 0xff: /*Pulse output port - but no pins selected - sent by MegaPC BIOS*/
                         break;
+#endif
                                 
                         default:
                         pclog("Bad AT keyboard controller command %02X\n", val);
