@@ -1682,11 +1682,11 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			break;
                         
                         case IDM_SCSI_MODEL0:
-			scsi_set_base(hmenu, 0, IDM_SCSI_MODEL0);
+			scsi_set_model(hmenu, 0, IDM_SCSI_MODEL0);
 			break;
                         
                         case IDM_SCSI_MODEL1:
-			scsi_set_base(hmenu, 1, IDM_SCSI_MODEL1);
+			scsi_set_model(hmenu, 1, IDM_SCSI_MODEL1);
 			break;
                         
                         case IDM_SCSI_BASE130:
