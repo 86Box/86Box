@@ -28,7 +28,7 @@ SIDOBJ = convolve.o convolve-sse.o envelope.o extfilt.o filter.o pot.o sid.o voi
 SLIRPOBJ = bootp.o ip_icmp.o misc.o socket.o tcp_timer.o cksum.o ip_input.o queue.o tcp_input.o tftp.o debug.o ip_output.o sbuf.o tcp_output.o udp.o if.o mbuf.o slirp.o tcp_subr.o
 
 
-LIBS = -mwindows -lwinmm -lopenal -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 -lwsock32 -liphlpapi -lstdc++ -static-libstdc++ -static-libgcc -static -lopenal.dll -lgcov -lPacket -lwpcap
+LIBS = -lssp -mwindows -lwinmm -lopenal -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 -lwsock32 -liphlpapi -lstdc++ -static-libstdc++ -static-libgcc -static -lopenal.dll -lgcov -lPacket -lwpcap
 
 86Box64.exe: $(OBJ) $(DBOBJ) $(LZFOBJ) $(SIDOBJ) $(SLIRPOBJ)
 	$(CC) $(OBJ) $(DBOBJ) $(LZFOBJ) $(SIDOBJ) $(SLIRPOBJ) -o "86Box64.exe" $(LIBS)
