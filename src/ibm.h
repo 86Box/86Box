@@ -599,4 +599,4 @@ int mem_a20_state;
 
 void fatal(const char *format, ...);
 
-extern int scsi_base, scsi_irq, scsi_dma;
+extern int scsi_model, scsi_base, scsi_irq, scsi_dma;
