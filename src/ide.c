@@ -2423,7 +2423,7 @@ static void atapicommand(int ide_board)
 			len=34;
 			if (len > alloc_length)
 			{
-				len = alloc_length
+				len = alloc_length;
 			}
 			ide->packetstatus = ATAPI_STATUS_DATA;
 			ide->cylinder=len;
