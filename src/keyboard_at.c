@@ -44,9 +44,11 @@ struct
         int wantirq, wantirq12;
         uint8_t command;
         uint8_t status;
-        uint8_t mem[0x20];
+        uint8_t mem[0x100];
         uint8_t out;
         int out_new;
+	uint8_t secr_phase;
+	uint8_t mem_addr;
         
         uint8_t input_port;
         uint8_t output_port;
@@ -55,6 +57,9 @@ struct
         int key_wantdata;
         
         int last_irq;
+
+	uint8_t last_scan_code;
+	uint8_t default_mode;
         
         void (*mouse_write)(uint8_t val, void *p);
         void *mouse_p;
@@ -278,6 +283,7 @@ write_register:
 							   therefore, set to set 2. */
 							mode |= 2;
 						}
+						keyboard_at.default_mode = (mode & 3);
 						first_write = 0;
 						// pclog("Keyboard set to scan code set %i, mode & 0x60 = 0x%02X\n", mode & 3, mode & 0x60);
 						/* No else because in all other cases, translation is off, so we need to keep it
@@ -285,6 +291,29 @@ write_register:
 					}
                                 }                                           
                                 break;
+
+				case 0xaf: /*AMI - set extended controller RAM*/
+				if (keyboard_at.secr_phase == 0)
+				{
+					// pclog("Set extended controller RAM - phase 0 (bad)\n");
+					goto bad_command;
+				}
+				else if (keyboard_at.secr_phase == 1)
+				{
+					// pclog("Set extended controller RAM - phase 1\n");
+					keyboard_at.mem_addr = val;
+					keyboard_at.want60 = 1;
+					keyboard_at.secr_phase = 2;
+					// pclog("Set extended controller RAM - starting phase 2\n");
+				}
+				else if (keyboard_at.secr_phase == 2)
+				{
+					// pclog("Set extended controller RAM - phase 2\n");
+					keyboard_at.mem[keyboard_at.mem_addr] = val;
+					keyboard_at.secr_phase = 0;
+					// pclog("Set extended controller RAM - starting phase 0\n");
+				}
+				break;
 
                                 case 0xcb: /*AMI - set keyboard mode*/
                                 break;
@@ -321,6 +350,7 @@ write_register:
                                 break;     
                                 
                                 default:
+bad_command:
                                 pclog("Bad AT keyboard controller 0060 write %02X command %02X\n", val, keyboard_at.command);
 //                                dumpregs();
 //                                exit(-1);
@@ -379,10 +409,21 @@ write_register:
                                         keyboard_at_adddata_keyboard(0xfe);
                                         break;
 
+					case 0x71: /*These two commands are sent by Pentium-era AMI BIOS'es.*/
+					case 0x82:
+					break;
+
                                         case 0xed: /*Set/reset LEDs*/
                                         keyboard_at.key_wantdata = 1;
                                         keyboard_at_adddata_keyboard(0xfa);
                                         break;
+
+					case 0xee: /*Diagnostic echo*/
+                                        keyboard_at_adddata_keyboard(0xee);
+					break;
+
+					case 0xef: /*NOP (No OPeration). Reserved for future use.*/
+					break;
                                         
 					case 0xf0: /*Get/set scan code set*/
 					keyboard_at.key_wantdata = 1;
@@ -415,7 +456,8 @@ write_register:
 					set3_all_break = 0;
 					set3_all_repeat = 0;
 					memset(set3_flags, 0, 272);
-					mode = (mode & 0xFC) | 2;
+					// mode = (mode & 0xFC) | 2;
+					mode = (mode & 0xFC) | keyboard_at.default_mode;
                                         keyboard_at_adddata_keyboard(0xfa);
                                         break;
                                         
@@ -439,6 +481,10 @@ write_register:
 					set3_all_break = 1;
                                         keyboard_at_adddata_keyboard(0xfa);
                                         break;
+                                        
+                                        case 0xfe: /*Resend last scan code*/
+                                        keyboard_at_adddata_keyboard(keyboard_at.last_scan_code);
+					break;
                                         
                                         case 0xff: /*Reset*/
 					// pclog("KEYBOARD_AT: Set defaults\n");
@@ -565,6 +611,36 @@ write_register:
                         keyboard_at.mem[0] &= ~0x10;
                         break;
                         
+                        case 0xaf:
+			switch(romset)
+			{
+				case ROM_AMI286:
+				case ROM_AMI386SX:
+				case ROM_AMI386DX_OPTI495:
+				case ROM_MR386DX_OPTI495:
+				case ROM_AMI486:
+				case ROM_WIN486:
+				case ROM_REVENGE:
+				case ROM_PLATO:
+				case ROM_ENDEAVOR:
+				case ROM_THOR:
+				case ROM_MRTHOR:
+					/*Set extended controlled RAM*/
+		                        keyboard_at.want60 = 1;
+					keyboard_at.secr_phase = 1;
+					// pclog("Set extended controller RAM - starting phase 1\n");
+					break;
+				default:
+					/*Read keyboard version*/
+		                        keyboard_at_adddata(0x00);
+					break;
+			}
+			break;
+
+			case 0xb0 ... 0xbf: /*Set keyboard lines low (B0-B7) or high (B8-BF)*/
+			keyboard_at_adddata(0x00);
+			break;
+
                         case 0xc0: /*Read input port*/
                         keyboard_at_adddata((keyboard_at.input_port & 0xf0) | 0x80);
                         // keyboard_at_adddata(keyboard_at.input_port | 4);
@@ -631,16 +707,6 @@ write_register:
 				cpu_set_edx();
 			}
 			break;
-
-#if 0
-                        case 0xfe: /*Pulse output port - pin 0 selected - x86 reset*/
-                        softresetx86(); /*Pulse reset!*/
-			cpu_set_edx();
-                        break;
-                                                
-                        case 0xff: /*Pulse output port - but no pins selected - sent by MegaPC BIOS*/
-                        break;
-#endif
                                 
                         default:
                         pclog("Bad AT keyboard controller command %02X\n", val);
@@ -690,12 +756,14 @@ void keyboard_at_reset()
         keyboard_at.status = STAT_LOCK | STAT_CD;
         keyboard_at.mem[0] = 0x11;
 	mode = 0x02 | dtrans;
+	keyboard_at.default_mode = 2;
 	first_write = 1;
         keyboard_at.wantirq = 0;
         keyboard_at.output_port = 0xcf;
         keyboard_at.input_port = 0xb0;
         keyboard_at.out_new = -1;
         keyboard_at.last_irq = 0;
+	keyboard_at.secr_phase = 0;
         
         keyboard_at.key_wantdata = 0;
         

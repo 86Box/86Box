@@ -1061,16 +1061,28 @@ SCSIOut:
 		return;
 		
 		case GPCMD_START_STOP_UNIT:
-		if (cdb[4]!=2 && cdb[4]!=3 && cdb[4])
+		switch(cdb[4] & 3)
 		{
-			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
-			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
-			SCSICallback[id]=50*SCSI_TIME;
-			break;
+			case 0:		/* Stop the disc. */
+				cdrom->stop();
+				break;
+			case 1:		/* Start the disc and read the TOC. */
+				cdrom->medium_changed();	/* This causes a TOC reload. */
+				break;
+			case 2:		/* Eject the disc if possible. */
+				cdrom->stop();
+#ifndef __unix
+				win_cdrom_eject();
+#endif
+				break;
+			case 3:		/* Load the disc (close tray). */
+#ifndef __unix
+				win_cdrom_reload();
+#else
+				cdrom->load();
+#endif
+				break;
 		}
-		if (!cdb[4])        cdrom->stop();
-		else if (cdb[4]==2) cdrom->eject();
-		else              	cdrom->load();
 		
 		SCSIPhase = SCSI_PHASE_STATUS;
 		SCSIStatus = SCSI_STATUS_OK;

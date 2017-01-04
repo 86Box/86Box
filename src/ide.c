@@ -1819,9 +1819,9 @@ static void atapicommand(int ide_board)
 	int real_pos;
 	int track = 0;
 
-#if 0
 	pclog("ATAPI command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, %i, Unit attention: %i\n",idebufferb[0],SCSISense.SenseKey,SCSISense.Asc,SCSISense.Ascq,ins,SCSISense.UnitAttention);
 		
+#if 0
 	int CdbLength;
 	for (CdbLength = 1; CdbLength < 12; CdbLength++)
 	{
@@ -2576,23 +2576,30 @@ static void atapicommand(int ide_board)
 			break;
 
 		case GPCMD_START_STOP_UNIT:
-			if ((idebufferb[4] != 2) && (idebufferb[4] != 3) && idebufferb[4])
+			switch(idebufferb[4] & 3)
 			{
-				atapi_illegal_opcode(ide);
-				break;
+				case 0:		/* Stop the disc. */
+					cdrom->stop();
+					break;
+				case 1:		/* Start the disc and read the TOC. */
+					cdrom->medium_changed();	/* This causes a TOC reload. */
+					break;
+				case 2:		/* Eject the disc if possible. */
+					cdrom->stop();
+#ifndef __unix
+					win_cdrom_eject();
+#endif
+					break;
+				case 3:		/* Load the disc (close tray). */
+#ifndef __unix
+					win_cdrom_reload();
+#else
+					cdrom->load();
+#endif
+					break;
+
 			}
-			if (!idebufferb[4])
-			{
-				cdrom->stop();
-			}
-			else if (idebufferb[4]==2)
-			{
-				cdrom->eject();
-			}
-			else
-			{
-				cdrom->load();
-			}
+
 			ide->packetstatus = ATAPI_STATUS_COMPLETE;
 			idecallback[ide_board]=50*IDE_TIME;
 			break;
@@ -2674,6 +2681,10 @@ static void atapicommand(int ide_board)
 atapi_out:
 			idebufferb[size_idx] = idx - preamble_len;
 			len=idx;
+			if (len > alloc_length)
+			{
+				len = alloc_length;
+			}
 
 			atapi_command_send_init(ide, temp_command, len, alloc_length);
 
@@ -2743,6 +2754,8 @@ atapi_out:
 			atapi_illegal_opcode(ide);
 			break;
 	}
+
+	pclog("SCSI phase: %02X, length: %i\n", ide->secount, ide->cylinder);
 }
 
 static void callnonreadcd(IDE *ide)		/* Callabck for non-Read CD commands */

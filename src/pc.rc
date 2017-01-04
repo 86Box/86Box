@@ -40,7 +40,9 @@ BEGIN
                         MENUITEM "&Enabled", IDM_CDROM_ENABLED
                         MENUITEM "&SCSI", IDM_CDROM_SCSI
                         MENUITEM SEPARATOR
-                        MENUITEM "&Empty",IDM_CDROM_EMPTY
+                        MENUITEM "E&mpty",IDM_CDROM_EMPTY
+                        MENUITEM "&Reload previous disc",IDM_CDROM_RELOAD
+                        MENUITEM SEPARATOR
                         MENUITEM "&ISO...",IDM_CDROM_ISO
                 END
                 POPUP "E&xtra IDE controllers"

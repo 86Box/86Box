@@ -1312,6 +1312,73 @@ void video_toggle_option(HMENU hmenu, int *val, int id)
 	saveconfig();
 }
 
+void win_cdrom_eject()
+{
+        HMENU hmenu;
+	hmenu=GetMenu(ghwnd);
+	if (cdrom_drive == 0)
+	{
+		/* Switch from empty to empty. Do nothing. */
+		return;
+	}
+	cdrom->exit();
+	cdrom_close();
+	cdrom_null_open(0);
+	if (cdrom_enabled)
+	{
+		/* Signal disc change to the emulated machine. */
+		SCSICDROM_Insert();
+	}
+	CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_UNCHECKED);
+	CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_UNCHECKED);
+	old_cdrom_drive = cdrom_drive;
+	cdrom_drive=0;
+	CheckMenuItem(hmenu, IDM_CDROM_EMPTY, MF_CHECKED);
+	saveconfig();
+}
+
+void win_cdrom_reload()
+{
+        HMENU hmenu;
+	hmenu=GetMenu(ghwnd);
+	int new_cdrom_drive;
+	if ((cdrom_drive == old_cdrom_drive) || (old_cdrom_drive == 0))
+	{
+		/* Switch from empty to empty. Do nothing. */
+		return;
+	}
+	if (old_cdrom_drive == 200)
+	{
+		iso_open(iso_path);
+		if (cdrom_enabled)
+		{
+			/* Signal disc change to the emulated machine. */
+			SCSICDROM_Insert();
+		}
+		CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_UNCHECKED);
+		// CheckMenuItem(hmenu, IDM_CDROM_DISABLED,           MF_UNCHECKED);
+		CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_UNCHECKED);
+		cdrom_drive = 200;
+		CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_CHECKED);
+		saveconfig();
+	}
+	else 
+	{
+		new_cdrom_drive = old_cdrom_drive;
+		ioctl_open(new_cdrom_drive);
+		if (cdrom_enabled)
+		{
+			/* Signal disc change to the emulated machine. */
+			SCSICDROM_Insert();
+		}
+		CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_UNCHECKED);
+		CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_UNCHECKED);
+		cdrom_drive = new_cdrom_drive;
+		CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_CHECKED);
+		saveconfig();
+	}
+}
+
 LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
         HMENU hmenu;
@@ -1750,12 +1817,6 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			break;
                         
                         case IDM_CDROM_EMPTY:
-                        /* if (!cdrom_enabled)
-                        {
-                                if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
-                                   break;
-                        } */
-			// if ((cdrom_drive == 0) && cdrom_enabled)
 			if (cdrom_drive == 0)
 			{
 				/* Switch from empty to empty. Do nothing. */
@@ -1770,22 +1831,16 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				SCSICDROM_Insert();
 			}
                         CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_UNCHECKED);
-                        // CheckMenuItem(hmenu, IDM_CDROM_DISABLED,           MF_UNCHECKED);
-						CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_UNCHECKED);
-						old_cdrom_drive = cdrom_drive;
+			CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_UNCHECKED);
+			old_cdrom_drive = cdrom_drive;
                         cdrom_drive=0;
                         CheckMenuItem(hmenu, IDM_CDROM_EMPTY, MF_CHECKED);
                         saveconfig();
-                        /* if (!cdrom_enabled)
-                        {
-                                pause = 1;
-                                Sleep(100);
-                                cdrom_enabled = 1;
-                                saveconfig();
-                                resetpchard();
-                                pause = 0;
-                        } */
                         break;
+
+			case IDM_CDROM_RELOAD:
+			win_cdrom_reload();
+			break;
 
                         case IDM_CDROM_ISO:
                         if (!getfile(hwnd,"CD-ROM image (*.ISO)\0*.ISO\0All files (*.*)\0*.*\0",iso_path))

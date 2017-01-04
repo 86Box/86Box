@@ -36,6 +36,7 @@
 #define IDM_DISC_3_WP      40083
 #define IDM_DISC_4_WP      40084
 #define IDM_CDROM_ISO	   40100
+#define IDM_CDROM_RELOAD   40101
 #define IDM_CDROM_EMPTY    40200
 #define IDM_CDROM_REAL     40200
 #define IDM_CDROM_ENABLED  40300

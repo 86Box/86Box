@@ -2169,6 +2169,7 @@ void port_92_reset()
 	port_92_reg = 0;
 	mem_a20_alt = 0;
 	mem_a20_recalc();
+	flushmmucache();
 }
 
 uint32_t get_phys_virt,get_phys_phys;
