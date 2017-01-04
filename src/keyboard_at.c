@@ -307,6 +307,10 @@ write_register:
                                 keyboard_at.output_port = val;
                                 break;
                                 
+                                case 0xd2: /*Write to keyboard output buffer*/
+                                keyboard_at_adddata_keyboard(val);
+                                break;
+                                
                                 case 0xd3: /*Write to mouse output buffer*/
                                 keyboard_at_adddata_mouse(val);
                                 break;
@@ -566,6 +570,16 @@ write_register:
                         // keyboard_at_adddata(keyboard_at.input_port | 4);
                         // keyboard_at.input_port = ((keyboard_at.input_port + 1) & 3) | (keyboard_at.input_port & 0xfc);
                         break;
+
+			case 0xc1: /*Copy bits 0 to 3 of input port to status bits 4 to 7*/
+			keyboard_at.status &= 0xf;
+			keyboard_at.status |= ((keyboard_at.input_port & 0xf) << 4);
+			break;
+                        
+			case 0xc2: /*Copy bits 4 to 7 of input port to status bits 4 to 7*/
+			keyboard_at.status &= 0xf;
+			keyboard_at.status |= (keyboard_at.input_port & 0xf0);
+			break;
                         
                         case 0xc9: /*AMI - block P22 and P23 ??? */
                         break;
@@ -587,6 +601,10 @@ write_register:
                         break;
                         
                         case 0xd1: /*Write output port*/
+                        keyboard_at.want60 = 1;
+                        break;
+
+                        case 0xd2: /*Write keyboard output buffer*/
                         keyboard_at.want60 = 1;
                         break;
                         
