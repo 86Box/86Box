@@ -135,6 +135,7 @@ static CDROM null_cdrom =
         NULL,
         NULL,
         NULL,
+        NULL,
 		NULL,
 		null_sector_data_type,
 		null_readsector_raw,

@@ -529,6 +529,21 @@ static void ioctl_read_capacity(uint8_t *b)
 	ioctl_close();
 }
 
+static void ioctl_read_subchannel(uint8_t *in_cdb, uint8_t *b)
+{
+	const UCHAR cdb[12];
+	UCHAR buf[24];
+
+	ioctl_open(0);
+
+	memcpy(cdb, in_cdb, 12);
+	SCSICommand(cdb, buf, 24);
+	
+	memcpy(b, buf, 24);
+	
+	ioctl_close();
+}
+
 static void ioctl_read_header(uint8_t *in_cdb, uint8_t *b)
 {
 	const UCHAR cdb[12];
@@ -1054,6 +1069,7 @@ static CDROM ioctl_cdrom=
 		ioctl_readtoc_raw,
         ioctl_getcurrentsubchannel,
 		ioctl_read_capacity,
+		ioctl_read_subchannel,
 		ioctl_read_header,
 		ioctl_read_disc_information,
 		ioctl_read_track_information,

@@ -1120,25 +1120,54 @@ SCSIOut:
 		break;
 
 		case GPCMD_READ_SUBCHANNEL:
-		Temp = cdb[2] & 0x40;
-		if (cdb[3] != 1)
+		if (cdb[3] > 3)
 		{
 			SCSIStatus = SCSI_STATUS_CHECK_CONDITION;			
 			SCSISenseCodeError(SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0x00);
 			SCSICallback[id]=50*SCSI_TIME;
 			break;
 		}
-		
-		pos = 0;
-		cmdbuffer[pos++] = 0;
-		cmdbuffer[pos++] = 0; /*Audio status*/
-		cmdbuffer[pos++] = 0; cmdbuffer[pos++] = 0; /*Subchannel length*/
-		cmdbuffer[pos++] = 1; /*Format code*/
-		cmdbuffer[1] = cdrom->getcurrentsubchannel(&cmdbuffer[5], msf);		
-		len = 16;
-		if (!Temp)
-			len = 4;
-				
+
+		switch(cdb[3])
+		{
+			case 0:
+				alloc_length = 4;
+				break;
+			case 1:
+				alloc_length = 16;
+				break;
+			default:
+				alloc_length = 24;
+				break;
+		}
+
+		if (cdrom->read_subchannel)
+		{
+			cdrom->read_subchannel(cdb, cmdbuffer);
+			len = alloc_length;
+		}
+		else
+		{
+			memset(cmdbuffer, 24, 0);
+			pos = 0;
+			cmdbuffer[pos++]=0;
+			cmdbuffer[pos++]=0; /*Audio status*/
+			cmdbuffer[pos++]=0; cmdbuffer[pos++]=0; /*Subchannel length*/
+			cmdbuffer[pos++]=cdb[3]; /*Format code*/
+			if (!(cdb[2] & 0x40) || (cdb[3] == 0))
+			{
+				len = 4;
+			}
+			else
+			{
+				len = alloc_length;
+			}
+			if (cdb[3] == 1)
+			{
+				cmdbuffer[1]=cdrom->getcurrentsubchannel(&cmdbuffer[5],msf);
+			}
+		}
+
 		SCSIPhase = SCSI_PHASE_DATAIN;
 		SCSIStatus = SCSI_STATUS_OK;
 		SCSICallback[id]=1000*SCSI_TIME;

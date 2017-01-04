@@ -2577,25 +2577,53 @@ static void atapicommand(int ide_board)
 			break;
 
 		case GPCMD_READ_SUBCHANNEL:
-			temp=idebufferb[2]&0x40;
-			if (idebufferb[3]!=1)
+			if (idebufferb[3] > 3)
 			{
 				// pclog("Read subchannel check condition %02X\n",idebufferb[3]);
 				atapi_invalid_field(ide);
 				break;
 			}
 
-			pos=0;
-			idebufferb[pos++]=0;
-			idebufferb[pos++]=0; /*Audio status*/
-			idebufferb[pos++]=0; idebufferb[pos++]=0; /*Subchannel length*/
-			idebufferb[pos++]=1; /*Format code*/
-			idebufferb[1]=cdrom->getcurrentsubchannel(&idebufferb[5],msf);
-			// pclog("Read subchannel complete - audio status %02X\n",idebufferb[1]);
-			len=16;
-			if (!temp)
+			switch(idebufferb[3])
 			{
-				len=4;
+				case 0:
+					alloc_length = 4;
+					break;
+				case 1:
+					alloc_length = 16;
+					break;
+				default:
+					alloc_length = 24;
+					break;
+			}
+
+			if (cdrom->read_subchannel)
+			{
+				cdrom->read_subchannel(idebufferb, idebufferb);
+				len = alloc_length;
+			}
+			else
+			{
+				temp = idebufferb[3] & 3;
+				temp |= (idebufferb[2] & 0x40);
+				memset(idebufferb, 24, 0);
+				pos = 0;
+				idebufferb[pos++]=0;
+				idebufferb[pos++]=0; /*Audio status*/
+				idebufferb[pos++]=0; idebufferb[pos++]=0; /*Subchannel length*/
+				idebufferb[pos++]=temp & 3; /*Format code*/
+				if ((temp & 3) == 1)
+				{
+					idebufferb[1]=cdrom->getcurrentsubchannel(&idebufferb[5],msf);
+				}
+				if (!(temp & 0x40) || ((temp & 3) == 0))
+				{
+					len=4;
+				}
+				else
+				{
+					len = alloc_length;
+				}
 			}
 			ide->packetstatus = ATAPI_STATUS_DATA;
 			ide->cylinder=len;

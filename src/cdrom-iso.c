@@ -18,6 +18,8 @@ void iso_close(void);
 static FILE* iso_image;
 static int iso_changed = 0;
 
+static uint32_t lba = 0;
+
 static uint32_t iso_cd_pos = 0, iso_cd_end = 0;
 
 void iso_audio_callback(int16_t *output, int len)
@@ -64,6 +66,7 @@ static void iso_stop(void)
 static void iso_seek(uint32_t pos)
 {
     // pclog("iso_seek stub\n");
+	lba = pos;
     return;
 }
 
@@ -113,8 +116,39 @@ static int iso_medium_changed(void)
 
 static uint8_t iso_getcurrentsubchannel(uint8_t *b, int msf)
 {
-    // pclog("iso_getcurrentsubchannel stub\n");
-    return 0;
+	long size;
+	int pos=0;
+	if (strlen(iso_path) == 0)
+	{
+		return 0;
+	}
+        
+	b[pos++]=0;
+	b[pos++]=0;
+	b[pos++]=0;
+        
+	int32_t temp = lba;
+	if (msf)
+	{
+		memset(&(b[pos]), 0, 8);
+		lba_to_msf(&(b[pos]), temp);
+		pos += 4;
+		lba_to_msf(&(b[pos]), temp);
+		pos += 4;
+	}
+	else
+	{
+		b[pos++] = temp >> 24;
+		b[pos++] = temp >> 16;
+		b[pos++] = temp >> 8;
+		b[pos++] = temp;
+		b[pos++] = temp >> 24;
+		b[pos++] = temp >> 16;
+		b[pos++] = temp >> 8;
+		b[pos++] = temp;
+	}
+
+	return 0x13;
 }
 
 static void iso_eject(void)
@@ -416,6 +450,7 @@ static CDROM iso_cdrom =
         iso_readtoc_session,
         iso_readtoc_raw,
         iso_getcurrentsubchannel,
+        NULL,
         NULL,
         NULL,
         NULL,
