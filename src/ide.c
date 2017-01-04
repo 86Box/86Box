@@ -2581,7 +2581,7 @@ static void atapicommand(int ide_board)
 			if (idebufferb[3]!=1)
 			{
 				// pclog("Read subchannel check condition %02X\n",idebufferb[3]);
-				atapi_illegal_opcode(ide);
+				atapi_invalid_field(ide);
 				break;
 			}
 
