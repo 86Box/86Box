@@ -1263,8 +1263,14 @@ int checkio(int port)
 int xout=0;
 
 
+#if 0
 #define divexcp() { \
                 pclog("Divide exception at %04X(%06X):%04X\n",CS,cs,cpu_state.pc); \
+                x86_int(0); \
+}
+#endif
+
+#define divexcp() { \
                 x86_int(0); \
 }
 

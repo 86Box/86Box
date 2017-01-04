@@ -684,6 +684,13 @@ int idetimes=0;
 void writeidew(int ide_board, uint16_t val)
 {
 	IDE *ide = &ide_drives[cur_ide[ide_board]];
+	
+#if 0
+	if (ide->type == IDE_CDROM)
+	{
+		pclog("CD-ROM write data: %04X\n", val);
+	}
+#endif
         
 	/* Some software issue excess writes after the 12 bytes required by the command, this will have all of them ignored. */
 	if (ide->packetstatus && (ide->packetstatus != ATAPI_STATUS_PACKET_REQ))
@@ -847,6 +854,12 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				ide->error=1;
 				return;
 			}
+#if 0
+			if (ide->type == IDE_CDROM)
+			{
+				pclog("Write CD-ROM ATA command: %02X\n", val);
+			}
+#endif
 			ide_irq_lower(ide);
 			ide->command=val;
                 
@@ -956,12 +969,21 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 					return;
 
                 case WIN_PACKETCMD: /* ATAPI Packet */
+#if 0
 					ide->packetstatus = ATAPI_STATUS_IDLE;
 					ide->atastat = BUSY_STAT;
 					timer_process();
-					idecallback[ide_board]=1;//30*IDE_TIME;
+					// idecallback[ide_board]=1;//30*IDE_TIME;
+					idecallback[ide_board]=30*IDE_TIME;
 					timer_update_outstanding();
 					ide->pos=0;
+#endif
+					/* Skip the command callbackwait, and process immediately. */
+					ide->packetstatus = ATAPI_STATUS_IDLE;
+					readcdmode=0;
+					ide->pos=0;
+					ide->secount = 1;
+					ide->atastat = READY_STAT | DRQ_STAT |(ide->atastat&ERR_STAT);
 					return;
                         
                 case 0xF0:
@@ -1095,6 +1117,7 @@ uint8_t readide(int ide_board, uint16_t addr)
 			if (ide->type == IDE_CDROM)
 			{
 				temp = (ide->atastat & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0);
+				// pclog("Read CD-ROM status: %02X\n", temp);
 			}
 			else
 			{
@@ -1583,6 +1606,7 @@ void callbackide(int ide_board)
 
 			if (ide->packetstatus == ATAPI_STATUS_IDLE)
 			{
+				// pclog("ATAPI_STATUS_IDLE\n");
 				readcdmode=0;
 				ide->pos=0;
 				ide->secount = 1;
@@ -1590,48 +1614,57 @@ void callbackide(int ide_board)
 			}
 			else if (ide->packetstatus == ATAPI_STATUS_COMMAND)
 			{
+				// pclog("ATAPI_STATUS_COMMAND\n");
 				ide->atastat = BUSY_STAT|(ide->atastat&ERR_STAT);
 				atapicommand(ide_board);
 			}
 			else if (ide->packetstatus == ATAPI_STATUS_COMPLETE)
 			{
+				// pclog("ATAPI_STATUS_COMPLETE\n");
 				ide->atastat = READY_STAT;
 				ide->secount=3;
 				ide_irq_raise(ide);
 			}
 			else if (ide->packetstatus == ATAPI_STATUS_DATA)
 			{
+				// pclog("ATAPI_STATUS_DATA\n");
 				ide->atastat = READY_STAT|DRQ_STAT|(ide->atastat&ERR_STAT);
 				ide_irq_raise(ide);
 				ide->packetstatus=0xFF;
 			}
 			else if (ide->packetstatus == ATAPI_STATUS_PACKET_REQ)
 			{
+				// pclog("ATAPI_STATUS_PACKET_REQ\n");
 				ide->atastat = 0x58 | (ide->atastat & ERR_STAT);
 				ide_irq_raise(ide);
 				ide->pos=2;
 			}
 			else if (ide->packetstatus == ATAPI_STATUS_PACKET_RECEIVED)
 			{
+				// pclog("ATAPI_STATUS_PACKET_RECEIVED\n");
 				atapicommand(ide_board);
 			}
 			else if (ide->packetstatus == ATAPI_STATUS_READCD) /*READ CD callback*/
 			{
+				// pclog("ATAPI_STATUS_READCD\n");
 				ide->atastat = DRQ_STAT|(ide->atastat&ERR_STAT);
 				ide_irq_raise(ide);
 			}
 			else if (ide->packetstatus == ATAPI_STATUS_REQ_SENSE)	/*REQUEST SENSE callback #1*/
 			{
+				// pclog("ATAPI_STATUS_REQ_SENSE\n");
 				ide->atastat = 0x58 | (ide->atastat & ERR_STAT);
 				ide_irq_raise(ide);
 			}
 			else if (ide->packetstatus == ATAPI_STATUS_ERROR) /*Error callback*/
 			{
+				// pclog("ATAPI_STATUS_ERROR\n");
 				ide->atastat = READY_STAT | ERR_STAT;
 				ide_irq_raise(ide);
 			}
 			else if (ide->packetstatus == ATAPI_STATUS_ERROR_2) /*Error callback with atastat already set - needed for the disc change stuff.*/
 			{
+				// pclog("ATAPI_STATUS_ERROR_2\n");
 				ide->atastat = ERR_STAT;
 				ide_irq_raise(ide);
 			}
@@ -1819,9 +1852,9 @@ static void atapicommand(int ide_board)
 	int real_pos;
 	int track = 0;
 
+#if 0
 	pclog("ATAPI command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, %i, Unit attention: %i\n",idebufferb[0],SCSISense.SenseKey,SCSISense.Asc,SCSISense.Ascq,ins,SCSISense.UnitAttention);
 		
-#if 0
 	int CdbLength;
 	for (CdbLength = 1; CdbLength < 12; CdbLength++)
 	{
@@ -2053,7 +2086,7 @@ static void atapicommand(int ide_board)
 
 			if (SectorLBA > (cdrom->size() - 1))
             {
-				pclog("Trying to read beyond the end of disc\n");
+				// pclog("Trying to read beyond the end of disc\n");
 				atapi_invalid_field(ide);
                 break;
 			}
@@ -2107,6 +2140,8 @@ static void atapicommand(int ide_board)
 				SectorLBA=(((uint32_t) idebufferb[2])<<24)|(((uint32_t) idebufferb[3])<<16)|(((uint32_t) idebufferb[4])<<8)|((uint32_t) idebufferb[5]);
 			}
 
+			// pclog("Reading sector: %i, length: %i\n", SectorLen, SectorLBA);
+			
 			if (SectorLBA > (cdrom->size() - 1))
 			{
 				// pclog("Trying to read beyond the end of disc\n");
@@ -2651,7 +2686,6 @@ static void atapicommand(int ide_board)
 					cdrom->load();
 #endif
 					break;
-
 			}
 
 			ide->packetstatus = ATAPI_STATUS_COMPLETE;
@@ -2815,7 +2849,7 @@ atapi_out:
 			break;
 	}
 
-	pclog("SCSI phase: %02X, length: %i\n", ide->secount, ide->cylinder);
+	// pclog("SCSI phase: %02X, length: %i\n", ide->secount, ide->cylinder);
 }
 
 static void callnonreadcd(IDE *ide)		/* Callabck for non-Read CD commands */
@@ -2851,6 +2885,7 @@ static void callreadcd(IDE *ide)
 		return;
 	}
 	// pclog("Continue readcd! %i blocks left\n",SectorLen);
+	// pclog("Reading sector: %i, length: %i\n", SectorLen, SectorLBA);
 	ide->atastat = BUSY_STAT;
 
 	ret = cdrom_read_data((uint8_t *) ide->buffer);
