@@ -114,6 +114,14 @@ static int iso_medium_changed(void)
 	return 0;
 }
 
+static void lba_to_msf(uint8_t *buf, int lba)
+{
+    lba += 150;
+    buf[0] = (lba / 75) / 60;
+    buf[1] = (lba / 75) % 60;
+	buf[2] = lba % 75;
+}
+
 static uint8_t iso_getcurrentsubchannel(uint8_t *b, int msf)
 {
 	long size;
@@ -159,14 +167,6 @@ static void iso_eject(void)
 static void iso_load(void)
 {
     // pclog("iso_load stub\n");
-}
-
-static void lba_to_msf(uint8_t *buf, int lba)
-{
-    lba += 150;
-    buf[0] = (lba / 75) / 60;
-    buf[1] = (lba / 75) % 60;
-	buf[2] = lba % 75;
 }
 
 static int iso_sector_data_type(int sector, int ismsf)
