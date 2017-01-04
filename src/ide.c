@@ -1954,6 +1954,12 @@ static void atapicommand(int ide_board)
 
 			/* Clear the sense stuff as per the spec. */
 			atapi_sense_clear(temp_command, 0);
+
+			if (idebufferb[4] == 0)
+			{
+				ide->packetstatus = ATAPI_STATUS_COMPLETE;
+				idecallback[ide_board]=50*IDE_TIME;
+			}
 			break;
 
 		case GPCMD_SET_SPEED:
@@ -2013,6 +2019,12 @@ static void atapicommand(int ide_board)
 			idecallback[ide_board]=60*IDE_TIME;
 			ide->packlen=len;
 			// pclog("READ_TOC_PMA_ATIP format %02X, length %i (%i)\n", toc_format, ide->cylinder, idebufferb[1]);
+
+			if (len == 0)
+			{
+				ide->packetstatus = ATAPI_STATUS_COMPLETE;
+				idecallback[ide_board]=50*IDE_TIME;
+			}
 			return;
                 
 		case GPCMD_READ_CD:
@@ -2200,12 +2212,20 @@ static void atapicommand(int ide_board)
 			if (temp_command == GPCMD_MODE_SENSE_6)
 			{
 				len = SCSICDROMModeSense(idebufferb,4,temp);
+				if (len > alloc_length)
+				{
+					len = alloc_length;
+				}
 				idebufferb[0] = len - 1;
 				idebufferb[1]=3; /*120mm data CD-ROM*/
 			}
 			else
 			{
 				len = SCSICDROMModeSense(idebufferb,8,temp);
+				if (len > alloc_length)
+				{
+					len = alloc_length;
+				}
 				idebufferb[0]=(len - 2)>>8;
 				idebufferb[1]=(len - 2)&255;
 				idebufferb[2]=3; /*120mm data CD-ROM*/
@@ -2214,6 +2234,12 @@ static void atapicommand(int ide_board)
 			atapi_command_send_init(ide, temp_command, len, alloc_length);
 
 			atapi_command_ready(ide_board, len);
+
+			if (len == 0)
+			{
+				ide->packetstatus = ATAPI_STATUS_COMPLETE;
+				idecallback[ide_board]=50*IDE_TIME;
+			}
 			return;
 
 		case GPCMD_MODE_SELECT_6:
@@ -2250,6 +2276,12 @@ static void atapicommand(int ide_board)
 				ide->pos=0;
 				idecallback[ide_board]=60*IDE_TIME;
 				ide->packlen=len;
+
+				if (len == 0)
+				{
+					ide->packetstatus = ATAPI_STATUS_COMPLETE;
+					idecallback[ide_board]=50*IDE_TIME;
+				}
 			}
 			return;
 
@@ -2307,6 +2339,12 @@ static void atapicommand(int ide_board)
 			atapi_command_send_init(ide, temp_command, len, alloc_length);     
 
 			atapi_command_ready(ide_board, len);
+
+			if (len == 0)
+			{
+				ide->packetstatus = ATAPI_STATUS_COMPLETE;
+				idecallback[ide_board]=50*IDE_TIME;
+			}
 			break;
 
 		case GPCMD_GET_EVENT_STATUS_NOTIFICATION:
@@ -2383,12 +2421,22 @@ static void atapicommand(int ide_board)
 			}
 
 			len=34;
+			if (len > alloc_length)
+			{
+				len = alloc_length
+			}
 			ide->packetstatus = ATAPI_STATUS_DATA;
 			ide->cylinder=len;
 			ide->secount=2;
 			ide->pos=0;
 			idecallback[ide_board]=60*IDE_TIME;
 			ide->packlen=len;			
+
+			if (len == 0)
+			{
+				ide->packetstatus = ATAPI_STATUS_COMPLETE;
+				idecallback[ide_board]=50*IDE_TIME;
+			}
 			break;
 
 		case GPCMD_READ_TRACK_INFORMATION:
@@ -2452,7 +2500,13 @@ static void atapicommand(int ide_board)
 			ide->pos=0;
 			idecallback[ide_board]=60*IDE_TIME;
 			ide->packlen=len;			
-			break;		
+
+			if (len == 0)
+			{
+				ide->packetstatus = ATAPI_STATUS_COMPLETE;
+				idecallback[ide_board]=50*IDE_TIME;
+			}
+			break;
 
 		case GPCMD_PLAY_AUDIO_10:
 		case GPCMD_PLAY_AUDIO_12:
@@ -2689,6 +2743,12 @@ atapi_out:
 			atapi_command_send_init(ide, temp_command, len, alloc_length);
 
 			atapi_command_ready(ide_board, len);				
+
+			if (len == 0)
+			{
+				ide->packetstatus = ATAPI_STATUS_COMPLETE;
+				idecallback[ide_board]=50*IDE_TIME;
+			}
 			break;
 
 		case GPCMD_PREVENT_REMOVAL:

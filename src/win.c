@@ -1342,7 +1342,7 @@ void win_cdrom_reload()
         HMENU hmenu;
 	hmenu=GetMenu(ghwnd);
 	int new_cdrom_drive;
-	if ((cdrom_drive == old_cdrom_drive) || (old_cdrom_drive == 0))
+	if ((cdrom_drive == old_cdrom_drive) || (old_cdrom_drive == 0) || (cdrom_drive != 0))
 	{
 		/* Switch from empty to empty. Do nothing. */
 		return;
