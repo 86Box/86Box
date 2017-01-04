@@ -1131,20 +1131,20 @@ SCSIOut:
 		switch(cdb[3])
 		{
 			case 0:
-				alloc_length = 4;
+				Temp = 4;
 				break;
 			case 1:
-				alloc_length = 16;
+				Temp = 16;
 				break;
 			default:
-				alloc_length = 24;
+				Temp = 24;
 				break;
 		}
 
 		if (cdrom->read_subchannel)
 		{
 			cdrom->read_subchannel(cdb, cmdbuffer);
-			len = alloc_length;
+			len = Temp;
 		}
 		else
 		{
@@ -1160,7 +1160,7 @@ SCSIOut:
 			}
 			else
 			{
-				len = alloc_length;
+				len = Temp;
 			}
 			if (cdb[3] == 1)
 			{
