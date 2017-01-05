@@ -177,7 +177,9 @@ static int iso_sector_data_type(int sector, int ismsf)
 static void iso_readsector_raw(uint8_t *b, int sector, int ismsf)
 {
     uint32_t temp;
+	uint64_t file_pos = sector;
     if (!cdrom_drive) return;
+	file_pos <<= 11;
 	memset(b, 0, 2856);
 	if (ismsf)
 	{
@@ -193,8 +195,8 @@ static void iso_readsector_raw(uint8_t *b, int sector, int ismsf)
 		sector -= 150;
 	}
     iso_image = fopen(iso_path, "rb");
-    fseek(iso_image, sector*2048, SEEK_SET);
-    fread(b+16, 2048, 1, iso_image);
+    fseeko64(iso_image, file_pos, SEEK_SET);
+    fread(b + 16, 2048, 1, iso_image);
     fclose(iso_image);
 
     /* sync bytes */
@@ -378,11 +380,15 @@ static int iso_readtoc_raw(unsigned char *buf, int msf, int maxlen)
 
 static uint32_t iso_size()
 {
-    unsigned char b[4096];
+	uint64_t iso_size;
 
-    cdrom->readtoc(b, 0, 0, 4096, 0);
-    
-    return last_block;
+    iso_image = fopen(iso_path, "rb");
+    fseeko64(iso_image, 0, SEEK_END);
+	iso_size = ftello64(iso_image);
+	iso_size >>= 11;
+    fclose(iso_image);
+
+	return (uint32_t) (iso_size - 1);
 }
 
 static int iso_status()
