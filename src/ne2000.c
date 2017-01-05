@@ -1344,6 +1344,8 @@ void ne2000_rx_frame(void *p, const void *buf, int io_len)
   uint8_t *pktbuf = (uint8_t *) buf;
   uint8_t *startptr;
   static uint8_t bcast_addr[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
+  uint32_t mac_cmp32[2];
+  uint16_t mac_cmp16[2];
 
   if(io_len != 60) {
         ne2000_log("rx_frame with length %d\n", io_len);
@@ -1392,7 +1394,14 @@ void ne2000_rx_frame(void *p, const void *buf, int io_len)
 
   // Do address filtering if not in promiscuous mode
   if (! ne2000->RCR.promisc) {
-    if (!memcmp(buf, bcast_addr, 6)) {
+	/* Received. */
+	mac_cmp32[0] = *(uint32_t *) (buf);
+	mac_cmp16[0] = *(uint16_t *) (buf+4);
+	/* Local. */
+	mac_cmp32[1] = *(uint32_t *) (bcast_addr);
+	mac_cmp16[1] = *(uint16_t *) (bcast_addr+4);
+    // if (!memcmp(buf, bcast_addr, 6)) {
+	if ((mac_cmp32[0] == mac_cmp32[1]) && (mac_cmp16[0] == mac_cmp16[1]))
       if (!ne2000->RCR.broadcast) {
         return;
       }
@@ -1437,13 +1446,15 @@ void ne2000_rx_frame(void *p, const void *buf, int io_len)
                                BX_NE2K_MEMSTART];
   if ((nextpage > ne2000->curr_page) ||
       ((ne2000->curr_page + pages) == ne2000->page_stop)) {
-    memcpy(startptr, pkthdr, 4);
+    // memcpy(startptr, pkthdr, 4);
+	*(uint32_t *) startptr = *(uint32_t *) pkthdr;
     memcpy(startptr + 4, buf, io_len);
     ne2000->curr_page = nextpage;
   } else {
     int endbytes = (ne2000->page_stop - ne2000->curr_page)
       * 256;
-    memcpy(startptr, pkthdr, 4);
+    // memcpy(startptr, pkthdr, 4);
+	*(uint32_t *) startptr = *(uint32_t *) pkthdr;
     memcpy(startptr + 4, buf, endbytes - 4);
     startptr = & ne2000->mem[ne2000->page_start * 256 -
                                  BX_NE2K_MEMSTART];
