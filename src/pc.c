@@ -280,7 +280,10 @@ void initpc(int argc, char *argv[])
 	td0_init();
 	imd_init();
 
-	vlan_reset();	//NETWORK
+	if (netcard != 0)
+	{
+		vlan_reset();	//NETWORK
+	}
 	network_card_init(network_card_current);
 
         disc_load(0, discfns[0]);
