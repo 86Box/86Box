@@ -503,9 +503,9 @@ static void loadhd(IDE *ide, int d, const char *fn)
 		{
 			if (image_is_hdi(fn))
 			{
-				fseek(ide->hdfile, 0x8, SEEK_SET);
+				fseeko64(ide->hdfile, 0x8, SEEK_SET);
 				fread(&(ide->base), 1, 4, ide->hdfile);
-				fseek(ide->hdfile, 0x10, SEEK_SET);
+				fseeko64(ide->hdfile, 0x10, SEEK_SET);
 				fread(&sector_size, 1, 4, ide->hdfile);
 				if (sector_size != 512)
 				{

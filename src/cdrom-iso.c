@@ -388,7 +388,7 @@ static uint32_t iso_size()
 	iso_size >>= 11;
     fclose(iso_image);
 
-	return (uint32_t) (iso_size - 1);
+	return (uint32_t) (iso_size);
 }
 
 static int iso_status()
