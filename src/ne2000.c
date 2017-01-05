@@ -1549,6 +1549,10 @@ if(net_is_slirp) {
         }//end slirp
 if(net_is_pcap  && net_pcap!=NULL)
         {
+		if((ne2000->DCR.loop == 0) || (ne2000->TCR.loop_cntl != 0))
+		{
+			return;
+		}
         data=_pcap_next(net_pcap,&h);
         if(data==0x0){goto WTF;}
 		/* Received. */
@@ -1558,18 +1562,16 @@ if(net_is_pcap  && net_pcap!=NULL)
 		mac_cmp32[1] = *(uint32_t *) (maclocal);
 		mac_cmp16[1] = *(uint16_t *) (maclocal+4);
         // if((memcmp(data+6,maclocal,6))==0)
-		if ((mac_cmp32[0] == mac_cmp32[1]) && (mac_cmp16[0] == mac_cmp16[1]))
+		/* if ((mac_cmp32[0] == mac_cmp32[1]) && (mac_cmp16[0] == mac_cmp16[1]))
+		{
             ne2000_log("ne2000 we just saw ourselves\n");
-        else {
-             if((ne2000->DCR.loop == 0) || (ne2000->TCR.loop_cntl != 0))
-                {
-                return;
-                }
-                ne2000_log("ne2000 pcap received a frame %d bytes\n",h.caplen);
-                ne2000_rx_frame(ne2000,data,h.caplen); 
-             }
-        WTF:
-                {}
+		}
+        else { */
+		if ((mac_cmp32[0] != mac_cmp32[1]) || (mac_cmp16[0] != mac_cmp16[1]))
+		{
+			// ne2000_log("ne2000 pcap received a frame %d bytes\n",h.caplen);
+			ne2000_rx_frame(ne2000,data,h.caplen); 
+		}
         }
 }
 
