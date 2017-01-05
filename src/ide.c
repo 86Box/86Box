@@ -1729,7 +1729,10 @@ void atapi_command_send_init(IDE *ide, uint8_t command, int req_length, int allo
 	}
 		
 	/* No atastat setting: PCem actually emulates the callback cycle. */
-	ide->secount = 2;
+	if (alloc_length != 0)
+	{
+		ide->secount = 2;
+	}
 	
 	// no bytes transferred yet
 	ide->pos = 0;
@@ -1851,6 +1854,7 @@ static void atapicommand(int ide_board)
 	int ret;
 	int real_pos;
 	int track = 0;
+	uint8_t cdb[12];
 
 #if 0
 	pclog("ATAPI command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, %i, Unit attention: %i\n",idebufferb[0],SCSISense.SenseKey,SCSISense.Asc,SCSISense.Ascq,ins,SCSISense.UnitAttention);
@@ -1862,6 +1866,8 @@ static void atapicommand(int ide_board)
 	}
 #endif
 	
+	memcpy(cdb, idebufferb, 12);
+
 	msf=idebufferb[1]&2;
 	SectorLen=0;
 
@@ -1883,6 +1889,7 @@ static void atapicommand(int ide_board)
 		execution under it, error out and report the condition. */
 	if (SCSISense.UnitAttention == 1)
 	{
+		// pclog("Unit attention now 2\n");
 		SCSISense.UnitAttention = 2;
 		if (!(SCSICommandTable[idebufferb[0]] & ALLOW_UA))
 		{
@@ -1895,6 +1902,7 @@ static void atapicommand(int ide_board)
 	{
 		if (idebufferb[0]!=GPCMD_REQUEST_SENSE)
 		{
+			// pclog("Unit attention now 0\n");
 			SCSISense.UnitAttention = 0;
 		}
 	}
@@ -1936,7 +1944,6 @@ static void atapicommand(int ide_board)
 		case GPCMD_REQUEST_SENSE: /* Used by ROS 4+ */
 			alloc_length = idebufferb[4];
 			temp_command = idebufferb[0];
-			atapi_command_send_init(ide, temp_command, 18, alloc_length);
 				
 			/*Will return 18 bytes of 0*/
 			memset(idebufferb,0,512);
@@ -1974,9 +1981,9 @@ static void atapicommand(int ide_board)
 				}
 			}
 
-			idebufferb[7]=10;
+			// pclog("Reporting sense: %02X %02X %02X\n", idebufferb[2], idebufferb[12], idebufferb[13]);
 
-			atapi_command_ready(ide_board, 18);
+			idebufferb[7]=10;
 
 			if (idebufferb[2] == SENSE_UNIT_ATTENTION)
 			{
@@ -1988,10 +1995,16 @@ static void atapicommand(int ide_board)
 			/* Clear the sense stuff as per the spec. */
 			atapi_sense_clear(temp_command, 0);
 
-			if (idebufferb[4] == 0)
+			if (alloc_length == 0)
 			{
+				// pclog("REQUEST SENSE - empty allocation\n");
 				ide->packetstatus = ATAPI_STATUS_COMPLETE;
 				idecallback[ide_board]=50*IDE_TIME;
+			}
+			else
+			{
+				atapi_command_send_init(ide, temp_command, 18, alloc_length);
+				atapi_command_ready(ide_board, 18);
 			}
 			break;
 
@@ -2003,17 +2016,19 @@ static void atapicommand(int ide_board)
 		case GPCMD_MECHANISM_STATUS:
 			len=(idebufferb[7]<<16)|(idebufferb[8]<<8)|idebufferb[9];
 
-			if (len == 0)
-			{
-				fatal("Zero allocation length to MECHANISM STATUS not impl.\n");
-			}
-
-			atapi_command_send_init(ide, idebufferb[0], 8, alloc_length);
-		
 			memset(idebufferb, 0, 8);
 			idebufferb[5] = 1;
 
-			atapi_command_ready(ide_board, 8);
+			if (len == 0)
+			{
+				ide->packetstatus = ATAPI_STATUS_COMPLETE;
+				idecallback[ide_board]=50*IDE_TIME;
+			}
+			else
+			{
+				atapi_command_send_init(ide, cdb[0], 8, alloc_length);
+				atapi_command_ready(ide_board, 8);
+			}
 			break;	
 
 		case GPCMD_READ_TOC_PMA_ATIP:
@@ -2371,72 +2386,68 @@ static void atapicommand(int ide_board)
 			idebufferb[2] = ((alloc_length-4) >> 8) & 0xff;
 			idebufferb[3] = (alloc_length-4) & 0xff;           
 
-			atapi_command_send_init(ide, temp_command, len, alloc_length);     
-
-			atapi_command_ready(ide_board, len);
-
 			if (len == 0)
 			{
 				ide->packetstatus = ATAPI_STATUS_COMPLETE;
 				idecallback[ide_board]=50*IDE_TIME;
 			}
+			else
+			{
+				atapi_command_send_init(ide, temp_command, len, alloc_length);     
+				atapi_command_ready(ide_board, len);
+			}
 			break;
 
 		case GPCMD_GET_EVENT_STATUS_NOTIFICATION:
-			temp_command = idebufferb[0];
-			alloc_length = len;        
-			{
-				gesn_cdb = (void *)idebufferb;
-				gesn_event_header = (void *)idebufferb;
+			gesn_cdb = (void *)idebufferb;
+			gesn_event_header = (void *)idebufferb;
 
-				/* It is fine by the MMC spec to not support async mode operations. */
-				if (!(gesn_cdb->polled & 0x01))
-				{   /* asynchronous mode */
-					/* Only polling is supported, asynchronous mode is not. */
-					atapi_invalid_field(ide);
-					return;
-				}
-
-				/* polling mode operation */
-
-				/*
-				 * These are the supported events.
-				 *
-				 * We currently only support requests of the 'media' type.
-				 * Notification class requests and supported event classes are bitmasks,
-				 * but they are built from the same values as the "notification class"
-				 * field.
-				 */
-				gesn_event_header->supported_events = 1 << GESN_MEDIA;
-
-				/*
-				 * We use |= below to set the class field; other bits in this byte
-				 * are reserved now but this is useful to do if we have to use the
-				 * reserved fields later.
-				 */
-				gesn_event_header->notification_class = 0;
-
-				/*
-				 * Responses to requests are to be based on request priority.  The
-				 * notification_class_request_type enum above specifies the
-				 * priority: upper elements are higher prio than lower ones.
-				 */
-				if (gesn_cdb->class & (1 << GESN_MEDIA))
-				{
-					gesn_event_header->notification_class |= GESN_MEDIA;
-					used_len = SCSICDROMEventStatus(idebufferb);
-				}
-				else
-				{
-					gesn_event_header->notification_class = 0x80; /* No event available */
-					used_len = sizeof(*gesn_event_header);
-				}
-				gesn_event_header->len = used_len - sizeof(*gesn_event_header);
+			/* It is fine by the MMC spec to not support async mode operations. */
+			if (!(gesn_cdb->polled & 0x01))
+			{   /* asynchronous mode */
+				/* Only polling is supported, asynchronous mode is not. */
+				atapi_invalid_field(ide);
+				return;
 			}
 
-			atapi_command_send_init(ide, temp_command, len, alloc_length);
+			/* polling mode operation */
 
-			atapi_command_ready(ide_board, len);
+			/*
+			 * These are the supported events.
+			 *
+			 * We currently only support requests of the 'media' type.
+			 * Notification class requests and supported event classes are bitmasks,
+			 * but they are built from the same values as the "notification class"
+			 * field.
+			 */
+			gesn_event_header->supported_events = 1 << GESN_MEDIA;
+
+			/*
+			 * We use |= below to set the class field; other bits in this byte
+			 * are reserved now but this is useful to do if we have to use the
+			 * reserved fields later.
+			 */
+			gesn_event_header->notification_class = 0;
+
+			/*
+			 * Responses to requests are to be based on request priority.  The
+			 * notification_class_request_type enum above specifies the
+			 * priority: upper elements are higher prio than lower ones.
+			 */
+			if (gesn_cdb->class & (1 << GESN_MEDIA))
+			{
+				gesn_event_header->notification_class |= GESN_MEDIA;
+				used_len = SCSICDROMEventStatus(idebufferb);
+			}
+			else
+			{
+				gesn_event_header->notification_class = 0x80; /* No event available */
+				used_len = sizeof(*gesn_event_header);
+			}
+			gesn_event_header->len = used_len - sizeof(*gesn_event_header);
+
+			atapi_command_send_init(ide, cdb[0], used_len, used_len);
+			atapi_command_ready(ide_board, used_len);
 			break;
 
 		case GPCMD_READ_DISC_INFORMATION:
@@ -2460,17 +2471,20 @@ static void atapicommand(int ide_board)
 			{
 				len = alloc_length;
 			}
-			ide->packetstatus = ATAPI_STATUS_DATA;
-			ide->cylinder=len;
-			ide->secount=2;
-			ide->pos=0;
-			idecallback[ide_board]=60*IDE_TIME;
-			ide->packlen=len;			
 
 			if (len == 0)
 			{
 				ide->packetstatus = ATAPI_STATUS_COMPLETE;
 				idecallback[ide_board]=50*IDE_TIME;
+			}
+			else
+			{
+				ide->packetstatus = ATAPI_STATUS_DATA;
+				ide->secount=2;
+				ide->cylinder=len;
+				ide->pos=0;
+				ide->packlen=len;			
+				idecallback[ide_board]=60*IDE_TIME;
 			}
 			break;
 
@@ -2529,17 +2543,19 @@ static void atapicommand(int ide_board)
 				idebufferb[1] = (max_len - 2) & 0xff;
 			}
 		
-			ide->packetstatus = ATAPI_STATUS_DATA;
-			ide->cylinder=len;
-			ide->secount=2;
-			ide->pos=0;
-			idecallback[ide_board]=60*IDE_TIME;
-			ide->packlen=len;			
-
 			if (len == 0)
 			{
 				ide->packetstatus = ATAPI_STATUS_COMPLETE;
 				idecallback[ide_board]=50*IDE_TIME;
+			}
+			else
+			{
+				ide->packetstatus = ATAPI_STATUS_DATA;
+				ide->cylinder=len;
+				ide->secount=2;
+				ide->pos=0;
+				idecallback[ide_board]=60*IDE_TIME;
+				ide->packlen=len;			
 			}
 			break;
 
@@ -2802,14 +2818,15 @@ atapi_out:
 				len = alloc_length;
 			}
 
-			atapi_command_send_init(ide, temp_command, len, alloc_length);
-
-			atapi_command_ready(ide_board, len);				
-
 			if (len == 0)
 			{
 				ide->packetstatus = ATAPI_STATUS_COMPLETE;
 				idecallback[ide_board]=50*IDE_TIME;
+			}
+			else
+			{
+				atapi_command_send_init(ide, temp_command, len, alloc_length);
+				atapi_command_ready(ide_board, len);
 			}
 			break;
 
