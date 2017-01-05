@@ -1401,7 +1401,7 @@ void ne2000_rx_frame(void *p, const void *buf, int io_len)
 	mac_cmp32[1] = *(uint32_t *) (bcast_addr);
 	mac_cmp16[1] = *(uint16_t *) (bcast_addr+4);
     // if (!memcmp(buf, bcast_addr, 6)) {
-	if ((mac_cmp32[0] == mac_cmp32[1]) && (mac_cmp16[0] == mac_cmp16[1]))
+	if ((mac_cmp32[0] == mac_cmp32[1]) && (mac_cmp16[0] == mac_cmp16[1])) {
       if (!ne2000->RCR.broadcast) {
         return;
       }
