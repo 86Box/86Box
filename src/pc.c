@@ -419,7 +419,10 @@ void resetpchard()
 		ide_qua_init();
 	}
 
-	vlan_reset();	//NETWORK
+	if (netcard != 0)
+	{
+		vlan_reset();	//NETWORK
+	}
 	network_card_init(network_card_current);      
 
         sound_card_init(sound_card_current);
