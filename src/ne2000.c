@@ -1515,6 +1515,8 @@ void ne2000_poller(void *p)
     struct queuepacket *qp;
     const unsigned char *data;
     struct pcap_pkthdr h;
+	uint32_t mac_cmp32[2];
+	uint16_t mac_cmp16[2];
 
 
         int res;
@@ -1538,7 +1540,14 @@ if(net_is_pcap  && net_pcap!=NULL)
         {
         data=_pcap_next(net_pcap,&h);
         if(data==0x0){goto WTF;}
-        if((memcmp(data+6,maclocal,6))==0)
+		/* Received. */
+		mac_cmp32[0] = *(uint32_t *) (data+6);
+		mac_cmp16[0] = *(uint16_t *) (data+10);
+		/* Local. */
+		mac_cmp32[1] = *(uint32_t *) (maclocal);
+		mac_cmp16[1] = *(uint16_t *) (maclocal+4);
+        // if((memcmp(data+6,maclocal,6))==0)
+		if ((mac_cmp32[0] == mac_cmp32[1]) && (mac_cmp16[0] == mac_cmp16[1]))
             ne2000_log("ne2000 we just saw ourselves\n");
         else {
              if((ne2000->DCR.loop == 0) || (ne2000->TCR.loop_cntl != 0))
