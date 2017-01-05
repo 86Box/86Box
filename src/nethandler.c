@@ -87,7 +87,7 @@ void vlan_poller(void *priv)
 {
         int c;
 
-        vlan_poller_time += (int)((double)TIMER_USEC * (1000000.0 / 8.0 / 15000.0));
+        vlan_poller_time += (int)((double)TIMER_USEC * (1000000.0 / 8.0 / 3000.0));
 
         for (c = 0; c < vlan_handlers_num; c++)
                 vlan_handlers[c].poller(vlan_handlers[c].priv);
