@@ -1554,7 +1554,10 @@ if(net_is_pcap  && net_pcap!=NULL)
 			return;
 		}
         data=_pcap_next(net_pcap,&h);
-        if(data==0x0){goto WTF;}
+        if(data==0x0)
+		{
+			return;
+		}
 		/* Received. */
 		mac_cmp32[0] = *(uint32_t *) (data+6);
 		mac_cmp16[0] = *(uint16_t *) (data+10);
