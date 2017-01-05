@@ -280,7 +280,7 @@ void initpc(int argc, char *argv[])
 	td0_init();
 	imd_init();
 
-	if (netcard != 0)
+	if (network_card_current != 0)
 	{
 		vlan_reset();	//NETWORK
 	}
@@ -419,7 +419,7 @@ void resetpchard()
 		ide_qua_init();
 	}
 
-	if (netcard != 0)
+	if (network_card_current != 0)
 	{
 		vlan_reset();	//NETWORK
 	}
