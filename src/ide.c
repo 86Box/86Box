@@ -1946,7 +1946,10 @@ static void atapicommand(int ide_board)
 			temp_command = idebufferb[0];
 				
 			/*Will return 18 bytes of 0*/
-			memset(idebufferb,0,512);
+			if (alloc_length != 0)
+			{
+				memset(idebufferb, 0, alloc_length);
+			}
 
 			idebufferb[0]=0x80|0x70;
 

@@ -636,7 +636,7 @@ int cdrom_read_data(uint8_t *buffer)
 		}
 	}
 
-	// pclog("CD-ROM sector size: %i (%i, %i) [%04X]\n", cdrom_sector_size, cdrom_sector_type, real_sector_type, cdrom_sector_flags);
+	pclog("CD-ROM sector size: %i (%i, %i) [%04X]\n", cdrom_sector_size, cdrom_sector_type, real_sector_type, cdrom_sector_flags);
 	return cdrom_add_error_and_subchannel(b, real_sector_type);
 }
 
