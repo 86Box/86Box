@@ -1,3 +1,6 @@
+/* Copyright holders: Melissa Goad, Tenshi
+   see COPYING for more details
+*/
 /*nVidia RIVA 128 emulation*/
 #include <stdlib.h>
 #include "ibm.h"
