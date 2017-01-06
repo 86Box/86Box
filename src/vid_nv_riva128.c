@@ -1234,7 +1234,7 @@ static void riva128_pusher_run(int chanid, void *p)
       uint32_t method = cmd & 0x1ffc;
       int subchannel = (cmd >> 13) & 7;
       int method_count = (cmd >> 18) & 0x7ff;
-      for(int i = 0;i<=method_count;i++)
+      for(int i = 0;i<method_count;i++)
       {
         riva128_puller_exec_method(chanid, subchannel, method, params[i<<2], riva128);
         method+=4;
