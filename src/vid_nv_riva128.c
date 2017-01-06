@@ -1198,7 +1198,7 @@ static void riva128_puller_exec_method(int chanid, int subchanid, int offset, ui
         uint32_t tmp = riva128_ramht_lookup(val, riva128);
         riva128->pgraph.instance = (tmp & 0xffff) << 4;
         riva128->pgraph.ctx_switch[0] = riva128->pgraph.ctx_cache[subchanid][0] = riva128->pramin[riva128->pgraph.instance];
-        riva128->pgraph.ctx_user = (chanid << 24) | (tmp & 0xf0000) | (subchanid << 13);
+        riva128->pgraph.ctx_user = (chanid << 24) | (tmp & 0x1f0000) | (subchanid << 13);
       }
       else if(riva128->card_id >= 0x04 && riva128->card_id < 0x10)
       {
