@@ -4,4 +4,4 @@
 ---
 Keep in touch with the 86Box community:
 
-[![Visit our IRC channel](https://kiwiirc.com/buttons/irc.rol.im/softhistory.png)](https://kiwiirc.com/client/irc.rol.im/?nick=86box|?#softhistory)
+[![Visit our IRC channel](https://kiwiirc.com/buttons/irc.rol.im/softhistory.png)](https://kiwiirc.com/client/irc.rol.im/?nick=86box|?#softhistory) [![Visit our Discord server](https://discordapp.com/api/guilds/262614059009048590/embed.png)](https://discord.gg/Es3TnUH)
