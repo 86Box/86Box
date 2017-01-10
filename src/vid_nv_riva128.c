@@ -131,7 +131,7 @@ typedef struct riva128_t
     int pgraph_speedhack;
 
 	  uint32_t obj_handle[8];
-	  uint8_t obj_class[8];
+	  uint16_t obj_class[8];
 
     uint32_t debug[5];
 	
@@ -157,6 +157,8 @@ typedef struct riva128_t
     uint32_t beta;
 
     uint32_t notify;
+
+    uint32_t instance;
 
     struct
     {
@@ -1054,13 +1056,11 @@ static void riva128_pramdac_write(uint32_t addr, uint32_t val, void *p)
   }
 }
 
-static uint8_t riva128_ramht_lookup(uint32_t handle, void *p)
+static uint32_t riva128_ramht_lookup(uint32_t handle, void *p)
 {
   riva128_t *riva128 = (riva128_t *)p;
   svga_t *svga = &riva128->svga;
   pclog("RIVA 128 RAMHT lookup with handle %08X %04X:%08X\n", handle, CS, cpu_state.pc);
-  
-  uint8_t objclass;
   
   uint32_t ramht_base = riva128->pfifo.ramht_addr;
   
@@ -1085,12 +1085,10 @@ static uint8_t riva128_ramht_lookup(uint32_t handle, void *p)
   
   hash ^= riva128->pfifo.caches[1].chanid << (bits - 4);
   
-  objclass = riva128->pramin[ramht_base + (hash * 8)];
-  objclass &= 0xff;
-  return objclass;
+  return riva128->pramin[ramht_base + (hash * 8)];
 }
 
-static void riva128_pgraph_point_exec_method_speedhack(int offset, uint32_t val, void *p)
+/*static void riva128_pgraph_point_exec_method_speedhack(int offset, uint32_t val, void *p)
 {
   riva128_t *riva128 = (riva128_t *)p;
   svga_t *svga = &riva128->svga;
@@ -1183,7 +1181,7 @@ static void riva128_pgraph_exec_method_speedhack(int subchanid, int offset, uint
       break;
     } 
   }
-}
+}*/
 
 static void riva128_puller_exec_method(int chanid, int subchanid, int offset, uint32_t val, void *p)
 {
@@ -1191,21 +1189,39 @@ static void riva128_puller_exec_method(int chanid, int subchanid, int offset, ui
   svga_t *svga = &riva128->svga;
   pclog("RIVA 128 Puller executing method %04X on channel %01X[%01X] %04X:%08X\n", offset, chanid, subchanid, val, CS, cpu_state.pc);
   
+  if(offset < 0x100)
+  {
+    if(offset == 0)
+    {
+      if(riva128->card_id == 0x03)
+      {
+        uint32_t tmp = riva128_ramht_lookup(val, riva128);
+        riva128->pgraph.instance = (tmp & 0xffff) << 4;
+        riva128->pgraph.ctx_switch[0] = riva128->pgraph.ctx_cache[subchanid][0] = riva128->pramin[riva128->pgraph.instance];
+        riva128->pgraph.ctx_user = (chanid << 24) | (tmp & 0x1f0000) | (subchanid << 13);
+      }
+      else if(riva128->card_id >= 0x04 && riva128->card_id < 0x10)
+      {
+        riva128->pgraph.ctx_switch[3] = (riva128_ramht_lookup(val, riva128) & 0xffff) << 4;
+        riva128->pgraph.ctx_switch[0] = riva128->pgraph.ctx_cache[subchanid][0] = riva128->pramin[riva128->pgraph.ctx_switch[3]];
+        riva128->pgraph.ctx_switch[1] = riva128->pgraph.ctx_cache[subchanid][1] = riva128->pramin[riva128->pgraph.ctx_switch[3] + 4];
+        riva128->pgraph.ctx_switch[2] = riva128->pgraph.ctx_cache[subchanid][2] = riva128->pramin[riva128->pgraph.ctx_switch[3] + 8];
+        riva128->pgraph.ctx_user = (chanid << 24) | (subchanid << 13);
+      }
+      else if(riva128->card_id >= 0x10 && riva128->card_id < 0x40)
+      {
+        riva128->pgraph.ctx_switch[3] = (riva128_ramht_lookup(val, riva128) & 0xffff) << 4;
+        riva128->pgraph.ctx_switch[0] = riva128->pgraph.ctx_cache[subchanid][0] = riva128->pramin[riva128->pgraph.ctx_switch[3]];
+        riva128->pgraph.ctx_switch[1] = riva128->pgraph.ctx_cache[subchanid][1] = riva128->pramin[riva128->pgraph.ctx_switch[3] + 4];
+        riva128->pgraph.ctx_switch[2] = riva128->pgraph.ctx_cache[subchanid][2] = riva128->pramin[riva128->pgraph.ctx_switch[3] + 8];
+        riva128->pgraph.ctx_switch[4] = riva128->pgraph.ctx_cache[subchanid][4] = riva128->pramin[riva128->pgraph.ctx_switch[3] + 12];
+        riva128->pgraph.ctx_user = (chanid << 24) | (subchanid << 13);
+      }
+    }
+  }
+
   if(riva128->pgraph.pgraph_speedhack)
   {
-    if(offset < 0x100)
-    {
-	    //These methods are executed by the puller itself.
-	    if(offset == 0)
-	    {
-		    riva128->pgraph.obj_handle[subchanid] = val;
-		    riva128->pgraph.obj_class[subchanid] = riva128_ramht_lookup(val, riva128);
-  	  }
-    }
-    else
-    {
-      if(riva128->card_id == 0x03) riva128_pgraph_exec_method_speedhack(subchanid, offset, val, riva128);
-    }
   }
   else
   {
@@ -1234,7 +1250,7 @@ static void riva128_pusher_run(int chanid, void *p)
       uint32_t method = cmd & 0x1ffc;
       int subchannel = (cmd >> 13) & 7;
       int method_count = (cmd >> 18) & 0x7ff;
-      for(int i = 0;i<=method_count;i++)
+      for(int i = 0;i<method_count;i++)
       {
         riva128_puller_exec_method(chanid, subchannel, method, params[i<<2], riva128);
         method+=4;

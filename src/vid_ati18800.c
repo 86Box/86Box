@@ -1,4 +1,4 @@
-/* Copyright holders: Sarah Walker
+/* Copyright holders: Sarah Walker, Melissa Goad
    see COPYING for more details
 */
 /*ATI 18800 emulation (VGA Edge-16)*/
@@ -32,7 +32,8 @@ void ati18800_out(uint16_t addr, uint8_t val, void *p)
         
 //        pclog("ati18800_out : %04X %02X  %04X:%04X\n", addr, val, CS,cpu_state.pc);
                 
-        if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout&1)) addr ^= 0x60;
+        if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
+                addr ^= 0x60;
 
         switch (addr)
         {
@@ -41,8 +42,11 @@ void ati18800_out(uint16_t addr, uint8_t val, void *p)
                 break;
                 case 0x1cf:
                 ati18800->regs[ati18800->index] = val;
+                pclog("ATI 18800 ATI register write %02x %02x\n", ati18800->index, val);
                 switch (ati18800->index)
                 {
+                        case 0xb0:
+                        svga_recalctimings(svga);
                         case 0xb2:
                         case 0xbe:
                         if (ati18800->regs[0xbe] & 8) /*Read/write bank mode*/
@@ -65,10 +69,22 @@ void ati18800_out(uint16_t addr, uint8_t val, void *p)
                 case 0x3D5:
 		if (svga->crtcreg <= 0x18)
 			val &= mask_crtc[svga->crtcreg];
-                if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
+                if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80) && !(ati18800->regs[0xb4] & 0x80))
                         return;
-                if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
+                if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80) && !(ati18800->regs[0xb4] & 0x80))
                         val = (svga->crtc[7] & ~0x10) | (val & 0x10);
+                if ((ati18800->regs[0xb4] & 4) && (svga->crtcreg == 9))
+                        val = (svga->crtc[9] & ~0x60) | (val & 0x60);
+                if ((ati18800->regs[0xb4] & 8) && ((svga->crtcreg == 6) || (svga->crtcreg == 0x10) || (svga->crtcreg == 0x12) || (svga->crtcreg == 0x15) || (svga->crtcreg == 0x16)))
+                        return;
+                if ((ati18800->regs[0xb4] & 8) && (svga->crtcreg == 7))
+                        val = (svga->crtc[9] & ~0x10) | (val & 0x10);
+                if ((ati18800->regs[0xb4] & 8) && (svga->crtcreg == 9))
+                        val = (svga->crtc[9] & ~0xdf) | (val & 0xdf);
+                if ((ati18800->regs[0xb4] & 8) && (svga->crtcreg == 0x11))
+                        val = (svga->crtc[9] & ~0xf0) | (val & 0xf0);
+                if ((ati18800->regs[0xb4] & 0x10) && ((svga->crtcreg == 0x0a) || (svga->crtcreg == 0x0b)))
+                        return;
                 old = svga->crtc[svga->crtcreg];
                 svga->crtc[svga->crtcreg] = val;
                 if (old != val)
@@ -128,6 +144,22 @@ uint8_t ati18800_in(uint16_t addr, void *p)
         if (addr != 0x3da) pclog("%02X  %04X:%04X\n", temp, CS,cpu_state.pc);
 #endif
         return temp;
+}
+
+void ati18800_recalctimings(svga_t *svga)
+{
+        ati18800_t *ati18800 = (ati18800_t *)svga->p;
+
+        svga->ma_latch += (ati18800->regs[0xb0] & 0xc0) << 10;
+
+        if(ati18800->regs[0xb1] & 0x40)
+        {
+                svga->vtotal >>= 1;
+                svga->dispend >>= 1;
+                svga->vsyncstart >>= 1;
+                svga->split >>= 1;
+                svga->vblankstart >>= 1;
+        }
 }
 
 void *ati18800_init()
