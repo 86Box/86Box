@@ -35,15 +35,172 @@ BEGIN
                 MENUITEM "E&ject FDD 4",     IDM_EJECT_4
                 MENUITEM SEPARATOR
                 MENUITEM "&Configure hard discs...",IDM_HDCONF
-                POPUP "C&D-ROM"
+                POPUP "C&D-ROM 1"
                 BEGIN
-                        MENUITEM "&Enabled", IDM_CDROM_ENABLED
-                        MENUITEM "&SCSI", IDM_CDROM_SCSI
+                        MENUITEM "&Enabled", IDM_CDROM_1_ENABLED
+                        MENUITEM "S&ound enabled", IDM_CDROM_1_SOUND_ON
                         MENUITEM SEPARATOR
-                        MENUITEM "E&mpty",IDM_CDROM_EMPTY
-                        MENUITEM "&Reload previous disc",IDM_CDROM_RELOAD
+                        MENUITEM "&SCSI", IDM_CDROM_1_SCSI
                         MENUITEM SEPARATOR
-                        MENUITEM "&ISO...",IDM_CDROM_ISO
+                        MENUITEM "E&mpty",IDM_CDROM_1_EMPTY
+                        MENUITEM "&Reload previous disc",IDM_CDROM_1_RELOAD
+                        MENUITEM SEPARATOR
+	                POPUP "&IDE channel..."
+			BEGIN
+                        	MENUITEM "&C:",IDM_CDROM_1_C
+                        	MENUITEM "&D:",IDM_CDROM_1_D
+                        	MENUITEM "&E:",IDM_CDROM_1_E
+                        	MENUITEM "&F:",IDM_CDROM_1_F
+                        	MENUITEM "&G:",IDM_CDROM_1_G
+                        	MENUITEM "&H:",IDM_CDROM_1_H
+                        	MENUITEM "&I:",IDM_CDROM_1_I
+                        	MENUITEM "&J:",IDM_CDROM_1_J
+			END
+	                POPUP "S&CSI ID..."
+			BEGIN
+                        	MENUITEM "&0",IDM_CDROM_1_0
+                        	MENUITEM "&1",IDM_CDROM_1_1
+                        	MENUITEM "&2",IDM_CDROM_1_2
+                        	MENUITEM "&3",IDM_CDROM_1_3
+                        	MENUITEM "&4",IDM_CDROM_1_4
+                        	MENUITEM "&5",IDM_CDROM_1_5
+                        	MENUITEM "&6",IDM_CDROM_1_6
+                        	MENUITEM "&8",IDM_CDROM_1_8
+                        	MENUITEM "&9",IDM_CDROM_1_9
+                        	MENUITEM "10",IDM_CDROM_1_10
+                        	MENUITEM "11",IDM_CDROM_1_11
+                        	MENUITEM "12",IDM_CDROM_1_12
+                        	MENUITEM "13",IDM_CDROM_1_13
+                        	MENUITEM "14",IDM_CDROM_1_14
+                        	MENUITEM "15",IDM_CDROM_1_15
+			END
+                        MENUITEM SEPARATOR
+                        MENUITEM "&ISO...",IDM_CDROM_1_ISO
+                END
+                POPUP "CD-&ROM 2"
+                BEGIN
+                        MENUITEM "&Enabled", IDM_CDROM_2_ENABLED
+                        MENUITEM "S&ound enabled", IDM_CDROM_2_SOUND_ON
+                        MENUITEM SEPARATOR
+                        MENUITEM "&SCSI", IDM_CDROM_2_SCSI
+                        MENUITEM SEPARATOR
+                        MENUITEM "E&mpty",IDM_CDROM_2_EMPTY
+                        MENUITEM "&Reload previous disc",IDM_CDROM_2_RELOAD
+                        MENUITEM SEPARATOR
+	                POPUP "&IDE channel..."
+			BEGIN
+                        	MENUITEM "&C:",IDM_CDROM_2_C
+                        	MENUITEM "&D:",IDM_CDROM_2_D
+                        	MENUITEM "&E:",IDM_CDROM_2_E
+                        	MENUITEM "&F:",IDM_CDROM_2_F
+                        	MENUITEM "&G:",IDM_CDROM_2_G
+                        	MENUITEM "&H:",IDM_CDROM_2_H
+                        	MENUITEM "&I:",IDM_CDROM_2_I
+                        	MENUITEM "&J:",IDM_CDROM_2_J
+			END
+	                POPUP "S&CSI ID..."
+			BEGIN
+                        	MENUITEM "&0",IDM_CDROM_2_0
+                        	MENUITEM "&1",IDM_CDROM_2_1
+                        	MENUITEM "&2",IDM_CDROM_2_2
+                        	MENUITEM "&3",IDM_CDROM_2_3
+                        	MENUITEM "&4",IDM_CDROM_2_4
+                        	MENUITEM "&5",IDM_CDROM_2_5
+                        	MENUITEM "&6",IDM_CDROM_2_6
+                        	MENUITEM "&8",IDM_CDROM_2_8
+                        	MENUITEM "&9",IDM_CDROM_2_9
+                        	MENUITEM "10",IDM_CDROM_2_10
+                        	MENUITEM "11",IDM_CDROM_2_11
+                        	MENUITEM "12",IDM_CDROM_2_12
+                        	MENUITEM "13",IDM_CDROM_2_13
+                        	MENUITEM "14",IDM_CDROM_2_14
+                        	MENUITEM "15",IDM_CDROM_2_15
+			END
+                        MENUITEM SEPARATOR
+                        MENUITEM "&ISO...",IDM_CDROM_2_ISO
+                END
+                POPUP "CD-R&OM 3"
+                BEGIN
+                        MENUITEM "&Enabled", IDM_CDROM_3_ENABLED
+                        MENUITEM "S&ound enabled", IDM_CDROM_3_SOUND_ON
+                        MENUITEM SEPARATOR
+                        MENUITEM "&SCSI", IDM_CDROM_3_SCSI
+                        MENUITEM SEPARATOR
+                        MENUITEM "E&mpty",IDM_CDROM_3_EMPTY
+                        MENUITEM "&Reload previous disc",IDM_CDROM_3_RELOAD
+                        MENUITEM SEPARATOR
+	                POPUP "&IDE channel..."
+			BEGIN
+                        	MENUITEM "&C:",IDM_CDROM_3_C
+                        	MENUITEM "&D:",IDM_CDROM_3_D
+                        	MENUITEM "&E:",IDM_CDROM_3_E
+                        	MENUITEM "&F:",IDM_CDROM_3_F
+                        	MENUITEM "&G:",IDM_CDROM_3_G
+                        	MENUITEM "&H:",IDM_CDROM_3_H
+                        	MENUITEM "&I:",IDM_CDROM_3_I
+                        	MENUITEM "&J:",IDM_CDROM_3_J
+			END
+	                POPUP "S&CSI ID..."
+			BEGIN
+                        	MENUITEM "&0",IDM_CDROM_3_0
+                        	MENUITEM "&1",IDM_CDROM_3_1
+                        	MENUITEM "&2",IDM_CDROM_3_2
+                        	MENUITEM "&3",IDM_CDROM_3_3
+                        	MENUITEM "&4",IDM_CDROM_3_4
+                        	MENUITEM "&5",IDM_CDROM_3_5
+                        	MENUITEM "&6",IDM_CDROM_3_6
+                        	MENUITEM "&8",IDM_CDROM_3_8
+                        	MENUITEM "&9",IDM_CDROM_3_9
+                        	MENUITEM "10",IDM_CDROM_3_10
+                        	MENUITEM "11",IDM_CDROM_3_11
+                        	MENUITEM "12",IDM_CDROM_3_12
+                        	MENUITEM "13",IDM_CDROM_3_13
+                        	MENUITEM "14",IDM_CDROM_3_14
+                        	MENUITEM "15",IDM_CDROM_3_15
+			END
+                        MENUITEM SEPARATOR
+                        MENUITEM "&ISO...",IDM_CDROM_3_ISO
+                END
+                POPUP "CD-RO&M 4"
+                BEGIN
+                        MENUITEM "&Enabled", IDM_CDROM_4_ENABLED
+                        MENUITEM "S&ound enabled", IDM_CDROM_4_SOUND_ON
+                        MENUITEM SEPARATOR
+                        MENUITEM "&SCSI", IDM_CDROM_4_SCSI
+                        MENUITEM "E&mpty",IDM_CDROM_4_EMPTY
+                        MENUITEM "&Reload previous disc",IDM_CDROM_4_RELOAD
+                        MENUITEM SEPARATOR
+	                POPUP "&IDE channel..."
+			BEGIN
+                        	MENUITEM "&C:",IDM_CDROM_4_C
+                        	MENUITEM "&D:",IDM_CDROM_4_D
+                        	MENUITEM "&E:",IDM_CDROM_4_E
+                        	MENUITEM "&F:",IDM_CDROM_4_F
+                        	MENUITEM "&G:",IDM_CDROM_4_G
+                        	MENUITEM "&H:",IDM_CDROM_4_H
+                        	MENUITEM "&I:",IDM_CDROM_4_I
+                        	MENUITEM "&J:",IDM_CDROM_4_J
+			END
+	                POPUP "S&CSI ID..."
+			BEGIN
+                        	MENUITEM "&0",IDM_CDROM_4_0
+                        	MENUITEM "&1",IDM_CDROM_4_1
+                        	MENUITEM "&2",IDM_CDROM_4_2
+                        	MENUITEM "&3",IDM_CDROM_4_3
+                        	MENUITEM "&4",IDM_CDROM_4_4
+                        	MENUITEM "&5",IDM_CDROM_4_5
+                        	MENUITEM "&6",IDM_CDROM_4_6
+                        	MENUITEM "&8",IDM_CDROM_4_8
+                        	MENUITEM "&9",IDM_CDROM_4_9
+                        	MENUITEM "10",IDM_CDROM_4_10
+                        	MENUITEM "11",IDM_CDROM_4_11
+                        	MENUITEM "12",IDM_CDROM_4_12
+                        	MENUITEM "13",IDM_CDROM_4_13
+                        	MENUITEM "14",IDM_CDROM_4_14
+                        	MENUITEM "15",IDM_CDROM_4_15
+			END
+                        MENUITEM SEPARATOR
+                        MENUITEM "&ISO...",IDM_CDROM_4_ISO
                 END
                 POPUP "E&xtra IDE controllers"
 		BEGIN
@@ -218,8 +375,6 @@ HdConfDlg DIALOGEX 0, 0, 270, DLG_HEIGHT
     PUSHBUTTON      "...",IDC_CFILE,7 + 136,      C_BASE, 16, 14
     PUSHBUTTON      "New",IDC_CNEW,7 + 152, C_BASE, 24, 14
     PUSHBUTTON      "Eject", IDC_EJECTC, 7 + 176, C_BASE, 24, 14
-    RADIOBUTTON     "Hard drive", IDC_CHDD,   7+207, C_BASE, 53, 12 , WS_TABSTOP
-    RADIOBUTTON     "CD-ROM",     IDC_CCDROM, 7+207, C_BASE+16, 53, 12 , WS_TABSTOP
     EDITTEXT        IDC_EDIT_C_SPT,15,C_BASE+16,16,12, WS_DISABLED
     EDITTEXT        IDC_EDIT_C_HPC,48,C_BASE+16,16,12, WS_DISABLED
     EDITTEXT        IDC_EDIT_C_CYL,81,C_BASE+16,28,12, WS_DISABLED
@@ -233,8 +388,6 @@ HdConfDlg DIALOGEX 0, 0, 270, DLG_HEIGHT
     PUSHBUTTON      "...",IDC_DFILE,7 + 136,      D_BASE, 16, 14
     PUSHBUTTON      "New",IDC_DNEW,7 + 152, D_BASE, 24, 14
     PUSHBUTTON      "Eject", IDC_EJECTD, 7 + 176, D_BASE, 24, 14
-    RADIOBUTTON     "Hard drive", IDC_DHDD,   7+207, D_BASE, 53, 12 , WS_TABSTOP
-    RADIOBUTTON     "CD-ROM",     IDC_DCDROM, 7+207, D_BASE+16, 53, 12 , WS_TABSTOP
     EDITTEXT        IDC_EDIT_D_SPT,15,D_BASE+16,16,12, WS_DISABLED
     EDITTEXT        IDC_EDIT_D_HPC,48,D_BASE+16,16,12, WS_DISABLED
     EDITTEXT        IDC_EDIT_D_CYL,81,D_BASE+16,28,12, WS_DISABLED
@@ -248,8 +401,6 @@ HdConfDlg DIALOGEX 0, 0, 270, DLG_HEIGHT
     PUSHBUTTON      "...",IDC_EFILE,7 + 136,      E_BASE, 16, 14
     PUSHBUTTON      "New",IDC_ENEW,7 + 152, E_BASE, 24, 14
     PUSHBUTTON      "Eject", IDC_EJECTE, 7 + 176, E_BASE, 24, 14
-    RADIOBUTTON     "Hard drive", IDC_EHDD,   7+207, E_BASE, 53, 12 , WS_TABSTOP
-    RADIOBUTTON     "CD-ROM",     IDC_ECDROM, 7+207, E_BASE+16, 53, 12 , WS_TABSTOP
     EDITTEXT        IDC_EDIT_E_SPT,15,E_BASE+16,16,12, WS_DISABLED
     EDITTEXT        IDC_EDIT_E_HPC,48,E_BASE+16,16,12, WS_DISABLED
     EDITTEXT        IDC_EDIT_E_CYL,81,E_BASE+16,28,12, WS_DISABLED
@@ -263,8 +414,6 @@ HdConfDlg DIALOGEX 0, 0, 270, DLG_HEIGHT
     PUSHBUTTON      "...",IDC_FFILE,7 + 136,      F_BASE, 16, 14
     PUSHBUTTON      "New",IDC_FNEW,7 + 152, F_BASE, 24, 14
     PUSHBUTTON      "Eject", IDC_EJECTF, 7 + 176, F_BASE, 24, 14
-    RADIOBUTTON     "Hard drive", IDC_FHDD,   7+207, F_BASE, 53, 12 , WS_TABSTOP
-    RADIOBUTTON     "CD-ROM",     IDC_FCDROM, 7+207, F_BASE+16, 53, 12 , WS_TABSTOP
     EDITTEXT        IDC_EDIT_F_SPT,15,F_BASE+16,16,12, WS_DISABLED
     EDITTEXT        IDC_EDIT_F_HPC,48,F_BASE+16,16,12, WS_DISABLED
     EDITTEXT        IDC_EDIT_F_CYL,81,F_BASE+16,28,12, WS_DISABLED
@@ -278,8 +427,6 @@ HdConfDlg DIALOGEX 0, 0, 270, DLG_HEIGHT
     PUSHBUTTON      "...",IDC_GFILE,7 + 136,      G_BASE, 16, 14
     PUSHBUTTON      "New",IDC_GNEW,7 + 152, G_BASE, 24, 14
     PUSHBUTTON      "Eject", IDC_EJECTG, 7 + 176, G_BASE, 24, 14
-    RADIOBUTTON     "Hard drive", IDC_GHDD,   7+207, G_BASE, 53, 12 , WS_TABSTOP
-    RADIOBUTTON     "CD-ROM",     IDC_GCDROM, 7+207, G_BASE+16, 53, 12 , WS_TABSTOP
     EDITTEXT        IDC_EDIT_G_SPT,15,G_BASE+16,16,12, WS_DISABLED
     EDITTEXT        IDC_EDIT_G_HPC,48,G_BASE+16,16,12, WS_DISABLED
     EDITTEXT        IDC_EDIT_G_CYL,81,G_BASE+16,28,12, WS_DISABLED
@@ -293,8 +440,6 @@ HdConfDlg DIALOGEX 0, 0, 270, DLG_HEIGHT
     PUSHBUTTON      "...",IDC_HFILE,7 + 136,      H_BASE, 16, 14
     PUSHBUTTON      "New",IDC_HNEW,7 + 152, H_BASE, 24, 14
     PUSHBUTTON      "Eject", IDC_EJECTH, 7 + 176, H_BASE, 24, 14
-    RADIOBUTTON     "Hard drive", IDC_HHDD,   7+207, H_BASE, 53, 12 , WS_TABSTOP
-    RADIOBUTTON     "CD-ROM",     IDC_HCDROM, 7+207, H_BASE+16, 53, 12 , WS_TABSTOP
     EDITTEXT        IDC_EDIT_H_SPT,15,H_BASE+16,16,12, WS_DISABLED
     EDITTEXT        IDC_EDIT_H_HPC,48,H_BASE+16,16,12, WS_DISABLED
     EDITTEXT        IDC_EDIT_H_CYL,81,H_BASE+16,28,12, WS_DISABLED
@@ -308,8 +453,6 @@ HdConfDlg DIALOGEX 0, 0, 270, DLG_HEIGHT
     PUSHBUTTON      "...",IDC_IFILE,7 + 136,      I_BASE, 16, 14
     PUSHBUTTON      "New",IDC_INEW,7 + 152, I_BASE, 24, 14
     PUSHBUTTON      "Eject", IDC_EJECTI, 7 + 176, I_BASE, 24, 14
-    RADIOBUTTON     "Hard drive", IDC_IHDD,   7+207, I_BASE, 53, 12 , WS_TABSTOP
-    RADIOBUTTON     "CD-ROM",     IDC_ICDROM, 7+207, I_BASE+16, 53, 12 , WS_TABSTOP
     EDITTEXT        IDC_EDIT_I_SPT,15,I_BASE+16,16,12, WS_DISABLED
     EDITTEXT        IDC_EDIT_I_HPC,48,I_BASE+16,16,12, WS_DISABLED
     EDITTEXT        IDC_EDIT_I_CYL,81,I_BASE+16,28,12, WS_DISABLED
@@ -323,8 +466,6 @@ HdConfDlg DIALOGEX 0, 0, 270, DLG_HEIGHT
     PUSHBUTTON      "...",IDC_JFILE,7 + 136,      J_BASE, 16, 14
     PUSHBUTTON      "New",IDC_JNEW,7 + 152, J_BASE, 24, 14
     PUSHBUTTON      "Eject", IDC_EJECTJ, 7 + 176, J_BASE, 24, 14
-    RADIOBUTTON     "Hard drive", IDC_JHDD,   7+207, J_BASE, 53, 12 , WS_TABSTOP
-    RADIOBUTTON     "CD-ROM",     IDC_JCDROM, 7+207, J_BASE+16, 53, 12 , WS_TABSTOP
     EDITTEXT        IDC_EDIT_J_SPT,15,J_BASE+16,16,12, WS_DISABLED
     EDITTEXT        IDC_EDIT_J_HPC,48,J_BASE+16,16,12, WS_DISABLED
     EDITTEXT        IDC_EDIT_J_CYL,81,J_BASE+16,28,12, WS_DISABLED

@@ -10,6 +10,8 @@ int mouse_get_type(int mouse);
 #define MOUSE_TYPE_AMSTRAD 2
 #define MOUSE_TYPE_OLIM24  3
 
+#define MOUSE_TYPE_IF_MASK 3
+
 #define MOUSE_TYPE_3BUTTON (1 << 31)
 
 typedef struct

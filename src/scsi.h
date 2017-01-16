@@ -12,10 +12,12 @@
 
 /* SCSI Commands */
 #define GPCMD_TEST_UNIT_READY           0x00
+#define GPCMD_REZERO_UNIT		0x01
 #define GPCMD_REQUEST_SENSE		0x03
 #define GPCMD_READ_6			0x08
 #define GPCMD_SEEK_6			0x0b
 #define GPCMD_INQUIRY			0x12
+#define GPCMD_VERIFY_6			0x13
 #define GPCMD_MODE_SELECT_6		0x15
 #define GPCMD_MODE_SENSE_6		0x1a
 #define GPCMD_START_STOP_UNIT		0x1b
@@ -23,12 +25,14 @@
 #define GPCMD_READ_CDROM_CAPACITY	0x25
 #define GPCMD_READ_10                   0x28
 #define GPCMD_SEEK_10			0x2b
+#define GPCMD_VERIFY_10			0x2f
 #define GPCMD_READ_SUBCHANNEL		0x42
 #define GPCMD_READ_TOC_PMA_ATIP		0x43
 #define GPCMD_READ_HEADER		0x44
 #define GPCMD_PLAY_AUDIO_10		0x45
 #define GPCMD_GET_CONFIGURATION		0x46
 #define GPCMD_PLAY_AUDIO_MSF	        0x47
+#define GPCMD_PLAY_AUDIO_TRACK_INDEX	0x48
 #define GPCMD_GET_EVENT_STATUS_NOTIFICATION	0x4a
 #define GPCMD_PAUSE_RESUME		0x4b
 #define GPCMD_STOP_PLAY_SCAN            0x4e
@@ -39,12 +43,18 @@
 #define GPCMD_PLAY_AUDIO_12		0xa5
 #define GPCMD_READ_12                   0xa8
 #define GPCMD_READ_DVD_STRUCTURE	0xad	/* For reading. */
+#define GPCMD_VERIFY_12			0xaf
+#define GPCMD_PLAY_CD_OLD		0xb4
+#define GPCMD_READ_CD_OLD		0xb8
 #define GPCMD_READ_CD_MSF		0xb9
+#define GPCMD_SCAN			0xba
 #define GPCMD_SET_SPEED			0xbb
 #define GPCMD_PLAY_CD			0xbc
 #define GPCMD_MECHANISM_STATUS		0xbd
 #define GPCMD_READ_CD			0xbe
 #define GPCMD_SEND_DVD_STRUCTURE	0xbf	/* This is for writing only, irrelevant to PCem. */
+#define GPCMD_SCAN_ALT			0xcd	/* Should be equivalent to 0xba */
+#define GPCMD_SET_SPEED_ALT		0xda	/* Should be equivalent to 0xbb */
 
 /* Mode page codes for mode sense/set */
 #define GPMODE_R_W_ERROR_PAGE		0x01
@@ -66,7 +76,9 @@
 /* SCSI Additional Sense Codes */
 #define ASC_AUDIO_PLAY_OPERATION	0x00
 #define ASC_ILLEGAL_OPCODE		0x20
+#define ASC_LBA_OUT_OF_RANGE		0x21
 #define	ASC_INV_FIELD_IN_CMD_PACKET	0x24
+#define	ASC_INV_FIELD_IN_PARAMETER_LIST	0x26
 #define ASC_MEDIUM_MAY_HAVE_CHANGED	0x28
 #define ASC_INCOMPATIBLE_FORMAT              0x30
 #define ASC_MEDIUM_NOT_PRESENT		0x3a
@@ -79,7 +91,7 @@
 
 /* Tell RISC OS that we have a 4x CD-ROM drive (600kb/sec data, 706kb/sec raw).
    Not that it means anything */
-#define CDROM_SPEED	706
+#define CDROM_SPEED	706		 /* 0x2C2 */
 
 /* Some generally useful CD-ROM information */
 #define CD_MINS                       75 /* max. minutes per CD */
@@ -144,13 +156,14 @@
 #define MMC_PROFILE_HDDVD_RW_DL         0x005A
 #define MMC_PROFILE_INVALID             0xFFFF
 
+#define SCSI_ONLY		32
+#define ATAPI_ONLY		16
+#define IMPLEMENTED		8
 #define NONDATA			4
 #define CHECK_READY		2
 #define ALLOW_UA		1
 
 extern uint8_t SCSICommandTable[0x100];
-
-#define IMPLEMENTED		1
 
 extern uint8_t mode_sense_pages[0x40];
 
@@ -197,47 +210,6 @@ extern int prev_status;
 
 #define MSFtoLBA(m,s,f)  ((((m*60)+s)*75)+f)
 
-typedef struct __attribute__((packed))
-{
-	uint8_t user_data[2048];
-	uint8_t ecc[288];
-} m1_data_t;
-
-typedef struct __attribute__((packed))
-{
-	uint8_t sub_header[8];
-	uint8_t user_data[2328];
-} m2_data_t;
-
-typedef union __attribute__((packed))
-{
-	m1_data_t m1_data;
-	m2_data_t m2_data;
-	uint8_t raw_data[2352];
-} sector_data_t;
-
-typedef struct __attribute__((packed))
-{
-	uint8_t sync[12];
-	uint8_t header[4];
-	sector_data_t data;
-	uint8_t c2[296];
-	uint8_t subchannel_raw[96];
-	uint8_t subchannel_q[16];
-	uint8_t subchannel_rw[96];
-} cdrom_sector_t;
-
-typedef union __attribute__((packed))
-{
-	cdrom_sector_t cdrom_sector;
-	uint8_t buffer[2856];
-} sector_buffer_t;
-
-extern sector_buffer_t cdrom_sector_buffer;
-
-extern int cdrom_sector_type, cdrom_sector_flags;
-extern int cdrom_sector_size, cdrom_sector_ismsf;
-
 #define SCSI_PHASE_DATAOUT ( 0 )
 #define SCSI_PHASE_DATAIN ( 1 )
 #define SCSI_PHASE_COMMAND ( 2 )
@@ -250,7 +222,7 @@ extern int cdrom_sector_size, cdrom_sector_ismsf;
 struct
 {	
 	uint32_t pos;
-	uint8_t CmdBuffer[512*512];
+	uint8_t CmdBuffer[390144];
 	uint32_t CmdBufferLength;
 	int LunType;
 	uint32_t InitLength;
@@ -266,6 +238,10 @@ void SCSICDROM_Insert();
 
 int cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type);
 int cdrom_LBAtoMSF_accurate();
-int cdrom_read_data(uint8_t *buffer);
+// int cdrom_read_data(uint8_t *buffer);
+
+int mode_select_init(uint8_t command, uint16_t pl_length, uint8_t do_save);
+int mode_select_terminate(int force);
+int mode_select_write(uint8_t val);
 
 #endif

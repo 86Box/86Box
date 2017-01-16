@@ -5,6 +5,7 @@
 #ifdef USE_OPENAL
 #include <AL/al.h>
 #include <AL/alc.h>
+#include <AL/alext.h>
 #endif
 #include "ibm.h"
 #include "sound.h"
@@ -84,7 +85,7 @@ void inital()
 {
 #ifdef USE_OPENAL
         int c;
-        int16_t buf[BUFLEN*2];
+        float buf[BUFLEN*2];
 
 //        printf("1\n");
         check();
@@ -118,8 +119,8 @@ void inital()
 //        printf("5\n");
         for (c = 0; c < 4; c++)
         {
-                alBufferData(buffers[c], AL_FORMAT_STEREO16, buf, BUFLEN*2*2, FREQ);
-                alBufferData(buffers_cd[c], AL_FORMAT_STEREO16, buf, CD_BUFLEN*2*2, CD_FREQ);
+                alBufferData(buffers[c], AL_FORMAT_STEREO_FLOAT32, buf, BUFLEN*2*sizeof(float), FREQ);
+                alBufferData(buffers_cd[c], AL_FORMAT_STEREO_FLOAT32, buf, CD_BUFLEN*2*sizeof(float), CD_FREQ);
         }
 
         alSourceQueueBuffers(source[0], 4, buffers);
@@ -135,7 +136,7 @@ void inital()
 #endif
 }
 
-void givealbuffer(int32_t *buf)
+void givealbuffer(float *buf)
 {
 #ifdef USE_OPENAL
         int16_t buf16[BUFLEN*2];
@@ -174,7 +175,7 @@ void givealbuffer(int32_t *buf)
 //                printf("U ");
                 check();
 
-                for (c=0;c<BUFLEN*2;c++)
+                /* for (c=0;c<BUFLEN*2;c++)
                 {
                         if (buf[c] < -32768)
                                 buf16[c] = -32768;
@@ -182,9 +183,9 @@ void givealbuffer(int32_t *buf)
                                 buf16[c] = 32767;
                         else
                                 buf16[c] = buf[c];
-                }
+                } */
 //                for (c=0;c<BUFLEN*2;c++) buf[c]^=0x8000;
-                alBufferData(buffer, AL_FORMAT_STEREO16, buf16, BUFLEN*2*2, FREQ);
+                alBufferData(buffer, AL_FORMAT_STEREO_FLOAT32, buf, BUFLEN*2*sizeof(float), FREQ);
 //                printf("B ");
                check();
 
@@ -201,7 +202,7 @@ void givealbuffer(int32_t *buf)
 #endif
 }
 
-void givealbuffer_cd(int16_t *buf)
+void givealbuffer_cd(float *buf)
 {
 #ifdef USE_OPENAL
         int processed;
@@ -239,7 +240,7 @@ void givealbuffer_cd(int16_t *buf)
                 check();
 
 //                for (c=0;c<BUFLEN*2;c++) buf[c]^=0x8000;
-                alBufferData(buffer, AL_FORMAT_STEREO16, buf, CD_BUFLEN*2*2, CD_FREQ);
+                alBufferData(buffer, AL_FORMAT_STEREO_FLOAT32, buf, CD_BUFLEN*2*sizeof(float), CD_FREQ);
 //                printf("B ");
                check();
 

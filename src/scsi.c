@@ -13,6 +13,9 @@
 
 #include "timer.h"
 
+uint8_t SCSIPhase = SCSI_PHASE_BUS_FREE;
+uint8_t SCSIStatus = SCSI_STATUS_OK;
+
 int SCSICallback[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 uint8_t scsi_cdrom_id = 3; /*common setting*/
 
@@ -22,6 +25,7 @@ void SCSIGetLength(uint8_t id, int *datalen)
 	*datalen = SCSIDevices[id].CmdBufferLength;
 }
 
+#if 0
 //Execute SCSI command
 void SCSIExecCommand(uint8_t id, uint8_t *buffer, uint8_t *cdb)
 {
@@ -72,25 +76,22 @@ void SCSIWrite(uint8_t Id, uint8_t *srcbuf, uint8_t *dstbuf, uint32_t len_size)
 	}
 }
 /////
+#endif
 
 //Initialization function for the SCSI layer
 void SCSIReset(uint8_t Id)
 {
-	page_flags[GPMODE_CDROM_AUDIO_PAGE] &= 0xFD;		/* Clear changed flag for CDROM AUDIO mode page. */
-	memset(mode_pages_in[GPMODE_CDROM_AUDIO_PAGE], 0, 256);	/* Clear the page itself. */
+	uint8_t cdrom_id = scsi_cdrom_drives[Id];
 
-	SCSICallback[Id]=0;
-
-	if (cdrom_enabled && scsi_cdrom_enabled)
+	if (buslogic_scsi_drive_is_cdrom(Id))
 	{
+		SCSICallback[cdrom_id]=0;
+
+		cdrom_reset(cdrom_id);
 		SCSIDevices[Id].LunType = SCSI_CDROM;
 	}
 	else
 	{
 		SCSIDevices[Id].LunType = SCSI_NONE;
 	}
-	
-	page_flags[GPMODE_CDROM_AUDIO_PAGE] &= ~PAGE_CHANGED;
-	
-	SCSISense.UnitAttention = 0;
 }

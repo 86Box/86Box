@@ -7,6 +7,8 @@
 #include "sound.h"
 #include "sound_cms.h"
 
+#define MASTER_CLOCK 7159090
+
 typedef struct cms_t
 {
         int addrs[2];
@@ -37,9 +39,9 @@ void cms_update(cms_t *cms)
                 {
                         switch (cms->noisetype[c >> 1][c & 1])
                         {
-                                case 0: cms->noisefreq[c >> 1][c & 1] = 31250; break;
-                                case 1: cms->noisefreq[c >> 1][c & 1] = 15625; break;
-                                case 2: cms->noisefreq[c >> 1][c & 1] = 7812; break;
+                                case 0: cms->noisefreq[c >> 1][c & 1] = MASTER_CLOCK/256; break;
+                                case 1: cms->noisefreq[c >> 1][c & 1] = MASTER_CLOCK/512; break;
+                                case 2: cms->noisefreq[c >> 1][c & 1] = MASTER_CLOCK/1024; break;
                                 case 3: cms->noisefreq[c >> 1][c & 1] = cms->freq[c >> 1][(c & 1) * 3]; break;
                         }
                 }
@@ -124,14 +126,14 @@ void cms_write(uint16_t addr, uint8_t val, void *p)
                         case 0x0B: case 0x0C: case 0x0D:
                         voice = cms->addrs[chip] & 7;
                         cms->latch[chip][voice] = (cms->latch[chip][voice] & 0x700) | val;
-                        cms->freq[chip][voice] = (15625 << (cms->latch[chip][voice] >> 8)) / (511 - (cms->latch[chip][voice] & 255));
+                        cms->freq[chip][voice] = (MASTER_CLOCK/512 << (cms->latch[chip][voice] >> 8)) / (511 - (cms->latch[chip][voice] & 255));
                         break;
                         case 0x10: case 0x11: case 0x12: /*Octave*/
                         voice = (cms->addrs[chip] & 3) << 1;
                         cms->latch[chip][voice] = (cms->latch[chip][voice] & 0xFF) | ((val & 7) << 8);
                         cms->latch[chip][voice + 1] = (cms->latch[chip][voice + 1] & 0xFF) | ((val & 0x70) << 4);
-                        cms->freq[chip][voice] = (15625 << (cms->latch[chip][voice] >> 8)) / (511 - (cms->latch[chip][voice] & 255));
-                        cms->freq[chip][voice + 1] = (15625 << (cms->latch[chip][voice + 1] >> 8)) / (511 - (cms->latch[chip][voice + 1] & 255));
+                        cms->freq[chip][voice] = (MASTER_CLOCK/512 << (cms->latch[chip][voice] >> 8)) / (511 - (cms->latch[chip][voice] & 255));
+                        cms->freq[chip][voice + 1] = (MASTER_CLOCK/512 << (cms->latch[chip][voice + 1] >> 8)) / (511 - (cms->latch[chip][voice + 1] & 255));
                         break;
                         case 0x16: /*Noise*/
                         cms->noisetype[chip][0] = val & 3;

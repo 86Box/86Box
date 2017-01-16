@@ -19,20 +19,6 @@ static uint64_t hd_new_spt, hd_new_hpc, hd_new_cyl;
 static int hd_new_hdi;
 static int new_cdrom_channel;
 
-static void update_hdd_cdrom(HWND hdlg)
-{
-        HWND h;
-	int drive_num = 0;
-        
-	for (drive_num = 0; drive_num < IDE_NUM; drive_num++)
-	{
-		h = GetDlgItem(hdlg, IDC_CHDD + drive_num);
-		SendMessage(h, BM_SETCHECK, (new_cdrom_channel == drive_num) ? 0 : 1, 0);
-		h = GetDlgItem(hdlg, IDC_CCDROM + drive_num);
-		SendMessage(h, BM_SETCHECK, (new_cdrom_channel == drive_num) ? 1 : 0, 0);
-	}
-}
-
 int hdnew_no_update = 0;
 
 hard_disk_t hdnew_temp_hd;
@@ -556,16 +542,13 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 
                 hd_changed = 0;
 
-                new_cdrom_channel = atapi_cdrom_channel;
-
-                update_hdd_cdrom(hdlg);
                 return TRUE;
                 
                 case WM_COMMAND:
                 switch (LOWORD(wParam))
                 {
                         case IDOK:
-                        if (hd_changed || atapi_cdrom_channel != new_cdrom_channel)
+                        if (hd_changed)
                         {                     
                                 if (MessageBox(NULL, "This will reset 86Box!\nOkay to continue?", "86Box", MB_OKCANCEL) == IDOK)
                                 {
@@ -586,8 +569,6 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                         	hdc[drive_num] = hd[drive_num];
 					}
 
-                                        atapi_cdrom_channel = new_cdrom_channel;
-                                        
                                         saveconfig();
                                                                                 
                                         resetpchard();
@@ -645,31 +626,6 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 				drive_num = LOWORD(wParam) % 10;
 				hdconf_edit_boxes(hdlg, drive_num, &(hd[drive_num]));
 	                        return TRUE;
-
-                        case IDC_CHDD:
-                        case IDC_DHDD:
-                        case IDC_EHDD:
-                        case IDC_FHDD:
-                        case IDC_GHDD:
-                        case IDC_HHDD:
-                        case IDC_IHDD:
-                        case IDC_JHDD:
-                        if (new_cdrom_channel == (LOWORD(wParam) - IDC_CCDROM))
-                                new_cdrom_channel = -1;
-                        update_hdd_cdrom(hdlg);
-                        return TRUE;
-                        
-                        case IDC_CCDROM:
-                        case IDC_DCDROM:
-                        case IDC_ECDROM:
-                        case IDC_FCDROM:
-                        case IDC_GCDROM:
-                        case IDC_HCDROM:
-                        case IDC_ICDROM:
-                        case IDC_JCDROM:
-                        new_cdrom_channel = LOWORD(wParam) - IDC_CCDROM;
-                        update_hdd_cdrom(hdlg);
-                        return TRUE;
                 }
                 break;
 

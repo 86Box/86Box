@@ -32,11 +32,11 @@ static int settings_network_to_list[20], settings_list_to_network[20];
 
 static int mouse_valid(int type, int model)
 {
-        if (type == MOUSE_TYPE_PS2 && !(models[model].flags & MODEL_PS2))
+        if ((type & MOUSE_TYPE_IF_MASK) == MOUSE_TYPE_PS2 && !(models[model].flags & MODEL_PS2))
                 return 0;
-        if (type == MOUSE_TYPE_AMSTRAD && !(models[model].flags & MODEL_AMSTRAD))
+        if ((type & MOUSE_TYPE_IF_MASK) == MOUSE_TYPE_AMSTRAD && !(models[model].flags & MODEL_AMSTRAD))
                 return 0;
-        if (type == MOUSE_TYPE_OLIM24 && !(models[model].flags & MODEL_OLIM24))
+        if ((type & MOUSE_TYPE_IF_MASK) == MOUSE_TYPE_OLIM24 && !(models[model].flags & MODEL_OLIM24))
                 return 0;
         return 1;
 }

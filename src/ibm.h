@@ -535,11 +535,7 @@ int keybsenddelay;
 
 
 /*CD-ROM*/
-extern int cdrom_drive;
-extern int old_cdrom_drive;
 extern int idecallback[4];
-extern int cdrom_enabled;
-extern int scsi_cdrom_enabled;
 
 #define CD_STATUS_EMPTY		0
 #define CD_STATUS_DATA_ONLY	1

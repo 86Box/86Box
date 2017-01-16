@@ -9,9 +9,9 @@
 
 extern uint32_t cdrom_capacity;
    
-extern int ioctl_open(char d);
-extern void ioctl_reset();
+extern int ioctl_open(uint8_t id, char d);
+extern void ioctl_reset(uint8_t id);
 
-extern void ioctl_close(void);
+extern void ioctl_close(uint8_t id);
 
 #endif /* ! CDROM_IOCTL_H */

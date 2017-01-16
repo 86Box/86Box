@@ -7,8 +7,8 @@
 /* this header file lists the functions provided by
    various platform specific cdrom-ioctl files */
 
-extern int cdrom_null_open(char d);
-extern void cdrom_null_reset();
-extern void null_close();
+extern int cdrom_null_open(uint8_t id, char d);
+extern void cdrom_null_reset(uint8_t id);
+extern void null_close(uint8_t id);
 
 #endif /* ! CDROM_IOCTL_H */

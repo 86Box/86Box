@@ -3460,13 +3460,13 @@ static void MMX_ENTER()
         addbyte(0x45);
         addbyte(cpu_state_offset(ismmx));
         addbyte(1);
-        addbyte(0x8b); /*MOV TOP, EAX*/
+        addbyte(0x89); /*MOV TOP, EAX*/
         addbyte(0x45);
         addbyte(cpu_state_offset(TOP));
-        addbyte(0x8b); /*MOV tag, EAX*/      
+        addbyte(0x89); /*MOV tag, EAX*/      
         addbyte(0x45);
         addbyte(cpu_state_offset(tag[0]));
-        addbyte(0x8b); /*MOV tag+4, EAX*/
+        addbyte(0x89); /*MOV tag+4, EAX*/
         addbyte(0x45);
         addbyte(cpu_state_offset(tag[4]));
 

@@ -249,6 +249,7 @@ int ne2000_do_log = 0;
 
 void ne2000_log(const char *format, ...)
 {
+#ifdef ENABLE_NE2000_LOG
    if (ne2000_do_log)
    {
 	va_list ap;
@@ -257,6 +258,7 @@ void ne2000_log(const char *format, ...)
 	va_end(ap);
 	fflush(stdout);
    }
+#endif
 }
 
 static void ne2000_setirq(ne2000_t *ne2000, int irq)

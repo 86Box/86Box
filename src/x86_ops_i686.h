@@ -301,6 +301,13 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 
 		cpu_state.eaaddr = old_eaaddr;
 
+        	cpu_state.npxc = 0x37F;
+	        cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00);
+        	cpu_state.npxs = 0;
+	        *(uint64_t *)cpu_state.tag = 0x0303030303030303ll;
+        	cpu_state.TOP = 0;
+	        cpu_state.ismmx = 0;
+
 		CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
 
 		if(cpu_state.abrt)  pclog("FXSAVE: abrt != 0\n");
@@ -476,6 +483,13 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 		cpu_state.ismmx ? x87_stmmx(cpu_state.MM[7]) : x87_st_fsave(7);
 
 		cpu_state.eaaddr = old_eaaddr;
+
+        	cpu_state.npxc = 0x37F;
+	        cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00);
+        	cpu_state.npxs = 0;
+	        *(uint64_t *)cpu_state.tag = 0x0303030303030303ll;
+        	cpu_state.TOP = 0;
+	        cpu_state.ismmx = 0;
 
 		CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
 

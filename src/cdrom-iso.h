@@ -7,13 +7,9 @@
 /* this header file lists the functions provided by
    various platform specific cdrom-ioctl files */
 
-extern uint32_t last_block;
-   
-extern char iso_path[1024];
+extern int iso_open(uint8_t id, char *fn);
+extern void iso_reset(uint8_t id);
 
-extern int iso_open(char *fn);
-extern void iso_reset();
-
-extern void iso_close(void);
+extern void iso_close(uint8_t id);
 
 #endif /* ! CDROM_ISO_H */

@@ -190,6 +190,7 @@ typedef struct texture_t
         volatile int refcount, refcount_r[2];
         int is16;
         uint32_t palette_checksum;
+        uint32_t addr_start, addr_end;
         uint32_t *data;
 } texture_t;
 
@@ -1466,8 +1467,10 @@ static void use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
         else
                 voodoo->texture_cache[tmu][c].palette_checksum = 0;
         
-        addr = voodoo->texture_cache[tmu][c].base + texture_offset[lod_min] * (voodoo->texture_cache[tmu][c].is16 ? 2 : 1);
-        addr_end = voodoo->texture_cache[tmu][c].base + texture_offset[lod_max+1] * (voodoo->texture_cache[tmu][c].is16 ? 2 : 1);
+        addr = voodoo->params.tex_base[tmu][lod_min];
+        addr_end = voodoo->params.tex_base[tmu][lod_max+1];
+        voodoo->texture_cache[tmu][c].addr_start = addr;
+        voodoo->texture_cache[tmu][c].addr_end = addr_end;
         for (; addr <= addr_end; addr += (1 << TEX_DIRTY_SHIFT))
                 voodoo->texture_present[tmu][(addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT] = 1;
        
@@ -1488,8 +1491,8 @@ static void flush_texture_cache(voodoo_t *voodoo, uint32_t dirty_addr, int tmu)
                 {
                         int lod_min = (voodoo->texture_cache[tmu][c].tLOD >> 2) & 15;
                         int lod_max = (voodoo->texture_cache[tmu][c].tLOD >> 8) & 15;
-                        int addr_start = voodoo->texture_cache[tmu][c].base + texture_offset[lod_min] * (voodoo->texture_cache[tmu][c].is16 ? 2 : 1);
-                        int addr_end = voodoo->texture_cache[tmu][c].base + texture_offset[lod_max+1] * (voodoo->texture_cache[tmu][c].is16 ? 2 : 1);
+                        int addr_start = voodoo->texture_cache[tmu][c].addr_start;
+                        int addr_end = voodoo->texture_cache[tmu][c].addr_end;
 
                         if (dirty_addr >= (addr_start & voodoo->texture_mask & ~0x3ff) && dirty_addr < (((addr_end & voodoo->texture_mask) + 0x3ff) & ~0x3ff))
                         {

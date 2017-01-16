@@ -320,23 +320,27 @@ void thread_destroy_event(event_t *_event)
 
 static void initmenu(void)
 {
-        int c;
-        HMENU m;
+        int i, c;
+        HMENU dm, m;
         char s[32];
-        m=GetSubMenu(menu,1); /*Disc*/
-        m=GetSubMenu(m,17); /*CD-ROM*/
+        dm=GetSubMenu(menu,1); /*Disc*/
 
-        /* Loop through each Windows drive letter and test to see if
-           it's a CDROM */
-        for (c='A';c<='Z';c++)
-        {
-                sprintf(s,"%c:\\",c);
-                if (GetDriveType(s)==DRIVE_CDROM)
-                {
-                        sprintf(s, "Host CD/DVD Drive (%c:)", c);
-                        AppendMenu(m,MF_STRING,IDM_CDROM_REAL+c,s);
-                }
-        }
+	for (i = 0; i < CDROM_NUM; i++)
+	{
+	        m=GetSubMenu(dm,17+i); /*CD-ROM*/
+
+	        /* Loop through each Windows drive letter and test to see if
+	           it's a CDROM */
+	        for (c='A';c<='Z';c++)
+	        {
+        	        sprintf(s,"%c:\\",c);
+	                if (GetDriveType(s)==DRIVE_CDROM)
+	                {
+        	                sprintf(s, "Host CD/DVD Drive (%c:)", c);
+	                        AppendMenu(m,MF_STRING,IDM_CDROM_1_REAL+c+(i * 1000),s);
+	                }
+	        }
+	}
 }
 
 void get_executable_name(char *s, int size)
@@ -515,6 +519,28 @@ static void process_command_line()
         argv[argc] = NULL;
 }
 
+int valid_models[2] = { 0, 1 };
+int valid_bases[6] = { 0x130, 0x134, 0x230, 0x234, 0x330, 0x334 };
+int valid_irqs[6] = { 9, 10, 11, 12, 14, 15 };
+int valid_dma_channels[3] = { 5, 6, 7 };
+int valid_ide_channels[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+int valid_scsi_ids[15] = { 0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15 };
+
+int find_in_array(int *array, int val, int len, int menu_base)
+{
+	int i = 0;
+	int temp = 0;
+	for (i = 0; i < len; i++)
+	{
+	        CheckMenuItem(menu, menu_base + array[i], MF_UNCHECKED);
+		if (array[i] == val)
+		{
+			temp = 1;
+		}
+	}
+	return temp;
+}
+
 HANDLE hinstAcc;
 
 int WINAPI WinMain (HINSTANCE hThisInstance,
@@ -526,7 +552,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         HWND hwnd;               /* This is the handle for our window */
         MSG messages;            /* Here messages to the application are saved */
         WNDCLASSEX wincl;        /* Data structure for the windowclass */
-        int c, d, bRet;
+        int c, d, e, bRet;
 		char emulator_title[200];
         LARGE_INTEGER qpc_freq;
         HACCEL haccel;           /* Handle to accelerator table */
@@ -621,210 +647,90 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	// pclog("Checking CD-ROM menu item...\n");        
 
         /* Note by Kiririn: I've redone this since the CD-ROM can be disabled but still have something inside it. */
-        if (cdrom_enabled)
-           CheckMenuItem(menu, IDM_CDROM_ENABLED, MF_CHECKED);
+	for (e = 0; e < CDROM_NUM; e++)
+	{
+	        if (cdrom_drives[e].enabled)
+        	   CheckMenuItem(menu, IDM_CDROM_1_ENABLED + (e * 1000), MF_CHECKED);
 
-        if (scsi_cdrom_enabled)
-           CheckMenuItem(menu, IDM_CDROM_SCSI, MF_CHECKED);
+	        if (cdrom_drives[e].sound_on)
+        	   CheckMenuItem(menu, IDM_CDROM_1_SOUND_ON + (e * 1000), MF_CHECKED);
+
+	        if (cdrom_drives[e].bus_type)
+        	   CheckMenuItem(menu, IDM_CDROM_1_SCSI + (e * 1000), MF_CHECKED);
+
+		if (!find_in_array(valid_ide_channels, cdrom_drives[e].ide_channel, 8, IDM_CDROM_1_C + (e * 1000)))
+		{
+			fatal("Tertiary IDE controller: Invalid IRQ\n");
+		}
+
+	        CheckMenuItem(menu, IDM_CDROM_1_C + (e * 1000) + cdrom_drives[e].ide_channel, MF_CHECKED);
+
+		if (!find_in_array(valid_scsi_ids, cdrom_drives[e].scsi_device_id, 15, IDM_CDROM_1_0 + (e * 1000)))
+		{
+			fatal("Tertiary IDE controller: Invalid IRQ\n");
+		}
+
+	        CheckMenuItem(menu, IDM_CDROM_1_0 + (e * 1000) + cdrom_drives[e].scsi_device_id, MF_CHECKED);
+
+		if (cdrom_drives[e].host_drive == 200)
+		{
+			CheckMenuItem(menu, IDM_CDROM_1_ISO + (e * 1000), MF_CHECKED);
+		}
+		else
+		{
+			CheckMenuItem(menu, IDM_CDROM_1_REAL + (e * 1000) + cdrom_drives[e].host_drive, MF_CHECKED);
+		}
+	}
 
         if (ide_enable[2])
            CheckMenuItem(menu, IDM_IDE_TER_ENABLED, MF_CHECKED);
 
-        CheckMenuItem(menu, IDM_IDE_TER_IRQ9, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_IDE_TER_IRQ10, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_IDE_TER_IRQ11, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_IDE_TER_IRQ12, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_IDE_TER_IRQ14, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_IDE_TER_IRQ15, MF_UNCHECKED);
+	if (!find_in_array(valid_irqs, ide_irq[2], 6, IDM_IDE_TER_IRQ9 - 9))
+	{
+		fatal("Tertiary IDE controller: Invalid IRQ\n");
+	}
 
-        if (ide_irq[2] == 9)
-	{
-           CheckMenuItem(menu, IDM_IDE_TER_IRQ9, MF_CHECKED);
-	}
-        else if (ide_irq[2] == 10)
-	{
-           CheckMenuItem(menu, IDM_IDE_TER_IRQ10, MF_CHECKED);
-	}
-        else if (ide_irq[2] == 11)
-	{
-           CheckMenuItem(menu, IDM_IDE_TER_IRQ11, MF_CHECKED);
-	}
-        else if (ide_irq[2] == 12)
-	{
-           CheckMenuItem(menu, IDM_IDE_TER_IRQ12, MF_CHECKED);
-	}
-        else if (ide_irq[2] == 14)
-	{
-           CheckMenuItem(menu, IDM_IDE_TER_IRQ14, MF_CHECKED);
-	}
-        else if (ide_irq[2] == 15)
-	{
-           CheckMenuItem(menu, IDM_IDE_TER_IRQ15, MF_CHECKED);
-	}
-	else
-	{
-		fatal("Unrecognized tertiary IDE controller IRQ\n");
-	}
+        CheckMenuItem(menu, IDM_IDE_TER_IRQ9 - 9 + ide_irq[2], MF_CHECKED);
 
         if (ide_enable[3])
            CheckMenuItem(menu, IDM_IDE_QUA_ENABLED, MF_CHECKED);
 
-        CheckMenuItem(menu, IDM_IDE_QUA_IRQ9, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_IDE_QUA_IRQ10, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_IDE_QUA_IRQ11, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_IDE_QUA_IRQ12, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_IDE_QUA_IRQ14, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_IDE_QUA_IRQ15, MF_UNCHECKED);
+	if (!find_in_array(valid_irqs, ide_irq[3], 6, IDM_IDE_QUA_IRQ9 - 9))
+	{
+		fatal("Quaternary IDE controller: Invalid IRQ\n");
+	}
 
-        if (ide_irq[3] == 9)
-	{
-           CheckMenuItem(menu, IDM_IDE_QUA_IRQ9, MF_CHECKED);
-	}
-        else if (ide_irq[3] == 10)
-	{
-           CheckMenuItem(menu, IDM_IDE_QUA_IRQ10, MF_CHECKED);
-	}
-        else if (ide_irq[3] == 11)
-	{
-           CheckMenuItem(menu, IDM_IDE_QUA_IRQ11, MF_CHECKED);
-	}
-        else if (ide_irq[3] == 12)
-	{
-           CheckMenuItem(menu, IDM_IDE_QUA_IRQ12, MF_CHECKED);
-	}
-        else if (ide_irq[3] == 14)
-	{
-           CheckMenuItem(menu, IDM_IDE_QUA_IRQ14, MF_CHECKED);
-	}
-        else if (ide_irq[3] == 15)
-	{
-           CheckMenuItem(menu, IDM_IDE_QUA_IRQ15, MF_CHECKED);
-	}
-	else
-	{
-		fatal("Unrecognized quaternary IDE controller IRQ\n");
-	}
+        CheckMenuItem(menu, IDM_IDE_QUA_IRQ9 - 9 + ide_irq[3], MF_CHECKED);
 
         if (buslogic_enabled)
            CheckMenuItem(menu, IDM_SCSI_ENABLED, MF_CHECKED);
 
-        CheckMenuItem(menu, IDM_SCSI_MODEL0, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_SCSI_MODEL1, MF_UNCHECKED);
-
-        if (scsi_model == 0)
+	if (!find_in_array(valid_models, scsi_model, 2, IDM_SCSI_MODEL0))
 	{
-           CheckMenuItem(menu, IDM_SCSI_MODEL0, MF_CHECKED);
-	}
-        else if (scsi_model == 1)
-	{
-           CheckMenuItem(menu, IDM_SCSI_MODEL1, MF_CHECKED);
-	}
-	else
-	{
-		fatal("Unrecognized SCSI model\n");
+		fatal("SCSI controller: Invalid model\n");
 	}
 
-        CheckMenuItem(menu, IDM_SCSI_BASE130, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_SCSI_BASE134, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_SCSI_BASE230, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_SCSI_BASE234, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_SCSI_BASE330, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_SCSI_BASE334, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_SCSI_MODEL0 + scsi_model, MF_CHECKED);
 
-        if (scsi_base == 0x130)
+	if (!find_in_array(valid_bases, scsi_base, 6, IDM_SCSI_BASE130 - 0x130))
 	{
-           CheckMenuItem(menu, IDM_SCSI_BASE130, MF_CHECKED);
-	}
-        else if (scsi_base == 0x134)
-	{
-           CheckMenuItem(menu, IDM_SCSI_BASE134, MF_CHECKED);
-	}
-        else if (scsi_base == 0x230)
-	{
-           CheckMenuItem(menu, IDM_SCSI_BASE230, MF_CHECKED);
-	}
-        else if (scsi_base == 0x234)
-	{
-           CheckMenuItem(menu, IDM_SCSI_BASE234, MF_CHECKED);
-	}
-        else if (scsi_base == 0x330)
-	{
-           CheckMenuItem(menu, IDM_SCSI_BASE330, MF_CHECKED);
-	}
-        else if (scsi_base == 0x334)
-	{
-           CheckMenuItem(menu, IDM_SCSI_BASE334, MF_CHECKED);
-	}
-	else
-	{
-		fatal("Unrecognized SCSI base address\n");
+		fatal("SCSI controller: Invalid base address\n");
 	}
 
-        CheckMenuItem(menu, IDM_SCSI_IRQ9, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_SCSI_IRQ10, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_SCSI_IRQ11, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_SCSI_IRQ12, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_SCSI_IRQ14, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_SCSI_IRQ15, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_SCSI_BASE130 - 0x130 + scsi_base, MF_CHECKED);
 
-        if (scsi_irq == 9)
+	if (!find_in_array(valid_irqs, scsi_irq, 6, IDM_SCSI_IRQ9 - 9))
 	{
-           CheckMenuItem(menu, IDM_SCSI_IRQ9, MF_CHECKED);
+		fatal("SCSI controller: Invalid IRQ\n");
 	}
-        else if (scsi_irq == 10)
+        CheckMenuItem(menu, IDM_SCSI_IRQ9 - 9 + scsi_irq, MF_CHECKED);
+
+	if (!find_in_array(valid_dma_channels, scsi_dma, 3, IDM_SCSI_DMA5 - 5))
 	{
-           CheckMenuItem(menu, IDM_SCSI_IRQ10, MF_CHECKED);
-	}
-        else if (scsi_irq == 11)
-	{
-           CheckMenuItem(menu, IDM_SCSI_IRQ11, MF_CHECKED);
-	}
-        else if (scsi_irq == 12)
-	{
-           CheckMenuItem(menu, IDM_SCSI_IRQ12, MF_CHECKED);
-	}
-        else if (scsi_irq == 14)
-	{
-           CheckMenuItem(menu, IDM_SCSI_IRQ14, MF_CHECKED);
-	}
-        else if (scsi_irq == 15)
-	{
-           CheckMenuItem(menu, IDM_SCSI_IRQ15, MF_CHECKED);
-	}
-	else
-	{
-		fatal("Unrecognized SCSI IRQ\n");
+		fatal("SCSI controller: Invalid DMA channel\n");
 	}
 
-        CheckMenuItem(menu, IDM_SCSI_DMA5, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_SCSI_DMA6, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_SCSI_DMA7, MF_UNCHECKED);
-
-        if (scsi_dma == 5)
-	{
-           CheckMenuItem(menu, IDM_SCSI_DMA5, MF_CHECKED);
-	}
-        else if (scsi_dma == 6)
-	{
-           CheckMenuItem(menu, IDM_SCSI_DMA6, MF_CHECKED);
-	}
-        else if (scsi_dma == 7)
-	{
-           CheckMenuItem(menu, IDM_SCSI_DMA7, MF_CHECKED);
-	}
-	else
-	{
-		fatal("Unrecognized SCSI DMA address\n");
-	}
-
-	if (cdrom_drive == 200)
-	{
-		CheckMenuItem(menu, IDM_CDROM_ISO, MF_CHECKED);
-	}
-	else
-	{
-		CheckMenuItem(menu, IDM_CDROM_REAL + cdrom_drive, MF_CHECKED);
-	}
+        CheckMenuItem(menu, IDM_SCSI_DMA5 - 5 + scsi_dma, MF_CHECKED);
 
 	CheckMenuItem(menu, IDM_VID_FORCE43, force_43 ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(menu, IDM_VID_OVERSCAN, enable_overscan ? MF_CHECKED : MF_UNCHECKED);
@@ -1138,18 +1044,18 @@ LRESULT CALLBACK LowLevelKeyboardProc( int nCode, WPARAM wParam, LPARAM lParam )
 	return CallNextHookEx( hKeyboardHook, nCode, wParam, lParam );
 }
 
-void cdrom_close(void)
+void cdrom_close(uint8_t id)
 {
-	switch (cdrom_drive)
+	switch (cdrom_drives[id].host_drive)
 	{
 		case 0:
-			null_close();
+			null_close(id);
 			break;
 		default:
-			ioctl_close();
+			ioctl_close(id);
 			break;
 		case 200:
-			iso_close();
+			iso_close(id);
 			break;
 	}
 }
@@ -1312,71 +1218,88 @@ void video_toggle_option(HMENU hmenu, int *val, int id)
 	saveconfig();
 }
 
-void win_cdrom_eject()
+void win_cdrom_eject(uint8_t id)
 {
         HMENU hmenu;
 	hmenu=GetMenu(ghwnd);
-	if (cdrom_drive == 0)
+	if (cdrom_drives[id].host_drive == 0)
 	{
 		/* Switch from empty to empty. Do nothing. */
 		return;
 	}
-	cdrom->exit();
-	cdrom_close();
-	cdrom_null_open(0);
-	if (cdrom_enabled)
+	cdrom_drives[id].handler->exit(id);
+	cdrom_close(id);
+	cdrom_null_open(id, 0);
+	if (cdrom_drives[id].enabled)
 	{
 		/* Signal disc change to the emulated machine. */
-		SCSICDROM_Insert();
+		cdrom_insert(id);
 	}
-	CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_UNCHECKED);
-	CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_UNCHECKED);
-	old_cdrom_drive = cdrom_drive;
-	cdrom_drive=0;
-	CheckMenuItem(hmenu, IDM_CDROM_EMPTY, MF_CHECKED);
+	CheckMenuItem(hmenu, IDM_CDROM_1_REAL + (id * 1000) + cdrom_drive, MF_UNCHECKED);
+	CheckMenuItem(hmenu, IDM_CDROM_1_ISO + (id * 1000),		           MF_UNCHECKED);
+	cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
+	cdrom_drives[id].host_drive=0;
+	CheckMenuItem(hmenu, IDM_CDROM_1_EMPTY + (id * 1000), MF_CHECKED);
 	saveconfig();
 }
 
-void win_cdrom_reload()
+void win_cdrom_reload(uint8_t id)
 {
         HMENU hmenu;
 	hmenu=GetMenu(ghwnd);
 	int new_cdrom_drive;
-	if ((cdrom_drive == old_cdrom_drive) || (old_cdrom_drive == 0) || (cdrom_drive != 0))
+	if ((cdrom_drives[id].host_drive == cdrom_drives[id].prev_host_drive) || (cdrom_drives[id].prev_host_drive == 0) || (cdrom_drives[id].host_drive != 0))
 	{
 		/* Switch from empty to empty. Do nothing. */
 		return;
 	}
-	if (old_cdrom_drive == 200)
+	cdrom_close(id);
+	if (cdrom_drives[id].prev_host_drive == 200)
 	{
-		iso_open(iso_path);
-		if (cdrom_enabled)
+		iso_open(id, cdrom_iso[id].iso_path);
+		if (cdrom_drives[id].enabled)
 		{
 			/* Signal disc change to the emulated machine. */
-			SCSICDROM_Insert();
+			cdrom_insert(id);
 		}
-		CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_UNCHECKED);
-		// CheckMenuItem(hmenu, IDM_CDROM_DISABLED,           MF_UNCHECKED);
-		CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_UNCHECKED);
-		cdrom_drive = 200;
-		CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_CHECKED);
+		CheckMenuItem(hmenu, IDM_CDROM_1_EMPTY + (id * 1000),		           MF_UNCHECKED);
+		cdrom_drives[id].host_drive = 200;
+		CheckMenuItem(hmenu, IDM_CDROM_1_ISO + (id * 1000),		           MF_CHECKED);
 		saveconfig();
 	}
 	else 
 	{
-		new_cdrom_drive = old_cdrom_drive;
-		ioctl_open(new_cdrom_drive);
-		if (cdrom_enabled)
+		new_cdrom_drive = cdrom_drives[id].prev_host_drive;
+		ioctl_open(id, new_cdrom_drive);
+		if (cdrom_drives[id].enabled)
 		{
 			/* Signal disc change to the emulated machine. */
-			SCSICDROM_Insert();
+			cdrom_insert(id);
 		}
-		CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_UNCHECKED);
-		CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_UNCHECKED);
+		CheckMenuItem(hmenu, IDM_CDROM_1_EMPTY + (id * 1000),		           MF_UNCHECKED);
 		cdrom_drive = new_cdrom_drive;
-		CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_CHECKED);
+		CheckMenuItem(hmenu, IDM_CDROM_1_REAL + (id * 1000) + cdrom_drives[id].host_drive, MF_CHECKED);
 		saveconfig();
 	}
+}
+
+int convert_cdrom_id(int original_id)
+{
+	int i = 0;
+
+	if (original_id >= (CDROM_NUM * 1000))
+	{
+		return 0;
+	}
+
+	for (i = 0; i < CDROM_NUM; i++)
+	{
+		if (original_id == (i * 1000))
+		{
+			return i;
+		}
+	}
+	return 0;
 }
 
 LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -1386,6 +1309,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 	uint32_t ri_size = 0;
 		char temp_iso_path[1024];
 	int new_cdrom_drive;
+	int cdrom_id = 0;
+	int menu_sub_param = 0;
 //        pclog("Message %i %08X\n",message,message);
         switch (message)
         {
@@ -1598,61 +1523,88 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         pause = 0;
                         break;
                         
-#if 0
-                        case IDM_CDROM_DISABLED:
-                        if (cdrom_enabled)
-                        {
-                                if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
-                                   break;
-                        }
-			if (!cdrom_enabled)
-			{
-				/* Switching from disabled to disabled. Do nothing. */
-				break;
-			}
-			cdrom->exit();
-			cdrom_close();
-                        cdrom_null_open(0);
-                        CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_UNCHECKED);
-                        CheckMenuItem(hmenu, IDM_CDROM_DISABLED,           MF_CHECKED);
-			CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_UNCHECKED);
-			old_cdrom_drive = cdrom_drive;
-			cdrom_drive=0;
-                        CheckMenuItem(hmenu, IDM_CDROM_EMPTY,              MF_UNCHECKED);
-                        if (cdrom_enabled)
-                        {
-                                pause = 1;
-                                Sleep(100);
-                                cdrom_enabled = 0;                                             
-                                saveconfig();
-                                resetpchard();
-                                pause = 0;
-                        }
-                        break;
-#endif
-                        case IDM_CDROM_ENABLED:
+			case IDM_CDROM_1_ENABLED:
+			case IDM_CDROM_2_ENABLED:
+			case IDM_CDROM_3_ENABLED:
+			case IDM_CDROM_4_ENABLED:
+			cdrom_id = convert_cdrom_id(LOWORD(wParam) - IDM_CDROM_1_ENABLED);
                         if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
 			{
 				break;
 			}
 			pause = 1;
 			Sleep(100);
-			cdrom_enabled ^= 1;                                             
-			CheckMenuItem(hmenu, IDM_CDROM_ENABLED, cdrom_enabled ? MF_CHECKED : MF_UNCHECKED);
+			cdrom_drives[cdrom_id].enabled ^= 1;                                             
+			CheckMenuItem(hmenu, IDM_CDROM_1_ENABLED + (cdrom_id * 1000), cdrom_drives[cdrom_id].enabled ? MF_CHECKED : MF_UNCHECKED);
 			saveconfig();
 			resetpchard();
 			pause = 0;
 			break;
                         
-                        case IDM_CDROM_SCSI:
+			case IDM_CDROM_1_SOUND_ON:
+			case IDM_CDROM_2_SOUND_ON:
+			case IDM_CDROM_3_SOUND_ON:
+			case IDM_CDROM_4_SOUND_ON:
+			cdrom_id = convert_cdrom_id(LOWORD(wParam) - IDM_CDROM_1_SOUND_ON);
+			Sleep(100);
+			cdrom_drives[cdrom_id].sound_on ^= 1;                                             
+			CheckMenuItem(hmenu, IDM_CDROM_1_SOUND_ON + (cdrom_id * 1000), cdrom_drives[cdrom_id].enabled ? MF_CHECKED : MF_UNCHECKED);
+			saveconfig();
+			break;
+                        
+			case IDM_CDROM_1_SCSI:
+			case IDM_CDROM_2_SCSI:
+			case IDM_CDROM_3_SCSI:
+			case IDM_CDROM_4_SCSI:
+			cdrom_id = convert_cdrom_id(LOWORD(wParam) - IDM_CDROM_1_SCSI);
                         if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
 			{
 				break;
 			}
 			pause = 1;
 			Sleep(100);
-			scsi_cdrom_enabled ^= 1;
-			CheckMenuItem(hmenu, IDM_CDROM_SCSI, scsi_cdrom_enabled ? MF_CHECKED : MF_UNCHECKED);
+			cdrom_drives[cdrom_id].bus_type ^= 1;
+			CheckMenuItem(hmenu, IDM_CDROM_1_SCSI + (cdrom_id * 1000), cdrom_drives[cdrom_id].bus_type ? MF_CHECKED : MF_UNCHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
+                        case IDM_CDROM_1_C ... IDM_CDROM_1_H:
+                        case IDM_CDROM_2_C ... IDM_CDROM_2_H:
+                        case IDM_CDROM_3_C ... IDM_CDROM_3_H:
+                        case IDM_CDROM_4_C ... IDM_CDROM_4_H:
+			menu_sub_param = LOWORD(wParam) % 100;
+			cdrom_id = convert_cdrom_id(LOWORD(wParam) - menu_sub_param - IDM_CDROM_1_C);
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			CheckMenuItem(hmenu, IDM_CDROM_1_C + (cdrom_id * 1000) + cdrom_drives[cdrom_id].ide_channel, MF_UNCHECKED);
+			cdrom_drives[cdrom_id].ide_channel = menu_sub_param;
+			CheckMenuItem(hmenu, IDM_CDROM_1_C + (cdrom_id * 1000) + cdrom_drives[cdrom_id].ide_channel, MF_CHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
+                        case IDM_CDROM_1_0 ... IDM_CDROM_1_15:
+                        case IDM_CDROM_2_0 ... IDM_CDROM_2_15:
+                        case IDM_CDROM_3_0 ... IDM_CDROM_3_15:
+                        case IDM_CDROM_4_0 ... IDM_CDROM_4_15:
+			menu_sub_param = LOWORD(wParam) % 100;
+			cdrom_id = convert_cdrom_id(LOWORD(wParam) - menu_sub_param - IDM_CDROM_1_0);
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			CheckMenuItem(hmenu, IDM_CDROM_1_0 + (cdrom_id * 1000) + cdrom_drives[cdrom_id].scsi_device_id, MF_UNCHECKED);
+			cdrom_drives[cdrom_id].scsi_device_id = menu_sub_param;
+			CheckMenuItem(hmenu, IDM_CDROM_1_0 + (cdrom_id * 1000) + cdrom_drives[cdrom_id].scsi_device_id, MF_CHECKED);
 			saveconfig();
 			resetpchard();
 			pause = 0;
@@ -1816,7 +1768,13 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			scsi_set_dma(hmenu, 7, IDM_SCSI_DMA7);
 			break;
                         
-                        case IDM_CDROM_EMPTY:
+			case IDM_CDROM_1_EMPTY:
+			case IDM_CDROM_2_EMPTY:
+			case IDM_CDROM_3_EMPTY:
+			case IDM_CDROM_4_EMPTY:
+			cdrom_id = convert_cdrom_id(LOWORD(wParam) - IDM_CDROM_1_EMPTY);
+			win_cdrom_eject(cdrom_id);
+#if 0
 			if (cdrom_drive == 0)
 			{
 				/* Switch from empty to empty. Do nothing. */
@@ -1836,93 +1794,79 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         cdrom_drive=0;
                         CheckMenuItem(hmenu, IDM_CDROM_EMPTY, MF_CHECKED);
                         saveconfig();
+#endif
                         break;
 
-			case IDM_CDROM_RELOAD:
-			win_cdrom_reload();
+			case IDM_CDROM_1_RELOAD:
+			case IDM_CDROM_2_RELOAD:
+			case IDM_CDROM_3_RELOAD:
+			case IDM_CDROM_4_RELOAD:
+			cdrom_id = convert_cdrom_id(LOWORD(wParam) - IDM_CDROM_1_RELOAD);
+			win_cdrom_reload(cdrom_id);
 			break;
 
-                        case IDM_CDROM_ISO:
-                        if (!getfile(hwnd,"CD-ROM image (*.ISO)\0*.ISO\0All files (*.*)\0*.*\0",iso_path))
+			case IDM_CDROM_1_ISO:
+			case IDM_CDROM_2_ISO:
+			case IDM_CDROM_3_ISO:
+			case IDM_CDROM_4_ISO:
+			cdrom_id = convert_cdrom_id(LOWORD(wParam) - IDM_CDROM_1_ISO);
+                        if (!getfile(hwnd,"CD-ROM image (*.ISO)\0*.ISO\0All files (*.*)\0*.*\0",cdrom_iso[cdrom_id].iso_path))
                         {
-                                /* if (!cdrom_enabled)
-                                {
-                                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
-                                           break;
-                                } */
-				old_cdrom_drive = cdrom_drive;
+				cdrom_drives[cdrom_id].prev_host_drive = cdrom_drives[cdrom_id].host_drive;
 				strcpy(temp_iso_path, openfilestring);
-				// if ((strcmp(iso_path, temp_iso_path) == 0) && (cdrom_drive == 200) && cdrom_enabled)
-				if ((strcmp(iso_path, temp_iso_path) == 0) && (cdrom_drive == 200))
+				if ((strcmp(cdrom_iso[cdrom_id].iso_path, temp_iso_path) == 0) && (cdrom_drives[cdrom_id].host_drive == 200))
 				{
 					/* Switching from ISO to the same ISO. Do nothing. */
 					break;
 				}
-				cdrom->exit();
-				cdrom_close();
-				iso_open(temp_iso_path);
-				if (cdrom_enabled)
+				cdrom_drives[cdrom_id].handler->exit(cdrom_id);
+				cdrom_close(cdrom_id);
+				iso_open(cdrom_id, temp_iso_path);
+				if (cdrom_drives[cdrom_id].enabled)
 				{
 					/* Signal disc change to the emulated machine. */
-					SCSICDROM_Insert();
+					cdrom_insert(cdrom_id);
 				}
-                                CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_UNCHECKED);
-                                // CheckMenuItem(hmenu, IDM_CDROM_DISABLED,           MF_UNCHECKED);
-                                CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_UNCHECKED);
-				cdrom_drive = 200;
-                                CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_CHECKED);
+                                CheckMenuItem(hmenu, IDM_CDROM_1_EMPTY + (cdrom_id * 1000),           MF_UNCHECKED);
+				if ((cdrom_drives[cdrom_id].host_drive != 0) && (cdrom_drives[cdrom_id].host_drive != 200))
+				{
+	                                CheckMenuItem(hmenu, IDM_CDROM_1_REAL + (cdrom_id * 1000) + cdrom_drives[cdrom_id].host_drive, MF_UNCHECKED);
+				}
+				cdrom_drives[cdrom_id].host_drive = 200;
+                                CheckMenuItem(hmenu, IDM_CDROM_1_ISO + (cdrom_id * 1000),		           MF_CHECKED);
                                 saveconfig();
-                                /* if (!cdrom_enabled)
-                                {
-                                        pause = 1;
-                                        Sleep(100);
-                                        cdrom_enabled = 1;
-                                        saveconfig();
-                                        resetpchard();
-                                        pause = 0;
-                                } */
                         }
 			break;
 
                         default:
-                        if (LOWORD(wParam)>IDM_CDROM_REAL && LOWORD(wParam)<(IDM_CDROM_REAL+100))
+			menu_sub_param = LOWORD(wParam) % 100;
+			cdrom_id = convert_cdrom_id(LOWORD(wParam) - menu_sub_param - IDM_CDROM_1_REAL);
+                        if ((LOWORD(wParam) > IDM_CDROM_1_REAL + (cdrom_id * 1000)) && (LOWORD(wParam) < (IDM_CDROM_1_REAL + (cdrom_id * 1000) + 100)))
                         {
-                                /* if (!cdrom_enabled)
-                                {
-                                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
-                                           break;
-                                } */
-				new_cdrom_drive = LOWORD(wParam)-IDM_CDROM_REAL;
-				// if ((cdrom_drive == new_cdrom_drive) && cdrom_enabled)
-				if (cdrom_drive == new_cdrom_drive)
+				new_cdrom_drive = menu_sub_param;
+				if (cdrom_drives[cdrom_id].host_drive == new_cdrom_drive)
 				{
 					/* Switching to the same drive. Do nothing. */
 					break;
 				}
-				old_cdrom_drive = cdrom_drive;
-				cdrom->exit();
-				cdrom_close();
-                                ioctl_open(new_cdrom_drive);
-				if (cdrom_enabled)
+				cdrom_drives[cdrom_id].prev_host_drive = cdrom_drives[cdrom_id].host_drive;
+				cdrom_drives[cdrom_id].handler->exit(cdrom_id);
+				cdrom_close(cdrom_id);
+                                ioctl_open(cdrom_id, new_cdrom_drive);
+				if (cdrom_drives[cdrom_id].enabled)
 				{
 					/* Signal disc change to the emulated machine. */
-					SCSICDROM_Insert();
+					cdrom_insert(cdrom_id);
 				}
-                                CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_UNCHECKED);
-                                // CheckMenuItem(hmenu, IDM_CDROM_DISABLED,           MF_UNCHECKED);
-                                CheckMenuItem(hmenu, IDM_CDROM_ISO,		           MF_UNCHECKED);
-                                cdrom_drive = new_cdrom_drive;
-                                CheckMenuItem(hmenu, IDM_CDROM_REAL + cdrom_drive, MF_CHECKED);
+                                CheckMenuItem(hmenu, IDM_CDROM_1_EMPTY + (cdrom_id * 1000),           MF_UNCHECKED);
+				if ((cdrom_drives[cdrom_id].host_drive != 0) && (cdrom_drives[cdrom_id].host_drive != 200))
+				{
+	                                CheckMenuItem(hmenu, IDM_CDROM_1_REAL + (cdrom_id * 1000) + cdrom_drives[cdrom_id].host_drive, MF_UNCHECKED);
+				}
+                                CheckMenuItem(hmenu, IDM_CDROM_1_ISO + (cdrom_id * 1000),		           MF_UNCHECKED);
+                                cdrom_drives[cdrom_id].host_drive = new_cdrom_drive;
+                                CheckMenuItem(hmenu, IDM_CDROM_1_REAL + (cdrom_id * 1000) + cdrom_drives[cdrom_id].host_drive, MF_CHECKED);
                                 saveconfig();
-                                /* if (!cdrom_enabled)
-                                {
-                                        pause = 1;
-                                        Sleep(100);
-                                        cdrom_enabled = 1;
-                                        saveconfig();
-                                        resetpchard();
-                                        pause = 0;
-                                } */
                         }
                         break;
                 }

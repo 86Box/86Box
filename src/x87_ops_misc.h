@@ -36,6 +36,7 @@ static int opFINIT(uint32_t fetchdat)
         cpu_state.npxs = 0;
         *(uint64_t *)cpu_state.tag = 0x0303030303030303ll;
         cpu_state.TOP = 0;
+	cpu_state.ismmx = 0;
         CLOCK_CYCLES(17);
         return 0;
 }
@@ -282,6 +283,14 @@ static int FSAVE()
                 }
                 break;
         }
+
+        cpu_state.npxc = 0x37F;
+        cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00);
+        cpu_state.npxs = 0;
+        *(uint64_t *)cpu_state.tag = 0x0303030303030303ll;
+        cpu_state.TOP = 0;
+        cpu_state.ismmx = 0;
+
         CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
         return cpu_state.abrt;
 }

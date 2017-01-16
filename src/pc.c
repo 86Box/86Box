@@ -9,6 +9,7 @@
 #include "device.h"
 
 #include "ali1429.h"
+#include "cdrom.h"
 #include "cdrom-ioctl.h"
 #include "disc.h"
 #include "mem.h"
@@ -59,8 +60,6 @@ int window_w, window_h, window_x, window_y, window_remember;
 
 int start_in_fullscreen = 0;
 
-int scsi_cdrom_enabled;
-int cdrom_enabled;
 int CPUID;
 int vid_resize, vid_api;
 
@@ -207,7 +206,7 @@ void initpc(int argc, char *argv[])
 {
         char *p;
         char *config_file = NULL;
-        int c;
+        int c, i;
 	FILE *ff;
 //        allegro_init();
         get_executable_name(pcempath,511);
@@ -271,6 +270,41 @@ void initpc(int argc, char *argv[])
         device_init();        
                        
         timer_reset();
+
+	for (i = 0; i < CDROM_NUM; i++)
+	{
+		if (cdrom_drives[i].bus_type)
+		{
+			SCSIReset(cdrom_drives[i].scsi_device_id);
+		}
+
+		if (cdrom_drives[i].host_drive == 0)
+		{
+		        cdrom_null_open(i, cdrom_drives[i].host_drive);
+		}
+		else
+		{
+			if (cdrom_drives[i].host_drive == 200)
+			{
+				ff = fopen(cdrom_iso[i].iso_path, "rb");
+				if (ff)
+				{
+					fclose(ff);
+					iso_open(i, cdrom_iso[i].iso_path);
+				}
+				else
+				{
+					cdrom_drives[i].host_drive = 0;
+					cdrom_null_open(i, cdrom_drives[i].host_drive);
+				}
+			}
+			else
+			{
+				ioctl_open(i, cdrom_drives[i].host_drive);
+			}
+		}
+	}
+
         sound_reset();
 	fdc_init();
 	disc_init();
@@ -294,41 +328,13 @@ void initpc(int argc, char *argv[])
         //loadfont();
         loadnvr();
         sound_init();
+
         resetide();
-		if (buslogic_enabled)
-		{
-			SCSIReset(scsi_cdrom_id);
-			device_add(&BuslogicDevice);
-		}
-		
-	if ((cdrom_drive == -1) || (cdrom_drive == 0))
-	        cdrom_null_open(cdrom_drive);	
-	else
+	if (buslogic_enabled)
 	{
-			if (cdrom_drive == 200)
-			{
-				ff = fopen(iso_path, "rb");
-				if (ff)
-				{
-					fclose(ff);
-					iso_open(iso_path);
-				}
-				else
-				{
-#if __unix
-					cdrom_drive = -1;
-#else
-					cdrom_drive = 0;
-#endif
-					cdrom_null_open(cdrom_drive);
-				}
-			}
-			else
-			{
-				ioctl_open(cdrom_drive);
-			}
-	}
-        
+		device_add(&BuslogicDevice);
+	}		
+
         pit_reset();        
 /*        if (romset==ROM_AMI386 || romset==ROM_AMI486) */fullspeed();
         ali1429_reset();
@@ -336,18 +342,23 @@ void initpc(int argc, char *argv[])
 //        pclog("Init - CPUID %i %i\n",CPUID,cpuspeed);
         shadowbios=0;
         
-	if ((cdrom_drive == -1) || (cdrom_drive == 0))
-	        cdrom_null_reset();	
-	else
+	for (i = 0; i < CDROM_NUM; i++)
 	{
-			if (cdrom_drive == 200)
+		if (cdrom_drives[i].host_drive == 0)
+		{
+		        cdrom_null_reset(i);
+		}
+		else
+		{
+			if (cdrom_drives[i].host_drive == 200)
 			{
-				iso_reset();
+				iso_reset(i);
 			}
 			else
 			{
-				ioctl_reset();
+				ioctl_reset(i);
 			}
+		}
 	}
 }
 
@@ -384,6 +395,8 @@ void resetpc_cad()
 
 void resetpchard()
 {
+	int i = 0;
+
 	savenvr();
 	saveconfig();
 
@@ -436,13 +449,19 @@ void resetpchard()
                 device_add(&voodoo_device);        
         pc_reset();
         
-        resetide();
-		
-		if (buslogic_enabled)
+	for (i = 0; i < CDROM_NUM; i++)
+	{
+		if (cdrom_drives[i].bus_type)
 		{
-			SCSIReset(scsi_cdrom_id);
-			device_add(&BuslogicDevice);
+			SCSIReset(cdrom_drives[i].scsi_device_id);
 		}
+	}		
+
+        resetide();
+	if (buslogic_enabled)
+	{
+		device_add(&BuslogicDevice);
+	}
  
         loadnvr();
 
@@ -459,18 +478,23 @@ void resetpchard()
 
 //        output=3;
 
-	if ((cdrom_drive == -1) || (cdrom_drive == 0))
-	        cdrom_null_reset();	
-	else
+	for (i = 0; i < CDROM_NUM; i++)
 	{
-			if (cdrom_drive == 200)
+		if (cdrom_drives[i].host_drive == 0)
+		{
+		        cdrom_null_reset(i);
+		}
+		else
+		{
+			if (cdrom_drives[i].host_drive == 200)
 			{
-				iso_reset();
+				iso_reset(i);
 			}
 			else
 			{
-				ioctl_reset();
+				ioctl_reset(i);
 			}
+		}
 	}
 }
 
@@ -601,7 +625,11 @@ void speedchanged()
 
 void closepc()
 {
-        cdrom->exit();
+	int i = 0;
+	for (i = 0; i < CDROM_NUM; i++)
+	{
+        	cdrom_drives[i].handler->exit(i);
+	}
 //        ioctl_close();
         dumppic();
 //        output=7;
@@ -701,19 +729,54 @@ void loadconfig(char *fn)
         if (mem_size < ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram))
                 mem_size = ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram);
 
-        cdrom_drive = config_get_int(NULL, "cdrom_drive", 0);
-		old_cdrom_drive = cdrom_drive;
-        cdrom_enabled = config_get_int(NULL, "cdrom_enabled", 0);
+        cdrom_drives[0].host_drive = config_get_int(NULL, "cdrom_1_host_drive", 0);
+	cdrom_drives[0].prev_host_drive = cdrom_drives[0].host_drive;
+        cdrom_drives[0].enabled = config_get_int(NULL, "cdrom_1_enabled", 0);
+        cdrom_drives[0].sound_on = config_get_int(NULL, "cdrom_1_sound_on", 1);
+        cdrom_drives[0].bus_type = config_get_int(NULL, "cdrom_1_bus_type", 0);
+        cdrom_drives[0].ide_channel = config_get_int(NULL, "cdrom_1_ide_channel", 2);
+        cdrom_drives[0].scsi_device_id = config_get_int(NULL, "cdrom_1_scsi_device_id", 2);
 
-        atapi_cdrom_channel = config_get_int(NULL, "atapi_cdrom_channel", 2);
+        p = (char *)config_get_string(NULL, "cdrom_1_iso_path", "");
+        if (p) strcpy(cdrom_iso[0].iso_path, p);
+        else   strcpy(cdrom_iso[0].iso_path, "");
 
-		scsi_cdrom_enabled = config_get_int(NULL, "scsi_cdrom_enabled", 0);
-        scsi_cdrom_id = config_get_int(NULL, "scsi_cdrom_id", 3);		
-		
-        p = (char *)config_get_string(NULL, "cdrom_path", "");
-        if (p) strcpy(iso_path, p);
-        else   strcpy(iso_path, "");
-        
+        cdrom_drives[1].host_drive = config_get_int(NULL, "cdrom_2_host_drive", 0);
+	cdrom_drives[1].prev_host_drive = cdrom_drives[1].host_drive;
+        cdrom_drives[1].enabled = config_get_int(NULL, "cdrom_2_enabled", 0);
+        cdrom_drives[1].sound_on = config_get_int(NULL, "cdrom_2_sound_on", 1);
+        cdrom_drives[1].bus_type = config_get_int(NULL, "cdrom_2_bus_type", 0);
+        cdrom_drives[1].ide_channel = config_get_int(NULL, "cdrom_2_ide_channel", 3);
+        cdrom_drives[1].scsi_device_id = config_get_int(NULL, "cdrom_2_scsi_device_id", 3);
+
+        p = (char *)config_get_string(NULL, "cdrom_2_iso_path", "");
+        if (p) strcpy(cdrom_iso[1].iso_path, p);
+        else   strcpy(cdrom_iso[1].iso_path, "");
+
+        cdrom_drives[2].host_drive = config_get_int(NULL, "cdrom_3_host_drive", 0);
+	cdrom_drives[2].prev_host_drive = cdrom_drives[2].host_drive;
+        cdrom_drives[2].enabled = config_get_int(NULL, "cdrom_3_enabled", 0);
+        cdrom_drives[2].sound_on = config_get_int(NULL, "cdrom_3_sound_on", 1);
+        cdrom_drives[2].bus_type = config_get_int(NULL, "cdrom_3_bus_type", 0);
+        cdrom_drives[2].ide_channel = config_get_int(NULL, "cdrom_3_ide_channel", 4);
+        cdrom_drives[2].scsi_device_id = config_get_int(NULL, "cdrom_3_scsi_device_id", 4);
+
+        p = (char *)config_get_string(NULL, "cdrom_3_iso_path", "");
+        if (p) strcpy(cdrom_iso[2].iso_path, p);
+        else   strcpy(cdrom_iso[2].iso_path, "");
+
+        cdrom_drives[3].host_drive = config_get_int(NULL, "cdrom_4_host_drive", 0);
+	cdrom_drives[3].prev_host_drive = cdrom_drives[3].host_drive;
+        cdrom_drives[3].enabled = config_get_int(NULL, "cdrom_4_enabled", 0);
+        cdrom_drives[3].sound_on = config_get_int(NULL, "cdrom_4_sound_on", 1);
+        cdrom_drives[3].bus_type = config_get_int(NULL, "cdrom_4_bus_type", 0);
+        cdrom_drives[3].ide_channel = config_get_int(NULL, "cdrom_4_ide_channel", 5);
+        cdrom_drives[3].scsi_device_id = config_get_int(NULL, "cdrom_4_scsi_device_id", 5);
+
+        p = (char *)config_get_string(NULL, "cdrom_4_iso_path", "");
+        if (p) strcpy(cdrom_iso[3].iso_path, p);
+        else   strcpy(cdrom_iso[3].iso_path, "");
+
         vid_resize = config_get_int(NULL, "vid_resize", 0);
         vid_api = config_get_int(NULL, "vid_api", 0);
         video_fullscreen_scale = config_get_int(NULL, "video_fullscreen_scale", 0);
@@ -881,15 +944,43 @@ void saveconfig()
         config_set_string(NULL, "disc_4", discfns[3]);
         config_set_int(NULL, "disc_4_writeprot", ui_writeprot[3]);
         config_set_int(NULL, "mem_size", mem_size);
-        config_set_int(NULL, "cdrom_drive", cdrom_drive);
-        config_set_int(NULL, "cdrom_enabled", cdrom_enabled);
-		
-        config_set_int(NULL, "atapi_cdrom_channel", atapi_cdrom_channel);
-		
-        config_set_int(NULL, "scsi_cdrom_enabled", scsi_cdrom_enabled);		
-		config_set_int(NULL, "scsi_cdrom_id", scsi_cdrom_id);
-		
-        config_set_string(NULL, "cdrom_path", iso_path);
+
+        config_set_int(NULL, "cdrom_1_host_drive", cdrom_drives[0].host_drive);
+        config_set_int(NULL, "cdrom_1_enabled", cdrom_drives[0].enabled);
+        config_set_int(NULL, "cdrom_1_sound_on", cdrom_drives[0].sound_on);
+        config_set_int(NULL, "cdrom_1_bus_type", cdrom_drives[0].bus_type);
+        config_set_int(NULL, "cdrom_1_ide_channel", cdrom_drives[0].ide_channel);
+        config_set_int(NULL, "cdrom_1_scsi_device_id", cdrom_drives[0].scsi_device_id);		
+
+        config_set_string(NULL, "cdrom_1_iso_path", cdrom_iso[0].iso_path);
+
+        config_set_int(NULL, "cdrom_2_host_drive", cdrom_drives[1].host_drive);
+        config_set_int(NULL, "cdrom_2_enabled", cdrom_drives[1].enabled);
+        config_set_int(NULL, "cdrom_2_sound_on", cdrom_drives[1].sound_on);
+        config_set_int(NULL, "cdrom_2_bus_type", cdrom_drives[1].bus_type);
+        config_set_int(NULL, "cdrom_2_ide_channel", cdrom_drives[1].ide_channel);
+        config_set_int(NULL, "cdrom_2_scsi_device_id", cdrom_drives[1].scsi_device_id);		
+
+        config_set_string(NULL, "cdrom_2_iso_path", cdrom_iso[1].iso_path);
+
+        config_set_int(NULL, "cdrom_3_host_drive", cdrom_drives[2].host_drive);
+        config_set_int(NULL, "cdrom_3_enabled", cdrom_drives[2].enabled);
+        config_set_int(NULL, "cdrom_3_sound_on", cdrom_drives[2].sound_on);
+        config_set_int(NULL, "cdrom_3_bus_type", cdrom_drives[2].bus_type);
+        config_set_int(NULL, "cdrom_3_ide_channel", cdrom_drives[2].ide_channel);
+        config_set_int(NULL, "cdrom_3_scsi_device_id", cdrom_drives[2].scsi_device_id);		
+
+        config_set_string(NULL, "cdrom_3_iso_path", cdrom_iso[2].iso_path);
+
+        config_set_int(NULL, "cdrom_4_host_drive", cdrom_drives[3].host_drive);
+        config_set_int(NULL, "cdrom_4_enabled", cdrom_drives[3].enabled);
+        config_set_int(NULL, "cdrom_4_sound_on", cdrom_drives[3].sound_on);
+        config_set_int(NULL, "cdrom_4_bus_type", cdrom_drives[3].bus_type);
+        config_set_int(NULL, "cdrom_4_ide_channel", cdrom_drives[3].ide_channel);
+        config_set_int(NULL, "cdrom_4_scsi_device_id", cdrom_drives[3].scsi_device_id);		
+
+        config_set_string(NULL, "cdrom_4_iso_path", cdrom_iso[3].iso_path);
+
         config_set_int(NULL, "vid_resize", vid_resize);
         config_set_int(NULL, "vid_api", vid_api);
         config_set_int(NULL, "video_fullscreen_scale", video_fullscreen_scale);

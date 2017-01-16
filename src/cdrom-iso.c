@@ -10,104 +10,71 @@
 
 static CDROM iso_cdrom;
 
-uint32_t last_block = 0;
-static uint64_t image_size = 0;
-static int iso_inited = 0;
-char iso_path[1024];
-void iso_close(void);
-static FILE* iso_image;
-static int iso_changed = 0;
+int cdrom_iso_do_log = 1;
 
-static uint32_t lba = 0;
+void cdrom_iso_log(const char *format, ...)
+{
+#ifdef ENABLE_CDROM_ISO_LOG
+   if (cdrom_do_log)
+   {
+		va_list ap;
+		va_start(ap, format);
+		vprintf(format, ap);
+		va_end(ap);
+		fflush(stdout);
+   }
+#endif
+}
 
-static uint32_t iso_cd_pos = 0, iso_cd_end = 0;
+void iso_close(uint8_t id);
 
-void iso_audio_callback(int16_t *output, int len)
+void iso_audio_callback(uint8_t id, int16_t *output, int len)
 {
     memset(output, 0, len * 2);
     return;
 }
 
-void iso_audio_stop()
+void iso_audio_stop(uint8_t id)
 {
-    // pclog("iso_audio_stop stub\n");
+    // cdrom_iso_log("iso_audio_stop stub\n");
 }
 
-static int get_track_nr(uint32_t pos)
+static int iso_ready(uint8_t id)
 {
-    // pclog("get_track_nr stub\n");
-    return 0;
-}
-
-static void iso_playaudio(uint32_t pos, uint32_t len, int ismsf)
-{
-    // pclog("iso_playaudio stub\n");
-    return;
-}
-
-static void iso_pause(void)
-{
-    // pclog("iso_pause stub\n");
-    return;
-}
-
-static void iso_resume(void)
-{
-    // pclog("iso_resume stub\n");
-    return;
-}
-
-static void iso_stop(void)
-{
-    // pclog("iso_stop stub\n");
-    return;
-}
-
-static void iso_seek(uint32_t pos)
-{
-    // pclog("iso_seek stub\n");
-	lba = pos;
-    return;
-}
-
-static int iso_ready(void)
-{
-	if (strlen(iso_path) == 0)
+	if (strlen(cdrom_iso[id].iso_path) == 0)
 	{
 		return 0;
 	}
-	if (old_cdrom_drive != cdrom_drive)
+	if (cdrom_drives[id].prev_host_drive != cdrom_drives[id].host_drive)
 	{
-		// old_cdrom_drive = cdrom_drive;
 		return 1;
 	}
 	
-	if (iso_changed)
+	if (cdrom_iso[id].iso_changed)
 	{
-		iso_changed = 0;
+		cdrom_iso[id].iso_changed = 0;
 		return 1;
 	}
 
     return 1;
 }
 
-/* Always return 0, because there is no way to change the ISO without unmounting and remounting it. */
-static int iso_medium_changed(void)
+static int iso_medium_changed(uint8_t id)
 {
-	if (strlen(iso_path) == 0)
+	if (strlen(cdrom_iso[id].iso_path) == 0)
 	{
 		return 0;
 	}
 
-	if (old_cdrom_drive != cdrom_drive)
+	if (cdrom_drives[id].prev_host_drive != cdrom_drives[id].host_drive)
 	{
-		old_cdrom_drive = cdrom_drive;
+		cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
 		return 1;
 	}
 	
-	if (iso_changed)
+	if (cdrom_iso[id].iso_changed)
 	{
-		iso_changed = 0;
+		cdrom_iso[id].iso_changed = 0;
 		return 1;
 	}
 
@@ -122,11 +89,11 @@ static void lba_to_msf(uint8_t *buf, int lba)
 	buf[2] = lba % 75;
 }
 
-static uint8_t iso_getcurrentsubchannel(uint8_t *b, int msf)
+static uint8_t iso_getcurrentsubchannel(uint8_t id, uint8_t *b, int msf)
 {
 	long size;
 	int pos=0;
-	if (strlen(iso_path) == 0)
+	if (strlen(cdrom_iso[id].iso_path) == 0)
 	{
 		return 0;
 	}
@@ -135,7 +102,7 @@ static uint8_t iso_getcurrentsubchannel(uint8_t *b, int msf)
 	b[pos++]=0;
 	b[pos++]=0;
         
-	int32_t temp = lba;
+	int32_t temp = cdrom[id].seek_pos;
 	if (msf)
 	{
 		memset(&(b[pos]), 0, 8);
@@ -156,48 +123,35 @@ static uint8_t iso_getcurrentsubchannel(uint8_t *b, int msf)
 		b[pos++] = temp;
 	}
 
-	return 0x13;
+	return 0x15;
 }
 
-static void iso_eject(void)
+static void iso_eject(uint8_t id)
 {
-    // pclog("iso_eject stub\n");
+    // cdrom_iso_log("iso_eject stub\n");
 }
 
-static void iso_load(void)
+static void iso_load(uint8_t id)
 {
-    // pclog("iso_load stub\n");
+    // cdrom_iso_log("iso_load stub\n");
 }
 
-static int iso_sector_data_type(int sector, int ismsf)
+static int iso_sector_data_type(uint8_t id, int sector, int ismsf)
 {
 	return 2;	/* Always Mode 1 */
 }
 
-static void iso_readsector_raw(uint8_t *b, int sector, int ismsf)
+static void iso_readsector(uint8_t id, uint8_t *b, int sector)
 {
     uint32_t temp;
 	uint64_t file_pos = sector;
-    if (!cdrom_drive) return;
+    if (!cdrom_drives[id].host_drive) return;
 	file_pos <<= 11;
 	memset(b, 0, 2856);
-	if (ismsf)
-	{
-		int m = (sector >> 16) & 0xff;
-		int s = (sector >> 8) & 0xff;
-		int f = sector & 0xff;
-		sector = (m * 60 * 75) + (s * 75) + f;
-		if (sector < 150)
-		{
-			memset(b, 0, 2856);
-			return;
-		}
-		sector -= 150;
-	}
-    iso_image = fopen(iso_path, "rb");
-    fseeko64(iso_image, file_pos, SEEK_SET);
-    fread(b + 16, 2048, 1, iso_image);
-    fclose(iso_image);
+    cdrom_iso[id].iso_image = fopen(cdrom_iso[id].iso_path, "rb");
+    fseeko64(cdrom_iso[id].iso_image, file_pos, SEEK_SET);
+    fread(b + 16, 2048, 1, cdrom_iso[id].iso_image);
+    fclose(cdrom_iso[id].iso_image);
 
     /* sync bytes */
     b[0] = 0;
@@ -213,7 +167,185 @@ static void iso_readsector_raw(uint8_t *b, int sector, int ismsf)
     memset(b, 0, 392);
 }
 
-static int iso_readtoc(unsigned char *buf, unsigned char start_track, int msf, int maxlen, int single)
+typedef struct __attribute__((packed))
+{
+	uint8_t user_data[2048];
+	uint8_t ecc[288];
+} m1_data_t;
+
+typedef struct __attribute__((packed))
+{
+	uint8_t sub_header[8];
+	uint8_t user_data[2328];
+} m2_data_t;
+
+typedef union __attribute__((packed))
+{
+	m1_data_t m1_data;
+	m2_data_t m2_data;
+	uint8_t raw_data[2352];
+} sector_data_t;
+
+typedef struct __attribute__((packed))
+{
+	uint8_t sync[12];
+	uint8_t header[4];
+	sector_data_t data;
+	uint8_t c2[296];
+	uint8_t subchannel_raw[96];
+	uint8_t subchannel_q[16];
+	uint8_t subchannel_rw[96];
+} cdrom_sector_t;
+
+typedef union __attribute__((packed))
+{
+	cdrom_sector_t cdrom_sector;
+	uint8_t buffer[2856];
+} sector_buffer_t;
+
+sector_buffer_t cdrom_sector_buffer;
+
+int cdrom_sector_size;
+
+static int iso_readsector_raw(uint8_t id, uint8_t *buffer, int sector, int ismsf, int cdrom_sector_type, int cdrom_sector_flags, int *len)
+{
+	int real_sector_type;
+	uint8_t *b;
+	uint8_t *temp_b;
+	int is_audio;
+	int real_pos;
+	
+	b = temp_b = buffer;
+
+	*len = 0;
+	
+	if (ismsf)
+	{
+		real_pos = cdrom_lba_to_msf_accurate(sector);
+	}
+	else
+	{
+		real_pos = sector;
+	}
+
+	memset(cdrom_sector_buffer.buffer, 0, 2856);
+
+	if ((cdrom_sector_type == 1) || (cdrom_sector_type > 2))
+	{
+		if (cdrom_sector_type == 1)
+		{
+			cdrom_iso_log("CD-ROM %i: Attempting to read an audio sector from an ISO\n", id);
+		}
+		if (cdrom_sector_type >= 2)
+		{
+			cdrom_iso_log("CD-ROM %i: Attempting to read a non-mode 1 data sector from an ISO\n", id);
+		}
+		return 0;
+	}
+
+	if (!(cdrom_sector_flags & 0xf0))		/* 0x00 and 0x08 are illegal modes */
+	{
+		cdrom_iso_log("CD-ROM %i: 0x00 and 0x08 are illegal modes\n", id);
+		return 0;
+	}
+
+	if ((cdrom_sector_flags & 0x06) == 0x06)
+	{
+		cdrom_iso_log("CD-ROM %i: Invalid error flags\n", id);
+		return 0;
+	}
+
+	if (((cdrom_sector_flags & 0x700) == 0x300) || ((cdrom_sector_flags & 0x700) > 0x400))
+	{
+		cdrom_iso_log("CD-ROM %i: Invalid subchannel data flags (%02X)\n", id, cdrom_sector_flags & 0x700);
+		return 0;
+	}
+
+	if ((cdrom_sector_flags & 0x18) == 0x08)		/* EDC/ECC without user data is an illegal mode */
+	{
+		cdrom_iso_log("CD-ROM %i: EDC/ECC without user data is an illegal mode\n", id);
+		return 0;
+	}
+
+	iso_readsector(id, cdrom_sector_buffer.buffer, real_pos);
+
+	cdrom_sector_size = 0;
+
+	if (cdrom_sector_flags & 0x80)		/* Sync */
+	{
+		memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.sync, 12);
+		cdrom_sector_size += 12;
+		temp_b += 12;
+	}
+	if (cdrom_sector_flags & 0x20)		/* Header */
+	{
+		memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.header, 4);
+		cdrom_sector_size += 4;
+		temp_b += 4;
+	}
+		
+	/* Mode 1 sector, expected type is 1 type. */
+	if (cdrom_sector_flags & 0x40)		/* Sub-header */
+	{
+		if (!(cdrom_sector_flags & 0x10))		/* No user data */
+		{
+			memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.user_data, 8);
+			cdrom_sector_size += 8;
+			temp_b += 8;
+		}
+	}
+	if (cdrom_sector_flags & 0x10)		/* User data */
+	{
+		memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.user_data, 2048);
+		cdrom_sector_size += 2048;
+		temp_b += 2048;
+	}
+	if (cdrom_sector_flags & 0x08)		/* EDC/ECC */
+	{
+		memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.ecc, 288);
+		cdrom_sector_size += 288;
+		temp_b += 288;
+	}
+
+	cdrom_iso_log("CD-ROM sector size: %i (%i, %i) [%04X]\n", cdrom_sector_size, cdrom_sector_type, real_sector_type, cdrom_sector_flags);
+
+	if ((cdrom_sector_flags & 0x06) == 0x02)
+	{
+		/* Add error flags. */
+		memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.c2, 294);
+		cdrom_sector_size += 294;
+	}
+	else if ((cdrom_sector_flags & 0x06) == 0x04)
+	{
+		/* Add error flags. */
+		memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.c2, 296);
+		cdrom_sector_size += 296;
+	}
+	
+	if ((cdrom_sector_flags & 0x700) == 0x100)
+	{
+		memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.subchannel_raw, 96);
+		cdrom_sector_size += 96;
+	}
+	else if ((cdrom_sector_flags & 0x700) == 0x200)
+	{
+		memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.subchannel_q, 16);
+		cdrom_sector_size += 16;
+	}
+	else if ((cdrom_sector_flags & 0x700) == 0x400)
+	{
+		memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.subchannel_rw, 96);
+		cdrom_sector_size += 96;
+	}
+	
+	memcpy(buffer, b, cdrom_sector_size);
+
+	*len = cdrom_sector_size;
+	
+	return 1;
+}
+
+static int iso_readtoc(uint8_t id, unsigned char *buf, unsigned char start_track, int msf, int maxlen, int single)
 {
     uint8_t *q;
     int len;
@@ -245,16 +377,16 @@ static int iso_readtoc(unsigned char *buf, unsigned char start_track, int msf, i
     *q++ = 0x16; /* ADR, control */
     *q++ = 0xaa; /* track number */
     *q++ = 0; /* reserved */
-    last_block = image_size >> 11;
+    cdrom_iso[id].last_block = cdrom_iso[id].image_size >> 11;
     if (msf) {
         *q++ = 0; /* reserved */
-        lba_to_msf(q, last_block);
+        lba_to_msf(q, cdrom_iso[id].last_block);
         q += 3;
     } else {
-        *q++ = last_block >> 24;
-        *q++ = last_block >> 16;
-        *q++ = last_block >> 8;
-        *q++ = last_block;
+        *q++ = cdrom_iso[id].last_block >> 24;
+        *q++ = cdrom_iso[id].last_block >> 16;
+        *q++ = cdrom_iso[id].last_block >> 8;
+        *q++ = cdrom_iso[id].last_block;
     }
     len = q - buf;
 	if (len > maxlen)
@@ -266,7 +398,7 @@ static int iso_readtoc(unsigned char *buf, unsigned char start_track, int msf, i
     return len;
 }
 
-static int iso_readtoc_session(unsigned char *buf, int msf, int maxlen)
+static int iso_readtoc_session(uint8_t id, unsigned char *buf, int msf, int maxlen)
 {
     uint8_t *q;
 
@@ -290,7 +422,7 @@ static int iso_readtoc_session(unsigned char *buf, int msf, int maxlen)
     return 12;
 }
 
-static int iso_readtoc_raw(unsigned char *buf, int msf, int maxlen)
+static int iso_readtoc_raw(uint8_t id, unsigned char *buf, int msf, int maxlen)
 {
     uint8_t *q;
     int len;
@@ -330,20 +462,20 @@ static int iso_readtoc_raw(unsigned char *buf, int msf, int maxlen)
     *q++ = 0; /* min */
     *q++ = 0; /* sec */
     *q++ = 0; /* frame */
-    last_block = image_size >> 11;
+    cdrom_iso[id].last_block = cdrom_iso[id].image_size >> 11;
     /* this is raw, must be msf */
 	if (msf)
 	{
 		*q++ = 0; /* reserved */
-		lba_to_msf(q, last_block);
+		lba_to_msf(q, cdrom_iso[id].last_block);
 		q += 3;
 	}
 	else
 	{
-		*q++ = (last_block >> 24) & 0xff;
-		*q++ = (last_block >> 16) & 0xff;
-		*q++ = (last_block >> 8) & 0xff;
-		*q++ = last_block & 0xff;
+		*q++ = (cdrom_iso[id].last_block >> 24) & 0xff;
+		*q++ = (cdrom_iso[id].last_block >> 16) & 0xff;
+		*q++ = (cdrom_iso[id].last_block >> 8) & 0xff;
+		*q++ = cdrom_iso[id].last_block & 0xff;
 	}
 
     *q++ = 1; /* session number */
@@ -378,72 +510,71 @@ static int iso_readtoc_raw(unsigned char *buf, int msf, int maxlen)
     return len;
 }
 
-static uint32_t iso_size()
+static uint32_t iso_size(uint8_t id)
 {
 	uint64_t iso_size;
 
-    iso_image = fopen(iso_path, "rb");
-    fseeko64(iso_image, 0, SEEK_END);
-	iso_size = ftello64(iso_image);
+    cdrom_iso[id].iso_image = fopen(cdrom_iso[id].iso_path, "rb");
+    fseeko64(cdrom_iso[id].iso_image, 0, SEEK_END);
+	iso_size = ftello64(cdrom_iso[id].iso_image);
 	iso_size >>= 11;
-    fclose(iso_image);
+    fclose(cdrom_iso[id].iso_image);
 
 	return (uint32_t) (iso_size);
 }
 
-static int iso_status()
+static int iso_status(uint8_t id)
 {
-	if (!(iso_ready()) && (cdrom_drive != 200))  return CD_STATUS_EMPTY;
+	if (!(iso_ready(id)) && (cdrom_drives[id].host_drive != 200))  return CD_STATUS_EMPTY;
 
 	return CD_STATUS_DATA_ONLY;
 }
 
-void iso_reset()
+void iso_reset(uint8_t id)
 {
 }
 
-int iso_open(char *fn)
+int iso_open(uint8_t id, char *fn)
 {
     struct stat st;
 
-	if (strcmp(fn, iso_path) != 0)
+	if (strcmp(fn, cdrom_iso[id].iso_path) != 0)
 	{
-		iso_changed = 1;
+		cdrom_iso[id].iso_changed = 1;
 	}
 	/* Make sure iso_changed stays when changing from ISO to another ISO. */
-	if (!iso_inited && (cdrom_drive != 200))  iso_changed = 0;
-    if (!iso_inited || iso_changed)
+	if (!cdrom_iso[id].iso_inited && (cdrom_drives[id].host_drive != 200))  cdrom_iso[id].iso_changed = 0;
+    if (!cdrom_iso[id].iso_inited || cdrom_iso[id].iso_changed)
     {
-        sprintf(iso_path, "%s", fn);
-        // pclog("Path is %s\n", iso_path);
+        sprintf(cdrom_iso[id].iso_path, "%s", fn);
+        // cdrom_iso_log("Path is %s\n", cdrom_iso[id].iso_path);
     }
-    iso_image = fopen(iso_path, "rb");
-    cdrom = &iso_cdrom;
-    if (!iso_inited || iso_changed)
+    cdrom_iso[id].iso_image = fopen(cdrom_iso[id].iso_path, "rb");
+    cdrom_drives[id].handler = &iso_cdrom;
+    if (!cdrom_iso[id].iso_inited || cdrom_iso[id].iso_changed)
     {
-        if (!iso_inited)  iso_inited = 1;
-        fclose(iso_image);
+        if (!cdrom_iso[id].iso_inited)  cdrom_iso[id].iso_inited = 1;
+        fclose(cdrom_iso[id].iso_image);
     }
     
-    stat(iso_path, &st);
-    image_size = st.st_size;
+    stat(cdrom_iso[id].iso_path, &st);
+    cdrom_iso[id].image_size = st.st_size;
     
     return 0;
 }
 
-void iso_close(void)
+void iso_close(uint8_t id)
 {
-    if (iso_image)  fclose(iso_image);
-    memset(iso_path, 0, 1024);
+    if (cdrom_iso[id].iso_image)  fclose(cdrom_iso[id].iso_image);
+    memset(cdrom_iso[id].iso_path, 0, 1024);
 }
 
-static void iso_exit(void)
+static void iso_exit(uint8_t id)
 {
-    // iso_stop();
-    iso_inited = 0;
+    cdrom_iso[id].iso_inited = 0;
 }
 
-static int iso_is_track_audio(uint32_t pos, int ismsf)
+static int iso_is_track_audio(uint8_t id, uint32_t pos, int ismsf)
 {
 	return 0;
 }
@@ -452,26 +583,23 @@ static CDROM iso_cdrom =
 {
         iso_ready,
 		iso_medium_changed,
+		NULL,
+		NULL,
         iso_readtoc,
         iso_readtoc_session,
         iso_readtoc_raw,
         iso_getcurrentsubchannel,
         NULL,
-        NULL,
-        NULL,
-        NULL,
-		NULL,
 		iso_sector_data_type,
         iso_readsector_raw,
-        iso_playaudio,
-        iso_seek,
+        NULL,
         iso_load,
         iso_eject,
-        iso_pause,
-        iso_resume,
+        NULL,
+        NULL,
         iso_size,
 		iso_status,
 		iso_is_track_audio,
-        iso_stop,
+        NULL,
         iso_exit
 };

@@ -41,7 +41,7 @@ static inline void x87_set_mmx()
 
 static inline void x87_emms()
 {
-        *cpu_state.tag = 0x0303030303030303ll;
+        *(uint64_t *)cpu_state.tag = 0x0303030303030303ll;
         cpu_state.ismmx = 0;
 }
 

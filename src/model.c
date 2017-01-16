@@ -1,7 +1,11 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
+#include <stdint.h>
+#include <stdio.h>
+
 #include "ibm.h"
+#include "cdrom.h"
 #include "cpu.h"
 #include "mem.h"
 #include "model.h"
@@ -403,11 +407,28 @@ void at_opti495_init()
         opti495_init();
 }
 
+void secondary_ide_check()
+{
+	int i = 0;
+	int secondary_cdroms = 0;
+
+	for (i = 0; i < CDROM_NUM; i++)
+	{
+		if ((cdrom_drives[i].ide_channel >= 2) && (cdrom_drives[i].ide_channel <= 3) && !cdrom_drives[i].bus_type)
+		{
+			secondary_cdroms++;
+		}
+		if (!secondary_cdroms)  ide_sec_disable();
+	}
+}
+
 void at_ali1429_init()
 {
+
         at_init();
         ali1429_init();
-	if (atapi_cdrom_channel <= 1)  ide_sec_disable();
+
+	secondary_ide_check();
 }
 
 /* void at_um8881f_init()
@@ -422,7 +443,7 @@ void at_dtk486_init()
         at_init();
 	memregs_init();
 	sis85c471_init();
-	if (atapi_cdrom_channel <= 1)  ide_sec_disable();
+	secondary_ide_check();
 }
 
 void at_sis496_init()
@@ -464,7 +485,7 @@ void at_586mc1_init()
         i430lx_init();
 	sio_init(1);
         device_add(&intel_flash_bxt_device);
-	if (atapi_cdrom_channel <= 1)  ide_sec_disable();
+	secondary_ide_check();
 }
 
 void at_plato_init()

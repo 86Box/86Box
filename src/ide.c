@@ -1,9 +1,6 @@
 /* Copyright holders: Sarah Walker, Tenshi, SA1988
    see COPYING for more details
 */
-#define CDROM_ISO 200
-#define IDE_TIME (5 * 100 * (1 << TIMER_SHIFT))
-
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
@@ -16,6 +13,7 @@
 #include <sys/types.h>
 
 #include "86box.h"
+#include "cdrom.h"
 #include "ibm.h"
 #include "io.h"
 #include "pic.h"
@@ -66,18 +64,14 @@
 #define WIN_READ_NATIVE_MAX		0xF8
 
 /** Evaluate to non-zero if the currently selected drive is an ATAPI device */
-#define IDE_DRIVE_IS_CDROM(ide)  (ide->type == IDE_CDROM)
+// #define IDE_DRIVE_IS_CDROM(ide)  (ide->type == IDE_CDROM)
 
 #define ATAPI_STATUS_IDLE            0
 #define ATAPI_STATUS_COMMAND         1
 #define ATAPI_STATUS_COMPLETE        2
-#define ATAPI_STATUS_DATA            3
-#define ATAPI_STATUS_PACKET_REQ      4
-#define ATAPI_STATUS_PACKET_RECEIVED 5
-#define ATAPI_STATUS_READCD          6
-#define ATAPI_STATUS_REQ_SENSE       7
+#define ATAPI_STATUS_DATA_IN         3
+#define ATAPI_STATUS_DATA_OUT        4
 #define ATAPI_STATUS_ERROR           0x80
-#define ATAPI_STATUS_ERROR_2         0x81
 
 enum
 {
@@ -123,58 +117,59 @@ uint64_t hdt[128][3] = {	{  306,  4, 17 }, {  615,  2, 17 }, {  306,  4, 26 }, {
 			{ 1930,  4, 62 }, {  967, 16, 31 }, { 1013, 10, 63 }, { 1218, 15, 36 }, {  654, 16, 63 }, {  659, 16, 63 }, {  702, 16, 63 }, { 1002, 13, 63 },		/* 112-119 */
 			{  854, 16, 63 }, {  987, 16, 63 }, {  995, 16, 63 }, { 1024, 16, 63 }, { 1036, 16, 63 }, { 1120, 16, 59 }, { 1054, 16, 63 }, {    0,  0,  0 }	};	/* 119-127 */
 			
-typedef struct IDE
-{
-        int type;
-        int board;
-        uint8_t atastat;
-        uint8_t error;
-        int secount,sector,cylinder,head,drive,cylprecomp;
-        uint8_t command;
-        uint8_t fdisk;
-        int pos;
-        int packlen;
-        int spt,hpc;
-        int tracks;
-        int packetstatus;
-        uint8_t asc;
-        int reset;
-        FILE *hdfile;
-        uint16_t buffer[65536];
-        int irqstat;
-        int service;
-        int lba;
-        uint32_t lba_addr;
-        int skip512;
-        int blocksize, blockcount;
-		uint16_t dma_identify_data[3];
-		int hdi,base;
-		int hdc_num;
-} IDE;
-
 IDE ide_drives[IDE_NUM];
 
 IDE *ext_ide;
 
 char ide_fn[IDE_NUM][512];
 
-int (*ide_bus_master_read_sector)(int channel, uint8_t *data);
-int (*ide_bus_master_write_sector)(int channel, uint8_t *data);
+int (*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length);
+int (*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length);
 void (*ide_bus_master_set_irq)(int channel);
 
-static void callnonreadcd(IDE *ide);
-static void callreadcd(IDE *ide);
+static void atapi_callback(IDE *ide);
 static void atapicommand(int ide_board);
 
 int idecallback[4] = {0, 0, 0, 0};
 
 int cur_ide[4];
 
-int atapi_command = 0;
+int ide_do_log = 1;
 
-int atapi_cdrom_channel = 2;
+void ide_log(const char *format, ...)
+{
+#ifdef ENABLE_CDROM_LOG
+   if (ide_do_log)
+   {
+		va_list ap;
+		va_start(ap, format);
+		vprintf(format, ap);
+		va_end(ap);
+		fflush(stdout);
+   }
+#endif
+}
 
 uint8_t getstat(IDE *ide) { return ide->atastat; }
+
+int ide_drive_is_cdrom(IDE *ide)
+{
+	if (atapi_cdrom_drives[ide->channel] >= CDROM_NUM)
+	{
+		return 0;
+	}
+	else
+	{
+		if (cdrom_drives[atapi_cdrom_drives[ide->channel]].enabled && !cdrom_drives[atapi_cdrom_drives[ide->channel]].bus_type && (cdrom_drives[atapi_cdrom_drives[ide->channel]].bus_mode & 1))
+		{
+			return 1;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+}
 
 int image_is_hdi(const char *s)
 {
@@ -210,12 +205,12 @@ static inline void ide_irq_raise(IDE *ide)
 		return;
 	}
 
-	// pclog("Raising IRQ %i (board %i)\n", ide_irq[ide->board], ide->board);
+	// ide_log("Raising IRQ %i (board %i)\n", ide_irq[ide->board], ide->board);
 	
 	if (!(ide->fdisk&2))
 	{
 		picint(1 << ide_irq[ide->board]);
-		// if (ide->board && !ide->irqstat) pclog("IDE_IRQ_RAISE\n");
+		// if (ide->board && !ide->irqstat) ide_log("IDE_IRQ_RAISE\n");
 
 		if (ide->board < 2)
 		{
@@ -228,17 +223,17 @@ static inline void ide_irq_raise(IDE *ide)
 
 	ide->irqstat=1;
 	ide->service=1;
-	// pclog("raising interrupt %i\n", 14 + ide->board);
+	// ide_log("raising interrupt %i\n", 14 + ide->board);
 }
 
-static inline void ide_irq_lower(IDE *ide)
+void ide_irq_lower(IDE *ide)
 {
 	if ((ide->board > 3) || !(ide->irqstat))
 	{
 		return;
 	}
 
-	// pclog("Lowering IRQ %i (board %i)\n", ide_irq[ide->board], ide->board);
+	// ide_log("Lowering IRQ %i (board %i)\n", ide_irq[ide->board], ide->board);
 
 	picintc(1 << ide_irq[ide->board]);
 	ide->irqstat=0;
@@ -258,7 +253,7 @@ void ide_irq_update(IDE *ide)
 	mask = ide_irq[ide->board];
 	mask &= 7;
 
-	// pclog("Updating IRQ %i (%i) (board %i)\n", ide_irq[ide->board], mask, ide->board);
+	// ide_log("Updating IRQ %i (%i) (board %i)\n", ide_irq[ide->board], mask, ide->board);
 
 	pending = (pic2.pend | pic2.ins);
 	pending &= (1 << mask);
@@ -309,8 +304,7 @@ ide_padstr(char *str, const char *src, int len)
  *                 this length will be padded with spaces.
  * @param src      Source string
  */
-static void
-ide_padstr8(uint8_t *buf, int buf_size, const char *src)
+void ide_padstr8(uint8_t *buf, int buf_size, const char *src)
 {
 	int i;
 
@@ -333,6 +327,10 @@ ide_padstr8(uint8_t *buf, int buf_size, const char *src)
 static void ide_identify(IDE *ide)
 {
 	int c, h, s;
+	uint8_t device_identify[8] = { '8', '6', 'B', '_', 'H', 'D', '0', 0 };
+	
+	device_identify[6] = ide->channel + 0x30;
+	ide_log("IDE Identify: %s\n", device_identify);
 
 	memset(ide->buffer, 0, 512);
 
@@ -347,7 +345,7 @@ static void ide_identify(IDE *ide)
 	ide->buffer[6] = hdc[cur_ide[ide->board]].spt;  /* Sectors */
 	ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
 	ide_padstr((char *) (ide->buffer + 23), emulator_version, 8); /* Firmware */
-	ide_padstr((char *) (ide->buffer + 27), "86BoxHD", 40); /* Model */
+	ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
 	ide->buffer[20] = 3;   /*Buffer type*/
 	ide->buffer[21] = 512; /*Buffer size*/
 	ide->buffer[47] = 16;  /*Max sectors on multiple transfer command*/
@@ -386,13 +384,27 @@ static void ide_identify(IDE *ide)
 static void ide_atapi_identify(IDE *ide)
 {
 	memset(ide->buffer, 0, 512);
+	uint8_t device_identify[8] = { '8', '6', 'B', '_', 'C', 'D', '0', 0 };
+	uint8_t cdrom_id = atapi_cdrom_drives[ide->channel];
+	
+	device_identify[6] = cdrom_id + 0x30;
+	ide_log("ATAPI Identify: %s\n", device_identify);
 
 	ide->buffer[0] = 0x8000 | (5<<8) | 0x80 | (2<<5); /* ATAPI device, CD-ROM drive, removable media, accelerated DRQ */
 	ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
 	ide_padstr((char *) (ide->buffer + 23), emulator_version, 8); /* Firmware */
-	ide_padstr((char *) (ide->buffer + 27), "86BoxCD", 40); /* Model */
+	ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
 	ide->buffer[49] = 0x200; /* LBA supported */
 	ide->buffer[51] = 2 << 8; /*PIO timing mode*/
+
+	if ((ide->board < 2) && (cdrom_drives[cdrom_id].bus_mode & 2))
+	{
+		ide->buffer[49] |= 0x100; /* DMA supported */
+		ide->buffer[52] = 2 << 8; /*DMA timing mode*/
+		ide->buffer[62] = ide->dma_identify_data[0];
+		ide->buffer[63] = ide->dma_identify_data[1];
+		ide->buffer[88] = ide->dma_identify_data[2];
+	}
 }
 
 /*
@@ -531,19 +543,51 @@ static void loadhd(IDE *ide, int d, const char *fn)
 
 void ide_set_signature(IDE *ide)
 {
-	ide->secount=1;
+	uint8_t cdrom_id = atapi_cdrom_drives[cur_ide[ide->board]];
 	ide->sector=1;
 	ide->head=0;
-	ide->cylinder=(IDE_DRIVE_IS_CDROM(ide) ? 0xEB14 : ((ide->type == IDE_HDD) ? 0 : 0xFFFF));
-	if (ide->type == IDE_HDD)
+	if (ide_drive_is_cdrom(ide))
 	{
-		ide->drive = 0;
+		cdrom_set_signature(cdrom_id);
 	}
+	else
+	{
+		ide->secount=1;
+		ide->cylinder=((ide->type == IDE_HDD) ? 0 : 0xFFFF);
+		if (ide->type == IDE_HDD)
+		{
+			ide->drive = 0;
+		}
+	}
+}
+
+int ide_cdrom_is_pio_only(IDE *ide)
+{
+	uint8_t cdrom_id = atapi_cdrom_drives[cur_ide[ide->board]];
+	if (!ide_drive_is_cdrom(ide))
+	{
+		return 0;
+	}
+	if (cdrom_drives[cdrom_id].bus_mode & 2)
+	{
+		return 0;
+	}
+	return 1;
 }
 
 int ide_set_features(IDE *ide)
 {
-	uint8_t val = ide->secount & 7;
+	uint8_t cdrom_id = cur_ide[ide->board];
+	uint8_t val = 0;
+	
+	if (ide_drive_is_cdrom(ide))
+	{
+		val = cdrom[cdrom_id].phase & 7;
+	}
+	else
+	{
+		val = ide->secount & 7;
+	}
 
 	if (ide->type == IDE_NONE)  return 0;
 	
@@ -578,7 +622,7 @@ int ide_set_features(IDE *ide)
 					ide->dma_identify_data[2] = 0x3f;
 					break;
 				case 2:
-					if ((ide->type == IDE_CDROM) || (ide->board >= 2))
+					if (ide_cdrom_is_pio_only(ide) || (ide->board >= 2))
 					{
 						return 0;
 					}
@@ -587,7 +631,7 @@ int ide_set_features(IDE *ide)
 					ide->dma_identify_data[2] = 0x3f;
 					break;
 				case 4:
-					if ((ide->type == IDE_CDROM) || (ide->board >= 2))
+					if (ide_cdrom_is_pio_only(ide) || (ide->board >= 2))
 					{
 						return 0;
 					}
@@ -624,32 +668,34 @@ void ide_set_sector(IDE *ide, int64_t sector_num)
 void resetide(void)
 {
 	int d;
+	
+	build_atapi_cdrom_map();
 
 	/* Close hard disk image files (if previously open) */
 	for (d = 0; d < IDE_NUM; d++)
 	{
+		ide_drives[d].channel = d;
 		ide_drives[d].type = IDE_NONE;
 		if (ide_drives[d].hdfile != NULL)
 		{
 			fclose(ide_drives[d].hdfile);
 			ide_drives[d].hdfile = NULL;
 		}
+		if (ide_drive_is_cdrom(&ide_drives[d]))
+		{
+			cdrom[atapi_cdrom_drives[d]].status = READY_STAT | DSC_STAT;
+		}
 		ide_drives[d].atastat = READY_STAT | DSC_STAT;
 		ide_drives[d].service = 0;
 		ide_drives[d].board = d >> 1;
 	}
 		
-	page_flags[GPMODE_CDROM_AUDIO_PAGE] &= 0xFD;		/* Clear changed flag for CDROM AUDIO mode page. */
-	memset(mode_pages_in[GPMODE_CDROM_AUDIO_PAGE], 0, 256);	/* Clear the page itself. */
-
 	idecallback[0]=idecallback[1]=0;
 	idecallback[2]=idecallback[3]=0;
 
 	for (d = 0; d < IDE_NUM; d++)
 	{
-		ide_drives[d].packetstatus = 0xFF;
-
-		if ((atapi_cdrom_channel == d) && cdrom_enabled && !scsi_cdrom_enabled)
+		if (ide_drive_is_cdrom(&ide_drives[d]))
 		{
 			ide_drives[d].type = IDE_CDROM;
 		}
@@ -674,85 +720,67 @@ void resetide(void)
 	{
 		cur_ide[d] = d << 1;
 	}
-        
-	page_flags[GPMODE_CDROM_AUDIO_PAGE] &= ~PAGE_CHANGED;
-
-	SCSISense.UnitAttention = 0;
 }
 
-int idetimes=0;
+int idetimes = 0;
+
 void writeidew(int ide_board, uint16_t val)
 {
+	int ret = 0;
 	IDE *ide = &ide_drives[cur_ide[ide_board]];
 	
 #if 0
-	if (ide->type == IDE_CDROM)
+	if (ide_drive_is_cdrom(ide))
 	{
-		pclog("CD-ROM write data: %04X\n", val);
+		ide_log("CD-ROM write data: %04X\n", val);
 	}
 #endif
         
-	/* Some software issue excess writes after the 12 bytes required by the command, this will have all of them ignored. */
-	if (ide->packetstatus && (ide->packetstatus != ATAPI_STATUS_PACKET_REQ))
-	{
-		return;
-	}
-
-	// pclog("Write IDEw %04X\n",val);
+	// ide_log("Write IDEw %04X\n",val);
 	ide->buffer[ide->pos >> 1] = val;
-	ide->pos+=2;
+	ide->pos += 2;
 
-	if (ide->packetstatus == ATAPI_STATUS_PACKET_REQ)
+	if (ide->command == WIN_PACKETCMD)
 	{
-		if ((ide->pos>=prefix_len+4) && (page_flags[page_current] & PAGE_CHANGEABLE))
+		if (!ide_drive_is_cdrom(ide))
 		{
-			mode_pages_in[page_current][ide->pos - prefix_len - 4] = ((uint8_t *) ide->buffer)[ide->pos - 2];
-			mode_pages_in[page_current][ide->pos - prefix_len - 3] = ((uint8_t *) ide->buffer)[ide->pos - 1];
+			return;
 		}
-		if (ide->pos>=(ide->packlen+2))
+
+		if (cdrom_write(cur_ide[ide_board], val))
 		{
-			ide->packetstatus = ATAPI_STATUS_PACKET_RECEIVED;
+			ide_irq_raise(ide);
+		}
+
+		if (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback)
+		{
+			idecallback[ide_board] = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback;
+		}
+		return;
+	}
+	else
+	{
+		if (ide->pos>=512)
+		{
+			ide->pos=0;
+			ide->atastat = BUSY_STAT;
 			timer_process();
-			idecallback[ide_board]=6*IDE_TIME;
+			if (ide->command == WIN_WRITE_MULTIPLE)
+			{
+				callbackide(ide_board);
+			}
+			else
+			{
+				idecallback[ide_board]=6*IDE_TIME;
+			}
 			timer_update_outstanding();
-			// pclog("Packet over!\n");
-			ide_irq_lower(ide);
 		}
-		return;
-	}
-	else if (ide->packetstatus == ATAPI_STATUS_PACKET_RECEIVED)
-	{
-		return;
-	}
-	else if (ide->command == WIN_PACKETCMD && ide->pos>=0xC)
-	{
-		ide->pos=0;
-		ide->atastat = BUSY_STAT;
-		ide->packetstatus = ATAPI_STATUS_COMMAND;
-		timer_process();
-		callbackide(ide_board);
-		timer_update_outstanding();
-	}
-	else if (ide->pos>=512)
-	{
-		ide->pos=0;
-		ide->atastat = BUSY_STAT;
-		timer_process();
-		if (ide->command == WIN_WRITE_MULTIPLE)
-		{
-			callbackide(ide_board);
-		}
-		else
-		{
-			idecallback[ide_board]=6*IDE_TIME;
-		}
-		timer_update_outstanding();
 	}
 }
 
 void writeidel(int ide_board, uint32_t val)
 {
-	// pclog("WriteIDEl %08X\n", val);
+	// ide_log("WriteIDEl %08X\n", val);
 	writeidew(ide_board, val);
 	writeidew(ide_board, val >> 16);
 }
@@ -762,7 +790,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 	IDE *ide = &ide_drives[cur_ide[ide_board]];
 	IDE *ide_other = &ide_drives[cur_ide[ide_board] ^ 1];
 
-	// pclog("WriteIDE %04X %02X from %04X(%08X):%08X %i\n", addr, val, CS, cs, cpu_state.pc, ins);
+	ide_log("WriteIDE %04X %02X from %04X(%08X):%08X %i\n", addr, val, CS, cs, cpu_state.pc, ins);
 	addr|=0x90;
 	addr&=0xFFF7;
 
@@ -774,14 +802,47 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			writeidew(ide_board, val | (val << 8));
 			return;
 
-        case 0x1F1: /* Features */
-			ide->cylprecomp = val;
-			ide_other->cylprecomp = val;
+		/* Note to self: for ATAPI, bit 0 of this is DMA if set, PIO if clear. */
+		case 0x1F1: /* Features */
+			if (ide_drive_is_cdrom(ide))
+			{
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].features = val;
+			}
+			else
+			{
+				ide->cylprecomp = val;
+			}
+
+			if (ide_drive_is_cdrom(ide_other))
+			{
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].features = val;
+			}
+			else
+			{
+				ide_other->cylprecomp = val;
+			}
 			return;
 
         case 0x1F2: /* Sector count */
-			ide->secount = val;
-			ide_other->secount = val;
+			if (ide_drive_is_cdrom(ide))
+			{
+				ide_log("Sector count write: %i\n", val);
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].phase = val;
+			}
+			else
+			{
+				ide->secount = val;
+			}
+
+			if (ide_drive_is_cdrom(ide_other))
+			{
+				ide_log("Other sector count write: %i\n", val);
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].phase = val;
+			}
+			else
+			{
+				ide_other->secount = val;
+			}
 			return;
 
         case 0x1F3: /* Sector */
@@ -792,17 +853,51 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			return;
 
         case 0x1F4: /* Cylinder low */
-			ide->cylinder = (ide->cylinder & 0xFF00) | val;
-			ide->lba_addr = (ide->lba_addr & 0xFFF00FF) | (val << 8);
-			ide_other->cylinder = (ide_other->cylinder&0xFF00) | val;
-			ide_other->lba_addr = (ide_other->lba_addr&0xFFF00FF) | (val << 8);
+			if (ide_drive_is_cdrom(ide))
+			{
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length &= 0xFF00;
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length |= val;
+			}
+			else
+			{
+				ide->cylinder = (ide->cylinder & 0xFF00) | val;
+				ide->lba_addr = (ide->lba_addr & 0xFFF00FF) | (val << 8);
+			}
+
+			if (ide_drive_is_cdrom(ide_other))
+			{
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].request_length &= 0xFF00;
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].request_length |= val;
+			}
+			else
+			{
+				ide_other->cylinder = (ide_other->cylinder&0xFF00) | val;
+				ide_other->lba_addr = (ide_other->lba_addr&0xFFF00FF) | (val << 8);
+			}
 			return;
 
         case 0x1F5: /* Cylinder high */
-			ide->cylinder = (ide->cylinder & 0xFF) | (val << 8);
-			ide->lba_addr = (ide->lba_addr & 0xF00FFFF) | (val << 16);
-			ide_other->cylinder = (ide_other->cylinder & 0xFF) | (val << 8);
-			ide_other->lba_addr = (ide_other->lba_addr & 0xF00FFFF) | (val << 16);
+			if (ide_drive_is_cdrom(ide))
+			{
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length &= 0xFF;
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length |= (val << 8);
+			}
+			else
+			{
+				ide->cylinder = (ide->cylinder & 0xFF) | (val << 8);
+				ide->lba_addr = (ide->lba_addr & 0xF00FFFF) | (val << 16);
+			}
+
+			if (ide_drive_is_cdrom(ide_other))
+			{
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].request_length &= 0xFF;
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].request_length |= (val << 8);
+			}
+			else
+			{
+				ide_other->cylinder = (ide_other->cylinder & 0xFF) | (val << 8);
+				ide_other->lba_addr = (ide_other->lba_addr & 0xF00FFFF) | (val << 16);
+			}
 			return;
 
         case 0x1F6: /* Drive/Head */
@@ -820,13 +915,21 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 					ide->cylinder = ide_other->cylinder = 0;
 					ide->reset = ide_other->reset = 0;
 
-					if (IDE_DRIVE_IS_CDROM(ide))
+					if (ide_drive_is_cdrom(ide))
 					{
-						ide->cylinder=0xEB14;
+						cdrom[atapi_cdrom_drives[ide->channel]].status = READY_STAT | DSC_STAT;
+						cdrom[atapi_cdrom_drives[ide->channel]].error = 1;
+						cdrom[atapi_cdrom_drives[ide->channel]].phase = 1;
+						cdrom[atapi_cdrom_drives[ide->channel]].request_length = 0xEB14;
+						cdrom[atapi_cdrom_drives[ide->channel]].callback = 0;
 					}
-					if (IDE_DRIVE_IS_CDROM(ide_other))
+					if (ide_drive_is_cdrom(ide_other))
 					{
-						ide_other->cylinder=0xEB14;
+						cdrom[atapi_cdrom_drives[ide_other->channel]].status = READY_STAT | DSC_STAT;
+						cdrom[atapi_cdrom_drives[ide_other->channel]].error = 1;
+						cdrom[atapi_cdrom_drives[ide_other->channel]].phase = 1;
+						cdrom[atapi_cdrom_drives[ide_other->channel]].request_length = 0xEB14;
+						cdrom[atapi_cdrom_drives[ide_other->channel]].callback = 0;
 					}
 
 					idecallback[ide_board] = 0;
@@ -851,40 +954,59 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
         case 0x1F7: /* Command register */
 			if (ide->type == IDE_NONE)
 			{
+				if (val == WIN_SRST)
+				{
+					callbackide(ide_board);
+				}
 				ide->error=1;
 				return;
 			}
 #if 0
-			if (ide->type == IDE_CDROM)
+			if (ide_drive_is_cdrom(ide_other))
 			{
-				pclog("Write CD-ROM ATA command: %02X\n", val);
+				ide_log("Write CD-ROM ATA command: %02X\n", val);
 			}
 #endif
 			ide_irq_lower(ide);
 			ide->command=val;
                 
-			// pclog("New IDE command - %02X %i %i\n",ide->command,cur_ide[ide_board],ide_board);
+			// ide_log("New IDE command - %02X %i %i\n",ide->command,cur_ide[ide_board],ide_board);
 			ide->error=0;
 			switch (val)
 			{
                 case WIN_SRST: /* ATAPI Device Reset */
-                        if (IDE_DRIVE_IS_CDROM(ide))
+                        if (ide_drive_is_cdrom(ide))
 						{
-							ide->atastat = BUSY_STAT;
+							cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
 						}
                         else
 						{
 							ide->atastat = READY_STAT;
 						}
                         timer_process();
+						if (ide_drive_is_cdrom(ide))
+						{
+							cdrom[atapi_cdrom_drives[ide->channel]].callback = 100*IDE_TIME;
+						}
                         idecallback[ide_board]=100*IDE_TIME;
                         timer_update_outstanding();
                         return;
 
                 case WIN_RESTORE:
                 case WIN_SEEK:
-                        ide->atastat = READY_STAT;
+                        if (ide_drive_is_cdrom(ide))
+						{
+							cdrom[atapi_cdrom_drives[ide->channel]].status = READY_STAT;
+						}
+						else
+						{
+							ide->atastat = READY_STAT;
+						}
                         timer_process();
+						if (ide_drive_is_cdrom(ide))
+						{
+							cdrom[atapi_cdrom_drives[ide->channel]].callback = 100*IDE_TIME;
+						}
                         idecallback[ide_board]=100*IDE_TIME;
                         timer_update_outstanding();
                         return;
@@ -900,14 +1022,25 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                 case WIN_READ:
                 case WIN_READ_NORETRY:
                 case WIN_READ_DMA:
-					ide->atastat = BUSY_STAT;
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					}
+					else
+					{
+						ide->atastat = BUSY_STAT;
+					}
 					timer_process();
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].callback = 200*IDE_TIME;
+					}
 					idecallback[ide_board]=200*IDE_TIME;
 					timer_update_outstanding();
 					return;
                         
                 case WIN_WRITE_MULTIPLE:
-					if (!ide->blocksize && (ide->type != IDE_CDROM))
+					if (!ide->blocksize && !ide_drive_is_cdrom(ide))
 					{
 						fatal("Write_MULTIPLE - blocksize = 0\n");
 					}
@@ -915,33 +1048,83 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                         
                 case WIN_WRITE:
                 case WIN_WRITE_NORETRY:
-					ide->atastat = DRQ_STAT | DSC_STAT | READY_STAT;
-					ide->pos=0;
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].status = DRQ_STAT | DSC_STAT | READY_STAT;
+						cdrom[atapi_cdrom_drives[ide->channel]].pos = 0;
+					}
+					else
+					{
+						ide->atastat = DRQ_STAT | DSC_STAT | READY_STAT;
+						ide->pos=0;
+					}
 					return;
 
                 case WIN_WRITE_DMA:
-					ide->atastat = BUSY_STAT;
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					}
+					else
+					{
+						ide->atastat = BUSY_STAT;
+					}
 					timer_process();
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].callback = 200*IDE_TIME;
+					}
 					idecallback[ide_board]=200*IDE_TIME;
 					timer_update_outstanding();
 					return;
 
                 case WIN_VERIFY:
 				case WIN_VERIFY_ONCE:
-					ide->atastat = BUSY_STAT;
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					}
+					else
+					{
+						ide->atastat = BUSY_STAT;
+					}
 					timer_process();
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].callback = 200*IDE_TIME;
+					}
 					idecallback[ide_board]=200*IDE_TIME;
 					timer_update_outstanding();
 					return;
 
                 case WIN_FORMAT:
-					ide->atastat = DRQ_STAT;
-					ide->pos=0;
+					if (ide_drive_is_cdrom(ide))
+					{
+						// cdrom[atapi_cdrom_drives[ide->channel]].status = DRQ_STAT;
+						// cdrom[atapi_cdrom_drives[ide->channel]].pos = 0;
+						goto ide_bad_command;
+					}
+					else
+					{
+						ide->atastat = DRQ_STAT;
+						ide->pos=0;
+					}
 					return;
 
                 case WIN_SPECIFY: /* Initialize Drive Parameters */
-					ide->atastat = BUSY_STAT;
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					}
+					else
+					{
+						ide->atastat = BUSY_STAT;
+					}
 					timer_process();
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].callback = 30*IDE_TIME;
+					}
 					idecallback[ide_board]=30*IDE_TIME;
 					timer_update_outstanding();
 					return;
@@ -953,8 +1136,19 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				case WIN_STANDBYNOW1:
                 case WIN_SETIDLE1: /* Idle */
 				case WIN_CHECKPOWERMODE1:
-					ide->atastat = BUSY_STAT;
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					}
+					else
+					{
+						ide->atastat = BUSY_STAT;
+					}
 					timer_process();
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].callback = 30*IDE_TIME;
+					}
 					idecallback[ide_board]=30*IDE_TIME;
 					timer_update_outstanding();
 					return;
@@ -962,34 +1156,53 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                 case WIN_IDENTIFY: /* Identify Device */
                 case WIN_SET_FEATURES:
 				case WIN_READ_NATIVE_MAX:
-					ide->atastat = BUSY_STAT;
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					}
+					else
+					{
+						ide->atastat = BUSY_STAT;
+					}
 					timer_process();
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].callback = 200*IDE_TIME;
+					}
 					idecallback[ide_board]=200*IDE_TIME;
 					timer_update_outstanding();
 					return;
 
                 case WIN_PACKETCMD: /* ATAPI Packet */
-#if 0
-					ide->packetstatus = ATAPI_STATUS_IDLE;
-					ide->atastat = BUSY_STAT;
-					timer_process();
-					// idecallback[ide_board]=1;//30*IDE_TIME;
-					idecallback[ide_board]=30*IDE_TIME;
-					timer_update_outstanding();
-					ide->pos=0;
-#endif
-					/* Skip the command callbackwait, and process immediately. */
-					ide->packetstatus = ATAPI_STATUS_IDLE;
-					readcdmode=0;
-					ide->pos=0;
-					ide->secount = 1;
-					ide->atastat = READY_STAT | DRQ_STAT |(ide->atastat&ERR_STAT);
+					/* Skip the command callback wait, and process immediately. */
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].packet_status = CDROM_PHASE_IDLE;
+						cdrom[atapi_cdrom_drives[ide->channel]].pos=0;
+						cdrom[atapi_cdrom_drives[ide->channel]].phase = 1;
+						cdrom[atapi_cdrom_drives[ide->channel]].status = READY_STAT | DRQ_STAT | (cdrom[cur_ide[ide_board]].status & ERR_STAT);
+					}
+					else
+					{
+						ide->pos=0;
+						ide->secount = 1;
+						ide->atastat = READY_STAT | DRQ_STAT |(ide->atastat&ERR_STAT);
+					}
 					return;
                         
                 case 0xF0:
 				default:
-                	ide->atastat = READY_STAT | ERR_STAT | DSC_STAT;
-                	ide->error = ABRT_ERR;
+ide_bad_command:
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].status = READY_STAT | ERR_STAT | DSC_STAT;
+						cdrom[atapi_cdrom_drives[ide->channel]].error = ABRT_ERR;
+					}
+					else
+					{
+						ide->atastat = READY_STAT | ERR_STAT | DSC_STAT;
+						ide->error = ABRT_ERR;
+					}
 					ide_irq_raise(ide);
 					return;
 			}
@@ -999,6 +1212,10 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			if ((ide->fdisk & 4) && !(val&4) && (ide->type != IDE_NONE || ide_other->type != IDE_NONE))
 			{
 				timer_process();
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 500*IDE_TIME;
+				}
 				idecallback[ide_board]=500*IDE_TIME;
 				timer_update_outstanding();
 
@@ -1010,8 +1227,12 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				{
 					ide->reset = 1;
 				}
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+				}
 				ide->atastat = ide_other->atastat = BUSY_STAT;
-				// pclog("IDE Reset %i\n", ide_board);
+				// ide_log("IDE Reset %i\n", ide_board);
 			}
 			ide->fdisk = ide_other->fdisk = val;
 			ide_irq_update(ide);
@@ -1025,6 +1246,8 @@ uint8_t readide(int ide_board, uint16_t addr)
 	IDE *ide = &ide_drives[cur_ide[ide_board]];
 	uint8_t temp;
 	uint16_t tempw;
+	
+	uint8_t temp2;
 
 	addr|=0x90;
 	addr&=0xFFF7;
@@ -1045,7 +1268,10 @@ uint8_t readide(int ide_board, uint16_t addr)
 			tempw = readidew(ide_board);
 			temp = tempw & 0xff;
 			break;
-                
+
+		/* For ATAPI: Bits 7-4 = sense key, bit 3 = MCR (media change requested),
+		              Bit 2 = ABRT (aborted command), Bit 1 = EOM (end of media),
+					  and Bit 0 = ILI (illegal length indication). */
 		case 0x1F1: /* Error */
 			if (ide->type == IDE_NONE)
 			{
@@ -1053,10 +1279,30 @@ uint8_t readide(int ide_board, uint16_t addr)
 			}
 			else
 			{
-				temp = ide->error;
+				if (ide_drive_is_cdrom(ide))
+				{
+					temp = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].error;
+				}
+				else
+				{
+					temp = ide->error;
+				}
 			}
 			break;
 
+		/* For ATAPI:
+			Bit 0: Command or Data:
+				Data if clear, Command if set;
+			Bit 1: I/OB
+				Direction:
+					To device if set;
+					From device if clear.
+			IO		DRQ		CoD
+			0		1		1		Ready to accept command packet
+			1		1		1		Message - ready to send message to host
+			1		1		0		Data to host
+			0		1		0		Data from host
+			1		0		1		Status. */
 		case 0x1F2: /* Sector count */
 			if (ide->type == IDE_NONE)
 			{
@@ -1064,7 +1310,14 @@ uint8_t readide(int ide_board, uint16_t addr)
 			}
 			else
 			{
-				temp = (uint8_t)ide->secount;
+				if (ide_drive_is_cdrom(ide))
+				{
+					temp = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].phase;
+				}
+				else
+				{
+					temp = ide->secount;
+				}
 			}
 			break;
 
@@ -1086,7 +1339,14 @@ uint8_t readide(int ide_board, uint16_t addr)
 			}
 			else
 			{
-				temp = (uint8_t)(ide->cylinder&0xFF);
+				if (ide_drive_is_cdrom(ide))
+				{
+					temp = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length & 0xff;
+				}
+				else
+				{
+					temp = ide->cylinder & 0xff;
+				}
 			}
 			break;
 
@@ -1097,7 +1357,14 @@ uint8_t readide(int ide_board, uint16_t addr)
 			}
 			else
 			{
-				temp = (uint8_t)(ide->cylinder>>8);
+				if (ide_drive_is_cdrom(ide))
+				{
+					temp = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length >> 8;
+				}
+				else
+				{
+					temp = ide->cylinder >> 8;
+				}
 			}
 			break;
 
@@ -1112,12 +1379,14 @@ uint8_t readide(int ide_board, uint16_t addr)
 			}
 			break;
 
+		/* For ATAPI: Bit 5 is DMA ready, but without overlapped or interlaved DMA, it is
+					  DF (drive fault). */
 		case 0x1F7: /* Status */
 			ide_irq_lower(ide);
-			if (ide->type == IDE_CDROM)
+			if (ide_drive_is_cdrom(ide))
 			{
-				temp = (ide->atastat & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0);
-				// pclog("Read CD-ROM status: %02X\n", temp);
+				temp = (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].status & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0);
+				// ide_log("Read CD-ROM status: %02X\n", temp);
 			}
 			else
 			{
@@ -1131,9 +1400,10 @@ uint8_t readide(int ide_board, uint16_t addr)
 				temp = DSC_STAT;
 				break;
 			}
-			if (ide->type == IDE_CDROM)
+			if (ide_drive_is_cdrom(ide))
 			{
-				temp = (ide->atastat & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0);
+				temp = (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].status & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0);
+				// ide_log("Read CD-ROM alternate status: %02X\n", temp);
 			}
 			else
 			{
@@ -1141,65 +1411,82 @@ uint8_t readide(int ide_board, uint16_t addr)
 			}
 			break;
 	}
-	// /* if (ide_board) */  pclog("Read IDEb %04X %02X   %02X %02X %i %04X:%04X %i\n", addr, temp, ide->atastat,(ide->atastat & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0),cur_ide[ide_board],CS,cpu_state.pc,ide_board);
+	/* if (ide_board) */  ide_log("Read IDEb %04X %02X   %02X %02X %i %04X:%04X %i\n", addr, temp, ide->atastat,(ide->atastat & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0),cur_ide[ide_board],CS,cpu_state.pc,ide_board);
 	return temp;
 	// fatal("Bad IDE read %04X\n", addr);
 }
+
+uint8_t cdb[16];
+
+int old_len = 0;
+
+int total_read = 0;
+
+int block_total = 0;
+int all_blocks_total = 0;
 
 uint16_t readidew(int ide_board)
 {
 	IDE *ide = &ide_drives[cur_ide[ide_board]];
 	uint16_t temp;
-
+	
 	temp = ide->buffer[ide->pos >> 1];
 
-	ide->pos+=2;
-	if ((ide->command == WIN_PACKETCMD) && ((ide->packetstatus == ATAPI_STATUS_REQ_SENSE) || (ide->packetstatus==8)))
+	ide->pos += 2;
+
+	if (ide->command == WIN_PACKETCMD)
 	{
-		callnonreadcd(ide);
-		return temp;
+		if (!ide_drive_is_cdrom(ide))
+		{
+			ide_log("Drive not CD-ROM (position: %i)\n", ide->pos);
+			return 0;
+		}
+		temp = cdrom_read(cur_ide[ide_board]);
+		if (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback)
+		{
+			idecallback[ide_board] = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback;
+		}
 	}
-	if ((ide->pos>=512 && ide->command != WIN_PACKETCMD) || (ide->command == WIN_PACKETCMD && ide->pos>=ide->packlen))
+	if (ide->pos>=512 && ide->command != WIN_PACKETCMD)
 	{
 		ide->pos=0;
-		if (ide->command == WIN_PACKETCMD)// && ide.packetstatus==6)
+		ide->atastat = READY_STAT | DSC_STAT;
+		if (ide_drive_is_cdrom(ide))
 		{
-			callreadcd(ide);
+			// cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].pos = 0;
+			cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].status = READY_STAT | DSC_STAT;
+			cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].packet_status = CDROM_PHASE_IDLE;
 		}
-		else
+		ide->packetstatus = ATAPI_STATUS_IDLE;
+		if (ide->command == WIN_READ || ide->command == WIN_READ_NORETRY || ide->command == WIN_READ_MULTIPLE)
 		{
-			ide->atastat = READY_STAT | DSC_STAT;
-			ide->packetstatus = ATAPI_STATUS_IDLE;
-			if (ide->command == WIN_READ || ide->command == WIN_READ_NORETRY || ide->command == WIN_READ_MULTIPLE)
+			ide->secount = (ide->secount - 1) & 0xff;
+			if (ide->secount)
 			{
-				ide->secount = (ide->secount - 1) & 0xff;
-				if (ide->secount)
+				ide_next_sector(ide);
+				ide->atastat = BUSY_STAT;
+				timer_process();
+				if (ide->command == WIN_READ_MULTIPLE)
 				{
-					ide_next_sector(ide);
-					ide->atastat = BUSY_STAT;
-					timer_process();
-					if (ide->command == WIN_READ_MULTIPLE)
-					{
-						callbackide(ide_board);
-					}
-					else
-					{
-						idecallback[ide_board]=6*IDE_TIME;
-					}
-					timer_update_outstanding();
+					callbackide(ide_board);
 				}
+				else
+				{
+					idecallback[ide_board]=6*IDE_TIME;
+				}
+				timer_update_outstanding();
 			}
 		}
 	}
 
-	// pclog("Read IDEw %04X\n",temp);
+	// ide_log("Read IDEw %04X\n",temp);
 	return temp;
 }
 
 uint32_t readidel(int ide_board)
 {
 	uint16_t temp;
-	// pclog("Read IDEl %i\n", ide_board);
+	// ide_log("Read IDEl %i\n", ide_board);
 	temp = readidew(ide_board);
 	return temp | (readidew(ide_board) << 16);
 }
@@ -1214,9 +1501,15 @@ void callbackide(int ide_board)
 	int c;
 	ext_ide = ide;
 	int64_t snum;
+	int cdrom_id;
 
+	if (ide_drive_is_cdrom(ide))
+	{
+		cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback = 0;
+	}
+	
 	if (ide->command==0x30) times30++;
-	// /*if (ide_board) */pclog("CALLBACK %02X %i %i  %i\n",ide->command,times30,ide->reset,cur_ide[ide_board]);
+	/*if (ide_board) */ide_log("CALLBACK %02X %i %i  %i\n",ide->command,times30,ide->reset,cur_ide[ide_board]);
 
 	if (ide->reset)
 	{
@@ -1228,29 +1521,43 @@ void callbackide(int ide_board)
 		ide->cylinder = ide_other->cylinder = 0;
 		ide->reset = ide_other->reset = 0;
 
-		if (IDE_DRIVE_IS_CDROM(ide))
+		if (ide_drive_is_cdrom(ide))
 		{
-			ide->cylinder=0xEB14;
-			cdrom->stop();
+			cdrom_id = atapi_cdrom_drives[cur_ide[ide_board]];
+			cdrom[cdrom_id].status = READY_STAT | DSC_STAT;
+			cdrom[cdrom_id].error = 1;
+			cdrom[cdrom_id].phase = 1;
+			cdrom[cdrom_id].request_length=0xEB14;
+			if (cdrom_drives[cdrom_id].handler->stop)
+			{
+				cdrom_drives[cdrom_id].handler->stop(cdrom_id);
+			}
 		}
 		if (ide->type == IDE_NONE)
 		{
 			ide->cylinder=0xFFFF;
-			cdrom->stop();
 		}
-		if (IDE_DRIVE_IS_CDROM(ide_other))
+		if (ide_drive_is_cdrom(ide_other))
 		{
-			ide_other->cylinder=0xEB14;
-			cdrom->stop();
+			cdrom_id = atapi_cdrom_drives[cur_ide[ide_board] ^ 1];
+			cdrom[cdrom_id].status = READY_STAT | DSC_STAT;
+			cdrom[cdrom_id].error = 1;
+			cdrom[cdrom_id].phase = 1;
+			cdrom[cdrom_id].request_length=0xEB14;
+			if (cdrom_drives[cdrom_id].handler->stop)
+			{
+				cdrom_drives[cdrom_id].handler->stop(cdrom_id);
+			}
 		}
 		if (ide_other->type == IDE_NONE)
 		{
 			ide_other->cylinder=0xFFFF;
-			cdrom->stop();
 		}
-		// pclog("Reset callback\n");
+		// ide_log("Reset callback\n");
 		return;
 	}
+
+	cdrom_id = atapi_cdrom_drives[cur_ide[ide_board]];
 
 	switch (ide->command)
 	{
@@ -1262,12 +1569,12 @@ void callbackide(int ide_board)
 			ide->secount = ide->sector = 1;
 			ide_set_signature(ide);
 
-			if (IDE_DRIVE_IS_CDROM(ide))
+			if (ide_drive_is_cdrom(ide))
 			{
-				ide->atastat = 0;
+				cdrom_reset(cdrom_id);
 			}
 			ide_irq_raise(ide);
-			if (IDE_DRIVE_IS_CDROM(ide))
+			if (ide_drive_is_cdrom(ide))
 			{
 				ide->service = 0;
 			}
@@ -1275,19 +1582,26 @@ void callbackide(int ide_board)
 
         case WIN_RESTORE:
         case WIN_SEEK:
-			if (IDE_DRIVE_IS_CDROM(ide))
+			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
 			}
 		case WIN_NOP:
 		case WIN_STANDBYNOW1:
 		case WIN_SETIDLE1:
-			ide->atastat = READY_STAT | DSC_STAT;
+			if (ide_drive_is_cdrom(ide))
+			{
+				cdrom[cdrom_id].status = READY_STAT | DSC_STAT;
+			}
+			else
+			{
+				ide->atastat = READY_STAT | DSC_STAT;
+			}
 			ide_irq_raise(ide);
 			return;
 
 		case WIN_CHECKPOWERMODE1:
-			if (IDE_DRIVE_IS_CDROM(ide))
+			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
 			}
@@ -1298,7 +1612,7 @@ void callbackide(int ide_board)
 
         case WIN_READ:
         case WIN_READ_NORETRY:
-			if (IDE_DRIVE_IS_CDROM(ide))
+			if (ide_drive_is_cdrom(ide))
 			{
 				ide_set_signature(ide);
 				goto abort_cmd;
@@ -1316,7 +1630,7 @@ void callbackide(int ide_board)
 			return;
 
         case WIN_READ_DMA:
-			if (IDE_DRIVE_IS_CDROM(ide) || (ide->board >= 2))
+			if (ide_drive_is_cdrom(ide) || (ide->board >= 2))
 			{
 				goto abort_cmd;
 			}
@@ -1325,9 +1639,9 @@ void callbackide(int ide_board)
 			fread(ide->buffer, 512, 1, ide->hdfile);
 			ide->pos=0;
                 
-			if (ide_bus_master_read_sector)
+			if (ide_bus_master_read)
 			{
-				if (ide_bus_master_read_sector(ide_board, (uint8_t *)ide->buffer))
+				if (ide_bus_master_read(ide_board, (uint8_t *)ide->buffer, 512))
 				{
 					idecallback[ide_board]=6*IDE_TIME;           /*DMA not performed, try again later*/
 				}
@@ -1360,7 +1674,7 @@ void callbackide(int ide_board)
 			   command  has  been  executed  or  when  Read  Multiple  commands  are
 			   disabled, the Read Multiple operation is rejected with an Aborted Com-
 			   mand error. */
-			if (IDE_DRIVE_IS_CDROM(ide) || !ide->blocksize)
+			if (ide_drive_is_cdrom(ide) || !ide->blocksize)
 			{
 				goto abort_cmd;
 			}
@@ -1372,7 +1686,7 @@ void callbackide(int ide_board)
 			ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 			if (!ide->blockcount)
 			{
-				// pclog("Read multiple int\n");
+				// ide_log("Read multiple int\n");
 				ide_irq_raise(ide);
 			}                        
 			ide->blockcount++;
@@ -1386,7 +1700,7 @@ void callbackide(int ide_board)
 
         case WIN_WRITE:
         case WIN_WRITE_NORETRY:
-			if (IDE_DRIVE_IS_CDROM(ide))
+			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
 			}
@@ -1410,14 +1724,14 @@ void callbackide(int ide_board)
 			return;
                 
         case WIN_WRITE_DMA:
-			if (IDE_DRIVE_IS_CDROM(ide) || (ide_board >= 2))
+			if (ide_drive_is_cdrom(ide) || (ide_board >= 2))
 			{
 				goto abort_cmd;
 			}
 
-			if (ide_bus_master_write_sector)
+			if (ide_bus_master_write)
 			{
-				if (ide_bus_master_write_sector(ide_board, (uint8_t *)ide->buffer))
+				if (ide_bus_master_write(ide_board, (uint8_t *)ide->buffer, 512))
 				{
 					idecallback[ide_board]=6*IDE_TIME;           /*DMA not performed, try again later*/
 				}
@@ -1448,7 +1762,7 @@ void callbackide(int ide_board)
 			return;
 
         case WIN_WRITE_MULTIPLE:
-			if (IDE_DRIVE_IS_CDROM(ide))
+			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
 			}
@@ -1478,7 +1792,7 @@ void callbackide(int ide_board)
 
 		case WIN_VERIFY:
 		case WIN_VERIFY_ONCE:
-			if (IDE_DRIVE_IS_CDROM(ide))
+			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
 			}
@@ -1489,12 +1803,12 @@ void callbackide(int ide_board)
 			return;
 
         case WIN_FORMAT:
-			if (IDE_DRIVE_IS_CDROM(ide))
+			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
 			}
 			addr = ide_get_sector(ide) * 512;
-			// pclog("Format cyl %i head %i offset %08X %08X %08X secount %i\n",ide.cylinder,ide.head,addr,addr>>32,addr,ide.secount);
+			// ide_log("Format cyl %i head %i offset %08X %08X %08X secount %i\n",ide.cylinder,ide.head,addr,addr>>32,addr,ide.secount);
 			fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
 			memset(ide->buffer, 0, 512);
 			for (c=0;c<ide->secount;c++)
@@ -1511,9 +1825,9 @@ void callbackide(int ide_board)
 			ide_set_signature(ide);
 			ide->error=1; /*No error detected*/
 
-			if (IDE_DRIVE_IS_CDROM(ide))
+			if (ide_drive_is_cdrom(ide))
 			{
-				ide->atastat = 0;
+				cdrom[cdrom_id].status = 0;
 			}
 			else
 			{
@@ -1523,7 +1837,7 @@ void callbackide(int ide_board)
 			return;
 
         case WIN_SPECIFY: /* Initialize Drive Parameters */
-			if (IDE_DRIVE_IS_CDROM(ide))
+			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
 			}
@@ -1534,25 +1848,26 @@ void callbackide(int ide_board)
 			return;
 
         case WIN_PIDENTIFY: /* Identify Packet Device */
-			if (IDE_DRIVE_IS_CDROM(ide))
+			if (ide_drive_is_cdrom(ide))
 			{
 				ide_atapi_identify(ide);
-				ide->pos=0;
-				ide->error=0;
-				ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
+				ide->pos = 0;
+				cdrom[cdrom_id].pos = 0;
+				cdrom[cdrom_id].error = 0;
+				cdrom[cdrom_id].status = DRQ_STAT | READY_STAT | DSC_STAT;
 				ide_irq_raise(ide);
 				return;
 			}
 			goto abort_cmd;
 
         case WIN_SET_MULTIPLE_MODE:
-			if (IDE_DRIVE_IS_CDROM(ide))
+			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
 			}
 			ide->blocksize = ide->secount;
 			ide->atastat = READY_STAT | DSC_STAT;
-			// pclog("Set multiple mode - %i\n", ide->blocksize);
+			// ide_log("Set multiple mode - %i\n", ide->blocksize);
 			ide_irq_raise(ide);
 			return;
 
@@ -1561,12 +1876,19 @@ void callbackide(int ide_board)
 			{
 				goto abort_cmd;
 			}
-			ide->atastat = READY_STAT | DSC_STAT;
+			if (ide_drive_is_cdrom(ide))
+			{
+				cdrom[cdrom_id].status = READY_STAT | DSC_STAT;
+			}
+			else
+			{
+				ide->atastat = READY_STAT | DSC_STAT;
+			}
 			ide_irq_raise(ide);
 			return;
 				
 		case WIN_READ_NATIVE_MAX:
-			if (ide->type != IDE_HDD)
+			if ((ide->type != IDE_HDD) || ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
 			}
@@ -1584,7 +1906,7 @@ void callbackide(int ide_board)
 				ide_set_signature(ide);
 				goto abort_cmd;
 			}
-			if (IDE_DRIVE_IS_CDROM(ide))
+			if (ide_drive_is_cdrom(ide))
 			{
 				ide_set_signature(ide);
 				goto abort_cmd;
@@ -1599,83 +1921,34 @@ void callbackide(int ide_board)
 			return;
 
         case WIN_PACKETCMD: /* ATAPI Packet */
-			if (!IDE_DRIVE_IS_CDROM(ide))
+			if (!ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
 			}
 
-			if (ide->packetstatus == ATAPI_STATUS_IDLE)
+			if (cdrom_phase_callback(atapi_cdrom_drives[cur_ide[ide_board]]))
 			{
-				// pclog("ATAPI_STATUS_IDLE\n");
-				readcdmode=0;
-				ide->pos=0;
-				ide->secount = 1;
-				ide->atastat = READY_STAT | DRQ_STAT |(ide->atastat&ERR_STAT);
-			}
-			else if (ide->packetstatus == ATAPI_STATUS_COMMAND)
-			{
-				// pclog("ATAPI_STATUS_COMMAND\n");
-				ide->atastat = BUSY_STAT|(ide->atastat&ERR_STAT);
-				atapicommand(ide_board);
-			}
-			else if (ide->packetstatus == ATAPI_STATUS_COMPLETE)
-			{
-				// pclog("ATAPI_STATUS_COMPLETE\n");
-				ide->atastat = READY_STAT;
-				ide->secount=3;
 				ide_irq_raise(ide);
 			}
-			else if (ide->packetstatus == ATAPI_STATUS_DATA)
-			{
-				// pclog("ATAPI_STATUS_DATA\n");
-				ide->atastat = READY_STAT|DRQ_STAT|(ide->atastat&ERR_STAT);
-				ide_irq_raise(ide);
-				ide->packetstatus=0xFF;
-			}
-			else if (ide->packetstatus == ATAPI_STATUS_PACKET_REQ)
-			{
-				// pclog("ATAPI_STATUS_PACKET_REQ\n");
-				ide->atastat = 0x58 | (ide->atastat & ERR_STAT);
-				ide_irq_raise(ide);
-				ide->pos=2;
-			}
-			else if (ide->packetstatus == ATAPI_STATUS_PACKET_RECEIVED)
-			{
-				// pclog("ATAPI_STATUS_PACKET_RECEIVED\n");
-				atapicommand(ide_board);
-			}
-			else if (ide->packetstatus == ATAPI_STATUS_READCD) /*READ CD callback*/
-			{
-				// pclog("ATAPI_STATUS_READCD\n");
-				ide->atastat = DRQ_STAT|(ide->atastat&ERR_STAT);
-				ide_irq_raise(ide);
-			}
-			else if (ide->packetstatus == ATAPI_STATUS_REQ_SENSE)	/*REQUEST SENSE callback #1*/
-			{
-				// pclog("ATAPI_STATUS_REQ_SENSE\n");
-				ide->atastat = 0x58 | (ide->atastat & ERR_STAT);
-				ide_irq_raise(ide);
-			}
-			else if (ide->packetstatus == ATAPI_STATUS_ERROR) /*Error callback*/
-			{
-				// pclog("ATAPI_STATUS_ERROR\n");
-				ide->atastat = READY_STAT | ERR_STAT;
-				ide_irq_raise(ide);
-			}
-			else if (ide->packetstatus == ATAPI_STATUS_ERROR_2) /*Error callback with atastat already set - needed for the disc change stuff.*/
-			{
-				// pclog("ATAPI_STATUS_ERROR_2\n");
-				ide->atastat = ERR_STAT;
-				ide_irq_raise(ide);
-			}
+			idecallback[ide_board] = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback;
+			ide_log("IDE callback now: %i\n", idecallback[ide_board]);
 			return;
 	}
 
 abort_cmd:
 	ide->command = 0;
-	ide->atastat = READY_STAT | ERR_STAT | DSC_STAT;
-	ide->error = ABRT_ERR;
-	ide->pos = 0;
+	if (ide_drive_is_cdrom(ide))
+	{
+		cdrom[cdrom_id].status = READY_STAT | ERR_STAT | DSC_STAT;
+		cdrom[cdrom_id].error = ABRT_ERR;
+		cdrom[cdrom_id].pos = 0;
+	}
+	else
+	{
+		ide->atastat = READY_STAT | ERR_STAT | DSC_STAT;
+		ide->error = ABRT_ERR;
+		ide->pos = 0;
+	}
 	ide_irq_raise(ide);
 }
 
@@ -1702,1253 +1975,6 @@ void ide_callback_qua()
 	idecallback[3] = 0;
 	callbackide(3);
 }
-
-/*ATAPI CD-ROM emulation*/
-uint8_t atapi_prev;
-int toctimes=0;
-
-void atapi_command_send_init(IDE *ide, uint8_t command, int req_length, int alloc_length)
-{
-	if (ide->cylinder == 0xffff)
-	{
-		ide->cylinder = 0xfffe;
-	}
-
-	if ((ide->cylinder & 1) && !(alloc_length <= ide->cylinder))
-	{
-		ide->cylinder--;
-	}
-	
-	if (alloc_length < 0)
-	{
-		fatal("Allocation length < 0\n");
-	}
-	if (alloc_length == 0)
-	{
-		alloc_length = ide->cylinder;
-	}
-		
-	/* No atastat setting: PCem actually emulates the callback cycle. */
-	if (alloc_length != 0)
-	{
-		ide->secount = 2;
-	}
-	
-	// no bytes transferred yet
-	ide->pos = 0;
-
-	if ((ide->cylinder > req_length) || (ide->cylinder == 0))
-	{
-		ide->cylinder = req_length;
-	}
-	if (ide->cylinder > alloc_length)
-	{
-		ide->cylinder = alloc_length;
-	}
-}
-
-static void atapi_command_ready(int ide_board, int packlen)
-{
-	IDE *ide = &ide_drives[cur_ide[ide_board]];
-	ide->packetstatus = ATAPI_STATUS_REQ_SENSE;
-	idecallback[ide_board]=60*IDE_TIME;
-	ide->packlen=packlen;
-}
-
-static void atapi_sense_clear(int command, int ignore_ua)
-{
-	if ((SCSISense.SenseKey == SENSE_UNIT_ATTENTION) || ignore_ua)
-	{
-		atapi_prev=command;
-		SCSISense.SenseKey=0;
-		SCSISense.Asc=0;
-		SCSISense.Ascq=0;
-	}
-}
-
-void atapi_cmd_error(IDE *ide, uint8_t sensekey, uint8_t asc, uint8_t ascq)
-{
-	ide->error = (sensekey << 4) | ABRT_ERR;
-	if (SCSISense.UnitAttention)
-	{
-		ide->error |= MCR_ERR;
-	}
-	ide->atastat = READY_STAT | ERR_STAT;
-	ide->secount = (ide->secount & ~7) | 3;
-	ide->packetstatus = 0x80;
-	idecallback[ide->board]=50*IDE_TIME;
-}
-
-static void atapi_not_ready(IDE *ide)
-{
-	SCSISense.SenseKey = SENSE_NOT_READY;
-	SCSISense.Asc = ASC_MEDIUM_NOT_PRESENT;
-	SCSISense.Ascq = 0;
-	atapi_cmd_error(ide, SENSE_NOT_READY, ASC_MEDIUM_NOT_PRESENT, 0);
-}
-
-static void atapi_illegal_opcode(IDE *ide)
-{
-	SCSISense.SenseKey = SENSE_ILLEGAL_REQUEST;
-	SCSISense.Asc = ASC_ILLEGAL_OPCODE;
-	SCSISense.Ascq = 0;
-	atapi_cmd_error(ide, SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE, 0);
-}
-
-static void atapi_invalid_field(IDE *ide)
-{
-	SCSISense.SenseKey = SENSE_ILLEGAL_REQUEST;
-	SCSISense.Asc = ASC_INV_FIELD_IN_CMD_PACKET;
-	SCSISense.Ascq = 0;
-	atapi_cmd_error(ide, SENSE_ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET, 0);
-	ide->atastat = 0x53;
-}
-
-static void atapi_illegal_mode(IDE *ide)
-{
-	SCSISense.SenseKey = SENSE_ILLEGAL_REQUEST;
-	SCSISense.Asc = ASC_ILLEGAL_MODE_FOR_THIS_TRACK;
-	SCSISense.Ascq = 0;
-	atapi_cmd_error(ide, SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_MODE_FOR_THIS_TRACK, 0);
-}
-
-static void atapi_incompatible_format(IDE *ide)
-{
-	SCSISense.SenseKey = SENSE_ILLEGAL_REQUEST;
-	SCSISense.Asc = ASC_INCOMPATIBLE_FORMAT;
-	SCSISense.Ascq = 0;
-	atapi_cmd_error(ide, SENSE_ILLEGAL_REQUEST, ASC_INCOMPATIBLE_FORMAT, 0);
-}
-
-static void atapi_data_phase_error(IDE *ide)
-{
-	SCSISense.SenseKey = SENSE_ILLEGAL_REQUEST;
-	SCSISense.Asc = ASC_DATA_PHASE_ERROR;
-	SCSISense.Ascq = 0;
-	atapi_cmd_error(ide, SENSE_ILLEGAL_REQUEST, ASC_DATA_PHASE_ERROR, 0);
-}
-
-static void atapicommand(int ide_board)
-{
-	IDE *ide = &ide_drives[cur_ide[ide_board]];
-	uint8_t *idebufferb = (uint8_t *) ide->buffer;
-	uint8_t rcdmode = 0;
-	int c;
-	int len;
-	int msf;
-	int pos=0;
-	unsigned char temp;
-	uint32_t size;
-	uint8_t page_code;
-	int max_len;
-	unsigned idx = 0;
-	unsigned size_idx;
-	unsigned preamble_len;
-	int toc_format;
-	int temp_command;
-	int alloc_length;
-	int completed;
-    uint8_t index = 0;
-	int media;
-	int format;
-	int ret;
-	int real_pos;
-	int track = 0;
-	uint8_t cdb[12];
-
-#if 0
-	pclog("ATAPI command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, %i, Unit attention: %i\n",idebufferb[0],SCSISense.SenseKey,SCSISense.Asc,SCSISense.Ascq,ins,SCSISense.UnitAttention);
-		
-	int CdbLength;
-	for (CdbLength = 1; CdbLength < 12; CdbLength++)
-	{
-		pclog("ATAPI CDB[%d] = 0x%02X\n", CdbLength, idebufferb[CdbLength]);
-	}
-#endif
-	
-	memcpy(cdb, idebufferb, 12);
-
-	msf=idebufferb[1]&2;
-	SectorLen=0;
-
-	if (cdrom->medium_changed())
-	{
-		// pclog("Medium has changed...\n");
-		SCSICDROM_Insert();
-	}
-
-	if (!cdrom->ready() && SCSISense.UnitAttention)
-	{
-		/* If the drive is not ready, there is no reason to keep the
-		   UNIT ATTENTION condition present, as we only use it to mark
-		   disc changes. */
-		SCSISense.UnitAttention = 0;
-	}
-	
-	/* If the UNIT ATTENTION condition is set and the command does not allow
-		execution under it, error out and report the condition. */
-	if (SCSISense.UnitAttention == 1)
-	{
-		// pclog("Unit attention now 2\n");
-		SCSISense.UnitAttention = 2;
-		if (!(SCSICommandTable[idebufferb[0]] & ALLOW_UA))
-		{
-			// pclog("UNIT ATTENTION: Command not allowed to pass through\n");
-			atapi_cmd_error(ide, SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0);
-			return;
-		}
-	}
-	else if (SCSISense.UnitAttention == 2)
-	{
-		if (idebufferb[0]!=GPCMD_REQUEST_SENSE)
-		{
-			// pclog("Unit attention now 0\n");
-			SCSISense.UnitAttention = 0;
-		}
-	}
-
-	/* Unless the command is REQUEST SENSE, clear the sense. This will *NOT*
-		the UNIT ATTENTION condition if it's set. */
-	if (idebufferb[0]!=GPCMD_REQUEST_SENSE)
-	{
-		atapi_sense_clear(idebufferb[0], 1);
-	}
-
-	/* Next it's time for NOT READY. */
-	if ((SCSICommandTable[idebufferb[0]] & CHECK_READY) && !cdrom->ready())
-	{
-		atapi_not_ready(ide);
-		return;
-	}
-
-	// pclog("Continuing with command\n");
-		
-	prev_status = cd_status;
-	cd_status = cdrom->status();
-	if (((prev_status == CD_STATUS_PLAYING) || (prev_status == CD_STATUS_PAUSED)) && ((cd_status != CD_STATUS_PLAYING) && (cd_status != CD_STATUS_PAUSED)))
-	{
-		completed = 1;
-	}
-	else
-	{
-		completed = 0;
-	}
-
-	switch (idebufferb[0])
-	{
-		case GPCMD_TEST_UNIT_READY:
-			ide->packetstatus = ATAPI_STATUS_COMPLETE;
-			idecallback[ide_board]=50*IDE_TIME;
-			break;
-
-		case GPCMD_REQUEST_SENSE: /* Used by ROS 4+ */
-			alloc_length = idebufferb[4];
-			temp_command = idebufferb[0];
-				
-			/*Will return 18 bytes of 0*/
-			if (alloc_length != 0)
-			{
-				memset(idebufferb, 0, alloc_length);
-			}
-
-			idebufferb[0]=0x80|0x70;
-
-			if ((SCSISense.SenseKey > 0) && ((cd_status < CD_STATUS_PLAYING) || (cd_status == CD_STATUS_STOPPED)))
-			{
-				if (completed)
-				{
-					idebufferb[2]=SENSE_ILLEGAL_REQUEST;
-					idebufferb[12]=ASC_AUDIO_PLAY_OPERATION;
-					idebufferb[13]=ASCQ_AUDIO_PLAY_OPERATION_COMPLETED;
-				}
-				else
-				{
-					idebufferb[2]=SCSISense.SenseKey;
-					idebufferb[12]=SCSISense.Asc;
-					idebufferb[13]=SCSISense.Ascq;
-				}
-			}
-			else if ((SCSISense.SenseKey == 0) && (cd_status >= CD_STATUS_PLAYING) && (cd_status != CD_STATUS_STOPPED))
-			{
-				idebufferb[2]=SENSE_ILLEGAL_REQUEST;
-				idebufferb[12]=ASC_AUDIO_PLAY_OPERATION;
-				idebufferb[13]=(cd_status == CD_STATUS_PLAYING) ? ASCQ_AUDIO_PLAY_OPERATION_IN_PROGRESS : ASCQ_AUDIO_PLAY_OPERATION_PAUSED;
-			}
-			else
-			{
-				if (SCSISense.UnitAttention)
-				{
-					idebufferb[2]=SENSE_UNIT_ATTENTION;
-					idebufferb[12]=ASC_MEDIUM_MAY_HAVE_CHANGED;
-					idebufferb[13]=0;
-				}
-			}
-
-			// pclog("Reporting sense: %02X %02X %02X\n", idebufferb[2], idebufferb[12], idebufferb[13]);
-
-			idebufferb[7]=10;
-
-			if (idebufferb[2] == SENSE_UNIT_ATTENTION)
-			{
-				/* If the last remaining sense is unit attention, clear
-				   that condition. */
-				SCSISense.UnitAttention = 0;
-			}
-
-			/* Clear the sense stuff as per the spec. */
-			atapi_sense_clear(temp_command, 0);
-
-			if (alloc_length == 0)
-			{
-				// pclog("REQUEST SENSE - empty allocation\n");
-				ide->packetstatus = ATAPI_STATUS_COMPLETE;
-				idecallback[ide_board]=50*IDE_TIME;
-			}
-			else
-			{
-				atapi_command_send_init(ide, temp_command, 18, alloc_length);
-				atapi_command_ready(ide_board, 18);
-			}
-			break;
-
-		case GPCMD_SET_SPEED:
-			ide->packetstatus = ATAPI_STATUS_COMPLETE;
-			idecallback[ide_board]=50*IDE_TIME;
-			break;
-
-		case GPCMD_MECHANISM_STATUS:
-			len=(idebufferb[7]<<16)|(idebufferb[8]<<8)|idebufferb[9];
-
-			memset(idebufferb, 0, 8);
-			idebufferb[5] = 1;
-
-			if (len == 0)
-			{
-				ide->packetstatus = ATAPI_STATUS_COMPLETE;
-				idecallback[ide_board]=50*IDE_TIME;
-			}
-			else
-			{
-				atapi_command_send_init(ide, cdb[0], 8, alloc_length);
-				atapi_command_ready(ide_board, 8);
-			}
-			break;	
-
-		case GPCMD_READ_TOC_PMA_ATIP:
-			toctimes++;
-			toc_format = idebufferb[2] & 0xf;
-
-			if (toc_format == 0)
-			{
-				toc_format = (idebufferb[9]>>6) & 3;
-			}
-
-			switch (toc_format)
-			{
-				case 0: /*Normal*/
-					len=idebufferb[8]+(idebufferb[7]<<8);
-					len=cdrom->readtoc(idebufferb,idebufferb[6],msf,len,0);
-					break;
-				case 1: /*Multi session*/
-					len=idebufferb[8]+(idebufferb[7]<<8);
-					len=cdrom->readtoc_session(idebufferb,msf,len);
-					idebufferb[0]=0; idebufferb[1]=0xA;
-					break;
-				case 2: /*Raw*/
-					len=idebufferb[8]+(idebufferb[7]<<8);
-					len=cdrom->readtoc_raw(idebufferb,msf,len);
-					break;
-				default:
-					atapi_invalid_field(ide);
-					return;
-			}
-
-			ide->packetstatus = ATAPI_STATUS_DATA;
-			ide->cylinder=len;
-			ide->secount=2;
-			ide->pos=0;
-			idecallback[ide_board]=60*IDE_TIME;
-			ide->packlen=len;
-			// pclog("READ_TOC_PMA_ATIP format %02X, length %i (%i)\n", toc_format, ide->cylinder, idebufferb[1]);
-
-			if (len == 0)
-			{
-				ide->packetstatus = ATAPI_STATUS_COMPLETE;
-				idecallback[ide_board]=50*IDE_TIME;
-			}
-			return;
-                
-		case GPCMD_READ_CD:
-		case GPCMD_READ_CD_MSF:
-			// pclog("Read CD : start LBA %02X%02X%02X%02X Length %02X%02X%02X Flags %02X\n",idebufferb[2],idebufferb[3],idebufferb[4],idebufferb[5],idebufferb[6],idebufferb[7],idebufferb[8],idebufferb[9]);
-			if (idebufferb[0] == GPCMD_READ_CD_MSF)
-			{
-				SectorLBA=MSFtoLBA(idebufferb[3],idebufferb[4],idebufferb[5]);
-				SectorLen=MSFtoLBA(idebufferb[6],idebufferb[7],idebufferb[8]);
-
-				SectorLen -= SectorLBA;
-				SectorLen++;
-				
-				cdrom_sector_ismsf = 1;
-			}
-			else
-			{
-				SectorLen=(idebufferb[6]<<16)|(idebufferb[7]<<8)|idebufferb[8];
-				SectorLBA=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
-
-				cdrom_sector_ismsf = 0;
-			}
-
-			cdrom_sector_type = (idebufferb[1] >> 2) & 7;
-			cdrom_sector_flags = idebufferb[9] || (((uint32_t) idebufferb[10]) << 8);
-
-			if (SectorLBA > (cdrom->size() - 1))
-            {
-				// pclog("Trying to read beyond the end of disc\n");
-				atapi_invalid_field(ide);
-                break;
-			}
-			
-			ret = cdrom_read_data(idebufferb);
-				
-            if (!ret)
-            {
-				atapi_invalid_field(ide);
-                break;
-            }
-
-            readflash=1;
-
-            SectorLBA++;
-            SectorLen--;
-            if (SectorLen >= 0)
-			{
-                ide->packetstatus = ATAPI_STATUS_READCD;
-			}
-            else
-			{
-                ide->packetstatus = ATAPI_STATUS_DATA;
-			}
-            ide->cylinder=cdrom_sector_size;
-            ide->secount=2;
-            ide->pos=0;
-            idecallback[ide_board]=60*IDE_TIME;
-            ide->packlen=cdrom_sector_size;
-            return;
-
-		case GPCMD_READ_6:
-		case GPCMD_READ_10:
-		case GPCMD_READ_12:
-			// pclog("Read 10 : start LBA %02X%02X%02X%02X Length %02X%02X%02X Flags %02X\n",idebufferb[2],idebufferb[3],idebufferb[4],idebufferb[5],idebufferb[6],idebufferb[7],idebufferb[8],idebufferb[9]);
-			cdrom_sector_ismsf = 0;
-
-			if (idebufferb[0] == GPCMD_READ_6)
-			{
-				SectorLen=idebufferb[4];
-				SectorLBA=((((uint32_t) idebufferb[1]) & 0x1f)<<16)|(((uint32_t) idebufferb[2])<<8)|((uint32_t) idebufferb[3]);
-			}
-			else if (idebufferb[0] == GPCMD_READ_10)
-			{
-				SectorLen=(idebufferb[7]<<8)|idebufferb[8];
-				SectorLBA=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
-			}
-			else
-			{
-				SectorLen=(((uint32_t) idebufferb[6])<<24)|(((uint32_t) idebufferb[7])<<16)|(((uint32_t) idebufferb[8])<<8)|((uint32_t) idebufferb[9]);
-				SectorLBA=(((uint32_t) idebufferb[2])<<24)|(((uint32_t) idebufferb[3])<<16)|(((uint32_t) idebufferb[4])<<8)|((uint32_t) idebufferb[5]);
-			}
-
-			// pclog("Reading sector: %i, length: %i\n", SectorLen, SectorLBA);
-			
-			if (SectorLBA > (cdrom->size() - 1))
-			{
-				// pclog("Trying to read beyond the end of disc\n");
-				atapi_invalid_field(ide);
-				break;
-			}
-
-			if (!SectorLen)
-			{
-				// pclog("All done - callback set\n");
-				ide->packetstatus = ATAPI_STATUS_COMPLETE;
-				idecallback[ide_board]=20*IDE_TIME;
-				break;
-			}
-
-			cdrom_sector_type = 6;
-			cdrom_sector_flags = 0x10;
-
-			ret = cdrom_read_data(idebufferb);
-
-			if (!ret)
-			{
-				atapi_invalid_field(ide);
-				break;
-			}
-
-			readflash=1;
-			SectorLBA++;
-			SectorLen--;
-			if (SectorLen >= 0)
-			{
-				ide->packetstatus = ATAPI_STATUS_READCD;
-			}
-			else
-			{
-				ide->packetstatus = ATAPI_STATUS_DATA;
-			}
-			ide->cylinder=2048;
-			ide->secount=2;
-			ide->pos=0;
-			idecallback[ide_board]=60*IDE_TIME;
-			ide->packlen=2048;
-			return;
-
-		case GPCMD_READ_HEADER:
-			if (cdrom->read_header)
-			{
-				cdrom->read_header(idebufferb, idebufferb);
-			}
-			else
-			{
-				SectorLen=(idebufferb[7]<<8)|idebufferb[8];
-				SectorLBA=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
-				if (msf)
-				{
-					real_pos = cdrom_LBAtoMSF_accurate(ide);
-				}
-				else
-				{
-					real_pos = SectorLBA;
-				}
-				idebufferb[4] = (real_pos >> 24);
-				idebufferb[5] = ((real_pos >> 16) & 0xff);
-				idebufferb[6] = ((real_pos >> 8) & 0xff);
-				idebufferb[7] = real_pos & 0xff;
-				idebufferb[0]=1; /*2048 bytes user data*/
-				idebufferb[1]=idebufferb[2]=idebufferb[3]=0;
-			}
-
-			len = 8;
-			ide->packetstatus = ATAPI_STATUS_DATA;
-			ide->cylinder=8;
-			ide->secount=2;
-			ide->pos=0;
-			idecallback[ide_board]=60*IDE_TIME;
-			ide->packlen=8;
-			return;
-                
-		case GPCMD_MODE_SENSE_6:
-		case GPCMD_MODE_SENSE_10:
-			temp_command = idebufferb[0];
-
-			if (temp_command == GPCMD_MODE_SENSE_6)
-			{
-				len=idebufferb[4];
-			}
-			else
-			{
-				len=(idebufferb[8]|(idebufferb[7]<<8));
-			}
-
-			temp=idebufferb[2] & 0x3F;
-				
-			memset(idebufferb, 0, len);
-			alloc_length = len;
-
-			if (!(mode_sense_pages[temp] & IMPLEMENTED))
-			{
-				atapi_invalid_field(ide);
-				return;
-			}
-
-			if (temp_command == GPCMD_MODE_SENSE_6)
-			{
-				len = SCSICDROMModeSense(idebufferb,4,temp);
-				if (len > alloc_length)
-				{
-					len = alloc_length;
-				}
-				idebufferb[0] = len - 1;
-				idebufferb[1]=3; /*120mm data CD-ROM*/
-			}
-			else
-			{
-				len = SCSICDROMModeSense(idebufferb,8,temp);
-				if (len > alloc_length)
-				{
-					len = alloc_length;
-				}
-				idebufferb[0]=(len - 2)>>8;
-				idebufferb[1]=(len - 2)&255;
-				idebufferb[2]=3; /*120mm data CD-ROM*/
-			}
-
-			atapi_command_send_init(ide, temp_command, len, alloc_length);
-
-			atapi_command_ready(ide_board, len);
-
-			if (len == 0)
-			{
-				ide->packetstatus = ATAPI_STATUS_COMPLETE;
-				idecallback[ide_board]=50*IDE_TIME;
-			}
-			return;
-
-		case GPCMD_MODE_SELECT_6:
-		case GPCMD_MODE_SELECT_10:
-			if (ide->packetstatus == ATAPI_STATUS_PACKET_RECEIVED)
-			{
-				ide->atastat = READY_STAT;
-				ide->secount=3;
-				// pclog("Recieve data packet!\n");
-				ide_irq_raise(ide);
-				ide->packetstatus=0xFF;
-				ide->pos=0;
-			}
-			else
-			{
-				if (idebufferb[0] == GPCMD_MODE_SELECT_6)
-				{
-					len=idebufferb[4];
-					prefix_len = 6;
-				}
-				else
-				{
-					len=(idebufferb[7]<<8)|idebufferb[8];
-					prefix_len = 10;
-				}
-				page_current = idebufferb[2];
-				if (page_flags[page_current] & PAGE_CHANGEABLE)
-				{
-					page_flags[page_current] |= PAGE_CHANGED;
-				}
-				ide->packetstatus = ATAPI_STATUS_PACKET_REQ;
-				ide->cylinder=len;
-				ide->secount=0;
-				ide->pos=0;
-				idecallback[ide_board]=60*IDE_TIME;
-				ide->packlen=len;
-
-				if (len == 0)
-				{
-					ide->packetstatus = ATAPI_STATUS_COMPLETE;
-					idecallback[ide_board]=50*IDE_TIME;
-				}
-			}
-			return;
-
-		case GPCMD_GET_CONFIGURATION:
-			temp_command = idebufferb[0];
-			/* XXX: could result in alignment problems in some architectures */
-			len = (idebufferb[7]<<8)|idebufferb[8];
-			alloc_length = len;
-
-			index = 0;
-
-			/* only feature 0 is supported */
-			if (idebufferb[2] != 0 || idebufferb[3] != 0)
-			{
-				atapi_invalid_field(ide);
-				return;
-			}
-
-			/*
-			 * XXX: avoid overflow for io_buffer if len is bigger than
-			 *      the size of that buffer (dimensioned to max number of
-			 *      sectors to transfer at once)
-			 *
-			 *      Only a problem if the feature/profiles grow.
-			 */
-			if (alloc_length > 512) /* XXX: assume 1 sector */
-			{
-				alloc_length = 512;
-			}
-
-			memset(idebufferb, 0, alloc_length);
-			/*
-			 * the number of sectors from the media tells us which profile
-			 * to use as current.  0 means there is no media
-			 */
-			if (len > CD_MAX_SECTORS)
-			{
-				idebufferb[6] = (MMC_PROFILE_DVD_ROM >> 8) & 0xff;
-				idebufferb[7] = MMC_PROFILE_DVD_ROM & 0xff;
-			}
-			else if (len <= CD_MAX_SECTORS)
-			{
-				idebufferb[6] = (MMC_PROFILE_CD_ROM >> 8) & 0xff;
-				idebufferb[7] = MMC_PROFILE_CD_ROM & 0xff;
-			}
-			idebufferb[10] = 0x02 | 0x01; /* persistent and current */
-			alloc_length = 12; /* headers: 8 + 4 */
-			alloc_length += SCSICDROMSetProfile(idebufferb, &index, MMC_PROFILE_DVD_ROM);
-			alloc_length += SCSICDROMSetProfile(idebufferb, &index, MMC_PROFILE_CD_ROM);
-			idebufferb[0] = ((alloc_length-4) >> 24) & 0xff;
-			idebufferb[1] = ((alloc_length-4) >> 16) & 0xff;
-			idebufferb[2] = ((alloc_length-4) >> 8) & 0xff;
-			idebufferb[3] = (alloc_length-4) & 0xff;           
-
-			if (len == 0)
-			{
-				ide->packetstatus = ATAPI_STATUS_COMPLETE;
-				idecallback[ide_board]=50*IDE_TIME;
-			}
-			else
-			{
-				atapi_command_send_init(ide, temp_command, len, alloc_length);     
-				atapi_command_ready(ide_board, len);
-			}
-			break;
-
-		case GPCMD_GET_EVENT_STATUS_NOTIFICATION:
-			gesn_cdb = (void *)idebufferb;
-			gesn_event_header = (void *)idebufferb;
-
-			/* It is fine by the MMC spec to not support async mode operations. */
-			if (!(gesn_cdb->polled & 0x01))
-			{   /* asynchronous mode */
-				/* Only polling is supported, asynchronous mode is not. */
-				atapi_invalid_field(ide);
-				return;
-			}
-
-			/* polling mode operation */
-
-			/*
-			 * These are the supported events.
-			 *
-			 * We currently only support requests of the 'media' type.
-			 * Notification class requests and supported event classes are bitmasks,
-			 * but they are built from the same values as the "notification class"
-			 * field.
-			 */
-			gesn_event_header->supported_events = 1 << GESN_MEDIA;
-
-			/*
-			 * We use |= below to set the class field; other bits in this byte
-			 * are reserved now but this is useful to do if we have to use the
-			 * reserved fields later.
-			 */
-			gesn_event_header->notification_class = 0;
-
-			/*
-			 * Responses to requests are to be based on request priority.  The
-			 * notification_class_request_type enum above specifies the
-			 * priority: upper elements are higher prio than lower ones.
-			 */
-			if (gesn_cdb->class & (1 << GESN_MEDIA))
-			{
-				gesn_event_header->notification_class |= GESN_MEDIA;
-				used_len = SCSICDROMEventStatus(idebufferb);
-			}
-			else
-			{
-				gesn_event_header->notification_class = 0x80; /* No event available */
-				used_len = sizeof(*gesn_event_header);
-			}
-			gesn_event_header->len = used_len - sizeof(*gesn_event_header);
-
-			atapi_command_send_init(ide, cdb[0], used_len, used_len);
-			atapi_command_ready(ide_board, used_len);
-			break;
-
-		case GPCMD_READ_DISC_INFORMATION:
-			if (cdrom->read_disc_information)
-			{
-				cdrom->read_disc_information(idebufferb);
-			}
-			else
-			{
-				memset(idebufferb, 0, 34);
-				memset(idebufferb, 1, 9);
-				idebufferb[0] = 0;
-				idebufferb[1] = 32;
-				idebufferb[2] = 0xe; /* last session complete, disc finalized */
-				idebufferb[7] = 0x20; /* unrestricted use */
-				idebufferb[8] = 0x00; /* CD-ROM */
-			}
-
-			len=34;
-			if (len > alloc_length)
-			{
-				len = alloc_length;
-			}
-
-			if (len == 0)
-			{
-				ide->packetstatus = ATAPI_STATUS_COMPLETE;
-				idecallback[ide_board]=50*IDE_TIME;
-			}
-			else
-			{
-				ide->packetstatus = ATAPI_STATUS_DATA;
-				ide->secount=2;
-				ide->cylinder=len;
-				ide->pos=0;
-				ide->packlen=len;			
-				idecallback[ide_board]=60*IDE_TIME;
-			}
-			break;
-
-		case GPCMD_READ_TRACK_INFORMATION:
-			max_len = idebufferb[7];
-			max_len <<= 8;
-			max_len |= idebufferb[8];
-
-			track = ((uint32_t) idebufferb[2]) << 24;
-			track |= ((uint32_t) idebufferb[3]) << 16;
-			track |= ((uint32_t) idebufferb[4]) << 8;
-			track |= (uint32_t) idebufferb[5];
-
-			if (cdrom->read_track_information)
-			{
-				ret = cdrom->read_track_information(idebufferb, idebufferb);
-
-				if (!ret)
-				{
-					atapi_invalid_field(ide);
-					return;
-				}
-
-				len = idebufferb[0];
-				len <<= 8;
-				len |= idebufferb[1];
-				len += 2;
-			}
-			else
-			{
-				if (((idebufferb[1] & 0x03) != 1) || (track != 1))
-				{
-					atapi_invalid_field(ide);
-					return;
-				}
-
-				len = 36;
-
-				memset(idebufferb, 0, 36);
-				idebufferb[1] = 34;
-				idebufferb[2] = 1; /* track number (LSB) */
-				idebufferb[3] = 1; /* session number (LSB) */
-				idebufferb[5] = (0 << 5) | (0 << 4) | (4 << 0); /* not damaged, primary copy, data track */
-				idebufferb[6] = (0 << 7) | (0 << 6) | (0 << 5) | (0 << 6) | (1 << 0); /* not reserved track, not blank, not packet writing, not fixed packet, data mode 1 */
-				idebufferb[7] = (0 << 1) | (0 << 0); /* last recorded address not valid, next recordable address not valid */
-				idebufferb[24] = (cdrom->size() >> 24) & 0xff; /* track size */
-				idebufferb[25] = (cdrom->size() >> 16) & 0xff; /* track size */
-				idebufferb[26] = (cdrom->size() >> 8) & 0xff; /* track size */
-				idebufferb[27] = cdrom->size() & 0xff; /* track size */
-			}
-
-			if (len > max_len)
-			{
-				len = max_len;
-				idebufferb[0] = ((max_len - 2) >> 8) & 0xff;
-				idebufferb[1] = (max_len - 2) & 0xff;
-			}
-		
-			if (len == 0)
-			{
-				ide->packetstatus = ATAPI_STATUS_COMPLETE;
-				idecallback[ide_board]=50*IDE_TIME;
-			}
-			else
-			{
-				ide->packetstatus = ATAPI_STATUS_DATA;
-				ide->cylinder=len;
-				ide->secount=2;
-				ide->pos=0;
-				idecallback[ide_board]=60*IDE_TIME;
-				ide->packlen=len;			
-			}
-			break;
-
-		case GPCMD_PLAY_AUDIO_10:
-		case GPCMD_PLAY_AUDIO_12:
-		case GPCMD_PLAY_AUDIO_MSF:
-			if (idebufferb[0] == GPCMD_PLAY_AUDIO_10)
-			{
-				pos=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
-				len=(idebufferb[7]<<8)|idebufferb[8];
-			}
-			else if (idebufferb[0] == GPCMD_PLAY_AUDIO_MSF)
-			{
-				/* This is apparently deprecated in the ATAPI spec, and apparently
-				   has been since 1995 (!). Hence I'm having to guess most of it. */
-				pos=(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
-				len=(idebufferb[6]<<16)|(idebufferb[7]<<8)|idebufferb[8];
-			}
-			else
-			{
-				pos=(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
-				len=(idebufferb[7]<<16)|(idebufferb[8]<<8)|idebufferb[9];
-			}
-
-			if ((cdrom_drive < 1) || (cdrom_drive == CDROM_ISO) || (cd_status <= CD_STATUS_DATA_ONLY) ||
-				!cdrom->is_track_audio(pos, (idebufferb[0] == GPCMD_PLAY_AUDIO_MSF) ? 1 : 0))
-			{
-				atapi_illegal_mode(ide);
-				break;
-			}
-				
-			cdrom->playaudio(pos, len, (idebufferb[0] == GPCMD_PLAY_AUDIO_MSF) ? 1 : 0);
-			ide->packetstatus = ATAPI_STATUS_COMPLETE;
-			idecallback[ide_board]=50*IDE_TIME;
-			break;
-
-		case GPCMD_READ_SUBCHANNEL:
-			if (idebufferb[3] > 3)
-			{
-				// pclog("Read subchannel check condition %02X\n",idebufferb[3]);
-				atapi_invalid_field(ide);
-				break;
-			}
-
-			switch(idebufferb[3])
-			{
-				case 0:
-					alloc_length = 4;
-					break;
-				case 1:
-					alloc_length = 16;
-					break;
-				default:
-					alloc_length = 24;
-					break;
-			}
-
-			if (cdrom->read_subchannel)
-			{
-				cdrom->read_subchannel(idebufferb, idebufferb);
-				len = alloc_length;
-			}
-			else
-			{
-				temp = idebufferb[3] & 3;
-				temp |= (idebufferb[2] & 0x40);
-				memset(idebufferb, 24, 0);
-				pos = 0;
-				idebufferb[pos++]=0;
-				idebufferb[pos++]=0; /*Audio status*/
-				idebufferb[pos++]=0; idebufferb[pos++]=0; /*Subchannel length*/
-				idebufferb[pos++]=temp & 3; /*Format code*/
-				if ((temp & 3) == 1)
-				{
-					idebufferb[1]=cdrom->getcurrentsubchannel(&idebufferb[5],msf);
-				}
-				if (!(temp & 0x40) || ((temp & 3) == 0))
-				{
-					len=4;
-				}
-				else
-				{
-					len = alloc_length;
-				}
-			}
-			ide->packetstatus = ATAPI_STATUS_DATA;
-			ide->cylinder=len;
-			ide->secount=2;
-			ide->pos=0;
-			idecallback[ide_board]=1000*IDE_TIME;
-			ide->packlen=len;
-			break;
-
-		case GPCMD_READ_DVD_STRUCTURE:
-			temp_command = idebufferb[0];
-			media = idebufferb[1];
-			format = idebufferb[7];
-
-			len = (((uint32_t) idebufferb[6])<<24)|(((uint32_t) idebufferb[7])<<16)|(((uint32_t) idebufferb[8])<<8)|((uint32_t) idebufferb[9]);
-			alloc_length = len;
-
-			if (format < 0xff)
-			{
-				if (len <= CD_MAX_SECTORS)
-				{
-					atapi_incompatible_format(ide);
-					break;
-				}
-				else
-				{
-					atapi_invalid_field(ide);
-					return;
-				}
-			}
-
-			memset(idebufferb, 0, (alloc_length > 256 * 512 + 4) ? (256 * 512 + 4) : alloc_length);
-
-			switch (format)
-			{
-				case 0x00 ... 0x7f:
-				case 0xff:
-
-				if (media == 0)
-				{
-					ret = SCSICDROMReadDVDStructure(format, idebufferb, idebufferb);
-
-					if (ret < 0)
-					{
-						atapi_cmd_error(ide, SENSE_ILLEGAL_REQUEST, -ret, 0);
-					}
-					else
-					{
-						atapi_command_send_init(ide, temp_command, len, alloc_length);
-						atapi_command_ready(ide_board, len);
-					}
-					break;
-				}
-				/* TODO: BD support, fall through for now */
-
-				/* Generic disk structures */
-				case 0x80: /* TODO: AACS volume identifier */
-				case 0x81: /* TODO: AACS media serial number */
-				case 0x82: /* TODO: AACS media identifier */
-				case 0x83: /* TODO: AACS media key block */
-				case 0x90: /* TODO: List of recognized format layers */
-				case 0xc0: /* TODO: Write protection status */
-				default:
-					atapi_invalid_field(ide);
-					return;
-			}
-			break;
-
-		case GPCMD_START_STOP_UNIT:
-			switch(idebufferb[4] & 3)
-			{
-				case 0:		/* Stop the disc. */
-					cdrom->stop();
-					break;
-				case 1:		/* Start the disc and read the TOC. */
-					cdrom->medium_changed();	/* This causes a TOC reload. */
-					break;
-				case 2:		/* Eject the disc if possible. */
-					cdrom->stop();
-#ifndef __unix
-					win_cdrom_eject();
-#endif
-					break;
-				case 3:		/* Load the disc (close tray). */
-#ifndef __unix
-					win_cdrom_reload();
-#else
-					cdrom->load();
-#endif
-					break;
-			}
-
-			ide->packetstatus = ATAPI_STATUS_COMPLETE;
-			idecallback[ide_board]=50*IDE_TIME;
-			break;
-                
-		case GPCMD_INQUIRY:
-			page_code = idebufferb[2];
-			max_len = idebufferb[4];
-			alloc_length = max_len;
-			temp_command = idebufferb[0];
-
-			if (idebufferb[1] & 1)
-			{
-				preamble_len = 4;
-				size_idx = 3;
-					
-				idebufferb[idx++] = 05;
-				idebufferb[idx++] = page_code;
-				idebufferb[idx++] = 0;
-
-				idx++;
-
-				switch (page_code)
-				{
-					case 0x00:
-						idebufferb[idx++] = 0x00;
-						idebufferb[idx++] = 0x83;
-						break;
-					case 0x83:
-						if (idx + 24 > max_len)
-						{
-							atapi_data_phase_error(ide);
-							return;
-						}
-
-						idebufferb[idx++] = 0x02;
-						idebufferb[idx++] = 0x00;
-						idebufferb[idx++] = 0x00;
-						idebufferb[idx++] = 20;
-						ide_padstr8(idebufferb + idx, 20, "53R141");	/* Serial */
-						idx += 20;
-
-						if (idx + 72 > max_len)
-						{
-							goto atapi_out;
-						}
-						idebufferb[idx++] = 0x02;
-						idebufferb[idx++] = 0x01;
-						idebufferb[idx++] = 0x00;
-						idebufferb[idx++] = 68;
-						ide_padstr8(idebufferb + idx, 8, "86Box"); /* Vendor */
-						idx += 8;
-						ide_padstr8(idebufferb + idx, 40, "86BoxCD v1.0"); /* Product */
-						idx += 40;
-						ide_padstr8(idebufferb + idx, 20, "53R141"); /* Product */
-						idx += 20;
-						break;
-					default:
-						atapi_invalid_field(ide);
-						return;
-				}
-			}
-			else
-			{
-				preamble_len = 5;
-				size_idx = 4;
-
-				memset(idebufferb, 0, 8);
-				idebufferb[0] = 5; /*CD-ROM*/
-				idebufferb[1] = 0x80; /*Removable*/
-				idebufferb[3] = 0x21;
-				idebufferb[4] = 31;
-
-				ide_padstr8(idebufferb + 8, 8, "86Box"); /* Vendor */
-				ide_padstr8(idebufferb + 16, 16, "86BoxCD"); /* Product */
-				ide_padstr8(idebufferb + 32, 4, emulator_version); /* Revision */
-				idx = 36;
-			}
-
-atapi_out:
-			idebufferb[size_idx] = idx - preamble_len;
-			len=idx;
-			if (len > alloc_length)
-			{
-				len = alloc_length;
-			}
-
-			if (len == 0)
-			{
-				ide->packetstatus = ATAPI_STATUS_COMPLETE;
-				idecallback[ide_board]=50*IDE_TIME;
-			}
-			else
-			{
-				atapi_command_send_init(ide, temp_command, len, alloc_length);
-				atapi_command_ready(ide_board, len);
-			}
-			break;
-
-		case GPCMD_PREVENT_REMOVAL:
-			ide->packetstatus = ATAPI_STATUS_COMPLETE;
-			idecallback[ide_board]=50*IDE_TIME;
-			break;
-
-		case GPCMD_PAUSE_RESUME:
-			if (idebufferb[8] & 1)
-			{
-				cdrom->resume();
-			}
-			else
-			{
-				cdrom->pause();
-			}
-			ide->packetstatus = ATAPI_STATUS_COMPLETE;
-			idecallback[ide_board]=50*IDE_TIME;
-			break;
-
-		case GPCMD_SEEK_6:
-		case GPCMD_SEEK_10:
-			if (idebufferb[0] == GPCMD_SEEK_6)
-			{
-				pos=(idebufferb[2]<<8)|idebufferb[3];
-			}
-			else
-			{
-				pos=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
-			}
-			cdrom->seek(pos);
-			ide->packetstatus = ATAPI_STATUS_COMPLETE;
-			idecallback[ide_board]=50*IDE_TIME;
-			break;
-
-		case GPCMD_READ_CDROM_CAPACITY:
-			atapi_command_send_init(ide, temp_command, 8, 8);
-			if (cdrom->read_capacity)
-			{
-				cdrom->read_capacity(idebufferb);
-			}
-			else
-			{
-				size = cdrom->size() - 1;		/* IMPORTANT: What's returned is the last LBA block. */
-				memset(idebufferb, 0, 8);
-				idebufferb[0] = (size >> 24) & 0xff;
-				idebufferb[1] = (size >> 16) & 0xff;
-				idebufferb[2] = (size >> 8) & 0xff;
-				idebufferb[3] = size & 0xff;
-				idebufferb[6] = 8;				/* 2048 = 0x0800 */
-			}
-			len=8;
-			atapi_command_ready(ide_board, len);
-			break;
-
-		case GPCMD_STOP_PLAY_SCAN:
-			cdrom->stop();
-			ide->packetstatus = ATAPI_STATUS_COMPLETE;
-			idecallback[ide_board]=50*IDE_TIME;
-			break;
-
-		default:
-			atapi_illegal_opcode(ide);
-			break;
-	}
-
-	// pclog("SCSI phase: %02X, length: %i\n", ide->secount, ide->cylinder);
-}
-
-static void callnonreadcd(IDE *ide)		/* Callabck for non-Read CD commands */
-{
-	ide_irq_lower(ide);
-	if (ide->pos >= ide->packlen)
-	{
-		// pclog("Command finished, setting callback\n");
-		ide->packetstatus = ATAPI_STATUS_COMPLETE;
-		idecallback[ide->board]=20*IDE_TIME;
-	}
-	else
-	{
-		// pclog("Command not finished, keep sending data\n");
-		ide->atastat = BUSY_STAT;
-		ide->packetstatus = ATAPI_STATUS_REQ_SENSE;
-		ide->cylinder=2;
-		ide->secount=2;
-		idecallback[ide->board]=60*IDE_TIME;
-	}
-}
-
-static void callreadcd(IDE *ide)
-{
-	int ret;
-
-	ide_irq_lower(ide);
-	if (SectorLen<=0)
-	{
-		// pclog("All done - callback set\n");
-		ide->packetstatus = ATAPI_STATUS_COMPLETE;
-		idecallback[ide->board]=20*IDE_TIME;
-		return;
-	}
-	// pclog("Continue readcd! %i blocks left\n",SectorLen);
-	// pclog("Reading sector: %i, length: %i\n", SectorLen, SectorLBA);
-	ide->atastat = BUSY_STAT;
-
-	ret = cdrom_read_data((uint8_t *) ide->buffer);
-	readflash=1;
-
-	SectorLBA++;
-	SectorLen--;
-	ide->packetstatus = ATAPI_STATUS_READCD;
-	ide->cylinder=cdrom_sector_size;
-	ide->secount=2;
-	ide->pos=0;
-	idecallback[ide->board]=60*IDE_TIME;
-	ide->packlen=cdrom_sector_size;
-}
-
 
 void ide_write_pri(uint16_t addr, uint8_t val, void *priv)
 {
@@ -3120,15 +2146,15 @@ void ide_init()
 {
         ide_pri_enable();
         ide_sec_enable();
-        ide_bus_master_read_sector = ide_bus_master_write_sector = NULL;
+        ide_bus_master_read = ide_bus_master_write = NULL;
         
         timer_add(ide_callback_pri, &idecallback[0], &idecallback[0],  NULL);
         timer_add(ide_callback_sec, &idecallback[1], &idecallback[1],  NULL);
 }
 
-void ide_set_bus_master(int (*read_sector)(int channel, uint8_t *data), int (*write_sector)(int channel, uint8_t *data), void (*set_irq)(int channel))
+void ide_set_bus_master(int (*read)(int channel, uint8_t *data, int transfer_length), int (*write)(int channel, uint8_t *data, int transfer_length), void (*set_irq)(int channel))
 {
-        ide_bus_master_read_sector = read_sector;
-        ide_bus_master_write_sector = write_sector;
+        ide_bus_master_read = read;
+        ide_bus_master_write = write;
         ide_bus_master_set_irq = set_irq;
 }

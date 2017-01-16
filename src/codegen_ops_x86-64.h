@@ -3188,6 +3188,8 @@ static void TEST_NONZERO_JUMP_L(int host_reg, uint32_t new_pc, int taken_cycles)
 
 static int BRANCH_COND_BE(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
 {
+        uint8_t *jump1;
+        
         if (codegen_flags_changed && cpu_state.flags_op != FLAGS_UNKNOWN)
         {
                 addbyte(0x83); /*CMP flags_res, 0*/
@@ -3203,10 +3205,8 @@ static int BRANCH_COND_BE(int pc_offset, uint32_t op_pc, uint32_t offset, int no
                 addbyte(0xc0);
                 addbyte(0x75); /*JNZ +*/
         }
-        if (not)
-                addbyte(12+2+2+7+5+(timing_bt ? 8 : 0));
-        else
-                addbyte(12+2+2);
+        jump1 = &codeblock[block_current].data[block_pos];
+        addbyte(0);
         CALL_FUNC(CF_SET);
         addbyte(0x85); /*TEST EAX,EAX*/
         addbyte(0xc0);
@@ -3215,6 +3215,9 @@ static int BRANCH_COND_BE(int pc_offset, uint32_t op_pc, uint32_t offset, int no
         else
                 addbyte(0x74); /*JZ +*/
         addbyte(7+5+(timing_bt ? 4 : 0));        
+
+        if (!not)
+                *jump1 = (uintptr_t)&codeblock[block_current].data[block_pos] - (uintptr_t)jump1 - 1;
         addbyte(0xC7); /*MOVL [pc], new_pc*/
         addbyte(0x45);
         addbyte(cpu_state_offset(pc));
@@ -3228,6 +3231,8 @@ static int BRANCH_COND_BE(int pc_offset, uint32_t op_pc, uint32_t offset, int no
         }
         addbyte(0xe9); /*JMP end*/
         addlong(BLOCK_EXIT_OFFSET - (block_pos + 4));
+        if (not)
+                *jump1 = (uintptr_t)&codeblock[block_current].data[block_pos] - (uintptr_t)jump1 - 1;
 }
 
 static int BRANCH_COND_L(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
@@ -3268,6 +3273,7 @@ static int BRANCH_COND_L(int pc_offset, uint32_t op_pc, uint32_t offset, int not
 
 static int BRANCH_COND_LE(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
 {
+        uint8_t *jump1;
         if (codegen_flags_changed && cpu_state.flags_op != FLAGS_UNKNOWN)
         {
                 addbyte(0x83); /*CMP flags_res, 0*/
@@ -3283,11 +3289,8 @@ static int BRANCH_COND_LE(int pc_offset, uint32_t op_pc, uint32_t offset, int no
                 addbyte(0xc0);
                 addbyte(0x75); /*JNZ +*/
         }
-        if (not)
-                addbyte(12+2+3+12+2+3+2+2+7+5+(timing_bt ? 8 : 0));
-        else
-                addbyte(12+2+3+12+2+3+2+2);
-
+        jump1 = &codeblock[block_current].data[block_pos];
+        addbyte(0);
         CALL_FUNC(NF_SET);
         addbyte(0x85); /*TEST EAX,EAX*/
         addbyte(0xc0);
@@ -3307,6 +3310,8 @@ static int BRANCH_COND_LE(int pc_offset, uint32_t op_pc, uint32_t offset, int no
         else
                 addbyte(0x74); /*JZ +*/
         addbyte(7+5+(timing_bt ? 4 : 0));        
+        if (!not)
+                *jump1 = (uintptr_t)&codeblock[block_current].data[block_pos] - (uintptr_t)jump1 - 1;
         addbyte(0xC7); /*MOVL [pc], new_pc*/
         addbyte(0x45);
         addbyte(cpu_state_offset(pc));
@@ -3320,6 +3325,8 @@ static int BRANCH_COND_LE(int pc_offset, uint32_t op_pc, uint32_t offset, int no
         }
         addbyte(0xe9); /*JMP end*/
         addlong(BLOCK_EXIT_OFFSET - (block_pos + 4));
+        if (not)
+                *jump1 = (uintptr_t)&codeblock[block_current].data[block_pos] - (uintptr_t)jump1 - 1;
 }
 
 static int LOAD_VAR_W(uintptr_t addr)
@@ -5241,7 +5248,7 @@ static void LOAD_EA()
 
 static void MEM_CHECK_WRITE(x86seg *seg)
 {
-        uint8_t *jump1, *jump2;
+        uint8_t *jump1, *jump2, *jump3;
         
         CHECK_SEG_WRITE(seg);
 
@@ -5264,15 +5271,27 @@ static void MEM_CHECK_WRITE(x86seg *seg)
 
         /*seg = ESI, addr = EAX*/
         
+	if (IS_32_ADDR(&cr0))
+	{
+	        addbyte(0x83); /*CMP cr0, 0*/
+	        addbyte(0x3c);
+	        addbyte(0x25);
+	        addlong((uint32_t)&cr0);
+	        addbyte(0);
+	}
+	else
+	{
+		addbyte(0x48); /*MOV RDI, &cr0*/
+		addbyte(0xbf);
+		addquad((uint64_t)&cr0);
+		addbyte(0x83); /*CMPL [RDI], 0*/
+		addbyte(0x3f);
+		addbyte(0);
+	}
         addbyte(0x67); /*LEA EDI, [EAX+ESI]*/
         addbyte(0x8d);
         addbyte(0x3c);
         addbyte(0x30);
-        addbyte(0x83); /*CMP cr0, 0*/
-        addbyte(0x3c);
-        addbyte(0x25);
-        addlong((uint32_t)&cr0);
-        addbyte(0);
         addbyte(0x79); /*JNS +*/
         jump1 = &codeblock[block_current].data[block_pos];
         addbyte(0);
@@ -5284,17 +5303,32 @@ static void MEM_CHECK_WRITE(x86seg *seg)
         addbyte(0xfe);
         addbyte(-1);
         addbyte(0x74); /*JE slowpath*/
-        addbyte(10);
-        addbyte(0x83); /*CMP writelookup2[RDI*8],-1*/
-        addbyte(0x3c);
-        addbyte(0xfd);
-        addlong((uint32_t)writelookup2);
-        addbyte(-1);
+        jump3 = &codeblock[block_current].data[block_pos];
+        addbyte(0);
+	if (IS_32_ADDR(writelookup2))
+	{
+	        addbyte(0x83); /*CMP writelookup2[RDI*8],-1*/
+        	addbyte(0x3c);
+	        addbyte(0xfd);
+	        addlong((uint32_t)writelookup2);
+	        addbyte(-1);
+	}
+	else
+	{
+		addbyte(0x48); /*MOV RCX, writelookup2*/
+		addbyte(0xb9);
+		addquad((uint64_t)writelookup2);
+		addbyte(0x83); /*CMP [RCX+RDI*8], -1*/
+		addbyte(0x3c);
+		addbyte(0xf9);
+		addbyte(-1);
+	}
         addbyte(0x75); /*JNE +*/
         jump2 = &codeblock[block_current].data[block_pos];
         addbyte(0);
 //        addbyte(0xc3); /*RET*/
-        
+
+        *jump3 = (uintptr_t)&codeblock[block_current].data[block_pos] - (uintptr_t)jump3 - 1;        
         /*slowpath:*/
         addbyte(0x67); /*LEA EDI, [EAX+ESI]*/
         addbyte(0x8d);
@@ -5358,15 +5392,27 @@ static void MEM_CHECK_WRITE_W(x86seg *seg)
 
         /*seg = ESI, addr = EAX*/
         
+	if (IS_32_ADDR(&cr0))
+	{
+	        addbyte(0x83); /*CMP cr0, 0*/
+	        addbyte(0x3c);
+	        addbyte(0x25);
+	        addlong((uint32_t)&cr0);
+	        addbyte(0);
+	}
+	else
+	{
+		addbyte(0x48); /*MOV RDI, &cr0*/
+		addbyte(0xbf);
+		addquad((uint64_t)&cr0);
+		addbyte(0x83); /*CMPL [RDI], 0*/
+		addbyte(0x3f);
+		addbyte(0);
+	}
         addbyte(0x67); /*LEA EDI, [EAX+ESI]*/
         addbyte(0x8d);
         addbyte(0x3c);
         addbyte(0x30);
-        addbyte(0x83); /*CMP cr0, 0*/
-        addbyte(0x3c);
-        addbyte(0x25);
-        addlong((uint32_t)&cr0);
-        addbyte(0);
         addbyte(0x79); /*JNS +*/
         jump1 = &codeblock[block_current].data[block_pos];
         addbyte(0);
@@ -5387,19 +5433,42 @@ static void MEM_CHECK_WRITE_W(x86seg *seg)
         addbyte(0xc1); /*SHR ESI, 12*/
         addbyte(0xee);
         addbyte(12);
-        addbyte(0x83); /*CMP writelookup2[RDI*8],-1*/
-        addbyte(0x3c);
-        addbyte(0xfd);
-        addlong((uint32_t)writelookup2);
-        addbyte(-1);
+	if (IS_32_ADDR(writelookup2))
+	{
+	        addbyte(0x83); /*CMP writelookup2[RDI*8],-1*/
+        	addbyte(0x3c);
+	        addbyte(0xfd);
+	        addlong((uint32_t)writelookup2);
+	        addbyte(-1);
+	}
+	else
+	{
+		addbyte(0x48); /*MOV RAX, writelookup2*/
+		addbyte(0xb8);
+		addquad((uint64_t)writelookup2);
+		addbyte(0x83); /*CMP [RAX+RDI*8], -1*/
+		addbyte(0x3c);
+		addbyte(0xf8);
+		addbyte(-1);
+	}
         addbyte(0x74); /*JE +*/
         jump2 = &codeblock[block_current].data[block_pos];
         addbyte(0);
-        addbyte(0x83); /*CMP writelookup2[RSI*8],-1*/
-        addbyte(0x3c);
-        addbyte(0xf5);
-        addlong((uint32_t)writelookup2);
-        addbyte(-1);
+	if (IS_32_ADDR(writelookup2))
+	{
+	        addbyte(0x83); /*CMP writelookup2[RSI*8],-1*/
+        	addbyte(0x3c);
+	        addbyte(0xfd);
+	        addlong((uint32_t)writelookup2);
+	        addbyte(-1);
+	}
+	else
+	{
+		addbyte(0x83); /*CMP [RAX+RSI*8], -1*/
+		addbyte(0x3c);
+		addbyte(0xf0);
+		addbyte(-1);
+	}
         addbyte(0x75); /*JNE +*/
         jump3 = &codeblock[block_current].data[block_pos];
         addbyte(0);
@@ -5460,15 +5529,27 @@ static void MEM_CHECK_WRITE_L(x86seg *seg)
 
         /*seg = ESI, addr = EAX*/
         
+	if (IS_32_ADDR(&cr0))
+	{
+	        addbyte(0x83); /*CMP cr0, 0*/
+	        addbyte(0x3c);
+	        addbyte(0x25);
+	        addlong((uint32_t)&cr0);
+	        addbyte(0);
+	}
+	else
+	{
+		addbyte(0x48); /*MOV RDI, &cr0*/
+		addbyte(0xbf);
+		addquad((uint64_t)&cr0);
+		addbyte(0x83); /*CMPL [RDI], 0*/
+		addbyte(0x3f);
+		addbyte(0);
+	}
         addbyte(0x67); /*LEA EDI, [EAX+ESI]*/
         addbyte(0x8d);
         addbyte(0x3c);
         addbyte(0x30);
-        addbyte(0x83); /*CMP cr0, 0*/
-        addbyte(0x3c);
-        addbyte(0x25);
-        addlong((uint32_t)&cr0);
-        addbyte(0);
         addbyte(0x79); /*JNS +*/
         jump1 = &codeblock[block_current].data[block_pos];
         addbyte(0);
@@ -5489,19 +5570,42 @@ static void MEM_CHECK_WRITE_L(x86seg *seg)
         addbyte(0xc1); /*SHR ESI, 12*/
         addbyte(0xee);
         addbyte(12);
-        addbyte(0x83); /*CMP writelookup2[RDI*8],-1*/
-        addbyte(0x3c);
-        addbyte(0xfd);
-        addlong((uint32_t)writelookup2);
-        addbyte(-1);
+	if (IS_32_ADDR(writelookup2))
+	{
+	        addbyte(0x83); /*CMP writelookup2[RDI*8],-1*/
+        	addbyte(0x3c);
+	        addbyte(0xfd);
+	        addlong((uint32_t)writelookup2);
+	        addbyte(-1);
+	}
+	else
+	{
+		addbyte(0x48); /*MOV RAX, writelookup2*/
+		addbyte(0xb8);
+		addquad((uint64_t)writelookup2);
+		addbyte(0x83); /*CMP [RAX+RDI*8], -1*/
+		addbyte(0x3c);
+		addbyte(0xf8);
+		addbyte(-1);
+	}
         addbyte(0x74); /*JE slowpath*/
         jump2 = &codeblock[block_current].data[block_pos];
         addbyte(0);
-        addbyte(0x83); /*CMP writelookup2[RSI*8],-1*/
-        addbyte(0x3c);
-        addbyte(0xf5);
-        addlong((uint32_t)writelookup2);
-        addbyte(-1);
+	if (IS_32_ADDR(writelookup2))
+	{
+	        addbyte(0x83); /*CMP writelookup2[RSI*8],-1*/
+        	addbyte(0x3c);
+	        addbyte(0xfd);
+	        addlong((uint32_t)writelookup2);
+	        addbyte(-1);
+	}
+	else
+	{
+		addbyte(0x83); /*CMP [RAX+RSI*8], -1*/
+		addbyte(0x3c);
+		addbyte(0xf0);
+		addbyte(-1);
+	}
         addbyte(0x75); /*JNE +*/
         jump3 = &codeblock[block_current].data[block_pos];
         addbyte(0);

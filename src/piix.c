@@ -396,21 +396,21 @@ uint8_t piix_bus_master_read(uint16_t port, void *priv)
         return 0xff;
 }
 
-int piix_bus_master_sector_read(int channel, uint8_t *data)
+int piix_bus_master_dma_read(int channel, uint8_t *data, int transfer_length)
 {
         int transferred = 0;
         
         if (!(piix_busmaster[channel].status & 1))
            return 1;                                    /*DMA disabled*/
            
-        while (transferred < 512)
+        while (transferred < transfer_length)
         {
-                if (piix_busmaster[channel].count < (512 - transferred) && piix_busmaster[channel].eot)
-                   fatal("DMA on channel %i - Read count less than 512! Addr %08X Count %04X EOT %i\n", channel, piix_busmaster[channel].addr, piix_busmaster[channel].count, piix_busmaster[channel].eot);
+                if (piix_busmaster[channel].count < (transfer_length - transferred) && piix_busmaster[channel].eot)
+                   fatal("DMA on channel %i - Read count less than transfer_length! Addr %08X Count %04X EOT %i\n", channel, piix_busmaster[channel].addr, piix_busmaster[channel].count, piix_busmaster[channel].eot);
 
-                mem_invalidate_range(piix_busmaster[channel].addr, piix_busmaster[channel].addr+511);
+                mem_invalidate_range(piix_busmaster[channel].addr, piix_busmaster[channel].addr + transfer_length - 1);
                 
-                if (piix_busmaster[channel].count < (512 - transferred))
+                if (piix_busmaster[channel].count < (transfer_length - transferred))
                 {
 //                        pclog("Transferring smaller - %i bytes\n", piix_busmaster[channel].count);
                         memcpy(&ram[piix_busmaster[channel].addr], data + transferred, piix_busmaster[channel].count);
@@ -421,11 +421,11 @@ int piix_bus_master_sector_read(int channel, uint8_t *data)
                 }                       
                 else
                 {
-//                        pclog("Transferring larger - %i bytes\n", 512 - transferred);
-                        memcpy(&ram[piix_busmaster[channel].addr], data + transferred, 512 - transferred);
-                        piix_busmaster[channel].addr += (512 - transferred);
-                        piix_busmaster[channel].count -= (512 - transferred);
-                        transferred += (512 - transferred);                        
+//                        pclog("Transferring larger - %i bytes\n", transfer_length - transferred);
+                        memcpy(&ram[piix_busmaster[channel].addr], data + transferred, transfer_length - transferred);
+                        piix_busmaster[channel].addr += (transfer_length - transferred);
+                        piix_busmaster[channel].count -= (transfer_length - transferred);
+                        transferred += (transfer_length - transferred);                        
                 }
 
 //                pclog("DMA on channel %i - Addr %08X Count %04X EOT %i\n", channel, piix_busmaster[channel].addr, piix_busmaster[channel].count, piix_busmaster[channel].eot);
@@ -444,19 +444,20 @@ int piix_bus_master_sector_read(int channel, uint8_t *data)
         }
         return 0;
 }
-int piix_bus_master_sector_write(int channel, uint8_t *data)
+
+int piix_bus_master_dma_write(int channel, uint8_t *data, int transfer_length)
 {
         int transferred = 0;
         
         if (!(piix_busmaster[channel].status & 1))
            return 1;                                    /*DMA disabled*/
 
-        while (transferred < 512)
+        while (transferred < transfer_length)
         {
-                if (piix_busmaster[channel].count < (512 - transferred) && piix_busmaster[channel].eot)
-                   fatal("DMA on channel %i - Write count less than 512! Addr %08X Count %04X EOT %i\n", channel, piix_busmaster[channel].addr, piix_busmaster[channel].count, piix_busmaster[channel].eot);
+                if (piix_busmaster[channel].count < (transfer_length - transferred) && piix_busmaster[channel].eot)
+                   fatal("DMA on channel %i - Write count less than transfer_length! Addr %08X Count %04X EOT %i\n", channel, piix_busmaster[channel].addr, piix_busmaster[channel].count, piix_busmaster[channel].eot);
                 
-                if (piix_busmaster[channel].count < (512 - transferred))
+                if (piix_busmaster[channel].count < (transfer_length - transferred))
                 {
 //                        pclog("Transferring smaller - %i bytes\n", piix_busmaster[channel].count);
                         memcpy(data + transferred, &ram[piix_busmaster[channel].addr], piix_busmaster[channel].count);
@@ -467,11 +468,11 @@ int piix_bus_master_sector_write(int channel, uint8_t *data)
                 }                       
                 else
                 {
-//                        pclog("Transferring larger - %i bytes\n", 512 - transferred);
-                        memcpy(data + transferred, &ram[piix_busmaster[channel].addr], 512 - transferred);
-                        piix_busmaster[channel].addr += (512 - transferred);
-                        piix_busmaster[channel].count -= (512 - transferred);
-                        transferred += (512 - transferred);                        
+//                        pclog("Transferring larger - %i bytes\n", transfer_length - transferred);
+                        memcpy(data + transferred, &ram[piix_busmaster[channel].addr], transfer_length - transferred);
+                        piix_busmaster[channel].addr += (transfer_length - transferred);
+                        piix_busmaster[channel].count -= (transfer_length - transferred);
+                        transferred += (transfer_length - transferred);                        
                 }
 
 //                pclog("DMA on channel %i - Addr %08X Count %04X EOT %i\n", channel, piix_busmaster[channel].addr, piix_busmaster[channel].count, piix_busmaster[channel].eot);
@@ -620,7 +621,7 @@ void piix_init(int card)
 
 	piix_type = 1;
         
-        ide_set_bus_master(piix_bus_master_sector_read, piix_bus_master_sector_write, piix_bus_master_set_irq);
+        ide_set_bus_master(piix_bus_master_dma_read, piix_bus_master_dma_write, piix_bus_master_set_irq);
 
         io_sethandler(0x0cf9, 0x0001, rc_read, NULL, NULL, rc_write, NULL, NULL, NULL);
 
@@ -641,7 +642,7 @@ void piix3_init(int card)
 
 	piix_type = 3;
         
-        ide_set_bus_master(piix_bus_master_sector_read, piix_bus_master_sector_write, piix_bus_master_set_irq);
+        ide_set_bus_master(piix_bus_master_dma_read, piix_bus_master_dma_write, piix_bus_master_set_irq);
 
         io_sethandler(0x0cf9, 0x0001, rc_read, NULL, NULL, rc_write, NULL, NULL, NULL);
 

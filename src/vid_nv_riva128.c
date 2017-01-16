@@ -1131,7 +1131,7 @@ static void riva128_puller_exec_method(int chanid, int subchanid, int offset, ui
     }
 
     unsigned new_class = (tmp >> 16) & 0x1f;
-    if(riva128->pgraph.debug[1] & 0x10000 && ((riva128->pgraph.instance >> 4)) != riva128->pgraph.ctx_switch[3] && (new_class == 0x0d || new_class == 0x0e || new_class == 0x14 || new_class == 0x17 || offset == 0x0104)
+    if((riva128->pgraph.debug[1] & 0x10000) && ((riva128->pgraph.instance >> 4) != riva128->pgraph.ctx_switch[3]) && (new_class == 0x0d || new_class == 0x0e || new_class == 0x14 || new_class == 0x17 || offset == 0x0104))
     {
       riva128->pgraph.ctx_switch[3] = riva128->pgraph.instance >> 4;
       riva128->pgraph.ctx_switch[1] = riva128->pramin[riva128->pgraph.instance + 4] & 0xffff;
