@@ -2846,7 +2846,7 @@ void cdrom_write(uint8_t channel, uint8_t val)
 
 	if (id > CDROM_NUM)
 	{
-		return 0;
+		return;
 	}
 
 	cdbufferb = (uint8_t *) cdrom[id].buffer;
@@ -2871,6 +2871,6 @@ void cdrom_write(uint8_t channel, uint8_t val)
 			cdrom_phase_callback(id);
 			timer_update_outstanding();
 		}
-		return 0;
+		return;
 	}
 }

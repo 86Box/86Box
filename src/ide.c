@@ -751,10 +751,7 @@ void ide_write_data(int ide_board, uint8_t val)
 			return;
 		}
 
-		if (cdrom_write(cur_ide[ide_board], val))
-		{
-			ide_irq_raise(ide);
-		}
+		cdrom_write(cur_ide[ide_board], val);
 
 		if (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback)
 		{

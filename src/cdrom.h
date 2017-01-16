@@ -190,7 +190,7 @@ int cdrom_atapi_phase_to_scsi(uint8_t id);
 void cdrom_command(uint8_t id, uint8_t *cdb);
 int cdrom_phase_callback(uint8_t id);
 uint8_t cdrom_read(uint8_t channel);
-int cdrom_write(uint8_t channel, uint8_t val);
+void cdrom_write(uint8_t channel, uint8_t val);
 int cdrom_lba_to_msf_accurate(int lba);
 void cdrom_reset(uint8_t id);
 void cdrom_set_signature(int id);
