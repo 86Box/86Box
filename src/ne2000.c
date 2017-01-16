@@ -17,6 +17,7 @@
 // Peter Grehan (grehan@iprg.nokia.com) coded all of this
 // NE2000/ether stuff.
 //#include "vl.h"
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

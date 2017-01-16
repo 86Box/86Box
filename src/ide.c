@@ -6,8 +6,10 @@
 #define _GNU_SOURCE
 #include <errno.h>
 #include <ctype.h>
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <sys/types.h>
@@ -134,11 +136,11 @@ int idecallback[4] = {0, 0, 0, 0};
 
 int cur_ide[4];
 
-int ide_do_log = 1;
+int ide_do_log = 0;
 
 void ide_log(const char *format, ...)
 {
-#ifdef ENABLE_CDROM_LOG
+#ifdef ENABLE_IDE_LOG
    if (ide_do_log)
    {
 		va_list ap;
@@ -724,10 +726,12 @@ void resetide(void)
 
 int idetimes = 0;
 
-void writeidew(int ide_board, uint16_t val)
+void ide_write_data(int ide_board, uint8_t val)
 {
 	int ret = 0;
 	IDE *ide = &ide_drives[cur_ide[ide_board]];
+
+	uint8_t *idebufferb = (uint8_t *) ide->buffer;
 	
 #if 0
 	if (ide_drive_is_cdrom(ide))
@@ -737,8 +741,8 @@ void writeidew(int ide_board, uint16_t val)
 #endif
         
 	// ide_log("Write IDEw %04X\n",val);
-	ide->buffer[ide->pos >> 1] = val;
-	ide->pos += 2;
+	idebufferb[ide->pos] = val;
+	ide->pos++;
 
 	if (ide->command == WIN_PACKETCMD)
 	{
@@ -778,6 +782,13 @@ void writeidew(int ide_board, uint16_t val)
 	}
 }
 
+void writeidew(int ide_board, uint16_t val)
+{
+	// ide_log("WriteIDEw %04X\n", val);
+	ide_write_data(ide_board, val);
+	ide_write_data(ide_board, val >> 8);
+}
+
 void writeidel(int ide_board, uint32_t val)
 {
 	// ide_log("WriteIDEl %08X\n", val);
@@ -799,7 +810,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 	switch (addr)
 	{
         case 0x1F0: /* Data */
-			writeidew(ide_board, val | (val << 8));
+			ide_write_data(ide_board, val);
 			return;
 
 		/* Note to self: for ATAPI, bit 0 of this is DMA if set, PIO if clear. */
@@ -954,11 +965,11 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
         case 0x1F7: /* Command register */
 			if (ide->type == IDE_NONE)
 			{
-				if (val == WIN_SRST)
-				{
-					callbackide(ide_board);
-				}
 				ide->error=1;
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].error = 1;
+				}
 				return;
 			}
 #if 0
@@ -972,6 +983,10 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                 
 			// ide_log("New IDE command - %02X %i %i\n",ide->command,cur_ide[ide_board],ide_board);
 			ide->error=0;
+			if (ide_drive_is_cdrom(ide))
+			{
+				cdrom[atapi_cdrom_drives[ide->channel]].error = 0;
+			}
 			switch (val)
 			{
                 case WIN_SRST: /* ATAPI Device Reset */
@@ -1241,6 +1256,66 @@ ide_bad_command:
 	// fatal("Bad IDE write %04X %02X\n", addr, val);
 }
 
+uint8_t ide_read_data(int ide_board)
+{
+	IDE *ide = &ide_drives[cur_ide[ide_board]];
+	uint8_t temp;
+
+	uint8_t *idebufferb = (uint8_t *) ide->buffer;
+	
+	temp = idebufferb[ide->pos];
+
+	ide->pos++;
+
+	if (ide->command == WIN_PACKETCMD)
+	{
+		if (!ide_drive_is_cdrom(ide))
+		{
+			ide_log("Drive not CD-ROM (position: %i)\n", ide->pos);
+			return 0;
+		}
+		temp = cdrom_read(cur_ide[ide_board]);
+		if (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback)
+		{
+			idecallback[ide_board] = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback;
+		}
+	}
+	if (ide->pos>=512 && ide->command != WIN_PACKETCMD)
+	{
+		ide->pos=0;
+		ide->atastat = READY_STAT | DSC_STAT;
+		if (ide_drive_is_cdrom(ide))
+		{
+			// cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].pos = 0;
+			cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].status = READY_STAT | DSC_STAT;
+			cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].packet_status = CDROM_PHASE_IDLE;
+		}
+		ide->packetstatus = ATAPI_STATUS_IDLE;
+		if (ide->command == WIN_READ || ide->command == WIN_READ_NORETRY || ide->command == WIN_READ_MULTIPLE)
+		{
+			ide->secount = (ide->secount - 1) & 0xff;
+			if (ide->secount)
+			{
+				ide_next_sector(ide);
+				ide->atastat = BUSY_STAT;
+				timer_process();
+				if (ide->command == WIN_READ_MULTIPLE)
+				{
+					callbackide(ide_board);
+				}
+				else
+				{
+					idecallback[ide_board]=6*IDE_TIME;
+				}
+				timer_update_outstanding();
+			}
+		}
+	}
+
+	// ide_log("Read IDEw %04X\n",temp);
+	return temp;
+}
+
 uint8_t readide(int ide_board, uint16_t addr)
 {
 	IDE *ide = &ide_drives[cur_ide[ide_board]];
@@ -1252,21 +1327,23 @@ uint8_t readide(int ide_board, uint16_t addr)
 	addr|=0x90;
 	addr&=0xFFF7;
 
-	if (ide->type == IDE_NONE && (addr == 0x1f0 || addr == 0x1f7))
+	if (ide->type == IDE_NONE && (addr == 0x1f0 || addr == 0x1f7 || addr == 0x3f6))
 	{
-		if (addr == 0x1f7)
+		if ((addr == 0x1f7) || (addr == 0x3f6))
 		{
 			/* This is apparently required for an empty ID channel. */
-			return 0x20;
+			ide_log("Reading port %04X on empty IDE channel, returning 0x20...\n", addr);
+			// return 0x20;
+			return DSC_STAT;
 		}
+		ide_log("Reading port %04X on empty IDE channel, returning zero...\n", addr);
 		return 0;
 	}
 
 	switch (addr)
 	{
 		case 0x1F0: /* Data */
-			tempw = readidew(ide_board);
-			temp = tempw & 0xff;
+			return ide_read_data(ide_board);
 			break;
 
 		/* For ATAPI: Bits 7-4 = sense key, bit 3 = MCR (media change requested),
@@ -1427,60 +1504,12 @@ int all_blocks_total = 0;
 
 uint16_t readidew(int ide_board)
 {
-	IDE *ide = &ide_drives[cur_ide[ide_board]];
-	uint16_t temp;
-	
-	temp = ide->buffer[ide->pos >> 1];
-
-	ide->pos += 2;
-
-	if (ide->command == WIN_PACKETCMD)
-	{
-		if (!ide_drive_is_cdrom(ide))
-		{
-			ide_log("Drive not CD-ROM (position: %i)\n", ide->pos);
-			return 0;
-		}
-		temp = cdrom_read(cur_ide[ide_board]);
-		if (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback)
-		{
-			idecallback[ide_board] = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback;
-		}
-	}
-	if (ide->pos>=512 && ide->command != WIN_PACKETCMD)
-	{
-		ide->pos=0;
-		ide->atastat = READY_STAT | DSC_STAT;
-		if (ide_drive_is_cdrom(ide))
-		{
-			// cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].pos = 0;
-			cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].status = READY_STAT | DSC_STAT;
-			cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].packet_status = CDROM_PHASE_IDLE;
-		}
-		ide->packetstatus = ATAPI_STATUS_IDLE;
-		if (ide->command == WIN_READ || ide->command == WIN_READ_NORETRY || ide->command == WIN_READ_MULTIPLE)
-		{
-			ide->secount = (ide->secount - 1) & 0xff;
-			if (ide->secount)
-			{
-				ide_next_sector(ide);
-				ide->atastat = BUSY_STAT;
-				timer_process();
-				if (ide->command == WIN_READ_MULTIPLE)
-				{
-					callbackide(ide_board);
-				}
-				else
-				{
-					idecallback[ide_board]=6*IDE_TIME;
-				}
-				timer_update_outstanding();
-			}
-		}
-	}
-
-	// ide_log("Read IDEw %04X\n",temp);
-	return temp;
+	uint16_t temp = 0;
+	uint16_t temp2 = 0;
+	temp = ide_read_data(ide_board);
+	temp2 = ide_read_data(ide_board);
+	temp2 <<= 8;
+	return (temp | temp2);
 }
 
 uint32_t readidel(int ide_board)

@@ -732,6 +732,15 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
         CheckMenuItem(menu, IDM_SCSI_DMA5 - 5 + scsi_dma, MF_CHECKED);
 
+#ifdef ENABLE_LOG_TOGGLES
+	CheckMenuItem(menu, IDM_LOG_BUSLOGIC, buslogic_do_log ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_LOG_CDROM, cdrom_do_log ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_LOG_D86F, d86f_do_log ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_LOG_FDC, fdc_do_log ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_LOG_IDE, ide_do_log ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_LOG_NE2000, ne2000_do_log ? MF_CHECKED : MF_UNCHECKED);
+#endif
+
 	CheckMenuItem(menu, IDM_VID_FORCE43, force_43 ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(menu, IDM_VID_OVERSCAN, enable_overscan ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(menu, IDM_VID_FLASH, enable_flash ? MF_CHECKED : MF_UNCHECKED);
@@ -1499,6 +1508,44 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			case IDM_VID_SCREENSHOT:
 			take_screenshot();
 			break;
+
+#ifdef ENABLE_LOG_TOGGLES
+			case IDM_LOG_BUSLOGIC:
+			buslogic_do_log ^= 1;
+			CheckMenuItem(hmenu, IDM_LOG_BUSLOGIC, buslogic_do_log ? MF_CHECKED : MF_UNCHECKED);
+			break;
+
+			case IDM_LOG_CDROM:
+			cdrom_do_log ^= 1;
+			CheckMenuItem(hmenu, IDM_LOG_CDROM, cdrom_do_log ? MF_CHECKED : MF_UNCHECKED);
+			break;
+
+			case IDM_LOG_D86F:
+			d86f_do_log ^= 1;
+			CheckMenuItem(hmenu, IDM_LOG_D86F, d86f_do_log ? MF_CHECKED : MF_UNCHECKED);
+			break;
+
+			case IDM_LOG_FDC:
+			fdc_do_log ^= 1;
+			CheckMenuItem(hmenu, IDM_LOG_FDC, fdc_do_log ? MF_CHECKED : MF_UNCHECKED);
+			break;
+
+			case IDM_LOG_IDE:
+			ide_do_log ^= 1;
+			CheckMenuItem(hmenu, IDM_LOG_IDE, ide_do_log ? MF_CHECKED : MF_UNCHECKED);
+			break;
+
+			case IDM_LOG_NE2000:
+			ne2000_do_log ^= 1;
+			CheckMenuItem(hmenu, IDM_LOG_NE2000, ne2000_do_log ? MF_CHECKED : MF_UNCHECKED);
+			break;
+#endif
+
+#ifdef ENABLE_LOG_BREAKPOINT
+			case IDM_LOG_BREAKPOINT:
+			pclog("---- LOG BREAKPOINT ----\n");
+			break;
+#endif
 
                         case IDM_CONFIG_LOAD:
                         pause = 1;

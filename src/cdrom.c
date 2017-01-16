@@ -1,8 +1,10 @@
 /* CD-ROM emulation, used by both ATAPI and SCSI */
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "86box.h"
 #include "cdrom.h"
@@ -188,7 +190,7 @@ uint8_t cdrom_mode_sense_pages_saved[CDROM_NUM][0x40][0x40] =
 		[GPMODE_CAPABILITIES_PAGE] = { GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1, 0, 0, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0 }	}
 };
 
-int cdrom_do_log = 1;
+int cdrom_do_log = 0;
 
 void cdrom_log(const char *format, ...)
 {
@@ -732,11 +734,6 @@ void cdrom_update_request_length(uint8_t id, int len, int block_len)
 			{
 				len = cdrom[id].block_total;
 			}
-			if (cdrom[id].packet_len == 0)
-			{
-				cdrom[id].packet_len = cdrom[id].sector_len * block_len;
-			}
-			cdrom_log("Packet length now: %i (%i * %i)\n", cdrom[id].packet_len, cdrom[id].sector_len, block_len);
 			break;
 		default:
 			cdrom[id].packet_len = len;
@@ -1065,6 +1062,7 @@ int cdrom_read_data(uint8_t id, int msf, int type, int flags, int *len)
 	int cdsize = 0;
 
 	int i = 0;
+	int temp_len = 0;
 
 	if (cdrom_drives[id].handler->pass_through)
 	{
@@ -1097,13 +1095,16 @@ int cdrom_read_data(uint8_t id, int msf, int type, int flags, int *len)
 		}
 
 		cdrom[id].old_len = 0;
+		*len = 0;
 
 		for (i = 0; i < cdrom[id].requested_blocks; i++)
 		{
-			ret = cdrom_drives[id].handler->readsector_raw(id, cdbufferb + cdrom[id].data_pos, cdrom[id].sector_pos, msf, type, flags, len);
+			ret = cdrom_drives[id].handler->readsector_raw(id, cdbufferb + cdrom[id].data_pos, cdrom[id].sector_pos, msf, type, flags, &temp_len);
 
-			cdrom[id].data_pos += *len;
-			cdrom[id].old_len += *len;
+			cdrom[id].data_pos += temp_len;
+			cdrom[id].old_len += temp_len;
+
+			*len += temp_len;
 
 			if (!ret)
 			{
@@ -1514,6 +1515,10 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 	{
 		cdrom[id].status &= ~ERR_STAT;
 	}
+	else
+	{
+		cdrom[id].error = 0;
+	}
 
 	cdrom[id].packet_len = 0;
 	cdrom[id].request_pos = 0;
@@ -1755,7 +1760,14 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 			}
 
 			cdrom[id].packet_len = max_len * alloc_length;
-			cdrom_data_command_finish(id, alloc_length * cdrom[id].requested_blocks, alloc_length, alloc_length * cdrom[id].requested_blocks, 0);
+			if (cdrom[id].requested_blocks > 1)
+			{
+				cdrom_data_command_finish(id, alloc_length, alloc_length / cdrom[id].requested_blocks, alloc_length, 0);
+			}
+			else
+			{
+				cdrom_data_command_finish(id, alloc_length, alloc_length, alloc_length, 0);
+			}
 			cdrom[id].all_blocks_total = cdrom[id].block_total;
 			if (cdrom[id].packet_status != CDROM_PHASE_COMPLETE)
 			{
@@ -2650,12 +2662,12 @@ int cdrom_write_to_ide_dma(uint8_t channel)
 
 	uint8_t id = atapi_cdrom_drives[channel];
 
-	cdbufferb = (uint8_t *) cdrom[id].buffer;
-
 	if (id > CDROM_NUM)
 	{
 		return 0;
 	}
+
+	cdbufferb = (uint8_t *) cdrom[id].buffer;
 
 	if (ide_bus_master_read)
 	{
@@ -2678,12 +2690,12 @@ int cdrom_write_to_scsi_dma(uint8_t scsi_id)
 
 	uint8_t id = scsi_cdrom_drives[scsi_id];
 
-	cdbufferb = (uint8_t *) cdrom[id].buffer;
-
 	if (id > CDROM_NUM)
 	{
 		return 0;
 	}
+
+	cdbufferb = (uint8_t *) cdrom[id].buffer;
 
 	cdrom_log("Writing to SCSI DMA: SCSI ID %02X, init length %i\n", scsi_id, SCSIDevices[scsi_id].InitLength);
 	memcpy(SCSIDevices[scsi_id].CmdBuffer, cdbufferb, SCSIDevices[scsi_id].InitLength);
@@ -2767,11 +2779,15 @@ int cdrom_phase_callback(uint8_t id)
 	}
 }
 
-uint32_t cdrom_read(uint8_t channel)
+/* Reimplement as 8-bit due to reimplementation of IDE data read and write. */
+uint8_t cdrom_read(uint8_t channel)
 {
+	uint8_t *cdbufferb;
+
 	uint8_t id = atapi_cdrom_drives[channel];
 
-	uint16_t temp = 0;
+	// uint16_t temp = 0;
+	uint8_t temp = 0;
 	int ret = 0;
 
 	if (id > CDROM_NUM)
@@ -2779,14 +2795,16 @@ uint32_t cdrom_read(uint8_t channel)
 		return 0;
 	}
 
-	temp = cdrom[id].buffer[cdrom[id].pos >> 1];
+	cdbufferb = (uint8_t *) cdrom[id].buffer;
 
-	cdrom[id].pos += 2;
-	cdrom[id].request_pos += 2;
+	temp = cdbufferb[cdrom[id].pos];
+
+	cdrom[id].pos++;
+	cdrom[id].request_pos++;
 
 	if (cdrom[id].packet_status == CDROM_PHASE_DATA_IN)
 	{
-		cdrom[id].total_read += 2;
+		cdrom[id].total_read++;
 		ret = cdrom_block_check(id);
 		/* If the block check has returned 0, this means all the requested blocks have been read, therefore the command has finished. */
 		if (ret)
@@ -2817,9 +2835,11 @@ uint32_t cdrom_read(uint8_t channel)
 	}
 }
 
-/* If the result is 1, issue an IRQ, otherwise not. */
-int cdrom_write(uint8_t channel, uint16_t val)
+/* Reimplement as 8-bit due to reimplementation of IDE data read and write. */
+void cdrom_write(uint8_t channel, uint8_t val)
 {
+	uint8_t *cdbufferb;
+
 	uint8_t id = atapi_cdrom_drives[channel];
 
 	int ret = 0;
@@ -2829,27 +2849,16 @@ int cdrom_write(uint8_t channel, uint16_t val)
 		return 0;
 	}
 
-	cdrom[id].buffer[cdrom[id].pos >> 1] = val;
-	cdrom[id].pos += 2;
+	cdbufferb = (uint8_t *) cdrom[id].buffer;
+
+	cdbufferb[cdrom[id].pos] = val;
+	cdrom[id].pos++;
 
 	if (cdrom[id].packet_status == CDROM_PHASE_DATA_OUT)
 	{
-		ret = cdrom_mode_select_write(id, val & 0xff);
-		if (ret == 1)
-		{
-			ret = 2;
-		}
+		ret = cdrom_mode_select_write(id, val);
 		cdrom_mode_select_return(id, ret);
-		/* Make sure to not do another write, if it has terminated. */
-		if (ret != -6)
-		{
-			cdrom_mode_select_write(id, val >> 8);
-			if (cdrom_mode_select_return(id, ret) == 1)
-			{
-				return 0;
-			}
-		}
-		return 0;
+		return;
 	}
 	else if (cdrom[id].packet_status == CDROM_PHASE_IDLE)
 	{

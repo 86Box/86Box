@@ -292,11 +292,35 @@ BEGIN
                         MENUITEM "Take s&creenshot\tCtrl+F11", IDM_VID_SCREENSHOT
                 END
                 MENUITEM "&Status", IDM_STATUS
+#ifdef ENABLE_LOG_TOGGLES
+		MENUITEM SEPARATOR
+                MENUITEM "Enable BusLogic logs\tCtrl+F4", IDM_LOG_BUSLOGIC
+                MENUITEM "Enable CD-ROM logs\tCtrl+F5", IDM_LOG_CDROM
+                MENUITEM "Enable floppy (86F) logs\tCtrl+F6", IDM_LOG_D86F
+                MENUITEM "Enable floppy controller logs\tCtrl+F7", IDM_LOG_FDC
+                MENUITEM "Enable IDE logs\tCtrl+F8", IDM_LOG_IDE
+                MENUITEM "Enable NE2000 logs\tCtrl+F9", IDM_LOG_NE2000
+#endif
+#ifdef ENABLE_LOG_BREAKPOINT
+		MENUITEM SEPARATOR
+                MENUITEM "&Log breakpoint\tCtrl+F10", IDM_LOG_BREAKPOINT
+#endif
         END
 END
 
 MainAccel ACCELERATORS
 BEGIN
+#ifdef ENABLE_LOG_TOGGLES
+        VK_F4,   IDM_LOG_BUSLOGIC,    CONTROL, VIRTKEY
+        VK_F5,   IDM_LOG_CDROM,       CONTROL, VIRTKEY
+        VK_F6,   IDM_LOG_D86F,        CONTROL, VIRTKEY
+        VK_F7,   IDM_LOG_FDC,         CONTROL, VIRTKEY
+        VK_F8,   IDM_LOG_IDE,         CONTROL, VIRTKEY
+        VK_F9,   IDM_LOG_NE2000,      CONTROL, VIRTKEY
+#endif
+#ifdef ENABLE_LOG_BREAKPOINT
+        VK_F10,  IDM_LOG_BREAKPOINT,  CONTROL, VIRTKEY
+#endif
         VK_F11,  IDM_VID_SCREENSHOT,  CONTROL, VIRTKEY
         VK_F12,  IDM_FILE_RESET_CAD,  CONTROL, VIRTKEY
 END

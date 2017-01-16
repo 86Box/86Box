@@ -518,7 +518,7 @@ int scsi_base = 0x330;
 int scsi_dma = 6;
 int scsi_irq = 11;
 
-int buslogic_do_log = 1;
+int buslogic_do_log = 0;
 
 static void BuslogicStartMailbox(Buslogic_t *Buslogic);
 

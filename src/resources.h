@@ -187,6 +187,17 @@
 #define IDM_SCSI_DMA5      45405
 #define IDM_SCSI_DMA6      45406
 #define IDM_SCSI_DMA7      45407
+#ifdef ENABLE_LOG_TOGGLES
+#define IDM_LOG_BUSLOGIC   51200
+#define IDM_LOG_CDROM      51201
+#define IDM_LOG_D86F       51202
+#define IDM_LOG_FDC        51203
+#define IDM_LOG_IDE        51204
+#define IDM_LOG_NE2000     51205
+#endif
+#ifdef ENABLE_LOG_BREAKPOINT
+#define IDM_LOG_BREAKPOINT 51206
+#endif
 
 #define IDC_COMBO1 1000
 #define IDC_COMBOVID 1001

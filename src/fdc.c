@@ -116,7 +116,7 @@ int discrate[4];
 
 int discint;
 
-int fdc_do_log = 1;
+int fdc_do_log = 0;
 
 void fdc_log(const char *format, ...)
 {

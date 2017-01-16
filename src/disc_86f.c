@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -203,7 +204,7 @@ static struct __attribute__((packed))
 	uint32_t dma_over;
 } d86f[FDD_NUM];
 
-int d86f_do_log = 1;
+int d86f_do_log = 0;
 
 void d86f_log(const char *format, ...)
 {

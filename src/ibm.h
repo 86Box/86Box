@@ -596,3 +596,12 @@ int mem_a20_state;
 void fatal(const char *format, ...);
 
 extern int scsi_model, scsi_base, scsi_irq, scsi_dma;
+
+#ifdef ENABLE_LOG_TOGGLES
+extern int buslogic_do_log;
+extern int cdrom_do_log;
+extern int d86f_do_log;
+extern int fdc_do_log;
+extern int ide_do_log;
+extern int ne2000_do_log;
+#endif
