@@ -514,7 +514,7 @@ struct sptd_with_sense
     SCSI_PASS_THROUGH s;
 	ULONG Filler;
     UCHAR sense[32];
-    UCHAR data[64512];
+    UCHAR data[65536];
 } sptd;
 
 static int SCSICommand(uint8_t id, const UCHAR *cdb, UCHAR *buf, uint32_t *len, int no_length_check)
@@ -602,7 +602,7 @@ common_handler:
 		default:
 bypass_check:
 			/* Other commands */
-			sptd.s.DataTransferLength = 64512;
+			sptd.s.DataTransferLength = 65536;
 			break;
 	}
   sptd.s.SenseInfoOffset = (uintptr_t)&sptd.sense - (uintptr_t)&sptd;
@@ -748,7 +748,7 @@ static void ioctl_validate_toc(uint8_t id)
 	cdrom_ioctl[id].tocvalid=1;
 }
 
-UCHAR buf[64512];
+UCHAR buf[65536];
 
 static int ioctl_pass_through(uint8_t id, uint8_t *in_cdb, uint8_t *b, uint32_t *len)
 {
