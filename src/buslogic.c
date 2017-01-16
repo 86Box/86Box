@@ -792,6 +792,8 @@ uint32_t BuslogicGetDataLength(BuslogicRequests_t *BuslogicRequests)
 
 void BuslogicDataBufferFree(BuslogicRequests_t *BuslogicRequests)
 {
+	uint32_t sg_buffer_pos = 0;
+
 	if (BuslogicRequests->Is24bit)
 	{
 		DataPointer = ADDR_TO_U32(BuslogicRequests->CmdBlock.old.DataPointer);
@@ -839,7 +841,8 @@ void BuslogicDataBufferFree(BuslogicRequests_t *BuslogicRequests)
 					Address = ScatterGatherBuffer[ScatterEntry].SegmentPointer;
 					DataToTransfer = ScatterGatherBuffer[ScatterEntry].Segment;
 
-					DMAPageWrite(Address, SCSIDevices[BuslogicRequests->TargetID].CmdBuffer, DataToTransfer);
+					DMAPageWrite(Address, SCSIDevices[BuslogicRequests->TargetID].CmdBuffer + sg_buffer_pos, DataToTransfer);
+					sg_buffer_pos += DataToTransfer;
 				}
 					
 				ScatterGatherAddrCurrent += ScatterGatherRead * (BuslogicRequests->Is24bit ? sizeof(SGE) : sizeof(SGE32));
