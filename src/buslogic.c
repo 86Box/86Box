@@ -821,9 +821,16 @@ void BuslogicDataBufferFree(BuslogicRequests_t *BuslogicRequests)
 			uint32_t ScatterGatherRead;
 			uint32_t ScatterEntry;
 			SGE32 ScatterGatherBuffer[MAX_SG_DESCRIPTORS];
-			uint32_t ScatterGatherLeft = DataLength / (BuslogicRequests->Is24bit ? sizeof(SGE) : sizeof(SGE32));
+			uint32_t ScatterGatherReqSize = (BuslogicRequests->Is24bit ? sizeof(SGE) : sizeof(SGE32));			
+			uint32_t ScatterGatherLeft = DataLength / ScatterGatherReqSize;
+			uint32_t ScatterGatherLength = (ScatterGatherLeft * ScatterGatherReqSize);
 			uint32_t ScatterGatherAddrCurrent = DataPointer;
-			
+
+			if (DataLength > ScatterGatherLength)
+			{
+				ScatterGatherLeft++;
+			}
+
 			do
 			{
 				ScatterGatherRead = (ScatterGatherLeft < ELEMENTS(ScatterGatherBuffer))
