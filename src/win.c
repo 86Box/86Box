@@ -44,6 +44,7 @@
 #include "win-d3d.h"
 #include "win-d3d-fs.h"
 //#include "win-opengl.h"
+#include "win-crashdump.h"
 
 #ifndef MAPVK_VK_TO_VSC
 #define MAPVK_VK_TO_VSC 0
@@ -556,6 +557,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 		char emulator_title[200];
         LARGE_INTEGER qpc_freq;
         HACCEL haccel;           /* Handle to accelerator table */
+		
+		InitCrashDump(); // First thing to do before anything else is to make sure crash dumps get created.
 
         process_command_line();
         
