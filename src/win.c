@@ -1053,7 +1053,8 @@ LRESULT CALLBACK LowLevelKeyboardProc( int nCode, WPARAM wParam, LPARAM lParam )
 	BOOL bControlKeyDown;
 	KBDLLHOOKSTRUCT* p;
 
-        if (nCode < 0 || nCode != HC_ACTION || (!mousecapture && !video_fullscreen))
+        // if (nCode < 0 || nCode != HC_ACTION || (!mousecapture && !video_fullscreen))
+        if (nCode < 0 || nCode != HC_ACTION)
                 return CallNextHookEx( hKeyboardHook, nCode, wParam, lParam); 
 	
 	p = (KBDLLHOOKSTRUCT*)lParam;
@@ -2155,7 +2156,9 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 break;
 
                 case WM_SYSCOMMAND:
-                if (wParam == SC_KEYMENU && HIWORD(lParam) <= 0 && (video_fullscreen || mousecapture))
+                // if (wParam == SC_KEYMENU && HIWORD(lParam) <= 0 && (video_fullscreen || mousecapture))
+		/* Disable ALT key *ALWAYS*, I don't think there's any use for reaching the menu that way. */
+                if (wParam == SC_KEYMENU && HIWORD(lParam) <= 0)
                         return 0; /*disable ALT key for menu*/
 
                 default:
