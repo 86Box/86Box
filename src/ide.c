@@ -59,8 +59,10 @@
 #define WIN_READ_DMA                    0xC8
 #define WIN_WRITE_DMA                   0xCA
 #define WIN_STANDBYNOW1			0xE0
+#define WIN_IDLENOW1			0xE1
 #define WIN_SETIDLE1			0xE3
 #define WIN_CHECKPOWERMODE1		0xE5
+#define WIN_SLEEP1				0xE6
 #define WIN_IDENTIFY			0xEC /* Ask drive to identify itself */
 #define WIN_SET_FEATURES		0xEF
 #define WIN_READ_NATIVE_MAX		0xF8
@@ -373,8 +375,11 @@ static void ide_identify(IDE *ide)
 	// ide->buffer[63] = 7; /*Multiword DMA*/
 	if (ide->board < 2)
 	{
+		ide->buffer[53] = 2;
 		ide->buffer[62] = ide->dma_identify_data[0];
 		ide->buffer[63] = ide->dma_identify_data[1];
+		ide->buffer[65] = 150;
+		ide->buffer[66] = 150;
 		ide->buffer[80] = 0xe; /*ATA-1 to ATA-3 supported*/
 		ide->buffer[88] = ide->dma_identify_data[2];
 	}
@@ -398,14 +403,19 @@ static void ide_atapi_identify(IDE *ide)
 	ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
 	ide->buffer[49] = 0x200; /* LBA supported */
 	ide->buffer[51] = 2 << 8; /*PIO timing mode*/
+	ide->buffer[73] = 6;
+	ide->buffer[73] = 9;
 
 	if ((ide->board < 2) && (cdrom_drives[cdrom_id].bus_mode & 2))
 	{
 		ide->buffer[49] |= 0x100; /* DMA supported */
 		ide->buffer[52] = 2 << 8; /*DMA timing mode*/
+		ide->buffer[53] = 2;
 		ide->buffer[62] = ide->dma_identify_data[0];
 		ide->buffer[63] = ide->dma_identify_data[1];
-		ide->buffer[88] = ide->dma_identify_data[2];
+		ide->buffer[65] = 150;
+		ide->buffer[66] = 150;
+		// ide->buffer[88] = ide->dma_identify_data[2];
 	}
 }
 
@@ -580,20 +590,28 @@ int ide_cdrom_is_pio_only(IDE *ide)
 int ide_set_features(IDE *ide)
 {
 	uint8_t cdrom_id = cur_ide[ide->board];
+
+	uint8_t features = 0;
+	
+	uint8_t sf_data = 0;
 	uint8_t val = 0;
 	
 	if (ide_drive_is_cdrom(ide))
 	{
-		val = cdrom[cdrom_id].phase & 7;
+		features = cdrom[cdrom_id].features;
+		sf_data = cdrom[cdrom_id].phase;
 	}
 	else
 	{
-		val = ide->secount & 7;
+		features = ide->cylprecomp;
+		sf_data = ide->secount;
 	}
+	
+	val = sf_data & 7;
 
 	if (ide->type == IDE_NONE)  return 0;
 	
-	switch(ide->cylprecomp)
+	switch(features)
 	{
 		case 0x02:
 		case 0x82:
@@ -612,17 +630,21 @@ int ide_set_features(IDE *ide)
 		case 0xc2:
 			return 1;
 		case 0x03:
+#if 0
 			if (ide->type == IDE_CDROM)
 			{
 				return 0;
 			}
-			switch(ide->secount >> 3)
+#endif
+			switch(sf_data >> 3)
 			{
 				case 0:
-				case 1:
 					ide->dma_identify_data[0] = ide->dma_identify_data[1] = 7;
 					ide->dma_identify_data[2] = 0x3f;
 					break;
+				case 1:
+					/* We do not (yet) emulate flow control, so return with error if this is attempted. */
+					return 0;
 				case 2:
 					if (ide_cdrom_is_pio_only(ide) || (ide->board >= 2))
 					{
@@ -722,6 +744,9 @@ void resetide(void)
 	{
 		cur_ide[d] = d << 1;
 	}
+
+	ide_ter_disable_cond();
+	ide_qua_disable_cond();
 }
 
 int idetimes = 0;
@@ -741,9 +766,6 @@ void ide_write_data(int ide_board, uint8_t val)
 #endif
         
 	// ide_log("Write IDEw %04X\n",val);
-	idebufferb[ide->pos] = val;
-	ide->pos++;
-
 	if (ide->command == WIN_PACKETCMD)
 	{
 		if (!ide_drive_is_cdrom(ide))
@@ -761,6 +783,9 @@ void ide_write_data(int ide_board, uint8_t val)
 	}
 	else
 	{
+		idebufferb[ide->pos] = val;
+		ide->pos++;
+
 		if (ide->pos>=512)
 		{
 			ide->pos=0;
@@ -962,19 +987,31 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
         case 0x1F7: /* Command register */
 			if (ide->type == IDE_NONE)
 			{
-				ide->error=1;
-				if (ide_drive_is_cdrom(ide))
-				{
-					cdrom[atapi_cdrom_drives[ide->channel]].error = 1;
-				}
 				return;
 			}
-#if 0
-			if (ide_drive_is_cdrom(ide_other))
+			if (ide_drive_is_cdrom(ide))
 			{
+#if 0
 				ide_log("Write CD-ROM ATA command: %02X\n", val);
-			}
 #endif
+				switch(val)
+				{
+					case WIN_SRST:
+					case WIN_CHECKPOWERMODE1:
+					case WIN_DRIVE_DIAGNOSTICS:
+					case WIN_IDLENOW1:
+					case WIN_PACKETCMD:
+					case WIN_PIDENTIFY:
+					case WIN_IDENTIFY:
+					case WIN_SET_FEATURES:
+					case WIN_SLEEP1:
+					case WIN_STANDBYNOW1:
+						break;
+					default:
+						val = 0xFF;
+						break;
+				}
+			}
 			ide_irq_lower(ide);
 			ide->command=val;
                 
@@ -1146,8 +1183,10 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                 case WIN_SET_MULTIPLE_MODE: /*Set Multiple Mode*/
 				case WIN_NOP:
 				case WIN_STANDBYNOW1:
+				case WIN_IDLENOW1:
                 case WIN_SETIDLE1: /* Idle */
 				case WIN_CHECKPOWERMODE1:
+				case WIN_SLEEP1:
 					if (ide_drive_is_cdrom(ide))
 					{
 						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
@@ -1260,10 +1299,6 @@ uint8_t ide_read_data(int ide_board)
 
 	uint8_t *idebufferb = (uint8_t *) ide->buffer;
 	
-	temp = idebufferb[ide->pos];
-
-	ide->pos++;
-
 	if (ide->command == WIN_PACKETCMD)
 	{
 		if (!ide_drive_is_cdrom(ide))
@@ -1276,6 +1311,11 @@ uint8_t ide_read_data(int ide_board)
 		{
 			idecallback[ide_board] = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback;
 		}
+	}
+	else
+	{
+		temp = idebufferb[ide->pos];
+		ide->pos++;
 	}
 	if (ide->pos>=512 && ide->command != WIN_PACKETCMD)
 	{
@@ -1324,19 +1364,6 @@ uint8_t readide(int ide_board, uint16_t addr)
 	addr|=0x90;
 	addr&=0xFFF7;
 
-	if (ide->type == IDE_NONE && (addr == 0x1f0 || addr == 0x1f7 || addr == 0x3f6))
-	{
-		if ((addr == 0x1f7) || (addr == 0x3f6))
-		{
-			/* This is apparently required for an empty ID channel. */
-			ide_log("Reading port %04X on empty IDE channel, returning 0x30...\n", addr);
-			// return 0x20;
-			return 0x20 | DSC_STAT;
-		}
-		ide_log("Reading port %04X on empty IDE channel, returning zero...\n", addr);
-		return 0;
-	}
-
 	switch (addr)
 	{
 		case 0x1F0: /* Data */
@@ -1349,7 +1376,7 @@ uint8_t readide(int ide_board, uint16_t addr)
 		case 0x1F1: /* Error */
 			if (ide->type == IDE_NONE)
 			{
-				temp = 1;
+				temp = 0;
 			}
 			else
 			{
@@ -1378,32 +1405,18 @@ uint8_t readide(int ide_board, uint16_t addr)
 			0		1		0		Data from host
 			1		0		1		Status. */
 		case 0x1F2: /* Sector count */
-			if (ide->type == IDE_NONE)
+			if (ide_drive_is_cdrom(ide))
 			{
-				temp = 1;
+				temp = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].phase;
 			}
 			else
 			{
-				if (ide_drive_is_cdrom(ide))
-				{
-					temp = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].phase;
-				}
-				else
-				{
-					temp = ide->secount;
-				}
+				temp = ide->secount;
 			}
 			break;
 
 		case 0x1F3: /* Sector */
-			if (ide->type == IDE_NONE)
-			{
-				temp = 1;
-			}
-			else
-			{
-				temp = (uint8_t)ide->sector;
-			}
+			temp = (uint8_t)ide->sector;
 			break;
 
 		case 0x1F4: /* Cylinder low */
@@ -1443,7 +1456,7 @@ uint8_t readide(int ide_board, uint16_t addr)
 			break;
 
 		case 0x1F6: /* Drive/Head */
-			if (ide->type == IDE_NONE)
+			if (ide_drive_is_cdrom(ide))
 			{
 				temp = (uint8_t)(((cur_ide[ide_board] & 1) ? 0x10 : 0) | 0xa0);
 			}
@@ -1457,6 +1470,10 @@ uint8_t readide(int ide_board, uint16_t addr)
 					  DF (drive fault). */
 		case 0x1F7: /* Status */
 			ide_irq_lower(ide);
+			if (ide->type == IDE_NONE)
+			{
+				return 0;
+			}
 			if (ide_drive_is_cdrom(ide))
 			{
 				temp = (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].status & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0);
@@ -1471,8 +1488,7 @@ uint8_t readide(int ide_board, uint16_t addr)
 		case 0x3F6: /* Alternate Status */
 			if (ide->type == IDE_NONE)
 			{
-				temp = DSC_STAT;
-				break;
+				return 0;
 			}
 			if (ide_drive_is_cdrom(ide))
 			{
@@ -1614,6 +1630,7 @@ void callbackide(int ide_board)
 			}
 		case WIN_NOP:
 		case WIN_STANDBYNOW1:
+		case WIN_IDLENOW1:
 		case WIN_SETIDLE1:
 			if (ide_drive_is_cdrom(ide))
 			{
@@ -1627,9 +1644,11 @@ void callbackide(int ide_board)
 			return;
 
 		case WIN_CHECKPOWERMODE1:
+		case WIN_SLEEP1:
 			if (ide_drive_is_cdrom(ide))
 			{
-				goto abort_cmd;
+				cdrom[cdrom_id].phase = 0xFF;
+				cdrom[cdrom_id].status = READY_STAT | DSC_STAT;
 			}
 			ide->secount = 0xFF;
 			ide->atastat = READY_STAT | DSC_STAT;
@@ -1854,10 +1873,13 @@ void callbackide(int ide_board)
 			if (ide_drive_is_cdrom(ide))
 			{
 				cdrom[cdrom_id].status = 0;
+				cdrom[cdrom_id].error = 1;
+				ide_irq_raise(ide);
 			}
 			else
 			{
 				ide->atastat = READY_STAT | DSC_STAT;
+				ide->error = 1;
 				ide_irq_raise(ide);
 			}
 			return;
@@ -1930,6 +1952,8 @@ void callbackide(int ide_board)
 			if (ide->type == IDE_NONE)
 			{
 				ide_set_signature(ide);
+				cdrom[cdrom_id].status = READY_STAT | ERR_STAT | DSC_STAT;
+				cdrom[cdrom_id].pos = 0;
 				goto abort_cmd;
 			}
 			if (ide_drive_is_cdrom(ide))
@@ -1959,7 +1983,10 @@ void callbackide(int ide_board)
 			idecallback[ide_board] = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback;
 			ide_log("IDE callback now: %i\n", idecallback[ide_board]);
 			return;
-	}
+
+		case 0xFF:
+			goto abort_cmd;
+		}
 
 abort_cmd:
 	ide->command = 0;
@@ -2141,6 +2168,14 @@ void ide_ter_disable()
         io_removehandler(0x036e, 0x0001, ide_read_ter, NULL,           NULL,           ide_write_ter, NULL,            NULL           , NULL);
 }
 
+void ide_ter_disable_cond()
+{
+		if ((ide_drives[4].type == IDE_NONE) && (ide_drives[5].type == IDE_NONE))
+		{
+			ide_ter_disable();
+		}
+}
+
 void ide_ter_init()
 {
 		ide_ter_enable();
@@ -2152,6 +2187,14 @@ void ide_qua_enable()
 {
         io_sethandler(0x01e8, 0x0008, ide_read_qua, ide_read_qua_w, ide_read_qua_l, ide_write_qua, ide_write_qua_w, ide_write_qua_l, NULL);
         io_sethandler(0x03ee, 0x0001, ide_read_qua, NULL,           NULL,           ide_write_qua, NULL,            NULL           , NULL);
+}
+
+void ide_qua_disable_cond()
+{
+		if ((ide_drives[6].type == IDE_NONE) && (ide_drives[7].type == IDE_NONE))
+		{
+			ide_qua_disable();
+		}
 }
 
 void ide_qua_disable()

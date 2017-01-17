@@ -1706,6 +1706,7 @@ void *BuslogicInit()
 
 	io_sethandler(scsi_base, 0x0004, BuslogicRead, NULL, NULL, BuslogicWrite, NULL, NULL, Buslogic);
 
+	BuslogicLog("Building CD-ROM map...\n");
 	build_scsi_cdrom_map();
 
 	if (buslogic_scsi_drive_is_cdrom(cdrom_drives[0].scsi_device_id))

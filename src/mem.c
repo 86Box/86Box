@@ -948,95 +948,93 @@ int pctrans=0;
 
 extern uint32_t testr[9];
 
+int mem_cpl3_check()
+{
+	if ((CPL == 3) && !cpl_override)
+	{
+		return 1;
+	}
+	return 0;
+}
+
+/* The relevant page table entry bits are:
+	0 = P (1 = page is present, 0 = page is not present);
+	1 = R/W (0 = read-only for user, 1 = writable for user);
+	2 = U/S (0 = system page, 1 = user page). */
 uint32_t mmutranslatereal(uint32_t addr, int rw)
 {
-        uint32_t addr2;
-        uint32_t temp,temp2,temp3;
-        
-                if (cpu_state.abrt) 
-                {
-//                        pclog("Translate recursive abort\n");
-                        return -1;
-                }
-/*                if ((addr&~0xFFFFF)==0x77f00000) pclog("Do translate %08X %i  %08X  %08X\n",addr,rw,EAX,cpu_state.pc);
-                if (addr==0x77f61000) output = 3;
-                if (addr==0x77f62000) { dumpregs(); exit(-1); }
-                if (addr==0x77f9a000) { dumpregs(); exit(-1); }*/
-        addr2 = ((cr3 & ~0xfff) + ((addr >> 20) & 0xffc));
-        temp=temp2=((uint32_t *)ram)[addr2>>2];
-//        if (output == 3) pclog("Do translate %08X %i %08X\n", addr, rw, temp);
-        if (!(temp&1))// || (CPL==3 && !(temp&4) && !cpl_override) || (rw && !(temp&2) && (CPL==3 || cr0&WP_FLAG)))
+	uint32_t pde_addr;
+	uint32_t section_flags;
+	uint32_t temp_section_flags;
+	uint32_t masked_flags;
+
+	if (cpu_state.abrt) 
+	{
+		// pclog("Translate recursive abort\n");
+		return -1;
+	}
+	pde_addr = ((cr3 & ~0xfff) + ((addr >> 20) & 0xffc));
+	section_flags = temp_section_flags = ((uint32_t *)ram)[pde_addr >> 2];
+	// if (output == 3)  pclog("Do translate %08X %i %08X\n", addr, rw, section_flags);
+	if (!(section_flags & 1))// || !(section_flags & 4) && mem_cpl3_check()) || (rw && !(section_flags & 2) && (mem_cpl3_check() || (cr0 & WP_FLAG))))
+	{
+		// if (!nopageerrors)  pclog("Section not present! %08X  %08X  %02X  %04X:%08X  %i %i\n",addr,temp,opcode,CS,cpu_state.pc,CPL,rw);
+
+		cr2 = addr;
+		section_flags &= 1;
+		if (CPL==3)  section_flags |= 4;
+		if (rw)  section_flags |= 2;
+		cpu_state.abrt = ABRT_PF;
+		abrt_error = section_flags;
+		return -1;
+	}
+	section_flags = ((uint32_t *)ram)[((section_flags & ~0xFFF) + ((addr >> 10) & 0xFFC))>>2];
+	masked_flags = section_flags & temp_section_flags;
+	// if (output == 3) pclog("Do translate %08X %08X\n", section_flags, temp3);
+        if (!(section_flags & 1) || (!(masked_flags & 4) && mem_cpl3_check()) || (rw && !(masked_flags & 2) && (mem_cpl3_check() || (cr0 & WP_FLAG))))
         {
-//                if (!nopageerrors) pclog("Section not present! %08X  %08X  %02X  %04X:%08X  %i %i\n",addr,temp,opcode,CS,cpu_state.pc,CPL,rw);
+		// if (!nopageerrors)  pclog("Page not present!  %08X   %08X   %02X %02X  %i  %08X  %04X:%08X  %04X:%08X %i  %i %i\n",addr,section_flags,opcode,opcode2,frame,rmdat32, CS,cpu_state.pc,SS,ESP,ins,CPL,rw);
 
-                cr2=addr;
-                temp&=1;
-                if (CPL==3) temp|=4;
-                if (rw) temp|=2;
-                cpu_state.abrt = ABRT_PF;
-                abrt_error = temp;
-/*                if (addr == 0x70046D)
-                {
-                        dumpregs();
-                        exit(-1);
-                }*/
-                return -1;
-        }
-        temp=((uint32_t *)ram)[((temp&~0xFFF)+((addr>>10)&0xFFC))>>2];
-        temp3=temp&temp2;
-//        if (output == 3) pclog("Do translate %08X %08X\n", temp, temp3);
-        if (!(temp&1) || (CPL==3 && !(temp3&4) && !cpl_override) || (rw && !(temp3&2) && (CPL==3 || cr0&WP_FLAG)))
-        {
-//                if (!nopageerrors) pclog("Page not present!  %08X   %08X   %02X %02X  %i  %08X  %04X:%08X  %04X:%08X %i  %i %i\n",addr,temp,opcode,opcode2,frame,rmdat32, CS,cpu_state.pc,SS,ESP,ins,CPL,rw);
+		cr2 = addr;
+		section_flags &= 1;
+		if (CPL==3)  section_flags |= 4;
+		if (rw)  section_flags |= 2;
+		cpu_state.abrt = ABRT_PF;
+		abrt_error = section_flags;
+		// pclog("%04X\n",cpu_state.abrt);
+		return -1;
+	}
+	mmu_perm = section_flags & 4;
+	((uint32_t *)ram)[pde_addr >> 2] |= 0x20;
+	((uint32_t *)ram)[((temp_section_flags & ~0xFFF) + ((addr >> 10) & 0xFFC)) >> 2] |= (rw ? 0x60 : 0x20);
+	// /*if (output) */pclog("Translate %08X %08X %08X  %08X:%08X  %08X\n",addr,(temp&~0xFFF)+(addr&0xFFF),section_flags,cs,cpu_state.pc,EDI);
 
-//                dumpregs();
-//                exit(-1);
-//                if (addr == 0x815F6E90) output = 3;
-/*                if (addr == 0x10ADE020) output = 3;*/
-/*                if (addr == 0x10150010 && !nopageerrors)
-                {
-                        dumpregs();
-                        exit(-1);
-                }*/
-
-                cr2=addr;
-                temp&=1;
-                if (CPL==3) temp|=4;
-                if (rw) temp|=2;
-                cpu_state.abrt = ABRT_PF;
-                abrt_error = temp;
-//                pclog("%04X\n",cpu_state.abrt);
-                return -1;
-        }
-        mmu_perm=temp&4;
-        ((uint32_t *)ram)[addr2>>2]|=0x20;
-        ((uint32_t *)ram)[((temp2&~0xFFF)+((addr>>10)&0xFFC))>>2]|=(rw?0x60:0x20);
-//        /*if (output) */pclog("Translate %08X %08X %08X  %08X:%08X  %08X\n",addr,(temp&~0xFFF)+(addr&0xFFF),temp,cs,cpu_state.pc,EDI);
-
-        return (temp&~0xFFF)+(addr&0xFFF);
+	return (section_flags & ~0xFFF) + (addr & 0xFFF);
 }
 
 uint32_t mmutranslate_noabrt(uint32_t addr, int rw)
 {
-        uint32_t addr2;
-        uint32_t temp,temp2,temp3;
+        uint32_t pde_addr;
+	uint32_t section_flags;
+	uint32_t temp_section_flags;
+	uint32_t masked_flags;
         
         if (cpu_state.abrt) 
                 return -1;
 
-        addr2 = ((cr3 & ~0xfff) + ((addr >> 20) & 0xffc));
-        temp=temp2=((uint32_t *)ram)[addr2>>2];
+        pde_addr = ((cr3 & ~0xfff) + ((addr >> 20) & 0xffc));
+        section_flags = temp_section_flags = ((uint32_t *)ram)[pde_addr >> 2];
 
-        if (!(temp&1))
+        if (!(section_flags & 1))
                 return -1;
 
-        temp=((uint32_t *)ram)[((temp&~0xFFF)+((addr>>10)&0xFFC))>>2];
-        temp3=temp&temp2;
+        section_flags = ((uint32_t *)ram)[((section_flags & ~0xFFF)+((addr >> 10) & 0xFFC)) >> 2];
+        masked_flags = section_flags & temp_section_flags;
 
-        if (!(temp&1) || (CPL==3 && !(temp3&4) && !cpl_override) || (rw && !(temp3&2) && (CPL==3 || cr0&WP_FLAG)))
+        if (!(section_flags & 1) || (!(masked_flags & 4) && mem_cpl3_check()) || (rw && !(masked_flags & 2) && (mem_cpl3_check() || (cr0 & WP_FLAG))))
                 return -1;
 
-        return (temp&~0xFFF)+(addr&0xFFF);
+        return (section_flags & ~0xFFF) + (addr & 0xFFF);
 }
 
 void mmu_invalidate(uint32_t addr)

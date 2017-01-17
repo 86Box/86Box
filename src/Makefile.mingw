@@ -32,9 +32,9 @@ LIBS = -mwindows -lwinmm -lopenal.dll -lopenal -lddraw -ldinput8 -ldxguid -ld3d9
 
 86Box.exe: $(OBJ) $(DBOBJ) $(LZFOBJ) $(SIDOBJ) $(SLIRPOBJ)
 	$(CC) $(OBJ) $(DBOBJ) $(LZFOBJ) $(SIDOBJ) $(SLIRPOBJ) -o "86Box.exe" $(LIBS)
-	sleep 10
+	sleep 2
 	strip "86Box.exe"
-	sleep 10
+	sleep 2
 
 all : 86Box.exe
 

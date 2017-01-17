@@ -304,6 +304,7 @@ void cdrom_init(int id, int cdb_len_setting, int bus_type)
 	cdrom[id].sense[0] = 0xf0;
 	cdrom[id].sense[7] = 10;
 	cdrom_drives[id].bus_mode = cdrom_drives[id].bus_type ? 2 : 3;
+	cdrom_log("CD-ROM %i: Bus type %i, bus mode %i\n", id, cdrom_drives[id].bus_type, cdrom_drives[id].bus_mode);
 	if (!cdrom_drives[id].bus_type)
 	{
 		cdrom_set_signature(id);
@@ -772,7 +773,26 @@ static void cdrom_command_common(uint8_t id)
 	cdrom[id].status = BUSY_STAT;
 	cdrom[id].phase = 1;
 	cdrom[id].pos = 0;
-	cdrom[id].callback = 60 * CDROM_TIME;
+	if (cdrom[id].packet_status == CDROM_PHASE_COMPLETE)
+	{
+		cdrom[id].callback = 20 * CDROM_TIME;
+	}
+	else if (cdrom[id].packet_status == CDROM_PHASE_DATA_IN)
+	{
+		if (cdrom[id].current_cdb[0] == 0x42)
+		{
+			cdrom_log("CD-ROM %i: READ SUBCHANNEL\n");
+			cdrom[id].callback = 1000 * CDROM_TIME;
+		}
+		else
+		{
+			cdrom[id].callback = 60 * CDROM_TIME;
+		}
+	}
+	else
+	{
+		cdrom[id].callback = 60 * CDROM_TIME;
+	}
 }
 
 static void cdrom_command_complete(uint8_t id)
@@ -807,6 +827,15 @@ static void cdrom_command_write_dma(uint8_t id)
 	cdrom_command_common(id);
 }
 
+static int cdrom_request_length_is_zero(uint8_t id)
+{
+	if ((cdrom[id].request_length == 0) && !cdrom_drives[id].bus_type)
+	{
+		return 1;
+	}
+	return 0;
+}
+
 static void cdrom_data_command_finish(uint8_t id, int len, int block_len, int alloc_len, int direction)
 {
 	cdrom_log("CD-ROM %i: Finishing command (%02X): %i, %i, %i, %i, %i\n", id, cdrom[id].current_cdb[0], len, block_len, alloc_len, direction, cdrom[id].request_length);
@@ -818,7 +847,7 @@ static void cdrom_data_command_finish(uint8_t id, int len, int block_len, int al
 			len = alloc_len;
 		}
 	}
-	if ((len == 0) || (cdrom_current_mode(id) == 0))
+	if (cdrom_request_length_is_zero(id) || (len == 0) || (cdrom_current_mode(id) == 0))
 	{
 		cdrom_command_complete(id);
 	}
@@ -828,14 +857,7 @@ static void cdrom_data_command_finish(uint8_t id, int len, int block_len, int al
 		{
 			if (cdrom_drives[id].bus_type)
 			{
-				if (cdrom_is_media_access(id))
-				{
-					SCSIDevices[cdrom_drives[id].scsi_device_id].InitLength = alloc_len;
-				}
-				else
-				{
-					SCSIDevices[cdrom_drives[id].scsi_device_id].InitLength = alloc_len;
-				}
+				SCSIDevices[cdrom_drives[id].scsi_device_id].InitLength = alloc_len;
 			}
 			if (direction == 0)
 			{
@@ -1150,7 +1172,7 @@ int cdrom_read_blocks(uint8_t id, int *len, int first_batch)
 	if (!cdrom[id].sector_len)
 	{
 		cdrom_command_complete(id);
-		return 0;
+		return -1;
 	}
 
 	cdrom_log("Reading %i blocks starting from %i...\n", cdrom[id].requested_blocks, cdrom[id].sector_pos);
@@ -1754,7 +1776,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 			}
 
 			ret = cdrom_read_blocks(id, &alloc_length, 1);
-			if (!ret)
+			if (ret <= 0)
 			{
 				return;
 			}
@@ -2465,13 +2487,20 @@ int cdrom_block_check(uint8_t id)
 	if (cdrom_is_media_access(id))
 	{
 		/* We have finished the current block. */
-		cdrom_log("CD-ROM %i: %i bytes total read, %i bytes all total\n", cdrom[id].total_read, cdrom[id].all_blocks_total);
+		cdrom_log("CD-ROM %i: %i bytes total read, %i bytes all total\n", id, cdrom[id].total_read, cdrom[id].all_blocks_total);
 		if (cdrom[id].total_read >= cdrom[id].all_blocks_total)
 		{
 			cdrom_log("CD-ROM %i: %i bytes read, current block finished\n", id, cdrom[id].total_read);
 			/* Read the next block. */
 			ret = cdrom_read_blocks(id, &alloc_length, 0);
-			if (!ret)
+			if (ret == -1)
+			{
+				/* Return value is -1 - there are no further blocks to read. */
+				cdrom_log("CD-ROM %i: %i bytes read, no further blocks to read\n", id, cdrom[id].total_read);
+				cdrom[id].status = BUSY_STAT;
+				return 1;
+			}
+			else if (ret == 0)
 			{
 				/* Return value is 0 - an error has occurred. */
 				cdrom_log("CD-ROM %i: %i bytes read, error while reading blocks\n", id, cdrom[id].total_read);
@@ -2746,6 +2775,7 @@ int cdrom_phase_callback(uint8_t id)
 			// cdrom_log("CD-ROM %i: CDROM_PHASE_COMPLETE\n", id);
 			cdrom[id].status = READY_STAT;
 			cdrom[id].phase = 3;
+			cdrom[id].packet_status = 0xFF;
 			return 1;
 		case CDROM_PHASE_DATA_OUT:
 			// cdrom_log("CD-ROM %i: CDROM_PHASE_DATA_OUT\n", id);
@@ -2809,7 +2839,7 @@ uint8_t cdrom_read(uint8_t channel)
 		/* If the block check has returned 0, this means all the requested blocks have been read, therefore the command has finished. */
 		if (ret)
 		{
-			cdrom_log("CD-ROM %i: Return value is 1\n", id);
+			cdrom_log("CD-ROM %i: Return value is 1 (request length: %i)\n", id, cdrom[id].request_length);
 			if (cdrom[id].request_pos >= cdrom[id].request_length)
 			{
 				/* Time for a DRQ. */
@@ -2825,7 +2855,7 @@ uint8_t cdrom_read(uint8_t channel)
 		{
 			cdrom_log("CD-ROM %i: Return value is 0\n", id);
 		}
-		cdrom_log("CD-ROM %i: Returning: %04X (buffer position: %i, request position: %i, total: %i)\n", id, temp, cdrom[id].pos, cdrom[id].request_pos, cdrom[id].total_read);
+		cdrom_log("CD-ROM %i: Returning: %02X (buffer position: %i, request position: %i, total: %i)\n", id, temp, cdrom[id].pos, cdrom[id].request_pos, cdrom[id].total_read);
 		return temp;
 	}
 	else

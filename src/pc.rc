@@ -293,13 +293,27 @@ BEGIN
                 END
                 MENUITEM "&Status", IDM_STATUS
 #ifdef ENABLE_LOG_TOGGLES
+#if defined ENABLE_BUSLOGIC_LOG || defined ENABLE_CDROM_LOG || defined ENABLE_D86F_LOG || defined ENABLE_FDC_LOG || defined ENABLE_IDE_LOG || defined ENABLE_NE2000_LOG
 		MENUITEM SEPARATOR
+#endif
+#ifdef ENABLE_BUSLOGIC_LOG
                 MENUITEM "Enable BusLogic logs\tCtrl+F4", IDM_LOG_BUSLOGIC
+#endif
+#ifdef ENABLE_CDROM_LOG
                 MENUITEM "Enable CD-ROM logs\tCtrl+F5", IDM_LOG_CDROM
+#endif
+#ifdef ENABLE_D86F_LOG
                 MENUITEM "Enable floppy (86F) logs\tCtrl+F6", IDM_LOG_D86F
+#endif
+#ifdef ENABLE_FDC_LOG
                 MENUITEM "Enable floppy controller logs\tCtrl+F7", IDM_LOG_FDC
+#endif
+#ifdef ENABLE_IDE_LOG
                 MENUITEM "Enable IDE logs\tCtrl+F8", IDM_LOG_IDE
+#endif
+#ifdef ENABLE_NE2000_LOG
                 MENUITEM "Enable NE2000 logs\tCtrl+F9", IDM_LOG_NE2000
+#endif
 #endif
 #ifdef ENABLE_LOG_BREAKPOINT
 		MENUITEM SEPARATOR
@@ -311,12 +325,24 @@ END
 MainAccel ACCELERATORS
 BEGIN
 #ifdef ENABLE_LOG_TOGGLES
+#ifdef ENABLE_BUSLOGIC_LOG
         VK_F4,   IDM_LOG_BUSLOGIC,    CONTROL, VIRTKEY
+#endif
+#ifdef ENABLE_CDROM_LOG
         VK_F5,   IDM_LOG_CDROM,       CONTROL, VIRTKEY
+#endif
+#ifdef ENABLE_D86F_LOG
         VK_F6,   IDM_LOG_D86F,        CONTROL, VIRTKEY
+#endif
+#ifdef ENABLE_FDC_LOG
         VK_F7,   IDM_LOG_FDC,         CONTROL, VIRTKEY
+#endif
+#ifdef ENABLE_IDE_LOG
         VK_F8,   IDM_LOG_IDE,         CONTROL, VIRTKEY
+#endif
+#ifdef ENABLE_NE2000_LOG
         VK_F9,   IDM_LOG_NE2000,      CONTROL, VIRTKEY
+#endif
 #endif
 #ifdef ENABLE_LOG_BREAKPOINT
         VK_F10,  IDM_LOG_BREAKPOINT,  CONTROL, VIRTKEY

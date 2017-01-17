@@ -733,12 +733,24 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         CheckMenuItem(menu, IDM_SCSI_DMA5 - 5 + scsi_dma, MF_CHECKED);
 
 #ifdef ENABLE_LOG_TOGGLES
+#ifdef ENABLE_BUSLOGIC_LOG
 	CheckMenuItem(menu, IDM_LOG_BUSLOGIC, buslogic_do_log ? MF_CHECKED : MF_UNCHECKED);
+#endif
+#ifdef ENABLE_CDROM_LOG
 	CheckMenuItem(menu, IDM_LOG_CDROM, cdrom_do_log ? MF_CHECKED : MF_UNCHECKED);
+#endif
+#ifdef ENABLE_D86F_LOG
 	CheckMenuItem(menu, IDM_LOG_D86F, d86f_do_log ? MF_CHECKED : MF_UNCHECKED);
+#endif
+#ifdef ENABLE_FDC_LOG
 	CheckMenuItem(menu, IDM_LOG_FDC, fdc_do_log ? MF_CHECKED : MF_UNCHECKED);
+#endif
+#ifdef ENABLE_IDE_LOG
 	CheckMenuItem(menu, IDM_LOG_IDE, ide_do_log ? MF_CHECKED : MF_UNCHECKED);
+#endif
+#ifdef ENABLE_NE2000_LOG
 	CheckMenuItem(menu, IDM_LOG_NE2000, ne2000_do_log ? MF_CHECKED : MF_UNCHECKED);
+#endif
 #endif
 
 	CheckMenuItem(menu, IDM_VID_FORCE43, force_43 ? MF_CHECKED : MF_UNCHECKED);
@@ -1510,35 +1522,47 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			break;
 
 #ifdef ENABLE_LOG_TOGGLES
+#ifdef ENABLE_BUSLOGIC_LOG
 			case IDM_LOG_BUSLOGIC:
 			buslogic_do_log ^= 1;
 			CheckMenuItem(hmenu, IDM_LOG_BUSLOGIC, buslogic_do_log ? MF_CHECKED : MF_UNCHECKED);
 			break;
+#endif
 
+#ifdef ENABLE_CDROM_LOG
 			case IDM_LOG_CDROM:
 			cdrom_do_log ^= 1;
 			CheckMenuItem(hmenu, IDM_LOG_CDROM, cdrom_do_log ? MF_CHECKED : MF_UNCHECKED);
 			break;
+#endif
 
+#ifdef ENABLE_D86F_LOG
 			case IDM_LOG_D86F:
 			d86f_do_log ^= 1;
 			CheckMenuItem(hmenu, IDM_LOG_D86F, d86f_do_log ? MF_CHECKED : MF_UNCHECKED);
 			break;
+#endif
 
+#ifdef ENABLE_FDC_LOG
 			case IDM_LOG_FDC:
 			fdc_do_log ^= 1;
 			CheckMenuItem(hmenu, IDM_LOG_FDC, fdc_do_log ? MF_CHECKED : MF_UNCHECKED);
 			break;
+#endif
 
+#ifdef ENABLE_IDE_LOG
 			case IDM_LOG_IDE:
 			ide_do_log ^= 1;
 			CheckMenuItem(hmenu, IDM_LOG_IDE, ide_do_log ? MF_CHECKED : MF_UNCHECKED);
 			break;
+#endif
 
+#ifdef ENABLE_NE2000_LOG
 			case IDM_LOG_NE2000:
 			ne2000_do_log ^= 1;
 			CheckMenuItem(hmenu, IDM_LOG_NE2000, ne2000_do_log ? MF_CHECKED : MF_UNCHECKED);
 			break;
+#endif
 #endif
 
 #ifdef ENABLE_LOG_BREAKPOINT
