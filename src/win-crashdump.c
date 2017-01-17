@@ -19,6 +19,12 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo) {
 	// Win32-specific functions will be used wherever possible, just in case the C stdlib-equivalents try to allocate memory.
 	// (The Win32-specific functions are generally just wrappers over NT system calls anyway.)
 	
+	if ((ExceptionInfo->ExceptionRecord->ExceptionCode >> 28) != 0xC) {
+		// The exception code is not a fatal exception (highest 4 bits of ntstatus = 0xC)
+		// Not going to crash, let's not make a crash dump
+		return EXCEPTION_CONTINUE_SEARCH;
+	}
+	
 	// So, the program is about to crash. Oh no what do?
 	// Let's create a crash dump file as a debugging-aid.
 	
