@@ -111,6 +111,8 @@ typedef struct mach64_t
         
         uint32_t gui_traj_cntl;
                 
+        uint32_t host_cntl;
+
         uint32_t mem_cntl;
 
         uint32_t ovr_clr;
@@ -241,6 +243,11 @@ enum
         DST_LAST_PEL   = 0x20,
         DST_POLYGON_EN = 0x40,
         DST_24_ROT_EN  = 0x80
+};
+
+enum
+{
+        HOST_BYTE_ALIGN = (1 << 0)
 };
 
 void mach64_write(uint32_t addr, uint8_t val, void *priv);
@@ -661,6 +668,10 @@ static void mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val
                 mach64_blit(val, 8, mach64);
                 break;
 
+                case 0x240: case 0x241: case 0x242: case 0x243:
+                WRITE8(addr, mach64->host_cntl, val);
+                break;
+
                 case 0x280: case 0x281: case 0x282: case 0x283:
                 WRITE8(addr, mach64->pat_reg0, val);
                 break;
@@ -725,6 +736,10 @@ static void mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val
                 break;
                 case 0x333:
                 WRITE8(addr - 3, mach64->pat_cntl, val & 7);
+                if (val & 0x10)
+                        mach64->host_cntl |= HOST_BYTE_ALIGN;
+                else
+                        mach64->host_cntl &= ~HOST_BYTE_ALIGN;
                 break;
         }
 }
@@ -1336,8 +1351,17 @@ void mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                                                 mach64->dst_y_x = (mach64->dst_y_x & 0xfff0000) | ((mach64->dst_y_x + (mach64->dst_height_width & 0x1fff)) & 0xfff);
                                         return;
                                 }
-                                if (mach64->accel.source_host)
-                                        return;
+                                if (mach64->host_cntl & HOST_BYTE_ALIGN)
+                                {
+                                        if (mach64->accel.source_mix == MONO_SRC_HOST)
+                                        {
+                                                if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER)
+                                                        cpu_dat >>= (count & 7);
+                                                else
+                                                        cpu_dat <<= (count & 7);
+                                                count &= ~7;
+                                        }
+                                }
                         }
                 }        
                 break;
@@ -1768,6 +1792,11 @@ uint8_t mach64_ext_readb(uint32_t addr, void *p)
                 case 0x1b4: case 0x1b5: case 0x1b6: case 0x1b7:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->src_cntl);
+                break;
+
+                case 0x240: case 0x241: case 0x242: case 0x243:
+                mach64_wait_fifo_idle(mach64);
+                READ8(addr, mach64->host_cntl);
                 break;
 
                 case 0x280: case 0x281: case 0x282: case 0x283:
