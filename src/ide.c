@@ -1329,9 +1329,9 @@ uint8_t readide(int ide_board, uint16_t addr)
 		if ((addr == 0x1f7) || (addr == 0x3f6))
 		{
 			/* This is apparently required for an empty ID channel. */
-			ide_log("Reading port %04X on empty IDE channel, returning 0x20...\n", addr);
+			ide_log("Reading port %04X on empty IDE channel, returning 0x30...\n", addr);
 			// return 0x20;
-			return DSC_STAT;
+			return 0x20 | DSC_STAT;
 		}
 		ide_log("Reading port %04X on empty IDE channel, returning zero...\n", addr);
 		return 0;
