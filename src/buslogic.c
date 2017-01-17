@@ -1562,10 +1562,8 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer, 
 		}
 		
 		pclog("Request complete\n");
-		pclog("SCSI Status %02X, Sense %02X, Asc %02X, Ascq %02X\n", SCSIStatus, cdrom[cdrom_id].sense[2], cdrom[cdrom_id].sense[12], cdrom[cdrom_id].sense[13]);
-		
-		if (BuslogicRequests->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES ||
-			BuslogicRequests->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES)
+
+		if (BuslogicRequests->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES)
 		{
 			temp = BuslogicGetDataLength(BuslogicRequests);
 			temp -= SCSIDevices[Id].InitLength;
@@ -1580,6 +1578,19 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer, 
 				BuslogicRequests->CmdBlock.new.DataLength = temp;
 				BuslogicLog("32-bit Residual data length for reading: %d\n", BuslogicRequests->CmdBlock.new.DataLength);
 			}
+		}
+		else if (BuslogicRequests->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES)
+		{
+			if (BuslogicRequests->Is24bit)
+			{
+				U32_TO_ADDR(BuslogicRequests->CmdBlock.old.DataLength, 0);
+				BuslogicLog("24-bit Residual data length for reading: %d\n", ADDR_TO_U32(BuslogicRequests->CmdBlock.old.DataLength));
+			}
+			else
+			{
+				BuslogicRequests->CmdBlock.new.DataLength = 0;
+				BuslogicLog("32-bit Residual data length for reading: %d\n", BuslogicRequests->CmdBlock.new.DataLength);
+			}			
 		}
 		
 		if (SCSIStatus == SCSI_STATUS_OK)
@@ -1597,7 +1608,7 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer, 
 	{
 		BuslogicMailboxIn(Buslogic, CCBPointer, &BuslogicRequests->CmdBlock, CCB_SELECTION_TIMEOUT, SCSI_STATUS_OK, MBI_ERROR);
 		
-		if (Mailbox32->u.out.ActionCode == MBO_START)
+		if (Mailbox32->u.out.ActionCode == MBO_START && Lun == 0)
 			BuslogicStartMailbox(Buslogic);
 	}
 }
