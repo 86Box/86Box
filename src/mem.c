@@ -957,84 +957,115 @@ int mem_cpl3_check()
 	return 0;
 }
 
-/* The relevant page table entry bits are:
-	0 = P (1 = page is present, 0 = page is not present);
-	1 = R/W (0 = read-only for user, 1 = writable for user);
-	2 = U/S (0 = system page, 1 = user page). */
+void mmu_page_fault(uint32_t addr, uint32_t error_code)
+{
+	cr2 = addr;
+	cpu_state.abrt = ABRT_PF;
+	abrt_error = error_code;
+}
+
+int mmu_page_fault_check(uint32_t addr, int rw, uint32_t flags, int pde, int is_abrt)
+{
+	uint8_t error_code = 0;
+
+	uint8_t is_page_fault = 0;
+
+	if (mem_cpl3_check())  error_code = 4;	/* If CPL = 3 and it's not a PDE check, set US bit. */
+	if (rw)  error_code |= 2;		/* If writing and it's not a PDE check, set RW bit. */
+
+	if (!(flags & 1))
+	{
+		pclog("Trying to read or write a page that is not present!\n");
+		is_page_fault = 1;
+	}
+
+	if (!pde)
+	{
+		if (!(flags & 4) && mem_cpl3_check())
+		{
+			pclog("Trying to read a system page from user mode!\n");
+			is_page_fault = 1;
+		}
+		if (rw && !(flags & 2) && (mem_cpl3_check() || (cr0 & WP_FLAG)))
+		{
+			pclog("Trying to write a read-only-for-user page from user mode!\n");
+			is_page_fault = 1;
+		}
+	}
+
+	if (is_page_fault)
+	{
+		if (is_abrt)
+		{
+			mmu_page_fault(addr, error_code | (flags & 1));
+		}
+		return -1;
+	}
+
+	return 0;
+}
+
+#define PAGE_DIRTY_AND_ACCESSED 0x60
+#define PAGE_DIRTY 0x40
+#define PAGE_ACCESSED 0x20
+
+/* rw means 0 = read, 1 = write */
+uint32_t mmutranslate(uint32_t addr, int rw, int is_abrt)
+{
+	/* Mask out the lower 12 bits. */
+	uint32_t dir_base = 0;
+
+	uint32_t table_addr = 0;
+	uint32_t page_addr = 0;
+
+	uint32_t table_flags = 0;
+	uint32_t page_flags = 0;
+
+	if (cpu_state.abrt)
+	{
+		return -1;
+	}
+
+	dir_base = cr3 & ~0xfff;
+	table_addr = dir_base + ((addr >> 20) & 0xffc);
+
+	/* First check the flags of the page directory entry. */
+	table_flags = ((uint32_t *)ram)[table_addr >> 2];
+
+	if (mmu_page_fault_check(addr, rw, table_flags & 7, 1, is_abrt) == -1)
+	{
+		return -1;
+	}
+
+	page_addr = table_flags & ~0xfff;
+	page_addr += ((addr >> 10) & 0xffc);
+
+	/* Then check the flags of the page table entry. */
+	page_flags = ((uint32_t *)ram)[page_addr >> 2];
+
+	if (mmu_page_fault_check(addr, rw, page_flags & 7, 0, is_abrt) == -1)
+	{
+		return -1;
+	}
+
+	if (is_abrt)
+	{
+		mmu_perm = page_flags & 4;
+		((uint32_t *)ram)[table_addr >> 2] |= PAGE_ACCESSED;
+		((uint32_t *)ram)[page_addr >> 2] |= (rw ? PAGE_DIRTY_AND_ACCESSED : PAGE_ACCESSED);
+	}
+
+	return (page_flags & ~0xFFF) + (addr & 0xFFF);
+}
+
 uint32_t mmutranslatereal(uint32_t addr, int rw)
 {
-	uint32_t pde_addr;
-	uint32_t section_flags;
-	uint32_t temp_section_flags;
-	uint32_t masked_flags;
-
-	if (cpu_state.abrt) 
-	{
-		// pclog("Translate recursive abort\n");
-		return -1;
-	}
-	pde_addr = ((cr3 & ~0xfff) + ((addr >> 20) & 0xffc));
-	section_flags = temp_section_flags = ((uint32_t *)ram)[pde_addr >> 2];
-	// if (output == 3)  pclog("Do translate %08X %i %08X\n", addr, rw, section_flags);
-	if (!(section_flags & 1))// || !(section_flags & 4) && mem_cpl3_check()) || (rw && !(section_flags & 2) && (mem_cpl3_check() || (cr0 & WP_FLAG))))
-	{
-		// if (!nopageerrors)  pclog("Section not present! %08X  %08X  %02X  %04X:%08X  %i %i\n",addr,temp,opcode,CS,cpu_state.pc,CPL,rw);
-
-		cr2 = addr;
-		section_flags &= 1;
-		if (CPL==3)  section_flags |= 4;
-		if (rw)  section_flags |= 2;
-		cpu_state.abrt = ABRT_PF;
-		abrt_error = section_flags;
-		return -1;
-	}
-	section_flags = ((uint32_t *)ram)[((section_flags & ~0xFFF) + ((addr >> 10) & 0xFFC))>>2];
-	masked_flags = section_flags & temp_section_flags;
-	// if (output == 3) pclog("Do translate %08X %08X\n", section_flags, temp3);
-        if (!(section_flags & 1) || (!(masked_flags & 4) && mem_cpl3_check()) || (rw && !(masked_flags & 2) && (mem_cpl3_check() || (cr0 & WP_FLAG))))
-        {
-		// if (!nopageerrors)  pclog("Page not present!  %08X   %08X   %02X %02X  %i  %08X  %04X:%08X  %04X:%08X %i  %i %i\n",addr,section_flags,opcode,opcode2,frame,rmdat32, CS,cpu_state.pc,SS,ESP,ins,CPL,rw);
-
-		cr2 = addr;
-		section_flags &= 1;
-		if (CPL==3)  section_flags |= 4;
-		if (rw)  section_flags |= 2;
-		cpu_state.abrt = ABRT_PF;
-		abrt_error = section_flags;
-		// pclog("%04X\n",cpu_state.abrt);
-		return -1;
-	}
-	mmu_perm = section_flags & 4;
-	((uint32_t *)ram)[pde_addr >> 2] |= 0x20;
-	((uint32_t *)ram)[((temp_section_flags & ~0xFFF) + ((addr >> 10) & 0xFFC)) >> 2] |= (rw ? 0x60 : 0x20);
-	// /*if (output) */pclog("Translate %08X %08X %08X  %08X:%08X  %08X\n",addr,(temp&~0xFFF)+(addr&0xFFF),section_flags,cs,cpu_state.pc,EDI);
-
-	return (section_flags & ~0xFFF) + (addr & 0xFFF);
+	return mmutranslate(addr, rw, 1);
 }
 
 uint32_t mmutranslate_noabrt(uint32_t addr, int rw)
 {
-        uint32_t pde_addr;
-	uint32_t section_flags;
-	uint32_t temp_section_flags;
-	uint32_t masked_flags;
-        
-        if (cpu_state.abrt) 
-                return -1;
-
-        pde_addr = ((cr3 & ~0xfff) + ((addr >> 20) & 0xffc));
-        section_flags = temp_section_flags = ((uint32_t *)ram)[pde_addr >> 2];
-
-        if (!(section_flags & 1))
-                return -1;
-
-        section_flags = ((uint32_t *)ram)[((section_flags & ~0xFFF)+((addr >> 10) & 0xFFC)) >> 2];
-        masked_flags = section_flags & temp_section_flags;
-
-        if (!(section_flags & 1) || (!(masked_flags & 4) && mem_cpl3_check()) || (rw && !(masked_flags & 2) && (mem_cpl3_check() || (cr0 & WP_FLAG))))
-                return -1;
-
-        return (section_flags & ~0xFFF) + (addr & 0xFFF);
+	return mmutranslate(addr, rw, 0);
 }
 
 void mmu_invalidate(uint32_t addr)

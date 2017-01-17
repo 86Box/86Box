@@ -629,7 +629,11 @@ static void BuslogicMailboxIn(Buslogic_t *Buslogic, uint32_t CCBPointer, CCBU *C
 		CmdBlock->common.TargetStatus = TargetStatus;		
 		
 		//Rewrite the CCB up to the CDB.
-		DMAPageWrite(CCBPointer, CmdBlock, offsetof(CCBC, Cdb));
+		if (CmdBlock->common.TargetStatus != 0x02)	
+		{
+			pclog("CCB rewritten to the CDB\n");
+			DMAPageWrite(CCBPointer, CmdBlock, offsetof(CCBC, Cdb));
+		}
 	}
 
 	BuslogicLog("Host Status 0x%02X, Target Status 0x%02X\n", HostStatus, TargetStatus);	
