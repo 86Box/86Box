@@ -631,7 +631,7 @@ static void BuslogicMailboxIn(Buslogic_t *Buslogic, uint32_t CCBPointer, CCBU *C
 		//Rewrite the CCB up to the CDB.
 		if (CmdBlock->common.TargetStatus != 0x02)	
 		{
-			pclog("CCB rewritten to the CDB\n");
+			BuslogicLog("CCB rewritten to the CDB (pointer %08X, length %i)\n", CCBPointer, offsetof(CCBC, Cdb));
 			DMAPageWrite(CCBPointer, CmdBlock, offsetof(CCBC, Cdb));
 		}
 	}
@@ -1480,13 +1480,13 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer, 
 
 			uint32_t i;
 			
-			pclog("SCSI Cdb[0]=0x%02X\n", BuslogicRequests->CmdBlock.common.Cdb[0]);
+			BuslogicLog("SCSI Cdb[0]=0x%02X\n", BuslogicRequests->CmdBlock.common.Cdb[0]);
 			for (i = 1; i < BuslogicRequests->CmdBlock.common.CdbLength; i++)
-				pclog("SCSI Cdb[%i]=%i\n", i, BuslogicRequests->CmdBlock.common.Cdb[i]);
+				BuslogicLog("SCSI Cdb[%i]=%i\n", i, BuslogicRequests->CmdBlock.common.Cdb[i]);
 			
-			pclog("Transfer Control %02X\n", BuslogicRequests->CmdBlock.common.ControlByte);
-			pclog("CDB Length %i\n", BuslogicRequests->CmdBlock.common.CdbLength);	
-			pclog("CCB Opcode %x\n", BuslogicRequests->CmdBlock.common.Opcode);		
+			BuslogicLog("Transfer Control %02X\n", BuslogicRequests->CmdBlock.common.ControlByte);
+			BuslogicLog("CDB Length %i\n", BuslogicRequests->CmdBlock.common.CdbLength);	
+			BuslogicLog("CCB Opcode %x\n", BuslogicRequests->CmdBlock.common.Opcode);		
 			
 			//This not ready/unit attention stuff below is only for the Buslogic!
 			//The Adaptec one is in scsi_cdrom.c.
@@ -1560,8 +1560,13 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer, 
 			if (BuslogicRequests->RequestSenseBuffer)
 				BuslogicSenseBufferFree(BuslogicRequests, (SCSIStatus != SCSI_STATUS_OK));
 		}
+		else
+		{
+			BuslogicLog("Mailbox32->u.out.ActionCode = %02X\n", Mailbox32->u.out.ActionCode);
+			SCSICallback[Id] = 50 * SCSI_TIME;
+		}
 		
-		pclog("Request complete\n");
+		BuslogicLog("Request complete\n");
 
 		if (BuslogicRequests->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES)
 		{
@@ -1608,7 +1613,8 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer, 
 	{
 		BuslogicMailboxIn(Buslogic, CCBPointer, &BuslogicRequests->CmdBlock, CCB_SELECTION_TIMEOUT, SCSI_STATUS_OK, MBI_ERROR);
 		
-		if (Mailbox32->u.out.ActionCode == MBO_START && Lun == 0)
+		// if (Mailbox32->u.out.ActionCode == MBO_START && Lun == 0)
+		if (Mailbox32->u.out.ActionCode == MBO_START && Lun <= 7)
 			BuslogicStartMailbox(Buslogic);
 	}
 }
