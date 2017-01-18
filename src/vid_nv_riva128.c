@@ -151,9 +151,6 @@ typedef struct riva128_t
 
 		uint32_t fifo_enable;
 
-		uint32_t fifo_st2_addr;
-		uint32_t fifo_st2_data;
-
 		uint32_t uclip_xmin, uclip_ymin, uclip_xmax, uclip_ymax;
 		uint32_t oclip_xmin, oclip_ymin, oclip_xmax, oclip_ymax;
 
@@ -228,9 +225,6 @@ const char* riva128_pfifo_interrupts[32] =
 {
 	"CACHE_ERROR","","","","RUNOUT","","","","RUNOUT_OVERFLOW","","","","DMA_PUSHER","","","","DMA_PTE","","","","","","","","","","","","","","",""
 };
-
-static uint32_t riva128_ramht_lookup(uint32_t handle, void *p);
-static void riva128_pgraph_volatile_reset(void *p);
 
 static uint8_t riva128_pci_read(int func, int addr, void *p);
 static void riva128_pci_write(int func, int addr, uint8_t val, void *p);
@@ -971,50 +965,6 @@ static uint8_t riva128_pextdev_read(uint32_t addr, void *p)
 	return ret;
 }
 
-static void rivatnt_pgraph_ctx_switch(uint32_t addr, uint32_t val, void *p)
-{
-	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
-
-	if(!(riva128->fifo_st2_addr & 1)) return;
-
-	unsigned old_subc = (riva128->ctx_user >> 13) & 7;
-	unsigned new_subc = (riva128->fifo_st2_addr >> 12) & 7;
-	unsigned mthd = (riva128->fifo_st2_addr >> 1) & 0x7ff;
-	riva128->fifo_st2_addr &= ~1;
-	unsigned do_ctx_switch = mthd == 0;
-
-	if(old_subc != new_subc || do_ctx_switch)
-	{
-		if(do_ctx_switch) riva128->ctx_cache[new_subc][3] = riva128->fifo_st2_data & 0xffff;
-
-		uint32_t ctx_mask = 0x0303f0ff;
-
-		unsigned reload = (riva128->debug[1] >> 15) & 1;
-		if(reload || do_ctx_switch)
-		{
-			uint32_t instance = riva128_ramht_lookup(val, riva128);
-			riva128->ctx_cache[new_subc][0] = riva128->pramin[(instance >> 2)] & ctx_mask;
-			riva128->ctx_cache[new_subc][1] = riva128->pramin[(instance >> 2) + 1] & 0xffff3f03;
-			riva128->ctx_cache[new_subc][2] = riva128->pramin[(instance >> 2) + 2];
-			riva128->ctx_cache[new_subc][4] = riva128->pramin[(instance >> 2) + 3];
-		}
-
-		unsigned reset = (riva128->debug[2] >> 28) & 1;
-		if(reset)
-		{
-			riva128->debug[1] |= 1;
-			riva128_pgraph_volatile_reset(riva128);
-		}
-		else riva128->debug[1] &= ~1;
-
-		if(riva128->debug[1] & 0x100000)
-		{
-			for(int i = 0; i < 5; i++) riva128->ctx_switch[i] = riva128->ctx_cache[new_subc][i];
-		}
-	}
-}
-
 static uint8_t riva128_pgraph_read(uint32_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
@@ -1416,13 +1366,6 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
 		case 0x40008c:
 			riva128->pgraph.debug[3] = val & ((riva128->card_id == 0x04) ? 0x11ffff33 : 0xfbffff73);
 			break;
-		case 0x400754:
-			riva128->pgraph.fifo_st2_addr = val;
-			break;
-		case 0x400758:
-			riva128->pgraph.fifo_st2_data = val;
-			rivatnt_pgraph_ctx_switch(riva128);
-			break;
 		}
 }
 
@@ -1612,7 +1555,7 @@ static void riva128_puller_exec_method(int chanid, int subchanid, int offset, ui
 	if(riva128->card_id == 0x03)
 	{
 		uint32_t tmp = riva128_ramht_lookup(val, riva128);
-		riva128->pgraph.instance = (tmp & 0xffff) << 2;
+		riva128->pgraph.instance = (tmp & 0xffff) << 4;
 		unsigned old_subc = (riva128->pgraph.ctx_user >> 13) & 7;
 		unsigned new_subc = subchanid & 7;
 		if((old_subc != new_subc) || !offset)
