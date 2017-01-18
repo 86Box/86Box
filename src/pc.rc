@@ -56,6 +56,7 @@ BEGIN
                         	MENUITEM "&I:",IDM_CDROM_1_I
                         	MENUITEM "&J:",IDM_CDROM_1_J
 			END
+                        MENUITEM SEPARATOR
 	                POPUP "S&CSI ID..."
 			BEGIN
                         	MENUITEM "&0",IDM_CDROM_1_0
@@ -73,6 +74,17 @@ BEGIN
                         	MENUITEM "13",IDM_CDROM_1_13
                         	MENUITEM "14",IDM_CDROM_1_14
                         	MENUITEM "15",IDM_CDROM_1_15
+			END
+	                POPUP "SCSI &LUN..."
+			BEGIN
+                        	MENUITEM "&0",IDM_CDROM_1_LUN_0
+                        	MENUITEM "&1",IDM_CDROM_1_LUN_1
+                        	MENUITEM "&2",IDM_CDROM_1_LUN_2
+                        	MENUITEM "&3",IDM_CDROM_1_LUN_3
+                        	MENUITEM "&4",IDM_CDROM_1_LUN_4
+                        	MENUITEM "&5",IDM_CDROM_1_LUN_5
+                        	MENUITEM "&6",IDM_CDROM_1_LUN_6
+                        	MENUITEM "&7",IDM_CDROM_1_LUN_7
 			END
                         MENUITEM SEPARATOR
                         MENUITEM "&ISO...",IDM_CDROM_1_ISO
@@ -98,6 +110,7 @@ BEGIN
                         	MENUITEM "&I:",IDM_CDROM_2_I
                         	MENUITEM "&J:",IDM_CDROM_2_J
 			END
+                        MENUITEM SEPARATOR
 	                POPUP "S&CSI ID..."
 			BEGIN
                         	MENUITEM "&0",IDM_CDROM_2_0
@@ -115,6 +128,17 @@ BEGIN
                         	MENUITEM "13",IDM_CDROM_2_13
                         	MENUITEM "14",IDM_CDROM_2_14
                         	MENUITEM "15",IDM_CDROM_2_15
+			END
+	                POPUP "SCSI &LUN..."
+			BEGIN
+                        	MENUITEM "&0",IDM_CDROM_2_LUN_0
+                        	MENUITEM "&1",IDM_CDROM_2_LUN_1
+                        	MENUITEM "&2",IDM_CDROM_2_LUN_2
+                        	MENUITEM "&3",IDM_CDROM_2_LUN_3
+                        	MENUITEM "&4",IDM_CDROM_2_LUN_4
+                        	MENUITEM "&5",IDM_CDROM_2_LUN_5
+                        	MENUITEM "&6",IDM_CDROM_2_LUN_6
+                        	MENUITEM "&7",IDM_CDROM_2_LUN_7
 			END
                         MENUITEM SEPARATOR
                         MENUITEM "&ISO...",IDM_CDROM_2_ISO
@@ -140,6 +164,7 @@ BEGIN
                         	MENUITEM "&I:",IDM_CDROM_3_I
                         	MENUITEM "&J:",IDM_CDROM_3_J
 			END
+                        MENUITEM SEPARATOR
 	                POPUP "S&CSI ID..."
 			BEGIN
                         	MENUITEM "&0",IDM_CDROM_3_0
@@ -157,6 +182,17 @@ BEGIN
                         	MENUITEM "13",IDM_CDROM_3_13
                         	MENUITEM "14",IDM_CDROM_3_14
                         	MENUITEM "15",IDM_CDROM_3_15
+			END
+	                POPUP "SCSI &LUN..."
+			BEGIN
+                        	MENUITEM "&0",IDM_CDROM_3_LUN_0
+                        	MENUITEM "&1",IDM_CDROM_3_LUN_1
+                        	MENUITEM "&2",IDM_CDROM_3_LUN_2
+                        	MENUITEM "&3",IDM_CDROM_3_LUN_3
+                        	MENUITEM "&4",IDM_CDROM_3_LUN_4
+                        	MENUITEM "&5",IDM_CDROM_3_LUN_5
+                        	MENUITEM "&6",IDM_CDROM_3_LUN_6
+                        	MENUITEM "&7",IDM_CDROM_3_LUN_7
 			END
                         MENUITEM SEPARATOR
                         MENUITEM "&ISO...",IDM_CDROM_3_ISO
@@ -181,6 +217,7 @@ BEGIN
                         	MENUITEM "&I:",IDM_CDROM_4_I
                         	MENUITEM "&J:",IDM_CDROM_4_J
 			END
+                        MENUITEM SEPARATOR
 	                POPUP "S&CSI ID..."
 			BEGIN
                         	MENUITEM "&0",IDM_CDROM_4_0
@@ -198,6 +235,17 @@ BEGIN
                         	MENUITEM "13",IDM_CDROM_4_13
                         	MENUITEM "14",IDM_CDROM_4_14
                         	MENUITEM "15",IDM_CDROM_4_15
+			END
+	                POPUP "SCSI &LUN..."
+			BEGIN
+                        	MENUITEM "&0",IDM_CDROM_4_LUN_0
+                        	MENUITEM "&1",IDM_CDROM_4_LUN_1
+                        	MENUITEM "&2",IDM_CDROM_4_LUN_2
+                        	MENUITEM "&3",IDM_CDROM_4_LUN_3
+                        	MENUITEM "&4",IDM_CDROM_4_LUN_4
+                        	MENUITEM "&5",IDM_CDROM_4_LUN_5
+                        	MENUITEM "&6",IDM_CDROM_4_LUN_6
+                        	MENUITEM "&7",IDM_CDROM_4_LUN_7
 			END
                         MENUITEM SEPARATOR
                         MENUITEM "&ISO...",IDM_CDROM_4_ISO

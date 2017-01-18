@@ -975,7 +975,7 @@ int mmu_page_fault_check(uint32_t addr, int rw, uint32_t flags, int pde, int is_
 
 	if (!(flags & 1))
 	{
-		pclog("Trying to read or write a page that is not present!\n");
+		// pclog("Trying to read or write a page that is not present!\n");
 		is_page_fault = 1;
 	}
 
@@ -983,12 +983,12 @@ int mmu_page_fault_check(uint32_t addr, int rw, uint32_t flags, int pde, int is_
 	{
 		if (!(flags & 4) && mem_cpl3_check())
 		{
-			pclog("Trying to read a system page from user mode!\n");
+			// pclog("Trying to read a system page from user mode!\n");
 			is_page_fault = 1;
 		}
 		if (rw && !(flags & 2) && (mem_cpl3_check() || (cr0 & WP_FLAG)))
 		{
-			pclog("Trying to write a read-only-for-user page from user mode!\n");
+			// pclog("Trying to write a read-only-for-user page from user mode!\n");
 			is_page_fault = 1;
 		}
 	}

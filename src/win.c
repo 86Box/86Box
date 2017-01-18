@@ -526,6 +526,7 @@ int valid_irqs[6] = { 9, 10, 11, 12, 14, 15 };
 int valid_dma_channels[3] = { 5, 6, 7 };
 int valid_ide_channels[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 int valid_scsi_ids[15] = { 0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15 };
+int valid_scsi_luns[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
 int find_in_array(int *array, int val, int len, int menu_base)
 {
@@ -663,17 +664,24 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
 		if (!find_in_array(valid_ide_channels, cdrom_drives[e].ide_channel, 8, IDM_CDROM_1_C + (e * 1000)))
 		{
-			fatal("Tertiary IDE controller: Invalid IRQ\n");
+			fatal("CD-ROM %i: Invalid IDE channel\n", e);
 		}
 
 	        CheckMenuItem(menu, IDM_CDROM_1_C + (e * 1000) + cdrom_drives[e].ide_channel, MF_CHECKED);
 
 		if (!find_in_array(valid_scsi_ids, cdrom_drives[e].scsi_device_id, 15, IDM_CDROM_1_0 + (e * 1000)))
 		{
-			fatal("Tertiary IDE controller: Invalid IRQ\n");
+			fatal("CD-ROM %i: Invalid SCSI ID\n", e);
 		}
 
 	        CheckMenuItem(menu, IDM_CDROM_1_0 + (e * 1000) + cdrom_drives[e].scsi_device_id, MF_CHECKED);
+
+		if (!find_in_array(valid_scsi_luns, cdrom_drives[e].scsi_device_lun, 8, IDM_CDROM_1_LUN_0 + (e * 1000)))
+		{
+			fatal("CD-ROM %i: Invalid SCSI LUN\n", e);
+		}
+
+	        CheckMenuItem(menu, IDM_CDROM_1_LUN_0 + (e * 1000) + cdrom_drives[e].scsi_device_lun, MF_CHECKED);
 
 		if (cdrom_drives[e].host_drive == 200)
 		{
@@ -1680,6 +1688,26 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			CheckMenuItem(hmenu, IDM_CDROM_1_0 + (cdrom_id * 1000) + cdrom_drives[cdrom_id].scsi_device_id, MF_UNCHECKED);
 			cdrom_drives[cdrom_id].scsi_device_id = menu_sub_param;
 			CheckMenuItem(hmenu, IDM_CDROM_1_0 + (cdrom_id * 1000) + cdrom_drives[cdrom_id].scsi_device_id, MF_CHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
+                        case IDM_CDROM_1_LUN_0 ... IDM_CDROM_1_LUN_7:
+                        case IDM_CDROM_2_LUN_0 ... IDM_CDROM_2_LUN_7:
+                        case IDM_CDROM_3_LUN_0 ... IDM_CDROM_3_LUN_7:
+                        case IDM_CDROM_4_LUN_0 ... IDM_CDROM_4_LUN_7:
+			menu_sub_param = LOWORD(wParam) % 100;
+			cdrom_id = convert_cdrom_id(LOWORD(wParam) - menu_sub_param - IDM_CDROM_1_LUN_0);
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			CheckMenuItem(hmenu, IDM_CDROM_1_LUN_0 + (cdrom_id * 1000) + cdrom_drives[cdrom_id].scsi_device_lun, MF_UNCHECKED);
+			cdrom_drives[cdrom_id].scsi_device_lun = menu_sub_param;
+			CheckMenuItem(hmenu, IDM_CDROM_1_LUN_0 + (cdrom_id * 1000) + cdrom_drives[cdrom_id].scsi_device_lun, MF_CHECKED);
 			saveconfig();
 			resetpchard();
 			pause = 0;

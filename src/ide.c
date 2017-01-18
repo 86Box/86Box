@@ -344,6 +344,7 @@ static void ide_identify(IDE *ide)
 	h = hdc[cur_ide[ide->board]].hpc;  /* Heads */
 	s = hdc[cur_ide[ide->board]].spt;  /* Sectors */
 
+	ide->buffer[0] = 0x40; /* Fixed disk */
 	ide->buffer[1] = hdc[cur_ide[ide->board]].tracks; /* Cylinders */
 	ide->buffer[3] = hdc[cur_ide[ide->board]].hpc;  /* Heads */
 	ide->buffer[6] = hdc[cur_ide[ide->board]].spt;  /* Sectors */
@@ -372,6 +373,7 @@ static void ide_identify(IDE *ide)
 	ide->buffer[59] = ide->blocksize ? (ide->blocksize | 0x100) : 0;
 	ide->buffer[60] = (hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt) & 0xFFFF; /* Total addressable sectors (LBA) */
 	ide->buffer[61] = (hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt) >> 16;
+	ide->buffer[80] = 0x1e; /*ATA-1 to ATA-4 supported*/
 	// ide->buffer[63] = 7; /*Multiword DMA*/
 	if (ide->board < 2)
 	{
@@ -380,8 +382,8 @@ static void ide_identify(IDE *ide)
 		ide->buffer[63] = ide->dma_identify_data[1];
 		ide->buffer[65] = 150;
 		ide->buffer[66] = 150;
-		ide->buffer[80] = 0xe; /*ATA-1 to ATA-3 supported*/
-		ide->buffer[88] = ide->dma_identify_data[2];
+		// ide->buffer[80] = 0xe; /*ATA-1 to ATA-3 supported*/
+		// ide->buffer[88] = ide->dma_identify_data[2];
 	}
 }
 
@@ -405,6 +407,7 @@ static void ide_atapi_identify(IDE *ide)
 	ide->buffer[51] = 2 << 8; /*PIO timing mode*/
 	ide->buffer[73] = 6;
 	ide->buffer[73] = 9;
+	ide->buffer[80] = 0x10; /*ATA/ATAPI-4 supported*/
 
 	if ((ide->board < 2) && (cdrom_drives[cdrom_id].bus_mode & 2))
 	{
@@ -751,12 +754,14 @@ void resetide(void)
 
 int idetimes = 0;
 
-void ide_write_data(int ide_board, uint8_t val)
+void ide_write_data(int ide_board, uint32_t val, int length)
 {
 	int ret = 0;
 	IDE *ide = &ide_drives[cur_ide[ide_board]];
 
 	uint8_t *idebufferb = (uint8_t *) ide->buffer;
+	uint16_t *idebufferw = ide->buffer;
+	uint32_t *idebufferl = (uint32_t *) ide->buffer;
 	
 #if 0
 	if (ide_drive_is_cdrom(ide))
@@ -768,12 +773,14 @@ void ide_write_data(int ide_board, uint8_t val)
 	// ide_log("Write IDEw %04X\n",val);
 	if (ide->command == WIN_PACKETCMD)
 	{
+		ide->pos = 0;
+
 		if (!ide_drive_is_cdrom(ide))
 		{
 			return;
 		}
 
-		cdrom_write(cur_ide[ide_board], val);
+		cdrom_write(cur_ide[ide_board], val, length);
 
 		if (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback)
 		{
@@ -783,8 +790,23 @@ void ide_write_data(int ide_board, uint8_t val)
 	}
 	else
 	{
-		idebufferb[ide->pos] = val;
-		ide->pos++;
+		switch(length)
+		{
+			case 1:
+				idebufferb[ide->pos] = val & 0xff;
+				ide->pos++;
+				break;
+			case 2:
+				idebufferw[ide->pos >> 1] = val & 0xffff;
+				ide->pos += 2;
+				break;
+			case 4:
+				idebufferl[ide->pos >> 2] = val;
+				ide->pos += 4;
+				break;
+			default:
+				return;
+		}
 
 		if (ide->pos>=512)
 		{
@@ -807,15 +829,13 @@ void ide_write_data(int ide_board, uint8_t val)
 void writeidew(int ide_board, uint16_t val)
 {
 	// ide_log("WriteIDEw %04X\n", val);
-	ide_write_data(ide_board, val);
-	ide_write_data(ide_board, val >> 8);
+	ide_write_data(ide_board, val, 2);
 }
 
 void writeidel(int ide_board, uint32_t val)
 {
 	// ide_log("WriteIDEl %08X\n", val);
-	writeidew(ide_board, val);
-	writeidew(ide_board, val >> 16);
+	ide_write_data(ide_board, val, 4);
 }
 
 void writeide(int ide_board, uint16_t addr, uint8_t val)
@@ -832,7 +852,8 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 	switch (addr)
 	{
         case 0x1F0: /* Data */
-			ide_write_data(ide_board, val);
+			// writeidew(ide_board, val | (val << 8));
+			writeidew(ide_board, val | (val << 8));
 			return;
 
 		/* Note to self: for ATAPI, bit 0 of this is DMA if set, PIO if clear. */
@@ -1292,21 +1313,24 @@ ide_bad_command:
 	// fatal("Bad IDE write %04X %02X\n", addr, val);
 }
 
-uint8_t ide_read_data(int ide_board)
+uint32_t ide_read_data(int ide_board, int length)
 {
 	IDE *ide = &ide_drives[cur_ide[ide_board]];
-	uint8_t temp;
+	uint32_t temp;
 
 	uint8_t *idebufferb = (uint8_t *) ide->buffer;
+	uint16_t *idebufferw = ide->buffer;
+	uint32_t *idebufferl = (uint32_t *) ide->buffer;
 	
 	if (ide->command == WIN_PACKETCMD)
 	{
+		ide->pos = 0;
 		if (!ide_drive_is_cdrom(ide))
 		{
 			ide_log("Drive not CD-ROM (position: %i)\n", ide->pos);
 			return 0;
 		}
-		temp = cdrom_read(cur_ide[ide_board]);
+		temp = cdrom_read(cur_ide[ide_board], length);
 		if (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback)
 		{
 			idecallback[ide_board] = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback;
@@ -1314,8 +1338,23 @@ uint8_t ide_read_data(int ide_board)
 	}
 	else
 	{
-		temp = idebufferb[ide->pos];
-		ide->pos++;
+		switch (length)
+		{
+			case 1:
+				temp = idebufferb[ide->pos];
+				ide->pos++;
+				break;
+			case 2:
+				temp = idebufferw[ide->pos >> 1];
+				ide->pos += 2;
+				break;
+			case 4:
+				temp = idebufferb[ide->pos >> 2];
+				ide->pos += 4;
+				break;
+			default:
+				return 0;
+		}
 	}
 	if (ide->pos>=512 && ide->command != WIN_PACKETCMD)
 	{
@@ -1367,7 +1406,10 @@ uint8_t readide(int ide_board, uint16_t addr)
 	switch (addr)
 	{
 		case 0x1F0: /* Data */
-			return ide_read_data(ide_board);
+			// temp = ide_read_data(ide_board, 1);
+			tempw = readidew(ide_board);
+			// pclog("Read IDEW %04X\n", tempw);                
+			temp = tempw & 0xff;
 			break;
 
 		/* For ATAPI: Bits 7-4 = sense key, bit 3 = MCR (media change requested),
@@ -1517,20 +1559,17 @@ int all_blocks_total = 0;
 
 uint16_t readidew(int ide_board)
 {
-	uint16_t temp = 0;
-	uint16_t temp2 = 0;
-	temp = ide_read_data(ide_board);
-	temp2 = ide_read_data(ide_board);
-	temp2 <<= 8;
-	return (temp | temp2);
+	uint16_t temp;
+	temp = ide_read_data(ide_board, 2);
+	return temp;
 }
 
 uint32_t readidel(int ide_board)
 {
 	uint16_t temp;
 	// ide_log("Read IDEl %i\n", ide_board);
-	temp = readidew(ide_board);
-	return temp | (readidew(ide_board) << 16);
+	temp = ide_read_data(ide_board, 4);
+	return temp;
 }
 
 int times30=0;
