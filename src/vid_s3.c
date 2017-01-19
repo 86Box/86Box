@@ -2314,7 +2314,7 @@ void *s3_bahamas64_init()
 {
         s3_t *s3 = s3_init("roms/bahamas64.BIN", S3_VISION864);
 
-        s3->id = 0xc1; /*Vision864P*/
+        s3->id = 0xc0; /*Vision864P*/
         s3->id_ext = s3->id_ext_pci = 0xc1;
         s3->packed_mmio = 0;
         
@@ -2393,7 +2393,7 @@ void *s3_phoenix_vision864_init()
 {
         s3_t *s3 = s3_init("roms/86c864p.bin", S3_VISION864);
 
-        s3->id = 0xc1; /*Vision864P*/
+        s3->id = 0xc0; /*Vision864P*/
         s3->id_ext = s3->id_ext_pci = 0xc1;
         s3->packed_mmio = 0;
         
@@ -2413,7 +2413,7 @@ void *s3_diamond_stealth64_init()
         s3_t *s3 = s3_init("roms/STEALT64.BIN", S3_VISION864);
         svga_t *svga = &s3->svga;
 
-        s3->id = 0xc1; /*Vision864P*/
+        s3->id = 0xc0; /*Vision864P*/
         s3->id_ext = s3->id_ext_pci = 0xc1;
         s3->packed_mmio = 0;
         
@@ -2432,7 +2432,7 @@ void *s3_miro_vision964_init()
 {
         s3_t *s3 = s3_init("roms/mirocrystal.VBI", S3_VISION964);
 
-        s3->id = 0xd1; /*Vision964P*/
+        s3->id = 0xd0; /*Vision964P*/
         s3->id_ext = s3->id_ext_pci = 0xd1;
         s3->packed_mmio = 1;
 

@@ -94,7 +94,7 @@ typedef struct __attribute__((__packed__))
 	int prev_status;
 
 	int unit_attention;
-	uint8_t sense[18];
+	uint8_t sense[256];
 
 	int request_pos;
 
@@ -135,6 +135,7 @@ typedef struct __attribute__((__packed__))
 	uint8_t ide_channel;
 
 	uint8_t scsi_device_id;
+	uint8_t scsi_device_lun;
 	
 	uint8_t sound_on;
 } cdrom_drive_t;
@@ -143,7 +144,7 @@ extern cdrom_drive_t cdrom_drives[CDROM_NUM];
 
 extern uint8_t atapi_cdrom_drives[8];
 
-extern uint8_t scsi_cdrom_drives[16];
+extern uint8_t scsi_cdrom_drives[16][8];
 
 extern int (*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length);
 extern int (*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length);
@@ -175,6 +176,7 @@ typedef struct
 	uint32_t cd_end;
 	int16_t cd_buffer[BUF_SIZE];
 	int cd_buflen;
+	int actual_requested_blocks;
 } cdrom_ioctl_t;
 
 void ioctl_close(uint8_t id);
@@ -189,8 +191,8 @@ int cdrom_CDROM_PHASE_to_scsi(uint8_t id);
 int cdrom_atapi_phase_to_scsi(uint8_t id);
 void cdrom_command(uint8_t id, uint8_t *cdb);
 int cdrom_phase_callback(uint8_t id);
-uint8_t cdrom_read(uint8_t channel);
-void cdrom_write(uint8_t channel, uint8_t val);
+uint32_t cdrom_read(uint8_t channel, int length);
+void cdrom_write(uint8_t channel, uint32_t val, int length);
 int cdrom_lba_to_msf_accurate(int lba);
 void cdrom_reset(uint8_t id);
 void cdrom_set_signature(int id);

@@ -275,7 +275,7 @@ void initpc(int argc, char *argv[])
 	{
 		if (cdrom_drives[i].bus_type)
 		{
-			SCSIReset(cdrom_drives[i].scsi_device_id);
+			SCSIReset(cdrom_drives[i].scsi_device_id, cdrom_drives[i].scsi_device_lun);
 		}
 
 		if (cdrom_drives[i].host_drive == 0)
@@ -453,7 +453,7 @@ void resetpchard()
 	{
 		if (cdrom_drives[i].bus_type)
 		{
-			SCSIReset(cdrom_drives[i].scsi_device_id);
+			SCSIReset(cdrom_drives[i].scsi_device_id, cdrom_drives[i].scsi_device_lun);
 		}
 	}		
 
@@ -736,6 +736,7 @@ void loadconfig(char *fn)
         cdrom_drives[0].bus_type = config_get_int(NULL, "cdrom_1_bus_type", 0);
         cdrom_drives[0].ide_channel = config_get_int(NULL, "cdrom_1_ide_channel", 2);
         cdrom_drives[0].scsi_device_id = config_get_int(NULL, "cdrom_1_scsi_device_id", 2);
+        cdrom_drives[0].scsi_device_lun = config_get_int(NULL, "cdrom_1_scsi_device_lun", 0);
 
         p = (char *)config_get_string(NULL, "cdrom_1_iso_path", "");
         if (p) strcpy(cdrom_iso[0].iso_path, p);
@@ -748,6 +749,7 @@ void loadconfig(char *fn)
         cdrom_drives[1].bus_type = config_get_int(NULL, "cdrom_2_bus_type", 0);
         cdrom_drives[1].ide_channel = config_get_int(NULL, "cdrom_2_ide_channel", 3);
         cdrom_drives[1].scsi_device_id = config_get_int(NULL, "cdrom_2_scsi_device_id", 3);
+        cdrom_drives[1].scsi_device_lun = config_get_int(NULL, "cdrom_2_scsi_device_lun", 0);
 
         p = (char *)config_get_string(NULL, "cdrom_2_iso_path", "");
         if (p) strcpy(cdrom_iso[1].iso_path, p);
@@ -760,6 +762,7 @@ void loadconfig(char *fn)
         cdrom_drives[2].bus_type = config_get_int(NULL, "cdrom_3_bus_type", 0);
         cdrom_drives[2].ide_channel = config_get_int(NULL, "cdrom_3_ide_channel", 4);
         cdrom_drives[2].scsi_device_id = config_get_int(NULL, "cdrom_3_scsi_device_id", 4);
+        cdrom_drives[2].scsi_device_lun = config_get_int(NULL, "cdrom_3_scsi_device_lun", 0);
 
         p = (char *)config_get_string(NULL, "cdrom_3_iso_path", "");
         if (p) strcpy(cdrom_iso[2].iso_path, p);
@@ -772,6 +775,7 @@ void loadconfig(char *fn)
         cdrom_drives[3].bus_type = config_get_int(NULL, "cdrom_4_bus_type", 0);
         cdrom_drives[3].ide_channel = config_get_int(NULL, "cdrom_4_ide_channel", 5);
         cdrom_drives[3].scsi_device_id = config_get_int(NULL, "cdrom_4_scsi_device_id", 5);
+        cdrom_drives[3].scsi_device_lun = config_get_int(NULL, "cdrom_4_scsi_device_lun", 0);
 
         p = (char *)config_get_string(NULL, "cdrom_4_iso_path", "");
         if (p) strcpy(cdrom_iso[3].iso_path, p);
@@ -951,6 +955,7 @@ void saveconfig()
         config_set_int(NULL, "cdrom_1_bus_type", cdrom_drives[0].bus_type);
         config_set_int(NULL, "cdrom_1_ide_channel", cdrom_drives[0].ide_channel);
         config_set_int(NULL, "cdrom_1_scsi_device_id", cdrom_drives[0].scsi_device_id);		
+        config_set_int(NULL, "cdrom_1_scsi_device_lun", cdrom_drives[0].scsi_device_lun);
 
         config_set_string(NULL, "cdrom_1_iso_path", cdrom_iso[0].iso_path);
 
@@ -959,7 +964,8 @@ void saveconfig()
         config_set_int(NULL, "cdrom_2_sound_on", cdrom_drives[1].sound_on);
         config_set_int(NULL, "cdrom_2_bus_type", cdrom_drives[1].bus_type);
         config_set_int(NULL, "cdrom_2_ide_channel", cdrom_drives[1].ide_channel);
-        config_set_int(NULL, "cdrom_2_scsi_device_id", cdrom_drives[1].scsi_device_id);		
+        config_set_int(NULL, "cdrom_2_scsi_device_id", cdrom_drives[1].scsi_device_id);
+        config_set_int(NULL, "cdrom_2_scsi_device_lun", cdrom_drives[1].scsi_device_lun);
 
         config_set_string(NULL, "cdrom_2_iso_path", cdrom_iso[1].iso_path);
 
@@ -968,7 +974,8 @@ void saveconfig()
         config_set_int(NULL, "cdrom_3_sound_on", cdrom_drives[2].sound_on);
         config_set_int(NULL, "cdrom_3_bus_type", cdrom_drives[2].bus_type);
         config_set_int(NULL, "cdrom_3_ide_channel", cdrom_drives[2].ide_channel);
-        config_set_int(NULL, "cdrom_3_scsi_device_id", cdrom_drives[2].scsi_device_id);		
+        config_set_int(NULL, "cdrom_3_scsi_device_id", cdrom_drives[2].scsi_device_id);
+        config_set_int(NULL, "cdrom_3_scsi_device_lun", cdrom_drives[2].scsi_device_lun);
 
         config_set_string(NULL, "cdrom_3_iso_path", cdrom_iso[2].iso_path);
 
@@ -977,7 +984,8 @@ void saveconfig()
         config_set_int(NULL, "cdrom_4_sound_on", cdrom_drives[3].sound_on);
         config_set_int(NULL, "cdrom_4_bus_type", cdrom_drives[3].bus_type);
         config_set_int(NULL, "cdrom_4_ide_channel", cdrom_drives[3].ide_channel);
-        config_set_int(NULL, "cdrom_4_scsi_device_id", cdrom_drives[3].scsi_device_id);		
+        config_set_int(NULL, "cdrom_4_scsi_device_id", cdrom_drives[3].scsi_device_id);
+        config_set_int(NULL, "cdrom_4_scsi_device_lun", cdrom_drives[3].scsi_device_lun);
 
         config_set_string(NULL, "cdrom_4_iso_path", cdrom_iso[3].iso_path);
 
