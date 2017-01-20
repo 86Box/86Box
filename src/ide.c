@@ -202,7 +202,7 @@ int image_is_hdi(const char *s)
 int ide_enable[4] = { 1, 1, 0, 0 };
 int ide_irq[4] = { 14, 15, 10, 11 };
 
-static inline void ide_irq_raise(IDE *ide)
+void ide_irq_raise(IDE *ide)
 {
 	if ((ide->board > 3) || ide->irqstat)
 	{
@@ -344,7 +344,7 @@ static void ide_identify(IDE *ide)
 	h = hdc[cur_ide[ide->board]].hpc;  /* Heads */
 	s = hdc[cur_ide[ide->board]].spt;  /* Sectors */
 
-	ide->buffer[0] = 0x40; /* Fixed disk */
+	// ide->buffer[0] = 0x40; /* Fixed disk */
 	ide->buffer[1] = hdc[cur_ide[ide->board]].tracks; /* Cylinders */
 	ide->buffer[3] = hdc[cur_ide[ide->board]].hpc;  /* Heads */
 	ide->buffer[6] = hdc[cur_ide[ide->board]].spt;  /* Sectors */
@@ -403,10 +403,11 @@ static void ide_atapi_identify(IDE *ide)
 	ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
 	ide_padstr((char *) (ide->buffer + 23), emulator_version, 8); /* Firmware */
 	ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
+	ide->buffer[48] = 1;   /*Dword transfers supported*/
 	ide->buffer[49] = 0x200; /* LBA supported */
 	ide->buffer[51] = 2 << 8; /*PIO timing mode*/
 	ide->buffer[73] = 6;
-	ide->buffer[73] = 9;
+	ide->buffer[74] = 9;
 	ide->buffer[80] = 0x10; /*ATA/ATAPI-4 supported*/
 
 	if ((ide->board < 2) && (cdrom_drives[cdrom_id].bus_mode & 2))
@@ -736,7 +737,7 @@ void resetide(void)
 		if (ide_drives[d].type != IDE_NONE)
 		{
 			ide_drives[d].dma_identify_data[0] = 7;
-			ide_drives[d].dma_identify_data[1] = 7 | (1 << 15);
+			ide_drives[d].dma_identify_data[1] = 7 | (1 << 10);
 			ide_drives[d].dma_identify_data[2] = 0x3f;
 		}
 
@@ -835,7 +836,9 @@ void writeidew(int ide_board, uint16_t val)
 void writeidel(int ide_board, uint32_t val)
 {
 	// ide_log("WriteIDEl %08X\n", val);
-	ide_write_data(ide_board, val, 4);
+	// ide_write_data(ide_board, val, 4);
+	writeidew(ide_board, val);
+	writeidew(ide_board, val >> 16);
 }
 
 void writeide(int ide_board, uint16_t addr, uint8_t val)
@@ -1349,7 +1352,7 @@ uint32_t ide_read_data(int ide_board, int length)
 				ide->pos += 2;
 				break;
 			case 4:
-				temp = idebufferb[ide->pos >> 2];
+				temp = idebufferl[ide->pos >> 2];
 				ide->pos += 4;
 				break;
 			default:
@@ -1559,17 +1562,21 @@ int all_blocks_total = 0;
 
 uint16_t readidew(int ide_board)
 {
-	uint16_t temp;
-	temp = ide_read_data(ide_board, 2);
-	return temp;
+	return ide_read_data(ide_board, 2);
 }
+
+/* uint32_t readidel(int ide_board)
+{
+	// ide_log("Read IDEl %i\n", ide_board);
+	return ide_read_data(ide_board, 4);
+} */
 
 uint32_t readidel(int ide_board)
 {
 	uint16_t temp;
-	// ide_log("Read IDEl %i\n", ide_board);
-	temp = ide_read_data(ide_board, 4);
-	return temp;
+	// pclog("Read IDEl %i\n", ide_board);
+	temp = readidew(ide_board);
+	return temp | (readidew(ide_board) << 16);
 }
 
 int times30=0;
@@ -2015,10 +2022,7 @@ void callbackide(int ide_board)
 				goto abort_cmd;
 			}
 
-			if (cdrom_phase_callback(atapi_cdrom_drives[cur_ide[ide_board]]))
-			{
-				ide_irq_raise(ide);
-			}
+			cdrom_phase_callback(atapi_cdrom_drives[cur_ide[ide_board]]);
 			idecallback[ide_board] = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback;
 			ide_log("IDE callback now: %i\n", idecallback[ide_board]);
 			return;

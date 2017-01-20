@@ -62,6 +62,7 @@ extern int idecallback[4];
 
 extern char ide_fn[IDE_NUM][512];
 
+void ide_irq_raise(IDE *ide);
 void ide_irq_lower(IDE *ide);
 
 IDE ide_drives[IDE_NUM];

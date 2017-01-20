@@ -3,6 +3,8 @@
 */
 /*ISO CD-ROM support*/
 
+#include <stdarg.h>
+
 #include "ibm.h"
 #include "cdrom.h"
 #include "cdrom-iso.h"
@@ -10,12 +12,12 @@
 
 static CDROM iso_cdrom;
 
-int cdrom_iso_do_log = 1;
+int cdrom_iso_do_log = 0;
 
 void cdrom_iso_log(const char *format, ...)
 {
 #ifdef ENABLE_CDROM_ISO_LOG
-   if (cdrom_do_log)
+   if (cdrom_iso_do_log)
    {
 		va_list ap;
 		va_start(ap, format);
@@ -273,12 +275,14 @@ static int iso_readsector_raw(uint8_t id, uint8_t *buffer, int sector, int ismsf
 
 	if (cdrom_sector_flags & 0x80)		/* Sync */
 	{
+		cdrom_iso_log("CD-ROM %i: Sync\n", id);
 		memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.sync, 12);
 		cdrom_sector_size += 12;
 		temp_b += 12;
 	}
 	if (cdrom_sector_flags & 0x20)		/* Header */
 	{
+		cdrom_iso_log("CD-ROM %i: Header\n", id);
 		memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.header, 4);
 		cdrom_sector_size += 4;
 		temp_b += 4;
@@ -289,6 +293,7 @@ static int iso_readsector_raw(uint8_t id, uint8_t *buffer, int sector, int ismsf
 	{
 		if (!(cdrom_sector_flags & 0x10))		/* No user data */
 		{
+			cdrom_iso_log("CD-ROM %i: Sub-header\n", id);
 			memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.user_data, 8);
 			cdrom_sector_size += 8;
 			temp_b += 8;
@@ -296,12 +301,14 @@ static int iso_readsector_raw(uint8_t id, uint8_t *buffer, int sector, int ismsf
 	}
 	if (cdrom_sector_flags & 0x10)		/* User data */
 	{
+		cdrom_iso_log("CD-ROM %i: User data\n", id);
 		memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.user_data, 2048);
 		cdrom_sector_size += 2048;
 		temp_b += 2048;
 	}
 	if (cdrom_sector_flags & 0x08)		/* EDC/ECC */
 	{
+		cdrom_iso_log("CD-ROM %i: EDC/ECC\n", id);
 		memcpy(temp_b, cdrom_sector_buffer.cdrom_sector.data.m1_data.ecc, 288);
 		cdrom_sector_size += 288;
 		temp_b += 288;
@@ -312,33 +319,36 @@ static int iso_readsector_raw(uint8_t id, uint8_t *buffer, int sector, int ismsf
 	if ((cdrom_sector_flags & 0x06) == 0x02)
 	{
 		/* Add error flags. */
+		cdrom_iso_log("CD-ROM %i: Error flags\n", id);
 		memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.c2, 294);
 		cdrom_sector_size += 294;
 	}
 	else if ((cdrom_sector_flags & 0x06) == 0x04)
 	{
 		/* Add error flags. */
+		cdrom_iso_log("CD-ROM %i: Full error flags\n", id);
 		memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.c2, 296);
 		cdrom_sector_size += 296;
 	}
 	
 	if ((cdrom_sector_flags & 0x700) == 0x100)
 	{
+		cdrom_iso_log("CD-ROM %i: Raw subchannel data\n", id);
 		memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.subchannel_raw, 96);
 		cdrom_sector_size += 96;
 	}
 	else if ((cdrom_sector_flags & 0x700) == 0x200)
 	{
+		cdrom_iso_log("CD-ROM %i: Q subchannel data\n", id);
 		memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.subchannel_q, 16);
 		cdrom_sector_size += 16;
 	}
 	else if ((cdrom_sector_flags & 0x700) == 0x400)
 	{
+		cdrom_iso_log("CD-ROM %i: R/W subchannel data\n", id);
 		memcpy(b + cdrom_sector_size, cdrom_sector_buffer.cdrom_sector.subchannel_rw, 96);
 		cdrom_sector_size += 96;
 	}
-	
-	memcpy(buffer, b, cdrom_sector_size);
 
 	*len = cdrom_sector_size;
 	

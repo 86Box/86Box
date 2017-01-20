@@ -16,22 +16,6 @@
 uint8_t SCSIPhase = SCSI_PHASE_BUS_FREE;
 uint8_t SCSIStatus = SCSI_STATUS_OK;
 
-int SCSICallback[16][8] =	{	{	0, 0, 0, 0, 0, 0, 0, 0	},
-					{	0, 0, 0, 0, 0, 0, 0, 0	},
-					{	0, 0, 0, 0, 0, 0, 0, 0	},
-					{	0, 0, 0, 0, 0, 0, 0, 0	},
-					{	0, 0, 0, 0, 0, 0, 0, 0	},
-					{	0, 0, 0, 0, 0, 0, 0, 0	},
-					{	0, 0, 0, 0, 0, 0, 0, 0	},
-					{	0, 0, 0, 0, 0, 0, 0, 0	},
-					{	0, 0, 0, 0, 0, 0, 0, 0	},
-					{	0, 0, 0, 0, 0, 0, 0, 0	},
-					{	0, 0, 0, 0, 0, 0, 0, 0	},
-					{	0, 0, 0, 0, 0, 0, 0, 0	},
-					{	0, 0, 0, 0, 0, 0, 0, 0	},
-					{	0, 0, 0, 0, 0, 0, 0, 0	},
-					{	0, 0, 0, 0, 0, 0, 0, 0	},
-					{	0, 0, 0, 0, 0, 0, 0, 0	}	};
 uint8_t scsi_cdrom_id = 3; /*common setting*/
 
 //Initialization function for the SCSI layer
@@ -41,8 +25,6 @@ void SCSIReset(uint8_t id, uint8_t lun)
 
 	if (buslogic_scsi_drive_is_cdrom(id, lun))
 	{
-		SCSICallback[id][lun] = 0;
-
 		cdrom_reset(cdrom_id);
 		SCSIDevices[id][lun].LunType = SCSI_CDROM;
 	}

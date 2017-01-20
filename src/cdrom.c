@@ -330,12 +330,10 @@ void cdrom_init(int id, int cdb_len_setting, int bus_type)
 	if (!cdrom_drives[id].bus_type)
 	{
 		cdrom_set_signature(id);
-		cdrom_drives[id].check_on_execution = 1;
 		cdrom_drives[id].max_blocks_at_once = 1;
 	}
 	else
 	{
-		cdrom_drives[id].check_on_execution = scsi_model ? 0 : 1;
 		cdrom_drives[id].max_blocks_at_once = 85;
 	}
 	cdrom[id].status = READY_STAT | DSC_STAT;
@@ -881,12 +879,12 @@ static void cdrom_data_command_finish(uint8_t id, int len, int block_len, int al
 	{
 		if (cdrom_current_mode(id) == 2)
 		{
-			if (cdrom_drives[id].bus_type)
-			{
-				SCSIDevices[cdrom_drives[id].scsi_device_id][cdrom_drives[id].scsi_device_lun].InitLength = alloc_len;
-			}
 			if (direction == 0)
 			{
+				if (cdrom_drives[id].bus_type)
+				{
+					SCSIDevices[cdrom_drives[id].scsi_device_id][cdrom_drives[id].scsi_device_lun].InitLength = alloc_len;
+				}
 				cdrom_command_read_dma(id);
 			}
 			else
@@ -1121,6 +1119,8 @@ int cdrom_read_data(uint8_t id, int msf, int type, int flags, int *len)
 	int i = 0;
 	int temp_len = 0;
 
+	int last_valid_data_pos = 0;
+
 	if (cdrom_drives[id].handler->pass_through)
 	{
 		cdsize = cdrom_drives[id].handler->size(id);
@@ -1156,7 +1156,9 @@ int cdrom_read_data(uint8_t id, int msf, int type, int flags, int *len)
 
 		for (i = 0; i < cdrom[id].requested_blocks; i++)
 		{
-			ret = cdrom_drives[id].handler->readsector_raw(id, cdbufferb + cdrom[id].data_pos, cdrom[id].sector_pos, msf, type, flags, &temp_len);
+			ret = cdrom_drives[id].handler->readsector_raw(id, cdbufferb + cdrom[id].data_pos, cdrom[id].sector_pos + i, msf, type, flags, &temp_len);
+
+			last_valid_data_pos = cdrom[id].data_pos;
 
 			cdrom[id].data_pos += temp_len;
 			cdrom[id].old_len += temp_len;
@@ -1170,7 +1172,7 @@ int cdrom_read_data(uint8_t id, int msf, int type, int flags, int *len)
 			}
 		}
 
-		cdrom_log("CD-ROM %i: Data from raw sector read:  %02X %02X %02X %02X %02X %02X %02X %02X\n", id, cdbufferb[cdrom[id].data_pos + 0], cdbufferb[cdrom[id].data_pos + 1], cdbufferb[cdrom[id].data_pos + 2], cdbufferb[cdrom[id].data_pos + 3], cdbufferb[cdrom[id].data_pos + 4], cdbufferb[cdrom[id].data_pos + 5], cdbufferb[cdrom[id].data_pos + 6], cdbufferb[cdrom[id].data_pos + 7]);
+		cdrom_log("CD-ROM %i: Data from raw sector read:  %02X %02X %02X %02X %02X %02X %02X %02X\n", id, cdbufferb[last_valid_data_pos + 0], cdbufferb[last_valid_data_pos + 1], cdbufferb[last_valid_data_pos + 2], cdbufferb[last_valid_data_pos + 3], cdbufferb[last_valid_data_pos + 4], cdbufferb[last_valid_data_pos + 5], cdbufferb[last_valid_data_pos + 6], cdbufferb[last_valid_data_pos + 7]);
 	}
 
 	return 1;
@@ -1616,12 +1618,9 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 	cdrom[id].sector_len = 0;
 
 	/* This handles the Not Ready/Unit Attention check if it has to be handled at this point. */
-	if (cdrom_drives[id].check_on_execution)
+	if (cdrom_pre_execution_check(id, cdb) == 0)
 	{
-		if (cdrom_pre_execution_check(id, cdb) == 0)
-		{
-			return;
-		}
+		return;
 	}
 
 	cdrom[id].prev_status = cdrom[id].cd_status;
@@ -2645,7 +2644,7 @@ int cdrom_mode_select_return(uint8_t id, int ret)
 	}
 }
 
-int cdrom_phase_callback(uint8_t id);
+void cdrom_phase_callback(uint8_t id);
 
 int cdrom_read_from_ide_dma(uint8_t channel)
 {
@@ -2799,58 +2798,72 @@ int cdrom_write_to_dma(uint8_t id)
 	return 1;
 }
 
+void cdrom_irq_raise(uint8_t id)
+{
+	if (!cdrom_drives[id].bus_type)
+	{
+		ide_irq_raise(&(ide_drives[cdrom_drives[id].ide_channel]));
+	}
+}
+
 /* If the result is 1, issue an IRQ, otherwise not. */
-int cdrom_phase_callback(uint8_t id)
+void cdrom_phase_callback(uint8_t id)
 {
 	switch(cdrom[id].packet_status)
 	{
 		case CDROM_PHASE_IDLE:
-			// cdrom_log("CD-ROM %i: CDROM_PHASE_IDLE\n", id);
+			cdrom_log("CD-ROM %i: CDROM_PHASE_IDLE\n", id);
 			cdrom[id].pos=0;
 			cdrom[id].phase = 1;
 			cdrom[id].status = READY_STAT | DRQ_STAT | (cdrom[id].status & ERR_STAT);
-			return 0;
+			return;
 		case CDROM_PHASE_COMMAND:
-			// cdrom_log("CD-ROM %i: CDROM_PHASE_COMMAND\n", id);
+			cdrom_log("CD-ROM %i: CDROM_PHASE_COMMAND\n", id);
 			cdrom[id].status = BUSY_STAT | (cdrom[id].status &ERR_STAT);
 			memcpy(cdrom[id].atapi_cdb, (uint8_t *) cdrom[id].buffer, cdrom[id].cdb_len);
 			cdrom_command(id, cdrom[id].atapi_cdb);
-			return 0;
+			return;
 		case CDROM_PHASE_COMPLETE:
-			// cdrom_log("CD-ROM %i: CDROM_PHASE_COMPLETE\n", id);
+			cdrom_log("CD-ROM %i: CDROM_PHASE_COMPLETE\n", id);
 			cdrom[id].status = READY_STAT;
 			cdrom[id].phase = 3;
 			cdrom[id].packet_status = 0xFF;
-			return 1;
+			cdrom_irq_raise(id);
+			return;
 		case CDROM_PHASE_DATA_OUT:
-			// cdrom_log("CD-ROM %i: CDROM_PHASE_DATA_OUT\n", id);
+			cdrom_log("CD-ROM %i: CDROM_PHASE_DATA_OUT\n", id);
 			cdrom[id].status = READY_STAT | DRQ_STAT | (cdrom[id].status & ERR_STAT);
 			cdrom[id].phase = 0;
-			return 1;
+			cdrom_irq_raise(id);
+			return;
 		case CDROM_PHASE_DATA_OUT_DMA:
-			// cdrom_log("CD-ROM %i: CDROM_PHASE_DATA_OUT_DMA\n", id);
+			cdrom_log("CD-ROM %i: CDROM_PHASE_DATA_OUT_DMA\n", id);
 			cdrom_read_from_dma(id);
 			cdrom[id].packet_status = CDROM_PHASE_COMPLETE;
 			cdrom[id].status = READY_STAT;
 			cdrom[id].phase = 3;
-			return 1;
+			cdrom_irq_raise(id);
+			return;
 		case CDROM_PHASE_DATA_IN:
-			// cdrom_log("CD-ROM %i: CDROM_PHASE_DATA_IN\n", id);
+			cdrom_log("CD-ROM %i: CDROM_PHASE_DATA_IN\n", id);
 			cdrom[id].status = READY_STAT | DRQ_STAT | (cdrom[id].status & ERR_STAT);
 			cdrom[id].phase = 2;
-			return 1;
+			cdrom_irq_raise(id);
+			return;
 		case CDROM_PHASE_DATA_IN_DMA:
-			// cdrom_log("CD-ROM %i: CDROM_PHASE_DATA_IN_DMA\n", id);
+			cdrom_log("CD-ROM %i: CDROM_PHASE_DATA_IN_DMA\n", id);
 			cdrom_write_to_dma(id);
 			cdrom[id].packet_status = CDROM_PHASE_COMPLETE;
 			cdrom[id].status = READY_STAT;
 			cdrom[id].phase = 3;
-			return 1;
+			cdrom_irq_raise(id);
+			return;
 		case CDROM_PHASE_ERROR:
-			// cdrom_log("CD-ROM %i: CDROM_PHASE_ERROR\n", id);
+			cdrom_log("CD-ROM %i: CDROM_PHASE_ERROR\n", id);
 			cdrom[id].status = READY_STAT | ERR_STAT;
 			cdrom[id].phase = 3;
-			return 1;
+			cdrom_irq_raise(id);
+			return;
 	}
 }
 
@@ -2957,7 +2970,7 @@ void cdrom_write(uint8_t channel, uint32_t val, int length)
 			cdrom[id].pos++;
 			break;
 		case 2:
-			cdbufferw[cdrom[id].pos >> 1] = val & 0xff;
+			cdbufferw[cdrom[id].pos >> 1] = val & 0xffff;
 			cdrom[id].pos += 2;
 			break;
 		case 4:

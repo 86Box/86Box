@@ -129,9 +129,6 @@ typedef struct __attribute__((__packed__))
 	uint8_t bus_mode;		/* Bit 0 = PIO suported;
 					   Bit 1 = DMA supportd. */
 
-	uint8_t check_on_execution;	/* 0 = Not Ready/Unit Attention checkeck is performed on the controller's side before command execution;
-					   1 = Not Ready/Unit Attention checkeck is performed on command execution. */
-
 	uint8_t ide_channel;
 
 	uint8_t scsi_device_id;
@@ -190,7 +187,7 @@ void build_scsi_cdrom_map();
 int cdrom_CDROM_PHASE_to_scsi(uint8_t id);
 int cdrom_atapi_phase_to_scsi(uint8_t id);
 void cdrom_command(uint8_t id, uint8_t *cdb);
-int cdrom_phase_callback(uint8_t id);
+void cdrom_phase_callback(uint8_t id);
 uint32_t cdrom_read(uint8_t channel, int length);
 void cdrom_write(uint8_t channel, uint32_t val, int length);
 int cdrom_lba_to_msf_accurate(int lba);

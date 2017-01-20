@@ -188,7 +188,6 @@ int MediaPresent;
 
 extern uint8_t SCSIStatus;
 extern uint8_t SCSIPhase;
-extern int SCSICallback[16][8];
 extern uint8_t scsi_cdrom_id;
 
 struct

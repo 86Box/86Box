@@ -779,6 +779,7 @@ static int ioctl_pass_through(uint8_t id, uint8_t *in_cdb, uint8_t *b, uint32_t 
 	int transferred_blocks = 0;
 	
 	int temp_len = 0;
+	int chunk = 0;
 	
 	if (cdb[0] == 0x43)
 	{
@@ -791,13 +792,14 @@ static int ioctl_pass_through(uint8_t id, uint8_t *in_cdb, uint8_t *b, uint32_t 
 	memcpy(cdb, in_cdb, 12);
 	
 	temp_block_length = ioctl_get_block_length(id, cdb, cdrom[id].requested_blocks, 0);
+	*len = 0;
 	if (temp_block_length != -1)
 	{
 		if (temp_block_length > 65534)
 		{
-			cdrom_ioctl_log("CD-ROM %i: ioctl_pass_through(): Expected transfer length %i is bigger than 65534, splitting the transfer...\n", id, temp_block_length);
 			block_length = temp_block_length / cdrom[id].requested_blocks;
 			blocks_at_once = 32768 / block_length;
+			cdrom_ioctl_log("CD-ROM %i: ioctl_pass_through(): Expected transfer length %i is bigger than 65534, splitting the transfer into chunks of %i blocks...\n", id, temp_block_length, blocks_at_once);
 
 			buffer_pos = 0;
 			temp_pos = cdrom[id].sector_pos;
@@ -806,12 +808,15 @@ static int ioctl_pass_through(uint8_t id, uint8_t *in_cdb, uint8_t *b, uint32_t 
 			temp_len = 0;
 
 split_block_read_iterate:
-			if (temp_requested_blocks < blocks_at_once)
+			chunk = (cdrom[id].requested_blocks - transferred_blocks);
+			if (chunk < blocks_at_once)
 			{
-				cdrom_ioctl[id].actual_requested_blocks = temp_requested_blocks;
+				cdrom_ioctl_log("CD-ROM %i: ioctl_pass_through(): The remaining chunk (%i blocks) is less than a complete split block\n", id, chunk);
+				cdrom_ioctl[id].actual_requested_blocks = chunk;
 			}
 			else
 			{
+				cdrom_ioctl_log("CD-ROM %i: ioctl_pass_through(): The remaining chunk (%i blocks) is more or equal than a complete split block\n", id, chunk);
 				cdrom_ioctl[id].actual_requested_blocks = blocks_at_once;
 			}
 			cdrom_ioctl_log("CD-ROM %i: ioctl_pass_through(): Transferring %i blocks...\n", id, cdrom_ioctl[id].actual_requested_blocks);
@@ -819,8 +824,9 @@ split_block_read_iterate:
 			ret = SCSICommand(id, cdb, buf + buffer_pos, &temp_len, 0);
 			*len += temp_len;
 			transferred_blocks += cdrom_ioctl[id].actual_requested_blocks;
-			if (ret && (transferred_blocks >= cdrom[id].requested_blocks))
+			if (ret && (transferred_blocks < cdrom[id].requested_blocks))
 			{
+				/* Return value was successful and there are still more blocks left to transfer. */
 				temp_pos += cdrom_ioctl[id].actual_requested_blocks;
 				buffer_pos += (cdrom_ioctl[id].actual_requested_blocks * block_length);
 				goto split_block_read_iterate;
