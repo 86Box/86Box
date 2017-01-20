@@ -44,6 +44,7 @@
 #include "win-d3d.h"
 #include "win-d3d-fs.h"
 //#include "win-opengl.h"
+#include "win-crashdump.h"
 
 #ifndef MAPVK_VK_TO_VSC
 #define MAPVK_VK_TO_VSC 0
@@ -525,6 +526,7 @@ int valid_irqs[6] = { 9, 10, 11, 12, 14, 15 };
 int valid_dma_channels[3] = { 5, 6, 7 };
 int valid_ide_channels[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 int valid_scsi_ids[15] = { 0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15 };
+int valid_scsi_luns[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
 int find_in_array(int *array, int val, int len, int menu_base)
 {
@@ -556,6 +558,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 		char emulator_title[200];
         LARGE_INTEGER qpc_freq;
         HACCEL haccel;           /* Handle to accelerator table */
+		
+		InitCrashDump(); // First thing to do before anything else is to make sure crash dumps get created.
 
         process_command_line();
         
@@ -660,17 +664,24 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
 		if (!find_in_array(valid_ide_channels, cdrom_drives[e].ide_channel, 8, IDM_CDROM_1_C + (e * 1000)))
 		{
-			fatal("Tertiary IDE controller: Invalid IRQ\n");
+			fatal("CD-ROM %i: Invalid IDE channel\n", e);
 		}
 
 	        CheckMenuItem(menu, IDM_CDROM_1_C + (e * 1000) + cdrom_drives[e].ide_channel, MF_CHECKED);
 
 		if (!find_in_array(valid_scsi_ids, cdrom_drives[e].scsi_device_id, 15, IDM_CDROM_1_0 + (e * 1000)))
 		{
-			fatal("Tertiary IDE controller: Invalid IRQ\n");
+			fatal("CD-ROM %i: Invalid SCSI ID\n", e);
 		}
 
 	        CheckMenuItem(menu, IDM_CDROM_1_0 + (e * 1000) + cdrom_drives[e].scsi_device_id, MF_CHECKED);
+
+		if (!find_in_array(valid_scsi_luns, cdrom_drives[e].scsi_device_lun, 8, IDM_CDROM_1_LUN_0 + (e * 1000)))
+		{
+			fatal("CD-ROM %i: Invalid SCSI LUN\n", e);
+		}
+
+	        CheckMenuItem(menu, IDM_CDROM_1_LUN_0 + (e * 1000) + cdrom_drives[e].scsi_device_lun, MF_CHECKED);
 
 		if (cdrom_drives[e].host_drive == 200)
 		{
@@ -1050,7 +1061,8 @@ LRESULT CALLBACK LowLevelKeyboardProc( int nCode, WPARAM wParam, LPARAM lParam )
 	BOOL bControlKeyDown;
 	KBDLLHOOKSTRUCT* p;
 
-        if (nCode < 0 || nCode != HC_ACTION || (!mousecapture && !video_fullscreen))
+        // if (nCode < 0 || nCode != HC_ACTION || (!mousecapture && !video_fullscreen))
+        if (nCode < 0 || nCode != HC_ACTION)
                 return CallNextHookEx( hKeyboardHook, nCode, wParam, lParam); 
 	
 	p = (KBDLLHOOKSTRUCT*)lParam;
@@ -1681,6 +1693,26 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			pause = 0;
 			break;
                         
+                        case IDM_CDROM_1_LUN_0 ... IDM_CDROM_1_LUN_7:
+                        case IDM_CDROM_2_LUN_0 ... IDM_CDROM_2_LUN_7:
+                        case IDM_CDROM_3_LUN_0 ... IDM_CDROM_3_LUN_7:
+                        case IDM_CDROM_4_LUN_0 ... IDM_CDROM_4_LUN_7:
+			menu_sub_param = LOWORD(wParam) % 100;
+			cdrom_id = convert_cdrom_id(LOWORD(wParam) - menu_sub_param - IDM_CDROM_1_LUN_0);
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			CheckMenuItem(hmenu, IDM_CDROM_1_LUN_0 + (cdrom_id * 1000) + cdrom_drives[cdrom_id].scsi_device_lun, MF_UNCHECKED);
+			cdrom_drives[cdrom_id].scsi_device_lun = menu_sub_param;
+			CheckMenuItem(hmenu, IDM_CDROM_1_LUN_0 + (cdrom_id * 1000) + cdrom_drives[cdrom_id].scsi_device_lun, MF_CHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
                         case IDM_IDE_TER_ENABLED:
                         if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
 			{
@@ -2152,7 +2184,9 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 break;
 
                 case WM_SYSCOMMAND:
-                if (wParam == SC_KEYMENU && HIWORD(lParam) <= 0 && (video_fullscreen || mousecapture))
+                // if (wParam == SC_KEYMENU && HIWORD(lParam) <= 0 && (video_fullscreen || mousecapture))
+		/* Disable ALT key *ALWAYS*, I don't think there's any use for reaching the menu that way. */
+                if (wParam == SC_KEYMENU && HIWORD(lParam) <= 0)
                         return 0; /*disable ALT key for menu*/
 
                 default:

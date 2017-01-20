@@ -629,7 +629,11 @@ static void BuslogicMailboxIn(Buslogic_t *Buslogic, uint32_t CCBPointer, CCBU *C
 		CmdBlock->common.TargetStatus = TargetStatus;		
 		
 		//Rewrite the CCB up to the CDB.
-		DMAPageWrite(CCBPointer, CmdBlock, offsetof(CCBC, Cdb));
+		if (CmdBlock->common.TargetStatus != 0x02)	
+		{
+			BuslogicLog("CCB rewritten to the CDB (pointer %08X, length %i)\n", CCBPointer, offsetof(CCBC, Cdb));
+			DMAPageWrite(CCBPointer, CmdBlock, offsetof(CCBC, Cdb));
+		}
 	}
 
 	BuslogicLog("Host Status 0x%02X, Target Status 0x%02X\n", HostStatus, TargetStatus);	
@@ -681,6 +685,7 @@ static void BuslogicReadSGEntries(int Is24bit, uint32_t SGList, uint32_t Entries
 
 void BuslogicDataBufferAllocate(BuslogicRequests_t *BuslogicRequests, int Is24bit)
 {
+	uint32_t sg_buffer_pos = 0;
 	uint32_t DataPointer, DataLength;
 
 	if (Is24bit)
@@ -694,8 +699,13 @@ void BuslogicDataBufferAllocate(BuslogicRequests_t *BuslogicRequests, int Is24bi
 		DataLength = BuslogicRequests->CmdBlock.new.DataLength;		
 	}
 	
-	if (BuslogicRequests->CmdBlock.common.Cdb[0] == GPCMD_TEST_UNIT_READY)
-		DataLength = 0;
+	/* if (BuslogicRequests->CmdBlock.common.Cdb[0] == GPCMD_TEST_UNIT_READY)
+		DataLength = 0; */
+
+	if ((BuslogicRequests->CmdBlock.common.Cdb[0] != GPCMD_MODE_SELECT_6) && (BuslogicRequests->CmdBlock.common.Cdb[0] != GPCMD_MODE_SELECT_10))
+	{
+		return;
+	}
 	
 	BuslogicLog("Data Buffer write: length %d, pointer 0x%04X\n", DataLength, DataPointer);	
 
@@ -733,8 +743,7 @@ void BuslogicDataBufferAllocate(BuslogicRequests_t *BuslogicRequests, int Is24bi
 			
 			BuslogicLog("Data to transfer (S/G) %d\n", DataToTransfer);
 			
-			SCSIDevices[BuslogicRequests->TargetID].InitLength = DataToTransfer;
-			SCSIDevices[BuslogicRequests->TargetID].CmdBuffer[SCSIDevices[BuslogicRequests->TargetID].pos++] = SCSIDevices[BuslogicRequests->TargetID].InitLength;	
+			SCSIDevices[BuslogicRequests->TargetID][BuslogicRequests->LUN].InitLength = DataToTransfer;
 			
 			//If the control byte is 0x00, it means that the transfer direction is set up by the SCSI command without
 			//checking its length, so do this procedure for both no read/write commands.
@@ -759,7 +768,8 @@ void BuslogicDataBufferAllocate(BuslogicRequests_t *BuslogicRequests, int Is24bi
 						Address = ScatterGatherBuffer[ScatterEntry].SegmentPointer;
 						DataToTransfer = ScatterGatherBuffer[ScatterEntry].Segment;
 						
-						DMAPageRead(Address, SCSIDevices[BuslogicRequests->TargetID].CmdBuffer, DataToTransfer);
+						DMAPageRead(Address, SCSIDevices[BuslogicRequests->TargetID][BuslogicRequests->LUN].CmdBuffer + sg_buffer_pos, DataToTransfer);
+						sg_buffer_pos += DataToTransfer;
 					}
 									
 					ScatterGatherAddrCurrent += ScatterGatherRead * (Is24bit ? sizeof(SGE) : sizeof(SGE32));
@@ -770,10 +780,12 @@ void BuslogicDataBufferAllocate(BuslogicRequests_t *BuslogicRequests, int Is24bi
 				BuslogicRequests->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES)
 		{
 			uint32_t Address = DataPointer;
-			SCSIDevices[BuslogicRequests->TargetID].InitLength = DataLength;
-			SCSIDevices[BuslogicRequests->TargetID].CmdBuffer[SCSIDevices[BuslogicRequests->TargetID].pos++] = SCSIDevices[BuslogicRequests->TargetID].InitLength;
+			SCSIDevices[BuslogicRequests->TargetID][BuslogicRequests->LUN].InitLength = DataLength;
 			
-			DMAPageRead(Address, SCSIDevices[BuslogicRequests->TargetID].CmdBuffer, SCSIDevices[BuslogicRequests->TargetID].InitLength);
+			if (DataLength > 0)
+			{
+				DMAPageRead(Address, SCSIDevices[BuslogicRequests->TargetID][BuslogicRequests->LUN].CmdBuffer, SCSIDevices[BuslogicRequests->TargetID][BuslogicRequests->LUN].InitLength);
+			}
 		}
 	}
 }
@@ -794,6 +806,8 @@ void BuslogicDataBufferFree(BuslogicRequests_t *BuslogicRequests)
 {
 	uint32_t sg_buffer_pos = 0;
 
+	uint32_t transfer_length = 0;
+
 	if (BuslogicRequests->Is24bit)
 	{
 		DataPointer = ADDR_TO_U32(BuslogicRequests->CmdBlock.old.DataPointer);
@@ -804,9 +818,19 @@ void BuslogicDataBufferFree(BuslogicRequests_t *BuslogicRequests)
 		DataPointer = BuslogicRequests->CmdBlock.new.DataPointer;
 		DataLength = BuslogicRequests->CmdBlock.new.DataLength;		
 	}
+
+	if (DataLength > SCSIDevices[BuslogicRequests->TargetID][BuslogicRequests->LUN].InitLength)
+	{
+		DataLength = SCSIDevices[BuslogicRequests->TargetID][BuslogicRequests->LUN].InitLength;
+	}
+
+	if ((DataLength != 0) && (BuslogicRequests->CmdBlock.common.Cdb[0] == GPCMD_TEST_UNIT_READY))
+	{
+		BuslogicLog("Data length not 0 with TEST UNIT READY: %i (%i)\n", DataLength, SCSIDevices[BuslogicRequests->TargetID][BuslogicRequests->LUN].InitLength);
+	}
 	
-	if (BuslogicRequests->CmdBlock.common.Cdb[0] == GPCMD_TEST_UNIT_READY)
-		DataLength = 0;
+	/* if (BuslogicRequests->CmdBlock.common.Cdb[0] == GPCMD_TEST_UNIT_READY)
+		DataLength = 0; */
 	
 	BuslogicLog("Data Buffer read: length %d, pointer 0x%04X\n", DataLength, DataPointer);
 	
@@ -848,7 +872,7 @@ void BuslogicDataBufferFree(BuslogicRequests_t *BuslogicRequests)
 					Address = ScatterGatherBuffer[ScatterEntry].SegmentPointer;
 					DataToTransfer = ScatterGatherBuffer[ScatterEntry].Segment;
 
-					DMAPageWrite(Address, SCSIDevices[BuslogicRequests->TargetID].CmdBuffer + sg_buffer_pos, DataToTransfer);
+					DMAPageWrite(Address, SCSIDevices[BuslogicRequests->TargetID][BuslogicRequests->LUN].CmdBuffer + sg_buffer_pos, DataToTransfer);
 					sg_buffer_pos += DataToTransfer;
 				}
 					
@@ -859,11 +883,21 @@ void BuslogicDataBufferFree(BuslogicRequests_t *BuslogicRequests)
 				BuslogicRequests->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES)
 		{
 			uint32_t Address = DataPointer;
-			DMAPageWrite(Address, SCSIDevices[BuslogicRequests->TargetID].CmdBuffer, SCSIDevices[BuslogicRequests->TargetID].InitLength);
+			if (DataLength > 0)
+			{
+				if (DataLength > SCSIDevices[BuslogicRequests->TargetID][BuslogicRequests->LUN].InitLength)
+				{
+					DMAPageWrite(Address, SCSIDevices[BuslogicRequests->TargetID][BuslogicRequests->LUN].CmdBuffer, SCSIDevices[BuslogicRequests->TargetID][BuslogicRequests->LUN].InitLength);
+				}
+				else
+				{
+					DMAPageWrite(Address, SCSIDevices[BuslogicRequests->TargetID][BuslogicRequests->LUN].CmdBuffer, DataLength);
+				}
+			}
 		}
 	}
 	
-	SCSIDevices[BuslogicRequests->TargetID].InitLength = 0;	
+	SCSIDevices[BuslogicRequests->TargetID][BuslogicRequests->LUN].InitLength = 0;	
 }
 
 uint8_t BuslogicRead(uint16_t Port, void *p)
@@ -912,15 +946,20 @@ uint8_t BuslogicRead(uint16_t Port, void *p)
 	return Temp;	
 }
 
-int buslogic_scsi_drive_is_cdrom(uint8_t id)
+int buslogic_scsi_drive_is_cdrom(uint8_t id, uint8_t lun)
 {
-	if (scsi_cdrom_drives[id] >= CDROM_NUM)
+	if (lun > 7)
+	{
+		return 0;
+	}
+
+	if (scsi_cdrom_drives[id][lun] >= CDROM_NUM)
 	{
 		return 0;
 	}
 	else
 	{
-		if (cdrom_drives[scsi_cdrom_drives[id]].enabled && cdrom_drives[scsi_cdrom_drives[id]].bus_type && (cdrom_drives[scsi_cdrom_drives[id]].bus_mode & 2))
+		if (cdrom_drives[scsi_cdrom_drives[id][lun]].enabled && cdrom_drives[scsi_cdrom_drives[id][lun]].bus_type && (cdrom_drives[scsi_cdrom_drives[id][lun]].bus_mode & 2))
 		{
 			return 1;
 		}
@@ -934,6 +973,10 @@ int buslogic_scsi_drive_is_cdrom(uint8_t id)
 void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 {
 	int i = 0;
+
+	uint8_t j = 0;
+
+	uint8_t max_id = scsi_model ? 16 : 8;
 
 	Buslogic_t *Buslogic = (Buslogic_t *)p;
 	BuslogicRequests_t *BuslogicRequests = &Buslogic->BuslogicRequests;	
@@ -960,9 +1003,9 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 		{
 			for (i = 0; i < CDROM_NUM; i++)
 			{
-				if (buslogic_scsi_drive_is_cdrom(cdrom_drives[i].scsi_device_id))
+				if (buslogic_scsi_drive_is_cdrom(cdrom_drives[i].scsi_device_id, cdrom_drives[i].scsi_device_lun))
 				{
-					SCSICallback[cdrom_drives[i].scsi_device_id] = 1;
+					SCSICallback[cdrom_drives[i].scsi_device_id][cdrom_drives[i].scsi_device_lun] = 1;
 				}
 			}
 			break;
@@ -1101,13 +1144,16 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				break;
 						
 				case 0x0A:
-				for (i = 0; i < 8; i++)
+				for (i = 0; i < max_id; i++)
 				{
-					if (buslogic_scsi_drive_is_cdrom(i))
-						Buslogic->DataBuf[i] = 1;
-
-					Buslogic->DataBuf[7] = 0;
-					Buslogic->DataReplyLeft = 8;
+					for (j = 0; j < 8; j++)
+					{
+						if (buslogic_scsi_drive_is_cdrom(i, j))
+							Buslogic->DataBuf[i] = 1;
+	
+						Buslogic->DataBuf[7] = 0;
+						Buslogic->DataReplyLeft = 8;
+					}
 				}
 				break;				
 				
@@ -1143,14 +1189,16 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				}
 				break;
 
-				
 				case 0x23:
-				for (i = 0; i < 8; i++)
+				for (i = 0; i < max_id; i++)
 				{
-					if (buslogic_scsi_drive_is_cdrom(i))
-						Buslogic->DataBuf[i] = 1;
+					for (i = 0; j < 8; j++)
+					{
+						if (buslogic_scsi_drive_is_cdrom(i, j))
+							Buslogic->DataBuf[i] = 1;
 
-					Buslogic->DataReplyLeft = 8;
+						Buslogic->DataReplyLeft = 8;
+					}
 				}
 				break;
 
@@ -1196,13 +1244,15 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 						
 				case 0x24:
 				{
-					uint8_t i;
 					uint16_t TargetsPresentMask = 0;
 							
-					for (i=0;i<ELEMENTS(SCSIDevices);i++)
+					for (i = 0; i < max_id; i++)
 					{
-						if (SCSIDevices[i].LunType == SCSI_CDROM)
-							TargetsPresentMask |= (1 << i);
+						for (j = 0; j < 8; j++)
+						{
+							if (SCSIDevices[i][j].LunType == SCSI_CDROM)
+								TargetsPresentMask |= (1 << i);
+						}
 					}
 					Buslogic->DataBuf[0] = TargetsPresentMask&0x0F;
 					Buslogic->DataBuf[1] = TargetsPresentMask>>8;
@@ -1410,6 +1460,7 @@ static void BuslogicSenseBufferAllocate(BuslogicRequests_t *BuslogicRequests)
 static void BuslogicSenseBufferFree(BuslogicRequests_t *BuslogicRequests, int Copy)
 {
 	uint8_t SenseLength = BuslogicConvertSenseLength(BuslogicRequests->CmdBlock.common.RequestSenseLength);	
+	uint8_t cdrom_id = scsi_cdrom_drives[BuslogicRequests->TargetID][BuslogicRequests->LUN];
 	
 	if (SenseLength && Copy)
 	{
@@ -1430,8 +1481,7 @@ static void BuslogicSenseBufferFree(BuslogicRequests_t *BuslogicRequests, int Co
 		
 		BuslogicLog("Request Sense address: %02X\n", SenseBufferAddress);
 		
-		// DMAPageWrite(SenseBufferAddress, BuslogicRequests->RequestSenseBuffer, SenseLength);		
-		DMAPageWrite(SenseBufferAddress, cdrom[BuslogicRequests->TargetID].sense, SenseLength);		
+		DMAPageWrite(SenseBufferAddress, cdrom[cdrom_id].sense, SenseLength);
 	}
 	//Free the sense buffer when needed.
 	free(BuslogicRequests->RequestSenseBuffer);
@@ -1447,6 +1497,8 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer, 
 
 	uint32_t temp = 0;
 
+	uint8_t temp_cdb[12];
+
 	//Fetch data from the Command Control Block.
 	DMAPageRead(CCBPointer, &BuslogicRequests->CmdBlock, sizeof(CCB32));
 	
@@ -1459,9 +1511,9 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer, 
 	BuslogicLog("Scanning SCSI Target ID %i\n", Id);		
 	
 	//Only SCSI CD-ROMs are supported at the moment, SCSI hard disk support will come soon.
-	if (buslogic_scsi_drive_is_cdrom(Id) && Lun == 0)
+	if (buslogic_scsi_drive_is_cdrom(Id, Lun))
 	{
-		cdrom_id = scsi_cdrom_drives[Id];
+		cdrom_id = scsi_cdrom_drives[Id][Lun];
 
 		BuslogicLog("SCSI Target ID %i detected and working\n", Id);
 
@@ -1476,13 +1528,29 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer, 
 
 			uint32_t i;
 			
-			pclog("SCSI Cdb[0]=0x%02X\n", BuslogicRequests->CmdBlock.common.Cdb[0]);
+			BuslogicLog("SCSI Cdb[0]=0x%02X\n", BuslogicRequests->CmdBlock.common.Cdb[0]);
 			for (i = 1; i < BuslogicRequests->CmdBlock.common.CdbLength; i++)
-				pclog("SCSI Cdb[%i]=%i\n", i, BuslogicRequests->CmdBlock.common.Cdb[i]);
+				BuslogicLog("SCSI Cdb[%i]=%i\n", i, BuslogicRequests->CmdBlock.common.Cdb[i]);
+
+			memset(temp_cdb, 0, cdrom[cdrom_id].cdb_len);
+			if (BuslogicRequests->CmdBlock.common.CdbLength <= cdrom[cdrom_id].cdb_len)
+			{
+				memcpy(temp_cdb, BuslogicRequests->CmdBlock.common.Cdb, BuslogicRequests->CmdBlock.common.CdbLength);
+			}
+			else
+			{
+				memcpy(temp_cdb, BuslogicRequests->CmdBlock.common.Cdb, cdrom[cdrom_id].cdb_len);
+			}
+
+			if (BuslogicRequests->CmdBlock.common.CdbLength != 12)
+			{
+				cdrom[cdrom_id].request_length = temp_cdb[1];	/* Since that field in the cdrom struct is never used when the bus type is SCSI, let's use it for this scope. */
+				temp_cdb[1] &= 0x1f;	/* Make sure the LUN field of the temporary CDB is always 0, otherwise Daemon Tools drives will misehave when a command is passed through to them. */
+			}
 			
-			pclog("Transfer Control %02X\n", BuslogicRequests->CmdBlock.common.ControlByte);
-			pclog("CDB Length %i\n", BuslogicRequests->CmdBlock.common.CdbLength);	
-			pclog("CCB Opcode %x\n", BuslogicRequests->CmdBlock.common.Opcode);		
+			BuslogicLog("Transfer Control %02X\n", BuslogicRequests->CmdBlock.common.ControlByte);
+			BuslogicLog("CDB Length %i\n", BuslogicRequests->CmdBlock.common.CdbLength);	
+			BuslogicLog("CCB Opcode %x\n", BuslogicRequests->CmdBlock.common.Opcode);		
 			
 			//This not ready/unit attention stuff below is only for the Buslogic!
 			//The Adaptec one is in scsi_cdrom.c.
@@ -1491,11 +1559,11 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer, 
 			{
 				if ((BuslogicRequests->CmdBlock.common.ControlByte != 0x03) && (BuslogicRequests->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND))
 				{
-					if (!cdrom_pre_execution_check(cdrom_id, BuslogicRequests->CmdBlock.common.Cdb))
+					if (!cdrom_pre_execution_check(cdrom_id, temp_cdb))
 					{
 						SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
-						SCSICallback[Id]=50*SCSI_TIME;
-						SCSIDevices[BuslogicRequests->TargetID].InitLength = 0;
+						SCSICallback[Id][Lun]=50*SCSI_TIME;
+						SCSIDevices[BuslogicRequests->TargetID][BuslogicRequests->LUN].InitLength = 0;
 						if (BuslogicRequests->RequestSenseBuffer)
 							BuslogicSenseBufferFree(BuslogicRequests, 1);
 						BuslogicMailboxIn(Buslogic, BuslogicRequests->CCBPointer, &BuslogicRequests->CmdBlock, CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION, MBI_ERROR);
@@ -1504,28 +1572,13 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer, 
 				}
 			}
 			
-			//First, get the data buffer otherwise putting it after the 
-			//exec function results into not getting read/write commands right and
-			//failing to detect the device.
-
-			/* Note by Tohka: After looking at the code, both functions do a copy of one part of the buffer to another,
-			   with no purpose, whatsoever, and then end up with SCSIDevices.pos being equal to the InitLength.
-			   SCSIReadData does not use pos at all, and the write code does, but in a useless way, therefore that
-			   variable is going away.
-			   All I am going to do at this point is zero the buffer.
-			   Also, instead of directly calling SCSIReadData from here, this will be modified to call the CD-ROM
-			   callback for the correct CD-ROM drive, and make that call SCSIReadData.
-			   Since the new code will have the target ID and LUN inside the cdrom struct, as well as a copy of the Cdb
-			   and the InitLength (in cdrom[id].request_length), it can be called from there and do everything needed. */
-
-			memset(SCSIDevices[Id].CmdBuffer, 0, 390144);
+			memset(SCSIDevices[Id][Lun].CmdBuffer, 0, 390144);
 
 			//Finally, execute the SCSI command immediately and get the transfer length.
 
 			SCSIPhase = SCSI_PHASE_COMMAND;
-			cdrom_command(cdrom_id, BuslogicRequests->CmdBlock.common.Cdb);
-			// SCSIDevices[Id].InitLength = cdrom[cdrom_id].0;
-			// SCSIGetLength(Id, &SCSIDevices[Id].InitLength);
+			SCSIDevices[Id][Lun].InitLength = 0;
+			cdrom_command(cdrom_id, temp_cdb);
 			SCSIStatus = cdrom_CDROM_PHASE_to_scsi(cdrom_id);
 			if (SCSIStatus == SCSI_STATUS_OK)
 			{
@@ -1549,22 +1602,28 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer, 
 				/* Error (Check Condition) - call the phase callback to complete the command. */
 				cdrom_phase_callback(cdrom_id);
 			}
-			SCSICallback[Id] = cdrom[cdrom_id].callback;
+			SCSICallback[Id][Lun] = cdrom[cdrom_id].callback;
 
-			BuslogicDataBufferFree(BuslogicRequests);
+			if ((BuslogicRequests->CmdBlock.common.ControlByte != 0x03) && (SCSIDevices[Id][Lun].InitLength != 0))
+			{
+				BuslogicDataBufferFree(BuslogicRequests);
+			}
 		
 			if (BuslogicRequests->RequestSenseBuffer)
 				BuslogicSenseBufferFree(BuslogicRequests, (SCSIStatus != SCSI_STATUS_OK));
 		}
+		else
+		{
+			BuslogicLog("Mailbox32->u.out.ActionCode = %02X\n", Mailbox32->u.out.ActionCode);
+			SCSICallback[Id][Lun] = 50 * SCSI_TIME;
+		}
 		
-		pclog("Request complete\n");
-		pclog("SCSI Status %02X, Sense %02X, Asc %02X, Ascq %02X\n", SCSIStatus, cdrom[cdrom_id].sense[2], cdrom[cdrom_id].sense[12], cdrom[cdrom_id].sense[13]);
-		
-		if (BuslogicRequests->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES ||
-			BuslogicRequests->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES)
+		BuslogicLog("Request complete\n");
+
+		if (BuslogicRequests->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES)
 		{
 			temp = BuslogicGetDataLength(BuslogicRequests);
-			temp -= SCSIDevices[Id].InitLength;
+			temp -= SCSIDevices[Id][Lun].InitLength;
 
 			if (BuslogicRequests->Is24bit)
 			{
@@ -1576,6 +1635,19 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer, 
 				BuslogicRequests->CmdBlock.new.DataLength = temp;
 				BuslogicLog("32-bit Residual data length for reading: %d\n", BuslogicRequests->CmdBlock.new.DataLength);
 			}
+		}
+		else if (BuslogicRequests->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES)
+		{
+			if (BuslogicRequests->Is24bit)
+			{
+				U32_TO_ADDR(BuslogicRequests->CmdBlock.old.DataLength, 0);
+				BuslogicLog("24-bit Residual data length for reading: %d\n", ADDR_TO_U32(BuslogicRequests->CmdBlock.old.DataLength));
+			}
+			else
+			{
+				BuslogicRequests->CmdBlock.new.DataLength = 0;
+				BuslogicLog("32-bit Residual data length for reading: %d\n", BuslogicRequests->CmdBlock.new.DataLength);
+			}			
 		}
 		
 		if (SCSIStatus == SCSI_STATUS_OK)
@@ -1593,7 +1665,8 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer, 
 	{
 		BuslogicMailboxIn(Buslogic, CCBPointer, &BuslogicRequests->CmdBlock, CCB_SELECTION_TIMEOUT, SCSI_STATUS_OK, MBI_ERROR);
 		
-		if (Mailbox32->u.out.ActionCode == MBO_START)
+		// if (Mailbox32->u.out.ActionCode == MBO_START && Lun == 0)
+		if (Mailbox32->u.out.ActionCode == MBO_START && Lun <= 7)
 			BuslogicStartMailbox(Buslogic);
 	}
 }
@@ -1665,11 +1738,11 @@ static void BuslogicStartMailbox(Buslogic_t *Buslogic)
 	}
 }
 
-void BuslogicCommandCallback(int Id, void *p)
+void BuslogicCommandCallback(int id, int lun, void *p)
 {
 	Buslogic_t *Buslogic = (Buslogic_t *)p;
 	
-	SCSICallback[Id] = 0;
+	SCSICallback[id][lun] = 0;
 	if (Buslogic->MailboxCount)
 	{
 		BuslogicStartMailbox(Buslogic);
@@ -1678,22 +1751,22 @@ void BuslogicCommandCallback(int Id, void *p)
 
 void BuslogicCommandCallback0(void *p)
 {
-	BuslogicCommandCallback(cdrom_drives[0].scsi_device_id, p);
+	BuslogicCommandCallback(cdrom_drives[0].scsi_device_id, cdrom_drives[0].scsi_device_lun, p);
 }
 
 void BuslogicCommandCallback1(void *p)
 {
-	BuslogicCommandCallback(cdrom_drives[1].scsi_device_id, p);
+	BuslogicCommandCallback(cdrom_drives[1].scsi_device_id, cdrom_drives[1].scsi_device_lun, p);
 }
 
 void BuslogicCommandCallback2(void *p)
 {
-	BuslogicCommandCallback(cdrom_drives[2].scsi_device_id, p);
+	BuslogicCommandCallback(cdrom_drives[2].scsi_device_id, cdrom_drives[2].scsi_device_lun, p);
 }
 
 void BuslogicCommandCallback3(void *p)
 {
-	BuslogicCommandCallback(cdrom_drives[3].scsi_device_id, p);
+	BuslogicCommandCallback(cdrom_drives[3].scsi_device_id, cdrom_drives[3].scsi_device_lun, p);
 }
 
 void *BuslogicInit()
@@ -1709,25 +1782,25 @@ void *BuslogicInit()
 	BuslogicLog("Building CD-ROM map...\n");
 	build_scsi_cdrom_map();
 
-	if (buslogic_scsi_drive_is_cdrom(cdrom_drives[0].scsi_device_id))
+	if (buslogic_scsi_drive_is_cdrom(cdrom_drives[0].scsi_device_id, cdrom_drives[0].scsi_device_lun))
 	{
-		SCSIDevices[cdrom_drives[0].scsi_device_id].LunType == SCSI_CDROM;
-		timer_add(BuslogicCommandCallback0, &SCSICallback[cdrom_drives[0].scsi_device_id], &SCSICallback[cdrom_drives[0].scsi_device_id], Buslogic);
+		SCSIDevices[cdrom_drives[0].scsi_device_id][cdrom_drives[0].scsi_device_lun].LunType == SCSI_CDROM;
+		timer_add(BuslogicCommandCallback0, &SCSICallback[cdrom_drives[0].scsi_device_id][cdrom_drives[0].scsi_device_lun], &SCSICallback[cdrom_drives[0].scsi_device_id][cdrom_drives[0].scsi_device_lun], Buslogic);
 	}
-	if (buslogic_scsi_drive_is_cdrom(cdrom_drives[1].scsi_device_id))
+	if (buslogic_scsi_drive_is_cdrom(cdrom_drives[1].scsi_device_id, cdrom_drives[1].scsi_device_lun))
 	{
-		SCSIDevices[cdrom_drives[1].scsi_device_id].LunType == SCSI_CDROM;
-		timer_add(BuslogicCommandCallback1, &SCSICallback[cdrom_drives[1].scsi_device_id], &SCSICallback[cdrom_drives[1].scsi_device_id], Buslogic);
+		SCSIDevices[cdrom_drives[1].scsi_device_id][cdrom_drives[1].scsi_device_lun].LunType == SCSI_CDROM;
+		timer_add(BuslogicCommandCallback1, &SCSICallback[cdrom_drives[1].scsi_device_id][cdrom_drives[1].scsi_device_lun], &SCSICallback[cdrom_drives[1].scsi_device_id][cdrom_drives[1].scsi_device_lun], Buslogic);
 	}
-	if (buslogic_scsi_drive_is_cdrom(cdrom_drives[2].scsi_device_id))
+	if (buslogic_scsi_drive_is_cdrom(cdrom_drives[2].scsi_device_id, cdrom_drives[2].scsi_device_lun))
 	{
-		SCSIDevices[cdrom_drives[2].scsi_device_id].LunType == SCSI_CDROM;
-		timer_add(BuslogicCommandCallback2, &SCSICallback[cdrom_drives[2].scsi_device_id], &SCSICallback[cdrom_drives[2].scsi_device_id], Buslogic);
+		SCSIDevices[cdrom_drives[2].scsi_device_id][cdrom_drives[2].scsi_device_lun].LunType == SCSI_CDROM;
+		timer_add(BuslogicCommandCallback2, &SCSICallback[cdrom_drives[2].scsi_device_id][cdrom_drives[2].scsi_device_lun], &SCSICallback[cdrom_drives[2].scsi_device_id][cdrom_drives[2].scsi_device_lun], Buslogic);
 	}
-	if (buslogic_scsi_drive_is_cdrom(cdrom_drives[3].scsi_device_id))
+	if (buslogic_scsi_drive_is_cdrom(cdrom_drives[3].scsi_device_id, cdrom_drives[3].scsi_device_lun))
 	{
-		SCSIDevices[cdrom_drives[3].scsi_device_id].LunType == SCSI_CDROM;
-		timer_add(BuslogicCommandCallback3, &SCSICallback[cdrom_drives[3].scsi_device_id], &SCSICallback[cdrom_drives[3].scsi_device_id], Buslogic);
+		SCSIDevices[cdrom_drives[3].scsi_device_id][cdrom_drives[3].scsi_device_lun].LunType == SCSI_CDROM;
+		timer_add(BuslogicCommandCallback3, &SCSICallback[cdrom_drives[3].scsi_device_id][cdrom_drives[3].scsi_device_lun], &SCSICallback[cdrom_drives[3].scsi_device_id][cdrom_drives[3].scsi_device_lun], Buslogic);
 	}
 	
 	BuslogicLog("Buslogic on port 0x%04X\n", scsi_base);

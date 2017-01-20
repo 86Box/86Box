@@ -415,6 +415,8 @@ enum
         ROM_THOR,	/*Intel Advanced/ATX / 430FX / AMI BIOS / National Semiconductors PC87306*/
         ROM_MRTHOR,	/*Intel Advanced/ATX / 430FX / MR.BIOS / National Semiconductors PC87306*/
         ROM_POWERMATE_V,/*NEC PowerMate V / 430FX / Phoenix BIOS / SMC FDC37C665*/
+
+        ROM_IBMPS1_2121_ISA,/*IBM PS/1 Model 2121 with ISA expansion bus*/
 	
         ROM_MAX
 };

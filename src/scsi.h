@@ -188,7 +188,7 @@ int MediaPresent;
 
 extern uint8_t SCSIStatus;
 extern uint8_t SCSIPhase;
-extern int SCSICallback[16];
+extern int SCSICallback[16][8];
 extern uint8_t scsi_cdrom_id;
 
 struct
@@ -221,14 +221,13 @@ extern int prev_status;
 
 struct
 {	
-	uint32_t pos;
 	uint8_t CmdBuffer[390144];
 	uint32_t CmdBufferLength;
 	int LunType;
 	uint32_t InitLength;
-} SCSIDevices[16];
+} SCSIDevices[16][8];
 
-extern void SCSIReset(uint8_t Id);
+extern void SCSIReset(uint8_t id, uint8_t lun);
 
 uint32_t SCSICDROMModeSense(uint8_t *buf, uint32_t pos, uint8_t type);
 uint8_t SCSICDROMSetProfile(uint8_t *buf, uint8_t *index, uint16_t profile);

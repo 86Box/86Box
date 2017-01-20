@@ -146,6 +146,7 @@ MODEL models[] =
         {"DELL System 200",     ROM_DELL200,     { "",      cpus_286,     "",    NULL,         "",      NULL},         0, MODEL_AT,   1,  16, 1,        at_init, NULL},
         {"IBM PS/1 model 2011", ROM_IBMPS1_2011, { "",      cpus_ps1_m2011,"",   NULL,         "",      NULL},         1, MODEL_AT|MODEL_PS2,   1,  16, 1, ps1_m2011_init, NULL},
         {"IBM PS/1 model 2121", ROM_IBMPS1_2121, { "Intel", cpus_i386,    "",    NULL,         "",      NULL},         1, MODEL_AT|MODEL_PS2,   1,  16, 1, ps1_m2121_init, NULL},
+        {"IBM PS/1 m.2121+ISA", ROM_IBMPS1_2121_ISA, { "Intel", cpus_i386,    "",    NULL,         "",      NULL},         1, MODEL_AT|MODEL_PS2,   1,  16, 1, ps1_m2121_init, NULL},
         {"Compaq Deskpro 386",  ROM_DESKPRO_386, { "Intel", cpus_i386,    "AMD", cpus_Am386,   "Cyrix", cpus_486SDLC}, 0, MODEL_AT,   1,  15, 1,     deskpro386_init, NULL},
         {"Acer 386SX25/N",      ROM_ACER386,     { "Intel", cpus_acer,    "",    NULL,         "",      NULL},         1, MODEL_AT|MODEL_PS2,   1,  16, 1,   at_acer386sx_init, NULL},
         {"DTK 386SX clone",     ROM_DTK386,      { "Intel", cpus_i386,    "AMD", cpus_Am386,   "Cyrix", cpus_486SDLC}, 0, MODEL_AT,   1,  16, 1,        at_neat_init, NULL},
