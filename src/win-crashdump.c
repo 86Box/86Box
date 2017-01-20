@@ -5,6 +5,7 @@
 */
 #define _WIN32_WINNT 0x0501
 #include <windows.h>
+#include <psapi.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -13,6 +14,7 @@
 
 PVOID hExceptionHandler;
 char* ExceptionHandlerBuffer;
+#define ExceptionHandlerBufferSize (10240)
 
 
 LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo) {
@@ -28,10 +30,30 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo) {
 	// So, the program is about to crash. Oh no what do?
 	// Let's create a crash dump file as a debugging-aid.
 	
-	// First, what would a good filename be? It should contain the current date and time so as to be (hopefully!) unique.
+	// First, get the path to 86Box.exe.
+	char* CurrentBufferPointer;
+	GetModuleFileName(NULL,ExceptionHandlerBuffer,ExceptionHandlerBufferSize);
+	if (GetLastError() != ERROR_SUCCESS) {
+		// Could not get the full path of 86Box.exe. Just create the file in the current directory.
+		CurrentBufferPointer = ExceptionHandlerBuffer;
+	} else {
+		// Walk through the string backwards looking for the last backslash, so as to remove the "86Box.exe" filename from the string.
+		CurrentBufferPointer = &ExceptionHandlerBuffer[strlen(ExceptionHandlerBuffer)];
+		for (; CurrentBufferPointer > ExceptionHandlerBuffer; CurrentBufferPointer--) {
+			if (CurrentBufferPointer[0] == '\\') {
+				// Found the backslash, null terminate the string after it.
+				CurrentBufferPointer[1] = 0;
+				break;
+			}
+		}
+		
+		CurrentBufferPointer = &ExceptionHandlerBuffer[strlen(ExceptionHandlerBuffer)];
+	}
+	
+	// What would a good filename be? It should contain the current date and time so as to be (hopefully!) unique.
 	SYSTEMTIME SystemTime;
 	GetSystemTime(&SystemTime);
-	sprintf(ExceptionHandlerBuffer,
+	sprintf(CurrentBufferPointer,
 		"86box-%d%02d%02d-%02d-%02d-%02d-%03d.dmp",
 		SystemTime.wYear,
 		SystemTime.wMonth,
@@ -61,22 +83,63 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo) {
 	
 	// Now the file is open, let's write the data we were passed out in a human-readable format.
 	
+	// Let's get the name of the module where the exception occured.
+	HMODULE hMods[1024];
+	MODULEINFO modInfo;
+	HMODULE ipModule = 0;
+	DWORD cbNeeded;
+	// Try to get a list of all loaded modules.
+	if (EnumProcessModules(GetCurrentProcess(), hMods, sizeof(hMods), &cbNeeded)) {
+		// The list was obtained, walk through each of the modules.
+		for (DWORD i = 0; i < (cbNeeded / sizeof(HMODULE)); i++) {
+			// For each module, get the module information (base address, size, entry point)
+			GetModuleInformation(GetCurrentProcess(), hMods[i], &modInfo, sizeof(MODULEINFO));
+			// If the exception address is located in the range of where this module is loaded...
+			if (
+				(ExceptionInfo->ExceptionRecord->ExceptionAddress >= modInfo.lpBaseOfDll) &&
+				(ExceptionInfo->ExceptionRecord->ExceptionAddress < (modInfo.lpBaseOfDll + modInfo.SizeOfImage))
+			) {
+				// ...this is the module we're looking for!
+				ipModule = hMods[i];
+				break;
+			}
+		}
+	}
+	
+	// Start to put the crash-dump string into the buffer.
+	
 	sprintf(ExceptionHandlerBuffer,
 		"86Box version %s crashed on %d-%02d-%02d %02d:%02d:%02d.%03d\r\n\r\n"
 		""
 		"Exception details:\r\n"
 		"Exception NTSTATUS code: 0x%08x\r\n"
-		"Occured at address: 0x%p\r\n"
-		"Number of parameters: %d\r\n"
-		"Exception parameters: ",
+		"Occured at address: 0x%p",
 		emulator_version, SystemTime.wYear, SystemTime.wMonth, SystemTime.wDay, SystemTime.wHour, SystemTime.wMinute, SystemTime.wSecond, SystemTime.wMilliseconds,
 		
 		ExceptionInfo->ExceptionRecord->ExceptionCode,
-		ExceptionInfo->ExceptionRecord->ExceptionAddress,
+		ExceptionInfo->ExceptionRecord->ExceptionAddress);
+		
+	
+	// If we found the module that the exception occured in, get the full path to the module the exception occured at and include it.
+	CurrentBufferPointer = &ExceptionHandlerBuffer[strlen(ExceptionHandlerBuffer)];
+	if (ipModule != 0) {
+		sprintf(CurrentBufferPointer," [");
+		GetModuleFileName(ipModule,&CurrentBufferPointer[2],ExceptionHandlerBufferSize - strlen(ExceptionHandlerBuffer));
+		if (GetLastError() == ERROR_SUCCESS) {
+			CurrentBufferPointer = &ExceptionHandlerBuffer[strlen(ExceptionHandlerBuffer)];
+			sprintf(CurrentBufferPointer,"]");
+			CurrentBufferPointer += 1;
+		}
+	}
+	
+	// Continue to create the crash-dump string.
+	sprintf(CurrentBufferPointer,
+		"\r\n"
+		"Number of parameters: %d\r\n"
+		"Exception parameters: ",
 		ExceptionInfo->ExceptionRecord->NumberParameters);
 	
-	char* CurrentBufferPointer;
-	
+	// Add the exception parameters to the crash-dump string.
 	for (int i = 0; i < ExceptionInfo->ExceptionRecord->NumberParameters; i++) {
 		CurrentBufferPointer = &ExceptionHandlerBuffer[strlen(ExceptionHandlerBuffer)];
 		sprintf(CurrentBufferPointer,"0x%p ",ExceptionInfo->ExceptionRecord->ExceptionInformation[i]);
@@ -87,6 +150,7 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo) {
 	PCONTEXT Registers = ExceptionInfo->ContextRecord;
 	
 	#if defined(__i386__) && !defined(__x86_64)
+	// This binary is being compiled for x86, include a register dump.
 	sprintf(CurrentBufferPointer,
 		"\r\n"
 		"Register dump:\r\n"
@@ -98,6 +162,7 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo) {
 	sprintf(CurrentBufferPointer,"\r\n");
 	#endif
 	
+	// The crash-dump string has been created, write it to disk.
 	WriteFile(hDumpFile,
 		ExceptionHandlerBuffer,
 		strlen(ExceptionHandlerBuffer),
@@ -114,7 +179,7 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo) {
 
 void InitCrashDump() {
 	// An exception handler should not allocate memory, so allocate 10kb for it to use if it gets called, an amount which should be more than enough.
-	ExceptionHandlerBuffer = malloc(10240);
+	ExceptionHandlerBuffer = malloc(ExceptionHandlerBufferSize);
 	// Register the exception handler. Zero first argument means this exception handler gets called last, therefore, crash dump is only made, when a crash is going to happen.
 	hExceptionHandler = AddVectoredExceptionHandler(0,MakeCrashDump);
 }
