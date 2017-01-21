@@ -138,11 +138,11 @@ int idecallback[4] = {0, 0, 0, 0};
 
 int cur_ide[4];
 
-int ide_do_log = 0;
+int ide_do_log = 1;
 
 void ide_log(const char *format, ...)
 {
-#ifdef ENABLE_IDE_LOG
+// #ifdef ENABLE_IDE_LOG
    if (ide_do_log)
    {
 		va_list ap;
@@ -151,7 +151,7 @@ void ide_log(const char *format, ...)
 		va_end(ap);
 		fflush(stdout);
    }
-#endif
+// #endif
 }
 
 uint8_t getstat(IDE *ide) { return ide->atastat; }
@@ -565,6 +565,8 @@ void ide_set_signature(IDE *ide)
 	if (ide_drive_is_cdrom(ide))
 	{
 		cdrom_set_signature(cdrom_id);
+		ide->secount = cdrom[cdrom_id].phase;
+		ide->cylinder = cdrom[cdrom_id].request_length;
 	}
 	else
 	{
@@ -865,19 +867,13 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			{
 				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].features = val;
 			}
-			else
-			{
-				ide->cylprecomp = val;
-			}
+			ide->cylprecomp = val;
 
 			if (ide_drive_is_cdrom(ide_other))
 			{
 				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].features = val;
 			}
-			else
-			{
-				ide_other->cylprecomp = val;
-			}
+			ide_other->cylprecomp = val;
 			return;
 
         case 0x1F2: /* Sector count */
@@ -886,20 +882,14 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				ide_log("Sector count write: %i\n", val);
 				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].phase = val;
 			}
-			else
-			{
-				ide->secount = val;
-			}
+			ide->secount = val;
 
 			if (ide_drive_is_cdrom(ide_other))
 			{
 				ide_log("Other sector count write: %i\n", val);
 				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].phase = val;
 			}
-			else
-			{
-				ide_other->secount = val;
-			}
+			ide_other->secount = val;
 			return;
 
         case 0x1F3: /* Sector */
@@ -915,22 +905,16 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length &= 0xFF00;
 				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length |= val;
 			}
-			else
-			{
-				ide->cylinder = (ide->cylinder & 0xFF00) | val;
-				ide->lba_addr = (ide->lba_addr & 0xFFF00FF) | (val << 8);
-			}
+			ide->cylinder = (ide->cylinder & 0xFF00) | val;
+			ide->lba_addr = (ide->lba_addr & 0xFFF00FF) | (val << 8);
 
 			if (ide_drive_is_cdrom(ide_other))
 			{
 				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].request_length &= 0xFF00;
 				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].request_length |= val;
 			}
-			else
-			{
-				ide_other->cylinder = (ide_other->cylinder&0xFF00) | val;
-				ide_other->lba_addr = (ide_other->lba_addr&0xFFF00FF) | (val << 8);
-			}
+			ide_other->cylinder = (ide_other->cylinder&0xFF00) | val;
+			ide_other->lba_addr = (ide_other->lba_addr&0xFFF00FF) | (val << 8);
 			return;
 
         case 0x1F5: /* Cylinder high */
@@ -939,22 +923,16 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length &= 0xFF;
 				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length |= (val << 8);
 			}
-			else
-			{
-				ide->cylinder = (ide->cylinder & 0xFF) | (val << 8);
-				ide->lba_addr = (ide->lba_addr & 0xF00FFFF) | (val << 16);
-			}
+			ide->cylinder = (ide->cylinder & 0xFF) | (val << 8);
+			ide->lba_addr = (ide->lba_addr & 0xF00FFFF) | (val << 16);
 
 			if (ide_drive_is_cdrom(ide_other))
 			{
 				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].request_length &= 0xFF;
 				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].request_length |= (val << 8);
 			}
-			else
-			{
-				ide_other->cylinder = (ide_other->cylinder & 0xFF) | (val << 8);
-				ide_other->lba_addr = (ide_other->lba_addr & 0xF00FFFF) | (val << 16);
-			}
+			ide_other->cylinder = (ide_other->cylinder & 0xFF) | (val << 8);
+			ide_other->lba_addr = (ide_other->lba_addr & 0xF00FFFF) | (val << 16);
 			return;
 
         case 0x1F6: /* Drive/Head */
@@ -979,6 +957,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 						cdrom[atapi_cdrom_drives[ide->channel]].phase = 1;
 						cdrom[atapi_cdrom_drives[ide->channel]].request_length = 0xEB14;
 						cdrom[atapi_cdrom_drives[ide->channel]].callback = 0;
+						ide->cylinder = 0xEB14;
 					}
 					if (ide_drive_is_cdrom(ide_other))
 					{
@@ -987,6 +966,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 						cdrom[atapi_cdrom_drives[ide_other->channel]].phase = 1;
 						cdrom[atapi_cdrom_drives[ide_other->channel]].request_length = 0xEB14;
 						cdrom[atapi_cdrom_drives[ide_other->channel]].callback = 0;
+						ide->cylinder = 0xEB14;
 					}
 
 					idecallback[ide_board] = 0;
@@ -1013,6 +993,8 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			{
 				return;
 			}
+
+#if 0
 			if (ide_drive_is_cdrom(ide))
 			{
 #if 0
@@ -1032,13 +1014,18 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 					case WIN_STANDBYNOW1:
 						break;
 					default:
+						ide_irq_lower(ide);
+						ide->command=val;
 						val = 0xFF;
+						goto skip_to_command_processing;
 						break;
 				}
 			}
+#endif
 			ide_irq_lower(ide);
 			ide->command=val;
-                
+
+skip_to_command_processing:			
 			// ide_log("New IDE command - %02X %i %i\n",ide->command,cur_ide[ide_board],ide_board);
 			ide->error=0;
 			if (ide_drive_is_cdrom(ide))
@@ -1259,9 +1246,12 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 					}
 					else
 					{
-						ide->pos=0;
-						ide->secount = 1;
-						ide->atastat = READY_STAT | DRQ_STAT |(ide->atastat&ERR_STAT);
+                        ide->packetstatus = ATAPI_STATUS_IDLE;
+                        ide->atastat = BUSY_STAT;
+                        timer_process();
+                        idecallback[ide_board]=1;//30*IDE_TIME;
+                        timer_update_outstanding();
+                        ide->pos=0;
 					}
 					return;
                         
@@ -1289,7 +1279,7 @@ ide_bad_command:
 				timer_process();
 				if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 500*IDE_TIME;
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 0;
 				}
 				idecallback[ide_board]=500*IDE_TIME;
 				timer_update_outstanding();
@@ -1501,14 +1491,7 @@ uint8_t readide(int ide_board, uint16_t addr)
 			break;
 
 		case 0x1F6: /* Drive/Head */
-			if (ide_drive_is_cdrom(ide))
-			{
-				temp = (uint8_t)(((cur_ide[ide_board] & 1) ? 0x10 : 0) | 0xa0);
-			}
-			else
-			{
-				temp = (uint8_t)(ide->head | ((cur_ide[ide_board] & 1) ? 0x10 : 0) | (ide->lba ? 0x40 : 0) | 0xa0);
-			}
+			temp = (uint8_t)(ide->head | ((cur_ide[ide_board] & 1) ? 0x10 : 0) | (ide->lba ? 0x40 : 0) | 0xa0);
 			break;
 
 		/* For ATAPI: Bit 5 is DMA ready, but without overlapped or interlaved DMA, it is
@@ -1616,6 +1599,7 @@ void callbackide(int ide_board)
 			cdrom[cdrom_id].error = 1;
 			cdrom[cdrom_id].phase = 1;
 			cdrom[cdrom_id].request_length=0xEB14;
+			ide->cylinder = 0xEB14;
 			if (cdrom_drives[cdrom_id].handler->stop)
 			{
 				cdrom_drives[cdrom_id].handler->stop(cdrom_id);
@@ -1632,6 +1616,7 @@ void callbackide(int ide_board)
 			cdrom[cdrom_id].error = 1;
 			cdrom[cdrom_id].phase = 1;
 			cdrom[cdrom_id].request_length=0xEB14;
+			ide_other->cylinder = 0xEB14;
 			if (cdrom_drives[cdrom_id].handler->stop)
 			{
 				cdrom_drives[cdrom_id].handler->stop(cdrom_id);
@@ -1659,6 +1644,9 @@ void callbackide(int ide_board)
 
 			if (ide_drive_is_cdrom(ide))
 			{
+				cdrom[cdrom_id].status = READY_STAT | DSC_STAT;
+				cdrom[cdrom_id].error = 1;
+				cdrom[cdrom_id].phase = 1;
 				cdrom_reset(cdrom_id);
 			}
 			ide_irq_raise(ide);
