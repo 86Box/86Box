@@ -1551,6 +1551,84 @@ void cdrom_reset(uint8_t id)
 	cdrom[id].unit_attention = 0;
 }
 
+void cdrom_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
+{				
+	/*Will return 18 bytes of 0*/
+	if (alloc_length != 0)
+	{
+		memset(buffer, 0, alloc_length);
+		memcpy(buffer, cdrom[id].sense, alloc_length);
+	}
+
+	buffer[0] = 0x70;
+
+	if ((cdrom_sense_key > 0) && ((cdrom[id].cd_status < CD_STATUS_PLAYING) || (cdrom[id].cd_status == CD_STATUS_STOPPED)) && cdrom[id].completed)
+	{
+		buffer[2]=SENSE_ILLEGAL_REQUEST;
+		buffer[12]=ASC_AUDIO_PLAY_OPERATION;
+		buffer[13]=ASCQ_AUDIO_PLAY_OPERATION_COMPLETED;
+	}
+	else if ((cdrom_sense_key == 0) && (cdrom[id].cd_status >= CD_STATUS_PLAYING) && (cdrom[id].cd_status != CD_STATUS_STOPPED))
+	{
+		buffer[2]=SENSE_ILLEGAL_REQUEST;
+		buffer[12]=ASC_AUDIO_PLAY_OPERATION;
+		buffer[13]=(cdrom[id].cd_status == CD_STATUS_PLAYING) ? ASCQ_AUDIO_PLAY_OPERATION_IN_PROGRESS : ASCQ_AUDIO_PLAY_OPERATION_PAUSED;
+	}
+	else
+	{
+		if (cdrom[id].unit_attention)
+		{
+			buffer[2]=SENSE_UNIT_ATTENTION;
+			buffer[12]=ASC_MEDIUM_MAY_HAVE_CHANGED;
+			buffer[13]=0;
+		}
+	}
+
+	// cdrom_log("CD-ROM %i: Reporting sense: %02X %02X %02X\n", id, cdbufferb[2], cdbufferb[12], cdbufferb[13]);
+
+	if (buffer[2] == SENSE_UNIT_ATTENTION)
+	{
+		/* If the last remaining sense is unit attention, clear
+		   that condition. */
+		cdrom[id].unit_attention = 0;
+	}
+
+	/* Clear the sense stuff as per the spec. */
+	cdrom_sense_clear(id, GPCMD_REQUEST_SENSE, 0);
+	break;
+}
+
+void cdrom_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
+{
+	int ready = 0;
+
+	if (cdrom_drives[id].handler->medium_changed(id))
+	{
+		// cdrom_log("CD-ROM %i: Medium has changed...\n", id);
+		cdrom_insert(id);
+	}
+
+	ready = cdrom_drives[id].handler->ready(id);
+
+	if (!ready && cdrom[id].unit_attention)
+	{
+		/* If the drive is not ready, there is no reason to keep the
+		   UNIT ATTENTION condition present, as we only use it to mark
+		   disc changes. */
+		cdrom[id].unit_attention = 0;
+	}
+	
+	/* If the UNIT ATTENTION condition is set and the command does not allow
+		execution under it, error out and report the condition. */
+	if (cdrom[id].unit_attention == 1)
+	{
+		// cdrom_log("CD-ROM %i: Unit attention now 2\n", id);
+		cdrom[id].unit_attention = 2;
+	}
+
+	cdrom_request_sense(id, buffer, alloc_length);
+}
+
 void cdrom_command(uint8_t id, uint8_t *cdb)
 {
 	uint8_t *cdbufferb = (uint8_t *) cdrom[id].buffer;
@@ -1650,54 +1728,9 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 			cdrom_seek(id, 0);
 			break;
 
-		case GPCMD_REQUEST_SENSE: /* Used by ROS 4+ */
-			alloc_length = cdb[4];
-			temp_command = cdb[0];
-				
-			/*Will return 18 bytes of 0*/
-			if (alloc_length != 0)
-			{
-				memset(cdbufferb, 0, alloc_length);
-				memcpy(cdbufferb, cdrom[id].sense, alloc_length);
-			}
-
-			cdbufferb[0] = 0x70;
-
-			if ((cdrom_sense_key > 0) && ((cdrom[id].cd_status < CD_STATUS_PLAYING) || (cdrom[id].cd_status == CD_STATUS_STOPPED)) && completed)
-			{
-				cdbufferb[2]=SENSE_ILLEGAL_REQUEST;
-				cdbufferb[12]=ASC_AUDIO_PLAY_OPERATION;
-				cdbufferb[13]=ASCQ_AUDIO_PLAY_OPERATION_COMPLETED;
-			}
-			else if ((cdrom_sense_key == 0) && (cdrom[id].cd_status >= CD_STATUS_PLAYING) && (cdrom[id].cd_status != CD_STATUS_STOPPED))
-			{
-				cdbufferb[2]=SENSE_ILLEGAL_REQUEST;
-				cdbufferb[12]=ASC_AUDIO_PLAY_OPERATION;
-				cdbufferb[13]=(cdrom[id].cd_status == CD_STATUS_PLAYING) ? ASCQ_AUDIO_PLAY_OPERATION_IN_PROGRESS : ASCQ_AUDIO_PLAY_OPERATION_PAUSED;
-			}
-			else
-			{
-				if (cdrom[id].unit_attention)
-				{
-					cdbufferb[2]=SENSE_UNIT_ATTENTION;
-					cdbufferb[12]=ASC_MEDIUM_MAY_HAVE_CHANGED;
-					cdbufferb[13]=0;
-				}
-			}
-
-			// cdrom_log("CD-ROM %i: Reporting sense: %02X %02X %02X\n", id, cdbufferb[2], cdbufferb[12], cdbufferb[13]);
-
-			if (cdbufferb[2] == SENSE_UNIT_ATTENTION)
-			{
-				/* If the last remaining sense is unit attention, clear
-				   that condition. */
-				cdrom[id].unit_attention = 0;
-			}
-
-			/* Clear the sense stuff as per the spec. */
-			cdrom_sense_clear(id, temp_command, 0);
-
-			cdrom_data_command_finish(id, 18, 18, alloc_length, 0);
+		case GPCMD_REQUEST_SENSE:
+			cdrom_request_sense(id, cdbufferb, cdb[4]);
+			cdrom_data_command_finish(id, 18, 18, cdb[4], 0);
 			break;
 
 		case GPCMD_SET_SPEED:

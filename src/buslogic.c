@@ -1609,6 +1609,10 @@ static void BuslogicSenseBufferFree(BuslogicRequests_t *BuslogicRequests, int Co
 {
 	uint8_t SenseLength = BuslogicConvertSenseLength(BuslogicRequests->CmdBlock.common.RequestSenseLength);	
 	uint8_t cdrom_id = scsi_cdrom_drives[BuslogicRequests->TargetID][BuslogicRequests->LUN];
+
+	uint8_t temp_sense[256];
+
+	cdrom_request_sense_for_scsi(cdrom_id, temp_sense, SenseLength);
 	
 	if (SenseLength && Copy)
 	{
@@ -1632,7 +1636,8 @@ static void BuslogicSenseBufferFree(BuslogicRequests_t *BuslogicRequests, int Co
 		if (SenseBufferAddress)
 		{
 			BuslogicLog("BuslogicSenseBufferFree(): Writing %i bytes at %08X\n", SenseLength, SenseBufferAddress);
-			DMAPageWrite(SenseBufferAddress, cdrom[cdrom_id].sense, SenseLength);
+			DMAPageWrite(SenseBufferAddress, temp_sense, SenseLength);
+			BuslogicLog("First 8 bytes of written sense data: %02X %02X %02X\n", temp_sense[2], temp_sense[12], temp_sense[13]);
 		}
 	}
 }

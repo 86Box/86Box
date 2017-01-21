@@ -193,6 +193,7 @@ void cdrom_write(uint8_t channel, uint32_t val, int length);
 int cdrom_lba_to_msf_accurate(int lba);
 void cdrom_reset(uint8_t id);
 void cdrom_set_signature(int id);
+void cdrom_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length);
 
 #define cdrom_sense_error cdrom[id].sense[0]
 #define cdrom_sense_key cdrom[id].sense[2]
