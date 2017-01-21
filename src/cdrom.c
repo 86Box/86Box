@@ -1609,7 +1609,6 @@ void cdrom_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
 
 	/* Clear the sense stuff as per the spec. */
 	cdrom_sense_clear(id, GPCMD_REQUEST_SENSE, 0);
-	break;
 }
 
 void cdrom_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
