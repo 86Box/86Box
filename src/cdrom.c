@@ -1551,7 +1551,7 @@ void cdrom_reset(uint8_t id)
 	cdrom[id].unit_attention = 0;
 }
 
-void cdrom_playing_completed(uint8_t id)
+int cdrom_playing_completed(uint8_t id)
 {
 	cdrom[id].prev_status = cdrom[id].cd_status;
 	cdrom[id].cd_status = cdrom_drives[id].handler->status(id);
