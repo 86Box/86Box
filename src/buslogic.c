@@ -1612,11 +1612,11 @@ static void BuslogicSenseBufferFree(BuslogicRequests_t *BuslogicRequests, int Co
 
 	uint8_t temp_sense[256];
 
-	cdrom_request_sense_for_scsi(cdrom_id, temp_sense, SenseLength);
-	
 	if (SenseLength && Copy)
 	{
 		uint32_t SenseBufferAddress;
+
+		cdrom_request_sense_for_scsi(cdrom_id, temp_sense, SenseLength);
 		
 		/*The sense address, in 32-bit mode, is located in the Sense Pointer of the CCB, but in 
 		24-bit mode, it is located at the end of the Command Descriptor Block. */

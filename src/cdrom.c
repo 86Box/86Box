@@ -1551,6 +1551,20 @@ void cdrom_reset(uint8_t id)
 	cdrom[id].unit_attention = 0;
 }
 
+void cdrom_playing_completed(uint8_t id)
+{
+	cdrom[id].prev_status = cdrom[id].cd_status;
+	cdrom[id].cd_status = cdrom_drives[id].handler->status(id);
+	if (((cdrom[id].prev_status == CD_STATUS_PLAYING) || (cdrom[id].prev_status == CD_STATUS_PAUSED)) && ((cdrom[id].cd_status != CD_STATUS_PLAYING) && (cdrom[id].cd_status != CD_STATUS_PAUSED)))
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
 void cdrom_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
 {				
 	/*Will return 18 bytes of 0*/
@@ -1562,7 +1576,7 @@ void cdrom_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
 
 	buffer[0] = 0x70;
 
-	if ((cdrom_sense_key > 0) && ((cdrom[id].cd_status < CD_STATUS_PLAYING) || (cdrom[id].cd_status == CD_STATUS_STOPPED)) && cdrom[id].completed)
+	if ((cdrom_sense_key > 0) && ((cdrom[id].cd_status < CD_STATUS_PLAYING) || (cdrom[id].cd_status == CD_STATUS_STOPPED)) && cdrom_playing_completed(id))
 	{
 		buffer[2]=SENSE_ILLEGAL_REQUEST;
 		buffer[12]=ASC_AUDIO_PLAY_OPERATION;
@@ -1702,15 +1716,9 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 		return;
 	}
 
-	cdrom[id].prev_status = cdrom[id].cd_status;
-	cdrom[id].cd_status = cdrom_drives[id].handler->status(id);
-	if (((cdrom[id].prev_status == CD_STATUS_PLAYING) || (cdrom[id].prev_status == CD_STATUS_PAUSED)) && ((cdrom[id].cd_status != CD_STATUS_PLAYING) && (cdrom[id].cd_status != CD_STATUS_PAUSED)))
+	if (cdb[0] != GPCMD_REQUEST_SENSE)
 	{
-		completed = 1;
-	}
-	else
-	{
-		completed = 0;
+		completed = cdrom_playing_completed(id);
 	}
 
 	switch (cdb[0])
