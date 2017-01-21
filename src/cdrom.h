@@ -197,7 +197,7 @@ void cdrom_set_signature(int id);
 #define cdrom_sense_error cdrom[id].sense[0]
 #define cdrom_sense_key cdrom[id].sense[2]
 #define cdrom_asc cdrom[id].sense[12]
-#define cdrom_ascq cdrom[id].sense[12]
+#define cdrom_ascq cdrom[id].sense[13]
 #define cdrom_drive cdrom_drives[id].host_drive
 
 #endif
