@@ -929,6 +929,7 @@ static void cdrom_cmd_error(uint8_t id)
 	cdrom[id].phase = 3;
 	cdrom[id].packet_status = 0x80;
 	cdrom[id].callback = 50 * CDROM_TIME;
+	cdrom_log("CD-ROM %i: ERROR: %02X/%02X/%02X\n", id cdrom_sense_key, cdrom_asc, cdrom_ascq);
 }
 
 static void cdrom_unit_attention(uint8_t id)
@@ -942,6 +943,7 @@ static void cdrom_unit_attention(uint8_t id)
 	cdrom[id].phase = 3;
 	cdrom[id].packet_status = 0x80;
 	cdrom[id].callback = 50 * CDROM_TIME;
+	cdrom_log("CD-ROM %i: UNIT ATTENTION\n", id);
 }
 
 static void cdrom_not_ready(uint8_t id)
@@ -952,11 +954,10 @@ static void cdrom_not_ready(uint8_t id)
 	cdrom_cmd_error(id);
 }
 
-/* This is 05/00/00, based on what a Daemon Tools drive returns for such a case. */
-static void cdrom_illegal_lun(uint8_t id)
+static void cdrom_invalid_lun(uint8_t id)
 {
 	cdrom_sense_key = SENSE_ILLEGAL_REQUEST;
-	cdrom_asc = 0;
+	cdrom_asc = ASC_INV_LUN;
 	cdrom_ascq = 0;
 	cdrom_cmd_error(id);
 }
@@ -1427,7 +1428,7 @@ int cdrom_pre_execution_check(uint8_t id, uint8_t *cdb)
 		if (((cdrom[id].request_length >> 5) & 7) != cdrom_drives[id].scsi_device_lun)
 		{
 			cdrom_log("CD-ROM %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n", id, ((cdrom[id].request_length >> 5) & 7));
-			cdrom_illegal_lun(id);
+			cdrom_invalid_lun(id);
 			return 0;
 		}
 	}
