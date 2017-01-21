@@ -1637,7 +1637,7 @@ static void BuslogicSenseBufferFree(BuslogicRequests_t *BuslogicRequests, int Co
 		{
 			BuslogicLog("BuslogicSenseBufferFree(): Writing %i bytes at %08X\n", SenseLength, SenseBufferAddress);
 			DMAPageWrite(SenseBufferAddress, temp_sense, SenseLength);
-			BuslogicLog("First 8 bytes of written sense data: %02X %02X %02X\n", temp_sense[2], temp_sense[12], temp_sense[13]);
+			BuslogicLog("Sense data written to buffer: %02X %02X %02X\n", temp_sense[2], temp_sense[12], temp_sense[13]);
 		}
 	}
 }
