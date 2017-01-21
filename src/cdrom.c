@@ -909,13 +909,10 @@ static void cdrom_data_command_finish(uint8_t id, int len, int block_len, int al
 	cdrom_log("CD-ROM %i: Status: %i, cylinder %i, packet length: %i, position: %i, phase: %i\n", id, cdrom[id].packet_status, cdrom[id].request_length, cdrom[id].packet_len, cdrom[id].pos, cdrom[id].phase);
 }
 
-static void cdrom_sense_clear(int id, int command, int ignore_ua)
+static void cdrom_sense_clear(int id, int command)
 {
-	if ((cdrom_sense_key == SENSE_UNIT_ATTENTION) || ignore_ua)
-	{
-		cdrom[id].previous_command = command;
-		cdrom_sense_key = cdrom_asc = cdrom_ascq = 0;
-	}
+	cdrom[id].previous_command = command;
+	cdrom_sense_key = cdrom_asc = cdrom_ascq = 0;
 }
 
 static void cdrom_cmd_error(uint8_t id)
@@ -1469,15 +1466,16 @@ int cdrom_pre_execution_check(uint8_t id, uint8_t *cdb)
 		   disc changes. */
 		cdrom[id].unit_attention = 0;
 	}
-	
+
 	/* If the UNIT ATTENTION condition is set and the command does not allow
 		execution under it, error out and report the condition. */
 	if (cdrom[id].unit_attention == 1)
 	{
-		// cdrom_log("CD-ROM %i: Unit attention now 2\n", id);
-		cdrom[id].unit_attention = 2;
+		/* Only increment the unit attention phase if the command can not pass through it. */
 		if (!(cdrom_command_flags[cdb[0]] & ALLOW_UA))
 		{
+			// cdrom_log("CD-ROM %i: Unit attention now 2\n", id);
+			cdrom[id].unit_attention = 2;
 			cdrom_log("CD-ROM %i: UNIT ATTENTION: Command %02X not allowed to pass through\n", id, cdb[0]);
 			cdrom_unit_attention(id);
 			return 0;
@@ -1496,7 +1494,7 @@ int cdrom_pre_execution_check(uint8_t id, uint8_t *cdb)
 		the UNIT ATTENTION condition if it's set. */
 	if (cdb[0] != GPCMD_REQUEST_SENSE)
 	{
-		cdrom_sense_clear(id, cdb[0], 1);
+		cdrom_sense_clear(id, cdb[0]);
 	}
 
 	/* Next it's time for NOT READY. */
@@ -1608,7 +1606,7 @@ void cdrom_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
 	}
 
 	/* Clear the sense stuff as per the spec. */
-	cdrom_sense_clear(id, GPCMD_REQUEST_SENSE, 0);
+	cdrom_sense_clear(id, GPCMD_REQUEST_SENSE);
 }
 
 void cdrom_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
@@ -1630,7 +1628,7 @@ void cdrom_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_len
 		   disc changes. */
 		cdrom[id].unit_attention = 0;
 	}
-	
+
 	/* Do *NOT* advance the unit attention phase. */
 
 	cdrom_request_sense(id, buffer, alloc_length);
@@ -1732,10 +1730,6 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 		case GPCMD_REQUEST_SENSE:
 			/* If there's a unit attention condition and there's a buffered not ready, a standalone REQUEST SENSE
 			   should forget about the not ready, and report unit attention straight away. */
-			if (cdrom[id].unit_attention && (cdrom_sense_key == 2))
-			{
-				cdrom_sense_key = cdrom_asc = cdrom_ascq = 0;
-			}
 			cdrom_request_sense(id, cdbufferb, cdb[4]);
 			cdrom_data_command_finish(id, 18, 18, cdb[4], 0);
 			break;

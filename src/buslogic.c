@@ -521,7 +521,7 @@ int scsi_base = 0x330;
 int scsi_dma = 6;
 int scsi_irq = 11;
 
-int buslogic_do_log = 1;
+int buslogic_do_log = 0;
 
 int BuslogicCallback = 0;
 
@@ -711,11 +711,8 @@ static void BuslogicMailboxIn(Buslogic_t *Buslogic, uint32_t CCBPointer, CCBU *C
 		CmdBlock->common.TargetStatus = TargetStatus;		
 		
 		//Rewrite the CCB up to the CDB.
-		if ((CmdBlock->common.TargetStatus != 0x02) && (CCBPointer != 0))
-		{
-			BuslogicLog("CCB rewritten to the CDB (pointer %08X, length %i)\n", CCBPointer, offsetof(CCBC, Cdb));
-			DMAPageWrite(CCBPointer, CmdBlock, offsetof(CCBC, Cdb));
-		}
+		BuslogicLog("CCB rewritten to the CDB (pointer %08X, length %i)\n", CCBPointer, offsetof(CCBC, Cdb));
+		DMAPageWrite(CCBPointer, CmdBlock, offsetof(CCBC, Cdb));
 	}
 	else
 	{
@@ -806,7 +803,7 @@ void BuslogicDataBufferAllocate(BuslogicRequests_t *BuslogicRequests, int Is24bi
 	BuslogicLog("Data Buffer write: length %d, pointer 0x%04X\n", DataLength, DataPointer);	
 
 	if ((BuslogicRequests->CmdBlock.common.ControlByte != 0x03) && DataLength)
-	{		
+	{
 		if (BuslogicRequests->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND ||
 			BuslogicRequests->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES)
 		{
@@ -1595,10 +1592,16 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 
 static uint8_t BuslogicConvertSenseLength(uint8_t RequestSenseLength)
 {
+	BuslogicLog("Unconverted Request Sense length %i\n", RequestSenseLength);
+
 	if (RequestSenseLength == 0)
 		RequestSenseLength = 14;
-	else if ((RequestSenseLength >= 1) && (RequestSenseLength < 8))
+	else if (RequestSenseLength == 1)
 		RequestSenseLength = 0;
+	/* else if ((RequestSenseLength > 1) && (RequestSenseLength < 8))
+	{
+		if (!scsi_model)  RequestSenseLength = 0;
+	} */
 	
 	BuslogicLog("Request Sense length %i\n", RequestSenseLength);
 	
@@ -1607,7 +1610,7 @@ static uint8_t BuslogicConvertSenseLength(uint8_t RequestSenseLength)
 
 static void BuslogicSenseBufferFree(BuslogicRequests_t *BuslogicRequests, int Copy)
 {
-	uint8_t SenseLength = BuslogicConvertSenseLength(BuslogicRequests->CmdBlock.common.RequestSenseLength);	
+	uint8_t SenseLength = BuslogicConvertSenseLength(BuslogicRequests->CmdBlock.common.RequestSenseLength);
 	uint8_t cdrom_id = scsi_cdrom_drives[BuslogicRequests->TargetID][BuslogicRequests->LUN];
 
 	uint8_t temp_sense[256];
@@ -1873,7 +1876,7 @@ static int BuslogicProcessMailbox(Buslogic_t *Buslogic)
 	/* Check if the mailbox is actually loaded. */
 	if (Mailbox32.u.out.ActionCode == MBO_FREE)
 	{
-		BuslogicLog("No loaded mailbox left\n");
+		// BuslogicLog("No loaded mailbox left\n");
 
 		if (Buslogic->MailboxOutInterrupts)
 		{
