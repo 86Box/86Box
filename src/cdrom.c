@@ -929,7 +929,7 @@ static void cdrom_cmd_error(uint8_t id)
 	cdrom[id].phase = 3;
 	cdrom[id].packet_status = 0x80;
 	cdrom[id].callback = 50 * CDROM_TIME;
-	cdrom_log("CD-ROM %i: ERROR: %02X/%02X/%02X\n", id cdrom_sense_key, cdrom_asc, cdrom_ascq);
+	cdrom_log("CD-ROM %i: ERROR: %02X/%02X/%02X\n", id, cdrom_sense_key, cdrom_asc, cdrom_ascq);
 }
 
 static void cdrom_unit_attention(uint8_t id)
