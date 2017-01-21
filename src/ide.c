@@ -138,11 +138,11 @@ int idecallback[4] = {0, 0, 0, 0};
 
 int cur_ide[4];
 
-int ide_do_log = 1;
+int ide_do_log = 0;
 
 void ide_log(const char *format, ...)
 {
-// #ifdef ENABLE_IDE_LOG
+#ifdef ENABLE_IDE_LOG
    if (ide_do_log)
    {
 		va_list ap;
@@ -151,7 +151,7 @@ void ide_log(const char *format, ...)
 		va_end(ap);
 		fflush(stdout);
    }
-// #endif
+#endif
 }
 
 uint8_t getstat(IDE *ide) { return ide->atastat; }
