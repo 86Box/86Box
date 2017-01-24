@@ -524,7 +524,7 @@ static int ioctl_get_block_length(uint8_t id, const UCHAR *cdb, int number_of_bl
 
   if (no_length_check)
 	{
-		return 8192;
+		return 65534;
 	}
 
 	switch (cdb[0])
@@ -590,7 +590,7 @@ common_handler:
 			break;
 		default:
 			/* Other commands */
-			return 8192;
+			return 65534;
 			break;
 	}
 

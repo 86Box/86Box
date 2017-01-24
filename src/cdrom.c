@@ -1760,7 +1760,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 					return;
 				}
 
-				if (len == 8192)
+				if (len == 65534)
 				{
 					max_len = cdb[8] + (cdb[7] << 8);
 					len = cdbufferb[0] + (cdbufferb[1] << 8);
@@ -2110,7 +2110,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				{
 					return;
 				}
-				if (len == 8192)
+				if (len == 65534)
 				{
 					cdbufferb[0] = 0;
 					cdbufferb[1] = 32;
@@ -2151,7 +2151,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 					return;
 				}
 
-				if (len == 8192)
+				if (len == 65534)
 				{
 					cdbufferb[0] = 0;
 					cdbufferb[1] = 34;
@@ -2271,7 +2271,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 						}
 						break;
 				}
-				if (len == 8192)
+				if (len == 65534)
 				{
 					switch(cdb[3])
 					{
@@ -2562,7 +2562,7 @@ atapi_out:
 				{
 					return;
 				}
-				if (len == 8192)
+				if (len == 65534)
 				{
 					len = 8;
 				}
