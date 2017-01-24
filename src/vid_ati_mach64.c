@@ -2496,8 +2496,8 @@ void mach64_hwcursor_draw(svga_t *svga, int displine)
         uint8_t dat;
         uint32_t col0 = mach64->ramdac.pallook[0];
         uint32_t col1 = mach64->ramdac.pallook[1];
-	int y_add = enable_overscan ? 16 : 0;
-	int x_add = enable_overscan ? 8 : 0;
+	int y_add = (enable_overscan && !suppress_overscan) ? 16 : 0;
+	int x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
         
         offset = svga->hwcursor_latch.xoff;
         for (x = 0; x < 64 - svga->hwcursor_latch.xoff; x += 4)

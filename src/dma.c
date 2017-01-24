@@ -594,8 +594,8 @@ void DMAPageRead(uint32_t PhysAddress, void *DataRead, uint32_t TotalSize)
 void DMAPageWrite(uint32_t PhysAddress, const void *DataWrite, uint32_t TotalSize)
 {
 	// uint32_t PageLen = PageLengthReadWrite(PhysAddress, TotalSize);
-	memcpy(&ram[PhysAddress], DataWrite, TotalSize);
 	mem_invalidate_range(PhysAddress, PhysAddress + TotalSize - 1);
+	memcpy(&ram[PhysAddress], DataWrite, TotalSize);
 	// DataWrite -= PageLen;
 	DataWrite -= TotalSize;
 }

@@ -1497,6 +1497,17 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
                 if (xsize<64) xsize=640;
                 if (ysize<32) ysize=200;
 
+		if (xsize > 2032)
+		{
+			x_add = 0;
+			y_add = 0;
+			suppress_overscan = 0;
+		}
+		else
+		{
+			suppress_overscan = 1;
+		}
+
                 updatewindowsize(xsize + x_add,ysize + y_add);
         }
         if (vid_resize)
@@ -1505,7 +1516,7 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
                 ysize = wy + 1;
         }
 
-	if (enable_overscan)
+	if (enable_overscan && !suppress_overscan)
 	{
 		if ((wx >= 160) && ((wy + 1) >= 120))
 		{

@@ -3412,7 +3412,20 @@ static void voodoo_fastfill(voodoo_t *voodoo, voodoo_params_t *params)
 {
         int y;
 
-        if (params->fbzMode & FBZ_RGB_WMASK)
+        int low_y, high_y;
+
+        if (params->fbzMode & (1 << 17))
+        {
+                high_y = voodoo->v_disp - params->clipLowY;
+                low_y = voodoo->v_disp - params->clipHighY;
+        }
+        else
+        {
+                low_y = params->clipLowY;
+                high_y = params->clipHighY;
+        }
+        
+         if (params->fbzMode & FBZ_RGB_WMASK)
         {
                 int r, g, b;
                 uint16_t col;
@@ -3422,7 +3435,7 @@ static void voodoo_fastfill(voodoo_t *voodoo, voodoo_params_t *params)
                 b = (params->color1 >> 3) & 0x1f;
                 col = b | (g << 5) | (r << 11);
 
-                for (y = params->clipLowY; y < params->clipHighY; y++)
+                for (y = low_y; y < high_y; y++)
                 {
                         uint16_t *cbuf = (uint16_t *)&voodoo->fb_mem[(params->draw_offset + y*voodoo->row_width) & voodoo->fb_mask];
                         int x;
@@ -3433,7 +3446,7 @@ static void voodoo_fastfill(voodoo_t *voodoo, voodoo_params_t *params)
         }
         if (params->fbzMode & FBZ_DEPTH_WMASK)
         {        
-                for (y = params->clipLowY; y < params->clipHighY; y++)
+                for (y = low_y; y < high_y; y++)
                 {
                         uint16_t *abuf = (uint16_t *)&voodoo->fb_mem[(params->aux_offset + y*voodoo->row_width) & voodoo->fb_mask];
                         int x;
@@ -6556,8 +6569,8 @@ static void voodoo_filterline(voodoo_t *voodoo, uint16_t *fil, int column, uint1
 void voodoo_callback(void *p)
 {
         voodoo_t *voodoo = (voodoo_t *)p;
-	int y_add = enable_overscan ? 16 : 0;
-	int x_add = enable_overscan ? 8 : 0;
+	int y_add = (enable_overscan && !suppress_overscan) ? 16 : 0;
+	int x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
 
         if (voodoo->fbiInit0 & FBIINIT0_VGA_PASS)
         {

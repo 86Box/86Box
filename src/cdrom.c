@@ -117,6 +117,7 @@ uint8_t cdrom_command_flags[0x100] =
 	[GPCMD_MECHANISM_STATUS]		= IMPLEMENTED,
 	[GPCMD_READ_CD]				= IMPLEMENTED | CHECK_READY,
 	[GPCMD_SEND_DVD_STRUCTURE]		= IMPLEMENTED | CHECK_READY,
+	[GPCMD_PAUSE_RESUME_ALT]		= IMPLEMENTED | CHECK_READY | SCSI_ONLY,
 	[GPCMD_SCAN_ALT]			= IMPLEMENTED | CHECK_READY | SCSI_ONLY,
 	[GPCMD_SET_SPEED_ALT]			= IMPLEMENTED | SCSI_ONLY
 };
@@ -2084,6 +2085,10 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 			break;
 
 		case GPCMD_READ_DISC_INFORMATION:
+			max_len = cdb[7];
+			max_len <<= 8;
+			max_len |= cdb[8];
+
 			if (cdrom_drives[id].handler->pass_through)
 			{
 				ret = cdrom_pass_through(id, &len);
@@ -2105,7 +2110,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				len=34;
 			}
 
-			cdrom_data_command_finish(id, len, len, alloc_length, 0);
+			cdrom_data_command_finish(id, len, len, max_len, 0);
 			break;
 
 		case GPCMD_READ_TRACK_INFORMATION:
@@ -2156,7 +2161,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				}
 			}
 		
-			cdrom_data_command_finish(id, len, len, alloc_length, 0);
+			cdrom_data_command_finish(id, len, len, max_len, 0);
 			break;
 
 		case GPCMD_PLAY_AUDIO_10:
@@ -2326,11 +2331,6 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 						{
 							ret = cdrom_read_dvd_structure(id, format, cdb, cdbufferb);
 
-							/* if (!ret)
-							{
-								cdrom_cmd_error(id, SENSE_ILLEGAL_REQUEST, -ret, 0);
-							}
-							else */
 							if (ret)
 							{
 								cdrom_data_command_finish(id, len, len, alloc_length, 0);
@@ -2467,6 +2467,7 @@ atapi_out:
 			cdrom_command_complete(id);
 			break;
 
+		case GPCMD_PAUSE_RESUME_ALT:
 		case GPCMD_PAUSE_RESUME:
 			if (cdb[8] & 1)
 			{

@@ -475,9 +475,9 @@ void initvideo()
         int c, d, e;
 
 	/* Account for overscan. */
-        buffer32 = create_bitmap(2064, 2056);
+        buffer32 = create_bitmap(2048, 2048);
 
-        buffer = create_bitmap(2064, 2056);
+        buffer = create_bitmap(2048, 2048);
 
         for (c = 0; c < 64; c++)
         {

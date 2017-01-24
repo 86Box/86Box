@@ -410,8 +410,8 @@ void clgd_hwcursor_draw(svga_t *svga, int displine)
         int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
 		int largecur = (svga->seqregs[0x12] & 4);
 		int cursize = (largecur) ? 64 : 32;
-		int y_add = enable_overscan ? 16 : 0;
-		int x_add = enable_overscan ? 8 : 0;
+		int y_add = (enable_overscan && !suppress_overscan) ? 16 : 0;
+		int x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
         
         for (x = 0; x < cursize; x += 8)
         {

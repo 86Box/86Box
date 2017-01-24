@@ -91,8 +91,8 @@ void ddraw_init(HWND h)
         ddsd.dwSize = sizeof(ddsd);
         
         ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-        ddsd.dwWidth  = 2080;
-        ddsd.dwHeight = 2080;
+        ddsd.dwWidth  = 2048;
+        ddsd.dwHeight = 2048;
         ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_VIDEOMEMORY;
         if (FAILED(lpdd4->CreateSurface(&ddsd, &lpdds_back, NULL)))
            fatal("CreateSurface back failed\n");
@@ -101,8 +101,8 @@ void ddraw_init(HWND h)
         ddsd.dwSize = sizeof(ddsd);
         
         ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-        ddsd.dwWidth  = 2080;
-        ddsd.dwHeight = 2080;
+        ddsd.dwWidth  = 2048;
+        ddsd.dwHeight = 2048;
         ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_VIDEOMEMORY;
         if (FAILED(lpdd4->CreateSurface(&ddsd, &lpdds_back2, NULL)))
            fatal("CreateSurface back failed\n");

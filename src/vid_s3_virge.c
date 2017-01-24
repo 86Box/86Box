@@ -3328,8 +3328,8 @@ static void s3_virge_hwcursor_draw(svga_t *svga, int displine)
         uint16_t dat[2];
         int xx;
         int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
-	int y_add = enable_overscan ? 16 : 0;
-	int x_add = enable_overscan ? 8 : 0;
+	int y_add = (enable_overscan && !suppress_overscan) ? 16 : 0;
+	int x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
         
 //        pclog("HWcursor %i %i\n", svga->hwcursor_latch.x, svga->hwcursor_latch.y);
         for (x = 0; x < 64; x += 16)

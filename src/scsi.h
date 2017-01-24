@@ -53,6 +53,7 @@
 #define GPCMD_MECHANISM_STATUS		0xbd
 #define GPCMD_READ_CD			0xbe
 #define GPCMD_SEND_DVD_STRUCTURE	0xbf	/* This is for writing only, irrelevant to PCem. */
+#define GPCMD_PAUSE_RESUME_ALT		0xc2
 #define GPCMD_SCAN_ALT			0xcd	/* Should be equivalent to 0xba */
 #define GPCMD_SET_SPEED_ALT		0xda	/* Should be equivalent to 0xbb */
 

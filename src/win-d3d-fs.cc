@@ -70,12 +70,12 @@ static uint32_t pal_lookup[256];
 static CUSTOMVERTEX d3d_verts[] =
 {
      {   0.0f,    0.0f, 1.0f, 1.0f, 0.0f, 0.0f},
-     {2080.0f, 2080.0f, 1.0f, 1.0f, 1.0f, 1.0f},
-     {   0.0f, 2080.0f, 1.0f, 1.0f, 0.0f, 1.0f},
+     {2048.0f, 2048.0f, 1.0f, 1.0f, 1.0f, 1.0f},
+     {   0.0f, 2048.0f, 1.0f, 1.0f, 0.0f, 1.0f},
 
      {   0.0f,    0.0f, 1.0f, 1.0f, 0.0f, 0.0f},
-     {2080.0f,    0.0f, 1.0f, 1.0f, 1.0f, 0.0f},
-     {2080.0f, 2080.0f, 1.0f, 1.0f, 1.0f, 1.0f},
+     {2048.0f,    0.0f, 1.0f, 1.0f, 1.0f, 0.0f},
+     {2048.0f, 2048.0f, 1.0f, 1.0f, 1.0f, 1.0f},
 };
   
 void d3d_fs_init(HWND h)
@@ -162,19 +162,19 @@ static void d3d_fs_init_objects()
                                    &v_buffer,
                                    NULL);
 
-        d3ddev->CreateTexture(2080, 2080, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &d3dTexture, NULL);
+        d3ddev->CreateTexture(2048, 2048, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &d3dTexture, NULL);
      
         r.top    = r.left  = 0;
-	r.bottom = 2079;
-        r.right  = 2079;
+	r.bottom = 2047;
+        r.right  = 2047;
 
         if (FAILED(d3dTexture->LockRect(0, &dr, &r, 0)))
            fatal("LockRect failed\n");
         
-        for (y = 0; y < 2080; y++)
+        for (y = 0; y < 2048; y++)
         {
                 uint32_t *p = (uint32_t *)(dr.pBits + (y * dr.Pitch));
-                memset(p, 0, 2080 * 4);
+                memset(p, 0, 2048 * 4);
         }
 
         d3dTexture->UnlockRect(0);
@@ -346,8 +346,8 @@ static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 
         d3d_verts[0].tu = d3d_verts[2].tu = d3d_verts[3].tu = 0;
         d3d_verts[0].tv = d3d_verts[3].tv = d3d_verts[4].tv = 0;
-        d3d_verts[1].tu = d3d_verts[4].tu = d3d_verts[5].tu = (float)w / 2080.0;
-        d3d_verts[1].tv = d3d_verts[2].tv = d3d_verts[5].tv = (float)h / 2080.0;
+        d3d_verts[1].tu = d3d_verts[4].tu = d3d_verts[5].tu = (float)w / 2048.0;
+        d3d_verts[1].tv = d3d_verts[2].tv = d3d_verts[5].tv = (float)h / 2048.0;
 
         GetClientRect(d3d_device_window, &window_rect);
         d3d_fs_size(window_rect, &l, &t, &r, &b, w, h);
@@ -453,8 +453,8 @@ static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
 
         d3d_verts[0].tu = d3d_verts[2].tu = d3d_verts[3].tu = 0;
         d3d_verts[0].tv = d3d_verts[3].tv = d3d_verts[4].tv = 0;
-        d3d_verts[1].tu = d3d_verts[4].tu = d3d_verts[5].tu = (float)w / 2080.0;
-        d3d_verts[1].tv = d3d_verts[2].tv = d3d_verts[5].tv = (float)h / 2080.0;
+        d3d_verts[1].tu = d3d_verts[4].tu = d3d_verts[5].tu = (float)w / 2048.0;
+        d3d_verts[1].tv = d3d_verts[2].tv = d3d_verts[5].tv = (float)h / 2048.0;
 
         GetClientRect(d3d_device_window, &window_rect);
         d3d_fs_size(window_rect, &l, &t, &r, &b, w, h);

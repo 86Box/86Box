@@ -378,8 +378,7 @@ static void ide_identify(IDE *ide)
 	if (ide->board < 2)
 	{
 		ide->buffer[53] = 2;
-		ide->buffer[62] = ide->dma_identify_data[0];
-		ide->buffer[63] = ide->dma_identify_data[1];
+		ide->buffer[63] = ide->dma_identify_data[0];
 		ide->buffer[65] = 150;
 		ide->buffer[66] = 150;
 		// ide->buffer[80] = 0xe; /*ATA-1 to ATA-3 supported*/
@@ -415,8 +414,7 @@ static void ide_atapi_identify(IDE *ide)
 		ide->buffer[49] |= 0x100; /* DMA supported */
 		ide->buffer[52] = 2 << 8; /*DMA timing mode*/
 		ide->buffer[53] = 2;
-		ide->buffer[62] = ide->dma_identify_data[0];
-		ide->buffer[63] = ide->dma_identify_data[1];
+		ide->buffer[63] = ide->dma_identify_data[0];
 		ide->buffer[65] = 150;
 		ide->buffer[66] = 150;
 		// ide->buffer[88] = ide->dma_identify_data[2];
@@ -645,29 +643,17 @@ int ide_set_features(IDE *ide)
 			switch(sf_data >> 3)
 			{
 				case 0:
-					ide->dma_identify_data[0] = ide->dma_identify_data[1] = 7;
-					ide->dma_identify_data[2] = 0x3f;
+					ide->dma_identify_data[0] = 7;
 					break;
 				case 1:
 					/* We do not (yet) emulate flow control, so return with error if this is attempted. */
 					return 0;
-				case 2:
-					if (ide_cdrom_is_pio_only(ide) || (ide->board >= 2))
-					{
-						return 0;
-					}
-					ide->dma_identify_data[0] = 7 | (1 << (val + 8));
-					ide->dma_identify_data[1] = 7;
-					ide->dma_identify_data[2] = 0x3f;
-					break;
 				case 4:
 					if (ide_cdrom_is_pio_only(ide) || (ide->board >= 2))
 					{
 						return 0;
 					}
-					ide->dma_identify_data[0] = 7;
-					ide->dma_identify_data[1] = 7 | (1 << (val + 8));
-					ide->dma_identify_data[2] = 0x3f;
+					ide->dma_identify_data[0] = 7 | (1 << (val + 8));
 					break;
 				default:
 					return 0;
@@ -739,8 +725,6 @@ void resetide(void)
 		if (ide_drives[d].type != IDE_NONE)
 		{
 			ide_drives[d].dma_identify_data[0] = 7;
-			ide_drives[d].dma_identify_data[1] = 7 | (1 << 10);
-			ide_drives[d].dma_identify_data[2] = 0x3f;
 		}
 
 		ide_drives[d].error = 1;

@@ -607,3 +607,5 @@ extern int fdc_do_log;
 extern int ide_do_log;
 extern int ne2000_do_log;
 #endif
+
+extern int suppress_overscan;

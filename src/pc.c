@@ -393,9 +393,13 @@ void resetpc_cad()
 	pc_keyboard_send(211);	/* Delete key released */
 }
 
+int suppress_overscan = 0;
+
 void resetpchard()
 {
 	int i = 0;
+
+	suppress_overscan = 0;
 
 	savenvr();
 	saveconfig();

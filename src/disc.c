@@ -194,14 +194,22 @@ double disc_real_period(int drive)
 
 	dusec = (double) TIMER_USEC;
 
-	return (ddbp * dusec);
+	/* This is a giant hack but until the timings become even more correct, this is needed to make floppies work right on that BIOS. */
+	if (romset == ROM_MRTHOR)
+	{
+		return (ddbp * dusec) / 2.0;
+	}
+	else
+	{
+		return (ddbp * dusec);
+	}
 }
 
 void disc_poll(int drive)
 {
 	if (drive >= FDD_NUM)
 	{
-		disc_poll_time[drive] += (int) (32.0 * TIMER_USEC);
+		disc_poll_time[drive] += (int) (((romset == ROM_MRTHOR) ? 16.0 : 32.0) * TIMER_USEC);
 		return;
 	}
 
