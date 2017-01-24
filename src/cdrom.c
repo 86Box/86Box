@@ -1759,6 +1759,20 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				{
 					return;
 				}
+
+				if (len == 8192)
+				{
+					max_len = cdb[8] + (cdb[7] << 8);
+					len = cdbufferb[0] + (cdbufferb[1] << 8);
+					len += 2;
+					if (max_len < len)
+					{
+						max_len -= 2;
+						cdbufferb[0] = max_len >> 8;
+						cdbufferb[1] = max_len & 0xff;
+						len = max_len + 2;
+					}
+				}
 			}
 			else
 			{
@@ -2096,6 +2110,12 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				{
 					return;
 				}
+				if (len == 8192)
+				{
+					cdbufferb[0] = 0;
+					cdbufferb[1] = 32;
+					len = 34;
+				}
 			}
 			else
 			{
@@ -2130,6 +2150,13 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				{
 					return;
 				}
+
+				if (len == 8192)
+				{
+					cdbufferb[0] = 0;
+					cdbufferb[1] = 34;
+					len = 36;
+				}
 			}
 			else
 			{
@@ -2142,6 +2169,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				len = 36;
 
 				memset(cdbufferb, 0, 36);
+				cdbufferb[0] = 0;
 				cdbufferb[1] = 34;
 				cdbufferb[2] = 1; /* track number (LSB) */
 				cdbufferb[3] = 1; /* session number (LSB) */
@@ -2242,6 +2270,21 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 							cdbufferb[1] = 0x15;
 						}
 						break;
+				}
+				if (len == 8192)
+				{
+					switch(cdb[3])
+					{
+						case 0:
+							len = 4;
+							break;
+						case 1:
+							len = 16;
+							break;
+						default:
+							len = 24;
+							break;
+					}
 				}
 			}
 			else
@@ -2518,6 +2561,10 @@ atapi_out:
 				if (!ret)
 				{
 					return;
+				}
+				if (len == 8192)
+				{
+					len = 8;
 				}
 			}
 			else
