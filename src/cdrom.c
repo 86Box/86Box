@@ -2243,8 +2243,12 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 			break;
 
 		case GPCMD_READ_SUBCHANNEL:
+			max_len = cdb[7];
+			max_len <<= 8;
+			max_len |= cdb[8];
+
 			cdrom_log("CD-ROM %i: Getting page %i\n", id, cdb[3]);
-			if (cdrom_drives[id].handler->pass_through)
+			if ((cdrom_drives[id].handler->pass_through) && (cdb[3] != 1))
 			{
 				ret = cdrom_pass_through(id, &len);
 				if (!ret)
@@ -2315,7 +2319,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				cdbufferb[pos++] = 0; /*Audio status*/
 				cdbufferb[pos++] = 0; cdbufferb[pos++] = 0; /*Subchannel length*/
 				cdbufferb[pos++] = cdb[3] & 3; /*Format code*/
-				if ((temp & 3) == 1)
+				if (cdb[3] == 1)
 				{
 					cdbufferb[1] = cdrom_drives[id].handler->getcurrentsubchannel(id, &cdbufferb[5], msf);
 					if (((cdbufferb[1] == 0x13) && !completed) || (cd_status == CD_STATUS_DATA_ONLY))
@@ -2323,7 +2327,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 						cdbufferb[1] = 0x15;
 					}
 				}
-				if (!(cdb[2] & 0x40) || ((cdb[3] & 3) == 0))
+				if (!(cdb[2] & 0x40) || (cdb[3] == 0))
 				{
 					len = 4;
 				}
@@ -2333,7 +2337,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				}
 			}
 
-			cdrom_data_command_finish(id, len, len, len, 0);
+			cdrom_data_command_finish(id, len, len, max_len, 0);
 			break;
 
 		case GPCMD_READ_DVD_STRUCTURE:
