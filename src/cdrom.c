@@ -2322,7 +2322,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				if (cdb[3] == 1)
 				{
 					cdbufferb[1] = cdrom_drives[id].handler->getcurrentsubchannel(id, &cdbufferb[5], msf);
-					if (((cdbufferb[1] == 0x13) && !completed) || (cd_status == CD_STATUS_DATA_ONLY))
+					if (((cdbufferb[1] == 0x13) && !completed) || (cdrom[id].cd_status == CD_STATUS_DATA_ONLY))
 					{
 						cdbufferb[1] = 0x15;
 					}

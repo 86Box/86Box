@@ -516,6 +516,7 @@ typedef struct __attribute__((packed)) Buslogic_t
 	int MailboxOutInterrupts;
 	int MbiActive[256];
 	int PendingInterrupt;
+	int Lock;
 } Buslogic_t;
 
 int scsi_model = 1;
@@ -600,6 +601,7 @@ static void BuslogicReset(Buslogic_t *Buslogic)
 	Buslogic->MailboxInPosCur = 0;
 	Buslogic->MailboxOutInterrupts = 0;
 	Buslogic->PendingInterrupt = 0;
+	Buslogic->Lock = 0;
 	BuslogicInOperation = 0;
 
 	BuslogicClearInterrupt(Buslogic);
@@ -1136,6 +1138,7 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				case 0x04:
 				case 0x0A:
 				case 0x0B:
+				case 0x20:
 				case 0x23:
 				case 0x84:
 				case 0x85:
@@ -1183,8 +1186,11 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				Buslogic->CmdParamLeft = scsi_model ? sizeof(MailboxInitExtended_t) : 0;
 				break;
 
-				case 0x28:
 				case 0x29:
+				Buslogic->CmdParamLeft = scsi_model ? 0 : 2;
+				break;
+
+				case 0x28:
 				case 0x86: //Valid only for PCI
 				case 0x95: //Valid only for PCI
 				Buslogic->CmdParamLeft = 0;
@@ -1230,8 +1236,8 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				case 0x04:
 				Buslogic->DataBuf[0] = 0x41;
 				Buslogic->DataBuf[1] = scsi_model ? 0x41 : 0x30;
-				Buslogic->DataBuf[2] = scsi_model ? '5' : '3';
-				Buslogic->DataBuf[3] = scsi_model ? '0' : '1';
+				Buslogic->DataBuf[2] = '5';
+				Buslogic->DataBuf[3] = '0';
 				Buslogic->DataReplyLeft = 4;
 				break;
 
@@ -1362,7 +1368,19 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				Buslogic->DataBuf[0] = Buslogic->CmdBuf[0];
 				Buslogic->DataReplyLeft = 1;
 				break;
-						
+
+				case 0x20:
+				Buslogic->DataReplyLeft = 0;
+				if (scsi_model)
+				{
+					BuslogicResetControl(Buslogic, 1);
+				}
+				else
+				{
+					Buslogic->Status |= STAT_INVCMD;
+				}
+				break;
+		
 				case 0x21:
 				if (Buslogic->CmdParam == 1)
 					Buslogic->CmdParamLeft = Buslogic->CmdBuf[0];
@@ -1396,7 +1414,44 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				BuslogicLog("Lowering IRQ %i\n", Buslogic->Irq);
 				picintc(1 << Buslogic->Irq);
 				break;
-				
+
+				case 0x28:
+				if (!scsi_model)
+				{
+					Buslogic->DataBuf[0] = 0x08;
+					Buslogic->DataBuf[1] = Buslogic->Lock;
+					Buslogic->DataReplyLeft = 2;
+				}
+				else
+				{
+					Buslogic->DataReplyLeft = 0;
+					Buslogic->Status |= STAT_INVCMD;
+				}
+				break;
+
+				case 0x29:
+				if (!scsi_model)
+				{
+					if (Buslogic->CmdBuf[1] = Buslogic->Lock)
+					{
+						if (Buslogic->CmdBuf[0] & 1)
+						{
+							Buslogic->Lock = 1;
+						}
+						else
+						{
+							Buslogic->Lock = 0;
+						}
+					}
+					Buslogic->DataReplyLeft = 0;
+				}
+				else
+				{
+					Buslogic->DataReplyLeft = 0;
+					Buslogic->Status |= STAT_INVCMD;
+				}
+				break;
+
 				case 0x81:
 				{
 					if (scsi_model)
@@ -1546,8 +1601,8 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				
 				default:
 				case 0x22: //undocumented
-				case 0x28: //only for the Adaptec 154xC series
-				case 0x29: //only for the Adaptec 154xC series
+				// case 0x28: //only for the Adaptec 154xC series
+				// case 0x29: //only for the Adaptec 154xC series
 				case 0x86: //PCI only, not ISA
 				case 0x95: //PCI only, not ISA
 				Buslogic->DataReplyLeft = 0;

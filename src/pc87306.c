@@ -170,14 +170,21 @@ void pc87306_write(uint16_t port, uint8_t val, void *priv)
 		if (tries)
 		{
 			if (pc87306_curreg <= 28)  valxor = val ^ pc87306_regs[pc87306_curreg];
-			if (pc87306_curreg == 0xF)  pc87306_gpio_remove();
-			if ((pc87306_curreg <= 28) && (pc87306_curreg != 8))
+			tries = 0;
+			if ((pc87306_curreg <= 28) && (pc87306_curreg != 8) && (pc87306_curreg != 0x18))
 			{
+				if (pc87306_curreg == 0)
+				{
+					val &= 0x5f;
+				}
+				if ((pc87306_curreg == 0x0F) || (pc87306_curreg == 0x12))
+				{
+					pc87306_gpio_remove();
+				}
 				pc87306_regs[pc87306_curreg] = val;
 				// pclog("Register %02X set to: %02X (was: %02X)\n", pc87306_curreg, val, pc87306_regs[pc87306_curreg]);
+				goto process_value;
 			}
-			tries = 0;
-			if ((pc87306_curreg <= 28) && (pc87306_curreg != 8))  goto process_value;
 		}
 		else
 		{
@@ -270,6 +277,7 @@ process_value:
 			fdc_update_densel_polarity((val & 0x40) ? 1 : 0);
 			break;
 		case 0xF:
+		case 0x12:
 			pc87306_gpio_init();
 			break;
 		case 0x1C:
@@ -342,7 +350,15 @@ void pc87306_gpio_remove()
 
 void pc87306_gpio_init()
 {
-        io_sethandler(pc87306_regs[0xF] << 2, 0x0002, pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL,  NULL);
+	if ((pc87306_regs[0x12]) & 0x10)
+	{
+	        io_sethandler(pc87306_regs[0xF] << 2, 0x0001, pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL,  NULL);
+	}
+
+	if ((pc87306_regs[0x12]) & 0x20)
+	{
+	        io_sethandler((pc87306_regs[0xF] << 2) + 1, 0x0001, pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL,  NULL);
+	}
 }
 
 void pc87306_init()

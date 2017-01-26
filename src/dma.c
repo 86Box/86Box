@@ -66,18 +66,23 @@ uint8_t dma_read(uint16_t addr, void *priv)
                 
                 case 8: /*Status register*/
                 temp = dma.stat;
-                dma.stat = 0;
+                dma.stat &= 0xf0;
                 return temp;
-                
-                case 0xd:
-                return 0;
+
+		case 0xd: /*Temporary register*/
+	        return dmaregs[addr & 0xd];
+
+		case 0xf: /*Mask register*/
+	        return dma16.m;
+
+		default:
+		return 0;
         }
-//        printf("Bad DMA read %04X %04X:%04X\n",addr,CS,pc);
-        return dmaregs[addr & 0xf];
 }
 
 void dma_write(uint16_t addr, uint8_t val, void *priv)
 {
+	int channel = val & 3;
 //        printf("Write DMA %04X %02X %04X:%04X\n",addr,val,CS,pc);
         dmaregs[addr & 0xf] = val;
         switch (addr & 0xf)
@@ -102,14 +107,30 @@ void dma_write(uint16_t addr, uint8_t val, void *priv)
                 case 8: /*Control register*/
                 dma.command = val;
                 return;
+
+		case 9: /*Request register*/
+		if (val & 4)
+		{
+			dma.request |= (1 << (channel + 4));
+			if (dma.command & 1)
+			{
+				dma.request |= (1 << channel);
+			}
+		}
+		else
+		{
+			dma.request &= ~(1 << (channel + 4));
+		}
+		return;
                 
                 case 0xa: /*Mask*/
                 if (val & 4) dma.m |=  (1 << (val & 3));
                 else         dma.m &= ~(1 << (val & 3));
                 return;
-                
+
                 case 0xb: /*Mode*/
-                dma.mode[val & 3] = val;
+                dma.mode[val & 3] = val & 0xfc;
+		dma.stat &= ~(1 << (val & 3));
                 return;
                 
                 case 0xc: /*Clear FF*/
@@ -135,7 +156,7 @@ void dma_write(uint16_t addr, uint8_t val, void *priv)
 uint8_t dma16_read(uint16_t addr, void *priv)
 {
         uint8_t temp;
-//        printf("Read DMA %04X %04X:%04X\n",addr,cs>>4,pc);
+        // printf("Read DMA %04X %04X:%04X\n",addr,cs>>4,cpu_state.pc);
         addr >>= 1;
         switch (addr & 0xf)
         {
@@ -153,15 +174,24 @@ uint8_t dma16_read(uint16_t addr, void *priv)
                 
                 case 8: /*Status register*/
                 temp = dma16.stat;
-                dma16.stat = 0;
+                dma16.stat &= 0xf0;
                 return temp;
+
+		case 0xd: /*Temporary register*/
+	        return dma16regs[addr & 0xd];
+
+		case 0xf: /*Mask register*/
+	        return dma16.m;
+
+		default:
+		return 0;
         }
-        return dma16regs[addr & 0xf];
 }
 
 void dma16_write(uint16_t addr, uint8_t val, void *priv)
 {
-//        printf("Write dma16 %04X %02X %04X:%04X\n",addr,val,CS,pc);
+	int channel = val & 3;
+        // printf("Write dma16 %04X %02X %04X:%04X\n",addr,val,CS,cpu_state.pc);
         addr >>= 1;
         dma16regs[addr & 0xf] = val;
         switch (addr & 0xf)
@@ -183,7 +213,23 @@ void dma16_write(uint16_t addr, uint8_t val, void *priv)
                 return;
                 
                 case 8: /*Control register*/
+                dma16.command = val;
                 return;
+
+                case 9: /*Request register*/
+		if (val & 4)
+		{
+			dma16.request |= (1 << (channel + 4));
+			if (dma16.command & 1)
+			{
+				dma16.request |= (1 << channel);
+			}
+		}
+		else
+		{
+			dma16.request &= ~(1 << (channel + 4));
+		}
+		return;
                 
                 case 0xa: /*Mask*/
                 if (val & 4) dma16.m |=  (1 << (val & 3));
@@ -191,7 +237,8 @@ void dma16_write(uint16_t addr, uint8_t val, void *priv)
                 return;
                 
                 case 0xb: /*Mode*/
-                dma16.mode[val & 3] = val;
+                dma16.mode[val & 3] = val & 0xfc;
+		dma16.stat &= ~(1 << (val & 3));
                 return;
                 
                 case 0xc: /*Clear FF*/
@@ -209,7 +256,7 @@ void dma16_write(uint16_t addr, uint8_t val, void *priv)
                 return;
                 
                 case 0xf: /*Mask write*/
-                dma16.m = val&0xf;
+                dma16.m = val & 0xf;
                 return;
         }
 }
@@ -217,6 +264,7 @@ void dma16_write(uint16_t addr, uint8_t val, void *priv)
 
 void dma_page_write(uint16_t addr, uint8_t val, void *priv)
 {
+        // printf("Write dma16 Page %04X %02X %04X:%04X\n",addr,val,CS,cpu_state.pc);
         dmapages[addr & 0xf] = val;
         switch (addr & 0xf)
         {
@@ -249,6 +297,7 @@ void dma_page_write(uint16_t addr, uint8_t val, void *priv)
 
 uint8_t dma_page_read(uint16_t addr, void *priv)
 {
+        // printf("Read DMA Page %04X %04X:%04X\n",addr,cs>>4,cpu_state.pc);
         return dmapages[addr & 0xf];
 }
 
@@ -357,6 +406,35 @@ DMA * get_dma_controller(int channel)
 	}
 }
 
+int dma_tc(DMA *dma_controller, int channel)
+{
+	if (dma_controller->command & 1)
+	{
+		/* Memory to memory command */
+		dma_controller->stat |= (1 << 0);
+		dma_controller->stat |= (1 << 1);
+		dma_controller->request &= ~(1 << 0);
+		dma_controller->request &= ~(1 << 1);
+	}
+	else
+	{
+		dma_controller->stat |= (1 << channel);
+		dma_controller->request &= ~(1 << channel);
+	}
+
+	if (dma_controller->mode[channel] & 0x10) /*Auto-init*/
+	{
+		// pclog("DMA read auto-init\n");
+		dma_controller->cc[channel] = dma_controller->cb[channel] & 0xffff;
+		dma_controller->ac[channel] = dma_controller->ab[channel] & 0xffff;
+	}
+	else
+	{
+		dma_controller->cc[channel] &= 0xffff;
+		dma_controller->m |= (1 << channel);
+	}
+}
+
 int dma_channel_read(int channel)
 {
         uint16_t temp;
@@ -438,18 +516,7 @@ int dma_channel_read(int channel)
 	if ((dma_controller->cc[real_channel] < 0) || mem_over)
 	{
 		tc = 1;
-		if (dma_controller->mode[real_channel] & 0x10) /*Auto-init*/
-		{
-			// pclog("DMA read auto-init\n");
-			dma_controller->cc[real_channel] = dma_controller->cb[real_channel] & 0xffff;
-			dma_controller->ac[real_channel] = dma_controller->ab[real_channel] & 0xffff;
-		}
-		else
-		{
-			dma_controller->cc[real_channel] &= 0xffff;
-			dma_controller->m |= (1 << real_channel);
-		}
-		dma_controller->stat |= (1 << real_channel);
+		dma_tc(dma_controller, real_channel);
 	}
 
 	if (tc)
@@ -540,18 +607,7 @@ int dma_channel_write(int channel, uint16_t val)
 	if ((dma_controller->cc[real_channel] < 0) || mem_over)
 	{
 		tc = 1;
-		if (dma_controller->mode[real_channel] & 0x10) /*Auto-init*/
-		{
-			// pclog("DMA write auto-init\n");
-			dma_controller->cc[real_channel] = dma_controller->cb[real_channel] & 0xffff;
-			dma_controller->ac[real_channel] = dma_controller->ab[real_channel] & 0xffff;
-		}
-		else
-		{
-			dma_controller->cc[real_channel] &= 0xffff;
-			dma_controller->m |= (1 << real_channel);
-		}
-		dma_controller->stat |= (1 << real_channel);
+		dma_tc(dma_controller, real_channel);
 	}
 
 	// if (dma_is_masked(channel))
@@ -565,38 +621,17 @@ int dma_channel_write(int channel, uint16_t val)
 	return 0;
 }
 
-#if 0
-static uint32_t PageLengthReadWrite(uint32_t PhysAddress, uint32_t TotalSize)
-{
-	uint32_t LengthSize;
-	uint32_t Page;
-
-	Page = PhysAddress & 4095;
-
-	if ((Page + TotalSize - 1) >= 4096)
-	{
-		TotalSize = 4096 - Page;
-	}
-
-	return TotalSize;
-}
-#endif
-
 //DMA Bus Master Page Read/Write
 void DMAPageRead(uint32_t PhysAddress, void *DataRead, uint32_t TotalSize)
 {
-	// uint32_t PageLen = PageLengthReadWrite(PhysAddress, TotalSize);
 	memcpy(DataRead, &ram[PhysAddress], TotalSize);
-	// DataRead -= PageLen;
 	DataRead -= TotalSize;
 }
 
 void DMAPageWrite(uint32_t PhysAddress, const void *DataWrite, uint32_t TotalSize)
 {
-	// uint32_t PageLen = PageLengthReadWrite(PhysAddress, TotalSize);
 	mem_invalidate_range(PhysAddress, PhysAddress + TotalSize - 1);
 	memcpy(&ram[PhysAddress], DataWrite, TotalSize);
-	// DataWrite -= PageLen;
 	DataWrite -= TotalSize;
 }
 

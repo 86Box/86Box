@@ -308,6 +308,7 @@ typedef struct DMA
         uint8_t page[4];
         uint8_t stat;
         uint8_t command;
+        uint8_t request;
 } DMA;
 
 DMA dma,dma16;
