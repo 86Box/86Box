@@ -589,10 +589,23 @@ static int iso_is_track_audio(uint8_t id, uint32_t pos, int ismsf)
 	return 0;
 }
 
+static int iso_media_type_id(uint8_t id)
+{
+	if (iso_size(id) <= 405000)
+	{
+		return 1;	/* Data CD. */
+	}
+	else
+	{
+		return 65;	/* DVD. */
+	}
+}
+
 static CDROM iso_cdrom = 
 {
         iso_ready,
 		iso_medium_changed,
+		iso_media_type_id,
 		NULL,
 		NULL,
         iso_readtoc,

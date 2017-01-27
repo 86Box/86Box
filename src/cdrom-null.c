@@ -100,10 +100,16 @@ static int null_pass_through(uint8_t id, uint8_t *in_cdb, uint8_t *b, uint32_t *
 	return 0;
 }
 
+static int null_media_type_id(uint8_t id)
+{
+	return 0x70;
+}
+
 static CDROM null_cdrom =
 {
         null_ready,
 		null_medium_changed,
+		null_media_type_id,
 		NULL,
 		NULL,
         null_readtoc,

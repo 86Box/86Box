@@ -109,15 +109,15 @@ static void sound_cd_thread(void *param)
 {
 	int i = 0;
 
-        while (1)
-        {
-                int c, has_audio;
-                
-                thread_wait_event(sound_cd_event, -1);
+	while (1)
+	{
+		int c, has_audio;
+
+		thread_wait_event(sound_cd_event, -1);
 		for (c = 0; c < CD_BUFLEN*2; c += 2)
 		{
-			cd_out_buffer[c] = 0;
-			cd_out_buffer[c+1] = 0;
+			cd_out_buffer[c] = 0.0;
+			cd_out_buffer[c+1] = 0.0;
 		}
 		for (i = 0; i < CDROM_NUM; i++)
 		{
@@ -127,57 +127,63 @@ static void sound_cd_thread(void *param)
 				cdrom_drives[i].handler->audio_callback(i, cd_buffer[i], CD_BUFLEN*2);
 				has_audio = cdrom_drives[i].sound_on;
 			}
-        	        if (soundon && has_audio)
-                	{
-                        	int32_t audio_vol_l = cdrom_mode_sense_get_volume(i, 0);
-	                        int32_t audio_vol_r = cdrom_mode_sense_get_volume(i, 1);
-	                        int channel_select[2];
-                
-        	                channel_select[0] = cdrom_mode_sense_get_channel(i, 0);
-	                        channel_select[1] = cdrom_mode_sense_get_channel(i, 1);
-                        
-        	                for (c = 0; c < CD_BUFLEN*2; c += 2)
-	                        {
-        	                        int32_t cd_buffer_temp[2] = {0, 0};
+			if (soundon && has_audio)
+			{
+				int32_t audio_vol_l = cdrom_mode_sense_get_volume(i, 0);
+				int32_t audio_vol_r = cdrom_mode_sense_get_volume(i, 1);
+				int channel_select[2];
 
-        				/*First, adjust input from drive according to ATAPI/SCSI volume.*/
-	        			cd_buffer[i][c]   = ((int32_t)cd_buffer[i][c]   * audio_vol_l) / 255;
-        	                        cd_buffer[i][c+1] = ((int32_t)cd_buffer[i][c+1] * audio_vol_r) / 255;
+				channel_select[0] = cdrom_mode_sense_get_channel(i, 0);
+				channel_select[1] = cdrom_mode_sense_get_channel(i, 1);
 
-	                                /*Apply ATAPI channel select*/
-        	                        if (channel_select[0] & 1)
-                	                        cd_buffer_temp[0] += cd_buffer[i][c];
-                        	        if (channel_select[0] & 2)
-                                	        cd_buffer_temp[1] += cd_buffer[i][c];
-	                                if (channel_select[1] & 1)
-        	                                cd_buffer_temp[0] += cd_buffer[i][c+1];
-                	                if (channel_select[1] & 2)
-                        	                cd_buffer_temp[1] += cd_buffer[i][c+1];
-                                
-	                                /*Apply sound card CD volume*/
-        	                        cd_buffer_temp[0] = (cd_buffer_temp[0] * (int)cd_vol_l) / 65535;
-                	                cd_buffer_temp[1] = (cd_buffer_temp[1] * (int)cd_vol_r) / 65535;
+				for (c = 0; c < CD_BUFLEN*2; c += 2)
+				{
+					float cd_buffer_temp[2] = {0.0, 0.0};
+					float cd_buffer_temp2[2] = {0.0, 0.0};
 
-	                                if (cd_buffer_temp[0] > 32767)
-        	                                cd_buffer_temp[0] = 32767;
-                	                if (cd_buffer_temp[0] < -32768)
-                        	                cd_buffer_temp[0] = -32768;
-	                                if (cd_buffer_temp[1] > 32767)
-        	                                cd_buffer_temp[1] = 32767;
-	                                if (cd_buffer_temp[1] < -32768)
-        	                                cd_buffer_temp[1] = -32768;
+					/* First, transfer the CD audio data to the temporary buffer. */
+					cd_buffer_temp[0] = (float) cd_buffer[i][c];
+					cd_buffer_temp[1] = (float) cd_buffer[i][c+1];
+					
+					/* Then, adjust input from drive according to ATAPI/SCSI volume. */
+					cd_buffer_temp[0] *= (float) audio_vol_l;
+					cd_buffer_temp[0] /= 255.0;
+					cd_buffer_temp[1] *= (float) audio_vol_r;
+					cd_buffer_temp[1] /= 255.0;
 
-	                                cd_buffer[i][c]   = cd_buffer_temp[0];
-        	                        cd_buffer[i][c+1] = cd_buffer_temp[1];
+					/*Apply ATAPI channel select*/
+					cd_buffer_temp2[0] = cd_buffer_temp2[1] = 0.0;
+					if (channel_select[0] & 1)
+					{
+						cd_buffer_temp2[0] += cd_buffer_temp[0];
+					}
+					if (channel_select[0] & 2)
+					{
+						cd_buffer_temp2[1] += cd_buffer_temp[0];
+					}
+					if (channel_select[1] & 1)
+					{
+						cd_buffer_temp2[0] += cd_buffer_temp[1];
+					}
+					if (channel_select[1] & 2)
+					{
+						cd_buffer_temp2[1] += cd_buffer_temp[1];
+					}
 
-					cd_out_buffer[c] += ((float) cd_buffer[i][c]) / 32768.0;
-					cd_out_buffer[c+1] += ((float) cd_buffer[i][c+1]) / 32768.0;
-                        	}
+					/*Apply sound card CD volume*/
+					cd_buffer_temp2[0] *= (float) cd_vol_l;
+					cd_buffer_temp2[0] /= 65535.0;
 
-        	        }
+					cd_buffer_temp2[1] *= (float) cd_vol_r;
+					cd_buffer_temp2[1] /= 65535.0;
+
+					cd_out_buffer[c] += (cd_buffer_temp2[0] / 32768.0);
+					cd_out_buffer[c+1] += (cd_buffer_temp2[1] / 32768.0);
+				}
+			}
 		}
 		givealbuffer_cd(cd_out_buffer);
-        }
+	}
 }
 
 static int32_t *outbuffer;

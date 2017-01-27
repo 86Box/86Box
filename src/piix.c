@@ -85,7 +85,6 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
                 {
                         uint16_t base = (card_piix_ide[0x20] & 0xf0) | (card_piix_ide[0x21] << 8);
                         io_removehandler(old_base, 0x10, piix_bus_master_read, NULL, NULL, piix_bus_master_write, NULL, NULL,  NULL);
-			pclog("Setting PIIX IDE bus master to new base address: %04X\n", base);
                         if (card_piix_ide[0x04] & 1)
 			{
 				io_sethandler(base, 0x10, piix_bus_master_read, NULL, NULL, piix_bus_master_write, NULL, NULL,  NULL);

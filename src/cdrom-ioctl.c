@@ -304,6 +304,7 @@ static int ioctl_medium_changed(uint8_t id)
         if (!cdrom_ioctl[id].tocvalid || (cdrom_drives[id].host_drive != cdrom_drives[id].prev_host_drive))
         {
                 cdrom_ioctl[id].cd_state = CD_STOPPED;
+				cdrom_ioctl_log("Setting TOC...\n");
                 cdrom_ioctl_windows[id].toc = ltoc;
                 cdrom_ioctl[id].tocvalid = 1;
                 if (cdrom_drives[id].host_drive != cdrom_drives[id].prev_host_drive)
@@ -318,6 +319,7 @@ static int ioctl_medium_changed(uint8_t id)
 				(ltoc.TrackData[ltoc.LastTrack].Address[3] != cdrom_ioctl_windows[id].toc.TrackData[cdrom_ioctl_windows[id].toc.LastTrack].Address[3]))
 			{
 					cdrom_ioctl[id].cd_state = CD_STOPPED;
+					cdrom_ioctl_log("Setting TOC...\n");
 					cdrom_ioctl_windows[id].toc = ltoc;
 					cdrom_ioctl[id].cdrom_capacity = ioctl_get_last_block(id, 0, 0, 4096, 0);
 					return 1; /* TOC mismatches. */
@@ -345,69 +347,77 @@ static uint8_t ioctl_getcurrentsubchannel(uint8_t id, uint8_t *b, int msf)
 		int track = get_track_nr(id, cdpos);
 		uint32_t track_address = cdrom_ioctl_windows[id].toc.TrackData[track].Address[3] + (cdrom_ioctl_windows[id].toc.TrackData[track].Address[2] * 75) + (cdrom_ioctl_windows[id].toc.TrackData[track].Address[1] * 75 * 60);
 
-                b[pos++] = sub.CurrentPosition.Control;
-                b[pos++] = track + 1;
-                b[pos++] = sub.CurrentPosition.IndexNumber;
+		cdrom_ioctl_log("cdpos = %i, track = %i, track_address = %i\n", cdpos, track, track_address);
+		
+		b[pos++] = sub.CurrentPosition.Control;
+		b[pos++] = track + 1;
+		b[pos++] = sub.CurrentPosition.IndexNumber;
 
-                if (msf)
-                {
-                        uint32_t dat = cdpos;
-                        b[pos + 3] = (uint8_t)(dat % 75); dat /= 75;
-                        b[pos + 2] = (uint8_t)(dat % 60); dat /= 60;
-                        b[pos + 1] = (uint8_t)dat;
-                        b[pos]     = 0;
-                        pos += 4;
-                        dat = cdpos - track_address;
-                        b[pos + 3] = (uint8_t)(dat % 75); dat /= 75;
-                        b[pos + 2] = (uint8_t)(dat % 60); dat /= 60;
-                        b[pos + 1] = (uint8_t)dat;
-                        b[pos]     = 0;
-                        pos += 4;
-                }
-                else
-                {
-                        b[pos++] = (cdpos >> 24) & 0xff;
-                        b[pos++] = (cdpos >> 16) & 0xff;
-                        b[pos++] = (cdpos >> 8) & 0xff;
-                        b[pos++] = cdpos & 0xff;
-                        cdpos -= track_address;
-                        b[pos++] = (cdpos >> 24) & 0xff;
-                        b[pos++] = (cdpos >> 16) & 0xff;
-                        b[pos++] = (cdpos >> 8) & 0xff;
-                        b[pos++] = cdpos & 0xff;
-                }
+		if (msf)
+		{
+			uint32_t dat = cdpos;
+			b[pos + 3] = (uint8_t)(dat % 75); dat /= 75;
+			b[pos + 2] = (uint8_t)(dat % 60); dat /= 60;
+			b[pos + 1] = (uint8_t)dat;
+			b[pos]     = 0;
+			pos += 4;
+			dat = cdpos - track_address;
+			b[pos + 3] = (uint8_t)(dat % 75); dat /= 75;
+			b[pos + 2] = (uint8_t)(dat % 60); dat /= 60;
+			b[pos + 1] = (uint8_t)dat;
+			b[pos]     = 0;
+			pos += 4;
+		}
+		else
+		{
+			b[pos++] = (cdpos >> 24) & 0xff;
+			b[pos++] = (cdpos >> 16) & 0xff;
+			b[pos++] = (cdpos >> 8) & 0xff;
+			b[pos++] = cdpos & 0xff;
+			cdpos -= track_address;
+			b[pos++] = (cdpos >> 24) & 0xff;
+			b[pos++] = (cdpos >> 16) & 0xff;
+			b[pos++] = (cdpos >> 8) & 0xff;
+			b[pos++] = cdpos & 0xff;
+		}
 
-                if (cdrom_ioctl[id].cd_state == CD_PLAYING) return 0x11;
-                return 0x12;
-        }
+		if (cdrom_ioctl[id].cd_state == CD_PLAYING) return 0x11;
+		return 0x12;
+	}
 
-        b[pos++]=sub.CurrentPosition.Control;
-        b[pos++]=sub.CurrentPosition.TrackNumber;
-        b[pos++]=sub.CurrentPosition.IndexNumber;
+	b[pos++]=sub.CurrentPosition.Control;
+	b[pos++]=sub.CurrentPosition.TrackNumber;
+	b[pos++]=sub.CurrentPosition.IndexNumber;
+
+	cdrom_ioctl_log("cdpos = %i, track_address = %i\n", MSFtoLBA(sub.CurrentPosition.AbsoluteAddress[1], sub.CurrentPosition.AbsoluteAddress[2], sub.CurrentPosition.AbsoluteAddress[3]), MSFtoLBA(sub.CurrentPosition.TrackRelativeAddress[1], sub.CurrentPosition.TrackRelativeAddress[2], sub.CurrentPosition.TrackRelativeAddress[3]));
         
-        if (msf)
-        {
-                int c;
-                for (c = 0; c < 4; c++)
-                        b[pos++] = sub.CurrentPosition.AbsoluteAddress[c];
-                for (c = 0; c < 4; c++)
-                        b[pos++] = sub.CurrentPosition.TrackRelativeAddress[c];
-        }
-        else
-        {
-                uint32_t temp = MSFtoLBA(sub.CurrentPosition.AbsoluteAddress[1], sub.CurrentPosition.AbsoluteAddress[2], sub.CurrentPosition.AbsoluteAddress[3]);
-                b[pos++] = temp >> 24;
-                b[pos++] = temp >> 16;
-                b[pos++] = temp >> 8;
-                b[pos++] = temp;
-                temp = MSFtoLBA(sub.CurrentPosition.TrackRelativeAddress[1], sub.CurrentPosition.TrackRelativeAddress[2], sub.CurrentPosition.TrackRelativeAddress[3]);
-                b[pos++] = temp >> 24;
-                b[pos++] = temp >> 16;
-                b[pos++] = temp >> 8;
-                b[pos++] = temp;
-        }
+	if (msf)
+	{
+		int c;
+		for (c = 0; c < 4; c++)
+		{
+			b[pos++] = sub.CurrentPosition.AbsoluteAddress[c];
+		}
+		for (c = 0; c < 4; c++)
+		{
+			b[pos++] = sub.CurrentPosition.TrackRelativeAddress[c];
+		}
+	}
+	else
+	{
+		uint32_t temp = MSFtoLBA(sub.CurrentPosition.AbsoluteAddress[1], sub.CurrentPosition.AbsoluteAddress[2], sub.CurrentPosition.AbsoluteAddress[3]);
+		b[pos++] = temp >> 24;
+		b[pos++] = temp >> 16;
+		b[pos++] = temp >> 8;
+		b[pos++] = temp;
+		temp = MSFtoLBA(sub.CurrentPosition.TrackRelativeAddress[1], sub.CurrentPosition.TrackRelativeAddress[2], sub.CurrentPosition.TrackRelativeAddress[3]);
+		b[pos++] = temp >> 24;
+		b[pos++] = temp >> 16;
+		b[pos++] = temp >> 8;
+		b[pos++] = temp;
+	}
 
-        return 0x13;
+	return 0x13;
 }
 
 static void ioctl_eject(uint8_t id)
@@ -664,6 +674,43 @@ static void ioctl_read_capacity(uint8_t id, uint8_t *b)
 	ioctl_close(id);
 }
 
+static int ioctl_media_type_id(uint8_t id)
+{
+	uint8_t old_sense[3] = { 0, 0, 0 };
+
+	UCHAR msbuf[28];
+	int len = 0;
+	int sense = 0;
+	
+	const UCHAR cdb[] = { 0x5A, 0x00, 0x2A, 0, 0, 0, 0, 0, 28, 0, 0, 0 };
+
+	old_sense[0] = cdrom_sense_key;
+	old_sense[1] = cdrom_asc;
+	old_sense[2] = cdrom_asc;
+	
+	ioctl_open(id, 0);
+
+	SCSICommand(id, cdb, msbuf, &len, 1);
+
+	pclog("Returned length: %i, media type: %i\n", len, msbuf[2]);
+
+	ioctl_close(id);
+
+	sense = cdrom_sense_key;
+	cdrom_sense_key = old_sense[0];
+	cdrom_asc = old_sense[1];
+	cdrom_asc = old_sense[2];
+
+	if (sense == 0)
+	{
+		return msbuf[2];
+	}
+	else
+	{
+		return 3;
+	}
+}
+
 static uint32_t msf_to_lba32(int lba)
 {
 	int m = (lba >> 16) & 0xff;
@@ -754,6 +801,7 @@ static void ioctl_validate_toc(uint8_t id)
 	}
 	cdrom_ioctl[id].cd_state = CD_STOPPED;        
 	ioctl_open(id, 0);
+	cdrom_ioctl_log("Validating TOC...\n");
 	DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL,IOCTL_CDROM_READ_TOC, NULL,0,&cdrom_ioctl_windows[id].toc,sizeof(cdrom_ioctl_windows[id].toc),&size,NULL);
 	ioctl_close(id);
 	cdrom_ioctl[id].tocvalid=1;
@@ -781,7 +829,7 @@ static int ioctl_pass_through(uint8_t id, uint8_t *in_cdb, uint8_t *b, uint32_t 
 	int temp_len = 0;
 	int chunk = 0;
 	
-	if (cdb[0] == 0x43)
+	if (in_cdb[0] == 0x43)
 	{
 		/* This is a read TOC, so we have to validate the TOC to make the rest of the emulator happy. */
 		ioctl_validate_toc(id);
@@ -950,6 +998,7 @@ static CDROM ioctl_cdrom=
 {
         ioctl_ready,
 		ioctl_medium_changed,
+		ioctl_media_type_id,
 		ioctl_audio_callback,
 		ioctl_audio_stop,
         NULL,

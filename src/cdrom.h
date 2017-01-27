@@ -24,6 +24,7 @@ typedef struct CDROM
 {
 	int (*ready)(uint8_t id);
 	int (*medium_changed)(uint8_t id);
+	int (*media_type_id)(uint8_t id);
 	void (*audio_callback)(uint8_t id, int16_t *output, int len);
 	void (*audio_stop)(uint8_t id);
 	int (*readtoc)(uint8_t id, uint8_t *b, uint8_t starttrack, int msf, int maxlen, int single);
@@ -110,6 +111,7 @@ typedef struct __attribute__((__packed__))
 	int all_blocks_total;
 	
 	int old_len;
+	int block_descriptor_len;
 } cdrom_t;
 
 extern cdrom_t cdrom[CDROM_NUM];
