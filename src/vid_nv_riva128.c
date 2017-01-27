@@ -1416,6 +1416,9 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
 		case 0x40008c:
 			riva128->pgraph.debug[3] = val & ((riva128->card_id == 0x04) ? 0x11ffff33 : 0xfbffff73);
 			break;
+		}
+	if(riva128->card_id >= 0x04) switch(addr)
+		{
 		case 0x400754:
 			riva128->pgraph.fifo_st2_addr = val;
 			break;

@@ -46,6 +46,7 @@ void ati28800_out(uint16_t addr, uint8_t val, void *p)
                 break;
                 case 0x1cf:
                 ati28800->regs[ati28800->index & 0x3f] = val;
+                pclog("ATI 28800 ATI register write %02x %02x\n", ati28800->index, val);
                 switch (ati28800->index & 0x3f)
                 {
 			case 0x2d:
@@ -315,13 +316,40 @@ void ati28800_recalctimings(svga_t *svga)
 #ifndef RELEASE_BUILD
         pclog("ati28800_recalctimings\n");
 #endif
-		svga->interlace = (!svga->scrblank && (ati28800->regs[0x30] & 0x20));
+        svga->interlace = (!svga->scrblank && (ati28800->regs[0x3e] & 2));
+
+        uint8_t clock_sel = (svga->miscout >> 2) & 3;
+        clock_sel |= (ati28800->regs[0x39] & 2) << 2;
+        clock_sel |= (ati28800->regs[0x3e] & 0x10) >> 1;
+        double freq;
+        switch(clock_sel)
+        {
+                case 0x00: freq = 42954000; break;
+                case 0x01: freq = 48771000; break;
+                case 0x02: freq = 16657000; break;
+                case 0x03: freq = 36000000; break;
+                case 0x04: freq = 50350000; break;
+                case 0x05: freq = 56640000; break;
+                case 0x06: freq = 28322000; break;
+                case 0x07: freq = 44900000; break;
+                case 0x08: freq = 30240000; break;
+                case 0x09: freq = 32000000; break;
+                case 0x0a: freq = 37500000; break;
+                case 0x0b: freq = 39000000; break;
+                case 0x0c: freq = 40000000; break;
+                case 0x0d: freq = 56644000; break;
+                case 0x0e: freq = 75000000; break;
+                case 0x0f: freq = 65000000; break;
+        }
+
+        svga->clock = cpuclock / freq;
 		
         if (!svga->scrblank && (ati28800->regs[0x30] & 0x20)) /*Extended 256 colour modes*/
         {
 #ifndef RELEASE_BUILD
                 pclog("8bpp_highres\n");
 #endif
+                svga->bpp = 8;
                 svga->render = svga_render_8bpp_highres;
                 svga->rowoffset <<= 1;
                 svga->ma <<= 1;
