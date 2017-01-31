@@ -1,6 +1,7 @@
 /* Copyright holders: Sarah Walker, Tenshi
    see COPYING for more details
 */
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include "ibm.h"
@@ -2165,9 +2166,9 @@ void fdc_indexpulse()
 //        rfdc_log("c82c711_fdc_indexpulse\n");
 }
 
-void fdc_init()
+void fdc_hard_reset()
 {
-	timer_add(fdc_callback, &disctime, &disctime, NULL);
+	memset(&fdc, 0, sizeof(FDC));
 	fdc.dskchg_activelow = 0;
 	fdc.enable_3f1 = 1;
 
@@ -2201,6 +2202,16 @@ void fdc_init()
 
 	swwp = 0;
 	disable_write = 0;
+
+	disc_reset();
+	fdc_reset();
+}
+
+void fdc_init()
+{
+	fdc_hard_reset();
+
+	timer_add(fdc_callback, &disctime, &disctime, NULL);
 }
 
 void fdc_add()

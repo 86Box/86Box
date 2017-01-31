@@ -32,6 +32,7 @@
 #include "nethandler.h"
 #include "nvr.h"
 #include "sound.h"
+#include "sound_dbopl.h"
 #include "thread.h"
 #include "disc.h"
 
@@ -772,6 +773,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 #endif
 #endif
 
+	CheckMenuItem(menu, IDM_USE_NUKEDOPL, opl3_type ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(menu, IDM_VID_FORCE43, force_43 ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(menu, IDM_VID_OVERSCAN, enable_overscan ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(menu, IDM_VID_FLASH, enable_flash ? MF_CHECKED : MF_UNCHECKED);
@@ -1524,6 +1526,20 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         CheckMenuItem(hmenu, IDM_VID_FS_FULL + video_fullscreen_scale, MF_CHECKED);
                         saveconfig();
                         break;
+
+			case IDM_USE_NUKEDOPL:
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			opl3_type ^= 1;
+			CheckMenuItem(hmenu, IDM_USE_NUKEDOPL, opl3_type ? MF_CHECKED : MF_UNCHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
 
 			case IDM_VID_FORCE43:
 			video_toggle_option(hmenu, &force_43, IDM_VID_FORCE43);

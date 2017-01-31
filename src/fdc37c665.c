@@ -139,31 +139,30 @@ uint8_t fdc37c665_read(uint16_t port, void *priv)
         return 0xff;
 }
 
-void fdc37c665_init()
+void fdc37c665_reset(void)
 {
-        io_sethandler(0x03f0, 0x0002, fdc37c665_read, NULL, NULL, fdc37c665_write, NULL, NULL,  NULL);
-
         fdc_update_is_nsc(0);
         
-        fdc37c665_lock[0] = fdc37c665_lock[1] = 0;
+	memset(fdc37c665_lock, 0, 2);
+	memset(fdc37c665_regs, 0, 16);
         fdc37c665_regs[0x0] = 0x3b;
         fdc37c665_regs[0x1] = 0x9f;
         fdc37c665_regs[0x2] = 0xdc;
         fdc37c665_regs[0x3] = 0x78;
-        fdc37c665_regs[0x4] = 0x00;
-        fdc37c665_regs[0x5] = 0x00;
         fdc37c665_regs[0x6] = 0xff;
-        fdc37c665_regs[0x7] = 0x00;
-        fdc37c665_regs[0x8] = 0x00;
-        fdc37c665_regs[0x9] = 0x00;
-        fdc37c665_regs[0xa] = 0x00;
-        fdc37c665_regs[0xb] = 0x00;
-        fdc37c665_regs[0xc] = 0x00;
         fdc37c665_regs[0xd] = 0x65;
         fdc37c665_regs[0xe] = 0x01;
-        fdc37c665_regs[0xf] = 0x00;
 
 	fdc_update_densel_polarity(1);
 	fdc_update_densel_force(0);
 	fdd_swap = 0;
+}
+
+void fdc37c665_init()
+{
+        io_sethandler(0x03f0, 0x0002, fdc37c665_read, NULL, NULL, fdc37c665_write, NULL, NULL,  NULL);
+
+	fdc37c665_reset();
+
+	pci_reset_handler.super_io_reset = fdc37c665_reset;
 }

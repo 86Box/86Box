@@ -128,7 +128,7 @@ uint8_t inb(uint16_t port)
            temp &= port_inb[port][1](port, port_priv[port][1]);
            
            /* if (!port_inb[port][0] && !port_inb[port][1])
-           	pclog("Bad INB %04X %04X:%04X\n", port, CS, pc); */
+           	pclog("Bad INB %04X %04X:%04X\n", port, CS, cpu_state.pc); */
            	
         return temp;
 }
@@ -143,7 +143,7 @@ void outb(uint16_t port, uint8_t val)
            port_outb[port][1](port, val, port_priv[port][1]);
         
         /* if (!port_outb[port][0] && !port_outb[port][1])
-        	pclog("Bad OUTB %04X %02X %04X:%08X\n", port, val, CS, pc); */
+        	pclog("Bad OUTB %04X %02X %04X:%08X\n", port, val, CS, cpu_state.pc); */
         return;
 }
 

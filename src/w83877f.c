@@ -481,13 +481,14 @@ uint8_t w83877f_read(uint16_t port, void *priv)
 	}
 }
 
-void w83877f_init()
+void w83877f_reset(void)
 {
-	fdc_remove();
-	fdc_add_for_superio();
 	lpt1_remove();
 	lpt1_init(0x378);
-	lpt2_remove();
+
+	fdc_remove();
+	fdc_add_for_superio();
+
 	w83877f_regs[3] = 0x30;
 	w83877f_regs[7] = 0xF5;
 	w83877f_regs[9] = 0x0A;
@@ -524,4 +525,13 @@ void w83877f_init()
 	w83877f_remap();
         w83877f_locked = 0;
         w83877f_rw_locked = 0;
+}
+
+void w83877f_init()
+{
+	lpt2_remove();
+
+	w83877f_reset();
+
+	pci_reset_handler.super_io_reset = w83877f_reset;
 }

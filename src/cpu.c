@@ -1939,9 +1939,9 @@ void cpu_RDMSR()
                 switch (ECX)
                 {
                         case 0x10:
-                        EAX = tsc & 0xffffffff;
-                        EDX = tsc >> 32;
-                        break;
+				EAX = tsc & 0xffffffff;
+				EDX = tsc >> 32;
+				break;
                 }
                 break;
                 case CPU_Cx6x86:
@@ -2150,8 +2150,8 @@ void cpu_WRMSR()
                 switch (ECX)
                 {
                         case 0x10:
-                        tsc = EAX | ((uint64_t)EDX << 32);
-                        break;
+				tsc = EAX | ((uint64_t)EDX << 32);
+				break;
                 }
                 break;
                 case CPU_Cx6x86:

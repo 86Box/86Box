@@ -361,14 +361,11 @@ void pc87306_gpio_init()
 	}
 }
 
-void pc87306_init()
+void pc87306_reset(void)
 {
 	memset(pc87306_regs, 0, 29);
-	lpt2_remove();
 
-	// pc87306_regs[0] = 0xF;
 	pc87306_regs[0] = 0x4B;
-	// pc87306_regs[1] = 0x11;
 	pc87306_regs[1] = 0x01;
 	pc87306_regs[3] = 2;
 	pc87306_regs[5] = 0xD;
@@ -388,5 +385,15 @@ void pc87306_init()
 	fdc_update_densel_polarity(1);
 	fdc_update_max_track(85);
 	fdd_swap = 0;
+}
+
+void pc87306_init()
+{
+	lpt2_remove();
+
+	pc87306_reset();
+
         io_sethandler(0x02e, 0x0002, pc87306_read, NULL, NULL, pc87306_write, NULL, NULL,  NULL);
+
+	pci_reset_handler.super_io_reset = pc87306_reset;
 }

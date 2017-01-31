@@ -40,6 +40,7 @@
 #include "serial.h"
 #include "sound.h"
 #include "sound_cms.h"
+#include "sound_dbopl.h"
 #include "sound_opl.h"
 #include "sound_sb.h"
 #include "sound_ssi2001.h"
@@ -854,6 +855,7 @@ void loadconfig(char *fn)
         enable_flash = config_get_int(NULL, "enable_flash", 1);
 
         enable_sync = config_get_int(NULL, "enable_sync", 1);
+        opl3_type = config_get_int(NULL, "opl3_type", 1);
 
         window_w = config_get_int(NULL, "window_w", 0);
         window_h = config_get_int(NULL, "window_h", 0);
@@ -1046,6 +1048,7 @@ void saveconfig()
         config_set_int(NULL, "enable_flash", enable_flash);
         
         config_set_int(NULL, "enable_sync", enable_sync);
+        config_set_int(NULL, "opl3_type", opl3_type);
 
         config_set_int(NULL, "joystick_type", joystick_type);
         config_set_int(NULL, "mouse_type", mouse_type);

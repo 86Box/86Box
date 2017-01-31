@@ -105,29 +105,8 @@ uint8_t i430lx_read(int func, int addr, void *priv)
         return card_i430lx[addr];
 }
 
-static uint8_t trc = 0;
-
-uint8_t i430lx_trc_read(uint16_t port, void *p)
+void i430lx_reset(void)
 {
-        return trc;
-}
-
-void i430lx_trc_write(uint16_t port, uint8_t val, void *p)
-{
-        if ((val & 4) && !(trc & 4))
-        {
-                if (val & 2) /*Hard reset*/
-                        i430lx_write(0, 0x59, 0xf, NULL); /*Should reset all PCI devices, but just set PAM0 to point to ROM for now*/
-                resetx86();
-        }
-                
-        trc = val;
-}
-
-void i430lx_init()
-{
-        pci_add_specific(0, i430lx_read, i430lx_write, NULL);
-        
         memset(card_i430lx, 0, 256);
         card_i430lx[0x00] = 0x86; card_i430lx[0x01] = 0x80; /*Intel*/
         card_i430lx[0x02] = 0xa3; card_i430lx[0x03] = 0x04; /*82434LX*/
@@ -137,16 +116,20 @@ void i430lx_init()
         card_i430lx[0x09] = 0x00; card_i430lx[0x0a] = 0x00; card_i430lx[0x0b] = 0x06;
         card_i430lx[0x50] = 0x80;
         card_i430lx[0x52] = 0x40; /*256kb PLB cache*/
-//        card_i430lx[0x53] = 0x14;
-//        card_i430lx[0x56] = 0x52; /*DRAM control*/
         card_i430lx[0x57] = 0x31;
         card_i430lx[0x60] = card_i430lx[0x61] = card_i430lx[0x62] = card_i430lx[0x63] = card_i430lx[0x64] = 0x02;
-//        card_i430lx[0x67] = 0x11;
-//        card_i430lx[0x69] = 0x03;
-//        card_i430lx[0x70] = 0x20;
-//        card_i430lx[0x72] = 0x02;
-//        card_i430lx[0x74] = 0x0e;
-//        card_i430lx[0x78] = 0x23;
+}
 
-        io_sethandler(0x0cf9, 0x0001, i430lx_trc_read, NULL, NULL, i430lx_trc_write, NULL, NULL, NULL);
+void i430lx_pci_reset(void)
+{
+	i430lx_write(0, 0x59, 0xf, NULL);
+}
+
+void i430lx_init()
+{
+        pci_add_specific(0, i430lx_read, i430lx_write, NULL);
+
+	i430lx_reset();
+
+	pci_reset_handler.pci_master_reset = i430lx_pci_reset;
 }

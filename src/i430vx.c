@@ -103,11 +103,8 @@ uint8_t i430vx_read(int func, int addr, void *priv)
         return card_i430vx[addr];
 }
  
-    
-void i430vx_init()
+void i430vx_reset(void)
 {
-        pci_add_specific(0, i430vx_read, i430vx_write, NULL);
-        
         memset(card_i430vx, 0, 256);
         card_i430vx[0x00] = 0x86; card_i430vx[0x01] = 0x80; /*Intel*/
         card_i430vx[0x02] = 0x30; card_i430vx[0x03] = 0x70; /*82437VX*/
@@ -126,4 +123,18 @@ void i430vx_init()
         card_i430vx[0x72] = 0x02;
         card_i430vx[0x74] = 0x0e;
         card_i430vx[0x78] = 0x23;
+}
+    
+void i430vx_pci_reset(void)
+{
+	i430vx_write(0, 0x59, 0xf, NULL);
+}
+
+void i430vx_init()
+{
+        pci_add_specific(0, i430vx_read, i430vx_write, NULL);
+        
+	i430vx_reset();
+
+	pci_reset_handler.pci_master_reset = i430vx_pci_reset;
 }

@@ -610,3 +610,17 @@ extern int ne2000_do_log;
 #endif
 
 extern int suppress_overscan;
+
+typedef struct PCI_RESET
+{
+	void (*pci_master_reset)(void);
+	void (*pci_set_reset)(void);
+	void (*super_io_reset)(void);
+} PCI_RESET;
+
+extern PCI_RESET pci_reset_handler;
+
+uint8_t trc_read(uint16_t port, void *priv);
+void trc_write(uint16_t port, uint8_t val, void *priv);
+void trc_init();
+

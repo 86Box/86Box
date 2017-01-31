@@ -15,6 +15,7 @@
 #define IDM_CONFIG         40020
 #define IDM_CONFIG_LOAD    40021
 #define IDM_CONFIG_SAVE    40022
+#define IDM_USE_NUKEDOPL   40023
 #define IDM_STATUS         40030
 #define IDM_VID_RESIZE     40050
 #define IDM_VID_REMEMBER   40051

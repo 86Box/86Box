@@ -5,6 +5,8 @@
 #include "dosbox/nukedopl.h"
 #include "sound_dbopl.h"
 
+int opl3_type = 0;
+
 static struct
 {
         DBOPL::Chip chip;
@@ -38,13 +40,13 @@ enum
 
 void opl_init(void (*timer_callback)(void *param, int timer, int64_t period), void *timer_param, int nr, int is_opl3)
 {
-	if (!is_opl3)
+	if (!is_opl3 || !opl3_type)
 	{
 			DBOPL::InitTables();                        
 			opl[nr].chip.Setup(48000, 0);
 			opl[nr].timer_callback = timer_callback;
 			opl[nr].timer_param = timer_param;
-			opl[nr].is_opl3 = 0;	
+			opl[nr].is_opl3 = is_opl3;
 	}
 	else
 	{
@@ -154,5 +156,18 @@ void opl2_update(int nr, int16_t *buffer, int samples)
 
 void opl3_update(int nr, int16_t *buffer, int samples)
 {
+        int c;
+        Bit32s buffer_32[samples*2];
+
+	if (opl3_type)
+	{
 		OPL3_GenerateStream(&opl[nr].opl3chip, buffer, samples);
+	}
+	else
+	{
+		opl[nr].chip.GenerateBlock3(samples, buffer_32);
+
+		for (c = 0; c < samples*2; c++)
+			buffer[c] = (int16_t)buffer_32[c];
+	}
 }

@@ -9,6 +9,8 @@
 #include <string.h>
 
 #include "ibm.h"
+#include "cdrom.h"
+#include "cpu.h"
 #include "ide.h"
 #include "io.h"
 #include "mem.h"
@@ -82,9 +84,64 @@ uint8_t sio_read(int func, int addr, void *priv)
 	return card_sio[addr];
 }
 
-static int reset_reg = 0;
+static int trc_reg = 0;
 
-void sio_reset()
+uint8_t trc_read(uint16_t port, void *priv)
+{
+	return trc_reg & 0xfb;
+}
+
+void trc_write(uint16_t port, uint8_t val, void *priv)
+{
+	int i = 0;
+
+	pclog("TRC Write: %02X\n", val);
+	if (!(trc_reg & 4) && (val & 4))
+	{
+		if (val & 2)
+		{
+			if (pci_reset_handler.pci_master_reset)
+			{
+				pci_reset_handler.pci_master_reset();
+			}
+
+			if (pci_reset_handler.pci_set_reset)
+			{
+				pci_reset_handler.pci_set_reset();
+			}
+
+			fdc_hard_reset();
+
+			if (pci_reset_handler.super_io_reset)
+			{
+				pci_reset_handler.super_io_reset();
+			}
+
+			resetide();
+			for (i = 0; i < CDROM_NUM; i++)
+			{
+				if (!cdrom_drives[i].bus_type)
+				{
+					cdrom_reset(i);
+				}
+			}
+
+			port_92_reset();
+			keyboard_at_reset();
+		}
+		resetx86();
+	}
+	trc_reg = val & 0xfd;
+}
+
+void trc_init()
+{
+	trc_reg = 0;
+
+	io_sethandler(0x0cf9, 0x0001, trc_read, NULL, NULL, trc_write, NULL, NULL, NULL);
+}
+
+void sio_reset(void)
 {
         memset(card_sio, 0, 256);
         card_sio[0x00] = 0x86; card_sio[0x01] = 0x80; /*Intel*/
@@ -109,44 +166,19 @@ void sio_reset()
 	card_sio[0xA8] = 0x0F;
 }
 
-static uint8_t rc_read(uint16_t port, void *priv)
-{
-	return reset_reg & 0xfb;
-}
-
-static void rc_write(uint16_t port, uint8_t val, void *priv)
-{
-	if (!(reset_reg & 4) && (val & 4))
-	{
-		if (reset_reg & 2)
-		{
-			// pclog("SIO: Hard reset\n");
-			resetpchard();
-		}
-		else
-		{
-			// pclog("SIO: Soft reset\n");
-			sio_reset();
-			resetide();
-			softresetx86();
-		}
-	}
-	reset_reg = val;
-}
-
 void sio_init(int card)
 {
         pci_add_specific(card, sio_read, sio_write, NULL);
 
-	sio_reset();        
+	sio_reset();
 
-	reset_reg = 0;
-
-        io_sethandler(0x0cf9, 0x0001, rc_read, NULL, NULL, rc_write, NULL, NULL, NULL);
+	trc_init();
 
 	port_92_reset();
 
         port_92_add();
 
 	dma_alias_set();
+
+	pci_reset_handler.pci_set_reset = sio_reset;
 }

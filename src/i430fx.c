@@ -102,27 +102,8 @@ uint8_t i430fx_read(int func, int addr, void *priv)
         return card_i430fx[addr];
 }
 
-/*The Turbo-Reset Control Register isn't listed in the i430FX datasheet, however
-  the Advanced/EV BIOS seems to assume it exists. It aliases with one of the PCI
-  registers.*/ 
-static uint8_t trc = 0;
-
-void i430fx_trc_write(uint16_t port, uint8_t val, void *p)
+void i430fx_reset(void)
 {
-        if ((val & 4) && !(trc & 4))
-        {
-                if (val & 2) /*Hard reset*/
-                        i430fx_write(0, 0x59, 0xf, NULL); /*Should reset all PCI devices, but just set PAM0 to point to ROM for now*/
-                resetx86();
-        }
-                
-        trc = val;
-}
-
-void i430fx_init()
-{
-        pci_add_specific(0, i430fx_read, i430fx_write, NULL);
-        
         memset(card_i430fx, 0, 256);
         card_i430fx[0x00] = 0x86; card_i430fx[0x01] = 0x80; /*Intel*/
         card_i430fx[0x02] = 0x22; card_i430fx[0x03] = 0x01; /*SB82437FX-66*/
@@ -138,8 +119,6 @@ void i430fx_init()
 	        card_i430fx[0x53] = 0x14;
 	        card_i430fx[0x56] = 0x52; /*DRAM control*/
 	}
-//        card_i430fx[0x53] = 0x14;
-//        card_i430fx[0x56] = 0x52; /*DRAM control*/
         card_i430fx[0x57] = 0x01;
         card_i430fx[0x60] = card_i430fx[0x61] = card_i430fx[0x62] = card_i430fx[0x63] = card_i430fx[0x64] = 0x02;
 	if (romset == ROM_MB500N)
@@ -148,17 +127,24 @@ void i430fx_init()
 	        card_i430fx[0x69] = 0x03;
 	        card_i430fx[0x70] = 0x20;
 	}
-//        card_i430fx[0x67] = 0x11;
-//        card_i430fx[0x69] = 0x03;
-//        card_i430fx[0x70] = 0x20;
         card_i430fx[0x72] = 0x02;
-//        card_i430fx[0x74] = 0x0e;
-//        card_i430fx[0x78] = 0x23;
 	if (romset == ROM_MB500N)
 	{
 	        card_i430fx[0x74] = 0x0e;
 	        card_i430fx[0x78] = 0x23;
 	}
+}
 
-        if (romset != ROM_MB500N)  io_sethandler(0x0cf9, 0x0001, NULL, NULL, NULL, i430fx_trc_write, NULL, NULL, NULL);
+void i430fx_pci_reset(void)
+{
+	i430fx_write(0, 0x59, 0xf, NULL);
+}
+
+void i430fx_init()
+{
+        pci_add_specific(0, i430fx_read, i430fx_write, NULL);
+
+	i430fx_reset();
+        
+	pci_reset_handler.pci_master_reset = i430fx_pci_reset;
 }

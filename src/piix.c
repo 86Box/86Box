@@ -500,9 +500,41 @@ void piix_bus_master_set_irq(int channel)
         piix_busmaster[channel].status |= 4;
 }
 
-static int reset_reg = 0;
+/* static int reset_reg = 0;
 
-void piix_reset()
+static uint8_t rc_read(uint16_t port, void *priv)
+{
+	return reset_reg & 0xfb;
+}
+
+static void rc_write(uint16_t port, uint8_t val, void *priv)
+{
+	if (!(reset_reg & 4) && (val & 4))
+	{
+		if (reset_reg & 2)
+		{
+			// pclog("PIIX: Hard reset\n");
+			resetpchard();
+		}
+		else
+		{
+			// pclog("PIIX: Soft reset\n");
+			if (piix_type == 3)
+			{
+				piix3_reset();
+			}
+			else
+			{
+				piix_reset();
+			}
+			resetide();
+			softresetx86();
+		}
+	}
+	reset_reg = val;
+} */
+
+void piix_reset(void)
 {
         memset(card_piix, 0, 256);
         card_piix[0x00] = 0x86; card_piix[0x01] = 0x80; /*Intel*/
@@ -541,7 +573,7 @@ void piix_reset()
         card_piix_ide[0x42] = card_piix_ide[0x43] = 0x00;
 }
 
-void piix3_reset()
+void piix3_reset(void)
 {
         memset(card_piix, 0, 256);
         card_piix[0x00] = 0x86; card_piix[0x01] = 0x80; /*Intel*/
@@ -582,57 +614,25 @@ void piix3_reset()
 	card_piix_ide[0x44] = 0x00;
 }
 
-static uint8_t rc_read(uint16_t port, void *priv)
-{
-	return reset_reg & 0xfb;
-}
-
-static void rc_write(uint16_t port, uint8_t val, void *priv)
-{
-	if (!(reset_reg & 4) && (val & 4))
-	{
-		if (reset_reg & 2)
-		{
-			// pclog("PIIX: Hard reset\n");
-			resetpchard();
-		}
-		else
-		{
-			// pclog("PIIX: Soft reset\n");
-			if (piix_type == 3)
-			{
-				piix3_reset();
-			}
-			else
-			{
-				piix_reset();
-			}
-			resetide();
-			softresetx86();
-		}
-	}
-	reset_reg = val;
-}
-
 void piix_init(int card)
 {
         pci_add_specific(card, piix_read, piix_write, NULL);
 
 	piix_reset();
 
-	reset_reg = 0;
-
 	piix_type = 1;
         
         ide_set_bus_master(piix_bus_master_dma_read, piix_bus_master_dma_write, piix_bus_master_set_irq);
 
-        io_sethandler(0x0cf9, 0x0001, rc_read, NULL, NULL, rc_write, NULL, NULL, NULL);
+	trc_init();
 
 	port_92_reset();
 
 	port_92_add();
 
 	dma_alias_set();
+
+	pci_reset_handler.pci_set_reset = piix_reset;
 }
 
 void piix3_init(int card)
@@ -641,17 +641,17 @@ void piix3_init(int card)
         
 	piix3_reset();
 
-	reset_reg = 0;
-
 	piix_type = 3;
         
         ide_set_bus_master(piix_bus_master_dma_read, piix_bus_master_dma_write, piix_bus_master_set_irq);
 
-        io_sethandler(0x0cf9, 0x0001, rc_read, NULL, NULL, rc_write, NULL, NULL, NULL);
+	trc_init();
 
 	port_92_reset();
 
 	port_92_add();
 
 	dma_alias_set();
+
+	pci_reset_handler.pci_set_reset = piix_reset;
 }

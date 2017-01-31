@@ -393,11 +393,9 @@ uint8_t fdc37c932fr_read(uint16_t port, void *priv)
 	}
 }
 
-void fdc37c932fr_init()
+void fdc37c932fr_reset(void)
 {
 	int i = 0;
-
-	lpt2_remove();
 
 	fdc37c932fr_regs[3] = 3;
 	fdc37c932fr_regs[0x20] = 3;
@@ -485,8 +483,19 @@ void fdc37c932fr_init()
 	fdc_update_drvrate(2, 0);
 	fdc_update_drvrate(3, 0);
 	fdc_update_max_track(79);
+
+        fdc37c932fr_locked = 0;
+}
+
+void fdc37c932fr_init()
+{
+	lpt2_remove();
+
+	fdc37c932fr_reset();
+
         io_sethandler(0xe0, 0x0006, fdc37c932fr_gpio_read, NULL, NULL, fdc37c932fr_gpio_write, NULL, NULL,  NULL);
         io_sethandler(0xea, 0x0002, fdc37c932fr_gpio_read, NULL, NULL, fdc37c932fr_gpio_write, NULL, NULL,  NULL);
         io_sethandler(0x3f0, 0x0002, fdc37c932fr_read, NULL, NULL, fdc37c932fr_write, NULL, NULL,  NULL);
-        fdc37c932fr_locked = 0;
+
+	pci_reset_handler.super_io_reset = fdc37c932fr_reset;
 }

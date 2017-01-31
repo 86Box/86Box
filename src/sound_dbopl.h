@@ -10,6 +10,8 @@ extern "C" {
         void opl_timer_over(int nr, int timer);
         void opl2_update(int nr, int16_t *buffer, int samples);
         void opl3_update(int nr, int16_t *buffer, int samples);
+
+	extern int opl3_type;
 #ifdef __cplusplus
 }
 #endif

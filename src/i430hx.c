@@ -103,11 +103,8 @@ uint8_t i430hx_read(int func, int addr, void *priv)
         return card_i430hx[addr];
 }
  
-    
-void i430hx_init()
+void i430hx_reset(void)
 {
-        pci_add_specific(0, i430hx_read, i430hx_write, NULL);
-        
         memset(card_i430hx, 0, 256);
         card_i430hx[0x00] = 0x86; card_i430hx[0x01] = 0x80; /*Intel*/
         card_i430hx[0x02] = 0x50; card_i430hx[0x03] = 0x12; /*82439HX*/
@@ -115,9 +112,7 @@ void i430hx_init()
         card_i430hx[0x06] = 0x00; card_i430hx[0x07] = 0x02;
         card_i430hx[0x08] = 0x00; /*A0 stepping*/
         card_i430hx[0x09] = 0x00; card_i430hx[0x0a] = 0x00; card_i430hx[0x0b] = 0x06;
-        // card_i430hx[0x52] = 0x42; /*256kb PLB cache*/
 	card_i430hx[0x51] = 0x20;
-	// card_i430hx[0x52] = 0xB2; /*512kb cache*/
 	card_i430hx[0x52] = 0xB5; /*512kb cache*/
 
 	card_i430hx[0x59] = 0x40;
@@ -128,4 +123,18 @@ void i430hx_init()
         card_i430hx[0x60] = card_i430hx[0x61] = card_i430hx[0x62] = card_i430hx[0x63] = card_i430hx[0x64] = card_i430hx[0x65] = card_i430hx[0x66] = card_i430hx[0x67] = 0x02;
         card_i430hx[0x68] = 0x11;
         card_i430hx[0x72] = 0x02;
+}
+    
+void i430hx_pci_reset(void)
+{
+	i430hx_write(0, 0x59, 0xf, NULL);
+}
+
+void i430hx_init()
+{
+        pci_add_specific(0, i430hx_read, i430hx_write, NULL);
+
+	i430hx_reset();
+
+	pci_reset_handler.pci_master_reset = i430hx_pci_reset;
 }

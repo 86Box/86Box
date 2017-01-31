@@ -312,8 +312,11 @@ BEGIN
         POPUP "&Settings"
         BEGIN
                 MENUITEM "&Configure...", IDM_CONFIG
+                MENUITEM SEPARATOR
                 MENUITEM "&Load configuration...", IDM_CONFIG_LOAD
                 MENUITEM "&Save configuration...", IDM_CONFIG_SAVE
+                MENUITEM SEPARATOR
+                MENUITEM "Use &Nuked OPL for OPL 3...", IDM_USE_NUKEDOPL
                 MENUITEM SEPARATOR
                 POPUP "&Video"
                 BEGIN

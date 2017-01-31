@@ -103,11 +103,8 @@ uint8_t i440fx_read(int func, int addr, void *priv)
         return card_i440fx[addr];
 }
  
-    
-void i440fx_init()
+void i440fx_reset(void)
 {
-        pci_add_specific(0, i440fx_read, i440fx_write, NULL);
-        
         memset(card_i440fx, 0, 256);
         card_i440fx[0x00] = 0x86; card_i440fx[0x01] = 0x80; /*Intel*/
         card_i440fx[0x02] = 0x37; card_i440fx[0x03] = 0x12; /*82441FX*/
@@ -129,8 +126,19 @@ void i440fx_init()
         card_i440fx[0x58] = 0x10;
 	card_i440fx[0x5a] = card_i440fx[0x5b] = card_i440fx[0x5c] = card_i440fx[0x5d] = card_i440fx[0x5e] = 0x11;
 	card_i440fx[0x5f] = 0x31;
-        // card_i440fx[0x60] = card_i440fx[0x61] = card_i440fx[0x62] = card_i440fx[0x63] = card_i440fx[0x64] = card_i440fx[0x65] = card_i440fx[0x66] = card_i440fx[0x67] = 0x02;
-        // card_i440fx[0x70] = 0x20;
-        // card_i440fx[0x71] = 0x10;
         card_i440fx[0x72] = 0x02;
+}
+    
+void i440fx_pci_reset(void)
+{
+	i440fx_write(0, 0x59, 0xf, NULL);
+}
+
+void i440fx_init()
+{
+        pci_add_specific(0, i440fx_read, i440fx_write, NULL);
+        
+	i440fx_reset();
+
+	pci_reset_handler.pci_master_reset = i440fx_pci_reset;
 }

@@ -677,7 +677,6 @@ int loadbios()
                 biosmask = 0x1ffff;
                 return 1;
 
-#if 0
                 case ROM_POWERMATE_V:
                 f = romfopen("roms/powermate_v/BIOS.ROM", "rb");	/* Works */
                 if (!f) break;
@@ -685,7 +684,6 @@ int loadbios()
                 fclose(f);
                 biosmask = 0x1ffff;
                 return 1;
-#endif
 
                 case ROM_P54TP4XE:
                 f = romfopen("roms/p54tp4xe/T15I0302.AWD", "rb");
@@ -2115,7 +2113,7 @@ void mem_reset_page_blocks()
         }
 }
 
-void mem_reset()
+/* void mem_reset()
 {
         int c;
 
@@ -2135,7 +2133,7 @@ void mem_reset()
 
         mem_a20_key = 2;
         mem_a20_recalc();
-}
+} */
 
 static int port_92_reg = 0;
 
