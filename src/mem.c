@@ -677,6 +677,7 @@ int loadbios()
                 biosmask = 0x1ffff;
                 return 1;
 
+#if 0
                 case ROM_POWERMATE_V:
                 f = romfopen("roms/powermate_v/BIOS.ROM", "rb");	/* Works */
                 if (!f) break;
@@ -684,6 +685,7 @@ int loadbios()
                 fclose(f);
                 biosmask = 0x1ffff;
                 return 1;
+#endif
 
                 case ROM_P54TP4XE:
                 f = romfopen("roms/p54tp4xe/T15I0302.AWD", "rb");
@@ -741,6 +743,7 @@ int loadbios()
                 biosmask = 0x1ffff;
                 return 1;
 
+#if 0
                 case ROM_MARL:
                 f = romfopen("roms/marl/1008DB0_.BIO", "rb");
                 if (!f) break;
@@ -755,6 +758,7 @@ int loadbios()
                 biosmask = 0x1ffff;
                 //is486=1;
                 return 1;
+#endif
 
                 case ROM_THOR:
                 f = romfopen("roms/thor/1006CN0_.BIO", "rb");

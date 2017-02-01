@@ -176,9 +176,11 @@ void *intel_flash_init(uint8_t type)
 		case ROM_MB500N:
 			strcpy(flash_path, "roms/mb500n/");
 			break;
+#if 0
 		case ROM_POWERMATE_V:
 			strcpy(flash_path, "roms/powermate_v/");
 			break;
+#endif
 		case ROM_P54TP4XE:
 			strcpy(flash_path, "roms/p54tp4xe/");
 			break;
@@ -203,9 +205,11 @@ void *intel_flash_init(uint8_t type)
 		case ROM_440FX:
 			strcpy(flash_path, "roms/440fx/");
 			break;
+#if 0
 		case ROM_MARL:
 			strcpy(flash_path, "roms/marl/");
 			break;
+#endif
 		case ROM_THOR:
 			strcpy(flash_path, "roms/thor/");
 			break;

@@ -11,7 +11,7 @@
 #include "io.h"
 #include "memregs.h"
 
-static uint8_t mem_regs[2] = {0xFF, 0xFF};
+static uint8_t mem_regs[16] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 static uint8_t mem_reg_ffff = 0;
 
@@ -22,7 +22,7 @@ void memregs_write(uint16_t port, uint8_t val, void *priv)
 		mem_reg_ffff = 0;
 	}
 
-	mem_regs[(port & 1) ^ 1] = val;
+	mem_regs[port & 0xf] = val;
 }
 
 uint8_t memregs_read(uint16_t port, void *priv)
@@ -32,7 +32,7 @@ uint8_t memregs_read(uint16_t port, void *priv)
 		return mem_reg_ffff;
 	}
 
-	return mem_regs[(port & 1) ^ 1];
+	return mem_regs[port & 0xf];
 }
 
 void memregs_init()
