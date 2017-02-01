@@ -207,9 +207,6 @@ double disc_real_period(int drive)
 
 void disc_poll(int drive)
 {
-	disc_poll_time[drive] += (int) (((romset == ROM_MRTHOR) ? 16.0 : 32.0) * TIMER_USEC);
-	return;
-
 	if (drive >= FDD_NUM)
 	{
 		disc_poll_time[drive] += (int) (((romset == ROM_MRTHOR) ? 16.0 : 32.0) * TIMER_USEC);
