@@ -1655,8 +1655,9 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			cdrom_id = convert_cdrom_id(LOWORD(wParam) - IDM_CDROM_1_SOUND_ON);
 			Sleep(100);
 			cdrom_drives[cdrom_id].sound_on ^= 1;                                             
-			CheckMenuItem(hmenu, IDM_CDROM_1_SOUND_ON + (cdrom_id * 1000), cdrom_drives[cdrom_id].enabled ? MF_CHECKED : MF_UNCHECKED);
+			CheckMenuItem(hmenu, IDM_CDROM_1_SOUND_ON + (cdrom_id * 1000), cdrom_drives[cdrom_id].sound_on ? MF_CHECKED : MF_UNCHECKED);
 			saveconfig();
+			sound_cd_thread_reset();
 			break;
                         
 			case IDM_CDROM_1_SCSI:

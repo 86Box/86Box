@@ -440,7 +440,7 @@ static void hdconf_file(HWND hdlg, int drive_num)
 
 		if (image_is_hdi(openfilestring))
 		{
-			fseeko64(f, 0x10, SEEK_END);
+			fseeko64(f, 0x10, SEEK_SET);
 			fread(&sector_size, 1, 4, f);
 			if (sector_size != 512)
 			{

@@ -87,6 +87,8 @@ void inital()
         int c;
         float buf[BUFLEN*2];
 
+        float cd_buf[CD_BUFLEN*2];
+
 //        printf("1\n");
         check();
 
@@ -114,13 +116,15 @@ void inital()
         alSourcei (source[1], AL_SOURCE_RELATIVE, AL_TRUE      );
         check();
 
-        memset(buf,0,BUFLEN*4);
+        memset(buf,0,BUFLEN*2*sizeof(float));
+        memset(cd_buf,0,BUFLEN*2*sizeof(float));
 
 //        printf("5\n");
         for (c = 0; c < 4; c++)
         {
                 alBufferData(buffers[c], AL_FORMAT_STEREO_FLOAT32, buf, BUFLEN*2*sizeof(float), FREQ);
                 alBufferData(buffers_cd[c], AL_FORMAT_STEREO_FLOAT32, buf, CD_BUFLEN*2*sizeof(float), CD_FREQ);
+                alBufferData(buffers_cd[c], AL_FORMAT_STEREO_FLOAT32, cd_buf, CD_BUFLEN*2*sizeof(float), CD_FREQ);
         }
 
         alSourceQueueBuffers(source[0], 4, buffers);

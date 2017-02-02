@@ -501,6 +501,8 @@ void resetpchard()
 			}
 		}
 	}
+
+	sound_cd_thread_reset();
 }
 
 char romsets[17][40]={"IBM PC","IBM XT","Generic Turbo XT","Euro PC","Tandy 1000","Amstrad PC1512","Sinclair PC200","Amstrad PC1640","IBM AT","AMI 286 clone","Dell System 200","Misc 286","IBM AT 386","Misc 386","386 clone","486 clone","486 clone 2"};

@@ -101,7 +101,9 @@ void       at_r418_init();
 void     at_586mc1_init();
 void      at_plato_init();
 void     at_mb500n_init();
-// void at_powermate_v_init();
+#if 0
+void at_powermate_v_init();
+#endif
 void   at_p54tp4xe_init();
 void    at_acerm3a_init();
 void   at_acerv35n_init();
@@ -166,7 +168,9 @@ MODEL models[] =
         {"Intel Premiere/PCI II",ROM_PLATO,      { "Intel", cpus_PentiumS5,"IDT", cpus_WinChip, "AMD",   cpus_K5, "",      NULL},         0, MODEL_AT|MODEL_PS2,   1, 128, 1,       at_plato_init, NULL},
         {"Intel Advanced/EV",   ROM_ENDEAVOR,    { "Intel", cpus_PentiumS5,"IDT", cpus_WinChip, "AMD",   cpus_K5, "",      NULL},         0, MODEL_AT|MODEL_PS2,   1, 128, 1,   at_endeavor_init, NULL},
         {"PC Partner MB500N",   ROM_MB500N,      { "Intel", cpus_PentiumS5,"IDT", cpus_WinChip, "AMD",   cpus_K5, "",      NULL},         0, MODEL_AT|MODEL_PS2,   1, 128, 1,     at_mb500n_init, NULL},
-/*        {"NEC PowerMate V",     ROM_POWERMATE_V, { "Intel", cpus_PentiumS5,"IDT", cpus_WinChip, "AMD",   cpus_K5, "",      NULL},         0, MODEL_AT|MODEL_PS2,   1, 128, 1,     at_powermate_v_init, NULL}, */
+#if 0
+        {"NEC PowerMate V",     ROM_POWERMATE_V, { "Intel", cpus_PentiumS5,"IDT", cpus_WinChip, "AMD",   cpus_K5, "",      NULL},         0, MODEL_AT|MODEL_PS2,   1, 128, 1,     at_powermate_v_init, NULL},
+#endif
         {"Intel Advanced/ATX",  ROM_THOR,        { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, MODEL_AT|MODEL_PS2,   1, 256, 1,    at_endeavor_init, NULL},
         {"MR Intel Advanced/ATX",  ROM_MRTHOR,   { "Intel", cpus_Pentium, "IDT", cpus_WinChip, "Cyrix", cpus_6x86, "AMD",   cpus_K56, "",      NULL},         0, MODEL_AT|MODEL_PS2,   1, 256, 1,    at_endeavor_init, NULL},
         {"ASUS P/I-P54TP4XE",   ROM_P54TP4XE,    { "Intel", cpus_PentiumS5, "IDT", cpus_WinChip, "AMD",   cpus_K5, "",     NULL},         0, MODEL_AT|MODEL_PS2,   1, 512, 1, at_p54tp4xe_init, NULL},
@@ -527,7 +531,8 @@ void at_mb500n_init()
         device_add(&intel_flash_bxt_device);
 }
 
-/* void at_powermate_v_init()
+#if 0
+void at_powermate_v_init()
 {
         at_init();
 	powermate_memregs_init();
@@ -537,7 +542,8 @@ void at_mb500n_init()
         fdc37c665_init();
         acerm3a_io_init();
         device_add(&intel_flash_bxt_device);
-} */
+}
+#endif
 
 void at_p54tp4xe_init()
 {

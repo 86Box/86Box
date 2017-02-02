@@ -1283,6 +1283,14 @@ ide_bad_command:
 				ide->atastat = ide_other->atastat = BUSY_STAT;
 				// ide_log("IDE Reset %i\n", ide_board);
 			}
+			if (val & 4)
+			{
+				/*Drive held in reset*/
+				timer_process();
+				idecallback[ide_board] = 0;
+				timer_update_outstanding();
+				ide->atastat = ide_other->atastat = BUSY_STAT;
+			}
 			ide->fdisk = ide_other->fdisk = val;
 			ide_irq_update(ide);
 			return;

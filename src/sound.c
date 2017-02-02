@@ -98,6 +98,7 @@ static float cd_out_buffer[CD_BUFLEN * 2];
 static thread_t *sound_cd_thread_h;
 static event_t *sound_cd_event;
 static unsigned int cd_vol_l, cd_vol_r;
+static int cd_buf_update = CD_BUFLEN / SOUNDBUFLEN;
 
 void sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r)
 {
@@ -114,10 +115,26 @@ static void sound_cd_thread(void *param)
 		int c, has_audio;
 
 		thread_wait_event(sound_cd_event, -1);
+		if (!soundon)
+		{
+			return;
+		}
 		for (c = 0; c < CD_BUFLEN*2; c += 2)
 		{
 			cd_out_buffer[c] = 0.0;
 			cd_out_buffer[c+1] = 0.0;
+		}
+		has_audio = 0;
+		for (i = 0; i < CDROM_NUM; i++)
+		{
+			if (cdrom_drives[i].enabled && cdrom_drives[i].sound_on)
+			{
+				has_audio++;
+			}
+		}
+		if (!has_audio)
+		{
+			return;
 		}
 		for (i = 0; i < CDROM_NUM; i++)
 		{
@@ -125,7 +142,7 @@ static void sound_cd_thread(void *param)
 			if (cdrom_drives[i].handler->audio_callback)
 			{
 				cdrom_drives[i].handler->audio_callback(i, cd_buffer[i], CD_BUFLEN*2);
-				has_audio = cdrom_drives[i].sound_on;
+				has_audio = (cdrom_drives[i].enabled && cdrom_drives[i].sound_on);
 			}
 			if (soundon && has_audio)
 			{
@@ -189,16 +206,34 @@ static void sound_cd_thread(void *param)
 static int32_t *outbuffer;
 static float *outbuffer_ex;
 
+static int cd_thread_enable = 0;
+
 void sound_init()
 {
+	int i = 0;
+	int available_cdrom_drives = 0;
+
         initalmain(0,NULL);
         inital();
 
         outbuffer = malloc(SOUNDBUFLEN * 2 * sizeof(int32_t));
         outbuffer_ex = malloc(SOUNDBUFLEN * 2 * sizeof(float));
-        
-        sound_cd_event = thread_create_event();
-        sound_cd_thread_h = thread_create(sound_cd_thread, NULL);
+
+	for (i = 0; i < CDROM_NUM; i++)
+	{
+		if (cdrom_drives[i].enabled && cdrom_drives[i].sound_on)
+		{
+			available_cdrom_drives++;
+		}
+	}        
+
+	if (available_cdrom_drives)
+	{
+		sound_cd_event = thread_create_event();
+		sound_cd_thread_h = thread_create(sound_cd_thread, NULL);
+	}
+
+	cd_thread_enable = available_cdrom_drives ? 1 : 0;
 }
 
 void sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *p), void *p)
@@ -244,7 +279,15 @@ void sound_poll(void *priv)
         
                 if (soundon) givealbuffer(outbuffer_ex);
         
-                thread_set_event(sound_cd_event);
+		if (cd_thread_enable)
+		{
+	                cd_buf_update--;
+        	        if (!cd_buf_update)
+	                {
+        	                cd_buf_update = (48000 / SOUNDBUFLEN) / (CD_FREQ / CD_BUFLEN);
+                	        thread_set_event(sound_cd_event);
+	                }
+		}
 
                 sound_pos_global = 0;
         }
@@ -258,6 +301,7 @@ void sound_speed_changed()
 void sound_reset()
 {
 	int i = 0;
+	int available_cdrom_drives = 0;
 
         timer_add(sound_poll, &sound_poll_time, TIMER_ALWAYS_ENABLED, NULL);
 
@@ -267,10 +311,37 @@ void sound_reset()
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		pclog("Resetting audio for CD-ROM %i...\n", i);
 		if (cdrom_drives[i].handler->audio_stop)
 		{
 	        	cdrom_drives[i].handler->audio_stop(i);
 		}
 	}
+}
+
+void sound_cd_thread_reset()
+{
+	int i = 0;
+	int available_cdrom_drives = 0;
+
+	for (i = 0; i < CDROM_NUM; i++)
+	{
+		if (cdrom_drives[i].enabled && cdrom_drives[i].sound_on)
+		{
+			available_cdrom_drives++;
+		}
+	}
+
+	if (available_cdrom_drives && !cd_thread_enable)
+	{
+		thread_destroy_event(sound_cd_event);
+		thread_kill(sound_cd_thread_h);
+		sound_cd_thread_h = NULL;
+	}
+	else if (!available_cdrom_drives && cd_thread_enable)
+	{
+		sound_cd_event = thread_create_event();
+		sound_cd_thread_h = thread_create(sound_cd_thread, NULL);
+	}
+
+	cd_thread_enable = available_cdrom_drives ? 1 : 0;
 }
