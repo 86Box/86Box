@@ -333,14 +333,14 @@ void sound_cd_thread_reset()
 
 	if (available_cdrom_drives && !cd_thread_enable)
 	{
-		thread_destroy_event(sound_cd_event);
-		thread_kill(sound_cd_thread_h);
-		sound_cd_thread_h = NULL;
+		sound_cd_event = thread_create_event();
+		sound_cd_thread_h = thread_create(sound_cd_thread, NULL);
 	}
 	else if (!available_cdrom_drives && cd_thread_enable)
 	{
-		sound_cd_event = thread_create_event();
-		sound_cd_thread_h = thread_create(sound_cd_thread, NULL);
+		thread_destroy_event(sound_cd_event);
+		thread_kill(sound_cd_thread_h);
+		sound_cd_thread_h = NULL;
 	}
 
 	cd_thread_enable = available_cdrom_drives ? 1 : 0;

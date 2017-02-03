@@ -123,7 +123,6 @@ void inital()
         for (c = 0; c < 4; c++)
         {
                 alBufferData(buffers[c], AL_FORMAT_STEREO_FLOAT32, buf, BUFLEN*2*sizeof(float), FREQ);
-                alBufferData(buffers_cd[c], AL_FORMAT_STEREO_FLOAT32, buf, CD_BUFLEN*2*sizeof(float), CD_FREQ);
                 alBufferData(buffers_cd[c], AL_FORMAT_STEREO_FLOAT32, cd_buf, CD_BUFLEN*2*sizeof(float), CD_FREQ);
         }
 

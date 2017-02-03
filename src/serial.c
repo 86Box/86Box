@@ -20,8 +20,8 @@ SERIAL serial1, serial2;
 
 void serial_reset()
 {
-        serial1.iir = serial1.ier = serial1.lcr = 0;
-        serial2.iir = serial2.ier = serial2.lcr = 0;
+        serial1.iir = serial1.ier = serial1.lcr = serial1.mctrl = 0;
+        serial2.iir = serial2.ier = serial2.lcr = serial2.mctrl = 0;
         serial1.fifo_read = serial1.fifo_write = 0;
         serial2.fifo_read = serial2.fifo_write = 0;
 }

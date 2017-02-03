@@ -692,7 +692,7 @@ static int ioctl_media_type_id(uint8_t id)
 
 	SCSICommand(id, cdb, msbuf, &len, 1);
 
-	pclog("Returned length: %i, media type: %i\n", len, msbuf[2]);
+	// pclog("Returned length: %i, media type: %i\n", len, msbuf[2]);
 
 	ioctl_close(id);
 

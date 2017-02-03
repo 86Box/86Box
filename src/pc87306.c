@@ -39,18 +39,19 @@ void pc87306_gpio_write(uint16_t port, uint8_t val, void *priv)
 uint8_t uart_int1()
 {
 	/* 0: IRQ3, 1: IRQ4 */
-	return ((pc87306_regs[0x1C] >> 2) & 1) ? 3 : 4;
+	return ((pc87306_regs[0x1C] >> 2) & 1) ? 4 : 3;
 }
 
 uint8_t uart_int2()
 {
-	return ((pc87306_regs[0x1C] >> 6) & 1) ? 3 : 4;
+	/* 0: IRQ3, 1: IRQ4 */
+	return ((pc87306_regs[0x1C] >> 6) & 1) ? 4 : 3;
 }
 
 uint8_t uart1_int()
 {
 	uint8_t temp;
-	temp = ((pc87306_regs[1] >> 2) & 1) ? 3 : 4;	/* 0 = IRQ 4, 1 = IRQ 3 */
+	temp = ((pc87306_regs[1] >> 2) & 1) ? 3 : 4;	/* 0 = COM1 (IRQ 4), 1 = COM2 (IRQ 3), 2 = COM3 (IRQ 4), 3 = COM4 (IRQ 3) */
 	// pclog("UART 1 set to IRQ %i\n", (pc87306_regs[0x1C] & 1) ? uart_int1() : temp);
 	return (pc87306_regs[0x1C] & 1) ? uart_int1() : temp;
 }
@@ -58,7 +59,7 @@ uint8_t uart1_int()
 uint8_t uart2_int()
 {
 	uint8_t temp;
-	temp = ((pc87306_regs[1] >> 4) & 1) ? 3 : 4;	/* 0 = IRQ 4, 1 = IRQ 3 */
+	temp = ((pc87306_regs[1] >> 4) & 1) ? 3 : 4;	/* 0 = COM1 (IRQ 4), 1 = COM2 (IRQ 3), 2 = COM3 (IRQ 4), 3 = COM4 (IRQ 3) */
 	// pclog("UART 2 set to IRQ %i\n", (pc87306_regs[0x1C] & 1) ? uart_int2() : temp);
 	return (pc87306_regs[0x1C] & 1) ? uart_int2() : temp;
 }
@@ -66,30 +67,27 @@ uint8_t uart2_int()
 void lpt1_handler()
 {
         int temp;
-	if (pc87306_regs[0x1B] & 0x10)
+	temp = pc87306_regs[0x01] & 3;
+	switch (temp)
 	{
-		temp = (pc87306_regs[0x1B] & 0x20) >> 5;
-		if (temp)
-		{
+		case 0:
 			lpt_port = 0x378;
-		}
-		else
-		{
+			break;
+		case 1:
+			if (pc87306_regs[0x1B] & 0x40)
+			{
+				lpt_port = ((uint16_t) pc87306_regs[0x19]) << 2;
+			}
+			else
+			{
+				lpt_port = 0x3bc;
+			}
+			break;
+		case 2:
 			lpt_port = 0x278;
-		}
-	}
-	else
-	{
-		temp = pc87306_regs[0x01] & 3;
-		switch (temp)
-		{
-			case 0: lpt_port = 0x378;
-			case 1: lpt_port = 0x3bc;
-			case 2: lpt_port = 0x278;
-		}
+			break;
 	}
 	lpt1_init(lpt_port);
-	pc87306_regs[0x19] = lpt_port >> 2;
 }
 
 void serial1_handler()
@@ -171,13 +169,17 @@ void pc87306_write(uint16_t port, uint8_t val, void *priv)
 		{
 			if (pc87306_curreg <= 28)  valxor = val ^ pc87306_regs[pc87306_curreg];
 			tries = 0;
+			if ((pc87306_curreg == 0x19) && !(pc87306_regs[0x1B] & 0x40))
+			{
+				return;
+			}
 			if ((pc87306_curreg <= 28) && (pc87306_curreg != 8) && (pc87306_curreg != 0x18))
 			{
 				if (pc87306_curreg == 0)
 				{
 					val &= 0x5f;
 				}
-				if ((pc87306_curreg == 0x0F) || (pc87306_curreg == 0x12))
+				if (((pc87306_curreg == 0x0F) || (pc87306_curreg == 0x12)) && valxor)
 				{
 					pc87306_gpio_remove();
 				}
@@ -198,13 +200,14 @@ process_value:
 	switch(pc87306_curreg)
 	{
 		case 0:
+			// pclog("Register 0\n");
 			if (valxor & 1)
 			{
 				lpt1_remove();
-			}
-			if ((valxor & 1) && (val & 1))
-			{
-				lpt1_handler();
+				if (val & 1)
+				{
+					lpt1_handler();
+				}
 			}
 
 			if (valxor & 2)
@@ -221,6 +224,14 @@ process_value:
 				if (val & 4)
 				{
 					serial2_handler();
+				}
+			}
+			if ((valxor & 8) || (valxor & 0x20))
+			{
+				fdc_remove();
+				if (val & 8)
+				{
+					fdc_set_base((val & 0x20) ? 0x370 : 0x3f0, 0);
 				}
 			}
 			
@@ -256,29 +267,81 @@ process_value:
 			}
 			break;
 		case 2:
-			lpt1_remove();
-			serial1_remove();
-			serial2_remove();
-			if (val & 1)
+			if (valxor & 1)
 			{
-				pc87306_regs[0] &= 0xb0;
-			}
-			else
-			{
-				lpt1_handler();
-				serial1_handler();
-				// serial2_handler();
-				pc87306_regs[0] |= 0x4b;
+				if (val & 1)
+				{
+					// pclog("Powering down functions...\n");
+					lpt1_remove();
+					serial1_remove();
+					serial2_remove();
+					fdc_remove();
+				}
+				else
+				{
+					// pclog("Powering up functions...\n");
+					if (pc87306_regs[0] & 1)
+					{
+						lpt1_handler();
+					}
+					if (pc87306_regs[0] & 2)
+					{
+						serial1_handler();
+					}
+					if (pc87306_regs[0] & 4)
+					{
+						serial2_handler();
+					}
+					if (pc87306_regs[0] & 8)
+					{
+						fdc_set_base((pc87306_regs[0] & 0x20) ? 0x370 : 0x3f0, 0);
+					}
+				}
 			}
 			break;
 		case 9:
-			// pclog("Setting DENSEL polarity to: %i (before: %i)\n", (val & 0x40 ? 1 : 0), fdc_get_densel_polarity());
-			fdc_update_enh_mode((val & 4) ? 1 : 0);
-			fdc_update_densel_polarity((val & 0x40) ? 1 : 0);
+			if (valxor & 0x44)
+			{
+				// pclog("Setting DENSEL polarity to: %i (before: %i)\n", (val & 0x40 ? 1 : 0), fdc_get_densel_polarity());
+				fdc_update_enh_mode((val & 4) ? 1 : 0);
+				fdc_update_densel_polarity((val & 0x40) ? 1 : 0);
+			}
 			break;
 		case 0xF:
+			if (valxor)
+			{
+				pc87306_gpio_init();
+			}
+			break;
 		case 0x12:
-			pc87306_gpio_init();
+			if (valxor & 0x30)
+			{
+				pc87306_gpio_init();
+			}
+			break;
+		case 0x19:
+			if (valxor)
+			{
+				lpt1_remove();
+				if (pc87306_regs[0] & 1)
+				{
+					lpt1_handler();
+				}
+			}
+			break;
+		case 0x1B:
+			if (valxor & 0x40)
+			{
+				lpt1_remove();
+				if (!(val & 0x40))
+				{
+					pc87306_regs[0x19] = 0xEF;
+				}
+				if (pc87306_regs[0] & 1)
+				{
+					lpt1_handler();
+				}
+			}
 			break;
 		case 0x1C:
 			// if (valxor & 0x25)
@@ -290,7 +353,10 @@ process_value:
 				{
 					serial1_handler();
 				}
-				if (pc87306_regs[0] & 4)  serial2_handler();
+				if (pc87306_regs[0] & 4)
+				{
+					serial2_handler();
+				}
 			}
 			break;
 	}
@@ -373,9 +439,7 @@ void pc87306_reset(void)
 	pc87306_regs[9] = 0xFF;
 	pc87306_regs[0xF] = 0x1E;
 	pc87306_regs[0x12] = 0x30;
-	pc87306_regs[0x19] = 0xDE;
-	pc87306_regs[0x1B] = 0x10;
-	pc87306_regs[0x1C] = 0;
+	pc87306_regs[0x19] = 0xEF;
 	/*
 		0 = 360 rpm @ 500 kbps for 3.5"
 		1 = Default, 300 rpm @ 500,300,250,1000 kbps for 3.5"
@@ -384,7 +448,13 @@ void pc87306_reset(void)
 	fdc_update_enh_mode(0);
 	fdc_update_densel_polarity(1);
 	fdc_update_max_track(85);
+	fdc_remove();
+	fdc_add(0x3f0, 0);
 	fdd_swap = 0;
+	serial1_remove();
+	serial2_remove();
+	serial1_handler();
+	serial2_handler();
 }
 
 void pc87306_init()

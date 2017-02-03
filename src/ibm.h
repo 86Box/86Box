@@ -496,7 +496,8 @@ float VGACONST1,VGACONST2;
 float RTCCONST;
 int gated,speakval,speakon;
 
-#define SOUNDBUFLEN (48000/40)
+// #define SOUNDBUFLEN (48000/40)
+#define SOUNDBUFLEN (32000/20)
 
 
 /*Sound Blaster*/

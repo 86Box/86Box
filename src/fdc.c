@@ -102,6 +102,8 @@ typedef struct FDC
 	int fintr;
 
 	int rw_drive;
+
+	uint16_t base_address;
 } FDC;
 
 static FDC fdc;
@@ -591,7 +593,8 @@ void fdc_implied_seek()
 
 void fdc_write(uint16_t addr, uint8_t val, void *priv)
 {
-//        fdc_log("Write FDC %04X %02X %04X:%04X %i %02X %i rate=%i  %i\n",addr,val,cs>>4,pc,ins,fdc.st0,ins,fdc.rate, fdc.data_ready);
+	fdc_log("Write FDC %04X %02X\n",addr,val);
+        // fdc_log("Write FDC %04X %02X %04X:%04X %i %02X %i rate=%i  %i\n",addr,val,cs>>4,pc,ins,fdc.st0,ins,fdc.rate, fdc.data_ready);
 	int drive, i, drive_num;
 	int seek_time, seek_time_base;
 
@@ -1256,7 +1259,6 @@ bad_command:
                 disc_3f7=val;
                 return;
         }
-//        printf("Write FDC %04X %02X\n",addr,val);
 //        dumpregs();
 //        exit(-1);
 }
@@ -1266,7 +1268,8 @@ uint8_t fdc_read(uint16_t addr, void *priv)
 {
         uint8_t temp;
         int drive;
-//        /*if (addr!=0x3f4) */printf("Read FDC %04X %04X:%04X %04X %i %02X %02x %i ",addr,cs>>4,pc,BX,fdc.pos,fdc.st0,fdc.stat,ins);
+	fdc_log("Read FDC %04X\n",addr);
+        // /*if (addr!=0x3f4) */printf("Read FDC %04X %04X:%04X %04X %i %02X %02x %i ",addr,cs>>4,pc,BX,fdc.pos,fdc.st0,fdc.stat,ins);
         switch (addr&7)
         {
 		case 0:		/* STA */
@@ -2168,6 +2171,8 @@ void fdc_indexpulse()
 
 void fdc_hard_reset()
 {
+	int base_address = fdc.base_address;
+
 	memset(&fdc, 0, sizeof(FDC));
 	fdc.dskchg_activelow = 0;
 	fdc.enable_3f1 = 1;
@@ -2205,6 +2210,9 @@ void fdc_hard_reset()
 
 	disc_reset();
 	fdc_reset();
+
+	fdc.max_track = 79;
+	fdc.base_address = base_address;
 }
 
 void fdc_init()
@@ -2222,6 +2230,16 @@ void fdc_add()
         fdc.ps1 = 0;
 	fdc.max_track = 79;
 	fdc.perp = 0;
+	fdc.base_address = 0x03f0;
+	fdc_log("FDC Added (%04X)\n", fdc.base_address);
+}
+
+void fdc_set_base(int base, int super_io)
+{
+        io_sethandler(base + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, NULL);
+       	io_sethandler(base + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, NULL);
+	fdc.base_address = base;
+	fdc_log("FDC Base address set%s (%04X)\n", super_io ? " for Super I/O" : "", fdc.base_address);
 }
 
 void fdc_add_for_superio()
@@ -2230,6 +2248,8 @@ void fdc_add_for_superio()
         io_sethandler(0x03f7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, NULL);
         fdc.pcjr = 0;
         fdc.ps1 = 0;
+	fdc.base_address = 0x03f0;
+	fdc_log("FDC Added for Super I/O (%04X)\n", fdc.base_address);
 }
 
 void fdc_add_pcjr()
@@ -2240,12 +2260,15 @@ void fdc_add_pcjr()
         fdc.ps1 = 0;
 	fdc.max_track = 79;
 	fdc.perp = 0;
+	fdc.base_address = 0x03f0;
+	fdc_log("FDC Added for PCjr (%04X)\n", fdc.base_address);
 }
 
 void fdc_remove()
 {
-        io_removehandler(0x03f0, 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, NULL);
-        io_removehandler(0x03f7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, NULL);        
+	fdc_log("FDC Removed (%04X)\n", fdc.base_address);
+        io_removehandler(fdc.base_address, 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, NULL);
+        io_removehandler(fdc.base_address + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, NULL);        
 }
 
 void fdc_discchange_clear(int drive)
