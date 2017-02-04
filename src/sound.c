@@ -164,9 +164,11 @@ static void sound_cd_thread(void *param)
 					
 					/* Then, adjust input from drive according to ATAPI/SCSI volume. */
 					cd_buffer_temp[0] *= (float) audio_vol_l;
-					cd_buffer_temp[0] /= 255.0;
+					// cd_buffer_temp[0] /= 255.0;
+					cd_buffer_temp[0] /= 511.0;
 					cd_buffer_temp[1] *= (float) audio_vol_r;
-					cd_buffer_temp[1] /= 255.0;
+					// cd_buffer_temp[1] /= 255.0;
+					cd_buffer_temp[1] /= 511.0;
 
 					/*Apply ATAPI channel select*/
 					cd_buffer_temp2[0] = cd_buffer_temp2[1] = 0.0;
@@ -229,11 +231,13 @@ void sound_init()
 
 	if (available_cdrom_drives)
 	{
+		// pclog("One or more CD-ROM drives are available, starting CD Audio thread...\n");
 		sound_cd_event = thread_create_event();
 		sound_cd_thread_h = thread_create(sound_cd_thread, NULL);
 	}
 
 	cd_thread_enable = available_cdrom_drives ? 1 : 0;
+	// pclog("cd_thread_enable = %i\n", cd_thread_enable);
 }
 
 void sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *p), void *p)
@@ -333,11 +337,13 @@ void sound_cd_thread_reset()
 
 	if (available_cdrom_drives && !cd_thread_enable)
 	{
+		// pclog("One or more CD-ROM drives are now available, but none was before, starting the CD Audio thread...\n");
 		sound_cd_event = thread_create_event();
 		sound_cd_thread_h = thread_create(sound_cd_thread, NULL);
 	}
 	else if (!available_cdrom_drives && cd_thread_enable)
 	{
+		// pclog("No CD-ROM drives are now available, but one or more was before, killing the CD Audio thread...\n");
 		thread_destroy_event(sound_cd_event);
 		thread_kill(sound_cd_thread_h);
 		sound_cd_thread_h = NULL;

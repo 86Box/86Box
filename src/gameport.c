@@ -122,7 +122,7 @@ void gameport_write(uint16_t addr, uint8_t val, void *p)
 
         timer_clock();
         gameport->state |= 0x0f;
-//        pclog("gameport_write : joysticks_present=%i\n", joysticks_present);
+        pclog("gameport_write : joysticks_present=%i\n", joysticks_present);
         
         gameport->axis[0].count = gameport_time(gameport->joystick->read_axis(gameport->joystick_dat, 0));
         gameport->axis[1].count = gameport_time(gameport->joystick->read_axis(gameport->joystick_dat, 1));
@@ -145,7 +145,7 @@ uint8_t gameport_read(uint16_t addr, void *p)
 //        else
 //                ret = 0xff;
 
-//        pclog("gameport_read: ret=%02x %08x:%08x isa_cycles=%i  %i\n", ret, cs, cpu_state.pc, isa_cycles, gameport->axis[0].count);
+        // pclog("gameport_read: ret=%02x %08x:%08x isa_cycles=%i  %i\n", ret, cs, cpu_state.pc, isa_cycles, gameport->axis[0].count);
 
         cycles -= ISA_CYCLES(8);
 

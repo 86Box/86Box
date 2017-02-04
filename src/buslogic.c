@@ -1724,8 +1724,6 @@ static void BuslogicCDROMCommand(Buslogic_t *Buslogic)
 		temp_cdb[1] &= 0x1f;				/* Make sure the LUN field of the temporary CDB is always 0, otherwise Daemon Tools drives will misehave when a command is passed through to them. */
 	}
 
-	memset(SCSIDevices[Id][Lun].CmdBuffer, 0, 390144);
-
 	//Finally, execute the SCSI command immediately and get the transfer length.
 
 	SCSIPhase = SCSI_PHASE_COMMAND;
@@ -1807,6 +1805,9 @@ static int BuslogicSCSIRequestSetup(Buslogic_t *Buslogic, uint32_t CCBPointer, M
 	SCSIStatus = SCSI_STATUS_OK;
 
 	SCSIDevices[Id][Lun].InitLength = 0;
+
+	/* Do this here, so MODE SELECT data will does not get lost in transit. */
+	memset(SCSIDevices[Id][Lun].CmdBuffer, 0, 390144);
 
 	BuslogicDataBufferAllocate(BuslogicRequests, BuslogicRequests->Is24bit);
 

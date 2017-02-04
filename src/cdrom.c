@@ -532,10 +532,6 @@ int cdrom_mode_select_terminate(uint8_t id, int force)
 	if (((cdrom[id].written_length >= cdrom[id].total_length) || force) && (cdrom[id].mode_select_phase != MODE_SELECT_PHASE_IDLE))
 	{
 		cdrom_log("CD-ROM %i: MODE SELECT terminate: %i\n", id, force);
-		if (!force && cdrom[id].do_page_save && (cdrom_mode_sense_pages_default[id][cdrom[id].current_page_pos][0] & 0x80))
-		{
-			cdrom_mode_sense_save(id);
-		}
 		cdrom[id].current_page_pos = cdrom[id].current_page_len = cdrom[id].block_descriptor_len = 0;
 		cdrom[id].total_length = cdrom[id].written_length = 0;
 		cdrom[id].mode_select_phase = MODE_SELECT_PHASE_IDLE;
@@ -707,6 +703,14 @@ int cdrom_mode_select_write(uint8_t id, uint8_t val)
 		case MODE_SELECT_PHASE_PAGE:
 			cdrom_log("CD-ROM %i: MODE SELECT page (%02X)\n", id, val);
 			ret = cdrom_mode_select_page(id, val);
+			if (cdrom[id].mode_select_phase == MODE_SELECT_PHASE_PAGE_HEADER)
+			{
+				if (cdrom[id].do_page_save && (cdrom_mode_sense_pages_default[id][cdrom[id].current_page_code][0] & 0x80))
+				{
+					cdrom_log("CD-ROM %i: Page %i finished, saving it...\n", id, cdrom[id].current_page_code);
+					cdrom_mode_sense_save(id);
+				}
+			}
 			break;
 		default:
 			cdrom_log("CD-ROM %i: MODE SELECT unknown phase (%02X)\n", id, val);
@@ -1791,13 +1795,13 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 		cdrom_log("CD-ROM %i: Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, %i, Unit attention: %i\n", id, cdb[0], cdrom_sense_key, cdrom_asc, cdrom_ascq, ins, cdrom[id].unit_attention);
 		cdrom_log("CD-ROM %i: Request length: %04X\n", id, cdrom[id].request_length);
 
-#if 0
+// #if 0
 		int CdbLength;
 		for (CdbLength = 1; CdbLength < cdrom[id].cdb_len; CdbLength++)
 		{
 			cdrom_log("CD-ROM %i: CDB[%d] = 0x%02X\n", id, CdbLength, cdb[CdbLength]);
 		}
-#endif
+// #endif
 	}
 	
 	msf = cdb[1] & 2;
@@ -2899,6 +2903,8 @@ int cdrom_read_from_dma(uint8_t id)
 	int i = 0;
 	int ret = 0;
 
+	int in_data_length = 0;
+
 	if (cdrom_drives[id].bus_type)
 	{
 		ret = cdrom_read_from_scsi_dma(cdrom_drives[id].scsi_device_id, cdrom_drives[id].scsi_device_lun);
@@ -2913,7 +2919,18 @@ int cdrom_read_from_dma(uint8_t id)
 		return 0;
 	}
 
-	for (i = 0; i < cdrom[id].request_length; i++)
+	if (cdrom_drives[id].bus_type)
+	{
+		in_data_length = SCSIDevices[cdrom_drives[id].scsi_device_id][cdrom_drives[id].scsi_device_lun].InitLength;
+		cdrom_log("CD-ROM %i: SCSI Input data length: %i\n", id, in_data_length);
+	}
+	else
+	{
+		in_data_length = cdrom[id].request_length;
+		cdrom_log("CD-ROM %i: ATAPI Input data length: %i\n", id, in_data_length);
+	}
+
+	for (i = 0; i < in_data_length; i++)
 	{
 		ret = cdrom_mode_select_write(id, cdbufferb[i]);
 		ret = cdrom_mode_select_return(id, ret);

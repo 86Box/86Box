@@ -442,17 +442,6 @@ void resetpchard()
 		vlan_reset();	//NETWORK
 	}
 	network_card_init(network_card_current);      
-
-        sound_card_init(sound_card_current);
-        if (GUS)
-                device_add(&gus_device);
-        if (GAMEBLASTER)
-                device_add(&cms_device);
-        if (SSI2001)
-                device_add(&ssi2001_device);
-        if (voodoo_enabled)
-                device_add(&voodoo_device);        
-        pc_reset();
         
 	for (i = 0; i < CDROM_NUM; i++)
 	{
@@ -467,6 +456,17 @@ void resetpchard()
 	{
 		device_add(&BuslogicDevice);
 	}
+
+        sound_card_init(sound_card_current);
+        if (GUS)
+                device_add(&gus_device);
+        if (GAMEBLASTER)
+                device_add(&cms_device);
+        if (SSI2001)
+                device_add(&ssi2001_device);
+        if (voodoo_enabled)
+                device_add(&voodoo_device);        
+        pc_reset();
  
         loadnvr();
 
