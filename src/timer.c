@@ -98,8 +98,22 @@ void timer_reset()
 
 int timer_add(void (*callback)(void *priv), int *count, int *enable, void *priv)
 {
+	int i = 0;
+
 	if (timers_present < TIMERS_MAX)
 	{
+		if (timers_present != 0)
+		{
+			/* This is the sanity check - it goes through all present timers and makes sure we're not adding a timer that already exists. */
+			for (i = 0; i < timers_present; i++)
+			{
+				if (timers[i].present && (timers[i].callback == callback) && (timers[i].priv == priv) && (timers[i].count == count) && (timers[i].enable == enable))
+				{
+					return;
+				}
+			}
+		}
+
 //		pclog("timer_add : adding timer %i\n", timers_present);
 		timers[timers_present].present = 1;
 		timers[timers_present].callback = callback;
