@@ -85,6 +85,7 @@ uint8_t serial_read_fifo(SERIAL *serial)
 void serial_write(uint16_t addr, uint8_t val, void *p)
 {
         SERIAL *serial = (SERIAL *)p;
+	// pclog("Serial: Write value %02X on port: %04X\n", val, addr);
 //        pclog("Write serial %03X %02X %04X:%04X\n",addr,val,CS,pc);
         switch (addr&7)
         {
@@ -169,7 +170,7 @@ uint8_t serial_read(uint16_t addr, void *p)
 {
         SERIAL *serial = (SERIAL *)p;
         uint8_t temp = 0;
-//        pclog("Read serial %03X %04X(%08X):%04X %i %i  ", addr, CS, cs, pc, mousedelay, ins);
+        // pclog("Read serial %03X %04X(%08X):%04X %i %i  ", addr, CS, cs, cpu_state.pc, mousedelay, ins);
         switch (addr&7)
         {
                 case 0:
@@ -228,6 +229,7 @@ uint8_t serial_read(uint16_t addr, void *p)
                 break;
         }
 //        pclog("%02X\n",temp);
+	// pclog("Serial: Read value %02X on port: %04X\n", temp, addr);
         return temp;
 }
 
@@ -245,6 +247,9 @@ void serial_recieve_callback(void *p)
         }
 }
 
+uint16_t serial_addr[2] = { 0x3f8, 0x2f8 };
+int serial_irq[2] = { 4, 3 };
+
 /*Tandy might need COM1 at 2f8*/
 void serial1_init(uint16_t addr, int irq)
 {
@@ -253,6 +258,8 @@ void serial1_init(uint16_t addr, int irq)
         serial1.irq = irq;
         serial1.rcr_callback = NULL;
         timer_add(serial_recieve_callback, &serial1.recieve_delay, &serial1.recieve_delay, &serial1);
+	serial_addr[0] = addr;
+	serial_irq[0] = irq;
 }
 void serial1_set(uint16_t addr, int irq)
 {
@@ -260,18 +267,12 @@ void serial1_set(uint16_t addr, int irq)
         io_sethandler(addr, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
         serial1.irq = irq;
 	// pclog("serial1_set(%04X, %02X)\n", addr, irq);
+	serial_addr[0] = addr;
+	serial_irq[0] = irq;
 }
 void serial1_remove()
 {
-        io_removehandler(0x208, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        io_removehandler(0x228, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        io_removehandler(0x238, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        io_removehandler(0x2e0, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        io_removehandler(0x2e8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        io_removehandler(0x2f8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        io_removehandler(0x338, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        io_removehandler(0x3e8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        io_removehandler(0x3f8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
+        io_removehandler(serial_addr[0], 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
 }
 
 void serial2_init(uint16_t addr, int irq)
@@ -281,6 +282,8 @@ void serial2_init(uint16_t addr, int irq)
         serial2.irq = irq;
         serial2.rcr_callback = NULL;
         timer_add(serial_recieve_callback, &serial2.recieve_delay, &serial2.recieve_delay, &serial2);
+	serial_addr[1] = addr;
+	serial_irq[1] = irq;
 }
 void serial2_set(uint16_t addr, int irq)
 {
@@ -288,16 +291,10 @@ void serial2_set(uint16_t addr, int irq)
         io_sethandler(addr, 0x0008, serial_read, NULL, NULL, serial_write, NULL, NULL, &serial2);
         serial2.irq = irq;
 	// pclog("serial2_set(%04X, %02X)\n", addr, irq);
+	serial_addr[1] = addr;
+	serial_irq[1] = irq;
 }
 void serial2_remove()
 {
-        io_removehandler(0x208, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
-        io_removehandler(0x228, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
-        io_removehandler(0x238, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
-        io_removehandler(0x2e0, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
-        io_removehandler(0x2e8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
-        io_removehandler(0x2f8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
-        io_removehandler(0x338, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
-        io_removehandler(0x3e8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
-        io_removehandler(0x3f8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
+        io_removehandler(serial_addr[1], 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
 }

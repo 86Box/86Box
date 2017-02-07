@@ -42,14 +42,14 @@ int cdrom_ioctl_do_log = 0;
 void cdrom_ioctl_log(const char *format, ...)
 {
 #ifdef ENABLE_CDROM_LOG
-   if (cdrom_ioctl_do_log)
-   {
+	if (cdrom_ioctl_do_log)
+	{
 		va_list ap;
 		va_start(ap, format);
 		vprintf(format, ap);
 		va_end(ap);
 		fflush(stdout);
-   }
+	}
 #endif
 }
 
@@ -534,11 +534,33 @@ static int ioctl_get_block_length(uint8_t id, const UCHAR *cdb, int number_of_bl
 
   if (no_length_check)
 	{
-		return 65534;
+		switch (cdb[0])
+		{
+			case 0x25:
+				/* READ CAPACITY */
+				return 8;
+			case 0x42:	/* READ SUBCHANNEL */
+			case 0x43:	/* READ TOC */
+			case 0x51:	/* READ DISC INFORMATION */
+			case 0x52:	/* READ TRACK INFORMATION */
+			case 0x5A:	/* MODE SENSE (10) */
+				return ((uint16_t) cdb[8]) + (((uint16_t) cdb[7]) << 8);
+			default:
+				return 65534;
+		}
 	}
 
 	switch (cdb[0])
 	{
+		case 0x25:
+			/* READ CAPACITY */
+			return 8;
+		case 0x42:	/* READ SUBCHANNEL */
+		case 0x43:	/* READ TOC */
+		case 0x51:	/* READ DISC INFORMATION */
+		case 0x52:	/* READ TRACK INFORMATION */
+		case 0x5A:	/* MODE SENSE (10) */
+			return ((uint16_t) cdb[8]) + (((uint16_t) cdb[7]) << 8);
 		case 0x08:
 		case 0x28:
 		case 0xa8:

@@ -315,11 +315,14 @@ void initpc(int argc, char *argv[])
 	td0_init();
 	imd_init();
 
+#if 0
 	if (network_card_current != 0)
 	{
 		vlan_reset();	//NETWORK
 	}
 	network_card_init(network_card_current);
+	network_thread_init();
+#endif
 
         disc_load(0, discfns[0]);
         disc_load(1, discfns[1]);
@@ -442,6 +445,7 @@ void resetpchard()
 		vlan_reset();	//NETWORK
 	}
 	network_card_init(network_card_current);      
+	network_thread_reset();
         
 	for (i = 0; i < CDROM_NUM; i++)
 	{

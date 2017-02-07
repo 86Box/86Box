@@ -19,7 +19,7 @@
 static int pc87306_locked;
 static int pc87306_curreg;
 static uint8_t pc87306_regs[29];
-static uint8_t pc87306_gpio[2] = {0xFF, 0xFF};
+static uint8_t pc87306_gpio[2] = {0xFF, 0xFB};
 static uint8_t tries;
 static uint16_t lpt_port;
 static int power_down = 0;
@@ -29,10 +29,7 @@ void pc87306_gpio_init();
 
 void pc87306_gpio_write(uint16_t port, uint8_t val, void *priv)
 {
-	if (port & 1)
-	{
-		return;
-	}
+	// pclog("GPIO: Writing %02X on port: %04X\n", val, port);
 	pc87306_gpio[port & 1] = val;
 }
 
@@ -167,13 +164,17 @@ void pc87306_write(uint16_t port, uint8_t val, void *priv)
 	{
 		if (tries)
 		{
+			if ((pc87306_curreg == 0) && (val == 8))
+			{
+				val = 0x4b;
+			}
 			if (pc87306_curreg <= 28)  valxor = val ^ pc87306_regs[pc87306_curreg];
 			tries = 0;
 			if ((pc87306_curreg == 0x19) && !(pc87306_regs[0x1B] & 0x40))
 			{
 				return;
 			}
-			if ((pc87306_curreg <= 28) && (pc87306_curreg != 8) && (pc87306_curreg != 0x18))
+			if ((pc87306_curreg <= 28) && (pc87306_curreg != 8)/* && (pc87306_curreg != 0x18)*/)
 			{
 				if (pc87306_curreg == 0)
 				{
@@ -183,8 +184,8 @@ void pc87306_write(uint16_t port, uint8_t val, void *priv)
 				{
 					pc87306_gpio_remove();
 				}
-				pc87306_regs[pc87306_curreg] = val;
 				// pclog("Register %02X set to: %02X (was: %02X)\n", pc87306_curreg, val, pc87306_regs[pc87306_curreg]);
+				pc87306_regs[pc87306_curreg] = val;
 				goto process_value;
 			}
 		}
@@ -237,7 +238,7 @@ process_value:
 			
 			break;
 		case 1:
-			if (valxor & 1)
+			if (valxor & 3)
 			{
 				lpt1_remove();
 				if (pc87306_regs[0] & 1)
@@ -248,21 +249,25 @@ process_value:
 
 			if (valxor & 0xcc)
 			{
-				serial1_remove();
-
 				if (pc87306_regs[0] & 2)
 				{
 					serial1_handler();
+				}
+				else
+				{
+					serial1_remove();
 				}
 			}
 
 			if (valxor & 0xf0)
 			{
-				serial2_remove();
-
 				if (pc87306_regs[0] & 4)
 				{
 					serial2_handler();
+				}
+				else
+				{
+					serial2_remove();
 				}
 			}
 			break;
@@ -344,11 +349,8 @@ process_value:
 			}
 			break;
 		case 0x1C:
-			// if (valxor & 0x25)
 			if (valxor)
 			{
-				serial1_remove();
-				serial2_remove();
 				if (pc87306_regs[0] & 2)
 				{
 					serial1_handler();
@@ -364,10 +366,7 @@ process_value:
 
 uint8_t pc87306_gpio_read(uint16_t port, void *priv)
 {
-	if (port & 1)
-	{
-		return 0xfb;	/* Bit 2 clear, since we don't emulate the on-board audio. */
-	}
+	// pclog("Read GPIO on port: %04X (%04X:%04X)\n", port, CS, cpu_state.pc);
 	return pc87306_gpio[port & 1];
 }
 
@@ -393,13 +392,8 @@ uint8_t pc87306_read(uint16_t port, void *priv)
 		}
 		else if (pc87306_curreg == 8)
 		{
-			// pclog("PC87306: Read ID at data register, index 08\n");
+			// pclog("PC87306: Read ID at data register, index 08 (%04X:%04X)\n", CS, cpu_state.pc);
 			return 0x70;
-		}
-		else if (pc87306_curreg == 5)
-		{
-			// pclog("PC87306: Read value %02X at data register, index 05\n", pc87306_regs[pc87306_curreg] | 4);
-			return pc87306_regs[pc87306_curreg] | 4;
 		}
 		else
 		{
@@ -433,10 +427,11 @@ void pc87306_reset(void)
 
 	pc87306_regs[0] = 0x4B;
 	pc87306_regs[1] = 0x01;
-	pc87306_regs[3] = 2;
-	pc87306_regs[5] = 0xD;
+	pc87306_regs[3] = 0x01;
+	pc87306_regs[5] = 0x0D;
 	pc87306_regs[8] = 0x70;
-	pc87306_regs[9] = 0xFF;
+	pc87306_regs[9] = 0xC0;
+	pc87306_regs[0xB] = 0x80;
 	pc87306_regs[0xF] = 0x1E;
 	pc87306_regs[0x12] = 0x30;
 	pc87306_regs[0x19] = 0xEF;
@@ -449,12 +444,13 @@ void pc87306_reset(void)
 	fdc_update_densel_polarity(1);
 	fdc_update_max_track(85);
 	fdc_remove();
-	fdc_add(0x3f0, 0);
+	fdc_set_base(0x3f0, 0);
 	fdd_swap = 0;
 	serial1_remove();
 	serial2_remove();
 	serial1_handler();
 	serial2_handler();
+	pc87306_gpio_init();
 }
 
 void pc87306_init()

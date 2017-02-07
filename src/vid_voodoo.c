@@ -964,8 +964,8 @@ enum
 
 enum
 {
-        BLTCMD_SRC_TILED = (1 << 10),
-        BLTCMD_DST_TILED = (1 << 12)
+        BLTCMD_SRC_TILED = (1 << 14),
+        BLTCMD_DST_TILED = (1 << 15)
 };
 
 #define TEXTUREMODE_MASK 0x3ffff000
@@ -1086,7 +1086,9 @@ static void voodoo_recalc(voodoo_t *voodoo)
         
         voodoo->block_width = ((voodoo->fbiInit1 >> 4) & 15) * 2;
         if (voodoo->fbiInit6 & (1 << 30))
-                voodoo->fbiInit1 += 1;
+                voodoo->block_width += 1;
+        if (voodoo->fbiInit1 & (1 << 24))
+                voodoo->block_width += 32;
         voodoo->row_width = voodoo->block_width * 32 * 2;
 
 /*        pclog("voodoo_recalc : front_offset %08X  back_offset %08X  aux_offset %08X draw_offset %08x\n", voodoo->params.front_offset, voodoo->back_offset, voodoo->params.aux_offset, voodoo->params.draw_offset);
@@ -2714,7 +2716,7 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
                         goto next_line;
 
                 state->fb_mem = fb_mem = &voodoo->fb_mem[params->draw_offset + (real_y * voodoo->row_width)];
-                state->aux_mem = aux_mem = &voodoo->fb_mem[params->aux_offset + (real_y * voodoo->row_width)];
+                state->aux_mem = aux_mem = &voodoo->fb_mem[(params->aux_offset + (real_y * voodoo->row_width)) & voodoo->fb_mask];
                 
                 if (voodoo_output)
                         pclog("%03i: x=%08x x2=%08x xstart=%08x xend=%08x dx=%08x start_x2=%08x\n", state->y, x, x2, state->xstart, state->xend, dx, start_x2);
@@ -3100,7 +3102,7 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
                                         if (params->fbzMode & FBZ_RGB_WMASK)
                                                 fb_mem[x] = src_b | (src_g << 5) | (src_r << 11);
 
-                                        if (params->fbzMode & FBZ_DEPTH_WMASK)
+                                        if ((params->fbzMode & (FBZ_DEPTH_WMASK | FBZ_DEPTH_ENABLE)) == (FBZ_DEPTH_WMASK | FBZ_DEPTH_ENABLE))
                                                 aux_mem[x] = new_depth;
                                 }
                         }
@@ -3769,6 +3771,7 @@ static void blit_start(voodoo_t *voodoo)
                         {
                                 uint16_t src_dat = src[src_x];
                                 uint16_t dst_dat = dst[dst_x];
+                                int rop = 0;
 
                                 if (voodoo->bltCommand & BLIT_CLIPPING_ENABLED)
                                 {
@@ -3776,8 +3779,31 @@ static void blit_start(voodoo_t *voodoo)
                                             dst_y < voodoo->bltClipLowY || dst_y > voodoo->bltClipHighY)
                                                 goto skip_pixel_blit;
                                 }
-                                
-                                MIX(src_dat, dst_dat, voodoo->bltRop[3]);
+
+                                if (voodoo->bltCommand & BLIT_SRC_CHROMA)
+                                {
+                                        int r = (src_dat >> 11);
+                                        int g = (src_dat >> 5) & 0x3f;
+                                        int b = src_dat & 0x1f;
+                        
+                                        if (r >= voodoo->bltSrcChromaMinR && r <= voodoo->bltSrcChromaMaxR &&
+                                            g >= voodoo->bltSrcChromaMinG && g <= voodoo->bltSrcChromaMaxG &&
+                                            b >= voodoo->bltSrcChromaMinB && b <= voodoo->bltSrcChromaMaxB)
+                                                rop |= BLIT_ROP_SRC_PASS;
+                                }
+                                if (voodoo->bltCommand & BLIT_DST_CHROMA)
+                                {
+                                        int r = (dst_dat >> 11);
+                                        int g = (dst_dat >> 5) & 0x3f;
+                                        int b = dst_dat & 0x1f;
+                        
+                                        if (r >= voodoo->bltDstChromaMinR && r <= voodoo->bltDstChromaMaxR &&
+                                            g >= voodoo->bltDstChromaMinG && g <= voodoo->bltDstChromaMaxG &&
+                                            b >= voodoo->bltDstChromaMinB && b <= voodoo->bltDstChromaMaxB)
+                                                rop |= BLIT_ROP_DST_PASS;
+                                }
+
+                                MIX(src_dat, dst_dat, voodoo->bltRop[rop]);
                                 
                                 dst[dst_x] = dst_dat;
 skip_pixel_blit:                                
@@ -3855,7 +3881,7 @@ skip_pixel_fill:
                                 size_x = voodoo->bltSizeX & 0x1ff;
                         }
                         
-                        dst = (uint64_t *)&voodoo->fb_mem[dst_y*512*8 + dst_x*8];
+                        dst = (uint64_t *)&voodoo->fb_mem[(dst_y*512*8 + dst_x*8) & voodoo->fb_mask];
                         
                         for (x = 0; x <= size_x; x++)
                                 dst[x] = dat64;
@@ -4429,12 +4455,28 @@ static void voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
                 break;
 
                 case SST_clipLeftRight:
-                voodoo->params.clipRight = val & 0x3ff;
-                voodoo->params.clipLeft = (val >> 16) & 0x3ff;
+                if (voodoo->type >= VOODOO_2)
+                {
+                        voodoo->params.clipRight = val & 0xfff;
+                        voodoo->params.clipLeft = (val >> 16) & 0xfff;
+                }
+                else
+                {
+                        voodoo->params.clipRight = val & 0x3ff;
+                        voodoo->params.clipLeft = (val >> 16) & 0x3ff;
+                }
                 break;
                 case SST_clipLowYHighY:
-                voodoo->params.clipHighY = val & 0x3ff;
-                voodoo->params.clipLowY = (val >> 16) & 0x3ff;
+                if (voodoo->type >= VOODOO_2)
+                {
+                        voodoo->params.clipHighY = val & 0xfff;
+                        voodoo->params.clipLowY = (val >> 16) & 0xfff;
+                }
+                else
+                {
+                        voodoo->params.clipHighY = val & 0x3ff;
+                        voodoo->params.clipLowY = (val >> 16) & 0x3ff;
+                }
                 break;
 
                 case SST_nopCMD:
@@ -6285,7 +6327,7 @@ static void fifo_thread(void *param)
                                 break;
                         
                                 default:
-                                fatal("Bad CMDFIFO packet %08x %08x\n", header, voodoo->cmdfifo_rp);
+                                pclog("Bad CMDFIFO packet %08x %08x\n", header, voodoo->cmdfifo_rp);
                         }
 
                         end_time = timer_read();

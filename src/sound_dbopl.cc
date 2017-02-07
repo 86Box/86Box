@@ -84,18 +84,18 @@ void opl_timer_over(int nr, int timer)
 void opl_write(int nr, uint16_t addr, uint8_t val)
 {
         if (!(addr & 1))
-		{
-			if (!opl[nr].is_opl3)
-                opl[nr].addr = (int)opl[nr].chip.WriteAddr(addr, val) & 0xff;
-			else
-				opl[nr].addr = (int)OPL3_WriteAddr(&opl[nr].opl3chip, addr, val) & 0x1ff;
-		}
+	{
+		if (!opl[nr].is_opl3 || !opl3_type)
+			opl[nr].addr = (int)opl[nr].chip.WriteAddr(addr, val) & 0xff;
+		else
+			opl[nr].addr = (int)OPL3_WriteAddr(&opl[nr].opl3chip, addr, val) & 0x1ff;
+	}
         else
         {
-				if (!opl[nr].is_opl3)
-					opl[nr].chip.WriteReg(opl[nr].addr, val);
-				else
-					OPL3_WriteReg(&opl[nr].opl3chip, opl[nr].addr, val);
+		if (!opl[nr].is_opl3 || !opl3_type)
+			opl[nr].chip.WriteReg(opl[nr].addr, val);
+		else
+			OPL3_WriteReg(&opl[nr].opl3chip, opl[nr].addr, val);
 
                 switch (opl[nr].addr)
                 {

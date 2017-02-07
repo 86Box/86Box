@@ -212,14 +212,14 @@ int cdrom_do_log = 0;
 void cdrom_log(const char *format, ...)
 {
 #ifdef ENABLE_CDROM_LOG
-   if (cdrom_do_log)
-   {
+	if (cdrom_do_log)
+	{
 		va_list ap;
 		va_start(ap, format);
 		vprintf(format, ap);
 		va_end(ap);
 		fflush(stdout);
-   }
+	}
 #endif
 }
 
@@ -1857,6 +1857,10 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 		case GPCMD_READ_TOC_PMA_ATIP:
 			cdrom[id].toctimes++;
 
+			max_len = cdb[7];
+			max_len <<= 8;
+			max_len |= cdb[8];
+
 			if (cdrom_drives[id].handler->pass_through)
 			{
 				ret = cdrom_pass_through(id, &len, cdrom[id].current_cdb, cdbufferb);
@@ -1864,19 +1868,13 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				{
 					return;
 				}
-
-				if (len == 65534)
+				alloc_length = cdbufferb[0];
+				alloc_length <<= 8;
+				alloc_length |= cdbufferb[1];
+				alloc_length += 2;
+				if (alloc_length < len)
 				{
-					max_len = cdb[8] + (cdb[7] << 8);
-					len = cdbufferb[0] + (cdbufferb[1] << 8);
-					len += 2;
-					if (max_len < len)
-					{
-						max_len -= 2;
-						cdbufferb[0] = max_len >> 8;
-						cdbufferb[1] = max_len & 0xff;
-						len = max_len + 2;
-					}
+					len = alloc_length;
 				}
 			}
 			else
@@ -2238,11 +2236,13 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				{
 					return;
 				}
-				if (len == 65534)
+				alloc_length = cdbufferb[0];
+				alloc_length <<= 8;
+				alloc_length |= cdbufferb[1];
+				alloc_length += 2;
+				if (alloc_length < len)
 				{
-					cdbufferb[0] = 0;
-					cdbufferb[1] = 32;
-					len = 34;
+					len = alloc_length;
 				}
 			}
 			else
@@ -2278,12 +2278,13 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				{
 					return;
 				}
-
-				if (len == 65534)
+				alloc_length = cdbufferb[0];
+				alloc_length <<= 8;
+				alloc_length |= cdbufferb[1];
+				alloc_length += 2;
+				if (alloc_length < len)
 				{
-					cdbufferb[0] = 0;
-					cdbufferb[1] = 34;
-					len = 36;
+					len = alloc_length;
 				}
 			}
 			else
@@ -2400,20 +2401,21 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 						cdbufferb[1] = 0x13;
 						break;
 				}
-				if (len == 65534)
+				switch(cdb[3])
 				{
-					switch(cdb[3])
-					{
-						case 0:
-							len = 4;
-							break;
-						case 1:
-							len = 16;
-							break;
-						default:
-							len = 24;
-							break;
-					}
+					case 0:
+						alloc_length = 4;
+						break;
+					case 1:
+						alloc_length = 16;
+						break;
+					default:
+						alloc_length = 24;
+						break;
+				}
+				if (alloc_length < len)
+				{
+					len = alloc_length;
 				}
 			}
 			else

@@ -2036,20 +2036,16 @@ void pmodeiret(int is32)
                 addr=seg&~7;
                 if (seg&4)
                 {
-                        if (addr>=ldt.limit)
-                        {
-                                // pclog("TS Bigger than LDT limit %04X %04X IRET\n",seg,gdt.limit);
-                                x86gpf(NULL,seg&~3);
-                                return;
-                        }
-                        addr+=ldt.base;
+                        pclog("TS LDT %04X %04X IRET\n",seg,gdt.limit);
+                        x86ts(NULL,seg&~3);
+                        return;
                 }
                 else
                 {
                         if (addr>=gdt.limit)
                         {
                                 // pclog("TS Bigger than GDT limit %04X %04X IRET\n",seg,gdt.limit);
-                                x86gpf(NULL,seg&~3);
+                                x86ts(NULL,seg&~3);
                                 return;
                         }
                         addr+=gdt.base;
