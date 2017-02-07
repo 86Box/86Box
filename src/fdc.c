@@ -2208,7 +2208,6 @@ void fdc_hard_reset()
 	swwp = 0;
 	disable_write = 0;
 
-	disc_reset();
 	fdc_reset();
 
 	fdc.max_track = 79;
