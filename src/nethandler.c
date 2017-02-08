@@ -96,20 +96,21 @@ static void network_thread(void *param)
 
 	// pclog("Network thread\n");
 
-	while(1)
-	{
+	// while(1)
+	// {
 		// pclog("Waiting...\n");
-		thread_wait_event(network_event, -1);
+		// thread_wait_event(network_event, -1);
 
 		// pclog("Processing\n");
 
 	        for (c = 0; c < vlan_handlers_num; c++)
        		        vlan_handlers[c].poller(vlan_handlers[c].priv);
-	}
+	// }
 }
 
 void network_thread_init()
 {
+#if 0
 	pclog("network_thread_init()\n");
 
 	if (network_card_current)
@@ -122,10 +123,12 @@ void network_thread_init()
 
 	network_thread_enable = network_card_current ? 1 : 0;
 	network_thread_initialized = 1;
+#endif
 }
 
 void network_thread_reset()
 {
+#if 0
 	if(!network_thread_initialized)
 	{
 		network_thread_init();
@@ -148,18 +151,20 @@ void network_thread_reset()
 	}
 
 	network_thread_enable = network_card_current ? 1 : 0;
+#endif
 }
 
 void vlan_poller(void *priv)
 {
         int c;
 
-        vlan_poller_time += (int)((double)TIMER_USEC * (1000000.0 / 8.0 / 15000.0));
+        vlan_poller_time += (int)((double)TIMER_USEC * (1000000.0 / 8.0 / 1500.0));
 
 	if (network_thread_enable && vlan_handlers_num)
 	{
 		// pclog("Setting thread event...\n");
-		thread_set_event(network_event);
+		// thread_set_event(network_event);
+		network_thread(priv);
 	}
 }
 
