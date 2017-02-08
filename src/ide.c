@@ -206,10 +206,11 @@ void ide_irq_raise(IDE *ide)
 {
 	if ((ide->board > 3) || ide->irqstat)
 	{
+		// ide_log("Not raising IRQ %i (board %i)\n", ide_irq[ide->board], ide->board);
 		return;
 	}
 
-	// ide_log("Raising IRQ %i (board %i)\n", ide_irq[ide->board], ide->board);
+	ide_log("Raising IRQ %i (board %i)\n", ide_irq[ide->board], ide->board);
 	
 	if (!(ide->fdisk&2))
 	{
@@ -234,10 +235,11 @@ void ide_irq_lower(IDE *ide)
 {
 	if ((ide->board > 3) || !(ide->irqstat))
 	{
+		// ide_log("Not lowering IRQ %i (board %i)\n", ide_irq[ide->board], ide->board);
 		return;
 	}
 
-	// ide_log("Lowering IRQ %i (board %i)\n", ide_irq[ide->board], ide->board);
+	ide_log("Lowering IRQ %i (board %i)\n", ide_irq[ide->board], ide->board);
 
 	picintc(1 << ide_irq[ide->board]);
 	ide->irqstat=0;
@@ -1393,7 +1395,7 @@ uint8_t readide(int ide_board, uint16_t addr)
 		case 0x1F0: /* Data */
 			// temp = ide_read_data(ide_board, 1);
 			tempw = readidew(ide_board);
-			// pclog("Read IDEW %04X\n", tempw);                
+			// ide_log("Read IDEW %04X\n", tempw);                
 			temp = tempw & 0xff;
 			break;
 
@@ -1549,7 +1551,7 @@ uint16_t readidew(int ide_board)
 uint32_t readidel(int ide_board)
 {
 	uint16_t temp;
-	// pclog("Read IDEl %i\n", ide_board);
+	// ide_log("Read IDEl %i\n", ide_board);
 	temp = readidew(ide_board);
 	return temp | (readidew(ide_board) << 16);
 }

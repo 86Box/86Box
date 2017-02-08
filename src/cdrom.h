@@ -112,6 +112,8 @@ typedef struct __attribute__((__packed__))
 	
 	int old_len;
 	int block_descriptor_len;
+	
+	int init_length;
 } cdrom_t;
 
 extern cdrom_t cdrom[CDROM_NUM];

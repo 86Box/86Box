@@ -409,7 +409,7 @@ int piix_bus_master_dma_read(int channel, uint8_t *data, int transfer_length)
         while (transferred < transfer_length)
         {
                 if (piix_busmaster[channel].count < (transfer_length - transferred) && piix_busmaster[channel].eot)
-                   fatal("DMA on channel %i - Read count less than transfer_length! Addr %08X Count %04X EOT %i\n", channel, piix_busmaster[channel].addr, piix_busmaster[channel].count, piix_busmaster[channel].eot);
+                   fatal("DMA on channel %i - Read count less than %04X! Addr %08X Count %04X EOT %i\n", channel, transfer_length, piix_busmaster[channel].addr, piix_busmaster[channel].count, piix_busmaster[channel].eot);
 
                 mem_invalidate_range(piix_busmaster[channel].addr, piix_busmaster[channel].addr + transfer_length - 1);
                 
@@ -451,14 +451,18 @@ int piix_bus_master_dma_read(int channel, uint8_t *data, int transfer_length)
 int piix_bus_master_dma_write(int channel, uint8_t *data, int transfer_length)
 {
         int transferred = 0;
+
+	// pclog("piix_bus_master_dma_write(%08X, %08X, %08X) on %08X data\n", channel, data, transfer_length, piix_busmaster[channel].count);
         
         if (!(piix_busmaster[channel].status & 1))
            return 1;                                    /*DMA disabled*/
 
+	pclog("DMA not disabled\n");
+
         while (transferred < transfer_length)
         {
                 if (piix_busmaster[channel].count < (transfer_length - transferred) && piix_busmaster[channel].eot)
-                   fatal("DMA on channel %i - Write count less than transfer_length! Addr %08X Count %04X EOT %i\n", channel, piix_busmaster[channel].addr, piix_busmaster[channel].count, piix_busmaster[channel].eot);
+                   fatal("DMA on channel %i - Write count less than %04X! Addr %08X Count %04X EOT %i\n", channel, transfer_length, piix_busmaster[channel].addr, piix_busmaster[channel].count, piix_busmaster[channel].eot);
                 
                 if (piix_busmaster[channel].count < (transfer_length - transferred))
                 {

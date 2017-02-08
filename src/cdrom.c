@@ -973,6 +973,10 @@ static void cdrom_data_command_finish(uint8_t id, int len, int block_len, int al
 		{
 			SCSIDevices[cdrom_drives[id].scsi_device_id][cdrom_drives[id].scsi_device_lun].InitLength = 0;
 		}
+		else
+		{
+			cdrom[id].init_length = 0;
+		}
 		cdrom_command_complete(id);
 	}
 	else
@@ -984,6 +988,10 @@ static void cdrom_data_command_finish(uint8_t id, int len, int block_len, int al
 				if (cdrom_drives[id].bus_type)
 				{
 					SCSIDevices[cdrom_drives[id].scsi_device_id][cdrom_drives[id].scsi_device_lun].InitLength = alloc_len;
+				}
+				else
+				{
+					cdrom[id].init_length = alloc_len;
 				}
 				cdrom_command_read_dma(id);
 			}
@@ -1963,7 +1971,8 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 			}
 
 			max_len = cdrom[id].sector_len;
-			if (cdrom_drives[id].bus_type)
+			// if (cdrom_drives[id].bus_type)
+			if (cdrom_current_mode(id) == 2)
 			{
 				cdrom[id].requested_blocks = max_len;
 			}
@@ -2732,6 +2741,14 @@ int cdrom_block_check(uint8_t id)
 	int alloc_length = 0;
 	int ret = 0;
 
+	if (!cdrom_drives[id].bus_type)
+	{
+		cdrom_log("CD-ROM %i: Lowering IDE IRQ\n", id);
+		ide_irq_lower(&(ide_drives[cdrom_drives[id].ide_channel]));
+	}
+	
+	cdrom[id].status = BUSY_STAT;
+
 	/* If this is a media access command, and we hit the end of the block but not the entire length,
 	   read the next block. */
 	if (cdrom_is_media_access(id))
@@ -2787,6 +2804,7 @@ void cdrom_callback(uint8_t id)		/* Callback for non-Read CD commands */
 	int ret = 0;
 	int old_pos = 0;
 
+#if 0
 	if (!cdrom_drives[id].bus_type)
 	{
 		cdrom_log("CD-ROM %i: Lowering IDE IRQ\n", id);
@@ -2794,6 +2812,7 @@ void cdrom_callback(uint8_t id)		/* Callback for non-Read CD commands */
 	}
 	
 	cdrom[id].status = BUSY_STAT;
+#endif
 
 	if (cdrom[id].total_read >= cdrom[id].packet_len)
 	{
@@ -2963,7 +2982,7 @@ int cdrom_write_to_ide_dma(uint8_t channel)
 
 	if (ide_bus_master_read)
 	{
-		if (ide_bus_master_read(channel >> 1, cdbufferb, cdrom[id].request_length))
+		if (ide_bus_master_read(channel >> 1, cdbufferb, cdrom[id].init_length))
 		{
 			cdrom_data_phase_error(id);
 			cdrom_phase_callback(id);
