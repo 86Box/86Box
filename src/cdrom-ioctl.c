@@ -829,7 +829,7 @@ static void ioctl_validate_toc(uint8_t id)
 	cdrom_ioctl[id].tocvalid=1;
 }
 
-UCHAR buf[65536];
+UCHAR buf[262144];
 
 static int ioctl_pass_through(uint8_t id, uint8_t *in_cdb, uint8_t *b, uint32_t *len)
 {

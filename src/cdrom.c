@@ -2973,6 +2973,12 @@ int cdrom_write_to_ide_dma(uint8_t channel)
 
 	uint8_t id = atapi_cdrom_drives[channel];
 
+	int transfer_length = 0;
+	int cdbufferb_pos = 0;
+
+	int bus_master_len = 0;
+	int ret = 0;
+
 	if (id > CDROM_NUM)
 	{
 		return 0;
@@ -2980,16 +2986,33 @@ int cdrom_write_to_ide_dma(uint8_t channel)
 
 	cdbufferb = (uint8_t *) cdrom[id].buffer;
 
+	transfer_length = cdrom[id].init_length;
+
 	if (ide_bus_master_read)
 	{
-		if (ide_bus_master_read(channel >> 1, cdbufferb, cdrom[id].init_length))
+		while(transfer_length > 0)
 		{
+			// pclog("CD-ROM %i: ATAPI DMA on position: %08X...\n", id, cdbufferb + cdbufferb_pos);
+			bus_master_len = piix_bus_master_get_count(channel >> 1);
+			ret = piix_bus_master_dma_read_ex(channel >> 1, cdbufferb + cdbufferb_pos);
+			if (ret != 0)
+			{
+				break;
+			}
+			transfer_length -= bus_master_len;
+			cdbufferb_pos += bus_master_len;
+		}
+
+		if (ret > 0)
+		{
+			// pclog("CD-ROM %i: ATAPI DMA error\n", id);
 			cdrom_data_phase_error(id);
 			cdrom_phase_callback(id);
 			return 0;
 		}
 		else
 		{
+			// pclog("CD-ROM %i: ATAPI DMA successful\n", id);
 			return 1;
 		}
 	}
