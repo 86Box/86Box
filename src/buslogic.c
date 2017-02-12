@@ -3,6 +3,11 @@
 */
 /*Buslogic SCSI emulation (including Adaptec 154x ISA software backward compatibility) and the Adaptec 154x itself*/
 
+/* Emulated SCSI controllers:
+	0 - Adaptec AHA-154xB ISA;
+	1 - BusLogic BT-542B ISA;
+	2 - BusLogic BT-958 PCI (but BT-542B ISA on non-PCI machines). */
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,6 +21,7 @@
 #include "rom.h"
 #include "dma.h"
 #include "pic.h"
+#include "pci.h"
 #include "timer.h"
 
 #include "scsi.h"
@@ -509,6 +515,9 @@ typedef struct __attribute__((packed)) Buslogic_t
 	uint32_t MailboxOutPosCur;
 	uint32_t MailboxInAddr;
 	uint32_t MailboxInPosCur;
+	int Base;
+	int PCIBase;
+	int MMIOBase;
 	int Irq;
 	int DmaChannel;
 	int IrqEnabled;
@@ -517,19 +526,33 @@ typedef struct __attribute__((packed)) Buslogic_t
 	int MbiActive[256];
 	int PendingInterrupt;
 	int Lock;
+        mem_mapping_t mmio_mapping;
 } Buslogic_t;
 
 int scsi_model = 1;
-int scsi_base = 0x330;
-int scsi_dma = 6;
-int scsi_irq = 11;
 
 int BuslogicCallback = 0;
 int BuslogicInOperation = 0;
 
-int buslogic_do_log = 0;
+/** Structure for the INQUIRE_PCI_HOST_ADAPTER_INFORMATION reply. */
+typedef struct __attribute__((packed)) BuslogicPCIInformation_t
+{
+	uint8_t IsaIOPort;
+	uint8_t IRQ;
+	unsigned char LowByteTerminated:1;
+	unsigned char HighByteTerminated:1;
+	unsigned char uReserved:2;	/* Reserved. */
+	unsigned char JP1:1;		/* Whatever that means. */
+	unsigned char JP2:1;		/* Whatever that means. */
+	unsigned char JP3:1;		/* Whatever that means. */
+	/** Whether the provided info is valid. */
+	unsigned char InformationIsValid:1;
+	uint8_t uReserved2; /* Reserved. */
+} BuslogicPCIInformation_t;
 
 static void BuslogicStartMailbox(Buslogic_t *Buslogic);
+
+int buslogic_do_log = 0;
 
 void BuslogicLog(const char *format, ...)
 {
@@ -545,6 +568,18 @@ void BuslogicLog(const char *format, ...)
 #endif
 }
 		
+static int BuslogicIsPCI()
+{
+	if (PCI && (scsi_model == 2))
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
 static void BuslogicClearInterrupt(Buslogic_t *Buslogic)
 {
 	BuslogicLog("Buslogic: Lowering Interrupt 0x%02X\n", Buslogic->Interrupt);
@@ -1053,9 +1088,22 @@ uint8_t BuslogicRead(uint16_t Port, void *p)
 		Temp = Buslogic->Geometry;
 		break;
 	}
-	
-	// BuslogicLog("Buslogic: Read Port 0x%02X, Returned Value %02X\n", Port, Temp);
+
+	if (Port < 0x1000)
+	{
+		BuslogicLog("Buslogic: Read Port 0x%02X, Returned Value %02X\n", Port, Temp);
+	}
 	return Temp;	
+}
+
+uint16_t BuslogicReadW(uint16_t Port, void *p)
+{
+	return BuslogicRead(Port, p);
+}
+
+uint32_t BuslogicReadL(uint16_t Port, void *p)
+{
+	return BuslogicRead(Port, p);
 }
 
 int buslogic_scsi_drive_is_cdrom(uint8_t id, uint8_t lun)
@@ -1081,6 +1129,9 @@ int buslogic_scsi_drive_is_cdrom(uint8_t id, uint8_t lun)
 		}
 	}
 }
+
+void BuslogicWriteW(uint16_t Port, uint16_t Val, void *p);
+void BuslogicWriteL(uint16_t Port, uint32_t Val, void *p);
 
 void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 {
@@ -1190,9 +1241,16 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				Buslogic->CmdParamLeft = scsi_model ? 0 : 2;
 				break;
 
-				case 0x28:
 				case 0x86: //Valid only for PCI
+				Buslogic->CmdParamLeft = 0;
+				break;
+
+				case 0x8C:
 				case 0x95: //Valid only for PCI
+				Buslogic->CmdParamLeft = BuslogicIsPCI() ? 1 : 0;
+				break;
+
+				case 0x28:
 				Buslogic->CmdParamLeft = 0;
 				break;
 			}
@@ -1277,17 +1335,17 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				break;
 						
 				case 0x0A:
-				for (i = 0; i < max_id; i++)
+				memset(Buslogic->DataBuf, 0, 8);
+				for (i = 0; i < 6; i++)
 				{
 					for (j = 0; j < 8; j++)
 					{
 						if (buslogic_scsi_drive_is_cdrom(i, j))
 							Buslogic->DataBuf[i] = 1;
-	
-						Buslogic->DataBuf[7] = 0;
-						Buslogic->DataReplyLeft = 8;
 					}
 				}
+				Buslogic->DataBuf[7] = 0;
+				Buslogic->DataReplyLeft = 8;
 				break;				
 				
 				case 0x0B:
@@ -1302,6 +1360,7 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					Buslogic->DataReplyLeft = Buslogic->CmdBuf[0];
 
 					ReplyInquireSetupInformation *Reply = (ReplyInquireSetupInformation *)Buslogic->DataBuf;
+					memset(Reply, 0, sizeof(ReplyInquireSetupInformation));
 					
 					Reply->fSynchronousInitiationEnabled = 1;
 					Reply->fParityCheckingEnabled = 1;
@@ -1315,7 +1374,7 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 						* friendly with Adaptec hardware and upsetting the HBA state.
 						*/
 						Reply->uCharacterD = 'D';      /* BusLogic model. */
-						Reply->uHostBusType = 'A';     /* ISA bus. */
+						Reply->uHostBusType = BuslogicIsPCI() ? 'F' : 'A';     /* ISA bus. */
 					}
 					
 					BuslogicLog("Return Setup Information: %d\n", Buslogic->CmdBuf[0]);
@@ -1323,15 +1382,23 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				break;
 
 				case 0x23:
-				for (i = 0; i < max_id; i++)
+				if (scsi_model)
 				{
-					for (i = 0; j < 8; j++)
+					memset(Buslogic->DataBuf, 0, 8);
+					for (i = 8; i < max_id; i++)
 					{
-						if (buslogic_scsi_drive_is_cdrom(i, j))
-							Buslogic->DataBuf[i] = 1;
-
-						Buslogic->DataReplyLeft = 8;
+						for (i = 0; j < 8; j++)
+						{
+							if (buslogic_scsi_drive_is_cdrom(i, j))
+								Buslogic->DataBuf[i] = 1;
+						}
 					}
+					Buslogic->DataReplyLeft = 8;
+				}
+				else
+				{
+					Buslogic->Status |= STAT_INVCMD;
+					Buslogic->DataReplyLeft = 0;
 				}
 				break;
 
@@ -1506,6 +1573,46 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				}
 				break;
 		
+				case 0x86:
+				if (BuslogicIsPCI())
+				{
+					BuslogicPCIInformation_t *Reply = (BuslogicPCIInformation_t *) Buslogic->DataBuf;
+					memset(Reply, 0, sizeof(BuslogicPCIInformation_t));
+					Reply->InformationIsValid = 0;
+					switch(Buslogic->Base)
+					{
+						case 0x330:
+							Reply->IsaIOPort = 0;
+							break;
+						case 0x334:
+							Reply->IsaIOPort = 1;
+							break;
+						case 0x230:
+							Reply->IsaIOPort = 2;
+							break;
+						case 0x234:
+							Reply->IsaIOPort = 3;
+							break;
+						case 0x130:
+							Reply->IsaIOPort = 4;
+							break;
+						case 0x134:
+							Reply->IsaIOPort = 5;
+							break;
+						default:
+							Reply->IsaIOPort = 0xFF;
+							break;
+					}
+					Reply->IRQ = Buslogic->Irq;
+					Buslogic->DataReplyLeft = sizeof(BuslogicPCIInformation_t);
+				}
+				else
+				{
+					Buslogic->DataReplyLeft = 0;
+					Buslogic->Status |= STAT_INVCMD;					
+				}
+				break;
+		
 				case 0x8B:
 				{
 					if (scsi_model)
@@ -1515,7 +1622,14 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 						/* The reply length is set by the guest and is found in the first byte of the command buffer. */
 						Buslogic->DataReplyLeft = Buslogic->CmdBuf[0];
 						memset(Buslogic->DataBuf, 0, Buslogic->DataReplyLeft);
-						const char aModelName[] = "542B ";  /* Trailing \0 is fine, that's the filler anyway. */
+						char aModelName[] = "542B ";  /* Trailing \0 is fine, that's the filler anyway. */
+						if (BuslogicIsPCI())
+						{
+							aModelName[0] = '9';
+							aModelName[1] = '5';
+							aModelName[2] = '8';
+							aModelName[3] = 'D';
+						}
 						int cCharsToTransfer =   Buslogic->DataReplyLeft <= sizeof(aModelName)
 												? Buslogic->DataReplyLeft
 												: sizeof(aModelName);
@@ -1531,18 +1645,42 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				}
 				break;
 				
+				case 0x8C:
+				if (BuslogicIsPCI())
+				{
+					int i = 0;
+					Buslogic->DataReplyLeft = Buslogic->CmdBuf[0];
+					for (i = 0; i < Buslogic->DataReplyLeft; i++)
+					{
+						Buslogic->DataBuf[0] = 0;
+					}
+				}
+				else
+				{
+					Buslogic->DataReplyLeft = 0;
+					Buslogic->Status |= STAT_INVCMD;					
+				}
+				break;
+		
 				case 0x8D:
 				{
 					if (scsi_model)
 					{
 						Buslogic->DataReplyLeft = Buslogic->CmdBuf[0];
 						ReplyInquireExtendedSetupInformation *Reply = (ReplyInquireExtendedSetupInformation *)Buslogic->DataBuf;
+						memset(Reply, 0, sizeof(ReplyInquireExtendedSetupInformation));
 
-						Reply->uBusType = 'A';         /* ISA style */
+						Reply->uBusType = (BuslogicIsPCI()) ? 'E' : 'A';         /* ISA style */
 						Reply->uBiosAddress = 0;
 						Reply->u16ScatterGatherLimit = 8192;
 						Reply->cMailbox = Buslogic->MailboxCount;
 						Reply->uMailboxAddressBase = Buslogic->MailboxOutAddr;
+						if (BuslogicIsPCI())
+						{
+							Reply->fLevelSensitiveInterrupt = 1;
+							Reply->fHostWideSCSI = 1;
+							Reply->fHostUltraSCSI = 1;
+						}
 						memcpy(Reply->aFirmwareRevision, "07B", sizeof(Reply->aFirmwareRevision));
 						BuslogicLog("Return Extended Setup Information: %d\n", Buslogic->CmdBuf[0]);
 					}
@@ -1586,7 +1724,51 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					Buslogic->DataReply = Offset;
 				}
 				break;
-				
+
+				case 0x95:
+				if (BuslogicIsPCI())
+				{
+					if (Buslogic->Base != 0)
+					{
+						io_removehandler(Buslogic->Base, 0x0004, BuslogicRead, BuslogicReadW, BuslogicReadL, BuslogicWrite, BuslogicWriteW, BuslogicWriteL, Buslogic);
+					}
+					switch(Buslogic->CmdBuf[0])
+					{
+						case 0:
+							Buslogic->Base = 0x330;
+							break;
+						case 1:
+							Buslogic->Base = 0x334;
+							break;
+						case 2:
+							Buslogic->Base = 0x230;
+							break;
+						case 3:
+							Buslogic->Base = 0x234;
+							break;
+						case 4:
+							Buslogic->Base = 0x130;
+							break;
+						case 5:
+							Buslogic->Base = 0x134;
+							break;
+						default:
+							Buslogic->Base = 0;
+							break;
+					}
+					if (Buslogic->Base != 0)
+					{
+						io_sethandler(Buslogic->Base, 0x0004, BuslogicRead, BuslogicReadW, BuslogicReadL, BuslogicWrite, BuslogicWriteW, BuslogicWriteL, Buslogic);
+					}
+					Buslogic->DataReplyLeft = 0;
+				}
+				else
+				{
+					Buslogic->DataReplyLeft = 0;
+					Buslogic->Status |= STAT_INVCMD;					
+				}
+				break;
+
 				case 0x96:
 				if (scsi_model)
 				{
@@ -1597,14 +1779,15 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					
 					Buslogic->DataReplyLeft = 0;
 				}
+				else
+				{
+					Buslogic->DataReplyLeft = 0;
+					Buslogic->Status |= STAT_INVCMD;					
+				}
 				break;
 				
 				default:
 				case 0x22: //undocumented
-				// case 0x28: //only for the Adaptec 154xC series
-				// case 0x29: //only for the Adaptec 154xC series
-				case 0x86: //PCI only, not ISA
-				case 0x95: //PCI only, not ISA
 				Buslogic->DataReplyLeft = 0;
 				Buslogic->Status |= STAT_INVCMD;
 				break;
@@ -1627,6 +1810,16 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 			Buslogic->Geometry = Val; //For Buslogic
 		break;
 	}
+}
+
+void BuslogicWriteW(uint16_t Port, uint16_t Val, void *p)
+{
+	BuslogicWrite(Port, Val & 0xFF, p);
+}
+
+void BuslogicWriteL(uint16_t Port, uint32_t Val, void *p)
+{
+	BuslogicWrite(Port, Val & 0xFF, p);
 }
 
 static uint8_t BuslogicConvertSenseLength(uint8_t RequestSenseLength)
@@ -2004,6 +2197,195 @@ void BuslogicCommandCallback(void *p)
 	BuslogicCallback += 50 * SCSI_TIME;
 }
 
+uint8_t mem_read_null(uint32_t addr, void *priv)
+{
+        return 0;
+}
+
+uint16_t mem_read_nullw(uint32_t addr, void *priv)
+{
+        return 0;
+}
+
+uint32_t mem_read_nulll(uint32_t addr, void *priv)
+{
+        return 0;
+}
+
+typedef union
+{
+	uint32_t addr;
+	uint8_t addr_regs[4];
+} bar_t;
+
+uint8_t buslogic_pci_regs[256];
+
+bar_t buslogic_pci_bar[3];
+
+uint8_t BuslogicPCIRead(int func, int addr, void *p)
+{
+	Buslogic_t *Buslogic = (Buslogic_t *)p;
+
+	// BuslogicLog("BusLogic PCI read %08X\n", addr);
+	switch (addr)
+	{
+		case 0x00:
+			return 0x4b;
+		case 0x01:
+			return 0x10;
+
+		case 0x02:
+			return 0x40;
+		case 0x03:
+			return 0x10;
+
+		case 0x2C:
+			return 0x4b;
+		case 0x2D:
+			return 0x10;
+		case 0x2E:
+			return 0x40;
+		case 0x2F:
+			return 0x10;
+
+		case 0x04:
+			return buslogic_pci_regs[0x04];	/*Respond to IO and memory accesses*/
+		case 0x05:
+			return buslogic_pci_regs[0x05];
+
+		case 0x07:
+			return 2;
+
+		case 0x08:
+			return 1;						/*Revision ID*/
+		case 0x09:
+			return 0;						/*Programming interface*/
+		case 0x0A:
+			return 0;						/*Subclass*/
+		case 0x0B:
+			return 1;						/* Class code*/
+
+		case 0x10:
+			return (buslogic_pci_bar[0].addr_regs[0] & 0xe0) | 1;	/*I/O space*/
+		case 0x11:
+			return buslogic_pci_bar[0].addr_regs[1];
+		case 0x12:
+			return buslogic_pci_bar[0].addr_regs[2];
+		case 0x13:
+			return buslogic_pci_bar[0].addr_regs[3];
+
+		case 0x14:
+			return (buslogic_pci_bar[1].addr_regs[0] & 0xe0);	/*Memory space*/
+		case 0x15:
+			return buslogic_pci_bar[1].addr_regs[1];
+		case 0x16:
+			return buslogic_pci_bar[1].addr_regs[2];
+		case 0x17:
+			return buslogic_pci_bar[1].addr_regs[3];
+
+		case 0x30:
+			return buslogic_pci_bar[2].addr_regs[0] & 0x01;	/*BIOS ROM address*/
+		case 0x31:
+			return buslogic_pci_bar[2].addr_regs[1] | 0x18;
+		case 0x32:
+			return buslogic_pci_bar[2].addr_regs[2];
+		case 0x33:
+			return buslogic_pci_bar[2].addr_regs[3];
+
+		case 0x3C:
+			return Buslogic->Irq;
+		case 0x3D:
+			return 1;
+	}
+	return 0;
+}
+
+void BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
+{
+	Buslogic_t *Buslogic = (Buslogic_t *)p;
+
+	switch (addr)
+	{
+		case 0x04:
+			io_removehandler(Buslogic->PCIBase, 0x0004, BuslogicRead, BuslogicReadW, BuslogicReadL, BuslogicWrite, BuslogicWriteW, BuslogicWriteL, Buslogic);
+			mem_mapping_disable(&Buslogic->mmio_mapping);
+			if (val & PCI_COMMAND_IO)
+			{
+				if (Buslogic->PCIBase != 0)
+				{
+					io_sethandler(Buslogic->PCIBase, 0x0020, BuslogicRead, BuslogicReadW, BuslogicReadL, BuslogicWrite, BuslogicWriteW, BuslogicWriteL, Buslogic);
+				}
+			}
+			if (val & PCI_COMMAND_MEM)
+			{
+				if (Buslogic->PCIBase != 0)
+				{
+		                        mem_mapping_set_addr(&Buslogic->mmio_mapping, Buslogic->MMIOBase, 0x20);
+				}
+			}
+			buslogic_pci_regs[addr] = val;
+			break;
+
+		case 0x10:
+			val &= 0xe0;
+			val |= 1;
+		case 0x11: case 0x12: case 0x13:
+			/* I/O Base set. */
+			/* First, remove the old I/O. */
+			io_removehandler(Buslogic->PCIBase, 0x0020, BuslogicRead, BuslogicReadW, BuslogicReadL, BuslogicWrite, BuslogicWriteW, BuslogicWriteL, Buslogic);
+			/* Then let's set the PCI regs. */
+			buslogic_pci_bar[0].addr_regs[addr & 3] = val;
+			/* Then let's calculate the new I/O base. */
+			Buslogic->PCIBase = buslogic_pci_bar[0].addr & 0xffe0;
+			/* Log the new base. */
+			BuslogicLog("BusLogic PCI: New I/O base is %04X\n" , Buslogic->PCIBase);
+			/* We're done, so get out of the here. */
+			if (buslogic_pci_regs[4] & PCI_COMMAND_IO)
+			{
+				if (Buslogic->PCIBase != 0)
+				{
+					io_sethandler(Buslogic->PCIBase, 0x0020, BuslogicRead, BuslogicReadW, BuslogicReadL, BuslogicWrite, BuslogicWriteW, BuslogicWriteL, Buslogic);
+				}
+			}
+			return;
+
+		case 0x14:
+			val &= 0xe0;
+		case 0x15: case 0x16: case 0x17:
+			/* I/O Base set. */
+			/* First, remove the old I/O. */
+			mem_mapping_disable(&Buslogic->mmio_mapping);
+			/* Then let's set the PCI regs. */
+			buslogic_pci_bar[1].addr_regs[addr & 3] = val;
+			/* Then let's calculate the new I/O base. */
+			Buslogic->MMIOBase = buslogic_pci_bar[1].addr & 0xffffffe0;
+			/* Log the new base. */
+			BuslogicLog("BusLogic PCI: New MMIO base is %04X\n" , Buslogic->MMIOBase);
+			/* We're done, so get out of the here. */
+			if (buslogic_pci_regs[4] & PCI_COMMAND_MEM)
+			{
+				if (Buslogic->PCIBase != 0)
+				{
+		                        mem_mapping_set_addr(&Buslogic->mmio_mapping, Buslogic->MMIOBase, 0x20);
+				}
+			}
+			return;
+
+		/* Commented out until an APIC controller is emulated for the PIIX3,
+		   otherwise the BT-958 will not get an IRQ on boards using the PIIX3. */
+#if 0
+		case 0x3C:
+			buslogic_pci_regs[addr] = val;
+			if (val != 0xFF)
+			{
+				buslogic_log("BusLogic IRQ now: %i\n", val);
+				Buslogic->Irq = val;
+			}
+			return;
+#endif
+	}
+}
+
 void *BuslogicInit()
 {
 	int i = 0;
@@ -2011,10 +2393,23 @@ void *BuslogicInit()
 	Buslogic_t *Buslogic = malloc(sizeof(Buslogic_t));
 	memset(Buslogic, 0, sizeof(Buslogic_t));
 
-	Buslogic->Irq = scsi_irq;
-	Buslogic->DmaChannel = scsi_dma;	
+	scsi_model = device_get_config_int("model");
+	Buslogic->Base = device_get_config_int("addr");
+	Buslogic->PCIBase = 0;
+	Buslogic->MMIOBase = 0;
+	Buslogic->Irq = device_get_config_int("irq");
+	Buslogic->DmaChannel = device_get_config_int("dma");
 
-	io_sethandler(scsi_base, 0x0004, BuslogicRead, NULL, NULL, BuslogicWrite, NULL, NULL, Buslogic);
+	if (Buslogic->Base != 0)
+	{
+		if (BuslogicIsPCI())
+		{
+		}
+		else
+		{
+			io_sethandler(Buslogic->Base, 0x0004, BuslogicRead, BuslogicReadW, BuslogicReadL, BuslogicWrite, BuslogicWriteW, BuslogicWriteL, Buslogic);
+		}
+	}
 
 	BuslogicLog("Building CD-ROM map...\n");
 	build_scsi_cdrom_map();
@@ -2028,8 +2423,26 @@ void *BuslogicInit()
 	}
 
 	timer_add(BuslogicCommandCallback, &BuslogicCallback, &BuslogicCallback, Buslogic);
+
+	if (BuslogicIsPCI())
+	{
+		pci_add(BuslogicPCIRead, BuslogicPCIWrite, Buslogic);
+
+		buslogic_pci_bar[0].addr_regs[0] = 1;
+		buslogic_pci_bar[1].addr_regs[0] = 0;
+
+        	buslogic_pci_regs[0x04] = 1;
+	        buslogic_pci_regs[0x05] = 0;
+
+	        buslogic_pci_regs[0x07] = 2;
+
+		buslogic_pci_bar[2].addr = 0;
+
+	        mem_mapping_add(&Buslogic->mmio_mapping, 0xfffd0000, 0x20, mem_read_null, mem_read_nullw, mem_read_nulll, mem_write_null, mem_write_nullw, mem_write_nulll, NULL, MEM_MAPPING_EXTERNAL, Buslogic);
+		mem_mapping_disable(&Buslogic->mmio_mapping);
+	}
 	
-	BuslogicLog("Buslogic on port 0x%04X\n", scsi_base);
+	BuslogicLog("Buslogic on port 0x%04X\n", Buslogic->Base);
 	
 	BuslogicResetControl(Buslogic, CTRL_HRST);
 	
@@ -2042,6 +2455,139 @@ void BuslogicClose(void *p)
 	free(Buslogic);
 }
 
+static device_config_t BuslogicConfig[] =
+{
+        {
+                .name = "model",
+                .description = "Model",
+                .type = CONFIG_BINARY,
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "Adaptec AHA-154XB ISA",
+                                .value = 0
+                        },
+                        {
+                                .description = "BusLogic BT-542B ISA",
+                                .value = 1
+                        },
+                        {
+                                .description = "BusLogic BT-958 PCI",
+                                .value = 2
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 0
+        },
+        {
+                .name = "addr",
+                .description = "Address",
+                .type = CONFIG_BINARY,
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "None",
+                                .value = 0
+                        },
+                        {
+                                .description = "0x330",
+                                .value = 0x330
+                        },
+                        {
+                                .description = "0x334",
+                                .value = 0x334
+                        },
+                        {
+                                .description = "0x230",
+                                .value = 0x230
+                        },
+                        {
+                                .description = "0x234",
+                                .value = 0x234
+                        },
+                        {
+                                .description = "0x130",
+                                .value = 0x130
+                        },
+                        {
+                                .description = "0x134",
+                                .value = 0x134
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 0x334
+        },
+        {
+                .name = "irq",
+                .description = "IRQ",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "IRQ 9",
+                                .value = 9
+                        },
+                        {
+                                .description = "IRQ 10",
+                                .value = 10
+                        },
+                        {
+                                .description = "IRQ 11",
+                                .value = 11
+                        },
+                        {
+                                .description = "IRQ 12",
+                                .value = 12
+                        },
+                        {
+                                .description = "IRQ 14",
+                                .value = 14
+                        },
+                        {
+                                .description = "IRQ 15",
+                                .value = 15
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 9
+        },
+        {
+                .name = "dma",
+                .description = "DMA channel",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "DMA 5",
+                                .value = 5
+                        },
+                        {
+                                .description = "DMA 6",
+                                .value = 6
+                        },
+                        {
+                                .description = "DMA 7",
+                                .value = 7
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 6
+        },
+        {
+                .type = -1
+        }
+};
+
 device_t BuslogicDevice =
 {
 	"Adaptec/Buslogic",
@@ -2051,5 +2597,6 @@ device_t BuslogicDevice =
 	NULL,
 	NULL,
 	NULL,
-	NULL
+	NULL,
+	BuslogicConfig
 };

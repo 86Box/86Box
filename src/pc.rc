@@ -275,39 +275,6 @@ BEGIN
                                 MENUITEM "1&5",IDM_IDE_QUA_IRQ15
                         END
 		END
-                POPUP "&SCSI controller"
-                BEGIN
-                        MENUITEM "&Enabled",IDM_SCSI_ENABLED
-                        POPUP "&Model"
-                        BEGIN
-                                MENUITEM "&Adaptec AHA-154x",IDM_SCSI_MODEL0
-                                MENUITEM "&BusLogic BT-542B",IDM_SCSI_MODEL1
-                        END
-                        POPUP "&Base address"
-                        BEGIN
-                                MENUITEM "0x&130",IDM_SCSI_BASE130
-                                MENUITEM "0x13&4",IDM_SCSI_BASE134
-                                MENUITEM "0x&230",IDM_SCSI_BASE230
-                                MENUITEM "0&x234",IDM_SCSI_BASE234
-                                MENUITEM "0x33&0",IDM_SCSI_BASE330
-                                MENUITEM "&0x334",IDM_SCSI_BASE334
-                        END
-                        POPUP "&IRQ"
-                        BEGIN
-                                MENUITEM "&9",IDM_SCSI_IRQ9
-                                MENUITEM "1&0",IDM_SCSI_IRQ10
-                                MENUITEM "1&1",IDM_SCSI_IRQ11
-                                MENUITEM "1&2",IDM_SCSI_IRQ12
-                                MENUITEM "1&4",IDM_SCSI_IRQ14
-                                MENUITEM "1&5",IDM_SCSI_IRQ15
-                        END
-                        POPUP "&DMA channel"
-                        BEGIN
-                                MENUITEM "&5",IDM_SCSI_DMA5
-                                MENUITEM "&6",IDM_SCSI_DMA6
-                                MENUITEM "&7",IDM_SCSI_DMA7
-                        END
-                END
         END
         POPUP "&Settings"
         BEGIN
@@ -427,8 +394,10 @@ BEGIN
     CONTROL         "Gravis Ultrasound",IDC_CHECKGUS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,208,102,10    
 
     CONTROL         "Innovation SSI-2001",IDC_CHECKSSI,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,192,102,10
-    CONTROL         "Enable time sync",IDC_CHECKSYNC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,208,102,10
+    CONTROL         "SCSI Controller",IDC_CHECKBUSLOGIC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,208,102,10
+    PUSHBUTTON      "Configure", IDC_CONFIGUREBUSLOGIC, 224, 208, 40, 14, WS_TABSTOP
 
+    CONTROL         "Enable time sync",IDC_CHECKSYNC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,224,102,10
     CONTROL         "Voodoo Graphics",IDC_CHECKVOODOO,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,224,102,10
     PUSHBUTTON      "Configure", IDC_CONFIGUREVOODOO, 224, 224, 40, 14, WS_TABSTOP
 

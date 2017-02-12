@@ -13,6 +13,7 @@
 #include "ide.h"
 #include "cpu.h"
 #include "device.h"
+#include "buslogic.h"
 #include "fdd.h"
 #include "gameport.h"
 #include "model.h"
@@ -48,7 +49,7 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
         int c, d;
         int rom, gfx, mem, fpu;
         int temp_cpu, temp_cpu_m, temp_model;
-        int temp_GAMEBLASTER, temp_GUS, temp_SSI2001, temp_voodoo, temp_sound_card_current;
+        int temp_GAMEBLASTER, temp_GUS, temp_SSI2001, temp_voodoo, temp_buslogic, temp_sound_card_current;
         int temp_dynarec;
         int cpu_flags;
         int temp_fd1_type, temp_fd2_type, temp_fd3_type, temp_fd4_type;
@@ -188,6 +189,9 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 
                 h=GetDlgItem(hdlg, IDC_CHECKVOODOO);
                 SendMessage(h, BM_SETCHECK, voodoo_enabled, 0);
+
+                h=GetDlgItem(hdlg, IDC_CHECKBUSLOGIC);
+                SendMessage(h, BM_SETCHECK, buslogic_enabled, 0);
 
                 cpu_flags = models[romstomodel[romset]].cpu[cpu_manufacturer].cpus[cpu].cpu_flags;
                 h=GetDlgItem(hdlg, IDC_CHECKDYNAREC);
@@ -401,6 +405,9 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         h = GetDlgItem(hdlg, IDC_CHECKVOODOO);
                         temp_voodoo = SendMessage(h, BM_GETCHECK, 0, 0);
 
+                        h = GetDlgItem(hdlg, IDC_CHECKBUSLOGIC);
+                        temp_buslogic = SendMessage(h, BM_GETCHECK, 0, 0);
+
                         h = GetDlgItem(hdlg, IDC_COMBOSND);
                         temp_sound_card_current = settings_list_to_sound[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
@@ -427,7 +434,7 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         if (temp_model != model || gfx != gfxcard || mem != mem_size || temp_cpu != cpu || temp_cpu_m != cpu_manufacturer ||
                             fpu != hasfpu || temp_GAMEBLASTER != GAMEBLASTER || temp_GUS != GUS ||
                             temp_SSI2001 != SSI2001 || temp_sound_card_current != sound_card_current ||
-                            temp_voodoo != voodoo_enabled || temp_dynarec != cpu_use_dynarec || temp_mouse_type != mouse_type ||
+                            temp_voodoo != voodoo_enabled || temp_buslogic != buslogic_enabled || temp_dynarec != cpu_use_dynarec || temp_mouse_type != mouse_type ||
 			    temp_fd1_type != fdd_get_type(0) || temp_fd2_type != fdd_get_type(1) || temp_fd3_type != fdd_get_type(2) || temp_fd4_type != fdd_get_type(3) || temp_network_card_current != network_card_current)
                         {
                                 if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL)==IDOK)
@@ -444,6 +451,7 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                         SSI2001 = temp_SSI2001;
                                         sound_card_current = temp_sound_card_current;
                                         voodoo_enabled = temp_voodoo;
+                                        buslogic_enabled = temp_buslogic;
                                         cpu_use_dynarec = temp_dynarec;
                                         mouse_type = temp_mouse_type;
 
@@ -755,6 +763,10 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 
                         case IDC_CONFIGUREVOODOO:
                         deviceconfig_open(hdlg, (void *)&voodoo_device);
+                        break;
+
+                        case IDC_CONFIGUREBUSLOGIC:
+                        deviceconfig_open(hdlg, (void *)&BuslogicDevice);
                         break;
 
                        case IDC_COMBOJOY:
