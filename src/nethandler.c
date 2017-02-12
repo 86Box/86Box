@@ -158,9 +158,9 @@ void vlan_poller(void *priv)
 {
         int c;
 
-        vlan_poller_time += (int)((double)TIMER_USEC * (1000000.0 / 8.0 / 1500.0));
+        vlan_poller_time += (int)((double)TIMER_USEC * (1000000.0 / 8.0 / 3000.0));
 
-	if (network_thread_enable && vlan_handlers_num)
+	if (/*network_thread_enable && */ vlan_handlers_num)
 	{
 		// pclog("Setting thread event...\n");
 		// thread_set_event(network_event);
