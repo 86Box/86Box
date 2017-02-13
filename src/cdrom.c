@@ -306,6 +306,10 @@ void cdrom_reset_cdb_len(int id)
 
 void cdrom_set_signature(int id)
 {
+	if (id >= CDROM_NUM)
+	{
+		return;
+	}
 	cdrom[id].phase = 1;
 	cdrom[id].request_length = 0xEB14;
 }

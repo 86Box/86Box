@@ -559,7 +559,7 @@ static void loadhd(IDE *ide, int d, const char *fn)
 
 void ide_set_signature(IDE *ide)
 {
-	uint8_t cdrom_id = atapi_cdrom_drives[cur_ide[ide->board]];
+	uint8_t cdrom_id = atapi_cdrom_drives[ide->channel];
 	ide->sector=1;
 	ide->head=0;
 	if (ide_drive_is_cdrom(ide))
