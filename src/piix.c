@@ -499,7 +499,7 @@ int piix_bus_master_dma_write(int channel, uint8_t *data, int transfer_length)
         if (!(piix_busmaster[channel].status & 1))
            return 1;                                    /*DMA disabled*/
 
-	pclog("DMA not disabled\n");
+	// pclog("DMA not disabled\n");
 
         while (transferred < transfer_length)
         {
