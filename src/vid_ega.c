@@ -164,10 +164,10 @@ static uint8_t ega_get_input_status_0(ega_t *ega)
 	bit = (egaswitchread >> 2) & 3;
 
 	if (egaswitches & (0x08 >> bit)) {
-		status0 |= EGA_STATUS0_SS;
+		status0 |= 0x10;
 	}
 	else {
-		status0 &= ~EGA_STATUS0_SS;
+		status0 &= ~0x10;
 	}
 
 	return status0;
