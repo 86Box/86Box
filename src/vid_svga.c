@@ -21,8 +21,8 @@ extern uint8_t edatlookup[4][4];
 
 uint8_t svga_rotate[8][256];
 
-static uint8_t mask_gdc[9] = {0x0F, 0x0F, 0x0F, 0x1F, 0x03, 0x7B, 0x0F, 0x0F, 0xFF};
-uint8_t mask_crtc[0x19] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 0xFF, 0x3F, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xCF, 0xFF, 0xFF, 0x7F, 0xFF, 0x7F, 0xEF, 0xFF};
+static uint8_t mask_gdc[9] = {0x0F, 0x0F, 0x0F, 0x1F, 0x03, 0x7B, 0xFF, 0x0F, 0xFF};
+uint8_t mask_crtc[0x19] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 0xFF, 0x7F, 0xEF, 0xFF};
 static uint8_t mask_seq[5] = {0x03, 0x3D, 0x0F, 0x3F, 0x0E};
 
 /*Primary SVGA device. As multiple video cards are not yet supported this is the
@@ -102,6 +102,7 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
 		return;
 
                 case 0x3C0:
+		case 0x3C1:
                 if (!svga->attrff)
                 {
                         svga->attraddr = val & 31;
@@ -295,6 +296,46 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
         }
 }
 
+/*
+ * Get the switch sense input
+ *
+ * This is reverse engineered from the IBM VGA BIOS. I have no
+ * idea how and why this works.
+ *
+ * Note by Tohka: This code is from PCE, modified to be 86Box-compatible.
+ */
+static int svga_get_input_status_0_ss(svga_t *svga)
+{
+	const unsigned char *p;
+	unsigned char       dac[3];
+
+	static unsigned char vals[] = {
+		0x12, 0x12, 0x12, 0x10,
+		0x14, 0x14, 0x14, 0x10,
+		0x2d, 0x14, 0x14, 0x00,
+		0x14, 0x2d, 0x14, 0x00,
+		0x14, 0x14, 0x2d, 0x00,
+		0x2d, 0x2d, 0x2d, 0x00,
+		0x00, 0x00, 0x00, 0xff
+	};
+
+	dac[0] = svga->vgapal[0].r >> 2;
+	dac[1] = svga->vgapal[0].g >> 2;
+	dac[2] = svga->vgapal[0].b >> 2;
+
+	p = vals;
+
+	while (p[3] != 0xff) {
+		if ((p[0] == dac[0]) && (p[1] == dac[1]) && (p[2] == dac[2])) {
+			return (p[3] != 0);
+		}
+
+		p += 4;
+	}
+
+	return (1);
+}
+
 uint8_t svga_in(uint16_t addr, void *p)
 {
         svga_t *svga = (svga_t *)p;
@@ -347,8 +388,15 @@ uint8_t svga_in(uint16_t addr, void *p)
                 else
                         temp = 0x10;
 #endif
-		temp = sense_switches & (1 << ((svga->miscout >> 2) & 3));
-                return temp ? 0 : 0x10;
+		if (svga_get_input_status_0_ss(svga))
+		{
+			temp |= 0x10;
+		}
+		else
+		{
+			temp &= ~0x10;
+		}
+                return temp;
                 case 0x3C4: 
                 return svga->seqaddr;
                 case 0x3C5:
@@ -1483,6 +1531,16 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 //        pclog("doblit %i %i\n", y1, y2);
 //        pclog("svga_doblit %i %i\n", wx, svga->hdisp);
 
+	if ((xsize > 2032) || (ysize > 2032))
+	{
+		x_add = 0;
+		y_add = 0;
+		suppress_overscan = 1;
+	}
+	else
+	{
+		suppress_overscan = 0;
+	}
 
         if (y1 > y2)
         {
@@ -1497,15 +1555,15 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
                 if (xsize<64) xsize=640;
                 if (ysize<32) ysize=200;
 
-		if (xsize > 2032)
+		if ((xsize > 2032) || (ysize > 2032))
 		{
 			x_add = 0;
 			y_add = 0;
-			suppress_overscan = 0;
+			suppress_overscan = 1;
 		}
 		else
 		{
-			suppress_overscan = 1;
+			suppress_overscan = 0;
 		}
 
                 updatewindowsize(xsize + x_add,ysize + y_add);
@@ -1514,6 +1572,17 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
         {
                 xsize = wx;
                 ysize = wy + 1;
+
+		if ((xsize > 2032) || (ysize > 2032))
+		{
+			x_add = 0;
+			y_add = 0;
+			suppress_overscan = 1;
+		}
+		else
+		{
+			suppress_overscan = 0;
+		}
         }
 
 	if (enable_overscan && !suppress_overscan)

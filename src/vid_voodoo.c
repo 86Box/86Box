@@ -160,13 +160,13 @@ typedef struct voodoo_params_t
 
         uint32_t texBaseAddr[2], texBaseAddr1[2], texBaseAddr2[2], texBaseAddr38[2];
         
-        uint32_t tex_base[2][LOD_MAX+1];
+        uint32_t tex_base[2][LOD_MAX+2];
         int tex_width[2];
-        int tex_w_mask[2][LOD_MAX+1];
-        int tex_w_nmask[2][LOD_MAX+1];
-        int tex_h_mask[2][LOD_MAX+1];
-        int tex_shift[2][LOD_MAX+1];
-        int tex_lod[2][LOD_MAX+1];
+        int tex_w_mask[2][LOD_MAX+2];
+        int tex_w_nmask[2][LOD_MAX+2];
+        int tex_h_mask[2][LOD_MAX+2];
+        int tex_shift[2][LOD_MAX+2];
+        int tex_lod[2][LOD_MAX+2];
         int tex_entry[2];
         int detail_max[2], detail_bias[2], detail_scale[2];
         
@@ -1122,7 +1122,7 @@ static void voodoo_recalc_tex(voodoo_t *voodoo, int tmu)
                 tex_lod++;
         }
         
-        for (lod = 0; lod <= LOD_MAX; lod++)
+        for (lod = 0; lod <= LOD_MAX+1; lod++)
         {
                 if (!width)
                         width = 1;
@@ -3649,9 +3649,9 @@ static void triangle_setup(voodoo_t *voodoo)
         }
         if (voodoo->sSetupMode & SETUPMODE_W1)
         {
-                voodoo->params.tmu[1].startW = (int64_t)(voodoo->verts[va].sW0 * 4294967296.0f);
-                voodoo->params.tmu[1].dWdX = (int64_t)(((voodoo->verts[va].sW0 - voodoo->verts[vb].sW0) * dyBC - (voodoo->verts[vb].sW0 - voodoo->verts[vc].sW0) * dyAB) * 4294967296.0f);
-                voodoo->params.tmu[1].dWdY = (int64_t)(((voodoo->verts[vb].sW0 - voodoo->verts[vc].sW0) * dxAB - (voodoo->verts[va].sW0 - voodoo->verts[vb].sW0) * dxBC) * 4294967296.0f);
+                voodoo->params.tmu[1].startW = (int64_t)(voodoo->verts[va].sW1 * 4294967296.0f);
+                voodoo->params.tmu[1].dWdX = (int64_t)(((voodoo->verts[va].sW1 - voodoo->verts[vb].sW1) * dyBC - (voodoo->verts[vb].sW1 - voodoo->verts[vc].sW1) * dyAB) * 4294967296.0f);
+                voodoo->params.tmu[1].dWdY = (int64_t)(((voodoo->verts[vb].sW1 - voodoo->verts[vc].sW1) * dxAB - (voodoo->verts[va].sW1 - voodoo->verts[vb].sW1) * dxBC) * 4294967296.0f);
         }
         if (voodoo->sSetupMode & SETUPMODE_S1_T1)
         {

@@ -1873,6 +1873,10 @@ void ne2000_pci_write(int func, int addr, uint8_t val, void *p)
 			/* Log the new base. */
 			ne2000_log("NE2000 RTL8029AS PCI: New I/O base is %04X\n" , ne2000->base_address);
 			/* We're done, so get out of the here. */
+			if (val & PCI_COMMAND_IO)
+			{
+				ne2000_io_set(ne2000->base_address, ne2000);
+			}
 			return;
 
 		case 0x30: case 0x31: case 0x32: case 0x33:

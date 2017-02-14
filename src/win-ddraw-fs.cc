@@ -86,8 +86,8 @@ void ddraw_fs_init(HWND h)
         if (FAILED(lpdd4->SetDisplayMode(ddraw_w, ddraw_h, 32, 0 ,0)))
                 fatal("SetDisplayMode failed\n");
            
-        memset(&ddsd, 0, sizeof(ddsd));
-        ddsd.dwSize = sizeof(ddsd);
+        // memset(&ddsd, 0, sizeof(ddsd));
+        // ddsd.dwSize = sizeof(ddsd);
         
         ddsd.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
         ddsd.dwBackBufferCount = 1;

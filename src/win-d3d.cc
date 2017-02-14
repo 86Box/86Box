@@ -137,17 +137,17 @@ void d3d_init_objects()
 
         d3ddev->CreateTexture(2048, 2048, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &d3dTexture, NULL);
      
-        r.top    = r.left  = 0;
+        // r.top    = r.left  = 0;
         r.bottom = r.right = 2047;
 
         if (FAILED(d3dTexture->LockRect(0, &dr, &r, 0)))
            fatal("LockRect failed\n");
         
-        for (y = 0; y < 2048; y++)
+        /* for (y = 0; y < 2048; y++)
         {
                 uint32_t *p = (uint32_t *)(dr.pBits + (y * dr.Pitch));
                 memset(p, 0, 2048 * 4);
-        }
+        } */
 
         d3dTexture->UnlockRect(0);
 

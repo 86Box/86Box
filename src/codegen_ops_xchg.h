@@ -44,9 +44,9 @@ OP_XCHG_EAX_(EBP)
 
 static uint32_t ropXCHG_b(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-#ifdef __amd64__
-        return 0;
-#else
+// #ifdef __amd64__
+        // return 0;
+// #else
         int src_reg, dst_reg, temp_reg;
 
         if ((fetchdat & 0xc0) != 0xc0)
@@ -59,7 +59,7 @@ static uint32_t ropXCHG_b(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
         STORE_REG_TARGET_B_RELEASE(temp_reg, fetchdat & 7);
         
         return op_pc + 1;
-#endif
+// #endif
 }
 static uint32_t ropXCHG_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {

@@ -87,8 +87,8 @@ void ddraw_init(HWND h)
         if (FAILED(lpdd4->CreateSurface(&ddsd, &lpdds_pri, NULL)))
            fatal("CreateSurface failed\n");
         
-        memset(&ddsd, 0, sizeof(ddsd));
-        ddsd.dwSize = sizeof(ddsd);
+        // memset(&ddsd, 0, sizeof(ddsd));
+        // ddsd.dwSize = sizeof(ddsd);
         
         ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
         ddsd.dwWidth  = 2048;
