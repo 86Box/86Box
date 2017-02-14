@@ -446,6 +446,10 @@ void ne2000_write_cr(ne2000_t *ne2000, uint32_t value)
 		if (ne2000->IMR.rdma_inte)
 		{
 			picint(1 << ne2000->base_irq);
+			if (network_card_current == 1)
+			{
+				picintc(1 << ne2000->base_irq);
+			}
 		}
 	}
 }
@@ -501,7 +505,20 @@ uint32_t ne2000_chipmem_read(ne2000_t *ne2000, uint32_t address, unsigned int io
 
 	ne2000_log("out-of-bounds chipmem read, %04X\n", address);
 
-	return (0xff);
+	if (network_card_current == 1)
+	{
+		switch(io_len)
+		{
+			case 1:
+				return 0xff;
+			case 2:
+				return 0xffff;
+		}
+	}
+	else
+	{
+		return (0xff);
+	}
 }
 
 void ne2000_chipmem_write(ne2000_t *ne2000, uint32_t address, uint32_t value, unsigned io_len)
@@ -1708,16 +1725,34 @@ uint32_t bios_mask = 0;
 void ne2000_io_set(uint16_t addr, ne2000_t *ne2000)
 {	
 	old_base_addr = addr;
-	io_sethandler(addr, 0x0010, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
-	io_sethandler(addr+0x10, 0x0010, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
-	io_sethandler(addr+0x1f, 0x0001, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
+	if (network_card_current == 1)
+	{
+		io_sethandler(addr, 0x0010, ne2000_readb, NULL, NULL, ne2000_writeb, NULL, NULL, ne2000);
+		io_sethandler(addr+0x10, 0x0010, ne2000_readb, ne2000_readw, NULL, ne2000_writeb, ne2000_writew, NULL, ne2000);
+		io_sethandler(addr+0x1f, 0x0001, ne2000_readb, NULL, NULL, ne2000_writeb, NULL, NULL, ne2000);	
+	}
+	else
+	{
+		io_sethandler(addr, 0x0010, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
+		io_sethandler(addr+0x10, 0x0010, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
+		io_sethandler(addr+0x1f, 0x0001, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
+	}
 }
 
 void ne2000_io_remove(int16_t addr, ne2000_t *ne2000)
 {
-	io_removehandler(addr, 0x0010, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
-	io_removehandler(addr+0x10, 0x0010, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
-	io_removehandler(addr+0x1f, 0x0001, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
+	if (network_card_current == 1)
+	{
+		io_removehandler(addr, 0x0010, ne2000_readb, NULL, NULL, ne2000_writeb, NULL, NULL, ne2000);
+		io_removehandler(addr+0x10, 0x0010, ne2000_readb, ne2000_readw, NULL, ne2000_writeb, ne2000_writew, NULL, ne2000);
+		io_removehandler(addr+0x1f, 0x0001, ne2000_readb, NULL, NULL, ne2000_writeb, NULL, NULL, ne2000);	
+	}
+	else
+	{
+		io_removehandler(addr, 0x0010, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
+		io_removehandler(addr+0x10, 0x0010, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
+		io_removehandler(addr+0x1f, 0x0001, ne2000_readb, ne2000_readw, ne2000_readl, ne2000_writeb, ne2000_writew, ne2000_writel, ne2000);
+	}
 }
 
 uint8_t ne2000_pci_read(int func, int addr, void *p)
