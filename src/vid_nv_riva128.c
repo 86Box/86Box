@@ -518,7 +518,7 @@ static uint8_t riva128_pfifo_read(uint32_t addr, void *p)
 	svga_t *svga = &riva128->svga;
 	uint8_t ret = 0;
 
-	pclog("RIVA 128 PFIFO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
+	//pclog("RIVA 128 PFIFO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
 
 	switch(addr)
 	{
@@ -646,7 +646,7 @@ static void riva128_pfifo_write(uint32_t addr, uint32_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 	svga_t *svga = &riva128->svga;
-	pclog("RIVA 128 PFIFO write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
+	//pclog("RIVA 128 PFIFO write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 
 	switch(addr)
 	{
@@ -1734,8 +1734,8 @@ static uint8_t riva128_mmio_read(uint32_t addr, void *p)
 
 	addr &= 0xffffff;
 
-	//This logging condition is necessary to prevent A CATASTROPHIC LOG BLOWUP when polling PTIMER. DO NOT REMOVE.
-	if(!((addr >= 0x009000) && (addr <= 0x009fff))) pclog("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
+	//This logging condition is necessary to prevent A CATASTROPHIC LOG BLOWUP when polling PTIMER or PFIFO. DO NOT REMOVE.
+	if(!((addr >= 0x009000) && (addr <= 0x009fff)) && !((addr >= 0x002000) && (addr <- 0x003fff))) pclog("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
 
 	switch(addr)
 	{
