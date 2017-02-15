@@ -27,12 +27,13 @@ static uint8_t card_piix[256], card_piix_ide[256];
 void piix_write(int func, int addr, uint8_t val, void *priv)
 {
 	uint16_t old_base = (card_piix_ide[0x20] & 0xf0) | (card_piix_ide[0x21] << 8);
-//        pclog("piix_write: func=%d addr=%02x val=%02x %04x:%08x\n", func, addr, val, CS, pc);
+//        pclog("piix_write: func=%d addr=%02x val=%02x %04x:%08x\n", func, addr, val, CS, cpu_state.pc);
         if (func > 1)
            return;
         
         if (func == 1) /*IDE*/
         {
+		// pclog("piix_write (IDE): func=%d addr=%02x val=%02x %04x:%08x\n", func, addr, val, CS, cpu_state.pc);
                 switch (addr)
                 {
                         case 0x04:
