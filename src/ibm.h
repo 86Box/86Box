@@ -517,13 +517,14 @@ char pcempath[512];
 
 /*Hard disc*/
 
-typedef struct
+typedef struct __attribute__((__packed__))
 {
-        FILE *f;
-        uint64_t spt,hpc; /*Sectors per track, heads per cylinder*/
-        uint64_t tracks;
+	FILE *f;
+	uint64_t spt,hpc; /*Sectors per track, heads per cylinder*/
+	uint64_t tracks;
 	int is_hdi;
-        uint32_t base;
+	uint32_t base;
+	uint64_t at_spt,at_hpc; /*[Translation] Sectors per track, heads per cylinder*/
 } hard_disk_t;
 
 #define IDE_NUM		8

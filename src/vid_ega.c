@@ -128,12 +128,12 @@ void ega_out(uint16_t addr, uint8_t val, void *p)
                 break;
 		case 0x3d0:
                 case 0x3d4:
-                        pclog("Write 3d4 %02X  %04X:%04X\n", val, CS, cpu_state.pc);
+                        // pclog("Write 3d4 %02X  %04X:%04X\n", val, CS, cpu_state.pc);
                 ega->crtcreg = val & 31;
                 return;
 		case 0x3d1:
                 case 0x3d5:
-                        pclog("Write 3d5 %02X %02X %02X\n", ega->crtcreg, val, ega->crtc[0x11]);
+                        // pclog("Write 3d5 %02X %02X %02X\n", ega->crtcreg, val, ega->crtc[0x11]);
 //                if (ega->crtcreg == 1 && val == 0x14)
 //                        fatal("Here\n");
                 if (ega->crtcreg <= 7 && ega->crtc[0x11] & 0x80) return;
@@ -178,7 +178,7 @@ uint8_t ega_in(uint16_t addr, void *p)
         ega_t *ega = (ega_t *)p;
 
 if (addr != 0x3da && addr != 0x3ba)
-        pclog("ega_in %04X\n", addr);
+        // pclog("ega_in %04X\n", addr);
         if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ega->miscout & 1)) 
                 addr ^= 0x60;
 
@@ -250,7 +250,7 @@ void ega_recalctimings(ega_t *ega)
 
         ega->rowoffset = ega->crtc[0x13];
 
-        printf("Recalc! %i %i %i %i   %i %02X\n", ega->vtotal, ega->dispend, ega->vsyncstart, ega->split, ega->hdisp, ega->attrregs[0x16]);
+        // printf("Recalc! %i %i %i %i   %i %02X\n", ega->vtotal, ega->dispend, ega->vsyncstart, ega->split, ega->hdisp, ega->attrregs[0x16]);
 
         if (ega->vidclock) crtcconst = (ega->seqregs[1] & 1) ? MDACONST : (MDACONST * (9.0 / 8.0));
         else               crtcconst = (ega->seqregs[1] & 1) ? CGACONST : (CGACONST * (9.0 / 8.0));
@@ -258,7 +258,7 @@ void ega_recalctimings(ega_t *ega)
         disptime = ega->crtc[0] + 2;
         _dispontime = ega->crtc[1] + 1;
 
-        printf("Disptime %f dispontime %f hdisp %i\n", disptime, _dispontime, ega->crtc[1] * 8);
+        // printf("Disptime %f dispontime %f hdisp %i\n", disptime, _dispontime, ega->crtc[1] * 8);
         if (ega->seqregs[1] & 8) 
         { 
                 disptime*=2; 
@@ -270,8 +270,8 @@ void ega_recalctimings(ega_t *ega)
 
 	ega->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
 	ega->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
-        pclog("dispontime %i (%f)  dispofftime %i (%f)\n", ega->dispontime, (float)ega->dispontime / (1 << TIMER_SHIFT),
-                                                           ega->dispofftime, (float)ega->dispofftime / (1 << TIMER_SHIFT));
+        /* pclog("dispontime %i (%f)  dispofftime %i (%f)\n", ega->dispontime, (float)ega->dispontime / (1 << TIMER_SHIFT),
+                                                           ega->dispofftime, (float)ega->dispofftime / (1 << TIMER_SHIFT)); */
 //        printf("EGA horiz total %i display end %i clock rate %i vidclock %i %i\n",crtc[0],crtc[1],egaswitchread,vidclock,((ega3c2>>2)&3) | ((tridentnewctrl2<<2)&4));
 //        printf("EGA vert total %i display end %i max row %i vsync %i\n",ega_vtotal,ega_dispend,(crtc[9]&31)+1,ega_vsyncstart);
 //        printf("total %f on %f cycles off %f cycles frame %f sec %f %02X\n",disptime*crtcconst,dispontime,dispofftime,(dispontime+dispofftime)*ega_vtotal,(dispontime+dispofftime)*ega_vtotal*70,seqregs[1]);

@@ -4,7 +4,7 @@
 #ifndef __IDE__
 #define __IDE__
 
-typedef struct IDE
+typedef struct __attribute__((__packed__)) IDE
 {
         int type;
         int board;
@@ -32,6 +32,7 @@ typedef struct IDE
 		uint16_t dma_identify_data[3];
 		int hdi,base;
 		int hdc_num;
+		uint8_t specify_success;
 } IDE;
 
 extern void writeide(int ide_board, uint16_t addr, uint8_t val);

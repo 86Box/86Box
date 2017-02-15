@@ -1710,7 +1710,10 @@ uint32_t svga_readl(uint32_t addr, void *p)
 	if (!svga->enablevram)  return 0xffffffff;
         
         if (!svga->fast)
+	{
+	   if (addr == 0xBF0000)  pclog ("%08X\n", svga_read(addr, p) | (svga_read(addr + 1, p) << 8) | (svga_read(addr + 2, p) << 16) | (svga_read(addr + 3, p) << 24));
            return svga_read(addr, p) | (svga_read(addr + 1, p) << 8) | (svga_read(addr + 2, p) << 16) | (svga_read(addr + 3, p) << 24);
+	}
         
         egareads += 4;
 

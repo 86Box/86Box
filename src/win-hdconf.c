@@ -143,9 +143,9 @@ int hdconf_idok_common(HWND hdlg)
 		MessageBox(ghwnd, "Drive has too many heads (maximum is 16)", "86Box error", MB_OK);
 		return 1;
 	}
-	if (hd_new_cyl > 16383)
+	if (hd_new_cyl > 266305)
 	{
-		MessageBox(ghwnd, "Drive has too many cylinders (maximum is 16383)", "86Box error", MB_OK);
+		MessageBox(ghwnd, "Drive has too many cylinders (maximum is 266305)", "86Box error", MB_OK);
 		return 1;
 	}
 
@@ -245,7 +245,9 @@ BOOL CALLBACK hdconf_common_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
         FILE *f;
         uint8_t buf[512];
 	int is_hdi;
+	int is_hdx;
 	uint64_t size;
+	uint64_t signature = 0xD778A82044445459;
 	uint32_t zero = 0;
 	uint32_t sector_size = 512;
 	uint32_t base = 0x1000;
@@ -307,7 +309,7 @@ BOOL CALLBACK hdconf_common_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 					fwrite(&zero, 1, 4, f);			/* 00000000: Zero/unknown */
 					fwrite(&zero, 1, 4, f);			/* 00000004: Zero/unknown */
 					fwrite(&base, 1, 4, f);			/* 00000008: Offset at which data starts */
-					fwrite(&full_size_bytes, 1, 4, f);	/* 0000000C: Full size of the data (32-bit) */
+					fwrite(&full_size_bytes, 1, 8, f);	/* 0000000C: Full size of the data (32-bit) */
 					fwrite(&sector_size, 1, 4, f);		/* 00000010: Sector size in bytes */
 					fwrite(&hd_new_spt, 1, 4, f);		/* 00000014: Sectors per cylinder */
 					fwrite(&hd_new_hpc, 1, 4, f);		/* 00000018: Heads per cylinder */
@@ -317,6 +319,26 @@ BOOL CALLBACK hdconf_common_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 					{
 						fwrite(&zero, 1, 4, f);
 					}
+				}
+				else if (image_is_hdx(hd_new_name, 0))
+				{
+					if (full_size_bytes > 0xffffffffffffffff)
+					{
+						MessageBox(ghwnd, "Drive is HDX and way too big (size filed in HDX header is 64-bit)", "86Box error", MB_OK);
+						fclose(f);
+						return TRUE;
+					}
+
+					hd_new_hdi = 1;
+
+					fwrite(&signature, 1, 8, f);		/* 00000000: Signature */
+					fwrite(&full_size_bytes, 1, 8, f);	/* 00000008: Full size of the data (64-bit) */
+					fwrite(&sector_size, 1, 4, f);		/* 00000010: Sector size in bytes */
+					fwrite(&hd_new_spt, 1, 4, f);		/* 00000014: Sectors per cylinder */
+					fwrite(&hd_new_hpc, 1, 4, f);		/* 00000018: Heads per cylinder */
+					fwrite(&hd_new_cyl, 1, 4, f);		/* 0000001C: Cylinders */
+					fwrite(&zero, 1, 4, f);			/* 00000020: [Translation] Sectors per cylinder */
+					fwrite(&zero, 1, 4, f);			/* 00000004: [Translation] Heads per cylinder */
 				}
 	                        memset(buf, 0, 512);
                 	        for (c = 0; c < full_size; c++)
@@ -336,7 +358,7 @@ BOOL CALLBACK hdconf_common_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         case IDC_CFILE:
 			if (!type)
 			{
-	                        if (!getsfile(hdlg, "Hard disc image (*.HDI;*.IMA;*.IMG)\0*.HDI;*.IMA;*.IMG\0All files (*.*)\0*.*\0", ""))
+	                        if (!getsfile(hdlg, "Hard disc image (*.HDI;*.HDX;*.IMA;*.IMG)\0*.HDI;*.HDX;*.IMA;*.IMG\0All files (*.*)\0*.*\0", ""))
         	                {
                 	                h = GetDlgItem(hdlg, IDC_EDITC);
                         	        SendMessage(h, WM_SETTEXT, 0, (LPARAM)openfilestring);
@@ -429,7 +451,7 @@ static void hdconf_file(HWND hdlg, int drive_num)
 	uint32_t base = 0x1000;
 	int ret;
 
-	if (!getfile(hdlg, "Hard disc image (*.HDI;*.IMA;*.IMG;*.VHD)\0*.HDI;*.IMA;*.IMG;*.VHD\0All files (*.*)\0*.*\0", ""))
+	if (!getfile(hdlg, "Hard disc image (*.HDI;*.HDX;*.IMA;*.IMG;*.VHD)\0*.HDI;*.HDX;*.IMA;*.IMG;*.VHD\0All files (*.*)\0*.*\0", ""))
 	{
 		f = fopen64(openfilestring, "rb");
 		if (!f)
@@ -438,13 +460,13 @@ static void hdconf_file(HWND hdlg, int drive_num)
 			return;
 		}
 
-		if (image_is_hdi(openfilestring))
+		if (image_is_hdi(openfilestring) || image_is_hdx(openfilestring, 1))
 		{
 			fseeko64(f, 0x10, SEEK_SET);
 			fread(&sector_size, 1, 4, f);
 			if (sector_size != 512)
 			{
-				MessageBox(ghwnd,"HDI image with a sector size that is not 512","86Box error",MB_OK);
+				MessageBox(ghwnd,"HDI or HDX image with a sector size that is not 512","86Box error",MB_OK);
 				fclose(f);
 				return;
 			}

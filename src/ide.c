@@ -199,6 +199,61 @@ int image_is_hdi(const char *s)
 	}
 }
 
+int image_is_hdx(const char *s, int check_signature)
+{
+	int i, len;
+	FILE *f;
+	uint64_t filelen;
+	uint64_t signature;
+	char ext[5] = { 0, 0, 0, 0, 0 };
+	len = strlen(s);
+	if ((len < 4) || (s[0] == '.'))
+	{
+		return 0;
+	}
+	memcpy(ext, s + len - 4, 4);
+	for (i = 0; i < 4; i++)
+	{
+		ext[i] = toupper(ext[i]);
+	}
+	if (strcmp(ext, ".HDX") == 0)
+	{
+		if (check_signature)
+		{
+			f = fopen(s, "rb");
+			if (!f)
+			{
+				return 0;
+			}
+			fseeko64(f, 0, SEEK_END);
+			filelen = ftello64(f);
+			fseeko64(f, 0, SEEK_SET);
+			if (filelen < 44)
+			{
+				return 0;
+			}
+			fread(&signature, 1, 8, f);
+			fclose(f);
+			if (signature == 0xD778A82044445459)
+			{
+				return 1;
+			}
+			else
+			{
+				return 0;
+			}
+		}
+		else
+		{
+			return 1;
+		}
+	}
+	else
+	{
+		return 0;
+	}
+}
+
 int ide_enable[4] = { 1, 1, 0, 0 };
 int ide_irq[4] = { 14, 15, 10, 11 };
 
@@ -334,6 +389,7 @@ static void ide_identify(IDE *ide)
 {
 	int c, h, s;
 	uint8_t device_identify[8] = { '8', '6', 'B', '_', 'H', 'D', '0', 0 };
+	uint64_t full_size = (hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt);
 	
 	device_identify[6] = ide->channel + 0x30;
 	ide_log("IDE Identify: %s\n", device_identify);
@@ -347,7 +403,14 @@ static void ide_identify(IDE *ide)
 	s = hdc[cur_ide[ide->board]].spt;  /* Sectors */
 
 	// ide->buffer[0] = 0x40; /* Fixed disk */
-	ide->buffer[1] = hdc[cur_ide[ide->board]].tracks; /* Cylinders */
+	if (hdc[cur_ide[ide->board]].tracks <= 16383)
+	{
+		ide->buffer[1] = hdc[cur_ide[ide->board]].tracks; /* Cylinders */
+	}
+	else
+	{
+		ide->buffer[1] = 16383; /* Cylinders */
+	}
 	ide->buffer[3] = hdc[cur_ide[ide->board]].hpc;  /* Heads */
 	ide->buffer[6] = hdc[cur_ide[ide->board]].spt;  /* Sectors */
 	ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
@@ -372,9 +435,26 @@ static void ide_identify(IDE *ide)
 	ide->buffer[50] = 0x4000; /* Capabilities */
 	ide->buffer[51] = 2 << 8; /*PIO timing mode*/
 	ide->buffer[52] = 2 << 8; /*DMA timing mode*/
+	ide->buffer[53] = ide->specify_success ? 1 : 0;
+	ide->buffer[55] = ide->hpc;
+	ide->buffer[56] = ide->spt;
+	if (((full_size / ide->hpc) / ide->spt) <= 16383)
+	{
+		ide->buffer[54] = (full_size / ide->hpc) / ide->spt;
+	}
+	else
+	{
+		ide->buffer[54] = 16383;
+	}
+	full_size = ((uint64_t) ide->hpc) * ((uint64_t) ide->spt) * ((uint64_t) ide->buffer[54]);
+	ide->buffer[57] = full_size & 0xFFFF; /* Total addressable sectors (LBA) */
+	ide->buffer[61] = full_size >> 16;
 	ide->buffer[59] = ide->blocksize ? (ide->blocksize | 0x100) : 0;
-	ide->buffer[60] = (hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt) & 0xFFFF; /* Total addressable sectors (LBA) */
-	ide->buffer[61] = (hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt) >> 16;
+	if (ide->buffer[49] & (1 << 9))
+	{
+		ide->buffer[60] = (hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt) & 0xFFFF; /* Total addressable sectors (LBA) */
+		ide->buffer[61] = ((hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt) >> 16) & 0x0FFF;
+	}
 	ide->buffer[80] = 0x1e; /*ATA-1 to ATA-4 supported*/
 	// ide->buffer[63] = 7; /*Multiword DMA*/
 	if (ide->board < 2)
@@ -471,7 +551,8 @@ static void loadhd(IDE *ide, int d, const char *fn)
 {
 	uint32_t sector_size = 512;
 	uint32_t zero = 0;
-	uint32_t full_size = 0;
+	uint64_t signature = 0xD778A82044445459;
+	uint64_t full_size = 0;
 	int c;
 	ide->base = 0;
 	ide->hdi = 0;
@@ -517,6 +598,20 @@ static void loadhd(IDE *ide, int d, const char *fn)
 							fwrite(&zero, 1, 4, ide->hdfile);
 						}
 					}
+					else if (image_is_hdx(fn, 0))
+					{
+						full_size = hdc[d].spt * hdc[d].hpc * hdc[d].tracks * 512;
+						ide->base = 0x28;
+						ide->hdi = 2;
+						fwrite(&signature, 1, 8, ide->hdfile);
+						fwrite(&full_size, 1, 8, ide->hdfile);
+						fwrite(&sector_size, 1, 4, ide->hdfile);
+						fwrite(&(hdc[d].spt), 1, 4, ide->hdfile);
+						fwrite(&(hdc[d].hpc), 1, 4, ide->hdfile);
+						fwrite(&(hdc[d].tracks), 1, 4, ide->hdfile);
+						fwrite(&zero, 1, 4, ide->hdfile);
+						fwrite(&zero, 1, 4, ide->hdfile);
+					}
 					ide->hdc_num = d;
 				}
 			}
@@ -546,6 +641,25 @@ static void loadhd(IDE *ide, int d, const char *fn)
 				fread(&(hdc[d].hpc), 1, 4, ide->hdfile);
 				fread(&(hdc[d].tracks), 1, 4, ide->hdfile);
 				ide->hdi = 1;
+			}
+			else if (image_is_hdx(fn, 1))
+			{
+				ide->base = 0x28;
+				fseeko64(ide->hdfile, 0x10, SEEK_SET);
+				fread(&sector_size, 1, 4, ide->hdfile);
+				if (sector_size != 512)
+				{
+					/* Sector size is not 512 */
+					fclose(ide->hdfile);
+					ide->type = IDE_NONE;
+					return;
+				}
+				fread(&(hdc[d].spt), 1, 4, ide->hdfile);
+				fread(&(hdc[d].hpc), 1, 4, ide->hdfile);
+				fread(&(hdc[d].tracks), 1, 4, ide->hdfile);
+				fread(&(hdc[d].at_spt), 1, 4, ide->hdfile);
+				fread(&(hdc[d].at_hpc), 1, 4, ide->hdfile);
+				ide->hdi = 2;
 			}
 		}
 	}
@@ -1567,6 +1681,7 @@ void callbackide(int ide_board)
 	ext_ide = ide;
 	int64_t snum;
 	int cdrom_id;
+	uint64_t full_size = (hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt);
 
 	if (ide_drive_is_cdrom(ide))
 	{
@@ -1690,6 +1805,10 @@ void callbackide(int ide_board)
 				ide_set_signature(ide);
 				goto abort_cmd;
 			}
+			if (!ide->specify_success)
+			{
+				goto id_not_found;
+			}
 			addr = ide_get_sector(ide) * 512;
 
 			fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
@@ -1706,6 +1825,10 @@ void callbackide(int ide_board)
 			if (ide_drive_is_cdrom(ide) || (ide->board >= 2))
 			{
 				goto abort_cmd;
+			}
+			if (!ide->specify_success)
+			{
+				goto id_not_found;
 			}
 			addr = ide_get_sector(ide) * 512;
 			fseeko64(ide->hdfile, addr, SEEK_SET);
@@ -1751,6 +1874,10 @@ void callbackide(int ide_board)
 			{
 				goto abort_cmd;
 			}
+			if (!ide->specify_success)
+			{
+				goto id_not_found;
+			}
 
 			addr = ide_get_sector(ide) * 512;
 			fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
@@ -1777,6 +1904,10 @@ void callbackide(int ide_board)
 			{
 				goto abort_cmd;
 			}
+			if (!ide->specify_success)
+			{
+				goto id_not_found;
+			}
 			addr = ide_get_sector(ide) * 512;
 			fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
 			fwrite(ide->buffer, 512, 1, ide->hdfile);
@@ -1800,6 +1931,10 @@ void callbackide(int ide_board)
 			if (ide_drive_is_cdrom(ide) || (ide_board >= 2))
 			{
 				goto abort_cmd;
+			}
+			if (!ide->specify_success)
+			{
+				goto id_not_found;
 			}
 
 			if (ide_bus_master_write)
@@ -1839,6 +1974,10 @@ void callbackide(int ide_board)
 			{
 				goto abort_cmd;
 			}
+			if (!ide->specify_success)
+			{
+				goto id_not_found;
+			}
 			addr = ide_get_sector(ide) * 512;
 			fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
 			fwrite(ide->buffer, 512, 1, ide->hdfile);
@@ -1869,6 +2008,10 @@ void callbackide(int ide_board)
 			{
 				goto abort_cmd;
 			}
+			if (!ide->specify_success)
+			{
+				goto id_not_found;
+			}
 			ide->pos=0;
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
@@ -1879,6 +2022,10 @@ void callbackide(int ide_board)
 			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
+			}
+			if (!ide->specify_success)
+			{
+				goto id_not_found;
 			}
 			addr = ide_get_sector(ide) * 512;
 			// ide_log("Format cyl %i head %i offset %08X %08X %08X secount %i\n",ide.cylinder,ide.head,addr,addr>>32,addr,ide.secount);
@@ -1916,6 +2063,32 @@ void callbackide(int ide_board)
 			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
+			}
+			if (((hdc[cur_ide[ide->board]].at_hpc == 0) && (hdc[cur_ide[ide->board]].at_spt == 0)) || (ide->hdi != 2))
+			{
+				full_size /= (ide->head+1);
+				full_size /= ide->secount;
+				ide->specify_success = 1;
+				if (ide->hdi == 2)
+				{
+					hdc[cur_ide[ide->board]].at_hpc = ide->head+1;
+					hdc[cur_ide[ide->board]].at_spt = ide->secount;
+					fseeko64(ide->hdfile, 0x20, SEEK_SET);
+					fwrite(&(hdc[cur_ide[ide->board]].at_spt), 1, 4, ide->hdfile);
+					fwrite(&(hdc[cur_ide[ide->board]].at_hpc), 1, 4, ide->hdfile);
+				}
+			}
+			else
+			{
+				if ((hdc[cur_ide[ide->board]].at_hpc == (ide->head + 1)) && (hdc[cur_ide[ide->board]].at_spt == ide->secount))
+				{
+					ide->specify_success = 1;
+				}
+				else
+				{
+					ide_log("WIN_SPECIFY error (%04X, %04X)\n", ide->head + 1, ide->secount);
+					ide->specify_success = 0;					
+				}
 			}
 			ide->spt=ide->secount;
 			ide->hpc=ide->head+1;
@@ -2027,6 +2200,12 @@ abort_cmd:
 		ide->error = ABRT_ERR;
 		ide->pos = 0;
 	}
+	ide_irq_raise(ide);
+	return;
+id_not_found:
+	ide->atastat = READY_STAT | ERR_STAT | DSC_STAT;
+	ide->error = ABRT_ERR | 0x10;
+	ide->pos = 0;
 	ide_irq_raise(ide);
 }
 
