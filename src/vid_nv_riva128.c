@@ -320,7 +320,7 @@ static uint8_t riva128_pmc_read(uint32_t addr, void *p)
 	if(riva128->card_id == 0x03) switch(addr)
 		{
 		case 0x000000:
-			ret = 0x11;
+			ret = 0x01;
 			break;
 		case 0x000001:
 			ret = 0x01;
@@ -2660,10 +2660,10 @@ static void *riva128_init()
 	riva128->pci_regs[6] = 0;
 	riva128->pci_regs[7] = 2;
 
-	riva128->pci_regs[0x2c] = 0x02;
-	riva128->pci_regs[0x2d] = 0x11;
-	riva128->pci_regs[0x2e] = 0x16;
-	riva128->pci_regs[0x2f] = 0x10;
+	riva128->pci_regs[0x2c] = 0xd2;
+	riva128->pci_regs[0x2d] = 0x12;
+	riva128->pci_regs[0x2e] = 0x00;
+	riva128->pci_regs[0x2f] = 0x03;
 
 	riva128->pci_regs[0x30] = 0x00;
 	riva128->pci_regs[0x32] = 0x0c;
