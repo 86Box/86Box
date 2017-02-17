@@ -2208,7 +2208,7 @@ static uint8_t riva128_pci_read(int func, int addr, void *p)
 		break;
 
 	case 0x08:
-		ret = 0x01;
+		ret = 0x00;
 		break; /*Revision ID*/
 	case 0x09:
 		ret = 0;
