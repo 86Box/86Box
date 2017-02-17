@@ -423,6 +423,8 @@ void mach64_updatemapping(mach64_t *mach64)
 {
         svga_t *svga = &mach64->svga;
 
+	svga->linear_base = mach64->linear_base;
+
         if (!(mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM))
         {
                 pclog("Update mapping - PCI disabled\n");
