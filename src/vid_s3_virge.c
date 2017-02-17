@@ -3686,7 +3686,8 @@ static uint8_t s3_virge_pci_read(int func, int addr, void *p)
                 case 0x32: ret = virge->pci_regs[0x32]; break;
                 case 0x33: ret = virge->pci_regs[0x33]; break;
 
-                case 0x3c: ret = virge->pci_regs[0x3c]; break;
+                // case 0x3c: ret = virge->pci_regs[0x3c]; break;
+		case 0x3c: ret = 0x03; break;
                                 
                 case 0x3d: ret = 0x01; break; /*INTA*/
                 

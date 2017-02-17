@@ -2249,7 +2249,8 @@ static uint8_t riva128_pci_read(int func, int addr, void *p)
 		break;
 
 	case 0x3c:
-		ret = riva128->pci_regs[0x3c];
+		// ret = riva128->pci_regs[0x3c];
+		ret = 0x03;
 		break;
 
 	case 0x3d:
