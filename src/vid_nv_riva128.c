@@ -320,7 +320,7 @@ static uint8_t riva128_pmc_read(uint32_t addr, void *p)
 	if(riva128->card_id == 0x03) switch(addr)
 		{
 		case 0x000000:
-			ret = 0x11;
+			ret = 0x01;
 			break;
 		case 0x000001:
 			ret = 0x01;
@@ -1828,7 +1828,8 @@ static void riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 
 	addr &= 0xffffff;
 
-	pclog("RIVA 128 MMIO write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
+	//DO NOT REMOVE. This fixes a monstrous log blowup in win9x's drivers when accessing PFIFO.
+	if(!((addr >= 0x002000) && (addr <= 0x003fff))) pclog("RIVA 128 MMIO write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 
 	switch(addr)
 	{
@@ -2207,7 +2208,7 @@ static uint8_t riva128_pci_read(int func, int addr, void *p)
 		break;
 
 	case 0x08:
-		ret = 0x01;
+		ret = 0x00;
 		break; /*Revision ID*/
 	case 0x09:
 		ret = 0;
@@ -2660,10 +2661,10 @@ static void *riva128_init()
 	riva128->pci_regs[6] = 0;
 	riva128->pci_regs[7] = 2;
 
-	riva128->pci_regs[0x2c] = 0x02;
-	riva128->pci_regs[0x2d] = 0x11;
-	riva128->pci_regs[0x2e] = 0x16;
-	riva128->pci_regs[0x2f] = 0x10;
+	riva128->pci_regs[0x2c] = 0xd2;
+	riva128->pci_regs[0x2d] = 0x12;
+	riva128->pci_regs[0x2e] = 0x00;
+	riva128->pci_regs[0x2f] = 0x03;
 
 	riva128->pci_regs[0x30] = 0x00;
 	riva128->pci_regs[0x32] = 0x0c;
