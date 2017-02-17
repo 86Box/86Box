@@ -2176,7 +2176,9 @@ void BuslogicCommandCallback(void *p)
 		}
 		else
 		{
-			fatal("Callback active with mailbox count 0!\n");
+			// fatal("Callback active with mailbox count 0!\n");
+			BuslogicCallback = 0;
+			return;
 		}
 	}
 	else if (BuslogicInOperation == 1)

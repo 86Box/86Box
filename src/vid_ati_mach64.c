@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*ATI Mach64 emulation*/
 #include <stdlib.h>
 #include "ibm.h"
@@ -110,9 +107,9 @@ typedef struct mach64_t
         uint32_t gen_test_cntl;
         
         uint32_t gui_traj_cntl;
-                
-        uint32_t host_cntl;
 
+        uint32_t host_cntl;
+                        
         uint32_t mem_cntl;
 
         uint32_t ovr_clr;
@@ -284,15 +281,6 @@ void mach64_out(uint16_t addr, uint8_t val, void *p)
                 break;
                 case 0x1cf:
                 mach64->regs[mach64->index & 0x3f] = val;
-                if ((mach64->index & 0x3f) == 0x2d)
-		{
-			if (val & 8)
-			{
-				svga->charseta = (svga->charseta & 0x3ffff) | ((((uint32_t) val) >> 4) << 18);
-				svga->charsetb = (svga->charsetb & 0x3ffff) | ((((uint32_t) val) >> 4) << 18);
-			}
-			break;
-		}
                 if ((mach64->index & 0x3f) == 0x36)
                         mach64_recalctimings(svga);
                 break;
@@ -316,8 +304,6 @@ void mach64_out(uint16_t addr, uint8_t val, void *p)
                 svga->crtcreg = val & 0x3f;
                 return;
                 case 0x3D5:
-		if (svga->crtcreg <= 0x18)
-			val &= mask_crtc[svga->crtcreg];
                 if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
                         return;
                 if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
@@ -379,18 +365,11 @@ void mach64_recalctimings(svga_t *svga)
                 svga->vtotal = (mach64->crtc_v_total_disp & 2047) + 1;
                 svga->dispend = ((mach64->crtc_v_total_disp >> 16) & 2047) + 1;
                 svga->htotal = (mach64->crtc_h_total_disp & 255) + 1;
-		if (mach64->regs[0x2d] & 8)  svga->htotal |= (mach64->regs[0x2d] & 1) ? 0x100 : 0;
                 svga->hdisp_time = svga->hdisp = ((mach64->crtc_h_total_disp >> 16) & 255) + 1;
                 svga->vsyncstart = (mach64->crtc_v_sync_strt_wid & 2047) + 1;
                 svga->rowoffset = (mach64->crtc_off_pitch >> 22);
                 svga->clock = cpuclock / mach64->ics2595.output_clock;
                 svga->ma_latch = (mach64->crtc_off_pitch & 0x1fffff) * 2;
-		if (mach64->regs[0x2d] & 8)
-		{
-			svga->ma_latch |= (((uint32_t) (mach64->regs[0x30] & 0x40)) >> 6) << 16;
-			svga->ma_latch |= (((uint32_t) (mach64->regs[0x23] & 0x10)) >> 4) << 17;
-			svga->ma_latch |= (((uint32_t) (mach64->regs[0x2d] & 0xc)) >> 2) << 18;
-		}
                 svga->linedbl = svga->rowcount = 0;
                 svga->split = 0xffffff;
                 svga->vblankstart = svga->dispend;
@@ -484,22 +463,20 @@ void mach64_updatemapping(mach64_t *mach64)
                 svga->banked_mask = 0x7fff;
                 break;
         }
-        // if (mach64->linear_base)
-	if ((mach64->config_cntl & 3) && mach64->linear_base)
+        if (mach64->linear_base)
         {
                 if ((mach64->config_cntl & 3) == 2)
                 {
                         /*8 MB aperture*/
-                        mem_mapping_set_addr(&mach64->linear_mapping, (mach64->linear_base & 0xff800000), (8 << 20) - 0x4000);
-                        mem_mapping_set_addr(&mach64->mmio_linear_mapping, (mach64->linear_base & 0xff800000) + ((8 << 20) - 0x4000), 0x4000);
+                        mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (8 << 20) - 0x4000);
+                        mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - 0x4000), 0x4000);
                 }
                 else
                 {
                         /*4 MB aperture*/
-                        mem_mapping_set_addr(&mach64->linear_mapping, (mach64->linear_base & 0xffc00000), (4 << 20) - 0x4000);
-                        mem_mapping_set_addr(&mach64->mmio_linear_mapping, (mach64->linear_base & 0xffc00000) + ((4 << 20) - 0x4000), 0x4000);
+                        mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (4 << 20) - 0x4000);
+                        mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((4 << 20) - 0x4000), 0x4000);
                 }
-		svga->linear_base = mach64->linear_base;
         }
         else
         {
@@ -667,7 +644,7 @@ static void mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val
                 case 0x23c: case 0x23d: case 0x23e: case 0x23f:
                 mach64_blit(val, 8, mach64);
                 break;
-
+                
                 case 0x240: case 0x241: case 0x242: case 0x243:
                 WRITE8(addr, mach64->host_cntl, val);
                 break;
@@ -890,7 +867,6 @@ void mach64_start_fill(mach64_t *mach64)
         mach64->accel.dst_width  = (mach64->dst_height_width >> 16) & 0x1fff;
         mach64->accel.dst_height =  mach64->dst_height_width        & 0x1fff;        
         mach64->accel.x_count = mach64->accel.dst_width;
-        mach64->accel.y_count = mach64->accel.dst_height;
         
         mach64->accel.src_x = 0;
         mach64->accel.src_y = 0;
@@ -1084,16 +1060,10 @@ void mach64_start_line(mach64_t *mach64)
         mach64->accel.op = OP_LINE;
 }
 
-#if 0
 #define READ(addr, dat, width) if (width == 0)      dat =               svga->vram[((addr))      & mach64->vram_mask]; \
                                else if (width == 1) dat = *(uint16_t *)&svga->vram[((addr) << 1) & mach64->vram_mask]; \
                                else if (width == 2) dat = *(uint32_t *)&svga->vram[((addr) << 2) & mach64->vram_mask]; \
                                else                 dat = (svga->vram[((addr) >> 3) & mach64->vram_mask] >> ((addr) & 7)) & 1;
-#endif
-#define READ(addr, dat, width) if (width == 0)      dat =               svga->vram[((addr))      % (mach64->vram_mask + 1)]; \
-                               else if (width == 1) dat = *(uint16_t *)&svga->vram[((addr) << 1) % (mach64->vram_mask + 1)]; \
-                               else if (width == 2) dat = *(uint32_t *)&svga->vram[((addr) << 2) % (mach64->vram_mask + 1)]; \
-                               else                 dat = (svga->vram[((addr) >> 3) % (mach64->vram_mask + 1)] >> ((addr) & 7)) & 1;
 
 #define MIX     switch (mix ? mach64->accel.mix_fg : mach64->accel.mix_bg)                                \
                 {                                                                                       \
@@ -1115,36 +1085,28 @@ void mach64_start_line(mach64_t *mach64)
                         case 0xf: dest_dat = ~(src_dat |  dest_dat); break;                             \
                 }
 
-#if 0
-                                        if (dest_dat & 1)                                                                       \
-                                                svga->vram[((addr) >> 3) % (mach64->vram_mask + 1)] |= 1 << ((addr) & 7);             \
-                                        else                                                                                    \
-                                                svga->vram[((addr) >> 3) % (mach64->vram_mask + 1)] &= ~(1 << ((addr) & 7));          \
-                                        svga->changedvram[(((addr) >> 3) % (mach64->vram_mask + 1)) >> 12] = changeframecount;
-#endif
-
 #define WRITE(addr, width)      if (width == 0)                                                         \
                                 {                                                                       \
-                                        svga->vram[(addr) % (mach64->vram_mask + 1)] = dest_dat;                             \
-                                        svga->changedvram[((addr) % (mach64->vram_mask + 1)) >> 12] = changeframecount;      \
+                                        svga->vram[(addr) & mach64->vram_mask] = dest_dat;                             \
+                                        svga->changedvram[((addr) & mach64->vram_mask) >> 12] = changeframecount;      \
                                 }                                                                       \
                                 else if (width == 1)                                                    \
                                 {                                                                       \
-                                        *(uint16_t *)&svga->vram[((addr) << 1) % (mach64->vram_mask + 1)] = dest_dat;          \
-                                        svga->changedvram[(((addr) << 1) % (mach64->vram_mask + 1)) >> 12] = changeframecount; \
+                                        *(uint16_t *)&svga->vram[((addr) << 1) & mach64->vram_mask] = dest_dat;          \
+                                        svga->changedvram[(((addr) << 1) & mach64->vram_mask) >> 12] = changeframecount; \
                                 }                                                                       \
                                 else if (width == 2)                                                    \
                                 {                                                                       \
-                                        *(uint32_t *)&svga->vram[((addr) << 2) % (mach64->vram_mask + 1)] = dest_dat;          \
-                                        svga->changedvram[(((addr) << 2) % (mach64->vram_mask + 1)) >> 12] = changeframecount; \
+                                        *(uint32_t *)&svga->vram[((addr) << 2) & mach64->vram_mask] = dest_dat;          \
+                                        svga->changedvram[(((addr) << 2) & mach64->vram_mask) >> 12] = changeframecount; \
                                 }                                                                                               \
                                 else                                                                                            \
                                 {                                                                                               \
                                         if (dest_dat & 1)                                                                       \
-                                                svga->vram[((addr) >> 3) % (mach64->vram_mask + 1)] |= 1 << ((addr) & 7);             \
+                                                svga->vram[((addr) >> 3) & mach64->vram_mask] |= 1 << ((addr) & 7);             \
                                         else                                                                                    \
-                                                svga->vram[((addr) >> 3) % (mach64->vram_mask + 1)] &= ~(1 << ((addr) & 7));          \
-                                        svga->changedvram[(((addr) >> 3) % (mach64->vram_mask + 1)) >> 12] = changeframecount;        \
+                                                svga->vram[((addr) >> 3) & mach64->vram_mask] &= ~(1 << ((addr) & 7));          \
+                                        svga->changedvram[(((addr) >> 3) & mach64->vram_mask) >> 12] = changeframecount;        \
                                 }
 
 void mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
@@ -1541,8 +1503,7 @@ void mach64_load_context(mach64_t *mach64)
         
         while (mach64->context_load_cntl & 0x30000)
         {
-                // addr = ((0x3fff - (mach64->context_load_cntl & 0x3fff)) * 256) & mach64->vram_mask;
-                addr = ((0x3fff - (mach64->context_load_cntl & 0x3fff)) * 256) % (mach64->vram_mask + 1);
+                addr = ((0x3fff - (mach64->context_load_cntl & 0x3fff)) * 256) & mach64->vram_mask;
                 mach64->context_mask = *(uint32_t *)&svga->vram[addr];
 #ifdef MACH64_DEBUG
                 pclog("mach64_load_context %08X from %08X : mask %08X\n", mach64->context_load_cntl, addr, mach64->context_mask);
@@ -2251,20 +2212,10 @@ uint8_t mach64_ext_inb(uint16_t port, void *p)
                 break;
 
                 case 0x72ec:
-		if (mach64->vram_size == 8)
-		{
-	                if (PCI)
-        	                ret = 7 | (6 << 3); /*PCI, 256Kx16 DRAM*/
-	                else
-        	                ret = 6 | (6 << 3); /*VLB, 256Kx16 DRAM*/
-		}
-		else
-		{
-	                if (PCI)
-        	                ret = 7 | (3 << 3); /*PCI, 256Kx16 DRAM*/
-	                else
-        	                ret = 6 | (3 << 3); /*VLB, 256Kx16 DRAM*/
-		}
+                if (PCI)
+                        ret = 7 | (3 << 3); /*PCI, 256Kx16 DRAM*/
+                else
+                        ret = 6 | (3 << 3); /*VLB, 256Kx16 DRAM*/
                 break;
                 case 0x72ed:
                 ret = 5 << 1; /*ATI-68860*/
@@ -2423,7 +2374,6 @@ void mach64_ext_outb(uint16_t port, uint8_t val, void *p)
 
                 case 0x6aec: case 0x6aed: case 0x6aee: case 0x6aef:
                 WRITE8(port, mach64->config_cntl, val);
-		mach64->linear_base = ((mach64->config_cntl & 0x3ff0) >> 4) << 22;
                 mach64_updatemapping(mach64);
                 break;
         }
@@ -2496,24 +2446,22 @@ void mach64_hwcursor_draw(svga_t *svga, int displine)
         uint8_t dat;
         uint32_t col0 = mach64->ramdac.pallook[0];
         uint32_t col1 = mach64->ramdac.pallook[1];
-	int y_add = (enable_overscan && !suppress_overscan) ? 16 : 0;
-	int x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
         
         offset = svga->hwcursor_latch.xoff;
         for (x = 0; x < 64 - svga->hwcursor_latch.xoff; x += 4)
         {
                 dat = svga->vram[svga->hwcursor_latch.addr + (offset >> 2)];
-                if (!(dat & 2))          ((uint32_t *)buffer32->line[displine + y_add])[svga->hwcursor_latch.x + x + 32 + x_add]  = (dat & 1) ? col1 : col0;
-                else if ((dat & 3) == 3) ((uint32_t *)buffer32->line[displine + y_add])[svga->hwcursor_latch.x + x + 32 + x_add] ^= 0xFFFFFF;
+                if (!(dat & 2))          ((uint32_t *)buffer32->line[displine])[svga->hwcursor_latch.x + x + 32]  = (dat & 1) ? col1 : col0;
+                else if ((dat & 3) == 3) ((uint32_t *)buffer32->line[displine])[svga->hwcursor_latch.x + x + 32] ^= 0xFFFFFF;
                 dat >>= 2;
-                if (!(dat & 2))          ((uint32_t *)buffer32->line[displine + y_add])[svga->hwcursor_latch.x + x + 33 + x_add]  = (dat & 1) ? col1 : col0;
-                else if ((dat & 3) == 3) ((uint32_t *)buffer32->line[displine + y_add])[svga->hwcursor_latch.x + x + 33 + x_add] ^= 0xFFFFFF;
+                if (!(dat & 2))          ((uint32_t *)buffer32->line[displine])[svga->hwcursor_latch.x + x + 33]  = (dat & 1) ? col1 : col0;
+                else if ((dat & 3) == 3) ((uint32_t *)buffer32->line[displine])[svga->hwcursor_latch.x + x + 33] ^= 0xFFFFFF;
                 dat >>= 2;
-                if (!(dat & 2))          ((uint32_t *)buffer32->line[displine + y_add])[svga->hwcursor_latch.x + x + 34 + x_add]  = (dat & 1) ? col1 : col0;
-                else if ((dat & 3) == 3) ((uint32_t *)buffer32->line[displine + y_add])[svga->hwcursor_latch.x + x + 34 + x_add] ^= 0xFFFFFF;
+                if (!(dat & 2))          ((uint32_t *)buffer32->line[displine])[svga->hwcursor_latch.x + x + 34]  = (dat & 1) ? col1 : col0;
+                else if ((dat & 3) == 3) ((uint32_t *)buffer32->line[displine])[svga->hwcursor_latch.x + x + 34] ^= 0xFFFFFF;
                 dat >>= 2;
-                if (!(dat & 2))          ((uint32_t *)buffer32->line[displine + y_add])[svga->hwcursor_latch.x + x + 35 + x_add]  = (dat & 1) ? col1 : col0;
-                else if ((dat & 3) == 3) ((uint32_t *)buffer32->line[displine + y_add])[svga->hwcursor_latch.x + x + 35 + x_add] ^= 0xFFFFFF;
+                if (!(dat & 2))          ((uint32_t *)buffer32->line[displine])[svga->hwcursor_latch.x + x + 35]  = (dat & 1) ? col1 : col0;
+                else if ((dat & 3) == 3) ((uint32_t *)buffer32->line[displine])[svga->hwcursor_latch.x + x + 35] ^= 0xFFFFFF;
                 dat >>= 2;
                 offset += 4;
         }
@@ -2613,11 +2561,11 @@ void mach64_pci_write(int func, int addr, uint8_t val, void *p)
                 break;
 
                 case 0x12:
-                mach64->linear_base = (mach64->linear_base & 0xff000000) | ((val & 0xc0) << 16);
+                mach64->linear_base = (mach64->linear_base & 0xff000000) | ((val & 0x80) << 16);
                 mach64_updatemapping(mach64);
                 break;
                 case 0x13:
-                mach64->linear_base = (mach64->linear_base & 0xc00000) | (val << 24);
+                mach64->linear_base = (mach64->linear_base & 0x800000) | (val << 24);
                 mach64_updatemapping(mach64);
                 break;
 
@@ -2642,14 +2590,12 @@ void *mach64gx_init()
 {
         int c;
         mach64_t *mach64 = malloc(sizeof(mach64_t));
-	uint32_t vram_amount = 0;
         memset(mach64, 0, sizeof(mach64_t));
         
         mach64->vram_size = device_get_config_int("memory");
-	vram_amount = (mach64-> vram_size == 0) ? (1 << 19) : (mach64->vram_size << 20);
-        mach64->vram_mask = vram_amount - 1;
+        mach64->vram_mask = (mach64->vram_size << 20) - 1;
         
-        svga_init(&mach64->svga, mach64, vram_amount,
+        svga_init(&mach64->svga, mach64, mach64->vram_size << 20,
                    mach64_recalctimings,
                    mach64_in, mach64_out,
                    mach64_hwcursor_draw,
@@ -2680,16 +2626,6 @@ void *mach64gx_init()
         mach64->dac_cntl = 5 << 16; /*ATI 68860 RAMDAC*/        
         
         mach64->dst_cntl = 3;
-
-	switch(mach64->vram_size)
-	{
-		case 0: default: mach64->mem_cntl = 0; break;
-		case 1: mach64->mem_cntl = 1; break;
-		case 2: mach64->mem_cntl = 2; break;
-		case 4: mach64->mem_cntl = 3; break;
-		case 6: mach64->mem_cntl = 4; break;
-		case 8: mach64->mem_cntl = 5; break;
-	}
 
         mach64->wake_fifo_thread = thread_create_event();
         mach64->fifo_not_full_event = thread_create_event();
@@ -2782,10 +2718,6 @@ static device_config_t mach64gx_config[] =
                 .type = CONFIG_SELECTION,
                 .selection =
                 {
-                        {
-                                .description = "512 kB",
-                                .value = 0
-                        },
                         {
                                 .description = "1 MB",
                                 .value = 1
