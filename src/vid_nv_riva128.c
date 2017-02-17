@@ -444,7 +444,8 @@ static void riva128_pmc_interrupt(int num, void *p)
 
 	riva128->pmc.intr |= (1 << num);
 
-	picint(1 << riva128->pci_regs[0x3c]);
+	// picint(1 << riva128->pci_regs[0x3c]);
+	picint(1 << 3);
 }
 
 static uint8_t riva128_pbus_read(uint32_t addr, void *p)
