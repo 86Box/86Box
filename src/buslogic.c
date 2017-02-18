@@ -2177,7 +2177,7 @@ void BuslogicCommandCallback(void *p)
 		else
 		{
 			// fatal("Callback active with mailbox count 0!\n");
-			BuslogicCallback = 0;
+			BuslogicCallback += 50 * SCSI_TIME;
 			return;
 		}
 	}
