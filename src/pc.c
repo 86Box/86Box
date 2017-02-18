@@ -240,7 +240,6 @@ void initpc(int argc, char *argv[])
 
         keyboard_init();
         mouse_init();
-        joystick_init();
         midi_init();
 
 	if (config_file == NULL)
@@ -256,6 +255,8 @@ void initpc(int argc, char *argv[])
         pclog("Config loaded\n");
         if (config_file)
                 saveconfig();
+
+        joystick_init();
 
         cpuspeed2=(AT)?2:1;
 //        cpuspeed2=cpuspeed;
