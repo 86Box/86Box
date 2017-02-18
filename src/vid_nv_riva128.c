@@ -320,7 +320,7 @@ static uint8_t riva128_pmc_read(uint32_t addr, void *p)
 	if(riva128->card_id == 0x03) switch(addr)
 		{
 		case 0x000000:
-			ret = 0x01;
+			ret = 0x10;
 			break;
 		case 0x000001:
 			ret = 0x01;
@@ -1736,7 +1736,7 @@ static uint8_t riva128_mmio_read(uint32_t addr, void *p)
 	addr &= 0xffffff;
 
 	//This logging condition is necessary to prevent A CATASTROPHIC LOG BLOWUP when polling PTIMER or PFIFO. DO NOT REMOVE.
-	if(!((addr >= 0x009000) && (addr <= 0x009fff)) && !((addr >= 0x002000) && (addr <- 0x003fff))) pclog("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
+	if(!((addr >= 0x009000) && (addr <= 0x009fff)) && !((addr >= 0x002000) && (addr <= 0x003fff)) && !((addr >= 0x000000) && (addr <= 0x000003))) pclog("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
 
 	switch(addr)
 	{
