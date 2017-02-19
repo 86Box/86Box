@@ -347,7 +347,7 @@ void *hercules_init()
 
 #ifndef __unix
         cga_palette = device_get_config_int("rgb_type");
-	rebuild_cgapal();
+	cgapal_rebuild();
 #endif
 
         return hercules;
