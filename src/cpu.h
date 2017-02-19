@@ -110,6 +110,7 @@ extern CPU cpus_pcjr[];
 extern CPU cpus_pc1512[];
 extern CPU cpus_ibmat[];
 extern CPU cpus_ps1_m2011[];
+extern CPU cpus_ps2_m30_286[];
 extern CPU cpus_acer[];
 
 extern int cpu_iscyrix;

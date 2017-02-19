@@ -105,7 +105,7 @@ void *vga_init()
         return vga;
 }
 
-void *vga_chips_init()
+/* void *vga_chips_init()
 {
         vga_t *vga = malloc(sizeof(vga_t));
         memset(vga, 0, sizeof(vga_t));
@@ -124,7 +124,7 @@ void *vga_chips_init()
         vga->svga.miscout = 1;
         
         return vga;
-}
+} */
 
 void *trigem_unk_init()
 {
@@ -222,7 +222,7 @@ device_t vga_device =
         vga_force_redraw,
         vga_add_status_info
 };
-device_t vga_chips_device =
+/* device_t vga_chips_device =
 {
         "Chips VGA",
         0,
@@ -232,7 +232,7 @@ device_t vga_chips_device =
         vga_speed_changed,
         vga_force_redraw,
         vga_add_status_info
-};
+}; */
 device_t trigem_unk_device =
 {
         "VGA",

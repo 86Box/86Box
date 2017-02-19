@@ -397,6 +397,8 @@ enum
         ROM_AMI386DX_OPTI495,
         ROM_MR386DX_OPTI495,
 
+	ROM_IBMPS2_M30_286,
+
         ROM_DTK486,     /*DTK PKM-0038S E-2 / SiS 471 / Award BIOS / SiS 85C471*/
         ROM_VLI486SV2G, /*ASUS VL/I-486SV2G / SiS 471 / Award BIOS / SiS 85C471*/
         ROM_R418,       /*Rise Computer R418 / SiS 496/497 / Award BIOS / SMC FDC37C665*/
@@ -627,3 +629,4 @@ uint8_t trc_read(uint16_t port, void *priv);
 void trc_write(uint16_t port, uint8_t val, void *priv);
 void trc_init();
 
+extern int enable_xtide;

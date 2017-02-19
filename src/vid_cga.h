@@ -34,6 +34,9 @@ typedef struct cga_t
 	int revision;
 	int composite;
 	int snow_enabled;
+#ifndef __unix
+	int rgb_type;
+#endif
 } cga_t;
 
 void    cga_init(cga_t *cga);

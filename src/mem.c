@@ -48,6 +48,8 @@ static mem_mapping_t romext_mapping;
 
 int shadowbios,shadowbios_write;
 
+int enable_xtide = 0;
+
 static unsigned char isram[0x10000];
 
 static uint8_t ff_array[0x1000];
@@ -132,7 +134,10 @@ int loadbios()
                 }
                 fclose(ff);
                 fclose(f);
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
                 loadfont("roms/pc1512/40078.ic127", 2);
                 return 1;
                 case ROM_PC1640:
@@ -149,7 +154,10 @@ int loadbios()
                 f=romfopen("roms/pc1640/40100","rb");
                 if (!f) break;
                 fclose(f);
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
                 return 1;
                 case ROM_PC200:
                 f=romfopen("roms/pc200/pc20v2.1","rb");
@@ -162,7 +170,10 @@ int loadbios()
                 }
                 fclose(ff);
                 fclose(f);
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
                 loadfont("roms/pc200/40109.bin", 1);
                 return 1;
                 case ROM_TANDY:
@@ -170,7 +181,10 @@ int loadbios()
                 if (!f) break;
                 fread(rom,65536,1,f);
                 fclose(f);
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
                 return 1;
                 case ROM_TANDY1000HX:
                 f = romfopen("roms/tandy1000hx/v020000.u12", "rb");
@@ -178,7 +192,10 @@ int loadbios()
                 fread(rom, 0x20000, 1, f);
                 fclose(f);
                 biosmask = 0x1ffff;
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
                 return 1;
                 case ROM_TANDY1000SL2:
                 f  = romfopen("roms/tandy1000sl2/8079047.hu1" ,"rb");
@@ -193,7 +210,10 @@ int loadbios()
                 }
                 fclose(ff);
                 fclose(f);
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
                 return 1;
 /*                case ROM_IBMPCJR:
                 f=fopen("pcjr/bios.rom","rb");
@@ -214,14 +234,20 @@ int loadbios()
                         fread(rom + 0x8000, 0x8000, 1, ff);
                         fclose(ff);
                         fclose(f);
-                        mem_load_xtide_bios();
+			if (enable_xtide)
+			{
+		                mem_load_xtide_bios();
+			}
                         return 1;
                 }
                 else
                 {
                         fread(rom,65536,1,f);
                         fclose(f);
-                        mem_load_xtide_bios();
+			if (enable_xtide)
+			{
+		                mem_load_xtide_bios();
+			}
                         return 1;
                 }
                 break;
@@ -238,14 +264,20 @@ int loadbios()
                 if (!f) break;
                 fread(rom+0xE000,8192,1,f);
                 fclose(f);
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
                 return 1;
                 case ROM_DTKXT:
                 f=romfopen("roms/dtk/DTK_ERSO_2.42_2764.bin","rb");
                 if (!f) break;
                 fread(rom+0xE000,8192,1,f);
                 fclose(f);
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
                 return 1;
                 case ROM_OLIM24:
                 f  = romfopen("roms/olivetti_m24/olivetti_m24_version_1.43_low.bin" ,"rb");
@@ -258,7 +290,10 @@ int loadbios()
                 }
                 fclose(ff);
                 fclose(f);
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
                 return 1;
                         
                 case ROM_PC2086:
@@ -277,7 +312,10 @@ int loadbios()
                 f = romfopen("roms/pc2086/40186.ic171", "rb");
                 if (!f) break;
                 fclose(f);
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
                 biosmask = 0x3fff;
                 return 1;
 
@@ -289,7 +327,10 @@ int loadbios()
                 f = romfopen("roms/pc3086/c000.bin", "rb");
                 if (!f) break;
                 fclose(f);
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
                 biosmask = 0x3fff;                
                 return 1;
 
@@ -398,7 +439,10 @@ int loadbios()
                 fread(rom+0x8000,32768,1,f);
                 fclose(f);
 //                memset(romext,0x63,0x8000);
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
                 return 1;
 
                 case ROM_IBMPC:
@@ -423,7 +467,10 @@ int loadbios()
                 if (!f) break;
                 fread(rom+0xC000,8192,1,f);
                 fclose(f);
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
                 return 1;
 
                 case ROM_MEGAPC:
@@ -573,7 +620,10 @@ int loadbios()
                 if (!f) break;
                 fread(rom + 0xE000, 8192, 1, f);
                 fclose(f);
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
                 return 1;
                 
                 case ROM_LTXT:
@@ -581,7 +631,10 @@ int loadbios()
                 if (!f) break;
                 fread(rom + 0xE000, 8192, 1, f);
                 fclose(f);
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
                 return 1;
 
                 case ROM_LXT3:
@@ -589,7 +642,10 @@ int loadbios()
                 if (!f) break;
                 fread(rom + 0xE000, 8192, 1, f);
                 fclose(f);
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
                 return 1;
 
                 case ROM_SPC4200P: /*Samsung SPC-4200P*/
@@ -624,7 +680,10 @@ int loadbios()
                 if (!f) break;
                 fread(rom + 0xE000, 8192, 1, f);
                 fclose(f);
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
                 return 1;
 
                 case ROM_JUKOPC:
@@ -632,7 +691,18 @@ int loadbios()
                 if (!f) break;
                 fread(rom + 0xE000, 8192, 1, f);
                 fclose(f);
-                mem_load_xtide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_xtide_bios();
+		}
+                return 1;
+				
+		case ROM_IBMPS2_M30_286:
+                f = romfopen("roms/ibmps2_m30_286/33f5381a.bin", "rb");
+                fread(rom, 0x20000, 1, f);                
+                fclose(f);
+                biosmask = 0x1ffff;
+                mem_load_atide_bios();
                 return 1;
 
                 case ROM_DTK486:

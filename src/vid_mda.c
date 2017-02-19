@@ -302,7 +302,11 @@ void *mda_init()
 	overscan_x = overscan_y = 0;
 
 #ifndef __unix
-        cga_palette = device_get_config_int("rgb_type");
+        cga_palette = device_get_config_int("rgb_type") << 1;
+	if (cga_palette > 6)
+	{
+		cga_palette = 0;
+	}
 	cgapal_rebuild();
 #endif
 
@@ -334,20 +338,20 @@ static device_config_t mda_config[] =
                 .selection =
                 {
                         {
-                                .description = "Default 4-color",
+                                .description = "Default",
                                 .value = 0
                         },
                         {
-                                .description = "Green, 4-color",
+                                .description = "Green",
                                 .value = 1
                         },
                         {
-                                .description = "Amber, 4-color",
-                                .value = 3
+                                .description = "Amber",
+                                .value = 2
                         },
                         {
-                                .description = "Gray, 4-color",
-                                .value = 5
+                                .description = "Gray",
+                                .value = 3
                         },
                         {
                                 .description = ""

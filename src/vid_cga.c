@@ -59,6 +59,14 @@ void cga_out(uint16_t addr, uint8_t val, void *p)
                         update_cga16_color(cga->cgamode);
                 }
                 cga->cgamode = val;
+#ifndef __unix
+		cga_palette = (cga->rgb_type << 1);
+		if (!(cga->cgamode & 1) && (cga_palette > 0) && (cga_palette < 8))
+		{
+			cga_palette--;
+			cgapal_rebuild();
+		}
+#endif
                 return;
                 case 0x3D9:
                 cga->cgacol = val;
@@ -466,7 +474,8 @@ void *cga_standalone_init()
         overscan_x = overscan_y = 16;
 
 #ifndef __unix
-        cga_palette = device_get_config_int("rgb_type");
+        cga->rgb_type = device_get_config_int("rgb_type");
+	cga_palette = (cga->rgb_type << 1);
 	cgapal_rebuild();
 #endif
 		
@@ -538,32 +547,24 @@ static device_config_t cga_config[] =
                 .selection =
                 {
                         {
-                                .description = "Full 16-color",
+                                .description = "Color",
                                 .value = 0
                         },
                         {
-                                .description = "Green, 4-color",
+                                .description = "Green Monochrome",
                                 .value = 1
                         },
                         {
-                                .description = "Green, 16-color",
+                                .description = "Amber Monochrome",
                                 .value = 2
                         },
                         {
-                                .description = "Amber, 4-color",
+                                .description = "Gray Monochrome",
                                 .value = 3
                         },
                         {
-                                .description = "Amber, 16-color",
+                                .description = "Color (no brown)",
                                 .value = 4
-                        },
-                        {
-                                .description = "Gray, 4-color",
-                                .value = 5
-                        },
-                        {
-                                .description = "Gray, 16-color",
-                                .value = 6
                         },
                         {
                                 .description = ""

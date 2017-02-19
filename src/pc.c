@@ -868,6 +868,8 @@ void loadconfig(char *fn)
         joystick_type = config_get_int(NULL, "joystick_type", 0);
 	mouse_type = config_get_int(NULL, "mouse_type", 0);
 
+	enable_xtide = config_get_int(NULL, "enable_xtide", 1);
+
         for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++)
         {
                 sprintf(s, "joystick_%i_nr", c);
@@ -1049,6 +1051,8 @@ void saveconfig()
 
         config_set_int(NULL, "joystick_type", joystick_type);
         config_set_int(NULL, "mouse_type", mouse_type);
+
+        config_set_int(NULL, "enable_xtide", enable_xtide);
 
         for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++)
         {
