@@ -159,7 +159,7 @@ MODEL models[] =
         {"Amstrad MegaPC",      ROM_MEGAPC,      { "Intel", cpus_i386SX,  "AMD", cpus_Am386SX, "Cyrix", cpus_486SLC},  1, MODEL_AT|MODEL_PS2,   1,  16, 1,     at_wd76c10_init, NULL},
 /* The MegaPC manual says 386DX model of the Amstrad PC70386 exists, but Sarah Walker just *had* to remove 386DX CPU's from some boards. */
         {"Amstrad MegaPC 386DX",ROM_MEGAPCDX,    { "Intel", cpus_i386DX,  "AMD", cpus_Am386DX, "Cyrix", cpus_486DLC},  1, MODEL_AT|MODEL_PS2,   1,  16, 1,     at_wd76c10_init, NULL},
-        {"AMI 386SX clone",     ROM_AMI386SX,    { "Intel", cpus_i386SX   "AMD", cpus_Am386SX, "Cyrix", cpus_486SLC},  0, MODEL_AT,   1, 256, 1,    at_headland_init, NULL},
+        {"AMI 386SX clone",     ROM_AMI386SX,    { "Intel", cpus_i386SX,  "AMD", cpus_Am386SX, "Cyrix", cpus_486SLC},  0, MODEL_AT,   1, 256, 1,    at_headland_init, NULL},
         {"MR 386DX clone",      ROM_MR386DX_OPTI495,  { "Intel", cpus_i386DX,  "AMD", cpus_Am386DX, "Cyrix", cpus_486DLC}, 0, MODEL_AT,   1, 256, 1,     at_opti495_init, NULL},
         {"AMI 386DX clone",     ROM_AMI386DX_OPTI495, { "Intel", cpus_i386DX,  "AMD", cpus_Am386DX, "Cyrix", cpus_486DLC}, 0, MODEL_AT,   1, 256, 1,     at_opti495_init, NULL},
         {"AMI 486 clone",       ROM_AMI486,      { "Intel", cpus_i486,    "AMD", cpus_Am486,   "Cyrix", cpus_Cx486},   0, MODEL_AT,   1, 256, 1,     at_ali1429_init, NULL},
