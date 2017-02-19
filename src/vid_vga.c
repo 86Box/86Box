@@ -105,7 +105,8 @@ void *vga_init()
         return vga;
 }
 
-/* void *vga_chips_init()
+#if 0
+void *vga_chips_init()
 {
         vga_t *vga = malloc(sizeof(vga_t));
         memset(vga, 0, sizeof(vga_t));
@@ -124,7 +125,8 @@ void *vga_init()
         vga->svga.miscout = 1;
         
         return vga;
-} */
+}
+#endif
 
 void *trigem_unk_init()
 {
