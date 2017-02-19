@@ -16,6 +16,9 @@
 #include "rom.h"
 #include "thread.h"
 #include "timer.h"
+#ifndef __unix
+#include "win-cgapal.h"
+#endif
 
 #include "vid_ati18800.h"
 #include "vid_ati28800.h"
@@ -48,6 +51,8 @@
 #include "vid_tvga.h"
 #include "vid_vga.h"
 #include "vid_wy700.h"
+
+int cga_palette = 0;
 
 typedef struct
 {
@@ -254,6 +259,11 @@ void (*video_blit_memtoscreen_8_func)(int x, int y, int w, int h);
 void video_init()
 {
         pclog("Video_init %i %i\n",romset,gfxcard);
+
+#ifndef __unix
+	cga_palette = 0;
+	cgapal_rebuild();
+#endif
 
         switch (romset)
         {

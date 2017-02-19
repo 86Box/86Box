@@ -9,6 +9,9 @@
 #include "timer.h"
 #include "video.h"
 #include "vid_hercules.h"
+#ifndef __unix
+#include "win-cgapal.h"
+#endif
 
 typedef struct hercules_t
 {
@@ -342,6 +345,11 @@ void *hercules_init()
 
 	overscan_x = overscan_y = 0;
 
+#ifndef __unix
+        cga_palette = device_get_config_int("rgb_type");
+	rebuild_cgapal();
+#endif
+
         return hercules;
 }
 
@@ -360,6 +368,40 @@ void hercules_speed_changed(void *p)
         hercules_recalctimings(hercules);
 }
 
+#ifndef __unix
+static device_config_t hercules_config[] =
+{
+        {
+                .name = "rgb_type",
+                .description = "Display type",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "Default 4-color",
+                                .value = 0
+                        },
+                        {
+                                .description = "Green, 4-color",
+                                .value = 1
+                        },
+                        {
+                                .description = "Amber, 4-color",
+                                .value = 3
+                        },
+                        {
+                                .description = "Gray, 4-color",
+                                .value = 5
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 0
+        }
+};
+#endif
+
 device_t hercules_device =
 {
         "Hercules",
@@ -369,5 +411,10 @@ device_t hercules_device =
         NULL,
         hercules_speed_changed,
         NULL,
+#ifdef __unix
         NULL
+#else
+        NULL,
+	hercules_config
+#endif
 };

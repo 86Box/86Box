@@ -108,3 +108,5 @@ void ddraw_fs_take_screenshot(char *fn);
 #ifdef __cplusplus
 }
 #endif
+
+extern int cga_palette;

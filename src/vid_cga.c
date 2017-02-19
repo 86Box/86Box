@@ -12,6 +12,9 @@
 #include "video.h"
 #include "vid_cga.h"
 #include "dosbox/vid_cga_comp.h"
+#ifndef __unix
+#include "win-cgapal.h"
+#endif
 
 #define CGA_RGB 0
 #define CGA_COMPOSITE 1
@@ -461,6 +464,11 @@ void *cga_standalone_init()
         io_sethandler(0x03d0, 0x0010, cga_in, NULL, NULL, cga_out, NULL, NULL, cga);
 
         overscan_x = overscan_y = 16;
+
+#ifndef __unix
+        cga_palette = device_get_config_int("rgb_type");
+	rebuild_cgapal();
+#endif
 		
         return cga;
 }
@@ -522,6 +530,48 @@ static device_config_t cga_config[] =
                 },
                 .default_int = COMPOSITE_OLD
         },
+#ifndef __unix
+        {
+                .name = "rgb_type",
+                .description = "RGB type",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "Full 16-color",
+                                .value = 0
+                        },
+                        {
+                                .description = "Green, 4-color",
+                                .value = 1
+                        },
+                        {
+                                .description = "Green, 16-color",
+                                .value = 2
+                        },
+                        {
+                                .description = "Amber, 4-color",
+                                .value = 3
+                        },
+                        {
+                                .description = "Amber, 16-color",
+                                .value = 4
+                        },
+                        {
+                                .description = "Gray, 4-color",
+                                .value = 5
+                        },
+                        {
+                                .description = "Gray, 16-color",
+                                .value = 6
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 0
+        },
+#endif
         {
                 .name = "snow_enabled",
                 .description = "Snow emulation",

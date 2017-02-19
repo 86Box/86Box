@@ -8,6 +8,7 @@
 #include "win-ddraw-fs.h"
 #include "win-ddraw-screenshot.h"
 #include "video.h"
+#include "win-cgapal.h"
 
 extern "C" void fatal(const char *format, ...);
 extern "C" void pclog(const char *format, ...);
@@ -33,29 +34,6 @@ static DDSURFACEDESC2 ddsd;
 static HWND ddraw_hwnd;
 static int ddraw_w, ddraw_h;
 
-static PALETTE cgapal =
-{
-        {0,0,0},{0,42,0},{42,0,0},{42,21,0},
-        {0,0,0},{0,42,42},{42,0,42},{42,42,42},
-        {0,0,0},{21,63,21},{63,21,21},{63,63,21},
-        {0,0,0},{21,63,63},{63,21,63},{63,63,63},
-
-        {0,0,0},{0,0,42},{0,42,0},{0,42,42},
-        {42,0,0},{42,0,42},{42,21,00},{42,42,42},
-        {21,21,21},{21,21,63},{21,63,21},{21,63,63},
-        {63,21,21},{63,21,63},{63,63,21},{63,63,63},
-
-        {0,0,0},{0,21,0},{0,0,42},{0,42,42},
-        {42,0,21},{21,10,21},{42,0,42},{42,0,63},
-        {21,21,21},{21,63,21},{42,21,42},{21,63,63},
-        {63,0,0},{42,42,0},{63,21,42},{41,41,41},
-        
-        {0,0,0},{0,42,42},{42,0,0},{42,42,42},
-        {0,0,0},{0,42,42},{42,0,0},{42,42,42},
-        {0,0,0},{0,63,63},{63,0,0},{63,63,63},
-        {0,0,0},{0,63,63},{63,0,0},{63,63,63},
-};
-
 static uint32_t pal_lookup[256];
         
 void ddraw_fs_init(HWND h)
@@ -65,8 +43,7 @@ void ddraw_fs_init(HWND h)
         ddraw_w = GetSystemMetrics(SM_CXSCREEN);
         ddraw_h = GetSystemMetrics(SM_CYSCREEN);
         
-        for (c = 0; c < 256; c++)
-            pal_lookup[c] = makecol(cgapal[c].r << 2, cgapal[c].g << 2, cgapal[c].b << 2);
+	cgapal_rebuild();
 
         if (FAILED(DirectDrawCreate(NULL, &lpdd, NULL)))
            fatal("DirectDrawCreate failed\n");
