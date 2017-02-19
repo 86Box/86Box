@@ -13,6 +13,8 @@ typedef struct
 
 i82335_t i82335;
 
+uint8_t i82335_read(uint16_t addr, void *priv);
+
 void i82335_write(uint16_t addr, uint8_t val, void *priv)
 {
 	int i = 0;
