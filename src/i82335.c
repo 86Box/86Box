@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 #include "ibm.h"
+#include "io.h"
+#include "mem.h"
 
 typedef struct
 {
@@ -17,7 +19,7 @@ void i82335_write(uint16_t addr, uint8_t val, void *priv)
 	switch (addr)
 	{
 		case 0x22:
-			i82335_t.reg_22 = val | 0xd8;
+			i82335.reg_22 = val | 0xd8;
 			if (val & 1)
 			{
 				for (i = 0; i < 8; i++)
@@ -48,9 +50,9 @@ uint8_t i82335_read(uint16_t addr, void *priv)
 
 void i82335_init()
 {
-	memset(i82335_t, 0, sizeof(i82335_t));
+	memset(i82335, 0, sizeof(i82335_t));
 
-	i82335_t.reg_22 = 0xd9;
+	i82335.reg_22 = 0xd9;
 
         io_sethandler(0x0022, 0x0014, i82335_read, NULL, NULL, i82335_write, NULL, NULL, NULL);
 }
