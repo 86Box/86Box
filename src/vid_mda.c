@@ -325,7 +325,7 @@ void mda_speed_changed(void *p)
 }
 
 #ifndef __unix
-static mda_config_t hercules_config[] =
+static device_config_t mda_config[] =
 {
         {
                 .name = "rgb_type",
