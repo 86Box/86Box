@@ -94,7 +94,7 @@ PALETTE cgapal_mono[6] =
 	},
 };
 
-static uint32_t pal_lookup[256];
+uint32_t pal_lookup[256];
 
 static CUSTOMVERTEX d3d_verts[] =
 {
@@ -111,11 +111,11 @@ void cgapal_rebuild()
 {
         int c;
         for (c = 0; c < 256; c++)
-            pal_lookup[c] = makecol(cgapal[c].r << 2, cgapal[c].g << 2, cgapal[c].b << 2);
+            pal_lookup[c] = makecol(video_6to8[cgapal[c].r], video_6to8[cgapal[c].g], video_6to8[cgapal[c].b]);
 	if (cga_palette > 1)
 	{
 	        for (c = 0; c < 16; c++)
-        	    pal_lookup[c + 16] = makecol(cgapal_mono[cga_palette - 1][c].r, cgapal_mono[cga_palette - 1][c].g, cgapal_mono[cga_palette - 1][c].b);
+        	    pal_lookup[c + 16] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r], video_6to8[cgapal_mono[cga_palette - 1][c].g], video_6to8[cgapal_mono[cga_palette - 1][c].b]);
 	}
 }
   

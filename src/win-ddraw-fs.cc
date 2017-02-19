@@ -34,8 +34,6 @@ static DDSURFACEDESC2 ddsd;
 static HWND ddraw_hwnd;
 static int ddraw_w, ddraw_h;
 
-static uint32_t pal_lookup[256];
-        
 void ddraw_fs_init(HWND h)
 {
         int c;

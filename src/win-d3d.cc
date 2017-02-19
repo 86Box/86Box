@@ -36,8 +36,6 @@ struct CUSTOMVERTEX
      FLOAT tu, tv;
 };
 
-static uint32_t pal_lookup[256];
-
 static CUSTOMVERTEX d3d_verts[] =
 {
      {   0.0f,    0.0f, 1.0f, 1.0f, 0.0f, 0.0f},
