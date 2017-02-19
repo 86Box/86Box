@@ -398,6 +398,9 @@ static device_config_t hercules_config[] =
                         }
                 },
                 .default_int = 0
+        },
+        {
+                .type = -1
         }
 };
 #endif

@@ -354,6 +354,9 @@ static device_config_t mda_config[] =
                         }
                 },
                 .default_int = 0
+        },
+        {
+                .type = -1
         }
 };
 #endif
