@@ -109,6 +109,7 @@ static CUSTOMVERTEX d3d_verts[] =
 
 void cgapal_rebuild()
 {
+        int c;
         for (c = 0; c < 256; c++)
             pal_lookup[c] = makecol(cgapal[c].r << 2, cgapal[c].g << 2, cgapal[c].b << 2);
 	if (cga_palette > 1)
@@ -120,7 +121,6 @@ void cgapal_rebuild()
   
 void d3d_fs_init(HWND h)
 {
-        int c;
         HRESULT hr;
 		char emulator_title[200];
 
