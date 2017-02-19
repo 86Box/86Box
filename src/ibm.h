@@ -418,7 +418,10 @@ enum
         ROM_POWERMATE_V,/*NEC PowerMate V / 430FX / Phoenix BIOS / SMC FDC37C665*/
 
         ROM_IBMPS1_2121_ISA,/*IBM PS/1 Model 2121 with ISA expansion bus*/
-	
+
+        ROM_SPC4200P,	/*Samsung SPC-4200P / SCAT / Phoenix BIOS*/
+        ROM_MEGAPCDX,	/*386DX mdoel of the Mega PC - Note by Tohka: The documentation (that I have in German) clearly says such a model exists.*/
+
         ROM_MAX
 };
 
@@ -469,6 +472,7 @@ enum
         GFX_RIVATNT2,
 
 	GFX_TRIGEM_UNK,
+        GFX_CHIPS_VGA,
         GFX_MAX
 };
 
@@ -496,8 +500,7 @@ float VGACONST1,VGACONST2;
 float RTCCONST;
 int gated,speakval,speakon;
 
-// #define SOUNDBUFLEN (48000/40)
-#define SOUNDBUFLEN (32000/20)
+#define SOUNDBUFLEN (48000/20)
 
 
 /*Sound Blaster*/

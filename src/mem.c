@@ -324,7 +324,6 @@ int loadbios()
                 fclose(ff);
                 fclose(f);
                 biosmask = 0x7fff;
-                mem_load_atide_bios();
                 return 1;
                 case ROM_DELL200:
                 f=romfopen("roms/dells200/dell0.bin","rb");
@@ -428,6 +427,7 @@ int loadbios()
                 return 1;
 
                 case ROM_MEGAPC:
+                case ROM_MEGAPCDX:
                 f  = romfopen("roms/megapc/41651-bios lo.u18",  "rb");
                 ff = romfopen("roms/megapc/211253-bios hi.u19", "rb");
                 if (!f || !ff) break;
@@ -592,6 +592,13 @@ int loadbios()
                 mem_load_xtide_bios();
                 return 1;
 
+                case ROM_SPC4200P: /*Samsung SPC-4200P*/
+                f = romfopen("roms/spc4200p/U8.01", "rb");
+                if (!f) break;
+                fread(rom, 65536, 1, f);
+                fclose(f);
+                return 1;
+
                 case ROM_PX386: /*Phoenix 80386 BIOS*/
                 f=romfopen("roms/px386/3iip001l.bin","rb");
                 ff=romfopen("roms/px386/3iip001h.bin","rb");
@@ -603,7 +610,6 @@ int loadbios()
                 }
                 fclose(ff);
                 fclose(f);
-                mem_load_atide_bios();
                 return 1;
 
                 case ROM_DTK386: /*Uses NEAT chipset*/
@@ -611,7 +617,6 @@ int loadbios()
                 if (!f) break;
                 fread(rom, 65536, 1, f);
                 fclose(f);
-                mem_load_atide_bios();
                 return 1;
 
                 case ROM_PXXT:

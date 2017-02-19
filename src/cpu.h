@@ -85,11 +85,11 @@ typedef struct
 extern CPU cpus_8088[];
 extern CPU cpus_8086[];
 extern CPU cpus_286[];
-extern CPU cpus_i386[];
+extern CPU cpus_i386SX[];
 extern CPU cpus_i386DX[];
-extern CPU cpus_Am386[];
+extern CPU cpus_Am386SX[];
 extern CPU cpus_Am386DX[];
-extern CPU cpus_486SDLC[];
+extern CPU cpus_486SLC[];
 extern CPU cpus_486DLC[];
 extern CPU cpus_i486[];
 extern CPU cpus_Am486[];

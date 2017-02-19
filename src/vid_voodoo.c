@@ -5922,6 +5922,8 @@ static void voodoo_writel(uint32_t addr, uint32_t val, void *p)
                                   happen here on a real Voodoo*/
                                 voodoo->disp_buffer = 0;
                                 voodoo->draw_buffer = 1;
+                                voodoo_recalc(voodoo);
+                                voodoo->front_offset = voodoo->params.front_offset;
                         }
                 }
                 break;

@@ -212,10 +212,12 @@ void loadnvr()
                 case ROM_AMI286:      f = romfopen(nvr_concat("ami286.nvr"),      "rb"); nvrmask = 127; break;
                 case ROM_AWARD286:    f = romfopen(nvr_concat("award286.nvr"),    "rb"); nvrmask = 127; break;
                 case ROM_DELL200:     f = romfopen(nvr_concat("dell200.nvr"),     "rb"); nvrmask = 127; break;
+                case ROM_SPC4200P:    f = romfopen(nvr_concat("spc4200p.nvr"),    "rb"); nvrmask = 127; break;
                 case ROM_IBMAT386:    f = romfopen(nvr_concat("at386.nvr"),       "rb"); nvrmask = 127; break;
                 case ROM_DESKPRO_386: f = romfopen(nvr_concat("deskpro386.nvr"),  "rb"); break;
                 case ROM_ACER386:     f = romfopen(nvr_concat("acer386.nvr"),     "rb"); nvrmask = 127; break;
                 case ROM_MEGAPC:      f = romfopen(nvr_concat("megapc.nvr"),      "rb"); nvrmask = 127; break;
+                case ROM_MEGAPCDX:    f = romfopen(nvr_concat("megapcdx.nvr"),    "rb"); nvrmask = 127; break;
                 case ROM_AMI386SX:    f = romfopen(nvr_concat("ami386.nvr"),      "rb"); nvrmask = 127; break;
                 case ROM_AMI486:      f = romfopen(nvr_concat("ami486.nvr"),      "rb"); nvrmask = 127; break;
                 case ROM_WIN486:      f = romfopen(nvr_concat("win486.nvr"),      "rb"); nvrmask = 127; break;
@@ -291,10 +293,12 @@ void savenvr()
                 case ROM_AMI286:      f = romfopen(nvr_concat("ami286.nvr"),      "wb"); break;
                 case ROM_AWARD286:    f = romfopen(nvr_concat("award286.nvr"),    "wb"); break;
                 case ROM_DELL200:     f = romfopen(nvr_concat("dell200.nvr"),     "wb"); break;
+                case ROM_SPC4200P:    f = romfopen(nvr_concat("spc4200p.nvr"),    "wb"); break;
                 case ROM_IBMAT386:    f = romfopen(nvr_concat("at386.nvr"),       "wb"); break;
                 case ROM_DESKPRO_386: f = romfopen(nvr_concat("deskpro386.nvr"),  "wb"); break;
                 case ROM_ACER386:     f = romfopen(nvr_concat("acer386.nvr"),     "wb"); break;
                 case ROM_MEGAPC:      f = romfopen(nvr_concat("megapc.nvr"),      "wb"); break;
+                case ROM_MEGAPCDX:    f = romfopen(nvr_concat("megapcdx.nvr"),    "wb"); break;
                 case ROM_AMI386SX:    f = romfopen(nvr_concat("ami386.nvr"),      "wb"); break;
                 case ROM_AMI486:      f = romfopen(nvr_concat("ami486.nvr"),      "wb"); break;
                 case ROM_WIN486:      f = romfopen(nvr_concat("win486.nvr"),      "wb"); break;

@@ -69,6 +69,7 @@ static VIDEO_CARD video_cards[] =
         {"Diamond Stealth 3D 2000 (S3 ViRGE)",     &s3_virge_device,            GFX_VIRGE},
         {"EGA",                                    &ega_device,                 GFX_EGA},
         {"Chips & Technologies SuperEGA",          &sega_device,           	GFX_SUPER_EGA},
+        {"Chips & Technologies VGA 451",           &vga_chips_device,           GFX_CHIPS_VGA},
         {"Compaq ATI VGA Wonder XL (ATI-28800-5)", &compaq_ati28800_device,     GFX_VGAWONDERXL},
         {"Compaq EGA",				   &cpqega_device,           	GFX_COMPAQ_EGA},
         {"Compaq/Paradise VGA",			   &cpqvga_device,           	GFX_COMPAQ_VGA},
