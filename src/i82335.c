@@ -8,6 +8,7 @@
 typedef struct
 {
 	uint8_t reg_22;
+	uint8_t reg_23;
 } i82335_t;
 
 i82335_t i82335;
@@ -36,6 +37,7 @@ void i82335_write(uint16_t addr, uint8_t val, void *priv)
 			}
 			break;
 		case 0x23:
+			i82335.reg_23 = val | 0xd8;
 			if (val & 0x80)
 			{
 			        io_removehandler(0x0022, 0x0001, i82335_read, NULL, NULL, i82335_write, NULL, NULL, NULL);
@@ -46,11 +48,19 @@ void i82335_write(uint16_t addr, uint8_t val, void *priv)
 
 uint8_t i82335_read(uint16_t addr, void *priv)
 {
+	if (addr == 0x22)
+	{
+		return i82335.reg_22;
+	}
+	else if (addr == 0x23)
+	{
+		return i82335.reg_23;
+	}
 }
 
 void i82335_init()
 {
-	memset(i82335, 0, sizeof(i82335_t));
+	memset(&i82335, 0, sizeof(i82335_t));
 
 	i82335.reg_22 = 0xd9;
 
