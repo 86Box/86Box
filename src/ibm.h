@@ -422,6 +422,8 @@ enum
         ROM_IBMPS1_2121_ISA,/*IBM PS/1 Model 2121 with ISA expansion bus*/
 
         ROM_SPC4200P,	/*Samsung SPC-4200P / SCAT / Phoenix BIOS*/
+        ROM_SUPER286TR,	/*Hyundai Super-286TR / SCAT / Award BIOS*/
+
         ROM_MEGAPCDX,	/*386DX mdoel of the Mega PC - Note by Tohka: The documentation (that I have in German) clearly says such a model exists.*/
 
         ROM_MAX
@@ -474,7 +476,8 @@ enum
         GFX_RIVATNT2,
 
 	GFX_TRIGEM_UNK,
-        GFX_CHIPS_VGA,
+        GFX_OTI037,	/*Oak OTI-037*/
+
         GFX_MAX
 };
 

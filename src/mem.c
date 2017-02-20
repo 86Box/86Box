@@ -592,6 +592,7 @@ int loadbios()
                 return 1;
  
                 case ROM_IBMPS1_2121:
+		case ROM_IBMPS1_2121_ISA:
                 f = romfopen("roms/ibmps1_2121/fc0000.bin", "rb");
                 if (!f) break;
                 fseek(f, 0x20000, SEEK_SET);
@@ -650,6 +651,13 @@ int loadbios()
 
                 case ROM_SPC4200P: /*Samsung SPC-4200P*/
                 f = romfopen("roms/spc4200p/U8.01", "rb");
+                if (!f) break;
+                fread(rom, 65536, 1, f);
+                fclose(f);
+                return 1;
+
+                case ROM_SUPER286TR: /*Hyundai Super-286TR*/
+                f = romfopen("roms/super286tr/hyundai_award286.bin", "rb");
                 if (!f) break;
                 fread(rom, 65536, 1, f);
                 fclose(f);

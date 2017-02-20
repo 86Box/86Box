@@ -58,15 +58,18 @@ void cga_out(uint16_t addr, uint8_t val, void *p)
                         cga->cgamode = val;
                         update_cga16_color(cga->cgamode);
                 }
-                cga->cgamode = val;
 #ifndef __unix
-		cga_palette = (cga->rgb_type << 1);
-		if (!(cga->cgamode & 1) && (cga_palette > 0) && (cga_palette < 8))
+		if ((cga->cgamode ^ val) & 1)
 		{
-			cga_palette--;
+			cga_palette = (cga->rgb_type << 1);
+			if (!(val & 1) && (cga_palette > 0) && (cga_palette < 8))
+			{
+				cga_palette--;
+			}
 			cgapal_rebuild();
 		}
 #endif
+                cga->cgamode = val;
                 return;
                 case 0x3D9:
                 cga->cgacol = val;
@@ -94,6 +97,10 @@ void cga_write(uint32_t addr, uint8_t val, void *p)
 {
         cga_t *cga = (cga_t *)p;
 //        pclog("CGA_WRITE %04X %02X\n", addr, val);
+	/* Horrible hack, I know, but it's the only way to fix the 440FX BIOS filling the VRAM with garbage until Tom fixes the memory emulation. */
+	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF2F) && (romset == ROM_440FX))  return;
+	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF77) && (romset == ROM_440FX))  return;
+
         cga->vram[addr & 0x3fff] = val;
         if (cga->snow_enabled)
         {

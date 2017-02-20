@@ -189,6 +189,12 @@ void *oti067_common_init(char *bios_fn, int vram_size, int chip_id)
         return oti067;
 }
 
+/* void *oti037_init()
+{
+        int vram_size = device_get_config_int("memory");
+        return oti067_common_init("roms/hyundai_oti037c.bin", vram_size, 0);
+} */
+
 void *oti067_init()
 {
         int vram_size = device_get_config_int("memory");
@@ -205,11 +211,16 @@ void *oti067_acer386_init()
 {
         oti067_t *oti067 = oti067_common_init("roms/acer386/oti067.bin", 512, 2);
         
-        if (oti067)
-                oti067->bios_rom.rom[0x5d] = 0x74;
+        /* if (oti067)
+                oti067->bios_rom.rom[0x5d] = 0x74; */
                 
         return oti067;
 }
+
+/* static int oti037_available()
+{
+        return rom_present("roms/hyundai_oti037c.bin");
+} */
 
 static int oti067_available()
 {
@@ -309,6 +320,18 @@ static device_config_t oti077_config[] =
         }
 };
 
+/* device_t oti037_device =
+{
+        "Oak OTI-037",
+        0,
+        oti037_init,
+        oti067_close,
+        oti037_available,
+        oti067_speed_changed,
+        oti067_force_redraw,
+        oti067_add_status_info,
+        oti067_config
+}; */
 device_t oti067_device =
 {
         "Oak OTI-067",

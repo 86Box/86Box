@@ -150,6 +150,7 @@ MODEL models[] =
         {"AMI 286 clone",       ROM_AMI286,      { "",      cpus_286,     "",    NULL,         "",      NULL},         0, MODEL_AT,   1,  16, 1,   at_neat_init, NULL},        
         {"Award 286 clone",     ROM_AWARD286,    { "",      cpus_286,     "",    NULL,         "",      NULL},         0, MODEL_AT,   1,  16, 1,   at_scat_init, NULL},
         {"DELL System 200",     ROM_DELL200,     { "",      cpus_286,     "",    NULL,         "",      NULL},         0, MODEL_AT,   1,  16, 1,        at_init, NULL},
+        {"Hyundai Super-286TR", ROM_SUPER286TR,  { "",      cpus_286,     "",    NULL,         "",      NULL},         0, MODEL_AT,   1,  16, 1,   at_scat_init, NULL},
         {"Samsung SPC-4200P",   ROM_SPC4200P,    { "",      cpus_286,     "",    NULL,         "",      NULL},         0, MODEL_AT,   1,  16, 1,   at_scat_init, NULL},
         {"IBM PS/1 model 2011", ROM_IBMPS1_2011, { "",      cpus_ps1_m2011,"",   NULL,         "",      NULL},         1, MODEL_AT|MODEL_PS2,   1,  16, 1, ps1_m2011_init, NULL},
         {"IBM PS/1 model 2121", ROM_IBMPS1_2121, { "Intel", cpus_i386SX,  "AMD", cpus_Am386SX,  "Cyrix", cpus_486SLC}, 1, MODEL_AT|MODEL_PS2,   1,  16, 1, ps1_m2121_init, NULL},

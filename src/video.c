@@ -88,6 +88,7 @@ static VIDEO_CARD video_cards[] =
         {"nVidia RIVA TNT (Experimental)",         &rivatnt_device,             GFX_RIVATNT},
         {"nVidia TNT2 (Experimental)",             &rivatnt2_device,            GFX_RIVATNT2},
 
+        /* {"OAK OTI-037",                            &oti037_device,              GFX_OTI037}, */
         {"OAK OTI-067",                            &oti067_device,              GFX_OTI067},
         {"OAK OTI-077",                            &oti077_device,              GFX_OTI077},
         {"Paradise Bahamas 64 (S3 Vision864)",     &s3_bahamas64_device,        GFX_BAHAMAS64},
