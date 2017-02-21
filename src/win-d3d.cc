@@ -47,7 +47,7 @@ static CUSTOMVERTEX d3d_verts[] =
      {2048.0f, 2048.0f, 1.0f, 1.0f, 1.0f, 1.0f},
 };
   
-void d3d_init(HWND h)
+int d3d_init(HWND h)
 {
         int c;
         HRESULT hr;
@@ -57,6 +57,10 @@ void d3d_init(HWND h)
         d3d_hwnd = h;
         
         d3d = Direct3DCreate9(D3D_SDK_VERSION);
+	if (d3d == NULL)
+	{
+		return 0;
+	}
 
         memset(&d3dpp, 0, sizeof(d3dpp));      
 
@@ -75,11 +79,17 @@ void d3d_init(HWND h)
         d3dpp.BackBufferHeight       = 0;
 
         hr = d3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, h, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &d3ddev);
+	if (FAILED(hr))
+	{
+		return 0;
+	}
         
         d3d_init_objects();
         
         video_blit_memtoscreen_func = d3d_blit_memtoscreen;
         video_blit_memtoscreen_8_func = d3d_blit_memtoscreen_8;
+
+	return 1;
 }
 
 void d3d_close_objects()

@@ -16,7 +16,7 @@ extern "C" void pclog(const char *format, ...);
 
 extern "C" void device_force_redraw();
 
-extern "C" void ddraw_init(HWND h);
+extern "C" int ddraw_init(HWND h);
 extern "C" void ddraw_close();
  
 extern "C" void video_blit_complete();
@@ -34,17 +34,17 @@ static DDSURFACEDESC2 ddsd;
 
 static HWND ddraw_hwnd;
 
-void ddraw_init(HWND h)
+int ddraw_init(HWND h)
 {
         int c;
         
 	cgapal_rebuild();
 
         if (FAILED(DirectDrawCreate(NULL, &lpdd, NULL)))
-           fatal("DirectDrawCreate failed\n");
+           return 0;
         
         if (FAILED(lpdd->QueryInterface(IID_IDirectDraw4, (LPVOID *)&lpdd4)))
-           fatal("QueryInterface failed\n");
+           return 0;
 
         lpdd->Release();
         lpdd = NULL;
@@ -52,7 +52,7 @@ void ddraw_init(HWND h)
         atexit(ddraw_close);
 
         if (FAILED(lpdd4->SetCooperativeLevel(h, DDSCL_NORMAL)))
-           fatal("SetCooperativeLevel failed\n");
+           return 0;
            
         memset(&ddsd, 0, sizeof(ddsd));
         ddsd.dwSize = sizeof(ddsd);
@@ -60,7 +60,7 @@ void ddraw_init(HWND h)
         ddsd.dwFlags = DDSD_CAPS;
         ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
         if (FAILED(lpdd4->CreateSurface(&ddsd, &lpdds_pri, NULL)))
-           fatal("CreateSurface failed\n");
+           return 0;
         
         // memset(&ddsd, 0, sizeof(ddsd));
         // ddsd.dwSize = sizeof(ddsd);
@@ -70,7 +70,7 @@ void ddraw_init(HWND h)
         ddsd.dwHeight = 2048;
         ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_VIDEOMEMORY;
         if (FAILED(lpdd4->CreateSurface(&ddsd, &lpdds_back, NULL)))
-           fatal("CreateSurface back failed\n");
+           return 0;
 
         memset(&ddsd, 0, sizeof(ddsd));
         ddsd.dwSize = sizeof(ddsd);
@@ -80,19 +80,21 @@ void ddraw_init(HWND h)
         ddsd.dwHeight = 2048;
         ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_VIDEOMEMORY;
         if (FAILED(lpdd4->CreateSurface(&ddsd, &lpdds_back2, NULL)))
-           fatal("CreateSurface back failed\n");
+           return 0;
            
         if (FAILED(lpdd4->CreateClipper(0, &lpdd_clipper, NULL)))
-           fatal("CreateClipper failed\n");
+           return 0;
         if (FAILED(lpdd_clipper->SetHWnd(0, h)))
-           fatal("SetHWnd failed\n");
+           return 0;
         if (FAILED(lpdds_pri->SetClipper(lpdd_clipper)))
-           fatal("SetClipper failed\n");
+           return 0;
 
         pclog("DDRAW_INIT complete\n");
         ddraw_hwnd = h;
         video_blit_memtoscreen_func   = ddraw_blit_memtoscreen;
         video_blit_memtoscreen_8_func = ddraw_blit_memtoscreen_8;
+
+	return 1;
 }
 
 void ddraw_close()

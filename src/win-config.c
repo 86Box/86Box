@@ -56,9 +56,10 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
         int temp_network_card_current;
 	int temp_network_interface_current;
         int temp_joystick_type;
-        int cpu_type;
         int temp_mouse_type;
+        int cpu_type;
 	int temp_xtide;
+	int temp_fpu;
 
         UDACCEL accel;
 //        pclog("Dialog msg %i %08X\n",message,message);
@@ -204,6 +205,9 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 
                 h=GetDlgItem(hdlg, IDC_CHECKXTIDE);
                 SendMessage(h, BM_SETCHECK, enable_xtide, 0);
+
+                h=GetDlgItem(hdlg, IDC_CHECKFPU);
+                SendMessage(h, BM_SETCHECK, enable_external_fpu, 0);
 
                 h = GetDlgItem(hdlg, IDC_COMBOSPD);
                 SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)"8-bit");
@@ -421,6 +425,9 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         h = GetDlgItem(hdlg, IDC_CHECKXTIDE);
                         temp_xtide = SendMessage(h, BM_GETCHECK, 0, 0);
 
+                        h = GetDlgItem(hdlg, IDC_CHECKFPU);
+                        temp_fpu = SendMessage(h, BM_GETCHECK, 0, 0);
+
                         h = GetDlgItem(hdlg, IDC_COMBONET);
                         temp_network_card_current = settings_list_to_network[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
@@ -439,7 +446,7 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         temp_mouse_type = settings_list_to_mouse[SendMessage(h, CB_GETCURSEL, 0, 0)];                      
 
                         if (temp_model != model || gfx != gfxcard || mem != mem_size || temp_cpu != cpu || temp_cpu_m != cpu_manufacturer ||
-                            fpu != hasfpu || temp_GAMEBLASTER != GAMEBLASTER || temp_GUS != GUS ||
+                            fpu != hasfpu || temp_GAMEBLASTER != GAMEBLASTER || temp_GUS != GUS || temp_fpu != enable_external_fpu ||
                             temp_SSI2001 != SSI2001 || temp_sound_card_current != sound_card_current || temp_xtide != enable_xtide ||
                             temp_voodoo != voodoo_enabled || temp_buslogic != buslogic_enabled || temp_dynarec != cpu_use_dynarec || temp_mouse_type != mouse_type ||
 			    temp_fd1_type != fdd_get_type(0) || temp_fd2_type != fdd_get_type(1) || temp_fd3_type != fdd_get_type(2) || temp_fd4_type != fdd_get_type(3) || temp_network_card_current != network_card_current)
@@ -462,6 +469,7 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                         cpu_use_dynarec = temp_dynarec;
                                         mouse_type = temp_mouse_type;
                                         enable_xtide = temp_xtide;
+					enable_external_fpu = temp_fpu;
 
 					fdd_set_type(0, temp_fd1_type);
 					fdd_set_type(1, temp_fd2_type);

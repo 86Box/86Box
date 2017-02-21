@@ -46,6 +46,21 @@ extern OpFn dynarec_ops_k6_0f[1024];
 extern OpFn dynarec_ops_pentiumpro_0f[1024];
 extern OpFn dynarec_ops_pentium2d_0f[1024];
 
+extern OpFn dynarec_ops_fpu_287_d9_a16[256];
+extern OpFn dynarec_ops_fpu_287_d9_a32[256];
+extern OpFn dynarec_ops_fpu_287_da_a16[256];
+extern OpFn dynarec_ops_fpu_287_da_a32[256];
+extern OpFn dynarec_ops_fpu_287_db_a16[256];
+extern OpFn dynarec_ops_fpu_287_db_a32[256];
+extern OpFn dynarec_ops_fpu_287_dc_a16[32];
+extern OpFn dynarec_ops_fpu_287_dc_a32[32];
+extern OpFn dynarec_ops_fpu_287_dd_a16[256];
+extern OpFn dynarec_ops_fpu_287_dd_a32[256];
+extern OpFn dynarec_ops_fpu_287_de_a16[256];
+extern OpFn dynarec_ops_fpu_287_de_a32[256];
+extern OpFn dynarec_ops_fpu_287_df_a16[256];
+extern OpFn dynarec_ops_fpu_287_df_a32[256];
+
 extern OpFn dynarec_ops_fpu_d8_a16[32];
 extern OpFn dynarec_ops_fpu_d8_a32[32];
 extern OpFn dynarec_ops_fpu_d9_a16[256];
@@ -110,6 +125,21 @@ extern OpFn ops_k6_0f[1024];
 
 extern OpFn ops_pentiumpro_0f[1024];
 extern OpFn ops_pentium2d_0f[1024];
+
+extern OpFn ops_fpu_287_d9_a16[256];
+extern OpFn ops_fpu_287_d9_a32[256];
+extern OpFn ops_fpu_287_da_a16[256];
+extern OpFn ops_fpu_287_da_a32[256];
+extern OpFn ops_fpu_287_db_a16[256];
+extern OpFn ops_fpu_287_db_a32[256];
+extern OpFn ops_fpu_287_dc_a16[32];
+extern OpFn ops_fpu_287_dc_a32[32];
+extern OpFn ops_fpu_287_dd_a16[256];
+extern OpFn ops_fpu_287_dd_a32[256];
+extern OpFn ops_fpu_287_de_a16[256];
+extern OpFn ops_fpu_287_de_a32[256];
+extern OpFn ops_fpu_287_df_a16[256];
+extern OpFn ops_fpu_287_df_a32[256];
 
 extern OpFn ops_fpu_d8_a16[32];
 extern OpFn ops_fpu_d8_a32[32];

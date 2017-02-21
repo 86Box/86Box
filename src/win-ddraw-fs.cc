@@ -15,7 +15,7 @@ extern "C" void pclog(const char *format, ...);
 
 extern "C" void device_force_redraw();
 
-extern "C" void ddraw_fs_init(HWND h);
+extern "C" int ddraw_fs_init(HWND h);
 extern "C" void ddraw_fs_close();
  
 extern "C" void video_blit_complete();
@@ -34,7 +34,7 @@ static DDSURFACEDESC2 ddsd;
 static HWND ddraw_hwnd;
 static int ddraw_w, ddraw_h;
 
-void ddraw_fs_init(HWND h)
+int ddraw_fs_init(HWND h)
 {
         int c;
         
@@ -44,10 +44,10 @@ void ddraw_fs_init(HWND h)
 	cgapal_rebuild();
 
         if (FAILED(DirectDrawCreate(NULL, &lpdd, NULL)))
-           fatal("DirectDrawCreate failed\n");
+           return 0;
         
         if (FAILED(lpdd->QueryInterface(IID_IDirectDraw4, (LPVOID *)&lpdd4)))
-           fatal("QueryInterface failed\n");
+           return 0;
 
         lpdd->Release();
         lpdd = NULL;
@@ -56,10 +56,10 @@ void ddraw_fs_init(HWND h)
 
         if (FAILED(lpdd4->SetCooperativeLevel(h, DDSCL_SETFOCUSWINDOW |  
         DDSCL_CREATEDEVICEWINDOW | DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT)))
-           fatal("SetCooperativeLevel failed\n");
+           return 0;
 
         if (FAILED(lpdd4->SetDisplayMode(ddraw_w, ddraw_h, 32, 0 ,0)))
-                fatal("SetDisplayMode failed\n");
+                return 0;
            
         // memset(&ddsd, 0, sizeof(ddsd));
         // ddsd.dwSize = sizeof(ddsd);
@@ -68,11 +68,11 @@ void ddraw_fs_init(HWND h)
         ddsd.dwBackBufferCount = 1;
         ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_COMPLEX | DDSCAPS_FLIP;
         if (FAILED(lpdd4->CreateSurface(&ddsd, &lpdds_pri, NULL)))
-           fatal("CreateSurface failed\n");
+           return 0;
         
         ddsd.ddsCaps.dwCaps = DDSCAPS_BACKBUFFER;
         if (FAILED(lpdds_pri->GetAttachedSurface(&ddsd.ddsCaps, &lpdds_back2)))
-           fatal("CreateSurface back failed\n");
+           return 0;
         
         memset(&ddsd, 0, sizeof(ddsd));
         ddsd.dwSize = sizeof(ddsd);
@@ -82,12 +82,14 @@ void ddraw_fs_init(HWND h)
         ddsd.dwHeight = 2048;
         ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_VIDEOMEMORY;
         if (FAILED(lpdd4->CreateSurface(&ddsd, &lpdds_back, NULL)))
-           fatal("CreateSurface back failed\n");
+           return 0;
            
         pclog("DDRAW_INIT complete\n");
         ddraw_hwnd = h;
         video_blit_memtoscreen_func   = ddraw_fs_blit_memtoscreen;
         video_blit_memtoscreen_8_func = ddraw_fs_blit_memtoscreen_8;
+
+	return 1;
 }
 
 void ddraw_fs_close()

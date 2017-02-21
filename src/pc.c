@@ -4,6 +4,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+
+#ifndef __unix
+#define BITMAP WINDOWS_BITMAP
+#include <windows.h>
+#undef BITMAP
+#include "win.h"
+#endif
+
 #include "86box.h"
 #include "ibm.h"
 #include "device.h"
@@ -93,15 +101,59 @@ void pclog(const char *format, ...)
 #endif
 }
 
+#ifndef __unix
+#ifndef _LIBC
+# define __builtin_expect(expr, val)   (expr)
+#endif
+
+#undef memmem
+
+/* Return the first occurrence of NEEDLE in HAYSTACK.  */
+void *memmem (const void *haystack, size_t haystack_len, const void *needle, size_t needle_len)
+{
+	const char *begin;
+	const char *const last_possible = (const char *) haystack + haystack_len - needle_len;
+
+	if (needle_len == 0)
+		/* The first occurrence of the empty string is deemed to occur at
+		   the beginning of the string.  */
+		return (void *) haystack;
+
+	/* Sanity check, otherwise the loop might search through the whole
+	   memory.  */
+	if (__builtin_expect (haystack_len < needle_len, 0))
+		return NULL;
+
+	for (begin = (const char *) haystack; begin <= last_possible; ++begin)
+		if (begin[0] == ((const char *) needle)[0] && !memcmp ((const void *) &begin[1], (const void *) ((const char *) needle + 1), needle_len - 1))
+			return (void *) begin;
+
+	return NULL;
+}
+#endif
+
 void fatal(const char *format, ...)
 {
+   char msg[1024];
+#ifndef __unix
+   char *newline;
+#endif
    va_list ap;
    va_start(ap, format);
-   vprintf(format, ap);
+   vsprintf(msg, format, ap);
+   printf(msg);
    va_end(ap);
    fflush(stdout);
    savenvr();
    saveconfig();
+#ifndef __unix
+   newline = memmem(msg, strlen(msg), "\n", strlen("\n"));
+   if (newline != NULL)
+   {
+      *newline = 0;
+   }
+   MessageBox(ghwnd, msg, "86Box fatal error", MB_OK + MB_ICONERROR);
+#endif
    dumppic();
    dumpregs();
    fflush(stdout);
@@ -869,6 +921,7 @@ void loadconfig(char *fn)
 	mouse_type = config_get_int(NULL, "mouse_type", 0);
 
 	enable_xtide = config_get_int(NULL, "enable_xtide", 1);
+	enable_external_fpu = config_get_int(NULL, "enable_external_fpu", 0);
 
         for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++)
         {
@@ -1053,6 +1106,7 @@ void saveconfig()
         config_set_int(NULL, "mouse_type", mouse_type);
 
         config_set_int(NULL, "enable_xtide", enable_xtide);
+        config_set_int(NULL, "enable_external_fpu", enable_external_fpu);
 
         for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++)
         {

@@ -61,7 +61,7 @@ static uint16_t scancode_map[65536];
 
 static struct
 {
-        void (*init)(HWND h);
+        int (*init)(HWND h);
         void (*close)();
         void (*resize)(int x, int y);
 } vid_apis[2][2] =
@@ -649,7 +649,17 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         initpc(argc, argv);
 
 	// pclog("Setting video API...\n");        
-        vid_apis[0][vid_api].init(ghwnd);
+	if (vid_apis[0][vid_api].init(ghwnd) == 0)
+	{
+		if (vid_apis[0][vid_api ^ 1].init(ghwnd) == 0)
+		{
+			fatal("Both DirectDraw and Direct3D renderers failed to initialize\n");
+		}
+		else
+		{
+			vid_api ^= 1;
+		}
+	}
 
 	// pclog("Resizing window...\n");        
         if (vid_resize) SetWindowLong(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW|WS_VISIBLE);

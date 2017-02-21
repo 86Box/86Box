@@ -574,6 +574,8 @@ void cpu_set_edx()
         EDX = models[model].cpu[cpu_manufacturer].cpus[cpu].edx_reset;
 }
 
+int enable_external_fpu = 0;
+
 void cpu_set()
 {
         CPU *cpu_s;
@@ -596,8 +598,8 @@ void cpu_set()
         is486    = (cpu_s->cpu_type >= CPU_i486SX) || (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_RAPIDCAD);
         is_pentium= (cpu_s->cpu_type >= CPU_WINCHIP);
         hasfpu   = (cpu_s->cpu_type >= CPU_i486DX) || (cpu_s->cpu_type == CPU_RAPIDCAD);
-         cpu_iscyrix = (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_Cx486S || cpu_s->cpu_type == CPU_Cx486DX || cpu_s->cpu_type == CPU_Cx5x86 || cpu_s->cpu_type == CPU_Cx6x86 || cpu_s->cpu_type == CPU_Cx6x86MX || cpu_s->cpu_type == CPU_Cx6x86L || cpu_s->cpu_type == CPU_CxGX1);
-        cpu_16bitbus = cpu_16bitbus = (cpu_s->cpu_type == CPU_286 || cpu_s->cpu_type == CPU_386SX || cpu_s->cpu_type == CPU_486SLC);
+        cpu_iscyrix = (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_Cx486S || cpu_s->cpu_type == CPU_Cx486DX || cpu_s->cpu_type == CPU_Cx5x86 || cpu_s->cpu_type == CPU_Cx6x86 || cpu_s->cpu_type == CPU_Cx6x86MX || cpu_s->cpu_type == CPU_Cx6x86L || cpu_s->cpu_type == CPU_CxGX1);
+        cpu_16bitbus = (cpu_s->cpu_type == CPU_286 || cpu_s->cpu_type == CPU_386SX || cpu_s->cpu_type == CPU_486SLC);
         if (cpu_s->multi) 
            cpu_busspeed = cpu_s->rspeed / cpu_s->multi;
         cpu_multi = cpu_s->multi;
@@ -606,6 +608,19 @@ void cpu_set()
         cpu_hasMSR = 0;
         cpu_hasCR4 = 0;
         ccr0 = ccr1 = ccr2 = ccr3 = ccr4 = ccr5 = ccr6 = 0;
+
+	if ((cpu_s->cpu_type == CPU_286) || (cpu_s->cpu_type == CPU_386SX) || (cpu_s->cpu_type == CPU_386DX) || (cpu_s->cpu_type == CPU_i486SX))
+	{
+		if (enable_external_fpu)
+		{
+			hasfpu = 1;
+			if (cpu_s->cpu_type == CPU_i486SX)
+			{
+				/* The 487SX is a full implementation of the 486DX and takes over the entire CPU's operation. */
+				cpu_s->cpu_type = CPU_i486DX;
+			}
+		}
+	}
 
         cpu_update_waitstates();
 
@@ -722,6 +737,37 @@ void cpu_set()
                 
                 case CPU_286:
                 x86_setopcodes(ops_286, ops_286_0f, dynarec_ops_286, dynarec_ops_286_0f);
+		if (enable_external_fpu)
+		{
+                	x86_dynarec_opcodes_d9_a16 = dynarec_ops_fpu_287_d9_a16;
+        	        x86_dynarec_opcodes_d9_a32 = dynarec_ops_fpu_287_d9_a32;
+                	x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_287_da_a16;
+        	        x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_287_da_a32;
+	                x86_dynarec_opcodes_db_a16 = dynarec_ops_fpu_287_db_a16;
+        	        x86_dynarec_opcodes_db_a32 = dynarec_ops_fpu_287_db_a32;
+	                x86_dynarec_opcodes_dc_a16 = dynarec_ops_fpu_287_dc_a16;
+        	        x86_dynarec_opcodes_dc_a32 = dynarec_ops_fpu_287_dc_a32;
+	                x86_dynarec_opcodes_dd_a16 = dynarec_ops_fpu_287_dd_a16;
+        	        x86_dynarec_opcodes_dd_a32 = dynarec_ops_fpu_287_dd_a32;
+	                x86_dynarec_opcodes_de_a16 = dynarec_ops_fpu_287_de_a16;
+        	        x86_dynarec_opcodes_de_a32 = dynarec_ops_fpu_287_de_a32;
+	                x86_dynarec_opcodes_df_a16 = dynarec_ops_fpu_287_df_a16;
+        	        x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_287_df_a32;
+	                x86_opcodes_d9_a16 = ops_fpu_287_d9_a16;
+	                x86_opcodes_d9_a32 = ops_fpu_287_d9_a32;
+	                x86_opcodes_da_a16 = ops_fpu_287_da_a16;
+	                x86_opcodes_da_a32 = ops_fpu_287_da_a32;
+        	        x86_opcodes_db_a16 = ops_fpu_287_db_a16;
+	                x86_opcodes_db_a32 = ops_fpu_287_db_a32;
+        	        x86_opcodes_dc_a16 = ops_fpu_287_dc_a16;
+	                x86_opcodes_dc_a32 = ops_fpu_287_dc_a32;
+        	        x86_opcodes_dd_a16 = ops_fpu_287_dd_a16;
+	                x86_opcodes_dd_a32 = ops_fpu_287_dd_a32;
+        	        x86_opcodes_de_a16 = ops_fpu_287_de_a16;
+	                x86_opcodes_de_a32 = ops_fpu_287_de_a32;
+        	        x86_opcodes_df_a16 = ops_fpu_287_df_a16;
+	                x86_opcodes_df_a32 = ops_fpu_287_df_a32;
+		}
                 timing_rr  = 2;   /*register dest - register src*/
                 timing_rm  = 7;   /*register dest - memory src*/
                 timing_mr  = 7;   /*memory dest   - register src*/

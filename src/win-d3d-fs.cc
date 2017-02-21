@@ -123,7 +123,7 @@ void cgapal_rebuild()
 	}
 }
   
-void d3d_fs_init(HWND h)
+int d3d_fs_init(HWND h)
 {
         HRESULT hr;
 		char emulator_title[200];
@@ -152,6 +152,10 @@ void d3d_fs_init(HWND h)
         );
         
         d3d = Direct3DCreate9(D3D_SDK_VERSION);
+	if (d3d == NULL)
+	{
+		return 0;
+	}
 
         memset(&d3dpp, 0, sizeof(d3dpp));      
 
@@ -170,11 +174,17 @@ void d3d_fs_init(HWND h)
         d3dpp.BackBufferHeight       = d3d_fs_h;
 
         hr = d3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, h, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &d3ddev);
+	if (FAILED(hr))
+	{
+		return 0;
+	}
         
         d3d_fs_init_objects();
         
         video_blit_memtoscreen_func   = d3d_fs_blit_memtoscreen;
         video_blit_memtoscreen_8_func = d3d_fs_blit_memtoscreen_8;
+
+	return 1;
 }
 
 static void d3d_fs_close_objects()

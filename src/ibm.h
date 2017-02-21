@@ -425,6 +425,7 @@ enum
         ROM_SUPER286TR,	/*Hyundai Super-286TR / SCAT / Award BIOS*/
 
         ROM_MEGAPCDX,	/*386DX mdoel of the Mega PC - Note by Tohka: The documentation (that I have in German) clearly says such a model exists.*/
+	ROM_PX486,	/*Phoenix 486 clone*/
 
         ROM_MAX
 };
@@ -633,3 +634,4 @@ void trc_write(uint16_t port, uint8_t val, void *priv);
 void trc_init();
 
 extern int enable_xtide;
+extern int enable_external_fpu;
