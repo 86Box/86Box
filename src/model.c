@@ -13,7 +13,7 @@
 #include "io.h"
 #include "rom.h"
 
-#include "acer386sx.h"
+// #include "acer386sx.h"
 #include "acerm3a.h"
 #include "ali1429.h"
 #include "amstrad.h"
@@ -88,8 +88,8 @@ void     ps1_m2121_init();
 void   ps2_m30_286_init();
 void       at_neat_init();
 void       at_scat_init();
-void  at_acer386sx_init();
-void      at_82335_init();
+// void  at_acer386sx_init();
+// void      at_82335_init();
 void    at_wd76c10_init();
 void    at_ali1429_init();
 void   at_headland_init();
@@ -157,9 +157,9 @@ MODEL models[] =
         {"IBM PS/1 m.2121+ISA", ROM_IBMPS1_2121_ISA, { "Intel", cpus_i386DX,  "AMD", cpus_Am386DX,  "Cyrix", cpus_486DLC}, 1, MODEL_AT|MODEL_PS2,   1,  16, 1, ps1_m2121_init, NULL},
         {"IBM PS/2 Model 30-286", ROM_IBMPS2_M30_286,  { "", cpus_ps2_m30_286, "", NULL, "",  NULL},  0, MODEL_AT|MODEL_PS2,   1,  16, 1, ps2_m30_286_init, NULL},
         {"Compaq Deskpro 386",  ROM_DESKPRO_386, { "Intel", cpus_i386DX,  "AMD", cpus_Am386DX, "Cyrix", cpus_486DLC},  0, MODEL_AT,   1,  15, 1,     deskpro386_init, NULL},
-        {"Acer 386SX25/N",      ROM_ACER386,     { "Intel", cpus_acer,    "",    NULL,         "",      NULL},         1, MODEL_AT|MODEL_PS2,   1,  16, 1,   at_acer386sx_init, NULL},
+/*        {"Acer 386SX25/N",      ROM_ACER386,     { "Intel", cpus_acer,    "",    NULL,         "",      NULL},         1, MODEL_AT|MODEL_PS2,   1,  16, 1,   at_acer386sx_init, NULL}, */
         {"DTK 386SX clone",     ROM_DTK386,      { "Intel", cpus_i386SX,  "AMD", cpus_Am386SX, "Cyrix", cpus_486SLC},  0, MODEL_AT,   1,  16, 1,        at_neat_init, NULL},
-        {"Phoenix 386 clone",   ROM_PX386,       { "Intel", cpus_i386SX,  "AMD", cpus_Am386SX, "Cyrix", cpus_486SLC},  0, MODEL_AT,   1,  16, 1,       at_82335_init, NULL},
+/*        {"Phoenix 386 clone",   ROM_PX386,       { "Intel", cpus_i386SX,  "AMD", cpus_Am386SX, "Cyrix", cpus_486SLC},  0, MODEL_AT,   1,  16, 1,       at_82335_init, NULL}, */
         {"Amstrad MegaPC",      ROM_MEGAPC,      { "Intel", cpus_i386SX,  "AMD", cpus_Am386SX, "Cyrix", cpus_486SLC},  1, MODEL_AT|MODEL_PS2,   1,  16, 1,     at_wd76c10_init, NULL},
 /* The MegaPC manual says 386DX model of the Amstrad PC70386 exists, but Sarah Walker just *had* to remove 386DX CPU's from some boards. */
         {"Amstrad MegaPC 386DX",ROM_MEGAPCDX,    { "Intel", cpus_i386DX,  "AMD", cpus_Am386DX, "Cyrix", cpus_486DLC},  1, MODEL_AT|MODEL_PS2,   1,  16, 1,     at_wd76c10_init, NULL},
@@ -411,7 +411,7 @@ void at_scat_init()
         scat_init();
 }
 
-void at_acer386sx_init()
+/* void at_acer386sx_init()
 {
         at_init();
         acer386sx_init();
@@ -421,7 +421,7 @@ void at_82335_init()
 {
         at_init();
         i82335_init();
-}
+} */
 
 void at_wd76c10_init()
 {

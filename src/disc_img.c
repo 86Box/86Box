@@ -583,6 +583,8 @@ void img_seek(int drive, int track)
         int side;
 	int current_xdft = img[drive].xdf_type - 1;
 
+	int read_bytes = 0;
+
 	uint8_t id[4] = { 0, 0, 0, 0 };
 
 	int is_t0, sector, current_pos, img_pos, sr, sside, total, array_sector, buf_side, buf_pos;
@@ -616,7 +618,11 @@ void img_seek(int drive, int track)
 		}
 		else
 		{
-	                fread(img[drive].track_data[side], img[drive].sectors * ssize, 1, img[drive].f);
+	                read_bytes = fread(img[drive].track_data[side], img[drive].sectors * ssize, 1, img[drive].f);
+			if (read_bytes < (img[drive].sectors * ssize))
+			{
+				memset(img[drive].track_data[side] + read_bytes, 0xf6, (img[drive].sectors * ssize) - read_bytes);
+			}
 		}
 	}
 

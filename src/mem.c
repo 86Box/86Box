@@ -405,6 +405,7 @@ int loadbios()
                 fclose(f);
                 return 1;
 
+#if 0
                 case ROM_ACER386:
                 f=romfopen("roms/acer386/acer386.bin","rb");
                 if (!f) break;
@@ -416,6 +417,7 @@ int loadbios()
                 if (!f) break;
                 fclose(f);
                 return 1;
+#endif
 
                 case ROM_AMI286:
                 f=romfopen("roms/ami286/amic206.bin","rb");
@@ -506,6 +508,7 @@ int loadbios()
                 //is486=1;
                 return 1;
 
+#if 0
                 case ROM_PCI486:
                 f=romfopen("roms/hot-433/hot-433.ami","rb");               
                 if (!f) break;
@@ -514,6 +517,7 @@ int loadbios()
                 biosmask = 0x1ffff;
                 //is486=1;
                 return 1;
+#endif
 
                 case ROM_SIS496:
                 f = romfopen("roms/sis496/SIS496-1.AWA", "rb");
@@ -663,6 +667,7 @@ int loadbios()
                 fclose(f);
                 return 1;
 
+#if 0
                 case ROM_PX386: /*Phoenix 80386 BIOS*/
                 f=romfopen("roms/px386/3iip001l.bin","rb");
                 ff=romfopen("roms/px386/3iip001h.bin","rb");
@@ -675,6 +680,7 @@ int loadbios()
                 fclose(ff);
                 fclose(f);
                 return 1;
+#endif
 
                 case ROM_DTK386: /*Uses NEAT chipset*/
                 f = romfopen("roms/dtk386/3cto001.bin", "rb");

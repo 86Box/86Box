@@ -309,7 +309,7 @@ BOOL CALLBACK hdconf_common_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 					fwrite(&zero, 1, 4, f);			/* 00000000: Zero/unknown */
 					fwrite(&zero, 1, 4, f);			/* 00000004: Zero/unknown */
 					fwrite(&base, 1, 4, f);			/* 00000008: Offset at which data starts */
-					fwrite(&full_size_bytes, 1, 8, f);	/* 0000000C: Full size of the data (32-bit) */
+					fwrite(&full_size_bytes, 1, 4, f);	/* 0000000C: Full size of the data (32-bit) */
 					fwrite(&sector_size, 1, 4, f);		/* 00000010: Sector size in bytes */
 					fwrite(&hd_new_spt, 1, 4, f);		/* 00000014: Sectors per cylinder */
 					fwrite(&hd_new_hpc, 1, 4, f);		/* 00000018: Heads per cylinder */

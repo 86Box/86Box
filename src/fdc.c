@@ -1793,24 +1793,17 @@ void fdc_callback()
                 return;
                 case 0x0e: /*Dump registers*/
                 fdc.stat = (fdc.stat & 0xf) | 0xd0;
-                fdc.res[3] = fdc.pcn[0];
-                fdc.res[4] = fdc.pcn[1];
-                fdc.res[5] = fdc.pcn[2];
-                fdc.res[6] = fdc.pcn[3];
-                fdc.res[7] = fdc.specify[0];
-                fdc.res[8] = fdc.specify[1];
-                fdc.res[9] = fdc.eot[fdc.drive];
-                fdc.res[10] = (fdc.perp & 0x7f) | ((fdc.lock) ? 0x80 : 0);
-		if (AT)
-		{
-			fdc.res[11] = fdc.config;
-			fdc.res[12] = fdc.pretrk;
-			paramstogo=12;
-		}
-		else
-		{
-	                paramstogo=10;
-		}
+       	        fdc.res[1] = fdc.pcn[0];
+                fdc.res[2] = fdc.pcn[1];
+               	fdc.res[3] = fdc.pcn[2];
+       	        fdc.res[4] = fdc.pcn[3];
+                fdc.res[5] = fdc.specify[0];
+               	fdc.res[6] = fdc.specify[1];
+       	        fdc.res[7] = fdc.eot[fdc.drive];
+                fdc.res[8] = (fdc.perp & 0x7f) | ((fdc.lock) ? 0x80 : 0);
+		fdc.res[9] = fdc.config;
+		fdc.res[10] = fdc.pretrk;
+		paramstogo = 10;
                 discint=0;
 		disctime = 0;
                 return;
