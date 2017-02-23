@@ -618,7 +618,7 @@ void img_seek(int drive, int track)
 		}
 		else
 		{
-	                read_bytes = fread(img[drive].track_data[side], img[drive].sectors * ssize, 1, img[drive].f);
+	                read_bytes = fread(img[drive].track_data[side], 1, img[drive].sectors * ssize, img[drive].f);
 			if (read_bytes < (img[drive].sectors * ssize))
 			{
 				memset(img[drive].track_data[side] + read_bytes, 0xf6, (img[drive].sectors * ssize) - read_bytes);
