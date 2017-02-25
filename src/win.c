@@ -757,6 +757,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	CheckMenuItem(menu, IDM_VID_FORCE43, force_43 ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(menu, IDM_VID_OVERSCAN, enable_overscan ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(menu, IDM_VID_FLASH, enable_flash ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_INVERT, invert_display ? MF_CHECKED : MF_UNCHECKED);
 
 	// pclog("Checking video resize menu item...\n");        
         if (vid_resize) CheckMenuItem(menu, IDM_VID_RESIZE, MF_CHECKED);
@@ -1426,6 +1427,10 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
 			case IDM_VID_FORCE43:
 			video_toggle_option(hmenu, &force_43, IDM_VID_FORCE43);
+			break;
+
+			case IDM_VID_INVERT:
+			video_toggle_option(hmenu, &invert_display, IDM_VID_INVERT);
 			break;
 
 			case IDM_VID_OVERSCAN:

@@ -39,6 +39,8 @@ int video_card_has_config(int card);
 int video_card_getid(char *s);
 int video_old_to_new(int card);
 int video_new_to_old(int card);
+char *video_get_internal_name(int card);
+int video_get_video_from_internal_name(char *s);
 
 extern int video_fullscreen, video_fullscreen_scale, video_fullscreen_first;
 

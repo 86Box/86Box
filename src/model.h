@@ -11,8 +11,9 @@
 
 typedef struct
 {
-        char name[24];
+        char name[32];
         int id;
+	char internal_name[24];
         struct
         {
                 char name[16];
@@ -34,5 +35,7 @@ int model_count();
 int model_getromset();
 int model_getmodel(int romset);
 char *model_getname();
+char *model_get_internal_name();
+int model_get_model_from_internal_name(char *s);
 void model_init();
 struct device_t *model_getdevice(int model);

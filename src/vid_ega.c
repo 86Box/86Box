@@ -597,10 +597,10 @@ void ega_poll(void *p)
 			{
 				if ((x >= 160) && ((ega->lastline - ega->firstline) >= 120))
 				{
-					for (i  = 0; i < 14; i++)
+					for (i  = 0; i < y_add; i++)
 					{
 						q = &((uint32_t *)buffer32->line[i])[32];
-						r = &((uint32_t *)buffer32->line[ysize + y_add_ex - 1 - i])[32];
+						r = &((uint32_t *)buffer32->line[ysize + y_add + i])[32];
 
 						for (j = 0; j < (xsize + x_add_ex); j++)
 						{
@@ -609,14 +609,14 @@ void ega_poll(void *p)
 						}
 					}
 
-					for (i = 14; i < (ysize + 14); i ++)
+					for (i = y_add; i < (ysize + y_add); i ++)
 					{
 						q = &((uint32_t *)buffer32->line[i])[32];
 
-						for (j = 0; j < 8; j++)
+						for (j = 0; j < x_add; j++)
 						{
 							q[j] = ega->pallook[ega->attrregs[0x11]];
-							q[xsize + x_add_ex - 1 - j] = ega->pallook[ega->attrregs[0x11]];
+							q[xsize + x_add + j] = ega->pallook[ega->attrregs[0x11]];
 						}
 					}
 				}

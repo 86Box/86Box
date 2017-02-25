@@ -1605,26 +1605,26 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 	{
 		if ((wx >= 160) && ((wy + 1) >= 120))
 		{
-			for (i  = 0; i < 16; i++)
+			for (i  = 0; i < (y_add >> 1); i++)
 			{
 				p = &((uint32_t *)buffer32->line[i])[32];
-				q = &((uint32_t *)buffer32->line[ysize + y_add - 1 - i])[32];
+				q = &((uint32_t *)buffer32->line[ysize + (y_add >> 1) + i])[32];
 
 				for (j = 0; j < (xsize + x_add); j++)
 				{
-					p[j] = svga->pallook[svga->attrregs[0x11]];
-					q[j] = svga->pallook[svga->attrregs[0x11]];
+					p[j] = svga_color_transform(svga->pallook[svga->attrregs[0x11]]);
+					q[j] = svga_color_transform(svga->pallook[svga->attrregs[0x11]]);
 				}
 			}
 
-			for (i = 16; i < (ysize + 16); i ++)
+			for (i = (y_add >> 1); i < (ysize + (y_add >> 1)); i ++)
 			{
 				p = &((uint32_t *)buffer32->line[i])[32];
 
 				for (j = 0; j < 8; j++)
 				{
-					p[j] = svga->pallook[svga->attrregs[0x11]];
-					p[xsize + x_add - 1 - j] = svga->pallook[svga->attrregs[0x11]];
+					p[j] = svga_color_transform(svga->pallook[svga->attrregs[0x11]]);
+					p[xsize + (x_add >> 1) + j] = svga_color_transform(svga->pallook[svga->attrregs[0x11]]);
 				}
 			}
 		}

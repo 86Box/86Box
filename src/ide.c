@@ -2064,8 +2064,8 @@ void callbackide(int ide_board)
 			{
 				goto abort_cmd;
 			}
-			if (((hdc[cur_ide[ide->board]].at_hpc == 0) && (hdc[cur_ide[ide->board]].at_spt == 0)) || (ide->hdi != 2))
-			{
+			/* if (((hdc[cur_ide[ide->board]].at_hpc == 0) && (hdc[cur_ide[ide->board]].at_spt == 0)) || (ide->hdi != 2))
+			{ */
 				full_size /= (ide->head+1);
 				full_size /= ide->secount;
 				ide->specify_success = 1;
@@ -2077,7 +2077,7 @@ void callbackide(int ide_board)
 					fwrite(&(hdc[cur_ide[ide->board]].at_spt), 1, 4, ide->hdfile);
 					fwrite(&(hdc[cur_ide[ide->board]].at_hpc), 1, 4, ide->hdfile);
 				}
-			}
+			/* }
 			else
 			{
 				if ((hdc[cur_ide[ide->board]].at_hpc == (ide->head + 1)) && (hdc[cur_ide[ide->board]].at_spt == ide->secount))
@@ -2089,7 +2089,7 @@ void callbackide(int ide_board)
 					ide_log("WIN_SPECIFY error (%04X, %04X)\n", ide->head + 1, ide->secount);
 					ide->specify_success = 0;					
 				}
-			}
+			} */
 			ide->spt=ide->secount;
 			ide->hpc=ide->head+1;
 			ide->atastat = READY_STAT | DSC_STAT;

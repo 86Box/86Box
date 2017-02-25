@@ -293,6 +293,8 @@ BEGIN
                         MENUITEM "&DirectDraw", IDM_VID_DDRAW
                         MENUITEM "Direct&3D 9",   IDM_VID_D3D
                         MENUITEM SEPARATOR
+                        MENUITEM "D&isc activity flash", IDM_VID_FLASH
+                        MENUITEM SEPARATOR
                         MENUITEM "&Fullscreen", IDM_VID_FULLSCREEN
                         POPUP "Fullscreen &stretch mode"
                         BEGIN
@@ -301,11 +303,10 @@ BEGIN
                                 MENUITEM "&Square pixels", IDM_VID_FS_SQ
                                 MENUITEM "&Integer scale", IDM_VID_FS_INT
                         END
+                        MENUITEM "&Inverted VGA monitor", IDM_VID_INVERT
                         MENUITEM SEPARATOR
                         MENUITEM "F&orce 4:3 display ratio", IDM_VID_FORCE43
                         MENUITEM "E&GA/(S)VGA overscan", IDM_VID_OVERSCAN
-                        MENUITEM SEPARATOR
-                        MENUITEM "D&isc activity flash", IDM_VID_FLASH
                         MENUITEM SEPARATOR
                         MENUITEM "Take s&creenshot\tCtrl+F11", IDM_VID_SCREENSHOT
                 END

@@ -635,3 +635,7 @@ void trc_init();
 
 extern int enable_xtide;
 extern int enable_external_fpu;
+
+extern int invert_display;
+
+uint32_t svga_color_transform(uint32_t color);

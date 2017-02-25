@@ -745,7 +745,11 @@ void loadconfig(char *fn)
             inum = ethif + 1;
         network_card_current = config_get_int(NULL, "netcard", NE2000);
 
-        model = config_get_int(NULL, "model", 14);
+        p = (char *)config_get_string(NULL, "model", "");
+        if (p)
+                model = model_get_model_from_internal_name(p);
+        else
+                model = 0;
 
         if (model >= model_count())
                 model = model_count() - 1;
@@ -757,7 +761,11 @@ void loadconfig(char *fn)
         
 	cpu_waitstates = config_get_int(NULL, "cpu_waitstates", 0);
                 
-        gfxcard = config_get_int(NULL, "gfxcard", 0);
+        p = (char *)config_get_string(NULL, "gfxcard", "");
+        if (p)
+                gfxcard = video_get_video_from_internal_name(p);
+        else
+                gfxcard = 0;
         video_speed = config_get_int(NULL, "video_speed", 3);
         sound_card_current = config_get_int(NULL, "sndcard", SB2);
 
@@ -986,13 +994,13 @@ void saveconfig()
 	config_set_int(NULL, "netinterface", ethif);
 	config_set_int(NULL, "netcard", network_card_current);
 
-        config_set_int(NULL, "model", model);
+        config_set_string(NULL, "model", model_get_internal_name());
         config_set_int(NULL, "cpu_manufacturer", cpu_manufacturer);
         config_set_int(NULL, "cpu", cpu);
         config_set_int(NULL, "cpu_use_dynarec", cpu_use_dynarec);
 	config_set_int(NULL, "cpu_waitstates", cpu_waitstates);
         
-        config_set_int(NULL, "gfxcard", gfxcard);
+        config_set_string(NULL, "gfxcard", video_get_internal_name(video_old_to_new(gfxcard)));
         config_set_int(NULL, "video_speed", video_speed);
         config_set_int(NULL, "sndcard", sound_card_current);
         config_set_int(NULL, "cpu_speed", cpuspeed);
