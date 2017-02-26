@@ -21,7 +21,7 @@ HBITMAP hbitmap;
 
 int xs, ys, ys2;
 
-void CopySurface(IDirectDrawSurface4 *pDDSurface)
+void CopySurface(IDirectDrawSurface7 *pDDSurface)
 { 
     HDC hdc, hmemdc;
 
@@ -151,7 +151,7 @@ void SaveBitmap(char *szFilename,HBITMAP hBitmap)
     if(fp)      fclose(fp);
 }
 
-void ddraw_common_take_screenshot(char *fn, IDirectDrawSurface4 *pDDSurface)
+void ddraw_common_take_screenshot(char *fn, IDirectDrawSurface7 *pDDSurface)
 {
 	xs = xsize;
 	ys = ys2 = ysize;

@@ -25,10 +25,10 @@ static void ddraw_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
 static void ddraw_blit_memtoscreen_8(int x, int y, int w, int h);
 
 static LPDIRECTDRAW  lpdd  = NULL;
-static LPDIRECTDRAW4 lpdd4 = NULL;
-static LPDIRECTDRAWSURFACE4 lpdds_pri = NULL;
-static LPDIRECTDRAWSURFACE4 lpdds_back = NULL;
-static LPDIRECTDRAWSURFACE4 lpdds_back2 = NULL;
+static LPDIRECTDRAW7 lpdd7 = NULL;
+static LPDIRECTDRAWSURFACE7 lpdds_pri = NULL;
+static LPDIRECTDRAWSURFACE7 lpdds_back = NULL;
+static LPDIRECTDRAWSURFACE7 lpdds_back2 = NULL;
 static LPDIRECTDRAWCLIPPER lpdd_clipper = NULL;
 static DDSURFACEDESC2 ddsd;
 
@@ -43,7 +43,7 @@ int ddraw_init(HWND h)
         if (FAILED(DirectDrawCreate(NULL, &lpdd, NULL)))
            return 0;
         
-        if (FAILED(lpdd->QueryInterface(IID_IDirectDraw4, (LPVOID *)&lpdd4)))
+        if (FAILED(lpdd->QueryInterface(IID_IDirectDraw7, (LPVOID *)&lpdd7)))
            return 0;
 
         lpdd->Release();
@@ -51,7 +51,7 @@ int ddraw_init(HWND h)
         
         atexit(ddraw_close);
 
-        if (FAILED(lpdd4->SetCooperativeLevel(h, DDSCL_NORMAL)))
+        if (FAILED(lpdd7->SetCooperativeLevel(h, DDSCL_NORMAL)))
            return 0;
            
         memset(&ddsd, 0, sizeof(ddsd));
@@ -59,7 +59,7 @@ int ddraw_init(HWND h)
         
         ddsd.dwFlags = DDSD_CAPS;
         ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
-        if (FAILED(lpdd4->CreateSurface(&ddsd, &lpdds_pri, NULL)))
+        if (FAILED(lpdd7->CreateSurface(&ddsd, &lpdds_pri, NULL)))
            return 0;
         
         // memset(&ddsd, 0, sizeof(ddsd));
@@ -69,7 +69,7 @@ int ddraw_init(HWND h)
         ddsd.dwWidth  = 2048;
         ddsd.dwHeight = 2048;
         ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_VIDEOMEMORY;
-        if (FAILED(lpdd4->CreateSurface(&ddsd, &lpdds_back, NULL)))
+        if (FAILED(lpdd7->CreateSurface(&ddsd, &lpdds_back, NULL)))
            return 0;
 
         memset(&ddsd, 0, sizeof(ddsd));
@@ -79,10 +79,10 @@ int ddraw_init(HWND h)
         ddsd.dwWidth  = 2048;
         ddsd.dwHeight = 2048;
         ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_VIDEOMEMORY;
-        if (FAILED(lpdd4->CreateSurface(&ddsd, &lpdds_back2, NULL)))
+        if (FAILED(lpdd7->CreateSurface(&ddsd, &lpdds_back2, NULL)))
            return 0;
            
-        if (FAILED(lpdd4->CreateClipper(0, &lpdd_clipper, NULL)))
+        if (FAILED(lpdd7->CreateClipper(0, &lpdd_clipper, NULL)))
            return 0;
         if (FAILED(lpdd_clipper->SetHWnd(0, h)))
            return 0;
@@ -119,10 +119,10 @@ void ddraw_close()
                 lpdd_clipper->Release();
                 lpdd_clipper = NULL;
         }
-        if (lpdd4)
+        if (lpdd7)
         {
-                lpdd4->Release();
-                lpdd4 = NULL;
+                lpdd7->Release();
+                lpdd7 = NULL;
         }
 }
 
