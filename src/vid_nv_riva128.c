@@ -168,7 +168,7 @@ typedef struct riva128_t
 
 		uint32_t notify;
 
-		uint32_t surf_base[6]
+		uint32_t surf_base[6];
 		uint32_t surf_limit[6];
 
 		uint32_t cliprect_min[2];
