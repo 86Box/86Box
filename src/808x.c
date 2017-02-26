@@ -645,14 +645,7 @@ void resetx86()
         eflags=0;
         cgate32=0;
         loadcs(0xFFFF);
-	if (AT)
-	{
-		rammask = mem_a20_state ? 0xffffffff : 0xffefffff;
-	}
-	else
-	{
-		rammask = 0xfffff;
-	}
+        rammask = AT ? 0xFFFFFFFF : 0xfffff;
         idt.base = 0;
         flags=2;
         makeznptable();

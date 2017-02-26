@@ -2250,22 +2250,20 @@ void mem_a20_recalc()
 
 static uint8_t port_92_read(uint16_t port, void *priv)
 {
-	return (port_92_reg & 3) | 0x24;
+	return port_92_reg;
 }
 
 static void port_92_write(uint16_t port, uint8_t val, void *priv)
 {
-	mem_a20_alt = val & 2;
-	mem_a20_recalc();
-
-	if (!(port_92_reg & 1) && (val & 1))
+	if (val & 1)
 	{
-		// pclog("Port 92: Soft reset\n");
 		softresetx86();
+		cpu_set_edx();
 	}
 
-	port_92_reg = val & 3;
+	port_92_reg = val & ~-1;
 
+	mem_a20_alt = val & 2;
 	mem_a20_recalc();
 }
 
