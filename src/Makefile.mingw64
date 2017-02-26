@@ -19,7 +19,7 @@ OBJ = 386.o 386_dynarec.o 386_dynarec_ops.o 808x.o acer386sx.o acerm3a.o ali1429
 	vid_olivetti_m24.o vid_oti067.o vid_paradise.o vid_pc1512.o vid_pc1640.o vid_pc200.o \
 	vid_pcjr.o vid_ps1_svga.o vid_s3.o vid_s3_virge.o vid_sdac_ramdac.o vid_stg_ramdac.o vid_svga.o \
 	vid_svga_render.o vid_tandy.o vid_tandysl.o vid_tgui9440.o vid_tkd8001_ramdac.o vid_tvga.o vid_unk_ramdac.o \
-	vid_vga.o vid_wy700.o vid_voodoo.o video.o w83877f.o wd76c10.o win.o win-crashdump.o win-config.o win-d3d.o win-d3d-fs.o win-ddraw.o \
+	vid_vga.o vid_wy700.o vid_voodoo.o video.o w83877f.o wd76c10.o win.o win-config.o win-d3d.o win-d3d-fs.o win-ddraw.o \
 	win-ddraw-fs.o win-ddraw-screenshot.o win-deviceconfig.o win-hdconf.o win-joystick.o win-joystickconfig.o win-keyboard.o win-midi.o win-mouse.o \
 	win-status.o win-video.o x86seg.o x87.o xtide.o pc.res
 DBOBJ = dbopl.o nukedopl.o vid_cga_comp.o

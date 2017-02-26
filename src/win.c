@@ -568,7 +568,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         LARGE_INTEGER qpc_freq;
         HACCEL haccel;           /* Handle to accelerator table */
 		
-		InitCrashDump(); // First thing to do before anything else is to make sure crash dumps get created.
+		// InitCrashDump(); // First thing to do before anything else is to make sure crash dumps get created.
 
         process_command_line();
         
