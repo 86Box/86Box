@@ -160,11 +160,24 @@ typedef struct riva128_t
 		uint32_t src_canvas_min, src_canvas_max;
 		uint32_t dst_canvas_min, dst_canvas_max;
 
+		uint8_t rop;
+
+		uint32_t chroma;
+
 		uint32_t beta;
 
 		uint32_t notify;
 
+		uint32_t surf_base[6];
+		uint32_t surf_limit[6];
+
+		uint32_t cliprect_min[2];
+		uint32_t cliprect_max[2];
+		uint32_t cliprect_ctrl;
+
 		uint32_t instance;
+
+		uint32_t dma_intr, dma_intr_en;
 
 		struct
 		{
@@ -1169,6 +1182,31 @@ static uint8_t riva128_pgraph_read(uint32_t addr, void *p)
 	case 0x4006a4:
 		ret = riva128->pgraph.fifo_enable & 1;
 		break;
+
+	case 0x401100:
+		ret = riva128->pgraph.dma_intr & 0xff;
+		break;
+	case 0x401101:
+		ret = (riva128->pgraph.dma_intr >> 8) & 0xff;
+		break;
+	case 0x401102:
+		ret = (riva128->pgraph.dma_intr >> 16) & 0xff;
+		break;
+	case 0x401103:
+		ret = (riva128->pgraph.dma_intr >> 24) & 0xff;
+		break;
+	case 0x401140:
+		ret = riva128->pgraph.dma_intr_en & 0xff;
+		break;
+	case 0x401141:
+		ret = (riva128->pgraph.dma_intr_en >> 8) & 0xff;
+		break;
+	case 0x401142:
+		ret = (riva128->pgraph.dma_intr_en >> 16) & 0xff;
+		break;
+	case 0x401143:
+		ret = (riva128->pgraph.dma_intr_en >> 24) & 0xff;
+		break;
 	}
 
 	if(riva128->card_id == 0x03) switch(addr)
@@ -1269,6 +1307,21 @@ static uint8_t riva128_pgraph_read(uint32_t addr, void *p)
 		case 0x40056f:
 			ret = (riva128->pgraph.oclip_ymax >> 24) & 0xff;
 			break;
+		case 0x400624:
+			ret = riva128->pgraph.rop;
+			break;
+		case 0x40062c:
+			ret = riva128->pgraph.beta & 0xff;
+			break;
+		case 0x40062d:
+			ret = (riva128->pgraph.beta >> 8) & 0xff;
+			break;
+		case 0x40062e:
+			ret = (riva128->pgraph.beta >> 16) & 0xff;
+			break;
+		case 0x40062f:
+			ret = (riva128->pgraph.beta >> 24) & 0xff;
+			break;
 		case 0x400640:
 			ret = riva128->pgraph.beta & 0xff;
 			break;
@@ -1292,6 +1345,66 @@ static uint8_t riva128_pgraph_read(uint32_t addr, void *p)
 			break;
 		case 0x400687:
 			ret = (riva128->pgraph.notify >> 24) & 0xff;
+			break;
+		case 0x400690:
+			ret = riva128->pgraph.cliprect_min[0] & 0xff;
+			break;
+		case 0x400691:
+			ret = (riva128->pgraph.cliprect_min[0] >> 8) & 0xff;
+			break;
+		case 0x400692:
+			ret = (riva128->pgraph.cliprect_min[0] >> 16) & 0xff;
+			break;
+		case 0x400693:
+			ret = (riva128->pgraph.cliprect_min[0] >> 24) & 0xff;
+			break;
+		case 0x400694:
+			ret = riva128->pgraph.cliprect_max[0] & 0xff;
+			break;
+		case 0x400695:
+			ret = (riva128->pgraph.cliprect_max[0] >> 8) & 0xff;
+			break;
+		case 0x400696:
+			ret = (riva128->pgraph.cliprect_max[0] >> 16) & 0xff;
+			break;
+		case 0x400697:
+			ret = (riva128->pgraph.cliprect_max[0] >> 24) & 0xff;
+			break;
+		case 0x400698:
+			ret = riva128->pgraph.cliprect_min[1] & 0xff;
+			break;
+		case 0x400699:
+			ret = (riva128->pgraph.cliprect_min[1] >> 8) & 0xff;
+			break;
+		case 0x40069a:
+			ret = (riva128->pgraph.cliprect_min[1] >> 16) & 0xff;
+			break;
+		case 0x40069b:
+			ret = (riva128->pgraph.cliprect_min[1] >> 24) & 0xff;
+			break;
+		case 0x40069c:
+			ret = riva128->pgraph.cliprect_max[1] & 0xff;
+			break;
+		case 0x40069d:
+			ret = (riva128->pgraph.cliprect_max[1] >> 8) & 0xff;
+			break;
+		case 0x40069e:
+			ret = (riva128->pgraph.cliprect_max[1] >> 16) & 0xff;
+			break;
+		case 0x40069f:
+			ret = (riva128->pgraph.cliprect_max[1] >> 24) & 0xff;
+			break;
+		case 0x4006a0:
+			ret = riva128->pgraph.cliprect_ctrl & 0xff;
+			break;
+		case 0x4006a1:
+			ret = (riva128->pgraph.cliprect_ctrl >> 8) & 0xff;
+			break;
+		case 0x4006a2:
+			ret = (riva128->pgraph.cliprect_ctrl >> 16) & 0xff;
+			break;
+		case 0x4006a3:
+			ret = (riva128->pgraph.cliprect_ctrl >> 24) & 0xff;
 			break;
 		}
 
@@ -1389,6 +1502,12 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
 		case 0x40056c:
 			riva128->pgraph.oclip_ymax = val & 0x3ffff;
 			break;
+		case 0x400624:
+			riva128->pgraph.rop = val & 0xff;
+			break;
+		case 0x40062c:
+			riva128->pgraph.chroma = val & 0x7fffffff;
+			break;
 		case 0x400640:
 		{
 			uint32_t tmp = val & 0x7f800000;
@@ -1399,8 +1518,17 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
 		case 0x400684:
 			riva128->pgraph.notify = val & 0x0011ffff;
 			break;
+		case 0x4006a0:
+			riva128->pgraph.cliprect_ctrl = val & 0x113;
+			break;
 		case 0x4006a4:
 			riva128->pgraph.fifo_enable = val & 1;
+			break;
+		case 0x401100:
+			riva128->pgraph.dma_intr &= ~val;
+			break;
+		case 0x401140:
+			riva128->pgraph.dma_intr_en = val & 0x00011111;
 			break;
 		}
 	else if(riva128->card_id < 0x10) switch(addr)
@@ -1736,7 +1864,7 @@ static uint8_t riva128_mmio_read(uint32_t addr, void *p)
 	addr &= 0xffffff;
 
 	//This logging condition is necessary to prevent A CATASTROPHIC LOG BLOWUP when polling PTIMER or PFIFO. DO NOT REMOVE.
-	if(!((addr >= 0x009000) && (addr <= 0x009fff)) && !((addr >= 0x002000) && (addr <= 0x003fff)) && !((addr >= 0x000000) && (addr <= 0x000003))) pclog("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
+	if(!((addr >= 0x009000) && (addr <= 0x009fff)) && !((addr >= 0x002000) && (addr <= 0x003fff)) && !((addr >= 0x000000) && (addr <= 0x000003)) && !((addr <= 0x680fff) && (addr >= 0x680000))) pclog("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
 
 	switch(addr)
 	{
