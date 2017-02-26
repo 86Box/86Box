@@ -1,4 +1,4 @@
 /* Copyright holders: Tenshi
    see COPYING for more details
 */
-#define emulator_version "1.05"
+#define emulator_version "1.10"
