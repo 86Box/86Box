@@ -3686,8 +3686,7 @@ static uint8_t s3_virge_pci_read(int func, int addr, void *p)
                 case 0x32: ret = virge->pci_regs[0x32]; break;
                 case 0x33: ret = virge->pci_regs[0x33]; break;
 
-                // case 0x3c: ret = virge->pci_regs[0x3c]; break;
-		case 0x3c: ret = 0x03; break;
+                case 0x3c: ret = virge->pci_regs[0x3c]; break;
                                 
                 case 0x3d: ret = 0x01; break; /*INTA*/
                 
@@ -3749,9 +3748,9 @@ static void s3_virge_pci_write(int func, int addr, uint8_t val, void *p)
                         mem_mapping_disable(&virge->bios_rom.mapping);
                 }
                 return;
-                case 0x3c: 
+                /* case 0x3c: 
                 virge->pci_regs[0x3c] = val;
-                return;
+                return; */
         }
 }
 
@@ -3809,6 +3808,7 @@ static void *s3_virge_init()
         virge->pci_regs[6] = 0;
         virge->pci_regs[7] = 2;
         virge->pci_regs[0x32] = 0x0c;
+	virge->pci_regs[0x3c] = device_get_config_int("irq");
         virge->pci_regs[0x3d] = 1; 
         virge->pci_regs[0x3e] = 4;
         virge->pci_regs[0x3f] = 0xff;
@@ -3903,6 +3903,7 @@ static void *s3_virge_375_init()
         virge->pci_regs[6] = 0;
         virge->pci_regs[7] = 2;
         virge->pci_regs[0x32] = 0x0c;
+	virge->pci_regs[0x3c] = device_get_config_int("irq");
         virge->pci_regs[0x3d] = 1; 
         virge->pci_regs[0x3e] = 4;
         virge->pci_regs[0x3f] = 0xff;
@@ -4042,6 +4043,58 @@ static device_config_t s3_virge_config[] =
                 .description = "Dithering",
                 .type = CONFIG_BINARY,
                 .default_int = 1
+        },
+        {
+                .name = "irq",
+                .description = "IRQ",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "IRQ 3",
+                                .value = 3
+                        },
+                        {
+                                .description = "IRQ 4",
+                                .value = 4
+                        },
+                        {
+                                .description = "IRQ 5",
+                                .value = 5
+                        },
+                        {
+                                .description = "IRQ 7",
+                                .value = 7
+                        },
+                        {
+                                .description = "IRQ 9",
+                                .value = 9
+                        },
+                        {
+                                .description = "IRQ 10",
+                                .value = 10
+                        },
+                        {
+                                .description = "IRQ 11",
+                                .value = 11
+                        },
+                        {
+                                .description = "IRQ 12",
+                                .value = 12
+                        },
+                        {
+                                .description = "IRQ 14",
+                                .value = 14
+                        },
+                        {
+                                .description = "IRQ 15",
+                                .value = 15
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 3
         },
         {
                 .type = -1

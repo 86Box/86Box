@@ -71,7 +71,7 @@ static VIDEO_CARD video_cards[] =
         {"CGA",                                    "cga",		&cga_device,                 GFX_CGA},
         {"Cirrus Logic CL-GD5429",                 "cl_gd5429",		&gd5429_device,              GFX_CL_GD5429},
         {"Diamond Stealth 32 (Tseng ET4000/w32p)", "stealth32",		&et4000w32p_device,          GFX_ET4000W32},
-        {"Diamond Stealth 64 DRAM (S3 Vision864)", "stealth64d",	&s3_diamond_stealth64_device,GFX_STEALTH64},
+        /* {"Diamond Stealth 64 DRAM (S3 Vision864)", "stealth64d",	&s3_diamond_stealth64_device,GFX_STEALTH64}, */
         {"Diamond Stealth 3D 2000 (S3 ViRGE)",     "stealth3d_2000",	&s3_virge_device,            GFX_VIRGE},
         {"EGA",                                    "ega",		&ega_device,                 GFX_EGA},
         {"Chips & Technologies SuperEGA",          "superega",		&sega_device,           	GFX_SUPER_EGA},
@@ -82,7 +82,7 @@ static VIDEO_CARD video_cards[] =
         {"Hercules Plus",                          "hercules_plus",	&herculesplus_device,        GFX_HERCULESPLUS},
         {"Hercules InColor",                       "incolor",		&incolor_device,             GFX_INCOLOR},
         {"MDA",                                    "mda",		&mda_device,                 GFX_MDA},
-        {"Miro Crystal S3 Vision964",              "mc_vision964",	&s3_miro_vision964_device,   GFX_MIRO_VISION964},
+        /* {"Miro Crystal S3 Vision964",              "mc_vision964",	&s3_miro_vision964_device,   GFX_MIRO_VISION964}, */
         {"Number Nine 9FX (S3 Trio64)",            "n9_9fx",		&s3_9fx_device,              GFX_N9_9FX},
         {"nVidia RIVA 128 (Experimental)",         "nv_riva128",	&riva128_device,             GFX_RIVA128},
         {"nVidia RIVA TNT (Experimental)",         "nv_rivatnt",	&rivatnt_device,             GFX_RIVATNT},

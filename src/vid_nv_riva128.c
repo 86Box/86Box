@@ -457,8 +457,7 @@ static void riva128_pmc_interrupt(int num, void *p)
 
 	riva128->pmc.intr |= (1 << num);
 
-	// picint(1 << riva128->pci_regs[0x3c]);
-	picint(1 << 3);
+	picint(1 << riva128->pci_regs[0x3c]);
 }
 
 static uint8_t riva128_pbus_read(uint32_t addr, void *p)
@@ -2379,8 +2378,7 @@ static uint8_t riva128_pci_read(int func, int addr, void *p)
 		break;
 
 	case 0x3c:
-		// ret = riva128->pci_regs[0x3c];
-		ret = 0x03;
+		ret = riva128->pci_regs[0x3c];
 		break;
 
 	case 0x3d:
@@ -2522,9 +2520,9 @@ static void riva128_pci_write(int func, int addr, uint8_t val, void *p)
 		}
 		return;
 
-	case 0x3c:
+	/* case 0x3c:
 		riva128->pci_regs[0x3c] = val & 0x0f;
-		return;
+		return; */
 
 	case 0x40:
 	case 0x41:
@@ -2631,9 +2629,9 @@ static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
 		}
 		return;
 
-	case 0x3c:
+	/* case 0x3c:
 		riva128->pci_regs[0x3c] = val & 0x0f;
-		return;
+		return; */
 
 	case 0x40:
 	case 0x41:
@@ -2798,7 +2796,7 @@ static void *riva128_init()
 	riva128->pci_regs[0x32] = 0x0c;
 	riva128->pci_regs[0x33] = 0x00;
 
-	//riva128->pci_regs[0x3c] = 3;
+	riva128->pci_regs[0x3c] = device_get_config_int("irq");
 
 	riva128->pmc.intr = 0;
 	riva128->pbus.intr = 0;
@@ -2942,6 +2940,58 @@ static device_config_t riva128zx_config[] =
 		},
 		.default_int = 4
 	},
+        {
+                .name = "irq",
+                .description = "IRQ",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "IRQ 3",
+                                .value = 3
+                        },
+                        {
+                                .description = "IRQ 4",
+                                .value = 4
+                        },
+                        {
+                                .description = "IRQ 5",
+                                .value = 5
+                        },
+                        {
+                                .description = "IRQ 7",
+                                .value = 7
+                        },
+                        {
+                                .description = "IRQ 9",
+                                .value = 9
+                        },
+                        {
+                                .description = "IRQ 10",
+                                .value = 10
+                        },
+                        {
+                                .description = "IRQ 11",
+                                .value = 11
+                        },
+                        {
+                                .description = "IRQ 12",
+                                .value = 12
+                        },
+                        {
+                                .description = "IRQ 14",
+                                .value = 14
+                        },
+                        {
+                                .description = "IRQ 15",
+                                .value = 15
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 3
+        },
 	{
 		.type = -1
 	}
@@ -3020,7 +3070,7 @@ static void *rivatnt_init()
 	riva128->pci_regs[0x32] = 0x0c;
 	riva128->pci_regs[0x33] = 0x00;
 
-	//riva128->pci_regs[0x3c] = 3;
+	riva128->pci_regs[0x3c] = device_get_config_int("irq");
 
 	riva128->pmc.intr = 0;
 	riva128->pbus.intr = 0;
@@ -3108,6 +3158,58 @@ static device_config_t rivatnt_config[] =
 		},
 		.default_int = 16
 	},
+        {
+                .name = "irq",
+                .description = "IRQ",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "IRQ 3",
+                                .value = 3
+                        },
+                        {
+                                .description = "IRQ 4",
+                                .value = 4
+                        },
+                        {
+                                .description = "IRQ 5",
+                                .value = 5
+                        },
+                        {
+                                .description = "IRQ 7",
+                                .value = 7
+                        },
+                        {
+                                .description = "IRQ 9",
+                                .value = 9
+                        },
+                        {
+                                .description = "IRQ 10",
+                                .value = 10
+                        },
+                        {
+                                .description = "IRQ 11",
+                                .value = 11
+                        },
+                        {
+                                .description = "IRQ 12",
+                                .value = 12
+                        },
+                        {
+                                .description = "IRQ 14",
+                                .value = 14
+                        },
+                        {
+                                .description = "IRQ 15",
+                                .value = 15
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 3
+        },
 	{
 		.type = -1
 	}
@@ -3199,7 +3301,7 @@ static void *rivatnt2_init()
 	riva128->pci_regs[0x32] = 0x0c;
 	riva128->pci_regs[0x33] = 0x00;
 
-	//riva128->pci_regs[0x3c] = 3;
+	riva128->pci_regs[0x3c] = device_get_config_int("irq");
 
 	riva128->pmc.intr = 0;
 	riva128->pbus.intr = 0;
@@ -3312,6 +3414,58 @@ static device_config_t rivatnt2_config[] =
 		},
 		.default_int = 32
 	},
+        {
+                .name = "irq",
+                .description = "IRQ",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "IRQ 3",
+                                .value = 3
+                        },
+                        {
+                                .description = "IRQ 4",
+                                .value = 4
+                        },
+                        {
+                                .description = "IRQ 5",
+                                .value = 5
+                        },
+                        {
+                                .description = "IRQ 7",
+                                .value = 7
+                        },
+                        {
+                                .description = "IRQ 9",
+                                .value = 9
+                        },
+                        {
+                                .description = "IRQ 10",
+                                .value = 10
+                        },
+                        {
+                                .description = "IRQ 11",
+                                .value = 11
+                        },
+                        {
+                                .description = "IRQ 12",
+                                .value = 12
+                        },
+                        {
+                                .description = "IRQ 14",
+                                .value = 14
+                        },
+                        {
+                                .description = "IRQ 15",
+                                .value = 15
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 3
+        },
 	{
 		.type = -1
 	}

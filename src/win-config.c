@@ -33,11 +33,11 @@ static int settings_network_to_list[20], settings_list_to_network[20];
 
 static int mouse_valid(int type, int model)
 {
-        if ((type & MOUSE_TYPE_IF_MASK) == MOUSE_TYPE_PS2 && !(models[model].flags & MODEL_PS2))
+        if (((type & MOUSE_TYPE_IF_MASK) == MOUSE_TYPE_PS2) && !(models[model].flags & MODEL_PS2))
                 return 0;
-        if ((type & MOUSE_TYPE_IF_MASK) == MOUSE_TYPE_AMSTRAD && !(models[model].flags & MODEL_AMSTRAD))
+        if (((type & MOUSE_TYPE_IF_MASK) == MOUSE_TYPE_AMSTRAD) && !(models[model].flags & MODEL_AMSTRAD))
                 return 0;
-        if ((type & MOUSE_TYPE_IF_MASK) == MOUSE_TYPE_OLIM24 && !(models[model].flags & MODEL_OLIM24))
+        if (((type & MOUSE_TYPE_IF_MASK) == MOUSE_TYPE_OLIM24) && !(models[model].flags & MODEL_OLIM24))
                 return 0;
         return 1;
 }
@@ -221,13 +221,13 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                 h = GetDlgItem(hdlg, IDC_MEMSPIN);
                 SendMessage(h, UDM_SETBUDDY, (WPARAM)GetDlgItem(hdlg, IDC_MEMTEXT), 0);
                 SendMessage(h, UDM_SETRANGE, 0, (models[romstomodel[romset]].min_ram << 16) | models[romstomodel[romset]].max_ram);
-                if (!models[model].flags & MODEL_AT)
-                        SendMessage(h, UDM_SETPOS, 0, mem_size);
-                else
-                        SendMessage(h, UDM_SETPOS, 0, mem_size / 1024);
                 accel.nSec = 0;
                 accel.nInc = models[model].ram_granularity;
                 SendMessage(h, UDM_SETACCEL, 1, (LPARAM)&accel);
+                if (!(models[model].flags & MODEL_AT))
+                        SendMessage(h, UDM_SETPOS, 0, mem_size);
+                else
+                        SendMessage(h, UDM_SETPOS, 0, mem_size / 1024);
 
                 h = GetDlgItem(hdlg, IDC_CONFIGUREMOD);
                 if (model_getdevice(model))
@@ -339,7 +339,7 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                 SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)"7 W/S");
                 SendMessage(h, CB_SETCURSEL, cpu_waitstates, 0);
                 cpu_type = models[romstomodel[romset]].cpu[cpu_manufacturer].cpus[cpu].cpu_type;
-                if (cpu_type >= CPU_286 && cpu_type <= CPU_386DX)
+                if ((cpu_type >= CPU_286) && (cpu_type <= CPU_386DX))
                         EnableWindow(h, TRUE);
                 else
                         EnableWindow(h, FALSE);
@@ -355,8 +355,9 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                 break;
 
                         type = mouse_get_type(c);
+
                         settings_mouse_to_list[c] = d;
-                        
+
                         if (mouse_valid(type, model))
                         {
                                 SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)s);

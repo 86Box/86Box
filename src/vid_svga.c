@@ -382,22 +382,40 @@ uint8_t svga_in(uint16_t addr, void *p)
                 case 0x3C1: 
                 return svga->attrregs[svga->attraddr];
                 case 0x3c2:
-		if (gfxcard == GFX_RIVA128)
+		if ((romset == ROM_IBMPS1_2011) || (romset == ROM_IBMPS1_2121) || (romset == ROM_IBMPS2_M30_286))
 		{
-	                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
+	                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x50)
+			{
         	                temp = 0;
+			}
 	                else
+			{
         	                temp = 0x10;
+			}
 		}
 		else
 		{
-			if (svga_get_input_status_0_ss(svga))
+			if (gfxcard == GFX_RIVA128)
 			{
-				temp |= 0x10;
+		                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
+				{
+        		                temp = 0;
+				}
+		                else
+				{
+        		                temp = 0x10;
+				}
 			}
 			else
 			{
-				temp &= ~0x10;
+				if (svga_get_input_status_0_ss(svga))
+				{
+					temp = 0x10;
+				}
+				else
+				{
+					temp = 0;
+				}
 			}
 		}
                 return temp;

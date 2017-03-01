@@ -2745,14 +2745,6 @@ int cdrom_block_check(uint8_t id)
 	int alloc_length = 0;
 	int ret = 0;
 
-	if (!cdrom_drives[id].bus_type)
-	{
-		cdrom_log("CD-ROM %i: Lowering IDE IRQ\n", id);
-		ide_irq_lower(&(ide_drives[cdrom_drives[id].ide_channel]));
-	}
-	
-	cdrom[id].status = BUSY_STAT;
-
 	/* If this is a media access command, and we hit the end of the block but not the entire length,
 	   read the next block. */
 	if (cdrom_is_media_access(id))
@@ -2808,7 +2800,6 @@ void cdrom_callback(uint8_t id)		/* Callback for non-Read CD commands */
 	int ret = 0;
 	int old_pos = 0;
 
-#if 0
 	if (!cdrom_drives[id].bus_type)
 	{
 		cdrom_log("CD-ROM %i: Lowering IDE IRQ\n", id);
@@ -2816,7 +2807,6 @@ void cdrom_callback(uint8_t id)		/* Callback for non-Read CD commands */
 	}
 	
 	cdrom[id].status = BUSY_STAT;
-#endif
 
 	if (cdrom[id].total_read >= cdrom[id].packet_len)
 	{

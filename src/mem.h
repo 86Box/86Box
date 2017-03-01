@@ -39,6 +39,11 @@ extern int memspeed[11];
 extern int nopageerrors;
 extern uint32_t biosmask;
 
+#define MEM_MAP_TO_SHADOW_RAM_MASK 1
+#define MEM_MAP_TO_RAM_ADDR_MASK   2
+
+extern uint32_t ram_mapped_addr[64];
+
 void mem_mapping_add(mem_mapping_t *mapping,
                     uint32_t base, 
                     uint32_t size, 

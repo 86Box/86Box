@@ -70,7 +70,8 @@ uint8_t dma_read(uint16_t addr, void *priv)
                 return temp;
 
 		case 0xd: /*Temporary register*/
-	        return dmaregs[addr & 0xd];
+	        // return dmaregs[addr & 0xd];
+		return 0;
 
 		case 0xf: /*Mask register*/
 	        return dma16.m;
@@ -89,16 +90,20 @@ void dma_write(uint16_t addr, uint8_t val, void *priv)
         {
                 case 0: case 2: case 4: case 6: /*Address registers*/
                 dma.wp ^= 1;
-                if (dma.wp) dma.ab[(addr >> 1) & 3] = (dma.ab[(addr >> 1) & 3] & 0xff00) | val;
-                else        dma.ab[(addr >> 1) & 3] = (dma.ab[(addr >> 1) & 3] & 0x00ff) | (val << 8);
+                // if (dma.wp) dma.ab[(addr >> 1) & 3] = (dma.ab[(addr >> 1) & 3] & 0xff00) | val;
+                // else        dma.ab[(addr >> 1) & 3] = (dma.ab[(addr >> 1) & 3] & 0x00ff) | (val << 8);
+                if (dma.wp) dma.ab[(addr >> 1) & 3] = val;
+                else        dma.ab[(addr >> 1) & 3] |= (((uint16_t) val) << 8);
                 dma.ac[(addr >> 1) & 3] = dma.ab[(addr >> 1) & 3] & 0xffff;
                 dmaon[(addr >> 1) & 3] = 1;
                 return;
                 
                 case 1: case 3: case 5: case 7: /*Count registers*/
                 dma.wp ^= 1;
-                if (dma.wp) dma.cb[(addr >> 1) & 3] = (dma.cb[(addr >> 1) & 3] & 0xff00) | val;
-                else        dma.cb[(addr >> 1) & 3] = (dma.cb[(addr >> 1) & 3] & 0x00ff) | (val << 8);
+                // if (dma.wp) dma.cb[(addr >> 1) & 3] = (dma.cb[(addr >> 1) & 3] & 0xff00) | val;
+                // else        dma.cb[(addr >> 1) & 3] = (dma.cb[(addr >> 1) & 3] & 0x00ff) | (val << 8);
+                if (dma.wp) dma.cb[(addr >> 1) & 3] = val;
+                else        dma.cb[(addr >> 1) & 3] |= (((uint16_t) val) << 8);
                 dma.cc[(addr >> 1) & 3] = dma.cb[(addr >> 1) & 3] & 0xffff;
 		// pclog("DMA count for channel %i now: %02X\n", (addr >> 1) & 3, dma.cc[(addr >> 1) & 3]);
                 dmaon[(addr >> 1) & 3] = 1;
@@ -111,15 +116,11 @@ void dma_write(uint16_t addr, uint8_t val, void *priv)
 		case 9: /*Request register*/
 		if (val & 4)
 		{
-			dma.request |= (1 << (channel + 4));
-			if (dma.command & 1)
-			{
-				dma.request |= (1 << channel);
-			}
+			dma.stat |= (1 << (channel + 4));
 		}
 		else
 		{
-			dma.request &= ~(1 << (channel + 4));
+			dma.stat &= ~(1 << (channel + 4));
 		}
 		return;
                 
@@ -138,9 +139,10 @@ void dma_write(uint16_t addr, uint8_t val, void *priv)
                 return;
                 
                 case 0xd: /*Master clear*/
-                dma.wp = 0;
-                dma.stat = 0;
                 dma.m = 0xf;
+		dma.command = 0;
+                dma.stat = 0;
+                dma.wp = 0;
                 return;
                 
                 case 0xe: /*Mask reset*/
@@ -178,7 +180,8 @@ uint8_t dma16_read(uint16_t addr, void *priv)
                 return temp;
 
 		case 0xd: /*Temporary register*/
-	        return dma16regs[addr & 0xd];
+	        // return dma16regs[addr & 0xd];
+		return 0;
 
 		case 0xf: /*Mask register*/
 	        return dma16.m;
@@ -198,16 +201,20 @@ void dma16_write(uint16_t addr, uint8_t val, void *priv)
         {
                 case 0: case 2: case 4: case 6: /*Address registers*/
                 dma16.wp ^= 1;
-                if (dma16.wp) dma16.ab[(addr >> 1) & 3] = (dma16.ab[(addr >> 1) & 3] & 0xff00) | val;
-                else          dma16.ab[(addr >> 1) & 3] = (dma16.ab[(addr >> 1) & 3] & 0x00ff) | (val << 8);
+                // if (dma16.wp) dma16.ab[(addr >> 1) & 3] = (dma16.ab[(addr >> 1) & 3] & 0xff00) | val;
+                // else          dma16.ab[(addr >> 1) & 3] = (dma16.ab[(addr >> 1) & 3] & 0x00ff) | (val << 8);
+                if (dma16.wp) dma16.ab[(addr >> 1) & 3] = val;
+                else        dma16.ab[(addr >> 1) & 3] |= (((uint16_t) val) << 8);
                 dma16.ac[(addr >> 1) & 3] = dma16.ab[(addr >> 1) & 3] & 0xffff;
                 dma16on[(addr >> 1) & 3] = 1;
                 return;
                 
                 case 1: case 3: case 5: case 7: /*Count registers*/
                 dma16.wp ^= 1;
-                if (dma16.wp) dma16.cb[(addr >> 1) & 3] = (dma16.cb[(addr >> 1) & 3] & 0xff00) | val;
-                else          dma16.cb[(addr >> 1) & 3] = (dma16.cb[(addr >> 1) & 3] & 0x00ff) | (val << 8);
+                // if (dma16.wp) dma16.cb[(addr >> 1) & 3] = (dma16.cb[(addr >> 1) & 3] & 0xff00) | val;
+                // else          dma16.cb[(addr >> 1) & 3] = (dma16.cb[(addr >> 1) & 3] & 0x00ff) | (val << 8);
+                if (dma16.wp) dma16.cb[(addr >> 1) & 3] = val;
+                else        dma16.cb[(addr >> 1) & 3] |= (((uint16_t) val) << 8);
                 dma16.cc[(addr >> 1) & 3] = dma16.cb[(addr >> 1) & 3] & 0xffff;
                 dma16on[(addr >> 1) & 3] = 1;
                 return;
@@ -219,15 +226,11 @@ void dma16_write(uint16_t addr, uint8_t val, void *priv)
                 case 9: /*Request register*/
 		if (val & 4)
 		{
-			dma16.request |= (1 << (channel + 4));
-			if (dma16.command & 1)
-			{
-				dma16.request |= (1 << channel);
-			}
+			dma16.stat |= (1 << (channel + 4));
 		}
 		else
 		{
-			dma16.request &= ~(1 << (channel + 4));
+			dma16.stat &= ~(1 << (channel + 4));
 		}
 		return;
                 
@@ -246,9 +249,10 @@ void dma16_write(uint16_t addr, uint8_t val, void *priv)
                 return;
                 
                 case 0xd: /*Master clear*/
-                dma16.wp = 0;
-                dma16.stat = 0;
                 dma16.m = 0xf;
+		dma16.command = 0;
+                dma16.stat = 0;
+                dma16.wp = 0;
                 return;
                 
                 case 0xe: /*Mask reset*/
@@ -278,10 +282,7 @@ void dma_page_write(uint16_t addr, uint8_t val, void *priv)
                 dma.page[1] = (AT) ? val : val & 0xf;
                 break;
 		case 0x7:
-		if (is386)
-		{
-                	dma.page[0] = (AT) ? val : val & 0xf;
-		}
+               	dma.page[0] = (AT) ? val : val & 0xf;
 		break;
                 case 0x9:
                 dma16.page[2] = val;
@@ -292,6 +293,12 @@ void dma_page_write(uint16_t addr, uint8_t val, void *priv)
                 case 0xb:
                 dma16.page[1] = val;
                 break;
+                case 0xf:
+                dma16.page[0] = val;
+                break;
+		default:
+		pclog("DMA write to extra page register: %02X\n", addr & 0xf);
+		break;
         }
 }
 

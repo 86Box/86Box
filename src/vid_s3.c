@@ -20,7 +20,7 @@
 enum
 {
         S3_VISION864,
-        S3_VISION964,
+        /* S3_VISION964, */
         S3_TRIO32,
         S3_TRIO64
 };
@@ -71,7 +71,7 @@ typedef struct s3_t
         
         svga_t svga;
         sdac_ramdac_t ramdac;
-        bt485_ramdac_t bt485_ramdac;
+        // bt485_ramdac_t bt485_ramdac;
 
         uint8_t bank;
         uint8_t ma_ext;
@@ -789,11 +789,11 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
                 
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
 //                pclog("Write RAMDAC %04X %02X %04X:%04X\n", addr, val, CS, pc);
-		if (s3->chip != S3_VISION964)
+		/* if (s3->chip != S3_VISION964) */
 	                sdac_ramdac_out(addr, val, &s3->ramdac, svga);
-		else
+		/* else
 	                bt485_ramdac_out(addr, val, &s3->bt485_ramdac, svga);
-                return;
+                return; */
 
                 case 0x3D4:
                 svga->crtcreg = val & 0x7f;
@@ -906,6 +906,7 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
                                 }
                         }
                         break;
+#if 0
                         case 0x55: case 0x43:
 				if (s3->chip == S3_VISION964)
 				{
@@ -922,6 +923,7 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
 					pclog("RS2 is now %i, RS3 is now %i\n", s3->bt485_ramdac.rs2, s3->bt485_ramdac.rs3);
 				}
 				break;
+#endif
 //                                pclog("Write CRTC R%02X %02X\n", crtcreg, val);
                 }
                 if (old != val)
@@ -960,10 +962,10 @@ uint8_t s3_in(uint16_t addr, void *p)
                 
                 case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
 //                pclog("Read RAMDAC %04X  %04X:%04X\n", addr, CS, pc);
-		if (s3->chip != S3_VISION964)
+		// if (s3->chip != S3_VISION964)
 	                return sdac_ramdac_in(addr, &s3->ramdac, svga);
-		else
-	                return bt485_ramdac_in(addr, &s3->bt485_ramdac, svga);
+		/* else
+	                return bt485_ramdac_in(addr, &s3->bt485_ramdac, svga); */
 
                 case 0x3d4:
                 return svga->crtcreg;
@@ -2287,7 +2289,7 @@ static void *s3_init(char *bios_fn, int chip)
                 svga->crtc[0x36] = 1 | (3 << 2) | (1 << 4) | (vram_sizes[vram] << 5);
 	/* Set video BIOS to 32k (bit 2 = set). */
         svga->crtc[0x37] = 5 | (7 << 5);
-	if (s3->chip == S3_VISION964)  svga->crtc[0x37] |= 0xe;
+	// if (s3->chip == S3_VISION964)  svga->crtc[0x37] |= 0xe;
 
         s3_io_set(s3);
 
@@ -2315,7 +2317,7 @@ void *s3_bahamas64_init()
         s3_t *s3 = s3_init("roms/bahamas64.BIN", S3_VISION864);
 
         s3->id = 0xc0; /*Vision864P*/
-        s3->id_ext = s3->id_ext_pci = 0xc1;
+        s3->id_ext = s3->id_ext_pci = 0xc0;
         s3->packed_mmio = 0;
         
         s3->getclock = sdac_getclock;
@@ -2393,7 +2395,7 @@ void *s3_phoenix_vision864_init()
 {
         s3_t *s3 = s3_init("roms/86c864p.bin", S3_VISION864);
 
-        s3->id = 0xc0; /*Vision864P*/
+        s3->id = 0xc1; /*Vision864P*/
         s3->id_ext = s3->id_ext_pci = 0xc1;
         s3->packed_mmio = 0;
         
@@ -2408,12 +2410,12 @@ int s3_phoenix_vision864_available()
         return rom_present("roms/86c864p.BIN");
 }
 
-void *s3_diamond_stealth64_init()
+/* void *s3_diamond_stealth64_init()
 {
         s3_t *s3 = s3_init("roms/STEALT64.BIN", S3_VISION864);
         svga_t *svga = &s3->svga;
 
-        s3->id = 0xc0; /*Vision864P*/
+        s3->id = 0xc0;
         s3->id_ext = s3->id_ext_pci = 0xc1;
         s3->packed_mmio = 0;
         
@@ -2432,7 +2434,7 @@ void *s3_miro_vision964_init()
 {
         s3_t *s3 = s3_init("roms/mirocrystal.VBI", S3_VISION964);
 
-        s3->id = 0xd0; /*Vision964P*/
+        s3->id = 0xd0;
         s3->id_ext = s3->id_ext_pci = 0xd1;
         s3->packed_mmio = 1;
 
@@ -2445,7 +2447,7 @@ void *s3_miro_vision964_init()
 int s3_miro_vision964_available()
 {
         return rom_present("roms/mirocrystal.VBI");
-}
+} */
 
 void s3_close(void *p)
 {
@@ -2649,7 +2651,7 @@ static device_config_t s3_phoenix_vision864_config[] =
         }
 };
 
-static device_config_t s3_diamond_stealth64_config[] =
+/* static device_config_t s3_diamond_stealth64_config[] =
 {
         {
                 .name = "memory",
@@ -2720,7 +2722,6 @@ static device_config_t s3_miro_vision964_config[] =
                                 .description = "8 MB",
                                 .value = 8
                         },
-                        /*Vision864 also supports 8 MB, however the Paradise BIOS is buggy (VESA modes don't work correctly)*/
                         {
                                 .description = ""
                         }
@@ -2730,7 +2731,7 @@ static device_config_t s3_miro_vision964_config[] =
         {
                 .type = -1
         }
-};
+}; */
 
 device_t s3_bahamas64_device =
 {
@@ -2797,7 +2798,7 @@ device_t s3_phoenix_vision864_device =
         s3_phoenix_vision864_config
 };
 
-device_t s3_diamond_stealth64_device =
+/* device_t s3_diamond_stealth64_device =
 {
         "S3 Vision864 (Diamond Stealth64)",
         0,
@@ -2821,4 +2822,4 @@ device_t s3_miro_vision964_device =
         s3_force_redraw,
         s3_add_status_info,
         s3_miro_vision964_config
-};
+}; */

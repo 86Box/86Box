@@ -642,9 +642,7 @@ bad_command:
 			break;
 
                         case 0xc0: /*Read input port*/
-                        keyboard_at_adddata((keyboard_at.input_port & 0xf0) | 0x80);
-                        // keyboard_at_adddata(keyboard_at.input_port | 4);
-                        // keyboard_at.input_port = ((keyboard_at.input_port + 1) & 3) | (keyboard_at.input_port & 0xfc);
+                        keyboard_at_adddata((keyboard_at.input_port & 0xfc) | 0x84);
                         break;
 
 			case 0xc1: /*Copy bits 0 to 3 of input port to status bits 4 to 7*/
@@ -726,12 +724,15 @@ uint8_t keyboard_at_read(uint16_t port, void *priv)
                 case 0x60:
                 temp = keyboard_at.out;
                 keyboard_at.status &= ~(STAT_OFULL/* | STAT_MFULL*/);
-                picintc(keyboard_at.last_irq);
 		if (PCI)
 		{
 			/* The PIIX/PIIX3 datasheet mandates that both of these interrupts are cleared on any read of port 0x60. */
 	                picintc(1 << 1);
 	                picintc(1 << 12);
+		}
+		else
+		{
+	                picintc(keyboard_at.last_irq);
 		}
                 keyboard_at.last_irq = 0;
                 break;

@@ -160,7 +160,7 @@ void m24_poll(void *p)
                         m24->sc = (m24->sc << 1) & 7;
                 if (m24->dispon)
                 {
-                        pclog("dispon %i\n", m24->linepos);
+                        // pclog("dispon %i\n", m24->linepos);
                         if (m24->displine < m24->firstline)
                         {
                                 m24->firstline = m24->displine;

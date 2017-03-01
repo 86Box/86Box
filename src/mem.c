@@ -62,6 +62,8 @@ int cachesize=256;
 uint8_t *ram,*rom;
 uint8_t romext[32768];
 
+uint32_t ram_mapped_addr[64];
+
 static void mem_load_xtide_bios()
 {
         FILE *f;
@@ -351,7 +353,10 @@ int loadbios()
                 }
                 fclose(ff);
                 fclose(f);
-                mem_load_atide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_atide_bios();
+		}
                 return 1;
                 case ROM_CMDPC30:
                 f  = romfopen("roms/cmdpc30/commodore pc 30 iii even.bin", "rb");
@@ -592,7 +597,10 @@ int loadbios()
                 fclose(f);
 //#endif
                 biosmask = 0x1ffff;
-                mem_load_atide115_bios();
+		if (enable_xtide)
+		{
+	                mem_load_atide115_bios();
+		}
                 return 1;
  
                 case ROM_IBMPS1_2121:
@@ -617,7 +625,10 @@ int loadbios()
                 fclose(ff);
                 fclose(f);
                 biosmask = 0x7fff;
-                mem_load_atide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_atide_bios();
+		}
                 return 1;
 
                 case ROM_AMIXT:
@@ -716,7 +727,10 @@ int loadbios()
                 fread(rom, 0x20000, 1, f);                
                 fclose(f);
                 biosmask = 0x1ffff;
-                mem_load_atide_bios();
+		if (enable_xtide)
+		{
+	                mem_load_atide_bios();
+		}
                 return 1;
 
                 case ROM_DTK486:
@@ -1241,6 +1255,12 @@ uint8_t *getpccache(uint32_t a)
 {
         uint32_t a2=a;
 
+        if (a2 < 0x100000 && ram_mapped_addr[a2 >> 14])
+        {
+                a = (ram_mapped_addr[a2 >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? a2 : (ram_mapped_addr[a2 >> 14] & ~0x3FFF) + (a2 & 0x3FFF);
+                return &ram[(uintptr_t)(a & 0xFFFFF000) - (uintptr_t)(a2 & ~0xFFF)];
+        }
+
         if (cr0>>31)
         {
 		pctrans=1;
@@ -1272,6 +1292,12 @@ uint32_t mem_logical_addr;
 uint8_t readmembl(uint32_t addr)
 {
         mem_logical_addr = addr;
+        if (addr < 0x100000 && ram_mapped_addr[addr >> 14])
+        {
+                addr = (ram_mapped_addr[addr >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? addr : (ram_mapped_addr[addr >> 14] & ~0x3FFF) + (addr & 0x3FFF);
+                if(addr < mem_size * 1024) return ram[addr];
+                return 0xFF;
+        }
         if (cr0 >> 31)
         {
                 addr = mmutranslate_read(addr);
@@ -1288,6 +1314,12 @@ void writemembl(uint32_t addr, uint8_t val)
 {
         mem_logical_addr = addr;
 
+        if (addr < 0x100000 && ram_mapped_addr[addr >> 14])
+        {
+                addr = (ram_mapped_addr[addr >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? addr : (ram_mapped_addr[addr >> 14] & ~0x3FFF) + (addr & 0x3FFF);
+                if(addr < mem_size * 1024) ram[addr] = val;
+                return;
+        }
         if (page_lookup[addr>>12])
         {
                 page_lookup[addr>>12]->write_b(addr, val, page_lookup[addr>>12]);
@@ -1317,6 +1349,12 @@ uint8_t readmemb386l(uint32_t seg, uint32_t addr)
         {
                 return ram[readlookup2[mem_logical_addr >> 12] + (mem_logical_addr & 0xFFF)];
         }*/
+        if (addr < 0x100000 && ram_mapped_addr[addr >> 14])
+        {
+                addr = (ram_mapped_addr[addr >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? addr : (ram_mapped_addr[addr >> 14] & ~0x3FFF) + (addr & 0x3FFF);
+                if(addr < mem_size * 1024) return ram[addr];
+                return 0xFF;
+        }
         
         if (cr0 >> 31)
         {
@@ -1341,6 +1379,12 @@ void writememb386l(uint32_t seg, uint32_t addr, uint8_t val)
         }
         
         mem_logical_addr = addr = addr + seg;
+        if (addr < 0x100000 && ram_mapped_addr[addr >> 14])
+        {
+                addr = (ram_mapped_addr[addr >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? addr : (ram_mapped_addr[addr >> 14] & ~0x3FFF) + (addr & 0x3FFF);
+                if(addr < mem_size * 1024) ram[addr] = val;
+                return;
+        }
         if (page_lookup[addr>>12])
         {
                 page_lookup[addr>>12]->write_b(addr, val, page_lookup[addr>>12]);
@@ -1366,6 +1410,10 @@ uint16_t readmemwl(uint32_t seg, uint32_t addr)
         uint32_t addr2 = mem_logical_addr = seg + addr;
         if ((addr2&0xFFF)>0xFFE)
         {
+                if (addr2 < 0x100000 && ram_mapped_addr[addr2 >> 14] && ram_mapped_addr[(addr2+1) >> 14])
+                {
+                        return readmembl(seg+addr)|(readmembl(seg+addr+1)<<8);
+                }
                 if (cr0>>31)
                 {
                         if (mmutranslate_read(addr2)   == 0xffffffff) return 0xffff;
@@ -1379,6 +1427,12 @@ uint16_t readmemwl(uint32_t seg, uint32_t addr)
                 x86gpf("NULL segment", 0);
                 // printf("NULL segment! rw %04X(%08X):%08X %02X %08X\n",CS,cs,cpu_state.pc,opcode,addr);
                 return -1;
+        }
+        if (addr2 < 0x100000 && ram_mapped_addr[addr2 >> 14])
+        {
+                addr = (ram_mapped_addr[addr2 >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? addr2 : (ram_mapped_addr[addr2 >> 14] & ~0x3FFF) + (addr2 & 0x3FFF);
+                if(addr < mem_size * 1024) return *((uint16_t *)&ram[addr]);
+                return 0xFFFF;
         }
         if (cr0>>31)
         {
@@ -1404,6 +1458,12 @@ void writememwl(uint32_t seg, uint32_t addr, uint16_t val)
         uint32_t addr2 = mem_logical_addr = seg + addr;
         if ((addr2&0xFFF)>0xFFE)
         {
+                if (addr2 < 0x100000 && ram_mapped_addr[addr2 >> 14])
+                {
+                        writemembl(seg+addr,val);
+                        writemembl(seg+addr+1,val>>8);
+                        return;
+                }
                 if (cr0>>31)
                 {
                         if (mmutranslate_write(addr2)   == 0xffffffff) return;
@@ -1426,6 +1486,12 @@ void writememwl(uint32_t seg, uint32_t addr, uint16_t val)
         {
                 x86gpf("NULL segment", 0);
                 // printf("NULL segment! ww %04X(%08X):%08X %02X %08X\n",CS,cs,cpu_state.pc,opcode,addr);
+                return;
+        }
+        if (addr2 < 0x100000 && ram_mapped_addr[addr2 >> 14])
+        {
+                addr = (ram_mapped_addr[addr2 >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? addr2 : (ram_mapped_addr[addr2 >> 14] & ~0x3FFF) + (addr2 & 0x3FFF);
+                if(addr < mem_size * 1024) *((uint16_t *)&ram[addr]) = val;
                 return;
         }
         if (page_lookup[addr2>>12])
@@ -1464,6 +1530,10 @@ uint32_t readmemll(uint32_t seg, uint32_t addr)
         uint32_t addr2 = mem_logical_addr = seg + addr;
         if ((addr2&0xFFF)>0xFFC)
         {
+                if (addr2 < 0x100000 && (ram_mapped_addr[addr2 >> 14] || ram_mapped_addr[(addr2+3) >> 14]))
+                {
+                        return readmemwl(seg,addr)|(readmemwl(seg,addr+2)<<16);
+                }
                 if (cr0>>31)
                 {
                         if (mmutranslate_read(addr2)   == 0xffffffff) return 0xffffffff;
@@ -1479,6 +1549,12 @@ uint32_t readmemll(uint32_t seg, uint32_t addr)
                 return -1;
         }
         
+        if (addr2 < 0x100000 && ram_mapped_addr[addr2 >> 14])
+        {
+                addr = (ram_mapped_addr[addr2 >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? addr2 : (ram_mapped_addr[addr2 >> 14] & ~0x3FFF) + (addr2 & 0x3FFF);
+                if(addr < mem_size * 1024) return *((uint32_t *)&ram[addr]);
+                return 0xFFFFFFFF;
+        }
         if (cr0>>31)
         {
                 addr2 = mmutranslate_read(addr2);
@@ -1516,6 +1592,12 @@ void writememll(uint32_t seg, uint32_t addr, uint32_t val)
         {
                 x86gpf("NULL segment", 0);
                 // printf("NULL segment! wl %04X(%08X):%08X %02X %08X\n",CS,cs,cpu_state.pc,opcode,addr);
+                return;
+        }
+        if (addr2 < 0x100000 && ram_mapped_addr[addr2 >> 14])
+        {
+                addr = (ram_mapped_addr[addr2 >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? addr2 : (ram_mapped_addr[addr2 >> 14] & ~0x3FFF) + (addr2 & 0x3FFF);
+                if(addr < mem_size * 1024) *((uint32_t *)&ram[addr]) = val;
                 return;
         }
         if (page_lookup[addr2>>12])
@@ -1576,10 +1658,16 @@ uint64_t readmemql(uint32_t seg, uint32_t addr)
                 return -1;
         }
         
+        if (addr2 < 0x100000 && ram_mapped_addr[addr2 >> 14])
+        {
+                addr = (ram_mapped_addr[addr2 >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? addr2 : (ram_mapped_addr[addr2 >> 14] & ~0x3FFF) + (addr2 & 0x3FFF);
+                if(addr < mem_size * 1024) return *((uint64_t *)&ram[addr]);
+                return -1;
+        }
         if (cr0>>31)
         {
                 addr2 = mmutranslate_read(addr2);
-                if (addr2==0xFFFFFFFF) return 0xFFFFFFFF;
+                if (addr2==0xFFFFFFFF) return -1;
         }
 
         addr2&=rammask;
@@ -1610,6 +1698,12 @@ void writememql(uint32_t seg, uint32_t addr, uint64_t val)
         {
                 x86gpf("NULL segment", 0);
                 // printf("NULL segment! wl %04X(%08X):%08X %02X %08X\n",CS,cs,cpu_state.pc,opcode,addr);
+                return;
+        }
+        if (addr2 < 0x100000 && ram_mapped_addr[addr2 >> 14])
+        {
+                addr = (ram_mapped_addr[addr2 >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? addr2 : (ram_mapped_addr[addr2 >> 14] & ~0x3FFF) + (addr2 & 0x3FFF);
+                if(addr < mem_size * 1024) *((uint64_t *)&ram[addr]) = val;
                 return;
         }
         if (page_lookup[addr2>>12])
@@ -2068,6 +2162,8 @@ void mem_init()
         memset(pages, 0, (((mem_size + 384) * 1024) >> 12) * sizeof(page_t));
         
         memset(page_lookup, 0, (1 << 20) * sizeof(page_t *));
+
+	memset(ram_mapped_addr, 0, 64 * sizeof(uint32_t));
         
         for (c = 0; c < (((mem_size + 384) * 1024) >> 12); c++)
         {
@@ -2078,7 +2174,7 @@ void mem_init()
         }
 
         memset(isram, 0, sizeof(isram));
-        for (c = 0; c < (mem_size / 256); c++)
+        for (c = 0; c < (mem_size / 64); c++)
         {
                 isram[c] = 1;
                 if (c >= 0xa && c <= 0xf) 
@@ -2101,7 +2197,10 @@ void mem_init()
 
         mem_set_mem_state(0x000000, (mem_size > 640) ? 0xa0000 : mem_size * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
         mem_set_mem_state(0x0c0000, 0x40000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
-        mem_set_mem_state(0x100000, (mem_size - 1024) * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+	if (mem_size > 1024)
+	{
+	        mem_set_mem_state(0x100000, (mem_size - 1024) * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+	}
 
         mem_mapping_add(&ram_low_mapping, 0x00000, (mem_size > 640) ? 0xa0000 : mem_size * 1024, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram,  MEM_MAPPING_INTERNAL, NULL);
         if (mem_size > 1024)
@@ -2156,7 +2255,7 @@ void mem_resize()
         }
         
         memset(isram, 0, sizeof(isram));
-        for (c = 0; c < (mem_size / 256); c++)
+        for (c = 0; c < (mem_size / 64); c++)
         {
                 isram[c] = 1;
                 if (c >= 0xa && c <= 0xf) 
@@ -2177,7 +2276,10 @@ void mem_resize()
 
         mem_set_mem_state(0x000000, (mem_size > 640) ? 0xa0000 : mem_size * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
         mem_set_mem_state(0x0c0000, 0x40000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
-        mem_set_mem_state(0x100000, (mem_size - 1024) * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+	if (mem_size > 1024)
+	{
+	        mem_set_mem_state(0x100000, (mem_size - 1024) * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+	}
         
         mem_mapping_add(&ram_low_mapping, 0x00000, (mem_size > 640) ? 0xa0000 : mem_size * 1024, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram,  MEM_MAPPING_INTERNAL, NULL);
         if (mem_size > 1024)

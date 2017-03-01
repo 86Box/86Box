@@ -22,10 +22,18 @@ void scat_shadow_state_update()
 {
         int i, val, val2;
 
-        // TODO - Segment A000 to BFFF shadow ram enable features and ROM enable features should be implemented later.
-        for (i = 8; i < 24; i++)
+        for (i = 0; i < 24; i++)
         {
-                val = ((scat_regs[SCAT_SHADOW_RAM_ENABLE_1 + (i >> 3)] >> (i & 7)) & 1) ? MEM_READ_INTERNAL : MEM_READ_EXTERNAL;
+                if((scat_regs[SCAT_SHADOW_RAM_ENABLE_1 + (i >> 3)] >> (i & 7)) & 1)
+                {
+                        val = MEM_READ_INTERNAL;
+                        ram_mapped_addr[i + 40] |= 1;
+                }
+                else
+                {
+                        val = MEM_READ_EXTERNAL;
+                        ram_mapped_addr[i + 40] &= ~1;
+                }
                 if (i < 8)
                 {
                         val |= ((scat_regs[SCAT_SHADOW_RAM_ENABLE_1 + (i >> 3)] >> (i & 7)) & 1) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTERNAL;
@@ -123,6 +131,7 @@ void scat_set_xms_bound(uint8_t val)
 
 uint32_t get_scat_addr(uint32_t addr, scat_t *p)
 {
+	uint32_t addr2 = addr;
         if (p && (scat_regs[SCAT_EMS_CONTROL] & 0x80) && (p->regs_2x9 & 0x80))
         {
                 addr = (addr & 0x3fff) | (((p->regs_2x9 & 3) << 8) | p->regs_2x8) << 14;
@@ -222,6 +231,16 @@ void scat_write(uint16_t port, uint8_t val, void *priv)
                         pclog("Write SCAT EMS Control Port %04X to %02X at %04X:%04X\n", port, val, CS, cpu_state.pc);
                         index = scat_ems_reg_2xA & 0x1F;
                         scat_stat[index].regs_2x8 = val;
+                        base_addr = (index + 16) << 14;
+                        if(index >= 24)
+                                base_addr += 0x30000;
+
+                        if(scat_stat[index].regs_2x9 & 0x80)
+                        {
+                                ram_mapped_addr[base_addr >> 14] &= 0xFFC000FF;
+                                ram_mapped_addr[base_addr >> 14] |= val << 14;
+                                flushmmucache();
+                        }
                 }
                 break;
                 case 0x209:
@@ -234,18 +253,18 @@ void scat_write(uint16_t port, uint8_t val, void *priv)
                         if(index >= 24)
                                 base_addr += 0x30000;
 
+			ram_mapped_addr[base_addr >> 14] &= 1;
                         if (val & 0x80)
                         {
                                 virt_addr = (((scat_stat[index].regs_2x9 & 3) << 8) | scat_stat[index].regs_2x8) << 14;
-                                mem_mapping_enable(&scat_mapping[index]);
-                                mem_mapping_set_exec(&scat_mapping[index], ram + get_scat_addr(virt_addr, &scat_stat[index]));
                                 pclog("Map page %d(address %05X) to address %06X\n", scat_ems_reg_2xA & 0x1f, base_addr, virt_addr);
+				ram_mapped_addr[base_addr >> 14] |= virt_addr | 2;
                         }
                         else
                         {
-                                mem_mapping_disable(&scat_mapping[index]);
                                 pclog("Unmap page %d(address %06X)\n", scat_ems_reg_2xA & 0x1f, base_addr);
                         }
+			flushmmucache();
 
                         if (scat_ems_reg_2xA & 0x80)
                         {
@@ -267,6 +286,16 @@ void scat_write(uint16_t port, uint8_t val, void *priv)
                         pclog("Write SCAT EMS Control Port %04X to %02X at %04X:%04X\n", port, val, CS, cpu_state.pc);
                         index = scat_ems_reg_2xA & 0x1F;
                         scat_stat[index].regs_2x8 = val;
+                        base_addr = (index + 16) << 14;
+                        if(index >= 24)
+                                base_addr += 0x30000;
+
+                        if(scat_stat[index].regs_2x9 & 0x80)
+                        {
+                                ram_mapped_addr[base_addr >> 14] &= 0xFFC000FF;
+                                ram_mapped_addr[base_addr >> 14] |= val << 14;
+                                flushmmucache();
+                        }
                 }
                 break;
                 case 0x219:
@@ -282,15 +311,14 @@ void scat_write(uint16_t port, uint8_t val, void *priv)
                         if (val & 0x80)
                         {
                                 virt_addr = (((scat_stat[index].regs_2x9 & 3) << 8) | scat_stat[index].regs_2x8) << 14;
-                                mem_mapping_enable(&scat_mapping[index]);
-                                mem_mapping_set_exec(&scat_mapping[index], ram + get_scat_addr(virt_addr, &scat_stat[index]));
                                 pclog("Map page %d(address %05X) to address %06X\n", scat_ems_reg_2xA & 0x1f, base_addr, virt_addr);
+				ram_mapped_addr[base_addr >> 14] |= virt_addr | 2;
                         }
                         else
                         {
-                                mem_mapping_disable(&scat_mapping[index]);
                                 pclog("Unmap page %d(address %05X)\n", scat_ems_reg_2xA & 0x1f, base_addr);
                         }
+			flushmmucache();
 
                         if (scat_ems_reg_2xA & 0x80)
                         {
@@ -454,6 +482,11 @@ void scat_init()
                 scat_regs[i] = 0xff;
         }
 
+        for (i = 0; i < 64; i++)
+        {
+                ram_mapped_addr[i] = 0;
+        }
+
         scat_regs[SCAT_DMA_WAIT_STATE_CONTROL] = 0;
         scat_regs[SCAT_VERSION] = 10;
         scat_regs[SCAT_CLOCK_CONTROL] = 2;
@@ -473,8 +506,6 @@ void scat_init()
         {
                 scat_stat[i].regs_2x8 = 0xff;
                 scat_stat[i].regs_2x9 = 0x03;
-                mem_mapping_add(&scat_mapping[i], (i + (i >= 24 ? 28 : 16)) << 14, 0x04000, mem_read_scatems, mem_read_scatemsw, mem_read_scatemsl, mem_write_scatems, mem_write_scatemsw, mem_write_scatemsl, ram + ((i + (i >= 24 ? 28 : 16)) << 14), 0, &scat_stat[i]);
-                mem_mapping_disable(&scat_mapping[i]);
         }
 
         // TODO - Only normal CPU accessing address FF0000 to FFFFFF mapped to ROM. Normal CPU accessing address FC0000 to FEFFFF map to ROM should be implemented later.

@@ -129,13 +129,16 @@ void ps1mb_init()
         io_sethandler(0x0322, 0x0001, ps1_read, NULL, NULL, ps1_write, NULL, NULL, NULL);
         io_sethandler(0x0324, 0x0001, ps1_read, NULL, NULL, ps1_write, NULL, NULL, NULL);
         
-        rom_init(&ps1_high_rom,
+	if (!enable_xtide)
+	{
+	        rom_init(&ps1_high_rom,
                                 "roms/ibmps1es/f80000_shell.bin",
                                 0xf80000,
                                 0x80000,
                                 0x7ffff,
                                 0,
                                 MEM_MAPPING_EXTERNAL);
+	}
 /*        rom_init_interleaved(&ps1_high_rom,
                                 "roms/ibmps1es/ibm_1057757_24-05-90.bin",
                                 "roms/ibmps1es/ibm_1057757_29-15-90.bin",
