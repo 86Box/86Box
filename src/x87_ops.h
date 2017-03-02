@@ -209,6 +209,28 @@ static inline uint16_t x87_compare(double a, double b)
 {
 #if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32
         uint32_t out;
+
+	if (!is386)
+	{
+		if (((a == INFINITY) || (a == -INFINITY)) && ((b == INFINITY) || (b == -INFINITY)))
+		{
+			// pclog("Comparing infinity\n");
+
+		        asm volatile ("" : : : "memory");
+        
+		        asm(
+		                "fldl %2\n"
+		                "fldl %1\n"
+		                "fclex\n"
+		                "fcompp\n"                
+		                "fnstsw %0\n"
+		                : "=m" (out)
+		                : "m" (a), "m" (a)
+		        );
+
+		        return out & (C0|C2|C3);
+		}
+	}
         
         /* Memory barrier, to force GCC to write to the input parameters
          * before the compare rather than after */
@@ -229,11 +251,27 @@ static inline uint16_t x87_compare(double a, double b)
         /* Generic C version is known to give incorrect results in some
          * situations, eg comparison of infinity (Unreal) */
         uint32_t out = 0;
-        
-        if (a == b)
-                out |= C3;
-        else if (a < b)
-                out |= C0;
+
+	if (is386)
+	{
+		if ((a == INFINITY) || (a == -INFINITY)) && ((b == INFINITY) || (b == -INFINITY))
+		{
+			out |= C3;
+			return out;
+		}
+
+	        if (a == b)
+        	        out |= C3;
+	        else if (a < b)
+	                out |= C0;
+	}
+	else
+	{
+	        if (a == b)
+        	        out |= C3;
+	        else if (a < b)
+	                out |= C0;
+	}
                 
         return out;
 #endif
@@ -755,7 +793,7 @@ OpFn OP_TABLE(fpu_287_db_a16)[256] =
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
-        opFNOP,        opFNOP,        opFCLEX,       opFINIT,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
+        opFNOP,        opFNOP,        opFCLEX,       opFINIT,       opFNOP,        opFNOP,        ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
@@ -793,7 +831,7 @@ OpFn OP_TABLE(fpu_287_db_a32)[256] =
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
-        opFNOP,        opFNOP,        opFCLEX,       opFINIT,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
+        opFNOP,        opFNOP,        opFCLEX,       opFINIT,       opFNOP,        opFNOP,        ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,
         ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,       ILLEGAL,

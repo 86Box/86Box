@@ -611,6 +611,10 @@ int loadbios()
                 fread(rom, 0x20000, 1, f);                
                 fclose(f);
                 biosmask = 0x1ffff;
+		if (enable_xtide)
+		{
+	                mem_load_atide115_bios();
+		}
                 return 1;
 
                 case ROM_DESKPRO_386:
@@ -729,7 +733,7 @@ int loadbios()
                 biosmask = 0x1ffff;
 		if (enable_xtide)
 		{
-	                mem_load_atide_bios();
+	                mem_load_atide115_bios();
 		}
                 return 1;
 
