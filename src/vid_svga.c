@@ -64,7 +64,7 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
         svga_t *svga = (svga_t *)p;
         int c;
         uint8_t o;
-//        printf("OUT SVGA %03X %02X %04X:%04X\n",addr,val,CS,pc);
+        // printf("OUT SVGA %03X %02X %04X:%04X\n",addr,val,CS,cpu_state.pc);
         switch (addr)
         {
 		case 0x32CB:
@@ -102,7 +102,7 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
 		return;
 
                 case 0x3C0:
-		// case 0x3C1:
+		case 0x3C1:
                 if (!svga->attrff)
                 {
                         svga->attraddr = val & 31;
@@ -170,8 +170,8 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                 if (svga->seqaddr > 0xf) return;
                 o = svga->seqregs[svga->seqaddr & 0xf];
 		/* Sanitize value for the first 5 sequencer registers. */
-		if ((svga->seqaddr & 0xf) <= 4)
-			val &= mask_seq[svga->seqaddr & 0xf];
+		/* if ((svga->seqaddr & 0xf) <= 4)
+			val &= mask_seq[svga->seqaddr & 0xf]; */
                 svga->seqregs[svga->seqaddr & 0xf] = val;
                 if (o != val && (svga->seqaddr & 0xf) == 1)
                         svga_recalctimings(svga);
@@ -236,7 +236,16 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                         if (svga->ramdac_type == RAMDAC_8BIT)
                                 svga->pallook[svga->dac_write] = makecol32(svga->vgapal[svga->dac_write].r, svga->vgapal[svga->dac_write].g, svga->vgapal[svga->dac_write].b);
                         else
-                                svga->pallook[svga->dac_write] = makecol32(video_6to8[svga->vgapal[svga->dac_write].r], video_6to8[svga->vgapal[svga->dac_write].g], video_6to8[svga->vgapal[svga->dac_write].b]);
+			{
+				if ((romset == ROM_IBMPS1_2011) || (romset == ROM_IBMPS1_2121) || (romset == ROM_IBMPS2_M30_286))
+				{
+					svga->pallook[svga->dac_write] = makecol32((svga->vgapal[svga->dac_write].r & 0x3f) * 4, (svga->vgapal[svga->dac_write].g & 0x3f) * 4, (svga->vgapal[svga->dac_write].b & 0x3f) * 4);
+ 				}
+				else
+				{
+                                	svga->pallook[svga->dac_write] = makecol32(video_6to8[svga->vgapal[svga->dac_write].r], video_6to8[svga->vgapal[svga->dac_write].g], video_6to8[svga->vgapal[svga->dac_write].b]);
+ 				}
+			}
                         svga->dac_pos = 0; 
                         svga->dac_write = (svga->dac_write + 1) & 255; 
                         break;
@@ -247,8 +256,8 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                 break;
                 case 0x3CF:
 		/* Sanitize the first 9 GDC registers. */
-		if ((svga->gdcaddr & 15) <= 8)
-			val &= mask_gdc[svga->gdcaddr & 15];
+		/* if ((svga->gdcaddr & 15) <= 8)
+			val &= mask_gdc[svga->gdcaddr & 15]; */
                 o = svga->gdcreg[svga->gdcaddr & 15];
                 switch (svga->gdcaddr & 15)
                 {
@@ -340,7 +349,7 @@ uint8_t svga_in(uint16_t addr, void *p)
 {
         svga_t *svga = (svga_t *)p;
         uint8_t temp;
-//        if (addr!=0x3da) pclog("Read port %04X\n",addr);
+        // if (addr!=0x3da) pclog("Read port %04X\n",addr);
         switch (addr)
         {
 		case 0x22CA:

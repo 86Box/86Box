@@ -29,8 +29,9 @@ static struct
 	uint16_t sector_pos[2][256];
 	uint8_t current_sector_pos_side;
 	uint16_t current_sector_pos;
-	uint8_t *cqm_data;
+	uint8_t *disk_data;
 	uint8_t is_cqm;
+	uint8_t disk_at_once;
 	uint8_t interleave;
 	uint8_t skew;
 } img[FDD_NUM];
@@ -225,10 +226,15 @@ int first_byte_is_valid(uint8_t first_byte)
 	}
 }
 
+double bit_rate_300;
+
+char ext[4];
+
+uint8_t first_byte, second_byte, third_byte, fourth_byte;
+
 void img_load(int drive, char *fn)
 {
         int size;
-        double bit_rate_300;
 	uint16_t bpb_bps;
 	uint16_t bpb_total;
 	uint8_t bpb_mid;	/* Media type ID. */
@@ -237,14 +243,17 @@ void img_load(int drive, char *fn)
 	uint32_t bpt;
 	uint8_t max_spt;	/* Used for XDF detection. */
 	int temp_rate;
-	char ext[4];
-	int fdi, cqm;
+	uint8_t fdi, cqm, fdf;
 	int i;
-	uint8_t first_byte, second_byte;
 	uint16_t comment_len = 0;
 	int16_t block_len = 0;
 	uint32_t cur_pos = 0;
 	uint8_t rep_byte = 0;
+	uint8_t run = 0;
+	uint8_t real_run = 0;
+	uint8_t *bpos;
+	uint16_t track_bytes = 0;
+	uint8_t *literal;
 
 	ext[0] = fn[strlen(fn) - 3] | 0x60;
 	ext[1] = fn[strlen(fn) - 2] | 0x60;
@@ -291,22 +300,218 @@ void img_load(int drive, char *fn)
 		fseek(img[drive].f, 0x18, SEEK_SET);
 		bpb_sides = fgetc(img[drive].f);
 
+		fseek(img[drive].f, img[drive].base, SEEK_SET);
+		first_byte = fgetc(img[drive].f);
+
 		fdi = 1;
 		cqm = 0;
+		img[drive].disk_at_once = 0;
+		fdf = 0;
 	}
 	else
 	{
-		/* Read the first type bytes. */
+		/* Read the first four bytes. */
 		fseek(img[drive].f, 0x00, SEEK_SET);
 		first_byte = fgetc(img[drive].f);
 		fseek(img[drive].f, 0x01, SEEK_SET);
 		second_byte = fgetc(img[drive].f);
+		fseek(img[drive].f, 0x02, SEEK_SET);
+		third_byte = fgetc(img[drive].f);
+		fseek(img[drive].f, 0x03, SEEK_SET);
+		fourth_byte = fgetc(img[drive].f);
+
+		if ((first_byte == 0x1A) && (second_byte == 'F') && (third_byte == 'D') && (fourth_byte == 'F'))
+		{
+			/* This is a FDF image. */
+			pclog("img_load(): File is a FDF image...\n");
+	                fwriteprot[drive] = writeprot[drive] = 1;
+			fclose(img[drive].f);
+			img[drive].f = fopen(fn, "rb");
+
+			fdf = 1;
+
+			cqm = 0;
+			img[drive].disk_at_once = 1;
+
+			fseek(img[drive].f, 0x50, SEEK_SET);
+			fread(&img[drive].tracks, 1, 4, img[drive].f);
+
+			/* Decode the entire file - pass 1, no write to buffer, determine length. */
+			fseek(img[drive].f, 0x80, SEEK_SET);
+			size = 0;
+			track_bytes = 0;
+			bpos = img[drive].disk_data;
+			while(!feof(img[drive].f))
+			{
+				if (!track_bytes)
+				{
+					/* Skip first 3 bytes - their meaning is unknown to us but could be a checksum. */
+					first_byte = fgetc(img[drive].f);
+					fread(&track_bytes, 1, 2, img[drive].f);
+					pclog("Block header: %02X %04X ", first_byte, track_bytes);
+					/* Read the length of encoded data block. */
+					fread(&track_bytes, 1, 2, img[drive].f);
+					pclog("%04X\n", track_bytes);
+				}
+
+				if (feof(img[drive].f))
+				{
+					break;
+				}
+
+				if (first_byte == 0xFF)
+				{
+					break;
+				}
+
+				if (first_byte)
+				{
+					run = fgetc(img[drive].f);
+
+					/* I *HAVE* to read something because fseek tries to be smart and never hits EOF, causing an infinite loop. */
+					track_bytes--;
+
+					if (run & 0x80)
+					{
+						/* Repeat. */
+						track_bytes--;
+						rep_byte = fgetc(img[drive].f);
+					}
+					else
+					{
+						/* Literal. */
+						track_bytes -= (run & 0x7f);
+						literal = (uint8_t *) malloc(run & 0x7f);
+						fread(literal, 1, (run & 0x7f), img[drive].f);
+						free(literal);
+					}
+					size += (run & 0x7f);
+					if (!track_bytes)
+					{
+						size--;
+					}
+				}
+				else
+				{
+					/* Literal block. */
+					size += (track_bytes - 1);
+					literal = (uint8_t *) malloc(track_bytes);
+					fread(literal, 1, track_bytes, img[drive].f);
+					free(literal);
+					track_bytes = 0;
+				}
+
+				if (feof(img[drive].f))
+				{
+					break;
+				}
+			}
+
+			/* Allocate the buffer. */
+			img[drive].disk_data = (uint8_t *) malloc(size);
+
+			/* Decode the entire file - pass 2, write to buffer. */
+			fseek(img[drive].f, 0x80, SEEK_SET);
+			track_bytes = 0;
+			bpos = img[drive].disk_data;
+			while(!feof(img[drive].f))
+			{
+				if (!track_bytes)
+				{
+					/* Skip first 3 bytes - their meaning is unknown to us but could be a checksum. */
+					first_byte = fgetc(img[drive].f);
+					fread(&track_bytes, 1, 2, img[drive].f);
+					pclog("Block header: %02X %04X ", first_byte, track_bytes);
+					/* Read the length of encoded data block. */
+					fread(&track_bytes, 1, 2, img[drive].f);
+					pclog("%04X\n", track_bytes);
+				}
+
+				if (feof(img[drive].f))
+				{
+					break;
+				}
+
+				if (first_byte == 0xFF)
+				{
+					break;
+				}
+
+				if (first_byte)
+				{
+					run = fgetc(img[drive].f);
+					real_run = (run & 0x7f);
+
+					/* I *HAVE* to read something because fseek tries to be smart and never hits EOF, causing an infinite loop. */
+					track_bytes--;
+
+					if (run & 0x80)
+					{
+						/* Repeat. */
+						track_bytes--;
+						if (!track_bytes)
+						{
+							real_run--;
+						}
+						rep_byte = fgetc(img[drive].f);
+						if (real_run)
+						{
+							memset(bpos, rep_byte, real_run);
+						}
+					}
+					else
+					{
+						/* Literal. */
+						track_bytes -= real_run;
+						literal = (uint8_t *) malloc(real_run);
+						fread(literal, 1, real_run, img[drive].f);
+						if (!track_bytes)
+						{
+							real_run--;
+						}
+						if (run & 0x7f)
+						{
+							memcpy(bpos, literal, real_run);
+						}
+						free(literal);
+					}
+					bpos += real_run;
+				}
+				else
+				{
+					/* Literal block. */
+					literal = (uint8_t *) malloc(track_bytes);
+					fread(literal, 1, track_bytes, img[drive].f);
+					memcpy(bpos, literal, track_bytes - 1);
+					free(literal);
+					bpos += (track_bytes - 1);
+					track_bytes = 0;
+				}
+
+				if (feof(img[drive].f))
+				{
+					break;
+				}
+			}
+
+			first_byte = *img[drive].disk_data;
+
+			bpb_bps = *(uint16_t *) (img[drive].disk_data + 0x0B);
+			bpb_total = *(uint16_t *) (img[drive].disk_data + 0x13);
+			bpb_mid = *(img[drive].disk_data + 0x15);
+			bpb_sectors = *(img[drive].disk_data + 0x18);
+			bpb_sides = *(img[drive].disk_data + 0x1A);
+
+			/* Jump ahead to determine the image's geometry and finish the loading. */
+			goto jump_if_fdf;
+		}
 
 		if (((first_byte == 'C') && (second_byte == 'Q')) || ((first_byte == 'c') && (second_byte == 'q')))
 		{
 			pclog("img_load(): File is a CopyQM image...\n");
-
 	                fwriteprot[drive] = writeprot[drive] = 1;
+			fclose(img[drive].f);
+			img[drive].f = fopen(fn, "rb");
 
 			fseek(img[drive].f, 0x03, SEEK_SET);
 			fread(&bpb_bps, 1, 2, img[drive].f);
@@ -326,8 +531,8 @@ void img_load(int drive, char *fn)
 			fseek(img[drive].f, 0x76, SEEK_SET);
 			img[drive].skew = fgetc(img[drive].f);
 
-			img[drive].cqm_data = (uint8_t *) malloc(((uint32_t) bpb_total) * ((uint32_t) bpb_bps));
-			memset(img[drive].cqm_data, 0xf6, ((uint32_t) bpb_total) * ((uint32_t) bpb_bps));
+			img[drive].disk_data = (uint8_t *) malloc(((uint32_t) bpb_total) * ((uint32_t) bpb_bps));
+			memset(img[drive].disk_data, 0xf6, ((uint32_t) bpb_total) * ((uint32_t) bpb_bps));
 
 			fseek(img[drive].f, 0x6F, SEEK_SET);
 			fread(&comment_len, 1, 2, img[drive].f);
@@ -352,12 +557,12 @@ void img_load(int drive, char *fn)
 						if ((cur_pos + block_len) > ((uint32_t) bpb_total) * ((uint32_t) bpb_bps))
 						{
 							block_len = ((uint32_t) bpb_total) * ((uint32_t) bpb_bps) - cur_pos;
-							memset(img[drive].cqm_data + cur_pos, rep_byte, block_len);
+							memset(img[drive].disk_data + cur_pos, rep_byte, block_len);
 							break;
 						}
 						else
 						{
-							memset(img[drive].cqm_data + cur_pos, rep_byte, block_len);
+							memset(img[drive].disk_data + cur_pos, rep_byte, block_len);
 							cur_pos += block_len;
 						}
 					}
@@ -366,12 +571,12 @@ void img_load(int drive, char *fn)
 						if ((cur_pos + block_len) > ((uint32_t) bpb_total) * ((uint32_t) bpb_bps))
 						{
 							block_len = ((uint32_t) bpb_total) * ((uint32_t) bpb_bps) - cur_pos;
-							fread(img[drive].cqm_data + cur_pos, 1, block_len, img[drive].f);
+							fread(img[drive].disk_data + cur_pos, 1, block_len, img[drive].f);
 							break;
 						}
 						else
 						{
-							fread(img[drive].cqm_data + cur_pos, 1, block_len, img[drive].f);
+							fread(img[drive].disk_data + cur_pos, 1, block_len, img[drive].f);
 							cur_pos += block_len;
 						}
 					}
@@ -380,9 +585,13 @@ void img_load(int drive, char *fn)
 			printf("Finished reading CopyQM image data\n");
 
 			cqm = 1;
+			img[drive].disk_at_once = 1;
+			fdf = 0;
+			first_byte = *img[drive].disk_data;
 		}
 		else
 		{
+			img[drive].disk_at_once = 0;
 			/* Read the BPB */
 			pclog("img_load(): File is a raw image...\n");
 			fseek(img[drive].f, 0x0B, SEEK_SET);
@@ -399,11 +608,12 @@ void img_load(int drive, char *fn)
 			cqm = 0;
 		}
 
-		img[drive].base = 0;
-		fdi = 0;
-
 	        fseek(img[drive].f, -1, SEEK_END);
 	        size = ftell(img[drive].f) + 1;
+
+jump_if_fdf:
+		img[drive].base = 0;
+		fdi = 0;
 	}
 
         img[drive].sides = 2;
@@ -432,7 +642,7 @@ void img_load(int drive, char *fn)
 	        else if (size <= (1120*1024))  { img[drive].sectors = 14; img[drive].tracks = 80; } /*Double density*/
 	        else if (size <= 1228800)      { img[drive].sectors = 15; img[drive].tracks = 80; } /*High density 1.2MB*/
 	        else if (size <= 1261568)      { img[drive].sectors =  8; img[drive].tracks = 77; img[drive].sector_size = 3; } /*High density 1.25MB Japanese format*/
-	        else if (size <= (0x1A4000-1)) { img[drive].sectors = 18; img[drive].tracks = 80; } /*High density (not supported by Tandy 1000)*/
+	        else if (size <= 1474560)      { img[drive].sectors = 18; img[drive].tracks = 80; } /*High density (not supported by Tandy 1000)*/
 	        else if (size <= 1556480)      { img[drive].sectors = 19; img[drive].tracks = 80; } /*High density (not supported by Tandy 1000)*/
 	        else if (size <= 1638400)      { img[drive].sectors = 10; img[drive].tracks = 80; img[drive].sector_size = 3; } /*High density (not supported by Tandy 1000)*/
 	        else if (size <= 1720320)      { img[drive].sectors = 21; img[drive].tracks = 80; } /*DMF format - used by Windows 95 */
@@ -467,7 +677,7 @@ void img_load(int drive, char *fn)
 		}
 		else
 		{
-			if (!cqm)
+			if (!cqm && !fdf)
 			{
 				/* Number of tracks = number of total sectors divided by sides times sectors per track. */
 				img[drive].tracks = ((uint32_t) bpb_total) / (((uint32_t) bpb_sides) * ((uint32_t) bpb_sectors));
@@ -552,9 +762,10 @@ void img_close(int drive)
 	d86f_unregister(drive);
         if (img[drive].f)
                 fclose(img[drive].f);
-        if (img[drive].cqm_data)
-                free(img[drive].cqm_data);
+        if (img[drive].disk_data)
+                free(img[drive].disk_data);
         img[drive].f = NULL;
+        img[drive].disk_data = NULL;
 }
 
 #define xdf_img_sector xdf_img_layout[current_xdft][!is_t0][sector]
@@ -602,18 +813,18 @@ void img_seek(int drive, int track)
 
 	is_t0 = (track == 0) ? 1 : 0;
 
-	if (!img[drive].is_cqm)
+	if (!img[drive].disk_at_once)
 	{
 		fseek(img[drive].f, img[drive].base + (track * img[drive].sectors * ssize * img[drive].sides), SEEK_SET);
 	}
 
 	for (side = 0; side < img[drive].sides; side++)
 	{
-		if (img[drive].is_cqm)
+		if (img[drive].disk_at_once)
 		{
 			cur_pos = (track * img[drive].sectors * ssize * img[drive].sides) + (side * img[drive].sectors * ssize);
 			// pclog("Current position: %i... ", cur_pos);
-			memcpy(img[drive].track_data[side], img[drive].cqm_data + cur_pos, img[drive].sectors * ssize);
+			memcpy(img[drive].track_data[side], img[drive].disk_data + cur_pos, img[drive].sectors * ssize);
 			// pclog("done!\n");
 		}
 		else
@@ -753,7 +964,7 @@ void img_writeback(int drive)
         if (!img[drive].f)
                 return;
 
-	if (img[drive].is_cqm)
+	if (img[drive].disk_at_once)
 		return;
                 
 	fseek(img[drive].f, img[drive].base + (img[drive].track * img[drive].sectors * ssize * img[drive].sides), SEEK_SET);

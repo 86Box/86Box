@@ -83,6 +83,7 @@ loaders[]=
         {"CQM", img_load,       img_close, -1},
         {"DSK", img_load,       img_close, -1},
         {"FDI", fdi_load,       fdi_close, -1},
+        {"FDF", img_load,       img_close, -1},
         {"FLP", img_load,       img_close, -1},
         {"HDM", img_load,       img_close, -1},
         {"IMA", img_load,       img_close, -1},

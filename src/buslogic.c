@@ -29,6 +29,8 @@
 
 #include "buslogic.h"
 
+#define BUSLOGIC_RESET_DURATION_NS UINT64_C(50000000)
+
 typedef struct __attribute__((packed))
 {
 	uint8_t hi;
@@ -531,7 +533,9 @@ typedef struct __attribute__((packed)) Buslogic_t
 
 int scsi_model = 1;
 
+int BuslogicResetCallback = 0;
 int BuslogicCallback = 0;
+
 int BuslogicInOperation = 0;
 
 /** Structure for the INQUIRE_PCI_HOST_ADAPTER_INFORMATION reply. */
@@ -621,9 +625,12 @@ static void BuslogicLocalRam(Buslogic_t *Buslogic)
     /** @todo calculate checksum? */
 }
 
+static Buslogic_t *BuslogicResetDevice;
+
 static void BuslogicReset(Buslogic_t *Buslogic)
 {
 	BuslogicCallback = 0;
+	BuslogicResetCallback = 0;
 	Buslogic->Status = STAT_IDLE | STAT_INIT;
 	Buslogic->Geometry = 0x80;
 	Buslogic->Command = 0xFF;
@@ -644,6 +651,14 @@ static void BuslogicReset(Buslogic_t *Buslogic)
 	BuslogicLocalRam(Buslogic);
 }
 
+void BuslogicSoftReset()
+{
+	if (BuslogicResetDevice != NULL)
+	{
+		BuslogicReset(BuslogicResetDevice);
+	}
+}
+
 static void BuslogicResetControl(Buslogic_t *Buslogic, uint8_t Reset)
 {
 	BuslogicReset(Buslogic);
@@ -652,6 +667,7 @@ static void BuslogicResetControl(Buslogic_t *Buslogic, uint8_t Reset)
 		Buslogic->Status |= STAT_STST;
 		Buslogic->Status &= ~STAT_IDLE;
 	}
+	BuslogicResetCallback = BUSLOGIC_RESET_DURATION_NS * TIMER_USEC;
 }
 
 static void BuslogicCommandComplete(Buslogic_t *Buslogic)
@@ -1056,12 +1072,19 @@ uint8_t BuslogicRead(uint16_t Port, void *p)
 	{
 		case 0:
 		Temp = Buslogic->Status;
+#if 0
 		if (Buslogic->Status & STAT_STST)
 		{
 			Buslogic->Status &= ~STAT_STST;
 			Buslogic->Status |= STAT_IDLE;
-			Temp = Buslogic->Status;
+
+			if (BuslogicResetCallback <= 0)
+			{
+				Temp = Buslogic->Status;
+				BuslogicResetCallback;
+			}
 		}
+#endif
 		break;
 		
 		case 1:
@@ -1246,6 +1269,9 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				break;
 
 				case 0x8C:
+				Buslogic->CmdParamLeft = scsi_model ? 1 : 0;
+				break;
+
 				case 0x95: //Valid only for PCI
 				Buslogic->CmdParamLeft = BuslogicIsPCI() ? 1 : 0;
 				break;
@@ -1336,7 +1362,7 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 						
 				case 0x0A:
 				memset(Buslogic->DataBuf, 0, 8);
-				for (i = 0; i < 6; i++)
+				for (i = 0; i < 7; i++)
 				{
 					for (j = 0; j < 8; j++)
 					{
@@ -1646,14 +1672,12 @@ void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				break;
 				
 				case 0x8C:
-				if (BuslogicIsPCI())
+				// if (BuslogicIsPCI())
+				if (scsi_model)
 				{
 					int i = 0;
 					Buslogic->DataReplyLeft = Buslogic->CmdBuf[0];
-					for (i = 0; i < Buslogic->DataReplyLeft; i++)
-					{
-						Buslogic->DataBuf[0] = 0;
-					}
+					memset(Buslogic->DataBuf, 0, Buslogic->DataReplyLeft);
 				}
 				else
 				{
@@ -2156,6 +2180,16 @@ static int BuslogicProcessMailbox(Buslogic_t *Buslogic)
 	return ret;
 }
 
+void BuslogicResetPoll(void *p)
+{
+	Buslogic_t *Buslogic = (Buslogic_t *)p;
+
+	Buslogic->Status &= ~STAT_STST;
+	Buslogic->Status |= STAT_IDLE;
+
+	BuslogicResetCallback = 0;
+}
+
 void BuslogicCommandCallback(void *p)
 {
 	Buslogic_t *Buslogic = (Buslogic_t *)p;
@@ -2169,7 +2203,7 @@ void BuslogicCommandCallback(void *p)
 
 	if (BuslogicInOperation == 0)
 	{
-		BuslogicLog("BusLogic Callback: Start outgoing mailbox\n");
+		// BuslogicLog("BusLogic Callback: Start outgoing mailbox\n");
 		if (Buslogic->MailboxCount)
 		{
 			ret = BuslogicProcessMailbox(Buslogic);
@@ -2395,6 +2429,8 @@ void *BuslogicInit()
 	Buslogic_t *Buslogic = malloc(sizeof(Buslogic_t));
 	memset(Buslogic, 0, sizeof(Buslogic_t));
 
+	BuslogicResetDevice = Buslogic;
+
 	scsi_model = device_get_config_int("model");
 	Buslogic->Base = device_get_config_int("addr");
 	Buslogic->PCIBase = 0;
@@ -2406,10 +2442,11 @@ void *BuslogicInit()
 	{
 		if (BuslogicIsPCI())
 		{
+			io_sethandler(Buslogic->Base, 0x0004, BuslogicRead, BuslogicReadW, BuslogicReadL, BuslogicWrite, BuslogicWriteW, BuslogicWriteL, Buslogic);
 		}
 		else
 		{
-			io_sethandler(Buslogic->Base, 0x0004, BuslogicRead, BuslogicReadW, BuslogicReadL, BuslogicWrite, BuslogicWriteW, BuslogicWriteL, Buslogic);
+			io_sethandler(Buslogic->Base, 0x0004, BuslogicRead, BuslogicReadW, NULL, BuslogicWrite, BuslogicWriteW, NULL, Buslogic);
 		}
 	}
 
@@ -2424,6 +2461,7 @@ void *BuslogicInit()
 		}
 	}
 
+	timer_add(BuslogicResetPoll, &BuslogicResetCallback, &BuslogicResetCallback, Buslogic);
 	timer_add(BuslogicCommandCallback, &BuslogicCallback, &BuslogicCallback, Buslogic);
 
 	if (BuslogicIsPCI())
@@ -2455,6 +2493,7 @@ void BuslogicClose(void *p)
 {
 	Buslogic_t *Buslogic = (Buslogic_t *)p;
 	free(Buslogic);
+	BuslogicResetDevice = NULL;
 }
 
 static device_config_t BuslogicConfig[] =

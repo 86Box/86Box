@@ -366,7 +366,7 @@ static int paradise_wd90c11_standalone_available()
         return rom_present("roms/megapc/41651-bios lo.u18") && rom_present("roms/megapc/211253-bios hi.u19");
 }
 
-static void *cpqvga_init()
+/* static void *cpqvga_init()
 {
         paradise_t *paradise = paradise_pvga1a_init();
         
@@ -379,7 +379,7 @@ static void *cpqvga_init()
 static int cpqvga_standalone_available()
 {
         return rom_present("roms/1988-05-18.rom");
-}
+} */
 
 void paradise_close(void *p)
 {
@@ -455,7 +455,7 @@ device_t paradise_wd90c11_device =
         paradise_force_redraw,
         paradise_add_status_info
 };
-device_t cpqvga_device =
+/* device_t cpqvga_device =
 {
         "Compaq/Paradise VGA",
         0,
@@ -465,4 +465,4 @@ device_t cpqvga_device =
         paradise_speed_changed,
         paradise_force_redraw,
         paradise_add_status_info
-};
+}; */

@@ -1,6 +1,3 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
 /*Emulation of the SVGA chip in the IBM PS/1 Model 2121, or at least the
   20 MHz version.
   
@@ -48,8 +45,6 @@ void ps1_m2121_svga_out(uint16_t addr, uint8_t val, void *p)
                 svga->crtcreg = val & 0x1f;
                 return;
                 case 0x3D5:
-		if (svga->crtcreg <= 0x18)
-			val &= mask_crtc[svga->crtcreg];
                 if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
                         return;
                 if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))

@@ -77,7 +77,7 @@ static VIDEO_CARD video_cards[] =
         {"Chips & Technologies SuperEGA",          "superega",		&sega_device,           	GFX_SUPER_EGA},
         {"Compaq ATI VGA Wonder XL (ATI-28800-5)", "compaq_ati28800",	&compaq_ati28800_device,     GFX_VGAWONDERXL},
         {"Compaq EGA",				   "compaq_ega",	&cpqega_device,           	GFX_COMPAQ_EGA},
-        {"Compaq/Paradise VGA",			   "compaq_vga",	&cpqvga_device,           	GFX_COMPAQ_VGA},
+        /* {"Compaq/Paradise VGA",			   "compaq_vga",	&cpqvga_device,           	GFX_COMPAQ_VGA}, */
         {"Hercules",                               "hercules",		&hercules_device,            GFX_HERCULES},
         {"Hercules Plus",                          "hercules_plus",	&herculesplus_device,        GFX_HERCULESPLUS},
         {"Hercules InColor",                       "incolor",		&incolor_device,             GFX_INCOLOR},

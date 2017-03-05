@@ -155,7 +155,7 @@ MODEL models[] =
         {"IBM PS/1 model 2011",		ROM_IBMPS1_2011,	"ibmps1es",		{ "",      cpus_ps1_m2011,   "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 1, MODEL_AT | MODEL_PS2,   1,  16,   1,   ps1_m2011_init, NULL},
         {"IBM PS/2 Model 30-286",	ROM_IBMPS2_M30_286,	"ibmps2_m30_286",	{ "",      cpus_ps2_m30_286, "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2,   1,  16,   1, ps2_m30_286_init, NULL},
         {"IBM PS/1 model 2121",		ROM_IBMPS1_2121,	"ibmps1_2121",		{ "Intel", cpus_i386SX,      "AMD", cpus_Am386SX, "Cyrix", cpus_486SLC, "",      NULL,     "",      NULL}, 1, MODEL_AT | MODEL_PS2,   1,  16,   1,   ps1_m2121_init, NULL},
-        {"IBM PS/1 m.2121 + ISA",	ROM_IBMPS1_2121_ISA,	"ibmps1_2121_isa",	{ "Intel", cpus_i386DX,      "AMD", cpus_Am386DX, "Cyrix", cpus_486DLC, "",      NULL,     "",      NULL}, 1, MODEL_AT | MODEL_PS2,   1,  16,   1,   ps1_m2121_init, NULL},
+        {"IBM PS/1 m.2121 + ISA",	ROM_IBMPS1_2121_ISA,	"ibmps1_2121_isa",	{ "Intel", cpus_i386DX,      "AMD", cpus_Am386DX, "Cyrix", cpus_486DLC, "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2,   1,  16,   1,   ps1_m2121_init, NULL},
         {"Compaq Deskpro 386",		ROM_DESKPRO_386,	"dekspro386",		{ "Intel", cpus_i386DX,      "AMD", cpus_Am386DX, "Cyrix", cpus_486DLC, "",      NULL,     "",      NULL}, 0, MODEL_AT,               1,  15,   1,  deskpro386_init, NULL},
         {"DTK 386SX clone",		ROM_DTK386,		"dtk386",		{ "Intel", cpus_i386SX,      "AMD", cpus_Am386SX, "Cyrix", cpus_486SLC, "",      NULL,     "",      NULL}, 0, MODEL_AT,               1,  16,   1,     at_neat_init, NULL},
         {"Amstrad MegaPC",		ROM_MEGAPC,		"megapc",		{ "Intel", cpus_i386SX,      "AMD", cpus_Am386SX, "Cyrix", cpus_486SLC, "",      NULL,     "",      NULL}, 1, MODEL_AT | MODEL_PS2,   1,  16,   1,  at_wd76c10_init, NULL},
@@ -379,7 +379,6 @@ void ps1_common_init()
         device_add(&ps1_audio_device);
         /*PS/1 audio uses ports 200h and 202-207h, so only initialise gameport on 201h*/
         if (joystick_type != 7)  device_add(&gameport_201_device);
-        fdc_set_ps1();
 }
  
 void ps1_m2011_init()
@@ -392,6 +391,7 @@ void ps1_m2121_init()
 {
         ps1_common_init();
         ps1mb_m2121_init();
+        fdc_set_ps1();
 }
 
 void ps2_m30_286_init()

@@ -642,17 +642,17 @@ bad_command:
 			break;
 
                         case 0xc0: /*Read input port*/
-                        keyboard_at_adddata((keyboard_at.input_port & 0xfc) | 0x84);
+                        keyboard_at_adddata((keyboard_at.input_port & 0xfc) | 0x84 | fdc_ps1_525());
                         break;
 
 			case 0xc1: /*Copy bits 0 to 3 of input port to status bits 4 to 7*/
 			keyboard_at.status &= 0xf;
-			keyboard_at.status |= ((keyboard_at.input_port & 0xf) << 4);
+			keyboard_at.status |= ((((keyboard_at.input_port & 0xfc) | 0x84 | fdc_ps1_525()) & 0xf) << 4);
 			break;
                         
 			case 0xc2: /*Copy bits 4 to 7 of input port to status bits 4 to 7*/
 			keyboard_at.status &= 0xf;
-			keyboard_at.status |= (keyboard_at.input_port & 0xf0);
+			keyboard_at.status |= (((keyboard_at.input_port & 0xfc) | 0x84 | fdc_ps1_525()) & 0xf0);
 			break;
                         
                         case 0xc9: /*AMI - block P22 and P23 ??? */
@@ -689,7 +689,23 @@ bad_command:
                         case 0xd4: /*Write to mouse*/
                         keyboard_at.want60 = 1;
                         break;
-                        
+
+			case 0xdd: /* Disable A20 Address Line */
+			keyboard_at.output_port &= ~0x02;
+			mem_a20_key = 0;
+			mem_a20_recalc();
+			// pclog("Rammask change to %08X %02X\n", rammask, val & 0x02);
+			flushmmucache();
+			break;
+
+			case 0xdf: /* Enable A20 Address Line */
+			keyboard_at.output_port |= 0x02;
+			mem_a20_key = 2;
+			mem_a20_recalc();
+			// pclog("Rammask change to %08X %02X\n", rammask, val & 0x02);
+			flushmmucache();
+			break;
+
                         case 0xe0: /*Read test inputs*/
                         keyboard_at_adddata(0x00);
                         break;

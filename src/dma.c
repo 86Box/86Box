@@ -297,7 +297,7 @@ void dma_page_write(uint16_t addr, uint8_t val, void *priv)
                 dma16.page[0] = val;
                 break;
 		default:
-		pclog("DMA write to extra page register: %02X\n", addr & 0xf);
+		// pclog("DMA write to extra page register: %02X\n", addr & 0xf);
 		break;
         }
 }

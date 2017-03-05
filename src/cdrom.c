@@ -2585,6 +2585,10 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 			break;
                 
 		case GPCMD_INQUIRY:
+			max_len = cdb[3];
+			max_len <<= 8;
+			max_len |= cdb[4];
+
 			if (cdb[1] & 1)
 			{
 				preamble_len = 4;
@@ -2658,7 +2662,7 @@ atapi_out:
 			cdbufferb[size_idx] = idx - preamble_len;
 			len=idx;
 
-			cdrom_data_command_finish(id, len, len, cdb[4], 0);
+			cdrom_data_command_finish(id, len, len, max_len, 0);
 			break;
 
 		case GPCMD_PREVENT_REMOVAL:

@@ -156,6 +156,18 @@ sector_id_t fdc_get_read_track_sector()
 	return fdc.read_track_sector;
 }
 
+int fdc_ps1_525()
+{
+	if ((romset == ROM_IBMPS1_2011) && fdd_is_525(real_drive(fdc.dor & 3)))
+	{
+		return 0x40;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
 int fdc_get_compare_condition()
 {
 	switch (discint)
