@@ -371,6 +371,19 @@ int loadbios()
                 fclose(f);
                 biosmask = 0x7fff;
                 return 1;
+                case ROM_CMDPC60:
+                f  = romfopen("roms/cmdpc60/cbm-pc60c-bios-lo-v1.36-390473-07.bin", "rb");
+                ff = romfopen("roms/cmdpc60/cbm-pc60c-bios-hi-v1.36-390474-07.bin",  "rb");
+                if (!f || !ff) break;
+                for (c = 0x0000; c < 0x20000; c += 2)
+                {
+                        rom[c]     = getc(f);
+                        rom[c + 1] = getc(ff);
+                }
+                fclose(ff);
+                fclose(f);
+                biosmask = 0x1ffff;
+                return 1;
                 case ROM_DELL200:
                 f=romfopen("roms/dells200/dell0.bin","rb");
                 ff=romfopen("roms/dells200/dell1.bin","rb");
@@ -728,6 +741,7 @@ int loadbios()
 				
 		case ROM_IBMPS2_M30_286:
                 f = romfopen("roms/ibmps2_m30_286/33f5381a.bin", "rb");
+                if (!f) break;
                 fread(rom, 0x20000, 1, f);                
                 fclose(f);
                 biosmask = 0x1ffff;
@@ -888,6 +902,21 @@ int loadbios()
                 fread(rom,           0x20000, 1, f);                
                 fclose(f);
                 biosmask = 0x1ffff;
+                return 1;
+
+                case ROM_ZAPPA:
+                f = romfopen("roms/zappa/1006BS0_.BIO", "rb");
+                if (!f) break;
+                fseek(f, 0x80, SEEK_SET);
+                fread(rom + 0x10000, 0x10000, 1, f);                
+                fclose(f);
+                f = romfopen("roms/zappa/1006BS0_.BI1", "rb");
+                if (!f) break;
+                fseek(f, 0x80, SEEK_SET);
+                fread(rom, 0x10000, 1, f);
+                fclose(f);
+                biosmask = 0x1ffff;
+                //is486=1;
                 return 1;
         }
         printf("Failed to load ROM!\n");

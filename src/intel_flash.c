@@ -216,6 +216,9 @@ void *intel_flash_init(uint8_t type)
 		case ROM_MRTHOR:
 			strcpy(flash_path, "roms/mrthor/");
 			break;
+		case ROM_ZAPPA:
+			strcpy(flash_path, "roms/zappa/");
+			break;
 		default:
                 fatal("intel_flash_init on unsupported ROM set %i\n", romset);
 	}

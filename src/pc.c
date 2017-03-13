@@ -743,7 +743,11 @@ void loadconfig(char *fn)
 	ethif = config_get_int(NULL, "netinterface", 1);
         if (ethif >= inum)
             inum = ethif + 1;
-        network_card_current = config_get_int(NULL, "netcard", NE2000);
+        p = (char *)config_get_string(NULL, "netcard", "");
+        if (p)
+                network_card_current = network_card_get_from_internal_name(p);
+        else
+                network_card_current = 0;
 
         p = (char *)config_get_string(NULL, "model", "");
         if (p)
@@ -767,8 +771,12 @@ void loadconfig(char *fn)
         else
                 gfxcard = 0;
         video_speed = config_get_int(NULL, "video_speed", 3);
-        sound_card_current = config_get_int(NULL, "sndcard", SB2);
-
+        p = (char *)config_get_string(NULL, "sndcard", "");
+        if (p)
+                sound_card_current = sound_card_get_from_internal_name(p);
+        else
+                sound_card_current = 0;
+ 
 	// d86f_unregister(0);
 	// d86f_unregister(1);
 
@@ -801,6 +809,7 @@ void loadconfig(char *fn)
         cdrom_drives[0].enabled = config_get_int(NULL, "cdrom_1_enabled", 0);
         cdrom_drives[0].sound_on = config_get_int(NULL, "cdrom_1_sound_on", 1);
         cdrom_drives[0].bus_type = config_get_int(NULL, "cdrom_1_bus_type", 0);
+        cdrom_drives[0].atapi_dma = config_get_int(NULL, "cdrom_1_atapi_dma", 1);
         cdrom_drives[0].ide_channel = config_get_int(NULL, "cdrom_1_ide_channel", 2);
         cdrom_drives[0].scsi_device_id = config_get_int(NULL, "cdrom_1_scsi_device_id", 2);
         cdrom_drives[0].scsi_device_lun = config_get_int(NULL, "cdrom_1_scsi_device_lun", 0);
@@ -814,6 +823,7 @@ void loadconfig(char *fn)
         cdrom_drives[1].enabled = config_get_int(NULL, "cdrom_2_enabled", 0);
         cdrom_drives[1].sound_on = config_get_int(NULL, "cdrom_2_sound_on", 1);
         cdrom_drives[1].bus_type = config_get_int(NULL, "cdrom_2_bus_type", 0);
+        cdrom_drives[1].atapi_dma = config_get_int(NULL, "cdrom_2_atapi_dma", 1);
         cdrom_drives[1].ide_channel = config_get_int(NULL, "cdrom_2_ide_channel", 3);
         cdrom_drives[1].scsi_device_id = config_get_int(NULL, "cdrom_2_scsi_device_id", 3);
         cdrom_drives[1].scsi_device_lun = config_get_int(NULL, "cdrom_2_scsi_device_lun", 0);
@@ -827,6 +837,7 @@ void loadconfig(char *fn)
         cdrom_drives[2].enabled = config_get_int(NULL, "cdrom_3_enabled", 0);
         cdrom_drives[2].sound_on = config_get_int(NULL, "cdrom_3_sound_on", 1);
         cdrom_drives[2].bus_type = config_get_int(NULL, "cdrom_3_bus_type", 0);
+        cdrom_drives[2].atapi_dma = config_get_int(NULL, "cdrom_3_atapi_dma", 1);
         cdrom_drives[2].ide_channel = config_get_int(NULL, "cdrom_3_ide_channel", 4);
         cdrom_drives[2].scsi_device_id = config_get_int(NULL, "cdrom_3_scsi_device_id", 4);
         cdrom_drives[2].scsi_device_lun = config_get_int(NULL, "cdrom_3_scsi_device_lun", 0);
@@ -840,6 +851,7 @@ void loadconfig(char *fn)
         cdrom_drives[3].enabled = config_get_int(NULL, "cdrom_4_enabled", 0);
         cdrom_drives[3].sound_on = config_get_int(NULL, "cdrom_4_sound_on", 1);
         cdrom_drives[3].bus_type = config_get_int(NULL, "cdrom_4_bus_type", 0);
+        cdrom_drives[3].atapi_dma = config_get_int(NULL, "cdrom_4_atapi_dma", 1);
         cdrom_drives[3].ide_channel = config_get_int(NULL, "cdrom_4_ide_channel", 5);
         cdrom_drives[3].scsi_device_id = config_get_int(NULL, "cdrom_4_scsi_device_id", 5);
         cdrom_drives[3].scsi_device_lun = config_get_int(NULL, "cdrom_4_scsi_device_lun", 0);
@@ -913,6 +925,7 @@ void loadconfig(char *fn)
         fdd_set_type(3, config_get_int(NULL, "drive_4_type", 1));
 
 	force_43 = config_get_int(NULL, "force_43", 0);
+	scale = config_get_int(NULL, "scale", 1);
 	enable_overscan = config_get_int(NULL, "enable_overscan", 0);
         enable_flash = config_get_int(NULL, "enable_flash", 1);
 
@@ -992,7 +1005,7 @@ void saveconfig()
 		config_set_int(NULL, "buslogic", buslogic_enabled);
 
 	config_set_int(NULL, "netinterface", ethif);
-	config_set_int(NULL, "netcard", network_card_current);
+	config_set_string(NULL, "netcard", network_card_get_internal_name(network_card_current));
 
         config_set_string(NULL, "model", model_get_internal_name());
         config_set_int(NULL, "cpu_manufacturer", cpu_manufacturer);
@@ -1002,7 +1015,7 @@ void saveconfig()
         
         config_set_string(NULL, "gfxcard", video_get_internal_name(video_old_to_new(gfxcard)));
         config_set_int(NULL, "video_speed", video_speed);
-        config_set_int(NULL, "sndcard", sound_card_current);
+	config_set_string(NULL, "sndcard", sound_card_get_internal_name(sound_card_current));
         config_set_int(NULL, "cpu_speed", cpuspeed);
         config_set_int(NULL, "has_fpu", hasfpu);
         config_set_string(NULL, "disc_a", discfns[0]);
@@ -1019,6 +1032,7 @@ void saveconfig()
         config_set_int(NULL, "cdrom_1_enabled", cdrom_drives[0].enabled);
         config_set_int(NULL, "cdrom_1_sound_on", cdrom_drives[0].sound_on);
         config_set_int(NULL, "cdrom_1_bus_type", cdrom_drives[0].bus_type);
+        config_set_int(NULL, "cdrom_1_atapi_dma", cdrom_drives[0].atapi_dma);
         config_set_int(NULL, "cdrom_1_ide_channel", cdrom_drives[0].ide_channel);
         config_set_int(NULL, "cdrom_1_scsi_device_id", cdrom_drives[0].scsi_device_id);		
         config_set_int(NULL, "cdrom_1_scsi_device_lun", cdrom_drives[0].scsi_device_lun);
@@ -1030,6 +1044,7 @@ void saveconfig()
         config_set_int(NULL, "cdrom_2_sound_on", cdrom_drives[1].sound_on);
         config_set_int(NULL, "cdrom_2_bus_type", cdrom_drives[1].bus_type);
         config_set_int(NULL, "cdrom_2_ide_channel", cdrom_drives[1].ide_channel);
+        config_set_int(NULL, "cdrom_2_atapi_dma", cdrom_drives[1].atapi_dma);
         config_set_int(NULL, "cdrom_2_scsi_device_id", cdrom_drives[1].scsi_device_id);
         config_set_int(NULL, "cdrom_2_scsi_device_lun", cdrom_drives[1].scsi_device_lun);
 
@@ -1039,6 +1054,7 @@ void saveconfig()
         config_set_int(NULL, "cdrom_3_enabled", cdrom_drives[2].enabled);
         config_set_int(NULL, "cdrom_3_sound_on", cdrom_drives[2].sound_on);
         config_set_int(NULL, "cdrom_3_bus_type", cdrom_drives[2].bus_type);
+        config_set_int(NULL, "cdrom_3_atapi_dma", cdrom_drives[2].atapi_dma);
         config_set_int(NULL, "cdrom_3_ide_channel", cdrom_drives[2].ide_channel);
         config_set_int(NULL, "cdrom_3_scsi_device_id", cdrom_drives[2].scsi_device_id);
         config_set_int(NULL, "cdrom_3_scsi_device_lun", cdrom_drives[2].scsi_device_lun);
@@ -1049,6 +1065,7 @@ void saveconfig()
         config_set_int(NULL, "cdrom_4_enabled", cdrom_drives[3].enabled);
         config_set_int(NULL, "cdrom_4_sound_on", cdrom_drives[3].sound_on);
         config_set_int(NULL, "cdrom_4_bus_type", cdrom_drives[3].bus_type);
+        config_set_int(NULL, "cdrom_4_atapi_dma", cdrom_drives[3].atapi_dma);
         config_set_int(NULL, "cdrom_4_ide_channel", cdrom_drives[3].ide_channel);
         config_set_int(NULL, "cdrom_4_scsi_device_id", cdrom_drives[3].scsi_device_id);
         config_set_int(NULL, "cdrom_4_scsi_device_lun", cdrom_drives[3].scsi_device_lun);
@@ -1104,6 +1121,7 @@ void saveconfig()
         config_set_int(NULL, "drive_4_type", fdd_get_type(3));
 
         config_set_int(NULL, "force_43", force_43);
+        config_set_int(NULL, "scale", scale);
         config_set_int(NULL, "enable_overscan", enable_overscan);
         config_set_int(NULL, "enable_flash", enable_flash);
         

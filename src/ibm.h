@@ -425,7 +425,9 @@ enum
         ROM_SUPER286TR,	/*Hyundai Super-286TR / SCAT / Award BIOS*/
 
         ROM_MEGAPCDX,	/*386DX mdoel of the Mega PC - Note by Tohka: The documentation (that I have in German) clearly says such a model exists.*/
-	ROM_PX486,	/*Phoenix 486 clone*/
+        ROM_ZAPPA,	/*Intel Advanced/ZP / 430FX / AMI BIOS / National Semiconductors PC87306*/
+
+        ROM_CMDPC60,
 
         ROM_MAX
 };
@@ -639,3 +641,5 @@ extern int enable_external_fpu;
 extern int invert_display;
 
 uint32_t svga_color_transform(uint32_t color);
+
+extern int scale;

@@ -21,6 +21,10 @@
 #define IDM_VID_REMEMBER   40051
 #define IDM_VID_DDRAW      40060
 #define IDM_VID_D3D        40061
+#define IDM_VID_SCALE_1X   40064
+#define IDM_VID_SCALE_2X   40065
+#define IDM_VID_SCALE_3X   40066
+#define IDM_VID_SCALE_4X   40067
 #define IDM_VID_FULLSCREEN 40070
 #define IDM_VID_FS_FULL    40071
 #define IDM_VID_FS_43      40072
@@ -44,6 +48,7 @@
 #define IDM_CDROM_1_ENABLED  40300
 #define IDM_CDROM_1_SOUND_ON 40400
 #define IDM_CDROM_1_SCSI     40500
+#define IDM_CDROM_1_DMA      40501
 #define IDM_CDROM_1_C	     40600
 #define IDM_CDROM_1_D	     40601
 #define IDM_CDROM_1_E	     40602
@@ -82,6 +87,7 @@
 #define IDM_CDROM_2_ENABLED  41300
 #define IDM_CDROM_2_SOUND_ON 41400
 #define IDM_CDROM_2_SCSI     41500
+#define IDM_CDROM_2_DMA      41501
 #define IDM_CDROM_2_C	     41600
 #define IDM_CDROM_2_D	     41601
 #define IDM_CDROM_2_E	     41602
@@ -120,6 +126,7 @@
 #define IDM_CDROM_3_ENABLED  42300
 #define IDM_CDROM_3_SOUND_ON 42400
 #define IDM_CDROM_3_SCSI     42500
+#define IDM_CDROM_3_DMA      42501
 #define IDM_CDROM_3_C	     42600
 #define IDM_CDROM_3_D	     42601
 #define IDM_CDROM_3_E	     42602
@@ -158,6 +165,7 @@
 #define IDM_CDROM_4_ENABLED  43300
 #define IDM_CDROM_4_SOUND_ON 43400
 #define IDM_CDROM_4_SCSI     43500
+#define IDM_CDROM_4_DMA      43501
 #define IDM_CDROM_4_C	     43600
 #define IDM_CDROM_4_D	     43601
 #define IDM_CDROM_4_E	     43602

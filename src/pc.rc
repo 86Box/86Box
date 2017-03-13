@@ -41,6 +41,7 @@ BEGIN
                         MENUITEM "S&ound enabled", IDM_CDROM_1_SOUND_ON
                         MENUITEM SEPARATOR
                         MENUITEM "&SCSI", IDM_CDROM_1_SCSI
+                        MENUITEM "Atapi &DMA enabled", IDM_CDROM_1_DMA
                         MENUITEM SEPARATOR
                         MENUITEM "E&mpty",IDM_CDROM_1_EMPTY
                         MENUITEM "&Reload previous disc",IDM_CDROM_1_RELOAD
@@ -95,6 +96,7 @@ BEGIN
                         MENUITEM "S&ound enabled", IDM_CDROM_2_SOUND_ON
                         MENUITEM SEPARATOR
                         MENUITEM "&SCSI", IDM_CDROM_2_SCSI
+                        MENUITEM "Atapi &DMA enabled", IDM_CDROM_2_DMA
                         MENUITEM SEPARATOR
                         MENUITEM "E&mpty",IDM_CDROM_2_EMPTY
                         MENUITEM "&Reload previous disc",IDM_CDROM_2_RELOAD
@@ -149,6 +151,7 @@ BEGIN
                         MENUITEM "S&ound enabled", IDM_CDROM_3_SOUND_ON
                         MENUITEM SEPARATOR
                         MENUITEM "&SCSI", IDM_CDROM_3_SCSI
+                        MENUITEM "Atapi &DMA enabled", IDM_CDROM_3_DMA
                         MENUITEM SEPARATOR
                         MENUITEM "E&mpty",IDM_CDROM_3_EMPTY
                         MENUITEM "&Reload previous disc",IDM_CDROM_3_RELOAD
@@ -203,6 +206,8 @@ BEGIN
                         MENUITEM "S&ound enabled", IDM_CDROM_4_SOUND_ON
                         MENUITEM SEPARATOR
                         MENUITEM "&SCSI", IDM_CDROM_4_SCSI
+                        MENUITEM "Atapi &DMA enabled", IDM_CDROM_4_DMA
+                        MENUITEM SEPARATOR
                         MENUITEM "E&mpty",IDM_CDROM_4_EMPTY
                         MENUITEM "&Reload previous disc",IDM_CDROM_4_RELOAD
                         MENUITEM SEPARATOR
@@ -290,10 +295,18 @@ BEGIN
                         MENUITEM "&Resizeable window",IDM_VID_RESIZE
                         MENUITEM "R&emember size && position",IDM_VID_REMEMBER
                         MENUITEM SEPARATOR
+                        MENUITEM "D&isc activity flash", IDM_VID_FLASH
+                        MENUITEM SEPARATOR
                         MENUITEM "&DirectDraw", IDM_VID_DDRAW
                         MENUITEM "Direct&3D 9",   IDM_VID_D3D
                         MENUITEM SEPARATOR
-                        MENUITEM "D&isc activity flash", IDM_VID_FLASH
+                        POPUP "&Window scale factor"
+                        BEGIN
+                                MENUITEM "&0.5x", IDM_VID_SCALE_1X
+                                MENUITEM "&1x", IDM_VID_SCALE_2X
+                                MENUITEM "1.&5x", IDM_VID_SCALE_3X
+                                MENUITEM "&2x", IDM_VID_SCALE_4X
+                        END
                         MENUITEM SEPARATOR
                         MENUITEM "&Fullscreen", IDM_VID_FULLSCREEN
                         POPUP "Fullscreen &stretch mode"

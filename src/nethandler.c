@@ -21,15 +21,16 @@ static int network_card_last = 0;
 
 typedef struct
 {
-        char name[32];
+        char name[64];
+	char internal_name[32];
         device_t *device;
 } NETWORK_CARD;
 
 static NETWORK_CARD network_cards[] =
 {
-        {"None",                  NULL},
-        {"Novell NE2000",         &ne2000_device},
-        {"Realtek RTL8029AS",     &rtl8029as_device},
+        {"None",                  "none",	NULL},
+        {"Novell NE2000",         "ne2k",	&ne2000_device},
+        {"Realtek RTL8029AS",     "ne2kpci",	&rtl8029as_device},
         {"", NULL}
 };
 
@@ -56,6 +57,25 @@ int network_card_has_config(int card)
         if (!network_cards[card].device)
                 return 0;
         return network_cards[card].device->config ? 1 : 0;
+}
+
+char *network_card_get_internal_name(int card)
+{
+        return network_cards[card].internal_name;
+}
+
+int network_card_get_from_internal_name(char *s)
+{
+	int c = 0;
+	
+	while (strlen(network_cards[c].internal_name))
+	{
+		if (!strcmp(network_cards[c].internal_name, s))
+			return c;
+		c++;
+	}
+	
+	return 0;
 }
 
 void network_card_init()

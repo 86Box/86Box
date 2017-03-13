@@ -139,6 +139,7 @@ typedef struct __attribute__((__packed__))
 	uint8_t scsi_device_lun;
 	
 	uint8_t sound_on;
+	uint8_t atapi_dma;
 } cdrom_drive_t;
 
 extern cdrom_drive_t cdrom_drives[CDROM_NUM];

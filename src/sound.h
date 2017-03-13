@@ -8,6 +8,8 @@ int sound_card_available(int card);
 char *sound_card_getname(int card);
 struct device_t *sound_card_getdevice(int card);
 int sound_card_has_config(int card);
+char *sound_card_get_internal_name(int card);
+int sound_card_get_from_internal_name(char *s);
 void sound_card_init();
 void sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r);
 

@@ -27,25 +27,26 @@ static int sound_card_last = 0;
 
 typedef struct
 {
-        char name[32];
+        char name[64];
+        char internal_name[24];
         device_t *device;
 } SOUND_CARD;
 
 static SOUND_CARD sound_cards[] =
 {
-        {"None",                  NULL},
-        {"Adlib",                 &adlib_device},
-        {"Sound Blaster 1.0",     &sb_1_device},
-        {"Sound Blaster 1.5",     &sb_15_device},
-        {"Sound Blaster 2.0",     &sb_2_device},
-        {"Sound Blaster Pro v1",  &sb_pro_v1_device},
-        {"Sound Blaster Pro v2",  &sb_pro_v2_device},
-        {"Sound Blaster 16",      &sb_16_device},
-        {"Sound Blaster AWE32",   &sb_awe32_device},
-        {"Adlib Gold",            &adgold_device},
-        {"Windows Sound System",  &wss_device},        
-        {"Pro Audio Spectrum 16", &pas16_device},
-        {"", NULL}
+        {"None",                  "none",	NULL},
+        {"Adlib",                 "adlib",	&adlib_device},
+        {"Sound Blaster 1.0",     "sb",		&sb_1_device},
+        {"Sound Blaster 1.5",     "sb1.5",	&sb_15_device},
+        {"Sound Blaster 2.0",     "sb2.0",	&sb_2_device},
+        {"Sound Blaster Pro v1",  "sbprov1",	&sb_pro_v1_device},
+        {"Sound Blaster Pro v2",  "sbprov2",	&sb_pro_v2_device},
+        {"Sound Blaster 16",      "sb16",	&sb_16_device},
+        {"Sound Blaster AWE32",   "sbawe32",	&sb_awe32_device},
+        {"Adlib Gold",            "adlibgold",	&adgold_device},
+        {"Windows Sound System",  "wss",	&wss_device},        
+        {"Pro Audio Spectrum 16", "pas16",	&pas16_device},
+        {"", "", NULL}
 };
 
 int sound_card_available(int card)
@@ -71,6 +72,25 @@ int sound_card_has_config(int card)
         if (!sound_cards[card].device)
                 return 0;
         return sound_cards[card].device->config ? 1 : 0;
+}
+
+char *sound_card_get_internal_name(int card)
+{
+        return sound_cards[card].internal_name;
+}
+
+int sound_card_get_from_internal_name(char *s)
+{
+	int c = 0;
+	
+	while (strlen(sound_cards[c].internal_name))
+	{
+		if (!strcmp(sound_cards[c].internal_name, s))
+			return c;
+		c++;
+	}
+	
+	return 0;
 }
 
 void sound_card_init()

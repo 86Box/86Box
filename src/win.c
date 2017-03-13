@@ -114,6 +114,11 @@ static int win_doresize = 0;
 
 static int leave_fullscreen_flag = 0;
 
+static int unscaled_size_x = 0;
+static int unscaled_size_y = 0;
+
+int scale = 0;
+
 void updatewindowsize(int x, int y)
 {
         RECT r;
@@ -130,7 +135,7 @@ void updatewindowsize(int x, int y)
 		temp_overscan_x = temp_overscan_y = 0;
 	}
 
-        winsizex=x; efwinsizey=y;
+        unscaled_size_x=x; efwinsizey=y;
 
 	if (force_43)
 	{
@@ -138,30 +143,50 @@ void updatewindowsize(int x, int y)
 		if (temp_overscan_y == 16)
 		{
 			/* CGA */
-			winsizey = ((int) (((double) (x - temp_overscan_x) / 4.0) * 3.0)) + temp_overscan_y;
+			unscaled_size_y = ((int) (((double) (x - temp_overscan_x) / 4.0) * 3.0)) + temp_overscan_y;
 		}
 		else if (temp_overscan_y < 16)
 		{
 			/* MDA/Hercules */
-			winsizey = efwinsizey;
+			unscaled_size_y = ((int) (((double) (x) / 4.0) * 3.0));
 		}
 		else
 		{
 			if (enable_overscan)
 			{
 				/* EGA/(S)VGA with overscan */
-				winsizey = ((int) (((double) (x - temp_overscan_x) / 4.0) * 3.0)) + temp_overscan_y;
+				unscaled_size_y = ((int) (((double) (x - temp_overscan_x) / 4.0) * 3.0)) + temp_overscan_y;
 			}
 			else
 			{
 				/* EGA/(S)VGA without overscan */
-				winsizey = efwinsizey;
+				unscaled_size_y = ((int) (((double) (x) / 4.0) * 3.0));
 			}
 		}
 	}
 	else
 	{
-		winsizey = efwinsizey;
+		unscaled_size_y = efwinsizey;
+	}
+
+	switch(scale)
+	{
+		case 0:
+			winsizex = unscaled_size_x >> 1;
+			winsizey = unscaled_size_y >> 1;
+			break;
+		case 1:
+			winsizex = unscaled_size_x;
+			winsizey = unscaled_size_y;
+			break;
+		case 2:
+			winsizex = (unscaled_size_x * 3) >> 1;
+			winsizey = (unscaled_size_y * 3) >> 1;
+			break;
+		case 3:
+			winsizex = unscaled_size_x << 1;
+			winsizey = unscaled_size_y << 1;
+			break;
 	}
 
         win_doresize = 1;
@@ -169,7 +194,7 @@ void updatewindowsize(int x, int y)
 
 void uws_natural()
 {
-	updatewindowsize(winsizex, efwinsizey);
+	updatewindowsize(unscaled_size_x, efwinsizey);
 }
 
 void releasemouse()
@@ -681,6 +706,9 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	        if (cdrom_drives[e].bus_type)
         	   CheckMenuItem(menu, IDM_CDROM_1_SCSI + (e * 1000), MF_CHECKED);
 
+	        if (cdrom_drives[e].atapi_dma)
+        	   CheckMenuItem(menu, IDM_CDROM_1_DMA + (e * 1000), MF_CHECKED);
+
 		if (!find_in_array(valid_ide_channels, cdrom_drives[e].ide_channel, 8, IDM_CDROM_1_C + (e * 1000)))
 		{
 			fatal("CD-ROM %i: Invalid IDE channel\n", e);
@@ -767,7 +795,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         CheckMenuItem(menu, IDM_VID_FS_FULL + video_fullscreen_scale, MF_CHECKED);
         CheckMenuItem(menu, IDM_VID_REMEMBER, window_remember ? MF_CHECKED : MF_UNCHECKED);
 //        set_display_switch_mode(SWITCH_BACKGROUND);
-        
+	CheckMenuItem(menu, IDM_VID_SCALE_1X + scale, MF_CHECKED);
+
 	// pclog("Preparing ROM sets...\n");        
         d=romset;
         for (c=0;c<ROM_MAX;c++)
@@ -1411,6 +1440,16 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         saveconfig();
                         break;
 
+                        case IDM_VID_SCALE_1X:
+                        case IDM_VID_SCALE_2X:
+                        case IDM_VID_SCALE_3X:
+                        case IDM_VID_SCALE_4X:
+                        CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_UNCHECKED);
+			scale = LOWORD(wParam) - IDM_VID_SCALE_1X;
+                        CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_CHECKED);
+                        saveconfig();
+			break;
+
 			case IDM_USE_NUKEDOPL:
                         if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
 			{
@@ -1561,6 +1600,24 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			Sleep(100);
 			cdrom_drives[cdrom_id].bus_type ^= 1;
 			CheckMenuItem(hmenu, IDM_CDROM_1_SCSI + (cdrom_id * 1000), cdrom_drives[cdrom_id].bus_type ? MF_CHECKED : MF_UNCHECKED);
+			saveconfig();
+			resetpchard();
+			pause = 0;
+			break;
+                        
+			case IDM_CDROM_1_DMA:
+			case IDM_CDROM_2_DMA:
+			case IDM_CDROM_3_DMA:
+			case IDM_CDROM_4_DMA:
+			cdrom_id = convert_cdrom_id(LOWORD(wParam) - IDM_CDROM_1_DMA);
+                        if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL) != IDOK)
+			{
+				break;
+			}
+			pause = 1;
+			Sleep(100);
+			cdrom_drives[cdrom_id].atapi_dma ^= 1;
+			CheckMenuItem(hmenu, IDM_CDROM_1_DMA + (cdrom_id * 1000), cdrom_drives[cdrom_id].atapi_dma ? MF_CHECKED : MF_UNCHECKED);
 			saveconfig();
 			resetpchard();
 			pause = 0;

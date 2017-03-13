@@ -331,7 +331,7 @@ void cdrom_init(int id, int cdb_len_setting, int bus_type)
 	cdrom[id].cd_status = CD_STATUS_EMPTY;
 	cdrom[id].sense[0] = 0xf0;
 	cdrom[id].sense[7] = 10;
-	cdrom_drives[id].bus_mode = cdrom_drives[id].bus_type ? 2 : 3;
+	cdrom_drives[id].bus_mode = cdrom_drives[id].bus_type ? 2 : (cdrom_drives[id].atapi_dma ? 3 : 1);
 	cdrom_log("CD-ROM %i: Bus type %i, bus mode %i\n", id, cdrom_drives[id].bus_type, cdrom_drives[id].bus_mode);
 	if (!cdrom_drives[id].bus_type)
 	{
