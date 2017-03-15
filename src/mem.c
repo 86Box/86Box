@@ -201,6 +201,40 @@ int loadbios()
                 fclose(f);
                 return 1;
                 
+                case ROM_PORTABLE:
+                f=romfopen("roms/portable/Compaq Portable Plus 100666-001 Rev C u47.bin","rb");
+                if (!f) break;
+                fread(rom+0xE000,8192,1,f);
+                fclose(f);
+                return 1;
+
+                case ROM_PORTABLEII:
+                f = romfopen("roms/portableii/62x0820.u27", "rb");
+                ff  =romfopen("roms/portableii/62x0821.u47", "rb");
+                if (!f || !ff) break;
+                for (c=0x0000;c<0x10000;c+=2)
+                {
+                        rom[c]=getc(f);
+                        rom[c+1]=getc(ff);
+                }
+                fclose(ff);
+                fclose(f);
+                return 1;
+				
+                case ROM_PORTABLEIII:
+				case ROM_PORTABLEIII386:
+                f = romfopen("roms/portableiii/62x0820.u27", "rb");
+                ff  =romfopen("roms/portableiii/62x0821.u47", "rb");
+                if (!f || !ff) break;
+                for (c=0x0000;c<0x10000;c+=2)
+                {
+                        rom[c]=getc(f);
+                        rom[c+1]=getc(ff);
+                }
+                fclose(ff);
+                fclose(f);
+                return 1;				
+				
                 case ROM_GENXT:
                 f=romfopen("roms/genxt/pcxt.rom","rb");
                 if (!f) break;
@@ -519,10 +553,6 @@ int loadbios()
                 fread(rom, 0x20000, 1, f);                
                 fclose(f);
 //#endif
-		if (enable_xtide)
-		{
-			mem_load_atide115_bios();
-		}
                 biosmask = 0x1ffff;
                 return 1;
  

@@ -9,6 +9,7 @@
 #define MODEL_NEC     32
 #define MODEL_FUJITSU 64
 #define MODEL_RM      128
+#define MODEL_PS2_HDD	  256
 
 typedef struct
 {

@@ -211,6 +211,8 @@ void loadnvr()
                 case ROM_IBMPS1_2121_ISA: f = romfopen(nvr_concat("ibmps1_2121_isa.nvr"), "rb"); nvrmask = 127; break;
                 case ROM_IBMPS2_M30_286: f = romfopen(nvr_concat("ibmps2_m30_286.nvr"), "rb"); nvrmask = 127; break;
                 case ROM_CMDPC30:     f = romfopen(nvr_concat("cmdpc30.nvr"),     "rb"); nvrmask = 127; break;
+				case ROM_PORTABLEII:  f = romfopen(nvr_concat("portableii.nvr"),  "rb"); break;
+				case ROM_PORTABLEIII: f = romfopen(nvr_concat("portableiii.nvr"),  "rb"); break;
                 case ROM_AMI286:      f = romfopen(nvr_concat("ami286.nvr"),      "rb"); nvrmask = 127; break;
                 case ROM_AWARD286:    f = romfopen(nvr_concat("award286.nvr"),    "rb"); nvrmask = 127; break;
                 case ROM_DELL200:     f = romfopen(nvr_concat("dell200.nvr"),     "rb"); nvrmask = 127; break;
@@ -218,6 +220,7 @@ void loadnvr()
                 case ROM_SPC4200P:    f = romfopen(nvr_concat("spc4200p.nvr"),    "rb"); nvrmask = 127; break;
                 case ROM_IBMAT386:    f = romfopen(nvr_concat("at386.nvr"),       "rb"); nvrmask = 127; break;
                 case ROM_DESKPRO_386: f = romfopen(nvr_concat("deskpro386.nvr"),  "rb"); break;
+				case ROM_PORTABLEIII386: f = romfopen(nvr_concat("portableiii386.nvr"),  "rb"); break;
                 /* case ROM_ACER386:     f = romfopen(nvr_concat("acer386.nvr"),     "rb"); nvrmask = 127; break; */
                 case ROM_MEGAPC:      f = romfopen(nvr_concat("megapc.nvr"),      "rb"); nvrmask = 127; break;
                 case ROM_MEGAPCDX:    f = romfopen(nvr_concat("megapcdx.nvr"),    "rb"); nvrmask = 127; break;
@@ -298,7 +301,9 @@ void savenvr()
                 case ROM_IBMPS1_2121: f = romfopen(nvr_concat("ibmps1_2121.nvr"), "wb"); break;
                 case ROM_IBMPS1_2121_ISA: f = romfopen(nvr_concat("ibmps1_2121_isa.nvr"), "wb"); break;
                 case ROM_IBMPS2_M30_286: f = romfopen(nvr_concat("ibmps2_m30_286.nvr"), "wb"); break;
-                case ROM_CMDPC30:     f = romfopen(nvr_concat("cmdpc30.nvr"),     "wb"); break;                
+                case ROM_CMDPC30:     f = romfopen(nvr_concat("cmdpc30.nvr"),     "wb"); break;
+				case ROM_PORTABLEII: f = romfopen(nvr_concat("portableii.nvr"),  "wb"); break;
+				case ROM_PORTABLEIII: f = romfopen(nvr_concat("portableiii.nvr"),  "wb"); break;
                 case ROM_AMI286:      f = romfopen(nvr_concat("ami286.nvr"),      "wb"); break;
                 case ROM_AWARD286:    f = romfopen(nvr_concat("award286.nvr"),    "wb"); break;
                 case ROM_DELL200:     f = romfopen(nvr_concat("dell200.nvr"),     "wb"); break;
@@ -306,6 +311,7 @@ void savenvr()
                 case ROM_SPC4200P:    f = romfopen(nvr_concat("spc4200p.nvr"),    "wb"); break;
                 case ROM_IBMAT386:    f = romfopen(nvr_concat("at386.nvr"),       "wb"); break;
                 case ROM_DESKPRO_386: f = romfopen(nvr_concat("deskpro386.nvr"),  "wb"); break;
+				case ROM_PORTABLEIII386: f = romfopen(nvr_concat("portableiii386.nvr"),  "wb"); break;
                 /* case ROM_ACER386:     f = romfopen(nvr_concat("acer386.nvr"),     "wb"); break; */
                 case ROM_MEGAPC:      f = romfopen(nvr_concat("megapc.nvr"),      "wb"); break;
                 case ROM_MEGAPCDX:    f = romfopen(nvr_concat("megapcdx.nvr"),    "wb"); break;

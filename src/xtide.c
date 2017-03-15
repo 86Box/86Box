@@ -87,6 +87,17 @@ static void *xtide_at_init()
         return xtide;
 }
 
+static void *xtide_ps2_init()
+{
+        xtide_t *xtide = malloc(sizeof(xtide_t));
+        memset(xtide, 0, sizeof(xtide_t));
+
+        rom_init(&xtide->bios_rom, "roms/ide_at_1_1_5.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        ide_init();
+        
+        return xtide;
+}
+
 static void xtide_close(void *p)
 {
         xtide_t *xtide = (xtide_t *)p;
@@ -102,6 +113,11 @@ static int xtide_available()
 static int xtide_at_available()
 {
         return rom_present("roms/ide_at.bin");
+}
+
+static int xtide_ps2_available()
+{
+        return rom_present("roms/ide_at_1_1_5.bin");
 }
 
 device_t xtide_device =
@@ -123,6 +139,19 @@ device_t xtide_at_device =
         xtide_at_init,
         xtide_close,
         xtide_at_available,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+};
+
+device_t xtide_ps2_device =
+{
+        "XTIDE (PS/2)",
+        DEVICE_AT,
+        xtide_ps2_init,
+        xtide_close,
+        xtide_ps2_available,
         NULL,
         NULL,
         NULL,
