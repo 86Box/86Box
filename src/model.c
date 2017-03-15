@@ -346,7 +346,6 @@ void at_init()
 	mem_add_bios();
         pit_set_out_func(1, pit_refresh_timer_at);
         dma16_init();
-        ide_init();
         keyboard_at_init();
         nvr_init();
         pic2_init();
