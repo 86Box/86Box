@@ -1,0 +1,93 @@
+#include "ibm.h"
+#include "device.h"
+#include "hdd.h"
+
+#include "mfm_at.h"
+#include "xtide.h"
+
+char hdd_controller_name[16];
+
+static device_t null_hdd_device;
+
+static int hdd_controller_current;
+
+static struct
+{
+        char name[50];
+        char internal_name[16];
+        device_t *device;
+        int is_mfm;
+} hdd_controllers[] = 
+{
+        {"None",                  "none",     &null_hdd_device, 0},
+        {"AT Fixed Disk Adapter", "mfm_at",   &mfm_at_device,   1},
+        {"XTIDE",                 "xtide",    &xtide_device,    0},
+        {"XTIDE (AT)",            "xtide_at", &xtide_at_device, 0},
+        {"", "", NULL, 0}
+};
+
+char *hdd_controller_get_name(int hdd)
+{
+        return hdd_controllers[hdd].name;
+}
+
+char *hdd_controller_get_internal_name(int hdd)
+{
+        return hdd_controllers[hdd].internal_name;
+}
+
+int hdd_controller_get_flags(int hdd)
+{
+        return hdd_controllers[hdd].device->flags;
+}
+
+int hdd_controller_available(int hdd)
+{
+        return device_available(hdd_controllers[hdd].device);
+}
+
+int hdd_controller_current_is_mfm()
+{
+        return hdd_controllers[hdd_controller_current].is_mfm;
+}
+
+void hdd_controller_init(char *internal_name)
+{
+        int c = 0;
+        
+        while (hdd_controllers[c].device)
+        {
+                if (!strcmp(internal_name, hdd_controllers[c].internal_name))
+                {
+                        hdd_controller_current = c;
+                        if (strcmp(internal_name, "none"))
+                                device_add(hdd_controllers[c].device);
+                        return;
+                }
+                c++;
+        }
+        fatal("Could not find hdd_controller %s\n", internal_name);
+}
+
+
+static void *null_hdd_init()
+{
+        return NULL;
+}
+
+static void null_hdd_close(void *p)
+{
+}
+
+static device_t null_hdd_device =
+{
+        "Null HDD controller",
+        0,
+        null_hdd_init,
+        null_hdd_close,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+};

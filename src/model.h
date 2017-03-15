@@ -5,9 +5,10 @@
 #define MODEL_PS2     2
 #define MODEL_AMSTRAD 4
 #define MODEL_OLIM24  8
-#define MODEL_NEC     16
-#define MODEL_FUJITSU 32
-#define MODEL_RM      64
+#define MODEL_HAS_IDE 16
+#define MODEL_NEC     32
+#define MODEL_FUJITSU 64
+#define MODEL_RM      128
 
 typedef struct
 {

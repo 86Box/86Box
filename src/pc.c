@@ -56,6 +56,7 @@
 #include "vid_voodoo.h"
 #include "video.h"
 #include "amstrad.h"
+#include "hdd.h"
 #include "nethandler.h"
 #define NE2000      1
 #define RTL8029AS   2
@@ -522,7 +523,8 @@ void resetpchard()
         if (SSI2001)
                 device_add(&ssi2001_device);
         if (voodoo_enabled)
-                device_add(&voodoo_device);        
+                device_add(&voodoo_device);
+	hdd_controller_init(hdd_controller_name);
         pc_reset();
  
         loadnvr();
@@ -800,6 +802,12 @@ void loadconfig(char *fn)
         else   strcpy(discfns[3], "");
         ui_writeprot[3] = config_get_int(NULL, "disc_4_writeprot", 0);
 
+        p = (char *)config_get_string(NULL, "hdd_controller", "");
+        if (p)
+                strncpy(hdd_controller_name, p, sizeof(hdd_controller_name)-1);
+        else
+                strncpy(hdd_controller_name, "none", sizeof(hdd_controller_name)-1);        
+
         mem_size = config_get_int(NULL, "mem_size", 4096);
         if (mem_size < ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram))
                 mem_size = ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram);
@@ -1026,6 +1034,8 @@ void saveconfig()
         config_set_int(NULL, "disc_3_writeprot", ui_writeprot[2]);
         config_set_string(NULL, "disc_4", discfns[3]);
         config_set_int(NULL, "disc_4_writeprot", ui_writeprot[3]);
+        config_set_string(NULL, "hdd_controller", hdd_controller_name);
+
         config_set_int(NULL, "mem_size", mem_size);
 
         config_set_int(NULL, "cdrom_1_host_drive", cdrom_drives[0].host_drive);

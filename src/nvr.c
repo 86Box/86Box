@@ -206,10 +206,10 @@ void loadnvr()
                 case ROM_PC2086:      f = romfopen(nvr_concat("pc2086.nvr"),      "rb"); break;
                 case ROM_PC3086:      f = romfopen(nvr_concat("pc3086.nvr"),      "rb"); break;                
                 case ROM_IBMAT:       f = romfopen(nvr_concat("at.nvr"),          "rb"); break;
-                case ROM_IBMPS1_2011: f = romfopen(nvr_concat("ibmps1_2011.nvr"), "rb"); break;
-                case ROM_IBMPS1_2121: f = romfopen(nvr_concat("ibmps1_2121.nvr"), "rb"); break;
-                case ROM_IBMPS1_2121_ISA: f = romfopen(nvr_concat("ibmps1_2121_isa.nvr"), "rb"); break;
-                case ROM_IBMPS2_M30_286: f = romfopen(nvr_concat("ibmps2_m30_286.nvr"), "rb"); break;
+                case ROM_IBMPS1_2011: f = romfopen(nvr_concat("ibmps1_2011.nvr"), "rb"); nvrmask = 127; break;
+                case ROM_IBMPS1_2121: f = romfopen(nvr_concat("ibmps1_2121.nvr"), "rb"); nvrmask = 127; break;
+                case ROM_IBMPS1_2121_ISA: f = romfopen(nvr_concat("ibmps1_2121_isa.nvr"), "rb"); nvrmask = 127; break;
+                case ROM_IBMPS2_M30_286: f = romfopen(nvr_concat("ibmps2_m30_286.nvr"), "rb"); nvrmask = 127; break;
                 case ROM_CMDPC30:     f = romfopen(nvr_concat("cmdpc30.nvr"),     "rb"); nvrmask = 127; break;
                 case ROM_AMI286:      f = romfopen(nvr_concat("ami286.nvr"),      "rb"); nvrmask = 127; break;
                 case ROM_AWARD286:    f = romfopen(nvr_concat("award286.nvr"),    "rb"); nvrmask = 127; break;
@@ -254,7 +254,9 @@ void loadnvr()
                 case ROM_THOR:        f = romfopen(nvr_concat("thor.nvr"),        "rb"); nvrmask = 127; break;
                 case ROM_MRTHOR:      f = romfopen(nvr_concat("mrthor.nvr"),      "rb"); nvrmask = 127; break;
                 case ROM_ZAPPA:       f = romfopen(nvr_concat("zappa.nvr"),       "rb"); nvrmask = 127; break;
+#if 0
                 case ROM_CMDPC60:     f = romfopen(nvr_concat("cmdpc60.nvr"),     "rb"); nvrmask = 127; break;
+#endif
                 default: return;
         }
         if (!f)
@@ -340,7 +342,9 @@ void savenvr()
                 case ROM_THOR:        f = romfopen(nvr_concat("thor.nvr"),        "wb"); break;
                 case ROM_MRTHOR:      f = romfopen(nvr_concat("mrthor.nvr"),      "wb"); break;
                 case ROM_ZAPPA:       f = romfopen(nvr_concat("zappa.nvr"),       "wb"); break;
+#if 0
                 case ROM_CMDPC60:     f = romfopen(nvr_concat("cmdpc60.nvr"),     "wb"); break;                
+#endif
                 default: return;
         }
         fwrite(nvrram,128,1,f);

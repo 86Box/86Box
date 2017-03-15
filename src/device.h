@@ -46,7 +46,8 @@ char *device_get_config_string(char *name);
 
 enum
 {
-        DEVICE_NOT_WORKING = 1 /*Device does not currently work correctly and will be disabled in a release build*/
+        DEVICE_NOT_WORKING = 1, /*Device does not currently work correctly and will be disabled in a release build*/
+        DEVICE_AT = 2           /*Device requires an AT-compatible system*/
 };
 
 int model_get_config_int(char *s);

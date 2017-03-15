@@ -2,14 +2,13 @@ VPATH = . dosbox lzf resid-fp slirp
 CPP  = g++.exe
 CC   = gcc.exe
 WINDRES = windres.exe
-CFLAGS = -O3 -march=native -mtune=native -fbranch-probabilities -fvpt -fpeel-loops -ftracer -fomit-frame-pointer -ffast-math -msse -msse2 -msse3 -mssse3 -mfpmath=sse -mstackrealign -DRELEASE_BUILD
-DFLAGS = -O3 -fomit-frame-pointer -msse2 -mstackrealign -DRELEASE_BUILD
-RFLAGS = -DRELEASE_BUILD
+CFLAGS = -O3 -march=native -mtune=native -fbranch-probabilities -fvpt -fpeel-loops -ftracer -fomit-frame-pointer -ffast-math -msse -msse2 -msse3 -mssse3 -mfpmath=sse -mstackrealign
+DFLAGS = -O3 -fomit-frame-pointer -msse2 -mstackrealign
 OBJ = 386.o 386_dynarec.o 386_dynarec_ops.o 808x.o acer386sx.o acerm3a.o ali1429.o amstrad.o buslogic.o cdrom.o cdrom-ioctl.o cdrom-iso.o \
 	cdrom-null.o codegen.o codegen_ops.o codegen_timing_486.o codegen_timing_686.o codegen_timing_pentium.o codegen_timing_winchip.o codegen_x86-64.o compaq.o config.o cpu.o dac.o \
-	device.o disc.o disc_86f.o disc_fdi.o disc_imd.o disc_img.o disc_random.o disc_td0.o dma.o fdc.o fdc37c665.o fdc37c932fr.o fdd.o fdi2raw.o gameport.o headland.o i430hx.o i430lx.o i430fx.o \
+	device.o disc.o disc_86f.o disc_fdi.o disc_imd.o disc_img.o disc_random.o disc_td0.o dma.o fdc.o fdc37c665.o fdc37c932fr.o fdd.o fdi2raw.o gameport.o hdd.o headland.o i430hx.o i430lx.o i430fx.o \
 	i430nx.o i430vx.o i440fx.o ide.o intel.o intel_flash.o io.o jim.o joystick_ch_flightstick_pro.o joystick_standard.o joystick_sw_pad.o joystick_tm_fcs.o keyboard.o keyboard_amstrad.o keyboard_at.o \
-	keyboard_olim24.o keyboard_pcjr.o keyboard_xt.o lpt.o mcr.o mem.o memregs.o model.o mouse.o mouse_ps2.o \
+	keyboard_olim24.o keyboard_pcjr.o keyboard_xt.o lpt.o mcr.o mem.o memregs.o mfm_at.o model.o mouse.o mouse_ps2.o \
 	mouse_serial.o ne2000.o neat.o nethandler.o nmi.o nvr.o olivetti_m24.o opti495.o pc.o pc87306.o pci.o pic.o piix.o pit.o ppi.o ps1.o ps2.o rom.o rtc.o \
 	scat.o scsi.o serial.o sis496.o sis85c471.o sio.o sound.o sound_ad1848.o sound_adlib.o sound_adlibgold.o sound_cms.o \
 	sound_dbopl.o sound_emu8k.o sound_gus.o sound_mpu401_uart.o sound_opl.o sound_pas16.o sound_ps1.o sound_pssj.o sound_resid.o \

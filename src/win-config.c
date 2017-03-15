@@ -16,6 +16,7 @@
 #include "buslogic.h"
 #include "fdd.h"
 #include "gameport.h"
+#include "hdd.h"
 #include "model.h"
 #include "mouse.h"
 #include "nvr.h"
@@ -30,6 +31,7 @@ static int romstolist[ROM_MAX], listtomodel[ROM_MAX], romstomodel[ROM_MAX], mode
 static int settings_sound_to_list[20], settings_list_to_sound[20];
 static int settings_mouse_to_list[20], settings_list_to_mouse[20];
 static int settings_network_to_list[20], settings_list_to_network[20];
+static char *hdd_names[16];
 
 static int mouse_valid(int type, int model)
 {
@@ -40,6 +42,71 @@ static int mouse_valid(int type, int model)
         if (((type & MOUSE_TYPE_IF_MASK) == MOUSE_TYPE_OLIM24) && !(models[model].flags & MODEL_OLIM24))
                 return 0;
         return 1;
+}
+
+static void recalc_hdd_list(HWND hdlg, int model, int use_selected_hdd)
+{
+        HWND h;
+        
+        h = GetDlgItem(hdlg, IDC_COMBOHDD);
+        
+        if (models[model].flags & MODEL_HAS_IDE)
+        {
+                SendMessage(h, CB_RESETCONTENT, 0, 0);
+                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)"Internal IDE");
+                EnableWindow(h, FALSE);
+                SendMessage(h, CB_SETCURSEL, 0, 0);
+        }
+        else
+        {
+                char *s;
+                int valid = 0;
+                char old_name[16];
+                int c, d;
+
+                if (use_selected_hdd)
+                {
+                        c = SendMessage(h, CB_GETCURSEL, 0, 0);
+
+                        if (c != -1 && hdd_names[c])
+                                strncpy(old_name, hdd_names[c], sizeof(old_name)-1);
+                        else
+                                strcpy(old_name, "none");
+                }
+                else
+                        strncpy(old_name, hdd_controller_name, sizeof(old_name)-1);
+
+                SendMessage(h, CB_RESETCONTENT, 0, 0);
+                c = d = 0;
+                while (1)
+                {
+                        s = hdd_controller_get_name(c);
+                        if (s[0] == 0)
+                                break;
+                        if ((hdd_controller_get_flags(c) & DEVICE_AT) && !(models[model].flags & MODEL_AT))
+                        {
+                                c++;
+                                continue;
+                        }
+                        if (!hdd_controller_available(c))
+                        {
+                                c++;
+                                continue;
+                        }
+                        SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)s);
+                        hdd_names[d] = hdd_controller_get_internal_name(c);
+                        if (!strcmp(old_name, hdd_names[d]))
+                        {
+                                SendMessage(h, CB_SETCURSEL, d, 0);
+                                valid = 1;
+                        }
+                        c++;
+                        d++;
+                }
+
+                if (!valid)
+                        SendMessage(h, CB_SETCURSEL, 0, 0);
+        }
 }
 
 static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -369,6 +436,9 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                 }
 
                 SendMessage(h, CB_SETCURSEL, settings_mouse_to_list[mouse_type], 0);
+
+                recalc_hdd_list(hdlg, romstomodel[romset], 0);
+
                 return TRUE;
                 
                 case WM_COMMAND:
@@ -446,11 +516,15 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         h = GetDlgItem(hdlg, IDC_COMBOMOUSE);
                         temp_mouse_type = settings_list_to_mouse[SendMessage(h, CB_GETCURSEL, 0, 0)];                      
 
+                        h = GetDlgItem(hdlg, IDC_COMBOHDD);
+                        c = SendMessage(h, CB_GETCURSEL, 0, 0);
+
                         if (temp_model != model || gfx != gfxcard || mem != mem_size || temp_cpu != cpu || temp_cpu_m != cpu_manufacturer ||
                             fpu != hasfpu || temp_GAMEBLASTER != GAMEBLASTER || temp_GUS != GUS || temp_fpu != enable_external_fpu ||
                             temp_SSI2001 != SSI2001 || temp_sound_card_current != sound_card_current || temp_xtide != enable_xtide ||
                             temp_voodoo != voodoo_enabled || temp_buslogic != buslogic_enabled || temp_dynarec != cpu_use_dynarec || temp_mouse_type != mouse_type ||
-			    temp_fd1_type != fdd_get_type(0) || temp_fd2_type != fdd_get_type(1) || temp_fd3_type != fdd_get_type(2) || temp_fd4_type != fdd_get_type(3) || temp_network_card_current != network_card_current)
+			    temp_fd1_type != fdd_get_type(0) || temp_fd2_type != fdd_get_type(1) || temp_fd3_type != fdd_get_type(2) || temp_fd4_type != fdd_get_type(3) ||
+			    temp_network_card_current != network_card_current || strncmp(hdd_names[c], hdd_controller_name, sizeof(hdd_controller_name)-1))
                         {
                                 if (MessageBox(NULL,"This will reset 86Box!\nOkay to continue?","86Box",MB_OKCANCEL)==IDOK)
                                 {
@@ -479,6 +553,11 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 
                                         network_card_current = temp_network_card_current;
                                         
+                                        if (hdd_names[c])
+        					strncpy(hdd_controller_name, hdd_names[c], sizeof(hdd_controller_name)-1);
+        				else
+                                                strcpy(hdd_controller_name, "none");
+
                                         mem_resize();
                                         loadbios();
                                         resetpchard();
@@ -643,6 +722,8 @@ static BOOL CALLBACK config_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                                         SendMessage(h, CB_SETCURSEL, settings_mouse_to_list[temp_mouse_type], 0);
                                 else
                                         SendMessage(h, CB_SETCURSEL, 0, 0);
+
+                                recalc_hdd_list(hdlg, temp_model, 1);
                         }
                         break;
                         case IDC_COMBOCPUM:

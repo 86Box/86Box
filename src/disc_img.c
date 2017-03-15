@@ -232,6 +232,9 @@ char ext[4];
 
 uint8_t first_byte, second_byte, third_byte, fourth_byte;
 
+/* This is hard-coded to 0 - if you really need to read those NT 3.1 Beta floppy images, change this to 1 and recompile the emulator. */
+uint8_t fdf_suppress_final_byte = 0;
+
 void img_load(int drive, char *fn)
 {
         int size;
@@ -388,13 +391,13 @@ void img_load(int drive, char *fn)
 					size += (run & 0x7f);
 					if (!track_bytes)
 					{
-						size--;
+						size -= fdf_suppress_final_byte;
 					}
 				}
 				else
 				{
 					/* Literal block. */
-					size += (track_bytes - 1);
+					size += (track_bytes - fdf_suppress_final_byte);
 					literal = (uint8_t *) malloc(track_bytes);
 					fread(literal, 1, track_bytes, img[drive].f);
 					free(literal);
@@ -451,7 +454,7 @@ void img_load(int drive, char *fn)
 						track_bytes--;
 						if (!track_bytes)
 						{
-							real_run--;
+							real_run -= fdf_suppress_final_byte;
 						}
 						rep_byte = fgetc(img[drive].f);
 						if (real_run)
@@ -467,7 +470,7 @@ void img_load(int drive, char *fn)
 						fread(literal, 1, real_run, img[drive].f);
 						if (!track_bytes)
 						{
-							real_run--;
+							real_run -= fdf_suppress_final_byte;
 						}
 						if (run & 0x7f)
 						{
@@ -482,9 +485,9 @@ void img_load(int drive, char *fn)
 					/* Literal block. */
 					literal = (uint8_t *) malloc(track_bytes);
 					fread(literal, 1, track_bytes, img[drive].f);
-					memcpy(bpos, literal, track_bytes - 1);
+					memcpy(bpos, literal, track_bytes - fdf_suppress_final_byte);
 					free(literal);
-					bpos += (track_bytes - 1);
+					bpos += (track_bytes - fdf_suppress_final_byte);
 					track_bytes = 0;
 				}
 

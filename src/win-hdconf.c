@@ -657,5 +657,8 @@ static BOOL CALLBACK hdconf_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 
 void hdconf_open(HWND hwnd)
 {
-        DialogBox(hinstance, TEXT("HdConfDlg"), hwnd, hdconf_dlgproc);
+        if (hdd_controller_current_is_mfm())
+                DialogBox(hinstance, TEXT("HdConfDlgMfm"), hwnd, hdconf_dlgproc);
+        else
+                DialogBox(hinstance, TEXT("HdConfDlg"), hwnd, hdconf_dlgproc);
 }        
