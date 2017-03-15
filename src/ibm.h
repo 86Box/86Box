@@ -391,7 +391,11 @@ enum
         ROM_ENDEAVOR,
         ROM_REVENGE,
         ROM_IBMPS1_2011,
-        ROM_DESKPRO_386,	
+        ROM_DESKPRO_386,
+		ROM_PORTABLE,
+		ROM_PORTABLEII,
+		ROM_PORTABLEIII,
+		ROM_PORTABLEIII386, //The original Compaq Portable III shipped with an Intel 80286 CPU, but later switched to a 386DX.
         ROM_IBMPS1_2121,
 
         ROM_AMI386DX_OPTI495,

@@ -66,7 +66,6 @@ void hdd_controller_init(char *internal_name)
                 }
                 c++;
         }
-        fatal("Could not find hdd_controller %s\n", internal_name);
 }
 
 

@@ -72,6 +72,7 @@
 #include "vid_tandy.h"
 #include "w83877f.h"
 #include "wd76c10.h"
+#include "xtide.h"
 
 void            xt_init();
 void          pcjr_init();
@@ -108,6 +109,7 @@ void     at_mb500n_init();
 #if 0
 void at_powermate_v_init();
 #endif
+void at_compaq_2000_init();
 void   at_p54tp4xe_init();
 void    at_acerm3a_init();
 void   at_acerv35n_init();
@@ -127,6 +129,7 @@ MODEL models[] =
 {
         {"IBM PC",			ROM_IBMPC,		"ibmpc",		{ "",      cpus_8088,        "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, 0,                                     64, 640,  64,          xt_init, NULL},
         {"IBM XT",			ROM_IBMXT,		"ibmxt",		{ "",      cpus_8088,        "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, 0,                                     64, 640,  64,          xt_init, NULL},
+        {"Compaq Portable",			ROM_PORTABLE,		"portable",		{ "",      cpus_8088,        "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, 0,                                     128, 640,  128,          xt_init, NULL},
         {"IBM PCjr",			ROM_IBMPCJR,		"ibmpcjr",		{ "",      cpus_pcjr,        "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 1, 0,                                    128, 640, 128,        pcjr_init, &pcjr_device},
         {"Generic XT clone",		ROM_GENXT,		"genxt",		{ "",      cpus_8088,        "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, 0,                                     64, 640,  64,          xt_init, NULL},
         {"AMI XT clone",		ROM_AMIXT,		"amixt",		{ "",      cpus_8088,        "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, 0,                                     64, 640,  64,          xt_init, NULL},
@@ -146,17 +149,20 @@ MODEL models[] =
         {"Amstrad PC2086",		ROM_PC2086,		"pc2086",		{ "",      cpus_8086,        "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 1, MODEL_AMSTRAD,                        640, 640,   0,         ams_init, NULL},
         {"Amstrad PC3086",		ROM_PC3086,		"pc3086",		{ "",      cpus_8086,        "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 1, MODEL_AMSTRAD,                        640, 640,   0,         ams_init, NULL},
         {"IBM AT",			ROM_IBMAT,		"ibmat",		{ "",      cpus_ibmat,       "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT,                               1,  16,   1,          at_init, NULL},
+        {"Compaq Portable II",		ROM_PORTABLEII,		"portableii",		{ "",      cpus_286,         "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT,               1,  15,   1,     at_init, NULL},
+        {"Compaq Portable III",		ROM_PORTABLEIII,		"portableiii",		{ "",      cpus_286,         "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT,               1,  15,   1,     at_init, NULL},
         {"Commodore PC 30 III",		ROM_CMDPC30,		"cmdpc30",		{ "",      cpus_286,         "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE,               1,  16,   1,          at_init, NULL},
         {"AMI 286 clone",		ROM_AMI286,		"ami286",		{ "",      cpus_286,         "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE,               1,  16,   1,     at_neat_init, NULL},        
         {"Award 286 clone",		ROM_AWARD286,		"award286",		{ "",      cpus_286,         "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE,               1,  16,   1,     at_scat_init, NULL},
         {"DELL System 200",		ROM_DELL200,		"dells200",		{ "",      cpus_286,         "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT,                               1,  16,   1,          at_init, NULL},
         {"Hyundai Super-286TR",		ROM_SUPER286TR,		"super286tr",		{ "",      cpus_286,         "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT,                               1,  16,   1,     at_scat_init, NULL},
         {"Samsung SPC-4200P",		ROM_SPC4200P,		"spc4200p",		{ "",      cpus_286,         "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT,                               1,  16,   1,     at_scat_init, NULL},
-        {"IBM PS/1 model 2011",		ROM_IBMPS1_2011,	"ibmps1es",		{ "",      cpus_ps1_m2011,   "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 1, MODEL_AT | MODEL_PS2,                   1,  16,   1,   ps1_m2011_init, NULL},
-        {"IBM PS/2 Model 30-286",	ROM_IBMPS2_M30_286,	"ibmps2_m30_286",	{ "",      cpus_ps2_m30_286, "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2,                   1,  16,   1, ps2_m30_286_init, NULL},
+        {"IBM PS/1 model 2011",		ROM_IBMPS1_2011,	"ibmps1es",		{ "",      cpus_ps1_m2011,   "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 1, MODEL_AT | MODEL_PS2 | MODEL_PS2_HDD,                   1,  16,   1,   ps1_m2011_init, NULL},
+        {"IBM PS/2 Model 30-286",	ROM_IBMPS2_M30_286,	"ibmps2_m30_286",	{ "",      cpus_ps2_m30_286, "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_PS2_HDD,                   1,  16,   1, ps2_m30_286_init, NULL},
         {"IBM PS/1 model 2121",		ROM_IBMPS1_2121,	"ibmps1_2121",		{ "Intel", cpus_i386SX,      "AMD", cpus_Am386SX, "Cyrix", cpus_486SLC, "",      NULL,     "",      NULL}, 1, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,   1,  16,   1,   ps1_m2121_init, NULL},
         {"IBM PS/1 m.2121 + ISA",	ROM_IBMPS1_2121_ISA,	"ibmps1_2121_isa",	{ "Intel", cpus_i386DX,      "AMD", cpus_Am386DX, "Cyrix", cpus_486DLC, "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,   1,  16,   1,   ps1_m2121_init, NULL},
         {"Compaq Deskpro 386",		ROM_DESKPRO_386,	"dekspro386",		{ "Intel", cpus_i386DX,      "AMD", cpus_Am386DX, "Cyrix", cpus_486DLC, "",      NULL,     "",      NULL}, 0, MODEL_AT,                               1,  15,   1,  deskpro386_init, NULL},
+        {"Compaq Portable III 386",		ROM_PORTABLEIII386,		"portableiii386",		{ "Intel", cpus_i386DX,      "AMD", cpus_Am386DX, "Cyrix", cpus_486DLC, "",      NULL,     "",      NULL}, 0, MODEL_AT,               1,  15,   1,     at_init, NULL},
         {"DTK 386SX clone",		ROM_DTK386,		"dtk386",		{ "Intel", cpus_i386SX,      "AMD", cpus_Am386SX, "Cyrix", cpus_486SLC, "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE,               1,  16,   1,     at_neat_init, NULL},
         {"Amstrad MegaPC",		ROM_MEGAPC,		"megapc",		{ "Intel", cpus_i386SX,      "AMD", cpus_Am386SX, "Cyrix", cpus_486SLC, "",      NULL,     "",      NULL}, 1, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,   1,  16,   1,  at_wd76c10_init, NULL},
         {"AMI 386SX clone",		ROM_AMI386SX,		"ami386",		{ "Intel", cpus_i386SX,      "AMD", cpus_Am386SX, "Cyrix", cpus_486SLC, "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE,               1, 256,   1,  at_headland_init, NULL},
@@ -175,8 +181,8 @@ MODEL models[] =
         {"Intel Advanced/EV",		ROM_ENDEAVOR,		"endeavor",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,   1, 128,  1,  at_endeavor_init, NULL},
         {"Intel Advanced/ZP",		ROM_ZAPPA,		"zappa",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,   1, 128,  1,  at_endeavor_init, NULL},
         {"PC Partner MB500N",		ROM_MB500N,		"mb500n",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,   1, 128,  1,    at_mb500n_init, NULL},
-        {"Intel Advanced/ATX",		ROM_THOR,		"thor",			{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,   1, 256,  1,  at_endeavor_init, NULL},
-        {"MR Intel Advanced/ATX",	ROM_MRTHOR,		"mrthor",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,   1, 256,  1,  at_endeavor_init, NULL},
+        {"Intel Advanced/ATX",		ROM_THOR,		"thor",			{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,   1, 512,  1,  at_endeavor_init, NULL},
+        {"MR Intel Advanced/ATX",	ROM_MRTHOR,		"mrthor",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,   1, 512,  1,  at_endeavor_init, NULL},
         {"ASUS P/I-P54TP4XE",		ROM_P54TP4XE,		"p54tp4xe",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,   1, 512,  1,  at_p54tp4xe_init, NULL},
         {"Acer M3a",			ROM_ACERM3A,		"acerm3a",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,   1, 512,  1,   at_acerm3a_init, NULL},
         {"Acer V35N",			ROM_ACERV35N,		"acerv3n",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,   1, 512,  1,  at_acerv35n_init, NULL},
@@ -371,7 +377,10 @@ void ps1_common_init()
 	mem_add_bios();
         pit_set_out_func(1, pit_refresh_timer_at);
         dma16_init();
-        ide_init();
+        if (romset == ROM_IBMPS1_2011)
+			device_add(&xtide_ps2_device);
+		else
+			ide_init();
         keyboard_at_init();
         nvr_init();
         pic2_init();
@@ -401,7 +410,7 @@ void ps2_m30_286_init()
         mem_add_bios();
         pit_set_out_func(1, pit_refresh_timer_at);
         dma16_init();
-        ide_init();
+        device_add(&xtide_ps2_device);
         keyboard_at_init();
         nvr_init();
         pic2_init();

@@ -50,7 +50,14 @@ static void recalc_hdd_list(HWND hdlg, int model, int use_selected_hdd)
         
         h = GetDlgItem(hdlg, IDC_COMBOHDD);
         
-        if (models[model].flags & MODEL_HAS_IDE)
+		if (models[model].flags & MODEL_PS2_HDD)
+        {
+                SendMessage(h, CB_RESETCONTENT, 0, 0);
+                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)"XTIDE for PS/2");
+                EnableWindow(h, FALSE);
+                SendMessage(h, CB_SETCURSEL, 0, 0);
+		}
+        else if (models[model].flags & MODEL_HAS_IDE)
         {
                 SendMessage(h, CB_RESETCONTENT, 0, 0);
                 SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)"Internal IDE");
