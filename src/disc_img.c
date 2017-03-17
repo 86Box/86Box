@@ -84,7 +84,7 @@ xdf_sector_t xdf_disk_layout[2][2][38] = {	{	{ 0x0100, 0x0200, 0x8100, 0x8800, 0
    Disks formatted at 300 kbps @ 300 RPM can be read with any 300 RPM single-RPM drive by setting the rate rate to 300 kbps. */
 static uint8_t maximum_sectors[8][6] = { { 26, 31, 38, 53, 64, 118 },	/*   128 */
                                          { 15, 19, 23, 32, 38,  73 },	/*   256 */
-                                         {  7, 10, 12, 17, 21,  41 },	/*   512 */
+                                         {  7, 10, 12, 17, 22,  41 },	/*   512 */
                                          {  3,  5,  6,  9, 11,  22 },	/*  1024 */
                                          {  2,  2,  3,  4,  5,  11 },	/*  2048 */
                                          {  1,  1,  1,  2,  2,   5 },	/*  4096 */
@@ -120,6 +120,7 @@ int gap3_sizes[5][8][256] = {	[0][1][16] = 0x54,
 				[0][2][19] = 0x48,
 				[0][2][20] = 0x2A,
 				[0][2][21] = 0x08,		/* Microsoft DMFWRITE.EXE uses this, 0x0C is used by FDFORMAT. */
+				[0][2][22] = 0x02,
 				[0][2][23] = 0x01,
 				[0][3][10] = 0x83,
 				[0][3][11] = 0x26,
@@ -136,6 +137,7 @@ int gap3_sizes[5][8][256] = {	[0][1][16] = 0x54,
 				[2][2][9]  = 0x50,
 				[2][2][10] = 0x2E,
 				[2][2][21] = 0x1C,
+				[2][2][22] = 0x1C,
 				[2][3][4]  = 0xF0,
 				[2][3][5]  = 0x74,
 				[3][2][36] = 0x53,
@@ -651,7 +653,8 @@ jump_if_fdf:
 	        else if (size <= 1720320)      { img[drive].sectors = 21; img[drive].tracks = 80; } /*DMF format - used by Windows 95 */
 	        else if (size <= 1741824)      { img[drive].sectors = 21; img[drive].tracks = 81; }
 	        else if (size <= 1763328)      { img[drive].sectors = 21; img[drive].tracks = 82; }
-	        else if (size <= 1802240)      { img[drive].sectors = 11; img[drive].tracks = 80; img[drive].sector_size = 3; } /*High density (not supported by Tandy 1000)*/
+	        // else if (size <= 1802240)      { img[drive].sectors = 11; img[drive].tracks = 80; img[drive].sector_size = 3; } /*High density (not supported by Tandy 1000)*/
+	        else if (size <= 1802240)      { img[drive].sectors = 22; img[drive].tracks = 80; img[drive].sector_size = 3; } /*High density (not supported by Tandy 1000)*/
 	        else if (size == 1884160)      { img[drive].sectors = 23; img[drive].tracks = 80; } /*XDF format - used by OS/2 Warp*/
 	        else if (size <= 2949120)      { img[drive].sectors = 36; img[drive].tracks = 80; } /*E density*/
 		else if (size <= 3194880)      { img[drive].sectors = 39; img[drive].tracks = 80; } /*E density*/
@@ -710,6 +713,11 @@ jump_if_fdf:
 			}
 			else
 			{
+				if ((bit_rate_300 == 500.0) && (img[drive].sectors == 22) && (img[drive].sector_size == 2) && (img[drive].tracks >= 80) && (img[drive].tracks <= 82) && (img[drive].sides == 2))
+				{
+					/* This is marked specially because of the track flag (a RPM slow down is needed). */
+					img[drive].interleave = 2;
+				}
 				img[drive].dmf = 0;
 			}
 
@@ -744,6 +752,11 @@ jump_if_fdf:
 	img[drive].track_width = 0;
 	if (img[drive].tracks > 43)  img[drive].track_width = 1;	/* If the image has more than 43 tracks, then the tracks are thin (96 tpi). */
 	if (img[drive].sides == 2)   img[drive].disk_flags |= 8;	/* If the has 2 sides, mark it as such. */
+	if (img[drive].interleave == 2)
+	{
+		img[drive].interleave = 1;
+		img[drive].disk_flags |= 0x60;
+	}
 
 	img[drive].track_flags = 0x08;					/* IMG files are always assumed to be MFM-encoded. */
 	img[drive].track_flags |= temp_rate & 3;			/* Data rate. */
