@@ -22,17 +22,17 @@
  * THE SOFTWARE.
  */
 
-inline void glue(rop_8_,ROP_NAME)(uint8_t *dst, uint8_t src)
+static inline void glue(rop_8_,ROP_NAME)(uint8_t *dst, uint8_t src)
 {
     *dst = ROP_FN(*dst, src);
 }
 
-inline void glue(rop_16_,ROP_NAME)(uint16_t *dst, uint16_t src)
+static inline void glue(rop_16_,ROP_NAME)(uint16_t *dst, uint16_t src)
 {
     *dst = ROP_FN(*dst, src);
 }
 
-inline void glue(rop_32_,ROP_NAME)(uint32_t *dst, uint32_t src)
+static inline void glue(rop_32_,ROP_NAME)(uint32_t *dst, uint32_t src)
 {
     *dst = ROP_FN(*dst, src);
 }
