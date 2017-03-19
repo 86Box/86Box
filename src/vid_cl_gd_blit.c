@@ -346,7 +346,7 @@ const cirrus_fill_t cirrus_fill[16][4] = {
     ROP2(cirrus_fill_notsrc_and_notdst),
 };
 
-inline void cirrus_bitblt_fgcol(clgd_t *clgd, svga_t *svga)
+static inline void cirrus_bitblt_fgcol(clgd_t *clgd, svga_t *svga)
 {
 	unsigned int color;
 	switch (clgd->blt.pixel_width)
@@ -369,7 +369,7 @@ inline void cirrus_bitblt_fgcol(clgd_t *clgd, svga_t *svga)
 	}
 }
 
-inline void cirrus_bitblt_bgcol(clgd_t *clgd, svga_t *svga)
+static inline void cirrus_bitblt_bgcol(clgd_t *clgd, svga_t *svga)
 {
 	unsigned int color;
 	switch (clgd->blt.pixel_width)
