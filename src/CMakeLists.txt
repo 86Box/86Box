@@ -3,6 +3,10 @@ project(86box)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMakeModules)
 
+ENABLE_LANGUAGE(RC)
+
+set(CMAKE_RC_COMPILE_OBJECT "${CMAKE_RC_COMPILER} -O coff -I${CMAKE_CURRENT_SOURCE_DIR} <SOURCE> <OBJECT>")
+
 set(SRCS
 386.c 386_dynarec.c 386_dynarec_ops.c 808x.c acer386sx.c acerm3a.c ali1429.c amstrad.c buslogic.c cdrom.c cdrom-ioctl.c cdrom-iso.c
 cdrom-null.c codegen.c codegen_ops.c codegen_timing_486.c codegen_timing_686.c codegen_timing_pentium.c codegen_timing_winchip.c compaq.c config.c cpu.c dac.c
