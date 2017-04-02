@@ -1972,6 +1972,12 @@ static void riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 	case 0x009000 ... 0x009fff:
 		riva128_ptimer_write(addr, val, riva128);
 		break;
+	case 0x0c03c4 ... 0x0c03c5: case 0x0c03cc ... 0x0c03cf:
+		riva128_mmio_write(addr, val & 0xff, riva128);
+		riva128_mmio_write(addr+1, (val >> 8) & 0xff, riva128);
+		riva128_mmio_write(addr+2, (val >> 16) & 0xff, riva128);
+		riva128_mmio_write(addr+3, (val >> 24) & 0xff, riva128);
+		break;
 	case 0x100000 ... 0x100fff:
 		riva128_pfb_write(addr, val, riva128);
 		break;
