@@ -850,6 +850,14 @@ static void riva128_ptimer_write(uint32_t addr, uint32_t val, void *p)
 		if((val & 0xffff) > riva128->ptimer.clock_div) val = riva128->ptimer.clock_div;
 		riva128->ptimer.clock_mul = val & 0xffff;
 		break;
+	case 0x009400:
+		riva128->ptimer.time &= 0x0fffffff00000000ULL;
+		riva128->ptimer.time |= val & 0xffffffe0;
+		break;
+	case 0x009410:
+		riva128->ptimer.time &= 0xffffffe0;
+		riva128->ptimer.time |= val & 0x0fffffff00000000ULL;
+		break;
 	case 0x009420:
 		riva128->ptimer.alarm = val & 0xffffffe0;
 		break;
@@ -2007,7 +2015,7 @@ static void riva128_ptimer_tick(void *p)
 	uint64_t tmp = riva128->ptimer.time;
 	riva128->ptimer.time += time << 5;
 
-	if((tmp < riva128->ptimer.alarm) && (riva128->ptimer.time >= riva128->ptimer.alarm)) riva128_ptimer_interrupt(0, riva128);
+	if(((uint32_t)tmp < riva128->ptimer.alarm) && ((uint32_t)riva128->ptimer.time >= riva128->ptimer.alarm)) riva128_ptimer_interrupt(0, riva128);
 }
 
 static void riva128_mclk_poll(void *p)
@@ -2025,7 +2033,7 @@ static void riva128_nvclk_poll(void *p)
 	riva128_t *riva128 = (riva128_t *)p;
 	svga_t *svga = &riva128->svga;
 
-	if(riva128->card_id > 0x40 && riva128->card_id != 0x03) riva128_ptimer_tick(riva128);
+	if(riva128->card_id < 0x40 && riva128->card_id != 0x03) riva128_ptimer_tick(riva128);
 
 	riva128->nvtime += cpuclock / riva128->nvfreq;
 }
@@ -2743,8 +2751,6 @@ static void *riva128_init()
 
 	riva128->memory_size = device_get_config_int("memory");
 
-	riva128->pgraph.pgraph_speedhack = device_get_config_int("pgraph_speedhack");
-
 	svga_init(&riva128->svga, riva128, riva128->memory_size << 20,
 	          riva128_recalctimings,
 	          riva128_in, riva128_out,
@@ -2810,6 +2816,7 @@ static void *riva128_init()
 	riva128->pbus.intr = 0;
 	riva128->pfifo.intr = 0;
 	riva128->pgraph.intr = 0;
+	riva128->ptimer.intr = 0;
 
 	pci_add(riva128_pci_read, riva128_pci_write, riva128);
 
@@ -2893,33 +2900,64 @@ static device_config_t riva128_config[] =
 		.default_int = 4
 	},
 	{
+                .name = "irq",
+                .description = "IRQ",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "IRQ 3",
+                                .value = 3
+                        },
+                        {
+                                .description = "IRQ 4",
+                                .value = 4
+                        },
+                        {
+                                .description = "IRQ 5",
+                                .value = 5
+                        },
+                        {
+                                .description = "IRQ 7",
+                                .value = 7
+                        },
+                        {
+                                .description = "IRQ 9",
+                                .value = 9
+                        },
+                        {
+                                .description = "IRQ 10",
+                                .value = 10
+                        },
+                        {
+                                .description = "IRQ 11",
+                                .value = 11
+                        },
+                        {
+                                .description = "IRQ 12",
+                                .value = 12
+                        },
+                        {
+                                .description = "IRQ 14",
+                                .value = 14
+                        },
+                        {
+                                .description = "IRQ 15",
+                                .value = 15
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 3
+        },
+	{
 		.type = -1
 	}
 };
 
 static device_config_t riva128zx_config[] =
 {
-	{
-		.name = "pgraph_speedhack",
-		.description = "PGRAPH speedhack",
-		.type = CONFIG_SELECTION,
-		.selection =
-		{
-			{
-				.description = "Off",
-				.value = 0,
-			},
-			{
-				.description = "On",
-				.value = 1,
-			},
-			{
-				.description = ""
-			}
-		},
-		//DO NOT TURN THIS OFF YET. THE PGRAPH SPEEDHACK IS CURRENTLY NECESSARY FOR WORKING EMULATION.
-		.default_int = 1
-	},
 	{
 		.name = "memory",
 		.description = "Memory size",
