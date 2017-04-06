@@ -1863,7 +1863,7 @@ static uint8_t riva128_mmio_read(uint32_t addr, void *p)
 	addr &= 0xffffff;
 
 	//This logging condition is necessary to prevent A CATASTROPHIC LOG BLOWUP when polling PTIMER or PFIFO. DO NOT REMOVE.
-	if(!((addr >= 0x009000) && (addr <= 0x009fff)) && !((addr >= 0x002000) && (addr <= 0x003fff)) && !((addr >= 0x000000) && (addr <= 0x000003)) && !((addr <= 0x680fff) && (addr >= 0x680000))) pclog("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
+	if(!((addr >= 0x009000) && (addr <= 0x009fff)) && !((addr >= 0x002000) && (addr <= 0x003fff)) && !((addr >= 0x000000) && (addr <= 0x000003)) && !((addr <= 0x680fff) && (addr >= 0x680000)) && !((addr >= 0x0c0000) && (addr <= 0x0cffff)) && !((addr >= 0x110000) && (addr <= 0x11ffff))) pclog("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
 
 	switch(addr)
 	{
@@ -1956,7 +1956,7 @@ static void riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 	addr &= 0xffffff;
 
 	//DO NOT REMOVE. This fixes a monstrous log blowup in win9x's drivers when accessing PFIFO.
-	if(!((addr >= 0x002000) && (addr <= 0x003fff))) pclog("RIVA 128 MMIO write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
+	if(!((addr >= 0x002000) && (addr <= 0x003fff)) && !((addr >= 0xc0000) && (addr <= 0xcffff))) pclog("RIVA 128 MMIO write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 
 	switch(addr)
 	{
@@ -1973,10 +1973,10 @@ static void riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 		riva128_ptimer_write(addr, val, riva128);
 		break;
 	case 0x0c03c4 ... 0x0c03c5: case 0x0c03cc ... 0x0c03cf:
-		riva128_mmio_write(addr, val & 0xff, riva128);
-		riva128_mmio_write(addr+1, (val >> 8) & 0xff, riva128);
-		riva128_mmio_write(addr+2, (val >> 16) & 0xff, riva128);
-		riva128_mmio_write(addr+3, (val >> 24) & 0xff, riva128);
+		riva128_out(addr & 0xfff, val & 0xff, p);
+		riva128_out((addr+1) & 0xfff, (val>>8) & 0xff, p);
+		riva128_out((addr+2) & 0xfff, (val>>16) & 0xff, p);
+		riva128_out((addr+3) & 0xfff, (val>>24) & 0xff, p);
 		break;
 	case 0x100000 ... 0x100fff:
 		riva128_pfb_write(addr, val, riva128);
