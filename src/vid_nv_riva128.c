@@ -211,6 +211,7 @@ typedef struct riva128_t
 		int scl;
 		int sda;
 		uint8_t addr; //actually 7 bits
+		uint8_t data;
 	} i2c;
 
 	int mtime, mfreq;
@@ -452,13 +453,13 @@ static void riva128_pmc_write(uint32_t addr, uint32_t val, void *p)
 
 static void riva128_pmc_interrupt(int num, void *p)
 {
-	pclog("RIVA 128 PMC interrupt #%d fired!", num);
+	//pclog("RIVA 128 PMC interrupt #%d fired!\n", num);
 	riva128_t *riva128 = (riva128_t *)p;
 	svga_t *svga = &riva128->svga;
 
 	riva128->pmc.intr |= (1 << num);
 
-	picint(1 << riva128->pci_regs[0x3c]);
+	if(riva128->pmc.intr_en & 1) picint(1 << riva128->pci_regs[0x3c]);
 }
 
 static uint8_t riva128_pbus_read(uint32_t addr, void *p)
@@ -867,7 +868,7 @@ static void riva128_ptimer_write(uint32_t addr, uint32_t val, void *p)
 
 static void riva128_ptimer_interrupt(int num, void *p)
 {
-	pclog("RIVA 128 PTIMER interrupt #%d fired!", num);
+	//pclog("RIVA 128 PTIMER interrupt #%d fired!\n", num);
 	riva128_t *riva128 = (riva128_t *)p;
 	svga_t *svga = &riva128->svga;
 
@@ -1875,7 +1876,7 @@ static uint8_t riva128_mmio_read(uint32_t addr, void *p)
 	//This logging condition is necessary to prevent A CATASTROPHIC LOG BLOWUP when polling PTIMER or PFIFO. DO NOT REMOVE.
 	if(!((addr >= 0x009000) && (addr <= 0x009fff)) && !((addr >= 0x002000) && (addr <= 0x003fff)) && !((addr >= 0x000000) 
 	&& (addr <= 0x000003)) && !((addr <= 0x680fff) && (addr >= 0x680000)) && !((addr >= 0x0c0000) && (addr <= 0x0cffff)) 
-	&& !((addr >= 0x110000) && (addr <= 0x11ffff))) pclog("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
+	&& !((addr >= 0x110000) && (addr <= 0x11ffff)) && !(addr <= 0x000fff) && (addr >= 0x000000)) pclog("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
 
 	switch(addr)
 	{
@@ -1908,8 +1909,9 @@ static uint8_t riva128_mmio_read(uint32_t addr, void *p)
 		break;
 	case 0x6013b4 ... 0x6013b5:
 	case 0x6013d4 ... 0x6013d5:
+	case 0x6013da:
 	case 0x0c03c2 ... 0x0c03c5:
-	case 0x0c03cc ... 0x0c03cf:
+	case 0x6813c6 ... 0x6813cc:
 		ret = riva128_in(addr & 0xfff, riva128);
 		break;
 	case 0x680000 ... 0x680fff:
@@ -1937,7 +1939,7 @@ static void riva128_mmio_write(uint32_t addr, uint8_t val, void *p)
 {
 	addr &= 0xffffff;
 	//pclog("RIVA 128 MMIO write %08X %02X %04X:%08X\n", addr, val, CS, cpu_state.pc);
-	if(addr != 0x6013d4 && addr != 0x6013d5 && addr != 0x6013b4 && addr != 0x6013b5)
+	if(addr != 0x6013d4 && addr != 0x6013d5 && addr != 0x6013b4 && addr != 0x6013b5 && addr != 0x6013da && !((addr >= 0x6813c6) && (addr <= 0x6813cc)))
 	{
 		uint32_t tmp = riva128_mmio_read_l(addr,p);
 		tmp &= ~(0xff << ((addr & 3) << 3));
@@ -1968,7 +1970,7 @@ static void riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 	addr &= 0xffffff;
 
 	//DO NOT REMOVE. This fixes a monstrous log blowup in win9x's drivers when accessing PFIFO.
-	if(!((addr >= 0x002000) && (addr <= 0x003fff)) && !((addr >= 0xc0000) && (addr <= 0xcffff))) pclog("RIVA 128 MMIO write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
+	if(!((addr >= 0x002000) && (addr <= 0x003fff)) && !((addr >= 0xc0000) && (addr <= 0xcffff)) && (addr != 0x000140)) pclog("RIVA 128 MMIO write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 
 	switch(addr)
 	{
@@ -1984,7 +1986,11 @@ static void riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 	case 0x009000 ... 0x009fff:
 		riva128_ptimer_write(addr, val, riva128);
 		break;
-	case 0x0c03c4 ... 0x0c03c5: case 0x0c03cc ... 0x0c03cf:
+	case 0x6013b4 ... 0x6013b5:
+	case 0x6013d4 ... 0x6013d5:
+	case 0x6013da:
+	case 0x0c03c2 ... 0x0c03c5:
+	case 0x6813c6 ... 0x6813cc:
 		riva128_out(addr & 0xfff, val & 0xff, p);
 		riva128_out((addr+1) & 0xfff, (val>>8) & 0xff, p);
 		riva128_out((addr+2) & 0xfff, (val>>16) & 0xff, p);
@@ -2012,14 +2018,16 @@ static void riva128_ptimer_tick(void *p)
 
 	double time = (double)riva128->ptimer.clock_mul / (double)riva128->ptimer.clock_div;
 
-	time *= 1000;
+	time *= 10000;
 
 	uint64_t tmp = riva128->ptimer.time;
 	riva128->ptimer.time += (uint64_t)time << 5;
 
-	if(((uint32_t)tmp < riva128->ptimer.alarm) && ((uint32_t)riva128->ptimer.time >= riva128->ptimer.alarm))
+	int alarm_check = ((uint32_t)tmp < riva128->ptimer.alarm) || ((uint32_t)riva128->ptimer.time >= riva128->ptimer.alarm);
+
+	if(alarm_check)
 	{
-		pclog("RIVA 128 PTIMER ALARM interrupt fired!");
+		//pclog("RIVA 128 PTIMER ALARM interrupt fired!\n");
 		riva128_ptimer_interrupt(0, riva128);
 	}
 }
@@ -2170,6 +2178,9 @@ static uint8_t riva128_in(uint16_t addr, void *p)
 		{
 		case 0x3e:
 			ret = (riva128->i2c.sda << 3) | (riva128->i2c.scl << 2);
+			break;
+		case 0x28:
+			ret = svga->crtc[0x28] & 3;
 			break;
 		default:
 			ret = svga->crtc[svga->crtcreg];
@@ -2721,7 +2732,7 @@ static void riva128_recalctimings(svga_t *svga)
 		svga->clock = cpuclock / freq;
 	}
 
-	freq = 13500.0;
+	freq = 1350.0;
 
 	if(riva128->pramdac.nv_m == 0) freq = 0;
 	else
@@ -2732,7 +2743,7 @@ static void riva128_recalctimings(svga_t *svga)
 
 	riva128->mfreq = freq;
 
-	freq = 13500.0;
+	freq = 1350.0;
 
 	if(riva128->pramdac.m_m == 0) freq = 0;
 	else
