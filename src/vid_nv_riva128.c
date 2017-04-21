@@ -452,6 +452,7 @@ static void riva128_pmc_write(uint32_t addr, uint32_t val, void *p)
 
 static void riva128_pmc_interrupt(int num, void *p)
 {
+	pclog("RIVA 128 PMC interrupt #%d fired!", num);
 	riva128_t *riva128 = (riva128_t *)p;
 	svga_t *svga = &riva128->svga;
 
@@ -866,6 +867,7 @@ static void riva128_ptimer_write(uint32_t addr, uint32_t val, void *p)
 
 static void riva128_ptimer_interrupt(int num, void *p)
 {
+	pclog("RIVA 128 PTIMER interrupt #%d fired!", num);
 	riva128_t *riva128 = (riva128_t *)p;
 	svga_t *svga = &riva128->svga;
 
@@ -2008,14 +2010,18 @@ static void riva128_ptimer_tick(void *p)
 	riva128_t *riva128 = (riva128_t *)p;
 	svga_t *svga = &riva128->svga;
 
-	uint64_t time = riva128->ptimer.clock_mul - riva128->ptimer.clock_div;
+	double time = (double)riva128->ptimer.clock_mul / (double)riva128->ptimer.clock_div;
 
 	time *= 1000;
 
 	uint64_t tmp = riva128->ptimer.time;
-	riva128->ptimer.time += time << 5;
+	riva128->ptimer.time += (uint64_t)time << 5;
 
-	if(((uint32_t)tmp < riva128->ptimer.alarm) && ((uint32_t)riva128->ptimer.time >= riva128->ptimer.alarm)) riva128_ptimer_interrupt(0, riva128);
+	if(((uint32_t)tmp < riva128->ptimer.alarm) && ((uint32_t)riva128->ptimer.time >= riva128->ptimer.alarm))
+	{
+		pclog("RIVA 128 PTIMER ALARM interrupt fired!");
+		riva128_ptimer_interrupt(0, riva128);
+	}
 }
 
 static void riva128_mclk_poll(void *p)
@@ -2819,6 +2825,9 @@ static void *riva128_init()
 	riva128->ptimer.intr = 0;
 
 	pci_add(riva128_pci_read, riva128_pci_write, riva128);
+
+	riva128->ptimer.clock_mul = 1;
+	riva128->ptimer.clock_div = 1;
 
 	//Some bullshit default values so that the emulator won't shit itself trying to boot. These'll be overwritten by the video BIOS anyway.
 	riva128->pramdac.m_m = 0x03;
