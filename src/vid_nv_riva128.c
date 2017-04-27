@@ -216,7 +216,6 @@ typedef struct riva128_t
 
 	int mtime, mfreq;
 	int nvtime, nvfreq;
-
 } riva128_t;
 
 //Internally, the RIVA 128 operates in a weird 38-bit color depth, with 10 bits for RGB, and 8 bits for alpha, according to envytools.
@@ -2052,6 +2051,14 @@ static void riva128_nvclk_poll(void *p)
 	riva128->nvtime += cpuclock / riva128->nvfreq;
 }
 
+static void riva128_vblank_poll(void *p)
+{
+	riva128_t *riva128 = (riva128_t *)p;
+	svga_t *svga = &riva128->svga;
+
+	if(svga->vc == svga->dispend) riva128_pmc_interrupt(24, riva128);
+}
+
 static uint8_t riva128_rma_in(uint16_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
@@ -2851,6 +2858,7 @@ static void *riva128_init()
 
 	timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
 	timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
+	timer_add(riva128_vblank_poll, &riva128->svga.vidtime, TIMER_ALWAYS_ENABLED, riva128);
 
 	return riva128;
 }
@@ -3156,6 +3164,7 @@ static void *rivatnt_init()
 
 	timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
 	timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
+	timer_add(riva128_vblank_poll, &riva128->svga.vidtime, TIMER_ALWAYS_ENABLED, riva128);
 
 	return riva128;
 }
@@ -3387,6 +3396,7 @@ static void *rivatnt2_init()
 
 	timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
 	timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
+	timer_add(riva128_vblank_poll, &riva128->svga.vidtime, TIMER_ALWAYS_ENABLED, riva128);
 
 	return riva128;
 }
