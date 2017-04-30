@@ -986,21 +986,24 @@ static void rivatnt_pgraph_ctx_switch(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
-	if(!(riva128->pgraph.fifo_st2_addr & 1)) return;
-
 	unsigned old_subc = (riva128->pgraph.ctx_user >> 13) & 7;
 	unsigned new_subc = (riva128->pgraph.fifo_st2_addr >> 12) & 7;
 	unsigned mthd = (riva128->pgraph.fifo_st2_addr >> 1) & 0x7ff;
-	riva128->pgraph.fifo_st2_addr &= ~1;
 	unsigned do_ctx_switch = mthd == 0;
+
+	if(!(riva128->pgraph.fifo_st2_addr & 1)) return;
+	riva128->pgraph.fifo_st2_addr &= ~1;
 
 	if(old_subc != new_subc || do_ctx_switch)
 	{
-		if(do_ctx_switch) riva128->pgraph.ctx_cache[new_subc][3] = riva128->pgraph.fifo_st2_data & 0xffff;
-
 		uint32_t ctx_mask = 0x0303f0ff;
 
 		unsigned reload = (riva128->pgraph.debug[1] >> 15) & 1;
+
+		unsigned reset = (riva128->pgraph.debug[2] >> 28) & 1;
+
+		if(do_ctx_switch) riva128->pgraph.ctx_cache[new_subc][3] = riva128->pgraph.fifo_st2_data & 0xffff;
+
 		if(reload || do_ctx_switch)
 		{
 			uint32_t instance = riva128_ramht_lookup(riva128->pgraph.fifo_st2_data, riva128);
@@ -1010,7 +1013,6 @@ static void rivatnt_pgraph_ctx_switch(void *p)
 			riva128->pgraph.ctx_cache[new_subc][4] = riva128->pramin[(instance >> 2) + 3];
 		}
 
-		unsigned reset = (riva128->pgraph.debug[2] >> 28) & 1;
 		if(reset)
 		{
 			riva128->pgraph.debug[1] |= 1;
@@ -1020,7 +1022,8 @@ static void rivatnt_pgraph_ctx_switch(void *p)
 
 		if(riva128->pgraph.debug[1] & 0x100000)
 		{
-			for(int i = 0; i < 5; i++) riva128->pgraph.ctx_switch[i] = riva128->pgraph.ctx_cache[new_subc][i];
+			int i;
+			for(i = 0; i < 5; i++) riva128->pgraph.ctx_switch[i] = riva128->pgraph.ctx_cache[new_subc][i];
 		}
 	}
 }
@@ -1688,14 +1691,14 @@ static void riva128_pramdac_write(uint32_t addr, uint32_t val, void *p)
 static uint32_t riva128_ramht_lookup(uint32_t handle, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	pclog("RIVA 128 RAMHT lookup with handle %08X %04X:%08X\n", handle, CS, cpu_state.pc);
-
 	uint32_t ramht_base = riva128->pfifo.ramht_addr;
 
 	uint32_t tmp = handle;
 	uint32_t hash = 0;
 
 	int bits;
+
+	pclog("RIVA 128 RAMHT lookup with handle %08X %04X:%08X\n", handle, CS, cpu_state.pc);
 
 	switch(riva128->pfifo.ramht_size)
 	{
@@ -1728,9 +1731,10 @@ static void riva128_puller_exec_method(int chanid, int subchanid, int offset, ui
 	if(riva128->card_id == 0x03)
 	{
 		uint32_t tmp = riva128_ramht_lookup(val, riva128);
-		riva128->pgraph.instance = (tmp & 0xffff) << 2;
+		unsigned new_class = (tmp >> 16) & 0x1f;
 		unsigned old_subc = (riva128->pgraph.ctx_user >> 13) & 7;
 		unsigned new_subc = subchanid & 7;
+		riva128->pgraph.instance = (tmp & 0xffff) << 2;
 		if((old_subc != new_subc) || !offset)
 		{
 			uint32_t tmp_ctx = riva128->pramin[riva128->pgraph.instance];
@@ -1758,7 +1762,6 @@ static void riva128_puller_exec_method(int chanid, int subchanid, int offset, ui
 			riva128->pgraph.fifo_enable = 0;
 		}
 
-		unsigned new_class = (tmp >> 16) & 0x1f;
 		if((riva128->pgraph.debug[1] & 0x10000) && ((riva128->pgraph.instance >> 4) != riva128->pgraph.ctx_switch[3]) && (new_class == 0x0d || new_class == 0x0e || new_class == 0x14 || new_class == 0x17 || offset == 0x0104))
 		{
 			riva128->pgraph.ctx_switch[3] = riva128->pgraph.instance >> 4;
@@ -1791,7 +1794,8 @@ static void riva128_pusher_run(int chanid, void *p)
 			uint32_t method = cmd & 0x1ffc;
 			int subchannel = (cmd >> 13) & 7;
 			int method_count = (cmd >> 18) & 0x7ff;
-			for(int i = 0; i<method_count; i++)
+			int i;
+			for(i = 0; i<method_count; i++)
 			{
 				riva128_puller_exec_method(chanid, subchannel, method, params[i<<2], riva128);
 				method+=4;
@@ -1809,13 +1813,13 @@ static void riva128_pusher_run(int chanid, void *p)
 static void riva128_user_write(uint32_t addr, uint32_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	pclog("RIVA 128 USER write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
-
-	addr -= 0x800000;
-
 	int chanid = (addr >> 16) & 0xf;
 	//int subchanid = (addr >> 13) & 0x7;
 	int offset = addr & 0x1fff;
+
+	pclog("RIVA 128 USER write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
+
+	addr -= 0x800000;
 
 	if(riva128->pfifo.chan_mode & (1 << chanid))
 	{
@@ -1907,9 +1911,10 @@ static void riva128_mmio_write(uint32_t addr, uint8_t val, void *p)
 
 static void riva128_mmio_write_w(uint32_t addr, uint16_t val, void *p)
 {
+	uint32_t tmp;
 	addr &= 0xffffff;
 	//pclog("RIVA 128 MMIO write %08X %04X %04X:%08X\n", addr, val, CS, cpu_state.pc);
-	uint32_t tmp = riva128_mmio_read_l(addr,p);
+	tmp = riva128_mmio_read_l(addr,p);
 	tmp &= ~(0xffff << ((addr & 2) << 4));
 	tmp |= val << ((addr & 2) << 4);
 	riva128_mmio_write_l(addr, tmp, p);
@@ -1954,13 +1959,15 @@ static void riva128_ptimer_tick(void *p)
 	riva128_t *riva128 = (riva128_t *)p;
 
 	double time = (double)riva128->ptimer.clock_mul / (double)riva128->ptimer.clock_div;
+	uint64_t tmp;
+	int alarm_check;
 
 	time *= 10000;
 
-	uint64_t tmp = riva128->ptimer.time;
+	tmp = riva128->ptimer.time;
 	riva128->ptimer.time += (uint64_t)time << 5;
 
-	int alarm_check = ((uint32_t)tmp < riva128->ptimer.alarm) || ((uint32_t)riva128->ptimer.time >= riva128->ptimer.alarm);
+	alarm_check = ((uint32_t)tmp < riva128->ptimer.alarm) || ((uint32_t)riva128->ptimer.time >= riva128->ptimer.alarm);
 
 	if(alarm_check)
 	{
@@ -2446,8 +2453,9 @@ static void riva128_pci_write(int func, int addr, uint8_t val, void *p)
 
 	case 0x13:
 	{
+		uint32_t mmio_addr;
 		riva128->pci_regs[addr] = val;
-		uint32_t mmio_addr = riva128->pci_regs[0x13] << 24;
+		mmio_addr = riva128->pci_regs[0x13] << 24;
 		mem_mapping_disable(&riva128->mmio_mapping);
 		if (mmio_addr)
 		{
@@ -2458,8 +2466,9 @@ static void riva128_pci_write(int func, int addr, uint8_t val, void *p)
 
 	case 0x17:
 	{
+		uint32_t linear_addr;
 		riva128->pci_regs[addr] = val;
-		uint32_t linear_addr = riva128->pci_regs[0x17] << 24;
+		linear_addr = riva128->pci_regs[0x17] << 24;
 		mem_mapping_disable(&riva128->linear_mapping);
 		mem_mapping_disable(&riva128->ramin_mapping);
 		if (linear_addr)
@@ -2557,8 +2566,9 @@ static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
 
 	case 0x13:
 	{
+		uint32_t mmio_addr;
 		riva128->pci_regs[addr] = val;
-		uint32_t mmio_addr = riva128->pci_regs[0x13] << 24;
+		mmio_addr = riva128->pci_regs[0x13] << 24;
 		mem_mapping_disable(&riva128->mmio_mapping);
 		if (mmio_addr)
 		{
@@ -2569,8 +2579,9 @@ static void rivatnt_pci_write(int func, int addr, uint8_t val, void *p)
 
 	case 0x17:
 	{
+		uint32_t linear_addr;
 		riva128->pci_regs[addr] = val;
-		uint32_t linear_addr = riva128->pci_regs[0x17] << 24;
+		linear_addr = riva128->pci_regs[0x17] << 24;
 		mem_mapping_disable(&riva128->linear_mapping);
 		if (linear_addr)
 		{
@@ -2828,83 +2839,62 @@ static void riva128_add_status_info(char *s, int max_len, void *p)
 static device_config_t riva128_config[] =
 {
 	{
-		.name = "memory",
-		.description = "Memory size",
-		.type = CONFIG_SELECTION,
-		.selection =
+		"memory", "Memory size", CONFIG_SELECTION, 4,
 		{
 			{
-				.description = "1 MB",
-				.value = 1
+				"1 MB", 1
 			},
 			{
-				.description = "2 MB",
-				.value = 2
+				"2 MB", 2
 			},
 			{
-				.description = "4 MB",
-				.value = 4
+				"4 MB", 4
 			},
 			{
-				.description = ""
+				""
 			}
 		},
-		.default_int = 4
 	},
 	{
-                .name = "irq",
-                .description = "IRQ",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "IRQ 3",
-                                .value = 3
-                        },
-                        {
-                                .description = "IRQ 4",
-                                .value = 4
-                        },
-                        {
-                                .description = "IRQ 5",
-                                .value = 5
-                        },
-                        {
-                                .description = "IRQ 7",
-                                .value = 7
-                        },
-                        {
-                                .description = "IRQ 9",
-                                .value = 9
-                        },
-                        {
-                                .description = "IRQ 10",
-                                .value = 10
-                        },
-                        {
-                                .description = "IRQ 11",
-                                .value = 11
-                        },
-                        {
-                                .description = "IRQ 12",
-                                .value = 12
-                        },
-                        {
-                                .description = "IRQ 14",
-                                .value = 14
-                        },
-                        {
-                                .description = "IRQ 15",
-                                .value = 15
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 3
-        },
+        "irq", "IRQ", CONFIG_SELECTION, "", 3,
+        {
+            {
+                "IRQ 3", 3
+            },
+            {
+                "IRQ 4", 4
+            },
+            {
+                "IRQ 5", 5
+            },
+            {
+                "IRQ 7", 7
+            },
+            {
+                "IRQ 9", 9
+            },
+            {
+                "IRQ 10", 10
+            },
+            {
+                "IRQ 11", 11
+            },
+            {
+                "IRQ 12", 12
+            },
+            {
+                "IRQ 14", 14
+            },
+            {
+                "IRQ 15", 15
+            },
+            {
+                ""
+            }
+		},
+	},
 	{
-		.type = -1
+		-1
 	}
 };
 
@@ -3134,83 +3124,62 @@ static void rivatnt_add_status_info(char *s, int max_len, void *p)
 static device_config_t rivatnt_config[] =
 {
 	{
-		.name = "memory",
-		.description = "Memory size",
-		.type = CONFIG_SELECTION,
-		.selection =
+		"memory", "Memory size", CONFIG_SELECTION, 16,
 		{
 			{
-				.description = "4 MB",
-				.value = 4
+				"4 MB", 4
 			},
 			{
-				.description = "8 MB",
-				.value = 8
+				"8 MB", 8
 			},
 			{
-				.description = "16 MB",
-				.value = 16
+				"16 MB", 16
 			},
 			{
-				.description = ""
+				""
 			}
 		},
-		.default_int = 16
 	},
-        {
-                .name = "irq",
-                .description = "IRQ",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "IRQ 3",
-                                .value = 3
-                        },
-                        {
-                                .description = "IRQ 4",
-                                .value = 4
-                        },
-                        {
-                                .description = "IRQ 5",
-                                .value = 5
-                        },
-                        {
-                                .description = "IRQ 7",
-                                .value = 7
-                        },
-                        {
-                                .description = "IRQ 9",
-                                .value = 9
-                        },
-                        {
-                                .description = "IRQ 10",
-                                .value = 10
-                        },
-                        {
-                                .description = "IRQ 11",
-                                .value = 11
-                        },
-                        {
-                                .description = "IRQ 12",
-                                .value = 12
-                        },
-                        {
-                                .description = "IRQ 14",
-                                .value = 14
-                        },
-                        {
-                                .description = "IRQ 15",
-                                .value = 15
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 3
-        },
 	{
-		.type = -1
+        "irq", "IRQ", CONFIG_SELECTION, "", 3,
+        {
+            {
+                "IRQ 3", 3
+            },
+            {
+                "IRQ 4", 4
+            },
+            {
+                "IRQ 5", 5
+            },
+            {
+                "IRQ 7", 7
+            },
+            {
+                "IRQ 9", 9
+            },
+            {
+                "IRQ 10", 10
+            },
+            {
+                "IRQ 11", 11
+            },
+            {
+                "IRQ 12", 12
+            },
+            {
+                "IRQ 14", 14
+            },
+            {
+                "IRQ 15", 15
+            },
+            {
+                ""
+            }
+		},
+	},
+	{
+		-1
 	}
 };
 
@@ -3366,108 +3335,79 @@ static void rivatnt2_add_status_info(char *s, int max_len, void *p)
 static device_config_t rivatnt2_config[] =
 {
 	{
-		.name = "model",
-		.description = "Card model",
-		.type = CONFIG_SELECTION,
-		.selection =
+		"model", "Card model", CONFIG_SELECTION, 0,
 		{
 			{
-				.description = "Vanilla TNT2",
-				.value = 0,
+				"Vanilla TNT2", 0,
 			},
 			{
-				.description = "TNT2 Pro",
-				.value = 1,
+				"TNT2 Pro", 1,
 			},
 			{
-				.description = "TNT2 Ultra",
-				.value = 2,
+				"TNT2 Ultra", 2,
 			},
 		},
-		.default_int = 0
 	},
 	{
-		.name = "memory",
-		.description = "Memory size",
-		.type = CONFIG_SELECTION,
-		.selection =
+		"memory", "Memory size", CONFIG_SELECTION, 32,
 		{
 			{
-				.description = "4 MB",
-				.value = 4
+				"4 MB", 4
 			},
 			{
-				.description = "8 MB",
-				.value = 8
+				"8 MB", 8
 			},
 			{
-				.description = "16 MB",
-				.value = 16
+				"16 MB", 16
 			},
 			{
-				.description = "32 MB",
-				.value = 32
+				"32 MB", 32
 			},
 			{
-				.description = ""
+				""
 			}
 		},
-		.default_int = 32
 	},
-        {
-                .name = "irq",
-                .description = "IRQ",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "IRQ 3",
-                                .value = 3
-                        },
-                        {
-                                .description = "IRQ 4",
-                                .value = 4
-                        },
-                        {
-                                .description = "IRQ 5",
-                                .value = 5
-                        },
-                        {
-                                .description = "IRQ 7",
-                                .value = 7
-                        },
-                        {
-                                .description = "IRQ 9",
-                                .value = 9
-                        },
-                        {
-                                .description = "IRQ 10",
-                                .value = 10
-                        },
-                        {
-                                .description = "IRQ 11",
-                                .value = 11
-                        },
-                        {
-                                .description = "IRQ 12",
-                                .value = 12
-                        },
-                        {
-                                .description = "IRQ 14",
-                                .value = 14
-                        },
-                        {
-                                .description = "IRQ 15",
-                                .value = 15
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 3
-        },
 	{
-		.type = -1
+        "irq", "IRQ", CONFIG_SELECTION, "", 3,
+        {
+            {
+                "IRQ 3", 3
+            },
+            {
+                "IRQ 4", 4
+            },
+            {
+                "IRQ 5", 5
+            },
+            {
+                "IRQ 7", 7
+            },
+            {
+                "IRQ 9", 9
+            },
+            {
+                "IRQ 10", 10
+            },
+            {
+                "IRQ 11", 11
+            },
+            {
+                "IRQ 12", 12
+            },
+            {
+                "IRQ 14", 14
+            },
+            {
+                "IRQ 15", 15
+            },
+            {
+                ""
+            }
+		},
+	},
+	{
+		-1
 	}
 };
 
