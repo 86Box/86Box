@@ -492,10 +492,9 @@ static uint8_t riva128_pbus_read(uint32_t addr, void *p)
 	case 0x001143:
 		ret = (riva128->pbus.intr_en >> 24) & 0xff;
 		break;
-	case 0x001800 ... 0x0018ff:
-		ret = riva128_pci_read(0, addr - 0x1800, riva128);
-		break;
 	}
+
+	if((addr >= 0x001800) && (addr <= 0x0018ff)) ret = riva128_pci_read(0, addr - 0x1800, riva128);
 
 	return ret;
 }
@@ -513,12 +512,14 @@ static void riva128_pbus_write(uint32_t addr, uint32_t val, void *p)
 	case 0x001140:
 		riva128->pbus.intr_en = val;
 		break;
-	case 0x001800 ... 0x0018ff:
+	}
+
+	if((addr >= 0x001800) && (addr <= 0x0018ff))
+	{
 		riva128_pci_write(0, (addr & 0xfc) + 0, (val >> 0) & 0xff, riva128);
 		riva128_pci_write(0, (addr & 0xfc) + 1, (val >> 8) & 0xff, riva128);
 		riva128_pci_write(0, (addr & 0xfc) + 2, (val >> 16) & 0xff, riva128);
 		riva128_pci_write(0, (addr & 0xfc) + 3, (val >> 24) & 0xff, riva128);
-		break;
 	}
 }
 
@@ -1169,7 +1170,10 @@ static uint8_t riva128_pgraph_read(uint32_t addr, void *p)
 		ret = (riva128->pgraph.ctx_user >> 24) & 0xff;
 		break;
 
-	case 0x4001a0 ... 0x4001bf:
+	case 0x4001a0: case 0x4001a1: case 0x4001a2: case 0x4001a3: case 0x4001a4: case 0x4001a5: case 0x4001a6: case 0x4001a7:
+	case 0x4001a8: case 0x4001a9: case 0x4001aa: case 0x4001ab: case 0x4001ac: case 0x4001ad: case 0x4001ae: case 0x4001af:
+	case 0x4001b0: case 0x4001b1: case 0x4001b2: case 0x4001b3: case 0x4001b4: case 0x4001b5: case 0x4001b6: case 0x4001b7:
+	case 0x4001b8: case 0x4001b9: case 0x4001ba: case 0x4001bb: case 0x4001bc: case 0x4001bd: case 0x4001be: case 0x4001bf:
 		ret = (riva128->pgraph.ctx_cache[(addr & 0x1c) >> 2][0] >> ((addr & 3) << 3)) & 0xff;
 		break;
 
@@ -1456,7 +1460,7 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
 		case 0x400194:
 			riva128->pgraph.ctx_user = val & 0x7f1fe000;
 			break;
-		case 0x4001a0 ... 0x4001bc:
+		case 0x4001a0: case 0x4001a4: case 0x4001a8: case 0x4001ac: case 0x4001b0: case 0x4001b4: case 0x4001b8: case 0x4001bc:
 			riva128->pgraph.ctx_cache[(addr & 0x1c) >> 2][0] = val & 0x3ff3f71f;
 			break;
 		case 0x40053c:
@@ -1846,44 +1850,25 @@ static uint8_t riva128_mmio_read(uint32_t addr, void *p)
 	&& (addr <= 0x000003)) && !((addr <= 0x680fff) && (addr >= 0x680000)) && !((addr >= 0x0c0000) && (addr <= 0x0cffff)) 
 	&& !((addr >= 0x110000) && (addr <= 0x11ffff)) && !(addr <= 0x000fff) && (addr >= 0x000000)) pclog("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
 
+	if((addr >= 0x000000) && (addr <= 0x000fff)) ret = riva128_pmc_read(addr, riva128);
+	if((addr >= 0x001000) && (addr <= 0x001fff)) ret = riva128_pbus_read(addr, riva128);
+	if((addr >= 0x002000) && (addr <= 0x002fff)) ret = riva128_pfifo_read(addr, riva128);
+	if((addr >= 0x009000) && (addr <= 0x009fff)) ret = riva128_ptimer_read(addr, riva128);
+	if((addr >= 0x100000) && (addr <= 0x100fff)) ret = riva128_pfb_read(addr, riva128);
+	if((addr >= 0x101000) && (addr <= 0x101fff)) ret = riva128_pextdev_read(addr, riva128);
+	if((addr >= 0x110000) && (addr <= 0x11ffff) && (riva128->card_id == 0x03)) ret = riva128->bios_rom.rom[addr & riva128->bios_rom.mask];
+	if((addr >= 0x300000) && (addr <= 0x30ffff) && (riva128->card_id >= 0x04)) ret = riva128->bios_rom.rom[addr & riva128->bios_rom.mask];
+	if((addr >= 0x400000) && (addr <= 0x400fff)) ret = riva128_pgraph_read(addr, riva128);
+	if((addr >= 0x680000) && (addr <= 0x680fff)) ret = riva128_pramdac_read(addr, riva128);
+
 	switch(addr)
 	{
-	case 0x000000 ... 0x000fff:
-		ret = riva128_pmc_read(addr, riva128);
-		break;
-	case 0x001000 ... 0x001fff:
-		ret = riva128_pbus_read(addr, riva128);
-		break;
-	case 0x002000 ... 0x002fff:
-		ret = riva128_pfifo_read(addr, riva128);
-		break;
-	case 0x009000 ... 0x009fff:
-		ret = riva128_ptimer_read(addr, riva128);
-		break;
-	case 0x100000 ... 0x100fff:
-		ret = riva128_pfb_read(addr, riva128);
-		break;
-	case 0x101000 ... 0x101fff:
-		ret = riva128_pextdev_read(addr, riva128);
-		break;
-	case 0x110000 ... 0x11ffff:
-		if(riva128->card_id == 0x03) ret = riva128->bios_rom.rom[addr & riva128->bios_rom.mask];
-		break;
-	case 0x300000 ... 0x30ffff:
-		if(riva128->card_id >= 0x04) ret = riva128->bios_rom.rom[addr & riva128->bios_rom.mask];
-		break;
-	case 0x400000 ... 0x401fff:
-		ret = riva128_pgraph_read(addr, riva128);
-		break;
-	case 0x6013b4 ... 0x6013b5:
-	case 0x6013d4 ... 0x6013d5:
+	case 0x6013b4: case 0x6013b5:
+	case 0x6013d4: case 0x6013d5:
 	case 0x6013da:
-	case 0x0c03c2 ... 0x0c03c5:
-	case 0x6813c6 ... 0x6813cc:
+	case 0x0c03c2: case 0x0c03c3: case 0x0c03c4: case 0x0c03c5:
+	case 0x6813c6: case 0x6813c7: case 0x6813c8: case 0x6813c9: case 0x6813ca: case 0x6813cb: case 0x6813cc:
 		ret = riva128_in(addr & 0xfff, riva128);
-		break;
-	case 0x680000 ... 0x680fff:
-		ret = riva128_pramdac_read(addr, riva128);
 		break;
 	}
 	return ret;
@@ -1939,41 +1924,27 @@ static void riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 	//DO NOT REMOVE. This fixes a monstrous log blowup in win9x's drivers when accessing PFIFO.
 	if(!((addr >= 0x002000) && (addr <= 0x003fff)) && !((addr >= 0xc0000) && (addr <= 0xcffff)) && (addr != 0x000140)) pclog("RIVA 128 MMIO write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 
+	
+	if((addr >= 0x000000) && (addr <= 0x000fff)) riva128_pmc_write(addr, val, riva128);
+	if((addr >= 0x001000) && (addr <= 0x001fff)) riva128_pbus_write(addr, val, riva128);
+	if((addr >= 0x002000) && (addr <= 0x002fff)) riva128_pfifo_write(addr, val, riva128);
+	if((addr >= 0x009000) && (addr <= 0x009fff)) riva128_ptimer_write(addr, val, riva128);
+	if((addr >= 0x100000) && (addr <= 0x100fff)) riva128_pfb_write(addr, val, riva128);
+	if((addr >= 0x400000) && (addr <= 0x400fff)) riva128_pgraph_write(addr, val, riva128);
+	if((addr >= 0x680000) && (addr <= 0x680fff)) riva128_pramdac_write(addr, val, riva128);
+	if((addr >= 0x800000) && (addr <= 0xffffff)) riva128_user_write(addr, val, riva128);
+
 	switch(addr)
 	{
-	case 0x000000 ... 0x000fff:
-		riva128_pmc_write(addr, val, riva128);
-		break;
-	case 0x001000 ... 0x001fff:
-		riva128_pbus_write(addr, val, riva128);
-		break;
-	case 0x002000 ... 0x002fff:
-		riva128_pfifo_write(addr, val, riva128);
-		break;
-	case 0x009000 ... 0x009fff:
-		riva128_ptimer_write(addr, val, riva128);
-		break;
-	case 0x6013b4 ... 0x6013b5:
-	case 0x6013d4 ... 0x6013d5:
+	case 0x6013b4: case 0x6013b5:
+	case 0x6013d4: case 0x6013d5:
 	case 0x6013da:
-	case 0x0c03c2 ... 0x0c03c5:
-	case 0x6813c6 ... 0x6813cc:
+	case 0x0c03c2: case 0x0c03c3: case 0x0c03c4: case 0x0c03c5:
+	case 0x6813c6: case 0x6813c7: case 0x6813c8: case 0x6813c9: case 0x6813ca: case 0x6813cb: case 0x6813cc:
 		riva128_out(addr & 0xfff, val & 0xff, p);
 		riva128_out((addr+1) & 0xfff, (val>>8) & 0xff, p);
 		riva128_out((addr+2) & 0xfff, (val>>16) & 0xff, p);
 		riva128_out((addr+3) & 0xfff, (val>>24) & 0xff, p);
-		break;
-	case 0x100000 ... 0x100fff:
-		riva128_pfb_write(addr, val, riva128);
-		break;
-	case 0x400000 ... 0x401fff:
-		riva128_pgraph_write(addr, val, riva128);
-		break;
-	case 0x680000 ... 0x680fff:
-		riva128_pramdac_write(addr, val, riva128);
-		break;
-	case 0x800000 ... 0xffffff:
-		riva128_user_write(addr, val, riva128);
 		break;
 	}
 }
@@ -2126,9 +2097,8 @@ static uint8_t riva128_in(uint16_t addr, void *p)
 	svga_t* svga = &riva128->svga;
 	uint8_t ret = 0;
 
-	switch (addr)
+	if((addr >= 0x3d0) && (addr <= 0x3d3))
 	{
-	case 0x3D0 ... 0x3D3:
 		//pclog("RIVA 128 RMA BAR Register read %04X %04X:%08X\n", addr, CS, cpu_state.pc);
 		if(!(riva128->rma.mode & 1)) return ret;
 		ret = riva128_rma_in(riva128->rma_addr + ((riva128->rma.mode & 0xe) << 1) + (addr & 3), riva128);
@@ -2175,9 +2145,8 @@ static void riva128_out(uint16_t addr, uint8_t val, void *p)
 
 	uint8_t old;
 
-	switch(addr)
+	if((addr >= 0x3d0) && (addr <= 0x3d3))
 	{
-	case 0x3D0 ... 0x3D3:
 		//pclog("RIVA 128 RMA BAR Register write %04X %02x %04X:%08X\n", addr, val, CS, cpu_state.pc);
 		riva128->rma.access_reg[addr & 3] = val;
 		if(!(riva128->rma.mode & 1)) return;

@@ -171,9 +171,9 @@ struct
 
 #define cycles cpu_state._cycles
 
-#define COMPILE_TIME_ASSERT(expr) typedef char COMP_TIME_ASSERT[(expr) ? 1 : 0];
+//#define COMPILE_TIME_ASSERT(expr) typedef char COMP_TIME_ASSERT[(expr) ? 1 : 0];
 
-COMPILE_TIME_ASSERT(sizeof(cpu_state) <= 128);
+//COMPILE_TIME_ASSERT(sizeof(cpu_state) <= 128);
 
 #define cpu_state_offset(MEMBER) ((uintptr_t)&cpu_state.MEMBER - (uintptr_t)&cpu_state - 128)
 

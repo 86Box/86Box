@@ -11,7 +11,7 @@ typedef struct
 {
         int w, h;
         uint8_t *dat;
-        uint8_t *line[0];
+        uint8_t *line[];
 } BITMAP;
 
 extern BITMAP *screen;
