@@ -127,6 +127,7 @@ extern int svga_init(svga_t *svga, void *p, int memsize,
                void (*hwcursor_draw)(struct svga_t *svga, int displine),
                void (*overlay_draw)(struct svga_t *svga, int displine));
 extern void svga_recalctimings(svga_t *svga);
+extern void svga_close(svga_t *svga);
 
 
 uint8_t  svga_read(uint32_t addr, void *p);

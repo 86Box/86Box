@@ -8,6 +8,7 @@
 #include "io.h"
 #include "mem.h"
 #include "pci.h"
+#include "pic.h"
 #include "rom.h"
 #include "thread.h"
 #include "timer.h"
@@ -243,7 +244,7 @@ const char* riva128_pfifo_interrupts[32] =
 };
 
 static uint32_t riva128_ramht_lookup(uint32_t handle, void *p);
-static void riva128_pgraph_volatile_reset(void *p);
+//static void riva128_pgraph_volatile_reset(void *p);
 
 static uint8_t riva128_pci_read(int func, int addr, void *p);
 static void riva128_pci_write(int func, int addr, uint8_t val, void *p);
@@ -253,7 +254,7 @@ static void riva128_out(uint16_t addr, uint8_t val, void *p);
 
 static void riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p);
 
-static riva128_color_t riva128_pgraph_expand_color(uint32_t ctx, uint32_t color)
+/*static riva128_color_t riva128_pgraph_expand_color(uint32_t ctx, uint32_t color)
 {
 	riva128_color_t ret;
 	int format = ctx & 7;
@@ -320,12 +321,11 @@ static uint32_t riva128_pgraph_do_blend(uint32_t factor, uint32_t dst, uint32_t 
 		dst &= 0xf8;
 	}
 	return ((dst * (0x100 - factor)) + (src * factor)) >> 6;
-}
+}*/
 
 static uint8_t riva128_pmc_read(uint32_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	uint8_t ret = 0;
 
 	//pclog("RIVA 128 PMC read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
@@ -433,7 +433,6 @@ static uint8_t riva128_pmc_read(uint32_t addr, void *p)
 static void riva128_pmc_write(uint32_t addr, uint32_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	//pclog("RIVA 128 PMC write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 
 	switch(addr)
@@ -454,7 +453,6 @@ static void riva128_pmc_interrupt(int num, void *p)
 {
 	//pclog("RIVA 128 PMC interrupt #%d fired!\n", num);
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 
 	riva128->pmc.intr |= (1 << num);
 
@@ -464,7 +462,6 @@ static void riva128_pmc_interrupt(int num, void *p)
 static uint8_t riva128_pbus_read(uint32_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	uint8_t ret = 0;
 
 	//pclog("RIVA 128 PBUS read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
@@ -506,7 +503,6 @@ static uint8_t riva128_pbus_read(uint32_t addr, void *p)
 static void riva128_pbus_write(uint32_t addr, uint32_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	//pclog("RIVA 128 PBUS write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 
 	switch(addr)
@@ -529,7 +525,6 @@ static void riva128_pbus_write(uint32_t addr, uint32_t val, void *p)
 static uint8_t riva128_pfifo_read(uint32_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	uint8_t ret = 0;
 
 	// pclog("RIVA 128 PFIFO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
@@ -659,7 +654,6 @@ static uint8_t riva128_pfifo_read(uint32_t addr, void *p)
 static void riva128_pfifo_write(uint32_t addr, uint32_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	// pclog("RIVA 128 PFIFO write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 
 	switch(addr)
@@ -720,7 +714,6 @@ static void riva128_pfifo_write(uint32_t addr, uint32_t val, void *p)
 static void riva128_pfifo_interrupt(int num, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 
 	riva128->pfifo.intr |= (1 << num);
 
@@ -730,7 +723,6 @@ static void riva128_pfifo_interrupt(int num, void *p)
 static uint8_t riva128_ptimer_read(uint32_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	uint8_t ret = 0;
 
 	//pclog("RIVA 128 PTIMER read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
@@ -832,7 +824,6 @@ static uint8_t riva128_ptimer_read(uint32_t addr, void *p)
 static void riva128_ptimer_write(uint32_t addr, uint32_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	pclog("RIVA 128 PTIMER write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 
 	switch(addr)
@@ -869,7 +860,6 @@ static void riva128_ptimer_interrupt(int num, void *p)
 {
 	//pclog("RIVA 128 PTIMER interrupt #%d fired!\n", num);
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 
 	riva128->ptimer.intr |= (1 << num);
 
@@ -879,7 +869,6 @@ static void riva128_ptimer_interrupt(int num, void *p)
 static uint8_t riva128_pfb_read(uint32_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	uint8_t ret = 0;
 
 	//pclog("RIVA 128 PFB read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
@@ -949,7 +938,6 @@ static uint8_t riva128_pfb_read(uint32_t addr, void *p)
 static void riva128_pfb_write(uint32_t addr, uint32_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	//pclog("RIVA 128 PFB write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 
 	switch(addr)
@@ -975,8 +963,7 @@ static void riva128_pfb_write(uint32_t addr, uint32_t val, void *p)
 
 static uint8_t riva128_pextdev_read(uint32_t addr, void *p)
 {
-	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
+	//riva128_t *riva128 = (riva128_t *)p;
 	uint8_t ret = 0;
 
 	//pclog("RIVA 128 PEXTDEV read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
@@ -997,7 +984,6 @@ static uint8_t riva128_pextdev_read(uint32_t addr, void *p)
 static void rivatnt_pgraph_ctx_switch(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 
 	if(!(riva128->pgraph.fifo_st2_addr & 1)) return;
 
@@ -1027,7 +1013,7 @@ static void rivatnt_pgraph_ctx_switch(void *p)
 		if(reset)
 		{
 			riva128->pgraph.debug[1] |= 1;
-			riva128_pgraph_volatile_reset(riva128);
+			//riva128_pgraph_volatile_reset(riva128);
 		}
 		else riva128->pgraph.debug[1] &= ~1;
 
@@ -1041,7 +1027,6 @@ static void rivatnt_pgraph_ctx_switch(void *p)
 static uint8_t riva128_pgraph_read(uint32_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	uint8_t ret = 0;
 
 	pclog("RIVA 128 PGRAPH read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
@@ -1423,7 +1408,6 @@ static uint8_t riva128_pgraph_read(uint32_t addr, void *p)
 static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	pclog("RIVA 128 PGRAPH write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 
 	switch(addr)
@@ -1570,7 +1554,6 @@ static void riva128_pgraph_write(uint32_t addr, uint32_t val, void *p)
 static void riva128_pgraph_interrupt(int num, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 
 	riva128->pgraph.intr |= (1 << num);
 
@@ -1580,25 +1563,15 @@ static void riva128_pgraph_interrupt(int num, void *p)
 static void riva128_pgraph_invalid_interrupt(int num, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 
 	riva128->pgraph.invalid |= (1 << num);
 
 	riva128_pgraph_interrupt(0, riva128);
 }
 
-static void riva128_pgraph_volatile_reset(void *p)
-{
-	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
-
-	//TODO
-}
-
 static uint8_t riva128_pramdac_read(uint32_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	uint8_t ret = 0;
 
 	//pclog("RIVA 128 PRAMDAC read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
@@ -1673,7 +1646,7 @@ static uint8_t riva128_pramdac_read(uint32_t addr, void *p)
 static void riva128_pramdac_write(uint32_t addr, uint32_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
+	svga_t* svga = &riva128->svga;
 	//pclog("RIVA 128 PRAMDAC write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 
 	switch(addr)
@@ -1711,7 +1684,6 @@ static void riva128_pramdac_write(uint32_t addr, uint32_t val, void *p)
 static uint32_t riva128_ramht_lookup(uint32_t handle, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	pclog("RIVA 128 RAMHT lookup with handle %08X %04X:%08X\n", handle, CS, cpu_state.pc);
 
 	uint32_t ramht_base = riva128->pfifo.ramht_addr;
@@ -1747,7 +1719,6 @@ static uint32_t riva128_ramht_lookup(uint32_t handle, void *p)
 static void riva128_puller_exec_method(int chanid, int subchanid, int offset, uint32_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	pclog("RIVA 128 Puller executing method %04X on channel %01X[%01X] %04X:%08X\n", offset, chanid, subchanid, val, CS, cpu_state.pc);
 
 	if(riva128->card_id == 0x03)
@@ -1766,7 +1737,7 @@ static void riva128_puller_exec_method(int chanid, int subchanid, int offset, ui
 			if(riva128->pgraph.debug[1] & 0x100000) riva128->pgraph.ctx_switch[0] = riva128->pgraph.ctx_cache[new_subc][0];
 			if(riva128->pgraph.debug[2] & 0x10000000)
 			{
-				riva128_pgraph_volatile_reset(riva128);
+				//riva128_pgraph_volatile_reset(riva128);
 				riva128->pgraph.debug[1] |= 1;
 			}
 			else riva128->pgraph.debug[1] &= ~1;
@@ -1804,7 +1775,7 @@ static void riva128_pusher_run(int chanid, void *p)
 	{
 		uint32_t dmaget = riva128->pfifo.channels[chanid].dmaget;
 		uint32_t cmd = ((uint32_t*)svga->vram)[dmaget >> 2];
-		uint32_t* params = ((uint32_t*)svga->vram)[(dmaget + 4) >> 2];
+		uint32_t* params = ((uint32_t*)svga->vram + ((dmaget + 4) >> 2));
 		if(((cmd & 0xe0000003) == 0x20000000) && (riva128->card_id >= 0x04))
 		{
 			//old nv4 jump command
@@ -1834,13 +1805,12 @@ static void riva128_pusher_run(int chanid, void *p)
 static void riva128_user_write(uint32_t addr, uint32_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	pclog("RIVA 128 USER write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 
 	addr -= 0x800000;
 
 	int chanid = (addr >> 16) & 0xf;
-	int subchanid = (addr >> 13) & 0x7;
+	//int subchanid = (addr >> 13) & 0x7;
 	int offset = addr & 0x1fff;
 
 	if(riva128->pfifo.chan_mode & (1 << chanid))
@@ -1867,7 +1837,6 @@ static void riva128_user_write(uint32_t addr, uint32_t val, void *p)
 static uint8_t riva128_mmio_read(uint32_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	uint8_t ret = 0;
 
 	addr &= 0xffffff;
@@ -1964,7 +1933,6 @@ static void riva128_mmio_write_w(uint32_t addr, uint16_t val, void *p)
 static void riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 
 	addr &= 0xffffff;
 
@@ -2013,7 +1981,6 @@ static void riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 static void riva128_ptimer_tick(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 
 	double time = (double)riva128->ptimer.clock_mul / (double)riva128->ptimer.clock_div;
 
@@ -2034,7 +2001,6 @@ static void riva128_ptimer_tick(void *p)
 static void riva128_mclk_poll(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 
 	if(riva128->card_id == 0x03) riva128_ptimer_tick(riva128);
 
@@ -2044,7 +2010,6 @@ static void riva128_mclk_poll(void *p)
 static void riva128_nvclk_poll(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 
 	if(riva128->card_id < 0x40 && riva128->card_id != 0x03) riva128_ptimer_tick(riva128);
 
@@ -2062,7 +2027,6 @@ static void riva128_vblank_poll(void *p)
 static uint8_t riva128_rma_in(uint16_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	uint8_t ret = 0;
 
 	addr &= 0xff;
@@ -2097,7 +2061,7 @@ static uint8_t riva128_rma_in(uint16_t addr, void *p)
 static void riva128_rma_out(uint16_t addr, uint8_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
+	svga_t* svga = &riva128->svga;
 
 	addr &= 0xff;
 
@@ -2159,7 +2123,7 @@ static void riva128_rma_out(uint16_t addr, uint8_t val, void *p)
 static uint8_t riva128_in(uint16_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
+	svga_t* svga = &riva128->svga;
 	uint8_t ret = 0;
 
 	switch (addr)
@@ -2288,7 +2252,6 @@ static void riva128_out(uint16_t addr, uint8_t val, void *p)
 static uint32_t riva128_ramin_readl(uint32_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	uint32_t ret = riva128->pramin[(addr & 0x1ffffc) >> 2];
 	return ret;
 }
@@ -2296,7 +2259,6 @@ static uint32_t riva128_ramin_readl(uint32_t addr, void *p)
 static uint8_t riva128_ramin_readb(uint32_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	uint32_t ret = riva128->pramin[(addr & 0x1ffffc) >> 2];
 	ret >>= 24 - ((addr & 3) << 3);
 	return ret;
@@ -2305,7 +2267,6 @@ static uint8_t riva128_ramin_readb(uint32_t addr, void *p)
 static uint16_t riva128_ramin_readw(uint32_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	uint32_t ret = riva128->pramin[(addr & 0x1ffffc) >> 2];
 	ret >>= 16 - ((addr & 2) << 3);
 	return ret;
@@ -2314,14 +2275,11 @@ static uint16_t riva128_ramin_readw(uint32_t addr, void *p)
 static void riva128_ramin_writel(uint32_t addr, uint32_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	riva128->pramin[(addr & 0x1ffffc) >> 2] = val;
 }
 
 static void riva128_ramin_writeb(uint32_t addr, uint8_t val, void *p)
 {
-	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	uint32_t tmp = riva128_ramin_readl(addr,p);
 	tmp &= ~(0xff << ((addr & 3) << 3));
 	tmp |= val << ((addr & 3) << 3);
@@ -2330,8 +2288,6 @@ static void riva128_ramin_writeb(uint32_t addr, uint8_t val, void *p)
 
 static void riva128_ramin_writew(uint32_t addr, uint16_t val, void *p)
 {
-	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	uint32_t tmp = riva128_ramin_readl(addr,p);
 	tmp &= ~(0xffff << ((addr & 2) << 4));
 	tmp |= val << ((addr & 2) << 4);
@@ -2341,7 +2297,6 @@ static void riva128_ramin_writew(uint32_t addr, uint16_t val, void *p)
 static uint8_t riva128_pci_read(int func, int addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
 	uint8_t ret = 0;
 	//pclog("RIVA 128 PCI read %02X %04X:%08X\n", addr, CS, cpu_state.pc);
 	switch (addr)
@@ -2464,7 +2419,7 @@ static void riva128_pci_write(int func, int addr, uint8_t val, void *p)
 {
 	//pclog("RIVA 128 PCI write %02X %02X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
+	svga_t* svga = &riva128->svga;
 	switch (addr)
 	{
 	case 0x00:
@@ -2984,7 +2939,7 @@ static device_config_t riva128_config[] =
 	}
 };
 
-static device_config_t riva128zx_config[] =
+/*static device_config_t riva128zx_config[] =
 {
 	{
 		.name = "memory",
@@ -3069,7 +3024,7 @@ static device_config_t riva128zx_config[] =
 	{
 		.type = -1
 	}
-};
+};*/
 
 device_t riva128_device =
 {
