@@ -11,7 +11,7 @@
 #include "device.h"
 #include "gameport.h"
 #include "plat-joystick.h"
-#include "resources.h"
+#include "resource.h"
 #include "win.h"
 
 static int joystick_nr;
