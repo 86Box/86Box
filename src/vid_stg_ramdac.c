@@ -10,11 +10,9 @@
 
 static int stg_state_read[2][8] = {{1,2,3,4,0,0,0,0}, {1,2,3,4,5,6,7,7}};
 static int stg_state_write[8] = {0,0,0,0,0,6,7,7};
-static int stg_state_indexed = 0;
 
 void stg_ramdac_set_bpp(svga_t *svga, stg_ramdac_t *ramdac)
 {
-	int oldbpp = svga->bpp;
 	if (ramdac->command & 0x8)
 	{
 	        switch (ramdac->regs[3])
@@ -43,7 +41,6 @@ void stg_ramdac_set_bpp(svga_t *svga, stg_ramdac_t *ramdac)
 void stg_ramdac_out(uint16_t addr, uint8_t val, stg_ramdac_t *ramdac, svga_t *svga)
 {
         int didwrite, old;
-        //if (CS!=0xC000) pclog("OUT RAMDAC %04X %02X %i %04X:%04X\n",addr,val,stg_ramdac.magic_count,CS,pc);
         switch (addr)
         {
                 case 0x3c6:
@@ -65,7 +62,6 @@ void stg_ramdac_out(uint16_t addr, uint8_t val, stg_ramdac_t *ramdac, svga_t *sv
 					stg_ramdac_set_bpp(svga, ramdac);
 				}
 			}
-                        // pclog("Write RAMDAC command %02X\n",val);
                         break;
                         case 5: 
                         ramdac->index = (ramdac->index & 0xff00) | val; 
@@ -74,7 +70,6 @@ void stg_ramdac_out(uint16_t addr, uint8_t val, stg_ramdac_t *ramdac, svga_t *sv
                         ramdac->index = (ramdac->index & 0xff) | (val << 8); 
                         break;
                         case 7:
-                        // pclog("Write RAMDAC reg %02X %02X\n", ramdac->index, val);
                         if (ramdac->index < 0x100)
 			{ 
                                 ramdac->regs[ramdac->index] = val;
@@ -96,8 +91,7 @@ void stg_ramdac_out(uint16_t addr, uint8_t val, stg_ramdac_t *ramdac, svga_t *sv
 
 uint8_t stg_ramdac_in(uint16_t addr, stg_ramdac_t *ramdac, svga_t *svga)
 {
-        uint8_t temp;
-        //if (CS!=0xC000) pclog("IN RAMDAC %04X %04X:%04X\n",addr,CS,pc);
+        uint8_t temp = 0xff;
         switch (addr)
         {
                 case 0x3c6:
@@ -116,7 +110,6 @@ uint8_t stg_ramdac_in(uint16_t addr, stg_ramdac_t *ramdac, svga_t *svga)
                         temp = ramdac->index >> 8; 
                         break;
                         case 7:
-                                // pclog("Read RAMDAC index %04X\n",ramdac->index);
                         switch (ramdac->index)
                         {
                                 case 0: 
@@ -151,7 +144,6 @@ float stg_getclock(int clock, void *p)
         float t;
         int m, n1, n2;
 	float d;
-//        pclog("STG_Getclock %i %04X\n", clock, ramdac->regs[clock]);
         if (clock == 0) return 25175000.0;
         if (clock == 1) return 28322000.0;
         clock ^= 1; /*Clocks 2 and 3 seem to be reversed*/
@@ -173,8 +165,6 @@ float stg_getclock(int clock, void *p)
 			d = 8.0;
 			break;
 	}
-        // t = (14318184.0 * ((float)m / (float)n1)) / (float)(1 << n2);
 	t = (14318184.0 * ((float)m / d)) / (float)n1;
-//        pclog("STG clock %i %i %i %f %04X  %f %i\n", m, n1, n2, t, ramdac->regs[2], 14318184.0 * ((float)m / (float)n1), 1 << n2);
         return t;
 }

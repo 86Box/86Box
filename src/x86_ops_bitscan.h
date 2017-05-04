@@ -1,5 +1,6 @@
 #define BS_common(start, end, dir, dest, time)                                  \
         flags_rebuild();                                                        \
+        instr_cycles = 0;                                                       \
         if (temp)                                                               \
         {                                                                       \
                 int c;                                                          \
@@ -21,7 +22,7 @@
 static int opBSF_w_a16(uint32_t fetchdat)
 {
         uint16_t temp;
-        int instr_cycles;
+        int instr_cycles = 0;
         
         fetch_ea_16(fetchdat);
         temp = geteaw();                        if (cpu_state.abrt) return 1;
@@ -36,7 +37,7 @@ static int opBSF_w_a16(uint32_t fetchdat)
 static int opBSF_w_a32(uint32_t fetchdat)
 {
         uint16_t temp;
-        int instr_cycles;
+        int instr_cycles = 0;
         
         fetch_ea_32(fetchdat);
         temp = geteaw();                        if (cpu_state.abrt) return 1;
@@ -51,7 +52,7 @@ static int opBSF_w_a32(uint32_t fetchdat)
 static int opBSF_l_a16(uint32_t fetchdat)
 {
         uint32_t temp;
-        int instr_cycles;
+        int instr_cycles = 0;
         
         fetch_ea_16(fetchdat);
         temp = geteal();                        if (cpu_state.abrt) return 1;
@@ -66,7 +67,7 @@ static int opBSF_l_a16(uint32_t fetchdat)
 static int opBSF_l_a32(uint32_t fetchdat)
 {
         uint32_t temp;
-        int instr_cycles;        
+        int instr_cycles = 0;
 
         fetch_ea_32(fetchdat);
         temp = geteal();                        if (cpu_state.abrt) return 1;
@@ -82,7 +83,7 @@ static int opBSF_l_a32(uint32_t fetchdat)
 static int opBSR_w_a16(uint32_t fetchdat)
 {
         uint16_t temp;
-        int instr_cycles;
+        int instr_cycles = 0;
         
         fetch_ea_16(fetchdat);
         temp = geteaw();                        if (cpu_state.abrt) return 1;
@@ -97,7 +98,7 @@ static int opBSR_w_a16(uint32_t fetchdat)
 static int opBSR_w_a32(uint32_t fetchdat)
 {
         uint16_t temp;
-        int instr_cycles;
+        int instr_cycles = 0;
         
         fetch_ea_32(fetchdat);
         temp = geteaw();                        if (cpu_state.abrt) return 1;
@@ -112,7 +113,7 @@ static int opBSR_w_a32(uint32_t fetchdat)
 static int opBSR_l_a16(uint32_t fetchdat)
 {
         uint32_t temp;
-        int instr_cycles;
+        int instr_cycles = 0;
         
         fetch_ea_16(fetchdat);
         temp = geteal();                        if (cpu_state.abrt) return 1;
@@ -127,7 +128,7 @@ static int opBSR_l_a16(uint32_t fetchdat)
 static int opBSR_l_a32(uint32_t fetchdat)
 {
         uint32_t temp;
-        int instr_cycles;
+        int instr_cycles = 0;
         
         fetch_ea_32(fetchdat);
         temp = geteal();                        if (cpu_state.abrt) return 1;

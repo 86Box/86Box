@@ -102,13 +102,9 @@ void disc_load(int drive, char *fn)
         int c = 0, size;
         char *p;
         FILE *f;
-//        pclog("disc_load %i %s\n", drive, fn);
-//        setejecttext(drive, "");
         if (!fn) return;
         p = get_extension(fn);
         if (!p) return;
-//        setejecttext(drive, fn);
-        // pclog("Loading :%i %s %s\n", drive, fn,p);
         f = fopen(fn, "rb");
         if (!f) return;
         fseek(f, -1, SEEK_END);
@@ -118,12 +114,10 @@ void disc_load(int drive, char *fn)
         {
                 if (!strcasecmp(p, loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1))
                 {
-                        // pclog("Loading as %s (UI write protected = %s)\n", p, ui_writeprot[drive] ? "yes" : "no");
                         driveloaders[drive] = c;
                         loaders[c].load(drive, fn);
                         drive_empty[drive] = 0;
                         strcpy(discfns[drive], fn);
-			// fdd_set_head(real_drive(drive), 0);
                         fdd_forced_seek(real_drive(drive), 0);
                         disc_changed[drive] = 1;
                         return;
@@ -138,7 +132,6 @@ void disc_load(int drive, char *fn)
 
 void disc_close(int drive)
 {
-//        pclog("disc_close %i\n", drive);
         if (loaders[driveloaders[drive]].close) loaders[driveloaders[drive]].close(drive);
         drive_empty[drive] = 1;
 	fdd_set_head(real_drive(drive), 0);
@@ -210,8 +203,7 @@ void disc_poll(int drive)
 {
 	if (drive >= FDD_NUM)
 	{
-		disc_poll_time[drive] += (int) (((romset == ROM_MRTHOR) ? 8.0 : 32.0) * TIMER_USEC);
-		return;
+		fatal("Attempting to poll floppy drive %i that is not supposed to be there\n", drive);
 	}
 
         disc_poll_time[drive] += (int) disc_real_period(drive);
@@ -249,7 +241,7 @@ void disc_poll_3()
 
 int disc_get_bitcell_period(int rate)
 {
-        int bit_rate;
+        int bit_rate = 250;
         
         switch (rate)
         {
@@ -312,7 +304,6 @@ void disc_reset()
 
 void disc_init()
 {
-//        pclog("disc_init %p\n", drives);
         drives[0].poll = drives[1].poll = drives[2].poll = drives[3].poll = 0;
         drives[0].seek = drives[1].seek = drives[2].seek = drives[3].seek = 0;
         drives[0].readsector = drives[1].readsector = drives[2].readsector = drives[3].readsector = 0;
@@ -322,13 +313,8 @@ void disc_init()
 int oldtrack[FDD_NUM] = {0, 0, 0, 0};
 void disc_seek(int drive, int track)
 {
-//        pclog("disc_seek: drive=%i track=%i\n", drive, track);
         if (drives[drive].seek)
                 drives[drive].seek(drive, track);
-//        if (track != oldtrack[drive])
-//                fdc_discchange_clear(drive);
-//        ddnoise_seek(track - oldtrack[drive]);
-//        oldtrack[drive] = track;
 }
 
 void disc_readsector(int drive, int sector, int track, int side, int density, int sector_size)

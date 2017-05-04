@@ -51,7 +51,6 @@ void sis496_recalcmapping(sis496_t *sis496)
 void sis496_write(int func, int addr, uint8_t val, void *p)
 {
         sis496_t *sis496 = (sis496_t *)p;
-        //pclog("sis496_write : addr=%02x val=%02x\n", addr, val);
         switch (addr)
         {
                 case 0x44: /*Shadow configure*/

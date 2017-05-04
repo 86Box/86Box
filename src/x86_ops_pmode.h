@@ -4,7 +4,7 @@ static int opARPL_a16(uint32_t fetchdat)
         
         NOTRM
         fetch_ea_16(fetchdat);
-        pclog("ARPL_a16\n");
+        /* pclog("ARPL_a16\n"); */
         temp_seg = geteaw();            if (cpu_state.abrt) return 1;
         
         flags_rebuild();
@@ -27,7 +27,7 @@ static int opARPL_a32(uint32_t fetchdat)
         
         NOTRM
         fetch_ea_32(fetchdat);
-        pclog("ARPL_a32\n");        
+        /* pclog("ARPL_a32\n"); */
         temp_seg = geteaw();            if (cpu_state.abrt) return 1;
         
         flags_rebuild();
@@ -49,7 +49,7 @@ static int opARPL_a32(uint32_t fetchdat)
         static int opLAR_ ## name(uint32_t fetchdat)                                                            \
         {                                                                                                       \
                 int valid;                                                                                      \
-                uint16_t sel, desc;                                                                             \
+                uint16_t sel, desc = 0;                                                                             \
                                                                                                                 \
                 NOTRM                                                                                           \
                 fetch_ea(fetchdat);                                                                             \
@@ -99,7 +99,7 @@ opLAR(l_a32, fetch_ea_32, 1, 1)
         static int opLSL_ ## name(uint32_t fetchdat)                                                            \
         {                                                                                                       \
                 int valid;                                                                                      \
-                uint16_t sel, desc;                                                                             \
+                uint16_t sel, desc = 0;                                                                             \
                                                                                                                 \
                 NOTRM                                                                                           \
                 fetch_ea(fetchdat);                                                                             \
@@ -159,7 +159,7 @@ static int op0F00_common(uint32_t fetchdat, int ea32)
         uint16_t desc, sel;
         uint8_t access;
 
-//        pclog("op0F00 %02X %04X:%04X\n", rmdat & 0x38, CS, pc);        
+        /* pclog("op0F00 %02X %04X:%04X\n", rmdat & 0x38, CS, pc); */
         switch (rmdat & 0x38)
         {
                 case 0x00: /*SLDT*/
@@ -293,12 +293,12 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
 {
         uint32_t base;
         uint16_t limit, tempw;
-//        pclog("op0F01 %02X %04X:%04X\n", rmdat & 0x38, CS, pc);
+        /* pclog("op0F01 %02X %04X:%04X\n", rmdat & 0x38, CS, pc); */
         switch (rmdat & 0x38)
         {
                 case 0x00: /*SGDT*/
                 seteaw(gdt.limit);
-                base = gdt.base; //is32 ? gdt.base : (gdt.base & 0xffffff);
+                base = gdt.base;  /* is32 ? gdt.base : (gdt.base & 0xffffff); */
                 if (is286)
                         base |= 0xff000000;
                 writememl(easeg, cpu_state.eaaddr + 2, base);
@@ -321,10 +321,10 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
                         x86gpf(NULL,0);
                         break;
                 }
-//                pclog("LGDT %08X:%08X\n", easeg, eaaddr);
+                /* pclog("LGDT %08X:%08X\n", easeg, eaaddr); */
                 limit = geteaw();
                 base = readmeml(0, easeg + cpu_state.eaaddr + 2);         if (cpu_state.abrt) return 1;
-//                pclog("     %08X %04X\n", base, limit);
+                /* pclog("     %08X %04X\n", base, limit); */
                 gdt.limit = limit;
                 gdt.base = base;
                 if (!is32) gdt.base &= 0xffffff;
@@ -338,10 +338,10 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
                         x86gpf(NULL,0);
                         break;
                 }
-//                pclog("LIDT %08X:%08X\n", easeg, eaaddr);
+                /* pclog("LIDT %08X:%08X\n", easeg, eaaddr); */
                 limit = geteaw();
                 base = readmeml(0, easeg + cpu_state.eaaddr + 2);         if (cpu_state.abrt) return 1;
-//                pclog("     %08X %04X\n", base, limit);
+                /* pclog("     %08X %04X\n", base, limit); */
                 idt.limit = limit;
                 idt.base = base;
                 if (!is32) idt.base &= 0xffffff;
@@ -350,8 +350,9 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
                 break;
 
                 case 0x20: /*SMSW*/
-                if (is486) seteaw(msw);
-                else       seteaw(msw | 0xFF00);
+                if (is486)      seteaw(msw);
+                else if (is386) seteaw(msw | 0xFF00);
+                else            seteaw(msw | 0xFFF0);
                 CLOCK_CYCLES(2);
                 PREFETCH_RUN(2, 2, rmdat, 0,0,(cpu_mod == 3) ? 0:1,0, ea32);
                 break;
@@ -364,6 +365,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
                 }
                 tempw = geteaw();                                       if (cpu_state.abrt) return 1;
                 if (msw & 1) tempw |= 1;
+                if (!is386) tempw &= 0xF;
                 msw = tempw;
                 PREFETCH_RUN(2, 2, rmdat, 0,0,(cpu_mod == 3) ? 0:1,0, ea32);
                 break;

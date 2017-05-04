@@ -149,7 +149,7 @@ static int pas16_sb_dmas[8] = {0, 1, 2, 3};
 enum
 {
         PAS16_INT_SAMP = 0x04,
-        PAS16_INT_PCM  = 0x08,
+        PAS16_INT_PCM  = 0x08
 };
 
 enum
@@ -260,6 +260,10 @@ static uint8_t pas16_in(uint16_t port, void *p)
                 case 0xff8b: /*Master mode read*/
                 temp = 0x20 | 0x10 | 0x01; /*AT bus, XT/AT timing*/
                 break;
+
+		default:
+		temp = 0xff;
+		break;
         }
 /*        if (port != 0x388 && port != 0x389 && port != 0xb8b) */pclog("pas16_in : port %04X return %02X  %04X:%04X\n", port, temp, CS,cpu_state.pc);
 /*        if (CS == 0x1FF4 && pc == 0x0585)
@@ -289,7 +293,6 @@ static void pas16_out(uint16_t port, uint8_t val, void *p)
 
                 case 0xb89:
                 pas16->irq_stat &= ~val;
-//                pas16_update_irqs();
                 break;
 
                 case 0xb8a:
@@ -299,7 +302,6 @@ static void pas16_out(uint16_t port, uint8_t val, void *p)
 
                 case 0xb8b:
                 pas16->irq_ena = val;
-//                pas16_update_irqs();
                 break;
 
                 case 0xf88:
@@ -490,9 +492,8 @@ static void pas16_pit_out(uint16_t port, uint8_t val, void *p)
 static uint8_t pas16_pit_in(uint16_t port, void *p)
 {
         pas16_t *pas16 = (pas16_t *)p;
-        uint8_t temp;
+        uint8_t temp = 0xff;
         int t = port & 3;
-//        printf("Read PIT %04X ",addr);
         switch (port & 3)
         {
                 case 0: case 1: case 2: /*Timers*/
@@ -538,7 +539,6 @@ static uint8_t pas16_pit_in(uint16_t port, void *p)
                 temp = pas16->pit.ctrl;
                 break;
         }
-//        printf("%02X %i %i %04X:%04X\n",temp,pit.rm[addr&3],pit.wp,cs>>4,pc);
         return temp;
 }
 
@@ -552,8 +552,6 @@ static void pas16_pcm_poll(void *p)
         pas16_t *pas16 = (pas16_t *)p;
         
         pas16_update(pas16);
-//        if (pas16->pcm_ctrl & PAS16_PCM_ENA)
-//                pclog("pas16_pcm_poll : poll %i %i ", pas16->pit.c[0], pas16->pit.l[0]);
         if (pas16->pit.m[0] & 2)
         {
                 if (pas16->pit.l[0]) 
@@ -566,13 +564,10 @@ static void pas16_pcm_poll(void *p)
                 pas16->pit.c[0] = -1;
                 pas16->pit.enable[0] = 0;
         }
-//        if (pas16->pcm_ctrl & PAS16_PCM_ENA)
-//                pclog(" %i\n", pas16->pit.c[0]);
 
         pas16->irq_stat |= PAS16_INT_SAMP;
         if (pas16->irq_ena & PAS16_INT_SAMP)
                 picint(1 << pas16->irq);
-//        pas16_update_irqs();
         
         /*Update sample rate counter*/
         if (pas16->pit.enable[1])
@@ -602,11 +597,6 @@ static void pas16_pcm_poll(void *p)
                                         
                                 pas16->stereo_lr = !pas16->stereo_lr;
                         }
-//                        pclog("pas16_pcm_poll : %04X %i\n", temp, pas16->stereo_lr);
-//                        pclog("pas16_pcm_poll : %i %02X  %i\n", pas16->pit.c[1], temp, pas16->pit.c[0]);
-/*                        if (!pas16_pcm)
-                                pas16_pcm=fopen("pas16->pcm", "wb");
-                        putc(temp, pas16_pcm);*/
                 }
                 if (pas16->sys_conf_2 & PAS16_SC2_16BIT)
                         pas16->pit.c[1] -= 2;
@@ -614,8 +604,6 @@ static void pas16_pcm_poll(void *p)
                         pas16->pit.c[1]--;
                 if (pas16->pit.c[1] == 0)
                 {
-//                        if (pas16->pcm_ctrl & PAS16_PCM_ENA)
-//                                pclog("pas16_pcm_poll : buffer over\n");
                         if (pas16->pit.m[1] & 2)
                         {
                                 if (pas16->pit.l[1]) 

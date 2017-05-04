@@ -17,7 +17,6 @@ void headland_write(uint16_t addr, uint8_t val, void *priv)
         {
                 if (headland_index == 0xc1 && !is486) val = 0;
                 headland_regs[headland_index] = val;
-                // pclog("Headland write %02X %02X\n",headland_index,val);
                 if (headland_index == 0x82)
                 {
                         shadowbios = val & 0x10;

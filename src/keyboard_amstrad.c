@@ -88,7 +88,7 @@ void keyboard_amstrad_write(uint16_t port, uint8_t val, void *priv)
                 speaker_enable = val & 2;
                 if (speaker_enable) 
                         was_speaker_enable = 1;
-                pit_set_gate(2, val & 1);
+                pit_set_gate(&pit, 2, val & 1);
                 
                 if (val & 0x80)
                         keyboard_amstrad.pa = 0;
@@ -107,15 +107,12 @@ void keyboard_amstrad_write(uint16_t port, uint8_t val, void *priv)
 
                 default:
                 pclog("\nBad XT keyboard write %04X %02X\n", port, val);
-//                dumpregs();
-//                exit(-1);
         }
 }
 
 uint8_t keyboard_amstrad_read(uint16_t port, void *priv)
 {
         uint8_t temp;
-//        pclog("keyboard_amstrad : read %04X ", port);
         switch (port)
         {
                 case 0x60:
@@ -155,10 +152,7 @@ uint8_t keyboard_amstrad_read(uint16_t port, void *priv)
                 
                 default:
                 pclog("\nBad XT keyboard read %04X\n", port);
-//                dumpregs();
-//                exit(-1);
         }
-//        pclog("%02X  %04X:%04X\n", temp, CS, pc);
         return temp;
 }
 
@@ -171,7 +165,6 @@ void keyboard_amstrad_reset()
 
 void keyboard_amstrad_init()
 {
-        //return;
         pclog("keyboard_amstrad_init\n");
         io_sethandler(0x0060, 0x0006, keyboard_amstrad_read, NULL, NULL, keyboard_amstrad_write, NULL, NULL,  NULL);
         keyboard_amstrad_reset();

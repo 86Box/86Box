@@ -64,7 +64,7 @@ extern uint16_t ea_rseg;
                         }
 
 #define CHECK_READ(chseg, low, high)  \
-        if ((low < (chseg)->limit_low) || (high > (chseg)->limit_high))       \
+        if ((low < (chseg)->limit_low) || (high > (chseg)->limit_high) || ((msw & 1) && !(eflags & VM_FLAG) && (((chseg)->access & 10) == 8)))       \
         {                                       \
                 x86gpf("Limit check", 0);       \
                 return 1;                       \
@@ -79,7 +79,7 @@ extern uint16_t ea_rseg;
         }
 
 #define CHECK_WRITE(chseg, low, high)  \
-        if ((low < (chseg)->limit_low) || (high > (chseg)->limit_high) || !((chseg)->access & 2))       \
+        if ((low < (chseg)->limit_low) || (high > (chseg)->limit_high) || !((chseg)->access & 2) || ((msw & 1) && !(eflags & VM_FLAG) && ((chseg)->access & 8)))       \
         {                                       \
                 x86gpf("Limit check", 0);       \
                 return 1;                       \
@@ -118,7 +118,7 @@ extern uint16_t ea_rseg;
 
 
 
-static inline uint8_t fastreadb(uint32_t a)
+static __inline uint8_t fastreadb(uint32_t a)
 {
         uint8_t *t;
         
@@ -126,13 +126,13 @@ static inline uint8_t fastreadb(uint32_t a)
                 return *((uint8_t *)&pccache2[a]);
         t = getpccache(a);
         if (cpu_state.abrt)
-                return;
+                return 0xFF;
         pccache = a >> 12;
         pccache2 = t;
         return *((uint8_t *)&pccache2[a]);
 }
 
-static inline uint16_t fastreadw(uint32_t a)
+static __inline uint16_t fastreadw(uint32_t a)
 {
         uint8_t *t;
         uint16_t val;
@@ -145,14 +145,14 @@ static inline uint16_t fastreadw(uint32_t a)
         if ((a>>12)==pccache) return *((uint16_t *)&pccache2[a]);
         t = getpccache(a);
         if (cpu_state.abrt)
-                return;
+                return 0xff;
 
         pccache = a >> 12;
         pccache2 = t;
         return *((uint16_t *)&pccache2[a]);
 }
 
-static inline uint32_t fastreadl(uint32_t a)
+static __inline uint32_t fastreadl(uint32_t a)
 {
         uint8_t *t;
         uint32_t val;
@@ -165,7 +165,7 @@ static inline uint32_t fastreadl(uint32_t a)
                                 return 0;
                         pccache2 = t;
                         pccache=a>>12;
-                        //return *((uint32_t *)&pccache2[a]);
+                        /* return *((uint32_t *)&pccache2[a]); */
                 }
                 return *((uint32_t *)&pccache2[a]);
         }
@@ -176,25 +176,25 @@ static inline uint32_t fastreadl(uint32_t a)
         return val;
 }
 
-static inline uint8_t getbyte()
+static __inline uint8_t getbyte()
 {
         cpu_state.pc++;
         return fastreadb(cs + (cpu_state.pc - 1));
 }
 
-static inline uint16_t getword()
+static __inline uint16_t getword()
 {
         cpu_state.pc+=2;
         return fastreadw(cs+(cpu_state.pc-2));
 }
 
-static inline uint32_t getlong()
+static __inline uint32_t getlong()
 {
         cpu_state.pc+=4;
         return fastreadl(cs+(cpu_state.pc-4));
 }
 
-static inline uint64_t getquad()
+static __inline uint64_t getquad()
 {
         cpu_state.pc+=8;
         return fastreadl(cs+(cpu_state.pc-8)) | ((uint64_t)fastreadl(cs+(cpu_state.pc-4)) << 32);
@@ -202,7 +202,7 @@ static inline uint64_t getquad()
 
 
 
-static inline uint8_t geteab()
+static __inline uint8_t geteab()
 {
         if (cpu_mod == 3)
                 return (cpu_rm & 4) ? cpu_state.regs[cpu_rm & 3].b.h : cpu_state.regs[cpu_rm&3].b.l;
@@ -211,48 +211,48 @@ static inline uint8_t geteab()
         return readmemb(easeg, cpu_state.eaaddr);
 }
 
-static inline uint16_t geteaw()
+static __inline uint16_t geteaw()
 {
         if (cpu_mod == 3)
                 return cpu_state.regs[cpu_rm].w;
-//        cycles-=3;
+        /* cycles-=3; */
         if (eal_r)
                 return *(uint16_t *)eal_r;
         return readmemw(easeg, cpu_state.eaaddr);
 }
 
-static inline uint32_t geteal()
+static __inline uint32_t geteal()
 {
         if (cpu_mod == 3)
                 return cpu_state.regs[cpu_rm].l;
-//        cycles-=3;
+        /* cycles-=3; */
         if (eal_r)
                 return *eal_r;
         return readmeml(easeg, cpu_state.eaaddr);
 }
 
-static inline uint64_t geteaq()
+static __inline uint64_t geteaq()
 {
         return readmemq(easeg, cpu_state.eaaddr);
 }
 
-static inline uint8_t geteab_mem()
+static __inline uint8_t geteab_mem()
 {
         if (eal_r) return *(uint8_t *)eal_r;
         return readmemb(easeg,cpu_state.eaaddr);
 }
-static inline uint16_t geteaw_mem()
+static __inline uint16_t geteaw_mem()
 {
         if (eal_r) return *(uint16_t *)eal_r;
         return readmemw(easeg,cpu_state.eaaddr);
 }
-static inline uint32_t geteal_mem()
+static __inline uint32_t geteal_mem()
 {
         if (eal_r) return *eal_r;
         return readmeml(easeg,cpu_state.eaaddr);
 }
 
-static inline void seteaq(uint64_t v)
+static __inline void seteaq(uint64_t v)
 {
         writememql(easeg, cpu_state.eaaddr, v);
 }

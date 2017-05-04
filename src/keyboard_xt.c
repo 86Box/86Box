@@ -4,11 +4,14 @@
 #include <stdint.h>
 
 #include "ibm.h"
+#include "device.h"
 #include "io.h"
 #include "mem.h"
 #include "pic.h"
+#include "pit.h"
 #include "sound.h"
 #include "sound_speaker.h"
+#include "tandy_eeprom.h"
 #include "timer.h"
 
 #include "keyboard.h"
@@ -59,15 +62,9 @@ void keyboard_xt_adddata(uint8_t val)
 
 void keyboard_xt_write(uint16_t port, uint8_t val, void *priv)
 {
-//        pclog("keyboard_xt : write %04X %02X %02X\n", port, val, keyboard_xt.pb);
-/*        if (ram[8] == 0xc3) 
-        {
-                output = 3;
-        }*/
         switch (port)
         {
                 case 0x61:
-//                pclog("keyboard_xt : pb write %02X %02X  %i %02X %i\n", val, keyboard_xt.pb, !(keyboard_xt.pb & 0x40), keyboard_xt.pb & 0x40, (val & 0x40));
                 if (!(keyboard_xt.pb & 0x40) && (val & 0x40)) /*Reset keyboard*/
                 {
                         pclog("keyboard_xt : reset keyboard\n");
@@ -91,7 +88,7 @@ void keyboard_xt_write(uint16_t port, uint8_t val, void *priv)
                 speaker_enable = val & 2;
                 if (speaker_enable) 
                         was_speaker_enable = 1;
-                pit_set_gate(2, val & 1);
+                pit_set_gate(&pit, 2, val & 1);
                    
                 break;
         }
@@ -100,7 +97,6 @@ void keyboard_xt_write(uint16_t port, uint8_t val, void *priv)
 uint8_t keyboard_xt_read(uint16_t port, void *priv)
 {
         uint8_t temp;
-//        pclog("keyboard_xt : read %04X ", port);
         switch (port)
         {
                 case 0x60:
@@ -150,10 +146,8 @@ uint8_t keyboard_xt_read(uint16_t port, void *priv)
                 
                 default:
                 pclog("\nBad XT keyboard read %04X\n", port);
-                //dumpregs();
-                //exit(-1);
+		temp = 0xff;
         }
-//        pclog("%02X\n", temp);
         return temp;
 }
 
@@ -166,7 +160,6 @@ void keyboard_xt_reset()
 
 void keyboard_xt_init()
 {
-        //return;
         io_sethandler(0x0060, 0x0004, keyboard_xt_read, NULL, NULL, keyboard_xt_write, NULL, NULL,  NULL);
         keyboard_xt_reset();
         keyboard_send = keyboard_xt_adddata;
@@ -178,7 +171,6 @@ void keyboard_xt_init()
 
 void keyboard_tandy_init()
 {
-        //return;
         io_sethandler(0x0060, 0x0004, keyboard_xt_read, NULL, NULL, keyboard_xt_write, NULL, NULL,  NULL);
         keyboard_xt_reset();
         keyboard_send = keyboard_xt_adddata;

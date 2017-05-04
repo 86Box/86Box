@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include "ibm.h"
 #include "device.h"
+#include "io.h"
 #include "mem.h"
 #include "rom.h"
 #include "video.h"
@@ -45,8 +46,6 @@ void paradise_out(uint16_t addr, uint8_t val, void *p)
         
         if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
                 addr ^= 0x60;
-//        output = 3;
-//        pclog("Paradise out %04X %02X %04X:%04X\n", addr, val, CS, pc);
         switch (addr)
         {
                 case 0x3c5:
@@ -71,7 +70,6 @@ void paradise_out(uint16_t addr, uint8_t val, void *p)
                 {
                         if ((svga->gdcreg[6] & 0xc) != (val & 0xc))
                         {
-//                                pclog("Write mapping %02X\n", val);
                                 switch (val&0xC)
                                 {
                                         case 0x0: /*128k at A0000*/
@@ -151,7 +149,6 @@ uint8_t paradise_in(uint16_t addr, void *p)
         if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
                 addr ^= 0x60;
         
-//        if (addr != 0x3da) pclog("Paradise in %04X\n", addr);
         switch (addr)
         {
                 case 0x3c2:
@@ -197,7 +194,6 @@ void paradise_remap(paradise_t *paradise)
         
         if (svga->seqregs[0x11] & 0x80)
         {
-//                pclog("Remap 1\n");
                 paradise->read_bank[0]  = paradise->read_bank[2]  =  (svga->gdcreg[0x9] & 0x7f) << 12;
                 paradise->read_bank[1]  = paradise->read_bank[3]  = ((svga->gdcreg[0x9] & 0x7f) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
                 paradise->write_bank[0] = paradise->write_bank[2] =  (svga->gdcreg[0xa] & 0x7f) << 12;
@@ -207,7 +203,6 @@ void paradise_remap(paradise_t *paradise)
         {
                 if (svga->gdcreg[0x6] & 0xc)
                 {
-//                pclog("Remap 2\n");                        
                         paradise->read_bank[0]  = paradise->read_bank[2]  =  (svga->gdcreg[0xa] & 0x7f) << 12;
                         paradise->write_bank[0] = paradise->write_bank[2] =  (svga->gdcreg[0xa] & 0x7f) << 12;
                         paradise->read_bank[1]  = paradise->read_bank[3]  = ((svga->gdcreg[0x9] & 0x7f) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
@@ -215,7 +210,6 @@ void paradise_remap(paradise_t *paradise)
                 }
                 else
                 {
-//                pclog("Remap 3\n");
                         paradise->read_bank[0] = paradise->write_bank[0] =  (svga->gdcreg[0xa] & 0x7f) << 12;
                         paradise->read_bank[1] = paradise->write_bank[1] = ((svga->gdcreg[0xa] & 0x7f) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
                         paradise->read_bank[2] = paradise->write_bank[2] =  (svga->gdcreg[0x9] & 0x7f) << 12;
@@ -224,13 +218,11 @@ void paradise_remap(paradise_t *paradise)
         }
         else
         {
-  //              pclog("Remap 4\n");
                 paradise->read_bank[0]  = paradise->read_bank[2]  =  (svga->gdcreg[0x9] & 0x7f) << 12;
                 paradise->read_bank[1]  = paradise->read_bank[3]  = ((svga->gdcreg[0x9] & 0x7f) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
                 paradise->write_bank[0] = paradise->write_bank[2] =  (svga->gdcreg[0x9] & 0x7f) << 12;
                 paradise->write_bank[1] = paradise->write_bank[3] = ((svga->gdcreg[0x9] & 0x7f) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
         }
-//        pclog("Remap - %04X %04X\n", paradise->read_bank[0], paradise->write_bank[0]);
 }
 
 void paradise_recalctimings(svga_t *svga)
@@ -243,9 +235,8 @@ void paradise_recalctimings(svga_t *svga)
 void paradise_write(uint32_t addr, uint8_t val, void *p)
 {
         paradise_t *paradise = (paradise_t *)p;
-//        pclog("paradise_write : %05X %02X  ", addr, val);
         addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
-//        pclog("%08X\n", addr);
+
 	/* Horrible hack, I know, but it's the only way to fix the 440FX BIOS filling the VRAM with garbage until Tom fixes the memory emulation. */
 	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF2F) && (romset == ROM_440FX))  return;
 	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF77) && (romset == ROM_440FX))  return;
@@ -255,9 +246,7 @@ void paradise_write(uint32_t addr, uint8_t val, void *p)
 uint8_t paradise_read(uint32_t addr, void *p)
 {
         paradise_t *paradise = (paradise_t *)p;
-//        pclog("paradise_read : %05X ", addr);
         addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
-//        pclog("%08X\n", addr);
         return svga_read_linear(addr, &paradise->svga);
 }
 

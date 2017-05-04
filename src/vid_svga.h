@@ -91,8 +91,9 @@ typedef struct svga_t
                 int ena;
                 int x, y;
                 int xoff, yoff;
-                int ysize;
+                int xsize, ysize;
                 uint32_t addr;
+		uint32_t pitch;
                 int v_acc, h_acc;
         } hwcursor, hwcursor_latch, overlay, overlay_latch;
         
@@ -112,6 +113,8 @@ typedef struct svga_t
 
         void (*overlay_draw)(struct svga_t *svga, int displine);
         
+        void (*vblank_start)(struct svga_t *svga);
+
         /*If set then another device is driving the monitor output and the SVGA
           card should not attempt to display anything */
         int override;
@@ -158,3 +161,10 @@ void svga_set_override(svga_t *svga, int val);
 void svga_set_ramdac_type(svga_t *svga, int type);
 
 extern uint8_t mask_crtc[0x19];
+
+void svga_close(svga_t *svga);
+
+uint32_t svga_mask_addr(uint32_t addr, svga_t *svga);
+uint32_t svga_mask_changedaddr(uint32_t addr, svga_t *svga);
+
+void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga);

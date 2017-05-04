@@ -163,7 +163,6 @@ static int opFF_w_a16(uint32_t fetchdat)
                 break;
 
                 default:
-//                fatal("Bad FF opcode %02X\n",rmdat&0x38);
                 x86illegal();
         }
         return cpu_state.abrt;
@@ -240,7 +239,6 @@ static int opFF_w_a32(uint32_t fetchdat)
                 break;
 
                 default:
-//                fatal("Bad FF opcode %02X\n",rmdat&0x38);
                 x86illegal();
         }
         return cpu_state.abrt;
@@ -318,7 +316,6 @@ static int opFF_l_a16(uint32_t fetchdat)
                 break;
 
                 default:
-//                fatal("Bad FF opcode %02X\n",rmdat&0x38);
                 x86illegal();
         }
         return cpu_state.abrt;
@@ -394,7 +391,6 @@ static int opFF_l_a32(uint32_t fetchdat)
                 break;
 
                 default:
-//                fatal("Bad FF opcode %02X\n",rmdat&0x38);
                 x86illegal();
         }
         return cpu_state.abrt;

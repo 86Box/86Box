@@ -24,6 +24,8 @@
 #define glue(a,b) glue_hidden(a,b)
 #define glue_hidden(a,b) a ## b
 
+static uint8_t rop_to_index[256];
+
 int cl_gd_ABS(int sval)
 {
 	if (sval < 0)
@@ -65,11 +67,11 @@ bool blit_is_unsafe(clgd_t *clgd, svga_t *svga)
 	return false;
 }
 
-void cirrus_bitblt_rop_nop(clgd_t *clgd, uint8_t *dst, const uint8_t *src, int dstpitch, int srcpitch, int bltwidth, int bltheight)
+void cirrus_bitblt_rop_nop(clgd_t *clgd, svga_t *svga, uint8_t *dst, const uint8_t *src, int dstpitch, int srcpitch, int bltwidth, int bltheight)
 {
 }
 
-void cirrus_bitblt_fill_nop(clgd_t *clgd, uint8_t *dst, int dstpitch, int bltwidth, int bltheight)
+void cirrus_bitblt_fill_nop(clgd_t *clgd, svga_t *svga, uint8_t *dst, int dstpitch, int bltwidth, int bltheight)
 {
 }
 
@@ -346,7 +348,7 @@ const cirrus_fill_t cirrus_fill[16][4] = {
     ROP2(cirrus_fill_notsrc_and_notdst),
 };
 
-static inline void cirrus_bitblt_fgcol(clgd_t *clgd, svga_t *svga)
+inline void cirrus_bitblt_fgcol(clgd_t *clgd, svga_t *svga)
 {
 	unsigned int color;
 	switch (clgd->blt.pixel_width)
@@ -369,7 +371,7 @@ static inline void cirrus_bitblt_fgcol(clgd_t *clgd, svga_t *svga)
 	}
 }
 
-static inline void cirrus_bitblt_bgcol(clgd_t *clgd, svga_t *svga)
+inline void cirrus_bitblt_bgcol(clgd_t *clgd, svga_t *svga)
 {
 	unsigned int color;
 	switch (clgd->blt.pixel_width)
@@ -394,7 +396,7 @@ static inline void cirrus_bitblt_bgcol(clgd_t *clgd, svga_t *svga)
 
 void cirrus_invalidate_region(clgd_t *clgd, svga_t *svga, int off_begin, int off_pitch, int bytesperline, int lines)
 {
-	int y;
+	int x, y;
 	int off_cur;
 	int off_cur_end;
 
@@ -404,6 +406,10 @@ void cirrus_invalidate_region(clgd_t *clgd, svga_t *svga, int off_begin, int off
 		off_cur_end = ((off_cur + bytesperline) & svga->vrammask);
 		// Memory region set dirty
 		off_begin += off_pitch;
+		for (x = (off_cur >> 12); x <= (off_cur_end >> 12); x++) 
+		{
+			svga->changedvram[x]++;
+		}
 	}
 }
 

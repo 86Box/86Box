@@ -36,8 +36,6 @@ static HWND ddraw_hwnd;
 
 int ddraw_init(HWND h)
 {
-        int c;
-        
 	cgapal_rebuild();
 
         if (FAILED(DirectDrawCreate(NULL, &lpdd, NULL)))
@@ -136,6 +134,12 @@ static void ddraw_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
         HRESULT hr;
 //        pclog("Blit memtoscreen %i,%i %i %i %i,%i\n", x, y, y1, y2, w, h);
 
+	if (lpdds_back == NULL)
+	{
+                video_blit_complete();
+		return; /*Nothing to do*/
+        }
+
         memset(&ddsd, 0, sizeof(ddsd));
         ddsd.dwSize = sizeof(ddsd);
 
@@ -154,7 +158,7 @@ static void ddraw_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
         for (yy = y1; yy < y2; yy++)
         {
                 if ((y + yy) >= 0 && (y + yy) < buffer->h)
-                        memcpy(ddsd.lpSurface + (yy * ddsd.lPitch), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
+                        memcpy((uint32_t *) &(((uint8_t *) ddsd.lpSurface)[yy * ddsd.lPitch]), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
         }
         video_blit_complete();
         lpdds_back->Unlock(NULL);
@@ -180,6 +184,7 @@ static void ddraw_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
         if (readflash)
         {
                 readflash = 0;
+#ifdef LEGACY_READ_FLASH
 		if (enable_flash)
 		{
 	                hr = lpdds_back2->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
@@ -192,11 +197,12 @@ static void ddraw_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
         	        if (!ddsd.lpSurface) return;
 	                for (yy = 8; yy < 14; yy++)
 	                {
-        	                p = (uint32_t *)(ddsd.lpSurface + (yy * ddsd.lPitch));                        
+				p = &(((uint32_t *) ddsd.lpSurface)[yy * ddsd.lPitch]);
                 	        for (xx = (w - 40); xx < (w - 8); xx++)
                         	    p[xx] = 0xffffffff;
 	                }
 		}
+#endif
        	}
         lpdds_back2->Unlock(NULL);
         
@@ -218,6 +224,12 @@ static void ddraw_blit_memtoscreen_8(int x, int y, int w, int h)
         uint32_t *p;
         HRESULT hr;
 
+	if (lpdds_back == NULL)
+	{
+                video_blit_complete();
+		return; /*Nothing to do*/
+        }
+
         memset(&ddsd, 0, sizeof(ddsd));
         ddsd.dwSize = sizeof(ddsd);
 
@@ -238,14 +250,14 @@ static void ddraw_blit_memtoscreen_8(int x, int y, int w, int h)
         {
                 if ((y + yy) >= 0 && (y + yy) < buffer->h)
                 {
-                        p = (uint32_t *)(ddsd.lpSurface + (yy * ddsd.lPitch));
+                        p = (uint32_t *) &(((uint8_t *) ddsd.lpSurface)[yy * ddsd.lPitch]);
                         for (xx = 0; xx < w; xx++)
 			{
                             p[xx] = pal_lookup[buffer->line[y + yy][x + xx]];
 			}
                 }
         }
-        p = (uint32_t *)(ddsd.lpSurface + (4 * ddsd.lPitch));
+        p = &(((uint32_t *) ddsd.lpSurface)[4 * ddsd.lPitch]);
         lpdds_back->Unlock(NULL);
         video_blit_complete();
         
@@ -282,7 +294,7 @@ static void ddraw_blit_memtoscreen_8(int x, int y, int w, int h)
                 	if (!ddsd.lpSurface) return;
 	                for (yy = 8; yy < 14; yy++)
         	        {
-                	        p = (uint32_t *)(ddsd.lpSurface + (yy * ddsd.lPitch));                        
+                	        p = (uint32_t *) &(((uint8_t *) ddsd.lpSurface)[yy * ddsd.lPitch]);
                         	for (xx = (w - 40); xx < (w - 8); xx++)
 	                            p[xx] = 0xffffffff;
         	        }

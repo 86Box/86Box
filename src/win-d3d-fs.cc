@@ -8,7 +8,7 @@
 #undef BITMAP
 #include <D3dx9tex.h>
 #include "86box.h"
-#include "resources.h"
+#include "resource.h"
 #include "video.h"
 #include "win-d3d-fs.h"
 #include "win.h"
@@ -210,12 +210,10 @@ static void d3d_fs_close_objects()
 
 static void d3d_fs_init_objects()
 {
-        HRESULT hr;
         D3DLOCKED_RECT dr;
-        int y;
         RECT r;
 
-        hr = d3ddev->CreateVertexBuffer(6*sizeof(CUSTOMVERTEX),
+        d3ddev->CreateVertexBuffer(6*sizeof(CUSTOMVERTEX),
                                    0,
                                    D3DFVF_XYZRHW | D3DFVF_TEX1,
                                    D3DPOOL_MANAGED,
@@ -373,11 +371,10 @@ static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
         VOID* pVoid;
         D3DLOCKED_RECT dr;
         RECT window_rect;
-        uint32_t *p, *src;
         int yy;
         double l, t, r, b;
 
-	if (y1 == y2)
+	if ((y1 == y2) || (d3dTexture == NULL))
 	{
                 video_blit_complete();
  		return; /*Nothing to do*/
@@ -396,7 +393,7 @@ static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
                    fatal("LockRect failed\n");
         
                 for (yy = y1; yy < y2; yy++)
-                        memcpy(dr.pBits + ((yy - y1) * dr.Pitch), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
+                        memcpy((uint32_t *) &(((uint8_t *) dr.pBits)[(yy - y1) * dr.Pitch]), (uint32_t *) &(buffer32->line[yy + y][x]), w * 4);
 
                 video_blit_complete();
                 d3dTexture->UnlockRect(0);
@@ -472,11 +469,11 @@ static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
         VOID* pVoid;
         D3DLOCKED_RECT dr;
         RECT window_rect;
-        uint32_t *p, *src;
+        uint32_t *p;
         int xx, yy;
         double l, t, r, b;
 
-        if (!h)
+        if (!h || (d3dTexture == NULL))
 	{
                 video_blit_complete();
  		return; /*Nothing to do*/
@@ -496,7 +493,7 @@ static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
         
                 for (yy = 0; yy < h; yy++)
                 {
-                        uint32_t *p = (uint32_t *)(dr.pBits + (yy * dr.Pitch));
+                        p = (uint32_t *) &(((uint8_t *) dr.pBits)[yy * dr.Pitch]);
                         if ((y + yy) >= 0 && (y + yy) < buffer->h)
                         {
                                 for (xx = 0; xx < w; xx++)
@@ -575,13 +572,12 @@ static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
 
 void d3d_fs_take_screenshot(char *fn)
 {
-        HRESULT hr = D3D_OK;
 	LPDIRECT3DSURFACE9 d3dSurface = NULL;
 
 	if (!d3dTexture)  return;
 
-	hr = d3ddev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &d3dSurface);
-	hr = D3DXSaveSurfaceToFile(fn, D3DXIFF_PNG, d3dSurface, NULL, NULL);
+	d3ddev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &d3dSurface);
+	D3DXSaveSurfaceToFile(fn, D3DXIFF_PNG, d3dSurface, NULL, NULL);
 
 	d3dSurface->Release();
 	d3dSurface = NULL;

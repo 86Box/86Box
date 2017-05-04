@@ -6,7 +6,7 @@
 #include <d3d9.h>
 #undef BITMAP
 #include <D3dx9tex.h>
-#include "resources.h"
+#include "resource.h"
 #include "win-d3d.h"
 #include "video.h"
 #include "win-cgapal.h"
@@ -49,7 +49,6 @@ static CUSTOMVERTEX d3d_verts[] =
   
 int d3d_init(HWND h)
 {
-        int c;
         HRESULT hr;
         
 	cgapal_rebuild();
@@ -108,12 +107,10 @@ void d3d_close_objects()
 
 void d3d_init_objects()
 {
-        HRESULT hr;
         D3DLOCKED_RECT dr;
-        int y;
         RECT r;
 
-        hr = d3ddev->CreateVertexBuffer(6*sizeof(CUSTOMVERTEX),
+        d3ddev->CreateVertexBuffer(6*sizeof(CUSTOMVERTEX),
                                    0,
                                    D3DFVF_XYZRHW | D3DFVF_TEX1,
                                    D3DPOOL_MANAGED,
@@ -146,8 +143,6 @@ void d3d_init_objects()
 
 void d3d_resize(int x, int y)
 {
-        HRESULT hr;
-
         d3dpp.BackBufferWidth  = x;
         d3dpp.BackBufferHeight = y;
 
@@ -219,13 +214,12 @@ void d3d_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
         VOID* pVoid;
         D3DLOCKED_RECT dr;
         RECT r;
-        uint32_t *p, *src;
         int yy;
 
-        if (y1 == y2)
-        {
+	if ((w <= 0) || (w > 2048) || (h <= 0) || (h > 2048) || (y1 == y2) || (y1 < 0) || (y1 > 2048) || (y2 < 0) || (y2 > 2048) || (d3dTexture == NULL))
+	{
                 video_blit_complete();
-        	return; /*Nothing to do*/
+		return; /*Nothing to do*/
         }
 
         r.top    = y1;
@@ -239,7 +233,7 @@ void d3d_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
                    fatal("LockRect failed\n");
         
                 for (yy = y1; yy < y2; yy++)
-                        memcpy(dr.pBits + ((yy - y1) * dr.Pitch), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
+                        memcpy((uint32_t *) &(((uint8_t *) dr.pBits)[(yy - y1) * dr.Pitch]), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
 
                 video_blit_complete();
                 d3dTexture->UnlockRect(0);
@@ -301,11 +295,11 @@ void d3d_blit_memtoscreen_8(int x, int y, int w, int h)
         VOID* pVoid;
         D3DLOCKED_RECT dr;
         RECT r;
-        uint32_t *p, *src;
+        uint32_t *p;
         int yy, xx;
         HRESULT hr = D3D_OK;
 
-	if (h == 0)
+	if ((w <= 0) || (w > 2048) || (h <= 0) || (h > 2048) || (d3dTexture == NULL))
 	{
                 video_blit_complete();
 		return; /*Nothing to do*/
@@ -320,10 +314,10 @@ void d3d_blit_memtoscreen_8(int x, int y, int w, int h)
         {
                 if (FAILED(d3dTexture->LockRect(0, &dr, &r, 0)))
                         fatal("LockRect failed\n");
-        
+
                 for (yy = 0; yy < h; yy++)
                 {
-                        uint32_t *p = (uint32_t *)(dr.pBits + (yy * dr.Pitch));
+			p = (uint32_t *) &((((uint8_t *) dr.pBits)[yy * dr.Pitch]));
                         if ((y + yy) >= 0 && (y + yy) < buffer->h)
                         {
                                 for (xx = 0; xx < w; xx++)
@@ -388,13 +382,12 @@ void d3d_blit_memtoscreen_8(int x, int y, int w, int h)
 
 void d3d_take_screenshot(char *fn)
 {
-        HRESULT hr = D3D_OK;
 	LPDIRECT3DSURFACE9 d3dSurface = NULL;
 
 	if (!d3dTexture)  return;
 
-	hr = d3ddev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &d3dSurface);
-	hr = D3DXSaveSurfaceToFile(fn, D3DXIFF_PNG, d3dSurface, NULL, NULL);
+	d3ddev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &d3dSurface);
+	D3DXSaveSurfaceToFile(fn, D3DXIFF_PNG, d3dSurface, NULL, NULL);
 
 	d3dSurface->Release();
 	d3dSurface = NULL;

@@ -21,6 +21,13 @@ C1
 bits 7-6 = LPT1 mode : 11 = ECP/EPP, 01 = EPP, 10 = SPP
 bit 3 = clear when LPT1 = 278
 
+Added by OBattler based on more sources:
+	C2
+	bit 2 = I430FX: floppy drive swap (1 = swap, 0 = do not swap)
+		I430VX: DENSEL polarity
+	bits 3-6 = IR stuff
+	bits 3-4 = 00 = Normal, 01 = Infrared (HPSIR), 10 - Amplitude Shift Keyed IR (ASKIR), 11 - Reserved
+
 C3
 bits 7-6 = LPT1 DMA mode : 11 = ECP/EPP DMA1, 10 = ECP/EPP DMA3, 01 = EPP/SPP, 00 = ECP
 bits 5-4 = LPT1 addr : 10 = 278/IRQ5, 01 = 3BC/IRQ7, 00 = 378/IRQ7
@@ -43,6 +50,7 @@ COM2 :
 
 #include "disc.h"
 #include "fdc.h"
+#include "fdd.h"
 #include "io.h"
 #include "lpt.h"
 #include "serial.h"
@@ -55,7 +63,6 @@ static uint8_t um8669f_regs[256];
 void um8669f_write(uint16_t port, uint8_t val, void *priv)
 {
         int temp;
-//        pclog("um8669f_write : port=%04x reg %02X = %02X locked=%i\n", port, um8669f_curreg, val, um8669f_locked);
         if (um8669f_locked)
         {
                 if (port == 0x108 && val == 0xaa)
@@ -105,7 +112,20 @@ void um8669f_write(uint16_t port, uint8_t val, void *priv)
                                         case 3: serial2_set(0x2e8, 3); break;
                                 }
                         }
-                        
+
+			if (um8669f_curreg == 0xC2)
+			{
+				/* Make sure to invert this. */
+				if (romset ==  ROM_430VX)
+				{
+					fdc_update_densel_polarity(val & 4 ? 0 : 1);
+				}
+				else
+				{
+					fdd_setswap(val & 4 ? 1 : 0);
+				}
+			}
+
                         lpt1_remove();
                         lpt2_remove();
                         temp = (um8669f_regs[0xc3] >> 4) & 3;
@@ -121,7 +141,6 @@ void um8669f_write(uint16_t port, uint8_t val, void *priv)
 
 uint8_t um8669f_read(uint16_t port, void *priv)
 {
-//        pclog("um8669f_read : port=%04x reg %02X locked=%i\n", port, um8669f_curreg, um8669f_locked);
         if (um8669f_locked)
            return 0xff;
         

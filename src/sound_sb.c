@@ -1,6 +1,11 @@
 #include <stdlib.h>
 #include "ibm.h"
 #include "device.h"
+#include "io.h"
+#include "mca.h"
+#include "mem.h"
+#include "rom.h"
+#include "sound.h"
 #include "sound_emu8k.h"
 #include "sound_mpu401_uart.h"
 #include "sound_opl.h"
@@ -32,6 +37,8 @@ typedef struct sb_t
         emu8k_t         emu8k;
 
         int pos;
+
+        uint8_t pos_regs[8];
 } sb_t;
 
 static int sb_att[]=
@@ -103,7 +110,6 @@ static void sb_get_buffer_opl3(int32_t *buffer, int len, void *p)
         sb_dsp_update(&sb->dsp);
         for (c = 0; c < len * 2; c += 2)
         {
-                // int c_emu8k = (((c/2) * 44100) / 48000)*2;
                 int32_t out_l, out_r;
                 
                 out_l = ((sb->opl.buffer[c]     * mixer->fm_l) >> 16);
@@ -226,8 +232,6 @@ void sb_pro_mixer_write(uint16_t addr, uint8_t val, void *p)
                 mixer->treble_l = mixer->treble_r = 8;
                 sound_set_cd_volume(((uint32_t)mixer->master_l * (uint32_t)mixer->cd_l) / 65535,
                                     ((uint32_t)mixer->master_r * (uint32_t)mixer->cd_r) / 65535);
-//                pclog("%02X %02X %02X\n", mixer->regs[0x04], mixer->regs[0x22], mixer->regs[0x26]);
-//                pclog("Mixer - %04X %04X %04X %04X %04X %04X\n", mixer->master_l, mixer->master_r, mixer->voice_l, mixer->voice_r, mixer->fm_l, mixer->fm_r);
                 if (mixer->index == 0xe)
                         sb_dsp_set_stereo(&sb->dsp, val & 2);
         }
@@ -301,8 +305,6 @@ void sb_16_mixer_write(uint16_t addr, uint8_t val, void *p)
                 mixer->filter = 0;
                 sound_set_cd_volume(((uint32_t)mixer->master_l * (uint32_t)mixer->cd_l) / 65535,
                                     ((uint32_t)mixer->master_r * (uint32_t)mixer->cd_r) / 65535);
-//                pclog("%02X %02X %02X %02X %02X %02X\n", mixer->regs[0x30], mixer->regs[0x31], mixer->regs[0x32], mixer->regs[0x33], mixer->regs[0x34], mixer->regs[0x35]);
-//                pclog("Mixer - %04X %04X %04X %04X %04X %04X\n", mixer->master_l, mixer->master_r, mixer->voice_l, mixer->voice_r, mixer->fm_l, mixer->fm_r);
         }
 }
 
@@ -357,7 +359,6 @@ uint8_t sb_16_mixer_read(uint16_t addr, void *p)
 				temp |= 0x00;
 				break;
 		}
-                // return 0x22; /*DMA 1 and 5*/
 		return temp;
                 case 0x82:
                 return ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0);
@@ -376,6 +377,89 @@ void sb_mixer_init(sb_mixer_t *mixer)
         mixer->filter = 1;
 	sound_set_cd_volume(((uint32_t)mixer->master_l * (uint32_t)mixer->cd_l) / 65535,
 		((uint32_t)mixer->master_r * (uint32_t)mixer->cd_r) / 65535);
+}
+
+static uint16_t sb_mcv_addr[8] = {0x200, 0x210, 0x220, 0x230, 0x240, 0x250, 0x260, 0x270};
+
+uint8_t sb_mcv_read(int port, void *p)
+{
+        sb_t *sb = (sb_t *)p;
+        
+        pclog("sb_mcv_read: port=%04x\n", port);
+        
+        return sb->pos_regs[port & 7];
+}
+
+void sb_mcv_write(int port, uint8_t val, void *p)
+{
+        uint16_t addr;
+        sb_t *sb = (sb_t *)p;
+
+        if (port < 0x102)
+                return;
+        
+        pclog("sb_mcv_write: port=%04x val=%02x\n", port, val);
+
+        addr = sb_mcv_addr[sb->pos_regs[4] & 7];
+        io_removehandler(addr+8, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+        io_removehandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+        sb_dsp_setaddr(&sb->dsp, 0);
+
+        sb->pos_regs[port & 7] = val;
+
+        if (sb->pos_regs[2] & 1)
+        {
+                addr = sb_mcv_addr[sb->pos_regs[4] & 7];
+                
+                io_sethandler(addr+8, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+                io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+                sb_dsp_setaddr(&sb->dsp, addr);
+        }
+}
+
+static int sb_pro_mcv_irqs[4] = {7, 5, 3, 3};
+
+uint8_t sb_pro_mcv_read(int port, void *p)
+{
+        sb_t *sb = (sb_t *)p;
+        
+        pclog("sb_pro_mcv_read: port=%04x\n", port);
+        
+        return sb->pos_regs[port & 7];
+}
+
+void sb_pro_mcv_write(int port, uint8_t val, void *p)
+{
+        uint16_t addr;
+        sb_t *sb = (sb_t *)p;
+
+        if (port < 0x102)
+                return;
+        
+        pclog("sb_pro_mcv_write: port=%04x val=%02x\n", port, val);
+
+        addr = (sb->pos_regs[2] & 0x20) ? 0x220 : 0x240;
+        io_removehandler(addr+0, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+        io_removehandler(addr+8, 0x0002, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+        io_removehandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+        io_removehandler(addr+4, 0x0002, sb_pro_mixer_read, NULL, NULL, sb_pro_mixer_write, NULL, NULL, sb);
+        sb_dsp_setaddr(&sb->dsp, 0);
+
+        sb->pos_regs[port & 7] = val;
+
+        if (sb->pos_regs[2] & 1)
+        {
+                addr = (sb->pos_regs[2] & 0x20) ? 0x220 : 0x240;
+
+                io_sethandler(addr+0, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+                io_sethandler(addr+8, 0x0002, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+                io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+                io_sethandler(addr+4, 0x0002, sb_pro_mixer_read, NULL, NULL, sb_pro_mixer_write, NULL, NULL, sb);
+                
+                sb_dsp_setaddr(&sb->dsp, addr);
+        }
+        sb_dsp_setirq(&sb->dsp, sb_pro_mcv_irqs[(sb->pos_regs[5] >> 4) & 3]);
+        sb_dsp_setdma8(&sb->dsp, sb->pos_regs[4] & 3);
 }
         
 void *sb_1_init()
@@ -410,6 +494,24 @@ void *sb_15_init()
         io_sethandler(addr+8, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
         io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
         sound_add_handler(sb_get_buffer_opl2, sb);
+        return sb;
+}
+
+void *sb_mcv_init()
+{
+        sb_t *sb = malloc(sizeof(sb_t));
+        memset(sb, 0, sizeof(sb_t));
+
+        opl2_init(&sb->opl);
+        sb_dsp_init(&sb->dsp, SB15);
+        sb_dsp_setaddr(&sb->dsp, 0);
+        sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
+        sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
+        sb_mixer_init(&sb->mixer);
+        sound_add_handler(sb_get_buffer_opl2, sb);
+        mca_add(sb_mcv_read, sb_mcv_write, sb);
+        sb->pos_regs[0] = 0x84;
+        sb->pos_regs[1] = 0x50;
         return sb;
 }
 void *sb_2_init()
@@ -481,6 +583,32 @@ void *sb_pro_v2_init()
         sb->mixer.regs[0x26] = 0xff;
         sb->mixer.regs[0x28] = 0xff;
         sb->mixer.regs[0xe]  = 0;
+
+        return sb;
+}
+
+void *sb_pro_mcv_init()
+{
+        sb_t *sb = malloc(sizeof(sb_t));
+        memset(sb, 0, sizeof(sb_t));
+
+        opl3_init(&sb->opl);
+        sb_dsp_init(&sb->dsp, SBPRO2);
+        /*sb_dsp_setaddr(&sb->dsp, addr);
+        sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
+        sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));*/
+        sb_mixer_init(&sb->mixer);
+        io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+        sound_add_handler(sb_get_buffer_opl3, sb);
+
+        sb->mixer.regs[0x22] = 0xff;
+        sb->mixer.regs[0x04] = 0xff;
+        sb->mixer.regs[0x26] = 0xff;
+        sb->mixer.regs[0xe]  = 0;
+
+        mca_add(sb_pro_mcv_read, sb_pro_mcv_write, sb);
+        sb->pos_regs[0] = 0x03;
+        sb->pos_regs[1] = 0x51;
 
         return sb;
 }
@@ -605,462 +733,367 @@ void sb_add_status_info(char *s, int max_len, void *p)
 static device_config_t sb_config[] =
 {
         {
-                .name = "addr",
-                .description = "Address",
-                .type = CONFIG_BINARY,
-                .type = CONFIG_SELECTION,
-                .selection =
+                "addr", "Address", CONFIG_SELECTION, "", 0x220,
                 {
                         {
-                                .description = "0x220",
-                                .value = 0x220
+                                "0x220", 0x220
                         },
                         {
-                                .description = "0x240",
-                                .value = 0x240
+                                "0x240", 0x240
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 0x220
+                }
         },
         {
-                .name = "irq",
-                .description = "IRQ",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "irq", "IRQ", CONFIG_SELECTION, "", 7,
                 {
                         {
-                                .description = "IRQ 2",
-                                .value = 2
+                                "IRQ 2", 2
                         },
                         {
-                                .description = "IRQ 3",
-                                .value = 3
+                                "IRQ 3", 3
                         },
                         {
-                                .description = "IRQ 5",
-                                .value = 5
+                                "IRQ 5", 5
                         },
                         {
-                                .description = "IRQ 7",
-                                .value = 7
+                                "IRQ 7", 7
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 7
+                }
         },
         {
-                .name = "dma",
-                .description = "DMA",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "dma", "DMA", CONFIG_SELECTION, "", 1,
                 {
                         {
-                                .description = "DMA 1",
-                                .value = 1
+                                "DMA 1", 1
                         },
                         {
-                                .description = "DMA 3",
-                                .value = 3
+                                "DMA 3", 3
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 1
+                }
         },
         {
-                .type = -1
+                "", "", -1
+        }
+};
+
+static device_config_t sb_mcv_config[] =
+{
+        {
+                "irq", "IRQ", CONFIG_SELECTION, "", 7,
+                {
+                        {
+                                "IRQ 3", 3
+                        },
+                        {
+                                "IRQ 5", 5
+                        },
+                        {
+                                "IRQ 7", 7
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "dma", "DMA", CONFIG_SELECTION, "", 1,
+                {
+                        {
+                                "DMA 1", 1
+                        },
+                        {
+                                "DMA 3", 3
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "", "", -1
         }
 };
 
 static device_config_t sb_pro_config[] =
 {
         {
-                .name = "addr",
-                .description = "Address",
-                .type = CONFIG_BINARY,
-                .type = CONFIG_SELECTION,
-                .selection =
+                "addr", "Address", CONFIG_SELECTION, "", 0x220,
                 {
                         {
-                                .description = "0x220",
-                                .value = 0x220
+                                "0x220", 0x220
                         },
                         {
-                                .description = "0x240",
-                                .value = 0x240
+                                "0x240", 0x240
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 0x220
+                }
         },
         {
-                .name = "irq",
-                .description = "IRQ",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "irq", "IRQ", CONFIG_SELECTION, "", 7,
                 {
                         {
-                                .description = "IRQ 2",
-                                .value = 2
+                                "IRQ 2", 2
                         },
                         {
-                                .description = "IRQ 5",
-                                .value = 5
+                                "IRQ 5", 5
                         },
                         {
-                                .description = "IRQ 7",
-                                .value = 7
+                                "IRQ 7", 7
                         },
                         {
-                                .description = "IRQ 10",
-                                .value = 10
+                                "IRQ 10", 10
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 7
+                }
         },
         {
-                .name = "dma",
-                .description = "DMA",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "dma", "DMA", CONFIG_SELECTION, "", 1,
                 {
                         {
-                                .description = "DMA 1",
-                                .value = 1
+                                "DMA 1", 1
                         },
                         {
-                                .description = "DMA 3",
-                                .value = 3
+                                "DMA 3", 3
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 1
+                }
         },
         {
-                .type = -1
+                "", "", -1
         }
 };
 
 static device_config_t sb_16_config[] =
 {
         {
-                .name = "addr",
-                .description = "Address",
-                .type = CONFIG_BINARY,
-                .type = CONFIG_SELECTION,
-                .selection =
+                "addr", "Address", CONFIG_SELECTION, "", 0x220,
                 {
                         {
-                                .description = "0x220",
-                                .value = 0x220
+                                "0x220", 0x220
                         },
                         {
-                                .description = "0x240",
-                                .value = 0x240
+                                "0x240", 0x240
                         },
                         {
-                                .description = "0x260",
-                                .value = 0x260
+                                "0x260", 0x260
                         },
                         {
-                                .description = "0x280",
-                                .value = 0x280
+                                "0x280", 0x280
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 0x220
+                }
         },
         {
-                .name = "addr401",
-                .description = "MPU-401 Address",
-                .type = CONFIG_BINARY,
-                .type = CONFIG_SELECTION,
-                .selection =
+                "addr401", "MPU-401 Address", CONFIG_SELECTION, "", 0x330,
                 {
                         {
-                                .description = "0x300",
-                                .value = 0x300
+                                "0x300", 0x300
                         },
                         {
-                                .description = "0x330",
-                                .value = 0x330
+                                "0x330", 0x330
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 0x330
+                }
         },
         {
-                .name = "irq",
-                .description = "IRQ",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "irq", "IRQ", CONFIG_SELECTION, "", 5,
                 {
                         {
-                                .description = "IRQ 2",
-                                .value = 2
+                                "IRQ 2", 2
                         },
                         {
-                                .description = "IRQ 5",
-                                .value = 5
+                                "IRQ 5", 5
                         },
                         {
-                                .description = "IRQ 7",
-                                .value = 7
+                                "IRQ 7", 7
                         },
                         {
-                                .description = "IRQ 10",
-                                .value = 10
+                                "IRQ 10", 10
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 5
+                }
         },
         {
-                .name = "dma",
-                .description = "Low DMA channel",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "dma", "Low DMA channel", CONFIG_SELECTION, "", 1,
                 {
                         {
-                                .description = "DMA 0",
-                                .value = 0
+                                "DMA 0", 0
                         },
                         {
-                                .description = "DMA 1",
-                                .value = 1
+                                "DMA 1", 1
                         },
                         {
-                                .description = "DMA 3",
-                                .value = 3
+                                "DMA 3", 3
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 1
+                }
         },
         {
-                .name = "dma16",
-                .description = "High DMA channel",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "dma16", "High DMA channel", CONFIG_SELECTION, "", 5,
                 {
                         {
-                                .description = "DMA 5",
-                                .value = 5
+                                "DMA 5", 5
                         },
                         {
-                                .description = "DMA 6",
-                                .value = 6
+                                "DMA 6", 6
                         },
                         {
-                                .description = "DMA 7",
-                                .value = 7
+                                "DMA 7", 7
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 5
+                }
         },
         {
-                .name = "midi",
-                .description = "MIDI out device",
-                .type = CONFIG_MIDI,
-                .default_int = 0
+                "midi", "MIDI out device", CONFIG_MIDI, "", 0
         },
         {
-                .type = -1
+                "", "", -1
         }
 };
 
 static device_config_t sb_awe32_config[] =
 {
         {
-                .name = "addr",
-                .description = "Address",
-                .type = CONFIG_BINARY,
-                .type = CONFIG_SELECTION,
-                .selection =
+                "addr", "Address", CONFIG_SELECTION, "", 0x220,
                 {
                         {
-                                .description = "0x220",
-                                .value = 0x220
+                                "0x220", 0x220
                         },
                         {
-                                .description = "0x240",
-                                .value = 0x240
+                                "0x240", 0x240
                         },
                         {
-                                .description = "0x260",
-                                .value = 0x260
+                                "0x260", 0x260
                         },
                         {
-                                .description = "0x280",
-                                .value = 0x280
+                                "0x280", 0x280
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 0x220
+                }
         },
         {
-                .name = "addr401",
-                .description = "MPU-401 Address",
-                .type = CONFIG_BINARY,
-                .type = CONFIG_SELECTION,
-                .selection =
+                "addr401", "MPU-401 Address", CONFIG_SELECTION, "", 0x330,
                 {
                         {
-                                .description = "0x300",
-                                .value = 0x300
+                                "0x300", 0x300
                         },
                         {
-                                .description = "0x330",
-                                .value = 0x330
+                                "0x330", 0x330
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 0x330
+                }
         },
         {
-                .name = "irq",
-                .description = "IRQ",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "irq", "IRQ", CONFIG_SELECTION, "", 5,
                 {
                         {
-                                .description = "IRQ 2",
-                                .value = 2
+                                "IRQ 2", 2
                         },
                         {
-                                .description = "IRQ 5",
-                                .value = 5
+                                "IRQ 5", 5
                         },
                         {
-                                .description = "IRQ 7",
-                                .value = 7
+                                "IRQ 7", 7
                         },
                         {
-                                .description = "IRQ 10",
-                                .value = 10
+                                "IRQ 10", 10
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 5
+                }
         },
         {
-                .name = "dma",
-                .description = "Low DMA channel",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "dma", "Low DMA channel", CONFIG_SELECTION, "", 1,
                 {
                         {
-                                .description = "DMA 0",
-                                .value = 0
+                                "DMA 0", 0
                         },
                         {
-                                .description = "DMA 1",
-                                .value = 1
+                                "DMA 1", 1
                         },
                         {
-                                .description = "DMA 3",
-                                .value = 3
+                                "DMA 3", 3
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 1
+                }
         },
         {
-                .name = "dma16",
-                .description = "High DMA channel",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "dma16", "High DMA channel", CONFIG_SELECTION, "", 5,
                 {
                         {
-                                .description = "DMA 5",
-                                .value = 5
+                                "DMA 5", 5
                         },
                         {
-                                .description = "DMA 6",
-                                .value = 6
+                                "DMA 6", 6
                         },
                         {
-                                .description = "DMA 7",
-                                .value = 7
+                                "DMA 7", 7
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 5
+                }
         },
         {
-                .name = "midi",
-                .description = "MIDI out device",
-                .type = CONFIG_MIDI,
-                .default_int = 0
+                "midi", "MIDI out device", CONFIG_MIDI, "", 0
         },
         {
-                .name = "onboard_ram",
-                .description = "Onboard RAM",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "onboard_ram", "Onboard RAM", CONFIG_SELECTION, "", 512,
                 {
                         {
-                                .description = "None",
-                                .value = 0
+                                "None", 0
                         },
                         {
-                                .description = "512 KB",
-                                .value = 512
+                                "512 KB", 512
                         },
                         {
-                                .description = "2 MB",
-                                .value = 2048
+                                "2 MB", 2048
                         },
                         {
-                                .description = "8 MB",
-                                .value = 8192
+                                "8 MB", 8192
                         },
                         {
-                                .description = "28 MB",
-                                .value = 28*1024
+                                "28 MB", 28*1024
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 512
+                }
         },
         {
-                .type = -1
+                "", "", -1
         }
 };
 
@@ -1087,6 +1120,18 @@ device_t sb_15_device =
         NULL,
         sb_add_status_info,
         sb_config
+};
+device_t sb_mcv_device =
+{
+        "Sound Blaster MCV",
+        DEVICE_MCA,
+        sb_mcv_init,
+        sb_close,
+        NULL,
+        sb_speed_changed,
+        NULL,
+        sb_add_status_info,
+        sb_mcv_config
 };
 device_t sb_2_device =
 {
@@ -1123,6 +1168,18 @@ device_t sb_pro_v2_device =
         NULL,
         sb_add_status_info,
         sb_pro_config
+};
+device_t sb_pro_mcv_device =
+{
+        "Sound Blaster Pro MCV",
+        DEVICE_MCA,
+        sb_pro_mcv_init,
+        sb_close,
+        NULL,
+        sb_speed_changed,
+        NULL,
+        sb_add_status_info,
+        NULL
 };
 device_t sb_16_device =
 {

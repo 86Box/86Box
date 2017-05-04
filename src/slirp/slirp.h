@@ -12,7 +12,7 @@
 #include "slirp_config.h"
 
 #ifdef _WIN32
-#ifdef __GNUC__		//MINGW?
+#ifdef __GNUC__		/* MINGW? */
 # include <inttypes.h>	
 typedef uint8_t u_int8_t;
 typedef uint16_t u_int16_t;
@@ -39,7 +39,7 @@ typedef unsigned long 	ioctlsockopt_t;
 
 #endif
 
-# include <winsock2.h>	//needs to be on top otherwise, it'll pull in winsock1
+# include <winsock2.h>	/* needs to be on top otherwise, it'll pull in winsock1 */
 # include <windows.h>
 
 # include <sys/timeb.h>
@@ -243,8 +243,6 @@ int inet_aton _P((const char *cp, struct in_addr *ia));
 #define PACK_END 0
 #define PACKED__
 #elif _MSC_VER
-//#define PRAGMA_PACK_SUPPORTED 1
-//#define PACK_END 4
 #define PACKED__
 #else
 #error "Packed attribute or pragma shall be supported"
@@ -323,15 +321,15 @@ void lprint _P((const char *, ...));
 extern int do_echo;
 
 #ifdef _MSC_VER
-#define inline
+#define __inline
 #endif
 
 #if SIZEOF_CHAR_P == 4
 # define insque_32 insque
 # define remque_32 remque
 #else
- extern inline void insque_32 _P((void *, void *));
- extern inline void remque_32 _P((void *));
+ extern __inline void insque_32 _P((void *, void *));
+ extern __inline void remque_32 _P((void *));
 #endif
 
 #ifndef _WIN32

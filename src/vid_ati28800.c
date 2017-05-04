@@ -34,8 +34,6 @@ void ati28800_out(uint16_t addr, uint8_t val, void *p)
         svga_t *svga = &ati28800->svga;
         uint8_t old;
         
-//        pclog("ati28800_out : %04X %02X  %04X:%04X\n", addr, val, CS,cpu_state.pc);
-                
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout&1)) 
                 addr ^= 0x60;
 
@@ -104,8 +102,6 @@ uint8_t ati28800_in(uint16_t addr, void *p)
         svga_t *svga = &ati28800->svga;
         uint8_t temp;
 
-//        if (addr != 0x3da) pclog("ati28800_in : %04X ", addr);
-                
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout&1)) addr ^= 0x60;
              
         switch (addr)
@@ -158,7 +154,6 @@ void ati28800_svga_recalctimings(ati28800_t *ati28800)
 {
         double crtcconst;
         double _dispontime, _dispofftime, disptime;
-        int hdisp_old;
         svga_t *svga = &ati28800->svga;
 
         svga->vtotal = svga->crtc[6];
@@ -280,8 +275,6 @@ void ati28800_svga_recalctimings(ati28800_t *ati28800)
                 }
         }        
 
-//        pclog("svga_render %08X : %08X %08X %08X %08X %08X  %i %i %02X %i %i\n", svga_render, svga_render_text_40, svga_render_text_80, svga_render_8bpp_lowres, svga_render_8bpp_highres, svga_render_blank, scrblank,gdcreg[6]&1,gdcreg[5]&0x60,bpp,seqregs[1]&8);
-        
         svga->linedbl = svga->crtc[9] & 0x80;
         svga->rowcount = svga->crtc[9] & 31;
         if (svga->recalctimings_ex) 
@@ -295,7 +288,6 @@ void ati28800_svga_recalctimings(ati28800_t *ati28800)
         disptime  = svga->htotal;
         _dispontime = svga->hdisp_time;
         
-//        printf("Disptime %f dispontime %f hdisp %i\n",disptime,dispontime,crtc[1]*8);
         if (svga->seqregs[1] & 8) { disptime *= 2; _dispontime *= 2; }
         _dispofftime = disptime - _dispontime;
         _dispontime *= crtcconst;
@@ -313,15 +305,16 @@ void ati28800_svga_recalctimings(ati28800_t *ati28800)
 void ati28800_recalctimings(svga_t *svga)
 {
         ati28800_t *ati28800 = (ati28800_t *)svga->p;
+        uint8_t clock_sel = (svga->miscout >> 2) & 3;
+        double freq;
+
 #ifndef RELEASE_BUILD
         pclog("ati28800_recalctimings\n");
 #endif
         svga->interlace = (!svga->scrblank && (ati28800->regs[0x3e] & 2));
 
-        uint8_t clock_sel = (svga->miscout >> 2) & 3;
         clock_sel |= (ati28800->regs[0x39] & 2) << 2;
         clock_sel |= (ati28800->regs[0x3e] & 0x10) >> 1;
-        double freq;
         switch(clock_sel)
         {
                 case 0x00: freq = 42954000; break;
@@ -446,58 +439,45 @@ void ati28800_add_status_info(char *s, int max_len, void *p)
 static device_config_t ati28800_config[] =
 {
         {
-                .name = "memory",
-                .description = "Memory size",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "memory", "Memory size", CONFIG_SELECTION, "", 512,
                 {
                         {
-                                .description = "256 kB",
-                                .value = 256
+                                "256 kB", 256
                         },
                         {
-                                .description = "512 kB",
-                                .value = 512
+                                "512 kB", 512
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 512
+                }
         },
         {
-                .type = -1
+                "", "", -1
         }
 };
 
 static device_config_t ati28800_wonderxl_config[] =
 {
         {
-                .name = "memory",
-                .description = "Memory size",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "memory", "Memory size", CONFIG_SELECTION, "", 512,
                 {
                         {
-                                .description = "256 kB",
-                                .value = 256
+                                "256 kB", 256
                         },
                         {
-                                .description = "512 kB",
-                                .value = 512
+                                "512 kB", 512
                         },
                         {
-                                .description = "1 MB",
-                                .value = 1024
+                                "1 MB", 1024
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 512
+                }
         },
         {
-                .type = -1
+                "", "", -1
         }
 };
 

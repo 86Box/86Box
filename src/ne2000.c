@@ -1,22 +1,21 @@
 /* Copyright holders: Peter Grehan, SA1988, Tenshi
    see COPYING for more details
 */
-/////////////////////////////////////////////////////////////////////////
-// $Id: ne2k.cc,v 1.56.2.1 2004/02/02 22:37:22 cbothamy Exp $
-/////////////////////////////////////////////////////////////////////////
-//
-//  Copyright (C) 2002  MandrakeSoft S.A.
-//
-//    MandrakeSoft S.A.
-//    43, rue d'Aboukir
-//    75002 Paris - France
-//    http://www.linux-mandrake.com/
-//    http://www.mandrakesoft.com/
-//
+/*
+   $Id: ne2k.cc,v 1.56.2.1 2004/02/02 22:37:22 cbothamy Exp $
+*/
+/*
+    Copyright (C) 2002  MandrakeSoft S.A.
 
-// Peter Grehan (grehan@iprg.nokia.com) coded all of this
-// NE2000/ether stuff.
-//#include "vl.h"
+      MandrakeSoft S.A.
+      43, rue d'Aboukir
+      75002 Paris - France
+      http://www.linux-mandrake.com/
+      http://www.mandrakesoft.com/
+*/
+
+/* Peter Grehan (grehan@iprg.nokia.com) coded all of this
+   NE2000/ether stuff. */
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,6 +28,7 @@
 
 #include "ibm.h"
 #include "device.h"
+#include "disc_random.h"
 
 #include "config.h"
 #include "nethandler.h"
@@ -43,24 +43,25 @@
 #include "pic.h"
 #include "timer.h"
 
-//THIS IS THE DEFAULT MAC ADDRESS .... so it wont place nice with multiple VMs. YET.
+/* THIS IS THE DEFAULT MAC ADDRESS .... so it wont place nice with multiple VMs. YET. */
 uint8_t maclocal[6] = {0xac, 0xde, 0x48, 0x88, 0xbb, 0xaa};
+uint8_t maclocal_pci[6] = {0xac, 0xde, 0x48, 0x88, 0xbb, 0xaa};
 
-#define NETBLOCKING 0           //we won't block our pcap
+#define NETBLOCKING 0           /* we won't block our pcap */
 
 pcap_t *net_pcap;
 
 queueADT        slirpq;
 int net_slirp_inited=0;
-int net_is_pcap=0;      //and pretend pcap is dead.
+int net_is_pcap=0;      /* and pretend pcap is dead. */
 int fizz=0;
 void slirp_tic();
 
 #define BX_RESET_HARDWARE 0
 #define BX_RESET_SOFTWARE 1
 
-//Never completely fill the ne2k ring so that we never
-// hit the unclear completely full buffer condition.
+/* Never completely fill the ne2k ring so that we never
+   hit the unclear completely full buffer condition. */
 #define BX_NE2K_NEVER_FULL_RING (1)
 
 #define  BX_NE2K_MEMSIZ    (32*1024)
@@ -71,151 +72,145 @@ uint8_t rtl8029as_eeprom[128];
 
 typedef struct ne2000_t
 {
-	//
-	// ne2k register state
+	/* ne2k register state */
 
-	//
-	// Page 0
-	//
-	//  Command Register - 00h read/write
+	/* Page 0 */
+
+	/* Command Register - 00h read/write */
 	struct CR_t
 	{
-		int stop;			// STP - Software Reset command
-		int start;			// START - start the NIC
-		int tx_packet;		// TXP - initiate packet transmission
-		uint8_t rdma_cmd;	// RD0,RD1,RD2 - Remote DMA command
-		uint8_t pgsel;		// PS0,PS1 - Page select
+		int stop;		/* STP - Software Reset command */
+		int start;		/* START - start the NIC */
+		int tx_packet;		/* TXP - initiate packet transmission */
+		uint8_t rdma_cmd;	/* RD0,RD1,RD2 - Remote DMA command */
+		uint8_t pgsel;		/* PS0,PS1 - Page select */
 	} CR;
-	// Interrupt Status Register - 07h read/write
+	/* Interrupt Status Register - 07h read/write */
 	struct ISR_t
 	{
-		int pkt_rx;			// PRX - packet received with no errors
-		int pkt_tx;			// PTX - packet transmitted with no errors
-		int rx_err;			// RXE - packet received with 1 or more errors
-		int tx_err;			// TXE - packet tx'd       "  " "    "    "
-		int overwrite;		// OVW - rx buffer resources exhausted
-		int cnt_oflow;		// CNT - network tally counter MSB's set
-		int rdma_done;		// RDC - remote DMA complete
-		int reset;			// RST - reset status
+		int pkt_rx;		/* PRX - packet received with no errors */
+		int pkt_tx;		/* PTX - packet transmitted with no errors */
+		int rx_err;		/* RXE - packet received with 1 or more errors */
+		int tx_err;		/* TXE - packet tx'd       "  " "    "    " */
+		int overwrite;		/* OVW - rx buffer resources exhausted */
+		int cnt_oflow;		/* CNT - network tally counter MSB's set */
+		int rdma_done;		/* RDC - remote DMA complete */
+		int reset;		/* RST - reset status */
 	} ISR;
-	// Interrupt Mask Register - 0fh write
+	/* Interrupt Mask Register - 0fh write */
 	struct IMR_t
 	{
-		int rx_inte;		// PRXE - packet rx interrupt enable
-		int tx_inte;		// PTXE - packet tx interrput enable
-		int rxerr_inte;		// RXEE - rx error interrupt enable
-		int txerr_inte;		// TXEE - tx error interrupt enable
-		int overw_inte;		// OVWE - overwrite warn int enable
-		int cofl_inte;		// CNTE - counter o'flow int enable
-		int rdma_inte;		// RDCE - remote DMA complete int enable
-		int reserved;		//  D7 - reserved
+		int rx_inte;		/* PRXE - packet rx interrupt enable */
+		int tx_inte;		/* PTXE - packet tx interrput enable */
+		int rxerr_inte;		/* RXEE - rx error interrupt enable */
+		int txerr_inte;		/* TXEE - tx error interrupt enable */
+		int overw_inte;		/* OVWE - overwrite warn int enable */
+		int cofl_inte;		/* CNTE - counter o'flow int enable */
+		int rdma_inte;		/* RDCE - remote DMA complete int enable */
+		int reserved;		/*  D7 - reserved */
 	} IMR;
-	// Data Configuration Register - 0eh write
+	/* Data Configuration Register - 0eh write */
 	struct DCR_t
 	{
-		int wdsize;			// WTS - 8/16-bit select
-		int endian;			// BOS - byte-order select
-		int longaddr;		// LAS - long-address select
-		int loop;			// LS  - loopback select
-		int auto_rx;		// AR  - auto-remove rx packets with remote DMA
-		uint8_t fifo_size;	// FT0,FT1 - fifo threshold
+		int wdsize;		/* WTS - 8/16-bit select */
+		int endian;		/* BOS - byte-order select */
+		int longaddr;		/* LAS - long-address select */
+		int loop;		/* LS  - loopback select */
+		int auto_rx;		/* AR  - auto-remove rx packets with remote DMA */
+		uint8_t fifo_size;	/* FT0,FT1 - fifo threshold */
 	} DCR;
-	// Transmit Configuration Register - 0dh write
+	/* Transmit Configuration Register - 0dh write */
 	struct TCR_t
 	{
-		int crc_disable;	// CRC - inhibit tx CRC
-		uint8_t loop_cntl;	// LB0,LB1 - loopback control
-		int ext_stoptx;		// ATD - allow tx disable by external mcast
-		int coll_prio;		// OFST - backoff algorithm select
-		uint8_t reserved;	// D5,D6,D7 - reserved
+		int crc_disable;	/* CRC - inhibit tx CRC */
+		uint8_t loop_cntl;	/* LB0,LB1 - loopback control */
+		int ext_stoptx;		/* ATD - allow tx disable by external mcast */
+		int coll_prio;		/* OFST - backoff algorithm select */
+		uint8_t reserved;	/* D5,D6,D7 - reserved */
 	} TCR;
-	// Transmit Status Register - 04h read
+	/* Transmit Status Register - 04h read */
 	struct TSR_t
 	{
-		int tx_ok;			// PTX - tx complete without error
-		int reserved;		//  D1 - reserved
-		int collided;		// COL - tx collided >= 1 times
-		int aborted;		// ABT - aborted due to excessive collisions
-		int no_carrier;		// CRS - carrier-sense lost
-		int fifo_ur;		// FU  - FIFO underrun
-		int cd_hbeat;		// CDH - no tx cd-heartbeat from transceiver
-		int ow_coll;		// OWC - out-of-window collision
+		int tx_ok;		/* PTX - tx complete without error */
+		int reserved;		/*  D1 - reserved */
+		int collided;		/* COL - tx collided >= 1 times */
+		int aborted;		/* ABT - aborted due to excessive collisions */
+		int no_carrier;		/* CRS - carrier-sense lost */
+		int fifo_ur;		/* FU  - FIFO underrun */
+		int cd_hbeat;		/* CDH - no tx cd-heartbeat from transceiver */
+		int ow_coll;		/* OWC - out-of-window collision */
 	} TSR;
-	// Receive Configuration Register - 0ch write
+	/* Receive Configuration Register - 0ch write */
 	struct RCR_t
 	{
-		int errors_ok;		// SEP - accept pkts with rx errors
-		int runts_ok;		// AR  - accept < 64-byte runts
-		int broadcast;		// AB  - accept eth broadcast address
-		int multicast;		// AM  - check mcast hash array
-		int promisc;		// PRO - accept all packets
-		int monitor;		// MON - check pkts, but don't rx
-		uint8_t reserved;	// D6,D7 - reserved
+		int errors_ok;		/* SEP - accept pkts with rx errors */
+		int runts_ok;		/* AR  - accept < 64-byte runts */
+		int broadcast;		/* AB  - accept eth broadcast address */
+		int multicast;		/* AM  - check mcast hash array */
+		int promisc;		/* PRO - accept all packets */
+		int monitor;		/* MON - check pkts, but don't rx */
+		uint8_t reserved;	/* D6,D7 - reserved */
 	} RCR;
-	// Receive Status Register - 0ch read
+	/* Receive Status Register - 0ch read */
 	struct RSR_t
 	{
-		int rx_ok;			// PRX - rx complete without error
-		int bad_crc;		// CRC - Bad CRC detected
-		int bad_falign;		// FAE - frame alignment error
-		int fifo_or;		// FO  - FIFO overrun
-		int rx_missed;		// MPA - missed packet error
-		int rx_mbit;		// PHY - unicast or mcast/bcast address match
-		int rx_disabled;	// DIS - set when in monitor mode
-		int deferred;		// DFR - collision active
+		int rx_ok;		/* PRX - rx complete without error */
+		int bad_crc;		/* CRC - Bad CRC detected */
+		int bad_falign;		/* FAE - frame alignment error */
+		int fifo_or;		/* FO  - FIFO overrun */
+		int rx_missed;		/* MPA - missed packet error */
+		int rx_mbit;		/* PHY - unicast or mcast/bcast address match */
+		int rx_disabled;	/* DIS - set when in monitor mode */
+		int deferred;		/* DFR - collision active */
 	} RSR;
 
-	uint16_t local_dma;		// 01,02h read ; current local DMA addr
-	uint8_t page_start;		// 01h write ; page start register
-	uint8_t page_stop;		// 02h write ; page stop register
-	uint8_t bound_ptr;		// 03h read/write ; boundary pointer
-	uint8_t tx_page_start;	// 04h write ; transmit page start register
-	uint8_t num_coll;		// 05h read  ; number-of-collisions register
-	uint16_t tx_bytes;		// 05,06h write ; transmit byte-count register
-	uint8_t fifo;			// 06h read  ; FIFO
-	uint16_t remote_dma;	// 08,09h read ; current remote DMA addr
-	uint16_t remote_start;	// 08,09h write ; remote start address register
-	uint16_t remote_bytes;	// 0a,0bh write ; remote byte-count register
-	uint8_t tallycnt_0;		// 0dh read  ; tally counter 0 (frame align errors)
-	uint8_t tallycnt_1;		// 0eh read  ; tally counter 1 (CRC errors)
-	uint8_t tallycnt_2;		// 0fh read  ; tally counter 2 (missed pkt errors)
+	uint16_t local_dma;		/* 01,02h read ; current local DMA addr */
+	uint8_t page_start;		/* 01h write ; page start register */
+	uint8_t page_stop;		/* 02h write ; page stop register */
+	uint8_t bound_ptr;		/* 03h read/write ; boundary pointer */
+	uint8_t tx_page_start;		/* 04h write ; transmit page start register */
+	uint8_t num_coll;		/* 05h read  ; number-of-collisions register */
+	uint16_t tx_bytes;		/* 05,06h write ; transmit byte-count register */
+	uint8_t fifo;			/* 06h read  ; FIFO */
+	uint16_t remote_dma;		/* 08,09h read ; current remote DMA addr */
+	uint16_t remote_start;		/* 08,09h write ; remote start address register */
+	uint16_t remote_bytes;		/* 0a,0bh write ; remote byte-count register */
+	uint8_t tallycnt_0;		/* 0dh read  ; tally counter 0 (frame align errors) */
+	uint8_t tallycnt_1;		/* 0eh read  ; tally counter 1 (CRC errors) */
+	uint8_t tallycnt_2;		/* 0fh read  ; tally counter 2 (missed pkt errors) */
 
-	//
-	// Page 1
-	//
-	//   Command Register 00h (repeated)
-	//
-	uint8_t physaddr[6];	// 01-06h read/write ; MAC address
-	uint8_t curr_page;		// 07h read/write ; current page register
-	uint8_t mchash[8];		// 08-0fh read/write ; multicast hash array
+	/* Page 1 */
 
-	//
-	// Page 2  - diagnostic use only
-	//
-	//   Command Register 00h (repeated)
-	//
-	//   Page Start Register 01h read  (repeated)
-	//   Page Stop Register  02h read  (repeated)
-	//   Current Local DMA Address 01,02h write (repeated)
-	//   Transmit Page start address 04h read (repeated)
-	//   Receive Configuration Register 0ch read (repeated)
-	//   Transmit Configuration Register 0dh read (repeated)
-	//   Data Configuration Register 0eh read (repeated)
-	//   Interrupt Mask Register 0fh read (repeated)
-	//
-	uint8_t rempkt_ptr;		// 03h read/write ; remote next-packet pointer
-	uint8_t localpkt_ptr;	// 05h read/write ; local next-packet pointer
-	uint16_t address_cnt;	// 06,07h read/write ; address counter
+	/*   Command Register 00h (repeated) */
 
-	//
-	// Page 3  - should never be modified.
-	//
+	uint8_t physaddr[6];		/* 01-06h read/write ; MAC address */
+	uint8_t curr_page;		/* 07h read/write ; current page register */
+	uint8_t mchash[8];		/* 08-0fh read/write ; multicast hash array */
 
-	// Novell ASIC state
-	uint8_t macaddr[32];	// ASIC ROM'd MAC address, even bytes
-	uint8_t mem[BX_NE2K_MEMSIZ];	// on-chip packet memory
+	/* Page 2  - diagnostic use only */
 
-	// ne2k internal state
+	/*   Command Register 00h (repeated) */
+
+	/*   Page Start Register 01h read  (repeated)
+	     Page Stop Register  02h read  (repeated)
+	     Current Local DMA Address 01,02h write (repeated)
+	     Transmit Page start address 04h read (repeated)
+	     Receive Configuration Register 0ch read (repeated)
+	     Transmit Configuration Register 0dh read (repeated)
+	     Data Configuration Register 0eh read (repeated)
+	     Interrupt Mask Register 0fh read (repeated)
+	*/
+	uint8_t rempkt_ptr;		/* 03h read/write ; remote next-packet pointer */
+	uint8_t localpkt_ptr;		/* 05h read/write ; local next-packet pointer */
+	uint16_t address_cnt;		/* 06,07h read/write ; address counter */
+
+	/* Page 3  - should never be modified. */
+
+	/* Novell ASIC state */
+	uint8_t macaddr[32];		/* ASIC ROM'd MAC address, even bytes */
+	uint8_t mem[BX_NE2K_MEMSIZ];	/* on-chip packet memory */
+
+	/* ne2k internal state */
 	uint32_t base_address;
 	int base_irq;
 	int tx_timer_index;
@@ -248,14 +243,85 @@ void ne2000_log(const char *format, ...)
 #endif
 }
 
+static uint8_t *ne2000_mac()
+{
+	if (network_card_current == 2)
+	{
+		return maclocal_pci;
+	}
+	else
+	{
+		return maclocal;
+	}
+}
+
+void ne2000_generate_maclocal(int mac)
+{
+	maclocal[0] = 0x00;	/* 00:00:1B (NE2000 ISA vendor prefix). */
+	maclocal[1] = 0x00;
+	maclocal[2] = 0x1B;
+
+	if (mac & 0xff000000)
+	{
+		/* Generating new MAC. */
+		maclocal[3] = disc_random_generate();
+		maclocal[4] = disc_random_generate();
+		maclocal[5] = disc_random_generate();
+	}
+	else
+	{
+		maclocal[3] = (mac >> 16) & 0xff;
+		maclocal[4] = (mac >> 8) & 0xff;
+		maclocal[5] = mac & 0xff;
+	}
+}
+
+void ne2000_generate_maclocal_pci(int mac)
+{
+	maclocal_pci[0] = 0x00;	/* 00:20:18 (RTL 8029AS PCI vendor prefix). */
+	maclocal_pci[1] = 0x20;
+	maclocal_pci[2] = 0x18;
+
+	if (mac & 0xff000000)
+	{
+		/* Generating new MAC. */
+		maclocal_pci[3] = disc_random_generate();
+		maclocal_pci[4] = disc_random_generate();
+		maclocal_pci[5] = disc_random_generate();
+	}
+	else
+	{
+		maclocal_pci[3] = (mac >> 16) & 0xff;
+		maclocal_pci[4] = (mac >> 8) & 0xff;
+		maclocal_pci[5] = mac & 0xff;
+	}
+}
+
+int net2000_get_maclocal()
+{
+	int temp;
+	temp = (((int) maclocal[3]) << 16);
+	temp |= (((int) maclocal[4]) << 8);
+	temp |= ((int) maclocal[5]);
+	return temp;
+}
+
+int net2000_get_maclocal_pci()
+{
+	int temp;
+	temp = (((int) maclocal_pci[3]) << 16);
+	temp |= (((int) maclocal_pci[4]) << 8);
+	temp |= ((int) maclocal_pci[5]);
+	return temp;
+}
+
 static void ne2000_setirq(ne2000_t *ne2000, int irq)
 {
 	ne2000->base_irq = irq;
 }
 
-//
-// reset - restore state to power-up, cancelling all i/o
-//
+/* reset - restore state to power-up, cancelling all i/o */
+
 static void ne2000_reset(void *p, int reset)
 {
 	ne2000_t *ne2000 = (ne2000_t *)p;
@@ -263,7 +329,7 @@ static void ne2000_reset(void *p, int reset)
 
 	ne2000_log("ne2000 reset\n");
 
-	// Initialise the mac address area by doubling the physical address
+	/* Initialise the mac address area by doubling the physical address */
 	ne2000->macaddr[0]  = ne2000->physaddr[0];
 	ne2000->macaddr[1]  = ne2000->physaddr[0];
 	ne2000->macaddr[2]  = ne2000->physaddr[1];
@@ -277,20 +343,19 @@ static void ne2000_reset(void *p, int reset)
 	ne2000->macaddr[10] = ne2000->physaddr[5];
 	ne2000->macaddr[11] = ne2000->physaddr[5];
 
-	// ne2k signature
+	/* ne2k signature */
 	for (i = 12; i < 32; i++)
 	{
 		ne2000->macaddr[i] = 0x57;
 	}
 
-	// Zero out registers and memory
+	/* Zero out registers and memory */
 	memset( & ne2000->CR,  0, sizeof(ne2000->CR) );
 	memset( & ne2000->ISR, 0, sizeof(ne2000->ISR));
 	memset( & ne2000->IMR, 0, sizeof(ne2000->IMR));
 	memset( & ne2000->DCR, 0, sizeof(ne2000->DCR));
 	memset( & ne2000->TCR, 0, sizeof(ne2000->TCR));
 	memset( & ne2000->TSR, 0, sizeof(ne2000->TSR));
-	// memset( & ne2000->RCR, 0, sizeof(ne2000->RCR));
 	memset( & ne2000->RSR, 0, sizeof(ne2000->RSR));
 	ne2000->tx_timer_active = 0;
 	ne2000->local_dma  = 0;
@@ -316,7 +381,7 @@ static void ne2000_reset(void *p, int reset)
 
 	memset( & ne2000->mem, 0, sizeof(ne2000->mem));
 
-	// Set power-up conditions
+	/* Set power-up conditions */
 	ne2000->CR.stop      = 1;
 	ne2000->CR.rdma_cmd  = 4;
 	ne2000->ISR.reset    = 1;
@@ -327,10 +392,9 @@ static void ne2000_reset(void *p, int reset)
 
 #include "bswap.h"
 
-//
-// read_cr/write_cr - utility routines for handling reads/writes to
-// the Command Register
-//
+/* read_cr/write_cr - utility routines for handling reads/writes to
+   the Command Register */
+
 uint32_t ne2000_read_cr(ne2000_t *ne2000)
 {
 	uint32_t val;
@@ -348,14 +412,14 @@ void ne2000_write_cr(ne2000_t *ne2000, uint32_t value)
 {
 	ne2000_log("%s: wrote 0x%02x to CR\n", (network_card_current == 1) ? "NE2000" : "RTL8029AS", value);
 
-	// Validate remote-DMA
+	/* Validate remote-DMA */
 	if ((value & 0x38) == 0x00)
 	{
 		ne2000_log("CR write - invalid rDMA value 0\n");
 		value |= 0x20; /* dma_cmd == 4 is a safe default */
 	}
 
-	// Check for s/w reset
+	/* Check for s/w reset */
 	if (value & 0x01)
 	{
 		ne2000->ISR.reset = 1;
@@ -366,8 +430,8 @@ void ne2000_write_cr(ne2000_t *ne2000, uint32_t value)
 
 	ne2000->CR.rdma_cmd = (value & 0x38) >> 3;
 
-	// If start command issued, the RST bit in the ISR
-	// must be cleared
+	/* If start command issued, the RST bit in the ISR */
+	/* must be cleared */
 	if ((value & 0x02) && !ne2000->CR.start)
 	{
 		ne2000->ISR.reset = 0;
@@ -376,16 +440,16 @@ void ne2000_write_cr(ne2000_t *ne2000, uint32_t value)
 	ne2000->CR.start = ((value & 0x02) == 0x02);
 	ne2000->CR.pgsel = (value & 0xc0) >> 6;
 
-	// Check for send-packet command
+	/* Check for send-packet command */
 	if (ne2000->CR.rdma_cmd == 3)
 	{
-		// Set up DMA read from receive ring
+		/* Set up DMA read from receive ring */
 		ne2000->remote_start = ne2000->remote_dma = ne2000->bound_ptr * 256;
 		ne2000->remote_bytes = (uint16_t) ne2000_chipmem_read(ne2000, ne2000->bound_ptr * 256 + 2, 2);
 		ne2000_log("Sending buffer #x%x length %d\n", ne2000->remote_start, ne2000->remote_bytes);
 	}
 
-	// Check for start-tx
+	/* Check for start-tx */
 	if ((value & 0x04) && ne2000->TCR.loop_cntl)
 	{
 		if (ne2000->TCR.loop_cntl != 1)
@@ -413,7 +477,7 @@ void ne2000_write_cr(ne2000_t *ne2000, uint32_t value)
 		  ne2000_log("CR write - tx start, tx bytes == 0\n");
 		}
 
-		// Send the packet to the system driver
+		/* Send the packet to the system driver */
 		ne2000->CR.tx_packet = 1;
 		if(!net_is_pcap)
 		{
@@ -426,7 +490,7 @@ void ne2000_write_cr(ne2000_t *ne2000, uint32_t value)
 			ne2000_log("ne2000 pcap sending packet\n");
 		}
 
-		// some more debug
+		/* some more debug */
 		if (ne2000->tx_timer_active)
 		{
 			ne2000_log("CR write, tx timer still active\n");
@@ -435,9 +499,9 @@ void ne2000_write_cr(ne2000_t *ne2000, uint32_t value)
 		ne2000_tx_event(ne2000, value);
 	}
 
-	// Linux probes for an interrupt by setting up a remote-DMA read
-	// of 0 bytes with remote-DMA completion interrupts enabled.
-	// Detect this here
+	/* Linux probes for an interrupt by setting up a remote-DMA read
+	   of 0 bytes with remote-DMA completion interrupts enabled.
+	   Detect this here */
 	if (ne2000->CR.rdma_cmd == 0x01 &&
 		ne2000->CR.start &&
 		ne2000->remote_bytes == 0)
@@ -454,14 +518,13 @@ void ne2000_write_cr(ne2000_t *ne2000, uint32_t value)
 	}
 }
 
-//
-// chipmem_read/chipmem_write - access the 64K private RAM.
-// The ne2000 memory is accessed through the data port of
-// the asic (offset 0) after setting up a remote-DMA transfer.
-// Both byte and word accesses are allowed.
-// The first 16 bytes contains the MAC address at even locations,
-// and there is 16K of buffer memory starting at 16K
-//
+/* chipmem_read/chipmem_write - access the 64K private RAM.
+   The ne2000 memory is accessed through the data port of
+   the asic (offset 0) after setting up a remote-DMA transfer.
+   Both byte and word accesses are allowed.
+   The first 16 bytes contains the MAC address at even locations,
+   and there is 16K of buffer memory starting at 16K
+*/
 
 uint32_t ne2000_chipmem_read(ne2000_t *ne2000, uint32_t address, unsigned int io_len)
 {
@@ -472,7 +535,7 @@ uint32_t ne2000_chipmem_read(ne2000_t *ne2000, uint32_t address, unsigned int io
 		ne2000_log("unaligned chipmem word read\n");
 	}
 
-	// ROM'd MAC address
+	/* ROM'd MAC address */
 	if ((address >=0) && (address <= 31))
 	{
 		retval = ne2000->macaddr[address % 32];
@@ -517,8 +580,10 @@ uint32_t ne2000_chipmem_read(ne2000_t *ne2000, uint32_t address, unsigned int io
 	}
 	else
 	{
-		return (0xff);
+		return 0xff;
 	}
+
+	return 0xffff;
 }
 
 void ne2000_chipmem_write(ne2000_t *ne2000, uint32_t address, uint32_t value, unsigned io_len)
@@ -547,28 +612,27 @@ void ne2000_chipmem_write(ne2000_t *ne2000, uint32_t address, uint32_t value, un
 	}
 }
 
-//
-// asic_read/asic_write - This is the high 16 bytes of i/o space
-// (the lower 16 bytes is for the DS8390). Only two locations
-// are used: offset 0, which is used for data transfer, and
-// offset 0xf, which is used to reset the device.
-// The data transfer port is used to as 'external' DMA to the
-// DS8390. The chip has to have the DMA registers set up, and
-// after that, insw/outsw instructions can be used to move
-// the appropriate number of bytes to/from the device.
-//
+/* asic_read/asic_write - This is the high 16 bytes of i/o space
+   (the lower 16 bytes is for the DS8390). Only two locations
+   are used: offset 0, which is used for data transfer, and
+   offset 0xf, which is used to reset the device.
+   The data transfer port is used to as 'external' DMA to the
+   DS8390. The chip has to have the DMA registers set up, and
+   after that, insw/outsw instructions can be used to move
+   the appropriate number of bytes to/from the device.
+*/
 uint32_t ne2000_asic_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_len)
 {
 	uint32_t retval = 0;
 
 	switch (offset)
 	{
-		case 0x0:  // Data register
-			//
-			// A read remote-DMA command must have been issued,
-			// and the source-address and length registers must
-			// have been initialised.
-			//
+		case 0x0:  /* Data register */
+
+			/* A read remote-DMA command must have been issued,
+			   and the source-address and length registers must
+			   have been initialised. */
+
 			if (io_len > ne2000->remote_bytes)
 			{
 				ne2000_log("dma read underrun iolen=%d remote_bytes=%d\n",io_len,ne2000->remote_bytes);
@@ -576,11 +640,11 @@ uint32_t ne2000_asic_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_len
 
 			ne2000_log("%s read DMA: addr=%4x remote_bytes=%d\n",(network_card_current == 1) ? "NE2000" : "RTL8029AS",ne2000->remote_dma,ne2000->remote_bytes);
 			retval = ne2000_chipmem_read(ne2000, ne2000->remote_dma, io_len);
-			//
-			// The 8390 bumps the address and decreases the byte count
-			// by the selected word size after every access, not by
-			// the amount of data requested by the host (io_len).
-			//
+
+			/* The 8390 bumps the address and decreases the byte count
+			   by the selected word size after every access, not by
+			   the amount of data requested by the host (io_len). */
+
 			if (io_len == 4)
 			{
 				ne2000->remote_dma += io_len;
@@ -595,7 +659,7 @@ uint32_t ne2000_asic_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_len
 				ne2000->remote_dma = ne2000->page_start << 8;
 			}
 
-			// keep s.remote_bytes from underflowing
+			/* keep s.remote_bytes from underflowing */
 			if (ne2000->remote_bytes > ne2000->DCR.wdsize)
 			{
 				if (io_len == 4)
@@ -612,7 +676,7 @@ uint32_t ne2000_asic_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_len
 				ne2000->remote_bytes = 0;
 			}
 
-			// If all bytes have been written, signal remote-DMA complete
+			/* If all bytes have been written, signal remote-DMA complete */
 			if (ne2000->remote_bytes == 0)
 			{
 				ne2000->ISR.rdma_done = 1;
@@ -623,7 +687,7 @@ uint32_t ne2000_asic_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_len
 			}
 			break;
 
-		case 0xf:  // Reset register
+		case 0xf:  /* Reset register */
 			ne2000_reset(ne2000, BX_RESET_SOFTWARE);
 			break;
 
@@ -640,7 +704,7 @@ void ne2000_asic_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsign
 	ne2000_log("%s: asic write addr=0x%02x, value=0x%04x\n", (network_card_current == 1) ? "NE2000" : "RTL8029AS",(unsigned) offset, (unsigned) value);
 	switch (offset)
 	{
-		case 0x0:  // Data register - see asic_read for a description
+		case 0x0:  /* Data register - see asic_read for a description */
 			if ((io_len > 1) && (ne2000->DCR.wdsize == 0))
 			{
 				ne2000_log("dma write length %d on byte mode operation\n", io_len);
@@ -680,7 +744,7 @@ void ne2000_asic_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsign
 				ne2000->remote_bytes = 0;
 			}
 
-			// If all bytes have been written, signal remote-DMA complete
+			/* If all bytes have been written, signal remote-DMA complete */
 			if (ne2000->remote_bytes == 0)
 			{
 				ne2000->ISR.rdma_done = 1;
@@ -691,20 +755,19 @@ void ne2000_asic_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsign
 			}
 			break;
 
-		case 0xf:  // Reset register
-			// end of reset pulse
+		case 0xf:  /* Reset register */
+			/* end of reset pulse */
 			break;
 
-		default: // this is invalid, but happens under win95 device detection
+		default: /* this is invalid, but happens under win95 device detection */
 			ne2000_log("asic write invalid address %04x, ignoring\n", (unsigned) offset);
 			break;
 	}
 }
 
-//
-// page0_read/page0_write - These routines handle reads/writes to
-// the 'zeroth' page of the DS8390 register file
-//
+/* page0_read/page0_write - These routines handle reads/writes to
+   the 'zeroth' page of the DS8390 register file */
+
 uint32_t ne2000_page0_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_len)
 {
 	uint8_t value = 0;
@@ -717,19 +780,19 @@ uint32_t ne2000_page0_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
 
 	switch (offset)
 	{
-		case 0x1:	// CLDA0
+		case 0x1:	/* CLDA0 */
 			value = (ne2000->local_dma & 0xff);
 			break;
 
-		case 0x2:	// CLDA1
+		case 0x2:	/* CLDA1 */
 			value = (ne2000->local_dma >> 8);
 			break;
 
-		case 0x3:	// BNRY
+		case 0x3:	/* BNRY */
 			value = ne2000->bound_ptr;
 			break;
 
-		case 0x4:	// TSR
+		case 0x4:	/* TSR */
 			value =	((ne2000->TSR.ow_coll    << 7) |
 					 (ne2000->TSR.cd_hbeat   << 6) |
 					 (ne2000->TSR.fifo_ur    << 5) |
@@ -739,17 +802,17 @@ uint32_t ne2000_page0_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
 					 (ne2000->TSR.tx_ok));
 			break;
 
-		case 0x5:	// NCR
+		case 0x5:	/* NCR */
 			value = ne2000->num_coll;
 			break;
 
-		case 0x6:	// FIFO
-			// reading FIFO is only valid in loopback mode
+		case 0x6:	/* FIFO */
+			/* reading FIFO is only valid in loopback mode */
 			ne2000_log("reading FIFO not supported yet\n");
 			value = ne2000->fifo;
 			break;
 
-		case 0x7:	// ISR
+		case 0x7:	/* ISR */
 			value =	((ne2000->ISR.reset     << 7) |
 					 (ne2000->ISR.rdma_done << 6) |
 					 (ne2000->ISR.cnt_oflow << 5) |
@@ -760,15 +823,15 @@ uint32_t ne2000_page0_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
 					 (ne2000->ISR.pkt_rx));
 			break;
 
-		case 0x8:	// CRDA0
+		case 0x8:	/* CRDA0 */
 			value = (ne2000->remote_dma & 0xff);
 			break;
 
-		case 0x9:	// CRDA1
+		case 0x9:	/* CRDA1 */
 			value = (ne2000->remote_dma >> 8);
 			break;
 
-		case 0xa:	// reserved / RTL8029ID0
+		case 0xa:	/* reserved / RTL8029ID0 */
 			if (network_card_current == 2)
 			{
 				value = 0x50;
@@ -780,7 +843,7 @@ uint32_t ne2000_page0_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
 			}
 			break;
 
-		case 0xb:	// reserved / RTL8029ID1
+		case 0xb:	/* reserved / RTL8029ID1 */
 			if (network_card_current == 2)
 			{
 				value = 0x43;
@@ -792,7 +855,7 @@ uint32_t ne2000_page0_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
 			}
 			break;
 
-		case 0xc:	// RSR
+		case 0xc:	/* RSR */
 			value =	((ne2000->RSR.deferred    << 7) |
 					 (ne2000->RSR.rx_disabled << 6) |
 					 (ne2000->RSR.rx_mbit     << 5) |
@@ -803,15 +866,15 @@ uint32_t ne2000_page0_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
 					 (ne2000->RSR.rx_ok));
 			break;
 
-		case 0xd:	// CNTR0
+		case 0xd:	/* CNTR0 */
 			value = ne2000->tallycnt_0;
 			break;
 
-		case 0xe:	// CNTR1
+		case 0xe:	/* CNTR1 */
 			value = ne2000->tallycnt_1;
 			break;
 
-		case 0xf:	// CNTR2
+		case 0xf:	/* CNTR2 */
 			value = ne2000->tallycnt_2;
 			break;
 
@@ -828,9 +891,9 @@ void ne2000_page0_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
 {
 	uint8_t value2;
 
-	// It appears to be a common practice to use outw on page0 regs...
+	/* It appears to be a common practice to use outw on page0 regs... */
 
-	// break up outw into two outb's
+	/* break up outw into two outb's */
 	if (io_len == 2)
 	{
 		ne2000_page0_write(ne2000, offset, (value & 0xff), 1);
@@ -845,37 +908,37 @@ void ne2000_page0_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
 
 	switch (offset)
 	{
-		case 0x1:	// PSTART
+		case 0x1:	/* PSTART */
 			ne2000->page_start = value;
 			break;
 
-		case 0x2:	// PSTOP
+		case 0x2:	/* PSTOP */
 			ne2000->page_stop = value;
 			break;
 
-		case 0x3:	// BNRY
+		case 0x3:	/* BNRY */
 			ne2000->bound_ptr = value;
 			break;
 
-		case 0x4:	// TPSR
+		case 0x4:	/* TPSR */
 			ne2000->tx_page_start = value;
 			break;
 
-		case 0x5:	// TBCR0
-			// Clear out low byte and re-insert
+		case 0x5:	/* TBCR0 */
+			/* Clear out low byte and re-insert */
 			ne2000->tx_bytes &= 0xff00;
 			ne2000->tx_bytes |= (value & 0xff);
 			break;
 
-		case 0x6:	// TBCR1
-			// Clear out high byte and re-insert
+		case 0x6:	/* TBCR1 */
+			/* Clear out high byte and re-insert */
 			ne2000->tx_bytes &= 0x00ff;
 			ne2000->tx_bytes |= ((value & 0xff) << 8);
 			break;
 
-		case 0x7:	// ISR
-			value &= 0x7f;  // clear RST bit - status-only bit
-			// All other values are cleared iff the ISR bit is 1
+		case 0x7:	/* ISR */
+			value &= 0x7f;  /* clear RST bit - status-only bit */
+			/* All other values are cleared iff the ISR bit is 1 */
 			ne2000->ISR.pkt_rx    &= ~((int)((value & 0x01) == 0x01));
 			ne2000->ISR.pkt_tx    &= ~((int)((value & 0x02) == 0x02));
 			ne2000->ISR.rx_err    &= ~((int)((value & 0x04) == 0x04));
@@ -903,40 +966,40 @@ void ne2000_page0_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
 			}
 			break;
 
-		case 0x8:	// RSAR0
-			// Clear out low byte and re-insert
+		case 0x8:	/* RSAR0 */
+			/* Clear out low byte and re-insert */
 			ne2000->remote_start &= 0xff00;
 			ne2000->remote_start |= (value & 0xff);
 			ne2000->remote_dma = ne2000->remote_start;
 			break;
 
-		case 0x9:	// RSAR1
-			// Clear out high byte and re-insert
+		case 0x9:	/* RSAR1 */
+			/* Clear out high byte and re-insert */
 			ne2000->remote_start &= 0x00ff;
 			ne2000->remote_start |= ((value & 0xff) << 8);
 			ne2000->remote_dma = ne2000->remote_start;
 			break;
 
-		case 0xa:	// RBCR0
-			// Clear out low byte and re-insert
+		case 0xa:	/* RBCR0 */
+			/* Clear out low byte and re-insert */
 			ne2000->remote_bytes &= 0xff00;
 			ne2000->remote_bytes |= (value & 0xff);
 			break;
 
-		case 0xb:	// RBCR1
-			// Clear out high byte and re-insert
+		case 0xb:	/* RBCR1 */
+			/* Clear out high byte and re-insert */
 			ne2000->remote_bytes &= 0x00ff;
 			ne2000->remote_bytes |= ((value & 0xff) << 8);
 			break;
 
-		case 0xc:	// RCR
-			// Check if the reserved bits are set
+		case 0xc:	/* RCR */
+			/* Check if the reserved bits are set */
 			if (value & 0xc0)
 			{
 				ne2000_log("RCR write, reserved bits set\n");
 			}
 
-			// Set all other bit-fields
+			/* Set all other bit-fields */
 			ne2000->RCR.errors_ok = ((value & 0x01) == 0x01);
 			ne2000->RCR.runts_ok  = ((value & 0x02) == 0x02);
 			ne2000->RCR.broadcast = ((value & 0x04) == 0x04);
@@ -944,21 +1007,21 @@ void ne2000_page0_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
 			ne2000->RCR.promisc   = ((value & 0x10) == 0x10);
 			ne2000->RCR.monitor   = ((value & 0x20) == 0x20);
 
-			// Monitor bit is a little suspicious...
+			/* Monitor bit is a little suspicious... */
 			if (value & 0x20)
 			{
 				ne2000_log("RCR write, monitor bit set!\n");
 			}
 			break;
 
-		case 0xd:	// TCR
-			// Check reserved bits
+		case 0xd:	/* TCR */
+			/* Check reserved bits */
 			if (value & 0xe0)
 			{
 				ne2000_log("TCR write, reserved bits set\n");
 			}
 
-			// Test loop mode (not supported)
+			/* Test loop mode (not supported) */
 			if (value & 0x06)
 			{
 				ne2000->TCR.loop_cntl = (value & 0x6) >> 1;
@@ -969,30 +1032,30 @@ void ne2000_page0_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
 				ne2000->TCR.loop_cntl = 0;
 			}
 
-			// Inhibit-CRC not supported.
+			/* Inhibit-CRC not supported. */
 			if (value & 0x01)
 			{
 				ne2000_log("TCR write, inhibit-CRC not supported\n");
 			}
 
-			// Auto-transmit disable very suspicious
+			/* Auto-transmit disable very suspicious */
 			if (value & 0x08)
 			{
 				ne2000_log("TCR write, auto transmit disable not supported\n");
 			}
 
-			// Allow collision-offset to be set, although not used
+			/* Allow collision-offset to be set, although not used */
 			ne2000->TCR.coll_prio = ((value & 0x08) == 0x08);
 			break;
 
-		case 0xe:	// DCR
-			// the loopback mode is not suppported yet
+		case 0xe:	/* DCR */
+			/* the loopback mode is not suppported yet */
 			if (!(value & 0x08))
 			{
 				ne2000_log("DCR write, loopback mode selected\n");
 			}
-			// It is questionable to set longaddr and auto_rx, since they
-			// aren't supported on the ne2000. Print a warning and continue
+			/* It is questionable to set longaddr and auto_rx, since they
+			   aren't supported on the ne2000. Print a warning and continue */
 			if (value & 0x04)
 			{
 				ne2000_log("DCR write - LAS set ???\n");
@@ -1002,23 +1065,23 @@ void ne2000_page0_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
 				ne2000_log("DCR write - AR set ???\n");
 			}
 
-			// Set other values.
+			/* Set other values. */
 			ne2000->DCR.wdsize   = ((value & 0x01) == 0x01);
 			ne2000->DCR.endian   = ((value & 0x02) == 0x02);
-			ne2000->DCR.longaddr = ((value & 0x04) == 0x04); // illegal ?
+			ne2000->DCR.longaddr = ((value & 0x04) == 0x04); /* illegal ? */
 			ne2000->DCR.loop     = ((value & 0x08) == 0x08);
-			ne2000->DCR.auto_rx  = ((value & 0x10) == 0x10); // also illegal ?
+			ne2000->DCR.auto_rx  = ((value & 0x10) == 0x10); /* also illegal ? */
 			ne2000->DCR.fifo_size = (value & 0x50) >> 5;
 			break;
 
-		case 0xf:  // IMR
-			// Check for reserved bit
+		case 0xf:  /* IMR */
+			/* Check for reserved bit */
 			if (value & 0x80)
 			{
 				ne2000_log("IMR write, reserved bit set\n");
 			}
 
-			// Set other values
+			/* Set other values */
 			ne2000->IMR.rx_inte    = ((value & 0x01) == 0x01);
 			ne2000->IMR.tx_inte    = ((value & 0x02) == 0x02);
 			ne2000->IMR.rxerr_inte = ((value & 0x04) == 0x04);
@@ -1049,17 +1112,16 @@ void ne2000_page0_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
 	}
 }
 
-//
-// page1_read/page1_write - These routines handle reads/writes to
-// the first page of the DS8390 register file
-//
+/* page1_read/page1_write - These routines handle reads/writes to
+   the first page of the DS8390 register file */
+
 uint32_t ne2000_page1_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_len)
 {
 	ne2000_log("page 1 read from register 0x%02x, len=%u\n", offset, io_len);
 
 	switch (offset)
 	{
-		case 0x1:	// PAR0-5
+		case 0x1:	/* PAR0-5 */
 		case 0x2:
 		case 0x3:
 		case 0x4:
@@ -1067,11 +1129,11 @@ uint32_t ne2000_page1_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
 		case 0x6:
 			return (ne2000->physaddr[offset - 1]);
 
-		case 0x7:	// CURR
+		case 0x7:	/* CURR */
 			ne2000_log("returning current page: 0x%02x\n", (ne2000->curr_page));
 			return (ne2000->curr_page);
 
-		case 0x8:	// MAR0-7
+		case 0x8:	/* MAR0-7 */
 		case 0x9:
 		case 0xa:
 		case 0xb:
@@ -1093,7 +1155,7 @@ void ne2000_page1_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
 
 	switch (offset)
 	{
-		case 0x1:	// PAR0-5
+		case 0x1:	/* PAR0-5 */
 		case 0x2:
 		case 0x3:
 		case 0x4:
@@ -1106,11 +1168,11 @@ void ne2000_page1_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
 			}
 			break;
 
-		case 0x7:	// CURR
+		case 0x7:	/* CURR */
 			ne2000->curr_page = value;
 			break;
 
-		case 0x8:	// MAR0-7
+		case 0x8:	/* MAR0-7 */
 		case 0x9:
 		case 0xa:
 		case 0xb:
@@ -1127,45 +1189,44 @@ void ne2000_page1_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
 	}
 }
 
-//
-// page2_read/page2_write - These routines handle reads/writes to
-// the second page of the DS8390 register file
-//
+/* page2_read/page2_write - These routines handle reads/writes to
+   the second page of the DS8390 register file */
+
 uint32_t ne2000_page2_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_len)
 {
 	ne2000_log("page 2 read from register 0x%02x, len=%u\n", offset, io_len);
   
 	switch (offset)
 	{
-		case 0x1:	// PSTART
+		case 0x1:	/* PSTART */
 			return (ne2000->page_start);
 
-		case 0x2:	// PSTOP
+		case 0x2:	/* PSTOP */
 			return (ne2000->page_stop);
 
-		case 0x3:	// Remote Next-packet pointer
+		case 0x3:	/* Remote Next-packet pointer */
 			return (ne2000->rempkt_ptr);
 
-		case 0x4:	// TPSR
+		case 0x4:	/* TPSR */
 			return (ne2000->tx_page_start);
 
-		case 0x5:	// Local Next-packet pointer
+		case 0x5:	/* Local Next-packet pointer */
 			return (ne2000->localpkt_ptr);
 
-		case 0x6:	// Address counter (upper)
+		case 0x6:	/* Address counter (upper) */
 			return (ne2000->address_cnt >> 8);
 
-		case 0x7:	// Address counter (lower)
+		case 0x7:	/* Address counter (lower) */
 			return (ne2000->address_cnt & 0xff);
 
-		case 0x8:	// Reserved
+		case 0x8:	/* Reserved */
 		case 0x9:
 		case 0xa:
 		case 0xb:
 			ne2000_log("reserved read - page 2, register 0x%02x\n", offset);
 			return (0xff);
 
-		case 0xc:	// RCR
+		case 0xc:	/* RCR */
 			return	((ne2000->RCR.monitor   << 5) |
 					 (ne2000->RCR.promisc   << 4) |
 					 (ne2000->RCR.multicast << 3) |
@@ -1173,13 +1234,13 @@ uint32_t ne2000_page2_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
 					 (ne2000->RCR.runts_ok  << 1) |
 					 (ne2000->RCR.errors_ok));
 
-		case 0xd:	// TCR
+		case 0xd:	/* TCR */
 			return	((ne2000->TCR.coll_prio   << 4) |
 					 (ne2000->TCR.ext_stoptx  << 3) |
 					 ((ne2000->TCR.loop_cntl & 0x3) << 1) |
 					 (ne2000->TCR.crc_disable));
 
-		case 0xe:	// DCR
+		case 0xe:	/* DCR */
 			return	(((ne2000->DCR.fifo_size & 0x3) << 5) |
 					 (ne2000->DCR.auto_rx  << 4) |
 					 (ne2000->DCR.loop     << 3) |
@@ -1187,7 +1248,7 @@ uint32_t ne2000_page2_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
 					 (ne2000->DCR.endian   << 1) |
 					 (ne2000->DCR.wdsize));
 
-		case 0xf:	// IMR
+		case 0xf:	/* IMR */
 			return	((ne2000->IMR.rdma_inte  << 6) |
 					 (ne2000->IMR.cofl_inte  << 5) |
 					 (ne2000->IMR.overw_inte << 4) |
@@ -1206,26 +1267,26 @@ uint32_t ne2000_page2_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_le
 
 void ne2000_page2_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsigned io_len)
 {
-	// Maybe all writes here should be BX_PANIC()'d, since they
-	// affect internal operation, but let them through for now
-	// and print a warning.
+	/* Maybe all writes here should be BX_PANIC()'d, since they
+	   affect internal operation, but let them through for now
+	   and print a warning. */
 	ne2000_log("page 2 write to register 0x%02x, len=%u, value=0x%04x\n", offset, io_len, value);
 
 	switch (offset)
 	{
-		case 0x1:	// CLDA0
-			// Clear out low byte and re-insert
+		case 0x1:	/* CLDA0 */
+			/* Clear out low byte and re-insert */
 			ne2000->local_dma &= 0xff00;
 			ne2000->local_dma |= (value & 0xff);
 			break;
 
-		case 0x2:	// CLDA1
-			// Clear out high byte and re-insert
+		case 0x2:	/* CLDA1 */
+			/* Clear out high byte and re-insert */
 			ne2000->local_dma &= 0x00ff;
 			ne2000->local_dma |= ((value & 0xff) << 8);
 			break;
 
-		case 0x3:	// Remote Next-pkt pointer
+		case 0x3:	/* Remote Next-pkt pointer */
 			ne2000->rempkt_ptr = value;
 			break;
 
@@ -1233,18 +1294,18 @@ void ne2000_page2_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
 			ne2000_log("page 2 write to reserved register 0x04\n");
 			break;
 
-		case 0x5:	// Local Next-packet pointer
+		case 0x5:	/* Local Next-packet pointer */
 			ne2000->localpkt_ptr = value;
 			break;
 
-		case 0x6:	// Address counter (upper)
-			// Clear out high byte and re-insert
+		case 0x6:	/* Address counter (upper) */
+			/* Clear out high byte and re-insert */
 			ne2000->address_cnt &= 0x00ff;
 			ne2000->address_cnt |= ((value & 0xff) << 8);
 			break;
 
-		case 0x7:	// Address counter (lower)
-			// Clear out low byte and re-insert
+		case 0x7:	/* Address counter (lower) */
+			/* Clear out low byte and re-insert */
 			ne2000->address_cnt &= 0xff00;
 			ne2000->address_cnt |= (value & 0xff);
 			break;
@@ -1266,20 +1327,19 @@ void ne2000_page2_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsig
 	}
 }
 
-//
-// page3_read/page3_write - writes to this page are illegal
-//
+/* page3_read/page3_write - writes to this page are illegal */
+
 uint32_t ne2000_page3_read(ne2000_t *ne2000, uint32_t offset, unsigned int io_len)
 {
 	if (network_card_current == 2)
 	{
 		switch (offset)
 		{
-			case 0x3:	// CONFIG0
+			case 0x3:	/* CONFIG0 */
 				return (0);
-			case 0x5:	// CONFIG2
+			case 0x5:	/* CONFIG2 */
 				return (0x40);
-			case 0x6:	// CONFIG3
+			case 0x6:	/* CONFIG3 */
 				return (0x40);
 			default:
 				ne2000_log("page 3 read register 0x%02x attempted\n", offset);
@@ -1307,7 +1367,7 @@ void ne2000_tx_event(void *p, uint32_t val)
 	ne2000->CR.tx_packet = 0;
 	ne2000->TSR.tx_ok = 1;
 	ne2000->ISR.pkt_tx = 1;
-	// Generate an interrupt if not masked
+	/* Generate an interrupt if not masked */
 	if (ne2000->IMR.tx_inte)
 	{
 		picint(1 << ne2000->base_irq);
@@ -1315,16 +1375,16 @@ void ne2000_tx_event(void *p, uint32_t val)
 	ne2000->tx_timer_active = 0;
 }
 
-//
-// read_handler/read - i/o 'catcher' function called from BOCHS
-// mainline when the CPU attempts a read in the i/o space registered
-// by this ne2000 instance
-//
+/* read_handler/read - i/o 'catcher' function called from BOCHS
+   mainline when the CPU attempts a read in the i/o space registered
+   by this ne2000 instance */
+
 uint32_t ne2000_read(ne2000_t *ne2000, uint32_t address, unsigned io_len)
 {
-	ne2000_log("%s: read addr %x, len %d\n", (network_card_current == 1) ? "NE2000" : "RTL8029AS", address, io_len);
 	uint32_t retval = 0;
 	int offset = address - ne2000->base_address;
+
+	ne2000_log("%s: read addr %x, len %d\n", (network_card_current == 1) ? "NE2000" : "RTL8029AS", address, io_len);
 
 	if (offset >= 0x10)
 	{
@@ -1365,15 +1425,15 @@ uint32_t ne2000_read(ne2000_t *ne2000, uint32_t address, unsigned io_len)
 
 void ne2000_write(ne2000_t *ne2000, uint32_t address, uint32_t value, unsigned io_len)
 {
-	ne2000_log("%s: write addr %x, value %x len %d\n", (network_card_current == 1) ? "NE2000" : "RTL8029AS", address, value, io_len);
 	int offset = address - ne2000->base_address;
 
-	//
-	// The high 16 bytes of i/o space are for the ne2000 asic -
-	//  the low 16 bytes are for the DS8390, with the current
-	//  page being selected by the PS0,PS1 registers in the
-	//  command register
-	//
+	ne2000_log("%s: write addr %x, value %x len %d\n", (network_card_current == 1) ? "NE2000" : "RTL8029AS", address, value, io_len);
+
+	/* The high 16 bytes of i/o space are for the ne2000 asic -
+	   the low 16 bytes are for the DS8390, with the current
+	   page being selected by the PS0,PS1 registers in the
+	   command register */
+
 	if (offset >= 0x10)
 	{
 		ne2000_asic_write(ne2000, offset - 0x10, value, io_len);
@@ -1453,7 +1513,6 @@ void ne2000_rx_frame(void *p, const void *buf, int io_len)
 	int pages;
 	int avail;
 	int idx;
-	int wrapped;
 	int nextpage;
 	uint8_t pkthdr[4];
 	uint8_t *pktbuf = (uint8_t *) buf;
@@ -1473,8 +1532,8 @@ void ne2000_rx_frame(void *p, const void *buf, int io_len)
 		return;
 	}
 
-	// Add the pkt header + CRC to the length, and work
-	// out how many 256-byte pages the frame would occupy
+	/* Add the pkt header + CRC to the length, and work
+	   out how many 256-byte pages the frame would occupy */
 	pages = (io_len + 4 + 4 + 255)/256;
 
 	if (ne2000->curr_page < ne2000->bound_ptr)
@@ -1484,12 +1543,11 @@ void ne2000_rx_frame(void *p, const void *buf, int io_len)
 	else
 	{
 		avail = (ne2000->page_stop - ne2000->page_start) - (ne2000->curr_page - ne2000->bound_ptr);
-		wrapped = 1;
 	}
 
-	// Avoid getting into a buffer overflow condition by not attempting
-	// to do partial receives. The emulation to handle this condition
-	// seems particularly painful.
+	/* Avoid getting into a buffer overflow condition by not attempting
+	   to do partial receives. The emulation to handle this condition
+	   seems particularly painful. */
 	if	((avail < pages)
 #if BX_NE2K_NEVER_FULL_RING
 		 || (avail == pages)
@@ -1505,18 +1563,18 @@ void ne2000_rx_frame(void *p, const void *buf, int io_len)
 		ne2000_log("rejected small packet, length %d\n", io_len);
 		return;
 	}
-	// some computers don't care...
+	/* some computers don't care... */
 	if (io_len < 60)
 	{
 		io_len=60;
 	}
 
-	// Do address filtering if not in promiscuous mode
+	/* Do address filtering if not in promiscuous mode */
 	if (! ne2000->RCR.promisc)
 	{
 		/* Received. */
 		mac_cmp32[0] = *(uint32_t *) (buf);
-		mac_cmp16[0] = *(uint16_t *) (buf+4);
+		mac_cmp16[0] = *(uint16_t *) (((uint8_t *) buf) + 4);
 		/* Local. */
 		mac_cmp32[1] = *(uint32_t *) (bcast_addr);
 		mac_cmp16[1] = *(uint16_t *) (bcast_addr+4);
@@ -1557,19 +1615,19 @@ void ne2000_rx_frame(void *p, const void *buf, int io_len)
 		nextpage -= ne2000->page_stop - ne2000->page_start;
 	}
 
-	// Setup packet header
-	pkthdr[0] = 0;			// rx status - old behavior
-	pkthdr[0] = 1;			// Probably better to set it all the time
-							// rather than set it to 0, which is clearly wrong.
+	/* Setup packet header */
+	pkthdr[0] = 0;			/* rx status - old behavior
+	pkthdr[0] = 1;			/* Probably better to set it all the time
+					   rather than set it to 0, which is clearly wrong. */
 	if (pktbuf[0] & 0x01)
 	{
-		pkthdr[0] |= 0x20;	// rx status += multicast packet
+		pkthdr[0] |= 0x20;	/* rx status += multicast packet */
 	}
-	pkthdr[1] = nextpage;	// ptr to next packet
-	pkthdr[2] = (io_len + 4) & 0xff;	// length-low
-	pkthdr[3] = (io_len + 4) >> 8;		// length-hi
+	pkthdr[1] = nextpage;	/* ptr to next packet */
+	pkthdr[2] = (io_len + 4) & 0xff;	/* length-low */
+	pkthdr[3] = (io_len + 4) >> 8;		/* length-hi */
 
-	// copy into buffer, update curpage, and signal interrupt if config'd
+	/* copy into buffer, update curpage, and signal interrupt if config'd */
 	startptr = & ne2000->mem[ne2000->curr_page * 256 - BX_NE2K_MEMSTART];
 	if ((nextpage > ne2000->curr_page) || ((ne2000->curr_page + pages) == ne2000->page_stop))
 	{
@@ -1660,7 +1718,6 @@ void ne2000_poller(void *p)
 	uint32_t mac_cmp32[2];
 	uint16_t mac_cmp16[2];
 
-	int res;
 	if (!net_is_pcap)
 	{
 		while(QueuePeek(slirpq) > 0)
@@ -1680,7 +1737,7 @@ void ne2000_poller(void *p)
 		{
 			fizz=0;slirp_tic();
 		}
-	}//end slirp
+	} /* end slirp */
 	else if (net_is_pcap && (net_pcap != NULL))
 	{
 		if((ne2000->DCR.loop == 0) || (ne2000->TCR.loop_cntl != 0))
@@ -1696,11 +1753,10 @@ void ne2000_poller(void *p)
 		mac_cmp32[0] = *(uint32_t *) (data+6);
 		mac_cmp16[0] = *(uint16_t *) (data+10);
 		/* Local. */
-		mac_cmp32[1] = *(uint32_t *) (maclocal);
-		mac_cmp16[1] = *(uint16_t *) (maclocal+4);
+		mac_cmp32[1] = *(uint32_t *) (ne2000_mac());
+		mac_cmp16[1] = *(uint16_t *) (ne2000_mac() + 4);
 		if ((mac_cmp32[0] != mac_cmp32[1]) || (mac_cmp16[0] != mac_cmp16[1]))
 		{
-			// ne2000_log("ne2000 pcap received a frame %d bytes\n",h.caplen);
 			ne2000_rx_frame(ne2000,data,h.caplen); 
 		}
 	}
@@ -1757,9 +1813,6 @@ void ne2000_io_remove(int16_t addr, ne2000_t *ne2000)
 
 uint8_t ne2000_pci_read(int func, int addr, void *p)
 {
-	ne2000_t *ne2000 = (ne2000_t *) p;
-
-	// ne2000_log("NE2000 PCI read %08X\n", addr);
 	switch (addr)
 	{
 		case 0x00:
@@ -1827,7 +1880,6 @@ void ne2000_update_bios(ne2000_t *ne2000)
 {
 	int reg_bios_enable;
 	
-	// reg_bios_enable = ne2000_pci_regs[0x30];
 	reg_bios_enable = 1;
 	
 	/* PCI BIOS stuff, just enable_disable. */
@@ -1940,8 +1992,7 @@ static char errbuf[32768];
 void *ne2000_init()
 {
     int rc;
-	int config_net_type;
-    int net_type;
+    int config_net_type;
 	int irq;
 	int pcap_device_available = 0;
 	int is_rtl8029as = 0;
@@ -1993,7 +2044,7 @@ void *ne2000_init()
 
 	ne2000_io_set(ne2000->base_address, ne2000);
 
-	memcpy(ne2000->physaddr, maclocal, 6);
+	memcpy(ne2000->physaddr, ne2000_mac(), 6);
 
 	if (!disable_netbios)
 	{
@@ -2030,7 +2081,6 @@ void *ne2000_init()
 			bios_addr = 0xD0000;
 		}
 
-        // ne2000_pci_regs[0x3C] = ide_ter_enabled ? 11 : 10;
 		ne2000_pci_regs[0x3C] = irq;
 		pclog("RTL8029AS IRQ: %i\n", ne2000_pci_regs[0x3C]);
         ne2000_pci_regs[0x3D] = 1;
@@ -2047,7 +2097,7 @@ void *ne2000_init()
 
     ne2000_log("ne2000 %s init 0x%X %d\tnet_is_pcap is %d\n",is_rtl8029as ? "pci" : "isa",ne2000->base_address,device_get_config_int("irq"),net_is_pcap);
 
-    //need a switch statment for more network types.
+    /* need a switch statment for more network types. */
     if (!net_is_pcap)
 	{
 initialize_slirp:
@@ -2093,10 +2143,10 @@ initialize_pcap:
 		{
 			ne2000_log("ne2000 pcap_open_live error on %s!\n",config_get_string(NULL,"pcap_device","whatever the ethernet is"));
 			net_is_pcap=0;
-			return(ne2000);	// YUCK!!!
+			return(ne2000);	/* YUCK!!! */
 		}
 
-		//Time to check that we are in non-blocking mode.
+		/* Time to check that we are in non-blocking mode. */
 		rc=pcap_getnonblock(net_pcap,errbuf);
 		ne2000_log("ne2000 pcap is currently in %s mode\n",rc? "non-blocking":"blocking");
 		switch(rc)
@@ -2105,7 +2155,7 @@ initialize_pcap:
 				ne2000_log("ne2000 Setting interface to non-blocking mode..");
 				rc = pcap_setnonblock(net_pcap,1,errbuf);
 				if (rc==0)
-				{	// no errors!
+				{	/* no errors! */
 					ne2000_log("..");
 					rc=pcap_getnonblock(net_pcap,errbuf);
 					if(rc == 1)
@@ -2118,7 +2168,7 @@ initialize_pcap:
 						ne2000_log("\tunable to set pcap into non-blocking mode!\nContinuining without pcap.\n");
 						net_is_pcap=0;
 					}
-				}	// end set nonblock
+				}	/* end set nonblock */
 				else
 				{
 					ne2000_log("There was an unexpected error of [%s]\n\nexiting.\n",errbuf);net_is_pcap=0;}
@@ -2138,10 +2188,10 @@ initialize_pcap:
 			char filter_exp[255];
 			ne2000_log("ne2000 Building packet filter...");
 			sprintf(filter_exp,"( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )", \
-			maclocal[0], maclocal[1], maclocal[2], maclocal[3], maclocal[4], maclocal[5],\
-			maclocal[0], maclocal[1], maclocal[2], maclocal[3], maclocal[4], maclocal[5]);
+			ne2000_mac()[0], ne2000_mac()[1], ne2000_mac()[2], ne2000_mac()[3], ne2000_mac()[4], ne2000_mac()[5],\
+			ne2000_mac()[0], ne2000_mac()[1], ne2000_mac()[2], ne2000_mac()[3], ne2000_mac()[4], ne2000_mac()[5]);
 
-			//I'm doing a MAC level filter so TCP/IP doesn't matter.
+			/* I'm doing a MAC level filter so TCP/IP doesn't matter. */
 			if (pcap_compile(net_pcap, &fp, filter_exp, 0, 0xffffffff) == -1)
 			{
 				ne2000_log("\nne2000 Couldn't compile filter\n");
@@ -2152,7 +2202,7 @@ initialize_pcap:
 				if (pcap_setfilter(net_pcap, &fp) == -1)
 				{
 					ne2000_log("\nError installing pcap filter.\n");
-				}//end of set_filter failure
+				} /* end of set_filter failure */
 				else
 				{
 					ne2000_log("...!\n");
@@ -2166,7 +2216,7 @@ initialize_pcap:
 			goto initialize_slirp;
 		}
 		ne2000_log("ne2000 net_is_pcap is %d and net_pcap is %x\n",net_is_pcap,net_pcap);
-    }	// end pcap setup
+    }	/* end pcap setup */
 
 	ne2000_log("ne2000 is_pcap %d\n", net_is_pcap);
 	return ne2000;
@@ -2196,199 +2246,120 @@ void ne2000_close(void *p)
 static device_config_t ne2000_config[] =
 {
 	{
-		.name = "addr",
-		.description = "Address",
-		.type = CONFIG_BINARY,
-		.type = CONFIG_SELECTION,
-		.selection =
+		"addr", "Address", CONFIG_SELECTION, "", 0x300,
 		{
 			{
-				.description = "0x280",
-				.value = 0x280
+				"0x280", 0x280
 			},
 			{
-				.description = "0x300",
-				.value = 0x300
+				"0x300", 0x300
 			},
 			{
-				.description = "0x320",
-				.value = 0x320
+				"0x320", 0x320
 			},
 			{
-				.description = "0x340",
-				.value = 0x340
+				"0x340", 0x340
 			},
 			{
-				.description = "0x360",
-				.value = 0x360
+				"0x360", 0x360
 			},
 			{
-				.description = "0x380",
-				.value = 0x380
+				"0x380", 0x380
 			},
 			{
-				.description = ""
+				""
 			}
 		},
-		.default_int = 0x300
 	},
 	{
-		.name = "irq",
-		.description = "IRQ",
-		.type = CONFIG_SELECTION,
-		.selection =
+		"irq", "IRQ", CONFIG_SELECTION, "", 10,
 		{
 			{
-				.description = "IRQ 3",
-				.value = 3
+				"IRQ 3", 3
 			},
 			{
-				.description = "IRQ 5",
-				.value = 5
+				"IRQ 5", 5
 			},
 			{
-				.description = "IRQ 7",
-				.value = 7
+				"IRQ 7", 7
 			},
 			{
-				.description = "IRQ 10",
-				.value = 10
+				"IRQ 10", 10
 			},
 			{
-				.description = "IRQ 11",
-				.value = 11
+				"IRQ 11", 11
 			},
 			{
-				.description = ""
+				""
 			}
 		},
-		.default_int = 10
 	},
 	{
-		.name = "net_type",
-		.description = "Network type",
-		.type = CONFIG_BINARY,
-		.type = CONFIG_SELECTION,
-		.selection =
+		"net_type", "Network type", CONFIG_SELECTION, "", 0,
 		{
 			{
-				.description = "PCap",
-				.value = 0
+				"PCap", 0
 			},
 			{
-				.description = "SLiRP",
-				.value = 1
+				"SLiRP", 1
 			},
 			{
-				.description = ""
+				""
 			}
 		},
-		.default_int = 0
 	},
 	{
-		.name = "disable_netbios",
-		.description = "Network bios",
-		.type = CONFIG_BINARY,
-		.type = CONFIG_SELECTION,
-		.selection =
-		{
-			{
-				.description = "Enabled",
-				.value = 0
-			},
-			{
-				.description = "Disabled",
-				.value = 1
-			},
-			{
-				.description = ""
-			}
-		},
-		.default_int = 0
+		"disable_netbios", "Disable network BIOS", CONFIG_BINARY, "", 0
 	},
 	{
-		.type = -1
+		"", "", -1
 	}
 };
 
 static device_config_t rtl8029as_config[] =
 {
 	{
-		.name = "irq",
-		.description = "IRQ",
-		.type = CONFIG_SELECTION,
-		.selection =
+		"irq", "IRQ", CONFIG_SELECTION, "", 10,
 		{
 			{
-				.description = "IRQ 3",
-				.value = 3
+				"IRQ 3", 3
 			},
 			{
-				.description = "IRQ 5",
-				.value = 5
+				"IRQ 5", 5
 			},
 			{
-				.description = "IRQ 7",
-				.value = 7
+				"IRQ 7", 7
 			},
 			{
-				.description = "IRQ 10",
-				.value = 10
+				"IRQ 10", 10
 			},
 			{
-				.description = "IRQ 11",
-				.value = 11
+				"IRQ 11", 11
 			},
 			{
-				.description = ""
+				""
 			}
 		},
-		.default_int = 10
 	},
 	{
-		.name = "net_type",
-		.description = "Network type",
-		.type = CONFIG_BINARY,
-		.type = CONFIG_SELECTION,
-		.selection =
+		"net_type", "Network type", CONFIG_SELECTION, "", 0,
 		{
 			{
-				.description = "PCap",
-				.value = 0
+				"PCap", 0
 			},
 			{
-				.description = "SLiRP",
-				.value = 1
+				"SLiRP", 1
 			},
 			{
-				.description = ""
+				""
 			}
 		},
-		.default_int = 0
 	},
 	{
-		.name = "disable_netbios",
-		.description = "Network bios",
-		.type = CONFIG_BINARY,
-		.type = CONFIG_SELECTION,
-		.selection =
-		{
-			{
-				.description = "Enabled",
-				.value = 0
-			},
-			{
-				.description = "Disabled",
-				.value = 1
-			},
-			{
-				.description = ""
-			}
-		},
-		.default_int = 0
+		"disable_netbios", "Disable network BIOS", CONFIG_BINARY, "", 0
 	},
 	{
-		.type = -1
+		"", "", -1
 	}
 };
 
@@ -2418,7 +2389,7 @@ device_t rtl8029as_device =
 	rtl8029as_config
 };
 
-//SLIRP stuff
+/* SLIRP stuff */
 int slirp_can_output(void)
 {
 	return net_slirp_inited;
@@ -2434,9 +2405,9 @@ void slirp_output (const unsigned char *pkt, int pkt_len)
 	ne2000_log("ne2000 slirp_output %d @%d\n",pkt_len,p);
 }
 
-// Instead of calling this and crashing some times
-// or experencing jitter, this is called by the 
-// 60Hz clock which seems to do the job.
+/* Instead of calling this and crashing some times
+   or experencing jitter, this is called by the 
+   60Hz clock which seems to do the job. */
 void slirp_tic()
 {
 	int ret2,nfds;
@@ -2450,7 +2421,7 @@ void slirp_tic()
 		FD_ZERO(&rfds);
 		FD_ZERO(&wfds);
 		FD_ZERO(&xfds);
-		timeout=slirp_select_fill(&nfds,&rfds,&wfds,&xfds);	// this can crash
+		timeout=slirp_select_fill(&nfds,&rfds,&wfds,&xfds);	/* this can crash */
 		
 		if(timeout<0)
 		{
@@ -2458,13 +2429,12 @@ void slirp_tic()
 		}
 
 		tv.tv_sec=0;
-		tv.tv_usec = timeout;	// basilisk default 10000
+		tv.tv_usec = timeout;	/* basilisk default 10000 */
 
 		ret2 = select(nfds + 1, &rfds, &wfds, &xfds, &tv);
 		if(ret2>=0)
 		{
 			slirp_select_poll(&rfds, &wfds, &xfds);
 		}
-		//ne2000_log("ne2000 slirp_tic()\n");
-	}	// end if slirp inited
+	}	/* end if slirp inited */
 }

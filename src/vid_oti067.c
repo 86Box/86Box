@@ -35,8 +35,6 @@ void oti067_out(uint16_t addr, uint8_t val, void *p)
         svga_t *svga = &oti067->svga;
         uint8_t old;
 
-//        pclog("oti067_out : %04X %02X  %02X %i\n", addr, val, ram[0x489], ins);
-                
         if ((((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && addr < 0x3de) && !(svga->miscout & 1)) addr ^= 0x60;
 
         switch (addr)
@@ -95,8 +93,6 @@ uint8_t oti067_in(uint16_t addr, void *p)
         svga_t *svga = &oti067->svga;
         uint8_t temp;
         
-//        if (addr != 0x3da && addr != 0x3ba) pclog("oti067_in : %04X ", addr);
-        
         if ((((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && addr < 0x3de) && !(svga->miscout & 1)) addr ^= 0x60;
         
         switch (addr)
@@ -110,7 +106,6 @@ uint8_t oti067_in(uint16_t addr, void *p)
                 
                 case 0x3DE: 
                 temp = oti067->index | (oti067->chip_id << 5);
-                // temp = oti067->index | (2 << 5);
                 break;               
                 case 0x3DF: 
                 if (oti067->index==0x10)     temp = 0x18;
@@ -121,7 +116,6 @@ uint8_t oti067_in(uint16_t addr, void *p)
                 temp = svga_in(addr, svga);
                 break;
         }
-//        if (addr != 0x3da && addr != 0x3ba) pclog("%02X  %04X:%04X\n", temp, CS,pc);        
         return temp;
 }
 
@@ -153,7 +147,6 @@ void oti067_recalctimings(svga_t *svga)
         
         if (oti067->regs[0x14] & 0x08) svga->ma_latch |= 0x10000;
         if (oti067->regs[0x0d] & 0x0c) svga->rowoffset <<= 1;
-        // svga->interlace = oti067->regs[0x14] & 0x80;
 	if (oti067->regs[0x14] & 0x80)
 	{
 		svga->vtotal *= 2;
@@ -265,73 +258,48 @@ void oti067_add_status_info(char *s, int max_len, void *p)
 static device_config_t oti067_config[] =
 {
         {
-                .name = "memory",
-                .description = "Memory size",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "memory", "Memory size", CONFIG_SELECTION, "", 512,
                 {
                         {
-                                .description = "256 kB",
-                                .value = 256
+                                "256 kB", 256
                         },
                         {
-                                .description = "512 kB",
-                                .value = 512
+                                "512 kB", 512
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 512
+                }
         },
         {
-                .type = -1
+                "", "", -1
         }
 };
 
 static device_config_t oti077_config[] =
 {
         {
-                .name = "memory",
-                .description = "Memory size",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "memory", "Memory size", CONFIG_SELECTION, "", 1024,
                 {
                         {
-                                .description = "256 kB",
-                                .value = 256
+                                "256 kB", 256
                         },
                         {
-                                .description = "512 kB",
-                                .value = 512
+                                "512 kB", 512
                         },
                         {
-                                .description = "1 MB",
-                                .value = 1024
+                                "1 MB", 1024
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 1024
+                }
         },
         {
-                .type = -1
+                "", "", -1
         }
 };
 
-/* device_t oti037_device =
-{
-        "Oak OTI-037",
-        0,
-        oti037_init,
-        oti067_close,
-        oti037_available,
-        oti067_speed_changed,
-        oti067_force_redraw,
-        oti067_add_status_info,
-        oti067_config
-}; */
 device_t oti067_device =
 {
         "Oak OTI-067",

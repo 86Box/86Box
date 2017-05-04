@@ -111,7 +111,6 @@ void joystick_init()
                 DIPROPRANGE joy_axis_range;
                 DIDEVICEINSTANCE device_instance;
                 DIDEVCAPS devcaps;
-                int d;
                 
                 if (FAILED(lpdi->CreateDevice(joystick_guids[c], &lpdi_joystick_temp, NULL)))
                         fatal("joystick_init : CreateDevice failed\n");

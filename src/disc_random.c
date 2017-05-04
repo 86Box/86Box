@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-#include <inttypes.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
@@ -33,7 +33,15 @@ static __inline__ uint32_t rotr32c (uint32_t x, uint32_t n)
 static __inline__ unsigned long long rdtsc(void)
 {
     unsigned hi, lo;
-    __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+#ifdef __MSC__
+    __asm {
+		rdtsc
+		mov hi, edx	; EDX:EAX is already standard return!!
+		mov lo, eax
+    }
+#else
+      __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+#endif
     return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
 }
 

@@ -4,7 +4,12 @@
 #ifndef __IDE__
 #define __IDE__
 
+#ifdef __MSC__
+# pragma pack(push,1)
+typedef struct IDE
+#else
 typedef struct __attribute__((__packed__)) IDE
+#endif
 {
         int type;
         int board;
@@ -34,6 +39,9 @@ typedef struct __attribute__((__packed__)) IDE
 		int hdc_num;
 		uint8_t specify_success;
 } IDE;
+#ifdef __MSC__
+# pragma pack(pop)
+#endif
 
 extern void writeide(int ide_board, uint16_t addr, uint8_t val);
 extern void writeidew(int ide_board, uint16_t val);
@@ -61,8 +69,6 @@ extern int ide_irq[4];
 
 extern int idecallback[4];
 
-extern char ide_fn[IDE_NUM][512];
-
 void ide_irq_raise(IDE *ide);
 void ide_irq_lower(IDE *ide);
 
@@ -73,4 +79,9 @@ void ide_padstr8(uint8_t *buf, int buf_size, const char *src);
 void win_cdrom_eject(uint8_t id);
 void win_cdrom_reload(uint8_t id);
 
-#endif //__IDE__
+#endif
+
+void ide_pri_disable();
+void ide_pri_enable_ex();
+void ide_set_base(int controller, uint16_t port);
+void ide_set_side(int controller, uint16_t port);

@@ -1,5 +1,3 @@
-static uint8_t rop_to_index[256];
-
 #define le32_to_cpu(x) (x)
 #define le16_to_cpu(x) (x)
 

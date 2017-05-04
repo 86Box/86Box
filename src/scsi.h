@@ -4,8 +4,6 @@
 #ifndef __SCSI_H__
 #define __SCSI_H__
 
-//#include "scattergather.h"
-
 #include "timer.h"
 
 #define SCSI_TIME (5 * 100 * (1 << TIMER_SHIFT))
@@ -15,6 +13,7 @@
 #define GPCMD_REZERO_UNIT		0x01
 #define GPCMD_REQUEST_SENSE		0x03
 #define GPCMD_READ_6			0x08
+#define GPCMD_WRITE_6			0x0a
 #define GPCMD_SEEK_6			0x0b
 #define GPCMD_INQUIRY			0x12
 #define GPCMD_VERIFY_6			0x13
@@ -24,6 +23,7 @@
 #define GPCMD_PREVENT_REMOVAL          	0x1e
 #define GPCMD_READ_CDROM_CAPACITY	0x25
 #define GPCMD_READ_10                   0x28
+#define GPCMD_WRITE_10			0x2a
 #define GPCMD_SEEK_10			0x2b
 #define GPCMD_VERIFY_10			0x2f
 #define GPCMD_READ_SUBCHANNEL		0x42
@@ -42,6 +42,7 @@
 #define GPCMD_MODE_SENSE_10		0x5a
 #define GPCMD_PLAY_AUDIO_12		0xa5
 #define GPCMD_READ_12                   0xa8
+#define GPCMD_WRITE_12			0xaa
 #define GPCMD_READ_DVD_STRUCTURE	0xad	/* For reading. */
 #define GPCMD_VERIFY_12			0xaf
 #define GPCMD_PLAY_CD_OLD		0xb4
@@ -206,7 +207,7 @@ extern int cd_status;
 extern int prev_status;
 
 #define SCSI_NONE 0
-#define SCSI_HDD 1 /*not present yet*/
+#define SCSI_HDD 1
 #define SCSI_CDROM 2
 
 #define MSFtoLBA(m,s,f)  ((((m*60)+s)*75)+f)
@@ -238,10 +239,30 @@ void SCSICDROM_Insert();
 
 int cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type);
 int cdrom_LBAtoMSF_accurate();
-// int cdrom_read_data(uint8_t *buffer);
 
 int mode_select_init(uint8_t command, uint16_t pl_length, uint8_t do_save);
 int mode_select_terminate(int force);
 int mode_select_write(uint8_t val);
+
+extern int scsi_card_current;
+
+int scsi_card_available(int card);
+char *scsi_card_getname(int card);
+struct device_t *scsi_card_getdevice(int card);
+int scsi_card_has_config(int card);
+char *scsi_card_get_internal_name(int card);
+int scsi_card_get_from_internal_name(char *s);
+void scsi_card_init();
+
+extern uint8_t scsi_hard_disks[16][8];
+
+int scsi_hd_err_stat_to_scsi(uint8_t id);
+int scsi_hd_phase_to_scsi(uint8_t id);
+int find_hdc_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun);
+void build_scsi_hd_map();
+void scsi_hd_reset(uint8_t id);
+void scsi_hd_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length);
+void scsi_hd_command(uint8_t id, uint8_t *cdb);
+void scsi_hd_callback(uint8_t id);
 
 #endif

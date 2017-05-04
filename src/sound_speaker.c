@@ -15,7 +15,6 @@ void speaker_update()
 {
         int16_t val;
         
-//        printf("SPeaker - %i %i %i %02X\n",speakval,gated,speakon,pit.m[2]);
         for (; speaker_pos < sound_pos_global; speaker_pos++)
         {
                 if (speaker_gated && was_speaker_enable)

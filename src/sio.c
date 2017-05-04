@@ -11,8 +11,12 @@
 #include "ibm.h"
 #include "cdrom.h"
 #include "cpu.h"
+#include "disc.h"
+#include "dma.h"
+#include "fdc.h"
 #include "ide.h"
 #include "io.h"
+#include "keyboard_at.h"
 #include "mem.h"
 #include "pci.h"
 
@@ -91,45 +95,50 @@ uint8_t trc_read(uint16_t port, void *priv)
 	return trc_reg & 0xfb;
 }
 
-void trc_write(uint16_t port, uint8_t val, void *priv)
+void trc_reset(uint8_t val)
 {
 	int i = 0;
 
+	if (val & 2)
+	{
+		if (pci_reset_handler.pci_master_reset)
+		{
+			pci_reset_handler.pci_master_reset();
+		}
+
+		if (pci_reset_handler.pci_set_reset)
+		{
+			pci_reset_handler.pci_set_reset();
+		}
+
+		fdc_hard_reset();
+
+		if (pci_reset_handler.super_io_reset)
+		{
+			pci_reset_handler.super_io_reset();
+		}
+
+		resetide();
+		for (i = 0; i < CDROM_NUM; i++)
+		{
+			if (!cdrom_drives[i].bus_type)
+			{
+				cdrom_reset(i);
+			}
+		}
+
+		port_92_reset();
+		keyboard_at_reset();
+	}
+	resetx86();
+}
+
+void trc_write(uint16_t port, uint8_t val, void *priv)
+{
 	pclog("TRC Write: %02X\n", val);
 	if (!(trc_reg & 4) && (val & 4))
 	{
-		if (val & 2)
-		{
-			if (pci_reset_handler.pci_master_reset)
-			{
-				pci_reset_handler.pci_master_reset();
-			}
-
-			if (pci_reset_handler.pci_set_reset)
-			{
-				pci_reset_handler.pci_set_reset();
-			}
-
-			fdc_hard_reset();
-
-			if (pci_reset_handler.super_io_reset)
-			{
-				pci_reset_handler.super_io_reset();
-			}
-
-			resetide();
-			for (i = 0; i < CDROM_NUM; i++)
-			{
-				if (!cdrom_drives[i].bus_type)
-				{
-					cdrom_reset(i);
-				}
-			}
-
-			port_92_reset();
-			keyboard_at_reset();
-		}
-		resetx86();
+		trc_reset(val);
 	}
 	trc_reg = val & 0xfd;
 }

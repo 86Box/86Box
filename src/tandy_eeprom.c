@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include "ibm.h"
 #include "device.h"
+#include "io.h"
 #include "tandy_eeprom.h"
 
 typedef struct
@@ -34,7 +35,6 @@ void tandy_eeprom_write(uint16_t addr, uint8_t val, void *p)
         
         if ((val & 4) && !eeprom->clock)
         {
-//                pclog("eeprom_write %02x %i %i\n", val, eeprom->state, eeprom->count);
                 switch (eeprom->state)
                 {
                         case EEPROM_IDLE:
@@ -65,7 +65,6 @@ void tandy_eeprom_write(uint16_t addr, uint8_t val, void *p)
                         if (eeprom->count == 8)
                         {
                                 eeprom->count = 0;
-//                                pclog("EEPROM get operation %02x\n", eeprom->data);
                                 eeprom->addr = eeprom->data & 0x3f;
                                 switch (eeprom->data & 0xc0)
                                 {
@@ -75,7 +74,6 @@ void tandy_eeprom_write(uint16_t addr, uint8_t val, void *p)
                                         case 0x80:
                                         eeprom->state = EEPROM_READ;
                                         eeprom->data = eeprom->store[eeprom->addr];
-//                                        pclog("EEPROM read data %02x %04x\n", eeprom->addr, eeprom->data);
                                         break;
                                         default:
                                         eeprom->state = EEPROM_IDLE;
@@ -101,7 +99,6 @@ void tandy_eeprom_write(uint16_t addr, uint8_t val, void *p)
                         {
                                 eeprom->count = 0;
                                 eeprom->state = EEPROM_IDLE;
-//                                pclog("EEPROM write %04x to %02x\n", eeprom->data, eeprom->addr);
                                 eeprom->store[eeprom->addr] = eeprom->data;
                         }
                         break;
@@ -113,7 +110,6 @@ void tandy_eeprom_write(uint16_t addr, uint8_t val, void *p)
 
 int tandy_eeprom_read()
 {
-//        pclog("tandy_eeprom_read: data_out=%x\n", eeprom_data_out);
         return eeprom_data_out;
 }
 

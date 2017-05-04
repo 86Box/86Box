@@ -8,7 +8,7 @@
 #define HOST_REG_END 4
 #define HOST_REG_XMM_START 0
 #define HOST_REG_XMM_END 7
-static inline int find_host_reg()
+static __inline int find_host_reg()
 {
         int c;
         for (c = HOST_REG_START; c < HOST_REG_END; c++)
@@ -21,7 +21,7 @@ static inline int find_host_reg()
                 fatal("Out of host regs!\n");
         return c;
 }
-static inline int find_host_xmm_reg()
+static __inline int find_host_xmm_reg()
 {
         int c;
         for (c = HOST_REG_XMM_START; c < HOST_REG_XMM_END; c++)
@@ -942,7 +942,7 @@ static x86seg *FETCH_EA_16(x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, u
                         break;
                         case 2:
                         addbyte(0xb8); /*MOVL EAX, imm16*/
-                        addlong((fetchdat >> 8) & 0xffff);// pc++;
+                        addlong((fetchdat >> 8) & 0xffff);
                         addbyte(0x03); /*ADDL EAX, *mod1add[0][rm]*/
                         addbyte(0x05);
                         addlong((uint32_t)mod1add[0][rm]);
@@ -983,7 +983,7 @@ static x86seg *FETCH_EA_32(x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, u
                         {
                                 new_eaaddr = fastreadl(cs + (*op_pc) + 1);
                                 addbyte(0xb8); /*MOVL EAX, imm32*/
-                                addlong(new_eaaddr);// pc++;
+                                addlong(new_eaaddr);
                                 (*op_pc) += 4;
                         }
                         else
@@ -3600,29 +3600,29 @@ MMX_x86_OP(SUBSW,  0xe9)
 MMX_x86_OP(SUBUSB, 0xd8)
 MMX_x86_OP(SUBUSW, 0xd9)
 
-MMX_x86_OP(PUNPCKLBW, 0x60);
-MMX_x86_OP(PUNPCKLWD, 0x61);
-MMX_x86_OP(PUNPCKLDQ, 0x62);
-MMX_x86_OP(PCMPGTB,   0x64);
-MMX_x86_OP(PCMPGTW,   0x65);
-MMX_x86_OP(PCMPGTD,   0x66);
+MMX_x86_OP(PUNPCKLBW, 0x60)
+MMX_x86_OP(PUNPCKLWD, 0x61)
+MMX_x86_OP(PUNPCKLDQ, 0x62)
+MMX_x86_OP(PCMPGTB,   0x64)
+MMX_x86_OP(PCMPGTW,   0x65)
+MMX_x86_OP(PCMPGTD,   0x66)
 
-MMX_x86_OP(PCMPEQB,   0x74);
-MMX_x86_OP(PCMPEQW,   0x75);
-MMX_x86_OP(PCMPEQD,   0x76);
+MMX_x86_OP(PCMPEQB,   0x74)
+MMX_x86_OP(PCMPEQW,   0x75)
+MMX_x86_OP(PCMPEQD,   0x76)
 
-MMX_x86_OP(PSRLW,   0xd1);
-MMX_x86_OP(PSRLD,   0xd2);
-MMX_x86_OP(PSRLQ,   0xd3);
-MMX_x86_OP(PSRAW,   0xe1);
-MMX_x86_OP(PSRAD,   0xe2);
-MMX_x86_OP(PSLLW,   0xf1);
-MMX_x86_OP(PSLLD,   0xf2);
-MMX_x86_OP(PSLLQ,   0xf3);
+MMX_x86_OP(PSRLW,   0xd1)
+MMX_x86_OP(PSRLD,   0xd2)
+MMX_x86_OP(PSRLQ,   0xd3)
+MMX_x86_OP(PSRAW,   0xe1)
+MMX_x86_OP(PSRAD,   0xe2)
+MMX_x86_OP(PSLLW,   0xf1)
+MMX_x86_OP(PSLLD,   0xf2)
+MMX_x86_OP(PSLLQ,   0xf3)
 
-MMX_x86_OP(PMULLW,  0xd5);
-MMX_x86_OP(PMULHW,  0xe5);
-MMX_x86_OP(PMADDWD, 0xf5);
+MMX_x86_OP(PMULLW,  0xd5)
+MMX_x86_OP(PMULHW,  0xe5)
+MMX_x86_OP(PMADDWD, 0xf5)
 
 static void MMX_PACKSSWB(int dst_reg, int src_reg)
 {

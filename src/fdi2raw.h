@@ -8,7 +8,6 @@
 #define uae_u16 uint16_t
 #define uae_u32 uint32_t
 
-//#include "types.h"
 #include <stdio.h>
 typedef struct fdi FDI;
 

@@ -117,7 +117,6 @@ void mda_poll(void *p)
         int x, c;
         int oldvc;
         uint8_t chr, attr;
-        int cols[4];
         int oldsc;
         int blink;
         if (!mda->linepos)
@@ -135,12 +134,10 @@ void mda_poll(void *p)
                                 mda->firstline = mda->displine;
                         }
                         mda->lastline = mda->displine;
-                        cols[0] = 0;
-                        cols[1] = 7;
                         for (x = 0; x < mda->crtc[1]; x++)
                         {
-                                chr  = mda->vram[(mda->ma << 1) & 0x3fff];
-                                attr = mda->vram[((mda->ma << 1) + 1) & 0x3fff];
+                                chr  = mda->vram[(mda->ma << 1) & 0xfff];
+                                attr = mda->vram[((mda->ma << 1) + 1) & 0xfff];
                                 drawcursor = ((mda->ma == ca) && mda->con && mda->cursoron);
                                 blink = ((mda->blink & 16) && (mda->ctrl & 0x20) && (attr & 0x80) && !drawcursor);
                                 if (mda->sc == 12 && ((attr & 7) == 1))
@@ -167,7 +164,6 @@ void mda_poll(void *p)
                 if (mda->vc == mda->crtc[7] && !mda->sc)
                 {
                         mda->stat |= 8;
-//                        printf("VSYNC on %i %i\n",vc,sc);
                 }
                 mda->displine++;
                 if (mda->displine >= 500) 
@@ -184,7 +180,6 @@ void mda_poll(void *p)
                         if (!mda->vsynctime)
                         {
                                 mda->stat&=~8;
-//                                printf("VSYNC off %i %i\n",vc,sc);
                         }
                 }
                 if (mda->sc == (mda->crtc[11] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[11] & 31) >> 1))) 
@@ -216,7 +211,6 @@ void mda_poll(void *p)
                                 mda->dispon=0;
                         if (oldvc == mda->crtc[4])
                         {
-//                                printf("Display over at %i\n",displine);
                                 mda->vc = 0;
                                 mda->vadj = mda->crtc[5];
                                 if (!mda->vadj) mda->dispon = 1;
@@ -231,14 +225,12 @@ void mda_poll(void *p)
                                 mda->vsynctime = 16;
                                 if (mda->crtc[7])
                                 {
-//                                        printf("Lastline %i Firstline %i  %i\n",lastline,firstline,lastline-firstline);
                                         x = mda->crtc[1] * 9;
                                         mda->lastline++;
                                         if (x != xsize || (mda->lastline - mda->firstline) != ysize)
                                         {
                                                 xsize = x;
                                                 ysize = mda->lastline - mda->firstline;
-//                                                printf("Resize to %i,%i - R1 %i\n",xsize,ysize,crtcm[1]);
                                                 if (xsize < 64) xsize = 656;
                                                 if (ysize < 32) ysize = 200;
                                                 updatewindowsize(xsize, ysize);
@@ -263,7 +255,6 @@ void mda_poll(void *p)
                 if ((mda->sc == (mda->crtc[10] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[10] & 31) >> 1))))
                 {
                         mda->con = 1;
-//                        printf("Cursor on - %02X %02X %02X\n",crtcm[8],crtcm[10],crtcm[11]);
                 }
         }
 }
@@ -332,35 +323,27 @@ void mda_speed_changed(void *p)
 static device_config_t mda_config[] =
 {
         {
-                .name = "rgb_type",
-                .description = "Display type",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "rgb_type", "Display type", CONFIG_SELECTION, "", 0,
                 {
                         {
-                                .description = "Default",
-                                .value = 0
+                                "Default", 0
                         },
                         {
-                                .description = "Green",
-                                .value = 1
+                                "Green", 1
                         },
                         {
-                                .description = "Amber",
-                                .value = 2
+                                "Amber", 2
                         },
                         {
-                                .description = "Gray",
-                                .value = 3
+                                "Gray", 3
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 0
+                }
         },
         {
-                .type = -1
+                "", "", -1
         }
 };
 #endif

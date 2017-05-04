@@ -149,7 +149,6 @@ static void sw_write(void *p)
                 
                 if (time_since_last > 9900 && time_since_last < 9940)
                 {
-//                        pclog("sw sends ID packet\n");
                         sw->poll_mode = 0;
                         sw->poll_left = 49;
                         sw->poll_data = 0x2400ull | (0x1830ull << 15) | (0x19b0ull << 30);                
@@ -157,8 +156,6 @@ static void sw_write(void *p)
                 else
                 {
                         int c;
-                                                
-//                        pclog("sw sends data packet %08x %i\n", cpu_state.pc, data_packets++);
 
                         sw->poll_mode = sw->data_mode;
                         sw->data_mode = !sw->data_mode;
@@ -236,16 +233,17 @@ static void sw_a0_over(void *p)
         
 joystick_if_t joystick_sw_pad =
 {
-        .name      = "Microsoft SideWinder Pad",
-        .init      = sw_init,
-        .close     = sw_close,
-        .read      = sw_read,
-        .write     = sw_write,
-        .read_axis = sw_read_axis,
-        .a0_over   = sw_a0_over,
-        .max_joysticks = 4,
-        .axis_count = 2,
-        .button_count = 10,
-        .axis_names = {"X axis", "Y axis"},
-        .button_names = {"A", "B", "C", "X", "Y", "Z", "L", "R", "Start", "M"}
+        "Microsoft SideWinder Pad",
+        sw_init,
+        sw_close,
+        sw_read,
+        sw_write,
+        sw_read_axis,
+        sw_a0_over,
+        4,
+        2,
+        10,
+	0,
+        {"X axis", "Y axis"},
+        {"A", "B", "C", "X", "Y", "Z", "L", "R", "Start", "M"}
 };

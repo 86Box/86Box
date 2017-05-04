@@ -22,3 +22,8 @@ int fdd_get_flags(int drive);
 extern int fdd_swap;
 
 void fdd_init();
+int fdd_get_densel(int drive);
+
+void fdd_setswap(int swap);
+
+char *fdd_getname(int type);

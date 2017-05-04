@@ -33,7 +33,6 @@ void colorplus_out(uint16_t addr, uint8_t val, void *p)
 {
         colorplus_t *colorplus = (colorplus_t *)p;
 
-//        pclog("COLORPLUS_OUT %04X %02X\n", addr, val);
         if (addr == 0x3DD)
         {
                 colorplus->control = val & 0x70;
@@ -55,7 +54,6 @@ void colorplus_write(uint32_t addr, uint8_t val, void *p)
 {
         colorplus_t *colorplus = (colorplus_t *)p;
 
-//        pclog("COLORPLUS_WRITE %04X %02X\n", addr, val);
 	if ((colorplus->control & COLORPLUS_PLANE_SWAP) &&
 	    (colorplus->control & COLORPLUS_EITHER_MODE) &&
 	    (colorplus->cga.cgamode & CGA_GRAPHICS_MODE))
@@ -97,7 +95,6 @@ uint8_t colorplus_read(uint32_t addr, void *p)
                 colorplus->cga.charbuffer[(((int)(((colorplus->cga.dispontime - colorplus->cga.vidtime) * 2) / CGACONST)) & 0xfc) | 1] = colorplus->cga.vram[addr & 0x7fff];
         }
         egareads++;
-//        pclog("COLORPLUS_READ %04X\n", addr);
         return colorplus->cga.vram[addr & 0x7fff];
 }
 
@@ -145,7 +142,6 @@ void colorplus_poll(void *p)
                         {
                                 colorplus->cga.firstline = colorplus->cga.displine;
                                 video_wait_for_buffer();
-//                                printf("Firstline %i\n",firstline);
                         }
                         colorplus->cga.lastline = colorplus->cga.displine;
 			/* Left / right border */
@@ -225,7 +221,7 @@ void colorplus_poll(void *p)
 			for (c = 0; c < x; c++)
 				buffer32->line[colorplus->cga.displine][c] = buffer->line[colorplus->cga.displine][c] & 0xf;
 
-			Composite_Process(&colorplus->cga, 0, x >> 2, buffer32->line[colorplus->cga.displine]);
+			Composite_Process(colorplus->cga.cgamode, 0, x >> 2, buffer32->line[colorplus->cga.displine]);
                 }
 
                 colorplus->cga.sc = oldsc;
@@ -380,7 +376,7 @@ void *colorplus_standalone_init()
 
         colorplus->cga.vram = malloc(0x8000);
                 
-	cga_comp_init(&colorplus->cga);
+	cga_comp_init(1);
         timer_add(colorplus_poll, &colorplus->cga.vidtime, TIMER_ALWAYS_ENABLED, colorplus);
         mem_mapping_add(&colorplus->cga.mapping, 0xb8000, 0x08000, colorplus_read, NULL, NULL, colorplus_write, NULL, NULL,  NULL, 0, colorplus);
         io_sethandler(0x03d0, 0x0010, colorplus_in, NULL, NULL, colorplus_out, NULL, NULL, colorplus);
@@ -406,53 +402,38 @@ void colorplus_speed_changed(void *p)
 static device_config_t colorplus_config[] =
 {
         {
-                .name = "display_type",
-                .description = "Display type",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "display_type", "Display type", CONFIG_SELECTION, "", CGA_RGB,
                 {
                         {
-                                .description = "RGB",
-                                .value = CGA_RGB
+                                "RGB", CGA_RGB
                         },
                         {
-                                .description = "Composite",
-                                .value = CGA_COMPOSITE
+                                "Composite", CGA_COMPOSITE
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = CGA_RGB
+                }
         },
         {
-                .name = "composite_type",
-                .description = "Composite type",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "composite_type", "Composite type", CONFIG_SELECTION, "", COMPOSITE_OLD,
                 {
                         {
-                                .description = "Old",
-                                .value = COMPOSITE_OLD
+                                "Old", COMPOSITE_OLD
                         },
                         {
-                                .description = "New",
-                                .value = COMPOSITE_NEW
+                                "New", COMPOSITE_NEW
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = COMPOSITE_OLD
+                }
         },
         {
-                .name = "snow_enabled",
-                .description = "Snow emulation",
-                .type = CONFIG_BINARY,
-                .default_int = 1
+                "snow_enabled", "Snow emulation", CONFIG_BINARY, "", 1
         },
         {
-                .type = -1
+                "", "", -1
         }
 };
 

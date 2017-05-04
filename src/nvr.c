@@ -8,7 +8,7 @@
 
 int oldromset;
 int nvrmask=63;
-uint8_t nvrram[128];
+char nvrram[128];
 int nvraddr;
 
 int nvr_dosave = 0;
@@ -41,14 +41,12 @@ void nvr_rtc(void *p)
         }
         c = 1 << ((nvrram[RTC_REGA] & RTC_RS) - 1);
         rtctime += (int)(RTCCONST * c * (1 << TIMER_SHIFT));
-//        pclog("RTCtime now %f\n",rtctime);
         nvrram[RTC_REGC] |= RTC_PF;
         if (nvrram[RTC_REGB] & RTC_PIE)
         {
                 nvrram[RTC_REGC] |= RTC_IRQF;
                 if (AMSTRAD) picint(2);
                 else         picint(0x100);
-//                pclog("RTC int\n");
         }
 }
 
@@ -91,8 +89,6 @@ void nvr_update_end(void *p)
                         else         picint(0x100);
                 }
         }
-        
-//                pclog("RTC onesec\n");
 
         nvr_update_end_count = 0;
 }
@@ -117,12 +113,10 @@ void nvr_onesec(void *p)
 void writenvr(uint16_t addr, uint8_t val, void *priv)
 {
         int c, old;
-//        printf("Write NVR %03X %02X %02X %04X:%04X %i\n",addr,nvraddr,val,cs>>4,pc,ins);
         if (addr&1)
         {
                 if (nvraddr==RTC_REGC || nvraddr==RTC_REGD)
                         return; /* Registers C and D are read-only. There's no reason to continue. */
-//                if (nvraddr == 0x33) pclog("NVRWRITE33 %02X %04X:%04X %i\n",val,CS,pc,ins);
                 if (nvraddr > RTC_REGD && nvrram[nvraddr] != val)
                    nvr_dosave = 1;
                 
@@ -131,7 +125,6 @@ void writenvr(uint16_t addr, uint8_t val, void *priv)
 
                 if (nvraddr == RTC_REGA)
                 {
-//                        pclog("NVR rate %i\n",val&0xF);
                         if (val & RTC_RS)
                         {
                                 c = 1 << ((val & RTC_RS) - 1);
@@ -170,7 +163,6 @@ void writenvr(uint16_t addr, uint8_t val, void *priv)
 uint8_t readnvr(uint16_t addr, void *priv)
 {
         uint8_t temp;
-//        printf("Read NVR %03X %02X %02X %04X:%04X\n",addr,nvraddr,nvrram[nvraddr],cs>>4,pc);
         if (addr&1)
         {
                 if (nvraddr == RTC_REGA)
@@ -185,8 +177,6 @@ uint8_t readnvr(uint16_t addr, void *priv)
                         nvrram[RTC_REGC] = 0;
                         return temp;
                 }
-//                if (AMIBIOS && nvraddr==0x36) return 0;
-//                if (nvraddr==0xA) nvrram[0xA]^=0x80;
                 return nvrram[nvraddr];
         }
         return nvraddr;
@@ -210,6 +200,9 @@ void loadnvr()
                 case ROM_IBMPS1_2121: f = romfopen(nvr_concat("ibmps1_2121.nvr"), "rb"); nvrmask = 127; break;
                 case ROM_IBMPS1_2121_ISA: f = romfopen(nvr_concat("ibmps1_2121_isa.nvr"), "rb"); nvrmask = 127; break;
                 case ROM_IBMPS2_M30_286: f = romfopen(nvr_concat("ibmps2_m30_286.nvr"), "rb"); nvrmask = 127; break;
+                case ROM_IBMPS2_M50:  f = romfopen("nvr/ibmps2_m50.nvr",  "rb"); break;
+                case ROM_IBMPS2_M55SX: f = romfopen("nvr/ibmps2_m55sx.nvr",  "rb"); break;
+                case ROM_IBMPS2_M80:  f = romfopen("nvr/ibmps2_m80.nvr",  "rb"); break;
                 case ROM_CMDPC30:     f = romfopen(nvr_concat("cmdpc30.nvr"),     "rb"); nvrmask = 127; break;
 				case ROM_PORTABLEII:  f = romfopen(nvr_concat("portableii.nvr"),  "rb"); break;
 				case ROM_PORTABLEIII: f = romfopen(nvr_concat("portableiii.nvr"),  "rb"); break;
@@ -245,6 +238,8 @@ void loadnvr()
                 case ROM_POWERMATE_V: f = romfopen(nvr_concat("powermate_v.nvr"), "rb"); nvrmask = 127; break;
 #endif
                 case ROM_P54TP4XE:    f = romfopen(nvr_concat("p54tp4xe.nvr"),    "rb"); nvrmask = 127; break;
+                case ROM_AP53:        f = romfopen(nvr_concat("ap53.nvr"),        "rb"); nvrmask = 127; break;
+                case ROM_P55T2S:      f = romfopen(nvr_concat("p55t2s.nvr"),      "rb"); nvrmask = 127; break;
                 case ROM_ACERM3A:     f = romfopen(nvr_concat("acerm3a.nvr"),     "rb"); nvrmask = 127; break;
                 case ROM_ACERV35N:    f = romfopen(nvr_concat("acerv35n.nvr"),    "rb"); nvrmask = 127; break;
                 case ROM_P55VA:       f = romfopen(nvr_concat("p55va.nvr"),       "rb"); nvrmask = 127; break;
@@ -260,6 +255,7 @@ void loadnvr()
 #if 0
                 case ROM_CMDPC60:     f = romfopen(nvr_concat("cmdpc60.nvr"),     "rb"); nvrmask = 127; break;
 #endif
+                case ROM_S1668:       f = romfopen(nvr_concat("tpatx.nvr"),       "rb"); nvrmask = 127; break;
                 default: return;
         }
         if (!f)
@@ -301,6 +297,9 @@ void savenvr()
                 case ROM_IBMPS1_2121: f = romfopen(nvr_concat("ibmps1_2121.nvr"), "wb"); break;
                 case ROM_IBMPS1_2121_ISA: f = romfopen(nvr_concat("ibmps1_2121_isa.nvr"), "wb"); break;
                 case ROM_IBMPS2_M30_286: f = romfopen(nvr_concat("ibmps2_m30_286.nvr"), "wb"); break;
+                case ROM_IBMPS2_M50:  f = romfopen("nvr/ibmps2_m50.nvr",  "wb"); break;
+                case ROM_IBMPS2_M55SX: f = romfopen("nvr/ibmps2_m55sx.nvr",  "wb"); break;
+                case ROM_IBMPS2_M80:  f = romfopen("nvr/ibmps2_m80.nvr",  "wb"); break;
                 case ROM_CMDPC30:     f = romfopen(nvr_concat("cmdpc30.nvr"),     "wb"); break;
 				case ROM_PORTABLEII: f = romfopen(nvr_concat("portableii.nvr"),  "wb"); break;
 				case ROM_PORTABLEIII: f = romfopen(nvr_concat("portableiii.nvr"),  "wb"); break;
@@ -336,6 +335,8 @@ void savenvr()
                 case ROM_POWERMATE_V: f = romfopen(nvr_concat("powermate_v.nvr"), "wb"); break;
 #endif
                 case ROM_P54TP4XE:    f = romfopen(nvr_concat("p54tp4xe.nvr"),    "wb"); break;
+                case ROM_AP53:        f = romfopen(nvr_concat("ap53.nvr"),        "wb"); break;
+                case ROM_P55T2S:      f = romfopen(nvr_concat("p55t2s.nvr"),      "wb"); break;
                 case ROM_ACERM3A:     f = romfopen(nvr_concat("acerm3a.nvr"),     "wb"); break;
                 case ROM_ACERV35N:    f = romfopen(nvr_concat("acerv35n.nvr"),    "wb"); break;
                 case ROM_P55VA:       f = romfopen(nvr_concat("p55va.nvr"),       "wb"); break;
@@ -351,6 +352,7 @@ void savenvr()
 #if 0
                 case ROM_CMDPC60:     f = romfopen(nvr_concat("cmdpc60.nvr"),     "wb"); break;                
 #endif
+                case ROM_S1668:       f = romfopen(nvr_concat("tpatx.nvr"),       "wb"); break;
                 default: return;
         }
         fwrite(nvrram,128,1,f);

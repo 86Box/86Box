@@ -20,7 +20,8 @@ enum
         CMD_ERASE_SETUP = 0x20,
         CMD_ERASE_CONFIRM = 0xd0,
         CMD_ERASE_SUSPEND = 0xb0,
-        CMD_PROGRAM_SETUP = 0x40
+        CMD_PROGRAM_SETUP = 0x40,
+        CMD_PROGRAM_SETUP_ALT = 0x10
 };
 
 typedef struct flash_t
@@ -40,11 +41,9 @@ static uint8_t flash_read(uint32_t addr, void *p)
         flash_t *flash = (flash_t *)p;
 	if (flash->invert_high_pin)
 	{
-	        // pclog("flash_read : addr=%08x/%08x val=%02x command=%02x %04x:%08x\n", addr, addr ^ 0x10000, flash->array[(addr ^ 0x10000) & 0x1ffff], flash->command, CS, cpu_state.pc);
 		addr ^= 0x10000;
 		if (addr & 0xfff00000)  return flash->array[addr & 0x1ffff];
 	}
-        // pclog("flash_read : addr=%08x command=%02x %04x:%08x\n", addr, flash->command, CS, cpu_state.pc);
 	addr &= 0x1ffff;
         switch (flash->command)
         {
@@ -82,7 +81,6 @@ static void flash_write(uint32_t addr, uint8_t val, void *p)
 {
         flash_t *flash = (flash_t *)p;
 	int i;
-        // pclog("flash_write : addr=%08x val=%02x command=%02x %04x:%08x\n", addr, val, flash->command, CS, cpu_state.pc);        
 
 	if (flash->invert_high_pin)
 	{
@@ -96,8 +94,6 @@ static void flash_write(uint32_t addr, uint8_t val, void *p)
                 case CMD_ERASE_SETUP:
                 if (val == CMD_ERASE_CONFIRM)
                 {
-                        // pclog("flash_write: erase %05x\n", addr);
-
 			for (i = 0; i < 3; i++)
 			{
                         	if ((addr >= flash->block_start[i]) && (addr <= flash->block_end[i]))
@@ -110,7 +106,7 @@ static void flash_write(uint32_t addr, uint8_t val, void *p)
                 break;
                 
                 case CMD_PROGRAM_SETUP:
-                // pclog("flash_write: program %05x %02x\n", addr, val);
+                case CMD_PROGRAM_SETUP_ALT:
                 if ((addr & 0x1e000) != (flash->block_start[3] & 0x1e000))
        	                flash->array[addr] = val;
                 flash->command = CMD_READ_STATUS;
@@ -154,10 +150,11 @@ static void intel_flash_add_mappings_inverted(flash_t *flash)
 void *intel_flash_init(uint8_t type)
 {
         FILE *f;
-        flash_t *flash = malloc(sizeof(flash_t));
-        memset(flash, 0, sizeof(flash_t));
 	char fpath[1024];
 	int i;
+        flash_t *flash;
+	flash = malloc(sizeof(flash_t));
+        memset(flash, 0, sizeof(flash_t));
 
 	switch(romset)
 	{
@@ -183,6 +180,12 @@ void *intel_flash_init(uint8_t type)
 #endif
 		case ROM_P54TP4XE:
 			strcpy(flash_path, "roms/p54tp4xe/");
+			break;
+		case ROM_AP53:
+			strcpy(flash_path, "roms/ap53/");
+			break;
+		case ROM_P55T2S:
+			strcpy(flash_path, "roms/p55t2s/");
 			break;
 		case ROM_ACERM3A:
 			strcpy(flash_path, "roms/acerm3a/");
@@ -219,10 +222,12 @@ void *intel_flash_init(uint8_t type)
 		case ROM_ZAPPA:
 			strcpy(flash_path, "roms/zappa/");
 			break;
+		case ROM_S1668:
+			strcpy(flash_path, "roms/tpatx/");
+			break;
 		default:
                 fatal("intel_flash_init on unsupported ROM set %i\n", romset);
 	}
-	// pclog("Flash init: Path is: %s\n", flash_path);
 
 	flash->flash_id = (type & FLASH_IS_BXB) ? 0x95 : 0x94;
 	flash->invert_high_pin = (type & FLASH_INVERT);
@@ -298,6 +303,11 @@ void *intel_flash_init(uint8_t type)
         return flash;
 }
 
+void *intel_flash_bxb_ami_init()
+{
+	return intel_flash_init(FLASH_IS_BXB | FLASH_INVERT);
+}
+
 /* For AMI BIOS'es - Intel 28F001BXT with high address pin inverted. */
 void *intel_flash_bxt_ami_init()
 {
@@ -339,6 +349,19 @@ device_t intel_flash_bxt_ami_device =
         "Intel 28F001BXT Flash BIOS",
         0,
         intel_flash_bxt_ami_init,
+        intel_flash_close,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+};
+
+device_t intel_flash_bxb_ami_device =
+{
+        "Intel 28F001BXB Flash BIOS",
+        0,
+        intel_flash_bxb_ami_init,
         intel_flash_close,
         NULL,
         NULL,

@@ -2,7 +2,11 @@
 
   AD1848 CODEC emulation (Windows Sound System compatible)*/
 
+#include <math.h>
+
 #include "ibm.h"
+#include "dma.h"
+#include "pic.h"
 #include "sound.h"
 #include "sound_ad1848.h"
 
@@ -22,7 +26,6 @@ uint8_t ad1848_read(uint16_t addr, void *p)
 {
         ad1848_t *ad1848 = (ad1848_t *)p;
         uint8_t temp = 0xff;
-//        pclog("ad1848_read - addr %04X %04X(%08X):%08X ", addr, CS, cs, pc);
         switch (addr & 3)
         {
                 case 0: /*Index*/
@@ -35,7 +38,6 @@ uint8_t ad1848_read(uint16_t addr, void *p)
                 temp = ad1848->status;
                 break;
         }
-//        pclog("return %02X\n", temp);
         return temp;
 }
 
@@ -43,7 +45,6 @@ void ad1848_write(uint16_t addr, uint8_t val, void *p)
 {
         ad1848_t *ad1848 = (ad1848_t *)p;
         double freq;
-//        pclog("ad1848_write - addr %04X val %02X  %04X(%08X):%08X\n", addr, val, CS, cs, pc);
         switch (addr & 3)
         {
                 case 0: /*Index*/
@@ -165,12 +166,10 @@ static void ad1848_poll(void *p)
                 }
 
                 ad1848->count--;
-//                pclog("ad1848_poll : enable %X %X  %X %X  %X %X\n", ad1848->pcm_buffer[0][ad1848->pos], ad1848->pcm_buffer[1][ad1848->pos], ad1848->out_l[0], ad1848->out_r[0], ad1848->out_l[1], ad1848->out_r[1]);
         }
         else
         {
                 ad1848->out_l = ad1848->out_r = 0;
-//                pclog("ad1848_poll : not enable\n");
         }
 }
 
@@ -212,7 +211,6 @@ void ad1848_init(ad1848_t *ad1848)
                 attenuation = pow(10, attenuation / 10);
                 
                 ad1848_vols[c] = (int)(attenuation * 65536);
-//                pclog("ad1848_vols %i = %f %i\n", c, attenuation, ad1848_vols[c]);
         }
         
         timer_add(ad1848_poll, &ad1848->timer_count, &ad1848->enable, ad1848);

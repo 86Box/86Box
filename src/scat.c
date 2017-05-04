@@ -11,7 +11,6 @@ static uint8_t scat_regs[256];
 static int scat_index;
 static uint8_t scat_port_92 = 0;
 static uint8_t scat_ems_reg_2xA = 0;
-static mem_mapping_t scat_mapping[32];
 static mem_mapping_t scat_high_mapping[16];
 static scat_t scat_stat[32];
 static uint32_t scat_xms_bound;
@@ -20,7 +19,7 @@ static mem_mapping_t scat_512k_clip_mapping;
 
 void scat_shadow_state_update()
 {
-        int i, val, val2;
+        int i, val;
 
         for (i = 0; i < 24; i++)
         {
@@ -48,8 +47,8 @@ void scat_shadow_state_update()
                         {
                                 val |= ((scat_regs[SCAT_SHADOW_RAM_ENABLE_1 + (i >> 3)] >> (i & 7)) & 1) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTERNAL;
                         }
-                        mem_set_mem_state((i + 40) << 14, 0x4000, val);
                 }
+		mem_set_mem_state((i + 40) << 14, 0x4000, val);
         }
 
         flushmmucache();
@@ -131,7 +130,6 @@ void scat_set_xms_bound(uint8_t val)
 
 uint32_t get_scat_addr(uint32_t addr, scat_t *p)
 {
-	uint32_t addr2 = addr;
         if (p && (scat_regs[SCAT_EMS_CONTROL] & 0x80) && (p->regs_2x9 & 0x80))
         {
                 addr = (addr & 0x3fff) | (((p->regs_2x9 & 3) << 8) | p->regs_2x8) << 14;
@@ -164,7 +162,7 @@ void scat_write(uint16_t port, uint8_t val, void *priv)
                         scat_reg_valid = 1;
                         break;
                         case SCAT_POWER_MANAGEMENT:
-                        val &= 0x40; // TODO - Only use AUX parity disable bit for this version. Other bits should be implemented later.
+                        val &= 0x40; /* TODO - Only use AUX parity disable bit for this version. Other bits should be implemented later. */
                         scat_reg_valid = 1;
                         break;
                         case SCAT_DRAM_CONFIGURATION:
@@ -345,7 +343,7 @@ uint8_t scat_read(uint16_t port, void *priv)
                 switch (scat_index)
                 {
                         case SCAT_MISCELLANEOUS_STATUS:
-                        val = (scat_regs[scat_index] & 0xbf) | ((scat_port_92 & 2) << 5);
+                        val = (scat_regs[scat_index] & 0xbf) | ((mem_a20_key & 2) << 5);
                         break;
                         default:
                         val = scat_regs[scat_index];
@@ -508,7 +506,7 @@ void scat_init()
                 scat_stat[i].regs_2x9 = 0x03;
         }
 
-        // TODO - Only normal CPU accessing address FF0000 to FFFFFF mapped to ROM. Normal CPU accessing address FC0000 to FEFFFF map to ROM should be implemented later.
+        /* TODO - Only normal CPU accessing address FF0000 to FFFFFF mapped to ROM. Normal CPU accessing address FC0000 to FEFFFF map to ROM should be implemented later. */
         for (i = 12; i < 16; i++)
         {
                 mem_mapping_add(&scat_high_mapping[i], (i << 14) + 0xFC0000, 0x04000, mem_read_bios, mem_read_biosw, mem_read_biosl, mem_write_null, mem_write_nullw, mem_write_nulll, rom + (i << 14), 0, NULL);
@@ -519,11 +517,11 @@ void scat_init()
                 mem_mapping_add(&scat_shadowram_mapping, 0x100000, 0x60000, mem_read_scatems, mem_read_scatemsw, mem_read_scatemsl, mem_write_scatems, mem_write_scatemsw, mem_write_scatemsl, ram + 0xA0000, MEM_MAPPING_INTERNAL, NULL);
         }
 
-        // Need to RAM 512kb clipping emulation if only 256KB or 64KB modules installed in memory bank.
-        // TODO - 512KB clipping should be applied all RAM refer.
+        /* Need to RAM 512kb clipping emulation if only 256KB or 64KB modules installed in memory bank.
+           TODO - 512KB clipping should be applied all RAM refer. */
         mem_mapping_add(&scat_512k_clip_mapping, 0x80000, 0x20000, mem_read_scatems, mem_read_scatemsw, mem_read_scatemsl, mem_write_scatems, mem_write_scatemsw, mem_write_scatemsl, ram, MEM_MAPPING_INTERNAL, NULL);
         mem_mapping_disable(&scat_512k_clip_mapping);
-        // ---
+        /* --- */
 
         scat_set_xms_bound(0);
         scat_shadow_state_update();

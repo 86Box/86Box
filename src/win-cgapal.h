@@ -7,6 +7,7 @@ extern uint32_t pal_lookup[256];
 extern "C" {
 #endif
 void cgapal_rebuild();
+void destroy_bitmap(BITMAP *b);
 #ifdef __cplusplus
 }
 #endif

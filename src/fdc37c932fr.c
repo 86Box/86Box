@@ -144,9 +144,6 @@ void fdc37c932fr_write(uint16_t port, uint8_t val, void *priv)
 	uint8_t index = (port & 1) ? 0 : 1;
 	uint8_t valxor = 0;
 	uint16_t ld_port = 0;
-	uint16_t ld_port2 = 0;
-        int temp;
-        // pclog("fdc37c932fr_write : port=%04x reg %02X = %02X locked=%i\n", port, fdc37c932fr_curreg, val, fdc37c932fr_locked);
 
 	if (index)
 	{
@@ -367,7 +364,6 @@ uint8_t fdc37c932fr_gpio_read(uint16_t port, void *priv)
 
 uint8_t fdc37c932fr_read(uint16_t port, void *priv)
 {
-        // pclog("fdc37c932fr_read : port=%04x reg %02X locked=%i\n", port, fdc37c932fr_curreg, fdc37c932fr_locked);
 	uint8_t index = (port & 1) ? 0 : 1;
 
 	if (!fdc37c932fr_locked)
@@ -381,12 +377,10 @@ uint8_t fdc37c932fr_read(uint16_t port, void *priv)
 	{
 		if (fdc37c932fr_curreg < 0x30)
 		{
-			// pclog("0x03F1: %02X\n", fdc37c932fr_regs[fdc37c932fr_curreg]);
 			return fdc37c932fr_regs[fdc37c932fr_curreg];
 		}
 		else
 		{
-			// pclog("0x03F1 (CD=%02X): %02X\n", fdc37c932fr_regs[7], fdc37c932fr_ld_regs[fdc37c932fr_regs[7]][fdc37c932fr_curreg]);
 			if ((fdc37c932fr_regs[7] == 0) && (fdc37c932fr_curreg == 0xF2))  return (fdc_get_rwc(0) | (fdc_get_rwc(1) << 2));
 			return fdc37c932fr_ld_regs[fdc37c932fr_regs[7]][fdc37c932fr_curreg];
 		}

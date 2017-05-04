@@ -2,6 +2,7 @@
 #include "ibm.h"
 #include "device.h"
 #include "io.h"
+#include "pic.h"
 #include "sound.h"
 #include "sound_ps1.h"
 #include "sound_sn76489.h"
@@ -36,8 +37,6 @@ static uint8_t ps1_audio_read(uint16_t port, void *p)
 {
         ps1_audio_t *ps1 = (ps1_audio_t *)p;
         uint8_t temp;
-        
-//        pclog("ps1_audio_read %04x %04x:%04x\n", port, CS, pc);
 
         switch (port & 7)
         {
@@ -52,7 +51,6 @@ static uint8_t ps1_audio_read(uint16_t port, void *p)
                         temp |= 0x08; /*FIFO full*/
                 if (ps1->fifo_read_idx == ps1->fifo_write_idx)
                         temp |= 0x04; /*FIFO empty*/
-//                pclog("Return status %02x\n", temp);
                 return temp;
                 case 3: /*FIFO timer*/
                 /*PS/1 technical reference says this should return the current value,
@@ -67,13 +65,10 @@ static uint8_t ps1_audio_read(uint16_t port, void *p)
 static void ps1_audio_write(uint16_t port, uint8_t val, void *p)
 {
         ps1_audio_t *ps1 = (ps1_audio_t *)p;
-        
-//        pclog("ps1_audio_write %04x %02x\n", port, val);
-        
+
         switch (port & 7)
         {
                 case 0: /*DAC output*/
-//                pclog("DAC write %08x %08x %i\n", ps1->fifo_write_idx, ps1->fifo_read_idx, ps1->fifo_write_idx - ps1->fifo_read_idx);
                 if ((ps1->fifo_write_idx - ps1->fifo_read_idx) < 2048)
                 {
                         ps1->fifo[ps1->fifo_write_idx & 2047] = val;
@@ -114,10 +109,8 @@ static void ps1_audio_callback(void *p)
                 ps1->dac_val = ps1->fifo[ps1->fifo_read_idx & 2047];
                 ps1->fifo_read_idx++;
         }
-//        pclog("ps1_callback %08x %08x %08x\n", ps1->fifo_write_idx, ps1->fifo_read_idx, ps1->fifo_threshold);
         if ((ps1->fifo_write_idx - ps1->fifo_read_idx) == ps1->fifo_threshold)
         {
-//                pclog("FIFO almost empty\n");
                 ps1->status |= 0x02; /*FIFO almost empty*/
         }
         ps1->status |= 0x10; /*ADC data ready*/

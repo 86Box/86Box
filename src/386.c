@@ -1,3 +1,7 @@
+#include <math.h>
+#ifndef INFINITY
+# define INFINITY   (__builtin_inff())
+#endif
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -8,6 +12,7 @@
 #include "cpu.h"
 #include "disc.h"
 #include "fdc.h"
+#include "pic.h"
 #include "timer.h"
 
 #include "386_common.h"
@@ -56,7 +61,7 @@ uint32_t *eal_r, *eal_w;
 uint16_t *mod1add[2][8];
 uint32_t *mod1seg[8];
 
-static inline void fetch_ea_32_long(uint32_t rmdat)
+static __inline void fetch_ea_32_long(uint32_t rmdat)
 {
         eal_r = eal_w = NULL;
         easeg = cpu_state.ea_seg->base;
@@ -74,7 +79,7 @@ static inline void fetch_ea_32_long(uint32_t rmdat)
                         case 1: 
                         cpu_state.pc++;
                         cpu_state.eaaddr = ((uint32_t)(int8_t)getbyte()) + cpu_state.regs[sib & 7].l; 
-//                        pc++; 
+                        /* pc++; */
                         break;
                         case 2: 
                         cpu_state.eaaddr = (fastreadl(cs + cpu_state.pc + 1)) + cpu_state.regs[sib & 7].l; 
@@ -129,7 +134,7 @@ static inline void fetch_ea_32_long(uint32_t rmdat)
         }
 }
 
-static inline void fetch_ea_16_long(uint32_t rmdat)
+static __inline void fetch_ea_16_long(uint32_t rmdat)
 {
         eal_r = eal_w = NULL;
         easeg = cpu_state.ea_seg->base;
@@ -215,22 +220,23 @@ void exec386(int cycs)
         int tempi;
         int cycdiff;
         int oldcyc;
+        int cycle_period = cycs / 2000; /*Use a 5us timing granularity*/
 
         cycles+=cycs;
-//        output=3;
+        /* output=3; */
         while (cycles>0)
         {
                 cycdiff=0;
                 oldcyc=cycles;
                 timer_start_period(cycles << TIMER_SHIFT);
-//                pclog("%i %02X\n", ins, ram[8]);
-                while (cycdiff<100)
+                /* pclog("%i %02X\n", ins, ram[8]); */
+                while (cycdiff < cycle_period)
                 {
             /*            testr[0]=EAX; testr[1]=EBX; testr[2]=ECX; testr[3]=EDX;
                         testr[4]=ESI; testr[5]=EDI; testr[6]=EBP; testr[7]=ESP;*/
 /*                        testr[8]=flags;*/
-//                oldcs2=oldcs;
-//                oldpc2=oldpc;
+                /* oldcs2=oldcs; */
+                /* oldpc2=oldpc; */
                 oldcs=CS;
                 cpu_state.oldpc = cpu_state.pc;
                 oldcpl=CPL;
@@ -262,8 +268,8 @@ dontprint=0;
                 if (cpu_state.abrt)
                 {
                         flags_rebuild();
-//                        pclog("Abort\n");
-//                        if (CS == 0x228) pclog("Abort at %04X:%04X - %i %i %i\n",CS,pc,notpresent,nullseg,cpu_state.abrt);
+                        /* pclog("Abort\n"); */
+                        /* if (CS == 0x228) pclog("Abort at %04X:%04X - %i %i %i\n",CS,pc,notpresent,nullseg,cpu_state.abrt); */
 /*                        if (testr[0]!=EAX) pclog("EAX corrupted %08X\n",pc);
                         if (testr[1]!=EBX) pclog("EBX corrupted %08X\n",pc);
                         if (testr[2]!=ECX) pclog("ECX corrupted %08X\n",pc);
@@ -297,8 +303,8 @@ dontprint=0;
                 if (trap)
                 {
                         flags_rebuild();
-//                        oldpc=pc;
-//                        oldcs=CS;
+                        /* oldpc=pc; */
+                        /* oldcs=CS; */
                         if (msw&1)
                         {
                                 pmodeint(1,0);
@@ -320,19 +326,24 @@ dontprint=0;
                 {
                         cpu_state.oldpc = cpu_state.pc;
                         oldcs = CS;
-//                        pclog("NMI\n");
+                        /* pclog("NMI\n"); */
                         x86_int(2);
                         nmi_enable = 0;
+                        if (nmi_auto_clear)
+                        {
+                                nmi_auto_clear = 0;
+                                nmi = 0;
+                        }
                 }
                 else if ((flags&I_FLAG) && pic_intpending)
                 {
                         temp=picinterrupt();
                         if (temp!=0xFF)
                         {
-//                                if (temp == 0x54) pclog("Take int 54\n");
-//                                if (output) output=3;
-//                                if (temp == 0xd) pclog("Hardware int %02X %i %04X(%08X):%08X\n",temp,ins, CS,cs,pc);
-//                                if (temp==0x54) output=3;
+                                /* if (temp == 0x54) pclog("Take int 54\n"); */
+                                /* if (output) output=3; */
+                                /* if (temp == 0xd) pclog("Hardware int %02X %i %04X(%08X):%08X\n",temp,ins, CS,cs,pc); */
+                                /* if (temp==0x54) output=3; */
                                 flags_rebuild();
                                 if (msw&1)
                                 {
@@ -350,9 +361,9 @@ dontprint=0;
                                         oxpc=cpu_state.pc;
                                         cpu_state.pc=readmemw(0,addr);
                                         loadcs(readmemw(0,addr+2));
-//                                        if (temp==0x76) pclog("INT to %04X:%04X\n",CS,pc);
+                                        /* if (temp==0x76) pclog("INT to %04X:%04X\n",CS,pc); */
                                 }
-//                                pclog("Now at %04X(%08X):%08X\n", CS, cs, pc);
+                                /* pclog("Now at %04X(%08X):%08X\n", CS, cs, pc); */
                         }
                 }
 

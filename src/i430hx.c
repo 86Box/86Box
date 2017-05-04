@@ -50,7 +50,6 @@ void i430hx_write(int func, int addr, uint8_t val, void *priv)
                         i430hx_map(0xf0000, 0x10000, val >> 4);
                         shadowbios = (val & 0x10);
                 }
-                // pclog("i430hx_write : PAM0 write %02X\n", val);
                 break;
                 case 0x5a: /*PAM1*/
                 if ((card_i430hx[0x5a] ^ val) & 0x0f)
@@ -81,14 +80,12 @@ void i430hx_write(int func, int addr, uint8_t val, void *priv)
                         i430hx_map(0xe0000, 0x04000, val & 0xf);
                 if ((card_i430hx[0x5e] ^ val) & 0xf0)
                         i430hx_map(0xe4000, 0x04000, val >> 4);
-                // pclog("i430hx_write : PAM5 write %02X\n", val);
                 break;
                 case 0x5f: /*PAM6*/
                 if ((card_i430hx[0x5f] ^ val) & 0x0f)
                         i430hx_map(0xe8000, 0x04000, val & 0xf);
                 if ((card_i430hx[0x5f] ^ val) & 0xf0)
                         i430hx_map(0xec000, 0x04000, val >> 4);
-                // pclog("i430hx_write : PAM6 write %02X\n", val);
                 break;
         }
                 

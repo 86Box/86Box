@@ -251,7 +251,7 @@ static int *opcode_timings_8x[8] =
 static int timing_count;
 static uint8_t last_prefix;
 
-static inline int COUNT(int *c, int op_32)
+static __inline int COUNT(int *c, int op_32)
 {
         if ((uintptr_t)c <= 10000)
                 return (int)c;

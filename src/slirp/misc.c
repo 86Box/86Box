@@ -92,8 +92,8 @@ getouraddr()
 	struct hostent *he = NULL;
 #define ANCIENT
 	#ifdef ANCIENT	
-	if (gethostname(&buff,500) == 0)
-            he = gethostbyname(&buff);
+	if (gethostname(buff,500) == 0)
+            he = gethostbyname(buff);
         if (he)
             our_addr = *(struct in_addr *)he->h_addr;
         if (our_addr.s_addr == 0)

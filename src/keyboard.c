@@ -467,7 +467,6 @@ void keyboard_process()
 				if (!set3_all_break && !recv_key[scorder[c]] && !(set3_flags[scancodes[scorder[c]].scancodes_make[0]] & 2))
 					continue;
 			}
-//                        pclog("Key %02X start\n", scorder[c]);
                         d = 0;
                         if (recv_key[scorder[c]])
                         {

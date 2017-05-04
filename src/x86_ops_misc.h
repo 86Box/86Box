@@ -56,6 +56,7 @@ static int opF6_a16(uint32_t fetchdat)
         switch (rmdat & 0x38)
         {
                 case 0x00: /*TEST b,#8*/
+		case 0x08:
                 src = readmemb(cs, cpu_state.pc); cpu_state.pc++;           if (cpu_state.abrt) return 1;
                 setznp8(src & dst);
                 if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
@@ -127,7 +128,6 @@ static int opF6_a16(uint32_t fetchdat)
                 }
                 else
                 {
-//                        pclog("IDIVb exception - %X / %08X = %X\n", tempws, dst, tempws2);
                         x86_int(0);
                         return 1;
                 }
@@ -153,6 +153,7 @@ static int opF6_a32(uint32_t fetchdat)
         switch (rmdat & 0x38)
         {
                 case 0x00: /*TEST b,#8*/
+		case 0x08:
                 src = readmemb(cs, cpu_state.pc); cpu_state.pc++;           if (cpu_state.abrt) return 1;
                 setznp8(src & dst);
                 if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
@@ -224,7 +225,6 @@ static int opF6_a32(uint32_t fetchdat)
                 }
                 else
                 {
-//                        pclog("IDIVb exception - %X / %08X = %X\n", tempws, dst, tempws2);
                         x86_int(0);
                         return 1;
                 }
@@ -253,6 +253,7 @@ static int opF7_w_a16(uint32_t fetchdat)
         switch (rmdat & 0x38)
         {
                 case 0x00: /*TEST w*/
+		case 0x08:
                 src = getword();        if (cpu_state.abrt) return 1;
                 setznp16(src & dst);
                 if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
@@ -301,7 +302,6 @@ static int opF7_w_a16(uint32_t fetchdat)
                 }
                 else
                 {
-//                        fatal("DIVw BY 0 %04X:%04X %i\n",cs>>4,pc,ins);
                         x86_int(0);
                         return 1;
                 }
@@ -320,7 +320,6 @@ static int opF7_w_a16(uint32_t fetchdat)
                 }
                 else
                 {
-//                        pclog("IDIVw exception - %X / %08X = %X\n",tempws, dst, tempws2);
                         x86_int(0);
                         return 1;
                 }
@@ -346,6 +345,7 @@ static int opF7_w_a32(uint32_t fetchdat)
         switch (rmdat & 0x38)
         {
                 case 0x00: /*TEST w*/
+		case 0x08:
                 src = getword();        if (cpu_state.abrt) return 1;
                 setznp16(src & dst);
                 if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
@@ -394,7 +394,6 @@ static int opF7_w_a32(uint32_t fetchdat)
                 }
                 else
                 {
-//                        fatal("DIVw BY 0 %04X:%04X %i\n",cs>>4,pc,ins);
                         x86_int(0);
                         return 1;
                 }
@@ -413,7 +412,6 @@ static int opF7_w_a32(uint32_t fetchdat)
                 }
                 else
                 {
-//                        pclog("IDIVw exception - %X / %08X = %X\n", tempws, dst, tempws2);
                         x86_int(0);
                         return 1;
                 }
@@ -439,6 +437,7 @@ static int opF7_l_a16(uint32_t fetchdat)
         switch (rmdat & 0x38)
         {
                 case 0x00: /*TEST l*/
+		case 0x08:
                 src = getlong();        if (cpu_state.abrt) return 1;
                 setznp32(src & dst);
                 if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
@@ -508,6 +507,7 @@ static int opF7_l_a32(uint32_t fetchdat)
         switch (rmdat & 0x38)
         {
                 case 0x00: /*TEST l*/
+		case 0x08:
                 src = getlong();        if (cpu_state.abrt) return 1;
                 setznp32(src & dst);
                 if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
@@ -721,13 +721,19 @@ static int opWBINVD(uint32_t fetchdat)
         return 0;
 }
 
-
-
 static int opLOADALL(uint32_t fetchdat)
 {
+        if (CPL && (cr0&1))
+        {
+                x86gpf(NULL,0);
+                return 1;
+        }
+        msw = (msw & 1) | readmemw(0, 0x806);
         flags = (readmemw(0, 0x818) & 0xffd5) | 2;
         flags_extract();
+        tr.seg = readmemw(0, 0x816);
         cpu_state.pc = readmemw(0, 0x81A);
+        ldt.seg = readmemw(0, 0x81C);
         DS = readmemw(0, 0x81E);
         SS = readmemw(0, 0x820);
         CS = readmemw(0, 0x822);
@@ -741,14 +747,33 @@ static int opLOADALL(uint32_t fetchdat)
         CX = readmemw(0, 0x832);
         AX = readmemw(0, 0x834);
         es = readmemw(0, 0x836) | (readmemb(0, 0x838) << 16);
+        _es.access = readmemb(0, 0x839);
+        _es.limit = readmemw(0, 0x83A);
         cs = readmemw(0, 0x83C) | (readmemb(0, 0x83E) << 16);
+        _cs.access = readmemb(0, 0x83F);
+        _cs.limit = readmemw(0, 0x840);
         ss = readmemw(0, 0x842) | (readmemb(0, 0x844) << 16);
+        _ss.access = readmemb(0, 0x845);
+        _ss.limit = readmemw(0, 0x846);
         ds = readmemw(0, 0x848) | (readmemb(0, 0x84A) << 16);
+        _ds.access = readmemb(0, 0x84B);
+        _ds.limit = readmemw(0, 0x84C);
+        gdt.base = readmemw(0, 0x84E) | (readmemb(0, 0x850) << 16);
+        gdt.limit = readmemw(0, 0x852);
+        ldt.base = readmemw(0, 0x854) | (readmemb(0, 0x856) << 16);
+        ldt.access = readmemb(0, 0x857);
+        ldt.limit = readmemw(0, 0x858);
+        idt.base = readmemw(0, 0x85A) | (readmemb(0, 0x85C) << 16);
+        idt.limit = readmemw(0, 0x85E);
+        tr.base = readmemw(0, 0x860) | (readmemb(0, 0x862) << 16);
+        tr.access = readmemb(0, 0x863);
+        tr.limit = readmemw(0, 0x864);
         CLOCK_CYCLES(195);
+        PREFETCH_RUN(195, 1, -1, 51,0,0,0, 0);
         return 0;
 }      
 
-static int set_segment_limit(x86seg *s, uint8_t segdat3)
+static void set_segment_limit(x86seg *s, uint8_t segdat3)
 {
         if ((s->access & 0x18) != 0x10 || !(s->access & (1 << 2))) /*expand-down*/
         {
@@ -762,7 +787,7 @@ static int set_segment_limit(x86seg *s, uint8_t segdat3)
         }
 }
 
-static int loadall_load_segment(uint32_t addr, x86seg *s)
+static void loadall_load_segment(uint32_t addr, x86seg *s)
 {
 	uint32_t attrib = readmeml(0, addr);
 	uint32_t segdat3 = (attrib >> 16) & 0xff;

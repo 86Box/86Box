@@ -57,7 +57,6 @@ static void pc1512_out(uint16_t addr, uint8_t val, void *p)
 {
         pc1512_t *pc1512 = (pc1512_t *)p;
         uint8_t old;
-//        pclog("PC1512 out %04X %02X %04X:%04X\n",addr,val,CS,pc);
         switch (addr)
         {
                 case 0x3d4:
@@ -101,7 +100,6 @@ static void pc1512_out(uint16_t addr, uint8_t val, void *p)
 static uint8_t pc1512_in(uint16_t addr, void *p)
 {
         pc1512_t *pc1512 = (pc1512_t *)p;
-//        pclog("PC1512 in %04X %02X %04X:%04X\n",addr,CS,pc);
         switch (addr)
         {
                 case 0x3d4:
@@ -153,10 +151,8 @@ static void pc1512_recalctimings(pc1512_t *pc1512)
         disptime = 128; /*Fixed on PC1512*/
         _dispontime = 80;
         _dispofftime = disptime - _dispontime;
-//        printf("%i %f %f %f  %i %i\n",cgamode&1,disptime,dispontime,dispofftime,crtc[0],crtc[1]);
         _dispontime  *= CGACONST;
         _dispofftime *= CGACONST;
-//        printf("Timings - on %f off %f frame %f second %f\n",dispontime,dispofftime,(dispontime+dispofftime)*262.0,(dispontime+dispofftime)*262.0*59.92);
 	pc1512->dispontime  = (int)(_dispontime * (1 << TIMER_SHIFT));
 	pc1512->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
 }
@@ -167,7 +163,6 @@ static void pc1512_poll(void *p)
         uint16_t ca = (pc1512->crtc[15] | (pc1512->crtc[14] << 8)) & 0x3fff;
         int drawcursor;
         int x, c;
-        int oldvc;
         uint8_t chr, attr;
         uint16_t dat, dat2, dat3, dat4;
         int cols[4];
@@ -338,7 +333,6 @@ static void pc1512_poll(void *p)
                 pc1512->displine++;
                 if (pc1512->displine >= 360) 
                         pc1512->displine = 0;
-//                pclog("Line %i %i %i %i  %i %i\n",displine,cgadispon,firstline,lastline,vc,sc);
         }
         else
         {
@@ -376,11 +370,10 @@ static void pc1512_poll(void *p)
                 {
                         pc1512->maback = pc1512->ma;
                         pc1512->sc = 0;
-                        oldvc = pc1512->vc;
                         pc1512->vc++;
                         pc1512->vc &= 127;
 
-                        if (pc1512->displine == 32)//oldvc == (cgamode & 2) ? 127 : 31)
+                        if (pc1512->displine == 32)
                         {
                                 pc1512->vc = 0;
                                 pc1512->vadj = 6;
@@ -388,7 +381,7 @@ static void pc1512_poll(void *p)
                                 else                                   pc1512->cursoron = pc1512->blink & 16;
                         }
 
-                        if (pc1512->displine >= 262)//vc == (cgamode & 2) ? 111 : 27)
+                        if (pc1512->displine >= 262)
                         {
                                 pc1512->dispon = 0;
                                 pc1512->displine = 0;
@@ -409,11 +402,6 @@ static void pc1512_poll(void *p)
                                 }
 
                                 video_blit_memtoscreen_8(0, pc1512->firstline - 4, xsize, (pc1512->lastline - pc1512->firstline) + 8);
-//                                        blit(buffer,vbuf,0,firstline-4,0,0,xsize,(lastline-firstline)+8+1);
-//                                        if (vid_resize) stretch_blit(vbuf,screen,0,0,xsize,(lastline-firstline)+8+1,0,0,winsizex,winsizey);
-//                                        else            stretch_blit(vbuf,screen,0,0,xsize,(lastline-firstline)+8+1,0,0,xsize,((lastline-firstline)<<1)+16+2);
-//                                        if (readflash) rectfill(screen,winsizex-40,8,winsizex-8,14,0xFFFFFFFF);
-//                                        readflash=0;
 
                                 video_res_x = xsize - 16;
                                 video_res_y = ysize;
@@ -457,7 +445,6 @@ static void pc1512_poll(void *p)
 
 static void *pc1512_init()
 {
-        int c;
         pc1512_t *pc1512 = malloc(sizeof(pc1512_t));
         memset(pc1512, 0, sizeof(pc1512_t));
 

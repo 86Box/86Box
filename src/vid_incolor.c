@@ -7,6 +7,7 @@
 #include "ibm.h"
 #include "device.h"
 #include "mem.h"
+#include "io.h"
 #include "timer.h"
 #include "video.h"
 #include "vid_incolor.h"
@@ -72,71 +73,71 @@ static uint32_t incolor_rgb[64];
 /* Mapping of inks to RGB */
 static unsigned char init_rgb[64][3] =
 {
-				// rgbRGB
-        { 0x00, 0x00, 0x00 },	// 000000
-        { 0x00, 0x00, 0xaa },	// 000001
-        { 0x00, 0xaa, 0x00 },	// 000010
-        { 0x00, 0xaa, 0xaa },	// 000011
-        { 0xaa, 0x00, 0x00 },	// 000100
-        { 0xaa, 0x00, 0xaa },	// 000101
-        { 0xaa, 0xaa, 0x00 },	// 000110
-        { 0xaa, 0xaa, 0xaa },	// 000111
-        { 0x00, 0x00, 0x55 },	// 001000
-        { 0x00, 0x00, 0xff },	// 001001
-        { 0x00, 0xaa, 0x55 },	// 001010
-        { 0x00, 0xaa, 0xff },	// 001011
-        { 0xaa, 0x00, 0x55 },	// 001100
-        { 0xaa, 0x00, 0xff },	// 001101
-        { 0xaa, 0xaa, 0x55 },	// 001110
-        { 0xaa, 0xaa, 0xff },	// 001111
-        { 0x00, 0x55, 0x00 },	// 010000
-        { 0x00, 0x55, 0xaa },	// 010001
-        { 0x00, 0xff, 0x00 },	// 010010
-        { 0x00, 0xff, 0xaa },	// 010011
-        { 0xaa, 0x55, 0x00 },	// 010100
-        { 0xaa, 0x55, 0xaa },	// 010101
-        { 0xaa, 0xff, 0x00 },	// 010110
-        { 0xaa, 0xff, 0xaa },	// 010111
-        { 0x00, 0x55, 0x55 },	// 011000
-        { 0x00, 0x55, 0xff },	// 011001
-        { 0x00, 0xff, 0x55 },	// 011010
-        { 0x00, 0xff, 0xff },	// 011011
-        { 0xaa, 0x55, 0x55 },	// 011100
-        { 0xaa, 0x55, 0xff },	// 011101
-        { 0xaa, 0xff, 0x55 },	// 011110
-        { 0xaa, 0xff, 0xff },	// 011111
-        { 0x55, 0x00, 0x00 },	// 100000
-        { 0x55, 0x00, 0xaa },	// 100001
-        { 0x55, 0xaa, 0x00 },	// 100010
-        { 0x55, 0xaa, 0xaa },	// 100011
-        { 0xff, 0x00, 0x00 },	// 100100
-        { 0xff, 0x00, 0xaa },	// 100101
-        { 0xff, 0xaa, 0x00 },	// 100110
-        { 0xff, 0xaa, 0xaa },	// 100111
-        { 0x55, 0x00, 0x55 },	// 101000
-        { 0x55, 0x00, 0xff },	// 101001
-        { 0x55, 0xaa, 0x55 },	// 101010
-        { 0x55, 0xaa, 0xff },	// 101011
-        { 0xff, 0x00, 0x55 },	// 101100
-        { 0xff, 0x00, 0xff },	// 101101
-        { 0xff, 0xaa, 0x55 },	// 101110
-        { 0xff, 0xaa, 0xff },	// 101111
-        { 0x55, 0x55, 0x00 },	// 110000
-        { 0x55, 0x55, 0xaa },	// 110001
-        { 0x55, 0xff, 0x00 },	// 110010
-        { 0x55, 0xff, 0xaa },	// 110011
-        { 0xff, 0x55, 0x00 },	// 110100
-        { 0xff, 0x55, 0xaa },	// 110101
-        { 0xff, 0xff, 0x00 },	// 110110
-        { 0xff, 0xff, 0xaa },	// 110111
-        { 0x55, 0x55, 0x55 },	// 111000
-        { 0x55, 0x55, 0xff },	// 111001
-        { 0x55, 0xff, 0x55 },	// 111010
-        { 0x55, 0xff, 0xff },	// 111011
-        { 0xff, 0x55, 0x55 },	// 111100
-        { 0xff, 0x55, 0xff },	// 111101
-        { 0xff, 0xff, 0x55 },	// 111110
-        { 0xff, 0xff, 0xff },	// 111111
+				/* rgbRGB */
+        { 0x00, 0x00, 0x00 },	/* 000000 */
+        { 0x00, 0x00, 0xaa },	/* 000001 */
+        { 0x00, 0xaa, 0x00 },	/* 000010 */
+        { 0x00, 0xaa, 0xaa },	/* 000011 */
+        { 0xaa, 0x00, 0x00 },	/* 000100 */
+        { 0xaa, 0x00, 0xaa },	/* 000101 */
+        { 0xaa, 0xaa, 0x00 },	/* 000110 */
+        { 0xaa, 0xaa, 0xaa },	/* 000111 */
+        { 0x00, 0x00, 0x55 },	/* 001000 */
+        { 0x00, 0x00, 0xff },	/* 001001 */
+        { 0x00, 0xaa, 0x55 },	/* 001010 */
+        { 0x00, 0xaa, 0xff },	/* 001011 */
+        { 0xaa, 0x00, 0x55 },	/* 001100 */
+        { 0xaa, 0x00, 0xff },	/* 001101 */
+        { 0xaa, 0xaa, 0x55 },	/* 001110 */
+        { 0xaa, 0xaa, 0xff },	/* 001111 */
+        { 0x00, 0x55, 0x00 },	/* 010000 */
+        { 0x00, 0x55, 0xaa },	/* 010001 */
+        { 0x00, 0xff, 0x00 },	/* 010010 */
+        { 0x00, 0xff, 0xaa },	/* 010011 */
+        { 0xaa, 0x55, 0x00 },	/* 010100 */
+        { 0xaa, 0x55, 0xaa },	/* 010101 */
+        { 0xaa, 0xff, 0x00 },	/* 010110 */
+        { 0xaa, 0xff, 0xaa },	/* 010111 */
+        { 0x00, 0x55, 0x55 },	/* 011000 */
+        { 0x00, 0x55, 0xff },	/* 011001 */
+        { 0x00, 0xff, 0x55 },	/* 011010 */
+        { 0x00, 0xff, 0xff },	/* 011011 */
+        { 0xaa, 0x55, 0x55 },	/* 011100 */
+        { 0xaa, 0x55, 0xff },	/* 011101 */
+        { 0xaa, 0xff, 0x55 },	/* 011110 */
+        { 0xaa, 0xff, 0xff },	/* 011111 */
+        { 0x55, 0x00, 0x00 },	/* 100000 */
+        { 0x55, 0x00, 0xaa },	/* 100001 */
+        { 0x55, 0xaa, 0x00 },	/* 100010 */
+        { 0x55, 0xaa, 0xaa },	/* 100011 */
+        { 0xff, 0x00, 0x00 },	/* 100100 */
+        { 0xff, 0x00, 0xaa },	/* 100101 */
+        { 0xff, 0xaa, 0x00 },	/* 100110 */
+        { 0xff, 0xaa, 0xaa },	/* 100111 */
+        { 0x55, 0x00, 0x55 },	/* 101000 */
+        { 0x55, 0x00, 0xff },	/* 101001 */
+        { 0x55, 0xaa, 0x55 },	/* 101010 */
+        { 0x55, 0xaa, 0xff },	/* 101011 */
+        { 0xff, 0x00, 0x55 },	/* 101100 */
+        { 0xff, 0x00, 0xff },	/* 101101 */
+        { 0xff, 0xaa, 0x55 },	/* 101110 */
+        { 0xff, 0xaa, 0xff },	/* 101111 */
+        { 0x55, 0x55, 0x00 },	/* 110000 */
+        { 0x55, 0x55, 0xaa },	/* 110001 */
+        { 0x55, 0xff, 0x00 },	/* 110010 */
+        { 0x55, 0xff, 0xaa },	/* 110011 */
+        { 0xff, 0x55, 0x00 },	/* 110100 */
+        { 0xff, 0x55, 0xaa },	/* 110101 */
+        { 0xff, 0xff, 0x00 },	/* 110110 */
+        { 0xff, 0xff, 0xaa },	/* 110111 */
+        { 0x55, 0x55, 0x55 },	/* 111000 */
+        { 0x55, 0x55, 0xff },	/* 111001 */
+        { 0x55, 0xff, 0x55 },	/* 111010 */
+        { 0x55, 0xff, 0xff },	/* 111011 */
+        { 0xff, 0x55, 0x55 },	/* 111100 */
+        { 0xff, 0x55, 0xff },	/* 111101 */
+        { 0xff, 0xff, 0x55 },	/* 111110 */
+        { 0xff, 0xff, 0xff },	/* 111111 */
 };
 
 
@@ -240,7 +241,7 @@ void incolor_write(uint32_t addr, uint8_t val, void *p)
 	unsigned char wmode = incolor->crtc[INCOLOR_CRTC_RWCTRL] & INCOLOR_RWCTRL_WRMODE;
 	unsigned char fg    = incolor->crtc[INCOLOR_CRTC_RWCOL] & 0x0F;
 	unsigned char bg    = (incolor->crtc[INCOLOR_CRTC_RWCOL] >> 4)&0x0F;
-	unsigned char w;
+	unsigned char w = 0;
 	unsigned char vmask;	/* Mask of bit within byte */
 	unsigned char pmask;	/* Mask of plane within colour value */
 	unsigned char latch;
@@ -596,9 +597,9 @@ static void incolor_draw_char_ram48(incolor_t *incolor, int x, uint8_t chr, uint
 {
 	unsigned            i;
 	int                 elg, blk, ul, ol, bld;
-	unsigned            ull, oll, ulc, olc;
+	unsigned            ull, oll, ulc = 0, olc = 0;
 	unsigned            val[4];
-	unsigned	    ifg, ibg, cfg, pmask, plane;
+	unsigned	    ifg = 0, ibg, cfg, pmask, plane;
 	const unsigned char *fnt;
 	uint32_t	    fg;
 	int		    cw = INCOLOR_CW;
@@ -764,8 +765,8 @@ static void incolor_text_line(incolor_t *incolor, uint16_t ca)
 
 	for (x = 0; x < incolor->crtc[1]; x++)
 	{
-		chr  = incolor->vram[(incolor->ma << 1) & 0x3fff];
-                attr = incolor->vram[((incolor->ma << 1) + 1) & 0x3fff];
+		chr  = incolor->vram[(incolor->ma << 1) & 0xfff];
+                attr = incolor->vram[((incolor->ma << 1) + 1) & 0xfff];
 
                 drawcursor = ((incolor->ma == ca) && incolor->con && incolor->cursoron);
 
@@ -866,7 +867,6 @@ void incolor_poll(void *p)
 
         if (!incolor->linepos)
         {
-//                pclog("InColor poll %i %i\n", incolor->vc, incolor->sc);
                 incolor->vidtime += incolor->dispofftime;
                 incolor->stat |= 1;
                 incolor->linepos = 1;
@@ -894,7 +894,6 @@ void incolor_poll(void *p)
                 if (incolor->vc == incolor->crtc[7] && !incolor->sc)
                 {
                         incolor->stat |= 8;
-//                        printf("VSYNC on %i %i\n",vc,sc);
                 }
                 incolor->displine++;
                 if (incolor->displine >= 500) 
@@ -912,7 +911,6 @@ void incolor_poll(void *p)
                         if (!incolor->vsynctime)
                         {
                                 incolor->stat &= ~8;
-//                                printf("VSYNC off %i %i\n",vc,sc);
                         }
                 }
                 if (incolor->sc == (incolor->crtc[11] & 31) || ((incolor->crtc[8] & 3) == 3 && incolor->sc == ((incolor->crtc[11] & 31) >> 1))) 
@@ -944,7 +942,6 @@ void incolor_poll(void *p)
                                 incolor->dispon = 0;
                         if (oldvc == incolor->crtc[4])
                         {
-//                                printf("Display over at %i\n",displine);
                                 incolor->vc = 0;
                                 incolor->vadj = incolor->crtc[5];
                                 if (!incolor->vadj) incolor->dispon=1;
@@ -956,10 +953,9 @@ void incolor_poll(void *p)
                         {
                                 incolor->dispon = 0;
                                 incolor->displine = 0;
-                                incolor->vsynctime = 16;//(crtcm[3]>>4)+1;
+                                incolor->vsynctime = 16;
                                 if (incolor->crtc[7])
                                 {
-//                                        printf("Lastline %i Firstline %i  %i\n",lastline,firstline,lastline-firstline);
                                         if ((incolor->ctrl & INCOLOR_CTRL_GRAPH) && (incolor->ctrl2 & INCOLOR_CTRL2_GRAPH)) 
 					{
 						x = incolor->crtc[1] << 4;
@@ -973,7 +969,6 @@ void incolor_poll(void *p)
                                         {
                                                 xsize = x;
                                                 ysize = incolor->lastline - incolor->firstline;
-//                                                printf("Resize to %i,%i - R1 %i\n",xsize,ysize,crtcm[1]);
                                                 if (xsize < 64) xsize = 656;
                                                 if (ysize < 32) ysize = 200;
                                                 updatewindowsize(xsize, ysize);
@@ -1007,7 +1002,6 @@ void incolor_poll(void *p)
                 if ((incolor->sc == (incolor->crtc[10] & 31) || ((incolor->crtc[8] & 3) == 3 && incolor->sc == ((incolor->crtc[10] & 31) >> 1))))
                 {
                         incolor->con = 1;
-//                        printf("Cursor on - %02X %02X %02X\n",crtcm[8],crtcm[10],crtcm[11]);
                 }
         }
 }

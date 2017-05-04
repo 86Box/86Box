@@ -1,4 +1,4 @@
-# 86Box [![Build Status](http://polar.rol.im/job/86Box/badge/icon)](http://polar.rol.im/job/86Box)
+# 86Box [![Build Status](http://dome.rol.im/job/86Box/badge/icon)](http://dome.rol.im/job/86Box)
 86Box (formerly PCem Unofficial, PCem Experimental, or PCem-X) is an unofficial branch of the PCem emulator, which aims to emulate IBM compatible machines from 1981-2000 period. This branch adds several emulated motherboards.
 
 ---

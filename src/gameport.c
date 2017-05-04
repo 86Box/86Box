@@ -19,16 +19,16 @@ int joystick_type;
 
 joystick_if_t joystick_none =
 {
-        .name      = "No joystick",
-        .init      = NULL,
-        .close     = NULL,
-        .read      = NULL,
-        .write     = NULL,
-        .read_axis = NULL,
-        .a0_over   = NULL,
-        .max_joysticks = 0,
-        .axis_count = 0,
-        .button_count = 0
+        "No joystick",
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        0,
+        0,
+        0
 };
 
 static joystick_if_t *joystick_list[] =
@@ -140,12 +140,7 @@ uint8_t gameport_read(uint16_t addr, void *p)
         uint8_t ret;
 
         timer_clock();
-//        if (joysticks_present)
-                ret = gameport->state | gameport->joystick->read(gameport->joystick_dat);//0xf0;
-//        else
-//                ret = 0xff;
-
-        // pclog("gameport_read: ret=%02x %08x:%08x isa_cycles=%i  %i\n", ret, cs, cpu_state.pc, isa_cycles, gameport->axis[0].count);
+	ret = gameport->state | gameport->joystick->read(gameport->joystick_dat);
 
         cycles -= ISA_CYCLES(8);
 

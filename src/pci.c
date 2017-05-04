@@ -23,7 +23,6 @@ void pci_cf8_write(uint16_t port, uint32_t val, void *p)
         pci_card = (val >> 11) & 31;
         pci_bus = (val >> 16) & 0xff;
         pci_enable = (val >> 31) & 1;
-	// pclog("PCI card selected: %i\n", pci_card);
 }
 
 uint32_t pci_cf8_read(uint16_t port, void *p)
@@ -33,15 +32,12 @@ uint32_t pci_cf8_read(uint16_t port, void *p)
 
 void pci_write(uint16_t port, uint8_t val, void *priv)
 {
-        // pclog("pci_write: port=%04x val=%02x %08x:%08x\n", port, val, cs, cpu_state.pc);
         switch (port)
         {
                 case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff:
                 if (!pci_enable) 
                    return;
-                   
-                // pclog("PCI write bus %i card %i func %i index %02X val %02X  %04X:%04X\n", pci_bus, pci_card, pci_func, pci_index | (port & 3), val, CS, cpu_state.pc);
-                
+
                 if (!pci_bus && pci_card_write[pci_card])
                    pci_card_write[pci_card](pci_func, pci_index | (port & 3), val, pci_priv[pci_card]);
                 
@@ -51,19 +47,19 @@ void pci_write(uint16_t port, uint8_t val, void *priv)
 
 uint8_t pci_read(uint16_t port, void *priv)
 {
-        // pclog("pci_read: port=%04x  %08x:%08x\n", port, cs, cpu_state.pc);
         switch (port)
         {
                 case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff:
                 if (!pci_enable) 
                    return 0xff;
 
-                // pclog("PCI read  bus %i card %i func %i index %02X\n", pci_bus, pci_card, pci_func, pci_index | (port & 3));
-
                 if (!pci_bus && pci_card_read[pci_card])
                    return pci_card_read[pci_card](pci_func, pci_index | (port & 3), pci_priv[pci_card]);
 
                 return 0xff;
+
+		default:
+		return 0xff;
         }
 }
 
@@ -72,7 +68,6 @@ uint8_t pci_type2_read(uint16_t port, void *priv);
 
 void pci_type2_write(uint16_t port, uint8_t val, void *priv)
 {
-//        pclog("pci_type2_write: port=%04x val=%02x %08x:%08x\n", port, val, cs, pc);
         if (port == 0xcf8)
         {
                 pci_func = (val >> 1) & 7;
@@ -91,8 +86,6 @@ void pci_type2_write(uint16_t port, uint8_t val, void *priv)
                 pci_card = (port >> 8) & 0xf;
                 pci_index = port & 0xff;
 
-                // pclog("PCI write bus %i card %i func %i index %02X val %02X  %04X:%04X\n", pci_bus, pci_card, pci_func, pci_index | (port & 3), val, CS, cpu_state.pc);
-                
                 if (!pci_bus && pci_card_write[pci_card])
                         pci_card_write[pci_card](pci_func, pci_index | (port & 3), val, pci_priv[pci_card]);
         }
@@ -100,7 +93,6 @@ void pci_type2_write(uint16_t port, uint8_t val, void *priv)
 
 uint8_t pci_type2_read(uint16_t port, void *priv)
 {
-//        pclog("pci_type2_read: port=%04x  %08x:%08x\n", port, cs, pc);
         if (port == 0xcf8)
         {
                 return pci_key | (pci_func << 1);
@@ -114,8 +106,6 @@ uint8_t pci_type2_read(uint16_t port, void *priv)
                 pci_card = (port >> 8) & 0xf;
                 pci_index = port & 0xff;
 
-                // pclog("PCI read  bus %i card %i func %i index %02X           %04X:%04X\n", pci_bus, pci_card, pci_func, pci_index | (port & 3), CS, cpu_state.pc);
-                
                 if (!pci_bus && pci_card_write[pci_card])
                         return pci_card_read[pci_card](pci_func, pci_index | (port & 3), pci_priv[pci_card]);
         }
@@ -140,7 +130,11 @@ void pci_init(int type, int min_card, int max_card)
         }
         
         for (c = 0; c < 32; c++)
-            pci_card_read[c] = pci_card_write[c] = pci_priv[c] = NULL;
+	{
+		pci_card_read[c] = NULL;
+		pci_card_write[c] = NULL;
+		pci_priv[c] = NULL;
+	}
         
         pci_min_card = min_card;
         pci_max_card = max_card;
@@ -164,7 +158,6 @@ void pci_add(uint8_t (*read)(int func, int addr, void *priv), void (*write)(int 
                          pci_card_read[c] = read;
                         pci_card_write[c] = write;
                               pci_priv[c] = priv;
-			// pclog("PCI device added to card: %i\n", c);
                         return;
                 }
         }

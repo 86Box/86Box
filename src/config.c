@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "config.h"
+#include "ibm.h"
 
 char config_file_default[256];
 
@@ -148,9 +149,7 @@ void config_load(char *fn)
                         strncpy(new_section->name, name, 256);
                         list_add(&new_section->list, &config_head);
                         
-                        current_section = new_section;
-                        
-//                        pclog("New section : %s %p\n", name, (void *)current_section);
+                        current_section = new_section;                        
                 }
                 else
                 {
@@ -182,8 +181,6 @@ void config_load(char *fn)
                         strncpy(new_entry->name, name, 256);
                         strncpy(new_entry->data, &buffer[data_pos], 256);
                         list_add(&new_entry->list, &current_section->entry_head);
-
-//                        pclog("New data under section [%s] : %s = %s\n", current_section->name, new_entry->name, new_entry->data);
                 }
         }
         

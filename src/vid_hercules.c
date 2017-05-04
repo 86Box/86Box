@@ -6,6 +6,7 @@
 #include "ibm.h"
 #include "device.h"
 #include "mem.h"
+#include "io.h"
 #include "timer.h"
 #include "video.h"
 #include "vid_hercules.h"
@@ -131,7 +132,6 @@ void hercules_poll(void *p)
         int oldvc;
         uint8_t chr, attr;
         uint16_t dat;
-        int cols[4];
         int oldsc;
         int blink;
         if (!hercules->linepos)
@@ -151,8 +151,6 @@ void hercules_poll(void *p)
                                 video_wait_for_buffer();
                         }
                         hercules->lastline = hercules->displine;
-                        cols[0] = 0;
-                        cols[1] = 7;
                         if ((hercules->ctrl & 2) && (hercules->ctrl2 & 1))
                         {
                                 ca = (hercules->sc & 3) * 0x2000;
@@ -171,8 +169,8 @@ void hercules_poll(void *p)
                         {
                                 for (x = 0; x < hercules->crtc[1]; x++)
                                 {
-                                        chr  = hercules->vram[(hercules->ma << 1) & 0x3fff];
-                                        attr = hercules->vram[((hercules->ma << 1) + 1) & 0x3fff];
+                                        chr  = hercules->vram[(hercules->ma << 1) & 0xfff];
+                                        attr = hercules->vram[((hercules->ma << 1) + 1) & 0xfff];
                                         drawcursor = ((hercules->ma == ca) && hercules->con && hercules->cursoron);
                                         blink = ((hercules->blink & 16) && (hercules->ctrl & 0x20) && (attr & 0x80) && !drawcursor);
                                         if (hercules->sc == 12 && ((attr & 7) == 1))
@@ -376,35 +374,27 @@ void hercules_speed_changed(void *p)
 static device_config_t hercules_config[] =
 {
         {
-                .name = "rgb_type",
-                .description = "Display type",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "rgb_type", "Display type", CONFIG_SELECTION, "", 0,
                 {
                         {
-                                .description = "Default",
-                                .value = 0
+                                "Default", 0
                         },
                         {
-                                .description = "Green",
-                                .value = 1
+                                "Green", 1
                         },
                         {
-                                .description = "Amber",
-                                .value = 2
+                                "Amber", 2
                         },
                         {
-                                .description = "Gray",
-                                .value = 3
+                                "Gray", 3
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 0
+                }
         },
         {
-                .type = -1
+                "", "", -1
         }
 };
 #endif

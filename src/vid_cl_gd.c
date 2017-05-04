@@ -648,6 +648,9 @@ uint8_t cirrus_mmio_blt_read(uint32_t address, void *p)
 		case (CIRRUS_MMIO_BLTTRANSPARENTCOLORMASK + 1):
 			value = svga->gdcreg[0x39];
 			break;
+		default:
+			value = 0xff;
+			break;
 	}
 
 	return value;

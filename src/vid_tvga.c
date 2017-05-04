@@ -53,7 +53,6 @@ void tvga_out(uint16_t addr, uint8_t val, void *p)
 
         uint8_t old;
 
-//	pclog("tvga_out : %04X %02X  %04X:%04X  %i\n", addr, val, CS,pc, svga->bpp);
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout & 1)) addr ^= 0x60;
 
         switch (addr)
@@ -119,7 +118,6 @@ void tvga_out(uint16_t addr, uint8_t val, void *p)
                 old = svga->crtc[svga->crtcreg];
                 val &= crtc_mask[svga->crtcreg];
                 svga->crtc[svga->crtcreg] = val;
-//                if (svga->crtcreg != 0xC && svga->crtcreg != 0xE && svga->crtcreg != 0xF) pclog("CRTC R%02X = %02X %04X:%04X\n", svga->crtcreg, val, CS, pc);
                 if (old != val)
                 {
                         if (svga->crtcreg < 0xE || svga->crtcreg > 0x10)
@@ -158,8 +156,6 @@ uint8_t tvga_in(uint16_t addr, void *p)
         tvga_t *tvga = (tvga_t *)p;
         svga_t *svga = &tvga->svga;
 
-//        if (addr != 0x3da) pclog("tvga_in : %04X  %04X:%04X\n", addr, CS,pc);
-        
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout & 1)) addr ^= 0x60;
         
         switch (addr)
@@ -167,14 +163,8 @@ uint8_t tvga_in(uint16_t addr, void *p)
                 case 0x3C5:
                 if ((svga->seqaddr & 0xf) == 0xb)
                 {
-//                        printf("Read Trident ID %04X:%04X %04X\n",CS,pc,readmemw(ss,SP));
                         tvga->oldmode = 0;
                         return 0x33; /*TVGA8900D*/
-                }
-                if ((svga->seqaddr & 0xf) == 0xc)
-                {
-//                        printf("Read Trident Power Up 1 %04X:%04X %04X\n",CS,pc,readmemw(ss,SP));
-//                        return 0x20; /*2 DRAM banks*/
                 }
                 if ((svga->seqaddr & 0xf) == 0xd)
                 {
@@ -213,8 +203,6 @@ static void tvga_recalcbanking(tvga_t *tvga)
                 svga->read_bank = (tvga->tvga_3d9 & 0x1f) * 65536;
         else
                 svga->read_bank = svga->write_bank;
-        
-//        pclog("recalcbanking: write_bank=%08x read_bank=%08x GDC[E]=%02x GDC[F]=%02x SEQ[E]=%02x 3d8=%02x 3d9=%02x\n", svga->read_bank, svga->write_bank, svga->gdcreg[0xe], svga->gdcreg[0xf], svga->seqregs[0xe], tvga->tvga_3d8, tvga->tvga_3d9);
 }
 
 void tvga_recalctimings(svga_t *svga)
@@ -245,7 +233,6 @@ void tvga_recalctimings(svga_t *svga)
                 svga->hdisp_time *= 2;
         }
 	   
-        // svga->interlace = svga->crtc[0x1e] & 4;
         if (svga->crtc[0x1e] & 4)
 	{
                 svga->rowoffset >>= 1;
@@ -349,32 +336,25 @@ void tvga_add_status_info(char *s, int max_len, void *p)
 static device_config_t tvga_config[] =
 {
         {
-                .name = "memory",
-                .description = "Memory size",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "memory", "Memory size", CONFIG_SELECTION, "", 1024,
                 {
                         {
-                                .description = "256 kB",
-                                .value = 256
+                                "256 kB", 256
                         },
                         {
-                                .description = "512 kB",
-                                .value = 512
+                                "512 kB", 512
                         },
                         {
-                                .description = "1 MB",
-                                .value = 1024
+                                "1 MB", 1024
                         },
                          /*Chip supports 2mb, but drivers are buggy*/
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 1024
+                }
         },
         {
-                .type = -1
+                "", "", -1
         }
 };
 

@@ -10,7 +10,7 @@
 
 #include "usb.h"
 
-uint8_t (*usb_packet_handle[32])(usb_packet_t* packet, void *priv);
+void (*usb_packet_handle[32])(usb_packet_t* packet, void *priv);
 void *usb_priv[32];
 static int usb_min_card, usb_max_card;
 

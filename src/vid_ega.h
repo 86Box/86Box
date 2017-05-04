@@ -70,6 +70,8 @@ typedef struct ega_t
         int video_res_x, video_res_y, video_bpp;
 } ega_t;
 
+extern int update_overscan;
+
 void   *ega_standalone_init();
 void    ega_out(uint16_t addr, uint8_t val, void *p);
 uint8_t ega_in(uint16_t addr, void *p);
@@ -77,6 +79,7 @@ void    ega_poll(void *p);
 void    ega_recalctimings(struct ega_t *ega);
 void    ega_write(uint32_t addr, uint8_t val, void *p);
 uint8_t ega_read(uint32_t addr, void *p);
+void ega_init(ega_t *ega);
 
 extern device_t ega_device;
 extern device_t cpqega_device;

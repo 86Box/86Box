@@ -1,8 +1,10 @@
+#include <stdlib.h>
 #include "ibm.h"
 #include "io.h"
 #include "mem.h"
 #include "mouse.h"
 #include "pic.h"
+#include "pit.h"
 #include "sound.h"
 #include "sound_speaker.h"
 #include "timer.h"
@@ -152,7 +154,7 @@ void keyboard_olim24_write(uint16_t port, uint8_t val, void *priv)
                 speaker_enable = val & 2;
                 if (speaker_enable) 
                         was_speaker_enable = 1;
-                pit_set_gate(2, val & 1);
+                pit_set_gate(&pit, 2, val & 1);
                 break;
         }
 }
@@ -221,7 +223,7 @@ typedef struct mouse_olim24_t
         int x, y, b;
 } mouse_olim24_t;
 
-void mouse_olim24_poll(int x, int y, int z, int b, void *p)
+uint8_t mouse_olim24_poll(int x, int y, int z, int b, void *p)
 {
         mouse_olim24_t *mouse = (mouse_olim24_t *)p;
         
@@ -231,7 +233,7 @@ void mouse_olim24_poll(int x, int y, int z, int b, void *p)
 //        pclog("mouse_poll - %i, %i  %i, %i\n", x, y, mouse->x, mouse->y);
         
         if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                return;
+                return(0xff);
         if ((b & 1) && !(mouse->b & 1))
                 keyboard_olim24_adddata(mouse_scancodes[0]);
         if (!(b & 1) && (mouse->b & 1))
@@ -239,7 +241,7 @@ void mouse_olim24_poll(int x, int y, int z, int b, void *p)
         mouse->b = (mouse->b & ~1) | (b & 1);
         
         if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                return;
+                return(0xff);
         if ((b & 2) && !(mouse->b & 2))
                 keyboard_olim24_adddata(mouse_scancodes[2]);
         if (!(b & 2) && (mouse->b & 2))
@@ -247,7 +249,7 @@ void mouse_olim24_poll(int x, int y, int z, int b, void *p)
         mouse->b = (mouse->b & ~2) | (b & 2);
         
         if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                return;
+                return(0xff);
         if ((b & 4) && !(mouse->b & 4))
                 keyboard_olim24_adddata(mouse_scancodes[1]);
         if (!(b & 4) && (mouse->b & 4))
@@ -257,9 +259,9 @@ void mouse_olim24_poll(int x, int y, int z, int b, void *p)
         if (keyboard_olim24.mouse_mode)
         {
                 if (((key_queue_end - key_queue_start) & 0xf) > 12)
-                        return;
+                        return(0xff);
                 if (!mouse->x && !mouse->y)
-                        return;
+                        return(0xff);
                 
                 mouse->y = -mouse->y;
                 
@@ -282,32 +284,34 @@ void mouse_olim24_poll(int x, int y, int z, int b, void *p)
                 while (mouse->x < -4)
                 {
                         if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                                return;
+                                return(0xff);
                         mouse->x += 4;
                         keyboard_olim24_adddata(mouse_scancodes[3]);
                 }
                 while (mouse->x > 4)
                 {
                         if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                                return;
+                                return(0xff);
                         mouse->x -= 4;
                         keyboard_olim24_adddata(mouse_scancodes[4]);
                 }
                 while (mouse->y < -4)
                 {
                         if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                                return;
+                                return(0xff);
                         mouse->y += 4;
                         keyboard_olim24_adddata(mouse_scancodes[5]);
                 }
                 while (mouse->y > 4)
                 {
                         if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                                return;
+                                return(0xff);
                         mouse->y -= 4;
                         keyboard_olim24_adddata(mouse_scancodes[6]);
                 }
         }
+
+	return(0);
 }
 
 static void *mouse_olim24_init()
@@ -328,10 +332,11 @@ static void mouse_olim24_close(void *p)
 mouse_t mouse_olim24 =
 {
         "Olivetti M24 mouse",
+        "olim24",
+        MOUSE_TYPE_OLIM24,
         mouse_olim24_init,
         mouse_olim24_close,
-        mouse_olim24_poll,
-        MOUSE_TYPE_OLIM24
+        mouse_olim24_poll
 };
 
 void keyboard_olim24_init()

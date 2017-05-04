@@ -28,7 +28,6 @@
 #include "sysdeps.h"
 #include "zfile.h"*/
 /* ELSE */
-//#include "types.h"
 #define xmalloc malloc
 #include "fdi2raw.h"
 
@@ -243,26 +242,26 @@ static void fdi_decode (uae_u8 *stream, int size, uae_u8 *out)
 	sub_stream_shift = 1;
 	while (sub_stream_shift) {
 
-		//sub-stream header decode
+		/* sub-stream header decode */
 		sign_extend = *stream++;
 		sub_stream_shift = sign_extend & 0x7f;
 		sign_extend &= 0x80;
 		sixteen_bit = (*stream++) & 0x80;
 
-		//huffman tree architecture decode
+		/* huffman tree architecture decode */
 		temp = *stream++;
 		temp2 =	0x80;
 		stream = expand_tree (stream, &root);
 		if (temp2 == 0x80)
 			stream--;
 
-		//huffman output values	decode
+		/* huffman output values decode */
 		if (sixteen_bit)
 			stream = values_tree16 (stream, &root);
 		else
 			stream = values_tree8 (stream, &root);
 
-		//sub-stream data decode
+		/* sub-stream data decode */
 		temp2 =	0;
 		for (i = 0; i < size; i++) {
 			uae_u32 v;
@@ -312,20 +311,18 @@ static int decode_raw_track (FDI *fdi)
 static void zxx (FDI *fdi)
 {
 	outlog ("track %d: unknown track type 0x%02.2X\n", fdi->current_track, fdi->track_type);
-//	return -1;
 }
 /* unsupported track */
 #if 0
 static void zyy (FDI *fdi)
 {
 	outlog ("track %d: unsupported track type 0x%02.2X\n", fdi->current_track, fdi->track_type);
-//	return -1;
 }
 #endif
 /* empty track */
 static void track_empty (FDI *fdi)
 {
-//	return 0;
+	return;
 }
 
 /* unknown sector described type */
@@ -575,7 +572,6 @@ static void s0d(FDI *fdi)
 	}
 }*/
 
-//static int check_offset;
 /*static uae_u16 getmfmword (uae_u8 *mbuf)
 {
 	uae_u32 v;
@@ -633,7 +629,6 @@ static int amiga_check_track (FDI *fdi)
 	mbuf = bigmfmbuf;
 
 	memset (sectable, 0, sizeof (sectable));
-	//memcpy (mbuf + fwlen, mbuf, fwlen * sizeof (uae_u16));
 	mend = bigmfmbuf + length;
 	mend -= (4 + 16 + 8 + 512);
 
@@ -648,7 +643,6 @@ static int amiga_check_track (FDI *fdi)
 				mbuf[0] = 0x44;
 				mbuf[1] = 0x89;
 			}
-//			check_offset++;
 			if (check_offset > 7) {
 				check_offset = 0;
 				mbuf++;
@@ -1399,7 +1393,7 @@ static void init_array(uint32_t standard_MFM_2_bit_cell_size, int nb_of_bits)
 	int i;
 
 	for (i = 0; i < FDI_MAX_ARRAY; i++) {
-		psarray[i].size = standard_MFM_2_bit_cell_size; // That is (total track length / 50000) for Amiga double density
+		psarray[i].size = standard_MFM_2_bit_cell_size; /* That is (total track length / 50000) for Amiga double density */
 		total += psarray[i].size;
 		psarray[i].number_of_bits = nb_of_bits;
 		totaldiv += psarray[i].number_of_bits;
@@ -1448,7 +1442,6 @@ static void fdi2_decode (FDI *fdi, uint32_t totalavg, uae_u32 *avgp, uae_u32 *mi
 		/* you can try tighter ranges than 25%, or wider ranges. I would probably go for tighter... */
 		if ((avg_size < (standard_MFM_8_bit_cell_size - (pulse_limitval * standard_MFM_8_bit_cell_size / 100))) ||
 			(avg_size > (standard_MFM_8_bit_cell_size + (pulse_limitval * standard_MFM_8_bit_cell_size / 100)))) {
-				//init_array(standard_MFM_2_bit_cell_size, 2);
 				avg_size = standard_MFM_8_bit_cell_size;
 		}
 		/* this is to prevent the average value from going too far
@@ -1578,7 +1571,6 @@ static void fdi2_decode (FDI *fdi, uint32_t totalavg, uae_u32 *avgp, uae_u32 *mi
 		/* you can try tighter ranges than 25%, or wider ranges. I would probably go for tighter... */
 		if ((avg_size < (standard_MFM_8_bit_cell_size - (pulse_limitval * standard_MFM_8_bit_cell_size / 100))) ||
 			(avg_size > (standard_MFM_8_bit_cell_size + (pulse_limitval * standard_MFM_8_bit_cell_size / 100)))) {
-				//init_array(standard_MFM_2_bit_cell_size, mfm + 1);
 				avg_size = standard_MFM_8_bit_cell_size;
 		}
 		/* this	is to prevent the average value from going too far
@@ -1801,16 +1793,15 @@ static void fdi2_celltiming (FDI *fdi, uint32_t totalavg, int bitoffset, uae_u16
 
 static int decode_lowlevel_track (FDI *fdi, int track, struct fdi_cache *cache)
 {
-	uae_u8 *p1, *d;
+	uae_u8 *p1;
 	uae_u32 *p2;
 	uae_u32 *avgp, *minp = 0, *maxp = 0;
 	uae_u8 *idxp = 0;
 	uae_u32 maxidx, totalavg, weakbits;
 	int i, j, len, pulses, indexoffset;
 	int avg_free, min_free = 0, max_free = 0, idx_free;
-	int idx_off1, idx_off2, idx_off3;
+	int idx_off1 = 0, idx_off2 = 0, idx_off3 = 0;
 
-	d = fdi->track_dst;
 	p1 = fdi->track_src;
 	pulses = get_u32 (p1);
 	if (!pulses)
@@ -2077,7 +2068,6 @@ int fdi2raw_loadrevolution_2 (FDI *fdi, uae_u16 *mfmbuf, uae_u16 *tracktiming, i
 	fdi2_decode (fdi, cache->totalavg,
 		cache->avgp, cache->minp, cache->maxp, cache->idxp,
 		cache->maxidx, &idx, cache->pulses, mfm);
-	//fdi2_gcr_decode (fdi, totalavg, avgp, minp, maxp, idxp, idx_off1, idx_off2, idx_off3, maxidx, pulses);
 	/* outlog("track %d: nbits=%d avg len=%.2f weakbits=%d idx=%d\n",
 		track, bitoffset, (double)cache->totalavg / bitoffset, cache->weakbits, cache->indexoffset); */
 	len = fdi->out;
@@ -2163,8 +2153,6 @@ int fdi2raw_loadtrack (FDI *fdi, uae_u16 *mfmbuf, uae_u16 *tracktiming, int trac
 		outlen = -1;
 
 	}
-
-//	amiga_check_track (fdi);
 
 	if (fdi->err)
 		return 0;

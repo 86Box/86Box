@@ -3,9 +3,11 @@
 */
 #include <stdlib.h>
 #include <stdio.h>
+#include "config.h"
 #include "ibm.h"
 #include "mem.h"
 #include "rom.h"
+
 
 FILE *romfopen(char *fn, char *mode)
 {
@@ -15,6 +17,7 @@ FILE *romfopen(char *fn, char *mode)
         strcat(s, fn);
         return fopen(s, mode);
 }
+
 
 int rom_present(char *fn)
 {
@@ -33,24 +36,39 @@ int rom_present(char *fn)
         return 0;
 }
 
+
 static uint8_t rom_read(uint32_t addr, void *p)
 {
         rom_t *rom = (rom_t *)p;
-//        pclog("rom_read : %08x %08x %02x\n", addr, rom->mask, rom->rom[addr & rom->mask]);
+#ifdef ROM_TRACE
+	if (rom->mapping.base==ROM_TRACE)
+		pclog("ROM: read byte from BIOS at %06lX\n", addr);
+#endif
         return rom->rom[addr & rom->mask];
 }
+
+
 uint16_t rom_readw(uint32_t addr, void *p)
 {
         rom_t *rom = (rom_t *)p;
-//        pclog("rom_readw: %08x %08x %04x\n", addr, rom->mask, *(uint16_t *)&rom->rom[addr & rom->mask]);
+#ifdef ROM_TRACE
+	if (rom->mapping.base==ROM_TRACE)
+		pclog("ROM: read word from BIOS at %06lX\n", addr);
+#endif
         return *(uint16_t *)&rom->rom[addr & rom->mask];
 }
+
+
 uint32_t rom_readl(uint32_t addr, void *p)
 {
         rom_t *rom = (rom_t *)p;
-//        pclog("rom_readl: %08x %08x %08x\n", addr, rom->mask, *(uint32_t *)&rom->rom[addr & rom->mask]);
+#ifdef ROM_TRACE
+	if (rom->mapping.base==ROM_TRACE)
+		pclog("ROM: read long from BIOS at %06lX\n", addr);
+#endif
         return *(uint32_t *)&rom->rom[addr & rom->mask];
 }
+
 
 int rom_init(rom_t *rom, char *fn, uint32_t address, int size, int mask, int file_offset, uint32_t flags)
 {
@@ -81,6 +99,7 @@ int rom_init(rom_t *rom, char *fn, uint32_t address, int size, int mask, int fil
 
         return 0;
 }
+
 
 int rom_init_interleaved(rom_t *rom, char *fn_low, char *fn_high, uint32_t address, int size, int mask, int file_offset, uint32_t flags)
 {

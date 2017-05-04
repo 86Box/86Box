@@ -203,7 +203,6 @@ static void w83877f_remap()
 	winbond_port = (HEFRAS ? 0x3f0 : 0x250);
 	winbond_key_times = HEFRAS + 1;
 	winbond_key = (HEFRAS ? 0x86 : 0x88) | HEFERE;
-	// pclog("W83877F mapped to %04X, with key %02X required %i times\n", winbond_port, winbond_key, winbond_key_times);
 }
 
 static uint8_t is_in_array(uint16_t *port_array, uint8_t max, uint16_t port)
@@ -267,7 +266,6 @@ static uint16_t make_port(uint8_t reg)
 			break;
 	}
 
-	// pclog("Made port %04X (reg %02X)\n", p, reg);
 	return p;
 }
 
@@ -276,21 +274,16 @@ void w83877f_write(uint16_t port, uint8_t val, void *priv)
 	uint8_t index = (port & 1) ? 0 : 1;
 	uint8_t valxor = 0;
 	uint8_t max = 0x2A;
-        int temp;
 
 	if (index)
 	{
-	        // pclog("w83877f_write : port=%04x = %02X locked=%i\n", port, val, w83877f_locked);
-
 		if ((val == winbond_key) && !w83877f_locked)
 		{
 			if (winbond_key_times == 2)
 			{
 				if (tries)
 				{
-					// pclog("W83877F Locked (2 tries)\n");
 					w83877f_locked = 1;
-					// fdc_3f1_enable(0);
 					tries = 0;
 				}
 				else
@@ -300,23 +293,18 @@ void w83877f_write(uint16_t port, uint8_t val, void *priv)
 			}
 			else
 			{
-				// pclog("W83877F Locked (1 try)\n");
 				w83877f_locked = 1;
-				// fdc_3f1_enable(0);
 				tries = 0;
 			}
 		}
 		else
 		{
-		        // pclog("w83877f_write : port=%04x reg %02X = %02X locked=%i\n", port, w83877f_curreg, val, w83877f_locked);
-
 			if (w83877f_locked)
 			{
 				if (val < max)  w83877f_curreg = val;
 				if (val == 0xaa)
 				{
 					w83877f_locked = 0;
-					// fdc_3f1_enable(1);
 				}
 			}
 			else
@@ -328,8 +316,6 @@ void w83877f_write(uint16_t port, uint8_t val, void *priv)
 	}
 	else
 	{
-		// pclog("w83877f_write : port=%04x reg %02X = %02X locked=%i\n", port, w83877f_curreg, val, w83877f_locked);
-
 		if (w83877f_locked)
 		{
 			if (w83877f_rw_locked)  return;
@@ -379,20 +365,17 @@ process_value:
 			}
 			break;
 		case 7:
-			// pclog("W83877F Write [Reg. %02X]: %02X\n", w83877f_curreg, val);
 			if (valxor & 3)  fdc_update_rwc(0, FDDA_TYPE);
 			if (valxor & 0xC)  fdc_update_rwc(1, FDDB_TYPE);
 			if (valxor & 0x30)  fdc_update_rwc(2, FDDC_TYPE);
 			if (valxor & 0xC0)  fdc_update_rwc(3, FDDD_TYPE);
 			break;
 		case 8:
-			// pclog("W83877F Write [Reg. %02X]: %02X\n", w83877f_curreg, val);
 			if (valxor & 3)  fdc_update_boot_drive(FD_BOOT);
 			if (valxor & 0x10)  swwp = SWWP ? 1 : 0;
 			if (valxor & 0x20)  disable_write = DISFDDWR ? 1 : 0;
 			break;
 		case 9:
-			// pclog("W83877F Write [Reg. %02X]: %02X\n", w83877f_curreg, val);
 			if (valxor & 0x20)
 			{
 				fdc_update_enh_mode(EN3MODE ? 1 : 0);
@@ -403,7 +386,6 @@ process_value:
 			}
 			break;
 		case 0xB:
-			// pclog("W83877F Write [Reg. %02X]: %02X\n", w83877f_curreg, val);
 			if (valxor & 1)  fdc_update_drv2en(DRV2EN_NEG ? 0 : 1);
 			if (valxor & 2)  fdc_update_densel_polarity(INVERTZ ? 1 : 0);
 			break;
@@ -459,13 +441,11 @@ uint8_t w83877f_read(uint16_t port, void *priv)
 
 	if (!w83877f_locked)
 	{
-		// pclog("w83877f_read : port=%04x = FF locked=%i\n", port, w83877f_locked);
 		return 0xff;
 	}
 
 	if (index)
 	{
-		// pclog("w83877f_read : port=%04x = %02X locked=%i\n", port, w83877f_curreg, w83877f_locked);
 		return w83877f_curreg;
 	}
 	else
@@ -473,10 +453,8 @@ uint8_t w83877f_read(uint16_t port, void *priv)
 		if ((w83877f_curreg < 0x18) && w83877f_rw_locked)  return 0xff;
 		if (w83877f_curreg == 7)
 		{
-			// pclog("w83877f_read : port=%04x reg %02X = %02X locked=%i\n", port, w83877f_curreg,  (fdc_get_rwc(0) | (fdc_get_rwc(1) << 2)), w83877f_locked);
 			return (fdc_get_rwc(0) | (fdc_get_rwc(1) << 2));
 		}
-	        // pclog("w83877f_read : port=%04x reg %02X = %02X locked=%i\n", port, w83877f_curreg, w83877f_regs[w83877f_curreg], w83877f_locked);
 		return w83877f_regs[w83877f_curreg];
 	}
 }

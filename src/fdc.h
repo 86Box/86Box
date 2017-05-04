@@ -64,3 +64,7 @@ void fdc_track_finishread(int condition);
 int fdc_is_verify();
 
 int real_drive(int drive);
+void fdc_overrun();
+void fdc_set_base(int base, int super_io);
+int fdc_ps1_525();
+void fdc_hard_reset();

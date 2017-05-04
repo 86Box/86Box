@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "ibm.h"
 #include "io.h"
 #include "keyboard.h"
@@ -58,7 +59,7 @@ typedef struct mouse_amstrad_t
         int oldb;
 } mouse_amstrad_t;
 
-static void mouse_amstrad_poll(int x, int y, int z, int b, void *p)
+static uint8_t mouse_amstrad_poll(int x, int y, int z, int b, void *p)
 {
         mouse_amstrad_t *mouse = (mouse_amstrad_t *)p;
         
@@ -75,6 +76,8 @@ static void mouse_amstrad_poll(int x, int y, int z, int b, void *p)
                 keyboard_send(0xfd);
         
         mouse->oldb = b;
+
+	return(0);
 }
 
 static void *mouse_amstrad_init()
@@ -95,10 +98,11 @@ static void mouse_amstrad_close(void *p)
 mouse_t mouse_amstrad =
 {
         "Amstrad mouse",
+        "amstrad",
+        MOUSE_TYPE_AMSTRAD,
         mouse_amstrad_init,
         mouse_amstrad_close,
-        mouse_amstrad_poll,
-        MOUSE_TYPE_AMSTRAD
+        mouse_amstrad_poll
 };
 
 void amstrad_init()

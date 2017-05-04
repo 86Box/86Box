@@ -4,8 +4,10 @@
 #include "device.h"
 #include "io.h"
 #include "mem.h"
+#include "pic.h"
 #include "timer.h"
 #include "video.h"
+#include "dosbox/vid_cga_comp.h"
 #include "vid_pcjr.h"
 
 #define PCJR_RGB 0
@@ -21,7 +23,7 @@ typedef struct pcjr_t
         int      array_index;
         uint8_t  array[32];
         int      array_ff;
-        int      memctrl;//=-1;
+        int      memctrl;
         uint8_t  stat;
         int addr_mode;
         
@@ -53,14 +55,12 @@ void pcjr_out(uint16_t addr, uint8_t val, void *p)
 {
         pcjr_t *pcjr = (pcjr_t *)p;
         uint8_t old;
-//        pclog("pcjr OUT %04X %02X\n",addr,val);
         switch (addr)
         {
                 case 0x3d4:
                 pcjr->crtcreg = val & 0x1f;
                 return;
                 case 0x3d5:
-//                        pclog("CRTC write %02X %02x\n", pcjr->crtcreg, val);
                 old = pcjr->crtc[pcjr->crtcreg];
                 pcjr->crtc[pcjr->crtcreg] = val & crtcmask[pcjr->crtcreg];
                 if (old != val)
@@ -73,7 +73,6 @@ void pcjr_out(uint16_t addr, uint8_t val, void *p)
                 }
                 return;
                 case 0x3da:
-//                pclog("Array write %02X %02X\n", pcjr->array_index, val);
                 if (!pcjr->array_ff)
                         pcjr->array_index = val & 0x1f;
                 else
@@ -97,7 +96,6 @@ void pcjr_out(uint16_t addr, uint8_t val, void *p)
 uint8_t pcjr_in(uint16_t addr, void *p)
 {
         pcjr_t *pcjr = (pcjr_t *)p;
-//        if (addr!=0x3DA) pclog("pcjr IN %04X\n",addr);
         switch (addr)
         {
                 case 0x3d4:
@@ -118,13 +116,11 @@ void pcjr_recalcaddress(pcjr_t *pcjr)
         {
                 pcjr->vram  = &ram[(pcjr->memctrl & 0x06) << 14];
                 pcjr->b8000 = &ram[(pcjr->memctrl & 0x30) << 11];
-//                printf("VRAM at %05X B8000 at %05X\n",((pcjr->memctrl&0x6)<<14)+pcjr->base,((pcjr->memctrl&0x30)<<11)+pcjr->base);
         }
         else
         {
                 pcjr->vram  = &ram[(pcjr->memctrl & 0x07) << 14];
                 pcjr->b8000 = &ram[(pcjr->memctrl & 0x38) << 11];
-//                printf("VRAM at %05X B8000 at %05X\n",((pcjr->memctrl&0x7)<<14)+pcjr->base,((pcjr->memctrl&0x38)<<11)+pcjr->base);
         }
 }
 
@@ -135,7 +131,6 @@ void pcjr_write(uint32_t addr, uint8_t val, void *p)
                 return;
                 
         egawrites++;
-//        pclog("pcjr VRAM write %05X %02X %04X:%04X  %04X:%04X\n",addr,val,CS,pc,DS,SI);
         pcjr->b8000[addr & 0x3fff] = val;
 }
 
@@ -146,7 +141,6 @@ uint8_t pcjr_read(uint32_t addr, void *p)
                 return 0xff;
                 
         egareads++;
-//        pclog("pcjr VRAM read  %05X %02X %04X:%04X\n",addr,pcjr->b8000[addr&0x7FFF],CS,pc);
         return pcjr->b8000[addr & 0x3fff];
 }
 
@@ -171,27 +165,8 @@ void pcjr_recalctimings(pcjr_t *pcjr)
 }
 
 
-static int ntsc_col[8][8]=
-{
-        {0,0,0,0,0,0,0,0}, /*Black*/
-        {0,0,1,1,1,1,0,0}, /*Blue*/
-        {1,0,0,0,0,1,1,1}, /*Green*/
-        {0,0,0,0,1,1,1,1}, /*Cyan*/
-        {1,1,1,1,0,0,0,0}, /*Red*/
-        {0,1,1,1,1,0,0,0}, /*Magenta*/
-        {1,1,0,0,0,0,1,1}, /*Yellow*/
-        {1,1,1,1,1,1,1,1}  /*White*/
-};
-
-/*static int cga4pal[8][4]=
-{
-        {0,2,4,6},{0,3,5,7},{0,3,4,7},{0,3,4,7},
-        {0,10,12,14},{0,11,13,15},{0,11,12,15},{0,11,12,15}
-};*/
-
 void pcjr_poll(void *p)
 {
-//        int *cgapal=cga4pal[((pcjr->col&0x10)>>2)|((cgamode&4)>>1)|((cgacol&0x20)>>5)];
         pcjr_t *pcjr = (pcjr_t *)p;
         uint16_t ca = (pcjr->crtc[15] | (pcjr->crtc[14] << 8)) & 0x3fff;
         int drawcursor;
@@ -200,16 +175,9 @@ void pcjr_poll(void *p)
         uint8_t chr, attr;
         uint16_t dat;
         int cols[4];
-        int col;
         int oldsc;
-        int y_buf[8] = {0, 0, 0, 0, 0, 0, 0, 0}, y_val, y_tot;
-        int i_buf[8] = {0, 0, 0, 0, 0, 0, 0, 0}, i_val, i_tot;
-        int q_buf[8] = {0, 0, 0, 0, 0, 0, 0, 0}, q_val, q_tot;
-        int r, g, b;
         if (!pcjr->linepos)
         {
-//                cgapal[0]=pcjr->col&15;
-//                printf("Firstline %i Lastline %i pcjr->displine %i\n",firstline,lastline,pcjr->displine);
                 pcjr->vidtime += pcjr->dispofftime;
                 pcjr->stat &= ~1;
                 pcjr->linepos = 1;
@@ -333,7 +301,6 @@ void pcjr_poll(void *p)
                                                 for (c = 0; c < 8; c++)
                                                     buffer->line[pcjr->displine][(x << 3) + c + 8] = cols[(fontdat[chr][pcjr->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
                                         }
-//                                        if (!((ma^(crtc[15]|(crtc[14]<<8)))&0x3FFF)) printf("Cursor match! %04X\n",ma);
                                         if (drawcursor)
                                         {
                                                 for (c = 0; c < 8; c++)
@@ -424,7 +391,6 @@ void pcjr_poll(void *p)
                         }
                         else
                         {
-//                                cols[0] = ((pcjr->mode & 0x12) == 0x12) ? 0 : (pcjr->col & 0xf) + 16;
                                 cols[0] = pcjr->array[0 + 16] + 16;
                                 if (pcjr->array[0] & 1) hline(buffer, 0, pcjr->displine, (pcjr->crtc[1] << 3) + 16, cols[0]);
                                 else                 hline(buffer, 0, pcjr->displine, (pcjr->crtc[1] << 4) + 16, cols[0]);
@@ -443,7 +409,6 @@ void pcjr_poll(void *p)
                 if (pcjr->vc == pcjr->crtc[7] && !pcjr->sc)
                 {
                         pcjr->stat |= 8;
-//                        printf("VSYNC on %i %i\n",vc,sc);
                 }
                 pcjr->displine++;
                 if (pcjr->displine >= 360) 
@@ -461,7 +426,6 @@ void pcjr_poll(void *p)
                         if (!pcjr->vsynctime)
                         {
                                 pcjr->stat &= ~8;
-//                                printf("VSYNC off %i %i\n",vc,sc);
                         }
                 }
                 if (pcjr->sc == (pcjr->crtc[11] & 31) || ((pcjr->crtc[8] & 3) == 3 && pcjr->sc == ((pcjr->crtc[11] & 31) >> 1))) 
@@ -480,25 +444,19 @@ void pcjr_poll(void *p)
                                 pcjr->dispon = 1;
                                 pcjr->ma = pcjr->maback = (pcjr->crtc[13] | (pcjr->crtc[12] << 8)) & 0x3fff;
                                 pcjr->sc = 0;
-//                                printf("Display on!\n");
                         }
                 }
                 else if (pcjr->sc == pcjr->crtc[9] || ((pcjr->crtc[8] & 3) == 3 && pcjr->sc == (pcjr->crtc[9] >> 1)))
                 {
                         pcjr->maback = pcjr->ma;
-//                        con=0;
-//                        coff=0;
                         pcjr->sc = 0;
                         oldvc = pcjr->vc;
                         pcjr->vc++;
                         pcjr->vc &= 127;
-//                        pclog("VC %i %i\n", pcjr->vc, pcjr->crtc[7]);
-//                        printf("VC %i %i %i %i  %i\n",vc,crtc[4],crtc[6],crtc[7],pcjr->dispon);
                         if (pcjr->vc == pcjr->crtc[6]) 
                                 pcjr->dispon = 0;
                         if (oldvc == pcjr->crtc[4])
                         {
-//                                printf("Display over at %i\n",pcjr->displine);
                                 pcjr->vc = 0;
                                 pcjr->vadj = pcjr->crtc[5];
                                 if (!pcjr->vadj) 
@@ -507,19 +465,15 @@ void pcjr_poll(void *p)
                                         pcjr->ma = pcjr->maback = (pcjr->crtc[13] | (pcjr->crtc[12] << 8)) & 0x3fff;
                                 if ((pcjr->crtc[10] & 0x60) == 0x20) pcjr->cursoron = 0;
                                 else                                  pcjr->cursoron = pcjr->blink & 16;
-//                                printf("CRTC10 %02X %i\n",crtc[10],cursoron);
                         }
                         if (pcjr->vc == pcjr->crtc[7])
                         {
                                 pcjr->dispon = 0;
                                 pcjr->displine = 0;
-                                pcjr->vsynctime = 16;//(crtc[3]>>4)+1;
+                                pcjr->vsynctime = 16;
                                 picint(1 << 5);
-//                                printf("pcjr->vsynctime %i %02X\n",pcjr->vsynctime,crtc[3]);
-//                                pcjr->stat|=8;
                                 if (pcjr->crtc[7])
                                 {
-//                                        printf("Lastline %i Firstline %i  %i   %i %i\n",lastline,firstline,lastline-firstline,crtc[1],xsize);
                                         if (pcjr->array[0] & 1) x = (pcjr->crtc[1] << 3) + 16;
                                         else                    x = (pcjr->crtc[1] << 4) + 16;
                                         pcjr->lastline++;
@@ -527,13 +481,10 @@ void pcjr_poll(void *p)
                                         {
                                                 xsize = x;
                                                 ysize = pcjr->lastline - pcjr->firstline;
-//                                                printf("Resize to %i,%i - R1 %i\n",xsize,ysize,crtc[1]);
                                                 if (xsize < 64) xsize = 656;
                                                 if (ysize < 32) ysize = 200;
                                                 updatewindowsize(xsize, (ysize << 1) + 16);
                                         }
-//                                        printf("Blit %i %i\n",firstline,lastline);
-//printf("Xsize is %i\n",xsize);
 
                                         if (pcjr->composite) 
                                            video_blit_memtoscreen(0, pcjr->firstline-4, 0, (pcjr->lastline - pcjr->firstline) + 8, xsize, (pcjr->lastline - pcjr->firstline) + 8);
@@ -606,27 +557,21 @@ device_t pcjr_video_device =
 static device_config_t pcjr_config[] =
 {
         {
-                .name = "display_type",
-                .description = "Display type",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "display_type", "Display type", CONFIG_SELECTION, "", PCJR_RGB,
                 {
                         {
-                                .description = "RGB",
-                                .value = PCJR_RGB
+                                "RGB", PCJR_RGB
                         },
                         {
-                                .description = "Composite",
-                                .value = PCJR_COMPOSITE
+                                "Composite", PCJR_COMPOSITE
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = PCJR_RGB
+                }
         },
         {
-                .type = -1
+                "", "", -1
         }
 };
 

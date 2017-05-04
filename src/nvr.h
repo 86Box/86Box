@@ -9,3 +9,7 @@ extern int nvr_dosave;
 
 void time_get(char *nvrram);
 
+void nvr_recalc();
+
+void loadnvr();
+void savenvr();

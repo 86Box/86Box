@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <time.h>
 #include "ibm.h"
 #include "device.h"
 #include "io.h"
@@ -14,8 +15,6 @@ static float volslog[16]=
         2.99295f,3.76785f,4.74345f,5.97165f,
         7.51785f,9.46440f,11.9194f,15.0000f
 };
-
-//#define PSGCONST ((3579545.0 / 64.0) / 48000.0)
 
 void sn76489_update(sn76489_t *sn76489)
 {

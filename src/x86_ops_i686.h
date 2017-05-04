@@ -150,7 +150,6 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 	uint8_t fxinst = 0;
 	uint16_t twd = x87_gettag();
 	uint16_t old_eaaddr = 0;
-	int old_ismmx = cpu_state.ismmx;
 	uint8_t ftwb = 0;
 	uint16_t rec_ftw = 0;
 	uint16_t fpus = 0;
@@ -172,9 +171,6 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 
 	if ((fxinst > 1) || (cpu_mod == 3))
 	{
-		// if (fxinst > 1)  pclog("FX instruction is: %02X\n", fxinst);
-		// if (cpu_mod == 3)  pclog("MOD is 3\n");
-
 		x86illegal();
 		return cpu_state.abrt;
 	}
@@ -186,8 +182,6 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 	if (fxinst == 1)
 	{
 		/* FXRSTOR */
-		// pclog("FXRSTOR issued\n");
-
 		cpu_state.npxc = readmemw(easeg, cpu_state.eaaddr);
 		fpus = readmemw(easeg, cpu_state.eaaddr + 2);
 		cpu_state.npxc = (cpu_state.npxc & ~FPU_CW_Reserved_Bits) | 0x0040;
@@ -251,10 +245,10 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 	        cpu_state.ismmx = 0;
 	        /*Horrible hack, but as PCem doesn't keep the FPU stack in 80-bit precision at all times
 	          something like this is needed*/
-	        if (cpu_state.MM[0].w[4] == 0xffff && cpu_state.MM[1].w[4] == 0xffff && cpu_state.MM[2].w[4] == 0xffff && cpu_state.MM[3].w[4] == 0xffff &&
-	            cpu_state.MM[4].w[4] == 0xffff && cpu_state.MM[5].w[4] == 0xffff && cpu_state.MM[6].w[4] == 0xffff && cpu_state.MM[7].w[4] == 0xffff &&
-       		    !cpu_state.TOP && !(*(uint64_t *)cpu_state.tag))
-	        cpu_state.ismmx = old_ismmx;
+		if (cpu_state.MM_w4[0] == 0xffff && cpu_state.MM_w4[1] == 0xffff && cpu_state.MM_w4[2] == 0xffff && cpu_state.MM_w4[3] == 0xffff &&
+			cpu_state.MM_w4[4] == 0xffff && cpu_state.MM_w4[5] == 0xffff && cpu_state.MM_w4[6] == 0xffff && cpu_state.MM_w4[7] == 0xffff &&
+			!cpu_state.TOP && !(*(uint64_t *)cpu_state.tag))
+	        cpu_state.ismmx = 1;
 
 		x87_settag(rec_ftw);
 
@@ -265,8 +259,6 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 	else
 	{
 		/* FXSAVE */
-		// pclog("FXSAVE issued\n");
-
 		if ((twd & 0x0003) == 0x0003)  ftwb |= 0x01;
 		if ((twd & 0x000C) == 0x000C)  ftwb |= 0x02;
 		if ((twd & 0x0030) == 0x0030)  ftwb |= 0x04;
@@ -333,7 +325,6 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 	uint8_t fxinst = 0;
 	uint16_t twd = x87_gettag();
 	uint32_t old_eaaddr = 0;
-	int old_ismmx = cpu_state.ismmx;
 	uint8_t ftwb = 0;
 	uint16_t rec_ftw = 0;
 	uint16_t fpus = 0;
@@ -355,9 +346,6 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 
 	if ((fxinst > 1) || (cpu_mod == 3))
 	{
-		// if (fxinst > 1)  pclog("FX instruction is: %02X\n", fxinst);
-		// if (cpu_mod == 3)  pclog("MOD is 3\n");
-
 		x86illegal();
 		return cpu_state.abrt;
 	}
@@ -369,8 +357,6 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 	if (fxinst == 1)
 	{
 		/* FXRSTOR */
-		// pclog("FXRSTOR issued\n");
-
 		cpu_state.npxc = readmemw(easeg, cpu_state.eaaddr);
 		fpus = readmemw(easeg, cpu_state.eaaddr + 2);
 		cpu_state.npxc = (cpu_state.npxc & ~FPU_CW_Reserved_Bits) | 0x0040;
@@ -434,10 +420,10 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 	        cpu_state.ismmx = 0;
 	        /*Horrible hack, but as PCem doesn't keep the FPU stack in 80-bit precision at all times
 	          something like this is needed*/
-	        if (cpu_state.MM[0].w[4] == 0xffff && cpu_state.MM[1].w[4] == 0xffff && cpu_state.MM[2].w[4] == 0xffff && cpu_state.MM[3].w[4] == 0xffff &&
-	            cpu_state.MM[4].w[4] == 0xffff && cpu_state.MM[5].w[4] == 0xffff && cpu_state.MM[6].w[4] == 0xffff && cpu_state.MM[7].w[4] == 0xffff &&
-       		    !cpu_state.TOP && !(*(uint64_t *)cpu_state.tag))
-	        cpu_state.ismmx = old_ismmx;
+		if (cpu_state.MM_w4[0] == 0xffff && cpu_state.MM_w4[1] == 0xffff && cpu_state.MM_w4[2] == 0xffff && cpu_state.MM_w4[3] == 0xffff &&
+			cpu_state.MM_w4[4] == 0xffff && cpu_state.MM_w4[5] == 0xffff && cpu_state.MM_w4[6] == 0xffff && cpu_state.MM_w4[7] == 0xffff &&
+			!cpu_state.TOP && !(*(uint64_t *)cpu_state.tag))
+	        cpu_state.ismmx = 1;
 
 		x87_settag(rec_ftw);
 
@@ -448,8 +434,6 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 	else
 	{
 		/* FXSAVE */
-		// pclog("FXSAVE issued\n");
-
 		if ((twd & 0x0003) == 0x0003)  ftwb |= 0x01;
 		if ((twd & 0x000C) == 0x000C)  ftwb |= 0x02;
 		if ((twd & 0x0030) == 0x0030)  ftwb |= 0x04;

@@ -23,9 +23,7 @@ static uint8_t sis85c471_regs[39];
 void sis85c471_write(uint16_t port, uint8_t val, void *priv)
 {
 	uint8_t index = (port & 1) ? 0 : 1;
-        int temp;
 	uint8_t x;
-        // pclog("sis85c471_write : port=%04x reg %02X = %02X\n", port, sis85c471_curreg, val);
 
 	if (index)
 	{
@@ -85,7 +83,6 @@ process_value:
 
 uint8_t sis85c471_read(uint16_t port, void *priv)
 {
-        // pclog("sis85c471_read : port=%04x reg %02X\n", port, sis85c471_curreg);
 	uint8_t index = (port & 1) ? 0 : 1;
 	uint8_t temp;
 
@@ -106,9 +103,6 @@ void sis85c471_init()
 {
 	int i = 0;
 
-	// pclog("SiS 85c471 Init\n");
-
-	// ide_sec_disable();
 	lpt2_remove();
 
 	sis85c471_curreg = 0;

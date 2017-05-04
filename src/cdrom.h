@@ -46,7 +46,12 @@ typedef struct CDROM
 	void (*exit)(uint8_t id);
 } CDROM;
 
+#ifdef __MSC__
+# pragma pack(push,1)
+typedef struct
+#else
 typedef struct __attribute__((__packed__))
+#endif
 {
 	uint8_t previous_command;
 	int toctimes;
@@ -115,10 +120,18 @@ typedef struct __attribute__((__packed__))
 	
 	int init_length;
 } cdrom_t;
+#ifdef __MSC__
+# pragma pack(pop)
+#endif
 
 extern cdrom_t cdrom[CDROM_NUM];
 
+#ifdef __MSC__
+# pragma pack(push,1)
+typedef struct
+#else
 typedef struct __attribute__((__packed__))
+#endif
 {
 	int enabled;
 
@@ -141,6 +154,9 @@ typedef struct __attribute__((__packed__))
 	uint8_t sound_on;
 	uint8_t atapi_dma;
 } cdrom_drive_t;
+#ifdef __MSC__
+# pragma pack(pop)
+#endif
 
 extern cdrom_drive_t cdrom_drives[CDROM_NUM];
 
@@ -199,6 +215,8 @@ int cdrom_lba_to_msf_accurate(int lba);
 void cdrom_reset(uint8_t id);
 void cdrom_set_signature(int id);
 void cdrom_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length);
+void cdrom_update_cdb(uint8_t *cdb, int lba_pos, int number_of_blocks);
+void cdrom_insert(uint8_t id);
 
 #define cdrom_sense_error cdrom[id].sense[0]
 #define cdrom_sense_key cdrom[id].sense[2]
