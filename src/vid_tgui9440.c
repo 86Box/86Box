@@ -7,6 +7,7 @@
 #include "device.h"
 #include "io.h"
 #include "mem.h"
+#include "pci.h"
 #include "rom.h"
 #include "thread.h"
 #include "video.h"
@@ -120,7 +121,6 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
 
         uint8_t old;
 
-//	pclog("tgui_out : %04X %02X  %04X:%04X  %i\n", addr, val, CS,pc, svga->bpp);
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout & 1)) addr ^= 0x60;
 
         switch (addr)
@@ -211,7 +211,6 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
                         val = (svga->crtc[7] & ~0x10) | (val & 0x10);
                 old = svga->crtc[svga->crtcreg];
                 svga->crtc[svga->crtcreg] = val;
-//                if (svga->crtcreg != 0xE && svga->crtcreg != 0xF) pclog("CRTC R%02X = %02X\n", svga->crtcreg, val);
                 if (old != val)
                 {
                         if (svga->crtcreg < 0xE || svga->crtcreg > 0x10)
@@ -253,11 +252,9 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
                 if (svga->gdcreg[0xf] & 4)
                 {
                         svga->write_bank = (val & 0x1f) * 65536;
-//                                pclog("SVGAWBANK 3D8 %08X %04X:%04X\n",svgawbank,CS,pc);
                         if (!(svga->gdcreg[0xf] & 1))
                         {
                                 svga->read_bank = (val & 0x1f) * 65536;
-//                                        pclog("SVGARBANK 3D8 %08X %04X:%04X\n",svgarbank,CS,pc);
                         }
                 }
                 return;
@@ -266,7 +263,6 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
                 if ((svga->gdcreg[0xf] & 5) == 5)
                 {
                         svga->read_bank = (val & 0x1F) * 65536;
-//                                pclog("SVGARBANK 3D9 %08X %04X:%04X\n",svgarbank,CS,pc);
                 }
                 return;
                 
@@ -287,8 +283,6 @@ uint8_t tgui_in(uint16_t addr, void *p)
         tgui_t *tgui = (tgui_t *)p;
         svga_t *svga = &tgui->svga;
 
-//        if (addr != 0x3da) pclog("tgui_in : %04X  %04X:%04X\n", addr, CS,pc);
-        
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout & 1)) addr ^= 0x60;
         
         switch (addr)
@@ -296,14 +290,8 @@ uint8_t tgui_in(uint16_t addr, void *p)
                 case 0x3C5:
                 if ((svga->seqaddr & 0xf) == 0xb)
                 {
-//                        printf("Read Trident ID %04X:%04X %04X\n",CS,pc,readmemw(ss,SP));
                         tgui->oldmode = 0;
                         return 0xe3; /*TGUI9440AGi*/
-                }
-                if ((svga->seqaddr & 0xf) == 0xc)
-                {
-//                        printf("Read Trident Power Up 1 %04X:%04X %04X\n",CS,pc,readmemw(ss,SP));
-//                        return 0x20; /*2 DRAM banks*/
                 }
                 if ((svga->seqaddr & 0xf) == 0xd)
                 {
@@ -355,10 +343,8 @@ void tgui_recalctimings(svga_t *svga)
 
 	svga->lowres = !(svga->crtc[0x2a] & 0x40); 
 
-        // svga->interlace = svga->crtc[0x1e] & 4;
         if (svga->crtc[0x1e] & 4)
 	{
-                // svga->rowoffset >>= 1;
 		svga->vtotal *= 2;
 		svga->dispend *= 2;
 		svga->vblankstart *= 2;
@@ -397,20 +383,16 @@ void tgui_recalctimings(svga_t *svga)
 void tgui_recalcmapping(tgui_t *tgui)
 {
         svga_t *svga = &tgui->svga;
-        
-//	pclog("tgui_recalcmapping : %02X %02X\n", svga->crtc[0x21], svga->gdcreg[6]);
 
 	if (svga->crtc[0x21] & 0x20)
 	{
                 mem_mapping_disable(&svga->mapping);
                 mem_mapping_set_addr(&tgui->linear_mapping, tgui->linear_base, tgui->linear_size);
 		svga->linear_base = tgui->linear_base;
-//		pclog("Trident linear framebuffer at %08X - size %06X\n", tgui->linear_base, tgui->linear_size);
                 mem_mapping_enable(&tgui->accel_mapping);
 	}
 	else
 	{
-//                                pclog("Write mapping %02X\n", val);
                 mem_mapping_disable(&tgui->linear_mapping);
                 mem_mapping_disable(&tgui->accel_mapping);
                 switch (svga->gdcreg[6] & 0xC)
@@ -454,7 +436,6 @@ void tgui_hwcursor_draw(svga_t *svga, int displine)
                                 ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add]  = (dat[1] & 0x80000000) ? 0xffffff : 0;
                         else if (dat[1] & 0x80000000)
                                 ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add] ^= 0xffffff;
-//                        pclog("Plot %i, %i (%i %i) %04X %04X\n", offset, displine, x+xx, svga_hwcursor_on, dat[0], dat[1]);
                 }
                            
                 offset++;
@@ -467,9 +448,6 @@ void tgui_hwcursor_draw(svga_t *svga, int displine)
 uint8_t tgui_pci_read(int func, int addr, void *p)
 {
         tgui_t *tgui = (tgui_t *)p;
-        svga_t *svga = &tgui->svga;
-
-//        pclog("Trident PCI read %08X\n", addr);
 
         switch (addr)
         {
@@ -507,8 +485,6 @@ void tgui_pci_write(int func, int addr, uint8_t val, void *p)
         tgui_t *tgui = (tgui_t *)p;
         svga_t *svga = &tgui->svga;
 
-//        pclog("Trident PCI write %08X %02X\n", addr, val);
-        
         switch (addr)
         {
                 case 0x12:
@@ -569,6 +545,10 @@ void tgui_close(void *p)
         
         svga_close(&tgui->svga);
         
+        thread_kill(tgui->fifo_thread);
+        thread_destroy_event(tgui->wake_fifo_thread);
+        thread_destroy_event(tgui->fifo_not_full_event);
+
         free(tgui);
 }
 
@@ -658,7 +638,6 @@ void tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 	}
 	if (tgui->accel.flags & TGUI_SOLIDFILL)
 	{
-//		pclog("SOLIDFILL\n");
 		for (y = 0; y < 8; y++)
 		{
 			for (x = 0; x < 8; x++)
@@ -669,7 +648,6 @@ void tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 	}
 	else if (tgui->accel.flags & TGUI_PATMONO)
 	{
-//		pclog("PATMONO\n");
 		for (y = 0; y < 8; y++)
 		{
 			for (x = 0; x < 8; x++)
@@ -682,7 +660,6 @@ void tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 	{
                 if (tgui->accel.bpp == 0)
                 {
-//        		pclog("OTHER 8-bit\n");
         		for (y = 0; y < 8; y++)
         		{
         			for (x = 0; x < 8; x++)
@@ -693,7 +670,6 @@ void tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 		}
 		else
                 {
-//        		pclog("OTHER 16-bit\n");
         		for (y = 0; y < 8; y++)
         		{
         			for (x = 0; x < 8; x++)
@@ -703,15 +679,9 @@ void tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
                         }
 		}
 	}
-/*	for (y = 0; y < 8; y++)
-	{
-		if (count == -1) pclog("Pattern %i : %02X %02X %02X %02X %02X %02X %02X %02X\n", y, tgui->accel.tgui_pattern[y][0], tgui->accel.tgui_pattern[y][1], tgui->accel.tgui_pattern[y][2], tgui->accel.tgui_pattern[y][3], tgui->accel.tgui_pattern[y][4], tgui->accel.tgui_pattern[y][5], tgui->accel.tgui_pattern[y][6], tgui->accel.tgui_pattern[y][7]);
-	}*/
-//	if (count == -1) pclog("Command %i %i %p\n", tgui->accel.command, TGUI_BITBLT, tgui);
         switch (tgui->accel.command)
 	{
 		case TGUI_BITBLT:
-//		if (count == -1) pclog("BITBLT src %i,%i dst %i,%i size %i,%i flags %04X\n", tgui->accel.src_x, tgui->accel.src_y, tgui->accel.dst_x, tgui->accel.dst_y, tgui->accel.size_x, tgui->accel.size_y, tgui->accel.flags);
 		if (count == -1)
 		{
 			tgui->accel.src = tgui->accel.src_old = tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch);
@@ -725,7 +695,6 @@ void tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 			case TGUI_SRCCPU:
 			if (count == -1)
 			{
-//				pclog("Blit start  TGUI_SRCCPU\n");
 				if (svga->crtc[0x21] & 0x20)
                                         mem_mapping_set_handler(&tgui->linear_mapping, svga_read_linear, svga_readw_linear, svga_readl_linear, tgui_accel_write_fb_b, tgui_accel_write_fb_w, tgui_accel_write_fb_l);
 
@@ -734,7 +703,6 @@ void tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 			}
 			else
 			     count >>= 3;
-//			pclog("TGUI_SRCCPU\n");
 			while (count)
 			{
 				if (tgui->accel.bpp == 0)
@@ -758,8 +726,6 @@ void tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
                                         WRITE(tgui->accel.dst, out);
                                 }
 
-//				pclog("  %i,%i  %02X %02X %02X  %02X\n", tgui->accel.x, tgui->accel.y, src_dat,dst_dat,pat_dat, out);
-                                	
 				tgui->accel.src += xdir;
 				tgui->accel.dst += xdir;
 				tgui->accel.pat_x += xdir;
@@ -780,7 +746,6 @@ void tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 					{
 						if (svga->crtc[0x21] & 0x20)
 						{
-//							pclog("Blit end\n");
                                                         mem_mapping_set_handler(&tgui->linear_mapping, svga_read_linear, svga_readw_linear, svga_readl_linear, svga_write_linear, svga_writew_linear, svga_writel_linear);
 						}
 						return;
@@ -795,15 +760,12 @@ void tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 			case TGUI_SRCMONO | TGUI_SRCCPU:
 			if (count == -1)
 			{
-//				pclog("Blit start  TGUI_SRCMONO | TGUI_SRCCPU\n");
 				if (svga->crtc[0x21] & 0x20)
                                         mem_mapping_set_handler(&tgui->linear_mapping, svga_read_linear, svga_readw_linear, svga_readl_linear, tgui_accel_write_fb_b, tgui_accel_write_fb_w, tgui_accel_write_fb_l);
 
-//                                pclog(" %i\n", tgui->accel.command);
 				if (tgui->accel.use_src)
                                         return;
 			}
-//			pclog("TGUI_SRCMONO | TGUI_SRCCPU\n");
 			while (count)
 			{
 				src_dat = ((cpu_dat >> 31) ? tgui->accel.fg_col : tgui->accel.bg_col);
@@ -819,7 +781,6 @@ void tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 
 				        WRITE(tgui->accel.dst, out);
                                 }
-//				pclog("  %i,%i  %02X %02X %02X  %02X %i\n", tgui->accel.x, tgui->accel.y, src_dat,dst_dat,pat_dat, out, (!(tgui->accel.flags & TGUI_TRANSENA) || src_dat != trans_col));
 				cpu_dat <<= 1;
 				tgui->accel.src += xdir;
 				tgui->accel.dst += xdir;
@@ -841,7 +802,6 @@ void tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 					{
 						if (svga->crtc[0x21] & 0x20)
 						{
-//							pclog("Blit end\n");
                                                         mem_mapping_set_handler(&tgui->linear_mapping, svga_read_linear, svga_readw_linear, svga_readl_linear, svga_write_linear, svga_writew_linear, svga_writel_linear);
 						}
 						return;
@@ -866,7 +826,6 @@ void tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 	
                                         WRITE(tgui->accel.dst, out);
                                 }
-//                                pclog("  %i,%i  %02X %02X %02X  %02X\n", tgui->accel.x, tgui->accel.y, src_dat,dst_dat,pat_dat, out);
 	
 				tgui->accel.src += xdir;
 				tgui->accel.dst += xdir;
@@ -914,7 +873,6 @@ static void tgui_accel_write_fifo(tgui_t *tgui, uint32_t addr, uint8_t val)
 		case 0x27: /*ROP*/
 		tgui->accel.rop = val;
 		tgui->accel.use_src = (val & 0x33) ^ ((val >> 2) & 0x33);
-//		pclog("Write ROP %02X %i\n", val, tgui->accel.use_src);
 		break;
 		
 		case 0x28: /*Flags*/
@@ -1034,6 +992,9 @@ static void tgui_accel_write_fifo_fb_l(tgui_t *tgui, uint32_t addr, uint32_t val
 static void fifo_thread(void *param)
 {
         tgui_t *tgui = (tgui_t *)param;
+	uint64_t start_time;
+	uint64_t end_time;
+	fifo_entry_t *fifo;
         
         while (1)
         {
@@ -1043,10 +1004,8 @@ static void fifo_thread(void *param)
                 tgui->blitter_busy = 1;
                 while (!FIFO_EMPTY)
                 {
-                        uint64_t start_time = timer_read();
-                        uint64_t end_time;
-                        fifo_entry_t *fifo = &tgui->fifo[tgui->fifo_read_idx & FIFO_MASK];
-                        uint32_t val = fifo->val;
+                        start_time = timer_read();
+                        fifo = &tgui->fifo[tgui->fifo_read_idx & FIFO_MASK];
 
                         switch (fifo->addr_type & FIFO_TYPE)
                         {
@@ -1077,7 +1036,7 @@ static void fifo_thread(void *param)
         }
 }
 
-static inline void wake_fifo_thread(tgui_t *tgui)
+static __inline void wake_fifo_thread(tgui_t *tgui)
 {
         thread_set_event(tgui->wake_fifo_thread); /*Wake up FIFO thread if moving from idle*/
 }
@@ -1094,7 +1053,6 @@ static void tgui_wait_fifo_idle(tgui_t *tgui)
 static void tgui_queue(tgui_t *tgui, uint32_t addr, uint32_t val, uint32_t type)
 {
         fifo_entry_t *fifo = &tgui->fifo[tgui->fifo_write_idx & FIFO_MASK];
-        int c;
 
         if (FIFO_FULL)
         {
@@ -1118,7 +1076,6 @@ static void tgui_queue(tgui_t *tgui, uint32_t addr, uint32_t val, uint32_t type)
 void tgui_accel_write(uint32_t addr, uint8_t val, void *p)
 {
         tgui_t *tgui = (tgui_t *)p;
-//	pclog("tgui_accel_write : %08X %02X  %04X(%08X):%08X %02X\n", addr, val, CS,cs,pc, opcode);
 	if ((addr & ~0xff) != 0xbff00)
 		return;
 	tgui_queue(tgui, addr, val, FIFO_WRITE_BYTE);
@@ -1127,7 +1084,6 @@ void tgui_accel_write(uint32_t addr, uint8_t val, void *p)
 void tgui_accel_write_w(uint32_t addr, uint16_t val, void *p)
 {
         tgui_t *tgui = (tgui_t *)p;
-//	pclog("tgui_accel_write_w %08X %04X\n", addr, val);
 	tgui_accel_write(addr, val, tgui);
 	tgui_accel_write(addr + 1, val >> 8, tgui);
 }
@@ -1135,7 +1091,6 @@ void tgui_accel_write_w(uint32_t addr, uint16_t val, void *p)
 void tgui_accel_write_l(uint32_t addr, uint32_t val, void *p)
 {
         tgui_t *tgui = (tgui_t *)p;
-//	pclog("tgui_accel_write_l %08X %08X\n", addr, val);
 	tgui_accel_write(addr, val, tgui);
 	tgui_accel_write(addr + 1, val >> 8, tgui);
 	tgui_accel_write(addr + 2, val >> 16, tgui);
@@ -1145,7 +1100,6 @@ void tgui_accel_write_l(uint32_t addr, uint32_t val, void *p)
 uint8_t tgui_accel_read(uint32_t addr, void *p)
 {
         tgui_t *tgui = (tgui_t *)p;
-//	pclog("tgui_accel_read : %08X\n", addr);
 	if ((addr & ~0xff) != 0xbff00)
 		return 0xff;
 	if ((addr & 0xff) != 0x20)
@@ -1245,14 +1199,12 @@ uint8_t tgui_accel_read(uint32_t addr, void *p)
 uint16_t tgui_accel_read_w(uint32_t addr, void *p)
 {
         tgui_t *tgui = (tgui_t *)p;
-//	pclog("tgui_accel_read_w %08X\n", addr);
 	return tgui_accel_read(addr, tgui) | (tgui_accel_read(addr + 1, tgui) << 8);
 }
 
 uint32_t tgui_accel_read_l(uint32_t addr, void *p)
 {
         tgui_t *tgui = (tgui_t *)p;
-//	pclog("tgui_accel_read_l %08X\n", addr);
 	return tgui_accel_read_w(addr, tgui) | (tgui_accel_read_w(addr + 2, tgui) << 16);
 }
 
@@ -1260,7 +1212,6 @@ void tgui_accel_write_fb_b(uint32_t addr, uint8_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
         tgui_t *tgui = (tgui_t *)svga->p;
-//	pclog("tgui_accel_write_fb_b %08X %02X\n", addr, val);
 	tgui_queue(tgui, addr, val, FIFO_WRITE_FB_BYTE);
 }
 
@@ -1268,7 +1219,6 @@ void tgui_accel_write_fb_w(uint32_t addr, uint16_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
         tgui_t *tgui = (tgui_t *)svga->p;
-//	pclog("tgui_accel_write_fb_w %08X %04X\n", addr, val);	
 	tgui_queue(tgui, addr, val, FIFO_WRITE_FB_WORD);
 }
 
@@ -1276,7 +1226,6 @@ void tgui_accel_write_fb_l(uint32_t addr, uint32_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
         tgui_t *tgui = (tgui_t *)svga->p;
-//	pclog("tgui_accel_write_fb_l %08X %08X\n", addr, val);
 	tgui_queue(tgui, addr, val, FIFO_WRITE_FB_LONG);
 }
 
@@ -1299,27 +1248,21 @@ void tgui_add_status_info(char *s, int max_len, void *p)
 static device_config_t tgui9440_config[] =
 {
         {
-                .name = "memory",
-                .description = "Memory size",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "memory", "Memory size", CONFIG_SELECTION, "", 2,
                 {
                         {
-                                .description = "1 MB",
-                                .value = 1
+                                "1 MB", 1
                         },
                         {
-                                .description = "2 MB",
-                                .value = 2
+                                "2 MB", 2
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 2
+                }
         },
         {
-                .type = -1
+                "", "", -1
         }
 };
 

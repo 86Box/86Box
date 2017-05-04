@@ -2,6 +2,7 @@
    see COPYING for more details
 */
 #include "ibm.h"
+#include "dac.h"
 
 uint8_t dac,dac2;
 uint8_t dacctrl;
@@ -18,10 +19,8 @@ void writedac(uint16_t addr, uint8_t val)
 
 void writedacctrl(uint16_t addr, uint8_t val)
 {
-//        printf("Write DAC ctrl %02X %i\n",val,lptfifo);
         if (dacctrl&8 && !(val&8) && (lptfifo!=16))
         {
-//                dac=dac2;
                 dssbuffer[dssend++]=dac2;
                 dssend&=15;
                 lptfifo++;

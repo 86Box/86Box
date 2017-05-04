@@ -18,6 +18,7 @@ typedef struct
         uint8_t dat;
         uint8_t int_status;
         uint8_t scratch;
+	uint8_t fcr;
         
         int irq;
 
@@ -30,3 +31,5 @@ typedef struct
 } SERIAL;
 
 extern SERIAL serial1, serial2;
+
+void serial_write_fifo(SERIAL *serial, uint8_t dat);

@@ -181,6 +181,7 @@ static int opMOV_b_imm_a16(uint32_t fetchdat)
 {
         uint8_t temp;
         fetch_ea_16(fetchdat);
+	ILLEGAL_ON((rmdat & 0x38) != 0);
         temp = readmemb(cs,cpu_state.pc); cpu_state.pc++;               if (cpu_state.abrt) return 1;
         CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr);
         seteab(temp);
@@ -192,6 +193,7 @@ static int opMOV_b_imm_a32(uint32_t fetchdat)
 {
         uint8_t temp;
         fetch_ea_32(fetchdat);
+	ILLEGAL_ON((rmdat & 0x38) != 0);
         temp = getbyte();               if (cpu_state.abrt) return 1;
         seteab(temp);
         CLOCK_CYCLES(timing_rr);
@@ -203,6 +205,7 @@ static int opMOV_w_imm_a16(uint32_t fetchdat)
 {
         uint16_t temp;
         fetch_ea_16(fetchdat);
+	ILLEGAL_ON((rmdat & 0x38) != 0);
         temp = getword();               if (cpu_state.abrt) return 1;
         seteaw(temp);
         CLOCK_CYCLES(timing_rr);
@@ -213,6 +216,7 @@ static int opMOV_w_imm_a32(uint32_t fetchdat)
 {
         uint16_t temp;
         fetch_ea_32(fetchdat);
+	ILLEGAL_ON((rmdat & 0x38) != 0);
         temp = getword();               if (cpu_state.abrt) return 1;
         seteaw(temp);
         CLOCK_CYCLES(timing_rr);
@@ -223,6 +227,7 @@ static int opMOV_l_imm_a16(uint32_t fetchdat)
 {
         uint32_t temp;
         fetch_ea_16(fetchdat);
+	ILLEGAL_ON((rmdat & 0x38) != 0);
         temp = getlong();               if (cpu_state.abrt) return 1;
         seteal(temp);
         CLOCK_CYCLES(timing_rr);
@@ -233,6 +238,7 @@ static int opMOV_l_imm_a32(uint32_t fetchdat)
 {
         uint32_t temp;
         fetch_ea_32(fetchdat);
+	ILLEGAL_ON((rmdat & 0x38) != 0);
         temp = getlong();               if (cpu_state.abrt) return 1;
         seteal(temp);
         CLOCK_CYCLES(timing_rr);
@@ -243,8 +249,9 @@ static int opMOV_l_imm_a32(uint32_t fetchdat)
 
 static int opMOV_AL_a16(uint32_t fetchdat)
 {
+	uint8_t temp;
         uint16_t addr = getwordf();
-        uint8_t temp = readmemb(cpu_state.ea_seg->base, addr);      if (cpu_state.abrt) return 1;
+        temp = readmemb(cpu_state.ea_seg->base, addr);      if (cpu_state.abrt) return 1;
         AL = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         PREFETCH_RUN(4, 3, -1, 1,0,0,0, 0);
@@ -252,8 +259,9 @@ static int opMOV_AL_a16(uint32_t fetchdat)
 }
 static int opMOV_AL_a32(uint32_t fetchdat)
 {
+	uint8_t temp;
         uint32_t addr = getlong();
-        uint8_t temp = readmemb(cpu_state.ea_seg->base, addr);      if (cpu_state.abrt) return 1;
+        temp = readmemb(cpu_state.ea_seg->base, addr);      if (cpu_state.abrt) return 1;
         AL = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         PREFETCH_RUN(4, 5, -1, 1,0,0,0, 1);
@@ -261,8 +269,9 @@ static int opMOV_AL_a32(uint32_t fetchdat)
 }
 static int opMOV_AX_a16(uint32_t fetchdat)
 {
+	uint16_t temp;
         uint16_t addr = getwordf();
-        uint16_t temp = readmemw(cpu_state.ea_seg->base, addr);     if (cpu_state.abrt) return 1;
+        temp = readmemw(cpu_state.ea_seg->base, addr);     if (cpu_state.abrt) return 1;
         AX = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         PREFETCH_RUN(4, 3, -1, 1,0,0,0, 0);
@@ -270,8 +279,9 @@ static int opMOV_AX_a16(uint32_t fetchdat)
 }
 static int opMOV_AX_a32(uint32_t fetchdat)
 {
+	uint16_t temp;
         uint32_t addr = getlong();
-        uint16_t temp = readmemw(cpu_state.ea_seg->base, addr);     if (cpu_state.abrt) return 1;
+        temp = readmemw(cpu_state.ea_seg->base, addr);     if (cpu_state.abrt) return 1;
         AX = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         PREFETCH_RUN(4, 5, -1, 1,0,0,0, 1);
@@ -279,8 +289,9 @@ static int opMOV_AX_a32(uint32_t fetchdat)
 }
 static int opMOV_EAX_a16(uint32_t fetchdat)
 {
+	uint32_t temp;
         uint16_t addr = getwordf();
-        uint32_t temp = readmeml(cpu_state.ea_seg->base, addr);     if (cpu_state.abrt) return 1;
+        temp = readmeml(cpu_state.ea_seg->base, addr);     if (cpu_state.abrt) return 1;
         EAX = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         PREFETCH_RUN(4, 3, -1, 0,1,0,0, 0);
@@ -288,8 +299,9 @@ static int opMOV_EAX_a16(uint32_t fetchdat)
 }
 static int opMOV_EAX_a32(uint32_t fetchdat)
 {
+	uint32_t temp;
         uint32_t addr = getlong();
-        uint32_t temp = readmeml(cpu_state.ea_seg->base, addr);     if (cpu_state.abrt) return 1;
+        temp = readmeml(cpu_state.ea_seg->base, addr);     if (cpu_state.abrt) return 1;
         EAX = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         PREFETCH_RUN(4, 5, -1, 0,1,0,0, 1);
@@ -349,7 +361,7 @@ static int opMOV_a32_EAX(uint32_t fetchdat)
 static int opLEA_w_a16(uint32_t fetchdat)
 {
         fetch_ea_16(fetchdat);
-        // ILLEGAL_ON(cpu_mod == 3);
+        /* ILLEGAL_ON(cpu_mod == 3); */
         cpu_state.regs[cpu_reg].w = (cpu_mod == 3) ? (cpu_state.last_ea & 0xffff) : cpu_state.eaaddr;
         CLOCK_CYCLES(timing_rr);
         PREFETCH_RUN(timing_rr, 2, rmdat, 0,0,0,0, 0);
@@ -358,7 +370,7 @@ static int opLEA_w_a16(uint32_t fetchdat)
 static int opLEA_w_a32(uint32_t fetchdat)
 {
         fetch_ea_32(fetchdat);
-        // ILLEGAL_ON(cpu_mod == 3);
+        /* ILLEGAL_ON(cpu_mod == 3); */
         cpu_state.regs[cpu_reg].w = (cpu_mod == 3) ? (cpu_state.last_ea & 0xffff) : cpu_state.eaaddr;
         CLOCK_CYCLES(timing_rr);
         PREFETCH_RUN(timing_rr, 2, rmdat, 0,0,0,0, 1);
@@ -368,7 +380,7 @@ static int opLEA_w_a32(uint32_t fetchdat)
 static int opLEA_l_a16(uint32_t fetchdat)
 {
         fetch_ea_16(fetchdat);
-        // ILLEGAL_ON(cpu_mod == 3);
+        /* ILLEGAL_ON(cpu_mod == 3); */
         cpu_state.regs[cpu_reg].l = ((cpu_mod == 3) ? cpu_state.last_ea : cpu_state.eaaddr) & 0xffff;
         CLOCK_CYCLES(timing_rr);
         PREFETCH_RUN(timing_rr, 2, rmdat, 0,0,0,0, 0);
@@ -377,7 +389,7 @@ static int opLEA_l_a16(uint32_t fetchdat)
 static int opLEA_l_a32(uint32_t fetchdat)
 {
         fetch_ea_32(fetchdat);
-        // ILLEGAL_ON(cpu_mod == 3);
+        /* ILLEGAL_ON(cpu_mod == 3); */
         cpu_state.regs[cpu_reg].l = (cpu_mod == 3) ? cpu_state.last_ea : cpu_state.eaaddr;
         CLOCK_CYCLES(timing_rr);
         PREFETCH_RUN(timing_rr, 2, rmdat, 0,0,0,0, 1);

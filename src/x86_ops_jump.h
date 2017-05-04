@@ -246,9 +246,11 @@ static int opJMP_r32(uint32_t fetchdat)
 
 static int opJMP_far_a16(uint32_t fetchdat)
 {
-        uint16_t addr = getwordf();
-        uint16_t seg = getword();                       if (cpu_state.abrt) return 1;
-        uint32_t oxpc = cpu_state.pc;
+	uint16_t addr, seg;
+	uint32_t oxpc;
+        addr = getwordf();
+        seg = getword();                       if (cpu_state.abrt) return 1;
+        oxpc = cpu_state.pc;
         cpu_state.pc = addr;
         loadcsjmp(seg, oxpc);
         CPU_BLOCK_END();
@@ -258,9 +260,11 @@ static int opJMP_far_a16(uint32_t fetchdat)
 }
 static int opJMP_far_a32(uint32_t fetchdat)
 {
-        uint32_t addr = getlong();
-        uint16_t seg = getword();                       if (cpu_state.abrt) return 1;
-        uint32_t oxpc = cpu_state.pc;
+	uint16_t seg;
+	uint32_t addr, oxpc;
+        addr = getlong();
+        seg = getword();                       if (cpu_state.abrt) return 1;
+        oxpc = cpu_state.pc;
         cpu_state.pc = addr;
         loadcsjmp(seg, oxpc);
         CPU_BLOCK_END();
@@ -321,8 +325,8 @@ static int opRET_l(uint32_t fetchdat)
 
 static int opRET_w_imm(uint32_t fetchdat)
 {
-        uint16_t offset = getwordf();
         uint16_t ret;
+        uint16_t offset = getwordf();
 
         ret = POP_W();                          if (cpu_state.abrt) return 1;
         if (stack32) ESP += offset;
@@ -337,8 +341,8 @@ static int opRET_w_imm(uint32_t fetchdat)
 }
 static int opRET_l_imm(uint32_t fetchdat)
 {
-        uint16_t offset = getwordf();
         uint32_t ret;
+        uint16_t offset = getwordf();
 
         ret = POP_L();                          if (cpu_state.abrt) return 1;
         if (stack32) ESP += offset;

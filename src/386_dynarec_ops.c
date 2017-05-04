@@ -1,3 +1,7 @@
+#include <math.h>
+#ifndef INFINITY
+# define INFINITY   (__builtin_inff())
+#endif
 #include "ibm.h"
 #include "cpu.h"
 #include "x86.h"
@@ -6,6 +10,7 @@
 #include "x86_flags.h"
 #include "mem.h"
 #include "codegen.h"
+#include "pic.h"
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 
@@ -15,7 +20,7 @@
 extern uint16_t *mod1add[2][8];
 extern uint32_t *mod1seg[8];
 
-static inline void fetch_ea_32_long(uint32_t rmdat)
+static __inline void fetch_ea_32_long(uint32_t rmdat)
 {
         eal_r = eal_w = NULL;
         easeg = cpu_state.ea_seg->base;
@@ -31,7 +36,7 @@ static inline void fetch_ea_32_long(uint32_t rmdat)
 	cpu_state.last_ea = cpu_state.eaaddr;
 }
 
-static inline void fetch_ea_16_long(uint32_t rmdat)
+static __inline void fetch_ea_16_long(uint32_t rmdat)
 {
         eal_r = eal_w = NULL;
         easeg = cpu_state.ea_seg->base;

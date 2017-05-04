@@ -9,13 +9,19 @@
 #include "ibm.h"
 #include "config.h"
 #include "device.h"
-#include "resources.h"
+#include "plat-midi.h"
+#include "resource.h"
 #include "win.h"
 
 static device_t *config_device;
 
 static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	HWND h;
+	int val_int;
+	int num;
+	char s[80];
+
         switch (message)
         {
                 case WM_INITDIALOG:
@@ -27,11 +33,7 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                         while (config->type != -1)
                         {
                                 device_config_selection_t *selection = config->selection;
-                                HWND h = GetDlgItem(hdlg, id);
-                                int val_int;
-                                char *val_string;
-                                int num;
-                                char s[80];
+                                h = GetDlgItem(hdlg, id);
                                 
                                 switch (config->type)
                                 {
@@ -92,9 +94,7 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                 while (config->type != -1)
                                 {
                                         device_config_selection_t *selection = config->selection;
-                                        HWND h = GetDlgItem(hdlg, id);
-                                        int val_int;
-                                        char *val_string;
+                                        h = GetDlgItem(hdlg, id);
                                 
                                         switch (config->type)
                                         {
@@ -153,9 +153,7 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                 while (config->type != -1)
                                 {
                                         device_config_selection_t *selection = config->selection;
-                                        HWND h = GetDlgItem(hdlg, id);
-                                        int val_int;
-                                        char *val_string;
+                                        h = GetDlgItem(hdlg, id);
                                 
                                         switch (config->type)
                                         {
@@ -247,11 +245,11 @@ void deviceconfig_open(HWND hwnd, device_t *device)
 
                         data = (uint16_t *)(item + 1);
                         *data++ = 0xFFFF;
-                        *data++ = 0x0080;    // button class
+                        *data++ = 0x0080;    /* button class */
 
                         data += MultiByteToWideChar(CP_ACP, 0, config->description, -1, data, 256);
-                        *data++ = 0;              // no creation data
-                        
+                        *data++ = 0;              /* no creation data */
+
                         y += 20;
                         break;
 
@@ -270,10 +268,10 @@ void deviceconfig_open(HWND hwnd, device_t *device)
 
                         data = (uint16_t *)(item + 1);
                         *data++ = 0xFFFF;
-                        *data++ = 0x0085;    // combo box class
+                        *data++ = 0x0085;    /* combo box class */
 
                         data += MultiByteToWideChar(CP_ACP, 0, config->description, -1, data, 256);
-                        *data++ = 0;              // no creation data
+                        *data++ = 0;              /* no creation data */
                         
                         if (((unsigned long)data) & 2)
                                 data++;
@@ -291,10 +289,10 @@ void deviceconfig_open(HWND hwnd, device_t *device)
 
                         data = (uint16_t *)(item + 1);
                         *data++ = 0xFFFF;
-                        *data++ = 0x0082;    // static class
+                        *data++ = 0x0082;    /* static class */
 
                         data += MultiByteToWideChar(CP_ACP, 0, config->description, -1, data, 256);
-                        *data++ = 0;              // no creation data
+                        *data++ = 0;              /* no creation data */
                         
                         if (((unsigned long)data) & 2)
                                 data++;
@@ -311,23 +309,20 @@ void deviceconfig_open(HWND hwnd, device_t *device)
 
         dlg->cdit = (id - IDC_CONFIG_BASE) + 2;
 
-//    DEFPUSHBUTTON   "OK",IDOK,64,232,50,14, WS_TABSTOP
-//    PUSHBUTTON      "Cancel",IDCANCEL,128,232,50,14, WS_TABSTOP
-
         item = (DLGITEMTEMPLATE *)data;
         item->x = 20;
         item->y = y;
         item->cx = 50;
         item->cy = 14;
-        item->id = IDOK;  // OK button identifier
+        item->id = IDOK;  /* OK button identifier */
         item->style = WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON;
 
         data = (uint16_t *)(item + 1);
         *data++ = 0xFFFF;
-        *data++ = 0x0080;    // button class
+        *data++ = 0x0080;    /* button class */
 
         data += MultiByteToWideChar(CP_ACP, 0, "OK", -1, data, 50);
-        *data++ = 0;              // no creation data
+        *data++ = 0;              /* no creation data */
 
         if (((unsigned long)data) & 2)
                 data++;
@@ -337,15 +332,15 @@ void deviceconfig_open(HWND hwnd, device_t *device)
         item->y = y;
         item->cx = 50;
         item->cy = 14;
-        item->id = IDCANCEL;  // OK button identifier
+        item->id = IDCANCEL;  /* OK button identifier */
         item->style = WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON;
 
         data = (uint16_t *)(item + 1);
         *data++ = 0xFFFF;
-        *data++ = 0x0080;    // button class
+        *data++ = 0x0080;    /* button class */
 
         data += MultiByteToWideChar(CP_ACP, 0, "Cancel", -1, data, 50);
-        *data++ = 0;              // no creation data
+        *data++ = 0;              /* no creation data */
 
         dlg->cy = y + 20;
         

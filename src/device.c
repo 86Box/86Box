@@ -112,6 +112,8 @@ char *device_add_status_info(char *s, int max_len)
                                 devices[c]->add_status_info(s, max_len, device_priv[c]);
                 }
         }
+
+	return NULL;
 }
 
 int device_get_config_int(char *s)

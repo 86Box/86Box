@@ -1,5 +1,6 @@
 #include "ibm.h"
 #include "io.h"
+#include "plat-midi.h"
 #include "sound_mpu401_uart.h"
 
 enum

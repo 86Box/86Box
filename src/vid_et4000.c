@@ -46,8 +46,6 @@ void et4000_out(uint16_t addr, uint8_t val, void *p)
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout & 1)) 
                 addr ^= 0x60;
 
-//        pclog("ET4000 out %04X %02X\n", addr, val);
-
         switch (addr)
         {
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
@@ -58,13 +56,11 @@ void et4000_out(uint16_t addr, uint8_t val, void *p)
                 svga->write_bank = (val & 0xf) * 0x10000;
                 svga->read_bank = ((val >> 4) & 0xf) * 0x10000;
                 et4000->banking = val;
-//                pclog("Banking write %08X %08X %02X\n", svga->write_bank, svga->read_bank, val);
                 return;
                 case 0x3D4:
                 svga->crtcreg = val & 0x3f;
                 return;
                 case 0x3D5:
-		// pclog("ET4000 Write: CRTC %02X = %02X\n", svga->crtcreg, val);
                 if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
                         return;
                 if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
@@ -92,9 +88,7 @@ uint8_t et4000_in(uint16_t addr, void *p)
 
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout & 1)) 
                 addr ^= 0x60;
-        
-//        if (addr != 0x3da) pclog("IN ET4000 %04X\n", addr);
-        
+
         switch (addr)
         {
                 case 0x3C5:
@@ -116,8 +110,6 @@ uint8_t et4000_in(uint16_t addr, void *p)
 
 void et4000_recalctimings(svga_t *svga)
 {
-        et4000_t *et4000 = (et4000_t *)svga->p;
-
         svga->ma_latch |= (svga->crtc[0x33]&3)<<16;
         if (svga->crtc[0x35] & 1)    svga->vblankstart += 0x400;
         if (svga->crtc[0x35] & 2)    svga->vtotal += 0x400;
@@ -127,8 +119,6 @@ void et4000_recalctimings(svga_t *svga)
         if (!svga->rowoffset)        svga->rowoffset = 0x100;
         if (svga->crtc[0x3f] & 1)    svga->htotal += 256;
         if (svga->attrregs[0x16] & 0x20) svga->hdisp <<= 1;
-
-//        pclog("Rowoffset %i\n",svga_rowoffset);
 
         switch (((svga->miscout >> 2) & 3) | ((svga->crtc[0x34] << 1) & 4))
         {

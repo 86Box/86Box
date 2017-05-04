@@ -46,14 +46,11 @@ static void ali1429_recalc()
 
 void ali1429_write(uint16_t port, uint8_t val, void *priv)
 {
-        int c;
-        
         if (!(port & 1)) 
                 ali1429_index = val;
         else
         {
                 ali1429_regs[ali1429_index] = val;
-//                pclog("ALI1429 write %02X %02X %04X:%04X %i\n",ali1429_index,val,CS,pc,ins);
                 switch (ali1429_index)
                 {
                         case 0x13:

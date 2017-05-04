@@ -2,7 +2,7 @@ static uint32_t ropINC_rw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
 {
         int host_reg;
         
-        CALL_FUNC(flags_rebuild_c);
+        CALL_FUNC((void *) flags_rebuild_c);
         
         host_reg = LOAD_REG_W(opcode & 7);
         
@@ -21,7 +21,7 @@ static uint32_t ropINC_rl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
 {
         int host_reg;
 
-        CALL_FUNC(flags_rebuild_c);
+        CALL_FUNC((void *) flags_rebuild_c);
         
         host_reg = LOAD_REG_L(opcode & 7);
         
@@ -40,7 +40,7 @@ static uint32_t ropDEC_rw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
 {
         int host_reg;
         
-        CALL_FUNC(flags_rebuild_c);
+        CALL_FUNC((void *) flags_rebuild_c);
 
         host_reg = LOAD_REG_W(opcode & 7);
         
@@ -59,7 +59,7 @@ static uint32_t ropDEC_rl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
 {
         int host_reg;
         
-        CALL_FUNC(flags_rebuild_c);
+        CALL_FUNC((void *) flags_rebuild_c);
 
         host_reg = LOAD_REG_L(opcode & 7);
         

@@ -93,28 +93,23 @@ void pollgusirqs(gus_t *gus)
         {
                 if (gus->waveirqs[c])
                 {
-//                        gus->waveirqs[c]=0;
                         gus->irqstatus2=0x60|c;
                         if (gus->rampirqs[c]) gus->irqstatus2 |= 0x80;
                         gus->irqstatus|=0x20;
-//                        printf("Voice IRQ %i %02X %i\n",c,gus->irqstatus2,ins);
                         if (gus->irq != -1)
                                 picint(1 << gus->irq);
                         return;
                 }
                 if (gus->rampirqs[c])
                 {
-//                        gus->rampirqs[c]=0;
                         gus->irqstatus2=0xA0|c;
                         gus->irqstatus|=0x40;
-//                        printf("Ramp IRQ %i %02X %i\n",c,gus->irqstatus2,ins);
                         if (gus->irq != -1)
                                 picint(1 << gus->irq);
                         return;
                 }
         }
         gus->irqstatus2=0xE0;
-//        gus->irqstatus&=~0x20;
         if (!gus->irqstatus && gus->irq != -1) picintc(1 << gus->irq);
 }
 
@@ -164,7 +159,6 @@ void gus_midi_update_int_status(gus_t *gus)
 
         if ((gus->midi_status & MIDI_INT_MASTER) && (gus->irq_midi != -1))
         {
-//                pclog("Take MIDI IRQ\n");
                 picint(1 << gus->irq_midi);
         }
 }
@@ -174,7 +168,6 @@ void writegus(uint16_t addr, uint8_t val, void *p)
         gus_t *gus = (gus_t *)p;
         int c, d;
         int old;
-//        pclog("Write GUS %04X %02X %04X:%04X\n",addr,val,CS,pc);
         if (gus->latch_enable && addr != 0x24b)
                 gus->latch_enable = 0;
         switch (addr)
@@ -188,7 +181,6 @@ void writegus(uint16_t addr, uint8_t val, void *p)
                 else if ((old & 3) == 3)
                 {
                         gus->midi_status |= MIDI_INT_TRANSMIT;
-//                        pclog("MIDI_INT_TRANSMIT\n");
                 }                
                 gus_midi_update_int_status(gus);
                 break;
@@ -210,11 +202,9 @@ void writegus(uint16_t addr, uint8_t val, void *p)
                 gus->global=val;
                 break;
                 case 0x344: /*Global low*/
-//                if (gus->global!=0x43 && gus->global!=0x44) printf("Writing register %02X %02X %02X %i\n",gus->global,gus->voice,val, ins);
                 switch (gus->global)
                 {
                         case 0: /*Voice control*/
-//                        if (val&1 && !(gus->ctrl[gus->voice]&1)) printf("Voice on %i\n",gus->voice);
                         gus->ctrl[gus->voice]=val;
                         break;
                         case 1: /*Frequency control*/
@@ -223,41 +213,32 @@ void writegus(uint16_t addr, uint8_t val, void *p)
                         case 2: /*Start addr high*/
                         gus->startx[gus->voice]=(gus->startx[gus->voice]&0xF807F)|(val<<7);
                         gus->start[gus->voice]=(gus->start[gus->voice]&0x1F00FFFF)|(val<<16);
-//                        printf("Write %i start %08X %08X\n",gus->voice,gus->start[gus->voice],gus->startx[gus->voice]);
                         break;
                         case 3: /*Start addr low*/
                         gus->start[gus->voice]=(gus->start[gus->voice]&0x1FFFFF00)|val;
-//                        printf("Write %i start %08X %08X\n",gus->voice,gus->start[gus->voice],gus->startx[gus->voice]);
                         break;
                         case 4: /*End addr high*/
                         gus->endx[gus->voice]=(gus->endx[gus->voice]&0xF807F)|(val<<7);
                         gus->end[gus->voice]=(gus->end[gus->voice]&0x1F00FFFF)|(val<<16);
-//                        printf("Write %i end %08X %08X\n",gus->voice,gus->end[gus->voice],gus->endx[gus->voice]);
                         break;
                         case 5: /*End addr low*/
                         gus->end[gus->voice]=(gus->end[gus->voice]&0x1FFFFF00)|val;
-//                        printf("Write %i end %08X %08X\n",gus->voice,gus->end[gus->voice],gus->endx[gus->voice]);
                         break;
 
                         case 0x6: /*Ramp frequency*/
                         gus->rfreq[gus->voice] = (int)( (double)((val & 63)*512)/(double)(1 << (3*(val >> 6))));
-//                        printf("RFREQ %02X %i %i %f\n",val,gus->voice,gus->rfreq[gus->voice],(double)(val & 63)/(double)(1 << (3*(val >> 6))));
                         break;
 
                         case 0x9: /*Current volume*/
                         gus->curvol[gus->voice] = gus->rcur[gus->voice] = (gus->rcur[gus->voice] & ~(0xff << 6)) | (val << 6);
-//                        printf("Vol %i is %04X\n",gus->voice,gus->curvol[gus->voice]);
                         break;
 
                         case 0xA: /*Current addr high*/
                         gus->cur[gus->voice]=(gus->cur[gus->voice]&0x1F00FFFF)|(val<<16);
 gus->curx[gus->voice]=(gus->curx[gus->voice]&0xF807F00)|((val<<7)<<8);
-//                      gus->cur[gus->voice]=(gus->cur[gus->voice]&0x0F807F00)|((val<<7)<<8);
-//                        printf("Write %i cur %08X\n",gus->voice,gus->cur[gus->voice],gus->curx[gus->voice]);
                         break;
                         case 0xB: /*Current addr low*/
                         gus->cur[gus->voice]=(gus->cur[gus->voice]&0x1FFFFF00)|val;
-//                        printf("Write %i cur %08X\n",gus->voice,gus->cur[gus->voice],gus->curx[gus->voice]);
                         break;
 
                         case 0x42: /*DMA address low*/
@@ -268,21 +249,16 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xF807F00)|((val<<7)<<8);
                         gus->addr=(gus->addr&0xFFF00)|val;
                         break;
                         case 0x45: /*Timer control*/
-//                        printf("Timer control %02X\n",val);
                         gus->tctrl=val;
                         break;
                 }
                 break;
                 case 0x345: /*Global high*/
-//                if (gus->global!=0x43 && gus->global!=0x44) printf("HWriting register %02X %02X %02X %04X:%04X %i %X\n",gus->global,gus->voice,val,CS,pc, ins, gus->rcur[1] >> 10);
                 switch (gus->global)
                 {
                         case 0: /*Voice control*/
                         if (!(val&1) && gus->ctrl[gus->voice]&1)
                         {
-//                                printf("Voice on %i - start %05X end %05X freq %04X\n",gus->voice,gus->start[gus->voice],gus->end[gus->voice],gus->freq[gus->voice]);
-//                                if (val&0x40) gus->cur[gus->voice]=gus->end[gus->voice]<<8;
-//                                else          gus->cur[gus->voice]=gus->start[gus->voice]<<8;
                         }
 
                         gus->ctrl[gus->voice] = val & 0x7f;
@@ -298,52 +274,40 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xF807F00)|((val<<7)<<8);
                         case 2: /*Start addr high*/
                         gus->startx[gus->voice]=(gus->startx[gus->voice]&0x07FFF)|(val<<15);
                         gus->start[gus->voice]=(gus->start[gus->voice]&0x00FFFFFF)|((val&0x1F)<<24);
-//                        printf("Write %i start %08X %08X %02X\n",gus->voice,gus->start[gus->voice],gus->startx[gus->voice],val);
                         break;
                         case 3: /*Start addr low*/
                         gus->startx[gus->voice]=(gus->startx[gus->voice]&0xFFF80)|(val&0x7F);
                         gus->start[gus->voice]=(gus->start[gus->voice]&0x1FFF00FF)|(val<<8);
-//                        printf("Write %i start %08X %08X\n",gus->voice,gus->start[gus->voice],gus->startx[gus->voice]);
                         break;
                         case 4: /*End addr high*/
                         gus->endx[gus->voice]=(gus->endx[gus->voice]&0x07FFF)|(val<<15);
                         gus->end[gus->voice]=(gus->end[gus->voice]&0x00FFFFFF)|((val&0x1F)<<24);
-//                        printf("Write %i end %08X %08X %02X\n",gus->voice,gus->end[gus->voice],gus->endx[gus->voice],val);
                         break;
                         case 5: /*End addr low*/
                         gus->endx[gus->voice]=(gus->endx[gus->voice]&0xFFF80)|(val&0x7F);
                         gus->end[gus->voice]=(gus->end[gus->voice]&0x1FFF00FF)|(val<<8);
-//                        printf("Write %i end %08X %08X\n",gus->voice,gus->end[gus->voice],gus->endx[gus->voice]);
                         break;
 
                         case 0x6: /*Ramp frequency*/
                         gus->rfreq[gus->voice] = (int)( (double)((val & 63) * (1 << 10))/(double)(1 << (3 * (val >> 6))));
-//                        pclog("Ramp freq %02X %i %i %f %i\n", val, gus->voice, gus->rfreq[gus->voice], (double)(val & 63)/(double)(1 << (3*(val >> 6))), ins);
                         break;
                         case 0x7: /*Ramp start*/
                         gus->rstart[gus->voice] = val << 14;
-//                        pclog("Ramp start %04X\n", gus->rstart[gus->voice] >> 10);
                         break;
                         case 0x8: /*Ramp end*/
                         gus->rend[gus->voice] = val << 14;
-//                        pclog("Ramp end %04X\n", gus->rend[gus->voice] >> 10);
                         break;
                         case 0x9: /*Current volume*/
                         gus->curvol[gus->voice] = gus->rcur[gus->voice] = (gus->rcur[gus->voice] & ~(0xff << 14)) | (val << 14);
-//                        printf("Vol %i is %04X\n",gus->voice,gus->curvol[gus->voice]);
                         break;
 
                         case 0xA: /*Current addr high*/
                         gus->cur[gus->voice]=(gus->cur[gus->voice]&0x00FFFFFF)|((val&0x1F)<<24);
                         gus->curx[gus->voice]=(gus->curx[gus->voice]&0x07FFF00)|((val<<15)<<8);
-//                        printf("Write %i cur %08X %08X %02X\n",gus->voice,gus->cur[gus->voice],gus->curx[gus->voice],val);
-//                      gus->cur[gus->voice]=(gus->cur[gus->voice]&0x007FFF00)|((val<<15)<<8);
                         break;
                         case 0xB: /*Current addr low*/
                         gus->cur[gus->voice]=(gus->cur[gus->voice]&0x1FFF00FF)|(val<<8);
 gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
-//                      gus->cur[gus->voice]=(gus->cur[gus->voice]&0x0FFF8000)|((val&0x7F)<<8);
-//                        printf("Write %i cur %08X %08X\n",gus->voice,gus->cur[gus->voice],gus->curx[gus->voice]);
                         break;
                         case 0xC: /*Pan*/
                         gus->pan_l[gus->voice] = 15 - (val & 0xf);
@@ -355,7 +319,6 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                         gus->rampirqs[gus->voice] = ((val & 0xa0) == 0xa0) ? 1 : 0;                        
                         if (gus->rampirqs[gus->voice] != old)
                                 pollgusirqs(gus);
-//                        printf("Ramp control %02i %02X %02X %i\n",gus->voice,val,gus->rampirqs[gus->voice],ins);
                         break;
 
                         case 0xE:
@@ -363,7 +326,6 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                         if (gus->voices>32) gus->voices=32;
                         if (gus->voices<14) gus->voices=14;
                         gus->global=val;
-//                        printf("GUS voices %i\n",val&31);
                         if (gus->voices < 14)
                                 gus->samp_latch = (int)(TIMER_USEC * (1000000.0 / 44100.0));
                         else
@@ -373,7 +335,6 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                         case 0x41: /*DMA*/
                         if (val&1 && gus->dma != -1)
                         {
-//                                printf("DMA start! %05X %02X\n",gus->dmaaddr,val);
                                 if (val & 2)
                                 {
                                         c=0;
@@ -391,7 +352,6 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                                                 if (dma_result & DMA_OVER)
                                                         break;
                                         }
-//                                        printf("GUS->MEM Transferred %i bytes\n",c);
                                         gus->dmactrl=val&~0x40;
                                         if (val&0x20) gus->irqnext=1;
                                 }
@@ -411,11 +371,9 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                                                 if (d & DMA_OVER)
                                                         break;
                                         }
-//                                        printf("MEM->GUS Transferred %i bytes\n",c);
                                         gus->dmactrl=val&~0x40;
                                         if (val&0x20) gus->irqnext=1;
                                 }
-//                                exit(-1);
                         }
                         break;
 
@@ -442,24 +400,16 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                                 gus->ad_status &= ~0x01;
                                 nmi = 0;
                         }
-//                        printf("Timer control %02X\n",val);
-/*                        if ((val&4) && !(gus->tctrl&4))
-                        {
-                                gus->t1=gus->t1l;
-                                gus->t1on=1;
-                        }*/
                         gus->tctrl=val;
                         gus->sb_ctrl = val;
                         break;
                         case 0x46: /*Timer 1*/
                         gus->t1 = gus->t1l = val;
                         gus->t1on = 1;
-//                        printf("GUS timer 1 %i\n",val);
                         break;
                         case 0x47: /*Timer 2*/
                         gus->t2 = gus->t2l = val;
                         gus->t2on = 1;
-//                        printf("GUS timer 2 %i\n",val);
                         break;
                         
                         case 0x4c: /*Reset*/
@@ -469,12 +419,10 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                 break;
                 case 0x347: /*DRAM access*/
                 gus->ram[gus->addr]=val;
-//                pclog("GUS RAM write %05X %02X\n",gus->addr,val);
                 gus->addr&=0xFFFFF;
                 break;
                 case 0x248: case 0x388: 
                 gus->adcommand = val; 
-//                pclog("Setting ad command %02X %02X %p\n", val, gus->adcommand, &gus->adcommand);
                 break;
                 
                 case 0x389:
@@ -541,7 +489,6 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                                 gus->sb_nmi = val & 0x80;
                         }
                         gus->latch_enable = 0;
-//                        pclog("IRQ %i DMA %i\n", gus->irq, gus->dma);
                         break;
                         case 1:
                         gus->gp1 = val;
@@ -601,12 +548,10 @@ uint8_t readgus(uint16_t addr, void *p)
 {
         gus_t *gus = (gus_t *)p;
         uint8_t val;
-//        /*if (addr!=0x246) */printf("Read GUS %04X %04X(%06X):%04X %02X\n",addr,CS,cs,pc,gus->global);
         switch (addr)
         {
                 case 0x340: /*MIDI status*/
                 val = gus->midi_status;
-//                pclog("Read MIDI status %02X\n", val);
                 break;
 
                 case 0x341: /*MIDI data*/
@@ -620,14 +565,12 @@ uint8_t readgus(uint16_t addr, void *p)
                 val = gus->irqstatus & ~0x10;
                 if (gus->ad_status & 0x19)
                         val |= 0x10;
-//                pclog("Read IRQ status %02X\n", val);
                 return val;
 
                 case 0x24F: return 0;
                 case 0x342: return gus->voice;
                 case 0x343: return gus->global;
                 case 0x344: /*Global low*/
-//                /*if (gus->global!=0x43 && gus->global!=0x44) */printf("Reading register %02X %02X\n",gus->global,gus->voice);
                 switch (gus->global)
                 {
                         case 0x82: /*Start addr high*/
@@ -644,7 +587,6 @@ uint8_t readgus(uint16_t addr, void *p)
 
                         case 0x8F: /*IRQ status*/
                         val=gus->irqstatus2;
-//                        pclog("Read IRQ status - %02X\n",val);
                         gus->rampirqs[gus->irqstatus2&0x1F]=0;
                         gus->waveirqs[gus->irqstatus2&0x1F]=0;
                         pollgusirqs(gus);
@@ -656,17 +598,12 @@ uint8_t readgus(uint16_t addr, void *p)
                         case 0x0c: case 0x0d: case 0x0e: case 0x0f:
                         val = 0xff;
                         break;
-                        
-//                        default:
-//                        fatal("Bad GUS global low read %02X\n",gus->global);
                 }
                 break;
                 case 0x345: /*Global high*/
-//                /*if (gus->global!=0x43 && gus->global!=0x44) */printf("HReading register %02X %02X\n",gus->global,gus->voice);
                 switch (gus->global)
                 {
                         case 0x80: /*Voice control*/
-//                        pclog("Read voice control %02i %02X\n", gus->voice, gus->ctrl[gus->voice]|(gus->waveirqs[gus->voice]?0x80:0));
                         return gus->ctrl[gus->voice]|(gus->waveirqs[gus->voice]?0x80:0);
 
                         case 0x82: /*Start addr high*/
@@ -675,7 +612,6 @@ uint8_t readgus(uint16_t addr, void *p)
                         return gus->start[gus->voice]>>8;
 
                         case 0x89: /*Current volume*/
-//                        pclog("Read current volume %i\n", gus->rcur[gus->voice] >> 14);
                         return gus->rcur[gus->voice]>>14;
 
                         case 0x8A: /*Current addr high*/
@@ -687,16 +623,13 @@ uint8_t readgus(uint16_t addr, void *p)
                         return gus->pan_r[gus->voice];
 
                         case 0x8D:
-//                        pclog("Read ramp control %02X %04X %08X  %08X %08X\n",gus->rctrl[gus->voice]|(gus->rampirqs[gus->voice]?0x80:0),gus->rcur[gus->voice] >> 14,gus->rfreq[gus->voice],gus->rstart[gus->voice],gus->rend[gus->voice]);
                         return gus->rctrl[gus->voice]|(gus->rampirqs[gus->voice]?0x80:0);
 
                         case 0x8F: /*IRQ status*/
-//                        pclog("Read IRQ 1\n");
                         val=gus->irqstatus2;
                         gus->rampirqs[gus->irqstatus2&0x1F]=0;
                         gus->waveirqs[gus->irqstatus2&0x1F]=0;
                         pollgusirqs(gus);
-//                        pclog("Read IRQ status - %02X  %i %i\n",val, gus->waveirqs[gus->irqstatus2&0x1F], gus->rampirqs[gus->irqstatus2&0x1F]);
                         return val;
 
                         case 0x41: /*DMA control*/
@@ -714,15 +647,11 @@ uint8_t readgus(uint16_t addr, void *p)
                         case 0x0c: case 0x0d: case 0x0e: case 0x0f:
                         val = 0xff;
                         break;
-                        
-//                        default:
-//                        fatal("Bad GUS global high read %02X\n",gus->global);
                 }                
                 break;
                 case 0x346: return 0xff;
                 case 0x347: /*DRAM access*/
                 val=gus->ram[gus->addr];
-//                pclog("GUS RAM read %05X %02X\n",gus->addr,val);
                 gus->addr&=0xFFFFF;
                 return val;
                 case 0x349: return 0;
@@ -753,19 +682,9 @@ uint8_t readgus(uint16_t addr, void *p)
                         gus->sb_2xc &= 0x80;
                 break;
                 case 0x24e:
-/*                gus->ad_status |= 0x10;
-                if (gus->reg_ctrl & 0x80)
-                {
-                        gus->reg_ctrl_r |= 0x80;
-                        if (gus->sb_nmi)
-                                nmi = 1;
-                        else
-                                picint(1 << gus->irq);
-                }*/
                 return gus->sb_2xe;
                 
                 case 0x248: case 0x388:
-//                pclog("Read ad_status %02X\n", gus->ad_status);
                 if (gus->tctrl & GUS_TIMER_CTRL_AUTO)
                         val = gus->sb_2xa;
                 else
@@ -785,12 +704,9 @@ uint8_t readgus(uint16_t addr, void *p)
                 
                 case 0x24A:
                 val = gus->adcommand;
-//                pclog("Read ad command %02X %02X %p\n", gus->adcommand, val, &gus->adcommand);
                 break;
 
         }
-//        printf("Bad GUS read %04X! %02X\n",addr,gus->global);
-//        exit(-1);
         return val;
 }
 
@@ -799,13 +715,11 @@ void gus_poll_timer_1(void *p)
         gus_t *gus = (gus_t *)p;
         
 	gus->timer_1 += (TIMER_USEC * 80);
-//	pclog("gus_poll_timer_1 %i %i  %i %i %02X\n", gustime, gus->t1on, gus->t1, gus->t1l, gus->tctrl);
         if (gus->t1on)
         {
                 gus->t1++;
                 if (gus->t1 > 0xFF)
                 {                        
-//                        gus->t1on=0;
                         gus->t1=gus->t1l;
                         gus->ad_status |= 0x40;
                         if (gus->tctrl&4)
@@ -814,13 +728,11 @@ void gus_poll_timer_1(void *p)
                                         picint(1 << gus->irq);
                                 gus->ad_status |= 0x04;
                                 gus->irqstatus |= 0x04;
-//                                pclog("GUS T1 IRQ!\n");
                         }
                 }
         }
         if (gus->irqnext)
         {
-//                pclog("Take IRQ\n");
                 gus->irqnext=0;
                 gus->irqstatus|=0x80;
                 if (gus->irq != -1)
@@ -834,13 +746,11 @@ void gus_poll_timer_2(void *p)
         gus_t *gus = (gus_t *)p;
         
 	gus->timer_2 += (TIMER_USEC * 320);
-//	pclog("pollgus2 %i %i  %i %i %02X\n", gustime, gus->t2on, gus->t2, gus->t2l, gus->tctrl);
         if (gus->t2on)
         {
                 gus->t2++;
                 if (gus->t2 > 0xFF)
                 {                        
-//                        gus->t2on=0;
                         gus->t2=gus->t2l;
                         gus->ad_status |= 0x20;
                         if (gus->tctrl&8)
@@ -849,13 +759,11 @@ void gus_poll_timer_2(void *p)
                                         picint(1 << gus->irq);
                                 gus->ad_status |= 0x02;
                                 gus->irqstatus |= 0x08;
-//                                pclog("GUS T2 IRQ!\n");
                         }
                 }
         }
         if (gus->irqnext)
         {
-//                pclog("Take IRQ\n");
                 gus->irqnext=0;
                 gus->irqstatus|=0x80;
                 if (gus->irq != -1)
@@ -899,7 +807,6 @@ void gus_poll_wave(void *p)
 
         if ((gus->reset & 3) != 3)
                 return;
-//pclog("gus_poll_wave\n");        
         for (d=0;d<32;d++)
         {
                 if (!(gus->ctrl[d] & 3))
@@ -929,10 +836,8 @@ void gus_poll_wave(void *p)
                                         v = (int16_t)(int8_t)((gus->ram[(gus->cur[d] >> 9) & 0xFFFFF] ^ 0x80) - 0x80);
                         }
 
-//                        pclog("Voice %i : %04X %05X %04X ", d, v, gus->cur[d] >> 9, gus->rcur[d] >> 10);
                         if ((gus->rcur[d] >> 14) > 4095) v = (int16_t)(float)(v) * 24.0 * vol16bit[4095];
                         else                            v = (int16_t)(float)(v) * 24.0 * vol16bit[(gus->rcur[d]>>10) & 4095];
-//                        pclog("%f %04X\n", vol16bit[(gus->rcur[d]>>10) & 4095], v);
 
                         gus->out_l += (v * gus->pan_l[d]) / 7;
                         gus->out_r += (v * gus->pan_r[d]) / 7;
@@ -959,7 +864,6 @@ void gus_poll_wave(void *p)
                                         {
                                                 gus->waveirqs[d] = 1;
                                                 update_irqs = 1;
-//                                                pclog("Causing wave IRQ %02X %i\n", gus->ctrl[d], d);
                                         }
                                 }
                         }
@@ -986,7 +890,6 @@ void gus_poll_wave(void *p)
                                         {
                                                 gus->waveirqs[d] = 1;
                                                 update_irqs = 1;
-//                                                pclog("Causing wave IRQ %02X %i\n", gus->ctrl[d], d);
                                         }
                                 }
                         }
@@ -1014,14 +917,12 @@ void gus_poll_wave(void *p)
                                         {
                                                 gus->rampirqs[d] = 1;
                                                 update_irqs = 1;
-//                                                pclog("Causing ramp IRQ %02X %i\n",gus->rctrl[d], d);
                                         }
                                 }
                         }
                         else
                         {
                                 gus->rcur[d] += gus->rfreq[d];
-//                                        if (d == 1) printf("RCUR+ %i %08X %08X %08X %08X\n",d,gus->rfreq[d],gus->rcur[d],gus->rstart[d],gus->rend[d]);
                                 if (gus->rcur[d] >= gus->rend[d])
                                 {
                                         int diff = gus->rcur[d] - gus->rend[d];
@@ -1040,7 +941,6 @@ void gus_poll_wave(void *p)
                                         {
                                                 gus->rampirqs[d] = 1;
                                                 update_irqs = 1;
-//                                                        pclog("Causing ramp IRQ %02X %i\n",gus->rctrl[d], d);
                                         }
                                 }
                         }
@@ -1087,7 +987,7 @@ void *gus_init()
         }
 
 	for (c=4095;c>=0;c--) {
-		vol16bit[c]=out;//(float)c/4095.0;//out;
+		vol16bit[c]=out;
 		out/=1.002709201;		/* 0.0235 dB Steps */
 	}
 

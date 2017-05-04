@@ -1,13 +1,3 @@
-//Quake timedemo demo1 - 8.1FPS
-
-//11A00 - D_SCAlloc
-//11C1C - D_CacheSurface
-
-//36174 - SCR_CalcRefdef
-
-//SCR_CalcRefdef
-//Calls R_SetVrect and R_ViewChanged
-
 #define fplog 0
 
 #include <math.h>

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "video.h"
+#include "win-cgapal.h"
 
 BITMAP *screen;
 

@@ -7,6 +7,7 @@
 #include "ibm.h"
 #include "device.h"
 #include "mem.h"
+#include "io.h"
 #include "timer.h"
 #include "video.h"
 #include "vid_herculesplus.h"
@@ -171,7 +172,6 @@ static void herculesplus_draw_char_rom(herculesplus_t *herculesplus, int x, uint
 	unsigned            val;
 	unsigned	    ifg, ibg;
 	const unsigned char *fnt;
-	uint32_t	    fg, bg;
 	int		    cw = HERCULESPLUS_CW;
 
 	blk = 0;
@@ -248,9 +248,8 @@ static void herculesplus_draw_char_ram4(herculesplus_t *herculesplus, int x, uin
 	int                 elg, blk;
 	unsigned            ull;
 	unsigned            val;
-	unsigned	    ifg, ibg, cfg, pmask, plane;
+	unsigned	    ifg, ibg, cfg;
 	const unsigned char *fnt;
-	uint32_t	    fg;
 	int		    cw = HERCULESPLUS_CW;
 	int                 blink   = herculesplus->ctrl & HERCULESPLUS_CTRL_BLINK;
 
@@ -318,7 +317,6 @@ static void herculesplus_draw_char_ram4(herculesplus_t *herculesplus, int x, uin
 	{
 		/* Generate pixel colour */
 		cfg = 0;
-		pmask = 1;
 		/* cfg = colour of foreground pixels */
 		if ((attr & 0x77) == 0) cfg = ibg; /* 'blank' attribute */
 		
@@ -332,11 +330,10 @@ static void herculesplus_draw_char_ram48(herculesplus_t *herculesplus, int x, ui
 {
 	unsigned            i;
 	int                 elg, blk, ul, ol, bld;
-	unsigned            ull, oll, ulc, olc;
+	unsigned            ull, oll, ulc = 0, olc = 0;
 	unsigned            val;
-	unsigned	    ifg, ibg, cfg, pmask, plane;
+	unsigned	    ibg, cfg;
 	const unsigned char *fnt;
-	uint32_t	    fg;
 	int		    cw = HERCULESPLUS_CW;
 	int                 blink   = herculesplus->ctrl & HERCULESPLUS_CTRL_BLINK;
 	int		    font = (attr & 0x0F);
@@ -452,8 +449,8 @@ static void herculesplus_text_line(herculesplus_t *herculesplus, uint16_t ca)
 
 	for (x = 0; x < herculesplus->crtc[1]; x++)
 	{
-		chr  = herculesplus->vram[(herculesplus->ma << 1) & 0x3fff];
-                attr = herculesplus->vram[((herculesplus->ma << 1) + 1) & 0x3fff];
+		chr  = herculesplus->vram[(herculesplus->ma << 1) & 0xfff];
+                attr = herculesplus->vram[((herculesplus->ma << 1) + 1) & 0xfff];
 
                 drawcursor = ((herculesplus->ma == ca) && herculesplus->con && herculesplus->cursoron);
 
@@ -488,10 +485,8 @@ static void herculesplus_text_line(herculesplus_t *herculesplus, uint16_t ca)
 
 static void herculesplus_graphics_line(herculesplus_t *herculesplus)
 {
-	uint8_t mask;
 	uint16_t ca;
-	int x, c, plane, col;
-	uint8_t ink;
+	int x, c, plane = 0;
 	uint16_t val;
 
 	/* Graphics mode. */
@@ -524,7 +519,6 @@ void herculesplus_poll(void *p)
 
         if (!herculesplus->linepos)
         {
-//                pclog("InColor poll %i %i\n", herculesplus->vc, herculesplus->sc);
                 herculesplus->vidtime += herculesplus->dispofftime;
                 herculesplus->stat |= 1;
                 herculesplus->linepos = 1;
@@ -552,7 +546,6 @@ void herculesplus_poll(void *p)
                 if (herculesplus->vc == herculesplus->crtc[7] && !herculesplus->sc)
                 {
                         herculesplus->stat |= 8;
-//                        printf("VSYNC on %i %i\n",vc,sc);
                 }
                 herculesplus->displine++;
                 if (herculesplus->displine >= 500) 
@@ -570,7 +563,6 @@ void herculesplus_poll(void *p)
                         if (!herculesplus->vsynctime)
                         {
                                 herculesplus->stat &= ~8;
-//                                printf("VSYNC off %i %i\n",vc,sc);
                         }
                 }
                 if (herculesplus->sc == (herculesplus->crtc[11] & 31) || ((herculesplus->crtc[8] & 3) == 3 && herculesplus->sc == ((herculesplus->crtc[11] & 31) >> 1))) 
@@ -602,7 +594,6 @@ void herculesplus_poll(void *p)
                                 herculesplus->dispon = 0;
                         if (oldvc == herculesplus->crtc[4])
                         {
-//                                printf("Display over at %i\n",displine);
                                 herculesplus->vc = 0;
                                 herculesplus->vadj = herculesplus->crtc[5];
                                 if (!herculesplus->vadj) herculesplus->dispon=1;
@@ -614,10 +605,9 @@ void herculesplus_poll(void *p)
                         {
                                 herculesplus->dispon = 0;
                                 herculesplus->displine = 0;
-                                herculesplus->vsynctime = 16;//(crtcm[3]>>4)+1;
+                                herculesplus->vsynctime = 16;
                                 if (herculesplus->crtc[7])
                                 {
-//                                        printf("Lastline %i Firstline %i  %i\n",lastline,firstline,lastline-firstline);
                                         if ((herculesplus->ctrl & HERCULESPLUS_CTRL_GRAPH) && (herculesplus->ctrl2 & HERCULESPLUS_CTRL2_GRAPH)) 
 					{
 						x = herculesplus->crtc[1] << 4;
@@ -631,7 +621,6 @@ void herculesplus_poll(void *p)
                                         {
                                                 xsize = x;
                                                 ysize = herculesplus->lastline - herculesplus->firstline;
-//                                                printf("Resize to %i,%i - R1 %i\n",xsize,ysize,crtcm[1]);
                                                 if (xsize < 64) xsize = 656;
                                                 if (ysize < 32) ysize = 200;
                                                 updatewindowsize(xsize, ysize);
@@ -665,7 +654,6 @@ void herculesplus_poll(void *p)
                 if ((herculesplus->sc == (herculesplus->crtc[10] & 31) || ((herculesplus->crtc[8] & 3) == 3 && herculesplus->sc == ((herculesplus->crtc[10] & 31) >> 1))))
                 {
                         herculesplus->con = 1;
-//                        printf("Cursor on - %02X %02X %02X\n",crtcm[8],crtcm[10],crtcm[11]);
                 }
         }
 }

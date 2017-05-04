@@ -64,7 +64,6 @@ extern int swwp;
 extern int disable_write;
 
 extern int defaultwriteprot;
-//extern char discfns[4][260];
 
 extern int writeprot[FDD_NUM], fwriteprot[FDD_NUM];
 extern int disc_track[FDD_NUM];
@@ -147,7 +146,7 @@ void d86f_reset_index_hole_pos(int drive, int side);
 uint16_t d86f_prepare_pretrack(int drive, int side, int iso);
 uint16_t d86f_prepare_sector(int drive, int side, int prev_pos, uint8_t *id_buf, uint8_t *data_buf, int data_len, int gap2, int gap3, int deleted, int bad_crc);
 
-int gap3_sizes[5][8][256];
+int gap3_sizes[5][8][48];
 
 void null_writeback(int drive);
 void null_write_data(int drive, int side, uint16_t pos, uint8_t data);

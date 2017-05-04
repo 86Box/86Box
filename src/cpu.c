@@ -166,11 +166,13 @@ CPU cpus_8088[] =
 {
         /*8088 standard*/
         {"8088/4.77",    CPU_8088,  0,  4772728,   1, 0, 0, 0, 0, 0, 0,0,0,0},
-        {"8088/7.16",    CPU_8088,  1, 14318184/2, 1, 0, 0, 0, 0, 0, 0,0,0,0},
         {"8088/8",       CPU_8088,  1,  8000000,   1, 0, 0, 0, 0, 0, 0,0,0,0},
+#if 0
+        {"8088/7.16",    CPU_8088,  1, 14318184/2, 1, 0, 0, 0, 0, 0, 0,0,0,0},
         {"8088/10",      CPU_8088,  2, 10000000,   1, 0, 0, 0, 0, 0, 0,0,0,0},
         {"8088/12",      CPU_8088,  3, 12000000,   1, 0, 0, 0, 0, 0, 0,0,0,0},
         {"8088/16",      CPU_8088,  4, 16000000,   1, 0, 0, 0, 0, 0, 0,0,0,0},
+#endif
         {"",             -1,        0, 0, 0, 0, 0,0,0,0}
 };
 
@@ -325,6 +327,7 @@ CPU cpus_i486[] =
         {"i486SX/25",    CPU_i486SX, 2,  25000000, 1, 25000000, 0x42a, 0, 0, CPU_SUPPORTS_DYNAREC, 4,4,3,3},
         {"i486SX/33",    CPU_i486SX, 3,  33333333, 1, 33333333, 0x42a, 0, 0, CPU_SUPPORTS_DYNAREC, 6,6,3,3},
         {"i486SX2/50",   CPU_i486SX, 5,  50000000, 2, 25000000, 0x45b, 0, 0, CPU_SUPPORTS_DYNAREC, 8,8,6,6},
+        {"i486SX2/66 (Q0569)",   CPU_i486SX, 6,  66666666, 2, 33333333, 0x45b, 0, 0, CPU_SUPPORTS_DYNAREC, 8,8,6,6},
         {"i486DX/25",    CPU_i486DX, 2,  25000000, 1, 25000000, 0x404, 0, 0, CPU_SUPPORTS_DYNAREC, 4,4,3,3},
         {"i486DX/33",    CPU_i486DX, 3,  33333333, 1, 33333333, 0x404, 0, 0, CPU_SUPPORTS_DYNAREC, 6,6,3,3},
         {"i486DX/50",    CPU_i486DX, 5,  50000000, 1, 25000000, 0x404, 0, 0, CPU_SUPPORTS_DYNAREC, 8,8,4,4},
@@ -1862,8 +1865,6 @@ void cpu_CPUID()
                         EAX = CPUID;
                         EBX = ECX = 0;
                         EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_SEP | CPUID_CMOV;
-                        // EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_CMOV;
-			// EDX = 0x0183FBFF;
                 }
 		else if (EAX == 2)
 		{
@@ -1888,8 +1889,6 @@ void cpu_CPUID()
                         EAX = CPUID;
                         EBX = ECX = 0;
                         EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_SEP | CPUID_FXSR | CPUID_CMOV;
-                        // EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_FXSR | CPUID_CMOV;
-			// EDX = 0x0183FBFF;
                 }
 		else if (EAX == 2)
 		{
@@ -1997,10 +1996,8 @@ void cpu_RDMSR()
  		break;
 
                 case CPU_PENTIUMPRO:
-                // case CPU_PENTIUM2:
                 case CPU_PENTIUM2D:
                 EAX = EDX = 0;
-		// pclog("RDMSR, ECX=%08X\n", ECX);
                 switch (ECX)
                 {
                         case 0x10:
@@ -2024,11 +2021,11 @@ void cpu_RDMSR()
                         EAX = ecx79_msr & 0xffffffff;
                         EDX = ecx79_msr >> 32;
                         break;
-			case 0x88 ... 0x8B:
+			case 0x88: case 0x89: case 0x8A: case 0x8B:
                         EAX = ecx8x_msr[ECX - 0x88] & 0xffffffff;
                         EDX = ecx8x_msr[ECX - 0x88] >> 32;
 			break;
-			case 0xC1 ... 0xC8:
+			case 0xC1: case 0xC2: case 0xC3: case 0xC4: case 0xC5: case 0xC6: case 0xC7: case 0xC8:
                         EAX = msr_ia32_pmc[ECX - 0xC1] & 0xffffffff;
                         EDX = msr_ia32_pmc[ECX - 0xC1] >> 32;
 			break;
@@ -2040,7 +2037,7 @@ void cpu_RDMSR()
                         EAX = ecx116_msr & 0xffffffff;
                         EDX = ecx116_msr >> 32;
 			break;
-			case 0x118 ... 0x11B:
+			case 0x118: case 0x119: case 0x11A: case 0x11B:
                         EAX = ecx11x_msr[ECX - 0x118] & 0xffffffff;
                         EDX = ecx11x_msr[ECX - 0x118] >> 32;
 			break;
@@ -2073,7 +2070,8 @@ void cpu_RDMSR()
                         EAX = ecx1e0_msr & 0xffffffff;
                         EDX = ecx1e0_msr >> 32;
 			break;
-			case 0x200 ... 0x20F:
+			case 0x200: case 0x201: case 0x202: case 0x203: case 0x204: case 0x205: case 0x206: case 0x207:
+			case 0x208: case 0x209: case 0x20A: case 0x20B: case 0x20C: case 0x20D: case 0x20E: case 0x20F:
 			if (ECX & 1)
 			{
                         	EAX = mtrr_physmask_msr[(ECX - 0x200) >> 1] & 0xffffffff;
@@ -2097,8 +2095,7 @@ void cpu_RDMSR()
                         EAX = mtrr_fix16k_a000_msr & 0xffffffff;
                         EDX = mtrr_fix16k_a000_msr >> 32;
 			break;
-			case 0x268 ... 0x26F:
-			// ((ECX - 0x268) * 0x8000)
+			case 0x268: case 0x269: case 0x26A: case 0x26B: case 0x26C: case 0x26D: case 0x26E: case 0x26F:
                         EAX = mtrr_fix4k_msr[ECX - 0x268] & 0xffffffff;
                         EDX = mtrr_fix4k_msr[ECX - 0x268] >> 32;
 			break;
@@ -2206,9 +2203,7 @@ void cpu_WRMSR()
                 break;
 
                 case CPU_PENTIUMPRO:
-                // case CPU_PENTIUM2:
 		case CPU_PENTIUM2D:
-		// pclog("WRMSR, ECX=%08X\n", ECX);
                 switch (ECX)
                 {
                         case 0x10:
@@ -2224,10 +2219,10 @@ void cpu_WRMSR()
 			case 0x79:
 			ecx79_msr = EAX | ((uint64_t)EDX << 32);
 			break;
-			case 0x88 ... 0x8B:
+			case 0x88: case 0x89: case 0x8A: case 0x8B:
 			ecx8x_msr[ECX - 0x88] = EAX | ((uint64_t)EDX << 32);
 			break;
-			case 0xC1 ... 0xC8:
+			case 0xC1: case 0xC2: case 0xC3: case 0xC4: case 0xC5: case 0xC6: case 0xC7: case 0xC8:
 			msr_ia32_pmc[ECX - 0xC1] = EAX | ((uint64_t)EDX << 32);
 			break;
 			case 0xFE:
@@ -2236,7 +2231,7 @@ void cpu_WRMSR()
 			case 0x116:
 			ecx116_msr = EAX | ((uint64_t)EDX << 32);
 			break;
-			case 0x118 ... 0x011B:
+			case 0x118: case 0x119: case 0x11A: case 0x11B:
 			ecx11x_msr[ECX - 0x118] = EAX | ((uint64_t)EDX << 32);
 			break;
 			case 0x11E:
@@ -2244,17 +2239,14 @@ void cpu_WRMSR()
 			break;
 			case 0x174:
 			if (models[model].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_wrmsr;
-			// pclog("WRMSR SYSENTER_CS: old=%04X, new=%04X\n", cs_msr, (uint16_t) (EAX & 0xFFFF));
 			cs_msr = EAX & 0xFFFF;
 			break;
 			case 0x175:
 			if (models[model].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_wrmsr;
-			// pclog("WRMSR SYSENTER_ESP: old=%08X, new=%08X\n", esp_msr, EAX);
 			esp_msr = EAX;
 			break;
 			case 0x176:
 			if (models[model].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_wrmsr;
-			// pclog("WRMSR SYSENTER_EIP: old=%08X, new=%08X\n", eip_msr, EAX);
 			eip_msr = EAX;
 			break;
 			case 0x186:
@@ -2266,7 +2258,8 @@ void cpu_WRMSR()
 			case 0x1E0:
 			ecx1e0_msr = EAX | ((uint64_t)EDX << 32);
 			break;			
-			case 0x200 ... 0x20F:
+			case 0x200: case 0x201: case 0x202: case 0x203: case 0x204: case 0x205: case 0x206: case 0x207:
+			case 0x208: case 0x209: case 0x20A: case 0x20B: case 0x20C: case 0x20D: case 0x20E: case 0x20F:
 			if (ECX & 1)
 				mtrr_physmask_msr[(ECX - 0x200) >> 1] = EAX | ((uint64_t)EDX << 32);
 			else
@@ -2281,8 +2274,7 @@ void cpu_WRMSR()
 			case 0x259:
 			mtrr_fix16k_a000_msr = EAX | ((uint64_t)EDX << 32);
 			break;
-			case 0x268 ... 0x26F:
-			// ((ECX - 0x268) * 0x8000)
+			case 0x268: case 0x269: case 0x26A: case 0x26B: case 0x26C: case 0x26D: case 0x26E: case 0x26F:
 			mtrr_fix4k_msr[ECX - 0x268] = EAX | ((uint64_t)EDX << 32);
 			break;
 			case 0x277:

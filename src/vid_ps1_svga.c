@@ -34,8 +34,6 @@ void ps1_m2121_svga_out(uint16_t addr, uint8_t val, void *p)
         svga_t *svga = &ps1->svga;
         uint8_t old;
         
-//        pclog("svga_out : %04X %02X  %04X:%04X  %02X  %i\n", addr, val, CS,cpu_state.pc, ram[0x489], ins);
-                
         if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
                 addr ^= 0x60;
 
@@ -86,8 +84,6 @@ uint8_t ps1_m2121_svga_in(uint16_t addr, void *p)
         svga_t *svga = &ps1->svga;
         uint8_t temp;
 
-//        if (addr != 0x3da) pclog("svga_in : %04X ", addr);
-                
         if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
                 addr ^= 0x60;
              
@@ -118,7 +114,6 @@ uint8_t ps1_m2121_svga_in(uint16_t addr, void *p)
                 temp = svga_in(addr, svga);
                 break;
         }
-//        if (addr != 0x3da) pclog("%02X  %04X:%04X\n", temp, CS,pc);
         return temp;
 }
 
@@ -136,7 +131,6 @@ void *ps1_m2121_svga_init()
         io_sethandler(0x0100, 0x0002, ps1_m2121_svga_in, NULL, NULL, ps1_m2121_svga_out, NULL, NULL, ps1);
         io_sethandler(0x03c0, 0x0020, ps1_m2121_svga_in, NULL, NULL, ps1_m2121_svga_out, NULL, NULL, ps1);
         io_sethandler(0x2100, 0x0010, ps1_m2121_svga_in, NULL, NULL, ps1_m2121_svga_out, NULL, NULL, ps1);
-//        io_sethandler(0x210a, 0x0001, ps1_m2121_svga_in, NULL, NULL, ps1_m2121_svga_out, NULL, NULL, ps1);
                 
         ps1->svga.bpp = 8;
         ps1->svga.miscout = 1;

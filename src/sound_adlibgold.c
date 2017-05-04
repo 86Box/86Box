@@ -146,7 +146,6 @@ void adgold_update_irq_status(adgold_t *adgold)
         
         if ((adgold->adgold_status ^ 0xf) && !adgold->adgold_irq_status)
         {
-//                pclog("adgold irq %02X\n", adgold->adgold_status);
                 picint(0x80);
         }
                 
@@ -161,14 +160,12 @@ void adgold_getsamp_dma(adgold_t *adgold, int channel)
                 return;
                 
         temp = dma_channel_read(1);
-//        pclog("adgold DMA1 return %02X %i L\n", temp, channel);
         if (temp == DMA_NODATA) return;
         adgold->adgold_mma_fifo[channel][adgold->adgold_mma_fifo_end[channel]] = temp;
         adgold->adgold_mma_fifo_end[channel] = (adgold->adgold_mma_fifo_end[channel] + 1) & 255;
         if (adgold->adgold_mma_regs[channel][0xc] & 0x60)
         {
                 temp = dma_channel_read(1);
-//                pclog("adgold DMA1 return %02X %i H\n", temp, channel);
                 adgold->adgold_mma_fifo[channel][adgold->adgold_mma_fifo_end[channel]] = temp;
                 adgold->adgold_mma_fifo_end[channel] = (adgold->adgold_mma_fifo_end[channel] + 1) & 255;
         }      
@@ -182,7 +179,6 @@ void adgold_getsamp_dma(adgold_t *adgold, int channel)
 void adgold_write(uint16_t addr, uint8_t val, void *p)
 {
         adgold_t *adgold = (adgold_t *)p;
-//        if (addr > 0x389) pclog("adgold_write : addr %04X val %02X %04X:%04X\n", addr, val, CS, pc);
         switch (addr & 7)
         {
                 case 0: case 1:
@@ -326,12 +322,10 @@ void adgold_write(uint16_t addr, uint8_t val, void *p)
                                 if (!(adgold->adgold_mma_regs[0][0x9] & 1))
                                         adgold->adgold_mma.voice_count[0] = adgold->adgold_mma.voice_latch[0];
                                         
-//                                pclog("adgold start! FIFO fill %i  %i %i %02X\n", (adgold->adgold_mma_fifo_end[0] - adgold->adgold_mma_fifo_start[0]) & 255, adgold->adgold_mma_fifo_end[0], adgold->adgold_mma_fifo_start[0], adgold->adgold_mma_regs[0][0xc]);
                                 if (adgold->adgold_mma_regs[0][0xc] & 1)
                                 {
                                         if (adgold->adgold_mma_regs[0][0xc] & 0x80)
                                         {
-//                                                pclog("adgold start interleaved %i %i
                                                 adgold->adgold_mma_enable[1] = 1;
                                                 adgold->adgold_mma.voice_count[1] = adgold->adgold_mma.voice_latch[1];
 
@@ -364,7 +358,6 @@ void adgold_write(uint16_t addr, uint8_t val, void *p)
                                                 }
                                         }
                                 }
-//                                pclog("adgold end\n");
                         }
                         adgold->adgold_mma_enable[0] = val & 0x01;
                         break;
@@ -413,7 +406,6 @@ void adgold_write(uint16_t addr, uint8_t val, void *p)
                                 if (!(adgold->adgold_mma_regs[1][0x9] & 1)) 
                                         adgold->adgold_mma.voice_count[1] = adgold->adgold_mma.voice_latch[1];
                                         
-//                                pclog("adgold start! FIFO fill %i  %i %i %02X\n", (adgold->adgold_mma_fifo_end[1] - adgold->adgold_mma_fifo_start[1]) & 255, adgold->adgold_mma_fifo_end[1], adgold->adgold_mma_fifo_start[1], adgold->adgold_mma_regs[1][0xc]);
                                 if (adgold->adgold_mma_regs[1][0xc] & 1)
                                 {
                                         while (((adgold->adgold_mma_fifo_end[1] - adgold->adgold_mma_fifo_start[1]) & 255) < 128)
@@ -421,7 +413,6 @@ void adgold_write(uint16_t addr, uint8_t val, void *p)
                                                 adgold_getsamp_dma(adgold, 1);
                                         }
                                 }
-//                                pclog("adgold end\n");
                         }
                         adgold->adgold_mma_enable[1] = val & 0x01;
                         break;
@@ -514,7 +505,6 @@ uint8_t adgold_read(uint16_t addr, void *p)
                 temp = adgold->adgold_mma_regs[1][adgold->adgold_mma_addr];
                 break;
         }
-//        if (addr > 0x389) pclog("adgold_read : addr %04X %02X\n", addr, temp);
         return temp;
 }
 
@@ -570,7 +560,6 @@ void adgold_mma_poll(adgold_t *adgold, int channel)
                 }
                 if (((adgold->adgold_mma_fifo_end[channel] - adgold->adgold_mma_fifo_start[channel]) & 255) < adgold->adgold_mma_intpos[channel] && !(adgold->adgold_mma_status & 0x01))
                 {
-//                        pclog("adgold_mma_poll - IRQ! %i\n", channel);
                         adgold->adgold_mma_status |= 1 << channel;
                         adgold_update_irq_status(adgold);
                 }
@@ -594,7 +583,6 @@ void adgold_timer_poll(void *p)
                         if (!adgold->adgold_mma.timer0_count)
                         {
                                 adgold->adgold_mma.timer0_count = adgold->adgold_mma.timer0_latch;
-//                                pclog("Timer 0 interrupt\n");
                                 adgold->adgold_mma_status |= 0x10;
                                 adgold_update_irq_status(adgold);
                         }
@@ -611,7 +599,6 @@ void adgold_timer_poll(void *p)
                                         if (!adgold->adgold_mma.timer1_count)
                                         {
                                                 adgold->adgold_mma.timer1_count = adgold->adgold_mma.timer1_latch;
-//                                                pclog("Timer 1 interrupt\n");
                                                 adgold->adgold_mma_status |= 0x20;
                                                 adgold_update_irq_status(adgold);
                                         }
@@ -622,7 +609,6 @@ void adgold_timer_poll(void *p)
                                         if (!adgold->adgold_mma.timer2_count)
                                         {
                                                 adgold->adgold_mma.timer2_count = adgold->adgold_mma.timer2_latch;
-//                                                pclog("Timer 2 interrupt\n");
                                                 adgold->adgold_mma_status |= 0x40;
                                                 adgold_update_irq_status(adgold);
                                         }
@@ -839,13 +825,10 @@ void adgold_close(void *p)
 static device_config_t adgold_config[] =
 {
         {
-                .name = "surround",
-                .description = "Surround module",
-                .type = CONFIG_BINARY,
-                .default_int = 1
+                "surround", "Surround module", CONFIG_BINARY, "", 1
         },
         {
-                .type = -1
+                "", "", -1
         }
 };
 

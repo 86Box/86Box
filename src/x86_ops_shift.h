@@ -497,9 +497,11 @@ static int opD3_l_a32(uint32_t fetchdat)
 #define SHLD_w()                                                                \
         if (count)                                                              \
         {                                                                       \
+		int tempc;							\
+		uint32_t templ;							\
                 uint16_t tempw = geteaw();      if (cpu_state.abrt) return 1;             \
-                int tempc = ((tempw << (count - 1)) & (1 << 15)) ? 1 : 0;       \
-                uint32_t templ = (tempw << 16) | cpu_state.regs[cpu_reg].w;         \
+                tempc = ((tempw << (count - 1)) & (1 << 15)) ? 1 : 0;       \
+                templ = (tempw << 16) | cpu_state.regs[cpu_reg].w;         \
                 if (count <= 16) tempw =  templ >> (16 - count);                \
                 else             tempw = (templ << count) >> 16;                \
                 seteaw(tempw);                  if (cpu_state.abrt) return 1;             \
@@ -511,8 +513,9 @@ static int opD3_l_a32(uint32_t fetchdat)
 #define SHLD_l()                                                                \
         if (count)                                                              \
         {                                                                       \
+		int tempc;							\
                 uint32_t templ = geteal();      if (cpu_state.abrt) return 1;             \
-                int tempc = ((templ << (count - 1)) & (1 << 31)) ? 1 : 0;       \
+                tempc = ((templ << (count - 1)) & (1 << 31)) ? 1 : 0;       \
                 templ = (templ << count) | (cpu_state.regs[cpu_reg].l >> (32 - count)); \
                 seteal(templ);                  if (cpu_state.abrt) return 1;             \
                 setznp32(templ);                                                \
@@ -523,10 +526,12 @@ static int opD3_l_a32(uint32_t fetchdat)
 
 #define SHRD_w()                                                                \
         if (count)                                                              \
-        {                                                                       \
+        {                  							\
+		int tempc;                                                     \
+		uint32_t templ;							\
                 uint16_t tempw = geteaw();      if (cpu_state.abrt) return 1;             \
-                int tempc = (tempw >> (count - 1)) & 1;                         \
-                uint32_t templ = tempw | (cpu_state.regs[cpu_reg].w << 16);         \
+                tempc = (tempw >> (count - 1)) & 1;                         \
+                templ = tempw | (cpu_state.regs[cpu_reg].w << 16);         \
                 tempw = templ >> count;                                         \
                 seteaw(tempw);                  if (cpu_state.abrt) return 1;             \
                 setznp16(tempw);                                                \
@@ -537,8 +542,9 @@ static int opD3_l_a32(uint32_t fetchdat)
 #define SHRD_l()                                                                \
         if (count)                                                              \
         {                                                                       \
+		int tempc;							\
                 uint32_t templ = geteal();      if (cpu_state.abrt) return 1;             \
-                int tempc = (templ >> (count - 1)) & 1;                         \
+                tempc = (templ >> (count - 1)) & 1;                         \
                 templ = (templ >> count) | (cpu_state.regs[cpu_reg].l << (32 - count)); \
                 seteal(templ);                  if (cpu_state.abrt) return 1;             \
                 setznp32(templ);                                                \
@@ -553,7 +559,7 @@ static int opD3_l_a32(uint32_t fetchdat)
                                                                                 \
                 fetch_ea_16(fetchdat);                                          \
                 count = getbyte() & 31;                                         \
-                operation();                                                    \
+                operation()                                                     \
                                                                                 \
                 CLOCK_CYCLES(3);                                                \
                 PREFETCH_RUN(3, 3, rmdat, 0,(cpu_mod == 3) ? 0:1,0,(cpu_mod == 3) ? 0:1, 0); \
@@ -565,7 +571,7 @@ static int opD3_l_a32(uint32_t fetchdat)
                                                                                 \
                 fetch_ea_16(fetchdat);                                          \
                 count = CL & 31;                                                \
-                operation();                                                    \
+                operation()                                                     \
                                                                                 \
                 CLOCK_CYCLES(3);                                                \
                 PREFETCH_RUN(3, 3, rmdat, 0,(cpu_mod == 3) ? 0:1,0,(cpu_mod == 3) ? 0:1, 0); \
@@ -577,7 +583,7 @@ static int opD3_l_a32(uint32_t fetchdat)
                                                                                 \
                 fetch_ea_32(fetchdat);                                          \
                 count = getbyte() & 31;                                         \
-                operation();                                                    \
+                operation()                                                     \
                                                                                 \
                 CLOCK_CYCLES(3);                                                \
                 PREFETCH_RUN(3, 3, rmdat, 0,(cpu_mod == 3) ? 0:1,0,(cpu_mod == 3) ? 0:1, 1); \
@@ -589,7 +595,7 @@ static int opD3_l_a32(uint32_t fetchdat)
                                                                                 \
                 fetch_ea_32(fetchdat);                                          \
                 count = CL & 31;                                                \
-                operation();                                                    \
+                operation()                                                     \
                                                                                 \
                 CLOCK_CYCLES(3);                                                \
                 PREFETCH_RUN(3, 3, rmdat, 0,(cpu_mod == 3) ? 0:1,0,(cpu_mod == 3) ? 0:1, 1); \

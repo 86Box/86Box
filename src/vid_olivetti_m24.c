@@ -55,7 +55,6 @@ void m24_out(uint16_t addr, uint8_t val, void *p)
 {
         m24_t *m24 = (m24_t *)p;
         uint8_t old;
-//        pclog("m24_out %04X %02X\n", addr, val);
         switch (addr)
         {
                 case 0x3d4:
@@ -129,10 +128,8 @@ void m24_recalctimings(m24_t *m24)
                 _dispontime = m24->crtc[1] << 1;
         }
         _dispofftime = disptime - _dispontime;
-//        printf("%i %f %f %f  %i %i\n",cgamode&1,disptime,dispontime,dispofftime,crtc[0],crtc[1]);
         _dispontime  *= CGACONST / 2;
         _dispofftime *= CGACONST / 2;
-//        printf("Timings - on %f off %f frame %f second %f\n",dispontime,dispofftime,(dispontime+dispofftime)*262.0,(dispontime+dispofftime)*262.0*59.92);
 	m24->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
 	m24->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
 }
@@ -151,7 +148,6 @@ void m24_poll(void *p)
         int oldsc;
         if (!m24->linepos)
         {
-//                pclog("Line poll  %i %i %i %i - %04X %i %i %i\n", m24_lineff, vc, sc, vadj, ma, firstline, lastline, displine);
                 m24->vidtime += m24->dispofftime;
                 m24->stat |= 1;
                 m24->linepos = 1;
@@ -160,11 +156,9 @@ void m24_poll(void *p)
                         m24->sc = (m24->sc << 1) & 7;
                 if (m24->dispon)
                 {
-                        // pclog("dispon %i\n", m24->linepos);
                         if (m24->displine < m24->firstline)
                         {
                                 m24->firstline = m24->displine;
-//                                printf("Firstline %i\n",firstline);
                         }
                         m24->lastline = m24->displine;
                         for (c = 0; c < 8; c++)
@@ -325,7 +319,6 @@ void m24_poll(void *p)
         }
         else
         {
-//                pclog("Line poll  %i %i %i %i\n", m24_lineff, vc, sc, vadj);
                 m24->vidtime += m24->dispontime;
                 if (m24->dispon) m24->stat &= ~1;
                 m24->linepos = 0;
@@ -453,7 +446,6 @@ void m24_poll(void *p)
 
 void *m24_init()
 {
-        int c;
         m24_t *m24 = malloc(sizeof(m24_t));
         memset(m24, 0, sizeof(m24_t));
 

@@ -172,7 +172,6 @@ void fdi_read_revolution(int drive)
 			memset(fdi[drive].track_data[1][density], 0, 106096);
 			fdi[drive].tracklen[0][density] = fdi[drive].tracklen[1][density] = 100000;
 		}
-		// pclog("Track is bigger than last track\n");
 		return;
 	}
 
@@ -185,16 +184,15 @@ void fdi_read_revolution(int drive)
 	                              (track * fdi[drive].sides) + side,
 	                              &fdi[drive].tracklen[side][density],
 	                              &fdi[drive].trackindex[side][density], NULL, density);
-			// pclog("Side 0 [%i]: len %i, index %i\n", density, fdi[drive].tracklen[side][density], fdi[drive].trackindex[side][density]);
 	                if (!c)
 	                        memset(fdi[drive].track_data[side][density], 0, fdi[drive].tracklen[side][density]);
 		}
-	}
 
-	if (fdi[drive].sides == 1)
-	{
-		memset(fdi[drive].track_data[1][density], 0, 106096);
-		fdi[drive].tracklen[1][density] = 100000;
+		if (fdi[drive].sides == 1)
+		{
+			memset(fdi[drive].track_data[1][density], 0, 106096);
+			fdi[drive].tracklen[1][density] = 100000;
+		}
 	}
 }
 
@@ -264,10 +262,8 @@ void fdi_load(int drive, char *fn)
 	}
 
         fdi[drive].h = fdi2raw_header(fdi[drive].f);
-//        if (!fdih[drive]) printf("Failed to load!\n");
         fdi[drive].lasttrack = fdi2raw_get_last_track(fdi[drive].h);
         fdi[drive].sides = fdi2raw_get_last_head(fdi[drive].h) + 1;
-//        printf("Last track %i\n",fdilasttrack[drive]);
 
 	d86f_register_fdi(drive);
 
@@ -297,11 +293,9 @@ void fdi_seek(int drive, int track)
 			track /= 2;
 		}
 	}
-	// pclog("fdi_seek(): %i %i (%i)\n", fdi[drive].lasttrack, track);
         
         if (!fdi[drive].f)
                 return;
-//        printf("Track start %i\n",track);
         if (track < 0)
                 track = 0;
         if (track > fdi[drive].lasttrack)
@@ -314,5 +308,5 @@ void fdi_seek(int drive, int track)
 
 void fdi_init()
 {
-//        printf("FDI reset\n");
+	return;
 }

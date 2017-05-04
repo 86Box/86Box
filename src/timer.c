@@ -30,7 +30,6 @@ int timer_start = 0;
 void timer_process()
 {
 	int c;
-	int retry;
 	int process = 0;
 	/*Get actual elapsed time*/
 	int diff = timer_latch - timer_count;
@@ -93,7 +92,6 @@ void timer_reset()
 	pclog("timer_reset\n");
 	timers_present = 0;
 	timer_latch = timer_count = 0;
-//	timer_process();
 }
 
 int timer_add(void (*callback)(void *priv), int *count, int *enable, void *priv)
@@ -109,12 +107,11 @@ int timer_add(void (*callback)(void *priv), int *count, int *enable, void *priv)
 			{
 				if (timers[i].present && (timers[i].callback == callback) && (timers[i].priv == priv) && (timers[i].count == count) && (timers[i].enable == enable))
 				{
-					return;
+					return 0;
 				}
 			}
 		}
 
-//		pclog("timer_add : adding timer %i\n", timers_present);
 		timers[timers_present].present = 1;
 		timers[timers_present].callback = callback;
 		timers[timers_present].priv = priv;

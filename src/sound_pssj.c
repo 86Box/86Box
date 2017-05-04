@@ -41,7 +41,6 @@ static void pssj_write(uint16_t port, uint8_t val, void *p)
 {
         pssj_t *pssj = (pssj_t *)p;
         
-//        pclog("pssj_write: port=%04x val=%02x\n", port, val);
         switch (port & 3)
         {
                 case 0:
@@ -77,7 +76,6 @@ static uint8_t pssj_read(uint16_t port, void *p)
 {
         pssj_t *pssj = (pssj_t *)p;
         
-//        pclog("pssj_read: port=%04x %02x\n", port, (pssj->ctrl & ~0x88) | (pssj->irq ? 8 : 0));
         switch (port & 3)
         {
                 case 0:
@@ -99,7 +97,11 @@ static uint8_t pssj_read(uint16_t port, void *p)
                 return pssj->freq & 0xff;
                 case 3:
                 return (pssj->freq >> 8) | (pssj->amplitude << 4);
+		default:
+		return 0xff;
         }
+
+	return 0xff;
 }
 
 static void pssj_update(pssj_t *pssj)
@@ -123,7 +125,6 @@ static void pssj_callback(void *p)
                         if (data != DMA_NODATA)
                         {
                                 pssj->dac_val = data & 0xff;
-//                                pclog("DAC_val=%02x\n", data);
                         }
                 }
                 else
@@ -133,7 +134,6 @@ static void pssj_callback(void *p)
 
                 if ((data & DMA_OVER) && data != DMA_NODATA)
                 {
-//                        pclog("Check IRQ %i %02x\n", pssj->irq, pssj->ctrl);
                         if (pssj->ctrl & 0x08)
                         {
                                 pssj->irq = 1;

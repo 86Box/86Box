@@ -8,6 +8,7 @@
 
 static void *tm_fcs_init()
 {
+	return NULL;
 }
 
 static void tm_fcs_close(void *p)
@@ -62,6 +63,8 @@ static int tm_fcs_read_axis(void *p, int axis)
                 if (joystick_state[0].pov[0] >= 225 && joystick_state[0].pov[0] < 315)
                         return 16384;
                 return 0;
+		default:
+		return 0;
         }
 }
 
@@ -71,18 +74,18 @@ static void tm_fcs_a0_over(void *p)
 
 joystick_if_t joystick_tm_fcs =
 {
-        .name      = "Thrustmaster Flight Control System",
-        .init      = tm_fcs_init,
-        .close     = tm_fcs_close,
-        .read      = tm_fcs_read,
-        .write     = tm_fcs_write,
-        .read_axis = tm_fcs_read_axis,
-        .a0_over   = tm_fcs_a0_over,
-        .max_joysticks = 1,
-        .axis_count = 2,
-        .button_count = 4,
-        .pov_count = 1,
-        .axis_names = {"X axis", "Y axis"},
-        .button_names = {"Button 1", "Button 2", "Button 3", "Button 4"},
-        .pov_names = {"POV"}
+        "Thrustmaster Flight Control System",
+        tm_fcs_init,
+        tm_fcs_close,
+        tm_fcs_read,
+        tm_fcs_write,
+        tm_fcs_read_axis,
+        tm_fcs_a0_over,
+        1,
+        2,
+        4,
+        1,
+        {"X axis", "Y axis"},
+        {"Button 1", "Button 2", "Button 3", "Button 4"},
+        {"POV"}
 };

@@ -10,6 +10,7 @@
 #include "dma.h"
 #include "io.h"
 #include "pic.h"
+#include "sound.h"
 #include "sound_ad1848.h"
 #include "sound_opl.h"
 #include "sound_wss.h"
@@ -27,7 +28,6 @@
 
 static int wss_dma[4] = {0, 0, 1, 3};
 static int wss_irq[8] = {5, 7, 9, 10, 11, 12, 14, 15}; /*W95 only uses 7-9, others may be wrong*/
-static uint16_t wss_addr[4] = {0x530, 0x604, 0xe80, 0xf40};
 
 typedef struct wss_t
 {
@@ -41,16 +41,13 @@ uint8_t wss_read(uint16_t addr, void *p)
 {
         wss_t *wss = (wss_t *)p;
         uint8_t temp;
-//        pclog("wss_read - addr %04X %04X(%08X):%08X ", addr, CS, cs, pc);
         temp = 4 | (wss->config & 0x40);
-//        pclog("return %02X\n", temp);
         return temp;
 }
 
 void wss_write(uint16_t addr, uint8_t val, void *p)
 {
         wss_t *wss = (wss_t *)p;
-//        pclog("wss_write - addr %04X val %02X  %04X(%08X):%08X\n", addr, val, CS, cs, pc);
 
         wss->config = val;
         ad1848_setdma(&wss->ad1848, wss_dma[val & 3]);
@@ -78,8 +75,6 @@ static void wss_get_buffer(int32_t *buffer, int len, void *p)
 void *wss_init()
 {
         wss_t *wss = malloc(sizeof(wss_t));
-        int c;
-        double attenuation;
 
         memset(wss, 0, sizeof(wss_t));
 

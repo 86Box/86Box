@@ -8,6 +8,7 @@
 #include "io.h"
 #include "mem.h"
 #include "pci.h"
+#include "pic.h"
 #include "rom.h"
 #include "thread.h"
 #include "timer.h"
@@ -1794,7 +1795,7 @@ static void riva128_pusher_run(int chanid, void *p)
 	{
 		uint32_t dmaget = riva128->pfifo.channels[chanid].dmaget;
 		uint32_t cmd = ((uint32_t*)svga->vram)[dmaget >> 2];
-		uint32_t* params = ((uint32_t*)svga->vram)[(dmaget + 4) >> 2];
+		uint32_t* params = (uint32_t *)(((uint32_t*)svga->vram)[(dmaget + 4) >> 2]);
 		if(((cmd & 0xe0000003) == 0x20000000) && (riva128->card_id >= 0x04))
 		{
 			//old nv4 jump command

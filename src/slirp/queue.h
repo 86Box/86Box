@@ -96,4 +96,6 @@ queueElementT QueueDelete(queueADT queue);
 int QueueIsEmpty(queueADT queue);
 int QueueIsFull(queueADT queue);
 
+int QueuePeek(queueADT queue);
+
 #endif  /* not defined _QUEUE_H */

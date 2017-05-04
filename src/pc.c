@@ -5,21 +5,28 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
+#include "86box.h"
+#include "ibm.h"
+#include "device.h"
+
 #ifndef __unix
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #undef BITMAP
 #include "win.h"
+#include "win-language.h"
 #endif
-
-#include "86box.h"
-#include "ibm.h"
-#include "device.h"
 
 #include "ali1429.h"
 #include "cdrom.h"
 #include "cdrom-ioctl.h"
 #include "disc.h"
+#include "disc_86f.h"
+#include "disc_fdi.h"
+#include "disc_imd.h"
+#include "disc_img.h"
+#include "disc_random.h"
+#include "disc_td0.h"
 #include "mem.h"
 #include "x86_ops.h"
 #include "codegen.h"
@@ -32,25 +39,30 @@
 #include "fdd.h"
 #include "gameport.h"
 #include "sound_gus.h"
-#include "buslogic.h"
+#include "ide.h"
 #include "cdrom.h"
 #include "scsi.h"
-#include "ide.h"
 #include "keyboard.h"
 #include "keyboard_at.h"
+#include "mem.h"
 #include "model.h"
 #include "mouse.h"
+#include "ne2000.h"
+#include "nethandler.h"
 #include "nvr.h"
 #include "pic.h"
 #include "pit.h"
 #include "plat-joystick.h"
+#include "plat-midi.h"
 #include "plat-mouse.h"
+#include "plat-keyboard.h"
 #include "serial.h"
 #include "sound.h"
 #include "sound_cms.h"
 #include "sound_dbopl.h"
 #include "sound_opl.h"
 #include "sound_sb.h"
+#include "sound_speaker.h"
 #include "sound_ssi2001.h"
 #include "timer.h"
 #include "vid_voodoo.h"
@@ -68,6 +80,7 @@ int path_len;
 
 int window_w, window_h, window_x, window_y, window_remember;
 
+int dump_on_exit = 0;
 int start_in_fullscreen = 0;
 
 int CPUID;
@@ -90,7 +103,6 @@ int atfullspeed;
 void saveconfig();
 int infocus;
 int mousecapture;
-// FILE *pclogf;
 void pclog(const char *format, ...)
 {
 #ifndef RELEASE_BUILD
@@ -153,10 +165,10 @@ void fatal(const char *format, ...)
    {
       *newline = 0;
    }
-   MessageBox(ghwnd, msg, "86Box fatal error", MB_OK + MB_ICONERROR);
+   msgbox_fatal(ghwnd, msg);
 #endif
    dumppic();
-   dumpregs();
+   dumpregs(1);
    fflush(stdout);
    exit(-1);
 }
@@ -167,15 +179,12 @@ int pollmouse_delay = 2;
 void pollmouse()
 {
         int x, y, z;
-//        return;
         pollmouse_delay--;
         if (pollmouse_delay) return;
         pollmouse_delay = 2;
         mouse_poll_host();
         mouse_get_mickeys(&x, &y, &z);
-        if (mouse_poll)
-           mouse_poll(x, y, z, mouse_buttons);
-//        if (mousecapture) position_mouse(64,64);
+	mouse_poll(x, y, z, mouse_buttons);
 }
 
 /*PC1512 languages -
@@ -238,22 +247,17 @@ void pc_reset()
 {
         cpu_set();
         resetx86();
-        //timer_reset();
         dma_reset();
         fdc_reset();
         pic_reset();
-        pit_reset();
         serial_reset();
 
         if (AT)
                 setpitclock(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed);
         else
                 setpitclock(14318184.0);
-        
-//        sb_reset();
 
         ali1429_reset();
-//        video_init();
 }
 #undef printf
 void initpc(int argc, char *argv[])
@@ -262,7 +266,6 @@ void initpc(int argc, char *argv[])
         char *config_file = NULL;
         int c, i;
 	FILE *ff;
-//        allegro_init();
         get_executable_name(pcempath,511);
         pclog("executable_name = %s\n", pcempath);
         p=get_filename(pcempath);
@@ -275,12 +278,9 @@ void initpc(int argc, char *argv[])
                 {
                         printf("PCem command line options :\n\n");
                         printf("--config file.cfg - use given config file as initial configuration\n");
+                        printf("--dump            - always dump memory on exit\n");
                         printf("--fullscreen      - start in fullscreen mode\n");
                         exit(-1);
-                }
-                else if (!strcasecmp(argv[c], "--fullscreen"))
-                {
-                        start_in_fullscreen = 1;
                 }
                 else if (!strcasecmp(argv[c], "--config"))
                 {
@@ -289,6 +289,21 @@ void initpc(int argc, char *argv[])
                         config_file = argv[c+1];
                         c++;
                 }
+                else if (!strcasecmp(argv[c], "--dump"))
+                {
+                        dump_on_exit = 1;
+                }
+                else if (!strcasecmp(argv[c], "--fullscreen"))
+                {
+                        start_in_fullscreen = 1;
+                }
+                else if (!strcasecmp(argv[c], "--test"))
+                {
+			/* some (undocumented) test function here.. */
+
+			/* .. and then exit. */
+			exit(0);
+		}
         }
 
         keyboard_init();
@@ -303,6 +318,8 @@ void initpc(int argc, char *argv[])
 	{
 	        append_filename(config_file_default, pcempath, config_file, 511);
 	}
+
+	disc_random_init();
         
         loadconfig(config_file);
         pclog("Config loaded\n");
@@ -312,7 +329,6 @@ void initpc(int argc, char *argv[])
         joystick_init();
 
         cpuspeed2=(AT)?2:1;
-//        cpuspeed2=cpuspeed;
         atfullspeed=0;
 
         initvideo();
@@ -369,44 +385,24 @@ void initpc(int argc, char *argv[])
 	td0_init();
 	imd_init();
 
-#if 0
-	if (network_card_current != 0)
-	{
-		vlan_reset();	//NETWORK
-	}
-	network_card_init(network_card_current);
-	network_thread_init();
-#endif
-
         disc_load(0, discfns[0]);
         disc_load(1, discfns[1]);
         disc_load(2, discfns[2]);
         disc_load(3, discfns[3]);
                 
-        //loadfont();
         loadnvr();
         sound_init();
 
         resetide();
-	if (buslogic_enabled)
-	{
-		device_add(&BuslogicDevice);
-	}		
+	scsi_card_init();
 
-        pit_reset();        
-/*        if (romset==ROM_AMI386 || romset==ROM_AMI486) */fullspeed();
+	fullspeed();
         ali1429_reset();
-//        CPUID=(is486 && (cpuspeed==7 || cpuspeed>=9));
-//        pclog("Init - CPUID %i %i\n",CPUID,cpuspeed);
         shadowbios=0;
         
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if (cdrom_drives[i].host_drive == 0)
-		{
-		        cdrom_null_reset(i);
-		}
-		else
+		if (cdrom_drives[i].host_drive != 0)
 		{
 			if (cdrom_drives[i].host_drive == 200)
 			{
@@ -423,9 +419,6 @@ void initpc(int argc, char *argv[])
 void resetpc()
 {
         pc_reset();
-//        cpuspeed2=(AT)?2:1;
-//        atfullspeed=0;
-///*        if (romset==ROM_AMI386 || romset==ROM_AMI486) */fullspeed();
         shadowbios=0;
 }
 
@@ -477,7 +470,6 @@ void resetpchard()
         
         model_init();
 	mouse_emu_init();
-	// mem_add_bios();
         video_init();
         speaker_init();        
 
@@ -496,10 +488,9 @@ void resetpchard()
 
 	if (network_card_current != 0)
 	{
-		vlan_reset();	//NETWORK
+		vlan_reset();	/* NETWORK */
 	}
 	network_card_init(network_card_current);      
-	network_thread_reset();
         
 	for (i = 0; i < CDROM_NUM; i++)
 	{
@@ -510,10 +501,7 @@ void resetpchard()
 	}		
 
         resetide();
-	if (buslogic_enabled)
-	{
-		device_add(&BuslogicDevice);
-	}
+	scsi_card_init();
 
         sound_card_init(sound_card_current);
         if (GUS)
@@ -529,10 +517,6 @@ void resetpchard()
  
         loadnvr();
 
-//        cpuspeed2 = (AT)?2:1;
-//        atfullspeed = 0;
-//        setpitclock(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed);
-
         shadowbios = 0;
         ali1429_reset();
         
@@ -540,15 +524,9 @@ void resetpchard()
         
 	cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
 
-//        output=3;
-
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if (cdrom_drives[i].host_drive == 0)
-		{
-		        cdrom_null_reset(i);
-		}
-		else
+		if (cdrom_drives[i].host_drive != 0)
 		{
 			if (cdrom_drives[i].host_drive == 200)
 			{
@@ -597,22 +575,24 @@ void runpc()
                         exec386(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
         }
         else if (AT)
+	{
                 exec386(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
+	}
         else
+	{
                 execx86(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
+	}
         
                 keyboard_poll_host();
                 keyboard_process();
-//                checkkeys();
                 pollmouse();
                 if (joystick_type != 7)  joystick_poll();
-        endblit();
+		endblit();
 
                 framecountx++;
                 framecount++;
                 if (framecountx>=100)
                 {
-                        // pclog("onesec\n");
                         framecountx=0;
                         mips=(float)insc/1000000.0f;
                         insc=0;
@@ -673,8 +653,6 @@ void fullspeed()
                         setpitclock(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed);
                 else
                         setpitclock(14318184.0);
-//                if (is386) setpitclock(clocks[2][cpuspeed2][0]);
-//                else       setpitclock(clocks[AT?1:0][cpuspeed2][0]);
         }
         atfullspeed=1;
         nvr_recalc();
@@ -696,16 +674,12 @@ void closepc()
 	{
         	cdrom_drives[i].handler->exit(i);
 	}
-//        ioctl_close();
         dumppic();
-//        output=7;
-//        setpitclock(clocks[0][0][0]);
-//        while (1) runpc();
         disc_close(0);
         disc_close(1);
         disc_close(2);
         disc_close(3);
-        dumpregs();
+        dumpregs(0);
         closevideo();
         device_close_all();
         midi_close();
@@ -729,6 +703,7 @@ void loadconfig(char *fn)
 	int c, d;
 	char s[512];
         char *p;
+	char temps[512];
         
         if (!fn)
                 config_load(config_file_default);
@@ -739,9 +714,15 @@ void loadconfig(char *fn)
         GUS = config_get_int(NULL, "gus", 0);
         SSI2001 = config_get_int(NULL, "ssi2001", 0);
         voodoo_enabled = config_get_int(NULL, "voodoo", 0);
-		buslogic_enabled = config_get_int(NULL, "buslogic", 0);
 
-	//network
+	/* SCSI */
+        p = (char *)config_get_string(NULL, "scsicard", "");
+        if (p)
+                scsi_card_current = scsi_card_get_from_internal_name(p);
+        else
+                scsi_card_current = 0;
+
+	/* network */
 	ethif = config_get_int(NULL, "netinterface", 1);
         if (ethif >= inum)
             inum = ethif + 1;
@@ -750,6 +731,8 @@ void loadconfig(char *fn)
                 network_card_current = network_card_get_from_internal_name(p);
         else
                 network_card_current = 0;
+	ne2000_generate_maclocal(config_get_int(NULL, "maclocal", -1));
+	ne2000_generate_maclocal_pci(config_get_int(NULL, "maclocal_pci", -1));
 
         p = (char *)config_get_string(NULL, "model", "");
         if (p)
@@ -778,29 +761,22 @@ void loadconfig(char *fn)
                 sound_card_current = sound_card_get_from_internal_name(p);
         else
                 sound_card_current = 0;
+
+        mem_size = config_get_int(NULL, "mem_size", 4096);
+        if (mem_size < ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram))
+                mem_size = ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram);
  
-	// d86f_unregister(0);
-	// d86f_unregister(1);
-
-        p = (char *)config_get_string(NULL, "disc_a", "");
-        if (p) strcpy(discfns[0], p);
-        else   strcpy(discfns[0], "");
-        ui_writeprot[0] = config_get_int(NULL, "disc_a_writeprot", 0);
-
-        p = (char *)config_get_string(NULL, "disc_b", "");
-        if (p) strcpy(discfns[1], p);
-        else   strcpy(discfns[1], "");
-        ui_writeprot[1] = config_get_int(NULL, "disc_b_writeprot", 0);
-
-        p = (char *)config_get_string(NULL, "disc_3", "");
-        if (p) strcpy(discfns[2], p);
-        else   strcpy(discfns[2], "");
-        ui_writeprot[2] = config_get_int(NULL, "disc_3_writeprot", 0);
-
-        p = (char *)config_get_string(NULL, "disc_4", "");
-        if (p) strcpy(discfns[3], p);
-        else   strcpy(discfns[3], "");
-        ui_writeprot[3] = config_get_int(NULL, "disc_4_writeprot", 0);
+	for (c = 0; c < FDD_NUM; c++)
+	{
+		sprintf(temps, "fdd_%02i_type", c + 1);
+		fdd_set_type(c, config_get_int(NULL, temps, (c < 2) ? 2 : 0));
+		sprintf(temps, "fdd_%02i_fn", c + 1);
+	        p = (char *)config_get_string(NULL, temps, "");
+        	if (p) strcpy(discfns[c], p);
+	        else   strcpy(discfns[c], "");
+		sprintf(temps, "fdd_%02i_writeprot", c + 1);
+	        ui_writeprot[c] = config_get_int(NULL, temps, 0);
+	}
 
         p = (char *)config_get_string(NULL, "hdd_controller", "");
         if (p)
@@ -808,129 +784,71 @@ void loadconfig(char *fn)
         else
                 strncpy(hdd_controller_name, "none", sizeof(hdd_controller_name)-1);        
 
-        mem_size = config_get_int(NULL, "mem_size", 4096);
-        if (mem_size < ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram))
-                mem_size = ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram);
+	memset(temps, 0, 512);
+	for (c = 2; c < 4; c++)
+	{
+		sprintf(temps, "ide_%02i_enable", c + 1);
+		ide_enable[c] = config_get_int(NULL, temps, 0);
+		sprintf(temps, "ide_%02i_irq", c + 1);
+		ide_irq[c] = config_get_int(NULL, temps, 8 + c);
+	}
 
-        cdrom_drives[0].host_drive = config_get_int(NULL, "cdrom_1_host_drive", 0);
-	cdrom_drives[0].prev_host_drive = cdrom_drives[0].host_drive;
-        cdrom_drives[0].enabled = config_get_int(NULL, "cdrom_1_enabled", 0);
-        cdrom_drives[0].sound_on = config_get_int(NULL, "cdrom_1_sound_on", 1);
-        cdrom_drives[0].bus_type = config_get_int(NULL, "cdrom_1_bus_type", 0);
-        cdrom_drives[0].atapi_dma = config_get_int(NULL, "cdrom_1_atapi_dma", 1);
-        cdrom_drives[0].ide_channel = config_get_int(NULL, "cdrom_1_ide_channel", 2);
-        cdrom_drives[0].scsi_device_id = config_get_int(NULL, "cdrom_1_scsi_device_id", 2);
-        cdrom_drives[0].scsi_device_lun = config_get_int(NULL, "cdrom_1_scsi_device_lun", 0);
+	memset(temps, 0, 512);
+	for (c = 0; c < HDC_NUM; c++)
+	{
+		sprintf(temps, "hdd_%02i_sectors", c + 1);
+		hdc[c].spt = config_get_int(NULL, temps, 0);
+		sprintf(temps, "hdd_%02i_heads", c + 1);
+		hdc[c].hpc = config_get_int(NULL, temps, 0);
+		sprintf(temps, "hdd_%02i_cylinders", c + 1);
+		hdc[c].tracks = config_get_int(NULL, temps, 0);
+		sprintf(temps, "hdd_%02i_bus_type", c + 1);
+		hdc[c].bus = config_get_int(NULL, temps, 0);
+		sprintf(temps, "hdd_%02i_mfm_channel", c + 1);
+		hdc[c].mfm_channel = config_get_int(NULL, temps, 0);
+		sprintf(temps, "hdd_%02i_ide_channel", c + 1);
+		hdc[c].ide_channel = config_get_int(NULL, temps, 0);
+		sprintf(temps, "hdd_%02i_scsi_device_id", c + 1);
+		hdc[c].scsi_id = config_get_int(NULL, temps, (c < 7) ? c : ((c < 15) ? (c + 1) : 15));
+		sprintf(temps, "hdd_%02i_scsi_device_lun", c + 1);
+		hdc[c].scsi_lun = config_get_int(NULL, temps, 0);
+		sprintf(temps, "hdd_%02i_fn", c + 1);
+	        p = (char *)config_get_string(NULL, temps, "");
+	        if (p) strcpy(hdd_fn[c], p);
+        	else   strcpy(hdd_fn[c], "");
+	}
 
-        p = (char *)config_get_string(NULL, "cdrom_1_iso_path", "");
-        if (p) strcpy(cdrom_iso[0].iso_path, p);
-        else   strcpy(cdrom_iso[0].iso_path, "");
+	memset(temps, 0, 512);
+	for (c = 0; c < CDROM_NUM; c++)
+	{
+		sprintf(temps, "cdrom_%02i_host_drive", c + 1);
+		cdrom_drives[c].host_drive = config_get_int(NULL, temps, 0);
+		cdrom_drives[c].prev_host_drive = cdrom_drives[c].host_drive;
+		sprintf(temps, "cdrom_%02i_enabled", c + 1);
+		cdrom_drives[c].enabled = config_get_int(NULL, temps, 0);
+		sprintf(temps, "cdrom_%02i_sound_on", c + 1);
+		cdrom_drives[c].sound_on = config_get_int(NULL, temps, 1);
+		sprintf(temps, "cdrom_%02i_bus_type", c + 1);
+		cdrom_drives[c].bus_type = config_get_int(NULL, temps, 0);
+		sprintf(temps, "cdrom_%02i_atapi_dma", c + 1);
+		cdrom_drives[c].atapi_dma = config_get_int(NULL, temps, 0);
+		sprintf(temps, "cdrom_%02i_ide_channel", c + 1);
+		cdrom_drives[c].ide_channel = config_get_int(NULL, temps, 2);
+		sprintf(temps, "cdrom_%02i_scsi_device_id", c + 1);
+		cdrom_drives[c].scsi_device_id = config_get_int(NULL, temps, c + 2);
+		sprintf(temps, "cdrom_%02i_scsi_device_lun", c + 1);
+		cdrom_drives[c].scsi_device_lun = config_get_int(NULL, temps, 0);
 
-        cdrom_drives[1].host_drive = config_get_int(NULL, "cdrom_2_host_drive", 0);
-	cdrom_drives[1].prev_host_drive = cdrom_drives[1].host_drive;
-        cdrom_drives[1].enabled = config_get_int(NULL, "cdrom_2_enabled", 0);
-        cdrom_drives[1].sound_on = config_get_int(NULL, "cdrom_2_sound_on", 1);
-        cdrom_drives[1].bus_type = config_get_int(NULL, "cdrom_2_bus_type", 0);
-        cdrom_drives[1].atapi_dma = config_get_int(NULL, "cdrom_2_atapi_dma", 1);
-        cdrom_drives[1].ide_channel = config_get_int(NULL, "cdrom_2_ide_channel", 3);
-        cdrom_drives[1].scsi_device_id = config_get_int(NULL, "cdrom_2_scsi_device_id", 3);
-        cdrom_drives[1].scsi_device_lun = config_get_int(NULL, "cdrom_2_scsi_device_lun", 0);
-
-        p = (char *)config_get_string(NULL, "cdrom_2_iso_path", "");
-        if (p) strcpy(cdrom_iso[1].iso_path, p);
-        else   strcpy(cdrom_iso[1].iso_path, "");
-
-        cdrom_drives[2].host_drive = config_get_int(NULL, "cdrom_3_host_drive", 0);
-	cdrom_drives[2].prev_host_drive = cdrom_drives[2].host_drive;
-        cdrom_drives[2].enabled = config_get_int(NULL, "cdrom_3_enabled", 0);
-        cdrom_drives[2].sound_on = config_get_int(NULL, "cdrom_3_sound_on", 1);
-        cdrom_drives[2].bus_type = config_get_int(NULL, "cdrom_3_bus_type", 0);
-        cdrom_drives[2].atapi_dma = config_get_int(NULL, "cdrom_3_atapi_dma", 1);
-        cdrom_drives[2].ide_channel = config_get_int(NULL, "cdrom_3_ide_channel", 4);
-        cdrom_drives[2].scsi_device_id = config_get_int(NULL, "cdrom_3_scsi_device_id", 4);
-        cdrom_drives[2].scsi_device_lun = config_get_int(NULL, "cdrom_3_scsi_device_lun", 0);
-
-        p = (char *)config_get_string(NULL, "cdrom_3_iso_path", "");
-        if (p) strcpy(cdrom_iso[2].iso_path, p);
-        else   strcpy(cdrom_iso[2].iso_path, "");
-
-        cdrom_drives[3].host_drive = config_get_int(NULL, "cdrom_4_host_drive", 0);
-	cdrom_drives[3].prev_host_drive = cdrom_drives[3].host_drive;
-        cdrom_drives[3].enabled = config_get_int(NULL, "cdrom_4_enabled", 0);
-        cdrom_drives[3].sound_on = config_get_int(NULL, "cdrom_4_sound_on", 1);
-        cdrom_drives[3].bus_type = config_get_int(NULL, "cdrom_4_bus_type", 0);
-        cdrom_drives[3].atapi_dma = config_get_int(NULL, "cdrom_4_atapi_dma", 1);
-        cdrom_drives[3].ide_channel = config_get_int(NULL, "cdrom_4_ide_channel", 5);
-        cdrom_drives[3].scsi_device_id = config_get_int(NULL, "cdrom_4_scsi_device_id", 5);
-        cdrom_drives[3].scsi_device_lun = config_get_int(NULL, "cdrom_4_scsi_device_lun", 0);
-
-        p = (char *)config_get_string(NULL, "cdrom_4_iso_path", "");
-        if (p) strcpy(cdrom_iso[3].iso_path, p);
-        else   strcpy(cdrom_iso[3].iso_path, "");
+		sprintf(temps, "cdrom_%02i_iso_path", c + 1);
+        	p = (char *)config_get_string(NULL, temps, "");
+        	if (p) strcpy(cdrom_iso[c].iso_path, p);
+	        else   strcpy(cdrom_iso[c].iso_path, "");
+	}
 
         vid_resize = config_get_int(NULL, "vid_resize", 0);
         vid_api = config_get_int(NULL, "vid_api", 0);
         video_fullscreen_scale = config_get_int(NULL, "video_fullscreen_scale", 0);
         video_fullscreen_first = config_get_int(NULL, "video_fullscreen_first", 1);
-
-        hdc[0].spt = config_get_int(NULL, "hdc_sectors", 0);
-        hdc[0].hpc = config_get_int(NULL, "hdc_heads", 0);
-        hdc[0].tracks = config_get_int(NULL, "hdc_cylinders", 0);
-        p = (char *)config_get_string(NULL, "hdc_fn", "");
-        if (p) strcpy(ide_fn[0], p);
-        else   strcpy(ide_fn[0], "");
-        hdc[1].spt = config_get_int(NULL, "hdd_sectors", 0);
-        hdc[1].hpc = config_get_int(NULL, "hdd_heads", 0);
-        hdc[1].tracks = config_get_int(NULL, "hdd_cylinders", 0);
-        p = (char *)config_get_string(NULL, "hdd_fn", "");
-        if (p) strcpy(ide_fn[1], p);
-        else   strcpy(ide_fn[1], "");
-        hdc[2].spt = config_get_int(NULL, "hde_sectors", 0);
-        hdc[2].hpc = config_get_int(NULL, "hde_heads", 0);
-        hdc[2].tracks = config_get_int(NULL, "hde_cylinders", 0);
-        p = (char *)config_get_string(NULL, "hde_fn", "");
-        if (p) strcpy(ide_fn[2], p);
-        else   strcpy(ide_fn[2], "");
-        hdc[3].spt = config_get_int(NULL, "hdf_sectors", 0);
-        hdc[3].hpc = config_get_int(NULL, "hdf_heads", 0);
-        hdc[3].tracks = config_get_int(NULL, "hdf_cylinders", 0);
-        p = (char *)config_get_string(NULL, "hdf_fn", "");
-        if (p) strcpy(ide_fn[3], p);
-        else   strcpy(ide_fn[3], "");
-        hdc[4].spt = config_get_int(NULL, "hdg_sectors", 0);
-        hdc[4].hpc = config_get_int(NULL, "hdg_heads", 0);
-        hdc[4].tracks = config_get_int(NULL, "hdg_cylinders", 0);
-        p = (char *)config_get_string(NULL, "hdg_fn", "");
-        if (p) strcpy(ide_fn[4], p);
-        else   strcpy(ide_fn[4], "");
-        hdc[5].spt = config_get_int(NULL, "hdh_sectors", 0);
-        hdc[5].hpc = config_get_int(NULL, "hdh_heads", 0);
-        hdc[5].tracks = config_get_int(NULL, "hdh_cylinders", 0);
-        p = (char *)config_get_string(NULL, "hdh_fn", "");
-        if (p) strcpy(ide_fn[5], p);
-        else   strcpy(ide_fn[5], "");
-        hdc[6].spt = config_get_int(NULL, "hdi_sectors", 0);
-        hdc[6].hpc = config_get_int(NULL, "hdi_heads", 0);
-        hdc[6].tracks = config_get_int(NULL, "hdi_cylinders", 0);
-        p = (char *)config_get_string(NULL, "hdi_fn", "");
-        if (p) strcpy(ide_fn[6], p);
-        else   strcpy(ide_fn[6], "");
-        hdc[7].spt = config_get_int(NULL, "hdj_sectors", 0);
-        hdc[7].hpc = config_get_int(NULL, "hdj_heads", 0);
-        hdc[7].tracks = config_get_int(NULL, "hdj_cylinders", 0);
-        p = (char *)config_get_string(NULL, "hdj_fn", "");
-        if (p) strcpy(ide_fn[7], p);
-        else   strcpy(ide_fn[7], "");
-
-	ide_enable[2] = config_get_int(NULL, "ide_ter_enable", 0);
-	ide_irq[2] = config_get_int(NULL, "ide_ter_irq", 10);
-	ide_enable[3] = config_get_int(NULL, "ide_qua_enable", 0);
-	ide_irq[3] = config_get_int(NULL, "ide_qua_irq", 11);
-
-	fdd_set_type(0, config_get_int(NULL, "drive_a_type", 1));
-        fdd_set_type(1, config_get_int(NULL, "drive_b_type", 1));
-        fdd_set_type(2, config_get_int(NULL, "drive_3_type", 1));
-        fdd_set_type(3, config_get_int(NULL, "drive_4_type", 1));
 
 	force_43 = config_get_int(NULL, "force_43", 0);
 	scale = config_get_int(NULL, "scale", 1);
@@ -947,7 +865,11 @@ void loadconfig(char *fn)
         window_remember = config_get_int(NULL, "window_remember", 0);
 
         joystick_type = config_get_int(NULL, "joystick_type", 0);
-	mouse_type = config_get_int(NULL, "mouse_type", 0);
+        p = (char *)config_get_string(NULL, "mouse_type", "");
+        if (p)
+                mouse_type = mouse_get_from_internal_name(p);
+        else
+                mouse_type = 0;
 
 	enable_xtide = config_get_int(NULL, "enable_xtide", 1);
 	enable_external_fpu = config_get_int(NULL, "enable_external_fpu", 0);
@@ -993,6 +915,11 @@ void loadconfig(char *fn)
 	}
 
 	path_len = strlen(nvr_path);
+
+        serial_enabled[0] = config_get_int(NULL, "serial1_enabled", 1);
+        serial_enabled[1] = config_get_int(NULL, "serial2_enabled", 1);
+        lpt_enabled = config_get_int(NULL, "lpt_enabled", 1);
+        bugger_enabled = config_get_int(NULL, "bugger_enabled", 0);
 }
 
 char *nvr_concat(char *to_concat)
@@ -1006,14 +933,19 @@ void saveconfig()
 {
         int c, d;
 
+	char temps[512];
+
         config_set_int(NULL, "gameblaster", GAMEBLASTER);
         config_set_int(NULL, "gus", GUS);
         config_set_int(NULL, "ssi2001", SSI2001);
         config_set_int(NULL, "voodoo", voodoo_enabled);
-		config_set_int(NULL, "buslogic", buslogic_enabled);
+
+	config_set_string(NULL, "scsicard", scsi_card_get_internal_name(scsi_card_current));
 
 	config_set_int(NULL, "netinterface", ethif);
 	config_set_string(NULL, "netcard", network_card_get_internal_name(network_card_current));
+	config_set_int(NULL, "maclocal", net2000_get_maclocal());
+	config_set_int(NULL, "maclocal_pci", net2000_get_maclocal_pci());
 
         config_set_string(NULL, "model", model_get_internal_name());
         config_set_int(NULL, "cpu_manufacturer", cpu_manufacturer);
@@ -1026,109 +958,82 @@ void saveconfig()
 	config_set_string(NULL, "sndcard", sound_card_get_internal_name(sound_card_current));
         config_set_int(NULL, "cpu_speed", cpuspeed);
         config_set_int(NULL, "has_fpu", hasfpu);
-        config_set_string(NULL, "disc_a", discfns[0]);
-        config_set_int(NULL, "disc_a_writeprot", ui_writeprot[0]);
-        config_set_string(NULL, "disc_b", discfns[1]);
-        config_set_int(NULL, "disc_b_writeprot", ui_writeprot[1]);
-        config_set_string(NULL, "disc_3", discfns[2]);
-        config_set_int(NULL, "disc_3_writeprot", ui_writeprot[2]);
-        config_set_string(NULL, "disc_4", discfns[3]);
-        config_set_int(NULL, "disc_4_writeprot", ui_writeprot[3]);
-        config_set_string(NULL, "hdd_controller", hdd_controller_name);
 
         config_set_int(NULL, "mem_size", mem_size);
 
-        config_set_int(NULL, "cdrom_1_host_drive", cdrom_drives[0].host_drive);
-        config_set_int(NULL, "cdrom_1_enabled", cdrom_drives[0].enabled);
-        config_set_int(NULL, "cdrom_1_sound_on", cdrom_drives[0].sound_on);
-        config_set_int(NULL, "cdrom_1_bus_type", cdrom_drives[0].bus_type);
-        config_set_int(NULL, "cdrom_1_atapi_dma", cdrom_drives[0].atapi_dma);
-        config_set_int(NULL, "cdrom_1_ide_channel", cdrom_drives[0].ide_channel);
-        config_set_int(NULL, "cdrom_1_scsi_device_id", cdrom_drives[0].scsi_device_id);		
-        config_set_int(NULL, "cdrom_1_scsi_device_lun", cdrom_drives[0].scsi_device_lun);
+	memset(temps, 0, 512);
+	for (c = 0; c < FDD_NUM; c++)
+	{
+		sprintf(temps, "fdd_%02i_type", c + 1);
+	        config_set_int(NULL, temps, fdd_get_type(c));
+		sprintf(temps, "fdd_%02i_fn", c + 1);
+	        config_set_string(NULL, temps, discfns[c]);
+		sprintf(temps, "fdd_%02i_writeprot", c + 1);
+	        config_set_int(NULL, temps, ui_writeprot[c]);
+	}
 
-        config_set_string(NULL, "cdrom_1_iso_path", cdrom_iso[0].iso_path);
+        config_set_string(NULL, "hdd_controller", hdd_controller_name);
 
-        config_set_int(NULL, "cdrom_2_host_drive", cdrom_drives[1].host_drive);
-        config_set_int(NULL, "cdrom_2_enabled", cdrom_drives[1].enabled);
-        config_set_int(NULL, "cdrom_2_sound_on", cdrom_drives[1].sound_on);
-        config_set_int(NULL, "cdrom_2_bus_type", cdrom_drives[1].bus_type);
-        config_set_int(NULL, "cdrom_2_ide_channel", cdrom_drives[1].ide_channel);
-        config_set_int(NULL, "cdrom_2_atapi_dma", cdrom_drives[1].atapi_dma);
-        config_set_int(NULL, "cdrom_2_scsi_device_id", cdrom_drives[1].scsi_device_id);
-        config_set_int(NULL, "cdrom_2_scsi_device_lun", cdrom_drives[1].scsi_device_lun);
+	memset(temps, 0, 512);
+	for (c = 2; c < 4; c++)
+	{
+		sprintf(temps, "ide_%02i_enable", c + 1);
+	        config_set_int(NULL, temps, ide_enable[c]);
+		sprintf(temps, "ide_%02i_irq", c + 1);
+	        config_set_int(NULL, temps, ide_irq[c]);
+	}
 
-        config_set_string(NULL, "cdrom_2_iso_path", cdrom_iso[1].iso_path);
+	memset(temps, 0, 512);
+	for (c = 0; c < HDC_NUM; c++)
+	{
+		sprintf(temps, "hdd_%02i_sectors", c + 1);
+		config_set_int(NULL, temps, hdc[c].spt);
+		sprintf(temps, "hdd_%02i_heads", c + 1);
+		config_set_int(NULL, temps, hdc[c].hpc);
+		sprintf(temps, "hdd_%02i_cylinders", c + 1);
+		config_set_int(NULL, temps, hdc[c].tracks);
+		sprintf(temps, "hdd_%02i_bus_type", c + 1);
+		config_set_int(NULL, temps, hdc[c].bus);
+		sprintf(temps, "hdd_%02i_mfm_channel", c + 1);
+		config_set_int(NULL, temps, hdc[c].mfm_channel);
+		sprintf(temps, "hdd_%02i_ide_channel", c + 1);
+		config_set_int(NULL, temps, hdc[c].ide_channel);
+		sprintf(temps, "hdd_%02i_scsi_device_id", c + 1);
+		config_set_int(NULL, temps, hdc[c].scsi_id);
+		sprintf(temps, "hdd_%02i_scsi_device_lun", c + 1);
+		config_set_int(NULL, temps, hdc[c].scsi_lun);
+		sprintf(temps, "hdd_%02i_fn", c + 1);
+	        config_set_string(NULL, temps, hdd_fn[c]);
+	}
 
-        config_set_int(NULL, "cdrom_3_host_drive", cdrom_drives[2].host_drive);
-        config_set_int(NULL, "cdrom_3_enabled", cdrom_drives[2].enabled);
-        config_set_int(NULL, "cdrom_3_sound_on", cdrom_drives[2].sound_on);
-        config_set_int(NULL, "cdrom_3_bus_type", cdrom_drives[2].bus_type);
-        config_set_int(NULL, "cdrom_3_atapi_dma", cdrom_drives[2].atapi_dma);
-        config_set_int(NULL, "cdrom_3_ide_channel", cdrom_drives[2].ide_channel);
-        config_set_int(NULL, "cdrom_3_scsi_device_id", cdrom_drives[2].scsi_device_id);
-        config_set_int(NULL, "cdrom_3_scsi_device_lun", cdrom_drives[2].scsi_device_lun);
+	memset(temps, 0, 512);
+	for (c = 0; c < CDROM_NUM; c++)
+	{
+		sprintf(temps, "cdrom_%02i_host_drive", c + 1);
+		config_set_int(NULL, temps, cdrom_drives[c].host_drive);
+		sprintf(temps, "cdrom_%02i_enabled", c + 1);
+		config_set_int(NULL, temps, cdrom_drives[c].enabled);
+		sprintf(temps, "cdrom_%02i_sound_on", c + 1);
+		config_set_int(NULL, temps, cdrom_drives[c].sound_on);
+		sprintf(temps, "cdrom_%02i_bus_type", c + 1);
+		config_set_int(NULL, temps, cdrom_drives[c].bus_type);
+		sprintf(temps, "cdrom_%02i_atapi_dma", c + 1);
+		config_set_int(NULL, temps, cdrom_drives[c].atapi_dma);
+		sprintf(temps, "cdrom_%02i_ide_channel", c + 1);
+		config_set_int(NULL, temps, cdrom_drives[c].ide_channel);
+		sprintf(temps, "cdrom_%02i_scsi_device_id", c + 1);
+		config_set_int(NULL, temps, cdrom_drives[c].scsi_device_id);
+		sprintf(temps, "cdrom_%02i_scsi_device_lun", c + 1);
+		config_set_int(NULL, temps, cdrom_drives[c].scsi_device_lun);
 
-        config_set_string(NULL, "cdrom_3_iso_path", cdrom_iso[2].iso_path);
-
-        config_set_int(NULL, "cdrom_4_host_drive", cdrom_drives[3].host_drive);
-        config_set_int(NULL, "cdrom_4_enabled", cdrom_drives[3].enabled);
-        config_set_int(NULL, "cdrom_4_sound_on", cdrom_drives[3].sound_on);
-        config_set_int(NULL, "cdrom_4_bus_type", cdrom_drives[3].bus_type);
-        config_set_int(NULL, "cdrom_4_atapi_dma", cdrom_drives[3].atapi_dma);
-        config_set_int(NULL, "cdrom_4_ide_channel", cdrom_drives[3].ide_channel);
-        config_set_int(NULL, "cdrom_4_scsi_device_id", cdrom_drives[3].scsi_device_id);
-        config_set_int(NULL, "cdrom_4_scsi_device_lun", cdrom_drives[3].scsi_device_lun);
-
-        config_set_string(NULL, "cdrom_4_iso_path", cdrom_iso[3].iso_path);
+		sprintf(temps, "cdrom_%02i_iso_path", c + 1);
+		config_set_string(NULL, temps, cdrom_iso[c].iso_path);
+	}
 
         config_set_int(NULL, "vid_resize", vid_resize);
         config_set_int(NULL, "vid_api", vid_api);
         config_set_int(NULL, "video_fullscreen_scale", video_fullscreen_scale);
         config_set_int(NULL, "video_fullscreen_first", video_fullscreen_first);
-        
-        config_set_int(NULL, "hdc_sectors", hdc[0].spt);
-        config_set_int(NULL, "hdc_heads", hdc[0].hpc);
-        config_set_int(NULL, "hdc_cylinders", hdc[0].tracks);
-        config_set_string(NULL, "hdc_fn", ide_fn[0]);
-        config_set_int(NULL, "hdd_sectors", hdc[1].spt);
-        config_set_int(NULL, "hdd_heads", hdc[1].hpc);
-        config_set_int(NULL, "hdd_cylinders", hdc[1].tracks);
-        config_set_string(NULL, "hdd_fn", ide_fn[1]);
-        config_set_int(NULL, "hde_sectors", hdc[2].spt);
-        config_set_int(NULL, "hde_heads", hdc[2].hpc);
-        config_set_int(NULL, "hde_cylinders", hdc[2].tracks);
-        config_set_string(NULL, "hde_fn", ide_fn[2]);
-        config_set_int(NULL, "hdf_sectors", hdc[3].spt);
-        config_set_int(NULL, "hdf_heads", hdc[3].hpc);
-        config_set_int(NULL, "hdf_cylinders", hdc[3].tracks);
-        config_set_string(NULL, "hdf_fn", ide_fn[3]);
-        config_set_int(NULL, "hdg_sectors", hdc[4].spt);
-        config_set_int(NULL, "hdg_heads", hdc[4].hpc);
-        config_set_int(NULL, "hdg_cylinders", hdc[4].tracks);
-        config_set_string(NULL, "hdg_fn", ide_fn[4]);
-        config_set_int(NULL, "hdh_sectors", hdc[5].spt);
-        config_set_int(NULL, "hdh_heads", hdc[5].hpc);
-        config_set_int(NULL, "hdh_cylinders", hdc[5].tracks);
-        config_set_string(NULL, "hdh_fn", ide_fn[5]);
-        config_set_int(NULL, "hdi_sectors", hdc[6].spt);
-        config_set_int(NULL, "hdi_heads", hdc[6].hpc);
-        config_set_int(NULL, "hdi_cylinders", hdc[6].tracks);
-        config_set_string(NULL, "hdi_fn", ide_fn[6]);
-        config_set_int(NULL, "hdj_sectors", hdc[7].spt);
-        config_set_int(NULL, "hdj_heads", hdc[7].hpc);
-        config_set_int(NULL, "hdj_cylinders", hdc[7].tracks);
-        config_set_string(NULL, "hdj_fn", ide_fn[7]);
-
-        config_set_int(NULL, "ide_ter_enable", ide_enable[2]);
-        config_set_int(NULL, "ide_ter_irq", ide_irq[2]);
-        config_set_int(NULL, "ide_qua_enable", ide_enable[3]);
-        config_set_int(NULL, "ide_qua_irq", ide_irq[3]);
-
-        config_set_int(NULL, "drive_a_type", fdd_get_type(0));
-        config_set_int(NULL, "drive_b_type", fdd_get_type(1));
-        config_set_int(NULL, "drive_3_type", fdd_get_type(2));
-        config_set_int(NULL, "drive_4_type", fdd_get_type(3));
 
         config_set_int(NULL, "force_43", force_43);
         config_set_int(NULL, "scale", scale);
@@ -1139,7 +1044,7 @@ void saveconfig()
         config_set_int(NULL, "opl3_type", opl3_type);
 
         config_set_int(NULL, "joystick_type", joystick_type);
-        config_set_int(NULL, "mouse_type", mouse_type);
+	config_set_string(NULL, "mouse_type", mouse_get_internal_name(mouse_type));
 
         config_set_int(NULL, "enable_xtide", enable_xtide);
         config_set_int(NULL, "enable_external_fpu", enable_external_fpu);
@@ -1178,6 +1083,11 @@ void saveconfig()
         config_set_int(NULL, "window_x", window_x);
         config_set_int(NULL, "window_y", window_y);
         config_set_int(NULL, "window_remember", window_remember);
+
+        config_set_int(NULL, "serial1_enabled", serial_enabled[0]);
+        config_set_int(NULL, "serial2_enabled", serial_enabled[1]);
+        config_set_int(NULL, "lpt_enabled", lpt_enabled);
+        config_set_int(NULL, "bugger_enabled", bugger_enabled);
         
         config_save(config_file_default);
 }

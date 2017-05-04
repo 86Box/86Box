@@ -1,3 +1,5 @@
+#include <malloc.h>
+
 #include "ibm.h"
 
 #include "device.h"
@@ -59,6 +61,9 @@ static uint8_t xtide_read(uint16_t port, void *p)
                 
                 case 0xe:
                 return readide(0, 0x3f6);
+
+		default:
+		return 0xff;
         }
 }
 
@@ -92,6 +97,20 @@ static void *xtide_ps2_init()
         xtide_t *xtide = malloc(sizeof(xtide_t));
         memset(xtide, 0, sizeof(xtide_t));
 
+        rom_init(&xtide->bios_rom, "roms/SIDE1V12.BIN", 0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        ide_init();
+        ide_pri_disable();
+        ide_sec_disable();
+        io_sethandler(0x0360, 0x0010, xtide_read, NULL, NULL, xtide_write, NULL, NULL, xtide);
+        
+        return xtide;
+}
+
+static void *xtide_at_ps2_init()
+{
+        xtide_t *xtide = malloc(sizeof(xtide_t));
+        memset(xtide, 0, sizeof(xtide_t));
+
         rom_init(&xtide->bios_rom, "roms/ide_at_1_1_5.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
         ide_init();
         
@@ -116,6 +135,11 @@ static int xtide_at_available()
 }
 
 static int xtide_ps2_available()
+{
+        return rom_present("roms/SIDE1V12.BIN");
+}
+
+static int xtide_at_ps2_available()
 {
         return rom_present("roms/ide_at_1_1_5.bin");
 }
@@ -148,10 +172,23 @@ device_t xtide_at_device =
 device_t xtide_ps2_device =
 {
         "XTIDE (PS/2)",
-        DEVICE_AT,
+        DEVICE_PS2,
         xtide_ps2_init,
         xtide_close,
         xtide_ps2_available,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+};
+
+device_t xtide_at_ps2_device =
+{
+        "XTIDE (AT) (PS/2)",
+        DEVICE_PS2,
+        xtide_at_ps2_init,
+        xtide_close,
+        xtide_at_ps2_available,
         NULL,
         NULL,
         NULL,

@@ -34,7 +34,6 @@ void cga_out(uint16_t addr, uint8_t val, void *p)
 {
         cga_t *cga = (cga_t *)p;
         uint8_t old;
-//        pclog("CGA_OUT %04X %02X\n", addr, val);
         switch (addr)
         {
                 case 0x3D4:
@@ -80,7 +79,6 @@ void cga_out(uint16_t addr, uint8_t val, void *p)
 uint8_t cga_in(uint16_t addr, void *p)
 {
         cga_t *cga = (cga_t *)p;
-//        pclog("CGA_IN %04X\n", addr);
         switch (addr)
         {
                 case 0x3D4:
@@ -96,7 +94,6 @@ uint8_t cga_in(uint16_t addr, void *p)
 void cga_write(uint32_t addr, uint8_t val, void *p)
 {
         cga_t *cga = (cga_t *)p;
-//        pclog("CGA_WRITE %04X %02X\n", addr, val);
 	/* Horrible hack, I know, but it's the only way to fix the 440FX BIOS filling the VRAM with garbage until Tom fixes the memory emulation. */
 	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF2F) && (romset == ROM_440FX))  return;
 	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF77) && (romset == ROM_440FX))  return;
@@ -121,7 +118,6 @@ uint8_t cga_read(uint32_t addr, void *p)
                 cga->charbuffer[(((int)(((cga->dispontime - cga->vidtime) * 2) / CGACONST)) & 0xfc) | 1] = cga->vram[addr & 0x3fff];
         }
         egareads++;
-//        pclog("CGA_READ %04X\n", addr);
         return cga->vram[addr & 0x3fff];
 }
 
@@ -141,10 +137,8 @@ void cga_recalctimings(cga_t *cga)
                 _dispontime = cga->crtc[1] << 1;
         }
         _dispofftime = disptime - _dispontime;
-//        printf("%i %f %f %f  %i %i\n",cgamode&1,disptime,dispontime,dispofftime,crtc[0],crtc[1]);
         _dispontime *= CGACONST;
         _dispofftime *= CGACONST;
-//        printf("Timings - on %f off %f frame %f second %f\n",dispontime,dispofftime,(dispontime+dispofftime)*262.0,(dispontime+dispofftime)*262.0*59.92);
 	cga->dispontime = (int)(_dispontime * (1 << TIMER_SHIFT));
 	cga->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
 }
@@ -176,7 +170,6 @@ void cga_poll(void *p)
                         {
                                 cga->firstline = cga->displine;
                                 video_wait_for_buffer();
-//                                printf("Firstline %i\n",firstline);
                         }
                         cga->lastline = cga->displine;
                         for (c = 0; c < 8; c++)
@@ -507,87 +500,63 @@ void cga_speed_changed(void *p)
 static device_config_t cga_config[] =
 {
         {
-                .name = "display_type",
-                .description = "Display type",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "display_type", "Display type", CONFIG_SELECTION, "", CGA_RGB,
                 {
                         {
-                                .description = "RGB",
-                                .value = CGA_RGB
+                                "RGB", CGA_RGB
                         },
                         {
-                                .description = "Composite",
-                                .value = CGA_COMPOSITE
+                                "Composite", CGA_COMPOSITE
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = CGA_RGB
+                }
         },
         {
-                .name = "composite_type",
-                .description = "Composite type",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "composite_type", "Composite type", CONFIG_SELECTION, "", COMPOSITE_OLD,
                 {
                         {
-                                .description = "Old",
-                                .value = COMPOSITE_OLD
+                                "Old", COMPOSITE_OLD
                         },
                         {
-                                .description = "New",
-                                .value = COMPOSITE_NEW
+                                "New", COMPOSITE_NEW
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = COMPOSITE_OLD
+                }
         },
 #ifndef __unix
         {
-                .name = "rgb_type",
-                .description = "RGB type",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "rgb_type", "RGB type", CONFIG_SELECTION, "", 0,
                 {
                         {
-                                .description = "Color",
-                                .value = 0
+                                "Color", 0
                         },
                         {
-                                .description = "Green Monochrome",
-                                .value = 1
+                                "Green Monochrome", 1
                         },
                         {
-                                .description = "Amber Monochrome",
-                                .value = 2
+                                "Amber Monochrome", 2
                         },
                         {
-                                .description = "Gray Monochrome",
-                                .value = 3
+                                "Gray Monochrome", 3
                         },
                         {
-                                .description = "Color (no brown)",
-                                .value = 4
+                                "Color (no brown)", 4
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 0
+                }
         },
 #endif
         {
-                .name = "snow_enabled",
-                .description = "Snow emulation",
-                .type = CONFIG_BINARY,
-                .default_int = 1
+                "snow_enabled", "Snow emulation", CONFIG_BINARY, "", 1
         },
         {
-                .type = -1
+                "", "", -1
         }
 };
 

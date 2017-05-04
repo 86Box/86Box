@@ -531,8 +531,6 @@ void svga_render_8bpp_lowres(svga_t *svga)
                         p += 8;
                 }
         }
-
-	// return NULL;
 }
 
 void svga_render_8bpp_highres(svga_t *svga)
@@ -570,8 +568,6 @@ void svga_render_8bpp_highres(svga_t *svga)
                         p += 8;
                 }
         }
-
-	// return NULL;
 }
 
 void svga_render_15bpp_lowres(svga_t *svga)

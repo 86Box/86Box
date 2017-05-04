@@ -12,7 +12,6 @@
 
 uint8_t batman_brdconfig(uint16_t port, void *p)
 {
-//        pclog("batman_brdconfig read port=%04x\n", port);
         switch (port)
         {
                 case 0x73:
@@ -24,7 +23,7 @@ uint8_t batman_brdconfig(uint16_t port, void *p)
 }
 
 static uint16_t batman_timer_latch;
-static int64_t batman_timer = 0;
+static int batman_timer = 0;
 static void batman_timer_over(void *p)
 {
         batman_timer = 0;
@@ -65,22 +64,3 @@ void intel_batman_init()
         io_sethandler(0x0078, 0x0002, batman_timer_read, NULL, NULL, batman_timer_write, NULL, NULL, NULL);
         timer_add(batman_timer_over, &batman_timer, &batman_timer, NULL);
 }
-
-
-#if 0
-uint8_t endeavor_brdconfig(uint16_t port, void *p)
-{
-//        pclog("endeavor_brdconfig read port=%04x\n", port);
-        switch (port)
-        {
-                case 0x79:
-                return 0xff;
-        }
-        return 0;
-}
-
-void intel_endeavor_init()
-{
-        io_sethandler(0x0079, 0x0001, endeavor_brdconfig, NULL, NULL, NULL, NULL, NULL, NULL);
-}
-#endif

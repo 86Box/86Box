@@ -29,13 +29,10 @@ static void opti495_write(uint16_t addr, uint8_t val, void *p)
                         {
                                 shadowbios = !(val & 0x80);
                                 shadowbios_write = val & 0x80;
-                                //pclog("shadowbios %i %02x\n", shadowbios, val);
                                 if (shadowbios)
                                         mem_set_mem_state(0xf0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
                                 else
                                         mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
-//                                if (shadowbios)
-//                                        fatal("Here\n");
                         }
                 }
                 break;
@@ -47,7 +44,6 @@ static uint8_t opti495_read(uint16_t addr, void *p)
         switch (addr)
         {
                 case 0x24:
-                //printf("Read OPTI reg %02X\n",optireg);
                 if (optireg>=0x20 && optireg<=0x2C) return optiregs[optireg-0x20];
                 break;
         }

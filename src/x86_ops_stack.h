@@ -310,10 +310,16 @@ static int opPOPL_a32(uint32_t fetchdat)
 
 static int opENTER_w(uint32_t fetchdat)
 {
-        uint16_t offset = getwordf();
-        int count = (fetchdat >> 16) & 0xff; cpu_state.pc++;
-        uint32_t tempEBP = EBP, tempESP = ESP, frame_ptr;
+	uint16_t offset;
+	int count;
+        uint32_t tempEBP, tempESP, frame_ptr;
         int reads = 0, writes = 1, instr_cycles = 0;
+	uint16_t tempw;
+
+        offset = getwordf();
+        count = (fetchdat >> 16) & 0xff; cpu_state.pc++;
+        tempEBP = EBP;
+	tempESP = ESP;
         
         PUSH_W(BP); if (cpu_state.abrt) return 1;
         frame_ptr = ESP;
@@ -322,8 +328,6 @@ static int opENTER_w(uint32_t fetchdat)
         {
                 while (--count)
                 {
-                        uint16_t tempw;
-                        
                         BP -= 2;
                         tempw = readmemw(ss, BP);
                         if (cpu_state.abrt) { ESP = tempESP; EBP = tempEBP; return 1; }
@@ -348,10 +352,15 @@ static int opENTER_w(uint32_t fetchdat)
 }
 static int opENTER_l(uint32_t fetchdat)
 {
-        uint16_t offset = getwordf();
-        int count = (fetchdat >> 16) & 0xff; cpu_state.pc++;
-        uint32_t tempEBP = EBP, tempESP = ESP, frame_ptr;
+        uint16_t offset;
+        int count;
+        uint32_t tempEBP, tempESP, frame_ptr;
         int reads = 0, writes = 1, instr_cycles = 0;
+	uint32_t templ;
+
+	offset = getwordf();
+        count = (fetchdat >> 16) & 0xff; cpu_state.pc++;
+        tempEBP = EBP; tempESP = ESP;
         
         PUSH_L(EBP); if (cpu_state.abrt) return 1;
         frame_ptr = ESP;
@@ -360,8 +369,6 @@ static int opENTER_l(uint32_t fetchdat)
         {
                 while (--count)
                 {
-                        uint32_t templ;
-                        
                         EBP -= 4;
                         templ = readmeml(ss, EBP);
                         if (cpu_state.abrt) { ESP = tempESP; EBP = tempEBP; return 1; }
@@ -455,17 +462,17 @@ static int opLEAVE_l(uint32_t fetchdat)
         }
 
                 
-PUSH_SEG_OPS(CS);
-PUSH_SEG_OPS(DS);
-PUSH_SEG_OPS(ES);
-PUSH_SEG_OPS(FS);
-PUSH_SEG_OPS(GS);
-PUSH_SEG_OPS(SS);
+PUSH_SEG_OPS(CS)
+PUSH_SEG_OPS(DS)
+PUSH_SEG_OPS(ES)
+PUSH_SEG_OPS(FS)
+PUSH_SEG_OPS(GS)
+PUSH_SEG_OPS(SS)
 
-POP_SEG_OPS(DS, &_ds);
-POP_SEG_OPS(ES, &_es);
-POP_SEG_OPS(FS, &_fs);
-POP_SEG_OPS(GS, &_gs);
+POP_SEG_OPS(DS, &_ds)
+POP_SEG_OPS(ES, &_es)
+POP_SEG_OPS(FS, &_fs)
+POP_SEG_OPS(GS, &_gs)
 
 
 static int opPOP_SS_w(uint32_t fetchdat)

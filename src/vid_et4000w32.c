@@ -120,16 +120,8 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
         svga_t *svga = &et4000->svga;
         uint8_t old;
 
-//        pclog("et4000w32p_out: addr %04X val %02X %04X:%04X  %02X %02X\n", addr, val, CS, pc, ram[0x487], ram[0x488]);
-        
-/*        if (ram[0x487] == 0x62)
-                fatal("mono\n");*/
-//        if (!(addr==0x3D4 && (val&~1)==0xE) && !(addr==0x3D5 && (crtcreg&~1)==0xE)) pclog("ET4000W32p out %04X %02X  %04X:%04X  ",addr,val,CS,pc);
-        
         if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
                 addr ^= 0x60;
-        
-//        if (!(addr==0x3D4 && (val&~1)==0xE) && !(addr==0x3D5 && (crtcreg&~1)==0xE)) pclog("%04X\n",addr);
         
         switch (addr)
         {
@@ -156,7 +148,6 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
                 {
                         case 6:
                         svga->gdcreg[svga->gdcaddr & 15] = val;
-                        //et4k_b8000=((crtc[0x36]&0x38)==0x28) && ((gdcreg[6]&0xC)==4);
                         et4000w32p_recalcmapping(et4000);
                         return;
                 }
@@ -165,7 +156,6 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
                 svga->crtcreg = val & 63;
                 return;
                 case 0x3D5:
-//                pclog("Write CRTC R%02X %02X\n", crtcreg, val);
                 if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
                         return;
                 if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
@@ -191,8 +181,6 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
 			{
 				et4000->linearbase = val << 22;
 			}
-                        // et4000->linearbase = val * 0x400000;
-//                        pclog("Linear base now at %08X %02X\n", et4000w32p_linearbase, val);
                         et4000w32p_recalcmapping(et4000);
                 }
                 if (svga->crtcreg == 0x32 || svga->crtcreg == 0x36)
@@ -213,7 +201,6 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
                 svga->hwcursor.ena   = et4000->regs[0xF7] & 0x80;
                 svga->hwcursor.xoff  = et4000->regs[0xE2] & 63;
                 svga->hwcursor.yoff  = et4000->regs[0xE6] & 63;
-//                pclog("HWCURSOR X %i Y %i\n",svga->hwcursor_x,svga->hwcursor_y);
                 return;
 
         }
@@ -225,17 +212,9 @@ uint8_t et4000w32p_in(uint16_t addr, void *p)
         et4000w32p_t *et4000 = (et4000w32p_t *)p;
         svga_t *svga = &et4000->svga;
         uint8_t temp;
-//        if (addr==0x3DA) pclog("In 3DA %04X(%06X):%04X\n",CS,cs,pc);
-        
-//        pclog("ET4000W32p in  %04X  %04X:%04X  ",addr,CS,pc);
 
-//        if (addr != 0x3da && addr != 0x3ba)
-//                pclog("et4000w32p_in: addr %04X %04X:%04X %02X %02X\n", addr, CS, pc, ram[0x487], ram[0x488]);
-        
         if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
                 addr ^= 0x60;
-        
-//        pclog("%04X\n",addr);
         
         switch (addr)
         {
@@ -254,7 +233,6 @@ uint8_t et4000w32p_in(uint16_t addr, void *p)
                 case 0x3D4:
                 return svga->crtcreg;
                 case 0x3D5:
-//                pclog("Read CRTC R%02X %02X\n", crtcreg, crtc[crtcreg]);
                 return svga->crtc[svga->crtcreg];
                 
                 case 0x3DA:
@@ -263,7 +241,6 @@ uint8_t et4000w32p_in(uint16_t addr, void *p)
                 temp = svga->cgastat & 0x39;
                 if (svga->hdisp_on) temp |= 2;
                 if (!(svga->cgastat & 8)) temp |= 0x80;
-//                pclog("3DA in %02X\n",temp);
                 return temp;
 
                 case 0x210A: case 0x211A: case 0x212A: case 0x213A:
@@ -286,9 +263,7 @@ uint8_t et4000w32p_in(uint16_t addr, void *p)
 void et4000w32p_recalctimings(svga_t *svga)
 {
         et4000w32p_t *et4000 = (et4000w32p_t *)svga->p;
-//        pclog("Recalc %08X  ",svga_ma);
         svga->ma_latch |= (svga->crtc[0x33] & 0x7) << 16;
-//        pclog("SVGA_MA %08X %i\n", svga_ma, (svga_miscout >> 2) & 3);
         if (svga->crtc[0x35] & 0x01)     svga->vblankstart += 0x400;
         if (svga->crtc[0x35] & 0x02)     svga->vtotal      += 0x400;
         if (svga->crtc[0x35] & 0x04)     svga->dispend     += 0x400;
@@ -321,14 +296,12 @@ void et4000w32p_recalcmapping(et4000w32p_t *et4000)
         
         if (!(et4000->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM))
         {
-                // pclog("Update mapping - PCI disabled\n");
                 mem_mapping_disable(&svga->mapping);
                 mem_mapping_disable(&et4000->linear_mapping);
                 mem_mapping_disable(&et4000->mmu_mapping);
                 return;
         }
 
-        // pclog("recalcmapping %p\n", svga);
         if (svga->crtc[0x36] & 0x10) /*Linear frame buffer*/
         {
                 mem_mapping_set_addr(&et4000->linear_mapping, et4000->linearbase, 0x200000);
@@ -381,7 +354,6 @@ void et4000w32p_recalcmapping(et4000w32p_t *et4000)
                 }
                 
                 mem_mapping_disable(&et4000->linear_mapping);
-//                pclog("ET4K map %02X\n", map);
         }
         et4000->linearbase_old = et4000->linearbase;
         
@@ -472,6 +444,11 @@ static void et4000w32p_accel_write_mmu(et4000w32p_t *et4000, uint32_t addr, uint
 static void fifo_thread(void *param)
 {
         et4000w32p_t *et4000 = (et4000w32p_t *)param;
+
+	uint64_t start_time = 0;
+	uint64_t end_time = 0;
+
+	fifo_entry_t *fifo;
         
         while (1)
         {
@@ -481,10 +458,8 @@ static void fifo_thread(void *param)
                 et4000->blitter_busy = 1;
                 while (!FIFO_EMPTY)
                 {
-                        uint64_t start_time = timer_read();
-                        uint64_t end_time;
-                        fifo_entry_t *fifo = &et4000->fifo[et4000->fifo_read_idx & FIFO_MASK];
-                        uint32_t val = fifo->val;
+                        start_time = timer_read();
+                        fifo = &et4000->fifo[et4000->fifo_read_idx & FIFO_MASK];
 
                         switch (fifo->addr_type & FIFO_TYPE)
                         {
@@ -509,7 +484,7 @@ static void fifo_thread(void *param)
         }
 }
 
-static inline void wake_fifo_thread(et4000w32p_t *et4000)
+static __inline void wake_fifo_thread(et4000w32p_t *et4000)
 {
         thread_set_event(et4000->wake_fifo_thread); /*Wake up FIFO thread if moving from idle*/
 }
@@ -526,7 +501,6 @@ static void et4000w32p_wait_fifo_idle(et4000w32p_t *et4000)
 static void et4000w32p_queue(et4000w32p_t *et4000, uint32_t addr, uint32_t val, uint32_t type)
 {
         fifo_entry_t *fifo = &et4000->fifo[et4000->fifo_write_idx & FIFO_MASK];
-        int c;
 
         if (FIFO_FULL)
         {
@@ -551,8 +525,6 @@ void et4000w32p_mmu_write(uint32_t addr, uint8_t val, void *p)
         et4000w32p_t *et4000 = (et4000w32p_t *)p;
         svga_t *svga = &et4000->svga;
         int bank;
-//        pclog("ET4K write %08X %02X %02X %04X(%08X):%08X\n",addr,val,et4000->acl.status,et4000->acl.internal.ctrl_routing,CS,cs,pc);
-//        et4000->acl.status |= ACL_RDST;
         switch (addr & 0x6000)
         {
                 case 0x0000: /*MMU 0*/
@@ -603,7 +575,6 @@ uint8_t et4000w32p_mmu_read(uint32_t addr, void *p)
         svga_t *svga = &et4000->svga;
         int bank;
         uint8_t temp;
-//        pclog("ET4K read %08X %04X(%08X):%08X\n",addr,CS,cs,pc);
         switch (addr & 0x6000)
         {
                 case 0x0000: /*MMU 0*/
@@ -650,13 +621,11 @@ uint8_t et4000w32p_mmu_read(uint32_t addr, void *p)
 
                         case 0x7f36:
                         temp = et4000->acl.status;
-//                        et4000->acl.status &= ~ACL_RDST;
                         temp &= ~0x03;
                         if (!FIFO_EMPTY)
                                 temp |= 0x02;
                         if (FIFO_FULL)
                                 temp |= 0x01;
-//                        if (et4000->acl.internal.pos_x!=et4000->acl.internal.count_x || et4000->acl.internal.pos_y!=et4000->acl.internal.count_y) return et4000->acl.status | ACL_XYST;
                         return temp;
                         case 0x7f80: return et4000->acl.internal.pattern_addr;
                         case 0x7f81: return et4000->acl.internal.pattern_addr >> 8;
@@ -701,10 +670,6 @@ static int et4000w32_wrap_y[8]={1,2,4,8,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFF
 int bltout=0;
 void et4000w32_blit_start(et4000w32p_t *et4000)
 {
-//        if (et4000->acl.queued.xy_dir&0x80)
-//           pclog("Blit - %02X %08X (%i,%i) %08X (%i,%i) %08X (%i,%i) %i  %i %i  %02X %02X  %02X\n",et4000->acl.queued.xy_dir,et4000->acl.internal.pattern_addr,(et4000->acl.internal.pattern_addr/3)%640,(et4000->acl.internal.pattern_addr/3)/640,et4000->acl.internal.source_addr,(et4000->acl.internal.source_addr/3)%640,(et4000->acl.internal.source_addr/3)/640,et4000->acl.internal.dest_addr,(et4000->acl.internal.dest_addr/3)%640,(et4000->acl.internal.dest_addr/3)/640,et4000->acl.internal.xy_dir,et4000->acl.internal.count_x,et4000->acl.internal.count_y,et4000->acl.internal.rop_fg,et4000->acl.internal.rop_bg, et4000->acl.internal.ctrl_routing);
-//           bltout=1;
-//        bltout=(et4000->acl.internal.count_x==1541);
         if (!(et4000->acl.queued.xy_dir & 0x20))
            et4000->acl.internal.error = et4000->acl.internal.dmaj / 2;
         et4000->acl.pattern_addr= et4000->acl.internal.pattern_addr;
@@ -824,8 +789,6 @@ void et4000w32_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et400
         int mixdat;
 
         if (!(et4000->acl.status & ACL_XYST)) return;
-//        if (count>400) pclog("New blit - %i,%i %06X (%i,%i) %06X %06X\n",et4000->acl.internal.count_x,et4000->acl.internal.count_y,et4000->acl.dest_addr,et4000->acl.dest_addr%640,et4000->acl.dest_addr/640,et4000->acl.source_addr,et4000->acl.pattern_addr);
-        //pclog("Blit exec - %i %i %i\n",count,et4000->acl.internal.pos_x,et4000->acl.internal.pos_y);
         if (et4000->acl.internal.xy_dir & 0x80) /*Line draw*/
         {
                 while (count--)
@@ -874,7 +837,6 @@ void et4000w32_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et400
                                 et4000->acl.cpu_dat_pos++;
                         }
                         
-//                        pclog("%i %i\n",et4000->acl.pix_pos,(et4000->acl.internal.pixel_depth>>4)&3);
                         et4000->acl.pix_pos++;
                         et4000->acl.internal.pos_x++;
                         if (et4000->acl.pix_pos <= ((et4000->acl.internal.pixel_depth >> 4) & 3))
@@ -904,11 +866,9 @@ void et4000w32_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et400
                                         break;
                                         case 4: case 6: /*X+*/
                                         et4000w32_incx(((et4000->acl.internal.pixel_depth >> 4) & 3) + 1, et4000);
-                                        //et4000->acl.internal.pos_x++;
                                         break;
                                         case 5: case 7: /*X-*/
                                         et4000w32_decx(((et4000->acl.internal.pixel_depth >> 4) & 3) + 1, et4000);
-                                        //et4000->acl.internal.pos_x++;
                                         break;
                                 }
                                 et4000->acl.internal.error += et4000->acl.internal.dmin;
@@ -939,7 +899,6 @@ void et4000w32_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et400
                                     et4000->acl.internal.pos_y > et4000->acl.internal.count_y)
                                 {
                                         et4000->acl.status &= ~(ACL_XYST | ACL_SSO);
-//                                        pclog("Blit line over\n");
                                         return;
                                 }
                         }
@@ -1022,7 +981,6 @@ void et4000w32_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et400
                                 if (et4000->acl.internal.pos_y > et4000->acl.internal.count_y)
                                 {
                                         et4000->acl.status &= ~(ACL_XYST | ACL_SSO);
-//                                        pclog("Blit over\n");
                                         return;
                                 }
                                 if (cpu_input) return;
@@ -1042,9 +1000,10 @@ void et4000w32p_hwcursor_draw(svga_t *svga, int displine)
 {
         int x, offset;
         uint8_t dat;
-        offset = svga->hwcursor_latch.xoff;
 	int y_add = (enable_overscan && !suppress_overscan) ? 16 : 0;
 	int x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
+        offset = svga->hwcursor_latch.xoff;
+
         for (x = 0; x < 64 - svga->hwcursor_latch.xoff; x += 4)
         {
                 dat = svga->vram[svga->hwcursor_latch.addr + (offset >> 2)];
@@ -1098,11 +1057,8 @@ static void et4000w32p_io_set(et4000w32p_t *et4000)
 uint8_t et4000w32p_pci_read(int func, int addr, void *p)
 {
         et4000w32p_t *et4000 = (et4000w32p_t *)p;
-        svga_t *svga = &et4000->svga;
 
 	addr &= 0xff;
-
-        // pclog("ET4000 PCI read %08X\n", addr);
 
         switch (addr)
         {
@@ -1141,11 +1097,8 @@ void et4000w32p_pci_write(int func, int addr, uint8_t val, void *p)
 {
         et4000w32p_t *et4000 = (et4000w32p_t *)p;
         svga_t *svga = &et4000->svga;
-	uint32_t temp = 0;
 
 	addr &= 0xff;
-
-	// pclog("ET4000 PCI Write: value %02X to address %08X\n");
 
         switch (addr)
         {
@@ -1174,7 +1127,6 @@ void et4000w32p_pci_write(int func, int addr, uint8_t val, void *p)
 		et4000->pci_regs[0x33] &= 0xf0;
                 if (et4000->pci_regs[0x30] & 0x01)
                 {
-                        // uint32_t addr = ((et4000->pci_regs[0x31] & 0x80) << 8) | ((et4000->pci_regs[0x32] & 0x0f) << 16) | (et4000->pci_regs[0x33] << 24);
                         uint32_t addr = (et4000->pci_regs[0x33] << 24);
 			if (!addr)
 			{
@@ -1252,6 +1204,10 @@ void et4000w32p_close(void *p)
 
         svga_close(&et4000->svga);
         
+        thread_kill(et4000->fifo_thread);
+        thread_destroy_event(et4000->wake_fifo_thread);
+        thread_destroy_event(et4000->fifo_not_full_event);
+
         free(et4000);
 }
 
@@ -1288,27 +1244,21 @@ void et4000w32p_add_status_info(char *s, int max_len, void *p)
 static device_config_t et4000w32p_config[] =
 {
         {
-                .name = "memory",
-                .description = "Memory size",
-                .type = CONFIG_SELECTION,
-                .selection =
+                "memory", "Memory size", CONFIG_SELECTION, "", 2,
                 {
                         {
-                                .description = "1 MB",
-                                .value = 1
+                                "1 MB", 1
                         },
                         {
-                                .description = "2 MB",
-                                .value = 2
+                                "2 MB", 2
                         },
                         {
-                                .description = ""
+                                ""
                         }
-                },
-                .default_int = 2
+                }
         },
         {
-                .type = -1
+                "", "", -1
         }
 };
 

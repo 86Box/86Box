@@ -133,7 +133,6 @@ extern uint64_t cpu_CR4_mask;
 
 #define CPU_SUPPORTS_DYNAREC 1
 #define CPU_REQUIRES_DYNAREC 2
-// #define CPU_REQUIRES_DYNAREC 0
 
 extern int cpu_cycles_read, cpu_cycles_read_l, cpu_cycles_write, cpu_cycles_write_l;
 extern int cpu_prefetch_cycles, cpu_prefetch_width;
@@ -161,5 +160,6 @@ extern int isa_cycles;
 #define ISA_CYCLES(x) ((x * isa_cycles) >> ISA_CYCLES_SHIFT)
 
 void cpu_update_waitstates();
+void cpu_set();
 
 #endif

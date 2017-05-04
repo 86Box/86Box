@@ -1,56 +1,189 @@
-VPATH = . dosbox lzf resid-fp slirp
-CPP  = g++.exe
-CC   = gcc.exe
-WINDRES = windres.exe
-CFLAGS = -O3 -march=native -mtune=native -fbranch-probabilities -fvpt -fpeel-loops -ftracer -fomit-frame-pointer -ffast-math -msse -msse2 -msse3 -mssse3 -mfpmath=sse -mstackrealign
-DFLAGS = -O3 -fomit-frame-pointer -msse2 -mstackrealign
-OBJ = 386.o 386_dynarec.o 386_dynarec_ops.o 808x.o acer386sx.o acerm3a.o ali1429.o amstrad.o buslogic.o cdrom.o cdrom-ioctl.o cdrom-iso.o \
-	cdrom-null.o codegen.o codegen_ops.o codegen_timing_486.o codegen_timing_686.o codegen_timing_pentium.o codegen_timing_winchip.o codegen_x86-64.o compaq.o config.o cpu.o dac.o \
-	device.o disc.o disc_86f.o disc_fdi.o disc_imd.o disc_img.o disc_random.o disc_td0.o dma.o fdc.o fdc37c665.o fdc37c932fr.o fdd.o fdi2raw.o gameport.o hdd.o headland.o i430hx.o i430lx.o i430fx.o \
-	i430nx.o i430vx.o i440fx.o ide.o intel.o intel_flash.o io.o jim.o joystick_ch_flightstick_pro.o joystick_standard.o joystick_sw_pad.o joystick_tm_fcs.o keyboard.o keyboard_amstrad.o keyboard_at.o \
-	keyboard_olim24.o keyboard_pcjr.o keyboard_xt.o lpt.o mcr.o mem.o memregs.o mfm_at.o model.o mouse.o mouse_ps2.o \
-	mouse_serial.o ne2000.o neat.o nethandler.o nmi.o nvr.o olivetti_m24.o opti495.o pc.o pc87306.o pci.o pic.o piix.o pit.o ppi.o ps1.o ps2.o rom.o rtc.o \
-	scat.o scsi.o serial.o sis496.o sis85c471.o sio.o sound.o sound_ad1848.o sound_adlib.o sound_adlibgold.o sound_cms.o \
-	sound_dbopl.o sound_emu8k.o sound_gus.o sound_mpu401_uart.o sound_opl.o sound_pas16.o sound_ps1.o sound_pssj.o sound_resid.o \
-	sound_sb.o sound_sb_dsp.o sound_sn76489.o sound_speaker.o sound_ssi2001.o sound_wss.o sound_ym7128.o \
-	soundopenal.o tandy_eeprom.o tandy_rom.o timer.o um8669f.o usb.o vid_ati_eeprom.o vid_ati_mach64.o vid_ati18800.o \
-	vid_ati28800.o vid_ati68860_ramdac.o vid_bt485_ramdac.o vid_cga.o vid_cl_gd.o vid_cl_gd_blit.o vid_cl_ramdac.o vid_colorplus.o vid_ega.o vid_et4000.o \
-	vid_et4000w32.o vid_hercules.o vid_herculesplus.o vid_icd2061.o vid_ics2595.o vid_incolor.o vid_mda.o vid_nv_riva128.o \
-	vid_olivetti_m24.o vid_oti067.o vid_paradise.o vid_pc1512.o vid_pc1640.o vid_pc200.o \
-	vid_pcjr.o vid_ps1_svga.o vid_s3.o vid_s3_virge.o vid_sdac_ramdac.o vid_stg_ramdac.o vid_svga.o \
-	vid_svga_render.o vid_tandy.o vid_tandysl.o vid_tgui9440.o vid_tkd8001_ramdac.o vid_tvga.o vid_unk_ramdac.o \
-	vid_vga.o vid_wy700.o vid_voodoo.o video.o w83877f.o wd76c10.o win.o win-config.o win-d3d.o win-d3d-fs.o win-ddraw.o \
-	win-ddraw-fs.o win-ddraw-screenshot.o win-deviceconfig.o win-hdconf.o win-joystick.o win-joystickconfig.o win-keyboard.o win-midi.o win-mouse.o \
-	win-status.o win-video.o x86seg.o x87.o xtide.o pc.res
-DBOBJ = dbopl.o nukedopl.o vid_cga_comp.o
-LZFOBJ = lzf_c.o lzf_d.o
-SIDOBJ = convolve.o convolve-sse.o envelope.o extfilt.o filter.o pot.o sid.o voice.o wave6581__ST.o wave6581_P_T.o wave6581_PS_.o wave6581_PST.o wave8580__ST.o wave8580_P_T.o wave8580_PS_.o wave8580_PST.o wave.o
-SLIRPOBJ = bootp.o ip_icmp.o misc.o socket.o tcp_timer.o cksum.o ip_input.o queue.o tcp_input.o tftp.o debug.o ip_output.o sbuf.o tcp_output.o udp.o if.o mbuf.o slirp.o tcp_subr.o
+#
+# 86Box		A hypervisor and IBM PC system emulator that specializes in
+#		running old operating systems and software designed for IBM
+#		PC systems and compatibles from 1981 through fairly recent
+#		system designs based on the PCI bus.
+#
+#		This file is part of the 86Box distribution.
+#
+#		Modified Makefile for Win32 MinGW 32-bit environment.
+#
+# Version:	@(#)Makefile.mingw64	1.0.0	2017/05/05
+#
+# Authors:	Kotori, <oubattler@gmail.com>
+#               Fred N. van Kempen, <decwiz@yahoo.com>
+#               Sarah Walker,
+#               Richard G.,
+#
+
+# Name of the executable.
+PROG	= 86Box64
+
+# Various compile-time options.
+# -DROM_TRACE=0xcd800 traces ROM access from segment C800
+# -DIO_TACE=0x66 traces I/O on port 0x66
+STUFF	=
+
+# Add feature selections here.
+# -DBUGGER adds the ISA BusBugger emulation.
+EXTRAS	=
+
+# Do we want a debugging build?
+DEBUG	= n
 
 
-LIBS = -mwindows -lwinmm -lopenal -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 -lwsock32 -liphlpapi -lstdc++ -lpsapi -static-libstdc++ -static-libgcc -static -lopenal.dll -lgcov -lPacket -lwpcapdelay
+#########################################################################
+#		Nothing should need changing from here on..		#
+#########################################################################
+VPATH	= . dosbox lzf resid-fp slirp
+CPP	= g++.exe
+CC	= gcc.exe
+WINDRES	= windres.exe
 
-86Box64.exe: $(OBJ) $(DBOBJ) $(LZFOBJ) $(SIDOBJ) $(SLIRPOBJ)
-	$(CC) $(OBJ) $(DBOBJ) $(LZFOBJ) $(SIDOBJ) $(SLIRPOBJ) -o "86Box64.exe" $(LIBS)
-	sleep 10
-	strip "86Box64.exe"
-	sleep 10
+OPTS	= -DWIN32 $(EXTRAS) $(STUFF)
+ifeq ($(DEBUG), y)
+DFLAGS	= -march=i686 -Og -ggdb -DDEBUG
+else
+DFLAGS	= -march=native -mtune=native -O6
+UFLAGS	= -O3
+endif
+AFLAGS	= -msse -msse2 -mfpmath=sse
+CFLAGS	= $(OPTS) $(DFLAGS) $(AFLAGS) \
+	  -fomit-frame-pointer -mstackrealign
+RFLAGS	= --input-format=rc -O coff
 
-all : 86Box64.exe
 
-clean :
-	rm *.o
-	rm *.exe
-	rm *.res
+MAINOBJ	= pc.o config.o device.o timer.o dma.o io.o nmi.o pic.o \
+	  mca.o mcr.o pit.o ppi.o pci.o sio.o intel.o rom.o mem.o \
+	  memregs.o intel_flash.o rtc.o nvr.o ps2_nvr.o
+CPUOBJ	= cpu.o 386.o 386_dynarec.o 386_dynarec_ops.o 808x.o \
+	  codegen.o \
+	    codegen_ops.o codegen_timing_486.o \
+	    codegen_timing_686.o codegen_timing_pentium.o \
+	    codegen_timing_winchip.o codegen_x86-64.o \
+	  x86seg.o x87.o
+SYSOBJ	= model.o \
+	    headland.o \
+	    i430hx.o i430lx.o i430fx.o i430nx.o i430vx.o i440fx.o \
+	    neat.o \
+	    ali1429.o \
+	    opti495.o \
+	    scat.o \
+	    sis496.o \
+	    wd76c10.o \
+	    acer386sx.o acerm3a.o amstrad.o \
+	    compaq.o olivetti_m24.o jim.o ps1.o ps2.o ps2_mca.o \
+	    tandy_eeprom.o tandy_rom.o
+DEVOBJ	= bugger.o lpt.o serial.o \
+	    um8669f.o pc87306.o sis85c471.o w83877f.o \
+	  keyboard.o \
+	    keyboard_xt.o keyboard_at.o keyboard_pcjr.o \
+	    keyboard_amstrad.o keyboard_olim24.o \
+	  gameport.o \
+	    joystick_standard.o joystick_ch_flightstick_pro.o \
+	    joystick_sw_pad.o joystick_tm_fcs.o \
+	  mouse.o mouse_serial.o mouse_ps2.o mouse_bus.o \
+	  fdd.o fdc.o \
+	    fdc37c665.o fdc37c669.o fdc37c932fr.o fdi2raw.o \
+	  hdd.o hdd_esdi.o mfm_at.o mfm_xebec.o ide.o xtide.o piix.o scsi_hd.o \
+	    disc.o \
+	    disc_86f.o disc_fdi.o disc_imd.o disc_img.o \
+	    disc_random.o disc_td0.o \
+	  cdrom.o cdrom-ioctl.o cdrom-iso.o cdrom-null.o
+USBOBJ	= usb.o
+NETOBJ	= ne2000.o nethandler.o
+SCSIOBJ	= scsi.o scsi_buslogic.o scsi_aha154x.o
+SNDOBJ	= sound.o sound_speaker.o dac.o sound_ps1.o sound_pssj.o \
+	  sound_adlib.o sound_adlibgold.o sound_ad1848.o sound_sb.o \
+	  sound_sb_dsp.o sound_cms.o sound_dbopl.o sound_emu8k.o \
+	  sound_gus.o sound_opl.o sound_mpu401_uart.o sound_pas16.o \
+	  sound_resid.o sound_sn76489.o sound_ssi2001.o sound_wss.o \
+	  sound_ym7128.o soundopenal.o
+VIDOBJ	= video.o \
+	    vid_mda.o vid_cga.o vid_ega.o \
+	    vid_vga.o vid_svga.o vid_svga_render.o \
+	    vid_hercules.o vid_herculesplus.o vid_incolor.o \
+	    vid_colorplus.o \
+	    vid_genius.o \
+	    vid_s3.o vid_s3_virge.o \
+	    vid_et4000.o vid_et4000w32.o vid_icd2061.o \
+	    vid_oti067.o \
+	    vid_paradise.o \
+	    vid_tvga.o vid_tgui9440.o vid_tkd8001_ramdac.o \
+	    vid_ati_eeprom.o vid_ati18800.o vid_ati28800.o \
+	      vid_ati68860_ramdac.o vid_ati_mach64.o \
+	      vid_ics2595.o \
+	    vid_cl_gd.o vid_cl_gd_blit.o vid_cl_ramdac.o \
+	    vid_bt485_ramdac.o \
+	    vid_sdac_ramdac.o \
+	    vid_stg_ramdac.o \
+	    vid_unk_ramdac.o \
+	    vid_wy700.o \
+	    vid_nv_riva128.o \
+	    vid_voodoo.o \
+	    vid_pcjr.o vid_ps1_svga.o \
+	    vid_olivetti_m24.o \
+	    vid_pc1512.o vid_pc1640.o vid_pc200.o \
+	    vid_tandy.o vid_tandysl.o
+WINOBJ	= win.o \
+	    win-d3d.o win-d3d-fs.o \
+	    win-ddraw.o win-ddraw-fs.o win-ddraw-screenshot.o \
+	    win-language.o win-status.o win-video.o \
+	    win-keyboard.o win-mouse.o win-joystick.o win-midi.o \
+	    win-settings.o win-deviceconfig.o win-joystickconfig.o \
+	  86Box.res
+OBJ	= $(MAINOBJ) $(CPUOBJ) $(SYSOBJ) $(DEVOBJ) $(USBOBJ) \
+	  $(NETOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) $(WINOBJ)
 
-%.o : %.c
-	$(CC) $(CFLAGS) -c $<
+DBOBJ	= dbopl.o nukedopl.o vid_cga_comp.o
+LZFOBJ	= lzf_c.o lzf_d.o
+SIDOBJ	= convolve.o convolve-sse.o envelope.o extfilt.o filter.o pot.o \
+	  sid.o voice.o wave6581__ST.o wave6581_P_T.o wave6581_PS_.o \
+	  wave6581_PST.o wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
+	  wave8580_PST.o wave.o
+SLIRPOBJ= bootp.o ip_icmp.o misc.o socket.o tcp_timer.o cksum.o ip_input.o \
+	  queue.o tcp_input.o tftp.o debug.o ip_output.o sbuf.o tcp_output.o \
+	  udp.o if.o mbuf.o slirp.o tcp_subr.o
 
-%.o : %.cc
-	$(CPP) $(CFLAGS) -c $<
+LIBS	= -mwindows -lcomctl32 -lwinmm -lopenal.dll -lopenal -lddraw \
+	  -ldinput8 -ldxguid -ld3d9 -ld3dx9 -lwsock32 -liphlpapi \
+	  -lstdc++ -lpsapi -static-libstdc++ -static-libgcc \
+	  -static -L. -lwpcapdelay
 
-%.o : %.cpp
-	$(CPP) $(CFLAGS) -c $<
 
-pc.res: pc.rc
-	$(WINDRES) $(RFLAGS) -i pc.rc --input-format=rc -o pc.res -O coff 
+# Build rules.
+%.o:		%.c
+		@echo $<
+		$(CC) $(CFLAGS) -c $<
+
+%.o:		%.cc
+		@echo $<
+		@$(CPP) $(CFLAGS) -c $<
+
+%.o:		%.cpp
+		@echo $<
+		@$(CPP) $(CFLAGS) -c $<
+
+$(PROG).exe:	$(OBJ) $(DBOBJ) $(LZFOBJ) $(SIDOBJ) $(SLIRPOBJ)
+		@echo Linking $(PROG).exe ..
+		@$(CC) -o $(PROG).exe \
+			$(OBJ) \
+			$(DBOBJ) $(LZFOBJ) $(SIDOBJ) $(SLIRPOBJ) \
+			$(LIBS)
+
+all:		$(PROG).exe
+ifeq ($(DEBUG), y)
+		strip $(PROG).exe
+endif
+
+clean:
+		rm *.o
+		rm *.exe
+		rm *.res
+
+86Box.res:	86Box.rc
+		@echo Processing $<
+		@$(WINDRES) $(RFLAGS) -i 86Box.rc -o 86Box.res
+
+
+# End of Makefile.mingw.

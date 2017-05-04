@@ -24,17 +24,22 @@
 #include "vid_ati28800.h"
 #include "vid_ati_mach64.h"
 #include "vid_cga.h"
-#include "vid_cl_ramdac.h" //vid_cl_gd.c needs this
+#ifdef DEV_BRANCH
+#include "vid_cl_ramdac.h" /* vid_cl_gd.c needs this */
 #include "vid_cl_gd.h"
+#endif
 #include "vid_ega.h"
 #include "vid_et4000.h"
 #include "vid_et4000w32.h"
+#include "vid_genius.h"
 #include "vid_hercules.h"
 #include "vid_herculesplus.h"
 #include "vid_incolor.h"
 #include "vid_colorplus.h"
 #include "vid_mda.h"
+#ifdef DEV_BRANCH
 #include "vid_nv_riva128.h"
+#endif
 #include "vid_olivetti_m24.h"
 #include "vid_oti067.h"
 #include "vid_paradise.h"
@@ -65,29 +70,25 @@ typedef struct
 static VIDEO_CARD video_cards[] =
 {
         {"ATI Graphics Pro Turbo (Mach64 GX)",     "mach64x",		&mach64gx_device,            GFX_MACH64GX},
+        {"ATI Video Xpression (Mach64 VT2)",       "mach64vt2",		&mach64vt2_device,           GFX_MACH64VT2},
         {"ATI VGA Charger (ATI-28800-5)",          "ati28800",		&ati28800_device,            GFX_VGACHARGER},
         {"ATI VGA Wonder XL24 (ATI-28800-6)",      "ati28800w",		&ati28800_wonderxl24_device, GFX_VGAWONDERXL24},
         {"ATI VGA Edge-16 (ATI-18800)",            "ati18800",		&ati18800_device,            GFX_VGAEDGE16},
         {"CGA",                                    "cga",		&cga_device,                 GFX_CGA},
-        {"Cirrus Logic CL-GD5429",                 "cl_gd5429",		&gd5429_device,              GFX_CL_GD5429},
         {"Diamond Stealth 32 (Tseng ET4000/w32p)", "stealth32",		&et4000w32p_device,          GFX_ET4000W32},
-        /* {"Diamond Stealth 64 DRAM (S3 Vision864)", "stealth64d",	&s3_diamond_stealth64_device,GFX_STEALTH64}, */
+        {"Diamond Stealth 64 DRAM (S3 Trio64)",    "stealth64d",	&s3_diamond_stealth64_device,GFX_STEALTH64},
         {"Diamond Stealth 3D 2000 (S3 ViRGE)",     "stealth3d_2000",	&s3_virge_device,            GFX_VIRGE},
+        {"Diamond Stealth 3D 3000 (S3 ViRGE/VX)",  "stealth3d_3000",	&s3_virge_988_device,        GFX_VIRGEVX},
         {"EGA",                                    "ega",		&ega_device,                 GFX_EGA},
         {"Chips & Technologies SuperEGA",          "superega",		&sega_device,           	GFX_SUPER_EGA},
         {"Compaq ATI VGA Wonder XL (ATI-28800-5)", "compaq_ati28800",	&compaq_ati28800_device,     GFX_VGAWONDERXL},
         {"Compaq EGA",				   "compaq_ega",	&cpqega_device,           	GFX_COMPAQ_EGA},
-        /* {"Compaq/Paradise VGA",			   "compaq_vga",	&cpqvga_device,           	GFX_COMPAQ_VGA}, */
         {"Hercules",                               "hercules",		&hercules_device,            GFX_HERCULES},
         {"Hercules Plus",                          "hercules_plus",	&herculesplus_device,        GFX_HERCULESPLUS},
         {"Hercules InColor",                       "incolor",		&incolor_device,             GFX_INCOLOR},
         {"MDA",                                    "mda",		&mda_device,                 GFX_MDA},
-        /* {"Miro Crystal S3 Vision964",              "mc_vision964",	&s3_miro_vision964_device,   GFX_MIRO_VISION964}, */
+        {"MDSI Genius",                            "genius",            &genius_device,              GFX_GENIUS},
         {"Number Nine 9FX (S3 Trio64)",            "n9_9fx",		&s3_9fx_device,              GFX_N9_9FX},
-        {"nVidia RIVA 128 (Experimental)",         "nv_riva128",	&riva128_device,             GFX_RIVA128},
-        {"nVidia RIVA TNT (Experimental)",         "nv_rivatnt",	&rivatnt_device,             GFX_RIVATNT},
-        {"nVidia RIVA TNT2 (Experimental)",        "nv_rivatnt2",	&rivatnt2_device,            GFX_RIVATNT2},
-
         {"OAK OTI-067",                            "oti067",		&oti067_device,              GFX_OTI067},
         {"OAK OTI-077",                            "oti077",		&oti077_device,              GFX_OTI077},
         {"Paradise Bahamas 64 (S3 Vision864)",     "bahamas64",		&s3_bahamas64_device,        GFX_BAHAMAS64},
@@ -99,7 +100,6 @@ static VIDEO_CARD video_cards[] =
         {"S3 ViRGE/DX",                            "virge375",		&s3_virge_375_device,        GFX_VIRGEDX},
         {"Trident TGUI9440",                       "tgui9440",		&tgui9440_device,            GFX_TGUI9440},
         {"Trident TVGA8900D",                      "tvga8900d",		&tvga8900d_device,           GFX_TVGA},
-        {"TriGem Unknown Adapter",                 "trigem_unk",	&trigem_unk_device,          GFX_TRIGEM_UNK},
         {"Tseng ET4000AX",                         "et4000ax",		&et4000_device,              GFX_ET4000},
         {"VGA",                                    "vga",		&vga_device,                 GFX_VGA},
         {"Wyse 700",                               "wy700",		&wy700_device,               GFX_WY700},
@@ -332,6 +332,10 @@ void video_init()
                 return;
                 
                 case ROM_IBMPS1_2011:
+		case ROM_IBMPS2_M30_286:
+		case ROM_IBMPS2_M50:
+		case ROM_IBMPS2_M55SX:
+		case ROM_IBMPS2_M80:
                 device_add(&ps1vga_device);
                 return;
 
@@ -348,6 +352,7 @@ BITMAP *buffer, *buffer32;
 uint8_t fontdat[256][8];
 uint8_t fontdatm[256][16];
 uint8_t fontdatw[512][32];	/* Wyse700 font */
+uint8_t fontdat8x12[256][16];	/* MDSI Genius font */
 
 int xsize=1,ysize=1;
 
@@ -431,6 +436,16 @@ void loadfont(char *s, int format)
                         }
                 }
 		break;
+		case 4: /* MDSI Genius */
+                for (c=0;c<256;c++)
+                {
+                        for (d=0;d<16;d++)
+                        {
+                                fontdat8x12[c][d]=getc(f);
+                        }
+                }
+		break;
+
         }
         fclose(f);
 }
@@ -452,7 +467,7 @@ static void blit_thread(void *param);
 int calc_6to8(int c)
 {
 	int ic, i8;
-	double dc, d8;
+	double d8;
 	ic = c;
 	if (ic == 64)
 	{
@@ -462,7 +477,6 @@ int calc_6to8(int c)
 	{
 		ic &= 0x3f;
 	}
-	dc = (double) ic;
 	d8 = (ic / 63.0) * 255.0;
 	i8 = (int) d8;
 	return i8 & 0xff;
@@ -542,7 +556,6 @@ void initvideo()
                         if (d & 1) edatlookup[c][d] |= 2;
                         if (c & 2) edatlookup[c][d] |= 0x10;
                         if (d & 2) edatlookup[c][d] |= 0x20;
-//                        printf("Edat %i,%i now %02X\n",c,d,edatlookup[c][d]);
                 }
         }
 

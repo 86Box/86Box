@@ -22,7 +22,7 @@ typedef struct tandysl_t
         
         int      array_index;
         uint8_t  array[32];
-        int      memctrl;//=-1;
+        int      memctrl;
         uint32_t base;
         uint8_t  mode, col;
         uint8_t  stat;
@@ -60,17 +60,14 @@ static void tandysl_out(uint16_t addr, uint8_t val, void *p)
 {
         tandysl_t *tandy = (tandysl_t *)p;
         uint8_t old;
-//        pclog("TandySL OUT %04X %02X\n",addr,val);
         switch (addr)
         {
                 case 0x3d4:
                 tandy->crtcreg = val & 0x1f;
                 return;
                 case 0x3d5:
-//                pclog("Write CRTC R%02x %02x  ",tandy->crtcreg, val);
                 old = tandy->crtc[tandy->crtcreg];
                 tandy->crtc[tandy->crtcreg] = val & crtcmask[tandy->crtcreg];
-//                pclog("now %02x\n", tandy->crtc[tandy->crtcreg]);
                 if (old != val)
                 {
                         if (tandy->crtcreg < 0xe || tandy->crtcreg > 0x10)
@@ -101,7 +98,6 @@ static void tandysl_out(uint16_t addr, uint8_t val, void *p)
                 break;
                 case 0x3df:
                 tandy->memctrl = val;
-//                pclog("tandy 3df write %02x\n", val);
                 tandysl_recalcaddress(tandy);
                 break;
                 case 0x65:
@@ -123,7 +119,6 @@ static void tandysl_out(uint16_t addr, uint8_t val, void *p)
 static uint8_t tandysl_in(uint16_t addr, void *p)
 {
         tandysl_t *tandy = (tandysl_t *)p;
-//        if (addr!=0x3DA) pclog("Tandy IN %04X\n",addr);
         switch (addr)
         {
                 case 0x3d4:
@@ -133,7 +128,6 @@ static uint8_t tandysl_in(uint16_t addr, void *p)
                 case 0x3da:
                 return tandy->stat;
         }
-//        pclog("Bad Tandy IN %04x\n", addr);
         return 0xFF;
 }
 
@@ -149,13 +143,11 @@ static void tandysl_recalcaddress(tandysl_t *tandy)
         {
                 tandy->vram  = &ram[((tandy->memctrl & 0x06) << 14) + tandy->base];
                 tandy->b8000 = &ram[((tandy->memctrl & 0x30) << 11) + tandy->base];
-//                printf("VRAM at %05X B8000 at %05X\n",((tandy->memctrl&0x6)<<14)+tandy->base,((tandy->memctrl&0x30)<<11)+tandy->base);
         }
         else
         {
                 tandy->vram  = &ram[((tandy->memctrl & 0x07) << 14) + tandy->base];
                 tandy->b8000 = &ram[((tandy->memctrl & 0x38) << 11) + tandy->base];
-//                printf("VRAM at %05X B8000 at %05X\n",((tandy->memctrl&0x7)<<14)+tandy->base,((tandy->memctrl&0x38)<<11)+tandy->base);
                 if ((tandy->memctrl & 0x38) == 0x38)
                         tandy->b8000_limit = 0x4000;
         }
@@ -167,40 +159,32 @@ static void tandysl_recalcmapping(tandysl_t *tandy)
         io_removehandler(0x03d0, 0x0010, tandysl_in, NULL, NULL, tandysl_out, NULL, NULL, tandy);
         if (tandy->planar_ctrl & 4)
         {
-//                pclog("Enable VRAM mapping\n");
                 mem_mapping_enable(&tandy->mapping);
                 if (tandy->array[5] & 1)
                 {
-//                        pclog("Tandy mapping at A0000 %p %p\n", tandy_ram_write, tandy_write);
                         mem_mapping_set_addr(&tandy->mapping, 0xa0000, 0x10000);
                 }
                 else
                 {
-//                        pclog("Tandy mapping at B8000\n");
                         mem_mapping_set_addr(&tandy->mapping, 0xb8000, 0x8000);
                 }
-//                mem_mapping_enable(&tandy->vram_mapping);
                 io_sethandler(0x03d0, 0x0010, tandysl_in, NULL, NULL, tandysl_out, NULL, NULL, tandy);
         }
         else
         {
-//                pclog("Disable VRAM mapping\n");
                 mem_mapping_disable(&tandy->mapping);
-//                mem_mapping_disable(&tandy->vram_mapping);
                 io_removehandler(0x03d0, 0x0010, tandysl_in, NULL, NULL, tandysl_out, NULL, NULL, tandy);
         }
 }
 static void tandysl_ram_write(uint32_t addr, uint8_t val, void *p)
 {
         tandysl_t *tandy = (tandysl_t *)p;
-//        pclog("Tandy RAM write %05X %02X %04X:%04X %08x\n",addr,val,CS,pc, tandy->base);
         ram[tandy->base + (addr & 0x1ffff)] = val;
 }
 
 static uint8_t tandysl_ram_read(uint32_t addr, void *p)
 {
         tandysl_t *tandy = (tandysl_t *)p;
-//        if (!nopageerrors) pclog("Tandy RAM read %05X %02X %04X:%04X\n",addr,ram[tandy->base + (addr & 0x1ffff)],CS,pc);
         return ram[tandy->base + (addr & 0x1ffff)];
 }
 
@@ -211,7 +195,6 @@ static void tandysl_write(uint32_t addr, uint8_t val, void *p)
                 return;
                 
         egawrites++;
-//        pclog("Tandy VRAM write %05X %02X %04X:%04X  %02x %x\n",addr,val,CS,pc,tandy->array[5], (uintptr_t)&tandy->b8000[addr & 0xffff] - (uintptr_t)ram);
         if (tandy->array[5] & 1)
                 tandy->b8000[addr & 0xffff] = val;
         else
@@ -229,7 +212,6 @@ static uint8_t tandysl_read(uint32_t addr, void *p)
                 return 0xff;
                 
         egareads++;
-//        if (!nopageerrors) pclog("Tandy VRAM read  %05X %02X %04X:%04X\n",addr,tandy->b8000[addr&0x7FFF],CS,pc);
         if (tandy->array[5] & 1)
                 return tandy->b8000[addr & 0xffff];
         if ((addr & 0x7fff) >= tandy->b8000_limit)
@@ -273,9 +255,6 @@ static void tandysl_poll(void *p)
 
         if (!tandy->linepos)
         {
-//                pclog("tandy_poll vc=%i sc=%i dispon=%i\n", tandy->vc, tandy->sc, tandy->dispon);
-//                cgapal[0]=tandy->col&15;
-//                printf("Firstline %i Lastline %i tandy->displine %i\n",firstline,lastline,tandy->displine);
                 tandy->vidtime += tandy->dispofftime;
                 tandy->stat |= 1;
                 tandy->linepos = 1;
@@ -288,7 +267,6 @@ static void tandysl_poll(void *p)
                         {
                                 tandy->firstline = tandy->displine;
                                 video_wait_for_buffer();
-//                                printf("Firstline %i\n",firstline);
                         }
                         tandy->lastline = tandy->displine;
                         cols[0] = (tandy->array[2] & 0xf) + 16;
@@ -413,7 +391,6 @@ static void tandysl_poll(void *p)
                                                 for (c = 0; c < 8; c++)
                                                     buffer->line[tandy->displine][(x << 3) + c + 8] = cols[(fontdat[chr][tandy->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
                                         }
-//                                        if (!((ma^(crtc[15]|(crtc[14]<<8)))&0x3FFF)) printf("Cursor match! %04X\n",ma);
                                         if (drawcursor)
                                         {
                                                 for (c = 0; c < 8; c++)
@@ -533,7 +510,6 @@ static void tandysl_poll(void *p)
                 if (tandy->vc == tandy->crtc[7] && !tandy->sc)
                 {
                         tandy->stat |= 8;
-//                        printf("VSYNC on %i %i\n",vc,sc);
                 }
                 tandy->displine++;
                 if (tandy->displine >= 360) 
@@ -551,7 +527,6 @@ static void tandysl_poll(void *p)
                         if (!tandy->vsynctime)
                         {
                                 tandy->stat &= ~8;
-//                                printf("VSYNC off %i %i\n",vc,sc);
                         }
                 }
                 if (tandy->sc == (tandy->crtc[11] & 31) || ((tandy->crtc[8] & 3) == 3 && tandy->sc == ((tandy->crtc[11] & 31) >> 1))) 
@@ -573,28 +548,21 @@ static void tandysl_poll(void *p)
                                 else
                                         tandy->ma = tandy->maback = (tandy->crtc[13] | (tandy->crtc[12] << 8)) & 0x3fff;
                                 tandy->sc = 0;
-//                                printf("Display on!\n");
                         }
                 }
                 else if (tandy->sc == tandy->crtc[9] || ((tandy->crtc[8] & 3) == 3 && tandy->sc == (tandy->crtc[9] >> 1)))
                 {
                         tandy->maback = tandy->ma;
-//                        con=0;
-//                        coff=0;
                         tandy->sc = 0;
                         oldvc = tandy->vc;
                         tandy->vc++;
                         tandy->vc &= 255;
-//                        printf("VC %i %i %i %i  %i\n",vc,crtc[4],crtc[6],crtc[7],tandy->dispon);
                         if (tandy->vc == tandy->crtc[6]) 
                         {
-//                                pclog("Display off\n");
                                 tandy->dispon = 0;
                         }
                         if (oldvc == tandy->crtc[4])
                         {
-//                                pclog("Display over\n");
-//                                printf("Display over at %i\n",tandy->displine);
                                 tandy->vc = 0;
                                 tandy->vadj = tandy->crtc[5];
                                 if (!tandy->vadj) 
@@ -608,18 +576,14 @@ static void tandysl_poll(void *p)
                                 }
                                 if ((tandy->crtc[10] & 0x60) == 0x20) tandy->cursoron = 0;
                                 else                                  tandy->cursoron = tandy->blink & 16;
-//                                printf("CRTC10 %02X %i\n",crtc[10],cursoron);
                         }
                         if (tandy->vc == tandy->crtc[7])
                         {
                                 tandy->dispon = 0;
                                 tandy->displine = 0;
-                                tandy->vsynctime = 16;//(crtc[3]>>4)+1;
-//                                printf("tandy->vsynctime %i %02X\n",tandy->vsynctime,crtc[3]);
-//                                tandy->stat|=8;
+                                tandy->vsynctime = 16;
                                 if (tandy->crtc[7])
                                 {
-//                                        printf("Lastline %i Firstline %i  %i   %i %i\n",lastline,firstline,lastline-firstline,crtc[1],xsize);
                                         if (tandy->mode & 1) x = (tandy->crtc[1] << 3) + 16;
                                         else                 x = (tandy->crtc[1] << 4) + 16;
                                         tandy->lastline++;
@@ -627,13 +591,10 @@ static void tandysl_poll(void *p)
                                         {
                                                 xsize = x;
                                                 ysize = tandy->lastline - tandy->firstline;
-//                                                printf("Resize to %i,%i - R1 %i\n",xsize,ysize,crtc[1]);
                                                 if (xsize < 64) xsize = 656;
                                                 if (ysize < 32) ysize = 200;
                                                 updatewindowsize(xsize, (ysize << 1) + 16);
                                         }
-//                                        printf("Blit %i %i\n",firstline,lastline);
-//printf("Xsize is %i\n",xsize);
 
                                         video_blit_memtoscreen_8(0, tandy->firstline-4, xsize, (tandy->lastline - tandy->firstline) + 8);
 
@@ -690,7 +651,6 @@ static void tandysl_poll(void *p)
 
 static void *tandysl_init()
 {
-        int c;
         tandysl_t *tandy = malloc(sizeof(tandysl_t));
         memset(tandy, 0, sizeof(tandysl_t));
 

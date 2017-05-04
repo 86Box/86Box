@@ -819,7 +819,7 @@ static uint32_t opcode_timings_8x[8] =
 static int decode_delay;
 static uint8_t last_prefix;
 
-static inline int COUNT(uint32_t c, int op_32)
+static __inline int COUNT(uint32_t c, int op_32)
 {
         if (c & CYCLES_HAS_MULTI)
         {
@@ -855,7 +855,6 @@ void codegen_timing_pentium_block_start()
 
 void codegen_timing_pentium_start()
 {
-//        decode_delay = 0;
         last_prefix = 0;
 }
 
@@ -896,48 +895,39 @@ void codegen_timing_pentium_opcode(uint8_t opcode, uint32_t fetchdat, int op_32)
         {
                 case 0x0f:
                 timings = mod3 ? opcode_timings_0f_mod3 : opcode_timings_0f;
-//                pclog("timings 0f\n");
                 break;
                 
                 case 0xd8:
                 timings = mod3 ? opcode_timings_d8_mod3 : opcode_timings_d8;
                 opcode = (opcode >> 3) & 7;
-//                pclog("timings d8\n");
                 break;
                 case 0xd9:
                 timings = mod3 ? opcode_timings_d9_mod3 : opcode_timings_d9;
                 opcode = mod3 ? opcode & 0x3f : (opcode >> 3) & 7;
-//                pclog("timings d9\n");
                 break;
                 case 0xda:
                 timings = mod3 ? opcode_timings_da_mod3 : opcode_timings_da;
                 opcode = (opcode >> 3) & 7;
-//                pclog("timings da\n");
                 break;
                 case 0xdb:
                 timings = mod3 ? opcode_timings_db_mod3 : opcode_timings_db;
                 opcode = mod3 ? opcode & 0x3f : (opcode >> 3) & 7;
-//                pclog("timings db\n");
                 break;
                 case 0xdc:
                 timings = mod3 ? opcode_timings_dc_mod3 : opcode_timings_dc;
                 opcode = (opcode >> 3) & 7;
-//                pclog("timings dc\n");
                 break;
                 case 0xdd:
                 timings = mod3 ? opcode_timings_dd_mod3 : opcode_timings_dd;
                 opcode = (opcode >> 3) & 7;
-//                pclog("timings dd\n");
                 break;
                 case 0xde:
                 timings = mod3 ? opcode_timings_de_mod3 : opcode_timings_de;
                 opcode = (opcode >> 3) & 7;
-//                pclog("timings de\n");
                 break;
                 case 0xdf:
                 timings = mod3 ? opcode_timings_df_mod3 : opcode_timings_df;
                 opcode = (opcode >> 3) & 7;
-//                pclog("timings df\n");
                 break;
 
                 default:
@@ -947,34 +937,28 @@ void codegen_timing_pentium_opcode(uint8_t opcode, uint32_t fetchdat, int op_32)
                         timings = mod3 ? opcode_timings_mod3 : opcode_timings_8x;
                         if (!mod3)
                                 opcode = (fetchdat >> 3) & 7;
-//                        pclog("timings 80 %p %p %p\n", (void *)timings, (void *)opcode_timings_mod3, (void *)opcode_timings_8x);
                         break;
                                 
                         case 0xc0: case 0xc1: case 0xd0: case 0xd1: case 0xd2: case 0xd3:
                         timings = mod3 ? opcode_timings_shift_mod3 : opcode_timings_shift;
                         opcode = (fetchdat >> 3) & 7;
-//                        pclog("timings c0\n");
                         break;
                         
                         case 0xf6:
                         timings = mod3 ? opcode_timings_f6_mod3 : opcode_timings_f6;
                         opcode = (fetchdat >> 3) & 7;
-//                        pclog("timings f6\n");
                         break;
                         case 0xf7:
                         timings = mod3 ? opcode_timings_f7_mod3 : opcode_timings_f7;
                         opcode = (fetchdat >> 3) & 7;
-//                        pclog("timings f7\n");
                         break;
                         case 0xff:
                         timings = mod3 ? opcode_timings_ff_mod3 : opcode_timings_ff;
                         opcode = (fetchdat >> 3) & 7;
-//                        pclog("timings ff\n");
                         break;
 
                         default:
                         timings = mod3 ? opcode_timings_mod3 : opcode_timings;
-//                        pclog("timings normal\n");
                         break;
                 }
         }
@@ -1007,7 +991,6 @@ void codegen_timing_pentium_opcode(uint8_t opcode, uint32_t fetchdat, int op_32)
                         if (t_pair < 1)
                                 fatal("Illegal pair timings : t1=%i t2=%i u_opcode=%02x v_opcode=%02x\n", t1, t2, u_pipe_opcode, opcode);
 
-//                        pclog("Paired timings : t_pair=%i t1=%i t2=%i u_opcode=%02x v_opcode=%02x %08x:%08x\n", t_pair, t1, t2, u_pipe_opcode, opcode, cs, pc);
                         codegen_block_cycles += t_pair;
                         decode_delay = (-t_pair) + 1;
                         
@@ -1021,7 +1004,6 @@ nopair:
                 codegen_block_cycles += COUNT(u_pipe_timings[u_pipe_opcode], u_pipe_op_32) + decode_delay;
                 decode_delay = (-COUNT(u_pipe_timings[u_pipe_opcode], u_pipe_op_32)) + 1;
                 u_pipe_full = 0;
-//                pclog("Evicited U-pipe timings : t1=%i u_opcode=%02x decode_delay=%i %08x:%08x\n", COUNT(u_pipe_timings[u_pipe_opcode], u_pipe_op_32), u_pipe_opcode, decode_delay, cs, pc);
         }
 
         if ((timings[opcode] & PAIR_U) && !decode_delay)
@@ -1038,7 +1020,6 @@ nopair:
 
         codegen_block_cycles += COUNT(timings[opcode], op_32) + decode_delay;
         decode_delay = (-COUNT(timings[opcode], op_32)) + 1;
-//        pclog("Non-pairable timings : %08x t1=%i opcode=%02x mod3=%i decode_delay=%i %08x:%08x  %08x %p %p\n", timings[opcode], COUNT(timings[opcode], op_32), opcode, mod3, decode_delay, cs, pc,  opcode_timings[0x04], (void *)timings, (void *)opcode_timings);
 }
 
 void codegen_timing_pentium_block_end()

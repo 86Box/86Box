@@ -122,7 +122,7 @@ void SaveBitmap(char *szFilename,HBITMAP hBitmap)
 
         bmpFileHeader.bfSize=sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER)+bmpInfo.bmiHeader.biSizeImage;
 
-        bmpFileHeader.bfType='MB';
+        bmpFileHeader.bfType=0x4D42;
 
         bmpFileHeader.bfOffBits=sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER); 
 

@@ -24,9 +24,7 @@ void vga_out(uint16_t addr, uint8_t val, void *p)
         vga_t *vga = (vga_t *)p;
         svga_t *svga = &vga->svga;
         uint8_t old;
-        
-//        pclog("vga_out : %04X %02X  %04X:%04X  %02X  %i\n", addr, val, CS,pc, ram[0x489], ins);
-                
+
         if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
                 addr ^= 0x60;
 
@@ -63,8 +61,6 @@ uint8_t vga_in(uint16_t addr, void *p)
         svga_t *svga = &vga->svga;
         uint8_t temp;
 
-//        if (addr != 0x3da) pclog("vga_in : %04X ", addr);
-                
         if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
                 addr ^= 0x60;
              
@@ -80,7 +76,6 @@ uint8_t vga_in(uint16_t addr, void *p)
                 temp = svga_in(addr, svga);
                 break;
         }
-//        if (addr != 0x3da) pclog("%02X  %04X:%04X\n", temp, CS,pc);
         return temp;
 }
 
@@ -128,6 +123,7 @@ void *vga_chips_init()
 }
 #endif
 
+#ifdef DEV_BRANCH
 void *trigem_unk_init()
 {
         vga_t *vga = malloc(sizeof(vga_t));
@@ -152,6 +148,7 @@ void *trigem_unk_init()
         
         return vga;
 }
+#endif
 
 /*PS/1 uses a standard VGA controller, but with no option ROM*/
 void *ps1vga_init()
@@ -178,10 +175,10 @@ static int vga_available()
         return rom_present("roms/ibm_vga.bin");
 }
 
-static int vga_chips_available()
+/* static int vga_chips_available()
 {
         return rom_present("roms/SD620.04M");
-}
+} */
 
 void vga_close(void *p)
 {
@@ -235,6 +232,7 @@ device_t vga_device =
         vga_force_redraw,
         vga_add_status_info
 }; */
+#ifdef DEV_BRANCH
 device_t trigem_unk_device =
 {
         "VGA",
@@ -246,6 +244,7 @@ device_t trigem_unk_device =
         vga_force_redraw,
         vga_add_status_info
 };
+#endif
 device_t ps1vga_device =
 {
         "PS/1 VGA",

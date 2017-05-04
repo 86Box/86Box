@@ -112,3 +112,12 @@ void ddraw_fs_take_screenshot(char *fn);
 #endif
 
 extern int cga_palette;
+
+void loadfont(char *s, int format);
+void initvideo();
+void video_init();
+void closevideo();
+void video_updatetiming();
+
+void hline(BITMAP *b, int x1, int y, int x2, uint32_t col);
+void updatewindowsize(int x, int y);

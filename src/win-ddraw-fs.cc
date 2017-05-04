@@ -36,8 +36,6 @@ static int ddraw_w, ddraw_h;
 
 int ddraw_fs_init(HWND h)
 {
-        int c;
-        
         ddraw_w = GetSystemMetrics(SM_CXSCREEN);
         ddraw_h = GetSystemMetrics(SM_CYSCREEN);
         
@@ -180,6 +178,12 @@ static void ddraw_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h
         HRESULT hr;
         DDBLTFX ddbltfx;
                 
+	if (lpdds_back == NULL)
+	{
+                video_blit_complete();
+		return; /*Nothing to do*/
+        }
+
         memset(&ddsd, 0, sizeof(ddsd));
         ddsd.dwSize = sizeof(ddsd);
 
@@ -197,7 +201,7 @@ static void ddraw_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h
         }
 	for (yy = y1; yy < y2; yy++)
 	{
-		if ((y + yy) >= 0)  memcpy((unsigned char*)ddsd.lpSurface + (yy * ddsd.lPitch), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
+		if ((y + yy) >= 0)  memcpy((unsigned char*)ddsd.lpSurface + (yy * ddsd.lPitch), ((uint32_t *) &(((uint8_t *)buffer32->line[y + yy]))[x]), w * 4);
 	}
         video_blit_complete();
         lpdds_back->Unlock(NULL);
@@ -253,6 +257,12 @@ static void ddraw_fs_blit_memtoscreen_8(int x, int y, int w, int h)
         HRESULT hr;
         DDBLTFX ddbltfx;
 
+	if (lpdds_back == NULL)
+	{
+                video_blit_complete();
+		return; /*Nothing to do*/
+        }
+
         memset(&ddsd, 0, sizeof(ddsd));
         ddsd.dwSize = sizeof(ddsd);
 
@@ -273,7 +283,7 @@ static void ddraw_fs_blit_memtoscreen_8(int x, int y, int w, int h)
         {
                 if ((y + yy) >= 0 && (y + yy) < buffer->h)
                 {
-                        uint32_t *p = (uint32_t *)(ddsd.lpSurface + (yy * ddsd.lPitch));
+                        uint32_t *p = (uint32_t *) &(((uint8_t *) ddsd.lpSurface)[yy * ddsd.lPitch]);
                         for (xx = 0; xx < w; xx++)
 			{
                             p[xx] = pal_lookup[buffer->line[y + yy][x + xx]];

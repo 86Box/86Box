@@ -24,13 +24,6 @@ extern int mmu_perm;
 #define readmemw(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a))&0xFFF)>0xFFE)?readmemwl(s,a):*(uint16_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
 #define readmeml(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a))&0xFFF)>0xFFC)?readmemll(s,a):*(uint32_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
 
-//#define writememb(a,v) if (writelookup2[(a)>>12]==0xFFFFFFFF) writemembl(a,v); else ram[writelookup2[(a)>>12]+((a)&0xFFF)]=v
-//#define writememw(s,a,v) if (writelookup2[((s)+(a))>>12]==0xFFFFFFFF || (s)==0xFFFFFFFF) writememwl(s,a,v); else *((uint16_t *)(&ram[writelookup2[((s)+(a))>>12]+(((s)+(a))&0xFFF)]))=v
-//#define writememl(s,a,v) if (writelookup2[((s)+(a))>>12]==0xFFFFFFFF || (s)==0xFFFFFFFF) writememll(s,a,v); else *((uint32_t *)(&ram[writelookup2[((s)+(a))>>12]+(((s)+(a))&0xFFF)]))=v
-//#define readmemb(a) ((isram[((a)>>16)&255] && !(cr0>>31))?ram[a&0xFFFFFF]:readmembl(a))
-//#define writememb(a,v) if (isram[((a)>>16)&255] && !(cr0>>31)) ram[a&0xFFFFFF]=v; else writemembl(a,v)
-
-//void writememb(uint32_t addr, uint8_t val);
 uint8_t readmembl(uint32_t addr);
 void writemembl(uint32_t addr, uint8_t val);
 uint8_t readmemb386l(uint32_t seg, uint32_t addr);
@@ -138,7 +131,6 @@ struct
         uint32_t pc;
         uint32_t oldpc;
         uint32_t op32;  
-	uint32_t last_ea;
 
 	int TOP;
         
@@ -167,15 +159,20 @@ struct
         MMX_REG MM[8];
         
         uint16_t old_npxc, new_npxc;
+	uint32_t last_ea;
 } cpu_state;
 
 #define cycles cpu_state._cycles
 
-#define COMPILE_TIME_ASSERT(expr) typedef char COMP_TIME_ASSERT[(expr) ? 1 : 0];
+#ifdef __MSC__
+# define COMPILE_TIME_ASSERT(expr)	/*nada*/
+#else
+# define COMPILE_TIME_ASSERT(expr) typedef char COMP_TIME_ASSERT[(expr) ? 1 : 0];
+#endif
 
-COMPILE_TIME_ASSERT(sizeof(cpu_state) <= 128);
+COMPILE_TIME_ASSERT(sizeof(cpu_state) <= 128)
 
-#define cpu_state_offset(MEMBER) ((uintptr_t)&cpu_state.MEMBER - (uintptr_t)&cpu_state - 128)
+#define cpu_state_offset(MEMBER) ((uint8_t)((uintptr_t)&cpu_state.MEMBER - (uintptr_t)&cpu_state - 128))
 
 /*x86reg regs[8];*/
 
@@ -242,9 +239,7 @@ uint32_t dr[8];
 #define IOPL ((flags>>12)&3)
 
 #define IOPLp ((!(msw&1)) || (CPL<=IOPL))
-//#define IOPLp 1
 
-//#define IOPLV86 ((!(msw&1)) || (CPL<=IOPL))
 extern int cycles_lost;
 extern int israpidcad;
 extern int is486;
@@ -260,6 +255,12 @@ extern int CPUID;
 extern int cpl_override;
 
 /*Timer*/
+typedef struct PIT_nr
+{
+        int nr;
+        struct PIT *pit;
+} PIT_nr;
+
 typedef struct PIT
 {
         uint32_t l[3];
@@ -284,9 +285,13 @@ typedef struct PIT
         
         uint8_t read_status[3];
         int do_read_status[3];
+        
+        PIT_nr pit_nr[3];
+        
+        void (*set_out_funcs[3])(int new_out, int old_out);
 } PIT;
 
-PIT pit;
+PIT pit, pit2;
 void setpitclock(float clock);
 
 float pit_timer0_freq();
@@ -300,7 +305,7 @@ float pit_timer0_freq();
 /*DMA*/
 typedef struct DMA
 {
-        uint16_t ab[4],ac[4];
+        uint32_t ab[4],ac[4];
         uint16_t cb[4];
         int cc[4];
         int wp;
@@ -309,6 +314,13 @@ typedef struct DMA
         uint8_t stat;
         uint8_t command;
         uint8_t request;
+        
+        int xfr_command, xfr_channel;
+        int byte_ptr;
+        
+        int is_ps2;
+	uint8_t arb_level[4];
+	uint8_t ps2_mode[4];
 } DMA;
 
 DMA dma,dma16;
@@ -341,8 +353,8 @@ int disctime;
 char discfns[4][256];
 int driveempty[4];
 
-#define MDA ((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_HERCULESPLUS || gfxcard==GFX_INCOLOR) && (romset<ROM_TANDY || romset>=ROM_IBMAT))
-#define VGA ((gfxcard>=GFX_TVGA || romset==ROM_ACER386) && gfxcard!=GFX_COLORPLUS && gfxcard!=GFX_INCOLOR && gfxcard!=GFX_WY700 && gfxcard!=GFX_COMPAQ_EGA && gfxcard!=GFX_SUPER_EGA && gfxcard!=GFX_HERCULESPLUS && romset!=ROM_PC1640 && romset!=ROM_PC1512 && romset!=ROM_TANDY && romset!=ROM_PC200)
+#define MDA ((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_HERCULESPLUS || gfxcard==GFX_INCOLOR || gfxcard==GFX_GENIUS) && (romset<ROM_TANDY || romset>=ROM_IBMAT))
+#define VGA ((gfxcard>=GFX_TVGA || romset==ROM_ACER386) && gfxcard!=GFX_COLORPLUS && gfxcard!=GFX_INCOLOR && gfxcard!=GFX_WY700 && gfxcard!=GFX_GENIUS && gfxcard!=GFX_COMPAQ_EGA && gfxcard!=GFX_SUPER_EGA && gfxcard!=GFX_HERCULESPLUS && romset!=ROM_PC1640 && romset!=ROM_PC1512 && romset!=ROM_TANDY && romset!=ROM_PC200)
 #define PCJR (romset == ROM_IBMPCJR)
 #define AMIBIOS (romset==ROM_AMI386SX || romset==ROM_AMI486 || romset == ROM_WIN486)
 
@@ -395,13 +407,16 @@ enum
 		ROM_PORTABLE,
 		ROM_PORTABLEII,
 		ROM_PORTABLEIII,
-		ROM_PORTABLEIII386, //The original Compaq Portable III shipped with an Intel 80286 CPU, but later switched to a 386DX.
+		ROM_PORTABLEIII386, /* The original Compaq Portable III shipped with an Intel 80286 CPU, but later switched to a 386DX. */
         ROM_IBMPS1_2121,
 
         ROM_AMI386DX_OPTI495,
         ROM_MR386DX_OPTI495,
 
 	ROM_IBMPS2_M30_286,
+	ROM_IBMPS2_M50,
+	ROM_IBMPS2_M55SX,
+	ROM_IBMPS2_M80,
 
         ROM_DTK486,     /*DTK PKM-0038S E-2 / SiS 471 / Award BIOS / SiS 85C471*/
         ROM_VLI486SV2G, /*ASUS VL/I-486SV2G / SiS 471 / Award BIOS / SiS 85C471*/
@@ -410,13 +425,15 @@ enum
 	ROM_PLATO,      /*Intel Premiere/PCI II / 430NX / AMI BIOS / SMC FDC37C665*/
         ROM_MB500N,     /*PC Partner MB500N / 430FX / Award BIOS / SMC FDC37C665*/
         ROM_P54TP4XE,   /*ASUS P/I-P55TP4XE / 430FX / Award BIOS / SMC FDC37C665*/
+	ROM_AP53,       /*AOpen AP53 / 430HX / AMI BIOS / SMC FDC37C665/669*/
+	ROM_P55T2S,     /*ASUS P/I-P55T2S / 430HX / AMI BIOS / National Semiconductors PC87306*/
 	ROM_ACERM3A,    /*Acer M3A / 430HX / Acer BIOS / SMC FDC37C932FR*/
 	ROM_ACERV35N,   /*Acer V35N / 430HX / Acer BIOS / SMC FDC37C932FR*/
         ROM_P55T2P4,    /*ASUS P/I-P55T2P4 / 430HX / Award BIOS / Winbond W8387F*/
         ROM_P55TVP4,    /*ASUS P/I-P55TVP4 / 430HX / Award BIOS / Winbond W8387F*/
         ROM_P55VA,      /*Epox P55-VA / 430VX / Award BIOS / SMC FDC37C932FR*/
 
-	ROM_440FX,	/*Unknown / 440FX / Award BIOS / SMC FDC37C665*/
+	ROM_440FX,	/*Tyan Titan-Pro AT / 440FX / Award BIOS / SMC FDC37C665*/
 
         ROM_MARL,	/*Intel Advanced/ML / 430HX / AMI BIOS / National Semiconductors PC87306*/
         ROM_THOR,	/*Intel Advanced/ATX / 430FX / AMI BIOS / National Semiconductors PC87306*/
@@ -432,6 +449,8 @@ enum
         ROM_ZAPPA,	/*Intel Advanced/ZP / 430FX / AMI BIOS / National Semiconductors PC87306*/
 
         ROM_CMDPC60,
+
+        ROM_S1668,      /*Tyan Titan-Pro ATX / 440FX / AMI BIOS / SMC FDC37C669*/
 
         ROM_MAX
 };
@@ -466,6 +485,9 @@ enum
        	GFX_INCOLOR,	/* Hercules InColor */
 	GFX_COLORPLUS,	/* Plantronics ColorPlus */
 	GFX_WY700,	/* Wyse 700 */
+	GFX_GENIUS,	/* MDSI Genius */
+        GFX_MACH64VT2,  /*ATI Mach64 VT2*/
+
 	GFX_COMPAQ_EGA,	/*Compaq EGA*/
 	GFX_SUPER_EGA,	/*Using Chips & Technologies SuperEGA BIOS*/
 	GFX_COMPAQ_VGA,	/*Compaq/Paradise VGA*/
@@ -484,6 +506,8 @@ enum
 
 	GFX_TRIGEM_UNK,
         GFX_OTI037,	/*Oak OTI-037*/
+
+        GFX_VIRGEVX,    /*S3 Virge/VX*/
 
         GFX_MAX
 };
@@ -532,7 +556,12 @@ char pcempath[512];
 
 /*Hard disc*/
 
-typedef struct __attribute__((__packed__))
+#ifdef __MSC__
+# pragma pack(push,1)
+typedef struct
+#else
+typedef struct __attribute((__packed__))
+#endif
 {
 	FILE *f;
 	uint64_t spt,hpc; /*Sectors per track, heads per cylinder*/
@@ -540,15 +569,78 @@ typedef struct __attribute__((__packed__))
 	int is_hdi;
 	uint32_t base;
 	uint64_t at_spt,at_hpc; /*[Translation] Sectors per track, heads per cylinder*/
+	int bus;	/* 0 = none, 1 = MFM/RLL, 2 = IDE, 3 = SCSI */
+	uint8_t mfm_channel;
+	uint8_t ide_channel;
+	uint8_t scsi_id;
+	uint8_t scsi_lun;
 } hard_disk_t;
+#ifdef __MSC__
+# pragma pack(pop)
+#endif
 
+#ifdef __MSC__
+# pragma pack(push,1)
+typedef struct
+#else
+typedef struct __attribute((__packed__))
+#endif
+{
+	/* Stuff for SCSI hard disks. */
+	uint8_t cdb[16];
+	uint8_t current_cdb[16];
+	uint8_t max_cdb_len;
+	int requested_blocks;
+	int max_blocks_at_once;
+	uint16_t request_length;
+	int block_total;
+	int all_blocks_total;
+	uint32_t packet_len;
+	int packet_status;
+	uint8_t status;
+	uint8_t phase;
+	uint32_t pos;
+	int callback;
+	int total_read;
+	int unit_attention;
+	uint8_t sense[256];
+	uint8_t previous_command;
+	uint8_t error;
+	uint16_t buffer[390144];
+	uint32_t sector_pos;
+	uint32_t sector_len;
+	uint32_t last_sector;
+	uint32_t seek_pos;
+	int data_pos;
+	int old_len;
+	int cdb_len_setting;
+	int cdb_len;
+	int request_pos;
+	uint64_t base;
+	uint8_t hd_cdb[16];
+} scsi_hard_disk_t;
+#ifdef __MSC__
+# pragma pack(pop)
+#endif
+
+#define HDC_NUM		16
 #define IDE_NUM		8
+#define MFM_NUM		2
+#define SCSI_NUM	16	/* Theoretically the controller can have at least 64 devices, or even 128 in case of a wide bus, but
+				   let's not exaggerate with them - 16 ought to be enough for everyone. */
 
-hard_disk_t hdc[IDE_NUM];
+hard_disk_t hdc[HDC_NUM];
+scsi_hard_disk_t shdc[HDC_NUM];
+
+FILE *shdf[HDC_NUM];
 
 uint64_t hdt[128][3];
+uint64_t hdt_mfm[128][3];
+
+extern char hdd_fn[HDC_NUM][512];
 
 int image_is_hdi(const char *s);
+int image_is_hdx(const char *s, int check_signature);
 
 /*Keyboard*/
 int keybsenddelay;
@@ -573,6 +665,7 @@ extern int ui_writeprot[4];
 
 void pclog(const char *format, ...);
 extern int nmi;
+extern int nmi_auto_clear;
 
 
 extern float isa_timing, bus_timing;
@@ -590,6 +683,7 @@ void onesec();
 
 void resetpc_cad();
 
+extern int dump_on_exit;
 extern int start_in_fullscreen;
 extern int window_w, window_h, window_x, window_y, window_remember;
 
@@ -647,3 +741,51 @@ extern int invert_display;
 uint32_t svga_color_transform(uint32_t color);
 
 extern int scale;
+
+/* Function prototypes. */
+void BuslogicSoftReset();
+int checkio(int port);
+void closepc();
+void codegen_block_end();
+void codegen_reset();
+void cpu_set_edx();
+int divl(uint32_t val);
+void dumpregs();
+void exec386(int cycs);
+void exec386_dynarec(int cycs);
+void execx86(int cycs);
+void flushmmucache();
+void flushmmucache_cr3();
+int idivl(int32_t val);
+void initpc(int argc, char *argv[]);
+void loadcscall(uint16_t seg);
+void loadcsjmp(uint16_t seg, uint32_t oxpc);
+void mmu_invalidate(uint32_t addr);
+void pclog(const char *format, ...);
+void pmodeint(int num, int soft);
+void pmoderetf(int is32, uint16_t off);
+void pmodeiret(int is32);
+void port_92_clear_reset();
+uint8_t readdacfifo();
+void refreshread();
+int rep386(int fv);
+void resetmcr();
+void resetpchard();
+void resetreadlookup();
+void resetx86();
+void runpc();
+void saveconfig();
+void softresetx86();
+void speedchanged();
+void trc_reset(uint8_t val);
+void update_status_bar_icon(int tag, int active);
+void x86_int_sw(int num);
+void x86gpf(char *s, uint16_t error);
+void x86np(char *s, uint16_t error);
+void x86ss(char *s, uint16_t error);
+void x86ts(char *s, uint16_t error);
+void x87_dumpregs();
+void x87_reset();
+
+extern int serial_enabled[2];
+extern int lpt_enabled, bugger_enabled;

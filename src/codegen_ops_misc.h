@@ -33,7 +33,7 @@ static uint32_t ropFE(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_
         if ((fetchdat & 0x30) != 0x00)
                 return 0;
 
-        CALL_FUNC(flags_rebuild_c);
+        CALL_FUNC((void *) flags_rebuild_c);
         
         if ((fetchdat & 0xc0) == 0xc0)
                 host_reg = LOAD_REG_B(fetchdat & 7);
@@ -86,7 +86,7 @@ static uint32_t ropFF_16(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
                 return 0;
 
         if ((fetchdat & 0x30) == 0x00)
-                CALL_FUNC(flags_rebuild_c);
+                CALL_FUNC((void *) flags_rebuild_c);
 
         if ((fetchdat & 0xc0) == 0xc0)
                 host_reg = LOAD_REG_W(fetchdat & 7);
@@ -167,6 +167,9 @@ static uint32_t ropFF_16(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
                 MEM_STORE_ADDR_EA_W(&_ss, host_reg);
                 SP_MODIFY(-2);
                 return op_pc + 1;
+
+		default:
+		return -1;
         }
 }
 static uint32_t ropFF_32(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
@@ -178,7 +181,7 @@ static uint32_t ropFF_32(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
                 return 0;
 
         if ((fetchdat & 0x30) == 0x00)
-                CALL_FUNC(flags_rebuild_c);
+                CALL_FUNC((void *) flags_rebuild_c);
         
         if ((fetchdat & 0xc0) == 0xc0)
                 host_reg = LOAD_REG_L(fetchdat & 7);
@@ -259,5 +262,8 @@ static uint32_t ropFF_32(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
                 MEM_STORE_ADDR_EA_L(&_ss, host_reg);
                 SP_MODIFY(-4);
                 return op_pc + 1;
+
+		default:
+		return -1;
         }
 }

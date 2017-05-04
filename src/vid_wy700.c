@@ -3,6 +3,7 @@
 #include "ibm.h"
 #include "device.h"
 #include "mem.h"
+#include "io.h"
 #include "timer.h"
 #include "video.h"
 #include "vid_wy700.h"
@@ -499,7 +500,7 @@ void wy700_textline(wy700_t *wy700)
 	int x;
 	int w  = (wy700->wy700_mode == 0) ? 40 : 80;
 	int cw = (wy700->wy700_mode == 0) ? 32 : 16;
-	uint8_t chr, attr, fg, bg;
+	uint8_t chr, attr;
 	uint8_t bitmap[2];
 	uint8_t *fontbase = &fontdatw[0][0];
         int blink, c;
@@ -591,7 +592,7 @@ void wy700_cgaline(wy700_t *wy700)
 {
 	int x, c;
 	uint32_t dat;
-	uint8_t bitmap, ink;
+	uint8_t ink;
 	uint16_t addr;
 
 	uint16_t ma = (wy700->cga_crtc[13] | (wy700->cga_crtc[12] << 8)) & 0x3fff;
@@ -651,7 +652,7 @@ void wy700_medresline(wy700_t *wy700)
 {
 	int x, c;
 	uint32_t dat;
-	uint8_t bitmap, ink;
+	uint8_t ink;
 	uint32_t addr;
 
 	addr = (wy700->displine >> 1) * 80 + 4 * wy700->wy700_base;
@@ -709,7 +710,7 @@ void wy700_hiresline(wy700_t *wy700)
 {
 	int x, c;
 	uint32_t dat;
-	uint8_t bitmap, ink;
+	uint8_t ink;
 	uint32_t addr;
 
 	addr = (wy700->displine >> 1) * 160 + 4 * wy700->wy700_base;
@@ -765,10 +766,6 @@ void wy700_hiresline(wy700_t *wy700)
 void wy700_poll(void *p)
 {
         wy700_t *wy700 = (wy700_t *)p;
-        int x, c;
-        int oldvc;
-        uint8_t chr, attr;
-        uint16_t dat;
 	int mode;
 
         if (!wy700->linepos)

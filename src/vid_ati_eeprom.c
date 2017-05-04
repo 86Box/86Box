@@ -57,7 +57,6 @@ void ati_eeprom_save(ati_eeprom_t *eeprom)
 void ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
 {
         int c;
-//        pclog("EEPROM write %i %i %i\n", ena, clk, dat);
         if (!ena)
         {
                 eeprom->out = 1;
@@ -73,7 +72,6 @@ void ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                 }
                 else if (ena)
                 {
-//                        pclog("EEPROM receive %i %i %i\n", ena, clk, dat);
                         switch (eeprom->state)
                         {
                                 case EEPROM_WAIT:
@@ -86,7 +84,6 @@ void ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                                 eeprom->count--;
                                 if (!eeprom->count)
                                 {
-//                                        pclog("EEPROM opcode - %i\n", eeprom->opcode);
                                         switch (eeprom->opcode)
                                         {
                                                 case EEPROM_OP_WRITE:
@@ -118,11 +115,9 @@ void ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                                 eeprom->count--;
                                 if (!eeprom->count)
                                 {
-//                                        pclog("EEPROM dat - %02X\n", eeprom->dat);
                                         switch (eeprom->opcode)
                                         {
                                                 case EEPROM_OP_WRITE:
-//                                                pclog("EEPROM_OP_WRITE addr %02X eeprom_dat %04X\n", (eeprom->dat >> 16) & (eeprom->type ? 255 : 63), eeprom->dat & 0xffff);
                                                 if (!eeprom->wp)
                                                 {
                                                         eeprom->data[(eeprom->dat >> 16) & (eeprom->type ? 255 : 63)] = eeprom->dat & 0xffff;
@@ -136,10 +131,8 @@ void ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                                                 eeprom->count = 17;
                                                 eeprom->state = EEPROM_OUTPUT;
                                                 eeprom->dat = eeprom->data[eeprom->dat];
-//                                                pclog("Trigger EEPROM_OUTPUT %04X\n", eeprom->dat);
                                                 break;
                                                 case EEPROM_OP_EW:
-//                                                pclog("EEPROM_OP_EW %i\n", eeprom->dat);
                                                 switch (eeprom->dat)
                                                 {
                                                         case EEPROM_OP_EWDS:
@@ -165,7 +158,6 @@ void ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                                                 break;
 
                                                 case EEPROM_OP_ERASE:
-//                                                pclog("EEPROM_OP_ERASE %i\n", eeprom->dat);
                                                 if (!eeprom->wp)
                                                 {
                                                         eeprom->data[eeprom->dat] = 0xffff;
@@ -176,7 +168,6 @@ void ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                                                 break;
 
                                                 case EEPROM_OP_WRALMAIN:
-//                                                pclog("EEPROM_OP_WRAL %04X\n", eeprom->dat);
                                                 if (!eeprom->wp)
                                                 {
                                                         for (c = 0; c < 256; c++)
@@ -202,11 +193,9 @@ void ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                                 case EEPROM_OUTPUT:
                                 eeprom->out = (eeprom->dat & 0x10000) ? 1 : 0;
                                 eeprom->dat <<= 1;
-//                                pclog("EEPROM_OUTPUT - data %i\n", eeprom->out);
                                 eeprom->count--;
                                 if (!eeprom->count)
                                 {
-//                                        pclog("EEPROM_OUTPUT complete\n");
                                         eeprom->state = EEPROM_IDLE;
                                 }
                                 break;

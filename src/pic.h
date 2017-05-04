@@ -7,3 +7,4 @@ void picintlevel(uint16_t num);
 void picintc(uint16_t num);
 uint8_t picinterrupt();
 void picclear(int num);
+void dumppic();

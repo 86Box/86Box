@@ -100,7 +100,6 @@ uint16_t sb_dsp_versions[] = {0, 0, 0x105, 0x200, 0x201, 0x300, 0x302, 0x405, 0x
 
 void sb_irq(sb_dsp_t *dsp, int irq8)
 {
-//        pclog("IRQ %i %02X\n",irq8,pic.mask);
         if (irq8) dsp->sb_irq8  = 1;
         else      dsp->sb_irq16 = 1;
         picint(1 << dsp->sb_irqnum);
@@ -193,7 +192,6 @@ void sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len
                 timer_update_outstanding();
                 dsp->sbleftright = 0;
                 dsp->sbdacpos = 0;
-//                pclog("Start 8-bit DMA addr %06X len %04X\n",dma.ac[1]+(dma.page[1]<<16),len);
         }
         else
         {
@@ -207,7 +205,6 @@ void sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len
                 timer_process();
 		dsp->sbenable = dsp->sb_16_enable;
 		timer_update_outstanding();
-//                pclog("Start 16-bit DMA addr %06X len %04X\n",dma16.ac[1]+(dma16.page[1]<<16),len);
         }
 }
 
@@ -225,7 +222,6 @@ void sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int l
                 timer_process();
                 dsp->sb_enable_i = dsp->sb_8_enable;
                 timer_update_outstanding();
-//                pclog("Start 8-bit input DMA addr %06X len %04X\n",dma.ac[1]+(dma.page[1]<<16),len);
         }
         else
         {
@@ -239,7 +235,6 @@ void sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int l
                 timer_process();
                 dsp->sb_enable_i = dsp->sb_16_enable;
                 timer_update_outstanding();
-//                pclog("Start 16-bit input DMA addr %06X len %04X\n",dma.ac[1]+(dma.page[1]<<16),len);
         }
 }
 
@@ -278,7 +273,6 @@ void sb_dsp_setdma16(sb_dsp_t *dsp, int dma)
 void sb_exec_command(sb_dsp_t *dsp)
 {
         int temp,c;
-//        pclog("sb_exec_command : SB command %02X\n", dsp->sb_command);
         switch (dsp->sb_command)
         {
                 case 0x01: /*???*/
@@ -298,7 +292,6 @@ void sb_exec_command(sb_dsp_t *dsp)
                 case 0x17: /*2-bit ADPCM output with reference*/
                 dsp->sbref = sb_8_read_dma(dsp);
                 dsp->sbstep = 0;
-//                pclog("Ref byte 2 %02X\n",sbref);
                 case 0x16: /*2-bit ADPCM output*/
                 sb_start_dma(dsp, 1, 0, ADPCM_2, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
                 dsp->sbdat2 = sb_8_read_dma(dsp);
@@ -329,14 +322,12 @@ void sb_exec_command(sb_dsp_t *dsp)
                 dsp->sblatcho = dsp->sblatchi = TIMER_USEC * (256 - dsp->sb_data[0]);
                 temp = 256 - dsp->sb_data[0];
                 temp = 1000000 / temp;
-//                pclog("Sample rate - %ihz (%i)\n",temp, dsp->sblatcho);
                 dsp->sb_freq = temp;
                 break;
                 case 0x41: /*Set output sampling rate*/
                 case 0x42: /*Set input sampling rate*/
                 if (dsp->sb_type < SB16) break;
                 dsp->sblatcho = (int)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_data[1] + (dsp->sb_data[0] << 8))));
-//                pclog("Sample rate - %ihz (%i)\n",dsp->sb_data[1]+(dsp->sb_data[0]<<8), dsp->sblatcho);
                 dsp->sb_freq = dsp->sb_data[1] + (dsp->sb_data[0] << 8);
                 dsp->sb_timeo = 256 + dsp->sb_freq;
                 dsp->sblatchi = dsp->sblatcho;
@@ -348,7 +339,6 @@ void sb_exec_command(sb_dsp_t *dsp)
                 case 0x75: /*4-bit ADPCM output with reference*/
                 dsp->sbref = sb_8_read_dma(dsp);
                 dsp->sbstep = 0;
-//                pclog("Ref byte 4 %02X\n",sbref);
                 case 0x74: /*4-bit ADPCM output*/
                 sb_start_dma(dsp, 1, 0, ADPCM_4, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
                 dsp->sbdat2 = sb_8_read_dma(dsp);
@@ -357,7 +347,6 @@ void sb_exec_command(sb_dsp_t *dsp)
                 case 0x77: /*2.6-bit ADPCM output with reference*/
                 dsp->sbref = sb_8_read_dma(dsp);
                 dsp->sbstep = 0;
-//                pclog("Ref byte 26 %02X\n",sbref);
                 case 0x76: /*2.6-bit ADPCM output*/
                 sb_start_dma(dsp, 1, 0, ADPCM_26, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
                 dsp->sbdat2 = sb_8_read_dma(dsp);
@@ -377,7 +366,6 @@ void sb_exec_command(sb_dsp_t *dsp)
                 break;
                 case 0x80: /*Pause DAC*/
                 dsp->sb_pausetime = dsp->sb_data[0] + (dsp->sb_data[1] << 8);
-//                pclog("SB pause %04X\n",sb_pausetime);
 		timer_process();
                 dsp->sbenable = 1;
                 timer_update_outstanding();
@@ -483,7 +471,6 @@ void sb_exec_command(sb_dsp_t *dsp)
                 sb_add_data(dsp, dsp->sb_test);
                 break;
                 case 0xF2: /*Trigger 8-bit IRQ*/
-//                pclog("Trigger IRQ\n");
                 sb_irq(dsp, 1);
                 break;
                 case 0xE7: /*???*/
@@ -499,13 +486,10 @@ void sb_exec_command(sb_dsp_t *dsp)
                 case 0x0E: /*ASP set register*/
                 if (dsp->sb_type < SB16) break;
                 dsp->sb_asp_regs[dsp->sb_data[0]] = dsp->sb_data[1];
-//                pclog("ASP write reg %02X %02X\n", sb_data[0], sb_data[1]);
                 break;
                 case 0x0F: /*ASP get register*/
                 if (dsp->sb_type < SB16) break;
-//                sb_add_data(0);
                 sb_add_data(dsp, dsp->sb_asp_regs[dsp->sb_data[0]]);
-//                pclog("ASP read reg %02X %02X\n", sb_data[0], sb_asp_regs[sb_data[0]]);
                 break;
                 case 0xF9:
                 if (dsp->sb_type < SB16) break;
@@ -516,15 +500,12 @@ void sb_exec_command(sb_dsp_t *dsp)
                 case 0x04:
                 case 0x05:
                 break;
-//                default:
-//                fatal("Exec bad SB command %02X\n",sb_command);
         }
 }
         
 void sb_write(uint16_t a, uint8_t v, void *priv)
 {
         sb_dsp_t *dsp = (sb_dsp_t *)priv;
-//        pclog("sb_write : Write soundblaster %04X %02X %04X:%04X %02X\n",a,v,CS,pc,dsp->sb_command);
         switch (a&0xF)
         {
                 case 6: /*Reset*/
@@ -542,7 +523,6 @@ void sb_write(uint16_t a, uint8_t v, void *priv)
                 timer_update_outstanding();
                 if (dsp->asp_data_len)
                 {
-//                        pclog("ASP data %i\n", dsp->asp_data_len);
                         dsp->asp_data_len--;
                         if (!dsp->asp_data_len)
                                 sb_add_data(dsp, 0);
@@ -553,8 +533,6 @@ void sb_write(uint16_t a, uint8_t v, void *priv)
                         dsp->sb_command = v;
                         if (v == 0x01)
                                 sb_add_data(dsp, 0);
-//                        if (sb_commands[v]==-1)
-//                           fatal("Bad SB command %02X\n",v);
                         dsp->sb_data_stat++;
                 }
                 else
@@ -571,8 +549,6 @@ void sb_write(uint16_t a, uint8_t v, void *priv)
 uint8_t sb_read(uint16_t a, void *priv)
 {
         sb_dsp_t *dsp = (sb_dsp_t *)priv;
-//        if (a==0x224) output=1;
-//        pclog("sb_read : Read soundblaster %04X %04X:%04X\n",a,CS,pc);
         switch (a & 0xf)
         {
                 case 0xA: /*Read data*/
@@ -582,7 +558,6 @@ uint8_t sb_read(uint16_t a, void *priv)
                         dsp->sb_read_rp++;
                         dsp->sb_read_rp &= 0xFF;
                 }
-//                pclog("SB read %02X\n",sbreaddat);
                 return dsp->sbreaddat;
                 case 0xC: /*Write data ready*/
                 if (dsp->wb_full)
@@ -627,7 +602,6 @@ void sb_dsp_init(sb_dsp_t *dsp, int type)
 
 void sb_dsp_setaddr(sb_dsp_t *dsp, uint16_t addr)
 {
-//        pclog("sb_dsp_setaddr : %04X\n", addr);
         io_removehandler(dsp->sb_addr + 6,   0x0002, sb_read, NULL, NULL, sb_write, NULL, NULL, dsp);
         io_removehandler(dsp->sb_addr + 0xa, 0x0006, sb_read, NULL, NULL, sb_write, NULL, NULL, dsp);        
         dsp->sb_addr = addr;
@@ -649,13 +623,11 @@ void pollsb(void *p)
         int tempi,ref;
         
         dsp->sbcount += dsp->sblatcho;
-//        pclog("PollSB %i %i %i %i\n",sb_8_enable,sb_8_pause,sb_pausetime,sb_8_output);
         if (dsp->sb_8_enable && !dsp->sb_8_pause && dsp->sb_pausetime < 0 && dsp->sb_8_output)
         {
                 int data[2];
                 
                 sb_dsp_update(dsp);
-//                pclog("Dopoll %i %02X %i\n", sb_8_length, sb_8_format, sblatcho);
                 switch (dsp->sb_8_format)
                 {
                         case 0x00: /*Mono unsigned*/
@@ -805,9 +777,6 @@ void pollsb(void *p)
                         else
                            dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
                         break;
-
-//                        default:
-                                //fatal("Unrecognised SB 8-bit format %02X\n",sb_8_format);
                 }
                 
                 if (dsp->sb_8_length < 0)
@@ -841,14 +810,10 @@ void pollsb(void *p)
                         dsp->sbdatr = sb_16_read_dma(dsp);
                         dsp->sb_16_length -= 2;
                         break;
-
-//                        default:
-//                                fatal("Unrecognised SB 16-bit format %02X\n",sb_16_format);
                 }
 
                 if (dsp->sb_16_length < 0)
                 {
-//                        pclog("16DMA over %i\n",dsp->sb_16_autoinit);
                         if (dsp->sb_16_autoinit) dsp->sb_16_length = dsp->sb_16_autolen;
                         else                     dsp->sb_16_enable = dsp->sbenable = 0;
                         sb_irq(dsp, 0);
@@ -861,7 +826,6 @@ void pollsb(void *p)
                 {
                         sb_irq(dsp, 1);
                         dsp->sbenable = dsp->sb_8_enable;
-//                        pclog("SB pause over\n");
                 }
         }
 }
@@ -871,7 +835,6 @@ void sb_poll_i(void *p)
         sb_dsp_t *dsp = (sb_dsp_t *)p;
         
         dsp->sb_count_i += dsp->sblatchi;
-//        pclog("PollSBi %i %i %i %i\n",sb_8_enable,sb_8_pause,sb_pausetime,sb_8_output);        
         if (dsp->sb_8_enable && !dsp->sb_8_pause && dsp->sb_pausetime < 0 && !dsp->sb_8_output)
         {
                 switch (dsp->sb_8_format)
@@ -894,14 +857,10 @@ void sb_poll_i(void *p)
                         sb_8_write_dma(dsp, 0x00);
                         dsp->sb_8_length -= 2;
                         break;
-
-//                        default:
-//                                fatal("Unrecognised SB 8-bit input format %02X\n",sb_8_format);
                 }
                 
                 if (dsp->sb_8_length < 0)
                 {
-//                        pclog("Input DMA over %i\n",sb_8_autoinit);
                         if (dsp->sb_8_autoinit) dsp->sb_8_length = dsp->sb_8_autolen;
                         else                    dsp->sb_8_enable = dsp->sbenable = 0;
                         sb_irq(dsp, 1);
@@ -929,14 +888,10 @@ void sb_poll_i(void *p)
                         sb_16_write_dma(dsp, 0);
                         dsp->sb_16_length -= 2;
                         break;
-                        
-//                        default:
-//                                fatal("Unrecognised SB 16-bit input format %02X\n",sb_16_format);
                 }
                 
                 if (dsp->sb_16_length < 0)
                 {
-//                        pclog("16iDMA over %i\n",sb_16_autoinit);
                         if (dsp->sb_16_autoinit) dsp->sb_16_length = dsp->sb_16_autolen;
                         else                     dsp->sb_16_enable = dsp->sbenable = 0;
                         sb_irq(dsp, 0);
@@ -956,7 +911,6 @@ void sb_dsp_update(sb_dsp_t *dsp)
 void sb_dsp_add_status_info(char *s, int max_len, sb_dsp_t *dsp)
 {
         char temps[128];
-        int len;
         int freq;
 
         if (dsp->sb_timeo < 256)

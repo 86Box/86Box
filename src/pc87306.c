@@ -11,25 +11,23 @@
 #include "disc.h"
 #include "fdc.h"
 #include "fdd.h"
+#include "ide.h"
 #include "io.h"
 #include "lpt.h"
 #include "serial.h"
 #include "pc87306.h"
 
-static int pc87306_locked;
 static int pc87306_curreg;
 static uint8_t pc87306_regs[29];
 static uint8_t pc87306_gpio[2] = {0xFF, 0xFB};
 static uint8_t tries;
 static uint16_t lpt_port;
-static int power_down = 0;
 
 void pc87306_gpio_remove();
 void pc87306_gpio_init();
 
 void pc87306_gpio_write(uint16_t port, uint8_t val, void *priv)
 {
-	// pclog("GPIO: Writing %02X on port: %04X\n", val, port);
 	pc87306_gpio[port & 1] = val;
 }
 
@@ -49,7 +47,6 @@ uint8_t uart1_int()
 {
 	uint8_t temp;
 	temp = ((pc87306_regs[1] >> 2) & 1) ? 3 : 4;	/* 0 = COM1 (IRQ 4), 1 = COM2 (IRQ 3), 2 = COM3 (IRQ 4), 3 = COM4 (IRQ 3) */
-	// pclog("UART 1 set to IRQ %i\n", (pc87306_regs[0x1C] & 1) ? uart_int1() : temp);
 	return (pc87306_regs[0x1C] & 1) ? uart_int1() : temp;
 }
 
@@ -57,7 +54,6 @@ uint8_t uart2_int()
 {
 	uint8_t temp;
 	temp = ((pc87306_regs[1] >> 4) & 1) ? 3 : 4;	/* 0 = COM1 (IRQ 4), 1 = COM2 (IRQ 3), 2 = COM3 (IRQ 4), 3 = COM4 (IRQ 3) */
-	// pclog("UART 2 set to IRQ %i\n", (pc87306_regs[0x1C] & 1) ? uart_int2() : temp);
 	return (pc87306_regs[0x1C] & 1) ? uart_int2() : temp;
 }
 
@@ -148,15 +144,14 @@ void serial2_handler()
 void pc87306_write(uint16_t port, uint8_t val, void *priv)
 {
 	uint8_t index;
-	index = (port & 1) ? 0 : 1;
-        int temp;
 	uint8_t valxor;
-        // pclog("pc87306_write : port=%04x reg %02X = %02X locked=%i\n", port, pc87306_curreg, val, pc87306_locked);
+	uint16_t or_value;
+
+	index = (port & 1) ? 0 : 1;
 
 	if (index)
 	{
 		pc87306_curreg = val & 0x1f;
-		// pclog("Register set to: %02X\n", val);
 		tries = 0;
 		return;
 	}
@@ -184,7 +179,6 @@ void pc87306_write(uint16_t port, uint8_t val, void *priv)
 				{
 					pc87306_gpio_remove();
 				}
-				// pclog("Register %02X set to: %02X (was: %02X)\n", pc87306_curreg, val, pc87306_regs[pc87306_curreg]);
 				pc87306_regs[pc87306_curreg] = val;
 				goto process_value;
 			}
@@ -201,7 +195,6 @@ process_value:
 	switch(pc87306_curreg)
 	{
 		case 0:
-			// pclog("Register 0\n");
 			if (valxor & 1)
 			{
 				lpt1_remove();
@@ -227,12 +220,30 @@ process_value:
 					serial2_handler();
 				}
 			}
-			if ((valxor & 8) || (valxor & 0x20))
+			if (valxor & 0x28)
 			{
 				fdc_remove();
 				if (val & 8)
 				{
 					fdc_set_base((val & 0x20) ? 0x370 : 0x3f0, 0);
+				}
+			}
+			if (valxor & 0xc0)
+			{
+				ide_pri_disable();
+				if (val & 0x80)
+				{
+					or_value = 0;
+				}
+				else
+				{
+					or_value = 0x80;
+				}
+				ide_set_base(0, 0x170 | or_value);
+				ide_set_side(0, 0x376 | or_value);
+				if (val & 0x40)
+				{
+					ide_pri_enable_ex();
 				}
 			}
 			
@@ -276,7 +287,6 @@ process_value:
 			{
 				if (val & 1)
 				{
-					// pclog("Powering down functions...\n");
 					lpt1_remove();
 					serial1_remove();
 					serial2_remove();
@@ -284,7 +294,6 @@ process_value:
 				}
 				else
 				{
-					// pclog("Powering up functions...\n");
 					if (pc87306_regs[0] & 1)
 					{
 						lpt1_handler();
@@ -307,7 +316,6 @@ process_value:
 		case 9:
 			if (valxor & 0x44)
 			{
-				// pclog("Setting DENSEL polarity to: %i (before: %i)\n", (val & 0x40 ? 1 : 0), fdc_get_densel_polarity());
 				fdc_update_enh_mode((val & 4) ? 1 : 0);
 				fdc_update_densel_polarity((val & 0x40) ? 1 : 0);
 			}
@@ -366,13 +374,11 @@ process_value:
 
 uint8_t pc87306_gpio_read(uint16_t port, void *priv)
 {
-	// pclog("Read GPIO on port: %04X (%04X:%04X)\n", port, CS, cpu_state.pc);
 	return pc87306_gpio[port & 1];
 }
 
 uint8_t pc87306_read(uint16_t port, void *priv)
 {
-        // pclog("pc87306_read : port=%04x reg %02X locked=%i\n", port, pc87306_curreg, pc87306_locked);
 	uint8_t index;
 	index = (port & 1) ? 0 : 1;
 
@@ -380,24 +386,20 @@ uint8_t pc87306_read(uint16_t port, void *priv)
 
 	if (index)
 	{
-		// pclog("PC87306: Read value %02X at the index register\n", pc87306_curreg & 0x1f);
 		return pc87306_curreg & 0x1f;
 	}
 	else
 	{
 	        if (pc87306_curreg >= 28)
 		{
-			// pclog("PC87306: Read invalid at data register, index %02X\n", pc87306_curreg);
 			return 0xff;
 		}
 		else if (pc87306_curreg == 8)
 		{
-			// pclog("PC87306: Read ID at data register, index 08 (%04X:%04X)\n", CS, cpu_state.pc);
 			return 0x70;
 		}
 		else
 		{
-			// pclog("PC87306: Read value %02X at data register, index %02X\n", pc87306_regs[pc87306_curreg], pc87306_curreg);
 			return pc87306_regs[pc87306_curreg];
 		}
 	}

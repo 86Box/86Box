@@ -151,14 +151,21 @@ static int get_pov(HWND hdlg, int id)
 
 static BOOL CALLBACK joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	HWND h;
+	int c;
+	int id;
+	int joystick;
+	int nr_axes;
+	int nr_povs;
+	int mapping;
+
         switch (message)
         {
                 case WM_INITDIALOG:
                 {
-                        HWND h = GetDlgItem(hdlg, IDC_CONFIG_BASE);
-                        int c, d;
-                        int id = IDC_CONFIG_BASE + 2;
-                        int joystick = joystick_state[joystick_nr].plat_joystick_nr;
+                        h = GetDlgItem(hdlg, IDC_CONFIG_BASE);
+                        id = IDC_CONFIG_BASE + 2;
+                        joystick = joystick_state[joystick_nr].plat_joystick_nr;
 
                         SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)"None");
 
@@ -171,8 +178,8 @@ static BOOL CALLBACK joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wPar
                                 
                         if (joystick_state[joystick_nr].plat_joystick_nr)
                         {
-                                int nr_axes = plat_joystick_state[joystick-1].nr_axes;
-                                int nr_povs = plat_joystick_state[joystick-1].nr_povs;
+                                nr_axes = plat_joystick_state[joystick-1].nr_axes;
+                                nr_povs = plat_joystick_state[joystick-1].nr_povs;
                                 for (c = 0; c < joystick_get_axis_count(joystick_config_type); c++)
                                 {
                                         int mapping = joystick_state[joystick_nr].axis_mapping[c];
@@ -194,8 +201,6 @@ static BOOL CALLBACK joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wPar
                                 }
                                 for (c = 0; c < joystick_get_pov_count(joystick_config_type); c++)
                                 {
-                                        int mapping;
-                                        
                                         h = GetDlgItem(hdlg, id);
                                         mapping = joystick_state[joystick_nr].pov_mapping[c][0];
                                         if (mapping & POV_X)
@@ -229,10 +234,7 @@ static BOOL CALLBACK joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wPar
                         
                         case IDOK:
                         {
-                                HWND h;
-                                int joystick;
-                                int c, d;
-                                int id = IDC_CONFIG_BASE + 2;
+                                id = IDC_CONFIG_BASE + 2;
                                                                 
                                 h = GetDlgItem(hdlg, IDC_CONFIG_BASE);
                                 joystick_state[joystick_nr].plat_joystick_nr = SendMessage(h, CB_GETCURSEL, 0, 0);
@@ -272,7 +274,6 @@ static BOOL CALLBACK joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wPar
 
 void joystickconfig_open(HWND hwnd, int joy_nr, int type)
 {
-//        device_config_t *config = device->config;
         uint16_t *data_block = malloc(16384);
         uint16_t *data;
         DLGTEMPLATE *dlg = (DLGTEMPLATE *)data_block;
@@ -318,10 +319,10 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
         data = (uint16_t *)(item + 1);
         *data++ = 0xFFFF;
-        *data++ = 0x0085;    // combo box class
+        *data++ = 0x0085;    /* combo box class */
 
         data += MultiByteToWideChar(CP_ACP, 0, "Device", -1, data, 256);
-        *data++ = 0;              // no creation data
+        *data++ = 0;              /* no creation data */
                         
         if (((unsigned long)data) & 2)
                 data++;
@@ -339,10 +340,10 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
         data = (uint16_t *)(item + 1);
         *data++ = 0xFFFF;
-        *data++ = 0x0082;    // static class
+        *data++ = 0x0082;    /* static class */
 
         data += MultiByteToWideChar(CP_ACP, 0, "Device :", -1, data, 256);
-        *data++ = 0;              // no creation data
+        *data++ = 0;              /* no creation data */
                         
         if (((unsigned long)data) & 2)
                 data++;
@@ -365,10 +366,10 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
                 data = (uint16_t *)(item + 1);
                 *data++ = 0xFFFF;
-                *data++ = 0x0085;    // combo box class
+                *data++ = 0x0085;    /* combo box class */
 
                 data += MultiByteToWideChar(CP_ACP, 0, joystick_get_axis_name(type, c), -1, data, 256);
-                *data++ = 0;              // no creation data
+                *data++ = 0;              /* no creation data */
                         
                 if (((unsigned long)data) & 2)
                         data++;
@@ -386,10 +387,10 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
                 data = (uint16_t *)(item + 1);
                 *data++ = 0xFFFF;
-                *data++ = 0x0082;    // static class
+                *data++ = 0x0082;    /* static class */
 
                 data += MultiByteToWideChar(CP_ACP, 0, joystick_get_axis_name(type, c), -1, data, 256);
-                *data++ = 0;              // no creation data
+                *data++ = 0;              /* no creation data */
                         
                 if (((unsigned long)data) & 2)
                         data++;
@@ -412,10 +413,10 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
                 data = (uint16_t *)(item + 1);
                 *data++ = 0xFFFF;
-                *data++ = 0x0085;    // combo box class
+                *data++ = 0x0085;    /* combo box class */
 
                 data += MultiByteToWideChar(CP_ACP, 0, joystick_get_button_name(type, c), -1, data, 256);
-                *data++ = 0;              // no creation data
+                *data++ = 0;              /* no creation data */
                         
                 if (((unsigned long)data) & 2)
                         data++;
@@ -433,10 +434,10 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
                 data = (uint16_t *)(item + 1);
                 *data++ = 0xFFFF;
-                *data++ = 0x0082;    // static class
+                *data++ = 0x0082;    /* static class */
 
                 data += MultiByteToWideChar(CP_ACP, 0, joystick_get_button_name(type, c), -1, data, 256);
-                *data++ = 0;              // no creation data
+                *data++ = 0;              /* no creation data */
                         
                 if (((unsigned long)data) & 2)
                         data++;
@@ -461,14 +462,14 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
                 data = (uint16_t *)(item + 1);
                 *data++ = 0xFFFF;
-                *data++ = 0x0085;    // combo box class
+                *data++ = 0x0085;    /* combo box class */
 
                 if (c & 1)
                         sprintf(s, "%s (Y axis)", joystick_get_pov_name(type, c/2));
                 else
                         sprintf(s, "%s (X axis)", joystick_get_pov_name(type, c/2));
                 data += MultiByteToWideChar(CP_ACP, 0, s, -1, data, 256);
-                *data++ = 0;              // no creation data
+                *data++ = 0;              /* no creation data */
                         
                 if (((unsigned long)data) & 2)
                         data++;
@@ -486,10 +487,10 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
                 data = (uint16_t *)(item + 1);
                 *data++ = 0xFFFF;
-                *data++ = 0x0082;    // static class
+                *data++ = 0x0082;    /* static class */
 
                 data += MultiByteToWideChar(CP_ACP, 0, s, -1, data, 256);
-                *data++ = 0;              // no creation data
+                *data++ = 0;              /* no creation data */
                         
                 if (((unsigned long)data) & 2)
                         data++;
@@ -499,23 +500,20 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
         dlg->cdit = (id - IDC_CONFIG_BASE) + 2;
 
-//    DEFPUSHBUTTON   "OK",IDOK,64,232,50,14, WS_TABSTOP
-//    PUSHBUTTON      "Cancel",IDCANCEL,128,232,50,14, WS_TABSTOP
-
         item = (DLGITEMTEMPLATE *)data;
         item->x = 20;
         item->y = y;
         item->cx = 50;
         item->cy = 14;
-        item->id = IDOK;  // OK button identifier
+        item->id = IDOK;  /* OK button identifier */
         item->style = WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON;
 
         data = (uint16_t *)(item + 1);
         *data++ = 0xFFFF;
-        *data++ = 0x0080;    // button class
+        *data++ = 0x0080;    /* button class */
 
         data += MultiByteToWideChar(CP_ACP, 0, "OK", -1, data, 50);
-        *data++ = 0;              // no creation data
+        *data++ = 0;              /* no creation data */
 
         if (((unsigned long)data) & 2)
                 data++;
@@ -525,20 +523,18 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
         item->y = y;
         item->cx = 50;
         item->cy = 14;
-        item->id = IDCANCEL;  // OK button identifier
+        item->id = IDCANCEL;  /* OK button identifier */
         item->style = WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON;
 
         data = (uint16_t *)(item + 1);
         *data++ = 0xFFFF;
-        *data++ = 0x0080;    // button class
+        *data++ = 0x0080;    /* button class */
 
         data += MultiByteToWideChar(CP_ACP, 0, "Cancel", -1, data, 50);
-        *data++ = 0;              // no creation data
+        *data++ = 0;              /* no creation data */
 
         dlg->cy = y + 20;
-        
-//        config_device = device;
-        
+
         DialogBoxIndirect(hinstance, dlg, hwnd, joystickconfig_dlgproc);
 
         free(data_block);

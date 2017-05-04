@@ -20,13 +20,11 @@ void writejim(uint16_t addr, uint8_t val, void *p)
         switch (addr)
         {
                 case 0x25A:
-//                        printf("Write RTC stat %i val %02X\n",europc_rtc.stat,val);
                 switch (europc_rtc.stat)
                 {
                         case 0:
                         europc_rtc.addr=val&0xF;
                         europc_rtc.stat++;
-//                        printf("RTC addr now %02X - contents %02X\n",val&0xF,europc_rtc.dat[europc_rtc.addr]);
                         break;
                         case 1:
                         europc_rtc.dat[europc_rtc.addr]=(europc_rtc.dat[europc_rtc.addr]&0xF)|(val<<4);
@@ -39,12 +37,10 @@ void writejim(uint16_t addr, uint8_t val, void *p)
                 }
                 break;
         }
-//        printf("Write JIM %04X %02X\n",addr,val);
 }
 
 uint8_t readjim(uint16_t addr, void *p)
 {
-//        printf("Read JIM %04X\n",addr);
         switch (addr)
         {
                 case 0x250: case 0x251: case 0x252: case 0x253: return 0;

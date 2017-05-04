@@ -103,7 +103,6 @@ static int opOUT_AL_DX(uint32_t fetchdat)
 }
 static int opOUT_AX_DX(uint32_t fetchdat)
 {
-        //pclog("OUT_AX_DX %04X %04X\n", DX, AX);
         check_io_perm(DX);
         check_io_perm(DX + 1);
         outw(DX, AX);

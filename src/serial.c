@@ -61,7 +61,6 @@ void serial_update_ints(SERIAL *serial)
 
 void serial_write_fifo(SERIAL *serial, uint8_t dat)
 {
-//        pclog("serial_write_fifo %02X\n", serial->lsr);
         serial->fifo[serial->fifo_write] = dat;
         serial->fifo_write = (serial->fifo_write + 1) & 0xFF;
         if (!(serial->lsr & 1))
@@ -85,8 +84,6 @@ uint8_t serial_read_fifo(SERIAL *serial)
 void serial_write(uint16_t addr, uint8_t val, void *p)
 {
         SERIAL *serial = (SERIAL *)p;
-	// pclog("Serial: Write value %02X on port: %04X\n", val, addr);
-//        pclog("Write serial %03X %02X %04X:%04X\n",addr,val,CS,pc);
         switch (addr&7)
         {
                 case 0:
@@ -113,6 +110,9 @@ void serial_write(uint16_t addr, uint8_t val, void *p)
                 serial->ier = val & 0xf;
                 serial_update_ints(serial);
                 break;
+                case 2:
+                serial->fcr = val;
+                break;
                 case 3:
                 serial->lcr = val;
                 break;
@@ -121,7 +121,6 @@ void serial_write(uint16_t addr, uint8_t val, void *p)
                 {
                         if (serial->rcr_callback)
                                 serial->rcr_callback(serial, serial->rcr_callback_p);
-//                        pclog("RCR raised! sending M\n");
                 }
                 serial->mctrl = val;
                 if (val & 0x10)
@@ -170,7 +169,6 @@ uint8_t serial_read(uint16_t addr, void *p)
 {
         SERIAL *serial = (SERIAL *)p;
         uint8_t temp = 0;
-        // pclog("Read serial %03X %04X(%08X):%04X %i %i  ", addr, CS, cs, cpu_state.pc, mousedelay, ins);
         switch (addr&7)
         {
                 case 0:
@@ -200,6 +198,8 @@ uint8_t serial_read(uint16_t addr, void *p)
                         serial->int_status &= ~SERIAL_INT_TRANSMIT;
                         serial_update_ints(serial);
                 }
+                if (serial->fcr & 1)
+                        temp |= 0xc0;
                 break;
                 case 3:
                 temp = serial->lcr;
@@ -214,7 +214,6 @@ uint8_t serial_read(uint16_t addr, void *p)
                 temp = serial->lsr;
                 if (serial->lsr & 0x1f)
                         serial->lsr &= ~0x1e;
-//                serial.lsr |= 0x60;
                 serial->int_status &= ~SERIAL_INT_LSR;
                 serial_update_ints(serial);
                 break;
@@ -228,8 +227,6 @@ uint8_t serial_read(uint16_t addr, void *p)
                 temp = serial->scratch;
                 break;
         }
-//        pclog("%02X\n",temp);
-	// pclog("Serial: Read value %02X on port: %04X\n", temp, addr);
         return temp;
 }
 
@@ -266,7 +263,6 @@ void serial1_set(uint16_t addr, int irq)
         serial1_remove();
         io_sethandler(addr, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
         serial1.irq = irq;
-	// pclog("serial1_set(%04X, %02X)\n", addr, irq);
 	serial_addr[0] = addr;
 	serial_irq[0] = irq;
 }
@@ -290,7 +286,6 @@ void serial2_set(uint16_t addr, int irq)
         serial2_remove();
         io_sethandler(addr, 0x0008, serial_read, NULL, NULL, serial_write, NULL, NULL, &serial2);
         serial2.irq = irq;
-	// pclog("serial2_set(%04X, %02X)\n", addr, irq);
 	serial_addr[1] = addr;
 	serial_irq[1] = irq;
 }

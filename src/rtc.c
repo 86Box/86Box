@@ -26,9 +26,6 @@ struct
         int year;
 } internal_clock;
 
-/* When the RTC was last updated */
-static time_t rtc_set_time = 0;
-
 /* Table for days in each month */
 static int rtc_days_in_month[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
@@ -45,7 +42,7 @@ static int rtc_is_leap(int org_year)
 static int rtc_get_days(int org_month, int org_year)
 {
         if (org_month != 2)
-                return rtc_days_in_month[org_month];
+                return rtc_days_in_month[org_month - 1];
         else
                 return rtc_is_leap(org_year) ? 29 : 28;
 }

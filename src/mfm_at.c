@@ -2,6 +2,7 @@
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
 #include <errno.h>
+#include <malloc.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -17,7 +18,7 @@
 #include "mfm_at.h"
 
 
-#define IDE_TIME (TIMER_USEC*10)//(5 * 100 * (1 << TIMER_SHIFT))
+#define IDE_TIME (TIMER_USEC*10)
 
 #define STAT_ERR		0x01
 #define STAT_INDEX		0x02
@@ -43,8 +44,6 @@
 #define CMD_SEEK   			0x70
 #define CMD_DIAGNOSE                    0x90
 #define CMD_SET_PARAMETERS              0x91
-
-extern char ide_fn[4][512];
 
 typedef struct mfm_drive_t
 {
@@ -78,16 +77,15 @@ typedef struct mfm_t
 uint16_t mfm_readw(uint16_t port, void *p);
 void mfm_writew(uint16_t port, uint16_t val, void *p);
 
-static inline void mfm_irq_raise(mfm_t *mfm)
+static __inline void mfm_irq_raise(mfm_t *mfm)
 {
-//        pclog("IDE_IRQ_RAISE\n");
 	if (!(mfm->fdisk&2))
                 picint(1 << 14);
 
 	mfm->irqstat=1;
 }
 
-static inline void mfm_irq_lower(mfm_t *mfm)
+static __inline void mfm_irq_lower(mfm_t *mfm)
 {
         picintc(1 << 14);
 }
@@ -161,9 +159,9 @@ static void mfm_next_sector(mfm_t *mfm)
 	}
 }
 
-static void loadhd(mfm_t *mfm, int d, const char *fn)
+static void loadhd(mfm_t *mfm, int c, int d, const char *fn)
 {
-        mfm_drive_t *drive = &mfm->drives[d];
+        mfm_drive_t *drive = &mfm->drives[c];
         
 	if (drive->hdfile == NULL)
         {
@@ -205,7 +203,6 @@ void mfm_write(uint16_t port, uint8_t val, void *p)
 {
         mfm_t *mfm = (mfm_t *)p;
 
-//        pclog("mfm_write: addr=%04x val=%02x\n", port, val);
         switch (port)
         {
                 case 0x1F0: /* Data */
@@ -252,7 +249,6 @@ void mfm_write(uint16_t port, uint8_t val, void *p)
                 switch (val & 0xf0)
                 {
                         case CMD_RESTORE:
-//                        pclog("Restore\n");
                         mfm->command &= ~0x0f; /*Mask off step rate*/
                         mfm->status = STAT_BUSY;
                         timer_process();
@@ -261,7 +257,6 @@ void mfm_write(uint16_t port, uint8_t val, void *p)
                         break;
                         
                         case CMD_SEEK:
-//                        pclog("Seek to cylinder %i\n", mfm->cylinder);
                         mfm->command &= ~0x0f; /*Mask off step rate*/
                         mfm->status = STAT_BUSY;
                         timer_process();
@@ -274,7 +269,6 @@ void mfm_write(uint16_t port, uint8_t val, void *p)
                         {
                                 case CMD_READ: case CMD_READ+1:
                                 case CMD_READ+2: case CMD_READ+3:
-//                                pclog("Read %i sectors from sector %i cylinder %i head %i  %i\n",mfm->secount,mfm->sector,mfm->cylinder,mfm->head,ins);
                                 mfm->command &= ~3;
                                 if (val & 2)
                                         fatal("Read with ECC\n");
@@ -286,16 +280,14 @@ void mfm_write(uint16_t port, uint8_t val, void *p)
 
                                 case CMD_WRITE: case CMD_WRITE+1:
                                 case CMD_WRITE+2: case CMD_WRITE+3:
-//                                pclog("Write %i sectors to sector %i cylinder %i head %i\n",mfm->secount,mfm->sector,mfm->cylinder,mfm->head);
                                 mfm->command &= ~3;
                                 if (val & 2)
                                         fatal("Write with ECC\n");
-                                mfm->status = STAT_DRQ | STAT_DSC;// | STAT_BUSY;
+                                mfm->status = STAT_DRQ | STAT_DSC;
                                 mfm->pos=0;
                                 break;
 
                                 case CMD_VERIFY: case CMD_VERIFY+1:
-//                                pclog("Read verify %i sectors from sector %i cylinder %i head %i\n",mfm->secount,mfm->sector,mfm->cylinder,mfm->head);
                                 mfm->command &= ~1;
                                 mfm->status = STAT_BUSY;
                                 timer_process();
@@ -304,7 +296,6 @@ void mfm_write(uint16_t port, uint8_t val, void *p)
                                 break;
 
                                 case CMD_FORMAT:
-//                                pclog("Format track %i head %i\n", mfm->cylinder, mfm->head);
                                 mfm->status = STAT_DRQ | STAT_BUSY;
                                 mfm->pos=0;
                                 break;
@@ -342,7 +333,6 @@ void mfm_write(uint16_t port, uint8_t val, void *p)
                         timer_update_outstanding();
                         mfm->reset = 1;
                         mfm->status = STAT_BUSY;
-//                        pclog("MFM Reset\n");
                 }
                 if (val & 4)
                 {
@@ -356,14 +346,12 @@ void mfm_write(uint16_t port, uint8_t val, void *p)
                 mfm_irq_update(mfm);
                 return;
         }
-//        fatal("Bad IDE write %04X %02X\n", addr, val);
 }
 
 void mfm_writew(uint16_t port, uint16_t val, void *p)
 {
         mfm_t *mfm = (mfm_t *)p;
         
-//        pclog("Write IDEw %04X\n",val);
         mfm->buffer[mfm->pos >> 1] = val;
         mfm->pos += 2;
 
@@ -416,9 +404,12 @@ uint8_t mfm_read(uint16_t port, void *p)
                 mfm_irq_lower(mfm);
                 temp = mfm->status;
                 break;
+
+		default:
+		temp = 0xff;
+		break;
         }
 
-//        pclog("mfm_read: addr=%04x val=%02x %04X:%04x\n", port, temp, CS, cpu_state.pc);
         return temp;
 }
 
@@ -432,7 +423,6 @@ uint16_t mfm_readw(uint16_t port, void *p)
 
         if (mfm->pos >= 512)
         {
-//                pclog("Over! packlen %i %i\n",ide->packlen,ide->pos);
                 mfm->pos=0;
                 mfm->status = STAT_READY | STAT_DSC;
                 if (mfm->command == CMD_READ)
@@ -446,10 +436,13 @@ uint16_t mfm_readw(uint16_t port, void *p)
                                 mfm->callback = 6*IDE_TIME;
                                 timer_update_outstanding();
                         }
+			else
+			{
+				update_status_bar_icon(0x20, 0);
+			}
                 }
         }
         
-//        pclog("mem_readw: temp=%04x %i\n", temp, mfm->pos);
         return temp;
 }
 
@@ -470,7 +463,6 @@ void mfm_callback(void *p)
         off64_t addr;
         int c;
         
-//        pclog("mfm_callback: command=%02x reset=%i\n", mfm->command, mfm->reset);
         mfm->callback = 0;
         if (mfm->reset)
         {
@@ -481,7 +473,6 @@ void mfm_callback(void *p)
                 mfm->head = 0;
                 mfm->cylinder = 0;
                 mfm->reset = 0;
-//                pclog("Reset callback\n");
                 return;
         }
         switch (mfm->command)
@@ -508,15 +499,12 @@ void mfm_callback(void *p)
                         break;
                 }
                 
-//                pclog("Read %i %i %i %08X\n",ide.cylinder,ide.head,ide.sector,addr);
                 fseeko64(drive->hdfile, addr * 512, SEEK_SET);
                 fread(mfm->buffer, 512, 1, drive->hdfile);
                 mfm->pos = 0;
                 mfm->status = STAT_DRQ | STAT_READY | STAT_DSC;
-//                pclog("Read sector callback %i %i %i offset %08X %i left %i %02X\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt,ide.atastat[ide.board]);
-//                if (addr) output=3;
                 mfm_irq_raise(mfm);
-                readflash = 1;
+                update_status_bar_icon(0x20, 1);
                 break;
 
                 case CMD_WRITE:
@@ -537,19 +525,21 @@ void mfm_callback(void *p)
                         mfm->status = STAT_DRQ | STAT_READY | STAT_DSC;
                         mfm->pos = 0;
                         mfm_next_sector(mfm);
+	                update_status_bar_icon(0x20, 1);
                 }
                 else
+		{
                         mfm->status = STAT_READY | STAT_DSC;
-                readflash = 1;
+	                update_status_bar_icon(0x20, 0);
+		}
                 break;
                 
                 case CMD_VERIFY:
                 do_seek(mfm);
                 mfm->pos = 0;
                 mfm->status = STAT_READY | STAT_DSC;
-//                pclog("Read verify callback %i %i %i offset %08X %i left\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount);
                 mfm_irq_raise(mfm);
-                readflash=1;
+                update_status_bar_icon(0x20, 1);
                 break;
 
                 case CMD_FORMAT:
@@ -569,7 +559,7 @@ void mfm_callback(void *p)
                 }
                 mfm->status = STAT_READY | STAT_DSC;
                 mfm_irq_raise(mfm);
-                readflash = 1;
+                update_status_bar_icon(0x20, 1);
                 break;
 
                 case CMD_DIAGNOSE:
@@ -597,11 +587,21 @@ void mfm_callback(void *p)
 
 void *mfm_init()
 {
+	int c, d;
+
         mfm_t *mfm = malloc(sizeof(mfm_t));
         memset(mfm, 0, sizeof(mfm_t));
 
-	loadhd(mfm, 0, ide_fn[0]);
-	loadhd(mfm, 1, ide_fn[1]);
+	c = 0;
+	for (d = 0; d < HDC_NUM; d++)
+	{
+		if ((hdc[d].bus == 1) && (hdc[d].mfm_channel < MFM_NUM))
+		{
+			loadhd(mfm, hdc[d].mfm_channel, d, hdd_fn[d]);
+			c++;
+			if (c >= MFM_NUM)  break;
+		}
+	}
 
         mfm->status = STAT_READY | STAT_DSC;
         mfm->error = 1; /*No errors*/

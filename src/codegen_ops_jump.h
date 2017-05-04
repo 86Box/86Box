@@ -75,16 +75,16 @@ static uint32_t ropLOOP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
         return op_pc+1;
 }
 
-static int BRANCH_COND_B(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
+static void BRANCH_COND_B(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
 {
-        CALL_FUNC(CF_SET);
+        CALL_FUNC((void *) CF_SET);
         if (not)
                 TEST_ZERO_JUMP_L(0, op_pc+pc_offset+offset, timing_bt);
         else
                 TEST_NONZERO_JUMP_L(0, op_pc+pc_offset+offset, timing_bt);
 }
 
-static int BRANCH_COND_E(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
+static void BRANCH_COND_E(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
 {
         int host_reg;
         
@@ -122,7 +122,7 @@ static int BRANCH_COND_E(int pc_offset, uint32_t op_pc, uint32_t offset, int not
                 break;
                 
                 case FLAGS_UNKNOWN:
-                CALL_FUNC(ZF_SET);
+                CALL_FUNC((void *) ZF_SET);
                 if (not)
                         TEST_ZERO_JUMP_L(0, op_pc+pc_offset+offset, timing_bt);
                 else
@@ -131,25 +131,25 @@ static int BRANCH_COND_E(int pc_offset, uint32_t op_pc, uint32_t offset, int not
         }
 }
 
-static int BRANCH_COND_O(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
+static void BRANCH_COND_O(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
 {
-        CALL_FUNC(VF_SET);
+        CALL_FUNC((void *) VF_SET);
         if (not)
                 TEST_ZERO_JUMP_L(0, op_pc+pc_offset+offset, timing_bt);
         else
                 TEST_NONZERO_JUMP_L(0, op_pc+pc_offset+offset, timing_bt);
 }
 
-static int BRANCH_COND_P(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
+static void BRANCH_COND_P(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
 {
-        CALL_FUNC(PF_SET);
+        CALL_FUNC((void *) PF_SET);
         if (not)
                 TEST_ZERO_JUMP_L(0, op_pc+pc_offset+offset, timing_bt);
         else
                 TEST_NONZERO_JUMP_L(0, op_pc+pc_offset+offset, timing_bt);
 }
 
-static int BRANCH_COND_S(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
+static void BRANCH_COND_S(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
 {
         int host_reg;
         
@@ -204,7 +204,7 @@ static int BRANCH_COND_S(int pc_offset, uint32_t op_pc, uint32_t offset, int not
                 break;
                 
                 case FLAGS_UNKNOWN:
-                CALL_FUNC(NF_SET);
+                CALL_FUNC((void *) NF_SET);
                 if (not)
                         TEST_ZERO_JUMP_L(0, op_pc+pc_offset+offset, timing_bt);
                 else

@@ -20,6 +20,8 @@ int egaswitchread,egaswitches=9; /*7=CGA mode (200 lines), 9=EGA mode (350 lines
 
 static int old_overscan_color = 0;
 
+int update_overscan = 0;
+
 void ega_out(uint16_t addr, uint8_t val, void *p)
 {
         ega_t *ega = (ega_t *)p;
@@ -104,7 +106,6 @@ void ega_out(uint16_t addr, uint8_t val, void *p)
                         ega->chain2_read = val & 0x10;
                         break;
                         case 6:
-//                                pclog("Write mapping %02X\n", val);
                         switch (val & 0xc)
                         {
                                 case 0x0: /*128k at A0000*/
@@ -128,14 +129,10 @@ void ega_out(uint16_t addr, uint8_t val, void *p)
                 break;
 		case 0x3d0:
                 case 0x3d4:
-                        // pclog("Write 3d4 %02X  %04X:%04X\n", val, CS, cpu_state.pc);
                 ega->crtcreg = val & 31;
                 return;
 		case 0x3d1:
                 case 0x3d5:
-                        // pclog("Write 3d5 %02X %02X %02X\n", ega->crtcreg, val, ega->crtc[0x11]);
-//                if (ega->crtcreg == 1 && val == 0x14)
-//                        fatal("Here\n");
                 if (ega->crtcreg <= 7 && ega->crtc[0x11] & 0x80) return;
                 old = ega->crtc[ega->crtcreg];
                 ega->crtc[ega->crtcreg] = val;
@@ -177,8 +174,6 @@ uint8_t ega_in(uint16_t addr, void *p)
 {
         ega_t *ega = (ega_t *)p;
 
-if (addr != 0x3da && addr != 0x3ba)
-        // pclog("ega_in %04X\n", addr);
         if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ega->miscout & 1)) 
                 addr ^= 0x60;
 
@@ -189,7 +184,6 @@ if (addr != 0x3da && addr != 0x3ba)
                 case 0x3c1: 
                 return ega->attrregs[ega->attraddr];
                 case 0x3c2:
-//                printf("Read egaswitch %02X %02X %i\n",egaswitchread,egaswitches,VGA);
 		return ega_get_input_status_0(ega);
                 break;
                 case 0x3c4: 
@@ -215,7 +209,6 @@ if (addr != 0x3da && addr != 0x3ba)
                 ega->stat ^= 0x30; /*Fools IBM EGA video BIOS self-test*/
                 return ega->stat;
         }
-//        printf("Bad EGA read %04X %04X:%04X\n",addr,cs>>4,pc);
         return 0xff;
 }
 
@@ -250,15 +243,12 @@ void ega_recalctimings(ega_t *ega)
 
         ega->rowoffset = ega->crtc[0x13];
 
-        // printf("Recalc! %i %i %i %i   %i %02X\n", ega->vtotal, ega->dispend, ega->vsyncstart, ega->split, ega->hdisp, ega->attrregs[0x16]);
-
         if (ega->vidclock) crtcconst = (ega->seqregs[1] & 1) ? MDACONST : (MDACONST * (9.0 / 8.0));
         else               crtcconst = (ega->seqregs[1] & 1) ? CGACONST : (CGACONST * (9.0 / 8.0));
 
         disptime = ega->crtc[0] + 2;
         _dispontime = ega->crtc[1] + 1;
 
-        // printf("Disptime %f dispontime %f hdisp %i\n", disptime, _dispontime, ega->crtc[1] * 8);
         if (ega->seqregs[1] & 8) 
         { 
                 disptime*=2; 
@@ -270,11 +260,6 @@ void ega_recalctimings(ega_t *ega)
 
 	ega->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
 	ega->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
-        /* pclog("dispontime %i (%f)  dispofftime %i (%f)\n", ega->dispontime, (float)ega->dispontime / (1 << TIMER_SHIFT),
-                                                           ega->dispofftime, (float)ega->dispofftime / (1 << TIMER_SHIFT)); */
-//        printf("EGA horiz total %i display end %i clock rate %i vidclock %i %i\n",crtc[0],crtc[1],egaswitchread,vidclock,((ega3c2>>2)&3) | ((tridentnewctrl2<<2)&4));
-//        printf("EGA vert total %i display end %i max row %i vsync %i\n",ega_vtotal,ega_dispend,(crtc[9]&31)+1,ega_vsyncstart);
-//        printf("total %f on %f cycles off %f cycles frame %f sec %f %02X\n",disptime*crtcconst,dispontime,dispofftime,(dispontime+dispofftime)*ega_vtotal,(dispontime+dispofftime)*ega_vtotal*70,seqregs[1]);
 }
 
 void ega_poll(void *p)
@@ -292,6 +277,7 @@ void ega_poll(void *p)
 	int y_add_ex = enable_overscan ? 28 : 0;
 	int x_add_ex = enable_overscan ? 16 : 0;
 	uint32_t *q, *r, i, j;
+	int wx = 640, wy = 350;
 
         if (!ega->linepos)
         {
@@ -524,7 +510,6 @@ void ega_poll(void *p)
         else
         {
                 ega->vidtime += ega->dispontime;
-//                if (output) printf("Display on %f\n",vidtime);
                 if (ega->dispon) 
                         ega->stat &= ~1;
                 ega->linepos = 0;
@@ -549,17 +534,14 @@ void ega_poll(void *p)
                 }
                 ega->vc++;
                 ega->vc &= 1023;
-//                printf("Line now %i %i ma %05X\n",vc,displine,ma);
                 if (ega->vc == ega->split)
                 {
-//                        printf("Split at line %i %i\n",displine,vc);
                         ega->ma = ega->maback = 0;
                         if (ega->attrregs[0x10] & 0x20)
                                 ega->scrollcache = 0;
                 }
                 if (ega->vc == ega->dispend)
                 {
-//                        printf("Display over at line %i %i\n",displine,vc);
                         ega->dispon=0;
                         if (ega->crtc[10] & 0x20) ega->cursoron = 0;
                         else                      ega->cursoron = ega->blink & 16;
@@ -572,21 +554,32 @@ void ega_poll(void *p)
                 }
                 if (ega->vc == ega->vsyncstart)
                 {
-                        int wx, wy;
                         ega->dispon = 0;
-//                        printf("Vsync on at line %i %i\n",displine,vc);
                         ega->stat |= 8;
                         if (ega->seqregs[1] & 8) x = ega->hdisp * ((ega->seqregs[1] & 1) ? 8 : 9) * 2;
                         else                     x = ega->hdisp * ((ega->seqregs[1] & 1) ? 8 : 9);
-//                        pclog("Cursor %02X %02X\n",crtc[10],crtc[11]);
-//                        pclog("Firstline %i Lastline %i wx %i %i\n",firstline,lastline,wx,oddeven);
-//                        doblit();
-                        if (x != xsize || (ega->lastline - ega->firstline) != ysize)
+                        if ((x != xsize || (ega->lastline - ega->firstline) != ysize) || update_overscan)
                         {
                                 xsize = x;
                                 ysize = ega->lastline - ega->firstline;
-                                if (xsize < 64) xsize = 656;
+                                if (xsize < 64) xsize = 640;
                                 if (ysize < 32) ysize = 200;
+				y_add = enable_overscan ? 14 : 0;
+				x_add = enable_overscan ? 8 : 0;
+				y_add_ex = enable_overscan ? 28 : 0;
+				x_add_ex = enable_overscan ? 16 : 0;
+
+				if ((xsize > 2032) || (ysize > 2032))
+				{
+					x_add = x_add_ex = 0;
+					y_add = y_add_ex = 0;
+					suppress_overscan = 1;
+				}
+				else
+				{
+					suppress_overscan = 0;
+				}
+
                                 if (ega->vres)
                                         updatewindowsize(xsize + x_add_ex, (ysize << 1) + y_add_ex);
                                 else
@@ -646,9 +639,7 @@ void ega_poll(void *p)
                                 ega->video_bpp = (ega->gdcreg[5] & 0x20) ? 2 : 4;
                         }
 
-//                        wakeupblit();
                         readflash=0;
-                        //framecount++;
                         ega->firstline = 2000;
                         ega->lastline = 0;
 
@@ -700,7 +691,6 @@ void ega_write(uint32_t addr, uint8_t val, void *p)
         if (!(ega->gdcreg[6] & 1)) 
                 fullchange = 2;
 
-//        pclog("%i %08X %i %i %02X   %02X %02X %02X %02X\n",chain4,addr,writemode,writemask,gdcreg[8],vram[0],vram[1],vram[2],vram[3]);
         switch (ega->writemode)
         {
                 case 1:
@@ -730,7 +720,6 @@ void ega_write(uint32_t addr, uint8_t val, void *p)
                         else                    valc = val;
                         if (ega->gdcreg[1] & 8) vald = (ega->gdcreg[0] & 8) ? 0xff : 0;
                         else                    vald = val;
-//                                pclog("Write %02X %01X %02X %02X %02X %02X  %02X\n",gdcreg[3]&0x18,writemask,vala,valb,valc,vald,gdcreg[8]);
                         switch (ega->gdcreg[3] & 0x18)
                         {
                                 case 0: /*Set*/
@@ -758,7 +747,6 @@ void ega_write(uint32_t addr, uint8_t val, void *p)
                                 if (writemask2 & 8) ega->vram[addr | 0x3] = (vald & ega->gdcreg[8]) ^ ega->ld;
                                 break;
                         }
-//                                pclog("- %02X %02X %02X %02X   %08X\n",vram[addr],vram[addr|0x1],vram[addr|0x2],vram[addr|0x3],addr);
                 }
                 break;
                 case 2:
@@ -816,7 +804,6 @@ uint8_t ega_read(uint32_t addr, void *p)
         egareads++;
         cycles -= video_timing_b;
         cycles_lost += video_timing_b;
-//        pclog("Readega %06X   ",addr);
         if (addr >= 0xb0000) addr &= 0x7fff;
         else                 addr &= 0xffff;
 
@@ -901,11 +888,12 @@ void ega_common_defaults(ega_t *ega)
 
 	ega->seqregs[4] |= 2;
 	ega->extvram = 1;
+
+	update_overscan = 0;
 }
 
 void *ega_standalone_init()
 {
-        int c, d, e;
         ega_t *ega = malloc(sizeof(ega_t));
         memset(ega, 0, sizeof(ega_t));
         
@@ -944,7 +932,6 @@ void *ega_standalone_init()
 
 void *cpqega_standalone_init()
 {
-        int c, d, e;
         ega_t *ega = malloc(sizeof(ega_t));
         memset(ega, 0, sizeof(ega_t));
         
@@ -956,7 +943,6 @@ void *cpqega_standalone_init()
         if (ega->bios_rom.rom[0x3ffe] == 0xaa && ega->bios_rom.rom[0x3fff] == 0x55)
         {
                 int c;
-                // pclog("Read EGA ROM in reverse\n");
 
                 for (c = 0; c < 0x2000; c++)
                 {
@@ -967,25 +953,21 @@ void *cpqega_standalone_init()
         }
 
         ega->crtc[0] = 63;
-        // ega->crtc[6] = 255;
         ega->dispontime = 1000 * (1 << TIMER_SHIFT);
         ega->dispofftime = 1000 * (1 << TIMER_SHIFT);
 
         ega_init(ega);        
-	// ega->attrregs[0x10] |= 0xF7;
 
 	ega_common_defaults(ega);
 
         mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, 0, ega);
         timer_add(ega_poll, &ega->vidtime, TIMER_ALWAYS_ENABLED, ega);
-        // io_sethandler(0x03a0, 0x0040, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
         io_sethandler(0x03c0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
         return ega;
 }
 
 void *sega_standalone_init()
 {
-        int c, d, e;
         ega_t *ega = malloc(sizeof(ega_t));
         memset(ega, 0, sizeof(ega_t));
         
@@ -997,7 +979,6 @@ void *sega_standalone_init()
         if (ega->bios_rom.rom[0x3ffe] == 0xaa && ega->bios_rom.rom[0x3fff] == 0x55)
         {
                 int c;
-                // pclog("Read EGA ROM in reverse\n");
 
                 for (c = 0; c < 0x2000; c++)
                 {
@@ -1008,18 +989,15 @@ void *sega_standalone_init()
         }
 
         ega->crtc[0] = 63;
-        // ega->crtc[6] = 255;
         ega->dispontime = 1000 * (1 << TIMER_SHIFT);
         ega->dispofftime = 1000 * (1 << TIMER_SHIFT);
 
         ega_init(ega);        
-	// ega->attrregs[0x10] |= 0xF7;
 
 	ega_common_defaults(ega);
 
         mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, 0, ega);
         timer_add(ega_poll, &ega->vidtime, TIMER_ALWAYS_ENABLED, ega);
-        // io_sethandler(0x03a0, 0x0040, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
         io_sethandler(0x03c0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
         return ega;
 }

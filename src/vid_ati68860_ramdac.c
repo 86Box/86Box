@@ -30,7 +30,6 @@ bit   0  Controls 6/8bit DAC. 0: 8bit DAC/LUT, 1: 6bit DAC/LUT
 
 void ati68860_ramdac_out(uint16_t addr, uint8_t val, ati68860_ramdac_t *ramdac, svga_t *svga)
 {
-//        pclog("ati68860_out : addr %04X val %02X  %04X:%04X\n", addr, val, CS,pc);
         switch (addr)
         {
                 case 0: 
@@ -151,7 +150,6 @@ uint8_t ati68860_ramdac_in(uint16_t addr, ati68860_ramdac_t *ramdac, svga_t *svg
                 ret = ramdac->regs[addr & 0xf];
                 break;
         }
-//        pclog("ati68860_in  : addr %04X ret %02X  %04X:%04X\n", addr, ret, CS,pc);
         return ret;
 }
 

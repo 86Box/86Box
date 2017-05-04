@@ -13,6 +13,7 @@
 #include "ibm.h"
 
 #include "config.h"
+#include "io.h"
 #include "mem.h"
 #include "video.h"
 #include "x86.h"
@@ -39,7 +40,7 @@ static int                _mem_state[0x40000];
 
 static mem_mapping_t base_mapping;
 mem_mapping_t ram_low_mapping;
-static mem_mapping_t ram_high_mapping;
+mem_mapping_t ram_high_mapping;
 static mem_mapping_t ram_mid_mapping;
 static mem_mapping_t ram_remapped_mapping;
 mem_mapping_t bios_mapping[8];
@@ -69,7 +70,6 @@ static void mem_load_atide115_bios()
         FILE *f;
         f=romfopen("roms/ide_at_1_1_5.bin","rb");
 
-//        is486=0;
         if (f)
         {
                 fread(romext,16384,1,f);
@@ -355,7 +355,6 @@ int loadbios()
                 fclose(f);
                 return 1;*/
                 case ROM_AMI386SX:
-//                f=romfopen("roms/at386/at386.bin","rb");
                 f=romfopen("roms/ami386/ami386.bin","rb");
                 if (!f) break;
                 fread(rom,65536,1,f);
@@ -394,7 +393,6 @@ int loadbios()
                 if (!f) break;
                 fread(rom,65536,1,f);
                 fclose(f);
-//                memset(romext,0x63,0x8000);
                 return 1;
 
                 case ROM_AWARD286:
@@ -405,18 +403,15 @@ int loadbios()
                 return 1;
 
                  case ROM_EUROPC:
-//                return 0;
                 f=romfopen("roms/europc/50145","rb");
                 if (!f) break;
                 fread(rom+0x8000,32768,1,f);
                 fclose(f);
-//                memset(romext,0x63,0x8000);
                 return 1;
 
                 case ROM_IBMPC:
                 f=romfopen("roms/ibmpc/pc102782.bin","rb");
                 if (!f) break;
-//                f=fopen("pc081682.bin","rb");
                 fread(rom+0xE000,8192,1,f);
                 fclose(f);
                 f=romfopen("roms/ibmpc/basicc11.f6","rb");
@@ -458,31 +453,18 @@ int loadbios()
                 if (!f) break;
                 fread(rom,65536,1,f);
                 fclose(f);
-                //is486=1;
                 return 1;
                 
                 case ROM_WIN486:
-//                f=romfopen("roms/win486/win486.bin","rb");
                 f=romfopen("roms/win486/ALI1429G.AMW","rb");
                 if (!f) break;
                 fread(rom,65536,1,f);
                 fclose(f);
-                //is486=1;
                 return 1;
-
-#if 0
-                case ROM_PCI486:
-                f=romfopen("roms/hot-433/hot-433.ami","rb");               
-                if (!f) break;
-                fread(rom,           0x20000, 1, f);                
-                fclose(f);
-                biosmask = 0x1ffff;
-                //is486=1;
-                return 1;
-#endif
 
                 case ROM_SIS496:
-                f = romfopen("roms/sis496/SIS496-1.AWA", "rb");
+                /* f = romfopen("roms/sis496/SIS496-1.AWA", "rb"); */
+                f = romfopen("roms/sis496/SIS496_3.AWA", "rb");
                 if (!f) break;
                 fread(rom,           0x20000, 1, f);                
                 fclose(f);
@@ -491,15 +473,11 @@ int loadbios()
                 return 1;
                 
                 case ROM_430VX:
-//                f = romfopen("roms/430vx/Ga586atv.bin", "rb");
-//                f = fopen("roms/430vx/vx29.BIN", "rb");
                 f = romfopen("roms/430vx/55XWUQ0E.BIN", "rb");
-//                f=romfopen("roms/430vx/430vx","rb");               
                 if (!f) break;
                 fread(rom,           0x20000, 1, f);                
                 fclose(f);
                 biosmask = 0x1ffff;
-                //is486=1;
                 return 1;
 
                 case ROM_REVENGE:
@@ -514,7 +492,6 @@ int loadbios()
                 fread(rom, 0xc000, 1, f);                
                 fclose(f);
                 biosmask = 0x1ffff;
-                //is486=1;
                 return 1;
                 case ROM_ENDEAVOR:
                 f = romfopen("roms/endeavor/1006CB0_.BIO", "rb");
@@ -528,31 +505,14 @@ int loadbios()
                 fread(rom, 0xd000, 1, f);
                 fclose(f);
                 biosmask = 0x1ffff;
-                //is486=1;
                 return 1;
 
                 case ROM_IBMPS1_2011:
-#if 0
-                f=romfopen("roms/ibmps1es/ibm_1057757_24-05-90.bin","rb");
-                ff=romfopen("roms/ibmps1es/ibm_1057757_29-15-90.bin","rb");
-                fseek(f, 0x10000, SEEK_SET);
-                fseek(ff, 0x10000, SEEK_SET);
-                if (!f || !ff) break;
-                for (c = 0x0000; c < 0x20000; c += 2)
-                {
-                        rom[c] = getc(f);
-                        rom[c+1] = getc(ff);
-                }
-                fclose(ff);
-                fclose(f);
-#endif
-//#if 0
                 f = romfopen("roms/ibmps1es/f80000.bin", "rb");
                 if (!f) break;
                 fseek(f, 0x60000, SEEK_SET);
                 fread(rom, 0x20000, 1, f);                
                 fclose(f);
-//#endif
                 biosmask = 0x1ffff;
                 return 1;
  
@@ -703,7 +663,6 @@ int loadbios()
                 fread(rom, 0xd000, 1, f);
                 fclose(f);
                 biosmask = 0x1ffff;
-                //is486=1;
                 return 1;
 
                 case ROM_MB500N:
@@ -714,15 +673,21 @@ int loadbios()
                 biosmask = 0x1ffff;
                 return 1;
 
-#if 0
-                case ROM_POWERMATE_V:
-                f = romfopen("roms/powermate_v/BIOS.ROM", "rb");	/* Works */
+                case ROM_AP53:
+                f = romfopen("roms/ap53/AP53R2C0.ROM", "rb");	/* Works */
                 if (!f) break;
                 fread(rom,           0x20000, 1, f);                
                 fclose(f);
                 biosmask = 0x1ffff;
                 return 1;
-#endif
+
+                case ROM_P55T2S:
+                f = romfopen("roms/p55t2s/S6Y08T.ROM", "rb");	/* Works */
+                if (!f) break;
+                fread(rom,           0x20000, 1, f);                
+                fclose(f);
+                biosmask = 0x1ffff;
+                return 1;
 
                 case ROM_P54TP4XE:
                 f = romfopen("roms/p54tp4xe/T15I0302.AWD", "rb");
@@ -780,22 +745,13 @@ int loadbios()
                 biosmask = 0x1ffff;
                 return 1;
 
-#if 0
-                case ROM_MARL:
-                f = romfopen("roms/marl/1008DB0_.BIO", "rb");
+                case ROM_S1668:
+		f = romfopen("roms/tpatx/S1668P.ROM", "rb");	/* Working Tyan BIOS. */
                 if (!f) break;
-                fseek(f, 0x80, SEEK_SET);
-                fread(rom + 0x10000, 0x10000, 1, f);                
-                fclose(f);
-                f = romfopen("roms/marl/1008DB0_.BI1", "rb");
-                if (!f) break;
-                fseek(f, 0x80, SEEK_SET);
-                fread(rom, 0xd000, 1, f);
+                fread(rom,           0x20000, 1, f);                
                 fclose(f);
                 biosmask = 0x1ffff;
-                //is486=1;
                 return 1;
-#endif
 
                 case ROM_THOR:
                 f = romfopen("roms/thor/1006CN0_.BIO", "rb");
@@ -809,7 +765,6 @@ int loadbios()
                 fread(rom, 0x10000, 1, f);
                 fclose(f);
                 biosmask = 0x1ffff;
-                //is486=1;
                 return 1;
 
                 case ROM_MRTHOR:
@@ -832,7 +787,58 @@ int loadbios()
                 fread(rom, 0x10000, 1, f);
                 fclose(f);
                 biosmask = 0x1ffff;
-                //is486=1;
+                return 1;
+
+                case ROM_IBMPS2_M50:
+                f=romfopen("roms/i8550021/90x7423.zm14","rb");
+                ff=romfopen("roms/i8550021/90x7426.zm16","rb");
+                if (!f || !ff) break;
+                for (c = 0x0000; c < 0x10000; c += 2)
+                {
+                        rom[c] = getc(f);
+                        rom[c+1] = getc(ff);
+                }
+                fclose(ff);
+                fclose(f);
+                f=romfopen("roms/i8550021/90x7420.zm13","rb");
+                ff=romfopen("roms/i8550021/90x7429.zm18","rb");
+                if (!f || !ff) break;
+                for (c = 0x10000; c < 0x20000; c += 2)
+                {
+                        rom[c] = getc(f);
+                        rom[c+1] = getc(ff);
+                }
+                fclose(ff);
+                fclose(f);
+                biosmask = 0x1ffff;
+                return 1;
+
+                case ROM_IBMPS2_M55SX:
+                f=romfopen("roms/i8555081/33f8146.zm41","rb");
+                ff=romfopen("roms/i8555081/33f8145.zm40","rb");
+                if (!f || !ff) break;
+                for (c = 0x0000; c < 0x20000; c += 2)
+                {
+                        rom[c] = getc(f);
+                        rom[c+1] = getc(ff);
+                }
+                fclose(ff);
+                fclose(f);
+                biosmask = 0x1ffff;
+                return 1;
+
+                case ROM_IBMPS2_M80:
+                f=romfopen("roms/i8580111/15f6637.bin","rb");
+                ff=romfopen("roms/i8580111/15f6639.bin","rb");
+                if (!f || !ff) break;
+                for (c = 0x0000; c < 0x20000; c += 2)
+                {
+                        rom[c] = getc(f);
+                        rom[c+1] = getc(ff);
+                }
+                fclose(ff);
+                fclose(f);
+                biosmask = 0x1ffff;
                 return 1;
         }
         printf("Failed to load ROM!\n");
@@ -846,7 +852,6 @@ int loadbios()
 void resetreadlookup()
 {
         int c;
-//        /*if (output) */pclog("resetreadlookup\n");
         memset(readlookup2,0xFF,1024*1024*sizeof(uintptr_t));
         for (c=0;c<256;c++) readlookup[c]=0xFFFFFFFF;
         readlnext=0;
@@ -855,8 +860,6 @@ void resetreadlookup()
         for (c=0;c<256;c++) writelookup[c]=0xFFFFFFFF;
         writelnext=0;
         pccache=0xFFFFFFFF;
-//        readlnum=writelnum=0;
-
 }
 
 int mmuflush=0;
@@ -865,12 +868,6 @@ int mmu_perm=4;
 void flushmmucache()
 {
         int c;
-//        /*if (output) */pclog("flushmmucache\n");
-/*        for (c=0;c<16;c++)
-        {
-                if ( readlookup2[0xE0+c]!=0xFFFFFFFF) pclog("RL2 %02X = %08X\n",0xE0+c, readlookup2[0xE0+c]);
-                if (writelookup2[0xE0+c]!=0xFFFFFFFF) pclog("WL2 %02X = %08X\n",0xE0+c,writelookup2[0xE0+c]);
-        }*/
         for (c=0;c<256;c++)
         {
                 if (readlookup[c]!=0xFFFFFFFF)
@@ -886,31 +883,9 @@ void flushmmucache()
                 }
         }
         mmuflush++;
-//        readlnum=writelnum=0;
         pccache=(uint32_t)0xFFFFFFFF;
         pccache2=(uint8_t *)0xFFFFFFFF;
         
-//        memset(readlookup,0xFF,sizeof(readlookup));
-//        memset(readlookup2,0xFF,1024*1024*4);
-//        memset(writelookup,0xFF,sizeof(writelookup));
-//        memset(writelookup2,0xFF,1024*1024*4);
-/*        if (!(cr0>>31)) return;*/
-
-/*        for (c = 0; c < 1024*1024; c++)
-        {
-                if (readlookup2[c] != 0xFFFFFFFF)
-                {
-                        pclog("Readlookup inconsistency - %05X %08X\n", c, readlookup2[c]);
-                        dumpregs();
-                        exit(-1);
-                }
-                if (writelookup2[c] != 0xFFFFFFFF)
-                {
-                        pclog("Readlookup inconsistency - %05X %08X\n", c, readlookup2[c]);
-                        dumpregs();
-                        exit(-1);
-                }
-        }*/
         codegen_flush();
 }
 
@@ -936,43 +911,26 @@ void flushmmucache_nopc()
 void flushmmucache_cr3()
 {
         int c;
-//        /*if (output) */pclog("flushmmucache_cr3\n");
         for (c=0;c<256;c++)
         {
-                if (readlookup[c]!=0xFFFFFFFF)// && !readlookupp[c])
+                if (readlookup[c]!=0xFFFFFFFF)
                 {
                         readlookup2[readlookup[c]] = -1;
                         readlookup[c]=0xFFFFFFFF;
                 }
-                if (writelookup[c] != 0xFFFFFFFF)// && !writelookupp[c])
+                if (writelookup[c] != 0xFFFFFFFF)
                 {
                         page_lookup[writelookup[c]] = NULL;
                         writelookup2[writelookup[c]] = -1;
                         writelookup[c] = 0xFFFFFFFF;                        
                 }
         }
-/*        for (c = 0; c < 1024*1024; c++)
-        {
-                if (readlookup2[c] != 0xFFFFFFFF)
-                {
-                        pclog("Readlookup inconsistency - %05X %08X\n", c, readlookup2[c]);
-                        dumpregs();
-                        exit(-1);
-                }
-                if (writelookup2[c] != 0xFFFFFFFF)
-                {
-                        pclog("Readlookup inconsistency - %05X %08X\n", c, readlookup2[c]);
-                        dumpregs();
-                        exit(-1);
-                }
-        }*/
 }
 
 void mem_flush_write_page(uint32_t addr, uint32_t virt)
 {
         int c;
         page_t *page_target = &pages[addr >> 12];
-//        pclog("mem_flush_write_page %08x %08x\n", virt, addr);
 
         for (c = 0; c < 256; c++)        
         {
@@ -980,11 +938,8 @@ void mem_flush_write_page(uint32_t addr, uint32_t virt)
                 {
                         uintptr_t target = (uintptr_t)&ram[(uintptr_t)(addr & ~0xfff) - (virt & ~0xfff)];
 
-//                        if ((virt & ~0xfff) == 0xc022e000)
-//                                pclog(" Checking %02x %p %p\n", (void *)writelookup2[writelookup[c]], (void *)target);
                         if (writelookup2[writelookup[c]] == target || page_lookup[writelookup[c]] == page_target)
                         {
-//                                pclog("  throw out %02x %p %p\n", writelookup[c], (void *)page_lookup[writelookup[c]], (void *)writelookup2[writelookup[c]]);
                                 writelookup2[writelookup[c]] = -1;
                                 page_lookup[writelookup[c]] = NULL;
                                 writelookup[c] = 0xffffffff;
@@ -1029,7 +984,6 @@ int mmu_page_fault_check(uint32_t addr, int rw, uint32_t flags, int pde, int is_
 
 	if (!(flags & 1))
 	{
-		// pclog("Trying to read or write a page that is not present!\n");
 		is_page_fault = 1;
 	}
 
@@ -1037,12 +991,10 @@ int mmu_page_fault_check(uint32_t addr, int rw, uint32_t flags, int pde, int is_
 	{
 		if (!(flags & 4) && mem_cpl3_check())
 		{
-			// pclog("Trying to read a system page from user mode!\n");
 			is_page_fault = 1;
 		}
 		if (rw && !(flags & 2) && (mem_cpl3_check() || (cr0 & WP_FLAG)))
 		{
-			// pclog("Trying to write a read-only-for-user page from user mode!\n");
 			is_page_fault = 1;
 		}
 	}
@@ -1124,25 +1076,16 @@ uint32_t mmutranslate_noabrt(uint32_t addr, int rw)
 
 void mmu_invalidate(uint32_t addr)
 {
-//        readlookup2[addr >> 12] = writelookup2[addr >> 12] = 0xFFFFFFFF;
         flushmmucache_cr3();
 }
 
 void addreadlookup(uint32_t virt, uint32_t phys)
 {
-//        return;
-//        printf("Addreadlookup %08X %08X %08X %08X %08X %08X %02X %08X\n",virt,phys,cs,ds,es,ss,opcode,cpu_state.pc);
         if (virt == 0xffffffff)
                 return;
                 
         if (readlookup2[virt>>12] != -1) 
         {
-/*                if (readlookup2[virt>>12] != phys&~0xfff)
-                {
-                        pclog("addreadlookup mismatch - %05X000 %05X000\n", readlookup[readlnext], virt >> 12);
-                        dumpregs();
-                        exit(-1);
-                }*/
                 return;
         }
         
@@ -1150,7 +1093,6 @@ void addreadlookup(uint32_t virt, uint32_t phys)
         if (readlookup[readlnext]!=0xFFFFFFFF)
         {
                 readlookup2[readlookup[readlnext]] = -1;
-//                readlnum--;
         }
         readlookup2[virt>>12] = (uintptr_t)&ram[(uintptr_t)(phys & ~0xFFF) - (uintptr_t)(virt & ~0xfff)];
         readlookupp[readlnext]=mmu_perm;
@@ -1162,19 +1104,11 @@ void addreadlookup(uint32_t virt, uint32_t phys)
 
 void addwritelookup(uint32_t virt, uint32_t phys)
 {
-//        return;
-//        printf("Addwritelookup %08X %08X\n",virt,phys);
         if (virt == 0xffffffff)
                 return;
 
         if (page_lookup[virt >> 12])
         {
-/*                if (writelookup2[virt>>12] != phys&~0xfff)
-                {
-                        pclog("addwritelookup mismatch - %05X000 %05X000\n", readlookup[readlnext], virt >> 12);
-                        dumpregs();
-                        exit(-1);
-                }*/
                 return;
         }
         
@@ -1182,16 +1116,12 @@ void addwritelookup(uint32_t virt, uint32_t phys)
         {
                 page_lookup[writelookup[writelnext]] = NULL;
                 writelookup2[writelookup[writelnext]] = -1;
-//                writelnum--;
         }
-//        if (page_lookup[virt >> 12] && (writelookup2[virt>>12] != 0xffffffff))
-//                fatal("Bad write mapping\n");
 
         if (pages[phys >> 12].block || (phys & ~0xfff) == recomp_page)
-                page_lookup[virt >> 12] = &pages[phys >> 12];//(uintptr_t)&ram[(uintptr_t)(phys & ~0xFFF) - (uintptr_t)(virt & ~0xfff)];
+                page_lookup[virt >> 12] = &pages[phys >> 12];
         else
                 writelookup2[virt>>12] = (uintptr_t)&ram[(uintptr_t)(phys & ~0xFFF) - (uintptr_t)(virt & ~0xfff)];
-//        pclog("addwritelookup %08x %08x %p %p %016llx %p\n", virt, phys, (void *)page_lookup[virt >> 12], (void *)writelookup2[virt >> 12], pages[phys >> 12].dirty_mask, (void *)&pages[phys >> 12]);
         writelookupp[writelnext] = mmu_perm;
         writelookup[writelnext++] = virt >> 12;
         writelnext &= (cachesize - 1);
@@ -1255,7 +1185,6 @@ uint8_t readmembl(uint32_t addr)
         addr &= rammask;
 
         if (_mem_read_b[addr >> 14]) return _mem_read_b[addr >> 14](addr, _mem_priv_r[addr >> 14]);
-//        pclog("Bad readmembl %08X %04X:%08X\n", addr, CS, pc);
         return 0xFF;
 }
 
@@ -1282,7 +1211,6 @@ void writemembl(uint32_t addr, uint8_t val)
         addr &= rammask;
 
         if (_mem_write_b[addr >> 14]) _mem_write_b[addr >> 14](addr, val, _mem_priv_w[addr >> 14]);
-//        else                          pclog("Bad writemembl %08X %02X  %04X:%08X\n", addr, val, CS, pc);
 }
 
 uint8_t readmemb386l(uint32_t seg, uint32_t addr)
@@ -1290,14 +1218,9 @@ uint8_t readmemb386l(uint32_t seg, uint32_t addr)
         if (seg==-1)
         {
                 x86gpf("NULL segment", 0);
-                // printf("NULL segment! rb %04X(%08X):%08X %02X %08X\n",CS,cs,cpu_state.pc,opcode,addr);
                 return -1;
         }
         mem_logical_addr = addr = addr + seg;
-/*        if (readlookup2[mem_logical_addr >> 12] != 0xFFFFFFFF)
-        {
-                return ram[readlookup2[mem_logical_addr >> 12] + (mem_logical_addr & 0xFFF)];
-        }*/
         if (addr < 0x100000 && ram_mapped_addr[addr >> 14])
         {
                 addr = (ram_mapped_addr[addr >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? addr : (ram_mapped_addr[addr >> 14] & ~0x3FFF) + (addr & 0x3FFF);
@@ -1314,7 +1237,6 @@ uint8_t readmemb386l(uint32_t seg, uint32_t addr)
         addr &= rammask;
 
         if (_mem_read_b[addr >> 14]) return _mem_read_b[addr >> 14](addr, _mem_priv_r[addr >> 14]);
-//        pclog("Bad readmemb386l %08X %04X:%08X\n", addr, CS, pc);
         return 0xFF;
 }
 
@@ -1323,7 +1245,6 @@ void writememb386l(uint32_t seg, uint32_t addr, uint8_t val)
         if (seg==-1)
         {
                 x86gpf("NULL segment", 0);
-                // printf("NULL segment! wb %04X(%08X):%08X %02X %08X\n",CS,cs,cpu_state.pc,opcode,addr);
                 return;
         }
         
@@ -1347,11 +1268,7 @@ void writememb386l(uint32_t seg, uint32_t addr, uint8_t val)
 
         addr &= rammask;
 
-/*        if (addr >= 0xa0000 && addr < 0xc0000)
-           pclog("writemembl %08X %02X\n", addr, val);*/
-
         if (_mem_write_b[addr >> 14]) _mem_write_b[addr >> 14](addr, val, _mem_priv_w[addr >> 14]);
-//        else                          pclog("Bad writememb386l %08X %02X %04X:%08X\n", addr, val, CS, pc);
 }
 
 uint16_t readmemwl(uint32_t seg, uint32_t addr)
@@ -1374,7 +1291,6 @@ uint16_t readmemwl(uint32_t seg, uint32_t addr)
         if (seg==-1)
         {
                 x86gpf("NULL segment", 0);
-                // printf("NULL segment! rw %04X(%08X):%08X %02X %08X\n",CS,cs,cpu_state.pc,opcode,addr);
                 return -1;
         }
         if (addr2 < 0x100000 && ram_mapped_addr[addr2 >> 14])
@@ -1398,7 +1314,6 @@ uint16_t readmemwl(uint32_t seg, uint32_t addr)
                 if (AT) return _mem_read_b[addr2 >> 14](addr2, _mem_priv_r[addr2 >> 14]) | (_mem_read_b[(addr2 + 1) >> 14](addr2 + 1, _mem_priv_r[addr2 >> 14]) << 8);
                 else    return _mem_read_b[addr2 >> 14](addr2, _mem_priv_r[addr2 >> 14]) | (_mem_read_b[(seg + ((addr + 1) & 0xffff)) >> 14](seg + ((addr + 1) & 0xffff), _mem_priv_r[addr2 >> 14]) << 8);
         }
-//        pclog("Bad readmemwl %08X\n", addr2);
         return 0xffff;
 }
 
@@ -1434,7 +1349,6 @@ void writememwl(uint32_t seg, uint32_t addr, uint16_t val)
         if (seg==-1)
         {
                 x86gpf("NULL segment", 0);
-                // printf("NULL segment! ww %04X(%08X):%08X %02X %08X\n",CS,cs,cpu_state.pc,opcode,addr);
                 return;
         }
         if (addr2 < 0x100000 && ram_mapped_addr[addr2 >> 14])
@@ -1471,7 +1385,6 @@ void writememwl(uint32_t seg, uint32_t addr, uint16_t val)
                 _mem_write_b[(addr2 + 1) >> 14](addr2 + 1, val >> 8, _mem_priv_w[addr2 >> 14]);
                 return;
         }
-//        pclog("Bad writememwl %08X %04X\n", addr2, val);
 }
 
 uint32_t readmemll(uint32_t seg, uint32_t addr)
@@ -1494,7 +1407,6 @@ uint32_t readmemll(uint32_t seg, uint32_t addr)
         if (seg==-1)
         {
                 x86gpf("NULL segment", 0);
-                // printf("NULL segment! rl %04X(%08X):%08X %02X %08X\n",CS,cs,cpu_state.pc,opcode,addr);
                 return -1;
         }
         
@@ -1518,7 +1430,6 @@ uint32_t readmemll(uint32_t seg, uint32_t addr)
         
         if (_mem_read_b[addr2 >> 14]) return _mem_read_b[addr2 >> 14](addr2, _mem_priv_r[addr2 >> 14]) | (_mem_read_b[addr2 >> 14](addr2 + 1, _mem_priv_r[addr2 >> 14]) << 8) | (_mem_read_b[addr2 >> 14](addr2 + 2, _mem_priv_r[addr2 >> 14]) << 16) | (_mem_read_b[addr2 >> 14](addr2 + 3, _mem_priv_r[addr2 >> 14]) << 24);
 
-//        pclog("Bad readmemll %08X\n", addr2);
         return 0xffffffff;
 }
 
@@ -1540,7 +1451,6 @@ void writememll(uint32_t seg, uint32_t addr, uint32_t val)
         if (seg==-1)
         {
                 x86gpf("NULL segment", 0);
-                // printf("NULL segment! wl %04X(%08X):%08X %02X %08X\n",CS,cs,cpu_state.pc,opcode,addr);
                 return;
         }
         if (addr2 < 0x100000 && ram_mapped_addr[addr2 >> 14])
@@ -1562,9 +1472,6 @@ void writememll(uint32_t seg, uint32_t addr, uint32_t val)
         
         addr2&=rammask;
 
-/*        if (addr >= 0xa0000 && addr < 0xc0000)
-           pclog("writememll %08X %08X\n", addr, val);*/
-
         if (_mem_write_l[addr2 >> 14]) 
         {
                 _mem_write_l[addr2 >> 14](addr2, val,           _mem_priv_w[addr2 >> 14]);
@@ -1584,7 +1491,6 @@ void writememll(uint32_t seg, uint32_t addr, uint32_t val)
                 _mem_write_b[addr2 >> 14](addr2 + 3, val >> 24, _mem_priv_w[addr2 >> 14]);
                 return;
         }
-//        pclog("Bad writememll %08X %08X\n", addr2, val);
 }
 
 uint64_t readmemql(uint32_t seg, uint32_t addr)
@@ -1603,7 +1509,6 @@ uint64_t readmemql(uint32_t seg, uint32_t addr)
         if (seg==-1)
         {
                 x86gpf("NULL segment", 0);
-                // printf("NULL segment! rl %04X(%08X):%08X %02X %08X\n",CS,cs,cpu_state.pc,opcode,addr);
                 return -1;
         }
         
@@ -1646,7 +1551,6 @@ void writememql(uint32_t seg, uint32_t addr, uint64_t val)
         if (seg==-1)
         {
                 x86gpf("NULL segment", 0);
-                // printf("NULL segment! wl %04X(%08X):%08X %02X %08X\n",CS,cs,cpu_state.pc,opcode,addr);
                 return;
         }
         if (addr2 < 0x100000 && ram_mapped_addr[addr2 >> 14])
@@ -1695,7 +1599,6 @@ void writememql(uint32_t seg, uint32_t addr, uint64_t val)
                 _mem_write_b[addr2 >> 14](addr2 + 7, val >> 56, _mem_priv_w[addr2 >> 14]);
                 return;
         }
-//        pclog("Bad writememql %08X %08X\n", addr2, val);
 }
 
 uint8_t mem_readb_phys(uint32_t addr)
@@ -1736,19 +1639,16 @@ void mem_writew_phys(uint32_t addr, uint16_t val)
 
 uint8_t mem_read_ram(uint32_t addr, void *priv)
 {
-//        if (addr >= 0xc0000 && addr < 0x0c8000) pclog("Read RAMb %08X\n", addr);
         addreadlookup(mem_logical_addr, addr);
         return ram[addr];
 }
 uint16_t mem_read_ramw(uint32_t addr, void *priv)
 {
-//        if (addr >= 0xc0000 && addr < 0x0c8000)  pclog("Read RAMw %08X\n", addr);
         addreadlookup(mem_logical_addr, addr);
         return *(uint16_t *)&ram[addr];
 }
 uint32_t mem_read_raml(uint32_t addr, void *priv)
 {
-//        if (addr >= 0xc0000 && addr < 0x0c8000) pclog("Read RAMl %08X\n", addr);
         addreadlookup(mem_logical_addr, addr);
         return *(uint32_t *)&ram[addr];
 }
@@ -1758,7 +1658,6 @@ void mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *p)
         if (val != p->mem[addr & 0xfff] || codegen_in_recompile)
         {
                 uint64_t mask = (uint64_t)1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
-//        pclog("mem_write_ramb_page: %08x %02x %08x %llx %llx\n", addr, val, cs+pc, p->dirty_mask, mask);
                 p->dirty_mask |= mask;
                 p->mem[addr & 0xfff] = val;
         }
@@ -1770,7 +1669,6 @@ void mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *p)
                 uint64_t mask = (uint64_t)1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
                 if ((addr & 0x3f) == 0x3f)
                         mask |= (mask << 1);
-//        pclog("mem_write_ramw_page: %08x %04x %08x\n", addr, val, cs+pc);
                 p->dirty_mask |= mask;
                 *(uint16_t *)&p->mem[addr & 0xfff] = val;
         }
@@ -1782,7 +1680,6 @@ void mem_write_raml_page(uint32_t addr, uint32_t val, page_t *p)
                 uint64_t mask = (uint64_t)1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
                 if ((addr & 0x3f) >= 0x3d)
                         mask |= (mask << 1);
-//        pclog("mem_write_raml_page: %08x %08x %08x\n", addr, val, cs+pc);
                 p->dirty_mask |= mask;
                 *(uint32_t *)&p->mem[addr & 0xfff] = val;
         }
@@ -1808,21 +1705,16 @@ uint8_t mem_read_bios(uint32_t addr, void *priv)
 {
                         if (AMIBIOS && (addr&0xFFFFF)==0xF8281) /*This is read constantly during AMIBIOS POST, but is never written to. It's clearly a status register of some kind, but for what?*/
                         {
-//                                pclog("Read magic addr %04X(%06X):%04X\n",CS,cs,cpu_state.pc);
-//                                if (pc==0x547D) output=3;
                                 return 0x40;
                         }
-//        pclog("Read BIOS %08X %02X %04X:%04X\n", addr, rom[addr & biosmask], CS, pc);
         return rom[addr & biosmask];
 }
 uint16_t mem_read_biosw(uint32_t addr, void *priv)
 {
-//        pclog("Read BIOS %08X %04X %04X:%04X\n", addr, *(uint16_t *)&rom[addr & biosmask], CS, pc);
         return *(uint16_t *)&rom[addr & biosmask];
 }
 uint32_t mem_read_biosl(uint32_t addr, void *priv)
 {
-//        pclog("Read BIOS %08X %02X %04X:%04X\n", addr, *(uint32_t *)&rom[addr & biosmask], CS, pc);
         return *(uint32_t *)&rom[addr & biosmask];
 }
 
@@ -1862,9 +1754,8 @@ void mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
         }
 }
 
-static inline int mem_mapping_read_allowed(uint32_t flags, int state)
+static __inline int mem_mapping_read_allowed(uint32_t flags, int state)
 {
-//        pclog("mem_mapping_read_allowed: flags=%x state=%x\n", flags, state);
         switch (state & MEM_READ_MASK)
         {
                 case MEM_READ_ANY:
@@ -1875,10 +1766,11 @@ static inline int mem_mapping_read_allowed(uint32_t flags, int state)
                 return !(flags & MEM_MAPPING_EXTERNAL);
                 default:
                 fatal("mem_mapping_read_allowed : bad state %x\n", state);
+		return 0;
         }
 }
 
-static inline int mem_mapping_write_allowed(uint32_t flags, int state)
+static __inline int mem_mapping_write_allowed(uint32_t flags, int state)
 {
         switch (state & MEM_WRITE_MASK)
         {
@@ -1892,6 +1784,7 @@ static inline int mem_mapping_write_allowed(uint32_t flags, int state)
                 return !(flags & MEM_MAPPING_EXTERNAL);
                 default:
                 fatal("mem_mapping_write_allowed : bad state %x\n", state);
+		return 0;
         }
 }
 
@@ -2061,7 +1954,6 @@ void mem_set_mem_state(uint32_t base, uint32_t size, int state)
 {
         uint32_t c;
 
-//        pclog("mem_set_pci_enable: base=%08x size=%08x\n", base, size);
         for (c = 0; c < size; c += 0x4000)
                 _mem_state[(c + base) >> 14] = state;
 
@@ -2158,7 +2050,29 @@ void mem_init()
 		mem_mapping_add(&ram_mid_mapping,   0xc0000, 0x40000, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + 0xc0000,  MEM_MAPPING_INTERNAL, NULL);
  
         mem_mapping_add(&romext_mapping,  0xc8000, 0x08000, mem_read_romext, mem_read_romextw, mem_read_romextl, NULL, NULL, NULL,   romext, 0, NULL);
-//        pclog("Mem resize %i %i\n",mem_size,c);
+}
+
+void mem_remap_top_256k()
+{
+        int c;
+        
+        for (c = ((mem_size * 1024) >> 12); c < (((mem_size + 256) * 1024) >> 12); c++)
+        {
+                pages[c].mem = &ram[c << 12];
+                pages[c].write_b = mem_write_ramb_page;
+                pages[c].write_w = mem_write_ramw_page;
+                pages[c].write_l = mem_write_raml_page;
+        }
+
+        for (c = (mem_size / 256); c < ((mem_size + 256) / 256); c++)
+        {
+                isram[c] = 1;
+                if (c >= 0xa && c <= 0xd) 
+                        isram[c] = 0;
+        }
+
+        mem_set_mem_state(mem_size * 1024, 256 * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+        mem_mapping_add(&ram_remapped_mapping, mem_size * 1024, 256 * 1024, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + (mem_size * 1024),  MEM_MAPPING_INTERNAL, NULL);
 }
 
 void mem_remap_top_384k()
@@ -2238,7 +2152,6 @@ void mem_resize()
  
         mem_mapping_add(&romext_mapping,  0xc8000, 0x08000, mem_read_romext, mem_read_romextw, mem_read_romextl, NULL, NULL, NULL,   romext, 0, NULL);
 
-//        pclog("Mem resize %i %i\n",mem_size,c);
         mem_a20_key = 2;
         mem_a20_recalc();
 }
@@ -2257,34 +2170,11 @@ void mem_reset_page_blocks()
         }
 }
 
-/* void mem_reset()
-{
-        int c;
-
-	mem_reset_page_blocks();
-
-        memset(isram, 0, sizeof(isram));
-        for (c = 0; c < (mem_size / 256); c++)
-        {
-                isram[c] = 1;
-                if (c >= 0xa && c <= 0xf) 
-                        isram[c] = 0;
-        }
-
-        mem_set_mem_state(0x000000, (mem_size > 640) ? 0xa0000 : mem_size * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-        mem_set_mem_state(0x0c0000, 0x40000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
-        mem_set_mem_state(0x100000, (mem_size - 1024) * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-
-        mem_a20_key = 2;
-        mem_a20_recalc();
-} */
-
 static int port_92_reg = 0;
 
 void mem_a20_recalc()
 {
         int state = mem_a20_key | mem_a20_alt;
-//        pclog("A20 recalc %i %i\n", state, mem_a20_state);
         if (state && !mem_a20_state)
         {
                 rammask = 0xffffffff;
@@ -2295,7 +2185,6 @@ void mem_a20_recalc()
                 rammask = 0xffefffff;
                 flushmmucache();
         }
-//        pclog("rammask now %08X\n", rammask);
         mem_a20_state = state;
 }
 
