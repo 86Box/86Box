@@ -22,7 +22,7 @@ PROG	= 86Box
 # Various compile-time options.
 # -DROM_TRACE=0xcd800 traces ROM access from segment C800
 # -DIO_TACE=0x66 traces I/O on port 0x66
-STUFF	=
+STUFF	= -DDEV_BRANCH
 
 # Add feature selections here.
 # -DBUGGER adds the ISA BusBugger emulation.
@@ -105,6 +105,7 @@ VIDOBJ	= video.o \
 	    vid_hercules.o vid_herculesplus.o vid_incolor.o \
 	    vid_colorplus.o \
 	    vid_genius.o \
+		vid_nv_riva128.o \
 	    vid_s3.o vid_s3_virge.o \
 	    vid_et4000.o vid_et4000w32.o vid_icd2061.o \
 	    vid_oti067.o \
