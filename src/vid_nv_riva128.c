@@ -1994,12 +1994,11 @@ static void riva128_nvclk_poll(void *p)
 	riva128->nvtime += cpuclock / riva128->nvfreq;
 }
 
-static void riva128_vblank_poll(void *p)
+static void riva128_vblank_poll(svga_t *svga)
 {
-	riva128_t *riva128 = (riva128_t *)p;
-	svga_t *svga = &riva128->svga;
-
-	if(svga->vc == svga->dispend) riva128_pmc_interrupt(24, riva128);
+	riva128_t *riva128 = (riva128_t *)svga->p;
+	
+	riva128_pmc_interrupt(24, riva128);
 }
 
 static uint8_t riva128_rma_in(uint16_t addr, void *p)
@@ -2793,7 +2792,8 @@ static void *riva128_init()
 
 	timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
 	timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
-	timer_add(riva128_vblank_poll, &riva128->svga.vidtime, TIMER_ALWAYS_ENABLED, riva128);
+
+	riva128->svga.vblank_start = riva128_vblank_poll;
 
 	return riva128;
 }
@@ -3078,7 +3078,8 @@ static void *rivatnt_init()
 
 	timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
 	timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
-	timer_add(riva128_vblank_poll, &riva128->svga.vidtime, TIMER_ALWAYS_ENABLED, riva128);
+
+	riva128->svga.vblank_start = riva128_vblank_poll;
 
 	return riva128;
 }
@@ -3289,7 +3290,8 @@ static void *rivatnt2_init()
 
 	timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
 	timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
-	timer_add(riva128_vblank_poll, &riva128->svga.vidtime, TIMER_ALWAYS_ENABLED, riva128);
+
+	riva128->svga.vblank_start = riva128_vblank_poll;
 
 	return riva128;
 }
