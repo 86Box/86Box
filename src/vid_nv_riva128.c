@@ -2839,7 +2839,7 @@ static void riva128_add_status_info(char *s, int max_len, void *p)
 static device_config_t riva128_config[] =
 {
 	{
-		"memory", "Memory size", CONFIG_SELECTION, 4,
+		"memory", "Memory size", CONFIG_SELECTION, "", 4,
 		{
 			{
 				"1 MB", 1
@@ -3124,7 +3124,7 @@ static void rivatnt_add_status_info(char *s, int max_len, void *p)
 static device_config_t rivatnt_config[] =
 {
 	{
-		"memory", "Memory size", CONFIG_SELECTION, 16,
+		"memory", "Memory size", CONFIG_SELECTION, "", 16,
 		{
 			{
 				"4 MB", 4
