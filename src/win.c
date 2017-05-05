@@ -1,6 +1,7 @@
 /* Copyright holders: Sarah Walker, Tenshi
    see COPYING for more details
 */
+#define UNICODE
 #define  _WIN32_WINNT 0x0501
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
@@ -397,7 +398,7 @@ static void initmenu(void)
 {
         int i, c;
         HMENU m;
-        char s[32];
+        WCHAR s[64];
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
@@ -407,10 +408,10 @@ static void initmenu(void)
 	           it's a CDROM */
 	        for (c='A';c<='Z';c++)
 	        {
-        	        sprintf(s,"%c:\\",c);
+        	        _swprintf(s,L"%c:\\",c);
 	                if (GetDriveType(s)==DRIVE_CDROM)
 	                {
-        	                sprintf(s, "Host CD/DVD Drive (%c:)", c);
+        	                _swprintf(s, win_language_get_string_from_id(2076), c);
 	                        AppendMenu(m,MF_STRING,IDM_CDROM_1_REAL+(c << 2)+i,s);
 	                }
 	        }
@@ -419,10 +420,12 @@ static void initmenu(void)
 
 void get_executable_name(char *s, int size)
 {
-        GetModuleFileName(hinstance, s, size);
+	WCHAR ws[512];
+        GetModuleFileName(hinstance, ws, size);
+	wcstombs(s, ws, (wcslen(ws) << 1) + 2);
 }
 
-void set_window_title(char *s)
+void set_window_title(WCHAR *s)
 {
         if (video_fullscreen)
                 return;
@@ -478,8 +481,8 @@ UINT16 convert_scan_code(UINT16 scan_code)
 
 void get_registry_key_map()
 {
-	char *keyName = "SYSTEM\\CurrentControlSet\\Control\\Keyboard Layout";
-	char *valueName = "Scancode Map";
+	WCHAR *keyName = L"SYSTEM\\CurrentControlSet\\Control\\Keyboard Layout";
+	WCHAR *valueName = L"Scancode Map";
 	unsigned char buf[32768];
 	DWORD bufSize;
 	HKEY hKey;
@@ -528,11 +531,13 @@ static char *argbuf;
 
 static void process_command_line()
 {
-        char *cmdline;
+        WCHAR *wcmdline;
+        char cmdline[2048];
         int argc_max;
         int i, q;
 
-        cmdline = GetCommandLine();
+        wcmdline = GetCommandLine();
+	wcstombs(cmdline, wcmdline, (wcslen(wcmdline) << 1) + 2);
         i = strlen(cmdline) + 1;
         argbuf = malloc(i);
         memcpy(argbuf, cmdline, i);
@@ -753,6 +758,20 @@ void update_status_bar_icon_state(int tag, int state)
 
 	if (found != -1)
 	{
+		if (state)
+		{
+			switch(tag & 0xf0)
+			{
+				case 0x00:
+				default:
+					discfns[tag & 0x0f][0] = L'\0';
+					break;
+				case 0x10:
+					cdrom_iso[tag & 0x0f].iso_path[0] = L'\0';
+					break;
+			}
+		}
+
 		sb_icon_flags[found] &= ~256;
 		sb_icon_flags[found] |= state ? 256 : 0;
 
@@ -765,59 +784,53 @@ void update_status_bar_icon_state(int tag, int state)
 	}
 }
 
-char sbTips[24][512];
+WCHAR sbTips[24][512];
 
 void create_floppy_tip(int part)
 {
 	WCHAR *szText;
-	char ansi_text[2][512];
+	WCHAR wtext[512];
 
 	int drive = sb_part_meanings[part] & 0xf;
-	szText = (WCHAR *) win_language_get_string_from_id(2179);
-	wcstombs(ansi_text[0], szText, (wcslen(szText) << 1) + 2);
-	szText = (WCHAR *) win_language_get_string_from_id(2185);
-	wcstombs(ansi_text[1], szText, (wcslen(szText) << 1) + 2);
-	if (strlen(discfns[drive]) == 0)
+
+	mbstowcs(wtext, fdd_getname(fdd_get_type(drive)), strlen(fdd_getname(fdd_get_type(drive))) + 1);
+	if (wcslen(discfns[drive]) == 0)
 	{
-		sprintf(sbTips[part], ansi_text[0], drive + 1, fdd_getname(fdd_get_type(drive)), ansi_text[1]);
+		_swprintf(sbTips[part],  win_language_get_string_from_id(2179), drive + 1, wtext, win_language_get_string_from_id(2185));
 	}
 	else
 	{
-		sprintf(sbTips[part], ansi_text[0], drive + 1, fdd_getname(fdd_get_type(drive)), discfns[drive]);
+		_swprintf(sbTips[part],  win_language_get_string_from_id(2179), drive + 1, wtext, discfns[drive]);
 	}
 }
 
 void create_cdrom_tip(int part)
 {
 	WCHAR *szText;
-	char ansi_text[4][512];
+	char ansi_text[3][512];
+	WCHAR wtext[512];
 
 	int drive = sb_part_meanings[part] & 0xf;
-	szText = (WCHAR *) win_language_get_string_from_id(2180);
-	wcstombs(ansi_text[0], szText, (wcslen(szText) << 1) + 2);
-	szText = (WCHAR *) win_language_get_string_from_id(2185);
-	wcstombs(ansi_text[1], szText, (wcslen(szText) << 1) + 2);
-	szText = (WCHAR *) win_language_get_string_from_id(2186);
-	wcstombs(ansi_text[2], szText, (wcslen(szText) << 1) + 2);
+
 	if (cdrom_drives[drive].host_drive == 200)
 	{
-		if (strlen(cdrom_iso[drive].iso_path) == 0)
+		if (wcslen(cdrom_iso[drive].iso_path) == 0)
 		{
-			sprintf(sbTips[part], ansi_text[0], drive + 1, ansi_text[1]);
+			_swprintf(sbTips[part], win_language_get_string_from_id(2180), drive + 1, win_language_get_string_from_id(2185));
 		}
 		else
 		{
-			sprintf(sbTips[part], ansi_text[0], drive + 1, cdrom_iso[drive].iso_path);
+			_swprintf(sbTips[part], win_language_get_string_from_id(2180), drive + 1, cdrom_iso[drive].iso_path);
 		}
 	}
 	else if (cdrom_drives[drive].host_drive < 0x41)
 	{
-		sprintf(sbTips[part], ansi_text[0], drive + 1, ansi_text[1]);
+		_swprintf(sbTips[part], win_language_get_string_from_id(2180), drive + 1, win_language_get_string_from_id(2185));
 	}
 	else
 	{
-		sprintf(ansi_text[3], ansi_text[2], cdrom_drives[drive].host_drive & ~0x20);
-		sprintf(sbTips[part], ansi_text[0], drive + 1, ansi_text[3]);
+		_swprintf(wtext, win_language_get_string_from_id(2186), cdrom_drives[drive].host_drive & ~0x20);
+		_swprintf(sbTips[part], win_language_get_string_from_id(2180), drive + 1, wtext);
 	}
 }
 
@@ -827,7 +840,7 @@ void create_hd_tip(int part)
 
 	int bus = sb_part_meanings[part] & 0xf;
 	szText = (WCHAR *) win_language_get_string_from_id(2182 + bus);
-	wcstombs(sbTips[part], szText, (wcslen(szText) << 1) + 2);
+	memcpy(sbTips[part], szText, (wcslen(szText) << 1) + 2);
 }
 
 void update_tip(int meaning)
@@ -866,7 +879,7 @@ void update_tip(int meaning)
 
 static int get_floppy_state(int id)
 {
-	return (strlen(discfns[id]) == 0) ? 1 : 0;
+	return (wcslen(discfns[id]) == 0) ? 1 : 0;
 }
 
 static int get_cd_state(int id)
@@ -879,7 +892,7 @@ static int get_cd_state(int id)
 	{
 		if (cdrom_drives[id].host_drive == 0x200)
 		{
-			return (strlen(cdrom_iso[id].iso_path) == 0) ? 1 : 0;
+			return (wcslen(cdrom_iso[id].iso_path) == 0) ? 1 : 0;
 		}
 		else
 		{
@@ -962,7 +975,7 @@ void update_status_bar_panes(HWND hwnds)
 		{
 			case 0x00:
 				/* Floppy */
-				sb_icon_flags[i] = (strlen(discfns[sb_part_meanings[i] & 0xf]) == 0) ? 256 : 0;
+				sb_icon_flags[i] = (wcslen(discfns[sb_part_meanings[i] & 0xf]) == 0) ? 256 : 0;
 				sb_part_icons[i] = fdd_type_to_icon(fdd_get_type(sb_part_meanings[i] & 0xf)) | sb_icon_flags[i];
 				create_floppy_tip(i);
 				break;
@@ -977,7 +990,7 @@ void update_status_bar_panes(HWND hwnds)
 				{
 					if (cdrom_drives[id].host_drive == 0x200)
 					{
-						sb_icon_flags[i] = (strlen(cdrom_iso[id].iso_path) == 0) ? 256 : 0;
+						sb_icon_flags[i] = (wcslen(cdrom_iso[id].iso_path) == 0) ? 256 : 0;
 					}
 					else
 					{
@@ -1002,7 +1015,7 @@ void update_status_bar_panes(HWND hwnds)
 				break;
 			case 0x30:
 				/* Status text */
-				SendMessage(hwnds, SB_SETTEXT, i | SBT_NOBORDERS, (LPARAM) "Hello from 86Box UX lab! :p");
+				SendMessage(hwnds, SB_SETTEXT, i | SBT_NOBORDERS, (LPARAM) L"Welcome to Unicode 86Box! :p");
 				sb_part_icons[i] = -1;
 				break;
 		}
@@ -1088,7 +1101,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         MSG messages;            /* Here messages to the application are saved */
         WNDCLASSEX wincl;        /* Data structure for the windowclass */
         int c, d, e, bRet;
-	char emulator_title[200];
+	WCHAR emulator_title[200];
         LARGE_INTEGER qpc_freq;
         HACCEL haccel;           /* Handle to accelerator table */
 
@@ -1105,8 +1118,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         wincl.cbSize = sizeof (WNDCLASSEX);
 
         /* Use default icon and mouse-pointer */
-        wincl.hIcon = LoadIcon(hinstance, (LPCSTR) 100);
-        wincl.hIconSm = LoadIcon(hinstance, (LPCSTR) 100);
+        wincl.hIcon = LoadIcon(hinstance, (LPCTSTR) 100);
+        wincl.hIconSm = LoadIcon(hinstance, (LPCTSTR) 100);
         wincl.hCursor = NULL;
         wincl.lpszMenuName = NULL;                 /* No menu */
         wincl.cbClsExtra = 0;                      /* No extra bytes after the window class */
@@ -1126,7 +1139,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
         menu = LoadMenu(hThisInstance, TEXT("MainMenu"));
         
-		sprintf(emulator_title, "86Box v%s", emulator_version);
+		_swprintf(emulator_title, L"86Box v%s", emulator_version_w);
 
         /* The class is registered, let's create the program*/
         hwnd = CreateWindowEx (
@@ -1148,7 +1161,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         ShowWindow (hwnd, nFunsterStil);
 
         /* Load the accelerator table */
-        haccel = LoadAccelerators(hinstAcc, "MainAccel");
+        haccel = LoadAccelerators(hinstAcc, L"MainAccel");
         if (haccel == NULL)
                 fatal("haccel is null\n");
 
@@ -1169,7 +1182,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
         initpc(argc, argv);
 
-	hwndRender = CreateWindow("STATIC", NULL, WS_VISIBLE | WS_CHILD | SS_BITMAP, 0, 0, 1, 1, ghwnd, NULL, hinstance, NULL);
+	hwndRender = CreateWindow(L"STATIC", NULL, WS_VISIBLE | WS_CHILD | SS_BITMAP, 0, 0, 1, 1, ghwnd, NULL, hinstance, NULL);
 
 	hwndStatus = EmulatorStatusBar(hwnd, IDC_STATUS, hThisInstance);
 
@@ -1622,7 +1635,7 @@ static BOOL CALLBACK about_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
 
 void about_open(HWND hwnd)
 {
-        DialogBox(hinstance, (LPCSTR) ABOUTDLG, hwnd, about_dlgproc);
+        DialogBox(hinstance, (LPCTSTR) ABOUTDLG, hwnd, about_dlgproc);
 }
 
 LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -2127,7 +2140,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 	RECT rc;
 	POINT pt;
 
-	char temp_iso_path[1024];
+	WCHAR temp_iso_path[1024];
 	int new_cdrom_drive;
 	int cdrom_id = 0;
 	int menu_sub_param = 0;
@@ -2142,11 +2155,12 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
                 {
                         case IDM_DISC_1:
                         case IDM_DISC_1_WP:
-			if (!file_dlg_st(hwnd, 2173, discfns[0], 0))
+			if (!file_dlg_w_st(hwnd, 2173, discfns[0], 0))
                         {
                                 disc_close(0);
 				ui_writeprot[0] = (LOWORD(wParam) == IDM_DISC_1_WP) ? 1 : 0;
-                                disc_load(0, openfilestring);
+				msgbox_info_wstr(ghwnd, wopenfilestring);
+                                disc_load(0, wopenfilestring);
 				update_status_bar_icon_state(0x00, 0);
 				update_tip(0x00);
                                 saveconfig();
@@ -2154,11 +2168,11 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
                         break;
                         case IDM_DISC_2:
                         case IDM_DISC_2_WP:
-			if (!file_dlg_st(hwnd, 2173, discfns[0], 0))
+			if (!file_dlg_w_st(hwnd, 2173, discfns[1], 0))
                         {
                                 disc_close(1);
 				ui_writeprot[1] = (LOWORD(wParam) == IDM_DISC_2_WP) ? 1 : 0;
-                                disc_load(1, openfilestring);
+                                disc_load(1, wopenfilestring);
 				update_status_bar_icon_state(0x01, 0);
 				update_tip(0x01);
                                 saveconfig();
@@ -2166,11 +2180,11 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
                         break;
                         case IDM_DISC_3:
                         case IDM_DISC_3_WP:
-			if (!file_dlg_st(hwnd, 2173, discfns[0], 0))
+			if (!file_dlg_w_st(hwnd, 2173, discfns[2], 0))
                         {
                                 disc_close(2);
 				ui_writeprot[2] = (LOWORD(wParam) == IDM_DISC_3_WP) ? 1 : 0;
-                                disc_load(2, openfilestring);
+                                disc_load(2, wopenfilestring);
 				update_status_bar_icon_state(0x02, 0);
 				update_tip(0x02);
                                 saveconfig();
@@ -2178,11 +2192,11 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
                         break;
                         case IDM_DISC_4:
                         case IDM_DISC_4_WP:
-			if (!file_dlg_st(hwnd, 2173, discfns[0], 0))
+			if (!file_dlg_w_st(hwnd, 2173, discfns[3], 0))
                         {
                                 disc_close(3);
 				ui_writeprot[3] = (LOWORD(wParam) == IDM_DISC_4_WP) ? 1 : 0;
-                                disc_load(3, openfilestring);
+                                disc_load(3, wopenfilestring);
 				update_status_bar_icon_state(0x03, 0);
 				update_tip(0x03);
                                 saveconfig();
@@ -2250,11 +2264,11 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 			case IDM_CDROM_4_ISO:
 			cdrom_id = LOWORD(wParam) & 3;
 			hmenu = GetSubMenu(smenu, cdrom_id + 4);
-                        if (!file_dlg_st(hwnd, 2175, cdrom_iso[cdrom_id].iso_path, 0))
+                        if (!file_dlg_w_st(hwnd, 2175, cdrom_iso[cdrom_id].iso_path, 0))
                         {
 				cdrom_drives[cdrom_id].prev_host_drive = cdrom_drives[cdrom_id].host_drive;
-				strcpy(temp_iso_path, openfilestring);
-				if ((strcmp(cdrom_iso[cdrom_id].iso_path, temp_iso_path) == 0) && (cdrom_drives[cdrom_id].host_drive == 200))
+				wcscpy(temp_iso_path, wopenfilestring);
+				if ((wcscmp(cdrom_iso[cdrom_id].iso_path, temp_iso_path) == 0) && (cdrom_drives[cdrom_id].host_drive == 200))
 				{
 					/* Switching from ISO to the same ISO. Do nothing. */
 					break;

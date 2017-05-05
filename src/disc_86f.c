@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <wchar.h>
 
 #include "lzf/lzf.h"
 
@@ -229,7 +230,7 @@ struct __attribute__((__packed__))
 	uint32_t error_condition;
 	int is_compressed;
 	int id_found;
-	char original_file_name[2048];
+	wchar_t original_file_name[2048];
 	uint8_t *filebuf;
 	uint8_t *outbuf;
 	uint32_t dma_over;
@@ -2738,7 +2739,7 @@ void d86f_writeback(int drive)
 		/* The image is compressed. */
 
 		/* Open the original, compressed file. */
-		cf = fopen(d86f[drive].original_file_name, "wb");
+		cf = _wfopen(d86f[drive].original_file_name, L"wb");
 
 		/* Write the header to the original file. */
 		fwrite(header, 1, header_size, cf);
@@ -3018,11 +3019,11 @@ void d86f_common_handlers(int drive)
         drives[drive].stop        = d86f_stop;
 }
 
-void d86f_load(int drive, char *fn)
+void d86f_load(int drive, wchar_t *fn)
 {
 	uint32_t magic = 0;
 	uint32_t len = 0;
-	char temp_file_name[2048];
+	wchar_t temp_file_name[2048];
 	uint16_t temp = 0;
 	int i = 0;
 	FILE *tf;
@@ -3030,12 +3031,15 @@ void d86f_load(int drive, char *fn)
 	d86f_unregister(drive);
 
 	writeprot[drive] = 0;
-        d86f[drive].f = fopen(fn, "rb+");
+        d86f[drive].f = _wfopen(fn, L"rb+");
         if (!d86f[drive].f)
         {
-                d86f[drive].f = fopen(fn, "rb");
+                d86f[drive].f = _wfopen(fn, L"rb");
                 if (!d86f[drive].f)
+		{
+			update_status_bar_icon_state(drive, 1);
                         return;
+		}
                 writeprot[drive] = 1;
         }
 	if (ui_writeprot[drive])
@@ -3054,6 +3058,7 @@ void d86f_load(int drive, char *fn)
 	{
 		/* File is WAY too small, abort. */
 		fclose(d86f[drive].f);
+		update_status_bar_icon_state(drive, 1);
 		return;
 	}
 
@@ -3062,6 +3067,7 @@ void d86f_load(int drive, char *fn)
 		/* File is not of the valid format, abort. */
 		d86f_log("86F: Unrecognized magic bytes: %08X\n", magic);
 		fclose(d86f[drive].f);
+		update_status_bar_icon_state(drive, 1);
 		return;
 	}
 
@@ -3083,6 +3089,7 @@ void d86f_load(int drive, char *fn)
 			d86f_log("86F: Unrecognized file version: %i.%02i\n", d86f[drive].version >> 8, d86f[drive].version & 0xFF);
 		}
 		fclose(d86f[drive].f);
+		update_status_bar_icon_state(drive, 1);
 		return;
 	}
 	else
@@ -3098,6 +3105,7 @@ void d86f_load(int drive, char *fn)
 	{
 		/* File too small, abort. */
 		fclose(d86f[drive].f);
+		update_status_bar_icon_state(drive, 1);
 		return;
 	}
 
@@ -3119,26 +3127,27 @@ void d86f_load(int drive, char *fn)
 	{
 		d86f_log("86F: CRC64 error\n");
 		fclose(d86f[drive].f);
+		update_status_bar_icon_state(drive, 1);
 		return;
 	}
 #endif
 
 	if (d86f[drive].is_compressed)
 	{
-	        append_filename(temp_file_name, pcempath, drive ? "TEMP$$$1.$$$" : "TEMP$$$0.$$$", 511);
-		memcpy(temp_file_name, drive ? "TEMP$$$1.$$$" : "TEMP$$$0.$$$", 13);
-		memcpy(d86f[drive].original_file_name, fn, strlen(fn) + 1);
+		memcpy(temp_file_name, drive ? L"TEMP$$$1.$$$" : L"TEMP$$$0.$$$", 256);
+		memcpy(d86f[drive].original_file_name, fn, (wcslen(fn) << 1) + 2);
 
 		fclose(d86f[drive].f);
 
-	        d86f[drive].f = fopen(temp_file_name, "wb");
+	        d86f[drive].f = _wfopen(temp_file_name, L"wb");
         	if (!d86f[drive].f)
 	        {
 			d86f_log("86F: Unable to create temporary decompressed file\n");
+			update_status_bar_icon_state(drive, 1);
                         return;
 		}
 
-		tf = fopen(fn, "rb");
+		tf = _wfopen(fn, L"rb");
 
 		for (i = 0; i < 8; i++)
 		{
@@ -3163,11 +3172,12 @@ void d86f_load(int drive, char *fn)
 		if (!temp)
 		{
 			d86f_log("86F: Error decompressing file\n");
-			remove(temp_file_name);
+			_wremove(temp_file_name);
+			update_status_bar_icon_state(drive, 1);
 			return;
 		}
 
-		d86f[drive].f = fopen(temp_file_name, "rb+");
+		d86f[drive].f = _wfopen(temp_file_name, L"rb+");
 	}
 
 	if (d86f[drive].disk_flags & 0x100)
@@ -3177,8 +3187,9 @@ void d86f_load(int drive, char *fn)
 		fclose(d86f[drive].f);
 		if (d86f[drive].is_compressed)
 		{
-			remove(temp_file_name);
+			_wremove(temp_file_name);
 		}
+		update_status_bar_icon_state(drive, 1);
 		return;
 	}
 
@@ -3189,8 +3200,9 @@ void d86f_load(int drive, char *fn)
 		fclose(d86f[drive].f);
 		if (d86f[drive].is_compressed)
 		{
-			remove(temp_file_name);
+			_wremove(temp_file_name);
 		}
+		update_status_bar_icon_state(drive, 1);
 		return;
 	}
 
@@ -3206,11 +3218,11 @@ void d86f_load(int drive, char *fn)
 
 		if (d86f[drive].is_compressed)
 		{
-			d86f[drive].f = fopen(temp_file_name, "rb");
+			d86f[drive].f = _wfopen(temp_file_name, L"rb");
 		}
 		else
 		{
-			d86f[drive].f = fopen(fn, "rb");
+			d86f[drive].f = _wfopen(fn, L"rb");
 		}
 	}
 
@@ -3223,6 +3235,7 @@ void d86f_load(int drive, char *fn)
 		/* File has no track 0 side 0, abort. */
 		d86f_log("86F: No Track 0 side 0\n");
 		fclose(d86f[drive].f);
+		update_status_bar_icon_state(drive, 1);
 		return;
 	}
 
@@ -3231,6 +3244,7 @@ void d86f_load(int drive, char *fn)
 		/* File is 2-sided but has no track 0 side 1, abort. */
 		d86f_log("86F: No Track 0 side 0\n");
 		fclose(d86f[drive].f);
+		update_status_bar_icon_state(drive, 1);
 		return;
 	}
 
@@ -3306,14 +3320,13 @@ void d86f_init()
 
 void d86f_close(int drive)
 {
-	char temp_file_name[2048];
+	wchar_t temp_file_name[2048];
 
-        append_filename(temp_file_name, pcempath, drive ? "TEMP$$$1.$$$" : "TEMP$$$0.$$$", 511);
-	memcpy(temp_file_name, drive ? "TEMP$$$1.$$$" : "TEMP$$$0.$$$", 13);
+	memcpy(temp_file_name, drive ? "TEMP$$$1.$$$" : "TEMP$$$0.$$$", 26);
 
         if (d86f[drive].f)
                 fclose(d86f[drive].f);
 	if (d86f[drive].is_compressed)
-                remove(temp_file_name);
+                _wremove(temp_file_name);
         d86f[drive].f = NULL;
 }

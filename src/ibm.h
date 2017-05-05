@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <wchar.h>
 #define printf pclog
 
 /*Memory*/
@@ -350,7 +351,7 @@ extern int pic_intpending;
 
 
 int disctime;
-char discfns[4][256];
+wchar_t discfns[4][256];
 int driveempty[4];
 
 #define MDA ((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_HERCULESPLUS || gfxcard==GFX_INCOLOR || gfxcard==GFX_GENIUS) && (romset<ROM_TANDY || romset>=ROM_IBMAT))
@@ -637,10 +638,10 @@ FILE *shdf[HDC_NUM];
 uint64_t hdt[128][3];
 uint64_t hdt_mfm[128][3];
 
-extern char hdd_fn[HDC_NUM][512];
+extern wchar_t hdd_fn[HDC_NUM][512];
 
-int image_is_hdi(const char *s);
-int image_is_hdx(const char *s, int check_signature);
+int image_is_hdi(const wchar_t *s);
+int image_is_hdx(const wchar_t *s, int check_signature);
 
 /*Keyboard*/
 int keybsenddelay;
@@ -779,6 +780,7 @@ void softresetx86();
 void speedchanged();
 void trc_reset(uint8_t val);
 void update_status_bar_icon(int tag, int active);
+void update_status_bar_icon_state(int tag, int state);
 void x86_int_sw(int num);
 void x86gpf(char *s, uint16_t error);
 void x86np(char *s, uint16_t error);

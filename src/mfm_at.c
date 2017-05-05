@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include <sys/types.h>
+#include <wchar.h>
 
 #include "ibm.h"
 #include "device.h"
@@ -159,14 +160,14 @@ static void mfm_next_sector(mfm_t *mfm)
 	}
 }
 
-static void loadhd(mfm_t *mfm, int c, int d, const char *fn)
+static void loadhd(mfm_t *mfm, int c, int d, const wchar_t *fn)
 {
         mfm_drive_t *drive = &mfm->drives[c];
         
 	if (drive->hdfile == NULL)
         {
 		/* Try to open existing hard disk image */
-		drive->hdfile = fopen64(fn, "rb+");
+		drive->hdfile = _wfopen(fn, L"rb+");
 		if (drive->hdfile == NULL)
                 {
 			/* Failed to open existing hard disk image */
@@ -174,7 +175,7 @@ static void loadhd(mfm_t *mfm, int c, int d, const char *fn)
                         {
 				/* Failed because it does not exist,
 				   so try to create new file */
-				drive->hdfile = fopen64(fn, "wb+");
+				drive->hdfile = _wfopen(fn, L"wb+");
 				if (drive->hdfile == NULL)
                                 {
 					pclog("Cannot create file '%s': %s",

@@ -14,6 +14,8 @@
  * Edited and translated to English by Kenji RIKITAKE
  */
 
+#include <wchar.h>
+
 #include "ibm.h"
 #include "disc.h"
 #include "disc_td0.h"
@@ -499,16 +501,17 @@ uint8_t imagebuf[4*1024*1024];
 uint8_t processed_buf[5*1024*1024];
 uint8_t header[12];
 
-void td0_load(int drive, char *fn)
+void td0_load(int drive, wchar_t *fn)
 {
 	int ret = 0;
 
 	d86f_unregister(drive);
 
 	writeprot[drive] = 1;
-        td0[drive].f = fopen(fn, "rb");
+        td0[drive].f = _wfopen(fn, L"rb");
         if (!td0[drive].f)
         {
+		update_status_bar_icon_state(drive, 1);
 		return;
         }
         fwriteprot[drive] = writeprot[drive];
@@ -518,6 +521,7 @@ void td0_load(int drive, char *fn)
 	{
 		pclog("TD0: Not a valid Teledisk image\n");
 		fclose(td0[drive].f);
+		update_status_bar_icon_state(drive, 1);
 		return;
 	}
 	else
@@ -532,6 +536,7 @@ void td0_load(int drive, char *fn)
 	{
 		pclog("TD0: Failed to initialize\n");
 		fclose(td0[drive].f);
+		update_status_bar_icon_state(drive, 1);
 		return;
 	}
 	else

@@ -173,7 +173,7 @@ typedef struct
 	uint32_t last_block;
 	uint64_t image_size;
 	int iso_inited;
-	char iso_path[1024];
+	wchar_t iso_path[1024];
 	FILE* iso_image;
 	int iso_changed;
 

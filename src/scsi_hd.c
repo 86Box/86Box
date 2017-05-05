@@ -65,7 +65,8 @@ uint8_t scsi_hd_command_flags[0x100] =
 	IMPLEMENTED | ALLOW_UA | NONDATA | SCSI_ONLY,				/* 0x01 */
 	0,
 	IMPLEMENTED | ALLOW_UA,							/* 0x03 */
-	0, 0, 0, 0,
+	IMPLEMENTED | CHECK_READY | ALLOW_UA | NONDATA | SCSI_ONLY,		/* 0x04 */
+	0, 0, 0,
 	IMPLEMENTED | CHECK_READY,						/* 0x08 */
 	0,
 	IMPLEMENTED | CHECK_READY,						/* 0x0A */
@@ -189,7 +190,7 @@ static void scsi_loadhd(int scsi_id, int scsi_lun, int id)
 	uint64_t signature = 0xD778A82044445459ll;
 	uint64_t full_size = 0;
 	int c;
-	char *fn = hdd_fn[id];
+	wchar_t *fn = hdd_fn[id];
 
 	shdc[id].base = 0;
 
@@ -205,7 +206,7 @@ static void scsi_loadhd(int scsi_id, int scsi_lun, int id)
 		scsi_hard_disks[scsi_id][scsi_lun] = 0xff;
 		return;
 	}
-	shdf[id] = fopen64(fn, "rb+");
+	shdf[id] = _wfopen(fn, L"rb+");
 	if (shdf[id] == NULL)
 	{
 		/* Failed to open existing hard disk image */
@@ -213,7 +214,7 @@ static void scsi_loadhd(int scsi_id, int scsi_lun, int id)
 		{
 			/* Failed because it does not exist,
 			   so try to create new file */
-			shdf[id] = fopen64(fn, "wb+");
+			shdf[id] = _wfopen(fn, L"wb+");
 			if (shdf[id] == NULL)
 			{
 				scsi_hard_disks[scsi_id][scsi_lun] = 0xff;
@@ -764,6 +765,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 	switch (cdb[0])
 	{
 		case GPCMD_TEST_UNIT_READY:
+		case GPCMD_FORMAT_UNIT:
 		case GPCMD_VERIFY_6:
 		case GPCMD_VERIFY_10:
 		case GPCMD_VERIFY_12:

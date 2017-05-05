@@ -763,14 +763,14 @@ static void xebec_callback(void *p)
         }
 }
 
-static void loadhd(xebec_t *xebec, int d, const char *fn)
+static void loadhd(xebec_t *xebec, int d, const wchar_t *fn)
 {
         mfm_drive_t *drive = &xebec->drives[d];
         
 	if (drive->hdfile == NULL)
         {
 		/* Try to open existing hard disk image */
-		drive->hdfile = fopen64(fn, "rb+");
+		drive->hdfile = _wfopen(fn, L"rb+");
 		if (drive->hdfile == NULL)
                 {
 			/* Failed to open existing hard disk image */
@@ -778,7 +778,7 @@ static void loadhd(xebec_t *xebec, int d, const char *fn)
                         {
 				/* Failed because it does not exist,
 				   so try to create new file */
-				drive->hdfile = fopen64(fn, "wb+");
+				drive->hdfile = _wfopen(fn, L"wb+");
 				if (drive->hdfile == NULL)
                                 {
 					pclog("Cannot create file '%s': %s",

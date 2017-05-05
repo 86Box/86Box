@@ -2,6 +2,7 @@
    see COPYING for more details
 */
 #include <stdint.h>
+#define UNICODE
 #define BITMAP WINDOWS_BITMAP
 #include <ddraw.h>
 #undef BITMAP

@@ -2,6 +2,7 @@
    see COPYING for more details
 */
 #include <stdint.h>
+#define UNICODE
 #define BITMAP WINDOWS_BITMAP
 #include <d3d9.h>
 #undef BITMAP
@@ -382,12 +383,15 @@ void d3d_blit_memtoscreen_8(int x, int y, int w, int h)
 
 void d3d_take_screenshot(char *fn)
 {
+	WCHAR wfn[512];
 	LPDIRECT3DSURFACE9 d3dSurface = NULL;
 
 	if (!d3dTexture)  return;
 
+	mbstowcs(wfn, fn, strlen(fn) + 1);
+
 	d3ddev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &d3dSurface);
-	D3DXSaveSurfaceToFile(fn, D3DXIFF_PNG, d3dSurface, NULL, NULL);
+	D3DXSaveSurfaceToFile(wfn, D3DXIFF_PNG, d3dSurface, NULL, NULL);
 
 	d3dSurface->Release();
 	d3dSurface = NULL;

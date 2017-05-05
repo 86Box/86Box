@@ -1,6 +1,9 @@
 /* Copyright holders: Sarah Walker, Tenshi
    see COPYING for more details
 */
+#define UNICODE
+#include <windows.h>
+
 #include "ibm.h"
 
 #include "config.h"
@@ -56,68 +59,68 @@ void (*fdc_indexpulse)();*/
 
 static struct
 {
-        char *ext;
-        void (*load)(int drive, char *fn);
+        wchar_t *ext;
+        void (*load)(int drive, wchar_t *fn);
         void (*close)(int drive);
         int size;
 }
 loaders[]=
 {
-        {"001", img_load,       img_close, -1},
-        {"002", img_load,       img_close, -1},
-        {"003", img_load,       img_close, -1},
-        {"004", img_load,       img_close, -1},
-        {"005", img_load,       img_close, -1},
-        {"006", img_load,       img_close, -1},
-        {"007", img_load,       img_close, -1},
-        {"008", img_load,       img_close, -1},
-        {"009", img_load,       img_close, -1},
-        {"010", img_load,       img_close, -1},
-        {"12",  img_load,       img_close, -1},
-        {"144", img_load,       img_close, -1},
-        {"360", img_load,       img_close, -1},
-        {"720", img_load,       img_close, -1},
-        {"86F", d86f_load,     d86f_close, -1},
-        {"BIN", img_load,       img_close, -1},
-        {"CQ", img_load,        img_close, -1},
-        {"CQM", img_load,       img_close, -1},
-        {"DSK", img_load,       img_close, -1},
-        {"FDI", fdi_load,       fdi_close, -1},
-        {"FDF", img_load,       img_close, -1},
-        {"FLP", img_load,       img_close, -1},
-        {"HDM", img_load,       img_close, -1},
-        {"IMA", img_load,       img_close, -1},
-        {"IMD", imd_load,       imd_close, -1},
-        {"IMG", img_load,       img_close, -1},
-	{"TD0", td0_load,       td0_close, -1},
-        {"VFD", img_load,       img_close, -1},
-	{"XDF", img_load,       img_close, -1},
+        {L"001", img_load,       img_close, -1},
+        {L"002", img_load,       img_close, -1},
+        {L"003", img_load,       img_close, -1},
+        {L"004", img_load,       img_close, -1},
+        {L"005", img_load,       img_close, -1},
+        {L"006", img_load,       img_close, -1},
+        {L"007", img_load,       img_close, -1},
+        {L"008", img_load,       img_close, -1},
+        {L"009", img_load,       img_close, -1},
+        {L"010", img_load,       img_close, -1},
+        {L"12",  img_load,       img_close, -1},
+        {L"144", img_load,       img_close, -1},
+        {L"360", img_load,       img_close, -1},
+        {L"720", img_load,       img_close, -1},
+        {L"86F", d86f_load,     d86f_close, -1},
+        {L"BIN", img_load,       img_close, -1},
+        {L"CQ", img_load,        img_close, -1},
+        {L"CQM", img_load,       img_close, -1},
+        {L"DSK", img_load,       img_close, -1},
+        {L"FDI", fdi_load,       fdi_close, -1},
+        {L"FDF", img_load,       img_close, -1},
+        {L"FLP", img_load,       img_close, -1},
+        {L"HDM", img_load,       img_close, -1},
+        {L"IMA", img_load,       img_close, -1},
+        {L"IMD", imd_load,       imd_close, -1},
+        {L"IMG", img_load,       img_close, -1},
+	{L"TD0", td0_load,       td0_close, -1},
+        {L"VFD", img_load,       img_close, -1},
+	{L"XDF", img_load,       img_close, -1},
         {0,0,0}
 };
 
 static int driveloaders[4];
 
-void disc_load(int drive, char *fn)
+void disc_load(int drive, wchar_t *fn)
 {
         int c = 0, size;
-        char *p;
+        wchar_t *p;
         FILE *f;
         if (!fn) return;
-        p = get_extension(fn);
+        p = get_extension_w(fn);
         if (!p) return;
-        f = fopen(fn, "rb");
+        f = _wfopen(fn, L"rb");
         if (!f) return;
         fseek(f, -1, SEEK_END);
         size = ftell(f) + 1;
         fclose(f);        
         while (loaders[c].ext)
         {
-                if (!strcasecmp(p, loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1))
+                if (!_wcsicmp(p, loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1))
                 {
                         driveloaders[drive] = c;
                         loaders[c].load(drive, fn);
                         drive_empty[drive] = 0;
-                        strcpy(discfns[drive], fn);
+                        memcpy(discfns[drive], fn, (wcslen(fn) << 1) + 2);
                         fdd_forced_seek(real_drive(drive), 0);
                         disc_changed[drive] = 1;
                         return;
@@ -127,7 +130,8 @@ void disc_load(int drive, char *fn)
         pclog("Couldn't load %s %s\n",fn,p);
         drive_empty[drive] = 1;
 	fdd_set_head(real_drive(drive), 0);
-        discfns[drive][0] = 0;
+        discfns[drive][0] = L'\0';
+	update_status_bar_icon_state(drive, 1);
 }
 
 void disc_close(int drive)
@@ -135,7 +139,7 @@ void disc_close(int drive)
         if (loaders[driveloaders[drive]].close) loaders[driveloaders[drive]].close(drive);
         drive_empty[drive] = 1;
 	fdd_set_head(real_drive(drive), 0);
-        discfns[drive][0] = 0;
+        discfns[drive][0] = L'\0';
         drives[drive].hole = NULL;
         drives[drive].poll = NULL;
         drives[drive].seek = NULL;
@@ -146,6 +150,7 @@ void disc_close(int drive)
         drives[drive].format = NULL;
         drives[drive].byteperiod = NULL;
 	drives[drive].stop = NULL;
+	update_status_bar_icon_state(drive, 1);
 }
 
 int disc_notfound=0;

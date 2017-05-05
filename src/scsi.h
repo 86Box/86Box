@@ -12,6 +12,7 @@
 #define GPCMD_TEST_UNIT_READY           0x00
 #define GPCMD_REZERO_UNIT		0x01
 #define GPCMD_REQUEST_SENSE		0x03
+#define GPCMD_FORMAT_UNIT		0x04
 #define GPCMD_READ_6			0x08
 #define GPCMD_WRITE_6			0x0a
 #define GPCMD_SEEK_6			0x0b

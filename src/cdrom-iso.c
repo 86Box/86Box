@@ -13,7 +13,7 @@
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
 
-#include <sys/stat.h>
+#include <wchar.h>
 
 static CDROM iso_cdrom;
 
@@ -48,7 +48,7 @@ void iso_audio_stop(uint8_t id)
 
 static int iso_ready(uint8_t id)
 {
-	if (strlen(cdrom_iso[id].iso_path) == 0)
+	if (wcslen(cdrom_iso[id].iso_path) == 0)
 	{
 		return 0;
 	}
@@ -68,7 +68,7 @@ static int iso_ready(uint8_t id)
 
 static int iso_medium_changed(uint8_t id)
 {
-	if (strlen(cdrom_iso[id].iso_path) == 0)
+	if (wcslen(cdrom_iso[id].iso_path) == 0)
 	{
 		return 0;
 	}
@@ -100,7 +100,7 @@ static uint8_t iso_getcurrentsubchannel(uint8_t id, uint8_t *b, int msf)
 {
 	int pos=0;
 	int32_t temp;
-	if (strlen(cdrom_iso[id].iso_path) == 0)
+	if (wcslen(cdrom_iso[id].iso_path) == 0)
 	{
 		return 0;
 	}
@@ -157,7 +157,7 @@ static void iso_readsector(uint8_t id, uint8_t *b, int sector)
 	}
 	file_pos <<= 11;
 	memset(b, 0, 2856);
-	cdrom_iso[id].iso_image = fopen(cdrom_iso[id].iso_path, "rb");
+	cdrom_iso[id].iso_image = _wfopen(cdrom_iso[id].iso_path, L"rb");
 	fseeko64(cdrom_iso[id].iso_image, file_pos, SEEK_SET);
 	fread(b + 16, 2048, 1, cdrom_iso[id].iso_image);
 	fclose(cdrom_iso[id].iso_image);
@@ -527,7 +527,7 @@ static uint32_t iso_size(uint8_t id)
 {
 	uint64_t iso_size;
 
-    cdrom_iso[id].iso_image = fopen(cdrom_iso[id].iso_path, "rb");
+    cdrom_iso[id].iso_image = _wfopen(cdrom_iso[id].iso_path, L"rb");
     fseeko64(cdrom_iso[id].iso_image, 0, SEEK_END);
 	iso_size = ftello64(cdrom_iso[id].iso_image);
 	iso_size >>= 11;
@@ -547,11 +547,11 @@ void iso_reset(uint8_t id)
 {
 }
 
-int iso_open(uint8_t id, char *fn)
+int iso_open(uint8_t id, wchar_t *fn)
 {
-    struct stat64 st;
+    FILE *f;
 
-	if (strcmp(fn, cdrom_iso[id].iso_path) != 0)
+	if (wcscmp(fn, cdrom_iso[id].iso_path) != 0)
 	{
 		cdrom_iso[id].iso_changed = 1;
 	}
@@ -559,9 +559,9 @@ int iso_open(uint8_t id, char *fn)
 	if (!cdrom_iso[id].iso_inited && (cdrom_drives[id].host_drive != 200))  cdrom_iso[id].iso_changed = 0;
     if (!cdrom_iso[id].iso_inited || cdrom_iso[id].iso_changed)
     {
-        sprintf(cdrom_iso[id].iso_path, "%s", fn);
+        _swprintf(cdrom_iso[id].iso_path, L"%ws", fn);
     }
-    cdrom_iso[id].iso_image = fopen(cdrom_iso[id].iso_path, "rb");
+    cdrom_iso[id].iso_image = _wfopen(cdrom_iso[id].iso_path, L"rb");
     cdrom_drives[id].handler = &iso_cdrom;
     if (!cdrom_iso[id].iso_inited || cdrom_iso[id].iso_changed)
     {
@@ -569,8 +569,10 @@ int iso_open(uint8_t id, char *fn)
         fclose(cdrom_iso[id].iso_image);
     }
     
-    stat64(cdrom_iso[id].iso_path, &st);
-    cdrom_iso[id].image_size = st.st_size;
+    f = _wfopen(cdrom_iso[id].iso_path, L"rb");
+    fseeko64(f, 0, SEEK_END);
+    cdrom_iso[id].image_size = ftello64(f);
+    fclose(f);
     
     return 0;
 }

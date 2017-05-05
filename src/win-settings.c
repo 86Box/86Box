@@ -57,7 +57,7 @@ char temp_hdc_name[16];
 
 /* Hard disks category */
 hard_disk_t temp_hdc[HDC_NUM];
-char temp_hdd_fn[HDC_NUM][512];
+wchar_t temp_hdd_fn[HDC_NUM][512];
 
 /* Removable devices category */
 int temp_fdd_types[FDD_NUM];
@@ -124,7 +124,7 @@ static void win_settings_init()
 	memcpy(temp_hdc, hdc, HDC_NUM * sizeof(hard_disk_t));
 	for (i = 0; i < HDC_NUM; i++)
 	{
-		memcpy(temp_hdd_fn[i], hdd_fn[i], 512);
+		memcpy(temp_hdd_fn[i], hdd_fn[i], 1024);
 	}
 
 	/* Removable devices category */
@@ -183,7 +183,7 @@ static int win_settings_changed()
 	i = i || memcmp(hdc, temp_hdc, HDC_NUM * sizeof(hard_disk_t));
 	for (j = 0; j < HDC_NUM; j++)
 	{
-		i = i || memcmp(hdd_fn[j], temp_hdd_fn[j], 512);
+		i = i || memcmp(hdd_fn[j], temp_hdd_fn[j], 1024);
 	}
 
 	/* Removable devices category */
@@ -274,7 +274,7 @@ static void win_settings_save()
 	memcpy(hdc, temp_hdc, HDC_NUM * sizeof(hard_disk_t));
 	for (i = 0; i < HDC_NUM; i++)
 	{
-		memcpy(hdd_fn[i], temp_hdd_fn[i], 512);
+		memcpy(hdd_fn[i], temp_hdd_fn[i], 1024);
 	}
 
 	/* Removable devices category */
@@ -1474,17 +1474,18 @@ static BOOL win_settings_hard_disks_image_list_init(HWND hwndList)
 
 int next_free_id = 0;
 
+wchar_t ifn[HDC_NUM][512];
+
 static void normalize_hd_list()
 {
 	hard_disk_t ihdc[HDC_NUM];
-	char ifn[HDC_NUM][512];
 	int i, j;
 
 	j = 0;
 	memset(ihdc, 0, HDC_NUM * sizeof(hard_disk_t));
 	for (i = 0; i < HDC_NUM; i++)
 	{
-		memset(ifn[i], 0, 512);
+		memset(ifn[i], 0, 1024);
 	}
 	for (i = 0; i < HDC_NUM; i++)
 	{
@@ -1496,7 +1497,7 @@ static void normalize_hd_list()
 		if (temp_hdc[i].bus > 0)
 		{
 			memcpy(&(ihdc[j]), &(temp_hdc[i]), sizeof(hard_disk_t));
-			memcpy(ifn[j], temp_hdd_fn[i], 512);
+			memcpy(ifn[j], temp_hdd_fn[i], 1024);
 			j++;
 		}
 	}
@@ -1504,7 +1505,7 @@ static void normalize_hd_list()
 	memcpy(temp_hdc, ihdc, HDC_NUM * sizeof(hard_disk_t));
 	for (i = 0; i < HDC_NUM; i++)
 	{
-		memcpy(temp_hdd_fn[i], ifn[i], 512);
+		memcpy(temp_hdd_fn[i], ifn[i], 1024);
 	}
 }
 
@@ -1786,8 +1787,7 @@ static void win_settings_hard_disks_update_item(HWND hwndList, int i, int column
 	}
 	else if (column == 1)
 	{
-		mbstowcs(szText, temp_hdd_fn[i], strlen(temp_hdd_fn[i]) + 1);
-		lvI.pszText = szText;
+		lvI.pszText = temp_hdd_fn[i];
 		lvI.iImage = 0;
 	}
 	else if (column == 2)
@@ -1864,8 +1864,7 @@ static BOOL win_settings_hard_disks_recalc_list(HWND hwndList)
 			}
 
 			lvI.iSubItem = 1;
-			mbstowcs(szText, temp_hdd_fn[i], strlen(temp_hdd_fn[i]) + 1);
-			lvI.pszText = szText;
+			lvI.pszText = temp_hdd_fn[i];
 			lvI.iItem = j;
 			lvI.iImage = 0;
 
@@ -2020,7 +2019,7 @@ int existing = 0;
 uint64_t selection = 127;
 
 uint64_t spt, hpc, tracks, size;
-char hd_file_name[512];
+wchar_t hd_file_name[512];
 
 static int hdconf_initialize_hdt_combo(HWND hdlg)
 {
@@ -2134,7 +2133,7 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 	               	switch (LOWORD(wParam))
         	        {
 				case IDOK:
-					if (strlen(hd_file_name) == 0)
+					if (wcslen(hd_file_name) == 0)
 					{
 						msgbox_error(hwndParentDialog, 2056);
 						return TRUE;
@@ -2153,14 +2152,14 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 					temp_hdc[next_free_id].scsi_lun = SendMessage(h, CB_GETCURSEL, 0, 0);
 					h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL_IDE);
 					temp_hdc[next_free_id].ide_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
-					memset(temp_hdd_fn[next_free_id], 0, 512);
-					memcpy(temp_hdd_fn[next_free_id], hd_file_name, strlen(hd_file_name) + 1);
+					memset(temp_hdd_fn[next_free_id], 0, 1024);
+					memcpy(temp_hdd_fn[next_free_id], hd_file_name, (wcslen(hd_file_name) << 1) + 2);
 
 					sector_size = 512;
 
-					if (!existing && (strlen(hd_file_name) > 0))
+					if (!existing && (wcslen(hd_file_name) > 0))
 					{
-						f = fopen(hd_file_name, "wb");
+						f = _wfopen(hd_file_name, L"wb");
 
 						if (image_is_hdi(hd_file_name))
 						{
@@ -2225,9 +2224,9 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 					return TRUE;
 
 				case IDC_CFILE:
-		                        if (!file_dlg(hdlg, win_language_get_string_from_id(2172), "", !existing))
+		                        if (!file_dlg_w(hdlg, win_language_get_string_from_id(2172), L"", !existing))
        			                {
-						f = fopen(openfilestring, existing ? "rb" : "wb");
+						f = _wfopen(wopenfilestring, existing ? L"rb" : L"wb");
 						if (f == NULL)
 						{
 							msgbox_error(hwndParentDialog, existing ? 2060 : 2057);
@@ -2235,7 +2234,7 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 						}
 						if (existing)
 						{
-							if (image_is_hdi(openfilestring) || image_is_hdx(openfilestring, 1))
+							if (image_is_hdi(wopenfilestring) || image_is_hdx(wopenfilestring, 1))
 							{
 								fseeko64(f, 0x10, SEEK_SET);
 								fread(&sector_size, 1, 4, f);
@@ -2312,9 +2311,8 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 					}
 
 					h = GetDlgItem(hdlg, IDC_EDIT_HD_FILE_NAME);
-					mbstowcs(szText, openfilestring, strlen(openfilestring) + 1);
-					SendMessage(h, WM_SETTEXT, 0, (LPARAM) szText);
-					memcpy(hd_file_name, openfilestring, strlen(openfilestring) + 1);
+					SendMessage(h, WM_SETTEXT, 0, (LPARAM) wopenfilestring);
+					memcpy(hd_file_name, wopenfilestring, (wcslen(wopenfilestring) << 1) + 2);
 
 					return TRUE;
 
@@ -2632,7 +2630,7 @@ static BOOL CALLBACK win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARA
 					return FALSE;
 
 				case IDC_BUTTON_HDD_REMOVE:
-					strncpy(temp_hdd_fn[hdlv_current_sel], "", strlen("") + 1);
+					memcpy(temp_hdd_fn[hdlv_current_sel], L"", 4);
 					temp_hdc[hdlv_current_sel].bus = 0;	/* Only set the bus to zero, the list normalize code below will take care of turning this entire entry to a complete zero. */
 					normalize_hd_list();			/* Normalize the hard disks so that non-disabled hard disks start from index 0, and so they are contiguous. */
 					ignore_change = 1;

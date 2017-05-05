@@ -751,8 +751,8 @@ BEGIN
     2176                    "Use CTRL + ALT + PAGE DOWN to return to windowed mode"
     2177                    "Microsoft InPort mouse"
     2178                    "Genius Bus mouse"
-    2179                    "Floppy %i (%s): %s"
-    2180                    "CD-ROM %i: %s"
+    2179                    "Floppy %i (%s): %ws"
+    2180                    "CD-ROM %i: %ws"
     2181                    "Removable disk %i: %s"
     2182                    "MFM hard disk"
     2183                    "IDE hard disk"
@@ -766,7 +766,7 @@ BEGIN
     2191                    "ATAPI (PIO-only) (%01i:%01i)"
     2192                    "ATAPI (PIO and DMA) (%01i:%01i)"
     2193                    "Use CTRL + ALT + PAGE DOWN to return to windowed mode"
-    2194                    "<placeholder string>"
+    2194                    "Unable to create bitmap file: %s"
     2195                    "English (United States)"
 END
 

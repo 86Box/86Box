@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "config.h"
 #include "ibm.h"
 
@@ -33,6 +34,7 @@ typedef struct entry_t
         
         char name[256];
         char data[256];
+        wchar_t wdata[256];
 } entry_t;
 
 #define list_add(new, head)                             \
@@ -100,7 +102,7 @@ void config_free()
 
 void config_load(char *fn)
 {
-        FILE *f = fopen(fn, "rt");
+        FILE *f = fopen(fn, "rt, ccs=UNICODE");
         section_t *current_section;
         
         memset(&config_head, 0, sizeof(list_t));
@@ -115,32 +117,34 @@ void config_load(char *fn)
         while (1)
         {
                 int c;
-                char buffer[256];
+                wchar_t buffer[1024];
+		int org_pos;
 
-                fgets(buffer, 255, f);
+		memset(buffer, 0, 2048);
+                fgetws(buffer, 255, f);
                 if (feof(f)) break;
                 
                 c = 0;
                 
-                while (buffer[c] == ' ')
+                while (buffer[c] == L' ')
                       c++;
 
-                if (!buffer[c]) continue;
+                if (buffer[c] == L'\0') continue;
                 
-                if (buffer[c] == '#') /*Comment*/
+                if (buffer[c] == L'#') /*Comment*/
                         continue;
 
-                if (buffer[c] == '[') /*Section*/
+                if (buffer[c] == L'[') /*Section*/
                 {
                         section_t *new_section;
                         char name[256];
                         int d = 0;
                         
                         c++;
-                        while (buffer[c] != ']' && buffer[c])
-                                name[d++] = buffer[c++];
+                        while (buffer[c] != L']' && buffer[c])
+                                wctomb(&(name[d++]), buffer[c++]);
 
-                        if (buffer[c] != ']')
+                        if (buffer[c] != L']')
                                 continue;
                         name[d] = 0;
                         
@@ -157,13 +161,13 @@ void config_load(char *fn)
                         char name[256];
                         int d = 0, data_pos;
 
-                        while (buffer[c] != '=' && buffer[c] != ' ' && buffer[c])
-                                name[d++] = buffer[c++];
+                        while (buffer[c] != L'=' && buffer[c] != L' ' && buffer[c])
+                                wctomb(&(name[d++]), buffer[c++]);
                 
-                        if (!buffer[c]) continue;
+                        if (buffer[c] == L'\0') continue;
                         name[d] = 0;
 
-                        while ((buffer[c] == '=' || buffer[c] == ' ') && buffer[c])
+                        while ((buffer[c] == L'=' || buffer[c] == L' ') && buffer[c])
                                 c++;
                         
                         if (!buffer[c]) continue;
@@ -171,15 +175,18 @@ void config_load(char *fn)
                         data_pos = c;
                         while (buffer[c])
                         {
-                                if (buffer[c] == '\n')
-                                        buffer[c] = 0;
+                                if (buffer[c] == L'\n')
+                                        buffer[c] = L'\0';
                                 c++;
                         }
 
                         new_entry = malloc(sizeof(entry_t));
                         memset(new_entry, 0, sizeof(entry_t));
                         strncpy(new_entry->name, name, 256);
-                        strncpy(new_entry->data, &buffer[data_pos], 256);
+			memcpy(new_entry->wdata, &buffer[data_pos], 512);
+			new_entry->wdata[255] = L'\0';
+			wcstombs(new_entry->data, new_entry->wdata, 512);
+			new_entry->data[255] = '\0';
                         list_add(&new_entry->list, &current_section->entry_head);
                 }
         }
@@ -193,7 +200,7 @@ void config_load(char *fn)
 
 void config_new()
 {
-        FILE *f = fopen(config_file, "wt");
+        FILE *f = fopen(config_file, "wt, ccs=UNICODE");
         fclose(f);
 }
 
@@ -292,6 +299,24 @@ char *config_get_string(char *head, char *name, char *def)
         return entry->data; 
 }
 
+wchar_t *config_get_wstring(char *head, char *name, wchar_t *def)
+{
+        section_t *section;
+        entry_t *entry;
+
+        section = find_section(head);
+        
+        if (!section)
+                return def;
+                
+        entry = find_entry(section, name);
+
+        if (!entry)
+                return def;
+       
+        return entry->wdata; 
+}
+
 void config_set_int(char *head, char *name, int val)
 {
         section_t *section;
@@ -308,6 +333,7 @@ void config_set_int(char *head, char *name, int val)
                 entry = create_entry(section, name);
 
         sprintf(entry->data, "%i", val);
+	mbstowcs(entry->wdata, entry->data, 512);
 }
 
 void config_set_string(char *head, char *name, char *val)
@@ -326,6 +352,25 @@ void config_set_string(char *head, char *name, char *val)
                 entry = create_entry(section, name);
 
         strncpy(entry->data, val, 256);
+	mbstowcs(entry->wdata, entry->data, 256);
+}
+
+void config_set_wstring(char *head, char *name, wchar_t *val)
+{
+        section_t *section;
+        entry_t *entry;
+
+        section = find_section(head);
+        
+        if (!section)
+                section = create_section(head);
+                
+        entry = find_entry(section, name);
+
+        if (!entry)
+                entry = create_entry(section, name);
+
+        memcpy(entry->wdata, val, 512);
 }
 
 
@@ -336,7 +381,7 @@ char *get_filename(char *s)
         {
                 if (s[c] == '/' || s[c] == '\\')
                    return &s[c+1];
-                c--;
+               c--;
         }
         return s;
 }
@@ -369,9 +414,27 @@ char *get_extension(char *s)
         return &s[c+1];
 }               
 
+wchar_t *get_extension_w(wchar_t *s)
+{
+        int c = wcslen(s) - 1;
+
+        if (c <= 0)
+                return s;
+        
+        while (c && s[c] != L'.')
+                c--;
+                
+        if (!c)
+                return &s[wcslen(s)];
+
+        return &s[c+1];
+}               
+
+static wchar_t wname[512];
+
 void config_save(char *fn)
 {
-        FILE *f = fopen(fn, "wt");
+        FILE *f = fopen(fn, "wt, ccs=UNICODE");
         section_t *current_section;
         
         current_section = (section_t *)config_head.next;
@@ -381,13 +444,24 @@ void config_save(char *fn)
                 entry_t *current_entry;
                 
                 if (current_section->name[0])
-                        fprintf(f, "\n[%s]\n", current_section->name);
+		{
+			mbstowcs(wname, current_section->name, strlen(current_section->name) + 1);
+                        _fwprintf_p(f, L"\n[%ws]\n", wname);
+		}
                 
                 current_entry = (entry_t *)current_section->entry_head.next;
                 
                 while (current_entry)
                 {
-                        fprintf(f, "%s = %s\n", current_entry->name, current_entry->data);
+			mbstowcs(wname, current_entry->name, strlen(current_entry->name) + 1);
+			if (current_entry->wdata[0] == L'\0')
+			{
+	                        _fwprintf_p(f, L"%ws = \n", wname);
+			}
+			else
+			{
+	                        _fwprintf_p(f, L"%ws = %ws\n", wname, current_entry->wdata);
+			}
 
                         current_entry = (entry_t *)current_entry->list.next;
                 }

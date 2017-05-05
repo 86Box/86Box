@@ -3,6 +3,7 @@
 */
 #include <stdint.h>
 #include <stdio.h>
+#define UNICODE
 #define BITMAP WINDOWS_BITMAP
 #include <d3d9.h>
 #undef BITMAP
@@ -133,7 +134,7 @@ void cgapal_rebuild()
 int d3d_fs_init(HWND h)
 {
         HRESULT hr;
-		char emulator_title[200];
+	WCHAR emulator_title[200];
 
         d3d_fs_w = GetSystemMetrics(SM_CXSCREEN);
         d3d_fs_h = GetSystemMetrics(SM_CYSCREEN);
@@ -142,7 +143,7 @@ int d3d_fs_init(HWND h)
 
         d3d_hwnd = h;
 
-		sprintf(emulator_title, "86Box v%s", emulator_version);
+	_swprintf(emulator_title, L"86Box v%s", emulator_version_w);
         d3d_device_window = CreateWindowEx (
                 0,
                 szSubClassName,
@@ -572,12 +573,15 @@ static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
 
 void d3d_fs_take_screenshot(char *fn)
 {
+	WCHAR wfn[512];
 	LPDIRECT3DSURFACE9 d3dSurface = NULL;
 
 	if (!d3dTexture)  return;
 
+	mbstowcs(wfn, fn, strlen(fn) + 1);
+
 	d3ddev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &d3dSurface);
-	D3DXSaveSurfaceToFile(fn, D3DXIFF_PNG, d3dSurface, NULL, NULL);
+	D3DXSaveSurfaceToFile(wfn, D3DXIFF_PNG, d3dSurface, NULL, NULL);
 
 	d3dSurface->Release();
 	d3dSurface = NULL;

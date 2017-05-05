@@ -10,6 +10,7 @@
 #include "device.h"
 
 #ifndef __unix
+#define UNICODE
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #undef BITMAP
@@ -357,7 +358,7 @@ void initpc(int argc, char *argv[])
 		{
 			if (cdrom_drives[i].host_drive == 200)
 			{
-				ff = fopen(cdrom_iso[i].iso_path, "rb");
+				ff = _wfopen(cdrom_iso[i].iso_path, L"rb");
 				if (ff)
 				{
 					fclose(ff);
@@ -486,12 +487,8 @@ void resetpchard()
 		ide_qua_init();
 	}
 
-	if (network_card_current != 0)
-	{
-		vlan_reset();	/* NETWORK */
-	}
-	network_card_init(network_card_current);      
-        
+	network_card_init();
+
 	for (i = 0; i < CDROM_NUM; i++)
 	{
 		if (cdrom_drives[i].bus_type)
@@ -503,7 +500,7 @@ void resetpchard()
         resetide();
 	scsi_card_init();
 
-        sound_card_init(sound_card_current);
+        sound_card_init();
         if (GUS)
                 device_add(&gus_device);
         if (GAMEBLASTER)
@@ -559,9 +556,12 @@ int serial_fifo_read, serial_fifo_write;
 
 int emu_fps = 0;
 
+static WCHAR wmodel[2048];
+static WCHAR wcpu[2048];
+
 void runpc()
 {
-        char s[200];
+        wchar_t s[200];
         int done=0;
 
         startblit();
@@ -637,7 +637,9 @@ void runpc()
                 if (win_title_update)
                 {
                         win_title_update=0;
-                        sprintf(s, "86Box v%s - %i%% - %s - %s - %s", emulator_version, fps, model_getname(), models[model].cpu[cpu_manufacturer].cpus[cpu].name, (!mousecapture) ? "Click to capture mouse" : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? "Press F12-F8 to release mouse" : "Press F12-F8 or middle button to release mouse"));
+			mbstowcs(wmodel, model_getname(), strlen(model_getname()) + 1);
+			mbstowcs(wcpu, models[model].cpu[cpu_manufacturer].cpus[cpu].name, strlen(models[model].cpu[cpu_manufacturer].cpus[cpu].name) + 1);
+                        _swprintf(s, L"86Box v%s - %i%% - %s - %s - %s", emulator_version_w, fps, wmodel, wcpu, (!mousecapture) ? win_language_get_string_from_id(2077) : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? win_language_get_string_from_id(2078) : win_language_get_string_from_id(2079)));
                         set_window_title(s);
                 }
                 done++;
@@ -703,6 +705,7 @@ void loadconfig(char *fn)
 	int c, d;
 	char s[512];
         char *p;
+        WCHAR *wp;
 	char temps[512];
         
         if (!fn)
@@ -776,9 +779,13 @@ void loadconfig(char *fn)
         	        fdd_set_type(c, (c < 2) ? 2 : 0);
 
 		sprintf(temps, "fdd_%02i_fn", c + 1);
-	        p = (char *)config_get_string(NULL, temps, "");
-        	if (p) strcpy(discfns[c], p);
-	        else   strcpy(discfns[c], "");
+	        wp = (WCHAR *)config_get_wstring(NULL, temps, L"");
+        	if (wp) memcpy(discfns[c], wp, 512);
+	        else    {
+			memcpy(discfns[c], L"", 2);
+			discfns[c][0] = L'\0';
+		}
+		printf("Floppy: %ws\n", discfns[c]);
 		sprintf(temps, "fdd_%02i_writeprot", c + 1);
 	        ui_writeprot[c] = config_get_int(NULL, temps, 0);
 	}
@@ -818,9 +825,12 @@ void loadconfig(char *fn)
 		sprintf(temps, "hdd_%02i_scsi_device_lun", c + 1);
 		hdc[c].scsi_lun = config_get_int(NULL, temps, 0);
 		sprintf(temps, "hdd_%02i_fn", c + 1);
-	        p = (char *)config_get_string(NULL, temps, "");
-	        if (p) strcpy(hdd_fn[c], p);
-        	else   strcpy(hdd_fn[c], "");
+	        wp = (WCHAR *)config_get_wstring(NULL, temps, L"");
+        	if (wp) memcpy(hdd_fn[c], wp, 512);
+	        else    {
+			memcpy(hdd_fn[c], L"", 2);
+			hdd_fn[c][0] = L'\0';
+		}
 	}
 
 	memset(temps, 0, 512);
@@ -845,9 +855,12 @@ void loadconfig(char *fn)
 		cdrom_drives[c].scsi_device_lun = config_get_int(NULL, temps, 0);
 
 		sprintf(temps, "cdrom_%02i_iso_path", c + 1);
-        	p = (char *)config_get_string(NULL, temps, "");
-        	if (p) strcpy(cdrom_iso[c].iso_path, p);
-	        else   strcpy(cdrom_iso[c].iso_path, "");
+	        wp = (WCHAR *)config_get_wstring(NULL, temps, L"");
+        	if (wp) memcpy(cdrom_iso[c].iso_path, wp, 512);
+	        else    {
+			memcpy(cdrom_iso[c].iso_path, L"", 2);
+			cdrom_iso[c].iso_path[0] = L'\0';
+		}
 	}
 
         vid_resize = config_get_int(NULL, "vid_resize", 0);
@@ -972,7 +985,7 @@ void saveconfig()
 		sprintf(temps, "fdd_%02i_type", c + 1);
 	        config_set_string(NULL, temps, fdd_get_internal_name(fdd_get_type(c)));
 		sprintf(temps, "fdd_%02i_fn", c + 1);
-	        config_set_string(NULL, temps, discfns[c]);
+	        config_set_wstring(NULL, temps, discfns[c]);
 		sprintf(temps, "fdd_%02i_writeprot", c + 1);
 	        config_set_int(NULL, temps, ui_writeprot[c]);
 	}
@@ -1008,7 +1021,7 @@ void saveconfig()
 		sprintf(temps, "hdd_%02i_scsi_device_lun", c + 1);
 		config_set_int(NULL, temps, hdc[c].scsi_lun);
 		sprintf(temps, "hdd_%02i_fn", c + 1);
-	        config_set_string(NULL, temps, hdd_fn[c]);
+	        config_set_wstring(NULL, temps, hdd_fn[c]);
 	}
 
 	memset(temps, 0, 512);
@@ -1032,7 +1045,7 @@ void saveconfig()
 		config_set_int(NULL, temps, cdrom_drives[c].scsi_device_lun);
 
 		sprintf(temps, "cdrom_%02i_iso_path", c + 1);
-		config_set_string(NULL, temps, cdrom_iso[c].iso_path);
+		config_set_wstring(NULL, temps, cdrom_iso[c].iso_path);
 	}
 
         config_set_int(NULL, "vid_resize", vid_resize);

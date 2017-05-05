@@ -1,12 +1,9 @@
 /* Copyright holders: Sarah Walker, Tenshi
    see COPYING for more details
 */
-#include <winsock2.h>
-#include <windows.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <memory.h>
 #include "nethandler.h"
 
 #include "ibm.h"
@@ -83,6 +80,11 @@ void network_card_init()
         if (network_cards[network_card_current].device)
                 device_add(network_cards[network_card_current].device);
         network_card_last = network_card_current;
+
+	if (network_card_current != 0)
+	{
+		vlan_reset();	/* NETWORK */
+	}
 }
 
 static struct

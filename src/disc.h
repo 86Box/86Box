@@ -21,7 +21,7 @@ extern DRIVE drives[FDD_NUM];
 
 extern int curdrive;
 
-void disc_load(int drive, char *fn);
+void disc_load(int drive, wchar_t *fn);
 void disc_new(int drive, char *fn);
 void disc_close(int drive);
 void disc_init();

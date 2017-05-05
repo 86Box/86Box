@@ -3,6 +3,7 @@
 */
 #include <stdio.h>
 #include <stdint.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "disc.h"
 #include "disc_img.h"
@@ -239,13 +240,17 @@ void d86f_register_fdi(int drive)
 	d86f_handler[drive].check_crc = 1;
 }
 
-void fdi_load(int drive, char *fn)
+void fdi_load(int drive, wchar_t *fn)
 {
 	char header[26];
 
         writeprot[drive] = fwriteprot[drive] = 1;
-        fdi[drive].f = fopen(fn, "rb");
-        if (!fdi[drive].f) return;
+        fdi[drive].f = _wfopen(fn, L"rb");
+        if (!fdi[drive].f)
+	{
+		update_status_bar_icon_state(drive, 1);
+		return;
+	}
 
 	d86f_unregister(drive);
 

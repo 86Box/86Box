@@ -3,10 +3,13 @@
 */
 #include <stdio.h>
 #include <stdint.h>
+#define UNICODE
 #define BITMAP WINDOWS_BITMAP
 #include <ddraw.h>
 #undef BITMAP
+#include "win.h"
 #include "win-ddraw-screenshot.h"
+#include "win-language.h"
 #include "video.h"
 
 extern "C" void fatal(const char *format, ...);
@@ -64,6 +67,8 @@ void DoubleLines(uint8_t *dst, uint8_t *src)
 	}
 }
 
+static WCHAR szMessage[2048];
+
 void SaveBitmap(char *szFilename,HBITMAP hBitmap)
 {
     HDC                 hdc=NULL;
@@ -72,8 +77,6 @@ void SaveBitmap(char *szFilename,HBITMAP hBitmap)
     LPVOID              pBuf2=NULL;
     BITMAPINFO          bmpInfo;
     BITMAPFILEHEADER    bmpFileHeader; 
-
-    char szMessage[2048];
 
     do{ 
 
@@ -105,8 +108,8 @@ void SaveBitmap(char *szFilename,HBITMAP hBitmap)
 
         if((fp = fopen(szFilename,"wb"))==NULL)
         {
-            sprintf(szMessage, "Unable to Create Bitmap File %s", szFilename);
-            MessageBox( NULL, szMessage, "Error", MB_OK|MB_ICONERROR);
+            _swprintf(szMessage, win_language_get_string_from_id(2194), szFilename);
+	    msgbox_error_wstr(ghwnd, szMessage);
             break;
         } 
 
