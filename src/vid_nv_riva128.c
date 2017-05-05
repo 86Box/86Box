@@ -3335,7 +3335,7 @@ static void rivatnt2_add_status_info(char *s, int max_len, void *p)
 static device_config_t rivatnt2_config[] =
 {
 	{
-		"model", "Card model", CONFIG_SELECTION, 0,
+		"model", "Card model", CONFIG_SELECTION, "", 0,
 		{
 			{
 				"Vanilla TNT2", 0,
@@ -3349,7 +3349,7 @@ static device_config_t rivatnt2_config[] =
 		},
 	},
 	{
-		"memory", "Memory size", CONFIG_SELECTION, 32,
+		"memory", "Memory size", CONFIG_SELECTION, "", 32,
 		{
 			{
 				"4 MB", 4
@@ -3407,7 +3407,7 @@ static device_config_t rivatnt2_config[] =
 		},
 	},
 	{
-		-1
+		"", "", -1
 	}
 };
 

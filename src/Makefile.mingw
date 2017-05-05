@@ -113,13 +113,10 @@ VIDOBJ	= video.o \
 	    vid_ati_eeprom.o vid_ati18800.o vid_ati28800.o \
 	      vid_ati68860_ramdac.o vid_ati_mach64.o \
 	      vid_ics2595.o \
-	    vid_cl_gd.o vid_cl_gd_blit.o vid_cl_ramdac.o \
-	    vid_bt485_ramdac.o \
 	    vid_sdac_ramdac.o \
 	    vid_stg_ramdac.o \
 	    vid_unk_ramdac.o \
 	    vid_wy700.o \
-	    vid_nv_riva128.o \
 	    vid_voodoo.o \
 	    vid_pcjr.o vid_ps1_svga.o \
 	    vid_olivetti_m24.o \
