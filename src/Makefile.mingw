@@ -169,7 +169,7 @@ $(PROG).exe:	$(OBJ) $(DBOBJ) $(LZFOBJ) $(SIDOBJ) $(SLIRPOBJ)
 			$(LIBS)
 
 all:		$(PROG).exe
-ifeq ($(DEBUG), y)
+ifneq ($(DEBUG), y)
 		strip $(PROG).exe
 endif
 
