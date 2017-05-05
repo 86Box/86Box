@@ -769,7 +769,12 @@ void loadconfig(char *fn)
 	for (c = 0; c < FDD_NUM; c++)
 	{
 		sprintf(temps, "fdd_%02i_type", c + 1);
-		fdd_set_type(c, config_get_int(NULL, temps, (c < 2) ? 2 : 0));
+	        p = (char *)config_get_string(NULL, temps, (c < 2) ? "525_2dd" : "none");
+        	if (p)
+                	fdd_set_type(c, fdd_get_from_internal_name(p));
+	        else
+        	        fdd_set_type(c, (c < 2) ? 2 : 0);
+
 		sprintf(temps, "fdd_%02i_fn", c + 1);
 	        p = (char *)config_get_string(NULL, temps, "");
         	if (p) strcpy(discfns[c], p);
@@ -965,7 +970,7 @@ void saveconfig()
 	for (c = 0; c < FDD_NUM; c++)
 	{
 		sprintf(temps, "fdd_%02i_type", c + 1);
-	        config_set_int(NULL, temps, fdd_get_type(c));
+	        config_set_string(NULL, temps, fdd_get_internal_name(fdd_get_type(c)));
 		sprintf(temps, "fdd_%02i_fn", c + 1);
 	        config_set_string(NULL, temps, discfns[c]);
 		sprintf(temps, "fdd_%02i_writeprot", c + 1);

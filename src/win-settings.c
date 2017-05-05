@@ -2125,6 +2125,8 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 			SendMessage(h, CB_SETCURSEL, 0, 0);
 			h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL_IDE);
 			SendMessage(h, CB_SETCURSEL, 0, 0);
+			h = GetDlgItem(hdlg, IDC_EDIT_HD_FILE_NAME);
+			EnableWindow(h, FALSE);
 			no_update = 0;
 			return TRUE;
 

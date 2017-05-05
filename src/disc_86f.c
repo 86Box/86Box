@@ -724,6 +724,10 @@ int d86f_wrong_densel(int drive)
 	{
 		case 0:
 		default:
+			if (fdd_is_dd(drive))
+			{
+				return 0;
+			}
 			if (fdd_get_densel(drive))
 			{
 				return 1;
@@ -734,6 +738,10 @@ int d86f_wrong_densel(int drive)
 			}
 			break;
 		case 1:
+			if (fdd_is_dd(drive))
+			{
+				return 1;
+			}
 			if (fdd_get_densel(drive))
 			{
 				return 0;
@@ -751,6 +759,10 @@ int d86f_wrong_densel(int drive)
 			}
 			break;
 		case 2:
+			if (fdd_is_dd(drive) || !fdd_is_ed(drive))
+			{
+				return 1;
+			}
 			if (fdd_get_densel(drive))
 			{
 				return 0;

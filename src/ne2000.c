@@ -257,9 +257,9 @@ static uint8_t *ne2000_mac()
 
 void ne2000_generate_maclocal(int mac)
 {
-	maclocal[0] = 0x00;	/* 00:00:1B (NE2000 ISA vendor prefix). */
+	maclocal[0] = 0x00;	/* 00:00:D8 (NE2000 ISA vendor prefix). */
 	maclocal[1] = 0x00;
-	maclocal[2] = 0x1B;
+	maclocal[2] = 0xD8;
 
 	if (mac & 0xff000000)
 	{
