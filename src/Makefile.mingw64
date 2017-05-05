@@ -44,8 +44,11 @@ OPTS	= -DWIN32 $(EXTRAS) $(STUFF)
 ifeq ($(DEBUG), y)
 DFLAGS	= -march=i686 -Og -ggdb -DDEBUG
 else
+ifeq ($(OPTIMIZED), y)
 DFLAGS	= -march=native -mtune=native -O6
-UFLAGS	= -O3
+else
+DFLAGS	= -O3
+endif
 endif
 AFLAGS	= -msse -msse2 -mfpmath=sse
 CFLAGS	= $(OPTS) $(DFLAGS) $(AFLAGS) \
