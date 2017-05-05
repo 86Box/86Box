@@ -1972,6 +1972,11 @@ void d86f_poll(int drive)
 	int mfm = 1;
 
 	side = fdd_get_head(drive);
+	if (!fdd_is_double_sided(drive))
+	{
+		side = 0;
+	}
+
 	mfm = fdc_is_mfm();
 
 	if ((d86f[drive].state & 0xF8) == 0xE8)

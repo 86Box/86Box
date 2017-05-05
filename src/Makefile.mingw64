@@ -167,11 +167,11 @@ $(PROG).exe:	$(OBJ) $(DBOBJ) $(LZFOBJ) $(SIDOBJ) $(SLIRPOBJ)
 			$(OBJ) \
 			$(DBOBJ) $(LZFOBJ) $(SIDOBJ) $(SLIRPOBJ) \
 			$(LIBS)
-
-all:		$(PROG).exe
 ifneq ($(DEBUG), y)
 		strip $(PROG).exe
 endif
+
+all:		$(PROG).exe
 
 clean:
 		rm *.o

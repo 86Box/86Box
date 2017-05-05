@@ -142,11 +142,11 @@ int discrate[4];
 
 int discint;
 
-int fdc_do_log = 0;
+int fdc_do_log = 1;
 
 void fdc_log(const char *format, ...)
 {
-#ifdef ENABLE_FDC_LOG
+// #ifdef ENABLE_FDC_LOG
    if (fdc_do_log)
    {
 		va_list ap;
@@ -155,7 +155,7 @@ void fdc_log(const char *format, ...)
 		va_end(ap);
 		fflush(stdout);
    }
-#endif
+// #endif
 }
 
 void fdc_reset()

@@ -276,6 +276,11 @@ int fdd_is_ed(int drive)
         return drive_types[fdd[drive].type].flags & FLAG_HOLE2;
 }
 
+int fdd_is_double_sided(int drive)
+{
+        return drive_types[fdd[drive].type].flags & FLAG_DS;
+}
+
 void fdd_set_head(int drive, int head)
 {
 	drive = real_drive(drive);

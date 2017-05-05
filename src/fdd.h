@@ -11,6 +11,7 @@ int fdd_can_read_medium(int drive);
 int fdd_doublestep_40(int drive);
 int fdd_is_525(int drive);
 int fdd_is_ed(int drive);
+int fdd_is_double_sided(int drive);
 void fdd_set_head(int drive, int head);
 int fdd_get_head(int drive);
 
