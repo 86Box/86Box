@@ -1998,7 +1998,7 @@ void execx86(int cycs)
                         case 0xA1: /*MOV AX,(w)*/
                         addr=getword();
                         AX=readmemw(ds,addr);
-                        cycles-=!4;
+                        cycles-=14;
                         break;
                         case 0xA2: /*MOV (w),AL*/
                         addr=getword();

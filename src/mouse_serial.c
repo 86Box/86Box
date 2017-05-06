@@ -85,13 +85,9 @@ sermouse_init(void)
     memset(ms, 0x00, sizeof(mouse_serial_t));
 
     /* Attach a serial port to the mouse. */
-#if 1
-    ms->serial = serial_attach(0, sermouse_rcr, ms);
-#else
-    ms->serial = &serial1;
-    serial1.rcr_callback = sermouse_rcr;
-    serial1.rcr_callback_p = ms;
-#endif
+        ms->serial = &serial1;
+        serial1.rcr_callback = sermouse_rcr;
+        serial1.rcr_callback_p = ms;
 
     timer_add(sermouse_timer, &ms->delay, &ms->delay, ms);
 
@@ -105,11 +101,7 @@ sermouse_close(void *priv)
     mouse_serial_t *ms = (mouse_serial_t *)priv;
 
     /* Detach serial port from the mouse. */
-#if 1
-    serial_attach(0, NULL, NULL);
-#else
     serial1.rcr_callback = NULL;
-#endif
 
     free(ms);
 }

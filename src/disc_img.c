@@ -850,8 +850,6 @@ void img_close(int drive)
                 fclose(img[drive].f);
         if (img[drive].disk_data)
                 free(img[drive].disk_data);
-        img[drive].f = NULL;
-        img[drive].disk_data = NULL;
 }
 
 #define xdf_img_sector xdf_img_layout[current_xdft][!is_t0][sector]

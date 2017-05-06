@@ -289,7 +289,6 @@ void imd_close(int drive)
 		}
                 fclose(imd[drive].f);
 	}
-        imd[drive].f = NULL;
 }
 
 int imd_track_is_xdf(int drive, int side, int track)

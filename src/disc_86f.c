@@ -3328,5 +3328,4 @@ void d86f_close(int drive)
                 fclose(d86f[drive].f);
 	if (d86f[drive].is_compressed)
                 _wremove(temp_file_name);
-        d86f[drive].f = NULL;
 }

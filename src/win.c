@@ -2156,7 +2156,6 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
                         {
                                 disc_close(0);
 				ui_writeprot[0] = (LOWORD(wParam) == IDM_DISC_1_WP) ? 1 : 0;
-				msgbox_info_wstr(ghwnd, wopenfilestring);
                                 disc_load(0, wopenfilestring);
 				update_status_bar_icon_state(0x00, 0);
 				update_tip(0x00);

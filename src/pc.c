@@ -953,15 +953,21 @@ void loadconfig(wchar_t *fn)
         bugger_enabled = config_get_int(NULL, "bugger_enabled", 0);
 }
 
+wchar_t temp_nvr_path[1024];
+
 wchar_t *nvr_concat(wchar_t *to_concat)
 {
-	char *p = (char *) nvr_path;
+	char *p;
+
+	memset(temp_nvr_path, 0, 2048);
+	wcscpy(temp_nvr_path, nvr_path);
+
+	p = (char *) temp_nvr_path;
 	p += (path_len * 2);
 	wchar_t *wp = (wchar_t *) p;
 
-	memset(wp, 0, (1024 - path_len) * 2);
 	wcscpy(wp, to_concat);
-	return nvr_path;
+	return temp_nvr_path;
 }
 
 void saveconfig()
