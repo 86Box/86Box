@@ -926,9 +926,9 @@ void loadconfig(wchar_t *fn)
         }
 
 	memset(nvr_path, 0, 2048);
-        wp = (wchar_t *)config_get_wstring(NULL, "nvr_path", L"nvr");
+        wp = (wchar_t *)config_get_wstring(NULL, "nvr_path", L"");
         if (wp) {
-		if (wcslen(wp) <= 992)  wcscpy(nvr_path, wp);
+		if (wcslen(wp) && (wcslen(wp) <= 992))  wcscpy(nvr_path, wp);
 		else
 		{
 			append_filename_w(nvr_path, pcempath, L"nvr", 511);

@@ -1851,6 +1851,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                                 {
                                         config_save(config_file_default);
                                         loadconfig(wopenfilestring);
+					pclog_w(L"NVR path: %s\n", nvr_path);
                                         mem_resize();
                                         loadbios();
                                         resetpchard();
