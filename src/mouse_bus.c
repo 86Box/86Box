@@ -32,7 +32,7 @@
  *		Based on an early driver for MINIX 1.5.
  *		Based on the 86Box PS/2 mouse driver as a framework.
  *
- * Version:	@(#)mouse_bus.c	1.0.4	2017/05/01
+ * Version:	@(#)mouse_bus.c	1.0.4	2017/05/06
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 1989-2017 Fred N. van Kempen.
@@ -45,9 +45,6 @@
 #include "mouse.h"
 #include "mouse_bus.h"
 #include "plat-mouse.h"
-
-
-/* commit test, pse ignore, will remove */
 
 
 #define ENABLE_3BTN		1		/* enable 3-button mode */
