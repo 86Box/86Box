@@ -115,6 +115,17 @@ void pclog(const char *format, ...)
 #endif
 }
 
+void pclog_w(const wchar_t *format, ...)
+{
+#ifndef RELEASE_BUILD
+   va_list ap;
+   va_start(ap, format);
+   _vwprintf_p(format, ap);
+   va_end(ap);
+   fflush(stdout);
+#endif
+}
+
 #ifndef __unix
 #ifndef _LIBC
 # define __builtin_expect(expr, val)   (expr)
@@ -705,7 +716,7 @@ void loadconfig(wchar_t *fn)
 	int c, d;
 	char s[512];
         char *p;
-        WCHAR *wp, *wq;
+        wchar_t *wp, *wq;
 	char temps[512];
         
         if (!fn)
@@ -920,9 +931,9 @@ void loadconfig(wchar_t *fn)
         }
 
 	memset(nvr_path, 0, 2048);
-        wp = (char *)config_get_wstring(NULL, "nvr_path", "nvr");
+        wp = (wchar_t *)config_get_wstring(NULL, "nvr_path", L"nvr");
         if (wp) {
-		if (strlen(wp) <= 992)  wcscpy(nvr_path, wp);
+		if (wcslen(wp) <= 992)  wcscpy(nvr_path, wp);
 		else
 		{
 			append_filename_w(nvr_path, pcempath, L"nvr", 511);

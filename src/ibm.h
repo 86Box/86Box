@@ -664,6 +664,7 @@ extern uint32_t SCSIGetCDChannel(int channel);
 extern int ui_writeprot[4];
 
 void pclog(const char *format, ...);
+void pclog_w(const wchar_t *format, ...);
 extern int nmi;
 extern int nmi_auto_clear;
 
