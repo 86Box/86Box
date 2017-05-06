@@ -323,7 +323,7 @@ static void *paradise_pvga1a_pc2086_init()
         paradise_t *paradise = paradise_pvga1a_init();
         
         if (paradise)
-                rom_init(&paradise->bios_rom, "roms/pc2086/40186.ic171", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+                rom_init(&paradise->bios_rom, L"roms/pc2086/40186.ic171", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
                 
         return paradise;
 }
@@ -332,7 +332,7 @@ static void *paradise_pvga1a_pc3086_init()
         paradise_t *paradise = paradise_pvga1a_init();
 
         if (paradise)
-                rom_init(&paradise->bios_rom, "roms/pc3086/c000.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+                rom_init(&paradise->bios_rom, L"roms/pc3086/c000.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
                 
         return paradise;
 }
@@ -343,8 +343,8 @@ static void *paradise_wd90c11_megapc_init()
         
         if (paradise)
                 rom_init_interleaved(&paradise->bios_rom,
-                                     "roms/megapc/41651-bios lo.u18",
-                                     "roms/megapc/211253-bios hi.u19",
+                                     L"roms/megapc/41651-bios lo.u18",
+                                     L"roms/megapc/211253-bios hi.u19",
                                      0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         
         return paradise;
@@ -352,23 +352,8 @@ static void *paradise_wd90c11_megapc_init()
 
 static int paradise_wd90c11_standalone_available()
 {
-        return rom_present("roms/megapc/41651-bios lo.u18") && rom_present("roms/megapc/211253-bios hi.u19");
+        return rom_present(L"roms/megapc/41651-bios lo.u18") && rom_present(L"roms/megapc/211253-bios hi.u19");
 }
-
-/* static void *cpqvga_init()
-{
-        paradise_t *paradise = paradise_pvga1a_init();
-        
-        if (paradise)
-                rom_init(&paradise->bios_rom, "roms/1988-05-18.rom", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-        
-        return paradise;
-}
-
-static int cpqvga_standalone_available()
-{
-        return rom_present("roms/1988-05-18.rom");
-} */
 
 void paradise_close(void *p)
 {
@@ -444,14 +429,3 @@ device_t paradise_wd90c11_device =
         paradise_force_redraw,
         paradise_add_status_info
 };
-/* device_t cpqvga_device =
-{
-        "Compaq/Paradise VGA",
-        0,
-        cpqvga_init,
-        paradise_close,
-        cpqvga_standalone_available,
-        paradise_speed_changed,
-        paradise_force_redraw,
-        paradise_add_status_info
-}; */

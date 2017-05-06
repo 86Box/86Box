@@ -9,14 +9,17 @@ void config_set_string(char *head, char *name, char *val);
 void config_set_wstring(char *head, char *name, wchar_t *val);
 
 char *get_filename(char *s);
+wchar_t *get_filename_w(wchar_t *s);
 void append_filename(char *dest, char *s1, char *s2, int size);
+void append_filename_w(wchar_t *dest, wchar_t *s1, wchar_t *s2, int size);
 void put_backslash(char *s);
+void put_backslash_w(wchar_t *s);
 char *get_extension(char *s);
 wchar_t *get_extension_w(wchar_t *s);
 
-void config_load(char *fn);
-void config_save(char *fn);
+void config_load(wchar_t *fn);
+void config_save(wchar_t *fn);
 void config_dump();
 void config_free();
 
-extern char config_file_default[256];
+extern wchar_t config_file_default[256];

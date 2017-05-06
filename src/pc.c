@@ -76,7 +76,7 @@
 uint8_t ethif;
 int inum;
 
-char nvr_path[1024];
+wchar_t nvr_path[1024];
 int path_len;
 
 int window_w, window_h, window_x, window_y, window_remember;
@@ -261,21 +261,21 @@ void pc_reset()
         ali1429_reset();
 }
 #undef printf
-void initpc(int argc, char *argv[])
+void initpc(int argc, wchar_t *argv[])
 {
-        char *p;
-        char *config_file = NULL;
+        wchar_t *p;
+        wchar_t *config_file = NULL;
         int c, i;
 	FILE *ff;
-        get_executable_name(pcempath,511);
-        pclog("executable_name = %s\n", pcempath);
-        p=get_filename(pcempath);
-        *p=0;
-        pclog("path = %s\n", pcempath);        
+        get_executable_name(pcempath, 511);
+        pclog("executable_name = %ws\n", pcempath);
+        p=get_filename_w(pcempath);
+        *p=L'\0';
+        pclog("path = %ws\n", pcempath);        
 
         for (c = 1; c < argc; c++)
         {
-                if (!strcasecmp(argv[c], "--help"))
+                if (!_wcsicmp(argv[c], L"--help"))
                 {
                         printf("PCem command line options :\n\n");
                         printf("--config file.cfg - use given config file as initial configuration\n");
@@ -283,22 +283,22 @@ void initpc(int argc, char *argv[])
                         printf("--fullscreen      - start in fullscreen mode\n");
                         exit(-1);
                 }
-                else if (!strcasecmp(argv[c], "--config"))
+                else if (!_wcsicmp(argv[c], L"--config"))
                 {
                         if ((c+1) == argc)
                                 break;
                         config_file = argv[c+1];
                         c++;
                 }
-                else if (!strcasecmp(argv[c], "--dump"))
+                else if (!_wcsicmp(argv[c], L"--dump"))
                 {
                         dump_on_exit = 1;
                 }
-                else if (!strcasecmp(argv[c], "--fullscreen"))
+                else if (!_wcsicmp(argv[c], L"--fullscreen"))
                 {
                         start_in_fullscreen = 1;
                 }
-                else if (!strcasecmp(argv[c], "--test"))
+                else if (!_wcsicmp(argv[c], L"--test"))
                 {
 			/* some (undocumented) test function here.. */
 
@@ -313,11 +313,11 @@ void initpc(int argc, char *argv[])
 
 	if (config_file == NULL)
 	{
-	        append_filename(config_file_default, pcempath, "86box.cfg", 511);
+	        append_filename_w(config_file_default, pcempath, L"86box.cfg", 511);
 	}
 	else
 	{
-	        append_filename(config_file_default, pcempath, config_file, 511);
+	        append_filename_w(config_file_default, pcempath, config_file, 511);
 	}
 
 	disc_random_init();
@@ -700,12 +700,12 @@ void closepc()
 
 END_OF_MAIN();*/
 
-void loadconfig(char *fn)
+void loadconfig(wchar_t *fn)
 {
 	int c, d;
 	char s[512];
         char *p;
-        WCHAR *wp;
+        WCHAR *wp, *wq;
 	char temps[512];
         
         if (!fn)
@@ -919,20 +919,27 @@ void loadconfig(char *fn)
                 }
         }
 
-	memset(nvr_path, 0, 1024);
-        p = (char *)config_get_string(NULL, "nvr_path", "nvr");
-        if (p) {
-		if (strlen(p) <= 992)  strcpy(nvr_path, p);
-		else   strcpy(nvr_path, "nvr");
+	memset(nvr_path, 0, 2048);
+        wp = (char *)config_get_wstring(NULL, "nvr_path", "nvr");
+        if (wp) {
+		if (strlen(wp) <= 992)  wcscpy(nvr_path, wp);
+		else
+		{
+			append_filename_w(nvr_path, pcempath, L"nvr", 511);
+		}
 	}
-        else   strcpy(nvr_path, "nvr");
+        else   append_filename_w(nvr_path, pcempath, L"nvr", 511);
 
-	if (nvr_path[strlen(nvr_path)] != '/')
+	if (nvr_path[wcslen(nvr_path) - 1] != L'/')
 	{
-		nvr_path[strlen(nvr_path)] = '/';
+		if (nvr_path[wcslen(nvr_path) - 1] != L'\\')
+		{
+			nvr_path[wcslen(nvr_path)] = L'/';
+			nvr_path[wcslen(nvr_path) + 1] = L'\0';
+		}
 	}
 
-	path_len = strlen(nvr_path);
+	path_len = wcslen(nvr_path);
 
         serial_enabled[0] = config_get_int(NULL, "serial1_enabled", 1);
         serial_enabled[1] = config_get_int(NULL, "serial2_enabled", 1);
@@ -940,10 +947,14 @@ void loadconfig(char *fn)
         bugger_enabled = config_get_int(NULL, "bugger_enabled", 0);
 }
 
-char *nvr_concat(char *to_concat)
+wchar_t *nvr_concat(wchar_t *to_concat)
 {
-	memset(nvr_path + path_len, 0, 1024 - path_len);
-	strcpy(nvr_path + path_len, to_concat);
+	char *p = (char *) nvr_path;
+	p += (path_len * 2);
+	wchar_t *wp = (wchar_t *) p;
+
+	memset(wp, 0, (1024 - path_len) * 2);
+	wcscpy(wp, to_concat);
 	return nvr_path;
 }
 

@@ -34,12 +34,12 @@
 
 
 #if AHA == AHA154xB
-# define ROMFILE	"roms/adaptec/aha1540b310.bin"
+# define ROMFILE	L"roms/adaptec/aha1540b310.bin"
 # define AHA_BID	'A'			/* AHA-154x B */
 #endif
 
 #if AHA == AHA154xC
-# define ROMFILE	"roms/adaptec/aha1542c101.bin"
+# define ROMFILE	L"roms/adaptec/aha1542c101.bin"
 # define AHA_BID	'D'			/* AHA-154x C */
 # define ROM_FWHIGH	0x0022			/* firmware version (hi/lo) */
 # define ROM_SHRAM	0x3F80			/* shadow RAM address base */
@@ -49,7 +49,7 @@
 #endif
 
 #if AHA == AHA154xCF
-# define ROMFILE	"roms/adaptec/aha1542cf201.bin"
+# define ROMFILE	L"roms/adaptec/aha1542cf201.bin"
 # define AHA_BID	'E'			/* AHA-154x CF */
 # define ROM_FWHIGH	0x0022			/* firmware version (hi/lo) */
 # define ROM_SHRAM	0x3F80			/* shadow RAM address base */
@@ -59,7 +59,7 @@
 #endif
 
 #if AHA == AHA154xCP
-# define ROMFILE	"roms/adaptec/aha1542cp102.bin"
+# define ROMFILE	L"roms/adaptec/aha1542cp102.bin"
 # define AHA_BID	'F'			/* AHA-154x CP */
 # define ROM_FWHIGH	0x0055			/* firmware version (hi/lo) */
 # define ROM_SHRAM	0x3F80			/* shadow RAM address base */
@@ -208,7 +208,7 @@ aha154x_init(uint16_t ioaddr, uint32_t memaddr, aha_info *aha)
     pclog("AHA154x: loading BIOS from '%s'\n", bios_path);
 
     /* Open the BIOS image file and make sure it exists. */
-    if ((f = fopen(bios_path, "rb")) == NULL) {
+    if ((f = romfopen(bios_path, L"rb")) == NULL) {
 	pclog("AHA154x: BIOS ROM not found!\n");
 	return;
     }

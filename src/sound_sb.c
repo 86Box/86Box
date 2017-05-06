@@ -655,7 +655,7 @@ void *sb_16_init()
 
 int sb_awe32_available()
 {
-        return rom_present("roms/awe32.raw");
+        return rom_present(L"roms/awe32.raw");
 }
 
 void *sb_awe32_init()

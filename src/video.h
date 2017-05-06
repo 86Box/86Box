@@ -113,7 +113,7 @@ void ddraw_fs_take_screenshot(char *fn);
 
 extern int cga_palette;
 
-void loadfont(char *s, int format);
+void loadfont(wchar_t *s, int format);
 void initvideo();
 void video_init();
 void closevideo();

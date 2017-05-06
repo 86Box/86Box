@@ -900,7 +900,7 @@ void *ega_standalone_init()
 	overscan_x = 16;
 	overscan_y = 28;
 
-        rom_init(&ega->bios_rom, "roms/ibm_6277356_ega_card_u44_27128.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&ega->bios_rom, L"roms/ibm_6277356_ega_card_u44_27128.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
         if (ega->bios_rom.rom[0x3ffe] == 0xaa && ega->bios_rom.rom[0x3fff] == 0x55)
         {
@@ -938,7 +938,7 @@ void *cpqega_standalone_init()
 	overscan_x = 16;
 	overscan_y = 28;
 
-        rom_init(&ega->bios_rom, "roms/108281-001.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&ega->bios_rom, L"roms/108281-001.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
         if (ega->bios_rom.rom[0x3ffe] == 0xaa && ega->bios_rom.rom[0x3fff] == 0x55)
         {
@@ -974,7 +974,7 @@ void *sega_standalone_init()
 	overscan_x = 16;
 	overscan_y = 28;
 
-        rom_init(&ega->bios_rom, "roms/lega.vbi", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&ega->bios_rom, L"roms/lega.vbi", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
         if (ega->bios_rom.rom[0x3ffe] == 0xaa && ega->bios_rom.rom[0x3fff] == 0x55)
         {
@@ -1004,17 +1004,17 @@ void *sega_standalone_init()
 
 static int ega_standalone_available()
 {
-        return rom_present("roms/ibm_6277356_ega_card_u44_27128.bin");
+        return rom_present(L"roms/ibm_6277356_ega_card_u44_27128.bin");
 }
 
 static int cpqega_standalone_available()
 {
-        return rom_present("roms/108281-001.bin");
+        return rom_present(L"roms/108281-001.bin");
 }
 
 static int sega_standalone_available()
 {
-        return rom_present("roms/lega.vbi");
+        return rom_present(L"roms/lega.vbi");
 }
 
 void ega_close(void *p)

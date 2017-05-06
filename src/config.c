@@ -8,9 +8,9 @@
 #include "config.h"
 #include "ibm.h"
 
-char config_file_default[256];
+wchar_t config_file_default[256];
 
-static char config_file[256];
+static wchar_t config_file[256];
 
 typedef struct list_t
 {
@@ -100,9 +100,9 @@ void config_free()
         }
 }
 
-void config_load(char *fn)
+void config_load(wchar_t *fn)
 {
-        FILE *f = fopen(fn, "rt, ccs=UNICODE");
+        FILE *f = _wfopen(fn, L"rt, ccs=UNICODE");
         section_t *current_section;
         
         memset(&config_head, 0, sizeof(list_t));
@@ -200,7 +200,7 @@ void config_load(char *fn)
 
 void config_new()
 {
-        FILE *f = fopen(config_file, "wt, ccs=UNICODE");
+        FILE *f = _wfopen(config_file, L"wt, ccs=UNICODE");
         fclose(f);
 }
 
@@ -386,9 +386,26 @@ char *get_filename(char *s)
         return s;
 }
 
+wchar_t *get_filename_w(wchar_t *s)
+{
+        int c = wcslen(s) - 1;
+        while (c > 0)
+        {
+                if (s[c] == L'/' || s[c] == L'\\')
+                   return &s[c+1];
+               c--;
+        }
+        return s;
+}
+
 void append_filename(char *dest, char *s1, char *s2, int size)
 {
         sprintf(dest, "%s%s", s1, s2);
+}
+
+void append_filename_w(wchar_t *dest, wchar_t *s1, wchar_t *s2, int size)
+{
+        _swprintf(dest, L"%s%s", s1, s2);
 }
 
 void put_backslash(char *s)
@@ -396,6 +413,13 @@ void put_backslash(char *s)
         int c = strlen(s) - 1;
         if (s[c] != '/' && s[c] != '\\')
            s[c] = '/';
+}
+
+void put_backslash_w(wchar_t *s)
+{
+        int c = wcslen(s) - 1;
+        if (s[c] != L'/' && s[c] != L'\\')
+           s[c] = L'/';
 }
 
 char *get_extension(char *s)
@@ -432,9 +456,9 @@ wchar_t *get_extension_w(wchar_t *s)
 
 static wchar_t wname[512];
 
-void config_save(char *fn)
+void config_save(wchar_t *fn)
 {
-        FILE *f = fopen(fn, "wt, ccs=UNICODE");
+        FILE *f = _wfopen(fn, L"wt, ccs=UNICODE");
         section_t *current_section;
         
         current_section = (section_t *)config_head.next;

@@ -3293,9 +3293,9 @@ static void *mach64gx_init()
         else
                 mach64->config_stat0 |= 1; /*VLB, 256Kx16 DRAM*/
 
-        ati_eeprom_load(&mach64->eeprom, "mach64.nvr", 1);
+        ati_eeprom_load(&mach64->eeprom, L"mach64.nvr", 1);
 
-        rom_init(&mach64->bios_rom, "roms/mach64gx/bios.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&mach64->bios_rom, L"roms/mach64gx/bios.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
                 
         return mach64;
 }
@@ -3310,9 +3310,9 @@ static void *mach64vt2_init()
         mach64->dac_cntl = 1 << 16; /*Internal 24-bit DAC*/
         mach64->config_stat0 = 4;
 
-        ati_eeprom_load(&mach64->eeprom, "mach64vt.nvr", 1);
+        ati_eeprom_load(&mach64->eeprom, L"mach64vt.nvr", 1);
 
-        rom_init(&mach64->bios_rom, "roms/atimach64vt2pci.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&mach64->bios_rom, L"roms/atimach64vt2pci.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         
         svga->vblank_start = mach64_vblank_start;
         
@@ -3321,12 +3321,12 @@ static void *mach64vt2_init()
 
 int mach64gx_available()
 {
-        return rom_present("roms/mach64gx/bios.bin");
+        return rom_present(L"roms/mach64gx/bios.bin");
 }
 
 int mach64vt2_available()
 {
-        return rom_present("roms/atimach64vt2pci.bin");
+        return rom_present(L"roms/atimach64vt2pci.bin");
 }
 
 void mach64_close(void *p)

@@ -2,6 +2,7 @@
 #include "ibm.h"
 #include "device.h"
 #include "mem.h"
+#include "rom.h"
 
 #define FLASH_IS_BXB	2
 #define FLASH_INVERT	1
@@ -34,7 +35,7 @@ typedef struct flash_t
 	uint8_t array[131072];
 } flash_t;
 
-static char flash_path[1024];
+static wchar_t flash_path[1024];
 
 static uint8_t flash_read(uint32_t addr, void *p)
 {
@@ -150,7 +151,6 @@ static void intel_flash_add_mappings_inverted(flash_t *flash)
 void *intel_flash_init(uint8_t type)
 {
         FILE *f;
-	char fpath[1024];
 	int i;
         flash_t *flash;
 	flash = malloc(sizeof(flash_t));
@@ -159,74 +159,64 @@ void *intel_flash_init(uint8_t type)
 	switch(romset)
 	{
 		case ROM_REVENGE:
-			strcpy(flash_path, "roms/revenge/");
+			wcscpy(flash_path, nvr_concat(L"revenge.bin"));
 			break;
 		case ROM_586MC1:
-			strcpy(flash_path, "roms/586mc1/");
+			wcscpy(flash_path, nvr_concat(L"586mc1.bin"));
 			break;
 		case ROM_PLATO:
-			strcpy(flash_path, "roms/plato/");
+			wcscpy(flash_path, nvr_concat(L"plato.bin"));
 			break;
 		case ROM_ENDEAVOR:
-			strcpy(flash_path, "roms/endeavor/");
+			wcscpy(flash_path, nvr_concat(L"endeavor.bin"));
 			break;
 		case ROM_MB500N:
-			strcpy(flash_path, "roms/mb500n/");
+			wcscpy(flash_path, nvr_concat(L"mb500n.bin"));
 			break;
-#if 0
-		case ROM_POWERMATE_V:
-			strcpy(flash_path, "roms/powermate_v/");
-			break;
-#endif
 		case ROM_P54TP4XE:
-			strcpy(flash_path, "roms/p54tp4xe/");
+			wcscpy(flash_path, nvr_concat(L"p54tp4xe.bin"));
 			break;
 		case ROM_AP53:
-			strcpy(flash_path, "roms/ap53/");
+			wcscpy(flash_path, nvr_concat(L"ap53.bin"));
 			break;
 		case ROM_P55T2S:
-			strcpy(flash_path, "roms/p55t2s/");
+			wcscpy(flash_path, nvr_concat(L"p55t2s.bin"));
 			break;
 		case ROM_ACERM3A:
-			strcpy(flash_path, "roms/acerm3a/");
+			wcscpy(flash_path, nvr_concat(L"acerm3a.bin"));
 			break;
 		case ROM_ACERV35N:
-			strcpy(flash_path, "roms/acerv35n/");
+			wcscpy(flash_path, nvr_concat(L"acerv35n.bin"));
 			break;
 		case ROM_430VX:
-			strcpy(flash_path, "roms/430vx/");
+			wcscpy(flash_path, nvr_concat(L"430vx.bin"));
 			break;
 		case ROM_P55VA:
-			strcpy(flash_path, "roms/p55va/");
+			wcscpy(flash_path, nvr_concat(L"p55va.bin"));
 			break;
 		case ROM_P55T2P4:
-			strcpy(flash_path, "roms/p55t2p4/");
+			wcscpy(flash_path, nvr_concat(L"p55t2p4.bin"));
 			break;
 		case ROM_P55TVP4:
-			strcpy(flash_path, "roms/p55tvp4/");
+			wcscpy(flash_path, nvr_concat(L"p55tvp4.bin"));
 			break;
 		case ROM_440FX:
-			strcpy(flash_path, "roms/440fx/");
+			wcscpy(flash_path, nvr_concat(L"440fx.bin"));
 			break;
-#if 0
-		case ROM_MARL:
-			strcpy(flash_path, "roms/marl/");
-			break;
-#endif
 		case ROM_THOR:
-			strcpy(flash_path, "roms/thor/");
+			wcscpy(flash_path, nvr_concat(L"thor.bin"));
 			break;
 		case ROM_MRTHOR:
-			strcpy(flash_path, "roms/mrthor/");
+			wcscpy(flash_path, nvr_concat(L"mrthor.bin"));
 			break;
 		case ROM_ZAPPA:
-			strcpy(flash_path, "roms/zappa/");
+			wcscpy(flash_path, nvr_concat(L"zappa.bin"));
 			break;
 		case ROM_S1668:
-			strcpy(flash_path, "roms/tpatx/");
+			wcscpy(flash_path, nvr_concat(L"tpatx.bin"));
 			break;
 		default:
-                fatal("intel_flash_init on unsupported ROM set %i\n", romset);
+	                fatal("intel_flash_init on unsupported ROM set %i\n", romset);
 	}
 
 	flash->flash_id = (type & FLASH_IS_BXB) ? 0x95 : 0x94;
@@ -289,9 +279,7 @@ void *intel_flash_init(uint8_t type)
         flash->command = CMD_READ_ARRAY;
         flash->status = 0;
 
-	strcpy(fpath, flash_path);
-	strcat(fpath, "flash.bin");
-        f = romfopen(fpath, "rb");
+        f = nvrfopen(flash_path, L"rb");
         if (f)
         {
                 fread(&(flash->array[flash->block_start[BLOCK_MAIN]]), flash->block_len[BLOCK_MAIN], 1, f);
@@ -331,11 +319,7 @@ void intel_flash_close(void *p)
         FILE *f;
         flash_t *flash = (flash_t *)p;
 
-	char fpath[1024];
-
-	strcpy(fpath, flash_path);
-	strcat(fpath, "flash.bin");
-        f = romfopen(fpath, "wb");
+        f = nvrfopen(flash_path, L"wb");
         fwrite(&(flash->array[flash->block_start[BLOCK_MAIN]]), flash->block_len[BLOCK_MAIN], 1, f);
         fwrite(&(flash->array[flash->block_start[BLOCK_DATA1]]), flash->block_len[BLOCK_DATA1], 1, f);
         fwrite(&(flash->array[flash->block_start[BLOCK_DATA2]]), flash->block_len[BLOCK_DATA2], 1, f);

@@ -72,7 +72,7 @@ static void *xtide_init()
         xtide_t *xtide = malloc(sizeof(xtide_t));
         memset(xtide, 0, sizeof(xtide_t));
 
-        rom_init(&xtide->bios_rom, "roms/ide_xt.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&xtide->bios_rom, L"roms/ide_xt.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
         ide_init();
         ide_pri_disable();
         ide_sec_disable();
@@ -86,7 +86,7 @@ static void *xtide_at_init()
         xtide_t *xtide = malloc(sizeof(xtide_t));
         memset(xtide, 0, sizeof(xtide_t));
 
-        rom_init(&xtide->bios_rom, "roms/ide_at.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&xtide->bios_rom, L"roms/ide_at.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
         ide_init();
         
         return xtide;
@@ -97,7 +97,7 @@ static void *xtide_ps2_init()
         xtide_t *xtide = malloc(sizeof(xtide_t));
         memset(xtide, 0, sizeof(xtide_t));
 
-        rom_init(&xtide->bios_rom, "roms/SIDE1V12.BIN", 0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&xtide->bios_rom, L"roms/SIDE1V12.BIN", 0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         ide_init();
         ide_pri_disable();
         ide_sec_disable();
@@ -111,7 +111,7 @@ static void *xtide_at_ps2_init()
         xtide_t *xtide = malloc(sizeof(xtide_t));
         memset(xtide, 0, sizeof(xtide_t));
 
-        rom_init(&xtide->bios_rom, "roms/ide_at_1_1_5.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&xtide->bios_rom, L"roms/ide_at_1_1_5.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
         ide_init();
         
         return xtide;
@@ -126,22 +126,22 @@ static void xtide_close(void *p)
 
 static int xtide_available()
 {
-        return rom_present("roms/ide_xt.bin");
+        return rom_present(L"roms/ide_xt.bin");
 }
 
 static int xtide_at_available()
 {
-        return rom_present("roms/ide_at.bin");
+        return rom_present(L"roms/ide_at.bin");
 }
 
 static int xtide_ps2_available()
 {
-        return rom_present("roms/SIDE1V12.BIN");
+        return rom_present(L"roms/SIDE1V12.BIN");
 }
 
 static int xtide_at_ps2_available()
 {
-        return rom_present("roms/ide_at_1_1_5.bin");
+        return rom_present(L"roms/ide_at_1_1_5.bin");
 }
 
 device_t xtide_device =

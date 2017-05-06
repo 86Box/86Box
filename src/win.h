@@ -33,7 +33,7 @@ extern WCHAR wopenfilestring[260];
 int getfile(HWND hwnd, char *f, char *fn);
 int getsfile(HWND hwnd, char *f, char *fn);
 
-void get_executable_name(char *s, int size);
+void get_executable_name(WCHAR *s, int size);
 void set_window_title(WCHAR *s);
 
 void startblit();

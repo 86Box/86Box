@@ -2,6 +2,8 @@
 #include "ibm.h"
 #include "device.h"
 #include "io.h"
+#include "mem.h"
+#include "rom.h"
 #include "ps2_nvr.h"
 
 typedef struct ps2_nvr_t
@@ -56,7 +58,7 @@ static void *ps2_nvr_init()
 
         switch (romset)
         {
-                case ROM_IBMPS2_M80:  f = romfopen("nvr/ibmps2_m80_sec.nvr", "rb"); break;
+                case ROM_IBMPS2_M80:  f = nvrfopen(L"ibmps2_m80_sec.nvr", L"rb"); break;
         }
         if (f)
         {
@@ -76,7 +78,7 @@ static void ps2_nvr_close(void *p)
 
         switch (romset)
         {
-                case ROM_IBMPS2_M80:  f = romfopen("nvr/ibmps2_m80_sec.nvr", "wb"); break;
+                case ROM_IBMPS2_M80:  f = nvrfopen(L"ibmps2_m80_sec.nvr", L"wb"); break;
         }
         if (f)
         {

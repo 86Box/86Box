@@ -52,7 +52,6 @@ void outw(uint16_t port, uint16_t val);
 uint32_t inl(uint16_t port);
 void outl(uint16_t port, uint32_t val);
 
-FILE *romfopen(char *fn, char *mode);
 extern int shadowbios,shadowbios_write;
 extern int mem_size;
 extern int readlnum,writelnum;
@@ -552,7 +551,7 @@ int gated,speakval,speakon;
 #define SND_WSS   9     /*Windows Sound System*/
 #define SND_PAS16 10    /*Pro Audio Spectrum 16*/
 
-char pcempath[512];
+wchar_t pcempath[512];
 
 
 /*Hard disc*/
@@ -676,7 +675,7 @@ uint64_t timer_read();
 extern uint64_t timer_freq;
 
 
-void loadconfig(char *fn);
+void loadconfig(wchar_t *fn);
 
 extern int infocus;
 
@@ -701,10 +700,10 @@ extern uint64_t star;
 
 #define FPU_CW_Reserved_Bits (0xe0c0)
 
-extern char nvr_path[1024];
+extern wchar_t nvr_path[1024];
 extern int path_len;
 
-char *nvr_concat(char *to_concat);
+wchar_t *nvr_concat(wchar_t *to_concat);
 
 int mem_a20_state;
 
@@ -758,7 +757,7 @@ void execx86(int cycs);
 void flushmmucache();
 void flushmmucache_cr3();
 int idivl(int32_t val);
-void initpc(int argc, char *argv[]);
+void initpc(int argc, wchar_t *argv[]);
 void loadcscall(uint16_t seg);
 void loadcsjmp(uint16_t seg, uint32_t oxpc);
 void mmu_invalidate(uint32_t addr);

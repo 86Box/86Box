@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include "ibm.h"
 #include "io.h"
+#include "mem.h"
 #include "nvr.h"
 #include "pic.h"
+#include "rom.h"
 #include "timer.h"
 #include "rtc.h"
 
@@ -190,72 +192,60 @@ void loadnvr()
         oldromset=romset;
         switch (romset)
         {
-                case ROM_PC1512:      f = romfopen(nvr_concat("pc1512.nvr"),      "rb"); break;
-                case ROM_PC1640:      f = romfopen(nvr_concat("pc1640.nvr"),      "rb"); break;
-                case ROM_PC200:       f = romfopen(nvr_concat("pc200.nvr"),       "rb"); break;
-                case ROM_PC2086:      f = romfopen(nvr_concat("pc2086.nvr"),      "rb"); break;
-                case ROM_PC3086:      f = romfopen(nvr_concat("pc3086.nvr"),      "rb"); break;                
-                case ROM_IBMAT:       f = romfopen(nvr_concat("at.nvr"),          "rb"); break;
-                case ROM_IBMPS1_2011: f = romfopen(nvr_concat("ibmps1_2011.nvr"), "rb"); nvrmask = 127; break;
-                case ROM_IBMPS1_2121: f = romfopen(nvr_concat("ibmps1_2121.nvr"), "rb"); nvrmask = 127; break;
-                case ROM_IBMPS1_2121_ISA: f = romfopen(nvr_concat("ibmps1_2121_isa.nvr"), "rb"); nvrmask = 127; break;
-                case ROM_IBMPS2_M30_286: f = romfopen(nvr_concat("ibmps2_m30_286.nvr"), "rb"); nvrmask = 127; break;
-                case ROM_IBMPS2_M50:  f = romfopen("nvr/ibmps2_m50.nvr",  "rb"); break;
-                case ROM_IBMPS2_M55SX: f = romfopen("nvr/ibmps2_m55sx.nvr",  "rb"); break;
-                case ROM_IBMPS2_M80:  f = romfopen("nvr/ibmps2_m80.nvr",  "rb"); break;
-                case ROM_CMDPC30:     f = romfopen(nvr_concat("cmdpc30.nvr"),     "rb"); nvrmask = 127; break;
-				case ROM_PORTABLEII:  f = romfopen(nvr_concat("portableii.nvr"),  "rb"); break;
-				case ROM_PORTABLEIII: f = romfopen(nvr_concat("portableiii.nvr"),  "rb"); break;
-                case ROM_AMI286:      f = romfopen(nvr_concat("ami286.nvr"),      "rb"); nvrmask = 127; break;
-                case ROM_AWARD286:    f = romfopen(nvr_concat("award286.nvr"),    "rb"); nvrmask = 127; break;
-                case ROM_DELL200:     f = romfopen(nvr_concat("dell200.nvr"),     "rb"); nvrmask = 127; break;
-                case ROM_SUPER286TR:  f = romfopen(nvr_concat("super286tr.nvr"),  "rb"); nvrmask = 127; break;
-                case ROM_SPC4200P:    f = romfopen(nvr_concat("spc4200p.nvr"),    "rb"); nvrmask = 127; break;
-                case ROM_IBMAT386:    f = romfopen(nvr_concat("at386.nvr"),       "rb"); nvrmask = 127; break;
-                case ROM_DESKPRO_386: f = romfopen(nvr_concat("deskpro386.nvr"),  "rb"); break;
-				case ROM_PORTABLEIII386: f = romfopen(nvr_concat("portableiii386.nvr"),  "rb"); break;
-                /* case ROM_ACER386:     f = romfopen(nvr_concat("acer386.nvr"),     "rb"); nvrmask = 127; break; */
-                case ROM_MEGAPC:      f = romfopen(nvr_concat("megapc.nvr"),      "rb"); nvrmask = 127; break;
-                case ROM_MEGAPCDX:    f = romfopen(nvr_concat("megapcdx.nvr"),    "rb"); nvrmask = 127; break;
-                case ROM_AMI386SX:    f = romfopen(nvr_concat("ami386.nvr"),      "rb"); nvrmask = 127; break;
-                case ROM_AMI486:      f = romfopen(nvr_concat("ami486.nvr"),      "rb"); nvrmask = 127; break;
-                case ROM_WIN486:      f = romfopen(nvr_concat("win486.nvr"),      "rb"); nvrmask = 127; break;
-                case ROM_PCI486:      f = romfopen(nvr_concat("hot-433.nvr"),     "rb"); nvrmask = 127; break;
-                case ROM_SIS496:      f = romfopen(nvr_concat("sis496.nvr"),      "rb"); nvrmask = 127; break;
-                case ROM_430VX:       f = romfopen(nvr_concat("430vx.nvr"),       "rb"); nvrmask = 127; break;
-                case ROM_REVENGE:     f = romfopen(nvr_concat("revenge.nvr"),     "rb"); nvrmask = 127; break;
-                case ROM_ENDEAVOR:    f = romfopen(nvr_concat("endeavor.nvr"),    "rb"); nvrmask = 127; break;
-                /* case ROM_PX386:       f = romfopen(nvr_concat("px386.nvr"),       "rb"); nvrmask = 127; break; */
-                case ROM_DTK386:      f = romfopen(nvr_concat("dtk386.nvr"),      "rb"); nvrmask = 127; break;
-                case ROM_MR386DX_OPTI495:  f = romfopen(nvr_concat("mr386dx_opti495.nvr"),  "rb"); nvrmask = 127; break;
-                case ROM_AMI386DX_OPTI495: f = romfopen(nvr_concat("ami386dx_opti495.nvr"), "rb"); nvrmask = 127; break;
-                case ROM_DTK486:      f = romfopen(nvr_concat("dtk486.nvr"),      "rb"); nvrmask = 127; break;
-                case ROM_R418:        f = romfopen(nvr_concat("r418.nvr"),        "rb"); nvrmask = 127; break;
-                case ROM_586MC1:      f = romfopen(nvr_concat("586mc1.nvr"),      "rb"); nvrmask = 127; break;
-                case ROM_PLATO:       f = romfopen(nvr_concat("plato.nvr"),       "rb"); nvrmask = 127; break;
-                case ROM_MB500N:      f = romfopen(nvr_concat("mb500n.nvr"),      "rb"); nvrmask = 127; break;
-#if 0
-                case ROM_POWERMATE_V: f = romfopen(nvr_concat("powermate_v.nvr"), "rb"); nvrmask = 127; break;
-#endif
-                case ROM_P54TP4XE:    f = romfopen(nvr_concat("p54tp4xe.nvr"),    "rb"); nvrmask = 127; break;
-                case ROM_AP53:        f = romfopen(nvr_concat("ap53.nvr"),        "rb"); nvrmask = 127; break;
-                case ROM_P55T2S:      f = romfopen(nvr_concat("p55t2s.nvr"),      "rb"); nvrmask = 127; break;
-                case ROM_ACERM3A:     f = romfopen(nvr_concat("acerm3a.nvr"),     "rb"); nvrmask = 127; break;
-                case ROM_ACERV35N:    f = romfopen(nvr_concat("acerv35n.nvr"),    "rb"); nvrmask = 127; break;
-                case ROM_P55VA:       f = romfopen(nvr_concat("p55va.nvr"),       "rb"); nvrmask = 127; break;
-                case ROM_P55T2P4:     f = romfopen(nvr_concat("p55t2p4.nvr"),     "rb"); nvrmask = 127; break;
-                case ROM_P55TVP4:     f = romfopen(nvr_concat("p55tvp4.nvr"),     "rb"); nvrmask = 127; break;
-                case ROM_440FX:       f = romfopen(nvr_concat("440fx.nvr"),       "rb"); nvrmask = 127; break;
-#if 0
-                case ROM_MARL:        f = romfopen(nvr_concat("marl.nvr"),        "rb"); nvrmask = 127; break;
-#endif
-                case ROM_THOR:        f = romfopen(nvr_concat("thor.nvr"),        "rb"); nvrmask = 127; break;
-                case ROM_MRTHOR:      f = romfopen(nvr_concat("mrthor.nvr"),      "rb"); nvrmask = 127; break;
-                case ROM_ZAPPA:       f = romfopen(nvr_concat("zappa.nvr"),       "rb"); nvrmask = 127; break;
-#if 0
-                case ROM_CMDPC60:     f = romfopen(nvr_concat("cmdpc60.nvr"),     "rb"); nvrmask = 127; break;
-#endif
-                case ROM_S1668:       f = romfopen(nvr_concat("tpatx.nvr"),       "rb"); nvrmask = 127; break;
+                case ROM_PC1512:		f = nvrfopen(L"pc1512.nvr",		L"rb"); break;
+                case ROM_PC1640:		f = nvrfopen(L"pc1640.nvr",		L"rb"); break;
+                case ROM_PC200:			f = nvrfopen(L"pc200.nvr",		L"rb"); break;
+                case ROM_PC2086:		f = nvrfopen(L"pc2086.nvr",		L"rb"); break;
+                case ROM_PC3086:		f = nvrfopen(L"pc3086.nvr",		L"rb"); break;                
+                case ROM_IBMAT:			f = nvrfopen(L"at.nvr",			L"rb"); break;
+                case ROM_IBMPS1_2011:		f = nvrfopen(L"ibmps1_2011.nvr",	L"rb"); nvrmask = 127; break;
+                case ROM_IBMPS1_2121:		f = nvrfopen(L"ibmps1_2121.nvr",	L"rb"); nvrmask = 127; break;
+                case ROM_IBMPS1_2121_ISA:	f = nvrfopen(L"ibmps1_2121_isa.nvr",	L"rb"); nvrmask = 127; break;
+                case ROM_IBMPS2_M30_286:	f = nvrfopen(L"ibmps2_m30_286.nvr",	L"rb"); nvrmask = 127; break;
+                case ROM_IBMPS2_M50:		f = nvrfopen(L"ibmps2_m50.nvr",		L"rb"); break;
+                case ROM_IBMPS2_M55SX:		f = nvrfopen(L"ibmps2_m55sx.nvr",	L"rb"); break;
+                case ROM_IBMPS2_M80:		f = nvrfopen(L"ibmps2_m80.nvr",		L"rb"); break;
+                case ROM_CMDPC30:		f = nvrfopen(L"cmdpc30.nvr",		L"rb"); nvrmask = 127; break;
+		case ROM_PORTABLEII:		f = nvrfopen(L"portableii.nvr",		L"rb"); break;
+		case ROM_PORTABLEIII:		f = nvrfopen(L"portableiii.nvr",	L"rb"); break;
+                case ROM_AMI286:		f = nvrfopen(L"ami286.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_AWARD286:		f = nvrfopen(L"award286.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_DELL200:		f = nvrfopen(L"dell200.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_SUPER286TR:		f = nvrfopen(L"super286tr.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_SPC4200P:		f = nvrfopen(L"spc4200p.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_IBMAT386:		f = nvrfopen(L"at386.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_DESKPRO_386:		f = nvrfopen(L"deskpro386.nvr",		L"rb"); break;
+		case ROM_PORTABLEIII386:	f = nvrfopen(L"portableiii386.nvr",	L"rb"); break;
+                case ROM_MEGAPC:		f = nvrfopen(L"megapc.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_MEGAPCDX:		f = nvrfopen(L"megapcdx.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_AMI386SX:		f = nvrfopen(L"ami386.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_AMI486:		f = nvrfopen(L"ami486.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_WIN486:		f = nvrfopen(L"win486.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_SIS496:		f = nvrfopen(L"sis496.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_430VX:			f = nvrfopen(L"430vx.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_REVENGE:		f = nvrfopen(L"revenge.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_ENDEAVOR:		f = nvrfopen(L"endeavor.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_DTK386:		f = nvrfopen(L"dtk386.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_MR386DX_OPTI495:	f = nvrfopen(L"mr386dx_opti495.nvr",	L"rb"); nvrmask = 127; break;
+                case ROM_AMI386DX_OPTI495:	f = nvrfopen(L"ami386dx_opti495.nvr",	L"rb"); nvrmask = 127; break;
+                case ROM_DTK486:		f = nvrfopen(L"dtk486.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_R418:			f = nvrfopen(L"r418.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_586MC1:		f = nvrfopen(L"586mc1.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_PLATO:			f = nvrfopen(L"plato.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_MB500N:		f = nvrfopen(L"mb500n.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_P54TP4XE:		f = nvrfopen(L"p54tp4xe.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_AP53:			f = nvrfopen(L"ap53.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_P55T2S:		f = nvrfopen(L"p55t2s.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_ACERM3A:		f = nvrfopen(L"acerm3a.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_ACERV35N:		f = nvrfopen(L"acerv35n.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_P55VA:			f = nvrfopen(L"p55va.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_P55T2P4:		f = nvrfopen(L"p55t2p4.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_P55TVP4:		f = nvrfopen(L"p55tvp4.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_440FX:			f = nvrfopen(L"440fx.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_THOR:			f = nvrfopen(L"thor.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_MRTHOR:		f = nvrfopen(L"mrthor.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_ZAPPA:			f = nvrfopen(L"zappa.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_S1668:			f = nvrfopen(L"tpatx.nvr",		L"rb"); nvrmask = 127; break;
                 default: return;
         }
         if (!f)
@@ -287,72 +277,60 @@ void savenvr()
         FILE *f;
         switch (oldromset)
         {
-                case ROM_PC1512:      f = romfopen(nvr_concat("pc1512.nvr"),      "wb"); break;
-                case ROM_PC1640:      f = romfopen(nvr_concat("pc1640.nvr"),      "wb"); break;
-                case ROM_PC200:       f = romfopen(nvr_concat("pc200.nvr"),       "wb"); break;
-                case ROM_PC2086:      f = romfopen(nvr_concat("pc2086.nvr"),      "wb"); break;
-                case ROM_PC3086:      f = romfopen(nvr_concat("pc3086.nvr"),      "wb"); break;
-                case ROM_IBMAT:       f = romfopen(nvr_concat("at.nvr"),          "wb"); break;
-                case ROM_IBMPS1_2011: f = romfopen(nvr_concat("ibmps1_2011.nvr"), "wb"); break;
-                case ROM_IBMPS1_2121: f = romfopen(nvr_concat("ibmps1_2121.nvr"), "wb"); break;
-                case ROM_IBMPS1_2121_ISA: f = romfopen(nvr_concat("ibmps1_2121_isa.nvr"), "wb"); break;
-                case ROM_IBMPS2_M30_286: f = romfopen(nvr_concat("ibmps2_m30_286.nvr"), "wb"); break;
-                case ROM_IBMPS2_M50:  f = romfopen("nvr/ibmps2_m50.nvr",  "wb"); break;
-                case ROM_IBMPS2_M55SX: f = romfopen("nvr/ibmps2_m55sx.nvr",  "wb"); break;
-                case ROM_IBMPS2_M80:  f = romfopen("nvr/ibmps2_m80.nvr",  "wb"); break;
-                case ROM_CMDPC30:     f = romfopen(nvr_concat("cmdpc30.nvr"),     "wb"); break;
-				case ROM_PORTABLEII: f = romfopen(nvr_concat("portableii.nvr"),  "wb"); break;
-				case ROM_PORTABLEIII: f = romfopen(nvr_concat("portableiii.nvr"),  "wb"); break;
-                case ROM_AMI286:      f = romfopen(nvr_concat("ami286.nvr"),      "wb"); break;
-                case ROM_AWARD286:    f = romfopen(nvr_concat("award286.nvr"),    "wb"); break;
-                case ROM_DELL200:     f = romfopen(nvr_concat("dell200.nvr"),     "wb"); break;
-                case ROM_SUPER286TR:  f = romfopen(nvr_concat("super286tr.nvr"),  "wb"); break;
-                case ROM_SPC4200P:    f = romfopen(nvr_concat("spc4200p.nvr"),    "wb"); break;
-                case ROM_IBMAT386:    f = romfopen(nvr_concat("at386.nvr"),       "wb"); break;
-                case ROM_DESKPRO_386: f = romfopen(nvr_concat("deskpro386.nvr"),  "wb"); break;
-				case ROM_PORTABLEIII386: f = romfopen(nvr_concat("portableiii386.nvr"),  "wb"); break;
-                /* case ROM_ACER386:     f = romfopen(nvr_concat("acer386.nvr"),     "wb"); break; */
-                case ROM_MEGAPC:      f = romfopen(nvr_concat("megapc.nvr"),      "wb"); break;
-                case ROM_MEGAPCDX:    f = romfopen(nvr_concat("megapcdx.nvr"),    "wb"); break;
-                case ROM_AMI386SX:    f = romfopen(nvr_concat("ami386.nvr"),      "wb"); break;
-                case ROM_AMI486:      f = romfopen(nvr_concat("ami486.nvr"),      "wb"); break;
-                case ROM_WIN486:      f = romfopen(nvr_concat("win486.nvr"),      "wb"); break;
-                case ROM_PCI486:      f = romfopen(nvr_concat("hot-433.nvr"),     "wb"); break;
-                case ROM_SIS496:      f = romfopen(nvr_concat("sis496.nvr"),      "wb"); break;
-                case ROM_430VX:       f = romfopen(nvr_concat("430vx.nvr"),       "wb"); break;
-                case ROM_REVENGE:     f = romfopen(nvr_concat("revenge.nvr"),     "wb"); break;
-                case ROM_ENDEAVOR:    f = romfopen(nvr_concat("endeavor.nvr"),    "wb"); break;
-                /* case ROM_PX386:       f = romfopen(nvr_concat("px386.nvr"),       "wb"); break; */
-                case ROM_DTK386:      f = romfopen(nvr_concat("dtk386.nvr"),      "wb"); break;
-                case ROM_MR386DX_OPTI495:  f = romfopen(nvr_concat("mr386dx_opti495.nvr"),  "wb"); break;
-                case ROM_AMI386DX_OPTI495: f = romfopen(nvr_concat("ami386dx_opti495.nvr"), "wb"); break;
-                case ROM_DTK486:      f = romfopen(nvr_concat("dtk486.nvr"),      "wb"); break;
-                case ROM_R418:        f = romfopen(nvr_concat("r418.nvr"),        "wb"); break;
-                case ROM_586MC1:      f = romfopen(nvr_concat("586mc1.nvr"),      "wb"); break;
-                case ROM_PLATO:       f = romfopen(nvr_concat("plato.nvr"),       "wb"); break;
-                case ROM_MB500N:      f = romfopen(nvr_concat("mb500n.nvr"),      "wb"); break;
-#if 0
-                case ROM_POWERMATE_V: f = romfopen(nvr_concat("powermate_v.nvr"), "wb"); break;
-#endif
-                case ROM_P54TP4XE:    f = romfopen(nvr_concat("p54tp4xe.nvr"),    "wb"); break;
-                case ROM_AP53:        f = romfopen(nvr_concat("ap53.nvr"),        "wb"); break;
-                case ROM_P55T2S:      f = romfopen(nvr_concat("p55t2s.nvr"),      "wb"); break;
-                case ROM_ACERM3A:     f = romfopen(nvr_concat("acerm3a.nvr"),     "wb"); break;
-                case ROM_ACERV35N:    f = romfopen(nvr_concat("acerv35n.nvr"),    "wb"); break;
-                case ROM_P55VA:       f = romfopen(nvr_concat("p55va.nvr"),       "wb"); break;
-                case ROM_P55T2P4:     f = romfopen(nvr_concat("p55t2p4.nvr"),     "wb"); break;
-                case ROM_P55TVP4:     f = romfopen(nvr_concat("p55tvp4.nvr"),     "wb"); break;
-                case ROM_440FX:       f = romfopen(nvr_concat("440fx.nvr"),       "wb"); break;
-#if 0
-                case ROM_MARL:        f = romfopen(nvr_concat("marl.nvr"),        "wb"); break;
-#endif
-                case ROM_THOR:        f = romfopen(nvr_concat("thor.nvr"),        "wb"); break;
-                case ROM_MRTHOR:      f = romfopen(nvr_concat("mrthor.nvr"),      "wb"); break;
-                case ROM_ZAPPA:       f = romfopen(nvr_concat("zappa.nvr"),       "wb"); break;
-#if 0
-                case ROM_CMDPC60:     f = romfopen(nvr_concat("cmdpc60.nvr"),     "wb"); break;                
-#endif
-                case ROM_S1668:       f = romfopen(nvr_concat("tpatx.nvr"),       "wb"); break;
+                case ROM_PC1512:		f = nvrfopen(L"pc1512.nvr",		L"wb"); break;
+                case ROM_PC1640:		f = nvrfopen(L"pc1640.nvr",		L"wb"); break;
+                case ROM_PC200:			f = nvrfopen(L"pc200.nvr",		L"wb"); break;
+                case ROM_PC2086:		f = nvrfopen(L"pc2086.nvr",		L"wb"); break;
+                case ROM_PC3086:		f = nvrfopen(L"pc3086.nvr",		L"wb"); break;
+                case ROM_IBMAT:			f = nvrfopen(L"at.nvr",			L"wb"); break;
+                case ROM_IBMPS1_2011:		f = nvrfopen(L"ibmps1_2011.nvr",	L"wb"); break;
+                case ROM_IBMPS1_2121:		f = nvrfopen(L"ibmps1_2121.nvr",	L"wb"); break;
+                case ROM_IBMPS1_2121_ISA:	f = nvrfopen(L"ibmps1_2121_isa.nvr",	L"wb"); break;
+                case ROM_IBMPS2_M30_286:	f = nvrfopen(L"ibmps2_m30_286.nvr",	L"wb"); break;
+                case ROM_IBMPS2_M50:		f = nvrfopen(L"ibmps2_m50.nvr",		L"wb"); break;
+                case ROM_IBMPS2_M55SX:		f = nvrfopen(L"ibmps2_m55sx.nvr",	L"wb"); break;
+                case ROM_IBMPS2_M80:		f = nvrfopen(L"ibmps2_m80.nvr",		L"wb"); break;
+                case ROM_CMDPC30:		f = nvrfopen(L"cmdpc30.nvr",		L"wb"); break;
+		case ROM_PORTABLEII:		f = nvrfopen(L"portableii.nvr",		L"wb"); break;
+		case ROM_PORTABLEIII:		f = nvrfopen(L"portableiii.nvr",	L"wb"); break;
+                case ROM_AMI286:		f = nvrfopen(L"ami286.nvr",		L"wb"); break;
+                case ROM_AWARD286:		f = nvrfopen(L"award286.nvr",		L"wb"); break;
+                case ROM_DELL200:		f = nvrfopen(L"dell200.nvr",		L"wb"); break;
+                case ROM_SUPER286TR:		f = nvrfopen(L"super286tr.nvr",		L"wb"); break;
+                case ROM_SPC4200P:		f = nvrfopen(L"spc4200p.nvr",		L"wb"); break;
+                case ROM_IBMAT386:		f = nvrfopen(L"at386.nvr",		L"wb"); break;
+                case ROM_DESKPRO_386:		f = nvrfopen(L"deskpro386.nvr",		L"wb"); break;
+		case ROM_PORTABLEIII386:	f = nvrfopen(L"portableiii386.nvr",	L"wb"); break;
+                case ROM_MEGAPC:		f = nvrfopen(L"megapc.nvr",		L"wb"); break;
+                case ROM_MEGAPCDX:		f = nvrfopen(L"megapcdx.nvr",		L"wb"); break;
+                case ROM_AMI386SX:		f = nvrfopen(L"ami386.nvr",		L"wb"); break;
+                case ROM_AMI486:		f = nvrfopen(L"ami486.nvr",		L"wb"); break;
+                case ROM_WIN486:		f = nvrfopen(L"win486.nvr",		L"wb"); break;
+                case ROM_SIS496:		f = nvrfopen(L"sis496.nvr",		L"wb"); break;
+                case ROM_430VX:			f = nvrfopen(L"430vx.nvr",		L"wb"); break;
+                case ROM_REVENGE:		f = nvrfopen(L"revenge.nvr",		L"wb"); break;
+                case ROM_ENDEAVOR:		f = nvrfopen(L"endeavor.nvr",		L"wb"); break;
+                case ROM_DTK386:		f = nvrfopen(L"dtk386.nvr",		L"wb"); break;
+                case ROM_MR386DX_OPTI495:	f = nvrfopen(L"mr386dx_opti495.nvr",	L"wb"); break;
+                case ROM_AMI386DX_OPTI495:	f = nvrfopen(L"ami386dx_opti495.nvr",	L"wb"); break;
+                case ROM_DTK486:		f = nvrfopen(L"dtk486.nvr",		L"wb"); break;
+                case ROM_R418:			f = nvrfopen(L"r418.nvr",		L"wb"); break;
+                case ROM_586MC1:		f = nvrfopen(L"586mc1.nvr",		L"wb"); break;
+                case ROM_PLATO:			f = nvrfopen(L"plato.nvr",		L"wb"); break;
+                case ROM_MB500N:		f = nvrfopen(L"mb500n.nvr",		L"wb"); break;
+                case ROM_P54TP4XE:		f = nvrfopen(L"p54tp4xe.nvr",		L"wb"); break;
+                case ROM_AP53:			f = nvrfopen(L"ap53.nvr",		L"wb"); break;
+                case ROM_P55T2S:		f = nvrfopen(L"p55t2s.nvr",		L"wb"); break;
+                case ROM_ACERM3A:		f = nvrfopen(L"acerm3a.nvr",		L"wb"); break;
+                case ROM_ACERV35N:		f = nvrfopen(L"acerv35n.nvr",		L"wb"); break;
+                case ROM_P55VA:			f = nvrfopen(L"p55va.nvr",		L"wb"); break;
+                case ROM_P55T2P4:		f = nvrfopen(L"p55t2p4.nvr",		L"wb"); break;
+                case ROM_P55TVP4:		f = nvrfopen(L"p55tvp4.nvr",		L"wb"); break;
+                case ROM_440FX:			f = nvrfopen(L"440fx.nvr",		L"wb"); break;
+                case ROM_THOR:			f = nvrfopen(L"thor.nvr",		L"wb"); break;
+                case ROM_MRTHOR:		f = nvrfopen(L"mrthor.nvr",		L"wb"); break;
+                case ROM_ZAPPA:			f = nvrfopen(L"zappa.nvr",		L"wb"); break;
+                case ROM_S1668:			f = nvrfopen(L"tpatx.nvr",		L"wb"); break;
                 default: return;
         }
         fwrite(nvrram,128,1,f);

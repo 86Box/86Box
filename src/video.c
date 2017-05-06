@@ -358,9 +358,9 @@ int xsize=1,ysize=1;
 
 PALETTE cgapal;
 
-void loadfont(char *s, int format)
+void loadfont(wchar_t *s, int format)
 {
-        FILE *f=romfopen(s,"rb");
+        FILE *f=romfopen(s,L"rb");
         int c,d;
         if (!f)
 	{

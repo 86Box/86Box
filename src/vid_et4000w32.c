@@ -1160,7 +1160,7 @@ void *et4000w32p_init()
                    et4000w32p_hwcursor_draw,
                    NULL); 
 
-        rom_init(&et4000->bios_rom, "roms/et4000w32.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&et4000->bios_rom, L"roms/et4000w32.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         if (PCI)
                 mem_mapping_disable(&et4000->bios_rom.mapping);
 
@@ -1195,7 +1195,7 @@ void *et4000w32p_init()
 
 int et4000w32p_available()
 {
-        return rom_present("roms/et4000w32.bin");
+        return rom_present(L"roms/et4000w32.bin");
 }
 
 void et4000w32p_close(void *p)

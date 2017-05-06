@@ -12,7 +12,6 @@
 #define WY700_YSIZE 800
 
 void updatewindowsize(int x, int y);
-void loadfont(char *s, int format);
 
 
 /* The Wyse 700 is an unusual video card. Though it has an MC6845 CRTC, this

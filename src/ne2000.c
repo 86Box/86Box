@@ -1955,9 +1955,9 @@ void ne2000_pci_write(int func, int addr, uint8_t val, void *p)
 	}
 }
 
-void ne2000_rom_init(ne2000_t *ne2000, char *s)
+void ne2000_rom_init(ne2000_t *ne2000, wchar_t *s)
 {
-	FILE *f = fopen(s, "rb");
+	FILE *f = romfopen(s, "rb");
 	uint32_t temp;
 	if(!f)
 	{
@@ -2048,7 +2048,7 @@ void *ne2000_init()
 
 	if (!disable_netbios)
 	{
-		ne2000_rom_init(ne2000, "roms/ne2000.rom");
+		ne2000_rom_init(ne2000, is_rtl8029as ? L"roms/rtl8029as.rom" : L"roms/ne2000.rom");
 
 		if (is_rtl8029as)
 		{

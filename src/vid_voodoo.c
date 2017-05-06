@@ -4,6 +4,7 @@
 #include "device.h"
 #include "mem.h"
 #include "pci.h"
+#include "rom.h"
 #include "thread.h"
 #include "timer.h"
 #include "video.h"
@@ -7040,12 +7041,12 @@ void voodoo_close(void *p)
         int c;
         
 #ifndef RELEASE_BUILD        
-        f = romfopen("texram.dmp", "wb");
+        f = romfopen(L"texram.dmp", L"wb");
         fwrite(voodoo->tex_mem[0], voodoo->texture_size*1024*1024, 1, f);
         fclose(f);
         if (voodoo->dual_tmus)
         {
-                f = romfopen("texram2.dmp", "wb");
+                f = romfopen(L"texram2.dmp", L"wb");
                 fwrite(voodoo->tex_mem[1], voodoo->texture_size*1024*1024, 1, f);
                 fclose(f);
         }

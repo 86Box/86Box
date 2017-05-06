@@ -418,11 +418,9 @@ static void initmenu(void)
 	}
 }
 
-void get_executable_name(char *s, int size)
+void get_executable_name(WCHAR *s, int size)
 {
-	WCHAR ws[512];
-        GetModuleFileName(hinstance, ws, size);
-	wcstombs(s, ws, (wcslen(ws) << 1) + 2);
+        GetModuleFileName(hinstance, s, size);
 }
 
 void set_window_title(WCHAR *s)
@@ -525,26 +523,24 @@ void get_registry_key_map()
 	}
 }
 
-static char **argv;
+static wchar_t **argv;
 static int argc;
-static char *argbuf;
+static wchar_t *argbuf;
 
 static void process_command_line()
 {
-        WCHAR *wcmdline;
-        char cmdline[2048];
+        WCHAR *cmdline;
         int argc_max;
         int i, q;
 
-        wcmdline = GetCommandLine();
-	wcstombs(cmdline, wcmdline, (wcslen(wcmdline) << 1) + 2);
-        i = strlen(cmdline) + 1;
-        argbuf = malloc(i);
-        memcpy(argbuf, cmdline, i);
+        cmdline = GetCommandLine();
+        i = wcslen(cmdline) + 1;
+        argbuf = malloc(i * 2);
+        memcpy(argbuf, cmdline, i * 2);
 
         argc = 0;
         argc_max = 64;
-        argv = malloc(sizeof(char *) * argc_max);
+        argv = malloc(sizeof(wchar_t *) * argc_max);
         if (!argv)
         {
                 free(argbuf);
@@ -556,12 +552,12 @@ static void process_command_line()
         /* parse commandline into argc/argv format */
         while (argbuf[i])
         {
-                while (argbuf[i] == ' ')
+                while (argbuf[i] == L' ')
                         i++;
 
                 if (argbuf[i])
                 {
-                        if ((argbuf[i] == '\'') || (argbuf[i] == '"'))
+                        if ((argbuf[i] == L'\'') || (argbuf[i] == L'"'))
                         {
                                 q = argbuf[i++];
                                 if (!argbuf[i])
@@ -575,7 +571,7 @@ static void process_command_line()
                         if (argc >= argc_max)
                         {
                                 argc_max += 64;
-                                argv = realloc(argv, sizeof(char *) * argc_max);
+                                argv = realloc(argv, sizeof(wchar_t *) * argc_max);
                                 if (!argv)
                                 {
                                         free(argbuf);
@@ -583,7 +579,7 @@ static void process_command_line()
                                 }
                         }
 
-                        while ((argbuf[i]) && ((q) ? (argbuf[i] != q) : (argbuf[i] != ' ')))
+                        while ((argbuf[i]) && ((q) ? (argbuf[i] != q) : (argbuf[i] != L' ')))
                                 i++;
 
                         if (argbuf[i])
@@ -1852,8 +1848,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         {
                                 if (msgbox_reset_yn(ghwnd) == IDYES)
                                 {
-                                        loadconfig(openfilestring);
                                         config_save(config_file_default);
+                                        loadconfig(wopenfilestring);
                                         mem_resize();
                                         loadbios();
                                         resetpchard();
@@ -1865,7 +1861,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         case IDM_CONFIG_SAVE:
                         pause = 1;
                         if (!file_dlg_st(hwnd, 2174, "", 1))
-                                config_save(openfilestring);
+                                config_save(wopenfilestring);
                         pause = 0;
                         break;                                                
                 }

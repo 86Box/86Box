@@ -157,7 +157,7 @@ void oti067_recalctimings(svga_t *svga)
 	}
 }
 
-void *oti067_common_init(char *bios_fn, int vram_size, int chip_id)
+void *oti067_common_init(wchar_t *bios_fn, int vram_size, int chip_id)
 {
         oti067_t *oti067 = malloc(sizeof(oti067_t));
         memset(oti067, 0, sizeof(oti067_t));
@@ -182,47 +182,26 @@ void *oti067_common_init(char *bios_fn, int vram_size, int chip_id)
         return oti067;
 }
 
-/* void *oti037_init()
-{
-        int vram_size = device_get_config_int("memory");
-        return oti067_common_init("roms/hyundai_oti037c.bin", vram_size, 0);
-} */
-
 void *oti067_init()
 {
         int vram_size = device_get_config_int("memory");
-        return oti067_common_init("roms/oti067/bios.bin", vram_size, 2);
+        return oti067_common_init(L"roms/oti067/bios.bin", vram_size, 2);
 }
 
 void *oti077_init()
 {
         int vram_size = device_get_config_int("memory");
-        return oti067_common_init("roms/oti077.vbi", vram_size, 5);
+        return oti067_common_init(L"roms/oti077.vbi", vram_size, 5);
 }
-
-void *oti067_acer386_init()
-{
-        oti067_t *oti067 = oti067_common_init("roms/acer386/oti067.bin", 512, 2);
-        
-        /* if (oti067)
-                oti067->bios_rom.rom[0x5d] = 0x74; */
-                
-        return oti067;
-}
-
-/* static int oti037_available()
-{
-        return rom_present("roms/hyundai_oti037c.bin");
-} */
 
 static int oti067_available()
 {
-        return rom_present("roms/oti067/bios.bin");
+        return rom_present(L"roms/oti067/bios.bin");
 }
 
 static int oti077_available()
 {
-        return rom_present("roms/oti077.vbi");
+        return rom_present(L"roms/oti077.vbi");
 }
 
 void oti067_close(void *p)
@@ -311,17 +290,6 @@ device_t oti067_device =
         oti067_force_redraw,
         oti067_add_status_info,
         oti067_config
-};
-device_t oti067_acer386_device =
-{
-        "Oak OTI-067 (Acermate 386SX/25N)",
-        0,
-        oti067_acer386_init,
-        oti067_close,
-        oti067_available,
-        oti067_speed_changed,
-        oti067_force_redraw,
-        oti067_add_status_info
 };
 device_t oti077_device =
 {

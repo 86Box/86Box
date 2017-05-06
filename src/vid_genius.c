@@ -13,7 +13,6 @@
 #define GENIUS_YSIZE 1008
 
 void updatewindowsize(int x, int y);
-void loadfont(char *s, int format);
 
 extern uint8_t fontdat8x12[256][16];	
 
@@ -606,7 +605,7 @@ void genius_close(void *p)
 
 static int genius_available()
 {
-        return rom_present("roms/8x12.bin");
+        return rom_present(L"roms/8x12.bin");
 }
 
 void genius_speed_changed(void *p)

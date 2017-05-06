@@ -3134,7 +3134,7 @@ void d86f_load(int drive, wchar_t *fn)
 
 	if (d86f[drive].is_compressed)
 	{
-		memcpy(temp_file_name, drive ? L"TEMP$$$1.$$$" : L"TEMP$$$0.$$$", 256);
+		memcpy(temp_file_name, drive ? nvr_concat(L"TEMP$$$1.$$$") : nvr_concat(L"TEMP$$$0.$$$"), 256);
 		memcpy(d86f[drive].original_file_name, fn, (wcslen(fn) << 1) + 2);
 
 		fclose(d86f[drive].f);
@@ -3322,7 +3322,7 @@ void d86f_close(int drive)
 {
 	wchar_t temp_file_name[2048];
 
-	memcpy(temp_file_name, drive ? "TEMP$$$1.$$$" : "TEMP$$$0.$$$", 26);
+	memcpy(temp_file_name, drive ? nvr_concat(L"TEMP$$$1.$$$") : nvr_concat(L"TEMP$$$0.$$$"), 26);
 
         if (d86f[drive].f)
                 fclose(d86f[drive].f);

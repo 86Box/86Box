@@ -84,7 +84,7 @@ void *vga_init()
         vga_t *vga = malloc(sizeof(vga_t));
         memset(vga, 0, sizeof(vga_t));
 
-        rom_init(&vga->bios_rom, "roms/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
+        rom_init(&vga->bios_rom, L"roms/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
 
         svga_init(&vga->svga, vga, 1 << 18, /*256kb*/
                    NULL,
@@ -99,29 +99,6 @@ void *vga_init()
         
         return vga;
 }
-
-#if 0
-void *vga_chips_init()
-{
-        vga_t *vga = malloc(sizeof(vga_t));
-        memset(vga, 0, sizeof(vga_t));
-
-        rom_init(&vga->bios_rom, "roms/SD620.04M", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
-
-        svga_init(&vga->svga, vga, 1 << 18, /*256kb*/
-                   NULL,
-                   vga_in, vga_out,
-                   NULL,
-                   NULL);
-
-        io_sethandler(0x03c0, 0x0020, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
-
-        vga->svga.bpp = 8;
-        vga->svga.miscout = 1;
-        
-        return vga;
-}
-#endif
 
 #ifdef DEV_BRANCH
 void *trigem_unk_init()
@@ -129,7 +106,7 @@ void *trigem_unk_init()
         vga_t *vga = malloc(sizeof(vga_t));
         memset(vga, 0, sizeof(vga_t));
 
-        rom_init(&vga->bios_rom, "roms/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
+        rom_init(&vga->bios_rom, L"roms/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
 
         svga_init(&vga->svga, vga, 1 << 18, /*256kb*/
                    NULL,
@@ -172,13 +149,8 @@ void *ps1vga_init()
 
 static int vga_available()
 {
-        return rom_present("roms/ibm_vga.bin");
+        return rom_present(L"roms/ibm_vga.bin");
 }
-
-/* static int vga_chips_available()
-{
-        return rom_present("roms/SD620.04M");
-} */
 
 void vga_close(void *p)
 {
@@ -221,17 +193,6 @@ device_t vga_device =
         vga_force_redraw,
         vga_add_status_info
 };
-/* device_t vga_chips_device =
-{
-        "Chips VGA",
-        0,
-        vga_chips_init,
-        vga_close,
-        vga_chips_available,
-        vga_speed_changed,
-        vga_force_redraw,
-        vga_add_status_info
-}; */
 #ifdef DEV_BRANCH
 device_t trigem_unk_device =
 {
