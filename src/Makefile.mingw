@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 MinGW 32-bit environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.5	2017/05/05
+# Version:	@(#)Makefile.mingw	1.0.6	2017/05/06
 #
 # Authors:	Kotori, <oubattler@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -30,30 +30,51 @@ EXTRAS	=
 
 # Do we want a debugging build?
 DEBUG	= n
+OPTIM	= n
+X64	= n
 
 
 #########################################################################
 #		Nothing should need changing from here on..		#
 #########################################################################
-VPATH	= . dosbox lzf resid-fp slirp
+VPATH	= . cpu sound sound/resid-fp video lzf slirp
 CPP	= g++.exe
 CC	= gcc.exe
 WINDRES	= windres.exe
 
 OPTS	= -DWIN32 $(EXTRAS) $(STUFF)
 ifeq ($(DEBUG), y)
-DFLAGS	= -march=i686 -Og -ggdb -DDEBUG
+DFLAGS	= -march=i686 -ggdb -DDEBUG
+COPTIM	= -Og
 else
-ifeq ($(OPTIMIZED), y)
-DFLAGS	= -march=native -mtune=native -O6
+ifeq ($(OPTIM), y)
+DFLAGS	= -march=native
+COPTIM	= -O6
 else
-DFLAGS	= -march=i686 -O3
+ifeq ($(X64), y)
+DFLAGS	= 
+else
+DFLAGS	= -march=i686
+endif
+COPTIM	= -O3
 endif
 endif
-AFLAGS	= -msse -msse2 -mfpmath=sse
-CFLAGS	= $(OPTS) $(DFLAGS) $(AFLAGS) \
+ifeq ($(OPTIM), y)
+AOPTIM	= -mtune=native
+else
+AOPTIM	=
+endif
+AFLAGS	= -msse -msse2 \
+	  -mfpmath=sse
+CFLAGS	= $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) $(AFLAGS) \
 	  -fomit-frame-pointer -mstackrealign
 RFLAGS	= --input-format=rc -O coff
+
+ifeq ($(X64), y)
+PLATCG	= codegen_x86-64.o
+else
+PLATCG	= codegen_x86.o
+endif
 
 
 MAINOBJ	= pc.o config.o device.o timer.o dma.o io.o nmi.o pic.o \
@@ -63,7 +84,7 @@ CPUOBJ	= cpu.o 386.o 386_dynarec.o 386_dynarec_ops.o 808x.o \
 	  codegen.o \
 	    codegen_ops.o codegen_timing_486.o \
 	    codegen_timing_686.o codegen_timing_pentium.o \
-	    codegen_timing_winchip.o codegen_x86.o \
+	    codegen_timing_winchip.o $(PLATCG) \
 	  x86seg.o x87.o
 SYSOBJ	= model.o \
 	    headland.o \
@@ -88,22 +109,31 @@ DEVOBJ	= bugger.o lpt.o serial.o \
 	  mouse.o mouse_serial.o mouse_ps2.o mouse_bus.o \
 	  fdd.o fdc.o \
 	    fdc37c665.o fdc37c669.o fdc37c932fr.o fdi2raw.o \
-	  hdd.o hdd_esdi.o mfm_at.o mfm_xebec.o ide.o xtide.o piix.o scsi_hd.o \
+	  hdd.o \
+	    mfm_at.o mfm_xebec.o hdd_esdi.o ide.o xtide.o piix.o \
 	    disc.o \
 	    disc_86f.o disc_fdi.o disc_imd.o disc_img.o \
 	    disc_random.o disc_td0.o \
 	  cdrom.o cdrom-ioctl.o cdrom-iso.o cdrom-null.o
 USBOBJ	= usb.o
-NETOBJ	= ne2000.o nethandler.o
-SCSIOBJ	= scsi.o scsi_buslogic.o scsi_aha154x.o
-SNDOBJ	= sound.o sound_speaker.o dac.o sound_ps1.o sound_pssj.o \
-	  sound_adlib.o sound_adlibgold.o sound_ad1848.o sound_sb.o \
-	  sound_sb_dsp.o sound_cms.o sound_dbopl.o sound_emu8k.o \
-	  sound_gus.o sound_opl.o sound_mpu401_uart.o sound_pas16.o \
-	  sound_resid.o sound_sn76489.o sound_ssi2001.o sound_wss.o \
-	  sound_ym7128.o soundopenal.o
+NETOBJ	= network.o net_ne2000.o
+SCSIOBJ	= scsi.o scsi_disk.o scsi_buslogic.o scsi_aha154x.o
+SNDOBJ	= sound.o \
+	    convolve.o convolve-sse.o envelope.o extfilt.o \
+	    filter.o pot.o sid.o voice.o wave6581__ST.o \
+	    wave6581_P_T.o wave6581_PS_.o wave6581_PST.o \
+	    wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
+	    wave8580_PST.o wave.o \
+	    dbopl.o nukedopl.o openal.o \
+	    snd_speaker.o dac.o snd_ps1.o snd_pssj.o \
+	    snd_adlib.o snd_adlibgold.o snd_ad1848.o \
+	    snd_sb.o snd_sb_dsp.o snd_cms.o snd_dbopl.o \
+	    snd_emu8k.o snd_gus.o snd_opl.o \
+	    snd_mpu401_uart.o snd_pas16.o snd_resid.o \
+	    snd_sn76489.o snd_ssi2001.o snd_wss.o \
+	    snd_ym7128.o
 VIDOBJ	= video.o \
-	    vid_mda.o vid_cga.o vid_ega.o \
+	    vid_cga.o vid_cga_comp.o vid_mda.o vid_ega.o \
 	    vid_vga.o vid_svga.o vid_svga_render.o \
 	    vid_hercules.o vid_herculesplus.o vid_incolor.o \
 	    vid_colorplus.o \
@@ -128,22 +158,18 @@ VIDOBJ	= video.o \
 WINOBJ	= win.o \
 	    win-d3d.o win-d3d-fs.o \
 	    win-ddraw.o win-ddraw-fs.o win-ddraw-screenshot.o \
-	    win-language.o win-status.o win-video.o \
-	    win-keyboard.o win-mouse.o win-joystick.o win-midi.o \
+	    win-language.o win-status.o \
+	    win-video.o win-serial.o win-mouse.o \
+	    win-joystick.o win-midi.o \
 	    win-settings.o win-deviceconfig.o win-joystickconfig.o \
 	  86Box.res
 OBJ	= $(MAINOBJ) $(CPUOBJ) $(SYSOBJ) $(DEVOBJ) $(USBOBJ) \
 	  $(NETOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) $(WINOBJ)
 
-DBOBJ	= dbopl.o nukedopl.o vid_cga_comp.o
 LZFOBJ	= lzf_c.o lzf_d.o
-SIDOBJ	= convolve.o convolve-sse.o envelope.o extfilt.o filter.o pot.o \
-	  sid.o voice.o wave6581__ST.o wave6581_P_T.o wave6581_PS_.o \
-	  wave6581_PST.o wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
-	  wave8580_PST.o wave.o
-SLIRPOBJ= bootp.o ip_icmp.o misc.o socket.o tcp_timer.o cksum.o ip_input.o \
-	  queue.o tcp_input.o tftp.o debug.o ip_output.o sbuf.o tcp_output.o \
-	  udp.o if.o mbuf.o slirp.o tcp_subr.o
+SLIRPOBJ= bootp.o ip_icmp.o misc.o socket.o tcp_timer.o cksum.o \
+	  ip_input.o queue.o tcp_input.o tftp.o debug.o ip_output.o \
+	  sbuf.o tcp_output.o udp.o if.o mbuf.o slirp.o tcp_subr.o
 
 LIBS	= -mwindows -lcomctl32 -lwinmm -lopenal.dll -lopenal -lddraw \
 	  -ldinput8 -ldxguid -ld3d9 -ld3dx9 -lwsock32 -liphlpapi \
@@ -164,12 +190,10 @@ LIBS	= -mwindows -lcomctl32 -lwinmm -lopenal.dll -lopenal -lddraw \
 		@echo $<
 		@$(CPP) $(CFLAGS) -c $<
 
-$(PROG).exe:	$(OBJ) $(DBOBJ) $(LZFOBJ) $(SIDOBJ) $(SLIRPOBJ)
+$(PROG).exe:	$(OBJ) $(LZFOBJ) $(SLIRPOBJ)
 		@echo Linking $(PROG).exe ..
 		@$(CC) -o $(PROG).exe \
-			$(OBJ) \
-			$(DBOBJ) $(LZFOBJ) $(SIDOBJ) $(SLIRPOBJ) \
-			$(LIBS)
+			$(OBJ) $(LZFOBJ) $(SLIRPOBJ) $(LIBS)
 ifneq ($(DEBUG), y)
 		strip $(PROG).exe
 endif

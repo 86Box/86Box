@@ -7,20 +7,19 @@
         - pc2386 video BIOS is underdumped (16k instead of 24k)
         - c386sx16 BIOS fails checksum
 */
-
 #include <stdlib.h>
 #include <string.h>
 #include "ibm.h"
-
+#include "cpu/cpu.h"
+#include "cpu/x86_ops.h"
+#include "cpu/x86.h"
 #include "config.h"
 #include "io.h"
 #include "mem.h"
-#include "video.h"
-#include "x86.h"
-#include "cpu.h"
 #include "rom.h"
-#include "x86_ops.h"
-#include "codegen.h"
+#include "cpu/codegen.h"
+#include "video/video.h"
+
 
 page_t *pages;
 page_t **page_lookup;

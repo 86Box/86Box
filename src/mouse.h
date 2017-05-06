@@ -3,14 +3,13 @@
 
 
 #define MOUSE_TYPE_SERIAL	0	/* Serial Mouse */
-#define MOUSE_TYPE_INPORT	1	/* Microsoft InPort Bus Mouse */
-#define MOUSE_TYPE_PS2		2	/* IBM PS/2 series Bus Mouse */
+#define MOUSE_TYPE_PS2		1	/* IBM PS/2 series Bus Mouse */
+#define MOUSE_TYPE_PS2_MS	2	/* Microsoft Intellimouse PS/2 */
 #define MOUSE_TYPE_BUS		3	/* Logitech/ATI Bus Mouse */
-#define MOUSE_TYPE_PS2_MS	4
-#define MOUSE_TYPE_AMSTRAD	5	/* Amstrad PC system mouse */
-#define MOUSE_TYPE_OLIM24	6	/* Olivetti M24 system mouse */
-#define MOUSE_TYPE_MSYSTEMS	7	/* Mouse Systems mouse */
-#define MOUSE_TYPE_GENIUS	8	/* Genius Bus Mouse */
+#define MOUSE_TYPE_AMSTRAD	4	/* Amstrad PC system mouse */
+#define MOUSE_TYPE_OLIM24	5	/* Olivetti M24 system mouse */
+#define MOUSE_TYPE_MSYSTEMS	6	/* Mouse Systems mouse */
+#define MOUSE_TYPE_GENIUS	7	/* Genius Bus Mouse */
 
 #define MOUSE_TYPE_MASK		0x0f
 #define MOUSE_TYPE_3BUTTON	(1<<7)	/* device has 3+ buttons */

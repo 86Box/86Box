@@ -9,17 +9,19 @@
 #include <D3dx9tex.h>
 #include "resource.h"
 #include "win-d3d.h"
-#include "video.h"
+#include "video/video.h"
 #include "win-cgapal.h"
+
 
 extern "C" void fatal(const char *format, ...);
 extern "C" void pclog(const char *format, ...);
 
-extern "C" void device_force_redraw();
-extern "C" void video_blit_complete();
+extern "C" void device_force_redraw(void);
+extern "C" void video_blit_complete(void);
 
-void d3d_init_objects();
-void d3d_close_objects();
+
+void d3d_init_objects(void);
+void d3d_close_objects(void);
 void d3d_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
 void d3d_blit_memtoscreen_8(int x, int y, int w, int h);
 
@@ -92,7 +94,7 @@ int d3d_init(HWND h)
 	return 1;
 }
 
-void d3d_close_objects()
+void d3d_close_objects(void)
 {
         if (d3dTexture)
         {
@@ -106,7 +108,7 @@ void d3d_close_objects()
         }
 }
 
-void d3d_init_objects()
+void d3d_init_objects(void)
 {
         D3DLOCKED_RECT dr;
         RECT r;
@@ -150,7 +152,7 @@ void d3d_resize(int x, int y)
         d3d_reset();
 }
         
-void d3d_reset()
+void d3d_reset(void)
 {
         HRESULT hr;
         
@@ -185,7 +187,7 @@ void d3d_reset()
         device_force_redraw();
 }
 
-void d3d_close()
+void d3d_close(void)
 {       
         if (d3dTexture)
         {
@@ -381,17 +383,14 @@ void d3d_blit_memtoscreen_8(int x, int y, int w, int h)
                 PostMessage(d3d_hwnd, WM_RESETD3D, 0, 0);
 }
 
-void d3d_take_screenshot(char *fn)
+void d3d_take_screenshot(wchar_t *fn)
 {
-	WCHAR wfn[512];
 	LPDIRECT3DSURFACE9 d3dSurface = NULL;
 
 	if (!d3dTexture)  return;
 
-	mbstowcs(wfn, fn, strlen(fn) + 1);
-
 	d3ddev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &d3dSurface);
-	D3DXSaveSurfaceToFile(wfn, D3DXIFF_PNG, d3dSurface, NULL, NULL);
+	D3DXSaveSurfaceToFile(fn, D3DXIFF_PNG, d3dSurface, NULL, NULL);
 
 	d3dSurface->Release();
 	d3dSurface = NULL;

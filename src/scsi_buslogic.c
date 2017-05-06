@@ -2055,7 +2055,7 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbo
 			req->CmdBlock.common.ControlByte);
 	}
 
-	BuslogicInOperation = (SCSIDevices[Id][Lun].LunType == SCSI_HDD) ? 0x11 : 1;
+	BuslogicInOperation = (SCSIDevices[Id][Lun].LunType == SCSI_DISK) ? 0x11 : 1;
 	pclog("SCSI (%i:%i) -> %i\n", Id, Lun, SCSIDevices[Id][Lun].LunType);
     }
 }
@@ -2424,7 +2424,7 @@ void *AdaptecInit(int has_bios, int chip)
 	{
 		if (scsi_hard_disks[i][j] != 0xff)
 		{
-			SCSIDevices[i][j].LunType = SCSI_HDD;
+			SCSIDevices[i][j].LunType = SCSI_DISK;
 		}
 	}
     }
@@ -2509,7 +2509,7 @@ void *BuslogicInit(int chip)
 	{
 		if (scsi_hard_disks[i][j] != 0xff)
 		{
-			SCSIDevices[i][j].LunType = SCSI_HDD;
+			SCSIDevices[i][j].LunType = SCSI_DISK;
 		}
 	}
     }

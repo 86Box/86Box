@@ -4,10 +4,61 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-
 #include "86box.h"
 #include "ibm.h"
+#include "mem.h"
+#include "cpu/cpu.h"
+#include "cpu/x86_ops.h"
+#include "cpu/codegen.h"
+#include "dma.h"
+#include "nvr.h"
+#include "pic.h"
+#include "pit.h"
+#include "timer.h"
 #include "device.h"
+
+#include "ali1429.h"
+#include "cdrom.h"
+#include "cdrom-ioctl.h"
+#include "disc.h"
+#include "disc_86f.h"
+#include "disc_fdi.h"
+#include "disc_imd.h"
+#include "disc_img.h"
+#include "disc_td0.h"
+#include "disc_random.h"
+#include "config.h"
+#include "fdc.h"
+#include "fdd.h"
+#include "gameport.h"
+#include "plat-joystick.h"
+#include "plat-midi.h"
+#include "hdd.h"
+#include "ide.h"
+#include "cdrom.h"
+#include "cdrom-iso.h"
+#include "cdrom-null.h"
+#include "scsi.h"
+#include "keyboard.h"
+#include "plat-keyboard.h"
+#include "keyboard_at.h"
+#include "model.h"
+#include "mouse.h"
+#include "plat-mouse.h"
+#include "network.h"
+#include "net_ne2000.h"
+#include "serial.h"
+#include "sound/sound.h"
+#include "sound/snd_cms.h"
+#include "sound/snd_dbopl.h"
+#include "sound/snd_opl.h"
+#include "sound/snd_gus.h"
+#include "sound/snd_sb.h"
+#include "sound/snd_speaker.h"
+#include "sound/snd_ssi2001.h"
+#include "video/video.h"
+#include "video/vid_voodoo.h"
+#include "amstrad.h"
 
 #ifndef __unix
 #define UNICODE
@@ -18,61 +69,7 @@
 #include "win-language.h"
 #endif
 
-#include "ali1429.h"
-#include "cdrom.h"
-#include "cdrom-ioctl.h"
-#include "disc.h"
-#include "disc_86f.h"
-#include "disc_fdi.h"
-#include "disc_imd.h"
-#include "disc_img.h"
-#include "disc_random.h"
-#include "disc_td0.h"
-#include "mem.h"
-#include "x86_ops.h"
-#include "codegen.h"
-#include "cdrom-iso.h"
-#include "cdrom-null.h"
-#include "config.h"
-#include "cpu.h"
-#include "dma.h"
-#include "fdc.h"
-#include "fdd.h"
-#include "gameport.h"
-#include "sound_gus.h"
-#include "ide.h"
-#include "cdrom.h"
-#include "scsi.h"
-#include "keyboard.h"
-#include "keyboard_at.h"
-#include "mem.h"
-#include "model.h"
-#include "mouse.h"
-#include "ne2000.h"
-#include "nethandler.h"
-#include "nvr.h"
-#include "pic.h"
-#include "pit.h"
-#include "plat-joystick.h"
-#include "plat-midi.h"
-#include "plat-mouse.h"
-#include "plat-keyboard.h"
-#include "serial.h"
-#include "sound.h"
-#include "sound_cms.h"
-#include "sound_dbopl.h"
-#include "sound_opl.h"
-#include "sound_sb.h"
-#include "sound_speaker.h"
-#include "sound_ssi2001.h"
-#include "timer.h"
-#include "vid_voodoo.h"
-#include "video.h"
-#include "amstrad.h"
-#include "hdd.h"
-#include "nethandler.h"
-#define NE2000      1
-#define RTL8029AS   2
+
 uint8_t ethif;
 int inum;
 
@@ -318,7 +315,6 @@ void initpc(int argc, wchar_t *argv[])
 		}
         }
 
-        keyboard_init();
         mouse_init();
         midi_init();
 
@@ -498,8 +494,8 @@ void resetpchard()
 		ide_qua_init();
 	}
 
-	network_card_init();
-
+	network_init();      
+        
 	for (i = 0; i < CDROM_NUM; i++)
 	{
 		if (cdrom_drives[i].bus_type)
@@ -594,7 +590,6 @@ void runpc()
                 execx86(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
 	}
         
-                keyboard_poll_host();
                 keyboard_process();
                 pollmouse();
                 if (joystick_type != 7)  joystick_poll();

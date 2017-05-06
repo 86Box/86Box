@@ -1,15 +1,16 @@
 #include "ibm.h"
-#include "cpu.h"
-#include "device.h"
+#include "cpu/cpu.h"
+#include "cpu/x86.h"
 #include "io.h"
-#include "lpt.h"
 #include "mca.h"
 #include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "lpt.h"
 #include "ps2_mca.h"
 #include "ps2_nvr.h"
-#include "rom.h"
 #include "serial.h"
-#include "x86.h"
+
 
 static struct
 {

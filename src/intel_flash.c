@@ -159,61 +159,61 @@ void *intel_flash_init(uint8_t type)
 	switch(romset)
 	{
 		case ROM_REVENGE:
-			wcscpy(flash_path, nvr_concat(L"revenge.bin"));
+			wcscpy(flash_path, L"revenge.bin");
 			break;
 		case ROM_586MC1:
-			wcscpy(flash_path, nvr_concat(L"586mc1.bin"));
+			wcscpy(flash_path, L"586mc1.bin");
 			break;
 		case ROM_PLATO:
-			wcscpy(flash_path, nvr_concat(L"plato.bin"));
+			wcscpy(flash_path, L"plato.bin");
 			break;
 		case ROM_ENDEAVOR:
-			wcscpy(flash_path, nvr_concat(L"endeavor.bin"));
+			wcscpy(flash_path, L"endeavor.bin");
 			break;
 		case ROM_MB500N:
-			wcscpy(flash_path, nvr_concat(L"mb500n.bin"));
+			wcscpy(flash_path, L"mb500n.bin");
 			break;
 		case ROM_P54TP4XE:
-			wcscpy(flash_path, nvr_concat(L"p54tp4xe.bin"));
+			wcscpy(flash_path, L"p54tp4xe.bin");
 			break;
 		case ROM_AP53:
-			wcscpy(flash_path, nvr_concat(L"ap53.bin"));
+			wcscpy(flash_path, L"ap53.bin");
 			break;
 		case ROM_P55T2S:
-			wcscpy(flash_path, nvr_concat(L"p55t2s.bin"));
+			wcscpy(flash_path, L"p55t2s.bin");
 			break;
 		case ROM_ACERM3A:
-			wcscpy(flash_path, nvr_concat(L"acerm3a.bin"));
+			wcscpy(flash_path, L"acerm3a.bin");
 			break;
 		case ROM_ACERV35N:
-			wcscpy(flash_path, nvr_concat(L"acerv35n.bin"));
+			wcscpy(flash_path, L"acerv35n.bin");
 			break;
 		case ROM_430VX:
-			wcscpy(flash_path, nvr_concat(L"430vx.bin"));
+			wcscpy(flash_path, L"430vx.bin");
 			break;
 		case ROM_P55VA:
-			wcscpy(flash_path, nvr_concat(L"p55va.bin"));
+			wcscpy(flash_path, L"p55va.bin");
 			break;
 		case ROM_P55T2P4:
-			wcscpy(flash_path, nvr_concat(L"p55t2p4.bin"));
+			wcscpy(flash_path, L"p55t2p4.bin");
 			break;
 		case ROM_P55TVP4:
-			wcscpy(flash_path, nvr_concat(L"p55tvp4.bin"));
+			wcscpy(flash_path, L"p55tvp4.bin");
 			break;
 		case ROM_440FX:
-			wcscpy(flash_path, nvr_concat(L"440fx.bin"));
+			wcscpy(flash_path, L"440fx.bin");
 			break;
 		case ROM_THOR:
-			wcscpy(flash_path, nvr_concat(L"thor.bin"));
+			wcscpy(flash_path, L"thor.bin");
 			break;
 		case ROM_MRTHOR:
-			wcscpy(flash_path, nvr_concat(L"mrthor.bin"));
+			wcscpy(flash_path, L"mrthor.bin");
 			break;
 		case ROM_ZAPPA:
-			wcscpy(flash_path, nvr_concat(L"zappa.bin"));
+			wcscpy(flash_path, L"zappa.bin");
 			break;
 		case ROM_S1668:
-			wcscpy(flash_path, nvr_concat(L"tpatx.bin"));
+			wcscpy(flash_path, L"tpatx.bin");
 			break;
 		default:
 	                fatal("intel_flash_init on unsupported ROM set %i\n", romset);

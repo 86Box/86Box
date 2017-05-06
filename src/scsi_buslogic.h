@@ -14,8 +14,8 @@ extern device_t aha1540b_device;
 extern device_t aha1542cf_device;
 extern device_t buslogic_device;
 extern device_t buslogic_pci_device;
-
-
+  
+  
 extern int	buslogic_dev_present(uint8_t id, uint8_t lun);
 
 extern void	aha154x_init(uint16_t, uint32_t, aha_info *);

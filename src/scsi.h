@@ -208,7 +208,7 @@ extern int cd_status;
 extern int prev_status;
 
 #define SCSI_NONE 0
-#define SCSI_HDD 1
+#define SCSI_DISK 1
 #define SCSI_CDROM 2
 
 #define MSFtoLBA(m,s,f)  ((((m*60)+s)*75)+f)

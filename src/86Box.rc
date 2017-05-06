@@ -708,10 +708,10 @@ BEGIN
     2137                    "Mid  VLB/PCI"
     2138                    "Fast VLB/PCI"
     2139                    "Microsoft 2-button mouse (serial)"
-    2140                    "2-button mouse (PS/2)"
-    2141                    "Microsoft Intellimouse (PS/2)"
-    2142                    "Amstrad mouse"
-    2143                    "Olivetti M24 mouse"
+    2140                    "Mouse Systems mouse (serial)"
+    2141                    "2-button mouse (PS/2)"
+    2142                    "Microsoft Intellimouse (PS/2)"
+    2143                    "Bus mouse"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -733,8 +733,8 @@ BEGIN
     2158                    "SCSI (%02i:%02i)"
     2159                    "IDE (PIO-only)"
     2160                    "%" PRIu64
-    2161                    "Microsoft Bus mouse"
-    2162                    "Mouse Systems mouse"
+    2161                    "Genius Bus mouse"
+    2162                    "Amstrad mouse"
     2163                    "Attempting to create a spuriously large hard disk image"
     2164                    "Invalid number of sectors (valid values are between 1 and 99)"
     2165                    "Invalid number of cylinders (valid values are between 1 and 1023)"
@@ -749,8 +749,8 @@ BEGIN
     2174                    "Configuration files (*.CFG)\0*.CFG\0All files (*.*)\0*.*\0"
     2175                    "CD-ROM image (*.ISO)\0*.ISO\0All files (*.*)\0*.*\0"
     2176                    "Use CTRL + ALT + PAGE DOWN to return to windowed mode"
-    2177                    "Microsoft InPort mouse"
-    2178                    "Genius Bus mouse"
+    2177                    "Olivetti M24 mouse"
+    2178                    "<Placeholder string>"
     2179                    "Floppy %i (%s): %ws"
     2180                    "CD-ROM %i: %ws"
     2181                    "Removable disk %i: %s"

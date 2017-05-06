@@ -19,7 +19,7 @@ wchar_t *get_extension_w(wchar_t *s);
 
 void config_load(wchar_t *fn);
 void config_save(wchar_t *fn);
-void config_dump();
-void config_free();
+void config_dump(void);
+void config_free(void);
 
 extern wchar_t config_file_default[256];

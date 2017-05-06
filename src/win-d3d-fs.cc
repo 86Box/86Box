@@ -9,23 +9,25 @@
 #undef BITMAP
 #include <D3dx9tex.h>
 #include "86box.h"
-#include "resource.h"
-#include "video.h"
+#include "video/video.h"
 #include "win-d3d-fs.h"
 #include "win.h"
 #include "win-cgapal.h"
+#include "resource.h"
+
 
 extern "C" void fatal(const char *format, ...);
 extern "C" void pclog(const char *format, ...);
 
-extern "C" void device_force_redraw();
+extern "C" void device_force_redraw(void);
 
-static void d3d_fs_init_objects();
-static void d3d_fs_close_objects();
+static void d3d_fs_init_objects(void);
+static void d3d_fs_close_objects(void);
 static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
 static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h);
 
-extern "C" void video_blit_complete();
+extern "C" void video_blit_complete(void);
+
 
 static LPDIRECT3D9             d3d        = NULL;
 static LPDIRECT3DDEVICE9       d3ddev     = NULL; 
@@ -108,7 +110,7 @@ static CUSTOMVERTEX d3d_verts[] =
      {2048.0f, 2048.0f, 1.0f, 1.0f, 1.0f, 1.0f},
 };
 
-void cgapal_rebuild()
+void cgapal_rebuild(void)
 {
         int c;
         for (c = 0; c < 256; c++)
@@ -195,7 +197,7 @@ int d3d_fs_init(HWND h)
 	return 1;
 }
 
-static void d3d_fs_close_objects()
+static void d3d_fs_close_objects(void)
 {
         if (d3dTexture)
         {
@@ -209,7 +211,7 @@ static void d3d_fs_close_objects()
         }
 }
 
-static void d3d_fs_init_objects()
+static void d3d_fs_init_objects(void)
 {
         D3DLOCKED_RECT dr;
         RECT r;
@@ -256,7 +258,7 @@ static void d3d_fs_init_objects()
         d3d_reset();
 }*/
         
-void d3d_fs_reset()
+void d3d_fs_reset(void)
 {
         HRESULT hr;
 
@@ -291,7 +293,7 @@ void d3d_fs_reset()
         device_force_redraw();
 }
 
-void d3d_fs_close()
+void d3d_fs_close(void)
 {       
         if (d3dTexture)
         {
@@ -571,17 +573,14 @@ static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
                 PostMessage(ghwnd, WM_RESETD3D, 0, 0);
 }
 
-void d3d_fs_take_screenshot(char *fn)
+void d3d_fs_take_screenshot(wchar_t *fn)
 {
-	WCHAR wfn[512];
 	LPDIRECT3DSURFACE9 d3dSurface = NULL;
 
 	if (!d3dTexture)  return;
 
-	mbstowcs(wfn, fn, strlen(fn) + 1);
-
 	d3ddev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &d3dSurface);
-	D3DXSaveSurfaceToFile(wfn, D3DXIFF_PNG, d3dSurface, NULL, NULL);
+	D3DXSaveSurfaceToFile(fn, D3DXIFF_PNG, d3dSurface, NULL, NULL);
 
 	d3dSurface->Release();
 	d3dSurface = NULL;

@@ -2,13 +2,14 @@
    see COPYING for more details
 */
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "io.h"
-#include "cpu.h"
-
 #include "acer386sx.h"
+
 
 static int acer_index = 0;
 static uint8_t acer_regs[256];
+
 
 void acer386sx_write(uint16_t addr, uint8_t val, void *priv)
 {

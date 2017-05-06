@@ -10,9 +10,7 @@
 
 #include <commctrl.h>
 #include <commdlg.h>
-
 #include <process.h>
-
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -24,29 +22,26 @@
 #include "fdd.h"
 #include "hdd.h"
 #include "ibm.h"
+#include "cpu/cpu.h"
+#include "mem.h"
+#include "rom.h"
+#include "nvr.h"
+#include "thread.h"
+#include "config.h"
+#include "model.h"
 #include "ide.h"
+#include "cdrom.h"
 #include "cdrom-null.h"
 #include "cdrom-ioctl.h"
 #include "cdrom-iso.h"
-#include "config.h"
-#include "video.h"
-#include "resource.h"
-#include "cpu.h"
-#include "cdrom.h"
-#include "mem.h"
-#include "model.h"
-#include "mouse.h"
-#include "nethandler.h"
-#include "nvr.h"
-#include "sound.h"
-#include "sound_dbopl.h"
-#include "thread.h"
-#include "rom.h"
-#include "vid_ega.h"
-
+#include "video/video.h"
+#include "video/vid_ega.h"
+#include "plat-keyboard.h"
 #include "plat-mouse.h"
 #include "plat-midi.h"
-#include "plat-keyboard.h"
+#include "mouse.h"
+#include "sound/sound.h"
+#include "sound/snd_dbopl.h"
 
 #include "win.h"
 #include "win-ddraw.h"
@@ -54,6 +49,8 @@
 #include "win-d3d.h"
 #include "win-d3d-fs.h"
 #include "win-language.h"
+#include "resource.h"
+
 
 #ifndef MAPVK_VK_TO_VSC
 #define MAPVK_VK_TO_VSC 0
@@ -1087,6 +1084,8 @@ void win_menu_update()
 #endif
 }
 
+int recv_key[272];
+
 int WINAPI WinMain (HINSTANCE hThisInstance,
                     HINSTANCE hPrevInstance,
                     LPSTR lpszArgument,
@@ -1100,6 +1099,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	WCHAR emulator_title[200];
         LARGE_INTEGER qpc_freq;
         HACCEL haccel;           /* Handle to accelerator table */
+
+	memset(recv_key, 0, sizeof(recv_key));
 
         process_command_line();
 

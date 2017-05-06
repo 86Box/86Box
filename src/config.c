@@ -470,7 +470,7 @@ void config_save(wchar_t *fn)
                 if (current_section->name[0])
 		{
 			mbstowcs(wname, current_section->name, strlen(current_section->name) + 1);
-                        _fwprintf_p(f, L"\n[%ws]\n", wname);
+                        fwprintf(f, L"\n[%ws]\n", wname);
 		}
                 
                 current_entry = (entry_t *)current_section->entry_head.next;
@@ -480,11 +480,11 @@ void config_save(wchar_t *fn)
 			mbstowcs(wname, current_entry->name, strlen(current_entry->name) + 1);
 			if (current_entry->wdata[0] == L'\0')
 			{
-	                        _fwprintf_p(f, L"%ws = \n", wname);
+	                        fwprintf(f, L"%ws = \n", wname);
 			}
 			else
 			{
-	                        _fwprintf_p(f, L"%ws = %ws\n", wname, current_entry->wdata);
+	                        fwprintf(f, L"%ws = %ws\n", wname, current_entry->wdata);
 			}
 
                         current_entry = (entry_t *)current_entry->list.next;

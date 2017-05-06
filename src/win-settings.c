@@ -8,34 +8,34 @@
 #undef BITMAP
 
 #include <commctrl.h>
-
 #include <inttypes.h>
-
-#include "nethandler.h"
 #include "ibm.h"
-#include "ide.h"
-#include "cdrom.h"
-#include "cpu.h"
+#include "mem.h"
+#include "cpu/cpu.h"
+#include "nvr.h"
+#include "model.h"
 #include "device.h"
-#include "scsi_buslogic.h"
+#include "cdrom.h"
 #include "disc.h"
 #include "fdd.h"
-#include "gameport.h"
 #include "hdd.h"
-#include "mem.h"
-#include "model.h"
-#include "mouse.h"
-#include "nvr.h"
-#include "resource.h"
+#include "ide.h"
 #include "scsi.h"
-#include "sound.h"
-#include "sound_dbopl.h"
-#include "video.h"
-#include "vid_voodoo.h"
+#include "scsi_buslogic.h"
+#include "network.h"
+#include "sound/sound.h"
+#include "sound/snd_dbopl.h"
+#include "video/video.h"
+#include "video/vid_voodoo.h"
+#include "gameport.h"
+#include "mouse.h"
 #include "win.h"
 #include "win-language.h"
+#include "resource.h"
+
 
 #define WM_SAVESETTINGS 0x8888			/* 86Box-specific message, used to tell the child dialog to save the currently specified settings. */
+
 
 /* Machine category */
 int temp_model, temp_cpu_m, temp_cpu, temp_wait_states, temp_mem_size, temp_dynarec, temp_fpu, temp_sync;
@@ -825,29 +825,26 @@ static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wPa
 						default:
 							str_id = 2139;
 							break;
-						case 1:	/* MS InPort Bus */
-							str_id = 2177;
-							break;
-						case 2:	/* PS2 2b */
-							str_id = 2140;
-							break;
-						case 3: /* MS/logi bus 2b */
-							str_id = 2161;
-							break;
-						case 4:	/* PS2 intelli 3b */
+						case 1:	/* PS2 2b */
 							str_id = 2141;
 							break;
-						case 5:	/* Amstrad */
+						case 2:	/* PS2 intelli 3b */
 							str_id = 2142;
 							break;
-						case 6:	/* Olivetti M24 */
+						case 3: /* MS/logi bus 2b */
 							str_id = 2143;
 							break;
-						case 7:	/* MouseSystems */
+						case 4:	/* Amstrad */
 							str_id = 2162;
 							break;
-						case 8:	/* Genius Bus */
-							str_id = 2178;
+						case 5:	/* Olivetti M24 */
+							str_id = 2177;
+							break;
+						case 6:	/* MouseSystems */
+							str_id = 2140;
+							break;
+						case 7:	/* Genius Bus */
+							str_id = 2161;
 							break;
 					}
 

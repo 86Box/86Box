@@ -1,10 +1,9 @@
 /* Copyright holders: Tenshi
    see COPYING for more details
 */
-
 /* {{NO_DEPENDENCIES}}
    Microsoft Developer Studio generated include file.
-   Used by pc_new2.rc
+   Used by 86Box.rc
 */
 #define IDHDCONFIG                      3
 #define IDCDCONFIG                      4
@@ -195,27 +194,27 @@
 #define IDM_IDE_QUA_IRQ15	44035
 
 #ifdef ENABLE_LOG_TOGGLES
-#ifdef ENABLE_BUSLOGIC_LOG
-#define IDM_LOG_BUSLOGIC   51200
-#endif
-#ifdef ENABLE_CDROM_LOG
-#define IDM_LOG_CDROM      51201
-#endif
-#ifdef ENABLE_D86F_LOG
-#define IDM_LOG_D86F       51202
-#endif
-#ifdef ENABLE_FDC_LOG
-#define IDM_LOG_FDC        51203
-#endif
-#ifdef ENABLE_IDE_LOG
-#define IDM_LOG_IDE        51204
-#endif
-#ifdef ENABLE_NE2000_LOG
-#define IDM_LOG_NE2000     51205
-#endif
+# ifdef ENABLE_BUSLOGIC_LOG
+#  define IDM_LOG_BUSLOGIC	51200
+# endif
+# ifdef ENABLE_CDROM_LOG
+#  define IDM_LOG_CDROM		51201
+# endif
+# ifdef ENABLE_D86F_LOG
+#  define IDM_LOG_D86F		51202
+# endif
+# ifdef ENABLE_FDC_LOG
+#  define IDM_LOG_FDC		51203
+# endif
+# ifdef ENABLE_IDE_LOG
+#  define IDM_LOG_IDE		51204
+# endif
+# ifdef ENABLE_NE2000_LOG
+#  define IDM_LOG_NE2000	51205
+# endif
 #endif
 #ifdef ENABLE_LOG_BREAKPOINT
-#define IDM_LOG_BREAKPOINT 51206
+# define IDM_LOG_BREAKPOINT	51206
 #endif
 
 #define IDC_COMBO1 1000
@@ -413,13 +412,12 @@
 #define IDC_STATIC 1792
 
 /* Next default values for new objects */
-
 #ifdef APSTUDIO_INVOKED
-#ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        110
-#define _APS_NEXT_COMMAND_VALUE         40002
-#define _APS_NEXT_CONTROL_VALUE         1055
-#define _APS_NEXT_SYMED_VALUE           101
-#endif
+# ifndef APSTUDIO_READONLY_SYMBOLS
+#  define _APS_NO_MFC			1
+#  define _APS_NEXT_RESOURCE_VALUE	110
+#  define _APS_NEXT_COMMAND_VALUE	40002
+#  define _APS_NEXT_CONTROL_VALUE	1055
+#  define _APS_NEXT_SYMED_VALUE		101
+#  endif
 #endif

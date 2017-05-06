@@ -10,15 +10,16 @@
 #include "win.h"
 #include "win-ddraw-screenshot.h"
 #include "win-language.h"
-#include "video.h"
+#include "video/video.h"
+
 
 extern "C" void fatal(const char *format, ...);
 extern "C" void pclog(const char *format, ...);
 
-extern "C" void device_force_redraw();
+extern "C" void device_force_redraw(void);
 
 extern "C" void ddraw_init(HWND h);
-extern "C" void ddraw_close();
+extern "C" void ddraw_close(void);
 
 HBITMAP hbitmap;
 
@@ -69,7 +70,7 @@ void DoubleLines(uint8_t *dst, uint8_t *src)
 
 static WCHAR szMessage[2048];
 
-void SaveBitmap(char *szFilename,HBITMAP hBitmap)
+void SaveBitmap(wchar_t *szFilename,HBITMAP hBitmap)
 {
     HDC                 hdc=NULL;
     FILE*               fp=NULL;
@@ -106,7 +107,7 @@ void SaveBitmap(char *szFilename,HBITMAP hBitmap)
 
         GetDIBits(hdc,hBitmap,0,bmpInfo.bmiHeader.biHeight,pBuf, &bmpInfo, DIB_RGB_COLORS);
 
-        if((fp = fopen(szFilename,"wb"))==NULL)
+        if((fp = _wfopen(szFilename,L"wb"))==NULL)
         {
             _swprintf(szMessage, win_language_get_string_from_id(2194), szFilename);
 	    msgbox_error_wstr(ghwnd, szMessage);
@@ -154,7 +155,7 @@ void SaveBitmap(char *szFilename,HBITMAP hBitmap)
     if(fp)      fclose(fp);
 }
 
-void ddraw_common_take_screenshot(char *fn, IDirectDrawSurface7 *pDDSurface)
+void ddraw_common_take_screenshot(wchar_t *fn, IDirectDrawSurface7 *pDDSurface)
 {
 	xs = xsize;
 	ys = ys2 = ysize;

@@ -8,10 +8,10 @@
  *
  *		Implementation of several low-level support functions for
  *		the AHA-154x series of ISA Host Adapters made by Adaptec.
- *		These functions implement the support needed by the ROM BIOS
- *		of these cards.
+ *		These functions implement the support needed by the ROM
+ *		BIOS of these cards.
  *
- * Version:	@(#)aha154x.c	1.0.4	2017/04/21
+ * Version:	@(#)scsi_aha154x.c	1.0.5	2017/05/05
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -40,35 +40,35 @@
 
 #if AHA == AHA154xC
 # define ROMFILE	L"roms/adaptec/aha1542c101.bin"
-# define AHA_BID	'D'			/* AHA-154x C */
-# define ROM_FWHIGH	0x0022			/* firmware version (hi/lo) */
-# define ROM_SHRAM	0x3F80			/* shadow RAM address base */
-# define ROM_SHRAMSZ	128			/* size of shadow RAM */
-# define ROM_IOADDR	0x3F7E			/* [2:0] idx into addr table */
-# define EEP_SIZE	32			/* 32 bytes of storage */
+# define AHA_BID	'D'		/* AHA-154x C */
+# define ROM_FWHIGH	0x0022		/* firmware version (hi/lo) */
+# define ROM_SHRAM	0x3F80		/* shadow RAM address base */
+# define ROM_SHRAMSZ	128		/* size of shadow RAM */
+# define ROM_IOADDR	0x3F7E		/* [2:0] idx into addr table */
+# define EEP_SIZE	32		/* 32 bytes of storage */
 #endif
 
 #if AHA == AHA154xCF
 # define ROMFILE	L"roms/adaptec/aha1542cf201.bin"
-# define AHA_BID	'E'			/* AHA-154x CF */
-# define ROM_FWHIGH	0x0022			/* firmware version (hi/lo) */
-# define ROM_SHRAM	0x3F80			/* shadow RAM address base */
-# define ROM_SHRAMSZ	128			/* size of shadow RAM */
-# define ROM_IOADDR	0x3F7E			/* [2:0] idx into addr table */
-# define EEP_SIZE	32			/* 32 bytes of storage */
+# define AHA_BID	'E'		/* AHA-154x CF */
+# define ROM_FWHIGH	0x0022		/* firmware version (hi/lo) */
+# define ROM_SHRAM	0x3F80		/* shadow RAM address base */
+# define ROM_SHRAMSZ	128		/* size of shadow RAM */
+# define ROM_IOADDR	0x3F7E		/* [2:0] idx into addr table */
+# define EEP_SIZE	32		/* 32 bytes of storage */
 #endif
 
 #if AHA == AHA154xCP
 # define ROMFILE	L"roms/adaptec/aha1542cp102.bin"
-# define AHA_BID	'F'			/* AHA-154x CP */
-# define ROM_FWHIGH	0x0055			/* firmware version (hi/lo) */
-# define ROM_SHRAM	0x3F80			/* shadow RAM address base */
-# define ROM_SHRAMSZ	128			/* size of shadow RAM */
-# define ROM_IOADDR	0x3F7E			/* [2:0] idx into addr table */
-# define EEP_SIZE	32			/* 32 bytes of storage */
+# define AHA_BID	'F'		/* AHA-154x CP */
+# define ROM_FWHIGH	0x0055		/* firmware version (hi/lo) */
+# define ROM_SHRAM	0x3F80		/* shadow RAM address base */
+# define ROM_SHRAMSZ	128		/* size of shadow RAM */
+# define ROM_IOADDR	0x3F7E		/* [2:0] idx into addr table */
+# define EEP_SIZE	32		/* 32 bytes of storage */
 #endif
 
-#define ROM_SIZE	16384			/* one ROM is 16K */
+#define ROM_SIZE	16384		/* one ROM is 16K */
 
 
 /* EEPROM map and bit definitions. */
@@ -198,14 +198,14 @@ aha154x_init(uint16_t ioaddr, uint32_t memaddr, aha_info *aha)
     uint32_t bios_size;
     uint32_t bios_addr;
     uint32_t bios_mask;
-    char *bios_path;
+    wchar_t *bios_path;
     uint32_t temp;
     FILE *f;
 
     /* Set BIOS load address. */
     bios_addr = memaddr;
     bios_path = ROMFILE;
-    pclog("AHA154x: loading BIOS from '%s'\n", bios_path);
+    pclog_w(L"AHA154x: loading BIOS from '%s'\n", bios_path);
 
     /* Open the BIOS image file and make sure it exists. */
     if ((f = romfopen(bios_path, L"rb")) == NULL) {

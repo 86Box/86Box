@@ -978,16 +978,16 @@ void cdrom_mode_sense_load(uint8_t id)
 	switch(id)
 	{
 		case 0:
-			f = fopen(nvr_concat("cdrom_1_mode_sense.bin"), "rb");
+			f = _wfopen(nvr_concat(L"cdrom_1_mode_sense.bin"), L"rb");
 			break;
 		case 1:
-			f = fopen(nvr_concat("cdrom_2_mode_sense.bin"), "rb");
+			f = _wfopen(nvr_concat(L"cdrom_2_mode_sense.bin"), L"rb");
 			break;
 		case 2:
-			f = fopen(nvr_concat("cdrom_3_mode_sense.bin"), "rb");
+			f = _wfopen(nvr_concat(L"cdrom_3_mode_sense.bin"), L"rb");
 			break;
 		case 3:
-			f = fopen(nvr_concat("cdrom_4_mode_sense.bin"), "rb");
+			f = _wfopen(nvr_concat(L"cdrom_4_mode_sense.bin"), L"rb");
 			break;
 		default:
 			return;
@@ -1006,16 +1006,16 @@ void cdrom_mode_sense_save(uint8_t id)
 	switch(id)
 	{
 		case 0:
-			f = fopen(nvr_concat("cdrom_1_mode_sense.bin"), "wb");
+			f = _wfopen(nvr_concat(L"cdrom_1_mode_sense.bin"), L"wb");
 			break;
 		case 1:
-			f = fopen(nvr_concat("cdrom_2_mode_sense.bin"), "wb");
+			f = _wfopen(nvr_concat(L"cdrom_2_mode_sense.bin"), L"wb");
 			break;
 		case 2:
-			f = fopen(nvr_concat("cdrom_3_mode_sense.bin"), "wb");
+			f = _wfopen(nvr_concat(L"cdrom_3_mode_sense.bin"), L"wb");
 			break;
 		case 3:
-			f = fopen(nvr_concat("cdrom_4_mode_sense.bin"), "wb");
+			f = _wfopen(nvr_concat(L"cdrom_4_mode_sense.bin"), L"wb");
 			break;
 		default:
 			return;
