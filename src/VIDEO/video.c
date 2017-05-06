@@ -702,7 +702,7 @@ void take_screenshot()
 	if (vid_api == 1)
 	{
 		wcsftime(screenshot_fn_partial, 2048, L"screenshots\\%Y%m%d_%H%M%S.png", info);
-		append_filename(screenshot_fn, pcempath, screenshot_fn_partial, 4095);
+		append_filename_w(screenshot_fn, pcempath, screenshot_fn_partial, 4095);
 		if (video_fullscreen)
 		{
 			d3d_fs_take_screenshot(screenshot_fn);
@@ -715,8 +715,8 @@ void take_screenshot()
 	}
 	else if (vid_api == 0)
 	{
-		strftime(screenshot_fn_partial, 1024, "screenshots\\%Y%m%d_%H%M%S.bmp", info);
-		append_filename(screenshot_fn, pcempath, screenshot_fn_partial, 4095);
+		wcsftime(screenshot_fn_partial, 2048, L"screenshots\\%Y%m%d_%H%M%S.bmp", info);
+		append_filename_w(screenshot_fn, pcempath, screenshot_fn_partial, 4095);
 		if (video_fullscreen)
 		{
 			ddraw_fs_take_screenshot(screenshot_fn);
