@@ -92,10 +92,10 @@ void um8669f_write(uint16_t port, uint8_t val, void *priv)
                                    temp |= 2;
                                 switch (temp)
                                 {
-                                        case 0: serial1_set(0x3f8, 4); break;
-                                        case 1: serial1_set(0x2f8, 4); break;
-                                        case 2: serial1_set(0x3e8, 4); break;
-                                        case 3: serial1_set(0x2e8, 4); break;
+                                        case 0: serial_setup(1, 0x3f8, 4); break;
+                                        case 1: serial_setup(1, 0x2f8, 4); break;
+                                        case 2: serial_setup(1, 0x3e8, 4); break;
+                                        case 3: serial_setup(1, 0x2e8, 4); break;
                                 }
                         }
                         
@@ -106,10 +106,10 @@ void um8669f_write(uint16_t port, uint8_t val, void *priv)
                                    temp |= 2;
                                 switch (temp)
                                 {
-                                        case 0: serial2_set(0x3f8, 3); break;
-                                        case 1: serial2_set(0x2f8, 3); break;
-                                        case 2: serial2_set(0x3e8, 3); break;
-                                        case 3: serial2_set(0x2e8, 3); break;
+                                        case 0: serial_setup(2, 0x3f8, 3); break;
+                                        case 1: serial_setup(2, 0x2f8, 3); break;
+                                        case 2: serial_setup(2, 0x3e8, 3); break;
+                                        case 3: serial_setup(2, 0x2e8, 3); break;
                                 }
                         }
 

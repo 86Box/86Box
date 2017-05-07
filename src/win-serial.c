@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #define BHTTY_C
-#include "win-serial.h"
+#include "plat-serial.h"
 
 
 extern void	pclog(char *__fmt, ...);

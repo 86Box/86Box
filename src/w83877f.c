@@ -340,15 +340,15 @@ process_value:
 		case 4:
 			if (valxor & 0x10)
 			{
-				serial2_remove();
-				if (!(w83877f_regs[2] & 0x10))  serial2_set(make_port(0x25), w83877f_regs[0x28] & 0xF);
+				serial_remove(2);
+				if (!(w83877f_regs[2] & 0x10))  serial_setup(2, make_port(0x25), w83877f_regs[0x28] & 0xF);
 			}
 			if (valxor & 0x20)
 			{
-				serial1_remove();
+				serial_remove(1);
 				if (!(w83877f_regs[4] & 0x20))
 				{
-					serial1_set(make_port(0x24), (w83877f_regs[0x28] & 0xF0) >> 8);
+					serial_setup(1, make_port(0x24), (w83877f_regs[0x28] & 0xF0) >> 8);
 				}
 			}
 			if (valxor & 0x80)
@@ -407,28 +407,28 @@ process_value:
 			{
 				if (!(w83877f_regs[4] & 0x20))
 				{
-					serial1_set(make_port(0x24), (w83877f_regs[0x28] & 0xF0) >> 8);
+					serial_setup(1, make_port(0x24), (w83877f_regs[0x28] & 0xF0) >> 8);
 				}
 			}
 			break;
 		case 0x25:
 			if (valxor & 0xfe)
 			{
-				if (!(w83877f_regs[2] & 0x10))  serial2_set(make_port(0x25), w83877f_regs[0x28] & 0xF);
+				if (!(w83877f_regs[2] & 0x10))  serial_setup(2, make_port(0x25), w83877f_regs[0x28] & 0xF);
 			}
 			break;
 		case 0x28:
 			if (valxor & 0xf)
 			{
 				if ((w83877f_regs[0x28] & 0xf) == 0)  w83877f_regs[0x28] |= 0x3;
-				if (!(w83877f_regs[2] & 0x10))  serial2_set(make_port(0x25), w83877f_regs[0x28] & 0xF);
+				if (!(w83877f_regs[2] & 0x10))  serial_setup(2, make_port(0x25), w83877f_regs[0x28] & 0xF);
 			}
 			if (valxor & 0xf0)
 			{
 				if ((w83877f_regs[0x28] & 0xf0) == 0)  w83877f_regs[0x28] |= 0x40;
 				if (!(w83877f_regs[4] & 0x20))
 				{
-					serial1_set(make_port(0x24), (w83877f_regs[0x28] & 0xF0) >> 8);
+					serial_setup(1, make_port(0x24), (w83877f_regs[0x28] & 0xF0) >> 8);
 				}
 			}
 			break;
@@ -498,8 +498,8 @@ void w83877f_reset(void)
 	disable_write = 0;
 	fdc_update_drv2en(1);
 	fdd_setswap(0);
-	serial1_set(0x3f8, 4);
-	serial2_set(0x2f8, 3);
+	serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
+	serial_setup(2, SERIAL2_ADDR, SERIAL2_IRQ);
 	w83877f_remap();
         w83877f_locked = 0;
         w83877f_rw_locked = 0;

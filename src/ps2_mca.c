@@ -192,16 +192,16 @@ static void model_50_write(uint16_t port, uint8_t val)
                 break;
                 case 0x102:
                 lpt1_remove();
-                serial1_remove();
+                serial_remove(1);
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial1_init(0x3f8, 4);
+                                serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
                         else
-                                serial1_init(0x2f8, 3);
+                                serial_setup(1, SERIAL2_ADDR, SERIAL2_IRQ);
                 }
                 else
-                        serial1_remove();
+                        serial_remove(1);
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
@@ -248,16 +248,16 @@ static void model_55sx_write(uint16_t port, uint8_t val)
                 break;
                 case 0x102:
                 lpt1_remove();
-                serial1_remove();
+                serial_remove(1);
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial1_init(0x3f8, 4);
+                                serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
                         else
-                                serial1_init(0x2f8, 3);
+                                serial_setup(1, SERIAL2_ADDR, SERIAL2_IRQ);
                 }
                 else
-                        serial1_remove();
+                        serial_remove(1);
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
@@ -324,16 +324,16 @@ static void model_80_write(uint16_t port, uint8_t val)
                 break;
                 case 0x102:
                 lpt1_remove();
-                serial1_remove();
+                serial_remove(1);
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial1_init(0x3f8, 4);
+                                serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
                         else
-                                serial1_init(0x2f8, 3);
+                                serial_setup(1, SERIAL2_ADDR, SERIAL2_IRQ);
                 }
                 else
-                        serial1_remove();
+                        serial_remove(1);
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
@@ -556,8 +556,8 @@ static void ps2_mca_board_common_init()
         lpt2_remove();
         lpt1_init(0x3bc);
         
-        serial1_remove();
-        serial2_remove();
+        serial_remove(1);
+        serial_remove(2);
 }
 
 void ps2_mca_board_model_50_init()

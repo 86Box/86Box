@@ -101,6 +101,8 @@ int atfullspeed;
 void saveconfig();
 int infocus;
 int mousecapture;
+
+
 void pclog(const char *format, ...)
 {
 #ifndef RELEASE_BUILD
@@ -117,7 +119,7 @@ void pclog_w(const wchar_t *format, ...)
 #ifndef RELEASE_BUILD
    va_list ap;
    va_start(ap, format);
-   _vwprintf_p(format, ap);
+   vwprintf(format, ap);
    va_end(ap);
    fflush(stdout);
 #endif
@@ -129,6 +131,7 @@ void pclog_w(const wchar_t *format, ...)
 #endif
 
 #undef memmem
+
 
 /* Return the first occurrence of NEEDLE in HAYSTACK.  */
 void *memmem (const void *haystack, size_t haystack_len, const void *needle, size_t needle_len)
@@ -153,6 +156,7 @@ void *memmem (const void *haystack, size_t haystack_len, const void *needle, siz
 	return NULL;
 }
 #endif
+
 
 void fatal(const char *format, ...)
 {
@@ -184,8 +188,9 @@ void fatal(const char *format, ...)
 
 uint8_t cgastat;
 
+
 int pollmouse_delay = 2;
-void pollmouse()
+void pollmouse(void)
 {
         int x, y, z;
         pollmouse_delay--;
@@ -245,14 +250,14 @@ int updatestatus;
 int win_title_update=0;
 
 
-void onesec()
+void onesec(void)
 {
         fps=framecount;
         framecount=0;
         win_title_update=1;
 }
 
-void pc_reset()
+void pc_reset(void)
 {
         cpu_set();
         resetx86();
@@ -268,6 +273,8 @@ void pc_reset()
 
         ali1429_reset();
 }
+
+
 #undef printf
 void initpc(int argc, wchar_t *argv[])
 {
@@ -285,7 +292,7 @@ void initpc(int argc, wchar_t *argv[])
         {
                 if (!_wcsicmp(argv[c], L"--help"))
                 {
-                        printf("PCem command line options :\n\n");
+                        printf("Command line options :\n\n");
                         printf("--config file.cfg - use given config file as initial configuration\n");
                         printf("--dump            - always dump memory on exit\n");
                         printf("--fullscreen      - start in fullscreen mode\n");
@@ -317,6 +324,7 @@ void initpc(int argc, wchar_t *argv[])
 
         mouse_init();
         midi_init();
+	serial_init();
 
 	if (config_file == NULL)
 	{
@@ -424,7 +432,7 @@ void initpc(int argc, wchar_t *argv[])
 	}
 }
 
-void resetpc()
+void resetpc(void)
 {
         pc_reset();
         shadowbios=0;
@@ -442,7 +450,7 @@ void pc_keyboard_send(uint8_t val)
 	}
 }
 
-void resetpc_cad()
+void resetpc_cad(void)
 {
 	pc_keyboard_send(29);	/* Ctrl key pressed */
 	pc_keyboard_send(56);	/* Alt key pressed */
@@ -454,7 +462,7 @@ void resetpc_cad()
 
 int suppress_overscan = 0;
 
-void resetpchard()
+void resetpchard(void)
 {
 	int i = 0;
 
@@ -475,7 +483,7 @@ void resetpchard()
         mem_resize();
         fdc_init();
 	disc_reset();
-        
+
         model_init();
 	mouse_emu_init();
         video_init();
@@ -566,7 +574,7 @@ int emu_fps = 0;
 static WCHAR wmodel[2048];
 static WCHAR wcpu[2048];
 
-void runpc()
+void runpc(void)
 {
         wchar_t s[200];
         int done=0;
@@ -651,7 +659,7 @@ void runpc()
                 done++;
 }
 
-void fullspeed()
+void fullspeed(void)
 {
         cpuspeed2=cpuspeed;
         if (!atfullspeed)
@@ -666,7 +674,7 @@ void fullspeed()
         nvr_recalc();
 }
 
-void speedchanged()
+void speedchanged(void)
 {
         if (AT)
                 setpitclock(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed);
@@ -675,7 +683,7 @@ void speedchanged()
         nvr_recalc();
 }
 
-void closepc()
+void closepc(void)
 {
 	int i = 0;
 	for (i = 0; i < CDROM_NUM; i++)
@@ -693,18 +701,6 @@ void closepc()
         midi_close();
 }
 
-/*int main()
-{
-        initpc();
-        while (!key[KEY_F11])
-        {
-                runpc();
-        }
-        closepc();
-        return 0;
-}
-
-END_OF_MAIN();*/
 
 void loadconfig(wchar_t *fn)
 {
@@ -970,7 +966,7 @@ wchar_t *nvr_concat(wchar_t *to_concat)
 	return temp_nvr_path;
 }
 
-void saveconfig()
+void saveconfig(void)
 {
         int c, d;
 

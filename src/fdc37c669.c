@@ -170,13 +170,13 @@ process_value:
 		case 2:
 			if (valxor & 8)
 			{
-				serial1_remove();
-				if ((fdc37c669_regs[2] & 8) && (fdc37c669_regs[0x24] & 0xc0))  serial1_set(make_port(0x24), (fdc37c669_regs[0x28] & 0xF0) >> 8);
+				serial_remove(1);
+				if ((fdc37c669_regs[2] & 8) && (fdc37c669_regs[0x24] & 0xc0))  serial_setup(1, make_port(0x24), (fdc37c669_regs[0x28] & 0xF0) >> 8);
 			}
 			if (valxor & 0x80)
 			{
-				serial2_remove();
-				if ((fdc37c669_regs[2] & 0x80) && (fdc37c669_regs[0x25] & 0xc0))  serial2_set(make_port(0x25), fdc37c669_regs[0x28] & 0xF);
+				serial_remove(2);
+				if ((fdc37c669_regs[2] & 0x80) && (fdc37c669_regs[0x25] & 0xc0))  serial_setup(2, make_port(0x25), fdc37c669_regs[0x28] & 0xF);
 			}
 			break;
 		case 3:
@@ -224,29 +224,29 @@ process_value:
 		case 0x24:
 			if (valxor & 0xfe)
 			{
-				serial1_remove();
-				if ((fdc37c669_regs[2] & 8) && (fdc37c669_regs[0x24] & 0xc0))  serial1_set(make_port(0x24), (fdc37c669_regs[0x28] & 0xF0) >> 8);
+				serial_remove(1);
+				if ((fdc37c669_regs[2] & 8) && (fdc37c669_regs[0x24] & 0xc0))  serial_setup(1, make_port(0x24), (fdc37c669_regs[0x28] & 0xF0) >> 8);
 			}
 			break;
 		case 0x25:
 			if (valxor & 0xfe)
 			{
-				serial2_remove();
-				if ((fdc37c669_regs[2] & 0x80) && (fdc37c669_regs[0x25] & 0xc0))  serial2_set(make_port(0x25), fdc37c669_regs[0x28] & 0xF);
+				serial_remove(2);
+				if ((fdc37c669_regs[2] & 0x80) && (fdc37c669_regs[0x25] & 0xc0))  serial_setup(2, make_port(0x25), fdc37c669_regs[0x28] & 0xF);
 			}
 			break;
 		case 0x28:
 			if (valxor & 0xf)
 			{
-				serial2_remove();
+				serial_remove(2);
 				if ((fdc37c669_regs[0x28] & 0xf) == 0)  fdc37c669_regs[0x28] |= 0x3;
-				if ((fdc37c669_regs[2] & 0x80) && (fdc37c669_regs[0x25] & 0xc0))  serial2_set(make_port(0x25), fdc37c669_regs[0x28] & 0xF);
+				if ((fdc37c669_regs[2] & 0x80) && (fdc37c669_regs[0x25] & 0xc0))  serial_setup(2, make_port(0x25), fdc37c669_regs[0x28] & 0xF);
 			}
 			if (valxor & 0xf0)
 			{
-				serial1_remove();
+				serial_remove(1);
 				if ((fdc37c669_regs[0x28] & 0xf0) == 0)  fdc37c669_regs[0x28] |= 0x40;
-				if ((fdc37c669_regs[2] & 8) && (fdc37c669_regs[0x24] & 0xc0))  serial1_set(make_port(0x24), (fdc37c669_regs[0x28] & 0xF0) >> 8);
+				if ((fdc37c669_regs[2] & 8) && (fdc37c669_regs[0x24] & 0xc0))  serial_setup(1, make_port(0x24), (fdc37c669_regs[0x28] & 0xF0) >> 8);
 			}
 			break;
 	}
@@ -280,11 +280,11 @@ void fdc37c669_reset(void)
 
         fdc_update_is_nsc(0);
 
-	serial1_remove();
-	serial1_set(0x3f8, 4);
+	serial_remove(1);
+	serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
 
-	serial2_remove();
-	serial2_set(0x2f8, 3);
+	serial_remove(2);
+	serial_setup(2, SERIAL2_ADDR, SERIAL2_IRQ);
 
 	lpt2_remove();
 

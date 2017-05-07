@@ -275,11 +275,11 @@ void common_init()
         pit_init();
 	if (serial_enabled[0])
 	{
-	        serial1_init(0x3f8, 4);
+	        serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
 	}
 	if (serial_enabled[1])
 	{
-	        serial2_init(0x2f8, 3);
+	        serial_setup(2, SERIAL2_ADDR, SERIAL2_IRQ);
 	}
 }
 
@@ -306,7 +306,7 @@ void pcjr_init()
         pit_set_out_func(&pit, 0, pit_irq0_timer_pcjr);
 	if (serial_enabled[0])
 	{
-	        serial1_init(0x2f8, 3);
+	        serial_setup(1, 0x2f8, 3);
 	}
         keyboard_pcjr_init();
         device_add(&sn76489_device);

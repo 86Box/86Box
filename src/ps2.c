@@ -68,9 +68,9 @@ void ps2_write(uint16_t port, uint8_t val, void *p)
                 case 0x102:
                 lpt1_remove();
                 if (val & 0x04)
-                        serial1_init(0x3f8, 4);
+                        serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
                 else
-                        serial1_remove();
+                        serial_remove(1);
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
@@ -131,8 +131,8 @@ void ps2board_init()
         lpt2_remove();
         lpt1_init(0x3bc);
         
-        serial1_remove();
-        serial2_remove();
+        serial_remove(1);
+        serial_remove(2);
         
         memset(&ps2_hd, 0, sizeof(ps2_hd));
 }

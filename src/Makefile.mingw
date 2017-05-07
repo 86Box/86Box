@@ -180,7 +180,7 @@ LIBS	= -mwindows -lcomctl32 -lwinmm -lopenal.dll -lopenal -lddraw \
 # Build rules.
 %.o:		%.c
 		@echo $<
-		$(CC) $(CFLAGS) -c $<
+		@$(CC) $(CFLAGS) -c $<
 
 %.o:		%.cc
 		@echo $<

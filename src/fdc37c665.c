@@ -86,19 +86,19 @@ void set_serial1_addr()
 		switch (fdc37c665_regs[2] & 3)
 		{
 			case 0:
-				serial1_set(0x3f8, 4);
+				serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
 				break;
 
 			case 1:
-				serial1_set(0x2f8, 3);
+				serial_setup(1, SERIAL2_ADDR, SERIAL2_IRQ);
 				break;
 
 			case 2:
-				serial1_set(com3_addr, 4);
+				serial_setup(1, com3_addr, 4);
 				break;
 
 			case 3:
-				serial1_set(com4_addr, 3);
+				serial_setup(1, com4_addr, 3);
 				break;
 		}
 	}
@@ -111,19 +111,19 @@ void set_serial2_addr()
 		switch (fdc37c665_regs[2] & 0x30)
 		{
 			case 0:
-				serial2_set(0x3f8, 4);
+				serial_setup(2, SERIAL1_ADDR, SERIAL1_IRQ);
 				break;
 
 			case 1:
-				serial2_set(0x2f8, 3);
+				serial_setup(2, SERIAL2_ADDR, SERIAL2_IRQ);
 				break;
 
 			case 2:
-				serial2_set(com3_addr, 4);
+				serial_setup(2, com3_addr, 4);
 				break;
 
 			case 3:
-				serial2_set(com4_addr, 3);
+				serial_setup(2, com4_addr, 3);
 				break;
 		}
 	}
@@ -186,7 +186,7 @@ void fdc37c665_write(uint16_t port, uint8_t val, void *priv)
 					}
 					if (valxor & 0x60)
 					{
-		                                serial1_remove();
+		                                serial_remove(1);
 						set_com34_addr();
 						set_serial1_addr();
 						set_serial2_addr();
@@ -195,12 +195,12 @@ void fdc37c665_write(uint16_t port, uint8_t val, void *priv)
 				case 2:
 					if (valxor & 7)
 					{
-		                                serial1_remove();
+		                                serial_remove(1);
 						set_serial1_addr();
 					}
 					if (valxor & 0x70)
 					{
-		                                serial2_remove();
+		                                serial_remove(2);
 						set_serial2_addr();
 					}
 					break;
@@ -254,11 +254,11 @@ void fdc37c665_reset(void)
 
         fdc_update_is_nsc(0);
         
-	serial1_remove();
-	serial1_set(0x3f8, 4);
+	serial_remove(1);
+	serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
 
-	serial2_remove();
-	serial2_set(0x2f8, 3);
+	serial_remove(2);
+	serial_setup(2, SERIAL2_ADDR, SERIAL2_IRQ);
 
 	lpt2_remove();
 
