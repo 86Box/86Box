@@ -270,26 +270,12 @@ void sound_poll(void *priv)
         if (sound_pos_global == SOUNDBUFLEN)
         {
                 int c;
-/*                int16_t buf16[SOUNDBUFLEN * 2 ];*/
 
                 memset(outbuffer, 0, SOUNDBUFLEN * 2 * sizeof(int32_t));
 
                 for (c = 0; c < sound_handlers_num; c++)
                         sound_handlers[c].get_buffer(outbuffer, SOUNDBUFLEN, sound_handlers[c].priv);
 
-
-/*                for (c=0;c<SOUNDBUFLEN*2;c++)
-                {
-                        if (outbuffer[c] < -32768)
-                                buf16[c] = -32768;
-                        else if (outbuffer[c] > 32767)
-                                buf16[c] = 32767;
-                        else
-                                buf16[c] = outbuffer[c];
-                }
-
-        if (!soundf) soundf=fopen("sound.pcm","wb");
-        fwrite(buf16,(SOUNDBUFLEN)*2*2,1,soundf);*/
 
 		for (c = 0; c < SOUNDBUFLEN * 2; c++)
 		{

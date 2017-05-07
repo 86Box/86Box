@@ -121,3 +121,7 @@ void video_updatetiming();
 
 void hline(BITMAP *b, int x1, int y, int x2, uint32_t col);
 void updatewindowsize(int x, int y);
+
+#ifdef ENABLE_VRAM_DUMP
+void svga_dump_vram();
+#endif
