@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 MinGW 32-bit environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.6	2017/05/06
+# Version:	@(#)Makefile.mingw	1.0.7	2017/05/07
 #
 # Authors:	Kotori, <oubattler@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -44,7 +44,11 @@ WINDRES	= windres.exe
 
 OPTS	= -DWIN32 $(EXTRAS) $(STUFF)
 ifeq ($(DEBUG), y)
+ifeq ($(VRAMDUMP), y)
+DFLAGS	= -march=i686 -ggdb -DDEBUG -DENABLE_VRAM_DUMP
+else
 DFLAGS	= -march=i686 -ggdb -DDEBUG
+endif
 COPTIM	= -Og
 else
 ifeq ($(OPTIM), y)
@@ -66,9 +70,19 @@ AOPTIM	=
 endif
 AFLAGS	= -msse -msse2 \
 	  -mfpmath=sse
+ifeq ($(RELEASE), y)
+CFLAGS	= $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) $(AFLAGS) \
+	  -fomit-frame-pointer -mstackrealign -DRELEASE_BUILD
+RFLAGS	= --input-format=rc -O coff -DRELEASE_BUILD
+else
 CFLAGS	= $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) $(AFLAGS) \
 	  -fomit-frame-pointer -mstackrealign
+ifeq ($(VRAMDUMP), y)
+RFLAGS	= --input-format=rc -O coff -DENABLE_VRAM_DUMP
+else
 RFLAGS	= --input-format=rc -O coff
+endif
+endif
 
 ifeq ($(X64), y)
 PLATCG	= codegen_x86-64.o
@@ -125,7 +139,7 @@ SNDOBJ	= sound.o \
 	    wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
 	    wave8580_PST.o wave.o \
 	    dbopl.o nukedopl.o openal.o \
-	    snd_speaker.o dac.o snd_ps1.o snd_pssj.o \
+	    snd_speaker.o snd_ps1.o snd_pssj.o \
 	    snd_adlib.o snd_adlibgold.o snd_ad1848.o \
 	    snd_sb.o snd_sb_dsp.o snd_cms.o snd_dbopl.o \
 	    snd_emu8k.o snd_gus.o snd_opl.o \

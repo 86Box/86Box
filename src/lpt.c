@@ -4,7 +4,6 @@
 #include "ibm.h"
 #include "io.h"
 
-#include "dac.h"
 #include "lpt.h"
 
 static uint8_t lpt1_dat, lpt2_dat;
@@ -15,11 +14,9 @@ void lpt1_write(uint16_t port, uint8_t val, void *priv)
         switch (port & 3)
         {
                 case 0:
-                writedac(port, val);
                 lpt1_dat = val;
                 break;
                 case 2:
-                writedacctrl(port, val);
                 lpt1_ctrl = val;
                 break;
         }
@@ -30,8 +27,6 @@ uint8_t lpt1_read(uint16_t port, void *priv)
         {
                 case 0:
                 return lpt1_dat;
-                case 1:
-                return readdacfifo();
                 case 2:
                 return lpt1_ctrl;
         }
@@ -43,11 +38,9 @@ void lpt2_write(uint16_t port, uint8_t val, void *priv)
         switch (port & 3)
         {
                 case 0:
-                writedac(port, val);
                 lpt2_dat = val;
                 break;
                 case 2:
-                writedacctrl(port, val);
                 lpt2_ctrl = val;
                 break;
         }
@@ -58,8 +51,6 @@ uint8_t lpt2_read(uint16_t port, void *priv)
         {
                 case 0:
                 return lpt2_dat;
-                case 1:
-                return readdacfifo();
                 case 2:
                 return lpt2_ctrl;
         }

@@ -2391,7 +2391,7 @@ static device_config_t s3_phoenix_trio64_config[] =
                 }
         },
         {
-                "card_id", "Card ID", CONFIG_SELECTION, "", 1,
+                "card_id", "Card ID", CONFIG_SELECTION, "", 0,
                 {
                         {
                                 "S3 Trio64", 0

@@ -1843,6 +1843,12 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			break;
 #endif
 
+#ifdef ENABLE_VRAM_DUMP
+			case IDM_DUMP_VRAM:
+			svga_dump_vram();
+			break;
+#endif
+
                         case IDM_CONFIG_LOAD:
                         pause = 1;
                         if (!file_dlg_st(hwnd, 2174, "", 0))

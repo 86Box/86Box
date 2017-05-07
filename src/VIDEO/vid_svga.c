@@ -8,6 +8,9 @@
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
+#ifdef ENABLE_VRAM_DUMP
+#include "../rom.h"
+#endif
 #include "../timer.h"
 #include "video.h"
 #include "vid_svga.h"
@@ -916,6 +919,11 @@ void svga_poll(void *p)
         }
 }
 
+#ifdef ENABLE_VRAM_DUMP
+uint8_t *ext_vram;
+int ext_memsize;
+#endif
+
 int svga_init(svga_t *svga, void *p, int memsize, 
                void (*recalctimings_ex)(struct svga_t *svga),
                uint8_t (*video_in) (uint16_t addr, void *p),
@@ -950,6 +958,10 @@ int svga_init(svga_t *svga, void *p, int memsize,
         svga->dispofftime = 1000 * (1 << TIMER_SHIFT);        
         svga->bpp = 8;
         svga->vram = malloc(memsize);
+#ifdef ENABLE_VRAM_DUMP
+	ext_vram = svga->vram;
+	ext_memsize = memsize;
+#endif
         svga->vram_limit = memsize;
         svga->vrammask = memsize - 1;
         svga->changedvram = malloc(/*(memsize >> 12) << 1*/memsize >> 12);
@@ -1008,21 +1020,38 @@ void svga_write(uint32_t addr, uint8_t val, void *p)
         if (!(svga->gdcreg[6] & 1)) svga->fullchange=2;
         if (svga->chain4 || svga->fb_only)
         {
+		/*
+			00000 -> writemask 1, addr 0 -> vram addr 00000
+			00001 -> writemask 2, addr 0 -> vram addr 00001
+			00002 -> writemask 4, addr 0 -> vram addr 00002
+			00003 -> writemask 8, addr 0 -> vram addr 00003
+			00004 -> writemask 1, addr 4 -> vram addr 00004
+			00005 -> writemask 2, addr 4 -> vram addr 00005
+			00006 -> writemask 4, addr 4 -> vram addr 00006
+			00007 -> writemask 8, addr 4 -> vram addr 00007
+		*/
                 writemask2=1<<(addr&3);
                 addr&=~3;
         }
         else if (svga->chain2_write)
         {
-		if ((svga->gdcreg[6] & 0xC) == 0x4)
+#if 0
+		if (svga->oddeven_page)
 		{
-			writemask2 &= (svga->oddeven_page ? ~0xe : ~0xb);
+			/* Odd/Even page is 1, mask out plane 2 or 3, according to bit 0 of the address. */
+			writemask2 &= (addr & 1) ? 8 : 4;
 		}
 		else
 		{
-	                writemask2 &= ~0xa;
+			/* Odd/Even page is 2, mask out plane 0 or 1, according to bit 0 of the address. */
+			writemask2 &= (addr & 1) ? 2 : 1;
 		}
+#endif
+
+                writemask2 &= ~0xa;
                 if (addr & 1)
-       	                writemask2 <<= 1;
+                        writemask2 <<= 1;
+
                 addr &= ~1;
                 addr <<= 2;
         }
@@ -1212,7 +1241,12 @@ uint8_t svga_read(uint32_t addr, void *p)
         }
         else if (svga->chain2_read)
         {
-                readplane = (readplane & 2) | (addr & 1);
+		readplane = addr & 1;
+		if (svga->oddeven_page)
+		{
+			readplane |= 2;
+		}
+
                 addr &= ~1;
                 addr <<= 2;
         }
@@ -1275,16 +1309,23 @@ void svga_write_linear(uint32_t addr, uint8_t val, void *p)
         }
         else if (svga->chain2_write)
         {
-		if ((svga->gdcreg[6] & 0xC) == 0x4)
+#if 0
+		if (svga->oddeven_page)
 		{
-			writemask2 &= (svga->oddeven_page ? ~0xe : ~0xb);
+			/* Odd/Even page is 1, mask out plane 2 or 3, according to bit 0 of the address. */
+			writemask2 &= (addr & 1) ? 8 : 4;
 		}
 		else
 		{
-	                writemask2 &= ~0xa;
+			/* Odd/Even page is 2, mask out plane 0 or 1, according to bit 0 of the address. */
+			writemask2 &= (addr & 1) ? 2 : 1;
 		}
+#endif
+
+                writemask2 &= ~0xa;
                 if (addr & 1)
                         writemask2 <<= 1;
+
                 addr &= ~1;
                 addr <<= 2;
         }
@@ -1469,7 +1510,12 @@ uint8_t svga_read_linear(uint32_t addr, void *p)
         }
         else if (svga->chain2_read)
         {
-                readplane = (readplane & 2) | (addr & 1);
+		readplane = addr & 1;
+		if (svga->oddeven_page)
+		{
+			readplane |= 2;
+		}
+
                 addr &= ~1;
                 addr <<= 2;
         }
@@ -1815,6 +1861,28 @@ uint32_t svga_readl_linear(uint32_t addr, void *p)
         return *(uint32_t *)&svga->vram[addr];
 }
 
+
+#ifdef ENABLE_VRAM_DUMP
+void svga_dump_vram()
+{
+	FILE *f;
+
+	if (ext_vram == NULL)
+	{
+		return;
+	}
+
+	f = nvrfopen(L"svga_vram.dmp", L"wb");
+	if (f == NULL)
+	{
+		return;
+	}
+
+	fwrite(ext_vram, ext_memsize, 1, f);
+
+	fclose(f);
+}
+#endif
 
 void svga_add_status_info(char *s, int max_len, void *p)
 {

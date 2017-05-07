@@ -15,7 +15,7 @@ uint8_t amstrad_read(uint16_t port, void *priv)
         switch (port)
         {
                 case 0x379:
-                return 7 | readdacfifo();
+                return 7;
                 case 0x37a:
                 if (romset == ROM_PC1512) return 0x20;
                 if (romset == ROM_PC200)  return 0x80;
