@@ -150,6 +150,7 @@ udp_input(m, iphlen)
             goto bad;
         }
 
+#ifdef NEED_TFTP
         /*
          *  handle TFTP
          */
@@ -157,6 +158,7 @@ udp_input(m, iphlen)
             tftp_input(m);
             goto bad;
         }
+#endif
 
 	/*
 	 * Locate pcb for datagram.
