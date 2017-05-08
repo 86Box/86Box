@@ -39,6 +39,9 @@ static NETCARD net_cards[] = {
 
 int network_card_current = 0;
 
+uint8_t ethif;
+int inum;
+
 
 static void
 net_poll(void *priv)

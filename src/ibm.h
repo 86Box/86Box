@@ -662,8 +662,6 @@ uint64_t timer_read();
 extern uint64_t timer_freq;
 
 
-void loadconfig(wchar_t *fn);
-
 extern int infocus;
 
 void onesec();

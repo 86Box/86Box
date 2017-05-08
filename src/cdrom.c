@@ -2893,8 +2893,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 					break;
 			}
 
-			if ((cdrom_drive < 1) || (cdrom_drive == CDROM_ISO) || (cdrom[id].cd_status <= CD_STATUS_DATA_ONLY) ||
-				!cdrom_drives[id].handler->is_track_audio(id, pos, msf))
+			if ((cdrom_drive < 1) || (cdrom[id].cd_status <= CD_STATUS_DATA_ONLY) || !cdrom_drives[id].handler->is_track_audio(id, pos, msf))
 			{
 				cdrom_illegal_mode(id);
 				break;

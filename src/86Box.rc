@@ -63,7 +63,7 @@ BEGIN
         MENUITEM "E&mpty",                      IDM_CDROM_1_EMPTY
         MENUITEM "&Reload previous disc",       IDM_CDROM_1_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&ISO...",                     IDM_CDROM_1_ISO
+        MENUITEM "&Image...",                   IDM_CDROM_1_IMAGE
     END
     POPUP "CD-ROM 2"
     BEGIN
@@ -72,7 +72,7 @@ BEGIN
         MENUITEM "E&mpty",                      IDM_CDROM_2_EMPTY
         MENUITEM "&Reload previous disc",       IDM_CDROM_2_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&ISO...",                     IDM_CDROM_2_ISO
+        MENUITEM "&Image...",                   IDM_CDROM_2_IMAGE
     END
     POPUP "CD-ROM 3"
     BEGIN
@@ -81,7 +81,7 @@ BEGIN
         MENUITEM "E&mpty",                      IDM_CDROM_3_EMPTY
         MENUITEM "&Reload previous disc",       IDM_CDROM_3_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&ISO...",                     IDM_CDROM_3_ISO
+        MENUITEM "&Image...",                   IDM_CDROM_3_IMAGE
     END
     POPUP "CD-ROM 4"
     BEGIN
@@ -90,7 +90,7 @@ BEGIN
         MENUITEM "E&mpty",                      IDM_CDROM_4_EMPTY
         MENUITEM "&Reload previous disc",       IDM_CDROM_4_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&ISO...",                     IDM_CDROM_4_ISO
+        MENUITEM "&Image...",                   IDM_CDROM_4_IMAGE
     END
 END
 
@@ -808,7 +808,7 @@ BEGIN
     2172                    "Hard disk images (*.HDI;*.HDX;*.IMA;*.IMG)\0*.HDI;*.HDX;*.IMA;*.IMG\0All files (*.*)\0*.*\0"
     2173                    "All floppy images (*.0??;*.12;*.144;*.360;*.720;*.86F;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.TD0;*.VFD;*.XDF)\0*.0??;*.12;*.144;*.360;*.720;*.86F;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.TD0;*.VFD;*.XDF\0Advanced sector-based images (*.IMD;*.TD0)\0*.IMD;*.TD0\0Basic sector-based images (*.0??;*.12;*.144;*.360;*.720;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMG;*.VFD;*.XDF)\0*.0??;*.12;*.144;*.360;*.720;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMG;*.VFD;*.XDF\0Flux images (*.FDI)\0*.FDI\0Surface-based images (*.86F)\0*.86F\0All files (*.*)\0*.*\0"
     2174                    "Configuration files (*.CFG)\0*.CFG\0All files (*.*)\0*.*\0"
-    2175                    "CD-ROM image (*.ISO)\0*.ISO\0All files (*.*)\0*.*\0"
+    2175                    "CD-ROM image (*.ISO;*.CUE)\0*.ISO;*.CUE\0All files (*.*)\0*.*\0"
     2176                    "Use CTRL + ALT + PAGE DOWN to return to windowed mode"
     2177                    "Olivetti M24 mouse"
     2178                    "<Placeholder string>"

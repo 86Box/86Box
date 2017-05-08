@@ -971,7 +971,7 @@ int svga_init(svga_t *svga, void *p, int memsize,
         svga->hwcursor_draw = hwcursor_draw;
         svga->overlay_draw = overlay_draw;
 
-        mem_mapping_add(&svga->mapping, 0xa0000, 0x20000, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel, NULL, 0, svga);
+        mem_mapping_add(&svga->mapping, 0xa0000, 0x20000, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel, NULL, MEM_MAPPING_EXTERNAL, svga);
 
 	memset(svga->vgapal, 0, sizeof(PALETTE));
 
@@ -1236,7 +1236,7 @@ uint8_t svga_read(uint32_t addr, void *p)
         if (svga->chain4 || svga->fb_only) 
         { 
                 if (addr >= svga->vram_limit)
-                   return 0xff;
+                   return 0x00;
                 return svga->vram[svga_mask_addr(addr, svga)];
         }
         else if (svga->chain2_read)
@@ -1254,7 +1254,7 @@ uint8_t svga_read(uint32_t addr, void *p)
                 addr<<=2;
 
         if (addr >= svga->vram_limit)
-           return 0xff;
+           return 0x00;
 
 	addr = svga_mask_addr(addr, svga);
         

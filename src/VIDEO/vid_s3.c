@@ -736,8 +736,10 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
                 }
                 if (svga->seqaddr == 4) /*Chain-4 - update banking*/
                 {
-                        if (val & 8) svga->write_bank = svga->read_bank = s3->bank << 16;
-                        else         svga->write_bank = svga->read_bank = s3->bank << 14;
+                        if (val & 8 || (svga->crtc[0x31] & 8))
+                                svga->write_bank = svga->read_bank = s3->bank << 16;
+                        else
+                                svga->write_bank = svga->read_bank = s3->bank << 14;
                 }
                 break;
                 
@@ -767,6 +769,10 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
                 {
                         case 0x31:
                         s3->ma_ext = (s3->ma_ext & 0x1c) | ((val & 0x30) >> 4);
+                        if (svga->chain4 || (svga->crtc[0x31] & 8))
+                                svga->write_bank = svga->read_bank = s3->bank << 16;
+                        else
+                                svga->write_bank = svga->read_bank = s3->bank << 14;
                         break;
                         case 0x32:
                         svga->vrammask = (val & 0x40) ? 0x3ffff : s3->vram_mask;
@@ -790,19 +796,25 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
                         
                         case 0x35:
                         s3->bank = (s3->bank & 0x70) | (val & 0xf);
-                        if (svga->chain4) svga->write_bank = svga->read_bank = s3->bank << 16;
-                        else              svga->write_bank = svga->read_bank = s3->bank << 14;
+                        if (svga->chain4 || (svga->crtc[0x31] & 8))
+                                svga->write_bank = svga->read_bank = s3->bank << 16;
+                        else
+                                svga->write_bank = svga->read_bank = s3->bank << 14;
                         break;
                         case 0x51:
                         s3->bank = (s3->bank & 0x4f) | ((val & 0xc) << 2);
-                        if (svga->chain4) svga->write_bank = svga->read_bank = s3->bank << 16;
-                        else              svga->write_bank = svga->read_bank = s3->bank << 14;
+                        if (svga->chain4 || (svga->crtc[0x31] & 8))
+                                svga->write_bank = svga->read_bank = s3->bank << 16;
+                        else
+                                svga->write_bank = svga->read_bank = s3->bank << 14;
                         s3->ma_ext = (s3->ma_ext & ~0xc) | ((val & 3) << 2);
                         break;
                         case 0x6a:
                         s3->bank = val;
-                        if (svga->chain4) svga->write_bank = svga->read_bank = s3->bank << 16;
-                        else              svga->write_bank = svga->read_bank = s3->bank << 14;
+                        if (svga->chain4 || (svga->crtc[0x31] & 8))
+                                svga->write_bank = svga->read_bank = s3->bank << 16;
+                        else
+                                svga->write_bank = svga->read_bank = s3->bank << 14;
                         break;
                         
                         case 0x3a:
@@ -981,7 +993,12 @@ void s3_updatemapping(s3_t *s3)
                 return;
         }
 
-        switch (svga->gdcreg[6] & 0xc) /*Banked framebuffer*/
+        if (svga->crtc[0x31] & 0x08)
+        {
+                mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
+                svga->banked_mask = 0xffff;
+        }
+        else switch (svga->gdcreg[6] & 0xc) /*Banked framebuffer*/
         {
                 case 0x0: /*128k at A0000*/
                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
@@ -1646,9 +1663,9 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                                 if (s3->accel.dx >= clip_l && s3->accel.dx <= clip_r &&
                                     s3->accel.dy >= clip_t && s3->accel.dy <= clip_b)
                                 {
-                                        READ(s3->accel.src + s3->accel.cx, src_dat);
-        
-                                        dest_dat = src_dat;
+                                        READ(s3->accel.src + s3->accel.cx, dest_dat);
+
+                                        MIX
                                         
                                         WRITE(s3->accel.dest + s3->accel.dx);
                                 }
@@ -1672,8 +1689,6 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
         
                                         if (s3->accel.sy < 0)
                                         {
-                                                s3->accel.cur_x = s3->accel.cx;
-                                                s3->accel.cur_y = s3->accel.cy;
                                                 return;
                                         }
                                 }
@@ -2183,19 +2198,9 @@ int s3_phoenix_trio32_available()
 
 void *s3_trio64_init(wchar_t *bios_fn)
 {
-	int card_id = 0;
         s3_t *s3 = s3_init(bios_fn, S3_TRIO64);
 
-	card_id = device_get_config_int("card_id");
-
-	if (card_id)
-	{
-        	s3->id = 0xc1; /*Vision864P*/
-	}
-	else
-	{
-	        s3->id = 0xe1; /*Trio64*/
-	}
+        s3->id = 0xe1; /*Trio64*/
        	s3->id_ext = s3->id_ext_pci = 0x11;
         s3->packed_mmio = 1;
 
@@ -2384,20 +2389,6 @@ static device_config_t s3_phoenix_trio64_config[] =
                         },
                         {
                                 "4 MB", 4
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "card_id", "Card ID", CONFIG_SELECTION, "", 0,
-                {
-                        {
-                                "S3 Trio64", 0
-                        },
-                        {
-                                "S3 Vision864", 1
                         },
                         {
                                 ""

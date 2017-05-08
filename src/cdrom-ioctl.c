@@ -1050,7 +1050,6 @@ static CDROM ioctl_cdrom=
 	NULL,
 	ioctl_getcurrentsubchannel,
 	ioctl_pass_through,
-	ioctl_sector_data_type,
 	NULL,
 	ioctl_playaudio,
 	ioctl_load,

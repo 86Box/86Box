@@ -469,7 +469,7 @@ void *cga_standalone_init()
                 
 	cga_comp_init(cga->revision);
         timer_add(cga_poll, &cga->vidtime, TIMER_ALWAYS_ENABLED, cga);
-        mem_mapping_add(&cga->mapping, 0xb8000, 0x08000, cga_read, NULL, NULL, cga_write, NULL, NULL,  NULL, 0, cga);
+        mem_mapping_add(&cga->mapping, 0xb8000, 0x08000, cga_read, NULL, NULL, cga_write, NULL, NULL,  NULL, MEM_MAPPING_EXTERNAL, cga);
         io_sethandler(0x03d0, 0x0010, cga_in, NULL, NULL, cga_out, NULL, NULL, cga);
 
         overscan_x = overscan_y = 16;

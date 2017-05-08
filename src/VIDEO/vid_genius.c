@@ -562,7 +562,7 @@ void *genius_init()
 
 	/* Occupy memory between 0xB0000 and 0xBFFFF (moves to 0xA0000 in
 	 * high-resolution modes)  */
-        mem_mapping_add(&genius->mapping, 0xb0000, 0x10000, genius_read, NULL, NULL, genius_write, NULL, NULL,  NULL, 0, genius);
+        mem_mapping_add(&genius->mapping, 0xb0000, 0x10000, genius_read, NULL, NULL, genius_write, NULL, NULL,  NULL, MEM_MAPPING_EXTERNAL, genius);
 	/* Respond to both MDA and CGA I/O ports */
         io_sethandler(0x03b0, 0x000C, genius_in, NULL, NULL, genius_out, NULL, NULL, genius);
         io_sethandler(0x03d0, 0x0010, genius_in, NULL, NULL, genius_out, NULL, NULL, genius);

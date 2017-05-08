@@ -15,7 +15,16 @@ void append_filename_w(wchar_t *dest, wchar_t *s1, wchar_t *s2, int size);
 void put_backslash(char *s);
 void put_backslash_w(wchar_t *s);
 char *get_extension(char *s);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 wchar_t *get_extension_w(wchar_t *s);
+
+#ifdef __cplusplus
+}
+#endif
 
 void config_load(wchar_t *fn);
 void config_save(wchar_t *fn);
@@ -23,3 +32,6 @@ void config_dump(void);
 void config_free(void);
 
 extern wchar_t config_file_default[256];
+
+void loadconfig(wchar_t *fn);
+void saveconfig(void);
