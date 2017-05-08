@@ -12,6 +12,9 @@
 
 extern int network_card_current;
 
+extern uint8_t ethif;
+extern int inum;
+
 
 extern void	network_init(void);
 extern void	network_reset(void);

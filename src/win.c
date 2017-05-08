@@ -33,7 +33,7 @@
 #include "cdrom.h"
 #include "cdrom-null.h"
 #include "cdrom-ioctl.h"
-#include "cdrom-iso.h"
+#include "cdrom-image.h"
 #include "video/video.h"
 #include "video/vid_ega.h"
 #include "plat-keyboard.h"
@@ -760,7 +760,7 @@ void update_status_bar_icon_state(int tag, int state)
 					discfns[tag & 0x0f][0] = L'\0';
 					break;
 				case 0x10:
-					cdrom_iso[tag & 0x0f].iso_path[0] = L'\0';
+					cdrom_image[tag & 0x0f].image_path[0] = L'\0';
 					break;
 			}
 		}
@@ -807,13 +807,13 @@ void create_cdrom_tip(int part)
 
 	if (cdrom_drives[drive].host_drive == 200)
 	{
-		if (wcslen(cdrom_iso[drive].iso_path) == 0)
+		if (wcslen(cdrom_image[drive].image_path) == 0)
 		{
 			_swprintf(sbTips[part], win_language_get_string_from_id(2180), drive + 1, win_language_get_string_from_id(2185));
 		}
 		else
 		{
-			_swprintf(sbTips[part], win_language_get_string_from_id(2180), drive + 1, cdrom_iso[drive].iso_path);
+			_swprintf(sbTips[part], win_language_get_string_from_id(2180), drive + 1, cdrom_image[drive].image_path);
 		}
 	}
 	else if (cdrom_drives[drive].host_drive < 0x41)
@@ -885,7 +885,7 @@ static int get_cd_state(int id)
 	{
 		if (cdrom_drives[id].host_drive == 0x200)
 		{
-			return (wcslen(cdrom_iso[id].iso_path) == 0) ? 1 : 0;
+			return (wcslen(cdrom_image[id].image_path) == 0) ? 1 : 0;
 		}
 		else
 		{
@@ -983,7 +983,7 @@ void update_status_bar_panes(HWND hwnds)
 				{
 					if (cdrom_drives[id].host_drive == 0x200)
 					{
-						sb_icon_flags[i] = (wcslen(cdrom_iso[id].iso_path) == 0) ? 256 : 0;
+						sb_icon_flags[i] = (wcslen(cdrom_image[id].image_path) == 0) ? 256 : 0;
 					}
 					else
 					{
@@ -1216,7 +1216,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
 		if (cdrom_drives[e].host_drive == 200)
 		{
-			CheckMenuItem(smenu, IDM_CDROM_1_ISO + e, MF_CHECKED);
+			CheckMenuItem(smenu, IDM_CDROM_1_IMAGE + e, MF_CHECKED);
 		}
 		else if (cdrom_drives[e].host_drive >= 65)
 		{
@@ -1411,9 +1411,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         TerminateThread(mainthreadh,0);
         savenvr();
 	saveconfig();
-        if (save_window_pos && window_remember)
-                saveconfig();
-         closepc();
+        closepc();
 
         vid_apis[video_fullscreen][vid_api].close();
         
@@ -1464,7 +1462,7 @@ void cdrom_close(uint8_t id)
 			ioctl_close(id);
 			break;
 		case 200:
-			iso_close(id);
+			image_close(id);
 			break;
 	}
 }
@@ -1547,7 +1545,7 @@ void win_cdrom_eject(uint8_t id)
 	}
 	if (cdrom_drives[id].host_drive == 200)
 	{
-		CheckMenuItem(hmenu, IDM_CDROM_1_ISO + id,		           MF_UNCHECKED);
+		CheckMenuItem(hmenu, IDM_CDROM_1_IMAGE + id,		           MF_UNCHECKED);
 	}
 	else
 	{
@@ -1574,7 +1572,7 @@ void win_cdrom_reload(uint8_t id)
 	cdrom_close(id);
 	if (cdrom_drives[id].prev_host_drive == 200)
 	{
-		iso_open(id, cdrom_iso[id].iso_path);
+		image_open(id, cdrom_image[id].image_path);
 		if (cdrom_drives[id].enabled)
 		{
 			/* Signal disc change to the emulated machine. */
@@ -1582,7 +1580,7 @@ void win_cdrom_reload(uint8_t id)
 		}
 		CheckMenuItem(hmenu, IDM_CDROM_1_EMPTY + id,		           MF_UNCHECKED);
 		cdrom_drives[id].host_drive = 200;
-		CheckMenuItem(hmenu, IDM_CDROM_1_ISO + id,		           MF_CHECKED);
+		CheckMenuItem(hmenu, IDM_CDROM_1_IMAGE + id,		           MF_CHECKED);
 	}
 	else 
 	{
@@ -2144,7 +2142,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 	RECT rc;
 	POINT pt;
 
-	WCHAR temp_iso_path[1024];
+	WCHAR temp_image_path[1024];
 	int new_cdrom_drive;
 	int cdrom_id = 0;
 	int menu_sub_param = 0;
@@ -2261,24 +2259,24 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 			win_cdrom_reload(cdrom_id);
 			break;
 
-			case IDM_CDROM_1_ISO:
-			case IDM_CDROM_2_ISO:
-			case IDM_CDROM_3_ISO:
-			case IDM_CDROM_4_ISO:
+			case IDM_CDROM_1_IMAGE:
+			case IDM_CDROM_2_IMAGE:
+			case IDM_CDROM_3_IMAGE:
+			case IDM_CDROM_4_IMAGE:
 			cdrom_id = LOWORD(wParam) & 3;
 			hmenu = GetSubMenu(smenu, cdrom_id + 4);
-                        if (!file_dlg_w_st(hwnd, 2175, cdrom_iso[cdrom_id].iso_path, 0))
+                        if (!file_dlg_w_st(hwnd, 2175, cdrom_image[cdrom_id].image_path, 0))
                         {
 				cdrom_drives[cdrom_id].prev_host_drive = cdrom_drives[cdrom_id].host_drive;
-				wcscpy(temp_iso_path, wopenfilestring);
-				if ((wcscmp(cdrom_iso[cdrom_id].iso_path, temp_iso_path) == 0) && (cdrom_drives[cdrom_id].host_drive == 200))
+				wcscpy(temp_image_path, wopenfilestring);
+				if ((wcscmp(cdrom_image[cdrom_id].image_path, temp_image_path) == 0) && (cdrom_drives[cdrom_id].host_drive == 200))
 				{
-					/* Switching from ISO to the same ISO. Do nothing. */
+					/* Switching from image to the same image. Do nothing. */
 					break;
 				}
 				cdrom_drives[cdrom_id].handler->exit(cdrom_id);
 				cdrom_close(cdrom_id);
-				iso_open(cdrom_id, temp_iso_path);
+				image_open(cdrom_id, temp_image_path);
 				if (cdrom_drives[cdrom_id].enabled)
 				{
 					/* Signal disc change to the emulated machine. */
@@ -2290,7 +2288,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 	                                CheckMenuItem(hmenu, IDM_CDROM_1_REAL + cdrom_id + (cdrom_drives[cdrom_id].host_drive << 2), MF_UNCHECKED);
 				}
 				cdrom_drives[cdrom_id].host_drive = 200;
-                                CheckMenuItem(hmenu, IDM_CDROM_1_ISO + cdrom_id,		           MF_CHECKED);
+                                CheckMenuItem(hmenu, IDM_CDROM_1_IMAGE + cdrom_id,		           MF_CHECKED);
 				update_status_bar_icon_state(0x10 | cdrom_id, get_cd_state(cdrom_id));
 				update_tip(0x10 | cdrom_id);
                                 saveconfig();
@@ -2324,7 +2322,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 				{
 	                                CheckMenuItem(hmenu, IDM_CDROM_1_REAL + cdrom_id + (cdrom_drives[cdrom_id].host_drive << 2), MF_UNCHECKED);
 				}
-                                CheckMenuItem(hmenu, IDM_CDROM_1_ISO + cdrom_id,		           MF_UNCHECKED);
+                                CheckMenuItem(hmenu, IDM_CDROM_1_IMAGE + cdrom_id,		           MF_UNCHECKED);
                                 cdrom_drives[cdrom_id].host_drive = new_cdrom_drive;
                                 CheckMenuItem(hmenu, IDM_CDROM_1_REAL + cdrom_id + (cdrom_drives[cdrom_id].host_drive << 2), MF_CHECKED);
 				update_status_bar_icon_state(0x10 | cdrom_id, get_cd_state(cdrom_id));

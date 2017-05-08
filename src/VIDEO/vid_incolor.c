@@ -1014,7 +1014,7 @@ void *incolor_init()
         incolor->vram = malloc(0x40000);	/* 4 planes of 64k */
 
         timer_add(incolor_poll, &incolor->vidtime, TIMER_ALWAYS_ENABLED, incolor);
-        mem_mapping_add(&incolor->mapping, 0xb0000, 0x08000, incolor_read, NULL, NULL, incolor_write, NULL, NULL,  NULL, 0, incolor);
+        mem_mapping_add(&incolor->mapping, 0xb0000, 0x08000, incolor_read, NULL, NULL, incolor_write, NULL, NULL,  NULL, MEM_MAPPING_EXTERNAL, incolor);
         io_sethandler(0x03b0, 0x0010, incolor_in, NULL, NULL, incolor_out, NULL, NULL, incolor);
 
 	for (c = 0; c < 64; c++)

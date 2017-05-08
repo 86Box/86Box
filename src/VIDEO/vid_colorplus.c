@@ -379,7 +379,7 @@ void *colorplus_standalone_init()
                 
 	cga_comp_init(1);
         timer_add(colorplus_poll, &colorplus->cga.vidtime, TIMER_ALWAYS_ENABLED, colorplus);
-        mem_mapping_add(&colorplus->cga.mapping, 0xb8000, 0x08000, colorplus_read, NULL, NULL, colorplus_write, NULL, NULL,  NULL, 0, colorplus);
+        mem_mapping_add(&colorplus->cga.mapping, 0xb8000, 0x08000, colorplus_read, NULL, NULL, colorplus_write, NULL, NULL,  NULL, MEM_MAPPING_EXTERNAL, colorplus);
         io_sethandler(0x03d0, 0x0010, colorplus_in, NULL, NULL, colorplus_out, NULL, NULL, colorplus);
 		
         return colorplus;

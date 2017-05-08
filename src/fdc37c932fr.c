@@ -443,6 +443,7 @@ void fdc37c932fr_reset(void)
 	fdc37c932fr_ld_regs[4][0x61] = 0xf8;
 	fdc37c932fr_ld_regs[4][0x70] = 4;
 	fdc37c932fr_ld_regs[4][0xF0] = 3;
+	serial_setup(1, 0x3f8, fdc37c932fr_ld_regs[4][0x70]);
 
 	/* Logical device 5: Serial Port 2 */
 	fdc37c932fr_ld_regs[5][0x30] = 1;
@@ -452,6 +453,7 @@ void fdc37c932fr_reset(void)
 	fdc37c932fr_ld_regs[5][0x74] = 4;
 	fdc37c932fr_ld_regs[5][0xF1] = 2;
 	fdc37c932fr_ld_regs[5][0xF2] = 3;
+	serial_setup(2, 0x2f8, fdc37c932fr_ld_regs[5][0x70]);
 
 	/* Logical device 6: RTC */
 	fdc37c932fr_ld_regs[6][0x63] = 0x70;

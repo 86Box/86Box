@@ -15,7 +15,7 @@
 
 #define BUF_SIZE 32768
 
-#define CDROM_ISO 200
+#define CDROM_IMAGE 200
 
 #define IDE_TIME (5 * 100 * (1 << TIMER_SHIFT))
 #define CDROM_TIME (5 * 100 * (1 << TIMER_SHIFT))
@@ -32,7 +32,6 @@ typedef struct CDROM
 	int (*readtoc_raw)(uint8_t id, uint8_t *b, int msf, int maxlen);
 	uint8_t (*getcurrentsubchannel)(uint8_t id, uint8_t *b, int msf);
 	int (*pass_through)(uint8_t id, uint8_t *in_cdb, uint8_t *b, uint32_t *len);
-	int (*sector_data_type)(uint8_t id, int sector, int ismsf);
 	int (*readsector_raw)(uint8_t id, uint8_t *buffer, int sector, int ismsf, int cdrom_sector_type, int cdrom_sector_flags, int *len);
 	void (*playaudio)(uint8_t id, uint32_t pos, uint32_t len, int ismsf);
 	void (*load)(uint8_t id);
@@ -170,18 +169,23 @@ extern void (*ide_bus_master_set_irq)(int channel);
 
 typedef struct
 {
-	uint32_t last_block;
-	uint64_t image_size;
-	int iso_inited;
-	wchar_t iso_path[1024];
-	FILE* iso_image;
-	int iso_changed;
+	int image_is_iso;
 
+	uint32_t last_block;
+	uint32_t cdrom_capacity;
+	int image_inited;
+	wchar_t image_path[1024];
+	FILE* image;
+	int image_changed;
+
+	int cd_state;
 	uint32_t cd_pos;
 	uint32_t cd_end;
-} cdrom_iso_t;
+	int16_t cd_buffer[BUF_SIZE];
+	int cd_buflen;
+} cdrom_image_t;
 
-cdrom_iso_t cdrom_iso[CDROM_NUM];
+cdrom_image_t cdrom_image[CDROM_NUM];
 
 typedef struct
 {
@@ -211,7 +215,17 @@ void cdrom_command(uint8_t id, uint8_t *cdb);
 void cdrom_phase_callback(uint8_t id);
 uint32_t cdrom_read(uint8_t channel, int length);
 void cdrom_write(uint8_t channel, uint32_t val, int length);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int cdrom_lba_to_msf_accurate(int lba);
+
+#ifdef __cplusplus
+}
+#endif
+
 void cdrom_reset(uint8_t id);
 void cdrom_set_signature(int id);
 void cdrom_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length);

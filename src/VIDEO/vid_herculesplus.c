@@ -667,7 +667,7 @@ void *herculesplus_init()
         herculesplus->vram = malloc(0x10000);	/* 64k VRAM */
 
         timer_add(herculesplus_poll, &herculesplus->vidtime, TIMER_ALWAYS_ENABLED, herculesplus);
-        mem_mapping_add(&herculesplus->mapping, 0xb0000, 0x10000, herculesplus_read, NULL, NULL, herculesplus_write, NULL, NULL,  NULL, 0, herculesplus);
+        mem_mapping_add(&herculesplus->mapping, 0xb0000, 0x10000, herculesplus_read, NULL, NULL, herculesplus_write, NULL, NULL,  NULL, MEM_MAPPING_EXTERNAL, herculesplus);
         io_sethandler(0x03b0, 0x0010, herculesplus_in, NULL, NULL, herculesplus_out, NULL, NULL, herculesplus);
 
 	for (c = 0; c < 256; c++)

@@ -128,7 +128,7 @@ DEVOBJ	= bugger.o lpt.o serial.o \
 	    disc.o \
 	    disc_86f.o disc_fdi.o disc_imd.o disc_img.o \
 	    disc_random.o disc_td0.o \
-	  cdrom.o cdrom-ioctl.o cdrom-iso.o cdrom-null.o
+	  cdrom.o cdrom-dosbox.o cdrom-image.o cdrom-ioctl.o cdrom-null.o
 USBOBJ	= usb.o
 NETOBJ	= network.o net_ne2000.o
 SCSIOBJ	= scsi.o scsi_disk.o scsi_buslogic.o scsi_aha154x.o

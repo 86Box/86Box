@@ -269,7 +269,7 @@ void *mda_init()
         mda->vram = malloc(0x1000);
 
         timer_add(mda_poll, &mda->vidtime, TIMER_ALWAYS_ENABLED, mda);
-        mem_mapping_add(&mda->mapping, 0xb0000, 0x08000, mda_read, NULL, NULL, mda_write, NULL, NULL,  NULL, 0, mda);
+        mem_mapping_add(&mda->mapping, 0xb0000, 0x08000, mda_read, NULL, NULL, mda_write, NULL, NULL,  NULL, MEM_MAPPING_EXTERNAL, mda);
         io_sethandler(0x03b0, 0x0010, mda_in, NULL, NULL, mda_out, NULL, NULL, mda);
 
         for (c = 0; c < 256; c++)

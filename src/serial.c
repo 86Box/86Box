@@ -505,8 +505,7 @@ serial_setup(int port, uint16_t addr, int irq)
 		  serial_read, NULL, NULL,
 		  serial_write, NULL, NULL, sp);
 
-    /* No DTR/RTS callback for now. */
-    sp->rts_callback = NULL;
+    pclog("Serial%d: RTSCallback=%08X\n", port, sp->rts_callback);
 }
 
 
@@ -519,13 +518,16 @@ serial_remove(int port)
     /* Grab the desired port block. */
     sp = (port == 2) ? &serial2 : &serial1;
 
+    pclog("Serial%d: Remove I/O=%04x, IRQ=%d\n", port, sp->addr, sp->irq);
+
     // FIXME: stop timer, if enabled!
 
     /* Remove any callbacks. */
-    sp->rts_callback = NULL;
+    /* Commented out by Kotori: This messes with the Super I/O chip. */
+    /* sp->rts_callback = NULL; */
 
     /* Close the host device. */
-    (void)serial_link(port, NULL);
+    /* (void)serial_link(port, NULL); */
 
     /* Release our I/O range. */
     if (sp->addr != 0x0000) {
@@ -535,6 +537,8 @@ serial_remove(int port)
     }
     sp->addr = 0x0000;
     sp->irq = 0;
+
+    pclog("Serial%d: RTSCallback=%08X\n", port, sp->rts_callback);
 }
 
 
@@ -542,13 +546,19 @@ serial_remove(int port)
 void
 serial_init(void)
 {
+    pclog("serial_init()\n");
+
     memset(&serial1, 0x00, sizeof(SERIAL));
     serial1.port = 1;
     serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
+    /* No DTR/RTS callback for now. */
+    serial1.rts_callback = NULL;
 
     memset(&serial2, 0x00, sizeof(SERIAL));
     serial2.port = 2;
     serial_setup(2, SERIAL2_ADDR, SERIAL2_IRQ);
+    /* No DTR/RTS callback for now. */
+    serial2.rts_callback = NULL;
 }
 
 
@@ -560,11 +570,17 @@ serial_init(void)
 void
 serial_reset(void)
 {
+    pclog("serial_reset()\n");
+
     serial1.iir = serial1.ier = serial1.lcr = serial1.mctrl = 0;
     serial1.fifo_read = serial1.fifo_write = 0;
+    /* No DTR/RTS callback for now. */
+    serial1.rts_callback = NULL;
 
     serial2.iir = serial2.ier = serial2.lcr = serial2.mctrl = 0;
     serial2.fifo_read = serial2.fifo_write = 0;
+    /* No DTR/RTS callback for now. */
+    serial2.rts_callback = NULL;
 }
 
 

@@ -884,7 +884,7 @@ void *wy700_init()
 
 	/* Occupy memory between 0xB0000 and 0xBFFFF (moves to 0xA0000 in
 	 * high-resolution modes)  */
-        mem_mapping_add(&wy700->mapping, 0xb0000, 0x10000, wy700_read, NULL, NULL, wy700_write, NULL, NULL,  NULL, 0, wy700);
+        mem_mapping_add(&wy700->mapping, 0xb0000, 0x10000, wy700_read, NULL, NULL, wy700_write, NULL, NULL,  NULL, MEM_MAPPING_EXTERNAL, wy700);
 	/* Respond to both MDA and CGA I/O ports */
         io_sethandler(0x03b0, 0x000C, wy700_in, NULL, NULL, wy700_out, NULL, NULL, wy700);
         io_sethandler(0x03d0, 0x0010, wy700_in, NULL, NULL, wy700_out, NULL, NULL, wy700);
