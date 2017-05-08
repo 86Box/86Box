@@ -33,7 +33,7 @@
  *
  *		Based on the 86Box serial port driver as a framework.
  *
- * Version:	@(#)serial.c	1.0.4	2017/05/07
+ * Version:	@(#)serial.c	1.0.5	2017/05/07
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -238,6 +238,9 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
     uint16_t baud;
     long speed;
 
+#if 0
+    pclog("Serial%d: write(%04x, %02x)\n", sp->port, addr, val);
+#endif
     switch (addr & 0x07) {
 	case 0:		/* DATA / DLAB1 */
 		if (sp->lcr & LCR_DLAB) {
@@ -282,18 +285,20 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 	case 3:		/* LCR */
 		if ((sp->lcr & LCR_DLAB) && !(val & LCR_DLAB)) {
 			/* We dropped DLAB, so handle baudrate. */
-			baud = ((sp->dlab2 << 8) | sp->dlab1);
+			baud = ((sp->dlab2<<8) | sp->dlab1);
 			if (baud > 0) {
 				speed = 115200UL/baud;
 #if 0
 				pclog("Serial%d: divisor %u, baudrate %ld\n",
 						sp->port, baud, speed);
 #endif
-				if (sp->bh != NULL)
+				if ((sp->bh != NULL) && (speed > 0))
 					bhtty_speed((BHTTY *)sp->bh, speed);
+#if 0
 			} else {
 				pclog("Serial%d: divisor %u invalid!\n",
 							sp->port, baud);
+#endif
 			}
 		}
 		wl = (val & LCR_WLS) + 5;		/* databits */
@@ -316,7 +321,7 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 			 * enumerator there 'is' something.
 			 */
 			if (sp->rts_callback) {
-				sp->rts_callback(sp, sp->rts_callback_p);
+				sp->rts_callback(sp->rts_callback_p);
 #if 0
 				pclog("RTS raised; sending ID\n");
 #endif
@@ -505,8 +510,12 @@ serial_setup(int port, uint16_t addr, int irq)
 		  serial_read, NULL, NULL,
 		  serial_write, NULL, NULL, sp);
 
+#if 1
+    /* Do not disable here, it breaks the SIO chips. */
+#else
     /* No DTR/RTS callback for now. */
     sp->rts_callback = NULL;
+#endif
 }
 
 
@@ -521,8 +530,12 @@ serial_remove(int port)
 
     // FIXME: stop timer, if enabled!
 
+#if 1
+    /* Do not disable here, it breaks the SIO chips. */
+#else
     /* Remove any callbacks. */
     sp->rts_callback = NULL;
+#endif
 
     /* Close the host device. */
     (void)serial_link(port, NULL);

@@ -8,7 +8,7 @@
  *
  *		Definitions for the SERIAL card.
  *
- * Version:	@(#)serial.h	1.0.2	2017/05/06
+ * Version:	@(#)serial.h	1.0.3	2017/05/07
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -38,7 +38,7 @@ typedef struct _serial_ {
     uint8_t	fcr;
 
     /* Data for the RTS-toggle callback. */
-    void	(*rts_callback)(struct _serial_ *, void *);
+    void	(*rts_callback)(void *);
     void	*rts_callback_p;
 
     uint8_t	hold;

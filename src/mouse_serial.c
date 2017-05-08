@@ -10,7 +10,7 @@
  *
  *		Based on the 86Box Serial Mouse driver as a framework.
  *
- * Version:	@(#)mouse_serial.c	1.0.2	2017/05/06
+ * Version:	@(#)mouse_serial.c	1.0.3	2017/05/07
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -33,7 +33,7 @@ typedef struct mouse_serial_t {
 
 /* Callback from serial driver: RTS was toggled. */
 static void
-sermouse_callback(SERIAL *serial, void *priv)
+sermouse_callback(void *priv)
 {
     mouse_serial_t *ms = (mouse_serial_t *)priv;
 
