@@ -556,13 +556,8 @@ wchar_t pcempath[512];
 
 /*Hard disc*/
 
-#ifdef __MSC__
-# pragma pack(push,1)
-typedef struct
-#else
-typedef struct __attribute((__packed__))
-#endif
-{
+#pragma pack(push,1)
+typedef struct {
 	FILE *f;
 	uint64_t spt,hpc; /*Sectors per track, heads per cylinder*/
 	uint64_t tracks;
@@ -575,17 +570,10 @@ typedef struct __attribute((__packed__))
 	uint8_t scsi_id;
 	uint8_t scsi_lun;
 } hard_disk_t;
-#ifdef __MSC__
-# pragma pack(pop)
-#endif
+#pragma pack(pop)
 
-#ifdef __MSC__
-# pragma pack(push,1)
-typedef struct
-#else
-typedef struct __attribute((__packed__))
-#endif
-{
+#pragma pack(push,1)
+typedef struct {
 	/* Stuff for SCSI hard disks. */
 	uint8_t cdb[16];
 	uint8_t current_cdb[16];
@@ -619,9 +607,7 @@ typedef struct __attribute((__packed__))
 	uint64_t base;
 	uint8_t hd_cdb[16];
 } scsi_hard_disk_t;
-#ifdef __MSC__
-# pragma pack(pop)
-#endif
+#pragma pack(pop)
 
 #define HDC_NUM		16
 #define IDE_NUM		8
@@ -744,7 +730,6 @@ uint32_t svga_color_transform(uint32_t color);
 extern int scale;
 
 /* Function prototypes. */
-void BuslogicSoftReset();
 int checkio(int port);
 void closepc();
 void codegen_block_end();

@@ -577,7 +577,6 @@ void resetx86()
         codegen_reset();
         x86_was_reset = 1;
 	port_92_clear_reset();
-	BuslogicSoftReset();
 }
 
 void softresetx86()
@@ -596,7 +595,6 @@ void softresetx86()
         x86seg_reset();
         x86_was_reset = 1;
 	port_92_clear_reset();
-	BuslogicSoftReset();
 }
 
 static void setznp8(uint8_t val)

@@ -1,13 +1,11 @@
 /* Copyright holders: SA1988
    see COPYING for more details
 */
-/*Buslogic SCSI emulation (including Adaptec 154x ISA software backward compatibility) and the Adaptec 154x itself*/
+/*Buslogic SCSI emulation*/
 
 /* Emulated SCSI controllers:
-	0 - Adaptec AHA-154xB ISA;
-	1 - Adaptec AHA-154xCF ISA;
-	2 - BusLogic BT-542B ISA;
-	3 - BusLogic BT-958 PCI (but BT-542B ISA on non-PCI machines). */
+	0 - BusLogic BT-542B ISA;
+	1 - BusLogic BT-958 PCI (but BT-542B ISA on non-PCI machines). */
 
 #include <stdint.h>
 #include <stdio.h>
@@ -15,7 +13,6 @@
 #include <string.h>
 #include <stdarg.h>
 #include "ibm.h"
-#include "device.h"
 #include "io.h"
 #include "mem.h"
 #include "rom.h"
@@ -23,24 +20,13 @@
 #include "pic.h"
 #include "pci.h"
 #include "timer.h"
+#include "device.h"
 #include "scsi.h"
 #include "cdrom.h"
 #include "scsi_buslogic.h"
 
 
 #define BUSLOGIC_RESET_DURATION_NS UINT64_C(50000000)
-
-
-#pragma pack(push,1)
-typedef struct {
-    uint8_t hi;
-    uint8_t mid;
-    uint8_t lo;
-} addr24;
-#pragma pack(pop)
-
-#define ADDR_TO_U32(x)	(((x).hi<<16)|((x).mid<<8)|((x).lo&0xFF))
-#define U32_TO_ADDR(a,x) do {(a).hi=(x)>>16;(a).mid=(x)>>8;(a).lo=(x)&0xFF;}while(0)
 
 
 /*
@@ -439,29 +425,6 @@ typedef union {
 #pragma pack(pop)
 
 
-/*
- *
- * Scatter/Gather Segment List Definitions
- *
- * Adapter limits
- */
-/* #define MAX_SG_DESCRIPTORS ((bl->chip >= CHIP_BUSLOGIC_ISA) ? 32 : 17) */
-#define MAX_SG_DESCRIPTORS 32	/* Always make the array 32 elements long, if less are used, that's not an issue. */
-
-#pragma pack(push,1)
-typedef struct {
-    uint32_t	Segment;
-    uint32_t	SegmentPointer;
-} SGE32;
-#pragma pack(pop)
-
-#pragma pack(push,1)
-typedef struct {
-    addr24	Segment;
-    addr24	SegmentPointer;
-} SGE;
-#pragma pack(pop)
-
 #pragma pack(push,1)
 typedef struct {
     CCBU	CmdBlock;
@@ -473,7 +436,7 @@ typedef struct {
     uint8_t	HostStatus;
     uint8_t	TargetStatus;
     uint8_t	MailboxCompletionCode;
-} BuslogicRequests_t;
+} Req_t;
 #pragma pack(pop)
 
 #pragma pack(push,1)
@@ -483,7 +446,7 @@ typedef struct {
     int		StrictRoundRobinMode;
     int		ExtendedLUNCCBFormat;
     HALocalRAM	LocalRAM;
-    BuslogicRequests_t BuslogicRequests;
+    Req_t Req;
     uint8_t	Status;
     uint8_t	Interrupt;
     uint8_t	Geometry;
@@ -512,29 +475,22 @@ typedef struct {
     int		PendingInterrupt;
     int		Lock;
     mem_mapping_t mmio_mapping;
-    aha_info	aha;
     int		chip;
 } Buslogic_t;
 #pragma pack(pop)
 
 
-int scsi_model = 1;
-int BuslogicResetCallback = 0;
-int BuslogicCallback = 0;
-int BuslogicInOperation = 0;
+static int	BuslogicResetCallback = 0;
+static int	BuslogicCallback = 0;
+static int	BuslogicInOperation = 0;
 static Buslogic_t *BuslogicResetDevice;
 
 
-enum
-{
-	CHIP_AHA154XB,
-	CHIP_AHA154XCF,
-	CHIP_BUSLOGIC_ISA,
-	CHIP_BUSLOGIC_PCI
+enum {
+    CHIP_BUSLOGIC_ISA,
+    CHIP_BUSLOGIC_PCI
 };
 
-
-static void BuslogicStartMailbox(Buslogic_t *Buslogic);
 
 #ifdef WALTJE
 int buslogic_do_log = 1;
@@ -544,7 +500,11 @@ int buslogic_do_log = 0;
 #endif
 
 
-static void BuslogicLog(const char *format, ...)
+static void BuslogicStartMailbox(Buslogic_t *);
+
+
+static void
+BuslogicLog(const char *format, ...)
 {
 #ifdef ENABLE_BUSLOGIC_LOG
     va_list ap;
@@ -560,7 +520,8 @@ static void BuslogicLog(const char *format, ...)
 #define pclog	BuslogicLog
 
 
-static void BuslogicClearInterrupt(Buslogic_t *bl)
+static void
+BuslogicClearInterrupt(Buslogic_t *bl)
 {
     pclog("Buslogic: Lowering Interrupt 0x%02X\n", bl->Interrupt);
     bl->Interrupt = 0;
@@ -577,7 +538,8 @@ static void BuslogicClearInterrupt(Buslogic_t *bl)
 }
 
 
-static void BuslogicLocalRAM(Buslogic_t *bl)
+static void
+BuslogicLocalRAM(Buslogic_t *bl)
 {
     /*
      * These values are mostly from what I think is right
@@ -601,7 +563,8 @@ static void BuslogicLocalRAM(Buslogic_t *bl)
 }
 
 
-static void BuslogicReset(Buslogic_t *bl)
+static void
+BuslogicReset(Buslogic_t *bl)
 {
     BuslogicCallback = 0;
     BuslogicResetCallback = 0;
@@ -626,7 +589,8 @@ static void BuslogicReset(Buslogic_t *bl)
 }
 
 
-void BuslogicSoftReset(void)
+static void
+BuslogicSoftReset(void)
 {
     if (BuslogicResetDevice != NULL) {
 	BuslogicReset(BuslogicResetDevice);
@@ -634,7 +598,8 @@ void BuslogicSoftReset(void)
 }
 
 
-static void BuslogicResetControl(Buslogic_t *bl, uint8_t Reset)
+static void
+BuslogicResetControl(Buslogic_t *bl, uint8_t Reset)
 {
     BuslogicReset(bl);
     if (Reset) {
@@ -645,16 +610,13 @@ static void BuslogicResetControl(Buslogic_t *bl, uint8_t Reset)
 }
 
 
-static void BuslogicCommandComplete(Buslogic_t *bl)
+static void
+BuslogicCommandComplete(Buslogic_t *bl)
 {
     bl->DataReply = 0;
     bl->Status |= STAT_IDLE;
 				
-#ifdef WALTJE
-    if ((bl->Command != 0x02) && (bl->Command != 0x82)) {
-#else
     if (bl->Command != 0x02) {
-#endif
 	bl->Status &= ~STAT_DFULL;
 	bl->Interrupt = (INTR_ANY | INTR_HACC);
 	pclog("Raising IRQ %i\n", bl->Irq);
@@ -667,7 +629,8 @@ static void BuslogicCommandComplete(Buslogic_t *bl)
 }
 
 
-static void BuslogicRaiseInterrupt(Buslogic_t *bl, uint8_t Interrupt)
+static void
+BuslogicRaiseInterrupt(Buslogic_t *bl, uint8_t Interrupt)
 {
     if (bl->Interrupt & INTR_HACC) {
 	pclog("Pending IRQ\n");
@@ -681,12 +644,12 @@ static void BuslogicRaiseInterrupt(Buslogic_t *bl, uint8_t Interrupt)
 }
 
 
-static void BuslogicMailboxInSetup(Buslogic_t *bl, uint32_t CCBPointer,
-				   CCBU *CmdBlock, uint8_t HostStatus,
-				   uint8_t TargetStatus,
-				   uint8_t MailboxCompletionCode)
+static void
+BuslogicMailboxInSetup(Buslogic_t *bl, uint32_t CCBPointer, CCBU *CmdBlock,
+		       uint8_t HostStatus, uint8_t TargetStatus,
+		       uint8_t MailboxCompletionCode)
 {
-    BuslogicRequests_t *req = &bl->BuslogicRequests;
+    Req_t *req = &bl->Req;
 
     req->CCBPointer = CCBPointer;
     memcpy(&(req->CmdBlock), CmdBlock, sizeof(CCB32));
@@ -701,9 +664,10 @@ static void BuslogicMailboxInSetup(Buslogic_t *bl, uint32_t CCBPointer,
 }
 
 
-static void BuslogicMailboxIn(Buslogic_t *bl)
+static void
+BuslogicMailboxIn(Buslogic_t *bl)
 {	
-    BuslogicRequests_t *req = &bl->BuslogicRequests;
+    Req_t *req = &bl->Req;
     uint32_t CCBPointer = req->CCBPointer;
     CCBU *CmdBlock = &(req->CmdBlock);
     uint8_t HostStatus = req->HostStatus;
@@ -758,7 +722,8 @@ static void BuslogicMailboxIn(Buslogic_t *bl)
 }
 
 
-static void BuslogicReadSGEntries(int Is24bit, uint32_t SGList, uint32_t Entries, SGE32 *SG)
+static void
+BuslogicReadSGEntries(int Is24bit, uint32_t SGList, uint32_t Entries, SGE32 *SG)
 {
     uint32_t i;
     SGE SGE24[MAX_SG_DESCRIPTORS];
@@ -777,7 +742,8 @@ static void BuslogicReadSGEntries(int Is24bit, uint32_t SGList, uint32_t Entries
 }
 
 
-void BuslogicDataBufferAllocate(BuslogicRequests_t *req, int Is24bit)
+static void
+BuslogicDataBufferAllocate(Req_t *req, int Is24bit)
 {
     uint32_t sg_buffer_pos = 0;
     uint32_t DataPointer, DataLength;
@@ -873,7 +839,8 @@ void BuslogicDataBufferAllocate(BuslogicRequests_t *req, int Is24bit)
 }
 
 
-void BuslogicDataBufferFree(BuslogicRequests_t *req)
+static void
+BuslogicDataBufferFree(Req_t *req)
 {
     uint32_t DataPointer = 0;
     uint32_t DataLength = 0;
@@ -974,7 +941,8 @@ void BuslogicDataBufferFree(BuslogicRequests_t *req)
 }
 
 
-static uint8_t BuslogicRead(uint16_t Port, void *p)
+static uint8_t
+BuslogicRead(uint16_t Port, void *p)
 {
     Buslogic_t *bl = (Buslogic_t *)p;
     uint8_t Temp;
@@ -1016,20 +984,22 @@ static uint8_t BuslogicRead(uint16_t Port, void *p)
 }
 
 
-static uint16_t BuslogicReadW(uint16_t Port, void *p)
+static uint16_t
+BuslogicReadW(uint16_t Port, void *p)
 {
     return BuslogicRead(Port, p);
 }
 
 
-static uint32_t BuslogicReadL(uint16_t Port, void *p)
+static uint32_t
+BuslogicReadL(uint16_t Port, void *p)
 {
     return BuslogicRead(Port, p);
 }
 
 
 /* This is BS - we just need a 'dev_present' indication.. --FvK */
-int
+static int
 buslogic_dev_present(uint8_t id, uint8_t lun)
 {
     if (lun > 7) return(0);
@@ -1046,7 +1016,8 @@ buslogic_dev_present(uint8_t id, uint8_t lun)
 
 static void BuslogicWriteW(uint16_t Port, uint16_t Val, void *p);
 static void BuslogicWriteL(uint16_t Port, uint32_t Val, void *p);
-static void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
+static void
+BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 {
     int i = 0;
     uint8_t j = 0;
@@ -1078,8 +1049,7 @@ static void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 
 	case 1:
 		/* Fast path for the mailbox execution command. */
-		if (((Val == 0x02) || (Val == 0x82)) &&
-		    (bl->Command == 0xFF)) {
+		if ((Val == 0x02) && (bl->Command == 0xFF)) {
 			/* If there are no mailboxes configured, don't even try to do anything. */
 			if (bl->MailboxCount) {
 				if (!BuslogicCallback) {
@@ -1101,19 +1071,8 @@ static void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					bl->CmdParamLeft = sizeof(MailboxInit_t);
 					break;
 				
-				case 0x03:		/* Exec BIOS Command */
-					if (bl->chip < CHIP_BUSLOGIC_ISA) {
-						bl->CmdParamLeft = 10;
-					}
-					break;
-
 				case 0x25:
-					if (bl->chip < CHIP_BUSLOGIC_ISA) {
-					/* Same as 0x01 for AHA. */
-					bl->CmdParamLeft = sizeof(MailboxInit_t);
-					} else {
 					bl->CmdParamLeft = 1;
-					}
 					break;
 
 				case 0x05:
@@ -1136,36 +1095,19 @@ static void BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					bl->CmdParamLeft = 3;
 					break;
 
-				case 0x22:		/* write EEPROM */
-					if (bl->chip < CHIP_BUSLOGIC_ISA) {
-						bl->CmdParamLeft = 3+32;
-					}
-					break;
-
-				case 0x23:		/* read EEPROM */
-					if (bl->chip < CHIP_BUSLOGIC_ISA) {
-						bl->CmdParamLeft = 3;
-					}
-					break;
-
-				case 0x29:
-					bl->CmdParamLeft = (bl->chip >= CHIP_BUSLOGIC_ISA) ? 0 : 2;
-					break;
-
 				case 0x8B:
 				case 0x8D:
 				case 0x8F:
 				case 0x96:
-					bl->CmdParamLeft = (bl->chip >= CHIP_BUSLOGIC_ISA) ? 1 : 0;
+					bl->CmdParamLeft = 1;
 					break;				
 
 				case 0x81:
-					pclog("Command 0x81 on %s\n", (bl->chip >= CHIP_BUSLOGIC_ISA) ? "BusLogic" : "Adaptec");
-					bl->CmdParamLeft = (bl->chip >= CHIP_BUSLOGIC_ISA) ? sizeof(MailboxInitExtended_t) : 0;
+					bl->CmdParamLeft = sizeof(MailboxInitExtended_t);
 					break;
 
 				case 0x8C:
-					bl->CmdParamLeft = (bl->chip >= CHIP_BUSLOGIC_ISA) ? 1 : 0;
+					bl->CmdParamLeft = 1;
 					break;
 
 				case 0x91:
@@ -1216,17 +1158,10 @@ aha_0x01:
 					break;
 
 				case 0x04:
-					if (bl->chip >= CHIP_BUSLOGIC_ISA) {
 					bl->DataBuf[0] = 0x41;
 					bl->DataBuf[1] = 0x41;
 					bl->DataBuf[2] = '5';
 					bl->DataBuf[3] = '0';
-					} else {
-					bl->DataBuf[0] = bl->aha.bid;
-					bl->DataBuf[1] = 0x30;
-					bl->DataBuf[2] = bl->aha.fwh;
-					bl->DataBuf[3] = bl->aha.fwl;
-					}
 					bl->DataReplyLeft = 4;
 					break;
 
@@ -1277,14 +1212,7 @@ aha_0x01:
 
 				case 0x0B:
 					bl->DataBuf[0] = (1 << bl->DmaChannel);
-					if (bl->chip >= CHIP_BUSLOGIC_ISA) {
-					    bl->DataBuf[1] = (1<<(bl->Irq-9));
-					} else {
-					if (bl->Irq >= 8)
-					    bl->DataBuf[1]=(1<<(bl->Irq-9));
-					else
-					    bl->DataBuf[1]=(1<<bl->Irq);
-					}
+					bl->DataBuf[1] = (1<<(bl->Irq-9));
 					bl->DataBuf[2] = 7;	/* HOST ID */
 					bl->DataReplyLeft = 3;
 					break;
@@ -1301,14 +1229,12 @@ aha_0x01:
 					ReplyISI->cMailbox = bl->MailboxCount;
 					U32_TO_ADDR(ReplyISI->MailboxAddress, bl->MailboxOutAddr);
 					
-					if (bl->chip >= CHIP_BUSLOGIC_ISA) {
-						ReplyISI->uSignature = 'B';
-						/* The 'D' signature prevents Buslogic's OS/2 drivers from getting too
-						* friendly with Adaptec hardware and upsetting the HBA state.
-						*/
-						ReplyISI->uCharacterD = 'D';      /* BusLogic model. */
-						ReplyISI->uHostBusType = (bl->chip == CHIP_BUSLOGIC_PCI) ? 'F' : 'A';     /* ISA bus. */
-					}
+					ReplyISI->uSignature = 'B';
+					/* The 'D' signature prevents Buslogic's OS/2 drivers from getting too
+					* friendly with Adaptec hardware and upsetting the HBA state.
+					*/
+					ReplyISI->uCharacterD = 'D';      /* BusLogic model. */
+					ReplyISI->uHostBusType = (bl->chip == CHIP_BUSLOGIC_PCI) ? 'F' : 'A';     /* ISA bus. */
 
 					pclog("Return Setup Information: %d\n", bl->CmdBuf[0]);
 				}
@@ -1350,11 +1276,7 @@ aha_0x01:
 
 				case 0x20:
 					bl->DataReplyLeft = 0;
-					if (bl->chip >= CHIP_BUSLOGIC_ISA) {
-						BuslogicResetControl(bl, 1);
-					} else {
-						bl->Status |= STAT_INVCMD;
-					}
+					BuslogicResetControl(bl, 1);
 					break;
 
 				case 0x21:
@@ -1363,53 +1285,27 @@ aha_0x01:
 					bl->DataReplyLeft = 0;
 					break;
 
-				case 0x22:	/* write EEPROM */
-					if (bl->chip < CHIP_BUSLOGIC_ISA) {
-						/* Sent by CF BIOS. */
-						bl->DataReplyLeft =
-						    aha154x_eeprom(bl->Command,
-							   bl->CmdBuf[0],
-							   bl->CmdBuf[1],
-							   bl->CmdBuf[2],
-							   &bl->CmdBuf[3]);
-						if (bl->DataReplyLeft == 0xff) {
-							bl->DataReplyLeft = 0;
-							bl->Status |= STAT_INVCMD;
-						}
-					} else {
-						bl->Status |= STAT_INVCMD;
-						bl->DataReplyLeft = 0;
-					}
-					break;
-
 				case 0x23:
-				if (bl->chip >= CHIP_BUSLOGIC_ISA) {
 					memset(bl->DataBuf, 0, 8);
 					for (i = 8; i < 16; i++) {
+#if 1	/* FIXME: Kotori, check this! */
+					    bl->DataBuf[i-8] = 0;
+					    for (j=0; j<8; j++) {
+						if (SCSIDevices[i][j].LunType != SCSI_NONE)
+						    bl->DataBuf[i-8] |= (1<<j);
+#else
 					    bl->DataBuf[i] = 0;
 					    for (i=0; j<8; j++) {
 						if (SCSIDevices[i][j].LunType != SCSI_NONE)
-						    bl->DataBuf[i] |= (1 << j);
+						    bl->DataBuf[i] |= (1<<j);
+#endif
 					    }
 					}
 					bl->DataReplyLeft = 8;
-				} else {
-					/* Sent by CF BIOS. */
-					bl->DataReplyLeft =
-					    aha154x_eeprom(bl->Command,
-							   bl->CmdBuf[0],
-							   bl->CmdBuf[1],
-							   bl->CmdBuf[2],
-							   bl->DataBuf);
-					if (bl->DataReplyLeft == 0xff) {
-						bl->DataReplyLeft = 0;
-						bl->Status |= STAT_INVCMD;
-					}
-				}
-				break;
+					break;
 
 				case 0x24:
-				if (bl->chip >= CHIP_BUSLOGIC_ISA) {
+				{
 					uint16_t TargetsPresentMask = 0;
 							
 					for (i=0; i<16; i++) {
@@ -1421,135 +1317,46 @@ aha_0x01:
 					bl->DataBuf[0] = TargetsPresentMask & 0xFF;
 					bl->DataBuf[1] = TargetsPresentMask >> 8;
 					bl->DataReplyLeft = 2;
-				} else {
-					/*
-					 * For AHA1542CF, this is the command
-					 * to play with the Shadow RAM.  BIOS
-					 * gives us one argument (00,02,03)
-					 * and expects a 0x04 back in the INTR
-					 * register.  --FvK
-					 */
-					bl->Interrupt = aha154x_shram(Val);
 				}
 				break;
-						
+
 				case 0x25:
-					if ((bl->chip < CHIP_BUSLOGIC_ISA)) {
-						goto aha_0x01;
-					} else {
 					if (bl->CmdBuf[0] == 0)
 						bl->IrqEnabled = 0;
 					else
 						bl->IrqEnabled = 1;
 					pclog("Lowering IRQ %i\n", bl->Irq);
 					picintc(1 << bl->Irq);
-					}
 					break;
-
-				case 0x26:	/* AHA memory mapper */
-				case 0x27:	/* AHA memory mapper */
-					if (bl->chip < CHIP_BUSLOGIC_ISA) {
-						bl->DataReplyLeft =
-					    aha154x_memory(bl->Command);
-					} else {
-						bl->Status |= STAT_INVCMD;
-						bl->DataReplyLeft = 0;
-					}
-					break;
-
-				case 0x28:
-					if (bl->chip < CHIP_BUSLOGIC_ISA) {
-						bl->DataBuf[0] = 0x08;
-						bl->DataBuf[1] = bl->Lock;
-						bl->DataReplyLeft = 2;
-					} else {
-						bl->DataReplyLeft = 0;
-						bl->Status |= STAT_INVCMD;
-					}
-					break;
-
-				case 0x29:
-				if (bl->chip < CHIP_BUSLOGIC_ISA) {
-					if (bl->CmdBuf[1] == bl->Lock) {
-						if (bl->CmdBuf[0] & 1) {
-							bl->Lock = 1;
-						} else {
-							bl->Lock = 0;
-						}
-					}
-					bl->DataReplyLeft = 0;
-				} else {
-					bl->DataReplyLeft = 0;
-					bl->Status |= STAT_INVCMD;
-				}
-				break;
-
-				case 0x2C:	/* AHA-1542CP sends this */
-				if (bl->chip < CHIP_BUSLOGIC_ISA) {
-					bl->DataBuf[0] = 0x00;
-					bl->DataReplyLeft = 1;
-				} else {
-					bl->DataReplyLeft = 0;
-					bl->Status |= STAT_INVCMD;
-				}
-				break;
-
-				case 0x33:	/* AHA-1542CP sends this */
-				if (bl->chip < CHIP_BUSLOGIC_ISA) {
-					bl->DataBuf[0] = 0x00;
-					bl->DataBuf[1] = 0x00;
-					bl->DataBuf[2] = 0x00;
-					bl->DataBuf[3] = 0x00;
-					bl->DataReplyLeft = 256;
-				} else {
-					bl->DataReplyLeft = 0;
-					bl->Status |= STAT_INVCMD;
-				}
-				break;
 
 				case 0x81:
 				{
-					if (bl->chip >= CHIP_BUSLOGIC_ISA) {
-						bl->Mbx24bit = 0;
-								
-						MailboxInitE = (MailboxInitExtended_t *)bl->CmdBuf;
+					bl->Mbx24bit = 0;
 
-						bl->MailboxCount = MailboxInitE->Count;
-						bl->MailboxOutAddr = MailboxInitE->Address;
-						bl->MailboxInAddr = MailboxInitE->Address + (bl->MailboxCount * sizeof(Mailbox32_t));
-							
-						pclog("Buslogic Extended Initialize Mailbox Command\n");
-						pclog("Mailbox Out Address=0x%08X\n", bl->MailboxOutAddr);
-						pclog("Mailbox In Address=0x%08X\n", bl->MailboxInAddr);
-						pclog("Initialized Extended Mailbox, %d entries at 0x%08X\n", MailboxInitE->Count, MailboxInitE->Address);
-							
-						bl->Status &= ~STAT_INIT;
-						bl->DataReplyLeft = 0;
-					} else {
-						bl->DataReplyLeft = 0;
-						bl->Status |= STAT_INVCMD;
-					}
+					MailboxInitE = (MailboxInitExtended_t *)bl->CmdBuf;
+
+					bl->MailboxCount = MailboxInitE->Count;
+					bl->MailboxOutAddr = MailboxInitE->Address;
+					bl->MailboxInAddr = MailboxInitE->Address + (bl->MailboxCount * sizeof(Mailbox32_t));
+
+					pclog("Buslogic Extended Initialize Mailbox Command\n");
+					pclog("Mailbox Out Address=0x%08X\n", bl->MailboxOutAddr);
+					pclog("Mailbox In Address=0x%08X\n", bl->MailboxInAddr);
+					pclog("Initialized Extended Mailbox, %d entries at 0x%08X\n", MailboxInitE->Count, MailboxInitE->Address);
+
+					bl->Status &= ~STAT_INIT;
+					bl->DataReplyLeft = 0;
 				}
 				break;
 				
 				case 0x84:
-					if (bl->chip >= CHIP_BUSLOGIC_ISA) {
-						bl->DataBuf[0] = '7';
-						bl->DataReplyLeft = 1;
-					} else {
-						bl->DataReplyLeft = 0;
-						bl->Status |= STAT_INVCMD;
-					}
+					bl->DataBuf[0] = '7';
+					bl->DataReplyLeft = 1;
 					break;				
 
 				case 0x85:
-					if (bl->chip >= CHIP_BUSLOGIC_ISA) {
-						bl->DataBuf[0] = 'B';
-						bl->DataReplyLeft = 1;
-					} else {
-						bl->DataReplyLeft = 0;
-						bl->Status |= STAT_INVCMD;					
-					}
+					bl->DataBuf[0] = 'B';
+					bl->DataReplyLeft = 1;
 					break;
 		
 				case 0x86:
@@ -1592,64 +1399,47 @@ aha_0x01:
 		
 				case 0x8B:
 				{
-					if (bl->chip >= CHIP_BUSLOGIC_ISA) {
-						/* The reply length is set by the guest and is found in the first byte of the command buffer. */
-						bl->DataReplyLeft = bl->CmdBuf[0];
-						memset(bl->DataBuf, 0, bl->DataReplyLeft);
-						if (bl->chip == CHIP_BUSLOGIC_PCI) {
-							aModelName[0] = '9';
-							aModelName[1] = '5';
-							aModelName[2] = '8';
-							aModelName[3] = 'D';
-						}
-						cCharsToTransfer =   bl->DataReplyLeft <= sizeof(aModelName)
-												? bl->DataReplyLeft
-												: sizeof(aModelName);
-
-						for (i = 0; i < cCharsToTransfer; i++)
-							bl->DataBuf[i] = aModelName[i];
-					} else {
-						bl->DataReplyLeft = 0;
-						bl->Status |= STAT_INVCMD;
+					/* The reply length is set by the guest and is found in the first byte of the command buffer. */
+					bl->DataReplyLeft = bl->CmdBuf[0];
+					memset(bl->DataBuf, 0, bl->DataReplyLeft);
+					if (bl->chip == CHIP_BUSLOGIC_PCI) {
+						aModelName[0] = '9';
+						aModelName[1] = '5';
+						aModelName[2] = '8';
+						aModelName[3] = 'D';
 					}
+					cCharsToTransfer =   bl->DataReplyLeft <= sizeof(aModelName)
+							? bl->DataReplyLeft
+							: sizeof(aModelName);
+
+					for (i = 0; i < cCharsToTransfer; i++)
+						bl->DataBuf[i] = aModelName[i];
 				}
 				break;
 				
 				case 0x8C:
-				if (bl->chip >= CHIP_BUSLOGIC_ISA) {
 					bl->DataReplyLeft = bl->CmdBuf[0];
 					memset(bl->DataBuf, 0, bl->DataReplyLeft);
-				} else {
-					bl->DataReplyLeft = 0;
-					bl->Status |= STAT_INVCMD;					
-				}
-				break;
+					break;
 		
 				case 0x8D:
-				{
-					if (bl->chip >= CHIP_BUSLOGIC_ISA) {
-						bl->DataReplyLeft = bl->CmdBuf[0];
-						ReplyIESI = (ReplyInquireExtendedSetupInformation *)bl->DataBuf;
-						memset(ReplyIESI, 0, sizeof(ReplyInquireExtendedSetupInformation));
+					bl->DataReplyLeft = bl->CmdBuf[0];
+					ReplyIESI = (ReplyInquireExtendedSetupInformation *)bl->DataBuf;
+					memset(ReplyIESI, 0, sizeof(ReplyInquireExtendedSetupInformation));
 
-						ReplyIESI->uBusType = (bl->chip == CHIP_BUSLOGIC_PCI) ? 'E' : 'A';         /* ISA style */
-						ReplyIESI->uBiosAddress = 0;
-						ReplyIESI->u16ScatterGatherLimit = 8192;
-						ReplyIESI->cMailbox = bl->MailboxCount;
-						ReplyIESI->uMailboxAddressBase = bl->MailboxOutAddr;
-						if (bl->chip == CHIP_BUSLOGIC_PCI) {
-							ReplyIESI->fLevelSensitiveInterrupt = 1;
-							ReplyIESI->fHostWideSCSI = 1;
-							ReplyIESI->fHostUltraSCSI = 1;
-						}
-						memcpy(ReplyIESI->aFirmwareRevision, "07B", sizeof(ReplyIESI->aFirmwareRevision));
-						pclog("Return Extended Setup Information: %d\n", bl->CmdBuf[0]);
-					} else {
-						bl->DataReplyLeft = 0;
-						bl->Status |= STAT_INVCMD;						
+					ReplyIESI->uBusType = (bl->chip == CHIP_BUSLOGIC_PCI) ? 'E' : 'A';         /* ISA style */
+					ReplyIESI->uBiosAddress = 0;
+					ReplyIESI->u16ScatterGatherLimit = 8192;
+					ReplyIESI->cMailbox = bl->MailboxCount;
+					ReplyIESI->uMailboxAddressBase = bl->MailboxOutAddr;
+					if (bl->chip == CHIP_BUSLOGIC_PCI) {
+						ReplyIESI->fLevelSensitiveInterrupt = 1;
+						ReplyIESI->fHostWideSCSI = 1;
+						ReplyIESI->fHostUltraSCSI = 1;
 					}
-				}	
-				break;
+					memcpy(ReplyIESI->aFirmwareRevision, "07B", sizeof(ReplyIESI->aFirmwareRevision));
+					pclog("Return Extended Setup Information: %d\n", bl->CmdBuf[0]);
+					break;
 
 				/* VirtualBox has these two modes implemented in reverse.
 				   According to the BusLogic datasheet:
@@ -1658,28 +1448,21 @@ aha_0x01:
 				   1 is the aggressive round robin mode, which "hunts" for an active outgoing mailbox and then
 				   processes it. */
 				case 0x8F:
-				if (bl->chip >= CHIP_BUSLOGIC_ISA) {
 					if (bl->CmdBuf[0] == 0)
 						bl->StrictRoundRobinMode = 1;
 					else if (bl->CmdBuf[0] == 1)
 						bl->StrictRoundRobinMode = 0;
 
 					bl->DataReplyLeft = 0;
-				} else {
-					bl->DataReplyLeft = 0;
-					bl->Status |= STAT_INVCMD;					
-				}
-				break;
-						
+					break;
+
 				case 0x91:
-				{
 					Offset = bl->CmdBuf[0];
 					bl->DataReplyLeft = bl->CmdBuf[1];
 							
 					bl->UseLocalRAM = 1;
 					bl->DataReply = Offset;
-				}
-				break;
+					break;
 
 				case 0x95:
 				if (bl->chip == CHIP_BUSLOGIC_PCI) {
@@ -1734,18 +1517,13 @@ aha_0x01:
 				break;
 
 				case 0x96:
-				if (bl->chip >= CHIP_BUSLOGIC_ISA) {
 					if (bl->CmdBuf[0] == 0)
 						bl->ExtendedLUNCCBFormat = 0;
 					else if (bl->CmdBuf[0] == 1)
 						bl->ExtendedLUNCCBFormat = 1;
 					
 					bl->DataReplyLeft = 0;
-				} else {
-					bl->DataReplyLeft = 0;
-					bl->Status |= STAT_INVCMD;					
-				}
-				break;
+					break;
 				
 				default:
 					bl->DataReplyLeft = 0;
@@ -1761,31 +1539,32 @@ aha_0x01:
 		break;
 		
 		case 2:
-			if (bl->chip >= CHIP_BUSLOGIC_ISA)
-				bl->Interrupt = Val; /* For Buslogic */
+			bl->Interrupt = Val;
 			break;
 		
 		case 3:
-			if (bl->chip >= CHIP_BUSLOGIC_ISA)
-				bl->Geometry = Val; /* For Buslogic */
+			bl->Geometry = Val;
 			break;
 	}
 }
 
 
-static void BuslogicWriteW(uint16_t Port, uint16_t Val, void *p)
+static void
+BuslogicWriteW(uint16_t Port, uint16_t Val, void *p)
 {
     BuslogicWrite(Port, Val & 0xFF, p);
 }
 
 
-static void BuslogicWriteL(uint16_t Port, uint32_t Val, void *p)
+static void
+BuslogicWriteL(uint16_t Port, uint32_t Val, void *p)
 {
     BuslogicWrite(Port, Val & 0xFF, p);
 }
 
 
-static uint8_t BuslogicConvertSenseLength(uint8_t RequestSenseLength)
+static uint8_t
+BuslogicConvertSenseLength(uint8_t RequestSenseLength)
 {
     pclog("Unconverted Request Sense length %i\n", RequestSenseLength);
 
@@ -1800,7 +1579,8 @@ static uint8_t BuslogicConvertSenseLength(uint8_t RequestSenseLength)
 }
 
 
-static void BuslogicSenseBufferFree(BuslogicRequests_t *req, int Copy, int is_hd)
+static void
+BuslogicSenseBufferFree(Req_t *req, int Copy, int is_hd)
 {
     uint8_t SenseLength = BuslogicConvertSenseLength(req->CmdBlock.common.RequestSenseLength);
     uint8_t cdrom_id = scsi_cdrom_drives[req->TargetID][req->LUN];
@@ -1841,9 +1621,10 @@ static void BuslogicSenseBufferFree(BuslogicRequests_t *req, int Copy, int is_hd
 }
 
 
-static void BuslogicHDCommand(Buslogic_t *bl)
+static void
+BuslogicHDCommand(Buslogic_t *bl)
 {
-    BuslogicRequests_t *req = &bl->BuslogicRequests;
+    Req_t *req = &bl->Req;
     uint8_t Id, Lun;
     uint8_t hdc_id;
     uint8_t hd_phase;
@@ -1923,9 +1704,11 @@ static void BuslogicHDCommand(Buslogic_t *bl)
     }
 }
 
-static void BuslogicCDROMCommand(Buslogic_t *bl)
+
+static void
+BuslogicCDROMCommand(Buslogic_t *bl)
 {
-    BuslogicRequests_t *req = &bl->BuslogicRequests;
+    Req_t *req = &bl->Req;
     uint8_t Id, Lun;
     uint8_t cdrom_id;
     uint8_t cdrom_phase;
@@ -2006,9 +1789,10 @@ static void BuslogicCDROMCommand(Buslogic_t *bl)
 }
 
 
-static void BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
+static void
+BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 {	
-    BuslogicRequests_t *req = &bl->BuslogicRequests;
+    Req_t *req = &bl->Req;
     uint8_t Id, Lun;
     uint8_t last_id = (bl->chip >= CHIP_BUSLOGIC_ISA) ? 15 : 7;
 
@@ -2061,7 +1845,8 @@ static void BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbo
 }
 
 
-static void BuslogicSCSIRequestAbort(Buslogic_t *bl, uint32_t CCBPointer)
+static void
+BuslogicSCSIRequestAbort(Buslogic_t *bl, uint32_t CCBPointer)
 {
     CCBU CmdBlock;
 
@@ -2074,7 +1859,8 @@ static void BuslogicSCSIRequestAbort(Buslogic_t *bl, uint32_t CCBPointer)
 }
 
 
-static uint32_t BuslogicMailboxOut(Buslogic_t *bl, Mailbox32_t *Mailbox32)
+static uint32_t
+BuslogicMailboxOut(Buslogic_t *bl, Mailbox32_t *Mailbox32)
 {	
     Mailbox_t MailboxOut;
     uint32_t Outgoing;
@@ -2095,13 +1881,15 @@ static uint32_t BuslogicMailboxOut(Buslogic_t *bl, Mailbox32_t *Mailbox32)
 }
 
 
-static void BuslogicMailboxOutAdvance(Buslogic_t *bl)
+static void
+BuslogicMailboxOutAdvance(Buslogic_t *bl)
 {
     bl->MailboxOutPosCur = (bl->MailboxOutPosCur + 1) % bl->MailboxCount;
 }
 
 
-static void BuslogicProcessMailbox(Buslogic_t *bl)
+static void
+BuslogicProcessMailbox(Buslogic_t *bl)
 {
     Mailbox32_t mb32;
     uint32_t Outgoing;
@@ -2155,7 +1943,8 @@ static void BuslogicProcessMailbox(Buslogic_t *bl)
 }
 
 
-void BuslogicResetPoll(void *p)
+static void
+BuslogicResetPoll(void *p)
 {
     Buslogic_t *bl = (Buslogic_t *)p;
 
@@ -2166,7 +1955,8 @@ void BuslogicResetPoll(void *p)
 }
 
 
-void BuslogicCommandCallback(void *p)
+static void
+BuslogicCommandCallback(void *p)
 {
     Buslogic_t *bl = (Buslogic_t *)p;
 
@@ -2194,19 +1984,22 @@ void BuslogicCommandCallback(void *p)
 }
 
 
-static uint8_t mem_read_null(uint32_t addr, void *priv)
+static uint8_t
+mem_read_null(uint32_t addr, void *priv)
 {
     return(0);
 }
 
 
-static uint16_t mem_read_nullw(uint32_t addr, void *priv)
+static uint16_t
+mem_read_nullw(uint32_t addr, void *priv)
 {
     return(0);
 }
 
 
-static uint32_t mem_read_nulll(uint32_t addr, void *priv)
+static uint32_t
+mem_read_nulll(uint32_t addr, void *priv)
 {
     return(0);
 }
@@ -2222,7 +2015,8 @@ uint8_t	buslogic_pci_regs[256];
 bar_t	buslogic_pci_bar[3];
 
 
-static uint8_t BuslogicPCIRead(int func, int addr, void *p)
+static uint8_t
+BuslogicPCIRead(int func, int addr, void *p)
 {
     Buslogic_t *bl = (Buslogic_t *)p;
 
@@ -2291,7 +2085,8 @@ static uint8_t BuslogicPCIRead(int func, int addr, void *p)
 }
 
 
-static void BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
+static void
+BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 {
     Buslogic_t *bl = (Buslogic_t *)p;
 
@@ -2387,84 +2182,8 @@ static void BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 }
 
 
-void *AdaptecInit(int has_bios, int chip)
-{
-    Buslogic_t *bl;
-    int i = 0;
-    int j = 0;
-    uint32_t bios_addr = 0;
-    int bios = 0;
-
-    bl = malloc(sizeof(Buslogic_t));
-    memset(bl, 0x00, sizeof(Buslogic_t));
-
-    BuslogicResetDevice = bl;
-    bl->chip = chip;
-    bl->Base = device_get_config_int("addr");
-    bl->PCIBase = 0;
-    bl->MMIOBase = 0;
-    bl->Irq = device_get_config_int("irq");
-    bl->DmaChannel = device_get_config_int("dma");
-    bios = device_get_config_int("bios");
-    bios_addr = device_get_config_int("bios_addr");
-
-    if (bl->Base != 0) {
-	io_sethandler(bl->Base, 4,
-		      BuslogicRead, BuslogicReadW, NULL,
-		      BuslogicWrite, BuslogicWriteW, NULL, bl);
-    }
-
-    pclog("Building SCSI hard disk map...\n");
-    build_scsi_hd_map();
-    pclog("Building SCSI CD-ROM map...\n");
-    build_scsi_cdrom_map();
-
-    for (i=0; i<16; i++) {
-	for (j=0; j<8; j++)
-	{
-		if (scsi_hard_disks[i][j] != 0xff)
-		{
-			SCSIDevices[i][j].LunType = SCSI_DISK;
-		}
-	}
-    }
-
-    for (i=0; i<CDROM_NUM; i++) {
-	if (buslogic_dev_present(cdrom_drives[i].scsi_device_id,
-				 cdrom_drives[i].scsi_device_lun)) {
-		SCSIDevices[cdrom_drives[i].scsi_device_id][cdrom_drives[i].scsi_device_lun].LunType = SCSI_CDROM;
-	}
-    }
-
-    timer_add(BuslogicResetPoll,
-	      &BuslogicResetCallback, &BuslogicResetCallback, bl);
-    timer_add(BuslogicCommandCallback,
-	      &BuslogicCallback, &BuslogicCallback, bl);
-
-    pclog("Adaptec AHA-154x on port 0x%04X\n", bl->Base);
-	
-    BuslogicResetControl(bl, CTRL_HRST);
-
-    if (bios) {
-	/* Perform AHA-154xNN-specific initialization. */
-	aha154x_init(bl->Base, bios_addr, &bl->aha);
-    }
-
-    return(bl);
-}
-
-void *AHA_154xB_Init()
-{
-	return AdaptecInit(0, CHIP_AHA154XB);
-}
-
-void *AHA_154xCF_Init()
-{
-	return AdaptecInit(1, CHIP_AHA154XCF);
-}
-
-
-void *BuslogicInit(int chip)
+static void *
+BuslogicInit(int chip)
 {
     Buslogic_t *bl;
 
@@ -2550,18 +2269,23 @@ void *BuslogicInit(int chip)
     return(bl);
 }
 
-void *Buslogic_542B_Init()
+
+static void *
+Buslogic_542B_Init(void)
 {
 	return BuslogicInit(CHIP_BUSLOGIC_ISA);
 }
 
-void *Buslogic_958D_Init()
+
+static void *
+Buslogic_958D_Init(void)
 {
 	return BuslogicInit(CHIP_BUSLOGIC_PCI);
 }
 
 
-void BuslogicClose(void *p)
+static void
+BuslogicClose(void *p)
 {
     Buslogic_t *bl = (Buslogic_t *)p;
     free(bl);
@@ -2569,107 +2293,7 @@ void BuslogicClose(void *p)
 }
 
 
-static device_config_t AHA154XCF_Config[] =
-{
-        {
-		"addr", "Address", CONFIG_SELECTION, "", 0x334,
-                {
-                        {
-                                "None",      0
-                        },
-                        {
-                                "0x330", 0x330
-                        },
-                        {
-                                "0x334", 0x334
-                        },
-                        {
-                                "0x230", 0x230
-                        },
-                        {
-                                "0x234", 0x234
-                        },
-                        {
-                                "0x130", 0x130
-                        },
-                        {
-                                "0x134", 0x134
-                        },
-                        {
-                                ""
-                        }
-                },
-        },
-        {
-		"irq", "IRQ", CONFIG_SELECTION, "", 9,
-                {
-                        {
-                                "IRQ 9", 9
-                        },
-                        {
-                                "IRQ 10", 10
-                        },
-                        {
-                                "IRQ 11", 11
-                        },
-                        {
-                                "IRQ 12", 12
-                        },
-                        {
-                                "IRQ 14", 14
-                        },
-                        {
-                                "IRQ 15", 15
-                        },
-                        {
-                                ""
-                        }
-                },
-        },
-        {
-		"dma", "DMA channel", CONFIG_SELECTION, "", 6,
-                {
-                        {
-                                "DMA 5", 5
-                        },
-                        {
-                                "DMA 6", 6
-                        },
-                        {
-                                "DMA 7", 7
-                        },
-                        {
-                                ""
-                        }
-                },
-        },
-	{
-		"bios", "Enable BIOS", CONFIG_BINARY, 0
-	},
-        {
-                "bios_addr", "BIOS Address", CONFIG_SELECTION, "", 0xd8000,
-                {
-                        {
-                                "C800H", 0xc8000
-                        },
-                        {
-                                "D000H", 0xd0000
-                        },
-                        {
-                                "D800H", 0xd8000
-                        },
-                        {
-                                ""
-                        }
-                },
-        },
-	{
-		"", "", -1
-	}
-};
-
-static device_config_t BuslogicConfig[] =
-{
+static device_config_t BuslogicConfig[] = {
         {
 		"addr", "Address", CONFIG_SELECTION, "", 0x334,
                 {
@@ -2747,34 +2371,8 @@ static device_config_t BuslogicConfig[] =
 	}
 };
 
-device_t aha1540b_device =
-{
-	"Adaptec AHA-1540B",
-	0,
-	AHA_154xB_Init,
-	BuslogicClose,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	BuslogicConfig
-};
 
-device_t aha1542cf_device =
-{
-	"Adaptec AHA-1542CF",
-	0,
-	AHA_154xCF_Init,
-	BuslogicClose,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	AHA154XCF_Config
-};
-
-device_t buslogic_device =
-{
+device_t buslogic_device = {
 	"Buslogic BT-542B PCI",
 	0,
 	Buslogic_542B_Init,
@@ -2786,8 +2384,7 @@ device_t buslogic_device =
 	BuslogicConfig
 };
 
-device_t buslogic_pci_device =
-{
+device_t buslogic_pci_device = {
 	"Buslogic BT-542B PCI",
 	0,
 	Buslogic_958D_Init,

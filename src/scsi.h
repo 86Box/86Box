@@ -1,14 +1,14 @@
 /* Copyright holders: SA1988
    see COPYING for more details
 */
-#ifndef __SCSI_H__
-#define __SCSI_H__
+#ifndef SCSI_H
+#define SCSI_H
 
-#include "timer.h"
 
 #define SCSI_TIME (5 * 100 * (1 << TIMER_SHIFT))
 
-/* SCSI Commands */
+
+/* SCSI commands. */
 #define GPCMD_TEST_UNIT_READY           0x00
 #define GPCMD_REZERO_UNIT		0x01
 #define GPCMD_REQUEST_SENSE		0x03
@@ -265,5 +265,41 @@ void scsi_hd_reset(uint8_t id);
 void scsi_hd_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length);
 void scsi_hd_command(uint8_t id, uint8_t *cdb);
 void scsi_hd_callback(uint8_t id);
+
+
+#pragma pack(push,1)
+typedef struct {
+    uint8_t hi;
+    uint8_t mid;
+    uint8_t lo;
+} addr24;
+#pragma pack(pop)
+
+#define ADDR_TO_U32(x)	(((x).hi<<16)|((x).mid<<8)|((x).lo&0xFF))
+#define U32_TO_ADDR(a,x) do {(a).hi=(x)>>16;(a).mid=(x)>>8;(a).lo=(x)&0xFF;}while(0)
+
+
+/*
+ *
+ * Scatter/Gather Segment List Definitions
+ *
+ * Adapter limits
+ */
+#define MAX_SG_DESCRIPTORS 32	/* Always make the array 32 elements long, if less are used, that's not an issue. */
+
+#pragma pack(push,1)
+typedef struct {
+    uint32_t	Segment;
+    uint32_t	SegmentPointer;
+} SGE32;
+#pragma pack(pop)
+
+#pragma pack(push,1)
+typedef struct {
+    addr24	Segment;
+    addr24	SegmentPointer;
+} SGE;
+#pragma pack(pop)
+
 
 #endif

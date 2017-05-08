@@ -10,6 +10,7 @@
 #include "device.h"
 #include "cdrom.h"
 #include "scsi.h"
+#include "scsi_aha154x.h"
 #include "scsi_buslogic.h"
 
 
