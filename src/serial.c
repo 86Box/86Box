@@ -33,7 +33,7 @@
  *
  *		Based on the 86Box serial port driver as a framework.
  *
- * Version:	@(#)serial.c	1.0.3	2017/05/06
+ * Version:	@(#)serial.c	1.0.4	2017/05/07
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -283,13 +283,18 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 		if ((sp->lcr & LCR_DLAB) && !(val & LCR_DLAB)) {
 			/* We dropped DLAB, so handle baudrate. */
 			baud = ((sp->dlab2 << 8) | sp->dlab1);
-			speed = 115200UL/baud;
+			if (baud > 0) {
+				speed = 115200UL/baud;
 #if 0
-			pclog("Serial%d: new divisor %u, baudrate %ld\n",
+				pclog("Serial%d: divisor %u, baudrate %ld\n",
 						sp->port, baud, speed);
 #endif
-			if (sp->bh != NULL)
-				bhtty_speed((BHTTY *)sp->bh, speed);
+				if (sp->bh != NULL)
+					bhtty_speed((BHTTY *)sp->bh, speed);
+			} else {
+				pclog("Serial%d: divisor %u invalid!\n",
+							sp->port, baud);
+			}
 		}
 		wl = (val & LCR_WLS) + 5;		/* databits */
 		sb = (val & LCR_SBS) ? 2 : 1;		/* stopbits */
