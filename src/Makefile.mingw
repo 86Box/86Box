@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 MinGW 32-bit environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.7	2017/05/07
+# Version:	@(#)Makefile.mingw	1.0.8	2017/05/08
 #
 # Authors:	Kotori, <oubattler@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -128,7 +128,8 @@ DEVOBJ	= bugger.o lpt.o serial.o \
 	    disc.o \
 	    disc_86f.o disc_fdi.o disc_imd.o disc_img.o \
 	    disc_random.o disc_td0.o \
-	  cdrom.o cdrom-dosbox.o cdrom-image.o cdrom-ioctl.o cdrom-null.o
+	  cdrom.o \
+	    cdrom-dosbox.o cdrom-image.o cdrom-ioctl.o cdrom-null.o
 USBOBJ	= usb.o
 NETOBJ	= network.o net_ne2000.o
 SCSIOBJ	= scsi.o scsi_disk.o scsi_buslogic.o scsi_aha154x.o
@@ -182,7 +183,7 @@ OBJ	= $(MAINOBJ) $(CPUOBJ) $(SYSOBJ) $(DEVOBJ) $(USBOBJ) \
 
 LZFOBJ	= lzf_c.o lzf_d.o
 SLIRPOBJ= bootp.o ip_icmp.o misc.o socket.o tcp_timer.o cksum.o \
-	  ip_input.o queue.o tcp_input.o tftp.o debug.o ip_output.o \
+	  ip_input.o queue.o tcp_input.o debug.o ip_output.o \
 	  sbuf.o tcp_output.o udp.o if.o mbuf.o slirp.o tcp_subr.o
 
 LIBS	= -mwindows -lcomctl32 -lwinmm -lopenal.dll -lopenal -lddraw \
@@ -204,6 +205,9 @@ LIBS	= -mwindows -lcomctl32 -lwinmm -lopenal.dll -lopenal -lddraw \
 		@echo $<
 		@$(CPP) $(CFLAGS) -c $<
 
+all:		$(PROG).exe pcap_if.exe
+
+
 $(PROG).exe:	$(OBJ) $(LZFOBJ) $(SLIRPOBJ)
 		@echo Linking $(PROG).exe ..
 		@$(CC) -o $(PROG).exe \
@@ -212,7 +216,15 @@ ifneq ($(DEBUG), y)
 		strip $(PROG).exe
 endif
 
-all:		$(PROG).exe
+pcap_if.exe:	pcap_if.o
+		@echo Linking pcap_if.exe ..
+		@$(CC) -o pcap_if.exe \
+			pcap_if.o -static -L. -lwpcapdelay
+ifneq ($(DEBUG), y)
+		strip pcap_if.exe
+endif
+
+
 
 clean:
 		rm *.o

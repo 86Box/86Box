@@ -222,7 +222,14 @@ uint32_t ne2000_chipmem_read(ne2000_t *ne2000, uint32_t address, unsigned int io
 void ne2000_page0_write(ne2000_t *ne2000, uint32_t offset, uint32_t value, unsigned io_len);
 void ne2000_rx_frame(void *p, const void *buf, int io_len);
 
+
+
+#ifdef WALTJE
+#define ENABLE_NE2000_LOG
+int ne2000_do_log = 1;
+#else
 int ne2000_do_log = 0;
+#endif
 
 
 void ne2000_log(const char *format, ...)
