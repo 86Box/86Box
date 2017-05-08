@@ -1912,7 +1912,7 @@ void d86f_format_track(int drive, int side, int do_write)
 			if (do_write)
 			{
 				d86f_write_direct(drive, side, d86f[drive].fill, 0);
-				d86f_handler[drive].write_data(drive, side, d86f[drive].datac++, d86f[drive].pos);
+				d86f_handler[drive].write_data(drive, side, d86f[drive].datac++, d86f[drive].fill);
 			}
 			d86f_calccrc(drive, d86f[drive].fill);
 			break;
