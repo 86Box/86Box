@@ -246,15 +246,15 @@ void ne2000_log(const char *format, ...)
 #endif
 }
 
-static uint8_t *ne2000_mac(void)
+static void ne2000_mac(uint8_t *mac)
 {
 	if (network_card_current == 2)
 	{
-		return maclocal_pci;
+		memcpy(mac, maclocal_pci, 6);
 	}
 	else
 	{
-		return maclocal;
+		memcpy(mac, maclocal, 6);
 	}
 }
 
@@ -1720,6 +1720,8 @@ void ne2000_poller(void *p)
     struct pcap_pkthdr h;
 	uint32_t mac_cmp32[2];
 	uint16_t mac_cmp16[2];
+	uint8_t temp_mac[6] = { 0, 0, 0, 0, 0, 0 };
+	ne2000_mac(temp_mac);
 
 	if (!net_is_pcap)
 	{
@@ -1756,8 +1758,8 @@ void ne2000_poller(void *p)
 		mac_cmp32[0] = *(uint32_t *) (data+6);
 		mac_cmp16[0] = *(uint16_t *) (data+10);
 		/* Local. */
-		mac_cmp32[1] = *(uint32_t *) (ne2000_mac());
-		mac_cmp16[1] = *(uint16_t *) (ne2000_mac() + 4);
+		mac_cmp32[1] = *(uint32_t *) (temp_mac);
+		mac_cmp16[1] = *(uint16_t *) (temp_mac + 4);
 		if ((mac_cmp32[0] != mac_cmp32[1]) || (mac_cmp16[0] != mac_cmp16[1]))
 		{
 			ne2000_rx_frame(ne2000,data,h.caplen); 
@@ -2002,6 +2004,7 @@ void *ne2000_init(void)
 	int is_rtl8029as = 0;
     ne2000_t *ne2000 = malloc(sizeof(ne2000_t));
     memset(ne2000, 0, sizeof(ne2000_t));
+    uint8_t temp_mac[6] = { 0, 0, 0, 0, 0, 0 };
 	
 	if (PCI && (network_card_current == 2))
 	{
@@ -2048,7 +2051,8 @@ void *ne2000_init(void)
 
 	ne2000_io_set(ne2000->base_address, ne2000);
 
-	memcpy(ne2000->physaddr, ne2000_mac(), 6);
+	ne2000_mac(temp_mac);
+	ne2000_mac(ne2000->physaddr);
 
 	if (!disable_netbios)
 	{
@@ -2192,8 +2196,8 @@ initialize_pcap:
 			char filter_exp[255];
 			ne2000_log("ne2000 Building packet filter...");
 			sprintf(filter_exp,"( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )", \
-			ne2000_mac()[0], ne2000_mac()[1], ne2000_mac()[2], ne2000_mac()[3], ne2000_mac()[4], ne2000_mac()[5],\
-			ne2000_mac()[0], ne2000_mac()[1], ne2000_mac()[2], ne2000_mac()[3], ne2000_mac()[4], ne2000_mac()[5]);
+			temp_mac[0], temp_mac[1], temp_mac[2], temp_mac[3], temp_mac[4], temp_mac[5],\
+			temp_mac[0], temp_mac[1], temp_mac[2], temp_mac[3], temp_mac[4], temp_mac[5]);
 
 			/* I'm doing a MAC level filter so TCP/IP doesn't matter. */
 			if (pcap_compile(net_pcap, &fp, filter_exp, 0, 0xffffffff) == -1)

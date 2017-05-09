@@ -3,6 +3,7 @@
 #define CONFIG_BINARY 2
 #define CONFIG_SELECTION 3
 #define CONFIG_MIDI 4
+#define CONFIG_ETHIF 5
 
 typedef struct device_config_selection_t
 {
