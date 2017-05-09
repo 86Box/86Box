@@ -66,9 +66,11 @@ void cdrom_null_reset(uint8_t id)
 {
 }
 
+void cdrom_set_null_handler(uint8_t id);
+
 int cdrom_null_open(uint8_t id, char d)
 {
-        cdrom_drives[id].handler = &null_cdrom;
+	cdrom_set_null_handler(id);
         return 0;
 }
 

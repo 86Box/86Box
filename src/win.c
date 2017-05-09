@@ -2289,7 +2289,6 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 				}
 				cdrom_drives[cdrom_id].host_drive = 200;
                                 CheckMenuItem(hmenu, IDM_CDROM_1_IMAGE + cdrom_id,		           MF_CHECKED);
-				update_status_bar_icon_state(0x10 | cdrom_id, get_cd_state(cdrom_id));
 				update_tip(0x10 | cdrom_id);
                                 saveconfig();
                         }
@@ -2325,7 +2324,6 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
                                 CheckMenuItem(hmenu, IDM_CDROM_1_IMAGE + cdrom_id,		           MF_UNCHECKED);
                                 cdrom_drives[cdrom_id].host_drive = new_cdrom_drive;
                                 CheckMenuItem(hmenu, IDM_CDROM_1_REAL + cdrom_id + (cdrom_drives[cdrom_id].host_drive << 2), MF_CHECKED);
-				update_status_bar_icon_state(0x10 | cdrom_id, get_cd_state(cdrom_id));
 				update_tip(0x10 | cdrom_id);
                                 saveconfig();
                         }
