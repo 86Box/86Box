@@ -674,5 +674,5 @@ void piix3_init(int card)
 
 	dma_alias_set();
 
-	pci_reset_handler.pci_set_reset = piix_reset;
+	pci_reset_handler.pci_set_reset = piix3_reset;
 }
