@@ -396,7 +396,7 @@ static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
                    fatal("LockRect failed\n");
         
                 for (yy = y1; yy < y2; yy++)
-                        memcpy((uint32_t *) &(((uint8_t *) dr.pBits)[(yy - y1) * dr.Pitch]), (uint32_t *) &(buffer32->line[yy + y][x]), w * 4);
+                        memcpy((uint32_t *) &(((uint8_t *) dr.pBits)[(yy - y1) * dr.Pitch]), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
 
                 video_blit_complete();
                 d3dTexture->UnlockRect(0);

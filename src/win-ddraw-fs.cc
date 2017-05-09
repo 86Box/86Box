@@ -203,7 +203,7 @@ static void ddraw_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h
         }
 	for (yy = y1; yy < y2; yy++)
 	{
-		if ((y + yy) >= 0)  memcpy((unsigned char*)ddsd.lpSurface + (yy * ddsd.lPitch), ((uint32_t *) &(((uint8_t *)buffer32->line[y + yy]))[x]), w * 4);
+		if ((y + yy) >= 0)  memcpy((unsigned char*)ddsd.lpSurface + (yy * ddsd.lPitch), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
 	}
         video_blit_complete();
         lpdds_back->Unlock(NULL);
