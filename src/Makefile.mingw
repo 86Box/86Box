@@ -144,7 +144,7 @@ SNDOBJ	= sound.o \
 	    snd_adlib.o snd_adlibgold.o snd_ad1848.o \
 	    snd_sb.o snd_sb_dsp.o snd_cms.o snd_dbopl.o \
 	    snd_emu8k.o snd_gus.o snd_opl.o \
-	    snd_mpu401_uart.o snd_pas16.o snd_resid.o \
+	    snd_mpu401.o snd_pas16.o snd_resid.o \
 	    snd_sn76489.o snd_ssi2001.o snd_wss.o \
 	    snd_ym7128.o
 VIDOBJ	= video.o \
