@@ -7,7 +7,7 @@
 #include "../device.h"
 #include "sound.h"
 #include "snd_emu8k.h"
-#include "snd_mpu401_uart.h"
+#include "snd_mpu401.h"
 #include "snd_opl.h"
 #include "snd_sb.h"
 #include "snd_sb_dsp.h"
@@ -33,7 +33,7 @@ typedef struct sb_t
         opl_t           opl;
         sb_dsp_t        dsp;
         sb_mixer_t      mixer;
-        mpu401_uart_t   mpu;
+        mpu_t   mpu;
         emu8k_t         emu8k;
 
         int pos;
@@ -631,7 +631,7 @@ void *sb_16_init()
         io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
         io_sethandler(addr + 4, 0x0002, sb_16_mixer_read, NULL, NULL, sb_16_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_opl3, sb);
-        mpu401_uart_init(&sb->mpu, device_get_config_int("addr401"));
+        mpu401_init(&sb->mpu, device_get_config_int("addr401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
 
         sb->mixer.regs[0x30] = 31 << 3;
         sb->mixer.regs[0x31] = 31 << 3;
@@ -677,7 +677,7 @@ void *sb_awe32_init()
         io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
         io_sethandler(addr + 4, 0x0002, sb_16_mixer_read, NULL, NULL, sb_16_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_emu8k, sb);
-        mpu401_uart_init(&sb->mpu, device_get_config_int("addr401"));
+        mpu401_init(&sb->mpu, device_get_config_int("addr401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
         emu8k_init(&sb->emu8k, onboard_ram);
 
         sb->mixer.regs[0x30] = 31 << 3;
@@ -935,6 +935,32 @@ static device_config_t sb_16_config[] =
                 }
         },
         {
+                "irq401", "MPU-401 IRQ", CONFIG_SELECTION, "", 9,
+                {
+                        {
+                                "IRQ 9", 9
+                        },
+                        {
+                                "IRQ 3", 3
+                        },
+                        {
+                                "IRQ 4", 4
+                        },
+                        {
+                                "IRQ 5", 5
+                        },
+                        {
+                                "IRQ 7", 7
+                        },
+                        {
+                                "IRQ 10", 10
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
                 "dma", "Low DMA channel", CONFIG_SELECTION, "", 1,
                 {
                         {
@@ -970,6 +996,20 @@ static device_config_t sb_16_config[] =
         },
         {
                 "midi", "MIDI out device", CONFIG_MIDI, "", 0
+        },
+        {
+                "mode", "MPU-401 mode", CONFIG_SELECTION, "", 1,
+                {
+                        {
+                                "UART", M_UART
+                        },
+                        {
+                                "Intelligent", M_INTELLIGENT
+                        },
+                        {
+                                ""
+                        }
+                }
         },
         {
                 "", "", -1
@@ -1033,6 +1073,32 @@ static device_config_t sb_awe32_config[] =
                 }
         },
         {
+                "irq401", "MPU-401 IRQ", CONFIG_SELECTION, "", 2,
+                {
+                        {
+                                "IRQ 2", 2
+                        },
+                        {
+                                "IRQ 3", 3
+                        },
+                        {
+                                "IRQ 4", 4
+                        },
+                        {
+                                "IRQ 5", 5
+                        },
+                        {
+                                "IRQ 7", 7
+                        },
+                        {
+                                "IRQ 10", 10
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
                 "dma", "Low DMA channel", CONFIG_SELECTION, "", 1,
                 {
                         {
@@ -1068,6 +1134,20 @@ static device_config_t sb_awe32_config[] =
         },
         {
                 "midi", "MIDI out device", CONFIG_MIDI, "", 0
+        },
+        {
+                "mode", "MPU-401 mode", CONFIG_SELECTION, "", 1,
+                {
+                        {
+                                "UART", M_UART
+                        },
+                        {
+                                "Intelligent", M_INTELLIGENT
+                        },
+                        {
+                                ""
+                        }
+                }
         },
         {
                 "onboard_ram", "Onboard RAM", CONFIG_SELECTION, "", 512,
