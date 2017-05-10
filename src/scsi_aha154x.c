@@ -859,7 +859,7 @@ enum {
 };
 
 
-#ifdef WALTJE
+#ifdef xWALTJE
 int aha_do_log = 1;
 # define ENABLE_AHA154X_LOG
 #else

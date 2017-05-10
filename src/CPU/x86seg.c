@@ -49,7 +49,7 @@ void x86abort(const char *format, ...)
    va_end(ap);
    fflush(stdout);
    savenvr();
-   dumpregs();
+   dumpregs(1);
    fflush(stdout);
    exit(-1);
 }

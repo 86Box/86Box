@@ -93,14 +93,3 @@ void status_open(HWND hwnd)
         status_hwnd = CreateDialog(hinstance, TEXT("StatusDlg"), hwnd, status_dlgproc);
         ShowWindow(status_hwnd, SW_SHOW);
 }
-
-
-#if 0
-void
-set_bugui(char *str)
-{
-    if (str == NULL)
-	str = "L:R GGGGGGGG-RRRRRRRR";
-    SendMessage(status_hwnd, SB_SETTEXT, 2, (WPARAM)str);
-}
-#endif

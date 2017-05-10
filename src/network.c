@@ -8,7 +8,7 @@
  *
  *		Implementation of the network module.
  *
- * Version:	@(#)network.c	1.0.1	2017/05/09
+ * Version:	@(#)network.c	1.0.2	2017/05/09
  *
  * Authors:	Kotori, <oubattler@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -38,7 +38,7 @@ typedef struct {
 
 
 static int net_handlers_num;
-static uint32_t net_poll_time = 100;
+static int net_poll_time;
 static NETPOLL net_handlers[8];
 static NETCARD net_cards[] = {
     { "None",			"none",		NULL			},
@@ -75,12 +75,9 @@ net_poll(void *priv)
 void
 network_init(void)
 {
-    /* No network interface right now. */
     network_card_current = 0;
     net_handlers_num = 0;
-
-    /* This should be a config value, really.  --FvK */
-    net_poll_time = 100;
+    net_poll_time = 0;
 }
 
 

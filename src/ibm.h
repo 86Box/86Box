@@ -7,9 +7,9 @@
 #include <wchar.h>
 #define printf pclog
 
+
 /*Memory*/
 uint8_t *ram;
-
 uint32_t rammask;
 
 int readlookup[256],readlookupp[256];
@@ -25,32 +25,30 @@ extern int mmu_perm;
 #define readmemw(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a))&0xFFF)>0xFFE)?readmemwl(s,a):*(uint16_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
 #define readmeml(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a))&0xFFF)>0xFFC)?readmemll(s,a):*(uint32_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
 
-uint8_t readmembl(uint32_t addr);
-void writemembl(uint32_t addr, uint8_t val);
-uint8_t readmemb386l(uint32_t seg, uint32_t addr);
-void writememb386l(uint32_t seg, uint32_t addr, uint8_t val);
-uint16_t readmemwl(uint32_t seg, uint32_t addr);
-void writememwl(uint32_t seg, uint32_t addr, uint16_t val);
-uint32_t readmemll(uint32_t seg, uint32_t addr);
-void writememll(uint32_t seg, uint32_t addr, uint32_t val);
-uint64_t readmemql(uint32_t seg, uint32_t addr);
-void writememql(uint32_t seg, uint32_t addr, uint64_t val);
+extern uint8_t	readmembl(uint32_t addr);
+extern void	writemembl(uint32_t addr, uint8_t val);
+extern uint8_t	readmemb386l(uint32_t seg, uint32_t addr);
+extern void	writememb386l(uint32_t seg, uint32_t addr, uint8_t val);
+extern uint16_t	readmemwl(uint32_t seg, uint32_t addr);
+extern void	writememwl(uint32_t seg, uint32_t addr, uint16_t val);
+extern uint32_t	readmemll(uint32_t seg, uint32_t addr);
+extern void	writememll(uint32_t seg, uint32_t addr, uint32_t val);
+extern uint64_t	readmemql(uint32_t seg, uint32_t addr);
+extern void	writememql(uint32_t seg, uint32_t addr, uint64_t val);
 
-uint8_t *getpccache(uint32_t a);
-
-uint32_t mmutranslatereal(uint32_t addr, int rw);
-
-void addreadlookup(uint32_t virt, uint32_t phys);
-void addwritelookup(uint32_t virt, uint32_t phys);
+extern uint8_t	*getpccache(uint32_t a);
+extern uint32_t	mmutranslatereal(uint32_t addr, int rw);
+extern void	addreadlookup(uint32_t virt, uint32_t phys);
+extern void	addwritelookup(uint32_t virt, uint32_t phys);
 
 
 /*IO*/
-uint8_t  inb(uint16_t port);
-void outb(uint16_t port, uint8_t  val);
-uint16_t inw(uint16_t port);
-void outw(uint16_t port, uint16_t val);
-uint32_t inl(uint16_t port);
-void outl(uint16_t port, uint32_t val);
+extern uint8_t	inb(uint16_t port);
+extern void	outb(uint16_t port, uint8_t  val);
+extern uint16_t	inw(uint16_t port);
+extern void	outw(uint16_t port, uint16_t val);
+extern uint32_t	inl(uint16_t port);
+extern void	outl(uint16_t port, uint32_t val);
 
 extern int shadowbios,shadowbios_write;
 extern int mem_size;
@@ -163,6 +161,9 @@ struct
 } cpu_state;
 
 #define cycles cpu_state._cycles
+#define cpu_rm  cpu_state.rm_data.rm_mod_reg.rm
+#define cpu_mod cpu_state.rm_data.rm_mod_reg.mod
+#define cpu_reg cpu_state.rm_data.rm_mod_reg.reg
 
 #ifdef __MSC__
 # define COMPILE_TIME_ASSERT(expr)	/*nada*/
@@ -292,13 +293,8 @@ typedef struct PIT
 } PIT;
 
 PIT pit, pit2;
-void setpitclock(float clock);
-
-float pit_timer0_freq();
-
-#define cpu_rm  cpu_state.rm_data.rm_mod_reg.rm
-#define cpu_mod cpu_state.rm_data.rm_mod_reg.mod
-#define cpu_reg cpu_state.rm_data.rm_mod_reg.reg
+extern void	setpitclock(float clock);
+extern float	pit_timer0_freq(void);
 
 
 
@@ -649,24 +645,22 @@ extern uint32_t SCSIGetCDChannel(int channel);
 
 extern int ui_writeprot[4];
 
-void pclog(const char *format, ...);
-void pclog_w(const wchar_t *format, ...);
+
 extern int nmi;
 extern int nmi_auto_clear;
-
 
 extern float isa_timing, bus_timing;
 
 
-uint64_t timer_read();
+extern uint64_t timer_read(void);
 extern uint64_t timer_freq;
 
 
 extern int infocus;
 
-void onesec();
+extern void onesec(void);
 
-void resetpc_cad();
+extern void resetpc_cad(void);
 
 extern int dump_on_exit;
 extern int start_in_fullscreen;
@@ -692,7 +686,6 @@ wchar_t *nvr_concat(wchar_t *to_concat);
 
 int mem_a20_state;
 
-void fatal(const char *format, ...);
 
 #ifdef ENABLE_LOG_TOGGLES
 extern int buslogic_do_log;
@@ -714,12 +707,15 @@ typedef struct PCI_RESET
 
 extern PCI_RESET pci_reset_handler;
 
-uint8_t trc_read(uint16_t port, void *priv);
-void trc_write(uint16_t port, uint8_t val, void *priv);
-void trc_init();
+extern uint8_t	trc_read(uint16_t port, void *priv);
+extern void	trc_write(uint16_t port, uint8_t val, void *priv);
+extern void	trc_init(void);
 
 extern int enable_xtide;
 extern int enable_external_fpu;
+
+extern int serial_enabled[2];
+extern int lpt_enabled, bugger_enabled;
 
 extern int invert_display;
 
@@ -727,52 +723,56 @@ uint32_t svga_color_transform(uint32_t color);
 
 extern int scale;
 
-/* Function prototypes. */
-int checkio(int port);
-void closepc();
-void codegen_block_end();
-void codegen_reset();
-void cpu_set_edx();
-int divl(uint32_t val);
-void dumpregs();
-void exec386(int cycs);
-void exec386_dynarec(int cycs);
-void execx86(int cycs);
-void flushmmucache();
-void flushmmucache_cr3();
-int idivl(int32_t val);
-void initpc(int argc, wchar_t *argv[]);
-void loadcscall(uint16_t seg);
-void loadcsjmp(uint16_t seg, uint32_t oxpc);
-void mmu_invalidate(uint32_t addr);
-void pclog(const char *format, ...);
-void pmodeint(int num, int soft);
-void pmoderetf(int is32, uint16_t off);
-void pmodeiret(int is32);
-void port_92_clear_reset();
-uint8_t readdacfifo();
-void refreshread();
-int rep386(int fv);
-void resetmcr();
-void resetpchard();
-void resetreadlookup();
-void resetx86();
-void runpc();
-void saveconfig();
-void softresetx86();
-void speedchanged();
-void status_settextw(wchar_t *wstr);
-void status_settext(char *str);
-void trc_reset(uint8_t val);
-void update_status_bar_icon(int tag, int active);
-void update_status_bar_icon_state(int tag, int state);
-void x86_int_sw(int num);
-void x86gpf(char *s, uint16_t error);
-void x86np(char *s, uint16_t error);
-void x86ss(char *s, uint16_t error);
-void x86ts(char *s, uint16_t error);
-void x87_dumpregs();
-void x87_reset();
 
-extern int serial_enabled[2];
-extern int lpt_enabled, bugger_enabled;
+/* Function prototypes. */
+extern int	checkio(int port);
+extern void	closepc(void);
+extern void	codegen_block_end(void);
+extern void	codegen_reset(void);
+extern void	cpu_set_edx(void);
+extern int	divl(uint32_t val);
+extern void	dumpregs(int __force);
+extern void	exec386(int cycs);
+extern void	exec386_dynarec(int cycs);
+extern void	execx86(int cycs);
+extern void	flushmmucache(void);
+extern void	flushmmucache_cr3(void);
+extern int	idivl(int32_t val);
+extern void	initpc(int argc, wchar_t *argv[]);
+extern void	loadcscall(uint16_t seg);
+extern void	loadcsjmp(uint16_t seg, uint32_t oxpc);
+extern void	mmu_invalidate(uint32_t addr);
+extern void	pclog(const char *format, ...);
+extern void	pmodeint(int num, int soft);
+extern void	pmoderetf(int is32, uint16_t off);
+extern void	pmodeiret(int is32);
+extern void	port_92_clear_reset(void);
+extern uint8_t	readdacfifo(void);
+extern void	refreshread(void);
+extern int	rep386(int fv);
+extern void	resetmcr(void);
+extern void	resetpchard(void);
+extern void	resetreadlookup(void);
+extern void	resetx86(void);
+extern void	runpc(void);
+extern void	saveconfig(void);
+extern void	softresetx86(void);
+extern void	speedchanged(void);
+extern void	trc_reset(uint8_t val);
+extern void	x86_int_sw(int num);
+extern void	x86gpf(char *s, uint16_t error);
+extern void	x86np(char *s, uint16_t error);
+extern void	x86ss(char *s, uint16_t error);
+extern void	x86ts(char *s, uint16_t error);
+extern void	x87_dumpregs(void);
+extern void	x87_reset(void);
+
+/* Platform functions. */
+extern void	pclog(const char *format, ...);
+extern void	pclog_w(const wchar_t *format, ...);
+extern void	fatal(const char *format, ...);
+
+extern void	update_status_bar_icon(int tag, int active);
+extern void	update_status_bar_icon_state(int tag, int state);
+extern void	status_settextw(wchar_t *wstr);
+extern void	status_settext(char *str);

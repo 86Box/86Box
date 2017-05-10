@@ -82,6 +82,10 @@ inet_aton(cp, ia)
 }
 #endif
 
+
+extern void	pclog(char *fmt, ...);
+
+
 /*
  * Get our IP address and put it in our_addr
  */
