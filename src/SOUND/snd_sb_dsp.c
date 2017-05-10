@@ -11,8 +11,10 @@
 #include "../dma.h"
 #include "../timer.h"
 #include "sound.h"
+#include "snd_mpu401.h"
 #include "snd_sb_dsp.h"
 
+mpu_t mpu;
 
 void pollsb(void *p);
 void sb_poll_i(void *p);
@@ -321,6 +323,29 @@ void sb_exec_command(sb_dsp_t *dsp)
                 temp = 1000000 / temp;
                 dsp->sb_freq = temp;
                 break;
+				
+				case 0x30:
+				case 0x31:
+				break;
+				
+				case 0x34:
+				dsp->uart_midi = 1;
+				dsp->uart_irq = 0;
+				break;
+				
+				case 0x35:
+				dsp->uart_midi = 1;
+				dsp->uart_irq = 1;
+				break;
+				
+				case 0x36:
+				case 0x37:
+				break;
+				
+				case 0x38:
+				dsp->onebyte_midi = 1;
+				break;				
+				
                 case 0x41: /*Set output sampling rate*/
                 case 0x42: /*Set input sampling rate*/
                 if (dsp->sb_type < SB16) break;
@@ -514,6 +539,12 @@ void sb_write(uint16_t a, uint8_t v, void *priv)
                 dsp->sbreset = v;
                 return;
                 case 0xC: /*Command/data write*/
+				if (dsp->uart_midi || dsp->onebyte_midi)
+				{
+					midi_write(v);
+					dsp->onebyte_midi = 0;
+					return;
+				}
                 timer_process();
                 dsp->wb_time = TIMER_USEC * 1;
                 dsp->wb_full = 1;
@@ -549,6 +580,10 @@ uint8_t sb_read(uint16_t a, void *priv)
         switch (a & 0xf)
         {
                 case 0xA: /*Read data*/
+				if (dsp->uart_midi)
+				{
+					return MPU401_ReadData(&mpu);
+				}
                 dsp->sbreaddat = dsp->sb_read_data[dsp->sb_read_rp];
                 if (dsp->sb_read_rp != dsp->sb_read_wp)
                 {
