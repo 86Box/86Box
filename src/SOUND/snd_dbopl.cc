@@ -44,8 +44,8 @@ void opl_init(void (*timer_callback)(void *param, int timer, int64_t period), vo
 {
 	if (!is_opl3 || !opl3_type)
 	{
-			DBOPL::InitTables();                        
-			opl[nr].chip.Setup(48000, 0);
+			DBOPL::InitTables();
+			opl[nr].chip.Setup(48000, is_opl3);
 			opl[nr].timer_callback = timer_callback;
 			opl[nr].timer_param = timer_param;
 			opl[nr].is_opl3 = is_opl3;

@@ -15,6 +15,8 @@ static void MPU401_WriteCommand(mpu_t *mpu, uint8_t val);
 static void MPU401_EOIHandlerDispatch(void *p);
 
 static int mpu401_event_callback = 0;
+static int mpu401_eoi_callback = 0;
+static int mpu401_reset_callback = 0;
 
 static void QueueByte(mpu_t *mpu, uint8_t data) 
 {
@@ -88,8 +90,14 @@ static void MPU401_Reset(mpu_t *mpu)
 	for (i=0;i<8;i++) {mpu->playbuf[i].type=T_OVERFLOW;mpu->playbuf[i].counter=0;}
 }
 
-static void MPU401_ResetDone(mpu_t *mpu, int reset) 
+static void MPU401_ResetDone(void *p) 
 {
+	mpu_t *mpu = (mpu_t *)p;
+
+	pclog("MPU-401 reset callback\n");
+
+	mpu401_reset_callback = 0;
+
 	mpu->state.reset=0;
 	if (mpu->state.cmd_pending) 
 	{
@@ -121,6 +129,7 @@ static void MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 		{
 			case  0x4:	/* Stop */
 				mpu->state.playing=0;
+				mpu401_event_callback = 0;
 				for (i=0xb0;i<0xbf;i++) 
 				{	/* All notes off */
 					midi_write(i);
@@ -131,7 +140,7 @@ static void MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 			case 0x8:	/* Play */
 //				LOG(LOG_MISC,LOG_NORMAL)("MPU-401:Intelligent mode playback started");
 				mpu->state.playing=1;
-				mpu401_event_callback = MPU401_TIMECONSTANT / (mpu->clock.tempo*mpu->clock.timebase);
+				mpu401_event_callback = (MPU401_TIMECONSTANT / (mpu->clock.tempo*mpu->clock.timebase)) * TIMER_USEC;
 				ClrQueue(mpu);
 				break;
 		}
@@ -236,7 +245,7 @@ static void MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 			break;
 		case 0xff:	/* Reset MPU-401 */
 			pclog("MPU-401:Reset %X\n",val);
-			MPU401_ResetDone(mpu, MPU401_RESETBUSY);
+			mpu401_reset_callback = MPU401_RESETBUSY * TIMER_USEC;
 			mpu->state.reset=1;
 			MPU401_Reset(mpu);
 			if (mpu->mode==M_UART) return;//do not send ack in UART mode
@@ -492,10 +501,14 @@ static void UpdateConductor(mpu_t *mpu)
 }
 
 //Updates counters and requests new data on "End of Input"
-static void MPU401_EOIHandler(void *p, uint8_t val) 
+static void MPU401_EOIHandler(void *p)
 {
 	mpu_t *mpu = (mpu_t *)p;
+	uint8_t i;
+
+	pclog("MPU-401 end of input callback\n");
 	
+	mpu401_eoi_callback = 0;
 	mpu->state.eoi_scheduled=0;
 	if (mpu->state.send_now) 
 	{
@@ -504,8 +517,8 @@ static void MPU401_EOIHandler(void *p, uint8_t val)
 		else UpdateTrack(mpu, mpu->state.channel);
 	}
 	mpu->state.irq_pending=0;
-	if (!mpu->state.playing || !mpu->state.req_mask) return;
-	uint8_t i=0;
+	if (!mpu->state.playing || !mpu->state.req_mask)  return;
+	i=0;
 	do {
 		if (mpu->state.req_mask&(1<<i)) {
 			QueueByte(mpu, 0xf0+i);
@@ -522,10 +535,15 @@ static void MPU401_EOIHandlerDispatch(void *p)
 	if (mpu->state.send_now) 
 	{
 		mpu->state.eoi_scheduled=1;
-		MPU401_EOIHandler(mpu, 0.06f); //Possible a bit longer
+		mpu401_eoi_callback = 0.06f * TIMER_USEC; /* Possible a bit longer */
 	}
 	else if (!mpu->state.eoi_scheduled) 
-		MPU401_EOIHandler(mpu, 0);
+		MPU401_EOIHandler(mpu);
+}
+
+static void imf_write(uint16_t addr, uint8_t val, void *p)
+{
+	pclog("IMF:Wr %4X,%X\n", addr, val);
 }
 
 uint8_t MPU401_ReadData(mpu_t *mpu)
@@ -613,8 +631,15 @@ static void MPU401_Event(void *p)
 {
 	mpu_t *mpu = (mpu_t *)p;
 	uint8_t i;
+	int new_time;
+
+	pclog("MPU-401 event callback\n");
 	
-	if (mpu->mode==M_UART) return;
+	if (mpu->mode==M_UART)
+	{
+		mpu401_event_callback = 0;
+		return;
+	}
 	if (mpu->state.irq_pending) goto next_event;
 	for (i=0;i<8;i++) { /* Decrease counters */
 		if (mpu->state.amask&(1<<i)) {
@@ -633,12 +658,20 @@ static void MPU401_Event(void *p)
 			mpu->state.req_mask|=(1<<13);
 		}
 	}
-	if (!mpu->state.irq_pending && mpu->state.req_mask) MPU401_EOIHandler(mpu, 0);
+	if (!mpu->state.irq_pending && mpu->state.req_mask) MPU401_EOIHandler(mpu);
 next_event:
-	mpu401_event_callback = 0;
-	int new_time;
-	if ((new_time=mpu->clock.tempo*mpu->clock.timebase)==0) return;
-	mpu401_event_callback = MPU401_TIMECONSTANT/new_time;
+	/* mpu401_event_callback = 0; */
+	new_time = (mpu->clock.tempo * mpu->clock.timebase);
+	if (new_time == 0)
+	{
+		mpu401_event_callback = 0;
+		return;
+	}
+	else
+	{
+		mpu401_event_callback += (MPU401_TIMECONSTANT/new_time) * TIMER_USEC;
+		pclog("Next event after %i us\n", (MPU401_TIMECONSTANT/new_time) * TIMER_USEC);
+	}
 }
 
 void mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode)
@@ -651,9 +684,15 @@ void mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode)
 
 	mpu->intelligent = (mode == M_INTELLIGENT) ? 1 : 0;
 
+	mpu401_event_callback = 0;
+	mpu401_eoi_callback = 0;
+	mpu401_reset_callback = 0;
+
 	io_sethandler(addr, 0x0002, mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
-	io_sethandler(0x2A20, 0x0010, mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
+	io_sethandler(0x2A20, 0x0010, NULL, NULL, NULL, imf_write, NULL, NULL, mpu);
 	timer_add(MPU401_Event, &mpu401_event_callback, &mpu401_event_callback, mpu);
+	timer_add(MPU401_EOIHandler, &mpu401_eoi_callback, &mpu401_eoi_callback, mpu);
+	timer_add(MPU401_ResetDone, &mpu401_reset_callback, &mpu401_reset_callback, mpu);
 	
 	MPU401_Reset(mpu);
 }
