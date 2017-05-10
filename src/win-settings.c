@@ -1457,7 +1457,7 @@ static BOOL win_settings_hard_disks_image_list_init(HWND hwndList)
                                   GetSystemMetrics(SM_CYSMICON),
                                   ILC_MASK | ILC_COLOR32, 1, 1);
 
-	for (i = 0; i < 6; i += 2)
+	for (i = 0; i < 8; i += 2)
 	{
 		hiconItem = LoadIcon(hinstance, (LPCWSTR) (176 + i));
 		ImageList_AddIcon(hSmall, hiconItem);
@@ -1486,11 +1486,6 @@ static void normalize_hd_list()
 	}
 	for (i = 0; i < HDC_NUM; i++)
 	{
-		if ((temp_hdc[i].bus == 3) && (temp_hdc[i].scsi_id == 7))
-		{
-			/* SCSI ID 7 is the host adapter, so any hard disk set to SCSI bus and ID 7 is to be treated as disabled and marked as such. */
-			temp_hdc[i].bus = 0;
-		}
 		if (temp_hdc[i].bus > 0)
 		{
 			memcpy(&(ihdc[j]), &(temp_hdc[i]), sizeof(hard_disk_t));
@@ -1540,9 +1535,9 @@ static void add_locations(HWND hdlg)
 	lptsTemp = (LPTSTR) malloc(512);
 
 	h = GetDlgItem(hdlg, IDC_COMBO_HD_BUS);
-	for (i = 0; i < 3; i++)
+	for (i = 0; i < 4; i++)
 	{
-		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2166 + i));
+		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2165 + i));
 	}
 
 	h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL);
@@ -1623,7 +1618,8 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg)
 				EnableWindow(h, TRUE);
 				SendMessage(h, CB_SETCURSEL, is_add_dlg ? new_hdc.mfm_channel : temp_hdc[hdlv_current_sel].mfm_channel, 0);
 				break;
-			case 1:		/* IDE */
+			case 1:		/* IDE (PIO-only) */
+			case 2:		/* IDE (PIO and DMA) */
 				h = GetDlgItem(hdlg, 1802);
 				ShowWindow(h, SW_SHOW);
 				EnableWindow(h, TRUE);
@@ -1633,7 +1629,7 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg)
 				EnableWindow(h, TRUE);
 				SendMessage(h, CB_SETCURSEL, is_add_dlg ? new_hdc.ide_channel : temp_hdc[hdlv_current_sel].ide_channel, 0);
 				break;
-			case 2:		/* SCSI */
+			case 3:		/* SCSI */
 				h = GetDlgItem(hdlg, 1800);
 				ShowWindow(h, SW_SHOW);
 				EnableWindow(h, TRUE);
@@ -1661,8 +1657,7 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg)
 		ShowWindow(h, SW_HIDE);
 
 		h = GetDlgItem(hdlg, IDC_COMBO_HD_BUS);
-		EnableWindow(h, FALSE);
-		ShowWindow(h, SW_HIDE);
+		EnableWindow(h, FALSE);		ShowWindow(h, SW_HIDE);
 	}
 	else
 	{
@@ -1682,7 +1677,8 @@ static void recalc_next_free_id(HWND hdlg)
 	int i;
 
 	int c_mfm = 0;
-	int c_ide = 0;
+	int c_ide_pio = 0;
+	int c_ide_dma = 0;
 	int c_scsi = 0;
 	int enable_add = 0;
 
@@ -1696,9 +1692,13 @@ static void recalc_next_free_id(HWND hdlg)
 		}
 		else if (temp_hdc[i].bus == 2)
 		{
-			c_ide++;
+			c_ide_pio++;
 		}
 		else if (temp_hdc[i].bus == 3)
+		{
+			c_ide_dma++;
+		}
+		else if (temp_hdc[i].bus == 4)
 		{
 			c_scsi++;
 		}
@@ -1717,7 +1717,7 @@ static void recalc_next_free_id(HWND hdlg)
 
 	enable_add = enable_add || (next_free_id >= 0);
 	/* pclog("Enable add: %i\n", enable_add); */
-	enable_add = enable_add && ((c_mfm < MFM_NUM) || (c_ide < IDE_NUM) || (c_scsi < SCSI_NUM));
+	enable_add = enable_add && ((c_mfm < MFM_NUM) || (c_ide_pio < IDE_NUM) || (c_ide_dma < IDE_NUM) || (c_scsi < SCSI_NUM));
 	/* pclog("Enable add: %i\n", enable_add); */
 
 	h = GetDlgItem(hdlg, IDC_BUTTON_HDD_ADD_NEW);
@@ -1744,7 +1744,7 @@ static void recalc_next_free_id(HWND hdlg)
 
 	h = GetDlgItem(hdlg, IDC_BUTTON_HDD_REMOVE);
 
-	if ((c_mfm == 0) && (c_ide == 0) && (c_scsi == 0))
+	if ((c_mfm == 0) && (c_ide_pio == 0) && (c_ide_dma == 0) && (c_scsi == 0))
 	{
 		EnableWindow(h, FALSE);
 	}
@@ -1773,9 +1773,12 @@ static void win_settings_hard_disks_update_item(HWND hwndList, int i, int column
 				wsprintf(szText, win_language_get_string_from_id(2156), temp_hdc[i].mfm_channel >> 1, temp_hdc[i].mfm_channel & 1);
 				break;
 			case 2:
-				wsprintf(szText, win_language_get_string_from_id(2157), temp_hdc[i].ide_channel >> 1, temp_hdc[i].ide_channel & 1);
+				wsprintf(szText, win_language_get_string_from_id(2195), temp_hdc[i].ide_channel >> 1, temp_hdc[i].ide_channel & 1);
 				break;
 			case 3:
+				wsprintf(szText, win_language_get_string_from_id(2157), temp_hdc[i].ide_channel >> 1, temp_hdc[i].ide_channel & 1);
+				break;
+			case 4:
 				wsprintf(szText, win_language_get_string_from_id(2158), temp_hdc[i].scsi_id, temp_hdc[i].scsi_lun);
 				break;
 		}
@@ -1845,9 +1848,12 @@ static BOOL win_settings_hard_disks_recalc_list(HWND hwndList)
 					wsprintf(szText, win_language_get_string_from_id(2156), temp_hdc[i].mfm_channel >> 1, temp_hdc[i].mfm_channel & 1);
 					break;
 				case 2:
-					wsprintf(szText, win_language_get_string_from_id(2157), temp_hdc[i].ide_channel >> 1, temp_hdc[i].ide_channel & 1);
+					wsprintf(szText, win_language_get_string_from_id(2195), temp_hdc[i].ide_channel >> 1, temp_hdc[i].ide_channel & 1);
 					break;
 				case 3:
+					wsprintf(szText, win_language_get_string_from_id(2157), temp_hdc[i].ide_channel >> 1, temp_hdc[i].ide_channel & 1);
+					break;
+				case 4:
 					wsprintf(szText, win_language_get_string_from_id(2158), temp_hdc[i].scsi_id, temp_hdc[i].scsi_lun);
 					break;
 			}
@@ -1946,11 +1952,11 @@ static BOOL win_settings_hard_disks_init_columns(HWND hwndList)
 		{
 
 			case 0: /* Bus */
-				lvc.cx = 85;
+				lvc.cx = 135;
 				lvc.fmt = LVCFMT_LEFT;
 				break;
 			case 2: /* Cylinders */
-				lvc.cx = 51;
+				lvc.cx = 41;
 				lvc.fmt = LVCFMT_RIGHT;
 				break;
 			case 3: /* Heads */
@@ -1959,11 +1965,11 @@ static BOOL win_settings_hard_disks_init_columns(HWND hwndList)
 				lvc.fmt = LVCFMT_RIGHT;
 				break;
 			case 1: /* File */
-				lvc.cx = 180;
+				lvc.cx = 150;
 				lvc.fmt = LVCFMT_LEFT;
 				break;
 			case 5: /* Size (MB) 8 */
-				lvc.cx = 51;
+				lvc.cx = 41;
 				lvc.fmt = LVCFMT_RIGHT;
 				break;
 		}
@@ -2085,6 +2091,8 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
         {
 		case WM_INITDIALOG:
 			memset(hd_file_name, 0, 512);
+
+			SetWindowText(hdlg, win_language_get_string_from_id(existing ? 2197 : 2196));
 
 			no_update = 1;
 			spt = existing ? 0 : 17;
@@ -2223,6 +2231,19 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 				case IDC_CFILE:
 		                        if (!file_dlg_w(hdlg, win_language_get_string_from_id(2172), L"", !existing))
        			                {
+						if (!existing)
+						{
+							f = _wfopen(wopenfilestring, L"rb");
+							if (f != NULL)
+							{
+								fclose(f);
+								if (msgbox_question(ghwnd, 2178) != IDYES)
+								{
+									return FALSE;
+								}
+							}
+						}
+
 						f = _wfopen(wopenfilestring, existing ? L"rb" : L"wb");
 						if (f == NULL)
 						{

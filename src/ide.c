@@ -382,7 +382,7 @@ static void ide_identify(IDE *ide)
 	ide->buffer[21] = 512; /*Buffer size*/
 	ide->buffer[47] = 16;  /*Max sectors on multiple transfer command*/
 	ide->buffer[48] = 1;   /*Dword transfers supported*/
-	if (PCI && (ide->board < 2))
+	if (PCI && (ide->board < 2) && (hdc[ide->hdc_num].bus == 3))
 	{
 		ide->buffer[49] = (1 << 8); /* LBA and DMA supported */
 	}
@@ -396,7 +396,6 @@ static void ide_identify(IDE *ide)
 	}
 	ide->buffer[50] = 0x4000; /* Capabilities */
 	ide->buffer[51] = 2 << 8; /*PIO timing mode*/
-	ide->buffer[52] = 2 << 8; /*DMA timing mode*/
 #if 0
 	ide->buffer[53] = 1;
 	ide->buffer[55] = ide->hpc;
@@ -419,8 +418,9 @@ static void ide_identify(IDE *ide)
 		ide->buffer[60] = (hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt) & 0xFFFF; /* Total addressable sectors (LBA) */
 		ide->buffer[61] = ((hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt) >> 16) & 0x0FFF;
 	}
-	if (PCI && (ide->board < 2))
+	if (PCI && (ide->board < 2) && (hdc[ide->hdc_num].bus == 3))
 	{
+		ide->buffer[52] = 2 << 8; /*DMA timing mode*/
 		ide->buffer[63] = 7;
 	}
 	ide->buffer[80] = 0xe; /*ATA-1 to ATA-3 supported*/
@@ -444,16 +444,16 @@ static void ide_atapi_identify(IDE *ide)
 	ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
 	ide_padstr((char *) (ide->buffer + 23), emulator_version, 8); /* Firmware */
 	ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
-	ide->buffer[48] = 1;   /*Dword transfers supported*/
 	ide->buffer[49] = 0x200; /* LBA supported */
-	ide->buffer[73] = 6;
-	ide->buffer[74] = 9;
-	ide->buffer[80] = 0x10; /*ATA/ATAPI-4 supported*/
 
 	if (PCI && (ide->board < 2) && (cdrom_drives[cdrom_id].bus_mode & 2))
 	{
+		ide->buffer[48] = 1;   /*Dword transfers supported*/
 		ide->buffer[49] |= 0x100; /* DMA supported */
 		ide->buffer[63] = 7;
+		ide->buffer[73] = 6;
+		ide->buffer[74] = 9;
+		ide->buffer[80] = 0x10; /*ATA/ATAPI-4 supported*/
 	}
 }
 
@@ -787,7 +787,7 @@ void resetide(void)
 	c = 0;
 	for (d = 0; d < HDC_NUM; d++)
 	{
-		if ((hdc[d].bus == 2) && (hdc[d].ide_channel < IDE_NUM))
+		if (((hdc[d].bus == 2) || (hdc[d].bus == 3)) && (hdc[d].ide_channel < IDE_NUM))
 		{
 			pclog("Found IDE hard disk on channel %i\n", hdc[d].ide_channel);
 			loadhd(&ide_drives[hdc[d].ide_channel], d, hdd_fn[d]);
@@ -1413,7 +1413,7 @@ uint32_t ide_read_data(int ide_board, int length)
 			}
 			else
 			{
-				update_status_bar_icon(0x21, 0);
+				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 0);
 			}
 		}
 	}
@@ -1736,7 +1736,7 @@ void callbackide(int ide_board)
 
 			ide_irq_raise(ide);
 
-			update_status_bar_icon(0x21, 1);
+			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
 			return;
 
         case WIN_READ_DMA:
@@ -1770,12 +1770,12 @@ void callbackide(int ide_board)
 						ide_next_sector(ide);
 						ide->atastat = BUSY_STAT;
 						idecallback[ide_board]=6*IDE_TIME;
-						update_status_bar_icon(0x21, 1);
+						update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
 					}
 					else
 					{
 						ide_irq_raise(ide);
-						update_status_bar_icon(0x21, 0);
+						update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 0);
 					}
 				}
 			}
@@ -1813,7 +1813,7 @@ void callbackide(int ide_board)
 				ide->blockcount = 0;
 			}
 
-			update_status_bar_icon(0x21, 1);
+			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
 			return;
 
         case WIN_WRITE:
@@ -1836,12 +1836,12 @@ void callbackide(int ide_board)
 				ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 				ide->pos=0;
 				ide_next_sector(ide);
-				update_status_bar_icon(0x21, 1);
+				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
 			}
 			else
 			{
 				ide->atastat = READY_STAT | DSC_STAT;
-				update_status_bar_icon(0x21, 0);
+				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 0);
 			}
 
 			return;
@@ -1877,12 +1877,12 @@ void callbackide(int ide_board)
 						ide_next_sector(ide);
 						ide->atastat = BUSY_STAT;
 						idecallback[ide_board]=6*IDE_TIME;
-						update_status_bar_icon(0x21, 1);
+						update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
 					}
 					else
 					{
 						ide_irq_raise(ide);
-						update_status_bar_icon(0x21, 0);
+						update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 0);
 					}
 				}
 			}
@@ -1913,12 +1913,12 @@ void callbackide(int ide_board)
 				ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 				ide->pos=0;
 				ide_next_sector(ide);
-				update_status_bar_icon(0x21, 1);
+				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
 			}
 			else
 			{
 				ide->atastat = READY_STAT | DSC_STAT;
-				update_status_bar_icon(0x21, 0);
+				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 0);
 			}
 			return;
 
@@ -1935,7 +1935,7 @@ void callbackide(int ide_board)
 			ide->pos=0;
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
-			update_status_bar_icon(0x21, 1);
+			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
 			return;
 
         case WIN_FORMAT:
@@ -1957,7 +1957,7 @@ void callbackide(int ide_board)
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
 
-			/* update_status_bar_icon(0x21, 1); */
+			/* update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1); */
 			return;
 
         case WIN_DRIVE_DIAGNOSTICS:

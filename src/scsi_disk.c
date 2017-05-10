@@ -175,7 +175,7 @@ int find_hdc_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun)
 
 	for (i = 0; i < HDC_NUM; i++)
 	{
-		if ((hdc[i].bus == 3) && (hdc[i].scsi_id == scsi_id) && (hdc[i].scsi_lun == scsi_lun))
+		if ((hdc[i].bus == 4) && (hdc[i].scsi_id == scsi_id) && (hdc[i].scsi_lun == scsi_lun))
 		{
 			return i;
 		}
@@ -852,11 +852,11 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			shdc[id].all_blocks_total = shdc[id].block_total;
 			if (shdc[id].packet_status != CDROM_PHASE_COMPLETE)
 			{
-				update_status_bar_icon(0x22, 1);
+				update_status_bar_icon(0x23, 1);
 			}
 			else
 			{
-				update_status_bar_icon(0x22, 0);
+				update_status_bar_icon(0x23, 0);
 			}
 			return;
 
@@ -913,11 +913,11 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			shdc[id].all_blocks_total = shdc[id].block_total;
 			if (shdc[id].packet_status != CDROM_PHASE_COMPLETE)
 			{
-				update_status_bar_icon(0x22, 1);
+				update_status_bar_icon(0x23, 1);
 			}
 			else
 			{
-				update_status_bar_icon(0x22, 0);
+				update_status_bar_icon(0x23, 0);
 			}
 			return;
 
@@ -1129,7 +1129,7 @@ void scsi_hd_callback(uint8_t id)
 			shdc[id].status = READY_STAT;
 			shdc[id].phase = 3;
 			shdc[id].packet_status = 0xFF;
-			update_status_bar_icon(0x22, 0);
+			update_status_bar_icon(0x23, 0);
 			return;
 		case CDROM_PHASE_DATA_OUT:
 			scsi_hd_log("SCSI HD %i: PHASE_DATA_OUT\n", id);
@@ -1142,7 +1142,7 @@ void scsi_hd_callback(uint8_t id)
 			shdc[id].packet_status = CDROM_PHASE_COMPLETE;
 			shdc[id].status = READY_STAT;
 			shdc[id].phase = 3;
-			update_status_bar_icon(0x22, 0);
+			update_status_bar_icon(0x23, 0);
 			return;
 		case CDROM_PHASE_DATA_IN:
 			scsi_hd_log("SCSI HD %i: PHASE_DATA_IN\n", id);
@@ -1155,7 +1155,7 @@ void scsi_hd_callback(uint8_t id)
 			shdc[id].packet_status = CDROM_PHASE_COMPLETE;
 			shdc[id].status = READY_STAT;
 			shdc[id].phase = 3;
-			update_status_bar_icon(0x22, 0);
+			update_status_bar_icon(0x23, 0);
 			return;
 		case CDROM_PHASE_ERROR:
 			scsi_hd_log("SCSI HD %i: PHASE_ERROR\n", id);
