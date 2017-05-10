@@ -1073,10 +1073,10 @@ static device_config_t sb_awe32_config[] =
                 }
         },
         {
-                "irq401", "MPU-401 IRQ", CONFIG_SELECTION, "", 2,
+                "irq401", "MPU-401 IRQ", CONFIG_SELECTION, "", 9,
                 {
                         {
-                                "IRQ 2", 2
+                                "IRQ 9", 9
                         },
                         {
                                 "IRQ 3", 3
