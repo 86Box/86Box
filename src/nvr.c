@@ -210,7 +210,6 @@ void loadnvr()
 		case ROM_PORTABLEIII:		f = nvrfopen(L"portableiii.nvr",	L"rb"); break;
                 case ROM_AMI286:		f = nvrfopen(L"ami286.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_AWARD286:		f = nvrfopen(L"award286.nvr",		L"rb"); nvrmask = 127; break;
-                case ROM_DELL200:		f = nvrfopen(L"dell200.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_SUPER286TR:		f = nvrfopen(L"super286tr.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_SPC4200P:		f = nvrfopen(L"spc4200p.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_IBMAT386:		f = nvrfopen(L"at386.nvr",		L"rb"); nvrmask = 127; break;
@@ -295,7 +294,6 @@ void savenvr()
 		case ROM_PORTABLEIII:		f = nvrfopen(L"portableiii.nvr",	L"wb"); break;
                 case ROM_AMI286:		f = nvrfopen(L"ami286.nvr",		L"wb"); break;
                 case ROM_AWARD286:		f = nvrfopen(L"award286.nvr",		L"wb"); break;
-                case ROM_DELL200:		f = nvrfopen(L"dell200.nvr",		L"wb"); break;
                 case ROM_SUPER286TR:		f = nvrfopen(L"super286tr.nvr",		L"wb"); break;
                 case ROM_SPC4200P:		f = nvrfopen(L"spc4200p.nvr",		L"wb"); break;
                 case ROM_IBMAT386:		f = nvrfopen(L"at386.nvr",		L"wb"); break;

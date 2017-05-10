@@ -306,18 +306,6 @@ int loadbios()
                 fclose(f);
                 biosmask = 0x7fff;
                 return 1;
-                case ROM_DELL200:
-                f=romfopen(L"roms/dells200/dell0.bin",L"rb");
-                ff=romfopen(L"roms/dells200/dell1.bin",L"rb");
-                if (!f || !ff) break;
-                for (c=0x0000;c<0x10000;c+=2)
-                {
-                        rom[c]=getc(f);
-                        rom[c+1]=getc(ff);
-                }
-                fclose(ff);
-                fclose(f);
-                return 1;
                 case ROM_AMI386SX:
                 f=romfopen(L"roms/ami386/ami386.bin",L"rb");
                 if (!f) break;
