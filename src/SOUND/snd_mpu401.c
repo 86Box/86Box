@@ -5,6 +5,8 @@
 #include "../plat-midi.h"
 #include "snd_mpu401.h"
 
+#include <stdarg.h>
+
 enum
 {
         STATUS_OUTPUT_NOT_READY = 0x40,
@@ -17,6 +19,30 @@ static void MPU401_EOIHandlerDispatch(void *p);
 static int mpu401_event_callback = 0;
 static int mpu401_eoi_callback = 0;
 static int mpu401_reset_callback = 0;
+
+#ifdef ENABLE_MPU401_LOG
+static int mpu401_do_log = 1;
+static char logfmt[512];
+#endif
+
+static void
+mpulog(const char *fmt, ...)
+{
+#ifdef ENABLE_MPU401_LOG
+    va_list ap;
+
+    if (mpu401_do_log) {
+	va_start(ap, fmt);
+	memset(logfmt, 0, 512);
+	strcpy(logfmt, "MPU-401: ");
+	strcpy(logfmt + strlen(logfmt), fmt);
+	vprintf(logfmt, ap);
+	va_end(ap);
+    }
+#endif
+}
+#define pclog	mpulog
+
 
 static void QueueByte(mpu_t *mpu, uint8_t data) 
 {
@@ -140,7 +166,7 @@ static void MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 			case 0x8:	/* Play */
 //				LOG(LOG_MISC,LOG_NORMAL)("MPU-401:Intelligent mode playback started");
 				mpu->state.playing=1;
-				mpu401_event_callback = (MPU401_TIMECONSTANT / (mpu->clock.tempo*mpu->clock.timebase)) * TIMER_USEC;
+				mpu401_event_callback = (MPU401_TIMECONSTANT / (mpu->clock.tempo*mpu->clock.timebase)) * 1000 * TIMER_USEC;
 				ClrQueue(mpu);
 				break;
 		}
@@ -245,7 +271,7 @@ static void MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 			break;
 		case 0xff:	/* Reset MPU-401 */
 			pclog("MPU-401:Reset %X\n",val);
-			mpu401_reset_callback = MPU401_RESETBUSY * TIMER_USEC;
+			mpu401_reset_callback = MPU401_RESETBUSY * 1000 * TIMER_USEC;
 			mpu->state.reset=1;
 			MPU401_Reset(mpu);
 			if (mpu->mode==M_UART) return;//do not send ack in UART mode
@@ -535,7 +561,7 @@ static void MPU401_EOIHandlerDispatch(void *p)
 	if (mpu->state.send_now) 
 	{
 		mpu->state.eoi_scheduled=1;
-		mpu401_eoi_callback = 0.06f * TIMER_USEC; /* Possible a bit longer */
+		mpu401_eoi_callback = 60 * TIMER_USEC; /* Possible a bit longer */
 	}
 	else if (!mpu->state.eoi_scheduled) 
 		MPU401_EOIHandler(mpu);
@@ -591,16 +617,18 @@ static void mpu401_write(uint16_t addr, uint8_t val, void *p)
 {
 	mpu_t *mpu = (mpu_t *)p;
         
-	pclog("MPU401 Write Port %04X, val %x\n", addr, val);	
+	/* pclog("MPU401 Write Port %04X, val %x\n", addr, val); */
 		
 	switch (addr & 1) 
 	{
 		case 0: /*Data*/
 		MPU401_WriteData(mpu, val);
+		pclog("Write Data (0x330) %X\n", val);
 		break;
 		
 		case 1: /*Command*/
 		MPU401_WriteCommand(mpu, val);
+		pclog("Write Command (0x331) %x\n", val);
 		break;
 	}
 }
@@ -614,15 +642,17 @@ static uint8_t mpu401_read(uint16_t addr, void *p)
 		{	
 			case 0: //Read Data
 			ret = MPU401_ReadData(mpu);
+			pclog("Read Data (0x330) %X\n", ret);
 			break;
 			
 			case 1: //Read Status
-			mpu->status = 0x3f; /* Bits 6 and 7 clear */
+			ret = 0x3f; /* Bits 6 and 7 clear */
 			if (mpu->state.cmd_pending) ret|=STATUS_OUTPUT_NOT_READY;
 			if (!mpu->queue_used) ret|=STATUS_INPUT_NOT_READY;				
-			return mpu->status;			
+			pclog("Read Status (0x331) %x\n", ret);
+			break;
 		}
-		pclog("MPU401 Read Port %04X, ret %x\n", addr, ret);
+		/* pclog("MPU401 Read Port %04X, ret %x\n", addr, ret); */
         return ret;
 }
 
@@ -669,8 +699,8 @@ next_event:
 	}
 	else
 	{
-		mpu401_event_callback += (MPU401_TIMECONSTANT/new_time) * TIMER_USEC;
-		pclog("Next event after %i us\n", (MPU401_TIMECONSTANT/new_time) * TIMER_USEC);
+		mpu401_event_callback += (MPU401_TIMECONSTANT/new_time) * 1000 * TIMER_USEC;
+		pclog("Next event after %i us (time constant: %i)\n", (int) ((MPU401_TIMECONSTANT/new_time) * 1000 * TIMER_USEC), (int) MPU401_TIMECONSTANT);
 	}
 }
 
@@ -683,6 +713,7 @@ void mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode)
 	mpu->mode = M_UART;
 
 	mpu->intelligent = (mode == M_INTELLIGENT) ? 1 : 0;
+	pclog("Starting as %s (mode is %s)\n", mpu->intelligent ? "INTELLIGENT" : "UART", (mode == M_INTELLIGENT) ? "INTELLIGENT" : "UART");
 
 	mpu401_event_callback = 0;
 	mpu401_eoi_callback = 0;

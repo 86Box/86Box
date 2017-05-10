@@ -1007,7 +1007,7 @@ static device_config_t sb_16_config[] =
                 "midi", "MIDI out device", CONFIG_MIDI, "", 0
         },
         {
-                "mode", "MPU-401 mode", CONFIG_SELECTION, "", 1,
+                "mode401", "MPU-401 mode", CONFIG_SELECTION, "", 1,
                 {
                         {
                                 "UART", M_UART
@@ -1145,7 +1145,7 @@ static device_config_t sb_awe32_config[] =
                 "midi", "MIDI out device", CONFIG_MIDI, "", 0
         },
         {
-                "mode", "MPU-401 mode", CONFIG_SELECTION, "", 1,
+                "mode401", "MPU-401 mode", CONFIG_SELECTION, "", 1,
                 {
                         {
                                 "UART", M_UART
