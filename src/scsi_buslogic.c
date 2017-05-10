@@ -2373,7 +2373,7 @@ static device_config_t BuslogicConfig[] = {
 
 
 device_t buslogic_device = {
-	"Buslogic BT-542B PCI",
+	"Buslogic BT-542B ISA",
 	0,
 	Buslogic_542B_Init,
 	BuslogicClose,
@@ -2385,7 +2385,7 @@ device_t buslogic_device = {
 };
 
 device_t buslogic_pci_device = {
-	"Buslogic BT-542B PCI",
+	"Buslogic BT-958D PCI",
 	0,
 	Buslogic_958D_Init,
 	BuslogicClose,

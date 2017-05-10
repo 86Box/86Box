@@ -253,7 +253,7 @@ static void MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 
 static void MPU401_WriteData(mpu_t *mpu, uint8_t val) 
 {
-	if (mpu->mode==M_UART) {midi_write(val);}
+	if (mpu->mode==M_UART) {midi_write(val); return;}
 	
 	switch (mpu->state.command_byte) 
 	{	/* 0xe# command data */
@@ -634,14 +634,17 @@ next_event:
 
 void mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode)
 {
-		mpu->status = STATUS_INPUT_NOT_READY;
-		mpu->irq = irq;
-        mpu->queue_used = 0;
-		mpu->queue_pos = 0;
-        mpu->mode = mode;
-        
-        io_sethandler(addr, 0x0002, mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
-		timer_add(MPU401_Event, &mpu401_event_callback, &mpu401_event_callback, mpu);
-		
-		MPU401_Reset(mpu);
+	mpu->status = STATUS_INPUT_NOT_READY;
+	mpu->irq = irq;
+	mpu->queue_used = 0;
+	mpu->queue_pos = 0;
+	mpu->mode = M_UART;
+
+	mpu->intelligent = (mode == M_INTELLIGENT) ? 1 : 0;
+
+	io_sethandler(addr, 0x0002, mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
+	io_sethandler(0x2A20, 0x0010, mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
+	timer_add(MPU401_Event, &mpu401_event_callback, &mpu401_event_callback, mpu);
+	
+	MPU401_Reset(mpu);
 }
