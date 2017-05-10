@@ -255,8 +255,8 @@ nelog(int lvl, const char *fmt, ...)
 	vprintf(fmt, ap);
 	va_end(ap);
     }
-}
 #endif
+}
 #define pclog	nelog
 
 
