@@ -36,7 +36,6 @@ extern int	config_get_int(char *, char *, int);
 
 
 #ifdef _WIN32
-
 static int get_dns_addr(struct in_addr *pdns_addr)
 {
     FIXED_INFO *FixedInfo=NULL;
@@ -68,7 +67,7 @@ static int get_dns_addr(struct in_addr *pdns_addr)
     pIPAddr = &(FixedInfo->DnsServerList);
     inet_aton(pIPAddr->IpAddress.String, &tmp_addr);
     *pdns_addr = tmp_addr;
-#if 0
+#if 1
     printf( "DNS Servers:\n" );
     printf( "DNS Addr:%s\n", pIPAddr->IpAddress.String );
     
@@ -123,8 +122,8 @@ static int get_dns_addr(struct in_addr *pdns_addr)
         return -1;
     return 0;
 }
-
 #endif
+
 
 #ifdef _WIN32
 void slirp_cleanup(void)
@@ -649,6 +648,7 @@ void slirp_input(const uint8_t *pkt, int pkt_len)
     struct SLIRPmbuf *m;
     int proto;
 
+pclog("SLIRP_input(%08lx, %d)\n", pkt, pkt_len);
     if (pkt_len < ETH_HLEN)
         return;
     

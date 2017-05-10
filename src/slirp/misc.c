@@ -91,14 +91,14 @@ getouraddr()
 	char buff[512];
 	struct hostent *he = NULL;
 #define ANCIENT
-	#ifdef ANCIENT	
+#ifdef ANCIENT	
 	if (gethostname(buff,500) == 0)
             he = gethostbyname(buff);
         if (he)
             our_addr = *(struct in_addr *)he->h_addr;
         if (our_addr.s_addr == 0)
             our_addr.s_addr = loopback_addr.s_addr;
-	#else
+#else
  	if (gethostname(buff,256) == 0)
 	{
 		struct addrinfo hints = { 0 };
@@ -113,8 +113,9 @@ getouraddr()
 	}
     if (our_addr.s_addr == 0)
         our_addr.s_addr = loopback_addr.s_addr;
-	#endif
-	#undef ANCIENT
+#endif
+#undef ANCIENT
+    pclog("My IP address: %s (%s)\n", inet_ntoa(our_addr), buff);
 }
 
 //#if SIZEOF_CHAR_P == 8

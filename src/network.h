@@ -1,6 +1,18 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Definitions for the network module.
+ *
+ * Version:	@(#)network.h	1.0.1	2017/05/09
+ *
+ * Authors:	Kotori, <oubattler@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ */
 #ifndef NETWORK_H
 # define NETWORK_H
 # include <stdint.h>
@@ -10,10 +22,9 @@
 #define RTL8029AS	2
 
 
-extern int network_card_current;
-
-extern uint8_t ethif;
-extern int inum;
+extern int	network_card_current;
+extern uint8_t	ethif;
+extern int	inum;
 
 
 extern void	network_init(void);

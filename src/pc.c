@@ -319,9 +319,12 @@ void initpc(int argc, wchar_t *argv[])
 		}
         }
 
+	/* Initialize modules. */
+	network_init();
         mouse_init();
         midi_init();
 	serial_init();
+	disc_random_init();
 
 	if (config_file == NULL)
 	{
@@ -332,8 +335,6 @@ void initpc(int argc, wchar_t *argv[])
 	        append_filename_w(config_file_default, pcempath, config_file, 511);
 	}
 
-	disc_random_init();
-        
         loadconfig(config_file);
         pclog("Config loaded\n");
         if (config_file)
@@ -488,8 +489,6 @@ void resetpchard(void)
 		ide_qua_init();
 	}
 
-	network_init();      
-        
 	for (i = 0; i < CDROM_NUM; i++)
 	{
 		if (cdrom_drives[i].bus_type)
@@ -498,6 +497,7 @@ void resetpchard(void)
 		}
 	}		
 
+	network_reset();
         resetide();
 	scsi_card_init();
 
