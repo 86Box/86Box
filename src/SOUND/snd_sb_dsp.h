@@ -1,5 +1,9 @@
 typedef struct sb_dsp_t
-{
+{		
+		int uart_midi;
+		int uart_irq;
+		int onebyte_midi;
+		
         int sb_type;
 
         int sb_8_length,  sb_8_format,  sb_8_autoinit,  sb_8_pause,  sb_8_enable,  sb_8_autolen,  sb_8_output;

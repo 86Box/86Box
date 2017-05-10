@@ -528,6 +528,47 @@ static void MPU401_EOIHandlerDispatch(void *p)
 		MPU401_EOIHandler(mpu, 0);
 }
 
+uint8_t MPU401_ReadData(mpu_t *mpu)
+{
+	uint8_t ret;
+	
+	ret = MSG_MPU_ACK;
+	if (mpu->queue_used) 
+	{
+		if (mpu->queue_pos>=MPU401_QUEUE) mpu->queue_pos-=MPU401_QUEUE;
+		ret=mpu->queue[mpu->queue_pos];
+		mpu->queue_pos++;mpu->queue_used--;
+	}
+	if (!mpu->intelligent) return ret;
+
+	if (mpu->queue_used == 0) picintc(1 << mpu->irq);
+
+	if (ret>=0xf0 && ret<=0xf7) 
+	{ /* MIDI data request */
+		mpu->state.channel=ret&7;
+		mpu->state.data_onoff=0;
+		mpu->state.cond_req=0;
+	}
+	if (ret==MSG_MPU_COMMAND_REQ) 
+	{
+		mpu->state.data_onoff=0;
+		mpu->state.cond_req=1;
+		if (mpu->condbuf.type!=T_OVERFLOW) 
+		{
+			mpu->state.block_ack=1;
+			MPU401_WriteCommand(mpu, mpu->condbuf.value[0]);
+			if (mpu->state.command_byte) MPU401_WriteData(mpu, mpu->condbuf.value[1]);
+		}
+	mpu->condbuf.type=T_OVERFLOW;
+	}
+	if (ret==MSG_MPU_END || ret==MSG_MPU_CLOCK || ret==MSG_MPU_ACK) {
+		mpu->state.data_onoff=-1;
+		MPU401_EOIHandlerDispatch(mpu);
+	}
+	
+	return ret;	
+}
+
 static void mpu401_write(uint16_t addr, uint8_t val, void *p)
 {
 	mpu_t *mpu = (mpu_t *)p;
@@ -554,39 +595,7 @@ static uint8_t mpu401_read(uint16_t addr, void *p)
 		switch (addr & 1)
 		{	
 			case 0: //Read Data
-			ret = MSG_MPU_ACK;
-			if (mpu->queue_used) 
-			{
-				if (mpu->queue_pos>=MPU401_QUEUE) mpu->queue_pos-=MPU401_QUEUE;
-				ret=mpu->queue[mpu->queue_pos];
-				mpu->queue_pos++;mpu->queue_used--;
-			}
-			if (!mpu->intelligent) return ret;
-
-			if (mpu->queue_used == 0) picintc(1 << mpu->irq);
-
-			if (ret>=0xf0 && ret<=0xf7) 
-			{ /* MIDI data request */
-				mpu->state.channel=ret&7;
-				mpu->state.data_onoff=0;
-				mpu->state.cond_req=0;
-			}
-			if (ret==MSG_MPU_COMMAND_REQ) 
-			{
-				mpu->state.data_onoff=0;
-				mpu->state.cond_req=1;
-				if (mpu->condbuf.type!=T_OVERFLOW) 
-				{
-					mpu->state.block_ack=1;
-					MPU401_WriteCommand(mpu, mpu->condbuf.value[0]);
-					if (mpu->state.command_byte) MPU401_WriteData(mpu, mpu->condbuf.value[1]);
-				}
-			mpu->condbuf.type=T_OVERFLOW;
-			}
-			if (ret==MSG_MPU_END || ret==MSG_MPU_CLOCK || ret==MSG_MPU_ACK) {
-				mpu->state.data_onoff=-1;
-				MPU401_EOIHandlerDispatch(mpu);
-			}
+			ret = MPU401_ReadData(mpu);
 			break;
 			
 			case 1: //Read Status

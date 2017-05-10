@@ -781,6 +781,9 @@ static device_config_t sb_config[] =
                 }
         },
         {
+                "midi", "MIDI out device", CONFIG_MIDI, "", 0
+        },
+        {
                 "", "", -1
         }
 };
@@ -817,6 +820,9 @@ static device_config_t sb_mcv_config[] =
                                 ""
                         }
                 }
+        },
+        {
+                "midi", "MIDI out device", CONFIG_MIDI, "", 0
         },
         {
                 "", "", -1
@@ -872,6 +878,9 @@ static device_config_t sb_pro_config[] =
                                 ""
                         }
                 }
+        },
+        {
+                "midi", "MIDI out device", CONFIG_MIDI, "", 0
         },
         {
                 "", "", -1

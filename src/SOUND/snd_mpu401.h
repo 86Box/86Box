@@ -58,4 +58,6 @@ typedef struct mpu_t
 	} clock;
 } mpu_t;
 
+uint8_t MPU401_ReadData(mpu_t *mpu);
+
 void mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode);
