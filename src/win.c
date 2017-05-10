@@ -832,7 +832,7 @@ void create_hd_tip(int part)
 	WCHAR *szText;
 
 	int bus = sb_part_meanings[part] & 0xf;
-	szText = (WCHAR *) win_language_get_string_from_id(2182 + bus);
+	szText = (WCHAR *) win_language_get_string_from_id(2181 + bus);
 	memcpy(sbTips[part], szText, (wcslen(szText) << 1) + 2);
 }
 
@@ -894,6 +894,34 @@ static int get_cd_state(int id)
 	}
 }
 
+void status_settextw(wchar_t *wstr)
+{
+	int i = 0;
+	int part = -1;
+
+	for (i = 0; i < sb_parts; i++)
+	{
+		if (sb_part_meanings[i] == 0x30)
+		{
+			part = i;
+		}
+	}
+
+	if (part != -1)
+	{
+		SendMessage(hwndStatus, SB_SETTEXT, part | SBT_NOBORDERS, (LPARAM) wstr);		
+	}
+}
+
+static wchar_t cwstr[512];
+
+void status_settext(char *str)
+{
+	memset(cwstr, 0, 1024);
+	mbstowcs(cwstr, str, strlen(str) + 1);
+	status_settextw(cwstr);
+}
+
 void update_status_bar_panes(HWND hwnds)
 {
 	int i, j, id;
@@ -901,12 +929,14 @@ void update_status_bar_panes(HWND hwnds)
 
 	int c_rll = 0;
 	int c_mfm = 0;
-	int c_ide = 0;
+	int c_ide_pio = 0;
+	int c_ide_dma = 0;
 	int c_scsi = 0;
 
 	c_mfm = count_hard_disks(1);
-	c_ide = count_hard_disks(2);
-	c_scsi = count_hard_disks(3);
+	c_ide_pio = count_hard_disks(2);
+	c_ide_dma = count_hard_disks(3);
+	c_scsi = count_hard_disks(4);
 
 	sb_parts = 0;
 	memset(sb_part_meanings, 0, 40);
@@ -938,18 +968,25 @@ void update_status_bar_panes(HWND hwnds)
 		sb_part_meanings[sb_parts] = 0x20;
 		sb_parts++;
 	}
-	if (c_ide && (models[model].flags & MODEL_HAS_IDE) || !memcmp(hdd_controller_name, "xtide", 5))
+	if (c_ide_pio && (models[model].flags & MODEL_HAS_IDE) || !memcmp(hdd_controller_name, "xtide", 5))
 	{
 		edge += sb_icon_width;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = 0x21;
 		sb_parts++;
 	}
-	if (c_scsi)
+	if (c_ide_dma && (models[model].flags & MODEL_HAS_IDE) || !memcmp(hdd_controller_name, "xtide", 5))
 	{
 		edge += sb_icon_width;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = 0x22;
+		sb_parts++;
+	}
+	if (c_scsi)
+	{
+		edge += sb_icon_width;
+		iStatusWidths[sb_parts] = edge;
+		sb_part_meanings[sb_parts] = 0x23;
 		sb_parts++;
 	}
 	if (sb_parts)

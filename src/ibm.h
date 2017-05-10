@@ -761,6 +761,8 @@ void runpc();
 void saveconfig();
 void softresetx86();
 void speedchanged();
+void status_settextw(wchar_t *wstr);
+void status_settext(char *str);
 void trc_reset(uint8_t val);
 void update_status_bar_icon(int tag, int active);
 void update_status_bar_icon_state(int tag, int state);

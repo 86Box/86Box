@@ -530,10 +530,10 @@ void loadconfig(wchar_t *fn)
         else
                 config_load(fn);
         
-        GAMEBLASTER = config_get_int(NULL, "gameblaster", 0);
-        GUS = config_get_int(NULL, "gus", 0);
-        SSI2001 = config_get_int(NULL, "ssi2001", 0);
-        voodoo_enabled = config_get_int(NULL, "voodoo", 0);
+        GAMEBLASTER = !!config_get_int(NULL, "gameblaster", 0);
+        GUS = !!config_get_int(NULL, "gus", 0);
+        SSI2001 = !!config_get_int(NULL, "ssi2001", 0);
+        voodoo_enabled = !!config_get_int(NULL, "voodoo", 0);
 
 	/* SCSI */
         p = (char *)config_get_string(NULL, "scsicard", "");
@@ -566,7 +566,7 @@ void loadconfig(wchar_t *fn)
         romset = model_getromset();
         cpu_manufacturer = config_get_int(NULL, "cpu_manufacturer", 0);
         cpu = config_get_int(NULL, "cpu", 0);
-        cpu_use_dynarec = config_get_int(NULL, "cpu_use_dynarec", 0);
+        cpu_use_dynarec = !!config_get_int(NULL, "cpu_use_dynarec", 0);
         
 	cpu_waitstates = config_get_int(NULL, "cpu_waitstates", 0);
                 
@@ -585,6 +585,10 @@ void loadconfig(wchar_t *fn)
         mem_size = config_get_int(NULL, "mem_size", 4096);
         if (mem_size < ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram))
                 mem_size = ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram);
+	if (mem_size > 1048576)
+	{
+		mem_size = 1048576;
+	}
  
 	for (c = 0; c < FDD_NUM; c++)
 	{
@@ -594,6 +598,10 @@ void loadconfig(wchar_t *fn)
                 	fdd_set_type(c, fdd_get_from_internal_name(p));
 	        else
         	        fdd_set_type(c, (c < 2) ? 2 : 0);
+		if (fdd_get_type(c) > 13)
+		{
+			fdd_set_type(c, 13);
+		}
 
 		sprintf(temps, "fdd_%02i_fn", c + 1);
 	        wp = (wchar_t *)config_get_wstring(NULL, temps, L"");
@@ -604,7 +612,7 @@ void loadconfig(wchar_t *fn)
 		}
 		printf("Floppy: %ws\n", discfns[c]);
 		sprintf(temps, "fdd_%02i_writeprot", c + 1);
-	        ui_writeprot[c] = config_get_int(NULL, temps, 0);
+	        ui_writeprot[c] = !!config_get_int(NULL, temps, 0);
 	}
 
         p = (char *)config_get_string(NULL, "hdd_controller", "");
@@ -627,20 +635,52 @@ void loadconfig(wchar_t *fn)
 	{
 		sprintf(temps, "hdd_%02i_sectors", c + 1);
 		hdc[c].spt = config_get_int(NULL, temps, 0);
+		if (hdc[c].spt > 99)
+		{
+			hdc[c].spt = 99;
+		}
 		sprintf(temps, "hdd_%02i_heads", c + 1);
 		hdc[c].hpc = config_get_int(NULL, temps, 0);
+		if (hdc[c].hpc > 64)
+		{
+			hdc[c].hpc = 64;
+		}
 		sprintf(temps, "hdd_%02i_cylinders", c + 1);
 		hdc[c].tracks = config_get_int(NULL, temps, 0);
+		if (hdc[c].tracks > 266305)
+		{
+			hdc[c].tracks = 266305;
+		}
 		sprintf(temps, "hdd_%02i_bus_type", c + 1);
 		hdc[c].bus = config_get_int(NULL, temps, 0);
+		if (hdc[c].bus > 4)
+		{
+			hdc[c].bus = 4;
+		}
 		sprintf(temps, "hdd_%02i_mfm_channel", c + 1);
 		hdc[c].mfm_channel = config_get_int(NULL, temps, 0);
+		if (hdc[c].mfm_channel > 1)
+		{
+			hdc[c].mfm_channel = 1;
+		}
 		sprintf(temps, "hdd_%02i_ide_channel", c + 1);
 		hdc[c].ide_channel = config_get_int(NULL, temps, 0);
+		if (hdc[c].ide_channel > 7)
+		{
+			hdc[c].ide_channel = 7;
+		}
 		sprintf(temps, "hdd_%02i_scsi_device_id", c + 1);
 		hdc[c].scsi_id = config_get_int(NULL, temps, (c < 7) ? c : ((c < 15) ? (c + 1) : 15));
+		if (hdc[c].scsi_id > 15)
+		{
+			hdc[c].scsi_id = 15;
+		}
 		sprintf(temps, "hdd_%02i_scsi_device_lun", c + 1);
 		hdc[c].scsi_lun = config_get_int(NULL, temps, 0);
+		if (hdc[c].scsi_lun > 7)
+		{
+			hdc[c].scsi_lun = 7;
+		}
 		sprintf(temps, "hdd_%02i_fn", c + 1);
 	        wp = (wchar_t *)config_get_wstring(NULL, temps, L"");
         	if (wp) memcpy(hdd_fn[c], wp, 512);
@@ -657,19 +697,35 @@ void loadconfig(wchar_t *fn)
 		cdrom_drives[c].host_drive = config_get_int(NULL, temps, 0);
 		cdrom_drives[c].prev_host_drive = cdrom_drives[c].host_drive;
 		sprintf(temps, "cdrom_%02i_enabled", c + 1);
-		cdrom_drives[c].enabled = config_get_int(NULL, temps, 0);
+		cdrom_drives[c].enabled = !!config_get_int(NULL, temps, 0);
 		sprintf(temps, "cdrom_%02i_sound_on", c + 1);
-		cdrom_drives[c].sound_on = config_get_int(NULL, temps, 1);
+		cdrom_drives[c].sound_on = !!config_get_int(NULL, temps, 1);
 		sprintf(temps, "cdrom_%02i_bus_type", c + 1);
 		cdrom_drives[c].bus_type = config_get_int(NULL, temps, 0);
+		if (cdrom_drives[c].bus_type > 1)
+		{
+			cdrom_drives[c].bus_type = 1;
+		}
 		sprintf(temps, "cdrom_%02i_atapi_dma", c + 1);
-		cdrom_drives[c].atapi_dma = config_get_int(NULL, temps, 0);
+		cdrom_drives[c].atapi_dma = !!config_get_int(NULL, temps, 0);
 		sprintf(temps, "cdrom_%02i_ide_channel", c + 1);
 		cdrom_drives[c].ide_channel = config_get_int(NULL, temps, 2);
+		if (cdrom_drives[c].ide_channel > 7)
+		{
+			cdrom_drives[c].ide_channel = 7;
+		}
 		sprintf(temps, "cdrom_%02i_scsi_device_id", c + 1);
 		cdrom_drives[c].scsi_device_id = config_get_int(NULL, temps, c + 2);
+		if (cdrom_drives[c].scsi_device_id > 15)
+		{
+			cdrom_drives[c].scsi_device_id = 15;
+		}
 		sprintf(temps, "cdrom_%02i_scsi_device_lun", c + 1);
 		cdrom_drives[c].scsi_device_lun = config_get_int(NULL, temps, 0);
+		if (cdrom_drives[c].scsi_device_lun > 7)
+		{
+			cdrom_drives[c].scsi_device_lun = 7;
+		}
 
 		sprintf(temps, "cdrom_%02i_image_path", c + 1);
 	        wp = (wchar_t *)config_get_wstring(NULL, temps, L"");
@@ -680,17 +736,17 @@ void loadconfig(wchar_t *fn)
 		}
 	}
 
-        vid_resize = config_get_int(NULL, "vid_resize", 0);
+        vid_resize = !!config_get_int(NULL, "vid_resize", 0);
         vid_api = config_get_int(NULL, "vid_api", 0);
         video_fullscreen_scale = config_get_int(NULL, "video_fullscreen_scale", 0);
         video_fullscreen_first = config_get_int(NULL, "video_fullscreen_first", 1);
 
-	force_43 = config_get_int(NULL, "force_43", 0);
-	scale = config_get_int(NULL, "scale", 1);
-	enable_overscan = config_get_int(NULL, "enable_overscan", 0);
+	force_43 = !!config_get_int(NULL, "force_43", 0);
+	scale = !!config_get_int(NULL, "scale", 1);
+	enable_overscan = !!config_get_int(NULL, "enable_overscan", 0);
 
-        enable_sync = config_get_int(NULL, "enable_sync", 1);
-        opl3_type = config_get_int(NULL, "opl3_type", 1);
+        enable_sync = !!config_get_int(NULL, "enable_sync", 1);
+        opl3_type = !!config_get_int(NULL, "opl3_type", 1);
 
         window_w = config_get_int(NULL, "window_w", 0);
         window_h = config_get_int(NULL, "window_h", 0);
@@ -705,8 +761,7 @@ void loadconfig(wchar_t *fn)
         else
                 mouse_type = 0;
 
-	enable_xtide = config_get_int(NULL, "enable_xtide", 1);
-	enable_external_fpu = config_get_int(NULL, "enable_external_fpu", 0);
+	enable_external_fpu = !!config_get_int(NULL, "enable_external_fpu", 0);
 
         for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++)
         {
@@ -757,10 +812,10 @@ void loadconfig(wchar_t *fn)
 
 	path_len = wcslen(nvr_path);
 
-        serial_enabled[0] = config_get_int(NULL, "serial1_enabled", 1);
-        serial_enabled[1] = config_get_int(NULL, "serial2_enabled", 1);
-        lpt_enabled = config_get_int(NULL, "lpt_enabled", 1);
-        bugger_enabled = config_get_int(NULL, "bugger_enabled", 0);
+        serial_enabled[0] = !!config_get_int(NULL, "serial1_enabled", 1);
+        serial_enabled[1] = !!config_get_int(NULL, "serial2_enabled", 1);
+        lpt_enabled = !!config_get_int(NULL, "lpt_enabled", 1);
+        bugger_enabled = !!config_get_int(NULL, "bugger_enabled", 0);
 }
 
 wchar_t temp_nvr_path[1024];
@@ -896,7 +951,6 @@ void saveconfig(void)
         config_set_int(NULL, "joystick_type", joystick_type);
 	config_set_string(NULL, "mouse_type", mouse_get_internal_name(mouse_type));
 
-        config_set_int(NULL, "enable_xtide", enable_xtide);
         config_set_int(NULL, "enable_external_fpu", enable_external_fpu);
 
         for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++)
