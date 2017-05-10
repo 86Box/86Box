@@ -38,7 +38,7 @@ typedef struct {
 
 
 static int net_handlers_num;
-static uint32_t net_poll_time = 100;
+static int net_poll_time = 0;
 static NETPOLL net_handlers[8];
 static NETCARD net_cards[] = {
     { "None",			"none",		NULL			},
@@ -59,7 +59,7 @@ net_poll(void *priv)
     int c;
 
     /* Reset the poll timer. */
-    net_poll_time += (uint32_t)((double)TIMER_USEC * (1000000.0/8.0/3000.0));
+    net_poll_time += (int)((double)TIMER_USEC * (1000000.0/8.0/3000.0));
 
     /* If we have active cards.. */
     if (net_handlers_num) {
