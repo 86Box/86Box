@@ -2215,7 +2215,7 @@ static __inline void voodoo_tmu_fetch(voodoo_t *voodoo, voodoo_params_t *params,
 #define dither2x2 (params->fbzMode & FBZ_DITHER_2x2)
 
 /*Perform texture fetch and blending for both TMUs*/
-static __inline voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *state, int x)
+static __inline void voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *state, int x)
 {
         int r,g,b,a;
         int c_reverse, a_reverse;

@@ -795,8 +795,8 @@ void saveconfig(void)
 
 	config_set_int(NULL, "netinterface", ethif);
 	config_set_string(NULL, "netcard", network_card_get_internal_name(network_card_current));
-	config_set_int(NULL, "maclocal", net2000_get_maclocal());
-	config_set_int(NULL, "maclocal_pci", net2000_get_maclocal_pci());
+	config_set_int(NULL, "maclocal", ne2000_get_maclocal());
+	config_set_int(NULL, "maclocal_pci", ne2000_get_maclocal_pci());
 
         config_set_string(NULL, "model", model_get_internal_name());
         config_set_int(NULL, "cpu_manufacturer", cpu_manufacturer);
