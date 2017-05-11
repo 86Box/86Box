@@ -30,9 +30,11 @@
 #include "sound/sound.h"
 #include "video/video.h"
 
+
 wchar_t config_file_default[256];
 
 static wchar_t config_file[256];
+
 
 typedef struct list_t
 {
@@ -70,7 +72,7 @@ typedef struct entry_t
                 (new)->next = NULL;                     \
         }
 
-void config_dump()
+void config_dump(void)
 {
         section_t *current_section;
         
@@ -97,7 +99,7 @@ void config_dump()
         }
 }
 
-void config_free()
+void config_free(void)
 {
         section_t *current_section;
         current_section = (section_t *)config_head.next;
@@ -220,7 +222,7 @@ void config_load(wchar_t *fn)
 
 
 
-void config_new()
+void config_new(void)
 {
         FILE *f = _wfopen(config_file, L"wt, ccs=UNICODE");
         fclose(f);
@@ -543,16 +545,9 @@ void loadconfig(wchar_t *fn)
                 scsi_card_current = 0;
 
 	/* network */
-	ethif = config_get_int(NULL, "netinterface", 1);
-        if (ethif >= inum)
-            inum = ethif + 1;
         p = (char *)config_get_string(NULL, "netcard", "");
-        if (p)
-                network_card_current = network_card_get_from_internal_name(p);
-        else
-                network_card_current = 0;
-	ne2000_generate_maclocal(config_get_int(NULL, "maclocal", -1));
-	ne2000_generate_maclocal_pci(config_get_int(NULL, "maclocal_pci", -1));
+	if (p != NULL)
+		network_setup(p);
 
         p = (char *)config_get_string(NULL, "model", "");
         if (p)
@@ -848,7 +843,6 @@ void saveconfig(void)
 
 	config_set_string(NULL, "scsicard", scsi_card_get_internal_name(scsi_card_current));
 
-	config_set_int(NULL, "netinterface", ethif);
 	config_set_string(NULL, "netcard", network_card_get_internal_name(network_card_current));
 	config_set_int(NULL, "maclocal", ne2000_get_maclocal());
 	config_set_int(NULL, "maclocal_pci", ne2000_get_maclocal_pci());

@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 MinGW 32-bit environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.8	2017/05/08
+# Version:	@(#)Makefile.mingw	1.0.10	2017/05/10
 #
 # Authors:	Kotori, <oubattler@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -131,7 +131,9 @@ DEVOBJ	= bugger.o lpt.o serial.o \
 	  cdrom.o \
 	    cdrom-dosbox.o cdrom-image.o cdrom-ioctl.o cdrom-null.o
 USBOBJ	= usb.o
-NETOBJ	= network.o net_ne2000.o
+NETOBJ	= network.o \
+	    net_pcap.o \
+	    net_ne2000.o
 SCSIOBJ	= scsi.o scsi_disk.o scsi_buslogic.o scsi_aha154x.o
 SNDOBJ	= sound.o \
 	    convolve.o convolve-sse.o envelope.o extfilt.o \
@@ -216,10 +218,10 @@ ifneq ($(DEBUG), y)
 		strip $(PROG).exe
 endif
 
-pcap_if.exe:	pcap_if.o
+pcap_if.exe:	pcap_if.o pcap_if.res
 		@echo Linking pcap_if.exe ..
 		@$(CC) -o pcap_if.exe \
-			pcap_if.o -static -L. -lwpcapdelay
+			pcap_if.o pcap_if.res -static -L. -lwpcapdelay
 ifneq ($(DEBUG), y)
 		strip pcap_if.exe
 endif
@@ -234,6 +236,10 @@ clean:
 86Box.res:	86Box.rc
 		@echo Processing $<
 		@$(WINDRES) $(RFLAGS) -i 86Box.rc -o 86Box.res
+
+pcap_if.res:	pcap_if.rc
+		@echo Processing $<
+		@$(WINDRES) $(RFLAGS) -i pcap_if.rc -o pcap_if.res
 
 
 # End of Makefile.mingw.
