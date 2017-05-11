@@ -39,11 +39,11 @@ extern int timer_start;
         	timer_update_outstanding();	                        \
 	} while (0)
 
-void timer_process();
-void timer_update_outstanding();
-void timer_reset();
-int timer_add(void (*callback)(void *priv), int *count, int *enable, void *priv);
-void timer_set_callback(int timer, void (*callback)(void *priv));
+extern void timer_process(void);
+extern void timer_update_outstanding(void);
+extern void timer_reset(void);
+extern int timer_add(void (*callback)(void *priv), int *count, int *enable, void *priv);
+extern void timer_set_callback(int timer, void (*callback)(void *priv));
 
 #define TIMER_ALWAYS_ENABLED &timer_one
 

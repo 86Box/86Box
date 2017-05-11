@@ -1,8 +1,6 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
-#define SLIRP_DEBUG 1
-
 #define SLIRP_VERSION "Cockatrice special"
 
 #define CONFIG_QEMU

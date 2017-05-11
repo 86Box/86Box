@@ -119,7 +119,7 @@ getouraddr()
         our_addr.s_addr = loopback_addr.s_addr;
 #endif
 #undef ANCIENT
-    pclog("My IP address: %s (%s)\n", inet_ntoa(our_addr), buff);
+    pclog(" Our IP address: %s (%s)\n", inet_ntoa(our_addr), buff);
 }
 
 //#if SIZEOF_CHAR_P == 8
