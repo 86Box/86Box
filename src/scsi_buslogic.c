@@ -1970,6 +1970,12 @@ BuslogicCommandCallback(void *p)
     } else if (BuslogicInOperation == 1) {
 	pclog("BusLogic Callback: Process CD-ROM request\n");
 	BuslogicCDROMCommand(bl);
+	if (bl->Req.CmdBlock.common.Cdb[0] == 0x42)
+	{
+		/* This is needed since CD Audio inevitably means READ SUBCHANNEL spam. */
+		BuslogicCallback += 1000 * SCSI_TIME;
+		return;
+	}
     } else if (BuslogicInOperation == 2) {
 	pclog("BusLogic Callback: Send incoming mailbox\n");
 	BuslogicMailboxIn(bl);

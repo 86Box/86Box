@@ -199,6 +199,13 @@ typedef struct
 	int16_t cd_buffer[BUF_SIZE];
 	int cd_buflen;
 	int actual_requested_blocks;
+	int last_track_pos;
+	int last_track_nr;
+	int capacity_read;
+	uint8_t rcbuf[16];
+	uint8_t sub_q_data_format[16];
+	uint8_t sub_q_channel_data[256];
+	int last_subchannel_pos;
 } cdrom_ioctl_t;
 
 void ioctl_close(uint8_t id);

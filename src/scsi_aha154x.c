@@ -2156,6 +2156,12 @@ aha_cmd_cb(void *priv)
     } else if (AHA_InOperation == 1) {
 	pclog("BusLogic Callback: Process CD-ROM request\n");
 	aha_cdrom_cmd(dev);
+	if (dev->Req.CmdBlock.common.Cdb[0] == 0x42)
+	{
+		/* This is needed since CD Audio inevitably means READ SUBCHANNEL spam. */
+		AHA_Callback += 1000 * SCSI_TIME;
+		return;
+	}
     } else if (AHA_InOperation == 2) {
 	pclog("BusLogic Callback: Send incoming mailbox\n");
 	aha_mbi(dev);

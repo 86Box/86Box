@@ -2953,7 +2953,11 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 						alloc_length = 24;
 						break;
 				}
-				if (alloc_length < len)
+				if (!(cdb[2] & 0x40) || (cdb[3] == 0))
+				{
+					len = 4;
+				}
+				else
 				{
 					len = alloc_length;
 				}

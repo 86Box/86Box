@@ -617,7 +617,7 @@ HANDLE hinstAcc;
 
 HICON LoadIconEx(PCTSTR pszIconName)
 {
-	return (HICON) LoadImage(hinstance, pszIconName, IMAGE_ICON, 16, 16, 0);
+	return (HICON) LoadImage(hinstance, pszIconName, IMAGE_ICON, 16, 16, LR_SHARED);
 }
 
 HICON LoadIconBig(PCTSTR pszIconName)
@@ -722,9 +722,7 @@ void update_status_bar_icon(int tag, int active)
 			sb_part_icons[found] &= ~257;
 			sb_part_icons[found] |= sb_icon_flags[found];
 
-			DestroyIcon(hIcon[found]);
-			hIcon[found] = LoadIconEx((PCTSTR) sb_part_icons[found]);
-			SendMessage(hwndStatus, SB_SETICON, found, (LPARAM) hIcon[found]);
+			SendMessage(hwndStatus, SB_SETICON, found, (LPARAM) hIcon[sb_part_icons[found]]);
 		}
 	}
 }
@@ -751,29 +749,13 @@ void update_status_bar_icon_state(int tag, int state)
 
 	if (found != -1)
 	{
-		if (state)
-		{
-			switch(tag & 0xf0)
-			{
-				case 0x00:
-				default:
-					discfns[tag & 0x0f][0] = L'\0';
-					break;
-				case 0x10:
-					cdrom_image[tag & 0x0f].image_path[0] = L'\0';
-					break;
-			}
-		}
-
 		sb_icon_flags[found] &= ~256;
 		sb_icon_flags[found] |= state ? 256 : 0;
 
 		sb_part_icons[found] &= ~257;
 		sb_part_icons[found] |= sb_icon_flags[found];
 
-		DestroyIcon(hIcon[found]);
-		hIcon[found] = LoadIconEx((PCTSTR) sb_part_icons[found]);
-		SendMessage(hwndStatus, SB_SETICON, found, (LPARAM) hIcon[found]);
+		SendMessage(hwndStatus, SB_SETICON, found, (LPARAM) hIcon[sb_part_icons[found]]);
 	}
 }
 
@@ -1052,9 +1034,7 @@ void update_status_bar_panes(HWND hwnds)
 		if (sb_part_icons[i] != -1)
 		{
 			SendMessage(hwnds, SB_SETTEXT, i | SBT_NOBORDERS, (LPARAM) "");
-			DestroyIcon(hIcon[i]);
-			hIcon[i] = LoadIconEx((PCTSTR) sb_part_icons[i]);
-			SendMessage(hwnds, SB_SETICON, i, (LPARAM) hIcon[i]);
+			SendMessage(hwnds, SB_SETICON, i, (LPARAM) hIcon[sb_part_icons[i]]);
 			SendMessage(hwnds, SB_SETTIPTEXT, i, (LPARAM) sbTips[i]);
 			/* pclog("Status bar part found: %02X (%i)\n", sb_part_meanings[i], sb_part_icons[i]); */
 		}
@@ -1071,6 +1051,51 @@ HWND EmulatorStatusBar(HWND hwndParent, int idStatus, HINSTANCE hinst)
 	int i;
 	RECT rectDialog;
 	int dw, dh;
+
+	for (i = 128; i < 136; i++)
+	{
+		hIcon[i] = LoadIconEx((PCTSTR) i);
+	}
+
+	for (i = 144; i < 148; i++)
+	{
+		hIcon[i] = LoadIconEx((PCTSTR) i);
+	}
+
+	for (i = 150; i < 154; i++)
+	{
+		hIcon[i] = LoadIconEx((PCTSTR) i);
+	}
+
+	for (i = 160; i < 166; i++)
+	{
+		hIcon[i] = LoadIconEx((PCTSTR) i);
+	}
+
+	for (i = 176; i < 184; i++)
+	{
+		hIcon[i] = LoadIconEx((PCTSTR) i);
+	}
+
+	for (i = 384; i < 392; i++)
+	{
+		hIcon[i] = LoadIconEx((PCTSTR) i);
+	}
+
+	for (i = 400; i < 404; i++)
+	{
+		hIcon[i] = LoadIconEx((PCTSTR) i);
+	}
+
+	for (i = 406; i < 410; i++)
+	{
+		hIcon[i] = LoadIconEx((PCTSTR) i);
+	}
+
+	for (i = 416; i < 422; i++)
+	{
+		hIcon[i] = LoadIconEx((PCTSTR) i);
+	}
 
 	GetWindowRect(hwndParent, &rectDialog);
 	dw = rectDialog.right - rectDialog.left;
