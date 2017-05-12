@@ -8,7 +8,7 @@
  *
  *		Definitions for the network module.
  *
- * Version:	@(#)network.h	1.0.1	2017/05/09
+ * Version:	@(#)network.h	1.0.2	2017/05/11
  *
  * Authors:	Kotori, <oubattler@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -18,28 +18,58 @@
 # include <stdint.h>
 
 
-#define NE2000		1
-#define RTL8029AS	2
+#define NE1000		1
+#define NE2000		2
+#define RTL8029AS	3
 
 
-extern int	network_card_current;
-extern uint8_t	ethif;
-extern int	inum;
+typedef void (*NETRXCB)(void *, uint8_t *, int);
 
 
+typedef struct {
+    char	name[64];
+    char	internal_name[32];
+    device_t	*device;
+    void	*private;
+    int		(*poll)(void *);
+    NETRXCB	rx;
+} netcard_t;
+
+typedef struct {
+    char	device[128];
+    char	description[128];
+} netdev_t;
+
+
+/* Global variables. */
+extern int	network_card;
+extern int	network_type;
+
+
+/* Function prototypes. */
 extern void	network_init(void);
+extern void	network_setup(char *);
+extern int	network_attach(void *, uint8_t *, NETRXCB);
+extern void	network_close(void);
 extern void	network_reset(void);
-extern void	network_add_handler(void (*poller)(void *p), void *p);
+extern void	network_tx(uint8_t *, int);
 
-extern int	network_card_available(int card);
-extern char	*network_card_getname(int card);
-extern int	network_card_has_config(int card);
-extern char	*network_card_get_internal_name(int card);
-extern int	network_card_get_from_internal_name(char *s);
-extern struct device_t *network_card_getdevice(int card);
+extern int	network_pcap_setup(uint8_t *, NETRXCB, void *);
+extern void	network_pcap_close(void);
+extern void	network_pcap_in(uint8_t *, int);
+extern int	network_devlist(netdev_t *);
 
-extern void	initpcap(void);
-extern void	closepcap(void);
+extern int	network_slirp_setup(uint8_t *, NETRXCB, void *);
+extern void	network_slirp_close(void);
+extern void	network_slirp_in(uint8_t *, int);
+
+extern int	network_devlist(netdev_t *);
+extern int	network_card_available(int);
+extern char	*network_card_getname(int);
+extern int	network_card_has_config(int);
+extern char	*network_card_get_internal_name(int);
+extern int	network_card_get_from_internal_name(char *);
+extern struct device_t *network_card_getdevice(int);
 
 
 #endif	/*NETWORK_H*/

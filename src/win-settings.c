@@ -109,7 +109,7 @@ static void win_settings_init()
 
 	/* Peripherals category */
 	temp_scsi_card = scsi_card_current;
-	temp_net_card = network_card_current;
+	temp_net_card = network_card;
 	strncpy(temp_hdc_name, hdd_controller_name, sizeof(temp_hdc_name) - 1);
 	temp_ide_ter = ide_enable[2];
 	temp_ide_ter_irq = ide_irq[2];
@@ -168,7 +168,7 @@ static int win_settings_changed()
 
 	/* Peripherals category */
 	i = i || (scsi_card_current != temp_scsi_card);
-	i = i || (network_card_current != temp_net_card);
+	i = i || (network_card != temp_net_card);
 	i = i || strncmp(temp_hdc_name, hdd_controller_name, sizeof(temp_hdc_name) - 1);
 	i = i || (temp_ide_ter != ide_enable[2]);
 	i = i || (temp_ide_ter_irq != ide_irq[2]);
@@ -259,7 +259,7 @@ static void win_settings_save()
 
 	/* Peripherals category */
 	scsi_card_current = temp_scsi_card;
-	network_card_current = temp_net_card;
+	network_card = temp_net_card;
 	strncpy(hdd_controller_name, temp_hdc_name, sizeof(temp_hdc_name) - 1);
 	ide_enable[2] = temp_ide_ter;
 	ide_irq[2] = temp_ide_ter_irq;

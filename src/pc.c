@@ -686,4 +686,5 @@ void closepc(void)
         closevideo();
         device_close_all();
         midi_close();
+	network_close();
 }

@@ -11,7 +11,7 @@
  * NOTE:	Its still a mess, but we're getting there. The file will
  *		also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.1	2017/05/09
+ * Version:	@(#)net_ne2000.c	1.0.2	2017/05/11
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -25,28 +25,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <pcap.h>
-#include "slirp/slirp.h"
-#include "slirp/queue.h"
 #include "ibm.h"
 #include "io.h"
 #include "mem.h"
 #include "rom.h"
 #include "pci.h"
 #include "pic.h"
-#include "timer.h"
 #include "device.h"
 #include "config.h"
 #include "disc_random.h"
 #include "network.h"
 #include "net_ne2000.h"
 #include "bswap.h"
-
-
 #ifdef WALTJE
 # define ENABLE_NE2000_LOG 1
 #endif
-#define NETBLOCKING 0           /* we won't block our pcap */
 
 
 /* For PCI. */
@@ -56,26 +49,17 @@ typedef union {
 } bar_t;
 
 
-/* Most of this stuff should go into the struct. --FvK */
+/* This stuff should go into the struct. --FvK */
 static uint8_t	maclocal[6] = {0xac, 0xde, 0x48, 0x88, 0xbb, 0xaa};
 static uint8_t	maclocal_pci[6] = {0xac, 0xde, 0x48, 0x88, 0xbb, 0xaa};
 static uint8_t	rtl8029as_eeprom[128];
 static uint8_t	pci_regs[256];
 static bar_t	pci_bar[2];
-static uint32_t	bios_addr = 0xD0000;
 static uint32_t	old_base_addr = 0;
-static uint32_t	bios_size = 0;
-static uint32_t	bios_mask = 0;
-static pcap_t	*net_pcap;
-static queueADT	slirpq;
-static int	disable_netbios = 0;
-static int	net_slirp_inited = 0;
-static int	net_is_pcap = 0;      /* and pretend pcap is dead. */
-static int	fizz = 0;
-#ifdef ENABLE_NE2000_LOG
-static int	ne2000_do_log = ENABLE_NE2000_LOG;
+#if ENABLE_NE2000_LOG
+static int	nic_do_log = ENABLE_NE2000_LOG;
 #else
-static int	ne2000_do_log = 0;
+static int	nic_do_log = 0;
 #endif
 
 
@@ -84,14 +68,13 @@ static int	ne2000_do_log = 0;
 
 /* Never completely fill the ne2k ring so that we never
    hit the unclear completely full buffer condition. */
-#define BX_NE2K_NEVER_FULL_RING (1)
+#define NE2K_NEVER_FULL_RING (1)
 
-#define  BX_NE2K_MEMSIZ    (32*1024)
-#define  BX_NE2K_MEMSTART  (16*1024)
-#define  BX_NE2K_MEMEND    (BX_NE2K_MEMSTART + BX_NE2K_MEMSIZ)
+#define NE2K_MEMSIZ    (32*1024)
+#define NE2K_MEMSTART  (16*1024)
+#define NE2K_MEMEND    (NE2K_MEMSTART+NE2K_MEMSIZ)
 
 
-/* ne2k register state */
 typedef struct {
     /* Page 0 */
 
@@ -226,22 +209,26 @@ typedef struct {
 
     /* Novell ASIC state */
     uint8_t	macaddr[32];	/* ASIC ROM'd MAC address, even bytes */
-    uint8_t	mem[BX_NE2K_MEMSIZ];	/* on-chip packet memory */
+    uint8_t	mem[NE2K_MEMSIZ];	/* on-chip packet memory */
 
     /* ne2k internal state */
+    char	name[32];
     uint32_t	base_address;
     int		base_irq;
+    int		is_rtl8029as;
     int		tx_timer_index;
     int		tx_timer_active;
 
+    uint32_t	bios_addr,
+		bios_size,
+		bios_mask;
+    int		disable_netbios;
     rom_t	bios_rom;
-} ne2000_t;
+} nic_t;
 
 
-static void	ne2000_tx_event(void *, uint32_t);
-static void	ne2000_rx_frame(void *, const void *, int);
-
-void slirp_tic(void);
+static void	nic_rx(void *, uint8_t *, int);
+static void	nic_tx(nic_t *, uint32_t);
 
 
 static void
@@ -250,7 +237,7 @@ nelog(int lvl, const char *fmt, ...)
 #ifdef ENABLE_NE2000_LOG
     va_list ap;
 
-    if (ne2000_do_log >= lvl) {
+    if (nic_do_log >= lvl) {
 	va_start(ap, fmt);
 	vprintf(fmt, ap);
 	va_end(ap);
@@ -262,12 +249,12 @@ nelog(int lvl, const char *fmt, ...)
 
 /* reset - restore state to power-up, cancelling all i/o */
 static void
-ne2000_reset(void *priv, int reset)
+nic_reset(void *priv, int reset)
 {
-    ne2000_t *dev = (ne2000_t *)priv;
+    nic_t *dev = (nic_t *)priv;
     int i;
 
-    pclog(1, "ne2000 reset\n");
+    pclog(1, "%s: reset\n", dev->name);
 
     /* Initialize the MAC address area by doubling the physical address */
     dev->macaddr[0]  = dev->physaddr[0];
@@ -325,8 +312,9 @@ ne2000_reset(void *priv, int reset)
     dev->CR.rdma_cmd  = 4;
     dev->ISR.reset    = 1;
     dev->DCR.longaddr = 1;
-    picint(1 << dev->base_irq);
-    picintc(1 << dev->base_irq);
+
+    picint(1<<dev->base_irq);
+    picintc(1<<dev->base_irq);
 }
 
 
@@ -338,12 +326,12 @@ ne2000_reset(void *priv, int reset)
    and there is 16K of buffer memory starting at 16K
 */
 static uint32_t
-chipmem_read(ne2000_t *dev, uint32_t addr, unsigned int len)
+chipmem_read(nic_t *dev, uint32_t addr, unsigned int len)
 {
     uint32_t retval = 0;
 
     if ((len == 2) && (addr & 0x1)) {
-	pclog(1, "unaligned chipmem word read\n");
+	pclog(1, "%s: unaligned chipmem word read\n", dev->name);
     }
 
     /* ROM'd MAC address */
@@ -359,29 +347,29 @@ chipmem_read(ne2000_t *dev, uint32_t addr, unsigned int len)
 	return(retval);
     }
 
-    if ((addr >= BX_NE2K_MEMSTART) && (addr < BX_NE2K_MEMEND)) {
-	retval = dev->mem[addr - BX_NE2K_MEMSTART];
+    if ((addr >= NE2K_MEMSTART) && (addr < NE2K_MEMEND)) {
+	retval = dev->mem[addr - NE2K_MEMSTART];
 	if ((len == 2) || (len == 4)) {
-		retval |= (dev->mem[addr - BX_NE2K_MEMSTART + 1] << 8);
+		retval |= (dev->mem[addr - NE2K_MEMSTART + 1] << 8);
 	}
 	if (len == 4) {
-		retval |= (dev->mem[addr - BX_NE2K_MEMSTART + 2] << 16);
-		retval |= (dev->mem[addr - BX_NE2K_MEMSTART + 3] << 24);
+		retval |= (dev->mem[addr - NE2K_MEMSTART + 2] << 16);
+		retval |= (dev->mem[addr - NE2K_MEMSTART + 3] << 24);
 	}
 	return(retval);
     }
 
-    pclog(1, "out-of-bounds chipmem read, %04X\n", addr);
+    pclog(1, "%s: out-of-bounds chipmem read, %04X\n", dev->name, addr);
 
-    if (network_card_current == 1) {
+    if (dev->is_rtl8029as) {
+	return(0xff);
+    } else {
 	switch(len) {
 		case 1:
 			return(0xff);
 		case 2:
 			return(0xffff);
 	}
-    } else {
-	return(0xff);
     }
 
     return(0xffff);
@@ -389,23 +377,23 @@ chipmem_read(ne2000_t *dev, uint32_t addr, unsigned int len)
 
 
 static void
-chipmem_write(ne2000_t *dev, uint32_t addr, uint32_t val, unsigned len)
+chipmem_write(nic_t *dev, uint32_t addr, uint32_t val, unsigned len)
 {
     if ((len == 2) && (addr & 0x1)) {
-	pclog(1, "unaligned chipmem word write\n");
+	pclog(1, "%s: unaligned chipmem word write\n", dev->name);
     }
 
-    if ((addr >= BX_NE2K_MEMSTART) && (addr < BX_NE2K_MEMEND)) {
-	dev->mem[addr - BX_NE2K_MEMSTART] = val & 0xff;
+    if ((addr >= NE2K_MEMSTART) && (addr < NE2K_MEMEND)) {
+	dev->mem[addr-NE2K_MEMSTART] = val & 0xff;
 	if ((len == 2) || (len == 4)) {
-		dev->mem[addr - BX_NE2K_MEMSTART + 1] = val >> 8;
+		dev->mem[addr-NE2K_MEMSTART+1] = val >> 8;
 	}
 	if (len == 4) {
-		dev->mem[addr - BX_NE2K_MEMSTART + 2] = val >> 16;
-		dev->mem[addr - BX_NE2K_MEMSTART + 3] = val >> 24;
+		dev->mem[addr-NE2K_MEMSTART+2] = val >> 16;
+		dev->mem[addr-NE2K_MEMSTART+3] = val >> 24;
 	}
     } else {
-	pclog(1, "out-of-bounds chipmem write, %04X\n", addr);
+	pclog(1, "%s: out-of-bounds chipmem write, %04X\n", dev->name, addr);
     }
 }
 
@@ -420,25 +408,22 @@ chipmem_write(ne2000_t *dev, uint32_t addr, uint32_t val, unsigned len)
    the appropriate number of bytes to/from the device.
 */
 static uint32_t
-asic_read(ne2000_t *dev, uint32_t off, unsigned int len)
+asic_read(nic_t *dev, uint32_t off, unsigned int len)
 {
     uint32_t retval = 0;
 
-    switch (off) {
-	case 0x0:  /* Data register */
-
+    switch(off) {
+	case 0x00:	/* Data register */
 		/* A read remote-DMA command must have been issued,
 		   and the source-address and length registers must
 		   have been initialised. */
-
 		if (len > dev->remote_bytes) {
-			pclog(1, "dma read underrun iolen=%d remote_bytes=%d\n",
-						len, dev->remote_bytes);
+			pclog(1, "%s: DMA read underrun iolen=%d remote_bytes=%d\n",
+					dev->name, len, dev->remote_bytes);
 		}
 
-		pclog(2, "%s read DMA: addr=%4x remote_bytes=%d\n",
-			(network_card_current==1)?"NE2000":"RTL8029AS",
-				dev->remote_dma,dev->remote_bytes);
+		pclog(2, "%s: DMA read: addr=%4x remote_bytes=%d\n",
+			dev->name, dev->remote_dma,dev->remote_bytes);
 		retval = chipmem_read(dev, dev->remote_dma, len);
 
 		/* The 8390 bumps the address and decreases the byte count
@@ -474,12 +459,13 @@ asic_read(ne2000_t *dev, uint32_t off, unsigned int len)
 		}
 		break;
 
-	case 0xf:  /* Reset register */
-		ne2000_reset(dev, BX_RESET_SOFTWARE);
+	case 0x0f:	/* Reset register */
+		nic_reset(dev, BX_RESET_SOFTWARE);
 		break;
 
 	default:
-		pclog(1, "asic read invalid address %04x\n", (unsigned)off);
+		pclog(1, "%s: ASIC read invalid address %04x\n",
+					dev->name, (unsigned)off);
 		break;
     }
 
@@ -488,19 +474,19 @@ asic_read(ne2000_t *dev, uint32_t off, unsigned int len)
 
 
 static void
-asic_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
+asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 {
     pclog(2, "%s: asic write addr=0x%02x, value=0x%04x\n",
-	(network_card_current==1)?"NE2000":"RTL8029AS",(unsigned)off, (unsigned) val);
+		dev->name, (unsigned)off, (unsigned) val);
     switch(off) {
-	case 0x0:  /* Data register - see asic_read for a description */
+	case 0x00:	/* Data register - see asic_read for a description */
 		if ((len > 1) && (dev->DCR.wdsize == 0)) {
-			pclog(2, "dma write length %d on byte mode operation\n",
-								len);
+			pclog(2, "%s: DMA write length %d on byte mode operation\n",
+							dev->name, len);
 			break;
 		}
 		if (dev->remote_bytes == 0) {
-			pclog(2, "dma write, byte count 0\n");
+			pclog(2, "%s: DMA write, byte count 0\n", dev->name);
 		}
 
 		chipmem_write(dev, dev->remote_dma, val, len);
@@ -520,7 +506,7 @@ asic_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
 			dev->remote_bytes -= (dev->DCR.wdsize + 1);
 		}
 
-		if (dev->remote_bytes > BX_NE2K_MEMSIZ) {
+		if (dev->remote_bytes > NE2K_MEMSIZ) {
 			dev->remote_bytes = 0;
 		}
 
@@ -533,13 +519,13 @@ asic_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
 		}
 		break;
 
-	case 0xf:  /* Reset register */
+	case 0x0f:  /* Reset register */
 		/* end of reset pulse */
 		break;
 
 	default: /* this is invalid, but happens under win95 device detection */
-		pclog(1, "asic write invalid address %04x, ignoring\n",
-							(unsigned)off);
+		pclog(1, "%s: ASIC write invalid address %04x, ignoring\n",
+						dev->name, (unsigned)off);
 		break;
     }
 }
@@ -548,14 +534,14 @@ asic_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
 /* page0_read/page0_write - These routines handle reads/writes to
    the 'zeroth' page of the DS8390 register file */
 static uint32_t
-page0_read(ne2000_t *dev, uint32_t off, unsigned int len)
+page0_read(nic_t *dev, uint32_t off, unsigned int len)
 {
     uint8_t retval = 0;
 
     if (len > 1) {
 	/* encountered with win98 hardware probe */
-	pclog(1, "bad length! page 0 read from register 0x%02x, len=%u\n",
-								off, len);
+	pclog(1, "%s: bad length! Page0 read from register 0x%02x, len=%u\n",
+							dev->name, off, len);
 	return(retval);
     }
 
@@ -588,7 +574,7 @@ page0_read(ne2000_t *dev, uint32_t off, unsigned int len)
 
 	case 0x06:	/* FIFO */
 		/* reading FIFO is only valid in loopback mode */
-		pclog(1, "reading FIFO not supported yet\n");
+		pclog(1, "%s: reading FIFO not supported yet\n", dev->name);
 		retval = dev->fifo;
 		break;
 
@@ -612,19 +598,19 @@ page0_read(ne2000_t *dev, uint32_t off, unsigned int len)
 		break;
 
 	case 0x0a:	/* reserved / RTL8029ID0 */
-		if (network_card_current == 2) {
+		if (dev->is_rtl8029as) {
 			retval = 0x50;
 		} else {
-			pclog(1, "reserved read - page 0, 0x0a\n");
+			pclog(1, "%s: reserved Page0 read - 0x0a\n", dev->name);
 			retval = 0xff;
 		}
 		break;
 
 	case 0x0b:	/* reserved / RTL8029ID1 */
-		if (network_card_current == 2) {
+		if (dev->is_rtl8029as) {
 			retval = 0x43;
 		} else {
-			pclog(1, "reserved read - page 0, 0xb\n");
+			pclog(1, "%s: reserved Page0 read - 0x0b\n", dev->name);
 			retval = 0xff;
 		}
 		break;
@@ -653,18 +639,20 @@ page0_read(ne2000_t *dev, uint32_t off, unsigned int len)
 		break;
 
 	default:
-		pclog(1, "page 0 register 0x%02x out of range\n", off);
+		pclog(1, "%s: Page0 register 0x%02x out of range\n",
+							dev->name, off);
 		break;
     }
 
-    pclog(2, "page 0 read from register 0x%02x, value=0x%02x\n", off, retval);
+    pclog(2, "%s: Page0 read from register 0x%02x, value=0x%02x\n",
+						dev->name, off, retval);
 
     return(retval);
 }
 
 
 static void
-page0_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
+page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 {
     uint8_t val2;
 
@@ -678,7 +666,8 @@ page0_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
 	return;
     }
 
-    pclog(2, "page 0 write to register 0x%02x, value=0x%02x\n", off, val);
+    pclog(2, "%s: Page0 write to register 0x%02x, value=0x%02x\n",
+						dev->name, off, val);
 
     switch(off) {
 	case 0x01:	/* PSTART */
@@ -767,7 +756,8 @@ page0_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
 	case 0x0c:	/* RCR */
 		/* Check if the reserved bits are set */
 		if (val & 0xc0) {
-			pclog(1, "RCR write, reserved bits set\n");
+			pclog(1, "%s: RCR write, reserved bits set\n",
+							dev->name);
 		}
 
 		/* Set all other bit-fields */
@@ -779,35 +769,32 @@ page0_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
 		dev->RCR.monitor   = ((val & 0x20) == 0x20);
 
 		/* Monitor bit is a little suspicious... */
-		if (val & 0x20) {
-			pclog(1, "RCR write, monitor bit set!\n");
-		}
+		if (val & 0x20) pclog(1, "%s: RCR write, monitor bit set!\n",
+								dev->name);
 		break;
 
 	case 0x0d:	/* TCR */
 		/* Check reserved bits */
-		if (val & 0xe0) {
-			pclog(1, "TCR write, reserved bits set\n");
-		}
+		if (val & 0xe0) pclog(1, "%s: TCR write, reserved bits set\n",
+								dev->name);
 
 		/* Test loop mode (not supported) */
 		if (val & 0x06) {
 			dev->TCR.loop_cntl = (val & 0x6) >> 1;
-			pclog(1, "TCR write, loop mode %d not supported\n",
-							dev->TCR.loop_cntl);
+			pclog(1, "%s: TCR write, loop mode %d not supported\n",
+						dev->name, dev->TCR.loop_cntl);
 		} else {
 			dev->TCR.loop_cntl = 0;
 		}
 
 		/* Inhibit-CRC not supported. */
-		if (val & 0x01) {
-			pclog(1, "TCR write, inhibit-CRC not supported\n");
-		}
+		if (val & 0x01) pclog(1,
+			"%s: TCR write, inhibit-CRC not supported\n",dev->name);
 
 		/* Auto-transmit disable very suspicious */
-		if (val & 0x08) {
-			pclog(1, "TCR write, auto transmit disable not supported\n");
-		}
+		if (val & 0x08) pclog(1,
+			"%s: TCR write, auto transmit disable not supported\n",
+								dev->name);
 
 		/* Allow collision-offset to be set, although not used */
 		dev->TCR.coll_prio = ((val & 0x08) == 0x08);
@@ -815,19 +802,16 @@ page0_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
 
 	case 0x0e:	/* DCR */
 		/* the loopback mode is not suppported yet */
-		if (! (val & 0x08)) {
-			pclog(1, "DCR write, loopback mode selected\n");
-		}
+		if (! (val & 0x08)) pclog(1,
+			"%s: DCR write, loopback mode selected\n", dev->name);
 
 		/* It is questionable to set longaddr and auto_rx, since
 		 * they are not supported on the NE2000. Print a warning
 		 * and continue. */
-		if (val & 0x04) {
-			pclog(1, "DCR write - LAS set ???\n");
-		}
-		if (val & 0x10) {
-			pclog(1, "DCR write - AR set ???\n");
-		}
+		if (val & 0x04)
+			pclog(1, "%s: DCR write - LAS set ???\n", dev->name);
+		if (val & 0x10)
+			pclog(1, "%s: DCR write - AR set ???\n", dev->name);
 
 		/* Set other values. */
 		dev->DCR.wdsize   = ((val & 0x01) == 0x01);
@@ -840,9 +824,8 @@ page0_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
 
 	case 0x0f:  /* IMR */
 		/* Check for reserved bit */
-		if (val & 0x80) {
-			pclog(1, "IMR write, reserved bit set\n");
-		}
+		if (val & 0x80)
+			pclog(1, "%s: IMR write, reserved bit set\n",dev->name);
 
 		/* Set other values */
 		dev->IMR.rx_inte    = ((val & 0x01) == 0x01);
@@ -867,7 +850,8 @@ page0_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
 		break;
 
 	default:
-		pclog(1, "page 0 write, bad register 0x%02x\n", off);
+		pclog(1, "%s: Page0 write, bad register 0x%02x\n",
+						dev->name, off);
 		break;
     }
 }
@@ -876,9 +860,10 @@ page0_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
 /* page1_read/page1_write - These routines handle reads/writes to
    the first page of the DS8390 register file */
 static uint32_t
-page1_read(ne2000_t *dev, uint32_t off, unsigned int len)
+page1_read(nic_t *dev, uint32_t off, unsigned int len)
 {
-    pclog(2, "page 1 read from register 0x%02x, len=%u\n", off, len);
+    pclog(2, "%s: Page1 read from register 0x%02x, len=%u\n",
+					dev->name, off, len);
 
     switch(off) {
 	case 0x01:	/* PAR0-5 */
@@ -890,7 +875,8 @@ page1_read(ne2000_t *dev, uint32_t off, unsigned int len)
 		return(dev->physaddr[off - 1]);
 
 	case 0x07:	/* CURR */
-		pclog(2, "returning current page: 0x%02x\n", (dev->curr_page));
+		pclog(2, "%s: returning current page: 0x%02x\n",
+				dev->name, (dev->curr_page));
 		return(dev->curr_page);
 
 	case 0x08:	/* MAR0-7 */
@@ -904,17 +890,18 @@ page1_read(ne2000_t *dev, uint32_t off, unsigned int len)
 		return(dev->mchash[off - 8]);
 
 	default:
-		pclog(1, "page 1 read register 0x%02x out of range\n", off);
+		pclog(1, "%s: Page1 read register 0x%02x out of range\n",
+							dev->name, off);
 		return(0);
     }
 }
 
 
 static void
-page1_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
+page1_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 {
-    pclog(2, "page 1 write to register 0x%02x, len=%u, value=0x%04x\n",
-							off, len, val);
+    pclog(2, "%s: Page1 write to register 0x%02x, len=%u, value=0x%04x\n",
+						dev->name, off, len, val);
 
     switch(off) {
 	case 0x01:	/* PAR0-5 */
@@ -924,12 +911,12 @@ page1_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
 	case 0x05:
 	case 0x06:
 		dev->physaddr[off - 1] = val;
-		if (off == 6) {
-			pclog(1, "Physical address set to %02x:%02x:%02x:%02x:%02x:%02x\n",
-				dev->physaddr[0], dev->physaddr[1],
-				dev->physaddr[2], dev->physaddr[3],
-				dev->physaddr[4], dev->physaddr[5]);
-		}
+		if (off == 6) pclog(1,
+		  "%s: physical address set to %02x:%02x:%02x:%02x:%02x:%02x\n",
+			dev->name,
+			dev->physaddr[0], dev->physaddr[1],
+			dev->physaddr[2], dev->physaddr[3],
+			dev->physaddr[4], dev->physaddr[5]);
 		break;
 
 	case 0x07:	/* CURR */
@@ -948,7 +935,8 @@ page1_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
 		break;
 
 	default:
-		pclog(1, "page 1 write register 0x%02x out of range\n", off);
+		pclog(1, "%s: Page1 write register 0x%02x out of range\n",
+							dev->name, off);
 		break;
     }
 }
@@ -957,9 +945,10 @@ page1_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
 /* page2_read/page2_write - These routines handle reads/writes to
    the second page of the DS8390 register file */
 static uint32_t
-page2_read(ne2000_t *dev, uint32_t off, unsigned int len)
+page2_read(nic_t *dev, uint32_t off, unsigned int len)
 {
-    pclog(2, "page 2 read from register 0x%02x, len=%u\n", off, len);
+    pclog(2, "%s: Page2 read from register 0x%02x, len=%u\n",
+					dev->name, off, len);
   
     switch(off) {
 	case 0x01:	/* PSTART */
@@ -987,7 +976,8 @@ page2_read(ne2000_t *dev, uint32_t off, unsigned int len)
 	case 0x09:
 	case 0x0a:
 	case 0x0b:
-		pclog(1, "reserved read - page 2, register 0x%02x\n", off);
+		pclog(1, "%s: reserved Page2 read - register 0x%02x\n",
+							dev->name, off);
 		return(0xff);
 
 	case 0x0c:	/* RCR */
@@ -1022,7 +1012,8 @@ page2_read(ne2000_t *dev, uint32_t off, unsigned int len)
 			 (dev->IMR.rx_inte));
 
 	default:
-		pclog(1, "page 2 register 0x%02x out of range\n", off);
+		pclog(1, "%s: Page2 register 0x%02x out of range\n",
+						dev->name, off);
 		break;
     }
 
@@ -1031,13 +1022,13 @@ page2_read(ne2000_t *dev, uint32_t off, unsigned int len)
 
 
 static void
-page2_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
+page2_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 {
 /* Maybe all writes here should be BX_PANIC()'d, since they
    affect internal operation, but let them through for now
    and print a warning. */
-    pclog(2, "page 2 write to register 0x%02x, len=%u, value=0x%04x\n",
-							off, len, val);
+    pclog(2, "%s: Page2 write to register 0x%02x, len=%u, value=0x%04x\n",
+						dev->name, off, len, val);
     switch(off) {
 	case 0x01:	/* CLDA0 */
 		/* Clear out low byte and re-insert */
@@ -1083,11 +1074,13 @@ page2_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
 	case 0x0d:
 	case 0x0e:
 	case 0x0f:
-		pclog(1, "page 2 write to reserved register 0x%02x\n", off);
+		pclog(1, "%s: Page2 write to reserved register 0x%02x\n",
+							dev->name, off);
 		break;
 
 	default:
-		pclog(1, "page 2 write, illegal register 0x%02x\n", off);
+		pclog(1, "%s: Page2 write, illegal register 0x%02x\n",
+							dev->name, off);
 		break;
     }
 }
@@ -1095,9 +1088,9 @@ page2_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
 
 /* page3_read/page3_write - writes to this page are illegal */
 static uint32_t
-page3_read(ne2000_t *dev, uint32_t off, unsigned int len)
-{
-    if (network_card_current == 2) switch(off) {
+page3_read(nic_t *dev, uint32_t off, unsigned int len)
+{ 
+    if (dev->is_rtl8029as) switch(off) {
 	case 0x3:	/* CONFIG0 */
 		return(0x00);
 
@@ -1111,22 +1104,22 @@ page3_read(ne2000_t *dev, uint32_t off, unsigned int len)
 		break;
     }
 
-    pclog(1, "page 3 read register 0x%02x attempted\n", off);
+    pclog(1, "%s: Page3 read register 0x%02x attempted\n", dev->name, off);
     return(0x00);
 }
 
 
 static void
-page3_write(ne2000_t *dev, uint32_t off, uint32_t val, unsigned len)
+page3_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 {
-    pclog(1, "page 3 write register 0x%02x attempted\n", off);
+    pclog(1, "%s: Page3 write register 0x%02x attempted\n", dev->name, off);
 }
 
 
 /* read_cr/write_cr - utility routines for handling reads/writes to
    the Command Register */
 static uint32_t
-read_cr(ne2000_t *dev)
+read_cr(nic_t *dev)
 {
     uint32_t retval;
 
@@ -1135,22 +1128,20 @@ read_cr(ne2000_t *dev)
 		  (dev->CR.tx_packet << 2) |
 		  (dev->CR.start     << 1) |
 		  (dev->CR.stop));
-    pclog(2, "%s: read CR returns 0x%02x\n",
-	(network_card_current==1)?"NE2000":"RTL8029AS", retval);
+    pclog(2, "%s: read CR returns 0x%02x\n", dev->name, retval);
 
     return(retval);
 }
 
 
 static void
-write_cr(ne2000_t *dev, uint32_t val)
+write_cr(nic_t *dev, uint32_t val)
 {
-    pclog(2, "%s: wrote 0x%02x to CR\n",
-	(network_card_current == 1) ? "NE2000" : "RTL8029AS", val);
+    pclog(2, "%s: wrote 0x%02x to CR\n", dev->name, val);
 
     /* Validate remote-DMA */
     if ((val & 0x38) == 0x00) {
-	pclog(1, "CR write - invalid rDMA value 0\n");
+	pclog(2, "%s: CR write - invalid rDMA value 0\n", dev->name);
 	val |= 0x20; /* dma_cmd == 4 is a safe default */
     }
 
@@ -1178,44 +1169,41 @@ write_cr(ne2000_t *dev, uint32_t val)
 	/* Set up DMA read from receive ring */
 	dev->remote_start = dev->remote_dma = dev->bound_ptr * 256;
 	dev->remote_bytes = (uint16_t) chipmem_read(dev, dev->bound_ptr * 256 + 2, 2);
-	pclog(2, "Sending buffer #x%x length %d\n", dev->remote_start, dev->remote_bytes);
+	pclog(2, "%s: sending buffer #x%x length %d\n",
+		dev->name, dev->remote_start, dev->remote_bytes);
     }
 
     /* Check for start-tx */
     if ((val & 0x04) && dev->TCR.loop_cntl) {
 	if (dev->TCR.loop_cntl != 1) {
-		pclog(1, "Loop mode %d not supported\n", dev->TCR.loop_cntl);
+		pclog(1, "%s: loop mode %d not supported\n",
+				dev->name, dev->TCR.loop_cntl);
 	} else {
-		ne2000_rx_frame(dev, &dev->mem[dev->tx_page_start*256 - BX_NE2K_MEMSTART], dev->tx_bytes);
+		nic_rx(dev,
+			  &dev->mem[dev->tx_page_start*256 - NE2K_MEMSTART],
+			  dev->tx_bytes);
 	}
     } else if (val & 0x04) {
-	if (dev->CR.stop || (!dev->CR.start && (network_card_current == 1))) {
+	if (dev->CR.stop || (!dev->CR.start && !dev->is_rtl8029as)) {
 		if (dev->tx_bytes == 0) /* njh@bandsman.co.uk */ {
 			return; /* Solaris9 probe */
 		}
-		pclog(1, "CR write - tx start, dev in reset\n");
+		pclog(1, "%s: CR write - tx start, dev in reset\n", dev->name);
 	}
 
-	if (dev->tx_bytes == 0) {
-		 pclog(1, "CR write - tx start, tx bytes == 0\n");
-	}
+	if (dev->tx_bytes == 0)
+		pclog(1, "%s: CR write - tx start, tx bytes == 0\n", dev->name);
 
 	/* Send the packet to the system driver */
 	dev->CR.tx_packet = 1;
-	if (! net_is_pcap) {
-		slirp_input(&dev->mem[dev->tx_page_start*256 - BX_NE2K_MEMSTART], dev->tx_bytes);
-		pclog(1, "ne2000 slirp sending packet\n");
-	} else if (net_is_pcap && (net_pcap != NULL)) {
-		pcap_sendpacket(net_pcap, &dev->mem[dev->tx_page_start*256 - BX_NE2K_MEMSTART], dev->tx_bytes);
-		pclog(1, "ne2000 pcap sending packet\n");
-	}
+	network_tx(&dev->mem[dev->tx_page_start*256 - NE2K_MEMSTART],
+		   dev->tx_bytes);
 
 	/* some more debug */
-	if (dev->tx_timer_active) {
-		pclog(1, "CR write, tx timer still active\n");
-	}
+	if (dev->tx_timer_active)
+		pclog(1, "%s: CR write, tx timer still active\n", dev->name);
 
-	ne2000_tx_event(dev, val);
+	nic_tx(dev, val);
     }
 
     /* Linux probes for an interrupt by setting up a remote-DMA read
@@ -1225,7 +1213,7 @@ write_cr(ne2000_t *dev, uint32_t val)
 	dev->ISR.rdma_done = 1;
 	if (dev->IMR.rdma_inte) {
 		picint(1 << dev->base_irq);
-		if (network_card_current == 1) {
+		if (! dev->is_rtl8029as) {
 			picintc(1 << dev->base_irq);
 		}
 	}
@@ -1234,13 +1222,12 @@ write_cr(ne2000_t *dev, uint32_t val)
 
 
 static uint32_t
-ne2000_read(ne2000_t *dev, uint32_t addr, unsigned len)
+nic_read(nic_t *dev, uint32_t addr, unsigned len)
 {
     uint32_t retval = 0;
     int off = addr - dev->base_address;
 
-    pclog(2, "%s: read addr %x, len %d\n",
-	(network_card_current==1)?"NE2000":"RTL8029AS", addr, len);
+    pclog(2, "%s: read addr %x, len %d\n", dev->name, addr, len);
 
     if (off >= 0x10) {
 	retval = asic_read(dev, off - 0x10, len);
@@ -1264,7 +1251,8 @@ ne2000_read(ne2000_t *dev, uint32_t addr, unsigned len)
 		break;
 
 	default:
-		pclog(1, "unknown value of pgsel in read - %d\n", dev->CR.pgsel);
+		pclog(1, "%s: unknown value of pgsel in read - %d\n",
+						dev->name, dev->CR.pgsel);
 		break;
     }
 
@@ -1273,38 +1261,37 @@ ne2000_read(ne2000_t *dev, uint32_t addr, unsigned len)
 
 
 static uint8_t
-ne2000_readb(uint16_t addr, void *priv)
+nic_readb(uint16_t addr, void *priv)
 {
-    return(ne2000_read((ne2000_t *)priv, addr, 1));
+    return(nic_read((nic_t *)priv, addr, 1));
 }
 
 
 static uint16_t
-ne2000_readw(uint16_t addr, void *priv)
+nic_readw(uint16_t addr, void *priv)
 {
-    ne2000_t *dev = (ne2000_t *)priv;
+    nic_t *dev = (nic_t *)priv;
 
     if (dev->DCR.wdsize & 1)
-	return(ne2000_read(dev, addr, 2));
+	return(nic_read(dev, addr, 2));
       else
-    return(ne2000_read(dev, addr, 1));
+	return(nic_read(dev, addr, 1));
 }
 
 
 static uint32_t
-ne2000_readl(uint16_t addr, void *priv)
+nic_readl(uint16_t addr, void *priv)
 {
-    return(ne2000_read((ne2000_t *)priv, addr, 4));
+    return(nic_read((nic_t *)priv, addr, 4));
 }
 
 
 static void
-ne2000_write(ne2000_t *dev, uint32_t addr, uint32_t val, unsigned len)
+nic_write(nic_t *dev, uint32_t addr, uint32_t val, unsigned len)
 {
     int off = addr - dev->base_address;
 
-    pclog(2, "%s: write addr %x, value %x len %d\n",
-	(network_card_current==1)?"NE2000":"RTL8029AS", addr, val, len);
+    pclog(2, "%s: write addr %x, value %x len %d\n", dev->name, addr, val, len);
 
     /* The high 16 bytes of i/o space are for the ne2000 asic -
        the low 16 bytes are for the DS8390, with the current
@@ -1332,117 +1319,120 @@ ne2000_write(ne2000_t *dev, uint32_t addr, uint32_t val, unsigned len)
 		break;
 
 	default:
-		pclog(1, "unknown value of pgsel in write - %d\n", dev->CR.pgsel);
+		pclog(1, "%s: unknown value of pgsel in write - %d\n",
+						dev->name, dev->CR.pgsel);
 		break;
     }
 }
 
 
 static void
-ne2000_writeb(uint16_t addr, uint8_t val, void *priv)
+nic_writeb(uint16_t addr, uint8_t val, void *priv)
 {
-    ne2000_write((ne2000_t *)priv, addr, val, 1);
+    nic_write((nic_t *)priv, addr, val, 1);
 }
 
 
 static void
-ne2000_writew(uint16_t addr, uint16_t val, void *priv)
+nic_writew(uint16_t addr, uint16_t val, void *priv)
 {
-    ne2000_t *dev = (ne2000_t *)priv;
+    nic_t *dev = (nic_t *)priv;
 
     if (dev->DCR.wdsize & 1)
-	ne2000_write(dev, addr, val, 2);
+	nic_write(dev, addr, val, 2);
       else
-	ne2000_write(dev, addr, val, 1);
+	nic_write(dev, addr, val, 1);
 }
 
 
 static void
-ne2000_writel(uint16_t addr, uint32_t val, void *priv)
+nic_writel(uint16_t addr, uint32_t val, void *priv)
 {
-    ne2000_write((ne2000_t *)priv, addr, val, 4);
+    nic_write((nic_t *)priv, addr, val, 4);
 }
 
 
 static void
-ne2000_ioset(uint16_t addr, ne2000_t *dev)
+nic_ioset(nic_t *dev, uint16_t addr)
 {	
     old_base_addr = addr;
 
-    if (network_card_current == 1) {
+    if (dev->is_rtl8029as) {
 	io_sethandler(addr, 16,
-		      ne2000_readb, NULL, NULL,
-		      ne2000_writeb, NULL, NULL, dev);
+		      nic_readb, nic_readw, nic_readl,
+		      nic_writeb, nic_writew, nic_writel, dev);
 	io_sethandler(addr+16, 16,
-		      ne2000_readb, ne2000_readw, NULL,
-		      ne2000_writeb, ne2000_writew, NULL, dev);
+		      nic_readb, nic_readw, nic_readl,
+		      nic_writeb, nic_writew, nic_writel, dev);
 	io_sethandler(addr+0x1f, 1,
-		      ne2000_readb, NULL, NULL,
-		      ne2000_writeb, NULL, NULL, dev);	
+		      nic_readb, nic_readw, nic_readl,
+		      nic_writeb, nic_writew, nic_writel, dev);
     } else {
 	io_sethandler(addr, 16,
-		      ne2000_readb, ne2000_readw, ne2000_readl,
-		      ne2000_writeb, ne2000_writew, ne2000_writel, dev);
+		      nic_readb, NULL, NULL,
+		      nic_writeb, NULL, NULL, dev);
 	io_sethandler(addr+16, 16,
-		      ne2000_readb, ne2000_readw, ne2000_readl,
-		      ne2000_writeb, ne2000_writew, ne2000_writel, dev);
+		      nic_readb, nic_readw, NULL,
+		      nic_writeb, nic_writew, NULL, dev);
 	io_sethandler(addr+0x1f, 1,
-		      ne2000_readb, ne2000_readw, ne2000_readl,
-		      ne2000_writeb, ne2000_writew, ne2000_writel, dev);
+		      nic_readb, NULL, NULL,
+		      nic_writeb, NULL, NULL, dev);	
     }
 }
 
 
 static void
-ne2000_ioremove(int16_t addr, ne2000_t *dev)
+nic_ioremove(nic_t *dev, int16_t addr)
 {
-    if (network_card_current == 1) {
+    if (dev->is_rtl8029as) {
 	io_removehandler(addr, 16,
-			 ne2000_readb, NULL, NULL,
-			 ne2000_writeb, NULL, NULL, dev);
+			 nic_readb, nic_readw, nic_readl,
+			 nic_writeb, nic_writew, nic_writel, dev);
 	io_removehandler(addr+16, 16,
-			 ne2000_readb, ne2000_readw, NULL,
-			 ne2000_writeb, ne2000_writew, NULL, dev);
+			 nic_readb, nic_readw, nic_readl,
+			 nic_writeb, nic_writew, nic_writel, dev);
 	io_removehandler(addr+0x1f, 1,
-			 ne2000_readb, NULL, NULL,
-			 ne2000_writeb, NULL, NULL, dev);	
+			 nic_readb, nic_readw, nic_readl,
+			 nic_writeb, nic_writew, nic_writel, dev);
     } else {
 	io_removehandler(addr, 16,
-			 ne2000_readb, ne2000_readw, ne2000_readl,
-			 ne2000_writeb, ne2000_writew, ne2000_writel, dev);
+			 nic_readb, NULL, NULL,
+			 nic_writeb, NULL, NULL, dev);
 	io_removehandler(addr+16, 16,
-			 ne2000_readb, ne2000_readw, ne2000_readl,
-			 ne2000_writeb, ne2000_writew, ne2000_writel, dev);
+			 nic_readb, nic_readw, NULL,
+			 nic_writeb, nic_writew, NULL, dev);
 	io_removehandler(addr+0x1f, 1,
-			 ne2000_readb, ne2000_readw, ne2000_readl,
-			 ne2000_writeb, ne2000_writew, ne2000_writel, dev);
+			 nic_readb, NULL, NULL,
+			 nic_writeb, NULL, NULL, dev);	
     }
 }
 
 
 static void
-ne2000_update_bios(ne2000_t *dev)
+nic_update_bios(nic_t *dev)
 {
     int reg_bios_enable;
 	
     reg_bios_enable = 1;
 	
     /* PCI BIOS stuff, just enable_disable. */
-    if (!disable_netbios && reg_bios_enable) {
+    if (!dev->disable_netbios && reg_bios_enable) {
 	mem_mapping_enable(&dev->bios_rom.mapping);
-	mem_mapping_set_addr(&dev->bios_rom.mapping, bios_addr, 0x10000);
-	pclog(1, "NE2000 BIOS now at: %08X\n", bios_addr);
+	mem_mapping_set_addr(&dev->bios_rom.mapping, dev->bios_addr, 0x10000);
+	pclog(1, "%s: BIOS now at: %06X\n", dev->name, dev->bios_addr);
     } else {
 	mem_mapping_disable(&dev->bios_rom.mapping);
-	if (network_card_current == 2)
-			pci_bar[1].addr = 0;
+	if (dev->is_rtl8029as)
+		pci_bar[1].addr = 0;
     }
 }
 
 
 static uint8_t
-ne2000_pci_read(int func, int addr, void *priv)
+nic_pci_read(int func, int addr, void *priv)
 {
+    nic_t *dev = (nic_t *)priv;
+
     switch(addr) {
 	case 0x00:
 		return 0xec;
@@ -1491,7 +1481,7 @@ ne2000_pci_read(int func, int addr, void *priv)
 	case 0x30:
 		return pci_bar[1].addr_regs[0] & 0x01;	/*BIOS ROM address*/
 	case 0x31:
-		return (pci_bar[1].addr_regs[1] & bios_mask) | 0x18;
+		return (pci_bar[1].addr_regs[1] & dev->bios_mask) | 0x18;
 	case 0x32:
 		return pci_bar[1].addr_regs[2];
 	case 0x33:
@@ -1508,15 +1498,15 @@ ne2000_pci_read(int func, int addr, void *priv)
 
 
 static void
-ne2000_pci_write(int func, int addr, uint8_t val, void *priv)
+nic_pci_write(int func, int addr, uint8_t val, void *priv)
 {
-    ne2000_t *dev = (ne2000_t *)priv;
+    nic_t *dev = (nic_t *)priv;
 
     switch(addr) {
 	case 0x04:
-		ne2000_ioremove(dev->base_address, dev);
+		nic_ioremove(dev, dev->base_address);
 		if (val & PCI_COMMAND_IO) {
-			ne2000_ioset(dev->base_address, dev);
+			nic_ioset(dev, dev->base_address);
 		}
 		pci_regs[addr] = val;
 		break;
@@ -1527,7 +1517,7 @@ ne2000_pci_write(int func, int addr, uint8_t val, void *priv)
 	case 0x11: case 0x12: case 0x13:
 		/* I/O Base set. */
 		/* First, remove the old I/O, if old base was >= 0x280. */
-		ne2000_ioremove(dev->base_address, dev);
+		nic_ioremove(dev, dev->base_address);
 
 		/* Then let's set the PCI regs. */
 		pci_bar[0].addr_regs[addr & 3] = val;
@@ -1536,21 +1526,20 @@ ne2000_pci_write(int func, int addr, uint8_t val, void *priv)
 		dev->base_address = pci_bar[0].addr & 0xff00;
 
 		/* Log the new base. */
-		pclog(1, "NE2000 RTL8029AS PCI: New I/O base is %04X\n",
-							dev->base_address);
+		pclog(1, "%s: PCI: new I/O base is %04X\n",
+				dev->name, dev->base_address);
 		/* We're done, so get out of the here. */
-		if (val & PCI_COMMAND_IO) {
-			ne2000_ioset(dev->base_address, dev);
-		}
+		if (val & PCI_COMMAND_IO)
+			nic_ioset(dev, dev->base_address);
 		return;
 
 	case 0x30: case 0x31: case 0x32: case 0x33:
 		pci_bar[1].addr_regs[addr & 3] = val;
-		pci_bar[1].addr_regs[1] &= bios_mask;
-		bios_addr = pci_bar[1].addr & 0xffffe000;
+		pci_bar[1].addr_regs[1] &= dev->bios_mask;
+		dev->bios_addr = pci_bar[1].addr & 0xffffe000;
 		pci_bar[1].addr &= 0xffffe000;
 		pci_bar[1].addr |= 0x1801;
-		ne2000_update_bios(dev);
+		nic_update_bios(dev);
 		return;
 
 #if 0
@@ -1560,7 +1549,7 @@ ne2000_pci_write(int func, int addr, uint8_t val, void *priv)
 	case 0x3C:
 		pci_regs[addr] = val;
 		if (val != 0xFF) {
-			pclog(1, "NE2000 IRQ now: %i\n", val);
+			pclog(1, "%s: IRQ now: %i\n", dev->name, val);
 			dev->base_irq = irq;
 		}
 		return;
@@ -1569,22 +1558,9 @@ ne2000_pci_write(int func, int addr, uint8_t val, void *priv)
 }
 
 
-static uint8_t *
-ne2000_mac(void)
-{
-    if (network_card_current == 2)
-	return(maclocal_pci);
-
-    return(maclocal);
-}
-
-
 static void
-ne2000_tx_event(void *priv, uint32_t val)
+nic_tx(nic_t *dev, uint32_t val)
 {
-    ne2000_t *dev = (ne2000_t *)priv;
-
-    pclog(1, "tx_timer\n");
     dev->CR.tx_packet = 0;
     dev->TSR.tx_ok = 1;
     dev->ISR.pkt_tx = 1;
@@ -1627,6 +1603,7 @@ mcast_index(const void *dst)
 #undef POLYNOMIAL
 }
 
+
 /*
  * rx_frame() - called by the platform-specific code when an
  * ethernet frame has been received. The destination address
@@ -1634,311 +1611,248 @@ mcast_index(const void *dst)
  * rx ring has enough room, it is copied into it and
  * the receive process is updated
  */
-void ne2000_rx_frame(void *p, const void *buf, int io_len)
+static void
+nic_rx(void *priv, uint8_t *buf, int io_len)
 {
-	ne2000_t *dev = (ne2000_t *)p;
-
-	int pages;
-	int avail;
-	int idx;
-	int nextpage;
-	uint8_t pkthdr[4];
-	uint8_t *pktbuf = (uint8_t *) buf;
-	uint8_t *startptr;
-	static uint8_t bcast_addr[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
-	uint32_t mac_cmp32[2];
-	uint16_t mac_cmp16[2];
-
-	if(io_len != 60)
-	{
-		pclog(1, "rx_frame with length %d\n", io_len);
-	}
-
-	if	((dev->CR.stop != 0) ||
-		 (dev->page_start == 0))
-	{
-		return;
-	}
-
-	/* Add the pkt header + CRC to the length, and work
-	   out how many 256-byte pages the frame would occupy */
-	pages = (io_len + 4 + 4 + 255)/256;
-
-	if (dev->curr_page < dev->bound_ptr)
-	{
-		avail = dev->bound_ptr - dev->curr_page;
-	}
-	else
-	{
-		avail = (dev->page_stop - dev->page_start) - (dev->curr_page - dev->bound_ptr);
-	}
-
-	/* Avoid getting into a buffer overflow condition by not attempting
-	   to do partial receives. The emulation to handle this condition
-	   seems particularly painful. */
-	if	((avail < pages)
-#if BX_NE2K_NEVER_FULL_RING
-		 || (avail == pages)
-#endif
-		)
-	{
-		pclog(1, "no space\n");
-		return;
-	}
-
-	if ((io_len < 40/*60*/) && !dev->RCR.runts_ok)
-	{
-		pclog(1, "rejected small packet, length %d\n", io_len);
-		return;
-	}
-	/* some computers don't care... */
-	if (io_len < 60)
-	{
-		io_len=60;
-	}
-
-	/* Do address filtering if not in promiscuous mode */
-	if (! dev->RCR.promisc)
-	{
-		/* Received. */
-		mac_cmp32[0] = *(uint32_t *) (buf);
-		mac_cmp16[0] = *(uint16_t *) (((uint8_t *) buf) + 4);
-		/* Local. */
-		mac_cmp32[1] = *(uint32_t *) (bcast_addr);
-		mac_cmp16[1] = *(uint16_t *) (bcast_addr+4);
-		if ((mac_cmp32[0] == mac_cmp32[1]) && (mac_cmp16[0] == mac_cmp16[1]))
-		{
-			if (!dev->RCR.broadcast)
-			{
-				return;
-			}
-		}
-		else if (pktbuf[0] & 0x01)
-		{
-			if (! dev->RCR.multicast)
-			{
-				return;
-			}
-			idx = mcast_index(buf);
-			if (!(dev->mchash[idx >> 3] & (1 << (idx & 0x7))))
-			{
-				return;
-			}
-		}
-		else if (0 != memcmp(buf, dev->physaddr, 6))
-		{
-			return;
-		}
-	}
-	else
-	{
-		pclog(1, "rx_frame promiscuous receive\n");
-	}
-
-    pclog(1, "rx_frame %d to %x:%x:%x:%x:%x:%x from %x:%x:%x:%x:%x:%x\n", io_len, pktbuf[0], pktbuf[1], pktbuf[2], pktbuf[3], pktbuf[4], pktbuf[5], pktbuf[6], pktbuf[7], pktbuf[8], pktbuf[9], pktbuf[10], pktbuf[11]);
-
-	nextpage = dev->curr_page + pages;
-	if (nextpage >= dev->page_stop)
-	{
-		nextpage -= dev->page_stop - dev->page_start;
-	}
-
-	/* Setup packet header */
-	pkthdr[0] = 0;			/* rx status - old behavior
-	pkthdr[0] = 1;			/* Probably better to set it all the time
-					   rather than set it to 0, which is clearly wrong. */
-	if (pktbuf[0] & 0x01)
-	{
-		pkthdr[0] |= 0x20;	/* rx status += multicast packet */
-	}
-	pkthdr[1] = nextpage;	/* ptr to next packet */
-	pkthdr[2] = (io_len + 4) & 0xff;	/* length-low */
-	pkthdr[3] = (io_len + 4) >> 8;		/* length-hi */
-
-	/* copy into buffer, update curpage, and signal interrupt if config'd */
-	startptr = & dev->mem[dev->curr_page * 256 - BX_NE2K_MEMSTART];
-	if ((nextpage > dev->curr_page) || ((dev->curr_page + pages) == dev->page_stop))
-	{
-		*(uint32_t *) startptr = *(uint32_t *) pkthdr;
-		memcpy(startptr + 4, buf, io_len);
-		dev->curr_page = nextpage;
-	}
-	else
-	{
-		int endbytes = (dev->page_stop - dev->curr_page) * 256;
-		*(uint32_t *) startptr = *(uint32_t *) pkthdr;
-		memcpy(startptr + 4, buf, endbytes - 4);
-		startptr = & dev->mem[dev->page_start * 256 - BX_NE2K_MEMSTART];
-		memcpy(startptr, (void *)(pktbuf + endbytes - 4), io_len - endbytes + 8);
-		dev->curr_page = nextpage;
-	}
-
-	dev->RSR.rx_ok = 1;
-	if (pktbuf[0] & 0x80)
-	{
-		dev->RSR.rx_mbit = 1;
-	}
-
-	dev->ISR.pkt_rx = 1;
-
-	if (dev->IMR.rx_inte)
-	{
-		picint(1 << dev->base_irq);
-	}
-}
-
-
-void
-ne2000_poller(void *priv)
-{
-    ne2000_t *dev = (ne2000_t *)priv;
-    struct queuepacket *qp;
-    const unsigned char *data;
-    struct pcap_pkthdr h;
+    static uint8_t bcast_addr[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
+    nic_t *dev = (nic_t *)priv;
+    int pages;
+    int avail;
+    int idx;
+    int nextpage;
+    uint8_t pkthdr[4];
+    uint8_t *pktbuf = (uint8_t *) buf;
+    uint8_t *startptr;
     uint32_t mac_cmp32[2];
     uint16_t mac_cmp16[2];
 
-    if (! net_is_pcap) {
-	while(QueuePeek(slirpq) > 0) {
-		qp = QueueDelete(slirpq);
-		if ((dev->DCR.loop == 0) || (dev->TCR.loop_cntl != 0)) {
-			free(qp);
-			return;
-		}
-		ne2000_rx_frame(dev, &qp->data, qp->len); 
-		pclog(1, "ne2000 inQ:%d  got a %dbyte packet @%d\n",QueuePeek(slirpq),qp->len,qp);
-		free(qp);
-	}
-        fizz++;
-        if (fizz > 1200) {
-		fizz=0;
-		slirp_tic();
-	}
+    if (io_len != 60)
+	pclog(2, "%s: rx_frame with length %d\n", dev->name, io_len);
 
+    if	((dev->CR.stop != 0) || (dev->page_start == 0)) return;
+
+    /* Add the pkt header + CRC to the length, and work
+       out how many 256-byte pages the frame would occupy */
+    pages = (io_len + 4 + 4 + 255)/256;
+    if (dev->curr_page < dev->bound_ptr) {
+	avail = dev->bound_ptr - dev->curr_page;
+    } else {
+	avail = (dev->page_stop - dev->page_start) - (dev->curr_page - dev->bound_ptr);
+    }
+
+    /* Avoid getting into a buffer overflow condition by not attempting
+       to do partial receives. The emulation to handle this condition
+       seems particularly painful. */
+    if	((avail < pages)
+#if NE2K_NEVER_FULL_RING
+		 || (avail == pages)
+#endif
+		) {
+	pclog(1, "%s: no space\n", dev->name);
 	return;
     }
 
-    if (net_pcap != NULL) {
-	if ((dev->DCR.loop == 0) || (dev->TCR.loop_cntl != 0)) {
-		return;
-	}
-	data = pcap_next(net_pcap, &h);
-	if (data == NULL) {
-		return;
-	}
+    if ((io_len < 40/*60*/) && !dev->RCR.runts_ok) {
+	pclog(1, "%s: rejected small packet, length %d\n", dev->name, io_len);
+	return;
+    }
 
+    /* some computers don't care... */
+    if (io_len < 60) {
+	io_len=60;
+    }
+
+    /* Do address filtering if not in promiscuous mode */
+    if (! dev->RCR.promisc) {
 	/* Received. */
-	mac_cmp32[0] = *(uint32_t *)(data+6);
-	mac_cmp16[0] = *(uint16_t *)(data+10);
+	mac_cmp32[0] = *(uint32_t *) (buf);
+	mac_cmp16[0] = *(uint16_t *) (((uint8_t *) buf) + 4);
 
 	/* Local. */
-	mac_cmp32[1] = *(uint32_t *)(ne2000_mac());
-	mac_cmp16[1] = *(uint16_t *)(ne2000_mac()+4);
-	if ((mac_cmp32[0] != mac_cmp32[1]) || (mac_cmp16[0] != mac_cmp16[1])) {
-		ne2000_rx_frame(dev, data, h.caplen); 
-	} else {
-		pclog(1, "NE2000: RX pkt, not for me!\n");
+	mac_cmp32[1] = *(uint32_t *) (bcast_addr);
+	mac_cmp16[1] = *(uint16_t *) (bcast_addr+4);
+	if ((mac_cmp32[0] == mac_cmp32[1]) && (mac_cmp16[0] == mac_cmp16[1])) {
+		if (! dev->RCR.broadcast) {
+			return;
+		}
+	} else if (pktbuf[0] & 0x01) {
+		if (! dev->RCR.multicast) {
+			return;
+		}
+		idx = mcast_index(buf);
+		if (!(dev->mchash[idx >> 3] & (1 << (idx & 0x7)))) {
+			return;
+		}
+	} else if (0 != memcmp(buf, dev->physaddr, 6)) {
+		return;
 	}
+    } else {
+	pclog(2, "%s: rx_frame promiscuous receive\n", dev->name);
     }
+
+    pclog(2, "%s: rx_frame %d to %x:%x:%x:%x:%x:%x from %x:%x:%x:%x:%x:%x\n",
+	dev->name, io_len,
+	pktbuf[0], pktbuf[1], pktbuf[2], pktbuf[3], pktbuf[4], pktbuf[5],
+	pktbuf[6], pktbuf[7], pktbuf[8], pktbuf[9], pktbuf[10], pktbuf[11]);
+
+    nextpage = dev->curr_page + pages;
+    if (nextpage >= dev->page_stop) {
+	nextpage -= dev->page_stop - dev->page_start;
+    }
+
+    /* Setup packet header */
+    pkthdr[0] = 0;	/* rx status - old behavior
+    pkthdr[0] = 1;	/* Probably better to set it all the time
+			   rather than set it to 0, which is clearly wrong. */
+    if (pktbuf[0] & 0x01) {
+	pkthdr[0] |= 0x20;		/* rx status += multicast packet */
+    }
+    pkthdr[1] = nextpage;		/* ptr to next packet */
+    pkthdr[2] = (io_len + 4) & 0xff;	/* length-low */
+    pkthdr[3] = (io_len + 4) >> 8;	/* length-hi */
+
+    /* copy into buffer, update curpage, and signal interrupt if config'd */
+    startptr = & dev->mem[dev->curr_page * 256 - NE2K_MEMSTART];
+    if ((nextpage > dev->curr_page) ||
+	((dev->curr_page + pages) == dev->page_stop)) {
+	*(uint32_t *) startptr = *(uint32_t *) pkthdr;
+	memcpy(startptr + 4, buf, io_len);
+	dev->curr_page = nextpage;
+    } else {
+	int endbytes = (dev->page_stop - dev->curr_page) * 256;
+	*(uint32_t *) startptr = *(uint32_t *) pkthdr;
+	memcpy(startptr + 4, buf, endbytes - 4);
+	startptr = & dev->mem[dev->page_start * 256 - NE2K_MEMSTART];
+	memcpy(startptr, (void *)(pktbuf + endbytes - 4), io_len - endbytes + 8);
+	dev->curr_page = nextpage;
+    }
+
+    dev->RSR.rx_ok = 1;
+    if (pktbuf[0] & 0x80) {
+	dev->RSR.rx_mbit = 1;
+    }
+
+    dev->ISR.pkt_rx = 1;
+
+    if (dev->IMR.rx_inte)
+	picint(1 << dev->base_irq);
 }
 
 
 static void
-ne2000_rom_init(ne2000_t *dev, wchar_t *s)
+nic_rom_init(nic_t *dev, wchar_t *s)
 {
     FILE *f = romfopen(s, L"rb");
     uint32_t temp;
 
     if (f != NULL) {
-	disable_netbios = 1;
-	ne2000_update_bios(dev);
+	dev->disable_netbios = 1;
+	nic_update_bios(dev);
 	return;
     }
     fseek(f, 0, SEEK_END);
     temp = ftell(f);
     fclose(f);
-    bios_size = 0x10000;
+    dev->bios_size = 0x10000;
     if (temp <= 0x8000)
-	bios_size = 0x8000;
+	dev->bios_size = 0x8000;
     if (temp <= 0x4000)
-	bios_size = 0x4000;
+	dev->bios_size = 0x4000;
     if (temp <= 0x2000)
-	bios_size = 0x2000;
-    bios_mask = (bios_size >> 8) & 0xff;
-    bios_mask = (0x100 - bios_mask) & 0xff;
+	dev->bios_size = 0x2000;
+    dev->bios_mask = (dev->bios_size >> 8) & 0xff;
+    dev->bios_mask = (0x100 - dev->bios_mask) & 0xff;
 
+#if 1
+    /* Shouldn't we use the configured address?? --FvK */
     rom_init(&dev->bios_rom, s, 0xd0000,
-	     bios_size, bios_size - 1, 0, MEM_MAPPING_EXTERNAL);
+	     dev->bios_size, dev->bios_size - 1, 0, MEM_MAPPING_EXTERNAL);
+#else
+    rom_init(&dev->bios_rom, s, dev->bios_addr,
+	     dev->bios_size, dev->bios_size - 1, 0, MEM_MAPPING_EXTERNAL);
+#endif
 }
 
 
 static void *
-ne2000_init(void)
+nic_init(int board)
 {
-    char errbuf[32768];
-    int rc;
-    int config_net_type;
-    int irq;
-    int pcap_device_available = 0;
-    int is_rtl8029as = 0;
-    ne2000_t *dev;
-    char *pcap_dev;
+    uint32_t mac;
+    uint8_t *ptr;
+    nic_t *dev;
 
-    dev = malloc(sizeof(ne2000_t));
-    memset(dev, 0x00, sizeof(ne2000_t));
-	
-    if (PCI && (network_card_current == 2)) {
-	is_rtl8029as = 1;
-    } else {
-	network_card_current = 1;
-	is_rtl8029as = 0;
-    }
+    dev = malloc(sizeof(nic_t));
+    memset(dev, 0x00, sizeof(nic_t));
+    dev->is_rtl8029as = (PCI && (board == NE2K_RTL8029AS)) ? 1 : 0;
+    if (board == NE2K_RTL8029AS)
+	strcpy(dev->name, "RTL8029AS");
+      else if (board == NE2K_NE1000)
+	strcpy(dev->name, "NE1000");
+      else
+	strcpy(dev->name, "NE2000");
 
-    if (is_rtl8029as) {
+    if (dev->is_rtl8029as) {
 	dev->base_address = 0x340;
+	mac = config_get_int(NULL, "maclocal_pci", -1);
     } else {
 	dev->base_address = device_get_config_int("addr");
+	mac = config_get_int(NULL, "maclocal", -1);
     }
-    irq = device_get_config_int("irq");
-    dev->base_irq = irq;
+    dev->base_irq = device_get_config_int("irq");
+    dev->disable_netbios = device_get_config_int("disable_netbios");
 
-    disable_netbios = device_get_config_int("disable_netbios");
-
-    /* Network type is now specified in device config. */
-    config_net_type = device_get_config_int("net_type");
-
-    net_is_pcap = config_net_type ? 0 : 1;
-    if (net_is_pcap) {
-	pcap_dev = config_get_string(NULL, "pcap_device", "nothing");
-	if (! strcmp(pcap_dev, "nothing")) {
-		net_is_pcap = 0;
-		pcap_device_available = 0;
-	} else {
-		pcap_device_available = 1;
-	}
+    /* Set up our MAC address. */
+    if (dev->is_rtl8029as) {
+	maclocal_pci[0] = 0x00;	/* 00:20:18 (RTL 8029AS PCI vendor prefix). */
+	maclocal_pci[1] = 0x20;
+	maclocal_pci[2] = 0x18;
+	ptr = maclocal_pci;
+    } else {
+	maclocal[0] = 0x00;	/* 00:00:D8 (NE2000 ISA vendor prefix). */
+	maclocal[1] = 0x00;
+	maclocal[2] = 0xD8;
+	ptr = maclocal;
     }
-    pclog(1, "net_is_pcap = %i\n", net_is_pcap);
-	
-    if (is_rtl8029as) {
-	pci_add(ne2000_pci_read, ne2000_pci_write, dev);
+pclog(1, "MAClocal: mac=%08lx\n", mac);
+    if (mac & 0xff000000) {
+	/* Generating new MAC. */
+	ptr[3] = disc_random_generate();
+	ptr[4] = disc_random_generate();
+	ptr[5] = disc_random_generate();
+    } else {
+	ptr[3] = (mac>>16) & 0xff;
+	ptr[4] = (mac>>8) & 0xff;
+	ptr[5] = mac & 0xff;
+    }
+    memcpy(dev->physaddr, ptr, 6);
+
+    pclog(1,"%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x BIOS=%d\n",
+	dev->name, dev->base_address, dev->base_irq,
+	dev->physaddr[0], dev->physaddr[1], dev->physaddr[2],
+	dev->physaddr[3], dev->physaddr[4], dev->physaddr[5],
+	!dev->disable_netbios);
+
+    if (network_attach(dev, dev->physaddr, nic_rx) < 0) {
+	pclog(1, "%s: unable to init platform network type %d\n",
+					dev->name, network_type);
+	free(dev);
+	return(NULL);
     }
 
-    ne2000_ioset(dev->base_address, dev);
+    if (dev->is_rtl8029as)
+	pci_add(nic_pci_read, nic_pci_write, dev);
+    nic_ioset(dev, dev->base_address);
 
-    memcpy(dev->physaddr, ne2000_mac(), 6);
-
-    if (! disable_netbios) {
-	ne2000_rom_init(dev, is_rtl8029as ? L"roms/rtl8029as.rom"
-					  : L"roms/ne2000.rom");
-	if (is_rtl8029as) {
+    if (! dev->disable_netbios) {
+	nic_rom_init(dev, dev->is_rtl8029as ? L"roms/rtl8029as.rom"
+					       : L"roms/ne2000.rom");
+	if (dev->is_rtl8029as)
 		mem_mapping_disable(&dev->bios_rom.mapping);
-	}
     }
 	
-    if (is_rtl8029as) {
+    if (dev->is_rtl8029as) {
         pci_regs[0x04] = 1;
         pci_regs[0x05] = 0;
-
         pci_regs[0x07] = 2;
 
         /* Network controller. */
@@ -1946,18 +1860,18 @@ ne2000_init(void)
 		
 	pci_bar[0].addr_regs[0] = 1;
 		
-	if (disable_netbios) {
+	if (! dev->disable_netbios) {
 		pci_bar[1].addr = 0;
-		bios_addr = 0;
+		dev->bios_addr = 0;
 	} else {
 		pci_bar[1].addr = 0x000F8000;
-		pci_bar[1].addr_regs[1] = bios_mask;
+		pci_bar[1].addr_regs[1] = dev->bios_mask;
 		pci_bar[1].addr |= 0x1801;
-		bios_addr = 0xD0000;
+		dev->bios_addr = 0xD0000;
 	}
 
-	pci_regs[0x3C] = irq;
-	pclog(1, "RTL8029AS IRQ: %i\n", pci_regs[0x3C]);
+	pci_regs[0x3C] = dev->base_irq;
+	pclog(1, "%s: IRQ=%i\n", dev->name, pci_regs[0x3C]);
         pci_regs[0x3D] = 1;
 
         memset(rtl8029as_eeprom, 0, 128);
@@ -1973,169 +1887,28 @@ ne2000_init(void)
 	 rtl8029as_eeprom[0x7D] = 0xEC;
     }
 
-    ne2000_reset(dev, BX_RESET_HARDWARE);
+    nic_reset(dev, BX_RESET_HARDWARE);
 
-    network_add_handler(ne2000_poller, dev);
-
-    pclog(1, "ne2000 %s init 0x%X %d\tnet_is_pcap is %d\n",
-	is_rtl8029as?"PCI":"ISA",
-	dev->base_address,
-	device_get_config_int("irq"),
-	net_is_pcap);
-
-    /* need a switch statment for more network types. */
-    if (! net_is_pcap) {
-initialize_slirp:
-	pclog(1, "ne2000 initalizing SLiRP\n");
-	net_is_pcap=0;
-	rc=slirp_init();
-	pclog(1, "ne2000 slirp_init returned: %d\n",rc);
-	if (! rc) {
-		pclog(1, "ne2000 slirp initalized!\n");
-
-		net_slirp_inited = 1;
-		slirpq = QueueCreate();
-		fizz=0;
-		pclog(1, "ne2000 slirpq is %x\n",&slirpq);
-	} else {
-		net_slirp_inited = 0;
-		if (pcap_device_available) {
-			net_is_pcap = 1;
-			goto initialize_pcap;
-		} else {
-			pclog(1, "Neither SLiRP nor PCap available, disabling network adapter...\n");
-			free(dev);
-			network_card_current = 0;
-			resetpchard();
-			return(NULL);
-		}
-	}
-    } else {
-initialize_pcap:
-	pclog(1, "ne2000 initalizing libpcap\n");
-
-	pclog(1, "ne2000 Pcap version [%s]\n", pcap_lib_version());
-
-	net_pcap = pcap_open_live(pcap_dev, 1518, 1, 15, errbuf);
-	if (net_pcap == NULL) {
-		pclog(1, "NE2000 pcap_open_live error on %s!\n", pcap_dev);
-		net_is_pcap=0;
-		return(dev);	/* YUCK!!! */
-	}
-
-	/* Time to check that we are in non-blocking mode. */
-	rc = pcap_getnonblock(net_pcap, errbuf);
-	pclog(1, "ne2000 pcap is currently in %s mode\n",
-			rc?"non-blocking":"blocking");
-	switch(rc) {
-		case 0:
-			pclog(1, "NE2000: setting to non-blocking mode..");
-			rc = pcap_setnonblock(net_pcap, 1, errbuf);
-			if (rc == 0) {
-				/* no errors! */
-				pclog(1, "..");
-				rc = pcap_getnonblock(net_pcap, errbuf);
-				if (rc == 1) {
-					pclog(1, "..!");
-					net_is_pcap = 1;
-				} else {
-					pclog(1, "\tunable to set pcap into non-blocking mode!\nContinuining without pcap.\n");
-					net_is_pcap = 0;
-				}
-			} else {
-				pclog(1, "There was an unexpected error of [%s]\n\nexiting.\n", errbuf);
-				net_is_pcap = 0;
-			}
-			pclog(1, "\n");
-			break;
-
-		case 1:
-			pclog(1, "non blocking\n");
-			break;
-
-		default:
-			pclog(1, "this isn't right!!!\n");
-			net_is_pcap = 0;
-			break;
-	}
-
-	if (net_is_pcap) {
-		char filter_exp[255];
-		struct bpf_program fp;
-		uint8_t *mac;
-
-		mac = ne2000_mac();
-		pclog(1, "ne2000 Building packet filter ...");
-		sprintf(filter_exp,
-			"( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )",
-			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
-			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-
-		if (pcap_compile(net_pcap, &fp, filter_exp, 0, 0xffffffff) == -1) {
-			pclog(1, "\nne2000 Couldn't compile filter\n");
-		} else {
-			pclog(1, "...");
-			if (pcap_setfilter(net_pcap, &fp) == -1) {
-				pclog(1, "\nError installing pcap filter.\n");
-			} else {
-				pclog(1, "...!\n");
-			}
-		}
-		pclog(1, "ne2000 Using filter\t[%s]\n", filter_exp);
-	} else {
-		pcap_device_available = 0;
-		goto initialize_slirp;
-	}
-	pclog(1, "ne2000 net_is_pcap is %d and net_pcap is %x\n",
-					net_is_pcap, net_pcap);
-    }
-
-    pclog(1, "ne2000 is_pcap %d\n", net_is_pcap);
+    pclog(1, "%s: %s init 0x%X %d\n", dev->name,
+	dev->is_rtl8029as?"PCI":"ISA", dev->base_address, dev->base_irq);
 
     return(dev);
 }
 
 
 static void
-ne2000_close(void *priv)
+nic_close(void *priv)
 {
-    ne2000_t *dev = (ne2000_t *)priv;
+    nic_t *dev = (nic_t *)priv;
 
-    if (! net_is_pcap) {
-	QueueDestroy(slirpq);
-	slirp_exit(0);
-	net_slirp_inited=0;
-	pclog(1, "NE2000 exiting slirp\n");
-    } else if (net_is_pcap && (net_pcap != NULL)) {
-	pcap_close(net_pcap);
-	pclog(1, "NE2000 closing pcap\n");
-    }
+    /* Make sure the platform layer is shut down. */
+    network_close();
 
-    ne2000_ioremove(dev->base_address, dev);
+    nic_ioremove(dev, dev->base_address);
 
     free(dev);
 
-    pclog(1, "Ne2000 close\n");
-}
-
-
-void
-ne2000_generate_maclocal(uint32_t mac)
-{
-    maclocal[0] = 0x00;	/* 00:00:D8 (NE2000 ISA vendor prefix). */
-    maclocal[1] = 0x00;
-    maclocal[2] = 0xD8;
-
-    if (mac & 0xff000000) {
-	/* Generating new MAC. */
-	maclocal[3] = disc_random_generate();
-	maclocal[4] = disc_random_generate();
-	maclocal[5] = disc_random_generate();
-    } else {
-	maclocal[3] = (mac>>16) & 0xff;
-	maclocal[4] = (mac>>8) & 0xff;
-	maclocal[5] = mac & 0xff;
-    }
+    pclog(1, "%s: closed\n", dev->name);
 }
 
 
@@ -2152,26 +1925,6 @@ ne2000_get_maclocal(void)
 }
 
 
-void
-ne2000_generate_maclocal_pci(uint32_t mac)
-{
-    maclocal_pci[0] = 0x00;	/* 00:20:18 (RTL 8029AS PCI vendor prefix). */
-    maclocal_pci[1] = 0x20;
-    maclocal_pci[2] = 0x18;
-
-    if (mac & 0xff000000) {
-	/* Generating new MAC. */
-	maclocal_pci[3] = disc_random_generate();
-	maclocal_pci[4] = disc_random_generate();
-	maclocal_pci[5] = disc_random_generate();
-    } else {
-	maclocal_pci[3] = (mac >> 16) & 0xff;
-	maclocal_pci[4] = (mac >> 8) & 0xff;
-	maclocal_pci[5] = mac & 0xff;
-    }
-}
-
-
 uint32_t
 ne2000_get_maclocal_pci(void)
 {
@@ -2184,6 +1937,94 @@ ne2000_get_maclocal_pci(void)
     return(temp);
 }
 
+
+static void *
+ne1000_init(void)
+{
+    return(nic_init(NE2K_NE1000));
+}
+
+
+static void *
+ne2000_init(void)
+{
+    return(nic_init(NE2K_NE2000));
+}
+
+
+static void *
+rtl8029as_init(void)
+{
+    return(nic_init(NE2K_RTL8029AS));
+}
+
+
+static device_config_t ne1000_config[] =
+{
+	{
+		"addr", "Address", CONFIG_SELECTION, "", 0x300,
+		{
+			{
+				"0x280", 0x280
+			},
+			{
+				"0x300", 0x300
+			},
+			{
+				"0x320", 0x320
+			},
+			{
+				"0x340", 0x340
+			},
+			{
+				"0x360", 0x360
+			},
+			{
+				"0x380", 0x380
+			},
+			{
+				""
+			}
+		},
+	},
+	{
+		"irq", "IRQ", CONFIG_SELECTION, "", 3,
+		{
+			{
+				"IRQ 3", 3
+			},
+			{
+				"IRQ 5", 5
+			},
+			{
+				"IRQ 7", 7
+			},
+			{
+				""
+			}
+		},
+	},
+	{
+		"net_type", "Network type", CONFIG_SELECTION, "", 0,
+		{
+			{
+				"PCap", 0
+			},
+			{
+				"SLiRP", 1
+			},
+			{
+				""
+			}
+		},
+	},
+	{
+		"disable_netbios", "Disable network BIOS", CONFIG_BINARY, "", 0
+	},
+	{
+		"", "", -1
+	}
+};
 
 static device_config_t ne2000_config[] =
 {
@@ -2306,81 +2147,39 @@ static device_config_t rtl8029as_config[] =
 };
 
 
-device_t ne2000_device =
-{
-	"Novell NE2000",
-	0,
-	ne2000_init,
-	ne2000_close,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	ne2000_config
+
+device_t ne1000_device = {
+    "Novell NE1000",
+    0,
+    ne1000_init,
+    nic_close,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    ne1000_config
 };
 
-device_t rtl8029as_device =
-{
-	"Realtek RTL8029AS",
-	0,
-	ne2000_init,
-	ne2000_close,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	rtl8029as_config
+device_t ne2000_device = {
+    "Novell NE2000",
+    0,
+    ne2000_init,
+    nic_close,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    ne2000_config
 };
 
-
-/* SLIRP stuff */
-int
-slirp_can_output(void)
-{
-    return(net_slirp_inited);
-}
-
-
-void
-slirp_output(const unsigned char *pkt, int pkt_len)
-{
-    struct queuepacket *p;
-
-    p = (struct queuepacket *)malloc(sizeof(struct queuepacket));
-    p->len = pkt_len;
-    memcpy(p->data, pkt, pkt_len);
-    QueueEnter(slirpq, p);
-    pclog(1, "ne2000 slirp_output %d @%d\n", pkt_len, p);
-}
-
-
-/* Instead of calling this and crashing some times
-   or experencing jitter, this is called by the 
-   60Hz clock which seems to do the job. */
-void
-slirp_tic(void)
-{
-    int ret2,nfds;
-    struct timeval tv;
-    fd_set rfds, wfds, xfds;
-    int tmo;
-    nfds=-1;
-
-    if (! net_slirp_inited) return;
-
-    FD_ZERO(&rfds);
-    FD_ZERO(&wfds);
-    FD_ZERO(&xfds);
-    tmo = slirp_select_fill(&nfds, &rfds, &wfds, &xfds); /* this can crash */
-    if (tmo < 0) {
-	tmo = 500;
-    }
-
-    tv.tv_sec = 0;
-    tv.tv_usec = tmo;	/* basilisk default 10000 */
-
-    ret2 = select(nfds+1, &rfds, &wfds, &xfds, &tv);
-    if (ret2 >= 0) {
-	slirp_select_poll(&rfds, &wfds, &xfds);
-    }
-}
+device_t rtl8029as_device = {
+    "Realtek RTL8029AS",
+    0,
+    rtl8029as_init,
+    nic_close,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    rtl8029as_config
+};

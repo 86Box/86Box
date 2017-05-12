@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 MinGW 32-bit environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.10	2017/05/10
+# Version:	@(#)Makefile.mingw	1.0.11	2017/05/11
 #
 # Authors:	Kotori, <oubattler@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -132,7 +132,7 @@ DEVOBJ	= bugger.o lpt.o serial.o \
 	    cdrom-dosbox.o cdrom-image.o cdrom-ioctl.o cdrom-null.o
 USBOBJ	= usb.o
 NETOBJ	= network.o \
-	    net_pcap.o \
+	    net_pcap.o net_slirp.o \
 	    net_ne2000.o
 SCSIOBJ	= scsi.o scsi_disk.o scsi_buslogic.o scsi_aha154x.o
 SNDOBJ	= sound.o \

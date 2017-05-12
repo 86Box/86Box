@@ -21,7 +21,6 @@
 #include "model.h"
 #include "mouse.h"
 #include "network.h"
-#include "net_ne2000.h"
 #include "nvr.h"
 #include "plat-joystick.h"
 #include "scsi.h"
@@ -545,9 +544,9 @@ void loadconfig(wchar_t *fn)
                 scsi_card_current = 0;
 
 	/* network */
-        p = (char *)config_get_string(NULL, "netcard", "");
-	if (p != NULL)
-		network_setup(p);
+        p = (char *)config_get_string(NULL, "net_card", "");
+	network_type = config_get_int(NULL, "net_type", -1);
+	network_setup(p);
 
         p = (char *)config_get_string(NULL, "model", "");
         if (p)
@@ -843,9 +842,12 @@ void saveconfig(void)
 
 	config_set_string(NULL, "scsicard", scsi_card_get_internal_name(scsi_card_current));
 
-	config_set_string(NULL, "netcard", network_card_get_internal_name(network_card_current));
+	config_set_string(NULL, "net_card", network_card_get_internal_name(network_card));
+	config_set_int(NULL, "net_type", network_type);
+#if 1
 	config_set_int(NULL, "maclocal", ne2000_get_maclocal());
 	config_set_int(NULL, "maclocal_pci", ne2000_get_maclocal_pci());
+#endif
 
         config_set_string(NULL, "model", model_get_internal_name());
         config_set_int(NULL, "cpu_manufacturer", cpu_manufacturer);

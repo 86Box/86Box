@@ -8,7 +8,11 @@
  *
  *		Implementation of the network module.
  *
- * Version:	@(#)network.c	1.0.2	2017/05/09
+ * NOTE		The definition of the netcard_t is currently not optimal;
+ *		it should be malloc'ed and then linked to the NETCARD def.
+ *		Will be done later.
+ *
+ * Version:	@(#)network.c	1.0.2	2017/05/11
  *
  * Authors:	Kotori, <oubattler@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -18,99 +22,161 @@
 #include <stdlib.h>
 #include <string.h>
 #include "ibm.h"
+#include "config.h"
 #include "device.h"
-#include "timer.h"
-#include "thread.h"
 #include "network.h"
 #include "net_ne2000.h"
 
 
-typedef struct {
-    char name[64];
-    char internal_name[32];
-    device_t *device;
-} NETCARD;
-
-typedef struct {
-    void (*poller)(void *);
-    void *priv;
-} NETPOLL;
-
-
-static int net_handlers_num;
-static int net_poll_time = 0;
-static int net_poll_time;
-static NETPOLL net_handlers[8];
-static NETCARD net_cards[] = {
-    { "None",			"none",		NULL			},
-    { "Novell NE2000",		"ne2k",		&ne2000_device		},
-    { "Realtek RTL8029AS",	"ne2kpci",	&rtl8029as_device	},
-    { "",			"",		NULL			}
+static netcard_t net_cards[] = {
+    { "None",			"none",		NULL,
+      NULL,			NULL					},
+    { "Novell NE1000",		"ne1k",		&ne1000_device,
+      NULL,			NULL					},
+    { "Novell NE2000",		"ne2k",		&ne2000_device,
+      NULL,			NULL					},
+    { "Realtek RTL8029AS",	"ne2kpci",	&rtl8029as_device,
+      NULL,			NULL					},
+    { "",			"",		NULL,
+      NULL,			NULL					}
 };
 
 
-int network_card_current = 0;
-uint8_t ethif;
-int inum;
+int	network_card;
+int	network_type;
 
 
-static void
-net_poll(void *priv)
-{
-    int c;
-
-    /* Reset the poll timer. */
-    net_poll_time += (int)((double)TIMER_USEC * (1000000.0/8.0/3000.0));
-
-    /* If we have active cards.. */
-    if (net_handlers_num) {
-	/* .. poll each of them. */
-	for (c=0; c<net_handlers_num; c++) {
-		net_handlers[c].poller(net_handlers[c].priv);
-	}
-    }
-}
-
-
-/* Initialize the configured network cards. */
+/*
+ * Initialize the configured network cards.
+ *
+ * This function gets called only once, from the System
+ * Platform initialization code (currently in pc.c) to
+ * set our local stuff to a known state.
+ */
 void
 network_init(void)
 {
-    network_card_current = 0;
-    net_handlers_num = 0;
-    net_poll_time = 0;
+    network_card = 0;
+    network_type = -1;
 }
 
 
-/* Reset the network card(s). */
+/*
+ * Set up the network for a card.
+ *
+ * This function gets called whenever we load a new
+ * system configuration file. It only grabs the variables
+ * from that file, and saves them locally.
+ */
+void
+network_setup(char *name)
+{
+    /* No platform support, give up. */
+    if (network_type < 0) return;
+
+    network_card = network_card_get_from_internal_name(name);
+    if (network_card == 0) return;
+
+    pclog("NETWORK: set up for card '%s' (%d) in %s\n",
+		name, network_card, (network_type==1)?"SLiRP":"WinPcap");
+}
+
+
+/*
+ * Attach a network card to the system.
+ *
+ * This function is called by a hardware driver ("card") after it has
+ * finished initializing itself, to link itself to the platform support
+ * modules.
+ */
+int
+network_attach(void *dev, uint8_t *mac, NETRXCB rx)
+{
+    int ret = -1;
+
+    if (! network_card) return(ret);
+
+    /* Save the card's callback info. */
+    net_cards[network_card].private = dev;
+    net_cards[network_card].rx = rx;
+
+    /* Start the platform module. */
+    switch(network_type) {
+	case 0:
+		ret = network_pcap_setup(mac, rx, dev);
+		break;
+
+	case 1:
+		ret = network_slirp_setup(mac, rx, dev);
+		break;
+    }
+
+    return(ret);
+}
+
+
+/* Stop any network activity. */
+void
+network_close(void)
+{
+    switch(network_type) {
+	case 0:
+		network_pcap_close();
+		break;
+
+	case 1:
+		network_slirp_close();
+		break;
+    }
+
+}
+
+
+/*
+ * Reset the network card(s).
+ *
+ * This function is called each time the system is reset,
+ * either a hard reset (including power-up) or a soft reset
+ * including C-A-D reset.)  It is responsible for connecting
+ * everything together.
+ */
 void
 network_reset(void)
 {
-    pclog("NETWORK: reset (card=%d)\n", network_card_current);
+    pclog("NETWORK: reset (card=%d)\n", network_card);
 
-    if (! network_card_current) return;
+    /* Just in case.. */
+    network_close();
 
-    if (net_cards[network_card_current].device) {
+    /* If no active card, we're done. */
+    if (!network_card || (network_type<0)) return;
+
+    /* Add the (new?) card to the I/O system. */
+    if (net_cards[network_card].device) {
 	pclog("NETWORK: adding device '%s'\n",
-		net_cards[network_card_current].name);
-	device_add(net_cards[network_card_current].device);
+		net_cards[network_card].name);
+	device_add(net_cards[network_card].device);
     }
-
-    pclog("NETWORK: adding timer...\n");
-    timer_add(net_poll, &net_poll_time, TIMER_ALWAYS_ENABLED, NULL);
 }
 
 
-/* Add a handler for a network card. */
+/* Transmit a packet to one of the network providers. */
 void
-network_add_handler(void (*poller)(void *), void *p)
+network_tx(uint8_t *bufp, int len)
 {
-    net_handlers[net_handlers_num].poller = poller;
-    net_handlers[net_handlers_num].priv = p;
-    net_handlers_num++;
+    switch(network_type) {
+	case 0:
+		network_pcap_in(bufp, len);
+		break;
+
+	case 1:
+		network_slirp_in(bufp, len);
+		break;
+    }
 }
 
 
+/* UI */
 int
 network_card_available(int card)
 {
@@ -121,6 +187,7 @@ network_card_available(int card)
 }
 
 
+/* UI */
 char *
 network_card_getname(int card)
 {
@@ -128,6 +195,7 @@ network_card_getname(int card)
 }
 
 
+/* UI */
 device_t *
 network_card_getdevice(int card)
 {
@@ -135,6 +203,7 @@ network_card_getdevice(int card)
 }
 
 
+/* UI */
 int
 network_card_has_config(int card)
 {
@@ -144,6 +213,7 @@ network_card_has_config(int card)
 }
 
 
+/* UI */
 char *
 network_card_get_internal_name(int card)
 {
@@ -151,6 +221,7 @@ network_card_get_internal_name(int card)
 }
 
 
+/* UI */
 int
 network_card_get_from_internal_name(char *s)
 {
