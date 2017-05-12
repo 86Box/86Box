@@ -11,7 +11,7 @@
  * NOTE:	Its still a mess, but we're getting there. The file will
  *		also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.2	2017/05/11
+ * Version:	@(#)net_ne2000.c	1.0.3	2017/05/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -52,19 +52,12 @@ typedef union {
 /* This stuff should go into the struct. --FvK */
 static uint8_t	maclocal[6] = {0xac, 0xde, 0x48, 0x88, 0xbb, 0xaa};
 static uint8_t	maclocal_pci[6] = {0xac, 0xde, 0x48, 0x88, 0xbb, 0xaa};
-static uint8_t	rtl8029as_eeprom[128];
-static uint8_t	pci_regs[256];
-static bar_t	pci_bar[2];
-static uint32_t	old_base_addr = 0;
 #if ENABLE_NE2000_LOG
 static int	nic_do_log = ENABLE_NE2000_LOG;
 #else
 static int	nic_do_log = 0;
 #endif
 
-
-#define BX_RESET_HARDWARE 0
-#define BX_RESET_SOFTWARE 1
 
 /* Never completely fill the ne2k ring so that we never
    hit the unclear completely full buffer condition. */
@@ -201,28 +194,30 @@ typedef struct {
      *   Data Configuration Register 0eh read (repeated)
      *   Interrupt Mask Register 0fh read (repeated)
      */
-    uint8_t	rempkt_ptr;	/* 03h read/write ; remote next-packet ptr */
-    uint8_t	localpkt_ptr;	/* 05h read/write ; local next-packet ptr */
-    uint16_t	address_cnt;	/* 06,07h read/write ; address counter */
+    uint8_t	rempkt_ptr;		/* 03h read/write ; rmt next-pkt ptr */
+    uint8_t	localpkt_ptr;		/* 05h read/write ; lcl next-pkt ptr */
+    uint16_t	address_cnt;		/* 06,07h read/write ; address cter */
 
     /* Page 3  - should never be modified. */
 
     /* Novell ASIC state */
-    uint8_t	macaddr[32];	/* ASIC ROM'd MAC address, even bytes */
+    uint8_t	macaddr[32];		/* ASIC ROM'd MAC address, even bytes */
     uint8_t	mem[NE2K_MEMSIZ];	/* on-chip packet memory */
 
-    /* ne2k internal state */
+    int		board;
+    int		is_rtl8029as;
     char	name[32];
     uint32_t	base_address;
     int		base_irq;
-    int		is_rtl8029as;
-    int		tx_timer_index;
-    int		tx_timer_active;
-
     uint32_t	bios_addr,
 		bios_size,
 		bios_mask;
+    bar_t	pci_bar[2];
     int		disable_netbios;
+    int		tx_timer_index;
+    int		tx_timer_active;
+    uint8_t	pci_regs[256];
+    uint8_t	eeprom[128];		/* for RTL8029AS */
     rom_t	bios_rom;
 } nic_t;
 
@@ -460,7 +455,7 @@ asic_read(nic_t *dev, uint32_t off, unsigned int len)
 		break;
 
 	case 0x0f:	/* Reset register */
-		nic_reset(dev, BX_RESET_SOFTWARE);
+		nic_reset(dev, 1);
 		break;
 
 	default:
@@ -1355,8 +1350,6 @@ nic_writel(uint16_t addr, uint32_t val, void *priv)
 static void
 nic_ioset(nic_t *dev, uint16_t addr)
 {	
-    old_base_addr = addr;
-
     if (dev->is_rtl8029as) {
 	io_sethandler(addr, 16,
 		      nic_readb, nic_readw, nic_readl,
@@ -1423,7 +1416,7 @@ nic_update_bios(nic_t *dev)
     } else {
 	mem_mapping_disable(&dev->bios_rom.mapping);
 	if (dev->is_rtl8029as)
-		pci_bar[1].addr = 0;
+		dev->pci_bar[1].addr = 0;
     }
 }
 
@@ -1454,9 +1447,9 @@ nic_pci_read(int func, int addr, void *priv)
 		return 0x11;
 
 	case 0x04:
-		return pci_regs[0x04];	/*Respond to IO and memory accesses*/
+		return dev->pci_regs[0x04];	/*Respond to IO and memory accesses*/
 	case 0x05:
-		return pci_regs[0x05];
+		return dev->pci_regs[0x05];
 
 	case 0x07:
 		return 2;
@@ -1467,30 +1460,30 @@ nic_pci_read(int func, int addr, void *priv)
 		return 0;		/*Programming interface*/
 
 	case 0x0B:
-		return pci_regs[0x0B];
+		return dev->pci_regs[0x0B];
 
 	case 0x10:
 		return 1;		/*I/O space*/
 	case 0x11:
-		return pci_bar[0].addr_regs[1];
+		return dev->pci_bar[0].addr_regs[1];
 	case 0x12:
-		return pci_bar[0].addr_regs[2];
+		return dev->pci_bar[0].addr_regs[2];
 	case 0x13:
-		return pci_bar[0].addr_regs[3];
+		return dev->pci_bar[0].addr_regs[3];
 
 	case 0x30:
-		return pci_bar[1].addr_regs[0] & 0x01;	/*BIOS ROM address*/
+		return dev->pci_bar[1].addr_regs[0] & 0x01;	/*BIOS ROM address*/
 	case 0x31:
-		return (pci_bar[1].addr_regs[1] & dev->bios_mask) | 0x18;
+		return (dev->pci_bar[1].addr_regs[1] & dev->bios_mask) | 0x18;
 	case 0x32:
-		return pci_bar[1].addr_regs[2];
+		return dev->pci_bar[1].addr_regs[2];
 	case 0x33:
-		return pci_bar[1].addr_regs[3];
+		return dev->pci_bar[1].addr_regs[3];
 
 	case 0x3C:
-		return pci_regs[0x3C];
+		return dev->pci_regs[0x3C];
 	case 0x3D:
-		return pci_regs[0x3D];
+		return dev->pci_regs[0x3D];
     }
 
     return 0;
@@ -1508,7 +1501,7 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 		if (val & PCI_COMMAND_IO) {
 			nic_ioset(dev, dev->base_address);
 		}
-		pci_regs[addr] = val;
+		dev->pci_regs[addr] = val;
 		break;
 
 	case 0x10:
@@ -1520,10 +1513,10 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 		nic_ioremove(dev, dev->base_address);
 
 		/* Then let's set the PCI regs. */
-		pci_bar[0].addr_regs[addr & 3] = val;
+		dev->pci_bar[0].addr_regs[addr & 3] = val;
 
 		/* Then let's calculate the new I/O base. */
-		dev->base_address = pci_bar[0].addr & 0xff00;
+		dev->base_address = dev->pci_bar[0].addr & 0xff00;
 
 		/* Log the new base. */
 		pclog(1, "%s: PCI: new I/O base is %04X\n",
@@ -1534,11 +1527,11 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 		return;
 
 	case 0x30: case 0x31: case 0x32: case 0x33:
-		pci_bar[1].addr_regs[addr & 3] = val;
-		pci_bar[1].addr_regs[1] &= dev->bios_mask;
-		dev->bios_addr = pci_bar[1].addr & 0xffffe000;
-		pci_bar[1].addr &= 0xffffe000;
-		pci_bar[1].addr |= 0x1801;
+		dev->pci_bar[1].addr_regs[addr & 3] = val;
+		dev->pci_bar[1].addr_regs[1] &= dev->bios_mask;
+		dev->bios_addr = dev->pci_bar[1].addr & 0xffffe000;
+		dev->pci_bar[1].addr &= 0xffffe000;
+		dev->pci_bar[1].addr |= 0x1801;
 		nic_update_bios(dev);
 		return;
 
@@ -1547,7 +1540,7 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 	 * the PIIX3, otherwise the RTL-8029/AS will not get an IRQ
 	 * on boards using the PIIX3. */
 	case 0x3C:
-		pci_regs[addr] = val;
+		dev->pci_regs[addr] = val;
 		if (val != 0xFF) {
 			pclog(1, "%s: IRQ now: %i\n", dev->name, val);
 			dev->base_irq = irq;
@@ -1783,6 +1776,7 @@ nic_init(int board)
 
     dev = malloc(sizeof(nic_t));
     memset(dev, 0x00, sizeof(nic_t));
+    dev->board = board;
     dev->is_rtl8029as = (PCI && (board == NE2K_RTL8029AS)) ? 1 : 0;
     if (board == NE2K_RTL8029AS)
 	strcpy(dev->name, "RTL8029AS");
@@ -1791,6 +1785,8 @@ nic_init(int board)
       else
 	strcpy(dev->name, "NE2000");
 
+    dev->base_irq = device_get_config_int("irq");
+    dev->disable_netbios = device_get_config_int("disable_netbios");
     if (dev->is_rtl8029as) {
 	dev->base_address = 0x340;
 	mac = config_get_int(NULL, "maclocal_pci", -1);
@@ -1798,8 +1794,6 @@ nic_init(int board)
 	dev->base_address = device_get_config_int("addr");
 	mac = config_get_int(NULL, "maclocal", -1);
     }
-    dev->base_irq = device_get_config_int("irq");
-    dev->disable_netbios = device_get_config_int("disable_netbios");
 
     /* Set up our MAC address. */
     if (dev->is_rtl8029as) {
@@ -1851,43 +1845,43 @@ pclog(1, "MAClocal: mac=%08lx\n", mac);
     }
 	
     if (dev->is_rtl8029as) {
-        pci_regs[0x04] = 1;
-        pci_regs[0x05] = 0;
-        pci_regs[0x07] = 2;
+        dev->pci_regs[0x04] = 1;
+        dev->pci_regs[0x05] = 0;
+        dev->pci_regs[0x07] = 2;
 
         /* Network controller. */
-        pci_regs[0x0B] = 2;
+        dev->pci_regs[0x0B] = 2;
 		
-	pci_bar[0].addr_regs[0] = 1;
+	dev->pci_bar[0].addr_regs[0] = 1;
 		
 	if (! dev->disable_netbios) {
-		pci_bar[1].addr = 0;
+		dev->pci_bar[1].addr = 0;
 		dev->bios_addr = 0;
 	} else {
-		pci_bar[1].addr = 0x000F8000;
-		pci_bar[1].addr_regs[1] = dev->bios_mask;
-		pci_bar[1].addr |= 0x1801;
+		dev->pci_bar[1].addr = 0x000F8000;
+		dev->pci_bar[1].addr_regs[1] = dev->bios_mask;
+		dev->pci_bar[1].addr |= 0x1801;
 		dev->bios_addr = 0xD0000;
 	}
 
-	pci_regs[0x3C] = dev->base_irq;
-	pclog(1, "%s: IRQ=%i\n", dev->name, pci_regs[0x3C]);
-        pci_regs[0x3D] = 1;
+	dev->pci_regs[0x3C] = dev->base_irq;
+	pclog(1, "%s: IRQ=%i\n", dev->name, dev->pci_regs[0x3C]);
+        dev->pci_regs[0x3D] = 1;
 
-        memset(rtl8029as_eeprom, 0, 128);
-        rtl8029as_eeprom[0x76] =
-	 rtl8029as_eeprom[0x7A] =
-	 rtl8029as_eeprom[0x7E] = 0x29;
-        rtl8029as_eeprom[0x77] =
-	 rtl8029as_eeprom[0x7B] =
-	 rtl8029as_eeprom[0x7F] = 0x80;
-        rtl8029as_eeprom[0x78] =
-	 rtl8029as_eeprom[0x7C] = 0x10;
-        rtl8029as_eeprom[0x79] =
-	 rtl8029as_eeprom[0x7D] = 0xEC;
+        memset(dev->eeprom, 0x00, sizeof(dev->eeprom));
+        dev->eeprom[0x76] =
+	 dev->eeprom[0x7A] =
+	 dev->eeprom[0x7E] = 0x29;
+        dev->eeprom[0x77] =
+	 dev->eeprom[0x7B] =
+	 dev->eeprom[0x7F] = 0x80;
+        dev->eeprom[0x78] =
+	 dev->eeprom[0x7C] = 0x10;
+        dev->eeprom[0x79] =
+	 dev->eeprom[0x7D] = 0xEC;
     }
 
-    nic_reset(dev, BX_RESET_HARDWARE);
+    nic_reset(dev, 0);
 
     pclog(1, "%s: %s init 0x%X %d\n", dev->name,
 	dev->is_rtl8029as?"PCI":"ISA", dev->base_address, dev->base_irq);

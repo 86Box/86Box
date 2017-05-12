@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 MinGW 32-bit environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.11	2017/05/11
+# Version:	@(#)Makefile.mingw	1.0.12	2017/05/12
 #
 # Authors:	Kotori, <oubattler@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -190,8 +190,7 @@ SLIRPOBJ= bootp.o ip_icmp.o misc.o socket.o tcp_timer.o cksum.o \
 
 LIBS	= -mwindows -lcomctl32 -lwinmm -lopenal.dll -lopenal -lddraw \
 	  -ldinput8 -ldxguid -ld3d9 -ld3dx9 -lwsock32 -liphlpapi \
-	  -lstdc++ -lpsapi -static-libstdc++ -static-libgcc \
-	  -static -L. -lwpcapdelay
+	  -lstdc++ -lpsapi -static-libstdc++ -static-libgcc
 
 
 # Build rules.
@@ -213,17 +212,18 @@ all:		$(PROG).exe pcap_if.exe
 $(PROG).exe:	$(OBJ) $(LZFOBJ) $(SLIRPOBJ)
 		@echo Linking $(PROG).exe ..
 		@$(CC) -o $(PROG).exe \
-			$(OBJ) $(LZFOBJ) $(SLIRPOBJ) $(LIBS)
+			$(OBJ) $(LZFOBJ) $(SLIRPOBJ) \
+			$(LIBS) -static -Lpcap -lwpcapdelay
 ifneq ($(DEBUG), y)
-		strip $(PROG).exe
+		@strip $(PROG).exe
 endif
 
 pcap_if.exe:	pcap_if.o pcap_if.res
 		@echo Linking pcap_if.exe ..
 		@$(CC) -o pcap_if.exe \
-			pcap_if.o pcap_if.res -static -L. -lwpcapdelay
+			pcap_if.o pcap_if.res -static -Lpcap -lwpcapdelay
 ifneq ($(DEBUG), y)
-		strip pcap_if.exe
+		@strip pcap_if.exe
 endif
 
 

@@ -8,7 +8,7 @@
  *
  *		Definitions for the network module.
  *
- * Version:	@(#)network.h	1.0.2	2017/05/11
+ * Version:	@(#)network.h	1.0.3	2017/05/12
  *
  * Authors:	Kotori, <oubattler@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -48,7 +48,6 @@ extern int	network_type;
 
 /* Function prototypes. */
 extern void	network_init(void);
-extern void	network_setup(char *);
 extern int	network_attach(void *, uint8_t *, NETRXCB);
 extern void	network_close(void);
 extern void	network_reset(void);

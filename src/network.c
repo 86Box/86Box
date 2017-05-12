@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.2	2017/05/11
+ * Version:	@(#)network.c	1.0.3	2017/05/12
  *
  * Authors:	Kotori, <oubattler@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "ibm.h"
-#include "config.h"
 #include "device.h"
 #include "network.h"
 #include "net_ne2000.h"
@@ -58,27 +57,6 @@ network_init(void)
 {
     network_card = 0;
     network_type = -1;
-}
-
-
-/*
- * Set up the network for a card.
- *
- * This function gets called whenever we load a new
- * system configuration file. It only grabs the variables
- * from that file, and saves them locally.
- */
-void
-network_setup(char *name)
-{
-    /* No platform support, give up. */
-    if (network_type < 0) return;
-
-    network_card = network_card_get_from_internal_name(name);
-    if (network_card == 0) return;
-
-    pclog("NETWORK: set up for card '%s' (%d) in %s\n",
-		name, network_card, (network_type==1)?"SLiRP":"WinPcap");
 }
 
 
@@ -143,7 +121,7 @@ network_close(void)
 void
 network_reset(void)
 {
-    pclog("NETWORK: reset (card=%d)\n", network_card);
+    pclog("NETWORK: reset (type=%d, card=%d\n", network_type, network_card);
 
     /* Just in case.. */
     network_close();
@@ -151,6 +129,10 @@ network_reset(void)
     /* If no active card, we're done. */
     if (!network_card || (network_type<0)) return;
 
+    pclog("NETWORK: set up for %s, card=%s\n",
+	(network_type==1)?"SLiRP":"WinPcap", net_cards[network_card].name);
+
+    pclog("NETWORK: reset (card=%d)\n", network_card);
     /* Add the (new?) card to the I/O system. */
     if (net_cards[network_card].device) {
 	pclog("NETWORK: adding device '%s'\n",

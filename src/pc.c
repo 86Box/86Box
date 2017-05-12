@@ -475,6 +475,7 @@ void resetpchard(void)
         model_init();
         video_init();
         speaker_init();        
+	network_reset();
 
 	ide_ter_disable();
 	ide_qua_disable();
@@ -497,7 +498,6 @@ void resetpchard(void)
 		}
 	}		
 
-	network_reset();
         resetide();
 	scsi_card_init();
 

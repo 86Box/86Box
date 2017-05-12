@@ -543,10 +543,10 @@ void loadconfig(wchar_t *fn)
         else
                 scsi_card_current = 0;
 
-	/* network */
-        p = (char *)config_get_string(NULL, "net_card", "");
+	/* Network */
 	network_type = config_get_int(NULL, "net_type", -1);
-	network_setup(p);
+        p = (char *)config_get_string(NULL, "net_card", NULL);
+	network_card = (p) ? network_card_get_from_internal_name(p) : 0;
 
         p = (char *)config_get_string(NULL, "model", "");
         if (p)
