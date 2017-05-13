@@ -175,7 +175,7 @@ VIDOBJ	= video.o \
 WINOBJ	= win.o \
 	    win-d3d.o win-d3d-fs.o \
 	    win-ddraw.o win-ddraw-fs.o win-ddraw-screenshot.o \
-	    win-language.o win-status.o \
+	    win-language.o win-status.o win-opendir.o \
 	    win-video.o win-serial.o win-mouse.o \
 	    win-joystick.o win-midi.o \
 	    win-settings.o win-deviceconfig.o win-joystickconfig.o \

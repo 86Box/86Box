@@ -46,7 +46,6 @@
 #include "mouse.h"
 #include "plat-mouse.h"
 #include "network.h"
-#include "net_ne2000.h"
 #include "serial.h"
 #include "sound/sound.h"
 #include "sound/snd_cms.h"
@@ -59,6 +58,10 @@
 #include "video/video.h"
 #include "video/vid_voodoo.h"
 #include "amstrad.h"
+#ifdef WALTJE
+# define UNICODE
+# include "plat-dir.h"
+#endif
 
 #ifndef __unix
 #define UNICODE
@@ -313,6 +316,23 @@ void initpc(int argc, wchar_t *argv[])
                 else if (!_wcsicmp(argv[c], L"--test"))
                 {
 			/* some (undocumented) test function here.. */
+#ifdef WALTJE
+			DIR *dir;
+			struct direct *dp;
+
+			dir = opendirw(pcempath);
+			if (dir != NULL) {
+				printf("Directory '%ws':\n", pcempath);
+				for (;;) {
+					dp = readdir(dir);
+					if (dp == NULL) break;
+					printf(">> '%ws'\n", dp->d_name);
+				}
+				closedir(dir);
+			} else {
+				printf("Could not open '%ws'..\n", pcempath);
+			}
+#endif
 
 			/* .. and then exit. */
 			exit(0);

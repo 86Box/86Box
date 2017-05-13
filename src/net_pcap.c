@@ -90,7 +90,16 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
     char *dev;
 
     /* Messy, but gets rid of a lot of useless info. */
-    strcpy(temp, pcap_lib_version());
+    dev = (char *)pcap_lib_version();
+    if (dev == NULL) {
+	/* Hmm, WinPcap doesn't seem to be alive.. */
+	pclog("PCAP: WinPcap library not found, disabling network!\n");
+	network_type = -1;
+	return(-1);
+    }
+
+    /* OK, good for now.. */
+    strcpy(temp, dev);
     dev = strchr(temp, '(');
     if (dev != NULL) *(dev-1) = '\0';
     pclog("Initializing WinPcap, version %s\n", temp);
