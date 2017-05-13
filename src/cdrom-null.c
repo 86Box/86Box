@@ -31,11 +31,6 @@ static void null_load(uint8_t id)
 {
 }
 
-static int null_sector_data_type(uint8_t id, int sector, int ismsf)
-{
-	return 0;
-}
-
 static int null_readsector_raw(uint8_t id, uint8_t *buffer, int sector, int ismsf, int cdrom_sector_type, int cdrom_sector_flags, int *len)
 {
 	*len = 0;
@@ -71,9 +66,11 @@ void cdrom_null_reset(uint8_t id)
 {
 }
 
+void cdrom_set_null_handler(uint8_t id);
+
 int cdrom_null_open(uint8_t id, char d)
 {
-        cdrom_drives[id].handler = &null_cdrom;
+	cdrom_set_null_handler(id);
         return 0;
 }
 
@@ -100,28 +97,34 @@ static int null_media_type_id(uint8_t id)
 	return 0x70;
 }
 
+void cdrom_set_null_handler(uint8_t id)
+{
+	cdrom_drives[id].handler = &null_cdrom;
+	cdrom_drives[id].host_drive = 0;
+	update_status_bar_icon_state(0x10 | id, 1);
+}
+
 static CDROM null_cdrom =
 {
-        null_ready,
-		null_medium_changed,
-		null_media_type_id,
-		NULL,
-		NULL,
+	null_ready,
+	null_medium_changed,
+	null_media_type_id,
+	NULL,
+	NULL,
         null_readtoc,
         null_readtoc_session,
-		null_readtoc_raw,
+	null_readtoc_raw,
         null_getcurrentsubchannel,
         null_pass_through,
-		null_sector_data_type,
-		null_readsector_raw,
+	null_readsector_raw,
         NULL,
         null_load,
         null_eject,
         NULL,
         NULL,
         null_size,
-		null_status,
-		null_is_track_audio,
+	null_status,
+	null_is_track_audio,
         NULL,
         null_exit
 };

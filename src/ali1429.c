@@ -3,9 +3,9 @@
 */
 #include <string.h>
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "io.h"
 #include "mem.h"
-#include "cpu.h"
 
 #include "ali1429.h"
 

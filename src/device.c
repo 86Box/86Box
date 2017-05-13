@@ -1,9 +1,10 @@
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "config.h"
-#include "cpu.h"
 #include "device.h"
 #include "model.h"
-#include "sound.h"
+#include "sound/sound.h"
+
 
 static void *device_priv[256];
 static device_t *devices[256];

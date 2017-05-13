@@ -5,17 +5,18 @@
 
 #include <string.h>
 #include "ibm.h"
-
-#include "cpu.h"
-#include "device.h"
+#include "cpu/cpu.h"
 #include "dma.h"
 #include "io.h"
 #include "pic.h"
 #include "pit.h"
-#include "sound_speaker.h"
+#include "device.h"
 #include "timer.h"
-#include "video.h"
 #include "model.h"
+#include "sound/snd_speaker.h"
+#include "video/video.h"
+
+
 /*B0 to 40, two writes to 43, then two reads - value does not change!*/
 /*B4 to 40, two writes to 43, then two reads - value _does_ change!*/
 int displine;

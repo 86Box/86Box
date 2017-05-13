@@ -978,16 +978,16 @@ void cdrom_mode_sense_load(uint8_t id)
 	switch(id)
 	{
 		case 0:
-			f = fopen(nvr_concat("cdrom_1_mode_sense.bin"), "rb");
+			f = _wfopen(nvr_concat(L"cdrom_1_mode_sense.bin"), L"rb");
 			break;
 		case 1:
-			f = fopen(nvr_concat("cdrom_2_mode_sense.bin"), "rb");
+			f = _wfopen(nvr_concat(L"cdrom_2_mode_sense.bin"), L"rb");
 			break;
 		case 2:
-			f = fopen(nvr_concat("cdrom_3_mode_sense.bin"), "rb");
+			f = _wfopen(nvr_concat(L"cdrom_3_mode_sense.bin"), L"rb");
 			break;
 		case 3:
-			f = fopen(nvr_concat("cdrom_4_mode_sense.bin"), "rb");
+			f = _wfopen(nvr_concat(L"cdrom_4_mode_sense.bin"), L"rb");
 			break;
 		default:
 			return;
@@ -1006,16 +1006,16 @@ void cdrom_mode_sense_save(uint8_t id)
 	switch(id)
 	{
 		case 0:
-			f = fopen(nvr_concat("cdrom_1_mode_sense.bin"), "wb");
+			f = _wfopen(nvr_concat(L"cdrom_1_mode_sense.bin"), L"wb");
 			break;
 		case 1:
-			f = fopen(nvr_concat("cdrom_2_mode_sense.bin"), "wb");
+			f = _wfopen(nvr_concat(L"cdrom_2_mode_sense.bin"), L"wb");
 			break;
 		case 2:
-			f = fopen(nvr_concat("cdrom_3_mode_sense.bin"), "wb");
+			f = _wfopen(nvr_concat(L"cdrom_3_mode_sense.bin"), L"wb");
 			break;
 		case 3:
-			f = fopen(nvr_concat("cdrom_4_mode_sense.bin"), "wb");
+			f = _wfopen(nvr_concat(L"cdrom_4_mode_sense.bin"), L"wb");
 			break;
 		default:
 			return;
@@ -2424,24 +2424,30 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 					toc_format = (cdb[9] >> 6) & 3;
 				}
 
-				len = cdb[8] + (cdb[7] << 8);
-
 				switch (toc_format)
 				{
 					case 0: /*Normal*/
-						len = cdrom_drives[id].handler->readtoc(id, cdbufferb, cdb[6], msf, len, 0);
+						len = cdrom_drives[id].handler->readtoc(id, cdbufferb, cdb[6], msf, max_len, 0);
 						break;
 					case 1: /*Multi session*/
-						len = cdrom_drives[id].handler->readtoc_session(id, cdbufferb, msf, len);
+						len = cdrom_drives[id].handler->readtoc_session(id, cdbufferb, msf, max_len);
 						cdbufferb[0] = 0; cdbufferb[1] = 0xA;
 						break;
 					case 2: /*Raw*/
-						len = cdrom_drives[id].handler->readtoc_raw(id, cdbufferb, msf, len);
+						len = cdrom_drives[id].handler->readtoc_raw(id, cdbufferb, msf, max_len);
 						break;
 					default:
 						cdrom_invalid_field(id);
 						return;
 				}
+			}
+
+			if (len > max_len)
+			{
+				len = max_len;
+
+				cdbufferb[0] = ((len - 2) >> 8) & 0xff;
+				cdbufferb[1] = (len - 2) & 0xff;
 			}
 
 			cdrom_data_command_finish(id, len, len, len, 0);
@@ -2893,8 +2899,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 					break;
 			}
 
-			if ((cdrom_drive < 1) || (cdrom_drive == CDROM_ISO) || (cdrom[id].cd_status <= CD_STATUS_DATA_ONLY) ||
-				!cdrom_drives[id].handler->is_track_audio(id, pos, msf))
+			if ((cdrom_drive < 1) || (cdrom[id].cd_status <= CD_STATUS_DATA_ONLY) || !cdrom_drives[id].handler->is_track_audio(id, pos, msf))
 			{
 				cdrom_illegal_mode(id);
 				break;
@@ -2954,7 +2959,11 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 						alloc_length = 24;
 						break;
 				}
-				if (alloc_length < len)
+				if (!(cdb[2] & 0x40) || (cdb[3] == 0))
+				{
+					len = 4;
+				}
+				else
 				{
 					len = alloc_length;
 				}

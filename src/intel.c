@@ -2,13 +2,13 @@
    see COPYING for more details
 */
 #include "ibm.h"
-#include "cpu.h"
+#include "cpu/cpu.h"
 #include "io.h"
 #include "mem.h"
 #include "pit.h"
 #include "timer.h"
-
 #include "intel.h"
+
 
 uint8_t batman_brdconfig(uint16_t port, void *p)
 {

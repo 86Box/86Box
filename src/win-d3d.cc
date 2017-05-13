@@ -2,23 +2,26 @@
    see COPYING for more details
 */
 #include <stdint.h>
+#define UNICODE
 #define BITMAP WINDOWS_BITMAP
 #include <d3d9.h>
 #undef BITMAP
 #include <D3dx9tex.h>
 #include "resource.h"
 #include "win-d3d.h"
-#include "video.h"
+#include "video/video.h"
 #include "win-cgapal.h"
+
 
 extern "C" void fatal(const char *format, ...);
 extern "C" void pclog(const char *format, ...);
 
-extern "C" void device_force_redraw();
-extern "C" void video_blit_complete();
+extern "C" void device_force_redraw(void);
+extern "C" void video_blit_complete(void);
 
-void d3d_init_objects();
-void d3d_close_objects();
+
+void d3d_init_objects(void);
+void d3d_close_objects(void);
 void d3d_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
 void d3d_blit_memtoscreen_8(int x, int y, int w, int h);
 
@@ -91,7 +94,7 @@ int d3d_init(HWND h)
 	return 1;
 }
 
-void d3d_close_objects()
+void d3d_close_objects(void)
 {
         if (d3dTexture)
         {
@@ -105,7 +108,7 @@ void d3d_close_objects()
         }
 }
 
-void d3d_init_objects()
+void d3d_init_objects(void)
 {
         D3DLOCKED_RECT dr;
         RECT r;
@@ -149,7 +152,7 @@ void d3d_resize(int x, int y)
         d3d_reset();
 }
         
-void d3d_reset()
+void d3d_reset(void)
 {
         HRESULT hr;
         
@@ -184,7 +187,7 @@ void d3d_reset()
         device_force_redraw();
 }
 
-void d3d_close()
+void d3d_close(void)
 {       
         if (d3dTexture)
         {
@@ -380,7 +383,7 @@ void d3d_blit_memtoscreen_8(int x, int y, int w, int h)
                 PostMessage(d3d_hwnd, WM_RESETD3D, 0, 0);
 }
 
-void d3d_take_screenshot(char *fn)
+void d3d_take_screenshot(wchar_t *fn)
 {
 	LPDIRECT3DSURFACE9 d3dSurface = NULL;
 

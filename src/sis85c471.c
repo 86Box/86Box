@@ -58,13 +58,13 @@ process_value:
 			{
 				if (val & 0x20)
 				{
-					serial1_init(0x3f8, 4);
-					serial2_init(0x2f8, 3);
+					serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
+					serial_setup(2, SERIAL2_ADDR, SERIAL2_IRQ);
 				}
 				else
 				{
-					serial1_remove();
-					serial2_remove();
+					serial_remove(1);
+					serial_remove(2);
 				}
 			}
 

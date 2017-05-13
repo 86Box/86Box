@@ -4,10 +4,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "video.h"
+#include "video/video.h"
 #include "win-cgapal.h"
 
+
 BITMAP *screen;
+
 
 void hline(BITMAP *b, int x1, int y, int x2, uint32_t col)
 {

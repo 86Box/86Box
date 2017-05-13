@@ -2,7 +2,7 @@
    see COPYING for more details
 */
 void d86f_init();
-void d86f_load(int drive, char *fn);
+void d86f_load(int drive, wchar_t *fn);
 void d86f_close(int drive);
 void d86f_seek(int drive, int track);
 int d86f_hole(int drive);

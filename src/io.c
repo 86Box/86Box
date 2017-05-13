@@ -2,10 +2,8 @@
    see COPYING for more details
 */
 #include "ibm.h"
-#include "ide.h"
 #include "io.h"
-#include "video.h"
-#include "cpu.h"
+
 
 uint8_t  (*port_inb[0x10000][2])(uint16_t addr, void *priv);
 uint16_t (*port_inw[0x10000][2])(uint16_t addr, void *priv);
@@ -16,6 +14,7 @@ void (*port_outw[0x10000][2])(uint16_t addr, uint16_t val, void *priv);
 void (*port_outl[0x10000][2])(uint16_t addr, uint32_t val, void *priv);
 
 void *port_priv[0x10000][2];
+
 
 void io_init()
 {

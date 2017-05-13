@@ -74,9 +74,9 @@ void ps1_write(uint16_t port, uint8_t val, void *p)
                 case 0x102:
                 lpt1_remove();
                 if (val & 0x04)
-                        serial1_init(0x3f8, 4);
+                        serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
                 else
-                        serial1_remove();
+                        serial_remove(1);
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
@@ -134,7 +134,7 @@ void ps1mb_init()
 	if (!enable_xtide)
 	{
 	        rom_init(&ps1_high_rom,
-                                "roms/ibmps1es/f80000_shell.bin",
+                                L"roms/ibmps1es/f80000_shell.bin",
                                 0xf80000,
                                 0x80000,
                                 0x7ffff,
@@ -142,8 +142,8 @@ void ps1mb_init()
                                 MEM_MAPPING_EXTERNAL);
 	}
 /*        rom_init_interleaved(&ps1_high_rom,
-                                "roms/ibmps1es/ibm_1057757_24-05-90.bin",
-                                "roms/ibmps1es/ibm_1057757_29-15-90.bin",
+                                L"roms/ibmps1es/ibm_1057757_24-05-90.bin",
+                                L"roms/ibmps1es/ibm_1057757_29-15-90.bin",
                                 0xfc0000,
                                 0x40000,
                                 0x3ffff,
@@ -155,8 +155,8 @@ void ps1mb_init()
         lpt2_remove();
         lpt1_init(0x3bc);
         
-        serial1_remove();
-        serial2_remove();
+        serial_remove(1);
+        serial_remove(2);
         
         memset(&ps1_hd, 0, sizeof(ps1_hd));
 }
@@ -242,9 +242,9 @@ void ps1_m2121_write(uint16_t port, uint8_t val, void *p)
                 case 0x102:
                 lpt1_remove();
                 if (val & 0x04)
-                        serial1_init(0x3f8, 4);
+                        serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
                 else
-                        serial1_remove();
+                        serial_remove(1);
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
@@ -287,7 +287,7 @@ void ps1mb_m2121_init()
         io_sethandler(0x0190, 0x0001, ps1_m2121_read, NULL, NULL, ps1_m2121_write, NULL, NULL, NULL);
 
         rom_init(&ps1_high_rom,
-                                "roms/ibmps1_2121/fc0000_shell.bin",
+                                L"roms/ibmps1_2121/fc0000_shell.bin",
                                 0xfc0000,
                                 0x40000,
                                 0x3ffff,
@@ -299,8 +299,8 @@ void ps1mb_m2121_init()
         lpt2_remove();
         lpt1_init(0x3bc);
         
-        serial1_remove();
-        serial2_remove();
+        serial_remove(1);
+        serial_remove(2);
         
         mem_remap_top_384k();
 }

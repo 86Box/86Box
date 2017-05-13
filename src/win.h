@@ -9,9 +9,9 @@ extern int mousecapture;
 extern "C" {
 #endif
 
-#define szClassName "86BoxMainWnd"
-#define szSubClassName "86BoxSubWnd"
-#define szStatusBarClassName "86BoxStatusBar"
+#define szClassName L"86BoxMainWnd"
+#define szSubClassName L"86BoxSubWnd"
+#define szStatusBarClassName L"86BoxStatusBar"
 
 void leave_fullscreen();
 
@@ -28,12 +28,13 @@ void deviceconfig_open(HWND hwnd, struct device_t *device);
 void joystickconfig_open(HWND hwnd, int joy_nr, int type);
 
 extern char openfilestring[260];
+extern WCHAR wopenfilestring[260];
 
 int getfile(HWND hwnd, char *f, char *fn);
 int getsfile(HWND hwnd, char *f, char *fn);
 
-void get_executable_name(char *s, int size);
-void set_window_title(char *s);
+void get_executable_name(WCHAR *s, int size);
+void set_window_title(WCHAR *s);
 
 void startblit();
 void endblit();

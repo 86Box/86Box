@@ -4,18 +4,20 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "device.h"
 #include "io.h"
-#include "plat-joystick.h"
 #include "timer.h"
-
+#include "plat-joystick.h"
 #include "gameport.h"
 #include "joystick_ch_flightstick_pro.h"
 #include "joystick_standard.h"
 #include "joystick_sw_pad.h"
 #include "joystick_tm_fcs.h"
 
+
 int joystick_type;
+
 
 joystick_if_t joystick_none =
 {

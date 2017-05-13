@@ -7,21 +7,23 @@
 #undef BITMAP
 
 #include "ibm.h"
+#include "mem.h"
+#include "cpu/x86_ops.h"
+#include "cpu/codegen.h"
 #include "device.h"
-#include "video.h"
 #include "resource.h"
 #include "win.h"
-#include "x86_ops.h"
-#include "mem.h"
-#include "codegen.h"
+
 
 HWND status_hwnd;
 int status_is_open = 0;
+
 
 extern int sreadlnum, swritelnum, segareads, segawrites, scycles_lost;
 
 extern uint64_t main_time;
 static uint64_t status_time;
+
 
 static BOOL CALLBACK status_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -91,14 +93,3 @@ void status_open(HWND hwnd)
         status_hwnd = CreateDialog(hinstance, TEXT("StatusDlg"), hwnd, status_dlgproc);
         ShowWindow(status_hwnd, SW_SHOW);
 }
-
-
-#if 0
-void
-set_bugui(char *str)
-{
-    if (str == NULL)
-	str = "L:R GGGGGGGG-RRRRRRRR";
-    SendMessage(status_hwnd, SB_SETTEXT, 2, (WPARAM)str);
-}
-#endif

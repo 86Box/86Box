@@ -142,11 +142,11 @@ int discrate[4];
 
 int discint;
 
-int fdc_do_log = 1;
+int fdc_do_log = 0;
 
 void fdc_log(const char *format, ...)
 {
-// #ifdef ENABLE_FDC_LOG
+#ifdef ENABLE_FDC_LOG
    if (fdc_do_log)
    {
 		va_list ap;
@@ -155,7 +155,7 @@ void fdc_log(const char *format, ...)
 		va_end(ap);
 		fflush(stdout);
    }
-// #endif
+#endif
 }
 
 void fdc_reset()
@@ -429,6 +429,7 @@ int fdc_get_rwc(int drive)
 
 void fdc_update_rwc(int drive, int rwc)
 {
+	fdc_log("FDD %c: New RWC is %i\n", 0x41 + drive, rwc);
 	fdc.rwc[drive] = rwc;
 	fdc_rate(drive);
 }
@@ -445,6 +446,7 @@ void fdc_update_boot_drive(int boot_drive)
 
 void fdc_update_densel_polarity(int densel_polarity)
 {
+	fdc_log("FDC: New DENSEL polarity is %i\n", densel_polarity);
 	fdc.densel_polarity = densel_polarity;
 	fdc_update_rates();
 }
@@ -456,12 +458,14 @@ uint8_t fdc_get_densel_polarity()
 
 void fdc_update_densel_force(int densel_force)
 {
+	fdc_log("FDC: New DENSEL force is %i\n", densel_force);
 	fdc.densel_force = densel_force;
 	fdc_update_rates();
 }
 
 void fdc_update_drvrate(int drive, int drvrate)
 {
+	fdc_log("FDD %c: New drive rate is %i\n", 0x41 + drive, drvrate);
 	fdc.drvrate[drive] = drvrate;
 	fdc_rate(drive);
 }
@@ -588,6 +592,7 @@ static void fdc_rate(int drive)
 {
 	fdc_update_rate(drive);
 	disc_set_rate(drive, fdc.drvrate[drive], fdc.rate);
+	fdc_log("FDD %c: Setting rate: %i, %i, %i (%i, %i)\n", 0x41 + drive, fdc.drvrate[drive], fdc.rate, fdc_get_densel(drive), fdc.rwc[drive], fdc.densel_force);
 	fdd_set_densel(fdc_get_densel(drive));
 }
 
@@ -1822,6 +1827,7 @@ void fdc_error(int st5, int st6)
         fdc.res[4]=0x40|(fdd_get_head(real_drive(fdc.drive))?4:0)|fdc.rw_drive;
         fdc.res[5]=st5;
         fdc.res[6]=st6;
+	fdc_log("FDC Error: %02X %02X %02X\n", fdc.res[4], fdc.res[5], fdc.res[6]);
 	switch(discint)
 	{
 		case 0x02:

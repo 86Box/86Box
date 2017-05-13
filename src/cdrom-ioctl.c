@@ -107,6 +107,11 @@ static int get_track_nr(uint8_t id, uint32_t pos)
 		return 0;
 	}
 
+	if (cdrom_ioctl[id].last_track_pos == pos)
+	{
+		return cdrom_ioctl[id].last_track_nr;
+	}
+
 	for (c = cdrom_ioctl_windows[id].toc.FirstTrack; c < cdrom_ioctl_windows[id].toc.LastTrack; c++)
 	{
 		uint32_t track_address = cdrom_ioctl_windows[id].toc.TrackData[c].Address[3] +
@@ -118,6 +123,9 @@ static int get_track_nr(uint8_t id, uint32_t pos)
 			track = c;
 		}
 	}
+	cdrom_ioctl[id].last_track_pos = pos;
+	cdrom_ioctl[id].last_track_nr = track;
+
 	return track;
 }
 
@@ -349,19 +357,35 @@ static uint8_t ioctl_getcurrentsubchannel(uint8_t id, uint8_t *b, int msf)
 	CDROM_SUB_Q_DATA_FORMAT insub;
 	SUB_Q_CHANNEL_DATA sub;
 	unsigned long size;
-	int pos=0;
+	int pos = 0, track;
+	uint32_t cdpos, track_address, dat;
+
 	if (!cdrom_drives[id].host_drive) return 0;
-        
-	insub.Format = IOCTL_CDROM_CURRENT_POSITION;
-	ioctl_open(id, 0);
-	DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL,IOCTL_CDROM_READ_Q_CHANNEL,&insub,sizeof(insub),&sub,sizeof(sub),&size,NULL);
-	ioctl_close(id);
+
+	cdpos = cdrom[id].seek_pos;
+
+	if (cdrom_ioctl[id].last_subchannel_pos == cdpos)
+	{
+		memcpy(&insub, cdrom_ioctl[id].sub_q_data_format, sizeof(insub));
+		memcpy(&sub, cdrom_ioctl[id].sub_q_channel_data, sizeof(sub));
+	}
+	else
+	{
+		insub.Format = IOCTL_CDROM_CURRENT_POSITION;
+		ioctl_open(id, 0);
+		DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL,IOCTL_CDROM_READ_Q_CHANNEL,&insub,sizeof(insub),&sub,sizeof(sub),&size,NULL);
+		ioctl_close(id);
+		memset(cdrom_ioctl[id].sub_q_data_format, 0, 16);
+		memcpy(cdrom_ioctl[id].sub_q_data_format, &insub, sizeof(insub));
+		memset(cdrom_ioctl[id].sub_q_channel_data, 0, 256);
+		memcpy(cdrom_ioctl[id].sub_q_channel_data, &sub, sizeof(sub));
+		cdrom_ioctl[id].last_subchannel_pos = cdpos;
+	}        
 
 	if (cdrom_ioctl[id].cd_state == CD_PLAYING || cdrom_ioctl[id].cd_state == CD_PAUSED)
 	{
-		uint32_t cdpos = cdrom[id].seek_pos;
-		int track = get_track_nr(id, cdpos);
-		uint32_t track_address = cdrom_ioctl_windows[id].toc.TrackData[track].Address[3] + (cdrom_ioctl_windows[id].toc.TrackData[track].Address[2] * 75) + (cdrom_ioctl_windows[id].toc.TrackData[track].Address[1] * 75 * 60);
+		track = get_track_nr(id, cdpos);
+		track_address = cdrom_ioctl_windows[id].toc.TrackData[track].Address[3] + (cdrom_ioctl_windows[id].toc.TrackData[track].Address[2] * 75) + (cdrom_ioctl_windows[id].toc.TrackData[track].Address[1] * 75 * 60);
 
 		cdrom_ioctl_log("cdpos = %i, track = %i, track_address = %i\n", cdpos, track, track_address);
 		
@@ -371,7 +395,7 @@ static uint8_t ioctl_getcurrentsubchannel(uint8_t id, uint8_t *b, int msf)
 
 		if (msf)
 		{
-			uint32_t dat = cdpos;
+			dat = cdpos;
 			b[pos + 3] = (uint8_t)(dat % 75); dat /= 75;
 			b[pos + 2] = (uint8_t)(dat % 60); dat /= 60;
 			b[pos + 1] = (uint8_t)dat;
@@ -709,11 +733,19 @@ static void ioctl_read_capacity(uint8_t id, uint8_t *b)
 	const UCHAR cdb[] = { 0x25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	UCHAR buf[16];
 
-	ioctl_open(id, 0);
+	if (!cdrom_ioctl[id].capacity_read)
+	{
+		ioctl_open(id, 0);
 
-	SCSICommand(id, cdb, buf, &len, 1);
+		SCSICommand(id, cdb, buf, &len, 1);
 	
-	memcpy(b, buf, len);
+		memcpy(cdrom_ioctl[id].rcbuf, buf, len);
+		cdrom_ioctl[id].capacity_read = 1;
+	}
+	else
+	{
+		memcpy(b, cdrom_ioctl[id].rcbuf, 16);
+	}
 	
 	ioctl_close(id);
 }
@@ -1016,8 +1048,11 @@ int ioctl_open(uint8_t id, char d)
 	if (!cdrom_ioctl[id].ioctl_inited)
 	{
 		cdrom_ioctl[id].ioctl_inited=1;
+		cdrom_ioctl[id].capacity_read=0;	/* With this two lines, we read the READ CAPACITY command output from the host drive into our cache buffer. */
+		ioctl_read_capacity(id, NULL);
 		CloseHandle(cdrom_ioctl_windows[id].hIOCTL);
 		cdrom_ioctl_windows[id].hIOCTL = NULL;
+		update_status_bar_icon_state(0x10 | id, 0);
 	}
 	return 0;
 }
@@ -1050,7 +1085,6 @@ static CDROM ioctl_cdrom=
 	NULL,
 	ioctl_getcurrentsubchannel,
 	ioctl_pass_through,
-	ioctl_sector_data_type,
 	NULL,
 	ioctl_playaudio,
 	ioctl_load,

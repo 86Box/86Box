@@ -3,28 +3,31 @@
 */
 #include <stdint.h>
 #include <stdio.h>
+#define UNICODE
 #define BITMAP WINDOWS_BITMAP
 #include <d3d9.h>
 #undef BITMAP
 #include <D3dx9tex.h>
 #include "86box.h"
-#include "resource.h"
-#include "video.h"
+#include "video/video.h"
 #include "win-d3d-fs.h"
 #include "win.h"
 #include "win-cgapal.h"
+#include "resource.h"
+
 
 extern "C" void fatal(const char *format, ...);
 extern "C" void pclog(const char *format, ...);
 
-extern "C" void device_force_redraw();
+extern "C" void device_force_redraw(void);
 
-static void d3d_fs_init_objects();
-static void d3d_fs_close_objects();
+static void d3d_fs_init_objects(void);
+static void d3d_fs_close_objects(void);
 static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
 static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h);
 
-extern "C" void video_blit_complete();
+extern "C" void video_blit_complete(void);
+
 
 static LPDIRECT3D9             d3d        = NULL;
 static LPDIRECT3DDEVICE9       d3ddev     = NULL; 
@@ -107,7 +110,7 @@ static CUSTOMVERTEX d3d_verts[] =
      {2048.0f, 2048.0f, 1.0f, 1.0f, 1.0f, 1.0f},
 };
 
-void cgapal_rebuild()
+void cgapal_rebuild(void)
 {
         int c;
         for (c = 0; c < 256; c++)
@@ -133,7 +136,7 @@ void cgapal_rebuild()
 int d3d_fs_init(HWND h)
 {
         HRESULT hr;
-		char emulator_title[200];
+	WCHAR emulator_title[200];
 
         d3d_fs_w = GetSystemMetrics(SM_CXSCREEN);
         d3d_fs_h = GetSystemMetrics(SM_CYSCREEN);
@@ -142,7 +145,7 @@ int d3d_fs_init(HWND h)
 
         d3d_hwnd = h;
 
-		sprintf(emulator_title, "86Box v%s", emulator_version);
+	_swprintf(emulator_title, L"86Box v%s", emulator_version_w);
         d3d_device_window = CreateWindowEx (
                 0,
                 szSubClassName,
@@ -194,7 +197,7 @@ int d3d_fs_init(HWND h)
 	return 1;
 }
 
-static void d3d_fs_close_objects()
+static void d3d_fs_close_objects(void)
 {
         if (d3dTexture)
         {
@@ -208,7 +211,7 @@ static void d3d_fs_close_objects()
         }
 }
 
-static void d3d_fs_init_objects()
+static void d3d_fs_init_objects(void)
 {
         D3DLOCKED_RECT dr;
         RECT r;
@@ -255,7 +258,7 @@ static void d3d_fs_init_objects()
         d3d_reset();
 }*/
         
-void d3d_fs_reset()
+void d3d_fs_reset(void)
 {
         HRESULT hr;
 
@@ -290,7 +293,7 @@ void d3d_fs_reset()
         device_force_redraw();
 }
 
-void d3d_fs_close()
+void d3d_fs_close(void)
 {       
         if (d3dTexture)
         {
@@ -393,7 +396,7 @@ static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
                    fatal("LockRect failed\n");
         
                 for (yy = y1; yy < y2; yy++)
-                        memcpy((uint32_t *) &(((uint8_t *) dr.pBits)[(yy - y1) * dr.Pitch]), (uint32_t *) &(buffer32->line[yy + y][x]), w * 4);
+                        memcpy((uint32_t *) &(((uint8_t *) dr.pBits)[(yy - y1) * dr.Pitch]), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
 
                 video_blit_complete();
                 d3dTexture->UnlockRect(0);
@@ -570,7 +573,7 @@ static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
                 PostMessage(ghwnd, WM_RESETD3D, 0, 0);
 }
 
-void d3d_fs_take_screenshot(char *fn)
+void d3d_fs_take_screenshot(wchar_t *fn)
 {
 	LPDIRECT3DSURFACE9 d3dSurface = NULL;
 

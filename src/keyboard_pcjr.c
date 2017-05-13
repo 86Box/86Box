@@ -2,21 +2,20 @@
    see COPYING for more details
 */
 #include <stdint.h>
-
 #include "ibm.h"
-#include "device.h"
 #include "io.h"
 #include "mem.h"
 #include "nmi.h"
 #include "pic.h"
 #include "pit.h"
-#include "sound.h"
-#include "sound_sn76489.h"
-#include "sound_speaker.h"
 #include "timer.h"
-
+#include "device.h"
+#include "sound/sound.h"
+#include "sound/snd_speaker.h"
+#include "sound/snd_sn76489.h"
 #include "keyboard.h"
 #include "keyboard_pcjr.h"
+
 
 #define STAT_PARITY     0x80
 #define STAT_RTIMEOUT   0x40

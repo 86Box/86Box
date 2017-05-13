@@ -3,16 +3,15 @@
 */
 #include <stdint.h>
 #include <stdio.h>
-
 #include "ibm.h"
-#include "cdrom.h"
-#include "cpu.h"
+#include "cpu/cpu.h"
+#include "io.h"
 #include "mem.h"
+#include "rom.h"
 #include "model.h"
 #include "mouse.h"
 #include "mouse_ps2.h"
-#include "io.h"
-#include "rom.h"
+#include "cdrom.h"
 
 #include "acerm3a.h"
 #include "ali1429.h"
@@ -64,14 +63,14 @@
 #include "sis496.h"
 #include "sis85c471.h"
 #include "sio.h"
-#include "sound_ps1.h"
-#include "sound_pssj.h"
-#include "sound_sn76489.h"
+#include "sound/snd_ps1.h"
+#include "sound/snd_pssj.h"
+#include "sound/snd_sn76489.h"
 #include "tandy_eeprom.h"
 #include "tandy_rom.h"
 #include "um8669f.h"
-#include "vid_pcjr.h"
-#include "vid_tandy.h"
+#include "video/vid_pcjr.h"
+#include "video/vid_tandy.h"
 #include "w83877f.h"
 #include "wd76c10.h"
 #include "xtide.h"
@@ -159,7 +158,6 @@ MODEL models[] =
         {"Commodore PC 30 III",		ROM_CMDPC30,		"cmdpc30",		{ "",      cpus_286,         "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   16,   1,         at_ide_init, NULL},
         {"AMI 286 clone",		ROM_AMI286,		"ami286",		{ "",      cpus_286,         "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   16,   1,        at_neat_init, NULL},        
         {"Award 286 clone",		ROM_AWARD286,		"award286",		{ "",      cpus_286,         "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   16,   1,        at_scat_init, NULL},
-        {"DELL System 200",		ROM_DELL200,		"dells200",		{ "",      cpus_286,         "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT,						  1,   16,   1,             at_init, NULL},
         {"Hyundai Super-286TR",		ROM_SUPER286TR,		"super286tr",		{ "",      cpus_286,         "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT,						  1,   16,   1,        at_scat_init, NULL},
         {"Samsung SPC-4200P",		ROM_SPC4200P,		"spc4200p",		{ "",      cpus_286,         "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT,						  1,   16,   1,        at_scat_init, NULL},
         {"IBM PS/1 model 2011",		ROM_IBMPS1_2011,	"ibmps1es",		{ "",      cpus_ps1_m2011,   "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 1, MODEL_AT | MODEL_PS2 | MODEL_PS2_HDD,		  1,   16,   1,      ps1_m2011_init, NULL},
@@ -276,11 +274,11 @@ void common_init()
         pit_init();
 	if (serial_enabled[0])
 	{
-	        serial1_init(0x3f8, 4);
+	        serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
 	}
 	if (serial_enabled[1])
 	{
-	        serial2_init(0x2f8, 3);
+	        serial_setup(2, SERIAL2_ADDR, SERIAL2_IRQ);
 	}
 }
 
@@ -307,7 +305,7 @@ void pcjr_init()
         pit_set_out_func(&pit, 0, pit_irq0_timer_pcjr);
 	if (serial_enabled[0])
 	{
-	        serial1_init(0x2f8, 3);
+	        serial_setup(1, 0x2f8, 3);
 	}
         keyboard_pcjr_init();
         device_add(&sn76489_device);

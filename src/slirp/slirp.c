@@ -1,22 +1,20 @@
 #include "slirp.h"
 
-/* host address */
-struct in_addr our_addr;
-/* host dns address */
-struct in_addr dns_addr;
-/* host loopback address */
-struct in_addr loopback_addr;
 
-/* address for slirp virtual addresses */
-struct in_addr special_addr;
-/* virtual address alias for host */
-struct in_addr alias_addr;
+/* Our actual addresses. */
+char		slirp_hostname[33];
+struct in_addr	our_addr;		/* host IP address */
+struct in_addr	dns_addr;		/* host DNS server */
+struct in_addr	loopback_addr;		/* host loopback address */
 
+/* Our SLiRP virtual addresses. */
+struct in_addr special_addr;		/* virtual IP address */
+struct in_addr alias_addr;		/* virtual address alias for host */
 const uint8_t special_ethaddr[6] = { 
-    0x52, 0x54, 0x00, 0x12, 0x35, 0x00
+    0x52, 0x54, 0x00, 0x12, 0x35, 0x00	/* virtual MAC address. */
 };
 
-uint8_t client_ethaddr[6];
+uint8_t client_ethaddr[6];		/* guest's MAC address */
 
 int do_slowtimo;
 int link_up;
@@ -27,10 +25,12 @@ struct ex_list *exec_list;
 /* XXX: suppress those select globals */
 fd_set *global_readfds, *global_writefds, *global_xfds;
 
-char slirp_hostname[33];
+
+extern void	pclog(const char *, ...);
+extern int	config_get_int(char *, char *, int);
+
 
 #ifdef _WIN32
-
 static int get_dns_addr(struct in_addr *pdns_addr)
 {
     FIXED_INFO *FixedInfo=NULL;
@@ -62,16 +62,11 @@ static int get_dns_addr(struct in_addr *pdns_addr)
     pIPAddr = &(FixedInfo->DnsServerList);
     inet_aton(pIPAddr->IpAddress.String, &tmp_addr);
     *pdns_addr = tmp_addr;
-#if 0
-    printf( "DNS Servers:\n" );
-    printf( "DNS Addr:%s\n", pIPAddr->IpAddress.String );
-    
-    pIPAddr = FixedInfo -> DnsServerList.Next;
+    printf( " DNS Servers:\n" );
     while ( pIPAddr ) {
-            printf( "DNS Addr:%s\n", pIPAddr ->IpAddress.String );
+            printf( "  Address: %s\n", pIPAddr ->IpAddress.String );
             pIPAddr = pIPAddr ->Next;
     }
-#endif
     if (FixedInfo) {
         GlobalFree(FixedInfo);
         FixedInfo = NULL;
@@ -117,8 +112,8 @@ static int get_dns_addr(struct in_addr *pdns_addr)
         return -1;
     return 0;
 }
-
 #endif
+
 
 #ifdef _WIN32
 void slirp_cleanup(void)
@@ -127,13 +122,17 @@ void slirp_cleanup(void)
 }
 #endif
 
-int slirp_init(void)
+
+int
+slirp_init(void)
 {
-	struct in_addr myaddr;
-	int rc;
-	char* category = "SLiRP Port Forwarding";
-	char key[32];
-	int i = 0, udp, from, to;
+    char* category = "SLiRP Port Forwarding";
+    char key[32];
+    struct in_addr myaddr;
+    int i = 0, udp, from, to;
+    int rc;
+
+    pclog("%s initializing..\n", category);
 
 #ifdef SLIRP_DEBUG
     //  debug_init("/tmp/slirp.log", DEBUG_DEFAULT);
@@ -165,29 +164,28 @@ debug_init("slirplog.txt",DEBUG_DEFAULT);
         return -1;
 
     inet_aton(CTL_SPECIAL, &special_addr);
-	alias_addr.s_addr = special_addr.s_addr | htonl(CTL_ALIAS);
-	getouraddr();
+    alias_addr.s_addr = special_addr.s_addr | htonl(CTL_ALIAS);
+    getouraddr();
+    inet_aton(CTL_LOCAL, &myaddr);
 
-	inet_aton("10.0.2.15",&myaddr);
+    while (1) {
+	sprintf(key, "%d_udp", i);
+	udp = config_get_int(category, key, 0);
+	sprintf(key, "%d_from", i);
+	from = config_get_int(category, key, 0);
+	if (from < 1)
+		break;
+	sprintf(key, "%d_to", i);
+	to = config_get_int(category, key, from);
 
-	while (1) {
-		sprintf(key, "%d_udp", i);
-		udp = config_get_int(category, key, 0);
-		sprintf(key, "%d_from", i);
-		from = config_get_int(category, key, 0);
-		if (from < 1)
-			break;
-		sprintf(key, "%d_to", i);
-		to = config_get_int(category, key, from);
+	rc = slirp_redir(udp, from, myaddr, to);
+	if (rc == 0)
+		pclog("slirp redir %d -> %d successful\n", from, to);
+	else
+		pclog("slirp redir %d -> %d failed (%d)\n", from, to, rc);
 
-		rc = slirp_redir(udp, from, myaddr, to);
-		if (rc == 0)
-			pclog("slirp redir %d -> %d successful\n", from, to);
-		else
-			pclog("slirp redir %d -> %d failed (%d)\n", from, to, rc);
-
-		i++;
-	}
+	i++;
+    }
 
     return 0;
 }
@@ -464,7 +462,7 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds)
 			    //winsock2.h:549:32: note: expected 'const char *' but argument is of type 'int *'
 			    //WINSOCK_API_LINKAGE int PASCAL send(SOCKET,const char*,int,int);		JASON
 			    //ret = send(so->s, "a", 1, 0);		WHY THE HELL WAS THIS HERE?!
-			    ret = send(so->s, &ret, 0, 0);		//This is what it should be.
+			    ret = send(so->s, (char *)&ret, 0, 0);		//This is what it should be.
 			    if (ret < 0) {
 			      /* XXXXX Must fix, zero bytes is a NOP */
 			      if (errno == EAGAIN || errno == EWOULDBLOCK ||
@@ -510,7 +508,7 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds)
 			    
 			    /* tcp_input will take care of it */
 			  } else {
-			    ret = send(so->s, &ret, 0,0);
+			    ret = send(so->s, (char *)&ret, 0,0);
 			    if (ret < 0) {
 			      /* XXX */
 			      if (errno == EAGAIN || errno == EWOULDBLOCK ||

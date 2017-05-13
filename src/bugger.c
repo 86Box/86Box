@@ -44,7 +44,7 @@
  *		configuration register (CTRL_SPCFG bit set) but have to
  *		remember that stuff first...
  *
- * Version:	@(#)bugger.c	1.0.3	2017/04/07
+ * Version:	@(#)bugger.c	1.0.4	2017/05/09
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 1989-2017 Fred N. van Kempen.
@@ -98,10 +98,8 @@ bug_setui(void)
 		(bug_ledr&0x08)?'R':'r', (bug_ledr&0x04)?'R':'r',
 		(bug_ledr&0x02)?'R':'r', (bug_ledr&0x01)?'R':'r');
 
-#if 0
     /* Send formatted string to the UI. */
-    set_bugui(bug_str);
-#endif
+    status_settext(bug_str);
 }
 
 

@@ -8,16 +8,19 @@
  *
  *		Implementation of Bus Mouse devices.
  *
- *		These mice devices were made by both Microsoft (InPort) and
- *		Logitech. Sadly, they did not use the same I/O protocol, but
- *		they were close enough to fit into a single implementation.
+ *		These devices were made by both Microsoft and Logitech. At
+ *		first, Microsoft used the same protocol as Logitech, but did
+ *		switch to their new protocol for their InPort interface. So,
+ *		although alike enough to be handled in the same driver, they
+ *		are not the same.
  *
- *		Although the Minix driver blindly took IRQ5, the board seems
- *		to be able to tell the driver what IRQ it is set for. When
- *		testing on MS-DOS (6.22), the 'mouse.exe' driver did not want
- *		to start, and only after disassembling it and inspecting the
- *		code it was discovered that driver actually does use the IRQ
- *		reporting feature. In a really, really weird way, too: it
+ *		This code is based on my Minix driver for the Logitech(-mode)
+ *		interface. Although that driver blindly took IRQ5, the board
+ *		seems to be able to tell the driver what IRQ it is set for.
+ *		When testing on MS-DOS (6.22), the 'mouse.exe' driver did not
+ *		want to start, and only after disassembling it and inspecting
+ *		the code it was discovered that driver actually does use the
+ *		IRQ reporting feature. In a really, really weird way, too: it
  *		sets up the board, and then reads the CTRL register which is
  *		supposed to return that IRQ value. Depending on whether or 
  *		not the FREEZE bit is set, it has to return either the two's
@@ -29,10 +32,7 @@
  *		Based on an early driver for MINIX 1.5.
  *		Based on the 86Box PS/2 mouse driver as a framework.
  *
- * NOTE:	Still have to add the code for the MS InPort mouse, which
- *		is very similar.  Almost done, but not ready for release.
- *
- * Version:	@(#)mouse_bus.c	1.0.3	2017/04/22
+ * Version:	@(#)mouse_bus.c	1.0.4	2017/05/06
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 1989-2017 Fred N. van Kempen.
@@ -50,13 +50,11 @@
 #define ENABLE_3BTN		1		/* enable 3-button mode */
 
 
-/* Register definitions (based on Logitech info.) */
+/* Register definitions for Logitech mode. */
 #define	LTMOUSE_DATA	0			/* DATA register */
 #define	LTMOUSE_MAGIC	1			/* signature magic register */
 # define MAGIC_BYTE1	0xa5			/* most drivers use this */
 # define MAGIC_BYTE2	0x5a			/* some drivers use this */
-# define MAGIC_MSBYTE1	0xde			/* indicates MS InPort */
-# define MAGIC_MSBYTE2	0xad
 #define	LTMOUSE_CTRL	2			/* CTRL register */
 # define CTRL_FREEZE	0x80			/* do not sample when set */
 # define CTRL_RD_Y_HI	0x60			/* plus FREEZE */
@@ -64,15 +62,25 @@
 # define CTRL_RD_X_HI	0x20			/* plus FREEZE */
 # define CTRL_RD_X_LO	0x00			/* plus FREEZE */
 # define CTRL_RD_MASK	0x60
-# define CTRL_IDISABLE	0x10
-# define CTRL_IENABLE	0x00
-# define CTRL_DFLT	(CTRL_IDISABLE)
+# define CTRL_IDIS	0x10
+# define CTRL_IENB	0x00
+# define CTRL_DFLT	(CTRL_IDIS)
 #define	LTMOUSE_CONFIG	3			/* CONFIG register */
 # define CONFIG_DFLT	0x91			/* 8255 controller config */
 
+/* Register definitions for Microsoft mode. */
 #define	MSMOUSE_CTRL	0			/* CTRL register */
+# define MSCTRL_RESET	0x80
+# define MSCTRL_MODE	0x07
+# define MSCTRL_RD_Y	0x02
+# define MSCTRL_RD_X	0x01
+# define MSCTRL_RD_BUT	0x00
 #define	MSMOUSE_DATA	1			/* DATA register */
+# define MSDATA_BASE	0x10
+# define MSDATA_IRQ	0x01
 #define	MSMOUSE_MAGIC	2			/* MAGIC register */
+# define MAGIC_MSBYTE1	0xde			/* indicates MS InPort */
+# define MAGIC_MSBYTE2	0xad
 #define	MSMOUSE_CONFIG	3			/* CONFIG register */
 
 
@@ -92,47 +100,62 @@ typedef struct {
     uint8_t	but;
 } mouse_bus_t;
 #define MOUSE_ENABLED	0x80			/* device is enabled for use */
-#define MOUSE_LOGITECH	0x40			/* running as Logitech mode */
-#define MOUSE_CMDFLAG	0x01			/* next wr is a command (MS) */
+#define MOUSE_LOGITECH	0x40			/* running in Logitech mode */
+#define MOUSE_MICROSOFT	0x20			/* running in Microsoft mode */
 
 
-/* Handle a write to the control register. */
+/* Handle a WRITE to a Microsoft-mode register. */
 static void
-wctrl(mouse_bus_t *ms, uint8_t val)
+ms_write(mouse_bus_t *ms, uint16_t port, uint8_t val)
 {
-    uint8_t b = (ms->r_ctrl ^ val);
+#if 1
+    pclog("BUSMOUSE: ms_write(%d,%02x)\n", port, val);
+#endif
 
-    if (b & CTRL_FREEZE) {
-	/* Hold the sampling while we do something. */
-	if (! (val & CTRL_FREEZE)) {
-		/* Reset current state. */
-		ms->x = ms->y = 0;
-		if (ms->but)	/* allow one more POLL for button-release */
-			ms->but = 0x80;
-	}
+    switch (port) {
+	case MSMOUSE_CTRL:	/* [00] control register */
+		if (val & MSCTRL_RESET) {
+			/* Reset the interface. */
+			ms->r_magic = MAGIC_MSBYTE1;
+			ms->r_conf = 0x00;
+		}
+
+		/* Save new register value. */
+		ms->r_ctrl = val;
+		break;
+
+	case MSMOUSE_DATA:	/* [01] data register */
+		if (ms->r_ctrl == MSCTRL_MODE) {
+			ms->r_conf = val;
+		}
+		break;
+
+	case MSMOUSE_MAGIC:	/* [02] magic data register */
+		break;
+
+	case MSMOUSE_CONFIG:	/* [03] config register */
+		ms->r_conf = val;
+		ms->flags &= ~MOUSE_MICROSOFT;
+		ms->flags |= MOUSE_LOGITECH;
+		break;
+
+	default:
+		break;
     }
-
-    if (b & CTRL_IDISABLE) {
-	/* Disable or enable interrupts. */
-	/* (we don't do anything for that here..) */
-    }
-
-    /* Save new register value. */
-    ms->r_ctrl = val;
 }
 
 
-/* Handle a WRITE operation to one of our registers. */
+/* Handle a WRITE to a LOGITECH-mode register. */
 static void
-busmouse_write(uint16_t port, uint8_t val, void *priv)
+lt_write(mouse_bus_t *ms, uint16_t port, uint8_t val)
 {
-    mouse_bus_t *ms = (mouse_bus_t *)priv;
+    uint8_t b = (ms->r_ctrl ^ val);
 
-#if 0
-    pclog("BUSMOUSE: write(%d,%02x)\n", port-ms->port, val);
+#if 1
+    pclog("BUSMOUSE: lt_write(%d,%02x)\n", port, val);
 #endif
 
-    switch (port-ms->port) {
+    switch (port) {
 	case LTMOUSE_DATA:	/* [00] data register */
 		break;
 
@@ -144,7 +167,24 @@ busmouse_write(uint16_t port, uint8_t val, void *priv)
 		break;
 
 	case LTMOUSE_CTRL:	/* [02] control register */
-		wctrl(ms, val);
+		if (b & CTRL_FREEZE) {
+			/* Hold the sampling while we do something. */
+			if (! (val & CTRL_FREEZE)) {
+				/* Reset current state. */
+				ms->x = ms->y = 0;
+				if (ms->but)
+					/* One more POLL for button-release. */
+					ms->but = 0x80;
+			}
+		}
+
+		if (b & CTRL_IDIS) {
+			/* Disable or enable interrupts. */
+			/* (we don't do anything for that here..) */
+		}
+
+		/* Save new register value. */
+		ms->r_ctrl = val;
 		break;
 
 	case LTMOUSE_CONFIG:	/* [03] config register */
@@ -154,6 +194,20 @@ busmouse_write(uint16_t port, uint8_t val, void *priv)
 	default:
 		break;
     }
+}
+
+
+/* Handle a WRITE operation to one of our registers. */
+static void
+bm_write(uint16_t port, uint8_t val, void *priv)
+{
+    mouse_bus_t *ms = (mouse_bus_t *)priv;
+
+    if (ms->flags & MOUSE_LOGITECH)
+	lt_write(ms, port - ms->port, val);
+
+    if (ms->flags & MOUSE_MICROSOFT)
+	ms_write(ms, port - ms->port, val);
 }
 
 
@@ -194,8 +248,8 @@ ms_read(mouse_bus_t *ms, uint16_t port)
 		break;
     }
 
-#if 0
-    pclog("BUSMOUSE: msread(%d): %02x\n", port, r);
+#if 1
+    pclog("BUSMOUSE: ms_read(%d): %02x\n", port, r);
 #endif
 
     return(r);
@@ -285,7 +339,7 @@ lt_read(mouse_bus_t *ms, uint16_t port)
 		 * first value is assumed to be the 2's complement of the
 		 * actual IRQ value.
 		 * Next, it does this a second time, but now with the 
-		 * IDISABLE bit clear (so, interrupts enabled), which is
+		 * IDIS bit clear (so, interrupts enabled), which is
 		 * our cue to return the regular (not complemented) value
 		 * to them.
 		 *
@@ -297,10 +351,10 @@ lt_read(mouse_bus_t *ms, uint16_t port)
 		 */
 		if (ms->r_intr++ < 250)
 			/* Still settling, return invalid data. */
-			r = (ms->r_ctrl&CTRL_IDISABLE)?0xff:0x00;
+			r = (ms->r_ctrl&CTRL_IDIS)?0xff:0x00;
 		  else {
 			/* OK, all good, return correct data. */
-			r = (ms->r_ctrl&CTRL_IDISABLE)?-ms->irq:ms->irq;
+			r = (ms->r_ctrl&CTRL_IDIS)?-ms->irq:ms->irq;
 			ms->r_intr = 0;
 		}
 		break;
@@ -313,8 +367,8 @@ lt_read(mouse_bus_t *ms, uint16_t port)
 		break;
     }
 
-#if 0
-    pclog("BUSMOUSE: ltread(%d): %02x\n", port, r);
+#if 1
+    pclog("BUSMOUSE: lt_read(%d): %02x\n", port, r);
 #endif
 
     return(r);
@@ -323,14 +377,15 @@ lt_read(mouse_bus_t *ms, uint16_t port)
 
 /* Handle a READ operation from one of our registers. */
 static uint8_t
-busmouse_read(uint16_t port, void *priv)
+bm_read(uint16_t port, void *priv)
 {
     mouse_bus_t *ms = (mouse_bus_t *)priv;
     uint8_t r;
 
     if (ms->flags & MOUSE_LOGITECH)
 	r = lt_read(ms, port - ms->port);
-      else
+
+    if (ms->flags & MOUSE_MICROSOFT)
 	r = ms_read(ms, port - ms->port);
 
     return(r);
@@ -339,13 +394,9 @@ busmouse_read(uint16_t port, void *priv)
 
 /* The emulator calls us with an update on the host mouse device. */
 static uint8_t
-busmouse_poll(int x, int y, int z, int b, void *priv)
+bm_poll(int x, int y, int z, int b, void *priv)
 {
     mouse_bus_t *ms = (mouse_bus_t *)priv;
-
-#if 0
-    pclog("BUSMOUSE: poll(%d,%d,%d, %02x)\n", x, y, z, b);
-#endif
 
     /* Return early if nothing to do. */
     if (!x && !y && !z && (ms->but == b)) return(1);
@@ -353,6 +404,10 @@ busmouse_poll(int x, int y, int z, int b, void *priv)
     /* If we are not interested, return. */
     if (!(ms->flags & MOUSE_ENABLED) ||
 	(ms->r_ctrl & CTRL_FREEZE)) return(0);
+
+#if 0
+    pclog("BUSMOUSE: poll(%d,%d,%d, %02x)\n", x, y, z, b);
+#endif
 
     /* Add the delta to our state. */
     x += ms->x;
@@ -372,7 +427,7 @@ busmouse_poll(int x, int y, int z, int b, void *priv)
     ms->but = b;
 
     /* All set, generate an interrupt. */
-    if (! (ms->r_ctrl & CTRL_IDISABLE))
+    if (! (ms->r_ctrl & CTRL_IDIS))
 		picint(1 << ms->irq);
 
     return(0);
@@ -381,14 +436,13 @@ busmouse_poll(int x, int y, int z, int b, void *priv)
 
 /* Release all resources held by the device. */
 static void
-busmouse_close(void *priv)
+bm_close(void *priv)
 {
     mouse_bus_t *ms = (mouse_bus_t *)priv;
 
     /* Release our I/O range. */
     io_removehandler(ms->port, ms->portlen,
-		     busmouse_read, NULL, NULL, busmouse_write, NULL, NULL,
-		     ms);
+		     bm_read, NULL, NULL, bm_write, NULL, NULL, ms);
 
     free(ms);
 }
@@ -396,7 +450,7 @@ busmouse_close(void *priv)
 
 /* Initialize the device for use by the user. */
 static void *
-busmouse_init(void)
+bm_init(void)
 {
     mouse_bus_t *ms;
 
@@ -417,17 +471,12 @@ busmouse_init(void)
     ms->r_conf = CONFIG_DFLT;
     ms->r_ctrl = CTRL_DFLT;
 
-    /*
-     * Technically this is not possible, but we fake that we
-     * did a power-up initialization with default config as
-     * set in the "conf" register.  Emulators rock! --FvK
-     */
-    ms->flags = MOUSE_ENABLED;
+    /* Initialize with Microsoft-mode being default. */
+    ms->flags = (MOUSE_ENABLED | MOUSE_MICROSOFT);
 
     /* Request an I/O range. */
     io_sethandler(ms->port, ms->portlen,
-		  busmouse_read, NULL, NULL, busmouse_write, NULL, NULL,
-		  ms);
+		  bm_read, NULL, NULL, bm_write, NULL, NULL, ms);
 
     /* Return our private data to the I/O layer. */
     return(ms);
@@ -438,7 +487,7 @@ mouse_t mouse_bus = {
     "Bus Mouse",
     "msbus",
     MOUSE_TYPE_BUS,
-    busmouse_init,
-    busmouse_close,
-    busmouse_poll
+    bm_init,
+    bm_close,
+    bm_poll
 };

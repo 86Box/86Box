@@ -6,10 +6,11 @@
 #include <string.h>
 #include "86box.h"
 #include "ibm.h"
+#include "timer.h"
 #include "device.h"
 #include "cdrom.h"
 #include "scsi.h"
-#include "timer.h"
+#include "scsi_aha154x.h"
 #include "scsi_buslogic.h"
 
 
@@ -106,7 +107,7 @@ void SCSIReset(uint8_t id, uint8_t lun)
 
     if (hdc_id != 0xff) {
 	scsi_hd_reset(cdrom_id);
-	SCSIDevices[id][lun].LunType = SCSI_HDD;
+	SCSIDevices[id][lun].LunType = SCSI_DISK;
     } else {
 	if (cdrom_id != 0xff)
 	{

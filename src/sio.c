@@ -7,10 +7,9 @@
         word 1 - bits 1 - 15 = byte count, bit 31 = end of transfer
 */
 #include <string.h>
-
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "cdrom.h"
-#include "cpu.h"
 #include "disc.h"
 #include "dma.h"
 #include "fdc.h"

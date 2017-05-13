@@ -9,25 +9,31 @@
 #include "rom.h"
 
 
-FILE *romfopen(char *fn, char *mode)
+FILE *romfopen(wchar_t *fn, wchar_t *mode)
 {
-        char s[512];
-        strcpy(s, pcempath);
-        put_backslash(s);
-        strcat(s, fn);
-        return fopen(s, mode);
+        wchar_t s[512];
+        wcscpy(s, pcempath);
+        put_backslash_w(s);
+        wcscat(s, fn);
+        return _wfopen(s, mode);
 }
 
 
-int rom_present(char *fn)
+FILE *nvrfopen(wchar_t *fn, wchar_t *mode)
+{
+        return _wfopen(nvr_concat(fn), mode);
+}
+
+
+int rom_present(wchar_t *fn)
 {
         FILE *f;
-        char s[512];
+        wchar_t s[512];
         
-        strcpy(s, pcempath);
-        put_backslash(s);
-        strcat(s, fn);
-        f = fopen(s, "rb");
+        wcscpy(s, pcempath);
+        put_backslash_w(s);
+        wcscat(s, fn);
+        f = _wfopen(s, L"rb");
         if (f)
         {
                 fclose(f);
@@ -70,13 +76,13 @@ uint32_t rom_readl(uint32_t addr, void *p)
 }
 
 
-int rom_init(rom_t *rom, char *fn, uint32_t address, int size, int mask, int file_offset, uint32_t flags)
+int rom_init(rom_t *rom, wchar_t *fn, uint32_t address, int size, int mask, int file_offset, uint32_t flags)
 {
-        FILE *f = romfopen(fn, "rb");
+        FILE *f = romfopen(fn, L"rb");
         
         if (!f)
         {
-                pclog("ROM image not found : %s\n", fn);
+                pclog("ROM image not found : %ws\n", fn);
                 return -1;
         }
         
@@ -101,20 +107,20 @@ int rom_init(rom_t *rom, char *fn, uint32_t address, int size, int mask, int fil
 }
 
 
-int rom_init_interleaved(rom_t *rom, char *fn_low, char *fn_high, uint32_t address, int size, int mask, int file_offset, uint32_t flags)
+int rom_init_interleaved(rom_t *rom, wchar_t *fn_low, wchar_t *fn_high, uint32_t address, int size, int mask, int file_offset, uint32_t flags)
 {
-        FILE *f_low  = romfopen(fn_low, "rb");
-        FILE *f_high = romfopen(fn_high, "rb");
+        FILE *f_low  = romfopen(fn_low, L"rb");
+        FILE *f_high = romfopen(fn_high, L"rb");
         int c;
         
         if (!f_low || !f_high)
         {
                 if (!f_low)
-                        pclog("ROM image not found : %s\n", fn_low);
+                        pclog("ROM image not found : %ws\n", fn_low);
                 else
                         fclose(f_low);
                 if (!f_high)
-                        pclog("ROM image not found : %s\n", fn_high);
+                        pclog("ROM image not found : %ws\n", fn_high);
                 else
                         fclose(f_high);
                 return -1;

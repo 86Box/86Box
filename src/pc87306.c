@@ -89,24 +89,24 @@ void serial1_handler()
 	temp = (pc87306_regs[1] >> 2) & 3;
 	switch (temp)
 	{
-		case 0: serial1_set(0x3f8, uart1_int()); break;
-		case 1: serial1_set(0x2f8, uart1_int()); break;
+		case 0: serial_setup(1, SERIAL1_ADDR, uart1_int()); break;
+		case 1: serial_setup(1, SERIAL2_ADDR, uart1_int()); break;
 		case 2:
 			switch ((pc87306_regs[1] >> 6) & 3)
 			{
-				case 0: serial1_set(0x3e8, uart1_int()); break;
-				case 1: serial1_set(0x338, uart1_int()); break;
-				case 2: serial1_set(0x2e8, uart1_int()); break;
-				case 3: serial1_set(0x220, uart1_int()); break;
+				case 0: serial_setup(1, 0x3e8, uart1_int()); break;
+				case 1: serial_setup(1, 0x338, uart1_int()); break;
+				case 2: serial_setup(1, 0x2e8, uart1_int()); break;
+				case 3: serial_setup(1, 0x220, uart1_int()); break;
 			}
 			break;
 		case 3:
 			switch ((pc87306_regs[1] >> 6) & 3)
 			{
-				case 0: serial1_set(0x2e8, uart1_int()); break;
-				case 1: serial1_set(0x238, uart1_int()); break;
-				case 2: serial1_set(0x2e0, uart1_int()); break;
-				case 3: serial1_set(0x228, uart1_int()); break;
+				case 0: serial_setup(1, 0x2e8, uart1_int()); break;
+				case 1: serial_setup(1, 0x238, uart1_int()); break;
+				case 2: serial_setup(1, 0x2e0, uart1_int()); break;
+				case 3: serial_setup(1, 0x228, uart1_int()); break;
 			}
 			break;
 	}
@@ -118,24 +118,24 @@ void serial2_handler()
 	temp = (pc87306_regs[1] >> 4) & 3;
 	switch (temp)
 	{
-		case 0: serial2_set(0x3f8, uart2_int()); break;
-		case 1: serial2_set(0x2f8, uart2_int()); break;
+		case 0: serial_setup(2, SERIAL1_ADDR, uart2_int()); break;
+		case 1: serial_setup(2, SERIAL2_ADDR, uart2_int()); break;
 		case 2:
 			switch ((pc87306_regs[1] >> 6) & 3)
 			{
-				case 0: serial2_set(0x3e8, uart2_int()); break;
-				case 1: serial2_set(0x338, uart2_int()); break;
-				case 2: serial2_set(0x2e8, uart2_int()); break;
-				case 3: serial2_set(0x220, uart2_int()); break;
+				case 0: serial_setup(2, 0x3e8, uart2_int()); break;
+				case 1: serial_setup(2, 0x338, uart2_int()); break;
+				case 2: serial_setup(2, 0x2e8, uart2_int()); break;
+				case 3: serial_setup(2, 0x220, uart2_int()); break;
 			}
 			break;
 		case 3:
 			switch ((pc87306_regs[1] >> 6) & 3)
 			{
-				case 0: serial2_set(0x2e8, uart2_int()); break;
-				case 1: serial2_set(0x238, uart2_int()); break;
-				case 2: serial2_set(0x2e0, uart2_int()); break;
-				case 3: serial2_set(0x228, uart2_int()); break;
+				case 0: serial_setup(2, 0x2e8, uart2_int()); break;
+				case 1: serial_setup(2, 0x238, uart2_int()); break;
+				case 2: serial_setup(2, 0x2e0, uart2_int()); break;
+				case 3: serial_setup(2, 0x228, uart2_int()); break;
 			}
 			break;
 	}
@@ -206,7 +206,7 @@ process_value:
 
 			if (valxor & 2)
 			{
-				serial1_remove();
+				serial_remove(1);
 				if (val & 2)
 				{
 					serial1_handler();
@@ -214,7 +214,7 @@ process_value:
 			}
 			if (valxor & 4)
 			{
-				serial2_remove();
+				serial_remove(2);
 				if (val & 4)
 				{
 					serial2_handler();
@@ -266,7 +266,7 @@ process_value:
 				}
 				else
 				{
-					serial1_remove();
+					serial_remove(1);
 				}
 			}
 
@@ -278,7 +278,7 @@ process_value:
 				}
 				else
 				{
-					serial2_remove();
+					serial_remove(2);
 				}
 			}
 			break;
@@ -288,8 +288,8 @@ process_value:
 				if (val & 1)
 				{
 					lpt1_remove();
-					serial1_remove();
-					serial2_remove();
+					serial_remove(1);
+					serial_remove(2);
 					fdc_remove();
 				}
 				else
@@ -448,8 +448,8 @@ void pc87306_reset(void)
 	fdc_remove();
 	fdc_set_base(0x3f0, 0);
 	fdd_swap = 0;
-	serial1_remove();
-	serial2_remove();
+	serial_remove(1);
+	serial_remove(2);
 	serial1_handler();
 	serial2_handler();
 	pc87306_gpio_init();

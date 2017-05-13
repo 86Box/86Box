@@ -1,7 +1,7 @@
 /*OPTi 82C495 emulation
   This is the chipset used in the AMI386 model*/
 #include "ibm.h"
-#include "cpu.h"
+#include "cpu/cpu.h"
 #include "io.h"
 #include "mem.h"
 

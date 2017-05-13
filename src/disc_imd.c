@@ -8,6 +8,7 @@
 #include "fdd.h"
 
 #include <malloc.h>
+#include <wchar.h>
 
 typedef struct
 {
@@ -49,7 +50,7 @@ void imd_init()
 
 void d86f_register_imd(int drive);
 
-void imd_load(int drive, char *fn)
+void imd_load(int drive, wchar_t *fn)
 {
 	uint32_t magic = 0;
 	uint32_t fsize = 0;
@@ -73,12 +74,15 @@ void imd_load(int drive, char *fn)
 	d86f_unregister(drive);
 
 	writeprot[drive] = 0;
-        imd[drive].f = fopen(fn, "rb+");
+        imd[drive].f = _wfopen(fn, L"rb+");
         if (!imd[drive].f)
         {
-                imd[drive].f = fopen(fn, "rb");
+                imd[drive].f = _wfopen(fn, L"rb");
                 if (!imd[drive].f)
+		{
+			update_status_bar_icon_state(drive, 1);
                         return;
+		}
                 writeprot[drive] = 1;
         }
 	if (ui_writeprot[drive])
@@ -93,6 +97,7 @@ void imd_load(int drive, char *fn)
 	{
 		pclog("IMD: Not a valid ImageDisk image\n");
 		fclose(imd[drive].f);
+		update_status_bar_icon_state(drive, 1);
 		return;
 	}
 	else
@@ -113,6 +118,7 @@ void imd_load(int drive, char *fn)
 	{
 		pclog("IMD: No ASCII EOF character\n");
 		fclose(imd[drive].f);
+		update_status_bar_icon_state(drive, 1);
 		return;
 	}
 	else
@@ -125,6 +131,7 @@ void imd_load(int drive, char *fn)
 	{
 		pclog("IMD: File ends after ASCII EOF character\n");
 		fclose(imd[drive].f);
+		update_status_bar_icon_state(drive, 1);
 		return;
 	}
 	else
@@ -243,6 +250,7 @@ void imd_load(int drive, char *fn)
 				/* If we can't fit the sectors with a reasonable minimum gap even at 2% slower RPM, abort. */
 				pclog("IMD: Unable to fit the %i sectors in a track\n", track_spt);
 				fclose(imd[drive].f);
+				update_status_bar_icon_state(drive, 1);
 				return;
 			}
 		}
@@ -281,7 +289,6 @@ void imd_close(int drive)
 		}
                 fclose(imd[drive].f);
 	}
-        imd[drive].f = NULL;
 }
 
 int imd_track_is_xdf(int drive, int side, int track)

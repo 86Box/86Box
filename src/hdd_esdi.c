@@ -796,14 +796,14 @@ static void esdi_mca_write(int port, uint8_t val, void *p)
         }
 }
 
-static void loadhd(esdi_t *esdi, int d, const char *fn)
+static void loadhd(esdi_t *esdi, int d, const wchar_t *fn)
 {
         esdi_drive_t *drive = &esdi->drives[d];
         
 	if (drive->hdfile == NULL)
         {
 		/* Try to open existing hard disk image */
-		drive->hdfile = fopen64(fn, "rb+");
+		drive->hdfile = _wfopen(fn, L"rb+");
 		if (drive->hdfile == NULL)
                 {
 			/* Failed to open existing hard disk image */
@@ -811,7 +811,7 @@ static void loadhd(esdi_t *esdi, int d, const char *fn)
                         {
 				/* Failed because it does not exist,
 				   so try to create new file */
-				drive->hdfile = fopen64(fn, "wb+");
+				drive->hdfile = _wfopen(fn, L"wb+");
 				if (drive->hdfile == NULL)
                                 {
 					pclog("Cannot create file '%s': %s",
@@ -842,7 +842,7 @@ static void *esdi_init()
         esdi_t *esdi = malloc(sizeof(esdi_t));
         memset(esdi, 0, sizeof(esdi_t));
 
-        rom_init_interleaved(&esdi->bios_rom, "roms/90x8970.bin", "roms/90x8969.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init_interleaved(&esdi->bios_rom, L"roms/90x8970.bin", L"roms/90x8969.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
         mem_mapping_disable(&esdi->bios_rom.mapping);
 
 	for (i = 0; i < HDC_NUM; i++)
@@ -882,7 +882,7 @@ static void esdi_close(void *p)
 
 static int esdi_available()
 {
-        return rom_present("roms/90x8969.bin") && rom_present("roms/90x8970.bin");
+        return rom_present(L"roms/90x8969.bin") && rom_present(L"roms/90x8970.bin");
 }
 
 device_t hdd_esdi_device =

@@ -2,8 +2,10 @@
    see COPYING for more details
 */
 #include <stdlib.h>
+#include <wchar.h>
 
 #include "ibm.h"
+#include "config.h"
 #include "disc.h"
 #include "disc_img.h"
 #include "fdc.h"
@@ -296,14 +298,14 @@ int first_byte_is_valid(uint8_t first_byte)
 
 double bit_rate_300;
 
-char ext[4];
+wchar_t *ext;
 
 uint8_t first_byte, second_byte, third_byte, fourth_byte;
 
 /* This is hard-coded to 0 - if you really need to read those NT 3.1 Beta floppy images, change this to 1 and recompile the emulator. */
 uint8_t fdf_suppress_final_byte = 0;
 
-void img_load(int drive, char *fn)
+void img_load(int drive, wchar_t *fn)
 {
         int size;
 	uint16_t bpb_bps;
@@ -324,20 +326,20 @@ void img_load(int drive, char *fn)
 	uint16_t track_bytes = 0;
 	uint8_t *literal;
 
-	ext[0] = fn[strlen(fn) - 3] | 0x60;
-	ext[1] = fn[strlen(fn) - 2] | 0x60;
-	ext[2] = fn[strlen(fn) - 1] | 0x60;
-	ext[3] = 0;
+	ext = get_extension_w(fn);
 
 	d86f_unregister(drive);
 
 	writeprot[drive] = 0;
-        img[drive].f = fopen(fn, "rb+");
+        img[drive].f = _wfopen(fn, L"rb+");
         if (!img[drive].f)
         {
-                img[drive].f = fopen(fn, "rb");
+                img[drive].f = _wfopen(fn, L"rb");
                 if (!img[drive].f)
+		{
+			update_status_bar_icon_state(drive, 1);
                         return;
+		}
                 writeprot[drive] = 1;
         }
 	if (ui_writeprot[drive])
@@ -350,7 +352,7 @@ void img_load(int drive, char *fn)
 
 	img[drive].interleave = img[drive].skew = 0;
 
-	if (strcmp(ext, "fdi") == 0)
+	if (_wcsicmp(ext, L"FDI") == 0)
 	{
 		/* This is a Japanese FDI image, so let's read the header */
 		pclog("img_load(): File is a Japanese FDI image...\n");
@@ -395,7 +397,7 @@ void img_load(int drive, char *fn)
 			pclog("img_load(): File is a FDF image...\n");
 	                fwriteprot[drive] = writeprot[drive] = 1;
 			fclose(img[drive].f);
-			img[drive].f = fopen(fn, "rb");
+			img[drive].f = _wfopen(fn, L"rb");
 
 			fdf = 1;
 
@@ -580,7 +582,7 @@ void img_load(int drive, char *fn)
 			pclog("img_load(): File is a CopyQM image...\n");
 	                fwriteprot[drive] = writeprot[drive] = 1;
 			fclose(img[drive].f);
-			img[drive].f = fopen(fn, "rb");
+			img[drive].f = _wfopen(fn, L"rb");
 
 			fseek(img[drive].f, 0x03, SEEK_SET);
 			fread(&bpb_bps, 1, 2, img[drive].f);
@@ -734,6 +736,7 @@ jump_if_fdf:
 		{
 			pclog("Image is bigger than can fit on an ED floppy, ejecting...\n");
 			fclose(img[drive].f);
+			update_status_bar_icon_state(drive, 1);
 			return;
 		}
 	}
@@ -795,6 +798,7 @@ jump_if_fdf:
 	{
 		pclog("Image is bigger than can fit on an ED floppy, ejecting...\n");
 		fclose(img[drive].f);
+		update_status_bar_icon_state(drive, 1);
 		return;
 	}
 
@@ -811,6 +815,7 @@ jump_if_fdf:
 	{
 		pclog("ERROR: Floppy image of unknown format was inserted into drive %c:!\n", drive + 0x41);
 		fclose(img[drive].f);
+		update_status_bar_icon_state(drive, 1);
 		return;
 	}
 
@@ -845,8 +850,6 @@ void img_close(int drive)
                 fclose(img[drive].f);
         if (img[drive].disk_data)
                 free(img[drive].disk_data);
-        img[drive].f = NULL;
-        img[drive].disk_data = NULL;
 }
 
 #define xdf_img_sector xdf_img_layout[current_xdft][!is_t0][sector]

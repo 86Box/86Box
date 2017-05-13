@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include "ibm.h"
 #include "device.h"
+#include "mem.h"
 #include "io.h"
+#include "rom.h"
 #include "tandy_eeprom.h"
 
 typedef struct
@@ -124,10 +126,10 @@ void *tandy_eeprom_init()
         switch (romset)
         {
                 case ROM_TANDY1000HX:
-                f = romfopen(nvr_concat("tandy1000hx.bin"), "rb");
+                f = nvrfopen(L"tandy1000hx.bin", L"rb");
                 break;
                 case ROM_TANDY1000SL2:
-                f = romfopen(nvr_concat("tandy1000sl2.bin"), "rb");
+                f = nvrfopen(L"tandy1000sl2.bin", L"rb");
                 break;
         }
         if (f)
@@ -151,10 +153,10 @@ void tandy_eeprom_close(void *p)
         switch (eeprom->romset)
         {
                 case ROM_TANDY1000HX:
-                f = romfopen(nvr_concat("tandy1000hx.bin"), "wb");
+                f = nvrfopen(L"tandy1000hx.bin", L"wb");
                 break;
                 case ROM_TANDY1000SL2:
-                f = romfopen(nvr_concat("tandy1000sl2.bin"), "wb");
+                f = nvrfopen(L"tandy1000sl2.bin", L"wb");
                 break;
         }
         fwrite(eeprom->store, 128, 1, f);

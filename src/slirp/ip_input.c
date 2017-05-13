@@ -37,7 +37,6 @@
  * Please read the file COPYRIGHT for the
  * terms and conditions of the copyright.
  */
-
 #include "slirp.h"
 #include "ip_icmp.h"
 
