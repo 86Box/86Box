@@ -2424,24 +2424,30 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 					toc_format = (cdb[9] >> 6) & 3;
 				}
 
-				len = cdb[8] + (cdb[7] << 8);
-
 				switch (toc_format)
 				{
 					case 0: /*Normal*/
-						len = cdrom_drives[id].handler->readtoc(id, cdbufferb, cdb[6], msf, len, 0);
+						len = cdrom_drives[id].handler->readtoc(id, cdbufferb, cdb[6], msf, max_len, 0);
 						break;
 					case 1: /*Multi session*/
-						len = cdrom_drives[id].handler->readtoc_session(id, cdbufferb, msf, len);
+						len = cdrom_drives[id].handler->readtoc_session(id, cdbufferb, msf, max_len);
 						cdbufferb[0] = 0; cdbufferb[1] = 0xA;
 						break;
 					case 2: /*Raw*/
-						len = cdrom_drives[id].handler->readtoc_raw(id, cdbufferb, msf, len);
+						len = cdrom_drives[id].handler->readtoc_raw(id, cdbufferb, msf, max_len);
 						break;
 					default:
 						cdrom_invalid_field(id);
 						return;
 				}
+			}
+
+			if (len > max_len)
+			{
+				len = max_len;
+
+				cdbufferb[0] = ((len - 2) >> 8) & 0xff;
+				cdbufferb[1] = (len - 2) & 0xff;
 			}
 
 			cdrom_data_command_finish(id, len, len, len, 0);
