@@ -271,7 +271,7 @@ static void MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 			break;
 		case 0xff:	/* Reset MPU-401 */
 			pclog("MPU-401:Reset %X\n",val);
-			mpu401_reset_callback = MPU401_RESETBUSY * 200 * TIMER_USEC;
+			mpu401_reset_callback = MPU401_RESETBUSY * 33 * TIMER_USEC;
 			mpu->state.reset=1;
 			MPU401_Reset(mpu);
 			if (mpu->mode==M_UART) return;//do not send ack in UART mode
