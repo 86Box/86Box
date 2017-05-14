@@ -228,7 +228,7 @@ static int image_get_last_block(uint8_t id, uint8_t starttrack, int msf, int max
         {
                 uint32_t address;
                 cdimg[id]->GetAudioTrackInfo(c+1, number, tmsf, attr);
-                address = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr);
+                address = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr) - 150;	/* Do the - 150 here as well. */
                 if (address > lb)
                         lb = address;
         }
@@ -733,7 +733,7 @@ static void lba_to_msf(uint8_t *buf, int lba)
     lba += 150;
     buf[0] = (lba / 75) / 60;
     buf[1] = (lba / 75) % 60;
-	buf[2] = lba % 75;
+    buf[2] = lba % 75;
 }
 
 static uint32_t image_size(uint8_t id)
@@ -743,6 +743,7 @@ static uint32_t image_size(uint8_t id)
 
 static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack, int msf, int maxlen, int single)
 {
+        if (!cdimg[id]) return 0;
         int len=4;
         int c,d;
         uint32_t temp;
@@ -752,9 +753,6 @@ static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack,
         int number;
         unsigned char attr;
         TMSF tmsf;
-
-        if (!cdimg[id]) return 0;
-
         cdimg[id]->GetAudioTracks(first_track, last_track, tmsf);
 
         b[2] = first_track;
@@ -779,6 +777,7 @@ static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack,
                         break;
                 cdimg[id]->GetAudioTrackInfo(c+1, number, tmsf, attr);
 
+//                pclog("Len %i max %i Track %02X - %02X %02X %02i:%02i:%02i %08X\n",len,maxlen,toc[c].cdte_track,toc[c].cdte_adr,toc[c].cdte_ctrl,toc[c].cdte_addr.msf.minute, toc[c].cdte_addr.msf.second, toc[c].cdte_addr.msf.frame,MSFtoLBA(toc[c].cdte_addr.msf.minute, toc[c].cdte_addr.msf.second, toc[c].cdte_addr.msf.frame));
                 b[len++] = 0; /* reserved */
                 b[len++] = attr;
                 b[len++] = number; /* track number */
@@ -793,7 +792,7 @@ static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack,
                 }
                 else
                 {
-                        temp = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr);
+                        temp = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr) - 150;
                         b[len++] = temp >> 24;
                         b[len++] = temp >> 16;
                         b[len++] = temp >> 8;
@@ -802,14 +801,22 @@ static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack,
                 if (single)
                         break;
         }
-
-	if (len > maxlen)
-	{
-		len = maxlen;
-	}
-
         b[0] = (uint8_t)(((len-2) >> 8) & 0xff);
         b[1] = (uint8_t)((len-2) & 0xff);
+        /*
+        pclog("Table of Contents:\n");
+        pclog("First track - %02X\n", first_track);
+        pclog("Last  track - %02X\n", last_track);
+        for (c = 0; c <= last_track; c++)
+        {
+                cdimg[id]->GetAudioTrackInfo(c+1, number, tmsf, attr);
+                pclog("Track %02X - number %02X control %02X adr %02X address %02X %02X %02X %02X\n", c, number, attr, 0, 0, tmsf.min, tmsf.sec, tmsf.fr);
+        }
+        for (c = 0;c <= last_track; c++) {
+                cdimg[id]->GetAudioTrackInfo(c+1, number, tmsf, attr);
+            pclog("Track %02X - number %02X control %02X adr %02X address %06X\n", c, number, attr, 0, MSF_TO_FRAMES(tmsf.min, tmsf.sec, tmsf.fr));
+        }
+        */
         return len;
 }
 
@@ -824,6 +831,11 @@ static int image_readtoc_session(uint8_t id, unsigned char *b, int msf, int maxl
         if (!cdimg[id]) return 0;
 
         cdimg[id]->GetAudioTrackInfo(1, number, tmsf, attr);
+
+	if (number == 0)
+	{
+		number = 1;
+	}
 
         b[2] = 1;
         b[3] = 1;
@@ -840,7 +852,7 @@ static int image_readtoc_session(uint8_t id, unsigned char *b, int msf, int maxl
         }
         else
         {
-                uint32_t temp = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr);
+                uint32_t temp = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr) - 150;	/* Do the - 150. */
                 b[len++] = temp >> 24;
                 b[len++] = temp >> 16;
                 b[len++] = temp >> 8;
