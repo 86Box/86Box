@@ -687,12 +687,18 @@ static int ide_set_features(IDE *ide)
 			switch(mode)
 			{
 				case 0x00:	/* PIO default */
-					if (submode != 0)  goto abort;
+					if (submode != 0)
+					{
+						return 0;
+					}
 					ide->mdma_mode = -1;
 					break;
 
 				case 0x01:	/* PIO mode */
-					if (submode > 2)  goto abort;
+					if (submode > 2)
+					{
+						return 0;
+					}
 					ide->mdma_mode = -1;
 					break;
 
