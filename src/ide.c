@@ -705,7 +705,7 @@ static int ide_set_features(IDE *ide)
 				case 0x04:	/* Multiword DMA mode */
 					if (!PCI || (hdc[ide->hdc_num].bus != 3) || (ide->board >= 2) || (submode > 2))
 					{
-						goto abort;
+						return 0;
 					}
 					ide->mdma_mode = (1 << submode);
 					break;
