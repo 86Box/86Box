@@ -421,7 +421,12 @@ static void ide_identify(IDE *ide)
 	if (PCI && (ide->board < 2) && (hdc[ide->hdc_num].bus == 3))
 	{
 		ide->buffer[52] = 2 << 8; /*DMA timing mode*/
+
 		ide->buffer[63] = 7;
+        	if (ide->mdma_mode != -1)
+	        {
+        	    ide->buffer[63] = (ide->mdma_mode << 8);
+	        }
 	}
 	ide->buffer[80] = 0xe; /*ATA-1 to ATA-3 supported*/
 }
@@ -661,78 +666,60 @@ int ide_cdrom_is_pio_only(IDE *ide)
 	return 1;
 }
 
-#if 0
-int ide_set_features(IDE *ide)
+static int ide_set_features(IDE *ide)
 {
-	uint8_t cdrom_id = cur_ide[ide->board];
+	uint8_t features, features_data;
+	uint8_t mode, submode;
+	
+	features = ide->cylprecomp;
+	features_data = ide->secount;
 
-	uint8_t features = 0;
-	
-	uint8_t sf_data = 0;
-	uint8_t val = 0;
-	
-	if (ide_drive_is_cdrom(ide))
-	{
-		features = cdrom[cdrom_id].features;
-		sf_data = cdrom[cdrom_id].phase;
-	}
-	else
-	{
-		features = ide->cylprecomp;
-		sf_data = ide->secount;
-	}
-	
-	val = sf_data & 7;
+	pclog("Features code %02X\n", features);
 
-	if (ide->type == IDE_NONE)  return 0;
-	
 	switch(features)
 	{
-		case 0x02:
-		case 0x82:
-			return 0;
-		case 0xcc:
-		case 0x66:
-		case 0xaa:
-		case 0x55:
-		case 0x05:
-		case 0x85:
-		case 0x69:
-		case 0x67:
-		case 0x96:
-		case 0x9a:
-		case 0x42:
-		case 0xc2:
-			return 1;
-		case 0x03:
-#if 0
-			if (ide->type == IDE_CDROM)
+		case 0x03:	/* Set transfer mode. */
+			pclog("Transfer mode %02X\n", features_data >> 3);
+
+			mode = (features_data >> 3);
+			submode = features_data & 7;
+
+			switch(mode)
 			{
-				return 0;
-			}
-#endif
-			switch(sf_data >> 3)
-			{
-				case 0:
-					ide->dma_identify_data[0] = 7;
-					break;
-				case 1:
-					/* We do not (yet) emulate flow control, so return with error if this is attempted. */
-					return 0;
-				case 4:
-					if (ide_cdrom_is_pio_only(ide) || (ide->board >= 2))
+				case 0x00:	/* PIO default */
+					if (submode != 0)
 					{
 						return 0;
 					}
-					ide->dma_identify_data[0] = 7 | (1 << (val + 8));
+					ide->mdma_mode = -1;
 					break;
+
+				case 0x01:	/* PIO mode */
+					if (submode > 2)
+					{
+						return 0;
+					}
+					ide->mdma_mode = -1;
+					break;
+
+				case 0x04:	/* Multiword DMA mode */
+					if (!PCI || (hdc[ide->hdc_num].bus != 3) || (ide->board >= 2) || (submode > 2))
+					{
+						return 0;
+					}
+					ide->mdma_mode = (1 << submode);
+					break;
+			
 				default:
 					return 0;
 			}
+		
+		default:
+			return 0;
 	}
+
 	return 1;
 }
-#endif
 
 void ide_set_sector(IDE *ide, int64_t sector_num)
 {
@@ -805,12 +792,10 @@ void resetide(void)
 			
 		ide_set_signature(&ide_drives[d]);
 
-#if 0
-		if (ide_drives[d].type != IDE_NONE)
+		if (ide_drives[d].type == IDE_HDD)
 		{
-			ide_drives[d].dma_identify_data[0] = 7;
+			ide_drives[d].mdma_mode = 0;
 		}
-#endif
 
 		ide_drives[d].error = 1;
 	}
@@ -1663,7 +1648,7 @@ void callbackide(int ide_board)
 	{
 		/* Initialize the Task File Registers as follows: Status = 00h, Error = 01h, Sector Count = 01h, Sector Number = 01h,
 		   Cylinder Low = 14h, Cylinder High =EBh and Drive/Head = 00h. */
-        case WIN_SRST: /*ATAPI Device Reset */
+	        case WIN_SRST: /*ATAPI Device Reset */
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide->error=1; /*Device passed*/
 			ide->secount = ide->sector = 1;
@@ -1683,8 +1668,8 @@ void callbackide(int ide_board)
 			}
 			return;
 
-        case WIN_RESTORE:
-        case WIN_SEEK:
+	        case WIN_RESTORE:
+        	case WIN_SEEK:
 			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
@@ -1716,8 +1701,8 @@ void callbackide(int ide_board)
 			ide_irq_raise(ide);
 			return;
 
-        case WIN_READ:
-        case WIN_READ_NORETRY:
+		case WIN_READ:
+		case WIN_READ_NORETRY:
 			if (ide_drive_is_cdrom(ide))
 			{
 				ide_set_signature(ide);
@@ -1739,7 +1724,7 @@ void callbackide(int ide_board)
 			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
 			return;
 
-        case WIN_READ_DMA:
+		case WIN_READ_DMA:
 			if (ide_drive_is_cdrom(ide) || (ide->board >= 2))
 			{
 				goto abort_cmd;
@@ -1782,7 +1767,7 @@ void callbackide(int ide_board)
 
 			return;
 
-        case WIN_READ_MULTIPLE:
+		case WIN_READ_MULTIPLE:
 			/* According to the official ATA reference:
 
 			   If the Read Multiple command is attempted before the Set Multiple Mode
@@ -1816,8 +1801,8 @@ void callbackide(int ide_board)
 			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
 			return;
 
-        case WIN_WRITE:
-        case WIN_WRITE_NORETRY:
+		case WIN_WRITE:
+		case WIN_WRITE_NORETRY:
 			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
@@ -1846,7 +1831,7 @@ void callbackide(int ide_board)
 
 			return;
                 
-        case WIN_WRITE_DMA:
+		case WIN_WRITE_DMA:
 			if (ide_drive_is_cdrom(ide) || (ide_board >= 2))
 			{
 				goto abort_cmd;
@@ -1889,7 +1874,7 @@ void callbackide(int ide_board)
 
 			return;
 
-        case WIN_WRITE_MULTIPLE:
+		case WIN_WRITE_MULTIPLE:
 			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
@@ -1938,7 +1923,7 @@ void callbackide(int ide_board)
 			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
 			return;
 
-        case WIN_FORMAT:
+		case WIN_FORMAT:
 			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
@@ -1960,7 +1945,7 @@ void callbackide(int ide_board)
 			/* update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1); */
 			return;
 
-        case WIN_DRIVE_DIAGNOSTICS:
+		case WIN_DRIVE_DIAGNOSTICS:
 			ide_set_signature(ide);
 			ide->error=1; /*No error detected*/
 
@@ -1978,7 +1963,7 @@ void callbackide(int ide_board)
 			}
 			return;
 
-        case WIN_SPECIFY: /* Initialize Drive Parameters */
+		case WIN_SPECIFY: /* Initialize Drive Parameters */
 			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
@@ -2000,7 +1985,7 @@ void callbackide(int ide_board)
 			ide_irq_raise(ide);
 			return;
 
-        case WIN_PIDENTIFY: /* Identify Packet Device */
+		case WIN_PIDENTIFY: /* Identify Packet Device */
 			if (ide_drive_is_cdrom(ide))
 			{
 				ide_atapi_identify(ide);
@@ -2013,8 +1998,8 @@ void callbackide(int ide_board)
 			}
 			goto abort_cmd;
 
-        case WIN_SET_MULTIPLE_MODE:
-			if (ide_drive_is_cdrom(ide))
+		case WIN_SET_MULTIPLE_MODE:
+		if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
 			}
@@ -2023,24 +2008,23 @@ void callbackide(int ide_board)
 			ide_irq_raise(ide);
 			return;
 
-#if 0
 		case WIN_SET_FEATURES:
-			if (!(ide_set_features(ide)))
+			if ((ide->type == IDE_NONE) || ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
 			}
-			if (ide_drive_is_cdrom(ide))
+
+			if (!ide_set_features(ide))
 			{
-				cdrom[cdrom_id].status = READY_STAT | DSC_STAT;
+				goto abort_cmd;
 			}
 			else
 			{
 				ide->atastat = READY_STAT | DSC_STAT;
+				ide_irq_raise(ide);
 			}
-			ide_irq_raise(ide);
 			return;
-#endif
-			
+
 		case WIN_READ_NATIVE_MAX:
 			if ((ide->type != IDE_HDD) || ide_drive_is_cdrom(ide))
 			{
@@ -2053,8 +2037,8 @@ void callbackide(int ide_board)
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
 			return;
-				
-        case WIN_IDENTIFY: /* Identify Device */
+
+		case WIN_IDENTIFY: /* Identify Device */
 			if (ide->type == IDE_NONE)
 			{
 				ide_set_signature(ide);
@@ -2076,7 +2060,7 @@ void callbackide(int ide_board)
 			}
 			return;
 
-        case WIN_PACKETCMD: /* ATAPI Packet */
+		case WIN_PACKETCMD: /* ATAPI Packet */
 			if (!ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
@@ -2089,7 +2073,7 @@ void callbackide(int ide_board)
 
 		case 0xFF:
 			goto abort_cmd;
-		}
+	}
 
 abort_cmd:
 	ide->command = 0;
@@ -2107,6 +2091,7 @@ abort_cmd:
 	}
 	ide_irq_raise(ide);
 	return;
+
 id_not_found:
 	ide->atastat = READY_STAT | ERR_STAT | DSC_STAT;
 	ide->error = ABRT_ERR | 0x10;
