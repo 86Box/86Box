@@ -25,6 +25,7 @@
 #include <stdarg.h>
 #include "ibm.h"
 #include "io.h"
+#include "mca.h"
 #include "mem.h"
 #include "mca.h"
 #include "rom.h"
@@ -2195,13 +2196,15 @@ void aha_mca_write(int port, uint8_t val, void *p)
 	if (port < 0x102)
 			return;
 
-	addr = aha_mca_addr[dev->pos_regs[4] & 7];
-	if ((dev->pos_regs[2] & 1) && !(val & 1))
-		io_removehandler(addr, 0x0004, aha_read, aha_readw, NULL, aha_write, aha_writew, NULL, dev);
-	if (!(dev->pos_regs[2] & 1) && (val & 1))
-		io_sethandler(addr, 0x0004, aha_read, aha_readw, NULL, aha_write, aha_writew, NULL, dev);
-
+	addr = aha_mca_addr[dev->pos_regs[4] & 6];
+	io_removehandler(addr, 0x0004, aha_read, aha_readw, NULL, aha_write, aha_writew, NULL, dev);
+	
 	dev->pos_regs[port & 7] = val;
+	
+	if (dev->pos_regs[2] & 1)
+	{
+		io_sethandler(addr, 0x0004, aha_read, aha_readw, NULL, aha_write, aha_writew, NULL, dev);
+	}
 }
 
 
