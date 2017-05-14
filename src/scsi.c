@@ -35,6 +35,7 @@ static SCSI_CARD scsi_cards[] = {
     { "None",			"none",		NULL			},
     { "Adaptec AHA-1540B",	"aha1540b",	&aha1540b_device	},
     { "Adaptec AHA-1542CF",	"aha1542cf",	&aha1542cf_device	},
+    { "Adaptec AHA-1640",	"aha1640",	&aha1640_device	},
     { "BusLogic BT-542B",	"bt542b",	&buslogic_device	},
     { "BusLogic BT-958D PCI",	"bt958d",	&buslogic_pci_device	},
     { "",			"",		NULL			}

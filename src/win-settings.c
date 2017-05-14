@@ -1192,6 +1192,7 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 	int c = 0;
 	int d = 0;
 	LPTSTR lptsTemp;
+	device_t *scsi_dev;
 
         switch (message)
         {
@@ -1210,21 +1211,26 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 					break;
 				}
 
-				settings_scsi_to_list[c] = d;
-
+				settings_scsi_to_list[c] = d;			
+				
 				if (scsi_card_available(c))
 				{
-					if (c == 0)
+					scsi_dev = scsi_card_getdevice(c);
+					
+					if (!scsi_dev || (scsi_dev->flags & DEVICE_MCA) == (models[temp_model].flags & MODEL_MCA))
 					{
-						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2152));
+						if (c == 0)
+						{
+							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2152));
+						}
+						else
+						{
+							mbstowcs(lptsTemp, s, strlen(s) + 1);
+							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+						}
+						settings_list_to_scsi[d] = c;
+						d++;
 					}
-					else
-					{
-						mbstowcs(lptsTemp, s, strlen(s) + 1);
-						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
-					}
-					settings_list_to_scsi[d] = c;
-					d++;
 				}
 
 				c++;
