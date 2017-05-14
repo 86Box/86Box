@@ -920,8 +920,14 @@ void update_status_bar_panes(HWND hwnds)
 	c_ide_dma = count_hard_disks(3);
 	c_scsi = count_hard_disks(4);
 
+	for (i = 0; i < sb_parts; i++)
+	{
+		SendMessage(hwnds, SB_SETICON, i, (LPARAM) NULL);
+	}
+
 	sb_parts = 0;
-	memset(sb_part_meanings, 0, 40);
+	memset(iStatusWidths, 0, 48);
+	memset(sb_part_meanings, 0, 48);
 	for (i = 0; i < 4; i++)
 	{
 		if (fdd_get_type(i) != 0)
