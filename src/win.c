@@ -1611,11 +1611,8 @@ void win_cdrom_eject(uint8_t id)
 		/* Signal disc change to the emulated machine. */
 		cdrom_insert(id);
 	}
-	if (cdrom_drives[id].host_drive == 200)
-	{
-		CheckMenuItem(hmenu, IDM_CDROM_1_IMAGE + id,		           MF_UNCHECKED);
-	}
-	else
+	CheckMenuItem(hmenu, IDM_CDROM_1_IMAGE + id,		           MF_UNCHECKED);
+	if ((cdrom_drives[id].host_drive >= 65) && (cdrom_drives[id].host_drive <= 90))
 	{
 		CheckMenuItem(hmenu, IDM_CDROM_1_REAL + id + (cdrom_drive << 2), MF_UNCHECKED);
 	}
@@ -2215,6 +2212,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 	int cdrom_id = 0;
 	int menu_sub_param = 0;
 	int menu_super_param = 0;
+	int ret = 0;
 
         HMENU hmenu;
 
@@ -2225,7 +2223,8 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
                 {
                         case IDM_DISC_1:
                         case IDM_DISC_1_WP:
-			if (!file_dlg_w_st(hwnd, 2173, discfns[0], 0))
+			ret = file_dlg_w_st(hwnd, 2173, discfns[0], 0);
+			if (!ret)
                         {
                                 disc_close(0);
 				ui_writeprot[0] = (LOWORD(wParam) == IDM_DISC_1_WP) ? 1 : 0;
@@ -2237,7 +2236,8 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
                         break;
                         case IDM_DISC_2:
                         case IDM_DISC_2_WP:
-			if (!file_dlg_w_st(hwnd, 2173, discfns[1], 0))
+			ret = file_dlg_w_st(hwnd, 2173, discfns[1], 0);
+			if (!ret)
                         {
                                 disc_close(1);
 				ui_writeprot[1] = (LOWORD(wParam) == IDM_DISC_2_WP) ? 1 : 0;
@@ -2249,7 +2249,8 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
                         break;
                         case IDM_DISC_3:
                         case IDM_DISC_3_WP:
-			if (!file_dlg_w_st(hwnd, 2173, discfns[2], 0))
+			ret = file_dlg_w_st(hwnd, 2173, discfns[2], 0);
+			if (!ret)
                         {
                                 disc_close(2);
 				ui_writeprot[2] = (LOWORD(wParam) == IDM_DISC_3_WP) ? 1 : 0;
@@ -2261,7 +2262,8 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
                         break;
                         case IDM_DISC_4:
                         case IDM_DISC_4_WP:
-			if (!file_dlg_w_st(hwnd, 2173, discfns[3], 0))
+			ret = file_dlg_w_st(hwnd, 2173, discfns[3], 0);
+			if (!ret)
                         {
                                 disc_close(3);
 				ui_writeprot[3] = (LOWORD(wParam) == IDM_DISC_4_WP) ? 1 : 0;
