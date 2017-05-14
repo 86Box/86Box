@@ -956,14 +956,14 @@ void update_status_bar_panes(HWND hwnds)
 		sb_part_meanings[sb_parts] = 0x20;
 		sb_parts++;
 	}
-	if (c_ide_pio && (models[model].flags & MODEL_HAS_IDE) || !memcmp(hdd_controller_name, "xtide", 5))
+	if (c_ide_pio && ((models[model].flags & MODEL_HAS_IDE) || !memcmp(hdd_controller_name, "xtide", 5)))
 	{
 		edge += sb_icon_width;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = 0x21;
 		sb_parts++;
 	}
-	if (c_ide_dma && (models[model].flags & MODEL_HAS_IDE) || !memcmp(hdd_controller_name, "xtide", 5))
+	if (c_ide_dma && ((models[model].flags & MODEL_HAS_IDE) || !memcmp(hdd_controller_name, "xtide", 5)))
 	{
 		edge += sb_icon_width;
 		iStatusWidths[sb_parts] = edge;
