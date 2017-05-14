@@ -27,6 +27,7 @@
 #include "io.h"
 #include "mca.h"
 #include "mem.h"
+#include "mca.h"
 #include "rom.h"
 #include "dma.h"
 #include "pic.h"

@@ -2400,6 +2400,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 		return 0;
 
 		case WM_LBUTTONDOWN:
+		case WM_RBUTTONDOWN:
 		GetClientRect(hwnd, (LPRECT)& rc);
 		pt.x = GET_X_LPARAM(lParam);
 		pt.y = GET_Y_LPARAM(lParam);
