@@ -354,27 +354,27 @@ static void ide_identify(IDE *ide)
 {
 	uint32_t c, h, s;
 	char device_identify[8] = { '8', '6', 'B', '_', 'H', 'D', '0', 0 };
-	uint64_t full_size = (hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt);
+	uint64_t full_size = (hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt);
 	
 	device_identify[6] = ide->channel + 0x30;
 	ide_log("IDE Identify: %s\n", device_identify);
 
 	memset(ide->buffer, 0, 512);
 	
-	c = hdc[cur_ide[ide->board]].tracks; /* Cylinders */
-	h = hdc[cur_ide[ide->board]].hpc;  /* Heads */
-	s = hdc[cur_ide[ide->board]].spt;  /* Sectors */
+	c = hdc[ide->hdc_num].tracks; /* Cylinders */
+	h = hdc[ide->hdc_num].hpc;  /* Heads */
+	s = hdc[ide->hdc_num].spt;  /* Sectors */
 
-	if (hdc[cur_ide[ide->board]].tracks <= 16383)
+	if (hdc[ide->hdc_num].tracks <= 16383)
 	{
-		ide->buffer[1] = hdc[cur_ide[ide->board]].tracks; /* Cylinders */
+		ide->buffer[1] = hdc[ide->hdc_num].tracks; /* Cylinders */
 	}
 	else
 	{
 		ide->buffer[1] = 16383; /* Cylinders */
 	}
-	ide->buffer[3] = hdc[cur_ide[ide->board]].hpc;  /* Heads */
-	ide->buffer[6] = hdc[cur_ide[ide->board]].spt;  /* Sectors */
+	ide->buffer[3] = hdc[ide->hdc_num].hpc;  /* Heads */
+	ide->buffer[6] = hdc[ide->hdc_num].spt;  /* Sectors */
 	ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
 	ide_padstr((char *) (ide->buffer + 23), emulator_version, 8); /* Firmware */
 	ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
@@ -415,8 +415,8 @@ static void ide_identify(IDE *ide)
 	ide->buffer[59] = ide->blocksize ? (ide->blocksize | 0x100) : 0;
 	if (ide->buffer[49] & (1 << 9))
 	{
-		ide->buffer[60] = (hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt) & 0xFFFF; /* Total addressable sectors (LBA) */
-		ide->buffer[61] = ((hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt) >> 16) & 0x0FFF;
+		ide->buffer[60] = (hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt) & 0xFFFF; /* Total addressable sectors (LBA) */
+		ide->buffer[61] = ((hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt) >> 16) & 0x0FFF;
 	}
 	if (PCI && (ide->board < 2) && (hdc[ide->hdc_num].bus == 3))
 	{
@@ -732,11 +732,11 @@ void ide_set_sector(IDE *ide, int64_t sector_num)
 	}
 	else
 	{
-		cyl = sector_num / (hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt);
-		r = sector_num % (hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt);
+		cyl = sector_num / (hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt);
+		r = sector_num % (hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt);
 		ide->cylinder = cyl;
-		ide->head = ((r / hdc[cur_ide[ide->board]].spt) & 0x0f);
-		ide->sector = (r % hdc[cur_ide[ide->board]].spt) + 1;
+		ide->head = ((r / hdc[ide->hdc_num].spt) & 0x0f);
+		ide->sector = (r % hdc[ide->hdc_num].spt) + 1;
 	}
 }
 
@@ -1585,7 +1585,7 @@ void callbackide(int ide_board)
 
 	ide = &ide_drives[cur_ide[ide_board]];
 	ide_other = &ide_drives[cur_ide[ide_board] ^ 1];
-	full_size = (hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt);
+	full_size = (hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt);
 	ext_ide = ide;
 
 	if (ide_drive_is_cdrom(ide))
@@ -1974,11 +1974,11 @@ void callbackide(int ide_board)
 			ide->specify_success = 1;
 			if (ide->hdi == 2)
 			{
-				hdc[cur_ide[ide->board]].at_hpc = ide->head+1;
-				hdc[cur_ide[ide->board]].at_spt = ide->secount;
+				hdc[ide->hdc_num].at_hpc = ide->head+1;
+				hdc[ide->hdc_num].at_spt = ide->secount;
 				fseeko64(ide->hdfile, 0x20, SEEK_SET);
-				fwrite(&(hdc[cur_ide[ide->board]].at_spt), 1, 4, ide->hdfile);
-				fwrite(&(hdc[cur_ide[ide->board]].at_hpc), 1, 4, ide->hdfile);
+				fwrite(&(hdc[ide->hdc_num].at_spt), 1, 4, ide->hdfile);
+				fwrite(&(hdc[ide->hdc_num].at_hpc), 1, 4, ide->hdfile);
 			}
 			ide->spt=ide->secount;
 			ide->hpc=ide->head+1;
@@ -2031,9 +2031,9 @@ void callbackide(int ide_board)
 			{
 				goto abort_cmd;
 			}
-			snum = hdc[cur_ide[ide->board]].spt;
-			snum *= hdc[cur_ide[ide->board]].hpc;
-			snum *= hdc[cur_ide[ide->board]].tracks;
+			snum = hdc[ide->hdc_num].spt;
+			snum *= hdc[ide->hdc_num].hpc;
+			snum *= hdc[ide->hdc_num].tracks;
 			ide_set_sector(ide, snum - 1);
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
