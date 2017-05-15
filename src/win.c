@@ -1798,21 +1798,25 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         break;
 
                         case IDM_VID_FULLSCREEN:
-                        if (video_fullscreen_first)
-                        {
-                                video_fullscreen_first = 0;
-				msgbox_info(ghwnd, 2193);
-                        }
-                        startblit();
-                        video_wait_for_blit();
-                        mouse_close();
-                        vid_apis[0][vid_api].close();
-                        video_fullscreen = 1;
-                        vid_apis[1][vid_api].init(ghwnd);
-                        mouse_init();
-                        leave_fullscreen_flag = 0;
-                        endblit();
-                        device_force_redraw();
+                        
+                        if(video_fullscreen!=1){
+                        
+				if (video_fullscreen_first)
+				{
+					video_fullscreen_first = 0;
+					msgbox_info(ghwnd, 2193);
+				}
+				startblit();
+				video_wait_for_blit();
+				mouse_close();
+				vid_apis[0][vid_api].close();
+				video_fullscreen = 1;
+				vid_apis[1][vid_api].init(ghwnd);
+				mouse_init();
+				leave_fullscreen_flag = 0;
+				endblit();
+				device_force_redraw();
+			}
                         break;
 
                         case IDM_VID_FS_FULL:
