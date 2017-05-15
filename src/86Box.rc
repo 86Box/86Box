@@ -126,7 +126,7 @@ BEGIN
                 MENUITEM "&2x",                         IDM_VID_SCALE_4X
             END
             MENUITEM SEPARATOR
-            MENUITEM "&Fullscreen",                 IDM_VID_FULLSCREEN
+            MENUITEM "&Fullscreen\tCtrl+Alt+PageUP",                 IDM_VID_FULLSCREEN
             POPUP "Fullscreen &stretch mode"
             BEGIN
                 MENUITEM "&Full screen stretch",        IDM_VID_FS_FULL
@@ -218,6 +218,7 @@ BEGIN
 #ifdef ENABLE_LOG_BREAKPOINT
         VK_F10,  IDM_LOG_BREAKPOINT,  CONTROL, VIRTKEY
 #endif
+    VK_PRIOR,       IDM_VID_FULLSCREEN,     VIRTKEY, CONTROL , ALT
     VK_F11,         IDM_VID_SCREENSHOT,     VIRTKEY, CONTROL
     VK_F12,         IDM_FILE_RESET_CAD,     VIRTKEY, CONTROL
 END
@@ -866,7 +867,7 @@ BEGIN
             VALUE "FileDescription", "86Box - an emulator for X86-based systems\0"
             VALUE "FileVersion", "1.20\0"
             VALUE "InternalName", "pc_new\0"
-            VALUE "LegalCopyright", "Copyright © SoftHistory, Sarah Walker, 2007-2017, Released under the GNU GPL v2\0"
+            VALUE "LegalCopyright", "Copyright Â© SoftHistory, Sarah Walker, 2007-2017, Released under the GNU GPL v2\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "86Box.exe\0"
             VALUE "PrivateBuild", "\0"
