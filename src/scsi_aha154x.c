@@ -1370,9 +1370,7 @@ aha_dev_present(uint8_t id, uint8_t lun)
 
     if (scsi_cdrom_drives[id][lun] >= CDROM_NUM) return(0);
 
-    if (cdrom_drives[scsi_cdrom_drives[id][lun]].enabled &&
-	cdrom_drives[scsi_cdrom_drives[id][lun]].bus_type &&
-	(cdrom_drives[scsi_cdrom_drives[id][lun]].bus_mode & 2)) return(1);
+    if ((cdrom_drives[scsi_cdrom_drives[id][lun]].bus_type == 4)) return(1);
 
     return(0);
 }

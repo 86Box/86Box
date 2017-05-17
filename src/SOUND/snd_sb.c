@@ -781,9 +781,6 @@ static device_config_t sb_config[] =
                 }
         },
         {
-                "midi", "MIDI out device", CONFIG_MIDI, "", 0
-        },
-        {
                 "", "", -1
         }
 };
@@ -820,9 +817,6 @@ static device_config_t sb_mcv_config[] =
                                 ""
                         }
                 }
-        },
-        {
-                "midi", "MIDI out device", CONFIG_MIDI, "", 0
         },
         {
                 "", "", -1
@@ -878,9 +872,6 @@ static device_config_t sb_pro_config[] =
                                 ""
                         }
                 }
-        },
-        {
-                "midi", "MIDI out device", CONFIG_MIDI, "", 0
         },
         {
                 "", "", -1
@@ -1002,9 +993,6 @@ static device_config_t sb_16_config[] =
                                 ""
                         }
                 }
-        },
-        {
-                "midi", "MIDI out device", CONFIG_MIDI, "", 0
         },
         {
                 "mode401", "MPU-401 mode", CONFIG_SELECTION, "", 1,
@@ -1140,9 +1128,6 @@ static device_config_t sb_awe32_config[] =
                                 ""
                         }
                 }
-        },
-        {
-                "midi", "MIDI out device", CONFIG_MIDI, "", 0
         },
         {
                 "mode401", "MPU-401 mode", CONFIG_SELECTION, "", 1,

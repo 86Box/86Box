@@ -21,7 +21,7 @@ LCID dwLanguage;
 
 uint32_t dwLangID, dwSubLangID;
 
-#define STRINGS_NUM 152
+#define STRINGS_NUM 154
 
 WCHAR lpResourceString[STRINGS_NUM][512];
 

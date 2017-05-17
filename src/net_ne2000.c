@@ -1767,6 +1767,19 @@ nic_rom_init(nic_t *dev, wchar_t *s)
 }
 
 
+uint32_t
+ne2000_get_maclocal(void)
+{
+    uint32_t temp;
+
+    temp = (((int) maclocal[3]) << 16);
+    temp |= (((int) maclocal[4]) << 8);
+    temp |= ((int) maclocal[5]);
+
+    return(temp);
+}
+
+
 static void *
 nic_init(int board)
 {
@@ -1779,44 +1792,50 @@ nic_init(int board)
     dev->board = board;
     dev->is_rtl8029as = (PCI && (board == NE2K_RTL8029AS)) ? 1 : 0;
     if (board == NE2K_RTL8029AS)
+    {
 	strcpy(dev->name, "RTL8029AS");
-      else if (board == NE2K_NE1000)
+    }
+    else if (board == NE2K_NE1000)
+    {
 	strcpy(dev->name, "NE1000");
-      else
+    }
+    else
+    {
 	strcpy(dev->name, "NE2000");
+    }
 
     dev->base_irq = device_get_config_int("irq");
     dev->disable_netbios = device_get_config_int("disable_netbios");
     if (dev->is_rtl8029as) {
 	dev->base_address = 0x340;
-	mac = config_get_int(NULL, "maclocal_pci", -1);
     } else {
 	dev->base_address = device_get_config_int("addr");
-	mac = config_get_int(NULL, "maclocal", -1);
     }
+
+    mac = device_get_config_int_ex("mac", -1);
 
     /* Set up our MAC address. */
     if (dev->is_rtl8029as) {
-	maclocal_pci[0] = 0x00;	/* 00:20:18 (RTL 8029AS PCI vendor prefix). */
-	maclocal_pci[1] = 0x20;
-	maclocal_pci[2] = 0x18;
-	ptr = maclocal_pci;
+	maclocal[0] = 0x00;	/* 00:20:18 (RTL 8029AS PCI vendor prefix). */
+	maclocal[1] = 0x20;
+	maclocal[2] = 0x18;
     } else {
 	maclocal[0] = 0x00;	/* 00:00:D8 (NE2000 ISA vendor prefix). */
 	maclocal[1] = 0x00;
 	maclocal[2] = 0xD8;
-	ptr = maclocal;
     }
+    ptr = maclocal;
 pclog(1, "MAClocal: mac=%08lx\n", mac);
     if (mac & 0xff000000) {
 	/* Generating new MAC. */
 	ptr[3] = disc_random_generate();
 	ptr[4] = disc_random_generate();
-	ptr[5] = disc_random_generate();
+	ptr[5] = disc_random_generate() | 1;
+	device_set_config_int("mac", ne2000_get_maclocal());
     } else {
 	ptr[3] = (mac>>16) & 0xff;
 	ptr[4] = (mac>>8) & 0xff;
-	ptr[5] = mac & 0xff;
+	ptr[5] = (mac & 0xff) | 1;
     }
     memcpy(dev->physaddr, ptr, 6);
 
@@ -1906,32 +1925,6 @@ nic_close(void *priv)
 }
 
 
-uint32_t
-ne2000_get_maclocal(void)
-{
-    uint32_t temp;
-
-    temp = (((int) maclocal[3]) << 16);
-    temp |= (((int) maclocal[4]) << 8);
-    temp |= ((int) maclocal[5]);
-
-    return(temp);
-}
-
-
-uint32_t
-ne2000_get_maclocal_pci(void)
-{
-    uint32_t temp;
-
-    temp = (((int) maclocal_pci[3]) << 16);
-    temp |= (((int) maclocal_pci[4]) << 8);
-    temp |= ((int) maclocal_pci[5]);
-
-    return(temp);
-}
-
-
 static void *
 ne1000_init(void)
 {
@@ -2013,6 +2006,9 @@ static device_config_t ne1000_config[] =
 		},
 	},
 	{
+		"mac", "MAC Address", CONFIG_MAC, "", -1
+	},
+	{
 		"disable_netbios", "Disable network BIOS", CONFIG_BINARY, "", 0
 	},
 	{
@@ -2086,6 +2082,9 @@ static device_config_t ne2000_config[] =
 		},
 	},
 	{
+		"mac", "MAC Address", CONFIG_MAC, "", -1
+	},
+	{
 		"disable_netbios", "Disable network BIOS", CONFIG_BINARY, "", 0
 	},
 	{
@@ -2131,6 +2130,9 @@ static device_config_t rtl8029as_config[] =
 				""
 			}
 		},
+	},
+	{
+		"mac", "MAC Address", CONFIG_MAC, "", -1
 	},
 	{
 		"disable_netbios", "Disable network BIOS", CONFIG_BINARY, "", 0

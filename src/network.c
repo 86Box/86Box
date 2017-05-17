@@ -215,5 +215,5 @@ network_card_get_from_internal_name(char *s)
 	c++;
     }
 	
-    return(0);
+    return(-1);
 }

@@ -112,7 +112,7 @@ BEGIN
         MENUITEM SEPARATOR
         POPUP "&Video"
         BEGIN
-            MENUITEM "&Resizeable window",          IDM_VID_RESIZE
+           MENUITEM "&Resizeable window",          IDM_VID_RESIZE
             MENUITEM "R&emember size && position",  IDM_VID_REMEMBER
             MENUITEM SEPARATOR
             MENUITEM "&DirectDraw",                 IDM_VID_DDRAW
@@ -323,7 +323,7 @@ BEGIN
     CONTROL         "Dynamic Recompiler",IDC_CHECK_DYNAREC,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,80,94,10
     CONTROL         "Enable FPU",IDC_CHECK_FPU,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,147,81,113,10
+                    WS_TABSTOP,147,80,113,10
     EDITTEXT        IDC_MEMTEXT,70,63,45,12,ES_AUTOHSCROLL | ES_NUMBER
     CONTROL         "",IDC_MEMSPIN,"msctls_updown32",UDS_SETBUDDYINT | 
                     UDS_ALIGNRIGHT | UDS_ARROWKEYS | UDS_NOTHOUSANDS,113,63,
@@ -346,7 +346,7 @@ BEGIN
     LTEXT           "Video speed:",1800,7,26,58,10
     CONTROL         "Voodoo Graphics",IDC_CHECK_VOODOO,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,45,199,10
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_VOODOO,215,44,45,12
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_VOODOO,214,44,46,12
     PUSHBUTTON      "Configure",IDC_CONFIGUREVID,214,7,46,12
 END
 
@@ -366,53 +366,75 @@ BEGIN
     PUSHBUTTON      "Joystick 4...",IDC_JOY4,209,44,50,14
 END
 
-CONFIGUREDLG_SOUND DIALOG DISCARDABLE  97, 0, 267, 60
+CONFIGUREDLG_SOUND DIALOG DISCARDABLE  97, 0, 267, 78
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
-    COMBOBOX        IDC_COMBOSND,71,7,141,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    COMBOBOX        IDC_COMBOSND,71,7,140,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
     LTEXT           "Sound card:",1800,7,8,59,10
-    PUSHBUTTON      "Configure",IDC_CONFIGURESND,215,7,45,14
+    PUSHBUTTON      "Configure",IDC_CONFIGURESND,214,7,46,12
+    COMBOBOX        IDC_COMBO_MIDI,71,25,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "MIDI Out Device:",1801,7,26,59,10
     CONTROL         "CMS / Game Blaster",IDC_CHECKCMS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,87,25,80,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,87,43,80,10
     CONTROL         "Innovation SSI-2001",IDC_CHECKSSI,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,25,80,10
-    CONTROL         "Gravis Ultrasound",IDC_CHECKGUS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,174,25,80,10
-    CONTROL         "Use Nuked OPL",IDC_CHECKNUKEDOPL,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,43,80,10
+    CONTROL         "Gravis Ultrasound",IDC_CHECKGUS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,174,43,80,10
+    CONTROL         "Use Nuked OPL",IDC_CHECKNUKEDOPL,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,61,80,10
 END
 
-CONFIGUREDLG_PERIPHERALS DIALOG DISCARDABLE  97, 0, 267, 132
+CONFIGUREDLG_NETWORK DIALOG DISCARDABLE  97, 0, 267, 63
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_SCSI,215,24,45,14
-    LTEXT           "HD Controller:",1799,7,44,61,10
-    COMBOBOX        IDC_COMBO_HDC,71,43,189,120,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Network adapter:",1801,7,8,59,10
-    COMBOBOX        IDC_COMBONET,71,7,141,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    LTEXT           "Network type:",1800,7,8,59,10
+    COMBOBOX        IDC_COMBONETTYPE,71,7,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    PUSHBUTTON      "Configure",IDC_CONFIGURENET,215,6,45,14
-    LTEXT           "Tertiary IDE:",1802,7,62,61,10
-    COMBOBOX        IDC_COMBO_IDE_TER,71,61,189,120,CBS_DROPDOWNLIST | 
+
+    LTEXT           "PCap device:",1801,7,26,59,10
+    COMBOBOX        IDC_COMBOPCAP,71,25,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+
+    LTEXT           "Network adapter:",1802,7,44,59,10
+    COMBOBOX        IDC_COMBONET,71,43,140,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    PUSHBUTTON      "Configure",IDC_CONFIGURENET,214,43,46,12
+END
+
+CONFIGUREDLG_PERIPHERALS DIALOG DISCARDABLE  97, 0, 267, 115
+STYLE DS_CONTROL | WS_CHILD
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT           "SCSI Controller:",1804,7,8,59,10
+    COMBOBOX        IDC_COMBO_SCSI,71,7,140,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Quaternary IDE:",1803,7,81,61,10
-    COMBOBOX        IDC_COMBO_IDE_QUA,71,79,189,120,CBS_DROPDOWNLIST | 
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_SCSI,214,7,46,12
+
+    LTEXT           "HD Controller:",1799,7,26,61,10
+    COMBOBOX        IDC_COMBO_HDC,71,25,189,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "SCSI Controller:",1804,7,26,59,10
-    COMBOBOX        IDC_COMBO_SCSI,71,25,141,120,CBS_DROPDOWNLIST | 
+
+    LTEXT           "Tertiary IDE:",1802,7,44,61,10
+    COMBOBOX        IDC_COMBO_IDE_TER,71,43,189,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
+
+    LTEXT           "Quaternary IDE:",1803,7,62,61,10
+    COMBOBOX        IDC_COMBO_IDE_QUA,71,61,189,120,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+
     CONTROL         "Serial port 1",IDC_CHECKSERIAL1,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,97,80,10
-    CONTROL         "Parallel port",IDC_CHECKPARALLEL,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,174,97,80,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,80,94,10
     CONTROL         "Serial port 2",IDC_CHECKSERIAL2,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,87,97,80,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,147,80,94,10
+
+    CONTROL         "Parallel port",IDC_CHECKPARALLEL,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,98,94,10
     CONTROL         "ISABugger device",IDC_CHECKBUGGER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,115,80,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,147,98,94,10
 END
 
 CONFIGUREDLG_HARD_DISKS DIALOG DISCARDABLE  97, 0, 267, 154
@@ -526,9 +548,10 @@ END
 257                     ICON    DISCARDABLE     "ICONS/video.ico"
 258                     ICON    DISCARDABLE     "ICONS/input_devices.ico"
 259                     ICON    DISCARDABLE     "ICONS/sound.ico"
-260                     ICON    DISCARDABLE     "ICONS/other_peripherals.ico"
-261                     ICON    DISCARDABLE     "ICONS/hard_disk.ico"
-262                     ICON    DISCARDABLE     "ICONS/removable_devices.ico"
+260                     ICON    DISCARDABLE     "ICONS/network.ico"
+261                     ICON    DISCARDABLE     "ICONS/other_peripherals.ico"
+262                     ICON    DISCARDABLE     "ICONS/hard_disk.ico"
+263                     ICON    DISCARDABLE     "ICONS/removable_devices.ico"
 384                     ICON    DISCARDABLE     "ICONS/floppy_525_1dd_empty.ico"
 385                     ICON    DISCARDABLE     "ICONS/floppy_525_1dd_empty_active.ico"
 386                     ICON    DISCARDABLE     "ICONS/floppy_525_2dd_empty.ico"
@@ -625,12 +648,28 @@ BEGIN
         BOTTOMMARGIN, 58
     END
 
+    CONFIGUREDLG_SOUND, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 260
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 71
+    END
+
+    CONFIGUREDLG_NETWORK, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 260
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 56
+    END
+
     CONFIGUREDLG_PERIPHERALS, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 260
         TOPMARGIN, 7
-        BOTTOMMARGIN, 125
+        BOTTOMMARGIN, 102
     END
 
     CONFIGUREDLG_HARD_DISKS, DIALOG
@@ -684,10 +723,10 @@ BEGIN
     IDS_STRING2066          "Video"
     IDS_STRING2067          "Input devices"
     IDS_STRING2068          "Sound"
-    IDS_STRING2069          "Other peripherals"
-    IDS_STRING2070          "Hard disks"
-    IDS_STRING2071          "Removable devices"
-    IDS_STRING2072          "Disabled floppy drive"
+    IDS_STRING2069          "Network"
+    IDS_STRING2070          "Other peripherals"
+    IDS_STRING2071          "Hard disks"
+    IDS_STRING2072          "Removable devices"
     IDS_STRING2073          "%i"" floppy drive: %s"
     IDS_STRING2074          "Disabled CD-ROM drive"
     IDS_STRING2075          "%s CD-ROM drive: %s"
@@ -714,7 +753,7 @@ BEGIN
     2092                    "Bus"
     2093                    "DMA"
     2094                    "KB"
-    2095                    "Master"
+    2095                    "MFM, RLL, or ESDI CD-ROM drives never existed"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -730,7 +769,7 @@ BEGIN
     2104                    "Network Type"
     2105                    "Surround Module"
     2106                    "MPU-401 Base Address"
-    2107                    "MIDI Out Device"
+    2107                    "No PCap devices found"
     2108                    "On-board RAM"
     2109                    "Memory Size"
     2110                    "Display Type"
@@ -834,7 +873,9 @@ BEGIN
     2196                    "Add New Hard Disk"
     2197                    "Add Existing Hard Disk"
     2198                    "Removable disk %i: %s"
-    2199                    "English (United States)"
+    2199                    "USB is not yet supported"
+    2200                    "Invalid PCap device"
+    2201                    "English (United States)"
 END
 
 

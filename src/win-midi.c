@@ -7,34 +7,65 @@
 #include "config.h"
 #include "plat-midi.h"
 
-static int midi_id;
+int midi_id;
 static HMIDIOUT midi_out_device = NULL;
 
 HANDLE m_event;
 
 void midi_close();
 
+static uint8_t midi_rt_buf[1024];
+static uint8_t midi_cmd_buf[1024];
+static int midi_cmd_pos = 0;
+static int midi_cmd_len = 0;
+static uint8_t midi_status = 0;
+static unsigned int midi_sysex_start = 0;
+static unsigned int midi_sysex_delay = 0;
+
+uint8_t MIDI_evt_len[256] = {
+  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x00
+  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x10
+  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x20
+  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x30
+  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x40
+  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x50
+  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x60
+  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x70
+
+  3,3,3,3, 3,3,3,3, 3,3,3,3, 3,3,3,3,  // 0x80
+  3,3,3,3, 3,3,3,3, 3,3,3,3, 3,3,3,3,  // 0x90
+  3,3,3,3, 3,3,3,3, 3,3,3,3, 3,3,3,3,  // 0xa0
+  3,3,3,3, 3,3,3,3, 3,3,3,3, 3,3,3,3,  // 0xb0
+
+  2,2,2,2, 2,2,2,2, 2,2,2,2, 2,2,2,2,  // 0xc0
+  2,2,2,2, 2,2,2,2, 2,2,2,2, 2,2,2,2,  // 0xd0
+
+  3,3,3,3, 3,3,3,3, 3,3,3,3, 3,3,3,3,  // 0xe0
+
+  0,2,3,2, 0,0,1,0, 1,0,1,1, 1,0,1,0   // 0xf0
+};
+
 void midi_init()
 {
         MMRESULT hr = MMSYSERR_NOERROR;
-        
+
+	memset(midi_rt_buf, 0, 1024);
+	memset(midi_cmd_buf, 0, 1024);
+
+	midi_cmd_pos = midi_cmd_len = 0;
+	midi_status = 0;
+
+	midi_sysex_start = midi_sysex_delay = 0;
+
         midi_id = config_get_int(NULL, "midi", 0);
 
 	m_event = CreateEvent(NULL, TRUE, TRUE, NULL);
 
-#if 0
-        hr = midiOutOpen(&midi_out_device, midi_id, 0,
-		   0, CALLBACK_NULL);
-#endif
         hr = midiOutOpen(&midi_out_device, midi_id, (DWORD) m_event,
 		   0, CALLBACK_EVENT);
         if (hr != MMSYSERR_NOERROR) {
                 printf("midiOutOpen error - %08X\n",hr);
                 midi_id = 0;
-#if 0
-                hr = midiOutOpen(&midi_out_device, midi_id, 0,
-        		   0, CALLBACK_NULL);
-#endif
                 hr = midiOutOpen(&midi_out_device, midi_id, (DWORD) m_event,
         		   0, CALLBACK_EVENT);
                 if (hr != MMSYSERR_NOERROR) {
@@ -82,81 +113,12 @@ static void midi_send_sysex()
         hdr.lpData = midi_sysex_data;
         hdr.dwBufferLength = midi_pos;
         hdr.dwFlags = 0;
-        
-/*        pclog("Sending sysex : ");
-        for (c = 0; c < midi_pos; c++)
-                pclog("%02x ", midi_sysex_data[c]);
-        pclog("\n");*/
-        
+
         midiOutPrepareHeader(midi_out_device, &hdr, sizeof(MIDIHDR));
         midiOutLongMsg(midi_out_device, &hdr, sizeof(MIDIHDR));
-        
+
         midi_insysex = 0;
 }
-
-#if 0
-void midi_write(uint8_t val)
-{
-        if ((val & 0x80) && !(val == 0xf7 && midi_insysex))
-        {
-                midi_pos = 0;
-                midi_len = midi_lengths[(val >> 4) & 7];
-                midi_command = 0;
-                if (val == 0xf0)
-                        midi_insysex = 1;
-        }
-
-        if (midi_insysex)
-        {
-                midi_sysex_data[midi_pos++] = val;
-                
-                if (val == 0xf7 || midi_pos >= 1024+2)
-                        midi_send_sysex();
-                return;
-        }
-                        
-        if (midi_len)
-        {                
-                midi_command |= (val << (midi_pos * 8));
-                
-                midi_pos++;
-                
-                if (midi_pos == midi_len)
-                        midiOutShortMsg(midi_out_device, midi_command);
-        }
-}
-#endif
-
-static uint8_t midi_rt_buf[1024] = { 0, 0, 0, 0 };
-static uint8_t midi_cmd_buf[1024] = { 0, 0, 0, 0 };
-static int midi_cmd_pos = 0;
-static int midi_cmd_len = 0;
-static uint8_t midi_status = 0;
-static int midi_sysex_start = 0;
-static int midi_sysex_delay = 0;
-
-uint8_t MIDI_evt_len[256] = {
-  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x00
-  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x10
-  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x20
-  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x30
-  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x40
-  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x50
-  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x60
-  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x70
-
-  3,3,3,3, 3,3,3,3, 3,3,3,3, 3,3,3,3,  // 0x80
-  3,3,3,3, 3,3,3,3, 3,3,3,3, 3,3,3,3,  // 0x90
-  3,3,3,3, 3,3,3,3, 3,3,3,3, 3,3,3,3,  // 0xa0
-  3,3,3,3, 3,3,3,3, 3,3,3,3, 3,3,3,3,  // 0xb0
-
-  2,2,2,2, 2,2,2,2, 2,2,2,2, 2,2,2,2,  // 0xc0
-  2,2,2,2, 2,2,2,2, 2,2,2,2, 2,2,2,2,  // 0xd0
-
-  3,3,3,3, 3,3,3,3, 3,3,3,3, 3,3,3,3,  // 0xe0
-
-  0,2,3,2, 0,0,1,0, 1,0,1,1, 1,0,1,0   // 0xf0
-};
 
 void PlayMsg(uint8_t *msg)
 {
@@ -197,12 +159,19 @@ void PlaySysex(uint8_t *sysex, unsigned int len)
 #define SYSEX_SIZE 1024
 #define RAWBUF 1024
 
-int GetTicks()
-{
-}
-
 void midi_write(uint8_t val)
 {
+	uint32_t passed_ticks;
+
+	if (midi_sysex_start)
+	{
+		passed_ticks = GetTickCount() - midi_sysex_start;
+		if (passed_ticks < midi_sysex_delay)
+		{
+			Sleep(midi_sysex_delay - passed_ticks);
+		}
+	}
+
 	/* Test for a realtime MIDI message */
 	if (val >= 0xf8)
 	{
@@ -248,7 +217,7 @@ void midi_write(uint8_t val)
 					else
 						midi_sysex_delay = (unsigned int) (((float) (midi_pos) * 1.25f) * 1000.0f / 3125.0f) + 2;
 
-					midi_sysex_start = GetTicks();
+					midi_sysex_start = GetTickCount();
 				}
 			}
 		}

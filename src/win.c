@@ -941,7 +941,7 @@ void update_status_bar_panes(HWND hwnds)
 	}
 	for (i = 0; i < 4; i++)
 	{
-		if (cdrom_drives[i].enabled != 0)
+		if (cdrom_drives[i].bus_type != 0)
 		{
 			edge += sb_icon_width;
 			iStatusWidths[sb_parts] = edge;
@@ -1015,13 +1015,17 @@ void update_status_bar_panes(HWND hwnds)
 						sb_icon_flags[i] = 0;
 					}
 				}
-				if (cdrom_drives[id].bus_type == 1)
+				if (cdrom_drives[id].bus_type == 4)
 				{
 					j = 164;
 				}
+				else if (cdrom_drives[id].bus_type == 3)
+				{
+					j = 162;
+				}
 				else
 				{
-					j = (cdrom_drives[id].atapi_dma) ? 162 : 160;
+					j = 160;
 				}
 				sb_part_icons[i] = j | sb_icon_flags[i];
 				create_cdrom_tip(i);
@@ -1606,7 +1610,7 @@ void win_cdrom_eject(uint8_t id)
 	cdrom_drives[id].handler->exit(id);
 	cdrom_close(id);
 	cdrom_null_open(id, 0);
-	if (cdrom_drives[id].enabled)
+	if (cdrom_drives[id].bus_type)
 	{
 		/* Signal disc change to the emulated machine. */
 		cdrom_insert(id);
@@ -1638,7 +1642,7 @@ void win_cdrom_reload(uint8_t id)
 	if (cdrom_drives[id].prev_host_drive == 200)
 	{
 		image_open(id, cdrom_image[id].image_path);
-		if (cdrom_drives[id].enabled)
+		if (cdrom_drives[id].bus_type)
 		{
 			/* Signal disc change to the emulated machine. */
 			cdrom_insert(id);
@@ -1651,7 +1655,7 @@ void win_cdrom_reload(uint8_t id)
 	{
 		new_cdrom_drive = cdrom_drives[id].prev_host_drive;
 		ioctl_open(id, new_cdrom_drive);
-		if (cdrom_drives[id].enabled)
+		if (cdrom_drives[id].bus_type)
 		{
 			/* Signal disc change to the emulated machine. */
 			cdrom_insert(id);
@@ -2347,7 +2351,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 				cdrom_drives[cdrom_id].handler->exit(cdrom_id);
 				cdrom_close(cdrom_id);
 				image_open(cdrom_id, temp_image_path);
-				if (cdrom_drives[cdrom_id].enabled)
+				if (cdrom_drives[cdrom_id].bus_type)
 				{
 					/* Signal disc change to the emulated machine. */
 					cdrom_insert(cdrom_id);
@@ -2381,7 +2385,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 				cdrom_drives[cdrom_id].handler->exit(cdrom_id);
 				cdrom_close(cdrom_id);
                                 ioctl_open(cdrom_id, new_cdrom_drive);
-				if (cdrom_drives[cdrom_id].enabled)
+				if (cdrom_drives[cdrom_id].bus_type)
 				{
 					/* Signal disc change to the emulated machine. */
 					cdrom_insert(cdrom_id);

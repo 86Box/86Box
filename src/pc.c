@@ -288,6 +288,9 @@ void initpc(int argc, wchar_t *argv[])
         *p=L'\0';
         pclog("path = %ws\n", pcempath);        
 
+	/* Initialize list of PCap devices. */
+	netdev_num = network_devlist(netdev_list);
+
         for (c = 1; c < argc; c++)
         {
                 if (!_wcsicmp(argv[c], L"--help"))

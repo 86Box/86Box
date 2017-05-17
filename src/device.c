@@ -131,6 +131,37 @@ int device_get_config_int(char *s)
         return 0;
 }
 
+int device_get_config_int_ex(char *s, int default_int)
+{
+        device_config_t *config = current_device->config;
+        
+        while (config->type != -1)
+        {
+                if (!strcmp(s, config->name))
+                        return config_get_int(current_device->name, s, default_int);
+
+                config++;
+        }
+        return default_int;
+}
+
+void device_set_config_int(char *s, int val)
+{
+        device_config_t *config = current_device->config;
+        
+        while (config->type != -1)
+        {
+                if (!strcmp(s, config->name))
+		{
+                        config_set_int(current_device->name, s, val);
+			return;
+		}
+
+                config++;
+        }
+        return;
+}
+
 char *device_get_config_string(char *s)
 {
         device_config_t *config = current_device->config;
