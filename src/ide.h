@@ -11,33 +11,34 @@ typedef struct IDE
 typedef struct __attribute__((__packed__)) IDE
 #endif
 {
-        int type;
-        int board;
-        uint8_t atastat;
-        uint8_t error;
-        int secount,sector,cylinder,head,drive,cylprecomp;
-        uint8_t command;
-        uint8_t fdisk;
-        int pos;
-        int packlen;
-        int spt,hpc;
-        int tracks;
-        int packetstatus;
-        uint8_t asc;
-        int reset;
-        FILE *hdfile;
-        uint16_t buffer[65536];
-        int irqstat;
-        int service;
-        int lba;
-		int channel;
-        uint32_t lba_addr;
-        int skip512;
-        int blocksize, blockcount;
-		uint16_t dma_identify_data[3];
-		int hdi,base;
-		int hdc_num;
-		uint8_t specify_success;
+	int type;
+	int board;
+	uint8_t atastat;
+	uint8_t error;
+	int secount,sector,cylinder,head,drive,cylprecomp;
+	uint8_t command;
+	uint8_t fdisk;
+	int pos;
+	int packlen;
+	int spt,hpc;
+	int tracks;
+	int packetstatus;
+	uint8_t asc;
+	int reset;
+	FILE *hdfile;
+	uint16_t buffer[65536];
+	int irqstat;
+	int service;
+	int lba;
+	int channel;
+	uint32_t lba_addr;
+	int skip512;
+	int blocksize, blockcount;
+	uint16_t dma_identify_data[3];
+	int hdi,base;
+	int hdc_num;
+	uint8_t specify_success;
+	int mdma_mode;
 } IDE;
 #ifdef __MSC__
 # pragma pack(pop)

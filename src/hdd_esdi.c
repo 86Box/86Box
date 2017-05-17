@@ -796,7 +796,7 @@ static void esdi_mca_write(int port, uint8_t val, void *p)
         }
 }
 
-static void loadhd(esdi_t *esdi, int d, const wchar_t *fn)
+static void loadhd(esdi_t *esdi, int hdc_num, int d, const wchar_t *fn)
 {
         esdi_drive_t *drive = &esdi->drives[d];
         
@@ -829,15 +829,16 @@ static void loadhd(esdi_t *esdi, int d, const wchar_t *fn)
 		}
 	}
 
-        drive->spt = hdc[d].spt;
-        drive->hpc = hdc[d].hpc;
-        drive->tracks = hdc[d].tracks;
-        drive->sectors = hdc[d].spt * hdc[d].hpc * hdc[d].tracks;
+        drive->spt = hdc[hdc_num].spt;
+        drive->hpc = hdc[hdc_num].hpc;
+        drive->tracks = hdc[hdc_num].tracks;
+        drive->sectors = hdc[hdc_num].spt * hdc[hdc_num].hpc * hdc[hdc_num].tracks;
 }
 
 static void *esdi_init()
 {
 	int i = 0;
+	int c = 0;
 
         esdi_t *esdi = malloc(sizeof(esdi_t));
         memset(esdi, 0, sizeof(esdi_t));
@@ -847,7 +848,12 @@ static void *esdi_init()
 
 	for (i = 0; i < HDC_NUM; i++)
 	{
-		loadhd(esdi, hdc[i].mfm_channel, hdd_fn[i]);
+		if ((hdc[i].bus == 1) && (hdc[i].mfm_channel < MFM_NUM))
+		{
+			loadhd(esdi, i, hdc[i].mfm_channel, hdd_fn[i]);
+			c++;
+			if (c >= MFM_NUM)  break;
+		}
 	}
                 
         timer_add(esdi_callback, &esdi->callback, &esdi->callback, esdi);

@@ -12,6 +12,7 @@ typedef struct {
 
 extern device_t aha1540b_device;
 extern device_t aha1542cf_device;
+extern device_t aha1640_device;
   
   
 #endif	/*SCSI_AHA154X_H*/

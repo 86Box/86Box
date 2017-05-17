@@ -920,8 +920,14 @@ void update_status_bar_panes(HWND hwnds)
 	c_ide_dma = count_hard_disks(3);
 	c_scsi = count_hard_disks(4);
 
+	for (i = 0; i < sb_parts; i++)
+	{
+		SendMessage(hwnds, SB_SETICON, i, (LPARAM) NULL);
+	}
+
 	sb_parts = 0;
-	memset(sb_part_meanings, 0, 40);
+	memset(iStatusWidths, 0, 48);
+	memset(sb_part_meanings, 0, 48);
 	for (i = 0; i < 4; i++)
 	{
 		if (fdd_get_type(i) != 0)
@@ -950,14 +956,14 @@ void update_status_bar_panes(HWND hwnds)
 		sb_part_meanings[sb_parts] = 0x20;
 		sb_parts++;
 	}
-	if (c_ide_pio && (models[model].flags & MODEL_HAS_IDE) || !memcmp(hdd_controller_name, "xtide", 5))
+	if (c_ide_pio && ((models[model].flags & MODEL_HAS_IDE) || !memcmp(hdd_controller_name, "xtide", 5)))
 	{
 		edge += sb_icon_width;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = 0x21;
 		sb_parts++;
 	}
-	if (c_ide_dma && (models[model].flags & MODEL_HAS_IDE) || !memcmp(hdd_controller_name, "xtide", 5))
+	if (c_ide_dma && ((models[model].flags & MODEL_HAS_IDE) || !memcmp(hdd_controller_name, "xtide", 5)))
 	{
 		edge += sb_icon_width;
 		iStatusWidths[sb_parts] = edge;
@@ -1605,11 +1611,8 @@ void win_cdrom_eject(uint8_t id)
 		/* Signal disc change to the emulated machine. */
 		cdrom_insert(id);
 	}
-	if (cdrom_drives[id].host_drive == 200)
-	{
-		CheckMenuItem(hmenu, IDM_CDROM_1_IMAGE + id,		           MF_UNCHECKED);
-	}
-	else
+	CheckMenuItem(hmenu, IDM_CDROM_1_IMAGE + id,		           MF_UNCHECKED);
+	if ((cdrom_drives[id].host_drive >= 65) && (cdrom_drives[id].host_drive <= 90))
 	{
 		CheckMenuItem(hmenu, IDM_CDROM_1_REAL + id + (cdrom_drive << 2), MF_UNCHECKED);
 	}
@@ -1795,21 +1798,25 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         break;
 
                         case IDM_VID_FULLSCREEN:
-                        if (video_fullscreen_first)
-                        {
-                                video_fullscreen_first = 0;
-				msgbox_info(ghwnd, 2193);
-                        }
-                        startblit();
-                        video_wait_for_blit();
-                        mouse_close();
-                        vid_apis[0][vid_api].close();
-                        video_fullscreen = 1;
-                        vid_apis[1][vid_api].init(ghwnd);
-                        mouse_init();
-                        leave_fullscreen_flag = 0;
-                        endblit();
-                        device_force_redraw();
+                        
+                        if(video_fullscreen!=1){
+                        
+				if (video_fullscreen_first)
+				{
+					video_fullscreen_first = 0;
+					msgbox_info(ghwnd, 2193);
+				}
+				startblit();
+				video_wait_for_blit();
+				mouse_close();
+				vid_apis[0][vid_api].close();
+				video_fullscreen = 1;
+				vid_apis[1][vid_api].init(ghwnd);
+				mouse_init();
+				leave_fullscreen_flag = 0;
+				endblit();
+				device_force_redraw();
+			}
                         break;
 
                         case IDM_VID_FS_FULL:
@@ -2209,6 +2216,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 	int cdrom_id = 0;
 	int menu_sub_param = 0;
 	int menu_super_param = 0;
+	int ret = 0;
 
         HMENU hmenu;
 
@@ -2219,7 +2227,8 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
                 {
                         case IDM_DISC_1:
                         case IDM_DISC_1_WP:
-			if (!file_dlg_w_st(hwnd, 2173, discfns[0], 0))
+			ret = file_dlg_w_st(hwnd, 2173, discfns[0], 0);
+			if (!ret)
                         {
                                 disc_close(0);
 				ui_writeprot[0] = (LOWORD(wParam) == IDM_DISC_1_WP) ? 1 : 0;
@@ -2231,7 +2240,8 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
                         break;
                         case IDM_DISC_2:
                         case IDM_DISC_2_WP:
-			if (!file_dlg_w_st(hwnd, 2173, discfns[1], 0))
+			ret = file_dlg_w_st(hwnd, 2173, discfns[1], 0);
+			if (!ret)
                         {
                                 disc_close(1);
 				ui_writeprot[1] = (LOWORD(wParam) == IDM_DISC_2_WP) ? 1 : 0;
@@ -2243,7 +2253,8 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
                         break;
                         case IDM_DISC_3:
                         case IDM_DISC_3_WP:
-			if (!file_dlg_w_st(hwnd, 2173, discfns[2], 0))
+			ret = file_dlg_w_st(hwnd, 2173, discfns[2], 0);
+			if (!ret)
                         {
                                 disc_close(2);
 				ui_writeprot[2] = (LOWORD(wParam) == IDM_DISC_3_WP) ? 1 : 0;
@@ -2255,7 +2266,8 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
                         break;
                         case IDM_DISC_4:
                         case IDM_DISC_4_WP:
-			if (!file_dlg_w_st(hwnd, 2173, discfns[3], 0))
+			ret = file_dlg_w_st(hwnd, 2173, discfns[3], 0);
+			if (!ret)
                         {
                                 disc_close(3);
 				ui_writeprot[3] = (LOWORD(wParam) == IDM_DISC_4_WP) ? 1 : 0;
@@ -2394,6 +2406,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 		return 0;
 
 		case WM_LBUTTONDOWN:
+		case WM_RBUTTONDOWN:
 		GetClientRect(hwnd, (LPRECT)& rc);
 		pt.x = GET_X_LPARAM(lParam);
 		pt.y = GET_Y_LPARAM(lParam);

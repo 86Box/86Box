@@ -205,6 +205,9 @@ bool CDROM_Interface_Image::IsMode2(unsigned long sector)
 
 bool CDROM_Interface_Image::LoadIsoFile(char* filename)
 {
+	int shift = 0;
+	int totalPregap = 0;
+
 	tracks.clear();
 	
 	// data track
@@ -216,6 +219,7 @@ bool CDROM_Interface_Image::LoadIsoFile(char* filename)
 		return false;
 	}
 	track.number = 1;
+	track.track_number = 1;//IMPORTANT: This is needed.
 	track.attr = DATA_TRACK;//data
 	
 	// try to detect iso type
@@ -239,7 +243,7 @@ bool CDROM_Interface_Image::LoadIsoFile(char* filename)
 	// leadout track
 	track.number = 2;
 	track.track_number = 0xAA;
-	track.attr = 0;
+	track.attr = 0x16;	/* Was 0x00 but I believe 0x16 is appropriate. */
 	track.start = track.length;
 	track.length = 0;
 	track.file = NULL;
@@ -389,7 +393,8 @@ bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 	// add leadout track
 	track.number++;
 	track.track_number = 0xAA;
-	track.attr = 0;//sync with load iso
+	// track.attr = 0;//sync with load iso
+	track.attr = 0x16;	/* Was 0x00 but I believe 0x16 is appropriate. */
 	track.start = 0;
 	track.length = 0;
 	track.file = NULL;

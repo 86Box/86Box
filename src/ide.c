@@ -354,27 +354,27 @@ static void ide_identify(IDE *ide)
 {
 	uint32_t c, h, s;
 	char device_identify[8] = { '8', '6', 'B', '_', 'H', 'D', '0', 0 };
-	uint64_t full_size = (hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt);
+	uint64_t full_size = (hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt);
 	
 	device_identify[6] = ide->channel + 0x30;
 	ide_log("IDE Identify: %s\n", device_identify);
 
 	memset(ide->buffer, 0, 512);
 	
-	c = hdc[cur_ide[ide->board]].tracks; /* Cylinders */
-	h = hdc[cur_ide[ide->board]].hpc;  /* Heads */
-	s = hdc[cur_ide[ide->board]].spt;  /* Sectors */
+	c = hdc[ide->hdc_num].tracks; /* Cylinders */
+	h = hdc[ide->hdc_num].hpc;  /* Heads */
+	s = hdc[ide->hdc_num].spt;  /* Sectors */
 
-	if (hdc[cur_ide[ide->board]].tracks <= 16383)
+	if (hdc[ide->hdc_num].tracks <= 16383)
 	{
-		ide->buffer[1] = hdc[cur_ide[ide->board]].tracks; /* Cylinders */
+		ide->buffer[1] = hdc[ide->hdc_num].tracks; /* Cylinders */
 	}
 	else
 	{
 		ide->buffer[1] = 16383; /* Cylinders */
 	}
-	ide->buffer[3] = hdc[cur_ide[ide->board]].hpc;  /* Heads */
-	ide->buffer[6] = hdc[cur_ide[ide->board]].spt;  /* Sectors */
+	ide->buffer[3] = hdc[ide->hdc_num].hpc;  /* Heads */
+	ide->buffer[6] = hdc[ide->hdc_num].spt;  /* Sectors */
 	ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
 	ide_padstr((char *) (ide->buffer + 23), emulator_version, 8); /* Firmware */
 	ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
@@ -415,13 +415,18 @@ static void ide_identify(IDE *ide)
 	ide->buffer[59] = ide->blocksize ? (ide->blocksize | 0x100) : 0;
 	if (ide->buffer[49] & (1 << 9))
 	{
-		ide->buffer[60] = (hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt) & 0xFFFF; /* Total addressable sectors (LBA) */
-		ide->buffer[61] = ((hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt) >> 16) & 0x0FFF;
+		ide->buffer[60] = (hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt) & 0xFFFF; /* Total addressable sectors (LBA) */
+		ide->buffer[61] = ((hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt) >> 16) & 0x0FFF;
 	}
 	if (PCI && (ide->board < 2) && (hdc[ide->hdc_num].bus == 3))
 	{
 		ide->buffer[52] = 2 << 8; /*DMA timing mode*/
+
 		ide->buffer[63] = 7;
+        	if (ide->mdma_mode != -1)
+	        {
+        	    ide->buffer[63] = (ide->mdma_mode << 8);
+	        }
 	}
 	ide->buffer[80] = 0xe; /*ATA-1 to ATA-3 supported*/
 }
@@ -661,78 +666,60 @@ int ide_cdrom_is_pio_only(IDE *ide)
 	return 1;
 }
 
-#if 0
-int ide_set_features(IDE *ide)
+static int ide_set_features(IDE *ide)
 {
-	uint8_t cdrom_id = cur_ide[ide->board];
+	uint8_t features, features_data;
+	uint8_t mode, submode;
+	
+	features = ide->cylprecomp;
+	features_data = ide->secount;
 
-	uint8_t features = 0;
-	
-	uint8_t sf_data = 0;
-	uint8_t val = 0;
-	
-	if (ide_drive_is_cdrom(ide))
-	{
-		features = cdrom[cdrom_id].features;
-		sf_data = cdrom[cdrom_id].phase;
-	}
-	else
-	{
-		features = ide->cylprecomp;
-		sf_data = ide->secount;
-	}
-	
-	val = sf_data & 7;
+	pclog("Features code %02X\n", features);
 
-	if (ide->type == IDE_NONE)  return 0;
-	
 	switch(features)
 	{
-		case 0x02:
-		case 0x82:
-			return 0;
-		case 0xcc:
-		case 0x66:
-		case 0xaa:
-		case 0x55:
-		case 0x05:
-		case 0x85:
-		case 0x69:
-		case 0x67:
-		case 0x96:
-		case 0x9a:
-		case 0x42:
-		case 0xc2:
-			return 1;
-		case 0x03:
-#if 0
-			if (ide->type == IDE_CDROM)
+		case 0x03:	/* Set transfer mode. */
+			pclog("Transfer mode %02X\n", features_data >> 3);
+
+			mode = (features_data >> 3);
+			submode = features_data & 7;
+
+			switch(mode)
 			{
-				return 0;
-			}
-#endif
-			switch(sf_data >> 3)
-			{
-				case 0:
-					ide->dma_identify_data[0] = 7;
-					break;
-				case 1:
-					/* We do not (yet) emulate flow control, so return with error if this is attempted. */
-					return 0;
-				case 4:
-					if (ide_cdrom_is_pio_only(ide) || (ide->board >= 2))
+				case 0x00:	/* PIO default */
+					if (submode != 0)
 					{
 						return 0;
 					}
-					ide->dma_identify_data[0] = 7 | (1 << (val + 8));
+					ide->mdma_mode = -1;
 					break;
+
+				case 0x01:	/* PIO mode */
+					if (submode > 2)
+					{
+						return 0;
+					}
+					ide->mdma_mode = -1;
+					break;
+
+				case 0x04:	/* Multiword DMA mode */
+					if (!PCI || (hdc[ide->hdc_num].bus != 3) || (ide->board >= 2) || (submode > 2))
+					{
+						return 0;
+					}
+					ide->mdma_mode = (1 << submode);
+					break;
+			
 				default:
 					return 0;
 			}
+		
+		default:
+			return 0;
 	}
+
 	return 1;
 }
-#endif
 
 void ide_set_sector(IDE *ide, int64_t sector_num)
 {
@@ -745,11 +732,11 @@ void ide_set_sector(IDE *ide, int64_t sector_num)
 	}
 	else
 	{
-		cyl = sector_num / (hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt);
-		r = sector_num % (hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt);
+		cyl = sector_num / (hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt);
+		r = sector_num % (hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt);
 		ide->cylinder = cyl;
-		ide->head = ((r / hdc[cur_ide[ide->board]].spt) & 0x0f);
-		ide->sector = (r % hdc[cur_ide[ide->board]].spt) + 1;
+		ide->head = ((r / hdc[ide->hdc_num].spt) & 0x0f);
+		ide->sector = (r % hdc[ide->hdc_num].spt) + 1;
 	}
 }
 
@@ -805,12 +792,10 @@ void resetide(void)
 			
 		ide_set_signature(&ide_drives[d]);
 
-#if 0
-		if (ide_drives[d].type != IDE_NONE)
+		if (ide_drives[d].type == IDE_HDD)
 		{
-			ide_drives[d].dma_identify_data[0] = 7;
+			ide_drives[d].mdma_mode = 0;
 		}
-#endif
 
 		ide_drives[d].error = 1;
 	}
@@ -920,7 +905,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
         
 	switch (addr)
 	{
-        case 0x1F0: /* Data */
+		case 0x1F0: /* Data */
 			writeidew(ide_board, val | (val << 8));
 			return;
 
@@ -939,7 +924,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			ide_other->cylprecomp = val;
 			return;
 
-        case 0x1F2: /* Sector count */
+		case 0x1F2: /* Sector count */
 			if (ide_drive_is_cdrom(ide))
 			{
 				ide_log("Sector count write: %i\n", val);
@@ -955,14 +940,14 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			ide_other->secount = val;
 			return;
 
-        case 0x1F3: /* Sector */
+		case 0x1F3: /* Sector */
 			ide->sector = val;
 			ide->lba_addr = (ide->lba_addr & 0xFFFFF00) | val;
 			ide_other->sector = val;
 			ide_other->lba_addr = (ide_other->lba_addr & 0xFFFFF00) | val;
 			return;
 
-        case 0x1F4: /* Cylinder low */
+		case 0x1F4: /* Cylinder low */
 			if (ide_drive_is_cdrom(ide))
 			{
 				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length &= 0xFF00;
@@ -980,7 +965,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			ide_other->lba_addr = (ide_other->lba_addr&0xFFF00FF) | (val << 8);
 			return;
 
-        case 0x1F5: /* Cylinder high */
+		case 0x1F5: /* Cylinder high */
 			if (ide_drive_is_cdrom(ide))
 			{
 				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length &= 0xFF;
@@ -998,7 +983,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			ide_other->lba_addr = (ide_other->lba_addr & 0xF00FFFF) | (val << 16);
 			return;
 
-        case 0x1F6: /* Drive/Head */
+		case 0x1F6: /* Drive/Head */
 			if (cur_ide[ide_board] != ((val>>4)&1)+(ide_board<<1))
 			{
 				cur_ide[ide_board]=((val>>4)&1)+(ide_board<<1);
@@ -1051,254 +1036,255 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			ide_irq_update(ide);
 			return;
 
-        case 0x1F7: /* Command register */
+		case 0x1F7: /* Command register */
 			if (ide->type == IDE_NONE)
 			{
 				return;
 			}
 
-			ide_irq_lower(ide);
-			ide->command=val;
+		ide_irq_lower(ide);
+		ide->command=val;
 
-			ide->error=0;
-			if (ide_drive_is_cdrom(ide))
-			{
-				cdrom[atapi_cdrom_drives[ide->channel]].error = 0;
-			}
-			switch (val)
-			{
-                case WIN_SRST: /* ATAPI Device Reset */
-                        if (ide_drive_is_cdrom(ide))
-						{
-							cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
-						}
-                        else
-						{
-							ide->atastat = READY_STAT;
-						}
-                        timer_process();
-						if (ide_drive_is_cdrom(ide))
-						{
-							cdrom[atapi_cdrom_drives[ide->channel]].callback = 100*IDE_TIME;
-						}
-                        idecallback[ide_board]=100*IDE_TIME;
-                        timer_update_outstanding();
-                        return;
+		ide->error=0;
+		if (ide_drive_is_cdrom(ide))
+		{
+			cdrom[atapi_cdrom_drives[ide->channel]].error = 0;
+		}
+		switch (val)
+		{
+			case WIN_SRST: /* ATAPI Device Reset */
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+				}
+				else
+				{
+					ide->atastat = READY_STAT;
+				}
+				timer_process();
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 100*IDE_TIME;
+				}
+                	        idecallback[ide_board]=100*IDE_TIME;
+	                        timer_update_outstanding();
+        	                return;
 
-                case WIN_RESTORE:
-                case WIN_SEEK:
-                        if (ide_drive_is_cdrom(ide))
-						{
-							cdrom[atapi_cdrom_drives[ide->channel]].status = READY_STAT;
-						}
-						else
-						{
-							ide->atastat = READY_STAT;
-						}
-                        timer_process();
-						if (ide_drive_is_cdrom(ide))
-						{
-							cdrom[atapi_cdrom_drives[ide->channel]].callback = 100*IDE_TIME;
-						}
-                        idecallback[ide_board]=100*IDE_TIME;
-                        timer_update_outstanding();
-                        return;
+			case WIN_RESTORE:
+			case WIN_SEEK:
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].status = READY_STAT;
+				}
+				else
+				{
+					ide->atastat = READY_STAT;
+				}
+				timer_process();
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 100*IDE_TIME;
+				}
+				idecallback[ide_board]=100*IDE_TIME;
+				timer_update_outstanding();
+				return;
 
-                case WIN_READ_MULTIPLE:
-					/* Fatal removed in accordance with the official ATAPI reference:
-					   If the Read Multiple command is attempted before the Set Multiple Mode
-                       command  has  been  executed  or  when  Read  Multiple  commands  are
-                       disabled, the Read Multiple operation is rejected with an Aborted Com-
-                       mand error. */
-					ide->blockcount = 0;
-                        
-                case WIN_READ:
-                case WIN_READ_NORETRY:
-                case WIN_READ_DMA:
-					if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
-					}
-					else
-					{
-						ide->atastat = BUSY_STAT;
-					}
+			case WIN_READ_MULTIPLE:
+				/* Fatal removed in accordance with the official ATAPI reference:
+				   If the Read Multiple command is attempted before the Set Multiple Mode
+				   command  has  been  executed  or  when  Read  Multiple  commands  are
+				   disabled, the Read Multiple operation is rejected with an Aborted Com-
+				   mand error. */
+				ide->blockcount = 0;
+
+			case WIN_READ:
+			case WIN_READ_NORETRY:
+			case WIN_READ_DMA:
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+				}
+				else
+				{
+					ide->atastat = BUSY_STAT;
+				}
+				timer_process();
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200*IDE_TIME;
+				}
+				idecallback[ide_board]=200*IDE_TIME;
+				timer_update_outstanding();
+				return;
+
+			case WIN_WRITE_MULTIPLE:
+				if (!ide->blocksize && !ide_drive_is_cdrom(ide))
+				{
+					fatal("Write_MULTIPLE - blocksize = 0\n");
+				}
+				ide->blockcount = 0;
+
+			case WIN_WRITE:
+			case WIN_WRITE_NORETRY:
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].status = DRQ_STAT | DSC_STAT | READY_STAT;
+					cdrom[atapi_cdrom_drives[ide->channel]].pos = 0;
+				}
+				else
+				{
+					ide->atastat = DRQ_STAT | DSC_STAT | READY_STAT;
+					ide->pos=0;
+				}
+				return;
+
+			case WIN_WRITE_DMA:
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+				}
+				else
+				{
+					ide->atastat = BUSY_STAT;
+				}
+				timer_process();
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200*IDE_TIME;
+				}
+				idecallback[ide_board]=200*IDE_TIME;
+				timer_update_outstanding();
+				return;
+
+			case WIN_VERIFY:
+			case WIN_VERIFY_ONCE:
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+				}
+				else
+				{
+					ide->atastat = BUSY_STAT;
+				}
+				timer_process();
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200*IDE_TIME;
+				}
+				idecallback[ide_board]=200*IDE_TIME;
+				timer_update_outstanding();
+				return;
+
+			case WIN_FORMAT:
+				if (ide_drive_is_cdrom(ide))
+				{
+					goto ide_bad_command;
+				}
+				else
+				{
+					ide->atastat = DRQ_STAT;
+					ide->pos=0;
+				}
+				return;
+
+			case WIN_SPECIFY: /* Initialize Drive Parameters */
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+				}
+				else
+				{
+					ide->atastat = BUSY_STAT;
+				}
+				timer_process();
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 30*IDE_TIME;
+				}
+				idecallback[ide_board]=30*IDE_TIME;
+				timer_update_outstanding();
+				return;
+
+			case WIN_DRIVE_DIAGNOSTICS: /* Execute Drive Diagnostics */
+			case WIN_PIDENTIFY: /* Identify Packet Device */
+			case WIN_SET_MULTIPLE_MODE: /* Set Multiple Mode */
+			case WIN_SET_FEATURES: /* Set Features */
+			case WIN_NOP:
+			case WIN_STANDBYNOW1:
+			case WIN_IDLENOW1:
+			case WIN_SETIDLE1: /* Idle */
+			case WIN_CHECKPOWERMODE1:
+			case WIN_SLEEP1:
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+				}
+				else
+				{
+					ide->atastat = BUSY_STAT;
+				}
+				timer_process();
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 30*IDE_TIME;
+				}
+				idecallback[ide_board]=30*IDE_TIME;
+				timer_update_outstanding();
+				return;
+
+			case WIN_IDENTIFY: /* Identify Device */
+			case WIN_READ_NATIVE_MAX:
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+				}
+				else
+				{
+					ide->atastat = BUSY_STAT;
+				}
+				timer_process();
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200*IDE_TIME;
+				}
+				idecallback[ide_board]=200*IDE_TIME;
+				timer_update_outstanding();
+				return;
+
+			case WIN_PACKETCMD: /* ATAPI Packet */
+				/* Skip the command callback wait, and process immediately. */
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].packet_status = CDROM_PHASE_IDLE;
+					cdrom[atapi_cdrom_drives[ide->channel]].pos=0;
+					cdrom[atapi_cdrom_drives[ide->channel]].phase = 1;
+					cdrom[atapi_cdrom_drives[ide->channel]].status = READY_STAT | DRQ_STAT | (cdrom[cur_ide[ide_board]].status & ERR_STAT);
+				}
+				else
+				{
+					ide->atastat = BUSY_STAT;
 					timer_process();
-					if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].callback = 200*IDE_TIME;
-					}
-					idecallback[ide_board]=200*IDE_TIME;
+					idecallback[ide_board]=1;
 					timer_update_outstanding();
-					return;
-                        
-                case WIN_WRITE_MULTIPLE:
-					if (!ide->blocksize && !ide_drive_is_cdrom(ide))
-					{
-						fatal("Write_MULTIPLE - blocksize = 0\n");
-					}
-					ide->blockcount = 0;
-                        
-                case WIN_WRITE:
-                case WIN_WRITE_NORETRY:
-					if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].status = DRQ_STAT | DSC_STAT | READY_STAT;
-						cdrom[atapi_cdrom_drives[ide->channel]].pos = 0;
-					}
-					else
-					{
-						ide->atastat = DRQ_STAT | DSC_STAT | READY_STAT;
-						ide->pos=0;
-					}
-					return;
+					ide->pos=0;
+				}
+				return;
 
-                case WIN_WRITE_DMA:
-					if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
-					}
-					else
-					{
-						ide->atastat = BUSY_STAT;
-					}
-					timer_process();
-					if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].callback = 200*IDE_TIME;
-					}
-					idecallback[ide_board]=200*IDE_TIME;
-					timer_update_outstanding();
-					return;
-
-                case WIN_VERIFY:
-				case WIN_VERIFY_ONCE:
-					if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
-					}
-					else
-					{
-						ide->atastat = BUSY_STAT;
-					}
-					timer_process();
-					if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].callback = 200*IDE_TIME;
-					}
-					idecallback[ide_board]=200*IDE_TIME;
-					timer_update_outstanding();
-					return;
-
-                case WIN_FORMAT:
-					if (ide_drive_is_cdrom(ide))
-					{
-						goto ide_bad_command;
-					}
-					else
-					{
-						ide->atastat = DRQ_STAT;
-						ide->pos=0;
-					}
-					return;
-
-                case WIN_SPECIFY: /* Initialize Drive Parameters */
-					if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
-					}
-					else
-					{
-						ide->atastat = BUSY_STAT;
-					}
-					timer_process();
-					if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].callback = 30*IDE_TIME;
-					}
-					idecallback[ide_board]=30*IDE_TIME;
-					timer_update_outstanding();
-					return;
-
-                case WIN_DRIVE_DIAGNOSTICS: /* Execute Drive Diagnostics */
-                case WIN_PIDENTIFY: /* Identify Packet Device */
-                case WIN_SET_MULTIPLE_MODE: /*Set Multiple Mode*/
-				case WIN_NOP:
-				case WIN_STANDBYNOW1:
-				case WIN_IDLENOW1:
-                case WIN_SETIDLE1: /* Idle */
-				case WIN_CHECKPOWERMODE1:
-				case WIN_SLEEP1:
-					if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
-					}
-					else
-					{
-						ide->atastat = BUSY_STAT;
-					}
-					timer_process();
-					if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].callback = 30*IDE_TIME;
-					}
-					idecallback[ide_board]=30*IDE_TIME;
-					timer_update_outstanding();
-					return;
-
-		case WIN_IDENTIFY: /* Identify Device */
-				case WIN_READ_NATIVE_MAX:
-					if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
-					}
-					else
-					{
-						ide->atastat = BUSY_STAT;
-					}
-					timer_process();
-					if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].callback = 200*IDE_TIME;
-					}
-					idecallback[ide_board]=200*IDE_TIME;
-					timer_update_outstanding();
-					return;
-
-                case WIN_PACKETCMD: /* ATAPI Packet */
-					/* Skip the command callback wait, and process immediately. */
-					if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].packet_status = CDROM_PHASE_IDLE;
-						cdrom[atapi_cdrom_drives[ide->channel]].pos=0;
-						cdrom[atapi_cdrom_drives[ide->channel]].phase = 1;
-						cdrom[atapi_cdrom_drives[ide->channel]].status = READY_STAT | DRQ_STAT | (cdrom[cur_ide[ide_board]].status & ERR_STAT);
-					}
-					else
-					{
-                        ide->atastat = BUSY_STAT;
-                        timer_process();
-                        idecallback[ide_board]=1;
-                        timer_update_outstanding();
-                        ide->pos=0;
-					}
-					return;
-                        
-                case 0xF0:
-				default:
+			case 0xF0:
+			default:
 ide_bad_command:
-					if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].status = READY_STAT | ERR_STAT | DSC_STAT;
-						cdrom[atapi_cdrom_drives[ide->channel]].error = ABRT_ERR;
-					}
-					else
-					{
-						ide->atastat = READY_STAT | ERR_STAT | DSC_STAT;
-						ide->error = ABRT_ERR;
-					}
-					ide_irq_raise(ide);
-					return;
+				if (ide_drive_is_cdrom(ide))
+				{
+					cdrom[atapi_cdrom_drives[ide->channel]].status = READY_STAT | ERR_STAT | DSC_STAT;
+					cdrom[atapi_cdrom_drives[ide->channel]].error = ABRT_ERR;
+				}
+				else
+				{
+					ide->atastat = READY_STAT | ERR_STAT | DSC_STAT;
+					ide->error = ABRT_ERR;
+				}
+				ide_irq_raise(ide);
+				return;
 			}
 			return;
 
@@ -1439,7 +1425,7 @@ uint8_t readide(int ide_board, uint16_t addr)
 
 		/* For ATAPI: Bits 7-4 = sense key, bit 3 = MCR (media change requested),
 		              Bit 2 = ABRT (aborted command), Bit 1 = EOM (end of media),
-					  and Bit 0 = ILI (illegal length indication). */
+		              and Bit 0 = ILI (illegal length indication). */
 		case 0x1F1: /* Error */
 			if (ide->type == IDE_NONE)
 			{
@@ -1599,7 +1585,7 @@ void callbackide(int ide_board)
 
 	ide = &ide_drives[cur_ide[ide_board]];
 	ide_other = &ide_drives[cur_ide[ide_board] ^ 1];
-	full_size = (hdc[cur_ide[ide->board]].tracks * hdc[cur_ide[ide->board]].hpc * hdc[cur_ide[ide->board]].spt);
+	full_size = (hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt);
 	ext_ide = ide;
 
 	if (ide_drive_is_cdrom(ide))
@@ -1663,7 +1649,7 @@ void callbackide(int ide_board)
 	{
 		/* Initialize the Task File Registers as follows: Status = 00h, Error = 01h, Sector Count = 01h, Sector Number = 01h,
 		   Cylinder Low = 14h, Cylinder High =EBh and Drive/Head = 00h. */
-        case WIN_SRST: /*ATAPI Device Reset */
+	        case WIN_SRST: /*ATAPI Device Reset */
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide->error=1; /*Device passed*/
 			ide->secount = ide->sector = 1;
@@ -1683,8 +1669,8 @@ void callbackide(int ide_board)
 			}
 			return;
 
-        case WIN_RESTORE:
-        case WIN_SEEK:
+	        case WIN_RESTORE:
+        	case WIN_SEEK:
 			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
@@ -1716,8 +1702,8 @@ void callbackide(int ide_board)
 			ide_irq_raise(ide);
 			return;
 
-        case WIN_READ:
-        case WIN_READ_NORETRY:
+		case WIN_READ:
+		case WIN_READ_NORETRY:
 			if (ide_drive_is_cdrom(ide))
 			{
 				ide_set_signature(ide);
@@ -1739,7 +1725,7 @@ void callbackide(int ide_board)
 			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
 			return;
 
-        case WIN_READ_DMA:
+		case WIN_READ_DMA:
 			if (ide_drive_is_cdrom(ide) || (ide->board >= 2))
 			{
 				goto abort_cmd;
@@ -1782,7 +1768,7 @@ void callbackide(int ide_board)
 
 			return;
 
-        case WIN_READ_MULTIPLE:
+		case WIN_READ_MULTIPLE:
 			/* According to the official ATA reference:
 
 			   If the Read Multiple command is attempted before the Set Multiple Mode
@@ -1816,8 +1802,8 @@ void callbackide(int ide_board)
 			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
 			return;
 
-        case WIN_WRITE:
-        case WIN_WRITE_NORETRY:
+		case WIN_WRITE:
+		case WIN_WRITE_NORETRY:
 			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
@@ -1846,7 +1832,7 @@ void callbackide(int ide_board)
 
 			return;
                 
-        case WIN_WRITE_DMA:
+		case WIN_WRITE_DMA:
 			if (ide_drive_is_cdrom(ide) || (ide_board >= 2))
 			{
 				goto abort_cmd;
@@ -1889,7 +1875,7 @@ void callbackide(int ide_board)
 
 			return;
 
-        case WIN_WRITE_MULTIPLE:
+		case WIN_WRITE_MULTIPLE:
 			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
@@ -1938,7 +1924,7 @@ void callbackide(int ide_board)
 			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
 			return;
 
-        case WIN_FORMAT:
+		case WIN_FORMAT:
 			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
@@ -1960,7 +1946,7 @@ void callbackide(int ide_board)
 			/* update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1); */
 			return;
 
-        case WIN_DRIVE_DIAGNOSTICS:
+		case WIN_DRIVE_DIAGNOSTICS:
 			ide_set_signature(ide);
 			ide->error=1; /*No error detected*/
 
@@ -1978,7 +1964,7 @@ void callbackide(int ide_board)
 			}
 			return;
 
-        case WIN_SPECIFY: /* Initialize Drive Parameters */
+		case WIN_SPECIFY: /* Initialize Drive Parameters */
 			if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
@@ -1988,11 +1974,11 @@ void callbackide(int ide_board)
 			ide->specify_success = 1;
 			if (ide->hdi == 2)
 			{
-				hdc[cur_ide[ide->board]].at_hpc = ide->head+1;
-				hdc[cur_ide[ide->board]].at_spt = ide->secount;
+				hdc[ide->hdc_num].at_hpc = ide->head+1;
+				hdc[ide->hdc_num].at_spt = ide->secount;
 				fseeko64(ide->hdfile, 0x20, SEEK_SET);
-				fwrite(&(hdc[cur_ide[ide->board]].at_spt), 1, 4, ide->hdfile);
-				fwrite(&(hdc[cur_ide[ide->board]].at_hpc), 1, 4, ide->hdfile);
+				fwrite(&(hdc[ide->hdc_num].at_spt), 1, 4, ide->hdfile);
+				fwrite(&(hdc[ide->hdc_num].at_hpc), 1, 4, ide->hdfile);
 			}
 			ide->spt=ide->secount;
 			ide->hpc=ide->head+1;
@@ -2000,7 +1986,7 @@ void callbackide(int ide_board)
 			ide_irq_raise(ide);
 			return;
 
-        case WIN_PIDENTIFY: /* Identify Packet Device */
+		case WIN_PIDENTIFY: /* Identify Packet Device */
 			if (ide_drive_is_cdrom(ide))
 			{
 				ide_atapi_identify(ide);
@@ -2013,8 +1999,8 @@ void callbackide(int ide_board)
 			}
 			goto abort_cmd;
 
-        case WIN_SET_MULTIPLE_MODE:
-			if (ide_drive_is_cdrom(ide))
+		case WIN_SET_MULTIPLE_MODE:
+		if (ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
 			}
@@ -2023,38 +2009,37 @@ void callbackide(int ide_board)
 			ide_irq_raise(ide);
 			return;
 
-#if 0
 		case WIN_SET_FEATURES:
-			if (!(ide_set_features(ide)))
+			if ((ide->type == IDE_NONE) || ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
 			}
-			if (ide_drive_is_cdrom(ide))
+
+			if (!ide_set_features(ide))
 			{
-				cdrom[cdrom_id].status = READY_STAT | DSC_STAT;
+				goto abort_cmd;
 			}
 			else
 			{
 				ide->atastat = READY_STAT | DSC_STAT;
+				ide_irq_raise(ide);
 			}
-			ide_irq_raise(ide);
 			return;
-#endif
-			
+
 		case WIN_READ_NATIVE_MAX:
 			if ((ide->type != IDE_HDD) || ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
 			}
-			snum = hdc[cur_ide[ide->board]].spt;
-			snum *= hdc[cur_ide[ide->board]].hpc;
-			snum *= hdc[cur_ide[ide->board]].tracks;
+			snum = hdc[ide->hdc_num].spt;
+			snum *= hdc[ide->hdc_num].hpc;
+			snum *= hdc[ide->hdc_num].tracks;
 			ide_set_sector(ide, snum - 1);
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
 			return;
-				
-        case WIN_IDENTIFY: /* Identify Device */
+
+		case WIN_IDENTIFY: /* Identify Device */
 			if (ide->type == IDE_NONE)
 			{
 				ide_set_signature(ide);
@@ -2076,7 +2061,7 @@ void callbackide(int ide_board)
 			}
 			return;
 
-        case WIN_PACKETCMD: /* ATAPI Packet */
+		case WIN_PACKETCMD: /* ATAPI Packet */
 			if (!ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
@@ -2089,7 +2074,7 @@ void callbackide(int ide_board)
 
 		case 0xFF:
 			goto abort_cmd;
-		}
+	}
 
 abort_cmd:
 	ide->command = 0;
@@ -2107,6 +2092,7 @@ abort_cmd:
 	}
 	ide_irq_raise(ide);
 	return;
+
 id_not_found:
 	ide->atastat = READY_STAT | ERR_STAT | DSC_STAT;
 	ide->error = ABRT_ERR | 0x10;
@@ -2140,161 +2126,159 @@ void ide_callback_qua()
 
 void ide_write_pri(uint16_t addr, uint8_t val, void *priv)
 {
-        writeide(0, addr, val);
+	writeide(0, addr, val);
 }
 void ide_write_pri_w(uint16_t addr, uint16_t val, void *priv)
 {
-        writeidew(0, val);
+	writeidew(0, val);
 }
 void ide_write_pri_l(uint16_t addr, uint32_t val, void *priv)
 {
-        writeidel(0, val);
+	writeidel(0, val);
 }
 uint8_t ide_read_pri(uint16_t addr, void *priv)
 {
-        return readide(0, addr);
+	return readide(0, addr);
 }
 uint16_t ide_read_pri_w(uint16_t addr, void *priv)
 {
-        return readidew(0);
+	return readidew(0);
 }
 uint32_t ide_read_pri_l(uint16_t addr, void *priv)
 {
-        return readidel(0);
+	return readidel(0);
 }
 
 void ide_write_sec(uint16_t addr, uint8_t val, void *priv)
 {
-        writeide(1, addr, val);
+	writeide(1, addr, val);
 }
 void ide_write_sec_w(uint16_t addr, uint16_t val, void *priv)
 {
-        writeidew(1, val);
+	writeidew(1, val);
 }
 void ide_write_sec_l(uint16_t addr, uint32_t val, void *priv)
 {
-        writeidel(1, val);
+	writeidel(1, val);
 }
 uint8_t ide_read_sec(uint16_t addr, void *priv)
 {
-        return readide(1, addr);
+	return readide(1, addr);
 }
 uint16_t ide_read_sec_w(uint16_t addr, void *priv)
 {
-        return readidew(1);
+	return readidew(1);
 }
 uint32_t ide_read_sec_l(uint16_t addr, void *priv)
 {
-        return readidel(1);
+	return readidel(1);
 }
 
-/* *** REMOVE FROM CODE SUBMITTED TO MAINLINE - START *** */
 void ide_write_ter(uint16_t addr, uint8_t val, void *priv)
 {
-        writeide(2, addr, val);
+	writeide(2, addr, val);
 }
 void ide_write_ter_w(uint16_t addr, uint16_t val, void *priv)
 {
-        writeidew(2, val);
+	writeidew(2, val);
 }
 void ide_write_ter_l(uint16_t addr, uint32_t val, void *priv)
 {
-        writeidel(2, val);
+	writeidel(2, val);
 }
 uint8_t ide_read_ter(uint16_t addr, void *priv)
 {
-        return readide(2, addr);
+	return readide(2, addr);
 }
 uint16_t ide_read_ter_w(uint16_t addr, void *priv)
 {
-        return readidew(2);
+	return readidew(2);
 }
 uint32_t ide_read_ter_l(uint16_t addr, void *priv)
 {
-        return readidel(2);
+	return readidel(2);
 }
 
 void ide_write_qua(uint16_t addr, uint8_t val, void *priv)
 {
-        writeide(3, addr, val);
+	writeide(3, addr, val);
 }
 void ide_write_qua_w(uint16_t addr, uint16_t val, void *priv)
 {
-        writeidew(3, val);
+	writeidew(3, val);
 }
 void ide_write_qua_l(uint16_t addr, uint32_t val, void *priv)
 {
-        writeidel(3, val);
+	writeidel(3, val);
 }
 uint8_t ide_read_qua(uint16_t addr, void *priv)
 {
-        return readide(3, addr);
+	return readide(3, addr);
 }
 uint16_t ide_read_qua_w(uint16_t addr, void *priv)
 {
-        return readidew(3);
+	return readidew(3);
 }
 uint32_t ide_read_qua_l(uint16_t addr, void *priv)
 {
-        return readidel(3);
+	return readidel(3);
 }
-/* *** REMOVE FROM CODE SUBMITTED TO MAINLINE - END *** */
 
 static uint16_t ide_base_main[2] = { 0x1f0, 0x170 };
 static uint16_t ide_side_main[2] = { 0x3f6, 0x376 };
 
 void ide_pri_enable()
 {
-        io_sethandler(0x01f0, 0x0008, ide_read_pri, ide_read_pri_w, ide_read_pri_l, ide_write_pri, ide_write_pri_w, ide_write_pri_l, NULL);
-        io_sethandler(0x03f6, 0x0001, ide_read_pri, NULL,           NULL,           ide_write_pri, NULL,            NULL           , NULL);
-		ide_base_main[0] = 0x1f0;
-		ide_side_main[0] = 0x3f6;
+	io_sethandler(0x01f0, 0x0008, ide_read_pri, ide_read_pri_w, ide_read_pri_l, ide_write_pri, ide_write_pri_w, ide_write_pri_l, NULL);
+	io_sethandler(0x03f6, 0x0001, ide_read_pri, NULL,           NULL,           ide_write_pri, NULL,            NULL           , NULL);
+	ide_base_main[0] = 0x1f0;
+	ide_side_main[0] = 0x3f6;
 }
 
 void ide_pri_enable_ex()
 {
-		if (ide_base_main[0] & 0x300)
-		{
-			pclog("Enabling primary base (%04X)...\n", ide_base_main[0]);
-			io_sethandler(ide_base_main[0], 0x0008, ide_read_pri, ide_read_pri_w, ide_read_pri_l, ide_write_pri, ide_write_pri_w, ide_write_pri_l, NULL);
-		}
-		if (ide_side_main[0] & 0x300)
-		{
-			pclog("Enabling primary side (%04X)...\n", ide_side_main[0]);
-			io_sethandler(ide_side_main[0], 0x0001, ide_read_pri, NULL,           NULL,           ide_write_pri, NULL,            NULL           , NULL);
-		}
+	if (ide_base_main[0] & 0x300)
+	{
+		pclog("Enabling primary base (%04X)...\n", ide_base_main[0]);
+		io_sethandler(ide_base_main[0], 0x0008, ide_read_pri, ide_read_pri_w, ide_read_pri_l, ide_write_pri, ide_write_pri_w, ide_write_pri_l, NULL);
+	}
+	if (ide_side_main[0] & 0x300)
+	{
+		pclog("Enabling primary side (%04X)...\n", ide_side_main[0]);
+		io_sethandler(ide_side_main[0], 0x0001, ide_read_pri, NULL,           NULL,           ide_write_pri, NULL,            NULL           , NULL);
+	}
 }
 
 void ide_pri_disable()
 {
-        io_removehandler(ide_base_main[0], 0x0008, ide_read_pri, ide_read_pri_w, ide_read_pri_l, ide_write_pri, ide_write_pri_w, ide_write_pri_l, NULL);
-        io_removehandler(ide_side_main[0], 0x0001, ide_read_pri, NULL,           NULL,           ide_write_pri, NULL,            NULL           , NULL);
+	io_removehandler(ide_base_main[0], 0x0008, ide_read_pri, ide_read_pri_w, ide_read_pri_l, ide_write_pri, ide_write_pri_w, ide_write_pri_l, NULL);
+	io_removehandler(ide_side_main[0], 0x0001, ide_read_pri, NULL,           NULL,           ide_write_pri, NULL,            NULL           , NULL);
 }
 
 void ide_sec_enable()
 {
-        io_sethandler(0x0170, 0x0008, ide_read_sec, ide_read_sec_w, ide_read_sec_l, ide_write_sec, ide_write_sec_w, ide_write_sec_l, NULL);
-        io_sethandler(0x0376, 0x0001, ide_read_sec, NULL,           NULL,           ide_write_sec, NULL,            NULL           , NULL);
-		ide_base_main[1] = 0x170;
-		ide_side_main[1] = 0x376;
+	io_sethandler(0x0170, 0x0008, ide_read_sec, ide_read_sec_w, ide_read_sec_l, ide_write_sec, ide_write_sec_w, ide_write_sec_l, NULL);
+	io_sethandler(0x0376, 0x0001, ide_read_sec, NULL,           NULL,           ide_write_sec, NULL,            NULL           , NULL);
+	ide_base_main[1] = 0x170;
+	ide_side_main[1] = 0x376;
 }
 
 void ide_sec_enable_ex()
 {
-		if (ide_base_main[1] & 0x300)
-		{
-			io_sethandler(ide_base_main[1], 0x0008, ide_read_sec, ide_read_sec_w, ide_read_sec_l, ide_write_sec, ide_write_sec_w, ide_write_sec_l, NULL);
-		}
-		if (ide_side_main[1] & 0x300)
-		{
-			io_sethandler(ide_side_main[1], 0x0001, ide_read_sec, NULL,           NULL,           ide_write_sec, NULL,            NULL           , NULL);
-		}
+	if (ide_base_main[1] & 0x300)
+	{
+		io_sethandler(ide_base_main[1], 0x0008, ide_read_sec, ide_read_sec_w, ide_read_sec_l, ide_write_sec, ide_write_sec_w, ide_write_sec_l, NULL);
+	}
+	if (ide_side_main[1] & 0x300)
+	{
+		io_sethandler(ide_side_main[1], 0x0001, ide_read_sec, NULL,           NULL,           ide_write_sec, NULL,            NULL           , NULL);
+	}
 }
 
 void ide_sec_disable()
 {
-        io_removehandler(ide_base_main[1], 0x0008, ide_read_sec, ide_read_sec_w, ide_read_sec_l, ide_write_sec, ide_write_sec_w, ide_write_sec_l, NULL);
-        io_removehandler(ide_side_main[1], 0x0001, ide_read_sec, NULL,           NULL,           ide_write_sec, NULL,            NULL           , NULL);
+	io_removehandler(ide_base_main[1], 0x0008, ide_read_sec, ide_read_sec_w, ide_read_sec_l, ide_write_sec, ide_write_sec_w, ide_write_sec_l, NULL);
+	io_removehandler(ide_side_main[1], 0x0001, ide_read_sec, NULL,           NULL,           ide_write_sec, NULL,            NULL           , NULL);
 }
 
 void ide_set_base(int controller, uint16_t port)
@@ -2307,75 +2291,73 @@ void ide_set_side(int controller, uint16_t port)
 	ide_side_main[controller] = port;
 }
 
-/* *** REMOVE FROM CODE SUBMITTED TO MAINLINE - START *** */
 void ide_ter_enable()
 {
-        io_sethandler(0x0168, 0x0008, ide_read_ter, ide_read_ter_w, ide_read_ter_l, ide_write_ter, ide_write_ter_w, ide_write_ter_l, NULL);
-        io_sethandler(0x036e, 0x0001, ide_read_ter, NULL,           NULL,           ide_write_ter, NULL,            NULL           , NULL);
+	io_sethandler(0x0168, 0x0008, ide_read_ter, ide_read_ter_w, ide_read_ter_l, ide_write_ter, ide_write_ter_w, ide_write_ter_l, NULL);
+	io_sethandler(0x036e, 0x0001, ide_read_ter, NULL,           NULL,           ide_write_ter, NULL,            NULL           , NULL);
 }
 
 void ide_ter_disable()
 {
-        io_removehandler(0x0168, 0x0008, ide_read_ter, ide_read_ter_w, ide_read_ter_l, ide_write_ter, ide_write_ter_w, ide_write_ter_l, NULL);
-        io_removehandler(0x036e, 0x0001, ide_read_ter, NULL,           NULL,           ide_write_ter, NULL,            NULL           , NULL);
+	io_removehandler(0x0168, 0x0008, ide_read_ter, ide_read_ter_w, ide_read_ter_l, ide_write_ter, ide_write_ter_w, ide_write_ter_l, NULL);
+	io_removehandler(0x036e, 0x0001, ide_read_ter, NULL,           NULL,           ide_write_ter, NULL,            NULL           , NULL);
 }
 
 void ide_ter_disable_cond()
 {
-		if ((ide_drives[4].type == IDE_NONE) && (ide_drives[5].type == IDE_NONE))
-		{
-			ide_ter_disable();
-		}
+	if ((ide_drives[4].type == IDE_NONE) && (ide_drives[5].type == IDE_NONE))
+	{
+		ide_ter_disable();
+	}
 }
 
 void ide_ter_init()
 {
-		ide_ter_enable();
+	ide_ter_enable();
 
-        timer_add(ide_callback_ter, &idecallback[2], &idecallback[2],  NULL);
+	timer_add(ide_callback_ter, &idecallback[2], &idecallback[2],  NULL);
 }
 
 void ide_qua_enable()
 {
-        io_sethandler(0x01e8, 0x0008, ide_read_qua, ide_read_qua_w, ide_read_qua_l, ide_write_qua, ide_write_qua_w, ide_write_qua_l, NULL);
-        io_sethandler(0x03ee, 0x0001, ide_read_qua, NULL,           NULL,           ide_write_qua, NULL,            NULL           , NULL);
+	io_sethandler(0x01e8, 0x0008, ide_read_qua, ide_read_qua_w, ide_read_qua_l, ide_write_qua, ide_write_qua_w, ide_write_qua_l, NULL);
+	io_sethandler(0x03ee, 0x0001, ide_read_qua, NULL,           NULL,           ide_write_qua, NULL,            NULL           , NULL);
 }
 
 void ide_qua_disable_cond()
 {
-		if ((ide_drives[6].type == IDE_NONE) && (ide_drives[7].type == IDE_NONE))
-		{
-			ide_qua_disable();
-		}
+	if ((ide_drives[6].type == IDE_NONE) && (ide_drives[7].type == IDE_NONE))
+	{
+		ide_qua_disable();
+	}
 }
 
 void ide_qua_disable()
 {
-        io_removehandler(0x01e8, 0x0008, ide_read_qua, ide_read_qua_w, ide_read_qua_l, ide_write_qua, ide_write_qua_w, ide_write_qua_l, NULL);
-        io_removehandler(0x03ee, 0x0001, ide_read_qua, NULL,           NULL,           ide_write_qua, NULL,            NULL           , NULL);
+	io_removehandler(0x01e8, 0x0008, ide_read_qua, ide_read_qua_w, ide_read_qua_l, ide_write_qua, ide_write_qua_w, ide_write_qua_l, NULL);
+	io_removehandler(0x03ee, 0x0001, ide_read_qua, NULL,           NULL,           ide_write_qua, NULL,            NULL           , NULL);
 }
 
 void ide_qua_init()
 {
-		ide_qua_enable();
+	ide_qua_enable();
 
-        timer_add(ide_callback_qua, &idecallback[3], &idecallback[3],  NULL);
+	timer_add(ide_callback_qua, &idecallback[3], &idecallback[3],  NULL);
 }
-/* *** REMOVE FROM CODE SUBMITTED TO MAINLINE - END *** */
 
 void ide_init()
 {
-        ide_pri_enable();
-        ide_sec_enable();
-        ide_bus_master_read = ide_bus_master_write = NULL;
-        
-        timer_add(ide_callback_pri, &idecallback[0], &idecallback[0],  NULL);
-        timer_add(ide_callback_sec, &idecallback[1], &idecallback[1],  NULL);
+	ide_pri_enable();
+	ide_sec_enable();
+	ide_bus_master_read = ide_bus_master_write = NULL;
+
+	timer_add(ide_callback_pri, &idecallback[0], &idecallback[0],  NULL);
+	timer_add(ide_callback_sec, &idecallback[1], &idecallback[1],  NULL);
 }
 
 void ide_set_bus_master(int (*read)(int channel, uint8_t *data, int transfer_length), int (*write)(int channel, uint8_t *data, int transfer_length), void (*set_irq)(int channel))
 {
-        ide_bus_master_read = read;
-        ide_bus_master_write = write;
-        ide_bus_master_set_irq = set_irq;
+	ide_bus_master_read = read;
+	ide_bus_master_write = write;
+	ide_bus_master_set_irq = set_irq;
 }

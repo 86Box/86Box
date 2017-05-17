@@ -763,7 +763,7 @@ static void xebec_callback(void *p)
         }
 }
 
-static void loadhd(xebec_t *xebec, int d, const wchar_t *fn)
+static void loadhd(xebec_t *xebec, int c, int d, const wchar_t *fn)
 {
         mfm_drive_t *drive = &xebec->drives[d];
         
@@ -796,9 +796,9 @@ static void loadhd(xebec_t *xebec, int d, const wchar_t *fn)
 		}
 	}
 
-        drive->spt = hdc[d].spt;
-        drive->hpc = hdc[d].hpc;
-        drive->tracks = hdc[d].tracks;
+        drive->spt = hdc[c].spt;
+        drive->hpc = hdc[c].hpc;
+        drive->tracks = hdc[c].tracks;
 }
 
 static struct
@@ -844,15 +844,18 @@ static void xebec_set_switches(xebec_t *xebec)
 static void *xebec_init()
 {
 	int i = 0;
+	int c = 0;
 
         xebec_t *xebec = malloc(sizeof(xebec_t));
         memset(xebec, 0, sizeof(xebec_t));
 
 	for (i = 0; i < HDC_NUM; i++)
 	{
-		if (hdc[i].bus == 1)
+		if ((hdc[i].bus == 1) && (hdc[i].mfm_channel < MFM_NUM))
 		{
-			loadhd(xebec, hdc[i].mfm_channel, hdd_fn[i]);
+			loadhd(xebec, i, hdc[i].mfm_channel, hdd_fn[i]);
+			c++;
+			if (c > MFM_NUM)  break;
 		}
 	}
 
@@ -904,15 +907,18 @@ device_t mfm_xebec_device =
 static void *dtc_5150x_init()
 {
 	int i = 0;
+	int c = 0;
 
         xebec_t *xebec = malloc(sizeof(xebec_t));
         memset(xebec, 0, sizeof(xebec_t));
 
 	for (i = 0; i < HDC_NUM; i++)
 	{
-		if (hdc[i].bus == 1)
+		if ((hdc[i].bus == 1) && (hdc[i].mfm_channel < MFM_NUM))
 		{
-			loadhd(xebec, hdc[i].mfm_channel, hdd_fn[i]);
+			loadhd(xebec, i, hdc[i].mfm_channel, hdd_fn[i]);
+			c++;
+			if (c > MFM_NUM)  break;
 		}
 	}
 

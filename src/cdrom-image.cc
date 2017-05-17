@@ -228,7 +228,7 @@ static int image_get_last_block(uint8_t id, uint8_t starttrack, int msf, int max
         {
                 uint32_t address;
                 cdimg[id]->GetAudioTrackInfo(c+1, number, tmsf, attr);
-                address = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr);
+                address = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr) - 150;	/* Do the - 150 here as well. */
                 if (address > lb)
                         lb = address;
         }
@@ -733,7 +733,7 @@ static void lba_to_msf(uint8_t *buf, int lba)
     lba += 150;
     buf[0] = (lba / 75) / 60;
     buf[1] = (lba / 75) % 60;
-	buf[2] = lba % 75;
+    buf[2] = lba % 75;
 }
 
 static uint32_t image_size(uint8_t id)
@@ -747,64 +747,12 @@ static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack,
         int len=4;
         int c,d;
         uint32_t temp;
-	uint8_t *q;
+
         int first_track;
         int last_track;
         int number;
         unsigned char attr;
         TMSF tmsf;
-	int lb;
-
-	if (cdrom_image[id].image_is_iso)
-	{
-		if (starttrack > 1 && starttrack != 0xaa)
-			return -1;
-		q = b + 2;
-		*q++ = 1; /* first session */
-		*q++ = 1; /* last session */
-		if (starttrack <= 1) {
-		        *q++ = 0; /* reserved */
-		        *q++ = 0x14; /* ADR, control */
-		        *q++ = 1;    /* track number */
-		        *q++ = 0; /* reserved */
-		        if (msf) {
-		            *q++ = 0; /* reserved */
-	        	    lba_to_msf(q, 0);
-		            q += 3;
-		        } else {
-				/* sector 0 */
-				*q++ = 0;
-				*q++ = 0;
-				*q++ = 0;
-				*q++ = 0;
-			}
-		}
-		/* lead out track */
-		*q++ = 0; /* reserved */
-		*q++ = 0x16; /* ADR, control */
-		*q++ = 0xaa; /* track number */
-		*q++ = 0; /* reserved */
-		lb = image_size(id) - 1;
-		if (msf) {
-			*q++ = 0; /* reserved */
-			lba_to_msf(q, lb);
-			q += 3;
-		} else {
-			*q++ = lb >> 24;
-			*q++ = lb >> 16;
-			*q++ = lb >> 8;
-			*q++ = lb;
-		}
-		len = q - b;
-		if (len > maxlen)
-		{
-			len = maxlen;
-		}
-		b[0] = (uint8_t)(((len-2) >> 8) & 0xff);
-		b[1] = (uint8_t)((len-2) & 0xff);
-		return len;
-	}
-
         cdimg[id]->GetAudioTracks(first_track, last_track, tmsf);
 
         b[2] = first_track;
@@ -829,6 +777,7 @@ static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack,
                         break;
                 cdimg[id]->GetAudioTrackInfo(c+1, number, tmsf, attr);
 
+//                pclog("Len %i max %i Track %02X - %02X %02X %02i:%02i:%02i %08X\n",len,maxlen,toc[c].cdte_track,toc[c].cdte_adr,toc[c].cdte_ctrl,toc[c].cdte_addr.msf.minute, toc[c].cdte_addr.msf.second, toc[c].cdte_addr.msf.frame,MSFtoLBA(toc[c].cdte_addr.msf.minute, toc[c].cdte_addr.msf.second, toc[c].cdte_addr.msf.frame));
                 b[len++] = 0; /* reserved */
                 b[len++] = attr;
                 b[len++] = number; /* track number */
@@ -843,7 +792,7 @@ static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack,
                 }
                 else
                 {
-                        temp = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr);
+                        temp = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr) - 150;
                         b[len++] = temp >> 24;
                         b[len++] = temp >> 16;
                         b[len++] = temp >> 8;
@@ -852,49 +801,41 @@ static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack,
                 if (single)
                         break;
         }
-
-	if (len > maxlen)
-	{
-		len = maxlen;
-	}
-
         b[0] = (uint8_t)(((len-2) >> 8) & 0xff);
         b[1] = (uint8_t)((len-2) & 0xff);
+        /*
+        pclog("Table of Contents:\n");
+        pclog("First track - %02X\n", first_track);
+        pclog("Last  track - %02X\n", last_track);
+        for (c = 0; c <= last_track; c++)
+        {
+                cdimg[id]->GetAudioTrackInfo(c+1, number, tmsf, attr);
+                pclog("Track %02X - number %02X control %02X adr %02X address %02X %02X %02X %02X\n", c, number, attr, 0, 0, tmsf.min, tmsf.sec, tmsf.fr);
+        }
+        for (c = 0;c <= last_track; c++) {
+                cdimg[id]->GetAudioTrackInfo(c+1, number, tmsf, attr);
+            pclog("Track %02X - number %02X control %02X adr %02X address %06X\n", c, number, attr, 0, MSF_TO_FRAMES(tmsf.min, tmsf.sec, tmsf.fr));
+        }
+        */
         return len;
 }
 
 static int image_readtoc_session(uint8_t id, unsigned char *b, int msf, int maxlen)
 {
-        if (!cdimg[id]) return 0;
         int len = 4;
+
         int number;
         TMSF tmsf;
         unsigned char attr;
-        uint8_t *q;
 
-	if (cdrom_image[id].image_is_iso)
-	{
-		q = b + 2;
-		*q++ = 1; /* first session */
-		*q++ = 1; /* last session */
-
-		*q++ = 1; /* session number */
-		*q++ = 0x14; /* data track */
-		*q++ = 0; /* track number */
-		*q++ = 0xa0; /* lead-in */
-		*q++ = 0; /* min */
-		*q++ = 0; /* sec */
-		*q++ = 0; /* frame */
-		*q++ = 0;
-
-		if (maxlen < 12)
-		{
-			return maxlen;
-		}
-		return 12;
-	}
+        if (!cdimg[id]) return 0;
 
         cdimg[id]->GetAudioTrackInfo(1, number, tmsf, attr);
+
+	if (number == 0)
+	{
+		number = 1;
+	}
 
         b[2] = 1;
         b[3] = 1;
@@ -911,7 +852,7 @@ static int image_readtoc_session(uint8_t id, unsigned char *b, int msf, int maxl
         }
         else
         {
-                uint32_t temp = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr);
+                uint32_t temp = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr) - 150;	/* Do the - 150. */
                 b[len++] = temp >> 24;
                 b[len++] = temp >> 16;
                 b[len++] = temp >> 8;
@@ -928,8 +869,6 @@ static int image_readtoc_session(uint8_t id, unsigned char *b, int msf, int maxl
 
 static int image_readtoc_raw(uint8_t id, unsigned char *b, int msf, int maxlen)
 {
-        if (!cdimg[id]) return 0;
-
         int track;
         int len = 4;
 
@@ -938,93 +877,9 @@ static int image_readtoc_raw(uint8_t id, unsigned char *b, int msf, int maxlen)
         int number;
         unsigned char attr;
         TMSF tmsf;
-	uint8_t *q;
 	int lb;
 
-	if (cdrom_image[id].image_is_iso)
-	{
-		q = b + 2;
-		*q++ = 1; /* first session */
-		*q++ = 1; /* last session */
-
-		*q++ = 1; /* session number */
-		*q++ = 0x14; /* data track */
-		*q++ = 0; /* track number */
-		*q++ = 0xa0; /* lead-in */
-		*q++ = 0; /* min */
-		*q++ = 0; /* sec */
-		*q++ = 0; /* frame */
-		*q++ = 0;
-		*q++ = 1; /* first track */
-		*q++ = 0x00; /* disk type */
-		*q++ = 0x00;
-
-		*q++ = 1; /* session number */
-		*q++ = 0x14; /* data track */
-		*q++ = 0; /* track number */
-		*q++ = 0xa1;
-		*q++ = 0; /* min */
-		*q++ = 0; /* sec */
-		*q++ = 0; /* frame */
-		*q++ = 0;
-		*q++ = 1; /* last track */
-		*q++ = 0x00;
-		*q++ = 0x00;
-
-		*q++ = 1; /* session number */
-		*q++ = 0x14; /* data track */
-		*q++ = 0; /* track number */
-		*q++ = 0xa2; /* lead-out */
-		*q++ = 0; /* min */
-		*q++ = 0; /* sec */
-		*q++ = 0; /* frame */
-		lb = image_size(id) >> 11;
-		/* this is raw, must be msf */
-		if (msf)
-		{
-			*q++ = 0; /* reserved */
-			lba_to_msf(q, lb);
-			q += 3;
-		}
-		else
-		{
-			*q++ = (lb >> 24) & 0xff;
-			*q++ = (lb >> 16) & 0xff;
-			*q++ = (lb >> 8) & 0xff;
-			*q++ = lb & 0xff;
-		}
-
-		*q++ = 1; /* session number */
-		*q++ = 0x14; /* ADR, control */
-		*q++ = 0;    /* track number */
-		*q++ = 1;    /* point */
-		*q++ = 0; /* min */
-		*q++ = 0; /* sec */
-		*q++ = 0; /* frame */
-		/* same here */
-		if (msf)
-		{
-			*q++ = 0; /* reserved */
-			lba_to_msf(q, 0);
-			q += 3;
-		}
-		else
-		{
-			*q++ = 0;
-			*q++ = 0;
-			*q++ = 0;
-			*q++ = 0;
-		}
-    
-		len = q - b;
-		if (len > maxlen)
-		{
-			len = maxlen;
-		}
-		b[0] = (uint8_t)(((len-2) >> 8) & 0xff);
-		b[1] = (uint8_t)((len-2) & 0xff);
-		return len;
-	}
+        if (!cdimg[id]) return 0;
 
         cdimg[id]->GetAudioTracks(first_track, last_track, tmsf);
 
@@ -1048,21 +903,10 @@ static int image_readtoc_raw(uint8_t id, unsigned char *b, int msf, int maxlen)
                 b[len++]=0;
                 b[len++]=0;
                 b[len++]=0;
-		if (msf)
-		{
-	                b[len++]=0;
-	                b[len++] = tmsf.min;
-        	        b[len++] = tmsf.sec;
-	                b[len++] = tmsf.fr;
-		}
-	        else
-        	{
-	                uint32_t temp = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr);
-        	        b[len++] = temp >> 24;
-                	b[len++] = temp >> 16;
-	                b[len++] = temp >> 8;
-        	        b[len++] = temp;
-	        }
+                b[len++]=0;
+                b[len++] = tmsf.min;
+       	        b[len++] = tmsf.sec;
+                b[len++] = tmsf.fr;
         }
         return len;
 }

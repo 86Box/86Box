@@ -25,7 +25,9 @@
 #include <stdarg.h>
 #include "ibm.h"
 #include "io.h"
+#include "mca.h"
 #include "mem.h"
+#include "mca.h"
 #include "rom.h"
 #include "dma.h"
 #include "pic.h"
@@ -176,7 +178,6 @@ static uint16_t	aha_ports[] = {
     0x0130, 0x0134, 0x0000, 0x0000
 };
 
-
 /*
  * Write data to the BIOS space.
  *
@@ -258,7 +259,7 @@ aha_patch(uint8_t *romptr, uint16_t ioaddr)
     
 /* Initialize AHA-154xNN-specific stuff. */
 static void
-aha154x_bios(uint16_t ioaddr, uint32_t memaddr, aha_info *aha)
+aha154x_bios(uint16_t ioaddr, uint32_t memaddr, aha_info *aha, int irq, int dma)
 {
     uint32_t bios_size;
     uint32_t bios_addr;
@@ -388,10 +389,11 @@ again:
     /* Initialize the on-board EEPROM. */
     memset(aha_eep, 0x00, EEP_SIZE);
     aha_eep[0] = 7;			/* SCSI ID 7 */
-    aha_eep[1] = 15-9;			/* IRQ15 */
-    aha_eep[1] |= (6<<4);		/* DMA6 */
-    aha_eep[2] = (EE2_HABIOS	|	/* BIOS Space Reserved		*/
-		  EE2_SEEKRET);		/* Immediate return on seek	*/
+	aha_eep[0] |= (0x10 | 0x20 | 0x40);
+    aha_eep[1] = irq-9;			/* IRQ15 */
+    aha_eep[1] |= (dma<<4);		/* DMA6 */
+    aha_eep[2] = (EE2_DYNSCAN	|	/* BIOS Space Reserved		*/
+		  EE2_EXT1G | EE2_RMVOK);		/* Immediate return on seek	*/
     aha_eep[3] = SPEED_50;		/* speed 5.0 MB/s		*/
     aha_eep[6] = (EE6_TERM	|	/* host term enable		*/
 		  EE6_RSTBUS);		/* reset SCSI bus on boot	*/
@@ -843,6 +845,7 @@ typedef struct {
     mem_mapping_t mmio_mapping;
     aha_info	aha;
     int		chip;
+	uint8_t pos_regs[8];
 } aha_t;
 #pragma pack(pop)
 
@@ -855,7 +858,8 @@ static aha_t	*ResetDev;
 
 enum {
     CHIP_AHA154XB,
-    CHIP_AHA154XCF
+    CHIP_AHA154XCF,
+	CHIP_AHA1640
 };
 
 
@@ -2175,6 +2179,34 @@ aha_cmd_cb(void *priv)
     AHA_Callback += 50 * SCSI_TIME;
 }
 
+uint8_t aha_mca_read(int port, void *p)
+{
+    aha_t *dev = (aha_t *)p;
+
+	return dev->pos_regs[port & 7];
+}
+
+static uint16_t aha_mca_addr[6] = {0x130, 0x134, 0x230, 0x234, 0x330, 0x334};
+
+void aha_mca_write(int port, uint8_t val, void *p)
+{
+    aha_t *dev = (aha_t *)p;
+    uint16_t addr;
+	
+	if (port < 0x102)
+			return;
+
+	addr = aha_mca_addr[dev->pos_regs[4] & 6];
+	io_removehandler(addr, 0x0004, aha_read, aha_readw, NULL, aha_write, aha_writew, NULL, dev);
+	
+	dev->pos_regs[port & 7] = val;
+	
+	if (dev->pos_regs[2] & 1)
+	{
+		io_sethandler(addr, 0x0004, aha_read, aha_readw, NULL, aha_write, aha_writew, NULL, dev);
+	}
+}
+
 
 static void *
 aha_init(int chip, int has_bios)
@@ -2222,6 +2254,14 @@ aha_init(int chip, int has_bios)
 	}
     }
 
+	if (dev->chip == CHIP_AHA1640)
+	{
+		pclog("Aha1640 initialized\n");
+		mca_add(aha_mca_read, aha_mca_write, dev);
+		dev->pos_regs[0] = 0x1F;
+		dev->pos_regs[1] = 0x0F;
+	}
+	
     timer_add(aha_reset_poll, &ResetCB, &ResetCB, dev);
     timer_add(aha_cmd_cb, &AHA_Callback, &AHA_Callback, dev);
 
@@ -2231,7 +2271,7 @@ aha_init(int chip, int has_bios)
 
     if (bios) {
 	/* Perform AHA-154xNN-specific initialization. */
-	aha154x_bios(dev->Base, bios_addr, &dev->aha);
+	aha154x_bios(dev->Base, bios_addr, &dev->aha, dev->Irq, dev->DmaChannel);
     }
 
     return(dev);
@@ -2249,6 +2289,12 @@ static void *
 aha_154xCF_init(void)
 {
     return(aha_init(CHIP_AHA154XCF, 1));
+}
+
+static void *
+aha_1640_init(void)
+{
+    return(aha_init(CHIP_AHA1640, 1));
 }
 
 
@@ -2359,6 +2405,77 @@ static device_config_t aha_154XCF_config[] = {
 	}
 };
 
+static device_config_t aha_1640_config[] = {
+        {
+		"addr", "Address", CONFIG_SELECTION, "", 0x330,
+                {
+                        {
+                                "0x330", 0x330
+                        },
+                        {
+                                "0x334", 0x334
+                        },
+                        {
+                                "0x230", 0x230
+                        },
+                        {
+                                "0x234", 0x234
+                        },
+                        {
+                                "0x130", 0x130
+                        },
+                        {
+                                "0x134", 0x134
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+        {
+		"irq", "IRQ", CONFIG_SELECTION, "", 10,
+                {
+                        {
+                                "IRQ 10", 10
+                        },
+                        {
+                                "IRQ 11", 11
+                        },
+                        {
+                                "IRQ 12", 12
+                        },
+                        {
+                                "IRQ 14", 14
+                        },
+                        {
+                                "IRQ 15", 15
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+        {
+		"dma", "DMA channel", CONFIG_SELECTION, "", 6,
+                {
+                        {
+                                "DMA 5", 5
+                        },
+                        {
+                                "DMA 6", 6
+                        },
+                        {
+                                "DMA 7", 7
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+	{
+		"", "", -1
+	}
+};
 
 device_t aha1540b_device = {
     "Adaptec AHA-1540B",
@@ -2382,4 +2499,16 @@ device_t aha1542cf_device = {
     NULL,
     NULL,
     aha_154XCF_config
+};
+
+device_t aha1640_device = {
+    "Adaptec AHA-1640",
+    DEVICE_MCA,
+    aha_1640_init,
+    aha_close,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    aha_1640_config
 };

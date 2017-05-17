@@ -188,10 +188,10 @@ int file_dlg(HWND hwnd, WCHAR *f, char *fn, int save)
 
 int file_dlg_w_st(HWND hwnd, int i, WCHAR *fn, int save)
 {
-	file_dlg_w(hwnd, win_language_get_string_from_id(i), fn, save);
+	return file_dlg_w(hwnd, win_language_get_string_from_id(i), fn, save);
 }
 
 int file_dlg_st(HWND hwnd, int i, char *fn, int save)
 {
-	file_dlg(hwnd, win_language_get_string_from_id(i), fn, save);
+	return file_dlg(hwnd, win_language_get_string_from_id(i), fn, save);
 }
