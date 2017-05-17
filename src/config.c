@@ -616,11 +616,11 @@ void loadconfig_general(void)
 	p = config_get_string("General", "window_coordinates", "0, 0, 0, 0");
 	if (p)
 	{
-		sscanf(temps, "%i, %i, %i, %i", &window_w, &window_h, &window_x, &window_y);
+		sscanf(p, "%i, %i, %i, %i", &window_w, &window_h, &window_x, &window_y);
 	}
 	else
 	{
-		sscanf(temps, "0, 0, 0, 0", &window_w, &window_h, &window_x, &window_y);
+		sscanf("0, 0, 0, 0", "%i, %i, %i, %i", &window_w, &window_h, &window_x, &window_y);
 	}
         window_remember = config_get_int("General", "window_remember", 0);
 
