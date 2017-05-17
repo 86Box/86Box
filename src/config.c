@@ -613,7 +613,7 @@ void loadconfig_general(void)
 	scale = !!config_get_int("General", "scale", 1);
 	enable_overscan = !!config_get_int("General", "enable_overscan", 0);
 
-	p = config_get_string("General", "window_w_coordinates", "0, 0, 0, 0");
+	p = config_get_string("General", "window_coordinates", "0, 0, 0, 0");
 	if (p)
 	{
 		sscanf(temps, "%i, %i, %i, %i", &window_w, &window_h, &window_x, &window_y);
