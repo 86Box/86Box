@@ -132,7 +132,7 @@ int ide_drive_is_cdrom(IDE *ide)
 	}
 	else
 	{
-		if ((cdrom_drives[atapi_cdrom_drives[ide->channel]].bus_type > 0) && (cdrom_drives[atapi_cdrom_drives[ide->channel]].bus_type < 3))
+		if ((cdrom_drives[atapi_cdrom_drives[ide->channel]].bus_type > 1) && (cdrom_drives[atapi_cdrom_drives[ide->channel]].bus_type < 4))
 		{
 			return 1;
 		}
