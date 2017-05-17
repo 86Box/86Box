@@ -29,31 +29,7 @@ static queueADT	slirpq;			/* SLiRP library handle */
 static thread_t	*poll_tid;
 static NETRXCB	poll_rx;		/* network RX function to call */
 static void	*poll_arg;		/* network RX function arg */
-
-
-#ifdef WALTJE
-int slirp_do_log = 1;
-# define ENABLE_SLIRP_LOG
-#else
-int slirp_do_log = 0;
-#endif
-
-
-static void
-slirp_log(const char *format, ...)
-{
-#ifdef ENABLE_SLIRP_LOG
-    va_list ap;
-
-    if (slirp_do_log) {
-	va_start(ap, format);
-	vprintf(format, ap);
-	va_end(ap);
-	fflush(stdout);
-    }
-#endif
-}
-#define pclog	slirp_log
+static int	fizz;
 
 
 /* Instead of calling this and crashing some times
@@ -101,7 +77,10 @@ poll_thread(void *arg)
     pclog("SLiRP: poll event is %08lx\n", evt);
 
     while (slirpq != NULL) {
-	slirp_tic();
+	if (++fizz > 1200) {
+		fizz = 0;
+		slirp_tic();
+	}
 
 	/* Wait for the next packet to arrive. */
 	if (QueuePeek(slirpq) == 0) {
@@ -144,6 +123,8 @@ network_slirp_setup(uint8_t *mac, NETRXCB func, void *arg)
 
     slirpq = QueueCreate();
     pclog(" Packet queue is at %08lx\n", &slirpq);
+
+    fizz = 0;
 
     /* Save the callback info. */
     poll_rx = func;
