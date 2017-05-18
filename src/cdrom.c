@@ -2920,7 +2920,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 			max_len |= cdb[8];
 			msf = (cdb[1] >> 1) & 1;
 
-			cdrom_log("CD-ROM %i: Getting page %i\n", id, cdb[3]);
+			cdrom_log("CD-ROM %i: Getting page %i (%s)\n", id, cdb[3], msf ? "MSF" : "LBA");
 			if ((cdrom_drives[id].handler->pass_through) && (cdb[3] != 1))
 			{
 				ret = cdrom_pass_through(id, &len, cdrom[id].current_cdb, cdbufferb);

@@ -143,18 +143,6 @@ static void sound_cd_thread(void *param)
 			cd_out_buffer[c] = 0.0;
 			cd_out_buffer[c+1] = 0.0;
 		}
-		has_audio = 0;
-		for (i = 0; i < CDROM_NUM; i++)
-		{
-			if (cdrom_drives[i].bus_type && cdrom_drives[i].sound_on)
-			{
-				has_audio++;
-			}
-		}
-		if (!has_audio)
-		{
-			return;
-		}
 		for (i = 0; i < CDROM_NUM; i++)
 		{
 			has_audio = 0;
