@@ -3355,7 +3355,7 @@ static BOOL CALLBACK win_settings_removable_devices_proc(HWND hdlg, UINT message
 			h = GetDlgItem(hdlg, IDC_COMBO_CD_BUS);
 			if (temp_cdrom_drives[cdlv_current_sel].bus_type > 1)
 			{
-				SendMessage(h, CB_SETCURSEL, temp_cdrom_drives[cdlv_current_sel].bus_type, 0);
+				SendMessage(h, CB_SETCURSEL, temp_cdrom_drives[cdlv_current_sel].bus_type - 1, 0);
 			}
 			else
 			{
@@ -3413,7 +3413,7 @@ static BOOL CALLBACK win_settings_removable_devices_proc(HWND hdlg, UINT message
 				h = GetDlgItem(hdlg, IDC_COMBO_CD_BUS);
 				if (temp_cdrom_drives[cdlv_current_sel].bus_type > 1)
 				{
-					SendMessage(h, CB_SETCURSEL, temp_cdrom_drives[cdlv_current_sel].bus_type, 0);
+					SendMessage(h, CB_SETCURSEL, temp_cdrom_drives[cdlv_current_sel].bus_type - 1, 0);
 				}
 				else
 				{
