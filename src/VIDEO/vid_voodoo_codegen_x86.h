@@ -40,26 +40,26 @@ static int last_block[2] = {0, 0};
 static int next_block_to_write[2] = {0, 0};
 
 #define addbyte(val)                                    \
-        code_block[block_pos++] = val;                  \
+        code_block[block_pos++] = (uint8_t)val;         \
         if (block_pos >= BLOCK_SIZE)                    \
                 fatal("Over!\n")
 
-#define addword(val)                                    \
-        *(uint16_t *)&code_block[block_pos] = val;      \
-        block_pos += 2;                                 \
-        if (block_pos >= BLOCK_SIZE)                    \
+#define addword(val)                                              \
+        *(uint16_t *)&code_block[block_pos] = (uint16_t)val;      \
+        block_pos += 2;                                           \
+        if (block_pos >= BLOCK_SIZE)                              \
                 fatal("Over!\n")
 
-#define addlong(val)                                    \
-        *(uint32_t *)&code_block[block_pos] = val;      \
-        block_pos += 4;                                 \
-        if (block_pos >= BLOCK_SIZE)                    \
+#define addlong(val)                                              \
+        *(uint32_t *)&code_block[block_pos] = (uint32_t)val;      \
+        block_pos += 4;                                           \
+        if (block_pos >= BLOCK_SIZE)                              \
                 fatal("Over!\n")
 
-#define addquad(val)                                    \
-        *(uint64_t *)&code_block[block_pos] = val;      \
-        block_pos += 8;                                 \
-        if (block_pos >= BLOCK_SIZE)                    \
+#define addquad(val)                                              \
+        *(uint64_t *)&code_block[block_pos] = (uint64_t)val;      \
+        block_pos += 8;                                           \
+        if (block_pos >= BLOCK_SIZE)                              \
                 fatal("Over!\n")
 
 
