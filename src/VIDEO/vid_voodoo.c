@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stddef.h>
+#include <math.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../mem.h"
@@ -1551,7 +1552,7 @@ typedef struct voodoo_state_t
         int32_t ib, ig, ir, ia;
         int32_t z;
         
-        int32_t new_depth;
+        int64_t new_depth;
 
         int64_t tmu0_s, tmu0_t;
         int64_t tmu0_w;
@@ -1562,7 +1563,7 @@ typedef struct voodoo_state_t
         int pixel_count, texel_count;
         int x, x2;
         
-        uint32_t w_depth;
+        uint64_t w_depth;
         
         float log_temp;
         uint32_t ebp_store;
@@ -2719,7 +2720,7 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
                                 uint16_t dat;
                                 uint16_t aux_dat;
                                 int sel;
-                                int32_t new_depth, w_depth;
+                                int64_t new_depth, w_depth;
 
                                 if (state->w & 0xffff00000000)
                                         w_depth = 0;
@@ -5255,7 +5256,7 @@ static void voodoo_fb_writew(uint32_t addr, uint16_t val, void *p)
                         if (params->fogMode & FOG_ENABLE)
                         {
                                 int32_t z = new_depth << 12;
-                                int32_t w_depth = new_depth;
+                                int64_t w_depth = new_depth;
                                 int32_t ia = alpha_data << 12;
 
                                 APPLY_FOG(write_data.r, write_data.g, write_data.b, z, ia, w_depth);
@@ -5390,7 +5391,7 @@ static void voodoo_fb_writel(uint32_t addr, uint32_t val, void *p)
                         if (params->fogMode & FOG_ENABLE)
                         {
                                 int32_t z = new_depth << 12;
-                                int32_t w_depth = new_depth;
+                                int64_t w_depth = new_depth;
                                 int32_t ia = alpha_data[c] << 12;
 
                                 APPLY_FOG(write_data.r, write_data.g, write_data.b, z, ia, w_depth);
