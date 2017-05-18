@@ -7,7 +7,7 @@
 #include "../config.h"
 #include "plat_midi.h"
 
-int midi_id;
+int midi_id = 0;
 static HMIDIOUT midi_out_device = NULL;
 
 HANDLE m_event;
@@ -56,8 +56,6 @@ void midi_init()
 	midi_status = 0;
 
 	midi_sysex_start = midi_sysex_delay = 0;
-
-        midi_id = config_get_int(NULL, "midi", 0);
 
 	m_event = CreateEvent(NULL, TRUE, TRUE, NULL);
 

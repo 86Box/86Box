@@ -39,40 +39,40 @@
 
 
 /* Machine category */
-int temp_model, temp_cpu_m, temp_cpu, temp_wait_states, temp_mem_size, temp_dynarec, temp_fpu, temp_sync;
+static int temp_model, temp_cpu_m, temp_cpu, temp_wait_states, temp_mem_size, temp_dynarec, temp_fpu, temp_sync;
 
 /* Video category */
-int temp_gfxcard, temp_video_speed, temp_voodoo;
+static int temp_gfxcard, temp_video_speed, temp_voodoo;
 
 /* Input devices category */
-int temp_mouse, temp_joystick;
+static int temp_mouse, temp_joystick;
 
 /* Sound category */
-int temp_sound_card, temp_midi_id, temp_SSI2001, temp_GAMEBLASTER, temp_GUS, temp_opl3_type;
+static int temp_sound_card, temp_midi_id, temp_SSI2001, temp_GAMEBLASTER, temp_GUS, temp_opl3_type;
 
 /* Network category */
-int temp_net_type, temp_net_card;
-char temp_pcap_dev[520];
+static int temp_net_type, temp_net_card;
+static char temp_pcap_dev[520];
 
 /* Peripherals category */
-int temp_scsi_card, hdc_ignore, temp_ide_ter, temp_ide_ter_irq, temp_ide_qua, temp_ide_qua_irq;
-int temp_serial[2], temp_lpt, temp_bugger;
+static int temp_scsi_card, hdc_ignore, temp_ide_ter, temp_ide_ter_irq, temp_ide_qua, temp_ide_qua_irq;
+static int temp_serial[2], temp_lpt, temp_bugger;
 
-char temp_hdc_name[16];
+static char temp_hdc_name[16];
 
 /* Hard disks category */
-hard_disk_t temp_hdc[HDC_NUM];
-wchar_t temp_hdd_fn[HDC_NUM][512];
+static hard_disk_t temp_hdc[HDC_NUM];
+static wchar_t temp_hdd_fn[HDC_NUM][512];
 
 /* Removable devices category */
-int temp_fdd_types[FDD_NUM];
-cdrom_drive_t temp_cdrom_drives[CDROM_NUM];
+static int temp_fdd_types[FDD_NUM];
+static cdrom_drive_t temp_cdrom_drives[CDROM_NUM];
 
 static HWND hwndParentDialog, hwndChildDialog;
 
 int hdd_controller_current;
 
-int displayed_category = 0;
+static int displayed_category = 0;
 
 extern int is486;
 static int romstolist[ROM_MAX], listtomodel[ROM_MAX], romstomodel[ROM_MAX], modeltolist[ROM_MAX];
