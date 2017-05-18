@@ -61,7 +61,7 @@ BEGIN
         MENUITEM "&Mute",                       IDM_CDROM_1_MUTE
         MENUITEM SEPARATOR
         MENUITEM "E&mpty",                      IDM_CDROM_1_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_CDROM_1_RELOAD
+        MENUITEM "&Reload previous image",      IDM_CDROM_1_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Image...",                   IDM_CDROM_1_IMAGE
     END
@@ -70,7 +70,7 @@ BEGIN
         MENUITEM "&Mute",                       IDM_CDROM_2_MUTE
         MENUITEM SEPARATOR
         MENUITEM "E&mpty",                      IDM_CDROM_2_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_CDROM_2_RELOAD
+        MENUITEM "&Reload previous image",      IDM_CDROM_2_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Image...",                   IDM_CDROM_2_IMAGE
     END
@@ -79,7 +79,7 @@ BEGIN
         MENUITEM "&Mute",                       IDM_CDROM_3_MUTE
         MENUITEM SEPARATOR
         MENUITEM "E&mpty",                      IDM_CDROM_3_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_CDROM_3_RELOAD
+        MENUITEM "&Reload previous image",      IDM_CDROM_3_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Image...",                   IDM_CDROM_3_IMAGE
     END
@@ -88,121 +88,137 @@ BEGIN
         MENUITEM "&Mute",                       IDM_CDROM_4_MUTE
         MENUITEM SEPARATOR
         MENUITEM "E&mpty",                      IDM_CDROM_4_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_CDROM_4_RELOAD
+        MENUITEM "&Reload previous image",      IDM_CDROM_4_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Image...",                   IDM_CDROM_4_IMAGE
     END
     POPUP "Removable disk 01"
     BEGIN
         MENUITEM "E&mpty",                      IDM_RDISK_01_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_RDISK_01_RELOAD
+        MENUITEM "&Reload previous image",      IDM_RDISK_01_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_RDISK_01_IMAGE
+        MENUITEM "&New image...",               IDM_RDISK_01_IMAGE
+        MENUITEM "&Existing image...",          IDM_RDISK_01_EIMAGE
     END
     POPUP "Removable disk 02"
     BEGIN
         MENUITEM "E&mpty",                      IDM_RDISK_02_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_RDISK_02_RELOAD
+        MENUITEM "&Reload previous image",      IDM_RDISK_02_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_RDISK_02_IMAGE
+        MENUITEM "&New image...",               IDM_RDISK_02_IMAGE
+        MENUITEM "&Existing image...",          IDM_RDISK_02_EIMAGE
     END
     POPUP "Removable disk 03"
     BEGIN
         MENUITEM "E&mpty",                      IDM_RDISK_03_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_RDISK_03_RELOAD
+        MENUITEM "&Reload previous image",      IDM_RDISK_03_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_RDISK_03_IMAGE
+        MENUITEM "&New image...",               IDM_RDISK_03_IMAGE
+        MENUITEM "&Existing image...",          IDM_RDISK_03_EIMAGE
     END
     POPUP "Removable disk 04"
     BEGIN
         MENUITEM "E&mpty",                      IDM_RDISK_04_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_RDISK_04_RELOAD
+        MENUITEM "&Reload previous image",      IDM_RDISK_04_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_RDISK_04_IMAGE
+        MENUITEM "&New image...",               IDM_RDISK_04_IMAGE
+        MENUITEM "&Existing image...",          IDM_RDISK_04_EIMAGE
     END
     POPUP "Removable disk 05"
     BEGIN
         MENUITEM "E&mpty",                      IDM_RDISK_05_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_RDISK_05_RELOAD
+        MENUITEM "&Reload previous image",      IDM_RDISK_05_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_RDISK_05_IMAGE
+        MENUITEM "&New image...",               IDM_RDISK_05_IMAGE
+        MENUITEM "&Existing image...",          IDM_RDISK_05_EIMAGE
     END
     POPUP "Removable disk 06"
     BEGIN
         MENUITEM "E&mpty",                      IDM_RDISK_06_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_RDISK_06_RELOAD
+        MENUITEM "&Reload previous image",      IDM_RDISK_06_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_RDISK_06_IMAGE
+        MENUITEM "&New image...",               IDM_RDISK_06_IMAGE
+        MENUITEM "&Existing image...",          IDM_RDISK_06_EIMAGE
     END
     POPUP "Removable disk 07"
     BEGIN
         MENUITEM "E&mpty",                      IDM_RDISK_07_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_RDISK_07_RELOAD
+        MENUITEM "&Reload previous image",      IDM_RDISK_07_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_RDISK_07_IMAGE
+        MENUITEM "&New image...",               IDM_RDISK_07_IMAGE
+        MENUITEM "&Existing image...",          IDM_RDISK_07_EIMAGE
     END
     POPUP "Removable disk 08"
     BEGIN
         MENUITEM "E&mpty",                      IDM_RDISK_08_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_RDISK_08_RELOAD
+        MENUITEM "&Reload previous image",      IDM_RDISK_08_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_RDISK_08_IMAGE
+        MENUITEM "&New image...",               IDM_RDISK_08_IMAGE
+        MENUITEM "&Existing image...",          IDM_RDISK_08_EIMAGE
     END
     POPUP "Removable disk 09"
     BEGIN
         MENUITEM "E&mpty",                      IDM_RDISK_09_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_RDISK_09_RELOAD
+        MENUITEM "&Reload previous image",      IDM_RDISK_09_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_RDISK_09_IMAGE
+        MENUITEM "&New image...",               IDM_RDISK_09_IMAGE
+        MENUITEM "&Existing image...",          IDM_RDISK_09_EIMAGE
     END
     POPUP "Removable disk 10"
     BEGIN
         MENUITEM "E&mpty",                      IDM_RDISK_10_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_RDISK_10_RELOAD
+        MENUITEM "&Reload previous image",      IDM_RDISK_10_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_RDISK_10_IMAGE
+        MENUITEM "&New image...",               IDM_RDISK_10_IMAGE
+        MENUITEM "&Existing image...",          IDM_RDISK_10_EIMAGE
     END
     POPUP "Removable disk 11"
     BEGIN
         MENUITEM "E&mpty",                      IDM_RDISK_11_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_RDISK_11_RELOAD
+        MENUITEM "&Reload previous image",      IDM_RDISK_11_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_RDISK_11_IMAGE
+        MENUITEM "&New image...",               IDM_RDISK_11_IMAGE
+        MENUITEM "&Existing image...",          IDM_RDISK_11_EIMAGE
     END
     POPUP "Removable disk 12"
     BEGIN
         MENUITEM "E&mpty",                      IDM_RDISK_12_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_RDISK_12_RELOAD
+        MENUITEM "&Reload previous image",      IDM_RDISK_12_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_RDISK_12_IMAGE
+        MENUITEM "&New image...",               IDM_RDISK_12_IMAGE
+        MENUITEM "&Existing image...",          IDM_RDISK_12_EIMAGE
     END
     POPUP "Removable disk 13"
     BEGIN
         MENUITEM "E&mpty",                      IDM_RDISK_13_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_RDISK_13_RELOAD
+        MENUITEM "&Reload previous image",      IDM_RDISK_13_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_RDISK_13_IMAGE
+        MENUITEM "&New image...",               IDM_RDISK_13_IMAGE
+        MENUITEM "&Existing image...",          IDM_RDISK_13_EIMAGE
     END
     POPUP "Removable disk 14"
     BEGIN
         MENUITEM "E&mpty",                      IDM_RDISK_14_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_RDISK_14_RELOAD
+        MENUITEM "&Reload previous image",      IDM_RDISK_14_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_RDISK_14_IMAGE
+        MENUITEM "&New image...",               IDM_RDISK_14_IMAGE
+        MENUITEM "&Existing image...",          IDM_RDISK_14_EIMAGE
     END
     POPUP "Removable disk 15"
     BEGIN
         MENUITEM "E&mpty",                      IDM_RDISK_15_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_RDISK_15_RELOAD
+        MENUITEM "&Reload previous image",      IDM_RDISK_15_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_RDISK_15_IMAGE
+        MENUITEM "&New image...",               IDM_RDISK_15_IMAGE
+        MENUITEM "&Existing image...",          IDM_RDISK_15_EIMAGE
     END
     POPUP "Removable disk 16"
     BEGIN
         MENUITEM "E&mpty",                      IDM_RDISK_16_EMPTY
-        MENUITEM "&Reload previous disc",       IDM_RDISK_16_RELOAD
+        MENUITEM "&Reload previous image",      IDM_RDISK_16_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_RDISK_16_IMAGE
+        MENUITEM "&New image...",               IDM_RDISK_16_IMAGE
+        MENUITEM "&Existing image...",          IDM_RDISK_16_EIMAGE
     END
 END
 
