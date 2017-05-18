@@ -146,7 +146,7 @@ static void sound_cd_thread(void *param)
 		has_audio = 0;
 		for (i = 0; i < CDROM_NUM; i++)
 		{
-			if (cdrom_drives[i].enabled && cdrom_drives[i].sound_on)
+			if (cdrom_drives[i].bus_type && cdrom_drives[i].sound_on)
 			{
 				has_audio++;
 			}
@@ -161,7 +161,7 @@ static void sound_cd_thread(void *param)
 			if (cdrom_drives[i].handler->audio_callback)
 			{
 				cdrom_drives[i].handler->audio_callback(i, cd_buffer[i], CD_BUFLEN*2);
-				has_audio = (cdrom_drives[i].enabled && cdrom_drives[i].sound_on);
+				has_audio = (cdrom_drives[i].bus_type && cdrom_drives[i].sound_on);
 			}
 			if (soundon && has_audio)
 			{
@@ -240,7 +240,7 @@ void sound_init()
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if (cdrom_drives[i].enabled && cdrom_drives[i].sound_on)
+		if (cdrom_drives[i].bus_type && cdrom_drives[i].sound_on)
 		{
 			available_cdrom_drives++;
 		}
@@ -329,7 +329,7 @@ void sound_cd_thread_reset()
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if (cdrom_drives[i].enabled && cdrom_drives[i].sound_on)
+		if (cdrom_drives[i].bus_type && cdrom_drives[i].sound_on)
 		{
 			available_cdrom_drives++;
 		}

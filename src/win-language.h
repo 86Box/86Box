@@ -2,6 +2,8 @@
 extern "C" {
 #endif
 
+LCID dwLanguage;
+
 int msgbox_reset(HWND hwndParent);
 int msgbox_reset_yn(HWND hwndParent);
 int msgbox_question(HWND hwndParent, int i);

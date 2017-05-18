@@ -2,7 +2,7 @@
 #define CONFIG_INT 1
 #define CONFIG_BINARY 2
 #define CONFIG_SELECTION 3
-#define CONFIG_MIDI 4
+#define CONFIG_MAC 4
 
 typedef struct device_config_selection_t
 {
@@ -42,6 +42,8 @@ void device_force_redraw();
 char *device_add_status_info(char *s, int max_len);
 
 int device_get_config_int(char *name);
+int device_get_config_int_ex(char *s, int default_int);
+void device_set_config_int(char *s, int val);
 char *device_get_config_string(char *name);
 
 enum

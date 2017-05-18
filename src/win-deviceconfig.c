@@ -9,7 +9,6 @@
 #include "ibm.h"
 #include "config.h"
 #include "device.h"
-#include "plat-midi.h"
 #include "resource.h"
 #include "win.h"
 
@@ -60,21 +59,6 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                         
                                         id += 2;
                                         break;
-
-                                        case CONFIG_MIDI:
-                                        val_int = config_get_int(NULL, config->name, config->default_int);
-                                        
-                                        num  = midi_get_num_devs();
-                                        for (c = 0; c < num; c++)
-                                        {
-                                                midi_get_dev_name(c, s);
-                                                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)s);
-                                                if (val_int == c)
-                                                        SendMessage(h, CB_SETCURSEL, c, 0);
-                                        }
-                                        
-                                        id += 2;
-                                        break;
                                 }
                                 config++;
                         }
@@ -120,17 +104,6 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                         
                                                 id += 2;
                                                 break;
-
-                                                case CONFIG_MIDI:
-                                                val_int = config_get_int(NULL, config->name, config->default_int);
-
-                                                c = SendMessage(h, CB_GETCURSEL, 0, 0);
-
-                                                if (val_int != c)
-                                                        changed = 1;
-                                        
-                                                id += 2;
-                                                break;
                                         }
                                         config++;
                                 }
@@ -168,13 +141,6 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                                 for (; c > 0; c--)
                                                         selection++;
                                                 config_set_int(config_device->name, config->name, selection->value);
-                                        
-                                                id += 2;
-                                                break;
-
-                                                case CONFIG_MIDI:
-                                                c = SendMessage(h, CB_GETCURSEL, 0, 0);
-                                                config_set_int(NULL, config->name, c);
                                         
                                                 id += 2;
                                                 break;
@@ -254,7 +220,6 @@ void deviceconfig_open(HWND hwnd, device_t *device)
                         break;
 
                         case CONFIG_SELECTION:
-                        case CONFIG_MIDI:
                         /*Combo box*/
                         item = (DLGITEMTEMPLATE *)data;
                         item->x = 70;

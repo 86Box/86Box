@@ -23,6 +23,7 @@
 #include "scsi.h"
 #include "scsi_buslogic.h"
 #include "network.h"
+#include "plat-midi.h"
 #include "sound/sound.h"
 #include "sound/snd_dbopl.h"
 #include "video/video.h"
@@ -47,10 +48,14 @@ int temp_gfxcard, temp_video_speed, temp_voodoo;
 int temp_mouse, temp_joystick;
 
 /* Sound category */
-int temp_sound_card, temp_SSI2001, temp_GAMEBLASTER, temp_GUS, temp_opl3_type;
+int temp_sound_card, temp_midi_id, temp_SSI2001, temp_GAMEBLASTER, temp_GUS, temp_opl3_type;
+
+/* Network category */
+int temp_net_type, temp_net_card;
+char temp_pcap_dev[520];
 
 /* Peripherals category */
-int temp_scsi_card, temp_net_card, hdc_ignore, temp_ide_ter, temp_ide_ter_irq, temp_ide_qua, temp_ide_qua_irq;
+int temp_scsi_card, hdc_ignore, temp_ide_ter, temp_ide_ter_irq, temp_ide_qua, temp_ide_qua_irq;
 int temp_serial[2], temp_lpt, temp_bugger;
 
 char temp_hdc_name[16];
@@ -102,14 +107,20 @@ static void win_settings_init()
 
 	/* Sound category */
 	temp_sound_card = sound_card_current;
+	temp_midi_id = midi_id;
 	temp_SSI2001 = SSI2001;
 	temp_GAMEBLASTER = GAMEBLASTER;
 	temp_GUS = GUS;
 	temp_opl3_type = opl3_type;
 
+	/* Network category */
+	temp_net_type = network_type;
+	memset(temp_pcap_dev, 0, 520);
+	strcpy(temp_pcap_dev, pcap_dev);
+	temp_net_card = network_card;
+
 	/* Peripherals category */
 	temp_scsi_card = scsi_card_current;
-	temp_net_card = network_card;
 	strncpy(temp_hdc_name, hdd_controller_name, sizeof(temp_hdc_name) - 1);
 	temp_ide_ter = ide_enable[2];
 	temp_ide_ter_irq = ide_irq[2];
@@ -161,14 +172,19 @@ static int win_settings_changed()
 
 	/* Sound category */
 	i = i || (sound_card_current != temp_sound_card);
+	i = i || (midi_id != temp_midi_id);
 	i = i || (SSI2001 != temp_SSI2001);
 	i = i || (GAMEBLASTER != temp_GAMEBLASTER);
 	i = i || (GUS != temp_GUS);
 	i = i || (opl3_type != temp_opl3_type);
 
+	/* Network category */
+	i = i || (network_type != temp_net_type);
+	i = i || strcmp(temp_pcap_dev, pcap_dev);
+	i = i || (network_card != temp_net_card);
+
 	/* Peripherals category */
 	i = i || (scsi_card_current != temp_scsi_card);
-	i = i || (network_card != temp_net_card);
 	i = i || strncmp(temp_hdc_name, hdd_controller_name, sizeof(temp_hdc_name) - 1);
 	i = i || (temp_ide_ter != ide_enable[2]);
 	i = i || (temp_ide_ter_irq != ide_irq[2]);
@@ -252,14 +268,20 @@ static void win_settings_save()
 
 	/* Sound category */
 	sound_card_current = temp_sound_card;
+	midi_id = temp_midi_id;
 	SSI2001 = temp_SSI2001;
 	GAMEBLASTER = temp_GAMEBLASTER;
 	GUS = temp_GUS;
 	opl3_type = temp_opl3_type;
 
+	/* Network category */
+	network_type = temp_net_type;
+	memset(pcap_dev, 0, 512);
+	strcpy(pcap_dev, temp_pcap_dev);
+	network_card = temp_net_card;
+
 	/* Peripherals category */
 	scsi_card_current = temp_scsi_card;
-	network_card = temp_net_card;
 	strncpy(hdd_controller_name, temp_hdc_name, sizeof(temp_hdc_name) - 1);
 	ide_enable[2] = temp_ide_ter;
 	ide_irq[2] = temp_ide_ter_irq;
@@ -1061,6 +1083,8 @@ int find_irq_in_array(int irq, int def)
 	return 7 + def;
 }
 
+static char midi_dev_name_buf[512];
+
 static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
@@ -1068,6 +1092,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 	int d = 0;
 	LPTSTR lptsTemp;
 	device_t *sound_dev;
+	int num = 0;
 
         switch (message)
         {
@@ -1121,6 +1146,18 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 				EnableWindow(h, FALSE);
 			}
 
+			h = GetDlgItem(hdlg, IDC_COMBO_MIDI);
+			num  = midi_get_num_devs();
+			for (c = 0; c < num; c++)
+			{
+				memset(midi_dev_name_buf, 0, 512);
+				midi_get_dev_name(c, midi_dev_name_buf);
+				mbstowcs(lptsTemp, midi_dev_name_buf, strlen(midi_dev_name_buf) + 1);
+				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+				if (c == temp_midi_id)
+					SendMessage(h, CB_SETCURSEL, c, 0);
+			}
+
 			h=GetDlgItem(hdlg, IDC_CHECKCMS);
 			SendMessage(h, BM_SETCHECK, temp_GAMEBLASTER, 0);
 
@@ -1168,6 +1205,9 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 			h = GetDlgItem(hdlg, IDC_COMBOSND);
 			temp_sound_card = settings_list_to_sound[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
+			h = GetDlgItem(hdlg, IDC_COMBO_MIDI);
+			temp_midi_id = SendMessage(h, CB_GETCURSEL, 0, 0);
+
 			h = GetDlgItem(hdlg, IDC_CHECKCMS);
 			temp_GAMEBLASTER = SendMessage(h, BM_GETCHECK, 0, 0);
 
@@ -1199,7 +1239,7 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 		case WM_INITDIALOG:
 			lptsTemp = (LPTSTR) malloc(512);
 
-			/*NIC config*/
+			/*SCSI config*/
 			h = GetDlgItem(hdlg, IDC_COMBO_SCSI);
 			c = d = 0;
 			while (1)
@@ -1248,49 +1288,6 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 			}
 
 			recalc_hdd_list(hdlg, temp_model, 0);
-
-			/*NIC config*/
-			h = GetDlgItem(hdlg, IDC_COMBONET);
-			c = d = 0;
-			while (1)
-			{
-				char *s = network_card_getname(c);
-
-				if (!s[0])
-				{
-					break;
-				}
-
-				settings_network_to_list[c] = d;
-
-				if (network_card_available(c))
-				{
-					if (c == 0)
-					{
-						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2152));
-					}
-					else
-					{
-						mbstowcs(lptsTemp, s, strlen(s) + 1);
-						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
-					}
-					settings_list_to_network[d] = c;
-					d++;
-				}
-
-				c++;
-			}
-			SendMessage(h, CB_SETCURSEL, settings_network_to_list[temp_net_card], 0);
-
-			h = GetDlgItem(hdlg, IDC_CONFIGURENET);
-			if (network_card_has_config(temp_net_card))
-			{
-				EnableWindow(h, TRUE);
-			}
-			else
-			{
-				EnableWindow(h, FALSE);
-			}
 
 			h=GetDlgItem(hdlg, IDC_COMBO_IDE_TER);
 			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2151));
@@ -1347,28 +1344,6 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 		case WM_COMMAND:
                 	switch (LOWORD(wParam))
 	                {
-				case IDC_CONFIGURENET:
-					h = GetDlgItem(hdlg, IDC_COMBONET);
-					temp_net_card = settings_list_to_network[SendMessage(h, CB_GETCURSEL, 0, 0)];
-
-					deviceconfig_open(hdlg, (void *)network_card_getdevice(temp_net_card));
-					break;
-
-				case IDC_COMBONET:
-					h = GetDlgItem(hdlg, IDC_COMBONET);
-					temp_net_card = settings_list_to_network[SendMessage(h, CB_GETCURSEL, 0, 0)];
-
-					h = GetDlgItem(hdlg, IDC_CONFIGURENET);
-					if (network_card_has_config(temp_net_card))
-					{
-						EnableWindow(h, TRUE);
-					}
-					else
-					{
-						EnableWindow(h, FALSE);
-					}
-					break;
-
 				case IDC_CONFIGURE_SCSI:
 					h = GetDlgItem(hdlg, IDC_COMBO_SCSI);
 					temp_scsi_card = settings_list_to_scsi[SendMessage(h, CB_GETCURSEL, 0, 0)];
@@ -1415,9 +1390,6 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 			h = GetDlgItem(hdlg, IDC_COMBO_SCSI);
 			temp_scsi_card = settings_list_to_scsi[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
-			h = GetDlgItem(hdlg, IDC_COMBONET);
-			temp_net_card = settings_list_to_network[SendMessage(h, CB_GETCURSEL, 0, 0)];
-
 			h = GetDlgItem(hdlg, IDC_COMBO_IDE_TER);
 			temp_ide_ter = SendMessage(h, CB_GETCURSEL, 0, 0);
 			if (temp_ide_ter > 1)
@@ -1449,6 +1421,203 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 		default:
 			return FALSE;
 	}
+	return FALSE;
+}
+
+int net_ignore_message = 0;
+
+static void network_recalc_combos(HWND hdlg)
+{
+	HWND h;
+
+	net_ignore_message = 1;
+
+	h = GetDlgItem(hdlg, IDC_COMBOPCAP);
+	if (temp_net_type == 1)
+	{
+		EnableWindow(h, TRUE);
+	}
+	else
+	{
+		EnableWindow(h, FALSE);
+	}
+
+	h = GetDlgItem(hdlg, IDC_COMBONET);
+	if (temp_net_type == 0)
+	{
+		EnableWindow(h, TRUE);
+	}
+	else if ((temp_net_type == 1) && (network_dev_to_id(temp_pcap_dev) > 0))
+	{
+		EnableWindow(h, TRUE);
+	}
+	else
+	{
+		EnableWindow(h, FALSE);
+	}
+
+	h = GetDlgItem(hdlg, IDC_CONFIGURENET);
+	if (network_card_has_config(temp_net_card) && (temp_net_type == 0))
+	{
+		EnableWindow(h, TRUE);
+	}
+	else if (network_card_has_config(temp_net_card) && (temp_net_type == 1) && (network_dev_to_id(temp_pcap_dev) > 0))
+	{
+		EnableWindow(h, TRUE);
+	}
+	else
+	{
+		EnableWindow(h, FALSE);
+	}
+
+	net_ignore_message = 0;
+}
+
+static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	HWND h;
+	int c = 0;
+	int d = 0;
+	LPTSTR lptsTemp;
+	device_t *scsi_dev;
+
+        switch (message)
+        {
+		case WM_INITDIALOG:
+			lptsTemp = (LPTSTR) malloc(512);
+
+			h = GetDlgItem(hdlg, IDC_COMBONETTYPE);
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) L"None");
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) L"PCap");
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) L"SLiRP");
+			SendMessage(h, CB_SETCURSEL, temp_net_type + 1, 0);
+
+			h = GetDlgItem(hdlg, IDC_COMBOPCAP);
+			if (temp_net_type == 0)
+			{
+				EnableWindow(h, TRUE);
+			}
+			else
+			{
+				EnableWindow(h, FALSE);
+			}
+
+			h = GetDlgItem(hdlg, IDC_COMBOPCAP);
+			for (c = 0; c < netdev_num; c++)
+			{
+				mbstowcs(lptsTemp, netdev_list[c].description, strlen(netdev_list[c].description) + 1);
+				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+			}
+			SendMessage(h, CB_SETCURSEL, network_dev_to_id(temp_pcap_dev), 0);
+
+			/*NIC config*/
+			h = GetDlgItem(hdlg, IDC_COMBONET);
+			c = d = 0;
+			while (1)
+			{
+				char *s = network_card_getname(c);
+
+				if (!s[0])
+				{
+					break;
+				}
+
+				settings_network_to_list[c] = d;
+
+				if (network_card_available(c))
+				{
+					if (c == 0)
+					{
+						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2152));
+					}
+					else
+					{
+						mbstowcs(lptsTemp, s, strlen(s) + 1);
+						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+					}
+					settings_list_to_network[d] = c;
+					d++;
+				}
+
+				c++;
+			}
+			SendMessage(h, CB_SETCURSEL, settings_network_to_list[temp_net_card], 0);
+
+			network_recalc_combos(hdlg);
+
+			free(lptsTemp);
+
+			return TRUE;
+
+		case WM_COMMAND:
+                	switch (LOWORD(wParam))
+	                {
+				case IDC_COMBONETTYPE:
+					if (net_ignore_message)
+					{
+						return FALSE;
+					}
+
+					h = GetDlgItem(hdlg, IDC_COMBONETTYPE);
+					temp_net_type = SendMessage(h, CB_GETCURSEL, 0, 0) - 1;
+
+					network_recalc_combos(hdlg);
+					break;
+
+				case IDC_COMBOPCAP:
+					if (net_ignore_message)
+					{
+						return FALSE;
+					}
+
+					h = GetDlgItem(hdlg, IDC_COMBOPCAP);
+					memset(temp_pcap_dev, 0, 520);
+					strcpy(temp_pcap_dev, netdev_list[SendMessage(h, CB_GETCURSEL, 0, 0)].device);
+
+					network_recalc_combos(hdlg);
+					break;
+
+				case IDC_COMBONET:
+					if (net_ignore_message)
+					{
+						return FALSE;
+					}
+
+					h = GetDlgItem(hdlg, IDC_COMBONET);
+					temp_net_card = settings_list_to_network[SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+					network_recalc_combos(hdlg);
+					break;
+
+				case IDC_CONFIGURENET:
+					if (net_ignore_message)
+					{
+						return FALSE;
+					}
+
+					h = GetDlgItem(hdlg, IDC_COMBONET);
+					temp_net_card = settings_list_to_network[SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+					deviceconfig_open(hdlg, (void *)network_card_getdevice(temp_net_card));
+					break;
+			}
+			return FALSE;
+
+		case WM_SAVESETTINGS:
+			h = GetDlgItem(hdlg, IDC_COMBONETTYPE);
+			temp_net_type = SendMessage(h, CB_GETCURSEL, 0, 0) - 1;
+
+			h = GetDlgItem(hdlg, IDC_COMBOPCAP);
+			memset(temp_pcap_dev, 0, 520);
+			strcpy(temp_pcap_dev, netdev_list[SendMessage(h, CB_GETCURSEL, 0, 0)].device);
+
+			h = GetDlgItem(hdlg, IDC_COMBONET);
+			temp_net_card = settings_list_to_network[SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+		default:
+			return FALSE;
+	}
+
 	return FALSE;
 }
 
@@ -2687,32 +2856,6 @@ static BOOL CALLBACK win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARA
 int fdlv_current_sel;
 int cdlv_current_sel;
 
-static void combo_id_to_bus(int combo_id)
-{
-	switch (combo_id)
-	{
-		case 0:	/* Disabled */
-		default:
-			temp_cdrom_drives[cdlv_current_sel].enabled = 0;
-			break;
-		case 1:	/* Atapi (PIO-only) */
-			temp_cdrom_drives[cdlv_current_sel].enabled = 1;
-			temp_cdrom_drives[cdlv_current_sel].bus_type = 0;
-			temp_cdrom_drives[cdlv_current_sel].atapi_dma = 0;
-			break;
-		case 2:	/* Atapi (PIA and DMA) */
-			temp_cdrom_drives[cdlv_current_sel].enabled = 1;
-			temp_cdrom_drives[cdlv_current_sel].bus_type = 0;
-			temp_cdrom_drives[cdlv_current_sel].atapi_dma = 1;
-			break;
-		case 3: /* SCSI */
-			temp_cdrom_drives[cdlv_current_sel].enabled = 1;
-			temp_cdrom_drives[cdlv_current_sel].bus_type = 1;
-			temp_cdrom_drives[cdlv_current_sel].atapi_dma = 0;
-			break;
-	}
-}
-
 static int combo_id_to_string_id(int combo_id)
 {
 	switch (combo_id)
@@ -2721,13 +2864,13 @@ static int combo_id_to_string_id(int combo_id)
 		default:
 			return 2151;
 			break;
-		case 1:	/* Atapi (PIO-only) */
+		case 2:	/* Atapi (PIO-only) */
 			return 2189;
 			break;
-		case 2:	/* Atapi (PIA and DMA) */
+		case 3:	/* Atapi (PIA and DMA) */
 			return 2190;
 			break;
-		case 3: /* SCSI */
+		case 4: /* SCSI */
 			return 2168;
 			break;
 	}
@@ -2741,44 +2884,16 @@ static int combo_id_to_format_string_id(int combo_id)
 		default:
 			return 2151;
 			break;
-		case 1:	/* Atapi (PIO-only) */
+		case 2:	/* Atapi (PIO-only) */
 			return 2191;
 			break;
-		case 2:	/* Atapi (PIA and DMA) */
+		case 3:	/* Atapi (PIA and DMA) */
 			return 2192;
 			break;
-		case 3: /* SCSI */
+		case 4: /* SCSI */
 			return 2158;
 			break;
 	}
-}
-
-static int bus_to_combo_id(int id)
-{
-	if (temp_cdrom_drives[id].enabled)
-	{
-		if (temp_cdrom_drives[id].bus_type)
-		{
-			return 3;
-		}
-		else
-		{
-			if (temp_cdrom_drives[id].atapi_dma)
-			{
-				return 2;
-			}
-			else
-			{
-				return 1;
-			}
-		}
-	}
-	else
-	{
-		return 0;
-	}
-
-	return 0;
 }
 
 static BOOL win_settings_floppy_drives_image_list_init(HWND hwndList)
@@ -2883,28 +2998,35 @@ static BOOL win_settings_cdrom_drives_recalc_list(HWND hwndList)
 
 	for (i = 0; i < 4; i++)
 	{
-		bid = bus_to_combo_id(i);
-		fsid = combo_id_to_format_string_id(bid);
+		fsid = combo_id_to_format_string_id(temp_cdrom_drives[i].bus_type);
 
-		switch (bid)
+		switch (temp_cdrom_drives[i].bus_type)
 		{
 			case 0:
 			default:
 				lvI.pszText = win_language_get_string_from_id(fsid);
 				break;
-			case 1:
 			case 2:
+			case 3:
 				wsprintf(szText, win_language_get_string_from_id(fsid), temp_cdrom_drives[i].ide_channel >> 1, temp_cdrom_drives[i].ide_channel & 1);
 				lvI.pszText = szText;
 				break;
-			case 3:
+			case 4:
 				wsprintf(szText, win_language_get_string_from_id(fsid), temp_cdrom_drives[i].scsi_device_id, temp_cdrom_drives[i].scsi_device_lun);
 				lvI.pszText = szText;
 				break;
 		}
 
 		lvI.iItem = i;
-		lvI.iImage = bid;
+
+		if (temp_cdrom_drives[i].bus_type)
+		{
+			lvI.iImage = temp_cdrom_drives[i].bus_type - 1;
+		}
+		else
+		{
+			lvI.iImage = 0;
+		}
 
 		if (ListView_InsertItem(hwndList, &lvI) == -1)
 			return FALSE;
@@ -3035,27 +3157,33 @@ static void win_settings_cdrom_drives_update_item(HWND hwndList, int i)
 	lvI.iSubItem = 0;
 	lvI.iItem = i;
 
-	bid = bus_to_combo_id(i);
-	fsid = combo_id_to_format_string_id(bid);
+	fsid = combo_id_to_format_string_id(temp_cdrom_drives[i].bus_type);
 
-	switch (bid)
+	switch (temp_cdrom_drives[i].bus_type)
 	{
 		case 0:
 		default:
 			lvI.pszText = win_language_get_string_from_id(fsid);
 			break;
-		case 1:
 		case 2:
+		case 3:
 			wsprintf(szText, win_language_get_string_from_id(fsid), temp_cdrom_drives[i].ide_channel >> 1, temp_cdrom_drives[i].ide_channel & 1);
 			lvI.pszText = szText;
 			break;
-		case 3:
+		case 4:
 			wsprintf(szText, win_language_get_string_from_id(fsid), temp_cdrom_drives[i].scsi_device_id, temp_cdrom_drives[i].scsi_device_lun);
 			lvI.pszText = szText;
 			break;
 	}
 
-	lvI.iImage = bid;
+	if (temp_cdrom_drives[i].bus_type)
+	{
+		lvI.iImage = temp_cdrom_drives[i].bus_type - 1;
+	}
+	else
+	{
+		lvI.iImage = 0;
+	}
 
 	if (ListView_SetItem(hwndList, &lvI) == -1)
 	{
@@ -3072,7 +3200,7 @@ static void cdrom_add_locations(HWND hdlg)
 	lptsTemp = (LPTSTR) malloc(512);
 
 	h = GetDlgItem(hdlg, IDC_COMBO_CD_BUS);
-	for (i = 0; i < 4; i++)
+	for (i = 1; i < 5; i++)
 	{
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(combo_id_to_string_id(i)));
 	}
@@ -3105,7 +3233,7 @@ static void cdrom_recalc_location_controls(HWND hdlg)
 	int i = 0;
 	HWND h;
 
-	int bus = bus_to_combo_id(cdlv_current_sel);
+	int bus = temp_cdrom_drives[cdlv_current_sel].bus_type;
 
 	for (i = 1800; i < 1803; i++)
 	{
@@ -3128,8 +3256,8 @@ static void cdrom_recalc_location_controls(HWND hdlg)
 
 	switch(bus)
 	{
-		case 1:		/* ATAPI (PIO-only) */
-		case 2:		/* ATAPI (PIO and DMA) */
+		case 2:		/* ATAPI (PIO-only) */
+		case 3:		/* ATAPI (PIO and DMA) */
 			h = GetDlgItem(hdlg, 1802);
 			ShowWindow(h, SW_SHOW);
 			EnableWindow(h, TRUE);
@@ -3139,7 +3267,7 @@ static void cdrom_recalc_location_controls(HWND hdlg)
 			EnableWindow(h, TRUE);
 			SendMessage(h, CB_SETCURSEL, temp_cdrom_drives[cdlv_current_sel].ide_channel, 0);
 			break;
-		case 3:		/* SCSI */
+		case 4:		/* SCSI */
 			h = GetDlgItem(hdlg, 1800);
 			ShowWindow(h, SW_SHOW);
 			EnableWindow(h, TRUE);
@@ -3205,7 +3333,14 @@ static BOOL CALLBACK win_settings_removable_devices_proc(HWND hdlg, UINT message
 			ListView_SetItemState(h, 0, LVIS_FOCUSED | LVIS_SELECTED, 0x000F);
 			cdrom_add_locations(hdlg);
 			h = GetDlgItem(hdlg, IDC_COMBO_CD_BUS);
-			SendMessage(h, CB_SETCURSEL, bus_to_combo_id(cdlv_current_sel), 0);
+			if (temp_cdrom_drives[cdlv_current_sel].bus_type > 1)
+			{
+				SendMessage(h, CB_SETCURSEL, temp_cdrom_drives[cdlv_current_sel].bus_type, 0);
+			}
+			else
+			{
+				SendMessage(h, CB_SETCURSEL, 0, 0);
+			}
 			cdrom_recalc_location_controls(hdlg);
 
 			rd_ignore_change = 0;
@@ -3256,7 +3391,14 @@ static BOOL CALLBACK win_settings_removable_devices_proc(HWND hdlg, UINT message
 				}
 				rd_ignore_change = 1;
 				h = GetDlgItem(hdlg, IDC_COMBO_CD_BUS);
-				SendMessage(h, CB_SETCURSEL, bus_to_combo_id(cdlv_current_sel), 0);
+				if (temp_cdrom_drives[cdlv_current_sel].bus_type > 1)
+				{
+					SendMessage(h, CB_SETCURSEL, temp_cdrom_drives[cdlv_current_sel].bus_type, 0);
+				}
+				else
+				{
+					SendMessage(h, CB_SETCURSEL, 0, 0);
+				}
 				cdrom_recalc_location_controls(hdlg);
 				rd_ignore_change = 0;
 			}
@@ -3287,8 +3429,11 @@ static BOOL CALLBACK win_settings_removable_devices_proc(HWND hdlg, UINT message
 
 					rd_ignore_change = 1;
 					h = GetDlgItem(hdlg, IDC_COMBO_CD_BUS);
-					cid = SendMessage(h, CB_GETCURSEL, 0, 0);
-					combo_id_to_bus(cid);
+					temp_cdrom_drives[cdlv_current_sel].bus_type = SendMessage(h, CB_GETCURSEL, 0, 0) + 1;
+					if (temp_cdrom_drives[cdlv_current_sel].bus_type == 1)
+					{
+						temp_cdrom_drives[cdlv_current_sel].bus_type = 0;
+					}
 					cdrom_recalc_location_controls(hdlg);
 					h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
 					win_settings_cdrom_drives_update_item(h, cdlv_current_sel);
@@ -3375,12 +3520,15 @@ void win_settings_show_child(HWND hwndParent, DWORD child_id)
 			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR) CONFIGUREDLG_SOUND, hwndParent, win_settings_sound_proc);
 			break;
 		case 4:
-			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR) CONFIGUREDLG_PERIPHERALS, hwndParent, win_settings_peripherals_proc);
+			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR) CONFIGUREDLG_NETWORK, hwndParent, win_settings_network_proc);
 			break;
 		case 5:
-			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR) CONFIGUREDLG_HARD_DISKS, hwndParent, win_settings_hard_disks_proc);
+			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR) CONFIGUREDLG_PERIPHERALS, hwndParent, win_settings_peripherals_proc);
 			break;
 		case 6:
+			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR) CONFIGUREDLG_HARD_DISKS, hwndParent, win_settings_hard_disks_proc);
+			break;
+		case 7:
 			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR) CONFIGUREDLG_REMOVABLE_DEVICES, hwndParent, win_settings_removable_devices_proc);
 			break;
 		default:
@@ -3402,7 +3550,7 @@ static BOOL win_settings_main_image_list_init(HWND hwndList)
                                   GetSystemMetrics(SM_CYSMICON),
                                   ILC_MASK | ILC_COLOR32, 1, 1);
 
-	for (i = 0; i < 7; i++)
+	for (i = 0; i < 8; i++)
 	{
 		hiconItem = LoadIcon(hinstance, (LPCWSTR) (256 + i));
 		ImageList_AddIcon(hSmall, hiconItem);
@@ -3422,7 +3570,7 @@ static BOOL win_settings_main_insert_categories(HWND hwndList)
 	lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
 	lvI.stateMask = lvI.iSubItem = lvI.state = 0;
 
-	for (i = 0; i < 7; i++)
+	for (i = 0; i < 8; i++)
 	{
 		lvI.pszText = win_language_get_settings_category(i);
 		lvI.iItem = i;
@@ -3465,7 +3613,7 @@ static BOOL CALLBACK win_settings_main_proc(HWND hdlg, UINT message, WPARAM wPar
 			if ((((LPNMHDR)lParam)->code == LVN_ITEMCHANGED) && (((LPNMHDR)lParam)->idFrom == IDC_SETTINGSCATLIST))
 			{
 				category = -1;
-				for (i = 0; i < 7; i++)
+				for (i = 0; i < 8; i++)
 				{
 					h = GetDlgItem(hdlg, IDC_SETTINGSCATLIST);
 					j = ListView_GetItemState(h, i, LVIS_SELECTED);

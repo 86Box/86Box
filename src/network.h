@@ -45,6 +45,11 @@ typedef struct {
 extern int	network_card;
 extern int	network_type;
 
+extern char	pcap_dev[512];
+
+extern int      netdev_num;
+extern netdev_t netdev_list[512];
+
 
 /* Function prototypes. */
 extern void	network_init(void);
@@ -70,5 +75,6 @@ extern char	*network_card_get_internal_name(int);
 extern int	network_card_get_from_internal_name(char *);
 extern struct device_t *network_card_getdevice(int);
 
+       int	network_dev_to_id(char *dev);
 
 #endif	/*NETWORK_H*/

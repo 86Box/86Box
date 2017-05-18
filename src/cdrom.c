@@ -175,25 +175,10 @@ uint8_t cdrom_command_flags[0x100] =
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
-uint8_t cdrom_mode_sense_page_flags[CDROM_NUM][0x40] =
-{
-	{	0, IMPLEMENTED, 0, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, IMPLEMENTED, IMPLEMENTED,           0,
-		0,              0, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0,           0,           0,           0,
-		0,              0, 0, 0, 0, 0, 0, 0, 0, IMPLEMENTED, 0, 0,           0,           0,           0,
-		0,              0, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0,           0,           0, IMPLEMENTED	},
-	{	0, IMPLEMENTED, 0, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, IMPLEMENTED, IMPLEMENTED,           0,
-		0,              0, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0,           0,           0,           0,
-		0,              0, 0, 0, 0, 0, 0, 0, 0, IMPLEMENTED, 0, 0,           0,           0,           0,
-		0,              0, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0,           0,           0, IMPLEMENTED	},
-	{	0, IMPLEMENTED, 0, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, IMPLEMENTED, IMPLEMENTED,           0,
-		0,              0, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0,           0,           0,           0,
-		0,              0, 0, 0, 0, 0, 0, 0, 0, IMPLEMENTED, 0, 0,           0,           0,           0,
-		0,              0, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0,           0,           0, IMPLEMENTED	},
-	{	0, IMPLEMENTED, 0, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, IMPLEMENTED, IMPLEMENTED,           0,
-		0,              0, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0,           0,           0,           0,
-		0,              0, 0, 0, 0, 0, 0, 0, 0, IMPLEMENTED, 0, 0,           0,           0,           0,
-		0,              0, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0,           0,           0, IMPLEMENTED	}
-};
+uint64_t cdrom_mode_sense_page_flags[CDROM_NUM] = { (1LL << GPMODE_R_W_ERROR_PAGE) | (1LL << GPMODE_CDROM_PAGE) | (1LL << GPMODE_CDROM_AUDIO_PAGE) | (1LL << GPMODE_CAPABILITIES_PAGE) | (1LL << GPMODE_ALL_PAGES),
+						    (1LL << GPMODE_R_W_ERROR_PAGE) | (1LL << GPMODE_CDROM_PAGE) | (1LL << GPMODE_CDROM_AUDIO_PAGE) | (1LL << GPMODE_CAPABILITIES_PAGE) | (1LL << GPMODE_ALL_PAGES),
+						    (1LL << GPMODE_R_W_ERROR_PAGE) | (1LL << GPMODE_CDROM_PAGE) | (1LL << GPMODE_CDROM_AUDIO_PAGE) | (1LL << GPMODE_CAPABILITIES_PAGE) | (1LL << GPMODE_ALL_PAGES),
+						    (1LL << GPMODE_R_W_ERROR_PAGE) | (1LL << GPMODE_CDROM_PAGE) | (1LL << GPMODE_CDROM_AUDIO_PAGE) | (1LL << GPMODE_CAPABILITIES_PAGE) | (1LL << GPMODE_ALL_PAGES) };
 
 const uint8_t cdrom_mode_sense_pages_default[CDROM_NUM][0x40][0x40] =
 {
@@ -747,7 +732,7 @@ int find_cdrom_for_channel(uint8_t channel)
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if (!cdrom_drives[i].bus_type && (cdrom_drives[i].ide_channel == channel))
+		if ((cdrom_drives[i].bus_type < 4) && (cdrom_drives[i].ide_channel == channel))
 		{
 			return i;
 		}
@@ -755,7 +740,7 @@ int find_cdrom_for_channel(uint8_t channel)
 	return 0xff;
 }
 
-void cdrom_init(int id, int cdb_len_setting, int bus_type);
+void cdrom_init(int id, int cdb_len_setting);
 
 void build_atapi_cdrom_map()
 {
@@ -768,7 +753,7 @@ void build_atapi_cdrom_map()
 		atapi_cdrom_drives[i] = find_cdrom_for_channel(i);
 		if (atapi_cdrom_drives[i] != 0xff)
 		{
-			cdrom_init(atapi_cdrom_drives[i], 12, 0);
+			cdrom_init(atapi_cdrom_drives[i], 12);
 		}
 	}
 }
@@ -779,7 +764,7 @@ int find_cdrom_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun)
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if (cdrom_drives[i].bus_type && (cdrom_drives[i].scsi_device_id == scsi_id) && (cdrom_drives[i].scsi_device_lun == scsi_lun))
+		if ((cdrom_drives[i].bus_type == 4) && (cdrom_drives[i].scsi_device_id == scsi_id) && (cdrom_drives[i].scsi_device_lun == scsi_lun))
 		{
 			return i;
 		}
@@ -804,7 +789,7 @@ void build_scsi_cdrom_map()
 			scsi_cdrom_drives[i][j] = find_cdrom_for_scsi_id(i, j);
 			if (scsi_cdrom_drives[i][j] != 0xff)
 			{
-				cdrom_init(scsi_cdrom_drives[i][j], 12, 1);
+				cdrom_init(scsi_cdrom_drives[i][j], 12);
 			}
 		}
 	}
@@ -830,7 +815,7 @@ void cdrom_set_signature(int id)
 	cdrom[id].request_length = 0xEB14;
 }
 
-void cdrom_init(int id, int cdb_len_setting, int bus_type)
+void cdrom_init(int id, int cdb_len_setting)
 {
 	if (id >= CDROM_NUM)
 	{
@@ -847,9 +832,17 @@ void cdrom_init(int id, int cdb_len_setting, int bus_type)
 	cdrom[id].cd_status = CD_STATUS_EMPTY;
 	cdrom[id].sense[0] = 0xf0;
 	cdrom[id].sense[7] = 10;
-	cdrom_drives[id].bus_mode = cdrom_drives[id].bus_type ? 2 : (cdrom_drives[id].atapi_dma ? 3 : 1);
+	cdrom_drives[id].bus_mode = 0;
+	if (cdrom_drives[id].bus_type > 2)
+	{
+		cdrom_drives[id].bus_mode |= 2;
+	}
+	if (cdrom_drives[id].bus_type < 4)
+	{
+		cdrom_drives[id].bus_mode |= 1;
+	}
 	cdrom_log("CD-ROM %i: Bus type %i, bus mode %i\n", id, cdrom_drives[id].bus_type, cdrom_drives[id].bus_mode);
-	if (!cdrom_drives[id].bus_type)
+	if (cdrom_drives[id].bus_type < 4)
 	{
 		cdrom_set_signature(id);
 		cdrom_drives[id].max_blocks_at_once = 1;
@@ -1083,7 +1076,7 @@ int cdrom_mode_select_header(uint8_t id, uint8_t val)
 	}
 	else if (cdrom[id].current_page_pos == (cdrom[id].current_page_len - 2))
 	{
-		if (cdrom_drives[id].bus_type && (cdrom[id].current_page_len == 8))
+		if ((cdrom_drives[id].bus_type == 4) && (cdrom[id].current_page_len == 8))
 		{
 			cdrom[id].block_descriptor_len |= ((uint16_t) val) << 8;
 			cdrom_log("CD-ROM %i: Position: %02X, value: %02X, block descriptor length: %02X\n", id, cdrom[id].current_page_pos, val, cdrom[id].block_descriptor_len);
@@ -1091,7 +1084,7 @@ int cdrom_mode_select_header(uint8_t id, uint8_t val)
 	}
 	else if (cdrom[id].current_page_pos == (cdrom[id].current_page_len - 1))
 	{
-		if (cdrom_drives[id].bus_type)
+		if (cdrom_drives[id].bus_type == 4)
 		{
 			cdrom[id].block_descriptor_len |= (uint16_t) val;
 			cdrom_log("CD-ROM %i: Position: %02X, value: %02X, block descriptor length: %02X\n", id, cdrom[id].current_page_pos, val, cdrom[id].block_descriptor_len);
@@ -1134,7 +1127,7 @@ int cdrom_mode_select_page_header(uint8_t id, uint8_t val)
 	if (cdrom[id].current_page_pos == 0)
 	{
 		cdrom[id].current_page_code = val & 0x3f;
-		if (cdrom_mode_sense_page_flags[id][cdrom[id].current_page_code] != IMPLEMENTED)
+		if (!(cdrom_mode_sense_page_flags[id] & (1LL << cdrom[id].current_page_code)))
 		{
 			cdrom_log("CD-ROM %i: Trying to modify an unimplemented page: %02X\n", id, cdrom[id].current_page_code);
 			cdrom_mode_select_terminate(id, 1);
@@ -1342,7 +1335,7 @@ uint32_t cdrom_mode_sense(uint8_t id, uint8_t *buf, uint32_t pos, uint8_t type, 
 	{
 	        if ((type == GPMODE_ALL_PAGES) || (type == i))
 	        {
-			if (cdrom_mode_sense_page_flags[id][i] == IMPLEMENTED)
+			if (cdrom_mode_sense_page_flags[id] & (1LL << cdrom[id].current_page_code))
 			{
 				buf[pos++] = cdrom_mode_sense_read(id, page_control, i, 0);
 				msplen = cdrom_mode_sense_read(id, page_control, i, 1);
@@ -1477,7 +1470,7 @@ static void cdrom_command_write_dma(uint8_t id)
 
 static int cdrom_request_length_is_zero(uint8_t id)
 {
-	if ((cdrom[id].request_length == 0) && !cdrom_drives[id].bus_type)
+	if ((cdrom[id].request_length == 0) && (cdrom_drives[id].bus_type < 4))
 	{
 		return 1;
 	}
@@ -1497,7 +1490,7 @@ static void cdrom_data_command_finish(uint8_t id, int len, int block_len, int al
 	}
 	if (cdrom_request_length_is_zero(id) || (len == 0) || (cdrom_current_mode(id) == 0))
 	{
-		if (cdrom_drives[id].bus_type)
+		if (cdrom_drives[id].bus_type == 4)
 		{
 			SCSIDevices[cdrom_drives[id].scsi_device_id][cdrom_drives[id].scsi_device_lun].InitLength = 0;
 		}
@@ -1513,7 +1506,7 @@ static void cdrom_data_command_finish(uint8_t id, int len, int block_len, int al
 		{
 			if (direction == 0)
 			{
-				if (cdrom_drives[id].bus_type)
+				if (cdrom_drives[id].bus_type == 4)
 				{
 					SCSIDevices[cdrom_drives[id].scsi_device_id][cdrom_drives[id].scsi_device_lun].InitLength = alloc_len;
 				}
@@ -2070,7 +2063,7 @@ int cdrom_pre_execution_check(uint8_t id, uint8_t *cdb)
 {
 	int ready = 0;
 
-	if (cdrom_drives[id].bus_type)
+	if (cdrom_drives[id].bus_type == 4)
 	{
 		if (((cdrom[id].request_length >> 5) & 7) != cdrom_drives[id].scsi_device_lun)
 		{
@@ -2082,19 +2075,20 @@ int cdrom_pre_execution_check(uint8_t id, uint8_t *cdb)
 
 	if (!(cdrom_command_flags[cdb[0]] & IMPLEMENTED))
 	{
-		cdrom_log("CD-ROM %i: Attempting to execute unknown command %02X over %s\n", id, cdb[0], cdrom_drives[id].bus_type ? "SCSI" : "ATAPI");
+		cdrom_log("CD-ROM %i: Attempting to execute unknown command %02X over %s\n", id, cdb[0], (cdrom_drives[id].bus_type == 4) ? "SCSI" : ((cdrom_drives[id].bus_type == 3) ? "ATAPI PIO/DMA" : "ATAPI PIO"));
+
 		cdrom_illegal_opcode(id);
 		return 0;
 	}
 
-	if (!cdrom_drives[id].bus_type && (cdrom_command_flags[cdb[0]] & SCSI_ONLY))
+	if ((cdrom_drives[id].bus_type < 4) && (cdrom_command_flags[cdb[0]] & SCSI_ONLY))
 	{
 		cdrom_log("CD-ROM %i: Attempting to execute SCSI-only command %02X over ATAPI\n", id, cdb[0]);
 		cdrom_illegal_opcode(id);
 		return 0;
 	}
 
-	if (cdrom_drives[id].bus_type && (cdrom_command_flags[cdb[0]] & ATAPI_ONLY))
+	if ((cdrom_drives[id].bus_type == 4) && (cdrom_command_flags[cdb[0]] & ATAPI_ONLY))
 	{
 		cdrom_log("CD-ROM %i: Attempting to execute ATAPI-only command %02X over SCSI\n", id, cdb[0]);
 		cdrom_illegal_opcode(id);
@@ -2155,7 +2149,7 @@ int cdrom_pre_execution_check(uint8_t id, uint8_t *cdb)
 		return 0;
 	}
 
-	cdrom_log("CD-ROM %i: Continuing with command\n", id);
+	cdrom_log("CD-ROM %i: Continuing with command %02X\n", id, cdb[0]);
 		
 	return 1;
 }
@@ -2309,7 +2303,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 #if 0
 	int CdbLength;
 #endif
-	if (cdrom_drives[id].bus_type)
+	if (cdrom_drives[id].bus_type == 4)
 	{
 		cdrom[id].status &= ~ERR_STAT;
 	}
@@ -2507,7 +2501,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 			}
 
 			max_len = cdrom[id].sector_len;
-			/* if (cdrom_drives[id].bus_type) */
+			/* if (cdrom_drives[id].bus_type == 4) */
 			if (cdrom_current_mode(id) == 2)
 			{
 				cdrom[id].requested_blocks = max_len;
@@ -2579,7 +2573,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
                 
 		case GPCMD_MODE_SENSE_6:
 		case GPCMD_MODE_SENSE_10:
-			if (cdrom_drives[id].bus_type)
+			if (cdrom_drives[id].bus_type == 4)
 			{
 				block_desc = ((cdb[1] >> 3) & 1) ? 0 : 1;
 			}
@@ -2597,7 +2591,9 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				len = (cdb[8] | (cdb[7] << 8));
 			}
 
-			if (!(cdrom_mode_sense_page_flags[id][cdb[2] & 0x3F] & IMPLEMENTED))
+			cdrom[id].current_page_code = cdb[2] & 0x3F;
+
+			if (!(cdrom_mode_sense_page_flags[id] & (1LL << cdrom[id].current_page_code)))
 			{
 				cdrom_invalid_field(id);
 				return;
@@ -3201,8 +3197,8 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				memset(cdbufferb, 0, 8);
 				cdbufferb[0] = 5; /*CD-ROM*/
 				cdbufferb[1] = 0x80; /*Removable*/
-				cdbufferb[2] = cdrom_drives[id].bus_type ? 0x02 : 0x00; /*SCSI-2 compliant*/
-				cdbufferb[3] = cdrom_drives[id].bus_type ? 0x02 : 0x21;
+				cdbufferb[2] = (cdrom_drives[id].bus_type == 4) ? 0x02 : 0x00; /*SCSI-2 compliant*/
+				cdbufferb[3] = (cdrom_drives[id].bus_type == 4) ? 0x02 : 0x21;
 				cdbufferb[4] = 31;
 
 				ide_padstr8(cdbufferb + 8, 8, "86Box"); /* Vendor */
@@ -3356,7 +3352,7 @@ void cdrom_callback(uint8_t id)		/* Callback for non-Read CD commands */
 {
 	int old_pos = 0;
 
-	if (!cdrom_drives[id].bus_type)
+	if (cdrom_drives[id].bus_type < 4)
 	{
 		cdrom_log("CD-ROM %i: Lowering IDE IRQ\n", id);
 		ide_irq_lower(&(ide_drives[cdrom_drives[id].ide_channel]));
@@ -3482,7 +3478,7 @@ int cdrom_read_from_dma(uint8_t id)
 
 	int in_data_length = 0;
 
-	if (cdrom_drives[id].bus_type)
+	if (cdrom_drives[id].bus_type == 4)
 	{
 		ret = cdrom_read_from_scsi_dma(cdrom_drives[id].scsi_device_id, cdrom_drives[id].scsi_device_lun);
 	}
@@ -3496,7 +3492,7 @@ int cdrom_read_from_dma(uint8_t id)
 		return 0;
 	}
 
-	if (cdrom_drives[id].bus_type)
+	if (cdrom_drives[id].bus_type == 4)
 	{
 		in_data_length = SCSIDevices[cdrom_drives[id].scsi_device_id][cdrom_drives[id].scsi_device_lun].InitLength;
 		cdrom_log("CD-ROM %i: SCSI Input data length: %i\n", id, in_data_length);
@@ -3602,7 +3598,7 @@ int cdrom_write_to_dma(uint8_t id)
 {
 	int ret = 0;
 
-	if (cdrom_drives[id].bus_type)
+	if (cdrom_drives[id].bus_type == 4)
 	{
 		ret = cdrom_write_to_scsi_dma(cdrom_drives[id].scsi_device_id, cdrom_drives[id].scsi_device_lun);
 	}
@@ -3621,7 +3617,7 @@ int cdrom_write_to_dma(uint8_t id)
 
 void cdrom_irq_raise(uint8_t id)
 {
-	if (!cdrom_drives[id].bus_type)
+	if (cdrom_drives[id].bus_type < 4)
 	{
 		ide_irq_raise(&(ide_drives[cdrom_drives[id].ide_channel]));
 	}

@@ -59,7 +59,7 @@ typedef struct __attribute__((__packed__))
 
 	int requested_blocks;		/* This will be set to something other than 1 when block reads are implemented. */
 
-	int current_page_code;
+	uint64_t current_page_code;
 	int current_page_len;
 
 	int current_page_pos;
@@ -132,8 +132,6 @@ typedef struct
 typedef struct __attribute__((__packed__))
 #endif
 {
-	int enabled;
-
 	int max_blocks_at_once;
 
 	CDROM *handler;
@@ -141,17 +139,17 @@ typedef struct __attribute__((__packed__))
 	int host_drive;
 	int prev_host_drive;
 
-	uint8_t bus_type;		/* 0 = ATAPI, 1 = SCSI */
+	unsigned int bus_type;		/* 0 = ATAPI, 1 = SCSI */
 	uint8_t bus_mode;		/* Bit 0 = PIO suported;
 					   Bit 1 = DMA supportd. */
 
 	uint8_t ide_channel;
 
-	uint8_t scsi_device_id;
-	uint8_t scsi_device_lun;
+	unsigned int scsi_device_id;
+	unsigned int scsi_device_lun;
 	
-	uint8_t sound_on;
-	uint8_t atapi_dma;
+	unsigned int sound_on;
+	unsigned int atapi_dma;
 } cdrom_drive_t;
 #ifdef __MSC__
 # pragma pack(pop)

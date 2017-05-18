@@ -560,11 +560,11 @@ typedef struct {
 	int is_hdi;
 	uint32_t base;
 	uint64_t at_spt,at_hpc; /*[Translation] Sectors per track, heads per cylinder*/
-	int bus;	/* 0 = none, 1 = MFM/RLL, 2 = IDE, 3 = SCSI */
-	uint8_t mfm_channel;
-	uint8_t ide_channel;
-	uint8_t scsi_id;
-	uint8_t scsi_lun;
+	unsigned int bus;	/* 0 = none, 1 = MFM/RLL, 2 = IDE, 3 = SCSI */
+	unsigned int mfm_channel;
+	unsigned int ide_channel;
+	unsigned int scsi_id;
+	unsigned int scsi_lun;
 } hard_disk_t;
 #pragma pack(pop)
 
