@@ -107,7 +107,7 @@ LRESULT CALLBACK subWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 
 LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-LONG OriginalStatusBarProcedure;
+LONG_PTR OriginalStatusBarProcedure;
 
 HWND ghwnd;
 
@@ -1255,8 +1255,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
 	hwndStatus = EmulatorStatusBar(hwnd, IDC_STATUS, hThisInstance);
 
-	OriginalStatusBarProcedure = GetWindowLong(hwndStatus, GWL_WNDPROC);
-	SetWindowLong(hwndStatus, GWL_WNDPROC, (LONG) &StatusBarProcedure);
+	OriginalStatusBarProcedure = GetWindowLongPtr(hwndStatus, GWL_WNDPROC);
+	SetWindowLongPtr(hwndStatus, GWL_WNDPROC, (LONG_PTR) &StatusBarProcedure);
 
 	smenu = LoadMenu(hThisInstance, TEXT("StatusBarMenu"));
         initmenu();
