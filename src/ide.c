@@ -1399,7 +1399,7 @@ uint32_t ide_read_data(int ide_board, int length)
 			}
 			else
 			{
-				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 0);
+				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 0);
 			}
 		}
 	}
@@ -1722,7 +1722,7 @@ void callbackide(int ide_board)
 
 			ide_irq_raise(ide);
 
-			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
+			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 1);
 			return;
 
 		case WIN_READ_DMA:
@@ -1756,12 +1756,12 @@ void callbackide(int ide_board)
 						ide_next_sector(ide);
 						ide->atastat = BUSY_STAT;
 						idecallback[ide_board]=6*IDE_TIME;
-						update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
+						update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 1);
 					}
 					else
 					{
 						ide_irq_raise(ide);
-						update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 0);
+						update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 0);
 					}
 				}
 			}
@@ -1799,7 +1799,7 @@ void callbackide(int ide_board)
 				ide->blockcount = 0;
 			}
 
-			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
+			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 1);
 			return;
 
 		case WIN_WRITE:
@@ -1822,12 +1822,12 @@ void callbackide(int ide_board)
 				ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 				ide->pos=0;
 				ide_next_sector(ide);
-				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
+				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 1);
 			}
 			else
 			{
 				ide->atastat = READY_STAT | DSC_STAT;
-				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 0);
+				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 0);
 			}
 
 			return;
@@ -1863,12 +1863,12 @@ void callbackide(int ide_board)
 						ide_next_sector(ide);
 						ide->atastat = BUSY_STAT;
 						idecallback[ide_board]=6*IDE_TIME;
-						update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
+						update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 1);
 					}
 					else
 					{
 						ide_irq_raise(ide);
-						update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 0);
+						update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 0);
 					}
 				}
 			}
@@ -1899,12 +1899,12 @@ void callbackide(int ide_board)
 				ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 				ide->pos=0;
 				ide_next_sector(ide);
-				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
+				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 1);
 			}
 			else
 			{
 				ide->atastat = READY_STAT | DSC_STAT;
-				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 0);
+				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 0);
 			}
 			return;
 
@@ -1921,7 +1921,7 @@ void callbackide(int ide_board)
 			ide->pos=0;
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
-			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1);
+			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 1);
 			return;
 
 		case WIN_FORMAT:
@@ -1943,7 +1943,7 @@ void callbackide(int ide_board)
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
 
-			/* update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x22 : 0x21, 1); */
+			/* update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 1); */
 			return;
 
 		case WIN_DRIVE_DIAGNOSTICS:
