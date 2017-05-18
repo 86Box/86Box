@@ -8,7 +8,7 @@
  *
  *		Definitions for the network module.
  *
- * Version:	@(#)network.h	1.0.3	2017/05/12
+ * Version:	@(#)network.h	1.0.4	2017/05/17
  *
  * Authors:	Kotori, <oubattler@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -18,6 +18,12 @@
 # include <stdint.h>
 
 
+/* Network provider types. */
+#define NET_TYPE_NONE	0		/* networking disabled */
+#define NET_TYPE_PCAP	1		/* use the (Win)Pcap API */
+#define NET_TYPE_SLIRP	2		/* use the SLiRP port forwarder */
+
+/* Supported network cards. */
 #define NE1000		1
 #define NE2000		2
 #define RTL8029AS	3
@@ -44,11 +50,9 @@ typedef struct {
 /* Global variables. */
 extern int	network_card;
 extern int	network_type;
-
-extern char	pcap_dev[512];
-
-extern int      netdev_num;
-extern netdev_t netdev_list[512];
+extern int      network_ndev;
+extern netdev_t network_devs[32];
+extern char	network_pcap[512];
 
 
 /* Function prototypes. */
@@ -68,13 +72,13 @@ extern void	network_slirp_close(void);
 extern void	network_slirp_in(uint8_t *, int);
 
 extern int	network_devlist(netdev_t *);
+extern int	network_dev_to_id(char *);
 extern int	network_card_available(int);
 extern char	*network_card_getname(int);
 extern int	network_card_has_config(int);
 extern char	*network_card_get_internal_name(int);
 extern int	network_card_get_from_internal_name(char *);
-extern struct device_t *network_card_getdevice(int);
+extern device_t	*network_card_getdevice(int);
 
-       int	network_dev_to_id(char *dev);
 
 #endif	/*NETWORK_H*/

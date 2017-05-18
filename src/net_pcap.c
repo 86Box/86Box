@@ -8,7 +8,7 @@
  *
  *		Handle WinPcap library processing.
  *
- * Version:	@(#)net_pcap.c	1.0.1	2017/05/11
+ * Version:	@(#)net_pcap.c	1.0.2	2017/05/17
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -28,9 +28,6 @@ static pcap_t	*pcap;			/* handle to WinPcap library */
 static thread_t	*poll_tid;
 static NETRXCB	poll_rx;		/* network RX function to call */
 static void	*poll_arg;		/* network RX function arg */
-
-       int      netdev_num;
-       netdev_t netdev_list[512];
 
 
 #ifdef WALTJE
@@ -108,8 +105,6 @@ poll_thread(void *arg)
 }
 
 
-char pcap_dev[512];
-
 /* Initialize WinPcap for us. */
 int
 network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
@@ -135,11 +130,12 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
     pclog("Initializing WinPcap, version %s\n", temp);
 
     /* Get the value of our capture interface. */
-    if (pcap_dev == NULL) {
+    dev = network_pcap;
+    if ((dev[0] == '\0') || !strcmp(dev, "none")) {
 	pclog(" No network device configured!\n");
 	return(-1);
     }
-    pclog(" Network interface: '%s'\n", pcap_dev);
+    pclog(" Network interface: '%s'\n", dev);
 
     pcap = pcap_open_live(dev,		/* interface name */
 			  1518,		/* maximum packet size */
@@ -227,16 +223,15 @@ network_devlist(netdev_t *list)
     pcap_if_t *devlist, *dev;
     int i = 0;
 
-    /* Note by Kotori: Add the first (and guaranteed to be always present) device - "None". */
+    /* Create a first entry that's always there - needed by UI. */
     strcpy(list->device, "none");
     strcpy(list->description, "None");
-    list++;
-    i++;
+    list++; i++;
 
     /* Retrieve the device list from the local machine */
     if (pcap_findalldevs(&devlist, errbuf) == -1) {
-	pclog("NETWORK: error in pcap_findalldevs_ex: %s\n", errbuf);
-	return(i);	/* Note by Kotori: The list will always have at least one entry - "None". */
+	pclog("NETWORK: error in pcap_findalldevs: %s\n", errbuf);
+	return(i);
     }
 
     for (dev=devlist; dev!=NULL; dev=dev->next) {
@@ -245,28 +240,11 @@ network_devlist(netdev_t *list)
 		strcpy(list->description, dev->description);
 	  else
 		memset(list->description, '\0', sizeof(list->description));
-	list++;
-	i++;
+	list++; i++;
     }
 
     /* Release the memory. */
     pcap_freealldevs(devlist);
 
     return(i);
-}
-
-int network_dev_to_id(char *dev)
-{
-	int i = 0;
-
-	for (i = 0; i < netdev_num; i++)
-	{
-		if (!strcmp(netdev_list[i].device, dev))
-		{
-			return i;
-		}
-	}
-
-	/* If the device does not match the list, consider it as if it was set to "none". */
-	return 0;
 }

@@ -13,7 +13,7 @@
 #include "vid_cga.h"
 #include "vid_cga_comp.h"
 #ifndef __unix
-#include "../win-cgapal.h"
+# include "../win/win_cgapal.h"		/*YUCK*/
 #endif
 
 

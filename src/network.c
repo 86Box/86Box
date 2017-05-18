@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.3	2017/05/12
+ * Version:	@(#)network.c	1.0.4	2017/05/17
  *
  * Authors:	Kotori, <oubattler@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -41,8 +41,12 @@ static netcard_t net_cards[] = {
 };
 
 
-int	network_card;
-int	network_type;
+/* Global variables. */
+int		network_card;
+int		network_type;
+int		network_ndev;
+netdev_t	network_devs[32];
+char		network_pcap[512];
 
 
 /*
@@ -55,8 +59,11 @@ int	network_type;
 void
 network_init(void)
 {
+    network_type = NET_TYPE_NONE;
     network_card = 0;
-    network_type = -1;
+
+    /* Initialize list of PCap devices. */
+    network_ndev = network_devlist(network_devs);
 }
 
 
@@ -80,11 +87,11 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
 
     /* Start the platform module. */
     switch(network_type) {
-	case 0:
+	case NET_TYPE_PCAP:
 		ret = network_pcap_setup(mac, rx, dev);
 		break;
 
-	case 1:
+	case NET_TYPE_SLIRP:
 		ret = network_slirp_setup(mac, rx, dev);
 		break;
     }
@@ -98,11 +105,11 @@ void
 network_close(void)
 {
     switch(network_type) {
-	case 0:
+	case NET_TYPE_PCAP:
 		network_pcap_close();
 		break;
 
-	case 1:
+	case NET_TYPE_SLIRP:
 		network_slirp_close();
 		break;
     }
@@ -127,10 +134,11 @@ network_reset(void)
     network_close();
 
     /* If no active card, we're done. */
-    if (!network_card || (network_type<0)) return;
+    if ((network_type==NET_TYPE_NONE) || (network_card==0)) return;
 
     pclog("NETWORK: set up for %s, card=%s\n",
-	(network_type==1)?"SLiRP":"WinPcap", net_cards[network_card].name);
+	(network_type==NET_TYPE_SLIRP)?"SLiRP":"WinPcap",
+				net_cards[network_card].name);
 
     pclog("NETWORK: reset (card=%d)\n", network_card);
     /* Add the (new?) card to the I/O system. */
@@ -147,11 +155,11 @@ void
 network_tx(uint8_t *bufp, int len)
 {
     switch(network_type) {
-	case 0:
+	case NET_TYPE_PCAP:
 		network_pcap_in(bufp, len);
 		break;
 
-	case 1:
+	case NET_TYPE_SLIRP:
 		network_slirp_in(bufp, len);
 		break;
     }
@@ -216,4 +224,20 @@ network_card_get_from_internal_name(char *s)
     }
 	
     return(-1);
+}
+
+
+int
+network_dev_to_id(char *dev)
+{
+    int i = 0;
+
+    for (i=0; i<network_ndev; i++) {
+	if (! strcmp(network_devs[i].device, dev)) {
+		return(i);
+	}
+    }
+
+    /* If no match found, assume "none". */
+    return(0);
 }

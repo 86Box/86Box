@@ -11,7 +11,7 @@
  * NOTE:	Its still a mess, but we're getting there. The file will
  *		also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.3	2017/05/12
+ * Version:	@(#)net_ne2000.c	1.0.4	2017/05/17
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -49,9 +49,6 @@ typedef union {
 } bar_t;
 
 
-/* This stuff should go into the struct. --FvK */
-static uint8_t	maclocal[6] = {0xac, 0xde, 0x48, 0x88, 0xbb, 0xaa};
-static uint8_t	maclocal_pci[6] = {0xac, 0xde, 0x48, 0x88, 0xbb, 0xaa};
 #if ENABLE_NE2000_LOG
 static int	nic_do_log = ENABLE_NE2000_LOG;
 #else
@@ -216,6 +213,7 @@ typedef struct {
     int		disable_netbios;
     int		tx_timer_index;
     int		tx_timer_active;
+    uint8_t	maclocal[6];		/* configured MAC (local) address */
     uint8_t	pci_regs[256];
     uint8_t	eeprom[128];		/* for RTL8029AS */
     rom_t	bios_rom;
@@ -1767,14 +1765,15 @@ nic_rom_init(nic_t *dev, wchar_t *s)
 }
 
 
-uint32_t
-ne2000_get_maclocal(void)
+/* Return the 'local' part of our configured MAC address. */
+static uint32_t
+nic_get_maclocal(nic_t *dev)
 {
     uint32_t temp;
 
-    temp = (((int) maclocal[3]) << 16);
-    temp |= (((int) maclocal[4]) << 8);
-    temp |= ((int) maclocal[5]);
+    temp = (((int) dev->maclocal[3]) << 16);
+    temp |= (((int) dev->maclocal[4]) << 8);
+    temp |= ((int) dev->maclocal[5]);
 
     return(temp);
 }
@@ -1784,23 +1783,17 @@ static void *
 nic_init(int board)
 {
     uint32_t mac;
-    uint8_t *ptr;
     nic_t *dev;
 
     dev = malloc(sizeof(nic_t));
     memset(dev, 0x00, sizeof(nic_t));
     dev->board = board;
     dev->is_rtl8029as = (PCI && (board == NE2K_RTL8029AS)) ? 1 : 0;
-    if (board == NE2K_RTL8029AS)
-    {
+    if (board == NE2K_RTL8029AS) {
 	strcpy(dev->name, "RTL8029AS");
-    }
-    else if (board == NE2K_NE1000)
-    {
+    } else if (board == NE2K_NE1000) {
 	strcpy(dev->name, "NE1000");
-    }
-    else
-    {
+    } else {
 	strcpy(dev->name, "NE2000");
     }
 
@@ -1812,32 +1805,35 @@ nic_init(int board)
 	dev->base_address = device_get_config_int("addr");
     }
 
+    /* See if we have a local MAC address configured. */
     mac = device_get_config_int_ex("mac", -1);
 
     /* Set up our MAC address. */
     if (dev->is_rtl8029as) {
-	maclocal[0] = 0x00;	/* 00:20:18 (RTL 8029AS PCI vendor prefix). */
-	maclocal[1] = 0x20;
-	maclocal[2] = 0x18;
+	dev->maclocal[0] = 0x00;  /* 00:20:18 (RTL 8029AS PCI vendor prefix). */
+	dev->maclocal[1] = 0x20;
+	dev->maclocal[2] = 0x18;
     } else {
-	maclocal[0] = 0x00;	/* 00:00:D8 (NE2000 ISA vendor prefix). */
-	maclocal[1] = 0x00;
-	maclocal[2] = 0xD8;
+	dev->maclocal[0] = 0x00;  /* 00:00:D8 (NE2000 ISA vendor prefix). */
+	dev->maclocal[1] = 0x00;
+	dev->maclocal[2] = 0xD8;
     }
-    ptr = maclocal;
-pclog(1, "MAClocal: mac=%08lx\n", mac);
     if (mac & 0xff000000) {
 	/* Generating new MAC. */
-	ptr[3] = disc_random_generate();
-	ptr[4] = disc_random_generate();
-	ptr[5] = disc_random_generate() | 1;
-	device_set_config_int("mac", ne2000_get_maclocal());
+	dev->maclocal[3] = disc_random_generate();
+	dev->maclocal[4] = disc_random_generate();
+	dev->maclocal[5] = disc_random_generate() | 1;
+	device_set_config_int("mac", nic_get_maclocal(dev));
     } else {
-	ptr[3] = (mac>>16) & 0xff;
-	ptr[4] = (mac>>8) & 0xff;
-	ptr[5] = (mac & 0xff) | 1;
+	dev->maclocal[3] = (mac>>16) & 0xff;
+	dev->maclocal[4] = (mac>>8) & 0xff;
+#if 1
+	dev->maclocal[5] = (mac & 0xfe);
+#else
+	dev->maclocal[5] = (mac & 0xff) | 1;
+#endif
     }
-    memcpy(dev->physaddr, ptr, 6);
+    memcpy(dev->physaddr, dev->maclocal, sizeof(dev->maclocal));
 
     pclog(1,"%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x BIOS=%d\n",
 	dev->name, dev->base_address, dev->base_irq,

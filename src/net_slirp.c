@@ -8,7 +8,7 @@
  *
  *		Handle SLiRP library processing.
  *
- * Version:	@(#)net_slirp.c	1.0.1	2017/05/11
+ * Version:	@(#)net_slirp.c	1.0.2	2017/05/17
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -29,7 +29,6 @@ static queueADT	slirpq;			/* SLiRP library handle */
 static thread_t	*poll_tid;
 static NETRXCB	poll_rx;		/* network RX function to call */
 static void	*poll_arg;		/* network RX function arg */
-static int	fizz;
 
 
 /* Instead of calling this and crashing some times
@@ -38,27 +37,29 @@ static int	fizz;
 static void
 slirp_tic(void)
 {
-    int ret2,nfds;
+    int ret2, nfds;
     struct timeval tv;
     fd_set rfds, wfds, xfds;
     int tmo;
-    nfds=-1;
 
+    /* Let SLiRP create a list of all open sockets. */
+    nfds = -1;
     FD_ZERO(&rfds);
     FD_ZERO(&wfds);
     FD_ZERO(&xfds);
     tmo = slirp_select_fill(&nfds, &rfds, &wfds, &xfds); /* this can crash */
-    if (tmo < 0) {
+    if (tmo < 0)
 	tmo = 500;
-    }
 
     tv.tv_sec = 0;
-    tv.tv_usec = tmo;	/* basilisk default 10000 */
+    tv.tv_usec = tmo;
 
+    /* Now wait for something to happen, or at most 'tmo' usec. */
     ret2 = select(nfds+1, &rfds, &wfds, &xfds, &tv);
-    if (ret2 >= 0) {
+
+    /* If something happened, let SLiRP handle it. */
+    if (ret2 >= 0)
 	slirp_select_poll(&rfds, &wfds, &xfds);
-    }
 }
 
 
@@ -77,10 +78,8 @@ poll_thread(void *arg)
     pclog("SLiRP: poll event is %08lx\n", evt);
 
     while (slirpq != NULL) {
-	if (++fizz > 1200) {
-		fizz = 0;
-		slirp_tic();
-	}
+	/* See if there is any work. */
+	slirp_tic();
 
 	/* Wait for the next packet to arrive. */
 	if (QueuePeek(slirpq) == 0) {
@@ -123,8 +122,6 @@ network_slirp_setup(uint8_t *mac, NETRXCB func, void *arg)
 
     slirpq = QueueCreate();
     pclog(" Packet queue is at %08lx\n", &slirpq);
-
-    fizz = 0;
 
     /* Save the callback info. */
     poll_rx = func;

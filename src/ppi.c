@@ -10,9 +10,8 @@
 
 #include "ibm.h"
 #include "pit.h"
-
-#include "plat-keyboard.h"
-#include "plat-mouse.h"
+#include "plat_keyboard.h"
+#include "plat_mouse.h"
 
 void ppi_reset()
 {
