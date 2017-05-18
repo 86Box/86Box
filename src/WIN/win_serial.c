@@ -12,7 +12,7 @@
  *		Windows and UNIX systems, with support for FTDI and Prolific
  *		USB ports. Support for these has been removed.
  *
- * Version:	@(#)win-serial.c	1.0.2	2017/05/05
+ * Version:	@(#)win_serial.c	1.0.2	2017/05/17
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #define BHTTY_C
-#include "plat-serial.h"
+#include "plat_serial.h"
 
 
 extern void	pclog(char *__fmt, ...);

@@ -9,29 +9,29 @@
 
 #include <commctrl.h>
 #include <inttypes.h>
-#include "ibm.h"
-#include "mem.h"
-#include "cpu/cpu.h"
-#include "nvr.h"
-#include "model.h"
-#include "device.h"
-#include "cdrom.h"
-#include "disc.h"
-#include "fdd.h"
-#include "hdd.h"
-#include "ide.h"
-#include "scsi.h"
-#include "scsi_buslogic.h"
-#include "network.h"
-#include "plat-midi.h"
-#include "sound/sound.h"
-#include "sound/snd_dbopl.h"
-#include "video/video.h"
-#include "video/vid_voodoo.h"
-#include "gameport.h"
-#include "mouse.h"
+#include "../ibm.h"
+#include "../mem.h"
+#include "../cpu/cpu.h"
+#include "../nvr.h"
+#include "../model.h"
+#include "../device.h"
+#include "../cdrom.h"
+#include "../disc.h"
+#include "../fdd.h"
+#include "../hdd.h"
+#include "../ide.h"
+#include "../scsi.h"
+#include "../scsi_buslogic.h"
+#include "../network.h"
+#include "../sound/sound.h"
+#include "../sound/snd_dbopl.h"
+#include "../video/video.h"
+#include "../video/vid_voodoo.h"
+#include "../gameport.h"
+#include "../mouse.h"
+#include "plat_midi.h"
 #include "win.h"
-#include "win-language.h"
+#include "win_language.h"
 #include "resource.h"
 
 
@@ -82,8 +82,9 @@ static int settings_scsi_to_list[20], settings_list_to_scsi[20];
 static int settings_network_to_list[20], settings_list_to_network[20];
 static char *hdd_names[16];
 
+
 /* This does the initial read of global variables into the temporary ones. */
-static void win_settings_init()
+static void win_settings_init(void)
 {
 	int i = 0;
 
@@ -115,8 +116,8 @@ static void win_settings_init()
 
 	/* Network category */
 	temp_net_type = network_type;
-	memset(temp_pcap_dev, 0, 520);
-	strcpy(temp_pcap_dev, pcap_dev);
+	memset(temp_pcap_dev, '\0', sizeof(temp_pcap_dev));
+	strcpy(temp_pcap_dev, network_pcap);
 	temp_net_card = network_card;
 
 	/* Peripherals category */
@@ -146,8 +147,9 @@ static void win_settings_init()
 	memcpy(temp_cdrom_drives, cdrom_drives, CDROM_NUM * sizeof(cdrom_drive_t));
 }
 
+
 /* This returns 1 if any variable has changed, 0 if not. */
-static int win_settings_changed()
+static int win_settings_changed(void)
 {
 	int i = 0;
 	int j = 0;
@@ -180,7 +182,7 @@ static int win_settings_changed()
 
 	/* Network category */
 	i = i || (network_type != temp_net_type);
-	i = i || strcmp(temp_pcap_dev, pcap_dev);
+	i = i || strcmp(temp_pcap_dev, network_pcap);
 	i = i || (network_card != temp_net_card);
 
 	/* Peripherals category */
@@ -212,7 +214,8 @@ static int win_settings_changed()
 	return i;
 }
 
-static int settings_msgbox_reset()
+
+static int settings_msgbox_reset(void)
 {
 	int i = 0;
 	int changed = 0;
@@ -242,8 +245,9 @@ static int settings_msgbox_reset()
 	}
 }
 
+
 /* This saves the settings back to the global variables. */
-static void win_settings_save()
+static void win_settings_save(void)
 {
 	int i = 0;
 
@@ -276,8 +280,8 @@ static void win_settings_save()
 
 	/* Network category */
 	network_type = temp_net_type;
-	memset(pcap_dev, 0, 512);
-	strcpy(pcap_dev, temp_pcap_dev);
+	memset(network_pcap, '\0', sizeof(network_pcap));
+	strcpy(network_pcap, temp_pcap_dev);
 	network_card = temp_net_card;
 
 	/* Peripherals category */
@@ -323,6 +327,7 @@ static void win_settings_save()
 
 	update_status_bar_panes(hwndStatus);
 }
+
 
 static void win_settings_machine_recalc_cpu(HWND hdlg)
 {
@@ -387,6 +392,7 @@ static void win_settings_machine_recalc_cpu(HWND hdlg)
 	SendMessage(h, BM_SETCHECK, temp_fpu, 0);
 }
 
+
 static void win_settings_machine_recalc_cpu_m(HWND hdlg)
 {
 	HWND h;
@@ -415,6 +421,7 @@ static void win_settings_machine_recalc_cpu_m(HWND hdlg)
 
 	free(lptsTemp);
 }
+
 
 static void win_settings_machine_recalc_model(HWND hdlg)
 {
@@ -481,6 +488,7 @@ static void win_settings_machine_recalc_model(HWND hdlg)
 
 	free(lptsTemp);
 }
+
 
 static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -629,6 +637,7 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 	return FALSE;
 }
 
+
 static void recalc_vid_list(HWND hdlg)
 {
         HWND h = GetDlgItem(hdlg, IDC_COMBO_VIDEO);
@@ -673,6 +682,7 @@ static void recalc_vid_list(HWND hdlg)
         h = GetDlgItem(hdlg, IDC_CONFIGURE_VOODOO);
         EnableWindow(h, ((models[model].flags & MODEL_PCI) && temp_voodoo) ? TRUE : FALSE);
 }
+
 
 static BOOL CALLBACK win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -959,6 +969,7 @@ static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wPa
 	return FALSE;
 }
 
+
 static void recalc_hdd_list(HWND hdlg, int model, int use_selected_hdd)
 {
 	HWND h;
@@ -1066,7 +1077,9 @@ static void recalc_hdd_list(HWND hdlg, int model, int use_selected_hdd)
 	free(lptsTemp);
 }
 
+
 int valid_ide_irqs[11] = { 2, 3, 4, 5, 7, 9, 10, 11, 12, 14, 15 };
+
 
 int find_irq_in_array(int irq, int def)
 {
@@ -1082,6 +1095,7 @@ int find_irq_in_array(int irq, int def)
 
 	return 7 + def;
 }
+
 
 static char midi_dev_name_buf[512];
 
@@ -1225,6 +1239,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 	}
 	return FALSE;
 }
+
 
 static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -1424,6 +1439,7 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 	return FALSE;
 }
 
+
 int net_ignore_message = 0;
 
 static void network_recalc_combos(HWND hdlg)
@@ -1433,7 +1449,7 @@ static void network_recalc_combos(HWND hdlg)
 	net_ignore_message = 1;
 
 	h = GetDlgItem(hdlg, IDC_COMBOPCAP);
-	if (temp_net_type == 1)
+	if (temp_net_type == NET_TYPE_PCAP)
 	{
 		EnableWindow(h, TRUE);
 	}
@@ -1443,11 +1459,12 @@ static void network_recalc_combos(HWND hdlg)
 	}
 
 	h = GetDlgItem(hdlg, IDC_COMBONET);
-	if (temp_net_type == 0)
+	if (temp_net_type == NET_TYPE_SLIRP)
 	{
 		EnableWindow(h, TRUE);
 	}
-	else if ((temp_net_type == 1) && (network_dev_to_id(temp_pcap_dev) > 0))
+	else if ((temp_net_type == NET_TYPE_PCAP) &&
+		 (network_dev_to_id(temp_pcap_dev) > 0))
 	{
 		EnableWindow(h, TRUE);
 	}
@@ -1457,11 +1474,14 @@ static void network_recalc_combos(HWND hdlg)
 	}
 
 	h = GetDlgItem(hdlg, IDC_CONFIGURENET);
-	if (network_card_has_config(temp_net_card) && (temp_net_type == 0))
+	if (network_card_has_config(temp_net_card) &&
+	    (temp_net_type == NET_TYPE_SLIRP))
 	{
 		EnableWindow(h, TRUE);
 	}
-	else if (network_card_has_config(temp_net_card) && (temp_net_type == 1) && (network_dev_to_id(temp_pcap_dev) > 0))
+	else if (network_card_has_config(temp_net_card) &&
+	         (temp_net_type == NET_TYPE_PCAP) &&
+		  (network_dev_to_id(temp_pcap_dev) > 0))
 	{
 		EnableWindow(h, TRUE);
 	}
@@ -1490,10 +1510,10 @@ static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM w
 			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) L"None");
 			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) L"PCap");
 			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) L"SLiRP");
-			SendMessage(h, CB_SETCURSEL, temp_net_type + 1, 0);
+			SendMessage(h, CB_SETCURSEL, temp_net_type, 0);
 
 			h = GetDlgItem(hdlg, IDC_COMBOPCAP);
-			if (temp_net_type == 0)
+			if (temp_net_type == NET_TYPE_PCAP)
 			{
 				EnableWindow(h, TRUE);
 			}
@@ -1503,9 +1523,9 @@ static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM w
 			}
 
 			h = GetDlgItem(hdlg, IDC_COMBOPCAP);
-			for (c = 0; c < netdev_num; c++)
+			for (c = 0; c < network_ndev; c++)
 			{
-				mbstowcs(lptsTemp, netdev_list[c].description, strlen(netdev_list[c].description) + 1);
+				mbstowcs(lptsTemp, network_devs[c].description, strlen(network_devs[c].description) + 1);
 				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 			}
 			SendMessage(h, CB_SETCURSEL, network_dev_to_id(temp_pcap_dev), 0);
@@ -1517,7 +1537,7 @@ static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM w
 			{
 				char *s = network_card_getname(c);
 
-				if (!s[0])
+				if (s[0] == '\0')
 				{
 					break;
 				}
@@ -1559,7 +1579,7 @@ static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM w
 					}
 
 					h = GetDlgItem(hdlg, IDC_COMBONETTYPE);
-					temp_net_type = SendMessage(h, CB_GETCURSEL, 0, 0) - 1;
+					temp_net_type = SendMessage(h, CB_GETCURSEL, 0, 0);
 
 					network_recalc_combos(hdlg);
 					break;
@@ -1571,8 +1591,8 @@ static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM w
 					}
 
 					h = GetDlgItem(hdlg, IDC_COMBOPCAP);
-					memset(temp_pcap_dev, 0, 520);
-					strcpy(temp_pcap_dev, netdev_list[SendMessage(h, CB_GETCURSEL, 0, 0)].device);
+					memset(temp_pcap_dev, '\0', sizeof(temp_pcap_dev));
+					strcpy(temp_pcap_dev, network_devs[SendMessage(h, CB_GETCURSEL, 0, 0)].device);
 
 					network_recalc_combos(hdlg);
 					break;
@@ -1605,11 +1625,11 @@ static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM w
 
 		case WM_SAVESETTINGS:
 			h = GetDlgItem(hdlg, IDC_COMBONETTYPE);
-			temp_net_type = SendMessage(h, CB_GETCURSEL, 0, 0) - 1;
+			temp_net_type = SendMessage(h, CB_GETCURSEL, 0, 0);
 
 			h = GetDlgItem(hdlg, IDC_COMBOPCAP);
-			memset(temp_pcap_dev, 0, 520);
-			strcpy(temp_pcap_dev, netdev_list[SendMessage(h, CB_GETCURSEL, 0, 0)].device);
+			memset(temp_pcap_dev, '\0', sizeof(temp_pcap_dev));
+			strcpy(temp_pcap_dev, network_devs[SendMessage(h, CB_GETCURSEL, 0, 0)].device);
 
 			h = GetDlgItem(hdlg, IDC_COMBONET);
 			temp_net_card = settings_list_to_network[SendMessage(h, CB_GETCURSEL, 0, 0)];

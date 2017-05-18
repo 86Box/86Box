@@ -2,7 +2,7 @@
 #include "../io.h"
 #include "../pic.h"
 #include "../timer.h"
-#include "../plat-midi.h"
+#include "../win/plat_midi.h"	/*YUCK*/
 #include "snd_mpu401.h"
 
 #include <stdarg.h>

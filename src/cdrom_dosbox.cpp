@@ -28,7 +28,7 @@
 #include <sstream>
 #include <vector>
 #include <sys/stat.h>
-#include "cdrom-dosbox.h"
+#include "cdrom_dosbox.h"
 
 #if !defined(WIN32)
 #include <libgen.h>

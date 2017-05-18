@@ -1,16 +1,14 @@
 #ifdef __amd64__
 
 #include <stdlib.h>
-#include "ibm.h"
+#include "../ibm.h"
+#include "../mem.h"
 #include "cpu.h"
 #include "x86.h"
 #include "x86_flags.h"
 #include "x86_ops.h"
 #include "x87.h"
-#include "mem.h"
-
 #include "386_common.h"
-
 #include "codegen.h"
 #include "codegen_ops.h"
 #include "codegen_ops_x86-64.h"

@@ -6,10 +6,10 @@
 #include <math.h>
 #include <stdint.h>
 extern "C" {
-#include "device.h"
-#include "gameport.h"
+#include "../device.h"
+#include "../gameport.h"
 }
-#include "plat-joystick.h"
+#include "plat_joystick.h"
 #include "win.h"
 
 extern "C" int video_fullscreen;

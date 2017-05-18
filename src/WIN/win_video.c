@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "video/video.h"
-#include "win-cgapal.h"
+#include "../video/video.h"
+#include "win_cgapal.h"
 
 
 BITMAP *screen;

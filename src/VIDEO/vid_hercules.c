@@ -11,7 +11,7 @@
 #include "video.h"
 #include "vid_hercules.h"
 #ifndef __unix
-#include "../win-cgapal.h"
+# include "../win/win_cgapal.h"		/*YUCK*/
 #endif
 
 

@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include "ibm.h"
 #include "ide.h"
-#include "cdrom-ioctl.h"
+#include "cdrom_ioctl.h"
 
 static ATAPI ioctl_atapi;
 

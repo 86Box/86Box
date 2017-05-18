@@ -7,10 +7,10 @@
 #define BITMAP WINDOWS_BITMAP
 #include <ddraw.h>
 #undef BITMAP
+#include "../video/video.h"
 #include "win.h"
-#include "win-ddraw-screenshot.h"
-#include "win-language.h"
-#include "video/video.h"
+#include "win_ddraw-screenshot.h"
+#include "win_language.h"
 
 
 extern "C" void fatal(const char *format, ...);

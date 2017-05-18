@@ -4,7 +4,8 @@
 #include "timer.h"
 #include "gameport.h"
 #include "joystick_standard.h"
-#include "plat-joystick.h"
+#include "plat_joystick.h"
+
 
 static void *tm_fcs_init()
 {

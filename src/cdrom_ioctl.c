@@ -10,7 +10,7 @@
 #include "ntddscsi.h"
 #include "ibm.h"
 #include "cdrom.h"
-#include "cdrom-ioctl.h"
+#include "cdrom_ioctl.h"
 #include "scsi.h"
 
 #define MSFtoLBA(m,s,f)  ((((m*60)+s)*75)+f)

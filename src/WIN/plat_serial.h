@@ -8,7 +8,7 @@
  *
  *		Definitions for the Bottom Half of the SERIAL card.
  *
- * Version:	@(#)plat-serial.h	1.0.3	2017/05/06
+ * Version:	@(#)plat_serial.h	1.0.3	2017/05/17
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.

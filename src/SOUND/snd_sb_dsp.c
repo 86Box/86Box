@@ -9,7 +9,7 @@
 #include "../io.h"
 #include "../pic.h"
 #include "../dma.h"
-#include "../plat-midi.h"
+#include "../win/plat_midi.h"	/*YUCK*/
 #include "../timer.h"
 #include "sound.h"
 #include "snd_mpu401.h"

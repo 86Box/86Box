@@ -26,7 +26,8 @@
 #include "timer.h"
 #include "gameport.h"
 #include "joystick_sw_pad.h"
-#include "plat-joystick.h"
+#include "plat_joystick.h"
+
 
 typedef struct
 {

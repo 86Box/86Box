@@ -3,7 +3,7 @@
 */
 #include "ibm.h"
 #include "cdrom.h"
-#include "cdrom-ioctl.h"
+#include "cdrom_ioctl.h"
 
 static CDROM null_cdrom;
 

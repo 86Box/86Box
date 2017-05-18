@@ -3,7 +3,8 @@
 #include "keyboard_at.h"
 #include "mouse.h"
 #include "mouse_ps2.h"
-#include "plat-mouse.h"
+#include "plat_mouse.h"
+
 
 int mouse_scan = 0;
 

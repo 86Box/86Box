@@ -6,10 +6,10 @@
 #include <stdarg.h>
 
 #include "config.h"
-#include "cdrom-dosbox.h"
+#include "cdrom_dosbox.h"
 #include "cdrom.h"
-#include "cdrom-image.h"
-#include "cdrom-null.h"
+#include "cdrom_image.h"
+#include "cdrom_null.h"
 
 #define __USE_LARGEFILE64
 #define _LARGEFILE_SOURCE

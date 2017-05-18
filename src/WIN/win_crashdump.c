@@ -1,7 +1,7 @@
 /* Copyright holders: Riley
    see COPYING for more details
    
-   win-crashdump.c : Windows exception handler to make a crash dump just before a crash happens.
+   win_crashdump.c : Windows exception handler to make a crash dump just before a crash happens.
 */
 #define _WIN32_WINNT 0x0501
 #include <windows.h>
@@ -9,8 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "86box.h"
-#include "win-crashdump.h"
+#include "../86box.h"
+#include "win_crashdump.h"
 
 PVOID hExceptionHandler;
 char* ExceptionHandlerBuffer;

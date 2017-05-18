@@ -6,11 +6,11 @@
 #include <windowsx.h>
 #undef BITMAP
 
-#include "ibm.h"
-#include "config.h"
-#include "device.h"
-#include "gameport.h"
-#include "plat-joystick.h"
+#include "../ibm.h"
+#include "../config.h"
+#include "../device.h"
+#include "../gameport.h"
+#include "plat_joystick.h"
 #include "resource.h"
 #include "win.h"
 

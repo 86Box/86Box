@@ -10,7 +10,7 @@
  *
  *		Based on old original code @(#)dir_win32.c 1.2.0 2007/04/19
  *
- * Version:	@(#)win-opendir.c	1.0.1	2017/05/12
+ * Version:	@(#)win_opendir.c	1.0.1	2017/05/17
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 1998-2007 MicroWalt Corporation
@@ -23,8 +23,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "ibm.h"
-#include "plat-dir.h"
+#include "../ibm.h"
+#include "plat_dir.h"
 
 
 #ifdef UNICODE

@@ -3,9 +3,9 @@
 */
 #include <windows.h>
 #include <mmsystem.h>
-#include "ibm.h"
-#include "config.h"
-#include "plat-midi.h"
+#include "../ibm.h"
+#include "../config.h"
+#include "plat_midi.h"
 
 int midi_id;
 static HMIDIOUT midi_out_device = NULL;

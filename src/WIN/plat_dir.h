@@ -8,7 +8,7 @@
  *
  *		Definitions for the platform OpenDir module.
  *
- * Version:	@(#)plat-dir.h	1.0.1	2017/05/12
+ * Version:	@(#)plat_dir.h	1.0.1	2017/05/17
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.

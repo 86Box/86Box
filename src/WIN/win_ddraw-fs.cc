@@ -6,10 +6,10 @@
 #define BITMAP WINDOWS_BITMAP
 #include <ddraw.h>
 #undef BITMAP
-#include "win-ddraw-fs.h"
-#include "win-ddraw-screenshot.h"
-#include "video/video.h"
-#include "win-cgapal.h"
+#include "../video/video.h"
+#include "win_ddraw-fs.h"
+#include "win_ddraw-screenshot.h"
+#include "win_cgapal.h"
 
 
 extern "C" void fatal(const char *format, ...);

@@ -18,8 +18,6 @@
 #include "device.h"
 
 #include "ali1429.h"
-#include "cdrom.h"
-#include "cdrom-ioctl.h"
 #include "disc.h"
 #include "disc_86f.h"
 #include "disc_fdi.h"
@@ -31,20 +29,21 @@
 #include "fdc.h"
 #include "fdd.h"
 #include "gameport.h"
-#include "plat-joystick.h"
-#include "plat-midi.h"
+#include "plat_joystick.h"
+#include "plat_midi.h"
 #include "hdd.h"
 #include "ide.h"
 #include "cdrom.h"
-#include "cdrom-image.h"
-#include "cdrom-null.h"
+#include "cdrom_ioctl.h"
+#include "cdrom_image.h"
+#include "cdrom_null.h"
 #include "scsi.h"
 #include "keyboard.h"
-#include "plat-keyboard.h"
+#include "plat_keyboard.h"
 #include "keyboard_at.h"
 #include "model.h"
 #include "mouse.h"
-#include "plat-mouse.h"
+#include "plat_mouse.h"
 #include "network.h"
 #include "serial.h"
 #include "sound/sound.h"
@@ -60,7 +59,7 @@
 #include "amstrad.h"
 #ifdef WALTJE
 # define UNICODE
-# include "plat-dir.h"
+# include "plat_dir.h"
 #endif
 
 #ifndef __unix
@@ -69,7 +68,7 @@
 #include <windows.h>
 #undef BITMAP
 #include "win.h"
-#include "win-language.h"
+#include "win_language.h"
 #endif
 
 
@@ -287,9 +286,6 @@ void initpc(int argc, wchar_t *argv[])
         p=get_filename_w(pcempath);
         *p=L'\0';
         pclog("path = %ws\n", pcempath);        
-
-	/* Initialize list of PCap devices. */
-	netdev_num = network_devlist(netdev_list);
 
         for (c = 1; c < argc; c++)
         {

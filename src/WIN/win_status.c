@@ -6,11 +6,11 @@
 #include <windowsx.h>
 #undef BITMAP
 
-#include "ibm.h"
-#include "mem.h"
-#include "cpu/x86_ops.h"
-#include "cpu/codegen.h"
-#include "device.h"
+#include "../ibm.h"
+#include "../mem.h"
+#include "../cpu/x86_ops.h"
+#include "../cpu/codegen.h"
+#include "../device.h"
 #include "resource.h"
 #include "win.h"
 

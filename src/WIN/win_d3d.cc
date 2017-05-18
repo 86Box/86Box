@@ -7,10 +7,11 @@
 #include <d3d9.h>
 #undef BITMAP
 #include <D3dx9tex.h>
+#include "win.h"
+#include "win_d3d.h"
+#include "../video/video.h"
+#include "win_cgapal.h"
 #include "resource.h"
-#include "win-d3d.h"
-#include "video/video.h"
-#include "win-cgapal.h"
 
 
 extern "C" void fatal(const char *format, ...);

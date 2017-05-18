@@ -10,12 +10,12 @@
 
 #include <commdlg.h>
 
-#include "ibm.h"
-#include "device.h"
-#include "ide.h"
+#include "../ibm.h"
+#include "../device.h"
+#include "../ide.h"
 #include "resource.h"
 #include "win.h"
-#include "win-language.h"
+#include "win_language.h"
 
 LCID dwLanguage;
 

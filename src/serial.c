@@ -33,7 +33,7 @@
  *
  *		Based on the 86Box serial port driver as a framework.
  *
- * Version:	@(#)serial.c	1.0.5	2017/05/07
+ * Version:	@(#)serial.c	1.0.5	2017/05/17
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -43,7 +43,7 @@
 #include "pic.h"
 #include "timer.h"
 #include "serial.h"
-#include "plat-serial.h"
+#include "plat_serial.h"
 
 
 enum {

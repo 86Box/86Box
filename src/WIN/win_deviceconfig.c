@@ -6,9 +6,9 @@
 #include <windowsx.h>
 #undef BITMAP
 
-#include "ibm.h"
-#include "config.h"
-#include "device.h"
+#include "../ibm.h"
+#include "../config.h"
+#include "../device.h"
 #include "resource.h"
 #include "win.h"
 

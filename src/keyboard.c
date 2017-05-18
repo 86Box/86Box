@@ -2,7 +2,7 @@
    see COPYING for more details
 */
 #include "ibm.h"
-#include "plat-keyboard.h"
+#include "plat_keyboard.h"
 #include "keyboard.h"
 
 int keybsendcallback = 0;

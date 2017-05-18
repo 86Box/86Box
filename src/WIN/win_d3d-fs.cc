@@ -8,11 +8,11 @@
 #include <d3d9.h>
 #undef BITMAP
 #include <D3dx9tex.h>
-#include "86box.h"
-#include "video/video.h"
-#include "win-d3d-fs.h"
+#include "../86box.h"
+#include "../video/video.h"
 #include "win.h"
-#include "win-cgapal.h"
+#include "win_d3d-fs.h"
+#include "win_cgapal.h"
 #include "resource.h"
 
 
