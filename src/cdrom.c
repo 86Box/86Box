@@ -3100,7 +3100,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 			break;
 
 		case GPCMD_START_STOP_UNIT:
-			switch(cdbufferb[4] & 3)
+			switch(cdb[4] & 3)
 			{
 				case 0:		/* Stop the disc. */
 					if (cdrom_drives[id].handler->stop)

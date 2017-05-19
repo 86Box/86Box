@@ -906,16 +906,6 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			scsi_hd_command_complete(id);
 			break;
 
-		case GPCMD_PREVENT_REMOVAL:
-			if (hdc[id].bus != 5)
-			{
-				scsi_hd_illegal_opcode(id);
-				break;
-			}
-
-			scsi_hd_command_complete(id);
-			break;
-
 		case GPCMD_REZERO_UNIT:
 			shdc[id].sector_pos = shdc[id].sector_len = 0;
 			scsi_hd_seek(id, 0);
@@ -1072,7 +1062,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				break;
 			}
 
-			switch(cdbufferb[4] & 3)
+			switch(cdb[4] & 3)
 			{
 				case 0:		/* Stop the disc. */
 				case 1:		/* Start the disc and read the TOC. */

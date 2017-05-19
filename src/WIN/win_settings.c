@@ -2219,6 +2219,8 @@ uint64_t selection = 127;
 uint64_t spt, hpc, tracks, size;
 wchar_t hd_file_name[512];
 
+static hard_disk_t *hdc_ptr;
+
 static int hdconf_initialize_hdt_combo(HWND hdlg)
 {
         HWND h;
@@ -2287,19 +2289,26 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 		case WM_INITDIALOG:
 			memset(hd_file_name, 0, 512);
 
-			SetWindowText(hdlg, win_language_get_string_from_id(existing ? 2197 : 2196));
+			hdc_ptr = (existing & 2) ? hdc : temp_hdc;
+
+			if (existing & 2)
+			{
+				next_free_id = (existing & 0xf0) >> 4;
+			}
+
+			SetWindowText(hdlg, win_language_get_string_from_id((existing & 1) ? 2197 : 2196));
 
 			no_update = 1;
-			spt = existing ? 0 : 17;
+			spt = (existing & 1) ? 0 : 17;
 			set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, spt);
-			hpc = existing ? 0 : 15;
+			hpc = (existing & 1) ? 0 : 15;
 			set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, hpc);
-			tracks = existing ? 0 : 1023;
+			tracks = (existing & 1) ? 0 : 1023;
 			set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, tracks);
 			size = (tracks * hpc * spt) << 9;
 			set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, size >> 20);
 			hdconf_initialize_hdt_combo(hdlg);
-			if (existing)
+			if (existing & 1)
 			{
 				h = GetDlgItem(hdlg, IDC_EDIT_HD_SPT);
 				EnableWindow(h, FALSE);
@@ -2339,25 +2348,44 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 						return TRUE;
 					}
 
-					get_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, &(temp_hdc[next_free_id].spt));
-					get_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, &(temp_hdc[next_free_id].hpc));
-					get_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, &(temp_hdc[next_free_id].tracks));
+					get_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, &(hdc_ptr[next_free_id].spt));
+					get_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, &(hdc_ptr[next_free_id].hpc));
+					get_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, &(hdc_ptr[next_free_id].tracks));
+					spt = hdc_ptr[next_free_id].spt;
+					hpc = hdc_ptr[next_free_id].hpc;
+					tracks = hdc_ptr[next_free_id].tracks;
 					h = GetDlgItem(hdlg, IDC_COMBO_HD_BUS);
-					temp_hdc[next_free_id].bus = SendMessage(h, CB_GETCURSEL, 0, 0) + 1;
+					hdc_ptr[next_free_id].bus = SendMessage(h, CB_GETCURSEL, 0, 0) + 1;
 					h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL);
-					temp_hdc[next_free_id].mfm_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
+					hdc_ptr[next_free_id].mfm_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
 					h = GetDlgItem(hdlg, IDC_COMBO_HD_ID);
-					temp_hdc[next_free_id].scsi_id = SendMessage(h, CB_GETCURSEL, 0, 0);
+					hdc_ptr[next_free_id].scsi_id = SendMessage(h, CB_GETCURSEL, 0, 0);
 					h = GetDlgItem(hdlg, IDC_COMBO_HD_LUN);
-					temp_hdc[next_free_id].scsi_lun = SendMessage(h, CB_GETCURSEL, 0, 0);
+					hdc_ptr[next_free_id].scsi_lun = SendMessage(h, CB_GETCURSEL, 0, 0);
 					h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL_IDE);
-					temp_hdc[next_free_id].ide_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
-					memset(temp_hdd_fn[next_free_id], 0, 1024);
-					memcpy(temp_hdd_fn[next_free_id], hd_file_name, (wcslen(hd_file_name) << 1) + 2);
+					hdc_ptr[next_free_id].ide_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
+					if (existing & 2)
+					{
+#if 0
+						if (hdc[next_free_id].bus == 5)
+						{
+							memset(prev_hdd_fn[next_free_id], 0, 1024);
+							memcpy(prev_hdd_fn[next_free_id], hdd_fn[next_free_id], (wcslen(hdd_fn[next_free_id]) << 1) + 2);
+						}
+#endif
+
+						memset(hdd_fn[next_free_id], 0, 1024);
+						memcpy(hdd_fn[next_free_id], hd_file_name, (wcslen(hd_file_name) << 1) + 2);
+					}
+					else
+					{
+						memset(temp_hdd_fn[next_free_id], 0, 1024);
+						memcpy(temp_hdd_fn[next_free_id], hd_file_name, (wcslen(hd_file_name) << 1) + 2);
+					}
 
 					sector_size = 512;
 
-					if (!existing && (wcslen(hd_file_name) > 0))
+					if (!(existing & 1) && (wcslen(hd_file_name) > 0))
 					{
 						f = _wfopen(hd_file_name, L"wb");
 
@@ -2414,6 +2442,14 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 						msgbox_info(hwndParentDialog, 2059);	                        
 					}
 
+#if 0
+					if ((existing & 2) && (hdc[next_free_id].bus == 5))
+					{
+						scsi_hd_insert(id);
+						update_status_bar_icon_state(0x20 | next_free_id, 0);
+					}
+#endif
+
 					hard_disk_added = 1;
 					EndDialog(hdlg, 0);
 					return TRUE;
@@ -2424,7 +2460,7 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 					return TRUE;
 
 				case IDC_CFILE:
-		                        if (!file_dlg_w(hdlg, win_language_get_string_from_id(2172), L"", !existing))
+		                        if (!file_dlg_w(hdlg, win_language_get_string_from_id(2172), L"", !(existing & 1)))
        			                {
 						if (!existing)
 						{
@@ -2439,13 +2475,13 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 							}
 						}
 
-						f = _wfopen(wopenfilestring, existing ? L"rb" : L"wb");
+						f = _wfopen(wopenfilestring, (existing & 1) ? L"rb" : L"wb");
 						if (f == NULL)
 						{
-							msgbox_error(hwndParentDialog, existing ? 2060 : 2057);
+							msgbox_error(hwndParentDialog, (existing & 1) ? 2060 : 2057);
 							return TRUE;
 						}
-						if (existing)
+						if (existing & 1)
 						{
 							if (image_is_hdi(wopenfilestring) || image_is_hdx(wopenfilestring, 1))
 							{
@@ -2672,7 +2708,7 @@ void hard_disk_add_open(HWND hwnd, int is_existing)
 {
 	BOOL ret;
 
-	existing = !!is_existing;
+	existing = is_existing;
 	hard_disk_added = 0;
         ret = DialogBox(hinstance, (LPCWSTR) CONFIGUREDLG_HARD_DISKS_ADD, hwnd, win_settings_hard_disks_add_proc);
 }
