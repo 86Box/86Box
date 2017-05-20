@@ -1809,12 +1809,13 @@ nic_init(int board)
     mac = device_get_config_int_ex("mac", -1);
 
     /* Set up our MAC address. */
+#if 0
     if (dev->is_rtl8029as) {
-	dev->maclocal[0] = 0x00;  /* 00:20:18 (RTL 8029AS PCI vendor prefix). */
+	dev->maclocal[0] = 0xDE /* 0x00 */;  /* 00:20:18 (RTL 8029AS PCI vendor prefix). */
 	dev->maclocal[1] = 0x20;
 	dev->maclocal[2] = 0x18;
     } else {
-	dev->maclocal[0] = 0x00;  /* 00:00:D8 (NE2000 ISA vendor prefix). */
+	dev->maclocal[0] = 0xDE /* 0x00 */;  /* 00:00:D8 (NE2000 ISA vendor prefix). */
 	dev->maclocal[1] = 0x00;
 	dev->maclocal[2] = 0xD8;
     }
@@ -1833,6 +1834,14 @@ nic_init(int board)
 	dev->maclocal[5] = (mac & 0xff) | 1;
 #endif
     }
+#else
+	dev->maclocal[0] = 0xac;
+	dev->maclocal[1] = 0xde;
+	dev->maclocal[2] = 0x48;
+	dev->maclocal[3] = 0x88;
+	dev->maclocal[4] = 0xbb;
+	dev->maclocal[5] = 0xaa;
+#endif
     memcpy(dev->physaddr, dev->maclocal, sizeof(dev->maclocal));
 
     pclog(1,"%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x BIOS=%d\n",
