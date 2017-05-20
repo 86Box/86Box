@@ -1256,7 +1256,7 @@ uint8_t svga_read(uint32_t addr, void *p)
         if (svga->chain4 || svga->fb_only) 
         { 
                 if (addr >= svga->vram_limit)
-                   return 0x00;
+                   return 0xff;
                 return svga->vram[svga_mask_addr(addr, svga)];
         }
         else if (svga->chain2_read)
@@ -1274,7 +1274,7 @@ uint8_t svga_read(uint32_t addr, void *p)
                 addr<<=2;
 
         if (addr >= svga->vram_limit)
-           return 0x00;
+           return 0xff;
 
 	addr = svga_mask_addr(addr, svga);
         
