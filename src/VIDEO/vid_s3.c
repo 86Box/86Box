@@ -407,11 +407,19 @@ static void s3_accel_out_fifo_w(s3_t *s3, uint16_t port, uint16_t val)
                 if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80)
                 {
                         if (s3->accel.cmd & 0x1000)
-                           val = (val >> 8) | (val << 8);
-                        s3_accel_start(16, 1, val | (val << 16), 0, s3);
+                                val = (val >> 8) | (val << 8);
+                        if ((s3->accel.cmd & 0x600) == 0x000)
+                                s3_accel_start(8, 1, val | (val << 16), 0, s3);
+                        else
+                                s3_accel_start(16, 1, val | (val << 16), 0, s3);
                 }
                 else
-                   s3_accel_start(2, 1, 0xffffffff, val | (val << 16), s3);
+                {
+                        if ((s3->accel.cmd & 0x600) == 0x000)
+                                s3_accel_start(1, 1, 0xffffffff, val | (val << 16), s3);
+                        else
+                                s3_accel_start(2, 1, 0xffffffff, val | (val << 16), s3);
+                }
         }
 }
 
@@ -421,38 +429,40 @@ static void s3_accel_out_fifo_l(s3_t *s3, uint16_t port, uint32_t val)
         {
                 if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80)
                 {
-                        if (s3->accel.cmd & 0x1000)
-                                val = ((val & 0xff000000) >> 24) | ((val & 0x00ff0000) >> 8) | ((val & 0x0000ff00) << 8) | ((val & 0x000000ff) << 24);
-                        if ((s3->accel.cmd & 0x600) == 0x400)
+                        if (s3->accel.cmd & 0x400)
+                        {
+                                if (s3->accel.cmd & 0x1000)
+                                        val = ((val & 0xff000000) >> 24) | ((val & 0x00ff0000) >> 8) | ((val & 0x0000ff00) << 8) | ((val & 0x000000ff) << 24);
                                 s3_accel_start(32, 1, val, 0, s3);
+                        }
                         else if ((s3->accel.cmd & 0x600) == 0x200)
                         {
-                                s3_accel_start(16, 1, val >> 16, 0, s3);
+                                if (s3->accel.cmd & 0x1000)
+                                        val = ((val & 0xff00ff00) >> 8) | ((val & 0x00ff00ff) << 8);
                                 s3_accel_start(16, 1, val, 0, s3);
+                                s3_accel_start(16, 1, val >> 16, 0, s3);
                         }
-                        else if (!(s3->accel.cmd & 0x600))
+                        else
                         {
-                                s3_accel_start(8, 1, val >> 24, 0, s3);
+                                if (s3->accel.cmd & 0x1000)
+                                        val = ((val & 0xff00ff00) >> 8) | ((val & 0x00ff00ff) << 8);
+                                s3_accel_start(8, 1, val, 0, s3);
                                 s3_accel_start(8, 1, val >> 16, 0, s3);
-                                s3_accel_start(8, 1, val >> 8,  0, s3);
-                                s3_accel_start(8, 1, val,       0, s3);
                         }
                 }
                 else
                 {
-                        if ((s3->accel.cmd & 0x600) == 0x400)
+                        if (s3->accel.cmd & 0x400)
                                 s3_accel_start(4, 1, 0xffffffff, val, s3);
                         else if ((s3->accel.cmd & 0x600) == 0x200)
                         {
-                                s3_accel_start(2, 1, 0xffffffff, val >> 16, s3);
                                 s3_accel_start(2, 1, 0xffffffff, val, s3);
+                                s3_accel_start(2, 1, 0xffffffff, val >> 16, s3);
                         }
-                        else if (!(s3->accel.cmd & 0x600))
+                        else
                         {
-                                s3_accel_start(1, 1, 0xffffffff, val >> 24, s3);
-                                s3_accel_start(1, 1, 0xffffffff, val >> 16, s3);
-                                s3_accel_start(1, 1, 0xffffffff, val >> 8, s3);
                                 s3_accel_start(1, 1, 0xffffffff, val, s3);
+                                s3_accel_start(1, 1, 0xffffffff, val >> 16, s3);
                         }
                 }
         }
@@ -565,78 +575,88 @@ static void s3_accel_write_fifo(s3_t *s3, uint32_t addr, uint8_t val)
 
 static void s3_accel_write_fifo_w(s3_t *s3, uint32_t addr, uint16_t val)
 {
-        if (addr & 0x8000)
-        {
-                s3_accel_write_fifo(s3, addr,     val);
-                s3_accel_write_fifo(s3, addr + 1, val >> 8);
-        }
-        else
-        {
-                if (s3->accel.cmd & 0x100)
-                {
-                        if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80)
-                        {
-                                if (s3->accel.cmd & 0x1000)
-                                        val = (val >> 8) | (val << 8);
-                                s3_accel_start(16, 1, val | (val << 16), 0, s3);
-                        }
-                        else
-                           s3_accel_start(2, 1, 0xffffffff, val | (val << 16), s3);
-                }
-        }
+       if (addr & 0x8000)
+       {
+               s3_accel_write_fifo(s3, addr,     val);
+               s3_accel_write_fifo(s3, addr + 1, val >> 8);
+       }
+       else
+       {
+               if (s3->accel.cmd & 0x100)
+               {
+                       if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80)
+                       {
+                               if (s3->accel.cmd & 0x1000)
+                                       val = (val >> 8) | (val << 8);
+                               if ((s3->accel.cmd & 0x600) == 0x000)
+                                       s3_accel_start(8, 1, val | (val << 16), 0, s3);
+                               else
+                                       s3_accel_start(16, 1, val | (val << 16), 0, s3);
+                       }
+                       else
+                       {
+                               if ((s3->accel.cmd & 0x600) == 0x000)
+                                       s3_accel_start(1, 1, 0xffffffff, val | (val << 16), s3);
+                               else
+                                       s3_accel_start(2, 1, 0xffffffff, val | (val << 16), s3);
+                       }
+               }
+       }
 }
 
 static void s3_accel_write_fifo_l(s3_t *s3, uint32_t addr, uint32_t val)
 {
-        if (addr & 0x8000)
-        {
-                s3_accel_write_fifo(s3, addr,     val);
-                s3_accel_write_fifo(s3, addr + 1, val >> 8);
-                s3_accel_write_fifo(s3, addr + 2, val >> 16);
-                s3_accel_write_fifo(s3, addr + 3, val >> 24);
-        }
-        else
-        {
-                if (s3->accel.cmd & 0x100)
-                {
-                        if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80)
-                        {
-                                if (s3->accel.cmd & 0x1000)
-                                        val = ((val & 0xff000000) >> 24) | ((val & 0x00ff0000) >> 8) | ((val & 0x0000ff00) << 8) | ((val & 0x000000ff) << 24);
-                                if ((s3->accel.cmd & 0x600) == 0x400)
-                                        s3_accel_start(32, 1, val, 0, s3);
-                                else if ((s3->accel.cmd & 0x600) == 0x200)
-                                {
-                                        s3_accel_start(16, 1, val >> 16, 0, s3);
-                                        s3_accel_start(16, 1, val, 0,       s3);
-                                }
-                                else if (!(s3->accel.cmd & 0x600))
-                                {
-                                        s3_accel_start(8, 1, val >> 24, 0, s3);
-                                        s3_accel_start(8, 1, val >> 16, 0, s3);
-                                        s3_accel_start(8, 1, val >> 8,  0, s3);
-                                        s3_accel_start(8, 1, val,       0, s3);
-                                }
-                        }
-                        else
-                        {
-                                if ((s3->accel.cmd & 0x600) == 0x400)
-                                        s3_accel_start(4, 1, 0xffffffff, val, s3);
-                                else if ((s3->accel.cmd & 0x600) == 0x200)
-                                {
-                                        s3_accel_start(2, 1, 0xffffffff, val,       s3);
-                                        s3_accel_start(2, 1, 0xffffffff, val >> 16, s3);
-                                }
-                                else if (!(s3->accel.cmd & 0x600))
-                                {
-                                        s3_accel_start(1, 1, 0xffffffff, val,       s3);
-                                        s3_accel_start(1, 1, 0xffffffff, val >> 8,  s3);
-                                        s3_accel_start(1, 1, 0xffffffff, val >> 16, s3);
-                                        s3_accel_start(1, 1, 0xffffffff, val >> 24, s3);
-                                }
-                        }
-                }
-        }
+       if (addr & 0x8000)
+       {
+               s3_accel_write_fifo(s3, addr,     val);
+               s3_accel_write_fifo(s3, addr + 1, val >> 8);
+               s3_accel_write_fifo(s3, addr + 2, val >> 16);
+               s3_accel_write_fifo(s3, addr + 3, val >> 24);
+       }
+       else
+       {
+               if (s3->accel.cmd & 0x100)
+               {
+                       if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80)
+                       {
+                               if (s3->accel.cmd & 0x400)
+                               {
+                                       if (s3->accel.cmd & 0x1000)
+                                               val = ((val & 0xff000000) >> 24) | ((val & 0x00ff0000) >> 8) | ((val & 0x0000ff00) << 8) | ((val & 0x000000ff) << 24);
+                                       s3_accel_start(32, 1, val, 0, s3);
+                               }
+                               else if ((s3->accel.cmd & 0x600) == 0x200)
+                               {
+                                       if (s3->accel.cmd & 0x1000)
+                                               val = ((val & 0xff00ff00) >> 8) | ((val & 0x00ff00ff) << 8);
+                                       s3_accel_start(16, 1, val, 0, s3);
+                                       s3_accel_start(16, 1, val >> 16, 0, s3);
+                               }
+                               else
+                               {
+                                       if (s3->accel.cmd & 0x1000)
+                                               val = ((val & 0xff00ff00) >> 8) | ((val & 0x00ff00ff) << 8);
+                                       s3_accel_start(8, 1, val, 0, s3);
+                                       s3_accel_start(8, 1, val >> 16, 0, s3);
+                              }
+                       }
+                       else
+                       {
+                               if (s3->accel.cmd & 0x400)
+                                       s3_accel_start(4, 1, 0xffffffff, val, s3);
+                               else if ((s3->accel.cmd & 0x600) == 0x200)
+                               {
+                                       s3_accel_start(2, 1, 0xffffffff, val, s3);
+                                       s3_accel_start(2, 1, 0xffffffff, val >> 16, s3);
+                               }
+                               else
+                               {
+                                       s3_accel_start(1, 1, 0xffffffff, val, s3);
+                                       s3_accel_start(1, 1, 0xffffffff, val >> 16, s3);
+                               }
+                       }
+               }
+       }
 }
 
 static void fifo_thread(void *param)

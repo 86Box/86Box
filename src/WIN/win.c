@@ -107,7 +107,7 @@ LRESULT CALLBACK subWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 
 LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-LONG OriginalStatusBarProcedure;
+LONG_PTR OriginalStatusBarProcedure;
 
 HWND ghwnd;
 
@@ -696,7 +696,7 @@ void update_status_bar_icon(int tag, int active)
 	int found = -1;
 	int temp_flags = 0;
 
-	if ((tag & 0xf0) >= 0x30)
+	if ((tag & 0xf0) >= 0x40)
 	{
 		return;
 	}
@@ -833,7 +833,7 @@ void update_tip(int meaning)
 
 	if (part != -1)
 	{
-		switch(meaning & 0x30)
+		switch(meaning & 0xf0)
 		{
 			case 0x00:
 				create_floppy_tip(part);
@@ -841,7 +841,12 @@ void update_tip(int meaning)
 			case 0x10:
 				create_cdrom_tip(part);
 				break;
+#if 0
 			case 0x20:
+				create_removable_hd_tip(part);
+				break;
+#endif
+			case 0x30:
 				create_hd_tip(part);
 				break;
 			default:
@@ -883,7 +888,7 @@ void status_settextw(wchar_t *wstr)
 
 	for (i = 0; i < sb_parts; i++)
 	{
-		if (sb_part_meanings[i] == 0x30)
+		if (sb_part_meanings[i] == 0x40)
 		{
 			part = i;
 		}
@@ -949,32 +954,44 @@ void update_status_bar_panes(HWND hwnds)
 			sb_parts++;
 		}
 	}
+#if 0
+	for (i = 0; i < 16; i++)
+	{
+		if (hdc[i].bus == 5)
+		{
+			edge += sb_icon_width;
+			iStatusWidths[sb_parts] = edge;
+			sb_part_meanings[sb_parts] = 0x20 | i;
+			sb_parts++;
+		}
+	}
+#endif
 	if (c_mfm && !(models[model].flags & MODEL_HAS_IDE) && !!memcmp(hdd_controller_name, "none", 4) && !!memcmp(hdd_controller_name, "xtide", 5))
 	{
 		edge += sb_icon_width;
 		iStatusWidths[sb_parts] = edge;
-		sb_part_meanings[sb_parts] = 0x20;
+		sb_part_meanings[sb_parts] = 0x30;
 		sb_parts++;
 	}
 	if (c_ide_pio && ((models[model].flags & MODEL_HAS_IDE) || !memcmp(hdd_controller_name, "xtide", 5)))
 	{
 		edge += sb_icon_width;
 		iStatusWidths[sb_parts] = edge;
-		sb_part_meanings[sb_parts] = 0x21;
+		sb_part_meanings[sb_parts] = 0x31;
 		sb_parts++;
 	}
 	if (c_ide_dma && ((models[model].flags & MODEL_HAS_IDE) || !memcmp(hdd_controller_name, "xtide", 5)))
 	{
 		edge += sb_icon_width;
 		iStatusWidths[sb_parts] = edge;
-		sb_part_meanings[sb_parts] = 0x22;
+		sb_part_meanings[sb_parts] = 0x32;
 		sb_parts++;
 	}
 	if (c_scsi)
 	{
 		edge += sb_icon_width;
 		iStatusWidths[sb_parts] = edge;
-		sb_part_meanings[sb_parts] = 0x23;
+		sb_part_meanings[sb_parts] = 0x33;
 		sb_parts++;
 	}
 	if (sb_parts)
@@ -982,14 +999,14 @@ void update_status_bar_panes(HWND hwnds)
 		iStatusWidths[sb_parts - 1] += (24 - sb_icon_width);
 	}
 	iStatusWidths[sb_parts] = -1;
-	sb_part_meanings[sb_parts] = 0x30;
+	sb_part_meanings[sb_parts] = 0x40;
 	sb_parts++;
 
 	SendMessage(hwnds, SB_SETPARTS, (WPARAM) sb_parts, (LPARAM) iStatusWidths);
 
 	for (i = 0; i < sb_parts; i++)
 	{
-		switch (sb_part_meanings[i] & 0x30)
+		switch (sb_part_meanings[i] & 0xf0)
 		{
 			case 0x00:
 				/* Floppy */
@@ -1030,12 +1047,20 @@ void update_status_bar_panes(HWND hwnds)
 				sb_part_icons[i] = j | sb_icon_flags[i];
 				create_cdrom_tip(i);
 				break;
+#if 0
 			case 0x20:
+				/* Removable hard disk */
+				sb_icon_flags[i] = (wcslen(discfns[sb_part_meanings[i] & 0xf]) == 0) ? 256 : 0;
+				sb_part_icons[i] = 176 + sb_icon_flags[i];
+				create_floppy_tip(i);
+				break;
+#endif
+			case 0x30:
 				/* Hard disk */
-				sb_part_icons[i] = 176 + ((sb_part_meanings[i] & 0xf) << 1);
+				sb_part_icons[i] = 192 + ((sb_part_meanings[i] & 0xf) << 1);
 				create_hd_tip(i);
 				break;
-			case 0x30:
+			case 0x40:
 				/* Status text */
 				SendMessage(hwnds, SB_SETTEXT, i | SBT_NOBORDERS, (LPARAM) L"Welcome to Unicode 86Box! :p");
 				sb_part_icons[i] = -1;
@@ -1082,7 +1107,14 @@ HWND EmulatorStatusBar(HWND hwndParent, int idStatus, HINSTANCE hinst)
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
 
-	for (i = 176; i < 184; i++)
+#if 0
+	for (i = 176; i < 178; i++)
+	{
+		hIcon[i] = LoadIconEx((PCTSTR) i);
+	}
+#endif
+
+	for (i = 192; i < 200; i++)
 	{
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
@@ -1106,6 +1138,13 @@ HWND EmulatorStatusBar(HWND hwndParent, int idStatus, HINSTANCE hinst)
 	{
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
+
+#if 0
+	for (i = 432; i < 434; i++)
+	{
+		hIcon[i] = LoadIconEx((PCTSTR) i);
+	}
+#endif
 
 	GetWindowRect(hwndParent, &rectDialog);
 	dw = rectDialog.right - rectDialog.left;
@@ -1255,8 +1294,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
 	hwndStatus = EmulatorStatusBar(hwnd, IDC_STATUS, hThisInstance);
 
-	OriginalStatusBarProcedure = GetWindowLong(hwndStatus, GWL_WNDPROC);
-	SetWindowLong(hwndStatus, GWL_WNDPROC, (LONG) &StatusBarProcedure);
+	OriginalStatusBarProcedure = GetWindowLongPtr(hwndStatus, GWLP_WNDPROC);
+	SetWindowLongPtr(hwndStatus, GWL_WNDPROC, (LONG_PTR) &StatusBarProcedure);
 
 	smenu = LoadMenu(hThisInstance, TEXT("StatusBarMenu"));
         initmenu();
@@ -1273,10 +1312,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 		}
 	}
 
-        if (vid_resize) SetWindowLong(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW|WS_VISIBLE);
-        else            SetWindowLong(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW&~WS_SIZEBOX&~WS_THICKFRAME&~WS_MAXIMIZEBOX)|WS_VISIBLE);
-
-	SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_MINIMIZEBOX);
+        if (vid_resize) SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW&~WS_MINIMIZEBOX)|WS_VISIBLE);
+        else            SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW&~WS_SIZEBOX&~WS_THICKFRAME&~WS_MAXIMIZEBOX&~WS_MINIMIZEBOX)|WS_VISIBLE);
 
         /* Note by Kiririn: I've redone this since the CD-ROM can be disabled but still have something inside it. */
 	for (e = 0; e < CDROM_NUM; e++)
@@ -1754,9 +1791,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         case IDM_VID_RESIZE:
                         vid_resize=!vid_resize;
                         CheckMenuItem(hmenu, IDM_VID_RESIZE, (vid_resize)?MF_CHECKED:MF_UNCHECKED);
-                        if (vid_resize) SetWindowLong(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW|WS_VISIBLE);
-                        else            SetWindowLong(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW&~WS_SIZEBOX&~WS_THICKFRAME&~WS_MAXIMIZEBOX)|WS_VISIBLE);
-			SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_MINIMIZEBOX);
+                        if (vid_resize) SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW&~WS_MINIMIZEBOX)|WS_VISIBLE);
+                        else            SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW&~WS_SIZEBOX&~WS_THICKFRAME&~WS_MAXIMIZEBOX&~WS_MINIMIZEBOX)|WS_VISIBLE);
                         GetWindowRect(hwnd,&rect);
                         SetWindowPos(hwnd, 0, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER | SWP_FRAMECHANGED);
                         GetWindowRect(hwndStatus,&rect);
@@ -2195,14 +2231,20 @@ VOID APIENTRY HandlePopupMenu(HWND hwnd, POINT pt, int id)
 	pt.x = id * sb_icon_width;	/* Justify to the left. */
 	pt.y = 0;			/* Justify to the top. */
 	ClientToScreen(hwnd, (LPPOINT) &pt);
-	if ((sb_part_meanings[id] & 0x30) == 0x00)
+	if ((sb_part_meanings[id] & 0xf0) == 0x00)
 	{
 		menu_id = sb_part_meanings[id] & 0xf;
 	}
-	else if ((sb_part_meanings[id] & 0x30) == 0x10)
+	else if ((sb_part_meanings[id] & 0xf0) == 0x10)
 	{
 		menu_id = (sb_part_meanings[id] & 0xf) + 4;
 	}
+#if 0
+	else if ((sb_part_meanings[id] & 0xf0) == 0x20)
+	{
+		menu_id = (sb_part_meanings[id] & 0xf) + 8;
+	}
+#endif
 	if (menu_id != -1)
 	{
 		pmenu = GetSubMenu(smenu, menu_id);

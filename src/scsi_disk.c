@@ -73,7 +73,9 @@ uint8_t scsi_hd_command_flags[0x100] =
 	0, 0, 0, 0, 0, 0, 0,
 	IMPLEMENTED | ALLOW_UA,							/* 0x12 */
 	IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,			/* 0x13 */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0,
+	IMPLEMENTED | CHECK_READY,						/* 0x1B */
+	0, 0,
 	IMPLEMENTED | CHECK_READY,						/* 0x1E */
 	0, 0, 0, 0, 0, 0,
 	IMPLEMENTED | CHECK_READY,						/* 0x25 */
@@ -475,11 +477,37 @@ static void scsi_hd_sense_clear(int id, int command)
 static void scsi_hd_cmd_error(uint8_t id)
 {
 	shdc[id].error = ((scsi_hd_sense_key & 0xf) << 4) | ABRT_ERR;
+	if (shdc[id].unit_attention)
+	{
+		shdc[id].error |= MCR_ERR;
+	}
 	shdc[id].status = READY_STAT | ERR_STAT;
 	shdc[id].phase = 3;
 	shdc[id].packet_status = 0x80;
 	shdc[id].callback = 50 * SCSI_TIME;
 	scsi_hd_log("SCSI HD %i: ERROR: %02X/%02X/%02X\n", id, scsi_hd_sense_key, scsi_hd_asc, scsi_hd_ascq);
+}
+
+static void scsi_hd_unit_attention(uint8_t id)
+{
+	shdc[id].error = (SENSE_UNIT_ATTENTION << 4) | ABRT_ERR;
+	if (cdrom[id].unit_attention)
+	{
+		shdc[id].error |= MCR_ERR;
+	}
+	shdc[id].status = READY_STAT | ERR_STAT;
+	shdc[id].phase = 3;
+	shdc[id].packet_status = 0x80;
+	shdc[id].callback = 50 * CDROM_TIME;
+	scsi_hd_log("SCSI HD %i: UNIT ATTENTION\n", id);
+}
+
+static void scsi_hd_not_ready(uint8_t id)
+{
+	scsi_hd_sense_key = SENSE_NOT_READY;
+	scsi_hd_asc = ASC_MEDIUM_NOT_PRESENT;
+	scsi_hd_ascq = 0;
+	scsi_hd_cmd_error(id);
 }
 
 static void scsi_hd_invalid_lun(uint8_t id)
@@ -625,6 +653,11 @@ int scsi_hd_read_blocks(uint8_t id, uint32_t *len, int first_batch)
 	return 1;
 }
 
+void scsi_disk_insert(uint8_t id)
+{
+	shdc[id].unit_attention = (hdc[id].bus == 5) ? 1 : 0;
+}
+
 /*SCSI Sense Initialization*/
 void scsi_hd_sense_code_ok(uint8_t id)
 {	
@@ -635,6 +668,8 @@ void scsi_hd_sense_code_ok(uint8_t id)
 
 int scsi_hd_pre_execution_check(uint8_t id, uint8_t *cdb)
 {
+	int ready = 1;
+
 	if (((shdc[id].request_length >> 5) & 7) != hdc[id].scsi_lun)
 	{
 		scsi_hd_log("SCSI HD %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n", id, ((shdc[id].request_length >> 5) & 7));
@@ -649,11 +684,68 @@ int scsi_hd_pre_execution_check(uint8_t id, uint8_t *cdb)
 		return 0;
 	}
 
+	if (hdc[id].bus == 5)
+	{
+		/* Removable disk, set ready state. */
+		if (wcslen(hdd_fn[id]) > 0)
+		{
+			ready = 1;
+		}
+		else
+		{
+			ready = 0;
+		}
+	}
+	else
+	{
+		/* Fixed disk, clear UNIT ATTENTION, just in case it might have been set when the disk was removable). */
+		shdc[id].unit_attention = 0;
+	}
+
+	if (!ready && shdc[id].unit_attention)
+	{
+		/* If the drive is not ready, there is no reason to keep the
+		   UNIT ATTENTION condition present, as we only use it to mark
+		   disc changes. */
+		shdc[id].unit_attention = 0;
+	}
+
+	/* If the UNIT ATTENTION condition is set and the command does not allow
+		execution under it, error out and report the condition. */
+	if (shdc[id].unit_attention == 1)
+	{
+		/* Only increment the unit attention phase if the command can not pass through it. */
+		if (!(scsi_hd_command_flags[cdb[0]] & ALLOW_UA))
+		{
+			/* scsi_hd_log("SCSI HD %i: Unit attention now 2\n", id); */
+			shdc[id].unit_attention = 2;
+			scsi_hd_log("SCSI HD %i: UNIT ATTENTION: Command %02X not allowed to pass through\n", id, cdb[0]);
+			scsi_hd_unit_attention(id);
+			return 0;
+		}
+	}
+	else if (shdc[id].unit_attention == 2)
+	{
+		if (cdb[0] != GPCMD_REQUEST_SENSE)
+		{
+			/* scsi_hd_log("SCSI HD %i: Unit attention now 0\n", id); */
+			shdc[id].unit_attention = 0;
+		}
+	}
+
 	/* Unless the command is REQUEST SENSE, clear the sense. This will *NOT*
 		the UNIT ATTENTION condition if it's set. */
 	if (cdb[0] != GPCMD_REQUEST_SENSE)
 	{
 		scsi_hd_sense_clear(id, cdb[0]);
+	}
+
+	/* Next it's time for NOT READY. */
+	if ((scsi_hd_command_flags[cdb[0]] & CHECK_READY) && !ready)
+	{
+		scsi_hd_log("SCSI HD %i: Not ready (%02X)\n", id, cdb[0]);
+		scsi_hd_not_ready(id);
+		return 0;
 	}
 
 	scsi_hd_log("SCSI HD %i: Continuing with command\n", id);
@@ -692,7 +784,21 @@ void scsi_hd_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
 
 	buffer[0] = 0x70;
 
+	if (shdc[id].unit_attention && (scsi_hd_sense_key == 0))
+	{
+		buffer[2]=SENSE_UNIT_ATTENTION;
+		buffer[12]=ASC_MEDIUM_MAY_HAVE_CHANGED;
+		buffer[13]=0;
+	}
+
 	/* scsi_hd_log("SCSI HD %i: Reporting sense: %02X %02X %02X\n", id, hdbufferb[2], hdbufferb[12], hdbufferb[13]); */
+
+	if (buffer[2] == SENSE_UNIT_ATTENTION)
+	{
+		/* If the last remaining sense is unit attention, clear
+		   that condition. */
+		shdc[id].unit_attention = 0;
+	}
 
 	/* Clear the sense stuff as per the spec. */
 	scsi_hd_sense_clear(id, GPCMD_REQUEST_SENSE);
@@ -700,6 +806,34 @@ void scsi_hd_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
 
 void scsi_hd_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
 {
+	int ready = 1;
+
+	if (hdc[id].bus == 5)
+	{
+		/* Removable disk, set ready state. */
+		if (wcslen(hdd_fn[id]) > 0)
+		{
+			ready = 1;
+		}
+		else
+		{
+			ready = 0;
+		}
+	}
+	else
+	{
+		/* Fixed disk, clear UNIT ATTENTION, just in case it might have been set when the disk was removable). */
+		shdc[id].unit_attention = 0;
+	}
+
+	if (!ready && shdc[id].unit_attention)
+	{
+		/* If the drive is not ready, there is no reason to keep the
+		   UNIT ATTENTION condition present, as we only use it to mark
+		   disc changes. */
+		shdc[id].unit_attention = 0;
+	}
+
 	/* Do *NOT* advance the unit attention phase. */
 
 	scsi_hd_request_sense(id, buffer, alloc_length);
@@ -852,11 +986,11 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			shdc[id].all_blocks_total = shdc[id].block_total;
 			if (shdc[id].packet_status != CDROM_PHASE_COMPLETE)
 			{
-				update_status_bar_icon(0x23, 1);
+				update_status_bar_icon((hdc[id].bus == 5) ? (0x20 | id) : 0x23, 1);
 			}
 			else
 			{
-				update_status_bar_icon(0x23, 0);
+				update_status_bar_icon((hdc[id].bus == 5) ? (0x20 | id) : 0x23, 0);
 			}
 			return;
 
@@ -913,13 +1047,44 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			shdc[id].all_blocks_total = shdc[id].block_total;
 			if (shdc[id].packet_status != CDROM_PHASE_COMPLETE)
 			{
-				update_status_bar_icon(0x23, 1);
+				update_status_bar_icon((hdc[id].bus == 5) ? (0x20 | id) : 0x23, 1);
 			}
 			else
 			{
-				update_status_bar_icon(0x23, 0);
+				update_status_bar_icon((hdc[id].bus == 5) ? (0x20 | id) : 0x23, 0);
 			}
 			return;
+
+		case GPCMD_START_STOP_UNIT:
+			if (hdc[id].bus != 5)
+			{
+				scsi_hd_illegal_opcode(id);
+				break;
+			}
+
+			switch(cdb[4] & 3)
+			{
+				case 0:		/* Stop the disc. */
+				case 1:		/* Start the disc and read the TOC. */
+					break;
+				case 2:		/* Eject the disc if possible. */
+#ifndef __unix
+#if 0
+					win_removable_disk_eject(id);
+#endif
+#endif
+					break;
+				case 3:		/* Load the disc (close tray). */
+#ifndef __unix
+#if 0
+					win_removable_disk_reload(id);
+#endif
+#endif
+					break;
+			}
+
+			scsi_hd_command_complete(id);
+			break;
 
 		case GPCMD_INQUIRY:
 			max_len = cdb[3];
@@ -985,7 +1150,14 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 				memset(hdbufferb, 0, 8);
 				hdbufferb[0] = 0; /*SCSI HD*/
-				hdbufferb[1] = 0; /*Fixed*/
+				if (hdc[id].bus == 5)
+				{
+					hdbufferb[1] = 0x80; /*Removable*/
+				}
+				else
+				{
+					hdbufferb[1] = 0; /*Fixed*/
+				}
 				hdbufferb[2] = 0x02; /*SCSI-2 compliant*/
 				hdbufferb[3] = 0x02;
 				hdbufferb[4] = 31;
@@ -1129,7 +1301,7 @@ void scsi_hd_callback(uint8_t id)
 			shdc[id].status = READY_STAT;
 			shdc[id].phase = 3;
 			shdc[id].packet_status = 0xFF;
-			update_status_bar_icon(0x23, 0);
+			update_status_bar_icon((hdc[id].bus == 5) ? (0x20 | id) : 0x23, 0);
 			return;
 		case CDROM_PHASE_DATA_OUT:
 			scsi_hd_log("SCSI HD %i: PHASE_DATA_OUT\n", id);
@@ -1142,7 +1314,7 @@ void scsi_hd_callback(uint8_t id)
 			shdc[id].packet_status = CDROM_PHASE_COMPLETE;
 			shdc[id].status = READY_STAT;
 			shdc[id].phase = 3;
-			update_status_bar_icon(0x23, 0);
+			update_status_bar_icon((hdc[id].bus == 5) ? (0x20 | id) : 0x23, 0);
 			return;
 		case CDROM_PHASE_DATA_IN:
 			scsi_hd_log("SCSI HD %i: PHASE_DATA_IN\n", id);
@@ -1155,7 +1327,7 @@ void scsi_hd_callback(uint8_t id)
 			shdc[id].packet_status = CDROM_PHASE_COMPLETE;
 			shdc[id].status = READY_STAT;
 			shdc[id].phase = 3;
-			update_status_bar_icon(0x23, 0);
+			update_status_bar_icon((hdc[id].bus == 5) ? (0x20 | id) : 0x23, 0);
 			return;
 		case CDROM_PHASE_ERROR:
 			scsi_hd_log("SCSI HD %i: PHASE_ERROR\n", id);

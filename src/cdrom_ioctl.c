@@ -53,8 +53,12 @@ void ioctl_audio_callback(uint8_t id, int16_t *output, int len)
 	RAW_READ_INFO in;
 	DWORD count;
 
-	if (cdrom_ioctl[id].cd_state != CD_PLAYING) 
+	if (!cdrom_drives[id].sound_on || (cdrom_ioctl[id].cd_state != CD_PLAYING))
 	{
+		if (cdrom_ioctl[id].cd_state == CD_PLAYING)
+		{
+			cdrom[id].seek_pos += (len >> 11);
+		}
 		memset(output, 0, len * 2);
 		return;
 	}
@@ -395,7 +399,7 @@ static uint8_t ioctl_getcurrentsubchannel(uint8_t id, uint8_t *b, int msf)
 
 		if (msf)
 		{
-			dat = cdpos;
+			dat = cdpos + 150;
 			b[pos + 3] = (uint8_t)(dat % 75); dat /= 75;
 			b[pos + 2] = (uint8_t)(dat % 60); dat /= 60;
 			b[pos + 1] = (uint8_t)dat;

@@ -433,7 +433,7 @@ static void esdi_callback(void *p)
                                                 fatal("Read past end of drive\n");
                                         fseek(drive->hdfile, esdi->rba * 512, SEEK_SET);
                                         fread(esdi->data, 512, 1, drive->hdfile);
-			                update_status_bar_icon(0x20, 1);
+			                update_status_bar_icon(0x30, 1);
                                 }
                                 while (esdi->data_pos < 256)
                                 {
@@ -522,11 +522,11 @@ static void esdi_callback(void *p)
                                 fwrite(esdi->data, 512, 1, drive->hdfile);
                                 esdi->rba++;
                                 esdi->sector_pos++;
-		                update_status_bar_icon(0x20, 1);
+		                update_status_bar_icon(0x30, 1);
                                         
                                 esdi->data_pos = 0;
                         }
-	                update_status_bar_icon(0x20, 0);
+	                update_status_bar_icon(0x30, 0);
 
                         esdi->status = STATUS_CMD_IN_PROGRESS;
                         esdi->cmd_state = 2;

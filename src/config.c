@@ -997,15 +997,7 @@ static void loadconfig_hard_disks(void)
 		sprintf(temps, "hdd_%02i_scsi_location", c + 1);
 		sprintf(temps2, "%02u:%02u", c, 0);
 		p = config_get_string(cat, temps, temps2);
-		if (p != NULL)
-		{
-			sscanf(p, "%02u:%02u", &hdc[c].scsi_id, &hdc[c].scsi_lun);
-		}
-		else
-		{
-			/* FIXME: Can never happen, 'temps' above is non-NULL. */
-			sscanf(temps2, "%02u:%02u", &hdc[c].scsi_id, &hdc[c].scsi_lun);
-		}
+		sscanf(p, "%02u:%02u", &hdc[c].scsi_id, &hdc[c].scsi_lun);
 
 		if (hdc[c].scsi_id > 15)
 		{
@@ -1019,12 +1011,7 @@ static void loadconfig_hard_disks(void)
 		memset(hdd_fn[c], 0, 1024);
 		sprintf(temps, "hdd_%02i_fn", c + 1);
 	        wp = config_get_wstring(cat, temps, L"");
-	/*FIXME: wcslen(wp) instead of 512? */
-        	if (wp) memcpy(hdd_fn[c], wp, 512);
-	        else    {
-			memcpy(hdd_fn[c], L"", 2);
-			hdd_fn[c][0] = L'\0';
-		}
+        	memcpy(hdd_fn[c], wp, (wcslen(wp) << 1) + 2);
 	}
 }
 
@@ -1044,10 +1031,7 @@ static void loadconfig_removable_devices(void)
 	{
 		sprintf(temps, "fdd_%02i_type", c + 1);
 	        p = config_get_string(cat, temps, (c < 2) ? "525_2dd" : "none");
-        	if (p)
-                	fdd_set_type(c, fdd_get_from_internal_name(p));
-	        else	/*FIXME: never happens, "none" is non-NULL */
-        	        fdd_set_type(c, (c < 2) ? 2 : 0);
+               	fdd_set_type(c, fdd_get_from_internal_name(p));
 		if (fdd_get_type(c) > 13)
 		{
 			fdd_set_type(c, 13);
@@ -1055,12 +1039,7 @@ static void loadconfig_removable_devices(void)
 
 		sprintf(temps, "fdd_%02i_fn", c + 1);
 	        wp = config_get_wstring(cat, temps, L"");
-		/*FIXME: see above, wcslen(wp) ? */
-        	if (wp) memcpy(discfns[c], wp, 512);
-	        else    {
-			memcpy(discfns[c], L"", 2);
-			discfns[c][0] = L'\0';
-		}
+        	memcpy(discfns[c], wp, (wcslen(wp) << 1) + 2);
 		printf("Floppy: %ws\n", discfns[c]);
 		sprintf(temps, "fdd_%02i_writeprot", c + 1);
 	        ui_writeprot[c] = !!config_get_int(cat, temps, 0);
@@ -1096,15 +1075,7 @@ static void loadconfig_removable_devices(void)
 		sprintf(temps, "cdrom_%02i_scsi_location", c + 1);
 		sprintf(temps2, "%02u:%02u", c + 2, 0);
 		p = config_get_string(cat, temps, temps2);
-		if (p != NULL)
-		{
-			sscanf(p, "%02u:%02u", &cdrom_drives[c].scsi_device_id, &cdrom_drives[c].scsi_device_lun);
-		}
-		else	/*FIXME: never happens, 'temps2' is non-NULL */
-		{
-			sscanf(temps2, "%02u:%02u", &cdrom_drives[c].scsi_device_id, &cdrom_drives[c].scsi_device_lun);
-		}
-
+		sscanf(p, "%02u:%02u", &cdrom_drives[c].scsi_device_id, &cdrom_drives[c].scsi_device_lun);
 
 		if (cdrom_drives[c].scsi_device_id > 15)
 		{
@@ -1117,12 +1088,7 @@ static void loadconfig_removable_devices(void)
 
 		sprintf(temps, "cdrom_%02i_image_path", c + 1);
 	        wp = config_get_wstring(cat, temps, L"");
-		/*FIXME see above, wcslen(wp) */
-        	if (wp != NULL) memcpy(cdrom_image[c].image_path, wp, 512);
-	        else    {
-			memcpy(cdrom_image[c].image_path, L"", 2);
-			cdrom_image[c].image_path[0] = L'\0';
-		}
+        	memcpy(cdrom_image[c].image_path, wp, (wcslen(wp) << 1) + 2);
 	}
 }
 

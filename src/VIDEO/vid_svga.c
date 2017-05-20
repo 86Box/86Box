@@ -542,6 +542,7 @@ void svga_recalctimings(svga_t *svga)
                 {
                         if (svga->seqregs[1] & 8) /*40 column*/
                         {
+#if 0
 				if (svga->hdisp == 120)
 				{
 	                                svga->render = svga_render_text_40_12;
@@ -549,12 +550,16 @@ void svga_recalctimings(svga_t *svga)
 				}
 				else
 				{
+#endif
 	                                svga->render = svga_render_text_40;
         	                        svga->hdisp *= (svga->seqregs[1] & 1) ? 16 : 18;
+#if 0
 				}
+#endif
                         }
                         else
                         {
+#if 0
 				if (svga->hdisp == 120)
 				{
 	                                svga->render = svga_render_text_80_12;
@@ -562,9 +567,12 @@ void svga_recalctimings(svga_t *svga)
 				}
 				else
 				{
+#endif
 	                                svga->render = svga_render_text_80;
         	                        svga->hdisp *= (svga->seqregs[1] & 1) ? 8 : 9;
+#if 0
 				}
+#endif
                         }
                         svga->hdisp_old = svga->hdisp;
                 }
@@ -628,6 +636,16 @@ void svga_recalctimings(svga_t *svga)
 
         svga->linedbl = svga->crtc[9] & 0x80;
         svga->rowcount = svga->crtc[9] & 31;
+	overscan_y = (svga->rowcount + 1) << 1;
+	if (svga->seqregs[1] & 8) /*Low res (320)*/
+	{
+		overscan_y <<= 1;
+	}
+	if (overscan_y < 16)
+	{
+		overscan_y = 16;
+	}
+	/* pclog("SVGA row count: %i (scroll: %i)\n", svga->rowcount, svga->crtc[8] & 0x1f); */
         if (svga->recalctimings_ex) 
                 svga->recalctimings_ex(svga);
 
@@ -1210,12 +1228,14 @@ void svga_write(uint32_t addr, uint8_t val, void *p)
                 break;
         }
 
+#if 0
 	if (svga->render == svga_render_text_80_12)
 	{
 		FILE *f = fopen("hecon.dmp", "wb");
 		fwrite(svga->vram, 1, svga->vram_limit, f);
 		fclose(f);
 	}
+#endif
 }
 
 uint8_t svga_read(uint32_t addr, void *p)
@@ -1555,9 +1575,9 @@ uint8_t svga_read_linear(uint32_t addr, void *p)
 
 void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 {
-	int y_add = (enable_overscan) ? 32 : 0;
+	int y_add = (enable_overscan) ? overscan_y : 0;
 	int x_add = (enable_overscan) ? 16 : 0;
-	uint32_t *p, *q, i, j;
+	uint32_t *p, i, j;
 
         svga->frames++;
 
@@ -1619,26 +1639,52 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 	{
 		if ((wx >= 160) && ((wy + 1) >= 120))
 		{
-			for (i  = 0; i < (y_add >> 1); i++)
+			/* Draw (overscan_size - scroll size) lines of overscan on top. */
+			for (i  = 0; i < ((y_add >> 1) - (svga->crtc[8] & 0x1f)); i++)
 			{
-				p = &((uint32_t *)buffer32->line[i])[32];
-				q = &((uint32_t *)buffer32->line[ysize + (y_add >> 1) + i])[32];
+				p = &((uint32_t *)buffer32->line[i & 0x7ff])[32];
 
 				for (j = 0; j < (xsize + x_add); j++)
 				{
 					p[j] = svga_color_transform(svga->pallook[svga->attrregs[0x11]]);
-					q[j] = svga_color_transform(svga->pallook[svga->attrregs[0x11]]);
 				}
 			}
 
-			for (i = (y_add >> 1); i < (ysize + (y_add >> 1)); i ++)
+			/* Draw (overscan_size + scroll size) lines of overscan on the bottom. */
+			for (i  = 0; i < ((y_add >> 1) + (svga->crtc[8] & 0x1f)); i++)
 			{
-				p = &((uint32_t *)buffer32->line[i])[32];
+				p = &((uint32_t *)buffer32->line[(ysize + (y_add >> 1) + i - (svga->crtc[8] & 0x1f)) & 0x7ff])[32];
+
+				for (j = 0; j < (xsize + x_add); j++)
+				{
+					p[j] = svga_color_transform(svga->pallook[svga->attrregs[0x11]]);
+				}
+			}
+
+			for (i = ((y_add >> 1) - (svga->crtc[8] & 0x1f)); i < (ysize + (y_add >> 1) - (svga->crtc[8] & 0x1f)); i ++)
+			{
+				p = &((uint32_t *)buffer32->line[i & 0x7ff])[32];
 
 				for (j = 0; j < 8; j++)
 				{
 					p[j] = svga_color_transform(svga->pallook[svga->attrregs[0x11]]);
 					p[xsize + (x_add >> 1) + j] = svga_color_transform(svga->pallook[svga->attrregs[0x11]]);
+				}
+			}
+		}
+	}
+	else
+	{
+		if ((wx >= 160) && ((wy + 1) >= 120) && (svga->crtc[8] & 0x1f))
+		{
+			/* Draw (scroll size) lines of overscan on the bottom. */
+			for (i  = 0; i < (svga->crtc[8] & 0x1f); i++)
+			{
+				p = &((uint32_t *)buffer32->line[(ysize + i - (svga->crtc[8] & 0x1f)) & 0x7ff])[32];
+
+				for (j = 0; j < xsize; j++)
+				{
+					p[j] = svga_color_transform(svga->pallook[svga->attrregs[0x11]]);
 				}
 			}
 		}

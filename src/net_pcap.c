@@ -220,6 +220,7 @@ int
 network_devlist(netdev_t *list)
 {
     char errbuf[PCAP_ERRBUF_SIZE];
+    char *temp_dev;
     pcap_if_t *devlist, *dev;
     int i = 0;
 
@@ -227,6 +228,14 @@ network_devlist(netdev_t *list)
     strcpy(list->device, "none");
     strcpy(list->description, "None");
     list++; i++;
+
+    /* See if WinPcap is even present, and get out of here if it's not. */
+    temp_dev = (char *)pcap_lib_version();
+    if (temp_dev == NULL) {
+	/* Hmm, WinPcap doesn't seem to be alive.. */
+	pclog("PCAP: WinPcap library not found, not processing the networks list further!\n");
+	return(i);
+    }
 
     /* Retrieve the device list from the local machine */
     if (pcap_findalldevs(&devlist, errbuf) == -1) {

@@ -125,7 +125,9 @@ bool CDROM_Interface_Image::GetAudioSub(int sector, unsigned char& attr, unsigne
         attr = tracks[track - 1].attr;
         index = 1;
         FRAMES_TO_MSF(sector + 150, &absPos.min, &absPos.sec, &absPos.fr);
-        FRAMES_TO_MSF(sector - tracks[track - 1].start + 150, &relPos.min, &relPos.sec, &relPos.fr);
+        /* FRAMES_TO_MSF(sector - tracks[track - 1].start + 150, &relPos.min, &relPos.sec, &relPos.fr); */
+	/* Note by Kotori: Yes, the absolute position should be adjusted by 150, but not the relative position. */
+        FRAMES_TO_MSF(sector - tracks[track - 1].start, &relPos.min, &relPos.sec, &relPos.fr);
         return true;
 }
 

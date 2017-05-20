@@ -49,3 +49,5 @@ void update_status_bar_panes(HWND hwnds);
 int fdd_type_to_icon(int type);
 
 extern HWND hwndStatus;
+
+void hard_disk_add_open(HWND hwnd, int is_existing);

@@ -374,7 +374,7 @@ static void xebec_callback(void *p)
                                 
                         xebec_complete(xebec);
 
-	                update_status_bar_icon(0x20, 1);
+	                update_status_bar_icon(0x30, 1);
                         break;
                                                 
                         default:
@@ -431,7 +431,7 @@ static void xebec_callback(void *p)
 
                                 fseeko64(drive->hdfile, addr * 512, SEEK_SET);
                                 fread(xebec->sector_buf, 512, 1, drive->hdfile);
-		                update_status_bar_icon(0x20, 1);
+		                update_status_bar_icon(0x30, 1);
                         }
                         if (xebec->irq_dma_mask & DMA_ENA)
                                 xebec->callback = XEBEC_TIME;
@@ -485,7 +485,7 @@ static void xebec_callback(void *p)
 
                                 fseeko64(drive->hdfile, addr * 512, SEEK_SET);
                                 fread(xebec->sector_buf, 512, 1, drive->hdfile);
-		                update_status_bar_icon(0x20, 1);
+		                update_status_bar_icon(0x30, 1);
 
                                 xebec->state = STATE_SEND_DATA;
                                 
@@ -500,7 +500,7 @@ static void xebec_callback(void *p)
                         else
 			{
                                 xebec_complete(xebec);
-		                update_status_bar_icon(0x20, 0);
+		                update_status_bar_icon(0x30, 0);
 			}
                         break;
 
@@ -572,7 +572,7 @@ static void xebec_callback(void *p)
                                 fwrite(xebec->sector_buf, 512, 1, drive->hdfile);
                         }
                                 
-	                update_status_bar_icon(0x20, 1);
+	                update_status_bar_icon(0x30, 1);
                         
                         xebec_next_sector(xebec);
                         xebec->data_pos = 0;
