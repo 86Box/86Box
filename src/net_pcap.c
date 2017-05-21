@@ -109,6 +109,7 @@ poll_thread(void *arg)
 int
 network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
 {
+    int rc;
     char temp[PCAP_ERRBUF_SIZE];
     char filter_exp[255];
     struct bpf_program fp;
@@ -140,7 +141,7 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
     pcap = pcap_open_live(dev,		/* interface name */
 			  1518,		/* maximum packet size */
 			  1,		/* promiscuous mode? */
-			  10,		/* timeout in msec */
+			  15,		/* timeout in msec */
 			  temp);	/* error buffer */
     if (pcap == NULL) {
 	pclog("Unable to open WinPcap: %s!\n", temp);

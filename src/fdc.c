@@ -626,6 +626,8 @@ void fdc_implied_seek()
 	}
 }
 
+int fifo_count = 0;
+
 void fdc_write(uint16_t addr, uint8_t val, void *priv)
 {
 	int drive, i, drive_num;
@@ -805,6 +807,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 case 0x19: /*Scan low or equal*/
                                 case 0x16: /*Verify*/
                                 case 0x1D: /*Scan high or equal*/
+				fifo_count = 0;
 				fdc.satisfying_sectors=0;
 				fdc.sc=0;
 				fdc.wrong_am=0;
@@ -1261,11 +1264,10 @@ uint8_t fdc_read(uint16_t addr, void *priv)
 {
         uint8_t temp;
         int drive;
-	fdc_log("Read FDC %04X\n",addr);
         switch (addr&7)
         {
 		case 0:		/* STA */
-		return 0xff;
+		temp = 0xff;
 		break;
                 case 1:		/* STB */
 		if (is486)
@@ -1274,7 +1276,9 @@ uint8_t fdc_read(uint16_t addr, void *priv)
 		}
                 drive = real_drive(fdc.dor & 3);
                 if (!fdc.enable_3f1)
-                        return 0xff;
+		{
+                        temp = 0xff;
+		}
                 temp = 0x70;
                 if (drive)
                         temp &= ~0x40;
@@ -1314,7 +1318,8 @@ uint8_t fdc_read(uint16_t addr, void *priv)
                 case 4: /*Status*/
 		if (!(fdc.dor & 4) & !fdc.pcjr)
 		{
-			return 0;
+			temp = 0;
+			break;
 		}
                 temp=fdc.stat;
                 break;
@@ -1373,6 +1378,7 @@ uint8_t fdc_read(uint16_t addr, void *priv)
                 default:
                         temp=0xFF;
         }
+	fdc_log("Read FDC %04X %02X\n",addr, temp);
         return temp;
 }
 
@@ -1430,6 +1436,7 @@ void fdc_poll_common_finish(int compare, int st5)
         fdc.res[8]=fdc.head;
         fdc.res[9]=fdc.sector;
         fdc.res[10]=fdc.params[4];
+	fdc_log("Read/write finish (%02X %02X %02X %02X %02X %02X %02X)\n" , fdc.res[4], fdc.res[5], fdc.res[6], fdc.res[7], fdc.res[8], fdc.res[9], fdc.res[10]);
 	update_status_bar_icon(fdc.drive, 0);
         paramstogo=7;
 }
@@ -1541,7 +1548,31 @@ void fdc_callback()
 		old_sector = fdc.sector;
 		if (fdc.tc)
 		{
-			fdc.sector++;
+			/* This is needed so that the correct results are returned
+			   in case of TC. */
+			if (fdc.sector == fdc.params[5])
+			{
+				if (!(fdc.command & 0x80))
+				{
+					fdc.rw_track++;
+					fdc.sector = 1;
+				}
+				else
+				{
+					if (fdc.head)
+					{
+						fdc.rw_track++;
+					}
+
+               		                fdc.head ^= 1;
+					fdd_set_head(fdc.drive, fdc.head);
+					fdc.sector = 1;
+				}
+			}
+			else
+			{
+				fdc.sector++;
+			}
 			fdc_poll_readwrite_finish(compare);
 			return;
 		}
@@ -1777,7 +1808,7 @@ void fdc_callback()
                 fdc.config = fdc.params[1];
                 fdc.pretrk = fdc.params[2];
 		fdc.fifo = (fdc.params[1] & 0x20) ? 0 : 1;
-		fdc.tfifo = (fdc.params[1] & 0xF) + 1;
+		fdc.tfifo = (fdc.params[1] & 0xF);
                 fdc.stat = 0x80;
                 disctime = 0;
                 return;
@@ -1889,7 +1920,7 @@ int fdc_data(uint8_t data)
                         return -1;
                 }
 
-		if (fdc.pcjr || !fdc.fifo || (fdc.tfifo <= 1))
+		if (fdc.pcjr || !fdc.fifo || (fdc.tfifo < 1))
 		{
 	                fdc.dat = data;
 	                fdc.data_ready = 1;
@@ -1909,6 +1940,36 @@ int fdc_data(uint8_t data)
         }
         else
         {
+        	if (fdc.tc)
+		{
+			fdc_log("FDC read: TC\n");
+                	return 0;
+		}
+
+                if (dma_channel_write(2, data) & DMA_OVER)
+		{
+			fdc_log("FDC read: DMA over\n");
+                        fdc.tc = 1;
+		}
+
+		if (!fdc.fifo)
+		{
+	                fdc.data_ready = 1;
+	                fdc.stat = 0xd0;
+		}
+		else
+		{
+			fdc_fifo_buf_advance();
+			if (fdc.fifobufpos == 0)
+			{
+				/* We have wrapped around, means FIFO is over */
+				fifo_count++;
+				fdc_log("%04X: FIFO wrap around (threshold == %02X), DRQ sent\n", fifo_count, fdc.tfifo);
+				fdc.data_ready = 1;
+				fdc.stat = 0xd0;
+			}
+		}
+#if 0
 		result = dma_channel_write(2, data);
 
         	if (fdc.tc)
@@ -1922,7 +1983,7 @@ int fdc_data(uint8_t data)
 			return -1;
 		}
 
-		if (!fdc.fifo || (fdc.tfifo <= 1))
+		if (!fdc.fifo || (fdc.tfifo < 1))
 		{
 	                fdc.data_ready = 1;
 	                fdc.stat = 0xd0;
@@ -1937,6 +1998,7 @@ int fdc_data(uint8_t data)
 				fdc.stat = 0xd0;
 			}
 		}
+#endif
         }
         
         return 0;
