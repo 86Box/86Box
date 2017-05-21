@@ -809,6 +809,23 @@ void create_cdrom_tip(int part)
 	}
 }
 
+void create_removable_hd_tip(int part)
+{
+	WCHAR *szText;
+	WCHAR wtext[512];
+
+	int drive = sb_part_meanings[part] & 0xf;
+
+	if (wcslen(hdd_fn[drive]) == 0)
+	{
+		_swprintf(sbTips[part],  win_language_get_string_from_id(2201), win_language_get_string_from_id(2185));
+	}
+	else
+	{
+		_swprintf(sbTips[part],  win_language_get_string_from_id(2179), hdd_fn[drive]);
+	}
+}
+
 void create_hd_tip(int part)
 {
 	WCHAR *szText;
@@ -841,11 +858,9 @@ void update_tip(int meaning)
 			case 0x10:
 				create_cdrom_tip(part);
 				break;
-#if 0
 			case 0x20:
 				create_removable_hd_tip(part);
 				break;
-#endif
 			case 0x30:
 				create_hd_tip(part);
 				break;
@@ -954,7 +969,6 @@ void update_status_bar_panes(HWND hwnds)
 			sb_parts++;
 		}
 	}
-#if 0
 	for (i = 0; i < 16; i++)
 	{
 		if (hdc[i].bus == 5)
@@ -965,7 +979,6 @@ void update_status_bar_panes(HWND hwnds)
 			sb_parts++;
 		}
 	}
-#endif
 	if (c_mfm && !(models[model].flags & MODEL_HAS_IDE) && !!memcmp(hdd_controller_name, "none", 4) && !!memcmp(hdd_controller_name, "xtide", 5))
 	{
 		edge += sb_icon_width;
@@ -1047,14 +1060,12 @@ void update_status_bar_panes(HWND hwnds)
 				sb_part_icons[i] = j | sb_icon_flags[i];
 				create_cdrom_tip(i);
 				break;
-#if 0
 			case 0x20:
 				/* Removable hard disk */
 				sb_icon_flags[i] = (wcslen(discfns[sb_part_meanings[i] & 0xf]) == 0) ? 256 : 0;
 				sb_part_icons[i] = 176 + sb_icon_flags[i];
-				create_floppy_tip(i);
+				create_removable_hd_tip(i);
 				break;
-#endif
 			case 0x30:
 				/* Hard disk */
 				sb_part_icons[i] = 192 + ((sb_part_meanings[i] & 0xf) << 1);
@@ -1107,12 +1118,10 @@ HWND EmulatorStatusBar(HWND hwndParent, int idStatus, HINSTANCE hinst)
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
 
-#if 0
 	for (i = 176; i < 178; i++)
 	{
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
-#endif
 
 	for (i = 192; i < 200; i++)
 	{
@@ -1139,12 +1148,10 @@ HWND EmulatorStatusBar(HWND hwndParent, int idStatus, HINSTANCE hinst)
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
 
-#if 0
 	for (i = 432; i < 434; i++)
 	{
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
-#endif
 
 	GetWindowRect(hwndParent, &rectDialog);
 	dw = rectDialog.right - rectDialog.left;
