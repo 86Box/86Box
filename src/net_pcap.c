@@ -148,43 +148,6 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
 	return(-1);
     }
 
-    /* Time to check that we are in non-blocking mode. */
-    rc=pcap_getnonblock(pcap,temp);
-    pclog("pcap is currently in %s mode\n",rc? "non-blocking":"blocking");
-
-    switch(rc)
-    {
-	case 0:
-		pclog("Setting interface to non-blocking mode..");
-		rc = pcap_setnonblock(pcap,1,temp);
-		if (rc==0)
-		{	/* no errors! */
-			pclog("..");
-			rc=pcap_getnonblock(pcap,temp);
-			if(rc == 1)
-			{
-				pclog("..!",rc);
-			}
-			else
-			{
-				pclog("\tunable to set pcap into non-blocking mode!\nContinuining without pcap.\n");
-				return(-1);
-			}
-		}	/* end set nonblock */
-		else
-		{
-			pclog("There was an unexpected error of [%s]\n\nexiting.\n",temp);return(-1);}
-			pclog("\n");
-			break;
-	case 1:
-			pclog("non blocking\n");
-			break;
-	default:
-			pclog("this isn't right!!!\n");
-			return(-1);
-			break;
-    }
-
     /* Create a MAC address based packet filter. */
     pclog("Building packet filter ...");
     sprintf(filter_exp,
