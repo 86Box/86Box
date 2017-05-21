@@ -1809,7 +1809,7 @@ nic_init(int board)
     mac = device_get_config_int_ex("mac", -1);
 
     /* Set up our MAC address. */
-#if 0
+#if 1
     if (dev->is_rtl8029as) {
 	dev->maclocal[0] = 0xDE /* 0x00 */;  /* 00:20:18 (RTL 8029AS PCI vendor prefix). */
 	dev->maclocal[1] = 0x20;
