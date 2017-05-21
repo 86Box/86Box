@@ -1,4 +1,4 @@
-/* Copyright holders: Sarah Walker
+/* Copyright holders: Kotori
    see COPYING for more details
 */
-extern device_t sis496_device;
+void sis496_init(void);

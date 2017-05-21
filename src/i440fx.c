@@ -131,7 +131,7 @@ void i440fx_reset(void)
     
 void i440fx_pci_reset(void)
 {
-	i440fx_write(0, 0x59, 0xf, NULL);
+	i440fx_write(0, 0x59, 0x00, NULL);
 }
 
 void i440fx_init()
