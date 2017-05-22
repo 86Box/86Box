@@ -15,16 +15,18 @@ typedef struct sis496_t
         uint8_t pci_conf[256];
 } sis496_t;
 
-void sis496_recalcmapping(sis496_t *sis496)
+sis496_t sis496;
+
+void sis496_recalcmapping(void)
 {
         int c;
         
         for (c = 0; c < 8; c++)
         {
                 uint32_t base = 0xc0000 + (c << 15);
-                if (sis496->pci_conf[0x44] & (1 << c))
+                if (sis496.pci_conf[0x44] & (1 << c))
                 {
-                        switch (sis496->pci_conf[0x45] & 3)
+                        switch (sis496.pci_conf[0x45] & 3)
                         {
                                 case 0:
                                 mem_set_mem_state(base, 0x8000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
@@ -45,68 +47,77 @@ void sis496_recalcmapping(sis496_t *sis496)
         }
 
         flushmmucache();
-        shadowbios = (sis496->pci_conf[0x44] & 0xf0);
+        shadowbios = (sis496.pci_conf[0x44] & 0xf0);
 }
 
 void sis496_write(int func, int addr, uint8_t val, void *p)
 {
-        sis496_t *sis496 = (sis496_t *)p;
         switch (addr)
         {
                 case 0x44: /*Shadow configure*/
-                if ((sis496->pci_conf[0x44] & val) ^ 0xf0)
+                if ((sis496.pci_conf[0x44] & val) ^ 0xf0)
                 {
-                        sis496->pci_conf[0x44] = val;
-                        sis496_recalcmapping(sis496);
+                        sis496.pci_conf[0x44] = val;
+                        sis496_recalcmapping();
                 }
                 break;
                 case 0x45: /*Shadow configure*/
-                if ((sis496->pci_conf[0x45] & val) ^ 0x01)
+                if ((sis496.pci_conf[0x45] & val) ^ 0x01)
                 {
-                        sis496->pci_conf[0x45] = val;
-                        sis496_recalcmapping(sis496);
+                        sis496.pci_conf[0x45] = val;
+                        sis496_recalcmapping();
                 }
                 break;
         }
                 
         if ((addr >= 4 && addr < 8) || addr >= 0x40)
-           sis496->pci_conf[addr] = val;
+           sis496.pci_conf[addr] = val;
 }
 
 uint8_t sis496_read(int func, int addr, void *p)
 {
-        sis496_t *sis496 = (sis496_t *)p;
-        
-        return sis496->pci_conf[addr];
+        return sis496.pci_conf[addr];
 }
  
-void *sis496_init()
+void sis496_reset(void)
 {
-        sis496_t *sis496 = malloc(sizeof(sis496_t));
-        memset(sis496, 0, sizeof(sis496_t));
+        memset(&sis496, 0, sizeof(sis496_t));
         
-        pci_add_specific(5, sis496_read, sis496_write, sis496);
+        sis496.pci_conf[0x00] = 0x39; /*SiS*/
+        sis496.pci_conf[0x01] = 0x10; 
+        sis496.pci_conf[0x02] = 0x96; /*496/497*/
+        sis496.pci_conf[0x03] = 0x04; 
+
+        sis496.pci_conf[0x04] = 7;
+        sis496.pci_conf[0x05] = 0;
+
+        sis496.pci_conf[0x06] = 0x80;
+        sis496.pci_conf[0x07] = 0x02;
         
-        sis496->pci_conf[0x00] = 0x39; /*SiS*/
-        sis496->pci_conf[0x01] = 0x10; 
-        sis496->pci_conf[0x02] = 0x96; /*496/497*/
-        sis496->pci_conf[0x03] = 0x04; 
+        sis496.pci_conf[0x08] = 2; /*Device revision*/
 
-        sis496->pci_conf[0x04] = 7;
-        sis496->pci_conf[0x05] = 0;
+        sis496.pci_conf[0x09] = 0x00; /*Device class (PCI bridge)*/
+        sis496.pci_conf[0x0a] = 0x00;
+        sis496.pci_conf[0x0b] = 0x06;
 
-        sis496->pci_conf[0x06] = 0x80;
-        sis496->pci_conf[0x07] = 0x02;
-        
-        sis496->pci_conf[0x08] = 2; /*Device revision*/
+        sis496.pci_conf[0x0e] = 0x00; /*Single function device*/
+}
 
-        sis496->pci_conf[0x09] = 0x00; /*Device class (PCI bridge)*/
-        sis496->pci_conf[0x0a] = 0x00;
-        sis496->pci_conf[0x0b] = 0x06;
-        
-        sis496->pci_conf[0x0e] = 0x00; /*Single function device*/
+void sis496_pci_reset(void)
+{
+	uint8_t val = 0;
 
-	return sis496;
+	val = sis496_read(0, 0x44, NULL);		/* Read current value of 0x44. */
+	sis496_write(0, 0x44, val & 0xf, NULL);		/* Turn off shadow BIOS but keep the lower 4 bits. */
+}
+
+void sis496_init(void)
+{
+        pci_add_specific(5, sis496_read, sis496_write, NULL);
+
+	sis496_reset();
+
+	pci_reset_handler.pci_master_reset = sis496_pci_reset;
 }
 
 void sis496_close(void *p)
@@ -115,15 +126,3 @@ void sis496_close(void *p)
 
         free(sis496);
 }
-
-device_t sis496_device =
-{
-        "SiS 496/497",
-        0,
-        sis496_init,
-        sis496_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL
-};

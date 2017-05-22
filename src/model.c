@@ -581,7 +581,8 @@ void at_sis496_init()
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1, 0, 31);
-        device_add(&sis496_device);
+	sis496_init();
+	trc_init();
 }
 
 void at_r418_init()
