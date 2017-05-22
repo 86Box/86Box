@@ -8,7 +8,7 @@
  *
  *		Handle SLiRP library processing.
  *
- * Version:	@(#)net_slirp.c	1.0.2	2017/05/17
+ * Version:	@(#)net_slirp.c	1.0.3	2017/05/21
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -63,7 +63,7 @@ slirp_tic(void)
 }
 
 
-/* Check if the interface has a packet for us. */
+/* Handle the receiving of frames. */
 static void
 poll_thread(void *arg)
 {
@@ -75,7 +75,6 @@ poll_thread(void *arg)
 
     /* Create a waitable event. */
     evt = thread_create_event();
-    pclog("SLiRP: poll event is %08lx\n", evt);
 
     while (slirpq != NULL) {
 	/* See if there is any work. */
@@ -90,8 +89,10 @@ poll_thread(void *arg)
 
 	/* Grab a packet from the queue. */
 	qp = QueueDelete(slirpq);
+#if 0
 	pclog("SLiRP: inQ:%d  got a %dbyte packet @%08lx\n",
 				QueuePeek(slirpq), qp->len, qp);
+#endif
 
 	if (poll_rx != NULL)
 		poll_rx(poll_arg, (uint8_t *)&qp->data, qp->len); 
@@ -113,7 +114,7 @@ network_slirp_setup(uint8_t *mac, NETRXCB func, void *arg)
 {
     int rc;
 
-    pclog("Initializing SLiRP\n");
+    pclog("SLiRP: initializing..\n");
 
     if (slirp_init() != 0) {
 	pclog("SLiRP could not be initialized!\n");
@@ -127,7 +128,7 @@ network_slirp_setup(uint8_t *mac, NETRXCB func, void *arg)
     poll_rx = func;
     poll_arg = arg;
 
-    pclog("SLiRP: creating thread..\n");
+    pclog("SLiRP: starting thread..\n");
     poll_tid = thread_create(poll_thread, mac);
 
     return(0);

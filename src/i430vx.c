@@ -127,7 +127,7 @@ void i430vx_reset(void)
     
 void i430vx_pci_reset(void)
 {
-	i430vx_write(0, 0x59, 0xf, NULL);
+	i430vx_write(0, 0x59, 0x00, NULL);
 }
 
 void i430vx_init()

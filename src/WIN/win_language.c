@@ -21,7 +21,7 @@ LCID dwLanguage;
 
 uint32_t dwLangID, dwSubLangID;
 
-#define STRINGS_NUM 155		/* FIXME: should be in resource.h !! --FvK */
+#define STRINGS_NUM 157		/* FIXME: should be in resource.h !! --FvK */
 
 WCHAR lpResourceString[STRINGS_NUM][512];
 

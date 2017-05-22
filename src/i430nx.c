@@ -120,7 +120,7 @@ void i430nx_reset(void)
 
 void i430nx_pci_reset(void)
 {
-	i430nx_write(0, 0x59, 0xf, NULL);
+	i430nx_write(0, 0x59, 0x00, NULL);
 }
 
 void i430nx_init()

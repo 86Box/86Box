@@ -664,6 +664,8 @@ END
 163                     ICON    DISCARDABLE     "ICONS/cdrom_atapi_dma_active.ico"
 164                     ICON    DISCARDABLE     "ICONS/cdrom_scsi.ico"
 165                     ICON    DISCARDABLE     "ICONS/cdrom_scsi_active.ico"
+176                     ICON    DISCARDABLE     "ICONS/hard_disk_removable_scsi.ico"
+177                     ICON    DISCARDABLE     "ICONS/hard_disk_removable_scsi_active.ico"
 192                     ICON    DISCARDABLE     "ICONS/hard_disk_mfm.ico"
 193                     ICON    DISCARDABLE     "ICONS/hard_disk_mfm_active.ico"
 194                     ICON    DISCARDABLE     "ICONS/hard_disk.ico"
@@ -702,6 +704,8 @@ END
 419                     ICON    DISCARDABLE     "ICONS/cdrom_atapi_dma_empty_active.ico"
 420                     ICON    DISCARDABLE     "ICONS/cdrom_scsi_empty.ico"
 421                     ICON    DISCARDABLE     "ICONS/cdrom_scsi_empty_active.ico"
+432                     ICON    DISCARDABLE     "ICONS/hard_disk_removable_scsi_empty.ico"
+433                     ICON    DISCARDABLE     "ICONS/hard_disk_removable_scsi_empty_active.ico"
 512                     ICON    DISCARDABLE     "ICONS/floppy_disabled.ico"
 514                     ICON    DISCARDABLE     "ICONS/cdrom_disabled.ico"
 
@@ -1003,8 +1007,10 @@ BEGIN
     2198                    "Removable disk %i: %s"
     2199                    "USB is not yet supported"
     2200                    "Invalid PCap device"
-    2201                    "English (United States)"
-    2202                    "Pcap Library Not Available"
+    2201                    "SCSI removable disk: %ws"
+    2202                    "<Placeholder string>"
+    2203                    "English (United States)"
+    2204                    "Pcap Library Not Available"
 END
 
 

@@ -31,7 +31,7 @@ static void write_lock(uint8_t val)
 static void ide_handler()
 {
 	uint16_t or_value = 0;
-	if (romset == ROM_440FX)
+	if ((romset == ROM_440FX) || (romset == ROM_R418))
 	{
 		return;
 	}
@@ -49,10 +49,6 @@ static void ide_handler()
 		ide_set_base(0, 0x170 | or_value);
 		ide_set_side(0, 0x376 | or_value);
 		ide_pri_enable_ex();
-	}
-	else
-	{
-		pclog("Disabling IDE...\n");
 	}
 }
 
