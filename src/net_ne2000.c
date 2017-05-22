@@ -11,7 +11,7 @@
  * NOTE:	Its still a mess, but we're getting there. The file will
  *		also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.4	2017/05/17
+ * Version:	@(#)net_ne2000.c	1.0.5	2017/05/21
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -1842,10 +1842,21 @@ nic_init(int board)
 	!dev->disable_netbios);
 
     if (network_attach(dev, dev->physaddr, nic_rx) < 0) {
+#if 0
+	msgbox_error_wstr(ghwnd, L"Unable to init platform network");
+#endif
 	pclog(1, "%s: unable to init platform network type %d\n",
 					dev->name, network_type);
+#if 0
+	/*
+	 * To avoid crashes, we ignore the fact that even though
+	 * there is no active platform support, we just continue
+	 * initializing. If we return an error here, the device
+	 * handling code will throw a fatal error... --FvK
+	 */
 	free(dev);
 	return(NULL);
+#endif
     }
 
     if (dev->is_rtl8029as)
@@ -1988,20 +1999,6 @@ static device_config_t ne1000_config[] =
 		},
 	},
 	{
-		"net_type", "Network type", CONFIG_SELECTION, "", 0,
-		{
-			{
-				"PCap", 0
-			},
-			{
-				"SLiRP", 1
-			},
-			{
-				""
-			}
-		},
-	},
-	{
 		"mac", "MAC Address", CONFIG_MAC, "", -1
 	},
 	{
@@ -2064,20 +2061,6 @@ static device_config_t ne2000_config[] =
 		},
 	},
 	{
-		"net_type", "Network type", CONFIG_SELECTION, "", 0,
-		{
-			{
-				"PCap", 0
-			},
-			{
-				"SLiRP", 1
-			},
-			{
-				""
-			}
-		},
-	},
-	{
 		"mac", "MAC Address", CONFIG_MAC, "", -1
 	},
 	{
@@ -2107,20 +2090,6 @@ static device_config_t rtl8029as_config[] =
 			},
 			{
 				"IRQ 11", 11
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"net_type", "Network type", CONFIG_SELECTION, "", 0,
-		{
-			{
-				"PCap", 0
-			},
-			{
-				"SLiRP", 1
 			},
 			{
 				""

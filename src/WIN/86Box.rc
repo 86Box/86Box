@@ -1004,6 +1004,7 @@ BEGIN
     2199                    "USB is not yet supported"
     2200                    "Invalid PCap device"
     2201                    "English (United States)"
+    2202                    "Pcap Library Not Available"
 END
 
 

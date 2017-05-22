@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 MinGW 32-bit environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.13	2017/05/17
+# Version:	@(#)Makefile.mingw	1.0.14	2017/05/21
 #
 # Authors:	Kotori, <oubattler@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -29,12 +29,9 @@ STUFF	=
 EXTRAS	=
 
 # Do we want a debugging build?
-DEBUG	= y
-OPTIM	= n
+DEBUG	= n
+OPTIM	= y
 X64	= n
-
-# Where is the WinPcap DLL ?
-PCAPDLL	= C:\\Windows\\System32\\wpcap.dll
 
 
 #########################################################################
@@ -46,7 +43,7 @@ CPP	= g++.exe
 CC	= gcc.exe
 WINDRES	= windres.exe
 
-OPTS	= -DWIN32 -I$(PLAT) $(EXTRAS) $(STUFF)
+OPTS	= -DWIN32 -I$(PLAT) -I$(X64INC) $(EXTRAS) $(STUFF)
 ifeq ($(DEBUG), y)
 ifeq ($(VRAMDUMP), y)
 DFLAGS	= -march=i686 -ggdb -DDEBUG -DENABLE_VRAM_DUMP
@@ -179,7 +176,7 @@ VIDOBJ	= video.o \
 WINOBJ	= win.o \
 	    win_d3d.o win_d3d-fs.o \
 	    win_ddraw.o win_ddraw-fs.o win_ddraw-screenshot.o \
-	    win_language.o win_status.o win_opendir.o \
+	    win_language.o win_status.o win_opendir.o win_dynld.o \
 	    win_video.o win_serial.o win_mouse.o \
 	    win_joystick.o win_midi.o \
 	    win_settings.o win_deviceconfig.o win_joystickconfig.o \
@@ -200,7 +197,7 @@ LIBS	= -mwindows -lcomctl32 -lwinmm -lopenal.dll -lopenal -lddraw \
 # Build rules.
 %.o:		%.c
 		@echo $<
-		$(CC) $(CFLAGS) -c $<
+		@$(CC) $(CFLAGS) -c $<
 
 %.o:		%.cc
 		@echo $<
@@ -217,7 +214,7 @@ $(PROG).exe:	$(OBJ) $(LZFOBJ) $(SLIRPOBJ)
 		@echo Linking $(PROG).exe ..
 		@$(CC) -o $(PROG).exe \
 			$(OBJ) $(LZFOBJ) $(SLIRPOBJ) \
-			$(LIBS) -static -Lpcap -lwpcapdelay
+			$(LIBS) #-static -Lpcap -lwpcapdelay
 ifneq ($(DEBUG), y)
 		@strip $(PROG).exe
 endif
@@ -240,10 +237,6 @@ clean:
 86Box.res:	86Box.rc
 		@echo Processing $<
 		@$(WINDRES) $(RFLAGS) -i win/86Box.rc -o 86Box.res
-
-libwpcapdelay.a: $(PCAPDLL)
-		@dlltool --export-all-symbols --output-def wpcap.def $(PCAPDLL)
-		@dlltool --def wpcap.def --output-delaylib libwpcapdelay.a 
 
 pcap_if.res:	pcap_if.rc
 		@echo Processing $<
