@@ -971,9 +971,9 @@ static void loadconfig_hard_disks(void)
 		{
 			hdc[c].spt = 99;
 		}
-		if (hdc[c].hpc > 64)
+		if (hdc[c].hpc > 255)
 		{
-			hdc[c].hpc = 64;
+			hdc[c].hpc = 255;
 		}
 		if (hdc[c].tracks > 266305)
 		{
