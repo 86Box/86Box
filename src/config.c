@@ -6,8 +6,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-#include <wchar.h>
-
 #include "cdrom.h"
 #include "config.h"
 #include "device.h"
@@ -30,15 +28,8 @@
 #include "sound/snd_opl.h"
 #include "sound/sound.h"
 #include "video/video.h"
-
-#ifndef __unix
-#define UNICODE
-#define BITMAP WINDOWS_BITMAP
-#include <windows.h>
-#undef BITMAP
 #include "win.h"
 #include "win_language.h"
-#endif
 
 
 wchar_t config_file_default[256];

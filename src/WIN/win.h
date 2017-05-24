@@ -8,13 +8,16 @@
 */
 #ifndef BOX_WIN_H
 # define BOX_WIN_H
-
-#if 0
-# define UNICODE
+# ifndef NO_UNICODE
+#  define UNICODE
+# endif
 # define BITMAP WINDOWS_BITMAP
+//# ifdef _WIN32_WINNT
+//#  undef _WIN32_WINNT
+//#  define _WIN32_WINNT 0x0501
+//# endif
 # include <windows.h>
 # undef BITMAP
-#endif
 
 
 #define szClassName L"86BoxMainWnd"

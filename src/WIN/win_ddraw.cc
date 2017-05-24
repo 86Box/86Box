@@ -3,13 +3,8 @@
 */
 #include <stdio.h>
 #include <stdint.h>
-#define UNICODE
-#define BITMAP WINDOWS_BITMAP
-#include <ddraw.h>
-#undef BITMAP
 #include "../video/video.h"
 #include "win_ddraw.h"
-#include "win_ddraw-screenshot.h"
 #include "win_cgapal.h"
 
 

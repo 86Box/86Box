@@ -8,7 +8,7 @@
  *
  *		Handle WinPcap library processing.
  *
- * Version:	@(#)net_pcap.c	1.0.3	2017/05/21
+ * Version:	@(#)net_pcap.c	1.0.4	2017/05/23
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -180,7 +180,7 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
     }
 
     /* Create a MAC address based packet filter. */
-    pclog(" Installing packet filter for MAC=%02x:%02x:%02x:%02x:%02x\n",
+    pclog(" Installing packet filter for MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
 			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     sprintf(filter_exp,
 	"( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )",

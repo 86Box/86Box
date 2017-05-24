@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.5	2017/05/21
+ * Version:	@(#)network.c	1.0.6	2017/05/22
  *
  * Authors:	Kotori, <oubattler@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -25,14 +25,8 @@
 #include "device.h"
 #include "network.h"
 #include "net_ne2000.h"
-#ifndef unix
-# define UNICODE
-# define BITMAP WINDOWS_BITMAP
-# include <windows.h>
-# undef BITMAP
-# include "win.h"
-# include "win_language.h"
-#endif
+#include "win.h"
+#include "win_language.h"
 
 
 static netcard_t net_cards[] = {

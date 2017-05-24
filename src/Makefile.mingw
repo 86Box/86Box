@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 MinGW 32-bit environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.14	2017/05/21
+# Version:	@(#)Makefile.mingw	1.0.16	2017/05/22
 #
 # Authors:	Kotori, <oubattler@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -17,21 +17,33 @@
 #
 
 # Name of the executable.
+ifndef PROG
 PROG	= 86Box
+endif
 
 # Various compile-time options.
 # -DROM_TRACE=0xcd800 traces ROM access from segment C800
 # -DIO_TACE=0x66 traces I/O on port 0x66
+ifndef STUFF
 STUFF	=
+endif
 
 # Add feature selections here.
 # -DBUGGER adds the ISA BusBugger emulation.
-EXTRAS	=
+ifndef EXTRAS
+EXTRAS	= lala
+endif
 
 # Do we want a debugging build?
+ifndef DEBUG
 DEBUG	= n
+endif
+ifndef OPTIM
 OPTIM	= y
+endif
+ifndef X64
 X64	= n
+endif
 
 
 #########################################################################
@@ -43,25 +55,31 @@ CPP	= g++.exe
 CC	= gcc.exe
 WINDRES	= windres.exe
 
-OPTS	= -DWIN32 -I$(PLAT) -I$(X64INC) $(EXTRAS) $(STUFF)
+OPTS	= -DWIN32 -I$(PLAT) $(EXTRAS) $(STUFF)
 ifeq ($(DEBUG), y)
 ifeq ($(VRAMDUMP), y)
 DFLAGS	= -march=i686 -ggdb -DDEBUG -DENABLE_VRAM_DUMP
 else
 DFLAGS	= -march=i686 -ggdb -DDEBUG
 endif
+ifndef COPTIM
 COPTIM	= -Og
+endif
 else
 ifeq ($(OPTIM), y)
 DFLAGS	= -march=native
+ifndef COPTIM
 COPTIM	= -O6
+endif
 else
 ifeq ($(X64), y)
 DFLAGS	= 
 else
 DFLAGS	= -march=i686
 endif
+ifndef COPTIM
 COPTIM	= -O3
+endif
 endif
 endif
 ifeq ($(OPTIM), y)
@@ -102,17 +120,17 @@ CPUOBJ	= cpu.o 386.o 386_dynarec.o 386_dynarec_ops.o 808x.o \
 	    codegen_timing_winchip.o $(PLATCG) \
 	  x86seg.o x87.o
 SYSOBJ	= model.o \
-	    headland.o \
-	    i430hx.o i430lx.o i430fx.o i430nx.o i430vx.o i440fx.o \
-	    neat.o \
-	    ali1429.o \
-	    opti495.o \
-	    scat.o \
-	    sis496.o \
-	    wd76c10.o \
-	    acer386sx.o acerm3a.o amstrad.o \
-	    compaq.o olivetti_m24.o jim.o ps1.o ps2.o ps2_mca.o \
-	    tandy_eeprom.o tandy_rom.o
+	  headland.o \
+	  i430hx.o i430lx.o i430fx.o i430nx.o i430vx.o i440fx.o \
+	  neat.o \
+	  ali1429.o \
+	  opti495.o \
+	  scat.o \
+	  sis496.o \
+	  wd76c10.o \
+	  acer386sx.o acerm3a.o amstrad.o \
+	  compaq.o olivetti_m24.o jim.o ps1.o ps2.o ps2_mca.o \
+	  tandy_eeprom.o tandy_rom.o
 DEVOBJ	= bugger.o lpt.o serial.o \
 	    um8669f.o pc87306.o sis85c471.o w83877f.o \
 	  keyboard.o \
@@ -133,53 +151,53 @@ DEVOBJ	= bugger.o lpt.o serial.o \
 	    cdrom_dosbox.o cdrom_image.o cdrom_ioctl.o cdrom_null.o
 USBOBJ	= usb.o
 NETOBJ	= network.o \
-	    net_pcap.o net_slirp.o \
-	    net_ne2000.o
+	  net_pcap.o net_slirp.o \
+	  net_ne2000.o
 SCSIOBJ	= scsi.o scsi_disk.o scsi_buslogic.o scsi_aha154x.o
 SNDOBJ	= sound.o \
-	    convolve.o convolve-sse.o envelope.o extfilt.o \
-	    filter.o pot.o sid.o voice.o wave6581__ST.o \
-	    wave6581_P_T.o wave6581_PS_.o wave6581_PST.o \
-	    wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
-	    wave8580_PST.o wave.o \
-	    dbopl.o nukedopl.o openal.o \
-	    snd_speaker.o snd_ps1.o snd_pssj.o \
-	    snd_adlib.o snd_adlibgold.o snd_ad1848.o \
-	    snd_sb.o snd_sb_dsp.o snd_cms.o snd_dbopl.o \
-	    snd_emu8k.o snd_gus.o snd_opl.o \
-	    snd_mpu401.o snd_pas16.o snd_resid.o \
-	    snd_sn76489.o snd_ssi2001.o snd_wss.o \
-	    snd_ym7128.o
+	  convolve.o convolve-sse.o envelope.o extfilt.o \
+	  filter.o pot.o sid.o voice.o wave6581__ST.o \
+	  wave6581_P_T.o wave6581_PS_.o wave6581_PST.o \
+	  wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
+	  wave8580_PST.o wave.o \
+	  dbopl.o nukedopl.o openal.o \
+	  snd_speaker.o snd_ps1.o snd_pssj.o \
+	  snd_adlib.o snd_adlibgold.o snd_ad1848.o \
+	  snd_sb.o snd_sb_dsp.o snd_cms.o snd_dbopl.o \
+	  snd_emu8k.o snd_gus.o snd_opl.o \
+	  snd_mpu401.o snd_pas16.o snd_resid.o \
+	  snd_sn76489.o snd_ssi2001.o snd_wss.o \
+	  snd_ym7128.o
 VIDOBJ	= video.o \
-	    vid_cga.o vid_cga_comp.o vid_mda.o vid_ega.o \
-	    vid_vga.o vid_svga.o vid_svga_render.o \
-	    vid_hercules.o vid_herculesplus.o vid_incolor.o \
-	    vid_colorplus.o \
-	    vid_genius.o \
-	    vid_s3.o vid_s3_virge.o \
-	    vid_et4000.o vid_et4000w32.o vid_icd2061.o \
-	    vid_oti067.o \
-	    vid_paradise.o \
-	    vid_tvga.o vid_tgui9440.o vid_tkd8001_ramdac.o \
-	    vid_ati_eeprom.o vid_ati18800.o vid_ati28800.o \
-	      vid_ati68860_ramdac.o vid_ati_mach64.o \
-	      vid_ics2595.o \
-	    vid_sdac_ramdac.o \
-	    vid_stg_ramdac.o \
-	    vid_unk_ramdac.o \
-	    vid_wy700.o \
-	    vid_voodoo.o \
-	    vid_pcjr.o vid_ps1_svga.o \
-	    vid_olivetti_m24.o \
-	    vid_pc1512.o vid_pc1640.o vid_pc200.o \
-	    vid_tandy.o vid_tandysl.o
+	  vid_cga.o vid_cga_comp.o vid_mda.o vid_ega.o \
+	  vid_vga.o vid_svga.o vid_svga_render.o \
+	  vid_hercules.o vid_herculesplus.o vid_incolor.o \
+	  vid_colorplus.o \
+	  vid_genius.o \
+	  vid_s3.o vid_s3_virge.o \
+	  vid_et4000.o vid_et4000w32.o vid_icd2061.o \
+	  vid_oti067.o \
+	  vid_paradise.o \
+	  vid_tvga.o vid_tgui9440.o vid_tkd8001_ramdac.o \
+	  vid_ati_eeprom.o vid_ati18800.o vid_ati28800.o \
+	    vid_ati68860_ramdac.o vid_ati_mach64.o \
+	    vid_ics2595.o \
+	  vid_sdac_ramdac.o \
+	  vid_stg_ramdac.o \
+	  vid_unk_ramdac.o \
+	  vid_wy700.o \
+	  vid_voodoo.o \
+	  vid_pcjr.o vid_ps1_svga.o \
+	  vid_olivetti_m24.o \
+	  vid_pc1512.o vid_pc1640.o vid_pc200.o \
+	  vid_tandy.o vid_tandysl.o
 WINOBJ	= win.o \
-	    win_d3d.o win_d3d-fs.o \
-	    win_ddraw.o win_ddraw-fs.o win_ddraw-screenshot.o \
-	    win_language.o win_status.o win_opendir.o win_dynld.o \
-	    win_video.o win_serial.o win_mouse.o \
-	    win_joystick.o win_midi.o \
-	    win_settings.o win_deviceconfig.o win_joystickconfig.o \
+	  win_ddraw.o win_ddraw_fs.o win_ddraw_screenshot.o \
+	  win_d3d.o win_d3d_fs.o \
+	  win_language.o win_status.o win_opendir.o win_dynld.o \
+	  win_video.o win_serial.o win_mouse.o \
+	  win_joystick.o win_midi.o \
+	  win_settings.o win_deviceconfig.o win_joystickconfig.o \
 	  86Box.res
 OBJ	= $(MAINOBJ) $(CPUOBJ) $(SYSOBJ) $(DEVOBJ) $(USBOBJ) \
 	  $(NETOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) $(WINOBJ)
@@ -197,7 +215,7 @@ LIBS	= -mwindows -lcomctl32 -lwinmm -lopenal.dll -lopenal -lddraw \
 # Build rules.
 %.o:		%.c
 		@echo $<
-		@$(CC) $(CFLAGS) -c $<
+		$(CC) $(CFLAGS) -c $<
 
 %.o:		%.cc
 		@echo $<

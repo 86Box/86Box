@@ -1,18 +1,17 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
-#define BITMAP WINDOWS_BITMAP
-#include <windows.h>
-#include <windowsx.h>
-#undef BITMAP
-
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"
 #include "resource.h"
+#define NO_UNICODE		/*FIXME: not Unicode? */
 #include "win.h"
+#include <windowsx.h>
+
 
 static device_t *config_device;
+
 
 static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {

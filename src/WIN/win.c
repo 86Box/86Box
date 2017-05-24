@@ -1,21 +1,10 @@
 /* Copyright holders: Sarah Walker, Tenshi
    see COPYING for more details
 */
-#define UNICODE
-#define  _WIN32_WINNT 0x0501
-#define BITMAP WINDOWS_BITMAP
-#include <windows.h>
-#include <windowsx.h>
-#undef BITMAP
-
-#include <commctrl.h>
-#include <commdlg.h>
-#include <process.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "../86box.h"
 #include "../device.h"
 #include "../disc.h"
@@ -45,10 +34,12 @@
 
 #include "win.h"
 #include "win_ddraw.h"
-#include "win_ddraw-fs.h"
 #include "win_d3d.h"
-#include "win_d3d-fs.h"
 #include "win_language.h"
+#include <windowsx.h>
+#include <commctrl.h>
+#include <commdlg.h>
+#include <process.h>
 #include "resource.h"
 
 

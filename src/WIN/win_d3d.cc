@@ -2,14 +2,9 @@
    see COPYING for more details
 */
 #include <stdint.h>
-#define UNICODE
-#define BITMAP WINDOWS_BITMAP
-#include <d3d9.h>
-#undef BITMAP
-#include <D3dx9tex.h>
+#include "../video/video.h"
 #include "win.h"
 #include "win_d3d.h"
-#include "../video/video.h"
 #include "win_cgapal.h"
 #include "resource.h"
 

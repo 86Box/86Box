@@ -2,14 +2,20 @@
    see COPYING for more details
 */
 #include <stdint.h>
-#define UNICODE
-#define BITMAP WINDOWS_BITMAP
-#include <ddraw.h>
-#undef BITMAP
 #include "../video/video.h"
-#include "win_ddraw-fs.h"
-#include "win_ddraw-screenshot.h"
+#include "win_ddraw.h"
 #include "win_cgapal.h"
+
+
+static LPDIRECTDRAW  lpdd  = NULL;
+static LPDIRECTDRAW7 lpdd7 = NULL;
+static LPDIRECTDRAWSURFACE7 lpdds_pri = NULL;
+static LPDIRECTDRAWSURFACE7 lpdds_back = NULL;
+static LPDIRECTDRAWSURFACE7 lpdds_back2 = NULL;
+static LPDIRECTDRAWCLIPPER lpdd_clipper = NULL;
+static DDSURFACEDESC2 ddsd;
+static HWND ddraw_hwnd;
+static int ddraw_w, ddraw_h;
 
 
 extern "C" void fatal(const char *format, ...);
@@ -22,19 +28,9 @@ extern "C" void ddraw_fs_close(void);
  
 extern "C" void video_blit_complete(void);
 
-static void ddraw_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
-static void ddraw_fs_blit_memtoscreen_8(int x, int y, int w, int h);
+static void ddraw_fs_blit_memtoscreen(int, int, int, int, int, int);
+static void ddraw_fs_blit_memtoscreen_8(int, int, int, int);
 
-static LPDIRECTDRAW  lpdd  = NULL;
-static LPDIRECTDRAW7 lpdd7 = NULL;
-static LPDIRECTDRAWSURFACE7 lpdds_pri = NULL;
-static LPDIRECTDRAWSURFACE7 lpdds_back = NULL;
-static LPDIRECTDRAWSURFACE7 lpdds_back2 = NULL;
-static LPDIRECTDRAWCLIPPER lpdd_clipper = NULL;
-static DDSURFACEDESC2 ddsd;
-
-static HWND ddraw_hwnd;
-static int ddraw_w, ddraw_h;
 
 int ddraw_fs_init(HWND h)
 {

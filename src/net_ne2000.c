@@ -11,7 +11,7 @@
  * NOTE:	Its still a mess, but we're getting there. The file will
  *		also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.5	2017/05/21
+ * Version:	@(#)net_ne2000.c	1.0.6	2017/05/23
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -37,8 +37,9 @@
 #include "network.h"
 #include "net_ne2000.h"
 #include "bswap.h"
+
 #ifdef WALTJE
-# define ENABLE_NE2000_LOG 1
+# define ENABLE_NE2000_LOG 2
 #endif
 
 
@@ -202,7 +203,7 @@ typedef struct {
     uint8_t	mem[NE2K_MEMSIZ];	/* on-chip packet memory */
 
     int		board;
-    int		is_rtl8029as;
+    int		is_pci;
     char	name[32];
     uint32_t	base_address;
     int		base_irq;
@@ -210,11 +211,10 @@ typedef struct {
 		bios_size,
 		bios_mask;
     bar_t	pci_bar[2];
-    int		disable_netbios;
+    uint8_t	pci_regs[256];
     int		tx_timer_index;
     int		tx_timer_active;
     uint8_t	maclocal[6];		/* configured MAC (local) address */
-    uint8_t	pci_regs[256];
     uint8_t	eeprom[128];		/* for RTL8029AS */
     rom_t	bios_rom;
 } nic_t;
@@ -234,10 +234,10 @@ nelog(int lvl, const char *fmt, ...)
 	va_start(ap, fmt);
 	vprintf(fmt, ap);
 	va_end(ap);
+	fflush(stdout);
     }
 #endif
 }
-#define pclog	nelog
 
 
 /* reset - restore state to power-up, cancelling all i/o */
@@ -247,7 +247,7 @@ nic_reset(void *priv, int reset)
     nic_t *dev = (nic_t *)priv;
     int i;
 
-    pclog(1, "%s: reset\n", dev->name);
+    nelog(1, "%s: reset\n", dev->name);
 
     /* Initialize the MAC address area by doubling the physical address */
     dev->macaddr[0]  = dev->physaddr[0];
@@ -264,9 +264,8 @@ nic_reset(void *priv, int reset)
     dev->macaddr[11] = dev->physaddr[5];
 
     /* ne2k signature */
-    for (i = 12; i < 32; i++) {
+    for (i=12; i<32; i++)
 	dev->macaddr[i] = 0x57;
-    }
 
     /* Zero out registers and memory */
     memset(&dev->CR,  0x00, sizeof(dev->CR) );
@@ -324,7 +323,7 @@ chipmem_read(nic_t *dev, uint32_t addr, unsigned int len)
     uint32_t retval = 0;
 
     if ((len == 2) && (addr & 0x1)) {
-	pclog(1, "%s: unaligned chipmem word read\n", dev->name);
+	nelog(3, "%s: unaligned chipmem word read\n", dev->name);
     }
 
     /* ROM'd MAC address */
@@ -352,9 +351,9 @@ chipmem_read(nic_t *dev, uint32_t addr, unsigned int len)
 	return(retval);
     }
 
-    pclog(1, "%s: out-of-bounds chipmem read, %04X\n", dev->name, addr);
+    nelog(3, "%s: out-of-bounds chipmem read, %04X\n", dev->name, addr);
 
-    if (dev->is_rtl8029as) {
+    if (dev->is_pci) {
 	return(0xff);
     } else {
 	switch(len) {
@@ -373,7 +372,7 @@ static void
 chipmem_write(nic_t *dev, uint32_t addr, uint32_t val, unsigned len)
 {
     if ((len == 2) && (addr & 0x1)) {
-	pclog(1, "%s: unaligned chipmem word write\n", dev->name);
+	nelog(3, "%s: unaligned chipmem word write\n", dev->name);
     }
 
     if ((addr >= NE2K_MEMSTART) && (addr < NE2K_MEMEND)) {
@@ -386,7 +385,7 @@ chipmem_write(nic_t *dev, uint32_t addr, uint32_t val, unsigned len)
 		dev->mem[addr-NE2K_MEMSTART+3] = val >> 24;
 	}
     } else {
-	pclog(1, "%s: out-of-bounds chipmem write, %04X\n", dev->name, addr);
+	nelog(3, "%s: out-of-bounds chipmem write, %04X\n", dev->name, addr);
     }
 }
 
@@ -411,11 +410,11 @@ asic_read(nic_t *dev, uint32_t off, unsigned int len)
 		   and the source-address and length registers must
 		   have been initialised. */
 		if (len > dev->remote_bytes) {
-			pclog(1, "%s: DMA read underrun iolen=%d remote_bytes=%d\n",
+			nelog(3, "%s: DMA read underrun iolen=%d remote_bytes=%d\n",
 					dev->name, len, dev->remote_bytes);
 		}
 
-		pclog(2, "%s: DMA read: addr=%4x remote_bytes=%d\n",
+		nelog(3, "%s: DMA read: addr=%4x remote_bytes=%d\n",
 			dev->name, dev->remote_dma,dev->remote_bytes);
 		retval = chipmem_read(dev, dev->remote_dma, len);
 
@@ -457,7 +456,7 @@ asic_read(nic_t *dev, uint32_t off, unsigned int len)
 		break;
 
 	default:
-		pclog(1, "%s: ASIC read invalid address %04x\n",
+		nelog(3, "%s: ASIC read invalid address %04x\n",
 					dev->name, (unsigned)off);
 		break;
     }
@@ -469,17 +468,17 @@ asic_read(nic_t *dev, uint32_t off, unsigned int len)
 static void
 asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 {
-    pclog(2, "%s: asic write addr=0x%02x, value=0x%04x\n",
+    nelog(3, "%s: asic write addr=0x%02x, value=0x%04x\n",
 		dev->name, (unsigned)off, (unsigned) val);
     switch(off) {
 	case 0x00:	/* Data register - see asic_read for a description */
 		if ((len > 1) && (dev->DCR.wdsize == 0)) {
-			pclog(2, "%s: DMA write length %d on byte mode operation\n",
+			nelog(3, "%s: DMA write length %d on byte mode operation\n",
 							dev->name, len);
 			break;
 		}
 		if (dev->remote_bytes == 0) {
-			pclog(2, "%s: DMA write, byte count 0\n", dev->name);
+			nelog(3, "%s: DMA write, byte count 0\n", dev->name);
 		}
 
 		chipmem_write(dev, dev->remote_dma, val, len);
@@ -517,7 +516,7 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 		break;
 
 	default: /* this is invalid, but happens under win95 device detection */
-		pclog(1, "%s: ASIC write invalid address %04x, ignoring\n",
+		nelog(3, "%s: ASIC write invalid address %04x, ignoring\n",
 						dev->name, (unsigned)off);
 		break;
     }
@@ -533,7 +532,7 @@ page0_read(nic_t *dev, uint32_t off, unsigned int len)
 
     if (len > 1) {
 	/* encountered with win98 hardware probe */
-	pclog(1, "%s: bad length! Page0 read from register 0x%02x, len=%u\n",
+	nelog(3, "%s: bad length! Page0 read from register 0x%02x, len=%u\n",
 							dev->name, off, len);
 	return(retval);
     }
@@ -567,7 +566,7 @@ page0_read(nic_t *dev, uint32_t off, unsigned int len)
 
 	case 0x06:	/* FIFO */
 		/* reading FIFO is only valid in loopback mode */
-		pclog(1, "%s: reading FIFO not supported yet\n", dev->name);
+		nelog(3, "%s: reading FIFO not supported yet\n", dev->name);
 		retval = dev->fifo;
 		break;
 
@@ -591,19 +590,19 @@ page0_read(nic_t *dev, uint32_t off, unsigned int len)
 		break;
 
 	case 0x0a:	/* reserved / RTL8029ID0 */
-		if (dev->is_rtl8029as) {
+		if (dev->is_pci) {
 			retval = 0x50;
 		} else {
-			pclog(1, "%s: reserved Page0 read - 0x0a\n", dev->name);
+			nelog(3, "%s: reserved Page0 read - 0x0a\n", dev->name);
 			retval = 0xff;
 		}
 		break;
 
 	case 0x0b:	/* reserved / RTL8029ID1 */
-		if (dev->is_rtl8029as) {
+		if (dev->is_pci) {
 			retval = 0x43;
 		} else {
-			pclog(1, "%s: reserved Page0 read - 0x0b\n", dev->name);
+			nelog(3, "%s: reserved Page0 read - 0x0b\n", dev->name);
 			retval = 0xff;
 		}
 		break;
@@ -632,12 +631,12 @@ page0_read(nic_t *dev, uint32_t off, unsigned int len)
 		break;
 
 	default:
-		pclog(1, "%s: Page0 register 0x%02x out of range\n",
+		nelog(3, "%s: Page0 register 0x%02x out of range\n",
 							dev->name, off);
 		break;
     }
 
-    pclog(2, "%s: Page0 read from register 0x%02x, value=0x%02x\n",
+    nelog(3, "%s: Page0 read from register 0x%02x, value=0x%02x\n",
 						dev->name, off, retval);
 
     return(retval);
@@ -659,7 +658,7 @@ page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 	return;
     }
 
-    pclog(2, "%s: Page0 write to register 0x%02x, value=0x%02x\n",
+    nelog(3, "%s: Page0 write to register 0x%02x, value=0x%02x\n",
 						dev->name, off, val);
 
     switch(off) {
@@ -749,7 +748,7 @@ page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 	case 0x0c:	/* RCR */
 		/* Check if the reserved bits are set */
 		if (val & 0xc0) {
-			pclog(1, "%s: RCR write, reserved bits set\n",
+			nelog(3, "%s: RCR write, reserved bits set\n",
 							dev->name);
 		}
 
@@ -762,30 +761,30 @@ page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 		dev->RCR.monitor   = ((val & 0x20) == 0x20);
 
 		/* Monitor bit is a little suspicious... */
-		if (val & 0x20) pclog(1, "%s: RCR write, monitor bit set!\n",
+		if (val & 0x20) nelog(3, "%s: RCR write, monitor bit set!\n",
 								dev->name);
 		break;
 
 	case 0x0d:	/* TCR */
 		/* Check reserved bits */
-		if (val & 0xe0) pclog(1, "%s: TCR write, reserved bits set\n",
+		if (val & 0xe0) nelog(3, "%s: TCR write, reserved bits set\n",
 								dev->name);
 
 		/* Test loop mode (not supported) */
 		if (val & 0x06) {
 			dev->TCR.loop_cntl = (val & 0x6) >> 1;
-			pclog(1, "%s: TCR write, loop mode %d not supported\n",
+			nelog(3, "%s: TCR write, loop mode %d not supported\n",
 						dev->name, dev->TCR.loop_cntl);
 		} else {
 			dev->TCR.loop_cntl = 0;
 		}
 
 		/* Inhibit-CRC not supported. */
-		if (val & 0x01) pclog(1,
+		if (val & 0x01) nelog(3,
 			"%s: TCR write, inhibit-CRC not supported\n",dev->name);
 
 		/* Auto-transmit disable very suspicious */
-		if (val & 0x08) pclog(1,
+		if (val & 0x08) nelog(3,
 			"%s: TCR write, auto transmit disable not supported\n",
 								dev->name);
 
@@ -795,16 +794,16 @@ page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 
 	case 0x0e:	/* DCR */
 		/* the loopback mode is not suppported yet */
-		if (! (val & 0x08)) pclog(1,
+		if (! (val & 0x08)) nelog(3,
 			"%s: DCR write, loopback mode selected\n", dev->name);
 
 		/* It is questionable to set longaddr and auto_rx, since
 		 * they are not supported on the NE2000. Print a warning
 		 * and continue. */
 		if (val & 0x04)
-			pclog(1, "%s: DCR write - LAS set ???\n", dev->name);
+			nelog(3, "%s: DCR write - LAS set ???\n", dev->name);
 		if (val & 0x10)
-			pclog(1, "%s: DCR write - AR set ???\n", dev->name);
+			nelog(3, "%s: DCR write - AR set ???\n", dev->name);
 
 		/* Set other values. */
 		dev->DCR.wdsize   = ((val & 0x01) == 0x01);
@@ -818,7 +817,7 @@ page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 	case 0x0f:  /* IMR */
 		/* Check for reserved bit */
 		if (val & 0x80)
-			pclog(1, "%s: IMR write, reserved bit set\n",dev->name);
+			nelog(3, "%s: IMR write, reserved bit set\n",dev->name);
 
 		/* Set other values */
 		dev->IMR.rx_inte    = ((val & 0x01) == 0x01);
@@ -843,7 +842,7 @@ page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 		break;
 
 	default:
-		pclog(1, "%s: Page0 write, bad register 0x%02x\n",
+		nelog(3, "%s: Page0 write, bad register 0x%02x\n",
 						dev->name, off);
 		break;
     }
@@ -855,7 +854,7 @@ page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 static uint32_t
 page1_read(nic_t *dev, uint32_t off, unsigned int len)
 {
-    pclog(2, "%s: Page1 read from register 0x%02x, len=%u\n",
+    nelog(3, "%s: Page1 read from register 0x%02x, len=%u\n",
 					dev->name, off, len);
 
     switch(off) {
@@ -868,7 +867,7 @@ page1_read(nic_t *dev, uint32_t off, unsigned int len)
 		return(dev->physaddr[off - 1]);
 
 	case 0x07:	/* CURR */
-		pclog(2, "%s: returning current page: 0x%02x\n",
+		nelog(3, "%s: returning current page: 0x%02x\n",
 				dev->name, (dev->curr_page));
 		return(dev->curr_page);
 
@@ -883,7 +882,7 @@ page1_read(nic_t *dev, uint32_t off, unsigned int len)
 		return(dev->mchash[off - 8]);
 
 	default:
-		pclog(1, "%s: Page1 read register 0x%02x out of range\n",
+		nelog(3, "%s: Page1 read register 0x%02x out of range\n",
 							dev->name, off);
 		return(0);
     }
@@ -893,7 +892,7 @@ page1_read(nic_t *dev, uint32_t off, unsigned int len)
 static void
 page1_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 {
-    pclog(2, "%s: Page1 write to register 0x%02x, len=%u, value=0x%04x\n",
+    nelog(3, "%s: Page1 write to register 0x%02x, len=%u, value=0x%04x\n",
 						dev->name, off, len, val);
 
     switch(off) {
@@ -904,7 +903,7 @@ page1_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 	case 0x05:
 	case 0x06:
 		dev->physaddr[off - 1] = val;
-		if (off == 6) pclog(1,
+		if (off == 6) nelog(3,
 		  "%s: physical address set to %02x:%02x:%02x:%02x:%02x:%02x\n",
 			dev->name,
 			dev->physaddr[0], dev->physaddr[1],
@@ -928,7 +927,7 @@ page1_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 		break;
 
 	default:
-		pclog(1, "%s: Page1 write register 0x%02x out of range\n",
+		nelog(3, "%s: Page1 write register 0x%02x out of range\n",
 							dev->name, off);
 		break;
     }
@@ -940,7 +939,7 @@ page1_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 static uint32_t
 page2_read(nic_t *dev, uint32_t off, unsigned int len)
 {
-    pclog(2, "%s: Page2 read from register 0x%02x, len=%u\n",
+    nelog(3, "%s: Page2 read from register 0x%02x, len=%u\n",
 					dev->name, off, len);
   
     switch(off) {
@@ -969,7 +968,7 @@ page2_read(nic_t *dev, uint32_t off, unsigned int len)
 	case 0x09:
 	case 0x0a:
 	case 0x0b:
-		pclog(1, "%s: reserved Page2 read - register 0x%02x\n",
+		nelog(3, "%s: reserved Page2 read - register 0x%02x\n",
 							dev->name, off);
 		return(0xff);
 
@@ -1005,7 +1004,7 @@ page2_read(nic_t *dev, uint32_t off, unsigned int len)
 			 (dev->IMR.rx_inte));
 
 	default:
-		pclog(1, "%s: Page2 register 0x%02x out of range\n",
+		nelog(3, "%s: Page2 register 0x%02x out of range\n",
 						dev->name, off);
 		break;
     }
@@ -1020,7 +1019,7 @@ page2_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 /* Maybe all writes here should be BX_PANIC()'d, since they
    affect internal operation, but let them through for now
    and print a warning. */
-    pclog(2, "%s: Page2 write to register 0x%02x, len=%u, value=0x%04x\n",
+    nelog(3, "%s: Page2 write to register 0x%02x, len=%u, value=0x%04x\n",
 						dev->name, off, len, val);
     switch(off) {
 	case 0x01:	/* CLDA0 */
@@ -1040,7 +1039,7 @@ page2_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 		break;
 
 	case 0x04:
-		pclog(1, "page 2 write to reserved register 0x04\n");
+		nelog(3, "page 2 write to reserved register 0x04\n");
 		break;
 
 	case 0x05:	/* Local Next-packet pointer */
@@ -1067,12 +1066,12 @@ page2_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 	case 0x0d:
 	case 0x0e:
 	case 0x0f:
-		pclog(1, "%s: Page2 write to reserved register 0x%02x\n",
+		nelog(3, "%s: Page2 write to reserved register 0x%02x\n",
 							dev->name, off);
 		break;
 
 	default:
-		pclog(1, "%s: Page2 write, illegal register 0x%02x\n",
+		nelog(3, "%s: Page2 write, illegal register 0x%02x\n",
 							dev->name, off);
 		break;
     }
@@ -1083,7 +1082,7 @@ page2_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 static uint32_t
 page3_read(nic_t *dev, uint32_t off, unsigned int len)
 { 
-    if (dev->is_rtl8029as) switch(off) {
+    if (dev->is_pci) switch(off) {
 	case 0x3:	/* CONFIG0 */
 		return(0x00);
 
@@ -1097,7 +1096,7 @@ page3_read(nic_t *dev, uint32_t off, unsigned int len)
 		break;
     }
 
-    pclog(1, "%s: Page3 read register 0x%02x attempted\n", dev->name, off);
+    nelog(3, "%s: Page3 read register 0x%02x attempted\n", dev->name, off);
     return(0x00);
 }
 
@@ -1105,7 +1104,7 @@ page3_read(nic_t *dev, uint32_t off, unsigned int len)
 static void
 page3_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 {
-    pclog(1, "%s: Page3 write register 0x%02x attempted\n", dev->name, off);
+    nelog(3, "%s: Page3 write register 0x%02x attempted\n", dev->name, off);
 }
 
 
@@ -1121,7 +1120,7 @@ read_cr(nic_t *dev)
 		  (dev->CR.tx_packet << 2) |
 		  (dev->CR.start     << 1) |
 		  (dev->CR.stop));
-    pclog(2, "%s: read CR returns 0x%02x\n", dev->name, retval);
+    nelog(3, "%s: read CR returns 0x%02x\n", dev->name, retval);
 
     return(retval);
 }
@@ -1130,11 +1129,11 @@ read_cr(nic_t *dev)
 static void
 write_cr(nic_t *dev, uint32_t val)
 {
-    pclog(2, "%s: wrote 0x%02x to CR\n", dev->name, val);
+    nelog(3, "%s: wrote 0x%02x to CR\n", dev->name, val);
 
     /* Validate remote-DMA */
     if ((val & 0x38) == 0x00) {
-	pclog(2, "%s: CR write - invalid rDMA value 0\n", dev->name);
+	nelog(3, "%s: CR write - invalid rDMA value 0\n", dev->name);
 	val |= 0x20; /* dma_cmd == 4 is a safe default */
     }
 
@@ -1150,9 +1149,8 @@ write_cr(nic_t *dev, uint32_t val)
 
     /* If start command issued, the RST bit in the ISR */
     /* must be cleared */
-    if ((val & 0x02) && !dev->CR.start) {
+    if ((val & 0x02) && !dev->CR.start)
 	dev->ISR.reset = 0;
-    }
 
     dev->CR.start = ((val & 0x02) == 0x02);
     dev->CR.pgsel = (val & 0xc0) >> 6;
@@ -1162,14 +1160,14 @@ write_cr(nic_t *dev, uint32_t val)
 	/* Set up DMA read from receive ring */
 	dev->remote_start = dev->remote_dma = dev->bound_ptr * 256;
 	dev->remote_bytes = (uint16_t) chipmem_read(dev, dev->bound_ptr * 256 + 2, 2);
-	pclog(2, "%s: sending buffer #x%x length %d\n",
+	nelog(3, "%s: sending buffer #x%x length %d\n",
 		dev->name, dev->remote_start, dev->remote_bytes);
     }
 
     /* Check for start-tx */
     if ((val & 0x04) && dev->TCR.loop_cntl) {
 	if (dev->TCR.loop_cntl != 1) {
-		pclog(1, "%s: loop mode %d not supported\n",
+		nelog(3, "%s: loop mode %d not supported\n",
 				dev->name, dev->TCR.loop_cntl);
 	} else {
 		nic_rx(dev,
@@ -1177,15 +1175,15 @@ write_cr(nic_t *dev, uint32_t val)
 			  dev->tx_bytes);
 	}
     } else if (val & 0x04) {
-	if (dev->CR.stop || (!dev->CR.start && !dev->is_rtl8029as)) {
+	if (dev->CR.stop || (!dev->CR.start && !dev->is_pci)) {
 		if (dev->tx_bytes == 0) /* njh@bandsman.co.uk */ {
 			return; /* Solaris9 probe */
 		}
-		pclog(1, "%s: CR write - tx start, dev in reset\n", dev->name);
+		nelog(3, "%s: CR write - tx start, dev in reset\n", dev->name);
 	}
 
 	if (dev->tx_bytes == 0)
-		pclog(1, "%s: CR write - tx start, tx bytes == 0\n", dev->name);
+		nelog(3, "%s: CR write - tx start, tx bytes == 0\n", dev->name);
 
 	/* Send the packet to the system driver */
 	dev->CR.tx_packet = 1;
@@ -1194,7 +1192,7 @@ write_cr(nic_t *dev, uint32_t val)
 
 	/* some more debug */
 	if (dev->tx_timer_active)
-		pclog(1, "%s: CR write, tx timer still active\n", dev->name);
+		nelog(3, "%s: CR write, tx timer still active\n", dev->name);
 
 	nic_tx(dev, val);
     }
@@ -1206,9 +1204,8 @@ write_cr(nic_t *dev, uint32_t val)
 	dev->ISR.rdma_done = 1;
 	if (dev->IMR.rdma_inte) {
 		picint(1 << dev->base_irq);
-		if (! dev->is_rtl8029as) {
+		if (! dev->is_pci)
 			picintc(1 << dev->base_irq);
-		}
 	}
     }
 }
@@ -1220,7 +1217,7 @@ nic_read(nic_t *dev, uint32_t addr, unsigned len)
     uint32_t retval = 0;
     int off = addr - dev->base_address;
 
-    pclog(2, "%s: read addr %x, len %d\n", dev->name, addr, len);
+    nelog(3, "%s: read addr %x, len %d\n", dev->name, addr, len);
 
     if (off >= 0x10) {
 	retval = asic_read(dev, off - 0x10, len);
@@ -1244,7 +1241,7 @@ nic_read(nic_t *dev, uint32_t addr, unsigned len)
 		break;
 
 	default:
-		pclog(1, "%s: unknown value of pgsel in read - %d\n",
+		nelog(3, "%s: unknown value of pgsel in read - %d\n",
 						dev->name, dev->CR.pgsel);
 		break;
     }
@@ -1284,7 +1281,7 @@ nic_write(nic_t *dev, uint32_t addr, uint32_t val, unsigned len)
 {
     int off = addr - dev->base_address;
 
-    pclog(2, "%s: write addr %x, value %x len %d\n", dev->name, addr, val, len);
+    nelog(3, "%s: write addr %x, value %x len %d\n", dev->name, addr, val, len);
 
     /* The high 16 bytes of i/o space are for the ne2000 asic -
        the low 16 bytes are for the DS8390, with the current
@@ -1312,7 +1309,7 @@ nic_write(nic_t *dev, uint32_t addr, uint32_t val, unsigned len)
 		break;
 
 	default:
-		pclog(1, "%s: unknown value of pgsel in write - %d\n",
+		nelog(3, "%s: unknown value of pgsel in write - %d\n",
 						dev->name, dev->CR.pgsel);
 		break;
     }
@@ -1348,7 +1345,7 @@ nic_writel(uint16_t addr, uint32_t val, void *priv)
 static void
 nic_ioset(nic_t *dev, uint16_t addr)
 {	
-    if (dev->is_rtl8029as) {
+    if (dev->is_pci) {
 	io_sethandler(addr, 16,
 		      nic_readb, nic_readw, nic_readl,
 		      nic_writeb, nic_writew, nic_writel, dev);
@@ -1375,7 +1372,7 @@ nic_ioset(nic_t *dev, uint16_t addr)
 static void
 nic_ioremove(nic_t *dev, int16_t addr)
 {
-    if (dev->is_rtl8029as) {
+    if (dev->is_pci) {
 	io_removehandler(addr, 16,
 			 nic_readb, nic_readw, nic_readl,
 			 nic_writeb, nic_writew, nic_writel, dev);
@@ -1407,13 +1404,14 @@ nic_update_bios(nic_t *dev)
     reg_bios_enable = 1;
 	
     /* PCI BIOS stuff, just enable_disable. */
-    if (!dev->disable_netbios && reg_bios_enable) {
+    if ((dev->bios_addr > 0) && reg_bios_enable) {
 	mem_mapping_enable(&dev->bios_rom.mapping);
-	mem_mapping_set_addr(&dev->bios_rom.mapping, dev->bios_addr, 0x10000);
-	pclog(1, "%s: BIOS now at: %06X\n", dev->name, dev->bios_addr);
+	mem_mapping_set_addr(&dev->bios_rom.mapping,
+			     dev->bios_addr, dev->bios_size);
+	nelog(1, "%s: BIOS now at: %06X\n", dev->name, dev->bios_addr);
     } else {
 	mem_mapping_disable(&dev->bios_rom.mapping);
-	if (dev->is_rtl8029as)
+	if (dev->is_pci)
 		dev->pci_bar[1].addr = 0;
     }
 }
@@ -1517,7 +1515,7 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 		dev->base_address = dev->pci_bar[0].addr & 0xff00;
 
 		/* Log the new base. */
-		pclog(1, "%s: PCI: new I/O base is %04X\n",
+		nelog(1, "%s: PCI: new I/O base is %04X\n",
 				dev->name, dev->base_address);
 		/* We're done, so get out of the here. */
 		if (val & PCI_COMMAND_IO)
@@ -1527,8 +1525,8 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 	case 0x30: case 0x31: case 0x32: case 0x33:
 		dev->pci_bar[1].addr_regs[addr & 3] = val;
 		dev->pci_bar[1].addr_regs[1] &= dev->bios_mask;
-		dev->bios_addr = dev->pci_bar[1].addr & 0xffffe000;
 		dev->pci_bar[1].addr &= 0xffffe000;
+		dev->bios_addr = dev->pci_bar[1].addr;
 		dev->pci_bar[1].addr |= 0x1801;
 		nic_update_bios(dev);
 		return;
@@ -1540,7 +1538,7 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 	case 0x3C:
 		dev->pci_regs[addr] = val;
 		if (val != 0xFF) {
-			pclog(1, "%s: IRQ now: %i\n", dev->name, val);
+			nelog(1, "%s: IRQ now: %i\n", dev->name, val);
 			dev->base_irq = irq;
 		}
 		return;
@@ -1607,28 +1605,25 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 {
     static uint8_t bcast_addr[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
     nic_t *dev = (nic_t *)priv;
-    int pages;
-    int avail;
-    int idx;
-    int nextpage;
     uint8_t pkthdr[4];
-    uint8_t *pktbuf = (uint8_t *) buf;
     uint8_t *startptr;
-    uint32_t mac_cmp32[2];
-    uint16_t mac_cmp16[2];
+    int pages, avail;
+    int idx, nextpage;
+    int endbytes;
 
     if (io_len != 60)
-	pclog(2, "%s: rx_frame with length %d\n", dev->name, io_len);
+	nelog(2, "%s: rx_frame with length %d\n", dev->name, io_len);
 
-    if	((dev->CR.stop != 0) || (dev->page_start == 0)) return;
+    if ((dev->CR.stop != 0) || (dev->page_start == 0)) return;
 
     /* Add the pkt header + CRC to the length, and work
        out how many 256-byte pages the frame would occupy */
-    pages = (io_len + 4 + 4 + 255)/256;
+    pages = (io_len + sizeof(pkthdr) + sizeof(uint32_t) + 255)/256;
     if (dev->curr_page < dev->bound_ptr) {
 	avail = dev->bound_ptr - dev->curr_page;
     } else {
-	avail = (dev->page_stop - dev->page_start) - (dev->curr_page - dev->bound_ptr);
+	avail = (dev->page_stop - dev->page_start) -
+		(dev->curr_page - dev->bound_ptr);
     }
 
     /* Avoid getting into a buffer overflow condition by not attempting
@@ -1639,90 +1634,91 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 		 || (avail == pages)
 #endif
 		) {
-	pclog(1, "%s: no space\n", dev->name);
+	nelog(1, "%s: no space\n", dev->name);
 	return;
     }
 
     if ((io_len < 40/*60*/) && !dev->RCR.runts_ok) {
-	pclog(1, "%s: rejected small packet, length %d\n", dev->name, io_len);
+	nelog(1, "%s: rejected small packet, length %d\n", dev->name, io_len);
 	return;
     }
 
-    /* some computers don't care... */
-    if (io_len < 60) {
-	io_len=60;
-    }
+    /* Some computers don't care... */
+    if (io_len < 60)
+	io_len = 60;
 
-    /* Do address filtering if not in promiscuous mode */
+    nelog(2, "%s: rx_frame %x:%x:%x:%x:%x:%x > %x:%x:%x:%x:%x:%x len %d\n",
+	dev->name,
+	buf[6], buf[7], buf[8], buf[9], buf[10], buf[11],
+	buf[0], buf[1], buf[2], buf[3], buf[4], buf[5],
+ 	io_len);
+
+    /* Do address filtering if not in promiscuous mode. */
     if (! dev->RCR.promisc) {
-	/* Received. */
-	mac_cmp32[0] = *(uint32_t *) (buf);
-	mac_cmp16[0] = *(uint16_t *) (((uint8_t *) buf) + 4);
-
-	/* Local. */
-	mac_cmp32[1] = *(uint32_t *) (bcast_addr);
-	mac_cmp16[1] = *(uint16_t *) (bcast_addr+4);
-	if ((mac_cmp32[0] == mac_cmp32[1]) && (mac_cmp16[0] == mac_cmp16[1])) {
+	/* If this is a broadcast frame.. */
+	if (! memcmp(buf, bcast_addr, 6)) {
+		/* Broadcast not enabled, we're done. */
 		if (! dev->RCR.broadcast) {
+			nelog(2, "%s: rx_frame BC disabled\n", dev->name);
 			return;
 		}
-	} else if (pktbuf[0] & 0x01) {
-		if (! dev->RCR.multicast) {
-			return;
-		}
-		idx = mcast_index(buf);
-		if (!(dev->mchash[idx >> 3] & (1 << (idx & 0x7)))) {
-			return;
-		}
-	} else if (0 != memcmp(buf, dev->physaddr, 6)) {
-		return;
 	}
-    } else {
-	pclog(2, "%s: rx_frame promiscuous receive\n", dev->name);
-    }
 
-    pclog(2, "%s: rx_frame %d to %x:%x:%x:%x:%x:%x from %x:%x:%x:%x:%x:%x\n",
-	dev->name, io_len,
-	pktbuf[0], pktbuf[1], pktbuf[2], pktbuf[3], pktbuf[4], pktbuf[5],
-	pktbuf[6], pktbuf[7], pktbuf[8], pktbuf[9], pktbuf[10], pktbuf[11]);
+	/* If this is a multicast frame.. */
+	else if (buf[0] & 0x01) {
+		/* Multicast not enabled, we're done. */
+		if (! dev->RCR.multicast) {
+#if 1
+			nelog(2, "%s: rx_frame MC disabled\n", dev->name);
+#endif
+			return;
+		}
+
+		/* Are we listening to this multicast address? */
+		idx = mcast_index(buf);
+		if (! (dev->mchash[idx>>3] & (1<<(idx&0x7)))) {
+			nelog(2, "%s: rx_frame MC not listed\n", dev->name);
+			return;
+		}
+	}
+
+	/* Unicast, must be for us.. */
+	else if (memcmp(buf, dev->physaddr, 6)) return;
+    } else {
+	nelog(2, "%s: rx_frame promiscuous receive\n", dev->name);
+    }
 
     nextpage = dev->curr_page + pages;
-    if (nextpage >= dev->page_stop) {
-	nextpage -= dev->page_stop - dev->page_start;
-    }
+    if (nextpage >= dev->page_stop)
+	nextpage -= (dev->page_stop - dev->page_start);
 
-    /* Setup packet header */
-    pkthdr[0] = 0;	/* rx status - old behavior
-    pkthdr[0] = 1;	/* Probably better to set it all the time
-			   rather than set it to 0, which is clearly wrong. */
-    if (pktbuf[0] & 0x01) {
-	pkthdr[0] |= 0x20;		/* rx status += multicast packet */
-    }
+    /* Set up packet header. */
+    pkthdr[0] = 0x01;			/* RXOK - packet is OK */
+    if (buf[0] & 0x01)
+	pkthdr[0] |= 0x20;		/* MULTICAST packet */
     pkthdr[1] = nextpage;		/* ptr to next packet */
-    pkthdr[2] = (io_len + 4) & 0xff;	/* length-low */
-    pkthdr[3] = (io_len + 4) >> 8;	/* length-hi */
+    pkthdr[2] = (io_len + sizeof(pkthdr))&0xff;	/* length-low */
+    pkthdr[3] = (io_len + sizeof(pkthdr))>>8;	/* length-hi */
+    nelog(2, "%s: rx_frame pkthdr [%02x %02x %02x %02x]\n",
+	dev->name, pkthdr[0], pkthdr[1], pkthdr[2], pkthdr[3]);
 
-    /* copy into buffer, update curpage, and signal interrupt if config'd */
-    startptr = & dev->mem[dev->curr_page * 256 - NE2K_MEMSTART];
+    /* Copy into buffer, update curpage, and signal interrupt if config'd */
+    startptr = &dev->mem[(dev->curr_page * 256) - NE2K_MEMSTART];
+    memcpy(startptr, pkthdr, sizeof(pkthdr));
     if ((nextpage > dev->curr_page) ||
 	((dev->curr_page + pages) == dev->page_stop)) {
-	*(uint32_t *) startptr = *(uint32_t *) pkthdr;
-	memcpy(startptr + 4, buf, io_len);
-	dev->curr_page = nextpage;
+	memcpy(startptr+sizeof(pkthdr), buf, io_len);
     } else {
-	int endbytes = (dev->page_stop - dev->curr_page) * 256;
-	*(uint32_t *) startptr = *(uint32_t *) pkthdr;
-	memcpy(startptr + 4, buf, endbytes - 4);
-	startptr = & dev->mem[dev->page_start * 256 - NE2K_MEMSTART];
-	memcpy(startptr, (void *)(pktbuf + endbytes - 4), io_len - endbytes + 8);
-	dev->curr_page = nextpage;
+	endbytes = (dev->page_stop - dev->curr_page) * 256;
+	memcpy(startptr+sizeof(pkthdr), buf, endbytes-sizeof(pkthdr));
+	startptr = &dev->mem[(dev->page_start * 256) - NE2K_MEMSTART];
+	memcpy(startptr, buf+endbytes-sizeof(pkthdr), io_len-endbytes+8);
     }
+    dev->curr_page = nextpage;
 
     dev->RSR.rx_ok = 1;
-    if (pktbuf[0] & 0x80) {
+    if (buf[0] & 0x80)
 	dev->RSR.rx_mbit = 1;
-    }
-
     dev->ISR.pkt_rx = 1;
 
     if (dev->IMR.rx_inte)
@@ -1736,8 +1732,8 @@ nic_rom_init(nic_t *dev, wchar_t *s)
     FILE *f = romfopen(s, L"rb");
     uint32_t temp;
 
-    if (f != NULL) {
-	dev->disable_netbios = 1;
+    if (f == NULL) {
+	dev->bios_addr = 0x00000;
 	nic_update_bios(dev);
 	return;
     }
@@ -1754,14 +1750,11 @@ nic_rom_init(nic_t *dev, wchar_t *s)
     dev->bios_mask = (dev->bios_size >> 8) & 0xff;
     dev->bios_mask = (0x100 - dev->bios_mask) & 0xff;
 
-#if 1
-    /* Shouldn't we use the configured address?? --FvK */
-    rom_init(&dev->bios_rom, s, 0xd0000,
-	     dev->bios_size, dev->bios_size - 1, 0, MEM_MAPPING_EXTERNAL);
-#else
     rom_init(&dev->bios_rom, s, dev->bios_addr,
 	     dev->bios_size, dev->bios_size - 1, 0, MEM_MAPPING_EXTERNAL);
-#endif
+
+    nelog(1, "%s: BIOS enabled at %06lX (size %ld)\n",
+		dev->name, dev->bios_addr, dev->bios_size);
 }
 
 
@@ -1788,37 +1781,41 @@ nic_init(int board)
     dev = malloc(sizeof(nic_t));
     memset(dev, 0x00, sizeof(nic_t));
     dev->board = board;
-    dev->is_rtl8029as = (PCI && (board == NE2K_RTL8029AS)) ? 1 : 0;
-    if (board == NE2K_RTL8029AS) {
-	strcpy(dev->name, "RTL8029AS");
-    } else if (board == NE2K_NE1000) {
-	strcpy(dev->name, "NE1000");
-    } else {
-	strcpy(dev->name, "NE2000");
+    switch(dev->board) {
+	case NE2K_NE1000:
+		strcpy(dev->name, "NE1000");
+		dev->maclocal[0] = 0x00;  /* 00:00:D8 (NE1000 ISA OID) */
+		dev->maclocal[1] = 0x00;
+		dev->maclocal[2] = 0xD8;
+		break;
+
+	case NE2K_NE2000:
+		strcpy(dev->name, "NE2000");
+		dev->maclocal[0] = 0x00;  /* 00:A0:0C (NE2000 compatible OID) */
+		dev->maclocal[1] = 0xA0;
+		dev->maclocal[2] = 0x0C;
+		break;
+
+	case NE2K_RTL8029AS:
+		dev->is_pci = (PCI) ? 1 : 0;
+		strcpy(dev->name, "RTL8029AS");
+		dev->maclocal[0] = 0x00;  /* 00:20:18 (RTL 8029AS PCI OID) */
+		dev->maclocal[1] = 0x20;
+		dev->maclocal[2] = 0x18;
+		break;
     }
 
     dev->base_irq = device_get_config_int("irq");
-    dev->disable_netbios = device_get_config_int("disable_netbios");
-    if (dev->is_rtl8029as) {
+    if (dev->is_pci)
 	dev->base_address = 0x340;
-    } else {
+      else
 	dev->base_address = device_get_config_int("addr");
-    }
+    dev->bios_addr = device_get_config_int("bios_addr");
 
     /* See if we have a local MAC address configured. */
     mac = device_get_config_int_ex("mac", -1);
 
-    /* Set up our MAC address. */
-#if 1
-    if (dev->is_rtl8029as) {
-	dev->maclocal[0] = 0xDE /* 0x00 */;  /* 00:20:18 (RTL 8029AS PCI vendor prefix). */
-	dev->maclocal[1] = 0x20;
-	dev->maclocal[2] = 0x18;
-    } else {
-	dev->maclocal[0] = 0xDE /* 0x00 */;  /* 00:00:D8 (NE2000 ISA vendor prefix). */
-	dev->maclocal[1] = 0x00;
-	dev->maclocal[2] = 0xD8;
-    }
+    /* Set up our BIA. */
     if (mac & 0xff000000) {
 	/* Generating new MAC. */
 	dev->maclocal[3] = disc_random_generate();
@@ -1828,33 +1825,20 @@ nic_init(int board)
     } else {
 	dev->maclocal[3] = (mac>>16) & 0xff;
 	dev->maclocal[4] = (mac>>8) & 0xff;
-#if 1
 	dev->maclocal[5] = (mac & 0xfe);
-#else
-	dev->maclocal[5] = (mac & 0xff) | 1;
-#endif
     }
-#else
-	dev->maclocal[0] = 0xac;
-	dev->maclocal[1] = 0xde;
-	dev->maclocal[2] = 0x48;
-	dev->maclocal[3] = 0x88;
-	dev->maclocal[4] = 0xbb;
-	dev->maclocal[5] = 0xaa;
-#endif
     memcpy(dev->physaddr, dev->maclocal, sizeof(dev->maclocal));
 
-    pclog(1,"%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x BIOS=%d\n",
+    nelog(1,"%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
 	dev->name, dev->base_address, dev->base_irq,
 	dev->physaddr[0], dev->physaddr[1], dev->physaddr[2],
-	dev->physaddr[3], dev->physaddr[4], dev->physaddr[5],
-	!dev->disable_netbios);
+	dev->physaddr[3], dev->physaddr[4], dev->physaddr[5]);
 
     if (network_attach(dev, dev->physaddr, nic_rx) < 0) {
 #if 0
 	msgbox_error_wstr(ghwnd, L"Unable to init platform network");
 #endif
-	pclog(1, "%s: unable to init platform network type %d\n",
+	nelog(1, "%s: unable to init platform network type %d\n",
 					dev->name, network_type);
 #if 0
 	/*
@@ -1868,18 +1852,18 @@ nic_init(int board)
 #endif
     }
 
-    if (dev->is_rtl8029as)
+    if (dev->is_pci)
 	pci_add(nic_pci_read, nic_pci_write, dev);
     nic_ioset(dev, dev->base_address);
 
-    if (! dev->disable_netbios) {
-	nic_rom_init(dev, dev->is_rtl8029as ? L"roms/rtl8029as.rom"
+    if (dev->bios_addr > 0) {
+	nic_rom_init(dev, dev->is_pci ? L"roms/rtl8029as.rom"
 					       : L"roms/ne2000.rom");
-	if (dev->is_rtl8029as)
+	if (dev->is_pci)
 		mem_mapping_disable(&dev->bios_rom.mapping);
     }
 	
-    if (dev->is_rtl8029as) {
+    if (dev->is_pci) {
         dev->pci_regs[0x04] = 1;
         dev->pci_regs[0x05] = 0;
         dev->pci_regs[0x07] = 2;
@@ -1888,19 +1872,18 @@ nic_init(int board)
         dev->pci_regs[0x0B] = 2;
 		
 	dev->pci_bar[0].addr_regs[0] = 1;
-		
-	if (! dev->disable_netbios) {
-		dev->pci_bar[1].addr = 0;
-		dev->bios_addr = 0;
-	} else {
+
+	if (dev->bios_addr > 0) {
+		/* What is it.. F800 or D000 (bios_addr) ? */
 		dev->pci_bar[1].addr = 0x000F8000;
 		dev->pci_bar[1].addr_regs[1] = dev->bios_mask;
 		dev->pci_bar[1].addr |= 0x1801;
-		dev->bios_addr = 0xD0000;
+	} else {
+		dev->pci_bar[1].addr = 0;
 	}
 
 	dev->pci_regs[0x3C] = dev->base_irq;
-	pclog(1, "%s: IRQ=%i\n", dev->name, dev->pci_regs[0x3C]);
+	nelog(1, "%s: IRQ=%i\n", dev->name, dev->pci_regs[0x3C]);
         dev->pci_regs[0x3D] = 1;
 
         memset(dev->eeprom, 0x00, sizeof(dev->eeprom));
@@ -1918,8 +1901,8 @@ nic_init(int board)
 
     nic_reset(dev, 0);
 
-    pclog(1, "%s: %s init 0x%X %d\n", dev->name,
-	dev->is_rtl8029as?"PCI":"ISA", dev->base_address, dev->base_irq);
+    nelog(1, "%s: %s init 0x%X %d\n", dev->name,
+	dev->is_pci?"PCI":"ISA", dev->base_address, dev->base_irq);
 
     return(dev);
 }
@@ -1937,7 +1920,7 @@ nic_close(void *priv)
 
     free(dev);
 
-    pclog(1, "%s: closed\n", dev->name);
+    nelog(1, "%s: closed\n", dev->name);
 }
 
 
@@ -2011,7 +1994,21 @@ static device_config_t ne1000_config[] =
 		"mac", "MAC Address", CONFIG_MAC, "", -1
 	},
 	{
-		"disable_netbios", "Disable network BIOS", CONFIG_BINARY, "", 0
+		"bios_addr", "BIOS address", CONFIG_SELECTION, "", 0,
+		{
+			{
+				"Disabled", 0x00000
+			},
+			{
+				"D000", 0xD0000
+			},
+			{
+				"C000", 0xC0000
+			},
+			{
+				""
+			}
+		},
 	},
 	{
 		"", "", -1
@@ -2073,7 +2070,21 @@ static device_config_t ne2000_config[] =
 		"mac", "MAC Address", CONFIG_MAC, "", -1
 	},
 	{
-		"disable_netbios", "Disable network BIOS", CONFIG_BINARY, "", 0
+		"bios_addr", "BIOS address", CONFIG_SELECTION, "", 0,
+		{
+			{
+				"Disabled", 0x00000
+			},
+			{
+				"D000", 0xD0000
+			},
+			{
+				"C000", 0xC0000
+			},
+			{
+				""
+			}
+		},
 	},
 	{
 		"", "", -1
@@ -2109,7 +2120,21 @@ static device_config_t rtl8029as_config[] =
 		"mac", "MAC Address", CONFIG_MAC, "", -1
 	},
 	{
-		"disable_netbios", "Disable network BIOS", CONFIG_BINARY, "", 0
+		"bios_addr", "BIOS address", CONFIG_SELECTION, "", 0,
+		{
+			{
+				"Disabled", 0x00000
+			},
+			{
+				"D000", 0xD0000
+			},
+			{
+				"C000", 0xC0000
+			},
+			{
+				""
+			}
+		},
 	},
 	{
 		"", "", -1
