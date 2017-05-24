@@ -57,18 +57,10 @@
 #include "video/video.h"
 #include "video/vid_voodoo.h"
 #include "amstrad.h"
-#ifdef WALTJE
-# define UNICODE
-# include "plat_dir.h"
-#endif
-
-#ifndef __unix
-#define UNICODE
-#define BITMAP WINDOWS_BITMAP
-#include <windows.h>
-#undef BITMAP
 #include "win.h"
 #include "win_language.h"
+#ifdef WALTJE
+# include "plat_dir.h"
 #endif
 
 

@@ -1010,6 +1010,7 @@ BEGIN
     2201                    "SCSI removable disk: %ws"
     2202                    "<Placeholder string>"
     2203                    "English (United States)"
+    2204                    "Pcap Library Not Available"
 END
 
 

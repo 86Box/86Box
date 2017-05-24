@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.4	2017/05/17
+ * Version:	@(#)network.c	1.0.6	2017/05/22
  *
  * Authors:	Kotori, <oubattler@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -25,6 +25,8 @@
 #include "device.h"
 #include "network.h"
 #include "net_ne2000.h"
+#include "win.h"
+#include "win_language.h"
 
 
 static netcard_t net_cards[] = {
@@ -59,11 +61,20 @@ char		network_pcap[512];
 void
 network_init(void)
 {
+    int i;
+
     network_type = NET_TYPE_NONE;
     network_card = 0;
 
-    /* Initialize list of PCap devices. */
-    network_ndev = network_devlist(network_devs);
+    /* Create a first device entry that's always there, as needed by UI. */
+    strcpy(network_devs[0].device, "none");
+    strcpy(network_devs[0].description, "None");
+    network_ndev = 1;
+
+    /* Initialize the Pcap system module, if present. */
+    i = network_pcap_init(&network_devs[network_ndev]);
+    if (i > 0)
+	network_ndev += i;
 }
 
 
@@ -79,7 +90,7 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
 {
     int ret = -1;
 
-    if (! network_card) return(ret);
+    if (network_card == 0) return(ret);
 
     /* Save the card's callback info. */
     net_cards[network_card].private = dev;
@@ -89,6 +100,10 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
     switch(network_type) {
 	case NET_TYPE_PCAP:
 		ret = network_pcap_setup(mac, rx, dev);
+		if (ret < 0) {
+			msgbox_error(ghwnd, 2202);
+			network_type = NET_TYPE_NONE;
+		}
 		break;
 
 	case NET_TYPE_SLIRP:
@@ -128,7 +143,7 @@ network_close(void)
 void
 network_reset(void)
 {
-    pclog("NETWORK: reset (type=%d, card=%d\n", network_type, network_card);
+    pclog("NETWORK: reset (type=%d, card=%d)\n", network_type, network_card);
 
     /* Just in case.. */
     network_close();
@@ -136,11 +151,10 @@ network_reset(void)
     /* If no active card, we're done. */
     if ((network_type==NET_TYPE_NONE) || (network_card==0)) return;
 
-    pclog("NETWORK: set up for %s, card=%s\n",
+    pclog("NETWORK: set up for %s, card='%s'\n",
 	(network_type==NET_TYPE_SLIRP)?"SLiRP":"WinPcap",
 				net_cards[network_card].name);
 
-    pclog("NETWORK: reset (card=%d)\n", network_card);
     /* Add the (new?) card to the I/O system. */
     if (net_cards[network_card].device) {
 	pclog("NETWORK: adding device '%s'\n",

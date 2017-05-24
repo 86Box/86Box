@@ -1,6 +1,6 @@
 /*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
+ * 		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
  *		system designs based on the PCI bus.
  *
@@ -8,7 +8,7 @@
  *
  *		Handle WinPcap library processing.
  *
- * Version:	@(#)net_pcap.c	1.0.2	2017/05/17
+ * Version:	@(#)net_pcap.c	1.0.4	2017/05/23
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -22,59 +22,61 @@
 #include "thread.h"
 #include "device.h"
 #include "network.h"
+#include "plat_dynld.h"
 
 
+static void	*pcap_handle;		/* handle to WinPcap DLL */
 static pcap_t	*pcap;			/* handle to WinPcap library */
 static thread_t	*poll_tid;
 static NETRXCB	poll_rx;		/* network RX function to call */
 static void	*poll_arg;		/* network RX function arg */
 
 
-#ifdef WALTJE
-int pcap_do_log = 1;
-# define ENABLE_PCAP_LOG
-#else
-int pcap_do_log = 0;
-#endif
+/* Pointers to the real functions. */
+static const char	*(*f_pcap_lib_version)(void);
+static int		(*f_pcap_findalldevs)(pcap_if_t **,char *);
+static void		(*f_pcap_freealldevs)(pcap_if_t *);
+static pcap_t		*(*f_pcap_open_live)(const char *,int,int,int,char *);
+static int		(*f_pcap_compile)(pcap_t *,struct bpf_program *,
+					 const char *,int,bpf_u_int32);
+static int		(*f_pcap_setfilter)(pcap_t *,struct bpf_program *);
+static const u_char	*(*f_pcap_next)(pcap_t *,struct pcap_pkthdr *);
+static int		(*f_pcap_sendpacket)(pcap_t *,const u_char *,int);
+static void		(*f_pcap_close)(pcap_t *);
+static dllimp_t pcap_imports[] = {
+  { "pcap_lib_version",	&f_pcap_lib_version	},
+  { "pcap_findalldevs",	&f_pcap_findalldevs	},
+  { "pcap_freealldevs",	&f_pcap_freealldevs	},
+  { "pcap_open_live",	&f_pcap_open_live	},
+  { "pcap_compile",	&f_pcap_compile		},
+  { "pcap_setfilter",	&f_pcap_setfilter	},
+  { "pcap_next",	&f_pcap_next		},
+  { "pcap_sendpacket",	&f_pcap_sendpacket	},
+  { "pcap_close",	&f_pcap_close		},
+  { NULL,		NULL			},
+};
 
 
-static void
-pcap_log(const char *format, ...)
-{
-#ifdef ENABLE_PCAP_LOG
-    va_list ap;
-
-    if (pcap_do_log) {
-	va_start(ap, format);
-	vprintf(format, ap);
-	va_end(ap);
-	fflush(stdout);
-    }
-#endif
-}
-#define pclog	pcap_log
-
-
-/* Check if the interface has a packet for us. */
+/* Handle the receiving of frames from the channel. */
 static void
 poll_thread(void *arg)
 {
-    const unsigned char *data;
     uint8_t *mac = (uint8_t *)arg;
+    const uint8_t *data = NULL;
     struct pcap_pkthdr h;
-    event_t *evt;
     uint32_t mac_cmp32[2];
     uint16_t mac_cmp16[2];
+    event_t *evt;
 
     pclog("PCAP: polling thread started, arg %08lx\n", arg);
 
     /* Create a waitable event. */
     evt = thread_create_event();
-    pclog("PCAP: poll event is %08lx\n", evt);
 
+    /* As long as the channel is open.. */
     while (pcap != NULL) {
 	/* Wait for the next packet to arrive. */
-	data = pcap_next(pcap, &h);
+	data = f_pcap_next(pcap, &h);
 	if (data != NULL) {
 		/* Received MAC. */
 		mac_cmp32[0] = *(uint32_t *)(data+6);
@@ -105,30 +107,59 @@ poll_thread(void *arg)
 }
 
 
+/* Initialize the (Win)Pcap module for use. */
+int
+network_pcap_init(netdev_t *list)
+{
+    char errbuf[PCAP_ERRBUF_SIZE];
+    pcap_if_t *devlist, *dev;
+    int i = 0;
+
+    /* Local variables. */
+    pcap = NULL;
+
+    /* Try loading the DLL. */
+    pcap_handle = dynld_module("wpcap.dll", pcap_imports);
+    if (pcap_handle == NULL) return(-1);
+
+    /* Retrieve the device list from the local machine */
+    if (f_pcap_findalldevs(&devlist, errbuf) == -1) {
+	pclog("PCAP: error in pcap_findalldevs: %s\n", errbuf);
+	return(-1);
+    }
+
+    for (dev=devlist; dev!=NULL; dev=dev->next) {
+	strcpy(list->device, dev->name);
+	if (dev->description)
+		strcpy(list->description, dev->description);
+	  else
+		memset(list->description, '\0', sizeof(list->description));
+	list++; i++;
+    }
+
+    /* Release the memory. */
+    f_pcap_freealldevs(devlist);
+
+    return(i);
+}
+
+
 /* Initialize WinPcap for us. */
 int
 network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
 {
-    int rc;
     char temp[PCAP_ERRBUF_SIZE];
     char filter_exp[255];
     struct bpf_program fp;
     char *dev;
 
-    /* Messy, but gets rid of a lot of useless info. */
-    dev = (char *)pcap_lib_version();
-    if (dev == NULL) {
-	/* Hmm, WinPcap doesn't seem to be alive.. */
-	pclog("PCAP: WinPcap library not found, disabling network!\n");
-	network_type = -1;
-	return(-1);
-    }
+    /* Did we already load the DLL? */
+    if (pcap_handle == NULL) return(-1);
 
-    /* OK, good for now.. */
-    strcpy(temp, dev);
+    strcpy(temp, f_pcap_lib_version());
     dev = strchr(temp, '(');
     if (dev != NULL) *(dev-1) = '\0';
-    pclog("Initializing WinPcap, version %s\n", temp);
+    pclog("PCAP: initializing, %s\n", temp);
 
     /* Get the value of our capture interface. */
     dev = network_pcap;
@@ -138,38 +169,35 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
     }
     pclog(" Network interface: '%s'\n", dev);
 
-    pcap = pcap_open_live(dev,		/* interface name */
-			  1518,		/* maximum packet size */
-			  1,		/* promiscuous mode? */
-			  15,		/* timeout in msec */
-			  temp);	/* error buffer */
+    pcap = f_pcap_open_live(dev,		/* interface name */
+			   1518,	/* maximum packet size */
+			   1,		/* promiscuous mode? */
+			   10,		/* timeout in msec */
+			   temp);	/* error buffer */
     if (pcap == NULL) {
-	pclog("Unable to open WinPcap: %s!\n", temp);
+	pclog(" Unable to open device: %s!\n", temp);
 	return(-1);
     }
 
     /* Create a MAC address based packet filter. */
-    pclog("Building packet filter ...");
+    pclog(" Installing packet filter for MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
+			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     sprintf(filter_exp,
 	"( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )",
 	mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
 	mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    if (pcap_compile(pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
-	pclog("...");
-	if (pcap_setfilter(pcap, &fp) == -1) {
-		pclog(" error installing filter!\n");
-	} else {
-		pclog("!\nUsing filter\t[%s]\n", filter_exp);
-	}
+    if (f_pcap_compile(pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
+	if (f_pcap_setfilter(pcap, &fp) == -1)
+		pclog(" Error installing filter (%s) !\n", filter_exp);
     } else {
-	pclog(" could not compile filter!\n");
+	pclog(" Could not compile filter (%s) !\n", filter_exp);
     }
 
     /* Save the callback info. */
     poll_rx = func;
     poll_arg = arg;
 
-    pclog("PCAP: creating thread..\n");
+    pclog(" Starting thread..\n");
     poll_tid = thread_create(poll_thread, mac);
 
     return(0);
@@ -200,7 +228,13 @@ network_pcap_close(void)
 #endif
 
 	/* OK, now shut down WinPcap itself. */
-	pcap_close(pc);
+	f_pcap_close(pc);
+
+	/* Unload the DLL if possible. */
+	if (pcap_handle != NULL) {
+		dynld_close(pcap_handle);
+		pcap_handle = NULL;
+	}
     }
     poll_rx = NULL;
     poll_arg = NULL;
@@ -212,49 +246,5 @@ void
 network_pcap_in(uint8_t *bufp, int len)
 {
     if (pcap != NULL)
-	pcap_sendpacket(pcap, bufp, len);
-}
-
-
-/* Retrieve an easy-to-use list of devices. */
-int
-network_devlist(netdev_t *list)
-{
-    char errbuf[PCAP_ERRBUF_SIZE];
-    char *temp_dev;
-    pcap_if_t *devlist, *dev;
-    int i = 0;
-
-    /* Create a first entry that's always there - needed by UI. */
-    strcpy(list->device, "none");
-    strcpy(list->description, "None");
-    list++; i++;
-
-    /* See if WinPcap is even present, and get out of here if it's not. */
-    temp_dev = (char *)pcap_lib_version();
-    if (temp_dev == NULL) {
-	/* Hmm, WinPcap doesn't seem to be alive.. */
-	pclog("PCAP: WinPcap library not found, not processing the networks list further!\n");
-	return(i);
-    }
-
-    /* Retrieve the device list from the local machine */
-    if (pcap_findalldevs(&devlist, errbuf) == -1) {
-	pclog("NETWORK: error in pcap_findalldevs: %s\n", errbuf);
-	return(i);
-    }
-
-    for (dev=devlist; dev!=NULL; dev=dev->next) {
-	strcpy(list->device, dev->name);
-	if (dev->description)
-		strcpy(list->description, dev->description);
-	  else
-		memset(list->description, '\0', sizeof(list->description));
-	list++; i++;
-    }
-
-    /* Release the memory. */
-    pcap_freealldevs(devlist);
-
-    return(i);
+	f_pcap_sendpacket(pcap, bufp, len);
 }

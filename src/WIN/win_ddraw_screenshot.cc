@@ -5,25 +5,20 @@
 #include <stdint.h>
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
-#include <ddraw.h>
+#include <windows.h>
 #undef BITMAP
 #include "../video/video.h"
 #include "win.h"
-#include "win_ddraw-screenshot.h"
+#include "win_ddraw.h"
 #include "win_language.h"
 
 
-extern "C" void fatal(const char *format, ...);
+HBITMAP hbitmap;
+int xs, ys, ys2;
+
+
 extern "C" void pclog(const char *format, ...);
 
-extern "C" void device_force_redraw(void);
-
-extern "C" void ddraw_init(HWND h);
-extern "C" void ddraw_close(void);
-
-HBITMAP hbitmap;
-
-int xs, ys, ys2;
 
 void CopySurface(IDirectDrawSurface7 *pDDSurface)
 { 
@@ -57,6 +52,7 @@ void CopySurface(IDirectDrawSurface7 *pDDSurface)
 
     return ; 
 }
+
 
 void DoubleLines(uint8_t *dst, uint8_t *src)
 {

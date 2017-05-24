@@ -3,15 +3,10 @@
 */
 #include <stdint.h>
 #include <stdio.h>
-#define UNICODE
-#define BITMAP WINDOWS_BITMAP
-#include <d3d9.h>
-#undef BITMAP
-#include <D3dx9tex.h>
 #include "../86box.h"
 #include "../video/video.h"
 #include "win.h"
-#include "win_d3d-fs.h"
+#include "win_d3d.h"
 #include "win_cgapal.h"
 #include "resource.h"
 
@@ -110,6 +105,7 @@ static CUSTOMVERTEX d3d_verts[] =
      {2048.0f, 2048.0f, 1.0f, 1.0f, 1.0f, 1.0f},
 };
 
+
 void cgapal_rebuild(void)
 {
         int c;
@@ -133,6 +129,7 @@ void cgapal_rebuild(void)
 	}
 }
   
+
 int d3d_fs_init(HWND h)
 {
         HRESULT hr;
@@ -197,6 +194,7 @@ int d3d_fs_init(HWND h)
 	return 1;
 }
 
+
 static void d3d_fs_close_objects(void)
 {
         if (d3dTexture)
@@ -210,6 +208,7 @@ static void d3d_fs_close_objects(void)
                 v_buffer = NULL;
         }
 }
+
 
 static void d3d_fs_init_objects(void)
 {
@@ -248,6 +247,7 @@ static void d3d_fs_init_objects(void)
         d3ddev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
 }
 
+
 /*void d3d_resize(int x, int y)
 {
         HRESULT hr;
@@ -258,6 +258,7 @@ static void d3d_fs_init_objects(void)
         d3d_reset();
 }*/
         
+
 void d3d_fs_reset(void)
 {
         HRESULT hr;
@@ -293,6 +294,7 @@ void d3d_fs_reset(void)
         device_force_redraw();
 }
 
+
 void d3d_fs_close(void)
 {       
         if (d3dTexture)
@@ -317,6 +319,7 @@ void d3d_fs_close(void)
         }
         DestroyWindow(d3d_device_window);
 }
+
 
 static void d3d_fs_size(RECT window_rect, double *l, double *t, double *r, double *b, int w, int h)
 {
@@ -367,6 +370,7 @@ static void d3d_fs_size(RECT window_rect, double *l, double *t, double *r, doubl
                 break;
         }
 }
+
 
 static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
@@ -465,6 +469,7 @@ static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
         if (hr == D3DERR_DEVICELOST || hr == D3DERR_INVALIDCALL)
                 PostMessage(ghwnd, WM_RESETD3D, 0, 0);
 }
+
 
 static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
 {
@@ -572,6 +577,7 @@ static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
         if (hr == D3DERR_DEVICELOST || hr == D3DERR_INVALIDCALL)
                 PostMessage(ghwnd, WM_RESETD3D, 0, 0);
 }
+
 
 void d3d_fs_take_screenshot(wchar_t *fn)
 {

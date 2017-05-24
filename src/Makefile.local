@@ -1,0 +1,42 @@
+#
+# 86Box		A hypervisor and IBM PC system emulator that specializes in
+#		running old operating systems and software designed for IBM
+#		PC systems and compatibles from 1981 through fairly recent
+#		system designs based on the PCI bus.
+#
+#		This file is part of the 86Box distribution.
+#
+#		Prefix for localizing the general Makefile.mingw for local
+#		settings, so we can avoid changing the main one for all of
+#		our local setups.
+#
+# Version:	@(#)Makefile.local	1.0.2	2017/05/23
+#
+# Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+#
+
+#########################################################################
+#	 Anything here will override defaults in Makefile.MinGW.	#
+#########################################################################
+
+
+DEBUG	= y
+OPTIM	= n
+COPTIM	= -O1
+
+# Name of the executable.
+PROG	= yourexe
+
+# Various compile-time options.
+STUFF	= #-DROM_TRACE=0xC800 -DIO_TRACE=0x70
+EXTRAS	= #-DYOURNAME
+
+
+
+#########################################################################
+#	    Include the master Makefile.MinGW for the rest.		#
+#########################################################################
+include Makefile.mingw
+
+
+# End of Makefile.local.

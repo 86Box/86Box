@@ -8,7 +8,7 @@
  *
  *		Definitions for the network module.
  *
- * Version:	@(#)network.h	1.0.4	2017/05/17
+ * Version:	@(#)network.h	1.0.5	2017/05/21
  *
  * Authors:	Kotori, <oubattler@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -62,16 +62,15 @@ extern void	network_close(void);
 extern void	network_reset(void);
 extern void	network_tx(uint8_t *, int);
 
+extern int	network_pcap_init(netdev_t *);
 extern int	network_pcap_setup(uint8_t *, NETRXCB, void *);
 extern void	network_pcap_close(void);
 extern void	network_pcap_in(uint8_t *, int);
-extern int	network_devlist(netdev_t *);
 
 extern int	network_slirp_setup(uint8_t *, NETRXCB, void *);
 extern void	network_slirp_close(void);
 extern void	network_slirp_in(uint8_t *, int);
 
-extern int	network_devlist(netdev_t *);
 extern int	network_dev_to_id(char *);
 extern int	network_card_available(int);
 extern char	*network_card_getname(int);
