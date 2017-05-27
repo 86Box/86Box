@@ -1316,7 +1316,7 @@ static void loadconfig_hard_disks(void)
 			sscanf(p, "%01u:%01u", &board, &dev);
 
 			board &= 3;
-			dev %= 1;
+			dev &= 1;
 			hdc[c].ide_channel = (board << 1) + dev;
 
 			if (hdc[c].ide_channel > 7)
@@ -1462,7 +1462,7 @@ static void loadconfig_removable_devices(void)
 			sscanf(p, "%02u:%02u", &board, &dev);
 
 			board &= 3;
-			dev %= 1;
+			dev &= 1;
 			cdrom_drives[c].ide_channel = (board << 1) + dev;
 
 			if (cdrom_drives[c].ide_channel > 7)
