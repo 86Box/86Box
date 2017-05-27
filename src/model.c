@@ -544,16 +544,17 @@ void secondary_ide_check()
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if ((cdrom_drives[i].ide_channel >= 2) && (cdrom_drives[i].ide_channel <= 3) && !cdrom_drives[i].bus_type)
+		if ((cdrom_drives[i].ide_channel >= 2) && (cdrom_drives[i].ide_channel <= 3) && ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) || (cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA)))
 		{
 			secondary_cdroms++;
 		}
-		if (!secondary_cdroms)  ide_sec_disable();
 	}
+	if (!secondary_cdroms)  ide_sec_disable();
 }
 
 void at_ali1429_init()
 {
+        ali1429_reset();
 
         at_ide_init();
         ali1429_init();

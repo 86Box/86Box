@@ -35,6 +35,9 @@
 
 typedef struct codeblock_t
 {
+	uint64_t page_mask, page_mask2;
+	uint64_t cmp;
+
         /*Previous and next pointers, for the codeblock list associated with
           each physical page. Two sets of pointers, as a codeblock can be
           present in two pages.*/
@@ -45,22 +48,19 @@ typedef struct codeblock_t
           fails.*/
         struct codeblock_t *parent, *left, *right;
         
+        int pnt;
+        int ins;
+        
+        int was_recompiled;
+        int TOP;
+
         uint32_t pc;
         uint32_t _cs;
         uint32_t endpc;
         uint32_t phys, phys_2;
-        uint32_t use32;
-        int stack32;
-        int pnt;
-        int ins;
-        uint64_t page_mask, page_mask2;
-        
-        int was_recompiled;
+	uint32_t status;
         uint32_t flags;
-        int TOP;
-        
-        uint64_t cmp;
-        
+
         uint8_t data[2048];
 } codeblock_t;
 

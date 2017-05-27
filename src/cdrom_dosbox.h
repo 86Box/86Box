@@ -104,7 +104,7 @@ private:
 	class TrackFile {
 	public:
 		virtual bool read(Bit8u *buffer, int seek, int count) = 0;
-		virtual int getLength() = 0;
+		virtual uint64_t getLength() = 0;
 		virtual ~TrackFile() { };
 	};
 	
@@ -113,10 +113,10 @@ private:
 		BinaryFile(const char *filename, bool &error);
 		~BinaryFile();
 		bool read(Bit8u *buffer, int seek, int count);
-		int getLength();
+		uint64_t getLength();
 	private:
 		BinaryFile();
-		std::ifstream *file;
+		FILE *file;
 	};
 	
 	struct Track {
@@ -163,7 +163,7 @@ static	void	CDAudioCallBack(Bitu len);
 	bool	GetCueKeyword(std::string &keyword, std::istream &in);
 	bool	GetCueFrame(int &frames, std::istream &in);
 	bool	GetCueString(std::string &str, std::istream &in);
-	bool	AddTrack(Track &curr, int &shift, int prestart, int &totalPregap, int currPregap);
+	bool	AddTrack(Track &curr, uint64_t &shift, int prestart, int &totalPregap, int currPregap);
 
 	std::vector<Track>	tracks;
 typedef	std::vector<Track>::iterator	track_it;

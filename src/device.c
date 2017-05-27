@@ -145,6 +145,48 @@ int device_get_config_int_ex(char *s, int default_int)
         return default_int;
 }
 
+int device_get_config_hex16(char *s)
+{
+        device_config_t *config = current_device->config;
+        
+        while (config->type != -1)
+        {
+                if (!strcmp(s, config->name))
+                        return config_get_hex16(current_device->name, s, config->default_int);
+
+                config++;
+        }
+        return 0;
+}
+
+int device_get_config_hex20(char *s)
+{
+        device_config_t *config = current_device->config;
+        
+        while (config->type != -1)
+        {
+                if (!strcmp(s, config->name))
+                        return config_get_hex20(current_device->name, s, config->default_int);
+
+                config++;
+        }
+        return 0;
+}
+
+int device_get_config_mac(char *s, int default_int)
+{
+        device_config_t *config = current_device->config;
+        
+        while (config->type != -1)
+        {
+                if (!strcmp(s, config->name))
+                        return config_get_mac(current_device->name, s, default_int);
+
+                config++;
+        }
+        return default_int;
+}
+
 void device_set_config_int(char *s, int val)
 {
         device_config_t *config = current_device->config;
@@ -154,6 +196,57 @@ void device_set_config_int(char *s, int val)
                 if (!strcmp(s, config->name))
 		{
                         config_set_int(current_device->name, s, val);
+			return;
+		}
+
+                config++;
+        }
+        return;
+}
+
+void device_set_config_hex16(char *s, int val)
+{
+        device_config_t *config = current_device->config;
+        
+        while (config->type != -1)
+        {
+                if (!strcmp(s, config->name))
+		{
+                        config_set_hex16(current_device->name, s, val);
+			return;
+		}
+
+                config++;
+        }
+        return;
+}
+
+void device_set_config_hex20(char *s, int val)
+{
+        device_config_t *config = current_device->config;
+        
+        while (config->type != -1)
+        {
+                if (!strcmp(s, config->name))
+		{
+                        config_set_hex20(current_device->name, s, val);
+			return;
+		}
+
+                config++;
+        }
+        return;
+}
+
+void device_set_config_mac(char *s, int val)
+{
+        device_config_t *config = current_device->config;
+        
+        while (config->type != -1)
+        {
+                if (!strcmp(s, config->name))
+		{
+                        config_set_mac(current_device->name, s, val);
 			return;
 		}
 

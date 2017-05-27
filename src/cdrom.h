@@ -237,6 +237,8 @@ void cdrom_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_len
 void cdrom_update_cdb(uint8_t *cdb, int lba_pos, int number_of_blocks);
 void cdrom_insert(uint8_t id);
 
+int find_cdrom_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun);
+
 #define cdrom_sense_error cdrom[id].sense[0]
 #define cdrom_sense_key cdrom[id].sense[2]
 #define cdrom_asc cdrom[id].sense[12]

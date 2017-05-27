@@ -8,14 +8,15 @@
 */
 #ifndef BOX_WIN_H
 # define BOX_WIN_H
+
 # ifndef NO_UNICODE
 #  define UNICODE
 # endif
 # define BITMAP WINDOWS_BITMAP
-//# ifdef _WIN32_WINNT
-//#  undef _WIN32_WINNT
-//#  define _WIN32_WINNT 0x0501
-//# endif
+/* # ifdef _WIN32_WINNT
+   #  undef _WIN32_WINNT
+   #  define _WIN32_WINNT 0x0501
+   # endif */
 # include <windows.h>
 # undef BITMAP
 
@@ -23,6 +24,14 @@
 #define szClassName L"86BoxMainWnd"
 #define szSubClassName L"86BoxSubWnd"
 #define szStatusBarClassName L"86BoxStatusBar"
+
+
+#define WM_RESETD3D WM_USER
+#define WM_LEAVEFULLSCREEN WM_USER + 1
+
+#define WM_SAVESETTINGS 0x8888			/* 86Box-specific message, used to tell the child dialog to save the currently specified settings. */
+
+#define SB_ICON_WIDTH 24
 
 
 extern HINSTANCE	hinstance;
@@ -36,6 +45,9 @@ extern char		openfilestring[260];
 extern WCHAR		wopenfilestring[260];
 
 extern int		pause;
+
+extern HMENU		smenu;
+extern HMENU		*sb_menu_handles;
 
 
 #ifdef __cplusplus
@@ -66,6 +78,15 @@ extern void	update_status_bar_panes(HWND hwnds);
 extern int	fdd_type_to_icon(int type);
 
 extern void	hard_disk_add_open(HWND hwnd, int is_existing);
+extern int	hard_disk_was_added(void);
+
+extern void	get_registry_key_map(void);
+extern void	process_raw_input(LPARAM lParam, int infocus);
+
+extern int	find_status_bar_part(int tag);
+
+extern void	cdrom_close(uint8_t id);
+extern void	update_tip(int meaning);
 
 #ifdef __cplusplus
 }

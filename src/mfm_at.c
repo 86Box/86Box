@@ -439,7 +439,7 @@ uint16_t mfm_readw(uint16_t port, void *p)
                         }
 			else
 			{
-				update_status_bar_icon(0x30, 0);
+				update_status_bar_icon(SB_HDD | HDD_BUS_MFM, 0);
 			}
                 }
         }
@@ -505,7 +505,7 @@ void mfm_callback(void *p)
                 mfm->pos = 0;
                 mfm->status = STAT_DRQ | STAT_READY | STAT_DSC;
                 mfm_irq_raise(mfm);
-                update_status_bar_icon(0x30, 1);
+                update_status_bar_icon(SB_HDD | HDD_BUS_MFM, 1);
                 break;
 
                 case CMD_WRITE:
@@ -526,12 +526,12 @@ void mfm_callback(void *p)
                         mfm->status = STAT_DRQ | STAT_READY | STAT_DSC;
                         mfm->pos = 0;
                         mfm_next_sector(mfm);
-	                update_status_bar_icon(0x30, 1);
+	                update_status_bar_icon(SB_HDD | HDD_BUS_MFM, 1);
                 }
                 else
 		{
                         mfm->status = STAT_READY | STAT_DSC;
-	                update_status_bar_icon(0x30, 0);
+	                update_status_bar_icon(SB_HDD | HDD_BUS_MFM, 0);
 		}
                 break;
                 
@@ -540,7 +540,7 @@ void mfm_callback(void *p)
                 mfm->pos = 0;
                 mfm->status = STAT_READY | STAT_DSC;
                 mfm_irq_raise(mfm);
-                update_status_bar_icon(0x30, 1);
+                update_status_bar_icon(SB_HDD | HDD_BUS_MFM, 1);
                 break;
 
                 case CMD_FORMAT:
@@ -560,7 +560,7 @@ void mfm_callback(void *p)
                 }
                 mfm->status = STAT_READY | STAT_DSC;
                 mfm_irq_raise(mfm);
-                update_status_bar_icon(0x30, 1);
+                update_status_bar_icon(SB_HDD | HDD_BUS_MFM, 1);
                 break;
 
                 case CMD_DIAGNOSE:
@@ -596,9 +596,9 @@ void *mfm_init()
 	c = 0;
 	for (d = 0; d < HDC_NUM; d++)
 	{
-		if ((hdc[d].bus == 1) && (hdc[d].mfm_channel < MFM_NUM))
+		if ((hdc[d].bus == HDD_BUS_MFM) && (hdc[d].mfm_channel < MFM_NUM))
 		{
-			loadhd(mfm, hdc[d].mfm_channel, d, hdd_fn[d]);
+			loadhd(mfm, hdc[d].mfm_channel, d, hdc[d].fn);
 			c++;
 			if (c >= MFM_NUM)  break;
 		}

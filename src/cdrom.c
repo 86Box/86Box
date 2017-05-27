@@ -13,6 +13,7 @@
 #include "piix.h"
 #include "scsi.h"
 #include "timer.h"
+#include "WIN/plat_iodev.h"
 
 /* Bits of 'status' */
 #define ERR_STAT		0x01
@@ -732,7 +733,7 @@ int find_cdrom_for_channel(uint8_t channel)
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if ((cdrom_drives[i].bus_type < 4) && (cdrom_drives[i].ide_channel == channel))
+		if (((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) || (cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA)) && (cdrom_drives[i].ide_channel == channel))
 		{
 			return i;
 		}
@@ -764,7 +765,7 @@ int find_cdrom_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun)
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if ((cdrom_drives[i].bus_type == 4) && (cdrom_drives[i].scsi_device_id == scsi_id) && (cdrom_drives[i].scsi_device_lun == scsi_lun))
+		if ((cdrom_drives[i].bus_type == CDROM_BUS_SCSI) && (cdrom_drives[i].scsi_device_id == scsi_id) && (cdrom_drives[i].scsi_device_lun == scsi_lun))
 		{
 			return i;
 		}
@@ -833,16 +834,16 @@ void cdrom_init(int id, int cdb_len_setting)
 	cdrom[id].sense[0] = 0xf0;
 	cdrom[id].sense[7] = 10;
 	cdrom_drives[id].bus_mode = 0;
-	if (cdrom_drives[id].bus_type > 2)
+	if (cdrom_drives[id].bus_type > CDROM_BUS_ATAPI_PIO_AND_DMA)
 	{
 		cdrom_drives[id].bus_mode |= 2;
 	}
-	if (cdrom_drives[id].bus_type < 4)
+	if (cdrom_drives[id].bus_type < CDROM_BUS_SCSI)
 	{
 		cdrom_drives[id].bus_mode |= 1;
 	}
 	cdrom_log("CD-ROM %i: Bus type %i, bus mode %i\n", id, cdrom_drives[id].bus_type, cdrom_drives[id].bus_mode);
-	if (cdrom_drives[id].bus_type < 4)
+	if (cdrom_drives[id].bus_type < CDROM_BUS_SCSI)
 	{
 		cdrom_set_signature(id);
 		cdrom_drives[id].max_blocks_at_once = 1;
@@ -1076,7 +1077,7 @@ int cdrom_mode_select_header(uint8_t id, uint8_t val)
 	}
 	else if (cdrom[id].current_page_pos == (cdrom[id].current_page_len - 2))
 	{
-		if ((cdrom_drives[id].bus_type == 4) && (cdrom[id].current_page_len == 8))
+		if ((cdrom_drives[id].bus_type == CDROM_BUS_SCSI) && (cdrom[id].current_page_len == 8))
 		{
 			cdrom[id].block_descriptor_len |= ((uint16_t) val) << 8;
 			cdrom_log("CD-ROM %i: Position: %02X, value: %02X, block descriptor length: %02X\n", id, cdrom[id].current_page_pos, val, cdrom[id].block_descriptor_len);
@@ -1084,7 +1085,7 @@ int cdrom_mode_select_header(uint8_t id, uint8_t val)
 	}
 	else if (cdrom[id].current_page_pos == (cdrom[id].current_page_len - 1))
 	{
-		if (cdrom_drives[id].bus_type == 4)
+		if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
 		{
 			cdrom[id].block_descriptor_len |= (uint16_t) val;
 			cdrom_log("CD-ROM %i: Position: %02X, value: %02X, block descriptor length: %02X\n", id, cdrom[id].current_page_pos, val, cdrom[id].block_descriptor_len);
@@ -1470,7 +1471,7 @@ static void cdrom_command_write_dma(uint8_t id)
 
 static int cdrom_request_length_is_zero(uint8_t id)
 {
-	if ((cdrom[id].request_length == 0) && (cdrom_drives[id].bus_type < 4))
+	if ((cdrom[id].request_length == 0) && (cdrom_drives[id].bus_type < CDROM_BUS_SCSI))
 	{
 		return 1;
 	}
@@ -1490,7 +1491,7 @@ static void cdrom_data_command_finish(uint8_t id, int len, int block_len, int al
 	}
 	if (cdrom_request_length_is_zero(id) || (len == 0) || (cdrom_current_mode(id) == 0))
 	{
-		if (cdrom_drives[id].bus_type == 4)
+		if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
 		{
 			SCSIDevices[cdrom_drives[id].scsi_device_id][cdrom_drives[id].scsi_device_lun].InitLength = 0;
 		}
@@ -1506,7 +1507,7 @@ static void cdrom_data_command_finish(uint8_t id, int len, int block_len, int al
 		{
 			if (direction == 0)
 			{
-				if (cdrom_drives[id].bus_type == 4)
+				if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
 				{
 					SCSIDevices[cdrom_drives[id].scsi_device_id][cdrom_drives[id].scsi_device_lun].InitLength = alloc_len;
 				}
@@ -2063,7 +2064,7 @@ int cdrom_pre_execution_check(uint8_t id, uint8_t *cdb)
 {
 	int ready = 0;
 
-	if (cdrom_drives[id].bus_type == 4)
+	if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
 	{
 		if (((cdrom[id].request_length >> 5) & 7) != cdrom_drives[id].scsi_device_lun)
 		{
@@ -2075,20 +2076,20 @@ int cdrom_pre_execution_check(uint8_t id, uint8_t *cdb)
 
 	if (!(cdrom_command_flags[cdb[0]] & IMPLEMENTED))
 	{
-		cdrom_log("CD-ROM %i: Attempting to execute unknown command %02X over %s\n", id, cdb[0], (cdrom_drives[id].bus_type == 4) ? "SCSI" : ((cdrom_drives[id].bus_type == 3) ? "ATAPI PIO/DMA" : "ATAPI PIO"));
+		cdrom_log("CD-ROM %i: Attempting to execute unknown command %02X over %s\n", id, cdb[0], (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) ? "SCSI" : ((cdrom_drives[id].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA) ? "ATAPI PIO/DMA" : "ATAPI PIO"));
 
 		cdrom_illegal_opcode(id);
 		return 0;
 	}
 
-	if ((cdrom_drives[id].bus_type < 4) && (cdrom_command_flags[cdb[0]] & SCSI_ONLY))
+	if ((cdrom_drives[id].bus_type < CDROM_BUS_SCSI) && (cdrom_command_flags[cdb[0]] & SCSI_ONLY))
 	{
 		cdrom_log("CD-ROM %i: Attempting to execute SCSI-only command %02X over ATAPI\n", id, cdb[0]);
 		cdrom_illegal_opcode(id);
 		return 0;
 	}
 
-	if ((cdrom_drives[id].bus_type == 4) && (cdrom_command_flags[cdb[0]] & ATAPI_ONLY))
+	if ((cdrom_drives[id].bus_type == CDROM_BUS_SCSI) && (cdrom_command_flags[cdb[0]] & ATAPI_ONLY))
 	{
 		cdrom_log("CD-ROM %i: Attempting to execute ATAPI-only command %02X over SCSI\n", id, cdb[0]);
 		cdrom_illegal_opcode(id);
@@ -2297,13 +2298,13 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 	int ret;
 	int real_pos;
 	int track = 0;
-	char device_identify[8] = { '8', '6', 'B', '_', 'C', 'D', '0', 0 };
-	char device_identify_ex[14] = { '8', '6', 'B', '_', 'C', 'D', '0', ' ', 'v', '1', '.', '0', '0', 0 };
+	char device_identify[9] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', 0 };
+	char device_identify_ex[15] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', ' ', 'v', '1', '.', '0', '0', 0 };
 
 #if 0
 	int CdbLength;
 #endif
-	if (cdrom_drives[id].bus_type == 4)
+	if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
 	{
 		cdrom[id].status &= ~ERR_STAT;
 	}
@@ -2315,12 +2316,12 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 	cdrom[id].packet_len = 0;
 	cdrom[id].request_pos = 0;
 
-	device_identify[6] = id + 0x30;
+	device_identify[7] = id + 0x30;
 
-	device_identify_ex[6] = id + 0x30;
-	device_identify_ex[9] = emulator_version[0];
-	device_identify_ex[11] = emulator_version[2];
-	device_identify_ex[12] = emulator_version[3];
+	device_identify_ex[7] = id + 0x30;
+	device_identify_ex[10] = emulator_version[0];
+	device_identify_ex[12] = emulator_version[2];
+	device_identify_ex[13] = emulator_version[3];
 	
 	cdrom[id].data_pos = 0;
 
@@ -2501,7 +2502,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 			}
 
 			max_len = cdrom[id].sector_len;
-			/* if (cdrom_drives[id].bus_type == 4) */
+			/* if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) */
 			if (cdrom_current_mode(id) == 2)
 			{
 				cdrom[id].requested_blocks = max_len;
@@ -2529,11 +2530,11 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 			cdrom[id].all_blocks_total = cdrom[id].block_total;
 			if (cdrom[id].packet_status != CDROM_PHASE_COMPLETE)
 			{
-				update_status_bar_icon(0x10 | id, 1);
+				update_status_bar_icon(SB_CDROM | id, 1);
 			}
 			else
 			{
-				update_status_bar_icon(0x10 | id, 0);
+				update_status_bar_icon(SB_CDROM | id, 0);
 			}
 			return;
 
@@ -2573,7 +2574,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
                 
 		case GPCMD_MODE_SENSE_6:
 		case GPCMD_MODE_SENSE_10:
-			if (cdrom_drives[id].bus_type == 4)
+			if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
 			{
 				block_desc = ((cdb[1] >> 3) & 1) ? 0 : 1;
 			}
@@ -3116,16 +3117,10 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 					{
 						cdrom_drives[id].handler->stop(id);
 					}
-#ifndef __unix
-					win_cdrom_eject(id);
-#endif
+					cdrom_eject(id);
 					break;
 				case 3:		/* Load the disc (close tray). */
-#ifndef __unix
-					win_cdrom_reload(id);
-#else
-					cdrom_drives[id].handler->load(id);
-#endif
+					cdrom_reload(id);
 					break;
 			}
 
@@ -3197,8 +3192,8 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				memset(cdbufferb, 0, 8);
 				cdbufferb[0] = 5; /*CD-ROM*/
 				cdbufferb[1] = 0x80; /*Removable*/
-				cdbufferb[2] = (cdrom_drives[id].bus_type == 4) ? 0x02 : 0x00; /*SCSI-2 compliant*/
-				cdbufferb[3] = (cdrom_drives[id].bus_type == 4) ? 0x02 : 0x21;
+				cdbufferb[2] = (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) ? 0x02 : 0x00; /*SCSI-2 compliant*/
+				cdbufferb[3] = (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) ? 0x02 : 0x21;
 				cdbufferb[4] = 31;
 
 				ide_padstr8(cdbufferb + 8, 8, "86Box"); /* Vendor */
@@ -3352,7 +3347,7 @@ void cdrom_callback(uint8_t id)		/* Callback for non-Read CD commands */
 {
 	int old_pos = 0;
 
-	if (cdrom_drives[id].bus_type < 4)
+	if (cdrom_drives[id].bus_type < CDROM_BUS_SCSI)
 	{
 		cdrom_log("CD-ROM %i: Lowering IDE IRQ\n", id);
 		ide_irq_lower(&(ide_drives[cdrom_drives[id].ide_channel]));
@@ -3478,7 +3473,7 @@ int cdrom_read_from_dma(uint8_t id)
 
 	int in_data_length = 0;
 
-	if (cdrom_drives[id].bus_type == 4)
+	if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
 	{
 		ret = cdrom_read_from_scsi_dma(cdrom_drives[id].scsi_device_id, cdrom_drives[id].scsi_device_lun);
 	}
@@ -3492,7 +3487,7 @@ int cdrom_read_from_dma(uint8_t id)
 		return 0;
 	}
 
-	if (cdrom_drives[id].bus_type == 4)
+	if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
 	{
 		in_data_length = SCSIDevices[cdrom_drives[id].scsi_device_id][cdrom_drives[id].scsi_device_lun].InitLength;
 		cdrom_log("CD-ROM %i: SCSI Input data length: %i\n", id, in_data_length);
@@ -3598,7 +3593,7 @@ int cdrom_write_to_dma(uint8_t id)
 {
 	int ret = 0;
 
-	if (cdrom_drives[id].bus_type == 4)
+	if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
 	{
 		ret = cdrom_write_to_scsi_dma(cdrom_drives[id].scsi_device_id, cdrom_drives[id].scsi_device_lun);
 	}
@@ -3617,7 +3612,7 @@ int cdrom_write_to_dma(uint8_t id)
 
 void cdrom_irq_raise(uint8_t id)
 {
-	if (cdrom_drives[id].bus_type < 4)
+	if (cdrom_drives[id].bus_type < CDROM_BUS_SCSI)
 	{
 		ide_irq_raise(&(ide_drives[cdrom_drives[id].ide_channel]));
 	}
@@ -3645,7 +3640,7 @@ void cdrom_phase_callback(uint8_t id)
 			cdrom[id].status = READY_STAT;
 			cdrom[id].phase = 3;
 			cdrom[id].packet_status = 0xFF;
-			update_status_bar_icon(0x10 | id, 0);
+			update_status_bar_icon(SB_CDROM | id, 0);
 			cdrom_irq_raise(id);
 			return;
 		case CDROM_PHASE_DATA_OUT:
@@ -3660,7 +3655,7 @@ void cdrom_phase_callback(uint8_t id)
 			cdrom[id].packet_status = CDROM_PHASE_COMPLETE;
 			cdrom[id].status = READY_STAT;
 			cdrom[id].phase = 3;
-			update_status_bar_icon(0x10 | id, 0);
+			update_status_bar_icon(SB_CDROM | id, 0);
 			cdrom_irq_raise(id);
 			return;
 		case CDROM_PHASE_DATA_IN:
@@ -3675,7 +3670,7 @@ void cdrom_phase_callback(uint8_t id)
 			cdrom[id].packet_status = CDROM_PHASE_COMPLETE;
 			cdrom[id].status = READY_STAT;
 			cdrom[id].phase = 3;
-			update_status_bar_icon(0x10 | id, 0);
+			update_status_bar_icon(SB_CDROM | id, 0);
 			cdrom_irq_raise(id);
 			return;
 		case CDROM_PHASE_ERROR:

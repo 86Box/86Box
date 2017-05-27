@@ -21,6 +21,8 @@
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 
+uint32_t cpu_cur_status = 0;
+
 int cpu_reps, cpu_reps_latched;
 int cpu_notreps, cpu_notreps_latched;
 
@@ -1372,7 +1374,7 @@ void exec386_dynarec(int cycs)
                           and physical address. The physical address check will
                           also catch any page faults at this stage*/
                         valid_block = (block->pc == cs + cpu_state.pc) && (block->_cs == cs) &&
-                                      (block->use32 == use32) && (block->phys == phys_addr) && (block->stack32 == stack32);
+                                      (block->phys == phys_addr) && (block->status == cpu_cur_status);
                         if (!valid_block)
                         {
                                 uint64_t mask = (uint64_t)1 << ((phys_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
@@ -1384,7 +1386,7 @@ void exec386_dynarec(int cycs)
                                         if (new_block)
                                         {
                                                 valid_block = (new_block->pc == cs + cpu_state.pc) && (new_block->_cs == cs) &&
-                                                                (new_block->use32 == use32) && (new_block->phys == phys_addr) && (new_block->stack32 == stack32);
+                                                                (new_block->phys == phys_addr) && (new_block->status == cpu_cur_status);
                                                 if (valid_block)
                                                         block = new_block;
                                         }

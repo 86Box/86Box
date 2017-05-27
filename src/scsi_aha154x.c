@@ -35,6 +35,7 @@
 #include "device.h"
 #include "cdrom.h"
 #include "scsi.h"
+#include "scsi_disk.h"
 #include "scsi_aha154x.h"
 
 
@@ -457,8 +458,6 @@ aha154x_eeprom(uint8_t cmd,uint8_t arg,uint8_t len,uint8_t off,uint8_t *bufp)
 static uint8_t
 aha154x_memory(uint8_t cmd)
 {
-    uint8_t r = 0xff;
-
     pclog("AHA154x: MEMORY cmd=%02x\n", cmd);
 
     if (cmd == 0x27) {
@@ -597,29 +596,6 @@ typedef struct {
     uint8_t	uWideTransferPermittedId8To15;
     uint8_t	uWideTransfersActiveId8To15;
 } ReplyInquireSetupInformation;
-#pragma pack(pop)
-
-/* Structure for the INQUIRE_EXTENDED_SETUP_INFORMATION. */
-#pragma pack(push,1)
-typedef struct {
-    uint8_t	uBusType;
-    uint8_t	uBiosAddress;
-    uint16_t	u16ScatterGatherLimit;
-    uint8_t	cMailbox;
-    uint32_t	uMailboxAddressBase;
-    uint8_t	uReserved1		:2,
-		fFastEISA		:1,
-		uReserved2		:3,
-		fLevelSensitiveInterrupt:1,
-		uReserved3		:1;
-    uint8_t	aFirmwareRevision[3];
-    uint8_t	fHostWideSCSI		:1,
-		fHostDifferentialSCSI	:1,
-		fHostSupportsSCAM	:1,
-		fHostUltraSCSI		:1,
-		fHostSmartTermination	:1,
-		uReserved4		:3;
-} ReplyInquireExtendedSetupInformation;
 #pragma pack(pop)
 
 
@@ -863,7 +839,7 @@ enum {
 };
 
 
-#ifdef xWALTJE
+#ifdef WALTJE
 int aha_do_log = 1;
 # define ENABLE_AHA154X_LOG
 #else
@@ -1355,39 +1331,15 @@ aha_readw(uint16_t port, void *priv)
 }
 
 
-static uint32_t
-aha_readl(uint16_t port, void *priv)
-{
-    return aha_read(port, priv);
-}
-
-
-/* This is BS - we just need a 'dev_present' indication.. --FvK */
-static int
-aha_dev_present(uint8_t id, uint8_t lun)
-{
-    if (lun > 7) return(0);
-
-    if (scsi_cdrom_drives[id][lun] >= CDROM_NUM) return(0);
-
-    if ((cdrom_drives[scsi_cdrom_drives[id][lun]].bus_type == 4)) return(1);
-
-    return(0);
-}
-
-
 static void
 aha_write(uint16_t port, uint8_t val, void *priv)
 {
     int i = 0;
     uint8_t j = 0;
     aha_t *dev = (aha_t *)priv;
-    uint8_t max_id = 8;
     uint8_t Offset;
     MailboxInit_t *MailboxInit;
     ReplyInquireSetupInformation *ReplyISI;
-    ReplyInquireExtendedSetupInformation *ReplyIESI;
-    int cCharsToTransfer;
 
     pclog("AHA154X: Write Port 0x%02X, Value %02X\n", port, val);
 
@@ -1745,13 +1697,6 @@ aha_writew(uint16_t Port, uint16_t Val, void *p)
 }
 
 
-static void
-aha_writeL(uint16_t Port, uint32_t Val, void *p)
-{
-    aha_write(Port, Val & 0xFF, p);
-}
-
-
 static uint8_t
 ConvertSenseLength(uint8_t RequestSenseLength)
 {
@@ -1823,6 +1768,8 @@ aha_disk_cmd(aha_t *dev)
     Id = req->TargetID;
     Lun = req->LUN;
     hdc_id = scsi_hard_disks[Id][Lun];
+
+    if (hdc_id == 0xff)  fatal("SCSI hard disk on %02i:%02i has disappeared\n", Id, Lun);
 
     pclog("SCSI HD command being executed on: SCSI ID %i, SCSI LUN %i, HD %i\n",
 							Id, Lun, hdc_id);
@@ -1907,6 +1854,8 @@ aha_cdrom_cmd(aha_t *dev)
     Id = req->TargetID;
     Lun = req->LUN;
     cdrom_id = scsi_cdrom_drives[Id][Lun];
+
+    if (cdrom_id == 0xff)  fatal("SCSI CD-ROM on %02i:%02i has disappeared\n", Id, Lun);
 
     pclog("CD-ROM command being executed on: SCSI ID %i, SCSI LUN %i, CD-ROM %i\n",
 							Id, Lun, cdrom_id);
@@ -2220,11 +2169,11 @@ aha_init(int chip, int has_bios)
 
     ResetDev = dev;
     dev->chip = chip;
-    dev->Base = device_get_config_int("addr");
+    dev->Base = device_get_config_hex16("base");
     dev->Irq = device_get_config_int("irq");
     dev->DmaChannel = device_get_config_int("dma");
     bios = device_get_config_int("bios");
-    bios_addr = device_get_config_int("bios_addr");
+    bios_addr = device_get_config_hex20("bios_addr");
 
     if (dev->Base != 0) {
 	io_sethandler(dev->Base, 4,
@@ -2245,10 +2194,11 @@ aha_init(int chip, int has_bios)
 	}
     }
 
-    for (i=0; i<CDROM_NUM; i++) {
-	if (aha_dev_present(cdrom_drives[i].scsi_device_id,
-				 cdrom_drives[i].scsi_device_lun)) {
-		SCSIDevices[cdrom_drives[i].scsi_device_id][cdrom_drives[i].scsi_device_lun].LunType = SCSI_CDROM;
+    for (i=0; i<16; i++) {
+	for (j=0; j<8; j++) {
+		if (find_cdrom_for_scsi_id(i, j) != 0xff) {
+			SCSIDevices[i][j].LunType = SCSI_CDROM;
+		}
 	}
     }
 
@@ -2307,7 +2257,7 @@ aha_close(void *priv)
 
 static device_config_t aha_154XCF_config[] = {
         {
-		"addr", "Address", CONFIG_SELECTION, "", 0x334,
+		"base", "Address", CONFIG_HEX16, "", 0x334,
                 {
                         {
                                 "None",      0
@@ -2379,10 +2329,10 @@ static device_config_t aha_154XCF_config[] = {
                 },
         },
 	{
-		"bios", "Enable BIOS", CONFIG_BINARY, 0
+		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
 	},
         {
-                "bios_addr", "BIOS Address", CONFIG_SELECTION, "", 0xd8000,
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xd8000,
                 {
                         {
                                 "C800H", 0xc8000
@@ -2405,7 +2355,7 @@ static device_config_t aha_154XCF_config[] = {
 
 static device_config_t aha_1640_config[] = {
         {
-		"addr", "Address", CONFIG_SELECTION, "", 0x330,
+		"base", "Address", CONFIG_HEX16, "", 0x330,
                 {
                         {
                                 "0x330", 0x330

@@ -374,20 +374,17 @@ void initpc(int argc, wchar_t *argv[])
 			SCSIReset(cdrom_drives[i].scsi_device_id, cdrom_drives[i].scsi_device_lun);
 		}
 
-		if (cdrom_drives[i].host_drive == 0)
+		if (cdrom_drives[i].host_drive == 200)
 		{
-		        cdrom_null_open(i, cdrom_drives[i].host_drive);
+			image_open(i, cdrom_image[i].image_path);
+		}
+		else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
+		{
+			ioctl_open(i, cdrom_drives[i].host_drive);
 		}
 		else
 		{
-			if (cdrom_drives[i].host_drive == 200)
-			{
-				image_open(i, cdrom_image[i].image_path);
-			}
-			else
-			{
-				ioctl_open(i, cdrom_drives[i].host_drive);
-			}
+		        cdrom_null_open(i, cdrom_drives[i].host_drive);
 		}
 	}
 
@@ -412,7 +409,6 @@ void initpc(int argc, wchar_t *argv[])
 	scsi_card_init();
 
 	fullspeed();
-        ali1429_reset();
         shadowbios=0;
         
 	for (i = 0; i < CDROM_NUM; i++)
@@ -423,7 +419,7 @@ void initpc(int argc, wchar_t *argv[])
 			{
 				image_reset(i);
 			}
-			else
+			else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
 			{
 				ioctl_reset(i);
 			}
@@ -528,7 +524,6 @@ void resetpchard(void)
         loadnvr();
 
         shadowbios = 0;
-        ali1429_reset();
         
         keyboard_at_reset();
         
@@ -542,7 +537,7 @@ void resetpchard(void)
 			{
 				image_reset(i);
 			}
-			else
+			else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
 			{
 				ioctl_reset(i);
 			}
@@ -689,10 +684,10 @@ void closepc(void)
         	cdrom_drives[i].handler->exit(i);
 	}
         dumppic();
-        disc_close(0);
-        disc_close(1);
-        disc_close(2);
-        disc_close(3);
+	for (i = 0; i < FDD_NUM; i++)
+	{
+	        disc_close(i);
+	}
         dumpregs(0);
         closevideo();
         device_close_all();

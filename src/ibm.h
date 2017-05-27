@@ -161,6 +161,15 @@ struct
 } cpu_state;
 
 #define cycles cpu_state._cycles
+
+uint32_t cpu_cur_status;
+
+#define CPU_STATUS_USE32   (1 << 0)
+#define CPU_STATUS_STACK32 (1 << 1)
+#define CPU_STATUS_FLATDS  (1 << 2)
+#define CPU_STATUS_FLATSS  (1 << 3)
+
+
 #define cpu_rm  cpu_state.rm_data.rm_mod_reg.rm
 #define cpu_mod cpu_state.rm_data.rm_mod_reg.mod
 #define cpu_reg cpu_state.rm_data.rm_mod_reg.reg
@@ -550,7 +559,27 @@ int gated,speakval,speakon;
 wchar_t pcempath[512];
 
 
-/*Hard disc*/
+/*Hard disk*/
+enum
+{
+	HDD_BUS_DISABLED = 0,
+	HDD_BUS_MFM,
+	HDD_BUS_XTIDE,
+	HDD_BUS_RLL,
+	HDD_BUS_IDE_PIO_ONLY,
+	HDD_BUS_IDE_PIO_AND_DMA,
+	HDD_BUS_SCSI,
+	HDD_BUS_SCSI_REMOVABLE,
+	HDD_BUS_USB
+};
+
+#define HDC_NUM		30
+#define MFM_NUM		2
+#define RLL_NUM		2
+#define XTIDE_NUM	2
+#define IDE_NUM		8
+#define SCSI_NUM	16	/* Theoretically the controller can have at least 64 devices, or even 128 in case of a wide bus, but
+				   let's not exaggerate with them - 16 ought to be enough for everyone. */
 
 #pragma pack(push,1)
 typedef struct {
@@ -558,68 +587,27 @@ typedef struct {
 	uint64_t spt,hpc; /*Sectors per track, heads per cylinder*/
 	uint64_t tracks;
 	int is_hdi;
+	int wp;
 	uint32_t base;
 	uint64_t at_spt,at_hpc; /*[Translation] Sectors per track, heads per cylinder*/
 	unsigned int bus;	/* 0 = none, 1 = MFM/RLL, 2 = IDE, 3 = SCSI */
 	unsigned int mfm_channel;
+	unsigned int rll_channel;
+	unsigned int xtide_channel;
 	unsigned int ide_channel;
 	unsigned int scsi_id;
 	unsigned int scsi_lun;
+	wchar_t fn[260];
+	wchar_t prev_fn[260];
 } hard_disk_t;
 #pragma pack(pop)
 
-#pragma pack(push,1)
-typedef struct {
-	/* Stuff for SCSI hard disks. */
-	uint8_t cdb[16];
-	uint8_t current_cdb[16];
-	uint8_t max_cdb_len;
-	int requested_blocks;
-	int max_blocks_at_once;
-	uint16_t request_length;
-	int block_total;
-	int all_blocks_total;
-	uint32_t packet_len;
-	int packet_status;
-	uint8_t status;
-	uint8_t phase;
-	uint32_t pos;
-	int callback;
-	int total_read;
-	int unit_attention;
-	uint8_t sense[256];
-	uint8_t previous_command;
-	uint8_t error;
-	uint16_t buffer[390144];
-	uint32_t sector_pos;
-	uint32_t sector_len;
-	uint32_t last_sector;
-	uint32_t seek_pos;
-	int data_pos;
-	int old_len;
-	int cdb_len_setting;
-	int cdb_len;
-	int request_pos;
-	uint64_t base;
-	uint8_t hd_cdb[16];
-} scsi_hard_disk_t;
-#pragma pack(pop)
-
-#define HDC_NUM		16
-#define IDE_NUM		8
-#define MFM_NUM		2
-#define SCSI_NUM	16	/* Theoretically the controller can have at least 64 devices, or even 128 in case of a wide bus, but
-				   let's not exaggerate with them - 16 ought to be enough for everyone. */
-
-hard_disk_t hdc[HDC_NUM];
-scsi_hard_disk_t shdc[HDC_NUM];
+extern hard_disk_t hdc[HDC_NUM];
 
 FILE *shdf[HDC_NUM];
 
 uint64_t hdt[128][3];
 uint64_t hdt_mfm[128][3];
-
-extern wchar_t hdd_fn[HDC_NUM][512];
 
 int image_is_hdi(const wchar_t *s);
 int image_is_hdx(const wchar_t *s, int check_signature);
@@ -629,7 +617,16 @@ int keybsenddelay;
 
 
 /*CD-ROM*/
-extern int idecallback[4];
+enum
+{
+	CDROM_BUS_DISABLED = 0,
+	CDROM_BUS_ATAPI_PIO_ONLY = 4,
+	CDROM_BUS_ATAPI_PIO_AND_DMA,
+	CDROM_BUS_SCSI,
+	CDROM_BUS_USB = 8
+};
+
+extern int idecallback[5];
 
 #define CD_STATUS_EMPTY		0
 #define CD_STATUS_DATA_ONLY	1
@@ -776,3 +773,9 @@ extern void	update_status_bar_icon(int tag, int active);
 extern void	update_status_bar_icon_state(int tag, int state);
 extern void	status_settextw(wchar_t *wstr);
 extern void	status_settext(char *str);
+
+#define SB_FLOPPY	0x00
+#define SB_CDROM	0x10
+#define SB_RDISK	0x20
+#define SB_HDD		0x40
+#define SB_TEXT		0x50

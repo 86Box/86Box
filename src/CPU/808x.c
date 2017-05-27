@@ -546,6 +546,7 @@ void resetx86()
         resets++;
         ins = 0;
         use32=0;
+	cpu_cur_status = 0;
         stack32=0;
         cpu_state.pc=0;
         msw=0;
@@ -583,6 +584,7 @@ void softresetx86()
 {
         use32=0;
         stack32=0;
+	cpu_cur_status = 0;
         cpu_state.pc=0;
         msw=0;
         cr0=0;

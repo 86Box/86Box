@@ -32,194 +32,6 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 STATUSBARMENU MENU DISCARDABLE 
 BEGIN
-    POPUP "FDD 1"
-    BEGIN
-        MENUITEM "&Change...",                  IDM_DISC_1
-        MENUITEM "Change FDD 1 (&Write-protected)...", IDM_DISC_1_WP
-        MENUITEM "&Eject FDD 1",                IDM_EJECT_1
-    END
-    POPUP "FDD 2"
-    BEGIN
-        MENUITEM "&Change...",                  IDM_DISC_2
-        MENUITEM "Change FDD 2 (&Write-protected)...", IDM_DISC_2_WP
-        MENUITEM "&Eject FDD 2",                IDM_EJECT_2
-    END
-    POPUP "FDD 3"
-    BEGIN
-        MENUITEM "&Change...",                  IDM_DISC_3
-        MENUITEM "Change FDD 3 (&Write-protected)...", IDM_DISC_3_WP
-        MENUITEM "&Eject FDD 3",                IDM_EJECT_3
-    END
-    POPUP "FDD 4"
-    BEGIN
-        MENUITEM "&Change...",                  IDM_DISC_4
-        MENUITEM "Change FDD 4 (&Write-protected)...", IDM_DISC_4_WP
-        MENUITEM "&Eject FDD 4",                IDM_EJECT_4
-    END
-    POPUP "CD-ROM 1"
-    BEGIN
-        MENUITEM "&Mute",                       IDM_CDROM_1_MUTE
-        MENUITEM SEPARATOR
-        MENUITEM "E&mpty",                      IDM_CDROM_1_EMPTY
-        MENUITEM "&Reload previous image",      IDM_CDROM_1_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_CDROM_1_IMAGE
-    END
-    POPUP "CD-ROM 2"
-    BEGIN
-        MENUITEM "&Mute",                       IDM_CDROM_2_MUTE
-        MENUITEM SEPARATOR
-        MENUITEM "E&mpty",                      IDM_CDROM_2_EMPTY
-        MENUITEM "&Reload previous image",      IDM_CDROM_2_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_CDROM_2_IMAGE
-    END
-    POPUP "CD-ROM 3"
-    BEGIN
-        MENUITEM "&Mute",                       IDM_CDROM_3_MUTE
-        MENUITEM SEPARATOR
-        MENUITEM "E&mpty",                      IDM_CDROM_3_EMPTY
-        MENUITEM "&Reload previous image",      IDM_CDROM_3_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_CDROM_3_IMAGE
-    END
-    POPUP "CD-ROM 4"
-    BEGIN
-        MENUITEM "&Mute",                       IDM_CDROM_4_MUTE
-        MENUITEM SEPARATOR
-        MENUITEM "E&mpty",                      IDM_CDROM_4_EMPTY
-        MENUITEM "&Reload previous image",      IDM_CDROM_4_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&Image...",                   IDM_CDROM_4_IMAGE
-    END
-    POPUP "Removable disk 01"
-    BEGIN
-        MENUITEM "E&mpty",                      IDM_RDISK_01_EMPTY
-        MENUITEM "&Reload previous image",      IDM_RDISK_01_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&New image...",               IDM_RDISK_01_IMAGE
-        MENUITEM "&Existing image...",          IDM_RDISK_01_EIMAGE
-    END
-    POPUP "Removable disk 02"
-    BEGIN
-        MENUITEM "E&mpty",                      IDM_RDISK_02_EMPTY
-        MENUITEM "&Reload previous image",      IDM_RDISK_02_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&New image...",               IDM_RDISK_02_IMAGE
-        MENUITEM "&Existing image...",          IDM_RDISK_02_EIMAGE
-    END
-    POPUP "Removable disk 03"
-    BEGIN
-        MENUITEM "E&mpty",                      IDM_RDISK_03_EMPTY
-        MENUITEM "&Reload previous image",      IDM_RDISK_03_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&New image...",               IDM_RDISK_03_IMAGE
-        MENUITEM "&Existing image...",          IDM_RDISK_03_EIMAGE
-    END
-    POPUP "Removable disk 04"
-    BEGIN
-        MENUITEM "E&mpty",                      IDM_RDISK_04_EMPTY
-        MENUITEM "&Reload previous image",      IDM_RDISK_04_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&New image...",               IDM_RDISK_04_IMAGE
-        MENUITEM "&Existing image...",          IDM_RDISK_04_EIMAGE
-    END
-    POPUP "Removable disk 05"
-    BEGIN
-        MENUITEM "E&mpty",                      IDM_RDISK_05_EMPTY
-        MENUITEM "&Reload previous image",      IDM_RDISK_05_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&New image...",               IDM_RDISK_05_IMAGE
-        MENUITEM "&Existing image...",          IDM_RDISK_05_EIMAGE
-    END
-    POPUP "Removable disk 06"
-    BEGIN
-        MENUITEM "E&mpty",                      IDM_RDISK_06_EMPTY
-        MENUITEM "&Reload previous image",      IDM_RDISK_06_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&New image...",               IDM_RDISK_06_IMAGE
-        MENUITEM "&Existing image...",          IDM_RDISK_06_EIMAGE
-    END
-    POPUP "Removable disk 07"
-    BEGIN
-        MENUITEM "E&mpty",                      IDM_RDISK_07_EMPTY
-        MENUITEM "&Reload previous image",      IDM_RDISK_07_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&New image...",               IDM_RDISK_07_IMAGE
-        MENUITEM "&Existing image...",          IDM_RDISK_07_EIMAGE
-    END
-    POPUP "Removable disk 08"
-    BEGIN
-        MENUITEM "E&mpty",                      IDM_RDISK_08_EMPTY
-        MENUITEM "&Reload previous image",      IDM_RDISK_08_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&New image...",               IDM_RDISK_08_IMAGE
-        MENUITEM "&Existing image...",          IDM_RDISK_08_EIMAGE
-    END
-    POPUP "Removable disk 09"
-    BEGIN
-        MENUITEM "E&mpty",                      IDM_RDISK_09_EMPTY
-        MENUITEM "&Reload previous image",      IDM_RDISK_09_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&New image...",               IDM_RDISK_09_IMAGE
-        MENUITEM "&Existing image...",          IDM_RDISK_09_EIMAGE
-    END
-    POPUP "Removable disk 10"
-    BEGIN
-        MENUITEM "E&mpty",                      IDM_RDISK_10_EMPTY
-        MENUITEM "&Reload previous image",      IDM_RDISK_10_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&New image...",               IDM_RDISK_10_IMAGE
-        MENUITEM "&Existing image...",          IDM_RDISK_10_EIMAGE
-    END
-    POPUP "Removable disk 11"
-    BEGIN
-        MENUITEM "E&mpty",                      IDM_RDISK_11_EMPTY
-        MENUITEM "&Reload previous image",      IDM_RDISK_11_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&New image...",               IDM_RDISK_11_IMAGE
-        MENUITEM "&Existing image...",          IDM_RDISK_11_EIMAGE
-    END
-    POPUP "Removable disk 12"
-    BEGIN
-        MENUITEM "E&mpty",                      IDM_RDISK_12_EMPTY
-        MENUITEM "&Reload previous image",      IDM_RDISK_12_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&New image...",               IDM_RDISK_12_IMAGE
-        MENUITEM "&Existing image...",          IDM_RDISK_12_EIMAGE
-    END
-    POPUP "Removable disk 13"
-    BEGIN
-        MENUITEM "E&mpty",                      IDM_RDISK_13_EMPTY
-        MENUITEM "&Reload previous image",      IDM_RDISK_13_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&New image...",               IDM_RDISK_13_IMAGE
-        MENUITEM "&Existing image...",          IDM_RDISK_13_EIMAGE
-    END
-    POPUP "Removable disk 14"
-    BEGIN
-        MENUITEM "E&mpty",                      IDM_RDISK_14_EMPTY
-        MENUITEM "&Reload previous image",      IDM_RDISK_14_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&New image...",               IDM_RDISK_14_IMAGE
-        MENUITEM "&Existing image...",          IDM_RDISK_14_EIMAGE
-    END
-    POPUP "Removable disk 15"
-    BEGIN
-        MENUITEM "E&mpty",                      IDM_RDISK_15_EMPTY
-        MENUITEM "&Reload previous image",      IDM_RDISK_15_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&New image...",               IDM_RDISK_15_IMAGE
-        MENUITEM "&Existing image...",          IDM_RDISK_15_EIMAGE
-    END
-    POPUP "Removable disk 16"
-    BEGIN
-        MENUITEM "E&mpty",                      IDM_RDISK_16_EMPTY
-        MENUITEM "&Reload previous image",      IDM_RDISK_16_RELOAD
-        MENUITEM SEPARATOR
-        MENUITEM "&New image...",               IDM_RDISK_16_IMAGE
-        MENUITEM "&Existing image...",          IDM_RDISK_16_EIMAGE
-    END
 END
 
 MAINMENU MENU DISCARDABLE 
@@ -254,7 +66,7 @@ BEGIN
                 MENUITEM "&2x",                         IDM_VID_SCALE_4X
             END
             MENUITEM SEPARATOR
-            MENUITEM "&Fullscreen",                 IDM_VID_FULLSCREEN
+            MENUITEM "&Fullscreen\tCtrl+Alt+PageUP",                 IDM_VID_FULLSCREEN
             POPUP "Fullscreen &stretch mode"
             BEGIN
                 MENUITEM "&Full screen stretch",        IDM_VID_FS_FULL
@@ -346,6 +158,7 @@ BEGIN
 #ifdef ENABLE_LOG_BREAKPOINT
         VK_F10,  IDM_LOG_BREAKPOINT,  CONTROL, VIRTKEY
 #endif
+    VK_PRIOR,       IDM_VID_FULLSCREEN,     VIRTKEY, CONTROL , ALT
     VK_F11,         IDM_VID_SCREENSHOT,     VIRTKEY, CONTROL
     VK_F12,         IDM_FILE_RESET_CAD,     VIRTKEY, CONTROL
 END
@@ -668,12 +481,16 @@ END
 177                     ICON    DISCARDABLE     "ICONS/hard_disk_removable_scsi_active.ico"
 192                     ICON    DISCARDABLE     "ICONS/hard_disk_mfm.ico"
 193                     ICON    DISCARDABLE     "ICONS/hard_disk_mfm_active.ico"
-194                     ICON    DISCARDABLE     "ICONS/hard_disk.ico"
-195                     ICON    DISCARDABLE     "ICONS/hard_disk_active.ico"
-196                     ICON    DISCARDABLE     "ICONS/hard_disk_ide.ico"
-197                     ICON    DISCARDABLE     "ICONS/hard_disk_ide_active.ico"
-198                     ICON    DISCARDABLE     "ICONS/hard_disk_scsi.ico"
-199                     ICON    DISCARDABLE     "ICONS/hard_disk_scsi_active.ico"
+194                     ICON    DISCARDABLE     "ICONS/hard_disk_xtide.ico"
+195                     ICON    DISCARDABLE     "ICONS/hard_disk_xtide_active.ico"
+196                     ICON    DISCARDABLE     "ICONS/hard_disk_rll.ico"
+197                     ICON    DISCARDABLE     "ICONS/hard_disk_rll_active.ico"
+198                     ICON    DISCARDABLE     "ICONS/hard_disk.ico"
+199                     ICON    DISCARDABLE     "ICONS/hard_disk_active.ico"
+200                     ICON    DISCARDABLE     "ICONS/hard_disk_ide.ico"
+201                     ICON    DISCARDABLE     "ICONS/hard_disk_ide_active.ico"
+202                     ICON    DISCARDABLE     "ICONS/hard_disk_scsi.ico"
+203                     ICON    DISCARDABLE     "ICONS/hard_disk_scsi_active.ico"
 256                     ICON    DISCARDABLE     "ICONS/machine.ico"
 257                     ICON    DISCARDABLE     "ICONS/video.ico"
 258                     ICON    DISCARDABLE     "ICONS/input_devices.ico"
@@ -972,9 +789,9 @@ BEGIN
     2163                    "Attempting to create a spuriously large hard disk image"
     2164                    "Invalid number of sectors (valid values are between 1 and 99)"
     2165                    "MFM"
-    2166                    "IDE (PIO-only)"
-    2167                    "IDE (PIO and DMA)"
-    2168                    "SCSI"
+    2166                    "XT IDE"
+    2167                    "RLL"
+    2168                    "IDE (PIO-only)"
     2169                    "%01i:%01i"
     2170                    "Custom..."
     2171                    "%" PRIu64 " MB (CHS: %" PRIu64 ", %" PRIu64 ", %" PRIu64 ")"
@@ -1004,13 +821,30 @@ BEGIN
     2195                    "IDE (PIO-only) (%01i:%01i)"
     2196                    "Add New Hard Disk"
     2197                    "Add Existing Hard Disk"
-    2198                    "Removable disk %i: %s"
+    2198                    "SCSI removable disk %i: %s"
     2199                    "USB is not yet supported"
     2200                    "Invalid PCap device"
-    2201                    "SCSI removable disk: %ws"
-    2202                    "<Placeholder string>"
-    2203                    "English (United States)"
+    2201                    "&Notify disk change"
+    2202                    "SCSI (removable)"
+    2203                    "SCSI (removable) (%02i:%02i)"
     2204                    "Pcap Library Not Available"
+    2205                    "RLL (%01i:%01i)"
+    2206                    "XT IDE (%01i:%01i)"
+    2207                    "RLL hard disk"
+    2208                    "XT IDE hard disk"
+    2209                    "IDE (PIO and DMA)"
+    2210                    "SCSI"
+    2211                    "&New image..."
+    2212                    "Existing image..."
+    2213                    "Existing image (&Write-protected)..."
+    2214                    "E&ject"
+    2215                    "&Mute"
+    2216                    "E&mpty"
+    2217                    "&Reload previous image"
+    2218                    "&Image..."
+    2219                    "PCap failed to set up because it may not be initialized"
+    2220                    "Image (&Write-protected)..."
+    2221                    "English (United States)"
 END
 
 
