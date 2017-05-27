@@ -2318,6 +2318,7 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 	uint32_t base = 0x1000;
 	uint64_t signature = 0xD778A82044445459ll;
 	char buf[512];
+	int b = 0;
 
         switch (message)
         {
@@ -2869,7 +2870,13 @@ hdd_add_file_open_error:
 					no_update = 1;
 					recalc_location_controls(hdlg, 1);
 					h = GetDlgItem(hdlg, IDC_COMBO_HD_BUS);
-					hdc_ptr->bus = SendMessage(h,CB_GETCURSEL,0,0) + 1;
+					b = SendMessage(h,CB_GETCURSEL,0,0) + 1;
+					if (b == hdc_ptr->bus)
+					{
+						goto hd_add_bus_skip;
+					}
+
+					hdc_ptr->bus = b;
 
 					switch(hdc_ptr->bus)
 					{
@@ -2977,6 +2984,7 @@ hdd_add_file_open_error:
 						recalc_selection(hdlg);
 					}
 
+hd_add_bus_skip:
 					no_update = 0;
 					break;
 			}
@@ -3007,6 +3015,7 @@ static BOOL CALLBACK win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARA
 {
 	HWND h;
 	int old_sel = 0;
+	int b = 0;
 
         switch (message)
         {
@@ -3078,11 +3087,17 @@ static BOOL CALLBACK win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARA
 					}
 
 					ignore_change = 1;
-					recalc_location_controls(hdlg, 0);
 					h = GetDlgItem(hdlg, IDC_COMBO_HD_BUS);
-					temp_hdc[hdlv_current_sel].bus = SendMessage(h, CB_GETCURSEL, 0, 0) + 1;
+					b = SendMessage(h, CB_GETCURSEL, 0, 0) + 1;
+					if (b == temp_hdc[hdlv_current_sel].bus)
+					{
+						goto hd_bus_skip;
+					}
+					temp_hdc[hdlv_current_sel].bus = b;
+					recalc_location_controls(hdlg, 0);
 					h = GetDlgItem(hdlg, IDC_LIST_HARD_DISKS);
 					win_settings_hard_disks_update_item(h, hdlv_current_sel, 0);
+hd_bus_skip:
 					ignore_change = 0;
 					return FALSE;
 
@@ -3226,7 +3241,7 @@ static int combo_id_to_string_id(int combo_id)
 			return 2190;
 			break;
 		case CDROM_BUS_SCSI: /* SCSI */
-			return 2168;
+			return 2210;
 			break;
 	}
 }
@@ -3544,7 +3559,7 @@ static void cdrom_add_locations(HWND hdlg)
 	lptsTemp = (LPTSTR) malloc(512);
 
 	h = GetDlgItem(hdlg, IDC_COMBO_CD_BUS);
-	for (i = CDROM_BUS_DISABLED; i < CDROM_BUS_SCSI; i++)
+	for (i = CDROM_BUS_DISABLED; i <= CDROM_BUS_SCSI; i++)
 	{
 		if ((i == CDROM_BUS_DISABLED) || (i >= CDROM_BUS_ATAPI_PIO_ONLY))
 		{
@@ -3644,6 +3659,7 @@ static BOOL CALLBACK win_settings_removable_devices_proc(HWND hdlg, UINT message
 	int i = 0;
 	int old_sel = 0;
 	int b = 0;
+	int b2 = 0;
 	WCHAR szText[256];
 
         switch (message)
@@ -3806,21 +3822,27 @@ static BOOL CALLBACK win_settings_removable_devices_proc(HWND hdlg, UINT message
 					switch (b)
 					{
 						case 0:
-							temp_cdrom_drives[cdlv_current_sel].bus_type = CDROM_BUS_DISABLED;
+							b2 = CDROM_BUS_DISABLED;
 							break;
 						case 1:
-							temp_cdrom_drives[cdlv_current_sel].bus_type = CDROM_BUS_ATAPI_PIO_ONLY;
+							b2 = CDROM_BUS_ATAPI_PIO_ONLY;
 							break;
 						case 2:
-							temp_cdrom_drives[cdlv_current_sel].bus_type = CDROM_BUS_ATAPI_PIO_AND_DMA;
+							b2 = CDROM_BUS_ATAPI_PIO_AND_DMA;
 							break;
 						case 3:
-							temp_cdrom_drives[cdlv_current_sel].bus_type = CDROM_BUS_SCSI;
+							b2 = CDROM_BUS_SCSI;
 							break;
 					}
+					if (b2 == temp_cdrom_drives[cdlv_current_sel].bus_type)
+					{
+						goto cdrom_bus_skip;
+					}
+					temp_cdrom_drives[cdlv_current_sel].bus_type = b2;
 					cdrom_recalc_location_controls(hdlg);
 					h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
 					win_settings_cdrom_drives_update_item(h, cdlv_current_sel);
+cdrom_bus_skip:
 					rd_ignore_change = 0;
 					return FALSE;
 
