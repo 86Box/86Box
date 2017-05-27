@@ -2,7 +2,9 @@
 #define CONFIG_INT 1
 #define CONFIG_BINARY 2
 #define CONFIG_SELECTION 3
-#define CONFIG_MAC 4
+#define CONFIG_HEX16 4
+#define CONFIG_HEX20 5
+#define CONFIG_MAC 6
 
 typedef struct device_config_selection_t
 {
@@ -43,7 +45,13 @@ char *device_add_status_info(char *s, int max_len);
 
 int device_get_config_int(char *name);
 int device_get_config_int_ex(char *s, int default_int);
+int device_get_config_hex16(char *name);
+int device_get_config_hex20(char *name);
+int device_get_config_mac(char *name, int default_int);
 void device_set_config_int(char *s, int val);
+void device_set_config_hex16(char *s, int val);
+void device_set_config_hex20(char *s, int val);
+void device_set_config_mac(char *s, int val);
 char *device_get_config_string(char *name);
 
 enum

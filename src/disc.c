@@ -130,7 +130,7 @@ void disc_load(int drive, wchar_t *fn)
         pclog_w(L"Couldn't load %s %s\n",fn,p);
         drive_empty[drive] = 1;
 	fdd_set_head(real_drive(drive), 0);
-        discfns[drive][0] = L'\0';
+	memset(discfns[drive], 0, sizeof(discfns[drive]));
 	update_status_bar_icon_state(drive, 1);
 }
 

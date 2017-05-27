@@ -101,7 +101,7 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
 	case NET_TYPE_PCAP:
 		ret = network_pcap_setup(mac, rx, dev);
 		if (ret < 0) {
-			msgbox_error(ghwnd, 2202);
+			msgbox_error(ghwnd, 2219);
 			network_type = NET_TYPE_NONE;
 		}
 		break;
@@ -143,6 +143,8 @@ network_close(void)
 void
 network_reset(void)
 {
+    int i = 0;
+
     pclog("NETWORK: reset (type=%d, card=%d)\n", network_type, network_card);
 
     /* Just in case.. */
@@ -150,6 +152,8 @@ network_reset(void)
 
     /* If no active card, we're done. */
     if ((network_type==NET_TYPE_NONE) || (network_card==0)) return;
+
+    i = network_pcap_init(&network_devs[network_ndev]);
 
     pclog("NETWORK: set up for %s, card='%s'\n",
 	(network_type==NET_TYPE_SLIRP)?"SLiRP":"WinPcap",

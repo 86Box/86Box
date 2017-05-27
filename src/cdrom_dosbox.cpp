@@ -18,6 +18,11 @@
 
 /* Modified for use with PCem by bit */
 
+#define _LARGEFILE_SOURCE
+#define _LARGEFILE64_SOURCE
+#define _GNU_SOURCE
+#include <stdio.h>
+
 #include <cctype>
 #include <cmath>
 #include <cstdio>
@@ -46,8 +51,8 @@ using namespace std;
 
 CDROM_Interface_Image::BinaryFile::BinaryFile(const char *filename, bool &error)
 {
-	file = new ifstream(filename, ios::in | ios::binary);
-	error = (file == NULL) || (file->fail());
+	file = fopen64(filename, "rb");
+	error = (file == NULL);
 }
 
 CDROM_Interface_Image::BinaryFile::~BinaryFile()
@@ -57,17 +62,17 @@ CDROM_Interface_Image::BinaryFile::~BinaryFile()
 
 bool CDROM_Interface_Image::BinaryFile::read(Bit8u *buffer, int seek, int count)
 {
-	file->seekg(seek, ios::beg);
-	file->read((char*)buffer, count);
-	return !(file->fail());
+	uint64_t offs = 0;
+	offs = ftello64(file);
+	fseeko64(file, offs, SEEK_SET);
+	offs = fread(buffer, 1, count, file);
+	return (offs == count);
 }
 
-int CDROM_Interface_Image::BinaryFile::getLength()
+uint64_t CDROM_Interface_Image::BinaryFile::getLength()
 {
-	file->seekg(0, ios::end);
-	int length = (int)file->tellg();
-	if (file->fail()) return -1;
-	return length;
+	fseeko64(file, 0, SEEK_END);
+	return ftello64(file);
 }
 
 CDROM_Interface_Image::CDROM_Interface_Image()
@@ -286,7 +291,7 @@ bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 {
 	Track track = {0, 0, 0, 0, 0, 0, false, NULL};
 	tracks.clear();
-	int shift = 0;
+	uint64_t shift = 0;
 	int currPregap = 0;
 	int totalPregap = 0;
 	int prestart = 0;
@@ -405,7 +410,7 @@ bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 	return true;
 }
 
-bool CDROM_Interface_Image::AddTrack(Track &curr, int &shift, int prestart, int &totalPregap, int currPregap)
+bool CDROM_Interface_Image::AddTrack(Track &curr, uint64_t &shift, int prestart, int &totalPregap, int currPregap)
 {
 	// frames between index 0(prestart) and 1(curr.start) must be skipped
 	int skip;
@@ -429,14 +434,14 @@ bool CDROM_Interface_Image::AddTrack(Track &curr, int &shift, int prestart, int 
 	// current track consumes data from the same file as the previous
 	if (prev.file == curr.file) {
 		curr.start += shift;
-		prev.length = curr.start + totalPregap - prev.start - skip;
+		prev.length = curr.start + ((uint64_t) totalPregap) - prev.start - ((uint64_t) skip);
 		curr.skip += prev.skip + prev.length * prev.sectorSize + skip * curr.sectorSize;		
 		totalPregap += currPregap;
 		curr.start += totalPregap;
 	// current track uses a different file as the previous track
 	} else {
-		int tmp = prev.file->getLength() - prev.skip;
-		prev.length = tmp / prev.sectorSize;
+		uint64_t tmp = prev.file->getLength() - ((uint64_t) prev.skip);
+		prev.length = tmp / ((uint64_t) prev.sectorSize);
 		if (tmp % prev.sectorSize != 0) prev.length++; // padding
 		
 		curr.start += prev.start + prev.length + currPregap;

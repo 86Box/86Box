@@ -92,19 +92,17 @@ uint64_t hdt[128][3] = {	{  306,  4, 17 }, {  615,  2, 17 }, {  306,  4, 26 }, {
 			{ 1930,  4, 62 }, {  967, 16, 31 }, { 1013, 10, 63 }, { 1218, 15, 36 }, {  654, 16, 63 }, {  659, 16, 63 }, {  702, 16, 63 }, { 1002, 13, 63 },		/* 112-119 */
 			{  854, 16, 63 }, {  987, 16, 63 }, {  995, 16, 63 }, { 1024, 16, 63 }, { 1036, 16, 63 }, { 1120, 16, 59 }, { 1054, 16, 63 }, {    0,  0,  0 }	};	/* 119-127 */
 			
-IDE ide_drives[IDE_NUM];
+IDE ide_drives[IDE_NUM + XTIDE_NUM];
 
 IDE *ext_ide;
-
-wchar_t hdd_fn[HDC_NUM][512];
 
 int (*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length);
 int (*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length);
 void (*ide_bus_master_set_irq)(int channel);
 
-int idecallback[4] = {0, 0, 0, 0};
+int idecallback[5] = {0, 0, 0, 0, 0};
 
-int cur_ide[4];
+int cur_ide[5];
 
 int ide_do_log = 0;
 
@@ -132,7 +130,7 @@ int ide_drive_is_cdrom(IDE *ide)
 	}
 	else
 	{
-		if ((cdrom_drives[atapi_cdrom_drives[ide->channel]].bus_type > 1) && (cdrom_drives[atapi_cdrom_drives[ide->channel]].bus_type < 4))
+		if ((cdrom_drives[atapi_cdrom_drives[ide->channel]].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) || (cdrom_drives[atapi_cdrom_drives[ide->channel]].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA))
 		{
 			return 1;
 		}
@@ -143,24 +141,18 @@ int ide_drive_is_cdrom(IDE *ide)
 	}
 }
 
-static char as[512];
-
 int image_is_hdi(const wchar_t *s)
 {
-	int i, len;
-	char ext[5] = { 0, 0, 0, 0, 0 };
-	wcstombs(as, s, (wcslen(s) << 1) + 2);
-	len = strlen(as);
-	if ((len < 4) || (as[0] == '.'))
+	int len;
+	wchar_t ext[5] = { 0, 0, 0, 0, 0 };
+	char *ws = (char *) s;
+	len = wcslen(s);
+	if ((len < 4) || (s[0] == L'.'))
 	{
 		return 0;
 	}
-	memcpy(ext, as + len - 4, 4);
-	for (i = 0; i < 4; i++)
-	{
-		ext[i] = toupper(ext[i]);
-	}
-	if (strcmp(ext, ".HDI") == 0)
+	memcpy(ext, ws + ((len - 4) << 1), 8);
+	if (wcsicmp(ext, L".HDI") == 0)
 	{
 		return 1;
 	}
@@ -172,23 +164,19 @@ int image_is_hdi(const wchar_t *s)
 
 int image_is_hdx(const wchar_t *s, int check_signature)
 {
-	int i, len;
+	int len;
 	FILE *f;
 	uint64_t filelen;
 	uint64_t signature;
-	char ext[5] = { 0, 0, 0, 0, 0 };
-	wcstombs(as, s, (wcslen(s) << 1) + 2);
-	len = strlen(as);
-	if ((len < 4) || (as[0] == '.'))
+	char *ws = (char *) s;
+	wchar_t ext[5] = { 0, 0, 0, 0, 0 };
+	len = wcslen(s);
+	if ((len < 4) || (s[0] == L'.'))
 	{
 		return 0;
 	}
-	memcpy(ext, as + len - 4, 4);
-	for (i = 0; i < 4; i++)
-	{
-		ext[i] = toupper(ext[i]);
-	}
-	if (strcmp(ext, ".HDX") == 0)
+	memcpy(ext, ws + ((len - 4) << 1), 8);
+	if (wcsicmp(ext, L".HDX") == 0)
 	{
 		if (check_signature)
 		{
@@ -226,7 +214,7 @@ int image_is_hdx(const wchar_t *s, int check_signature)
 	}
 }
 
-int ide_enable[4] = { 1, 1, 0, 0 };
+int ide_enable[5] = { 1, 1, 0, 0, 1 };
 int ide_irq[4] = { 14, 15, 10, 11 };
 
 void ide_irq_raise(IDE *ide)
@@ -353,10 +341,13 @@ void ide_padstr8(uint8_t *buf, int buf_size, const char *src)
 static void ide_identify(IDE *ide)
 {
 	uint32_t c, h, s;
-	char device_identify[8] = { '8', '6', 'B', '_', 'H', 'D', '0', 0 };
+	char device_identify[9] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', 0 };
+#if 0
 	uint64_t full_size = (hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt);
+#endif
 	
-	device_identify[6] = ide->channel + 0x30;
+	device_identify[6] = (ide->hdc_num / 10) + 0x30;
+	device_identify[7] = (ide->hdc_num % 10) + 0x30;
 	ide_log("IDE Identify: %s\n", device_identify);
 
 	memset(ide->buffer, 0, 512);
@@ -382,7 +373,7 @@ static void ide_identify(IDE *ide)
 	ide->buffer[21] = 512; /*Buffer size*/
 	ide->buffer[47] = 16;  /*Max sectors on multiple transfer command*/
 	ide->buffer[48] = 1;   /*Dword transfers supported*/
-	if (PCI && (ide->board < 2) && (hdc[ide->hdc_num].bus == 3))
+	if (PCI && (ide->board < 2) && (hdc[ide->hdc_num].bus == HDD_BUS_IDE_PIO_AND_DMA))
 	{
 		ide->buffer[49] = (1 << 8); /* LBA and DMA supported */
 	}
@@ -418,7 +409,7 @@ static void ide_identify(IDE *ide)
 		ide->buffer[60] = (hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt) & 0xFFFF; /* Total addressable sectors (LBA) */
 		ide->buffer[61] = ((hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt) >> 16) & 0x0FFF;
 	}
-	if (PCI && (ide->board < 2) && (hdc[ide->hdc_num].bus == 3))
+	if (PCI && (ide->board < 2) && (hdc[ide->hdc_num].bus == HDD_BUS_IDE_PIO_AND_DMA))
 	{
 		ide->buffer[52] = 2 << 8; /*DMA timing mode*/
 
@@ -436,13 +427,13 @@ static void ide_identify(IDE *ide)
  */
 static void ide_atapi_identify(IDE *ide)
 {
-	char device_identify[8] = { '8', '6', 'B', '_', 'C', 'D', '0', 0 };
+	char device_identify[9] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', 0 };
 	uint8_t cdrom_id;
 	
 	memset(ide->buffer, 0, 512);
 	cdrom_id = atapi_cdrom_drives[ide->channel];
 
-	device_identify[6] = cdrom_id + 0x30;
+	device_identify[7] = cdrom_id + 0x30;
 	ide_log("ATAPI Identify: %s\n", device_identify);
 
 	ide->buffer[0] = 0x8000 | (5<<8) | 0x80 | (2<<5); /* ATAPI device, CD-ROM drive, removable media, accelerated DRQ */
@@ -451,7 +442,7 @@ static void ide_atapi_identify(IDE *ide)
 	ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
 	ide->buffer[49] = 0x200; /* LBA supported */
 
-	if (PCI && (ide->board < 2) && (cdrom_drives[cdrom_id].bus_mode & 2))
+	if (PCI && (ide->board < 2) && (cdrom_drives[cdrom_id].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA))
 	{
 		ide->buffer[48] = 1;   /*Dword transfers supported*/
 		ide->buffer[49] |= 0x100; /* DMA supported */
@@ -518,7 +509,7 @@ static void loadhd(IDE *ide, int d, const wchar_t *fn)
 	if (ide->hdfile == NULL)
 	{
 		/* Try to open existing hard disk image */
-		if (fn[0] == '.')
+		if (fn[0] == L'.')
 		{
 			ide->type = IDE_NONE;
 			return;
@@ -659,7 +650,7 @@ int ide_cdrom_is_pio_only(IDE *ide)
 	{
 		return 0;
 	}
-	if (cdrom_drives[cdrom_id].bus_mode & 2)
+	if (cdrom_drives[cdrom_id].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA)
 	{
 		return 0;
 	}
@@ -703,7 +694,7 @@ static int ide_set_features(IDE *ide)
 					break;
 
 				case 0x04:	/* Multiword DMA mode */
-					if (!PCI || (hdc[ide->hdc_num].bus != 3) || (ide->board >= 2) || (submode > 2))
+					if (!PCI || (hdc[ide->hdc_num].bus != HDD_BUS_IDE_PIO_AND_DMA) || (ide->board >= 2) || (submode > 2))
 					{
 						return 0;
 					}
@@ -750,7 +741,7 @@ void resetide(void)
 	build_atapi_cdrom_map();
 
 	/* Close hard disk image files (if previously open) */
-	for (d = 0; d < IDE_NUM; d++)
+	for (d = 0; d < (IDE_NUM + XTIDE_NUM); d++)
 	{
 		ide_drives[d].channel = d;
 		ide_drives[d].type = IDE_NONE;
@@ -774,12 +765,19 @@ void resetide(void)
 	c = 0;
 	for (d = 0; d < HDC_NUM; d++)
 	{
-		if (((hdc[d].bus == 2) || (hdc[d].bus == 3)) && (hdc[d].ide_channel < IDE_NUM))
+		if (((hdc[d].bus == HDD_BUS_IDE_PIO_ONLY) || (hdc[d].bus == HDD_BUS_IDE_PIO_AND_DMA)) && (hdc[d].ide_channel < IDE_NUM))
 		{
 			pclog("Found IDE hard disk on channel %i\n", hdc[d].ide_channel);
-			loadhd(&ide_drives[hdc[d].ide_channel], d, hdd_fn[d]);
+			loadhd(&ide_drives[hdc[d].ide_channel], d, hdc[d].fn);
 			c++;
-			if (c >= IDE_NUM)  break;
+			if (c >= (IDE_NUM + XTIDE_NUM))  break;
+		}
+		if ((hdc[d].bus == HDD_BUS_XTIDE) && (hdc[d].xtide_channel < XTIDE_NUM))
+		{
+			pclog("Found XTIDE hard disk on channel %i\n", hdc[d].xtide_channel);
+			loadhd(&ide_drives[hdc[d].xtide_channel | 8], d, hdc[d].fn);
+			c++;
+			if (c >= (IDE_NUM + XTIDE_NUM))  break;
 		}
 	}
 
@@ -800,7 +798,19 @@ void resetide(void)
 		ide_drives[d].error = 1;
 	}
 
-	for (d = 0; d < 4; d++)
+	for (d = 0; d < XTIDE_NUM; d++)
+	{
+		ide_set_signature(&ide_drives[d | 8]);
+
+		if (ide_drives[d].type == IDE_HDD)
+		{
+			ide_drives[d].mdma_mode = 0;
+		}
+
+		ide_drives[d].error = 1;
+	}
+
+	for (d = 0; d < 5; d++)
 	{
 		cur_ide[d] = d << 1;
 	}
@@ -1399,7 +1409,7 @@ uint32_t ide_read_data(int ide_board, int length)
 			}
 			else
 			{
-				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 0);
+				update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 0);
 			}
 		}
 	}
@@ -1722,7 +1732,7 @@ void callbackide(int ide_board)
 
 			ide_irq_raise(ide);
 
-			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 1);
+			update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 1);
 			return;
 
 		case WIN_READ_DMA:
@@ -1756,12 +1766,12 @@ void callbackide(int ide_board)
 						ide_next_sector(ide);
 						ide->atastat = BUSY_STAT;
 						idecallback[ide_board]=6*IDE_TIME;
-						update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 1);
+						update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 1);
 					}
 					else
 					{
 						ide_irq_raise(ide);
-						update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 0);
+						update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 0);
 					}
 				}
 			}
@@ -1799,7 +1809,7 @@ void callbackide(int ide_board)
 				ide->blockcount = 0;
 			}
 
-			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 1);
+			update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 1);
 			return;
 
 		case WIN_WRITE:
@@ -1822,12 +1832,12 @@ void callbackide(int ide_board)
 				ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 				ide->pos=0;
 				ide_next_sector(ide);
-				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 1);
+				update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 1);
 			}
 			else
 			{
 				ide->atastat = READY_STAT | DSC_STAT;
-				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 0);
+				update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 0);
 			}
 
 			return;
@@ -1863,12 +1873,12 @@ void callbackide(int ide_board)
 						ide_next_sector(ide);
 						ide->atastat = BUSY_STAT;
 						idecallback[ide_board]=6*IDE_TIME;
-						update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 1);
+						update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 1);
 					}
 					else
 					{
 						ide_irq_raise(ide);
-						update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 0);
+						update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 0);
 					}
 				}
 			}
@@ -1899,12 +1909,12 @@ void callbackide(int ide_board)
 				ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 				ide->pos=0;
 				ide_next_sector(ide);
-				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 1);
+				update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 1);
 			}
 			else
 			{
 				ide->atastat = READY_STAT | DSC_STAT;
-				update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 0);
+				update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 0);
 			}
 			return;
 
@@ -1921,7 +1931,7 @@ void callbackide(int ide_board)
 			ide->pos=0;
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
-			update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 1);
+			update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 1);
 			return;
 
 		case WIN_FORMAT:
@@ -1943,7 +1953,7 @@ void callbackide(int ide_board)
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
 
-			/* update_status_bar_icon((hdc[ide->hdc_num].bus == 3) ? 0x32 : 0x31, 1); */
+			/* update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 1); */
 			return;
 
 		case WIN_DRIVE_DIAGNOSTICS:
@@ -2122,6 +2132,12 @@ void ide_callback_qua()
 {
 	idecallback[3] = 0;
 	callbackide(3);
+}
+
+void ide_callback_xtide()
+{
+	idecallback[4] = 0;
+	callbackide(4);
 }
 
 void ide_write_pri(uint16_t addr, uint8_t val, void *priv)
@@ -2353,6 +2369,13 @@ void ide_init()
 
 	timer_add(ide_callback_pri, &idecallback[0], &idecallback[0],  NULL);
 	timer_add(ide_callback_sec, &idecallback[1], &idecallback[1],  NULL);
+}
+
+void ide_xtide_init()
+{
+	ide_bus_master_read = ide_bus_master_write = NULL;
+
+	timer_add(ide_callback_xtide, &idecallback[4], &idecallback[4],  NULL);
 }
 
 void ide_set_bus_master(int (*read)(int channel, uint8_t *data, int transfer_length), int (*write)(int channel, uint8_t *data, int transfer_length), void (*set_irq)(int channel))

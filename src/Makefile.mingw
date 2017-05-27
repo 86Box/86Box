@@ -195,8 +195,8 @@ WINOBJ	= win.o \
 	  win_ddraw.o win_ddraw_fs.o win_ddraw_screenshot.o \
 	  win_d3d.o win_d3d_fs.o \
 	  win_language.o win_status.o win_opendir.o win_dynld.o \
-	  win_video.o win_serial.o win_mouse.o \
-	  win_joystick.o win_midi.o \
+	  win_video.o win_serial.o win_keyboard.o win_mouse.o \
+	  win_iodev.o win_joystick.o win_midi.o \
 	  win_settings.o win_deviceconfig.o win_joystickconfig.o \
 	  86Box.res
 OBJ	= $(MAINOBJ) $(CPUOBJ) $(SYSOBJ) $(DEVOBJ) $(USBOBJ) \

@@ -23,12 +23,15 @@
 #include "../cdrom_null.h"
 #include "../cdrom_ioctl.h"
 #include "../cdrom_image.h"
+#include "../scsi.h"
+#include "../scsi_disk.h"
 #include "../video/video.h"
 #include "../video/vid_ega.h"
 #include "../mouse.h"
 #include "../sound/sound.h"
 #include "../sound/snd_dbopl.h"
 #include "plat_keyboard.h"
+#include "plat_iodev.h"
 #include "plat_mouse.h"
 #include "plat_midi.h"
 
@@ -36,10 +39,12 @@
 #include "win_ddraw.h"
 #include "win_d3d.h"
 #include "win_language.h"
+
 #include <windowsx.h>
 #include <commctrl.h>
 #include <commdlg.h>
 #include <process.h>
+
 #include "resource.h"
 
 
@@ -47,13 +52,45 @@
 #define MAPVK_VK_TO_VSC 0
 #endif
 
-static int save_window_pos = 0;
-uint64_t timer_freq;
+/*  Declare Windows procedure  */
+LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK subWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-int rawinputkey[272];
+LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-static RAWINPUTDEVICE device;
-static uint16_t scancode_map[65536];
+#define TIMER_1SEC 1
+
+extern int	updatestatus;
+
+
+typedef struct win_event_t
+{
+        HANDLE handle;
+} win_event_t;
+
+LONG_PTR	OriginalStatusBarProcedure;
+HWND		ghwnd;
+HINSTANCE	hinstance;
+HMENU		menu;
+int		pause = 0;
+int		scale = 0;
+HWND		hwndRender, hwndStatus;
+uint64_t	timer_freq;
+int		winsizex=640, winsizey=480;
+int		efwinsizey=480;
+int		gfx_present[GFX_MAX];
+HANDLE		ghMutex;
+HANDLE		mainthreadh;
+int		infocus=1;
+int		drawits=0;
+int		romspresent[ROM_MAX];
+int		quited=0;
+RECT		oldclip;
+int		mousecapture=0;
+int		recv_key[272];
+HMENU		*sb_menu_handles;
+uint64_t	main_time;
+
 
 static struct
 {
@@ -61,65 +98,47 @@ static struct
         void (*close)();
         void (*resize)(int x, int y);
 } vid_apis[2][2] =
-{
-        {
-                ddraw_init, ddraw_close, NULL,
-                d3d_init, d3d_close, d3d_resize
-        },
-        {
-                ddraw_fs_init, ddraw_fs_close, NULL,
-                d3d_fs_init, d3d_fs_close, NULL
-        },
-};
+{	{	{	ddraw_init, ddraw_close, NULL		},
+		{	d3d_init, d3d_close, d3d_resize		}	},
+	{	{	ddraw_fs_init, ddraw_fs_close, NULL	},
+		{	d3d_fs_init, d3d_fs_close, NULL		}	}	};
 
-#define TIMER_1SEC 1
+static int	save_window_pos = 0;
 
-int winsizex=640,winsizey=480;
-int efwinsizey=480;
-int gfx_present[GFX_MAX];
+static RAWINPUTDEVICE	device;
 
-HANDLE ghMutex;
+static int	win_doresize = 0;
 
-HANDLE mainthreadh;
+static int	leave_fullscreen_flag = 0;
 
-int infocus=1;
+static int	unscaled_size_x = 0;
+static int	unscaled_size_y = 0;
 
-int drawits=0;
+static uint64_t	start_time;
+static uint64_t	end_time;
 
-int romspresent[ROM_MAX];
-int quited=0;
+HMENU		smenu;
 
-RECT oldclip;
-int mousecapture=0;
+static uint8_t	host_cdrom_drive_available[26];
 
-/*  Declare Windows procedure  */
-LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
-LRESULT CALLBACK subWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+static uint8_t	host_cdrom_drive_available_num = 0;
 
-LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+static wchar_t	**argv;
+static int	argc;
+static wchar_t	*argbuf;
 
-LONG_PTR OriginalStatusBarProcedure;
+static HANDLE	hinstAcc;
 
-HWND ghwnd;
+static HICON	hIcon[512];
 
-HINSTANCE hinstance;
+static int	*iStatusWidths;
+static int	*sb_icon_flags;
+static int	*sb_part_meanings;
+static int	*sb_part_icons;
+static WCHAR	**sbTips;
 
-HMENU menu;
+static int	sb_parts = 0;
 
-extern int updatestatus;
-
-int pause=0;
-
-static int win_doresize = 0;
-
-static int leave_fullscreen_flag = 0;
-
-static int unscaled_size_x = 0;
-static int unscaled_size_y = 0;
-
-int scale = 0;
-
-HWND hwndRender, hwndStatus;
 
 void updatewindowsize(int x, int y)
 {
@@ -236,11 +255,6 @@ void leave_fullscreen()
         leave_fullscreen_flag = 1;
 }
 
-uint64_t main_time;
-
-uint64_t start_time;
-uint64_t end_time;
-
 void mainthread(LPVOID param)
 {
         int frames = 0;
@@ -253,12 +267,14 @@ void mainthread(LPVOID param)
         old_time = GetTickCount();
         while (!quited)
         {
-                if (updatestatus)
-                {
-                        updatestatus = 0;
-                        if (status_is_open)
-                                SendMessage(status_hwnd, WM_USER, 0, 0);
-                }
+		if (updatestatus)
+		{
+			updatestatus = 0;
+			if (status_is_open)
+			{
+				SendMessage(status_hwnd, WM_USER, 0, 0);
+			}
+		}
                 new_time = GetTickCount();
                 drawits += new_time - old_time;
                 old_time = new_time;
@@ -285,15 +301,9 @@ void mainthread(LPVOID param)
                         video_wait_for_blit();
 			SendMessage(hwndStatus, SB_GETBORDERS, 0, (LPARAM) sb_borders);
                         GetWindowRect(ghwnd, &r);
-                        MoveWindow(hwndRender, 0, 0,
-                                winsizex,
-                                winsizey,
-                                TRUE);
+                        MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
                         GetWindowRect(hwndRender, &r);
-                        MoveWindow(hwndStatus, 0, r.bottom + GetSystemMetrics(SM_CYEDGE),
-       	                        winsizex,
-               	                17,
-                       	        TRUE);
+                        MoveWindow(hwndStatus, 0, r.bottom + GetSystemMetrics(SM_CYEDGE), winsizex, 17, TRUE);
                         GetWindowRect(ghwnd, &r);
 
                         MoveWindow(ghwnd, r.left, r.top,
@@ -330,11 +340,6 @@ void thread_sleep(int t)
 {
         Sleep(t);
 }
-
-typedef struct win_event_t
-{
-        HANDLE handle;
-} win_event_t;
 
 event_t *thread_create_event()
 {
@@ -380,30 +385,123 @@ void thread_destroy_event(event_t *_event)
         free(event);
 }
 
-HMENU smenu;
-
-static void initmenu(void)
+static void init_cdrom_host_drives(void)
 {
-        int i, c;
-        HMENU m;
+	int i = 0;
         WCHAR s[64];
 
-	for (i = 0; i < CDROM_NUM; i++)
-	{
-	        m=GetSubMenu(smenu, i + 4); /*CD-ROM*/
+	host_cdrom_drive_available_num = 0;
 
-	        /* Loop through each Windows drive letter and test to see if
-	           it's a CDROM */
-	        for (c='A';c<='Z';c++)
-	        {
-        	        _swprintf(s,L"%c:\\",c);
-	                if (GetDriveType(s)==DRIVE_CDROM)
-	                {
-        	                _swprintf(s, win_language_get_string_from_id(2076), c);
-	                        AppendMenu(m,MF_STRING,IDM_CDROM_1_REAL+(c << 2)+i,s);
-	                }
-	        }
+	for (i='A'; i<='Z'; i++)
+	{
+		_swprintf(s, L"%c:\\", i + 0x41);
+
+		if (GetDriveType(s)==DRIVE_CDROM)
+		{
+			host_cdrom_drive_available[i - 'A'] = 1;
+
+			host_cdrom_drive_available_num++;
+		}
+		else
+		{
+			host_cdrom_drive_available[i - 'A'] = 0;
+		}
+        }
+}
+
+
+HMENU create_popup_menu(int part)
+{
+	HMENU newHandle;
+	newHandle = CreatePopupMenu();
+	AppendMenu(smenu, MF_POPUP, (UINT_PTR) newHandle, 0);
+	return newHandle;
+}
+
+
+void create_floppy_submenu(HMENU m, int id)
+{
+	AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_NEW | id, win_language_get_string_from_id(2211));
+	AppendMenu(m, MF_SEPARATOR, 0, 0);
+	AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_EXISTING | id, win_language_get_string_from_id(2212));
+	AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_EXISTING_WP | id, win_language_get_string_from_id(2213));
+	AppendMenu(m, MF_SEPARATOR, 0, 0);
+	AppendMenu(m, MF_STRING, IDM_FLOPPY_EJECT | id, win_language_get_string_from_id(2214));
+}
+
+void create_cdrom_submenu(HMENU m, int id)
+{
+	int i = 0;
+        WCHAR s[64];
+
+	AppendMenu(m, MF_STRING, IDM_CDROM_MUTE | id, win_language_get_string_from_id(2215));
+	AppendMenu(m, MF_SEPARATOR, 0, 0);
+	AppendMenu(m, MF_STRING, IDM_CDROM_EMPTY | id, win_language_get_string_from_id(2216));
+	AppendMenu(m, MF_STRING, IDM_CDROM_RELOAD | id, win_language_get_string_from_id(2217));
+	AppendMenu(m, MF_SEPARATOR, 0, 0);
+	AppendMenu(m, MF_STRING, IDM_CDROM_IMAGE | id, win_language_get_string_from_id(2218));
+
+	if (host_cdrom_drive_available_num == 0)
+	{
+		if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z'))
+		{
+			cdrom_drives[id].host_drive = 0;
+		}
+
+		goto check_menu_items;
 	}
+	else
+	{
+		if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z'))
+		{
+			if (!host_cdrom_drive_available[cdrom_drives[id].host_drive])
+			{
+				cdrom_drives[id].host_drive = 0;
+			}
+		}
+	}
+
+	AppendMenu(m, MF_SEPARATOR, 0, 0);
+
+	for (i = 0; i < 26; i++)
+	{
+		_swprintf(s, L"%c:\\", i + 0x41);
+		if (host_cdrom_drive_available[i])
+		{
+			AppendMenu(m, MF_STRING, IDM_CDROM_HOST_DRIVE | (i << 3) | id, s);
+		}
+	}
+
+check_menu_items:
+	if (!cdrom_drives[id].sound_on)
+	{
+		CheckMenuItem(smenu, IDM_CDROM_MUTE | id, MF_CHECKED);
+	}
+
+	if (cdrom_drives[id].host_drive == 200)
+	{
+		CheckMenuItem(smenu, IDM_CDROM_IMAGE | id, MF_CHECKED);
+	}
+	else if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z'))
+	{
+		CheckMenuItem(smenu, IDM_CDROM_HOST_DRIVE | id | (cdrom_drives[id].host_drive << 3), MF_CHECKED);
+	}
+	else
+	{
+		cdrom_drives[id].host_drive = 0;
+		CheckMenuItem(smenu, IDM_CDROM_EMPTY | id, MF_CHECKED);
+	}
+}
+
+void create_removable_disk_submenu(HMENU m, int id)
+{
+	AppendMenu(m, MF_STRING, IDM_RDISK_EJECT | id, win_language_get_string_from_id(2216));
+	AppendMenu(m, MF_STRING, IDM_RDISK_RELOAD | id, win_language_get_string_from_id(2217));
+	AppendMenu(m, MF_SEPARATOR, 0, 0);
+	AppendMenu(m, MF_STRING, IDM_RDISK_SEND_CHANGE | id, win_language_get_string_from_id(2201));
+	AppendMenu(m, MF_SEPARATOR, 0, 0);
+	AppendMenu(m, MF_STRING, IDM_RDISK_IMAGE | id, win_language_get_string_from_id(2218));
+	AppendMenu(m, MF_STRING, IDM_RDISK_IMAGE_WP | id, win_language_get_string_from_id(2220));
 }
 
 void get_executable_name(WCHAR *s, int size)
@@ -424,96 +522,6 @@ uint64_t timer_read()
         QueryPerformanceCounter(&qpc_time);
         return qpc_time.QuadPart;
 }
-
-/* This is so we can disambiguate scan codes that would otherwise conflict and get
-   passed on incorrectly. */
-UINT16 convert_scan_code(UINT16 scan_code)
-{
-	switch (scan_code)
-        {
-		case 0xE001:
-		return 0xF001;
-		case 0xE002:
-		return 0xF002;
-		case 0xE0AA:
-		return 0xF003;
-		case 0xE005:
-		return 0xF005;
-		case 0xE006:
-		return 0xF006;
-		case 0xE007:
-		return 0xF007;
-		case 0xE071:
-		return 0xF008;
-		case 0xE072:
-		return 0xF009;
-		case 0xE07F:
-		return 0xF00A;
-		case 0xE0E1:
-		return 0xF00B;
-		case 0xE0EE:
-		return 0xF00C;
-		case 0xE0F1:
-		return 0xF00D;
-		case 0xE0FE:
-		return 0xF00E;
-		case 0xE0EF:
-		return 0xF00F;
-
-		default:
-		return scan_code;
-	}
-}
-
-void get_registry_key_map()
-{
-	WCHAR *keyName = L"SYSTEM\\CurrentControlSet\\Control\\Keyboard Layout";
-	WCHAR *valueName = L"Scancode Map";
-	unsigned char buf[32768];
-	DWORD bufSize;
-	HKEY hKey;
-	int j;
-
- 	/* First, prepare the default scan code map list which is 1:1.
- 	   Remappings will be inserted directly into it.
- 	   65536 bytes so scan codes fit in easily and it's easy to find what each maps too,
- 	   since each array element is a scan code and provides for E0, etc. ones too. */
-	for (j = 0; j < 65536; j++)
-		scancode_map[j] = convert_scan_code(j);
-
-	bufSize = 32768;
- 	/* Get the scan code remappings from:
- 	   HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layout */
-	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, keyName, 0, 1, &hKey) == ERROR_SUCCESS)
-        {
-		if(RegQueryValueEx(hKey, valueName, NULL, NULL, buf, &bufSize) == ERROR_SUCCESS)
-                {
-			UINT32 *bufEx2 = (UINT32 *) buf;
-			int scMapCount = bufEx2[2];
-			if ((bufSize != 0) && (scMapCount != 0))
-                        {
-				UINT16 *bufEx = (UINT16 *) (buf + 12);
-				for (j = 0; j < scMapCount*2; j += 2)
- 				{
- 					/* Each scan code is 32-bit: 16 bits of remapped scan code,
- 					   and 16 bits of original scan code. */
-  					int scancode_unmapped = bufEx[j + 1];
-  					int scancode_mapped = bufEx[j];
-
-  					scancode_mapped = convert_scan_code(scancode_mapped);
-
-					/* Fixes scan code map logging. */
-  					scancode_map[scancode_unmapped] = scancode_mapped;
-  				}
-			}
-		}
-		RegCloseKey(hKey);
-	}
-}
-
-static wchar_t **argv;
-static int argc;
-static wchar_t *argbuf;
 
 static void process_command_line()
 {
@@ -581,14 +589,6 @@ static void process_command_line()
         argv[argc] = NULL;
 }
 
-int valid_models[2] = { 0, 1 };
-int valid_bases[6] = { 0x130, 0x134, 0x230, 0x234, 0x330, 0x334 };
-int valid_irqs[6] = { 9, 10, 11, 12, 14, 15 };
-int valid_dma_channels[3] = { 5, 6, 7 };
-int valid_ide_channels[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-int valid_scsi_ids[15] = { 0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15 };
-int valid_scsi_luns[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-
 int find_in_array(int *array, int val, int len, int menu_base)
 {
 	int i = 0;
@@ -603,8 +603,6 @@ int find_in_array(int *array, int val, int len, int menu_base)
 	}
 	return temp;
 }
-
-HANDLE hinstAcc;
 
 HICON LoadIconEx(PCTSTR pszIconName)
 {
@@ -647,13 +645,6 @@ int fdd_type_to_icon(int type)
 	}
 }
 
-int sb_parts = 10;
-
-int sb_part_meanings[12];
-int sb_part_icons[12];
-
-int sb_icon_width = 24;
-
 int count_hard_disks(int bus)
 {
 	int i = 0;
@@ -671,28 +662,15 @@ int count_hard_disks(int bus)
 	return c;
 }
 
-HICON hIcon[512];
-
-int iStatusWidths[] = { 18, 36, 54, 72, 90, 108, 126, 144, 168, 192, 210, -1 };
-
-#define SBI_FLAG_ACTIVE		1
-#define SBI_FLAG_EMPTY		256
-
-int sb_icon_flags[512];
-
-/* This is for the disk activity indicator. */
-void update_status_bar_icon(int tag, int active)
+int find_status_bar_part(int tag)
 {
 	int i = 0;
 	int found = -1;
-	int temp_flags = 0;
 
-	if ((tag & 0xf0) >= 0x40)
+	if (sb_part_meanings == NULL)
 	{
-		return;
+		return -1;
 	}
-
-	temp_flags |= active;
 
 	for (i = 0; i < 12; i++)
 	{
@@ -702,6 +680,24 @@ void update_status_bar_icon(int tag, int active)
 			break;
 		}
 	}
+
+	return found;
+}
+
+/* This is for the disk activity indicator. */
+void update_status_bar_icon(int tag, int active)
+{
+	int found = -1;
+	int temp_flags = 0;
+
+	if (((tag & 0xf0) >= SB_TEXT) || (sb_icon_flags == NULL) || (sb_part_icons == NULL))
+	{
+		return;
+	}
+
+	temp_flags |= active;
+
+	found = find_status_bar_part(tag);
 
 	if (found != -1)
 	{
@@ -721,22 +717,14 @@ void update_status_bar_icon(int tag, int active)
 /* This is for the drive state indicator. */
 void update_status_bar_icon_state(int tag, int state)
 {
-	int i = 0;
 	int found = -1;
 
-	if ((tag & 0xf0) >= 0x20)
+	if (((tag & 0xf0) >= SB_HDD) || (sb_icon_flags == NULL) || (sb_part_icons == NULL))
 	{
 		return;
 	}
 
-	for (i = 0; i < 12; i++)
-	{
-		if (sb_part_meanings[i] == tag)
-		{
-			found = i;
-			break;
-		}
-	}
+	found = find_status_bar_part(tag);
 
 	if (found != -1)
 	{
@@ -750,31 +738,35 @@ void update_status_bar_icon_state(int tag, int state)
 	}
 }
 
-WCHAR sbTips[24][512];
-
 void create_floppy_tip(int part)
 {
-	WCHAR *szText;
 	WCHAR wtext[512];
+	WCHAR tempTip[512];
 
 	int drive = sb_part_meanings[part] & 0xf;
 
 	mbstowcs(wtext, fdd_getname(fdd_get_type(drive)), strlen(fdd_getname(fdd_get_type(drive))) + 1);
 	if (wcslen(discfns[drive]) == 0)
 	{
-		_swprintf(sbTips[part],  win_language_get_string_from_id(2179), drive + 1, wtext, win_language_get_string_from_id(2185));
+		_swprintf(tempTip,  win_language_get_string_from_id(2179), drive + 1, wtext, win_language_get_string_from_id(2185));
 	}
 	else
 	{
-		_swprintf(sbTips[part],  win_language_get_string_from_id(2179), drive + 1, wtext, discfns[drive]);
+		_swprintf(tempTip,  win_language_get_string_from_id(2179), drive + 1, wtext, discfns[drive]);
 	}
+
+	if (sbTips[part] != NULL)
+	{
+		free(sbTips[part]);
+	}
+	sbTips[part] = (WCHAR *) malloc((wcslen(tempTip) << 1) + 2);
+	wcscpy(sbTips[part], tempTip);
 }
 
 void create_cdrom_tip(int part)
 {
-	WCHAR *szText;
-	char ansi_text[3][512];
 	WCHAR wtext[512];
+	WCHAR tempTip[512];
 
 	int drive = sb_part_meanings[part] & 0xf;
 
@@ -782,48 +774,91 @@ void create_cdrom_tip(int part)
 	{
 		if (wcslen(cdrom_image[drive].image_path) == 0)
 		{
-			_swprintf(sbTips[part], win_language_get_string_from_id(2180), drive + 1, win_language_get_string_from_id(2185));
+			_swprintf(tempTip, win_language_get_string_from_id(2180), drive + 1, win_language_get_string_from_id(2185));
 		}
 		else
 		{
-			_swprintf(sbTips[part], win_language_get_string_from_id(2180), drive + 1, cdrom_image[drive].image_path);
+			_swprintf(tempTip, win_language_get_string_from_id(2180), drive + 1, cdrom_image[drive].image_path);
 		}
 	}
 	else if (cdrom_drives[drive].host_drive < 0x41)
 	{
-		_swprintf(sbTips[part], win_language_get_string_from_id(2180), drive + 1, win_language_get_string_from_id(2185));
+		_swprintf(tempTip, win_language_get_string_from_id(2180), drive + 1, win_language_get_string_from_id(2185));
 	}
 	else
 	{
 		_swprintf(wtext, win_language_get_string_from_id(2186), cdrom_drives[drive].host_drive & ~0x20);
-		_swprintf(sbTips[part], win_language_get_string_from_id(2180), drive + 1, wtext);
+		_swprintf(tempTip, win_language_get_string_from_id(2180), drive + 1, wtext);
 	}
+
+	if (sbTips[part] != NULL)
+	{
+		free(sbTips[part]);
+	}
+	sbTips[part] = (WCHAR *) malloc((wcslen(tempTip) << 1) + 2);
+	wcscpy(sbTips[part], tempTip);
 }
 
 void create_removable_hd_tip(int part)
 {
-	WCHAR *szText;
-	WCHAR wtext[512];
+	WCHAR tempTip[512];
 
-	int drive = sb_part_meanings[part] & 0xf;
+	int drive = sb_part_meanings[part] & 0x1f;
 
-	if (wcslen(hdd_fn[drive]) == 0)
+	if (wcslen(hdc[drive].fn) == 0)
 	{
-		_swprintf(sbTips[part],  win_language_get_string_from_id(2201), win_language_get_string_from_id(2185));
+		_swprintf(tempTip,  win_language_get_string_from_id(2198), drive, win_language_get_string_from_id(2185));
 	}
 	else
 	{
-		_swprintf(sbTips[part],  win_language_get_string_from_id(2179), hdd_fn[drive]);
+		_swprintf(tempTip,  win_language_get_string_from_id(2198), drive, hdc[drive].fn);
 	}
+
+	if (sbTips[part] != NULL)
+	{
+		free(sbTips[part]);
+	}
+	sbTips[part] = (WCHAR *) malloc((wcslen(tempTip) << 1) + 2);
+	wcscpy(sbTips[part], tempTip);
 }
 
 void create_hd_tip(int part)
 {
 	WCHAR *szText;
+	int id = 2181;
 
 	int bus = sb_part_meanings[part] & 0xf;
-	szText = (WCHAR *) win_language_get_string_from_id(2181 + bus);
-	memcpy(sbTips[part], szText, (wcslen(szText) << 1) + 2);
+
+	switch(bus)
+	{
+		case HDD_BUS_MFM:
+			id = 2181;
+			break;
+		case HDD_BUS_RLL:
+			id = 2207;
+			break;
+		case HDD_BUS_XTIDE:
+			id = 2208;
+			break;
+		case HDD_BUS_IDE_PIO_ONLY:
+			id = 2182;
+			break;
+		case HDD_BUS_IDE_PIO_AND_DMA:
+			id = 2183;
+			break;
+		case HDD_BUS_SCSI:
+			id = 2184;
+			break;
+	}
+
+	szText = (WCHAR *) win_language_get_string_from_id(id);
+
+	if (sbTips[part] != NULL)
+	{
+		free(sbTips[part]);
+	}
+	sbTips[part] = (WCHAR *) malloc((wcslen(szText) << 1) + 2);
+	wcscpy(sbTips[part], szText);
 }
 
 void update_tip(int meaning)
@@ -843,16 +878,16 @@ void update_tip(int meaning)
 	{
 		switch(meaning & 0xf0)
 		{
-			case 0x00:
+			case SB_FLOPPY:
 				create_floppy_tip(part);
 				break;
-			case 0x10:
+			case SB_CDROM:
 				create_cdrom_tip(part);
 				break;
-			case 0x20:
+			case SB_RDISK:
 				create_removable_hd_tip(part);
 				break;
-			case 0x30:
+			case SB_HDD:
 				create_hd_tip(part);
 				break;
 			default:
@@ -863,30 +898,6 @@ void update_tip(int meaning)
 	}
 }
 
-static int get_floppy_state(int id)
-{
-	return (wcslen(discfns[id]) == 0) ? 1 : 0;
-}
-
-static int get_cd_state(int id)
-{
-	if (cdrom_drives[id].host_drive < 0x41)
-	{
-		return 1;
-	}
-	else
-	{
-		if (cdrom_drives[id].host_drive == 0x200)
-		{
-			return (wcslen(cdrom_image[id].image_path) == 0) ? 1 : 0;
-		}
-		else
-		{
-			return 0;
-		}
-	}
-}
-
 void status_settextw(wchar_t *wstr)
 {
 	int i = 0;
@@ -894,7 +905,7 @@ void status_settextw(wchar_t *wstr)
 
 	for (i = 0; i < sb_parts; i++)
 	{
-		if (sb_part_meanings[i] == 0x40)
+		if (sb_part_meanings[i] == SB_TEXT)
 		{
 			part = i;
 		}
@@ -915,95 +926,218 @@ void status_settext(char *str)
 	status_settextw(cwstr);
 }
 
+void destroy_menu_handles()
+{
+	int i = 0;
+
+	if (sb_parts == 0)
+	{
+		return;
+	}
+
+	for (i = 0; i < sb_parts; i++)
+	{
+		DestroyMenu(sb_menu_handles[i]);
+	}
+
+	free(sb_menu_handles);
+}
+
+void destroy_tips()
+{
+	int i = 0;
+
+	if (sb_parts == 0)
+	{
+		return;
+	}
+
+	for (i = 0; i < sb_parts; i++)
+	{
+		free(sbTips[i]);
+	}
+
+	free(sbTips);
+}
+
 void update_status_bar_panes(HWND hwnds)
 {
 	int i, j, id;
 	int edge = 0;
 
-	int c_rll = 0;
 	int c_mfm = 0;
+	int c_rll = 0;
+	int c_xtide = 0;
 	int c_ide_pio = 0;
 	int c_ide_dma = 0;
 	int c_scsi = 0;
 
-	c_mfm = count_hard_disks(1);
-	c_ide_pio = count_hard_disks(2);
-	c_ide_dma = count_hard_disks(3);
-	c_scsi = count_hard_disks(4);
+	c_mfm = count_hard_disks(HDD_BUS_MFM);
+	c_rll = count_hard_disks(HDD_BUS_RLL);
+	c_xtide = count_hard_disks(HDD_BUS_XTIDE);
+	c_ide_pio = count_hard_disks(HDD_BUS_IDE_PIO_ONLY);
+	c_ide_dma = count_hard_disks(HDD_BUS_IDE_PIO_AND_DMA);
+	c_scsi = count_hard_disks(HDD_BUS_SCSI);
 
-	for (i = 0; i < sb_parts; i++)
+	if (sb_parts > 0)
 	{
-		SendMessage(hwnds, SB_SETICON, i, (LPARAM) NULL);
+		for (i = 0; i < sb_parts; i++)
+		{
+			SendMessage(hwnds, SB_SETICON, i, (LPARAM) NULL);
+		}
+
+		sb_parts = 0;
+
+		free(iStatusWidths);
+		free(sb_part_meanings);
+		free(sb_part_icons);
+		free(sb_icon_flags);
+		destroy_menu_handles();
+		destroy_tips();
 	}
 
-	sb_parts = 0;
-	memset(iStatusWidths, 0, 48);
-	memset(sb_part_meanings, 0, 48);
-	for (i = 0; i < 4; i++)
+	for (i = 0; i < FDD_NUM; i++)
 	{
 		if (fdd_get_type(i) != 0)
 		{
 			/* pclog("update_status_bar_panes(): Found floppy drive %c:, type %i\n", 65 + i, fdd_get_type(i)); */
-			edge += sb_icon_width;
-			iStatusWidths[sb_parts] = edge;
-			sb_part_meanings[sb_parts] = 0x00 | i;
 			sb_parts++;
 		}
 	}
-	for (i = 0; i < 4; i++)
+	for (i = 0; i < CDROM_NUM; i++)
 	{
 		if (cdrom_drives[i].bus_type != 0)
 		{
-			edge += sb_icon_width;
-			iStatusWidths[sb_parts] = edge;
-			sb_part_meanings[sb_parts] = 0x10 | i;
 			sb_parts++;
 		}
 	}
 	for (i = 0; i < 16; i++)
 	{
-		if (hdc[i].bus == 5)
+		if (hdc[i].bus == HDD_BUS_SCSI_REMOVABLE)
 		{
-			edge += sb_icon_width;
-			iStatusWidths[sb_parts] = edge;
-			sb_part_meanings[sb_parts] = 0x20 | i;
 			sb_parts++;
 		}
 	}
-	if (c_mfm && !(models[model].flags & MODEL_HAS_IDE) && !!memcmp(hdd_controller_name, "none", 4) && !!memcmp(hdd_controller_name, "xtide", 5))
+	if (c_mfm && !(models[model].flags & MODEL_HAS_IDE) && !!memcmp(hdd_controller_name, "none", 4) && !!memcmp(hdd_controller_name, "xtide", 5) && !!memcmp(hdd_controller_name, "esdi", 4))
 	{
-		edge += sb_icon_width;
-		iStatusWidths[sb_parts] = edge;
-		sb_part_meanings[sb_parts] = 0x30;
 		sb_parts++;
 	}
-	if (c_ide_pio && ((models[model].flags & MODEL_HAS_IDE) || !memcmp(hdd_controller_name, "xtide", 5)))
+	if (c_rll && !memcmp(hdd_controller_name, "esdi", 4))
 	{
-		edge += sb_icon_width;
-		iStatusWidths[sb_parts] = edge;
-		sb_part_meanings[sb_parts] = 0x31;
 		sb_parts++;
 	}
-	if (c_ide_dma && ((models[model].flags & MODEL_HAS_IDE) || !memcmp(hdd_controller_name, "xtide", 5)))
+	if (c_xtide && !memcmp(hdd_controller_name, "xtide", 5))
 	{
-		edge += sb_icon_width;
+		sb_parts++;
+	}
+	if (c_ide_pio && (models[model].flags & MODEL_HAS_IDE))
+	{
+		sb_parts++;
+	}
+	if (c_ide_dma && (models[model].flags & MODEL_HAS_IDE))
+	{
+		sb_parts++;
+	}
+	if (c_scsi && (scsi_card_current != 0))
+	{
+		sb_parts++;
+	}
+	sb_parts++;
+
+	iStatusWidths = (int *) malloc(sb_parts << 2);
+	sb_part_meanings = (int *) malloc(sb_parts << 2);
+	sb_part_icons = (int *) malloc(sb_parts << 2);
+	sb_icon_flags = (int *) malloc(sb_parts << 2);
+	sb_menu_handles = (HMENU *) malloc(sb_parts * sizeof(HMENU));
+	sbTips = (WCHAR **) malloc(sb_parts * sizeof(WCHAR *));
+
+	memset(iStatusWidths, 0, sb_parts << 2);
+	memset(sb_part_meanings, 0, sb_parts << 2);
+	memset(sb_part_icons, 0, sb_parts << 2);
+	memset(sb_icon_flags, 0, sb_parts << 2);
+	memset(sb_menu_handles, 0, sb_parts * sizeof(HMENU));
+
+	sb_parts = 0;
+
+	for (i = 0; i < FDD_NUM; i++)
+	{
+		if (fdd_get_type(i) != 0)
+		{
+			/* pclog("update_status_bar_panes(): Found floppy drive %c:, type %i\n", 65 + i, fdd_get_type(i)); */
+			edge += SB_ICON_WIDTH;
+			iStatusWidths[sb_parts] = edge;
+			sb_part_meanings[sb_parts] = SB_FLOPPY | i;
+			sb_parts++;
+		}
+	}
+	for (i = 0; i < CDROM_NUM; i++)
+	{
+		if (cdrom_drives[i].bus_type != 0)
+		{
+			edge += SB_ICON_WIDTH;
+			iStatusWidths[sb_parts] = edge;
+			sb_part_meanings[sb_parts] = SB_CDROM | i;
+			sb_parts++;
+		}
+	}
+	for (i = 0; i < HDC_NUM; i++)
+	{
+		if (hdc[i].bus == HDD_BUS_SCSI_REMOVABLE)
+		{
+			edge += SB_ICON_WIDTH;
+			iStatusWidths[sb_parts] = edge;
+			sb_part_meanings[sb_parts] = SB_RDISK | i;
+			sb_parts++;
+		}
+	}
+	if (c_mfm && !(models[model].flags & MODEL_HAS_IDE) && !!memcmp(hdd_controller_name, "none", 4) && !!memcmp(hdd_controller_name, "xtide", 5) && !!memcmp(hdd_controller_name, "esdi", 4))
+	{
+		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
-		sb_part_meanings[sb_parts] = 0x32;
+		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_MFM;
+		sb_parts++;
+	}
+	if (c_rll && !memcmp(hdd_controller_name, "esdi", 4))
+	{
+		edge += SB_ICON_WIDTH;
+		iStatusWidths[sb_parts] = edge;
+		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_RLL;
+		sb_parts++;
+	}
+	if (c_xtide && !memcmp(hdd_controller_name, "xtide", 5))
+	{
+		edge += SB_ICON_WIDTH;
+		iStatusWidths[sb_parts] = edge;
+		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_XTIDE;
+		sb_parts++;
+	}
+	if (c_ide_pio && (models[model].flags & MODEL_HAS_IDE))
+	{
+		edge += SB_ICON_WIDTH;
+		iStatusWidths[sb_parts] = edge;
+		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_IDE_PIO_ONLY;
+		sb_parts++;
+	}
+	if (c_ide_dma && (models[model].flags & MODEL_HAS_IDE))
+	{
+		edge += SB_ICON_WIDTH;
+		iStatusWidths[sb_parts] = edge;
+		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_IDE_PIO_AND_DMA;
 		sb_parts++;
 	}
 	if (c_scsi)
 	{
-		edge += sb_icon_width;
+		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
-		sb_part_meanings[sb_parts] = 0x33;
+		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_SCSI;
 		sb_parts++;
 	}
 	if (sb_parts)
 	{
-		iStatusWidths[sb_parts - 1] += (24 - sb_icon_width);
+		iStatusWidths[sb_parts - 1] += (24 - SB_ICON_WIDTH);
 	}
 	iStatusWidths[sb_parts] = -1;
-	sb_part_meanings[sb_parts] = 0x40;
+	sb_part_meanings[sb_parts] = SB_TEXT;
 	sb_parts++;
 
 	SendMessage(hwnds, SB_SETPARTS, (WPARAM) sb_parts, (LPARAM) iStatusWidths);
@@ -1012,13 +1146,16 @@ void update_status_bar_panes(HWND hwnds)
 	{
 		switch (sb_part_meanings[i] & 0xf0)
 		{
-			case 0x00:
+			case SB_FLOPPY:
 				/* Floppy */
 				sb_icon_flags[i] = (wcslen(discfns[sb_part_meanings[i] & 0xf]) == 0) ? 256 : 0;
 				sb_part_icons[i] = fdd_type_to_icon(fdd_get_type(sb_part_meanings[i] & 0xf)) | sb_icon_flags[i];
+				sb_menu_handles[i] = create_popup_menu(i);
+				create_floppy_submenu(sb_menu_handles[i], sb_part_meanings[i] & 0xf);
+				EnableMenuItem(sb_menu_handles[i], IDM_FLOPPY_EJECT | (sb_part_meanings[i] & 0xf), MF_BYCOMMAND | ((sb_icon_flags[i] & 256) ? MF_GRAYED : MF_ENABLED));
 				create_floppy_tip(i);
 				break;
-			case 0x10:
+			case SB_CDROM:
 				/* CD-ROM */
 				id = sb_part_meanings[i] & 0xf;
 				if (cdrom_drives[id].host_drive < 0x41)
@@ -1036,11 +1173,11 @@ void update_status_bar_panes(HWND hwnds)
 						sb_icon_flags[i] = 0;
 					}
 				}
-				if (cdrom_drives[id].bus_type == 4)
+				if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
 				{
 					j = 164;
 				}
-				else if (cdrom_drives[id].bus_type == 3)
+				else if (cdrom_drives[id].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA)
 				{
 					j = 162;
 				}
@@ -1049,20 +1186,28 @@ void update_status_bar_panes(HWND hwnds)
 					j = 160;
 				}
 				sb_part_icons[i] = j | sb_icon_flags[i];
+				sb_menu_handles[i] = create_popup_menu(i);
+				create_cdrom_submenu(sb_menu_handles[i], sb_part_meanings[i] & 0xf);
+				EnableMenuItem(sb_menu_handles[i], IDM_CDROM_RELOAD | (sb_part_meanings[i] & 0xf), MF_BYCOMMAND | MF_GRAYED);
 				create_cdrom_tip(i);
 				break;
-			case 0x20:
+			case SB_RDISK:
 				/* Removable hard disk */
-				sb_icon_flags[i] = (wcslen(discfns[sb_part_meanings[i] & 0xf]) == 0) ? 256 : 0;
+				sb_icon_flags[i] = (wcslen(hdc[sb_part_meanings[i] & 0x1f].fn) == 0) ? 256 : 0;
 				sb_part_icons[i] = 176 + sb_icon_flags[i];
+				sb_menu_handles[i] = create_popup_menu(i);
+				create_removable_disk_submenu(sb_menu_handles[i], sb_part_meanings[i] & 0x1f);
+				EnableMenuItem(sb_menu_handles[i], IDM_RDISK_EJECT | (sb_part_meanings[i] & 0x1f), MF_BYCOMMAND | ((sb_icon_flags[i] & 256) ? MF_GRAYED : MF_ENABLED));
+				EnableMenuItem(sb_menu_handles[i], IDM_RDISK_RELOAD | (sb_part_meanings[i] & 0x1f), MF_BYCOMMAND | MF_GRAYED);
+				EnableMenuItem(sb_menu_handles[i], IDM_RDISK_SEND_CHANGE | (sb_part_meanings[i] & 0x1f), MF_BYCOMMAND | ((sb_icon_flags[i] & 256) ? MF_GRAYED : MF_ENABLED));
 				create_removable_hd_tip(i);
 				break;
-			case 0x30:
+			case SB_HDD:
 				/* Hard disk */
-				sb_part_icons[i] = 192 + ((sb_part_meanings[i] & 0xf) << 1);
+				sb_part_icons[i] = 192 + (((sb_part_meanings[i] & 0xf) - 1) << 1);
 				create_hd_tip(i);
 				break;
-			case 0x40:
+			case SB_TEXT:
 				/* Status text */
 				SendMessage(hwnds, SB_SETTEXT, i | SBT_NOBORDERS, (LPARAM) L"Welcome to Unicode 86Box! :p");
 				sb_part_icons[i] = -1;
@@ -1114,7 +1259,7 @@ HWND EmulatorStatusBar(HWND hwndParent, int idStatus, HINSTANCE hinst)
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
 
-	for (i = 192; i < 200; i++)
+	for (i = 192; i < 204; i++)
 	{
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
@@ -1150,29 +1295,16 @@ HWND EmulatorStatusBar(HWND hwndParent, int idStatus, HINSTANCE hinst)
 
 	InitCommonControls();
 
-	hwndStatus = CreateWindowEx(
-		0,
-		STATUSCLASSNAME,
-		(PCTSTR) NULL,
-		SBARS_SIZEGRIP | WS_CHILD | WS_VISIBLE | SBT_TOOLTIPS,
-		0, dh - 17, dw, 17,
-		hwndParent,
-		(HMENU) idStatus,
-		hinst,
-		NULL);
+	hwndStatus = CreateWindowEx(0, STATUSCLASSNAME, (PCTSTR) NULL, SBARS_SIZEGRIP | WS_CHILD | WS_VISIBLE | SBT_TOOLTIPS, 0, dh - 17, dw, 17, hwndParent,
+				    (HMENU) idStatus, hinst, NULL);
 
 	GetWindowRect(hwndStatus, &rectDialog);
 
-	SetWindowPos(
-		hwndStatus,
-		HWND_TOPMOST,
-		rectDialog.left,
-		rectDialog.top,
-		rectDialog.right - rectDialog.left,
-		rectDialog.bottom - rectDialog.top,
-		SWP_SHOWWINDOW);
+	SetWindowPos(hwndStatus, HWND_TOPMOST, rectDialog.left, rectDialog.top, rectDialog.right - rectDialog.left, rectDialog.bottom - rectDialog.top, SWP_SHOWWINDOW);
 
 	SendMessage(hwndStatus, SB_SETMINHEIGHT, (WPARAM) 17, (LPARAM) 0);
+
+	sb_parts = 0;
 
 	update_status_bar_panes(hwndStatus);
 
@@ -1193,94 +1325,97 @@ void win_menu_update()
 #endif
 }
 
-int recv_key[272];
-
-int WINAPI WinMain (HINSTANCE hThisInstance,
-                    HINSTANCE hPrevInstance,
-                    LPSTR lpszArgument,
-                    int nFunsterStil)
-
+int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpszArgument, int nFunsterStil)
 {
-        HWND hwnd;               /* This is the handle for our window */
-        MSG messages;            /* Here messages to the application are saved */
-        WNDCLASSEX wincl;        /* Data structure for the windowclass */
-        int c, d, e, bRet;
+	HWND hwnd;					/* This is the handle for our window */
+	MSG messages;					/* Here messages to the application are saved */
+	WNDCLASSEX wincl;				/* Data structure for the windowclass */
+	int c, d, bRet;
 	WCHAR emulator_title[200];
-        LARGE_INTEGER qpc_freq;
-        HACCEL haccel;           /* Handle to accelerator table */
+	LARGE_INTEGER qpc_freq;
+	HACCEL haccel;					/* Handle to accelerator table */
 
 	memset(recv_key, 0, sizeof(recv_key));
 
-        process_command_line();
+	process_command_line();
 
 	win_language_load_common_strings();
-        
-        hinstance=hThisInstance;
-        /* The Window structure */
-        wincl.hInstance = hThisInstance;
-        wincl.lpszClassName = szClassName;
-        wincl.lpfnWndProc = WindowProcedure;      /* This function is called by windows */
-        wincl.style = CS_DBLCLKS;                 /* Catch double-clicks */
-        wincl.cbSize = sizeof (WNDCLASSEX);
 
-        /* Use default icon and mouse-pointer */
-        wincl.hIcon = LoadIcon(hinstance, (LPCTSTR) 100);
-        wincl.hIconSm = LoadIcon(hinstance, (LPCTSTR) 100);
-        wincl.hCursor = NULL;
-        wincl.lpszMenuName = NULL;                 /* No menu */
-        wincl.cbClsExtra = 0;                      /* No extra bytes after the window class */
-        wincl.cbWndExtra = 0;                      /* structure or the window instance */
-        /* Use Windows's default color as the background of the window */
-        wincl.hbrBackground = (HBRUSH) COLOR_BACKGROUND;
+	hinstance=hThisInstance;
+	/* The Window structure */
+	wincl.hInstance = hThisInstance;
+	wincl.lpszClassName = szClassName;
+	wincl.lpfnWndProc = WindowProcedure;		/* This function is called by windows */
+	wincl.style = CS_DBLCLKS;			/* Catch double-clicks */
+	wincl.cbSize = sizeof (WNDCLASSEX);
 
-        /* Register the window class, and if it fails quit the program */
-        if (!RegisterClassEx(&wincl))
-                return 0;
+	/* Use default icon and mouse-pointer */
+	wincl.hIcon = LoadIcon(hinstance, (LPCTSTR) 100);
+	wincl.hIconSm = LoadIcon(hinstance, (LPCTSTR) 100);
+	wincl.hCursor = NULL;
+	wincl.lpszMenuName = NULL;			/* No menu */
+	wincl.cbClsExtra = 0;				/* No extra bytes after the window class */
+	wincl.cbWndExtra = 0;				/* structure or the window instance */
+	/* Use Windows's default color as the background of the window */
+	wincl.hbrBackground = (HBRUSH) COLOR_BACKGROUND;
 
-        wincl.lpszClassName = szSubClassName;
-        wincl.lpfnWndProc = subWindowProcedure;      /* This function is called by windows */
+	/* Register the window class, and if it fails quit the program */
+	if (!RegisterClassEx(&wincl))
+	{
+		return 0;
+	}
 
-        if (!RegisterClassEx(&wincl))
-                return 0;
+	wincl.lpszClassName = szSubClassName;
+	wincl.lpfnWndProc = subWindowProcedure;		/* This function is called by windows */
 
-        menu = LoadMenu(hThisInstance, TEXT("MainMenu"));
-        
-		_swprintf(emulator_title, L"86Box v%s", emulator_version_w);
+	if (!RegisterClassEx(&wincl))
+	{
+		return 0;
+	}
 
-        /* The class is registered, let's create the program*/
-        hwnd = CreateWindowEx (
-                0,                   /* Extended possibilites for variation */
-                szClassName,         /* Classname */
-                emulator_title,      /* Title Text */
-                (WS_OVERLAPPEDWINDOW & ~WS_SIZEBOX)/* | DS_3DLOOK*/, /* default window */
-                CW_USEDEFAULT,       /* Windows decides the position */
-                CW_USEDEFAULT,       /* where the window ends up on the screen */
-                640+(GetSystemMetrics(SM_CXFIXEDFRAME)*2),                 /* The programs width */
-                480+(GetSystemMetrics(SM_CYFIXEDFRAME)*2)+GetSystemMetrics(SM_CYMENUSIZE)+GetSystemMetrics(SM_CYCAPTION)+1,                 /* and height in pixels */
-                HWND_DESKTOP,        /* The window is a child-window to desktop */
-                menu,                /* Menu */
-                hThisInstance,       /* Program Instance handler */
-                NULL                 /* No Window Creation data */
+	menu = LoadMenu(hThisInstance, TEXT("MainMenu"));
+
+	_swprintf(emulator_title, L"86Box v%s", emulator_version_w);
+
+	/* The class is registered, let's create the program*/
+	hwnd = CreateWindowEx (
+		0,                   /* Extended possibilites for variation */
+		szClassName,         /* Classname */
+		emulator_title,      /* Title Text */
+		(WS_OVERLAPPEDWINDOW & ~WS_SIZEBOX)/* | DS_3DLOOK*/, /* default window */
+		CW_USEDEFAULT,       /* Windows decides the position */
+		CW_USEDEFAULT,       /* where the window ends up on the screen */
+		640+(GetSystemMetrics(SM_CXFIXEDFRAME)*2),                 /* The programs width */
+		480+(GetSystemMetrics(SM_CYFIXEDFRAME)*2)+GetSystemMetrics(SM_CYMENUSIZE)+GetSystemMetrics(SM_CYCAPTION)+1,                 /* and height in pixels */
+		HWND_DESKTOP,        /* The window is a child-window to desktop */
+		menu,                /* Menu */
+		hThisInstance,       /* Program Instance handler */
+		NULL                 /* No Window Creation data */
         );
 
-        /* Make the window visible on the screen */
-        ShowWindow (hwnd, nFunsterStil);
+	/* Make the window visible on the screen */
+	ShowWindow (hwnd, nFunsterStil);
 
-        /* Load the accelerator table */
-        haccel = LoadAccelerators(hinstAcc, L"MainAccel");
-        if (haccel == NULL)
-                fatal("haccel is null\n");
+	/* Load the accelerator table */
+	haccel = LoadAccelerators(hinstAcc, L"MainAccel");
+	if (haccel == NULL)
+	{
+		fatal("haccel is null\n");
+	}
 
-        memset(rawinputkey, 0, sizeof(rawinputkey));
 	device.usUsagePage = 0x01;
 	device.usUsage = 0x06;
 	device.dwFlags = RIDEV_NOHOTKEYS;
 	device.hwndTarget = hwnd;
 	
 	if (RegisterRawInputDevices(&device, 1, sizeof(device)))
+	{
 		pclog("Raw input registered!\n");
+	}
 	else
+	{
 		pclog("Raw input registration failed!\n");
+	}
 
 	get_registry_key_map();
 
@@ -1296,7 +1431,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	SetWindowLongPtr(hwndStatus, GWL_WNDPROC, (LONG_PTR) &StatusBarProcedure);
 
 	smenu = LoadMenu(hThisInstance, TEXT("StatusBarMenu"));
-        initmenu();
+        init_cdrom_host_drives();
 
 	if (vid_apis[0][vid_api].init(hwndRender) == 0)
 	{
@@ -1312,28 +1447,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
         if (vid_resize) SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW&~WS_MINIMIZEBOX)|WS_VISIBLE);
         else            SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW&~WS_SIZEBOX&~WS_THICKFRAME&~WS_MAXIMIZEBOX&~WS_MINIMIZEBOX)|WS_VISIBLE);
-
-        /* Note by Kiririn: I've redone this since the CD-ROM can be disabled but still have something inside it. */
-	for (e = 0; e < CDROM_NUM; e++)
-	{
-		if (!cdrom_drives[e].sound_on)
-		{
-			CheckMenuItem(smenu, IDM_CDROM_1_MUTE + e, MF_CHECKED);
-		}
-
-		if (cdrom_drives[e].host_drive == 200)
-		{
-			CheckMenuItem(smenu, IDM_CDROM_1_IMAGE + e, MF_CHECKED);
-		}
-		else if (cdrom_drives[e].host_drive >= 65)
-		{
-			CheckMenuItem(smenu, IDM_CDROM_1_REAL + e + (cdrom_drives[e].host_drive << 2), MF_CHECKED);
-		}
-		else
-		{
-			CheckMenuItem(smenu, IDM_CDROM_1_EMPTY + e, MF_CHECKED);
-		}
-	}
 
 #ifdef ENABLE_LOG_TOGGLES
 #ifdef ENABLE_BUSLOGIC_LOG
@@ -1407,9 +1520,10 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                 }
         }
         
-
-        for (c = 0; c < GFX_MAX; c++)
-                gfx_present[c] = video_card_available(video_old_to_new(c));
+	for (c = 0; c < GFX_MAX; c++)
+	{
+		gfx_present[c] = video_card_available(video_old_to_new(c));
+	}
 
         if (!video_card_available(video_old_to_new(gfxcard)))
         {
@@ -1439,8 +1553,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         ghMutex = CreateMutex(NULL, FALSE, NULL);
         mainthreadh=(HANDLE)_beginthread(mainthread,0,NULL);
         SetThreadPriority(mainthreadh, THREAD_PRIORITY_HIGHEST);
-        
-       
+
         updatewindowsize(640, 480);
 
         QueryPerformanceFrequency(&qpc_freq);
@@ -1501,9 +1614,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	                        mousecapture=0;
 	                }
 
-		         if ((recv_key[0x1D] || recv_key[0x9D]) && 
-		             (recv_key[0x38] || recv_key[0xB8]) && 
-		             (recv_key[0x51] || recv_key[0xD1]) &&
+		         if ((recv_key[0x1D] || recv_key[0x9D]) && (recv_key[0x38] || recv_key[0xB8]) && (recv_key[0x51] || recv_key[0xD1]) &&
 		              video_fullscreen)
 			{
 				leave_fullscreen();
@@ -1538,13 +1649,15 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 HHOOK hKeyboardHook;
 int hook_enabled = 0;
 
-LRESULT CALLBACK LowLevelKeyboardProc( int nCode, WPARAM wParam, LPARAM lParam )
+LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
 	BOOL bControlKeyDown;
 	KBDLLHOOKSTRUCT* p;
 
-        if (nCode < 0 || nCode != HC_ACTION)
-                return CallNextHookEx( hKeyboardHook, nCode, wParam, lParam); 
+	if (nCode < 0 || nCode != HC_ACTION)
+	{
+		return CallNextHookEx( hKeyboardHook, nCode, wParam, lParam);
+	}
 	
 	p = (KBDLLHOOKSTRUCT*)lParam;
 
@@ -1572,136 +1685,6 @@ void cdrom_close(uint8_t id)
 			image_close(id);
 			break;
 	}
-}
-
-int ide_ter_set_irq(HMENU hmenu, int irq, int id)
-{
-	if (ide_irq[2] == irq)
-	{
-		return 0;
-	}
-        if (msgbox_reset_yn(ghwnd) != IDYES)
-	{
-		return 0;
-	}
-	pause = 1;
-	Sleep(100);
-	ide_irq[2] = irq;
-	CheckMenuItem(hmenu, IDM_IDE_TER_IRQ9, MF_UNCHECKED);
-	CheckMenuItem(hmenu, IDM_IDE_TER_IRQ10, MF_UNCHECKED);
-	CheckMenuItem(hmenu, IDM_IDE_TER_IRQ11, MF_UNCHECKED);
-	CheckMenuItem(hmenu, IDM_IDE_TER_IRQ12, MF_UNCHECKED);
-	CheckMenuItem(hmenu, IDM_IDE_TER_IRQ14, MF_UNCHECKED);
-	CheckMenuItem(hmenu, IDM_IDE_TER_IRQ15, MF_UNCHECKED);
-	CheckMenuItem(hmenu, id, MF_CHECKED);
-	saveconfig();
-	resetpchard();
-	pause = 0;
-	return 1;
-}
-
-int ide_qua_set_irq(HMENU hmenu, int irq, int id)
-{
-	if (ide_irq[3] == irq)
-	{
-		return 0;
-	}
-        if (msgbox_reset_yn(ghwnd) != IDYES)
-	{
-		return 0;
-	}
-	pause = 1;
-	Sleep(100);
-	ide_irq[3] = irq;
-	CheckMenuItem(hmenu, IDM_IDE_QUA_IRQ9, MF_UNCHECKED);
-	CheckMenuItem(hmenu, IDM_IDE_QUA_IRQ10, MF_UNCHECKED);
-	CheckMenuItem(hmenu, IDM_IDE_QUA_IRQ11, MF_UNCHECKED);
-	CheckMenuItem(hmenu, IDM_IDE_QUA_IRQ12, MF_UNCHECKED);
-	CheckMenuItem(hmenu, IDM_IDE_QUA_IRQ14, MF_UNCHECKED);
-	CheckMenuItem(hmenu, IDM_IDE_QUA_IRQ15, MF_UNCHECKED);
-	CheckMenuItem(hmenu, id, MF_CHECKED);
-	saveconfig();
-	resetpchard();
-	pause = 0;
-	return 1;
-}
-
-void video_toggle_option(HMENU hmenu, int *val, int id)
-{
-	*val ^= 1;
-	CheckMenuItem(hmenu, id, *val ? MF_CHECKED : MF_UNCHECKED);
-	saveconfig();
-}
-
-void win_cdrom_eject(uint8_t id)
-{
-        HMENU hmenu;
-	hmenu = GetSubMenu(smenu, id + 4);
-	if (cdrom_drives[id].host_drive == 0)
-	{
-		/* Switch from empty to empty. Do nothing. */
-		return;
-	}
-	cdrom_drives[id].handler->exit(id);
-	cdrom_close(id);
-	cdrom_null_open(id, 0);
-	if (cdrom_drives[id].bus_type)
-	{
-		/* Signal disc change to the emulated machine. */
-		cdrom_insert(id);
-	}
-	CheckMenuItem(hmenu, IDM_CDROM_1_IMAGE + id,		           MF_UNCHECKED);
-	if ((cdrom_drives[id].host_drive >= 65) && (cdrom_drives[id].host_drive <= 90))
-	{
-		CheckMenuItem(hmenu, IDM_CDROM_1_REAL + id + (cdrom_drive << 2), MF_UNCHECKED);
-	}
-	cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
-	cdrom_drives[id].host_drive=0;
-	CheckMenuItem(hmenu, IDM_CDROM_1_EMPTY + id, MF_CHECKED);
-	update_status_bar_icon_state(0x10 | id, get_cd_state(id));
-	update_tip(0x10 | id);
-	saveconfig();
-}
-
-void win_cdrom_reload(uint8_t id)
-{
-        HMENU hmenu;
-	hmenu = GetSubMenu(smenu, id + 4);
-	int new_cdrom_drive;
-	if ((cdrom_drives[id].host_drive == cdrom_drives[id].prev_host_drive) || (cdrom_drives[id].prev_host_drive == 0) || (cdrom_drives[id].host_drive != 0))
-	{
-		/* Switch from empty to empty. Do nothing. */
-		return;
-	}
-	cdrom_close(id);
-	if (cdrom_drives[id].prev_host_drive == 200)
-	{
-		image_open(id, cdrom_image[id].image_path);
-		if (cdrom_drives[id].bus_type)
-		{
-			/* Signal disc change to the emulated machine. */
-			cdrom_insert(id);
-		}
-		CheckMenuItem(hmenu, IDM_CDROM_1_EMPTY + id,		           MF_UNCHECKED);
-		cdrom_drives[id].host_drive = 200;
-		CheckMenuItem(hmenu, IDM_CDROM_1_IMAGE + id,		           MF_CHECKED);
-	}
-	else 
-	{
-		new_cdrom_drive = cdrom_drives[id].prev_host_drive;
-		ioctl_open(id, new_cdrom_drive);
-		if (cdrom_drives[id].bus_type)
-		{
-			/* Signal disc change to the emulated machine. */
-			cdrom_insert(id);
-		}
-		CheckMenuItem(hmenu, IDM_CDROM_1_EMPTY + id,		           MF_UNCHECKED);
-		cdrom_drive = new_cdrom_drive;
-		CheckMenuItem(hmenu, IDM_CDROM_1_REAL + id + (cdrom_drives[id].host_drive << 2), MF_CHECKED);
-	}
-	update_status_bar_icon_state(0x10 | id, get_cd_state(id));
-	update_tip(0x10 | id);
-	saveconfig();
 }
 
 static BOOL CALLBACK about_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -1734,520 +1717,464 @@ static BOOL CALLBACK about_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
 
 void about_open(HWND hwnd)
 {
-        DialogBox(hinstance, (LPCTSTR) ABOUTDLG, hwnd, about_dlgproc);
+	DialogBox(hinstance, (LPCTSTR) ABOUTDLG, hwnd, about_dlgproc);
+}
+
+static void win_pc_reset(int hard)
+{
+	pause=1;
+	Sleep(100);
+	savenvr();
+	saveconfig();
+	if (hard)
+	{
+		resetpchard();
+	}
+	else
+	{
+		resetpc_cad();
+	}
+	pause=0;
+}
+
+void video_toggle_option(HMENU hmenu, int *val, int id)
+{
+	startblit();
+	video_wait_for_blit();
+	*val ^= 1;
+	CheckMenuItem(hmenu, id, *val ? MF_CHECKED : MF_UNCHECKED);
+	endblit();
+	saveconfig();
+	device_force_redraw();
 }
 
 LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-        HMENU hmenu;
-        RECT rect;
-	uint32_t ri_size = 0;
-	int edgex, edgey;
-	int sb_borders[3];
+	HMENU hmenu;
+	RECT rect;
 
-        switch (message)
-        {
-                case WM_CREATE:
-                SetTimer(hwnd, TIMER_1SEC, 1000, NULL);
-                hKeyboardHook = SetWindowsHookEx( WH_KEYBOARD_LL,  LowLevelKeyboardProc, GetModuleHandle(NULL), 0 );
-		hook_enabled = 1;
-                break;
-                
-                case WM_COMMAND:
-                hmenu=GetMenu(hwnd);
-                switch (LOWORD(wParam))
-                {
-                        case IDM_FILE_HRESET:
-                        pause=1;
-                        Sleep(100);
-                        savenvr();
-			saveconfig();
-                        resetpchard();
-                        pause=0;
-                        break;
-                        case IDM_FILE_RESET_CAD:
-                        pause=1;
-                        Sleep(100);
-                        savenvr();
-			saveconfig();
-                        resetpc_cad();
-                        pause=0;
-                        break;
-                        case IDM_FILE_EXIT:
-                        PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
-                        break;
-                        case IDM_CONFIG:
-			win_settings_open(hwnd);
-                        break;
-			case IDM_ABOUT:
-			about_open(hwnd);
+	switch (message)
+	{
+		case WM_CREATE:
+			SetTimer(hwnd, TIMER_1SEC, 1000, NULL);
+			hKeyboardHook = SetWindowsHookEx( WH_KEYBOARD_LL,  LowLevelKeyboardProc, GetModuleHandle(NULL), 0 );
+			hook_enabled = 1;
 			break;
-                        case IDM_STATUS:
-                        status_open(hwnd);
-                        break;
-                        
-                        case IDM_VID_RESIZE:
-                        vid_resize=!vid_resize;
-                        CheckMenuItem(hmenu, IDM_VID_RESIZE, (vid_resize)?MF_CHECKED:MF_UNCHECKED);
-                        if (vid_resize) SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW&~WS_MINIMIZEBOX)|WS_VISIBLE);
-                        else            SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW&~WS_SIZEBOX&~WS_THICKFRAME&~WS_MAXIMIZEBOX&~WS_MINIMIZEBOX)|WS_VISIBLE);
-                        GetWindowRect(hwnd,&rect);
-                        SetWindowPos(hwnd, 0, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER | SWP_FRAMECHANGED);
-                        GetWindowRect(hwndStatus,&rect);
-                        SetWindowPos(hwndStatus, 0, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER | SWP_FRAMECHANGED);
-			if (vid_resize)
+
+		case WM_COMMAND:
+			hmenu=GetMenu(hwnd);
+			switch (LOWORD(wParam))
 			{
-	                        CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_UNCHECKED);
-	                        CheckMenuItem(hmenu, IDM_VID_SCALE_2X, MF_CHECKED);
-				scale = 1;
-			}
-			EnableMenuItem(hmenu, IDM_VID_SCALE_1X, vid_resize ? MF_GRAYED : MF_ENABLED);
-			EnableMenuItem(hmenu, IDM_VID_SCALE_2X, vid_resize ? MF_GRAYED : MF_ENABLED);
-			EnableMenuItem(hmenu, IDM_VID_SCALE_3X, vid_resize ? MF_GRAYED : MF_ENABLED);
-			EnableMenuItem(hmenu, IDM_VID_SCALE_4X, vid_resize ? MF_GRAYED : MF_ENABLED);
-			win_doresize = 1;
-                        saveconfig();
-                        break;                     
-                        case IDM_VID_REMEMBER:
-                        window_remember = !window_remember;
-                        CheckMenuItem(hmenu, IDM_VID_REMEMBER, window_remember ? MF_CHECKED : MF_UNCHECKED);
-                        GetWindowRect(hwnd, &rect);
-                        if (window_remember)
-                        {
-                                window_x = rect.left;
-                                window_y = rect.top;
-                                window_w = rect.right - rect.left;
-                                window_h = rect.bottom - rect.top;
-                        }
-                        saveconfig();
-                        break;
+				case IDM_FILE_HRESET:
+					win_pc_reset(1);
+					break;
 
-                        case IDM_VID_DDRAW: case IDM_VID_D3D:
-                        startblit();
-                        video_wait_for_blit();
-                        CheckMenuItem(hmenu, IDM_VID_DDRAW + vid_api, MF_UNCHECKED);
-                        vid_apis[0][vid_api].close();
-                        vid_api = LOWORD(wParam) - IDM_VID_DDRAW;
-                        CheckMenuItem(hmenu, IDM_VID_DDRAW + vid_api, MF_CHECKED);
-                        vid_apis[0][vid_api].init(hwndRender);
-                        endblit();
-                        saveconfig();
-                        device_force_redraw();
-                        break;
+				case IDM_FILE_RESET_CAD:
+					win_pc_reset(0);
+					break;
 
-                        case IDM_VID_FULLSCREEN:
-                        
-                        if(video_fullscreen!=1){
-                        
-				if (video_fullscreen_first)
-				{
-					video_fullscreen_first = 0;
-					msgbox_info(ghwnd, 2193);
-				}
-				startblit();
-				video_wait_for_blit();
-				mouse_close();
-				vid_apis[0][vid_api].close();
-				video_fullscreen = 1;
-				vid_apis[1][vid_api].init(ghwnd);
-				mouse_init();
-				leave_fullscreen_flag = 0;
-				endblit();
-				device_force_redraw();
-			}
-                        break;
+				case IDM_FILE_EXIT:
+					PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
+					break;
 
-                        case IDM_VID_FS_FULL:
-                        case IDM_VID_FS_43:
-                        case IDM_VID_FS_SQ:                                
-                        case IDM_VID_FS_INT:
-                        CheckMenuItem(hmenu, IDM_VID_FS_FULL + video_fullscreen_scale, MF_UNCHECKED);
-                        video_fullscreen_scale = LOWORD(wParam) - IDM_VID_FS_FULL;
-                        CheckMenuItem(hmenu, IDM_VID_FS_FULL + video_fullscreen_scale, MF_CHECKED);
-                        saveconfig();
-                        break;
+				case IDM_CONFIG:
+					win_settings_open(hwnd);
+					break;
 
-                        case IDM_VID_SCALE_1X:
-                        case IDM_VID_SCALE_2X:
-                        case IDM_VID_SCALE_3X:
-                        case IDM_VID_SCALE_4X:
-                        CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_UNCHECKED);
-			scale = LOWORD(wParam) - IDM_VID_SCALE_1X;
-                        CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_CHECKED);
-                        saveconfig();
-			break;
+				case IDM_ABOUT:
+					about_open(hwnd);
+					break;
 
-			case IDM_VID_FORCE43:
-			video_toggle_option(hmenu, &force_43, IDM_VID_FORCE43);
-			break;
+				case IDM_STATUS:
+					status_open(hwnd);
+					break;
 
-			case IDM_VID_INVERT:
-			video_toggle_option(hmenu, &invert_display, IDM_VID_INVERT);
-			break;
+				case IDM_VID_RESIZE:
+					vid_resize = !vid_resize;
+					CheckMenuItem(hmenu, IDM_VID_RESIZE, (vid_resize)? MF_CHECKED : MF_UNCHECKED);
+					if (vid_resize)	SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX) | WS_VISIBLE);
+					else		SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW & ~WS_SIZEBOX & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX & ~WS_MINIMIZEBOX) | WS_VISIBLE);
+					GetWindowRect(hwnd, &rect);
+					SetWindowPos(hwnd, 0, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER | SWP_FRAMECHANGED);
+					GetWindowRect(hwndStatus,&rect);
+					SetWindowPos(hwndStatus, 0, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER | SWP_FRAMECHANGED);
+					if (vid_resize)
+					{
+						CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_UNCHECKED);
+						CheckMenuItem(hmenu, IDM_VID_SCALE_2X, MF_CHECKED);
+						scale = 1;
+					}
+					EnableMenuItem(hmenu, IDM_VID_SCALE_1X, vid_resize ? MF_GRAYED : MF_ENABLED);
+					EnableMenuItem(hmenu, IDM_VID_SCALE_2X, vid_resize ? MF_GRAYED : MF_ENABLED);
+					EnableMenuItem(hmenu, IDM_VID_SCALE_3X, vid_resize ? MF_GRAYED : MF_ENABLED);
+					EnableMenuItem(hmenu, IDM_VID_SCALE_4X, vid_resize ? MF_GRAYED : MF_ENABLED);
+					win_doresize = 1;
+					saveconfig();
+					break;
 
-			case IDM_VID_OVERSCAN:
-			video_toggle_option(hmenu, &enable_overscan, IDM_VID_OVERSCAN);
-			update_overscan = 1;
-			break;
+				case IDM_VID_REMEMBER:
+					window_remember = !window_remember;
+					CheckMenuItem(hmenu, IDM_VID_REMEMBER, window_remember ? MF_CHECKED : MF_UNCHECKED);
+					GetWindowRect(hwnd, &rect);
+					if (window_remember)
+					{
+						window_x = rect.left;
+						window_y = rect.top;
+						window_w = rect.right - rect.left;
+						window_h = rect.bottom - rect.top;
+					}
+					saveconfig();
+					break;
 
-			case IDM_VID_FLASH:
-			video_toggle_option(hmenu, &enable_flash, IDM_VID_FLASH);
-			break;
+				case IDM_VID_DDRAW:
+				case IDM_VID_D3D:
+					startblit();
+					video_wait_for_blit();
+					CheckMenuItem(hmenu, IDM_VID_DDRAW + vid_api, MF_UNCHECKED);
+					vid_apis[0][vid_api].close();
+					vid_api = LOWORD(wParam) - IDM_VID_DDRAW;
+					CheckMenuItem(hmenu, IDM_VID_DDRAW + vid_api, MF_CHECKED);
+					vid_apis[0][vid_api].init(hwndRender);
+					endblit();
+					saveconfig();
+					device_force_redraw();
+					break;
 
-			case IDM_VID_SCREENSHOT:
-			take_screenshot();
-			break;
+				case IDM_VID_FULLSCREEN:
+					if(video_fullscreen != 1)
+					{
+						if (video_fullscreen_first)
+						{
+							video_fullscreen_first = 0;
+							msgbox_info(ghwnd, 2193);
+						}
+
+						startblit();
+						video_wait_for_blit();
+						mouse_close();
+						vid_apis[0][vid_api].close();
+						video_fullscreen = 1;
+						vid_apis[1][vid_api].init(ghwnd);
+						mouse_init();
+						leave_fullscreen_flag = 0;
+						endblit();
+						saveconfig();
+						device_force_redraw();
+					}
+					break;
+
+				case IDM_VID_FS_FULL:
+				case IDM_VID_FS_43:
+				case IDM_VID_FS_SQ:                                
+				case IDM_VID_FS_INT:
+					CheckMenuItem(hmenu, IDM_VID_FS_FULL + video_fullscreen_scale, MF_UNCHECKED);
+					video_fullscreen_scale = LOWORD(wParam) - IDM_VID_FS_FULL;
+					CheckMenuItem(hmenu, IDM_VID_FS_FULL + video_fullscreen_scale, MF_CHECKED);
+					saveconfig();
+					device_force_redraw();
+					break;
+
+				case IDM_VID_SCALE_1X:
+				case IDM_VID_SCALE_2X:
+				case IDM_VID_SCALE_3X:
+				case IDM_VID_SCALE_4X:
+					CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_UNCHECKED);
+					scale = LOWORD(wParam) - IDM_VID_SCALE_1X;
+					CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_CHECKED);
+					saveconfig();
+					device_force_redraw();
+					break;
+
+				case IDM_VID_FORCE43:
+					video_toggle_option(hmenu, &force_43, IDM_VID_FORCE43);
+					break;
+
+				case IDM_VID_INVERT:
+					video_toggle_option(hmenu, &invert_display, IDM_VID_INVERT);
+					break;
+
+				case IDM_VID_OVERSCAN:
+					update_overscan = 1;
+					video_toggle_option(hmenu, &enable_overscan, IDM_VID_OVERSCAN);
+					break;
+
+				case IDM_VID_SCREENSHOT:
+					take_screenshot();
+					break;
 
 #ifdef ENABLE_LOG_TOGGLES
 #ifdef ENABLE_BUSLOGIC_LOG
-			case IDM_LOG_BUSLOGIC:
-			buslogic_do_log ^= 1;
-			CheckMenuItem(hmenu, IDM_LOG_BUSLOGIC, buslogic_do_log ? MF_CHECKED : MF_UNCHECKED);
-			break;
+				case IDM_LOG_BUSLOGIC:
+					buslogic_do_log ^= 1;
+					CheckMenuItem(hmenu, IDM_LOG_BUSLOGIC, buslogic_do_log ? MF_CHECKED : MF_UNCHECKED);
+					break;
 #endif
 
 #ifdef ENABLE_CDROM_LOG
-			case IDM_LOG_CDROM:
-			cdrom_do_log ^= 1;
-			CheckMenuItem(hmenu, IDM_LOG_CDROM, cdrom_do_log ? MF_CHECKED : MF_UNCHECKED);
-			break;
+				case IDM_LOG_CDROM:
+					cdrom_do_log ^= 1;
+					CheckMenuItem(hmenu, IDM_LOG_CDROM, cdrom_do_log ? MF_CHECKED : MF_UNCHECKED);
+					break;
 #endif
 
 #ifdef ENABLE_D86F_LOG
-			case IDM_LOG_D86F:
-			d86f_do_log ^= 1;
-			CheckMenuItem(hmenu, IDM_LOG_D86F, d86f_do_log ? MF_CHECKED : MF_UNCHECKED);
-			break;
+				case IDM_LOG_D86F:
+					d86f_do_log ^= 1;
+					CheckMenuItem(hmenu, IDM_LOG_D86F, d86f_do_log ? MF_CHECKED : MF_UNCHECKED);
+					break;
 #endif
 
 #ifdef ENABLE_FDC_LOG
-			case IDM_LOG_FDC:
-			fdc_do_log ^= 1;
-			CheckMenuItem(hmenu, IDM_LOG_FDC, fdc_do_log ? MF_CHECKED : MF_UNCHECKED);
-			break;
+				case IDM_LOG_FDC:
+					fdc_do_log ^= 1;
+					CheckMenuItem(hmenu, IDM_LOG_FDC, fdc_do_log ? MF_CHECKED : MF_UNCHECKED);
+					break;
 #endif
 
 #ifdef ENABLE_IDE_LOG
-			case IDM_LOG_IDE:
-			ide_do_log ^= 1;
-			CheckMenuItem(hmenu, IDM_LOG_IDE, ide_do_log ? MF_CHECKED : MF_UNCHECKED);
-			break;
+				case IDM_LOG_IDE:
+					ide_do_log ^= 1;
+					CheckMenuItem(hmenu, IDM_LOG_IDE, ide_do_log ? MF_CHECKED : MF_UNCHECKED);
+					break;
 #endif
 
 #ifdef ENABLE_NE2000_LOG
-			case IDM_LOG_NE2000:
-			ne2000_do_log ^= 1;
-			CheckMenuItem(hmenu, IDM_LOG_NE2000, ne2000_do_log ? MF_CHECKED : MF_UNCHECKED);
-			break;
+				case IDM_LOG_NE2000:
+					ne2000_do_log ^= 1;
+					CheckMenuItem(hmenu, IDM_LOG_NE2000, ne2000_do_log ? MF_CHECKED : MF_UNCHECKED);
+					break;
 #endif
 #endif
 
 #ifdef ENABLE_LOG_BREAKPOINT
-			case IDM_LOG_BREAKPOINT:
-			pclog("---- LOG BREAKPOINT ----\n");
-			break;
+				case IDM_LOG_BREAKPOINT:
+					pclog("---- LOG BREAKPOINT ----\n");
+					break;
 #endif
 
 #ifdef ENABLE_VRAM_DUMP
-			case IDM_DUMP_VRAM:
-			svga_dump_vram();
-			break;
+				case IDM_DUMP_VRAM:
+					svga_dump_vram();
+					break;
 #endif
 
-                        case IDM_CONFIG_LOAD:
-                        pause = 1;
-                        if (!file_dlg_st(hwnd, 2174, "", 0))
-                        {
-                                if (msgbox_reset_yn(ghwnd) == IDYES)
-                                {
-                                        config_save(config_file_default);
-                                        loadconfig(wopenfilestring);
-					pclog_w(L"NVR path: %s\n", nvr_path);
-                                        mem_resize();
-                                        loadbios();
-                                        resetpchard();
-                                }
-                        }
-                        pause = 0;
-                        break;                        
-                        
-                        case IDM_CONFIG_SAVE:
-                        pause = 1;
-                        if (!file_dlg_st(hwnd, 2174, "", 1))
-                                config_save(wopenfilestring);
-                        pause = 0;
-                        break;                                                
-                }
-                return 0;
-                
-		case WM_INPUT:
-                {
-                        UINT size;
-                        RAWINPUT *raw;
-
-                        if (!infocus)
-                                break;
-
-                        GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
-
-                        raw = malloc(size);
-
-			if (raw == NULL)
-			{
-				return 0;
-			}
-
-        		/* Here we read the raw input data for the keyboard */
-        		ri_size = GetRawInputData((HRAWINPUT)(lParam), RID_INPUT, raw, &size, sizeof(RAWINPUTHEADER));
-
-			if(ri_size != size)
-			{
-				return 0;
-			}
-
-        		/* If the input is keyboard, we process it */
-        		if (raw->header.dwType == RIM_TYPEKEYBOARD)
-        		{
-        			const RAWKEYBOARD rawKB = raw->data.keyboard;
-                                USHORT scancode = rawKB.MakeCode;
-
-        			/* If it's not a scan code that starts with 0xE1 */
-        			if (!(rawKB.Flags & RI_KEY_E1))
-        			{
-        				if (rawKB.Flags & RI_KEY_E0)
-                                                scancode |= (0xE0 << 8);
-
-        				/* Remap it according to the list from the Registry */
-        				scancode = scancode_map[scancode];
-
-        				if ((scancode >> 8) == 0xF0)
-        					scancode |= 0x100; /* Extended key code in disambiguated format */
-        				else if ((scancode >> 8) == 0xE0)
-        					scancode |= 0x80; /* Normal extended key code */
-
-        				/* If it's not 0 (therefore not 0xE1, 0xE2, etc),
-        				   then pass it on to the rawinputkey array */
-        				if (!(scancode & 0xf00))
+				case IDM_CONFIG_LOAD:
+					pause = 1;
+					if (!file_dlg_st(hwnd, 2174, "", 0))
 					{
-                                                rawinputkey[scancode & 0x1ff] = !(rawKB.Flags & RI_KEY_BREAK);
-						recv_key[scancode & 0x1ff] = rawinputkey[scancode & 0x1ff];
+						if (msgbox_reset_yn(ghwnd) == IDYES)
+						{
+							config_save(config_file_default);
+							loadconfig(wopenfilestring);
+							/* pclog_w(L"NVR path: %s\n", nvr_path); */
+							mem_resize();
+							loadbios();
+							resetpchard();
+						}
 					}
-        			}
-				else
-				{
-					if (rawKB.MakeCode == 0x1D)
-						scancode = 0xFF;
-        				if (!(scancode & 0xf00))
+					pause = 0;
+					break;                        
+
+				case IDM_CONFIG_SAVE:
+					pause = 1;
+					if (!file_dlg_st(hwnd, 2174, "", 1))
 					{
-                                                rawinputkey[scancode & 0x1ff] = !(rawKB.Flags & RI_KEY_BREAK);
-						recv_key[scancode & 0x1ff] = rawinputkey[scancode & 0x1ff];
+						config_save(wopenfilestring);
+					}
+					pause = 0;
+					break;                                                
+			}
+			return 0;		
+
+		case WM_INPUT:
+			process_raw_input(lParam, infocus);
+			break;
+
+		case WM_SETFOCUS:
+			infocus=1;
+			if (!hook_enabled)
+			{
+				hKeyboardHook = SetWindowsHookEx( WH_KEYBOARD_LL,  LowLevelKeyboardProc, GetModuleHandle(NULL), 0 );
+				hook_enabled = 1;
+			}
+			break;
+
+		case WM_KILLFOCUS:
+			infocus=0;
+			if (mousecapture)
+			{
+				ClipCursor(&oldclip);
+				ShowCursor(TRUE);
+				mousecapture=0;
+			}
+			memset(recv_key, 0, sizeof(recv_key));
+			if (video_fullscreen)
+			{
+				leave_fullscreen_flag = 1;
+			}
+			if (hook_enabled)
+			{
+				UnhookWindowsHookEx(hKeyboardHook);
+				hook_enabled = 0;
+			}
+			break;
+
+		case WM_LBUTTONUP:
+			if (!mousecapture && !video_fullscreen)
+			{
+				GetClipCursor(&oldclip);
+				GetWindowRect(hwnd, &rect);
+				rect.left	+= GetSystemMetrics(SM_CXFIXEDFRAME) + 20;
+				rect.right	= GetSystemMetrics(SM_CXFIXEDFRAME) + 20;
+				rect.top	+= GetSystemMetrics(SM_CXFIXEDFRAME) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 20;
+				rect.bottom	-= GetSystemMetrics(SM_CXFIXEDFRAME) + 20;
+				ClipCursor(&rect);
+				mousecapture = 1;
+				while (1)
+				{
+					if (ShowCursor(FALSE) < 0)
+					{
+						break;
 					}
 				}
-                        }
-                        free(raw);
+			}
+			break;
 
-		}
-		break;
+		case WM_MBUTTONUP:
+			if (!(mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON))
+			{
+				releasemouse();
+			}
+			break;
 
-                case WM_SETFOCUS:
-                infocus=1;
-		if (!hook_enabled)
-		{
-			hKeyboardHook = SetWindowsHookEx( WH_KEYBOARD_LL,  LowLevelKeyboardProc, GetModuleHandle(NULL), 0 );
-			hook_enabled = 1;
-		}
-                break;
+		case WM_ENTERMENULOOP:
+			break;
 
-                case WM_KILLFOCUS:
-                infocus=0;
-                if (mousecapture)
-                {
-                        ClipCursor(&oldclip);
-                        ShowCursor(TRUE);
-                        mousecapture=0;
-                }
-                memset(rawinputkey, 0, sizeof(rawinputkey));
-                if (video_fullscreen)
-                        leave_fullscreen_flag = 1;
-		if (hook_enabled)
-		{
+		case WM_SIZE:
+			winsizex = (lParam & 0xFFFF);
+			winsizey = (lParam >> 16) - (17 + 6);
+
+			MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
+
+			if (vid_apis[video_fullscreen][vid_api].resize)
+			{
+				startblit();
+				video_wait_for_blit();
+				vid_apis[video_fullscreen][vid_api].resize(winsizex, winsizey);
+				endblit();
+			}
+
+			MoveWindow(hwndStatus, 0, winsizey + 6, winsizex, 17, TRUE);
+
+			if (mousecapture)
+			{
+				GetWindowRect(hwnd, &rect);
+				rect.left	+= GetSystemMetrics(SM_CXFIXEDFRAME) + 20;
+				rect.right	-= GetSystemMetrics(SM_CXFIXEDFRAME) + 20;
+				rect.top	+= GetSystemMetrics(SM_CXFIXEDFRAME) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 20;
+				rect.bottom	-= GetSystemMetrics(SM_CXFIXEDFRAME) + 20;
+				ClipCursor(&rect);
+			}
+
+			if (window_remember)
+			{
+				GetWindowRect(hwnd, &rect);
+				window_x = rect.left;
+				window_y = rect.top;
+				window_w = rect.right - rect.left;
+				window_h = rect.bottom - rect.top;
+				save_window_pos = 1;
+			}
+			break;
+
+		case WM_MOVE:
+			if (window_remember)
+			{
+				GetWindowRect(hwnd, &rect);
+				window_x = rect.left;
+				window_y = rect.top;
+				window_w = rect.right - rect.left;
+				window_h = rect.bottom - rect.top;
+				save_window_pos = 1;
+			}
+			break;
+                
+		case WM_TIMER:
+			if (wParam == TIMER_1SEC)
+			{
+				onesec();
+			}
+			break;
+
+		case WM_RESETD3D:
+			startblit();
+			if (video_fullscreen)
+			{
+				d3d_fs_reset();
+			}
+			else
+			{
+				d3d_reset();
+			}
+			endblit();
+			break;
+
+		case WM_LEAVEFULLSCREEN:
+			startblit();
+			mouse_close();
+			vid_apis[1][vid_api].close();
+			video_fullscreen = 0;
+			vid_apis[0][vid_api].init(hwndRender);
+			mouse_init();
+			endblit();
+			device_force_redraw();
+			break;
+
+		case WM_KEYDOWN:
+		case WM_SYSKEYDOWN:
+		case WM_KEYUP:
+		case WM_SYSKEYUP:
+			return 0;
+
+		case WM_DESTROY:
 			UnhookWindowsHookEx(hKeyboardHook);
-			hook_enabled = 0;
-		}
-                break;
+			KillTimer(hwnd, TIMER_1SEC);
+			PostQuitMessage (0);		/* send a WM_QUIT to the message queue */
+			break;
 
-                case WM_LBUTTONUP:
-                if (!mousecapture && !video_fullscreen)
-                {
-                        RECT pcclip;
+		case WM_SYSCOMMAND:
+			/* Disable ALT key *ALWAYS*, I don't think there's any use for reaching the menu that way. */
+			if (wParam == SC_KEYMENU && HIWORD(lParam) <= 0)
+			{
+				return 0; /*disable ALT key for menu*/
+			}
 
-                        GetClipCursor(&oldclip);
-                        GetWindowRect(hwnd, &pcclip);
-                        pcclip.left   += GetSystemMetrics(SM_CXFIXEDFRAME) + 10;
-                        pcclip.right  -= GetSystemMetrics(SM_CXFIXEDFRAME) + 10;
-                        pcclip.top    += GetSystemMetrics(SM_CXFIXEDFRAME) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 10;
-                        pcclip.bottom -= GetSystemMetrics(SM_CXFIXEDFRAME) + 10;
-                        ClipCursor(&pcclip);
-                        mousecapture = 1;
-                        while (1)
-                        {
-                                if (ShowCursor(FALSE) < 0) break;
-                        }
-                }
-                break;
-
-                case WM_MBUTTONUP:
-                if (!(mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON))
-                        releasemouse();
-                break;
-
-                case WM_ENTERMENULOOP:
-                break;
-
-                case WM_SIZE:
-		winsizex = (lParam & 0xFFFF);
-		winsizey = (lParam >> 16) - (17 + 6);
-
-		MoveWindow(hwndRender, 0, 0,
-			winsizex,
-			winsizey,
-			TRUE);
-
-                if (vid_apis[video_fullscreen][vid_api].resize)
-                {
-                        startblit();
-                        video_wait_for_blit();
-                        vid_apis[video_fullscreen][vid_api].resize(winsizex, winsizey);
-                        endblit();
-                }
-
-		MoveWindow(hwndStatus, 0, winsizey + 6,
-			winsizex,
-			17,
-			TRUE);
-
-                if (mousecapture)
-                {
-                        RECT pcclip;
-
-                        GetWindowRect(hwnd, &pcclip);
-                        pcclip.left   += GetSystemMetrics(SM_CXFIXEDFRAME) + 10;
-                        pcclip.right  -= GetSystemMetrics(SM_CXFIXEDFRAME) + 10;
-                        pcclip.top    += GetSystemMetrics(SM_CXFIXEDFRAME) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 10;
-                        pcclip.bottom -= GetSystemMetrics(SM_CXFIXEDFRAME) + 10;
-                        ClipCursor(&pcclip);
-                }
-                if (window_remember)
-                {
-                        GetWindowRect(hwnd, &rect);
-                        window_x = rect.left;
-                        window_y = rect.top;
-                        window_w = rect.right - rect.left;
-                        window_h = rect.bottom - rect.top;
-                        save_window_pos = 1;
-                }
-                break;
-
-                case WM_MOVE:
-                if (window_remember)
-                {
-                        GetWindowRect(hwnd, &rect);
-                        window_x = rect.left;
-                        window_y = rect.top;
-                        window_w = rect.right - rect.left;
-                        window_h = rect.bottom - rect.top;
-                        save_window_pos = 1;
-                }
-                break;
-                                        
-                 case WM_TIMER:
-                if (wParam == TIMER_1SEC)
-                        onesec();
-                break;
-                
-                case WM_RESETD3D:
-                startblit();
-                if (video_fullscreen)
-                        d3d_fs_reset();
-                else
-                        d3d_reset();
-                endblit();
-                break;
-                
-                case WM_LEAVEFULLSCREEN:
-                startblit();
-                mouse_close();
-                vid_apis[1][vid_api].close();
-                video_fullscreen = 0;
-                vid_apis[0][vid_api].init(ghwnd);
-                mouse_init();
-                endblit();
-                device_force_redraw();
-                break;
-
-                case WM_KEYDOWN:
-                case WM_SYSKEYDOWN:
-                case WM_KEYUP:
-                case WM_SYSKEYUP:
-                   return 0;
-
-                case WM_DESTROY:
-                UnhookWindowsHookEx( hKeyboardHook );
-                KillTimer(hwnd, TIMER_1SEC);
-                PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
-                break;
-
-                case WM_SYSCOMMAND:
-		/* Disable ALT key *ALWAYS*, I don't think there's any use for reaching the menu that way. */
-                if (wParam == SC_KEYMENU && HIWORD(lParam) <= 0)
-                        return 0; /*disable ALT key for menu*/
-
-                default:
-                return DefWindowProc (hwnd, message, wParam, lParam);
-        }
-        return 0;
+		default:
+			return DefWindowProc (hwnd, message, wParam, lParam);
+	}
+	return 0;
 }
 
 LRESULT CALLBACK subWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-        switch (message)
-        {
-                default:
-                return DefWindowProc(hwnd, message, wParam, lParam);
-        }
-        return 0;
+	switch (message)
+	{
+		default:
+			return DefWindowProc(hwnd, message, wParam, lParam);
+	}
+	return 0;
 }
 
 VOID APIENTRY HandlePopupMenu(HWND hwnd, POINT pt, int id)
 {
-	HMENU pmenu;
-	int menu_id = -1;
 	if (id >= (sb_parts - 1))
 	{
 		return;
 	}
-	pt.x = id * sb_icon_width;	/* Justify to the left. */
+	pt.x = id * SB_ICON_WIDTH;	/* Justify to the left. */
 	pt.y = 0;			/* Justify to the top. */
 	ClientToScreen(hwnd, (LPPOINT) &pt);
-	if ((sb_part_meanings[id] & 0xf0) == 0x00)
-	{
-		menu_id = sb_part_meanings[id] & 0xf;
-	}
-	else if ((sb_part_meanings[id] & 0xf0) == 0x10)
-	{
-		menu_id = (sb_part_meanings[id] & 0xf) + 4;
-	}
-#if 0
-	else if ((sb_part_meanings[id] & 0xf0) == 0x20)
-	{
-		menu_id = (sb_part_meanings[id] & 0xf) + 8;
-	}
-#endif
-	if (menu_id != -1)
-	{
-		pmenu = GetSubMenu(smenu, menu_id);
-		TrackPopupMenu(pmenu, TPM_LEFTALIGN | TPM_BOTTOMALIGN | TPM_LEFTBUTTON, pt.x, pt.y, 0, hwndStatus, NULL);
-	}
+	TrackPopupMenu(sb_menu_handles[id], TPM_LEFTALIGN | TPM_BOTTOMALIGN | TPM_LEFTBUTTON, pt.x, pt.y, 0, hwndStatus, NULL);
 }
 
 LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -2257,211 +2184,212 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 
 	WCHAR temp_image_path[1024];
 	int new_cdrom_drive;
-	int cdrom_id = 0;
-	int menu_sub_param = 0;
-	int menu_super_param = 0;
 	int ret = 0;
+	int item_id = 0;
+	int item_params = 0;
+	int id = 0;
+	int part = 0;
+	int letter = 0;
 
-        HMENU hmenu;
+	HMENU hmenu;
 
-        switch (message)
-        {
+	switch (message)
+	{
 		case WM_COMMAND:
-                switch (LOWORD(wParam))
-                {
-                        case IDM_DISC_1:
-                        case IDM_DISC_1_WP:
-			ret = file_dlg_w_st(hwnd, 2173, discfns[0], 0);
-			if (!ret)
-                        {
-                                disc_close(0);
-				ui_writeprot[0] = (LOWORD(wParam) == IDM_DISC_1_WP) ? 1 : 0;
-                                disc_load(0, wopenfilestring);
-				update_status_bar_icon_state(0x00, 0);
-				update_tip(0x00);
-                                saveconfig();
-                        }
-                        break;
-                        case IDM_DISC_2:
-                        case IDM_DISC_2_WP:
-			ret = file_dlg_w_st(hwnd, 2173, discfns[1], 0);
-			if (!ret)
-                        {
-                                disc_close(1);
-				ui_writeprot[1] = (LOWORD(wParam) == IDM_DISC_2_WP) ? 1 : 0;
-                                disc_load(1, wopenfilestring);
-				update_status_bar_icon_state(0x01, 0);
-				update_tip(0x01);
-                                saveconfig();
-                        }
-                        break;
-                        case IDM_DISC_3:
-                        case IDM_DISC_3_WP:
-			ret = file_dlg_w_st(hwnd, 2173, discfns[2], 0);
-			if (!ret)
-                        {
-                                disc_close(2);
-				ui_writeprot[2] = (LOWORD(wParam) == IDM_DISC_3_WP) ? 1 : 0;
-                                disc_load(2, wopenfilestring);
-				update_status_bar_icon_state(0x02, 0);
-				update_tip(0x02);
-                                saveconfig();
-                        }
-                        break;
-                        case IDM_DISC_4:
-                        case IDM_DISC_4_WP:
-			ret = file_dlg_w_st(hwnd, 2173, discfns[3], 0);
-			if (!ret)
-                        {
-                                disc_close(3);
-				ui_writeprot[3] = (LOWORD(wParam) == IDM_DISC_4_WP) ? 1 : 0;
-                                disc_load(3, wopenfilestring);
-				update_status_bar_icon_state(0x03, 0);
-				update_tip(0x03);
-                                saveconfig();
-                        }
-                        break;
-                        case IDM_EJECT_1:
-                        disc_close(0);
-			update_status_bar_icon_state(0x00, 1);
-			update_tip(0x00);
-                        saveconfig();
-                        break;
-                        case IDM_EJECT_2:
-                        disc_close(1);
-			update_status_bar_icon_state(0x01, 1);
-			update_tip(0x01);
-                        saveconfig();
-                        break;
-                        case IDM_EJECT_3:
-                        disc_close(2);
-			update_status_bar_icon_state(0x02, 1);
-			update_tip(0x02);
-                        saveconfig();
-                        break;
-                        case IDM_EJECT_4:
-                        disc_close(3);
-			update_status_bar_icon_state(0x03, 1);
-			update_tip(0x03);
-                        saveconfig();
-                        break;
+			item_id = LOWORD(wParam) & 0xff00;	/* Mask out the low 8 bits for item ID. */
+			item_params = LOWORD(wParam) & 0x00ff;	/* Mask out the high 8 bits for item parameter. */
 
-			case IDM_CDROM_1_MUTE:
-			case IDM_CDROM_2_MUTE:
-			case IDM_CDROM_3_MUTE:
-			case IDM_CDROM_4_MUTE:
-			cdrom_id = LOWORD(wParam) & 3;
-			hmenu = GetSubMenu(smenu, cdrom_id + 4);
-			Sleep(100);
-			cdrom_drives[cdrom_id].sound_on ^= 1;                                             
-			CheckMenuItem(hmenu, IDM_CDROM_1_MUTE + (cdrom_id * 1000), cdrom_drives[cdrom_id].sound_on ? MF_UNCHECKED : MF_CHECKED);
-			saveconfig();
-			sound_cd_thread_reset();
-			break;
+	                switch (item_id)
+        	        {
+	                        case IDM_FLOPPY_IMAGE_EXISTING:
+        	                case IDM_FLOPPY_IMAGE_EXISTING_WP:
+					id = item_params & 0x0003;
+					part = find_status_bar_part(SB_FLOPPY | id);
+					if ((part == -1) || (sb_menu_handles == NULL))
+					{
+						break;
+					}
 
-			case IDM_CDROM_1_EMPTY:
-			case IDM_CDROM_2_EMPTY:
-			case IDM_CDROM_3_EMPTY:
-			case IDM_CDROM_4_EMPTY:
-			cdrom_id = LOWORD(wParam) & 3;
-			hmenu = GetSubMenu(smenu, cdrom_id + 4);
-			win_cdrom_eject(cdrom_id);
-                        break;
-
-			case IDM_CDROM_1_RELOAD:
-			case IDM_CDROM_2_RELOAD:
-			case IDM_CDROM_3_RELOAD:
-			case IDM_CDROM_4_RELOAD:
-			cdrom_id = LOWORD(wParam) & 3;
-			hmenu = GetSubMenu(smenu, cdrom_id + 4);
-			win_cdrom_reload(cdrom_id);
-			break;
-
-			case IDM_CDROM_1_IMAGE:
-			case IDM_CDROM_2_IMAGE:
-			case IDM_CDROM_3_IMAGE:
-			case IDM_CDROM_4_IMAGE:
-			cdrom_id = LOWORD(wParam) & 3;
-			hmenu = GetSubMenu(smenu, cdrom_id + 4);
-                        if (!file_dlg_w_st(hwnd, 2175, cdrom_image[cdrom_id].image_path, 0))
-                        {
-				cdrom_drives[cdrom_id].prev_host_drive = cdrom_drives[cdrom_id].host_drive;
-				wcscpy(temp_image_path, wopenfilestring);
-				if ((wcscmp(cdrom_image[cdrom_id].image_path, temp_image_path) == 0) && (cdrom_drives[cdrom_id].host_drive == 200))
-				{
-					/* Switching from image to the same image. Do nothing. */
+					ret = file_dlg_w_st(hwnd, 2173, discfns[id], id);
+					if (!ret)
+					{
+						disc_close(id);
+						ui_writeprot[id] = (item_id == IDM_FLOPPY_IMAGE_EXISTING_WP) ? 1 : 0;
+						disc_load(id, wopenfilestring);
+						update_status_bar_icon_state(SB_FLOPPY | id, wcslen(discfns[id]) ? 0 : 1);
+						EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | (wcslen(discfns[id]) ? MF_ENABLED : MF_GRAYED));
+						update_tip(SB_FLOPPY | id);
+						saveconfig();
+					}
 					break;
-				}
-				cdrom_drives[cdrom_id].handler->exit(cdrom_id);
-				cdrom_close(cdrom_id);
-				image_open(cdrom_id, temp_image_path);
-				if (cdrom_drives[cdrom_id].bus_type)
-				{
-					/* Signal disc change to the emulated machine. */
-					cdrom_insert(cdrom_id);
-				}
-                                CheckMenuItem(hmenu, IDM_CDROM_1_EMPTY + cdrom_id,           MF_UNCHECKED);
-				if ((cdrom_drives[cdrom_id].host_drive != 0) && (cdrom_drives[cdrom_id].host_drive != 200))
-				{
-	                                CheckMenuItem(hmenu, IDM_CDROM_1_REAL + cdrom_id + (cdrom_drives[cdrom_id].host_drive << 2), MF_UNCHECKED);
-				}
-				cdrom_drives[cdrom_id].host_drive = 200;
-                                CheckMenuItem(hmenu, IDM_CDROM_1_IMAGE + cdrom_id,		           MF_CHECKED);
-				update_tip(0x10 | cdrom_id);
-                                saveconfig();
-                        }
-			break;
 
-                        default:
-			cdrom_id = LOWORD(wParam) & 3;
-			hmenu = GetSubMenu(smenu, cdrom_id + 4);
-			menu_sub_param = ((LOWORD(wParam) - IDM_CDROM_1_REAL) - cdrom_id) >> 2;
-			/* pclog("[%04X] Guest drive %c [%i]: -> Host drive %c [%i]:\n", LOWORD(wParam), 0x4b + cdrom_id, cdrom_id, menu_sub_param, menu_sub_param); */
-			if (((LOWORD(wParam) & ~3) >= (IDM_CDROM_1_REAL + ('A' << 2))) && ((LOWORD(wParam) & ~3) <= (IDM_CDROM_1_REAL + ('Z' << 2))))
-                        {
-				new_cdrom_drive = menu_sub_param;
-				if (cdrom_drives[cdrom_id].host_drive == new_cdrom_drive)
-				{
-					/* Switching to the same drive. Do nothing. */
+				case IDM_FLOPPY_EJECT:
+					id = item_params & 0x0003;
+					part = find_status_bar_part(SB_FLOPPY | id);
+					if ((part == -1) || (sb_menu_handles == NULL))
+					{
+						break;
+					}
+
+					disc_close(id);
+					update_status_bar_icon_state(SB_FLOPPY | id, 1);
+					EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
+					update_tip(SB_FLOPPY | id);
+					saveconfig();
 					break;
-				}
-				cdrom_drives[cdrom_id].prev_host_drive = cdrom_drives[cdrom_id].host_drive;
-				cdrom_drives[cdrom_id].handler->exit(cdrom_id);
-				cdrom_close(cdrom_id);
-                                ioctl_open(cdrom_id, new_cdrom_drive);
-				if (cdrom_drives[cdrom_id].bus_type)
-				{
+
+				case IDM_CDROM_MUTE:
+					id = item_params & 0x0007;
+					hmenu = GetSubMenu(smenu, id + 4);
+					Sleep(100);
+					cdrom_drives[id].sound_on ^= 1;                                             
+					CheckMenuItem(hmenu, IDM_CDROM_MUTE | id, cdrom_drives[id].sound_on ? MF_UNCHECKED : MF_CHECKED);
+					saveconfig();
+					sound_cd_thread_reset();
+					break;
+
+				case IDM_CDROM_EMPTY:
+					id = item_params & 0x0007;
+					cdrom_eject(id);
+					break;
+
+				case IDM_CDROM_RELOAD:
+					id = item_params & 0x0007;
+					cdrom_reload(id);
+					break;
+
+				case IDM_CDROM_IMAGE:
+					id = item_params & 0x0007;
+					part = find_status_bar_part(SB_CDROM | id);
+					if ((part == -1) || (sb_menu_handles == NULL))
+					{
+						break;
+					}
+
+					if (!file_dlg_w_st(hwnd, 2175, cdrom_image[id].image_path, 0))
+					{
+						cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
+						wcscpy(temp_image_path, wopenfilestring);
+						if ((wcscmp(cdrom_image[id].image_path, temp_image_path) == 0) && (cdrom_drives[id].host_drive == 200))
+						{
+							/* Switching from image to the same image. Do nothing. */
+							break;
+						}
+						cdrom_drives[id].handler->exit(id);
+						cdrom_close(id);
+						image_open(id, temp_image_path);
+						/* Signal disc change to the emulated machine. */
+						cdrom_insert(id);
+						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
+						if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z'))
+						{
+							CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | (cdrom_drives[id].host_drive << 3), MF_UNCHECKED);
+						}
+						cdrom_drives[id].host_drive = 200;
+						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_CHECKED);
+						update_tip(SB_CDROM | id);
+						saveconfig();
+					}
+					break;
+
+	                        case IDM_CDROM_HOST_DRIVE:
+					id = item_params & 0x0007;
+					letter = ((item_params >> 3) & 0x001f) + 'A';
+					part = find_status_bar_part(SB_CDROM | id);
+					if ((part == -1) || (sb_menu_handles == NULL))
+					{
+						break;
+					}
+
+					new_cdrom_drive = letter;
+					if (cdrom_drives[id].host_drive == new_cdrom_drive)
+					{
+						/* Switching to the same drive. Do nothing. */
+						break;
+					}
+					cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
+					cdrom_drives[id].handler->exit(id);
+					cdrom_close(id);
+                                	ioctl_open(id, new_cdrom_drive);
 					/* Signal disc change to the emulated machine. */
-					cdrom_insert(cdrom_id);
-				}
-                                CheckMenuItem(hmenu, IDM_CDROM_1_EMPTY + cdrom_id,           MF_UNCHECKED);
-				if ((cdrom_drives[cdrom_id].host_drive != 0) && (cdrom_drives[cdrom_id].host_drive != 200))
-				{
-	                                CheckMenuItem(hmenu, IDM_CDROM_1_REAL + cdrom_id + (cdrom_drives[cdrom_id].host_drive << 2), MF_UNCHECKED);
-				}
-                                CheckMenuItem(hmenu, IDM_CDROM_1_IMAGE + cdrom_id,		           MF_UNCHECKED);
-                                cdrom_drives[cdrom_id].host_drive = new_cdrom_drive;
-                                CheckMenuItem(hmenu, IDM_CDROM_1_REAL + cdrom_id + (cdrom_drives[cdrom_id].host_drive << 2), MF_CHECKED);
-				update_tip(0x10 | cdrom_id);
-                                saveconfig();
-                        }
-                        break;
-		}
-		return 0;
+					cdrom_insert(id);
+                	                CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
+					if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z'))
+					{
+	                                	CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | (cdrom_drives[id].host_drive << 3), MF_UNCHECKED);
+					}
+        	                        CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_UNCHECKED);
+                	                cdrom_drives[id].host_drive = new_cdrom_drive;
+	                                CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | (cdrom_drives[id].host_drive << 3), MF_CHECKED);
+					EnableMenuItem(sb_menu_handles[part], IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
+					update_tip(SB_CDROM | id);
+                	                saveconfig();
+					break;
+
+				case IDM_RDISK_EJECT:
+					id = item_params & 0x001f;
+					removable_disk_eject(id);
+					break;
+
+				case IDM_RDISK_RELOAD:
+					id = item_params & 0x001f;
+					removable_disk_reload(id);
+					break;
+
+				case IDM_RDISK_SEND_CHANGE:
+					id = item_params & 0x001f;
+					scsi_disk_insert(id);
+					break;
+
+				case IDM_RDISK_IMAGE:
+				case IDM_RDISK_IMAGE_WP:
+					id = item_params & 0x001f;
+					ret = file_dlg_w_st(hwnd, 2172, hdc[id].fn, id);
+					if (!ret)
+					{
+						removable_disk_unload(id);
+						memset(hdc[id].fn, 0, sizeof(hdc[id].fn));
+						wcscpy(hdc[id].fn, wopenfilestring);
+						hdc[id].wp = (item_id == IDM_RDISK_IMAGE_WP) ? 1 : 0;
+						scsi_loadhd(hdc[id].scsi_id, hdc[id].scsi_lun, id);
+						scsi_disk_insert(id);
+						if (wcslen(hdc[id].fn) > 0)
+						{
+							update_status_bar_icon_state(SB_RDISK | id, 0);
+							EnableMenuItem(sb_menu_handles[part], IDM_RDISK_EJECT | id, MF_BYCOMMAND | MF_ENABLED);
+							EnableMenuItem(sb_menu_handles[part], IDM_RDISK_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
+							EnableMenuItem(sb_menu_handles[part], IDM_RDISK_SEND_CHANGE | id, MF_BYCOMMAND | MF_ENABLED);
+						}
+						else
+						{
+							update_status_bar_icon_state(SB_RDISK | id, 1);
+							EnableMenuItem(sb_menu_handles[part], IDM_RDISK_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
+							EnableMenuItem(sb_menu_handles[part], IDM_RDISK_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
+							EnableMenuItem(sb_menu_handles[part], IDM_RDISK_SEND_CHANGE | id, MF_BYCOMMAND | MF_GRAYED);
+						}
+						update_tip(SB_RDISK | id);
+						saveconfig();
+					}
+					break;
+
+				default:
+					break;
+			}
+			return 0;
 
 		case WM_LBUTTONDOWN:
 		case WM_RBUTTONDOWN:
-		GetClientRect(hwnd, (LPRECT)& rc);
-		pt.x = GET_X_LPARAM(lParam);
-		pt.y = GET_Y_LPARAM(lParam);
-		if (PtInRect((LPRECT) &rc, pt))
-		{
-			HandlePopupMenu(hwnd, pt, (pt.x / sb_icon_width));
-		}
-		break;
+			GetClientRect(hwnd, (LPRECT)& rc);
+			pt.x = GET_X_LPARAM(lParam);
+			pt.y = GET_Y_LPARAM(lParam);
+			if (PtInRect((LPRECT) &rc, pt))
+			{
+				HandlePopupMenu(hwnd, pt, (pt.x / SB_ICON_WIDTH));
+			}
+			break;
 
 		default:
-                return CallWindowProc((WNDPROC) OriginalStatusBarProcedure, hwnd, message, wParam, lParam);
-        }
-        return 0;
+	                return CallWindowProc((WNDPROC) OriginalStatusBarProcedure, hwnd, message, wParam, lParam);
+	}
+	return 0;
 }

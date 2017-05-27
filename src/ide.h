@@ -51,6 +51,7 @@ extern uint16_t readidew(int ide_board);
 extern void callbackide(int ide_board);
 extern void resetide(void);
 extern void ide_init();
+extern void ide_xtide_init();
 extern void ide_ter_init();
 extern void ide_qua_init();
 extern void ide_pri_enable();
@@ -65,15 +66,15 @@ extern void ide_set_bus_master(int (*read)(int channel, uint8_t *data, int trans
 
 extern int ideboard;
 
-extern int ide_enable[4];
+extern int ide_enable[5];
 extern int ide_irq[4];
 
-extern int idecallback[4];
+extern int idecallback[5];
 
 void ide_irq_raise(IDE *ide);
 void ide_irq_lower(IDE *ide);
 
-IDE ide_drives[IDE_NUM];
+IDE ide_drives[IDE_NUM + XTIDE_NUM];
 
 void ide_padstr8(uint8_t *buf, int buf_size, const char *src);
 

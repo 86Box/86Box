@@ -1906,13 +1906,13 @@ nic_init(int board)
     if (dev->is_pci) {
 	dev->base_address = 0x340;
     } else {
-	dev->base_address = device_get_config_int("addr");
-	dev->bios_addr = device_get_config_int("bios_addr");
+	dev->base_address = device_get_config_hex16("base");
+	dev->bios_addr = device_get_config_hex20("bios_addr");
     }
     dev->base_irq = device_get_config_int("irq");
 
     /* See if we have a local MAC address configured. */
-    mac = device_get_config_int_ex("mac", -1);
+    mac = device_get_config_mac("mac", -1);
 
     /* Make this device known to the I/O system. */
     nic_ioset(dev, dev->base_address);
@@ -1984,7 +1984,7 @@ nic_init(int board)
 	mac = (((int) dev->maclocal[3]) << 16);
 	mac |= (((int) dev->maclocal[4]) << 8);
 	mac |= ((int) dev->maclocal[5]);
-	device_set_config_int("mac", mac);
+	device_set_config_mac("mac", mac);
     } else {
 	dev->maclocal[3] = (mac>>16) & 0xff;
 	dev->maclocal[4] = (mac>>8) & 0xff;
@@ -2065,7 +2065,7 @@ rtl8029as_init(void)
 static device_config_t ne1000_config[] =
 {
 	{
-		"addr", "Address", CONFIG_SELECTION, "", 0x300,
+		"base", "Address", CONFIG_HEX16, "", 0x300,
 		{
 			{
 				"0x280", 0x280
@@ -2111,7 +2111,7 @@ static device_config_t ne1000_config[] =
 		"mac", "MAC Address", CONFIG_MAC, "", -1
 	},
 	{
-		"bios_addr", "BIOS address", CONFIG_SELECTION, "", 0,
+		"bios_addr", "BIOS address", CONFIG_HEX20, "", 0,
 		{
 			{
 				"Disabled", 0x00000
@@ -2135,7 +2135,7 @@ static device_config_t ne1000_config[] =
 static device_config_t ne2000_config[] =
 {
 	{
-		"addr", "Address", CONFIG_SELECTION, "", 0x300,
+		"base", "Address", CONFIG_HEX16, "", 0x300,
 		{
 			{
 				"0x280", 0x280
@@ -2187,7 +2187,7 @@ static device_config_t ne2000_config[] =
 		"mac", "MAC Address", CONFIG_MAC, "", -1
 	},
 	{
-		"bios_addr", "BIOS address", CONFIG_SELECTION, "", 0,
+		"bios_addr", "BIOS address", CONFIG_HEX20, "", 0,
 		{
 			{
 				"Disabled", 0x00000
@@ -2235,23 +2235,6 @@ static device_config_t rtl8029as_config[] =
 	},
 	{
 		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"bios_addr", "BIOS address", CONFIG_SELECTION, "", 0,
-		{
-			{
-				"Disabled", 0x00000
-			},
-			{
-				"D000", 0xD0000
-			},
-			{
-				"C000", 0xC0000
-			},
-			{
-				""
-			}
-		},
 	},
 	{
 		"", "", -1

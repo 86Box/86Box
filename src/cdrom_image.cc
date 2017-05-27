@@ -935,6 +935,7 @@ static int image_status(uint8_t id)
 
 void image_reset(uint8_t id)
 {
+	return;
 }
 
 void image_close(uint8_t id)

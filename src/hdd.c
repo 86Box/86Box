@@ -13,6 +13,8 @@ static device_t null_hdd_device;
 
 static int hdd_controller_current;
 
+hard_disk_t hdc[HDC_NUM];
+
 static struct
 {
         char name[50];
