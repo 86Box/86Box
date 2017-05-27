@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 MinGW 32-bit environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.16	2017/05/23
+# Version:	@(#)Makefile.mingw	1.0.17	2017/05/26
 #
 # Authors:	Kotori, <oubattler@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -248,9 +248,9 @@ endif
 
 
 clean:
-		rm *.o
-		rm *.exe
-		rm *.res
+		-del *.o >NUL:
+		-del *.exe >NUL:
+		-del *.res >NUL:
 
 86Box.res:	86Box.rc
 		@echo Processing $<
