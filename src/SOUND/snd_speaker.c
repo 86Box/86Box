@@ -8,6 +8,9 @@ int speaker_gated = 0;
 int speaker_enable = 0, was_speaker_enable = 0;
 
 
+int gated,speakval,speakon;
+
+
 static int16_t speaker_buffer[SOUNDBUFLEN];
 static int speaker_pos = 0;
 

@@ -63,6 +63,7 @@ extern void	network_reset(void);
 extern void	network_tx(uint8_t *, int);
 
 extern int	network_pcap_init(netdev_t *);
+extern void	network_pcap_reset(void);
 extern int	network_pcap_setup(uint8_t *, NETRXCB, void *);
 extern void	network_pcap_close(void);
 extern void	network_pcap_in(uint8_t *, int);

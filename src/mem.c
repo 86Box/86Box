@@ -46,7 +46,22 @@ mem_mapping_t bios_mapping[8];
 mem_mapping_t bios_high_mapping[8];
 static mem_mapping_t romext_mapping;
 
+uint8_t *ram;
+uint32_t rammask;
+
+uint32_t pccache;
+uint8_t *pccache2;
+
+int readlookup[256],readlookupp[256];
+uintptr_t *readlookup2;
+int readlnext;
+int writelookup[256],writelookupp[256];
+uintptr_t *writelookup2;
+int writelnext;
+
 int shadowbios,shadowbios_write;
+
+int mem_a20_state;
 
 static unsigned char isram[0x10000];
 
@@ -464,6 +479,14 @@ int loadbios()
 		{
 			mem_load_atide115_bios();
 		}
+                biosmask = 0x1ffff;
+                return 1;
+
+                case ROM_IBMPS1_2133:
+                f = romfopen(L"roms/ibmps1_2133/PS1_2133_52G2974_ROM.bin", L"rb");
+                if (!f) break;
+                fread(rom, 0x20000, 1, f);                
+                fclose(f);
                 biosmask = 0x1ffff;
                 return 1;
 

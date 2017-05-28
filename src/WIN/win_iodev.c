@@ -52,7 +52,7 @@ void cdrom_eject(uint8_t id)
 	CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_UNCHECKED);
 	if ((cdrom_drives[id].host_drive >= 65) && (cdrom_drives[id].host_drive <= 90))
 	{
-		CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | (cdrom_drive << 3), MF_UNCHECKED);
+		CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_UNCHECKED);
 	}
 	cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
 	cdrom_drives[id].host_drive=0;
@@ -89,9 +89,20 @@ void cdrom_reload(uint8_t id)
 			/* Signal disc change to the emulated machine. */
 			cdrom_insert(id);
 		}
-		CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
-		cdrom_drives[id].host_drive = 200;
-		CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_CHECKED);
+		if (wcslen(cdrom_image[id].image_path) == 0)
+		{
+			CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_CHECKED);
+			cdrom_drives[id].host_drive = 0;
+			CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_UNCHECKED);
+			update_status_bar_icon_state(SB_CDROM | id, 1);
+		}
+		else
+		{
+			CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
+			cdrom_drives[id].host_drive = 200;
+			CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_CHECKED);
+			update_status_bar_icon_state(SB_CDROM | id, 0);
+		}
 	}
 	else 
 	{
@@ -103,10 +114,10 @@ void cdrom_reload(uint8_t id)
 			cdrom_insert(id);
 		}
 		CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
-		cdrom_drive = new_cdrom_drive;
-		CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | (cdrom_drives[id].host_drive << 3), MF_CHECKED);
+		cdrom_drives[id].host_drive = new_cdrom_drive;
+		CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_CHECKED);
+		update_status_bar_icon_state(SB_CDROM | id, 0);
 	}
-	update_status_bar_icon_state(SB_CDROM | id, 0);
 	EnableMenuItem(sb_menu_handles[part], IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
 	update_tip(SB_CDROM | id);
 	saveconfig();

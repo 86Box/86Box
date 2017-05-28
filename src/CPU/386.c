@@ -28,6 +28,13 @@ uint32_t oldpc2;
 
 int trap;
 
+uint16_t flags,eflags;
+uint32_t oldds,oldss,olddslimit,oldsslimit,olddslimitw,oldsslimitw;
+
+x86seg gdt,ldt,idt,tr;
+x86seg _cs,_ds,_es,_ss,_fs,_gs;
+x86seg _oldds;
+
 
 
 extern int cpl_override;
@@ -40,6 +47,8 @@ uint16_t ea_rseg;
 int is486;
 int cgate32;
 
+uint32_t cr2, cr3, cr4;
+uint32_t dr[8];
 
 
 uint8_t romext[32768];

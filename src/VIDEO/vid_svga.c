@@ -870,8 +870,6 @@ void svga_poll(void *p)
                         if (!svga->override)
                                 svga_doblit(svga->firstline_draw, svga->lastline_draw + 1, wx, wy, svga);
 
-                        readflash = 0;
-
                         svga->firstline = 2000;
                         svga->lastline = 0;
                         

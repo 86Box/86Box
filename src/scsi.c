@@ -120,4 +120,10 @@ void SCSIReset(uint8_t id, uint8_t lun)
 		SCSIDevices[id][lun].LunType = SCSI_NONE;
 	}
     }
+
+    if(SCSIDevices[id][lun].CmdBuffer != NULL)
+    {
+	free(SCSIDevices[id][lun].CmdBuffer);
+	SCSIDevices[id][lun].CmdBuffer = NULL;
+    }
 }

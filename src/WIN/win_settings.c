@@ -87,6 +87,7 @@ static void win_settings_init(void)
 	/* Machine category */
 	temp_model = model;
 	temp_cpu_m = cpu_manufacturer;
+	temp_wait_states = cpu_waitstates;
 	temp_cpu = cpu;
 	temp_mem_size = mem_size;
 	temp_dynarec = cpu_use_dynarec;
@@ -149,6 +150,7 @@ static int win_settings_changed(void)
 	/* Machine category */
 	i = i || (model != temp_model);
 	i = i || (cpu_manufacturer != temp_cpu_m);
+	i = i || (cpu_waitstates != temp_wait_states);
 	i = i || (cpu != temp_cpu);
 	i = i || (mem_size != temp_mem_size);
 	i = i || (temp_dynarec != cpu_use_dynarec);
@@ -243,6 +245,7 @@ static void win_settings_save(void)
 	model = temp_model;
 	romset = model_getromset();
 	cpu_manufacturer = temp_cpu_m;
+	cpu_waitstates = temp_wait_states;
 	cpu = temp_cpu;
 	mem_size = temp_mem_size;
 	cpu_use_dynarec = temp_dynarec;
@@ -297,6 +300,8 @@ static void win_settings_save(void)
 	mem_resize();
 	loadbios();
 
+	update_status_bar_panes(hwndStatus);
+
 	resetpchard();
 
 	cpu_set();
@@ -308,8 +313,6 @@ static void win_settings_save(void)
 	speedchanged();
 
 	if (joystick_type != 7)  gameport_update_joystick_type();
-
-	update_status_bar_panes(hwndStatus);
 }
 
 
@@ -399,6 +402,10 @@ static void win_settings_machine_recalc_cpu_m(HWND hdlg)
 		c++;
 	}
 	EnableWindow(h, TRUE);
+	if (temp_cpu > c)
+	{
+		temp_cpu = c;
+	}
 	SendMessage(h, CB_SETCURSEL, temp_cpu, 0);
 
 	win_settings_machine_recalc_cpu(hdlg);
@@ -440,6 +447,10 @@ static void win_settings_machine_recalc_model(HWND hdlg)
 		c++;
 	}
 	EnableWindow(h, TRUE);
+	if (temp_cpu_m > c)
+	{
+		temp_cpu_m = c;
+	}
 	SendMessage(h, CB_SETCURSEL, temp_cpu_m, 0);
 	if (c == 1)
 	{
@@ -519,7 +530,7 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 	        	        SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 			}
 
-			SendMessage(h, CB_SETCURSEL, cpu_waitstates, 0);
+			SendMessage(h, CB_SETCURSEL, temp_wait_states, 0);
 
         	        h=GetDlgItem(hdlg, IDC_CHECK_DYNAREC);
 	                SendMessage(h, BM_SETCHECK, temp_dynarec, 0);
@@ -644,7 +655,7 @@ static void recalc_vid_list(HWND hdlg)
                 {
 			mbstowcs(szText, s, strlen(s) + 1);
                         SendMessage(h, CB_ADDSTRING, 0, (LPARAM) szText);
-                        if (video_new_to_old(c) == gfxcard)
+                        if (video_new_to_old(c) == temp_gfxcard)
                         {
 
                                 SendMessage(h, CB_SETCURSEL, d, 0);
@@ -1682,7 +1693,12 @@ static int get_selected_hard_disk(HWND hdlg)
 	int i, j = 0;
 	HWND h;
 
-	for (i = 0; i < 6; i++)
+	if (hd_listview_items == 0)
+	{
+		return 0;
+	}
+
+	for (i = 0; i < hd_listview_items; i++)
 	{
 		h = GetDlgItem(hdlg, IDC_LIST_HARD_DISKS);
 		j = ListView_GetItemState(h, i, LVIS_SELECTED);
@@ -2318,7 +2334,9 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 	uint32_t base = 0x1000;
 	uint64_t signature = 0xD778A82044445459ll;
 	char buf[512];
+	char *big_buf;
 	int b = 0;
+	uint64_t r = 0;
 
         switch (message)
         {
@@ -2547,9 +2565,27 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 
 						memset(buf, 0, 512);
 						size >>= 9;
-						for (i = 0; i < size; i++)
+						r = (size >> 11) << 11;
+						size -= r;
+						r >>= 11;
+
+						if (size)
 						{
-							fwrite(buf, 512, 1, f);
+							for (i = 0; i < size; i++)
+							{
+								fwrite(buf, 1, 512, f);
+							}
+						}
+
+						if (r)
+						{
+							big_buf = (char *) malloc(1048576);
+							memset(big_buf, 0, 1048576);
+							for (i = 0; i < r; i++)
+							{
+								fwrite(big_buf, 1, 1048576, f);
+							}
+							free(big_buf);
 						}
 
 						fclose(f);

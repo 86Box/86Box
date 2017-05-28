@@ -6,6 +6,7 @@
 #include "keyboard.h"
 
 int keybsendcallback = 0;
+int keybsenddelay;
 
 typedef struct
 {

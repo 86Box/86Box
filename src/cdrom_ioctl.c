@@ -1056,7 +1056,6 @@ int ioctl_open(uint8_t id, char d)
 		ioctl_read_capacity(id, NULL);
 		CloseHandle(cdrom_ioctl_windows[id].hIOCTL);
 		cdrom_ioctl_windows[id].hIOCTL = NULL;
-		update_status_bar_icon_state(0x10 | id, 0);
 	}
 	return 0;
 }

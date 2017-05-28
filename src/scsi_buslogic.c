@@ -757,6 +757,14 @@ BuslogicDataBufferAllocate(Req_t *req, int Is24bit)
     pclog("Data Buffer write: length %d, pointer 0x%04X\n",
 				DataLength, DataPointer);	
 
+    if (SCSIDevices[req->TargetID][req->LUN].CmdBuffer != NULL)
+    {
+	free(SCSIDevices[req->TargetID][req->LUN].CmdBuffer);
+	SCSIDevices[req->TargetID][req->LUN].CmdBuffer = NULL;
+    }
+    SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataLength);
+    memset(SCSIDevices[req->TargetID][req->LUN].CmdBuffer, 0, DataLength);
+
     if ((req->CmdBlock.common.ControlByte != 0x03) && DataLength) {
 	if (req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND ||
 	    req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES) {
@@ -935,6 +943,12 @@ BuslogicDataBufferFree(Req_t *req)
 		pclog("32-bit Residual data length for reading: %d\n",
 				req->CmdBlock.new.DataLength);
 	}
+    }
+
+    if (SCSIDevices[req->TargetID][req->LUN].CmdBuffer != NULL)
+    {
+	free(SCSIDevices[req->TargetID][req->LUN].CmdBuffer);
+	SCSIDevices[req->TargetID][req->LUN].CmdBuffer = NULL;
     }
 }
 
@@ -1798,9 +1812,6 @@ BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbox32_t *Mailb
 
     SCSIStatus = SCSI_STATUS_OK;
     SCSIDevices[Id][Lun].InitLength = 0;
-
-    /* Do this here, so MODE SELECT data does not get lost in transit. */
-    memset(SCSIDevices[Id][Lun].CmdBuffer, 0, 390144);
 
     BuslogicDataBufferAllocate(req, req->Is24bit);
 

@@ -130,6 +130,8 @@ typedef struct FDC
 	uint16_t base_address;
 } FDC;
 
+int disctime;
+
 static FDC fdc;
 
 void fdc_callback();
@@ -958,7 +960,6 @@ bad_command:
 					}
 					disctime = 0;
 					update_status_bar_icon(SB_FLOPPY | fdc.drive, 1);
-					readflash = 1;
 					fdc.inread = 1;
                                         break;
 

@@ -103,7 +103,7 @@ class CDROM_Interface_Image : public CDROM_Interface
 private:
 	class TrackFile {
 	public:
-		virtual bool read(Bit8u *buffer, int seek, int count) = 0;
+		virtual bool read(Bit8u *buffer, uint64_t seek, uint64_t count) = 0;
 		virtual uint64_t getLength() = 0;
 		virtual ~TrackFile() { };
 	};
@@ -112,7 +112,7 @@ private:
 	public:
 		BinaryFile(const char *filename, bool &error);
 		~BinaryFile();
-		bool read(Bit8u *buffer, int seek, int count);
+		bool read(Bit8u *buffer, uint64_t seek, uint64_t count);
 		uint64_t getLength();
 	private:
 		BinaryFile();

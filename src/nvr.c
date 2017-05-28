@@ -245,6 +245,7 @@ void loadnvr()
                 case ROM_MRTHOR:		f = nvrfopen(L"mrthor.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_ZAPPA:			f = nvrfopen(L"zappa.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_S1668:			f = nvrfopen(L"tpatx.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_IBMPS1_2133:		f = nvrfopen(L"ibmps1_2133.nvr",	L"rb"); nvrmask = 127; break;
                 default: return;
         }
         if (!f)
@@ -329,6 +330,7 @@ void savenvr()
                 case ROM_MRTHOR:		f = nvrfopen(L"mrthor.nvr",		L"wb"); break;
                 case ROM_ZAPPA:			f = nvrfopen(L"zappa.nvr",		L"wb"); break;
                 case ROM_S1668:			f = nvrfopen(L"tpatx.nvr",		L"wb"); break;
+                case ROM_IBMPS1_2133:		f = nvrfopen(L"ibmps1_2133.nvr",	L"wb"); break;
                 default: return;
         }
         fwrite(nvrram,128,1,f);

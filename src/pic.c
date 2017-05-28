@@ -8,6 +8,8 @@ int intclear;
 int keywaiting=0;
 int pic_intpending;
 
+PIC pic, pic2;
+
 void pic_updatepending()
 {
 	uint16_t temp_pending = 0;

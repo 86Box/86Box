@@ -138,6 +138,7 @@ static int	*sb_part_icons;
 static WCHAR	**sbTips;
 
 static int	sb_parts = 0;
+static int	sb_ready = 0;
 
 
 void updatewindowsize(int x, int y)
@@ -311,6 +312,12 @@ void mainthread(LPVOID param)
                                 winsizey + (GetSystemMetrics(SM_CYEDGE) * 2) + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 17 + sb_borders[1] + 1,
                                 TRUE);
 
+			if (mousecapture)
+			{
+				GetWindowRect(ghwnd, &r);
+				ClipCursor(&r);
+			}
+
                         win_doresize = 0;
                 }
 
@@ -394,7 +401,7 @@ static void init_cdrom_host_drives(void)
 
 	for (i='A'; i<='Z'; i++)
 	{
-		_swprintf(s, L"%c:\\", i + 0x41);
+		_swprintf(s, L"%c:\\", i);
 
 		if (GetDriveType(s)==DRIVE_CDROM)
 		{
@@ -465,7 +472,7 @@ void create_cdrom_submenu(HMENU m, int id)
 
 	for (i = 0; i < 26; i++)
 	{
-		_swprintf(s, L"%c:\\", i + 0x41);
+		wsprintf(s, L"Host CD/DVD Drive (%c:)", i + 0x41);
 		if (host_cdrom_drive_available[i])
 		{
 			AppendMenu(m, MF_STRING, IDM_CDROM_HOST_DRIVE | (i << 3) | id, s);
@@ -475,21 +482,21 @@ void create_cdrom_submenu(HMENU m, int id)
 check_menu_items:
 	if (!cdrom_drives[id].sound_on)
 	{
-		CheckMenuItem(smenu, IDM_CDROM_MUTE | id, MF_CHECKED);
+		CheckMenuItem(m, IDM_CDROM_MUTE | id, MF_CHECKED);
 	}
 
 	if (cdrom_drives[id].host_drive == 200)
 	{
-		CheckMenuItem(smenu, IDM_CDROM_IMAGE | id, MF_CHECKED);
+		CheckMenuItem(m, IDM_CDROM_IMAGE | id, MF_CHECKED);
 	}
 	else if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z'))
 	{
-		CheckMenuItem(smenu, IDM_CDROM_HOST_DRIVE | id | (cdrom_drives[id].host_drive << 3), MF_CHECKED);
+		CheckMenuItem(m, IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_CHECKED);
 	}
 	else
 	{
 		cdrom_drives[id].host_drive = 0;
-		CheckMenuItem(smenu, IDM_CDROM_EMPTY | id, MF_CHECKED);
+		CheckMenuItem(m, IDM_CDROM_EMPTY | id, MF_CHECKED);
 	}
 }
 
@@ -667,7 +674,7 @@ int find_status_bar_part(int tag)
 	int i = 0;
 	int found = -1;
 
-	if (sb_part_meanings == NULL)
+	if (!sb_ready || (sb_parts == 0) || (sb_part_meanings == NULL))
 	{
 		return -1;
 	}
@@ -690,7 +697,7 @@ void update_status_bar_icon(int tag, int active)
 	int found = -1;
 	int temp_flags = 0;
 
-	if (((tag & 0xf0) >= SB_TEXT) || (sb_icon_flags == NULL) || (sb_part_icons == NULL))
+	if (((tag & 0xf0) >= SB_TEXT) || !sb_ready || (sb_parts == 0) || (sb_icon_flags == NULL) || (sb_part_icons == NULL))
 	{
 		return;
 	}
@@ -719,7 +726,7 @@ void update_status_bar_icon_state(int tag, int state)
 {
 	int found = -1;
 
-	if (((tag & 0xf0) >= SB_HDD) || (sb_icon_flags == NULL) || (sb_part_icons == NULL))
+	if (((tag & 0xf0) >= SB_HDD) || !sb_ready || (sb_parts == 0) || (sb_icon_flags == NULL) || (sb_part_icons == NULL))
 	{
 		return;
 	}
@@ -866,6 +873,11 @@ void update_tip(int meaning)
 	int i = 0;
 	int part = -1;
 
+	if (!sb_ready || (sb_parts == 0) || (sb_part_meanings == NULL))
+	{
+		return;
+	}
+
 	for (i = 0; i < sb_parts; i++)
 	{
 		if (sb_part_meanings[i] == meaning)
@@ -902,6 +914,11 @@ void status_settextw(wchar_t *wstr)
 {
 	int i = 0;
 	int part = -1;
+
+	if (!sb_ready || (sb_parts == 0) || (sb_part_meanings == NULL))
+	{
+		return;
+	}
 
 	for (i = 0; i < sb_parts; i++)
 	{
@@ -972,6 +989,8 @@ void update_status_bar_panes(HWND hwnds)
 	int c_ide_dma = 0;
 	int c_scsi = 0;
 
+	sb_ready = 0;
+
 	c_mfm = count_hard_disks(HDD_BUS_MFM);
 	c_rll = count_hard_disks(HDD_BUS_RLL);
 	c_xtide = count_hard_disks(HDD_BUS_XTIDE);
@@ -1011,7 +1030,7 @@ void update_status_bar_panes(HWND hwnds)
 			sb_parts++;
 		}
 	}
-	for (i = 0; i < 16; i++)
+	for (i = 0; i < HDC_NUM; i++)
 	{
 		if (hdc[i].bus == HDD_BUS_SCSI_REMOVABLE)
 		{
@@ -1044,17 +1063,17 @@ void update_status_bar_panes(HWND hwnds)
 	}
 	sb_parts++;
 
-	iStatusWidths = (int *) malloc(sb_parts << 2);
-	sb_part_meanings = (int *) malloc(sb_parts << 2);
-	sb_part_icons = (int *) malloc(sb_parts << 2);
-	sb_icon_flags = (int *) malloc(sb_parts << 2);
+	iStatusWidths = (int *) malloc(sb_parts * sizeof(int));
+	sb_part_meanings = (int *) malloc(sb_parts * sizeof(int));
+	sb_part_icons = (int *) malloc(sb_parts * sizeof(int));
+	sb_icon_flags = (int *) malloc(sb_parts * sizeof(int));
 	sb_menu_handles = (HMENU *) malloc(sb_parts * sizeof(HMENU));
 	sbTips = (WCHAR **) malloc(sb_parts * sizeof(WCHAR *));
 
-	memset(iStatusWidths, 0, sb_parts << 2);
-	memset(sb_part_meanings, 0, sb_parts << 2);
-	memset(sb_part_icons, 0, sb_parts << 2);
-	memset(sb_icon_flags, 0, sb_parts << 2);
+	memset(iStatusWidths, 0, sb_parts * sizeof(int));
+	memset(sb_part_meanings, 0, sb_parts * sizeof(int));
+	memset(sb_part_icons, 0, sb_parts * sizeof(int));
+	memset(sb_icon_flags, 0, sb_parts * sizeof(int));
 	memset(sb_menu_handles, 0, sb_parts * sizeof(HMENU));
 
 	sb_parts = 0;
@@ -1225,6 +1244,8 @@ void update_status_bar_panes(HWND hwnds)
 			SendMessage(hwnds, SB_SETICON, i, (LPARAM) NULL);
 		}
 	}
+
+	sb_ready = 1;
 }
 
 HWND EmulatorStatusBar(HWND hwndParent, int idStatus, HINSTANCE hinst)
@@ -1421,17 +1442,27 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
 
         ghwnd=hwnd;
 
-        initpc(argc, argv);
-
+printf("hwndRender;\n");
 	hwndRender = CreateWindow(L"STATIC", NULL, WS_VISIBLE | WS_CHILD | SS_BITMAP, 0, 0, 1, 1, ghwnd, NULL, hinstance, NULL);
 
+printf("initpc();\n");
+        initpc(argc, argv);
+
+printf("init_cdrom_host_drives();\n");
+        init_cdrom_host_drives();
+
+printf("EmulatorStatusBar();\n");
 	hwndStatus = EmulatorStatusBar(hwnd, IDC_STATUS, hThisInstance);
 
+printf("OriginalStatusBarProcedure;\n");
 	OriginalStatusBarProcedure = GetWindowLongPtr(hwndStatus, GWLP_WNDPROC);
+printf("SetWindowLongPtr;\n");
 	SetWindowLongPtr(hwndStatus, GWL_WNDPROC, (LONG_PTR) &StatusBarProcedure);
 
 	smenu = LoadMenu(hThisInstance, TEXT("StatusBarMenu"));
-        init_cdrom_host_drives();
+
+printf("initmodules();\n");
+	initmodules();
 
 	if (vid_apis[0][vid_api].init(hwndRender) == 0)
 	{
@@ -2024,10 +2055,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			{
 				GetClipCursor(&oldclip);
 				GetWindowRect(hwnd, &rect);
-				rect.left	+= GetSystemMetrics(SM_CXFIXEDFRAME) + 20;
-				rect.right	= GetSystemMetrics(SM_CXFIXEDFRAME) + 20;
-				rect.top	+= GetSystemMetrics(SM_CXFIXEDFRAME) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 20;
-				rect.bottom	-= GetSystemMetrics(SM_CXFIXEDFRAME) + 20;
+
 				ClipCursor(&rect);
 				mousecapture = 1;
 				while (1)
@@ -2069,10 +2097,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			if (mousecapture)
 			{
 				GetWindowRect(hwnd, &rect);
-				rect.left	+= GetSystemMetrics(SM_CXFIXEDFRAME) + 20;
-				rect.right	-= GetSystemMetrics(SM_CXFIXEDFRAME) + 20;
-				rect.top	+= GetSystemMetrics(SM_CXFIXEDFRAME) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 20;
-				rect.bottom	-= GetSystemMetrics(SM_CXFIXEDFRAME) + 20;
+
 				ClipCursor(&rect);
 			}
 
@@ -2085,6 +2110,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				window_h = rect.bottom - rect.top;
 				save_window_pos = 1;
 			}
+
+			saveconfig();
 			break;
 
 		case WM_MOVE:
@@ -2124,6 +2151,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			mouse_close();
 			vid_apis[1][vid_api].close();
 			video_fullscreen = 0;
+			saveconfig();
 			vid_apis[0][vid_api].init(hwndRender);
 			mouse_init();
 			endblit();
@@ -2283,10 +2311,20 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
 						if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z'))
 						{
-							CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | (cdrom_drives[id].host_drive << 3), MF_UNCHECKED);
+							CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_UNCHECKED);
 						}
-						cdrom_drives[id].host_drive = 200;
-						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_CHECKED);
+						cdrom_drives[id].host_drive = (wcslen(cdrom_image[id].image_path) == 0) ? 0 : 200;
+						if (cdrom_drives[id].host_drive == 200)
+						{
+							CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_CHECKED);
+							update_status_bar_icon_state(SB_CDROM | id, 0);
+						}
+						else
+						{
+							CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_UNCHECKED);
+							CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
+							update_status_bar_icon_state(SB_CDROM | id, 1);
+						}
 						update_tip(SB_CDROM | id);
 						saveconfig();
 					}
@@ -2316,12 +2354,13 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
                 	                CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
 					if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z'))
 					{
-	                                	CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | (cdrom_drives[id].host_drive << 3), MF_UNCHECKED);
+	                                	CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_UNCHECKED);
 					}
         	                        CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_UNCHECKED);
                 	                cdrom_drives[id].host_drive = new_cdrom_drive;
-	                                CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | (cdrom_drives[id].host_drive << 3), MF_CHECKED);
+	                                CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_CHECKED);
 					EnableMenuItem(sb_menu_handles[part], IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
+					update_status_bar_icon_state(SB_CDROM | id, 0);
 					update_tip(SB_CDROM | id);
                 	                saveconfig();
 					break;

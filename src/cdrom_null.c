@@ -101,7 +101,7 @@ void cdrom_set_null_handler(uint8_t id)
 {
 	cdrom_drives[id].handler = &null_cdrom;
 	cdrom_drives[id].host_drive = 0;
-	update_status_bar_icon_state(0x10 | id, 1);
+	memset(cdrom_image[id].image_path, 0, sizeof(cdrom_image[id].image_path));
 }
 
 static CDROM null_cdrom =

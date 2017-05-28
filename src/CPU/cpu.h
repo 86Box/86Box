@@ -138,6 +138,7 @@ extern int cpu_cycles_read, cpu_cycles_read_l, cpu_cycles_write, cpu_cycles_writ
 extern int cpu_prefetch_cycles, cpu_prefetch_width;
 extern int cpu_waitstates;
 extern int cpu_cache_int_enabled, cpu_cache_ext_enabled;
+extern int cpu_pci_speed;
 
 extern uint64_t tsc;
 

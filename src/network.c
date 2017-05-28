@@ -63,8 +63,10 @@ network_init(void)
 {
     int i;
 
+#if 0
     network_type = NET_TYPE_NONE;
     network_card = 0;
+#endif
 
     /* Create a first device entry that's always there, as needed by UI. */
     strcpy(network_devs[0].device, "none");
@@ -75,6 +77,8 @@ network_init(void)
     i = network_pcap_init(&network_devs[network_ndev]);
     if (i > 0)
 	network_ndev += i;
+
+    if (network_type != NET_TYPE_PCAP)  network_pcap_close();
 }
 
 
@@ -153,7 +157,7 @@ network_reset(void)
     /* If no active card, we're done. */
     if ((network_type==NET_TYPE_NONE) || (network_card==0)) return;
 
-    i = network_pcap_init(&network_devs[network_ndev]);
+    if (network_type==NET_TYPE_PCAP)  network_pcap_reset();
 
     pclog("NETWORK: set up for %s, card='%s'\n",
 	(network_type==NET_TYPE_SLIRP)?"SLiRP":"WinPcap",

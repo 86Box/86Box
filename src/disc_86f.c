@@ -3041,7 +3041,7 @@ void d86f_load(int drive, wchar_t *fn)
                 d86f[drive].f = _wfopen(fn, L"rb");
                 if (!d86f[drive].f)
 		{
-			update_status_bar_icon_state(drive, 1);
+			memset(discfns[drive], 0, sizeof(discfns[drive]));
                         return;
 		}
                 writeprot[drive] = 1;
@@ -3062,7 +3062,7 @@ void d86f_load(int drive, wchar_t *fn)
 	{
 		/* File is WAY too small, abort. */
 		fclose(d86f[drive].f);
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 
@@ -3071,7 +3071,7 @@ void d86f_load(int drive, wchar_t *fn)
 		/* File is not of the valid format, abort. */
 		d86f_log("86F: Unrecognized magic bytes: %08X\n", magic);
 		fclose(d86f[drive].f);
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 
@@ -3109,7 +3109,7 @@ void d86f_load(int drive, wchar_t *fn)
 	{
 		/* File too small, abort. */
 		fclose(d86f[drive].f);
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 
@@ -3131,7 +3131,7 @@ void d86f_load(int drive, wchar_t *fn)
 	{
 		d86f_log("86F: CRC64 error\n");
 		fclose(d86f[drive].f);
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 #endif
@@ -3147,7 +3147,7 @@ void d86f_load(int drive, wchar_t *fn)
         	if (!d86f[drive].f)
 	        {
 			d86f_log("86F: Unable to create temporary decompressed file\n");
-			update_status_bar_icon_state(drive, 1);
+			memset(discfns[drive], 0, sizeof(discfns[drive]));
                         return;
 		}
 
@@ -3177,7 +3177,7 @@ void d86f_load(int drive, wchar_t *fn)
 		{
 			d86f_log("86F: Error decompressing file\n");
 			_wremove(temp_file_name);
-			update_status_bar_icon_state(drive, 1);
+			memset(discfns[drive], 0, sizeof(discfns[drive]));
 			return;
 		}
 
@@ -3193,7 +3193,7 @@ void d86f_load(int drive, wchar_t *fn)
 		{
 			_wremove(temp_file_name);
 		}
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 
@@ -3206,7 +3206,7 @@ void d86f_load(int drive, wchar_t *fn)
 		{
 			_wremove(temp_file_name);
 		}
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 
@@ -3239,16 +3239,16 @@ void d86f_load(int drive, wchar_t *fn)
 		/* File has no track 0 side 0, abort. */
 		d86f_log("86F: No Track 0 side 0\n");
 		fclose(d86f[drive].f);
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 
 	if ((d86f_get_sides(drive) == 2) && !(d86f[drive].track_offset[1]))
 	{
 		/* File is 2-sided but has no track 0 side 1, abort. */
-		d86f_log("86F: No Track 0 side 0\n");
+		d86f_log("86F: No Track 0 side 1\n");
 		fclose(d86f[drive].f);
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 

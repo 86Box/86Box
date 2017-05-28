@@ -686,7 +686,6 @@ void ega_poll(void *p)
                                 ega->video_bpp = (ega->gdcreg[5] & 0x20) ? 2 : 4;
                         }
 
-                        readflash=0;
                         ega->firstline = 2000;
                         ega->lastline = 0;
 

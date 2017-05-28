@@ -49,8 +49,8 @@ void midi_init()
 {
         MMRESULT hr = MMSYSERR_NOERROR;
 
-	memset(midi_rt_buf, 0, 1024);
-	memset(midi_cmd_buf, 0, 1024);
+	memset(midi_rt_buf, 0, sizeof(midi_rt_buf));
+	memset(midi_cmd_buf, 0, sizeof(midi_cmd_buf));
 
 	midi_cmd_pos = midi_cmd_len = 0;
 	midi_status = 0;
@@ -81,7 +81,7 @@ void midi_close()
         {
                 midiOutReset(midi_out_device);
                 midiOutClose(midi_out_device);
-                midi_out_device = NULL;
+                /* midi_out_device = NULL; */
 		CloseHandle(m_event);
         }
 }

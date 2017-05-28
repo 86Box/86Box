@@ -64,6 +64,8 @@
 #endif
 
 
+wchar_t pcempath[512];
+
 wchar_t nvr_path[1024];
 int path_len;
 
@@ -261,8 +263,6 @@ void pc_reset(void)
                 setpitclock(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed);
         else
                 setpitclock(14318184.0);
-
-        ali1429_reset();
 }
 
 
@@ -271,7 +271,7 @@ void initpc(int argc, wchar_t *argv[])
 {
         wchar_t *p;
         wchar_t *config_file = NULL;
-        int c, i;
+        int c;
 	FILE *ff;
         get_executable_name(pcempath, 511);
         pclog("executable_name = %ws\n", pcempath);
@@ -330,13 +330,6 @@ void initpc(int argc, wchar_t *argv[])
 		}
         }
 
-	/* Initialize modules. */
-	network_init();
-        mouse_init();
-        midi_init();
-	serial_init();
-	disc_random_init();
-
 	if (config_file == NULL)
 	{
 	        append_filename_w(config_file_default, pcempath, L"86box.cfg", 511);
@@ -348,8 +341,22 @@ void initpc(int argc, wchar_t *argv[])
 
         loadconfig(config_file);
         pclog("Config loaded\n");
+#if 0
         if (config_file)
                 saveconfig();
+#endif
+}
+
+void initmodules(void)
+{
+	int i;
+
+	/* Initialize modules. */
+	network_init();
+        mouse_init();
+        midi_init();
+	serial_init();
+	disc_random_init();
 
         joystick_init();
 
@@ -464,7 +471,9 @@ void resetpchard(void)
 	suppress_overscan = 0;
 
 	savenvr();
+#if 0
 	saveconfig();
+#endif
 
         device_close_all();
 	mouse_emu_close();
@@ -499,7 +508,7 @@ void resetpchard(void)
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if (cdrom_drives[i].bus_type)
+		if (cdrom_drives[i].bus_type == CDROM_BUS_SCSI)
 		{
 			SCSIReset(cdrom_drives[i].scsi_device_id, cdrom_drives[i].scsi_device_lun);
 		}

@@ -9,15 +9,15 @@
 
 
 /*Memory*/
-uint8_t *ram;
-uint32_t rammask;
+extern uint8_t *ram;
+extern uint32_t rammask;
 
-int readlookup[256],readlookupp[256];
-uintptr_t *readlookup2;
-int readlnext;
-int writelookup[256],writelookupp[256];
-uintptr_t *writelookup2;
-int writelnext;
+extern int readlookup[256],readlookupp[256];
+extern uintptr_t *readlookup2;
+extern int readlnext;
+extern int writelookup[256],writelookupp[256];
+extern uintptr_t *writelookup2;
+extern int writelnext;
 
 extern int mmu_perm;
 
@@ -162,7 +162,7 @@ struct
 
 #define cycles cpu_state._cycles
 
-uint32_t cpu_cur_status;
+extern uint32_t cpu_cur_status;
 
 #define CPU_STATUS_USE32   (1 << 0)
 #define CPU_STATUS_STACK32 (1 << 1)
@@ -186,18 +186,18 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state) <= 128)
 
 /*x86reg regs[8];*/
 
-uint16_t flags,eflags;
-uint32_t oldds,oldss,olddslimit,oldsslimit,olddslimitw,oldsslimitw;
+extern uint16_t flags,eflags;
+extern uint32_t oldds,oldss,olddslimit,oldsslimit,olddslimitw,oldsslimitw;
 
 extern int ins,output;
 extern int cycdiff;
 
-x86seg gdt,ldt,idt,tr;
-x86seg _cs,_ds,_es,_ss,_fs,_gs;
-x86seg _oldds;
+extern x86seg gdt,ldt,idt,tr;
+extern x86seg _cs,_ds,_es,_ss,_fs,_gs;
+extern x86seg _oldds;
 
-uint32_t pccache;
-uint8_t *pccache2;
+extern uint32_t pccache;
+extern uint8_t *pccache2;
 /*Segments -
   _cs,_ds,_es,_ss are the segment structures
   CS,DS,ES,SS is the 16-bit data
@@ -229,8 +229,8 @@ union
 #define cr0 CR0.l
 #define msw CR0.w
 
-uint32_t cr2, cr3, cr4;
-uint32_t dr[8];
+extern uint32_t cr2, cr3, cr4;
+extern uint32_t dr[8];
 
 #define C_FLAG  0x0001
 #define P_FLAG  0x0004
@@ -328,7 +328,7 @@ typedef struct DMA
 	uint8_t ps2_mode[4];
 } DMA;
 
-DMA dma,dma16;
+extern DMA dma, dma16;
 
 
 /*PPI*/
@@ -338,7 +338,7 @@ typedef struct PPI
         uint8_t pa,pb;
 } PPI;
 
-PPI ppi;
+extern PPI ppi;
 
 
 /*PIC*/
@@ -350,13 +350,13 @@ typedef struct PIC
         int read;
 } PIC;
 
-PIC pic,pic2;
+extern PIC pic, pic2;
 extern int pic_intpending;
 
 
-int disctime;
-wchar_t discfns[4][256];
-int driveempty[4];
+extern int disctime;
+extern wchar_t discfns[4][256];
+extern int driveempty[4];
 
 #define MDA ((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_HERCULESPLUS || gfxcard==GFX_INCOLOR || gfxcard==GFX_GENIUS) && (romset<ROM_TANDY || romset>=ROM_IBMAT))
 #define VGA ((gfxcard>=GFX_TVGA || romset==ROM_ACER386) && gfxcard!=GFX_COLORPLUS && gfxcard!=GFX_INCOLOR && gfxcard!=GFX_WY700 && gfxcard!=GFX_GENIUS && gfxcard!=GFX_COMPAQ_EGA && gfxcard!=GFX_SUPER_EGA && gfxcard!=GFX_HERCULESPLUS && romset!=ROM_PC1640 && romset!=ROM_PC1512 && romset!=ROM_TANDY && romset!=ROM_PC200)
@@ -456,14 +456,15 @@ enum
         ROM_CMDPC60,
 
         ROM_S1668,      /*Tyan Titan-Pro ATX / 440FX / AMI BIOS / SMC FDC37C669*/
+        ROM_IBMPS1_2133,
 
         ROM_MAX
 };
 
 extern int romspresent[ROM_MAX];
 
-int hasfpu;
-int romset;
+extern int hasfpu;
+extern int romset;
 
 enum
 {
@@ -525,7 +526,6 @@ int cpuspeed;
 
 
 /*Video*/
-int readflash;
 extern int egareads,egawrites;
 extern int vid_resize;
 extern int vid_api;
@@ -534,12 +534,12 @@ extern int changeframecount;
 
 
 /*Sound*/
-int ppispeakon;
-float CGACONST;
-float MDACONST;
-float VGACONST1,VGACONST2;
-float RTCCONST;
-int gated,speakval,speakon;
+extern int ppispeakon;
+extern float CGACONST;
+extern float MDACONST;
+extern float VGACONST1,VGACONST2;
+extern float RTCCONST;
+extern int gated,speakval,speakon;
 
 #define SOUNDBUFLEN (48000/20)
 
@@ -556,7 +556,7 @@ int gated,speakval,speakon;
 #define SND_WSS   9     /*Windows Sound System*/
 #define SND_PAS16 10    /*Pro Audio Spectrum 16*/
 
-wchar_t pcempath[512];
+extern wchar_t pcempath[512];
 
 
 /*Hard disk*/
@@ -604,8 +604,6 @@ typedef struct {
 
 extern hard_disk_t hdc[HDC_NUM];
 
-FILE *shdf[HDC_NUM];
-
 uint64_t hdt[128][3];
 uint64_t hdt_mfm[128][3];
 
@@ -613,7 +611,7 @@ int image_is_hdi(const wchar_t *s);
 int image_is_hdx(const wchar_t *s, int check_signature);
 
 /*Keyboard*/
-int keybsenddelay;
+extern int keybsenddelay;
 
 
 /*CD-ROM*/
@@ -681,7 +679,7 @@ extern int path_len;
 
 wchar_t *nvr_concat(wchar_t *to_concat);
 
-int mem_a20_state;
+extern int mem_a20_state;
 
 
 #ifdef ENABLE_LOG_TOGGLES
@@ -735,6 +733,7 @@ extern void	execx86(int cycs);
 extern void	flushmmucache(void);
 extern void	flushmmucache_cr3(void);
 extern int	idivl(int32_t val);
+extern void	initmodules(void);
 extern void	initpc(int argc, wchar_t *argv[]);
 extern void	loadcscall(uint16_t seg);
 extern void	loadcsjmp(uint16_t seg, uint32_t oxpc);

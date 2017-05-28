@@ -20,7 +20,6 @@ typedef struct {
 	uint8_t sense[256];
 	uint8_t previous_command;
 	uint8_t error;
-	uint16_t buffer[390144];
 	uint32_t sector_pos;
 	uint32_t sector_len;
 	uint32_t last_sector;
@@ -41,3 +40,5 @@ extern void	scsi_disk_insert(uint8_t id);
 extern void	scsi_loadhd(int scsi_id, int scsi_lun, int id);
 extern void	scsi_reloadhd(int id);
 extern void	scsi_unloadhd(int scsi_id, int scsi_lun, int id);
+
+extern FILE *shdf[HDC_NUM];

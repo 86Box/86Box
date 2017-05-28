@@ -89,6 +89,7 @@ void         at_ide_init();
 void     deskpro386_init();
 void      ps1_m2011_init();
 void      ps1_m2121_init();
+void      ps1_m2133_init();
 void    ps2_m30_286_init();
 void   ps2_model_50_init();
 void ps2_model_55sx_init();
@@ -128,6 +129,8 @@ PCI_RESET pci_reset_handler;
 
 int serial_enabled[2] = { 0, 0 };
 int lpt_enabled = 0, bugger_enabled = 0;
+
+int romset;
 
 MODEL models[] =
 {
@@ -176,6 +179,7 @@ MODEL models[] =
         {"Amstrad MegaPC 386DX",	ROM_MEGAPCDX,		"megapcdx",		{ "Intel", cpus_i386DX,      "AMD", cpus_Am386DX, "Cyrix", cpus_486DLC, "",      NULL,     "",      NULL}, 1, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,		  1,   16,   1,     at_wd76c10_init, NULL},
         {"MR 386DX clone",		ROM_MR386DX_OPTI495,	"mr386dx",		{ "Intel", cpus_i386DX,      "AMD", cpus_Am386DX, "Cyrix", cpus_486DLC, "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1,     at_opti495_init, NULL},
         {"AMI 386DX clone",		ROM_AMI386DX_OPTI495,	"ami386dx",		{ "Intel", cpus_i386DX,      "AMD", cpus_Am386DX, "Cyrix", cpus_486DLC, "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1,     at_opti495_init, NULL},
+        {"IBM PS/1 model 2133",		ROM_IBMPS1_2133,	"ibmps1_2133",		{ "Intel", cpus_i486,        "AMD", cpus_Am486,   "Cyrix", cpus_Cx486,  "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,		  1,   64,   1,      ps1_m2133_init, NULL},
         {"AMI 486 clone",		ROM_AMI486,		"ami486",		{ "Intel", cpus_i486,        "AMD", cpus_Am486,   "Cyrix", cpus_Cx486,  "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1,     at_ali1429_init, NULL},
         {"AMI WinBIOS 486",		ROM_WIN486,		"win486",		{ "Intel", cpus_i486,        "AMD", cpus_Am486,   "Cyrix", cpus_Cx486,  "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1,     at_ali1429_init, NULL},
         {"DTK PKM-0038S E-2",		ROM_DTK486,		"dtk486",		{ "Intel", cpus_i486,        "AMD", cpus_Am486,   "Cyrix", cpus_Cx486,  "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1,      at_dtk486_init, NULL},
@@ -187,19 +191,19 @@ MODEL models[] =
         {"Intel Advanced/EV",		ROM_ENDEAVOR,		"endeavor",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  128,   1,    at_endeavor_init, NULL},
         {"Intel Advanced/ZP",		ROM_ZAPPA,		"zappa",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  128,   1,    at_endeavor_init, NULL},
         {"PC Partner MB500N",		ROM_MB500N,		"mb500n",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  128,   1,      at_mb500n_init, NULL},
-        {"Intel Advanced/ATX",		ROM_THOR,		"thor",			{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  512,   1,    at_endeavor_init, NULL},
-        {"MR Intel Advanced/ATX",	ROM_MRTHOR,		"mrthor",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  512,   1,    at_endeavor_init, NULL},
-        {"ASUS P/I-P54TP4XE",		ROM_P54TP4XE,		"p54tp4xe",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  512,   1,    at_p54tp4xe_init, NULL},
-        {"AOpen AP53",			ROM_AP53,		"ap53",			{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  512,   1,        at_ap53_init, NULL},
-        {"ASUS P/I-P55T2S",		ROM_P55T2S,		"p55t2s",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  512,   1,      at_p55t2s_init, NULL},
-        {"Acer M3a",			ROM_ACERM3A,		"acerm3a",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  512,   1,     at_acerm3a_init, NULL},
-        {"Acer V35N",			ROM_ACERV35N,		"acerv3n",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  512,   1,    at_acerv35n_init, NULL},
-        {"ASUS P/I-P55T2P4",		ROM_P55T2P4,		"p55r2p4",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  512,   1,     at_p55t2p4_init, NULL},
+        {"Intel Advanced/ATX",		ROM_THOR,		"thor",			{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,    at_endeavor_init, NULL},
+        {"MR Intel Advanced/ATX",	ROM_MRTHOR,		"mrthor",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,    at_endeavor_init, NULL},
+        {"ASUS P/I-P54TP4XE",		ROM_P54TP4XE,		"p54tp4xe",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,    at_p54tp4xe_init, NULL},
+        {"AOpen AP53",			ROM_AP53,		"ap53",			{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,        at_ap53_init, NULL},
+        {"ASUS P/I-P55T2S",		ROM_P55T2S,		"p55t2s",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,      at_p55t2s_init, NULL},
+        {"Acer M3a",			ROM_ACERM3A,		"acerm3a",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,     at_acerm3a_init, NULL},
+        {"Acer V35N",			ROM_ACERV35N,		"acerv3n",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,    at_acerv35n_init, NULL},
+        {"ASUS P/I-P55T2P4",		ROM_P55T2P4,		"p55r2p4",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,     at_p55t2p4_init, NULL},
         {"Award 430VX PCI",		ROM_430VX,		"430vx",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,      at_i430vx_init, NULL},
         {"Epox P55-VA",			ROM_P55VA,		"p55va",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,       at_p55va_init, NULL},
         {"ASUS P/I-P55TVP4",		ROM_P55TVP4,		"p55tvp4",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,     at_p55tvp4_init, NULL},
-        {"Tyan Titan-Pro AT",		ROM_440FX,		"440fx",		{ "Intel", cpus_PentiumPro,  "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1, 1024,   1,      at_i440fx_init, NULL},
-        {"Tyan Titan-Pro ATX",		ROM_S1668,		"tpatx",		{ "Intel", cpus_PentiumPro,  "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1, 1024,   1,       at_s1668_init, NULL},
+        {"Tyan Titan-Pro AT",		ROM_440FX,		"440fx",		{ "Intel", cpus_PentiumPro,  "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,      at_i440fx_init, NULL},
+        {"Tyan Titan-Pro ATX",		ROM_S1668,		"tpatx",		{ "Intel", cpus_PentiumPro,  "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,       at_s1668_init, NULL},
         {"", -1, "", {"", 0, "", 0, "", 0}, 0,0,0, 0}
 };
 
@@ -442,6 +446,13 @@ void ps1_m2121_init()
 {
         ps1_common_init();
         ps1mb_m2121_init();
+        fdc_set_ps1();
+}
+
+void ps1_m2133_init()
+{
+        ps1_common_init();
+        ps1mb_m2133_init();
         fdc_set_ps1();
 }
 

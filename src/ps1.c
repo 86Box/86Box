@@ -304,3 +304,23 @@ void ps1mb_m2121_init()
         
         mem_remap_top_384k();
 }
+
+void ps1mb_m2133_init()
+{
+        io_sethandler(0x0091, 0x0001, ps1_m2121_read, NULL, NULL, ps1_m2121_write, NULL, NULL, NULL);
+        io_sethandler(0x0092, 0x0001, ps1_m2121_read, NULL, NULL, ps1_m2121_write, NULL, NULL, NULL);
+        io_sethandler(0x0094, 0x0001, ps1_m2121_read, NULL, NULL, ps1_m2121_write, NULL, NULL, NULL);
+        io_sethandler(0x0102, 0x0004, ps1_m2121_read, NULL, NULL, ps1_m2121_write, NULL, NULL, NULL);
+        io_sethandler(0x0190, 0x0001, ps1_m2121_read, NULL, NULL, ps1_m2121_write, NULL, NULL, NULL);
+ 
+        ps1_190 = 0;
+       
+        lpt1_remove();
+        lpt2_remove();
+        lpt1_init(0x3bc);
+       
+        serial_remove(1);
+        serial_remove(2);
+       
+        mem_remap_top_384k();
+}

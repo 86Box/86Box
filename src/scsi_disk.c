@@ -45,6 +45,8 @@
 
 scsi_hard_disk_t shdc[HDC_NUM];
 
+FILE *shdf[HDC_NUM];
+
 uint8_t scsi_hard_disks[16][8] =	{	{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
 						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
 						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
@@ -202,7 +204,8 @@ void scsi_disk_insert(uint8_t id)
 	shdc[id].unit_attention = (hdc[id].bus == HDD_BUS_SCSI_REMOVABLE) ? 1 : 0;
 }
 
-char empty_sector[512];
+static char empty_sector[512];
+static char *empty_sector_1mb;
 
 void scsi_loadhd(int scsi_id, int scsi_lun, int id)
 {
@@ -212,7 +215,7 @@ void scsi_loadhd(int scsi_id, int scsi_lun, int id)
 	uint64_t full_size = 0;
 	uint64_t spt = 0, hpc = 0, tracks = 0;
 	int c;
-	uint64_t i = 0, s = 0;;
+	uint64_t i = 0, s = 0, t = 0;
 	wchar_t *fn = hdc[id].fn;
 
 	memset(empty_sector, 0, sizeof(empty_sector));
@@ -423,15 +426,35 @@ scsi_hd_load_error:
 	}
 
 	fseeko64(shdf[id], 0, SEEK_END);
-	if (ftello64(shdf[id]) != (full_size + shdc[id].base))
+	if (ftello64(shdf[id]) < (full_size + shdc[id].base))
 	{
 		s = (full_size + shdc[id].base) - ftello64(shdf[id]);
 prepare_new_hard_disk:
 		s >>= 9;
-		for (i = 0; i < s; i++)
+		t = (s >> 11) << 11;
+		s -= t;
+		t >>= 11;
+
+		empty_sector_1mb = (char *) malloc(1048576);
+		memset(empty_sector_1mb, 0, 1048576);
+
+		if (s > 0)
 		{
-			fwrite(empty_sector, 1, 512, shdf[id]);
+			for (i = 0; i < s; i++)
+			{
+				fwrite(empty_sector, 1, 512, shdf[id]);
+			}
 		}
+
+		if (t > 0)
+		{
+			for (i = 0; i < t; i++)
+			{
+				fwrite(empty_sector_1mb, 1, 1045876, shdf[id]);
+			}
+		}
+
+		free(empty_sector_1mb);
 	}
 
 	shdc[id].last_sector = (uint32_t) (full_size >> 9) - 1;
@@ -447,7 +470,7 @@ void scsi_reloadhd(int id)
 	uint64_t full_size = 0;
 	uint64_t spt = 0, hpc = 0, tracks = 0;
 	int c;
-	uint64_t i = 0, s = 0;;
+	uint64_t i = 0, s = 0, t = 0;
 	wchar_t *fn = hdc[id].fn;
 
 	memset(empty_sector, 0, sizeof(empty_sector));
@@ -627,15 +650,35 @@ scsi_hd_reload_error:
 	}
 
 	fseeko64(shdf[id], 0, SEEK_END);
-	if (ftello64(shdf[id]) != (full_size + shdc[id].base))
+	if (ftello64(shdf[id]) < (full_size + shdc[id].base))
 	{
 		s = (full_size + shdc[id].base) - ftello64(shdf[id]);
 reload_prepare_new_hard_disk:
 		s >>= 9;
-		for (i = 0; i < s; i++)
+		t = (s >> 11) << 11;
+		s -= t;
+		t >>= 11;
+
+		empty_sector_1mb = (char *) malloc(1048576);
+		memset(empty_sector_1mb, 0, 1048576);
+		
+		if (s > 0)
 		{
-			fwrite(empty_sector, 1, 512, shdf[id]);
+			for (i = 0; i < s; i++)
+			{
+				fwrite(empty_sector, 1, 512, shdf[id]);
+			}
 		}
+
+		if (t > 0)
+		{
+			for (i = 0; i < t; i++)
+			{
+				fwrite(empty_sector_1mb, 1, 1045876, shdf[id]);
+			}
+		}
+
+		free(empty_sector_1mb);
 	}
 
 	shdc[id].last_sector = (uint32_t) (full_size >> 9) - 1;
@@ -873,24 +916,6 @@ static void scsi_hd_not_ready(uint8_t id)
 	scsi_hd_ascq = 0;
 	scsi_hd_cmd_error(id);
 }
-
-#if 0
-static void scsi_hd_icmd_required(uint8_t id)
-{
-	scsi_hd_sense_key = SENSE_NOT_READY;
-	scsi_hd_asc = ASC_NOT_READY;
-	scsi_hd_ascq = ASCQ_INITIALIZING_COMMAND_REQUIRED;
-	scsi_hd_cmd_error(id);
-}
-
-static void scsi_hd_capacity_data_changed(uint8_t id)
-{
-	scsi_hd_sense_key = SENSE_UNIT_ATTENTION;
-	scsi_hd_asc = ASC_CAPACITY_DATA_CHANGED;
-	scsi_hd_ascq = ASCQ_CAPACITY_DATA_CHANGED;
-	scsi_hd_cmd_error(id);
-}
-#endif
 
 static void scsi_hd_write_protected(uint8_t id)
 {
@@ -1166,11 +1191,10 @@ void scsi_hd_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_l
 	scsi_hd_request_sense(id, buffer, alloc_length);
 }
 
-int scsi_hd_read_from_dma(uint8_t id);
-
 void scsi_hd_command(uint8_t id, uint8_t *cdb)
 {
-	uint8_t *hdbufferb = (uint8_t *) shdc[id].buffer;
+	/* uint8_t *hdbufferb = (uint8_t *) shdc[id].buffer; */
+	uint8_t *hdbufferb = SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].CmdBuffer;
 	uint32_t len;
 	int pos=0;
 	int max_len;
@@ -1362,8 +1386,6 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			max_len = shdc[id].sector_len;
 			shdc[id].requested_blocks = max_len;
 
-			scsi_hd_read_from_dma(id);
-
 			pos64 = (uint64_t) shdc[id].sector_pos;
 
 			if (shdc[id].requested_blocks > 0)
@@ -1545,72 +1567,6 @@ atapi_out:
 
 void scsi_hd_callback(uint8_t id);
 
-int scsi_hd_read_from_scsi_dma(uint8_t scsi_id, uint8_t scsi_lun)
-{
-	uint8_t *hdbufferb;
-
-	uint8_t id = scsi_hard_disks[scsi_id][scsi_lun];
-
-	hdbufferb = (uint8_t *) shdc[id].buffer;
-
-	if (id > HDC_NUM)
-	{
-		return 0;
-	}
-
-	scsi_hd_log("Reading from SCSI DMA: SCSI ID %02X, init length %i\n", scsi_id, SCSIDevices[scsi_id][scsi_lun].InitLength);
-	memcpy(hdbufferb, SCSIDevices[scsi_id][scsi_lun].CmdBuffer, SCSIDevices[scsi_id][scsi_lun].InitLength);
-	return 1;
-}
-
-int scsi_hd_read_from_dma(uint8_t id)
-{
-	int ret = 0;
-
-	ret = scsi_hd_read_from_scsi_dma(hdc[id].scsi_id, hdc[id].scsi_lun);
-
-	if (!ret)
-	{
-		return 0;
-	}
-
-	return 0;
-}
-
-int scsi_hd_write_to_scsi_dma(uint8_t scsi_id, uint8_t scsi_lun)
-{
-	uint8_t *hdbufferb;
-
-	uint8_t id = scsi_hard_disks[scsi_id][scsi_lun];
-
-	if (id > HDC_NUM)
-	{
-		return 0;
-	}
-
-	hdbufferb = (uint8_t *) shdc[id].buffer;
-
-	scsi_hd_log("Writing to SCSI DMA: SCSI ID %02X, init length %i\n", scsi_id, SCSIDevices[scsi_id][scsi_lun].InitLength);
-	memcpy(SCSIDevices[scsi_id][scsi_lun].CmdBuffer, hdbufferb, SCSIDevices[scsi_id][scsi_lun].InitLength);
-	scsi_hd_log("SCSI HD %i: Data from HD buffer:  %02X %02X %02X %02X %02X %02X %02X %02X\n", id, hdbufferb[0], hdbufferb[1], hdbufferb[2], hdbufferb[3], hdbufferb[4], hdbufferb[5], hdbufferb[6], hdbufferb[7]);
-	scsi_hd_log("SCSI HD %i: Data from SCSI DMA :  %02X %02X %02X %02X %02X %02X %02X %02X\n", id, SCSIDevices[scsi_id][scsi_lun].CmdBuffer[0], SCSIDevices[scsi_id][scsi_lun].CmdBuffer[1], SCSIDevices[scsi_id][scsi_lun].CmdBuffer[2], SCSIDevices[scsi_id][scsi_lun].CmdBuffer[3], SCSIDevices[scsi_id][scsi_lun].CmdBuffer[4], SCSIDevices[scsi_id][scsi_lun].CmdBuffer[5], SCSIDevices[scsi_id][scsi_lun].CmdBuffer[6], SCSIDevices[scsi_id][scsi_lun].CmdBuffer[7]);
-	return 1;
-}
-
-int scsi_hd_write_to_dma(uint8_t id)
-{
-	int ret = 0;
-
-	ret = scsi_hd_write_to_scsi_dma(hdc[id].scsi_id, hdc[id].scsi_lun);
-
-	if (!ret)
-	{
-		return 0;
-	}
-
-	return 1;
-}
-
 /* If the result is 1, issue an IRQ, otherwise not. */
 void scsi_hd_callback(uint8_t id)
 {
@@ -1621,12 +1577,6 @@ void scsi_hd_callback(uint8_t id)
 			shdc[id].pos=0;
 			shdc[id].phase = 1;
 			shdc[id].status = READY_STAT | DRQ_STAT | (shdc[id].status & ERR_STAT);
-			return;
-		case CDROM_PHASE_COMMAND:
-			scsi_hd_log("SCSI HD %i: PHASE_COMMAND\n", id);
-			shdc[id].status = BUSY_STAT | (shdc[id].status &ERR_STAT);
-			memcpy(shdc[id].hd_cdb, (uint8_t *) shdc[id].buffer, shdc[id].cdb_len);
-			scsi_hd_command(id, shdc[id].hd_cdb);
 			return;
 		case CDROM_PHASE_COMPLETE:
 			scsi_hd_log("SCSI HD %i: PHASE_COMPLETE\n", id);
@@ -1642,7 +1592,6 @@ void scsi_hd_callback(uint8_t id)
 			return;
 		case CDROM_PHASE_DATA_OUT_DMA:
 			scsi_hd_log("SCSI HD %i: PHASE_DATA_OUT_DMA\n", id);
-			scsi_hd_read_from_dma(id);
 			shdc[id].packet_status = CDROM_PHASE_COMPLETE;
 			shdc[id].status = READY_STAT;
 			shdc[id].phase = 3;
@@ -1655,7 +1604,6 @@ void scsi_hd_callback(uint8_t id)
 			return;
 		case CDROM_PHASE_DATA_IN_DMA:
 			scsi_hd_log("SCSI HD %i: PHASE_DATA_IN_DMA\n", id);
-			scsi_hd_write_to_dma(id);
 			shdc[id].packet_status = CDROM_PHASE_COMPLETE;
 			shdc[id].status = READY_STAT;
 			shdc[id].phase = 3;

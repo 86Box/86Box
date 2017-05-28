@@ -248,7 +248,7 @@ void fdi_load(int drive, wchar_t *fn)
         fdi[drive].f = _wfopen(fn, L"rb");
         if (!fdi[drive].f)
 	{
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 

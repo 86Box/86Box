@@ -12,9 +12,12 @@ static uint8_t dmaregs[16];
 static uint8_t dma16regs[16];
 static uint8_t dmapages[16];
 
+DMA dma, dma16;
+
 
 void dma_reset(void)
 {
+#if 0
         int c;
         dma.wp = 0;
         for (c = 0; c < 16; c++) 
@@ -41,6 +44,12 @@ void dma_reset(void)
                 dma16.cb[c] = 0;
         }
         dma16.m = 0;
+#endif
+	memset(dmaregs, 0, 16);
+	memset(dma16regs, 0, 16);
+	memset(dmapages, 0, 16);
+	memset(&dma, 0, sizeof(DMA));
+	memset(&dma16, 0, sizeof(DMA));
 }
 
 uint8_t dma_read(uint16_t addr, void *priv)
