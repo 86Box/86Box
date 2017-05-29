@@ -193,6 +193,8 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
 	return(-1);
     }
     pclog(" Network interface: '%s'\n", dev);
+#else
+    dev = network_pcap;
 #endif
 
     pcap = f_pcap_open_live(dev,		/* interface name */
