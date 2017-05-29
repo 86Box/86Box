@@ -459,7 +459,9 @@ prepare_new_hard_disk:
 
 	shdc[id].last_sector = (uint32_t) (full_size >> 9) - 1;
 
+#if 0
 	fclose(shdf[id]);
+#endif
 }
 
 void scsi_reloadhd(int id)
@@ -682,6 +684,10 @@ reload_prepare_new_hard_disk:
 	}
 
 	shdc[id].last_sector = (uint32_t) (full_size >> 9) - 1;
+
+#if 0
+	fclose(shdf[id]);
+#endif
 }
 
 void scsi_unloadhd(int scsi_id, int scsi_lun, int id)
@@ -1292,7 +1298,9 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 			if ((shdc[id].requested_blocks > 0) && (SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength > 0))
 			{
+#if 0
 				shdf[id] = _wfopen(hdc[id].fn, L"rb+");
+#endif
 				fseeko64(shdf[id], shdc[id].base + (pos64 << 9), SEEK_SET);
 				if (alloc_length > SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength)
 				{
@@ -1302,7 +1310,9 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				{
 					fread(hdbufferb, 1, alloc_length, shdf[id]);
 				}
+#if 0
 				fclose(shdf[id]);
+#endif
 			}
 
 			if (shdc[id].requested_blocks > 1)
@@ -1373,7 +1383,9 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 			if ((shdc[id].requested_blocks > 0) && (SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength > 0))
 			{
+#if 0
 				shdf[id] = _wfopen(hdc[id].fn, L"rb+");
+#endif
 				fseeko64(shdf[id], shdc[id].base + (pos64 << 9), SEEK_SET);
 				if (alloc_length > SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength)
 				{
@@ -1383,7 +1395,9 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				{
 					fwrite(hdbufferb, 1, alloc_length, shdf[id]);
 				}
+#if 0
 				fclose(shdf[id]);
+#endif
 			}
 
 			if (shdc[id].requested_blocks > 1)
