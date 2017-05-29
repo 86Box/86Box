@@ -433,8 +433,8 @@ void ps1_common_init()
 		if (romset != ROM_IBMPS1_2133)
 		{			
 			fdc_set_dskchg_activelow();
+			device_add(&ps1_audio_device);
 		}
-        device_add(&ps1_audio_device);
         /*PS/1 audio uses ports 200h and 202-207h, so only initialise gameport on 201h*/
         if (joystick_type != 7)  device_add(&gameport_201_device);
 }
