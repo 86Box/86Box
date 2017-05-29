@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 MinGW 32-bit environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.17	2017/05/26
+# Version:	@(#)Makefile.mingw	1.0.18	2017/05/28
 #
 # Authors:	Kotori, <oubattler@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -207,9 +207,9 @@ SLIRPOBJ= bootp.o ip_icmp.o misc.o socket.o tcp_timer.o cksum.o \
 	  ip_input.o queue.o tcp_input.o debug.o ip_output.o \
 	  sbuf.o tcp_output.o udp.o if.o mbuf.o slirp.o tcp_subr.o
 
-LIBS	= -mwindows -lcomctl32 -lwinmm -lopenal.dll -lopenal -lddraw \
-	  -ldinput8 -ldxguid -ld3d9 -ld3dx9 -lwsock32 -liphlpapi \
-	  -lstdc++ -lpsapi -static-libstdc++ -static-libgcc
+LIBS	= -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 -lopenal.dll \
+	  -mwindows -lcomctl32 -lwinmm -lwsock32 -liphlpapi -lpsapi \
+	  -static-libstdc++ -static -lstdc++ -static-libgcc -static -lgcc
 
 
 # Build rules.

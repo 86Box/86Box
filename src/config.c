@@ -1942,7 +1942,7 @@ static void saveconfig_network(void)
 	}
 	else
 	{
-		config_set_string(cat, "net_type", (network_type == NET_TYPE_SLIRP) ? "pcap" : "slirp");
+		config_set_string(cat, "net_type", (network_type == NET_TYPE_SLIRP) ? "slirp" : "pcap");
 	}
 
 	if (network_pcap[0] != '\0')
