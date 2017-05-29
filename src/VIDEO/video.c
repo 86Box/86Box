@@ -199,8 +199,8 @@ uint8_t edatlookup[4][4];
 
 int enable_overscan;
 int overscan_x, overscan_y;
+
 int force_43;
-int enable_flash;
 
 /*Video timing settings -
 

@@ -761,6 +761,7 @@ void resetide(void)
 		
 	idecallback[0]=idecallback[1]=0;
 	idecallback[2]=idecallback[3]=0;
+	idecallback[4]=0;
 
 	c = 0;
 	for (d = 0; d < HDC_NUM; d++)
@@ -774,7 +775,7 @@ void resetide(void)
 		}
 		if ((hdc[d].bus == HDD_BUS_XTIDE) && (hdc[d].xtide_channel < XTIDE_NUM))
 		{
-			pclog("Found XTIDE hard disk on channel %i\n", hdc[d].xtide_channel);
+			pclog("Found XT IDE hard disk on channel %i\n", hdc[d].xtide_channel);
 			loadhd(&ide_drives[hdc[d].xtide_channel | 8], d, hdc[d].fn);
 			c++;
 			if (c >= (IDE_NUM + XTIDE_NUM))  break;
@@ -802,12 +803,12 @@ void resetide(void)
 	{
 		ide_set_signature(&ide_drives[d | 8]);
 
-		if (ide_drives[d].type == IDE_HDD)
+		if (ide_drives[d | 8].type == IDE_HDD)
 		{
-			ide_drives[d].mdma_mode = 0;
+			ide_drives[d | 8].mdma_mode = 0;
 		}
 
-		ide_drives[d].error = 1;
+		ide_drives[d | 8].error = 1;
 	}
 
 	for (d = 0; d < 5; d++)

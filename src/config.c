@@ -866,9 +866,9 @@ static void loadconfig_machine(void)
         mem_size = config_get_int(cat, "mem_size", 4096);
         if (mem_size < ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram))
                 mem_size = ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram);
-	if (mem_size > 1048576)
+	if (mem_size > 262144)
 	{
-		mem_size = 1048576;
+		mem_size = 262144;
 	}
 
         cpu_use_dynarec = !!config_get_int(cat, "cpu_use_dynarec", 0);
@@ -967,7 +967,7 @@ static void loadconfig_sound(void)
 	{
 		strcpy(temps, p);
 	}
-	if (!strcmp(temps, "nukedopl"))
+	if (!strcmp(temps, "nukedopl") || !strcmp(temps, "1"))
 	{
 		opl3_type = 1;
 	}
@@ -991,11 +991,11 @@ static void loadconfig_network(void)
 	{
 		strcpy(temps, p);
 	}
-	if (!strcmp(temps, "slirp"))
+	if (!strcmp(temps, "slirp") || !strcmp(temps, "2"))
 	{
 		network_type = NET_TYPE_SLIRP;
 	}
-	else if (!strcmp(temps, "pcap"))
+	else if (!strcmp(temps, "pcap") || !strcmp(temps, "1"))
 	{
 		network_type = NET_TYPE_PCAP;
 	}
@@ -1206,6 +1206,33 @@ static int hard_disk_is_valid(int c)
 }
 
 
+static int tally_char(char *string, char c)
+{
+	int i = 0;
+	int tally = 0;
+
+	if (string == NULL)
+	{
+		return 0;
+	}
+
+	if (strlen(string) == 0)
+	{
+		return 0;
+	}
+
+	for (i = 0; i < strlen(string); i++)
+	{
+		if (string[i] == c)
+		{
+			tally++;
+		}
+	}
+
+	return tally;
+}
+
+
 /* Hard disks */
 static void loadconfig_hard_disks(void)
 {
@@ -1226,7 +1253,15 @@ static void loadconfig_hard_disks(void)
 		p = config_get_string(cat, temps, NULL);
 		if (p == NULL)
 			p = "0, 0, 0, 0, none";
-		sscanf(p, "%" PRIu64 ", %" PRIu64", %" PRIu64 ", %i, %s", &hdc[c].spt, &hdc[c].hpc, &hdc[c].tracks, &hdc[c].wp, s);
+		if (tally_char(p, ',') == 3)
+		{
+			sscanf(p, "%" PRIu64 ", %" PRIu64", %" PRIu64 ", %s", &hdc[c].spt, &hdc[c].hpc, &hdc[c].tracks, s);
+			hdc[c].wp = 0;
+		}
+		else
+		{
+			sscanf(p, "%" PRIu64 ", %" PRIu64", %" PRIu64 ", %i, %s", &hdc[c].spt, &hdc[c].hpc, &hdc[c].tracks, &hdc[c].wp, s);
+		}
 
 		hdc[c].bus = config_string_to_bus(s, 0);
 
@@ -1313,11 +1348,20 @@ static void loadconfig_hard_disks(void)
 		{
 			sprintf(temps2, "%01u:%01u", c >> 1, c & 1);
 			p = config_get_string(cat, temps, temps2);
-			sscanf(p, "%01u:%01u", &board, &dev);
 
-			board &= 3;
-			dev &= 1;
-			hdc[c].ide_channel = (board << 1) + dev;
+			if (strstr(p, ":") == NULL)
+			{
+				sscanf(p, "%i", &hdc[c].ide_channel);
+				hdc[c].ide_channel &= 7;
+			}
+			else
+			{
+				sscanf(p, "%01u:%01u", &board, &dev);
+
+				board &= 3;
+				dev &= 1;
+				hdc[c].ide_channel = (board << 1) + dev;
+			}
 
 			if (hdc[c].ide_channel > 7)
 			{
@@ -1335,6 +1379,7 @@ static void loadconfig_hard_disks(void)
 		{
 			sprintf(temps2, "%02u:%02u", c, 0);
 			p = config_get_string(cat, temps, temps2);
+
 			sscanf(p, "%02u:%02u", &hdc[c].scsi_id, &hdc[c].scsi_lun);
 
 			if (hdc[c].scsi_id > 15)
@@ -1459,11 +1504,20 @@ static void loadconfig_removable_devices(void)
 		{
 			sprintf(temps2, "%01u:%01u", (c + 2) >> 1, (c + 2) & 1);
 			p = config_get_string(cat, temps, temps2);
-			sscanf(p, "%02u:%02u", &board, &dev);
 
-			board &= 3;
-			dev &= 1;
-			cdrom_drives[c].ide_channel = (board << 1) + dev;
+			if (strstr(p, ":") == NULL)
+			{
+				sscanf(p, "%i", &hdc[c].ide_channel);
+				cdrom_drives[c].ide_channel &= 7;
+			}
+			else
+			{
+				sscanf(p, "%02u:%02u", &board, &dev);
+
+				board &= 3;
+				dev &= 1;
+				cdrom_drives[c].ide_channel = (board << 1) + dev;
+			}
 
 			if (cdrom_drives[c].ide_channel > 7)
 			{
@@ -1748,7 +1802,7 @@ static void saveconfig_machine(void)
 	        config_set_int(cat, "cpu_enable_fpu", enable_external_fpu);
 	}
 
-	if (enable_sync == 0)
+	if (enable_sync == 1)
 	{
 		config_delete_var(cat, "enable_sync");
 	}

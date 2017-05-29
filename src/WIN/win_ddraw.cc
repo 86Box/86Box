@@ -178,29 +178,6 @@ static void ddraw_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
                 lpdds_back2->Blt(&r_src, lpdds_back, &r_src, DDBLT_WAIT, NULL);
         }
 
-        if (readflash)
-        {
-                readflash = 0;
-#ifdef LEGACY_READ_FLASH
-		if (enable_flash)
-		{
-	                hr = lpdds_back2->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
-        	        if (hr == DDERR_SURFACELOST)
-                	{
-                        	lpdds_back2->Restore();
-	                        lpdds_back2->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
-        	                device_force_redraw();
-	                }
-        	        if (!ddsd.lpSurface) return;
-	                for (yy = 8; yy < 14; yy++)
-	                {
-				p = &(((uint32_t *) ddsd.lpSurface)[yy * ddsd.lPitch]);
-                	        for (xx = (w - 40); xx < (w - 8); xx++)
-                        	    p[xx] = 0xffffffff;
-	                }
-		}
-#endif
-       	}
         lpdds_back2->Unlock(NULL);
         
 //        pclog("Blit from %i,%i %i,%i to %i,%i %i,%i\n", r_src.left, r_src.top, r_src.right, r_src.bottom, r_dest.left, r_dest.top, r_dest.right, r_dest.bottom);
@@ -276,29 +253,6 @@ static void ddraw_blit_memtoscreen_8(int x, int y, int w, int h)
                 lpdds_back2->Blt(&r_src, lpdds_back, &r_src, DDBLT_WAIT, NULL);
         }
 
-        if (readflash)
-        {
-                readflash = 0;
-		if (enable_flash)
-		{
-	                hr = lpdds_back2->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
-        	        if (hr == DDERR_SURFACELOST)
-	                {
-        	                lpdds_back2->Restore();
-                	        lpdds_back2->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
-	                        device_force_redraw();
-        	        }
-                	if (!ddsd.lpSurface) return;
-	                for (yy = 8; yy < 14; yy++)
-        	        {
-                	        p = (uint32_t *) &(((uint8_t *) ddsd.lpSurface)[yy * ddsd.lPitch]);
-                        	for (xx = (w - 40); xx < (w - 8); xx++)
-	                            p[xx] = 0xffffffff;
-        	        }
-	                lpdds_back2->Unlock(NULL);
-		}
-        }
-        
         hr = lpdds_pri->Blt(&r_dest, lpdds_back2, &r_src, DDBLT_WAIT, NULL);
         if (hr == DDERR_SURFACELOST)
         {

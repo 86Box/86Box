@@ -81,10 +81,9 @@ extern void (*video_blit_memtoscreen_8_func)(int x, int y, int w, int h);
 /* Enable EGA/(S)VGA overscan border. */
 extern int enable_overscan;
 extern int overscan_x, overscan_y;
+
 /* Forcibly stretch emulated video output to 4:3 or not. */
 extern int force_43;
-/* Enable disk activity flash. */
-extern int enable_flash;
 
 extern int video_timing_b, video_timing_w, video_timing_l;
 extern int video_speed;

@@ -995,7 +995,6 @@ int image_open(uint8_t id, wchar_t *fn)
 			cdrom_image[id].image_inited = 1;
 	}
 
-	update_status_bar_icon_state(0x10 | id, 0);
         return 0;
 }
 

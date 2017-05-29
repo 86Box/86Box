@@ -230,7 +230,7 @@ extern int prev_status;
 
 struct
 {	
-	uint8_t CmdBuffer[390144];
+	uint8_t *CmdBuffer;
 	uint32_t CmdBufferLength;
 	int LunType;
 	uint32_t InitLength;

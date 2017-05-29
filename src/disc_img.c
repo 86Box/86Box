@@ -337,7 +337,7 @@ void img_load(int drive, wchar_t *fn)
                 img[drive].f = _wfopen(fn, L"rb");
                 if (!img[drive].f)
 		{
-			update_status_bar_icon_state(drive, 1);
+			memset(discfns[drive], 0, sizeof(discfns[drive]));
                         return;
 		}
                 writeprot[drive] = 1;
@@ -736,7 +736,7 @@ jump_if_fdf:
 		{
 			pclog("Image is bigger than can fit on an ED floppy, ejecting...\n");
 			fclose(img[drive].f);
-			update_status_bar_icon_state(drive, 1);
+			memset(discfns[drive], 0, sizeof(discfns[drive]));
 			return;
 		}
 	}
@@ -798,7 +798,7 @@ jump_if_fdf:
 	{
 		pclog("Image is bigger than can fit on an ED floppy, ejecting...\n");
 		fclose(img[drive].f);
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 
@@ -815,7 +815,7 @@ jump_if_fdf:
 	{
 		pclog("ERROR: Floppy image of unknown format was inserted into drive %c:!\n", drive + 0x41);
 		fclose(img[drive].f);
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 

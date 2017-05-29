@@ -511,7 +511,7 @@ void td0_load(int drive, wchar_t *fn)
         td0[drive].f = _wfopen(fn, L"rb");
         if (!td0[drive].f)
         {
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
         }
         fwriteprot[drive] = writeprot[drive];
@@ -521,7 +521,7 @@ void td0_load(int drive, wchar_t *fn)
 	{
 		pclog("TD0: Not a valid Teledisk image\n");
 		fclose(td0[drive].f);
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 	else
@@ -536,7 +536,7 @@ void td0_load(int drive, wchar_t *fn)
 	{
 		pclog("TD0: Failed to initialize\n");
 		fclose(td0[drive].f);
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 	else

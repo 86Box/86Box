@@ -60,11 +60,10 @@ CDROM_Interface_Image::BinaryFile::~BinaryFile()
 	delete file;
 }
 
-bool CDROM_Interface_Image::BinaryFile::read(Bit8u *buffer, int seek, int count)
+bool CDROM_Interface_Image::BinaryFile::read(Bit8u *buffer, uint64_t seek, uint64_t count)
 {
 	uint64_t offs = 0;
-	offs = ftello64(file);
-	fseeko64(file, offs, SEEK_SET);
+	fseeko64(file, seek, SEEK_SET);
 	offs = fread(buffer, 1, count, file);
 	return (offs == count);
 }
@@ -186,8 +185,9 @@ bool CDROM_Interface_Image::ReadSector(Bit8u *buffer, bool raw, unsigned long se
 	int track = GetTrack(sector) - 1;
 	if (track < 0) return false;
 	
-	int seek = tracks[track].skip + (sector - tracks[track].start) * tracks[track].sectorSize;
-	int length = (raw ? RAW_SECTOR_SIZE : COOKED_SECTOR_SIZE);
+	uint64_t seek = tracks[track].skip + (sector - tracks[track].start);
+	seek *= (uint64_t) tracks[track].sectorSize;
+	uint64_t length = (raw ? RAW_SECTOR_SIZE : COOKED_SECTOR_SIZE);
 	if (tracks[track].sectorSize != RAW_SECTOR_SIZE && raw) return false;
 	if (tracks[track].sectorSize == RAW_SECTOR_SIZE && !tracks[track].mode2 && !raw) seek += 16;
 	if (tracks[track].mode2 && !raw) seek += 24;

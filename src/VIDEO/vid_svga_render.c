@@ -43,10 +43,75 @@ int svga_display_line(svga_t *svga)
 
 void svga_render_blank(svga_t *svga)
 {
+#if 0
         int x, xx;
 	int y_add = (enable_overscan) ? 16 : 0;
 	int x_add = y_add >> 1;
 	int dl = svga_display_line(svga);
+	uint32_t *p;
+        
+        if (svga->firstline_draw == 2000) 
+                svga->firstline_draw = svga->displine;
+        svga->lastline_draw = svga->displine;
+
+	if (dl >= 2046)
+	{
+		return;
+	}
+        
+        for (x = 0; x < svga->hdisp; x++)
+        {
+                switch (svga->seqregs[1] & 9)
+                {
+                        case 0:
+                        for (xx = 0; xx < 9; xx++)
+			{
+				p = ((uint32_t *)buffer32->line[dl]);
+				if (&(p[(x * 9) + xx + 32 + x_add]) != NULL)
+				{
+					p[(x * 9) + xx + 32 + x_add] = svga_color_transform(0);
+				}
+			}
+                        break;
+
+                        case 1:
+                        for (xx = 0; xx < 8; xx++)
+			{
+				p = ((uint32_t *)buffer32->line[dl]);
+				if (&(p[(x * 8) + xx + 32 + x_add]) != NULL)
+				{
+					p[(x * 8) + xx + 32 + x_add] = svga_color_transform(0);
+				}
+			}
+                        break;
+
+                        case 8:
+                        for (xx = 0; xx < 18; xx++)
+			{
+				p = ((uint32_t *)buffer32->line[dl]);
+				if (&(p[(x * 18) + xx + 32 + x_add]) != NULL)
+				{
+					p[(x * 18) + xx + 32 + x_add] = svga_color_transform(0);
+				}
+			}
+                        break;
+
+                        case 9:
+                        for (xx = 0; xx < 16; xx++)
+			{
+				p = ((uint32_t *)buffer32->line[dl]);
+				if (&(p[(x * 16) + xx + 32 + x_add]) != NULL)
+				{
+					p[(x * 16) + xx + 32 + x_add] = svga_color_transform(0);
+				}
+			}
+                        break;
+                }
+        }
+#endif
+        int x, xx;
+	int y_add = (enable_overscan) ? 16 : 0;
+	int x_add = y_add >> 1;
         
         if (svga->firstline_draw == 2000) 
                 svga->firstline_draw = svga->displine;
@@ -57,16 +122,16 @@ void svga_render_blank(svga_t *svga)
                 switch (svga->seqregs[1] & 9)
                 {
                         case 0:
-                        for (xx = 0; xx < 9; xx++) ((uint32_t *)buffer32->line[dl])[(x * 9) + xx + 32 + x_add] = svga_color_transform(0);
+                        for (xx = 0; xx < 9; xx++) ((uint32_t *)buffer32->line[svga->displine + y_add])[(x * 9) + xx + 32 + x_add] = svga_color_transform(0);
                         break;
                         case 1:
-                        for (xx = 0; xx < 8; xx++) ((uint32_t *)buffer32->line[dl])[(x * 8) + xx + 32 + x_add] = svga_color_transform(0);
+                        for (xx = 0; xx < 8; xx++) ((uint32_t *)buffer32->line[svga->displine + y_add])[(x * 8) + xx + 32 + x_add] = svga_color_transform(0);
                         break;
                         case 8:
-                        for (xx = 0; xx < 18; xx++) ((uint32_t *)buffer32->line[dl])[(x * 18) + xx + 32 + x_add] = svga_color_transform(0);
+                        for (xx = 0; xx < 18; xx++) ((uint32_t *)buffer32->line[svga->displine + y_add])[(x * 18) + xx + 32 + x_add] = svga_color_transform(0);
                         break;
                         case 9:
-                        for (xx = 0; xx < 16; xx++) ((uint32_t *)buffer32->line[dl])[(x * 16) + xx + 32 + x_add] = svga_color_transform(0);
+                        for (xx = 0; xx < 16; xx++) ((uint32_t *)buffer32->line[svga->displine + y_add])[(x * 16) + xx + 32 + x_add] = svga_color_transform(0);
                         break;
                 }
         }

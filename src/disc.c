@@ -17,6 +17,9 @@
 #include "fdd.h"
 #include "timer.h"
 
+wchar_t discfns[4][256];
+extern int driveempty[4];
+
 int disc_poll_time[FDD_NUM] = { 16, 16, 16, 16 };
 
 int disc_track[FDD_NUM];
