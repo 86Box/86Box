@@ -966,41 +966,6 @@ static void scsi_hd_data_phase_error(uint8_t id)
 	scsi_hd_cmd_error(id);
 }
 
-void scsi_hd_update_cdb(uint8_t *cdb, int lba_pos, int number_of_blocks)
-{
-	switch(cdb[0])
-	{
-		case GPCMD_READ_6:
-		case GPCMD_WRITE_6:
-			cdb[1] = (lba_pos >> 16) & 0xff;
-			cdb[2] = (lba_pos >> 8) & 0xff;
-			cdb[3] = lba_pos & 0xff;
-			break;
-
-		case GPCMD_READ_10:
-		case GPCMD_WRITE_10:
-			cdb[2] = (lba_pos >> 24) & 0xff;
-			cdb[3] = (lba_pos >> 16) & 0xff;
-			cdb[4] = (lba_pos >> 8) & 0xff;
-			cdb[5] = lba_pos & 0xff;
-			cdb[7] = (number_of_blocks >> 8) & 0xff;
-			cdb[8] = number_of_blocks & 0xff;
-			break;
-
-		case GPCMD_READ_12:
-		case GPCMD_WRITE_12:
-			cdb[2] = (lba_pos >> 24) & 0xff;
-			cdb[3] = (lba_pos >> 16) & 0xff;
-			cdb[4] = (lba_pos >> 8) & 0xff;
-			cdb[5] = lba_pos & 0xff;
-			cdb[6] = (number_of_blocks >> 24) & 0xff;
-			cdb[7] = (number_of_blocks >> 16) & 0xff;
-			cdb[8] = (number_of_blocks >> 8) & 0xff;
-			cdb[9] = number_of_blocks & 0xff;
-			break;
-	}
-}
-
 /*SCSI Sense Initialization*/
 void scsi_hd_sense_code_ok(uint8_t id)
 {	
@@ -1124,8 +1089,6 @@ void scsi_hd_reset(uint8_t id)
 
 void scsi_hd_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
 {				
-	int is_ua = 0;
-
 	/*Will return 18 bytes of 0*/
 	if (alloc_length != 0)
 	{
@@ -1140,7 +1103,6 @@ void scsi_hd_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
 		buffer[2]=SENSE_UNIT_ATTENTION;
 		buffer[12]=ASC_MEDIUM_MAY_HAVE_CHANGED;
 		buffer[13]=0x00;
-		is_ua = 1;
 	}
 
 	/* scsi_hd_log("SCSI HD %i: Reporting sense: %02X %02X %02X\n", id, hdbufferb[2], hdbufferb[12], hdbufferb[13]); */
@@ -1203,9 +1165,9 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 	unsigned preamble_len;
 	uint32_t alloc_length;
 	uint64_t pos64;
-	uint64_t full_size = 0;
 	char device_identify[9] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', 0 };
 	char device_identify_ex[15] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', ' ', 'v', '1', '.', '0', '0', 0 };
+	char *tempbuffer;
 
 #if 0
 	int CdbLength;
@@ -1307,7 +1269,13 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 					break;
 			}
 
-			if (!shdc[id].sector_len)
+			if ((shdc[id].sector_pos > shdc[id].last_sector) || ((shdc[id].sector_pos + shdc[id].sector_len - 1) > shdc[id].last_sector))
+			{
+				scsi_hd_lba_out_of_range(id);
+				return;
+			}
+
+			if ((!shdc[id].sector_len) || (SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength == 0))
 			{
 				/* scsi_hd_log("SCSI HD %i: All done - callback set\n", id); */
 				shdc[id].packet_status = CDROM_PHASE_COMPLETE;
@@ -1320,16 +1288,23 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 			pos64 = (uint64_t) shdc[id].sector_pos;
 
-			if (shdc[id].requested_blocks > 0)
+			alloc_length = shdc[id].packet_len = max_len << 9;
+
+			if ((shdc[id].requested_blocks > 0) && (SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength > 0))
 			{
 				shdf[id] = _wfopen(hdc[id].fn, L"rb+");
 				fseeko64(shdf[id], shdc[id].base + (pos64 << 9), SEEK_SET);
-				memset(hdbufferb, 0, shdc[id].sector_len << 9);
-				fread(hdbufferb, 1, (shdc[id].sector_len << 9), shdf[id]);
+				if (alloc_length > SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength)
+				{
+					fread(hdbufferb, 1, SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength, shdf[id]);
+				}
+				else
+				{
+					fread(hdbufferb, 1, alloc_length, shdf[id]);
+				}
 				fclose(shdf[id]);
 			}
 
-			alloc_length = shdc[id].packet_len = max_len << 9;
 			if (shdc[id].requested_blocks > 1)
 			{
 				scsi_hd_data_command_finish(id, alloc_length, alloc_length / shdc[id].requested_blocks, alloc_length, 0);
@@ -1375,7 +1350,13 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 					break;
 			}
 
-			if (!shdc[id].sector_len)
+			if ((shdc[id].sector_pos > shdc[id].last_sector) || ((shdc[id].sector_pos + shdc[id].sector_len - 1) > shdc[id].last_sector))
+			{
+				scsi_hd_lba_out_of_range(id);
+				return;
+			}
+
+			if ((!shdc[id].sector_len) || (SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength == 0))
 			{
 				/* scsi_hd_log("SCSI HD %i: All done - callback set\n", id); */
 				shdc[id].packet_status = CDROM_PHASE_COMPLETE;
@@ -1388,15 +1369,23 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 			pos64 = (uint64_t) shdc[id].sector_pos;
 
-			if (shdc[id].requested_blocks > 0)
+			alloc_length = shdc[id].packet_len = max_len << 9;
+
+			if ((shdc[id].requested_blocks > 0) && (SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength > 0))
 			{
 				shdf[id] = _wfopen(hdc[id].fn, L"rb+");
 				fseeko64(shdf[id], shdc[id].base + (pos64 << 9), SEEK_SET);
-				fwrite(hdbufferb, 1, (shdc[id].sector_len << 9), shdf[id]);
+				if (alloc_length > SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength)
+				{
+					fwrite(hdbufferb, 1, SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength, shdf[id]);
+				}
+				else
+				{
+					fwrite(hdbufferb, 1, alloc_length, shdf[id]);
+				}
 				fclose(shdf[id]);
 			}
 
-			alloc_length = shdc[id].packet_len = max_len << 9;
 			if (shdc[id].requested_blocks > 1)
 			{
 				scsi_hd_data_command_finish(id, alloc_length, alloc_length / shdc[id].requested_blocks, alloc_length, 1);
@@ -1444,22 +1433,32 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			max_len <<= 8;
 			max_len |= cdb[4];
 
+			if ((!max_len) || (SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength == 0))
+			{
+				/* scsi_hd_log("SCSI HD %i: All done - callback set\n", id); */
+				shdc[id].packet_status = CDROM_PHASE_COMPLETE;
+				shdc[id].callback = 20 * SCSI_TIME;
+				break;
+			}
+
+			tempbuffer = malloc(1024);
+
 			if (cdb[1] & 1)
 			{
 				preamble_len = 4;
 				size_idx = 3;
 					
-				hdbufferb[idx++] = 05;
-				hdbufferb[idx++] = cdb[2];
-				hdbufferb[idx++] = 0;
+				tempbuffer[idx++] = 05;
+				tempbuffer[idx++] = cdb[2];
+				tempbuffer[idx++] = 0;
 
 				idx++;
 
 				switch (cdb[2])
 				{
 					case 0x00:
-						hdbufferb[idx++] = 0x00;
-						hdbufferb[idx++] = 0x83;
+						tempbuffer[idx++] = 0x00;
+						tempbuffer[idx++] = 0x83;
 						break;
 					case 0x83:
 						if (idx + 24 > max_len)
@@ -1468,10 +1467,10 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 							return;
 						}
 
-						hdbufferb[idx++] = 0x02;
-						hdbufferb[idx++] = 0x00;
-						hdbufferb[idx++] = 0x00;
-						hdbufferb[idx++] = 20;
+						tempbuffer[idx++] = 0x02;
+						tempbuffer[idx++] = 0x00;
+						tempbuffer[idx++] = 0x00;
+						tempbuffer[idx++] = 20;
 						ide_padstr8(hdbufferb + idx, 20, "53R141");	/* Serial */
 						idx += 20;
 
@@ -1479,15 +1478,15 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 						{
 							goto atapi_out;
 						}
-						hdbufferb[idx++] = 0x02;
-						hdbufferb[idx++] = 0x01;
-						hdbufferb[idx++] = 0x00;
-						hdbufferb[idx++] = 68;
-						ide_padstr8(hdbufferb + idx, 8, "86Box"); /* Vendor */
+						tempbuffer[idx++] = 0x02;
+						tempbuffer[idx++] = 0x01;
+						tempbuffer[idx++] = 0x00;
+						tempbuffer[idx++] = 68;
+						ide_padstr8(tempbuffer + idx, 8, "86Box"); /* Vendor */
 						idx += 8;
-						ide_padstr8(hdbufferb + idx, 40, device_identify_ex); /* Product */
+						ide_padstr8(tempbuffer + idx, 40, device_identify_ex); /* Product */
 						idx += 40;
-						ide_padstr8(hdbufferb + idx, 20, "53R141"); /* Product */
+						ide_padstr8(tempbuffer + idx, 20, "53R141"); /* Product */
 						idx += 20;
 						break;
 					default:
@@ -1501,29 +1500,43 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				preamble_len = 5;
 				size_idx = 4;
 
-				memset(hdbufferb, 0, 8);
-				hdbufferb[0] = 0; /*SCSI HD*/
+				memset(tempbuffer, 0, 8);
+				tempbuffer[0] = 0; /*SCSI HD*/
 				if (hdc[id].bus == HDD_BUS_SCSI_REMOVABLE)
 				{
-					hdbufferb[1] = 0x80; /*Removable*/
+					tempbuffer[1] = 0x80; /*Removable*/
 				}
 				else
 				{
-					hdbufferb[1] = 0; /*Fixed*/
+					tempbuffer[1] = 0; /*Fixed*/
 				}
-				hdbufferb[2] = 0x02; /*SCSI-2 compliant*/
-				hdbufferb[3] = 0x02;
-				hdbufferb[4] = 31;
+				tempbuffer[2] = 0x02; /*SCSI-2 compliant*/
+				tempbuffer[3] = 0x02;
+				tempbuffer[4] = 31;
 
-				ide_padstr8(hdbufferb + 8, 8, "86Box"); /* Vendor */
-				ide_padstr8(hdbufferb + 16, 16, device_identify); /* Product */
-				ide_padstr8(hdbufferb + 32, 4, emulator_version); /* Revision */
+				ide_padstr8(tempbuffer + 8, 8, "86Box"); /* Vendor */
+				ide_padstr8(tempbuffer + 16, 16, device_identify); /* Product */
+				ide_padstr8(tempbuffer + 32, 4, emulator_version); /* Revision */
 				idx = 36;
 			}
 
 atapi_out:
-			hdbufferb[size_idx] = idx - preamble_len;
+			tempbuffer[size_idx] = idx - preamble_len;
 			len=idx;
+
+			if (len > max_len)
+			{
+				len = max_len;
+			}
+
+			if (len > SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength)
+			{
+				len = SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength;
+			}
+
+			memcpy(hdbufferb, tempbuffer, len);
+
+			free(tempbuffer);
 
 			scsi_hd_data_command_finish(id, len, len, max_len, 0);
 			break;

@@ -762,8 +762,6 @@ BuslogicDataBufferAllocate(Req_t *req, int Is24bit)
 	free(SCSIDevices[req->TargetID][req->LUN].CmdBuffer);
 	SCSIDevices[req->TargetID][req->LUN].CmdBuffer = NULL;
     }
-    SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataLength);
-    memset(SCSIDevices[req->TargetID][req->LUN].CmdBuffer, 0, DataLength);
 
     if ((req->CmdBlock.common.ControlByte != 0x03) && DataLength) {
 	if (req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND ||
@@ -798,6 +796,9 @@ BuslogicDataBufferAllocate(Req_t *req, int Is24bit)
 		pclog("Data to transfer (S/G) %d\n", DataToTransfer);
 
 		SCSIDevices[req->TargetID][req->LUN].InitLength = DataToTransfer;
+
+		SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataToTransfer);
+		memset(SCSIDevices[req->TargetID][req->LUN].CmdBuffer, 0, DataToTransfer);
 
 		/* If the control byte is 0x00, it means that the transfer direction is set up by the SCSI command without
 		   checking its length, so do this procedure for both no read/write commands. */
@@ -835,6 +836,10 @@ BuslogicDataBufferAllocate(Req_t *req, int Is24bit)
 			uint32_t Address = DataPointer;
 
 			SCSIDevices[req->TargetID][req->LUN].InitLength = DataLength;
+
+			SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataLength);
+			memset(SCSIDevices[req->TargetID][req->LUN].CmdBuffer, 0, DataLength);
+
 			if (DataLength > 0) {
 				DMAPageRead(Address,
 					    (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer,
@@ -2223,20 +2228,15 @@ BuslogicInit(int chip)
     build_scsi_cdrom_map();
 
     for (i=0; i<16; i++) {
-	for (j=0; j<8; j++)
-	{
-		if (scsi_hard_disks[i][j] != 0xff)
-		{
-			SCSIDevices[i][j].LunType = SCSI_DISK;
-			pclog("Found SCSI disk: %02i:%02i\n", i, j);
-		}
-	}
-    }
-
-    for (i=0; i<16; i++) {
 	for (j=0; j<8; j++) {
-		if (find_cdrom_for_scsi_id(i, j) != 0xff) {
+		if (scsi_hard_disks[i][j] != 0xff) {
+			SCSIDevices[i][j].LunType = SCSI_DISK;
+		}
+		else if (find_cdrom_for_scsi_id(i, j) != 0xff) {
 			SCSIDevices[i][j].LunType = SCSI_CDROM;
+		}
+		else {
+			SCSIDevices[i][j].LunType = SCSI_NONE;
 		}
 	}
     }
