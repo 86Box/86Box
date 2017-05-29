@@ -506,14 +506,6 @@ void resetpchard(void)
 		ide_qua_init();
 	}
 
-	for (i = 0; i < CDROM_NUM; i++)
-	{
-		if (cdrom_drives[i].bus_type == CDROM_BUS_SCSI)
-		{
-			SCSIReset(cdrom_drives[i].scsi_device_id, cdrom_drives[i].scsi_device_lun);
-		}
-	}		
-
         resetide();
 	scsi_card_init();
 

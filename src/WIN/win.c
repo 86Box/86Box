@@ -1442,26 +1442,19 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
 
         ghwnd=hwnd;
 
-printf("hwndRender;\n");
 	hwndRender = CreateWindow(L"STATIC", NULL, WS_VISIBLE | WS_CHILD | SS_BITMAP, 0, 0, 1, 1, ghwnd, NULL, hinstance, NULL);
 
-printf("initpc();\n");
         initpc(argc, argv);
 
-printf("init_cdrom_host_drives();\n");
         init_cdrom_host_drives();
 
-printf("EmulatorStatusBar();\n");
 	hwndStatus = EmulatorStatusBar(hwnd, IDC_STATUS, hThisInstance);
 
-printf("OriginalStatusBarProcedure;\n");
 	OriginalStatusBarProcedure = GetWindowLongPtr(hwndStatus, GWLP_WNDPROC);
-printf("SetWindowLongPtr;\n");
 	SetWindowLongPtr(hwndStatus, GWL_WNDPROC, (LONG_PTR) &StatusBarProcedure);
 
 	smenu = LoadMenu(hThisInstance, TEXT("StatusBarMenu"));
 
-printf("initmodules();\n");
 	initmodules();
 
 	if (vid_apis[0][vid_api].init(hwndRender) == 0)

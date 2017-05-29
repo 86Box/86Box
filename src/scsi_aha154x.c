@@ -1090,6 +1090,7 @@ aha_buf_alloc(Req_t *req, int Is24bit)
     uint32_t sg_buffer_pos = 0;
     uint32_t DataPointer, DataLength;
     uint32_t SGEntryLength = (Is24bit ? sizeof(SGE) : sizeof(SGE32));
+    uint32_t Address;
 
     if (Is24bit) {
 	DataPointer = ADDR_TO_U32(req->CmdBlock.old.DataPointer);
@@ -1106,8 +1107,6 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 	free(SCSIDevices[req->TargetID][req->LUN].CmdBuffer);
 	SCSIDevices[req->TargetID][req->LUN].CmdBuffer = NULL;
     }
-    SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataLength);
-    memset(SCSIDevices[req->TargetID][req->LUN].CmdBuffer, 0, DataLength);
 
     if ((req->CmdBlock.common.ControlByte != 0x03) && DataLength) {
 	if (req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND ||
@@ -1126,8 +1125,6 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 			aha_rd_sge(Is24bit, SGAddrCurrent, SGRead, SGBuffer);
 
 			for (ScatterEntry = 0; ScatterEntry < SGRead; ScatterEntry++) {
-				uint32_t Address;
-
 				pclog("BusLogic S/G Write: ScatterEntry=%u\n", ScatterEntry);
 
 				Address = SGBuffer[ScatterEntry].SegmentPointer;
@@ -1142,6 +1139,10 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 		pclog("Data to transfer (S/G) %d\n", DataToTransfer);
 
 		SCSIDevices[req->TargetID][req->LUN].InitLength = DataToTransfer;
+
+		pclog("Allocating buffer for Scatter/Gather (%i bytes)\n", DataToTransfer);
+		SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataToTransfer);
+		memset(SCSIDevices[req->TargetID][req->LUN].CmdBuffer, 0, DataToTransfer);
 
 		/* If the control byte is 0x00, it means that the transfer direction is set up by the SCSI command without
 		   checking its length, so do this procedure for both no read/write commands. */
@@ -1158,8 +1159,6 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 						      SGRead, SGBuffer);
 
 				for (ScatterEntry = 0; ScatterEntry < SGRead; ScatterEntry++) {
-					uint32_t Address;
-
 					pclog("BusLogic S/G Write: ScatterEntry=%u\n", ScatterEntry);
 
 					Address = SGBuffer[ScatterEntry].SegmentPointer;
@@ -1176,9 +1175,14 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 		}
 	} else if (req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND ||
 		   req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES) {
-			uint32_t Address = DataPointer;
+			Address = DataPointer;
 
 			SCSIDevices[req->TargetID][req->LUN].InitLength = DataLength;
+
+			pclog("Allocating buffer for direct transfer (%i bytes)\n", DataLength);
+			SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataLength);
+			memset(SCSIDevices[req->TargetID][req->LUN].CmdBuffer, 0, DataLength);
+
 			if (DataLength > 0) {
 				DMAPageRead(Address,
 					    (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer,
@@ -1203,6 +1207,7 @@ aha_buf_free(Req_t *req)
     uint32_t SGAddrCurrent;
     uint32_t Address;
     uint32_t Residual;
+    uint32_t DataToTransfer;
 
     if (req->Is24bit) {
 	DataPointer = ADDR_TO_U32(req->CmdBlock.old.DataPointer);
@@ -1243,9 +1248,6 @@ aha_buf_free(Req_t *req)
 					      SGRead, SGBuffer);
 
 			for (ScatterEntry = 0; ScatterEntry < SGRead; ScatterEntry++) {
-				uint32_t Address;
-				uint32_t DataToTransfer;
-
 				pclog("BusLogic S/G: ScatterEntry=%u\n", ScatterEntry);
 
 				Address = SGBuffer[ScatterEntry].SegmentPointer;
@@ -2202,13 +2204,11 @@ aha_init(int chip, int has_bios)
 		if (scsi_hard_disks[i][j] != 0xff) {
 			SCSIDevices[i][j].LunType = SCSI_DISK;
 		}
-	}
-    }
-
-    for (i=0; i<16; i++) {
-	for (j=0; j<8; j++) {
-		if (find_cdrom_for_scsi_id(i, j) != 0xff) {
+		else if (find_cdrom_for_scsi_id(i, j) != 0xff) {
 			SCSIDevices[i][j].LunType = SCSI_CDROM;
+		}
+		else {
+			SCSIDevices[i][j].LunType = SCSI_NONE;
 		}
 	}
     }
