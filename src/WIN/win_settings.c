@@ -13,7 +13,6 @@
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2017 Miran Grca.
  */
-
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
@@ -45,7 +44,6 @@
 #include "plat_midi.h"
 #include "win.h"
 #include "win_language.h"
-#include "resource.h"
 
 
 /* Machine category */

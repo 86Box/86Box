@@ -13,7 +13,6 @@
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2017 Miran Grca.
  */
-
 #define UNICODE
 #define  _WIN32_WINNT 0x0501
 #define BITMAP WINDOWS_BITMAP
@@ -38,8 +37,8 @@
 #include "../cdrom_null.h"
 #include "../scsi_disk.h"
 #include "plat_iodev.h"
-#include "resource.h"
 #include "win.h"
+
 
 void cdrom_eject(uint8_t id)
 {

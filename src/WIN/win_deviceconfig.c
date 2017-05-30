@@ -10,16 +10,14 @@
  *
  * Version:	@(#)win_deviceconfig.c	1.0.0	2017/05/30
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
-
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"
-#include "resource.h"
 #define NO_UNICODE		/*FIXME: not Unicode? */
 #include "win.h"
 #include <windowsx.h>

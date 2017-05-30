@@ -10,12 +10,11 @@
  *
  * Version:	@(#)win.c	1.0.0	2017/05/30
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,8 +58,6 @@
 #include <commctrl.h>
 #include <commdlg.h>
 #include <process.h>
-
-#include "resource.h"
 
 
 #ifndef MAPVK_VK_TO_VSC

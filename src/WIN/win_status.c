@@ -11,7 +11,6 @@
 #include "../cpu/x86_ops.h"
 #include "../cpu/codegen.h"
 #include "../device.h"
-#include "resource.h"
 #include "win.h"
 
 
