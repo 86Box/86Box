@@ -1,4 +1,16 @@
-/* SCSI hard disk emulation */
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		Emulation of SCSI fixed and removable disks.
+ *
+ * Version:	@(#)scsi_disk.c	1.0.0	2017/05/30
+ *
+ * Author:	Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2017-2017 Miran Grca.
+ */
 
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE

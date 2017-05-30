@@ -1,3 +1,19 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Windows raw keyboard input handler.
+ *
+ * Version:	@(#)win_d3d.cc	1.0.0	2017/05/30
+ *
+ * Author:	Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2016-2017 Miran Grca.
+ */
+
 #define UNICODE
 #define  _WIN32_WINNT 0x0501
 #define BITMAP WINDOWS_BITMAP

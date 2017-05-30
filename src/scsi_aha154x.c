@@ -15,7 +15,7 @@
  * Version:	@(#)scsi_aha154x.c	1.0.6	2017/05/06
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Original Buslogic version by SA1988.
+ *		Original Buslogic version by SA1988 and Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdint.h>
