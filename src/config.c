@@ -1011,11 +1011,11 @@ static void loadconfig_network(void)
 		{
 			if ((network_ndev == 1) && strcmp(network_pcap, "none"))
 			{
-				msgbox_error(ghwnd, 2107);
+				msgbox_error(ghwnd, IDS_2107);
 			}
 			else if (network_dev_to_id(p) == -1)
 			{
-				msgbox_error(ghwnd, 2200);
+				msgbox_error(ghwnd, IDS_2200);
 			}
 
 	                strcpy(network_pcap, "none");
@@ -1173,14 +1173,14 @@ static int config_string_to_bus(char *str, int cdrom)
 
 	if (!strcmp(str, "usb"))
 	{
-		msgbox_error(ghwnd, 2199);
+		msgbox_error(ghwnd, IDS_2199);
 		return 0;
 	}
 
 	return 0;
 
 no_mfm_cdrom:
-	msgbox_error(ghwnd, 2095);
+	msgbox_error(ghwnd, IDS_2095);
 	return 0;
 }
 

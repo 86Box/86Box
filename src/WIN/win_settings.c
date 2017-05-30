@@ -2454,7 +2454,7 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 					if ((wcslen(hd_file_name) == 0) && (hdc_ptr->bus != HDD_BUS_SCSI_REMOVABLE))
 					{
 						hdc_ptr->bus = HDD_BUS_DISABLED;
-						msgbox_error(hwndParentDialog, 2056);
+						msgbox_error(hwndParentDialog, IDS_2056);
 						return TRUE;
 					}
 					else if ((wcslen(hd_file_name) == 0) && (hdc_ptr->bus == HDD_BUS_SCSI_REMOVABLE))
@@ -2526,7 +2526,7 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 							if (size >= 0x100000000ll)
 							{
 								fclose(f);
-								msgbox_error(hwndParentDialog, 2058);
+								msgbox_error(hwndParentDialog, IDS_2058);
 								return TRUE;
 							}
 
@@ -2549,7 +2549,7 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 							if (size > 0xffffffffffffffffll)
 							{
 								fclose(f);
-								msgbox_error(hwndParentDialog, 2163);
+								msgbox_error(hwndParentDialog, IDS_2163);
 								return TRUE;							
 							}
 
@@ -2589,7 +2589,7 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 						}
 
 						fclose(f);
-						msgbox_info(hwndParentDialog, 2059);	                        
+						msgbox_info(hwndParentDialog, IDS_2059);	                        
 					}
 
 hd_add_ok_common:
@@ -2615,7 +2615,7 @@ hd_add_ok_common:
 							if (f != NULL)
 							{
 								fclose(f);
-								if (msgbox_question(ghwnd, 2178) != IDYES)
+								if (msgbox_question(ghwnd, IDS_2178) != IDYES)
 								{
 									return FALSE;
 								}
@@ -2637,7 +2637,7 @@ hdd_add_file_open_error:
 								fread(&sector_size, 1, 4, f);
 								if (sector_size != 512)
 								{
-									msgbox_error(hwndParentDialog, 2061);
+									msgbox_error(hwndParentDialog, IDS_2061);
 									fclose(f);
 									return TRUE;
 								}
@@ -4047,7 +4047,7 @@ static BOOL CALLBACK win_settings_main_proc(HWND hdlg, UINT message, WPARAM wPar
 			h = GetDlgItem(hdlg, IDC_COMBO_LANG);	/* This is currently disabled, I am going to add localization options in the future. */
 			EnableWindow(h, FALSE);
 			ShowWindow(h, SW_HIDE);
-			h = GetDlgItem(hdlg, 2047);
+			h = GetDlgItem(hdlg, IDS_LANG_ENUS);	/*was:2047 !*/
 			EnableWindow(h, FALSE);
 			ShowWindow(h, SW_HIDE);
 			return TRUE;

@@ -1518,7 +1518,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
         }
         if (c == ROM_MAX)
         {
-		msgbox_critical(ghwnd, 2062);
+		msgbox_critical(ghwnd, IDS_2062);
                 return 0;
         }
 
@@ -1529,7 +1529,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
         {
                 if (romset!=-1)
 		{
-			msgbox_info(ghwnd, 2063);
+			msgbox_info(ghwnd, IDS_2063);
 		}
                 for (c=0;c<ROM_MAX;c++)
                 {
@@ -1553,7 +1553,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
         {
                 if (romset!=-1)
 		{
-			msgbox_info(ghwnd, 2064);
+			msgbox_info(ghwnd, IDS_2064);
 		}
                 for (c = GFX_MAX-1; c >= 0; c--)
                 {
@@ -1870,7 +1870,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 						if (video_fullscreen_first)
 						{
 							video_fullscreen_first = 0;
-							msgbox_info(ghwnd, 2193);
+							msgbox_info(ghwnd, IDS_2193);
 						}
 
 						startblit();
@@ -1984,7 +1984,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
 				case IDM_CONFIG_LOAD:
 					pause = 1;
-					if (!file_dlg_st(hwnd, 2174, "", 0))
+					if (!file_dlg_st(hwnd, IDS_2174, "", 0))
 					{
 						if (msgbox_reset_yn(ghwnd) == IDYES)
 						{
@@ -2001,7 +2001,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
 				case IDM_CONFIG_SAVE:
 					pause = 1;
-					if (!file_dlg_st(hwnd, 2174, "", 1))
+					if (!file_dlg_st(hwnd, IDS_2174, "", 1))
 					{
 						config_save(wopenfilestring);
 					}
@@ -2231,7 +2231,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 						break;
 					}
 
-					ret = file_dlg_w_st(hwnd, 2173, discfns[id], id);
+					ret = file_dlg_w_st(hwnd, IDS_2173, discfns[id], id);
 					if (!ret)
 					{
 						disc_close(id);
@@ -2287,7 +2287,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 						break;
 					}
 
-					if (!file_dlg_w_st(hwnd, 2175, cdrom_image[id].image_path, 0))
+					if (!file_dlg_w_st(hwnd, IDS_2175, cdrom_image[id].image_path, 0))
 					{
 						cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
 						wcscpy(temp_image_path, wopenfilestring);
@@ -2376,7 +2376,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 				case IDM_RDISK_IMAGE:
 				case IDM_RDISK_IMAGE_WP:
 					id = item_params & 0x001f;
-					ret = file_dlg_w_st(hwnd, 2172, hdc[id].fn, id);
+					ret = file_dlg_w_st(hwnd, IDS_2172, hdc[id].fn, id);
 					if (!ret)
 					{
 						removable_disk_unload(id);

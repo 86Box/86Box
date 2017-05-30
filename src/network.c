@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.6	2017/05/22
+ * Version:	@(#)network.c	1.0.7	2017/05/29
  *
  * Authors:	Kotori, <oubattler@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -78,7 +78,8 @@ network_init(void)
     if (i > 0)
 	network_ndev += i;
 
-    if (network_type != NET_TYPE_PCAP)  network_pcap_close();
+    if (network_type != NET_TYPE_PCAP)
+	network_pcap_close();
 }
 
 
@@ -105,7 +106,7 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
 	case NET_TYPE_PCAP:
 		ret = network_pcap_setup(mac, rx, dev);
 		if (ret < 0) {
-			msgbox_error(ghwnd, 2219);
+			msgbox_error(ghwnd, IDS_2219);
 			network_type = NET_TYPE_NONE;
 		}
 		break;
