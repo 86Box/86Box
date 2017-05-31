@@ -1,6 +1,10 @@
 /* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
+ * see COPYING for more details
+ *
+ * NOTE:	Forcing config files to be in Unicode encoding breaks it on
+ *		Windows XP, and possibly also Vista. Use -DANSI_CFG for use
+ *		on these systems.
+ */
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -136,23 +140,25 @@ static char ename[256];
 
 void config_load(wchar_t *fn)
 {
-	int c;
-
+        section_t *current_section;
 	section_t *new_section;
 	entry_t *new_entry;
+        FILE *f;
+	int c;
 	int sd = 0, ed = 0, data_pos;
 
-        FILE *f = _wfopen(fn, L"rt, ccs=UNICODE");
-        section_t *current_section;
-        
-        memset(&config_head, 0, sizeof(list_t));
-
-        current_section = malloc(sizeof(section_t));
-        memset(current_section, 0, sizeof(section_t));
-        list_add(&current_section->list, &config_head);
-
+#ifdef ANSI_CFG
+        f = _wfopen(fn, L"rt");
+#else
+        f = _wfopen(fn, L"rt, ccs=UNICODE");
+#endif
         if (!f)
                 return;
+        
+        current_section = malloc(sizeof(section_t));
+        memset(current_section, 0x00, sizeof(section_t));
+        memset(&config_head, 0x00, sizeof(list_t));
+        list_add(&current_section->list, &config_head);
 
         while (1)
         {
@@ -229,7 +235,11 @@ void config_load(wchar_t *fn)
 
 void config_new(void)
 {
+#ifdef ANSI_CFG
+        FILE *f = _wfopen(config_file, L"wt");
+#else
         FILE *f = _wfopen(config_file, L"wt, ccs=UNICODE");
+#endif
         fclose(f);
 }
 
@@ -692,13 +702,19 @@ static wchar_t wname[512];
 
 void config_save(wchar_t *fn)
 {
-        FILE *f = _wfopen(fn, L"wt, ccs=UNICODE");
         section_t *current_section;
-
+        FILE *f;
 	int fl = 0;
-        
+
+#ifdef ANSI_CFG
+        f = _wfopen(fn, L"wt");
+#else
+        f = _wfopen(fn, L"wt, ccs=UNICODE");
+#endif
+	if (f == NULL)
+		return;
+
         current_section = (section_t *)config_head.next;
-        
         while (current_section)
         {
                 entry_t *current_entry;
@@ -746,8 +762,8 @@ void config_save(wchar_t *fn)
 }
 
 
-
 static wchar_t *read_nvr_path;
+
 
 /* General */
 static void loadconfig_general(void)

@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 MinGW 32-bit environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.18	2017/05/28
+# Version:	@(#)Makefile.mingw	1.0.19	2017/05/30
 #
 # Authors:	Kotori, <oubattler@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -30,6 +30,7 @@ endif
 
 # Add feature selections here.
 # -DBUGGER adds the ISA BusBugger emulation.
+# -DANSI_CFG forces the config file to ANSI encoding.
 ifndef EXTRAS
 EXTRAS	=
 endif
