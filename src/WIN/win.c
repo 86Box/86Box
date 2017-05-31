@@ -326,7 +326,7 @@ void mainthread(LPVOID param)
 
 			if (mousecapture)
 			{
-				GetWindowRect(ghwnd, &r);
+				GetWindowRect(hwndRender, &r);
 				ClipCursor(&r);
 			}
 
@@ -2059,7 +2059,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			if (!mousecapture && !video_fullscreen)
 			{
 				GetClipCursor(&oldclip);
-				GetWindowRect(hwnd, &rect);
+				GetWindowRect(hwndRender, &rect);
 
 				ClipCursor(&rect);
 				mousecapture = 1;
@@ -2101,7 +2101,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
 			if (mousecapture)
 			{
-				GetWindowRect(hwnd, &rect);
+				GetWindowRect(hwndRender, &rect);
 
 				ClipCursor(&rect);
 			}
