@@ -473,7 +473,7 @@ void create_cdrom_submenu(HMENU m, int id)
 	{
 		if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z'))
 		{
-			if (!host_cdrom_drive_available[cdrom_drives[id].host_drive])
+			if (!host_cdrom_drive_available[cdrom_drives[id].host_drive - 'A'])
 			{
 				cdrom_drives[id].host_drive = 0;
 			}
@@ -1189,20 +1189,17 @@ void update_status_bar_panes(HWND hwnds)
 			case SB_CDROM:
 				/* CD-ROM */
 				id = sb_part_meanings[i] & 0xf;
-				if (cdrom_drives[id].host_drive < 0x41)
+				if (cdrom_drives[id].host_drive == 200)
 				{
-					sb_icon_flags[i] = 256;
+					sb_icon_flags[i] = (wcslen(cdrom_image[id].image_path) == 0) ? 256 : 0;
+				}
+				else if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z'))
+				{
+					sb_icon_flags[i] = 0;
 				}
 				else
 				{
-					if (cdrom_drives[id].host_drive == 0x200)
-					{
-						sb_icon_flags[i] = (wcslen(cdrom_image[id].image_path) == 0) ? 256 : 0;
-					}
-					else
-					{
-						sb_icon_flags[i] = 0;
-					}
+					sb_icon_flags[i] = 256;
 				}
 				if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
 				{

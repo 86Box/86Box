@@ -61,12 +61,14 @@ void writememll(uint32_t seg, uint32_t addr, uint32_t val);
 uint8_t readmemb(uint32_t a)
 {
         if (a!=(cs+cpu_state.pc)) memcycs+=4;
+        if (readlookup2 == NULL)  return readmembl(a);
         if (readlookup2[(a)>>12]==-1) return readmembl(a);
         else return *(uint8_t *)(readlookup2[(a) >> 12] + (a));
 }
 
 uint8_t readmembf(uint32_t a)
 {
+        if (readlookup2 == NULL)  return readmembl(a);
         if (readlookup2[(a)>>12]==-1) return readmembl(a);
         else return *(uint8_t *)(readlookup2[(a) >> 12] + (a));
 }
@@ -74,6 +76,7 @@ uint8_t readmembf(uint32_t a)
 uint16_t readmemw(uint32_t s, uint16_t a)
 {
         if (a!=(cs+cpu_state.pc)) memcycs+=(8>>is8086);
+        if (readlookup2 == NULL) return readmemwl(s,a);
         if ((readlookup2[((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF)) return readmemwl(s,a);
         else return *(uint16_t *)(readlookup2[(s + a) >> 12] + s + a);
 }
@@ -91,6 +94,7 @@ void writemembl(uint32_t addr, uint8_t val);
 void writememb(uint32_t a, uint8_t v)
 {
         memcycs+=4;
+        if (writelookup2 == NULL)  writemembl(a,v);
         if (writelookup2[(a)>>12]==-1) writemembl(a,v);
         else *(uint8_t *)(writelookup2[a >> 12] + a) = v;
 }
@@ -98,12 +102,14 @@ void writememwl(uint32_t seg, uint32_t addr, uint16_t val);
 void writememw(uint32_t s, uint32_t a, uint16_t v)
 {
         memcycs+=(8>>is8086);
+        if (writelookup2 == NULL)  writememwl(s,a,v);
         if (writelookup2[((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF) writememwl(s,a,v);
         else *(uint16_t *)(writelookup2[(s + a) >> 12] + s + a) = v;
 }
 void writememll(uint32_t seg, uint32_t addr, uint32_t val);
 void writememl(uint32_t s, uint32_t a, uint32_t v)
 {
+        if (writelookup2 == NULL)  writememll(s,a,v);
         if (writelookup2[((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF) writememll(s,a,v);
         else *(uint32_t *)(writelookup2[(s + a) >> 12] + s + a) = v;
 }

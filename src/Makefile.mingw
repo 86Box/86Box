@@ -40,7 +40,7 @@ ifndef DEBUG
 DEBUG	= n
 endif
 ifndef OPTIM
-OPTIM	= y
+OPTIM	= n
 endif
 ifndef X64
 X64	= n

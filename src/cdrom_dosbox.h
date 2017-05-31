@@ -116,6 +116,7 @@ private:
 		uint64_t getLength();
 	private:
 		BinaryFile();
+		char fn[260];
 		FILE *file;
 	};
 	
@@ -123,10 +124,10 @@ private:
 		int number;
 		int track_number;
 		int attr;
-		int start;
-		int length;
-		int skip;
-		int sectorSize;
+		uint64_t start;
+		uint64_t length;
+		uint64_t skip;
+		uint64_t sectorSize;
 		bool mode2;
 		TrackFile *file;
 	};
@@ -156,14 +157,14 @@ static	void	CDAudioCallBack(Bitu len);
 
 	void 	ClearTracks();
 	bool	LoadIsoFile(char *filename);
-	bool	CanReadPVD(TrackFile *file, int sectorSize, bool mode2);
+	bool	CanReadPVD(TrackFile *file, uint64_t sectorSize, bool mode2);
 	// cue sheet processing
 	bool	LoadCueSheet(char *cuefile);
 	bool	GetRealFileName(std::string& filename, std::string& pathname);
 	bool	GetCueKeyword(std::string &keyword, std::istream &in);
-	bool	GetCueFrame(int &frames, std::istream &in);
+	bool	GetCueFrame(uint64_t &frames, std::istream &in);
 	bool	GetCueString(std::string &str, std::istream &in);
-	bool	AddTrack(Track &curr, uint64_t &shift, int prestart, int &totalPregap, int currPregap);
+	bool	AddTrack(Track &curr, uint64_t &shift, uint64_t prestart, uint64_t &totalPregap, uint64_t currPregap);
 
 	std::vector<Track>	tracks;
 typedef	std::vector<Track>::iterator	track_it;

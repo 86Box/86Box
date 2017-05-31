@@ -246,7 +246,7 @@ void sound_init()
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if (cdrom_drives[i].bus_type && cdrom_drives[i].sound_on)
+		if (cdrom_drives[i].bus_type != CDROM_BUS_DISABLED)
 		{
 			available_cdrom_drives++;
 		}
@@ -335,7 +335,7 @@ void sound_cd_thread_reset()
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if (cdrom_drives[i].bus_type && cdrom_drives[i].sound_on)
+		if (cdrom_drives[i].bus_type != CDROM_BUS_DISABLED)
 		{
 			available_cdrom_drives++;
 		}

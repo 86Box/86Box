@@ -435,16 +435,13 @@ void initmodules(void)
         
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if (cdrom_drives[i].host_drive != 0)
+		if (cdrom_drives[i].host_drive == 200)
 		{
-			if (cdrom_drives[i].host_drive == 200)
-			{
-				image_reset(i);
-			}
-			else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
-			{
-				ioctl_reset(i);
-			}
+			image_reset(i);
+		}
+		else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
+		{
+			ioctl_reset(i);
 		}
 	}
 }
@@ -547,16 +544,13 @@ void resetpchard(void)
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if (cdrom_drives[i].host_drive != 0)
+		if (cdrom_drives[i].host_drive == 200)
 		{
-			if (cdrom_drives[i].host_drive == 200)
-			{
-				image_reset(i);
-			}
-			else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
-			{
-				ioctl_reset(i);
-			}
+			image_reset(i);
+		}
+		else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
+		{
+			ioctl_reset(i);
 		}
 	}
 

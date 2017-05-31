@@ -138,7 +138,7 @@ static wchar_t cfgbuffer[1024];
 static char sname[256];
 static char ename[256];
 
-void config_load(wchar_t *fn)
+int config_load(wchar_t *fn)
 {
         section_t *current_section;
 	section_t *new_section;
@@ -153,7 +153,7 @@ void config_load(wchar_t *fn)
         f = _wfopen(fn, L"rt, ccs=UNICODE");
 #endif
         if (!f)
-                return;
+                return 0;
         
         current_section = malloc(sizeof(section_t));
         memset(current_section, 0x00, sizeof(section_t));
@@ -230,6 +230,8 @@ void config_load(wchar_t *fn)
         fclose(f);
         
         config_dump();
+
+	return 1;
 }
 
 
@@ -793,7 +795,7 @@ static void loadconfig_general(void)
 	config_delete_var(cat, "vid_api");
 
         video_fullscreen_scale = config_get_int(cat, "video_fullscreen_scale", 0);
-        video_fullscreen_first = config_get_int(cat, "video_fullscreen_first", 1);
+        video_fullscreen_first = config_get_int(cat, "video_fullscreen_first", 0);
 
 	force_43 = !!config_get_int(cat, "force_43", 0);
 	scale = config_get_int(cat, "scale", 1);
@@ -1570,7 +1572,12 @@ static void loadconfig_removable_devices(void)
 	        wp = config_get_wstring(cat, temps, L"");
         	memcpy(cdrom_image[c].image_path, wp, (wcslen(wp) << 1) + 2);
 
-		if ((cdrom_drives[c].host_drive < 0x41) || ((cdrom_drives[c].host_drive == 0x200) && (wcslen(cdrom_image[c].image_path) == 0)))
+		if (cdrom_drives[c].host_drive < 'A')
+		{
+			cdrom_drives[c].host_drive = 0;
+		}
+
+		if ((cdrom_drives[c].host_drive == 0x200) && (wcslen(cdrom_image[c].image_path) == 0))
 		{
 			cdrom_drives[c].host_drive = 0;
 		}
@@ -1602,9 +1609,32 @@ static void loadconfig_removable_devices(void)
 
 void loadconfig(wchar_t *fn)
 {
+	int i = 0;
+
 	if (fn == NULL)
 		fn = config_file_default;
-	config_load(fn);
+	i = config_load(fn);
+
+	if (i == 0)
+	{
+		cpu = 0;
+#ifndef __unix
+		dwLanguage = 0x0409;
+#endif
+		scale = 1;
+		vid_api = 1;
+		enable_sync = 1;
+		joystick_type = 7;
+		strcpy(hdd_controller_name, "none");
+		serial_enabled[0] = 1;
+		serial_enabled[1] = 1;
+		lpt_enabled = 1;
+		fdd_set_type(0, 2);
+		fdd_set_type(1, 2);
+		mem_size = 640;
+
+		return;
+	}
 
 	/* General */
 	loadconfig_general();
@@ -1692,7 +1722,7 @@ static void saveconfig_general(void)
 	        config_set_int(cat, "video_fullscreen_scale", video_fullscreen_scale);
 	}
 
-	if (video_fullscreen_first == 1)
+	if (video_fullscreen_first == 0)
 	{
 		config_delete_var(cat, "video_fullscreen_first");
 	}

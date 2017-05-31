@@ -33,7 +33,7 @@ extern char	*get_extension(char *s);
 
 extern wchar_t	*get_extension_w(wchar_t *s);
 
-extern void	config_load(wchar_t *fn);
+extern int	config_load(wchar_t *fn);
 extern void	config_save(wchar_t *fn);
 extern void	config_dump(void);
 

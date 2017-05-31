@@ -2111,6 +2111,12 @@ int cdrom_pre_execution_check(uint8_t id, uint8_t *cdb)
 		return 0;
 	}
 
+	if ((cdrom_drives[id].handler->status(id) == CD_STATUS_PLAYING) || (cdrom_drives[id].handler->status(id) == CD_STATUS_PAUSED))
+	{
+		ready = 1;
+		goto skip_ready_check;
+	}
+
 	if (cdrom_drives[id].handler->medium_changed(id))
 	{
 		/* cdrom_log("CD-ROM %i: Medium has changed...\n", id); */
@@ -2119,6 +2125,7 @@ int cdrom_pre_execution_check(uint8_t id, uint8_t *cdb)
 
 	ready = cdrom_drives[id].handler->ready(id);
 
+skip_ready_check:
 	if (!ready && cdrom[id].unit_attention)
 	{
 		/* If the drive is not ready, there is no reason to keep the
