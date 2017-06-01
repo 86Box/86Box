@@ -142,6 +142,11 @@ uint8_t getstat(IDE *ide) { return ide->atastat; }
 
 int ide_drive_is_cdrom(IDE *ide)
 {
+	if (ide->channel >= 8)
+	{
+		return 0;
+	}
+
 	if (atapi_cdrom_drives[ide->channel] >= CDROM_NUM)
 	{
 		return 0;
@@ -233,12 +238,15 @@ int image_is_hdx(const wchar_t *s, int check_signature)
 }
 
 int ide_enable[5] = { 1, 1, 0, 0, 1 };
-int ide_irq[4] = { 14, 15, 10, 11 };
+int ide_irq[5] = { 14, 15, 10, 11, 0 };
 
 void ide_irq_raise(IDE *ide)
 {
 	if ((ide->board > 3) || ide->irqstat)
 	{
+		ide->irqstat=1;
+		ide->service=1;
+
 		return;
 	}
 
@@ -265,6 +273,7 @@ void ide_irq_lower(IDE *ide)
 {
 	if ((ide->board > 3) || !(ide->irqstat))
 	{
+		ide->irqstat=0;
 		return;
 	}
 
@@ -683,12 +692,12 @@ static int ide_set_features(IDE *ide)
 	features = ide->cylprecomp;
 	features_data = ide->secount;
 
-	pclog("Features code %02X\n", features);
+	ide_log("Features code %02X\n", features);
 
 	switch(features)
 	{
 		case 0x03:	/* Set transfer mode. */
-			pclog("Transfer mode %02X\n", features_data >> 3);
+			ide_log("Transfer mode %02X\n", features_data >> 3);
 
 			mode = (features_data >> 3);
 			submode = features_data & 7;
@@ -786,14 +795,14 @@ void resetide(void)
 	{
 		if (((hdc[d].bus == HDD_BUS_IDE_PIO_ONLY) || (hdc[d].bus == HDD_BUS_IDE_PIO_AND_DMA)) && (hdc[d].ide_channel < IDE_NUM))
 		{
-			pclog("Found IDE hard disk on channel %i\n", hdc[d].ide_channel);
+			ide_log("Found IDE hard disk on channel %i\n", hdc[d].ide_channel);
 			loadhd(&ide_drives[hdc[d].ide_channel], d, hdc[d].fn);
 			c++;
 			if (c >= (IDE_NUM + XTIDE_NUM))  break;
 		}
 		if ((hdc[d].bus == HDD_BUS_XTIDE) && (hdc[d].xtide_channel < XTIDE_NUM))
 		{
-			pclog("Found XT IDE hard disk on channel %i\n", hdc[d].xtide_channel);
+			ide_log("Found XT IDE hard disk on channel %i\n", hdc[d].xtide_channel);
 			loadhd(&ide_drives[hdc[d].xtide_channel | 8], d, hdc[d].fn);
 			c++;
 			if (c >= (IDE_NUM + XTIDE_NUM))  break;
@@ -1610,11 +1619,14 @@ void callbackide(int ide_board)
 	int c;
 	int64_t snum;
 	int cdrom_id;
-	uint64_t full_size;
+	uint64_t full_size = 0;
 
 	ide = &ide_drives[cur_ide[ide_board]];
 	ide_other = &ide_drives[cur_ide[ide_board] ^ 1];
-	full_size = (hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt);
+	if (ide->type == IDE_HDD)
+	{
+		full_size = (hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt);
+	}
 	ext_ide = ide;
 
 	if (ide_drive_is_cdrom(ide))
@@ -2274,12 +2286,12 @@ void ide_pri_enable_ex()
 {
 	if (ide_base_main[0] & 0x300)
 	{
-		pclog("Enabling primary base (%04X)...\n", ide_base_main[0]);
+		ide_log("Enabling primary base (%04X)...\n", ide_base_main[0]);
 		io_sethandler(ide_base_main[0], 0x0008, ide_read_pri, ide_read_pri_w, ide_read_pri_l, ide_write_pri, ide_write_pri_w, ide_write_pri_l, NULL);
 	}
 	if (ide_side_main[0] & 0x300)
 	{
-		pclog("Enabling primary side (%04X)...\n", ide_side_main[0]);
+		ide_log("Enabling primary side (%04X)...\n", ide_side_main[0]);
 		io_sethandler(ide_side_main[0], 0x0001, ide_read_pri, NULL,           NULL,           ide_write_pri, NULL,            NULL           , NULL);
 	}
 }
