@@ -90,10 +90,12 @@ BEGIN
                 MENUITEM "&Square pixels",              IDM_VID_FS_SQ
                 MENUITEM "&Integer scale",              IDM_VID_FS_INT
             END
-            MENUITEM "&Inverted VGA monitor",       IDM_VID_INVERT
             MENUITEM SEPARATOR
+            MENUITEM "&Inverted VGA monitor",       IDM_VID_INVERT
             MENUITEM "F&orce 4:3 display ratio",    IDM_VID_FORCE43
             MENUITEM "E&GA/(S)VGA overscan",        IDM_VID_OVERSCAN
+            MENUITEM "Change contrast for &monochrome display", IDM_VID_CGACON
+
             MENUITEM SEPARATOR
             MENUITEM "Take s&creenshot\tCtrl+F11",  IDM_VID_SCREENSHOT
         END

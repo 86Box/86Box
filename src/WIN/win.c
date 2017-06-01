@@ -50,6 +50,7 @@
 #include "plat_midi.h"
 
 #include "win.h"
+#include "win_cgapal.h"
 #include "win_ddraw.h"
 #include "win_d3d.h"
 #include "win_language.h"
@@ -1512,6 +1513,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
         CheckMenuItem(menu, IDM_VID_REMEMBER, window_remember ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(menu, IDM_VID_SCALE_1X + scale, MF_CHECKED);
 
+	CheckMenuItem(menu, IDM_VID_CGACON, vid_cga_contrast ? MF_CHECKED : MF_UNCHECKED);
+
         d=romset;
         for (c=0;c<ROM_MAX;c++)
         {
@@ -1933,6 +1936,13 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
 				case IDM_VID_SCREENSHOT:
 					take_screenshot();
+					break;
+
+				case IDM_VID_CGACON:
+					vid_cga_contrast = !vid_cga_contrast;
+					CheckMenuItem(menu, IDM_VID_CGACON, vid_cga_contrast ? MF_CHECKED : MF_UNCHECKED);
+					cgapal_rebuild();
+					saveconfig();
 					break;
 
 #ifdef ENABLE_LOG_TOGGLES

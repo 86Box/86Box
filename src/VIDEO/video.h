@@ -111,6 +111,7 @@ void ddraw_fs_take_screenshot(wchar_t *fn);
 #endif
 
 extern int cga_palette;
+extern int vid_cga_contrast;
 
 void loadfont(wchar_t *s, int format);
 void initvideo();

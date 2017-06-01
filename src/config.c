@@ -804,6 +804,8 @@ static void loadconfig_general(void)
 		scale = 3;
 	}
 	enable_overscan = !!config_get_int(cat, "enable_overscan", 0);
+	vid_cga_contrast = !!config_get_int(cat, "vid_cga_contrast", 0);
+
 
         window_remember = config_get_int(cat, "window_remember", 0);
 
@@ -1758,9 +1760,20 @@ static void saveconfig_general(void)
 	        config_set_int(cat, "enable_overscan", enable_overscan);
 	}
 
-        config_set_int(cat, "window_remember", window_remember);
+	if (vid_cga_contrast == 0)
+	{
+		config_delete_var(cat, "vid_cga_contrast");
+	}
+	else
+	{
+	        config_set_int(cat, "vid_cga_contrast", vid_cga_contrast);
+	}
+
+
 	if (window_remember)
 	{
+	        config_set_int(cat, "window_remember", window_remember);
+
 		sprintf(temps, "%i, %i, %i, %i", window_w, window_h, window_x, window_y);
 		config_set_string(cat, "window_coordinates", temps);
 	}

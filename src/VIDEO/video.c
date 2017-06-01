@@ -59,6 +59,7 @@
 #include "vid_wy700.h"
 
 
+int vid_cga_contrast = 0;
 int cga_palette = 0;
 
 typedef struct

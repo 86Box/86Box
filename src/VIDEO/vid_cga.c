@@ -77,10 +77,6 @@ void cga_out(uint16_t addr, uint8_t val, void *p)
 		if ((cga->cgamode ^ val) & 1)
 		{
 			cga_palette = (cga->rgb_type << 1);
-			if (!(val & 1) && (cga_palette > 0) && (cga_palette < 8))
-			{
-				cga_palette--;
-			}
 			cgapal_rebuild();
 		}
 #endif
