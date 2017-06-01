@@ -26,9 +26,6 @@
 #include "vid_ega_render.h"
 
 
-int invert_display = 0;
-
-
 int ega_display_line(ega_t *ega)
 {
 	int y_add = (enable_overscan) ? (overscan_y >> 1) : 0;

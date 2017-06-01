@@ -76,6 +76,8 @@ int cpu_hasCR4;
 int cpu_use_dynarec;
 int cpu_pci_speed;
 
+int hasfpu;
+
 uint64_t cpu_CR4_mask;
 
 int cpu_cycles_read, cpu_cycles_read_l, cpu_cycles_write, cpu_cycles_write_l;
