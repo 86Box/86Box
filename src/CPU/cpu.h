@@ -117,6 +117,7 @@ extern int cpu_iscyrix;
 extern int cpu_16bitbus;
 extern int cpu_busspeed;
 extern int cpu_multi;
+extern int cpu_pci_speed;
 
 extern int cpu_hasrdtsc;
 extern int cpu_hasMSR;

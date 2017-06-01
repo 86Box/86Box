@@ -74,6 +74,7 @@ int cpu_hasrdtsc;
 int cpu_hasMMX, cpu_hasMSR;
 int cpu_hasCR4;
 int cpu_use_dynarec;
+int cpu_pci_speed;
 
 uint64_t cpu_CR4_mask;
 
@@ -606,6 +607,7 @@ void cpu_set()
         if (cpu_s->multi) 
            cpu_busspeed = cpu_s->rspeed / cpu_s->multi;
         cpu_multi = cpu_s->multi;
+	cpu_pci_speed = cpu_s->pci_speed;
         cpu_hasrdtsc = 0;
         cpu_hasMMX = 0;
         cpu_hasMSR = 0;
