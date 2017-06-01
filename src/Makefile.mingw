@@ -170,7 +170,8 @@ SNDOBJ	= sound.o \
 	  snd_sn76489.o snd_ssi2001.o snd_wss.o \
 	  snd_ym7128.o
 VIDOBJ	= video.o \
-	  vid_cga.o vid_cga_comp.o vid_mda.o vid_ega.o \
+	  vid_cga.o vid_cga_comp.o vid_mda.o \
+	  vid_ega.o vid_ega_render.o \
 	  vid_vga.o vid_svga.o vid_svga_render.o \
 	  vid_hercules.o vid_herculesplus.o vid_incolor.o \
 	  vid_colorplus.o \
