@@ -40,12 +40,12 @@ static void xtide_write(uint16_t port, uint8_t val, void *p)
         switch (port & 0xf)
         {
                 case 0x0:
-                writeidew(8, val | (xtide->data_high << 8));
+                writeidew(4, val | (xtide->data_high << 8));
                 return;
                 
                 case 0x1: case 0x2: case 0x3:
                 case 0x4: case 0x5: case 0x6: case 0x7:
-                writeide(8, (port  & 0xf) | 0x1f0, val);
+                writeide(4, (port  & 0xf) | 0x1f0, val);
                 return;
                 
                 case 0x8:
@@ -53,7 +53,7 @@ static void xtide_write(uint16_t port, uint8_t val, void *p)
                 return;
                 
                 case 0xe:
-                writeide(8, 0x3f6, val);
+                writeide(4, 0x3f6, val);
                 return;
         }
 }
@@ -67,19 +67,19 @@ static uint8_t xtide_read(uint16_t port, void *p)
         switch (port & 0xf)
         {
                 case 0x0:
-                tempw = readidew(8);
+                tempw = readidew(4);
                 xtide->data_high = tempw >> 8;
                 return tempw & 0xff;
                                
                 case 0x1: case 0x2: case 0x3:
                 case 0x4: case 0x5: case 0x6: case 0x7:
-                return readide(8, (port  & 0xf) | 0x1f0);
+                return readide(4, (port  & 0xf) | 0x1f0);
                 
                 case 0x8:
                 return xtide->data_high;
                 
                 case 0xe:
-                return readide(8, 0x3f6);
+                return readide(4, 0x3f6);
 
 		default:
 		return 0xff;
