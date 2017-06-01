@@ -854,7 +854,7 @@ static int image_readtoc_session(uint8_t id, unsigned char *b, int msf, int maxl
         return len;
 }
 
-static int image_readtoc_raw(uint8_t id, unsigned char *b, int msf, int maxlen)
+static int image_readtoc_raw(uint8_t id, unsigned char *b, int maxlen)
 {
         int track;
         int len = 4;

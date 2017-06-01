@@ -2421,7 +2421,9 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				ret = cdrom_pass_through(id, &len, cdrom[id].current_cdb, cdbufferb);
 				if (!ret)
 				{
-					return;
+					/* return; */
+					cdrom_sense_key = cdrom_asc = cdrom_ascq = 0;
+					goto cdrom_readtoc_fallback;
 				}
 				alloc_length = cdbufferb[0];
 				alloc_length <<= 8;
@@ -2434,6 +2436,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 			}
 			else
 			{
+cdrom_readtoc_fallback:
 				toc_format = cdb[2] & 0xf;
 
 				if (toc_format == 0)
@@ -2451,7 +2454,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 						cdbufferb[0] = 0; cdbufferb[1] = 0xA;
 						break;
 					case 2: /*Raw*/
-						len = cdrom_drives[id].handler->readtoc_raw(id, cdbufferb, msf, max_len);
+						len = cdrom_drives[id].handler->readtoc_raw(id, cdbufferb, max_len);
 						break;
 					default:
 						cdrom_invalid_field(id);

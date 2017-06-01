@@ -46,7 +46,7 @@ typedef struct CDROM
 	void (*audio_stop)(uint8_t id);
 	int (*readtoc)(uint8_t id, uint8_t *b, uint8_t starttrack, int msf, int maxlen, int single);
 	int (*readtoc_session)(uint8_t id, uint8_t *b, int msf, int maxlen);
-	int (*readtoc_raw)(uint8_t id, uint8_t *b, int msf, int maxlen);
+	int (*readtoc_raw)(uint8_t id, uint8_t *b, int maxlen);
 	uint8_t (*getcurrentsubchannel)(uint8_t id, uint8_t *b, int msf);
 	int (*pass_through)(uint8_t id, uint8_t *in_cdb, uint8_t *b, uint32_t *len);
 	int (*readsector_raw)(uint8_t id, uint8_t *buffer, int sector, int ismsf, int cdrom_sector_type, int cdrom_sector_flags, int *len);
