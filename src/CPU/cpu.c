@@ -1,23 +1,6 @@
-/*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
- *
- *		This file is part of the 86Box distribution.
- *
- *		CPU type handler.
- *
- * Version:	@(#)cpu.c	1.0.0	2017/05/30
- *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		leilei,
- *		Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 leilei.
- *		Copyright 2016-2017 Miran Grca.
- */
-
+/* Copyright holders: Sarah Walker, Tenshi, leilei
+   see COPYING for more details
+*/
 #include "../ibm.h"
 #include "cpu.h"
 #include "../model.h"
@@ -92,15 +75,12 @@ int cpu_hasMMX, cpu_hasMSR;
 int cpu_hasCR4;
 int cpu_use_dynarec;
 
-int hasfpu;
-
 uint64_t cpu_CR4_mask;
 
 int cpu_cycles_read, cpu_cycles_read_l, cpu_cycles_write, cpu_cycles_write_l;
 int cpu_prefetch_cycles, cpu_prefetch_width;
 int cpu_waitstates;
 int cpu_cache_int_enabled, cpu_cache_ext_enabled;
-int cpu_pci_speed;
 
 int is286, is386;
 int israpidcad, is_pentium;
@@ -425,7 +405,7 @@ CPU cpus_Cx486[] =
           {"6x86MX-PR300",  CPU_Cx6x86MX, 18, 233333333, 3, 33333333, 0x600, 0x600, 0x0454, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 21,21,7,7},
           {"6x86MX-PR333",  CPU_Cx6x86MX, 18, 250000000, 3, 41666667, 0x600, 0x600, 0x0453, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 20,20,9,9},
           {"6x86MX-PR366",  CPU_Cx6x86MX, 18, 250000000, 3, 33333333, 0x600, 0x600, 0x0452, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,12,12},
-          {"6x86MX-PR400",  CPU_Cx6x86MX, 18, 285000000, 3, 41666667, 0x600, 0x600, 0x0453, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 18,18,9,9},
+          {"6x86MX-PR400",  CPU_Cx6x86MX, 18, 285000000, 3, 31666667, 0x600, 0x600, 0x0453, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 18,18,9,9},
           {"",             -1,        0, 0, 0}
  };
  
@@ -637,6 +617,11 @@ void cpu_set()
 		if (enable_external_fpu)
 		{
 			hasfpu = 1;
+			if (cpu_s->cpu_type == CPU_i486SX)
+			{
+				/* The 487SX is a full implementation of the 486DX and takes over the entire CPU's operation. */
+				cpu_s->cpu_type = CPU_i486DX;
+			}
 		}
 	}
 

@@ -1,21 +1,3 @@
-/*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
- *
- *		This file is part of the 86Box distribution.
- *
- *		Miscellaneous x86 CPU Instructions.
- *
- * Version:	@(#)x86_ops_misc.h	1.0.0	2017/05/30
- *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
- */
-
 static int opCBW(uint32_t fetchdat)
 {
         AH = (AL & 0x80) ? 0xff : 0;
@@ -773,17 +755,9 @@ static int opLOADALL(uint32_t fetchdat)
         ss = readmemw(0, 0x842) | (readmemb(0, 0x844) << 16);
         _ss.access = readmemb(0, 0x845);
         _ss.limit = readmemw(0, 0x846);
-        if (_ss.base == 0 && _ss.limit_low == 0 && _ss.limit_high == 0xffffffff)
-                cpu_cur_status |= CPU_STATUS_FLATSS;
-        else
-                cpu_cur_status &= ~CPU_STATUS_FLATSS;
         ds = readmemw(0, 0x848) | (readmemb(0, 0x84A) << 16);
         _ds.access = readmemb(0, 0x84B);
         _ds.limit = readmemw(0, 0x84C);
-        if (_ds.base == 0 && _ds.limit_low == 0 && _ds.limit_high == 0xffffffff)
-                cpu_cur_status |= CPU_STATUS_FLATDS;
-        else
-                cpu_cur_status &= ~CPU_STATUS_FLATDS;
         gdt.base = readmemw(0, 0x84E) | (readmemb(0, 0x850) << 16);
         gdt.limit = readmemw(0, 0x852);
         ldt.base = readmemw(0, 0x854) | (readmemb(0, 0x856) << 16);
@@ -823,29 +797,8 @@ static void loadall_load_segment(uint32_t addr, x86seg *s)
 
 	if (s == &_cs)  use32 = (segdat3 & 0x40) ? 0x300 : 0;
 	if (s == &_ss)  stack32 = (segdat3 & 0x40) ? 1 : 0;
-	cpu_cur_status &= ~(CPU_STATUS_USE32 | CPU_STATUS_STACK32);
-	if (use32)
-	       cpu_cur_status |= CPU_STATUS_USE32;
-	if (stack32)
-	       cpu_cur_status |= CPU_STATUS_STACK32;
 
 	set_segment_limit(s, segdat3);
-
-        if (s == &_ds)
-        {
-                if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
-
-                       cpu_cur_status |= CPU_STATUS_FLATDS;
-                else
-                        cpu_cur_status &= ~CPU_STATUS_FLATDS;
-        }
-        if (s == &_ss)
-        {
-                if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
-                        cpu_cur_status |= CPU_STATUS_FLATSS;
-                else
-                        cpu_cur_status &= ~CPU_STATUS_FLATSS;
-        }
 }
 
 static int opLOADALL386(uint32_t fetchdat)

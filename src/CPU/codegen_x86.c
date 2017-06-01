@@ -1401,11 +1401,12 @@ void codegen_block_init(uint32_t phys_addr)
         block->_cs = cs;
         block->pnt = block_current;
         block->phys = phys_addr;
+        block->use32 = use32;
+        block->stack32 = stack32;
         block->next = block->prev = NULL;
         block->next_2 = block->prev_2 = NULL;
         block->page_mask = 0;
         block->flags = CODEBLOCK_STATIC_TOP;
-	block->status = cpu_cur_status;
         
         block->was_recompiled = 0;
 

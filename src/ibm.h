@@ -177,14 +177,6 @@ struct
 
 #define cycles cpu_state._cycles
 
-extern uint32_t cpu_cur_status;
-
-#define CPU_STATUS_USE32   (1 << 0)
-#define CPU_STATUS_STACK32 (1 << 1)
-#define CPU_STATUS_FLATDS  (1 << 2)
-#define CPU_STATUS_FLATSS  (1 << 3)
-
-
 #define cpu_rm  cpu_state.rm_data.rm_mod_reg.rm
 #define cpu_mod cpu_state.rm_data.rm_mod_reg.mod
 #define cpu_reg cpu_state.rm_data.rm_mod_reg.reg
