@@ -52,12 +52,31 @@ void i440fx_write(int func, int addr, uint8_t val, void *priv)
         if (func)
            return;
            
+        if ((addr >= 0x10) && (addr < 0x4f))
+                return;
+                
         switch (addr)
         {
                 case 0x00: case 0x01: case 0x02: case 0x03:
                 case 0x08: case 0x09: case 0x0a: case 0x0b:
-                case 0x0e:
+                case 0x0c: case 0x0e:
                 return;
+                
+                case 0x04: /*Command register*/
+                val &= 0x02;
+                val |= 0x04;
+                break;
+                case 0x05:
+                val = 0;
+                break;
+                
+                case 0x06: /*Status*/
+                val = 0;
+                break;
+                case 0x07:
+                val &= 0x80;
+                val |= 0x02;
+                break;
                 
                 case 0x59: /*PAM0*/
                 if ((card_i440fx[0x59] ^ val) & 0xf0)
@@ -65,7 +84,6 @@ void i440fx_write(int func, int addr, uint8_t val, void *priv)
                         i440fx_map(0xf0000, 0x10000, val >> 4);
                         shadowbios = (val & 0x10);
                 }
-                // pclog("i440fx_write : PAM0 write %02X\n", val);
                 break;
                 case 0x5a: /*PAM1*/
                 if ((card_i440fx[0x5a] ^ val) & 0x0f)
@@ -96,14 +114,12 @@ void i440fx_write(int func, int addr, uint8_t val, void *priv)
                         i440fx_map(0xe0000, 0x04000, val & 0xf);
                 if ((card_i440fx[0x5e] ^ val) & 0xf0)
                         i440fx_map(0xe4000, 0x04000, val >> 4);
-                // pclog("i440fx_write : PAM5 write %02X\n", val);
                 break;
                 case 0x5f: /*PAM6*/
                 if ((card_i440fx[0x5f] ^ val) & 0x0f)
                         i440fx_map(0xe8000, 0x04000, val & 0xf);
                 if ((card_i440fx[0x5f] ^ val) & 0xf0)
                         i440fx_map(0xec000, 0x04000, val >> 4);
-                // pclog("i440fx_write : PAM6 write %02X\n", val);
                 break;
         }
                 

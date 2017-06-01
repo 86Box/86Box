@@ -16,8 +16,8 @@
  *		Copyright 2016-2017 Miran Grca.
  */
 
-void piix_init(int card);
-void piix3_init(int card);
+void piix_init(int card, int pci_a, int pci_b, int pci_c, int pci_d);
+void piix3_init(int card, int pci_a, int pci_b, int pci_c, int pci_d);
 
 uint8_t piix_bus_master_read(uint16_t port, void *priv);
 void piix_bus_master_write(uint16_t port, uint8_t val, void *priv);

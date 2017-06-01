@@ -52,12 +52,31 @@ void i430vx_write(int func, int addr, uint8_t val, void *priv)
         if (func)
            return;
            
+        if ((addr >= 0x10) && (addr < 0x4f))
+                return;
+                
         switch (addr)
         {
                 case 0x00: case 0x01: case 0x02: case 0x03:
                 case 0x08: case 0x09: case 0x0a: case 0x0b:
-                case 0x0e:
+                case 0x0c: case 0x0e:
                 return;
+                
+                case 0x04: /*Command register*/
+                val &= 0x02;
+                val |= 0x04;
+                break;
+                case 0x05:
+                val = 0;
+                break;
+                
+                case 0x06: /*Status*/
+                val = 0;
+                break;
+                case 0x07:
+                val &= 0x80;
+                val |= 0x02;
+                break;
                 
                 case 0x59: /*PAM0*/
                 if ((card_i430vx[0x59] ^ val) & 0xf0)

@@ -94,12 +94,15 @@ typedef struct s3_t
         int chip;
         
         uint8_t id, id_ext, id_ext_pci;
+
+	uint8_t int_line;
         
         int packed_mmio;
 
         uint32_t linear_base, linear_size;
         
         uint8_t pci_regs[256];
+	int card;
 
         uint32_t vram_mask;
         
@@ -150,7 +153,15 @@ typedef struct s3_t
         int blitter_busy;
         uint64_t blitter_time;
         uint64_t status_time;
+
+	uint8_t subsys_cntl, subsys_stat;
 } s3_t;
+
+#define INT_VSY      (1 << 0)
+#define INT_GE_BSY   (1 << 1)
+#define INT_FIFO_OVR (1 << 2)
+#define INT_FIFO_EMP (1 << 3)
+#define INT_MASK     0xf
 
 void s3_updatemapping();
 
@@ -171,6 +182,19 @@ static void s3_wait_fifo_idle(s3_t *s3)
                 wake_fifo_thread(s3);
                 thread_wait_event(s3->fifo_not_full_event, 1);
         }
+}
+
+static void s3_update_irqs(s3_t *s3)
+{
+	if (!PCI)
+	{
+		return;
+	}
+
+        if (s3->subsys_cntl & s3->subsys_stat & INT_MASK)
+                pci_set_irq(s3->card, PCI_INTA);
+        else
+                pci_clear_irq(s3->card, PCI_INTA);
 }
 
 void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_t *s3);
@@ -725,7 +749,17 @@ static void fifo_thread(void *param)
                         s3->blitter_time += end_time - start_time;
                 }
                 s3->blitter_busy = 0;
+                s3->subsys_stat |= INT_FIFO_EMP;
+                s3_update_irqs(s3);
         }
+}
+
+static void s3_vblank_start(svga_t *svga)
+{
+        s3_t *s3 = (s3_t *)svga->p;
+
+        s3->subsys_stat |= INT_VSY;
+        s3_update_irqs(s3);
 }
 
 static void s3_queue(s3_t *s3, uint32_t addr, uint32_t val, uint32_t type)
@@ -1129,9 +1163,12 @@ void s3_accel_out(uint16_t port, uint8_t val, void *p)
         else switch (port)
         {
                 case 0x42e8:
+                s3->subsys_stat &= ~val;
+                s3_update_irqs(s3);
                 break;
                 case 0x42e9:
-                s3->accel.subsys_cntl = val;
+                s3->subsys_cntl = val;
+                s3_update_irqs(s3);
                 break;
                 case 0x46e8:
                 s3->accel.setup_md = val;
@@ -1161,9 +1198,9 @@ uint8_t s3_accel_in(uint16_t port, void *p)
         switch (port)
         {
                 case 0x42e8:
-                return 0;
+                return s3->subsys_stat;
                 case 0x42e9:
-                return 0;
+                return s3->subsys_cntl;
 
                 case 0x82e8:
                 s3_wait_fifo_idle(s3);
@@ -2060,6 +2097,9 @@ uint8_t s3_pci_read(int func, int addr, void *p)
                 case 0x31: return 0x00;
                 case 0x32: return s3->pci_regs[0x32];
                 case 0x33: return s3->pci_regs[0x33];
+                
+                case 0x3c: return s3->int_line;
+                case 0x3d: return PCI_INTA;
         }
         return 0;
 }
@@ -2072,7 +2112,7 @@ void s3_pci_write(int func, int addr, uint8_t val, void *p)
         switch (addr)
         {
                 case PCI_REG_COMMAND:
-                s3->pci_regs[PCI_REG_COMMAND] = val & 0x27;
+                s3->pci_regs[PCI_REG_COMMAND] = val & 0x23;
                 if (val & PCI_COMMAND_IO)
                         s3_io_set(s3);
                 else
@@ -2100,6 +2140,10 @@ void s3_pci_write(int func, int addr, uint8_t val, void *p)
                 {
                         mem_mapping_disable(&s3->bios_rom.mapping);
                 }
+                return;
+                
+                case 0x3c:
+                s3->int_line = val;
                 return;
         }
 }
@@ -2153,6 +2197,8 @@ static void *s3_init(wchar_t *bios_fn, int chip)
                 svga->crtc[0x36] = 1 | (3 << 2) | (1 << 4) | (vram_sizes[vram] << 5);
         svga->crtc[0x37] = 1 | (7 << 5);
 
+	svga->vblank_start = s3_vblank_start;
+
         svga->crtc[0x53] = 1 << 3;
         svga->crtc[0x59] = 0x70;
 
@@ -2160,9 +2206,9 @@ static void *s3_init(wchar_t *bios_fn, int chip)
 
         if (PCI)
 	{
-	        pci_add(s3_pci_read, s3_pci_write, s3);
+	        s3->card = pci_add(s3_pci_read, s3_pci_write, s3);
 	}
-        
+
         s3->pci_regs[0x04] = 3;
         
         s3->pci_regs[0x30] = 0x00;
@@ -2174,6 +2220,8 @@ static void *s3_init(wchar_t *bios_fn, int chip)
         s3->wake_fifo_thread = thread_create_event();
         s3->fifo_not_full_event = thread_create_event();
         s3->fifo_thread = thread_create(fifo_thread, s3);
+
+	s3->int_line = 0;
  
         return s3;
 }

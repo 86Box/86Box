@@ -107,12 +107,40 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
         }
         else
         {
+                if (addr >= 0x0f && addr < 0x4c)
+                        return;
+
                 switch (addr)
                 {
                         case 0x00: case 0x01: case 0x02: case 0x03:
                         case 0x08: case 0x09: case 0x0a: case 0x0b:
                         case 0x0e:
                         return;
+                        
+                        case 0x60:
+                        if (val & 0x80)
+                                pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
+                        else
+                                pci_set_irq_routing(PCI_INTA, val & 0xf);
+                        break;
+                        case 0x61:
+                        if (val & 0x80)
+                                pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
+                        else
+                                pci_set_irq_routing(PCI_INTB, val & 0xf);
+                        break;
+                        case 0x62:
+                        if (val & 0x80)
+                                pci_set_irq_routing(PCI_INTC, PCI_IRQ_DISABLED);
+                        else
+                                pci_set_irq_routing(PCI_INTC, val & 0xf);
+                        break;
+                        case 0x63:
+                        if (val & 0x80)
+                                pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
+                        else
+                                pci_set_irq_routing(PCI_INTD, val & 0xf);
+                        break;
                 }
 		if (addr == 0x4C)
 		{
@@ -576,7 +604,7 @@ void piix_reset(void)
         card_piix[0x00] = 0x86; card_piix[0x01] = 0x80; /*Intel*/
         card_piix[0x02] = 0x2e; card_piix[0x03] = 0x12; /*82371FB (PIIX)*/
         card_piix[0x04] = 0x07; card_piix[0x05] = 0x00;
-        card_piix[0x06] = 0x00; card_piix[0x07] = 0x02;
+        card_piix[0x06] = 0x80; card_piix[0x07] = 0x02;
         card_piix[0x08] = 0x00; /*A0 stepping*/
         card_piix[0x09] = 0x00; card_piix[0x0a] = 0x01; card_piix[0x0b] = 0x06;
         card_piix[0x0e] = 0x80; /*Multi-function device*/
@@ -615,7 +643,7 @@ void piix3_reset(void)
         card_piix[0x00] = 0x86; card_piix[0x01] = 0x80; /*Intel*/
         card_piix[0x02] = 0x00; card_piix[0x03] = 0x70; /*82371SB (PIIX3)*/
         card_piix[0x04] = 0x07; card_piix[0x05] = 0x00;
-        card_piix[0x06] = 0x00; card_piix[0x07] = 0x02;
+        card_piix[0x06] = 0x80; card_piix[0x07] = 0x02;
         card_piix[0x08] = 0x00; /*A0 stepping*/
         card_piix[0x09] = 0x00; card_piix[0x0a] = 0x01; card_piix[0x0b] = 0x06;
         card_piix[0x0e] = 0x80; /*Multi-function device*/
@@ -650,7 +678,7 @@ void piix3_reset(void)
 	card_piix_ide[0x44] = 0x00;
 }
 
-void piix_init(int card)
+void piix_init(int card, int pci_a, int pci_b, int pci_c, int pci_d)
 {
         pci_add_specific(card, piix_read, piix_write, NULL);
 
@@ -669,9 +697,14 @@ void piix_init(int card)
 	dma_alias_set();
 
 	pci_reset_handler.pci_set_reset = piix_reset;
+
+        pci_set_card_routing(pci_a, PCI_INTA);
+        pci_set_card_routing(pci_b, PCI_INTB);
+        pci_set_card_routing(pci_c, PCI_INTC);
+        pci_set_card_routing(pci_d, PCI_INTD);
 }
 
-void piix3_init(int card)
+void piix3_init(int card, int pci_a, int pci_b, int pci_c, int pci_d)
 {
         pci_add_specific(card, piix_read, piix_write, NULL);
         
@@ -690,4 +723,9 @@ void piix3_init(int card)
 	dma_alias_set();
 
 	pci_reset_handler.pci_set_reset = piix3_reset;
+
+        pci_set_card_routing(pci_a, PCI_INTA);
+        pci_set_card_routing(pci_b, PCI_INTB);
+        pci_set_card_routing(pci_c, PCI_INTC);
+        pci_set_card_routing(pci_d, PCI_INTD);
 }

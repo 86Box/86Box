@@ -6,11 +6,13 @@
  *
  *		Emulation of Intel System I/O PCI chip.
  *
- * Version:	@(#)sio.h	1.0.0	2017/05/30
+ * Version:	@(#)sio.h	1.0.1	2017/06/02
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2017-2017 Miran Grca.
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
  */
 
 void trc_init(void);
-void sio_init(int card);
+void sio_init(int card, int pci_a, int pci_b, int pci_c, int pci_d);
