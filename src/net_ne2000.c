@@ -1636,6 +1636,7 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 		nic_update_bios(dev);
 		return;
 
+#if 0
 	case 0x3C:			/* PCI_ILR */
 		if (val != 0xFF) {
 			nelog(1, "%s: IRQ now: %i\n", dev->name, val);
@@ -1643,6 +1644,7 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 		}
 		dev->pci_regs[addr] = dev->base_irq;
 		return;
+#endif
     }
 }
 
@@ -2219,7 +2221,6 @@ static device_config_t ne2000_config[] =
 
 static device_config_t rtl8029as_config[] =
 {
-#if 0
 	{
 		"irq", "IRQ", CONFIG_SELECTION, "", 10,
 		{
@@ -2243,7 +2244,6 @@ static device_config_t rtl8029as_config[] =
 			}
 		},
 	},
-#endif
 #if 1
 	/*
 	 * WTF.

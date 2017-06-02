@@ -532,14 +532,16 @@ BuslogicLog(const char *format, ...)
     }
 #endif
 }
-#define pclog	BuslogicLog
+/* #define pclog	BuslogicLog */
 
 
 static void
 BuslogicInterrupt(Buslogic_t *bl, int set)
 {
+#if 0
 	if (bl->chip != CHIP_BUSLOGIC_PCI)
 	{
+#endif
 		if (set)
 		{
 			picint(1 << bl->Irq);
@@ -548,18 +550,20 @@ BuslogicInterrupt(Buslogic_t *bl, int set)
 		{
 			picintc(1 << bl->Irq);
 		}
+#if 0
 	}
 	else
 	{
 	        if (set)
 		{
-        	        pci_set_irq(bl->Card, PCI_INTA);
+        	        pci_set_irq(bl->Card, PCI_INTD);
 		}
 	        else
 		{
-        	        pci_clear_irq(bl->Card, PCI_INTA);
+        	        pci_clear_irq(bl->Card, PCI_INTD);
 		}
 	}
+#endif
 }
 
 
@@ -1254,7 +1258,14 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 
 				case 0x0B:
 					bl->DataBuf[0] = (1 << bl->DmaChannel);
-					bl->DataBuf[1] = (1<<(bl->Irq-9));
+					if ((bl->Irq >= 9) && (bl->Irq <= 15))
+					{
+						bl->DataBuf[1] = (1<<(bl->Irq-9));
+					}
+					else
+						bl->DataBuf[1] = 0;
+					{
+					}
 					bl->DataBuf[2] = 7;	/* HOST ID */
 					bl->DataReplyLeft = 3;
 					break;
@@ -2127,7 +2138,7 @@ BuslogicPCIRead(int func, int addr, void *p)
 	case 0x3C:
 		return bl->Irq;
 	case 0x3D:
-		return 1;
+		return 4;
     }
 
     return(0);
@@ -2138,16 +2149,17 @@ static void
 BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 {
     Buslogic_t *bl = (Buslogic_t *)p;
+    uint8_t valxor;
 
     switch (addr) {
 	case 0x04:
-		io_removehandler(bl->PCIBase, 4,
+		valxor = (val & 0x27) ^ buslogic_pci_regs[addr];
+		if (valxor & PCI_COMMAND_IO) {
+			io_removehandler(bl->PCIBase, 4,
 				 BuslogicRead, BuslogicReadW, BuslogicReadL,
 				 BuslogicWrite, BuslogicWriteW, BuslogicWriteL,
 				 bl);
-		mem_mapping_disable(&bl->mmio_mapping);
-		if (val & PCI_COMMAND_IO) {
-			if (bl->PCIBase != 0) {
+			if ((bl->PCIBase != 0) && (val & PCI_COMMAND_IO)) {
 				io_sethandler(bl->PCIBase, 0x0020,
 					      BuslogicRead, BuslogicReadW,
 					      BuslogicReadL, BuslogicWrite,
@@ -2155,13 +2167,14 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 					      bl);
 			}
 		}
-		if (val & PCI_COMMAND_MEM) {
-			if (bl->PCIBase != 0) {
+		if (valxor & PCI_COMMAND_MEM) {
+			mem_mapping_disable(&bl->mmio_mapping);
+			if ((bl->MMIOBase != 0) & (val & PCI_COMMAND_MEM)) {
 				mem_mapping_set_addr(&bl->mmio_mapping,
 						     bl->MMIOBase, 0x20);
 			}
 		}
-		buslogic_pci_regs[addr] = val;
+		buslogic_pci_regs[addr] = val & 0x27;
 		break;
 
 	case 0x10:
@@ -2215,6 +2228,7 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 		}
 		return;
 
+#if 0
 	case 0x3C:
 		buslogic_pci_regs[addr] = val;
 		if (val != 0xFF) {
@@ -2222,6 +2236,7 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 			bl->Irq = val;
 		}
 		return;
+#endif
     }
 }
 
@@ -2291,9 +2306,11 @@ BuslogicInit(int chip)
 
 	buslogic_pci_bar[0].addr_regs[0] = 1;
 	buslogic_pci_bar[1].addr_regs[0] = 0;
-       	buslogic_pci_regs[0x04] = 1;
+       	buslogic_pci_regs[0x04] = 3;
+#if 0
         buslogic_pci_regs[0x05] = 0;
         buslogic_pci_regs[0x07] = 2;
+#endif
 	buslogic_pci_bar[2].addr = 0;
 
 	mem_mapping_add(&bl->mmio_mapping, 0xfffd0000, 0x20,
