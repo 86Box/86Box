@@ -4,10 +4,13 @@
  *		PC systems and compatibles from 1981 through fairly recent
  *		system designs based on the PCI bus.
  *
- *		Emulation of BusLogic BT-542B ISA and BT-958D PCI SCSI
- *		controllers.
+ *		Emulation of BusLogic ISA and PCI SCSI controllers. Boards
+ *		supported:
  *
- * Version:	@(#)scsi_buslogic.c	1.0.0	2017/05/30
+ *		  0 - BT-542B ISA;
+ *		  1 - BT-958 PCI (but BT-542B ISA on non-PCI machines)
+ *
+ * Version:	@(#)scsi_buslogic.c	1.0.2	2017/06/02
  *
  * Author:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -16,13 +19,6 @@
  *		Copyright 2016-2017 Miran Grca.
  *		Copyright 2017-2017 Fred N. van Kempen.
  */
-
-/*Buslogic SCSI emulation*/
-
-/* Emulated SCSI controllers:
-	0 - BusLogic BT-542B ISA;
-	1 - BusLogic BT-958 PCI (but BT-542B ISA on non-PCI machines). */
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
