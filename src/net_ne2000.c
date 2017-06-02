@@ -11,7 +11,7 @@
  * NOTE:	Its still a mess, but we're getting there. The file will
  *		also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.7	2017/05/25
+ * Version:	@(#)net_ne2000.c	1.0.8	2017/06/01
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -229,8 +229,7 @@ typedef struct {
     uint8_t	maclocal[6];		/* configured MAC (local) address */
     uint8_t	eeprom[128];		/* for RTL8029AS */
     rom_t	bios_rom;
-
-    int		card;
+    int		card;			/* PCI card slot */
 } nic_t;
 
 
@@ -255,31 +254,18 @@ nelog(int lvl, const char *fmt, ...)
 
 
 static void
-nic_interrupt(void *priv, int set)
+nic_interrupt(nic_t *dev, int set)
 {
-	nic_t *dev = (nic_t *) priv;
-
-	if (!PCI || strcmp(dev->name, "RTL8029AS"))
-	{
-		if (set)
-		{
-			picint(1 << dev->base_irq);
-		}
-		else
-		{
-			picintc(1 << dev->base_irq);
-		}
-	}
-	else
-	{
-	        if (set)
-		{
-        	        pci_set_irq(dev->card, PCI_INTA);
-		}
-	        else
-		{
-        	        pci_clear_irq(dev->card, PCI_INTA);
-		}
+    if (PCI && dev->is_pci) {
+	if (set)
+		pci_set_irq(dev->card, PCI_INTA);
+	  else
+		pci_clear_irq(dev->card, PCI_INTA);
+    } else {
+	if (set)
+		picint(1<<dev->base_irq);
+	  else
+		picintc(1<<dev->base_irq);
 	}
 }
 
@@ -504,9 +490,8 @@ asic_read(nic_t *dev, uint32_t off, unsigned int len)
 		/* If all bytes have been written, signal remote-DMA complete */
 		if (dev->remote_bytes == 0) {
 			dev->ISR.rdma_done = 1;
-			if (dev->IMR.rdma_inte) {
+			if (dev->IMR.rdma_inte)
 				nic_interrupt(dev, 1);
-			}
 		}
 		break;
 
@@ -564,9 +549,8 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 		/* If all bytes have been written, signal remote-DMA complete */
 		if (dev->remote_bytes == 0) {
 			dev->ISR.rdma_done = 1;
-			if (dev->IMR.rdma_inte) {
+			if (dev->IMR.rdma_inte)
 				nic_interrupt(dev, 1);
-			}
 		}
 		break;
 
@@ -772,9 +756,8 @@ page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 		        (dev->IMR.rxerr_inte << 2) |
 		        (dev->IMR.tx_inte << 1) |
 		        (dev->IMR.rx_inte));
-		if (val == 0x00) {
+		if (val == 0x00)
 			nic_interrupt(dev, 0);
-		}
 		break;
 
 	case 0x08:	/* RSAR0 */
@@ -892,11 +875,10 @@ page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 		        (dev->ISR.rx_err    << 2) |
 		        (dev->ISR.pkt_tx    << 1) |
 		        (dev->ISR.pkt_rx));
-		if (((val & val2) & 0x7f) == 0) {
+		if (((val & val2) & 0x7f) == 0)
 			nic_interrupt(dev, 0);
-		} else {
+		  else
 			nic_interrupt(dev, 1);
-		}
 		break;
 
 	default:
@@ -1992,7 +1974,7 @@ nic_init(int board)
         dev->eeprom[0x79] =
 	 dev->eeprom[0x7D] = (PCI_VENDID>>8);
 
-	/* Make this device known to the PCI bus. */
+	/* Insert this device onto the PCI bus, keep its slot number. */
 	dev->card = pci_add(nic_pci_read, nic_pci_write, dev);
     }
 
@@ -2141,7 +2123,10 @@ static device_config_t ne1000_config[] =
 				"D000", 0xD0000
 			},
 			{
-				"C000", 0xC0000
+				"D800", 0xD8000
+			},
+			{
+				"C800", 0xC8000
 			},
 			{
 				""
@@ -2217,7 +2202,10 @@ static device_config_t ne2000_config[] =
 				"D000", 0xD0000
 			},
 			{
-				"C000", 0xC0000
+				"D800", 0xD8000
+			},
+			{
+				"C800", 0xC8000
 			},
 			{
 				""
@@ -2231,6 +2219,7 @@ static device_config_t ne2000_config[] =
 
 static device_config_t rtl8029as_config[] =
 {
+#if 0
 	{
 		"irq", "IRQ", CONFIG_SELECTION, "", 10,
 		{
@@ -2254,6 +2243,35 @@ static device_config_t rtl8029as_config[] =
 			}
 		},
 	},
+#endif
+#if 1
+	/*
+	 * WTF.
+	 * Even though it is PCI, the user should still have control
+	 * over whether or not it's Option ROM BIOS will be enabled
+	 * or not.
+	 */
+	{
+		"bios_addr", "BIOS address", CONFIG_HEX20, "", 0,
+		{
+			{
+				"Disabled", 0x00000
+			},
+			{
+				"D000", 0xD0000
+			},
+			{
+				"D800", 0xD8000
+			},
+			{
+				"C800", 0xC8000
+			},
+			{
+				""
+			}
+		},
+	},
+#endif
 	{
 		"mac", "MAC Address", CONFIG_MAC, "", -1
 	},
