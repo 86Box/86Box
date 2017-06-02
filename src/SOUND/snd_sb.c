@@ -265,7 +265,14 @@ uint8_t sb_pro_mixer_read(uint16_t addr, void *p)
         if (!(addr & 1))
                 return mixer->index;
 
-        return mixer->regs[mixer->index];                
+        switch (mixer->index)
+        {
+                case 0x00: case 0x04: case 0x0a: case 0x0c: case 0x0e:
+                case 0x22: case 0x26: case 0x28: case 0x2e:
+                return mixer->regs[mixer->index];
+        }
+        
+        return 0xff;
 }
 
 void sb_16_mixer_write(uint16_t addr, uint8_t val, void *p)

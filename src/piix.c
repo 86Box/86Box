@@ -107,7 +107,8 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
         }
         else
         {
-                if (addr >= 0x0f && addr < 0x4c)
+		/* pclog("PIIX writing value %02X to register %02X\n", val, addr); */
+                if ((addr >= 0x0f) && (addr < 0x4c))
                         return;
 
                 switch (addr)
@@ -118,24 +119,28 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
                         return;
                         
                         case 0x60:
+			pclog("Set IRQ routing: INT A -> %02X\n", val);
                         if (val & 0x80)
                                 pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
                         else
                                 pci_set_irq_routing(PCI_INTA, val & 0xf);
                         break;
                         case 0x61:
+			pclog("Set IRQ routing: INT B -> %02X\n", val);
                         if (val & 0x80)
                                 pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
                         else
                                 pci_set_irq_routing(PCI_INTB, val & 0xf);
                         break;
                         case 0x62:
+			pclog("Set IRQ routing: INT C -> %02X\n", val);
                         if (val & 0x80)
                                 pci_set_irq_routing(PCI_INTC, PCI_IRQ_DISABLED);
                         else
                                 pci_set_irq_routing(PCI_INTC, val & 0xf);
                         break;
                         case 0x63:
+			pclog("Set IRQ routing: INT D -> %02X\n", val);
                         if (val & 0x80)
                                 pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
                         else
@@ -632,7 +637,6 @@ void piix_reset(void)
         card_piix_ide[0x0d] = 0x00;
         card_piix_ide[0x0e] = 0x00;
         card_piix_ide[0x20] = 0x01; card_piix_ide[0x21] = card_piix_ide[0x22] = card_piix_ide[0x23] = 0x00; /*Bus master interface base address*/
-        card_piix_ide[0x3c] = 14;		/* Default IRQ */
         card_piix_ide[0x40] = card_piix_ide[0x41] = 0x00;
         card_piix_ide[0x42] = card_piix_ide[0x43] = 0x00;
 }
@@ -672,7 +676,6 @@ void piix3_reset(void)
         card_piix_ide[0x0d] = 0x00;
         card_piix_ide[0x0e] = 0x00;
         card_piix_ide[0x20] = 0x01; card_piix_ide[0x21] = card_piix_ide[0x22] = card_piix_ide[0x23] = 0x00; /*Bus master interface base address*/
-        card_piix_ide[0x3c] = 14;		/* Default IRQ */
         card_piix_ide[0x40] = card_piix_ide[0x41] = 0x00;
         card_piix_ide[0x42] = card_piix_ide[0x43] = 0x00;
 	card_piix_ide[0x44] = 0x00;

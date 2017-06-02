@@ -22,6 +22,7 @@
 #include <windows.h>
 #endif
 
+int codegen_flat_ds, codegen_flat_ss;
 int mmx_ebx_ecx_loaded;
 int codegen_flags_changed = 0;
 int codegen_fpu_entered = 0;
@@ -1401,12 +1402,11 @@ void codegen_block_init(uint32_t phys_addr)
         block->_cs = cs;
         block->pnt = block_current;
         block->phys = phys_addr;
-        block->use32 = use32;
-        block->stack32 = stack32;
         block->next = block->prev = NULL;
         block->next_2 = block->prev_2 = NULL;
         block->page_mask = 0;
         block->flags = CODEBLOCK_STATIC_TOP;
+	block->status = cpu_cur_status;
         
         block->was_recompiled = 0;
 
@@ -1487,6 +1487,9 @@ void codegen_block_start_recompile(codeblock_t *block)
 
         block->TOP = cpu_state.TOP;
         block->was_recompiled = 1;
+
+        codegen_flat_ds = cpu_cur_status & CPU_STATUS_FLATDS;
+        codegen_flat_ss = cpu_cur_status & CPU_STATUS_FLATSS;
 }
 
 void codegen_block_remove()

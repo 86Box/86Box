@@ -514,6 +514,10 @@ void sb_exec_command(sb_dsp_t *dsp)
                 if (dsp->sb_type < SB16) break;
                 sb_add_data(dsp, dsp->sb_asp_regs[dsp->sb_data[0]]);
                 break;
+                case 0xF8:
+                if (dsp->sb_type < SB16) break;
+                sb_add_data(dsp, 0);
+                break;
                 case 0xF9:
                 if (dsp->sb_type < SB16) break;
                 if (dsp->sb_data[0] == 0x0e)      sb_add_data(dsp, 0xff);

@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 430VX PCISet chip.
  *
- * Version:	@(#)i430vx.c	1.0.0	2017/05/30
+ * Version:	@(#)i430vx.c	1.0.1	2017/06/02
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -84,7 +84,7 @@ void i430vx_write(int func, int addr, uint8_t val, void *priv)
                         i430vx_map(0xf0000, 0x10000, val >> 4);
                         shadowbios = (val & 0x10);
                 }
-                pclog("i430vx_write : PAM0 write %02X\n", val);
+                /* pclog("i430vx_write : PAM0 write %02X\n", val); */
                 break;
                 case 0x5a: /*PAM1*/
                 if ((card_i430vx[0x5a] ^ val) & 0x0f)
@@ -115,14 +115,14 @@ void i430vx_write(int func, int addr, uint8_t val, void *priv)
                         i430vx_map(0xe0000, 0x04000, val & 0xf);
                 if ((card_i430vx[0x5e] ^ val) & 0xf0)
                         i430vx_map(0xe4000, 0x04000, val >> 4);
-                pclog("i430vx_write : PAM5 write %02X\n", val);
+                /* pclog("i430vx_write : PAM5 write %02X\n", val); */
                 break;
                 case 0x5f: /*PAM6*/
                 if ((card_i430vx[0x5f] ^ val) & 0x0f)
                         i430vx_map(0xe8000, 0x04000, val & 0xf);
                 if ((card_i430vx[0x5f] ^ val) & 0xf0)
                         i430vx_map(0xec000, 0x04000, val >> 4);
-                pclog("i430vx_write : PAM6 write %02X\n", val);
+                /* pclog("i430vx_write : PAM6 write %02X\n", val); */
                 break;
         }
                 

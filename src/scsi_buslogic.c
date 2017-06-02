@@ -528,7 +528,7 @@ BuslogicLog(const char *format, ...)
     }
 #endif
 }
-/* #define pclog	BuslogicLog */
+#define pclog	BuslogicLog
 
 
 static void

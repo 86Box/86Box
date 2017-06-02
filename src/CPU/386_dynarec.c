@@ -21,6 +21,8 @@
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 
+uint32_t cpu_cur_status = 0;
+
 int cpu_reps, cpu_reps_latched;
 int cpu_notreps, cpu_notreps_latched;
 
@@ -1325,8 +1327,42 @@ void exec386_dynarec(int cycs)
         while (cycles_main > 0)
         {
                 int cycles_start;
-                
-                cycles += cpu_cycle_period();
+
+#if 0
+		switch(cpu_pci_speed)
+		{
+			case 16000000:
+		                cycles += 640;
+				break;
+			case 20000000:
+		                cycles += 800;
+				break;
+			case 25000000:
+			default:
+		                cycles += 1000;
+				break;
+			case 27500000:
+		                cycles += 1100;
+				break;
+			case 30000000:
+		                cycles += 1200;
+				break;
+			case 333333333:
+		                cycles += 1333;
+				break;
+			case 37500000:
+		                cycles += 1500;
+				break;
+			case 40000000:
+		                cycles += 1600;
+				break;
+			case 41666667:
+		                cycles += 1666;
+				break;
+		}
+#endif
+		cycles += cpu_cycle_period();
+
                 cycles_start = cycles;
 
                 timer_start_period(cycles << TIMER_SHIFT);
@@ -1405,7 +1441,7 @@ void exec386_dynarec(int cycs)
                           and physical address. The physical address check will
                           also catch any page faults at this stage*/
                         valid_block = (block->pc == cs + cpu_state.pc) && (block->_cs == cs) &&
-                                      (block->use32 == use32) && (block->phys == phys_addr) && (block->stack32 == stack32);
+                                      (block->phys == phys_addr) && (block->status == cpu_cur_status);
                         if (!valid_block)
                         {
                                 uint64_t mask = (uint64_t)1 << ((phys_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
@@ -1417,7 +1453,7 @@ void exec386_dynarec(int cycs)
                                         if (new_block)
                                         {
                                                 valid_block = (new_block->pc == cs + cpu_state.pc) && (new_block->_cs == cs) &&
-                                                                (new_block->use32 == use32) && (new_block->phys == phys_addr) && (new_block->stack32 == stack32);
+                                                                (new_block->phys == phys_addr) && (new_block->status == cpu_cur_status);
                                                 if (valid_block)
                                                         block = new_block;
                                         }

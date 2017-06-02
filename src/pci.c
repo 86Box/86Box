@@ -61,6 +61,20 @@ uint8_t pci_read(uint16_t port, void *priv)
         return 0xff;
 }
 
+uint8_t elcr[2] = { 0, 0 };
+
+void elcr_write(uint16_t port, uint8_t val, void *priv)
+{
+	pclog("ELCR%i: WRITE %02X\n", port & 1, val);
+	elcr[port & 1] = val;
+}
+
+uint8_t elcr_read(uint16_t port, void *priv)
+{
+	pclog("ELCR%i: READ %02X\n", port & 1, elcr[port & 1]);
+	return elcr[port & 1];
+}
+
 void pci_type2_write(uint16_t port, uint8_t val, void *priv);
 uint8_t pci_type2_read(uint16_t port, void *priv);
 
@@ -120,13 +134,38 @@ void pci_set_card_routing(int card, int pci_int)
         pci_irq_routing[card] = pci_int;
 }
 
+void pci_issue_irq(int irq)
+{
+	int real_irq = irq & 7;
+	int irq_elcr = 0;
+
+	if (irq > 7)
+	{
+		irq_elcr = elcr[1] & (1 << real_irq);
+	}
+	else
+	{
+		irq_elcr = elcr[0] & (1 << real_irq);
+	}
+
+	if (irq_elcr)
+	{
+		picintlevel(1 << irq);
+	}
+	else
+	{
+		picint(1 << irq);
+	}
+}
+
 void pci_set_irq(int card, int pci_int)
 {
         if (pci_irq_routing[card])
         {
                 int irq = ((pci_int - PCI_INTA) + (pci_irq_routing[card] - PCI_INTA)) & 3;
                 if (pci_irqs[irq] != PCI_IRQ_DISABLED && !pci_irq_active[card])
-                        picint(1 << pci_irqs[irq]);
+			pci_issue_irq(pci_irqs[irq]);
+                        /* picint(1 << pci_irqs[irq]); */
                 pci_irq_active[card] = 1;
         }
 }
@@ -147,6 +186,8 @@ void pci_init(int type)
         int c;
 
         PCI = 1;
+
+	io_sethandler(0x04d0, 0x0002, elcr_read, NULL, NULL, elcr_write, NULL, NULL,  NULL);
         
         if (type == PCI_CONFIG_TYPE_1)
         {

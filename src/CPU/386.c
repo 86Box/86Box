@@ -51,7 +51,6 @@ uint32_t cr2, cr3, cr4;
 uint32_t dr[8];
 
 
-
 uint8_t romext[32768];
 uint8_t *ram,*rom;
 
