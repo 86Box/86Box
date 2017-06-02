@@ -988,7 +988,7 @@ static void recalc_hdd_list(HWND hdlg, int model, int use_selected_hdd)
 
 	h = GetDlgItem(hdlg, IDC_COMBO_HDC);
 
-	if (models[model].flags & MODEL_HAS_IDE)
+	if (models[temp_model].flags & MODEL_HAS_IDE)
 	{
 		hdc_ignore = 1;
 

@@ -3728,9 +3728,9 @@ static void s3_virge_pci_write(int func, int addr, uint8_t val, void *p)
                         mem_mapping_disable(&virge->bios_rom.mapping);
                 }
                 return;
-                /* case 0x3c: 
+                case 0x3c: 
                 virge->pci_regs[0x3c] = val;
-                return; */
+                return;
         }
 }
 

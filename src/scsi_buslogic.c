@@ -493,6 +493,7 @@ typedef struct {
     int		Lock;
     mem_mapping_t mmio_mapping;
     int		chip;
+    int		Card;
 } Buslogic_t;
 #pragma pack(pop)
 
@@ -535,17 +536,45 @@ BuslogicLog(const char *format, ...)
 
 
 static void
+BuslogicInterrupt(Buslogic_t *bl, int set)
+{
+	if (bl->chip != CHIP_BUSLOGIC_PCI)
+	{
+		if (set)
+		{
+			picint(1 << bl->Irq);
+		}
+		else
+		{
+			picintc(1 << bl->Irq);
+		}
+	}
+	else
+	{
+	        if (set)
+		{
+        	        pci_set_irq(bl->Card, PCI_INTA);
+		}
+	        else
+		{
+        	        pci_clear_irq(bl->Card, PCI_INTA);
+		}
+	}
+}
+
+
+static void
 BuslogicClearInterrupt(Buslogic_t *bl)
 {
     pclog("Buslogic: Lowering Interrupt 0x%02X\n", bl->Interrupt);
     bl->Interrupt = 0;
     pclog("Lowering IRQ %i\n", bl->Irq);
-    picintc(1 << bl->Irq);
+    BuslogicInterrupt(bl, 0);
     if (bl->PendingInterrupt) {
 	bl->Interrupt = bl->PendingInterrupt;
 	pclog("Buslogic: Raising Interrupt 0x%02X (Pending)\n", bl->Interrupt);
 	if (bl->MailboxOutInterrupts || !(bl->Interrupt & INTR_MBOA)) {
-		if (bl->IrqEnabled)  picint(1 << bl->Irq);
+		if (bl->IrqEnabled)  BuslogicInterrupt(bl, 1);
 	}
 	bl->PendingInterrupt = 0;
     }
@@ -635,7 +664,7 @@ BuslogicCommandComplete(Buslogic_t *bl)
 	bl->Interrupt = (INTR_ANY | INTR_HACC);
 	pclog("Raising IRQ %i\n", bl->Irq);
 	if (bl->IrqEnabled)
-		picint(1 << bl->Irq);
+		BuslogicInterrupt(bl, 1);
     }
 
     bl->Command = 0xFF;
@@ -653,7 +682,7 @@ BuslogicRaiseInterrupt(Buslogic_t *bl, uint8_t Interrupt)
 	bl->Interrupt = Interrupt;
 	pclog("Raising IRQ %i\n", bl->Irq);
 	if (bl->IrqEnabled)
-		picint(1 << bl->Irq);
+		BuslogicInterrupt(bl, 1);
     }
 }
 
@@ -1339,7 +1368,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					else
 						bl->IrqEnabled = 1;
 					pclog("Lowering IRQ %i\n", bl->Irq);
-					picintc(1 << bl->Irq);
+					BuslogicInterrupt(bl, 0);
 					break;
 
 				case 0x81:
@@ -2186,18 +2215,13 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 		}
 		return;
 
-#if 0
-	/* Commented out until an APIC controller is emulated for the PIIX3,
-	 * otherwise the BT-958 will not get an IRQ on boards using the PIIX3.
-	 */
 	case 0x3C:
 		buslogic_pci_regs[addr] = val;
 		if (val != 0xFF) {
-			buslogic_log("BusLogic IRQ now: %i\n", val);
+			BuslogicLog("BusLogic IRQ now: %i\n", val);
 			bl->Irq = val;
 		}
 		return;
-#endif
     }
 }
 
