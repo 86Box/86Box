@@ -229,6 +229,8 @@ typedef struct {
     uint8_t	maclocal[6];		/* configured MAC (local) address */
     uint8_t	eeprom[128];		/* for RTL8029AS */
     rom_t	bios_rom;
+
+    int		card;
 } nic_t;
 
 
@@ -249,6 +251,36 @@ nelog(int lvl, const char *fmt, ...)
 	fflush(stdout);
     }
 #endif
+}
+
+
+static void
+nic_interrupt(void *priv, int set)
+{
+	nic_t *dev = (nic_t *) priv;
+
+	if (!PCI || strcmp(dev->name, "RTL8029AS"))
+	{
+		if (set)
+		{
+			picint(1 << dev->base_irq);
+		}
+		else
+		{
+			picintc(1 << dev->base_irq);
+		}
+	}
+	else
+	{
+	        if (set)
+		{
+        	        pci_set_irq(dev->card, PCI_INTA);
+		}
+	        else
+		{
+        	        pci_clear_irq(dev->card, PCI_INTA);
+		}
+	}
 }
 
 
@@ -317,8 +349,7 @@ nic_reset(void *priv)
     dev->ISR.reset    = 1;
     dev->DCR.longaddr = 1;
 
-    picint(1<<dev->base_irq);
-    picintc(1<<dev->base_irq);
+    nic_interrupt(dev, 0);
 }
 
 
@@ -474,7 +505,7 @@ asic_read(nic_t *dev, uint32_t off, unsigned int len)
 		if (dev->remote_bytes == 0) {
 			dev->ISR.rdma_done = 1;
 			if (dev->IMR.rdma_inte) {
-				picint(1 << dev->base_irq);
+				nic_interrupt(dev, 1);
 			}
 		}
 		break;
@@ -534,7 +565,7 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 		if (dev->remote_bytes == 0) {
 			dev->ISR.rdma_done = 1;
 			if (dev->IMR.rdma_inte) {
-				picint(1 << dev->base_irq);
+				nic_interrupt(dev, 1);
 			}
 		}
 		break;
@@ -742,7 +773,7 @@ page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 		        (dev->IMR.tx_inte << 1) |
 		        (dev->IMR.rx_inte));
 		if (val == 0x00) {
-			picintc(1 << dev->base_irq);
+			nic_interrupt(dev, 0);
 		}
 		break;
 
@@ -862,9 +893,9 @@ page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 		        (dev->ISR.pkt_tx    << 1) |
 		        (dev->ISR.pkt_rx));
 		if (((val & val2) & 0x7f) == 0) {
-			picintc(1 << dev->base_irq);
+			nic_interrupt(dev, 0);
 		} else {
-			picint(1 << dev->base_irq);
+			nic_interrupt(dev, 1);
 		}
 		break;
 
@@ -1227,9 +1258,9 @@ write_cr(nic_t *dev, uint32_t val)
     if (dev->CR.rdma_cmd == 0x01 && dev->CR.start && dev->remote_bytes == 0) {
 	dev->ISR.rdma_done = 1;
 	if (dev->IMR.rdma_inte) {
-		picint(1 << dev->base_irq);
+		nic_interrupt(dev, 1);
 		if (! dev->is_pci)
-			picintc(1 << dev->base_irq);
+			nic_interrupt(dev, 0);
 	}
     }
 }
@@ -1625,18 +1656,8 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 
 	case 0x3C:			/* PCI_ILR */
 		if (val != 0xFF) {
-#if 1
-			/*
-			 * Commented out until an APIC controller is
-			 * emulated for the PIIX3, otherwise the
-			 * RTL-8029/AS will not get an IRQ on boards
-			 * using the PIIX3.
-			 */
-			nelog(1, "%s: IRQ now: %i (IGNORED)\n", dev->name, val);
-#else
 			nelog(1, "%s: IRQ now: %i\n", dev->name, val);
 			dev->base_irq = val;
-#endif
 		}
 		dev->pci_regs[addr] = dev->base_irq;
 		return;
@@ -1685,7 +1706,7 @@ nic_tx(nic_t *dev, uint32_t val)
 
     /* Generate an interrupt if not masked */
     if (dev->IMR.tx_inte)
-	picint(1 << dev->base_irq);
+	nic_interrupt(dev, 1);
     dev->tx_timer_active = 0;
 }
 
@@ -1821,7 +1842,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
     dev->ISR.pkt_rx = 1;
 
     if (dev->IMR.rx_inte)
-	picint(1 << dev->base_irq);
+	nic_interrupt(dev, 1);
 }
 
 
@@ -1972,7 +1993,7 @@ nic_init(int board)
 	 dev->eeprom[0x7D] = (PCI_VENDID>>8);
 
 	/* Make this device known to the PCI bus. */
-	pci_add(nic_pci_read, nic_pci_write, dev);
+	dev->card = pci_add(nic_pci_read, nic_pci_write, dev);
     }
 
     /* Set up our BIA. */

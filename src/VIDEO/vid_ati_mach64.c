@@ -3352,8 +3352,6 @@ static void *mach64gx_init()
         else
                 mach64->config_stat0 |= 1; /*VLB, 256Kx16 DRAM*/
 
-	mach64->use_block_decoded_io = PCI ? 4 : 0;
-
         ati_eeprom_load(&mach64->eeprom, L"mach64.nvr", 1);
 
         rom_init(&mach64->bios_rom, L"roms/mach64gx/bios.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
@@ -3370,6 +3368,8 @@ static void *mach64vt2_init()
         mach64->config_chip_id = 0x40005654;
         mach64->dac_cntl = 1 << 16; /*Internal 24-bit DAC*/
         mach64->config_stat0 = 4;
+
+	mach64->use_block_decoded_io = PCI ? 4 : 0;
 
         ati_eeprom_load(&mach64->eeprom, L"mach64vt.nvr", 1);
 
