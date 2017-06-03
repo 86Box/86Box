@@ -57,6 +57,7 @@
 #include "keyboard_olim24.h"
 #include "keyboard_pcjr.h"
 #include "keyboard_xt.h"
+#include "laserxt.h"
 #include "lpt.h"
 #include "mem.h"
 #include "memregs.h"
