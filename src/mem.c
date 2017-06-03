@@ -367,22 +367,22 @@ int loadbios()
                 if (!f) break;
                 fread(rom+0xE000,8192,1,f);
                 fclose(f);
-                f=romfopen("roms/ibmpc/ibm-basic-1.10.rom","rb");
-+                if (!f)
+                f=romfopen(L"roms/ibmpc/ibm-basic-1.10.rom",L"rb");
+                if (!f)
                 {
-                        f=romfopen("roms/ibmpc/basicc11.f6","rb");
+                        f=romfopen(L"roms/ibmpc/basicc11.f6",L"rb");
                         if (!f) return 1; /*I don't really care if BASIC is there or not*/
                         fread(rom+0x6000,8192,1,f);
                         fclose(f);
-                        f=romfopen("roms/ibmpc/basicc11.f8","rb");
+                        f=romfopen(L"roms/ibmpc/basicc11.f8",L"rb");
                         if (!f) break; /*But if some of it is there, then all of it must be*/
                         fread(rom+0x8000,8192,1,f);
                         fclose(f);
-                        f=romfopen("roms/ibmpc/basicc11.fa","rb");
+                        f=romfopen(L"roms/ibmpc/basicc11.fa",L"rb");
                         if (!f) break;
                         fread(rom+0xA000,8192,1,f);
                         fclose(f);
-                        f=romfopen("roms/ibmpc/basicc11.fc","rb");
+                        f=romfopen(L"roms/ibmpc/basicc11.fc",L"rb");
                         if (!f) break;
                         fread(rom+0xC000,8192,1,f);
                         fclose(f);
@@ -526,22 +526,22 @@ int loadbios()
                 if (!f) break;
                 fread(rom + 0xE000, 8192, 1, f);
                 fclose(f);
-                f=romfopen("roms/ltxt/ibm-basic-1.10.rom","rb");
-+                if (!f)
+                f=romfopen(L"roms/ltxt/ibm-basic-1.10.rom",L"rb");
+                if (!f)
                 {
-                        f=romfopen("roms/ltxt/basicc11.f6","rb");
+                        f=romfopen(L"roms/ltxt/basicc11.f6",L"rb");
                         if (!f) return 1; /*I don't really care if BASIC is there or not*/
                         fread(rom+0x6000,8192,1,f);
                         fclose(f);
-                        f=romfopen("roms/ltxt/basicc11.f8","rb");
+                        f=romfopen(L"roms/ltxt/basicc11.f8",L"rb");
                         if (!f) break; /*But if some of it is there, then all of it must be*/
                         fread(rom+0x8000,8192,1,f);
                         fclose(f);
-                        f=romfopen("roms/ltxt/basicc11.fa","rb");
+                        f=romfopen(L"roms/ltxt/basicc11.fa",L"rb");
                         if (!f) break;
                         fread(rom+0xA000,8192,1,f);
                         fclose(f);
-                        f=romfopen("roms/ltxt/basicc11.fc","rb");
+                        f=romfopen(L"roms/ltxt/basicc11.fc",L"rb");
                         if (!f) break;
                         fread(rom+0xC000,8192,1,f);
                         fclose(f);
@@ -559,22 +559,22 @@ int loadbios()
                 if (!f) break;
                 fread(rom + 0xE000, 8192, 1, f);
                 fclose(f);
-                f=romfopen("roms/lxt3/ibm-basic-1.10.rom","rb");
-+                if (!f)
+                f=romfopen(L"roms/lxt3/ibm-basic-1.10.rom",L"rb");
+                if (!f)
                 {
-                        f=romfopen("roms/lxt3/basicc11.f6","rb");
+                        f=romfopen(L"roms/lxt3/basicc11.f6",L"rb");
                         if (!f) return 1; /*I don't really care if BASIC is there or not*/
                         fread(rom+0x6000,8192,1,f);
                         fclose(f);
-                        f=romfopen("roms/lxt3/basicc11.f8","rb");
+                        f=romfopen(L"roms/lxt3/basicc11.f8",L"rb");
                         if (!f) break; /*But if some of it is there, then all of it must be*/
                         fread(rom+0x8000,8192,1,f);
                         fclose(f);
-                        f=romfopen("roms/lxt3/basicc11.fa","rb");
+                        f=romfopen(L"roms/lxt3/basicc11.fa",L"rb");
                         if (!f) break;
                         fread(rom+0xA000,8192,1,f);
                         fclose(f);
-                        f=romfopen("roms/lxt3/basicc11.fc","rb");
+                        f=romfopen(L"roms/lxt3/basicc11.fc",L"rb");
                         if (!f) break;
                         fread(rom+0xC000,8192,1,f);
                         fclose(f);
