@@ -1088,6 +1088,7 @@ void update_status_bar_panes(HWND hwnds)
 	memset(sb_part_icons, 0, sb_parts * sizeof(int));
 	memset(sb_icon_flags, 0, sb_parts * sizeof(int));
 	memset(sb_menu_handles, 0, sb_parts * sizeof(HMENU));
+	memset(sbTips, 0, sb_parts * sizeof(WCHAR *));
 
 	sb_parts = 0;
 

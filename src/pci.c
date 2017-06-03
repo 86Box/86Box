@@ -65,13 +65,13 @@ uint8_t elcr[2] = { 0, 0 };
 
 void elcr_write(uint16_t port, uint8_t val, void *priv)
 {
-	pclog("ELCR%i: WRITE %02X\n", port & 1, val);
+	/* pclog("ELCR%i: WRITE %02X\n", port & 1, val); */
 	elcr[port & 1] = val;
 }
 
 uint8_t elcr_read(uint16_t port, void *priv)
 {
-	pclog("ELCR%i: READ %02X\n", port & 1, elcr[port & 1]);
+	/* pclog("ELCR%i: READ %02X\n", port & 1, elcr[port & 1]); */
 	return elcr[port & 1];
 }
 
