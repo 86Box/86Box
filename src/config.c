@@ -30,6 +30,7 @@
 #include "win/plat_joystick.h"
 #include "win/plat_midi.h"
 #include "sound/snd_dbopl.h"
+#include "sound/snd_mpu401.h"
 #include "sound/snd_opl.h"
 #include "sound/sound.h"
 #include "video/video.h"
@@ -976,6 +977,7 @@ static void loadconfig_sound(void)
                 sound_card_current = 0;
 
         midi_id = config_get_int(cat, "midi_host_device", 0);
+        mpu401_standalone_enable = !!config_get_int(cat, "mpu401_standalone", 0);
 
         SSI2001 = !!config_get_int(cat, "ssi2001", 0);
         GAMEBLASTER = !!config_get_int(cat, "gameblaster", 0);
@@ -2002,6 +2004,15 @@ static void saveconfig_sound(void)
 	else
 	{
 	        config_set_int(cat, "midi_host_device", midi_id);
+	}
+
+	if (mpu401_standalone_enable == 0)
+	{
+		config_delete_var(cat, "mpu401_standalone");
+	}
+	else
+	{
+	        config_set_int(cat, "mpu401_standalone", mpu401_standalone_enable);
 	}
 
 	if (SSI2001 == 0)

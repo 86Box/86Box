@@ -37,6 +37,7 @@
 #include "../network.h"
 #include "../sound/sound.h"
 #include "../sound/snd_dbopl.h"
+#include "../sound/snd_mpu401.h"
 #include "../video/video.h"
 #include "../video/vid_voodoo.h"
 #include "../gameport.h"
@@ -56,7 +57,7 @@ static int temp_gfxcard, temp_video_speed, temp_voodoo;
 static int temp_mouse, temp_joystick;
 
 /* Sound category */
-static int temp_sound_card, temp_midi_id, temp_SSI2001, temp_GAMEBLASTER, temp_GUS, temp_opl3_type;
+static int temp_sound_card, temp_midi_id, temp_mpu401, temp_SSI2001, temp_GAMEBLASTER, temp_GUS, temp_opl3_type;
 
 /* Network category */
 static int temp_net_type, temp_net_card;
@@ -117,6 +118,7 @@ static void win_settings_init(void)
 	/* Sound category */
 	temp_sound_card = sound_card_current;
 	temp_midi_id = midi_id;
+	temp_mpu401 = mpu401_standalone_enable;
 	temp_SSI2001 = SSI2001;
 	temp_GAMEBLASTER = GAMEBLASTER;
 	temp_GUS = GUS;
@@ -180,6 +182,7 @@ static int win_settings_changed(void)
 	/* Sound category */
 	i = i || (sound_card_current != temp_sound_card);
 	i = i || (midi_id != temp_midi_id);
+	i = i || (mpu401_standalone_enable != temp_mpu401);
 	i = i || (SSI2001 != temp_SSI2001);
 	i = i || (GAMEBLASTER != temp_GAMEBLASTER);
 	i = i || (GUS != temp_GUS);
@@ -275,6 +278,7 @@ static void win_settings_save(void)
 	/* Sound category */
 	sound_card_current = temp_sound_card;
 	midi_id = temp_midi_id;
+	mpu401_standalone_enable = temp_mpu401;
 	SSI2001 = temp_SSI2001;
 	GAMEBLASTER = temp_GAMEBLASTER;
 	GUS = temp_GUS;
@@ -1102,6 +1106,38 @@ int find_irq_in_array(int irq, int def)
 
 static char midi_dev_name_buf[512];
 
+int mpu401_present(void)
+{
+	char *n;
+
+	n = sound_card_getname(temp_sound_card);
+	if (n != NULL)
+	{
+		if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32"))
+		{
+			return 1;
+		}
+	}
+
+	return temp_mpu401 ? 1 : 0;
+}
+
+int mpu401_standalone_allow(void)
+{
+	char *n;
+
+	n = sound_card_getname(temp_sound_card);
+	if (n != NULL)
+	{
+		if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32"))
+		{
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
 static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
@@ -1174,6 +1210,13 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 				if (c == temp_midi_id)
 					SendMessage(h, CB_SETCURSEL, c, 0);
 			}
+			EnableWindow(h, mpu401_present() ? TRUE : FALSE);
+
+		        h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
+		        EnableWindow(h, mpu401_standalone_allow() ? TRUE : FALSE);
+
+		        h = GetDlgItem(hdlg, IDC_CONFIGURE_MPU401);
+		        EnableWindow(h, (mpu401_standalone_allow() && temp_mpu401) ? TRUE : FALSE);
 
 			h=GetDlgItem(hdlg, IDC_CHECKCMS);
 			SendMessage(h, BM_SETCHECK, temp_GAMEBLASTER, 0);
@@ -1214,6 +1257,21 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 					{
 						EnableWindow(h, FALSE);
 					}
+
+					h = GetDlgItem(hdlg, IDC_COMBO_MIDI);
+					EnableWindow(h, mpu401_present() ? TRUE : FALSE);
+					break;
+
+				case IDC_CHECK_MPU401:
+	        		        h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
+					temp_mpu401 = SendMessage(h, BM_GETCHECK, 0, 0);
+
+	        		        h = GetDlgItem(hdlg, IDC_CONFIGURE_MPU401);
+					EnableWindow(h, mpu401_present() ? TRUE : FALSE);
+					break;
+
+				case IDC_CONFIGURE_MPU401:
+					deviceconfig_open(hdlg, (void *)&mpu401_device);
 					break;
 			}
 			return FALSE;
@@ -1224,6 +1282,9 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 
 			h = GetDlgItem(hdlg, IDC_COMBO_MIDI);
 			temp_midi_id = SendMessage(h, CB_GETCURSEL, 0, 0);
+
+			h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
+			temp_mpu401 = SendMessage(h, BM_GETCHECK, 0, 0);
 
 			h = GetDlgItem(hdlg, IDC_CHECKCMS);
 			temp_GAMEBLASTER = SendMessage(h, BM_GETCHECK, 0, 0);

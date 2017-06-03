@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.0	2017/05/30
+ * Version:	@(#)pc.c	1.0.1	2017/05/30
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -64,6 +64,7 @@
 #include "sound/sound.h"
 #include "sound/snd_cms.h"
 #include "sound/snd_dbopl.h"
+#include "sound/snd_mpu401.h"
 #include "sound/snd_opl.h"
 #include "sound/snd_gus.h"
 #include "sound/snd_sb.h"
@@ -522,6 +523,8 @@ void resetpchard(void)
 	scsi_card_init();
 
         sound_card_init();
+        if (mpu401_standalone_enable)
+                mpu401_device_add();
         if (GUS)
                 device_add(&gus_device);
         if (GAMEBLASTER)

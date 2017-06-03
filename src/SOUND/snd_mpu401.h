@@ -83,3 +83,8 @@ typedef struct mpu_t
 uint8_t MPU401_ReadData(mpu_t *mpu);
 
 void mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode);
+
+extern int mpu401_standalone_enable;
+
+void mpu401_device_add(void);
+device_t mpu401_device;

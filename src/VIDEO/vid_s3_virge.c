@@ -3925,7 +3925,7 @@ static void *s3_virge_988_init()
         return virge;
 }
 
-static void *s3_virge_375_init()
+static void *s3_virge_375_init(wchar_t *romfn)
 {
         virge_t *virge = malloc(sizeof(virge_t));
         memset(virge, 0, sizeof(virge_t));
@@ -3940,7 +3940,7 @@ static void *s3_virge_375_init()
                    s3_virge_hwcursor_draw,
                    s3_virge_overlay_draw);
 
-        rom_init(&virge->bios_rom, L"roms/86c375_1.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&virge->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         if (PCI)
                 mem_mapping_disable(&virge->bios_rom.mapping);
 
@@ -4021,6 +4021,16 @@ static void *s3_virge_375_init()
         return virge;
 }
 
+static void *s3_virge_375_1_init()
+{
+	return s3_virge_init(L"roms/86c375_1.bin");
+}
+
+static void *s3_virge_375_4_init()
+{
+	return s3_virge_init(L"roms/86c375_4.bin");
+}
+
 static void s3_virge_close(void *p)
 {
         virge_t *virge = (virge_t *)p;
@@ -4054,9 +4064,14 @@ static int s3_virge_988_available()
         return rom_present(L"roms/diamondstealth3000.VBI");
 }
 
-static int s3_virge_375_available()
+static int s3_virge_375_1_available()
 {
         return rom_present(L"roms/86c375_1.bin");
+}
+
+static int s3_virge_375_4_available()
+{
+        return rom_present(L"roms/86c375_4.bin");
 }
 
 static void s3_virge_speed_changed(void *p)
@@ -4190,9 +4205,22 @@ device_t s3_virge_375_device =
 {
         "S3 ViRGE/DX",
         0,
-        s3_virge_375_init,
+        s3_virge_375_1_init,
         s3_virge_close,
-        s3_virge_375_available,
+        s3_virge_375_1_available,
+        s3_virge_speed_changed,
+        s3_virge_force_redraw,
+        s3_virge_add_status_info,
+        s3_virge_config
+};
+
+device_t s3_virge_375_4_device =
+{
+        "S3 ViRGE/DX (VBE 2.0)",
+        0,
+        s3_virge_375_4_init,
+        s3_virge_close,
+        s3_virge_375_4_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
         s3_virge_add_status_info,

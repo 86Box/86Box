@@ -150,7 +150,8 @@ void pci_issue_irq(int irq)
 
 	if (irq_elcr)
 	{
-		picintlevel(1 << irq);
+		/* picintlevel(1 << irq); */
+		picint(1 << irq);
 	}
 	else
 	{

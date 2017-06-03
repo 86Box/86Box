@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.0	2017/05/30
+ * Version:	@(#)resource.h	1.0.1	2017/05/30
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -51,7 +51,9 @@
 #define IDC_CHECKNUKEDOPL               1018
 #define IDC_COMBO_JOYSTICK              1018
 #define IDC_CHECK_SYNC                  1019
+#define IDC_CHECK_MPU401                1019
 #define IDC_LIST_FLOPPY_DRIVES          1020
+#define IDC_CONFIGURE_MPU401            1020
 #define IDC_LIST_CDROM_DRIVES           1021
 #define IDC_CONFIGURE_MACHINE           1022
 #define IDC_COMBO_LANG                  1023

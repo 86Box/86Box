@@ -528,6 +528,7 @@ enum
         GFX_OTI037,	/*Oak OTI-037*/
 
         GFX_VIRGEVX,    /*S3 Virge/VX*/
+        GFX_VIRGEDX4,   /*S3 Virge/DX (VBE 2.0)*/
 
         GFX_MAX
 };

@@ -101,6 +101,7 @@ static VIDEO_CARD video_cards[] =
         {"Phoenix S3 Trio64",                      "px_trio64",		&s3_phoenix_trio64_device,   GFX_PHOENIX_TRIO64},
         {"Plantronics ColorPlus",                  "plantronics",	&colorplus_device,           GFX_COLORPLUS},
         {"S3 ViRGE/DX",                            "virge375",		&s3_virge_375_device,        GFX_VIRGEDX},
+        {"S3 ViRGE/DX (VBE 2.0)",                  "virge375_vbe20",	&s3_virge_375_4_device,      GFX_VIRGEDX4},
         {"Trident TGUI9440",                       "tgui9440",		&tgui9440_device,            GFX_TGUI9440},
         {"Trident TVGA8900D",                      "tvga8900d",		&tvga8900d_device,           GFX_TVGA},
         {"Tseng ET4000AX",                         "et4000ax",		&et4000_device,              GFX_ET4000},

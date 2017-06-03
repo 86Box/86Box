@@ -21,12 +21,15 @@
  */
 
 #include "../ibm.h"
+#include "../device.h"
 #include "../io.h"
 #include "../pic.h"
 #include "../timer.h"
 #include "../win/plat_midi.h"	/*YUCK*/
+#include "sound.h"
 #include "snd_mpu401.h"
 
+#include <malloc.h>
 #include <stdarg.h>
 
 enum
@@ -37,6 +40,8 @@ enum
 
 static void MPU401_WriteCommand(mpu_t *mpu, uint8_t val);
 static void MPU401_EOIHandlerDispatch(void *p);
+
+int mpu401_standalone_enable = 0;
 
 static int mpu401_event_callback = 0;
 static int mpu401_eoi_callback = 0;
@@ -749,3 +754,118 @@ void mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode)
 	
 	MPU401_Reset(mpu);
 }
+
+void mpu401_device_add(void)
+{
+	char *n;
+
+	if (!mpu401_standalone_enable)
+	{
+		return;
+	}
+
+	n = sound_card_getname(sound_card_current);
+	if (n != NULL)
+	{
+		if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32"))
+		{
+			return;
+		}
+	}
+
+	device_add(&mpu401_device);
+}
+
+void *mpu401_standalone_init()
+{
+        mpu_t *mpu;
+
+	mpu = malloc(sizeof(mpu_t));
+        memset(mpu, 0, sizeof(mpu_t));
+        
+        pclog("mpu_init\n");
+        mpu401_init(mpu, device_get_config_hex16("base"), device_get_config_int("irq"), device_get_config_int("mode"));
+
+        return mpu;
+}
+
+void mpu401_standalone_close(void *p)
+{
+        mpu_t *mpu = (mpu_t *)p;
+
+        free(mpu);
+}
+
+static device_config_t mpu401_standalone_config[] =
+{
+        {
+                "base", "MPU-401 Address", CONFIG_HEX16, "", 0x330,
+                {
+                        {
+                                "0x300", 0x300
+                        },
+                        {
+                                "0x330", 0x330
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "irq", "MPU-401 IRQ", CONFIG_SELECTION, "", 9,
+                {
+                        {
+                                "IRQ 9", 9
+                        },
+                        {
+                                "IRQ 3", 3
+                        },
+                        {
+                                "IRQ 4", 4
+                        },
+                        {
+                                "IRQ 5", 5
+                        },
+                        {
+                                "IRQ 7", 7
+                        },
+                        {
+                                "IRQ 10", 10
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "mode", "Mode", CONFIG_SELECTION, "", 1,
+                {
+                        {
+                                "UART", M_UART
+                        },
+                        {
+                                "Intelligent", M_INTELLIGENT
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "", "", -1
+        }
+};
+
+device_t mpu401_device =
+{
+        "MPU-401 (Standalone)",
+        0,
+        mpu401_standalone_init,
+        mpu401_standalone_close,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+	mpu401_standalone_config
+};
