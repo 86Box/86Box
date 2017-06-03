@@ -8,9 +8,9 @@
 #
 #		Modified Makefile for Win32 MinGW 32-bit environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.21	2017/06/01
+# Version:	@(#)Makefile.mingw	1.0.22	2017/06/01
 #
-# Authors:	Kotori, <oubattler@gmail.com>
+# Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
 #               Sarah Walker,
 #               Richard G.,
@@ -128,6 +128,7 @@ SYSOBJ	= model.o \
 	  i430hx.o i430lx.o i430fx.o i430nx.o i430vx.o i440fx.o \
 	  neat.o \
 	  ali1429.o \
+	  laserxt.o \
 	  opti495.o \
 	  scat.o \
 	  sis496.o \

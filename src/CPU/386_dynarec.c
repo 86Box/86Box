@@ -1284,31 +1284,11 @@ static int cpu_cycle_period(void)
 {
 	switch(cpu_pci_speed)
 	{
-		case 16000000:
-	                return 800;
+		case 333333333:
+	                return is_pentium ? 1000 : 1333;
 			break;
-		case 20000000:
-		case 40000000:
-	                return 1000;
-			break;
-		case 25000000:
 		default:
 	                return 1000;
-			break;
-		case 27500000:
-	                return 1100;
-			break;
-		case 30000000:
-	                return 1200;
-			break;
-		case 333333333:
-	                return 1333;
-			break;
-		case 37500000:
-	                return 1500;
-			break;
-		case 41666667:
-	                return 1041;
 			break;
 	}
 }

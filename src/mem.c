@@ -44,7 +44,7 @@ static mem_mapping_t ram_mid_mapping;
 static mem_mapping_t ram_remapped_mapping;
 mem_mapping_t bios_mapping[8];
 mem_mapping_t bios_high_mapping[8];
-static mem_mapping_t romext_mapping;
+mem_mapping_t romext_mapping;
 
 uint8_t *ram;
 uint32_t rammask;
@@ -367,22 +367,32 @@ int loadbios()
                 if (!f) break;
                 fread(rom+0xE000,8192,1,f);
                 fclose(f);
-                f=romfopen(L"roms/ibmpc/basicc11.f6",L"rb");
-                if (!f) return 1; /*I don't really care if BASIC is there or not*/
-                fread(rom+0x6000,8192,1,f);
-                fclose(f);
-                f=romfopen(L"roms/ibmpc/basicc11.f8",L"rb");
-                if (!f) break; /*But if some of it is there, then all of it must be*/
-                fread(rom+0x8000,8192,1,f);
-                fclose(f);
-                f=romfopen(L"roms/ibmpc/basicc11.fa",L"rb");
-                if (!f) break;
-                fread(rom+0xA000,8192,1,f);
-                fclose(f);
-                f=romfopen(L"roms/ibmpc/basicc11.fc",L"rb");
-                if (!f) break;
-                fread(rom+0xC000,8192,1,f);
-                fclose(f);
+                f=romfopen("roms/ibmpc/ibm-basic-1.10.rom","rb");
++                if (!f)
+                {
+                        f=romfopen("roms/ibmpc/basicc11.f6","rb");
+                        if (!f) return 1; /*I don't really care if BASIC is there or not*/
+                        fread(rom+0x6000,8192,1,f);
+                        fclose(f);
+                        f=romfopen("roms/ibmpc/basicc11.f8","rb");
+                        if (!f) break; /*But if some of it is there, then all of it must be*/
+                        fread(rom+0x8000,8192,1,f);
+                        fclose(f);
+                        f=romfopen("roms/ibmpc/basicc11.fa","rb");
+                        if (!f) break;
+                        fread(rom+0xA000,8192,1,f);
+                        fclose(f);
+                        f=romfopen("roms/ibmpc/basicc11.fc","rb");
+                        if (!f) break;
+                        fread(rom+0xC000,8192,1,f);
+                        fclose(f);
+                }
+                else
+                {
+                        fread(rom+0x6000,32768,1,f);
+                        fclose(f);
+                }
+
                 return 1;
 
                 case ROM_MEGAPC:
@@ -516,6 +526,32 @@ int loadbios()
                 if (!f) break;
                 fread(rom + 0xE000, 8192, 1, f);
                 fclose(f);
+                f=romfopen("roms/ltxt/ibm-basic-1.10.rom","rb");
++                if (!f)
+                {
+                        f=romfopen("roms/ltxt/basicc11.f6","rb");
+                        if (!f) return 1; /*I don't really care if BASIC is there or not*/
+                        fread(rom+0x6000,8192,1,f);
+                        fclose(f);
+                        f=romfopen("roms/ltxt/basicc11.f8","rb");
+                        if (!f) break; /*But if some of it is there, then all of it must be*/
+                        fread(rom+0x8000,8192,1,f);
+                        fclose(f);
+                        f=romfopen("roms/ltxt/basicc11.fa","rb");
+                        if (!f) break;
+                        fread(rom+0xA000,8192,1,f);
+                        fclose(f);
+                        f=romfopen("roms/ltxt/basicc11.fc","rb");
+                        if (!f) break;
+                        fread(rom+0xC000,8192,1,f);
+                        fclose(f);
+                }
+                else
+                {
+                        fread(rom+0x6000,32768,1,f);
+                        fclose(f);
+                }
+
                 return 1;
 
                 case ROM_LXT3:
@@ -523,6 +559,32 @@ int loadbios()
                 if (!f) break;
                 fread(rom + 0xE000, 8192, 1, f);
                 fclose(f);
+                f=romfopen("roms/lxt3/ibm-basic-1.10.rom","rb");
++                if (!f)
+                {
+                        f=romfopen("roms/lxt3/basicc11.f6","rb");
+                        if (!f) return 1; /*I don't really care if BASIC is there or not*/
+                        fread(rom+0x6000,8192,1,f);
+                        fclose(f);
+                        f=romfopen("roms/lxt3/basicc11.f8","rb");
+                        if (!f) break; /*But if some of it is there, then all of it must be*/
+                        fread(rom+0x8000,8192,1,f);
+                        fclose(f);
+                        f=romfopen("roms/lxt3/basicc11.fa","rb");
+                        if (!f) break;
+                        fread(rom+0xA000,8192,1,f);
+                        fclose(f);
+                        f=romfopen("roms/lxt3/basicc11.fc","rb");
+                        if (!f) break;
+                        fread(rom+0xC000,8192,1,f);
+                        fclose(f);
+                }
+                else
+                {
+                        fread(rom+0x6000,32768,1,f);
+                        fclose(f);
+                }
+
                 return 1;
 
                 case ROM_SPC4200P: /*Samsung SPC-4200P*/
