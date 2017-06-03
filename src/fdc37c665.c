@@ -46,7 +46,7 @@ static void write_lock(uint8_t val)
 static void ide_handler()
 {
 	uint16_t or_value = 0;
-	if ((romset == ROM_440FX) || (romset == ROM_R418))
+	if ((romset == ROM_440FX) || (romset == ROM_R418) || (romset == ROM_MB500N))
 	{
 		return;
 	}

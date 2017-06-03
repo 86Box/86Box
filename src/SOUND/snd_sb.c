@@ -82,8 +82,8 @@ static void sb_get_buffer_opl2(int32_t *buffer, int len, void *p)
         {
                 int32_t out_l, out_r;
                 
-                out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 16) * 55000) >> 16);
-                out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 16) * 55000) >> 16);
+                out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 16) * 51000) >> 16);
+                out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 16) * 51000) >> 16);
 
                 if (sb->mixer.filter)
                 {
@@ -133,8 +133,8 @@ static void sb_get_buffer_opl3(int32_t *buffer, int len, void *p)
         {
                 int32_t out_l, out_r;
                 
-                out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 16) * (opl3_type ? 47000 : 55000)) >> 16);
-                out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 16) * (opl3_type ? 47000 : 55000)) >> 16);
+                out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 16) * (opl3_type ? 47000 : 51000)) >> 16);
+                out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 16) * (opl3_type ? 47000 : 51000)) >> 16);
 
                 if (sb->mixer.filter)
                 {
