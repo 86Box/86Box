@@ -45,6 +45,9 @@ endif
 ifndef X64
 X64	= n
 endif
+ifndef RELEASE
+RELEASE	= n
+endif
 
 
 #########################################################################
