@@ -32,7 +32,7 @@
  *		Based on an early driver for MINIX 1.5.
  *		Based on the 86Box PS/2 mouse driver as a framework.
  *
- * Version:	@(#)mouse_bus.c	1.0.4	2017/05/17
+ * Version:	@(#)mouse_bus.c	1.0.5	2017/06/02
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 1989-2017 Fred N. van Kempen.
@@ -108,7 +108,7 @@ typedef struct {
 static void
 ms_write(mouse_bus_t *ms, uint16_t port, uint8_t val)
 {
-#if 1
+#if 0
     pclog("BUSMOUSE: ms_write(%d,%02x)\n", port, val);
 #endif
 
@@ -151,7 +151,7 @@ lt_write(mouse_bus_t *ms, uint16_t port, uint8_t val)
 {
     uint8_t b = (ms->r_ctrl ^ val);
 
-#if 1
+#if 0
     pclog("BUSMOUSE: lt_write(%d,%02x)\n", port, val);
 #endif
 
@@ -248,7 +248,7 @@ ms_read(mouse_bus_t *ms, uint16_t port)
 		break;
     }
 
-#if 1
+#if 0
     pclog("BUSMOUSE: ms_read(%d): %02x\n", port, r);
 #endif
 
@@ -367,7 +367,7 @@ lt_read(mouse_bus_t *ms, uint16_t port)
 		break;
     }
 
-#if 1
+#if 0
     pclog("BUSMOUSE: lt_read(%d): %02x\n", port, r);
 #endif
 

@@ -33,17 +33,23 @@
  *
  *		Based on the 86Box serial port driver as a framework.
  *
- * Version:	@(#)serial.c	1.0.5	2017/05/17
+ * Version:	@(#)serial.c	1.0.6	2017/06/02
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
  */
+#include <stdarg.h>
 #include "ibm.h"
 #include "io.h"
 #include "pic.h"
 #include "timer.h"
 #include "serial.h"
 #include "plat_serial.h"
+
+
+#ifdef WALTJE
+# define ENABLE_SERIAL_LOG 2
+#endif
 
 
 enum {
@@ -138,21 +144,25 @@ enum {
 
 static SERIAL	serial1,		/* serial port 1 data */
 		serial2;		/* serial port 2 data */
+#if ENABLE_SERIAL_LOG
+static int	serial_do_log = ENABLE_SERIAL_LOG;
+#else
+static int	serial_do_log = 0;
+#endif
 
 
-int serial_do_log = 0;
-
-void serial_log(const char *format, ...)
+static void
+serial_log(int lvl, const char *fmt, ...)
 {
 #ifdef ENABLE_SERIAL_LOG
-	if (serial_do_log)
-	{
-		va_list ap;
-		va_start(ap, format);
-		vprintf(format, ap);
-		va_end(ap);
-		fflush(stdout);
-	}
+    va_list ap;
+
+    if (serial_do_log >= lvl) {
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+	fflush(stdout);
+    }
 #endif
 }
 
@@ -256,7 +266,7 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
     long speed;
 
 #if 0
-    serial_log("Serial%d: write(%04x, %02x)\n", sp->port, addr, val);
+    serial_log(2, "Serial%d: write(%04x, %02x)\n", sp->port, addr, val);
 #endif
     switch (addr & 0x07) {
 	case 0:		/* DATA / DLAB1 */
@@ -305,25 +315,19 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 			baud = ((sp->dlab2<<8) | sp->dlab1);
 			if (baud > 0) {
 				speed = 115200UL/baud;
-#if 0
-				serial_log("Serial%d: divisor %u, baudrate %ld\n",
+				serial_log(2, "Serial%d: divisor %u, baudrate %ld\n",
 						sp->port, baud, speed);
-#endif
 				if ((sp->bh != NULL) && (speed > 0))
 					bhtty_speed((BHTTY *)sp->bh, speed);
-#if 0
 			} else {
-				serial_log("Serial%d: divisor %u invalid!\n",
+				serial_log(1, "Serial%d: divisor %u invalid!\n",
 							sp->port, baud);
-#endif
 			}
 		}
 		wl = (val & LCR_WLS) + 5;		/* databits */
 		sb = (val & LCR_SBS) ? 2 : 1;		/* stopbits */
 		pa = (val & (LCR_PE|LCR_EP|LCR_PS)) >> 3;
-#if 0
-		serial_log("Serial%d: WL=%d SB=%d PA=%d\n", sp->port, wl, sb, pa);
-#endif
+		serial_log(2, "Serial%d: WL=%d SB=%d PA=%d\n", sp->port, wl, sb, pa);
 		if (sp->bh != NULL)
 			bhtty_params((BHTTY *)sp->bh, wl, pa, sb);
 		sp->lcr = val;
@@ -339,9 +343,7 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 			 */
 			if (sp->rts_callback) {
 				sp->rts_callback(sp->rts_callback_p);
-#if 0
-				serial_log("RTS raised; sending ID\n");
-#endif
+				serial_log(1, "RTS raised; sending ID\n");
 			}
 		}
 
@@ -354,9 +356,7 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 				timer_add(serial_timer,
 					  &sp->receive_delay,
 					  &sp->receive_delay, sp);
-#if 0
-				serial_log("Serial%d: RX timer started!\n",sp->port);
-#endif
+				serial_log(1, "Serial%d: RX timer started!\n",sp->port);
 			}
 		}
 		sp->mctrl = val;
@@ -411,9 +411,7 @@ static void
 serial_rd_done(void *arg, int num)
 {
     SERIAL *sp = (SERIAL *)arg;
-#if 0
-serial_log("%04x: %d bytes available: %02x (%c)\n",sp->addr,num,sp->hold,sp->hold);
-#endif
+serial_log(0, "%04x: %d bytes available: %02x (%c)\n",sp->addr,num,sp->hold,sp->hold);
 
     /* Stuff the byte in the FIFO and set intr. */
     serial_write_fifo(sp, sp->hold);
@@ -507,7 +505,7 @@ serial_setup(int port, uint16_t addr, int irq)
 {
     SERIAL *sp;
 
-    serial_log("Serial%d: I/O=%04x, IRQ=%d\n", port, addr, irq);
+    serial_log(0, "Serial%d: I/O=%04x, IRQ=%d\n", port, addr, irq);
 
     /* Grab the desired port block. */
     sp = (port == 2) ? &serial2 : &serial1;
@@ -575,6 +573,9 @@ serial_init(void)
     memset(&serial1, 0x00, sizeof(SERIAL));
     serial1.port = 1;
     serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
+#ifdef WALTJE
+    serial_link(1, "COM2");
+#endif
 
     memset(&serial2, 0x00, sizeof(SERIAL));
     serial2.port = 2;
@@ -611,14 +612,14 @@ serial_link(int port, char *arg)
     if (arg != NULL) {
 	/* Make sure we're not already linked. */
 	if (sp->bh != NULL) {
-		serial_log("Serial%d already linked!\n", port);
+		serial_log(0, "Serial%d already linked!\n", port);
 		return(-1);
 	}
 
 	/* Request a port from the host system. */
 	bh = bhtty_open(arg, 0);
 	if (bh == NULL) {
-		serial_log("Serial%d unable to link to '%s' !\n", port, arg);
+		serial_log(0, "Serial%d unable to link to '%s' !\n", port, arg);
 		return(-1);
 	}
 	sp->bh = bh;
