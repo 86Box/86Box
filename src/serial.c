@@ -140,6 +140,23 @@ static SERIAL	serial1,		/* serial port 1 data */
 		serial2;		/* serial port 2 data */
 
 
+int serial_do_log = 0;
+
+void serial_log(const char *format, ...)
+{
+#ifdef ENABLE_SERIAL_LOG
+	if (serial_do_log)
+	{
+		va_list ap;
+		va_start(ap, format);
+		vprintf(format, ap);
+		va_end(ap);
+		fflush(stdout);
+	}
+#endif
+}
+
+
 static void
 update_ints(SERIAL *sp)
 {
@@ -239,7 +256,7 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
     long speed;
 
 #if 0
-    pclog("Serial%d: write(%04x, %02x)\n", sp->port, addr, val);
+    serial_log("Serial%d: write(%04x, %02x)\n", sp->port, addr, val);
 #endif
     switch (addr & 0x07) {
 	case 0:		/* DATA / DLAB1 */
@@ -289,14 +306,14 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 			if (baud > 0) {
 				speed = 115200UL/baud;
 #if 0
-				pclog("Serial%d: divisor %u, baudrate %ld\n",
+				serial_log("Serial%d: divisor %u, baudrate %ld\n",
 						sp->port, baud, speed);
 #endif
 				if ((sp->bh != NULL) && (speed > 0))
 					bhtty_speed((BHTTY *)sp->bh, speed);
 #if 0
 			} else {
-				pclog("Serial%d: divisor %u invalid!\n",
+				serial_log("Serial%d: divisor %u invalid!\n",
 							sp->port, baud);
 #endif
 			}
@@ -305,7 +322,7 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 		sb = (val & LCR_SBS) ? 2 : 1;		/* stopbits */
 		pa = (val & (LCR_PE|LCR_EP|LCR_PS)) >> 3;
 #if 0
-		pclog("Serial%d: WL=%d SB=%d PA=%d\n", sp->port, wl, sb, pa);
+		serial_log("Serial%d: WL=%d SB=%d PA=%d\n", sp->port, wl, sb, pa);
 #endif
 		if (sp->bh != NULL)
 			bhtty_params((BHTTY *)sp->bh, wl, pa, sb);
@@ -323,7 +340,7 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 			if (sp->rts_callback) {
 				sp->rts_callback(sp->rts_callback_p);
 #if 0
-				pclog("RTS raised; sending ID\n");
+				serial_log("RTS raised; sending ID\n");
 #endif
 			}
 		}
@@ -338,7 +355,7 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 					  &sp->receive_delay,
 					  &sp->receive_delay, sp);
 #if 0
-				pclog("Serial%d: RX timer started!\n",sp->port);
+				serial_log("Serial%d: RX timer started!\n",sp->port);
 #endif
 			}
 		}
@@ -395,7 +412,7 @@ serial_rd_done(void *arg, int num)
 {
     SERIAL *sp = (SERIAL *)arg;
 #if 0
-pclog("%04x: %d bytes available: %02x (%c)\n",sp->addr,num,sp->hold,sp->hold);
+serial_log("%04x: %d bytes available: %02x (%c)\n",sp->addr,num,sp->hold,sp->hold);
 #endif
 
     /* Stuff the byte in the FIFO and set intr. */
@@ -490,7 +507,7 @@ serial_setup(int port, uint16_t addr, int irq)
 {
     SERIAL *sp;
 
-    pclog("Serial%d: I/O=%04x, IRQ=%d\n", port, addr, irq);
+    serial_log("Serial%d: I/O=%04x, IRQ=%d\n", port, addr, irq);
 
     /* Grab the desired port block. */
     sp = (port == 2) ? &serial2 : &serial1;
@@ -594,14 +611,14 @@ serial_link(int port, char *arg)
     if (arg != NULL) {
 	/* Make sure we're not already linked. */
 	if (sp->bh != NULL) {
-		pclog("Serial%d already linked!\n", port);
+		serial_log("Serial%d already linked!\n", port);
 		return(-1);
 	}
 
 	/* Request a port from the host system. */
 	bh = bhtty_open(arg, 0);
 	if (bh == NULL) {
-		pclog("Serial%d unable to link to '%s' !\n", port, arg);
+		serial_log("Serial%d unable to link to '%s' !\n", port, arg);
 		return(-1);
 	}
 	sp->bh = bh;
