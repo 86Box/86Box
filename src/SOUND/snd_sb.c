@@ -26,6 +26,7 @@
 #include "../rom.h"
 #include "../device.h"
 #include "sound.h"
+#include "snd_dbopl.h"
 #include "snd_emu8k.h"
 #include "snd_mpu401.h"
 #include "snd_opl.h"

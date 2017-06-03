@@ -88,7 +88,7 @@ void opl_write(int nr, uint16_t addr, uint8_t val)
         if (!(addr & 1))
 	{
 		if (!opl[nr].is_opl3 || !opl3_type)
-			opl[nr].addr = (int)opl[nr].chip.WriteAddr(addr, val) & 0xff;
+			opl[nr].addr = (int)opl[nr].chip.WriteAddr(addr, val) & (opl[nr].is_opl3 ? 0x1ff : 0xff);
 		else
 			opl[nr].addr = (int)OPL3_WriteAddr(&opl[nr].opl3chip, addr, val) & 0x1ff;
 	}
