@@ -1217,6 +1217,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 			EnableWindow(h, mpu401_present() ? TRUE : FALSE);
 
 		        h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
+        	        SendMessage(h, BM_SETCHECK, temp_mpu401, 0);
 		        EnableWindow(h, mpu401_standalone_allow() ? TRUE : FALSE);
 
 		        h = GetDlgItem(hdlg, IDC_CONFIGURE_MPU401);
