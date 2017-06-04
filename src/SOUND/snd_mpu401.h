@@ -43,6 +43,8 @@ typedef enum MpuDataType {T_OVERFLOW,T_MARK,T_MIDI_SYS,T_MIDI_NORM,T_COMMAND} Mp
 
 typedef struct mpu_t
 {
+	int uart_mode;
+	uint8_t rx_data;
 	int intelligent;
 	MpuMode mode;
 	int irq;
@@ -88,3 +90,5 @@ extern int mpu401_standalone_enable;
 
 void mpu401_device_add(void);
 device_t mpu401_device;
+
+void mpu401_uart_init(mpu_t *mpu, uint16_t addr);

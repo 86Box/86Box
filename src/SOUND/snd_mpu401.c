@@ -162,7 +162,7 @@ static void MPU401_ResetDone(void *p)
 static void MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 {	
 	uint8_t i;
-	
+
 	if (mpu->state.reset) 
 	{
 		mpu->state.cmd_pending=val+1;
@@ -301,7 +301,9 @@ static void MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 			mpu401_reset_callback = MPU401_RESETBUSY * 33 * TIMER_USEC;
 			mpu->state.reset=1;
 			MPU401_Reset(mpu);
+#if 0
 			if (mpu->mode==M_UART) return;//do not send ack in UART mode
+#endif
 			break;
 		case 0x3f:	/* UART mode */
 			pclog("MPU-401:Set UART mode %X\n",val);
@@ -733,6 +735,14 @@ next_event:
 
 void mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode)
 {
+#if 0
+	if (mode != M_INTELLIGENT)
+	{
+		mpu401_uart_init(mpu, addr);
+		return;
+	}
+#endif
+
 	mpu->status = STATUS_INPUT_NOT_READY;
 	mpu->irq = irq;
 	mpu->queue_used = 0;
