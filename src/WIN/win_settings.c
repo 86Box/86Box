@@ -1114,7 +1114,7 @@ int mpu401_present(void)
 {
 	char *n;
 
-	n = sound_card_getname(temp_sound_card);
+	n = sound_card_get_internal_name(temp_sound_card);
 	if (n != NULL)
 	{
 		if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32"))
@@ -1130,7 +1130,7 @@ int mpu401_standalone_allow(void)
 {
 	char *n;
 
-	n = sound_card_getname(temp_sound_card);
+	n = sound_card_get_internal_name(temp_sound_card);
 	if (n != NULL)
 	{
 		if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32"))

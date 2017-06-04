@@ -764,7 +764,7 @@ void mpu401_device_add(void)
 		return;
 	}
 
-	n = sound_card_getname(sound_card_current);
+	n = sound_card_get_internal_name(sound_card_current);
 	if (n != NULL)
 	{
 		if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32"))
