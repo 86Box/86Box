@@ -645,7 +645,8 @@ bad_command:
 			break;
 
                         case 0xc0: /*Read input port*/
-                        keyboard_at_adddata((keyboard_at.input_port & 0xfc) | 0x84 | fdc_ps1_525());
+                        keyboard_at_adddata(keyboard_at.input_port | 4 | fdc_ps1_525());
+                        keyboard_at.input_port = ((keyboard_at.input_port + 1) & 3) | (keyboard_at.input_port & 0xfc) | fdc_ps1_525();
                         break;
 
 			case 0xc1: /*Copy bits 0 to 3 of input port to status bits 4 to 7*/
