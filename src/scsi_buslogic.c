@@ -2243,7 +2243,7 @@ BuslogicInit(int chip)
 	chip = CHIP_BUSLOGIC_ISA;
     }
     bl->chip = chip;
-    bl->Base = device_get_config_hex16("addr");
+    bl->Base = device_get_config_hex16("base");
     bl->PCIBase = 0;
     bl->MMIOBase = 0;
     bl->Irq = device_get_config_int("irq");
