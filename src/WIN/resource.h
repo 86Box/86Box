@@ -29,7 +29,7 @@
 
 #define DLG_ABOUT			101
 #define DLG_STATUS			102
-#define DLG_CONFIG			110
+#define DLG_CFG_MAIN			110
 #define DLG_CFG_MACHINE			111
 #define DLG_CFG_VIDEO			112
 #define DLG_CFG_INPUT			113

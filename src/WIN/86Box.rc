@@ -90,6 +90,7 @@ BEGIN
         END
         MENUITEM "S&tatus",                     IDM_STATUS
     END
+#ifdef ENABLE_LOG_TOGGLES
     POPUP "&Logging"
     BEGIN
 #ifdef ENABLE_BUSLOGIC_LOG
@@ -123,6 +124,7 @@ BEGIN
 # endif
 #endif
     END
+#endif
     POPUP "&Help"
     BEGIN
         MENUITEM "&About 86Box...",             IDM_ABOUT

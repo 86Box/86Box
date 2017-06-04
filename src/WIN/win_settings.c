@@ -4240,5 +4240,5 @@ static BOOL CALLBACK win_settings_main_proc(HWND hdlg, UINT message, WPARAM wPar
 
 void win_settings_open(HWND hwnd)
 {
-        DialogBox(hinstance, (LPCWSTR)DLG_CONFIG, hwnd, win_settings_main_proc);
+        DialogBox(hinstance, (LPCWSTR)DLG_CFG_MAIN, hwnd, win_settings_main_proc);
 }

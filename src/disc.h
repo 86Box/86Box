@@ -51,8 +51,10 @@ extern void	disc_close(int drive);
 extern void	disc_init(void);
 extern void	disc_reset(void);
 extern void	disc_poll(int drive);
-extern void	disc_poll_0(void);
-extern void	disc_poll_1(void);
+extern void	disc_poll_0(void* priv);
+extern void	disc_poll_1(void* priv);
+extern void	disc_poll_2(void* priv);
+extern void	disc_poll_3(void* priv);
 extern void	disc_seek(int drive, int track);
 extern void	disc_readsector(int drive, int sector, int track,
 				int side, int density, int sector_size);
@@ -68,7 +70,7 @@ extern void	disc_stop(int drive);
 extern int	disc_empty(int drive);
 extern void	disc_set_rate(int drive, int drvden, int rate);
 
-extern void	fdc_callback(void);
+extern void	fdc_callback(void *priv);
 extern int	fdc_data(uint8_t dat);
 extern void	fdc_spindown(void);
 extern void	fdc_finishread(void);

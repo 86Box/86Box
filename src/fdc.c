@@ -150,7 +150,7 @@ int disctime;
 
 static FDC fdc;
 
-void fdc_callback();
+void fdc_callback(void *priv);
 int timetolive;
 int lastbyte=0;
 uint8_t disc_3f7;
@@ -848,7 +848,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc.lastdrive = fdc.drive;
                                 discint = 8;
                                 fdc.pos = 0;
-                                fdc_callback();
+                                fdc_callback(NULL);
                                 break;
                                 case 10: /*Read sector ID*/
                                 fdc.pnum=0;
@@ -874,13 +874,13 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc.lastdrive = fdc.drive;
                                 discint = 0x0e;
                                 fdc.pos = 0;
-                                fdc_callback();
+                                fdc_callback(NULL);
                                 break;
                                 case 0x10: /*Get version*/
                                 fdc.lastdrive = fdc.drive;
                                 discint = 0x10;
                                 fdc.pos = 0;
-                                fdc_callback();
+                                fdc_callback(NULL);
                                 break;
                                 case 0x12: /*Set perpendicular mode*/
 				if (!AT || fdc.pcjr || fdc.ps1)  goto bad_command;
@@ -900,7 +900,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc.lastdrive = fdc.drive;
                                 discint = fdc.command;
                                 fdc.pos = 0;
-                                fdc_callback();
+                                fdc_callback(NULL);
                                 break;
 
                                 case 0x18:
@@ -908,10 +908,10 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc.lastdrive = fdc.drive;
                                 discint = 0x10;
                                 fdc.pos = 0;
-                                fdc_callback();
+                                fdc_callback(NULL);
                                 /* fdc.stat = 0x10;
                                 discint  = 0xfc;
-                                fdc_callback(); */
+                                fdc_callback(NULL); */
                                 break;
 
                                 default:
@@ -1473,7 +1473,7 @@ void fdc_no_dma_end(int compare)
 	fdc_poll_common_finish(compare, 0x80);
 }
 
-void fdc_callback()
+void fdc_callback(void *priv)
 {
 	int compare = 0;
 	int drive_num = 0;
@@ -2000,7 +2000,7 @@ void fdc_track_finishread(int condition)
 	fdc.stat = 0x10;
 	fdc.satisfying_sectors |= condition;
         fdc.inread = 0;
-	fdc_callback();
+	fdc_callback(NULL);
 }
 
 void fdc_sector_finishcompare(int satisfying)
@@ -2008,14 +2008,14 @@ void fdc_sector_finishcompare(int satisfying)
 	fdc.stat = 0x10;
 	fdc.satisfying_sectors++;
         fdc.inread = 0;
-	fdc_callback();
+	fdc_callback(NULL);
 }
 
 void fdc_sector_finishread()
 {
 	fdc.stat = 0x10;
         fdc.inread = 0;
-	fdc_callback();
+	fdc_callback(NULL);
 }
 
 /* There is no sector ID. */

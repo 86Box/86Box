@@ -247,22 +247,22 @@ void disc_poll(int drive)
         }
 }
 
-void disc_poll_0()
+void disc_poll_0(void *priv)
 {
 	disc_poll(0);
 }
 
-void disc_poll_1()
+void disc_poll_1(void *priv)
 {
 	disc_poll(1);
 }
 
-void disc_poll_2()
+void disc_poll_2(void *priv)
 {
 	disc_poll(2);
 }
 
-void disc_poll_3()
+void disc_poll_3(void *priv)
 {
 	disc_poll(3);
 }
