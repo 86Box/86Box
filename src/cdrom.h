@@ -9,17 +9,16 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.h	1.0.0	2017/05/30
+ * Version:	@(#)cdrom.h	1.0.1	2017/06/03
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2017 Miran Grca.
  */
+#ifndef EMU_CDROM_H
+#define EMU_CDROM_H
 
-#ifndef __CDROM_H__
-#define __CDROM_H__
 
-/*CD-ROM stuff*/
-#define CDROM_NUM	4
+#define CDROM_NUM		4
 
 #define CDROM_PHASE_IDLE            0
 #define CDROM_PHASE_COMMAND         1
@@ -37,8 +36,8 @@
 #define IDE_TIME (5 * 100 * (1 << TIMER_SHIFT))
 #define CDROM_TIME (5 * 100 * (1 << TIMER_SHIFT))
 
-typedef struct CDROM
-{
+
+typedef struct {
 	int (*ready)(uint8_t id);
 	int (*medium_changed)(uint8_t id);
 	int (*media_type_id)(uint8_t id);
@@ -62,13 +61,8 @@ typedef struct CDROM
 	void (*exit)(uint8_t id);
 } CDROM;
 
-#ifdef __MSC__
-# pragma pack(push,1)
-typedef struct
-#else
-typedef struct __attribute__((__packed__))
-#endif
-{
+#pragma pack(push,1)
+typedef struct {
 	uint8_t previous_command;
 	int toctimes;
 
@@ -136,19 +130,10 @@ typedef struct __attribute__((__packed__))
 	
 	int init_length;
 } cdrom_t;
-#ifdef __MSC__
-# pragma pack(pop)
-#endif
+#pragma pack(pop)
 
-extern cdrom_t cdrom[CDROM_NUM];
-
-#ifdef __MSC__
-# pragma pack(push,1)
-typedef struct
-#else
-typedef struct __attribute__((__packed__))
-#endif
-{
+#pragma pack(push,1)
+typedef struct {
 	int max_blocks_at_once;
 
 	CDROM *handler;
@@ -168,22 +153,9 @@ typedef struct __attribute__((__packed__))
 	unsigned int sound_on;
 	unsigned int atapi_dma;
 } cdrom_drive_t;
-#ifdef __MSC__
-# pragma pack(pop)
-#endif
+#pragma pack(pop)
 
-extern cdrom_drive_t cdrom_drives[CDROM_NUM];
-
-extern uint8_t atapi_cdrom_drives[8];
-
-extern uint8_t scsi_cdrom_drives[16][8];
-
-extern int (*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length);
-extern int (*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length);
-extern void (*ide_bus_master_set_irq)(int channel);
-
-typedef struct
-{
+typedef struct {
 	int image_is_iso;
 
 	uint32_t last_block;
@@ -200,10 +172,7 @@ typedef struct
 	int cd_buflen;
 } cdrom_image_t;
 
-cdrom_image_t cdrom_image[CDROM_NUM];
-
-typedef struct
-{
+typedef struct {
 	uint32_t last_block;
 	uint32_t cdrom_capacity;
 	int ioctl_inited;
@@ -223,20 +192,29 @@ typedef struct
 	int last_subchannel_pos;
 } cdrom_ioctl_t;
 
-void ioctl_close(uint8_t id);
 
-cdrom_ioctl_t cdrom_ioctl[CDROM_NUM];
+extern cdrom_t		cdrom[CDROM_NUM];
+extern cdrom_drive_t	cdrom_drives[CDROM_NUM];
+extern uint8_t		atapi_cdrom_drives[8];
+extern uint8_t		scsi_cdrom_drives[16][8];
+       cdrom_image_t	cdrom_image[CDROM_NUM];
+       cdrom_ioctl_t	cdrom_ioctl[CDROM_NUM];
 
-uint32_t cdrom_mode_sense_get_channel(uint8_t id, int channel);
-uint32_t cdrom_mode_sense_get_volume(uint8_t id, int channel);
-void build_atapi_cdrom_map();
-void build_scsi_cdrom_map();
-int cdrom_CDROM_PHASE_to_scsi(uint8_t id);
-int cdrom_atapi_phase_to_scsi(uint8_t id);
-void cdrom_command(uint8_t id, uint8_t *cdb);
-void cdrom_phase_callback(uint8_t id);
-uint32_t cdrom_read(uint8_t channel, int length);
-void cdrom_write(uint8_t channel, uint32_t val, int length);
+extern int (*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length);
+extern int (*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length);
+extern void (*ide_bus_master_set_irq)(int channel);
+extern void ioctl_close(uint8_t id);
+
+extern uint32_t cdrom_mode_sense_get_channel(uint8_t id, int channel);
+extern uint32_t cdrom_mode_sense_get_volume(uint8_t id, int channel);
+extern void build_atapi_cdrom_map(void);
+extern void build_scsi_cdrom_map(void);
+extern int cdrom_CDROM_PHASE_to_scsi(uint8_t id);
+extern int cdrom_atapi_phase_to_scsi(uint8_t id);
+extern void cdrom_command(uint8_t id, uint8_t *cdb);
+extern void cdrom_phase_callback(uint8_t id);
+extern uint32_t cdrom_read(uint8_t channel, int length);
+extern void cdrom_write(uint8_t channel, uint32_t val, int length);
 
 #ifdef __cplusplus
 extern "C" {
@@ -262,4 +240,5 @@ int find_cdrom_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun);
 #define cdrom_ascq cdrom[id].sense[13]
 #define cdrom_drive cdrom_drives[id].host_drive
 
-#endif
+
+#endif	/*EMU_CDROM_H*/

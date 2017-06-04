@@ -47,11 +47,6 @@
 #include "plat_serial.h"
 
 
-#ifdef WALTJE
-# define ENABLE_SERIAL_LOG 2
-#endif
-
-
 enum {
     SERINT_LSR = 1,
     SERINT_RECEIVE = 2,
@@ -144,11 +139,7 @@ enum {
 
 static SERIAL	serial1,		/* serial port 1 data */
 		serial2;		/* serial port 2 data */
-#if ENABLE_SERIAL_LOG
-static int	serial_do_log = ENABLE_SERIAL_LOG;
-#else
-static int	serial_do_log = 0;
-#endif
+       int	serial_do_log;
 
 
 static void
@@ -231,6 +222,16 @@ serial_write_fifo(SERIAL *sp, uint8_t dat)
 }
 
 
+#ifdef WALTJE
+static void
+serial_write_str(SERIAL *sp, const char *str)
+{
+    while (*str)
+	serial_write_fifo(sp, (uint8_t)*str++);
+}
+#endif
+
+
 static uint8_t
 read_fifo(SERIAL *sp)
 {
@@ -265,7 +266,7 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
     uint16_t baud;
     long speed;
 
-#if 0
+#if ENABLE_SERIAL_LOG
     serial_log(2, "Serial%d: write(%04x, %02x)\n", sp->port, addr, val);
 #endif
     switch (addr & 0x07) {
@@ -348,15 +349,23 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 		}
 
 		if ((val & MCR_OUT2) && !(sp->mctrl & MCR_OUT2)) {
-			if (sp->bh != NULL) {
-				/* Linked, start reading from host port. */
-				(void)bhtty_read((BHTTY *)sp->bh, &sp->hold, 1);
-			} else {
+			if (sp->bh == NULL) {
 				/* Not linked, start RX timer. */
 				timer_add(serial_timer,
 					  &sp->receive_delay,
 					  &sp->receive_delay, sp);
-				serial_log(1, "Serial%d: RX timer started!\n",sp->port);
+
+				/* Fake CTS, DSR and DCD (for now.) */
+				sp->msr = (MSR_CTS | MSR_DCTS |
+					   MSR_DSR | MSR_DDSR |
+					   MSR_DCD | MSR_DDCD);
+				sp->int_status |= SERINT_MSR;
+				update_ints(sp);
+
+#ifdef WALTJE
+				/* For testing. */
+				serial_write_str(sp, "Welcome!\r\n");
+#endif
 			}
 		}
 		sp->mctrl = val;
@@ -411,14 +420,12 @@ static void
 serial_rd_done(void *arg, int num)
 {
     SERIAL *sp = (SERIAL *)arg;
+#ifdef WALTJE
 serial_log(0, "%04x: %d bytes available: %02x (%c)\n",sp->addr,num,sp->hold,sp->hold);
+#endif
 
     /* Stuff the byte in the FIFO and set intr. */
     serial_write_fifo(sp, sp->hold);
-
-    /* Start up the next read from the real port. */
-    if (sp->bh != NULL)
-	(void)bhtty_read((BHTTY *)sp->bh, &sp->hold, 1);
 }
 
 
@@ -553,7 +560,8 @@ serial_remove(int port)
 #endif
 
     /* Close the host device. */
-    (void)serial_link(port, NULL);
+    if (sp->bh != NULL)
+	(void)serial_link(port, NULL);
 
     /* Release our I/O range. */
     if (sp->addr != 0x0000) {
@@ -570,16 +578,22 @@ serial_remove(int port)
 void
 serial_init(void)
 {
+#if ENABLE_SERIAL_LOG
+    serial_do_log = ENABLE_SERIAL_LOG;
+#endif
     memset(&serial1, 0x00, sizeof(SERIAL));
     serial1.port = 1;
-    serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
-#ifdef WALTJE
-    serial_link(1, "COM2");
+    serial_setup(serial1.port, SERIAL1_ADDR, SERIAL1_IRQ);
+#ifdef xWALTJE
+    serial_link(serial1.port, "COM1");
 #endif
 
     memset(&serial2, 0x00, sizeof(SERIAL));
     serial2.port = 2;
-    serial_setup(2, SERIAL2_ADDR, SERIAL2_IRQ);
+    serial_setup(serial2.port, SERIAL2_ADDR, SERIAL2_IRQ);
+#ifdef xWALTJE
+    serial_link(serial2.port, "COM2");
+#endif
 }
 
 

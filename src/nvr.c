@@ -8,16 +8,15 @@
  *
  *		CMOS NVRAM emulation.
  *
- * Version:	@(#)nvr.c	1.0.0	2017/05/30
+ * Version:	@(#)nvr.c	1.0.1	2017/06/03
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Mahod,
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  *		Copyright 2016-2017 Mahod.
  */
-
 #include <stdio.h>
 #include "ibm.h"
 #include "io.h"
@@ -39,12 +38,12 @@ static int nvr_onesec_time = 0, nvr_onesec_cnt = 0;
 
 static int rtctime;
 
-void getnvrtime()
+void getnvrtime(void)
 {
 	time_get(nvrram);
 }
 
-void nvr_recalc()
+void nvr_recalc(void)
 {
         int c;
         int newrtctime;
@@ -204,7 +203,7 @@ uint8_t readnvr(uint16_t addr, void *priv)
         return nvraddr;
 }
 
-void loadnvr()
+void loadnvr(void)
 {
         FILE *f;
         int c;
@@ -292,7 +291,7 @@ void loadnvr()
         c = 1 << ((nvrram[RTC_REGA] & RTC_RS) - 1);
         rtctime += (int)(RTCCONST * c * (1 << TIMER_SHIFT));
 }
-void savenvr()
+void savenvr(void)
 {
         FILE *f;
         switch (oldromset)
@@ -357,7 +356,7 @@ void savenvr()
         fclose(f);
 }
 
-void nvr_init()
+void nvr_init(void)
 {
         io_sethandler(0x0070, 0x0002, readnvr, NULL, NULL, writenvr, NULL, NULL,  NULL);
         timer_add(nvr_rtc, &rtctime, TIMER_ALWAYS_ENABLED, NULL);

@@ -8,21 +8,22 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)model.c	1.0.0	2017/05/30
+ * Version:	@(#)model.c	1.0.1	2017/06/03
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
-
 #include <stdint.h>
 #include <stdio.h>
+
 #include "ibm.h"
 #include "cpu/cpu.h"
 #include "io.h"
 #include "mem.h"
 #include "rom.h"
+#include "device.h"
 #include "model.h"
 #include "mouse.h"
 #include "mouse_ps2.h"
@@ -32,7 +33,6 @@
 #include "ali1429.h"
 #include "amstrad.h"
 #include "compaq.h"
-#include "device.h"
 #include "disc.h"
 #include "dma.h"
 #include "fdc.h"
@@ -92,56 +92,57 @@
 #include "xtide.h"
 #include "bugger.h"
 
-void             xt_init();
-void           pcjr_init();
-void        tandy1k_init();
-void     tandy1ksl2_init();
-void            ams_init();
-void         europc_init();
-void         olim24_init();
-void             at_init();
-void         ibm_at_init();
-void         at_ide_init();
-void     deskpro386_init();
-void      ps1_m2011_init();
-void      ps1_m2121_init();
-void      ps1_m2133_init();
-void    ps2_m30_286_init();
-void   ps2_model_50_init();
-void ps2_model_55sx_init();
-void   ps2_model_80_init();
-void        at_neat_init();
-void        at_scat_init();
-void     at_wd76c10_init();
-void     at_ali1429_init();
-void    at_headland_init();
-void     at_opti495_init();
-void      at_sis496_init();
-void      at_i430vx_init();
-void      at_batman_init();
-void    at_endeavor_init();
 
-void      at_dtk486_init();
-void        at_r418_init();
-#if 0
-void      at_586mc1_init();
-#endif
-void       at_plato_init();
-void      at_mb500n_init();
-void    at_p54tp4xe_init();
-void        at_ap53_init();
-void      at_p55t2s_init();
-void     at_acerm3a_init();
-#if 0
-void    at_acerv35n_init();
-#endif
-void     at_p55t2p4_init();
-void     at_p55tvp4_init();
-void       at_p55va_init();
-void      at_i440fx_init();
-void       at_s1668_init();
+extern void             xt_init(void);
+extern void           pcjr_init(void);
+extern void        tandy1k_init(void);
+extern void     tandy1ksl2_init(void);
+extern void            ams_init(void);
+extern void         europc_init(void);
+extern void         olim24_init(void);
+extern void             at_init(void);
+extern void         ibm_at_init(void);
+extern void         at_ide_init(void);
+extern void     deskpro386_init(void);
+extern void      ps1_m2011_init(void);
+extern void      ps1_m2121_init(void);
+extern void      ps1_m2133_init(void);
+extern void    ps2_m30_286_init(void);
+extern void   ps2_model_50_init(void);
+extern void ps2_model_55sx_init(void);
+extern void   ps2_model_80_init(void);
+extern void        at_neat_init(void);
+extern void        at_scat_init(void);
+extern void     at_wd76c10_init(void);
+extern void     at_ali1429_init(void);
+extern void    at_headland_init(void);
+extern void     at_opti495_init(void);
+extern void      at_sis496_init(void);
+extern void      at_i430vx_init(void);
+extern void      at_batman_init(void);
+extern void    at_endeavor_init(void);
 
-void     xt_laserxt_init();
+extern void      at_dtk486_init(void);
+extern void        at_r418_init(void);
+#if 0
+extern void      at_586mc1_init(void);
+#endif
+extern void       at_plato_init(void);
+extern void      at_mb500n_init(void);
+extern void    at_p54tp4xe_init(void);
+extern void        at_ap53_init(void);
+extern void      at_p55t2s_init(void);
+extern void     at_acerm3a_init(void);
+#if 0
+extern void    at_acerv35n_init(void);
+#endif
+extern void     at_p55t2p4_init(void);
+extern void     at_p55tvp4_init(void);
+extern void       at_p55va_init(void);
+extern void      at_i440fx_init(void);
+extern void       at_s1668_init(void);
+
+extern void     xt_laserxt_init(void);
 
 int model;
 
@@ -233,12 +234,13 @@ MODEL models[] =
         {"", -1, "", {"", 0, "", 0, "", 0}, 0,0,0, 0}
 };
 
-int model_count()
+
+int model_count(void)
 {
         return (sizeof(models) / sizeof(MODEL)) - 1;
 }
 
-int model_getromset()
+int model_getromset(void)
 {
         return models[model].id;
 }
@@ -273,7 +275,7 @@ device_t *model_getdevice(int model)
         return models[model].device;
 }
 
-char *model_get_internal_name()
+char *model_get_internal_name(void)
 {
         return models[model].internal_name;
 }
@@ -292,7 +294,7 @@ int model_get_model_from_internal_name(char *s)
 	return 0;
 }
 
-void common_init()
+void common_init(void)
 {
         dma_init();
         fdc_add();
@@ -312,7 +314,7 @@ void common_init()
 	}
 }
 
-void xt_init()
+void xt_init(void)
 {
         common_init();
 	mem_add_bios();
@@ -326,7 +328,7 @@ void xt_init()
 	}
 }
 
-void pcjr_init()
+void pcjr_init(void)
 {
 	mem_add_bios();
         fdc_add_pcjr();
@@ -342,7 +344,7 @@ void pcjr_init()
 	nmi_mask = 0x80;
 }
 
-void tandy1k_init()
+void tandy1k_init(void)
 {
         TANDY = 1;
         common_init();
@@ -357,7 +359,7 @@ void tandy1k_init()
                 device_add(&tandy_eeprom_device);
 	if (joystick_type != 7)  device_add(&gameport_device);
 }
-void tandy1ksl2_init()
+void tandy1ksl2_init(void)
 {
         common_init();
 	mem_add_bios();
@@ -369,7 +371,7 @@ void tandy1ksl2_init()
 	if (joystick_type != 7)  device_add(&gameport_device);
 }
 
-void ams_init()
+void ams_init(void)
 {
         AMSTRAD = 1;
         common_init();
@@ -382,7 +384,7 @@ void ams_init()
 	if (joystick_type != 7)  device_add(&gameport_device);
 }
 
-void europc_init()
+void europc_init(void)
 {
         common_init();
 	mem_add_bios();
@@ -392,7 +394,7 @@ void europc_init()
 	if (joystick_type != 7)  device_add(&gameport_device);
 }
 
-void olim24_init()
+void olim24_init(void)
 {
         common_init();
 	mem_add_bios();
@@ -403,13 +405,13 @@ void olim24_init()
 	if (joystick_type != 7)  device_add(&gameport_device);
 }
 
-void xt_laserxt_init()
+void xt_laserxt_init(void)
 {
         xt_init();
         laserxt_init();
 }
 
-void at_init()
+void at_init(void)
 {
 	AT = 1;
         common_init();
@@ -430,25 +432,25 @@ void at_init()
 	}
 }
 
-void ibm_at_init()
+void ibm_at_init(void)
 {
         at_init();
         mem_remap_top_384k();
 }
 
-void at_ide_init()
+void at_ide_init(void)
 {
 	at_init();
 	ide_init();
 }
 
-void deskpro386_init()
+void deskpro386_init(void)
 {
         at_init();
         compaq_init();
 }
 
-void ps1_common_init()
+void ps1_common_init(void)
 {
         AT = 1;
         common_init();
@@ -471,26 +473,26 @@ void ps1_common_init()
         if (joystick_type != 7)  device_add(&gameport_201_device);
 }
  
-void ps1_m2011_init()
+void ps1_m2011_init(void)
 {
         ps1_common_init();
         ps1mb_init();
 }
 
-void ps1_m2121_init()
+void ps1_m2121_init(void)
 {
         ps1_common_init();
         ps1mb_m2121_init();
         fdc_set_ps1();
 }
 
-void ps1_m2133_init()
+void ps1_m2133_init(void)
 {
         ps1_common_init();
         ps1mb_m2133_init();
 }
 
-void ps2_m30_286_init()
+void ps2_m30_286_init(void)
 {
         AT = 1;
         common_init();
@@ -505,7 +507,7 @@ void ps2_m30_286_init()
         fdc_set_ps1();
 }
 
-static void ps2_common_init()
+static void ps2_common_init(void)
 {
         AT = 1;
         common_init();
@@ -522,67 +524,67 @@ static void ps2_common_init()
         pit_ps2_init();
 }
 
-void ps2_model_50_init()
+void ps2_model_50_init(void)
 {
         ps2_common_init();
         ps2_mca_board_model_50_init();
 }
 
-void ps2_model_55sx_init()
+void ps2_model_55sx_init(void)
 {
         ps2_common_init();
         ps2_mca_board_model_55sx_init();
 }
 
-void ps2_model_80_init()
+void ps2_model_80_init(void)
 {
         ps2_common_init();
         ps2_mca_board_model_80_type2_init();
 }
 
-void at_neat_init()
+void at_neat_init(void)
 {
         at_ide_init();
         neat_init();
 }
 
-void at_scat_init()
+void at_scat_init(void)
 {
         at_ide_init();
         scat_init();
 }
 
-/* void at_acer386sx_init()
+/* void at_acer386sx_init(void)
 {
         at_ide_init();
         acer386sx_init();
 }
 
-void at_82335_init()
+void at_82335_init(void)
 {
         at_ide_init();
         i82335_init();
 } */
 
-void at_wd76c10_init()
+void at_wd76c10_init(void)
 {
         at_ide_init();
         wd76c10_init();
 }
 
-void at_headland_init()
+void at_headland_init(void)
 {
         at_ide_init();
         headland_init();
 }
 
-void at_opti495_init()
+void at_opti495_init(void)
 {
         at_ide_init();
         opti495_init();
 }
 
-void secondary_ide_check()
+void secondary_ide_check(void)
 {
 	int i = 0;
 	int secondary_cdroms = 0;
@@ -597,7 +599,7 @@ void secondary_ide_check()
 	if (!secondary_cdroms)  ide_sec_disable();
 }
 
-void at_ali1429_init()
+void at_ali1429_init(void)
 {
         ali1429_reset();
 
@@ -607,14 +609,14 @@ void at_ali1429_init()
 	secondary_ide_check();
 }
 
-/* void at_um8881f_init()
+/* void at_um8881f_init(void)
 {
         at_ide_init();
         pci_init(PCI_CONFIG_TYPE_1, 0, 31);
         um8881f_init();
 } */
 
-void at_dtk486_init()
+void at_dtk486_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -622,7 +624,7 @@ void at_dtk486_init()
 	secondary_ide_check();
 }
 
-void at_sis496_init()
+void at_sis496_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -634,13 +636,13 @@ void at_sis496_init()
 	trc_init();
 }
 
-void at_r418_init()
+void at_r418_init(void)
 {
 	at_sis496_init();
         fdc37c665_init();
 }
 
-void at_premiere_common_init()
+void at_premiere_common_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -654,14 +656,14 @@ void at_premiere_common_init()
         device_add(&intel_flash_bxt_ami_device);
 }
 
-void at_batman_init()
+void at_batman_init(void)
 {
 	at_premiere_common_init();
         i430lx_init();
 }
 
 #if 0
-void at_586mc1_init()
+void at_586mc1_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -676,13 +678,13 @@ void at_586mc1_init()
 }
 #endif
 
-void at_plato_init()
+void at_plato_init(void)
 {
 	at_premiere_common_init();
         i430nx_init();
 }
 
-void at_advanced_common_init()
+void at_advanced_common_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -696,13 +698,13 @@ void at_advanced_common_init()
         pc87306_init();
 }
 
-void at_endeavor_init()
+void at_endeavor_init(void)
 {
         at_advanced_common_init();
         device_add(&intel_flash_bxt_ami_device);
 }
 
-void at_mb500n_init()
+void at_mb500n_init(void)
 {
         at_ide_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -716,7 +718,7 @@ void at_mb500n_init()
         device_add(&intel_flash_bxt_device);
 }
 
-void at_p54tp4xe_init()
+void at_p54tp4xe_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -731,7 +733,7 @@ void at_p54tp4xe_init()
         device_add(&intel_flash_bxt_device);
 }
 
-void at_ap53_init()
+void at_ap53_init(void)
 {
         at_ide_init();
         memregs_init();
@@ -748,7 +750,7 @@ void at_ap53_init()
         device_add(&intel_flash_bxt_device);
 }
 
-void at_p55t2s_init()
+void at_p55t2s_init(void)
 {
         at_ide_init();
         memregs_init();
@@ -765,7 +767,7 @@ void at_p55t2s_init()
         device_add(&intel_flash_bxt_device);
 }
 
-void at_acerm3a_init()
+void at_acerm3a_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -783,7 +785,7 @@ void at_acerm3a_init()
 }
 
 #if 0
-void at_acerv35n_init()
+void at_acerv35n_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -801,7 +803,7 @@ void at_acerv35n_init()
 }
 #endif
 
-void at_p55t2p4_init()
+void at_p55t2p4_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -816,7 +818,7 @@ void at_p55t2p4_init()
         device_add(&intel_flash_bxt_device);
 }
 
-void at_i430vx_init()
+void at_i430vx_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -831,7 +833,7 @@ void at_i430vx_init()
         device_add(&intel_flash_bxt_device);
 }
 
-void at_p55tvp4_init()
+void at_p55tvp4_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -846,7 +848,7 @@ void at_p55tvp4_init()
         device_add(&intel_flash_bxt_device);
 }
 
-void at_p55va_init()
+void at_p55va_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -861,7 +863,7 @@ void at_p55va_init()
         device_add(&intel_flash_bxt_device);
 }
 
-void at_i440fx_init()
+void at_i440fx_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -876,7 +878,7 @@ void at_i440fx_init()
         device_add(&intel_flash_bxt_device);
 }
 
-void at_s1668_init()
+void at_s1668_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -891,7 +893,7 @@ void at_s1668_init()
         device_add(&intel_flash_bxt_device);
 }
 
-void model_init()
+void model_init(void)
 {
         pclog("Initializing as %s\n", model_getname());
         AMSTRAD = AT = PCI = TANDY = 0;

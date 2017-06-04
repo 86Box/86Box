@@ -8,15 +8,21 @@
  *
  *		XT IDE controller emulation.
  *
- * Version:	@(#)xtide.h	1.0.0	2017/05/30
+ * Version:	@(#)xtide.h	1.0.1	2017/06/03
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
+#ifndef EMU_XTIDE_H
+# define EMU_XTIDE_H
+
 
 extern device_t xtide_device;
 extern device_t xtide_at_device;
 extern device_t xtide_ps2_device;
 extern device_t xtide_at_ps2_device;
+
+
+#endif	/*EMU_XTIDE_H*/

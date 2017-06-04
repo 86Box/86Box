@@ -8,14 +8,13 @@
  *
  *		XT IDE controller emulation.
  *
- * Version:	@(#)xtide.c	1.0.0	2017/05/30
+ * Version:	@(#)xtide.c	1.0.1	2017/06/03
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
-
 #include <malloc.h>
 #include "ibm.h"
 #include "io.h"
@@ -24,6 +23,10 @@
 #include "device.h"
 #include "ide.h"
 #include "xtide.h"
+
+
+#define XTIDE_ROM_PATH		L"roms/ide_xt.bin"
+#define ATIDE_ROM_PATH		L"roms/ide_at.bin"
 
 
 typedef struct xtide_t
@@ -92,7 +95,7 @@ static void *xtide_init(void)
         xtide_t *xtide = malloc(sizeof(xtide_t));
         memset(xtide, 0, sizeof(xtide_t));
 
-        rom_init(&xtide->bios_rom, L"roms/ide_xt.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&xtide->bios_rom, XTIDE_ROM_PATH, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
         ide_xtide_init();
         io_sethandler(0x0300, 0x0010, xtide_read, NULL, NULL, xtide_write, NULL, NULL, xtide);
         
@@ -105,7 +108,7 @@ static void *xtide_at_init(void)
         xtide_t *xtide = malloc(sizeof(xtide_t));
         memset(xtide, 0, sizeof(xtide_t));
 
-        rom_init(&xtide->bios_rom, L"roms/ide_at.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&xtide->bios_rom, ATIDE_ROM_PATH, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
         ide_init();
         
         return xtide;

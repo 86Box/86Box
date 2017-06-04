@@ -8,14 +8,13 @@
  *
  *		Implementation of the Intel DMA controllers.
  *
- * Version:	@(#)dma.c	1.0.0	2017/05/30
+ * Version:	@(#)dma.c	1.0.1	2017/06/03
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
-
 #include "ibm.h"
 #include "cpu/x86.h"
 #include "mem.h"
@@ -505,7 +504,7 @@ void dma_alias_remove_piix(void)
         io_removehandler(0x009C, 0x0003, dma_page_read, NULL, NULL, dma_page_write, NULL, NULL,  NULL);
 }
 
-void ps2_dma_init()
+void ps2_dma_init(void)
 {
         io_sethandler(0x0018, 0x0001, dma_ps2_read,  NULL, NULL, dma_ps2_write,  NULL, NULL,  NULL);
         io_sethandler(0x001a, 0x0001, dma_ps2_read,  NULL, NULL, dma_ps2_write,  NULL, NULL,  NULL);

@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.0	2017/05/30
+ * Version:	@(#)win.c	1.0.1	2017/06/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1407,7 +1407,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
 
 	menu = LoadMenu(hThisInstance, TEXT("MainMenu"));
 
-	_swprintf(emulator_title, L"86Box v%s", emulator_version_w);
+	_swprintf(emulator_title, L"%s v%s", EMU_NAME_W, EMU_VERSION_W);
 
 	/* The class is registered, let's create the program*/
 	hwnd = CreateWindowEx (
@@ -1484,24 +1484,28 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
         else            SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW&~WS_SIZEBOX&~WS_THICKFRAME&~WS_MAXIMIZEBOX&~WS_MINIMIZEBOX)|WS_VISIBLE);
 
 #ifdef ENABLE_LOG_TOGGLES
-#ifdef ENABLE_BUSLOGIC_LOG
+# ifdef ENABLE_BUSLOGIC_LOG
 	CheckMenuItem(menu, IDM_LOG_BUSLOGIC, buslogic_do_log ? MF_CHECKED : MF_UNCHECKED);
-#endif
-#ifdef ENABLE_CDROM_LOG
+# endif
+# ifdef ENABLE_CDROM_LOG
 	CheckMenuItem(menu, IDM_LOG_CDROM, cdrom_do_log ? MF_CHECKED : MF_UNCHECKED);
-#endif
-#ifdef ENABLE_D86F_LOG
+# endif
+# ifdef ENABLE_D86F_LOG
 	CheckMenuItem(menu, IDM_LOG_D86F, d86f_do_log ? MF_CHECKED : MF_UNCHECKED);
-#endif
-#ifdef ENABLE_FDC_LOG
+# endif
+# ifdef ENABLE_FDC_LOG
 	CheckMenuItem(menu, IDM_LOG_FDC, fdc_do_log ? MF_CHECKED : MF_UNCHECKED);
-#endif
-#ifdef ENABLE_IDE_LOG
+# endif
+# ifdef ENABLE_IDE_LOG
 	CheckMenuItem(menu, IDM_LOG_IDE, ide_do_log ? MF_CHECKED : MF_UNCHECKED);
-#endif
-#ifdef ENABLE_NE2000_LOG
-	CheckMenuItem(menu, IDM_LOG_NE2000, ne2000_do_log ? MF_CHECKED : MF_UNCHECKED);
-#endif
+# endif
+# ifdef ENABLE_SERIAL_LOG
+	CheckMenuItem(menu, IDM_LOG_SERIAL, serial_do_log ? MF_CHECKED : MF_UNCHECKED);
+# endif
+# ifdef ENABLE_NIC_LOG
+	/*FIXME: should be network_setlog(1:0) */
+	CheckMenuItem(menu, IDM_LOG_NIC, nic_do_log ? MF_CHECKED : MF_UNCHECKED);
+# endif
 #endif
 
 	CheckMenuItem(menu, IDM_VID_FORCE43, force_43 ? MF_CHECKED : MF_UNCHECKED);
@@ -1754,7 +1758,7 @@ static BOOL CALLBACK about_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
 
 void about_open(HWND hwnd)
 {
-	DialogBox(hinstance, (LPCTSTR) ABOUTDLG, hwnd, about_dlgproc);
+	DialogBox(hinstance, (LPCTSTR)DLG_ABOUT, hwnd, about_dlgproc);
 }
 
 static void win_pc_reset(int hard)
@@ -1982,10 +1986,18 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					break;
 #endif
 
-#ifdef ENABLE_NE2000_LOG
-				case IDM_LOG_NE2000:
-					ne2000_do_log ^= 1;
-					CheckMenuItem(hmenu, IDM_LOG_NE2000, ne2000_do_log ? MF_CHECKED : MF_UNCHECKED);
+#ifdef ENABLE_SERIAL_LOG
+				case IDM_LOG_SERIAL:
+					serial_do_log ^= 1;
+					CheckMenuItem(hmenu, IDM_LOG_SERIAL, serial_do_log ? MF_CHECKED : MF_UNCHECKED);
+					break;
+#endif
+
+#ifdef ENABLE_NIC_LOG
+				case IDM_LOG_NIC:
+					/*FIXME: should be network_setlog() */
+					nic_do_log ^= 1;
+					CheckMenuItem(hmenu, IDM_LOG_NIC, nic_do_log ? MF_CHECKED : MF_UNCHECKED);
 					break;
 #endif
 #endif

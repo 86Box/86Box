@@ -9,19 +9,20 @@
  *		Implementation of the CD-ROM null interface for unmounted
  *		guest CD-ROM drives.
  *
- * Version:	@(#)cdrom_null.c	1.0.0	2017/05/30
+ * Version:	@(#)cdrom_null.c	1.0.1	2017/06/03
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2016 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
-
 #include "ibm.h"
 #include "cdrom.h"
 #include "cdrom_ioctl.h"
 
+
 static CDROM null_cdrom;
+
 
 static int null_ready(uint8_t id)
 {

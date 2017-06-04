@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_midi.c	1.0.0	2017/05/30
+ * Version:	@(#)win_settings.c	1.0.1	2017/06/03
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2017 Miran Grca.
@@ -25,8 +25,8 @@
 #include "../mem.h"
 #include "../cpu/cpu.h"
 #include "../nvr.h"
-#include "../model.h"
 #include "../device.h"
+#include "../model.h"
 #include "../cdrom.h"
 #include "../disc.h"
 #include "../fdd.h"
@@ -3118,7 +3118,8 @@ void hard_disk_add_open(HWND hwnd, int is_existing)
 
 	existing = is_existing;
 	hard_disk_added = 0;
-        ret = DialogBox(hinstance, (LPCWSTR) CONFIGUREDLG_HARD_DISKS_ADD, hwnd, win_settings_hard_disks_add_proc);
+        ret = DialogBox(hinstance, (LPCWSTR)DLG_CFG_HARD_DISKS_ADD,
+			hwnd, win_settings_hard_disks_add_proc);
 }
 
 int ignore_change = 0;
@@ -4077,28 +4078,28 @@ void win_settings_show_child(HWND hwndParent, DWORD child_id)
 	switch(child_id)
 	{
 		case 0:
-			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR) CONFIGUREDLG_MACHINE, hwndParent, win_settings_machine_proc);
+			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_MACHINE, hwndParent, win_settings_machine_proc);
 			break;
 		case 1:
-			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR) CONFIGUREDLG_VIDEO, hwndParent, win_settings_video_proc);
+			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_VIDEO, hwndParent, win_settings_video_proc);
 			break;
 		case 2:
-			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR) CONFIGUREDLG_INPUT, hwndParent, win_settings_input_proc);
+			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_INPUT, hwndParent, win_settings_input_proc);
 			break;
 		case 3:
-			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR) CONFIGUREDLG_SOUND, hwndParent, win_settings_sound_proc);
+			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_SOUND, hwndParent, win_settings_sound_proc);
 			break;
 		case 4:
-			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR) CONFIGUREDLG_NETWORK, hwndParent, win_settings_network_proc);
+			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_NETWORK, hwndParent, win_settings_network_proc);
 			break;
 		case 5:
-			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR) CONFIGUREDLG_PERIPHERALS, hwndParent, win_settings_peripherals_proc);
+			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_PERIPHERALS, hwndParent, win_settings_peripherals_proc);
 			break;
 		case 6:
-			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR) CONFIGUREDLG_HARD_DISKS, hwndParent, win_settings_hard_disks_proc);
+			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_HARD_DISKS, hwndParent, win_settings_hard_disks_proc);
 			break;
 		case 7:
-			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR) CONFIGUREDLG_REMOVABLE_DEVICES, hwndParent, win_settings_removable_devices_proc);
+			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_REMOVABLE_DEVICES, hwndParent, win_settings_removable_devices_proc);
 			break;
 		default:
 			fatal("Invalid child dialog ID\n");
@@ -4239,5 +4240,5 @@ static BOOL CALLBACK win_settings_main_proc(HWND hdlg, UINT message, WPARAM wPar
 
 void win_settings_open(HWND hwnd)
 {
-        DialogBox(hinstance, (LPCWSTR) CONFIGUREDLG_MAIN, hwnd, win_settings_main_proc);
+        DialogBox(hinstance, (LPCWSTR)DLG_CONFIG, hwnd, win_settings_main_proc);
 }

@@ -10,7 +10,7 @@
  *
  * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.9	2017/06/02
+ * Version:	@(#)net_ne2000.c	1.0.10	2017/06/03
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -38,11 +38,6 @@
 #include "bswap.h"
 
 
-#ifdef WALTJE
-# define ENABLE_NE2000_LOG 2
-#endif
-
-
 /* ROM BIOS file paths. */
 #define ROM_PATH_NE1000		L"roms/network/ne1000/ne1000.rom"
 #define ROM_PATH_NE2000		L"roms/network/ne2000/ne2000.rom"
@@ -59,13 +54,6 @@ typedef union {
     uint32_t addr;
     uint8_t addr_regs[4];
 } bar_t;
-
-
-#if ENABLE_NE2000_LOG
-static int	nic_do_log = ENABLE_NE2000_LOG;
-#else
-static int	nic_do_log = 0;
-#endif
 
 
 /* Never completely fill the ne2k ring so that we never
@@ -239,7 +227,7 @@ static void	nic_tx(nic_t *, uint32_t);
 static void
 nelog(int lvl, const char *fmt, ...)
 {
-#ifdef ENABLE_NE2000_LOG
+#ifdef ENABLE_NIC_LOG
     va_list ap;
 
     if (nic_do_log >= lvl) {

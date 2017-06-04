@@ -1,5 +1,5 @@
-#ifndef MOUSE_H
-# define MOUSE_H
+#ifndef EMU_MOUSE_H
+# define EMU_MOUSE_H
 
 
 #define MOUSE_TYPE_SERIAL	0	/* Serial Mouse */
@@ -38,4 +38,4 @@ extern int	mouse_get_type(int mouse);
 extern int	mouse_get_ndev(void);
 
 
-#endif	/*MOUSE_H*/
+#endif	/*EMU_MOUSE_H*/

@@ -8,17 +8,17 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.1	2017/05/30
+ * Version:	@(#)pc.c	1.0.3	2017/06/03
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+
 #include "86box.h"
 #include "ibm.h"
 #include "mem.h"
@@ -348,7 +348,7 @@ void initpc(int argc, wchar_t *argv[])
 
 	if (config_file == NULL)
 	{
-	        append_filename_w(config_file_default, pcempath, L"86box.cfg", 511);
+	        append_filename_w(config_file_default, pcempath, CONFIG_FILE_W, 511);
 	}
 	else
 	{
@@ -659,7 +659,7 @@ void runpc(void)
                         win_title_update=0;
 			mbstowcs(wmodel, model_getname(), strlen(model_getname()) + 1);
 			mbstowcs(wcpu, models[model].cpu[cpu_manufacturer].cpus[cpu].name, strlen(models[model].cpu[cpu_manufacturer].cpus[cpu].name) + 1);
-                        _swprintf(s, L"86Box v%s - %i%% - %s - %s - %s", emulator_version_w, fps, wmodel, wcpu, (!mousecapture) ? win_language_get_string_from_id(2077) : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? win_language_get_string_from_id(2078) : win_language_get_string_from_id(2079)));
+                        _swprintf(s, L"%s v%s - %i%% - %s - %s - %s", EMU_NAME_W, EMU_VERSION_W, fps, wmodel, wcpu, (!mousecapture) ? win_language_get_string_from_id(2077) : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? win_language_get_string_from_id(2078) : win_language_get_string_from_id(2079)));
                         set_window_title(s);
                 }
                 done++;

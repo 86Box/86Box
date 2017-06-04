@@ -89,6 +89,6 @@ static BOOL CALLBACK status_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 
 void status_open(HWND hwnd)
 {
-        status_hwnd = CreateDialog(hinstance, TEXT("StatusDlg"), hwnd, status_dlgproc);
+        status_hwnd = CreateDialog(hinstance, (LPCSTR)DLG_STATUS, hwnd, status_dlgproc);
         ShowWindow(status_hwnd, SW_SHOW);
 }

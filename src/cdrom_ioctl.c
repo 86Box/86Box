@@ -9,14 +9,13 @@
  *		Implementation of the CD-ROM host drive IOCTL interface for
  *		Windows using SCSI Passthrough Direct.
  *
- * Version:	@(#)cdrom_ioctl.c	1.0.1	2017/05/31
+ * Version:	@(#)cdrom_ioctl.c	1.0.2	2017/06/03
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2016 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
-
 #define WINVER 0x0600
 #include <windows.h>
 #include <io.h>

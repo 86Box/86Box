@@ -9,14 +9,13 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.c	1.0.0	2017/05/30
+ * Version:	@(#)device.c	1.0.1	2017/06/03
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2016 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
-
 #include "ibm.h"
 #include "cpu/cpu.h"
 #include "config.h"
@@ -27,10 +26,10 @@
 
 static void *device_priv[256];
 static device_t *devices[256];
-
 static device_t *current_device;
 
-void device_init()
+
+void device_init(void)
 {
         memset(devices, 0, sizeof(devices));
 }
@@ -86,7 +85,7 @@ int device_available(device_t *d)
         return 1;        
 }
 
-void device_speed_changed()
+void device_speed_changed(void)
 {
         int c;
         
@@ -104,7 +103,7 @@ void device_speed_changed()
         sound_speed_changed();
 }
 
-void device_force_redraw()
+void device_force_redraw(void)
 {
         int c;
         

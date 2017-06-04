@@ -8,13 +8,12 @@
  *
  *		Definitions for the network module.
  *
- * Version:	@(#)network.h	1.0.5	2017/05/21
+ * Version:	@(#)network.h	1.0.7	2017/06/03
  *
- * Authors:	Kotori, <oubattler@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
-#ifndef NETWORK_H
-# define NETWORK_H
+#ifndef EMU_NETWORK_H
+# define EMU_NETWORK_H
 # include <stdint.h>
 
 
@@ -48,6 +47,7 @@ typedef struct {
 
 
 /* Global variables. */
+extern int	nic_do_log;
 extern int	network_card;
 extern int	network_type;
 extern int      network_ndev;
@@ -81,4 +81,4 @@ extern int	network_card_get_from_internal_name(char *);
 extern device_t	*network_card_getdevice(int);
 
 
-#endif	/*NETWORK_H*/
+#endif	/*EMU_NETWORK_H*/

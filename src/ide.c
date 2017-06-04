@@ -9,16 +9,15 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)ide.c	1.0.0	2017/05/30
+ * Version:	@(#)ide.c	1.0.1	2017/06/03
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  *		Copyright 2016-2017 TheCollector1995.
  */
-
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
@@ -394,7 +393,7 @@ static void ide_identify(IDE *ide)
 	ide->buffer[3] = hdc[ide->hdc_num].hpc;  /* Heads */
 	ide->buffer[6] = hdc[ide->hdc_num].spt;  /* Sectors */
 	ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
-	ide_padstr((char *) (ide->buffer + 23), emulator_version, 8); /* Firmware */
+	ide_padstr((char *) (ide->buffer + 23), EMU_VERSION, 8); /* Firmware */
 	ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
 	ide->buffer[20] = 3;   /*Buffer type*/
 	ide->buffer[21] = 512; /*Buffer size*/
@@ -465,7 +464,7 @@ static void ide_atapi_identify(IDE *ide)
 
 	ide->buffer[0] = 0x8000 | (5<<8) | 0x80 | (2<<5); /* ATAPI device, CD-ROM drive, removable media, accelerated DRQ */
 	ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
-	ide_padstr((char *) (ide->buffer + 23), emulator_version, 8); /* Firmware */
+	ide_padstr((char *) (ide->buffer + 23), EMU_VERSION, 8); /* Firmware */
 	ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
 	ide->buffer[49] = 0x200; /* LBA supported */
 

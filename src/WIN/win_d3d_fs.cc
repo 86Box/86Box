@@ -8,7 +8,7 @@
  *
  *		Direct3D 9 full screen rendererer and screenshots taking.
  *
- * Version:	@(#)win_d3d_fs.cc	1.0.0	2017/05/30
+ * Version:	@(#)win_d3d_fs.cc	1.0.1	2017/06/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -168,7 +168,8 @@ int d3d_fs_init(HWND h)
 
         d3d_hwnd = h;
 
-	_swprintf(emulator_title, L"86Box v%s", emulator_version_w);
+	/*FIXME: should be done once, in win.c */
+	_swprintf(emulator_title, L"%s v%s", EMU_NAME_W, EMU_VERSION_W);
         d3d_device_window = CreateWindowEx (
                 0,
                 szSubClassName,

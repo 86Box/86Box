@@ -10,9 +10,9 @@
  *		  0 - BT-542B ISA;
  *		  1 - BT-958 PCI (but BT-542B ISA on non-PCI machines)
  *
- * Version:	@(#)scsi_buslogic.c	1.0.2	2017/06/02
+ * Version:	@(#)scsi_buslogic.c	1.0.3	2017/06/03
  *
- * Author:	TheCollector1995, <mariogplayer@gmail.com>
+ * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2008-2017 Sarah Walker.
@@ -506,12 +506,7 @@ enum {
 };
 
 
-#ifdef WALTJE
-int buslogic_do_log = 1;
-# define ENABLE_BUSLOGIC_LOG
-#else
 int buslogic_do_log = 0;
-#endif
 
 
 static void

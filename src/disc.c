@@ -9,19 +9,17 @@
  *		Generic floppy disk interface that communicates with the
  *		other handlers.
  *
- * Version:	@(#)disc.c	1.0.0	2017/05/30
+ * Version:	@(#)disc.c	1.0.1	2017/06/03
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
-
 #define UNICODE
 #include <windows.h>
 
 #include "ibm.h"
-
 #include "config.h"
 #include "disc.h"
 #include "disc_fdi.h"
@@ -32,6 +30,7 @@
 #include "fdc.h"
 #include "fdd.h"
 #include "timer.h"
+
 
 wchar_t discfns[4][256];
 extern int driveempty[4];
@@ -76,14 +75,14 @@ int  (*fdc_getdata)(int last);
 void (*fdc_sectorid)(uint8_t track, uint8_t side, uint8_t sector, uint8_t size, uint8_t crc1, uint8_t crc2);
 void (*fdc_indexpulse)();*/
 
+
 static struct
 {
         wchar_t *ext;
         void (*load)(int drive, wchar_t *fn);
         void (*close)(int drive);
         int size;
-}
-loaders[]=
+} loaders[]=
 {
         {L"001", img_load,       img_close, -1},
         {L"002", img_load,       img_close, -1},

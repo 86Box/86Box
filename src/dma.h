@@ -8,37 +8,46 @@
  *
  *		Implementation of the Intel DMA controllers.
  *
- * Version:	@(#)dma.h	1.0.0	2017/05/30
+ * Version:	@(#)dma.h	1.0.1	2017/06/03
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
+#ifndef EMU_DMA_H
+# define EMU_DMA_H
 
-void dma_init(void);
-void dma16_init(void);
-void ps2_dma_init(void);
-void dma_reset(void);
-int dma_mode(int channel);
 
 #define DMA_NODATA -1
 #define DMA_OVER 0x10000
 #define DMA_VERIFY 0x20000
 
-void readdma0(void);
-int readdma1(void);
-uint8_t readdma2(void);
-int readdma3(void);
 
-void writedma2(uint8_t temp);
+extern void	dma_init(void);
+extern void	dma16_init(void);
+extern void	ps2_dma_init(void);
+extern void	dma_reset(void);
+extern int	dma_mode(int channel);
 
-int dma_channel_read(int channel);
-int dma_channel_write(int channel, uint16_t val);
+extern void	readdma0(void);
+extern int	readdma1(void);
+extern uint8_t	readdma2(void);
+extern int	readdma3(void);
 
-void dma_alias_set(void);
-void dma_alias_remove(void);
-void dma_alias_remove_piix(void);
+extern void	writedma2(uint8_t temp);
 
-void DMAPageRead(uint32_t PhysAddress, char *DataRead, uint32_t TotalSize);
-void DMAPageWrite(uint32_t PhysAddress, const char *DataWrite, uint32_t TotalSize);
+extern int	dma_channel_read(int channel);
+extern int	dma_channel_write(int channel, uint16_t val);
+
+extern void	dma_alias_set(void);
+extern void	dma_alias_remove(void);
+extern void	dma_alias_remove_piix(void);
+
+extern void	DMAPageRead(uint32_t PhysAddress, char *DataRead,
+			    uint32_t TotalSize);
+extern void	DMAPageWrite(uint32_t PhysAddress, const char *DataWrite,
+			     uint32_t TotalSize);
+
+
+#endif	/*EMU_DMA_H*/

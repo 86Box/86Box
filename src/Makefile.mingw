@@ -6,7 +6,7 @@
 #
 #		This file is part of the 86Box distribution.
 #
-#		Modified Makefile for Win32 MinGW 32-bit environment.
+#		Modified Makefile for Win32 (MinGW32) environment.
 #
 # Version:	@(#)Makefile.mingw	1.0.23	2017/06/03
 #
@@ -29,8 +29,16 @@ STUFF	=
 endif
 
 # Add feature selections here.
-# -DBUGGER adds the ISA BusBugger emulation.
 # -DANSI_CFG forces the config file to ANSI encoding.
+# -DENABLE_VRAM_DUMP enables Video Ram dumping.
+# -DENABLE_LOG_BREAKPOINT enables extra logging.
+# -DENABLE_BUSLOGIC_LOG enables extra logging.
+# -DENABLE_CDROM_LOG enables extra logging.
+# -DENABLE_D86F_LOG enables extra logging.
+# -DENABLE_FDC_LOG enables extra logging.
+# -DENABLE_IDE_LOG enables extra logging.
+# -DENABLE_SERIAL_LOG enables extra logging.
+# -DENABLE_NIC_LOG enables extra logging.
 ifndef EXTRAS
 EXTRAS	=
 endif
@@ -42,14 +50,14 @@ endif
 ifndef OPTIM
 OPTIM	= n
 endif
-ifndef X64
-X64	= n
-endif
 ifndef RELEASE
 RELEASE	= n
 endif
 ifndef USB
 USB	= n
+endif
+ifndef X64
+X64	= n
 endif
 
 
@@ -131,11 +139,11 @@ SYSOBJ	= model.o \
 	  i430hx.o i430lx.o i430fx.o i430nx.o i430vx.o i440fx.o \
 	  neat.o \
 	  ali1429.o \
-	  laserxt.o \
 	  opti495.o \
 	  scat.o \
 	  sis496.o \
 	  wd76c10.o \
+	  laserxt.o \
 	  acer386sx.o acerm3a.o amstrad.o \
 	  compaq.o olivetti_m24.o jim.o ps1.o ps2.o ps2_mca.o \
 	  tandy_eeprom.o tandy_rom.o
@@ -157,7 +165,7 @@ DEVOBJ	= bugger.o lpt.o serial.o \
 	    disc_random.o disc_td0.o \
 	  cdrom.o \
 	    cdrom_dosbox.o cdrom_image.o cdrom_ioctl.o cdrom_null.o
-ifeq ($(USB), y)
+ifdef USB
 USBOBJ	= usb.o
 endif
 NETOBJ	= network.o \
@@ -175,7 +183,7 @@ SNDOBJ	= sound.o \
 	  snd_adlib.o snd_adlibgold.o snd_ad1848.o \
 	  snd_sb.o snd_sb_dsp.o snd_cms.o snd_dbopl.o \
 	  snd_emu8k.o snd_gus.o snd_opl.o \
-	  snd_mpu401.o snd_resid.o \
+	  snd_mpu401.o snd_pas16.o snd_resid.o \
 	  snd_sn76489.o snd_ssi2001.o snd_wss.o \
 	  snd_ym7128.o
 VIDOBJ	= video.o \
@@ -265,7 +273,7 @@ clean:
 
 86Box.res:	86Box.rc
 		@echo Processing $<
-		@$(WINDRES) $(RFLAGS) -i win/86Box.rc -o 86Box.res
+		@$(WINDRES) $(RFLAGS) $(EXTRAS) -i win/86Box.rc -o 86Box.res
 
 pcap_if.res:	pcap_if.rc
 		@echo Processing $<

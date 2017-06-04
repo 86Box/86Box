@@ -1,2 +1,0 @@
-include Makefile.mingw
-CFLAGS = -O3 -march=amdfam10 -mtune=amdfam10 -fbranch-probabilities -fvpt -funroll-loops -fpeel-loops -ftracer -fomit-frame-pointer -ffast-math -msse -msse2 -msse3 -mfpmath=sse -mstackrealign

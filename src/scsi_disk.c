@@ -6,25 +6,22 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.0	2017/05/30
+ * Version:	@(#)scsi_disk.c	1.0.1	2017/06/03
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2017-2017 Miran Grca.
  */
-
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
+#include <inttypes.h>
+#include <sys/types.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-
-#include <sys/types.h>
-
-#include <inttypes.h>
 
 #include "86box.h"
 #include "cdrom.h"
@@ -34,7 +31,7 @@
 #include "scsi.h"
 #include "scsi_disk.h"
 #include "timer.h"
-#include "WIN/plat_iodev.h"
+#include "win/plat_iodev.h"
 
 /* Bits of 'status' */
 #define ERR_STAT		0x01
@@ -1200,9 +1197,9 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 	device_identify_ex[6] = (id / 10) + 0x30;
 	device_identify_ex[7] = (id % 10) + 0x30;
-	device_identify_ex[10] = emulator_version[0];
-	device_identify_ex[12] = emulator_version[2];
-	device_identify_ex[13] = emulator_version[3];
+	device_identify_ex[10] = EMU_VERSION[0];
+	device_identify_ex[12] = EMU_VERSION[2];
+	device_identify_ex[13] = EMU_VERSION[3];
 
 	if (hdc[id].bus == HDD_BUS_SCSI_REMOVABLE)
 	{
@@ -1508,7 +1505,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 						tempbuffer[idx++] = 0x01;
 						tempbuffer[idx++] = 0x00;
 						tempbuffer[idx++] = 68;
-						ide_padstr8(tempbuffer + idx, 8, "86Box"); /* Vendor */
+						ide_padstr8(tempbuffer + idx, 8, EMU_NAME); /* Vendor */
 						idx += 8;
 						ide_padstr8(tempbuffer + idx, 40, device_identify_ex); /* Product */
 						idx += 40;
@@ -1540,9 +1537,9 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				tempbuffer[3] = 0x02;
 				tempbuffer[4] = 31;
 
-				ide_padstr8(tempbuffer + 8, 8, "86Box"); /* Vendor */
+				ide_padstr8(tempbuffer + 8, 8, EMU_NAME); /* Vendor */
 				ide_padstr8(tempbuffer + 16, 16, device_identify); /* Product */
-				ide_padstr8(tempbuffer + 32, 4, emulator_version); /* Revision */
+				ide_padstr8(tempbuffer + 32, 4, EMU_VERSION); /* Revision */
 				idx = 36;
 			}
 

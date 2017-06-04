@@ -12,10 +12,9 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.7	2017/05/29
+ * Version:	@(#)network.c	1.0.9	2017/06/03
  *
- * Authors:	Kotori, <oubattler@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
 #include <stdint.h>
 #include <stdio.h>
@@ -47,6 +46,7 @@ static netcard_t net_cards[] = {
 int		network_card;
 int		network_type;
 int		network_ndev;
+int		nic_do_log;
 netdev_t	network_devs[32];
 char		network_pcap[512];
 
@@ -62,6 +62,12 @@ void
 network_init(void)
 {
     int i;
+
+#if ENABLE_NIC_LOG
+    nic_do_log = ENABLE_NIC_LOG;
+#else
+    nic_do_log = 0;
+#endif
 
 #if 0
     network_type = NET_TYPE_NONE;
