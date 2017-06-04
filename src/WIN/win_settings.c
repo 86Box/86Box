@@ -3439,10 +3439,11 @@ static BOOL win_settings_floppy_drives_recalc_list(HWND hwndList)
 	WCHAR szText[256];
 
 	lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
-	lvI.stateMask = lvI.iSubItem = lvI.state = 0;
+	lvI.stateMask = lvI.state = 0;
 
 	for (i = 0; i < 4; i++)
 	{
+		lvI.iSubItem = 0;
 		if (temp_fdd_types[i] > 0)
 		{
 			strcpy(s, fdd_getname(temp_fdd_types[i]));

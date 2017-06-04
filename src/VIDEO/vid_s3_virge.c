@@ -4023,12 +4023,12 @@ static void *s3_virge_375_init(wchar_t *romfn)
 
 static void *s3_virge_375_1_init()
 {
-	return s3_virge_init(L"roms/86c375_1.bin");
+	return s3_virge_375_init(L"roms/86c375_1.bin");
 }
 
 static void *s3_virge_375_4_init()
 {
-	return s3_virge_init(L"roms/86c375_4.bin");
+	return s3_virge_375_init(L"roms/86c375_4.bin");
 }
 
 static void s3_virge_close(void *p)
