@@ -82,6 +82,8 @@ extern int timing_call_rm, timing_call_pm, timing_call_pm_gate, timing_call_pm_g
 extern int timing_retf_rm, timing_retf_pm, timing_retf_pm_outer;
 extern int timing_jmp_rm, timing_jmp_pm, timing_jmp_pm_gate;
 
+extern int timing_misaligned;
+
 
 typedef struct
 {
@@ -124,6 +126,7 @@ extern CPU cpus_Pentium2[];
 extern CPU cpus_Pentium2D[];
 
 extern CPU cpus_pcjr[];
+extern CPU cpus_europc[];
 extern CPU cpus_pc1512[];
 extern CPU cpus_ibmat[];
 extern CPU cpus_ps1_m2011[];
@@ -134,6 +137,8 @@ extern int cpu_iscyrix;
 extern int cpu_16bitbus;
 extern int cpu_busspeed;
 extern int cpu_multi;
+/*Cyrix 5x86/6x86 only has data misalignment penalties when crossing 8-byte boundaries*/
+extern int cpu_cyrix_alignment;
 
 extern int cpu_hasrdtsc;
 extern int cpu_hasMSR;

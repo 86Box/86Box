@@ -23,38 +23,14 @@ extern uint16_t ea_rseg;
 
 
 #define readmemb(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF)?readmemb386l(s,a): *(uint8_t *)(readlookup2[(uint32_t)((s)+(a))>>12] + (uint32_t)((s) + (a))) )
-#define readmemq(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a))&0xFFF)>0xFF8)?readmemql(s,a):*(uint64_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
+#define readmemq(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a)) & 7))?readmemql(s,a):*(uint64_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
 
 #define writememb(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF) writememb386l(s,a,v); else *(uint8_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uint32_t)((s) + (a))) = v
 
-#define writememw(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a))&0xFFF)>0xFFE) writememwl(s,a,v); else *(uint16_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uint32_t)((s) + (a))) = v
-#define writememl(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a))&0xFFF)>0xFFC) writememll(s,a,v); else *(uint32_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uint32_t)((s) + (a))) = v
-#define writememq(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a))&0xFFF)>0xFF8) writememql(s,a,v); else *(uint64_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uint32_t)((s) + (a))) = v
+#define writememw(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a)) & 1)) writememwl(s,a,v); else *(uint16_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uint32_t)((s) + (a))) = v
+#define writememl(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a)) & 3)) writememll(s,a,v); else *(uint32_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uint32_t)((s) + (a))) = v
+#define writememq(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a)) & 7)) writememql(s,a,v); else *(uint64_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uint32_t)((s) + (a))) = v
 
-
-#if 0
-#define check_io_perm(port) if (!IOPLp || (eflags&VM_FLAG)) \
-                        { \
-                                int tempi = checkio(port); \
-                                if (cpu_state.abrt) return 1; \
-                                if (tempi) \
-                                { \
-                                        x86gpf("check_io_perm(): no permission",0); \
-                                        return 1; \
-                                } \
-                        }
-
-#define checkio_perm(port) if (!IOPLp || (eflags&VM_FLAG)) \
-                        { \
-                                tempi = checkio(port); \
-                                if (cpu_state.abrt) break; \
-                                if (tempi) \
-                                { \
-                                        x86gpf("checkio_perm(): no permission",0); \
-                                        break; \
-                                } \
-                        }
-#endif
 
 #define check_io_perm(port) if (msw&1 && ((CPL > IOPL) || (eflags&VM_FLAG))) \
                         { \
@@ -153,8 +129,8 @@ static __inline uint16_t fastreadw(uint32_t a)
         uint16_t val;
         if ((a&0xFFF)>0xFFE)
         {
-                val = readmemb(0, a);
-                val |= (readmemb(0, a + 1) << 8);
+                val = fastreadb(a);
+                val |= (fastreadb(a + 1) << 8);
                 return val;
         }
         if ((a>>12)==pccache) return *((uint16_t *)&pccache2[a]);
@@ -184,10 +160,8 @@ static __inline uint32_t fastreadl(uint32_t a)
                 }
                 return *((uint32_t *)&pccache2[a]);
         }
-        val  =readmemb(0,a);
-        val |=(readmemb(0,a+1)<<8);
-        val |=(readmemb(0,a+2)<<16);
-        val |=(readmemb(0,a+3)<<24);
+        val  = fastreadw(a);
+        val |= (fastreadw(a + 2) << 16);
         return val;
 }
 
