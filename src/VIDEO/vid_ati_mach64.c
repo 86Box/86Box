@@ -551,6 +551,7 @@ void mach64_updatemapping(mach64_t *mach64)
                         mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - 0x4000), 0x4000);
                         mem_mapping_set_addr(&mach64->mmio_linear_mapping_2, mach64->linear_base + ((16 << 20) - 0x4000), 0x4000);
                 }
+		svga->linear_base = mach64->linear_base;
         }
         else
         {
