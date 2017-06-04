@@ -255,7 +255,7 @@ nelog(int lvl, const char *fmt, ...)
 static void
 nic_interrupt(nic_t *dev, int set)
 {
-    if (PCI && dev->is_pci) {
+    if ((PCI && dev->is_pci) && (dev->base_irq == 0xff)) {
 	if (set)
 		pci_set_irq(dev->card, PCI_INTA);
 	  else
@@ -1635,15 +1635,11 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 		nic_update_bios(dev);
 		return;
 
-#if 0
 	case 0x3C:			/* PCI_ILR */
-		if (val != 0xFF) {
-			nelog(1, "%s: IRQ now: %i\n", dev->name, val);
-			dev->base_irq = val;
-		}
+		nelog(1, "%s: IRQ now: %i\n", dev->name, val);
+		dev->base_irq = val;
 		dev->pci_regs[addr] = dev->base_irq;
 		return;
-#endif
     }
 }
 
@@ -1909,11 +1905,12 @@ nic_init(int board)
 
     if (dev->is_pci) {
 	dev->base_address = 0x340;
+	dev->base_irq = 10;
     } else {
 	dev->base_address = device_get_config_hex16("base");
 	dev->bios_addr = device_get_config_hex20("bios_addr");
+	dev->base_irq = device_get_config_int("irq");
     }
-    dev->base_irq = device_get_config_int("irq");
 
     /* See if we have a local MAC address configured. */
     mac = device_get_config_mac("mac", -1);
@@ -2220,29 +2217,6 @@ static device_config_t ne2000_config[] =
 
 static device_config_t rtl8029as_config[] =
 {
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 10,
-		{
-			{
-				"IRQ 3", 3
-			},
-			{
-				"IRQ 5", 5
-			},
-			{
-				"IRQ 7", 7
-			},
-			{
-				"IRQ 10", 10
-			},
-			{
-				"IRQ 11", 11
-			},
-			{
-				""
-			}
-		},
-	},
 #if 1
 	/*
 	 * WTF.

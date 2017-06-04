@@ -534,10 +534,8 @@ BuslogicLog(const char *format, ...)
 static void
 BuslogicInterrupt(Buslogic_t *bl, int set)
 {
-#if 0
-	if (bl->chip != CHIP_BUSLOGIC_PCI)
+	if ((bl->chip != CHIP_BUSLOGIC_PCI) || (bl->Irq != 255))
 	{
-#endif
 		if (set)
 		{
 			picint(1 << bl->Irq);
@@ -546,20 +544,18 @@ BuslogicInterrupt(Buslogic_t *bl, int set)
 		{
 			picintc(1 << bl->Irq);
 		}
-#if 0
 	}
 	else
 	{
 	        if (set)
 		{
-        	        pci_set_irq(bl->Card, PCI_INTD);
+        	        pci_set_irq(bl->Card, PCI_INTA);
 		}
 	        else
 		{
-        	        pci_clear_irq(bl->Card, PCI_INTD);
+        	        pci_clear_irq(bl->Card, PCI_INTA);
 		}
 	}
-#endif
 }
 
 
@@ -2134,7 +2130,7 @@ BuslogicPCIRead(int func, int addr, void *p)
 	case 0x3C:
 		return bl->Irq;
 	case 0x3D:
-		return 4;
+		return PCI_INTA;
     }
 
     return(0);
@@ -2224,7 +2220,6 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 		}
 		return;
 
-#if 0
 	case 0x3C:
 		buslogic_pci_regs[addr] = val;
 		if (val != 0xFF) {
@@ -2232,7 +2227,6 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 			bl->Irq = val;
 		}
 		return;
-#endif
     }
 }
 
