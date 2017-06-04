@@ -66,6 +66,7 @@
 #define IDC_BUTTON_HDD_ADD              1028
 #define IDC_BUTTON_CDROM_REMOVE         1029
 #define IDC_BUTTON_HDD_REMOVE           1029
+#define IDC_CHECKTURBO                  1030
 #define IDC_HDIMAGE_NEW                 1035
 #define IDC_HD_BUS                      1036
 #define IDC_HDIMAGE_EXISTING            1037
@@ -285,8 +286,12 @@
 #define IDS_2219	2219
 #define IDS_2220	2220
 #define IDS_2221	2221
+#define IDS_2222	2222
+#define IDS_2223	2223
+#define IDS_2224	2224
+#define IDS_2225	2225
 
-#define IDS_LANG_ENUS	IDS_2221
+#define IDS_LANG_ENUS	IDS_2225
 
 
 #define IDM_ABOUT          40001
@@ -473,4 +478,4 @@
 #  endif
 #endif
 
-#define STRINGS_NUM 174
+#define STRINGS_NUM 178

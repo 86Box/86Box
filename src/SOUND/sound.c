@@ -28,7 +28,7 @@
 #include "snd_opl.h"
 #include "snd_adlib.h"
 #include "snd_adlibgold.h"
-#include "snd_pas16.h"
+/* #include "snd_pas16.h" */
 #include "snd_sb.h"
 #include "snd_sb_dsp.h"
 #include "snd_wss.h"
@@ -62,7 +62,9 @@ static SOUND_CARD sound_cards[] =
         {"Sound Blaster AWE32",   "sbawe32",	&sb_awe32_device},
         {"Adlib Gold",            "adlibgold",	&adgold_device},
         {"Windows Sound System",  "wss",	&wss_device},        
+#if 0
         {"Pro Audio Spectrum 16", "pas16",	&pas16_device},
+#endif
         {"", "", NULL}
 };
 

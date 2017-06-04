@@ -30,6 +30,8 @@ static struct
 	int densel;
 
 	int head;
+
+	int turbo;
 } fdd[FDD_NUM];
 
 /* Flags:
@@ -310,6 +312,16 @@ void fdd_set_head(int drive, int head)
 int fdd_get_head(int drive)
 {
 	return fdd[drive].head;
+}
+
+void fdd_set_turbo(int drive, int turbo)
+{
+	fdd[drive].turbo = turbo;
+}
+
+int fdd_get_turbo(int drive)
+{
+	return fdd[drive].turbo;
 }
 
 int fdd_get_densel(int drive)

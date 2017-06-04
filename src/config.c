@@ -1480,6 +1480,8 @@ static void loadconfig_removable_devices(void)
 		printf("Floppy: %ws\n", discfns[c]);
 		sprintf(temps, "fdd_%02i_writeprot", c + 1);
 	        ui_writeprot[c] = !!config_get_int(cat, temps, 0);
+		sprintf(temps, "fdd_%02i_turbo", c + 1);
+	        fdd_set_turbo(c, !!config_get_int(cat, temps, 0));
 
 		/* Check, whether each value is default, if yes, delete it so that only non-default values will later be saved. */
 		if (fdd_get_type(c) == ((c < 2) ? 2 : 0))
@@ -1497,6 +1499,12 @@ static void loadconfig_removable_devices(void)
 		if (ui_writeprot[c] == 0)
 		{
 			sprintf(temps, "fdd_%02i_writeprot", c + 1);
+			config_delete_var(cat, temps);
+		}
+
+		if (fdd_get_turbo(c) == 0)
+		{
+			sprintf(temps, "fdd_%02i_turbo", c + 1);
 			config_delete_var(cat, temps);
 		}
 	}
@@ -2351,6 +2359,16 @@ static void saveconfig_removable_devices(void)
 		else
 		{
 		        config_set_int(cat, temps, ui_writeprot[c]);
+		}
+
+		sprintf(temps, "fdd_%02i_turbo", c + 1);
+		if (fdd_get_turbo(c) == 0)
+		{
+			config_delete_var(cat, temps);
+		}
+		else
+		{
+		        config_set_int(cat, temps, fdd_get_turbo(c));
 		}
 	}
 

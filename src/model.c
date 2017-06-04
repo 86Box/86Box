@@ -123,14 +123,18 @@ void    at_endeavor_init();
 
 void      at_dtk486_init();
 void        at_r418_init();
+#if 0
 void      at_586mc1_init();
+#endif
 void       at_plato_init();
 void      at_mb500n_init();
 void    at_p54tp4xe_init();
 void        at_ap53_init();
 void      at_p55t2s_init();
 void     at_acerm3a_init();
+#if 0
 void    at_acerv35n_init();
+#endif
 void     at_p55t2p4_init();
 void     at_p55tvp4_init();
 void       at_p55va_init();
@@ -204,7 +208,9 @@ MODEL models[] =
         {"Award SiS 496/497",		ROM_SIS496,		"sis496",		{ "Intel", cpus_i486,        "AMD", cpus_Am486,   "Cyrix", cpus_Cx486,  "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE | MODEL_PCI,		  1,   64,   1,      at_sis496_init, NULL},
         {"Rise Computer R418",		ROM_R418,		"r418",			{ "Intel", cpus_i486,        "AMD", cpus_Am486,   "Cyrix", cpus_Cx486,  "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE | MODEL_PCI,		  1,   64,   1,        at_r418_init, NULL},
         {"Intel Premiere/PCI",		ROM_REVENGE,		"revenge",		{ "Intel", cpus_Pentium5V,   "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	  1,  128,   1,      at_batman_init, NULL},
+#if 0
         {"Micro Star 586MC1",		ROM_586MC1,		"586mc1",		{ "Intel", cpus_Pentium5V50, "",    NULL,          "",     NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE | MODEL_PCI,		  1,  128,   1,      at_586mc1_init, NULL},
+#endif
         {"Intel Premiere/PCI II",	ROM_PLATO,		"plato",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  128,   1,       at_plato_init, NULL},
         {"Intel Advanced/EV",		ROM_ENDEAVOR,		"endeavor",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  128,   1,    at_endeavor_init, NULL},
         {"Intel Advanced/ZP",		ROM_ZAPPA,		"zappa",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  128,   1,    at_endeavor_init, NULL},
@@ -215,7 +221,9 @@ MODEL models[] =
         {"AOpen AP53",			ROM_AP53,		"ap53",			{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,        at_ap53_init, NULL},
         {"ASUS P/I-P55T2S",		ROM_P55T2S,		"p55t2s",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,      at_p55t2s_init, NULL},
         {"Acer M3a",			ROM_ACERM3A,		"acerm3a",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,     at_acerm3a_init, NULL},
+#if 0
         {"Acer V35N",			ROM_ACERV35N,		"acerv3n",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,    at_acerv35n_init, NULL},
+#endif
         {"ASUS P/I-P55T2P4",		ROM_P55T2P4,		"p55r2p4",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,     at_p55t2p4_init, NULL},
         {"Award 430VX PCI",		ROM_430VX,		"430vx",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,      at_i430vx_init, NULL},
         {"Epox P55-VA",			ROM_P55VA,		"p55va",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,       at_p55va_init, NULL},
@@ -652,6 +660,7 @@ void at_batman_init()
         i430lx_init();
 }
 
+#if 0
 void at_586mc1_init()
 {
         at_ide_init();
@@ -665,6 +674,7 @@ void at_586mc1_init()
         device_add(&intel_flash_bxt_device);
 	secondary_ide_check();
 }
+#endif
 
 void at_plato_init()
 {
@@ -772,6 +782,7 @@ void at_acerm3a_init()
         device_add(&intel_flash_bxb_device);
 }
 
+#if 0
 void at_acerv35n_init()
 {
         at_ide_init();
@@ -788,6 +799,7 @@ void at_acerv35n_init()
         acerm3a_io_init();
         device_add(&intel_flash_bxb_device);
 }
+#endif
 
 void at_p55t2p4_init()
 {

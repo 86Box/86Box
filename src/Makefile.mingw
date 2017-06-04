@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 MinGW 32-bit environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.22	2017/06/01
+# Version:	@(#)Makefile.mingw	1.0.23	2017/06/03
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -47,6 +47,9 @@ X64	= n
 endif
 ifndef RELEASE
 RELEASE	= n
+endif
+ifndef USB
+USB	= n
 endif
 
 
@@ -154,7 +157,9 @@ DEVOBJ	= bugger.o lpt.o serial.o \
 	    disc_random.o disc_td0.o \
 	  cdrom.o \
 	    cdrom_dosbox.o cdrom_image.o cdrom_ioctl.o cdrom_null.o
+ifeq ($(USB), y)
 USBOBJ	= usb.o
+endif
 NETOBJ	= network.o \
 	  net_pcap.o net_slirp.o \
 	  net_ne2000.o
@@ -170,7 +175,7 @@ SNDOBJ	= sound.o \
 	  snd_adlib.o snd_adlibgold.o snd_ad1848.o \
 	  snd_sb.o snd_sb_dsp.o snd_cms.o snd_dbopl.o \
 	  snd_emu8k.o snd_gus.o snd_opl.o \
-	  snd_mpu401.o snd_pas16.o snd_resid.o \
+	  snd_mpu401.o snd_resid.o \
 	  snd_sn76489.o snd_ssi2001.o snd_wss.o \
 	  snd_ym7128.o
 VIDOBJ	= video.o \

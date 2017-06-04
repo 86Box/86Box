@@ -440,13 +440,15 @@ BEGIN
                     LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
                     WS_TABSTOP,7,18,253,60
     LTEXT           "Floppy drives:",-1,7,7,43,8
+    COMBOBOX        IDC_COMBO_FD_TYPE,33,85,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Type:",1803,7,86,24,8
+    CONTROL         "Turbo timings (no accuracy)",IDC_CHECKTURBO,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,131,86,129,10
     CONTROL         "List1",IDC_LIST_CDROM_DRIVES,"SysListView32",LVS_REPORT | 
                     LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
                     WS_TABSTOP,7,116,253,60
     LTEXT           "CD-ROM drives:",-1,7,106,50,8
-    COMBOBOX        IDC_COMBO_FD_TYPE,33,85,90,12,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Type:",1803,7,86,24,8
     COMBOBOX        IDC_COMBO_CD_BUS,33,183,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Bus:",1798,7,184,24,8
@@ -872,9 +874,13 @@ BEGIN
     IDS_2218	"&Image..."
     IDS_2219	"PCap failed to set up because it may not be initialized"
     IDS_2220	"Image (&Write-protected)..."
-    IDS_2221	"English (United States)"
+    IDS_2221	"Turbo"
+    IDS_2222	"On"
+    IDS_2223	"Off"
+    IDS_2224	"<Placeholder string>"
+    IDS_2225	"English (United States)"
 END
-#define IDS_LANG_ENUS	IDS_2221
+#define IDS_LANG_ENUS	IDS_2225
 
 
 #ifndef _MAC

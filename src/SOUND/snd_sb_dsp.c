@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "../ibm.h"
+#include "../device.h"
 #include "../io.h"
 #include "../pic.h"
 #include "../dma.h"
@@ -515,7 +516,7 @@ void sb_exec_command(sb_dsp_t *dsp)
                 sb_add_data(dsp, dsp->sb_asp_regs[dsp->sb_data[0]]);
                 break;
                 case 0xF8:
-                if (dsp->sb_type < SB16) break;
+                if (dsp->sb_type >= SB16) break;
                 sb_add_data(dsp, 0);
                 break;
                 case 0xF9:

@@ -30,6 +30,8 @@ int fdd_is_ed(int drive);
 int fdd_is_double_sided(int drive);
 void fdd_set_head(int drive, int head);
 int fdd_get_head(int drive);
+void fdd_set_turbo(int drive, int turbo);
+int fdd_get_turbo(int drive);
 
 void fdd_set_type(int drive, int type);
 int fdd_get_type(int drive);
