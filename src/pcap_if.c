@@ -10,14 +10,35 @@
  *
  *		Based on the "libpcap" examples.
  *
- * Version:	@(#)pcap_if.c	1.0.2	2017/05/09
+ * Version:	@(#)pcap_if.c	1.0.3	2017/06/04
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <ctype.h>
 #include <pcap.h>
+#include "plat_dynld.h"
+
+
+static void	*pcap_handle;		/* handle to WinPcap DLL */
+
+
+/* Pointers to the real functions. */
+static int	(*f_pcap_findalldevs)(pcap_if_t **,char *);
+static void	(*f_pcap_freealldevs)(pcap_if_t *);
+static pcap_t	*(*f_pcap_open_live)(const char *,int,int,int,char *);
+static int	(*f_pcap_next_ex)(pcap_t*,struct pcap_pkthdr**,const unsigned char**);
+static void	(*f_pcap_close)(pcap_t *);
+static dllimp_t pcap_imports[] = {
+  { "pcap_findalldevs",	&f_pcap_findalldevs	},
+  { "pcap_freealldevs",	&f_pcap_freealldevs	},
+  { "pcap_open_live",	&f_pcap_open_live	},
+  { "pcap_next_ex",	&f_pcap_next_ex		},
+  { "pcap_close",	&f_pcap_close		},
+  { NULL,		NULL			},
+};
 
 
 typedef struct {
@@ -35,7 +56,7 @@ get_devlist(dev_t *list)
     int i = 0;
 
     /* Retrieve the device list from the local machine */
-    if (pcap_findalldevs(&devlist, errbuf) == -1) {
+    if (f_pcap_findalldevs(&devlist, errbuf) == -1) {
 	fprintf(stderr,"Error in pcap_findalldevs_ex: %s\n", errbuf);
 	return(-1);
     }
@@ -51,7 +72,7 @@ get_devlist(dev_t *list)
     }
 
     /* Release the memory. */
-    pcap_freealldevs(devlist);
+    f_pcap_freealldevs(devlist);
 
     return(i);
 }
@@ -130,11 +151,11 @@ start_cap(char *dev)
     int rc;
 
     /* Open the device for reading from it. */
-    pcap = pcap_open_live(dev,
-			  1518,		/* MTU */
-			  1,		/* promisc mode */
-			  10,		/* timeout */
-			  temp);
+    pcap = f_pcap_open_live(dev,
+			    1518,	/* MTU */
+			    1,		/* promisc mode */
+			    10,		/* timeout */
+			    temp);
     if (pcap == NULL) {
 	fprintf(stderr, "Pcap: open_live(%s): %s\n", dev, temp);
 	return(2);
@@ -142,7 +163,7 @@ start_cap(char *dev)
 
     printf("Listening on '%s'..\n", dev);
     for (;;) {
-	rc = pcap_next_ex(pcap, &hdr, &pkt);
+	rc = f_pcap_next_ex(pcap, &hdr, &pkt);
 	if (rc < 0) break;
 
 	/* Did we time out? */
@@ -161,7 +182,7 @@ start_cap(char *dev)
     }
 
     /* All done, close up. */
-    pcap_close(pcap);
+    f_pcap_close(pcap);
 
     return(0);
 }
@@ -191,6 +212,17 @@ show_devs(dev_t *list, int num)
 }
 
 
+void
+pclog(const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
+}
+
+
 int
 main(int argc, char **argv)
 {
@@ -198,12 +230,21 @@ main(int argc, char **argv)
     dev_t *dev = interfaces;
     int numdev, i;
 
+    /* Try loading the DLL. */
+    pcap_handle = dynld_module("wpcap.dll", pcap_imports);
+    if (pcap_handle == NULL) {
+	fprintf(stderr, "Unable to load WinPcap DLL !\n");
+	return(1);
+    }
+
     /* Get the list. */
     numdev = get_devlist(interfaces);
 
     if (argc == 1) {
 	/* No arguments, just show the list. */
 	show_devs(interfaces, numdev);
+
+	dynld_close(pcap_handle);
 
 	return(numdev);
     }
@@ -213,11 +254,15 @@ main(int argc, char **argv)
     if (i < 0 || i > numdev) {
 	fprintf(stderr, "Invalid interface number %d !\n", i);
 
+	dynld_close(pcap_handle);
+
 	return(1);
     }
 
     /* Looks good, go and listen.. */
     i = start_cap(interfaces[i-1].device);
+
+    dynld_close(pcap_handle);
 
     return(i);
 }

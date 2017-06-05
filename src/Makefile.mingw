@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.23	2017/06/03
+# Version:	@(#)Makefile.mingw	1.0.24	2017/06/04
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -249,17 +249,14 @@ all:		$(PROG).exe pcap_if.exe
 
 $(PROG).exe:	$(OBJ) $(LZFOBJ) $(SLIRPOBJ)
 		@echo Linking $(PROG).exe ..
-		@$(CC) -o $(PROG).exe \
-			$(OBJ) $(LZFOBJ) $(SLIRPOBJ) \
-			$(LIBS) #-static -Lpcap -lwpcapdelay
+		@$(CC) -o $(PROG).exe $(OBJ) $(LZFOBJ) $(SLIRPOBJ) $(LIBS)
 ifneq ($(DEBUG), y)
 		@strip $(PROG).exe
 endif
 
-pcap_if.exe:	pcap_if.o pcap_if.res
+pcap_if.exe:	pcap_if.o win_dynld.o pcap_if.res
 		@echo Linking pcap_if.exe ..
-		@$(CC) -o pcap_if.exe \
-			pcap_if.o pcap_if.res -static -Lpcap -lwpcapdelay
+		@$(CC) -o pcap_if.exe pcap_if.o win_dynld.o pcap_if.res
 ifneq ($(DEBUG), y)
 		@strip pcap_if.exe
 endif
