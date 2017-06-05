@@ -9,22 +9,21 @@
  *		Emulation of the S3 Trio32, S3 Trio64, and S3 Vision864
  *		graphics cards.
  *
- * Version:	@(#)vid_s3.c	1.0.0	2017/05/30
+ * Version:	@(#)vid_s3.c	1.0.1	2017/06/04
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
-
 #include <stdlib.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../pci.h"
 #include "../rom.h"
-#include "../thread.h"
 #include "../device.h"
+#include "../win/plat_thread.h"
 #include "video.h"
 #include "vid_s3.h"
 #include "vid_svga.h"

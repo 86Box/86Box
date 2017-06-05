@@ -21,8 +21,8 @@
 #include "ibm.h"
 #include "config.h"
 #include "device.h"
-#include "thread.h"
 #include "network.h"
+#include "plat_thread.h"
 
 
 static queueADT	slirpq;			/* SLiRP library handle */

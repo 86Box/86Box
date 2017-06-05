@@ -9,7 +9,7 @@
 #include "../pci.h"
 #include "../rom.h"
 #include "../device.h"
-#include "../thread.h"
+#include "../win/plat_thread.h"
 #include "video.h"
 #include "vid_s3_virge.h"
 #include "vid_svga.h"

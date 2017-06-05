@@ -8,10 +8,11 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.1	2017/06/03
+ * Version:	@(#)win.c	1.0.2	2017/06/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
@@ -29,7 +30,6 @@
 #include "../mem.h"
 #include "../rom.h"
 #include "../nvr.h"
-#include "../thread.h"
 #include "../config.h"
 #include "../model.h"
 #include "../ide.h"
@@ -48,6 +48,7 @@
 #include "plat_iodev.h"
 #include "plat_mouse.h"
 #include "plat_midi.h"
+#include "plat_thread.h"
 
 #include "win.h"
 #include "win_cgapal.h"

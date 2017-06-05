@@ -12,8 +12,8 @@
 #include "../rom.h"
 #include "../config.h"
 #include "../device.h"
-#include "../thread.h"
 #include "../timer.h"
+#include "../win/plat_thread.h"
 #include "video.h"
 #include "vid_svga.h"
 #ifndef __unix

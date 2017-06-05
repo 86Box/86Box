@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.24	2017/06/04
+# Version:	@(#)Makefile.mingw	1.0.25	2017/06/04
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -143,9 +143,9 @@ SYSOBJ	= model.o \
 	  scat.o \
 	  sis496.o \
 	  wd76c10.o \
-	  laserxt.o \
 	  acer386sx.o acerm3a.o amstrad.o \
-	  compaq.o olivetti_m24.o jim.o ps1.o ps2.o ps2_mca.o \
+	  compaq.o laserxt.o jim.o \
+	  olivetti_m24.o ps1.o ps2.o ps2_mca.o \
 	  tandy_eeprom.o tandy_rom.o
 DEVOBJ	= bugger.o lpt.o serial.o \
 	    um8669f.o pc87306.o sis85c471.o w83877f.o \
