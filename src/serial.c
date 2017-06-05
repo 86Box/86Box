@@ -296,8 +296,8 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 				speed = 115200UL/baud;
 #ifdef ENABLE_SERIAL_LOG
 				serial_log(2, "Serial%d: divisor %u, baudrate %ld\n",
-#endif
 						sp->port, baud, speed);
+#endif
 				if ((sp->bh != NULL) && (speed > 0))
 					bhtty_speed((BHTTY *)sp->bh, speed);
 			} else {
