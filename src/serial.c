@@ -33,7 +33,7 @@
  *
  *		Based on the 86Box serial port driver as a framework.
  *
- * Version:	@(#)serial.c	1.0.6	2017/06/02
+ * Version:	@(#)serial.c	1.0.7	2017/06/04
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -45,6 +45,9 @@
 #include "timer.h"
 #include "serial.h"
 #include "plat_serial.h"
+
+
+#define NUM_SERIAL	2		/* we support 2 ports */
 
 
 enum {
@@ -137,8 +140,7 @@ enum {
 #define MSR_MASK	(0x0f)
 
 
-static SERIAL	serial1,		/* serial port 1 data */
-		serial2;		/* serial port 2 data */
+static SERIAL	ports[NUM_SERIAL];	/* serial port data */
        int	serial_do_log;
 
 
@@ -222,16 +224,6 @@ serial_write_fifo(SERIAL *sp, uint8_t dat)
 }
 
 
-#ifdef WALTJE
-static void
-serial_write_str(SERIAL *sp, const char *str)
-{
-    while (*str)
-	serial_write_fifo(sp, (uint8_t)*str++);
-}
-#endif
-
-
 static uint8_t
 read_fifo(SERIAL *sp)
 {
@@ -241,19 +233,6 @@ read_fifo(SERIAL *sp)
     }
 
     return(sp->dat);
-}
-
-
-/* BHTTY WRITE COMPLETE handler. */
-static void
-serial_wr_done(void *arg)
-{
-    SERIAL *sp = (SERIAL *)arg;
-
-    /* The WRITE completed, we are ready for more. */
-    sp->lsr |= LSR_THRE;
-    sp->int_status |= SERINT_TRANSMIT;
-    update_ints(sp);
 }
 
 
@@ -278,13 +257,12 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 		sp->thr = val;
 		if (sp->bh != NULL) {
 			/* We are linked, so send to BH layer. */
-#if 0
-			bhtty_write((BHTTY *)sp->bh,
-				    sp->thr, serial_wr_done, sp);
-#else
 			bhtty_write((BHTTY *)sp->bh, sp->thr);
-			serial_wr_done(sp);
-#endif
+
+			/* The WRITE completed, we are ready for more. */
+			sp->lsr |= LSR_THRE;
+			sp->int_status |= SERINT_TRANSMIT;
+			update_ints(sp);
 		} else {
 			/* Not linked. Just fake LOOPBACK mode. */
 			if (! (sp->mctrl & MCR_LMS))
@@ -316,19 +294,25 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 			baud = ((sp->dlab2<<8) | sp->dlab1);
 			if (baud > 0) {
 				speed = 115200UL/baud;
+#ifdef ENABLE_SERIAL_LOG
 				serial_log(2, "Serial%d: divisor %u, baudrate %ld\n",
+#endif
 						sp->port, baud, speed);
 				if ((sp->bh != NULL) && (speed > 0))
 					bhtty_speed((BHTTY *)sp->bh, speed);
 			} else {
+#ifdef ENABLE_SERIAL_LOG
 				serial_log(1, "Serial%d: divisor %u invalid!\n",
 							sp->port, baud);
+#endif
 			}
 		}
 		wl = (val & LCR_WLS) + 5;		/* databits */
 		sb = (val & LCR_SBS) ? 2 : 1;		/* stopbits */
 		pa = (val & (LCR_PE|LCR_EP|LCR_PS)) >> 3;
+#ifdef ENABLE_SERIAL_LOG
 		serial_log(2, "Serial%d: WL=%d SB=%d PA=%d\n", sp->port, wl, sb, pa);
+#endif
 		if (sp->bh != NULL)
 			bhtty_params((BHTTY *)sp->bh, wl, pa, sb);
 		sp->lcr = val;
@@ -344,12 +328,17 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 			 */
 			if (sp->rts_callback) {
 				sp->rts_callback(sp->rts_callback_p);
+#ifdef ENABLE_SERIAL_LOG
 				serial_log(1, "RTS raised; sending ID\n");
+#endif
 			}
 		}
 
 		if ((val & MCR_OUT2) && !(sp->mctrl & MCR_OUT2)) {
-			if (sp->bh == NULL) {
+			if (sp->bh != NULL) {
+				/* Linked, start host port. */
+				(void)bhtty_active(sp->bh, 1);
+			} else {
 				/* Not linked, start RX timer. */
 				timer_add(serial_timer,
 					  &sp->receive_delay,
@@ -361,11 +350,6 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 					   MSR_DCD | MSR_DDCD);
 				sp->int_status |= SERINT_MSR;
 				update_ints(sp);
-
-#ifdef WALTJE
-				/* For testing. */
-				serial_write_str(sp, "Welcome!\r\n");
-#endif
 			}
 		}
 		sp->mctrl = val;
@@ -420,12 +404,15 @@ static void
 serial_rd_done(void *arg, int num)
 {
     SERIAL *sp = (SERIAL *)arg;
-#ifdef WALTJE
-serial_log(0, "%04x: %d bytes available: %02x (%c)\n",sp->addr,num,sp->hold,sp->hold);
-#endif
 
-    /* Stuff the byte in the FIFO and set intr. */
-    serial_write_fifo(sp, sp->hold);
+    /* We can do at least 'num' bytes.. */
+    while (num-- > 0) {
+	/* Get a byte from them. */
+	if (bhtty_read(sp->bh, &sp->hold, 1) < 0) break;
+
+	/* Stuff it into the FIFO and set intr. */
+	serial_write_fifo(sp, sp->hold);
+    }
 }
 
 
@@ -440,21 +427,19 @@ serial_read(uint16_t addr, void *priv)
 	case 0:		/* DATA / DLAB1 */
 		if (sp->lcr & LCR_DLAB) {
 			ret = sp->dlab1;
-			break;
+		} else {
+			sp->lsr &= ~LSR_DR;
+			sp->int_status &= ~SERINT_RECEIVE;
+			update_ints(sp);
+			ret = read_fifo(sp);
+			if ((sp->bh == NULL) &&
+			    (sp->fifo_read != sp->fifo_write))
+				sp->receive_delay = 1000 * TIMER_USEC;
 		}
-		sp->lsr &= ~LSR_DR;
-		sp->int_status &= ~SERINT_RECEIVE;
-		update_ints(sp);
-		ret = read_fifo(sp);
-		if ((sp->bh == NULL) && (sp->fifo_read != sp->fifo_write))
-			sp->receive_delay = 1000 * TIMER_USEC;
 		break;
 
 	case 1:		/* LCR / DLAB2 */
-		if (sp->lcr & LCR_DLAB)
-			ret = sp->dlab2;
-		  else
-			ret = sp->ier;
+		ret = (sp->lcr & LCR_DLAB) ? sp->dlab2 : sp->ier;
 		break;
 
 	case 2: 	/* IIR */
@@ -463,9 +448,8 @@ serial_read(uint16_t addr, void *priv)
 			sp->int_status &= ~SERINT_TRANSMIT;
 			update_ints(sp);
 		}
-		if (sp->fcr & 0x01) {
+		if (sp->fcr & 0x01)
 			ret |= 0xc0;
-		}
 		break;
 
 	case 3:		/* LCR */
@@ -512,32 +496,25 @@ serial_setup(int port, uint16_t addr, int irq)
 {
     SERIAL *sp;
 
+#ifdef ENABLE_SERIAL_LOG
     serial_log(0, "Serial%d: I/O=%04x, IRQ=%d\n", port, addr, irq);
+#endif
 
     /* Grab the desired port block. */
-    sp = (port == 2) ? &serial2 : &serial1;
+    sp = &ports[port-1];
 
     /* Set up the basic info. */
     if (sp->addr != 0x0000) {
 	/* Unlink the previous handler. Just in case. */
 	io_removehandler(sp->addr, 8,
-			 serial_read, NULL, NULL,
-			 serial_write, NULL, NULL, sp);
+			 serial_read, NULL, NULL, serial_write, NULL, NULL, sp);
     }
     sp->addr = addr;
     sp->irq = irq;
 
     /* Request an I/O range. */
     io_sethandler(sp->addr, 8,
-		  serial_read, NULL, NULL,
-		  serial_write, NULL, NULL, sp);
-
-#if 1
-    /* Do not disable here, it breaks the SIO chips. */
-#else
-    /* No DTR/RTS callback for now. */
-    sp->rts_callback = NULL;
-#endif
+		  serial_read, NULL, NULL, serial_write, NULL, NULL, sp);
 }
 
 
@@ -548,16 +525,9 @@ serial_remove(int port)
     SERIAL *sp;
 
     /* Grab the desired port block. */
-    sp = (port == 2) ? &serial2 : &serial1;
+    sp = &ports[port-1];
 
     // FIXME: stop timer, if enabled!
-
-#if 1
-    /* Do not disable here, it breaks the SIO chips. */
-#else
-    /* Remove any callbacks. */
-    sp->rts_callback = NULL;
-#endif
 
     /* Close the host device. */
     if (sp->bh != NULL)
@@ -566,8 +536,7 @@ serial_remove(int port)
     /* Release our I/O range. */
     if (sp->addr != 0x0000) {
 	io_removehandler(sp->addr, 8,
-			 serial_read, NULL, NULL,
-			 serial_write, NULL, NULL, sp);
+			 serial_read, NULL, NULL, serial_write, NULL, NULL, sp);
     }
     sp->addr = 0x0000;
     sp->irq = 0;
@@ -578,21 +547,31 @@ serial_remove(int port)
 void
 serial_init(void)
 {
+    SERIAL *sp;
+    int i;
+
 #if ENABLE_SERIAL_LOG
     serial_do_log = ENABLE_SERIAL_LOG;
 #endif
-    memset(&serial1, 0x00, sizeof(SERIAL));
-    serial1.port = 1;
-    serial_setup(serial1.port, SERIAL1_ADDR, SERIAL1_IRQ);
-#ifdef xWALTJE
-    serial_link(serial1.port, "COM1");
-#endif
 
-    memset(&serial2, 0x00, sizeof(SERIAL));
-    serial2.port = 2;
-    serial_setup(serial2.port, SERIAL2_ADDR, SERIAL2_IRQ);
-#ifdef xWALTJE
-    serial_link(serial2.port, "COM2");
+    /* FIXME: we should probably initialize the platform module here. */
+
+    /* Initialize each port. */
+    for (i=0; i<NUM_SERIAL; i++) {
+	sp = &ports[i];
+	memset(sp, 0x00, sizeof(SERIAL));
+	sp->port = (i+1);
+
+	if (i == 0)
+		serial_setup(sp->port, SERIAL1_ADDR, SERIAL1_IRQ);
+	  else
+		serial_setup(sp->port, SERIAL2_ADDR, SERIAL2_IRQ);
+    }
+
+#ifdef WALTJE
+    /* Link to host port. */
+    serial_link(1, "COM1");
+    serial_link(2, "COM2");
 #endif
 }
 
@@ -605,11 +584,15 @@ serial_init(void)
 void
 serial_reset(void)
 {
-    serial1.iir = serial1.ier = serial1.lcr = serial1.mctrl = 0;
-    serial1.fifo_read = serial1.fifo_write = 0;
+    SERIAL *sp;
+    int i;
 
-    serial2.iir = serial2.ier = serial2.lcr = serial2.mctrl = 0;
-    serial2.fifo_read = serial2.fifo_write = 0;
+    for (i=0; i<NUM_SERIAL; i++) {
+	sp = &ports[i];
+
+	sp->iir = sp->ier = sp->lcr = sp->mctrl = 0x00;
+	sp->fifo_read = sp->fifo_write = 0x00;
+    }
 }
 
 
@@ -621,19 +604,23 @@ serial_link(int port, char *arg)
     BHTTY *bh;
 
     /* Grab the desired port block. */
-    sp = (port == 2) ? &serial2 : &serial1;
+    sp = &ports[port-1];
 
     if (arg != NULL) {
 	/* Make sure we're not already linked. */
 	if (sp->bh != NULL) {
+#if ENABLE_SERIAL_LOG
 		serial_log(0, "Serial%d already linked!\n", port);
+#endif
 		return(-1);
 	}
 
 	/* Request a port from the host system. */
 	bh = bhtty_open(arg, 0);
 	if (bh == NULL) {
+#if ENABLE_SERIAL_LOG
 		serial_log(0, "Serial%d unable to link to '%s' !\n", port, arg);
+#endif
 		return(-1);
 	}
 	sp->bh = bh;
@@ -661,7 +648,7 @@ serial_attach(int port, void *func, void *arg)
     SERIAL *sp;
 
     /* Grab the desired port block. */
-    sp = (port == 2) ? &serial2 : &serial1;
+    sp = &ports[port-1];
 
     /* Set up callback info. */
     sp->rts_callback = func;
