@@ -8,7 +8,7 @@
  *
  *		Main emulator include file.
  *
- * Version:	@(#)86box.h	1.0.1	2017/06/03
+ * Version:	@(#)86box.h	1.0.2	2017/06/04
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2017 Miran Grca.
@@ -26,6 +26,9 @@
 # define ENABLE_LOG_TOGGLES	1
 #endif
 
+#if defined(ENABLE_LOG_BREAKPOINT) || defined(ENABLE_VRAM_DUMP)
+# define ENABLE_LOG_COMMANDS	1
+#endif
 
 #define EMU_VERSION	"2.00"
 #define EMU_VERSION_W	L"2.00"

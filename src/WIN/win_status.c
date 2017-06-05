@@ -64,11 +64,11 @@ static BOOL CALLBACK status_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPAR
                         ((double)cpu_recomp_ins_latched / 1000000.0) / ((double)main_time / timer_freq)
                 );
                 main_time = 0;
-                SendDlgItemMessage(hdlg, IDC_STEXT_DEVICE, WM_SETTEXT, (WPARAM)NULL, (LPARAM)device_s);
+                SendDlgItemMessage(hdlg, IDT_SDEVICE, WM_SETTEXT, (WPARAM)NULL, (LPARAM)device_s);
 
                 device_s[0] = 0;
                 device_add_status_info(device_s, 4096);
-                SendDlgItemMessage(hdlg, IDC_STEXT1, WM_SETTEXT, (WPARAM)NULL, (LPARAM)device_s);
+                SendDlgItemMessage(hdlg, IDT_STEXT, WM_SETTEXT, (WPARAM)NULL, (LPARAM)device_s);
                 }
                 return TRUE;
                 

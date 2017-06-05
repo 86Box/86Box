@@ -1806,15 +1806,19 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			hmenu=GetMenu(hwnd);
 			switch (LOWORD(wParam))
 			{
-				case IDM_FILE_HRESET:
+				case IDM_ACTION_SCREENSHOT:
+					take_screenshot();
+					break;
+
+				case IDM_ACTION_HRESET:
 					win_pc_reset(1);
 					break;
 
-				case IDM_FILE_RESET_CAD:
+				case IDM_ACTION_RESET_CAD:
 					win_pc_reset(0);
 					break;
 
-				case IDM_FILE_EXIT:
+				case IDM_ACTION_EXIT:
 					PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
 					break;
 
@@ -1937,10 +1941,6 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				case IDM_VID_OVERSCAN:
 					update_overscan = 1;
 					video_toggle_option(hmenu, &enable_overscan, IDM_VID_OVERSCAN);
-					break;
-
-				case IDM_VID_SCREENSHOT:
-					take_screenshot();
 					break;
 
 				case IDM_VID_CGACON:

@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.1	2017/06/03
+ * Version:	@(#)win_settings.c	1.0.2	2017/06/04
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2017 Miran Grca.
@@ -491,13 +491,13 @@ static void win_settings_machine_recalc_model(HWND hdlg)
 	{
 		SendMessage(h, UDM_SETPOS, 0, temp_mem_size);
 		h = GetDlgItem(hdlg, IDC_TEXT_MB);
-		SendMessage(h, WM_SETTEXT, 0, (LPARAM) win_language_get_string_from_id(2094));
+		SendMessage(h, WM_SETTEXT, 0, (LPARAM) win_language_get_string_from_id(IDS_2094));
 	}
 	else
 	{
 		SendMessage(h, UDM_SETPOS, 0, temp_mem_size / 1024);
 		h = GetDlgItem(hdlg, IDC_TEXT_MB);
-		SendMessage(h, WM_SETTEXT, 0, (LPARAM) win_language_get_string_from_id(2087));
+		SendMessage(h, WM_SETTEXT, 0, (LPARAM) win_language_get_string_from_id(IDS_2087));
 	}
 
 	free(lptsTemp);
@@ -541,7 +541,7 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 			SendMessage(h, CB_SETCURSEL, modeltolist[temp_model], 0);
 
 			h = GetDlgItem(hdlg, IDC_COMBO_WS);
-	                SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2131));
+	                SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2131));
 
 			for (c = 0; c < 8; c++)
 			{
@@ -693,7 +693,7 @@ static void recalc_vid_list(HWND hdlg)
         h = GetDlgItem(hdlg, IDC_CHECK_VOODOO);
         EnableWindow(h, (models[model].flags & MODEL_PCI) ? TRUE : FALSE);
 
-        h = GetDlgItem(hdlg, IDC_CONFIGURE_VOODOO);
+        h = GetDlgItem(hdlg, IDC_BUTTON_VOODOO);
         EnableWindow(h, ((models[model].flags & MODEL_PCI) && temp_voodoo) ? TRUE : FALSE);
 }
 
@@ -714,12 +714,12 @@ static BOOL CALLBACK win_settings_video_proc(HWND hdlg, UINT message, WPARAM wPa
 			recalc_vid_list(hdlg);
 
 			h = GetDlgItem(hdlg, IDC_COMBO_VIDEO_SPEED);
-			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2133));
-			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2134));
-			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2135));
-			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2136));
-			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2137));
-			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2138));
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2133));
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2134));
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2135));
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2136));
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2137));
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2138));
 			SendMessage(h, CB_SETCURSEL, temp_video_speed, 0);
 
 	                h=GetDlgItem(hdlg, IDC_CHECK_VOODOO);
@@ -730,7 +730,7 @@ static BOOL CALLBACK win_settings_video_proc(HWND hdlg, UINT message, WPARAM wPa
 			wcstombs(stransi, lptsTemp, (wcslen(lptsTemp) * 2) + 2);
 			gfx = video_card_getid(stransi);
 
-			h = GetDlgItem(hdlg, IDC_CONFIGUREVID);
+			h = GetDlgItem(hdlg, IDC_CONFIGURE_VID);
 			if (video_card_has_config(gfx))
 			{
 				EnableWindow(h, TRUE);
@@ -758,7 +758,7 @@ static BOOL CALLBACK win_settings_video_proc(HWND hdlg, UINT message, WPARAM wPa
 					gfx = video_card_getid(stransi);
 		                        temp_gfxcard = video_new_to_old(gfx);
 
-					h = GetDlgItem(hdlg, IDC_CONFIGUREVID);
+					h = GetDlgItem(hdlg, IDC_CONFIGURE_VID);
 					if (video_card_has_config(gfx))
 					{
 						EnableWindow(h, TRUE);
@@ -776,15 +776,15 @@ static BOOL CALLBACK win_settings_video_proc(HWND hdlg, UINT message, WPARAM wPa
 	        		        h = GetDlgItem(hdlg, IDC_CHECK_VOODOO);
 					temp_voodoo = SendMessage(h, BM_GETCHECK, 0, 0);
 
-	        		        h = GetDlgItem(hdlg, IDC_CONFIGURE_VOODOO);
+	        		        h = GetDlgItem(hdlg, IDC_BUTTON_VOODOO);
 					EnableWindow(h, temp_voodoo ? TRUE : FALSE);
 					break;
 
-				case IDC_CONFIGURE_VOODOO:
+				case IDC_BUTTON_VOODOO:
 					deviceconfig_open(hdlg, (void *)&voodoo_device);
 					break;
 
-				case IDC_CONFIGUREVID:
+				case IDC_CONFIGURE_VID:
 					lptsTemp = (LPTSTR) malloc(512);
 					stransi = (char *) malloc(512);
 
@@ -866,28 +866,28 @@ static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wPa
 					{
 						case 0:	/* MS Serial */
 						default:
-							str_id = 2139;
+							str_id = IDS_2139;
 							break;
 						case 1:	/* PS2 2b */
-							str_id = 2141;
+							str_id = IDS_2141;
 							break;
 						case 2:	/* PS2 intelli 3b */
-							str_id = 2142;
+							str_id = IDS_2142;
 							break;
 						case 3: /* MS/logi bus 2b */
-							str_id = 2143;
+							str_id = IDS_2143;
 							break;
 						case 4:	/* Amstrad */
-							str_id = 2162;
+							str_id = IDS_2162;
 							break;
 						case 5:	/* Olivetti M24 */
-							str_id = 2177;
+							str_id = IDS_2177;
 							break;
 						case 6:	/* MouseSystems */
-							str_id = 2140;
+							str_id = IDS_2140;
 							break;
 						case 7:	/* Genius Bus */
-							str_id = 2161;
+							str_id = IDS_2161;
 							break;
 					}
 
@@ -942,25 +942,25 @@ static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wPa
 					break;
 
 				case IDC_JOY1:
-					h = GetDlgItem(hdlg, IDC_COMBOJOY);
+					h = GetDlgItem(hdlg, IDC_COMBO_JOY);
 					temp_joystick = SendMessage(h, CB_GETCURSEL, 0, 0);
 					joystickconfig_open(hdlg, 0, temp_joystick);
 					break;
 
 				case IDC_JOY2:
-					h = GetDlgItem(hdlg, IDC_COMBOJOY);
+					h = GetDlgItem(hdlg, IDC_COMBO_JOY);
 					temp_joystick = SendMessage(h, CB_GETCURSEL, 0, 0);
 					joystickconfig_open(hdlg, 1, temp_joystick);
 					break;
 
 				case IDC_JOY3:
-					h = GetDlgItem(hdlg, IDC_COMBOJOY);
+					h = GetDlgItem(hdlg, IDC_COMBO_JOY);
 					temp_joystick = SendMessage(h, CB_GETCURSEL, 0, 0);
 					joystickconfig_open(hdlg, 2, temp_joystick);
 					break;
 
 				case IDC_JOY4:
-					h = GetDlgItem(hdlg, IDC_COMBOJOY);
+					h = GetDlgItem(hdlg, IDC_COMBO_JOY);
 					temp_joystick = SendMessage(h, CB_GETCURSEL, 0, 0);
 					joystickconfig_open(hdlg, 3, temp_joystick);
 					break;
@@ -1001,7 +1001,7 @@ static void recalc_hdd_list(HWND hdlg, int model, int use_selected_hdd)
 		hdc_ignore = 1;
 
 		SendMessage(h, CB_RESETCONTENT, 0, 0);
-		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2154));
+		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2154));
 		EnableWindow(h, FALSE);
 		SendMessage(h, CB_SETCURSEL, 0, 0);
 	}
@@ -1156,7 +1156,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 		case WM_INITDIALOG:
 			lptsTemp = (LPTSTR) malloc(512);
 
-			h = GetDlgItem(hdlg, IDC_COMBOSND);
+			h = GetDlgItem(hdlg, IDC_COMBO_SOUND);
 			c = d = 0;
 			while (1)
 			{
@@ -1177,7 +1177,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 					{
 						if (c == 0)
 						{
-							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2152));
+							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2152));
 						}
 						else
 						{
@@ -1193,7 +1193,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 			}
 			SendMessage(h, CB_SETCURSEL, settings_sound_to_list[temp_sound_card], 0);
 
-			h = GetDlgItem(hdlg, IDC_CONFIGURESND);
+			h = GetDlgItem(hdlg, IDC_CONFIGURE_SND);
 			if (sound_card_has_config(temp_sound_card))
 			{
 				EnableWindow(h, TRUE);
@@ -1223,16 +1223,16 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 		        h = GetDlgItem(hdlg, IDC_CONFIGURE_MPU401);
 		        EnableWindow(h, (mpu401_standalone_allow() && temp_mpu401) ? TRUE : FALSE);
 
-			h=GetDlgItem(hdlg, IDC_CHECKCMS);
+			h=GetDlgItem(hdlg, IDC_CHECK_CMS);
 			SendMessage(h, BM_SETCHECK, temp_GAMEBLASTER, 0);
 
-			h=GetDlgItem(hdlg, IDC_CHECKGUS);
+			h=GetDlgItem(hdlg, IDC_CHECK_GUS);
 			SendMessage(h, BM_SETCHECK, temp_GUS, 0);
 
-			h=GetDlgItem(hdlg, IDC_CHECKSSI);
+			h=GetDlgItem(hdlg, IDC_CHECK_SSI);
 			SendMessage(h, BM_SETCHECK, temp_SSI2001, 0);
 
-			h=GetDlgItem(hdlg, IDC_CHECKNUKEDOPL);
+			h=GetDlgItem(hdlg, IDC_CHECK_NUKEDOPL);
 			SendMessage(h, BM_SETCHECK, temp_opl3_type, 0);
 
 			free(lptsTemp);
@@ -1242,18 +1242,18 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 		case WM_COMMAND:
                 	switch (LOWORD(wParam))
 	                {
-				case IDC_CONFIGURESND:
-					h = GetDlgItem(hdlg, IDC_COMBOSND);
+				case IDC_CONFIGURE_SND:
+					h = GetDlgItem(hdlg, IDC_COMBO_SOUND);
 					temp_sound_card = settings_list_to_sound[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 					deviceconfig_open(hdlg, (void *)sound_card_getdevice(temp_sound_card));
 					break;
 
-				case IDC_COMBOSND:
-					h = GetDlgItem(hdlg, IDC_COMBOSND);
+				case IDC_COMBO_SOUND:
+					h = GetDlgItem(hdlg, IDC_COMBO_SOUND);
 					temp_sound_card = settings_list_to_sound[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
-					h = GetDlgItem(hdlg, IDC_CONFIGURESND);
+					h = GetDlgItem(hdlg, IDC_CONFIGURE_SND);
 					if (sound_card_has_config(temp_sound_card))
 					{
 						EnableWindow(h, TRUE);
@@ -1285,7 +1285,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 			return FALSE;
 
 		case WM_SAVESETTINGS:
-			h = GetDlgItem(hdlg, IDC_COMBOSND);
+			h = GetDlgItem(hdlg, IDC_COMBO_SOUND);
 			temp_sound_card = settings_list_to_sound[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 			h = GetDlgItem(hdlg, IDC_COMBO_MIDI);
@@ -1294,16 +1294,16 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 			h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
 			temp_mpu401 = SendMessage(h, BM_GETCHECK, 0, 0);
 
-			h = GetDlgItem(hdlg, IDC_CHECKCMS);
+			h = GetDlgItem(hdlg, IDC_CHECK_CMS);
 			temp_GAMEBLASTER = SendMessage(h, BM_GETCHECK, 0, 0);
 
-			h = GetDlgItem(hdlg, IDC_CHECKGUS);
+			h = GetDlgItem(hdlg, IDC_CHECK_GUS);
 			temp_GUS = SendMessage(h, BM_GETCHECK, 0, 0);
 
-			h = GetDlgItem(hdlg, IDC_CHECKSSI);
+			h = GetDlgItem(hdlg, IDC_CHECK_SSI);
 			temp_SSI2001 = SendMessage(h, BM_GETCHECK, 0, 0);
 
-			h = GetDlgItem(hdlg, IDC_CHECKNUKEDOPL);
+			h = GetDlgItem(hdlg, IDC_CHECK_NUKEDOPL);
 			temp_opl3_type = SendMessage(h, BM_GETCHECK, 0, 0);
 
 		default:
@@ -1348,7 +1348,7 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 					{
 						if (c == 0)
 						{
-							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2152));
+							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2152));
 						}
 						else
 						{
@@ -1381,7 +1381,7 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 
 			for (c = 0; c < 11; c++)
 			{
-				wsprintf(lptsTemp, win_language_get_string_from_id(2155), valid_ide_irqs[c]);
+				wsprintf(lptsTemp, win_language_get_string_from_id(IDS_2155), valid_ide_irqs[c]);
 	        	        SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 			}
 
@@ -1395,11 +1395,11 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 			}
 
 			h=GetDlgItem(hdlg, IDC_COMBO_IDE_QUA);
-			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2151));
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2151));
 
 			for (c = 0; c < 11; c++)
 			{
-				wsprintf(lptsTemp, win_language_get_string_from_id(2155), valid_ide_irqs[c]);
+				wsprintf(lptsTemp, win_language_get_string_from_id(IDS_2155), valid_ide_irqs[c]);
 	        	        SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 			}
 
@@ -1412,16 +1412,16 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 				SendMessage(h, CB_SETCURSEL, 0, 0);
 			}
 
-			h=GetDlgItem(hdlg, IDC_CHECKSERIAL1);
+			h=GetDlgItem(hdlg, IDC_CHECK_SERIAL1);
 			SendMessage(h, BM_SETCHECK, temp_serial[0], 0);
 
-			h=GetDlgItem(hdlg, IDC_CHECKSERIAL2);
+			h=GetDlgItem(hdlg, IDC_CHECK_SERIAL2);
 			SendMessage(h, BM_SETCHECK, temp_serial[1], 0);
 
-			h=GetDlgItem(hdlg, IDC_CHECKPARALLEL);
+			h=GetDlgItem(hdlg, IDC_CHECK_PARALLEL);
 			SendMessage(h, BM_SETCHECK, temp_lpt, 0);
 
-			h=GetDlgItem(hdlg, IDC_CHECKBUGGER);
+			h=GetDlgItem(hdlg, IDC_CHECK_BUGGER);
 			SendMessage(h, BM_SETCHECK, temp_bugger, 0);
 
 			free(lptsTemp);
@@ -1493,16 +1493,16 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 				temp_ide_qua = 1;
 			}
 
-			h = GetDlgItem(hdlg, IDC_CHECKSERIAL1);
+			h = GetDlgItem(hdlg, IDC_CHECK_SERIAL1);
 			temp_serial[0] = SendMessage(h, BM_GETCHECK, 0, 0);
 
-			h = GetDlgItem(hdlg, IDC_CHECKSERIAL2);
+			h = GetDlgItem(hdlg, IDC_CHECK_SERIAL2);
 			temp_serial[1] = SendMessage(h, BM_GETCHECK, 0, 0);
 
-			h = GetDlgItem(hdlg, IDC_CHECKPARALLEL);
+			h = GetDlgItem(hdlg, IDC_CHECK_PARALLEL);
 			temp_lpt = SendMessage(h, BM_GETCHECK, 0, 0);
 
-			h = GetDlgItem(hdlg, IDC_CHECKBUGGER);
+			h = GetDlgItem(hdlg, IDC_CHECK_BUGGER);
 			temp_bugger = SendMessage(h, BM_GETCHECK, 0, 0);
 
 		default:
@@ -1520,7 +1520,7 @@ static void network_recalc_combos(HWND hdlg)
 
 	net_ignore_message = 1;
 
-	h = GetDlgItem(hdlg, IDC_COMBOPCAP);
+	h = GetDlgItem(hdlg, IDC_COMBO_PCAP);
 	if (temp_net_type == NET_TYPE_PCAP)
 	{
 		EnableWindow(h, TRUE);
@@ -1530,7 +1530,7 @@ static void network_recalc_combos(HWND hdlg)
 		EnableWindow(h, FALSE);
 	}
 
-	h = GetDlgItem(hdlg, IDC_COMBONET);
+	h = GetDlgItem(hdlg, IDC_COMBO_NET);
 	if (temp_net_type == NET_TYPE_SLIRP)
 	{
 		EnableWindow(h, TRUE);
@@ -1545,7 +1545,7 @@ static void network_recalc_combos(HWND hdlg)
 		EnableWindow(h, FALSE);
 	}
 
-	h = GetDlgItem(hdlg, IDC_CONFIGURENET);
+	h = GetDlgItem(hdlg, IDC_CONFIGURE_NET);
 	if (network_card_has_config(temp_net_card) &&
 	    (temp_net_type == NET_TYPE_SLIRP))
 	{
@@ -1577,13 +1577,13 @@ static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM w
 		case WM_INITDIALOG:
 			lptsTemp = (LPTSTR) malloc(512);
 
-			h = GetDlgItem(hdlg, IDC_COMBONETTYPE);
+			h = GetDlgItem(hdlg, IDC_COMBO_NET_TYPE);
 			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) L"None");
 			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) L"PCap");
 			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) L"SLiRP");
 			SendMessage(h, CB_SETCURSEL, temp_net_type, 0);
 
-			h = GetDlgItem(hdlg, IDC_COMBOPCAP);
+			h = GetDlgItem(hdlg, IDC_COMBO_PCAP);
 			if (temp_net_type == NET_TYPE_PCAP)
 			{
 				EnableWindow(h, TRUE);
@@ -1593,7 +1593,7 @@ static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM w
 				EnableWindow(h, FALSE);
 			}
 
-			h = GetDlgItem(hdlg, IDC_COMBOPCAP);
+			h = GetDlgItem(hdlg, IDC_COMBO_PCAP);
 			for (c = 0; c < network_ndev; c++)
 			{
 				mbstowcs(lptsTemp, network_devs[c].description, strlen(network_devs[c].description) + 1);
@@ -1602,7 +1602,7 @@ static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM w
 			SendMessage(h, CB_SETCURSEL, network_dev_to_id(temp_pcap_dev), 0);
 
 			/*NIC config*/
-			h = GetDlgItem(hdlg, IDC_COMBONET);
+			h = GetDlgItem(hdlg, IDC_COMBO_NET);
 			c = d = 0;
 			while (1)
 			{
@@ -1643,50 +1643,50 @@ static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM w
 		case WM_COMMAND:
                 	switch (LOWORD(wParam))
 	                {
-				case IDC_COMBONETTYPE:
+				case IDC_COMBO_NET_TYPE:
 					if (net_ignore_message)
 					{
 						return FALSE;
 					}
 
-					h = GetDlgItem(hdlg, IDC_COMBONETTYPE);
+					h = GetDlgItem(hdlg, IDC_COMBO_NET_TYPE);
 					temp_net_type = SendMessage(h, CB_GETCURSEL, 0, 0);
 
 					network_recalc_combos(hdlg);
 					break;
 
-				case IDC_COMBOPCAP:
+				case IDC_COMBO_PCAP:
 					if (net_ignore_message)
 					{
 						return FALSE;
 					}
 
-					h = GetDlgItem(hdlg, IDC_COMBOPCAP);
+					h = GetDlgItem(hdlg, IDC_COMBO_PCAP);
 					memset(temp_pcap_dev, '\0', sizeof(temp_pcap_dev));
 					strcpy(temp_pcap_dev, network_devs[SendMessage(h, CB_GETCURSEL, 0, 0)].device);
 
 					network_recalc_combos(hdlg);
 					break;
 
-				case IDC_COMBONET:
+				case IDC_COMBO_NET:
 					if (net_ignore_message)
 					{
 						return FALSE;
 					}
 
-					h = GetDlgItem(hdlg, IDC_COMBONET);
+					h = GetDlgItem(hdlg, IDC_COMBO_NET);
 					temp_net_card = settings_list_to_network[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 					network_recalc_combos(hdlg);
 					break;
 
-				case IDC_CONFIGURENET:
+				case IDC_CONFIGURE_NET:
 					if (net_ignore_message)
 					{
 						return FALSE;
 					}
 
-					h = GetDlgItem(hdlg, IDC_COMBONET);
+					h = GetDlgItem(hdlg, IDC_COMBO_NET);
 					temp_net_card = settings_list_to_network[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 					deviceconfig_open(hdlg, (void *)network_card_getdevice(temp_net_card));
@@ -1695,14 +1695,14 @@ static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM w
 			return FALSE;
 
 		case WM_SAVESETTINGS:
-			h = GetDlgItem(hdlg, IDC_COMBONETTYPE);
+			h = GetDlgItem(hdlg, IDC_COMBO_NET_TYPE);
 			temp_net_type = SendMessage(h, CB_GETCURSEL, 0, 0);
 
-			h = GetDlgItem(hdlg, IDC_COMBOPCAP);
+			h = GetDlgItem(hdlg, IDC_COMBO_PCAP);
 			memset(temp_pcap_dev, '\0', sizeof(temp_pcap_dev));
 			strcpy(temp_pcap_dev, network_devs[SendMessage(h, CB_GETCURSEL, 0, 0)].device);
 
-			h = GetDlgItem(hdlg, IDC_COMBONET);
+			h = GetDlgItem(hdlg, IDC_COMBO_NET);
 			temp_net_card = settings_list_to_network[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 		default:
@@ -4244,5 +4244,5 @@ static BOOL CALLBACK win_settings_main_proc(HWND hdlg, UINT message, WPARAM wPar
 
 void win_settings_open(HWND hwnd)
 {
-        DialogBox(hinstance, (LPCWSTR)DLG_CFG_MAIN, hwnd, win_settings_main_proc);
+        DialogBox(hinstance, (LPCWSTR)DLG_CONFIG, hwnd, win_settings_main_proc);
 }
