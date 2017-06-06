@@ -31,7 +31,7 @@ DMA dma, dma16;
 
 void dma_reset(void)
 {
-#if 0
+#if 1
         int c;
         dma.wp = 0;
         for (c = 0; c < 16; c++) 
@@ -58,12 +58,13 @@ void dma_reset(void)
                 dma16.cb[c] = 0;
         }
         dma16.m = 0;
-#endif
+#else
 	memset(dmaregs, 0, 16);
 	memset(dma16regs, 0, 16);
 	memset(dmapages, 0, 16);
 	memset(&dma, 0, sizeof(DMA));
 	memset(&dma16, 0, sizeof(DMA));
+#endif
 }
 
 uint8_t dma_read(uint16_t addr, void *priv)
