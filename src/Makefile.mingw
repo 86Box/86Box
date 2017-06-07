@@ -24,13 +24,7 @@ endif
 # Various compile-time options.
 # -DROM_TRACE=0xcd800 traces ROM access from segment C800
 # -DIO_TACE=0x66 traces I/O on port 0x66
-<<<<<<< HEAD
 STUFF	= -DDEV_BRANCH
-=======
-ifndef STUFF
-STUFF	=
-endif
->>>>>>> master
 
 # Add feature selections here.
 # -DANSI_CFG forces the config file to ANSI encoding.

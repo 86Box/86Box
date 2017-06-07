@@ -29,6 +29,7 @@ typedef struct riva128_t
 	svga_t svga;
 
 	uint8_t card_id;
+	int pci_card;
 	int is_nv3t;
 
 	uint16_t vendor_id;
@@ -439,8 +440,12 @@ static void riva128_pmc_write(uint32_t addr, uint32_t val, void *p)
 	switch(addr)
 	{
 	case 0x000100:
-		riva128->pmc.intr &= ~val;
+	{
+		uint32_t tmp = riva128->pmc.intr & ~val;
+		pci_clear_irq(riva128->pci_card, PCI_INTA);
+		riva128->pmc.intr = tmp;
 		break;
+	}
 	case 0x000140:
 		riva128->pmc.intr_en = val & 3;
 		break;
@@ -457,7 +462,10 @@ static void riva128_pmc_interrupt(int num, void *p)
 
 	riva128->pmc.intr |= (1 << num);
 
-	if(riva128->pmc.intr_en & 1) picint(1 << riva128->pci_regs[0x3c]);
+	if(riva128->pmc.intr_en & 1)
+	{
+		pci_set_irq(riva128->pci_card, PCI_INTA);
+	}
 }
 
 static uint8_t riva128_pbus_read(uint32_t addr, void *p)
@@ -2777,7 +2785,7 @@ static void *riva128_init()
 	riva128->pgraph.intr = 0;
 	riva128->ptimer.intr = 0;
 
-	pci_add(riva128_pci_read, riva128_pci_write, riva128);
+	riva128->pci_card = pci_add(riva128_pci_read, riva128_pci_write, riva128);
 
 	riva128->ptimer.clock_mul = 1;
 	riva128->ptimer.clock_div = 1;
@@ -2857,44 +2865,6 @@ static device_config_t riva128_config[] =
 		},
 	},
 	{
-        "irq", "IRQ", CONFIG_SELECTION, "", 3,
-        {
-            {
-                "IRQ 3", 3
-            },
-            {
-                "IRQ 4", 4
-            },
-            {
-                "IRQ 5", 5
-            },
-            {
-                "IRQ 7", 7
-            },
-            {
-                "IRQ 9", 9
-            },
-            {
-                "IRQ 10", 10
-            },
-            {
-                "IRQ 11", 11
-            },
-            {
-                "IRQ 12", 12
-            },
-            {
-                "IRQ 14", 14
-            },
-            {
-                "IRQ 15", 15
-            },
-            {
-                ""
-            }
-		},
-	},
-	{
 		-1
 	}
 };
@@ -2929,58 +2899,6 @@ static device_config_t riva128_config[] =
 		},
 		.default_int = 4
 	},
-        {
-                .name = "irq",
-                .description = "IRQ",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "IRQ 3",
-                                .value = 3
-                        },
-                        {
-                                .description = "IRQ 4",
-                                .value = 4
-                        },
-                        {
-                                .description = "IRQ 5",
-                                .value = 5
-                        },
-                        {
-                                .description = "IRQ 7",
-                                .value = 7
-                        },
-                        {
-                                .description = "IRQ 9",
-                                .value = 9
-                        },
-                        {
-                                .description = "IRQ 10",
-                                .value = 10
-                        },
-                        {
-                                .description = "IRQ 11",
-                                .value = 11
-                        },
-                        {
-                                .description = "IRQ 12",
-                                .value = 12
-                        },
-                        {
-                                .description = "IRQ 14",
-                                .value = 14
-                        },
-                        {
-                                .description = "IRQ 15",
-                                .value = 15
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 3
-        },
 	{
 		.type = -1
 	}
@@ -3066,7 +2984,7 @@ static void *rivatnt_init()
 	riva128->pfifo.intr = 0;
 	riva128->pgraph.intr = 0;
 
-	pci_add(riva128_pci_read, rivatnt_pci_write, riva128);
+	riva128->pci_card = pci_add(riva128_pci_read, rivatnt_pci_write, riva128);
 
 	//Some bullshit default values so that the emulator won't shit itself trying to boot. These'll be overwritten by the video BIOS anyway.
 	riva128->pramdac.m_m = 0x03;
@@ -3140,44 +3058,6 @@ static device_config_t rivatnt_config[] =
 			{
 				""
 			}
-		},
-	},
-	{
-        "irq", "IRQ", CONFIG_SELECTION, "", 3,
-        {
-            {
-                "IRQ 3", 3
-            },
-            {
-                "IRQ 4", 4
-            },
-            {
-                "IRQ 5", 5
-            },
-            {
-                "IRQ 7", 7
-            },
-            {
-                "IRQ 9", 9
-            },
-            {
-                "IRQ 10", 10
-            },
-            {
-                "IRQ 11", 11
-            },
-            {
-                "IRQ 12", 12
-            },
-            {
-                "IRQ 14", 14
-            },
-            {
-                "IRQ 15", 15
-            },
-            {
-                ""
-            }
 		},
 	},
 	{
@@ -3278,7 +3158,7 @@ static void *rivatnt2_init()
 	riva128->pfifo.intr = 0;
 	riva128->pgraph.intr = 0;
 
-	pci_add(riva128_pci_read, rivatnt_pci_write, riva128);
+	riva128->pci_card = pci_add(riva128_pci_read, rivatnt_pci_write, riva128);
 
 	//Some bullshit default values so that the emulator won't shit itself trying to boot. These'll be overwritten by the video BIOS anyway.
 	riva128->pramdac.m_m = 0x03;
@@ -3369,44 +3249,6 @@ static device_config_t rivatnt2_config[] =
 			{
 				""
 			}
-		},
-	},
-	{
-        "irq", "IRQ", CONFIG_SELECTION, "", 3,
-        {
-            {
-                "IRQ 3", 3
-            },
-            {
-                "IRQ 4", 4
-            },
-            {
-                "IRQ 5", 5
-            },
-            {
-                "IRQ 7", 7
-            },
-            {
-                "IRQ 9", 9
-            },
-            {
-                "IRQ 10", 10
-            },
-            {
-                "IRQ 11", 11
-            },
-            {
-                "IRQ 12", 12
-            },
-            {
-                "IRQ 14", 14
-            },
-            {
-                "IRQ 15", 15
-            },
-            {
-                ""
-            }
 		},
 	},
 	{
