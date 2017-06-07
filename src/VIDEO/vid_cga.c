@@ -1,6 +1,21 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Emulation of the old and new IBM CGA graphics cards.
+ *
+ * Version:	@(#)vid_cga.c	1.0.0	2017/05/30
+ *
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
+
 /*CGA emulation*/
 #include <stdlib.h>
 #include <math.h>
@@ -62,10 +77,6 @@ void cga_out(uint16_t addr, uint8_t val, void *p)
 		if ((cga->cgamode ^ val) & 1)
 		{
 			cga_palette = (cga->rgb_type << 1);
-			if (!(val & 1) && (cga_palette > 0) && (cga_palette < 8))
-			{
-				cga_palette--;
-			}
 			cgapal_rebuild();
 		}
 #endif

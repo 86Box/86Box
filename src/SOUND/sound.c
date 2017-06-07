@@ -1,16 +1,35 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Sound emulation core.
+ *
+ * Version:	@(#)sound.c	1.0.1	2017/06/04
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "../ibm.h"
 #include "../device.h"
 #include "../timer.h"
-#include "../thread.h"
 #include "../cdrom.h"
+#include "../win/plat_thread.h"
 #include "sound.h"
 #include "snd_opl.h"
 #include "snd_adlib.h"
 #include "snd_adlibgold.h"
+#if 0
 #include "snd_pas16.h"
+#endif
 #include "snd_sb.h"
 #include "snd_sb_dsp.h"
 #include "snd_wss.h"
@@ -30,23 +49,26 @@ typedef struct
 
 static SOUND_CARD sound_cards[] =
 {
-        {"None",                  "none",	NULL},
-        {"Adlib",                 "adlib",	&adlib_device},
-        {"Adlib MCA",             "adlib_mca", &adlib_mca_device},
-        {"Sound Blaster 1.0",     "sb",		&sb_1_device},
-        {"Sound Blaster 1.5",     "sb1.5",	&sb_15_device},
-        {"Sound Blaster MCV",     "sbmcv",     &sb_mcv_device},
-        {"Sound Blaster 2.0",     "sb2.0",	&sb_2_device},
-        {"Sound Blaster Pro v1",  "sbprov1",	&sb_pro_v1_device},
-        {"Sound Blaster Pro v2",  "sbprov2",	&sb_pro_v2_device},
-        {"Sound Blaster Pro MCV", "sbpromcv",  &sb_pro_mcv_device},
-        {"Sound Blaster 16",      "sb16",	&sb_16_device},
-        {"Sound Blaster AWE32",   "sbawe32",	&sb_awe32_device},
-        {"Adlib Gold",            "adlibgold",	&adgold_device},
-        {"Windows Sound System",  "wss",	&wss_device},        
-        {"Pro Audio Spectrum 16", "pas16",	&pas16_device},
-        {"", "", NULL}
+    { "None",                  "none",		NULL			},
+    { "Adlib",                 "adlib",		&adlib_device		},
+    { "Adlib MCA",             "adlib_mca",	&adlib_mca_device	},
+    { "Sound Blaster 1.0",     "sb",		&sb_1_device		},
+    { "Sound Blaster 1.5",     "sb1.5",		&sb_15_device		},
+    { "Sound Blaster MCV",     "sbmcv",		&sb_mcv_device		},
+    { "Sound Blaster 2.0",     "sb2.0",		&sb_2_device		},
+    { "Sound Blaster Pro v1",  "sbprov1",	&sb_pro_v1_device	},
+    { "Sound Blaster Pro v2",  "sbprov2",	&sb_pro_v2_device	},
+    { "Sound Blaster Pro MCV", "sbpromcv",	&sb_pro_mcv_device	},
+    { "Sound Blaster 16",      "sb16",		&sb_16_device		},
+    { "Sound Blaster AWE32",   "sbawe32",	&sb_awe32_device	},
+    { "Adlib Gold",            "adlibgold",	&adgold_device		},
+    { "Windows Sound System",  "wss",		&wss_device		},
+#if 0
+    { "Pro Audio Spectrum 16", "pas16",		&pas16_device		},
+#endif
+    { "",			"",		NULL			}
 };
+
 
 int sound_card_available(int card)
 {
@@ -92,7 +114,7 @@ int sound_card_get_from_internal_name(char *s)
 	return 0;
 }
 
-void sound_card_init()
+void sound_card_init(void)
 {
         if (sound_cards[sound_card_current].device)
                 device_add(sound_cards[sound_card_current].device);
@@ -215,7 +237,7 @@ static float *outbuffer_ex;
 
 static int cd_thread_enable = 0;
 
-void sound_init()
+void sound_init(void)
 {
 	int i = 0;
 	int available_cdrom_drives = 0;
@@ -228,7 +250,7 @@ void sound_init()
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if (cdrom_drives[i].bus_type && cdrom_drives[i].sound_on)
+		if (cdrom_drives[i].bus_type != CDROM_BUS_DISABLED)
 		{
 			available_cdrom_drives++;
 		}
@@ -286,12 +308,12 @@ void sound_poll(void *priv)
         }
 }
 
-void sound_speed_changed()
+void sound_speed_changed(void)
 {
         sound_poll_latch = (int)((double)TIMER_USEC * (1000000.0 / 48000.0));
 }
 
-void sound_reset()
+void sound_reset(void)
 {
 	int i = 0;
 
@@ -310,14 +332,14 @@ void sound_reset()
 	}
 }
 
-void sound_cd_thread_reset()
+void sound_cd_thread_reset(void)
 {
 	int i = 0;
 	int available_cdrom_drives = 0;
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if (cdrom_drives[i].bus_type && cdrom_drives[i].sound_on)
+		if (cdrom_drives[i].bus_type != CDROM_BUS_DISABLED)
 		{
 			available_cdrom_drives++;
 		}

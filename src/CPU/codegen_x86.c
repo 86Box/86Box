@@ -22,6 +22,7 @@
 #include <windows.h>
 #endif
 
+int codegen_flat_ds, codegen_flat_ss;
 int mmx_ebx_ecx_loaded;
 int codegen_flags_changed = 0;
 int codegen_fpu_entered = 0;
@@ -135,31 +136,29 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_W()
         addbyte(0xd6);
         addbyte(0x01); /*ADDL EDX, EAX*/
         addbyte(0xc2);
-        addbyte(0x8d); /*LEA EDI, 1[EDX]*/
-        addbyte(0x7a);
-        addbyte(0x01);
+        addbyte(0x89); /*MOV EDI, EDX*/
+        addbyte(0xd7);
         addbyte(0xc1); /*SHR EDX, 12*/
         addbyte(0xea);
         addbyte(12);
-        addbyte(0xf7); /*TEST EDI, 0xfff*/
+        addbyte(0xf7); /*TEST EDI, 1*/
         addbyte(0xc7);
-        addlong(0xfff);
+        addlong(1);
         addbyte(0x8b); /*MOV EDX, readlookup2[EDX*4]*/
         addbyte(0x14);
         addbyte(0x95);
         addlong((uint32_t)readlookup2);
-        addbyte(0x74); /*JE slowpath*/
-        addbyte(3+2+5+1);
+        addbyte(0x75); /*JNE slowpath*/
+        addbyte(3+2+4+1);
         addbyte(0x83); /*CMP EDX, -1*/
         addbyte(0xfa);
         addbyte(-1);
         addbyte(0x74); /*JE slowpath*/
-        addbyte(5+1);
-        addbyte(0x0f); /*MOVZX EAX, -1[EDX+EDI]W*/
+        addbyte(4+1);
+        addbyte(0x0f); /*MOVZX EAX, [EDX+EDI]W*/
         addbyte(0xb7);
-        addbyte(0x44);
+        addbyte(0x04);
         addbyte(0x3a);
-        addbyte(-1);
         addbyte(0xc3); /*RET*/
 
         addbyte(0x50); /*slowpath: PUSH EAX*/
@@ -192,30 +191,28 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_L()
         addbyte(0xd6);
         addbyte(0x01); /*ADDL EDX, EAX*/
         addbyte(0xc2);
-        addbyte(0x8d); /*LEA EDI, 3[EDX]*/
-        addbyte(0x7a);
-        addbyte(0x03);
+        addbyte(0x89); /*MOV EDI, EDX*/
+        addbyte(0xd7);
         addbyte(0xc1); /*SHR EDX, 12*/
         addbyte(0xea);
         addbyte(12);
-        addbyte(0xf7); /*TEST EDI, 0xffc*/
+        addbyte(0xf7); /*TEST EDI, 3*/
         addbyte(0xc7);
-        addlong(0xffc);
+        addlong(3);
         addbyte(0x8b); /*MOV EDX, readlookup2[EDX*4]*/
         addbyte(0x14);
         addbyte(0x95);
         addlong((uint32_t)readlookup2);
-        addbyte(0x74); /*JE slowpath*/
-        addbyte(3+2+4+1);
+        addbyte(0x75); /*JNE slowpath*/
+        addbyte(3+2+3+1);
         addbyte(0x83); /*CMP EDX, -1*/
         addbyte(0xfa);
         addbyte(-1);
         addbyte(0x74); /*JE slowpath*/
-        addbyte(4+1);
-        addbyte(0x8b); /*MOV EAX, -3[EDX+EDI]*/
-        addbyte(0x44);
+        addbyte(3+1);
+        addbyte(0x8b); /*MOV EAX, [EDX+EDI]*/
+        addbyte(0x04);
         addbyte(0x3a);
-        addbyte(-3);
         addbyte(0xc3); /*RET*/
 
         addbyte(0x50); /*slowpath: PUSH EAX*/
@@ -245,34 +242,32 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_Q()
         addbyte(0xd6);
         addbyte(0x01); /*ADDL EDX, EAX*/
         addbyte(0xc2);
-        addbyte(0x8d); /*LEA EDI, 7[EDX]*/
-        addbyte(0x7a);
-        addbyte(0x07);
+        addbyte(0x89); /*MOV EDI, EDX*/
+        addbyte(0xd7);
         addbyte(0xc1); /*SHR EDX, 12*/
         addbyte(0xea);
         addbyte(12);
-        addbyte(0xf7); /*TEST EDI, 0xff8*/
+        addbyte(0xf7); /*TEST EDI, 7*/
         addbyte(0xc7);
-        addlong(0xff8);
+        addlong(7);
         addbyte(0x8b); /*MOV EDX, readlookup2[EDX*4]*/
         addbyte(0x14);
         addbyte(0x95);
         addlong((uint32_t)readlookup2);
-        addbyte(0x74); /*JE slowpath*/
-        addbyte(3+2+4+4+1);
+        addbyte(0x75); /*JNE slowpath*/
+        addbyte(3+2+3+4+1);
         addbyte(0x83); /*CMP EDX, -1*/
         addbyte(0xfa);
         addbyte(-1);
         addbyte(0x74); /*JE slowpath*/
-        addbyte(4+4+1);
+        addbyte(3+4+1);
         addbyte(0x8b); /*MOV EAX, [EDX+EDI]*/
-        addbyte(0x44);
+        addbyte(0x04);
         addbyte(0x3a);
-        addbyte(-7);
         addbyte(0x8b); /*MOV EDX, [EDX+EDI+4]*/
         addbyte(0x54);
         addbyte(0x3a);
-        addbyte(-7+4);
+        addbyte(4);
         addbyte(0xc3); /*RET*/
 
         addbyte(0x50); /*slowpath: PUSH EAX*/
@@ -351,31 +346,29 @@ static uint32_t gen_MEM_STORE_ADDR_EA_W()
         addbyte(0xf3);
         addbyte(0x01); /*ADDL ESI, EAX*/
         addbyte(0xc0 | (REG_EAX << 3) | REG_ESI);
-        addbyte(0x8d); /*LEA EDI, 1[ESI]*/
-        addbyte(0x7e);
-        addbyte(0x01);
+        addbyte(0x89); /*MOV EDI, ESI*/
+        addbyte(0xf7);
         addbyte(0xc1); /*SHR ESI, 12*/
         addbyte(0xe8 | REG_ESI);
         addbyte(12);
-        addbyte(0xf7); /*TEST EDI, 0xfff*/
+        addbyte(0xf7); /*TEST EDI, 1*/
         addbyte(0xc7);
-        addlong(0xfff);
+        addlong(1);
         addbyte(0x8b); /*MOV ESI, readlookup2[ESI*4]*/
         addbyte(0x04 | (REG_ESI << 3));
         addbyte(0x85 | (REG_ESI << 3));
         addlong((uint32_t)writelookup2);
-        addbyte(0x74); /*JE slowpath*/
-        addbyte(3+2+5+1);
+        addbyte(0x75); /*JNE slowpath*/
+        addbyte(3+2+4+1);
         addbyte(0x83); /*CMP ESI, -1*/
         addbyte(0xf8 | REG_ESI);
         addbyte(-1);
         addbyte(0x74); /*JE slowpath*/
-        addbyte(5+1);
-        addbyte(0x66); /*MOV -1[EDI+ESI],CX*/
+        addbyte(4+1);
+        addbyte(0x66); /*MOV [EDI+ESI],CX*/
         addbyte(0x89);
-        addbyte(0x44 | (REG_CX << 3));
+        addbyte(0x04 | (REG_CX << 3));
         addbyte(REG_EDI | (REG_ESI << 3));
-        addbyte(-1);
         addbyte(0xc3); /*RET*/
 
         addbyte(0x51); /*slowpath: PUSH ECX*/
@@ -407,30 +400,28 @@ static uint32_t gen_MEM_STORE_ADDR_EA_L()
         addbyte(0xf3);
         addbyte(0x01); /*ADDL ESI, EAX*/
         addbyte(0xc0 | (REG_EAX << 3) | REG_ESI);
-        addbyte(0x8d); /*LEA EDI, 3[ESI]*/
-        addbyte(0x7e);
-        addbyte(0x03);
+        addbyte(0x89); /*MOV EDI, ESI*/
+        addbyte(0xf7);
         addbyte(0xc1); /*SHR ESI, 12*/
         addbyte(0xe8 | REG_ESI);
         addbyte(12);
-        addbyte(0xf7); /*TEST EDI, 0xffc*/
+        addbyte(0xf7); /*TEST EDI, 3*/
         addbyte(0xc7);
-        addlong(0xffc);
+        addlong(3);
         addbyte(0x8b); /*MOV ESI, readlookup2[ESI*4]*/
         addbyte(0x04 | (REG_ESI << 3));
         addbyte(0x85 | (REG_ESI << 3));
         addlong((uint32_t)writelookup2);
-        addbyte(0x74); /*JE slowpath*/
-        addbyte(3+2+4+1);
+        addbyte(0x75); /*JNE slowpath*/
+        addbyte(3+2+3+1);
         addbyte(0x83); /*CMP ESI, -1*/
         addbyte(0xf8 | REG_ESI);
         addbyte(-1);
         addbyte(0x74); /*JE slowpath*/
-        addbyte(4+1);
-        addbyte(0x89); /*MOV -3[EDI+ESI],ECX*/
-        addbyte(0x44 | (REG_ECX << 3));
+        addbyte(3+1);
+        addbyte(0x89); /*MOV [EDI+ESI],ECX*/
+        addbyte(0x04 | (REG_ECX << 3));
         addbyte(REG_EDI | (REG_ESI << 3));
-        addbyte(-3);
         addbyte(0xc3); /*RET*/
 
         addbyte(0x51); /*slowpath: PUSH ECX*/
@@ -462,34 +453,32 @@ static uint32_t gen_MEM_STORE_ADDR_EA_Q()
         addbyte(0xf2);
         addbyte(0x01); /*ADDL ESI, EAX*/
         addbyte(0xc0 | (REG_EAX << 3) | REG_ESI);
-        addbyte(0x8d); /*LEA EDI, 7[ESI]*/
-        addbyte(0x7e);
-        addbyte(0x07);
+        addbyte(0x89); /*MOV EDI, ESI*/
+        addbyte(0xf7);
         addbyte(0xc1); /*SHR ESI, 12*/
         addbyte(0xe8 | REG_ESI);
         addbyte(12);
-        addbyte(0xf7); /*TEST EDI, 0xff8*/
+        addbyte(0xf7); /*TEST EDI, 7*/
         addbyte(0xc7);
-        addlong(0xff8);
+        addlong(7);
         addbyte(0x8b); /*MOV ESI, readlookup2[ESI*4]*/
         addbyte(0x04 | (REG_ESI << 3));
         addbyte(0x85 | (REG_ESI << 3));
         addlong((uint32_t)writelookup2);
-        addbyte(0x74); /*JE slowpath*/
-        addbyte(3+2+4+4+1);
+        addbyte(0x75); /*JNE slowpath*/
+        addbyte(3+2+3+4+1);
         addbyte(0x83); /*CMP ESI, -1*/
         addbyte(0xf8 | REG_ESI);
         addbyte(-1);
         addbyte(0x74); /*JE slowpath*/
-        addbyte(4+4+1);
-        addbyte(0x89); /*MOV -7[EDI+ESI],EBX*/
-        addbyte(0x44 | (REG_EBX << 3));
+        addbyte(3+4+1);
+        addbyte(0x89); /*MOV [EDI+ESI],EBX*/
+        addbyte(0x04 | (REG_EBX << 3));
         addbyte(REG_EDI | (REG_ESI << 3));
-        addbyte(-7);
-        addbyte(0x89); /*MOV -7[EDI+ESI],EBX*/
+        addbyte(0x89); /*MOV 4[EDI+ESI],EBX*/
         addbyte(0x44 | (REG_ECX << 3));
         addbyte(REG_EDI | (REG_ESI << 3));
-        addbyte(-7+4);
+        addbyte(4);
         addbyte(0xc3); /*RET*/
 
         addbyte(0x51); /*slowpath: PUSH ECX*/
@@ -513,7 +502,9 @@ static uint32_t gen_MEM_STORE_ADDR_EA_Q()
         return addr;
 }
 
+#ifndef RELEASE_BUILD
 static char gen_MEM_LOAD_ADDR_EA_B_NO_ABRT_err[] = "gen_MEM_LOAD_ADDR_EA_B_NO_ABRT aborted\n";
+#endif
 static uint32_t gen_MEM_LOAD_ADDR_EA_B_NO_ABRT()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
@@ -575,7 +566,9 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_B_NO_ABRT()
         return addr;
 }
 
+#ifndef RELEASE_BUILD
 static char gen_MEM_LOAD_ADDR_EA_W_NO_ABRT_err[] = "gen_MEM_LOAD_ADDR_EA_W_NO_ABRT aborted\n";
+#endif
 static uint32_t gen_MEM_LOAD_ADDR_EA_W_NO_ABRT()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
@@ -584,31 +577,29 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_W_NO_ABRT()
         addbyte(0xd6);
         addbyte(0x01); /*ADDL EDX, EAX*/
         addbyte(0xc2);
-        addbyte(0x8d); /*LEA EDI, 1[EDX]*/
-        addbyte(0x7a);
-        addbyte(0x01);
+        addbyte(0x89); /*MOV EDI, EDX*/
+        addbyte(0xd7);
         addbyte(0xc1); /*SHR EDX, 12*/
         addbyte(0xea);
         addbyte(12);
-        addbyte(0xf7); /*TEST EDI, 0xfff*/
+        addbyte(0xf7); /*TEST EDI, 1*/
         addbyte(0xc7);
-        addlong(0xfff);
+        addlong(1);
         addbyte(0x8b); /*MOV EDX, readlookup2[EDX*4]*/
         addbyte(0x14);
         addbyte(0x95);
         addlong((uint32_t)readlookup2);
-        addbyte(0x74); /*JE slowpath*/
-        addbyte(3+2+5+1);
+        addbyte(0x75); /*JNE slowpath*/
+        addbyte(3+2+4+1);
         addbyte(0x83); /*CMP EDX, -1*/
         addbyte(0xfa);
         addbyte(-1);
         addbyte(0x74); /*JE slowpath*/
-        addbyte(5+1);
-        addbyte(0x0f); /*MOVZX EEX, -1[EDX+EDI]W*/
+        addbyte(4+1);
+        addbyte(0x0f); /*MOVZX ECX, [EDX+EDI]W*/
         addbyte(0xb7);
-        addbyte(0x4c);
+        addbyte(0x0c);
         addbyte(0x3a);
-        addbyte(-1);
         addbyte(0xc3); /*RET*/
 
         addbyte(0x50); /*slowpath: PUSH EAX*/
@@ -644,7 +635,9 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_W_NO_ABRT()
         return addr;
 }
 
+#ifndef RELEASE_BUILD
 static char gen_MEM_LOAD_ADDR_EA_L_NO_ABRT_err[] = "gen_MEM_LOAD_ADDR_EA_L_NO_ABRT aborted\n";
+#endif
 static uint32_t gen_MEM_LOAD_ADDR_EA_L_NO_ABRT()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
@@ -653,30 +646,28 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_L_NO_ABRT()
         addbyte(0xd6);
         addbyte(0x01); /*ADDL EDX, EAX*/
         addbyte(0xc2);
-        addbyte(0x8d); /*LEA EDI, 3[EDX]*/
-        addbyte(0x7a);
-        addbyte(0x03);
+        addbyte(0x89); /*MOV EDI, EDX*/
+        addbyte(0xd7);
         addbyte(0xc1); /*SHR EDX, 12*/
         addbyte(0xea);
         addbyte(12);
-        addbyte(0xf7); /*TEST EDI, 0xffc*/
+        addbyte(0xf7); /*TEST EDI, 3*/
         addbyte(0xc7);
-        addlong(0xffc);
+        addlong(3);
         addbyte(0x8b); /*MOV EDX, readlookup2[EDX*4]*/
         addbyte(0x14);
         addbyte(0x95);
         addlong((uint32_t)readlookup2);
-        addbyte(0x74); /*JE slowpath*/
-        addbyte(3+2+4+1);
+        addbyte(0x75); /*JNE slowpath*/
+        addbyte(3+2+3+1);
         addbyte(0x83); /*CMP EDX, -1*/
         addbyte(0xfa);
         addbyte(-1);
         addbyte(0x74); /*JE slowpath*/
-        addbyte(4+1);
-        addbyte(0x8b); /*MOV ECX, -3[EDX+EDI]*/
-        addbyte(0x4c);
+        addbyte(3+1);
+        addbyte(0x8b); /*MOV ECX, [EDX+EDI]*/
+        addbyte(0x0c);
         addbyte(0x3a);
-        addbyte(-3);
         addbyte(0xc3); /*RET*/
 
         addbyte(0x50); /*slowpath: PUSH EAX*/
@@ -712,7 +703,9 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_L_NO_ABRT()
         return addr;
 }
 
+#ifndef RELEASE_BUILD
 static char gen_MEM_STORE_ADDR_EA_B_NO_ABRT_err[] = "gen_MEM_STORE_ADDR_EA_B_NO_ABRT aborted\n";
+#endif
 static uint32_t gen_MEM_STORE_ADDR_EA_B_NO_ABRT()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
@@ -770,7 +763,9 @@ static uint32_t gen_MEM_STORE_ADDR_EA_B_NO_ABRT()
         return addr;
 }
 
+#ifndef RELEASE_BUILD
 static char gen_MEM_STORE_ADDR_EA_W_NO_ABRT_err[] = "gen_MEM_STORE_ADDR_EA_W_NO_ABRT aborted\n";
+#endif
 static uint32_t gen_MEM_STORE_ADDR_EA_W_NO_ABRT()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
@@ -780,31 +775,29 @@ static uint32_t gen_MEM_STORE_ADDR_EA_W_NO_ABRT()
         addbyte(0xf3);
         addbyte(0x01); /*ADDL ESI, EAX*/
         addbyte(0xc0 | (REG_EAX << 3) | REG_ESI);
-        addbyte(0x8d); /*LEA EDI, 1[ESI]*/
-        addbyte(0x7e);
-        addbyte(0x01);
+        addbyte(0x89); /*MOV EDI, ESI*/
+        addbyte(0xf7);
         addbyte(0xc1); /*SHR ESI, 12*/
         addbyte(0xe8 | REG_ESI);
         addbyte(12);
-        addbyte(0xf7); /*TEST EDI, 0xfff*/
+        addbyte(0xf7); /*TEST EDI, 1*/
         addbyte(0xc7);
-        addlong(0xfff);
+        addlong(1);
         addbyte(0x8b); /*MOV ESI, readlookup2[ESI*4]*/
         addbyte(0x04 | (REG_ESI << 3));
         addbyte(0x85 | (REG_ESI << 3));
         addlong((uint32_t)writelookup2);
-        addbyte(0x74); /*JE slowpath*/
-        addbyte(3+2+5+1);
+        addbyte(0x75); /*JNE slowpath*/
+        addbyte(3+2+4+1);
         addbyte(0x83); /*CMP ESI, -1*/
         addbyte(0xf8 | REG_ESI);
         addbyte(-1);
         addbyte(0x74); /*JE slowpath*/
-        addbyte(5+1);
-        addbyte(0x66); /*MOV -1[EDI+ESI],CX*/
+        addbyte(4+1);
+        addbyte(0x66); /*MOV [EDI+ESI],CX*/
         addbyte(0x89);
-        addbyte(0x44 | (REG_CX << 3));
+        addbyte(0x04 | (REG_CX << 3));
         addbyte(REG_EDI | (REG_ESI << 3));
-        addbyte(-1);
         addbyte(0xc3); /*RET*/
 
         addbyte(0x51); /*slowpath: PUSH ECX*/
@@ -836,7 +829,9 @@ static uint32_t gen_MEM_STORE_ADDR_EA_W_NO_ABRT()
         return addr;
 }
 
+#ifndef RELEASE_BUILD
 static char gen_MEM_STORE_ADDR_EA_L_NO_ABRT_err[] = "gen_MEM_STORE_ADDR_EA_L_NO_ABRT aborted\n";
+#endif
 static uint32_t gen_MEM_STORE_ADDR_EA_L_NO_ABRT()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
@@ -846,30 +841,28 @@ static uint32_t gen_MEM_STORE_ADDR_EA_L_NO_ABRT()
         addbyte(0xf3);
         addbyte(0x01); /*ADDL ESI, EAX*/
         addbyte(0xc0 | (REG_EAX << 3) | REG_ESI);
-        addbyte(0x8d); /*LEA EDI, 3[ESI]*/
-        addbyte(0x7e);
-        addbyte(0x03);
+        addbyte(0x89); /*MOV EDI, ESI*/
+        addbyte(0xf7);
         addbyte(0xc1); /*SHR ESI, 12*/
         addbyte(0xe8 | REG_ESI);
         addbyte(12);
-        addbyte(0xf7); /*TEST EDI, 0xffc*/
+        addbyte(0xf7); /*TEST EDI, 3*/
         addbyte(0xc7);
-        addlong(0xffc);
+        addlong(3);
         addbyte(0x8b); /*MOV ESI, readlookup2[ESI*4]*/
         addbyte(0x04 | (REG_ESI << 3));
         addbyte(0x85 | (REG_ESI << 3));
         addlong((uint32_t)writelookup2);
-        addbyte(0x74); /*JE slowpath*/
-        addbyte(3+2+4+1);
+        addbyte(0x75); /*JNE slowpath*/
+        addbyte(3+2+3+1);
         addbyte(0x83); /*CMP ESI, -1*/
         addbyte(0xf8 | REG_ESI);
         addbyte(-1);
         addbyte(0x74); /*JE slowpath*/
-        addbyte(4+1);
-        addbyte(0x89); /*MOV -3[EDI+ESI],ECX*/
-        addbyte(0x44 | (REG_ECX << 3));
+        addbyte(3+1);
+        addbyte(0x89); /*MOV [EDI+ESI],ECX*/
+        addbyte(0x04 | (REG_ECX << 3));
         addbyte(REG_EDI | (REG_ESI << 3));
-        addbyte(-3);
         addbyte(0xc3); /*RET*/
 
         addbyte(0x51); /*slowpath: PUSH ECX*/
@@ -1401,12 +1394,11 @@ void codegen_block_init(uint32_t phys_addr)
         block->_cs = cs;
         block->pnt = block_current;
         block->phys = phys_addr;
-        block->use32 = use32;
-        block->stack32 = stack32;
         block->next = block->prev = NULL;
         block->next_2 = block->prev_2 = NULL;
         block->page_mask = 0;
         block->flags = CODEBLOCK_STATIC_TOP;
+	block->status = cpu_cur_status;
         
         block->was_recompiled = 0;
 
@@ -1487,6 +1479,9 @@ void codegen_block_start_recompile(codeblock_t *block)
 
         block->TOP = cpu_state.TOP;
         block->was_recompiled = 1;
+
+        codegen_flat_ds = cpu_cur_status & CPU_STATUS_FLATDS;
+        codegen_flat_ss = cpu_cur_status & CPU_STATUS_FLATSS;
 }
 
 void codegen_block_remove()

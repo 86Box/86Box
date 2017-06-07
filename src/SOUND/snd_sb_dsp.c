@@ -11,6 +11,7 @@
 #include "../dma.h"
 #include "../win/plat_midi.h"	/*YUCK*/
 #include "../timer.h"
+#include "../device.h"
 #include "sound.h"
 #include "snd_mpu401.h"
 #include "snd_sb_dsp.h"
@@ -513,6 +514,10 @@ void sb_exec_command(sb_dsp_t *dsp)
                 case 0x0F: /*ASP get register*/
                 if (dsp->sb_type < SB16) break;
                 sb_add_data(dsp, dsp->sb_asp_regs[dsp->sb_data[0]]);
+                break;
+                case 0xF8:
+                if (dsp->sb_type >= SB16) break;
+                sb_add_data(dsp, 0);
                 break;
                 case 0xF9:
                 if (dsp->sb_type < SB16) break;

@@ -1,12 +1,24 @@
-/* Copyright holders: SA1988
-   see COPYING for more details
-*/
-/*Buslogic SCSI emulation*/
-
-/* Emulated SCSI controllers:
-	0 - BusLogic BT-542B ISA;
-	1 - BusLogic BT-958 PCI (but BT-542B ISA on non-PCI machines). */
-
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		Emulation of BusLogic ISA and PCI SCSI controllers. Boards
+ *		supported:
+ *
+ *		  0 - BT-542B ISA;
+ *		  1 - BT-958 PCI (but BT-542B ISA on non-PCI machines)
+ *
+ * Version:	@(#)scsi_buslogic.c	1.0.3	2017/06/03
+ *
+ * Authors:	TheCollector1995, <mariogplayer@gmail.com>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2017-2017 Fred N. van Kempen.
+ */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +34,7 @@
 #include "timer.h"
 #include "device.h"
 #include "scsi.h"
+#include "scsi_disk.h"
 #include "cdrom.h"
 #include "scsi_buslogic.h"
 
@@ -476,6 +489,7 @@ typedef struct {
     int		Lock;
     mem_mapping_t mmio_mapping;
     int		chip;
+    int		Card;
 } Buslogic_t;
 #pragma pack(pop)
 
@@ -492,15 +506,7 @@ enum {
 };
 
 
-#ifdef WALTJE
-int buslogic_do_log = 1;
-# define ENABLE_BUSLOGIC_LOG
-#else
 int buslogic_do_log = 0;
-#endif
-
-
-static void BuslogicStartMailbox(Buslogic_t *);
 
 
 static void
@@ -521,17 +527,45 @@ BuslogicLog(const char *format, ...)
 
 
 static void
+BuslogicInterrupt(Buslogic_t *bl, int set)
+{
+	if ((bl->chip != CHIP_BUSLOGIC_PCI) || (bl->Irq != 255))
+	{
+		if (set)
+		{
+			picint(1 << bl->Irq);
+		}
+		else
+		{
+			picintc(1 << bl->Irq);
+		}
+	}
+	else
+	{
+	        if (set)
+		{
+        	        pci_set_irq(bl->Card, PCI_INTA);
+		}
+	        else
+		{
+        	        pci_clear_irq(bl->Card, PCI_INTA);
+		}
+	}
+}
+
+
+static void
 BuslogicClearInterrupt(Buslogic_t *bl)
 {
     pclog("Buslogic: Lowering Interrupt 0x%02X\n", bl->Interrupt);
     bl->Interrupt = 0;
     pclog("Lowering IRQ %i\n", bl->Irq);
-    picintc(1 << bl->Irq);
+    BuslogicInterrupt(bl, 0);
     if (bl->PendingInterrupt) {
 	bl->Interrupt = bl->PendingInterrupt;
 	pclog("Buslogic: Raising Interrupt 0x%02X (Pending)\n", bl->Interrupt);
 	if (bl->MailboxOutInterrupts || !(bl->Interrupt & INTR_MBOA)) {
-		if (bl->IrqEnabled)  picint(1 << bl->Irq);
+		if (bl->IrqEnabled)  BuslogicInterrupt(bl, 1);
 	}
 	bl->PendingInterrupt = 0;
     }
@@ -621,7 +655,7 @@ BuslogicCommandComplete(Buslogic_t *bl)
 	bl->Interrupt = (INTR_ANY | INTR_HACC);
 	pclog("Raising IRQ %i\n", bl->Irq);
 	if (bl->IrqEnabled)
-		picint(1 << bl->Irq);
+		BuslogicInterrupt(bl, 1);
     }
 
     bl->Command = 0xFF;
@@ -639,7 +673,7 @@ BuslogicRaiseInterrupt(Buslogic_t *bl, uint8_t Interrupt)
 	bl->Interrupt = Interrupt;
 	pclog("Raising IRQ %i\n", bl->Irq);
 	if (bl->IrqEnabled)
-		picint(1 << bl->Irq);
+		BuslogicInterrupt(bl, 1);
     }
 }
 
@@ -759,6 +793,12 @@ BuslogicDataBufferAllocate(Req_t *req, int Is24bit)
     pclog("Data Buffer write: length %d, pointer 0x%04X\n",
 				DataLength, DataPointer);	
 
+    if (SCSIDevices[req->TargetID][req->LUN].CmdBuffer != NULL)
+    {
+	free(SCSIDevices[req->TargetID][req->LUN].CmdBuffer);
+	SCSIDevices[req->TargetID][req->LUN].CmdBuffer = NULL;
+    }
+
     if ((req->CmdBlock.common.ControlByte != 0x03) && DataLength) {
 	if (req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND ||
 	    req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES) {
@@ -792,6 +832,9 @@ BuslogicDataBufferAllocate(Req_t *req, int Is24bit)
 		pclog("Data to transfer (S/G) %d\n", DataToTransfer);
 
 		SCSIDevices[req->TargetID][req->LUN].InitLength = DataToTransfer;
+
+		SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataToTransfer);
+		memset(SCSIDevices[req->TargetID][req->LUN].CmdBuffer, 0, DataToTransfer);
 
 		/* If the control byte is 0x00, it means that the transfer direction is set up by the SCSI command without
 		   checking its length, so do this procedure for both no read/write commands. */
@@ -829,6 +872,10 @@ BuslogicDataBufferAllocate(Req_t *req, int Is24bit)
 			uint32_t Address = DataPointer;
 
 			SCSIDevices[req->TargetID][req->LUN].InitLength = DataLength;
+
+			SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataLength);
+			memset(SCSIDevices[req->TargetID][req->LUN].CmdBuffer, 0, DataLength);
+
 			if (DataLength > 0) {
 				DMAPageRead(Address,
 					    (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer,
@@ -938,6 +985,12 @@ BuslogicDataBufferFree(Req_t *req)
 				req->CmdBlock.new.DataLength);
 	}
     }
+
+    if (SCSIDevices[req->TargetID][req->LUN].CmdBuffer != NULL)
+    {
+	free(SCSIDevices[req->TargetID][req->LUN].CmdBuffer);
+	SCSIDevices[req->TargetID][req->LUN].CmdBuffer = NULL;
+    }
 }
 
 
@@ -998,20 +1051,6 @@ BuslogicReadL(uint16_t Port, void *p)
 }
 
 
-/* This is BS - we just need a 'dev_present' indication.. --FvK */
-static int
-buslogic_dev_present(uint8_t id, uint8_t lun)
-{
-    if (lun > 7) return(0);
-
-    if (scsi_cdrom_drives[id][lun] >= CDROM_NUM) return(0);
-
-    if ((cdrom_drives[scsi_cdrom_drives[id][lun]].bus_type == 4)) return(1);
-
-    return(0);
-}
-
-
 static void BuslogicWriteW(uint16_t Port, uint16_t Val, void *p);
 static void BuslogicWriteL(uint16_t Port, uint32_t Val, void *p);
 static void
@@ -1020,7 +1059,6 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
     int i = 0;
     uint8_t j = 0;
     Buslogic_t *bl = (Buslogic_t *)p;
-    uint8_t max_id = (bl->chip >= CHIP_BUSLOGIC_ISA) ? 16 : 8;
     uint8_t Offset;
     MailboxInit_t *MailboxInit;
     ReplyInquireSetupInformation *ReplyISI;
@@ -1130,8 +1168,6 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					break;
 
 				case 0x01:
-aha_0x01:
-				{
 					bl->Mbx24bit = 1;
 							
 					MailboxInit = (MailboxInit_t *)bl->CmdBuf;
@@ -1147,8 +1183,7 @@ aha_0x01:
 						
 					bl->Status &= ~STAT_INIT;
 					bl->DataReplyLeft = 0;
-				}
-				break;
+					break;
 
 				case 0x03:
 					bl->DataBuf[0] = 0x00;
@@ -1210,7 +1245,14 @@ aha_0x01:
 
 				case 0x0B:
 					bl->DataBuf[0] = (1 << bl->DmaChannel);
-					bl->DataBuf[1] = (1<<(bl->Irq-9));
+					if ((bl->Irq >= 9) && (bl->Irq <= 15))
+					{
+						bl->DataBuf[1] = (1<<(bl->Irq-9));
+					}
+					else
+						bl->DataBuf[1] = 0;
+					{
+					}
 					bl->DataBuf[2] = 7;	/* HOST ID */
 					bl->DataReplyLeft = 3;
 					break;
@@ -1324,7 +1366,7 @@ aha_0x01:
 					else
 						bl->IrqEnabled = 1;
 					pclog("Lowering IRQ %i\n", bl->Irq);
-					picintc(1 << bl->Irq);
+					BuslogicInterrupt(bl, 0);
 					break;
 
 				case 0x81:
@@ -1633,6 +1675,8 @@ BuslogicHDCommand(Buslogic_t *bl)
     Lun = req->LUN;
     hdc_id = scsi_hard_disks[Id][Lun];
 
+    if (hdc_id == 0xff)  fatal("SCSI hard disk on %02i:%02i has disappeared\n", Id, Lun);
+
     pclog("SCSI HD command being executed on: SCSI ID %i, SCSI LUN %i, HD %i\n",
 							Id, Lun, hdc_id);
 
@@ -1716,6 +1760,8 @@ BuslogicCDROMCommand(Buslogic_t *bl)
     Id = req->TargetID;
     Lun = req->LUN;
     cdrom_id = scsi_cdrom_drives[Id][Lun];
+
+    if (cdrom_id == 0xff)  fatal("SCSI CD-ROM on %02i:%02i has disappeared\n", Id, Lun);
 
     pclog("CD-ROM command being executed on: SCSI ID %i, SCSI LUN %i, CD-ROM %i\n",
 							Id, Lun, cdrom_id);
@@ -1815,9 +1861,6 @@ BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbox32_t *Mailb
     SCSIStatus = SCSI_STATUS_OK;
     SCSIDevices[Id][Lun].InitLength = 0;
 
-    /* Do this here, so MODE SELECT data does not get lost in transit. */
-    memset(SCSIDevices[Id][Lun].CmdBuffer, 0, 390144);
-
     BuslogicDataBufferAllocate(req, req->Is24bit);
 
     if (SCSIDevices[Id][Lun].LunType == SCSI_NONE) {
@@ -1913,7 +1956,7 @@ BuslogicProcessMailbox(Buslogic_t *bl)
 
     if (mb32.u.out.ActionCode != MBO_FREE) {
 	/* We got the mailbox, mark it as free in the guest. */
-	pclog("BuslogicStartMailbox(): Writing %i bytes at %08X\n", sizeof(CmdStatus), Outgoing + CodeOffset);
+	pclog("BuslogicProcessMailbox(): Writing %i bytes at %08X\n", sizeof(CmdStatus), Outgoing + CodeOffset);
 		DMAPageWrite(Outgoing + CodeOffset, (char *)&CmdStatus, sizeof(CmdStatus));
     }
 
@@ -2082,7 +2125,7 @@ BuslogicPCIRead(int func, int addr, void *p)
 	case 0x3C:
 		return bl->Irq;
 	case 0x3D:
-		return 1;
+		return PCI_INTA;
     }
 
     return(0);
@@ -2093,16 +2136,17 @@ static void
 BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 {
     Buslogic_t *bl = (Buslogic_t *)p;
+    uint8_t valxor;
 
     switch (addr) {
 	case 0x04:
-		io_removehandler(bl->PCIBase, 4,
+		valxor = (val & 0x27) ^ buslogic_pci_regs[addr];
+		if (valxor & PCI_COMMAND_IO) {
+			io_removehandler(bl->PCIBase, 4,
 				 BuslogicRead, BuslogicReadW, BuslogicReadL,
 				 BuslogicWrite, BuslogicWriteW, BuslogicWriteL,
 				 bl);
-		mem_mapping_disable(&bl->mmio_mapping);
-		if (val & PCI_COMMAND_IO) {
-			if (bl->PCIBase != 0) {
+			if ((bl->PCIBase != 0) && (val & PCI_COMMAND_IO)) {
 				io_sethandler(bl->PCIBase, 0x0020,
 					      BuslogicRead, BuslogicReadW,
 					      BuslogicReadL, BuslogicWrite,
@@ -2110,13 +2154,14 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 					      bl);
 			}
 		}
-		if (val & PCI_COMMAND_MEM) {
-			if (bl->PCIBase != 0) {
+		if (valxor & PCI_COMMAND_MEM) {
+			mem_mapping_disable(&bl->mmio_mapping);
+			if ((bl->MMIOBase != 0) & (val & PCI_COMMAND_MEM)) {
 				mem_mapping_set_addr(&bl->mmio_mapping,
 						     bl->MMIOBase, 0x20);
 			}
 		}
-		buslogic_pci_regs[addr] = val;
+		buslogic_pci_regs[addr] = val & 0x27;
 		break;
 
 	case 0x10:
@@ -2170,18 +2215,13 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 		}
 		return;
 
-#if 0
-	/* Commented out until an APIC controller is emulated for the PIIX3,
-	 * otherwise the BT-958 will not get an IRQ on boards using the PIIX3.
-	 */
 	case 0x3C:
 		buslogic_pci_regs[addr] = val;
 		if (val != 0xFF) {
-			buslogic_log("BusLogic IRQ now: %i\n", val);
+			BuslogicLog("BusLogic IRQ now: %i\n", val);
 			bl->Irq = val;
 		}
 		return;
-#endif
     }
 }
 
@@ -2203,7 +2243,7 @@ BuslogicInit(int chip)
 	chip = CHIP_BUSLOGIC_ISA;
     }
     bl->chip = chip;
-    bl->Base = device_get_config_int("addr");
+    bl->Base = device_get_config_hex16("base");
     bl->PCIBase = 0;
     bl->MMIOBase = 0;
     bl->Irq = device_get_config_int("irq");
@@ -2228,19 +2268,16 @@ BuslogicInit(int chip)
     build_scsi_cdrom_map();
 
     for (i=0; i<16; i++) {
-	for (j=0; j<8; j++)
-	{
-		if (scsi_hard_disks[i][j] != 0xff)
-		{
+	for (j=0; j<8; j++) {
+		if (scsi_hard_disks[i][j] != 0xff) {
 			SCSIDevices[i][j].LunType = SCSI_DISK;
 		}
-	}
-    }
-
-    for (i=0; i<CDROM_NUM; i++) {
-	if (buslogic_dev_present(cdrom_drives[i].scsi_device_id,
-				 cdrom_drives[i].scsi_device_lun)) {
-		SCSIDevices[cdrom_drives[i].scsi_device_id][cdrom_drives[i].scsi_device_lun].LunType = SCSI_CDROM;
+		else if (find_cdrom_for_scsi_id(i, j) != 0xff) {
+			SCSIDevices[i][j].LunType = SCSI_CDROM;
+		}
+		else {
+			SCSIDevices[i][j].LunType = SCSI_NONE;
+		}
 	}
     }
 
@@ -2254,9 +2291,11 @@ BuslogicInit(int chip)
 
 	buslogic_pci_bar[0].addr_regs[0] = 1;
 	buslogic_pci_bar[1].addr_regs[0] = 0;
-       	buslogic_pci_regs[0x04] = 1;
+       	buslogic_pci_regs[0x04] = 3;
+#if 0
         buslogic_pci_regs[0x05] = 0;
         buslogic_pci_regs[0x07] = 2;
+#endif
 	buslogic_pci_bar[2].addr = 0;
 
 	mem_mapping_add(&bl->mmio_mapping, 0xfffd0000, 0x20,
@@ -2299,7 +2338,7 @@ BuslogicClose(void *p)
 
 static device_config_t BuslogicConfig[] = {
         {
-		"addr", "Address", CONFIG_SELECTION, "", 0x334,
+		"base", "Address", CONFIG_HEX16, "", 0x334,
                 {
                         {
                                 "None",      0

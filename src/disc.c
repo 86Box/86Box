@@ -1,11 +1,25 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Generic floppy disk interface that communicates with the
+ *		other handlers.
+ *
+ * Version:	@(#)disc.c	1.0.1	2017/06/03
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
 #define UNICODE
 #include <windows.h>
 
 #include "ibm.h"
-
 #include "config.h"
 #include "disc.h"
 #include "disc_fdi.h"
@@ -16,6 +30,10 @@
 #include "fdc.h"
 #include "fdd.h"
 #include "timer.h"
+
+
+wchar_t discfns[4][256];
+extern int driveempty[4];
 
 int disc_poll_time[FDD_NUM] = { 16, 16, 16, 16 };
 
@@ -57,14 +75,14 @@ int  (*fdc_getdata)(int last);
 void (*fdc_sectorid)(uint8_t track, uint8_t side, uint8_t sector, uint8_t size, uint8_t crc1, uint8_t crc2);
 void (*fdc_indexpulse)();*/
 
+
 static struct
 {
         wchar_t *ext;
         void (*load)(int drive, wchar_t *fn);
         void (*close)(int drive);
         int size;
-}
-loaders[]=
+} loaders[]=
 {
         {L"001", img_load,       img_close, -1},
         {L"002", img_load,       img_close, -1},
@@ -130,7 +148,7 @@ void disc_load(int drive, wchar_t *fn)
         pclog_w(L"Couldn't load %s %s\n",fn,p);
         drive_empty[drive] = 1;
 	fdd_set_head(real_drive(drive), 0);
-        discfns[drive][0] = L'\0';
+	memset(discfns[drive], 0, sizeof(discfns[drive]));
 	update_status_bar_icon_state(drive, 1);
 }
 
@@ -176,6 +194,11 @@ double disc_byteperiod(int drive)
 
 	if (drives[drive].byteperiod)
 	{
+		if (fdd_get_turbo(drive))
+		{
+			return 1.0;
+		}
+
 		return drives[drive].byteperiod(drive);
 	}
 	else
@@ -194,7 +217,7 @@ double disc_real_period(int drive)
 	dusec = (double) TIMER_USEC;
 
 	/* This is a giant hack but until the timings become even more correct, this is needed to make floppies work right on that BIOS. */
-	if (romset == ROM_MRTHOR)
+	if ((romset == ROM_MRTHOR) && !fdd_get_turbo(drive))
 	{
 		return (ddbp * dusec) / 4.0;
 	}
@@ -224,22 +247,22 @@ void disc_poll(int drive)
         }
 }
 
-void disc_poll_0()
+void disc_poll_0(void *priv)
 {
 	disc_poll(0);
 }
 
-void disc_poll_1()
+void disc_poll_1(void *priv)
 {
 	disc_poll(1);
 }
 
-void disc_poll_2()
+void disc_poll_2(void *priv)
 {
 	disc_poll(2);
 }
 
-void disc_poll_3()
+void disc_poll_3(void *priv)
 {
 	disc_poll(3);
 }

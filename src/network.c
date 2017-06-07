@@ -12,10 +12,9 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.6	2017/05/22
+ * Version:	@(#)network.c	1.0.9	2017/06/03
  *
- * Authors:	Kotori, <oubattler@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
 #include <stdint.h>
 #include <stdio.h>
@@ -47,6 +46,7 @@ static netcard_t net_cards[] = {
 int		network_card;
 int		network_type;
 int		network_ndev;
+int		nic_do_log;
 netdev_t	network_devs[32];
 char		network_pcap[512];
 
@@ -63,8 +63,16 @@ network_init(void)
 {
     int i;
 
+#if ENABLE_NIC_LOG
+    nic_do_log = ENABLE_NIC_LOG;
+#else
+    nic_do_log = 0;
+#endif
+
+#if 0
     network_type = NET_TYPE_NONE;
     network_card = 0;
+#endif
 
     /* Create a first device entry that's always there, as needed by UI. */
     strcpy(network_devs[0].device, "none");
@@ -75,6 +83,9 @@ network_init(void)
     i = network_pcap_init(&network_devs[network_ndev]);
     if (i > 0)
 	network_ndev += i;
+
+    if (network_type != NET_TYPE_PCAP)
+	network_pcap_close();
 }
 
 
@@ -101,7 +112,7 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
 	case NET_TYPE_PCAP:
 		ret = network_pcap_setup(mac, rx, dev);
 		if (ret < 0) {
-			msgbox_error(ghwnd, 2202);
+			msgbox_error(ghwnd, IDS_2219);
 			network_type = NET_TYPE_NONE;
 		}
 		break;
@@ -143,6 +154,8 @@ network_close(void)
 void
 network_reset(void)
 {
+    int i = 0;
+
     pclog("NETWORK: reset (type=%d, card=%d)\n", network_type, network_card);
 
     /* Just in case.. */
@@ -150,6 +163,8 @@ network_reset(void)
 
     /* If no active card, we're done. */
     if ((network_type==NET_TYPE_NONE) || (network_card==0)) return;
+
+    if (network_type==NET_TYPE_PCAP)  network_pcap_reset();
 
     pclog("NETWORK: set up for %s, card='%s'\n",
 	(network_type==NET_TYPE_SLIRP)?"SLiRP":"WinPcap",

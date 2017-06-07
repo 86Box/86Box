@@ -1,3 +1,25 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Roland MPU-401 emulation.
+ *
+ * Version:	@(#)sound_mpu401.h	1.0.0	2017/05/30
+ *
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		DOSBox Team,
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		TheCollector1995, <mariogplayer@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2008-2017 DOSBox Team.
+ *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016-2017 TheCollector1995.
+ */
+
 #define MPU401_VERSION	0x15
 #define MPU401_REVISION	0x01
 #define MPU401_QUEUE 32
@@ -21,6 +43,8 @@ typedef enum MpuDataType {T_OVERFLOW,T_MARK,T_MIDI_SYS,T_MIDI_NORM,T_COMMAND} Mp
 
 typedef struct mpu_t
 {
+	int uart_mode;
+	uint8_t rx_data;
 	int intelligent;
 	MpuMode mode;
 	int irq;
@@ -61,3 +85,10 @@ typedef struct mpu_t
 uint8_t MPU401_ReadData(mpu_t *mpu);
 
 void mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode);
+
+extern int mpu401_standalone_enable;
+
+void mpu401_device_add(void);
+device_t mpu401_device;
+
+void mpu401_uart_init(mpu_t *mpu, uint16_t addr);

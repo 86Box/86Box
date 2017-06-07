@@ -5,12 +5,14 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #endif //_WIN32
 
 
+/*
+ * Icons by Devcore
+ * - https://commons.wikimedia.org/wiki/File:Icon_PC_256x256.png
+ */
 #ifdef RELEASE_BUILD
-/* Icon by Devcore - https://commons.wikimedia.org/wiki/File:Icon_PC_256x256.png */
-100                     ICON    DISCARDABLE     "ICONS/86Box-RB.ico"
+100                     ICON    DISCARDABLE     "WIN/ICONS/86Box-RB.ico"
 #else
-/* Icon by Devcore - https://commons.wikimedia.org/wiki/File:Icon_PC2_256x256.png */
-100                     ICON    DISCARDABLE     "ICONS/86Box.ico"
+100                     ICON    DISCARDABLE     "WIN/ICONS/86Box.ico"
 #endif
 
 

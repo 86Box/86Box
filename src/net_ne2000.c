@@ -8,10 +8,9 @@
  *
  *		Implementation of an NE2000/RTL8029AS network controller.
  *
- * NOTE:	Its still a mess, but we're getting there. The file will
- *		also implement an NE1000 for 8-bit ISA systems.
+ * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.6	2017/05/23
+ * Version:	@(#)net_ne2000.c	1.0.10	2017/06/03
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -38,9 +37,16 @@
 #include "net_ne2000.h"
 #include "bswap.h"
 
-#ifdef WALTJE
-# define ENABLE_NE2000_LOG 2
-#endif
+
+/* ROM BIOS file paths. */
+#define ROM_PATH_NE1000		L"roms/network/ne1000/ne1000.rom"
+#define ROM_PATH_NE2000		L"roms/network/ne2000/ne2000.rom"
+#define ROM_PATH_RTL8029	L"roms/network/rtl8029as/rtl8029as.rom"
+
+/* PCI info. */
+#define PCI_VENDID		0x10ec		/* Realtek, Inc */
+#define PCI_DEVID		0x8029		/* RTL8029AS */
+#define PCI_REGSIZE		256		/* size of PCI space */
 
 
 /* For PCI. */
@@ -48,13 +54,6 @@ typedef union {
     uint32_t addr;
     uint8_t addr_regs[4];
 } bar_t;
-
-
-#if ENABLE_NE2000_LOG
-static int	nic_do_log = ENABLE_NE2000_LOG;
-#else
-static int	nic_do_log = 0;
-#endif
 
 
 /* Never completely fill the ne2k ring so that we never
@@ -211,12 +210,13 @@ typedef struct {
 		bios_size,
 		bios_mask;
     bar_t	pci_bar[2];
-    uint8_t	pci_regs[256];
+    uint8_t	pci_regs[PCI_REGSIZE];
     int		tx_timer_index;
     int		tx_timer_active;
     uint8_t	maclocal[6];		/* configured MAC (local) address */
     uint8_t	eeprom[128];		/* for RTL8029AS */
     rom_t	bios_rom;
+    int		card;			/* PCI card slot */
 } nic_t;
 
 
@@ -227,7 +227,7 @@ static void	nic_tx(nic_t *, uint32_t);
 static void
 nelog(int lvl, const char *fmt, ...)
 {
-#ifdef ENABLE_NE2000_LOG
+#ifdef ENABLE_NIC_LOG
     va_list ap;
 
     if (nic_do_log >= lvl) {
@@ -240,9 +240,26 @@ nelog(int lvl, const char *fmt, ...)
 }
 
 
+static void
+nic_interrupt(nic_t *dev, int set)
+{
+    if ((PCI && dev->is_pci) && (dev->base_irq == 0xff)) {
+	if (set)
+		pci_set_irq(dev->card, PCI_INTA);
+	  else
+		pci_clear_irq(dev->card, PCI_INTA);
+    } else {
+	if (set)
+		picint(1<<dev->base_irq);
+	  else
+		picintc(1<<dev->base_irq);
+	}
+}
+
+
 /* reset - restore state to power-up, cancelling all i/o */
 static void
-nic_reset(void *priv, int reset)
+nic_reset(void *priv)
 {
     nic_t *dev = (nic_t *)priv;
     int i;
@@ -305,18 +322,29 @@ nic_reset(void *priv, int reset)
     dev->ISR.reset    = 1;
     dev->DCR.longaddr = 1;
 
-    picint(1<<dev->base_irq);
-    picintc(1<<dev->base_irq);
+    nic_interrupt(dev, 0);
 }
 
 
-/* chipmem_read/chipmem_write - access the 64K private RAM.
-   The ne2000 memory is accessed through the data port of
-   the asic (offset 0) after setting up a remote-DMA transfer.
-   Both byte and word accesses are allowed.
-   The first 16 bytes contains the MAC address at even locations,
-   and there is 16K of buffer memory starting at 16K
-*/
+static void
+nic_soft_reset(void *priv)
+{
+    nic_t *dev = (nic_t *)priv;
+
+    memset(&(dev->ISR), 0x00, sizeof(dev->ISR));
+    dev->ISR.reset = 1;
+}
+
+
+/*
+ * Access the 32K private RAM.
+ *
+ * The NE2000 memory is accessed through the data port of the
+ * ASIC (offset 0) after setting up a remote-DMA transfer.
+ * Both byte and word accesses are allowed.
+ * The first 16 bytes contains the MAC address at even locations,
+ * and there is 16K of buffer memory starting at 16K.
+ */
 static uint32_t
 chipmem_read(nic_t *dev, uint32_t addr, unsigned int len)
 {
@@ -390,15 +418,19 @@ chipmem_write(nic_t *dev, uint32_t addr, uint32_t val, unsigned len)
 }
 
 
-/* asic_read/asic_write - This is the high 16 bytes of i/o space
-   (the lower 16 bytes is for the DS8390). Only two locations
-   are used: offset 0, which is used for data transfer, and
-   offset 0xf, which is used to reset the device.
-   The data transfer port is used to as 'external' DMA to the
-   DS8390. The chip has to have the DMA registers set up, and
-   after that, insw/outsw instructions can be used to move
-   the appropriate number of bytes to/from the device.
-*/
+/*
+ * Access the ASIC I/O space.
+ *
+ * This is the high 16 bytes of i/o space (the lower 16 bytes
+ * is for the DS8390). Only two locations are used: offset 0,
+ * which is used for data transfer, and offset 0x0f, which is
+ * used to reset the device.
+ *
+ * The data transfer port is used to as 'external' DMA to the
+ * DS8390. The chip has to have the DMA registers set up, and
+ * after that, insw/outsw instructions can be used to move
+ * the appropriate number of bytes to/from the device.
+ */
 static uint32_t
 asic_read(nic_t *dev, uint32_t off, unsigned int len)
 {
@@ -445,14 +477,13 @@ asic_read(nic_t *dev, uint32_t off, unsigned int len)
 		/* If all bytes have been written, signal remote-DMA complete */
 		if (dev->remote_bytes == 0) {
 			dev->ISR.rdma_done = 1;
-			if (dev->IMR.rdma_inte) {
-				picint(1 << dev->base_irq);
-			}
+			if (dev->IMR.rdma_inte)
+				nic_interrupt(dev, 1);
 		}
 		break;
 
 	case 0x0f:	/* Reset register */
-		nic_reset(dev, 1);
+		nic_soft_reset(dev);
 		break;
 
 	default:
@@ -468,7 +499,7 @@ asic_read(nic_t *dev, uint32_t off, unsigned int len)
 static void
 asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 {
-    nelog(3, "%s: asic write addr=0x%02x, value=0x%04x\n",
+    nelog(3, "%s: ASIC write addr=0x%02x, value=0x%04x\n",
 		dev->name, (unsigned)off, (unsigned) val);
     switch(off) {
 	case 0x00:	/* Data register - see asic_read for a description */
@@ -505,9 +536,8 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 		/* If all bytes have been written, signal remote-DMA complete */
 		if (dev->remote_bytes == 0) {
 			dev->ISR.rdma_done = 1;
-			if (dev->IMR.rdma_inte) {
-				picint(1 << dev->base_irq);
-			}
+			if (dev->IMR.rdma_inte)
+				nic_interrupt(dev, 1);
 		}
 		break;
 
@@ -523,8 +553,7 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 }
 
 
-/* page0_read/page0_write - These routines handle reads/writes to
-   the 'zeroth' page of the DS8390 register file */
+/* Handle reads/writes to the 'zeroth' page of the DS8390 register file. */
 static uint32_t
 page0_read(nic_t *dev, uint32_t off, unsigned int len)
 {
@@ -714,9 +743,8 @@ page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 		        (dev->IMR.rxerr_inte << 2) |
 		        (dev->IMR.tx_inte << 1) |
 		        (dev->IMR.rx_inte));
-		if (val == 0x00) {
-			picintc(1 << dev->base_irq);
-		}
+		if (val == 0x00)
+			nic_interrupt(dev, 0);
 		break;
 
 	case 0x08:	/* RSAR0 */
@@ -834,11 +862,10 @@ page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 		        (dev->ISR.rx_err    << 2) |
 		        (dev->ISR.pkt_tx    << 1) |
 		        (dev->ISR.pkt_rx));
-		if (((val & val2) & 0x7f) == 0) {
-			picintc(1 << dev->base_irq);
-		} else {
-			picint(1 << dev->base_irq);
-		}
+		if (((val & val2) & 0x7f) == 0)
+			nic_interrupt(dev, 0);
+		  else
+			nic_interrupt(dev, 1);
 		break;
 
 	default:
@@ -849,8 +876,7 @@ page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 }
 
 
-/* page1_read/page1_write - These routines handle reads/writes to
-   the first page of the DS8390 register file */
+/* Handle reads/writes to the first page of the DS8390 register file. */
 static uint32_t
 page1_read(nic_t *dev, uint32_t off, unsigned int len)
 {
@@ -934,8 +960,7 @@ page1_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 }
 
 
-/* page2_read/page2_write - These routines handle reads/writes to
-   the second page of the DS8390 register file */
+/* Handle reads/writes to the second page of the DS8390 register file. */
 static uint32_t
 page2_read(nic_t *dev, uint32_t off, unsigned int len)
 {
@@ -1078,7 +1103,7 @@ page2_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 }
 
 
-/* page3_read/page3_write - writes to this page are illegal */
+/* Writes to this page are illegal. */
 static uint32_t
 page3_read(nic_t *dev, uint32_t off, unsigned int len)
 { 
@@ -1108,8 +1133,7 @@ page3_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 }
 
 
-/* read_cr/write_cr - utility routines for handling reads/writes to
-   the Command Register */
+/* Routines for handling reads/writes to the Command Register. */
 static uint32_t
 read_cr(nic_t *dev)
 {
@@ -1203,9 +1227,9 @@ write_cr(nic_t *dev, uint32_t val)
     if (dev->CR.rdma_cmd == 0x01 && dev->CR.start && dev->remote_bytes == 0) {
 	dev->ISR.rdma_done = 1;
 	if (dev->IMR.rdma_inte) {
-		picint(1 << dev->base_irq);
+		nic_interrupt(dev, 1);
 		if (! dev->is_pci)
-			picintc(1 << dev->base_irq);
+			nic_interrupt(dev, 0);
 	}
     }
 }
@@ -1410,7 +1434,9 @@ nic_update_bios(nic_t *dev)
 			     dev->bios_addr, dev->bios_size);
 	nelog(1, "%s: BIOS now at: %06X\n", dev->name, dev->bios_addr);
     } else {
+	nelog(1, "%s: BIOS disabled\n", dev->name);
 	mem_mapping_disable(&dev->bios_rom.mapping);
+	dev->bios_addr = 0;
 	if (dev->is_pci)
 		dev->pci_bar[1].addr = 0;
     }
@@ -1421,68 +1447,105 @@ static uint8_t
 nic_pci_read(int func, int addr, void *priv)
 {
     nic_t *dev = (nic_t *)priv;
+    uint8_t ret = 0x00;
 
     switch(addr) {
-	case 0x00:
-		return 0xec;
-	case 0x01:
-		return 0x10;
+	case 0x00:			/* PCI_VID_LO */
+	case 0x01:			/* PCI_VID_HI */
+		ret = dev->pci_regs[addr];
+		break;
 
-	case 0x02:
-		return 0x29;
-	case 0x03:
-		return 0x80;
+	case 0x02:			/* PCI_DID_LO */
+	case 0x03:			/* PCI_DID_HI */
+		ret = dev->pci_regs[addr];
+		break;
 
-	case 0x2C:
-		return 0xF4;
-	case 0x2D:
-		return 0x1A;
-	case 0x2E:
-		return 0x00;
-	case 0x2F:
-		return 0x11;
+	case 0x04:			/* PCI_COMMAND_LO */
+	case 0x05:			/* PCI_COMMAND_HI */
+		ret = dev->pci_regs[addr];
+		break;
 
-	case 0x04:
-		return dev->pci_regs[0x04];	/*Respond to IO and memory accesses*/
-	case 0x05:
-		return dev->pci_regs[0x05];
+	case 0x06:			/* PCI_STATUS_LO */
+	case 0x07:			/* PCI_STATUS_HI */
+		ret = dev->pci_regs[addr];
+		break;
 
-	case 0x07:
-		return 2;
+	case 0x08:			/* PCI_REVID */
+		ret = 0x00;		/* Rev. 00 */
+		break;
+	case 0x09:			/* PCI_PIFR */
+		ret = 0x00;		/* Rev. 00 */
+		break;
 
-	case 0x08:
-		return 0;		/*Revision ID*/
-	case 0x09:
-		return 0;		/*Programming interface*/
+	case 0x0A:			/* PCI_SCR */
+		ret = dev->pci_regs[addr];
+		break;
 
-	case 0x0B:
-		return dev->pci_regs[0x0B];
+	case 0x0B:			/* PCI_BCR */
+		ret = dev->pci_regs[addr];
+		break;
 
-	case 0x10:
-		return 1;		/*I/O space*/
-	case 0x11:
-		return dev->pci_bar[0].addr_regs[1];
-	case 0x12:
-		return dev->pci_bar[0].addr_regs[2];
-	case 0x13:
-		return dev->pci_bar[0].addr_regs[3];
+	case 0x0C:			/* (reserved) */
+		ret = dev->pci_regs[addr];
+		break;
 
-	case 0x30:
-		return dev->pci_bar[1].addr_regs[0] & 0x01;	/*BIOS ROM address*/
-	case 0x31:
-		return (dev->pci_bar[1].addr_regs[1] & dev->bios_mask) | 0x18;
-	case 0x32:
-		return dev->pci_bar[1].addr_regs[2];
-	case 0x33:
-		return dev->pci_bar[1].addr_regs[3];
+	case 0x0D:			/* PCI_LTR */
+	case 0x0E:			/* PCI_HTR */
+		ret = dev->pci_regs[addr];
+		break;
 
-	case 0x3C:
-		return dev->pci_regs[0x3C];
-	case 0x3D:
-		return dev->pci_regs[0x3D];
+	case 0x0F:			/* (reserved) */
+		ret = dev->pci_regs[addr];
+		break;
+
+	case 0x10:			/* PCI_BAR 7:5 */
+		ret = (dev->pci_bar[0].addr_regs[1] & 0xe0) | 0x01;
+		break;
+	case 0x11:			/* PCI_BAR 15:8 */
+		ret = dev->pci_bar[0].addr_regs[1];
+		break;
+	case 0x12:			/* PCI_BAR 23:16 */
+		ret = dev->pci_bar[0].addr_regs[2];
+		break;
+	case 0x13:			/* PCI_BAR 31:24 */
+		ret = dev->pci_bar[0].addr_regs[3];
+		break;
+
+	case 0x2C:			/* PCI_SVID_LO */
+	case 0x2D:			/* PCI_SVID_HI */
+		ret = dev->pci_regs[addr];
+		break;
+
+	case 0x2E:			/* PCI_SID_LO */
+	case 0x2F:			/* PCI_SID_HI */
+		ret = dev->pci_regs[addr];
+		break;
+
+	case 0x30:			/* PCI_ROMBAR */
+		ret = dev->pci_bar[1].addr_regs[0] & 0x01;
+		break;
+	case 0x31:			/* PCI_ROMBAR 15:11 */
+		ret = (dev->pci_bar[1].addr_regs[1] & dev->bios_mask) | 0x18;
+		break;
+	case 0x32:			/* PCI_ROMBAR 23:16 */
+		ret = dev->pci_bar[1].addr_regs[2];
+		break;
+	case 0x33:			/* PCI_ROMBAR 31:24 */
+		ret = dev->pci_bar[1].addr_regs[3];
+		break;
+
+	case 0x3C:			/* PCI_ILR */
+		ret = dev->pci_regs[addr];
+		break;
+
+	case 0x3D:			/* PCI_IPR */
+		ret = dev->pci_regs[addr];
+		break;
     }
 
-    return 0;
+    nelog(2, "%s: PCI_Read(%d, %04x) = %02x\n", dev->name, func, addr, ret);
+
+    return(ret);
 }
 
 
@@ -1491,28 +1554,54 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 {
     nic_t *dev = (nic_t *)priv;
 
+    nelog(2, "%s: PCI_Write(%d, %04x, %02x)\n", dev->name, func, addr, val);
+
     switch(addr) {
-	case 0x04:
+	case 0x04:			/* PCI_COMMAND_LO */
+		val &= 0x03;
 		nic_ioremove(dev, dev->base_address);
-		if (val & PCI_COMMAND_IO) {
+		if (val & PCI_COMMAND_IO)
 			nic_ioset(dev, dev->base_address);
+#if 0
+		if (val & PCI_COMMAND_MEMORY) {
+			...
 		}
+#endif
 		dev->pci_regs[addr] = val;
 		break;
 
-	case 0x10:
-		val &= 0xfc;
-		val |= 1;
-	case 0x11: case 0x12: case 0x13:
-		/* I/O Base set. */
-		/* First, remove the old I/O, if old base was >= 0x280. */
+	case 0x0C:			/* (reserved) */
+		dev->pci_regs[addr] = val;
+		break;
+
+	case 0x0D:			/* PCI_LTR */
+		dev->pci_regs[addr] = val;
+		break;
+
+	case 0x0E:			/* PCI_HTR */
+		dev->pci_regs[addr] = val;
+		break;
+
+	case 0x0F:			/* (reserved) */
+		dev->pci_regs[addr] = val;
+		break;
+
+	case 0x10:			/* PCI_BAR */
+		val &= 0xfc;	/* 0xe0 acc to RTL DS */
+		val |= 0x01;	/* re-enable IOIN bit */
+		/*FALLTHROUGH*/
+
+	case 0x11:			/* PCI_BAR
+	case 0x12:			/* PCI_BAR
+	case 0x13:			/* PCI_BAR */
+		/* Remove old I/O. */
 		nic_ioremove(dev, dev->base_address);
 
-		/* Then let's set the PCI regs. */
+		/* Set new I/O as per PCI request. */
 		dev->pci_bar[0].addr_regs[addr & 3] = val;
 
 		/* Then let's calculate the new I/O base. */
-		dev->base_address = dev->pci_bar[0].addr & 0xff00;
+		dev->base_address = dev->pci_bar[0].addr & 0xffe0;
 
 		/* Log the new base. */
 		nelog(1, "%s: PCI: new I/O base is %04X\n",
@@ -1520,9 +1609,12 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 		/* We're done, so get out of the here. */
 		if (val & PCI_COMMAND_IO)
 			nic_ioset(dev, dev->base_address);
-		return;
+		break;
 
-	case 0x30: case 0x31: case 0x32: case 0x33:
+	case 0x30:			/* PCI_ROMBAR */
+	case 0x31:			/* PCI_ROMBAR */
+	case 0x32:			/* PCI_ROMBAR */
+	case 0x33:			/* PCI_ROMBAR */
 		dev->pci_bar[1].addr_regs[addr & 3] = val;
 		dev->pci_bar[1].addr_regs[1] &= dev->bios_mask;
 		dev->pci_bar[1].addr &= 0xffffe000;
@@ -1531,38 +1623,17 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 		nic_update_bios(dev);
 		return;
 
-#if 0
-	/* Commented out until an APIC controller is emulated for
-	 * the PIIX3, otherwise the RTL-8029/AS will not get an IRQ
-	 * on boards using the PIIX3. */
-	case 0x3C:
-		dev->pci_regs[addr] = val;
-		if (val != 0xFF) {
-			nelog(1, "%s: IRQ now: %i\n", dev->name, val);
-			dev->base_irq = irq;
-		}
+	case 0x3C:			/* PCI_ILR */
+		nelog(1, "%s: IRQ now: %i\n", dev->name, val);
+		dev->base_irq = val;
+		dev->pci_regs[addr] = dev->base_irq;
 		return;
-#endif
-	}
-}
-
-
-static void
-nic_tx(nic_t *dev, uint32_t val)
-{
-    dev->CR.tx_packet = 0;
-    dev->TSR.tx_ok = 1;
-    dev->ISR.pkt_tx = 1;
-
-    /* Generate an interrupt if not masked */
-    if (dev->IMR.tx_inte)
-	picint(1 << dev->base_irq);
-    dev->tx_timer_active = 0;
+    }
 }
 
 
 /*
- * mcast_index() - return the 6-bit index into the multicast
+ * Return the 6-bit index into the multicast
  * table. Stolen unashamedly from FreeBSD's if_ed.c
  */
 static int
@@ -1593,12 +1664,25 @@ mcast_index(const void *dst)
 }
 
 
+static void
+nic_tx(nic_t *dev, uint32_t val)
+{
+    dev->CR.tx_packet = 0;
+    dev->TSR.tx_ok = 1;
+    dev->ISR.pkt_tx = 1;
+
+    /* Generate an interrupt if not masked */
+    if (dev->IMR.tx_inte)
+	nic_interrupt(dev, 1);
+    dev->tx_timer_active = 0;
+}
+
+
 /*
- * rx_frame() - called by the platform-specific code when an
- * ethernet frame has been received. The destination address
- * is tested to see if it should be accepted, and if the
- * rx ring has enough room, it is copied into it and
- * the receive process is updated
+ * Called by the platform-specific code when an Ethernet frame
+ * has been received. The destination address is tested to see
+ * if it should be accepted, and if the RX ring has enough room,
+ * it is copied into it and the receive process is updated.
  */
 static void
 nic_rx(void *priv, uint8_t *buf, int io_len)
@@ -1616,8 +1700,10 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 
     if ((dev->CR.stop != 0) || (dev->page_start == 0)) return;
 
-    /* Add the pkt header + CRC to the length, and work
-       out how many 256-byte pages the frame would occupy */
+    /*
+     * Add the pkt header + CRC to the length, and work
+     * out how many 256-byte pages the frame would occupy.
+     */
     pages = (io_len + sizeof(pkthdr) + sizeof(uint32_t) + 255)/256;
     if (dev->curr_page < dev->bound_ptr) {
 	avail = dev->bound_ptr - dev->curr_page;
@@ -1626,9 +1712,11 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 		(dev->curr_page - dev->bound_ptr);
     }
 
-    /* Avoid getting into a buffer overflow condition by not attempting
-       to do partial receives. The emulation to handle this condition
-       seems particularly painful. */
+    /*
+     * Avoid getting into a buffer overflow condition by
+     * not attempting to do partial receives. The emulation
+     * to handle this condition seems particularly painful.
+     */
     if	((avail < pages)
 #if NE2K_NEVER_FULL_RING
 		 || (avail == pages)
@@ -1647,7 +1735,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
     if (io_len < 60)
 	io_len = 60;
 
-    nelog(2, "%s: rx_frame %x:%x:%x:%x:%x:%x > %x:%x:%x:%x:%x:%x len %d\n",
+    nelog(2, "%s: RX %x:%x:%x:%x:%x:%x > %x:%x:%x:%x:%x:%x len %d\n",
 	dev->name,
 	buf[6], buf[7], buf[8], buf[9], buf[10], buf[11],
 	buf[0], buf[1], buf[2], buf[3], buf[4], buf[5],
@@ -1659,7 +1747,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 	if (! memcmp(buf, bcast_addr, 6)) {
 		/* Broadcast not enabled, we're done. */
 		if (! dev->RCR.broadcast) {
-			nelog(2, "%s: rx_frame BC disabled\n", dev->name);
+			nelog(2, "%s: RX BC disabled\n", dev->name);
 			return;
 		}
 	}
@@ -1669,7 +1757,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 		/* Multicast not enabled, we're done. */
 		if (! dev->RCR.multicast) {
 #if 1
-			nelog(2, "%s: rx_frame MC disabled\n", dev->name);
+			nelog(2, "%s: RX MC disabled\n", dev->name);
 #endif
 			return;
 		}
@@ -1677,7 +1765,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 		/* Are we listening to this multicast address? */
 		idx = mcast_index(buf);
 		if (! (dev->mchash[idx>>3] & (1<<(idx&0x7)))) {
-			nelog(2, "%s: rx_frame MC not listed\n", dev->name);
+			nelog(2, "%s: RX MC not listed\n", dev->name);
 			return;
 		}
 	}
@@ -1685,7 +1773,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 	/* Unicast, must be for us.. */
 	else if (memcmp(buf, dev->physaddr, 6)) return;
     } else {
-	nelog(2, "%s: rx_frame promiscuous receive\n", dev->name);
+	nelog(2, "%s: RX promiscuous receive\n", dev->name);
     }
 
     nextpage = dev->curr_page + pages;
@@ -1699,7 +1787,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
     pkthdr[1] = nextpage;		/* ptr to next packet */
     pkthdr[2] = (io_len + sizeof(pkthdr))&0xff;	/* length-low */
     pkthdr[3] = (io_len + sizeof(pkthdr))>>8;	/* length-hi */
-    nelog(2, "%s: rx_frame pkthdr [%02x %02x %02x %02x]\n",
+    nelog(2, "%s: RX pkthdr [%02x %02x %02x %02x]\n",
 	dev->name, pkthdr[0], pkthdr[1], pkthdr[2], pkthdr[3]);
 
     /* Copy into buffer, update curpage, and signal interrupt if config'd */
@@ -1717,58 +1805,47 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
     dev->curr_page = nextpage;
 
     dev->RSR.rx_ok = 1;
-    if (buf[0] & 0x80)
-	dev->RSR.rx_mbit = 1;
+    dev->RSR.rx_mbit = (buf[0] & 0x01) ? 1 : 0;
     dev->ISR.pkt_rx = 1;
 
     if (dev->IMR.rx_inte)
-	picint(1 << dev->base_irq);
+	nic_interrupt(dev, 1);
 }
 
 
 static void
 nic_rom_init(nic_t *dev, wchar_t *s)
 {
-    FILE *f = romfopen(s, L"rb");
     uint32_t temp;
+    FILE *f;
 
-    if (f == NULL) {
-	dev->bios_addr = 0x00000;
-	nic_update_bios(dev);
-	return;
+    if (dev->bios_addr > 0) {
+	if ((f = romfopen(s, L"rb")) != NULL) {
+		fseek(f, 0L, SEEK_END);
+		temp = ftell(f);
+		fclose(f);
+		dev->bios_size = 0x10000;
+		if (temp <= 0x8000)
+			dev->bios_size = 0x8000;
+		if (temp <= 0x4000)
+			dev->bios_size = 0x4000;
+		if (temp <= 0x2000)
+			dev->bios_size = 0x2000;
+		dev->bios_mask = (dev->bios_size >> 8) & 0xff;
+		dev->bios_mask = (0x100 - dev->bios_mask) & 0xff;
+	} else {
+		dev->bios_addr = 0x00000;
+		dev->bios_size = 0;
+		return;
+	}
+
+	/* Create a memory mapping for the space. */
+	rom_init(&dev->bios_rom, s, dev->bios_addr,
+		 dev->bios_size, dev->bios_size-1, 0, MEM_MAPPING_EXTERNAL);
     }
-    fseek(f, 0, SEEK_END);
-    temp = ftell(f);
-    fclose(f);
-    dev->bios_size = 0x10000;
-    if (temp <= 0x8000)
-	dev->bios_size = 0x8000;
-    if (temp <= 0x4000)
-	dev->bios_size = 0x4000;
-    if (temp <= 0x2000)
-	dev->bios_size = 0x2000;
-    dev->bios_mask = (dev->bios_size >> 8) & 0xff;
-    dev->bios_mask = (0x100 - dev->bios_mask) & 0xff;
 
-    rom_init(&dev->bios_rom, s, dev->bios_addr,
-	     dev->bios_size, dev->bios_size - 1, 0, MEM_MAPPING_EXTERNAL);
-
-    nelog(1, "%s: BIOS enabled at %06lX (size %ld)\n",
+    nelog(1, "%s: BIOS configured at %06lX (size %ld)\n",
 		dev->name, dev->bios_addr, dev->bios_size);
-}
-
-
-/* Return the 'local' part of our configured MAC address. */
-static uint32_t
-nic_get_maclocal(nic_t *dev)
-{
-    uint32_t temp;
-
-    temp = (((int) dev->maclocal[3]) << 16);
-    temp |= (((int) dev->maclocal[4]) << 8);
-    temp |= ((int) dev->maclocal[5]);
-
-    return(temp);
 }
 
 
@@ -1776,7 +1853,13 @@ static void *
 nic_init(int board)
 {
     uint32_t mac;
+    wchar_t *rom;
     nic_t *dev;
+    int i;
+
+    /* Get the desired debug level. */
+    i = device_get_config_int("debug");
+    if (i > 0) nic_do_log = i;
 
     dev = malloc(sizeof(nic_t));
     memset(dev, 0x00, sizeof(nic_t));
@@ -1787,6 +1870,7 @@ nic_init(int board)
 		dev->maclocal[0] = 0x00;  /* 00:00:D8 (NE1000 ISA OID) */
 		dev->maclocal[1] = 0x00;
 		dev->maclocal[2] = 0xD8;
+		rom = ROM_PATH_NE1000;
 		break;
 
 	case NE2K_NE2000:
@@ -1794,6 +1878,7 @@ nic_init(int board)
 		dev->maclocal[0] = 0x00;  /* 00:A0:0C (NE2000 compatible OID) */
 		dev->maclocal[1] = 0xA0;
 		dev->maclocal[2] = 0x0C;
+		rom = ROM_PATH_NE2000;
 		break;
 
 	case NE2K_RTL8029AS:
@@ -1802,43 +1887,113 @@ nic_init(int board)
 		dev->maclocal[0] = 0x00;  /* 00:20:18 (RTL 8029AS PCI OID) */
 		dev->maclocal[1] = 0x20;
 		dev->maclocal[2] = 0x18;
+		rom = ROM_PATH_RTL8029;
 		break;
     }
 
-    dev->base_irq = device_get_config_int("irq");
-    if (dev->is_pci)
+    if (dev->is_pci) {
 	dev->base_address = 0x340;
-      else
-	dev->base_address = device_get_config_int("addr");
-    dev->bios_addr = device_get_config_int("bios_addr");
+	dev->base_irq = 10;
+    } else {
+	dev->base_address = device_get_config_hex16("base");
+	dev->bios_addr = device_get_config_hex20("bios_addr");
+	dev->base_irq = device_get_config_int("irq");
+    }
 
     /* See if we have a local MAC address configured. */
-    mac = device_get_config_int_ex("mac", -1);
+    mac = device_get_config_mac("mac", -1);
+
+    /* Make this device known to the I/O system. */
+    nic_ioset(dev, dev->base_address);
+
+    /* Set up our BIOS ROM space, if any. */
+    nic_rom_init(dev, rom);
+
+    if (dev->is_pci) {
+	/*
+	 * Configure the PCI space registers.
+	 *
+	 * We do this here, so the I/O routines are generic.
+	 */
+	dev->pci_regs[0x00] = (PCI_VENDID&0xff);
+	dev->pci_regs[0x01] = (PCI_VENDID>>8);
+	dev->pci_regs[0x02] = (PCI_DEVID&0xff);
+	dev->pci_regs[0x03] = (PCI_DEVID>>8);
+
+        dev->pci_regs[0x04] = 0x01;		/* IOEN */
+        dev->pci_regs[0x05] = 0x00;
+        dev->pci_regs[0x07] = 0x02;		/* DST0, medium devsel */
+
+        dev->pci_regs[0x0B] = 0x02;		/* BCR: Network Controller */
+        dev->pci_regs[0x0A] = 0x00;		/* SCR: Ethernet */
+
+	dev->pci_regs[0x2C] = (PCI_VENDID&0xff);
+	dev->pci_regs[0x2D] = (PCI_VENDID>>8);
+	dev->pci_regs[0x2E] = (PCI_DEVID&0xff);
+	dev->pci_regs[0x2F] = (PCI_DEVID>>8);
+
+	dev->pci_regs[0x3C] = dev->base_irq;	/* PCI_ILR */
+        dev->pci_regs[0x3D] = 0x01;		/* PCI_IPR */
+
+	/* Enable our address space in PCI. */
+	dev->pci_bar[0].addr_regs[0] = 0x01;
+
+	/* Enable our BIOS space in PCI, if needed. */
+	if (dev->bios_addr > 0) {
+		dev->pci_bar[1].addr = 0x000F8000;
+		dev->pci_bar[1].addr_regs[1] = dev->bios_mask;
+		dev->pci_bar[1].addr |= 0x1801;
+	} else {
+		dev->pci_bar[1].addr = 0;
+	}
+
+	/* Initialize the RTL8029 EEPROM. */
+        memset(dev->eeprom, 0x00, sizeof(dev->eeprom));
+        dev->eeprom[0x76] =
+	 dev->eeprom[0x7A] =
+	 dev->eeprom[0x7E] = (PCI_DEVID&0xff);
+        dev->eeprom[0x77] =
+	 dev->eeprom[0x7B] =
+	 dev->eeprom[0x7F] = (PCI_DEVID>>8);
+        dev->eeprom[0x78] =
+	 dev->eeprom[0x7C] = (PCI_VENDID&0xff);
+        dev->eeprom[0x79] =
+	 dev->eeprom[0x7D] = (PCI_VENDID>>8);
+
+	/* Insert this device onto the PCI bus, keep its slot number. */
+	dev->card = pci_add(nic_pci_read, nic_pci_write, dev);
+    }
 
     /* Set up our BIA. */
     if (mac & 0xff000000) {
-	/* Generating new MAC. */
+	/* Generate new local MAC. */
 	dev->maclocal[3] = disc_random_generate();
 	dev->maclocal[4] = disc_random_generate();
-	dev->maclocal[5] = disc_random_generate() | 1;
-	device_set_config_int("mac", nic_get_maclocal(dev));
+	dev->maclocal[5] = disc_random_generate();
+	mac = (((int) dev->maclocal[3]) << 16);
+	mac |= (((int) dev->maclocal[4]) << 8);
+	mac |= ((int) dev->maclocal[5]);
+	device_set_config_mac("mac", mac);
     } else {
 	dev->maclocal[3] = (mac>>16) & 0xff;
 	dev->maclocal[4] = (mac>>8) & 0xff;
-	dev->maclocal[5] = (mac & 0xfe);
+	dev->maclocal[5] = (mac & 0xff);
     }
     memcpy(dev->physaddr, dev->maclocal, sizeof(dev->maclocal));
 
-    nelog(1,"%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
+    nelog(0, "%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
 	dev->name, dev->base_address, dev->base_irq,
 	dev->physaddr[0], dev->physaddr[1], dev->physaddr[2],
 	dev->physaddr[3], dev->physaddr[4], dev->physaddr[5]);
+
+    /* Reset the board. */
+    nic_reset(dev);
 
     if (network_attach(dev, dev->physaddr, nic_rx) < 0) {
 #if 0
 	msgbox_error_wstr(ghwnd, L"Unable to init platform network");
 #endif
-	nelog(1, "%s: unable to init platform network type %d\n",
+	nelog(0, "%s: unable to init platform network type %d\n",
 					dev->name, network_type);
 #if 0
 	/*
@@ -1852,56 +2007,7 @@ nic_init(int board)
 #endif
     }
 
-    if (dev->is_pci)
-	pci_add(nic_pci_read, nic_pci_write, dev);
-    nic_ioset(dev, dev->base_address);
-
-    if (dev->bios_addr > 0) {
-	nic_rom_init(dev, dev->is_pci ? L"roms/rtl8029as.rom"
-					       : L"roms/ne2000.rom");
-	if (dev->is_pci)
-		mem_mapping_disable(&dev->bios_rom.mapping);
-    }
-	
-    if (dev->is_pci) {
-        dev->pci_regs[0x04] = 1;
-        dev->pci_regs[0x05] = 0;
-        dev->pci_regs[0x07] = 2;
-
-        /* Network controller. */
-        dev->pci_regs[0x0B] = 2;
-		
-	dev->pci_bar[0].addr_regs[0] = 1;
-
-	if (dev->bios_addr > 0) {
-		/* What is it.. F800 or D000 (bios_addr) ? */
-		dev->pci_bar[1].addr = 0x000F8000;
-		dev->pci_bar[1].addr_regs[1] = dev->bios_mask;
-		dev->pci_bar[1].addr |= 0x1801;
-	} else {
-		dev->pci_bar[1].addr = 0;
-	}
-
-	dev->pci_regs[0x3C] = dev->base_irq;
-	nelog(1, "%s: IRQ=%i\n", dev->name, dev->pci_regs[0x3C]);
-        dev->pci_regs[0x3D] = 1;
-
-        memset(dev->eeprom, 0x00, sizeof(dev->eeprom));
-        dev->eeprom[0x76] =
-	 dev->eeprom[0x7A] =
-	 dev->eeprom[0x7E] = 0x29;
-        dev->eeprom[0x77] =
-	 dev->eeprom[0x7B] =
-	 dev->eeprom[0x7F] = 0x80;
-        dev->eeprom[0x78] =
-	 dev->eeprom[0x7C] = 0x10;
-        dev->eeprom[0x79] =
-	 dev->eeprom[0x7D] = 0xEC;
-    }
-
-    nic_reset(dev, 0);
-
-    nelog(1, "%s: %s init 0x%X %d\n", dev->name,
+    nelog(1, "%s: %s attached IO=0x%X IRQ=%d\n", dev->name,
 	dev->is_pci?"PCI":"ISA", dev->base_address, dev->base_irq);
 
     return(dev);
@@ -1948,7 +2054,7 @@ rtl8029as_init(void)
 static device_config_t ne1000_config[] =
 {
 	{
-		"addr", "Address", CONFIG_SELECTION, "", 0x300,
+		"base", "Address", CONFIG_HEX16, "", 0x300,
 		{
 			{
 				"0x280", 0x280
@@ -1994,7 +2100,7 @@ static device_config_t ne1000_config[] =
 		"mac", "MAC Address", CONFIG_MAC, "", -1
 	},
 	{
-		"bios_addr", "BIOS address", CONFIG_SELECTION, "", 0,
+		"bios_addr", "BIOS address", CONFIG_HEX20, "", 0,
 		{
 			{
 				"Disabled", 0x00000
@@ -2003,7 +2109,10 @@ static device_config_t ne1000_config[] =
 				"D000", 0xD0000
 			},
 			{
-				"C000", 0xC0000
+				"D800", 0xD8000
+			},
+			{
+				"C800", 0xC8000
 			},
 			{
 				""
@@ -2018,7 +2127,7 @@ static device_config_t ne1000_config[] =
 static device_config_t ne2000_config[] =
 {
 	{
-		"addr", "Address", CONFIG_SELECTION, "", 0x300,
+		"base", "Address", CONFIG_HEX16, "", 0x300,
 		{
 			{
 				"0x280", 0x280
@@ -2070,7 +2179,7 @@ static device_config_t ne2000_config[] =
 		"mac", "MAC Address", CONFIG_MAC, "", -1
 	},
 	{
-		"bios_addr", "BIOS address", CONFIG_SELECTION, "", 0,
+		"bios_addr", "BIOS address", CONFIG_HEX20, "", 0,
 		{
 			{
 				"Disabled", 0x00000
@@ -2079,7 +2188,10 @@ static device_config_t ne2000_config[] =
 				"D000", 0xD0000
 			},
 			{
-				"C000", 0xC0000
+				"D800", 0xD8000
+			},
+			{
+				"C800", 0xC8000
 			},
 			{
 				""
@@ -2093,34 +2205,15 @@ static device_config_t ne2000_config[] =
 
 static device_config_t rtl8029as_config[] =
 {
+#if 1
+	/*
+	 * WTF.
+	 * Even though it is PCI, the user should still have control
+	 * over whether or not it's Option ROM BIOS will be enabled
+	 * or not.
+	 */
 	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 10,
-		{
-			{
-				"IRQ 3", 3
-			},
-			{
-				"IRQ 5", 5
-			},
-			{
-				"IRQ 7", 7
-			},
-			{
-				"IRQ 10", 10
-			},
-			{
-				"IRQ 11", 11
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"bios_addr", "BIOS address", CONFIG_SELECTION, "", 0,
+		"bios_addr", "BIOS address", CONFIG_HEX20, "", 0,
 		{
 			{
 				"Disabled", 0x00000
@@ -2129,12 +2222,19 @@ static device_config_t rtl8029as_config[] =
 				"D000", 0xD0000
 			},
 			{
-				"C000", 0xC0000
+				"D800", 0xD8000
+			},
+			{
+				"C800", 0xC8000
 			},
 			{
 				""
 			}
 		},
+	},
+#endif
+	{
+		"mac", "MAC Address", CONFIG_MAC, "", -1
 	},
 	{
 		"", "", -1

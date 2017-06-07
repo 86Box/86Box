@@ -14,8 +14,8 @@ static mouse_t *mouse_list[] = {
     &mouse_bus,			/* 3 Logitech Bus Mouse 2-button */
     &mouse_amstrad,		/* 4 Amstrad PC System Mouse */
     &mouse_olim24,		/* 5 Olivetti M24 System Mouse */
-#if 0
     &mouse_msystems,		/* 6 Mouse Systems */
+#if 0
     &mouse_genius,		/* 7 Genius Bus Mouse */
 #endif
     NULL

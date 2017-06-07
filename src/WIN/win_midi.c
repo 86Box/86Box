@@ -1,6 +1,21 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		MIDI interface to host device.
+ *
+ * Version:	@(#)win_midi.c	1.0.0	2017/05/30
+ *
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
+
 #include <windows.h>
 #include <mmsystem.h>
 #include "../ibm.h"
@@ -49,8 +64,8 @@ void midi_init()
 {
         MMRESULT hr = MMSYSERR_NOERROR;
 
-	memset(midi_rt_buf, 0, 1024);
-	memset(midi_cmd_buf, 0, 1024);
+	memset(midi_rt_buf, 0, sizeof(midi_rt_buf));
+	memset(midi_cmd_buf, 0, sizeof(midi_cmd_buf));
 
 	midi_cmd_pos = midi_cmd_len = 0;
 	midi_status = 0;
@@ -81,7 +96,7 @@ void midi_close()
         {
                 midiOutReset(midi_out_device);
                 midiOutClose(midi_out_device);
-                midi_out_device = NULL;
+                /* midi_out_device = NULL; */
 		CloseHandle(m_event);
         }
 }

@@ -616,6 +616,8 @@ static void CHECK_SEG_READ(x86seg *seg)
                 return;
         if (seg->checked)
                 return;
+        if (seg == &_ds && codegen_flat_ds)
+                return;
 
         addbyte(0x83); /*CMP seg->base, -1*/
         addbyte(0x05|0x38);
@@ -637,6 +639,8 @@ static void CHECK_SEG_WRITE(x86seg *seg)
                 return;
         if (seg->checked)
                 return;
+        if (seg == &_ds && codegen_flat_ds)
+                return;
                 
         addbyte(0x83); /*CMP seg->base, -1*/
         addbyte(0x05|0x38);
@@ -650,6 +654,9 @@ static void CHECK_SEG_WRITE(x86seg *seg)
 }
 static void CHECK_SEG_LIMITS(x86seg *seg, int end_offset)
 {
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+                return;
+
         addbyte(0x3b); /*CMP EAX, seg->limit_low*/
         addbyte(0x05);
         addlong((uint32_t)&seg->limit_low);
@@ -675,9 +682,18 @@ static void CHECK_SEG_LIMITS(x86seg *seg, int end_offset)
 
 static void MEM_LOAD_ADDR_EA_B(x86seg *seg)
 {
-        addbyte(0x8b); /*MOVL EDX, seg->base*/
-        addbyte(0x05 | (REG_EDX << 3));
-        addlong((uint32_t)&seg->base);
+        if (((seg == &_ds) && (cpu_cur_status & CPU_STATUS_FLATDS)) ||
+            ((seg == &_ss) && (cpu_cur_status & CPU_STATUS_FLATSS)))
+        {
+                addbyte(0x31); /*XOR EDX, EDX*/
+                addbyte(0xd2);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL EDX, seg->base*/
+                addbyte(0x05 | (REG_EDX << 3));
+                addlong((uint32_t)&seg->base);
+        }
         addbyte(0xe8); /*CALL mem_load_addr_ea_b*/
         addlong(mem_load_addr_ea_b - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
 
@@ -685,9 +701,17 @@ static void MEM_LOAD_ADDR_EA_B(x86seg *seg)
 }
 static int MEM_LOAD_ADDR_EA_B_NO_ABRT(x86seg *seg)
 {
-        addbyte(0x8b); /*MOVL EDX, seg->base*/
-        addbyte(0x05 | (REG_EDX << 3));
-        addlong((uint32_t)&seg->base);
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+        {
+                addbyte(0x31); /*XOR EDX, EDX*/
+                addbyte(0xd2);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL EDX, seg->base*/
+                addbyte(0x05 | (REG_EDX << 3));
+                addlong((uint32_t)&seg->base);
+        }
         addbyte(0xe8); /*CALL mem_load_addr_ea_b_no_abrt*/
         addlong(mem_load_addr_ea_b_no_abrt - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
 
@@ -697,9 +721,17 @@ static int MEM_LOAD_ADDR_EA_B_NO_ABRT(x86seg *seg)
 }
 static void MEM_LOAD_ADDR_EA_W(x86seg *seg)
 {
-        addbyte(0x8b); /*MOVL EDX, seg->base*/
-        addbyte(0x05 | (REG_EDX << 3));
-        addlong((uint32_t)&seg->base);
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+        {
+                addbyte(0x31); /*XOR EDX, EDX*/
+                addbyte(0xd2);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL EDX, seg->base*/
+                addbyte(0x05 | (REG_EDX << 3));
+                addlong((uint32_t)&seg->base);
+        }
         addbyte(0xe8); /*CALL mem_load_addr_ea_w*/
         addlong(mem_load_addr_ea_w - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
 
@@ -707,9 +739,17 @@ static void MEM_LOAD_ADDR_EA_W(x86seg *seg)
 }
 static void MEM_LOAD_ADDR_EA_W_OFFSET(x86seg *seg, int offset)
 {
-        addbyte(0x8b); /*MOVL EDX, seg->base*/
-        addbyte(0x05 | (REG_EDX << 3));
-        addlong((uint32_t)&seg->base);
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+        {
+                addbyte(0x31); /*XOR EDX, EDX*/
+                addbyte(0xd2);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL EDX, seg->base*/
+                addbyte(0x05 | (REG_EDX << 3));
+                addlong((uint32_t)&seg->base);
+        }
         addbyte(0x83); /*ADD EAX, offset*/
         addbyte(0xc0);
         addbyte(offset);
@@ -720,9 +760,17 @@ static void MEM_LOAD_ADDR_EA_W_OFFSET(x86seg *seg, int offset)
 }
 static int MEM_LOAD_ADDR_EA_W_NO_ABRT(x86seg *seg)
 {
-        addbyte(0x8b); /*MOVL EDX, seg->base*/
-        addbyte(0x05 | (REG_EDX << 3));
-        addlong((uint32_t)&seg->base);
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+        {
+                addbyte(0x31); /*XOR EDX, EDX*/
+                addbyte(0xd2);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL EDX, seg->base*/
+                addbyte(0x05 | (REG_EDX << 3));
+                addlong((uint32_t)&seg->base);
+        }
         addbyte(0xe8); /*CALL mem_load_addr_ea_w_no_abrt*/
         addlong(mem_load_addr_ea_w_no_abrt - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
 
@@ -732,9 +780,17 @@ static int MEM_LOAD_ADDR_EA_W_NO_ABRT(x86seg *seg)
 }
 static void MEM_LOAD_ADDR_EA_L(x86seg *seg)
 {
-        addbyte(0x8b); /*MOVL EDX, seg->base*/
-        addbyte(0x05 | (REG_EDX << 3));
-        addlong((uint32_t)&seg->base);
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+        {
+                addbyte(0x31); /*XOR EDX, EDX*/
+                addbyte(0xd2);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL EDX, seg->base*/
+                addbyte(0x05 | (REG_EDX << 3));
+                addlong((uint32_t)&seg->base);
+        }
         addbyte(0xe8); /*CALL mem_load_addr_ea_l*/
         addlong(mem_load_addr_ea_l - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
 
@@ -743,9 +799,17 @@ static void MEM_LOAD_ADDR_EA_L(x86seg *seg)
 }
 static int MEM_LOAD_ADDR_EA_L_NO_ABRT(x86seg *seg)
 {
-        addbyte(0x8b); /*MOVL EDX, seg->base*/
-        addbyte(0x05 | (REG_EDX << 3));
-        addlong((uint32_t)&seg->base);
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+        {
+                addbyte(0x31); /*XOR EDX, EDX*/
+                addbyte(0xd2);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL EDX, seg->base*/
+                addbyte(0x05 | (REG_EDX << 3));
+                addlong((uint32_t)&seg->base);
+        }
         addbyte(0xe8); /*CALL mem_load_addr_ea_l_no_abrt*/
         addlong(mem_load_addr_ea_l_no_abrt - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
 
@@ -756,9 +820,17 @@ static int MEM_LOAD_ADDR_EA_L_NO_ABRT(x86seg *seg)
 
 static void MEM_LOAD_ADDR_EA_Q(x86seg *seg)
 {
-        addbyte(0x8b); /*MOVL EDX, seg->base*/
-        addbyte(0x05 | (REG_EDX << 3));
-        addlong((uint32_t)&seg->base);
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+        {
+                addbyte(0x31); /*XOR EDX, EDX*/
+                addbyte(0xd2);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL EDX, seg->base*/
+                addbyte(0x05 | (REG_EDX << 3));
+                addlong((uint32_t)&seg->base);
+        }
         addbyte(0xe8); /*CALL mem_load_addr_ea_q*/
         addlong(mem_load_addr_ea_q - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
 
@@ -786,9 +858,17 @@ static void MEM_LOAD_ADDR_IMM_L(x86seg *seg, uint32_t addr)
 
 static void MEM_STORE_ADDR_EA_B(x86seg *seg, int host_reg)
 {
-        addbyte(0x8b); /*MOVL ESI, seg->base*/
-        addbyte(0x05 | (REG_ESI << 3));
-        addlong((uint32_t)&seg->base);
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+        {
+                addbyte(0x31); /*XOR ESI, ESI*/
+                addbyte(0xf6);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL ESI, seg->base*/
+                addbyte(0x05 | (REG_ESI << 3));
+                addlong((uint32_t)&seg->base);
+        }
         if (host_reg != REG_ECX)
         {
                 addbyte(0x89); /*MOV ECX, host_reg*/
@@ -799,9 +879,17 @@ static void MEM_STORE_ADDR_EA_B(x86seg *seg, int host_reg)
 }
 static void MEM_STORE_ADDR_EA_B_NO_ABRT(x86seg *seg, int host_reg)
 {
-        addbyte(0x8b); /*MOVL ESI, seg->base*/
-        addbyte(0x05 | (REG_ESI << 3));
-        addlong((uint32_t)&seg->base);
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+        {
+                addbyte(0x31); /*XOR ESI, ESI*/
+                addbyte(0xf6);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL ESI, seg->base*/
+                addbyte(0x05 | (REG_ESI << 3));
+                addlong((uint32_t)&seg->base);
+        }
         if (host_reg != REG_ECX)
         {
                 addbyte(0x89); /*MOV ECX, host_reg*/
@@ -812,9 +900,17 @@ static void MEM_STORE_ADDR_EA_B_NO_ABRT(x86seg *seg, int host_reg)
 }
 static void MEM_STORE_ADDR_EA_W(x86seg *seg, int host_reg)
 {
-        addbyte(0x8b); /*MOVL ESI, seg->base*/
-        addbyte(0x05 | (REG_ESI << 3));
-        addlong((uint32_t)&seg->base);
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+        {
+                addbyte(0x31); /*XOR ESI, ESI*/
+                addbyte(0xf6);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL ESI, seg->base*/
+                addbyte(0x05 | (REG_ESI << 3));
+                addlong((uint32_t)&seg->base);
+        }
         if (host_reg != REG_ECX)
         {
                 addbyte(0x89); /*MOV ECX, host_reg*/
@@ -825,9 +921,17 @@ static void MEM_STORE_ADDR_EA_W(x86seg *seg, int host_reg)
 }
 static void MEM_STORE_ADDR_EA_W_NO_ABRT(x86seg *seg, int host_reg)
 {
-        addbyte(0x8b); /*MOVL ESI, seg->base*/
-        addbyte(0x05 | (REG_ESI << 3));
-        addlong((uint32_t)&seg->base);
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+        {
+                addbyte(0x31); /*XOR ESI, ESI*/
+                addbyte(0xf6);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL ESI, seg->base*/
+                addbyte(0x05 | (REG_ESI << 3));
+                addlong((uint32_t)&seg->base);
+        }
         if (host_reg != REG_ECX)
         {
                 addbyte(0x89); /*MOV ECX, host_reg*/
@@ -838,9 +942,17 @@ static void MEM_STORE_ADDR_EA_W_NO_ABRT(x86seg *seg, int host_reg)
 }
 static void MEM_STORE_ADDR_EA_L(x86seg *seg, int host_reg)
 {
-        addbyte(0x8b); /*MOVL ESI, seg->base*/
-        addbyte(0x05 | (REG_ESI << 3));
-        addlong((uint32_t)&seg->base);
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+        {
+                addbyte(0x31); /*XOR ESI, ESI*/
+                addbyte(0xf6);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL ESI, seg->base*/
+                addbyte(0x05 | (REG_ESI << 3));
+                addlong((uint32_t)&seg->base);
+        }
         if (host_reg != REG_ECX)
         {
                 addbyte(0x89); /*MOV ECX, host_reg*/
@@ -851,9 +963,17 @@ static void MEM_STORE_ADDR_EA_L(x86seg *seg, int host_reg)
 }
 static void MEM_STORE_ADDR_EA_L_NO_ABRT(x86seg *seg, int host_reg)
 {
-        addbyte(0x8b); /*MOVL ESI, seg->base*/
-        addbyte(0x05 | (REG_ESI << 3));
-        addlong((uint32_t)&seg->base);
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+        {
+                addbyte(0x31); /*XOR ESI, ESI*/
+                addbyte(0xf6);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL ESI, seg->base*/
+                addbyte(0x05 | (REG_ESI << 3));
+                addlong((uint32_t)&seg->base);
+        }
         if (host_reg != REG_ECX)
         {
                 addbyte(0x89); /*MOV ECX, host_reg*/
@@ -874,9 +994,17 @@ static void MEM_STORE_ADDR_EA_Q(x86seg *seg, int host_reg, int host_reg2)
                 addbyte(0x89); /*MOV ECX, host_reg2*/
                 addbyte(0xc0 | REG_ECX | (host_reg2 << 3));
         }
-        addbyte(0x8b); /*MOVL ESI, seg->base*/
-        addbyte(0x05 | (REG_ESI << 3));
-        addlong((uint32_t)&seg->base);
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+        {
+                addbyte(0x31); /*XOR ESI, ESI*/
+                addbyte(0xf6);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL ESI, seg->base*/
+                addbyte(0x05 | (REG_ESI << 3));
+                addlong((uint32_t)&seg->base);
+        }
         addbyte(0xe8); /*CALL mem_store_addr_ea_q*/
         addlong(mem_store_addr_ea_q - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
 }
@@ -3792,9 +3920,17 @@ static void LOAD_EA()
 static void MEM_CHECK_WRITE(x86seg *seg)
 {
         CHECK_SEG_WRITE(seg);
-        addbyte(0x8b); /*MOVL ESI, seg->base*/
-        addbyte(0x05 | (REG_ESI << 3));
-        addlong((uint32_t)&seg->base);
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+        {
+                addbyte(0x31); /*XOR ESI, ESI*/
+                addbyte(0xf6);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL ESI, seg->base*/
+                addbyte(0x05 | (REG_ESI << 3));
+                addlong((uint32_t)&seg->base);
+        }
         addbyte(0xe8); /*CALL mem_check_write*/
         addlong(mem_check_write - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
         LOAD_EA();
@@ -3802,9 +3938,17 @@ static void MEM_CHECK_WRITE(x86seg *seg)
 static void MEM_CHECK_WRITE_W(x86seg *seg)
 {
         CHECK_SEG_WRITE(seg);
-        addbyte(0x8b); /*MOVL ESI, seg->base*/
-        addbyte(0x05 | (REG_ESI << 3));
-        addlong((uint32_t)&seg->base);
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+        {
+                addbyte(0x31); /*XOR ESI, ESI*/
+                addbyte(0xf6);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL ESI, seg->base*/
+                addbyte(0x05 | (REG_ESI << 3));
+                addlong((uint32_t)&seg->base);
+        }
         addbyte(0xe8); /*CALL mem_check_write_w*/
         addlong(mem_check_write_w - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
         LOAD_EA();
@@ -3812,9 +3956,17 @@ static void MEM_CHECK_WRITE_W(x86seg *seg)
 static void MEM_CHECK_WRITE_L(x86seg *seg)
 {
         CHECK_SEG_WRITE(seg);
-        addbyte(0x8b); /*MOVL ESI, seg->base*/
-        addbyte(0x05 | (REG_ESI << 3));
-        addlong((uint32_t)&seg->base);
+        if ((seg == &_ds && codegen_flat_ds) || (seg == &_ss && codegen_flat_ss))
+        {
+                addbyte(0x31); /*XOR ESI, ESI*/
+                addbyte(0xf6);
+        }
+        else
+        {
+                addbyte(0x8b); /*MOVL ESI, seg->base*/
+                addbyte(0x05 | (REG_ESI << 3));
+                addlong((uint32_t)&seg->base);
+        }
         addbyte(0xe8); /*CALL mem_check_write_l*/
         addlong(mem_check_write_l - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
         LOAD_EA();

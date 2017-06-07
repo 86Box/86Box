@@ -88,8 +88,8 @@ void opl2_update2(opl_t *opl)
                 opl2_update(1, &opl->buffer[opl->pos*2 + 1], sound_pos_global - opl->pos);
                 for (; opl->pos < sound_pos_global; opl->pos++)
                 {
-                        opl->filtbuf[0] = opl->buffer[opl->pos*2]   = (opl->buffer[opl->pos*2]   / 4) + ((opl->filtbuf[0] * 11) / 16);
-                        opl->filtbuf[1] = opl->buffer[opl->pos*2+1] = (opl->buffer[opl->pos*2+1] / 4) + ((opl->filtbuf[1] * 11) / 16);
+                        opl->filtbuf[0] = opl->buffer[opl->pos*2]   = (opl->buffer[opl->pos*2]   / 2);
+                        opl->filtbuf[1] = opl->buffer[opl->pos*2+1] = (opl->buffer[opl->pos*2+1] / 2);
                 }
         }
 }
@@ -101,8 +101,8 @@ void opl3_update2(opl_t *opl)
                 opl3_update(0, &opl->buffer[opl->pos*2], sound_pos_global - opl->pos);
                 for (; opl->pos < sound_pos_global; opl->pos++)
                 {
-                        opl->filtbuf[0] = opl->buffer[opl->pos*2]   = (opl->buffer[opl->pos*2]   / 4) + ((opl->filtbuf[0] * 11) / 16);
-                        opl->filtbuf[1] = opl->buffer[opl->pos*2+1] = (opl->buffer[opl->pos*2+1] / 4) + ((opl->filtbuf[1] * 11) / 16);
+                        opl->filtbuf[0] = opl->buffer[opl->pos*2]   = (opl->buffer[opl->pos*2]   / 2);
+                        opl->filtbuf[1] = opl->buffer[opl->pos*2+1] = (opl->buffer[opl->pos*2+1] / 2);
                 }
         }
 }

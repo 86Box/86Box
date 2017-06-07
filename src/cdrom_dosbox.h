@@ -103,8 +103,8 @@ class CDROM_Interface_Image : public CDROM_Interface
 private:
 	class TrackFile {
 	public:
-		virtual bool read(Bit8u *buffer, int seek, int count) = 0;
-		virtual int getLength() = 0;
+		virtual bool read(Bit8u *buffer, uint64_t seek, uint64_t count) = 0;
+		virtual uint64_t getLength() = 0;
 		virtual ~TrackFile() { };
 	};
 	
@@ -112,21 +112,22 @@ private:
 	public:
 		BinaryFile(const char *filename, bool &error);
 		~BinaryFile();
-		bool read(Bit8u *buffer, int seek, int count);
-		int getLength();
+		bool read(Bit8u *buffer, uint64_t seek, uint64_t count);
+		uint64_t getLength();
 	private:
 		BinaryFile();
-		std::ifstream *file;
+		char fn[260];
+		FILE *file;
 	};
 	
 	struct Track {
 		int number;
 		int track_number;
 		int attr;
-		int start;
-		int length;
-		int skip;
-		int sectorSize;
+		uint64_t start;
+		uint64_t length;
+		uint64_t skip;
+		uint64_t sectorSize;
 		bool mode2;
 		TrackFile *file;
 	};
@@ -156,14 +157,14 @@ static	void	CDAudioCallBack(Bitu len);
 
 	void 	ClearTracks();
 	bool	LoadIsoFile(char *filename);
-	bool	CanReadPVD(TrackFile *file, int sectorSize, bool mode2);
+	bool	CanReadPVD(TrackFile *file, uint64_t sectorSize, bool mode2);
 	// cue sheet processing
 	bool	LoadCueSheet(char *cuefile);
 	bool	GetRealFileName(std::string& filename, std::string& pathname);
 	bool	GetCueKeyword(std::string &keyword, std::istream &in);
-	bool	GetCueFrame(int &frames, std::istream &in);
+	bool	GetCueFrame(uint64_t &frames, std::istream &in);
 	bool	GetCueString(std::string &str, std::istream &in);
-	bool	AddTrack(Track &curr, int &shift, int prestart, int &totalPregap, int currPregap);
+	bool	AddTrack(Track &curr, uint64_t &shift, uint64_t prestart, uint64_t &totalPregap, uint64_t currPregap);
 
 	std::vector<Track>	tracks;
 typedef	std::vector<Track>::iterator	track_it;

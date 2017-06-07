@@ -11,13 +11,14 @@
 #include "../device.h"
 #include "../gameport.h"
 #include "plat_joystick.h"
-#include "resource.h"
 #include "win.h"
+
 
 static int joystick_nr;
 static int joystick_config_type;
 #define AXIS_STRINGS_MAX 3
 static char *axis_strings[AXIS_STRINGS_MAX] = {"X Axis", "Y Axis", "Z Axis"};
+
 
 static void rebuild_axis_button_selections(HWND hdlg)
 {

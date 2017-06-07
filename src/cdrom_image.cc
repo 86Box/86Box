@@ -779,7 +779,6 @@ static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack,
                         break;
                 cdimg[id]->GetAudioTrackInfo(c+1, number, tmsf, attr);
 
-//                pclog("Len %i max %i Track %02X - %02X %02X %02i:%02i:%02i %08X\n",len,maxlen,toc[c].cdte_track,toc[c].cdte_adr,toc[c].cdte_ctrl,toc[c].cdte_addr.msf.minute, toc[c].cdte_addr.msf.second, toc[c].cdte_addr.msf.frame,MSFtoLBA(toc[c].cdte_addr.msf.minute, toc[c].cdte_addr.msf.second, toc[c].cdte_addr.msf.frame));
                 b[len++] = 0; /* reserved */
                 b[len++] = attr;
                 b[len++] = number; /* track number */
@@ -805,20 +804,6 @@ static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack,
         }
         b[0] = (uint8_t)(((len-2) >> 8) & 0xff);
         b[1] = (uint8_t)((len-2) & 0xff);
-        /*
-        pclog("Table of Contents:\n");
-        pclog("First track - %02X\n", first_track);
-        pclog("Last  track - %02X\n", last_track);
-        for (c = 0; c <= last_track; c++)
-        {
-                cdimg[id]->GetAudioTrackInfo(c+1, number, tmsf, attr);
-                pclog("Track %02X - number %02X control %02X adr %02X address %02X %02X %02X %02X\n", c, number, attr, 0, 0, tmsf.min, tmsf.sec, tmsf.fr);
-        }
-        for (c = 0;c <= last_track; c++) {
-                cdimg[id]->GetAudioTrackInfo(c+1, number, tmsf, attr);
-            pclog("Track %02X - number %02X control %02X adr %02X address %06X\n", c, number, attr, 0, MSF_TO_FRAMES(tmsf.min, tmsf.sec, tmsf.fr));
-        }
-        */
         return len;
 }
 
@@ -869,7 +854,7 @@ static int image_readtoc_session(uint8_t id, unsigned char *b, int msf, int maxl
         return len;
 }
 
-static int image_readtoc_raw(uint8_t id, unsigned char *b, int msf, int maxlen)
+static int image_readtoc_raw(uint8_t id, unsigned char *b, int maxlen)
 {
         int track;
         int len = 4;
@@ -935,6 +920,7 @@ static int image_status(uint8_t id)
 
 void image_reset(uint8_t id)
 {
+	return;
 }
 
 void image_close(uint8_t id)
@@ -994,7 +980,6 @@ int image_open(uint8_t id, wchar_t *fn)
 			cdrom_image[id].image_inited = 1;
 	}
 
-	update_status_bar_icon_state(0x10 | id, 0);
         return 0;
 }
 

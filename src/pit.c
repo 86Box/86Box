@@ -25,6 +25,11 @@ double PITCONST;
 float cpuclock;
 float isa_timing, bus_timing;
 
+float CGACONST;
+float MDACONST;
+float VGACONST1,VGACONST2;
+float RTCCONST;
+
 int firsttime=1;
 void setpitclock(float clock)
 {

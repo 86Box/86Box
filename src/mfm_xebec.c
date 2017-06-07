@@ -374,7 +374,7 @@ static void xebec_callback(void *p)
                                 
                         xebec_complete(xebec);
 
-	                update_status_bar_icon(0x30, 1);
+	                update_status_bar_icon(SB_HDD | HDD_BUS_MFM, 1);
                         break;
                                                 
                         default:
@@ -431,7 +431,7 @@ static void xebec_callback(void *p)
 
                                 fseeko64(drive->hdfile, addr * 512, SEEK_SET);
                                 fread(xebec->sector_buf, 512, 1, drive->hdfile);
-		                update_status_bar_icon(0x30, 1);
+		                update_status_bar_icon(SB_HDD | HDD_BUS_MFM, 1);
                         }
                         if (xebec->irq_dma_mask & DMA_ENA)
                                 xebec->callback = XEBEC_TIME;
@@ -485,7 +485,7 @@ static void xebec_callback(void *p)
 
                                 fseeko64(drive->hdfile, addr * 512, SEEK_SET);
                                 fread(xebec->sector_buf, 512, 1, drive->hdfile);
-		                update_status_bar_icon(0x30, 1);
+		                update_status_bar_icon(SB_HDD | HDD_BUS_MFM, 1);
 
                                 xebec->state = STATE_SEND_DATA;
                                 
@@ -500,7 +500,7 @@ static void xebec_callback(void *p)
                         else
 			{
                                 xebec_complete(xebec);
-		                update_status_bar_icon(0x30, 0);
+		                update_status_bar_icon(SB_HDD | HDD_BUS_MFM, 0);
 			}
                         break;
 
@@ -572,7 +572,7 @@ static void xebec_callback(void *p)
                                 fwrite(xebec->sector_buf, 512, 1, drive->hdfile);
                         }
                                 
-	                update_status_bar_icon(0x30, 1);
+	                update_status_bar_icon(SB_HDD | HDD_BUS_MFM, 1);
                         
                         xebec_next_sector(xebec);
                         xebec->data_pos = 0;
@@ -851,9 +851,9 @@ static void *xebec_init()
 
 	for (i = 0; i < HDC_NUM; i++)
 	{
-		if ((hdc[i].bus == 1) && (hdc[i].mfm_channel < MFM_NUM))
+		if ((hdc[i].bus == HDD_BUS_MFM) && (hdc[i].mfm_channel < MFM_NUM))
 		{
-			loadhd(xebec, i, hdc[i].mfm_channel, hdd_fn[i]);
+			loadhd(xebec, i, hdc[i].mfm_channel, hdc[i].fn);
 			c++;
 			if (c > MFM_NUM)  break;
 		}
@@ -914,9 +914,9 @@ static void *dtc_5150x_init()
 
 	for (i = 0; i < HDC_NUM; i++)
 	{
-		if ((hdc[i].bus == 1) && (hdc[i].mfm_channel < MFM_NUM))
+		if ((hdc[i].bus == HDD_BUS_MFM) && (hdc[i].mfm_channel < MFM_NUM))
 		{
-			loadhd(xebec, i, hdc[i].mfm_channel, hdd_fn[i]);
+			loadhd(xebec, i, hdc[i].mfm_channel, hdc[i].fn);
 			c++;
 			if (c > MFM_NUM)  break;
 		}

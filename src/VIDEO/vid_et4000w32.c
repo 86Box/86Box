@@ -10,7 +10,7 @@
 #include "../pci.h"
 #include "../rom.h"
 #include "../device.h"
-#include "../thread.h"
+#include "../win/plat_thread.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_icd2061.h"
@@ -235,14 +235,6 @@ uint8_t et4000w32p_in(uint16_t addr, void *p)
                 return svga->crtcreg;
                 case 0x3D5:
                 return svga->crtc[svga->crtcreg];
-                
-                case 0x3DA:
-                svga->attrff = 0;
-                svga->cgastat ^= 0x30;
-                temp = svga->cgastat & 0x39;
-                if (svga->hdisp_on) temp |= 2;
-                if (!(svga->cgastat & 8)) temp |= 0x80;
-                return temp;
 
                 case 0x210A: case 0x211A: case 0x212A: case 0x213A:
                 case 0x214A: case 0x215A: case 0x216A: case 0x217A:

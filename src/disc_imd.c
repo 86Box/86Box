@@ -1,6 +1,19 @@
-/* Copyright holders: Kiririn
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Implementation of the IMD floppy image format.
+ *
+ * Version:	@(#)disc_imd.c	1.0.0	2017/05/30
+ *
+ * Author:	Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2016-2017 Miran Grca.
+ */
+
 #include "ibm.h"
 #include "disc.h"
 #include "disc_imd.h"
@@ -80,7 +93,7 @@ void imd_load(int drive, wchar_t *fn)
                 imd[drive].f = _wfopen(fn, L"rb");
                 if (!imd[drive].f)
 		{
-			update_status_bar_icon_state(drive, 1);
+			memset(discfns[drive], 0, sizeof(discfns[drive]));
                         return;
 		}
                 writeprot[drive] = 1;
@@ -97,7 +110,7 @@ void imd_load(int drive, wchar_t *fn)
 	{
 		pclog("IMD: Not a valid ImageDisk image\n");
 		fclose(imd[drive].f);
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 	else
@@ -118,7 +131,7 @@ void imd_load(int drive, wchar_t *fn)
 	{
 		pclog("IMD: No ASCII EOF character\n");
 		fclose(imd[drive].f);
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 	else
@@ -131,7 +144,7 @@ void imd_load(int drive, wchar_t *fn)
 	{
 		pclog("IMD: File ends after ASCII EOF character\n");
 		fclose(imd[drive].f);
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 	else
@@ -250,7 +263,7 @@ void imd_load(int drive, wchar_t *fn)
 				/* If we can't fit the sectors with a reasonable minimum gap even at 2% slower RPM, abort. */
 				pclog("IMD: Unable to fit the %i sectors in a track\n", track_spt);
 				fclose(imd[drive].f);
-				update_status_bar_icon_state(drive, 1);
+				memset(discfns[drive], 0, sizeof(discfns[drive]));
 				return;
 			}
 		}

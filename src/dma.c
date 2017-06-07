@@ -1,6 +1,20 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Implementation of the Intel DMA controllers.
+ *
+ * Version:	@(#)dma.c	1.0.1	2017/06/03
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
 #include "ibm.h"
 #include "cpu/x86.h"
 #include "mem.h"
@@ -12,9 +26,12 @@ static uint8_t dmaregs[16];
 static uint8_t dma16regs[16];
 static uint8_t dmapages[16];
 
+DMA dma, dma16;
+
 
 void dma_reset(void)
 {
+#if 1
         int c;
         dma.wp = 0;
         for (c = 0; c < 16; c++) 
@@ -41,6 +58,13 @@ void dma_reset(void)
                 dma16.cb[c] = 0;
         }
         dma16.m = 0;
+#else
+	memset(dmaregs, 0, 16);
+	memset(dma16regs, 0, 16);
+	memset(dmapages, 0, 16);
+	memset(&dma, 0, sizeof(DMA));
+	memset(&dma16, 0, sizeof(DMA));
+#endif
 }
 
 uint8_t dma_read(uint16_t addr, void *priv)
@@ -481,7 +505,7 @@ void dma_alias_remove_piix(void)
         io_removehandler(0x009C, 0x0003, dma_page_read, NULL, NULL, dma_page_write, NULL, NULL,  NULL);
 }
 
-void ps2_dma_init()
+void ps2_dma_init(void)
 {
         io_sethandler(0x0018, 0x0001, dma_ps2_read,  NULL, NULL, dma_ps2_write,  NULL, NULL,  NULL);
         io_sethandler(0x001a, 0x0001, dma_ps2_read,  NULL, NULL, dma_ps2_write,  NULL, NULL,  NULL);

@@ -1,6 +1,20 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Direct3D 9 full screen rendererer and screenshots taking.
+ *
+ * Version:	@(#)win_d3d_fs.cc	1.0.1	2017/06/03
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
 #include <stdint.h>
 #include <stdio.h>
 #include "../86box.h"
@@ -8,7 +22,6 @@
 #include "win.h"
 #include "win_d3d.h"
 #include "win_cgapal.h"
-#include "resource.h"
 
 
 extern "C" void fatal(const char *format, ...);
@@ -83,13 +96,13 @@ PALETTE cgapal_mono[6] =
 		{0x2c,0x13,0x00},{0x32,0x17,0x00},{0x3a,0x1e,0x00},{0x3c,0x1f,0x00},{0x3f,0x27,0x01},{0x3f,0x2a,0x04},{0x3f,0x36,0x0c},{0x3f,0x38,0x0d},
 	},
 	{ // 4 - grey, 4-color-optimized contrast
-		{0x00,0x00,0x00},{0x0b,0x0c,0x0a},{0x12,0x14,0x10},{0x15,0x17,0x13},{0x21,0x24,0x1e},{0x23,0x26,0x21},{0x30,0x31,0x2e},{0x34,0x35,0x33},
-		{0x07,0x08,0x07},{0x0e,0x0f,0x0d},{0x19,0x1b,0x16},{0x1c,0x1f,0x1a},{0x28,0x2b,0x26},{0x2b,0x2d,0x2a},{0x37,0x38,0x37},{0x3d,0x3d,0x3c},
+		{0x00,0x00,0x00},{0x0e,0x0f,0x10},{0x15,0x17,0x18},{0x18,0x1a,0x1b},{0x24,0x25,0x25},{0x27,0x28,0x28},{0x33,0x34,0x32},{0x37,0x38,0x35},
+		{0x09,0x0a,0x0b},{0x11,0x12,0x13},{0x1c,0x1e,0x1e},{0x20,0x22,0x22},{0x2c,0x2d,0x2c},{0x2f,0x30,0x2f},{0x3c,0x3c,0x38},{0x3f,0x3f,0x3b},
 	},
 	{ // 5 - grey, 16-color-optimized contrast
-		{0x00,0x00,0x00},{0x0b,0x0c,0x0a},{0x0f,0x11,0x0e},{0x12,0x14,0x10},{0x1b,0x1d,0x18},{0x1c,0x1f,0x1a},{0x25,0x28,0x23},{0x28,0x2b,0x26},
-		{0x1c,0x1e,0x19},{0x20,0x23,0x1d},{0x27,0x2a,0x25},{0x29,0x2c,0x27},{0x31,0x32,0x30},{0x33,0x34,0x32},{0x3a,0x3b,0x3a},{0x3d,0x3d,0x3c},
-	},
+		{0x00,0x00,0x00},{0x0e,0x0f,0x10},{0x13,0x14,0x15},{0x15,0x17,0x18},{0x1e,0x20,0x20},{0x20,0x22,0x22},{0x29,0x2a,0x2a},{0x2c,0x2d,0x2c},
+		{0x1f,0x21,0x21},{0x23,0x25,0x25},{0x2b,0x2c,0x2b},{0x2d,0x2e,0x2d},{0x34,0x35,0x33},{0x37,0x37,0x34},{0x3e,0x3e,0x3a},{0x3f,0x3f,0x3b},
+	}
 };
 
 uint32_t pal_lookup[256];
@@ -115,20 +128,33 @@ void cgapal_rebuild(void)
 	}
 	if ((cga_palette > 1) && (cga_palette < 8))
 	{
-	        for (c = 0; c < 16; c++)
+		if (vid_cga_contrast != 0)
 		{
-			pal_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r], video_6to8[cgapal_mono[cga_palette - 1][c].g], video_6to8[cgapal_mono[cga_palette - 1][c].b]);
-			pal_lookup[c + 16] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r], video_6to8[cgapal_mono[cga_palette - 1][c].g], video_6to8[cgapal_mono[cga_palette - 1][c].b]);
-			pal_lookup[c + 32] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r], video_6to8[cgapal_mono[cga_palette - 1][c].g], video_6to8[cgapal_mono[cga_palette - 1][c].b]);
-			pal_lookup[c + 48] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r], video_6to8[cgapal_mono[cga_palette - 1][c].g], video_6to8[cgapal_mono[cga_palette - 1][c].b]);
-		}
-	}
+                        for (c = 0; c < 16; c++)
+                        {
+                                pal_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r], video_6to8[cgapal_mono[cga_palette - 2][c].g], video_6to8[cgapal_mono[cga_palette - 2][c].b]);
+                                pal_lookup[c + 16] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r], video_6to8[cgapal_mono[cga_palette - 2][c].g], video_6to8[cgapal_mono[cga_palette - 2][c].b]);
+                                pal_lookup[c + 32] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r], video_6to8[cgapal_mono[cga_palette - 2][c].g], video_6to8[cgapal_mono[cga_palette - 2][c].b]);
+                                pal_lookup[c + 48] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r], video_6to8[cgapal_mono[cga_palette - 2][c].g], video_6to8[cgapal_mono[cga_palette - 2][c].b]);
+                        }
+                }
+                else
+                {
+                        for (c = 0; c < 16; c++)
+                        {
+                                pal_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r], video_6to8[cgapal_mono[cga_palette - 1][c].g], video_6to8[cgapal_mono[cga_palette - 1][c].b]);
+                                pal_lookup[c + 16] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r], video_6to8[cgapal_mono[cga_palette - 1][c].g], video_6to8[cgapal_mono[cga_palette - 1][c].b]);
+                                pal_lookup[c + 32] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r], video_6to8[cgapal_mono[cga_palette - 1][c].g], video_6to8[cgapal_mono[cga_palette - 1][c].b]);
+                                pal_lookup[c + 48] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r], video_6to8[cgapal_mono[cga_palette - 1][c].g], video_6to8[cgapal_mono[cga_palette - 1][c].b]);
+                        }
+                }
+        }
+
 	if (cga_palette == 8)
 	{
 		pal_lookup[0x16] = makecol(video_6to8[42], video_6to8[42], video_6to8[0]);
 	}
 }
-  
 
 int d3d_fs_init(HWND h)
 {
@@ -142,7 +168,8 @@ int d3d_fs_init(HWND h)
 
         d3d_hwnd = h;
 
-	_swprintf(emulator_title, L"86Box v%s", emulator_version_w);
+	/*FIXME: should be done once, in win.c */
+	_swprintf(emulator_title, L"%s v%s", EMU_NAME_W, EMU_VERSION_W);
         d3d_device_window = CreateWindowEx (
                 0,
                 szSubClassName,

@@ -1,6 +1,26 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Emulation of the EGA, Chips & Technologies SuperEGA, and
+ *		AX JEGA graphics cards.
+ *
+ * Version:	@(#)vid_ega.h	1.0.0	2017/05/30
+ *
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		akm,
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2017-2017 akm.
+ */
+
+#include <stdint.h>
+
 typedef struct ega_t
 {
         mem_mapping_t mapping;
@@ -68,6 +88,12 @@ typedef struct ega_t
         int vrammask;
 
         int video_res_x, video_res_y, video_bpp;
+
+	uint8_t RMOD1, RMOD2, RDAGS, RDFFB, RDFSB, RDFAP, RPESL, RPULP, RPSSC, RPSSU, RPSSL;
+	uint8_t RPPAJ;
+	uint8_t RCMOD, RCCLH, RCCLL, RCCSL, RCCEL, RCSKW, ROMSL, RSTAT;
+	int is_jega, font_index;
+	int chr_left, chr_wide;
 } ega_t;
 
 extern int update_overscan;

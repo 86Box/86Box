@@ -1,8 +1,21 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
-/*Win32 CD-ROM support via IOCTL*/
-
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Implementation of the CD-ROM host drive IOCTL interface for
+ *		Windows using SCSI Passthrough Direct.
+ *
+ * Version:	@(#)cdrom_ioctl.c	1.0.2	2017/06/03
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2016 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
 #define WINVER 0x0600
 #include <windows.h>
 #include <io.h>
@@ -21,6 +34,7 @@ typedef struct
 {
 	HANDLE hIOCTL;
 	CDROM_TOC toc;
+	int is_playing;
 } cdrom_ioctl_windows_t;
 
 cdrom_ioctl_windows_t cdrom_ioctl_windows[CDROM_NUM];
@@ -48,6 +62,8 @@ void cdrom_ioctl_log(const char *format, ...)
 #endif
 }
 
+static int ioctl_hopen(uint8_t id);
+
 void ioctl_audio_callback(uint8_t id, int16_t *output, int len)
 {
 	RAW_READ_INFO in;
@@ -70,10 +86,11 @@ void ioctl_audio_callback(uint8_t id, int16_t *output, int len)
 			in.DiskOffset.HighPart	= 0;
 			in.SectorCount		= 1;
 			in.TrackMode		= CDDA;		
-			ioctl_open(id, 0);
 			if (!DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL, IOCTL_CDROM_RAW_READ, &in, sizeof(in), &(cdrom_ioctl[id].cd_buffer[cdrom_ioctl[id].cd_buflen]), 2352, &count, NULL))
 			{
 				memset(&(cdrom_ioctl[id].cd_buffer[cdrom_ioctl[id].cd_buflen]), 0, (BUF_SIZE - cdrom_ioctl[id].cd_buflen) * 2);
+				cdrom_ioctl_windows[id].is_playing = 0;
+				ioctl_close(id);
 				cdrom_ioctl[id].cd_state = CD_STOPPED;
 				cdrom_ioctl[id].cd_buflen = len;
 			}
@@ -82,11 +99,12 @@ void ioctl_audio_callback(uint8_t id, int16_t *output, int len)
 				cdrom[id].seek_pos++;
 				cdrom_ioctl[id].cd_buflen += (2352 / 2);
 			}
-			ioctl_close(id);
 		}
 		else
 		{
 			memset(&(cdrom_ioctl[id].cd_buffer[cdrom_ioctl[id].cd_buflen]), 0, (BUF_SIZE - cdrom_ioctl[id].cd_buflen) * 2);
+			cdrom_ioctl_windows[id].is_playing = 0;
+			ioctl_close(id);
 			cdrom_ioctl[id].cd_state = CD_STOPPED;
 			cdrom_ioctl[id].cd_buflen = len;                        
 		}
@@ -98,6 +116,8 @@ void ioctl_audio_callback(uint8_t id, int16_t *output, int len)
 
 void ioctl_audio_stop(uint8_t id)
 {
+	cdrom_ioctl_windows[id].is_playing = 0;
+	ioctl_close(id);
 	cdrom_ioctl[id].cd_state = CD_STOPPED;
 }
 
@@ -218,6 +238,11 @@ static void ioctl_playaudio(uint8_t id, uint32_t pos, uint32_t len, int ismsf)
 		/* Adjust because the host expects a minimum adjusted LBA of 0 which is equivalent to an absolute LBA of 150. */
 		cdrom[id].seek_pos = 150;
 	}
+	if (!cdrom_ioctl_windows[id].is_playing)
+	{
+		ioctl_hopen(id);
+		cdrom_ioctl_windows[id].is_playing = 1;
+	}
 	cdrom_ioctl[id].cd_state = CD_PLAYING;
 }
 
@@ -251,6 +276,11 @@ static void ioctl_stop(uint8_t id)
 	{
 		return;
 	}
+	if (cdrom_ioctl_windows[id].is_playing)
+	{
+		cdrom_ioctl_windows[id].is_playing = 0;
+		ioctl_close(id);
+	}
 	cdrom_ioctl[id].cd_state = CD_STOPPED;
 }
 
@@ -263,9 +293,16 @@ static int ioctl_ready(uint8_t id)
 	{
 		return 0;
 	}
-	ioctl_open(id, 0);
-	temp = DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL, IOCTL_CDROM_READ_TOC, NULL, 0, &ltoc, sizeof(ltoc), &size, NULL);
-	ioctl_close(id);
+	if (cdrom_ioctl_windows[id].hIOCTL == NULL)
+	{
+		ioctl_hopen(id);
+		temp = DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL, IOCTL_CDROM_READ_TOC, NULL, 0, &ltoc, sizeof(ltoc), &size, NULL);
+		ioctl_close(id);
+	}
+	else
+	{
+		temp = DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL, IOCTL_CDROM_READ_TOC, NULL, 0, &ltoc, sizeof(ltoc), &size, NULL);
+	}
 	if (!temp)
 	{
 		return 0;
@@ -296,7 +333,7 @@ static int ioctl_get_last_block(uint8_t id, unsigned char starttrack, int msf, i
 		return 0;
 	}
 	cdrom_ioctl[id].cd_state = CD_STOPPED;
-	ioctl_open(id, 0);
+	ioctl_hopen(id);
 	DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL, IOCTL_CDROM_READ_TOC, NULL, 0, &lbtoc, sizeof(lbtoc), &size, NULL);
 	ioctl_close(id);
 	cdrom_ioctl[id].tocvalid=1;
@@ -312,6 +349,8 @@ static int ioctl_get_last_block(uint8_t id, unsigned char starttrack, int msf, i
 	return lb;
 }
 
+static void ioctl_read_capacity(uint8_t id, uint8_t *b);
+
 static int ioctl_medium_changed(uint8_t id)
 {
 	unsigned long size;
@@ -321,7 +360,7 @@ static int ioctl_medium_changed(uint8_t id)
 	{
 		return 0;		/* This will be handled by the not ready handler instead. */
 	}
-	ioctl_open(id, 0);
+	ioctl_hopen(id);
 	temp = DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL, IOCTL_CDROM_READ_TOC, NULL, 0, &ltoc,sizeof(ltoc), &size, NULL);
 	ioctl_close(id);
 	if (!temp)
@@ -337,6 +376,10 @@ static int ioctl_medium_changed(uint8_t id)
 		{
 			cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
 		}
+		ioctl_hopen(id);
+		cdrom_ioctl[id].capacity_read=0;	/* With this two lines, we read the READ CAPACITY command output from the host drive into our cache buffer. */
+		ioctl_read_capacity(id, NULL);
+		ioctl_close(id);
 		cdrom_ioctl[id].cdrom_capacity = ioctl_get_last_block(id, 0, 0, 4096, 0);
 		return 1;
 	}
@@ -349,6 +392,10 @@ static int ioctl_medium_changed(uint8_t id)
 			cdrom_ioctl[id].cd_state = CD_STOPPED;
 			cdrom_ioctl_log("Setting TOC...\n");
 			cdrom_ioctl_windows[id].toc = ltoc;
+			ioctl_hopen(id);
+			cdrom_ioctl[id].capacity_read=0;	/* With this two lines, we read the READ CAPACITY command output from the host drive into our cache buffer. */
+			ioctl_read_capacity(id, NULL);
+			ioctl_close(id);
 			cdrom_ioctl[id].cdrom_capacity = ioctl_get_last_block(id, 0, 0, 4096, 0);
 			return 1; /* TOC mismatches. */
 		}
@@ -376,7 +423,7 @@ static uint8_t ioctl_getcurrentsubchannel(uint8_t id, uint8_t *b, int msf)
 	else
 	{
 		insub.Format = IOCTL_CDROM_CURRENT_POSITION;
-		ioctl_open(id, 0);
+		ioctl_hopen(id);
 		DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL,IOCTL_CDROM_READ_Q_CHANNEL,&insub,sizeof(insub),&sub,sizeof(sub),&size,NULL);
 		ioctl_close(id);
 		memset(cdrom_ioctl[id].sub_q_data_format, 0, 16);
@@ -471,8 +518,13 @@ static void ioctl_eject(uint8_t id)
 	{
 		return;
 	}
+	if (cdrom_ioctl_windows[id].is_playing)
+	{
+		cdrom_ioctl_windows[id].is_playing = 0;
+		ioctl_stop(id);
+	}
 	cdrom_ioctl[id].cd_state = CD_STOPPED;        
-	ioctl_open(id, 0);
+	ioctl_hopen(id);
 	DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL,IOCTL_STORAGE_EJECT_MEDIA,NULL,0,NULL,0,&size,NULL);
 	ioctl_close(id);
 }
@@ -484,9 +536,16 @@ static void ioctl_load(uint8_t id)
 	{
 		return;
 	}
+	if (cdrom_ioctl_windows[id].is_playing)
+	{
+		cdrom_ioctl_windows[id].is_playing = 0;
+		ioctl_stop(id);
+	}
 	cdrom_ioctl[id].cd_state = CD_STOPPED;        
-	ioctl_open(id, 0);
+	ioctl_hopen(id);
 	DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL,IOCTL_STORAGE_LOAD_MEDIA,NULL,0,NULL,0,&size,NULL);
+	cdrom_ioctl[id].capacity_read=0;	/* With this two lines, we read the READ CAPACITY command output from the host drive into our cache buffer. */
+	ioctl_read_capacity(id, NULL);
 	ioctl_close(id);
 	cdrom_ioctl[id].cdrom_capacity = ioctl_get_last_block(id, 0, 0, 4096, 0);
 }
@@ -583,10 +642,10 @@ struct sptd_with_sense
 
 static int ioctl_get_block_length(uint8_t id, const UCHAR *cdb, int number_of_blocks, int no_length_check)
 {
-  int sector_type = 0;
-  int temp_len = 0;
+	int sector_type = 0;
+	int temp_len = 0;
 
-  if (no_length_check)
+	if (no_length_check)
 	{
 		switch (cdb[0])
 		{
@@ -739,8 +798,6 @@ static void ioctl_read_capacity(uint8_t id, uint8_t *b)
 
 	if (!cdrom_ioctl[id].capacity_read)
 	{
-		ioctl_open(id, 0);
-
 		SCSICommand(id, cdb, buf, &len, 1);
 	
 		memcpy(cdrom_ioctl[id].rcbuf, buf, len);
@@ -750,8 +807,6 @@ static void ioctl_read_capacity(uint8_t id, uint8_t *b)
 	{
 		memcpy(b, cdrom_ioctl[id].rcbuf, 16);
 	}
-	
-	ioctl_close(id);
 }
 
 static int ioctl_media_type_id(uint8_t id)
@@ -768,7 +823,7 @@ static int ioctl_media_type_id(uint8_t id)
 	old_sense[1] = cdrom_asc;
 	old_sense[2] = cdrom_asc;
 	
-	ioctl_open(id, 0);
+	ioctl_hopen(id);
 
 	SCSICommand(id, cdb, msbuf, &len, 1);
 
@@ -832,7 +887,7 @@ static int ioctl_sector_data_type(uint8_t id, int sector, int ismsf)
 	cdb_msf[4] = cdb_msf[7] = ((sector >> 8) & 0xff);
 	cdb_msf[5] = cdb_msf[8] = (sector & 0xff);
 
-	ioctl_open(id, 0);
+	ioctl_hopen(id);
 
 	if (ioctl_is_track_audio(id, sector, ismsf))
 	{
@@ -887,7 +942,7 @@ static void ioctl_validate_toc(uint8_t id)
 		return;
 	}
 	cdrom_ioctl[id].cd_state = CD_STOPPED;        
-	ioctl_open(id, 0);
+	ioctl_hopen(id);
 	cdrom_ioctl_log("Validating TOC...\n");
 	DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL,IOCTL_CDROM_READ_TOC, NULL,0,&cdrom_ioctl_windows[id].toc,sizeof(cdrom_ioctl_windows[id].toc),&size,NULL);
 	ioctl_close(id);
@@ -921,7 +976,7 @@ static int ioctl_pass_through(uint8_t id, uint8_t *in_cdb, uint8_t *b, uint32_t 
 		ioctl_validate_toc(id);
 	}
 
-	ioctl_open(id, 0);
+	ioctl_hopen(id);
 
 	memcpy((void *) cdb, in_cdb, 12);
 	
@@ -980,13 +1035,167 @@ split_block_read_iterate:
 		cdrom_ioctl_log("CD-ROM %i: ioctl_pass_through(): Expected transfer length %i is -1, this indicates an illegal mode\n", id, temp_block_length);
 	}
 
-    cdrom_ioctl_log("IOCTL DATA:  %02X %02X %02X %02X %02X %02X %02X %02X\n", b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7]);
+	cdrom_ioctl_log("IOCTL DATA:  %02X %02X %02X %02X %02X %02X %02X %02X\n", b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7]);
 	
 	ioctl_close(id);
 
 	cdrom_ioctl_log("IOCTL Returned value: %i\n", ret);
 	
 	return ret;
+}
+
+static int ioctl_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack, int msf, int maxlen, int single)
+{
+        int len=4;
+        long size;
+        int c,d;
+        uint32_t temp;
+	uint32_t last_block;
+        if (!cdrom_drives[id].host_drive)
+	{
+		return 0;
+	}
+        cdrom_ioctl[id].cd_state = CD_STOPPED;        
+        ioctl_hopen(id);
+        DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL,IOCTL_CDROM_READ_TOC, NULL,0,&cdrom_ioctl_windows[id].toc,sizeof(cdrom_ioctl_windows[id].toc),&size,NULL);
+        ioctl_close(id);
+        cdrom_ioctl[id].tocvalid = 1;
+        b[2]=cdrom_ioctl_windows[id].toc.FirstTrack;
+        b[3]=cdrom_ioctl_windows[id].toc.LastTrack;
+        d=0;
+        for (c=0;c<=cdrom_ioctl_windows[id].toc.LastTrack;c++)
+        {
+                if (cdrom_ioctl_windows[id].toc.TrackData[c].TrackNumber>=starttrack)
+                {
+                        d=c;
+                        break;
+                }
+        }
+        b[2]=cdrom_ioctl_windows[id].toc.TrackData[c].TrackNumber;
+        last_block = 0;
+        for (c=d;c<=cdrom_ioctl_windows[id].toc.LastTrack;c++)
+        {
+                uint32_t address;
+                if ((len+8)>maxlen) break;
+                b[len++]=0; /*Reserved*/
+                b[len++]=(cdrom_ioctl_windows[id].toc.TrackData[c].Adr<<4)|cdrom_ioctl_windows[id].toc.TrackData[c].Control;
+                b[len++]=cdrom_ioctl_windows[id].toc.TrackData[c].TrackNumber;
+                b[len++]=0; /*Reserved*/
+                address = MSFtoLBA(cdrom_ioctl_windows[id].toc.TrackData[c].Address[1],cdrom_ioctl_windows[id].toc.TrackData[c].Address[2],cdrom_ioctl_windows[id].toc.TrackData[c].Address[3]);
+                if (address > last_block)
+                        last_block = address;
+
+                if (msf)
+                {
+                        b[len++]=cdrom_ioctl_windows[id].toc.TrackData[c].Address[0];
+                        b[len++]=cdrom_ioctl_windows[id].toc.TrackData[c].Address[1];
+                        b[len++]=cdrom_ioctl_windows[id].toc.TrackData[c].Address[2];
+                        b[len++]=cdrom_ioctl_windows[id].toc.TrackData[c].Address[3];
+                }
+                else
+                {
+                        temp=MSFtoLBA(cdrom_ioctl_windows[id].toc.TrackData[c].Address[1],cdrom_ioctl_windows[id].toc.TrackData[c].Address[2],cdrom_ioctl_windows[id].toc.TrackData[c].Address[3]) - 150;
+                        b[len++]=temp>>24;
+                        b[len++]=temp>>16;
+                        b[len++]=temp>>8;
+                        b[len++]=temp;
+                }
+                if (single) break;
+        }
+        b[0] = (uint8_t)(((len-2) >> 8) & 0xff);
+        b[1] = (uint8_t)((len-2) & 0xff);
+        return len;
+}
+
+static int ioctl_readtoc_session(uint8_t id, unsigned char *b, int msf, int maxlen)
+{
+        int len=4;
+        int size;
+        uint32_t temp;
+        CDROM_READ_TOC_EX toc_ex;
+        CDROM_TOC_SESSION_DATA toc;
+        if (!cdrom_drives[id].host_drive)
+	{
+		return 0;
+	}
+        cdrom_ioctl[id].cd_state = CD_STOPPED;        
+        memset(&toc_ex,0,sizeof(toc_ex));
+        memset(&toc,0,sizeof(toc));
+        toc_ex.Format=CDROM_READ_TOC_EX_FORMAT_SESSION;
+        toc_ex.Msf=msf;
+        toc_ex.SessionTrack=0;
+        ioctl_hopen(id);
+        DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL,IOCTL_CDROM_READ_TOC_EX, &toc_ex,sizeof(toc_ex),&toc,sizeof(toc),(PDWORD)&size,NULL);
+        ioctl_close(id);
+        b[2]=toc.FirstCompleteSession;
+        b[3]=toc.LastCompleteSession;
+        b[len++]=0; /*Reserved*/
+        b[len++]=(toc.TrackData[0].Adr<<4)|toc.TrackData[0].Control;
+        b[len++]=toc.TrackData[0].TrackNumber;
+        b[len++]=0; /*Reserved*/
+        if (msf)
+        {
+                b[len++]=toc.TrackData[0].Address[0];
+                b[len++]=toc.TrackData[0].Address[1];
+                b[len++]=toc.TrackData[0].Address[2];
+                b[len++]=toc.TrackData[0].Address[3];
+        }
+        else
+        {
+                temp=MSFtoLBA(toc.TrackData[0].Address[1],toc.TrackData[0].Address[2],toc.TrackData[0].Address[3]) - 150;
+                b[len++]=temp>>24;
+                b[len++]=temp>>16;
+                b[len++]=temp>>8;
+                b[len++]=temp;
+        }
+
+	return len;
+}
+
+static int ioctl_readtoc_raw(uint8_t id, uint8_t *b, int maxlen)
+{
+        int len=4;
+        int size;
+        uint32_t temp;
+	int i;
+	int BytesRead = 0;
+        CDROM_READ_TOC_EX toc_ex;
+        CDROM_TOC_FULL_TOC_DATA toc;
+        if (!cdrom_drives[id].host_drive)
+	{
+		return 0;
+	}
+        cdrom_ioctl[id].cd_state = CD_STOPPED;        
+        memset(&toc_ex,0,sizeof(toc_ex));
+        memset(&toc,0,sizeof(toc));
+        toc_ex.Format=CDROM_READ_TOC_EX_FORMAT_FULL_TOC;
+        toc_ex.Msf=1;
+        toc_ex.SessionTrack=0;
+        ioctl_hopen(id);
+        DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL,IOCTL_CDROM_READ_TOC_EX, &toc_ex,sizeof(toc_ex),&toc,sizeof(toc),(PDWORD)&size,NULL);
+        ioctl_close(id);
+        b[2]=toc.FirstCompleteSession;
+        b[3]=toc.LastCompleteSession;
+
+	size -= sizeof(CDROM_TOC_FULL_TOC_DATA);
+	size /= sizeof(toc.Descriptors[0]);
+
+	for (i = 0; i <= size; i++)
+	{
+                b[len++]=toc.Descriptors[i].SessionNumber;
+                b[len++]=(toc.Descriptors[i].Adr<<4)|toc.Descriptors[i].Control;
+                b[len++]=0;
+                b[len++]=toc.Descriptors[i].Reserved1; /*Reserved*/
+		b[len++]=toc.Descriptors[i].MsfExtra[0];
+		b[len++]=toc.Descriptors[i].MsfExtra[1];
+		b[len++]=toc.Descriptors[i].MsfExtra[2];
+		b[len++]=toc.Descriptors[i].Zero;
+		b[len++]=toc.Descriptors[i].Msf[0];
+		b[len++]=toc.Descriptors[i].Msf[1];
+		b[len++]=toc.Descriptors[i].Msf[2];
+	}
+
+	return len;
 }
 
 static uint32_t ioctl_size(uint8_t id)
@@ -1032,7 +1241,7 @@ void ioctl_reset(uint8_t id)
                 return;
         }
         
-        ioctl_open(id, 0);
+        ioctl_hopen(id);
         DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL, IOCTL_CDROM_READ_TOC, NULL, 0, &ltoc, sizeof(ltoc), &size, NULL);
         ioctl_close(id);
 
@@ -1040,29 +1249,30 @@ void ioctl_reset(uint8_t id)
         cdrom_ioctl[id].tocvalid = 1;
 }
 
+int ioctl_hopen(uint8_t id)
+{
+	if (cdrom_ioctl_windows[id].is_playing)  return 0;
+	cdrom_ioctl_windows[id].hIOCTL = CreateFile(cdrom_ioctl[id].ioctl_path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+	return 0;
+}
+
 int ioctl_open(uint8_t id, char d)
 {
-	if (!cdrom_ioctl[id].ioctl_inited)
-	{
-		sprintf(cdrom_ioctl[id].ioctl_path,"\\\\.\\%c:",d);
-		cdrom_ioctl[id].tocvalid=0;
-	}
+	sprintf(cdrom_ioctl[id].ioctl_path,"\\\\.\\%c:",d);
+	cdrom_ioctl[id].tocvalid=0;
 	cdrom_ioctl_windows[id].hIOCTL = CreateFile(cdrom_ioctl[id].ioctl_path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 	cdrom_drives[id].handler = &ioctl_cdrom;
-	if (!cdrom_ioctl[id].ioctl_inited)
-	{
-		cdrom_ioctl[id].ioctl_inited=1;
-		cdrom_ioctl[id].capacity_read=0;	/* With this two lines, we read the READ CAPACITY command output from the host drive into our cache buffer. */
-		ioctl_read_capacity(id, NULL);
-		CloseHandle(cdrom_ioctl_windows[id].hIOCTL);
-		cdrom_ioctl_windows[id].hIOCTL = NULL;
-		update_status_bar_icon_state(0x10 | id, 0);
-	}
+	cdrom_ioctl[id].ioctl_inited=1;
+	cdrom_ioctl[id].capacity_read=0;	/* With this two lines, we read the READ CAPACITY command output from the host drive into our cache buffer. */
+	ioctl_read_capacity(id, NULL);
+	CloseHandle(cdrom_ioctl_windows[id].hIOCTL);
+	cdrom_ioctl_windows[id].hIOCTL = NULL;
 	return 0;
 }
 
 void ioctl_close(uint8_t id)
 {
+	if (cdrom_ioctl_windows[id].is_playing)  return;
 	if (cdrom_ioctl_windows[id].hIOCTL)
 	{
 		CloseHandle(cdrom_ioctl_windows[id].hIOCTL);
@@ -1072,6 +1282,7 @@ void ioctl_close(uint8_t id)
 
 static void ioctl_exit(uint8_t id)
 {
+	cdrom_ioctl_windows[id].is_playing = 0;
 	ioctl_stop(id);
 	cdrom_ioctl[id].ioctl_inited=0;
 	cdrom_ioctl[id].tocvalid=0;
@@ -1084,9 +1295,9 @@ static CDROM ioctl_cdrom=
 	ioctl_media_type_id,
 	ioctl_audio_callback,
 	ioctl_audio_stop,
-	NULL,
-	NULL,
-	NULL,
+        ioctl_readtoc,
+        ioctl_readtoc_session,
+        ioctl_readtoc_raw,
 	ioctl_getcurrentsubchannel,
 	ioctl_pass_through,
 	NULL,

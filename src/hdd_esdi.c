@@ -433,7 +433,7 @@ static void esdi_callback(void *p)
                                                 fatal("Read past end of drive\n");
                                         fseek(drive->hdfile, esdi->rba * 512, SEEK_SET);
                                         fread(esdi->data, 512, 1, drive->hdfile);
-			                update_status_bar_icon(0x30, 1);
+			                update_status_bar_icon(SB_HDD | HDD_BUS_RLL, 1);
                                 }
                                 while (esdi->data_pos < 256)
                                 {
@@ -522,11 +522,11 @@ static void esdi_callback(void *p)
                                 fwrite(esdi->data, 512, 1, drive->hdfile);
                                 esdi->rba++;
                                 esdi->sector_pos++;
-		                update_status_bar_icon(0x30, 1);
+		                update_status_bar_icon(SB_HDD | HDD_BUS_RLL, 1);
                                         
                                 esdi->data_pos = 0;
                         }
-	                update_status_bar_icon(0x30, 0);
+	                update_status_bar_icon(SB_HDD | HDD_BUS_RLL, 0);
 
                         esdi->status = STATUS_CMD_IN_PROGRESS;
                         esdi->cmd_state = 2;
@@ -848,11 +848,11 @@ static void *esdi_init()
 
 	for (i = 0; i < HDC_NUM; i++)
 	{
-		if ((hdc[i].bus == 1) && (hdc[i].mfm_channel < MFM_NUM))
+		if ((hdc[i].bus == HDD_BUS_RLL) && (hdc[i].rll_channel < RLL_NUM))
 		{
-			loadhd(esdi, i, hdc[i].mfm_channel, hdd_fn[i]);
+			loadhd(esdi, i, hdc[i].rll_channel, hdc[i].fn);
 			c++;
-			if (c >= MFM_NUM)  break;
+			if (c >= RLL_NUM)  break;
 		}
 	}
                 

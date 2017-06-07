@@ -1,3 +1,20 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		XT IDE controller emulation.
+ *
+ * Version:	@(#)xtide.c	1.0.1	2017/06/03
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
 #include <malloc.h>
 #include "ibm.h"
 #include "io.h"
@@ -6,6 +23,10 @@
 #include "device.h"
 #include "ide.h"
 #include "xtide.h"
+
+
+#define XTIDE_ROM_PATH		L"roms/ide_xt.bin"
+#define ATIDE_ROM_PATH		L"roms/ide_at.bin"
 
 
 typedef struct xtide_t
@@ -22,12 +43,12 @@ static void xtide_write(uint16_t port, uint8_t val, void *p)
         switch (port & 0xf)
         {
                 case 0x0:
-                writeidew(0, val | (xtide->data_high << 8));
+                writeidew(4, val | (xtide->data_high << 8));
                 return;
                 
                 case 0x1: case 0x2: case 0x3:
                 case 0x4: case 0x5: case 0x6: case 0x7:
-                writeide(0, (port  & 0xf) | 0x1f0, val);
+                writeide(4, (port  & 0xf) | 0x1f0, val);
                 return;
                 
                 case 0x8:
@@ -35,7 +56,7 @@ static void xtide_write(uint16_t port, uint8_t val, void *p)
                 return;
                 
                 case 0xe:
-                writeide(0, 0x3f6, val);
+                writeide(4, 0x3f6, val);
                 return;
         }
 }
@@ -49,19 +70,19 @@ static uint8_t xtide_read(uint16_t port, void *p)
         switch (port & 0xf)
         {
                 case 0x0:
-                tempw = readidew(0);
+                tempw = readidew(4);
                 xtide->data_high = tempw >> 8;
                 return tempw & 0xff;
                                
                 case 0x1: case 0x2: case 0x3:
                 case 0x4: case 0x5: case 0x6: case 0x7:
-                return readide(0, (port  & 0xf) | 0x1f0);
+                return readide(4, (port  & 0xf) | 0x1f0);
                 
                 case 0x8:
                 return xtide->data_high;
                 
                 case 0xe:
-                return readide(0, 0x3f6);
+                return readide(4, 0x3f6);
 
 		default:
 		return 0xff;
@@ -74,10 +95,8 @@ static void *xtide_init(void)
         xtide_t *xtide = malloc(sizeof(xtide_t));
         memset(xtide, 0, sizeof(xtide_t));
 
-        rom_init(&xtide->bios_rom, L"roms/ide_xt.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
-        ide_init();
-        ide_pri_disable();
-        ide_sec_disable();
+        rom_init(&xtide->bios_rom, XTIDE_ROM_PATH, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        ide_xtide_init();
         io_sethandler(0x0300, 0x0010, xtide_read, NULL, NULL, xtide_write, NULL, NULL, xtide);
         
         return xtide;
@@ -89,7 +108,7 @@ static void *xtide_at_init(void)
         xtide_t *xtide = malloc(sizeof(xtide_t));
         memset(xtide, 0, sizeof(xtide_t));
 
-        rom_init(&xtide->bios_rom, L"roms/ide_at.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&xtide->bios_rom, ATIDE_ROM_PATH, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
         ide_init();
         
         return xtide;
@@ -102,9 +121,7 @@ static void *xtide_ps2_init(void)
         memset(xtide, 0, sizeof(xtide_t));
 
         rom_init(&xtide->bios_rom, L"roms/SIDE1V12.BIN", 0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-        ide_init();
-        ide_pri_disable();
-        ide_sec_disable();
+        ide_xtide_init();
         io_sethandler(0x0360, 0x0010, xtide_read, NULL, NULL, xtide_write, NULL, NULL, xtide);
         
         return xtide;

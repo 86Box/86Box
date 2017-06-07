@@ -1,6 +1,21 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Implementation of the SMC FDC37C665 Super I/O Chip.
+ *
+ * Version:	@(#)fdc37c665.c	1.0.0	2017/05/30
+ *
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
+
 #include "ibm.h"
 
 #include "disc.h"
@@ -31,7 +46,7 @@ static void write_lock(uint8_t val)
 static void ide_handler()
 {
 	uint16_t or_value = 0;
-	if ((romset == ROM_440FX) || (romset == ROM_R418))
+	if ((romset == ROM_440FX) || (romset == ROM_R418) || (romset == ROM_MB500N))
 	{
 		return;
 	}

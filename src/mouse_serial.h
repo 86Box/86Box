@@ -22,6 +22,7 @@
 
 
 extern mouse_t	mouse_serial_microsoft;
+extern mouse_t	mouse_msystems;
 
 
 #endif	/*MOUSE_SERIAL_H*/

@@ -1,6 +1,8 @@
 #include "ibm.h"
+#include "CPU/cpu.h"
 #include "device.h"
 #include "hdd.h"
+#include "model.h"
 
 #include "hdd_esdi.h"
 #include "mfm_at.h"
@@ -12,6 +14,8 @@ char hdd_controller_name[16];
 static device_t null_hdd_device;
 
 static int hdd_controller_current;
+
+hard_disk_t hdc[HDC_NUM];
 
 static struct
 {
@@ -61,7 +65,12 @@ int hdd_controller_current_is_mfm()
 void hdd_controller_init(char *internal_name)
 {
         int c = 0;
-        
+
+	if (models[model].flags & MODEL_HAS_IDE)
+	{
+		return;
+	}
+
         while (hdd_controllers[c].device)
         {
                 if (!strcmp(internal_name, hdd_controllers[c].internal_name))

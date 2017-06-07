@@ -12,8 +12,8 @@
 #include "../rom.h"
 #include "../config.h"
 #include "../device.h"
-#include "../thread.h"
 #include "../timer.h"
+#include "../win/plat_thread.h"
 #include "video.h"
 #include "vid_svga.h"
 #ifndef __unix
@@ -59,6 +59,7 @@
 #include "vid_wy700.h"
 
 
+int vid_cga_contrast = 0;
 int cga_palette = 0;
 
 typedef struct
@@ -104,6 +105,7 @@ static VIDEO_CARD video_cards[] =
         {"Phoenix S3 Trio64",                      "px_trio64",		&s3_phoenix_trio64_device,   GFX_PHOENIX_TRIO64},
         {"Plantronics ColorPlus",                  "plantronics",	&colorplus_device,           GFX_COLORPLUS},
         {"S3 ViRGE/DX",                            "virge375",		&s3_virge_375_device,        GFX_VIRGEDX},
+        {"S3 ViRGE/DX (VBE 2.0)",                  "virge375_vbe20",	&s3_virge_375_4_device,      GFX_VIRGEDX4},
         {"Trident TGUI9440",                       "tgui9440",		&tgui9440_device,            GFX_TGUI9440},
         {"Trident TVGA8900D",                      "tvga8900d",		&tvga8900d_device,           GFX_TVGA},
         {"Tseng ET4000AX",                         "et4000ax",		&et4000_device,              GFX_ET4000},
@@ -203,8 +205,8 @@ uint8_t edatlookup[4][4];
 
 int enable_overscan;
 int overscan_x, overscan_y;
+
 int force_43;
-int enable_flash;
 
 /*Video timing settings -
 

@@ -18,6 +18,11 @@
 
 /* Modified for use with PCem by bit */
 
+#define _LARGEFILE_SOURCE
+#define _LARGEFILE64_SOURCE
+#define _GNU_SOURCE
+#include <stdio.h>
+
 #include <cctype>
 #include <cmath>
 #include <cstdio>
@@ -46,28 +51,38 @@ using namespace std;
 
 CDROM_Interface_Image::BinaryFile::BinaryFile(const char *filename, bool &error)
 {
-	file = new ifstream(filename, ios::in | ios::binary);
-	error = (file == NULL) || (file->fail());
+	// file = fopen64(filename, "rb");
+	// error = (file == NULL);
+	memset(fn, 0, sizeof(fn));
+	strcpy(fn, filename);
+	error = false;
 }
 
 CDROM_Interface_Image::BinaryFile::~BinaryFile()
 {
-	delete file;
+	// delete file;
+	memset(fn, 0, sizeof(fn));
 }
 
-bool CDROM_Interface_Image::BinaryFile::read(Bit8u *buffer, int seek, int count)
+bool CDROM_Interface_Image::BinaryFile::read(Bit8u *buffer, uint64_t seek, uint64_t count)
 {
-	file->seekg(seek, ios::beg);
-	file->read((char*)buffer, count);
-	return !(file->fail());
+	uint64_t offs = 0;
+	file = fopen64(fn, "rb");
+	fseeko64(file, seek, SEEK_SET);
+	offs = fread(buffer, 1, count, file);
+	fclose(file);
+	// return (offs == count);
+	return 1;
 }
 
-int CDROM_Interface_Image::BinaryFile::getLength()
+uint64_t CDROM_Interface_Image::BinaryFile::getLength()
 {
-	file->seekg(0, ios::end);
-	int length = (int)file->tellg();
-	if (file->fail()) return -1;
-	return length;
+	uint64_t ret = 0;
+	file = fopen64(fn, "rb");
+	fseeko64(file, 0, SEEK_END);
+	ret = ftello64(file);
+	fclose(file);
+	return ret;
 }
 
 CDROM_Interface_Image::CDROM_Interface_Image()
@@ -180,9 +195,10 @@ bool CDROM_Interface_Image::ReadSector(Bit8u *buffer, bool raw, unsigned long se
 {
 	int track = GetTrack(sector) - 1;
 	if (track < 0) return false;
-	
-	int seek = tracks[track].skip + (sector - tracks[track].start) * tracks[track].sectorSize;
-	int length = (raw ? RAW_SECTOR_SIZE : COOKED_SECTOR_SIZE);
+
+	uint64_t s = (uint64_t) sector;	
+	uint64_t seek = tracks[track].skip + ((s - tracks[track].start) * tracks[track].sectorSize);
+	uint64_t length = (raw ? RAW_SECTOR_SIZE : COOKED_SECTOR_SIZE);
 	if (tracks[track].sectorSize != RAW_SECTOR_SIZE && raw) return false;
 	if (tracks[track].sectorSize == RAW_SECTOR_SIZE && !tracks[track].mode2 && !raw) seek += 16;
 	if (tracks[track].mode2 && !raw) seek += 24;
@@ -254,10 +270,10 @@ bool CDROM_Interface_Image::LoadIsoFile(char* filename)
 	return true;
 }
 
-bool CDROM_Interface_Image::CanReadPVD(TrackFile *file, int sectorSize, bool mode2)
+bool CDROM_Interface_Image::CanReadPVD(TrackFile *file, uint64_t sectorSize, bool mode2)
 {
 	Bit8u pvd[COOKED_SECTOR_SIZE];
-	int seek = 16 * sectorSize;	// first vd is located at sector 16
+	uint64_t seek = 16 * sectorSize;	// first vd is located at sector 16
 	if (sectorSize == RAW_SECTOR_SIZE && !mode2) seek += 16;
 	if (mode2) seek += 24;
 	file->read(pvd, seek, COOKED_SECTOR_SIZE);
@@ -286,10 +302,10 @@ bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 {
 	Track track = {0, 0, 0, 0, 0, 0, false, NULL};
 	tracks.clear();
-	int shift = 0;
-	int currPregap = 0;
-	int totalPregap = 0;
-	int prestart = 0;
+	uint64_t shift = 0;
+	uint64_t currPregap = 0;
+	uint64_t totalPregap = 0;
+	uint64_t prestart = 0;
 	bool success;
 	bool canAddTrack = false;
 	char tmp[MAX_FILENAME_LENGTH];	// dirname can change its argument
@@ -348,9 +364,9 @@ bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 			canAddTrack = true;
 		}
 		else if (command == "INDEX") {
-			int index;
+			uint64_t index;
 			line >> index;
-			int frame;
+			uint64_t frame;
 			success = GetCueFrame(frame, line);
 			
 			if (index == 1) track.start = frame;
@@ -405,10 +421,10 @@ bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 	return true;
 }
 
-bool CDROM_Interface_Image::AddTrack(Track &curr, int &shift, int prestart, int &totalPregap, int currPregap)
+bool CDROM_Interface_Image::AddTrack(Track &curr, uint64_t &shift, uint64_t prestart, uint64_t &totalPregap, uint64_t currPregap)
 {
 	// frames between index 0(prestart) and 1(curr.start) must be skipped
-	int skip;
+	uint64_t skip;
 	if (prestart > 0) {
 		if (prestart > curr.start) return false;
 		skip = curr.start - prestart;
@@ -430,13 +446,13 @@ bool CDROM_Interface_Image::AddTrack(Track &curr, int &shift, int prestart, int 
 	if (prev.file == curr.file) {
 		curr.start += shift;
 		prev.length = curr.start + totalPregap - prev.start - skip;
-		curr.skip += prev.skip + prev.length * prev.sectorSize + skip * curr.sectorSize;		
+		curr.skip += prev.skip + (prev.length * prev.sectorSize) + (skip * curr.sectorSize);	
 		totalPregap += currPregap;
 		curr.start += totalPregap;
 	// current track uses a different file as the previous track
 	} else {
-		int tmp = prev.file->getLength() - prev.skip;
-		prev.length = tmp / prev.sectorSize;
+		uint64_t tmp = prev.file->getLength() - ((uint64_t) prev.skip);
+		prev.length = tmp / ((uint64_t) prev.sectorSize);
 		if (tmp % prev.sectorSize != 0) prev.length++; // padding
 		
 		curr.start += prev.start + prev.length + currPregap;
@@ -520,7 +536,7 @@ bool CDROM_Interface_Image::GetCueKeyword(string &keyword, istream &in)
 	return true;
 }
 
-bool CDROM_Interface_Image::GetCueFrame(int &frames, istream &in)
+bool CDROM_Interface_Image::GetCueFrame(uint64_t &frames, istream &in)
 {
 	string msf;
 	in >> msf;

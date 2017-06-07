@@ -1,10 +1,23 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Windows device configuration dialog implementation.
+ *
+ * Version:	@(#)win_deviceconfig.c	1.0.0	2017/05/30
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"
-#include "resource.h"
 #define NO_UNICODE		/*FIXME: not Unicode? */
 #include "win.h"
 #include <windowsx.h>
@@ -42,9 +55,41 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                                 
                                         id++;
                                         break;
-                                     
+
                                         case CONFIG_SELECTION:
                                         val_int = config_get_int(config_device->name, config->name, config->default_int);
+                                        
+                                        c = 0;
+                                        while (selection->description[0])
+                                        {
+                                                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)selection->description);
+                                                if (val_int == selection->value)
+                                                        SendMessage(h, CB_SETCURSEL, c, 0);
+                                                selection++;
+                                                c++;
+                                        }
+                                        
+                                        id += 2;
+                                        break;
+
+                                        case CONFIG_HEX16:
+                                        val_int = config_get_hex16(config_device->name, config->name, config->default_int);
+                                        
+                                        c = 0;
+                                        while (selection->description[0])
+                                        {
+                                                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)selection->description);
+                                                if (val_int == selection->value)
+                                                        SendMessage(h, CB_SETCURSEL, c, 0);
+                                                selection++;
+                                                c++;
+                                        }
+                                        
+                                        id += 2;
+                                        break;
+
+                                        case CONFIG_HEX20:
+                                        val_int = config_get_hex20(config_device->name, config->name, config->default_int);
                                         
                                         c = 0;
                                         while (selection->description[0])
@@ -89,9 +134,37 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                                 
                                                 id++;
                                                 break;
-                                     
+
                                                 case CONFIG_SELECTION:
                                                 val_int = config_get_int(config_device->name, config->name, config->default_int);
+
+                                                c = SendMessage(h, CB_GETCURSEL, 0, 0);
+
+                                                for (; c > 0; c--)
+                                                        selection++;
+
+                                                if (val_int != selection->value)
+                                                        changed = 1;
+                                        
+                                                id += 2;
+                                                break;
+
+                                                case CONFIG_HEX16:
+                                                val_int = config_get_hex16(config_device->name, config->name, config->default_int);
+
+                                                c = SendMessage(h, CB_GETCURSEL, 0, 0);
+
+                                                for (; c > 0; c--)
+                                                        selection++;
+
+                                                if (val_int != selection->value)
+                                                        changed = 1;
+                                        
+                                                id += 2;
+                                                break;
+
+                                                case CONFIG_HEX20:
+                                                val_int = config_get_hex20(config_device->name, config->name, config->default_int);
 
                                                 c = SendMessage(h, CB_GETCURSEL, 0, 0);
 
@@ -134,13 +207,31 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                                 
                                                 id++;
                                                 break;
-                                     
+
                                                 case CONFIG_SELECTION:
                                                 c = SendMessage(h, CB_GETCURSEL, 0, 0);
                                                 for (; c > 0; c--)
                                                         selection++;
                                                 config_set_int(config_device->name, config->name, selection->value);
                                         
+                                                id += 2;
+                                                break;
+
+                                                case CONFIG_HEX16:
+                                                c = SendMessage(h, CB_GETCURSEL, 0, 0);
+                                                for (; c > 0; c--)
+                                                        selection++;
+                                                config_set_hex16(config_device->name, config->name, selection->value);
+
+                                                id += 2;
+                                                break;
+
+                                                case CONFIG_HEX20:
+                                                c = SendMessage(h, CB_GETCURSEL, 0, 0);
+                                                for (; c > 0; c--)
+                                                        selection++;
+                                                config_set_hex20(config_device->name, config->name, selection->value);
+
                                                 id += 2;
                                                 break;
                                         }
@@ -219,6 +310,8 @@ void deviceconfig_open(HWND hwnd, device_t *device)
                         break;
 
                         case CONFIG_SELECTION:
+                        case CONFIG_HEX16:
+                        case CONFIG_HEX20:
                         /*Combo box*/
                         item = (DLGITEMTEMPLATE *)data;
                         item->x = 70;

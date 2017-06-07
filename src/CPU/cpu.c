@@ -1,8 +1,25 @@
-/* Copyright holders: Sarah Walker, Tenshi, leilei
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		CPU type handler.
+ *
+ * Version:	@(#)cpu.c	1.0.1	2017/06/03
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		leilei,
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 leilei.
+ *		Copyright 2016-2017 Miran Grca.
+ */
 #include "../ibm.h"
 #include "cpu.h"
+#include "../device.h"
 #include "../model.h"
 #include "../io.h"
 #include "x86_ops.h"
@@ -74,6 +91,9 @@ int cpu_hasrdtsc;
 int cpu_hasMMX, cpu_hasMSR;
 int cpu_hasCR4;
 int cpu_use_dynarec;
+int cpu_cyrix_alignment;
+
+int hasfpu;
 
 uint64_t cpu_CR4_mask;
 
@@ -81,6 +101,7 @@ int cpu_cycles_read, cpu_cycles_read_l, cpu_cycles_write, cpu_cycles_write_l;
 int cpu_prefetch_cycles, cpu_prefetch_width;
 int cpu_waitstates;
 int cpu_cache_int_enabled, cpu_cache_ext_enabled;
+int cpu_pci_speed;
 
 int is286, is386;
 int israpidcad, is_pentium;
@@ -132,6 +153,7 @@ int timing_iret_rm, timing_iret_v86, timing_iret_pm, timing_iret_pm_outer;
 int timing_call_rm, timing_call_pm, timing_call_pm_gate, timing_call_pm_gate_inner;
 int timing_retf_rm, timing_retf_pm, timing_retf_pm_outer;
 int timing_jmp_rm, timing_jmp_pm, timing_jmp_pm_gate;
+int timing_misaligned;
 
 static struct
 {
@@ -181,6 +203,15 @@ CPU cpus_pcjr[] =
         /*8088 PCjr*/
         {"8088/4.77",    CPU_8088,  0,  4772728, 1, 0, 0, 0, 0, 0, 0,0,0,0},
         {"",             -1,        0, 0, 0, 0, 0,0,0,0}
+};
+
+CPU cpus_europc[] =
+{
+         /*8088 EuroPC*/
+         {"8088/4.77",    CPU_8088,  0,  4772728,   1, 0, 0, 0, 0, 0, 0,0,0,0},
+         {"8088/7.16",    CPU_8088,  1, 14318184/2, 1, 0, 0, 0, 0, 0, 0,0,0,0},
+         {"8088/9.54",    CPU_8088,  1,  4772728*2, 1, 0, 0, 0, 0, 0, 0,0,0,0},
+         {"",             -1,        0, 0, 0, 0}
 };
 
 CPU cpus_8086[] =
@@ -405,7 +436,7 @@ CPU cpus_Cx486[] =
           {"6x86MX-PR300",  CPU_Cx6x86MX, 18, 233333333, 3, 33333333, 0x600, 0x600, 0x0454, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 21,21,7,7},
           {"6x86MX-PR333",  CPU_Cx6x86MX, 18, 250000000, 3, 41666667, 0x600, 0x600, 0x0453, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 20,20,9,9},
           {"6x86MX-PR366",  CPU_Cx6x86MX, 18, 250000000, 3, 33333333, 0x600, 0x600, 0x0452, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,12,12},
-          {"6x86MX-PR400",  CPU_Cx6x86MX, 18, 285000000, 3, 31666667, 0x600, 0x600, 0x0453, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 18,18,9,9},
+          {"6x86MX-PR400",  CPU_Cx6x86MX, 18, 285000000, 3, 41666667, 0x600, 0x600, 0x0453, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 18,18,9,9},
           {"",             -1,        0, 0, 0}
  };
  
@@ -617,11 +648,6 @@ void cpu_set()
 		if (enable_external_fpu)
 		{
 			hasfpu = 1;
-			if (cpu_s->cpu_type == CPU_i486SX)
-			{
-				/* The 487SX is a full implementation of the 486DX and takes over the entire CPU's operation. */
-				cpu_s->cpu_type = CPU_i486DX;
-			}
 		}
 	}
 
@@ -731,7 +757,10 @@ void cpu_set()
         }
 
         memset(&msr, 0, sizeof(msr));
-        
+
+        timing_misaligned = 0;
+        cpu_cyrix_alignment = 0;
+
         switch (cpu_s->cpu_type)
         {
                 case CPU_8088:
@@ -925,6 +954,7 @@ void cpu_set()
                 timing_jmp_rm      = 9;
                 timing_jmp_pm      = 26;
                 timing_jmp_pm_gate = 37;
+                timing_misaligned = 3;
                 break;
                 
                 case CPU_486DLC:
@@ -958,6 +988,7 @@ void cpu_set()
                 timing_jmp_rm      = 9;
                 timing_jmp_pm      = 26;
                 timing_jmp_pm_gate = 37;
+                timing_misaligned = 3;
                 break;
                 
                 case CPU_i486SX:
@@ -991,6 +1022,7 @@ void cpu_set()
                 timing_jmp_rm      = 17;
                 timing_jmp_pm      = 19;
                 timing_jmp_pm_gate = 32;
+                timing_misaligned = 3;
                 break;
 
                 case CPU_Am486SX:
@@ -1025,6 +1057,7 @@ void cpu_set()
                 timing_jmp_rm      = 17;
                 timing_jmp_pm      = 19;
                 timing_jmp_pm_gate = 32;
+                timing_misaligned = 3;
                 break;
                 
                 case CPU_Cx486S:
@@ -1058,6 +1091,7 @@ void cpu_set()
                 timing_jmp_rm      = 9;
                 timing_jmp_pm      = 26;
                 timing_jmp_pm_gate = 37;
+                timing_misaligned = 3;
                 break;
                 
                 case CPU_Cx5x86:
@@ -1090,6 +1124,8 @@ void cpu_set()
                 timing_jmp_rm      = 5;
                 timing_jmp_pm      = 7;
                 timing_jmp_pm_gate = 17;
+                timing_misaligned = 2;
+                cpu_cyrix_alignment = 1;
                 break;
 
                 case CPU_WINCHIP:
@@ -1128,6 +1164,8 @@ void cpu_set()
                 timing_jmp_pm      = 7;
                 timing_jmp_pm_gate = 17;
                 codegen_timing_set(&codegen_timing_winchip);
+                timing_misaligned = 2;
+                cpu_cyrix_alignment = 1;
                 break;
 
                 case CPU_PENTIUM:
@@ -1160,6 +1198,7 @@ void cpu_set()
                 timing_jmp_rm      = 3;
                 timing_jmp_pm      = 3;
                 timing_jmp_pm_gate = 18;
+                timing_misaligned = 3;
                 cpu_hasrdtsc = 1;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_hasMMX = 0;
@@ -1199,6 +1238,7 @@ void cpu_set()
                 timing_jmp_rm      = 3;
                 timing_jmp_pm      = 3;
                 timing_jmp_pm_gate = 18;
+                timing_misaligned = 3;
                 cpu_hasrdtsc = 1;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_hasMMX = 1;
@@ -1237,6 +1277,8 @@ void cpu_set()
                 timing_jmp_rm      = 1;
                 timing_jmp_pm      = 4;
                 timing_jmp_pm_gate = 14;
+                timing_misaligned = 2;
+                cpu_cyrix_alignment = 1;
                 cpu_hasrdtsc = 1;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_hasMMX = 0;
@@ -1275,6 +1317,8 @@ void cpu_set()
                 timing_jmp_rm      = 1;
                 timing_jmp_pm      = 4;
                 timing_jmp_pm_gate = 14;
+                timing_misaligned = 2;
+                cpu_cyrix_alignment = 1;
                 cpu_hasrdtsc = 1;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_hasMMX = 0;
@@ -1296,6 +1340,8 @@ void cpu_set()
                 timing_mml = 2;
                 timing_bt  = 5-1; /*branch taken*/
                 timing_bnt = 1; /*branch not taken*/
+                timing_misaligned = 2;
+                cpu_cyrix_alignment = 1;
                 cpu_hasrdtsc = 1;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_hasMMX = 0;
@@ -1347,6 +1393,8 @@ void cpu_set()
                 timing_jmp_rm      = 1;
                 timing_jmp_pm      = 4;
                 timing_jmp_pm_gate = 14;
+                timing_misaligned = 2;
+                cpu_cyrix_alignment = 1;
                 cpu_hasrdtsc = 1;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_hasMMX = 1;
@@ -1369,6 +1417,7 @@ void cpu_set()
                 timing_mml = 3;
                 timing_bt  = 0; /*branch taken*/
                 timing_bnt = 1; /*branch not taken*/
+                timing_misaligned = 3;
                 cpu_hasrdtsc = 1;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_hasMMX = 1;
@@ -1388,6 +1437,7 @@ void cpu_set()
                 timing_mml = 3;
                 timing_bt  = 0; /*branch taken*/
                 timing_bnt = 1; /*branch not taken*/
+                timing_misaligned = 3;
                 cpu_hasrdtsc = 1;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_hasMMX = 1;
@@ -1420,6 +1470,7 @@ void cpu_set()
                 timing_mml = 1;
                 timing_bt  = 0; /*branch taken*/
                 timing_bnt = 1; /*branch not taken*/
+                timing_misaligned = 3;
                 cpu_hasrdtsc = 1;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_hasMMX = 0;
@@ -1453,6 +1504,7 @@ void cpu_set()
                 timing_mml = 1;
                 timing_bt  = 0; /*branch taken*/
                 timing_bnt = 1; /*branch not taken*/
+                timing_misaligned = 3;
                 cpu_hasrdtsc = 1;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_hasMMX = 1;
@@ -1486,6 +1538,7 @@ void cpu_set()
                 timing_mml = 1;
                 timing_bt  = 0; /*branch taken*/
                 timing_bnt = 1; /*branch not taken*/
+                timing_misaligned = 3;
                 cpu_hasrdtsc = 1;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_hasMMX = 1;

@@ -1,9 +1,24 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Emulation core dispatcher.
+ *
+ * Version:	@(#)pc.c	1.0.3	2017/06/03
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+
 #include "86box.h"
 #include "ibm.h"
 #include "mem.h"
@@ -49,6 +64,7 @@
 #include "sound/sound.h"
 #include "sound/snd_cms.h"
 #include "sound/snd_dbopl.h"
+#include "sound/snd_mpu401.h"
 #include "sound/snd_opl.h"
 #include "sound/snd_gus.h"
 #include "sound/snd_sb.h"
@@ -63,6 +79,8 @@
 # include "plat_dir.h"
 #endif
 
+
+wchar_t pcempath[512];
 
 wchar_t nvr_path[1024];
 int path_len;
@@ -261,8 +279,6 @@ void pc_reset(void)
                 setpitclock(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed);
         else
                 setpitclock(14318184.0);
-
-        ali1429_reset();
 }
 
 
@@ -271,7 +287,7 @@ void initpc(int argc, wchar_t *argv[])
 {
         wchar_t *p;
         wchar_t *config_file = NULL;
-        int c, i;
+        int c;
 	FILE *ff;
         get_executable_name(pcempath, 511);
         pclog("executable_name = %ws\n", pcempath);
@@ -330,16 +346,9 @@ void initpc(int argc, wchar_t *argv[])
 		}
         }
 
-	/* Initialize modules. */
-	network_init();
-        mouse_init();
-        midi_init();
-	serial_init();
-	disc_random_init();
-
 	if (config_file == NULL)
 	{
-	        append_filename_w(config_file_default, pcempath, L"86box.cfg", 511);
+	        append_filename_w(config_file_default, pcempath, CONFIG_FILE_W, 511);
 	}
 	else
 	{
@@ -348,8 +357,22 @@ void initpc(int argc, wchar_t *argv[])
 
         loadconfig(config_file);
         pclog("Config loaded\n");
+#if 0
         if (config_file)
                 saveconfig();
+#endif
+}
+
+void initmodules(void)
+{
+	int i;
+
+	/* Initialize modules. */
+	network_init();
+        mouse_init();
+        midi_init();
+	serial_init();
+	disc_random_init();
 
         joystick_init();
 
@@ -374,20 +397,17 @@ void initpc(int argc, wchar_t *argv[])
 			SCSIReset(cdrom_drives[i].scsi_device_id, cdrom_drives[i].scsi_device_lun);
 		}
 
-		if (cdrom_drives[i].host_drive == 0)
+		if (cdrom_drives[i].host_drive == 200)
 		{
-		        cdrom_null_open(i, cdrom_drives[i].host_drive);
+			image_open(i, cdrom_image[i].image_path);
+		}
+		else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
+		{
+			ioctl_open(i, cdrom_drives[i].host_drive);
 		}
 		else
 		{
-			if (cdrom_drives[i].host_drive == 200)
-			{
-				image_open(i, cdrom_image[i].image_path);
-			}
-			else
-			{
-				ioctl_open(i, cdrom_drives[i].host_drive);
-			}
+		        cdrom_null_open(i, cdrom_drives[i].host_drive);
 		}
 	}
 
@@ -412,21 +432,17 @@ void initpc(int argc, wchar_t *argv[])
 	scsi_card_init();
 
 	fullspeed();
-        ali1429_reset();
         shadowbios=0;
         
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if (cdrom_drives[i].host_drive != 0)
+		if (cdrom_drives[i].host_drive == 200)
 		{
-			if (cdrom_drives[i].host_drive == 200)
-			{
-				image_reset(i);
-			}
-			else
-			{
-				ioctl_reset(i);
-			}
+			image_reset(i);
+		}
+		else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
+		{
+			ioctl_reset(i);
 		}
 	}
 }
@@ -468,7 +484,9 @@ void resetpchard(void)
 	suppress_overscan = 0;
 
 	savenvr();
+#if 0
 	saveconfig();
+#endif
 
         device_close_all();
 	mouse_emu_close();
@@ -501,18 +519,12 @@ void resetpchard(void)
 		ide_qua_init();
 	}
 
-	for (i = 0; i < CDROM_NUM; i++)
-	{
-		if (cdrom_drives[i].bus_type)
-		{
-			SCSIReset(cdrom_drives[i].scsi_device_id, cdrom_drives[i].scsi_device_lun);
-		}
-	}		
-
         resetide();
 	scsi_card_init();
 
         sound_card_init();
+        if (mpu401_standalone_enable)
+                mpu401_device_add();
         if (GUS)
                 device_add(&gus_device);
         if (GAMEBLASTER)
@@ -528,7 +540,6 @@ void resetpchard(void)
         loadnvr();
 
         shadowbios = 0;
-        ali1429_reset();
         
         keyboard_at_reset();
         
@@ -536,16 +547,13 @@ void resetpchard(void)
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if (cdrom_drives[i].host_drive != 0)
+		if (cdrom_drives[i].host_drive == 200)
 		{
-			if (cdrom_drives[i].host_drive == 200)
-			{
-				image_reset(i);
-			}
-			else
-			{
-				ioctl_reset(i);
-			}
+			image_reset(i);
+		}
+		else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
+		{
+			ioctl_reset(i);
 		}
 	}
 
@@ -651,7 +659,7 @@ void runpc(void)
                         win_title_update=0;
 			mbstowcs(wmodel, model_getname(), strlen(model_getname()) + 1);
 			mbstowcs(wcpu, models[model].cpu[cpu_manufacturer].cpus[cpu].name, strlen(models[model].cpu[cpu_manufacturer].cpus[cpu].name) + 1);
-                        _swprintf(s, L"86Box v%s - %i%% - %s - %s - %s", emulator_version_w, fps, wmodel, wcpu, (!mousecapture) ? win_language_get_string_from_id(2077) : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? win_language_get_string_from_id(2078) : win_language_get_string_from_id(2079)));
+                        _swprintf(s, L"%s v%s - %i%% - %s - %s - %s", EMU_NAME_W, EMU_VERSION_W, fps, wmodel, wcpu, (!mousecapture) ? win_language_get_string_from_id(2077) : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? win_language_get_string_from_id(2078) : win_language_get_string_from_id(2079)));
                         set_window_title(s);
                 }
                 done++;
@@ -689,10 +697,10 @@ void closepc(void)
         	cdrom_drives[i].handler->exit(i);
 	}
         dumppic();
-        disc_close(0);
-        disc_close(1);
-        disc_close(2);
-        disc_close(3);
+	for (i = 0; i < FDD_NUM; i++)
+	{
+	        disc_close(i);
+	}
         dumpregs(0);
         closevideo();
         device_close_all();

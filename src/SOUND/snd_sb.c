@@ -1,3 +1,23 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Sound Blaster emulation.
+ *
+ * Version:	@(#)sound_sb.c	1.0.0	2017/05/30
+ *
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		TheCollector1995, <mariogplayer@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016-2017 TheCollector1995.
+ */
+
 #include <stdlib.h>
 #include "../ibm.h"
 #include "../io.h"
@@ -6,6 +26,7 @@
 #include "../rom.h"
 #include "../device.h"
 #include "sound.h"
+#include "snd_dbopl.h"
 #include "snd_emu8k.h"
 #include "snd_mpu401.h"
 #include "snd_opl.h"
@@ -43,9 +64,9 @@ typedef struct sb_t
 
 static int sb_att[]=
 {
-        310,368,437,520,618,735,873,1038,1234,1467,1743,2072,2463,2927,3479,
-        4134,4914,5840,6941,8250,9805,11653,13850,16461,19564,23252,27635,32845,
-        39036,46395,55140,65535
+        50,65,82,103,130,164,207,260,328,413,520,655,825,1038,1307,
+        1645,2072,2608,3283,4134,5205,6553,8250,10385,13075,16461,20724,26089,
+        32845,41349,52055,65535
 };
 
 static void sb_get_buffer_opl2(int32_t *buffer, int len, void *p)
@@ -61,8 +82,8 @@ static void sb_get_buffer_opl2(int32_t *buffer, int len, void *p)
         {
                 int32_t out_l, out_r;
                 
-                out_l = ((sb->opl.buffer[c]     * mixer->fm_l) >> 16);
-                out_r = ((sb->opl.buffer[c + 1] * mixer->fm_r) >> 16);
+                out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 16) * 51000) >> 16);
+                out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 16) * 51000) >> 16);
 
                 if (sb->mixer.filter)
                 {
@@ -112,8 +133,8 @@ static void sb_get_buffer_opl3(int32_t *buffer, int len, void *p)
         {
                 int32_t out_l, out_r;
                 
-                out_l = ((sb->opl.buffer[c]     * mixer->fm_l) >> 16);
-                out_r = ((sb->opl.buffer[c + 1] * mixer->fm_r) >> 16);
+                out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 16) * (opl3_type ? 47000 : 51000)) >> 16);
+                out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 16) * (opl3_type ? 47000 : 51000)) >> 16);
 
                 if (sb->mixer.filter)
                 {
@@ -245,7 +266,14 @@ uint8_t sb_pro_mixer_read(uint16_t addr, void *p)
         if (!(addr & 1))
                 return mixer->index;
 
-        return mixer->regs[mixer->index];                
+        switch (mixer->index)
+        {
+                case 0x00: case 0x04: case 0x0a: case 0x0c: case 0x0e:
+                case 0x22: case 0x26: case 0x28: case 0x2e:
+                return mixer->regs[mixer->index];
+        }
+        
+        return 0xff;
 }
 
 void sb_16_mixer_write(uint16_t addr, uint8_t val, void *p)
@@ -322,10 +350,10 @@ uint8_t sb_16_mixer_read(uint16_t addr, void *p)
                 case 0x80:
                 switch (sb->dsp.sb_irqnum)
                 {
-                        case 2: return 1; /*IRQ 7*/
-                        case 5: return 2; /*IRQ 7*/
+                        case 2: return 1; /*IRQ 2*/
+                        case 5: return 2; /*IRQ 5*/
                         case 7: return 4; /*IRQ 7*/
-                        case 10: return 8; /*IRQ 7*/
+                        case 10: return 8; /*IRQ 10*/
                 }
                 break;
                 case 0x81:
@@ -465,7 +493,7 @@ void sb_pro_mcv_write(int port, uint8_t val, void *p)
 void *sb_1_init()
 {
         sb_t *sb = malloc(sizeof(sb_t));
-        uint16_t addr = device_get_config_int("addr");        
+        uint16_t addr = device_get_config_hex16("base");        
         memset(sb, 0, sizeof(sb_t));
         
         opl2_init(&sb->opl);
@@ -482,7 +510,7 @@ void *sb_1_init()
 void *sb_15_init()
 {
         sb_t *sb = malloc(sizeof(sb_t));
-        uint16_t addr = device_get_config_int("addr");
+        uint16_t addr = device_get_config_hex16("base");
         memset(sb, 0, sizeof(sb_t));
 
         opl2_init(&sb->opl);
@@ -517,7 +545,7 @@ void *sb_mcv_init()
 void *sb_2_init()
 {
         sb_t *sb = malloc(sizeof(sb_t));
-        uint16_t addr = device_get_config_int("addr");
+        uint16_t addr = device_get_config_hex16("base");
         memset(sb, 0, sizeof(sb_t));
 
         opl2_init(&sb->opl);
@@ -535,7 +563,7 @@ void *sb_2_init()
 void *sb_pro_v1_init()
 {
         sb_t *sb = malloc(sizeof(sb_t));
-        uint16_t addr = device_get_config_int("addr");
+        uint16_t addr = device_get_config_hex16("base");
         memset(sb, 0, sizeof(sb_t));
 
         opl2_init(&sb->opl);
@@ -563,7 +591,7 @@ void *sb_pro_v1_init()
 void *sb_pro_v2_init()
 {
         sb_t *sb = malloc(sizeof(sb_t));
-        uint16_t addr = device_get_config_int("addr");
+        uint16_t addr = device_get_config_hex16("base");
         memset(sb, 0, sizeof(sb_t));
 
         opl3_init(&sb->opl);
@@ -594,9 +622,6 @@ void *sb_pro_mcv_init()
 
         opl3_init(&sb->opl);
         sb_dsp_init(&sb->dsp, SBPRO2);
-        /*sb_dsp_setaddr(&sb->dsp, addr);
-        sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
-        sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));*/
         sb_mixer_init(&sb->mixer);
         io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
         sound_add_handler(sb_get_buffer_opl3, sb);
@@ -616,7 +641,7 @@ void *sb_pro_mcv_init()
 void *sb_16_init()
 {
         sb_t *sb = malloc(sizeof(sb_t));
-        uint16_t addr = device_get_config_int("addr");        
+        uint16_t addr = device_get_config_hex16("base");
         memset(sb, 0, sizeof(sb_t));
 
         opl3_init(&sb->opl);
@@ -631,7 +656,7 @@ void *sb_16_init()
         io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
         io_sethandler(addr + 4, 0x0002, sb_16_mixer_read, NULL, NULL, sb_16_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_opl3, sb);
-        mpu401_init(&sb->mpu, device_get_config_int("addr401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
+        mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
 
         sb->mixer.regs[0x30] = 31 << 3;
         sb->mixer.regs[0x31] = 31 << 3;
@@ -661,7 +686,7 @@ int sb_awe32_available()
 void *sb_awe32_init()
 {
         sb_t *sb = malloc(sizeof(sb_t));
-        uint16_t addr = device_get_config_int("addr");        
+        uint16_t addr = device_get_config_hex16("base");        
         int onboard_ram = device_get_config_int("onboard_ram");
         memset(sb, 0, sizeof(sb_t));
 
@@ -677,7 +702,7 @@ void *sb_awe32_init()
         io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
         io_sethandler(addr + 4, 0x0002, sb_16_mixer_read, NULL, NULL, sb_16_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_emu8k, sb);
-        mpu401_init(&sb->mpu, device_get_config_int("addr401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
+        mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
         emu8k_init(&sb->emu8k, onboard_ram);
 
         sb->mixer.regs[0x30] = 31 << 3;
@@ -733,7 +758,7 @@ void sb_add_status_info(char *s, int max_len, void *p)
 static device_config_t sb_config[] =
 {
         {
-                "addr", "Address", CONFIG_SELECTION, "", 0x220,
+                "base", "Address", CONFIG_HEX16, "", 0x220,
                 {
                         {
                                 "0x220", 0x220
@@ -826,7 +851,7 @@ static device_config_t sb_mcv_config[] =
 static device_config_t sb_pro_config[] =
 {
         {
-                "addr", "Address", CONFIG_SELECTION, "", 0x220,
+                "base", "Address", CONFIG_HEX16, "", 0x220,
                 {
                         {
                                 "0x220", 0x220
@@ -881,7 +906,7 @@ static device_config_t sb_pro_config[] =
 static device_config_t sb_16_config[] =
 {
         {
-                "addr", "Address", CONFIG_SELECTION, "", 0x220,
+                "base", "Address", CONFIG_HEX16, "", 0x220,
                 {
                         {
                                 "0x220", 0x220
@@ -901,7 +926,7 @@ static device_config_t sb_16_config[] =
                 }
         },
         {
-                "addr401", "MPU-401 Address", CONFIG_SELECTION, "", 0x330,
+                "base401", "MPU-401 Address", CONFIG_HEX16, "", 0x330,
                 {
                         {
                                 "0x300", 0x300
@@ -1016,7 +1041,7 @@ static device_config_t sb_16_config[] =
 static device_config_t sb_awe32_config[] =
 {
         {
-                "addr", "Address", CONFIG_SELECTION, "", 0x220,
+                "base", "Address", CONFIG_HEX16, "", 0x220,
                 {
                         {
                                 "0x220", 0x220
@@ -1036,7 +1061,7 @@ static device_config_t sb_awe32_config[] =
                 }
         },
         {
-                "addr401", "MPU-401 Address", CONFIG_SELECTION, "", 0x330,
+                "base401", "MPU-401 Address", CONFIG_HEX16, "", 0x330,
                 {
                         {
                                 "0x300", 0x300

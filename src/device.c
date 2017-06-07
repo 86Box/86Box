@@ -1,3 +1,21 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Implementation of the generic device interface to handle
+ *		all devices attached to the emulator.
+ *
+ * Version:	@(#)device.c	1.0.1	2017/06/03
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2016 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
 #include "ibm.h"
 #include "cpu/cpu.h"
 #include "config.h"
@@ -8,10 +26,10 @@
 
 static void *device_priv[256];
 static device_t *devices[256];
-
 static device_t *current_device;
 
-void device_init()
+
+void device_init(void)
 {
         memset(devices, 0, sizeof(devices));
 }
@@ -67,7 +85,7 @@ int device_available(device_t *d)
         return 1;        
 }
 
-void device_speed_changed()
+void device_speed_changed(void)
 {
         int c;
         
@@ -85,7 +103,7 @@ void device_speed_changed()
         sound_speed_changed();
 }
 
-void device_force_redraw()
+void device_force_redraw(void)
 {
         int c;
         
@@ -145,6 +163,48 @@ int device_get_config_int_ex(char *s, int default_int)
         return default_int;
 }
 
+int device_get_config_hex16(char *s)
+{
+        device_config_t *config = current_device->config;
+        
+        while (config->type != -1)
+        {
+                if (!strcmp(s, config->name))
+                        return config_get_hex16(current_device->name, s, config->default_int);
+
+                config++;
+        }
+        return 0;
+}
+
+int device_get_config_hex20(char *s)
+{
+        device_config_t *config = current_device->config;
+        
+        while (config->type != -1)
+        {
+                if (!strcmp(s, config->name))
+                        return config_get_hex20(current_device->name, s, config->default_int);
+
+                config++;
+        }
+        return 0;
+}
+
+int device_get_config_mac(char *s, int default_int)
+{
+        device_config_t *config = current_device->config;
+        
+        while (config->type != -1)
+        {
+                if (!strcmp(s, config->name))
+                        return config_get_mac(current_device->name, s, default_int);
+
+                config++;
+        }
+        return default_int;
+}
+
 void device_set_config_int(char *s, int val)
 {
         device_config_t *config = current_device->config;
@@ -154,6 +214,57 @@ void device_set_config_int(char *s, int val)
                 if (!strcmp(s, config->name))
 		{
                         config_set_int(current_device->name, s, val);
+			return;
+		}
+
+                config++;
+        }
+        return;
+}
+
+void device_set_config_hex16(char *s, int val)
+{
+        device_config_t *config = current_device->config;
+        
+        while (config->type != -1)
+        {
+                if (!strcmp(s, config->name))
+		{
+                        config_set_hex16(current_device->name, s, val);
+			return;
+		}
+
+                config++;
+        }
+        return;
+}
+
+void device_set_config_hex20(char *s, int val)
+{
+        device_config_t *config = current_device->config;
+        
+        while (config->type != -1)
+        {
+                if (!strcmp(s, config->name))
+		{
+                        config_set_hex20(current_device->name, s, val);
+			return;
+		}
+
+                config++;
+        }
+        return;
+}
+
+void device_set_config_mac(char *s, int val)
+{
+        device_config_t *config = current_device->config;
+        
+        while (config->type != -1)
+        {
+                if (!strcmp(s, config->name))
+		{
+                        config_set_mac(current_device->name, s, val);
 			return;
 		}
 

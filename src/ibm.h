@@ -1,6 +1,20 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		General include file.
+ *
+ * Version:	@(#)ibm.h	1.0.1	2017/06/03
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -9,21 +23,21 @@
 
 
 /*Memory*/
-uint8_t *ram;
-uint32_t rammask;
+extern uint8_t *ram;
+extern uint32_t rammask;
 
-int readlookup[256],readlookupp[256];
-uintptr_t *readlookup2;
-int readlnext;
-int writelookup[256],writelookupp[256];
-uintptr_t *writelookup2;
-int writelnext;
+extern int readlookup[256],readlookupp[256];
+extern uintptr_t *readlookup2;
+extern int readlnext;
+extern int writelookup[256],writelookupp[256];
+extern uintptr_t *writelookup2;
+extern int writelnext;
 
 extern int mmu_perm;
 
 #define readmemb(a) ((readlookup2[(a)>>12]==-1)?readmembl(a):*(uint8_t *)(readlookup2[(a) >> 12] + (a)))
-#define readmemw(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a))&0xFFF)>0xFFE)?readmemwl(s,a):*(uint16_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
-#define readmeml(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a))&0xFFF)>0xFFC)?readmemll(s,a):*(uint32_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
+#define readmemw(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a)) & 1))?readmemwl(s,a):*(uint16_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
+#define readmeml(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a)) & 3))?readmemll(s,a):*(uint32_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
 
 extern uint8_t	readmembl(uint32_t addr);
 extern void	writemembl(uint32_t addr, uint8_t val);
@@ -161,6 +175,14 @@ struct
 } cpu_state;
 
 #define cycles cpu_state._cycles
+
+extern uint32_t cpu_cur_status;
+
+#define CPU_STATUS_USE32   (1 << 0)
+#define CPU_STATUS_STACK32 (1 << 1)
+#define CPU_STATUS_FLATDS  (1 << 2)
+#define CPU_STATUS_FLATSS  (1 << 3)
+
 #define cpu_rm  cpu_state.rm_data.rm_mod_reg.rm
 #define cpu_mod cpu_state.rm_data.rm_mod_reg.mod
 #define cpu_reg cpu_state.rm_data.rm_mod_reg.reg
@@ -177,18 +199,18 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state) <= 128)
 
 /*x86reg regs[8];*/
 
-uint16_t flags,eflags;
-uint32_t oldds,oldss,olddslimit,oldsslimit,olddslimitw,oldsslimitw;
+extern uint16_t flags,eflags;
+extern uint32_t oldds,oldss,olddslimit,oldsslimit,olddslimitw,oldsslimitw;
 
 extern int ins,output;
 extern int cycdiff;
 
-x86seg gdt,ldt,idt,tr;
-x86seg _cs,_ds,_es,_ss,_fs,_gs;
-x86seg _oldds;
+extern x86seg gdt,ldt,idt,tr;
+extern x86seg _cs,_ds,_es,_ss,_fs,_gs;
+extern x86seg _oldds;
 
-uint32_t pccache;
-uint8_t *pccache2;
+extern uint32_t pccache;
+extern uint8_t *pccache2;
 /*Segments -
   _cs,_ds,_es,_ss are the segment structures
   CS,DS,ES,SS is the 16-bit data
@@ -220,8 +242,8 @@ union
 #define cr0 CR0.l
 #define msw CR0.w
 
-uint32_t cr2, cr3, cr4;
-uint32_t dr[8];
+extern uint32_t cr2, cr3, cr4;
+extern uint32_t dr[8];
 
 #define C_FLAG  0x0001
 #define P_FLAG  0x0004
@@ -319,7 +341,7 @@ typedef struct DMA
 	uint8_t ps2_mode[4];
 } DMA;
 
-DMA dma,dma16;
+extern DMA dma, dma16;
 
 
 /*PPI*/
@@ -329,7 +351,7 @@ typedef struct PPI
         uint8_t pa,pb;
 } PPI;
 
-PPI ppi;
+extern PPI ppi;
 
 
 /*PIC*/
@@ -341,13 +363,13 @@ typedef struct PIC
         int read;
 } PIC;
 
-PIC pic,pic2;
+extern PIC pic, pic2;
 extern int pic_intpending;
 
 
-int disctime;
-wchar_t discfns[4][256];
-int driveempty[4];
+extern int disctime;
+extern wchar_t discfns[4][256];
+extern int driveempty[4];
 
 #define MDA ((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_HERCULESPLUS || gfxcard==GFX_INCOLOR || gfxcard==GFX_GENIUS) && (romset<ROM_TANDY || romset>=ROM_IBMAT))
 #define VGA ((gfxcard>=GFX_TVGA || romset==ROM_ACER386) && gfxcard!=GFX_COLORPLUS && gfxcard!=GFX_INCOLOR && gfxcard!=GFX_WY700 && gfxcard!=GFX_GENIUS && gfxcard!=GFX_COMPAQ_EGA && gfxcard!=GFX_SUPER_EGA && gfxcard!=GFX_HERCULESPLUS && romset!=ROM_PC1640 && romset!=ROM_PC1512 && romset!=ROM_TANDY && romset!=ROM_PC200)
@@ -447,14 +469,15 @@ enum
         ROM_CMDPC60,
 
         ROM_S1668,      /*Tyan Titan-Pro ATX / 440FX / AMI BIOS / SMC FDC37C669*/
+        ROM_IBMPS1_2133,
 
         ROM_MAX
 };
 
 extern int romspresent[ROM_MAX];
 
-int hasfpu;
-int romset;
+extern int hasfpu;
+extern int romset;
 
 enum
 {
@@ -504,6 +527,7 @@ enum
         GFX_OTI037,	/*Oak OTI-037*/
 
         GFX_VIRGEVX,    /*S3 Virge/VX*/
+        GFX_VIRGEDX4,   /*S3 Virge/DX (VBE 2.0)*/
 
         GFX_MAX
 };
@@ -516,7 +540,6 @@ int cpuspeed;
 
 
 /*Video*/
-int readflash;
 extern int egareads,egawrites;
 extern int vid_resize;
 extern int vid_api;
@@ -525,14 +548,14 @@ extern int changeframecount;
 
 
 /*Sound*/
-int ppispeakon;
-float CGACONST;
-float MDACONST;
-float VGACONST1,VGACONST2;
-float RTCCONST;
-int gated,speakval,speakon;
+extern int ppispeakon;
+extern float CGACONST;
+extern float MDACONST;
+extern float VGACONST1,VGACONST2;
+extern float RTCCONST;
+extern int gated,speakval,speakon;
 
-#define SOUNDBUFLEN (48000/20)
+#define SOUNDBUFLEN (48000/50)
 
 
 /*Sound Blaster*/
@@ -547,10 +570,30 @@ int gated,speakval,speakon;
 #define SND_WSS   9     /*Windows Sound System*/
 #define SND_PAS16 10    /*Pro Audio Spectrum 16*/
 
-wchar_t pcempath[512];
+extern wchar_t pcempath[512];
 
 
-/*Hard disc*/
+/*Hard disk*/
+enum
+{
+	HDD_BUS_DISABLED = 0,
+	HDD_BUS_MFM,
+	HDD_BUS_XTIDE,
+	HDD_BUS_RLL,
+	HDD_BUS_IDE_PIO_ONLY,
+	HDD_BUS_IDE_PIO_AND_DMA,
+	HDD_BUS_SCSI,
+	HDD_BUS_SCSI_REMOVABLE,
+	HDD_BUS_USB
+};
+
+#define HDC_NUM		30
+#define MFM_NUM		2
+#define RLL_NUM		2
+#define XTIDE_NUM	2
+#define IDE_NUM		8
+#define SCSI_NUM	16	/* Theoretically the controller can have at least 64 devices, or even 128 in case of a wide bus, but
+				   let's not exaggerate with them - 16 ought to be enough for everyone. */
 
 #pragma pack(push,1)
 typedef struct {
@@ -558,78 +601,44 @@ typedef struct {
 	uint64_t spt,hpc; /*Sectors per track, heads per cylinder*/
 	uint64_t tracks;
 	int is_hdi;
+	int wp;
 	uint32_t base;
 	uint64_t at_spt,at_hpc; /*[Translation] Sectors per track, heads per cylinder*/
 	unsigned int bus;	/* 0 = none, 1 = MFM/RLL, 2 = IDE, 3 = SCSI */
 	unsigned int mfm_channel;
+	unsigned int rll_channel;
+	unsigned int xtide_channel;
 	unsigned int ide_channel;
 	unsigned int scsi_id;
 	unsigned int scsi_lun;
+	wchar_t fn[260];
+	wchar_t prev_fn[260];
 } hard_disk_t;
 #pragma pack(pop)
 
-#pragma pack(push,1)
-typedef struct {
-	/* Stuff for SCSI hard disks. */
-	uint8_t cdb[16];
-	uint8_t current_cdb[16];
-	uint8_t max_cdb_len;
-	int requested_blocks;
-	int max_blocks_at_once;
-	uint16_t request_length;
-	int block_total;
-	int all_blocks_total;
-	uint32_t packet_len;
-	int packet_status;
-	uint8_t status;
-	uint8_t phase;
-	uint32_t pos;
-	int callback;
-	int total_read;
-	int unit_attention;
-	uint8_t sense[256];
-	uint8_t previous_command;
-	uint8_t error;
-	uint16_t buffer[390144];
-	uint32_t sector_pos;
-	uint32_t sector_len;
-	uint32_t last_sector;
-	uint32_t seek_pos;
-	int data_pos;
-	int old_len;
-	int cdb_len_setting;
-	int cdb_len;
-	int request_pos;
-	uint64_t base;
-	uint8_t hd_cdb[16];
-} scsi_hard_disk_t;
-#pragma pack(pop)
-
-#define HDC_NUM		16
-#define IDE_NUM		8
-#define MFM_NUM		2
-#define SCSI_NUM	16	/* Theoretically the controller can have at least 64 devices, or even 128 in case of a wide bus, but
-				   let's not exaggerate with them - 16 ought to be enough for everyone. */
-
-hard_disk_t hdc[HDC_NUM];
-scsi_hard_disk_t shdc[HDC_NUM];
-
-FILE *shdf[HDC_NUM];
+extern hard_disk_t hdc[HDC_NUM];
 
 uint64_t hdt[128][3];
 uint64_t hdt_mfm[128][3];
-
-extern wchar_t hdd_fn[HDC_NUM][512];
 
 int image_is_hdi(const wchar_t *s);
 int image_is_hdx(const wchar_t *s, int check_signature);
 
 /*Keyboard*/
-int keybsenddelay;
+extern int keybsenddelay;
 
 
 /*CD-ROM*/
-extern int idecallback[4];
+enum
+{
+	CDROM_BUS_DISABLED = 0,
+	CDROM_BUS_ATAPI_PIO_ONLY = 4,
+	CDROM_BUS_ATAPI_PIO_AND_DMA,
+	CDROM_BUS_SCSI,
+	CDROM_BUS_USB = 8
+};
+
+extern int idecallback[5];
 
 #define CD_STATUS_EMPTY		0
 #define CD_STATUS_DATA_ONLY	1
@@ -684,7 +693,7 @@ extern int path_len;
 
 wchar_t *nvr_concat(wchar_t *to_concat);
 
-int mem_a20_state;
+extern int mem_a20_state;
 
 
 #ifdef ENABLE_LOG_TOGGLES
@@ -693,7 +702,8 @@ extern int cdrom_do_log;
 extern int d86f_do_log;
 extern int fdc_do_log;
 extern int ide_do_log;
-extern int ne2000_do_log;
+extern int serial_do_log;
+extern int nic_do_log;
 #endif
 
 extern int suppress_overscan;
@@ -738,6 +748,7 @@ extern void	execx86(int cycs);
 extern void	flushmmucache(void);
 extern void	flushmmucache_cr3(void);
 extern int	idivl(int32_t val);
+extern void	initmodules(void);
 extern void	initpc(int argc, wchar_t *argv[]);
 extern void	loadcscall(uint16_t seg);
 extern void	loadcsjmp(uint16_t seg, uint32_t oxpc);
@@ -776,3 +787,9 @@ extern void	update_status_bar_icon(int tag, int active);
 extern void	update_status_bar_icon_state(int tag, int state);
 extern void	status_settextw(wchar_t *wstr);
 extern void	status_settext(char *str);
+
+#define SB_FLOPPY	0x00
+#define SB_CDROM	0x10
+#define SB_RDISK	0x20
+#define SB_HDD		0x40
+#define SB_TEXT		0x50

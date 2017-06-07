@@ -1,11 +1,28 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Implementation of the CD-ROM null interface for unmounted
+ *		guest CD-ROM drives.
+ *
+ * Version:	@(#)cdrom_null.c	1.0.1	2017/06/03
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2016 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
 #include "ibm.h"
 #include "cdrom.h"
 #include "cdrom_ioctl.h"
 
+
 static CDROM null_cdrom;
+
 
 static int null_ready(uint8_t id)
 {
@@ -47,7 +64,7 @@ static int null_readtoc_session(uint8_t id, unsigned char *b, int msf, int maxle
 		return 0;
 }
 
-static int null_readtoc_raw(uint8_t id, unsigned char *b, int msf, int maxlen)
+static int null_readtoc_raw(uint8_t id, unsigned char *b, int maxlen)
 {
 		return 0;
 }
@@ -101,7 +118,7 @@ void cdrom_set_null_handler(uint8_t id)
 {
 	cdrom_drives[id].handler = &null_cdrom;
 	cdrom_drives[id].host_drive = 0;
-	update_status_bar_icon_state(0x10 | id, 1);
+	memset(cdrom_image[id].image_path, 0, sizeof(cdrom_image[id].image_path));
 }
 
 static CDROM null_cdrom =

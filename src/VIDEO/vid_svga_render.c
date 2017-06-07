@@ -1,6 +1,21 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		SVGA renderers.
+ *
+ * Version:	@(#)vid_svga_render.c	1.0.0	2017/05/30
+ *
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
+
 #include <stdio.h>
 #include "../ibm.h"
 #include "../mem.h"
@@ -43,10 +58,75 @@ int svga_display_line(svga_t *svga)
 
 void svga_render_blank(svga_t *svga)
 {
+#if 0
         int x, xx;
 	int y_add = (enable_overscan) ? 16 : 0;
 	int x_add = y_add >> 1;
 	int dl = svga_display_line(svga);
+	uint32_t *p;
+        
+        if (svga->firstline_draw == 2000) 
+                svga->firstline_draw = svga->displine;
+        svga->lastline_draw = svga->displine;
+
+	if (dl >= 2046)
+	{
+		return;
+	}
+        
+        for (x = 0; x < svga->hdisp; x++)
+        {
+                switch (svga->seqregs[1] & 9)
+                {
+                        case 0:
+                        for (xx = 0; xx < 9; xx++)
+			{
+				p = ((uint32_t *)buffer32->line[dl]);
+				if (&(p[(x * 9) + xx + 32 + x_add]) != NULL)
+				{
+					p[(x * 9) + xx + 32 + x_add] = svga_color_transform(0);
+				}
+			}
+                        break;
+
+                        case 1:
+                        for (xx = 0; xx < 8; xx++)
+			{
+				p = ((uint32_t *)buffer32->line[dl]);
+				if (&(p[(x * 8) + xx + 32 + x_add]) != NULL)
+				{
+					p[(x * 8) + xx + 32 + x_add] = svga_color_transform(0);
+				}
+			}
+                        break;
+
+                        case 8:
+                        for (xx = 0; xx < 18; xx++)
+			{
+				p = ((uint32_t *)buffer32->line[dl]);
+				if (&(p[(x * 18) + xx + 32 + x_add]) != NULL)
+				{
+					p[(x * 18) + xx + 32 + x_add] = svga_color_transform(0);
+				}
+			}
+                        break;
+
+                        case 9:
+                        for (xx = 0; xx < 16; xx++)
+			{
+				p = ((uint32_t *)buffer32->line[dl]);
+				if (&(p[(x * 16) + xx + 32 + x_add]) != NULL)
+				{
+					p[(x * 16) + xx + 32 + x_add] = svga_color_transform(0);
+				}
+			}
+                        break;
+                }
+        }
+#endif
+        int x, xx;
+	int y_add = (enable_overscan) ? 16 : 0;
+	int x_add = y_add >> 1;
         
         if (svga->firstline_draw == 2000) 
                 svga->firstline_draw = svga->displine;
@@ -57,16 +137,16 @@ void svga_render_blank(svga_t *svga)
                 switch (svga->seqregs[1] & 9)
                 {
                         case 0:
-                        for (xx = 0; xx < 9; xx++) ((uint32_t *)buffer32->line[dl])[(x * 9) + xx + 32 + x_add] = svga_color_transform(0);
+                        for (xx = 0; xx < 9; xx++) ((uint32_t *)buffer32->line[svga->displine + y_add])[(x * 9) + xx + 32 + x_add] = svga_color_transform(0);
                         break;
                         case 1:
-                        for (xx = 0; xx < 8; xx++) ((uint32_t *)buffer32->line[dl])[(x * 8) + xx + 32 + x_add] = svga_color_transform(0);
+                        for (xx = 0; xx < 8; xx++) ((uint32_t *)buffer32->line[svga->displine + y_add])[(x * 8) + xx + 32 + x_add] = svga_color_transform(0);
                         break;
                         case 8:
-                        for (xx = 0; xx < 18; xx++) ((uint32_t *)buffer32->line[dl])[(x * 18) + xx + 32 + x_add] = svga_color_transform(0);
+                        for (xx = 0; xx < 18; xx++) ((uint32_t *)buffer32->line[svga->displine + y_add])[(x * 18) + xx + 32 + x_add] = svga_color_transform(0);
                         break;
                         case 9:
-                        for (xx = 0; xx < 16; xx++) ((uint32_t *)buffer32->line[dl])[(x * 16) + xx + 32 + x_add] = svga_color_transform(0);
+                        for (xx = 0; xx < 16; xx++) ((uint32_t *)buffer32->line[svga->displine + y_add])[(x * 16) + xx + 32 + x_add] = svga_color_transform(0);
                         break;
                 }
         }

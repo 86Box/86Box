@@ -68,8 +68,33 @@ void sis496_write(int func, int addr, uint8_t val, void *p)
                         sis496_recalcmapping();
                 }
                 break;
-        }
                 
+                case 0xc0:
+                if (val & 0x80)
+                        pci_set_irq_routing(PCI_INTA, val & 0xf);
+                else
+                        pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
+                break;
+                case 0xc1:
+                if (val & 0x80)
+                        pci_set_irq_routing(PCI_INTB, val & 0xf);
+                else
+                        pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
+                break;
+                case 0xc2:
+                if (val & 0x80)
+                        pci_set_irq_routing(PCI_INTC, val & 0xf);
+                else
+                        pci_set_irq_routing(PCI_INTC, PCI_IRQ_DISABLED);
+                break;
+                case 0xc3://                pclog("IRQ routing %02x %02x\n", addr, val);
+                if (val & 0x80)
+                        pci_set_irq_routing(PCI_INTD, val & 0xf);
+                else
+                        pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
+                break;
+        }
+  
         if ((addr >= 4 && addr < 8) || addr >= 0x40)
            sis496.pci_conf[addr] = val;
 }
@@ -118,6 +143,10 @@ void sis496_init(void)
 	sis496_reset();
 
 	pci_reset_handler.pci_master_reset = sis496_pci_reset;
+
+        pci_set_card_routing(15, PCI_INTA);
+        pci_set_card_routing(13, PCI_INTD);
+        pci_set_card_routing(11, PCI_INTC);
 }
 
 void sis496_close(void *p)

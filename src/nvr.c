@@ -1,3 +1,22 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		CMOS NVRAM emulation.
+ *
+ * Version:	@(#)nvr.c	1.0.1	2017/06/03
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Mahod,
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016-2017 Mahod.
+ */
 #include <stdio.h>
 #include "ibm.h"
 #include "io.h"
@@ -19,12 +38,12 @@ static int nvr_onesec_time = 0, nvr_onesec_cnt = 0;
 
 static int rtctime;
 
-void getnvrtime()
+void getnvrtime(void)
 {
 	time_get(nvrram);
 }
 
-void nvr_recalc()
+void nvr_recalc(void)
 {
         int c;
         int newrtctime;
@@ -184,7 +203,7 @@ uint8_t readnvr(uint16_t addr, void *priv)
         return nvraddr;
 }
 
-void loadnvr()
+void loadnvr(void)
 {
         FILE *f;
         int c;
@@ -245,6 +264,7 @@ void loadnvr()
                 case ROM_MRTHOR:		f = nvrfopen(L"mrthor.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_ZAPPA:			f = nvrfopen(L"zappa.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_S1668:			f = nvrfopen(L"tpatx.nvr",		L"rb"); nvrmask = 127; break;
+                case ROM_IBMPS1_2133:		f = nvrfopen(L"ibmps1_2133.nvr",	L"rb"); nvrmask = 127; break;
                 default: return;
         }
         if (!f)
@@ -271,7 +291,7 @@ void loadnvr()
         c = 1 << ((nvrram[RTC_REGA] & RTC_RS) - 1);
         rtctime += (int)(RTCCONST * c * (1 << TIMER_SHIFT));
 }
-void savenvr()
+void savenvr(void)
 {
         FILE *f;
         switch (oldromset)
@@ -329,13 +349,14 @@ void savenvr()
                 case ROM_MRTHOR:		f = nvrfopen(L"mrthor.nvr",		L"wb"); break;
                 case ROM_ZAPPA:			f = nvrfopen(L"zappa.nvr",		L"wb"); break;
                 case ROM_S1668:			f = nvrfopen(L"tpatx.nvr",		L"wb"); break;
+                case ROM_IBMPS1_2133:		f = nvrfopen(L"ibmps1_2133.nvr",	L"wb"); break;
                 default: return;
         }
         fwrite(nvrram,128,1,f);
         fclose(f);
 }
 
-void nvr_init()
+void nvr_init(void)
 {
         io_sethandler(0x0070, 0x0002, readnvr, NULL, NULL, writenvr, NULL, NULL,  NULL);
         timer_add(nvr_rtc, &rtctime, TIMER_ALWAYS_ENABLED, NULL);

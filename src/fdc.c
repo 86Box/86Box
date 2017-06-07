@@ -1,6 +1,22 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Implementation of the NEC uPD-765 and compatible floppy disk
+ *		controller.
+ *
+ * Version:	@(#)fdc.c	1.0.0	2017/05/30
+ *
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -130,9 +146,11 @@ typedef struct FDC
 	uint16_t base_address;
 } FDC;
 
+int disctime;
+
 static FDC fdc;
 
-void fdc_callback();
+void fdc_callback(void *priv);
 int timetolive;
 int lastbyte=0;
 uint8_t disc_3f7;
@@ -830,7 +848,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc.lastdrive = fdc.drive;
                                 discint = 8;
                                 fdc.pos = 0;
-                                fdc_callback();
+                                fdc_callback(NULL);
                                 break;
                                 case 10: /*Read sector ID*/
                                 fdc.pnum=0;
@@ -856,13 +874,13 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc.lastdrive = fdc.drive;
                                 discint = 0x0e;
                                 fdc.pos = 0;
-                                fdc_callback();
+                                fdc_callback(NULL);
                                 break;
                                 case 0x10: /*Get version*/
                                 fdc.lastdrive = fdc.drive;
                                 discint = 0x10;
                                 fdc.pos = 0;
-                                fdc_callback();
+                                fdc_callback(NULL);
                                 break;
                                 case 0x12: /*Set perpendicular mode*/
 				if (!AT || fdc.pcjr || fdc.ps1)  goto bad_command;
@@ -882,7 +900,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc.lastdrive = fdc.drive;
                                 discint = fdc.command;
                                 fdc.pos = 0;
-                                fdc_callback();
+                                fdc_callback(NULL);
                                 break;
 
                                 case 0x18:
@@ -890,10 +908,10 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc.lastdrive = fdc.drive;
                                 discint = 0x10;
                                 fdc.pos = 0;
-                                fdc_callback();
+                                fdc_callback(NULL);
                                 /* fdc.stat = 0x10;
                                 discint  = 0xfc;
-                                fdc_callback(); */
+                                fdc_callback(NULL); */
                                 break;
 
                                 default:
@@ -957,8 +975,7 @@ bad_command:
 						fdc.stat = 0x50;
 					}
 					disctime = 0;
-					update_status_bar_icon(fdc.drive, 1);
-					readflash = 1;
+					update_status_bar_icon(SB_FLOPPY | fdc.drive, 1);
 					fdc.inread = 1;
                                         break;
 
@@ -1003,7 +1020,7 @@ bad_command:
 	                                disc_writesector(fdc.drive, fdc.sector, fdc.params[1], fdc.head, fdc.rate, fdc.params[4]);
         	                        disctime = 0;
 	                                fdc.written = 0;
-        	                        update_status_bar_icon(fdc.drive, 1);
+        	                        update_status_bar_icon(SB_FLOPPY | fdc.drive, 1);
                 	                fdc.pos = 0;
 	                                if (fdc.pcjr)
 	                                        fdc.stat = 0xb0;
@@ -1036,7 +1053,7 @@ bad_command:
 	                                disc_comparesector(fdc.drive, fdc.sector, fdc.params[1], fdc.head, fdc.rate, fdc.params[4]);
         	                        disctime = 0;
 	                                fdc.written = 0;
-        	                        update_status_bar_icon(fdc.drive, 1);
+        	                        update_status_bar_icon(SB_FLOPPY | fdc.drive, 1);
                 	                fdc.pos = 0;
 					if (fdc.pcjr || !fdc.dma)
 					{
@@ -1080,7 +1097,7 @@ bad_command:
 						fdc.stat = 0x50;
 					}
                 	                disctime = 0;
-        	                        update_status_bar_icon(fdc.drive, 1);
+        	                        update_status_bar_icon(SB_FLOPPY | fdc.drive, 1);
 	                                fdc.inread = 1;
                                         break;
                                         
@@ -1437,7 +1454,7 @@ void fdc_poll_common_finish(int compare, int st5)
         fdc.res[9]=fdc.sector;
         fdc.res[10]=fdc.params[4];
 	fdc_log("Read/write finish (%02X %02X %02X %02X %02X %02X %02X)\n" , fdc.res[4], fdc.res[5], fdc.res[6], fdc.res[7], fdc.res[8], fdc.res[9], fdc.res[10]);
-	update_status_bar_icon(fdc.drive, 0);
+	update_status_bar_icon(SB_FLOPPY | fdc.drive, 0);
         paramstogo=7;
 }
 
@@ -1456,7 +1473,7 @@ void fdc_no_dma_end(int compare)
 	fdc_poll_common_finish(compare, 0x80);
 }
 
-void fdc_callback()
+void fdc_callback(void *priv)
 {
 	int compare = 0;
 	int drive_num = 0;
@@ -1483,7 +1500,7 @@ void fdc_callback()
 		return;
 
                 case 2: /*Read track*/
-                update_status_bar_icon(fdc.drive, 1);
+                update_status_bar_icon(SB_FLOPPY | fdc.drive, 1);
                 fdc.eot[fdc.drive]--;
 		fdc.read_track_sector.id.r++;
                 if (!fdc.eot[fdc.drive] || fdc.tc)
@@ -1643,7 +1660,7 @@ void fdc_callback()
 		{
 	                fdc.sector++;
 		}
-                update_status_bar_icon(fdc.drive, 1);
+                update_status_bar_icon(SB_FLOPPY | fdc.drive, 1);
 		switch (discint)
 		{
 			case 5:
@@ -1882,7 +1899,7 @@ void fdc_error(int st5, int st6)
 		        fdc.res[10]=0;
 			break;
 	}
-	update_status_bar_icon(fdc.drive, 0);
+	update_status_bar_icon(SB_FLOPPY | fdc.drive, 0);
         paramstogo=7;
 }
 
@@ -1940,36 +1957,6 @@ int fdc_data(uint8_t data)
         }
         else
         {
-        	if (fdc.tc)
-		{
-			fdc_log("FDC read: TC\n");
-                	return 0;
-		}
-
-                if (dma_channel_write(2, data) & DMA_OVER)
-		{
-			fdc_log("FDC read: DMA over\n");
-                        fdc.tc = 1;
-		}
-
-		if (!fdc.fifo)
-		{
-	                fdc.data_ready = 1;
-	                fdc.stat = 0xd0;
-		}
-		else
-		{
-			fdc_fifo_buf_advance();
-			if (fdc.fifobufpos == 0)
-			{
-				/* We have wrapped around, means FIFO is over */
-				fifo_count++;
-				fdc_log("%04X: FIFO wrap around (threshold == %02X), DRQ sent\n", fifo_count, fdc.tfifo);
-				fdc.data_ready = 1;
-				fdc.stat = 0xd0;
-			}
-		}
-#if 0
 		result = dma_channel_write(2, data);
 
         	if (fdc.tc)
@@ -1998,7 +1985,6 @@ int fdc_data(uint8_t data)
 				fdc.stat = 0xd0;
 			}
 		}
-#endif
         }
         
         return 0;
@@ -2014,7 +2000,7 @@ void fdc_track_finishread(int condition)
 	fdc.stat = 0x10;
 	fdc.satisfying_sectors |= condition;
         fdc.inread = 0;
-	fdc_callback();
+	fdc_callback(NULL);
 }
 
 void fdc_sector_finishcompare(int satisfying)
@@ -2022,14 +2008,14 @@ void fdc_sector_finishcompare(int satisfying)
 	fdc.stat = 0x10;
 	fdc.satisfying_sectors++;
         fdc.inread = 0;
-	fdc_callback();
+	fdc_callback(NULL);
 }
 
 void fdc_sector_finishread()
 {
 	fdc.stat = 0x10;
         fdc.inread = 0;
-	fdc_callback();
+	fdc_callback(NULL);
 }
 
 /* There is no sector ID. */

@@ -8,7 +8,7 @@
  *
  *		Try to load a support DLL.
  *
- * Version:	@(#)win_dynld.c	1.0.1	2017/05/21
+ * Version:	@(#)win_dynld.c	1.0.2	2017/05/24
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen
@@ -26,7 +26,7 @@
 void *
 dynld_module(const char *name, dllimp_t *table)
 {
-    HANDLE h;
+    HMODULE h;
     dllimp_t *imp;
     void *func;
     char **foo;
@@ -60,5 +60,5 @@ void
 dynld_close(void *handle)
 {
     if (handle != NULL)
-	CloseHandle((HANDLE *)handle);
+	FreeLibrary((HMODULE)handle);
 }

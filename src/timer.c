@@ -39,6 +39,11 @@ void timer_process()
 
         for (c = 0; c < timers_present; c++)
         {
+		/* This is needed to avoid timer crashes on hard reset. */
+		if ((timers[c].enable == NULL) || (timers[c].count == NULL))
+		{
+			continue;
+		}
                 enable[c] = *timers[c].enable;
                 if (*timers[c].enable)
                 {

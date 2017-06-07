@@ -8,13 +8,13 @@
  *
  *		Definitions for the SERIAL card.
  *
- * Version:	@(#)serial.h	1.0.3	2017/05/07
+ * Version:	@(#)serial.h	1.0.4	2017/06/03
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
  */
-#ifndef SERIAL_H
-# define SERIAL_H
+#ifndef EMU_SERIAL_H
+# define EMU_SERIAL_H
 
 
 /* Default settings for the standard ports. */
@@ -61,4 +61,4 @@ extern int	serial_link(int, char *);
 extern void	serial_write_fifo(SERIAL *, uint8_t);
 
 
-#endif	/*SERIAL_H*/
+#endif	/*EMU_SERIAL_H*/

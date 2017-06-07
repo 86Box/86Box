@@ -1,6 +1,22 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Implementation of the raw sector-based floppy image format,
+ *		as well as the Japanese FDI, CopyQM, and FDF formats.
+ *
+ * Version:	@(#)disc_img.c	1.0.0	2017/05/30
+ *
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
+
 #include <stdlib.h>
 #include <wchar.h>
 
@@ -337,7 +353,7 @@ void img_load(int drive, wchar_t *fn)
                 img[drive].f = _wfopen(fn, L"rb");
                 if (!img[drive].f)
 		{
-			update_status_bar_icon_state(drive, 1);
+			memset(discfns[drive], 0, sizeof(discfns[drive]));
                         return;
 		}
                 writeprot[drive] = 1;
@@ -736,7 +752,7 @@ jump_if_fdf:
 		{
 			pclog("Image is bigger than can fit on an ED floppy, ejecting...\n");
 			fclose(img[drive].f);
-			update_status_bar_icon_state(drive, 1);
+			memset(discfns[drive], 0, sizeof(discfns[drive]));
 			return;
 		}
 	}
@@ -798,7 +814,7 @@ jump_if_fdf:
 	{
 		pclog("Image is bigger than can fit on an ED floppy, ejecting...\n");
 		fclose(img[drive].f);
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 
@@ -815,7 +831,7 @@ jump_if_fdf:
 	{
 		pclog("ERROR: Floppy image of unknown format was inserted into drive %c:!\n", drive + 0x41);
 		fclose(img[drive].f);
-		update_status_bar_icon_state(drive, 1);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 

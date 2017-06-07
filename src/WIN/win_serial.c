@@ -12,7 +12,7 @@
  *		Windows and UNIX systems, with support for FTDI and Prolific
  *		USB ports. Support for these has been removed.
  *
- * Version:	@(#)win_serial.c	1.0.2	2017/05/17
+ * Version:	@(#)win_serial.c	1.0.3	2017/06/04
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -21,11 +21,66 @@
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "plat_thread.h"
 #define BHTTY_C
 #include "plat_serial.h"
 
 
 extern void	pclog(char *__fmt, ...);
+
+
+/* Handle the receiving of data from the host port. */
+static void
+bhtty_reader(void *arg)
+{
+    BHTTY *pp = (BHTTY *)arg;
+    unsigned char b;
+    DWORD n;
+
+    pclog("%s: thread started\n", pp->name);
+
+    /* As long as the channel is open.. */
+    while (pp->tid != NULL) {
+	/* Post a READ on the device. */
+	n = 0;
+	if (ReadFile(pp->handle, &b, (DWORD)1, &n, &pp->rov) == FALSE) {
+		n = GetLastError();
+		if (n != ERROR_IO_PENDING) {
+			/* Not good, we got an error. */
+			pclog("%s: I/O error %d in read!\n", pp->name, n);
+			break;
+		}
+
+		/* The read is pending, wait for it.. */
+		if (GetOverlappedResult(pp->handle, &pp->rov, &n, TRUE) == FALSE) {
+			n = GetLastError();
+			pclog("%s: I/O error %d in read!\n", pp->name, n);
+			break;
+		}
+	}
+
+pclog("%s: got %d bytes of data\n", pp->name, n);
+	if (n == 1) {
+		/* We got data, update stuff. */
+		if (pp->icnt < sizeof(pp->buff)) {
+pclog("%s: queued byte %02x (%d)\n", pp->name, b, pp->icnt+1);
+			pp->buff[pp->ihead++] = b;
+			pp->ihead &= (sizeof(pp->buff)-1);
+			pp->icnt++;
+
+			/* Do a callback to let them know. */
+			if (pp->rd_done != NULL)
+				pp->rd_done(pp->rd_arg, n);
+		} else {
+			pclog("%s: RX buffer overrun!\n", pp->name);
+		}
+	}
+    }
+
+    /* Error or done, clean up. */
+    pp->tid = NULL;
+    pclog("%s: thread stopped.\n", pp->name);
+}
 
 
 /* Set the state of a port. */
@@ -35,8 +90,8 @@ bhtty_sstate(BHTTY *pp, void *arg)
     int i = 0;
 
     /* Make sure we can do this. */
-    if (pp == NULL || arg == NULL) {
-	pclog("invalid argument\n");
+    if (arg == NULL) {
+	pclog("%s: invalid argument\n", pp->name);
 	return(-1);
     }
 
@@ -57,8 +112,8 @@ bhtty_gstate(BHTTY *pp, void *arg)
     int i = 0;
 
     /* Make sure we can do this. */
-    if (pp == NULL || arg == NULL) {
-	pclog("BHTTY: invalid argument\n");
+    if (arg == NULL) {
+	pclog("%s: invalid argument\n", pp->name);
 	return(-1);
     }
 
@@ -76,12 +131,6 @@ bhtty_gstate(BHTTY *pp, void *arg)
 int
 bhtty_crtscts(BHTTY *pp, char yesno)
 {
-    /* Make sure we can do this. */
-    if (pp == NULL) {
-	pclog("invalid handle\n");
-	return(-1);
-    }
-
     /* Get the current mode. */
     if (bhtty_gstate(pp, &pp->dcb) < 0) return(-1);
 
@@ -124,12 +173,6 @@ bhtty_crtscts(BHTTY *pp, char yesno)
 int
 bhtty_params(BHTTY *pp, char dbit, char par, char sbit)
 {
-    /* Make sure we can do this. */
-    if (pp == NULL) {
-	pclog("invalid handle\n");
-	return(-1);
-    }
-
     /* Get the current mode. */
     if (bhtty_gstate(pp, &pp->dcb) < 0) return(-1);
 
@@ -220,8 +263,8 @@ bhtty_raw(BHTTY *pp, void *arg)
     DCB *dcb = (DCB *)arg;
 
     /* Make sure we can do this. */
-    if (pp == NULL || arg == NULL) {
-	pclog("invalid parameter\n");
+    if (arg == NULL) {
+	pclog("%s: invalid parameter\n", pp->name);
 	return;
     }
 
@@ -263,12 +306,6 @@ bhtty_speed(BHTTY *pp, long speed)
 {
     int i;
 
-    /* Make sure we can do this. */
-    if (pp == NULL) {
-	pclog("invalid handle\n");
-	return(-1);
-    }
-
     /* Get the current mode and speed. */
     if (bhtty_gstate(pp, &pp->dcb) < 0) return(-1);
 
@@ -296,12 +333,6 @@ bhtty_flush(BHTTY *pp)
     COMSTAT cs;
     int i = 0;
 
-    /* Make sure we can do this. */
-    if (pp == NULL) {
-	pclog("invalid handle\n");
-	return(-1);
-    }
-
     /* First, clear any errors. */
     (void)ClearCommError(pp->handle, &dwErrs, &cs);
 
@@ -327,13 +358,18 @@ bhtty_flush(BHTTY *pp)
 void
 bhtty_close(BHTTY *pp)
 {
-    /* Make sure we can do this. */
-    if (pp == NULL) {
-	pclog("BHTTY: invalid handle\n");
-	return;
-    }
+    /* If the polling thread is running, stop it. */
+    (void)bhtty_active(pp, 0);
+
+    /* Close the event handles. */
+    if (pp->rov.hEvent != INVALID_HANDLE_VALUE)
+	CloseHandle(pp->rov.hEvent);
+    if (pp->wov.hEvent != INVALID_HANDLE_VALUE)
+	CloseHandle(pp->wov.hEvent);
 
     if (pp->handle != INVALID_HANDLE_VALUE) {
+	pclog("%s: closing host port\n", pp->name);
+
 	/* Restore the previous port state, if any. */
 	(void)bhtty_sstate(pp, &pp->odcb);
 
@@ -351,20 +387,11 @@ bhtty_close(BHTTY *pp)
 BHTTY *
 bhtty_open(char *port, int tmo)
 {
-    char buff[64];
+    char temp[64];
     COMMTIMEOUTS to;
-#if 0
     COMMCONFIG conf;
-    DWORD d;
-#endif
     BHTTY *pp;
-    int i = 0;
-
-    /* Make sure we can do this. */
-    if (port == NULL) {
-	pclog("invalid argument!\n");
-	return(NULL);
-    }
+    DWORD d;
 
     /* First things first... create a control block. */
     if ((pp = (BHTTY *)malloc(sizeof(BHTTY))) == NULL) {
@@ -375,45 +402,53 @@ bhtty_open(char *port, int tmo)
     strncpy(pp->name, port, sizeof(pp->name)-1);
 
     /* Try a regular Win32 serial port. */
-    sprintf(buff, "\\\\.\\%s", pp->name);
-    pp->handle = CreateFile(buff,
-			    (GENERIC_READ|GENERIC_WRITE),
-			    0, NULL, OPEN_EXISTING,
-			    FILE_FLAG_OVERLAPPED,
-			    0);
-    if (pp->handle == INVALID_HANDLE_VALUE) {
+    sprintf(temp, "\\\\.\\%s", pp->name);
+    if ((pp->handle = CreateFile(temp,
+				 (GENERIC_READ|GENERIC_WRITE),
+				 0,
+				 NULL,
+				 OPEN_EXISTING,
+				 FILE_FLAG_OVERLAPPED,
+				 0)) == INVALID_HANDLE_VALUE) {
 	pclog("%s: open port: %d\n", pp->name, GetLastError());
 	free(pp);
 	return(NULL);
     }
 
-#if 0
+    /* Create event handles. */
+    pp->rov.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    pp->wov.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
     /* Set up buffer size of the port. */
     if (SetupComm(pp->handle, 32768L, 32768L) == FALSE) {
 	/* This fails on FTDI-based devices. */
 	pclog("%s: set buffers: %d\n", pp->name, GetLastError());
-//	CloseHandle(pp->handle);
-//	free(pp);
-//	return(NULL);
+#if 0
+	CloseHandle(pp->handle);
+	free(pp);
+	return(NULL);
+#endif
     }
 
     /* Grab default config for the driver and set it. */
     d = sizeof(COMMCONFIG);
     memset(&conf, 0x00, d);
     conf.dwSize = d;
-    if (GetDefaultCommConfig(pp->name, &conf, &d) == TRUE) {
+    if (GetDefaultCommConfig(temp, &conf, &d) == TRUE) {
 	/* Change config here... */
 
 	/* Set new configuration. */
 	if (SetCommConfig(pp->handle, &conf, d) == FALSE) {
 		/* This fails on FTDI-based devices. */
 		pclog("%s: set configuration: %d\n", pp->name, GetLastError());
-//		CloseHandle(pp->handle);
-//		free(pp);
-//		return(NULL);
+#if 0
+		CloseHandle(pp->handle);
+		free(pp);
+		return(NULL);
+#endif
 	}
     }
-#endif
+    pclog("%s: host port '%s' open\n", pp->name, temp);
 
     /*
      * We now have an open port. To allow for clean exit
@@ -460,8 +495,7 @@ bhtty_open(char *port, int tmo)
 	to.ReadTotalTimeoutConstant = tmo;
     }
     if (SetCommTimeouts(pp->handle, &to) == FALSE) {
-	pclog("%s: error %d while setting TO\n",
-			pp->name, GetLastError());
+	pclog("%s: error %d while setting TO\n", pp->name, GetLastError());
 	(void)bhtty_close(pp);
 	return(NULL);
     }
@@ -476,25 +510,22 @@ bhtty_open(char *port, int tmo)
 }
 
 
-/* A pending WRITE has finished, handle it. */
-static VOID CALLBACK
-bhtty_write_comp(DWORD err, DWORD num, OVERLAPPED *priv)
+/* Activate the I/O for this port. */
+int
+bhtty_active(BHTTY *pp, int flg)
 {
-    BHTTY *pp = (BHTTY *)priv->hEvent;
+    if (flg) {
+	pclog("%s: starting thread..\n", pp->name);
+	pp->tid = thread_create(bhtty_reader, pp);
+    } else {
+	if (pp->tid != NULL) {
+		pclog("%s: stopping thread..\n", pp->name);
+		thread_kill(pp->tid);
+		pp->tid = NULL;
+	}
+    }
 
-//pclog("%s: write complete, status %d, num %d\n", pp->name, err, num);
-#if 0
-    if (
-	if (GetOverlappedResult(p->handle,
-		    &p->rov, &mst, TRUE) == FALSE) {
-			r = GetLastError();
-			if (r != ERROR_OPERATION_ABORTED)
-		    	/* OK, we're being shut down. */
-		    	sprintf(serial_errmsg,
-				"%s: I/O read error!", p->name);
-			return(-1);
-		}
-#endif
+    return(0);
 }
 
 
@@ -502,56 +533,26 @@ bhtty_write_comp(DWORD err, DWORD num, OVERLAPPED *priv)
 int
 bhtty_write(BHTTY *pp, unsigned char val)
 {
-    DWORD n;
+    DWORD n = 0;
 
-    /* Make sure we can do this. */
-    if (pp == NULL) {
-	pclog("invalid parameter\n");
-	return(-1);
-    }
-//pclog("BHwrite(%08lx, %02x, '%c')\n", pp->handle, val, val);
-
-    /* Save the control pointer for later use. */
-    pp->wov.hEvent = (HANDLE)pp;
-
-    if (WriteFileEx(pp->handle,
-		    &val, 1,
-		    &pp->wov,
-		    bhtty_write_comp) == FALSE) {
+pclog("%s: writing byte %02x\n", pp->name, val);
+    if (WriteFile(pp->handle, &val, 1, &n, &pp->wov) == FALSE) {
 	n = GetLastError();
-	pclog("%s: I/O error %d in write!\n", pp->name, n);
-	return(-1);
+	if (n != ERROR_IO_PENDING) {
+		/* Not good, we got an error. */
+		pclog("%s: I/O error %d in write!\n", pp->name, n);
+		return(-1);
+	}
+
+	/* The write is pending, wait for it.. */
+	if (GetOverlappedResult(pp->handle, &pp->wov, &n, TRUE) == FALSE) {
+		n = GetLastError();
+		pclog("%s: I/O error %d in write!\n", pp->name, n);
+		return(-1);
+	}
     }
 
-    /* Its pending, so handled in the completion routine. */
-    SleepEx(1, TRUE);
-
-    return(0);
-}
-
-
-/*
- * A pending READ has finished, handle it.
- */
-static VOID CALLBACK
-bhtty_read_comp(DWORD err, DWORD num, OVERLAPPED *priv)
-{
-    BHTTY *pp = (BHTTY *)priv->hEvent;
-    DWORD r;
-//pclog("%s: read complete, status %d, num %d\n", pp->name, err, num);
-
-    if (GetOverlappedResult(pp->handle, &pp->rov, &r, TRUE) == FALSE) {
-	r = GetLastError();
-	if (r != ERROR_OPERATION_ABORTED) 
-    		/* OK, we're being shut down. */
-    		pclog("%s: I/O read error!", pp->name);
-	return;
-    }
-//pclog("%s: read done, num=%d (%d)\n", pp->name, num, r);
-
-    /* Do a callback to let them know. */
-    if (pp->rd_done != NULL)
-	pp->rd_done(pp->rd_arg, num);
+    return((int)n);
 }
 
 
@@ -561,46 +562,18 @@ bhtty_read_comp(DWORD err, DWORD num, OVERLAPPED *priv)
  * For now, we will use one byte per call.  Eventually,
  * we should go back to loading a buffer full of data,
  * just to speed things up a bit.  --FvK
- *
- * Also, not that we do not wait here. We just POST a
- * read operation, and the completion routine will do
- * the clean-up and notify the caller.
  */
 int
 bhtty_read(BHTTY *pp, unsigned char *bufp, int max)
 {
-    DWORD r;
+    if (pp->icnt == 0) return(0);
 
-    /* Just one byte. */
-    max = 1;
-
-    /* Make sure we can do this. */
-    if (pp == NULL) {
-	pclog("invalid parameter\n");
-	return(-1);
+    while (max-- > 0) {
+	*bufp++ = pp->buff[pp->itail++];
+pclog("%s: dequeued byte %02x (%d)\n", pp->name, *(bufp-1), pp->icnt);
+	pp->itail &= (sizeof(pp->buff)-1);
+	if (--pp->icnt == 0) break;
     }
 
-    /* Save the control pointer for later use. */
-    pp->rov.hEvent = (HANDLE)pp;
-//pclog("%s: read(%08lx, %d)\n", pp->name, pp->handle, max);
-
-    /* Post a READ on the device. */
-    if (ReadFileEx(pp->handle,
-		   bufp, (DWORD)max,
-		   &pp->rov,
-		   bhtty_read_comp) == FALSE) {
-	r = GetLastError();
-	if (r != ERROR_IO_PENDING) {
-		/* OK, we're being shut down. */
-		if (r != ERROR_INVALID_HANDLE)
-			pclog("%s: I/O read error!\n", pp->name);
-		return(-1);
-	}
-    }
-
-    /* Make ourself alertable. */
-    SleepEx(1, TRUE);
-
-    /* OK, it's pending, so we are good for now. */
-    return(0);
+    return(max);
 }

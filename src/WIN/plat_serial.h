@@ -8,7 +8,7 @@
  *
  *		Definitions for the Bottom Half of the SERIAL card.
  *
- * Version:	@(#)plat_serial.h	1.0.3	2017/05/17
+ * Version:	@(#)plat_serial.h	1.0.5	2017/06/04
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -18,7 +18,7 @@
 
 
 typedef struct {
-    char	name[79];		/* name of open port */
+    char	name[80];		/* name of open port */
     void	(*rd_done)(void *, int);
     void	*rd_arg;
 #ifdef BHTTY_C
@@ -28,6 +28,9 @@ typedef struct {
     int		tmo;			/* current timeout value */
     DCB		dcb,			/* terminal settings */
 		odcb;
+    thread_t	*tid;			/* pointer to receiver thread */
+    char	buff[1024];
+    int		icnt, ihead, itail;
 #endif
 } BHTTY;
 
@@ -41,7 +44,7 @@ extern int	bhtty_params(BHTTY *, char __dbit, char __par, char __sbit);
 extern int	bhtty_sstate(BHTTY *, void *__arg);
 extern int	bhtty_gstate(BHTTY *, void *__arg);
 extern int	bhtty_crtscts(BHTTY *, char __yesno);
-
+extern int	bhtty_active(BHTTY *, int);
 extern int	bhtty_write(BHTTY *, unsigned char);
 extern int	bhtty_read(BHTTY *, unsigned char *, int);
 

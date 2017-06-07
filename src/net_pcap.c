@@ -8,7 +8,7 @@
  *
  *		Handle WinPcap library processing.
  *
- * Version:	@(#)net_pcap.c	1.0.4	2017/05/23
+ * Version:	@(#)net_pcap.c	1.0.5	2017/06/04
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -19,10 +19,10 @@
 #include <pcap.h>
 #include "ibm.h"
 #include "config.h"
-#include "thread.h"
 #include "device.h"
 #include "network.h"
 #include "plat_dynld.h"
+#include "plat_thread.h"
 
 
 static void	*pcap_handle;		/* handle to WinPcap DLL */
@@ -144,6 +144,16 @@ network_pcap_init(netdev_t *list)
 }
 
 
+/* Initialize the (Win)Pcap module for use. */
+void
+network_pcap_reset(void)
+{
+    /* Try loading the DLL. */
+    pcap_handle = dynld_module("wpcap.dll", pcap_imports);
+    return;
+}
+
+
 /* Initialize WinPcap for us. */
 int
 network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
@@ -156,11 +166,26 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
     /* Did we already load the DLL? */
     if (pcap_handle == NULL) return(-1);
 
+#if 1
+    /* Get the value of our capture interface. */
+    dev = network_pcap;
+    if (dev == NULL) {
+	pclog(" PCap device is a null pointer!\n");
+	return(-1);
+    }
+    if ((dev[0] == '\0') || !strcmp(dev, "none")) {
+	pclog(" No network device configured!\n");
+	return(-1);
+    }
+    pclog(" Network interface: '%s'\n", dev);
+#endif
+
     strcpy(temp, f_pcap_lib_version());
     dev = strchr(temp, '(');
     if (dev != NULL) *(dev-1) = '\0';
     pclog("PCAP: initializing, %s\n", temp);
 
+#if 0
     /* Get the value of our capture interface. */
     dev = network_pcap;
     if ((dev[0] == '\0') || !strcmp(dev, "none")) {
@@ -168,6 +193,9 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
 	return(-1);
     }
     pclog(" Network interface: '%s'\n", dev);
+#else
+    dev = network_pcap;
+#endif
 
     pcap = f_pcap_open_live(dev,		/* interface name */
 			   1518,	/* maximum packet size */
