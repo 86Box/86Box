@@ -486,7 +486,7 @@ void create_cdrom_submenu(HMENU m, int id)
 
 	for (i = 0; i < 26; i++)
 	{
-		wsprintf(s, L"Host CD/DVD Drive (%c:)", i + 0x41);
+		_swprintf(s, L"Host CD/DVD Drive (%c:)", i + 0x41);
 		if (host_cdrom_drive_available[i])
 		{
 			AppendMenu(m, MF_STRING, IDM_CDROM_HOST_DRIVE | (i << 3) | id, s);
@@ -2026,6 +2026,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 							/* pclog_w(L"NVR path: %s\n", nvr_path); */
 							mem_resize();
 							loadbios();
+							update_status_bar_panes(hwndStatus);
 							resetpchard();
 						}
 					}

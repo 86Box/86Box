@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.1	2017/06/01
+ * Version:	@(#)vid_ega.c	1.0.2	2017/06/05
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -45,15 +45,8 @@ static int old_overscan_color = 0;
 
 int update_overscan = 0;
 
-#define SBCS 0
-#define DBCS 1
-#define ID_LEN 6
-#define NAME_LEN 8
-#define SBCS19_LEN 256 * 19
-#define DBCS16_LEN 65536 * 32
-
-uint8_t jfont_sbcs_19[SBCS19_LEN];//256 * 19( * 8)
-uint8_t jfont_dbcs_16[DBCS16_LEN];//65536 * 16 * 2 (* 8)
+uint8_t jfont_sbcs_19[SBCS19_LEN];	/* 256 * 19( * 8) */
+uint8_t jfont_dbcs_16[DBCS16_LEN];	/* 65536 * 16 * 2 (* 8) */
 
 typedef struct {
     char id[ID_LEN];
@@ -67,6 +60,16 @@ typedef struct {
     uint16_t start;
     uint16_t end;
 } fontxTbl;
+
+static __inline int ega_jega_enabled(ega_t *ega)
+{
+	if (!ega->is_jega)
+	{
+		return 0;
+	}
+
+	return !(ega->RMOD1 & 0x40);
+}
 
 void ega_jega_write_font(ega_t *ega)
 {
@@ -529,7 +532,14 @@ void ega_poll(void *p)
                         }
                         else if (!(ega->gdcreg[6] & 1))
                         {
-				ega_render_text_standard(ega, drawcursor);
+				if (ega_jega_enabled(ega))
+				{
+					ega_render_text_jega(ega, drawcursor);
+				}
+				else
+				{
+					ega_render_text_standard(ega, drawcursor);
+				}
                         }
                         else
                         {
