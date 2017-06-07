@@ -211,7 +211,7 @@ uint8_t readnvr(uint16_t addr, void *priv)
 
 void loadnvr(void)
 {
-        FILE *f;
+        FILE *f = NULL;
         int c;
         nvrmask=63;
         oldmodel = model;
@@ -235,8 +235,12 @@ void loadnvr(void)
 	free(nvr_name);
 	free(model_name);
 
-        if (!f)
+        if (!f || (model_get_nvrmask(model) == 0))
         {
+		if (f)
+		{
+			fclose(f);
+		}
                 memset(nvrram,0xFF,128);
                 if (!enable_sync)
                 {
@@ -262,7 +266,7 @@ void loadnvr(void)
 
 void savenvr(void)
 {
-        FILE *f;
+        FILE *f = NULL;
 
 	wchar_t *model_name;
 	wchar_t *nvr_name;
@@ -282,8 +286,12 @@ void savenvr(void)
 	free(nvr_name);
 	free(model_name);
 
-	if (!f)
+	if (!f || (model_get_nvrmask(oldmodel) == 0))
 	{
+		if (f)
+		{
+			fclose(f);
+		}
 		return;
 	}
 

@@ -773,7 +773,6 @@ static void loadconfig_general(void)
 {
 	char *cat = "General";
 	char temps[512];
-        wchar_t *wp;
         char *p;
 
         vid_resize = !!config_get_int(cat, "vid_resize", 0);
@@ -824,6 +823,42 @@ static void loadconfig_general(void)
 		window_w = window_h = window_x = window_y = 0;
 	}
 
+#ifndef __unix
+	/* Currently, 86Box is English (US) only, but in the future (version 1.30 at the earliest) other languages will be added,
+	   therefore it is better to future-proof the code. */
+	dwLanguage = config_get_hex16(cat, "language", 0x0409);
+#endif
+}
+
+
+/* Machine */
+static void loadconfig_machine(void)
+{
+	char *cat = "Machine";
+        wchar_t *wp;
+        char *p;
+
+        p = config_get_string(cat, "model", NULL);
+        if (p != NULL)
+                model = model_get_model_from_internal_name(p);
+        else
+                model = 0;
+        if (model >= model_count())
+                model = model_count() - 1;
+
+        romset = model_getromset();
+        cpu_manufacturer = config_get_int(cat, "cpu_manufacturer", 0);
+        cpu = config_get_int(cat, "cpu", 0);
+	cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
+
+        mem_size = config_get_int(cat, "mem_size", 4096);
+        if (mem_size < ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram))
+                mem_size = ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram);
+	if (mem_size > 262144)
+	{
+		mem_size = 262144;
+	}
+
 	if (read_nvr_path != NULL)
 	{
 		free(read_nvr_path);
@@ -856,41 +891,6 @@ static void loadconfig_general(void)
 	}
 
 	path_len = wcslen(nvr_path);
-
-#ifndef __unix
-	/* Currently, 86Box is English (US) only, but in the future (version 1.30 at the earliest) other languages will be added,
-	   therefore it is better to future-proof the code. */
-	dwLanguage = config_get_hex16(cat, "language", 0x0409);
-#endif
-}
-
-
-/* Machine */
-static void loadconfig_machine(void)
-{
-	char *cat = "Machine";
-        char *p;
-
-        p = config_get_string(cat, "model", NULL);
-        if (p != NULL)
-                model = model_get_model_from_internal_name(p);
-        else
-                model = 0;
-        if (model >= model_count())
-                model = model_count() - 1;
-
-        romset = model_getromset();
-        cpu_manufacturer = config_get_int(cat, "cpu_manufacturer", 0);
-        cpu = config_get_int(cat, "cpu", 0);
-	cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
-
-        mem_size = config_get_int(cat, "mem_size", 4096);
-        if (mem_size < ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram))
-                mem_size = ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram);
-	if (mem_size > 262144)
-	{
-		mem_size = 262144;
-	}
 
         cpu_use_dynarec = !!config_get_int(cat, "cpu_use_dynarec", 0);
 
@@ -1793,15 +1793,6 @@ static void saveconfig_general(void)
 	        config_delete_var(cat, "window_coordinates");
 	}
 
-	if (read_nvr_path == NULL)
-	{
-		config_delete_var(cat, "nvr_path");
-	}
-	else
-	{
-	        config_set_wstring(cat, "nvr_path", nvr_path);
-	}
-
 #ifndef __unix
 	if (dwLanguage == 0x0409)
 	{
@@ -1858,6 +1849,15 @@ static void saveconfig_machine(void)
 	else
 	{
 	        config_set_int(cat, "mem_size", mem_size);
+	}
+
+	if (read_nvr_path == NULL)
+	{
+		config_delete_var(cat, "nvr_path");
+	}
+	else
+	{
+	        config_set_wstring(cat, "nvr_path", nvr_path);
 	}
 
         config_set_int(cat, "cpu_use_dynarec", cpu_use_dynarec);
