@@ -179,9 +179,11 @@ void *intel_flash_init(uint8_t type)
 		case ROM_REVENGE:
 			wcscpy(flash_path, L"revenge.bin");
 			break;
+#if 0
 		case ROM_586MC1:
 			wcscpy(flash_path, L"586mc1.bin");
 			break;
+#endif
 		case ROM_PLATO:
 			wcscpy(flash_path, L"plato.bin");
 			break;
@@ -203,12 +205,14 @@ void *intel_flash_init(uint8_t type)
 		case ROM_ACERM3A:
 			wcscpy(flash_path, L"acerm3a.bin");
 			break;
+#if 0
 		case ROM_ACERV35N:
 			wcscpy(flash_path, L"acerv35n.bin");
 			break;
 		case ROM_430VX:
 			wcscpy(flash_path, L"430vx.bin");
 			break;
+#endif
 		case ROM_P55VA:
 			wcscpy(flash_path, L"p55va.bin");
 			break;

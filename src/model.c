@@ -84,7 +84,9 @@
 #include "sound/snd_sn76489.h"
 #include "tandy_eeprom.h"
 #include "tandy_rom.h"
+#if 0
 #include "um8669f.h"
+#endif
 #include "video/vid_pcjr.h"
 #include "video/vid_tandy.h"
 #include "w83877f.h"
@@ -118,7 +120,9 @@ extern void     at_ali1429_init(void);
 extern void    at_headland_init(void);
 extern void     at_opti495_init(void);
 extern void      at_sis496_init(void);
+#if 0
 extern void      at_i430vx_init(void);
+#endif
 extern void      at_batman_init(void);
 extern void    at_endeavor_init(void);
 
@@ -226,7 +230,9 @@ MODEL models[] =
         {"Acer V35N",			ROM_ACERV35N,		"acerv3n",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,    at_acerv35n_init, NULL},
 #endif
         {"ASUS P/I-P55T2P4",		ROM_P55T2P4,		"p55r2p4",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,     at_p55t2p4_init, NULL},
+#if 0
         {"Award 430VX PCI",		ROM_430VX,		"430vx",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,      at_i430vx_init, NULL},
+#endif
         {"Epox P55-VA",			ROM_P55VA,		"p55va",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,       at_p55va_init, NULL},
         {"ASUS P/I-P55TVP4",		ROM_P55TVP4,		"p55tvp4",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,     at_p55tvp4_init, NULL},
         {"Tyan Titan-Pro AT",		ROM_440FX,		"440fx",		{ "Intel", cpus_PentiumPro,  "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1,      at_i440fx_init, NULL},
@@ -818,6 +824,7 @@ void at_p55t2p4_init(void)
         device_add(&intel_flash_bxt_device);
 }
 
+#if 0
 void at_i430vx_init(void)
 {
         at_ide_init();
@@ -832,6 +839,7 @@ void at_i430vx_init(void)
         um8669f_init();
         device_add(&intel_flash_bxt_device);
 }
+#endif
 
 void at_p55tvp4_init(void)
 {

@@ -148,7 +148,7 @@ SYSOBJ	= model.o \
 	  olivetti_m24.o ps1.o ps2.o ps2_mca.o \
 	  tandy_eeprom.o tandy_rom.o
 DEVOBJ	= bugger.o lpt.o serial.o \
-	    um8669f.o pc87306.o sis85c471.o w83877f.o \
+	    pc87306.o sis85c471.o w83877f.o \
 	  keyboard.o \
 	    keyboard_xt.o keyboard_at.o keyboard_pcjr.o \
 	    keyboard_amstrad.o keyboard_olim24.o \

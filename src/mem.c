@@ -434,6 +434,7 @@ int loadbios()
                 pclog("Load SIS496 %x %x\n", rom[0x1fff0], rom[0xfff0]);
                 return 1;
                 
+#if 0
                 case ROM_430VX:
                 f = romfopen(L"roms/430vx/55XWUQ0E.BIN", L"rb");
                 if (!f) break;
@@ -441,6 +442,7 @@ int loadbios()
                 fclose(f);
                 biosmask = 0x1ffff;
                 return 1;
+#endif
 
                 case ROM_REVENGE:
                 f = romfopen(L"roms/revenge/1009AF2_.BIO", L"rb");
@@ -650,6 +652,7 @@ int loadbios()
                 pclog("Load R418 %x %x\n", rom[0x1fff0], rom[0xfff0]);
                 return 1;
                 
+#if 0
                 case ROM_586MC1:
                 f = romfopen(L"roms/586mc1/IS.34", L"rb");
                 if (!f) break;
@@ -657,6 +660,7 @@ int loadbios()
                 fclose(f);
                 biosmask = 0x1ffff;
                 return 1;
+#endif
 
                 case ROM_PLATO:
                 f = romfopen(L"roms/plato/1016AX1_.BIO", L"rb");
@@ -712,6 +716,7 @@ int loadbios()
                 biosmask = 0x1ffff;
                 return 1;
 
+#if 0
 		case ROM_ACERV35N:
 		f = romfopen(L"roms/acerv35n/V35ND1S1.BIN", L"rb");
                 if (!f) break;
@@ -719,6 +724,7 @@ int loadbios()
                 fclose(f);
                 biosmask = 0x1ffff;
                 return 1;
+#endif
 
                 case ROM_P55VA:
                 f = romfopen(L"roms/p55va/VA021297.BIN", L"rb");

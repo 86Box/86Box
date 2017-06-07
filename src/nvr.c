@@ -240,7 +240,9 @@ void loadnvr(void)
                 case ROM_AMI486:		f = nvrfopen(L"ami486.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_WIN486:		f = nvrfopen(L"win486.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_SIS496:		f = nvrfopen(L"sis496.nvr",		L"rb"); nvrmask = 127; break;
+#if 0
                 case ROM_430VX:			f = nvrfopen(L"430vx.nvr",		L"rb"); nvrmask = 127; break;
+#endif
                 case ROM_REVENGE:		f = nvrfopen(L"revenge.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_ENDEAVOR:		f = nvrfopen(L"endeavor.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_DTK386:		f = nvrfopen(L"dtk386.nvr",		L"rb"); nvrmask = 127; break;
@@ -248,14 +250,18 @@ void loadnvr(void)
                 case ROM_AMI386DX_OPTI495:	f = nvrfopen(L"ami386dx_opti495.nvr",	L"rb"); nvrmask = 127; break;
                 case ROM_DTK486:		f = nvrfopen(L"dtk486.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_R418:			f = nvrfopen(L"r418.nvr",		L"rb"); nvrmask = 127; break;
+#if 0
                 case ROM_586MC1:		f = nvrfopen(L"586mc1.nvr",		L"rb"); nvrmask = 127; break;
+#endif
                 case ROM_PLATO:			f = nvrfopen(L"plato.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_MB500N:		f = nvrfopen(L"mb500n.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_P54TP4XE:		f = nvrfopen(L"p54tp4xe.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_AP53:			f = nvrfopen(L"ap53.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_P55T2S:		f = nvrfopen(L"p55t2s.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_ACERM3A:		f = nvrfopen(L"acerm3a.nvr",		L"rb"); nvrmask = 127; break;
+#if 0
                 case ROM_ACERV35N:		f = nvrfopen(L"acerv35n.nvr",		L"rb"); nvrmask = 127; break;
+#endif
                 case ROM_P55VA:			f = nvrfopen(L"p55va.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_P55T2P4:		f = nvrfopen(L"p55t2p4.nvr",		L"rb"); nvrmask = 127; break;
                 case ROM_P55TVP4:		f = nvrfopen(L"p55tvp4.nvr",		L"rb"); nvrmask = 127; break;
@@ -325,7 +331,9 @@ void savenvr(void)
                 case ROM_AMI486:		f = nvrfopen(L"ami486.nvr",		L"wb"); break;
                 case ROM_WIN486:		f = nvrfopen(L"win486.nvr",		L"wb"); break;
                 case ROM_SIS496:		f = nvrfopen(L"sis496.nvr",		L"wb"); break;
+#if 0
                 case ROM_430VX:			f = nvrfopen(L"430vx.nvr",		L"wb"); break;
+#endif
                 case ROM_REVENGE:		f = nvrfopen(L"revenge.nvr",		L"wb"); break;
                 case ROM_ENDEAVOR:		f = nvrfopen(L"endeavor.nvr",		L"wb"); break;
                 case ROM_DTK386:		f = nvrfopen(L"dtk386.nvr",		L"wb"); break;
@@ -333,14 +341,18 @@ void savenvr(void)
                 case ROM_AMI386DX_OPTI495:	f = nvrfopen(L"ami386dx_opti495.nvr",	L"wb"); break;
                 case ROM_DTK486:		f = nvrfopen(L"dtk486.nvr",		L"wb"); break;
                 case ROM_R418:			f = nvrfopen(L"r418.nvr",		L"wb"); break;
+#if 0
                 case ROM_586MC1:		f = nvrfopen(L"586mc1.nvr",		L"wb"); break;
+#endif
                 case ROM_PLATO:			f = nvrfopen(L"plato.nvr",		L"wb"); break;
                 case ROM_MB500N:		f = nvrfopen(L"mb500n.nvr",		L"wb"); break;
                 case ROM_P54TP4XE:		f = nvrfopen(L"p54tp4xe.nvr",		L"wb"); break;
                 case ROM_AP53:			f = nvrfopen(L"ap53.nvr",		L"wb"); break;
                 case ROM_P55T2S:		f = nvrfopen(L"p55t2s.nvr",		L"wb"); break;
                 case ROM_ACERM3A:		f = nvrfopen(L"acerm3a.nvr",		L"wb"); break;
+#if 0
                 case ROM_ACERV35N:		f = nvrfopen(L"acerv35n.nvr",		L"wb"); break;
+#endif
                 case ROM_P55VA:			f = nvrfopen(L"p55va.nvr",		L"wb"); break;
                 case ROM_P55T2P4:		f = nvrfopen(L"p55t2p4.nvr",		L"wb"); break;
                 case ROM_P55TVP4:		f = nvrfopen(L"p55tvp4.nvr",		L"wb"); break;
