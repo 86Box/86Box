@@ -240,12 +240,12 @@ void updatewindowsize(int x, int y)
 	}
 }
 
-void uws_natural()
+void uws_natural(void)
 {
 	updatewindowsize(unscaled_size_x, efwinsizey);
 }
 
-void releasemouse()
+void releasemouse(void)
 {
         if (mousecapture) 
         {
@@ -255,17 +255,17 @@ void releasemouse()
         }
 }
 
-void startblit()
+void startblit(void)
 {
         WaitForSingleObject(ghMutex, INFINITE);
 }
 
-void endblit()
+void endblit(void)
 {
         ReleaseMutex(ghMutex);
 }
 
-void leave_fullscreen()
+void leave_fullscreen(void)
 {
         leave_fullscreen_flag = 1;
 }
@@ -362,7 +362,7 @@ void thread_sleep(int t)
         Sleep(t);
 }
 
-event_t *thread_create_event()
+event_t *thread_create_event(void)
 {
         win_event_t *event = malloc(sizeof(win_event_t));
         
@@ -537,14 +537,14 @@ void set_window_title(WCHAR *s)
         SetWindowText(ghwnd, s);
 }
 
-uint64_t timer_read()
+uint64_t timer_read(void)
 {
         LARGE_INTEGER qpc_time;
         QueryPerformanceCounter(&qpc_time);
         return qpc_time.QuadPart;
 }
 
-static void process_command_line()
+static void process_command_line(void)
 {
         WCHAR *cmdline;
         int argc_max;
@@ -957,7 +957,7 @@ void status_settext(char *str)
 	status_settextw(cwstr);
 }
 
-void destroy_menu_handles()
+void destroy_menu_handles(void)
 {
 	int i = 0;
 
@@ -974,7 +974,7 @@ void destroy_menu_handles()
 	free(sb_menu_handles);
 }
 
-void destroy_tips()
+void destroy_tips(void)
 {
 	int i = 0;
 
@@ -1344,7 +1344,7 @@ HWND EmulatorStatusBar(HWND hwndParent, int idStatus, HINSTANCE hinst)
 	return hwndStatus;
 }
 
-void win_menu_update()
+void win_menu_update(void)
 {
 #if 0
         menu = LoadMenu(hThisInstance, TEXT("MainMenu"));
