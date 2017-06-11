@@ -1877,12 +1877,12 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				case IDM_VID_D3D:
 					startblit();
 					video_wait_for_blit();
+					endblit();
 					CheckMenuItem(hmenu, IDM_VID_DDRAW + vid_api, MF_UNCHECKED);
 					vid_apis[0][vid_api].close();
 					vid_api = LOWORD(wParam) - IDM_VID_DDRAW;
 					CheckMenuItem(hmenu, IDM_VID_DDRAW + vid_api, MF_CHECKED);
 					vid_apis[0][vid_api].init(hwndRender);
-					endblit();
 					saveconfig();
 					device_force_redraw();
 					break;
@@ -1898,13 +1898,13 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
 						startblit();
 						video_wait_for_blit();
+						endblit();
 						mouse_close();
 						vid_apis[0][vid_api].close();
 						video_fullscreen = 1;
 						vid_apis[1][vid_api].init(ghwnd);
 						mouse_init();
 						leave_fullscreen_flag = 0;
-						endblit();
 						saveconfig();
 						device_force_redraw();
 					}
