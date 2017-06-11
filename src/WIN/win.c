@@ -1875,6 +1875,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
 				case IDM_VID_DDRAW:
 				case IDM_VID_D3D:
+					pause = 1;
 					startblit();
 					video_wait_for_blit();
 					endblit();
@@ -1885,6 +1886,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					vid_apis[0][vid_api].init(hwndRender);
 					saveconfig();
 					device_force_redraw();
+					pause = 0;
 					break;
 
 				case IDM_VID_FULLSCREEN:
@@ -1896,6 +1898,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 							msgbox_info(ghwnd, IDS_2193);
 						}
 
+						pause = 1;
 						startblit();
 						video_wait_for_blit();
 						endblit();
@@ -1907,6 +1910,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 						leave_fullscreen_flag = 0;
 						saveconfig();
 						device_force_redraw();
+						pause = 0;
 					}
 					break;
 
@@ -2156,17 +2160,19 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			winsizex = (lParam & 0xFFFF);
 			winsizey = (lParam >> 16) - (17 + 6);
 
+			pause = 1;
 			MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
 
 			if (vid_apis[video_fullscreen][vid_api].resize)
 			{
 				startblit();
 				video_wait_for_blit();
-				vid_apis[video_fullscreen][vid_api].resize(winsizex, winsizey);
 				endblit();
+				vid_apis[video_fullscreen][vid_api].resize(winsizex, winsizey);
 			}
 
 			MoveWindow(hwndStatus, 0, winsizey + 6, winsizex, 17, TRUE);
+			pause = 0;
 
 			if (mousecapture)
 			{
