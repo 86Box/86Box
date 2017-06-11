@@ -2163,18 +2163,22 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				break;
 			}
 
-			winsizex = (lParam & 0xFFFF);
-			winsizey = (lParam >> 16) - (17 + 6);
-
-			pause = 1;
-			MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
-
-			if (vid_apis[video_fullscreen][vid_api].resize)
+			if (vid_resize)
 			{
-				startblit();
-				video_wait_for_blit();
-				endblit();
-				vid_apis[video_fullscreen][vid_api].resize(winsizex, winsizey);
+				winsizex = (lParam & 0xFFFF);
+				winsizey = (lParam >> 16) - (17 + 6);
+
+				pause = 1;
+				MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
+
+				if (vid_apis[video_fullscreen][vid_api].resize)
+				{
+					startblit();
+					video_wait_for_blit();
+					endblit();
+					vid_apis[video_fullscreen][vid_api].resize(winsizex, winsizey);
+				}
+
 			}
 
 			MoveWindow(hwndStatus, 0, winsizey + 6, winsizex, 17, TRUE);
