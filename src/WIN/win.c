@@ -2157,6 +2157,12 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			break;
 
 		case WM_SIZE:
+			if (win_doresize)
+			{
+				MoveWindow(hwndStatus, 0, winsizey + 6, winsizex, 17, TRUE);
+				break;
+			}
+
 			winsizex = (lParam & 0xFFFF);
 			winsizey = (lParam >> 16) - (17 + 6);
 

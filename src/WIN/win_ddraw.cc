@@ -125,9 +125,8 @@ static void ddraw_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
         RECT r_src;
         RECT r_dest;
-        int xx, yy;
+        int yy;
         POINT po;
-        uint32_t *p;
         HRESULT hr;
 //        pclog("Blit memtoscreen %i,%i %i %i %i,%i\n", x, y, y1, y2, w, h);
 
