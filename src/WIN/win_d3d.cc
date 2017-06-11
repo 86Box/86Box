@@ -70,17 +70,15 @@ static CUSTOMVERTEX d3d_verts[] =
   
 int d3d_init(HWND h)
 {
-        HRESULT hr;
+        int c;
+	int ret;
         
-	cgapal_rebuild();
+        for (c = 0; c < 256; c++)
+            pal_lookup[c] = makecol(cgapal[c].r << 2, cgapal[c].g << 2, cgapal[c].b << 2);
 
         d3d_hwnd = h;
         
         d3d = Direct3DCreate9(D3D_SDK_VERSION);
-	if (d3d == NULL)
-	{
-		return 0;
-	}
 
         memset(&d3dpp, 0, sizeof(d3dpp));      
 
@@ -98,11 +96,7 @@ int d3d_init(HWND h)
         d3dpp.BackBufferWidth        = 0;
         d3dpp.BackBufferHeight       = 0;
 
-        hr = d3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, h, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &d3ddev);
-	if (FAILED(hr))
-	{
-		return 0;
-	}
+        d3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, h, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &d3ddev);
         
         d3d_init_objects();
         
@@ -112,7 +106,7 @@ int d3d_init(HWND h)
 	return 1;
 }
 
-void d3d_close_objects(void)
+void d3d_close_objects()
 {
         if (d3dTexture)
         {
@@ -126,15 +120,15 @@ void d3d_close_objects(void)
         }
 }
 
-void d3d_init_objects(void)
+void d3d_init_objects()
 {
         D3DLOCKED_RECT dr;
         int y;
         RECT r;
 
-        d3ddev->CreateVertexBuffer(6*sizeof(CUSTOMVERTEX),
+        d3ddev->CreateVertexBuffer(12*sizeof(CUSTOMVERTEX),
                                    0,
-                                   D3DFVF_XYZRHW | D3DFVF_TEX1,
+                                   D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1,
                                    D3DPOOL_MANAGED,
                                    &v_buffer,
                                    NULL);
@@ -171,10 +165,12 @@ void d3d_resize(int x, int y)
         d3d_reset();
 }
         
-void d3d_reset(void)
+void d3d_reset()
 {
         HRESULT hr;
-        
+
+        if (!d3ddev)
+                return;
         memset(&d3dpp, 0, sizeof(d3dpp));      
 
         d3dpp.Flags                  = 0;
@@ -206,7 +202,7 @@ void d3d_reset(void)
         device_force_redraw();
 }
 
-void d3d_close(void)
+void d3d_close()
 {       
         if (d3dTexture)
         {
@@ -238,10 +234,10 @@ void d3d_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
         RECT r;
         int yy;
 
-	if ((w <= 0) || (w > 2048) || (h <= 0) || (h > 2048) || (y1 == y2) || (y1 < 0) || (y1 > 2048) || (y2 < 0) || (y2 > 2048) || (d3dTexture == NULL))
-	{
+        if (y1 == y2)
+        {
                 video_blit_complete();
-		return; /*Nothing to do*/
+        	return; /*Nothing to do*/
         }
 
         r.top    = y1;
@@ -298,7 +294,7 @@ void d3d_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
                         hr = d3ddev->SetTexture(0, d3dTexture);
 
                 if (hr == D3D_OK)
-                        hr = d3ddev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
+                        hr = d3ddev->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1);
 
                 if (hr == D3D_OK)
                         hr = d3ddev->SetStreamSource(0, v_buffer, 0, sizeof(CUSTOMVERTEX));
@@ -325,11 +321,10 @@ void d3d_blit_memtoscreen_8(int x, int y, int w, int h)
         VOID* pVoid;
         D3DLOCKED_RECT dr;
         RECT r;
-        uint32_t *p;
         int yy, xx;
         HRESULT hr = D3D_OK;
 
-	if ((w <= 0) || (w > 2048) || (h <= 0) || (h > 2048) || (d3dTexture == NULL))
+	if (h == 0)
 	{
                 video_blit_complete();
 		return; /*Nothing to do*/
@@ -344,7 +339,7 @@ void d3d_blit_memtoscreen_8(int x, int y, int w, int h)
         {
                 if (FAILED(d3dTexture->LockRect(0, &dr, &r, 0)))
                         fatal("LockRect failed\n");
-
+        
                 for (yy = 0; yy < h; yy++)
                 {
                         uint32_t *p = (uint32_t *)((uintptr_t)dr.pBits + (yy * dr.Pitch));
@@ -396,7 +391,7 @@ void d3d_blit_memtoscreen_8(int x, int y, int w, int h)
                         hr = d3ddev->SetTexture(0, d3dTexture);
 
                 if (hr == D3D_OK)
-                        hr = d3ddev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
+                        hr = d3ddev->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1);
 
                 if (hr == D3D_OK)
                         hr = d3ddev->SetStreamSource(0, v_buffer, 0, sizeof(CUSTOMVERTEX));
