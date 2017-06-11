@@ -232,7 +232,7 @@ void updatewindowsize(int x, int y)
 
 	if ((owsx != winsizex) || (owsy != winsizey))
 	{
-		win_doresize = 1;
+	        win_doresize = 1;
 	}
 	else
 	{
@@ -325,14 +325,6 @@ void mainthread(LPVOID param)
                                 winsizex + (GetSystemMetrics(vid_resize ? SM_CXSIZEFRAME : SM_CXFIXEDFRAME) * 2),
                                 winsizey + (GetSystemMetrics(SM_CYEDGE) * 2) + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 17 + sb_borders[1] + 1,
                                 TRUE);
-
-			if (vid_apis[video_fullscreen][vid_api].resize)
-			{
-				startblit();
-				video_wait_for_blit();
-				vid_apis[video_fullscreen][vid_api].resize(winsizex, winsizey);
-				endblit();
-			}
 
 			if (mousecapture)
 			{
@@ -1883,7 +1875,6 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
 				case IDM_VID_DDRAW:
 				case IDM_VID_D3D:
-					pause = 1;
 					startblit();
 					video_wait_for_blit();
 					CheckMenuItem(hmenu, IDM_VID_DDRAW + vid_api, MF_UNCHECKED);
@@ -1894,7 +1885,6 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					endblit();
 					saveconfig();
 					device_force_redraw();
-					pause = 0;
 					break;
 
 				case IDM_VID_FULLSCREEN:
@@ -1906,19 +1896,17 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 							msgbox_info(ghwnd, IDS_2193);
 						}
 
-						pause = 1;
 						startblit();
 						video_wait_for_blit();
 						mouse_close();
 						vid_apis[0][vid_api].close();
 						video_fullscreen = 1;
 						vid_apis[1][vid_api].init(ghwnd);
-						endblit();
 						mouse_init();
 						leave_fullscreen_flag = 0;
+						endblit();
 						saveconfig();
 						device_force_redraw();
-						pause = 0;
 					}
 					break;
 
@@ -2165,9 +2153,6 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			break;
 
 		case WM_SIZE:
-			MoveWindow(hwndStatus, 0, winsizey + 6, winsizex, 17, TRUE);
-			break;
-
 			winsizex = (lParam & 0xFFFF);
 			winsizey = (lParam >> 16) - (17 + 6);
 
