@@ -155,8 +155,6 @@ static int	sb_parts = 0;
 static int	sb_ready = 0;
 
 
-void win_resize(void);
-
 void updatewindowsize(int x, int y)
 {
 	int owsx = winsizex;
@@ -235,7 +233,10 @@ void updatewindowsize(int x, int y)
 	if ((owsx != winsizex) || (owsy != winsizey))
 	{
 		win_doresize = 1;
-	        win_resize();
+	}
+	else
+	{
+		win_doresize = 0;
 	}
 }
 
@@ -267,46 +268,6 @@ void endblit(void)
 void leave_fullscreen(void)
 {
         leave_fullscreen_flag = 1;
-}
-
-void win_resize(void)
-{
-	RECT r;
-	int sb_borders[3];
-
-	if (!video_fullscreen && win_doresize && (winsizex > 0) && (winsizey > 0))
-	{
-		startblit();
-		video_wait_for_blit();
-		SendMessage(hwndStatus, SB_GETBORDERS, 0, (LPARAM) sb_borders);
-		GetWindowRect(ghwnd, &r);
-		MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
-		GetWindowRect(hwndRender, &r);
-		MoveWindow(hwndStatus, 0, r.bottom + GetSystemMetrics(SM_CYEDGE), winsizex, 17, TRUE);
-		GetWindowRect(ghwnd, &r);
-
-		MoveWindow(ghwnd, r.left, r.top,
-			winsizex + (GetSystemMetrics(vid_resize ? SM_CXSIZEFRAME : SM_CXFIXEDFRAME) * 2),
-			winsizey + (GetSystemMetrics(SM_CYEDGE) * 2) + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 17 + sb_borders[1] + 1,
-			TRUE);
-
-		GetWindowRect(ghwnd, &r);
-		MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
-
-		if (vid_apis[video_fullscreen][vid_api].resize)
-		{
-			vid_apis[video_fullscreen][vid_api].resize(winsizex, winsizey);
-		}
-
-		if (mousecapture)
-		{
-			GetWindowRect(hwndRender, &r);
-			ClipCursor(&r);
-		}
-
-		endblit();
-		win_doresize = 0;
-	}
 }
 
 void mainthread(LPVOID param)
@@ -350,7 +311,6 @@ void mainthread(LPVOID param)
                 else
                         Sleep(1);
 
-#if 0
                 if (!video_fullscreen && win_doresize && (winsizex > 0) && (winsizey > 0))
                 {
                         video_wait_for_blit();
@@ -382,7 +342,6 @@ void mainthread(LPVOID param)
 
                         win_doresize = 0;
                 }
-#endif
 
                 if (leave_fullscreen_flag)
                 {
@@ -2206,11 +2165,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			break;
 
 		case WM_SIZE:
-			if (win_doresize)
-			{
-				MoveWindow(hwndStatus, 0, winsizey + 6, winsizex, 17, TRUE);
-				break;
-			}
+			MoveWindow(hwndStatus, 0, winsizey + 6, winsizex, 17, TRUE);
+			break;
 
 			winsizex = (lParam & 0xFFFF);
 			winsizey = (lParam >> 16) - (17 + 6);
