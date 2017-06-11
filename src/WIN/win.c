@@ -155,6 +155,8 @@ static int	sb_parts = 0;
 static int	sb_ready = 0;
 
 
+void win_resize(void);
+
 void updatewindowsize(int x, int y)
 {
 	int owsx = winsizex;
@@ -232,11 +234,8 @@ void updatewindowsize(int x, int y)
 
 	if ((owsx != winsizex) || (owsy != winsizey))
 	{
-	        win_doresize = 1;
-	}
-	else
-	{
-		win_doresize = 0;
+		win_doresize = 1;
+	        win_resize();
 	}
 }
 
@@ -268,6 +267,46 @@ void endblit(void)
 void leave_fullscreen(void)
 {
         leave_fullscreen_flag = 1;
+}
+
+void win_resize(void)
+{
+	RECT r;
+	int sb_borders[3];
+
+	if (!video_fullscreen && win_doresize && (winsizex > 0) && (winsizey > 0))
+	{
+		startblit();
+		video_wait_for_blit();
+		SendMessage(hwndStatus, SB_GETBORDERS, 0, (LPARAM) sb_borders);
+		GetWindowRect(ghwnd, &r);
+		MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
+		GetWindowRect(hwndRender, &r);
+		MoveWindow(hwndStatus, 0, r.bottom + GetSystemMetrics(SM_CYEDGE), winsizex, 17, TRUE);
+		GetWindowRect(ghwnd, &r);
+
+		MoveWindow(ghwnd, r.left, r.top,
+			winsizex + (GetSystemMetrics(vid_resize ? SM_CXSIZEFRAME : SM_CXFIXEDFRAME) * 2),
+			winsizey + (GetSystemMetrics(SM_CYEDGE) * 2) + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 17 + sb_borders[1] + 1,
+			TRUE);
+
+		GetWindowRect(ghwnd, &r);
+		MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
+
+		if (vid_apis[video_fullscreen][vid_api].resize)
+		{
+			vid_apis[video_fullscreen][vid_api].resize(winsizex, winsizey);
+		}
+
+		if (mousecapture)
+		{
+			GetWindowRect(hwndRender, &r);
+			ClipCursor(&r);
+		}
+
+		endblit();
+		win_doresize = 0;
+	}
 }
 
 void mainthread(LPVOID param)
@@ -311,6 +350,7 @@ void mainthread(LPVOID param)
                 else
                         Sleep(1);
 
+#if 0
                 if (!video_fullscreen && win_doresize && (winsizex > 0) && (winsizey > 0))
                 {
                         video_wait_for_blit();
@@ -326,6 +366,14 @@ void mainthread(LPVOID param)
                                 winsizey + (GetSystemMetrics(SM_CYEDGE) * 2) + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 17 + sb_borders[1] + 1,
                                 TRUE);
 
+			if (vid_apis[video_fullscreen][vid_api].resize)
+			{
+				startblit();
+				video_wait_for_blit();
+				vid_apis[video_fullscreen][vid_api].resize(winsizex, winsizey);
+				endblit();
+			}
+
 			if (mousecapture)
 			{
 				GetWindowRect(hwndRender, &r);
@@ -334,6 +382,7 @@ void mainthread(LPVOID param)
 
                         win_doresize = 0;
                 }
+#endif
 
                 if (leave_fullscreen_flag)
                 {
@@ -1878,12 +1927,12 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					pause = 1;
 					startblit();
 					video_wait_for_blit();
-					endblit();
 					CheckMenuItem(hmenu, IDM_VID_DDRAW + vid_api, MF_UNCHECKED);
 					vid_apis[0][vid_api].close();
 					vid_api = LOWORD(wParam) - IDM_VID_DDRAW;
 					CheckMenuItem(hmenu, IDM_VID_DDRAW + vid_api, MF_CHECKED);
 					vid_apis[0][vid_api].init(hwndRender);
+					endblit();
 					saveconfig();
 					device_force_redraw();
 					pause = 0;
@@ -1901,11 +1950,11 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 						pause = 1;
 						startblit();
 						video_wait_for_blit();
-						endblit();
 						mouse_close();
 						vid_apis[0][vid_api].close();
 						video_fullscreen = 1;
 						vid_apis[1][vid_api].init(ghwnd);
+						endblit();
 						mouse_init();
 						leave_fullscreen_flag = 0;
 						saveconfig();
@@ -2163,26 +2212,20 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				break;
 			}
 
-			if (vid_resize)
+			winsizex = (lParam & 0xFFFF);
+			winsizey = (lParam >> 16) - (17 + 6);
+
+			MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
+
+			if (vid_apis[video_fullscreen][vid_api].resize)
 			{
-				winsizex = (lParam & 0xFFFF);
-				winsizey = (lParam >> 16) - (17 + 6);
-
-				pause = 1;
-				MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
-
-				if (vid_apis[video_fullscreen][vid_api].resize)
-				{
-					startblit();
-					video_wait_for_blit();
-					endblit();
-					vid_apis[video_fullscreen][vid_api].resize(winsizex, winsizey);
-				}
-
+				startblit();
+				video_wait_for_blit();
+				vid_apis[video_fullscreen][vid_api].resize(winsizex, winsizey);
+				endblit();
 			}
 
 			MoveWindow(hwndStatus, 0, winsizey + 6, winsizex, 17, TRUE);
-			pause = 0;
 
 			if (mousecapture)
 			{
