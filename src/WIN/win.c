@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.2	2017/06/04
+ * Version:	@(#)win.c	1.0.3	2017/06/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -693,7 +693,7 @@ int find_status_bar_part(int tag)
 		return -1;
 	}
 
-	for (i = 0; i < 12; i++)
+	for (i = 0; i < sb_parts; i++)
 	{
 		if (sb_part_meanings[i] == tag)
 		{
