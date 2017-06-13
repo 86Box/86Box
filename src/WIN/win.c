@@ -693,7 +693,7 @@ int find_status_bar_part(int tag)
 		return -1;
 	}
 
-	for (i = 0; i < 12; i++)
+	for (i = 0; i < sb_parts; i++)
 	{
 		if (sb_part_meanings[i] == tag)
 		{
