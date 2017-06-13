@@ -2156,6 +2156,11 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			winsizex = (lParam & 0xFFFF);
 			winsizey = (lParam >> 16) - (17 + 6);
 
+			if (winsizey < 0)
+			{
+				winsizey = 0;
+			}
+
 			MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
 
 			if (vid_apis[video_fullscreen][vid_api].resize)
