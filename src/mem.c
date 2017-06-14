@@ -1131,7 +1131,7 @@ void addwritelookup(uint32_t virt, uint32_t phys)
                 writelookup2[writelookup[writelnext]] = -1;
         }
 
-        if (pages[phys >> 12].block || (phys & ~0xfff) == recomp_page)
+        if (pages[phys >> 12].block[0] || pages[phys >> 12].block[1] || pages[phys >> 12].block[2] || pages[phys >> 12].block[3] || (phys & ~0xfff) == recomp_page)
                 page_lookup[virt >> 12] = &pages[phys >> 12];
         else
                 writelookup2[virt>>12] = (uintptr_t)&ram[(uintptr_t)(phys & ~0xFFF) - (uintptr_t)(virt & ~0xfff)];
@@ -1713,7 +1713,7 @@ void mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *p)
         if (val != p->mem[addr & 0xfff] || codegen_in_recompile)
         {
                 uint64_t mask = (uint64_t)1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
-                p->dirty_mask |= mask;
+                p->dirty_mask[(addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] |= mask;
                 p->mem[addr & 0xfff] = val;
         }
 }
@@ -1722,9 +1722,9 @@ void mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *p)
         if (val != *(uint16_t *)&p->mem[addr & 0xfff] || codegen_in_recompile)
         {
                 uint64_t mask = (uint64_t)1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
-                if ((addr & 0x3f) == 0x3f)
+                if ((addr & 0xf) == 0xf)
                         mask |= (mask << 1);
-                p->dirty_mask |= mask;
+                p->dirty_mask[(addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] |= mask;
                 *(uint16_t *)&p->mem[addr & 0xfff] = val;
         }
 }
@@ -1733,9 +1733,9 @@ void mem_write_raml_page(uint32_t addr, uint32_t val, page_t *p)
         if (val != *(uint32_t *)&p->mem[addr & 0xfff] || codegen_in_recompile)
         {
                 uint64_t mask = (uint64_t)1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
-                if ((addr & 0x3f) >= 0x3d)
+                if ((addr & 0xf) >= 0xd)
                         mask |= (mask << 1);
-                p->dirty_mask |= mask;
+                p->dirty_mask[(addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] |= mask;
                 *(uint32_t *)&p->mem[addr & 0xfff] = val;
         }
 }
@@ -1758,10 +1758,10 @@ void mem_write_raml(uint32_t addr, uint32_t val, void *priv)
 
 uint8_t mem_read_bios(uint32_t addr, void *priv)
 {
-                        if (AMIBIOS && (addr&0xFFFFF)==0xF8281) /*This is read constantly during AMIBIOS POST, but is never written to. It's clearly a status register of some kind, but for what?*/
-                        {
-                                return 0x40;
-                        }
+	if (AMIBIOS && (addr&0xFFFFF)==0xF8281) /*This is read constantly during AMIBIOS POST, but is never written to. It's clearly a status register of some kind, but for what?*/
+	{
+		return 0x40;
+	}
         return rom[addr & biosmask];
 }
 uint16_t mem_read_biosw(uint32_t addr, void *priv)
@@ -1804,8 +1804,8 @@ void mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
         for (; start_addr <= end_addr; start_addr += (1 << PAGE_MASK_SHIFT))
         {
                 uint64_t mask = (uint64_t)1 << ((start_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
-                
-                pages[start_addr >> 12].dirty_mask |= mask;
+
+                pages[start_addr >> 12].dirty_mask[(start_addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] |= mask;
         }
 }
 
@@ -2220,8 +2220,8 @@ void mem_reset_page_blocks()
                 pages[c].write_b = mem_write_ramb_page;
                 pages[c].write_w = mem_write_ramw_page;
                 pages[c].write_l = mem_write_raml_page;
-                pages[c].block = NULL;
-                pages[c].block_2 = NULL;
+                pages[c].block[0] = pages[c].block[1] = pages[c].block[2] = pages[c].block[3] = NULL;
+                pages[c].block_2[0] = pages[c].block_2[1] = pages[c].block_2[2] = pages[c].block_2[3] = NULL;
         }
 }
 

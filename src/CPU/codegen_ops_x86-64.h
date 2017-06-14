@@ -5504,7 +5504,7 @@ static void MEM_CHECK_WRITE_W(x86seg *seg)
 	{
 	        addbyte(0x83); /*CMP writelookup2[RSI*8],-1*/
         	addbyte(0x3c);
-	        addbyte(0xfd);
+	        addbyte(0xf5);
 	        addlong((uint32_t)writelookup2);
 	        addbyte(-1);
 	}
@@ -5653,7 +5653,7 @@ static void MEM_CHECK_WRITE_L(x86seg *seg)
 	{
 	        addbyte(0x83); /*CMP writelookup2[RSI*8],-1*/
         	addbyte(0x3c);
-	        addbyte(0xfd);
+	        addbyte(0xf5);
 	        addlong((uint32_t)writelookup2);
 	        addbyte(-1);
 	}

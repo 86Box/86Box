@@ -21,7 +21,7 @@ static ALuint source[2];	/* audio source */
 #define BUFLEN SOUNDBUFLEN
 
 
-void closeal(ALvoid);
+void closeal(void);
 ALvoid  alutInit(ALint *argc,ALbyte **argv) 
 {
 	ALCcontext *Context;
@@ -62,7 +62,7 @@ void initalmain(int argc, char *argv[])
 #endif
 }
 
-void closeal(ALvoid)
+void closeal(void)
 {
 #ifdef USE_OPENAL
         alutExit();

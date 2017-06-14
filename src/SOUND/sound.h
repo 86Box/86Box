@@ -43,7 +43,7 @@ void sound_reset();
 
 void sound_cd_thread_reset();
 
-void closeal(ALvoid);
+void closeal(void);
 void initalmain(int argc, char *argv[]);
 void inital();
 void givealbuffer(float *buf);

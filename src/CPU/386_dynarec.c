@@ -1426,7 +1426,7 @@ void exec386_dynarec(int cycs)
                         {
                                 uint64_t mask = (uint64_t)1 << ((phys_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
                                 
-                                if (page->code_present_mask & mask)
+                                if (page->code_present_mask[(phys_addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] & mask)
                                 {
                                         /*Walk page tree to see if we find the correct block*/
                                         codeblock_t *new_block = codeblock_tree_find(phys_addr, cs);
@@ -1439,10 +1439,11 @@ void exec386_dynarec(int cycs)
                                         }
                                 }
                         }
-                        if (valid_block && (block->page_mask & page->dirty_mask))
+
+                        if (valid_block && (block->page_mask & *block->dirty_mask))
                         {
-                                codegen_check_flush(page, page->dirty_mask, phys_addr);
-                                page->dirty_mask = 0;
+                                codegen_check_flush(page, page->dirty_mask[(phys_addr >> 10) & 3], phys_addr);
+                                page->dirty_mask[(phys_addr >> 10) & 3] = 0;
                                 if (!block->pc)
                                         valid_block = 0;
                         }
@@ -1455,15 +1456,15 @@ void exec386_dynarec(int cycs)
                                   allow the first page to be interpreted and for
                                   the page fault to occur when the page boundary
                                   is actually crossed.*/
-                                uint32_t phys_addr_2 = get_phys_noabrt(block->endpc) & ~0xfff;
+                                uint32_t phys_addr_2 = get_phys_noabrt(block->endpc);
                                 page_t *page_2 = &pages[phys_addr_2 >> 12];
 
                                 if ((block->phys_2 ^ phys_addr_2) & ~0xfff)
                                         valid_block = 0;
-                                else if (block->page_mask2 & page_2->dirty_mask)
+                                else if (block->page_mask2 & *block->dirty_mask2)
                                 {
-                                        codegen_check_flush(page_2, page_2->dirty_mask, phys_addr_2);
-                                        page_2->dirty_mask = 0;
+                                        codegen_check_flush(page_2, page_2->dirty_mask[(phys_addr_2 >> 10) & 3], phys_addr_2);
+                                        page_2->dirty_mask[(phys_addr_2 >> 10) & 3] = 0;
                                         if (!block->pc)
                                                 valid_block = 0;
                                 }
@@ -1537,7 +1538,7 @@ inrecomp=0;
                                   will prevent any block from spanning more than
                                   2 pages. In practice this limit will never be
                                   hit, as host block size is only 2kB*/
-                                if ((cpu_state.pc - start_pc) > 4000)
+                                if ((cpu_state.pc - start_pc) > 1000)
                                         CPU_BLOCK_END();
                                         
                                 if (trap)
@@ -1605,7 +1606,7 @@ inrecomp=0;
                                   will prevent any block from spanning more than
                                   2 pages. In practice this limit will never be
                                   hit, as host block size is only 2kB*/
-                                if ((cpu_state.pc - start_pc) > 4000)
+                                if ((cpu_state.pc - start_pc) > 1000)
                                         CPU_BLOCK_END();
                                         
                                 if (trap)
