@@ -1,0 +1,207 @@
+Serial mouse reset
+------------------
+
+1: Set UART to 'break line' state (set bit 6 in the LCR).
+2: Clear the RTS and DTR (bits 0-1) in the MCR, wait a while.
+3: Set the RTS and DTR bits again.
+
+
+Serial mouse detection (identification bytes before optional PnP data)
+----------------------------------------------------------------------
+
+In Mouse Systems mode, mouse sends nothing.
+In Microsoft mode, mouse sends 'M' after dropping and raising RTS.
+In Logitech mode, mouse sends 'M3' after dropping and raising RTS.
+In wheel mode, mouse sends 'MZ@',0,0,0 after dropping and raising RTS.
+
+
+PS/2 pointing device ID (reported after 0F2h command)
+-----------------------------------------------------
+
+In standard mode, the device reports 0.
+In wheel mode, the device reports 3. This mode is enabled by sending a
+  Select Report Rate 200, a Rate 100 and finally a Rate 80 command sequence.
+In extended mode, the device reports 4. This mode is enabled by sending a
+  Select Report Rate 200, a Rate 200 and finally a Rate 80 command sequence.
+
+
+===========================================================================
+Serial Mouse Systems mode: 1200 bps, 8 data bits, 1 stop bit, no parity
+
+	      1st byte		2nd byte	  3rd byte
+	 +---------------+ +---------------+ +---------------+
+	 |1|0|0|0|0|L|M|R| |X|X|X|X|X|X|X|X| |Y|Y|Y|Y|Y|Y|Y|Y|
+	 +---------------+ +---------------+ +---------------+
+		    | | |     Xa movement	Ya movement
+		    | | |
+		    | | |       4th byte 	 5th byte
+  Left Button ------+ | |  +---------------+ +---------------+
+Middle Button --------+ |  |X|X|X|X|X|X|X|X| |Y|Y|Y|Y|Y|Y|Y|Y|
+ Right Button ----------+  +---------------+ +---------------+
+(0 if pressed)		      Xb movement	Yb movement
+
+
+Xa/Ya - movement of the mouse since last packet.
+Xb/Yb - movement of the mouse since Xa/Ya.
+Movement values are 8-bit signed twos complement integers.
+Positive movement value indicates motion to the right/upward.
+
+
+===========================================================================
+Serial Microsoft mode: 1200 bps, 7 data bits, 1 stop bit, no parity
+
+	      1st byte		2nd byte	  3rd byte
+	 +---------------+ +---------------+ +---------------+
+	 |0|1|L|R|Y|Y|X|X| |0|0|X|X|X|X|X|X| |0|0|Y|Y|Y|Y|Y|Y|
+	 +---------------+ +---------------+ +---------------+
+	      | | \ / \ /	\----+----/	  \----+----/
+	      | |  |   |	     |		       |
+	      | |  +---|-------------|---------+       |
+	      | |      +-----+	     |	       |       |
+	      | |	    / \ /----+----\   / \ /----+----\
+	      | |	   +---------------+ +---------------+
+ Left Button -+ |	   | | | | | | | | | | | | | | | | | |
+Right Button ---+	   +---------------+ +---------------+
+(1 if pressed)		       X movement	 Y movement
+
+
+Movement values are 8-bit signed twos complement integers.
+Positive movement value indicates motion to the right/downward.
+
+
+===========================================================================
+Serial Logitech mode: 1200 bps, 7 data bits, 1 stop bit, no parity
+
+	      1st byte		2nd byte	  3rd byte
+	 +---------------+ +---------------+ +---------------+
+	 |0|1|L|R|Y|Y|X|X| |0|0|X|X|X|X|X|X| |0|0|Y|Y|Y|Y|Y|Y|
+	 +---------------+ +---------------+ +---------------+
+	      | | \ / \ /	\----+----/	  \----+----/
+	      | |  |   |	     |		       |
+	      | |  +---|-------------|---------+       |
+	      | |      +-----+	     |	       |       |
+	      | |	    / \ /----+----\   / \ /----+----\
+	      | |	   +---------------+ +---------------+
+ Left Button -+ |	   | | | | | | | | | | | | | | | | | |
+Right Button ---+	   +---------------+ +---------------+
+(1 if pressed)		       X movement	 Y movement
+
+
+The extra byte (only when middle button is pressed)
+---------------------------------------------------
+
+	      4th byte
+	 +---------------+
+	 |0|0|M|0|0|0|0|0|
+	 +---------------+
+	      |
+	Middle Button (1 if pressed)
+
+
+First three bytes are equal to Mouse mode packet.
+Movement values are 8-bit signed twos complement integers.
+Positive movement value indicates motion to the right/downward.
+
+
+===========================================================================
+Serial Microsoft wheel mode: 1200 bps, 7 data bits, 1 stop bit, no parity
+
+	      1st byte		2nd byte	  3rd byte	    4th byte
+	 +---------------+ +---------------+ +---------------+ +---------------+
+	 |0|1|L|R|Y|Y|X|X| |0|0|X|X|X|X|X|X| |0|0|Y|Y|Y|Y|Y|Y| |0|0|0|M|w|w|w|w|
+	 +---------------+ +---------------+ +---------------+ +---------------+
+	      | | \ / \ /	\----+----/	  \----+----/	      | \--+--/
+	      | |  |   |	     |		       |	      |	   |
+	      | |  +---|-------------|---------+       |	      |	   |
+	      | |      +-----+	     |	       |       |	      |	 Wheel
+	      | |	    / \ /----+----\   / \ /----+----\	      | Movement
+	      | |	   +---------------+ +---------------+	      |
+ Left Button -+ |	   | | | | | | | | | | | | | | | | | |	      |
+Right Button ---+	   +---------------+ +---------------+	Middle Button
+(1 if pressed)		       X movement	 Y movement	(1 if pressed)
+
+
+First three bytes are equal to Mouse mode packet.
+Movement values are 8-bit signed twos complement integers.
+Positive movement value indicates motion to the right/downward.
+Wheel movement is a 4-bit signed twos complement integer.
+Positive wheel movement value indicates rotation downward.
+
+
+===========================================================================
+PS/2 standard mode protocol:
+
+	      1st byte		2nd byte	  3rd byte
+	 +---------------+ +---------------+ +---------------+
+	 |?|?|Y|X|1|M|R|L| |X|X|X|X|X|X|X|X| |Y|Y|Y|Y|Y|Y|Y|Y|
+	 +---------------+ +---------------+ +---------------+
+	      | |   | | |   \------+------/   \------+------/
+	      | |   | | |	   |		     |
+	      +-|---|-|-|----------|-----------+     |
+		+---|-|-|--+	   |	       |     |
+		    | | |  | /-----+-------\   | /---+---------\
+Middle Button ------+ | | +-----------------+ +-----------------+
+ Right Button --------+ | | | | | | | | | | | | | | | | | | | | |
+  Left Button ----------+ +-----------------+ +-----------------+
+(1 if pressed)		       X movement	   Y movement
+
+
+Two most significant bits in first byte indicate overflow (more than 9 bits
+  of movement) in each direction. Usually ignored.
+Movement values are 9-bit signed twos complement integers.
+Positive movement value indicates motion to the right/upward.
+
+
+===========================================================================
+PS/2 wheel mode protocol:
+
+	      1st byte		2nd byte	  3rd byte	    4th byte
+	 +---------------+ +---------------+ +---------------+ +---------------+
+	 |?|?|Y|X|1|M|R|L| |X|X|X|X|X|X|X|X| |Y|Y|Y|Y|Y|Y|Y|Y| |w|w|w|w|W|W|W|W|
+	 +---------------+ +---------------+ +---------------+ +---------------+
+	      | |   | | |   \------+------/   \------+------/	\-------+-----/
+	      | |   | | |	   |		     |			|
+	      +-|---|-|-|----------|-----------+     |			|
+		+---|-|-|--+	   |	       |     |			|
+		    | | |  | /-----+-------\   | /---+---------\	|
+Middle Button ------+ | | +-----------------+ +-----------------+	|
+ Right Button --------+ | | | | | | | | | | | | | | | | | | | | |	|
+  Left Button ----------+ +-----------------+ +-----------------+     Wheel
+(1 if pressed)		       X movement	   Y movement	     Movement
+
+
+First three bytes are equal to PS/2 standard mode packet.
+Two most significant bits in first byte indicate overflow (more than 9 bits
+  of movement) in each direction. Usually ignored.
+Movement values are 9-bit signed twos complement integers.
+Positive movement value indicates motion to the right/upward.
+Wheel movement is a 8-bit signed twos complement integer and usually
+  limited by -8..+7 range (4-bit value).
+Positive wheel movement value indicates rotation downward.
+
+
+===========================================================================
+PS/2 extended mode protocol:
+
+	      1st byte		2nd byte	  3rd byte	    4th byte
+	 +---------------+ +---------------+ +---------------+ +---------------+
+	 |?|?|Y|X|1|M|R|L| |X|X|X|X|X|X|X|X| |Y|Y|Y|Y|Y|Y|Y|Y| |0|0|B|F|W|W|W|W|
+	 +---------------+ +---------------+ +---------------+ +---------------+
+	      | |   | | |   \------+------/   \------+------/	    | | \--+--/
+	      | |   | | |	   |		     |		    | |	   |
+	      +-|---|-|-|----------|-----------+     |		    | |	   |
+		+---|-|-|--+	   |	       |     |		    | |	 Wheel
+		    | | |  | /-----+-------\   | /---+---------\    | | Movement
+Middle Button ------+ | | +-----------------+ +-----------------+   | |
+ Right Button --------+ | | | | | | | | | | | | | | | | | | | | |   | +- Forward Button
+  Left Button ----------+ +-----------------+ +-----------------+   +--- Back Button
+(1 if pressed)		       X movement	   Y movement		 (1 if pressed)
+
+
+First three bytes are equal to PS/2 standard mode packet.
+Two most significant bits in first byte indicate overflow (more than 9 bits
+  of movement) in each direction. Usually ignored.
+Movement values are 9-bit signed twos complement integers.
+Positive movement value indicates motion to the right/upward.
+Wheel movement is a 4-bit signed twos complement integer.
+Positive wheel movement value indicates rotation downward.

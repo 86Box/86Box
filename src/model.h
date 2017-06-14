@@ -44,6 +44,7 @@ typedef struct {
     int		flags;
     int		min_ram, max_ram;
     int		ram_granularity;
+    int		nvrmask;
     void	(*init)(void);
     device_t	*device;
 } MODEL;
@@ -62,6 +63,7 @@ extern int	model_get_model_from_internal_name(char *s);
 extern void	model_init(void);
 extern device_t	*model_getdevice(int model);
 extern int	model_getromset_ex(int m);
-
+extern char	*model_get_internal_name_ex(int m);
+extern int	model_get_nvrmask(int m);
 
 #endif	/*EMU_MODEL_H*/

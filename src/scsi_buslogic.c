@@ -10,7 +10,7 @@
  *		  0 - BT-542B ISA;
  *		  1 - BT-958 PCI (but BT-542B ISA on non-PCI machines)
  *
- * Version:	@(#)scsi_buslogic.c	1.0.3	2017/06/03
+ * Version:	@(#)scsi_buslogic.c	1.0.4	2017/06/14
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2223,6 +2223,14 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 		}
 		return;
     }
+}
+
+
+void
+BuslogicDeviceReset(void *p)
+{
+	Buslogic_t *dev = (Buslogic_t *) p;
+	BuslogicResetControl(dev, 1);
 }
 
 

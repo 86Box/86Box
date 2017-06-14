@@ -21,7 +21,7 @@ static ALuint source[2];	/* audio source */
 #define BUFLEN SOUNDBUFLEN
 
 
-void closeal(ALvoid);
+void closeal(void);
 ALvoid  alutInit(ALint *argc,ALbyte **argv) 
 {
 	ALCcontext *Context;
@@ -62,7 +62,7 @@ void initalmain(int argc, char *argv[])
 #endif
 }
 
-void closeal(ALvoid)
+void closeal(void)
 {
 #ifdef USE_OPENAL
         alutExit();
@@ -73,9 +73,14 @@ void inital(ALvoid)
 {
 #ifdef USE_OPENAL
         int c;
+
         float buf[BUFLEN*2];
 
         float cd_buf[CD_BUFLEN*2];
+
+        int16_t buf_int16[BUFLEN*2];
+
+        int16_t cd_buf_int16[CD_BUFLEN*2];
 
         alGenBuffers(4, buffers);
         alGenBuffers(4, buffers_cd);
@@ -98,8 +103,16 @@ void inital(ALvoid)
 
         for (c = 0; c < 4; c++)
         {
-                alBufferData(buffers[c], AL_FORMAT_STEREO_FLOAT32, buf, BUFLEN*2*sizeof(float), FREQ);
-                alBufferData(buffers_cd[c], AL_FORMAT_STEREO_FLOAT32, cd_buf, CD_BUFLEN*2*sizeof(float), CD_FREQ);
+		if (sound_is_float)
+		{
+	                alBufferData(buffers[c], AL_FORMAT_STEREO_FLOAT32, buf, BUFLEN*2*sizeof(float), FREQ);
+        	        alBufferData(buffers_cd[c], AL_FORMAT_STEREO_FLOAT32, cd_buf, CD_BUFLEN*2*sizeof(float), CD_FREQ);
+		}
+		else
+		{
+	                alBufferData(buffers[c], AL_FORMAT_STEREO16, buf_int16, BUFLEN*2*sizeof(int16_t), FREQ);
+        	        alBufferData(buffers_cd[c], AL_FORMAT_STEREO16, cd_buf_int16, CD_BUFLEN*2*sizeof(int16_t), CD_FREQ);
+		}
         }
 
         alSourceQueueBuffers(source[0], 4, buffers);
@@ -135,6 +148,32 @@ void givealbuffer(float *buf)
 #endif
 }
 
+void givealbuffer_int16(int16_t *buf)
+{
+#ifdef USE_OPENAL
+        int processed;
+        int state;
+	ALuint buffer;
+
+        alGetSourcei(source[0], AL_SOURCE_STATE, &state);
+
+        if (state==0x1014)
+        {
+                alSourcePlay(source[0]);
+        }
+        alGetSourcei(source[0], AL_BUFFERS_PROCESSED, &processed);
+
+        if (processed>=1)
+        {
+                alSourceUnqueueBuffers(source[0], 1, &buffer);
+
+                alBufferData(buffer, AL_FORMAT_STEREO16, buf, BUFLEN*2*sizeof(int16_t), FREQ);
+
+                alSourceQueueBuffers(source[0], 1, &buffer);
+        }
+#endif
+}
+
 void givealbuffer_cd(float *buf)
 {
 #ifdef USE_OPENAL
@@ -156,6 +195,33 @@ void givealbuffer_cd(float *buf)
                 alSourceUnqueueBuffers(source[1], 1, &buffer);
 
                 alBufferData(buffer, AL_FORMAT_STEREO_FLOAT32, buf, CD_BUFLEN*2*sizeof(float), CD_FREQ);
+
+                alSourceQueueBuffers(source[1], 1, &buffer);
+        }
+#endif
+}
+
+void givealbuffer_cd_int16(int16_t *buf)
+{
+#ifdef USE_OPENAL
+        int processed;
+        int state;
+
+        alGetSourcei(source[1], AL_SOURCE_STATE, &state);
+
+        if (state==0x1014)
+        {
+                alSourcePlay(source[1]);
+        }
+        alGetSourcei(source[1], AL_BUFFERS_PROCESSED, &processed);
+
+        if (processed>=1)
+        {
+                ALuint buffer;
+
+                alSourceUnqueueBuffers(source[1], 1, &buffer);
+
+                alBufferData(buffer, AL_FORMAT_STEREO16, buf, CD_BUFLEN*2*sizeof(int16_t), CD_FREQ);
 
                 alSourceQueueBuffers(source[1], 1, &buffer);
         }

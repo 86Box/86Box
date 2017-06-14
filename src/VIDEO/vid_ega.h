@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.h	1.0.0	2017/05/30
+ * Version:	@(#)vid_ega.h	1.0.1	2017/06/05
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -110,3 +110,13 @@ void ega_init(ega_t *ega);
 extern device_t ega_device;
 extern device_t cpqega_device;
 extern device_t sega_device;
+
+#define SBCS 0
+#define DBCS 1
+#define ID_LEN 6
+#define NAME_LEN 8
+#define SBCS19_LEN 256 * 19
+#define DBCS16_LEN 65536 * 32
+
+extern uint8_t jfont_sbcs_19[SBCS19_LEN];	/* 256 * 19( * 8) */
+extern uint8_t jfont_dbcs_16[DBCS16_LEN];	/* 65536 * 16 * 2 (* 8) */

@@ -10,7 +10,7 @@
  *
  * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.10	2017/06/03
+ * Version:	@(#)net_ne2000.c	1.0.11	2017/06/14
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -24,15 +24,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "ibm.h"
-#include "io.h"
-#include "mem.h"
-#include "rom.h"
-#include "pci.h"
-#include "pic.h"
-#include "device.h"
-#include "config.h"
-#include "disc_random.h"
+#include "../ibm.h"
+#include "../io.h"
+#include "../mem.h"
+#include "../rom.h"
+#include "../pci.h"
+#include "../pic.h"
+#include "../device.h"
+#include "../config.h"
+#include "../disc_random.h"
 #include "network.h"
 #include "net_ne2000.h"
 #include "bswap.h"

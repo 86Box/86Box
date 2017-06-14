@@ -150,11 +150,14 @@ mssystems_mouse_poll(int x, int y, int z, int b, void *priv)
     if (x<-128) x = -128;
     if (y<-128) y = -128;
 
-	data[0] = 0x80 | ((((b & 0x04) >> 1) + ((b & 0x02) << 1) + (b & 0x01)) ^ 0x07);
+	data[0] = 0x80;
+	data[0] |= (b & 0x01 ? 0x00 : 0x04); /*Left button*/
+	data[0] |= (b & 0x02 ? 0x00 : 0x01); /*Middle button*/
+	data[0] |= (b & 0x04 ? 0x00 : 0x02); /*Right button*/
 	data[1] = x;
 	data[2] = y;
-	data[3] = 0;
-	data[4] = 0;
+	data[3] = x;/*Same as byte 1*/
+	data[4] = y;/*Same as byte 2*/
 	
 	pclog("Mouse_Systems_Serial: data %02X %02X %02X\n", data[0], data[1], data[2]);
 	

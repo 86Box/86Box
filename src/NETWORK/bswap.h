@@ -1,4 +1,4 @@
-/* Copyright holders: Sarah Walker
+/* Copyright holders: neozeed
    see COPYING for more details
 */
 #ifndef BSWAP_H

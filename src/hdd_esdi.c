@@ -54,7 +54,7 @@ typedef struct esdi_t
         int data_pos;
         uint16_t data[256];
 
-        uint16_t sector_buffer[16][256];
+        uint16_t sector_buffer[256][256];
 
         int sector_pos;
         int sector_count;
@@ -632,7 +632,7 @@ static void esdi_callback(void *p)
                         case 0:
                         esdi->sector_pos = 0;
                         esdi->sector_count = esdi->cmd_data[1];
-                        if (esdi->sector_count > 16)
+                        if (esdi->sector_count > 256)
                                 fatal("Read sector buffer count %04x\n", esdi->cmd_data[1]);
                                 
                         esdi->status = STATUS_IRQ | STATUS_CMD_IN_PROGRESS | STATUS_TRANSFER_REQ;
@@ -692,7 +692,7 @@ static void esdi_callback(void *p)
                         case 0:
                         esdi->sector_pos = 0;
                         esdi->sector_count = esdi->cmd_data[1];
-                        if (esdi->sector_count > 16)
+                        if (esdi->sector_count > 256)
                                 fatal("Write sector buffer count %04x\n", esdi->cmd_data[1]);
                                 
                         esdi->status = STATUS_IRQ | STATUS_CMD_IN_PROGRESS | STATUS_TRANSFER_REQ;

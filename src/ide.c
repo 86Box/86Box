@@ -1252,21 +1252,28 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			case WIN_SETIDLE1: /* Idle */
 			case WIN_CHECKPOWERMODE1:
 			case WIN_SLEEP1:
-				if (ide_drive_is_cdrom(ide))
+				if (val == WIN_DRIVE_DIAGNOSTICS)
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					callbackide(ide_board);
 				}
 				else
 				{
-					ide->atastat = BUSY_STAT;
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					}
+					else
+					{
+						ide->atastat = BUSY_STAT;
+					}
+					timer_process();
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].callback = ((val == WIN_DRIVE_DIAGNOSTICS) ? 200 : 30) * IDE_TIME;
+					}
+					idecallback[ide_board] = ((val == WIN_DRIVE_DIAGNOSTICS) ? 200 : 30) * IDE_TIME;
+					timer_update_outstanding();
 				}
-				timer_process();
-				if (ide_drive_is_cdrom(ide))
-				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 30*IDE_TIME;
-				}
-				idecallback[ide_board]=30*IDE_TIME;
-				timer_update_outstanding();
 				return;
 
 			case WIN_IDENTIFY: /* Identify Device */

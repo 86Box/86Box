@@ -260,6 +260,7 @@ int scsi_card_has_config(int card);
 char *scsi_card_get_internal_name(int card);
 int scsi_card_get_from_internal_name(char *s);
 void scsi_card_init();
+void scsi_card_reset(void);
 
 extern uint8_t scsi_hard_disks[16][8];
 

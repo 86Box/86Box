@@ -1,4 +1,4 @@
-#include "mem.h"
+#include "../mem.h"
 
 #ifdef __amd64__
 #include "codegen_x86-64.h"
@@ -36,6 +36,7 @@
 typedef struct codeblock_t
 {
 	uint64_t page_mask, page_mask2;
+        uint64_t *dirty_mask, *dirty_mask2;
 	uint64_t cmp;
 
         /*Previous and next pointers, for the codeblock list associated with
@@ -236,8 +237,10 @@ static __inline void codeblock_tree_delete(codeblock_t *block)
         }
 }
 
+#define PAGE_MASK_INDEX_MASK 3
+#define PAGE_MASK_INDEX_SHIFT 10
 #define PAGE_MASK_MASK 63
-#define PAGE_MASK_SHIFT 6
+#define PAGE_MASK_SHIFT 4
 
 extern codeblock_t *codeblock;
 

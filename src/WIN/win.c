@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.2	2017/06/04
+ * Version:	@(#)win.c	1.0.3	2017/06/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -240,12 +240,12 @@ void updatewindowsize(int x, int y)
 	}
 }
 
-void uws_natural()
+void uws_natural(void)
 {
 	updatewindowsize(unscaled_size_x, efwinsizey);
 }
 
-void releasemouse()
+void releasemouse(void)
 {
         if (mousecapture) 
         {
@@ -255,17 +255,17 @@ void releasemouse()
         }
 }
 
-void startblit()
+void startblit(void)
 {
         WaitForSingleObject(ghMutex, INFINITE);
 }
 
-void endblit()
+void endblit(void)
 {
         ReleaseMutex(ghMutex);
 }
 
-void leave_fullscreen()
+void leave_fullscreen(void)
 {
         leave_fullscreen_flag = 1;
 }
@@ -362,7 +362,7 @@ void thread_sleep(int t)
         Sleep(t);
 }
 
-event_t *thread_create_event()
+event_t *thread_create_event(void)
 {
         win_event_t *event = malloc(sizeof(win_event_t));
         
@@ -486,7 +486,7 @@ void create_cdrom_submenu(HMENU m, int id)
 
 	for (i = 0; i < 26; i++)
 	{
-		wsprintf(s, L"Host CD/DVD Drive (%c:)", i + 0x41);
+		_swprintf(s, L"Host CD/DVD Drive (%c:)", i + 0x41);
 		if (host_cdrom_drive_available[i])
 		{
 			AppendMenu(m, MF_STRING, IDM_CDROM_HOST_DRIVE | (i << 3) | id, s);
@@ -537,14 +537,14 @@ void set_window_title(WCHAR *s)
         SetWindowText(ghwnd, s);
 }
 
-uint64_t timer_read()
+uint64_t timer_read(void)
 {
         LARGE_INTEGER qpc_time;
         QueryPerformanceCounter(&qpc_time);
         return qpc_time.QuadPart;
 }
 
-static void process_command_line()
+static void process_command_line(void)
 {
         WCHAR *cmdline;
         int argc_max;
@@ -693,7 +693,7 @@ int find_status_bar_part(int tag)
 		return -1;
 	}
 
-	for (i = 0; i < 12; i++)
+	for (i = 0; i < sb_parts; i++)
 	{
 		if (sb_part_meanings[i] == tag)
 		{
@@ -957,7 +957,7 @@ void status_settext(char *str)
 	status_settextw(cwstr);
 }
 
-void destroy_menu_handles()
+void destroy_menu_handles(void)
 {
 	int i = 0;
 
@@ -974,7 +974,7 @@ void destroy_menu_handles()
 	free(sb_menu_handles);
 }
 
-void destroy_tips()
+void destroy_tips(void)
 {
 	int i = 0;
 
@@ -1240,7 +1240,7 @@ void update_status_bar_panes(HWND hwnds)
 				break;
 			case SB_TEXT:
 				/* Status text */
-				SendMessage(hwnds, SB_SETTEXT, i | SBT_NOBORDERS, (LPARAM) L"Welcome to Unicode 86Box! :p");
+				SendMessage(hwnds, SB_SETTEXT, i | SBT_NOBORDERS, (LPARAM) L"");
 				sb_part_icons[i] = -1;
 				break;
 		}
@@ -1344,7 +1344,7 @@ HWND EmulatorStatusBar(HWND hwndParent, int idStatus, HINSTANCE hinst)
 	return hwndStatus;
 }
 
-void win_menu_update()
+void win_menu_update(void)
 {
 #if 0
         menu = LoadMenu(hThisInstance, TEXT("MainMenu"));
@@ -1794,6 +1794,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 {
 	HMENU hmenu;
 	RECT rect;
+	int i = 0;
 
 	switch (message)
 	{
@@ -2022,10 +2023,57 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 						if (msgbox_reset_yn(ghwnd) == IDYES)
 						{
 							config_save(config_file_default);
+							for (i = 0; i < FDD_NUM; i++)
+							{
+								disc_close(i);
+							}
+							for (i = 0; i < CDROM_NUM; i++)
+							{
+								cdrom_drives[i].handler->exit(i);
+								if (cdrom_drives[i].host_drive == 200)
+								{
+									image_close(i);
+								}
+								else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
+								{
+									ioctl_close(i);
+								}
+								else
+								{
+									null_close(i);
+								}
+							}
 							loadconfig(wopenfilestring);
+							for (i = 0; i < CDROM_NUM; i++)
+							{
+								if (cdrom_drives[i].bus_type)
+								{
+									SCSIReset(cdrom_drives[i].scsi_device_id, cdrom_drives[i].scsi_device_lun);
+								}
+
+								if (cdrom_drives[i].host_drive == 200)
+								{
+									image_open(i, cdrom_image[i].image_path);
+								}
+								else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
+								{
+									ioctl_open(i, cdrom_drives[i].host_drive);
+								}
+								else	
+								{
+								        cdrom_null_open(i, cdrom_drives[i].host_drive);
+								}
+							}
+
+							disc_load(0, discfns[0]);
+							disc_load(1, discfns[1]);
+							disc_load(2, discfns[2]);
+							disc_load(3, discfns[3]);
+
 							/* pclog_w(L"NVR path: %s\n", nvr_path); */
 							mem_resize();
 							loadbios();
+							update_status_bar_panes(hwndStatus);
 							resetpchard();
 						}
 					}
@@ -2107,6 +2155,11 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 		case WM_SIZE:
 			winsizex = (lParam & 0xFFFF);
 			winsizey = (lParam >> 16) - (17 + 6);
+
+			if (winsizey < 0)
+			{
+				winsizey = 0;
+			}
 
 			MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
 

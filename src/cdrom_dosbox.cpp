@@ -68,6 +68,7 @@ bool CDROM_Interface_Image::BinaryFile::read(Bit8u *buffer, uint64_t seek, uint6
 {
 	uint64_t offs = 0;
 	file = fopen64(fn, "rb");
+	if (file == NULL) return 0;
 	fseeko64(file, seek, SEEK_SET);
 	offs = fread(buffer, 1, count, file);
 	fclose(file);
@@ -79,6 +80,7 @@ uint64_t CDROM_Interface_Image::BinaryFile::getLength()
 {
 	uint64_t ret = 0;
 	file = fopen64(fn, "rb");
+	if (file == NULL) return 0;
 	fseeko64(file, 0, SEEK_END);
 	ret = ftello64(file);
 	fclose(file);

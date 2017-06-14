@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.6	2017/05/06
+ * Version:	@(#)scsi_aha154x.c	1.0.7	2017/06/14
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -178,6 +178,32 @@ static uint16_t	aha_ports[] = {
     0x0330, 0x0334, 0x0230, 0x0234,
     0x0130, 0x0134, 0x0000, 0x0000
 };
+
+
+#ifdef WALTJE
+int aha_do_log = 1;
+# define ENABLE_AHA154X_LOG
+#else
+int aha_do_log = 0;
+#endif
+
+
+static void
+aha_log(const char *format, ...)
+{
+#ifdef ENABLE_AHA154X_LOG
+    va_list ap;
+
+    if (aha_do_log) {
+	va_start(ap, format);
+	vprintf(format, ap);
+	va_end(ap);
+	fflush(stdout);
+    }
+#endif
+}
+#define pclog	aha_log
+
 
 /*
  * Write data to the BIOS space.
@@ -837,31 +863,6 @@ enum {
     CHIP_AHA154XCF,
 	CHIP_AHA1640
 };
-
-
-#ifdef WALTJE
-int aha_do_log = 1;
-# define ENABLE_AHA154X_LOG
-#else
-int aha_do_log = 0;
-#endif
-
-
-static void
-aha_log(const char *format, ...)
-{
-#ifdef ENABLE_AHA154X_LOG
-    va_list ap;
-
-    if (aha_do_log) {
-	va_start(ap, format);
-	vprintf(format, ap);
-	va_end(ap);
-	fflush(stdout);
-    }
-#endif
-}
-#define pclog	aha_log
 
 
 static void
@@ -2165,6 +2166,14 @@ void aha_mca_write(int port, uint8_t val, void *p)
 	{
 		io_sethandler(addr, 0x0004, aha_read, aha_readw, NULL, aha_write, aha_writew, NULL, dev);
 	}
+}
+
+
+void
+aha_device_reset(void *p)
+{
+	aha_t *dev = (aha_t *) p;
+	aha_reset_ctrl(dev, 1);
 }
 
 

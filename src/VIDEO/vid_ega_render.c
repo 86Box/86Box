@@ -8,7 +8,7 @@
  *
  *		EGA renderers.
  *
- * Version:	@(#)vid_ega_render.c	1.0.0	2017/05/30
+ * Version:	@(#)vid_ega_render.c	1.0.1	2017/06/05
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -141,6 +141,237 @@ void ega_render_text_standard(ega_t *ega, int drawcursor)
 						((uint32_t *)buffer32->line[dl])[(((x * 9) + 32 + 8) & 2047) + x_add] = (dat & 1) ? fg : bg;
 				}
 			}
+			ega->ma += 4; 
+			ega->ma &= ega->vrammask;
+		}
+	}
+}
+
+static __inline int is_kanji1(uint8_t chr)
+{
+	return (chr >= 0x81 && chr <= 0x9f) || (chr >= 0xe0 && chr <= 0xfc);
+}
+
+static __inline int is_kanji2(uint8_t chr)
+{
+	return (chr >= 0x40 && chr <= 0x7e) || (chr >= 0x80 && chr <= 0xfc);
+}
+
+void ega_jega_render_blit_text(ega_t *ega, int x, int dl, int start, int width, uint16_t dat, int cw, uint32_t fg, uint32_t bg)
+{
+	int x_add = (enable_overscan) ? 8 : 0;
+
+	int xx = 0;
+	int xxx = 0;
+
+	if (ega->seqregs[1] & 8)
+	{
+		for (xx = start; xx < (start + width); xx++) 
+			for (xxx = 0; xxx < cw; xxx++)
+				((uint32_t *)buffer32->line[dl])[(((x * width) + 32 + (xxx << 1) + ((xx << 1) * cw)) & 2047) + x_add] = 
+				((uint32_t *)buffer32->line[dl])[(((x * width) + 33 + (xxx << 1) + ((xx << 1) * cw)) & 2047) + x_add] = (dat & (0x80 >> xx)) ? fg : bg;
+	}
+	else
+	{
+		for (xx = start; xx < (start + width); xx++) 
+			((uint32_t *)buffer32->line[dl])[(((x * width) + 32 + xxx + (xx * cw)) & 2047) + x_add] = (dat & (0x80 >> xx)) ? fg : bg;
+	}
+}
+
+void ega_render_text_jega(ega_t *ega, int drawcursor)
+{     
+	int x_add = (enable_overscan) ? 8 : 0;
+	int dl = ega_display_line(ega);
+        uint8_t chr, attr;
+	uint16_t dat, dat2;
+        uint32_t charaddr;
+        int x, xx;
+        uint32_t fg, bg;
+
+	/* Temporary for DBCS. */
+	unsigned int chr_left;
+	unsigned int bsattr;
+	int chr_wide = 0;
+	uint32_t bg_ex = 0;
+	uint32_t fg_ex = 0;
+
+	int blocks = ega->hdisp;
+	int fline;
+
+	unsigned int pad_y, exattr;
+
+	if (fullchange)
+	{
+		for (x = 0; x < ega->hdisp; x++)
+		{
+			drawcursor = ((ega->ma == ega->ca) && ega->con && ega->cursoron);
+			chr  = ega->vram[(ega->ma << 1) & ega->vrammask];
+			attr = ega->vram[((ega->ma << 1) + 1) & ega->vrammask];
+
+			if (chr_wide = 0)
+			{
+				if (ega->RMOD2 & 0x80)
+				{
+					fg_ex = ega->pallook[ega->egapal[attr & 15]];
+
+					if (attr & 0x80 && ega->attrregs[0x10] & 8)
+					{
+						bg_ex = ega->pallook[ega->egapal[(attr >> 4) & 7]];
+					}
+					else
+					{
+						bg_ex = ega->pallook[ega->egapal[attr >> 4]];
+					}
+				}
+				else
+				{
+					if (attr & 0x40)
+					{
+						/* Reversed in JEGA mode */
+						bg_ex = ega->pallook[ega->egapal[attr & 15]];
+						fg_ex = ega->pallook[0];
+					}
+					else
+					{
+						/* Reversed in JEGA mode */
+						fg_ex = ega->pallook[ega->egapal[attr & 15]];
+						bg_ex = ega->pallook[0];
+					}
+				}
+
+				if (drawcursor) 
+				{ 
+					bg = fg_ex;
+					fg = bg_ex;
+				}
+				else
+				{
+					fg = fg_ex;
+					bg = bg_ex;
+				}
+	
+				if (attr & 0x80 && ega->attrregs[0x10] & 8)
+				{
+					if (ega->blink & 16) 
+						fg = bg;
+				}
+
+				/* Stay drawing if the char code is DBCS and not at last column. */
+				if (is_kanji1(dat) && (blocks > 1))
+				{
+					/* Set the present char/attr code to the next loop. */
+					chr_left = chr;
+					chr_wide = 1;
+				}
+				else
+				{
+					/* The char code is ANK (8 dots width). */
+					dat = jfont_sbcs_19[chr*19+(ega->sc)];	/* w8xh19 font */
+					ega_jega_render_blit_text(ega, x, dl, 0, 8, dat, 1, fg, bg);
+					if (bsattr & 0x20)
+					{
+						/* Vertical line. */
+						dat = 0x18;
+						ega_jega_render_blit_text(ega, x, fline, 0, 8, dat, 1, fg, bg);
+					}
+					if (ega->sc == 18 && bsattr & 0x10)
+					{
+						/* Underline. */
+						dat = 0xff;
+						ega_jega_render_blit_text(ega, x, fline, 0, 8, dat, 1, fg, bg);
+					}
+					chr_wide = 0;
+					blocks--;
+				}
+			}
+			else
+			{
+				/* The char code may be in DBCS. */
+				pad_y = ega->RPSSC;
+				exattr = 0;
+
+				/* Note: The second column should be applied its basic attribute. */
+				if (ega->RMOD2 & 0x40)
+				{
+					/* If JEGA Extended Attribute is enabled. */
+					exattr = attr;
+					if ((exattr & 0x30) == 0x30)  pad_y = ega->RPSSL;	/* Set top padding of lower 2x character. */
+					else if (exattr & 0x30)  pad_y = ega->RPSSU;	/* Set top padding of upper 2x character. */
+				}
+
+				if (ega->sc >= pad_y && ega->sc < 16 + pad_y)
+				{
+					/* Check the char code is in Wide charset of Shift-JIS. */
+					if (is_kanji2(chr))
+					{
+						fline = ega->sc - pad_y;
+						chr_left <<= 8;
+						/* Fix vertical position. */
+						chr |= chr_left;
+						/* Horizontal wide font (Extended Attribute). */
+						if (exattr & 0x20)
+						{
+							if (exattr & 0x10)  fline = (fline >> 1) + 8;
+							else  fline = fline >> 1;
+						}
+						/* Vertical wide font (Extended Attribute). */
+						if (exattr & 0x40)
+						{
+							dat = jfont_dbcs_16[chr * 32 + fline * 2];
+							if (!(exattr & 0x08))
+								dat = jfont_dbcs_16[chr * 32 + fline * 2 + 1];
+							/* Draw 8 dots. */
+							ega_jega_render_blit_text(ega, x, dl, 0, 8, dat, 2, fg, bg);
+						}
+						else
+						{
+							/* Get the font pattern. */
+							dat = jfont_dbcs_16[chr * 32 + fline * 2];
+							dat <<= 8;
+							dat |= jfont_dbcs_16[chr * 32 + fline * 2 + 1];
+							/* Bold (Extended Attribute). */
+							if (exattr &= 0x80)
+							{
+								dat2 = dat;
+								dat2 >>= 1;
+								dat |= dat2;
+								/* Original JEGA colours the last row with the next column's attribute. */
+							}
+							/* Draw 16 dots */
+							ega_jega_render_blit_text(ega, x, dl, 0, 16, dat, 1, fg, bg);
+						}
+					}
+					else
+					{
+						/* Ignore wide char mode, put blank. */
+						dat = 0;
+						ega_jega_render_blit_text(ega, x, dl, 0, 16, dat, 1, fg, bg);
+					}
+				}
+				else if (ega->sc == (17 + pad_y) && (bsattr & 0x10))
+				{
+					/* Underline. */
+					dat = 0xffff;
+					ega_jega_render_blit_text(ega, x, dl, 0, 16, dat, 1, fg, bg);
+				}
+				else
+				{
+					/* Draw blank */
+					dat = 0;
+					ega_jega_render_blit_text(ega, x, dl, 0, 16, dat, 1, fg, bg);
+				}
+
+				if (bsattr & 0x20)
+				{
+					/* Vertical line draw at last. */
+					dat = 0x0180;
+					ega_jega_render_blit_text(ega, x, dl, 0, 16, dat, 1, fg, bg);
+				}
+
+				chr_wide = 0;
+				blocks -= 2;	/* Move by 2 columns. */
+			}
+
 			ega->ma += 4; 
 			ega->ma &= ega->vrammask;
 		}

@@ -17,12 +17,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pcap.h>
-#include "ibm.h"
-#include "config.h"
-#include "device.h"
+#include "../ibm.h"
+#include "../config.h"
+#include "../device.h"
 #include "network.h"
-#include "plat_dynld.h"
-#include "plat_thread.h"
+#include "../WIN/plat_dynld.h"
+#include "../WIN/plat_thread.h"
 
 
 static void	*pcap_handle;		/* handle to WinPcap DLL */

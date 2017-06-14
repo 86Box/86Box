@@ -18,8 +18,10 @@
 
 #include <stdlib.h>
 #include "ibm.h"
+#include "CPU/cpu.h"
 #include "device.h"
 #include "mem.h"
+#include "model.h"
 #include "rom.h"
 
 #define FLASH_IS_BXB	2
@@ -171,71 +173,23 @@ void *intel_flash_init(uint8_t type)
         FILE *f;
 	int i;
         flash_t *flash;
+	wchar_t *model_name;
+	wchar_t *flash_name;
+
 	flash = malloc(sizeof(flash_t));
         memset(flash, 0, sizeof(flash_t));
 
-	switch(romset)
-	{
-		case ROM_REVENGE:
-			wcscpy(flash_path, L"revenge.bin");
-			break;
-		case ROM_586MC1:
-			wcscpy(flash_path, L"586mc1.bin");
-			break;
-		case ROM_PLATO:
-			wcscpy(flash_path, L"plato.bin");
-			break;
-		case ROM_ENDEAVOR:
-			wcscpy(flash_path, L"endeavor.bin");
-			break;
-		case ROM_MB500N:
-			wcscpy(flash_path, L"mb500n.bin");
-			break;
-		case ROM_P54TP4XE:
-			wcscpy(flash_path, L"p54tp4xe.bin");
-			break;
-		case ROM_AP53:
-			wcscpy(flash_path, L"ap53.bin");
-			break;
-		case ROM_P55T2S:
-			wcscpy(flash_path, L"p55t2s.bin");
-			break;
-		case ROM_ACERM3A:
-			wcscpy(flash_path, L"acerm3a.bin");
-			break;
-		case ROM_ACERV35N:
-			wcscpy(flash_path, L"acerv35n.bin");
-			break;
-		case ROM_430VX:
-			wcscpy(flash_path, L"430vx.bin");
-			break;
-		case ROM_P55VA:
-			wcscpy(flash_path, L"p55va.bin");
-			break;
-		case ROM_P55T2P4:
-			wcscpy(flash_path, L"p55t2p4.bin");
-			break;
-		case ROM_P55TVP4:
-			wcscpy(flash_path, L"p55tvp4.bin");
-			break;
-		case ROM_440FX:
-			wcscpy(flash_path, L"440fx.bin");
-			break;
-		case ROM_THOR:
-			wcscpy(flash_path, L"thor.bin");
-			break;
-		case ROM_MRTHOR:
-			wcscpy(flash_path, L"mrthor.bin");
-			break;
-		case ROM_ZAPPA:
-			wcscpy(flash_path, L"zappa.bin");
-			break;
-		case ROM_S1668:
-			wcscpy(flash_path, L"tpatx.bin");
-			break;
-		default:
-	                fatal("intel_flash_init on unsupported ROM set %i\n", romset);
-	}
+	model_name = (wchar_t *) malloc((strlen(model_get_internal_name_ex(model)) << 1) + 2);
+	mbstowcs(model_name, model_get_internal_name_ex(model), strlen(model_get_internal_name_ex(model)) + 1);
+	flash_name = (wchar_t *) malloc((wcslen(model_name) << 1) + 2 + 8);
+	_swprintf(flash_name, L"%s.bin", model_name);
+
+	wcscpy(flash_path, flash_name);
+
+	free(flash_name);
+	free(model_name);
+
+	pclog_w(L"Flash path: %s\n", flash_name);
 
 	flash->flash_id = (type & FLASH_IS_BXB) ? 0x95 : 0x94;
 	flash->invert_high_pin = (type & FLASH_INVERT);
