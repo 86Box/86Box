@@ -1,4 +1,4 @@
-#include "mem.h"
+#include "../mem.h"
 
 #ifdef __amd64__
 #include "codegen_x86-64.h"

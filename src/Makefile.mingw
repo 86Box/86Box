@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.25	2017/06/04
+# Version:	@(#)Makefile.mingw	1.0.26	2017/06/13
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -43,7 +43,7 @@ ifndef EXTRAS
 EXTRAS	=
 endif
 
-# Do we want a debugging build?
+# Defaults for several build options (possibly defined in a chained file.)
 ifndef DEBUG
 DEBUG	= n
 endif
@@ -66,56 +66,51 @@ endif
 #########################################################################
 VPATH	= . cpu sound sound/resid-fp video lzf slirp win
 PLAT	= win/
-CPP	= g++.exe
-CC	= gcc.exe
+ifeq ($(X64), y)
+CPP	= g++.exe -m64 -U__unix
+CC	= gcc.exe -m64 -U__unix
+else
+CPP	= g++.exe -m32
+CC	= gcc.exe -m32
+endif
 WINDRES	= windres.exe
 
 OPTS	= -DWIN32 -I$(PLAT) $(EXTRAS) $(STUFF)
-ifeq ($(DEBUG), y)
-ifeq ($(VRAMDUMP), y)
-DFLAGS	= -march=i686 -ggdb -DDEBUG -DENABLE_VRAM_DUMP
-else
-DFLAGS	= -march=i686 -ggdb -DDEBUG
-endif
-ifndef COPTIM
-COPTIM	= -Og
-endif
-else
-ifeq ($(OPTIM), y)
-DFLAGS	= -march=native
-ifndef COPTIM
-COPTIM	= -O6
-endif
-else
+
 ifeq ($(X64), y)
-DFLAGS	= 
+ DFLAGS		= 
 else
-DFLAGS	= -march=i686
+ DFLAGS		= -march=i686
 endif
-ifndef COPTIM
-COPTIM	= -O3
-endif
-endif
-endif
-ifeq ($(OPTIM), y)
-AOPTIM	= -mtune=native
+ifeq ($(DEBUG), y)
+ DFLAGS		+= -ggdb -DDEBUG
+ AOPTIM		=
+ ifndef COPTIM
+  COPTIM	= -Og
+ endif
 else
-AOPTIM	=
+ ifeq ($(OPTIM), y)
+  AOPTIM	= -mtune=native
+  ifndef COPTIM
+   COPTIM	= -O6
+  endif
+ else
+  ifndef COPTIM
+   COPTIM	= -O3
+  endif
+ endif
 endif
-AFLAGS	= -msse -msse2 \
-	  -mfpmath=sse
+AFLAGS		= -msse -msse2 -mfpmath=sse
+CFLAGS		= $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) $(AFLAGS) \
+		  -fomit-frame-pointer -mstackrealign
+RFLAGS		= --input-format=rc -O coff
 ifeq ($(RELEASE), y)
-CFLAGS	= $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) $(AFLAGS) \
-	  -fomit-frame-pointer -mstackrealign -DRELEASE_BUILD
-RFLAGS	= --input-format=rc -O coff -DRELEASE_BUILD
-else
-CFLAGS	= $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) $(AFLAGS) \
-	  -fomit-frame-pointer -mstackrealign
-ifeq ($(VRAMDUMP), y)
-RFLAGS	= --input-format=rc -O coff -DENABLE_VRAM_DUMP
-else
-RFLAGS	= --input-format=rc -O coff
+CFLAGS		+= -DRELEASE_BUILD
+RFLAGS		+= -DRELEASE_BUILD
 endif
+ifeq ($(VRAMDUMP), y)
+CFLAGS		+= -DENABLE_VRAM_DUMP
+RFLAGS		+= -DENABLE_VRAM_DUMP
 endif
 
 ifeq ($(X64), y)
@@ -234,7 +229,7 @@ LIBS	= -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 -lopenal.dll \
 # Build rules.
 %.o:		%.c
 		@echo $<
-		@$(CC) $(CFLAGS) -c $<
+		$(CC) $(CFLAGS) -c $<
 
 %.o:		%.cc
 		@echo $<
