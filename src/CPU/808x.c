@@ -34,6 +34,7 @@
 #include "../mem.h"
 #include "../nmi.h"
 #include "../pic.h"
+#include "../scsi.h"
 #include "../timer.h"
 
 int xt_cpu_multi;
@@ -599,6 +600,7 @@ void resetx86()
         codegen_reset();
         x86_was_reset = 1;
 	port_92_clear_reset();
+	scsi_card_reset();
 }
 
 void softresetx86()
@@ -618,6 +620,7 @@ void softresetx86()
         x86seg_reset();
         x86_was_reset = 1;
 	port_92_clear_reset();
+	scsi_card_reset();
 }
 
 static void setznp8(uint8_t val)

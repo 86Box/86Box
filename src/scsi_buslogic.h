@@ -23,6 +23,8 @@
 
 extern device_t buslogic_device;
 extern device_t buslogic_pci_device;
+
+extern	void BuslogicDeviceReset(void *p);
   
   
 #endif	/*SCSI_BUSLOGIC_H*/

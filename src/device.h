@@ -72,6 +72,7 @@ typedef struct device_t
 extern void	device_init(void);
 extern void	device_add(device_t *d);
 extern void	device_close_all(void);
+extern void	*device_get_priv(device_t *d);
 extern int	device_available(device_t *d);
 extern void	device_speed_changed(void);
 extern void	device_force_redraw(void);
