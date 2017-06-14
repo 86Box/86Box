@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.h	1.0.0	2017/05/30
+ * Version:	@(#)sound.h	1.0.1	2017/06/14
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -35,12 +35,18 @@ void sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r);
 extern int sound_pos_global;
 void sound_speed_changed();
 
+extern int sound_is_float;
+void sound_realloc_buffers(void);
+
 void sound_init();
 void sound_reset();
 
 void sound_cd_thread_reset();
 
+void closeal(ALvoid);
 void initalmain(int argc, char *argv[]);
 void inital();
 void givealbuffer(float *buf);
+void givealbuffer_int16(int16_t *buf);
 void givealbuffer_cd(float *buf);
+void givealbuffer_cd_int16(int16_t *buf);

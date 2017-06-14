@@ -24,7 +24,7 @@
 #include "hdd.h"
 #include "model.h"
 #include "mouse.h"
-#include "network.h"
+#include "network/network.h"
 #include "nvr.h"
 #include "scsi.h"
 #include "win/plat_joystick.h"
@@ -996,6 +996,21 @@ static void loadconfig_sound(void)
 	else
 	{
 		opl3_type = 0;
+	}
+
+	memset(temps, '\0', sizeof(temps));
+        p = config_get_string(cat, "sound_type", "float");
+	if (p != NULL)
+	{
+		strcpy(temps, p);
+	}
+	if (!strcmp(temps, "float") || !strcmp(temps, "1"))
+	{
+		sound_is_float = 1;
+	}
+	else
+	{
+		sound_is_float = 0;
 	}
 }
 
@@ -2057,6 +2072,15 @@ static void saveconfig_sound(void)
 	else
 	{
 		config_set_string(cat, "opl3_type", (opl3_type == 1) ? "nukedopl" : "dbopl");
+	}
+
+	if (sound_is_float == 1)
+	{
+		config_delete_var(cat, "sound_type");
+	}
+	else
+	{
+		config_set_string(cat, "sound_type", (sound_is_float == 1) ? "float" : "int16");
 	}
 
 	config_delete_section_if_empty(cat);

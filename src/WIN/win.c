@@ -1240,7 +1240,7 @@ void update_status_bar_panes(HWND hwnds)
 				break;
 			case SB_TEXT:
 				/* Status text */
-				SendMessage(hwnds, SB_SETTEXT, i | SBT_NOBORDERS, (LPARAM) L"Welcome to Unicode 86Box! :p");
+				SendMessage(hwnds, SB_SETTEXT, i | SBT_NOBORDERS, (LPARAM) L"");
 				sb_part_icons[i] = -1;
 				break;
 		}

@@ -29,6 +29,8 @@ fd_set *global_readfds, *global_writefds, *global_xfds;
 extern void	pclog(const char *, ...);
 extern int	config_get_int(char *, char *, int);
 
+#define printf pclog
+
 
 #ifdef _WIN32
 static int get_dns_addr(struct in_addr *pdns_addr)

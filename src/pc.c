@@ -59,7 +59,7 @@
 #include "model.h"
 #include "mouse.h"
 #include "plat_mouse.h"
-#include "network.h"
+#include "network/network.h"
 #include "serial.h"
 #include "sound/sound.h"
 #include "sound/snd_cms.h"

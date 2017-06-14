@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.2	2017/06/04
+ * Version:	@(#)win_settings.c	1.0.3	2017/06/14
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2017 Miran Grca.
@@ -34,7 +34,7 @@
 #include "../ide.h"
 #include "../scsi.h"
 #include "../scsi_buslogic.h"
-#include "../network.h"
+#include "../network/network.h"
 #include "../sound/sound.h"
 #include "../sound/snd_dbopl.h"
 #include "../sound/snd_mpu401.h"
@@ -58,6 +58,7 @@ static int temp_mouse, temp_joystick;
 
 /* Sound category */
 static int temp_sound_card, temp_midi_id, temp_mpu401, temp_SSI2001, temp_GAMEBLASTER, temp_GUS, temp_opl3_type;
+static int temp_float;
 
 /* Network category */
 static int temp_net_type, temp_net_card;
@@ -124,6 +125,7 @@ static void win_settings_init(void)
 	temp_GAMEBLASTER = GAMEBLASTER;
 	temp_GUS = GUS;
 	temp_opl3_type = opl3_type;
+	temp_float = sound_is_float;
 
 	/* Network category */
 	temp_net_type = network_type;
@@ -189,6 +191,7 @@ static int win_settings_changed(void)
 	i = i || (GAMEBLASTER != temp_GAMEBLASTER);
 	i = i || (GUS != temp_GUS);
 	i = i || (opl3_type != temp_opl3_type);
+	i = i || (sound_is_float != temp_float);
 
 	/* Network category */
 	i = i || (network_type != temp_net_type);
@@ -286,6 +289,7 @@ static void win_settings_save(void)
 	GAMEBLASTER = temp_GAMEBLASTER;
 	GUS = temp_GUS;
 	opl3_type = temp_opl3_type;
+	sound_is_float = temp_float;
 
 	/* Network category */
 	network_type = temp_net_type;
@@ -320,6 +324,8 @@ static void win_settings_save(void)
 	loadbios();
 
 	update_status_bar_panes(hwndStatus);
+
+	sound_realloc_buffers();
 
 	resetpchard();
 
@@ -1235,6 +1241,9 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 			h=GetDlgItem(hdlg, IDC_CHECK_NUKEDOPL);
 			SendMessage(h, BM_SETCHECK, temp_opl3_type, 0);
 
+			h=GetDlgItem(hdlg, IDC_CHECK_FLOAT);
+			SendMessage(h, BM_SETCHECK, temp_float, 0);
+
 			free(lptsTemp);
 
 			return TRUE;
@@ -1305,6 +1314,9 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 
 			h = GetDlgItem(hdlg, IDC_CHECK_NUKEDOPL);
 			temp_opl3_type = SendMessage(h, BM_GETCHECK, 0, 0);
+
+			h = GetDlgItem(hdlg, IDC_CHECK_FLOAT);
+			temp_float = SendMessage(h, BM_GETCHECK, 0, 0);
 
 		default:
 			return FALSE;

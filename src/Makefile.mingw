@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.26	2017/06/13
+# Version:	@(#)Makefile.mingw	1.0.27	2017/06/14
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -64,7 +64,7 @@ endif
 #########################################################################
 #		Nothing should need changing from here on..		#
 #########################################################################
-VPATH	= . cpu sound sound/resid-fp video lzf slirp win
+VPATH	= . cpu sound sound/resid-fp video lzf network network/slirp win
 PLAT	= win/
 ifeq ($(X64), y)
 CPP	= g++.exe -m64 -U__unix
@@ -229,7 +229,7 @@ LIBS	= -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 -lopenal.dll \
 # Build rules.
 %.o:		%.c
 		@echo $<
-		$(CC) $(CFLAGS) -c $<
+		@$(CC) $(CFLAGS) -c $<
 
 %.o:		%.cc
 		@echo $<
