@@ -447,7 +447,7 @@ static int image_readsector_raw(uint8_t id, uint8_t *buffer, int sector, int ism
 	if (cdrom_image[id].image_is_iso)
 	{
 		audio = 0;
-		mode2 = 0;
+		mode2 = cdimg[id]->IsMode2(real_pos) ? 1 : 0;
 	}
 	else
 	{
@@ -464,7 +464,7 @@ static int image_readsector_raw(uint8_t id, uint8_t *buffer, int sector, int ism
 		return 0;
 	}
 
-	if ((cdrom_sector_type == 3) || (cdrom_sector_type > 4))
+	if ((cdrom_sector_type == 3) || ((cdrom_sector_type > 4) && (cdrom_sector_type != 8)))
 	{
 		if (cdrom_sector_type == 3)
 		{
@@ -589,7 +589,7 @@ read_mode1:
 	}
 	else if (cdrom_sector_type == 4)
 	{
-		if (audio || !mode2 || cdrom_image[id].image_is_iso)
+		if (audio || !mode2)
 		{
 			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] Attempting to read a non-XA Mode 2 Form 1 sector from an audio track\n", id);
 			return 0;
@@ -626,7 +626,31 @@ read_mode2:
 			return 0;
 		}
 
-		cdimg[id]->ReadSector(cdrom_sector_buffer.buffer, true, real_pos);
+		if (cdrom_image[id].image_is_iso)
+		{
+			cdimg[id]->ReadSector(raw_buffer + 24, false, real_pos);
+
+			uint8_t *bb = raw_buffer;
+
+			/* sync bytes */
+			bb[0] = 0;
+			memset(bb + 1, 0xff, 10);
+			bb[11] = 0;
+			bb += 12;
+
+			bb[0] = (real_pos >> 16) & 0xff;
+			bb[1] = (real_pos >> 8) & 0xff;
+			bb[2] = real_pos & 0xff;
+
+			bb[3] = 1; /* mode 1 data */
+			bb += 12;
+			bb += 2048;
+			memset(bb, 0, 280);
+		}
+		else
+		{
+			cdimg[id]->ReadSector(raw_buffer, true, real_pos);
+		}
 
 		cdrom_sector_size = 0;
 
@@ -669,6 +693,23 @@ read_mode2:
 			memcpy(temp_b, raw_buffer + 2072, 280);
 			cdrom_sector_size += 280;
 			temp_b += 280;
+		}
+	}
+	else if (cdrom_sector_type == 8)
+	{
+		if (audio)
+		{
+			cdrom_image_log("CD-ROM %i: [Any Data] Attempting to read a data sector from an audio track\n", id);
+			return 0;
+		}
+
+		if (mode2)
+		{
+			goto read_mode2;
+		}
+		else
+		{
+			goto read_mode1;
 		}
 	}
 	else
