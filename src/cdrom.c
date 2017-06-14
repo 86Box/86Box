@@ -1856,7 +1856,7 @@ int cdrom_read_blocks(uint8_t id, uint32_t *len, int first_batch)
 	}
 	else
 	{
-		type = 2;
+		type = 8;
 		flags = 0x10;
 	}
 

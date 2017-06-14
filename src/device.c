@@ -73,6 +73,22 @@ void device_close_all()
         }
 }
 
+void *device_get_priv(device_t *d)
+{
+	int c;
+
+        for (c = 0; c < 256; c++)
+        {
+                if (devices[c] != NULL)
+                {
+                        if (devices[c] == d)
+                                return device_priv[c];
+                }
+        }
+
+	return NULL;
+}
+
 int device_available(device_t *d)
 {
 #ifdef RELEASE_BUILD
