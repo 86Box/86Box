@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.3	2017/06/03
+ * Version:	@(#)pc.c	1.0.4	2017/06/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -73,9 +73,11 @@
 #include "video/video.h"
 #include "video/vid_voodoo.h"
 #include "amstrad.h"
-#include "../WIN/plat_ui.h"
+#include "plat_ui.h"
 #ifdef WALTJE
+# define UNICODE
 # include "plat_dir.h"
+# undef UNICODE
 #endif
 
 
