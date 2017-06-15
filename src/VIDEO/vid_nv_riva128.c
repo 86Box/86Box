@@ -2145,7 +2145,7 @@ static uint8_t riva128_in(uint16_t addr, void *p)
 			{
 				if(riva128->i2c.addr == 0xA1)
 				{
-					pclog("RIVA 128 Read EDID %02x %02x\n", riva128->i2c.edid_rom.addr, riva128->i2c.edid_rom.edid_rom[riva128->i2c.edid_rom.addr]);
+					//pclog("RIVA 128 Read EDID %02x %02x\n", riva128->i2c.edid_rom.addr, riva128->i2c.edid_rom.edid_rom[riva128->i2c.edid_rom.addr]);
 					riva128->i2c.data <<= 1;
 					riva128->i2c.data |= (riva128->i2c.edid_rom.edid_rom[riva128->i2c.edid_rom.addr] & (1 << riva128->i2c.databits)) >> riva128->i2c.databits;
 				}
@@ -2269,7 +2269,7 @@ static void riva128_out(uint16_t addr, uint8_t val, void *p)
 				{
 					if(riva128->i2c.addr == 0xA0)
 					{
-						pclog("RIVA 128 Write EDID Address %02x\n", riva128->i2c.data);
+						//pclog("RIVA 128 Write EDID Address %02x\n", riva128->i2c.data);
 						riva128->i2c.edid_rom.addr = riva128->i2c.data;
 					}
 					riva128->i2c.databits = 0;
@@ -2859,6 +2859,7 @@ static void *riva128_init()
 
 	riva128->i2c.addrbits = 0;
 	riva128->i2c.databits = 0;
+	riva128->i2c.busy = 0;
 
 	uint8_t edid_rom[128] =          {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00,
 									  0x04, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -3081,6 +3082,7 @@ static void *rivatnt_init()
 
 	riva128->i2c.addrbits = 0;
 	riva128->i2c.databits = 0;
+	riva128->i2c.busy = 0;
 
 	uint8_t edid_rom[128] =          {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00,
 									  0x04, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -3281,6 +3283,7 @@ static void *rivatnt2_init()
 
 	riva128->i2c.addrbits = 0;
 	riva128->i2c.databits = 0;
+	riva128->i2c.busy = 0;
 
 	uint8_t edid_rom[128] =          {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00,
 									  0x04, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
