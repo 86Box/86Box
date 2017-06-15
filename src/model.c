@@ -130,6 +130,7 @@ extern void    at_p54tp4xe_init(void);
 extern void        at_ap53_init(void);
 extern void      at_p55t2s_init(void);
 extern void     at_acerm3a_init(void);
+extern void    at_acerv35n_init(void);
 extern void     at_p55t2p4_init(void);
 extern void     at_p55tvp4_init(void);
 extern void       at_p55va_init(void);
@@ -212,7 +213,7 @@ MODEL models[] =
         {"AOpen AP53",			ROM_AP53,		"ap53",			{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1, 127,        at_ap53_init, NULL},
         {"ASUS P/I-P55T2S",		ROM_P55T2S,		"p55t2s",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1, 127,      at_p55t2s_init, NULL},
         {"Acer M3a",			ROM_ACERM3A,		"acerm3a",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1, 127,     at_acerm3a_init, NULL},
-        {"Acer V35n",			ROM_ACERV35N,		"acerv35n",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1, 127,     at_acerm3a_init, NULL},
+        {"Acer V35n",			ROM_ACERV35N,		"acerv35n",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1, 127,    at_acerv35n_init, NULL},
         {"ASUS P/I-P55T2P4",		ROM_P55T2P4,		"p55r2p4",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1, 127,     at_p55t2p4_init, NULL},
         {"Epox P55-VA",			ROM_P55VA,		"p55va",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1, 127,       at_p55va_init, NULL},
         {"ASUS P/I-P55TVP4",		ROM_P55TVP4,		"p55tvp4",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1, 127,     at_p55tvp4_init, NULL},
@@ -775,30 +776,28 @@ void at_acerm3a_init(void)
         pci_slot(0xe);
         pci_slot(0xf);
         i430hx_init();
-        piix_init(7, 0xc, 0xd, 0xe, 0xf);
+        piix3_init(7, 0xc, 0xd, 0xe, 0xf);
         fdc37c932fr_init();
         acerm3a_io_init();
         device_add(&intel_flash_bxb_device);
 }
 
-#if 0
 void at_acerv35n_init(void)
 {
         at_ide_init();
 	memregs_init();
 	powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(0xc);
-        pci_slot(0xd);
-        pci_slot(0xe);
-        pci_slot(0xf);
+        pci_slot(0x11);
+        pci_slot(0x12);
+        pci_slot(0x13);
+        pci_slot(0x14);
         i430hx_init();
-        piix_init(7, 0xc, 0xd, 0xe, 0xf);
+        piix3_init(7, 0x11, 0x12, 0x13, 0x14);
         fdc37c932fr_init();
         acerm3a_io_init();
         device_add(&intel_flash_bxb_device);
 }
-#endif
 
 void at_p55t2p4_init(void)
 {

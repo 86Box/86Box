@@ -716,8 +716,8 @@ int loadbios()
                 biosmask = 0x1ffff;
                 return 1;
 
-				case ROM_ACERV35N:
-				f = romfopen(L"roms/acerv35n/R01-C0.BIN", L"rb");
+		case ROM_ACERV35N:
+		f = romfopen(L"roms/acerv35n/V35ND1S1.BIN", L"rb");
                 if (!f) break;
                 fread(rom,           0x20000, 1, f);                
                 fclose(f);
