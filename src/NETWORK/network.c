@@ -24,8 +24,7 @@
 #include "../device.h"
 #include "network.h"
 #include "net_ne2000.h"
-#include "../WIN/win.h"
-#include "../WIN/win_language.h"
+#include "../WIN/plat_ui.h"
 
 
 static netcard_t net_cards[] = {
@@ -112,7 +111,7 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
 	case NET_TYPE_PCAP:
 		ret = network_pcap_setup(mac, rx, dev);
 		if (ret < 0) {
-			msgbox_error(ghwnd, IDS_2219);
+			plat_msgbox_error(IDS_2219);
 			network_type = NET_TYPE_NONE;
 		}
 		break;

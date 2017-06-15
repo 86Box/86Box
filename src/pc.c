@@ -73,8 +73,7 @@
 #include "video/video.h"
 #include "video/vid_voodoo.h"
 #include "amstrad.h"
-#include "win.h"
-#include "win_language.h"
+#include "../WIN/plat_ui.h"
 #ifdef WALTJE
 # include "plat_dir.h"
 #endif
@@ -187,7 +186,7 @@ void fatal(const char *format, ...)
    {
       *newline = 0;
    }
-   msgbox_fatal(ghwnd, msg);
+   plat_msgbox_fatal(msg);
 #endif
    dumppic();
    dumpregs(1);
@@ -577,8 +576,8 @@ int serial_fifo_read, serial_fifo_write;
 
 int emu_fps = 0;
 
-static WCHAR wmodel[2048];
-static WCHAR wcpu[2048];
+static wchar_t wmodel[2048];
+static wchar_t wcpu[2048];
 
 void runpc(void)
 {
@@ -659,7 +658,7 @@ void runpc(void)
                         win_title_update=0;
 			mbstowcs(wmodel, model_getname(), strlen(model_getname()) + 1);
 			mbstowcs(wcpu, models[model].cpu[cpu_manufacturer].cpus[cpu].name, strlen(models[model].cpu[cpu_manufacturer].cpus[cpu].name) + 1);
-                        _swprintf(s, L"%s v%s - %i%% - %s - %s - %s", EMU_NAME_W, EMU_VERSION_W, fps, wmodel, wcpu, (!mousecapture) ? win_language_get_string_from_id(2077) : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? win_language_get_string_from_id(2078) : win_language_get_string_from_id(2079)));
+                        _swprintf(s, L"%s v%s - %i%% - %s - %s - %s", EMU_NAME_W, EMU_VERSION_W, fps, wmodel, wcpu, (!mousecapture) ? plat_get_string_from_id(IDS_2077) : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? plat_get_string_from_id(IDS_2078) : plat_get_string_from_id(IDS_2079)));
                         set_window_title(s);
                 }
                 done++;

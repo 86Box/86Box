@@ -20,6 +20,7 @@
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #include <windowsx.h>
+#include <shlobj.h>
 #undef BITMAP
 
 #include <commdlg.h>
@@ -27,6 +28,7 @@
 #include "../ibm.h"
 #include "../device.h"
 #include "../ide.h"
+#include "plat_ui.h"
 #include "win.h"
 #include "win_language.h"
 
@@ -82,6 +84,11 @@ LPTSTR win_language_get_string_from_id(int i)
 	return lpResourceString[i - 2048];
 }
 
+wchar_t *plat_get_string_from_id(int i)
+{
+	return (wchar_t *) win_language_get_string_from_id(i);
+}
+
 LPTSTR win_language_get_string_from_string(char *str)
 {
 	return lpResourceString[atoi(str) - 2048];
@@ -117,6 +124,11 @@ void msgbox_error(HWND hwndParent, int i)
 	MessageBox(hwndParent, win_language_get_string_from_id(i), lpResourceString[1], MB_OK | MB_ICONWARNING);
 }
 
+void plat_msgbox_error(int i)
+{
+	msgbox_error(ghwnd, i);
+}
+
 void msgbox_error_wstr(HWND hwndParent, WCHAR *wstr)
 {
 	MessageBox(hwndParent, wstr, lpResourceString[1], MB_OK | MB_ICONWARNING);
@@ -137,6 +149,11 @@ void msgbox_fatal(HWND hwndParent, char *string)
 	MessageBox(hwndParent, lptsTemp, lpResourceString[2], MB_OK | MB_ICONERROR);
 
 	free(lptsTemp);
+}
+
+void plat_msgbox_fatal(char *string)
+{
+	msgbox_fatal(ghwnd, string);
 }
 
 int file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save)
@@ -206,4 +223,48 @@ int file_dlg_w_st(HWND hwnd, int i, WCHAR *fn, int save)
 int file_dlg_st(HWND hwnd, int i, char *fn, int save)
 {
 	return file_dlg(hwnd, win_language_get_string_from_id(i), fn, save);
+}
+
+static int CALLBACK BrowseCallbackProc(HWND hwnd,UINT uMsg, LPARAM lParam, LPARAM lpData)
+{
+	if(uMsg == BFFM_INITIALIZED)
+	{
+		SendMessage(hwnd, BFFM_SETSELECTION, TRUE, lpData);
+	}
+
+	return 0;
+}
+
+WCHAR path[MAX_PATH];
+
+wchar_t *BrowseFolder(wchar_t *saved_path)
+{
+	BROWSEINFO bi = { 0 };
+	bi.lpszTitle  = L"Browse for folder...";
+	bi.ulFlags    = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+	bi.lpfn       = BrowseCallbackProc;
+	bi.lParam     = (LPARAM) saved_path;
+
+	LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
+
+	if (pidl != 0)
+	{
+		/* Get the name of the folder and put it in path. */
+		SHGetPathFromIDList(pidl, path);
+
+		/* Free memory used. */
+#if 0
+		IMalloc *imalloc = 0;
+		if (SUCCEEDED(SHGetMalloc(&imalloc)))
+		{
+			imalloc->Free(pidl);
+			imalloc->Release();
+		}
+#endif
+		free(pidl);
+
+		return path;
+	}
+
+	return L"";
 }

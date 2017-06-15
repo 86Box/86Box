@@ -83,8 +83,8 @@ extern void	joystickconfig_open(HWND hwnd, int joy_nr, int type);
 extern int	getfile(HWND hwnd, char *f, char *fn);
 extern int	getsfile(HWND hwnd, char *f, char *fn);
 
-extern void	get_executable_name(WCHAR *s, int size);
-extern void	set_window_title(WCHAR *s);
+extern void	get_executable_name(wchar_t *s, int size);
+extern void	set_window_title(wchar_t *s);
 
 extern void	startblit(void);
 extern void	endblit(void);
