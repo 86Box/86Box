@@ -745,6 +745,7 @@ enum
         LFB_FORMAT_RGB565 = 0,
         LFB_FORMAT_RGB555 = 1,
         LFB_FORMAT_ARGB1555 = 2,
+        LFB_FORMAT_XRGB8888 = 4,
         LFB_FORMAT_ARGB8888 = 5,
         LFB_FORMAT_DEPTH = 15,
         LFB_FORMAT_MASK = 15
@@ -5408,6 +5409,13 @@ static void voodoo_fb_writel(uint32_t addr, uint32_t val, void *p)
                 count = 2;
                 break;
                 
+                case LFB_FORMAT_XRGB8888:
+                colour_data[0].b = val & 0xff;
+                colour_data[0].g = (val >> 8) & 0xff;
+                colour_data[0].r = (val >> 16) & 0xff;
+                write_mask = LFB_WRITE_COLOUR;
+                addr >>= 1;
+                break;
                 case LFB_FORMAT_ARGB8888:
                 colour_data[0].b = val & 0xff;
                 colour_data[0].g = (val >> 8) & 0xff;
