@@ -126,13 +126,8 @@ void ps2board_init()
         io_sethandler(0x0324, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
         
         ps2_190 = 0;
-        
-        lpt1_remove();
-        lpt2_remove();
+
         lpt1_init(0x3bc);
-        
-        serial_remove(1);
-        serial_remove(2);
         
         memset(&ps2_hd, 0, sizeof(ps2_hd));
 }
