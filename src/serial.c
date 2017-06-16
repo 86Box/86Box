@@ -188,7 +188,7 @@ update_ints(SERIAL *sp)
 	sp->iir = IID_IDMDM;
     }
 
-pclog("Serial%d: intr, IIR=%02X, type=%d, mcr=%02X\n",sp->port, sp->iir, sp->type, sp->mctrl);
+serial_log(0, "Serial%d: intr, IIR=%02X, type=%d, mcr=%02X\n",sp->port, sp->iir, sp->type, sp->mctrl);
     if (sp->type < UART_TYPE_16450) {
 	/* Edge-triggered, so always send a pulse. */
 //	if ((sp->mctrl & MCR_OUT2) || PCJR)
@@ -492,7 +492,7 @@ serial_read(uint16_t addr, void *priv)
 
 			/* If there is data in the RX FIFO, grab it. */
 			ret = serial_read_fifo(sp);
-pclog("Serial%d: read RBR: %02X\n",sp->port, ret);
+serial_log(0, "Serial%d: read RBR: %02X\n",sp->port, ret);
 		}
 		break;
 
@@ -508,7 +508,7 @@ pclog("Serial%d: read RBR: %02X\n",sp->port, ret);
 
 	case 2: 	/* IIR */
 		ret = sp->iir;
-pclog("Serial%d: read IIR: %02X\n",sp->port, sp->iir);
+serial_log(0, "Serial%d: read IIR: %02X\n",sp->port, sp->iir);
 
 		if ((ret & IIR_IID) == IID_IDTX) {
 			/* Transmit is done. */
