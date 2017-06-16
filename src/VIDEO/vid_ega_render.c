@@ -180,17 +180,15 @@ void ega_jega_render_blit_text(ega_t *ega, int x, int dl, int start, int width, 
 
 void ega_render_text_jega(ega_t *ega, int drawcursor)
 {     
-	int x_add = (enable_overscan) ? 8 : 0;
 	int dl = ega_display_line(ega);
         uint8_t chr, attr;
-	uint16_t dat, dat2;
-        uint32_t charaddr;
-        int x, xx;
-        uint32_t fg, bg;
+	uint16_t dat = 0, dat2;
+        int x;
+	uint32_t fg = 0, bg = 0;
 
 	/* Temporary for DBCS. */
-	unsigned int chr_left;
-	unsigned int bsattr;
+	unsigned int chr_left = 0;
+	unsigned int bsattr = 0;
 	int chr_wide = 0;
 	uint32_t bg_ex = 0;
 	uint32_t fg_ex = 0;
@@ -208,7 +206,7 @@ void ega_render_text_jega(ega_t *ega, int drawcursor)
 			chr  = ega->vram[(ega->ma << 1) & ega->vrammask];
 			attr = ega->vram[((ega->ma << 1) + 1) & ega->vrammask];
 
-			if (chr_wide = 0)
+			if (chr_wide == 0)
 			{
 				if (ega->RMOD2 & 0x80)
 				{

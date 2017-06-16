@@ -153,8 +153,6 @@ network_close(void)
 void
 network_reset(void)
 {
-    int i = 0;
-
     pclog("NETWORK: reset (type=%d, card=%d)\n", network_type, network_card);
 
     /* Just in case.. */

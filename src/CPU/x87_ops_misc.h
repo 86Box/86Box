@@ -29,12 +29,14 @@ static int opFCLEX(uint32_t fetchdat)
 
 static int opFINIT(uint32_t fetchdat)
 {
+	uint64_t *p;
         FP_ENTER();
         cpu_state.pc++;
         cpu_state.npxc = 0x37F;
         cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00);
         cpu_state.npxs = 0;
-        *(uint64_t *)cpu_state.tag = 0x0303030303030303ll;
+	p = (uint64_t *)cpu_state.tag;
+        *p = 0x0303030303030303ll;
         cpu_state.TOP = 0;
 	cpu_state.ismmx = 0;
         CLOCK_CYCLES(17);
@@ -91,6 +93,7 @@ static int opFSTP(uint32_t fetchdat)
 
 static int FSTOR()
 {
+	uint64_t *p;
         FP_ENTER();
         switch ((cr0 & 1) | (cpu_state.op32 & 0x100))
         {
@@ -125,9 +128,10 @@ static int FSTOR()
         cpu_state.ismmx = 0;
         /*Horrible hack, but as PCem doesn't keep the FPU stack in 80-bit precision at all times
           something like this is needed*/
+	p = (uint64_t *)cpu_state.tag;
         if (cpu_state.MM_w4[0] == 0xffff && cpu_state.MM_w4[1] == 0xffff && cpu_state.MM_w4[2] == 0xffff && cpu_state.MM_w4[3] == 0xffff &&
             cpu_state.MM_w4[4] == 0xffff && cpu_state.MM_w4[5] == 0xffff && cpu_state.MM_w4[6] == 0xffff && cpu_state.MM_w4[7] == 0xffff &&
-            !cpu_state.TOP && !(*(uint64_t *)cpu_state.tag))
+            !cpu_state.TOP && !(*p))
         cpu_state.ismmx = 1;
 
         CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
@@ -151,6 +155,8 @@ static int opFSTOR_a32(uint32_t fetchdat)
 
 static int FSAVE()
 {
+	uint64_t *p;
+
         FP_ENTER();
         if (fplog) pclog("FSAVE %08X:%08X %i\n", easeg, cpu_state.eaaddr, cpu_state.ismmx);
         cpu_state.npxs = (cpu_state.npxs & ~(7 << 11)) | (cpu_state.TOP << 11);
@@ -287,7 +293,8 @@ static int FSAVE()
         cpu_state.npxc = 0x37F;
         cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00);
         cpu_state.npxs = 0;
-        *(uint64_t *)cpu_state.tag = 0x0303030303030303ll;
+	p = (uint64_t *)cpu_state.tag;
+        *p = 0x0303030303030303ll;
         cpu_state.TOP = 0;
         cpu_state.ismmx = 0;
 

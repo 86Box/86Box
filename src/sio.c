@@ -36,8 +36,8 @@ void sio_write(int func, int addr, uint8_t val, void *priv)
         if (func > 0)
                 return;
         
-                if (addr >= 0x0f && addr < 0x4c)
-                        return;
+	if (addr >= 0x0f && addr < 0x4c)
+		return;
 
         switch (addr)
         {

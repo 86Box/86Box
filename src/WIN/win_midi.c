@@ -113,25 +113,8 @@ void midi_get_dev_name(int num, char *s)
         strcpy(s, caps.szPname);
 }
 
-static int midi_pos, midi_len;
-static uint32_t midi_command;
-static int midi_lengths[8] = {3, 3, 3, 3, 2, 2, 3, 1};
-static int midi_insysex;
-static char midi_sysex_data[1024+2];
-
-static void midi_send_sysex()
-{
-        MIDIHDR hdr;
-        
-        hdr.lpData = midi_sysex_data;
-        hdr.dwBufferLength = midi_pos;
-        hdr.dwFlags = 0;
-
-        midiOutPrepareHeader(midi_out_device, &hdr, sizeof(MIDIHDR));
-        midiOutLongMsg(midi_out_device, &hdr, sizeof(MIDIHDR));
-
-        midi_insysex = 0;
-}
+static int midi_pos;
+static uint8_t midi_sysex_data[1024+2];
 
 void PlayMsg(uint8_t *msg)
 {
@@ -262,7 +245,7 @@ void midi_write(uint8_t val)
 
 void midi_reset()
 {
-	uint8_t buf[64], used;
+	uint8_t buf[64];
 
 	/* Flush buffers */
 	midiOutReset(midi_out_device);

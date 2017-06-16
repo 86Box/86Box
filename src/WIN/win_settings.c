@@ -3130,12 +3130,9 @@ int hard_disk_was_added(void)
 
 void hard_disk_add_open(HWND hwnd, int is_existing)
 {
-	BOOL ret;
-
 	existing = is_existing;
 	hard_disk_added = 0;
-        ret = DialogBox(hinstance, (LPCWSTR)DLG_CFG_HARD_DISKS_ADD,
-			hwnd, win_settings_hard_disks_add_proc);
+        DialogBox(hinstance, (LPCWSTR)DLG_CFG_HARD_DISKS_ADD, hwnd, win_settings_hard_disks_add_proc);
 }
 
 int ignore_change = 0;

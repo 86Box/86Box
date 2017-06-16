@@ -29,7 +29,7 @@ dynld_module(const char *name, dllimp_t *table)
     HMODULE h;
     dllimp_t *imp;
     void *func;
-    char **foo;
+    /* char **foo; */
 
     /* See if we can load the desired module. */
     if ((h = LoadLibrary(name)) == NULL) {

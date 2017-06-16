@@ -795,3 +795,5 @@ extern void	status_settext(char *str);
 #define SB_RDISK	0x20
 #define SB_HDD		0x40
 #define SB_TEXT		0x50
+
+#define UNUSED(x) (void)x

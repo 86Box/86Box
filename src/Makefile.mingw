@@ -102,7 +102,7 @@ else
 endif
 AFLAGS		= -msse -msse2 -mfpmath=sse
 CFLAGS		= $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) $(AFLAGS) \
-		  -fomit-frame-pointer -mstackrealign
+		  -fomit-frame-pointer -mstackrealign -Wall
 RFLAGS		= --input-format=rc -O coff
 ifeq ($(RELEASE), y)
 CFLAGS		+= -DRELEASE_BUILD

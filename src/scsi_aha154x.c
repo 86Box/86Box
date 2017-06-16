@@ -950,15 +950,6 @@ aha_reset(aha_t *dev)
 
 
 static void
-aha_softreset(void)
-{
-    if (ResetDev != NULL) {
-	aha_reset(ResetDev);
-    }
-}
-
-
-static void
 aha_reset_ctrl(aha_t *dev, uint8_t Reset)
 {
     aha_reset(dev);
@@ -2149,7 +2140,7 @@ uint8_t aha_mca_read(int port, void *p)
 
 uint16_t aha_mca_get_port(uint8_t pos_port)
 {
-	uint16_t addr;
+	uint16_t addr = 0;
 	switch (pos_port & 0xC7)
 	{
 		case 0x01:

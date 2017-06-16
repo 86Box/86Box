@@ -311,7 +311,8 @@ static __inline void addbyte(uint8_t val)
 
 static __inline void addword(uint16_t val)
 {
-        *(uint16_t *)&codeblock[block_current].data[block_pos] = val;
+	uint16_t *p = (uint16_t *)&codeblock[block_current].data[block_pos];
+	*p = val;
         block_pos += 2;
         if (block_pos >= BLOCK_MAX)
         {
@@ -321,7 +322,8 @@ static __inline void addword(uint16_t val)
 
 static __inline void addlong(uint32_t val)
 {
-        *(uint32_t *)&codeblock[block_current].data[block_pos] = val;
+	uint32_t *p = (uint32_t *)&codeblock[block_current].data[block_pos];
+	*p = val;
         block_pos += 4;
         if (block_pos >= BLOCK_MAX)
         {
@@ -331,7 +333,8 @@ static __inline void addlong(uint32_t val)
 
 static __inline void addquad(uint64_t val)
 {
-        *(uint64_t *)&codeblock[block_current].data[block_pos] = val;
+	uint64_t *p = (uint64_t *)&codeblock[block_current].data[block_pos];
+	*p = val;
         block_pos += 8;
         if (block_pos >= BLOCK_MAX)
         {

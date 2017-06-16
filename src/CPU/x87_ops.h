@@ -54,14 +54,18 @@ static int rounding_modes[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZ
         
 static __inline void x87_set_mmx()
 {
+	uint64_t *p;
         cpu_state.TOP = 0;
-        *(uint64_t *)cpu_state.tag = 0;
+	p = (uint64_t *)cpu_state.tag;
+        *p = 0;
         cpu_state.ismmx = 1;
 }
 
 static __inline void x87_emms()
 {
-        *(uint64_t *)cpu_state.tag = 0x0303030303030303ll;
+	uint64_t *p;
+	p = (uint64_t *)cpu_state.tag;
+        *p = 0x0303030303030303ll;
         cpu_state.ismmx = 0;
 }
 

@@ -45,7 +45,6 @@ static uint8_t mouse_scancodes[7];
 void keyboard_olim24_poll()
 {
         keybsenddelay += (1000 * TIMER_USEC);
-        //pclog("poll %i\n", keyboard_olim24.wantirq);
         if (keyboard_olim24.wantirq)
         {
                 keyboard_olim24.wantirq = 0;
@@ -108,8 +107,6 @@ void keyboard_olim24_write(uint16_t port, uint8_t val, void *priv)
                                         
                                         default:
                                         pclog("Bad keyboard command complete %02X\n", keyboard_olim24.command);
-//                                        dumpregs();
-//                                        exit(-1);
                                 }
                         }
                 }
@@ -137,8 +134,6 @@ void keyboard_olim24_write(uint16_t port, uint8_t val, void *priv)
                                 
                                 default:
                                 pclog("Bad keyboard command %02X\n", val);
-//                                dumpregs();
-//                                exit(-1);
                         }
                 }
                         
@@ -162,8 +157,7 @@ void keyboard_olim24_write(uint16_t port, uint8_t val, void *priv)
 
 uint8_t keyboard_olim24_read(uint16_t port, void *priv)
 {
-        uint8_t temp;
-//        pclog("keyboard_olim24 : read %04X ", port);
+        uint8_t temp = 0xff;
         switch (port)
         {
                 case 0x60:
@@ -193,10 +187,7 @@ uint8_t keyboard_olim24_read(uint16_t port, void *priv)
                 
                 default:
                 pclog("\nBad olim24 keyboard read %04X\n", port);
-//                dumpregs();
-//                exit(-1);
         }
-//        pclog("%02X\n", temp);
         return temp;
 }
 
@@ -231,8 +222,6 @@ uint8_t mouse_olim24_poll(int x, int y, int z, int b, void *p)
         mouse->x += x;
         mouse->y += y;
 
-//        pclog("mouse_poll - %i, %i  %i, %i\n", x, y, mouse->x, mouse->y);
-        
         if (((key_queue_end - key_queue_start) & 0xf) > 14)
                 return(0xff);
         if ((b & 1) && !(mouse->b & 1))
@@ -342,7 +331,6 @@ mouse_t mouse_olim24 =
 
 void keyboard_olim24_init()
 {
-        //return;
         io_sethandler(0x0060, 0x0002, keyboard_olim24_read, NULL, NULL, keyboard_olim24_write, NULL, NULL,  NULL);
         io_sethandler(0x0064, 0x0001, keyboard_olim24_read, NULL, NULL, keyboard_olim24_write, NULL, NULL,  NULL);
         keyboard_olim24_reset();

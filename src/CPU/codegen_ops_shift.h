@@ -13,29 +13,29 @@
                 reg = MEM_LOAD_ADDR_EA_ ## size ## _NO_ABRT(target_seg);                                                               \
                 if (immediate) count = fastreadb(cs + op_pc + 1) & 0x1f;        \
         }                                                                       \
-        STORE_IMM_ADDR_L((uint32_t)&cpu_state.flags_op2, count);                          \
+        STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op2, count);                          \
                                                                                 \
-        res_store((uint32_t)&cpu_state.flags_op1, reg);                                   \
+        res_store((uintptr_t)&cpu_state.flags_op1, reg);                                   \
                                                                                 \
         switch (fetchdat & 0x38)                                                \
         {                                                                       \
                 case 0x20: case 0x30: /*SHL*/                                   \
                 SHL_ ## size ## _IMM(reg, count);                               \
-                STORE_IMM_ADDR_L((uint32_t)&cpu_state.flags_op, FLAGS_SHL ## size2);      \
+                STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_SHL ## size2);      \
                 break;                                                          \
                                                                                 \
                 case 0x28: /*SHR*/                                              \
                 SHR_ ## size ## _IMM(reg, count);                               \
-                STORE_IMM_ADDR_L((uint32_t)&cpu_state.flags_op, FLAGS_SHR ## size2);      \
+                STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_SHR ## size2);      \
                 break;                                                          \
                                                                                 \
                 case 0x38: /*SAR*/                                              \
                 SAR_ ## size ## _IMM(reg, count);                               \
-                STORE_IMM_ADDR_L((uint32_t)&cpu_state.flags_op, FLAGS_SAR ## size2);      \
+                STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_SAR ## size2);      \
                 break;                                                          \
         }                                                                       \
                                                                                 \
-        res_store((uint32_t)&cpu_state.flags_res, reg);                                   \
+        res_store((uintptr_t)&cpu_state.flags_res, reg);                                   \
         if ((fetchdat & 0xc0) == 0xc0)                                          \
                 STORE_REG_ ## size ## _RELEASE(reg);                            \
         else                                                                    \
@@ -46,7 +46,7 @@
 
 static uint32_t ropC0(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-        x86seg *target_seg;
+        x86seg *target_seg = NULL;
         int count;
         int reg;
 
@@ -59,7 +59,7 @@ static uint32_t ropC0(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_
 }
 static uint32_t ropC1_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-        x86seg *target_seg;
+        x86seg *target_seg = NULL;
         int count;
         int reg;
 
@@ -72,7 +72,7 @@ static uint32_t ropC1_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
 }
 static uint32_t ropC1_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-        x86seg *target_seg;
+        x86seg *target_seg = NULL;
         int count;
         int reg;
 
@@ -86,7 +86,7 @@ static uint32_t ropC1_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
 
 static uint32_t ropD0(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-        x86seg *target_seg;
+        x86seg *target_seg = NULL;
         int count = 1;
         int reg;
 
@@ -99,7 +99,7 @@ static uint32_t ropD0(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_
 }
 static uint32_t ropD1_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-        x86seg *target_seg;
+        x86seg *target_seg = NULL;
         int count = 1;
         int reg;
 
@@ -112,7 +112,7 @@ static uint32_t ropD1_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
 }
 static uint32_t ropD1_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-        x86seg *target_seg;
+        x86seg *target_seg = NULL;
         int count = 1;
         int reg;
 

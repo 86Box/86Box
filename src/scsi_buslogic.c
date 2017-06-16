@@ -624,15 +624,6 @@ BuslogicReset(Buslogic_t *bl)
 
 
 static void
-BuslogicSoftReset(void)
-{
-    if (BuslogicResetDevice != NULL) {
-	BuslogicReset(BuslogicResetDevice);
-    }
-}
-
-
-static void
 BuslogicResetControl(Buslogic_t *bl, uint8_t Reset)
 {
     BuslogicReset(bl);

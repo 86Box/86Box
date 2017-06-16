@@ -289,12 +289,15 @@ void initpc(int argc, wchar_t *argv[])
         wchar_t *p;
         wchar_t *config_file = NULL;
         int c;
-	FILE *ff;
         get_executable_name(pcempath, 511);
         pclog("executable_name = %ws\n", pcempath);
         p=get_filename_w(pcempath);
         *p=L'\0';
         pclog("path = %ws\n", pcempath);        
+#ifdef WALTJE
+	DIR *dir;
+	struct direct *dp;
+#endif
 
         for (c = 1; c < argc; c++)
         {
@@ -325,9 +328,6 @@ void initpc(int argc, wchar_t *argv[])
                 {
 			/* some (undocumented) test function here.. */
 #ifdef WALTJE
-			DIR *dir;
-			struct direct *dp;
-
 			dir = opendirw(pcempath);
 			if (dir != NULL) {
 				printf("Directory '%ws':\n", pcempath);

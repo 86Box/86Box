@@ -108,7 +108,6 @@ static void image_playaudio(uint8_t id, uint32_t pos, uint32_t len, int ismsf)
         unsigned char attr;
         TMSF tmsf;
 	int m = 0, s = 0, f = 0;
-	uint32_t start_msf = 0, end_msf = 0;
         cdimg[id]->GetAudioTrackInfo(cdimg[id]->GetTrack(pos), number, tmsf, attr);
         if (attr == DATA_TRACK)
         {
@@ -182,13 +181,6 @@ static void image_resume(uint8_t id)
 static void image_stop(uint8_t id)
 {
         if (!cdimg[id] || cdrom_image[id].image_is_iso) return;
-        cdrom_image[id].cd_state = CD_STOPPED;
-}
-
-static void image_seek(uint8_t id, uint32_t pos)
-{
-        if (!cdimg[id] || cdrom_image[id].image_is_iso) return;
-        cdrom_image[id].cd_pos   = pos;
         cdrom_image[id].cd_state = CD_STOPPED;
 }
 
@@ -771,14 +763,6 @@ read_mode2:
 }
 
 
-static void lba_to_msf(uint8_t *buf, int lba)
-{
-    lba += 150;
-    buf[0] = (lba / 75) / 60;
-    buf[1] = (lba / 75) % 60;
-    buf[2] = lba % 75;
-}
-
 static uint32_t image_size(uint8_t id)
 {
         return cdrom_image[id].cdrom_capacity;
@@ -905,7 +889,6 @@ static int image_readtoc_raw(uint8_t id, unsigned char *b, int maxlen)
         int number;
         unsigned char attr;
         TMSF tmsf;
-	int lb;
 
         if (!cdimg[id]) return 0;
 

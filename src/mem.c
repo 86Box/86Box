@@ -1785,11 +1785,13 @@ uint8_t mem_read_romext(uint32_t addr, void *priv)
 }
 uint16_t mem_read_romextw(uint32_t addr, void *priv)
 {
-        return *(uint16_t *)&romext[addr & 0x7fff];
+	uint16_t *p = (uint16_t *)&romext[addr & 0x7fff];
+	return *p;
 }
 uint32_t mem_read_romextl(uint32_t addr, void *priv)
 {
-        return *(uint32_t *)&romext[addr & 0x7fff];
+	uint32_t *p = (uint32_t *)&romext[addr & 0x7fff];
+        return *p;
 }
 
 void mem_write_null(uint32_t addr, uint8_t val, void *p)

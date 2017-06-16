@@ -149,7 +149,7 @@ public:
 	bool	HasDataTrack		(void);
         bool    HasAudioTracks          (void);
 	
-        int     GetTrack                (int sector);
+        int     GetTrack                (unsigned int sector);
 
 private:
 	// player

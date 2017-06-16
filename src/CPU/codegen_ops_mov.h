@@ -512,22 +512,22 @@ static uint32_t ropMOV_w_seg(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, 
         switch (fetchdat & 0x38)
         {
                 case 0x00: /*ES*/
-                host_reg = LOAD_VAR_WL((uintptr_t) &ES);
+                host_reg = LOAD_VAR_WL((uintptr_t)&ES);
                 break;
                 case 0x08: /*CS*/
-                host_reg = LOAD_VAR_WL((uintptr_t) &CS);
+                host_reg = LOAD_VAR_WL((uintptr_t)&CS);
                 break;
                 case 0x18: /*DS*/
-                host_reg = LOAD_VAR_WL((uintptr_t) &DS);
+                host_reg = LOAD_VAR_WL((uintptr_t)&DS);
                 break;
                 case 0x10: /*SS*/
-                host_reg = LOAD_VAR_WL((uintptr_t) &SS);
+                host_reg = LOAD_VAR_WL((uintptr_t)&SS);
                 break;
                 case 0x20: /*FS*/
-                host_reg = LOAD_VAR_WL((uintptr_t) &FS);
+                host_reg = LOAD_VAR_WL((uintptr_t)&FS);
                 break;
                 case 0x28: /*GS*/
-                host_reg = LOAD_VAR_WL((uintptr_t) &GS);
+                host_reg = LOAD_VAR_WL((uintptr_t)&GS);
                 break;
                 default:
                 return 0;

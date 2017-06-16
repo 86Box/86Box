@@ -1047,7 +1047,7 @@ split_block_read_iterate:
 static int ioctl_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack, int msf, int maxlen, int single)
 {
         int len=4;
-        long size;
+        DWORD size;
         int c,d;
         uint32_t temp;
 	uint32_t last_block;
@@ -1156,9 +1156,7 @@ static int ioctl_readtoc_raw(uint8_t id, uint8_t *b, int maxlen)
 {
         int len=4;
         int size;
-        uint32_t temp;
 	int i;
-	int BytesRead = 0;
         CDROM_READ_TOC_EX toc_ex;
         CDROM_TOC_FULL_TOC_DATA toc;
         if (!cdrom_drives[id].host_drive)

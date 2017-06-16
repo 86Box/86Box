@@ -200,30 +200,30 @@ static uint32_t ropF ## name ## size(uint8_t opcode, uint32_t fetchdat, uint32_t
         return op_pc + 1;                                                                                                       \
 }
 
-ropFarith(ADD,  s, MEM_LOAD_ADDR_EA_L, FP_OP_S)
-ropFarith(DIV,  s, MEM_LOAD_ADDR_EA_L, FP_OP_S)
-ropFarith(DIVR, s, MEM_LOAD_ADDR_EA_L, FP_OP_S)
-ropFarith(MUL,  s, MEM_LOAD_ADDR_EA_L, FP_OP_S)
-ropFarith(SUB,  s, MEM_LOAD_ADDR_EA_L, FP_OP_S)
-ropFarith(SUBR, s, MEM_LOAD_ADDR_EA_L, FP_OP_S)
-ropFarith(ADD,  d, MEM_LOAD_ADDR_EA_Q, FP_OP_D)
-ropFarith(DIV,  d, MEM_LOAD_ADDR_EA_Q, FP_OP_D)
-ropFarith(DIVR, d, MEM_LOAD_ADDR_EA_Q, FP_OP_D)
-ropFarith(MUL,  d, MEM_LOAD_ADDR_EA_Q, FP_OP_D)
-ropFarith(SUB,  d, MEM_LOAD_ADDR_EA_Q, FP_OP_D)
-ropFarith(SUBR, d, MEM_LOAD_ADDR_EA_Q, FP_OP_D)
-ropFarith(ADD,  iw, MEM_LOAD_ADDR_EA_W, FP_OP_IW)
-ropFarith(DIV,  iw, MEM_LOAD_ADDR_EA_W, FP_OP_IW)
-ropFarith(DIVR, iw, MEM_LOAD_ADDR_EA_W, FP_OP_IW)
-ropFarith(MUL,  iw, MEM_LOAD_ADDR_EA_W, FP_OP_IW)
-ropFarith(SUB,  iw, MEM_LOAD_ADDR_EA_W, FP_OP_IW)
-ropFarith(SUBR, iw, MEM_LOAD_ADDR_EA_W, FP_OP_IW)
-ropFarith(ADD,  il, MEM_LOAD_ADDR_EA_L, FP_OP_IL)
-ropFarith(DIV,  il, MEM_LOAD_ADDR_EA_L, FP_OP_IL)
-ropFarith(DIVR, il, MEM_LOAD_ADDR_EA_L, FP_OP_IL)
-ropFarith(MUL,  il, MEM_LOAD_ADDR_EA_L, FP_OP_IL)
-ropFarith(SUB,  il, MEM_LOAD_ADDR_EA_L, FP_OP_IL)
-ropFarith(SUBR, il, MEM_LOAD_ADDR_EA_L, FP_OP_IL)
+ropFarith(ADD,  s, MEM_LOAD_ADDR_EA_L, FP_OP_S);
+ropFarith(DIV,  s, MEM_LOAD_ADDR_EA_L, FP_OP_S);
+ropFarith(DIVR, s, MEM_LOAD_ADDR_EA_L, FP_OP_S);
+ropFarith(MUL,  s, MEM_LOAD_ADDR_EA_L, FP_OP_S);
+ropFarith(SUB,  s, MEM_LOAD_ADDR_EA_L, FP_OP_S);
+ropFarith(SUBR, s, MEM_LOAD_ADDR_EA_L, FP_OP_S);
+ropFarith(ADD,  d, MEM_LOAD_ADDR_EA_Q, FP_OP_D);
+ropFarith(DIV,  d, MEM_LOAD_ADDR_EA_Q, FP_OP_D);
+ropFarith(DIVR, d, MEM_LOAD_ADDR_EA_Q, FP_OP_D);
+ropFarith(MUL,  d, MEM_LOAD_ADDR_EA_Q, FP_OP_D);
+ropFarith(SUB,  d, MEM_LOAD_ADDR_EA_Q, FP_OP_D);
+ropFarith(SUBR, d, MEM_LOAD_ADDR_EA_Q, FP_OP_D);
+ropFarith(ADD,  iw, MEM_LOAD_ADDR_EA_W, FP_OP_IW);
+ropFarith(DIV,  iw, MEM_LOAD_ADDR_EA_W, FP_OP_IW);
+ropFarith(DIVR, iw, MEM_LOAD_ADDR_EA_W, FP_OP_IW);
+ropFarith(MUL,  iw, MEM_LOAD_ADDR_EA_W, FP_OP_IW);
+ropFarith(SUB,  iw, MEM_LOAD_ADDR_EA_W, FP_OP_IW);
+ropFarith(SUBR, iw, MEM_LOAD_ADDR_EA_W, FP_OP_IW);
+ropFarith(ADD,  il, MEM_LOAD_ADDR_EA_L, FP_OP_IL);
+ropFarith(DIV,  il, MEM_LOAD_ADDR_EA_L, FP_OP_IL);
+ropFarith(DIVR, il, MEM_LOAD_ADDR_EA_L, FP_OP_IL);
+ropFarith(MUL,  il, MEM_LOAD_ADDR_EA_L, FP_OP_IL);
+ropFarith(SUB,  il, MEM_LOAD_ADDR_EA_L, FP_OP_IL);
+ropFarith(SUBR, il, MEM_LOAD_ADDR_EA_L, FP_OP_IL);
 
 #define ropFcompare(name, size, load, op) \
 static uint32_t ropF ## name ## size(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)     \
@@ -252,10 +252,10 @@ static uint32_t ropF ## name ## P ## size(uint8_t opcode, uint32_t fetchdat, uin
         return new_pc;                                                                                                          \
 }
 
-ropFcompare(COM, s, MEM_LOAD_ADDR_EA_L, FP_COMPARE_S)
-ropFcompare(COM, d, MEM_LOAD_ADDR_EA_Q, FP_COMPARE_D)
-ropFcompare(COM, iw, MEM_LOAD_ADDR_EA_W, FP_COMPARE_IW)
-ropFcompare(COM, il, MEM_LOAD_ADDR_EA_L, FP_COMPARE_IL)
+ropFcompare(COM, s, MEM_LOAD_ADDR_EA_L, FP_COMPARE_S);
+ropFcompare(COM, d, MEM_LOAD_ADDR_EA_Q, FP_COMPARE_D);
+ropFcompare(COM, iw, MEM_LOAD_ADDR_EA_W, FP_COMPARE_IW);
+ropFcompare(COM, il, MEM_LOAD_ADDR_EA_L, FP_COMPARE_IL);
 
 /*static uint32_t ropFADDs(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
@@ -491,7 +491,7 @@ static uint32_t ropFSTSW_AX(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, u
         int host_reg;
         
         FP_ENTER();
-        host_reg = LOAD_VAR_W((uintptr_t) &cpu_state.npxs);
+        host_reg = LOAD_VAR_W((uintptr_t)&cpu_state.npxs);
         STORE_REG_TARGET_W_RELEASE(host_reg, REG_AX);
         
         return op_pc;
@@ -622,17 +622,19 @@ static uint32_t ropFCHS(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
         static uint32_t ropFLD ## name(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)   \
         {                                                                                                                       \
                 static double fp_imm = v;                                                                                       \
+		static uint64_t *fpp;                                                                                           \
                                                                                                                                 \
                 FP_ENTER();                                                                                                     \
-                FP_LOAD_IMM_Q(*(uint64_t *)&fp_imm);                                                                            \
+                fpp = (uint64_t *)&fp_imm;                                                                                      \
+                FP_LOAD_IMM_Q(*fpp);                                                                                            \
                                                                                                                                 \
                 return op_pc;                                                                                                   \
         }
 
 opFLDimm(1, 1.0)
 opFLDimm(L2T, 3.3219280948873623)
-opFLDimm(L2E, 1.4426950408889634)
-opFLDimm(PI, 3.141592653589793)
-opFLDimm(EG2, 0.3010299956639812)
-opFLDimm(LN2, 0.693147180559945)
+opFLDimm(L2E, 1.4426950408889634);
+opFLDimm(PI, 3.141592653589793);
+opFLDimm(EG2, 0.3010299956639812);
+opFLDimm(LN2, 0.693147180559945);
 opFLDimm(Z, 0.0)

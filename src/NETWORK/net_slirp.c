@@ -67,7 +67,6 @@ slirp_tic(void)
 static void
 poll_thread(void *arg)
 {
-    uint8_t *mac = (uint8_t *)arg;
     struct queuepacket *qp;
     event_t *evt;
 
@@ -112,8 +111,6 @@ poll_thread(void *arg)
 int
 network_slirp_setup(uint8_t *mac, NETRXCB func, void *arg)
 {
-    int rc;
-
     pclog("SLiRP: initializing..\n");
 
     if (slirp_init() != 0) {

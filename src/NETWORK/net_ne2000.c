@@ -1591,8 +1591,8 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 		val |= 0x01;	/* re-enable IOIN bit */
 		/*FALLTHROUGH*/
 
-	case 0x11:			/* PCI_BAR
-	case 0x12:			/* PCI_BAR
+	case 0x11:			/* PCI_BAR */
+	case 0x12:			/* PCI_BAR */
 	case 0x13:			/* PCI_BAR */
 		/* Remove old I/O. */
 		nic_ioremove(dev, dev->base_address);
@@ -1819,6 +1819,11 @@ nic_rom_init(nic_t *dev, wchar_t *s)
     uint32_t temp;
     FILE *f;
 
+    if (s == NULL)
+    {
+	return;
+    }
+
     if (dev->bios_addr > 0) {
 	if ((f = romfopen(s, L"rb")) != NULL) {
 		fseek(f, 0L, SEEK_END);
@@ -1864,6 +1869,7 @@ nic_init(int board)
     dev = malloc(sizeof(nic_t));
     memset(dev, 0x00, sizeof(nic_t));
     dev->board = board;
+    rom = NULL;
     switch(dev->board) {
 	case NE2K_NE1000:
 		strcpy(dev->name, "NE1000");
