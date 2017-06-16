@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)ide.c	1.0.1	2017/06/03
+ * Version:	@(#)ide.c	1.0.2	2017/06/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -18,23 +18,14 @@
  *		Copyright 2016-2017 Miran Grca.
  *		Copyright 2016-2017 TheCollector1995.
  */
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
-#define _GNU_SOURCE
-#include <errno.h>
-#include <ctype.h>
-#include <stdarg.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include <sys/types.h>
 #include <wchar.h>
 
 #include "86box.h"
 #include "cdrom.h"
 #include "ibm.h"
+#include "hdd_image.h"
 #include "io.h"
 #include "pic.h"
 #include "timer.h"
@@ -160,79 +151,6 @@ int ide_drive_is_cdrom(IDE *ide)
 		{
 			return 0;
 		}
-	}
-}
-
-int image_is_hdi(const wchar_t *s)
-{
-	int len;
-	wchar_t ext[5] = { 0, 0, 0, 0, 0 };
-	char *ws = (char *) s;
-	len = wcslen(s);
-	if ((len < 4) || (s[0] == L'.'))
-	{
-		return 0;
-	}
-	memcpy(ext, ws + ((len - 4) << 1), 8);
-	if (wcsicmp(ext, L".HDI") == 0)
-	{
-		return 1;
-	}
-	else
-	{
-		return 0;
-	}
-}
-
-int image_is_hdx(const wchar_t *s, int check_signature)
-{
-	int len;
-	FILE *f;
-	uint64_t filelen;
-	uint64_t signature;
-	char *ws = (char *) s;
-	wchar_t ext[5] = { 0, 0, 0, 0, 0 };
-	len = wcslen(s);
-	if ((len < 4) || (s[0] == L'.'))
-	{
-		return 0;
-	}
-	memcpy(ext, ws + ((len - 4) << 1), 8);
-	if (wcsicmp(ext, L".HDX") == 0)
-	{
-		if (check_signature)
-		{
-			f = _wfopen(s, L"rb");
-			if (!f)
-			{
-				return 0;
-			}
-			fseeko64(f, 0, SEEK_END);
-			filelen = ftello64(f);
-			fseeko64(f, 0, SEEK_SET);
-			if (filelen < 44)
-			{
-				return 0;
-			}
-			fread(&signature, 1, 8, f);
-			fclose(f);
-			if (signature == 0xD778A82044445459ll)
-			{
-				return 1;
-			}
-			else
-			{
-				return 0;
-			}
-		}
-		else
-		{
-			return 1;
-		}
-	}
-	else
-	{
-		return 0;
 	}
 }
 
@@ -371,7 +289,7 @@ static void ide_identify(IDE *ide)
 #if 0
 	uint64_t full_size = (hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt);
 #endif
-	
+
 	device_identify[6] = (ide->hdc_num / 10) + 0x30;
 	device_identify[7] = (ide->hdc_num % 10) + 0x30;
 	ide_log("IDE Identify: %s\n", device_identify);
@@ -525,126 +443,22 @@ static void ide_next_sector(IDE *ide)
 
 static void loadhd(IDE *ide, int d, const wchar_t *fn)
 {
-	uint32_t sector_size = 512;
-	uint32_t zero = 0;
-	uint64_t signature = 0xD778A82044445459ll;
-	uint64_t full_size = 0;
-	int c;
-	ide->base = 0;
-	ide->hdi = 0;
-	if (ide->hdfile == NULL)
+	int ret = 0;
+
+	ret = hdd_image_load(d);
+
+	if (!ret)
 	{
-		/* Try to open existing hard disk image */
-		if (fn[0] == L'.')
-		{
-			ide->type = IDE_NONE;
-			return;
-		}
-		ide->hdfile = _wfopen(fn, L"rb+");
-		if (ide->hdfile == NULL)
-		{
-			/* Failed to open existing hard disk image */
-			if (errno == ENOENT)
-			{
-				/* Failed because it does not exist,
-				   so try to create new file */
-				ide->hdfile = _wfopen(fn, L"wb+");
-				if (ide->hdfile == NULL)
-				{
-					ide->type = IDE_NONE;
-					return;
-				}
-				else
-				{
-					if (image_is_hdi(fn))
-					{
-						full_size = hdc[d].spt * hdc[d].hpc * hdc[d].tracks * 512;
-						ide->base = 0x1000;
-						ide->hdi = 1;
-						fwrite(&zero, 1, 4, ide->hdfile);
-						fwrite(&zero, 1, 4, ide->hdfile);
-						fwrite(&(ide->base), 1, 4, ide->hdfile);
-						fwrite(&full_size, 1, 4, ide->hdfile);
-						fwrite(&sector_size, 1, 4, ide->hdfile);
-						fwrite(&(hdc[d].spt), 1, 4, ide->hdfile);
-						fwrite(&(hdc[d].hpc), 1, 4, ide->hdfile);
-						fwrite(&(hdc[d].tracks), 1, 4, ide->hdfile);
-						for (c = 0; c < 0x3f8; c++)
-						{
-							fwrite(&zero, 1, 4, ide->hdfile);
-						}
-					}
-					else if (image_is_hdx(fn, 0))
-					{
-						full_size = hdc[d].spt * hdc[d].hpc * hdc[d].tracks * 512;
-						ide->base = 0x28;
-						ide->hdi = 2;
-						fwrite(&signature, 1, 8, ide->hdfile);
-						fwrite(&full_size, 1, 8, ide->hdfile);
-						fwrite(&sector_size, 1, 4, ide->hdfile);
-						fwrite(&(hdc[d].spt), 1, 4, ide->hdfile);
-						fwrite(&(hdc[d].hpc), 1, 4, ide->hdfile);
-						fwrite(&(hdc[d].tracks), 1, 4, ide->hdfile);
-						fwrite(&zero, 1, 4, ide->hdfile);
-						fwrite(&zero, 1, 4, ide->hdfile);
-					}
-					ide->hdc_num = d;
-				}
-			}
-			else
-			{
-				/* Failed for another reason */
-				ide->type = IDE_NONE;
-				return;
-			}
-		}
-		else
-		{
-			if (image_is_hdi(fn))
-			{
-				fseeko64(ide->hdfile, 0x8, SEEK_SET);
-				fread(&(ide->base), 1, 4, ide->hdfile);
-				fseeko64(ide->hdfile, 0x10, SEEK_SET);
-				fread(&sector_size, 1, 4, ide->hdfile);
-				if (sector_size != 512)
-				{
-					/* Sector size is not 512 */
-					fclose(ide->hdfile);
-					ide->type = IDE_NONE;
-					return;
-				}
-				fread(&(hdc[d].spt), 1, 4, ide->hdfile);
-				fread(&(hdc[d].hpc), 1, 4, ide->hdfile);
-				fread(&(hdc[d].tracks), 1, 4, ide->hdfile);
-				ide->hdi = 1;
-			}
-			else if (image_is_hdx(fn, 1))
-			{
-				ide->base = 0x28;
-				fseeko64(ide->hdfile, 0x10, SEEK_SET);
-				fread(&sector_size, 1, 4, ide->hdfile);
-				if (sector_size != 512)
-				{
-					/* Sector size is not 512 */
-					fclose(ide->hdfile);
-					ide->type = IDE_NONE;
-					return;
-				}
-				fread(&(hdc[d].spt), 1, 4, ide->hdfile);
-				fread(&(hdc[d].hpc), 1, 4, ide->hdfile);
-				fread(&(hdc[d].tracks), 1, 4, ide->hdfile);
-				fread(&(hdc[d].at_spt), 1, 4, ide->hdfile);
-				fread(&(hdc[d].at_hpc), 1, 4, ide->hdfile);
-				ide->hdi = 2;
-			}
-		}
+		ide->type = IDE_NONE;
+		return;
 	}
-	
-    ide->spt = hdc[d].spt;
-    ide->hpc = hdc[d].hpc;
-    ide->tracks = hdc[d].tracks;
-    ide->type = IDE_HDD;
+
+	ide->spt = hdc[d].spt;
+	ide->hpc = hdc[d].hpc;
+	ide->tracks = hdc[d].tracks;
+	ide->type = IDE_HDD;
 	ide->hdc_num = d;
+	ide->hdi = hdd_image_get_type(d);
 }
 
 void ide_set_signature(IDE *ide)
@@ -771,11 +585,7 @@ void resetide(void)
 	{
 		ide_drives[d].channel = d;
 		ide_drives[d].type = IDE_NONE;
-		if (ide_drives[d].hdfile != NULL)
-		{
-			fclose(ide_drives[d].hdfile);
-			ide_drives[d].hdfile = NULL;
-		}
+		hdd_image_close(ide_drives[d].hdc_num);
 		if (ide_drive_is_cdrom(&ide_drives[d]))
 		{
 			cdrom[atapi_cdrom_drives[d]].status = READY_STAT | DSC_STAT;
@@ -856,13 +666,6 @@ void ide_write_data(int ide_board, uint32_t val, int length)
 	uint16_t *idebufferw = ide->buffer;
 	uint32_t *idebufferl = (uint32_t *) ide->buffer;
 	
-#if 0
-	if (ide_drive_is_cdrom(ide))
-	{
-		ide_log("CD-ROM write data: %04X\n", val);
-	}
-#endif
-        
 	if (ide->command == WIN_PACKETCMD)
 	{
 		ide->pos = 0;
@@ -1621,8 +1424,6 @@ int times30=0;
 void callbackide(int ide_board)
 {
 	IDE *ide, *ide_other;
-	off64_t addr;
-	int c;
 	int64_t snum;
 	int cdrom_id;
 	uint64_t full_size = 0;
@@ -1760,10 +1561,8 @@ void callbackide(int ide_board)
 			{
 				goto id_not_found;
 			}
-			addr = ide_get_sector(ide) * 512;
 
-			fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
-			fread(ide->buffer, 512, 1, ide->hdfile);
+			hdd_image_read(ide->hdc_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
 			ide->pos=0;
 			ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 
@@ -1781,9 +1580,7 @@ void callbackide(int ide_board)
 			{
 				goto id_not_found;
 			}
-			addr = ide_get_sector(ide) * 512;
-			fseeko64(ide->hdfile, addr, SEEK_SET);
-			fread(ide->buffer, 512, 1, ide->hdfile);
+			hdd_image_read(ide->hdc_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
 			ide->pos=0;
                 
 			if (ide_bus_master_read)
@@ -1831,9 +1628,7 @@ void callbackide(int ide_board)
 				goto id_not_found;
 			}
 
-			addr = ide_get_sector(ide) * 512;
-			fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
-			fread(ide->buffer, 512, 1, ide->hdfile);
+			hdd_image_read(ide->hdc_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
 			ide->pos=0;
 			ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 			if (!ide->blockcount)
@@ -1859,9 +1654,7 @@ void callbackide(int ide_board)
 			{
 				goto id_not_found;
 			}
-			addr = ide_get_sector(ide) * 512;
-			fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
-			fwrite(ide->buffer, 512, 1, ide->hdfile);
+			hdd_image_write(ide->hdc_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
 			ide_irq_raise(ide);
 			ide->secount = (ide->secount - 1) & 0xff;
 			if (ide->secount)
@@ -1898,9 +1691,7 @@ void callbackide(int ide_board)
 				else
 				{
 					/*DMA successful*/
-					addr = ide_get_sector(ide) * 512;
-					fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
-					fwrite(ide->buffer, 512, 1, ide->hdfile);
+					hdd_image_write(ide->hdc_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
 
 					ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 
@@ -1931,9 +1722,7 @@ void callbackide(int ide_board)
 			{
 				goto id_not_found;
 			}
-			addr = ide_get_sector(ide) * 512;
-			fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
-			fwrite(ide->buffer, 512, 1, ide->hdfile);
+			hdd_image_write(ide->hdc_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
 			ide->blockcount++;
 			if (ide->blockcount >= ide->blocksize || ide->secount == 1)
 			{
@@ -1980,13 +1769,8 @@ void callbackide(int ide_board)
 			{
 				goto id_not_found;
 			}
-			addr = ide_get_sector(ide) * 512;
-			fseeko64(ide->hdfile, ide->base + addr, SEEK_SET);
-			memset(ide->buffer, 0, 512);
-			for (c=0;c<ide->secount;c++)
-			{
-				fwrite(ide->buffer, 512, 1, ide->hdfile);
-			}
+			hdd_image_zero(ide->hdc_num, ide_get_sector(ide), ide->secount);
+
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
 
@@ -2019,14 +1803,7 @@ void callbackide(int ide_board)
 			full_size /= (ide->head+1);
 			full_size /= ide->secount;
 			ide->specify_success = 1;
-			if (ide->hdi == 2)
-			{
-				hdc[ide->hdc_num].at_hpc = ide->head+1;
-				hdc[ide->hdc_num].at_spt = ide->secount;
-				fseeko64(ide->hdfile, 0x20, SEEK_SET);
-				fwrite(&(hdc[ide->hdc_num].at_spt), 1, 4, ide->hdfile);
-				fwrite(&(hdc[ide->hdc_num].at_hpc), 1, 4, ide->hdfile);
-			}
+			hdd_image_specify(ide->hdc_num, ide->head + 1, ide->secount);
 			ide->spt=ide->secount;
 			ide->hpc=ide->head+1;
 			ide->atastat = READY_STAT | DSC_STAT;

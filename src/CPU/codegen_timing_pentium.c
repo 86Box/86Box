@@ -8,12 +8,13 @@
         - FPU latencies
         - MMX latencies
 */
+
 #include "../ibm.h"
-#include "../mem.h"
 #include "cpu.h"
 #include "x86.h"
 #include "x86_ops.h"
 #include "x87.h"
+#include "../mem.h"
 #include "codegen.h"
 
 /*Instruction has different execution time for 16 and 32 bit data. Does not pair */
@@ -818,7 +819,7 @@ static uint32_t opcode_timings_8x[8] =
 static int decode_delay;
 static uint8_t last_prefix;
 
-static __inline int COUNT(uint32_t c, int op_32)
+static inline int COUNT(uint32_t c, int op_32)
 {
         if (c & CYCLES_HAS_MULTI)
         {
@@ -886,7 +887,7 @@ void codegen_timing_pentium_prefix(uint8_t prefix, uint32_t fetchdat)
 
 void codegen_timing_pentium_opcode(uint8_t opcode, uint32_t fetchdat, int op_32)
 {
-        int *timings;
+        uint32_t *timings;
         int mod3 = ((fetchdat & 0xc0) == 0xc0);
         int bit8 = !(opcode & 1);
 

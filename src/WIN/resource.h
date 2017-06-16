@@ -10,7 +10,7 @@
  *
  * NOTE:	FIXME: Strings 2176 and 2193 are same.
  *
- * Version:	@(#)resource.h	1.0.3	2017/06/04
+ * Version:	@(#)resource.h	1.0.4	2017/06/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -37,52 +37,46 @@
 #define  DLG_CFG_REMOVABLE_DEVICES	119	/* sub-dialog of config */
 
 /* Static text label IDs. */
-#define IDT_1700		1700	// Language:
-#define IDT_1701		1701	// Machine:
-#define IDT_1702		1702	// CPU type:
-#define IDT_1703		1703	// Wait states:
-#define IDT_1704		1704	// CPU:
-#define IDT_1705		1705	// MB	== IDC_TEXT_MB
-#define IDT_1706		1706	// Memory:
-#define IDT_1707		1707	// Video:
-#define IDT_1708		1708	// Video speed:
-#define IDT_1709		1709	// Mouse:
-#define IDT_1710		1710	// Joystick:
-#define IDT_1711		1711	// Sound card:
-#define IDT_1712		1712	// MIDI Out Device:
-#define IDT_1713		1713	// Network type:
-#define IDT_1714		1714	// PCap device:
-#define IDT_1715		1715	// Network adapter:
-#define IDT_1716		1716	// SCSI Controller:
-#define IDT_1717		1717	// HD Controller:
-#define IDT_1718		1718	// Tertiary IDE:
-#define IDT_1719		1719	// Quaternary IDE:
-#define IDT_1720		1720	// Hard disks:
-#define IDT_1721		1721	// Bus:
-#define IDT_1722		1722	// Channel:
-#define IDT_1723		1723	// ID:
-#define IDT_1724		1724	// LUN:
-#define IDT_1725		1725	// Channel:
-#define IDT_1726		1726	// Sectors:
-#define IDT_1727		1727	// Heads:
-#define IDT_1728		1728	// Cylinders:
-#define IDT_1729		1729	// Size (MB):
-#define IDT_1730		1730	// Type:
-#define IDT_1731		1731	// File name:
-#define IDT_1732		1732	// Bus:
-#define IDT_1733		1733	// Channel:
-#define IDT_1734		1734	// ID:
-#define IDT_1735		1735	// LUN:
-#define IDT_1736		1736	// Channel:
-#define IDT_1737		1737	// Floppy drives:
-#define IDT_1738		1738	// Type:
-#define IDT_1739		1739	// CD-ROM drives:
-#define IDT_1740		1740	// Bus:
-#define IDT_1741		1741	// ID:
-#define IDT_1742		1742	// LUN:
-#define IDT_1743		1743	// Channel:
-#define IDT_STEXT		1744	// text in status window
-#define IDT_SDEVICE		1745	// text in status window
+#define IDT_1700		1700	/* Language: */
+#define IDT_1701		1701	/* Machine: */
+#define IDT_1702		1702	/* CPU type: */
+#define IDT_1703		1703	/* Wait states: */
+#define IDT_1704		1704	/* CPU: */
+#define IDT_1705		1705	/* MB	== IDC_TEXT_MB */
+#define IDT_1706		1706	/* Memory: */
+#define IDT_1707		1707	/* Video: */
+#define IDT_1708		1708	/* Video speed: */
+#define IDT_1709		1709	/* Mouse: */
+#define IDT_1710		1710	/* Joystick: */
+#define IDT_1711		1711	/* Sound card: */
+#define IDT_1712		1712	/* MIDI Out Device: */
+#define IDT_1713		1713	/* Network type: */
+#define IDT_1714		1714	/* PCap device: */
+#define IDT_1715		1715	/* Network adapter: */
+#define IDT_1716		1716	/* SCSI Controller: */
+#define IDT_1717		1717	/* HD Controller: */
+#define IDT_1718		1718	/* Tertiary IDE: */
+#define IDT_1719		1719	/* Quaternary IDE: */
+#define IDT_1720		1720	/* Hard disks: */
+#define IDT_1721		1721	/* Bus: */
+#define IDT_1722		1722	/* Channel: */
+#define IDT_1723		1723	/* ID: */
+#define IDT_1724		1724	/* LUN: */
+#define IDT_1726		1726	/* Sectors: */
+#define IDT_1727		1727	/* Heads: */
+#define IDT_1728		1728	/* Cylinders: */
+#define IDT_1729		1729	/* Size (MB): */
+#define IDT_1730		1730	/* Type: */
+#define IDT_1731		1731	/* File name: */
+#define IDT_1737		1737	/* Floppy drives: */
+#define IDT_1738		1738	/* Type: */
+#define IDT_1739		1739	/* CD-ROM drives: */
+#define IDT_1740		1740	/* Bus: */
+#define IDT_1741		1741	/* ID: */
+#define IDT_1742		1742	/* LUN: */
+#define IDT_1743		1743	/* Channel: */
+#define IDT_STEXT		1744	/* text in status window */
+#define IDT_SDEVICE		1745	/* text in status window */
 
 
 /*

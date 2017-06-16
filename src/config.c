@@ -109,6 +109,7 @@ void config_dump(void)
 }
 
 
+#if 0
 static void config_free(void)
 {
         section_t *current_section;
@@ -133,6 +134,7 @@ static void config_free(void)
                 current_section = next_section;
         }
 }
+#endif
 
 
 static wchar_t cfgbuffer[1024];
@@ -477,7 +479,6 @@ void config_delete_var(char *head, char *name)
 void config_delete_section_if_empty(char *head)
 {
         section_t *section;
-        entry_t *entry;
 
         section = find_section(head);
         

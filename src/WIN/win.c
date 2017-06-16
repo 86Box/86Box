@@ -49,6 +49,7 @@
 #include "plat_mouse.h"
 #include "plat_midi.h"
 #include "plat_thread.h"
+#include "plat_ui.h"
 
 #include "win.h"
 #include "win_cgapal.h"
@@ -525,12 +526,12 @@ void create_removable_disk_submenu(HMENU m, int id)
 	AppendMenu(m, MF_STRING, IDM_RDISK_IMAGE_WP | id, win_language_get_string_from_id(2220));
 }
 
-void get_executable_name(WCHAR *s, int size)
+void get_executable_name(wchar_t *s, int size)
 {
         GetModuleFileName(hinstance, s, size);
 }
 
-void set_window_title(WCHAR *s)
+void set_window_title(wchar_t *s)
 {
         if (video_fullscreen)
                 return;

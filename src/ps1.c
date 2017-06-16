@@ -295,13 +295,8 @@ void ps1mb_m2121_init()
                                 MEM_MAPPING_EXTERNAL);
         ps1_190 = 0;
         
-        lpt1_remove();
-        lpt2_remove();
         lpt1_init(0x3bc);
-        
-        serial_remove(1);
-        serial_remove(2);
-        
+
         mem_remap_top_384k();
 }
 
@@ -315,12 +310,7 @@ void ps1mb_m2133_init()
  
         ps1_190 = 0;
        
-        lpt1_remove();
-        lpt2_remove();
         lpt1_init(0x3bc);
-       
-        serial_remove(1);
-        serial_remove(2);
-       
+
         mem_remap_top_384k();
 }

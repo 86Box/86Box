@@ -1464,7 +1464,7 @@ uint8_t s3_accel_read(uint32_t addr, void *p)
 void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_t *s3)
 {
         svga_t *svga = &s3->svga;
-        uint32_t src_dat, dest_dat;
+        uint32_t src_dat = 0, dest_dat;
         int frgd_mix, bkgd_mix;
         int clip_t = s3->accel.multifunc[1] & 0xfff;
         int clip_l = s3->accel.multifunc[2] & 0xfff;

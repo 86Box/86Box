@@ -166,6 +166,7 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 	uint8_t ftwb = 0;
 	uint16_t rec_ftw = 0;
 	uint16_t fpus = 0;
+	uint64_t *p;
 
 	if (CPUID < 0x650)  return ILLEGAL(fetchdat);
 
@@ -258,9 +259,10 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 	        cpu_state.ismmx = 0;
 	        /*Horrible hack, but as PCem doesn't keep the FPU stack in 80-bit precision at all times
 	          something like this is needed*/
+		p = (uint64_t *)cpu_state.tag;
 		if (cpu_state.MM_w4[0] == 0xffff && cpu_state.MM_w4[1] == 0xffff && cpu_state.MM_w4[2] == 0xffff && cpu_state.MM_w4[3] == 0xffff &&
 			cpu_state.MM_w4[4] == 0xffff && cpu_state.MM_w4[5] == 0xffff && cpu_state.MM_w4[6] == 0xffff && cpu_state.MM_w4[7] == 0xffff &&
-			!cpu_state.TOP && !(*(uint64_t *)cpu_state.tag))
+			!cpu_state.TOP && !(*p))
 	        cpu_state.ismmx = 1;
 
 		x87_settag(rec_ftw);
@@ -321,7 +323,8 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
         	cpu_state.npxc = 0x37F;
 	        cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00);
         	cpu_state.npxs = 0;
-	        *(uint64_t *)cpu_state.tag = 0x0303030303030303ll;
+		p = (uint64_t *)cpu_state.tag;
+	        *p = 0x0303030303030303ll;
         	cpu_state.TOP = 0;
 	        cpu_state.ismmx = 0;
 
@@ -341,6 +344,7 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 	uint8_t ftwb = 0;
 	uint16_t rec_ftw = 0;
 	uint16_t fpus = 0;
+	uint64_t *p;
 
 	if (CPUID < 0x650)  return ILLEGAL(fetchdat);
 
@@ -433,9 +437,10 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 	        cpu_state.ismmx = 0;
 	        /*Horrible hack, but as PCem doesn't keep the FPU stack in 80-bit precision at all times
 	          something like this is needed*/
+		p = (uint64_t *)cpu_state.tag;
 		if (cpu_state.MM_w4[0] == 0xffff && cpu_state.MM_w4[1] == 0xffff && cpu_state.MM_w4[2] == 0xffff && cpu_state.MM_w4[3] == 0xffff &&
 			cpu_state.MM_w4[4] == 0xffff && cpu_state.MM_w4[5] == 0xffff && cpu_state.MM_w4[6] == 0xffff && cpu_state.MM_w4[7] == 0xffff &&
-			!cpu_state.TOP && !(*(uint64_t *)cpu_state.tag))
+			!cpu_state.TOP && !(*p))
 	        cpu_state.ismmx = 1;
 
 		x87_settag(rec_ftw);
@@ -496,7 +501,8 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
         	cpu_state.npxc = 0x37F;
 	        cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00);
         	cpu_state.npxs = 0;
-	        *(uint64_t *)cpu_state.tag = 0x0303030303030303ll;
+		p = (uint64_t *)cpu_state.tag;
+	        *p = 0x0303030303030303ll;
         	cpu_state.TOP = 0;
 	        cpu_state.ismmx = 0;
 

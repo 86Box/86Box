@@ -380,7 +380,7 @@ static uint8_t
 bm_read(uint16_t port, void *priv)
 {
     mouse_bus_t *ms = (mouse_bus_t *)priv;
-    uint8_t r;
+    uint8_t r = 0xff;
 
     if (ms->flags & MOUSE_LOGITECH)
 	r = lt_read(ms, port - ms->port);

@@ -436,7 +436,7 @@ uint8_t pit_read(uint16_t addr, void *p)
 {
         PIT *pit = (PIT *)p;
         int t;
-        uint8_t temp;
+        uint8_t temp = 0xff;
         cycles -= (int)PITCONST;        
         switch (addr&3)
         {

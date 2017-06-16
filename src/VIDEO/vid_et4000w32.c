@@ -212,7 +212,6 @@ uint8_t et4000w32p_in(uint16_t addr, void *p)
 {
         et4000w32p_t *et4000 = (et4000w32p_t *)p;
         svga_t *svga = &et4000->svga;
-        uint8_t temp;
 
         if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
                 addr ^= 0x60;

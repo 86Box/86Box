@@ -85,17 +85,21 @@ static uint8_t flash_read(uint32_t addr, void *p)
 static uint16_t flash_readw(uint32_t addr, void *p)
 {
         flash_t *flash = (flash_t *)p;
+	uint16_t *q;
 	addr &= 0x1ffff;
 	if (flash->invert_high_pin)  addr ^= 0x10000;
-	return *(uint16_t *)&(flash->array[addr]);
+	q = (uint16_t *)&(flash->array[addr]);
+	return *q;
 }
 
 static uint32_t flash_readl(uint32_t addr, void *p)
 {
         flash_t *flash = (flash_t *)p;
+	uint32_t *q;
 	addr &= 0x1ffff;
 	if (flash->invert_high_pin)  addr ^= 0x10000;
-	return *(uint32_t *)&(flash->array[addr]);
+	q = (uint32_t *)&(flash->array[addr]);
+	return *q;
 }
 
 static void flash_write(uint32_t addr, uint8_t val, void *p)

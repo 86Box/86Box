@@ -165,11 +165,14 @@ static int opFCOMP(uint32_t fetchdat)
 
 static int opFCOMPP(uint32_t fetchdat)
 {
+	uint64_t *p, *q;
         FP_ENTER();
         cpu_state.pc++;
         if (fplog) pclog("FCOMPP\n");
         cpu_state.npxs &= ~(C0|C2|C3);
-        if ((*(uint64_t *)&ST(0) == ((uint64_t)1 << 63) && *(uint64_t *)&ST(1) == 0) && is386)
+	p = (uint64_t *)&ST(0);
+	q = (uint64_t *)&ST(1);
+        if ((*p == ((uint64_t)1 << 63) && *q == 0) && is386)
                 cpu_state.npxs |= C0; /*Nasty hack to fix 80387 detection*/
         else
                 cpu_state.npxs |= x87_compare(ST(0), ST(1));

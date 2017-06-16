@@ -216,6 +216,7 @@ static void w83877f_remap()
 	winbond_port = (HEFRAS ? 0x3f0 : 0x250);
 	winbond_key_times = HEFRAS + 1;
 	winbond_key = (HEFRAS ? 0x86 : 0x88) | HEFERE;
+	pclog("W83877F: Remapped to port %04X, key %02X\n", winbond_port, winbond_key);
 }
 
 static uint8_t is_in_array(uint16_t *port_array, uint8_t max, uint16_t port)
@@ -280,6 +281,24 @@ static uint16_t make_port(uint8_t reg)
 	}
 
 	return p;
+}
+
+void w83877f_serial_handler(int id)
+{
+	int reg_mask = (id - 1) ? 0x10 : 0x20;
+	int reg_id = (id - 1) ? 0x24 : 0x25;
+	int irq_mask = (id - 1) ? 0xF : 0xF0;
+
+	/* pclog("Registers (%i): %02X %02X %02X\n", id, w83877f_regs[4], w83877f_regs[reg_id], w83877f_regs[0x28]); */
+
+	if ((w83877f_regs[4] & reg_mask) || !(w83877f_regs[reg_id] & 0xc0))
+	{
+		serial_remove(id);
+	}
+	else
+	{
+		serial_setup(id, make_port(reg_id), w83877f_regs[0x28] & irq_mask);
+	}
 }
 
 void w83877f_write(uint16_t port, uint8_t val, void *priv)
@@ -353,16 +372,11 @@ process_value:
 		case 4:
 			if (valxor & 0x10)
 			{
-				serial_remove(2);
-				if (!(w83877f_regs[2] & 0x10))  serial_setup(2, make_port(0x25), w83877f_regs[0x28] & 0xF);
+				w83877f_serial_handler(2);
 			}
 			if (valxor & 0x20)
 			{
-				serial_remove(1);
-				if (!(w83877f_regs[4] & 0x20))
-				{
-					serial_setup(1, make_port(0x24), (w83877f_regs[0x28] & 0xF0) >> 8);
-				}
+				w83877f_serial_handler(1);
 			}
 			if (valxor & 0x80)
 			{
@@ -418,16 +432,13 @@ process_value:
 		case 0x24:
 			if (valxor & 0xfe)
 			{
-				if (!(w83877f_regs[4] & 0x20))
-				{
-					serial_setup(1, make_port(0x24), (w83877f_regs[0x28] & 0xF0) >> 8);
-				}
+				w83877f_serial_handler(1);
 			}
 			break;
 		case 0x25:
 			if (valxor & 0xfe)
 			{
-				if (!(w83877f_regs[2] & 0x10))  serial_setup(2, make_port(0x25), w83877f_regs[0x28] & 0xF);
+				w83877f_serial_handler(2);
 			}
 			break;
 		case 0x28:
@@ -486,7 +497,7 @@ void w83877f_reset(void)
 	w83877f_regs[0xA] = 0x1F;
 	w83877f_regs[0xC] = 0x28;
 	w83877f_regs[0xD] = 0xA3;
-	w83877f_regs[0x16] = 5;
+	w83877f_regs[0x16] = (romset == ROM_PRESIDENT) ? 4 : 5;
 	w83877f_regs[0x1E] = 0x81;
 	w83877f_regs[0x20] = (0x3f0 >> 2) & 0xfc;
 	w83877f_regs[0x21] = (0x1f0 >> 2) & 0xfc;

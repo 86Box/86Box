@@ -30,8 +30,6 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
 {
 	HWND h;
 	int val_int;
-	int num;
-	char s[80];
 
         switch (message)
         {

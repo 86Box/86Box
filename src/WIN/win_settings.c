@@ -1860,7 +1860,7 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg)
 
 	int bus = 0;
 
-	for (i = 1799; i < 1803; i++)
+	for (i = IDT_1722; i <= IDT_1724; i++)
 	{
 		h = GetDlgItem(hdlg, i);
 		EnableWindow(h, FALSE);
@@ -1892,7 +1892,7 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg)
 		switch(bus)
 		{
 			case HDD_BUS_MFM:		/* MFM */
-				h = GetDlgItem(hdlg, 1799);
+				h = GetDlgItem(hdlg, IDT_1722);
 				ShowWindow(h, SW_SHOW);
 				EnableWindow(h, TRUE);
 
@@ -1902,7 +1902,7 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg)
 				SendMessage(h, CB_SETCURSEL, is_add_dlg ? new_hdc.mfm_channel : temp_hdc[hdlv_current_sel].mfm_channel, 0);
 				break;
 			case HDD_BUS_RLL:		/* RLL */
-				h = GetDlgItem(hdlg, 1799);
+				h = GetDlgItem(hdlg, IDT_1722);
 				ShowWindow(h, SW_SHOW);
 				EnableWindow(h, TRUE);
 
@@ -1912,7 +1912,7 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg)
 				SendMessage(h, CB_SETCURSEL, is_add_dlg ? new_hdc.rll_channel : temp_hdc[hdlv_current_sel].rll_channel, 0);
 				break;
 			case HDD_BUS_XTIDE:		/* XT IDE */
-				h = GetDlgItem(hdlg, 1799);
+				h = GetDlgItem(hdlg, IDT_1722);
 				ShowWindow(h, SW_SHOW);
 				EnableWindow(h, TRUE);
 
@@ -1923,7 +1923,7 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg)
 				break;
 			case HDD_BUS_IDE_PIO_ONLY:		/* IDE (PIO-only) */
 			case HDD_BUS_IDE_PIO_AND_DMA:		/* IDE (PIO and DMA) */
-				h = GetDlgItem(hdlg, 1802);
+				h = GetDlgItem(hdlg, IDT_1722);
 				ShowWindow(h, SW_SHOW);
 				EnableWindow(h, TRUE);
 
@@ -1934,10 +1934,10 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg)
 				break;
 			case HDD_BUS_SCSI:		/* SCSI */
 			case HDD_BUS_SCSI_REMOVABLE:		/* SCSI (removable) */
-				h = GetDlgItem(hdlg, 1800);
+				h = GetDlgItem(hdlg, IDT_1723);
 				ShowWindow(h, SW_SHOW);
 				EnableWindow(h, TRUE);
-				h = GetDlgItem(hdlg, 1801);
+				h = GetDlgItem(hdlg, IDT_1724);
 				ShowWindow(h, SW_SHOW);
 				EnableWindow(h, TRUE);
 
@@ -1956,7 +1956,7 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg)
 
 	if ((hd_listview_items == 0) && !is_add_dlg)
 	{
-		h = GetDlgItem(hdlg, 1798);
+		h = GetDlgItem(hdlg, IDT_1721);
 		EnableWindow(h, FALSE);
 		ShowWindow(h, SW_HIDE);
 
@@ -1965,7 +1965,7 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg)
 	}
 	else
 	{
-		h = GetDlgItem(hdlg, 1798);
+		h = GetDlgItem(hdlg, IDT_1721);
 		ShowWindow(h, SW_SHOW);
 		EnableWindow(h, TRUE);
 
@@ -3130,12 +3130,9 @@ int hard_disk_was_added(void)
 
 void hard_disk_add_open(HWND hwnd, int is_existing)
 {
-	BOOL ret;
-
 	existing = is_existing;
 	hard_disk_added = 0;
-        ret = DialogBox(hinstance, (LPCWSTR)DLG_CFG_HARD_DISKS_ADD,
-			hwnd, win_settings_hard_disks_add_proc);
+        DialogBox(hinstance, (LPCWSTR)DLG_CFG_HARD_DISKS_ADD, hwnd, win_settings_hard_disks_add_proc);
 }
 
 int ignore_change = 0;
@@ -3758,7 +3755,7 @@ static void cdrom_recalc_location_controls(HWND hdlg)
 
 	int bus = temp_cdrom_drives[cdlv_current_sel].bus_type;
 
-	for (i = 1800; i < 1803; i++)
+	for (i = IDT_1741; i < (IDT_1743 + 1); i++)
 	{
 		h = GetDlgItem(hdlg, i);
 		EnableWindow(h, FALSE);
@@ -3779,9 +3776,9 @@ static void cdrom_recalc_location_controls(HWND hdlg)
 
 	switch(bus)
 	{
-		case CDROM_BUS_ATAPI_PIO_ONLY:		/* ATAPI (PIO-only) */
+		case CDROM_BUS_ATAPI_PIO_ONLY:			/* ATAPI (PIO-only) */
 		case CDROM_BUS_ATAPI_PIO_AND_DMA:		/* ATAPI (PIO and DMA) */
-			h = GetDlgItem(hdlg, 1802);
+			h = GetDlgItem(hdlg, IDT_1743);
 			ShowWindow(h, SW_SHOW);
 			EnableWindow(h, TRUE);
 
@@ -3791,10 +3788,10 @@ static void cdrom_recalc_location_controls(HWND hdlg)
 			SendMessage(h, CB_SETCURSEL, temp_cdrom_drives[cdlv_current_sel].ide_channel, 0);
 			break;
 		case CDROM_BUS_SCSI:		/* SCSI */
-			h = GetDlgItem(hdlg, 1800);
+			h = GetDlgItem(hdlg, IDT_1741);
 			ShowWindow(h, SW_SHOW);
 			EnableWindow(h, TRUE);
-			h = GetDlgItem(hdlg, 1801);
+			h = GetDlgItem(hdlg, IDT_1742);
 			ShowWindow(h, SW_SHOW);
 			EnableWindow(h, TRUE);
 

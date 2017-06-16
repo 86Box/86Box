@@ -700,6 +700,14 @@ int loadbios()
                 biosmask = 0x1ffff;
                 return 1;
 
+                case ROM_PRESIDENT:
+                f = romfopen(L"roms/president/BIOS.BIN", L"rb");
+                if (!f) break;
+                fread(rom,           0x20000, 1, f);                
+                fclose(f);
+                biosmask = 0x1ffff;
+                return 1;
+
                 case ROM_P54TP4XE:
                 f = romfopen(L"roms/p54tp4xe/T15I0302.AWD", L"rb");
                 if (!f) break;
@@ -716,7 +724,6 @@ int loadbios()
                 biosmask = 0x1ffff;
                 return 1;
 
-#if 0
 		case ROM_ACERV35N:
 		f = romfopen(L"roms/acerv35n/V35ND1S1.BIN", L"rb");
                 if (!f) break;
@@ -724,7 +731,6 @@ int loadbios()
                 fclose(f);
                 biosmask = 0x1ffff;
                 return 1;
-#endif
 
                 case ROM_P55VA:
                 f = romfopen(L"roms/p55va/VA021297.BIN", L"rb");
@@ -1779,11 +1785,13 @@ uint8_t mem_read_romext(uint32_t addr, void *priv)
 }
 uint16_t mem_read_romextw(uint32_t addr, void *priv)
 {
-        return *(uint16_t *)&romext[addr & 0x7fff];
+	uint16_t *p = (uint16_t *)&romext[addr & 0x7fff];
+	return *p;
 }
 uint32_t mem_read_romextl(uint32_t addr, void *priv)
 {
-        return *(uint32_t *)&romext[addr & 0x7fff];
+	uint32_t *p = (uint32_t *)&romext[addr & 0x7fff];
+        return *p;
 }
 
 void mem_write_null(uint32_t addr, uint8_t val, void *p)

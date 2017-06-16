@@ -116,7 +116,7 @@ enum {
 #define MCR_OUT1	(0x04)		/* 8250 */
 #define MCR_OUT2	(0x08)		/* 8250, INTEN on IBM-PC */
 #define MCR_LMS		(0x10)
-#define MCR_AUTOFLOW	(0x20)		/* 16750
+#define MCR_AUTOFLOW	(0x20)		/* 16750 */
 
 /* LSR register bits. */
 #define	LSR_DR		(0x01)
@@ -144,6 +144,7 @@ static SERIAL	ports[NUM_SERIAL];	/* serial port data */
        int	serial_do_log;
 
 
+#if 0
 static void
 serial_log(int lvl, const char *fmt, ...)
 {
@@ -158,6 +159,7 @@ serial_log(int lvl, const char *fmt, ...)
     }
 #endif
 }
+#endif
 
 
 static void

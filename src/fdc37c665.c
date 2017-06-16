@@ -45,6 +45,7 @@ static void write_lock(uint8_t val)
 
 static void ide_handler()
 {
+#if 0
 	uint16_t or_value = 0;
 	if ((romset == ROM_440FX) || (romset == ROM_R418) || (romset == ROM_MB500N))
 	{
@@ -65,6 +66,7 @@ static void ide_handler()
 		ide_set_side(0, 0x376 | or_value);
 		ide_pri_enable_ex();
 	}
+#endif
 }
 
 static void set_com34_addr()

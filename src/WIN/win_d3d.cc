@@ -71,7 +71,6 @@ static CUSTOMVERTEX d3d_verts[] =
 int d3d_init(HWND h)
 {
         int c;
-	int ret;
         
         for (c = 0; c < 256; c++)
             pal_lookup[c] = makecol(cgapal[c].r << 2, cgapal[c].g << 2, cgapal[c].b << 2);

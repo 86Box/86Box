@@ -90,7 +90,7 @@ hex_dump(unsigned char *bufp, int len)
     while (len-- > 0) {
 	c = bufp[addr];
 	if ((addr % 16) == 0)
-		printf("%04x  %02x", addr, c);
+		printf("%04lx  %02x", addr, c);
 	  else
 		printf(" %02x", c);
 	asci[(addr & 15)] = (uint8_t)isprint(c) ? c : '.';
@@ -175,7 +175,7 @@ start_cap(char *dev)
         strftime(temp, sizeof(temp), "%H:%M:%S", ltime);
         
 	/* Process and print the packet. */
-        printf("\n<< %s,%.6d len=%d\n",
+        printf("\n<< %s,%.6ld len=%u\n",
 		temp, hdr->ts.tv_usec, hdr->len);
 	rc = eth_prhdr((unsigned char *)pkt);
 	hex_dump((unsigned char *)pkt+rc, hdr->len-rc);
@@ -227,7 +227,6 @@ int
 main(int argc, char **argv)
 {
     dev_t interfaces[32];
-    dev_t *dev = interfaces;
     int numdev, i;
 
     /* Try loading the DLL. */

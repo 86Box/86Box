@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.3	2017/06/03
+ * Version:	@(#)pc.c	1.0.4	2017/06/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -73,10 +73,11 @@
 #include "video/video.h"
 #include "video/vid_voodoo.h"
 #include "amstrad.h"
-#include "win.h"
-#include "win_language.h"
+#include "plat_ui.h"
 #ifdef WALTJE
+# define UNICODE
 # include "plat_dir.h"
+# undef UNICODE
 #endif
 
 
@@ -187,7 +188,7 @@ void fatal(const char *format, ...)
    {
       *newline = 0;
    }
-   msgbox_fatal(ghwnd, msg);
+   plat_msgbox_fatal(msg);
 #endif
    dumppic();
    dumpregs(1);
@@ -288,12 +289,15 @@ void initpc(int argc, wchar_t *argv[])
         wchar_t *p;
         wchar_t *config_file = NULL;
         int c;
-	FILE *ff;
         get_executable_name(pcempath, 511);
         pclog("executable_name = %ws\n", pcempath);
         p=get_filename_w(pcempath);
         *p=L'\0';
         pclog("path = %ws\n", pcempath);        
+#ifdef WALTJE
+	DIR *dir;
+	struct direct *dp;
+#endif
 
         for (c = 1; c < argc; c++)
         {
@@ -324,9 +328,6 @@ void initpc(int argc, wchar_t *argv[])
                 {
 			/* some (undocumented) test function here.. */
 #ifdef WALTJE
-			DIR *dir;
-			struct direct *dp;
-
 			dir = opendirw(pcempath);
 			if (dir != NULL) {
 				printf("Directory '%ws':\n", pcempath);
@@ -577,8 +578,8 @@ int serial_fifo_read, serial_fifo_write;
 
 int emu_fps = 0;
 
-static WCHAR wmodel[2048];
-static WCHAR wcpu[2048];
+static wchar_t wmodel[2048];
+static wchar_t wcpu[2048];
 
 void runpc(void)
 {
@@ -659,7 +660,7 @@ void runpc(void)
                         win_title_update=0;
 			mbstowcs(wmodel, model_getname(), strlen(model_getname()) + 1);
 			mbstowcs(wcpu, models[model].cpu[cpu_manufacturer].cpus[cpu].name, strlen(models[model].cpu[cpu_manufacturer].cpus[cpu].name) + 1);
-                        _swprintf(s, L"%s v%s - %i%% - %s - %s - %s", EMU_NAME_W, EMU_VERSION_W, fps, wmodel, wcpu, (!mousecapture) ? win_language_get_string_from_id(2077) : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? win_language_get_string_from_id(2078) : win_language_get_string_from_id(2079)));
+                        _swprintf(s, L"%s v%s - %i%% - %s - %s - %s", EMU_NAME_W, EMU_VERSION_W, fps, wmodel, wcpu, (!mousecapture) ? plat_get_string_from_id(IDS_2077) : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? plat_get_string_from_id(IDS_2078) : plat_get_string_from_id(IDS_2079)));
                         set_window_title(s);
                 }
                 done++;

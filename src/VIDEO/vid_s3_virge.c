@@ -22,10 +22,10 @@ static int reg_writes = 0, reg_reads = 0;
 
 static int dither[4][4] =
 {
-        0,  4,  1,  5,
-        6,  2,  7,  3,
-        1,  5,  0,  4,
-        7,  3,  6,  2,
+        {0,  4,  1,  5},
+        {6,  2,  7,  3},
+        {1,  5,  0,  4},
+        {7,  3,  6,  2},
 };
 
 #define RB_SIZE 256
