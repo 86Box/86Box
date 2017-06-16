@@ -2254,7 +2254,7 @@ static void riva128_out(uint16_t addr, uint8_t val, void *p)
 				riva128->i2c.addr <<= 1;
 				riva128->i2c.addr |= riva128->i2c.sda;
 				riva128->i2c.addrbits++;
-				if(riva128->i2c.addrbits = 8)
+				if(riva128->i2c.addrbits == 8)
 				{
 					riva128->i2c.busy = 2;
 					riva128->i2c.addrbits = 0;
