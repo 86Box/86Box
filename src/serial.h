@@ -8,7 +8,7 @@
  *
  *		Definitions for the SERIAL card.
  *
- * Version:	@(#)serial.h	1.0.4	2017/06/03
+ * Version:	@(#)serial.h	1.0.5	2017/06/07
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -24,16 +24,27 @@
 #define SERIAL2_IRQ	3
 
 
+/* Supported UART types. */
+#define UART_TYPE_8250		0		/* standard NS8250 */
+#define UART_TYPE_8250A		1		/* updated NS8250(A) */
+#define UART_TYPE_16450		2		/* 16450 */
+#define UART_TYPE_16550		3		/* 16550 (broken fifo) */
+#define UART_TYPE_16550A	4		/* 16550a (working fifo) */
+#define UART_TYPE_16670		5		/* 64b fifo */
+
+
 typedef struct _serial_ {
     int8_t	port;			/* port number (1,2,..) */
     int8_t	irq;			/* IRQ channel used */
     uint16_t	addr;			/* I/O address used */
+    int8_t	type;			/* UART type */
+    uint8_t	int_status;
 
     uint8_t	lsr, thr, mctrl, rcr,	/* UART registers */
 		iir, ier, lcr, msr;
     uint8_t	dlab1, dlab2;
-    uint8_t	dat;
-    uint8_t	int_status;
+    uint8_t	dat,
+		hold;
     uint8_t	scratch;
     uint8_t	fcr;
 
@@ -41,7 +52,6 @@ typedef struct _serial_ {
     void	(*rts_callback)(void *);
     void	*rts_callback_p;
 
-    uint8_t	hold;
     uint8_t	fifo[256];
     int		fifo_read, fifo_write;
 
@@ -58,7 +68,7 @@ extern void	serial_setup(int port, uint16_t addr, int irq);
 extern void	serial_remove(int port);
 extern SERIAL	*serial_attach(int, void *, void *);
 extern int	serial_link(int, char *);
-extern void	serial_write_fifo(SERIAL *, uint8_t);
+extern void	serial_write_fifo(SERIAL *, uint8_t, int);
 
 
 #endif	/*EMU_SERIAL_H*/
