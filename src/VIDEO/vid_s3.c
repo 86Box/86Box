@@ -1444,7 +1444,6 @@ uint8_t s3_accel_read(uint32_t addr, void *p)
                         case 0xf: dest_dat = ~(src_dat |  dest_dat); break;                             \
                 }
 
-
 #define WRITE(addr)     if (s3->bpp == 0)                                                                               \
                         {                                                                                               \
                                 svga->vram[(addr) & s3->vram_mask] = dest_dat;                                          \
@@ -1660,6 +1659,15 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         
                         s3->accel.dest = s3->accel.cy * s3->width;
                 }
+
+		s3->status_9ae9 = 4; /*To avoid the spam from OS/2's drivers*/
+
+		if ((s3->accel.cmd & 0x100) && !cpu_input)
+		{
+			s3->status_9ae9 = 2; /*To avoid the spam from OS/2's drivers*/
+			return; /*Wait for data from CPU*/
+		}
+
                 if ((s3->accel.cmd & 0x100) && !cpu_input) return; /*Wait for data from CPU*/
 
                 frgd_mix = (s3->accel.frgd_mix >> 5) & 3;
@@ -1685,7 +1693,7 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                                         READ(s3->accel.dest + s3->accel.cx, dest_dat);
 
                                         MIX
-
+                                
                                         WRITE(s3->accel.dest + s3->accel.cx);
                                 }
                         }
@@ -1703,7 +1711,7 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                                 if (s3->accel.cmd & 0x20) s3->accel.cx   -= (s3->accel.maj_axis_pcnt & 0xfff) + 1;
                                 else                     s3->accel.cx   += (s3->accel.maj_axis_pcnt & 0xfff) + 1;
                                 s3->accel.sx    = s3->accel.maj_axis_pcnt & 0xfff;
-
+                                
                                 if (s3->accel.cmd & 0x80) s3->accel.cy++;
                                 else                     s3->accel.cy--;
                                 
@@ -1747,19 +1755,19 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 
                 frgd_mix = (s3->accel.frgd_mix >> 5) & 3;
                 bkgd_mix = (s3->accel.bkgd_mix >> 5) & 3;
-                
+
                 if (!cpu_input && frgd_mix == 3 && !vram_mask && !compare_mode &&
-                    (s3->accel.cmd & 0xa0) == 0xa0 && (s3->accel.frgd_mix & 0xf) == 7) 
+                    (s3->accel.cmd & 0xa0) == 0xa0 && (s3->accel.frgd_mix & 0xf) == 7 && (s3->accel.bkgd_mix & 0xf) == 7)
                 {
-                        while (1)
-                        {
+                        while (count-- && s3->accel.sy >= 0)
+                        {	
                                 if (s3->accel.dx >= clip_l && s3->accel.dx <= clip_r &&
                                     s3->accel.dy >= clip_t && s3->accel.dy <= clip_b)
                                 {
                                         READ(s3->accel.src + s3->accel.cx, src_dat);
-        
-                                        dest_dat = src_dat;
-                                        
+
+										dest_dat = src_dat;
+
                                         WRITE(s3->accel.dest + s3->accel.dx);
                                 }
         
@@ -1782,15 +1790,13 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
         
                                         if (s3->accel.sy < 0)
                                         {
-                                                s3->accel.cur_x = s3->accel.cx;
-                                                s3->accel.cur_y = s3->accel.cy;
                                                 return;
                                         }
                                 }
                         }
                 }
                 else
-                {                     
+                {               
                         while (count-- && s3->accel.sy >= 0)
                         {
                                 if (s3->accel.dx >= clip_l && s3->accel.dx <= clip_r &&
@@ -1798,8 +1804,8 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                                 {
                                         if (vram_mask)
                                         {
-                                                READ(s3->accel.src + s3->accel.cx, mix_dat)
-                                                mix_dat = mix_dat ? mix_mask : 0;
+											READ(s3->accel.src + s3->accel.cx, mix_dat)
+											mix_dat = mix_dat ? mix_mask : 0;
                                         }
                                         switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix)
                                         {
@@ -1814,7 +1820,7 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                                              compare_mode < 2)
                                         {
                                                 READ(s3->accel.dest + s3->accel.dx, dest_dat);
-
+                                
                                                 MIX
 
                                                 WRITE(s3->accel.dest + s3->accel.dx);
