@@ -42,6 +42,11 @@ static int pair_timings[4][4] =
 #define CYCLES_RMW (2 << 0)
 #define CYCLES_BRANCH (3 << 0)
 
+/*Instruction has immediate data. Can only be used with PAIR_U/PAIR_V/PAIR_UV*/
+#define CYCLES_HASIMM (3 << 2)
+#define CYCLES_IMM8    (1 << 2)
+#define CYCLES_IMM1632 (2 << 2)
+
 #define CYCLES_MASK ((1 << 7) - 1)
 
 /*Instruction is MMX shift or pack/unpack instruction*/
@@ -61,6 +66,8 @@ static int pair_timings[4][4] =
 #define PAIR_FX (5 << 29)
 /*Instruction is FXCH and only pairs in V pipe with FX pairable instruction*/
 #define PAIR_FXCH (6 << 29)
+
+#define PAIR_FPU (4 << 29)
 
 #define PAIR_MASK (7 << 29)
 
@@ -296,38 +303,38 @@ static uint32_t opcode_timings_mod3[256] =
 /*      ADD                                                             ADD                                                             ADD                                                             ADD*/
 /*00*/  PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,
 /*      ADD                                                             ADD                                                             PUSH ES                                                         POP ES*/
-        PAIR_UV | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_UV | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_NP | CYCLES(1),                                            PAIR_NP | CYCLES(3),
+        PAIR_UV | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX,                 PAIR_UV | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX,                 PAIR_NP | CYCLES(1),                                            PAIR_NP | CYCLES(3),
 /*      OR                                                              OR                                                              OR                                                              OR*/
         PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,
 /*      OR                                                              OR                                                              PUSH CS                                                         */
-        PAIR_UV | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_UV | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_NP | CYCLES(1),                                            INVALID,
+        PAIR_UV | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX,                 PAIR_UV | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX,                 PAIR_NP | CYCLES(1),                                            INVALID,
 
 /*      ADC                                                             ADC                                                             ADC                                                             ADC*/
 /*10*/  PAIR_U  | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_U  | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_U  | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_U  | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,
 /*      ADC                                                             ADC                                                             PUSH SS                                                         POP SS*/
-        PAIR_U  | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_U  | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_NP | CYCLES(1),                                            PAIR_NP | CYCLES(3),
+        PAIR_U  | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX,                 PAIR_U  | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX,                 PAIR_NP | CYCLES(1),                                            PAIR_NP | CYCLES(3),
 /*      SBB                                                             SBB                                                             SBB                                                             SBB*/        
         PAIR_U  | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_U  | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_U  | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_U  | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,
 /*      SBB                                                             SBB                                                             PUSH DS                                                         POP DS*/
-        PAIR_U  | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_U  | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_NP | CYCLES(1),                                            PAIR_NP | CYCLES(3),
+        PAIR_U  | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX,                 PAIR_U  | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX,                 PAIR_NP | CYCLES(1),                                            PAIR_NP | CYCLES(3),
 
 /*      AND                                                             AND                                                             AND                                                             AND*/
 /*20*/  PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,
 /*      AND                                                             AND                                                                                                                             DAA*/
-        PAIR_UV | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_UV | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     INVALID,                                                        PAIR_NP | CYCLES(3),
+        PAIR_UV | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX,                 PAIR_UV | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX,                 INVALID,                                                        PAIR_NP | CYCLES(3),
 /*      SUB                                                             SUB                                                             SUB                                                             SUB*/
         PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,
 /*      SUB                                                             SUB                                                                                                                             DAS*/
-        PAIR_UV | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_UV | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     INVALID,                                                        PAIR_NP | CYCLES(3),
+        PAIR_UV | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX,                 PAIR_UV | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX,                 INVALID,                                                        PAIR_NP | CYCLES(3),
         
 /*      XOR                                                             XOR                                                             XOR                                                             XOR*/
 /*30*/  PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,
 /*      XOR                                                             XOR                                                                                                                             AAA*/
-        PAIR_UV | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_UV | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     INVALID,                                                        PAIR_NP | CYCLES(3),
+        PAIR_UV | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX,                 PAIR_UV | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX,                 INVALID,                                                        PAIR_NP | CYCLES(3),
 /*      CMP                                                             CMP                                                             CMP                                                             CMP*/
         PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM,                  PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM,                  PAIR_UV | CYCLES_REG | SRCDEP_REG | SRCDEP_RM,                  PAIR_UV | CYCLES_REG | SRCDEP_RM | SRCDEP_REG,
 /*      CMP                                                             CMP                                                                                                                             AAS*/
-        PAIR_UV | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM,                  PAIR_UV | CYCLES_REG | SRCDEP_EAX,                              INVALID,                                                        PAIR_NP | CYCLES(3),
+        PAIR_UV | CYCLES_REG | SRCDEP_EAX,                              PAIR_UV | CYCLES_REG | SRCDEP_EAX,                              INVALID,                                                        PAIR_NP | CYCLES(3),
 
 /*      INC EAX                                         INC ECX                                         INC EDX                                         INC EBX*/
 /*40*/  PAIR_UV | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, PAIR_UV | CYCLES_REG | SRCDEP_ECX | DSTDEP_ECX, PAIR_UV | CYCLES_REG | SRCDEP_EDX | DSTDEP_EDX, PAIR_UV | CYCLES_REG | SRCDEP_EBX | DSTDEP_EBX,
@@ -810,14 +817,20 @@ static uint32_t opcode_timings_df_mod3[8] =
         PAIR_NP | CYCLES(2),    INVALID,                INVALID,                INVALID
 };
 
+static uint32_t opcode_timings_81[8] =
+{
+        PAIR_UV | CYCLES_RMW | SRCDEP_REG | CYCLES_IMM1632,     PAIR_UV | CYCLES_RMW | SRCDEP_REG | CYCLES_IMM1632,     PAIR_UV | CYCLES_RMW | SRCDEP_REG | CYCLES_IMM1632,     PAIR_UV | CYCLES_RMW | SRCDEP_REG | CYCLES_IMM1632,
+        PAIR_UV | CYCLES_RMW | SRCDEP_REG | CYCLES_IMM1632,     PAIR_UV | CYCLES_RMW | SRCDEP_REG | CYCLES_IMM1632,     PAIR_UV | CYCLES_RMW | SRCDEP_REG | CYCLES_IMM1632,     PAIR_UV | CYCLES_RM | SRCDEP_REG | CYCLES_IMM1632
+};
 static uint32_t opcode_timings_8x[8] =
 {
-        PAIR_UV | CYCLES_RMW | SRCDEP_REG,      PAIR_UV | CYCLES_RMW | SRCDEP_REG,      PAIR_UV | CYCLES_RMW | SRCDEP_REG,      PAIR_UV | CYCLES_RMW | SRCDEP_REG,
-        PAIR_UV | CYCLES_RMW | SRCDEP_REG,      PAIR_UV | CYCLES_RMW | SRCDEP_REG,      PAIR_UV | CYCLES_RMW | SRCDEP_REG,      PAIR_UV | CYCLES_RM | SRCDEP_REG
+        PAIR_UV | CYCLES_RMW | SRCDEP_REG | CYCLES_IMM8,        PAIR_UV | CYCLES_RMW | SRCDEP_REG | CYCLES_IMM8,        PAIR_UV | CYCLES_RMW | SRCDEP_REG | CYCLES_IMM8,        PAIR_UV | CYCLES_RMW | SRCDEP_REG | CYCLES_IMM8,
+        PAIR_UV | CYCLES_RMW | SRCDEP_REG | CYCLES_IMM8,        PAIR_UV | CYCLES_RMW | SRCDEP_REG | CYCLES_IMM8,        PAIR_UV | CYCLES_RMW | SRCDEP_REG | CYCLES_IMM8,        PAIR_UV | CYCLES_RM | SRCDEP_REG | CYCLES_IMM8
 };
 
 static int decode_delay;
 static uint8_t last_prefix;
+static int prefixes;
 
 static inline int COUNT(uint32_t c, int op_32)
 {
@@ -831,6 +844,10 @@ static inline int COUNT(uint32_t c, int op_32)
                 return c & 0xffff;
         if ((c & PAIR_MASK) == PAIR_FX)
                 return c & 0xffff;        
+        if ((c & PAIR_MASK) == PAIR_FXCH)
+                return c & 0xffff;        
+        if ((c & PAIR_UV) && !(c & PAIR_FPU))
+                c &= 3;
         switch (c & CYCLES_MASK)
         {
                 case CYCLES_REG:
@@ -848,6 +865,80 @@ static inline int COUNT(uint32_t c, int op_32)
         return c;
 }
 
+static inline int codegen_timing_has_displacement(uint32_t fetchdat, int op_32)
+{
+        if (op_32 & 0x200)
+        {
+                if ((fetchdat & 7) == 4 && (fetchdat & 0xc0) != 0xc0)
+                {
+                        /*Has SIB*/
+                        if ((fetchdat & 0xc0) == 0x40 || (fetchdat & 0xc0) == 0x80 || (fetchdat & 0x700) == 0x500)
+                                return 1;
+                }
+                else
+                {
+                        if ((fetchdat & 0xc0) == 0x40 || (fetchdat & 0xc0) == 0x80 || (fetchdat & 0xc7) == 0x05)
+                                return 1;
+                }
+        }
+        else
+        {
+                if ((fetchdat & 0xc0) == 0x40 || (fetchdat & 0xc0) == 0x80 || (fetchdat & 0xc7) == 0x06)
+                        return 1;
+        }
+        return 0;
+}                
+
+/*The instruction is only of interest here if it's longer than 7 bytes, as that's the
+  limit on Pentium MMX parallel decoding*/
+static inline int codegen_timing_instr_length(uint32_t timing, uint32_t fetchdat, int op_32)
+{
+        int len = prefixes;
+        if ((timing & CYCLES_MASK) == CYCLES_RM || (timing & CYCLES_MASK) == CYCLES_RMW)
+        {
+                len += 2; /*Opcode + ModR/M*/
+                if ((timing & CYCLES_HASIMM) == CYCLES_IMM8)
+                        len++;
+                if ((timing & CYCLES_HASIMM) == CYCLES_IMM1632)
+                        len += (op_32 & 0x100) ? 4 : 2;
+
+                if (op_32 & 0x200)
+                {
+                        if ((fetchdat & 7) == 4 && (fetchdat & 0xc0) != 0xc0)
+                        {
+                                /* Has SIB*/
+                                len++;
+                                if ((fetchdat & 0xc0) == 0x40)
+                                        len++;
+                                else if ((fetchdat & 0xc0) == 0x80)
+                                        len += 4;
+                                else if ((fetchdat & 0x700) == 0x500)
+                                        len += 4;
+                        }
+                        else
+                        {
+                                if ((fetchdat & 0xc0) == 0x40)
+                                        len++;
+                                else if ((fetchdat & 0xc0) == 0x80)
+                                        len += 4;
+                                else if ((fetchdat & 0xc7) == 0x05)
+                                        len += 4;
+                        }
+                }
+                else
+                {
+                        if ((fetchdat & 0xc0) == 0x40)
+                                len++;
+                        else if ((fetchdat & 0xc0) == 0x80)
+                                len += 2;
+                        else if ((fetchdat & 0xc7) == 0x06)
+                                len += 2;
+                }
+        }
+        
+        return len;
+}
+
 void codegen_timing_pentium_block_start()
 {
         u_pipe_full = decode_delay = 0;
@@ -856,10 +947,12 @@ void codegen_timing_pentium_block_start()
 void codegen_timing_pentium_start()
 {
         last_prefix = 0;
+        prefixes = 0;
 }
 
 void codegen_timing_pentium_prefix(uint8_t prefix, uint32_t fetchdat)
 {
+        prefixes++;
         if (cpu_hasMMX && prefix == 0x0f)
         {
                 /*On Pentium MMX 0fh prefix is 'free'*/
@@ -933,8 +1026,13 @@ void codegen_timing_pentium_opcode(uint8_t opcode, uint32_t fetchdat, int op_32)
                 default:
                 switch (opcode)
                 {
-                        case 0x80: case 0x81: case 0x82: case 0x83:
+                        case 0x80: case 0x82: case 0x83:
                         timings = mod3 ? opcode_timings_mod3 : opcode_timings_8x;
+                        if (!mod3)
+                                opcode = (fetchdat >> 3) & 7;
+                        break;
+                        case 0x81:
+                        timings = mod3 ? opcode_timings_mod3 : opcode_timings_81;
                         if (!mod3)
                                 opcode = (fetchdat >> 3) & 7;
                         break;
@@ -980,23 +1078,38 @@ void codegen_timing_pentium_opcode(uint8_t opcode, uint32_t fetchdat, int op_32)
                 
                 if ((timings[opcode] & PAIR_V) && !(u_pipe_regmask & regmask) && !decode_delay)
                 {
-                        int t1 = u_pipe_timings[u_pipe_opcode] & CYCLES_MASK;
-                        int t2 = timings[opcode] & CYCLES_MASK;
-                        int t_pair;
+                        int has_displacement;
                         
-                        if (t1 < 0 || t2 < 0 || t1 > CYCLES_BRANCH || t2 > CYCLES_BRANCH)
-                                fatal("Pair out of range\n");
+                        if (timings[opcode] & CYCLES_HASIMM)
+                                has_displacement = codegen_timing_has_displacement(fetchdat, op_32);
+                        else
+                                has_displacement = 0;
+                                
+                        if (!has_displacement && (!cpu_hasMMX || codegen_timing_instr_length(timings[opcode], fetchdat, op_32) <= 7))
+                        {
+                                int t1 = u_pipe_timings[u_pipe_opcode] & CYCLES_MASK;
+                                int t2 = timings[opcode] & CYCLES_MASK;
+                                int t_pair;
                         
-                        t_pair = pair_timings[t1][t2];
-                        if (t_pair < 1)
-                                fatal("Illegal pair timings : t1=%i t2=%i u_opcode=%02x v_opcode=%02x\n", t1, t2, u_pipe_opcode, opcode);
+                                if (!(u_pipe_timings[u_pipe_opcode] & PAIR_FPU))
+                                        t1 &= 3;
+                                if (!(timings[opcode] & PAIR_FPU))
+                                        t2 &= 3;                        
+                        
+                                if (t1 < 0 || t2 < 0 || t1 > CYCLES_BRANCH || t2 > CYCLES_BRANCH)
+                                        fatal("Pair out of range\n");
+                        
+                                t_pair = pair_timings[t1][t2];
+                                if (t_pair < 1)
+                                        fatal("Illegal pair timings : t1=%i t2=%i u_opcode=%02x v_opcode=%02x\n", t1, t2, u_pipe_opcode, opcode);
 
-                        codegen_block_cycles += t_pair;
-                        decode_delay = (-t_pair) + 1;
+                                codegen_block_cycles += t_pair;
+                                decode_delay = (-t_pair) + 1;
                         
-                        /*Instruction can pair with previous*/
-                        u_pipe_full = 0;
-                        return;
+                                /*Instruction can pair with previous*/
+                                u_pipe_full = 0;
+                                return;
+                        }
                 }
 nopair:
                 /*Instruction can not pair with previous*/
@@ -1008,13 +1121,23 @@ nopair:
 
         if ((timings[opcode] & PAIR_U) && !decode_delay)
         {
-                /*Instruction might pair with next*/
-                u_pipe_full = 1;
-                u_pipe_opcode = opcode;
-                u_pipe_timings = timings;
-                u_pipe_op_32 = op_32;
-                u_pipe_regmask = get_dstdep_mask(timings[opcode], fetchdat, bit8);
-                return;
+                int has_displacement;
+                
+                if (timings[opcode] & CYCLES_HASIMM)
+                        has_displacement = codegen_timing_has_displacement(fetchdat, op_32);
+                else
+                        has_displacement = 0;
+                
+                if ((!has_displacement || cpu_hasMMX) && (!cpu_hasMMX || codegen_timing_instr_length(timings[opcode], fetchdat, op_32) <= 7))
+                {                
+                        /*Instruction might pair with next*/
+                        u_pipe_full = 1;
+                        u_pipe_opcode = opcode;
+                        u_pipe_timings = timings;
+                        u_pipe_op_32 = op_32;
+                        u_pipe_regmask = get_dstdep_mask(timings[opcode], fetchdat, bit8);
+                        return;
+                }
         }
         /*Instruction can not pair and must run now*/
 
