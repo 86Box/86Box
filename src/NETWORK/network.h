@@ -32,8 +32,8 @@ typedef void (*NETRXCB)(void *, uint8_t *, int);
 
 
 typedef struct {
-    char	name[64];
-    char	internal_name[32];
+    const char	*name;
+    const char	*internal_name;
     device_t	*device;
     void	*private;
     int		(*poll)(void *);

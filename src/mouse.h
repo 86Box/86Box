@@ -16,8 +16,8 @@
 
 
 typedef struct {
-    char	name[80];
-    char	internal_name[24];
+    const char	*name;
+    const char	*internal_name;
     int		type;
     void	*(*init)(void);
     void	(*close)(void *p);

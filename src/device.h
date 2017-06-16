@@ -41,23 +41,23 @@ enum
 
 typedef struct device_config_selection_t
 {
-        char description[256];
+        const char *description;
         int value;
 } device_config_selection_t;
 
 typedef struct device_config_t
 {
-        char name[256];
-        char description[256];
+        const char *name;
+        const char *description;
         int type;
-        char default_string[256];
+        const char *default_string;
         int default_int;
         device_config_selection_t selection[16];
 } device_config_t;
 
 typedef struct device_t
 {
-        char name[50];
+        const char *name;
         uint32_t flags;
         void *(*init)();
         void (*close)(void *p);

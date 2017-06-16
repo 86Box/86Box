@@ -39,8 +39,8 @@ int		scsi_card_last = 0;
 
 
 typedef struct {
-    char	name[64];
-    char	internal_name[32];
+    const char	*name;
+    const char	*internal_name;
     device_t	*device;
     void	(*reset)(void *p);
 } SCSI_CARD;
@@ -68,7 +68,7 @@ int scsi_card_available(int card)
 
 char *scsi_card_getname(int card)
 {
-    return(scsi_cards[card].name);
+    return((char *) scsi_cards[card].name);
 }
 
 
@@ -88,7 +88,7 @@ int scsi_card_has_config(int card)
 
 char *scsi_card_get_internal_name(int card)
 {
-    return(scsi_cards[card].internal_name);
+    return((char *) scsi_cards[card].internal_name);
 }
 
 

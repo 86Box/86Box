@@ -421,7 +421,7 @@ static void win_settings_machine_recalc_cpu_m(HWND hdlg)
 	c = 0;
 	while (models[romstomodel[temp_romset]].cpu[temp_cpu_m].cpus[c].cpu_type != -1)
 	{
-		stransi = models[romstomodel[temp_romset]].cpu[temp_cpu_m].cpus[c].name;
+		stransi = (char *) models[romstomodel[temp_romset]].cpu[temp_cpu_m].cpus[c].name;
 		mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
 		c++;
@@ -466,7 +466,7 @@ static void win_settings_machine_recalc_model(HWND hdlg)
 	c = 0;
 	while (models[romstomodel[temp_romset]].cpu[c].cpus != NULL && c < 4)
 	{
-		stransi = models[romstomodel[temp_romset]].cpu[c].name;
+		stransi = (char *) models[romstomodel[temp_romset]].cpu[c].name;
 		mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
 		c++;
@@ -533,7 +533,7 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 			{
 				if (romspresent[models[c].id])
 				{
-					stransi = models[c].name;
+					stransi = (char *) models[c].name;
 					mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 					modeltolist[c] = d;

@@ -19,8 +19,8 @@ hard_disk_t hdc[HDC_NUM];
 
 static struct
 {
-        char name[50];
-        char internal_name[16];
+        const char *name;
+        const char *internal_name;
         device_t *device;
         int is_mfm;
 } hdd_controllers[] = 
@@ -39,12 +39,12 @@ static struct
 
 char *hdd_controller_get_name(int hdd)
 {
-        return hdd_controllers[hdd].name;
+        return (char *) hdd_controllers[hdd].name;
 }
 
 char *hdd_controller_get_internal_name(int hdd)
 {
-        return hdd_controllers[hdd].internal_name;
+        return (char *) hdd_controllers[hdd].internal_name;
 }
 
 int hdd_controller_get_flags(int hdd)

@@ -58,14 +58,14 @@ mouse_get_name(int mouse)
 {
     if (!mouse_list[mouse])
 	return(NULL);
-    return(mouse_list[mouse]->name);
+    return((char *) mouse_list[mouse]->name);
 }
 
 
 char *
 mouse_get_internal_name(int mouse)
 {
-    return(mouse_list[mouse]->internal_name);
+    return((char *) mouse_list[mouse]->internal_name);
 }
 
 

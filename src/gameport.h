@@ -6,7 +6,7 @@ extern device_t gameport_201_device;
 
 typedef struct
 {
-        char name[80];
+        const char *name;
         void *(*init)();
         void (*close)(void *p);
         uint8_t (*read)(void *p);
@@ -15,9 +15,9 @@ typedef struct
         void (*a0_over)(void *p);
         int axis_count, button_count, pov_count;
         int max_joysticks;
-        char axis_names[8][32];
-        char button_names[32][32];
-        char pov_names[4][32];
+        const char *axis_names[8];
+        const char *button_names[32];
+        const char *pov_names[4];
 } joystick_if_t;
 
 extern int joystick_type;

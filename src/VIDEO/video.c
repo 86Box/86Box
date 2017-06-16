@@ -64,8 +64,8 @@ int cga_palette = 0;
 
 typedef struct
 {
-        char name[64];
-	char internal_name[24];
+        const char *name;
+	const char *internal_name;
         device_t *device;
         int legacy_id;
 } VIDEO_CARD;
@@ -120,7 +120,7 @@ int video_card_available(int card)
 
 char *video_card_getname(int card)
 {
-        return video_cards[card].name;
+        return (char *) video_cards[card].name;
 }
 
 device_t *video_card_getdevice(int card)
@@ -168,7 +168,7 @@ int video_new_to_old(int card)
 
 char *video_get_internal_name(int card)
 {
-        return video_cards[card].internal_name;
+        return (char *) video_cards[card].internal_name;
 }
 
 int video_get_video_from_internal_name(char *s)

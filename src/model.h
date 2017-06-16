@@ -33,11 +33,11 @@
 
 
 typedef struct {
-    char	name[32];
+    const char	*name;
     int		id;
-    char	internal_name[24];
+    const char	*internal_name;
     struct {
-	char name[16];
+	const char *name;
 	CPU *cpus;
     }		cpu[5];
     int		fixed_gfxcard;

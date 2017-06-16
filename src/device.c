@@ -158,7 +158,7 @@ int device_get_config_int(char *s)
         while (config->type != -1)
         {
                 if (!strcmp(s, config->name))
-                        return config_get_int(current_device->name, s, config->default_int);
+                        return config_get_int((char *) current_device->name, s, config->default_int);
 
                 config++;
         }
@@ -172,7 +172,7 @@ int device_get_config_int_ex(char *s, int default_int)
         while (config->type != -1)
         {
                 if (!strcmp(s, config->name))
-                        return config_get_int(current_device->name, s, default_int);
+                        return config_get_int((char *) current_device->name, s, default_int);
 
                 config++;
         }
@@ -186,7 +186,7 @@ int device_get_config_hex16(char *s)
         while (config->type != -1)
         {
                 if (!strcmp(s, config->name))
-                        return config_get_hex16(current_device->name, s, config->default_int);
+                        return config_get_hex16((char *) current_device->name, s, config->default_int);
 
                 config++;
         }
@@ -200,7 +200,7 @@ int device_get_config_hex20(char *s)
         while (config->type != -1)
         {
                 if (!strcmp(s, config->name))
-                        return config_get_hex20(current_device->name, s, config->default_int);
+                        return config_get_hex20((char *) current_device->name, s, config->default_int);
 
                 config++;
         }
@@ -214,7 +214,7 @@ int device_get_config_mac(char *s, int default_int)
         while (config->type != -1)
         {
                 if (!strcmp(s, config->name))
-                        return config_get_mac(current_device->name, s, default_int);
+                        return config_get_mac((char *) current_device->name, s, default_int);
 
                 config++;
         }
@@ -229,7 +229,7 @@ void device_set_config_int(char *s, int val)
         {
                 if (!strcmp(s, config->name))
 		{
-                        config_set_int(current_device->name, s, val);
+                        config_set_int((char *) current_device->name, s, val);
 			return;
 		}
 
@@ -246,7 +246,7 @@ void device_set_config_hex16(char *s, int val)
         {
                 if (!strcmp(s, config->name))
 		{
-                        config_set_hex16(current_device->name, s, val);
+                        config_set_hex16((char *) current_device->name, s, val);
 			return;
 		}
 
@@ -263,7 +263,7 @@ void device_set_config_hex20(char *s, int val)
         {
                 if (!strcmp(s, config->name))
 		{
-                        config_set_hex20(current_device->name, s, val);
+                        config_set_hex20((char *) current_device->name, s, val);
 			return;
 		}
 
@@ -280,7 +280,7 @@ void device_set_config_mac(char *s, int val)
         {
                 if (!strcmp(s, config->name))
 		{
-                        config_set_mac(current_device->name, s, val);
+                        config_set_mac((char *) current_device->name, s, val);
 			return;
 		}
 
@@ -296,7 +296,7 @@ char *device_get_config_string(char *s)
         while (config->type != -1)
         {
                 if (!strcmp(s, config->name))
-                        return config_get_string(current_device->name, s, config->default_string);
+                        return config_get_string((char *) current_device->name, s, (char *) config->default_string);
 
                 config++;
         }
@@ -316,7 +316,7 @@ int model_get_config_int(char *s)
         while (config->type != -1)
         {
                 if (!strcmp(s, config->name))
-                        return config_get_int(device->name, s, config->default_int);
+                        return config_get_int((char *) device->name, s, config->default_int);
 
                 config++;
         }
@@ -336,7 +336,7 @@ char *model_get_config_string(char *s)
         while (config->type != -1)
         {
                 if (!strcmp(s, config->name))
-                        return config_get_string(device->name, s, config->default_string);
+                        return config_get_string((char *) device->name, s, (char *) config->default_string);
 
                 config++;
         }

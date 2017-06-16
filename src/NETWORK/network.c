@@ -207,7 +207,7 @@ network_card_available(int card)
 char *
 network_card_getname(int card)
 {
-    return(net_cards[card].name);
+    return((char *) net_cards[card].name);
 }
 
 
@@ -233,7 +233,7 @@ network_card_has_config(int card)
 char *
 network_card_get_internal_name(int card)
 {
-    return(net_cards[card].internal_name);
+    return((char *) net_cards[card].internal_name);
 }
 
 

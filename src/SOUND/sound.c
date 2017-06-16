@@ -42,8 +42,8 @@ static int sound_card_last = 0;
 
 typedef struct
 {
-        char name[64];
-        char internal_name[24];
+        const char *name;
+	const char *internal_name;
         device_t *device;
 } SOUND_CARD;
 
@@ -80,7 +80,7 @@ int sound_card_available(int card)
 
 char *sound_card_getname(int card)
 {
-        return sound_cards[card].name;
+        return (char *) sound_cards[card].name;
 }
 
 device_t *sound_card_getdevice(int card)
@@ -97,7 +97,7 @@ int sound_card_has_config(int card)
 
 char *sound_card_get_internal_name(int card)
 {
-        return sound_cards[card].internal_name;
+        return (char *) sound_cards[card].internal_name;
 }
 
 int sound_card_get_from_internal_name(char *s)

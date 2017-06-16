@@ -244,7 +244,7 @@ int model_getmodel(int romset)
 
 char *model_getname()
 {
-        return models[model].name;
+        return (char *) models[model].name;
 }
 
 
@@ -255,12 +255,12 @@ device_t *model_getdevice(int model)
 
 char *model_get_internal_name(void)
 {
-        return models[model].internal_name;
+        return (char *) models[model].internal_name;
 }
 
 char *model_get_internal_name_ex(int m)
 {
-        return models[m].internal_name;
+        return (char *) models[m].internal_name;
 }
 
 int model_get_nvrmask(int m)

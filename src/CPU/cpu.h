@@ -87,7 +87,7 @@ extern int timing_misaligned;
 
 typedef struct
 {
-        char name[32];
+        const char *name;
         int cpu_type;
         int speed;
         int rspeed;
