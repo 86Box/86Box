@@ -1860,7 +1860,7 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg)
 
 	int bus = 0;
 
-	for (i = IDT_1722; i < IDT_1725; i++)
+	for (i = IDT_1722; i <= IDT_1724; i++)
 	{
 		h = GetDlgItem(hdlg, i);
 		EnableWindow(h, FALSE);
