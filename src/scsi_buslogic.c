@@ -1685,12 +1685,12 @@ BuslogicHDCommand(Buslogic_t *bl)
 	pclog("SCSI Cdb[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
     }
 
-    memset(temp_cdb, 0, shdc[hdc_id].cdb_len);
-    if (req->CmdBlock.common.CdbLength <= shdc[hdc_id].cdb_len) {
+    memset(temp_cdb, 0, 12);
+    if (req->CmdBlock.common.CdbLength <= 12) {
 	memcpy(temp_cdb, req->CmdBlock.common.Cdb,
 		req->CmdBlock.common.CdbLength);
     } else {
-	memcpy(temp_cdb, req->CmdBlock.common.Cdb, shdc[hdc_id].cdb_len);
+	memcpy(temp_cdb, req->CmdBlock.common.Cdb, 12);
     }
 
     /*

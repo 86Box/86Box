@@ -1,16 +1,7 @@
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
-#define _GNU_SOURCE
-#include <errno.h>
 #include <malloc.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-
-#include <sys/types.h>
-#include <wchar.h>
 
 #include "ibm.h"
+#include "hdd_image.h"
 #include "device.h"
 #include "io.h"
 #include "pic.h"
@@ -53,7 +44,8 @@ typedef struct mfm_drive_t
         int cfg_spt;
         int cfg_hpc;
         int current_cylinder;
-        FILE *hdfile;
+	int present;
+	int hdc_num;
 } mfm_drive_t;
 
 typedef struct mfm_t
@@ -163,39 +155,21 @@ static void mfm_next_sector(mfm_t *mfm)
 static void loadhd(mfm_t *mfm, int c, int d, const wchar_t *fn)
 {
         mfm_drive_t *drive = &mfm->drives[c];
-        
-	if (drive->hdfile == NULL)
-        {
-		/* Try to open existing hard disk image */
-		drive->hdfile = _wfopen(fn, L"rb+");
-		if (drive->hdfile == NULL)
-                {
-			/* Failed to open existing hard disk image */
-			if (errno == ENOENT)
-                        {
-				/* Failed because it does not exist,
-				   so try to create new file */
-				drive->hdfile = _wfopen(fn, L"wb+");
-				if (drive->hdfile == NULL)
-                                {
-					pclog("Cannot create file '%s': %s",
-					      fn, strerror(errno));
-					return;
-				}
-			}
-                        else
-                        {
-				/* Failed for another reason */
-				pclog("Cannot open file '%s': %s",
-				      fn, strerror(errno));
-				return;
-			}
-		}
-	}
+	int ret = 0;
 
+	ret = hdd_image_load(d);
+
+	if (!ret)
+	{
+		drive->present = 0;
+		return;
+	}
+        
         drive->spt = hdc[d].spt;
         drive->hpc = hdc[d].hpc;
         drive->tracks = hdc[d].tracks;
+	drive->hdc_num = d;
+	drive->present = 1;
 }
 
 
@@ -233,14 +207,14 @@ void mfm_write(uint16_t port, uint8_t val, void *p)
                 case 0x1F6: /* Drive/Head */
                 mfm->head = val & 0xF;
                 mfm->drive_sel = (val & 0x10) ? 1 : 0;
-                if (mfm->drives[mfm->drive_sel].hdfile == NULL)
-                        mfm->status = 0;
-                else
+                if (mfm->drives[mfm->drive_sel].present)
                         mfm->status = STAT_READY | STAT_DSC;
+                else
+                        mfm->status = 0;
                 return;
 
                 case 0x1F7: /* Command register */
-                if (mfm->drives[mfm->drive_sel].hdfile == NULL)
+                if (!mfm->drives[mfm->drive_sel].present)
                         fatal("Command on non-present drive\n");
 
                 mfm_irq_lower(mfm);
@@ -462,7 +436,6 @@ void mfm_callback(void *p)
         mfm_t *mfm = (mfm_t *)p;
         mfm_drive_t *drive = &mfm->drives[mfm->drive_sel];
         off64_t addr;
-        int c;
         
         mfm->callback = 0;
         if (mfm->reset)
@@ -500,8 +473,7 @@ void mfm_callback(void *p)
                         break;
                 }
                 
-                fseeko64(drive->hdfile, addr * 512, SEEK_SET);
-                fread(mfm->buffer, 512, 1, drive->hdfile);
+		hdd_image_read(drive->hdc_num, addr, 1, (uint8_t *) mfm->buffer);
                 mfm->pos = 0;
                 mfm->status = STAT_DRQ | STAT_READY | STAT_DSC;
                 mfm_irq_raise(mfm);
@@ -517,8 +489,7 @@ void mfm_callback(void *p)
                         mfm_irq_raise(mfm);
                         break;
                 }
-                fseeko64(drive->hdfile, addr * 512, SEEK_SET);
-                fwrite(mfm->buffer, 512, 1, drive->hdfile);
+		hdd_image_write(drive->hdc_num, addr, 1, (uint8_t *) mfm->buffer);
                 mfm_irq_raise(mfm);
                 mfm->secount = (mfm->secount - 1) & 0xff;
                 if (mfm->secount)
@@ -552,12 +523,7 @@ void mfm_callback(void *p)
                         mfm_irq_raise(mfm);
                         break;
                 }
-                fseeko64(drive->hdfile, addr * 512, SEEK_SET);
-                memset(mfm->buffer, 0, 512);
-                for (c = 0; c < mfm->secount; c++)
-                {
-                        fwrite(mfm->buffer, 512, 1, drive->hdfile);
-                }
+		hdd_image_zero(drive->hdc_num, addr, mfm->secount);
                 mfm->status = STAT_READY | STAT_DSC;
                 mfm_irq_raise(mfm);
                 update_status_bar_icon(SB_HDD | HDD_BUS_MFM, 1);
@@ -624,9 +590,8 @@ void mfm_close(void *p)
         for (d = 0; d < 2; d++)
         {
                 mfm_drive_t *drive = &mfm->drives[d];
-                
-                if (drive->hdfile != NULL)
-                        fclose(drive->hdfile);
+
+		hdd_image_close(drive->hdc_num);                
         }
 
         free(mfm);

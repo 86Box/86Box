@@ -700,6 +700,14 @@ int loadbios()
                 biosmask = 0x1ffff;
                 return 1;
 
+                case ROM_PRESIDENT:
+                f = romfopen(L"roms/president/BIOS.BIN", L"rb");
+                if (!f) break;
+                fread(rom,           0x20000, 1, f);                
+                fclose(f);
+                biosmask = 0x1ffff;
+                return 1;
+
                 case ROM_P54TP4XE:
                 f = romfopen(L"roms/p54tp4xe/T15I0302.AWD", L"rb");
                 if (!f) break;

@@ -38,7 +38,6 @@ typedef struct {
 	int packetstatus;
 	uint8_t asc;
 	int reset;
-	FILE *hdfile;
 	uint16_t buffer[65536];
 	int irqstat;
 	int service;

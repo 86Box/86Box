@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.28	2017/06/14
+# Version:	@(#)Makefile.mingw	1.0.29	2017/06/16
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -143,6 +143,7 @@ SYSOBJ	= model.o \
 	  olivetti_m24.o ps1.o ps2.o ps2_mca.o \
 	  tandy_eeprom.o tandy_rom.o
 DEVOBJ	= bugger.o lpt.o serial.o \
+	    fdc37c665.o fdc37c669.o fdc37c932fr.o \
 	    pc87306.o sis85c471.o w83877f.o \
 	  keyboard.o \
 	    keyboard_xt.o keyboard_at.o keyboard_pcjr.o \
@@ -151,9 +152,8 @@ DEVOBJ	= bugger.o lpt.o serial.o \
 	    joystick_standard.o joystick_ch_flightstick_pro.o \
 	    joystick_sw_pad.o joystick_tm_fcs.o \
 	  mouse.o mouse_serial.o mouse_ps2.o mouse_bus.o \
-	  fdd.o fdc.o \
-	    fdc37c665.o fdc37c669.o fdc37c932fr.o fdi2raw.o \
-	  hdd.o \
+	  fdd.o fdc.o fdi2raw.o \
+	  hdd.o hdd_image.o \
 	    mfm_at.o mfm_xebec.o hdd_esdi.o ide.o xtide.o piix.o \
 	    disc.o \
 	    disc_86f.o disc_fdi.o disc_imd.o disc_img.o \
@@ -338,8 +338,10 @@ gameport.o:	ibm.h cpu/cpu.h device.h io.h timer.h gameport.h \
 hdd.o:		ibm.h cpu/cpu.h device.h hdd.h model.h hdd_esdi.h \
 		mfm_at.h mfm_xebec.h xtide.h
 
-hdd_esdi.o:	ibm.h device.h dma.h io.h mca.h mem.h pic.h rom.h \
-		timer.h hdd_esdi.h
+hdd_image.o:	ibm.h ide.h hdd_image.h
+
+hdd_esdi.o:	ibm.h device.h dma.h hdd_image.h io.h mca.h mem.h \
+		pic.h rom.h timer.h hdd_esdi.h
 
 headland.o:	ibm.h cpu/cpu.h io.h mem.h headland.h
 
@@ -357,7 +359,7 @@ i440fx.o:	ibm.h io.h mem.h pci.h i440fx.h
 
 i82335.o:	ibm.h io.h mem.h
 
-ide.o:		86box.h cdrom.h ibm.h io.h pic.h timer.h cdrom.h scsi.h ide.h
+ide.o:		86box.h cdrom.h hdd_image.h ibm.h io.h pic.h timer.h cdrom.h scsi.h ide.h
 
 intel.o:	ibm.h cpu/cpu.h io.h mem.h pit.h timer.h intel.h
 
@@ -410,9 +412,9 @@ mem.o:		ibm.h cpu/cpu.h cpu/x86_ops.h cpu/x86.h config.h \
 
 memregs.o:	ibm.h io.h memregs.h
 
-mfm_at.o:	ibm.h device.h io.h pic.h timer.h mfm_at.h
+mfm_at.o:	ibm.h device.h hdd_image.h io.h pic.h timer.h mfm_at.h
 
-mfm_xebec.o:	ibm.h device.h dma.h io.h mem.h pic.h rom.h timer.h mfm_xebec.h
+mfm_xebec.o:	ibm.h device.h dma.h hdd_image.h io.h mem.h pic.h rom.h timer.h mfm_xebec.h
 
 model.o:	ibm.h cpu/cpu.h io.h mem.h rom.h device.h model.h mouse.h \
 		mouse_ps2.h cdrom.h acerm3a.h ali1429.h amstrad.h compaq.h \
@@ -497,8 +499,8 @@ scsi_aha154x.o:	ibm.h io.h mca.h mem.h mca.h rom.h dma.h pic.h timer.h \
 scsi_buslogic.o: ibm.h io.h mem.h rom.h dma.h pic.h pci.h timer.h \
 		device.h scsi.h scsi_disk.h cdrom.h scsi_buslogic.h
 
-scsi_disk.o:	86box.h cdrom.h ibm.h ide.h piix.h scsi.h scsi_disk.h \
-		timer.h win/plat_iodev.h
+scsi_disk.o:	86box.h cdrom.h hdd_image.h ibm.h ide.h piix.h scsi.h \
+		scsi_disk.h timer.h win/plat_iodev.h
 
 serial.o:	ibm.h io.h pic.h timer.h serial.h plat_serial.h
 

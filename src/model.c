@@ -82,6 +82,9 @@
 #include "sound/snd_ps1.h"
 #include "sound/snd_pssj.h"
 #include "sound/snd_sn76489.h"
+#if 0
+#include "superio_detect.h"
+#endif
 #include "tandy_eeprom.h"
 #include "tandy_rom.h"
 #if 0
@@ -120,12 +123,16 @@ extern void     at_ali1429_init(void);
 extern void    at_headland_init(void);
 extern void     at_opti495_init(void);
 extern void      at_batman_init(void);
+#if 0
+extern void	 at_586mc1_init(void);
+#endif
 extern void    at_endeavor_init(void);
 
 extern void      at_dtk486_init(void);
 extern void        at_r418_init(void);
 extern void       at_plato_init(void);
 extern void      at_mb500n_init(void);
+extern void   at_president_init(void);
 extern void    at_p54tp4xe_init(void);
 extern void        at_ap53_init(void);
 extern void      at_p55t2s_init(void);
@@ -203,13 +210,17 @@ MODEL models[] =
         {"DTK PKM-0038S E-2",		ROM_DTK486,		"dtk486",		{ "Intel", cpus_i486,        "AMD", cpus_Am486,   "Cyrix", cpus_Cx486,  "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,      at_dtk486_init, NULL},
         {"Rise Computer R418",		ROM_R418,		"r418",			{ "Intel", cpus_i486,        "AMD", cpus_Am486,   "Cyrix", cpus_Cx486,  "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE | MODEL_PCI,		  1,   64,   1, 127,        at_r418_init, NULL},
         {"Intel Premiere/PCI",		ROM_REVENGE,		"revenge",		{ "Intel", cpus_Pentium5V,   "",    NULL,         "",      NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	  1,  128,   1, 127,      at_batman_init, NULL},
+#if 0
+        {"Micro Star 586MC1",		ROM_586MC1,		"586mc1",		{ "Intel", cpus_Pentium5V50, "",    NULL,          "",     NULL,        "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	  1,  128,   1, 127,      at_586mc1_init, NULL},
+#endif
         {"Intel Premiere/PCI II",	ROM_PLATO,		"plato",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  128,   1, 127,       at_plato_init, NULL},
         {"Intel Advanced/EV",		ROM_ENDEAVOR,		"endeavor",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  128,   1, 127,    at_endeavor_init, NULL},
         {"Intel Advanced/ZP",		ROM_ZAPPA,		"zappa",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  128,   1, 127,    at_endeavor_init, NULL},
         {"PC Partner MB500N",		ROM_MB500N,		"mb500n",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  128,   1, 127,      at_mb500n_init, NULL},
+        {"President Award 430FX PCI",	ROM_PRESIDENT,		"president",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_HAS_IDE | MODEL_PCI,		  1,  128,   1, 127,   at_president_init, NULL},
+        {"ASUS P/I-P54TP4XE",		ROM_P54TP4XE,		"p54tp4xe",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1, 127,    at_p54tp4xe_init, NULL},
         {"Intel Advanced/ATX",		ROM_THOR,		"thor",			{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1, 127,    at_endeavor_init, NULL},
         {"MR Intel Advanced/ATX",	ROM_MRTHOR,		"mrthor",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1, 127,    at_endeavor_init, NULL},
-        {"ASUS P/I-P54TP4XE",		ROM_P54TP4XE,		"p54tp4xe",		{ "Intel", cpus_PentiumS5,   "IDT", cpus_WinChip, "AMD",   cpus_K5,     "",      NULL,     "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1, 127,    at_p54tp4xe_init, NULL},
         {"AOpen AP53",			ROM_AP53,		"ap53",			{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1, 127,        at_ap53_init, NULL},
         {"ASUS P/I-P55T2S",		ROM_P55T2S,		"p55t2s",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1, 127,      at_p55t2s_init, NULL},
         {"Acer M3a",			ROM_ACERM3A,		"acerm3a",		{ "Intel", cpus_Pentium,     "IDT", cpus_WinChip, "Cyrix", cpus_6x86,   "AMD",   cpus_K56, "",      NULL}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,   1,  256,   1, 127,     at_acerm3a_init, NULL},
@@ -648,7 +659,7 @@ void at_premiere_common_init(void)
         pci_slot(0xc);
         pci_slot(0xe);
         pci_slot(0x6);
- 	sio_init(2, 0xc, 0xe, 0x6, 0);
+ 	sio_init(1, 0xc, 0xe, 0x6, 0);
         fdc37c665_init();
         intel_batman_init();
         device_add(&intel_flash_bxt_ami_device);
@@ -670,7 +681,7 @@ void at_586mc1_init(void)
         pci_slot(0xc);
         pci_slot(0xe);
         pci_slot(0x6);
-	sio_init(2, 0xc, 0xe, 0x6, 0);
+	sio_init(1, 0xc, 0xe, 0x6, 0);
         device_add(&intel_flash_bxt_device);
 	secondary_ide_check();
 }
@@ -713,6 +724,24 @@ void at_mb500n_init(void)
         i430fx_init();
         piix_init(7, 0x14, 0x13, 0x12, 0x11);
         fdc37c665_init();
+        device_add(&intel_flash_bxt_device);
+}
+
+void at_president_init(void)
+{
+        at_ide_init();
+	memregs_init();
+        pci_init(PCI_CONFIG_TYPE_1);
+        pci_slot(8);
+        pci_slot(9);
+        pci_slot(10);
+        pci_slot(11);
+        i430fx_init();
+        piix_init(7, 8, 9, 10, 11);
+#if 0
+	superio_detect_init();
+#endif
+        w83877f_init();
         device_add(&intel_flash_bxt_device);
 }
 

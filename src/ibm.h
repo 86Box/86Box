@@ -471,6 +471,8 @@ enum
         ROM_S1668,      /*Tyan Titan-Pro ATX / 440FX / AMI BIOS / SMC FDC37C669*/
         ROM_IBMPS1_2133,
 
+        ROM_PRESIDENT,  /*President Award 430FX PCI / 430FX / Award BIOS / Unknown Super I/O chip*/
+
         ROM_MAX
 };
 

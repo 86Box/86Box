@@ -36,14 +36,10 @@ typedef struct {
 	uint8_t error;
 	uint32_t sector_pos;
 	uint32_t sector_len;
-	uint32_t last_sector;
 	uint32_t seek_pos;
 	int data_pos;
 	int old_len;
-	int cdb_len_setting;
-	int cdb_len;
 	int request_pos;
-	uint64_t base;
 	uint8_t hd_cdb[16];
 } scsi_hard_disk_t;
 #pragma pack(pop)
