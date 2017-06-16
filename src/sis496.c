@@ -3,21 +3,24 @@
 */
 #include <stdlib.h>
 #include "ibm.h"
-#include "device.h"
+#include "cpu/cpu.h"
 #include "io.h"
 #include "mem.h"
 #include "pci.h"
+#include "device.h"
+#include "model.h"
 
-#include "sis496.h"
 
 typedef struct sis496_t
 {
         uint8_t pci_conf[256];
 } sis496_t;
 
+
 sis496_t sis496;
 
-void sis496_recalcmapping(void)
+
+static void sis496_recalcmapping(void)
 {
         int c;
         
@@ -50,7 +53,8 @@ void sis496_recalcmapping(void)
         shadowbios = (sis496.pci_conf[0x44] & 0xf0);
 }
 
-void sis496_write(int func, int addr, uint8_t val, void *p)
+
+static void sis496_write(int func, int addr, uint8_t val, void *p)
 {
         switch (addr)
         {
@@ -99,12 +103,14 @@ void sis496_write(int func, int addr, uint8_t val, void *p)
            sis496.pci_conf[addr] = val;
 }
 
-uint8_t sis496_read(int func, int addr, void *p)
+
+static uint8_t sis496_read(int func, int addr, void *p)
 {
         return sis496.pci_conf[addr];
 }
  
-void sis496_reset(void)
+
+static void sis496_reset(void)
 {
         memset(&sis496, 0, sizeof(sis496_t));
         
@@ -128,13 +134,15 @@ void sis496_reset(void)
         sis496.pci_conf[0x0e] = 0x00; /*Single function device*/
 }
 
-void sis496_pci_reset(void)
+
+static void sis496_pci_reset(void)
 {
 	uint8_t val = 0;
 
 	val = sis496_read(0, 0x44, NULL);		/* Read current value of 0x44. */
 	sis496_write(0, 0x44, val & 0xf, NULL);		/* Turn off shadow BIOS but keep the lower 4 bits. */
 }
+
 
 void sis496_init(void)
 {
@@ -148,6 +156,7 @@ void sis496_init(void)
         pci_set_card_routing(13, PCI_INTD);
         pci_set_card_routing(11, PCI_INTC);
 }
+
 
 void sis496_close(void *p)
 {

@@ -1,15 +1,18 @@
 #include <stdlib.h>
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "io.h"
+#include "device.h"
+#include "model.h"
 #include "keyboard.h"
 #include "lpt.h"
 #include "mouse.h"
 
-#include "amstrad.h"
 
 static uint8_t amstrad_dead;
 
-uint8_t amstrad_read(uint16_t port, void *priv)
+
+static uint8_t amstrad_read(uint16_t port, void *priv)
 {
         pclog("amstrad_read : %04X\n",port);
         switch (port)
@@ -26,7 +29,8 @@ uint8_t amstrad_read(uint16_t port, void *priv)
         return 0xff;
 }
 
-void amstrad_write(uint16_t port, uint8_t val, void *priv)
+
+static void amstrad_write(uint16_t port, uint8_t val, void *priv)
 {
         switch (port)
         {
@@ -35,6 +39,7 @@ void amstrad_write(uint16_t port, uint8_t val, void *priv)
                 break;
         }
 }
+
 
 static uint8_t mousex, mousey;
 static void amstrad_mouse_write(uint16_t addr, uint8_t val, void *p)
@@ -80,7 +85,8 @@ static uint8_t mouse_amstrad_poll(int x, int y, int z, int b, void *p)
 	return(0);
 }
 
-static void *mouse_amstrad_init()
+
+static void *mouse_amstrad_init(void)
 {
         mouse_amstrad_t *mouse = (mouse_amstrad_t *)malloc(sizeof(mouse_amstrad_t));
         memset(mouse, 0, sizeof(mouse_amstrad_t));
@@ -88,12 +94,14 @@ static void *mouse_amstrad_init()
         return mouse;
 }
 
+
 static void mouse_amstrad_close(void *p)
 {
         mouse_amstrad_t *mouse = (mouse_amstrad_t *)p;
         
         free(mouse);
 }
+
 
 mouse_t mouse_amstrad =
 {
@@ -105,7 +113,8 @@ mouse_t mouse_amstrad =
         mouse_amstrad_poll
 };
 
-void amstrad_init()
+
+void amstrad_init(void)
 {
         lpt2_remove_ams();
         

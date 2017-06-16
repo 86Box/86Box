@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)model.c	1.0.1	2017/06/03
+ * Version:	@(#)model.c	1.0.2	2017/06/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -29,10 +29,6 @@
 #include "mouse_ps2.h"
 #include "cdrom.h"
 
-#include "acerm3a.h"
-#include "ali1429.h"
-#include "amstrad.h"
-#include "compaq.h"
 #include "disc.h"
 #include "dma.h"
 #include "fdc.h"
@@ -40,43 +36,27 @@
 #include "fdc37c669.h"
 #include "fdc37c932fr.h"
 #include "gameport.h"
-#include "headland.h"
-#include "i430fx.h"
-#include "i430hx.h"
-#include "i430lx.h"
-#include "i430nx.h"
-#include "i430vx.h"
-#include "i440fx.h"
 #include "i82335.h"
 #include "ide.h"
 #include "intel.h"
 #include "intel_flash.h"
-#include "jim.h"
 #include "keyboard_amstrad.h"
 #include "keyboard_at.h"
 #include "keyboard_olim24.h"
 #include "keyboard_pcjr.h"
 #include "keyboard_xt.h"
-#include "laserxt.h"
 #include "lpt.h"
 #include "mem.h"
 #include "memregs.h"
-#include "neat.h"
 #include "nmi.h"
 #include "nvr.h"
-#include "olivetti_m24.h"
-#include "opti495.h"
 #include "pc87306.h"
 #include "pci.h"
 #include "pic.h"
 #include "piix.h"
 #include "pit.h"
-#include "ps1.h"
-#include "ps2.h"
 #include "ps2_mca.h"
-#include "scat.h"
 #include "serial.h"
-#include "sis496.h"
 #include "sis85c471.h"
 #include "sio.h"
 #include "sound/snd_ps1.h"

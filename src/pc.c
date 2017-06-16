@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.5	2017/06/17
+ * Version:	@(#)pc.c	1.0.6	2017/06/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -31,8 +31,8 @@
 #include "pit.h"
 #include "timer.h"
 #include "device.h"
+#include "model.h"
 
-#include "ali1429.h"
 #include "disc.h"
 #include "disc_86f.h"
 #include "disc_fdi.h"
@@ -56,7 +56,6 @@
 #include "keyboard.h"
 #include "plat_keyboard.h"
 #include "keyboard_at.h"
-#include "model.h"
 #include "mouse.h"
 #include "plat_mouse.h"
 #include "network/network.h"
@@ -72,7 +71,6 @@
 #include "sound/snd_ssi2001.h"
 #include "video/video.h"
 #include "video/vid_voodoo.h"
-#include "amstrad.h"
 #include "plat_ui.h"
 #ifdef WALTJE
 # define UNICODE

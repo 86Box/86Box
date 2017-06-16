@@ -3,9 +3,34 @@
 */
 /*This is the chipset used in the Award 286 clone model*/
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "io.h"
-#include "scat.h"
 #include "mem.h"
+#include "device.h"
+#include "model.h"
+
+
+#define SCAT_DMA_WAIT_STATE_CONTROL 0x01
+#define SCAT_VERSION                0x40
+#define SCAT_CLOCK_CONTROL          0x41
+#define SCAT_PERIPHERAL_CONTROL     0x44
+#define SCAT_MISCELLANEOUS_STATUS   0x45
+#define SCAT_POWER_MANAGEMENT       0x46
+#define SCAT_ROM_ENABLE             0x48
+#define SCAT_RAM_WRITE_PROTECT      0x49
+#define SCAT_SHADOW_RAM_ENABLE_1    0x4A
+#define SCAT_SHADOW_RAM_ENABLE_2    0x4B
+#define SCAT_SHADOW_RAM_ENABLE_3    0x4C
+#define SCAT_DRAM_CONFIGURATION     0x4D
+#define SCAT_EXTENDED_BOUNDARY      0x4E
+#define SCAT_EMS_CONTROL            0x4F
+
+
+typedef struct {
+        uint8_t regs_2x8;
+        uint8_t regs_2x9;
+} scat_t;
+
 
 static uint8_t scat_regs[256];
 static int scat_index;
@@ -17,7 +42,8 @@ static uint32_t scat_xms_bound;
 static mem_mapping_t scat_shadowram_mapping;
 static mem_mapping_t scat_512k_clip_mapping;
 
-void scat_shadow_state_update()
+
+static void scat_shadow_state_update(void)
 {
         int i, val;
 
@@ -54,7 +80,8 @@ void scat_shadow_state_update()
         flushmmucache();
 }
 
-void scat_set_xms_bound(uint8_t val)
+
+static void scat_set_xms_bound(uint8_t val)
 {
         uint32_t max_xms_size = (mem_size >= 16384) ? 0xFC0000 : mem_size << 10;
 
@@ -128,7 +155,8 @@ void scat_set_xms_bound(uint8_t val)
         }
 }
 
-uint32_t get_scat_addr(uint32_t addr, scat_t *p)
+
+static uint32_t get_scat_addr(uint32_t addr, scat_t *p)
 {
         if (p && (scat_regs[SCAT_EMS_CONTROL] & 0x80) && (p->regs_2x9 & 0x80))
         {
@@ -142,7 +170,8 @@ uint32_t get_scat_addr(uint32_t addr, scat_t *p)
         return addr;
 }
 
-void scat_write(uint16_t port, uint8_t val, void *priv)
+
+static void scat_write(uint16_t port, uint8_t val, void *priv)
 {
         uint8_t scat_reg_valid = 0, scat_shadow_update = 0, index;
         uint32_t base_addr, virt_addr;
@@ -334,7 +363,8 @@ void scat_write(uint16_t port, uint8_t val, void *priv)
         }
 }
 
-uint8_t scat_read(uint16_t port, void *priv)
+
+static uint8_t scat_read(uint16_t port, void *priv)
 {
         uint8_t val = 0xff, index;
         switch (port)
@@ -407,7 +437,8 @@ uint8_t scat_read(uint16_t port, void *priv)
         return val;
 }
 
-uint8_t mem_read_scatems(uint32_t addr, void *priv)
+
+static uint8_t mem_read_scatems(uint32_t addr, void *priv)
 {
         uint8_t val = 0xff;
         scat_t *stat = (scat_t *)priv;
@@ -418,7 +449,9 @@ uint8_t mem_read_scatems(uint32_t addr, void *priv)
 
         return val;
 }
-uint16_t mem_read_scatemsw(uint32_t addr, void *priv)
+
+
+static uint16_t mem_read_scatemsw(uint32_t addr, void *priv)
 {
         uint16_t val = 0xffff;
         scat_t *stat = (scat_t *)priv;
@@ -429,7 +462,9 @@ uint16_t mem_read_scatemsw(uint32_t addr, void *priv)
 
         return val;
 }
-uint32_t mem_read_scatemsl(uint32_t addr, void *priv)
+
+
+static uint32_t mem_read_scatemsl(uint32_t addr, void *priv)
 {
         uint32_t val = 0xffffffff;
         scat_t *stat = (scat_t *)priv;
@@ -441,7 +476,8 @@ uint32_t mem_read_scatemsl(uint32_t addr, void *priv)
         return val;
 }
 
-void mem_write_scatems(uint32_t addr, uint8_t val, void *priv)
+
+static void mem_write_scatems(uint32_t addr, uint8_t val, void *priv)
 {
         scat_t *stat = (scat_t *)priv;
 
@@ -449,7 +485,9 @@ void mem_write_scatems(uint32_t addr, uint8_t val, void *priv)
         if (addr < (mem_size << 10))
                 mem_write_ram(addr, val, priv);
 }
-void mem_write_scatemsw(uint32_t addr, uint16_t val, void *priv)
+
+
+static void mem_write_scatemsw(uint32_t addr, uint16_t val, void *priv)
 {
         scat_t *stat = (scat_t *)priv;
 
@@ -457,7 +495,9 @@ void mem_write_scatemsw(uint32_t addr, uint16_t val, void *priv)
         if (addr < (mem_size << 10))
                 mem_write_ramw(addr, val, priv);
 }
-void mem_write_scatemsl(uint32_t addr, uint32_t val, void *priv)
+
+
+static void mem_write_scatemsl(uint32_t addr, uint32_t val, void *priv)
 {
         scat_t *stat = (scat_t *)priv;
 
@@ -466,7 +506,8 @@ void mem_write_scatemsl(uint32_t addr, uint32_t val, void *priv)
                 mem_write_raml(addr, val, priv);
 }
 
-void scat_init()
+
+void scat_init(void)
 {
         int i;
 

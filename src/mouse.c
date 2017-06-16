@@ -1,10 +1,12 @@
 #include "ibm.h"
+#include "cpu/cpu.h"
+#include "device.h"
 #include "mouse.h"
 #include "mouse_serial.h"
 #include "mouse_ps2.h"
 #include "mouse_bus.h"
-#include "amstrad.h"
-#include "keyboard_olim24.h"
+#include "model.h"
+//#include "keyboard_olim24.h"
 
 
 static mouse_t *mouse_list[] = {
