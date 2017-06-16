@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.4	2017/06/15
+ * Version:	@(#)pc.c	1.0.5	2017/06/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -290,10 +290,10 @@ void initpc(int argc, wchar_t *argv[])
         wchar_t *config_file = NULL;
         int c;
         get_executable_name(pcempath, 511);
-        pclog("executable_name = %ws\n", pcempath);
+        pclog("executable_name = %S\n", pcempath);
         p=get_filename_w(pcempath);
         *p=L'\0';
-        pclog("path = %ws\n", pcempath);        
+        pclog("path = %S\n", pcempath);        
 #ifdef WALTJE
 	DIR *dir;
 	struct direct *dp;
@@ -330,15 +330,15 @@ void initpc(int argc, wchar_t *argv[])
 #ifdef WALTJE
 			dir = opendirw(pcempath);
 			if (dir != NULL) {
-				printf("Directory '%ws':\n", pcempath);
+				printf("Directory '%S':\n", pcempath);
 				for (;;) {
 					dp = readdir(dir);
 					if (dp == NULL) break;
-					printf(">> '%ws'\n", dp->d_name);
+					printf(">> '%S'\n", dp->d_name);
 				}
 				closedir(dir);
 			} else {
-				printf("Could not open '%ws'..\n", pcempath);
+				printf("Could not open '%S'..\n", pcempath);
 			}
 #endif
 

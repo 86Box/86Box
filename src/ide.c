@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)ide.c	1.0.2	2017/06/16
+ * Version:	@(#)ide.c	1.0.3	2017/06/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,6 +20,7 @@
  */
 #include <stdint.h>
 #include <sys/types.h>
+#include <stdarg.h>
 #include <wchar.h>
 
 #include "86box.h"

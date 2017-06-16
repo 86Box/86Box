@@ -8,7 +8,7 @@
  *
  *		Windows resource script.
  *
- * Version:	@(#)86Box.rc	1.0.3	2017/06/16
+ * Version:	@(#)86Box.rc	1.0.4	2017/06/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -186,7 +186,7 @@ FONT 9, "Segoe UI"
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,129,94,71,12
     ICON            100,IDC_ABOUT_ICON,7,7,20,20
-    LTEXT           "86Box v2.00 - A fork of PCem\n\nAuthors: Sarah Walker, Miran Grca, waltje, SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information.",
+    LTEXT           "86Box v2.00 - A fork of PCem\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information.",
                     IDC_ABOUT_ICON,54,7,146,73
     CONTROL         "",IDC_ABOUT_ICON,"Static",SS_BLACKFRAME | SS_SUNKEN,0,
                     86,208,1
