@@ -3794,11 +3794,11 @@ static void cdrom_recalc_location_controls(HWND hdlg)
 			h = GetDlgItem(hdlg, IDT_1741);
 			ShowWindow(h, SW_SHOW);
 			EnableWindow(h, TRUE);
-			h = GetDlgItem(hdlg, 1801);
+			h = GetDlgItem(hdlg, IDT_1742);
 			ShowWindow(h, SW_SHOW);
 			EnableWindow(h, TRUE);
 
-			h = GetDlgItem(hdlg, IDT_1742);
+			h = GetDlgItem(hdlg, IDC_COMBO_CD_ID);
 			ShowWindow(h, SW_SHOW);
 			EnableWindow(h, TRUE);
 			SendMessage(h, CB_SETCURSEL, temp_cdrom_drives[cdlv_current_sel].scsi_device_id, 0);
