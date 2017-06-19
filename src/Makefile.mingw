@@ -62,7 +62,7 @@ endif
 #########################################################################
 #		Nothing should need changing from here on..		#
 #########################################################################
-VPATH	= . cpu sound sound/resid-fp sound/openal video lzf network network/slirp win
+VPATH	= . cpu sound sound/resid-fp video lzf network network/slirp win
 PLAT	= win/
 ifeq ($(X64), y)
 CPP	= g++.exe -m64
@@ -170,13 +170,12 @@ NETOBJ	= network.o \
 	  net_ne2000.o
 SCSIOBJ	= scsi.o scsi_disk.o scsi_buslogic.o scsi_aha154x.o
 SNDOBJ	= sound.o \
-	  openal.o \
-	  dbopl.o nukedopl.o \
 	  convolve.o convolve-sse.o envelope.o extfilt.o \
 	  filter.o pot.o sid.o voice.o wave6581__ST.o \
 	  wave6581_P_T.o wave6581_PS_.o wave6581_PST.o \
 	  wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
 	  wave8580_PST.o wave.o \
+	  dbopl.o nukedopl.o openal.o \
 	  snd_speaker.o snd_ps1.o snd_pssj.o \
 	  snd_adlib.o snd_adlibgold.o snd_ad1848.o \
 	  snd_sb.o snd_sb_dsp.o snd_cms.o snd_dbopl.o \
@@ -221,11 +220,9 @@ OBJ	= $(MAINOBJ) $(CPUOBJ) $(SYSOBJ) $(DEVOBJ) $(USBOBJ) \
 
 LZFOBJ	= lzf_c.o lzf_d.o
 
-LIBS	= -mwindows \
-	  -lopenal.dll \
-	  -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 \
-	  -lcomctl32 -lkernel32 -lwsock32 -lwinmm -liphlpapi -lpsapi \
-	  -static -lstdc++ -lgcc
+LIBS	= -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 -lopenal.dll \
+	  -mwindows -lcomctl32 -lwinmm -lwsock32 -liphlpapi -lpsapi \
+	  -static-libstdc++ -static -lstdc++ -static-libgcc -static -lgcc
 
 
 # Build rules.
