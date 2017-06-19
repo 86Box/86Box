@@ -237,10 +237,10 @@ static int CALLBACK BrowseCallbackProc(HWND hwnd,UINT uMsg, LPARAM lParam, LPARA
 
 WCHAR path[MAX_PATH];
 
-wchar_t *BrowseFolder(wchar_t *saved_path)
+wchar_t *BrowseFolder(wchar_t *saved_path, wchar_t *title)
 {
 	BROWSEINFO bi = { 0 };
-	bi.lpszTitle  = L"Browse for folder...";
+	bi.lpszTitle  = title;
 	bi.ulFlags    = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
 	bi.lpfn       = BrowseCallbackProc;
 	bi.lParam     = (LPARAM) saved_path;
@@ -253,15 +253,12 @@ wchar_t *BrowseFolder(wchar_t *saved_path)
 		SHGetPathFromIDList(pidl, path);
 
 		/* Free memory used. */
-#if 0
 		IMalloc *imalloc = 0;
 		if (SUCCEEDED(SHGetMalloc(&imalloc)))
 		{
-			imalloc->Free(pidl);
-			imalloc->Release();
+			imalloc->lpVtbl->Free(imalloc, pidl);
+			imalloc->lpVtbl->Release(imalloc);
 		}
-#endif
-		free(pidl);
 
 		return path;
 	}

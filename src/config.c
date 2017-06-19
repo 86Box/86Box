@@ -29,6 +29,7 @@
 #include "scsi.h"
 #include "win/plat_joystick.h"
 #include "win/plat_midi.h"
+#include "sound/midi.h"
 #include "sound/snd_dbopl.h"
 #include "sound/snd_mpu401.h"
 #include "sound/snd_opl.h"
@@ -766,9 +767,6 @@ void config_save(wchar_t *fn)
 }
 
 
-static wchar_t *read_nvr_path;
-
-
 /* General */
 static void loadconfig_general(void)
 {
@@ -853,17 +851,11 @@ static void loadconfig_machine(void)
 	cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
 
         mem_size = config_get_int(cat, "mem_size", 4096);
-        if (mem_size < ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram))
-                mem_size = ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram);
+        if (mem_size < (((models[model].flags & MODEL_AT) && (models[model].ram_granularity < 128)) ? models[model].min_ram*1024 : models[model].min_ram))
+                mem_size = (((models[model].flags & MODEL_AT) && (models[model].ram_granularity < 128)) ? models[model].min_ram*1024 : models[model].min_ram);
 	if (mem_size > 262144)
 	{
 		mem_size = 262144;
-	}
-
-	if (read_nvr_path != NULL)
-	{
-		free(read_nvr_path);
-		read_nvr_path = NULL;
 	}
 
 	memset(nvr_path, 0x00, sizeof(nvr_path));
@@ -871,8 +863,6 @@ static void loadconfig_machine(void)
         if (wp != NULL) {
 		if (wcslen(wp) && (wcslen(wp) <= 992))
 		{
-			read_nvr_path = (wchar_t *) malloc((wcslen(wp) << 1) + 2);
-			wcscpy(read_nvr_path, wp);
 			wcscpy(nvr_path, wp);
 		}
 		else
@@ -977,7 +967,12 @@ static void loadconfig_sound(void)
         else
                 sound_card_current = 0;
 
-        midi_id = config_get_int(cat, "midi_host_device", 0);
+        p = (char *)config_get_string(cat, "midi_device", NULL);
+        if (p != NULL)
+                midi_device_current = midi_device_get_from_internal_name(p);
+        else
+                midi_device_current = 0;
+
         mpu401_standalone_enable = !!config_get_int(cat, "mpu401_standalone", 0);
 
         SSI2001 = !!config_get_int(cat, "ssi2001", 0);
@@ -1867,14 +1862,7 @@ static void saveconfig_machine(void)
 	        config_set_int(cat, "mem_size", mem_size);
 	}
 
-	if (read_nvr_path == NULL)
-	{
-		config_delete_var(cat, "nvr_path");
-	}
-	else
-	{
-	        config_set_wstring(cat, "nvr_path", nvr_path);
-	}
+        config_set_wstring(cat, "nvr_path", nvr_path);
 
         config_set_int(cat, "cpu_use_dynarec", cpu_use_dynarec);
 
@@ -2021,13 +2009,14 @@ static void saveconfig_sound(void)
 		config_set_string(cat, "sndcard", sound_card_get_internal_name(sound_card_current));
 	}
 
-	if (midi_id == 0)
+
+	if (!strcmp(midi_device_get_internal_name(midi_device_current), "none"))
 	{
-		config_delete_var(cat, "midi_host_device");
+		config_delete_var(cat, "midi_device");
 	}
 	else
 	{
-	        config_set_int(cat, "midi_host_device", midi_id);
+		config_set_string(cat, "midi_device", midi_device_get_internal_name(midi_device_current));
 	}
 
 	if (mpu401_standalone_enable == 0)

@@ -956,6 +956,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				}
 				idecallback[ide_board]=200*IDE_TIME;
 				timer_update_outstanding();
+				ide->do_initial_read = 1;
 				return;
 
 			case WIN_WRITE_MULTIPLE:
@@ -1563,8 +1564,25 @@ void callbackide(int ide_board)
 				goto id_not_found;
 			}
 
-			hdd_image_read(ide->hdc_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
+			if (ide->do_initial_read)
+			{
+				ide->do_initial_read = 0;
+				ide->sector_pos = 0;
+				if (ide->secount)
+				{
+					hdd_image_read(ide->hdc_num, ide_get_sector(ide), ide->secount, ide->sector_buffer);
+				}
+				else
+				{
+					hdd_image_read(ide->hdc_num, ide_get_sector(ide), 256, ide->sector_buffer);
+				}
+			}
+
+			memcpy(ide->buffer, &ide->sector_buffer[ide->sector_pos*512], 512);
+
+			ide->sector_pos++;
 			ide->pos=0;
+
 			ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 
 			ide_irq_raise(ide);
@@ -1581,18 +1599,33 @@ void callbackide(int ide_board)
 			{
 				goto id_not_found;
 			}
-			hdd_image_read(ide->hdc_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
+
+			if (ide->do_initial_read)
+			{
+				ide->do_initial_read = 0;
+				ide->sector_pos = 0;
+				if (ide->secount)
+				{
+					hdd_image_read(ide->hdc_num, ide_get_sector(ide), ide->secount, ide->sector_buffer);
+				}
+				else
+				{
+					hdd_image_read(ide->hdc_num, ide_get_sector(ide), 256, ide->sector_buffer);
+				}
+			}
+
 			ide->pos=0;
                 
 			if (ide_bus_master_read)
 			{
-				if (ide_bus_master_read(ide_board, (uint8_t *)ide->buffer, 512))
+				if (ide_bus_master_read(ide_board, &ide->sector_buffer[ide->sector_pos*512], 512))
 				{
 					idecallback[ide_board]=6*IDE_TIME;           /*DMA not performed, try again later*/
 				}
 				else
 				{
 					/*DMA successful*/
+					ide->sector_pos++;
 					ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 
 					ide->secount = (ide->secount - 1) & 0xff;
@@ -1629,8 +1662,25 @@ void callbackide(int ide_board)
 				goto id_not_found;
 			}
 
-			hdd_image_read(ide->hdc_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
+			if (ide->do_initial_read)
+			{
+				ide->do_initial_read = 0;
+				ide->sector_pos = 0;
+				if (ide->secount)
+				{
+					hdd_image_read(ide->hdc_num, ide_get_sector(ide), ide->secount, ide->sector_buffer);
+				}
+				else
+				{
+					hdd_image_read(ide->hdc_num, ide_get_sector(ide), 256, ide->sector_buffer);
+				}
+			}
+
+			memcpy(ide->buffer, &ide->sector_buffer[ide->sector_pos*512], 512);
+
+			ide->sector_pos++;
 			ide->pos=0;
+
 			ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 			if (!ide->blockcount)
 			{

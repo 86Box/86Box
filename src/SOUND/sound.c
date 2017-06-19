@@ -23,6 +23,7 @@
 #include "../timer.h"
 #include "../cdrom.h"
 #include "../win/plat_thread.h"
+#include "midi.h"
 #include "sound.h"
 #include "snd_opl.h"
 #include "snd_adlib.h"
@@ -262,7 +263,7 @@ static void sound_cd_thread(void *param)
 		}
 		else
 		{
-			givealbuffer_cd_int16(cd_out_buffer_int16);
+			givealbuffer_cd(cd_out_buffer_int16);
 		}
 	}
 }
@@ -275,10 +276,6 @@ static int cd_thread_enable = 0;
 
 void sound_realloc_buffers(void)
 {
-	closeal();
-        initalmain(0,NULL);
-        inital();
-
 	if (outbuffer_ex != NULL)
 	{
 		free(outbuffer_ex);
@@ -341,7 +338,9 @@ void sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *p), vo
 void sound_poll(void *priv)
 {
         sound_poll_time += sound_poll_latch;
-        
+
+	midi_poll();
+
         sound_pos_global++;
         if (sound_pos_global == SOUNDBUFLEN)
         {
@@ -378,7 +377,7 @@ void sound_poll(void *priv)
 			}
 			else
 			{
-				givealbuffer_int16(outbuffer_ex_int16);
+				givealbuffer(outbuffer_ex_int16);
 			}
 		}
         

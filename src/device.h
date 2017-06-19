@@ -20,13 +20,14 @@
 # define EMU_DEVICE_H
 
 
-#define CONFIG_STRING	0
-#define CONFIG_INT	1
-#define CONFIG_BINARY	2
-#define CONFIG_SELECTION 3
-#define CONFIG_HEX16	4
-#define CONFIG_HEX20	5
-#define CONFIG_MAC	6
+#define CONFIG_STRING		0
+#define CONFIG_INT		1
+#define CONFIG_BINARY		2
+#define CONFIG_SELECTION	3
+#define CONFIG_MIDI		4
+#define CONFIG_HEX16		5
+#define CONFIG_HEX20		6
+#define CONFIG_MAC		7
 
 
 enum
