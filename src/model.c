@@ -534,14 +534,12 @@ void ps2_model_80_init(void)
 void at_neat_init(void)
 {
         at_ide_init();
-        mem_remap_top_384k();
         neat_init();
 }
 
 void at_scat_init(void)
 {
         at_ide_init();
-        mem_remap_top_384k();
         scat_init();
 }
 
@@ -566,7 +564,6 @@ void at_wd76c10_init(void)
 void at_headland_init(void)
 {
         at_ide_init();
-        mem_remap_top_384k();
         headland_init();
 }
 

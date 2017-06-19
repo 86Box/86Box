@@ -674,7 +674,7 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 			{
 				temp_mem_size = models[temp_model].max_ram;
 			}
-			if (models[temp_model].flags & MODEL_AT)
+			if ((models[temp_model].flags & MODEL_AT) && (models[temp_model].ram_granularity < 128))
 			{
 				temp_mem_size *= 1024;
 			}
