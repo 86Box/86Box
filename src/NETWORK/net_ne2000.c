@@ -243,7 +243,7 @@ nelog(int lvl, const char *fmt, ...)
 static void
 nic_interrupt(nic_t *dev, int set)
 {
-    if ((PCI && dev->is_pci) && (dev->base_irq == 0xff)) {
+    if (PCI && dev->is_pci) {
 	if (set)
 		pci_set_irq(dev->card, PCI_INTA);
 	  else

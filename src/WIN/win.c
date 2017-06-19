@@ -49,6 +49,7 @@
 #include "plat_mouse.h"
 #include "plat_midi.h"
 #include "plat_thread.h"
+#include "plat_ticks.h"
 #include "plat_ui.h"
 
 #include "win.h"
@@ -269,6 +270,16 @@ void endblit(void)
 void leave_fullscreen(void)
 {
         leave_fullscreen_flag = 1;
+}
+
+uint32_t get_ticks(void)
+{
+	return GetTickCount();
+}
+
+void delay_ms(uint32_t count)
+{
+	Sleep(count);
 }
 
 void mainthread(LPVOID param)
@@ -2044,6 +2055,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 									null_close(i);
 								}
 							}
+							resetpchard_close();
 							loadconfig(wopenfilestring);
 							for (i = 0; i < CDROM_NUM; i++)
 							{
@@ -2075,7 +2087,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 							mem_resize();
 							loadbios();
 							update_status_bar_panes(hwndStatus);
-							resetpchard();
+							resetpchard_init();
 						}
 					}
 					pause = 0;
@@ -2318,7 +2330,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 						break;
 					}
 
-					ret = file_dlg_w_st(hwnd, IDS_2173, discfns[id], id);
+					ret = file_dlg_w_st(hwnd, IDS_2173, discfns[id], 0);
 					if (!ret)
 					{
 						disc_close(id);

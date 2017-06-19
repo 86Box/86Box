@@ -150,8 +150,7 @@ void pci_issue_irq(int irq)
 
 	if (irq_elcr)
 	{
-		/* picintlevel(1 << irq); */
-		picint(1 << irq);
+		picintlevel(1 << irq);
 	}
 	else
 	{
@@ -161,21 +160,22 @@ void pci_issue_irq(int irq)
 
 void pci_set_irq(int card, int pci_int)
 {
+	int irq = ((pci_int - PCI_INTA) + (pci_irq_routing[card] - PCI_INTA)) & 3;
+
         if (pci_irq_routing[card])
         {
-                int irq = ((pci_int - PCI_INTA) + (pci_irq_routing[card] - PCI_INTA)) & 3;
                 if (pci_irqs[irq] != PCI_IRQ_DISABLED && !pci_irq_active[card])
 			pci_issue_irq(pci_irqs[irq]);
-                        /* picint(1 << pci_irqs[irq]); */
                 pci_irq_active[card] = 1;
         }
 }
 
 void pci_clear_irq(int card, int pci_int)
 {
+	int irq = ((pci_int - PCI_INTA) + (pci_irq_routing[card] - PCI_INTA)) & 3;
+
         if (pci_irq_routing[card])
         {
-                int irq = ((pci_int - PCI_INTA) + (pci_irq_routing[card] - PCI_INTA)) & 3;
                 if (pci_irqs[irq] != PCI_IRQ_DISABLED && pci_irq_active[card])
                         picintc(1 << pci_irqs[irq]);
                 pci_irq_active[card] = 0;

@@ -63,6 +63,12 @@ sermouse_timer(void *priv)
 		serial_write_fifo(ms->serial, 'M', 1);
 		break;
 
+	case SERMOUSE_TYPE_LOGITECH:
+		/* This identifies a two-button Logitech Serial mouse. */
+		serial_write_fifo(ms->serial, 'M', 1);
+		serial_write_fifo(ms->serial, '3', 1);
+		break;
+
 	default:
 		/* No action needed. */
 		break;
@@ -114,6 +120,22 @@ sermouse_poll(int x, int y, int z, int b, void *priv)
 		break;
 
 	case SERMOUSE_TYPE_LOGITECH:
+		buff[0] = 0x40;
+		buff[0] |= (((y>>6)&03)<<2);
+		buff[0] |= ((x>>6)&03);
+		if (b&0x01) buff[0] |= 0x20;
+		if (b&0x02) buff[0] |= 0x10;
+		buff[1] = x & 0x3F;
+		buff[2] = y & 0x3F;
+		if (b&0x04)
+		{
+			buff[3] = 0x20;
+			len = 4;
+		}
+		else
+		{
+			len = 3;
+		}
 		break;
     }
 
@@ -168,6 +190,13 @@ sermouse_init_microsoft(void)
 
 
 static void *
+sermouse_init_logitech(void)
+{
+    return(sermouse_init(SERMOUSE_TYPE_LOGITECH));
+}
+
+
+static void *
 sermouse_init_msystems(void)
 {
     return(sermouse_init(SERMOUSE_TYPE_MSYSTEMS));
@@ -189,6 +218,16 @@ mouse_t mouse_serial_microsoft = {
     "msserial",
     MOUSE_TYPE_SERIAL,
     sermouse_init_microsoft,
+    sermouse_close,
+    sermouse_poll
+};
+
+
+mouse_t mouse_serial_logitech = {
+    "Logitech 3-button mouse (serial)",
+    "lserial",
+    MOUSE_TYPE_SERIAL | MOUSE_TYPE_3BUTTON,
+    sermouse_init_logitech,
     sermouse_close,
     sermouse_poll
 };

@@ -8,7 +8,7 @@
  *
  *		Roland MPU-401 emulation.
  *
- * Version:	@(#)sound_mpu401.c	1.0.0	2017/05/30
+ * Version:	@(#)sound_mpu401.c	1.0.1	2017/06/19
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		DOSBox Team,
@@ -25,7 +25,7 @@
 #include "../io.h"
 #include "../pic.h"
 #include "../timer.h"
-#include "../win/plat_midi.h"	/*YUCK*/
+#include "midi.h"
 #include "sound.h"
 #include "snd_mpu401.h"
 

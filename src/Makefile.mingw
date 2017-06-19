@@ -62,7 +62,7 @@ endif
 #########################################################################
 #		Nothing should need changing from here on..		#
 #########################################################################
-VPATH	= . cpu sound sound/resid-fp video lzf network network/slirp win
+VPATH	= . cpu sound sound/munt sound/munt/c_interface sound/munt/sha1 sound/munt/srchelper sound/resid-fp video lzf network network/slirp win
 PLAT	= win/
 ifeq ($(X64), y)
 CPP	= g++.exe -m64
@@ -76,9 +76,17 @@ WINDRES	= windres.exe
 OPTS	= -DWIN32 -I$(PLAT) $(EXTRAS) $(STUFF)
 
 ifeq ($(X64), y)
- DFLAGS		= 
+ ifeq ($(OPTIM), y)
+  DFLAGS		= -march=native
+ else
+  DFLAGS		= 
+ endif
 else
- DFLAGS		= -march=i686
+ ifeq ($(OPTIM), y)
+  DFLAGS		= -march=native
+ else
+  DFLAGS		= -march=i686
+ endif
 endif
 ifeq ($(DEBUG), y)
  DFLAGS		+= -ggdb -DDEBUG
@@ -175,7 +183,13 @@ SNDOBJ	= sound.o \
 	  wave6581_P_T.o wave6581_PS_.o wave6581_PST.o \
 	  wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
 	  wave8580_PST.o wave.o \
+	  Analog.o BReverbModel.o File.o FileStream.o LA32Ramp.o \
+	  LA32FloatWaveGenerator.o LA32WaveGenerator.o \
+	  MidiStreamParser.o Part.o Partial.o PartialManager.o \
+	  Poly.o ROMInfo.o Synth.o Tables.o TVA.o TVF.o TVP.o \
+	  sha1.o c_interface.o \
 	  dbopl.o nukedopl.o openal.o \
+	  midi.o midi_mt32.o midi_system.o \
 	  snd_speaker.o snd_ps1.o snd_pssj.o \
 	  snd_adlib.o snd_adlibgold.o snd_ad1848.o \
 	  snd_sb.o snd_sb_dsp.o snd_cms.o snd_dbopl.o \
@@ -222,7 +236,7 @@ LZFOBJ	= lzf_c.o lzf_d.o
 
 LIBS	= -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 -lopenal.dll \
 	  -mwindows -lcomctl32 -lwinmm -lwsock32 -liphlpapi -lpsapi \
-	  -static-libstdc++ -static -lstdc++ -static-libgcc -static -lgcc
+	  -static -static-libgcc -static-libstdc++ -lstdc++ -lgcc
 
 
 # Build rules.

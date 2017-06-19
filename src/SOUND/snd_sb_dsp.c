@@ -9,9 +9,9 @@
 #include "../io.h"
 #include "../pic.h"
 #include "../dma.h"
-#include "../win/plat_midi.h"	/*YUCK*/
 #include "../timer.h"
 #include "../device.h"
+#include "midi.h"
 #include "sound.h"
 #include "snd_mpu401.h"
 #include "snd_sb_dsp.h"

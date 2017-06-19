@@ -44,21 +44,28 @@
 #include "fdc.h"
 #include "fdd.h"
 #include "gameport.h"
-#include "plat_joystick.h"
-#include "plat_midi.h"
 #include "hdd.h"
 #include "ide.h"
 #include "cdrom.h"
 #include "cdrom_ioctl.h"
 #include "cdrom_image.h"
 #include "cdrom_null.h"
-#include "scsi.h"
 #include "keyboard.h"
-#include "plat_keyboard.h"
 #include "keyboard_at.h"
+#include "sound/midi.h"
 #include "mouse.h"
-#include "plat_mouse.h"
 #include "network/network.h"
+#ifdef WALTJE
+# define UNICODE
+# include "plat_dir.h"
+# undef UNICODE
+#endif
+#include "plat_joystick.h"
+#include "plat_keyboard.h"
+#include "plat_midi.h"
+#include "plat_mouse.h"
+#include "plat_ui.h"
+#include "scsi.h"
 #include "serial.h"
 #include "sound/sound.h"
 #include "sound/snd_cms.h"
@@ -71,12 +78,6 @@
 #include "sound/snd_ssi2001.h"
 #include "video/video.h"
 #include "video/vid_voodoo.h"
-#include "plat_ui.h"
-#ifdef WALTJE
-# define UNICODE
-# include "plat_dir.h"
-# undef UNICODE
-#endif
 
 
 wchar_t pcempath[512];
@@ -356,10 +357,6 @@ void initpc(int argc, wchar_t *argv[])
 
         loadconfig(config_file);
         pclog("Config loaded\n");
-#if 0
-        if (config_file)
-                saveconfig();
-#endif
 }
 
 void initmodules(void)
@@ -369,7 +366,6 @@ void initmodules(void)
 	/* Initialize modules. */
 	network_init();
         mouse_init();
-        midi_init();
 	serial_init();
 	disc_random_init();
 
@@ -476,24 +472,27 @@ void resetpc_cad(void)
 
 int suppress_overscan = 0;
 
-void resetpchard(void)
+void resetpchard_close(void)
 {
-	int i = 0;
-
 	suppress_overscan = 0;
 
 	savenvr();
-#if 0
-	saveconfig();
-#endif
 
         device_close_all();
 	mouse_emu_close();
+        closeal();
+}
+
+void resetpchard_init(void)
+{
+	int i = 0;
+
+        initalmain(0,NULL);
+
         device_init();
-        
-        midi_close();
-        midi_init();
-        
+        midi_device_init();
+        inital();
+    
         timer_reset();
         sound_reset();
         mem_resize();
@@ -559,16 +558,14 @@ void resetpchard(void)
 	sound_cd_thread_reset();
 }
 
-char romsets[17][40]={"IBM PC","IBM XT","Generic Turbo XT","Euro PC","Tandy 1000","Amstrad PC1512","Sinclair PC200","Amstrad PC1640","IBM AT","AMI 286 clone","Dell System 200","Misc 286","IBM AT 386","Misc 386","386 clone","486 clone","486 clone 2"};
-char clockspeeds[3][12][16]=
+void resetpchard(void)
 {
-        {"4.77MHz","8MHz","10MHz","12MHz","16MHz"},
-        {"8MHz","12MHz","16MHz","20MHz","25MHz"},
-        {"16MHz","20MHz","25MHz","33MHz","40MHz","50MHz","66MHz","75MHz","80MHz","100MHz","120MHz","133MHz"},
-};
+	resetpchard_close();
+	resetpchard_init();
+}
+
 int framecountx=0;
 int sndcount=0;
-int oldat70hz;
 
 int sreadlnum,swritelnum,segareads,segawrites, scycles_lost;
 

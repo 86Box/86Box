@@ -3,6 +3,7 @@
 */
 FILE *romfopen(wchar_t *fn, wchar_t *mode);
 FILE *nvrfopen(wchar_t *fn, wchar_t *mode);
+int rom_getfile(wchar_t *fn, wchar_t *s, int size);
 int rom_present(wchar_t *fn);
 
 typedef struct rom_t
