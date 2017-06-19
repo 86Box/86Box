@@ -502,7 +502,6 @@ void resetpchard_init(void)
         model_init();
         video_init();
         speaker_init();        
-	network_reset();
 
 	ide_ter_disable();
 	ide_qua_disable();
@@ -519,6 +518,7 @@ void resetpchard_init(void)
 
         resetide();
 	scsi_card_init();
+	network_reset();
 
         sound_card_init();
         if (mpu401_standalone_enable)
