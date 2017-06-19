@@ -86,6 +86,7 @@ typedef struct s3_t
         int card;
 
         uint32_t vram_mask;
+		uint8_t status_9ae8;
         
         float (*getclock)(int clock, void *p);
         void *getclock_p;
@@ -1228,7 +1229,7 @@ uint8_t s3_accel_in(uint16_t port, void *p)
                 if (!FIFO_EMPTY)
                         temp |= 0x02; /*Hardware busy*/
                 else
-                        temp |= 0x04; /*FIFO empty*/
+                        temp |= s3->status_9ae8; /*FIFO empty*/
                 if (FIFO_FULL)
                         temp |= 0xf8; /*FIFO full*/
                 return temp;
@@ -1618,6 +1619,14 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                 frgd_mix = (s3->accel.frgd_mix >> 5) & 3;
                 bkgd_mix = (s3->accel.bkgd_mix >> 5) & 3;
                 
+				s3->status_9ae8 = 4; /*To avoid the spam from OS/2's drivers*/
+
+				if ((s3->accel.cmd & 0x100) && !cpu_input)
+				{
+					s3->status_9ae8 = 2; /*To avoid the spam from OS/2's drivers*/
+					return; /*Wait for data from CPU*/
+				}				
+				
                 while (count-- && s3->accel.sy >= 0)
                 {
                         if (s3->accel.cx >= clip_l && s3->accel.cx <= clip_r &&
@@ -1702,7 +1711,8 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                 bkgd_mix = (s3->accel.bkgd_mix >> 5) & 3;
                 
                 if (!cpu_input && frgd_mix == 3 && !vram_mask && !compare_mode &&
-                    (s3->accel.cmd & 0xa0) == 0xa0 && (s3->accel.frgd_mix & 0xf) == 7) 
+                    (s3->accel.cmd & 0xa0) == 0xa0 && (s3->accel.frgd_mix & 0xf) == 7 &&
+					(s3->accel.bkgd_mix & 0xf) == 7)
                 {
                         while (1)
                         {
