@@ -1059,10 +1059,21 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			case WIN_SLEEP1:
 				if (val == WIN_DRIVE_DIAGNOSTICS)
 				{
-					ide->atastat = BUSY_STAT;
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					}
+					else
+					{
+						ide->atastat = BUSY_STAT;
+					}
 					timer_process();
 					callbackide(ide_board);
-					idecallback[ide_board]=200*IDE_TIME;
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].callback = 200 * IDE_TIME;
+					}
+					idecallback[ide_board] = 200 * IDE_TIME;
 					timer_update_outstanding();
 				}
 				else
@@ -1078,9 +1089,9 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 					timer_process();
 					if (ide_drive_is_cdrom(ide))
 					{
-						cdrom[atapi_cdrom_drives[ide->channel]].callback = ((val == WIN_DRIVE_DIAGNOSTICS) ? 200 : 30) * IDE_TIME;
+						cdrom[atapi_cdrom_drives[ide->channel]].callback = 30 * IDE_TIME;
 					}
-					idecallback[ide_board] = ((val == WIN_DRIVE_DIAGNOSTICS) ? 200 : 30) * IDE_TIME;
+					idecallback[ide_board] = 30 * IDE_TIME;
 					timer_update_outstanding();
 				}
 				return;

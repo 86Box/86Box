@@ -437,9 +437,9 @@ static void win_settings_machine_recalc_cpu_m(HWND hdlg)
 		c++;
 	}
 	EnableWindow(h, TRUE);
-	if (temp_cpu > c)
+	if (temp_cpu >= c)
 	{
-		temp_cpu = c;
+		temp_cpu = (c - 1);
 	}
 	SendMessage(h, CB_SETCURSEL, temp_cpu, 0);
 
@@ -482,9 +482,9 @@ static void win_settings_machine_recalc_model(HWND hdlg)
 		c++;
 	}
 	EnableWindow(h, TRUE);
-	if (temp_cpu_m > c)
+	if (temp_cpu_m >= c)
 	{
-		temp_cpu_m = c;
+		temp_cpu_m = (c - 1);
 	}
 	SendMessage(h, CB_SETCURSEL, temp_cpu_m, 0);
 	if (c == 1)
