@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)ide.c	1.0.3	2017/06/17
+ * Version:	@(#)ide.c	1.0.4	2017/06/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1059,7 +1059,11 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			case WIN_SLEEP1:
 				if (val == WIN_DRIVE_DIAGNOSTICS)
 				{
+					ide->atastat = BUSY_STAT;
+					timer_process();
 					callbackide(ide_board);
+					idecallback[ide_board]=200*IDE_TIME;
+					timer_update_outstanding();
 				}
 				else
 				{
