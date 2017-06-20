@@ -245,9 +245,9 @@ nic_interrupt(nic_t *dev, int set)
 {
     if (PCI && dev->is_pci) {
 	if (set)
-		pci_set_irq(dev->card, PCI_INTA);
+		pci_set_irq(dev->card, PCI_INTC);
 	  else
-		pci_clear_irq(dev->card, PCI_INTA);
+		pci_clear_irq(dev->card, PCI_INTC);
     } else {
 	if (set)
 		picint(1<<dev->base_irq);
@@ -1485,6 +1485,7 @@ nic_pci_read(int func, int addr, void *priv)
 		ret = dev->pci_regs[addr];
 		break;
 
+#if 0
 	case 0x0C:			/* (reserved) */
 		ret = dev->pci_regs[addr];
 		break;
@@ -1497,6 +1498,7 @@ nic_pci_read(int func, int addr, void *priv)
 	case 0x0F:			/* (reserved) */
 		ret = dev->pci_regs[addr];
 		break;
+#endif
 
 	case 0x10:			/* PCI_BAR 7:5 */
 		ret = (dev->pci_bar[0].addr_regs[1] & 0xe0) | 0x01;
@@ -1553,23 +1555,30 @@ static void
 nic_pci_write(int func, int addr, uint8_t val, void *priv)
 {
     nic_t *dev = (nic_t *)priv;
+    uint8_t valxor;
 
     nelog(2, "%s: PCI_Write(%d, %04x, %02x)\n", dev->name, func, addr, val);
 
     switch(addr) {
 	case 0x04:			/* PCI_COMMAND_LO */
-		val &= 0x03;
-		nic_ioremove(dev, dev->base_address);
-		if (val & PCI_COMMAND_IO)
-			nic_ioset(dev, dev->base_address);
+		valxor = (val & 0x23) ^ dev->pci_regs[addr];
+		if (valxor & PCI_COMMAND_IO)
+		{
+			nic_ioremove(dev, dev->base_address);
+			if ((dev->base_address != 0) && (val & PCI_COMMAND_IO))
+			{
+				nic_ioset(dev, dev->base_address);
+			}
+		}
 #if 0
 		if (val & PCI_COMMAND_MEMORY) {
 			...
 		}
 #endif
-		dev->pci_regs[addr] = val;
+		dev->pci_regs[addr] = val & 0x23;
 		break;
 
+#if 0
 	case 0x0C:			/* (reserved) */
 		dev->pci_regs[addr] = val;
 		break;
@@ -1585,6 +1594,7 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 	case 0x0F:			/* (reserved) */
 		dev->pci_regs[addr] = val;
 		break;
+#endif
 
 	case 0x10:			/* PCI_BAR */
 		val &= 0xfc;	/* 0xe0 acc to RTL DS */
@@ -1607,8 +1617,13 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 		nelog(1, "%s: PCI: new I/O base is %04X\n",
 				dev->name, dev->base_address);
 		/* We're done, so get out of the here. */
-		if (val & PCI_COMMAND_IO)
-			nic_ioset(dev, dev->base_address);
+		if (dev->pci_regs[4] & PCI_COMMAND_IO)
+		{
+			if (dev->base_address != 0)
+			{
+				nic_ioset(dev, dev->base_address);
+			}
+		}
 		break;
 
 	case 0x30:			/* PCI_ROMBAR */
@@ -1938,8 +1953,7 @@ nic_init(int board)
 	dev->pci_regs[0x2E] = (PCI_DEVID&0xff);
 	dev->pci_regs[0x2F] = (PCI_DEVID>>8);
 
-	dev->pci_regs[0x3C] = dev->base_irq;	/* PCI_ILR */
-        dev->pci_regs[0x3D] = 0x01;		/* PCI_IPR */
+        dev->pci_regs[0x3D] = PCI_INTC;		/* PCI_IPR */
 
 	/* Enable our address space in PCI. */
 	dev->pci_bar[0].addr_regs[0] = 0x01;

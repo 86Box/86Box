@@ -533,11 +533,11 @@ BuslogicInterrupt(Buslogic_t *bl, int set)
 	{
 	        if (set)
 		{
-        	        pci_set_irq(bl->Card, PCI_INTA);
+        	        pci_set_irq(bl->Card, PCI_INTB);
 		}
 	        else
 		{
-        	        pci_clear_irq(bl->Card, PCI_INTA);
+        	        pci_clear_irq(bl->Card, PCI_INTB);
 		}
 	}
 	else
@@ -2116,7 +2116,7 @@ BuslogicPCIRead(int func, int addr, void *p)
 	case 0x3C:
 		return bl->Irq;
 	case 0x3D:
-		return PCI_INTA;
+		return PCI_INTB;
     }
 
     return(0);

@@ -88,6 +88,7 @@ extern void         olim24_init(void);
 extern void             at_init(void);
 extern void         ibm_at_init(void);
 extern void         at_ide_init(void);
+extern void        cmdpc30_init(void);
 extern void     deskpro386_init(void);
 extern void      ps1_m2011_init(void);
 extern void      ps1_m2121_init(void);
@@ -163,7 +164,7 @@ MODEL models[] =
         {"IBM AT",			ROM_IBMAT,		"ibmat",		{{"",      cpus_ibmat},       {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT,						256,15872, 128,  63,         ibm_at_init, NULL},
         {"Compaq Portable II",		ROM_PORTABLEII,		"portableii",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT,						  1,   15,   1,  63,             at_init, NULL},
         {"Compaq Portable III",		ROM_PORTABLEIII,	"portableiii",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT,						  1,   15,   1,  63,             at_init, NULL},
-        {"Commodore PC 30 III",		ROM_CMDPC30,		"cmdpc30",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				640,16384, 128, 127,         at_ide_init, NULL},
+        {"Commodore PC 30 III",		ROM_CMDPC30,		"cmdpc30",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				640,16384, 128, 127,        cmdpc30_init, NULL},
         {"AMI 286 clone",		ROM_AMI286,		"ami286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				512,16384, 128, 127,        at_neat_init, NULL},        
         {"Award 286 clone",		ROM_AWARD286,		"award286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				512,16384, 128, 127,        at_scat_init, NULL},
         {"Hyundai Super-286TR",		ROM_SUPER286TR,		"super286tr",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				512,16384, 128, 127,        at_scat_init, NULL},
@@ -432,6 +433,12 @@ void at_ide_init(void)
 	ide_init();
 }
 
+void cmdpc30_init(void)
+{
+	at_ide_init();
+        mem_remap_top_384k();
+}
+
 void deskpro386_init(void)
 {
         at_init();
@@ -697,10 +704,10 @@ void at_mb500n_init(void)
 {
         at_ide_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(0x11);
-        pci_slot(0x12);
-        pci_slot(0x13);
         pci_slot(0x14);
+        pci_slot(0x13);
+        pci_slot(0x12);
+        pci_slot(0x11);
         i430fx_init();
         piix_init(7, 0x14, 0x13, 0x12, 0x11);
         fdc37c665_init();
@@ -730,10 +737,10 @@ void at_p54tp4xe_init(void)
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(9);
-        pci_slot(10);
-        pci_slot(11);
         pci_slot(12);
+        pci_slot(11);
+        pci_slot(10);
+        pci_slot(9);
         i430fx_init();
         piix_init(7, 12, 11, 10, 9);
         fdc37c665_init();
@@ -763,12 +770,12 @@ void at_p55t2s_init(void)
         memregs_init();
         powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(0x11);
         pci_slot(0x12);
-        pci_slot(0x13);
+        pci_slot(0x11);
         pci_slot(0x14);
+        pci_slot(0x13);
         i430hx_init();
-        piix_init(7, 0x12, 0x13, 0x14, 0x11);
+        piix_init(7, 0x12, 0x11, 0x14, 0x13);
         pc87306_init();
         acerm3a_io_init();
         device_add(&intel_flash_bxt_device);
@@ -813,10 +820,10 @@ void at_p55t2p4_init(void)
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(9);
-        pci_slot(10);
-        pci_slot(11);
         pci_slot(12);
+        pci_slot(11);
+        pci_slot(10);
+        pci_slot(9);
         i430hx_init();
         piix3_init(7, 12, 11, 10, 9);
         w83877f_init();
@@ -845,10 +852,10 @@ void at_p55tvp4_init(void)
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(9);
-        pci_slot(10);
-        pci_slot(11);
         pci_slot(12);
+        pci_slot(11);
+        pci_slot(10);
+        pci_slot(9);
         i430vx_init();
         piix3_init(7, 12, 11, 10, 9);
         w83877f_init();
@@ -875,10 +882,10 @@ void at_i440fx_init(void)
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(0xb);
-        pci_slot(0xc);
-        pci_slot(0xd);
         pci_slot(0xe);
+        pci_slot(0xd);
+        pci_slot(0xc);
+        pci_slot(0xb);
         i430vx_init();
         piix3_init(7, 0xe, 0xd, 0xc, 0xb);
 	fdc37c665_init();
@@ -890,10 +897,10 @@ void at_s1668_init(void)
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(0xb);
-        pci_slot(0xc);
-        pci_slot(0xd);
         pci_slot(0xe);
+        pci_slot(0xd);
+        pci_slot(0xc);
+        pci_slot(0xb);
         i440fx_init();
         piix3_init(7, 0xe, 0xd, 0xc, 0xb);
 	fdc37c665_init();
