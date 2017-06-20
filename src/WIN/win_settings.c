@@ -2164,7 +2164,7 @@ static void recalc_next_free_id(HWND hdlg)
 
 	h = GetDlgItem(hdlg, IDC_BUTTON_HDD_REMOVE);
 
-	if ((c_mfm == 0) && (c_ide_pio == 0) && (c_ide_dma == 0) && (c_scsi == 0))
+	if ((c_mfm == 0) && (c_rll == 0) && (c_xtide == 0) && (c_ide_pio == 0) && (c_ide_dma == 0) && (c_scsi == 0))
 	{
 		EnableWindow(h, FALSE);
 	}
