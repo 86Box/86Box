@@ -1297,7 +1297,6 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 			{
 				EnableWindow(h, FALSE);
 			}
-			EnableWindow(h, mpu401_present() ? TRUE : FALSE);
 
 		        h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
         	        SendMessage(h, BM_SETCHECK, temp_mpu401, 0);
@@ -1342,8 +1341,12 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 						EnableWindow(h, FALSE);
 					}
 
-					h = GetDlgItem(hdlg, IDC_COMBO_MIDI);
-					EnableWindow(h, mpu401_present() ? TRUE : FALSE);
+				        h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
+        			        SendMessage(h, BM_SETCHECK, temp_mpu401, 0);
+				        EnableWindow(h, mpu401_standalone_allow() ? TRUE : FALSE);
+
+				        h = GetDlgItem(hdlg, IDC_CONFIGURE_MPU401);
+				        EnableWindow(h, (mpu401_standalone_allow() && temp_mpu401) ? TRUE : FALSE);
 					break;
 
 				case IDC_CONFIGURE_SND:
@@ -1367,8 +1370,12 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 						EnableWindow(h, FALSE);
 					}
 
-					h = GetDlgItem(hdlg, IDC_COMBO_MIDI);
-					EnableWindow(h, mpu401_present() ? TRUE : FALSE);
+				        h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
+        			        SendMessage(h, BM_SETCHECK, temp_mpu401, 0);
+				        EnableWindow(h, mpu401_standalone_allow() ? TRUE : FALSE);
+
+				        h = GetDlgItem(hdlg, IDC_CONFIGURE_MPU401);
+				        EnableWindow(h, (mpu401_standalone_allow() && temp_mpu401) ? TRUE : FALSE);
 					break;
 
 				case IDC_CONFIGURE_MIDI:
@@ -1383,9 +1390,6 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 					temp_mpu401 = SendMessage(h, BM_GETCHECK, 0, 0);
 
 	        		        h = GetDlgItem(hdlg, IDC_CONFIGURE_MPU401);
-					EnableWindow(h, mpu401_present() ? TRUE : FALSE);
-
-					h = GetDlgItem(hdlg, IDC_COMBO_MIDI);
 					EnableWindow(h, mpu401_present() ? TRUE : FALSE);
 					break;
 
