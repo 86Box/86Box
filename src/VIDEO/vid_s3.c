@@ -1961,7 +1961,9 @@ void s3_hwcursor_draw(svga_t *svga, int displine)
         uint16_t dat[2];
         int xx;
         int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
-        
+	int y_add = (enable_overscan && !suppress_overscan) ? 16 : 0;
+	int x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
+
         if (svga->interlace && svga->hwcursor_oddeven)
                 svga->hwcursor_latch.addr += 16;
 
@@ -1974,9 +1976,9 @@ void s3_hwcursor_draw(svga_t *svga, int displine)
                         if (offset >= svga->hwcursor_latch.x)
                         {
                                 if (!(dat[0] & 0x8000))
-                                   ((uint32_t *)buffer32->line[displine])[offset + 32]  = (dat[1] & 0x8000) ? 0xffffff : 0;
+                                   ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add]  = (dat[1] & 0x8000) ? 0xffffff : 0;
                                 else if (dat[1] & 0x8000)
-                                   ((uint32_t *)buffer32->line[displine])[offset + 32] ^= 0xffffff;
+                                   ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add] ^= 0xffffff;
                         }
                            
                         offset++;
