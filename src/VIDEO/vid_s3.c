@@ -1614,11 +1614,7 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         
                         s3->accel.dest = s3->accel.cy * s3->width;
                 }
-                if ((s3->accel.cmd & 0x100) && !cpu_input) return; /*Wait for data from CPU*/
 
-                frgd_mix = (s3->accel.frgd_mix >> 5) & 3;
-                bkgd_mix = (s3->accel.bkgd_mix >> 5) & 3;
-                
 				s3->status_9ae8 = 4; /*To avoid the spam from OS/2's drivers*/
 
 				if ((s3->accel.cmd & 0x100) && !cpu_input)
@@ -1626,6 +1622,11 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 					s3->status_9ae8 = 2; /*To avoid the spam from OS/2's drivers*/
 					return; /*Wait for data from CPU*/
 				}				
+				
+                if ((s3->accel.cmd & 0x100) && !cpu_input) return; /*Wait for data from CPU*/
+
+                frgd_mix = (s3->accel.frgd_mix >> 5) & 3;
+                bkgd_mix = (s3->accel.bkgd_mix >> 5) & 3;			
 				
                 while (count-- && s3->accel.sy >= 0)
                 {
