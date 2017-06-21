@@ -169,6 +169,8 @@ void trc_reset(uint8_t val)
 
 		port_92_reset();
 		keyboard_at_reset();
+
+		elcr_reset();
 	}
 	resetx86();
 }

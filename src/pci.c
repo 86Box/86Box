@@ -75,6 +75,19 @@ uint8_t elcr_read(uint16_t port, void *priv)
 	return elcr[port & 1];
 }
 
+void elcr_reset(void)
+{
+	int i = 0;
+
+	pic_reset();
+	elcr[0] = elcr[1] = 0;
+
+	for (i = 0; i < 32; i++)
+	{
+		pci_irq_active[i] = 0;
+	}
+}
+
 void pci_type2_write(uint16_t port, uint8_t val, void *priv);
 uint8_t pci_type2_read(uint16_t port, void *priv);
 
@@ -187,6 +200,8 @@ void pci_init(int type)
         int c;
 
         PCI = 1;
+
+	elcr_reset();
 
 	io_sethandler(0x04d0, 0x0002, elcr_read, NULL, NULL, elcr_write, NULL, NULL,  NULL);
         
