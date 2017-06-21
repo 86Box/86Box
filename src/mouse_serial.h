@@ -10,7 +10,7 @@
  *
  *		Definitions for the Serial Mouse driver.
  *
- * Version:	@(#)mouse_serial.h	1.0.2	2017/05/06
+ * Version:	@(#)mouse_serial.h	1.0.3	2017/06/19
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */

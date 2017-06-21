@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.4	2017/06/19
+ * Version:	@(#)win_settings.c	1.0.5	2017/06/21
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2017 Miran Grca.
@@ -902,32 +902,35 @@ static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wPa
 				{
 					switch(c)
 					{
-						case 0:	/* MS Serial */
+						case 0:	/* none */
+							str_id = IDS_2151;
+							break;
+						case 1:	/* MS Serial */
 						default:
 							str_id = IDS_2139;
 							break;
-						case 1:	/* PS2 2b */
+						case 2:	/* PS2 2b */
 							str_id = IDS_2141;
 							break;
-						case 2:	/* PS2 intelli 3b */
+						case 3:	/* PS2 intelli 3b */
 							str_id = IDS_2142;
 							break;
-						case 3: /* MS/logi bus 2b */
+						case 4: /* MS/logi bus 2b */
 							str_id = IDS_2143;
 							break;
-						case 4:	/* Amstrad */
+						case 5:	/* Amstrad */
 							str_id = IDS_2162;
 							break;
-						case 5:	/* Olivetti M24 */
+						case 6:	/* Olivetti M24 */
 							str_id = IDS_2177;
 							break;
-						case 6:	/* MouseSystems */
+						case 7:	/* MouseSystems */
 							str_id = IDS_2140;
 							break;
-						case 7:	/* Logitech Serial */
+						case 8:	/* Logitech Serial */
 							str_id = IDS_2224;
 							break;
-						case 8:	/* Genius Bus */
+						case 9:	/* Genius Bus */
 							str_id = IDS_2161;
 							break;
 					}
