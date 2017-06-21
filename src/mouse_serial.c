@@ -57,25 +57,21 @@ sermouse_timer(void *priv)
 
     ms->delay = 0;
 
-    if (ms->pos == -1)
-    {
-	    ms->pos = 0;
-	    switch(ms->type) {
-		case SERMOUSE_TYPE_MICROSOFT:
-			/* This identifies a two-button Microsoft Serial mouse. */
-			serial_write_fifo(ms->serial, 'M', 1);
-			break;
+    switch(ms->type) {
+	case SERMOUSE_TYPE_MICROSOFT:
+		/* This identifies a two-button Microsoft Serial mouse. */
+		serial_write_fifo(ms->serial, 'M', 1);
+		break;
 
-		case SERMOUSE_TYPE_LOGITECH:
-			/* This identifies a two-button Logitech Serial mouse. */
-			serial_write_fifo(ms->serial, 'M', 1);
-			serial_write_fifo(ms->serial, '3', 1);
-			break;
+	case SERMOUSE_TYPE_LOGITECH:
+		/* This identifies a two-button Logitech Serial mouse. */
+		serial_write_fifo(ms->serial, 'M', 1);
+		serial_write_fifo(ms->serial, '3', 1);
+		break;
 
-		default:
-			/* No action needed. */
-			break;
-	    }
+	default:
+		/* No action needed. */
+		break;
     }
 }
 
@@ -87,7 +83,6 @@ sermouse_poll(int x, int y, int z, int b, void *priv)
     uint8_t buff[16];
     int len;
 
-    if (!(serial_ier(0) & 1)) return(1);
     if (!x && !y && b == ms->oldb) return(1);
 
     ms->oldb = b;
@@ -147,12 +142,9 @@ sermouse_poll(int x, int y, int z, int b, void *priv)
     pclog(" ] (%d)\n", len);
 #endif
 
-    if (!(serial_mctrl(0) & 0x10))
-    {
-	    /* Send the packet to the bottom-half of the attached port. */
-	    for (b=0; b<len; b++)
-		serial_write_fifo(ms->serial, buff[b], 1);
-    }
+    /* Send the packet to the bottom-half of the attached port. */
+    for (b=0; b<len; b++)
+	serial_write_fifo(ms->serial, buff[b], 1);
 
     return(0);
 }
