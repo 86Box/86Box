@@ -232,9 +232,6 @@ void loadnvr(void)
 		nvrmask = model_get_nvrmask(model);
 	}
 
-	free(nvr_name);
-	free(model_name);
-
         if (!f || (model_get_nvrmask(model) == 0))
         {
 		if (f)
@@ -250,6 +247,9 @@ void loadnvr(void)
                         nvrram[RTC_CENTURY] = BCD(19);
                         nvrram[RTC_REGB] = RTC_2412;
                 }
+
+		free(nvr_name);
+		free(model_name);
                 return;
         }
         fread(nvrram,128,1,f);
@@ -262,6 +262,9 @@ void loadnvr(void)
         nvrram[RTC_REGB] = RTC_2412;
         c = 1 << ((nvrram[RTC_REGA] & RTC_RS) - 1);
         rtctime += (int)(RTCCONST * c * (1 << TIMER_SHIFT));
+
+	free(nvr_name);
+	free(model_name);
 }
 
 void savenvr(void)
@@ -283,20 +286,23 @@ void savenvr(void)
 		f = nvrfopen(nvr_name, L"wb");
 	}
 
-	free(nvr_name);
-	free(model_name);
-
 	if (!f || (model_get_nvrmask(oldmodel) == 0))
 	{
 		if (f)
 		{
 			fclose(f);
 		}
+
+		free(nvr_name);
+		free(model_name);
 		return;
 	}
 
         fwrite(nvrram,128,1,f);
         fclose(f);
+
+	free(nvr_name);
+	free(model_name);
 }
 
 void nvr_init(void)
