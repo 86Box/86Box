@@ -46,14 +46,16 @@ static int32_t filt_w0[256];
 
 static __inline int16_t EMU8K_READ(emu8k_t *emu8k, uint16_t addr)
 {
-        addr &= 0xffffff;
-        if (addr < 0x80000)
+        addr &= EMU8K_MEM_ADDRESS_MASK;
+        /* TODO: I've read that the AWE64 Gold model had a 4MB Rom. It would be interesting
+           to find that rom and do some tests with it. */
+        if (addr < EMU8K_ROM_MEM_1MB_END)
                 return emu8k->rom[addr];
-        if (addr < 0x200000 || addr >= emu8k->ram_end_addr)
+        if (addr < EMU8K_RAM_MEM_START || addr >= emu8k->ram_end_addr)
                 return 0;
         if (!emu8k->ram)
                 return 0;
-        return emu8k->ram[addr - 0x200000];
+        return emu8k->ram[addr - EMU8K_RAM_MEM_START];
 }
 
 static __inline int16_t EMU8K_READ_INTERP(emu8k_t *emu8k, uint16_t addr)
@@ -65,12 +67,20 @@ static __inline int16_t EMU8K_READ_INTERP(emu8k_t *emu8k, uint16_t addr)
 
 static __inline void EMU8K_WRITE(emu8k_t *emu8k, uint16_t addr, uint16_t val)
 {
-        addr &= 0xffffff;
-        if (emu8k->ram && addr >= 0x200000 && addr < emu8k->ram_end_addr)
-                emu8k->ram[addr - 0x200000] = val;
+        if ( !emu8k->ram || addr < EMU8K_RAM_MEM_START)
+                return;
+
+        /* It looks like if an application writes to a memory part outside of the available amount on the card, 
+           it wraps, and opencubicplayer uses that to detect the amount of memory, as opposed to simply check
+           at the address that it has just tried to write. */
+        addr &= EMU8K_MEM_ADDRESS_MASK;
+        while (addr >= emu8k->ram_end_addr) {
+                addr -= emu8k->ram_end_addr - EMU8K_RAM_MEM_START;
+        }
+        emu8k->ram[addr - EMU8K_RAM_MEM_START] = val;
 }
+
 static int ff = 0;
-static int voice_count = 0;
 
 uint16_t emu8k_inw(uint16_t addr, void *p)
 {
@@ -85,8 +95,11 @@ uint16_t emu8k_inw(uint16_t addr, void *p)
                 switch (emu8k->cur_reg)
                 {
                         case 0:
-                        READ16(addr, emu8k->voice[emu8k->cur_voice].cpf);
-                        return ret;
+                        {
+			        uint32_t var = (emu8k->voice[emu8k->cur_voice].cpf & 0xFFFF0000) | ((emu8k->voice[emu8k->cur_voice].addr >> 16) & 0xFFFF);
+                                READ16(addr, var);
+                                return ret;
+                        }
                         
                         case 1:
                         READ16(addr, emu8k->voice[emu8k->cur_voice].ptrx);
@@ -108,7 +121,7 @@ uint16_t emu8k_inw(uint16_t addr, void *p)
                         return ret;
                                                 
                         case 7:
-                        READ16(addr, emu8k->voice[emu8k->cur_voice].cpf);
+                        READ16(addr, emu8k->voice[emu8k->cur_voice].csl);
                         return ret;
                 }
                 break;
@@ -118,6 +131,8 @@ uint16_t emu8k_inw(uint16_t addr, void *p)
                 {
                         case 0:
                         {
+				emu8k->voice[emu8k->cur_voice].ccca = 
+					(emu8k->voice[emu8k->cur_voice].ccca & 0xFF000000) | ((emu8k->voice[emu8k->cur_voice].addr >> 32) & EMU8K_MEM_ADDRESS_MASK);
                                 READ16(addr, emu8k->voice[emu8k->cur_voice].ccca);
                                 return ret;
                         }
@@ -246,11 +261,12 @@ uint16_t emu8k_inw(uint16_t addr, void *p)
                         return 0x1c | ((emu8k->id & 0x0002) ? 0xff02 : 0);
                 }
                 break;
-                case 0xc02: /*Status - I think!*/
-                voice_count = (voice_count + 1) & 0x1f;
-/*                emu8k->c02_read ^= 0x1000;
-                pclog("Read status %04X\n", 0x803f | (voice_count << 8));*/
-                return 0x803f | (voice_count << 8);
+                case 0xc02:
+                /* LS five bits = channel number, next 3 bits = register number
+                   and MS 8 bits = VLSI test register.
+                   Impulse tracker tests the non variability of the LS byte and the variability 
+                   of the MS byte to determine that it really is an AWE32. */
+                return ((rand()&0xFF) << 8) | (emu8k->cur_reg << 5) | emu8k->cur_voice;
         }
 /*        fatal("Bad EMU8K inw from %08X\n", addr);*/
         return 0xffff;
@@ -258,6 +274,7 @@ uint16_t emu8k_inw(uint16_t addr, void *p)
 
 void emu8k_outw(uint16_t addr, uint16_t val, void *p)
 {
+	float q;
         emu8k_t *emu8k = (emu8k_t *)p;
 
         emu8k_update(emu8k);
@@ -270,6 +287,8 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                 {
                         case 0:
                         WRITE16(addr, emu8k->voice[emu8k->cur_voice].cpf, val);
+			/* Ignoring any effect over writing to the "fractional address". The docs says that this value is constantly
+			   updating, so it has no actual effect. */
                         return;
                         
                         case 1:
@@ -286,7 +305,8 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                         
                         case 6:
                         WRITE16(addr, emu8k->voice[emu8k->cur_voice].psst, val);
-                        emu8k->voice[emu8k->cur_voice].loop_start = (uint64_t)(emu8k->voice[emu8k->cur_voice].psst & 0xffffff) << 32;
+                        /* TODO: Should we update only on MSB update, or this could be used as some sort of hack by applications? */
+                        emu8k->voice[emu8k->cur_voice].loop_start = (uint64_t)(emu8k->voice[emu8k->cur_voice].psst & EMU8K_MEM_ADDRESS_MASK) << 32;
                         if (addr & 2)
                         {
                                 emu8k->voice[emu8k->cur_voice].vol_l = val >> 8;
@@ -296,9 +316,10 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                         return;
                         
                         case 7:
-                        WRITE16(addr, emu8k->voice[emu8k->cur_voice].cpf, val);
-                        emu8k->voice[emu8k->cur_voice].loop_end = (uint64_t)(emu8k->voice[emu8k->cur_voice].cpf & 0xffffff) << 32;
-/*                        pclog("emu8k_outl : write CPF %08X\n", emu8k->voice[emu8k->cur_voice].cpf);*/
+                        WRITE16(addr, emu8k->voice[emu8k->cur_voice].csl, val);
+                        /* TODO: Should we update only on MSB update, or this could be used as some sort of hack by applications? */
+	                emu8k->voice[emu8k->cur_voice].loop_end = (uint64_t)(emu8k->voice[emu8k->cur_voice].csl & EMU8K_MEM_ADDRESS_MASK) << 32;
+/*                        pclog("emu8k_outl : write CSL %08X\n", emu8k->voice[emu8k->cur_voice].csl);*/
                         return;
                 }
                 break;
@@ -308,7 +329,8 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                 {
                         case 0:
                         WRITE16(addr, emu8k->voice[emu8k->cur_voice].ccca, val);
-                        emu8k->voice[emu8k->cur_voice].addr = (uint64_t)(emu8k->voice[emu8k->cur_voice].ccca & 0xffffff) << 32;
+                        /* TODO: Should we update only on MSB update, or this could be used as some sort of hack by applications? */
+                        emu8k->voice[emu8k->cur_voice].addr = (uint64_t)(emu8k->voice[emu8k->cur_voice].ccca & EMU8K_MEM_ADDRESS_MASK) << 32;
 /*                        pclog("emu8k_outl : write CCCA %08X\n", emu8k->voice[emu8k->cur_voice].ccca);*/
                         return;
 
@@ -385,10 +407,10 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                 {
                         case 0:
                         {
-                                float q;
-                                
                                 WRITE16(addr, emu8k->voice[emu8k->cur_voice].ccca, val);
-                                emu8k->voice[emu8k->cur_voice].addr = (uint64_t)(emu8k->voice[emu8k->cur_voice].ccca & 0xffffff) << 32;
+	                        emu8k->voice[emu8k->cur_voice].addr = (uint64_t)(emu8k->voice[emu8k->cur_voice].ccca & EMU8K_MEM_ADDRESS_MASK) << 32;
+				/* TODO: Since "fractional address" is a separate register (cpf), should we add its contents to .addr or we assume that it
+				   is reset to zero? */
 
                                 q = (float)(emu8k->voice[emu8k->cur_voice].ccca >> 28) / 15.0f;
                                 q /= 10.0f; /*Horrible and wrong hack*/
@@ -680,8 +702,15 @@ void emu8k_init(emu8k_t *emu8k, int onboard_ram)
         
         if (onboard_ram)
         {
+                /* Clip to 28MB, since that's the max that we can address. */
+                if (onboard_ram > 0x7000) onboard_ram = 0x7000;
                 emu8k->ram = malloc(onboard_ram * 1024);
-                emu8k->ram_end_addr = 0x200000 + ((onboard_ram * 1024) / 2);
+                emu8k->ram_end_addr = EMU8K_RAM_MEM_START + ((onboard_ram * 1024) / 2);
+        }
+        else
+        {
+                emu8k->ram = 0;
+                emu8k->ram_end_addr = EMU8K_RAM_MEM_START;
         }
 
         emu8k->rom = malloc(1024 * 1024);        
