@@ -194,7 +194,7 @@ void pci_set_irq(int card, int pci_int)
 			pci_issue_irq(pci_irqs[irq]);
                 /* pci_irq_active[card] = 1; */
 		/* If the IRQ is set to edge, there is no need to hold it. */
-		if (pci_irq_is_level(pci_irqs[irq])
+		if (pci_irq_is_level(pci_irqs[irq]))
 		{
 			pci_irq_hold[pci_irqs[irq]] |= (1 << card);
 		}
