@@ -487,6 +487,8 @@ void resetpchard_init(void)
 {
 	int i = 0;
 
+	sound_realloc_buffers();
+
         initalmain(0,NULL);
 
         device_init();

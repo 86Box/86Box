@@ -335,8 +335,6 @@ static void win_settings_save(void)
 
 	update_status_bar_panes(hwndStatus);
 
-	sound_realloc_buffers();
-
 	resetpchard_init();
 
 	cpu_set();
