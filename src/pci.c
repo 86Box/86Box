@@ -69,7 +69,7 @@ void elcr_write(uint16_t port, uint8_t val, void *priv)
 	/* pclog("ELCR%i: WRITE %02X\n", port & 1, val); */
 	elcr[port & 1] = val;
 
-	printf("ELCR %i: %c %c %c %c %c %c %c %c\n", port & 1, (val & 1) ? 'L' : 'E', (val & 2) ? 'L' : 'E', (val & 4) ? 'L' : 'E', (val & 8) ? 'L' : 'E', (val & 0x10) ? 'L' : 'E', (val & 0x20) ? 'L' : 'E', (val & 0x40) ? 'L' : 'E', (val & 0x80) ? 'L' : 'E');
+	/* printf("ELCR %i: %c %c %c %c %c %c %c %c\n", port & 1, (val & 1) ? 'L' : 'E', (val & 2) ? 'L' : 'E', (val & 4) ? 'L' : 'E', (val & 8) ? 'L' : 'E', (val & 0x10) ? 'L' : 'E', (val & 0x20) ? 'L' : 'E', (val & 0x40) ? 'L' : 'E', (val & 0x80) ? 'L' : 'E'); */
 }
 
 uint8_t elcr_read(uint16_t port, void *priv)
@@ -193,7 +193,11 @@ void pci_set_irq(int card, int pci_int)
                 if (pci_irqs[irq] != PCI_IRQ_DISABLED/* && !pci_irq_active[card] */)
 			pci_issue_irq(pci_irqs[irq]);
                 /* pci_irq_active[card] = 1; */
-		pci_irq_hold[pci_irqs[irq]] |= (1 << card);
+		/* If the IRQ is set to edge, there is no need to hold it. */
+		if (pci_irq_is_level(pci_irqs[irq])
+		{
+			pci_irq_hold[pci_irqs[irq]] |= (1 << card);
+		}
         }
 }
 
