@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.5	2017/06/21
+ * Version:	@(#)win_settings.c	1.0.6	2017/06/21
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2017 Miran Grca.
@@ -334,6 +334,8 @@ static void win_settings_save(void)
 	loadbios();
 
 	update_status_bar_panes(hwndStatus);
+
+	sound_realloc_buffers();
 
 	resetpchard_init();
 
@@ -900,35 +902,35 @@ static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wPa
 				{
 					switch(c)
 					{
-						case 0:	/* none */
+						case MOUSE_TYPE_NONE:
 							str_id = IDS_2151;
 							break;
-						case 1:	/* MS Serial */
+						case MOUSE_TYPE_SERIAL:
 						default:
 							str_id = IDS_2139;
 							break;
-						case 2:	/* PS2 2b */
+						case MOUSE_TYPE_PS2:
 							str_id = IDS_2141;
 							break;
-						case 3:	/* PS2 intelli 3b */
+						case MOUSE_TYPE_PS2_MS:
 							str_id = IDS_2142;
 							break;
-						case 4: /* MS/logi bus 2b */
+						case MOUSE_TYPE_BUS:
 							str_id = IDS_2143;
 							break;
-						case 5:	/* Amstrad */
+						case MOUSE_TYPE_AMSTRAD:
 							str_id = IDS_2162;
 							break;
-						case 6:	/* Olivetti M24 */
+						case MOUSE_TYPE_OLIM24:
 							str_id = IDS_2177;
 							break;
-						case 7:	/* MouseSystems */
+						case MOUSE_TYPE_MSYSTEMS:
 							str_id = IDS_2140;
 							break;
-						case 8:	/* Logitech Serial */
+						case MOUSE_TYPE_LOGITECH:
 							str_id = IDS_2224;
 							break;
-						case 9:	/* Genius Bus */
+						case MOUSE_TYPE_GENIUS:
 							str_id = IDS_2161;
 							break;
 					}
