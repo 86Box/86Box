@@ -16,6 +16,7 @@ extern int	config_get_hex20(char *head, char *name, int def);
 extern int	config_get_mac(char *head, char *name, int def);
 extern char	*config_get_string(char *head, char *name, char *def);
 extern wchar_t	*config_get_wstring(char *head, char *name, wchar_t *def);
+extern void	config_delete_var(char *head, char *name);
 extern void	config_set_int(char *head, char *name, int val);
 extern void	config_set_hex16(char *head, char *name, int val);
 extern void	config_set_hex20(char *head, char *name, int val);

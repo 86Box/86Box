@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)ide.c	1.0.2	2017/06/16
+ * Version:	@(#)ide.c	1.0.4	2017/06/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,6 +20,7 @@
  */
 #include <stdint.h>
 #include <sys/types.h>
+#include <stdarg.h>
 #include <wchar.h>
 
 #include "86box.h"
@@ -955,6 +956,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				}
 				idecallback[ide_board]=200*IDE_TIME;
 				timer_update_outstanding();
+				ide->do_initial_read = 1;
 				return;
 
 			case WIN_WRITE_MULTIPLE:
@@ -1057,7 +1059,22 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			case WIN_SLEEP1:
 				if (val == WIN_DRIVE_DIAGNOSTICS)
 				{
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					}
+					else
+					{
+						ide->atastat = BUSY_STAT;
+					}
+					timer_process();
 					callbackide(ide_board);
+					if (ide_drive_is_cdrom(ide))
+					{
+						cdrom[atapi_cdrom_drives[ide->channel]].callback = 200 * IDE_TIME;
+					}
+					idecallback[ide_board] = 200 * IDE_TIME;
+					timer_update_outstanding();
 				}
 				else
 				{
@@ -1072,9 +1089,9 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 					timer_process();
 					if (ide_drive_is_cdrom(ide))
 					{
-						cdrom[atapi_cdrom_drives[ide->channel]].callback = ((val == WIN_DRIVE_DIAGNOSTICS) ? 200 : 30) * IDE_TIME;
+						cdrom[atapi_cdrom_drives[ide->channel]].callback = 30 * IDE_TIME;
 					}
-					idecallback[ide_board] = ((val == WIN_DRIVE_DIAGNOSTICS) ? 200 : 30) * IDE_TIME;
+					idecallback[ide_board] = 30 * IDE_TIME;
 					timer_update_outstanding();
 				}
 				return;
@@ -1562,8 +1579,25 @@ void callbackide(int ide_board)
 				goto id_not_found;
 			}
 
-			hdd_image_read(ide->hdc_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
+			if (ide->do_initial_read)
+			{
+				ide->do_initial_read = 0;
+				ide->sector_pos = 0;
+				if (ide->secount)
+				{
+					hdd_image_read(ide->hdc_num, ide_get_sector(ide), ide->secount, ide->sector_buffer);
+				}
+				else
+				{
+					hdd_image_read(ide->hdc_num, ide_get_sector(ide), 256, ide->sector_buffer);
+				}
+			}
+
+			memcpy(ide->buffer, &ide->sector_buffer[ide->sector_pos*512], 512);
+
+			ide->sector_pos++;
 			ide->pos=0;
+
 			ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 
 			ide_irq_raise(ide);
@@ -1580,18 +1614,33 @@ void callbackide(int ide_board)
 			{
 				goto id_not_found;
 			}
-			hdd_image_read(ide->hdc_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
+
+			if (ide->do_initial_read)
+			{
+				ide->do_initial_read = 0;
+				ide->sector_pos = 0;
+				if (ide->secount)
+				{
+					hdd_image_read(ide->hdc_num, ide_get_sector(ide), ide->secount, ide->sector_buffer);
+				}
+				else
+				{
+					hdd_image_read(ide->hdc_num, ide_get_sector(ide), 256, ide->sector_buffer);
+				}
+			}
+
 			ide->pos=0;
                 
 			if (ide_bus_master_read)
 			{
-				if (ide_bus_master_read(ide_board, (uint8_t *)ide->buffer, 512))
+				if (ide_bus_master_read(ide_board, &ide->sector_buffer[ide->sector_pos*512], 512))
 				{
 					idecallback[ide_board]=6*IDE_TIME;           /*DMA not performed, try again later*/
 				}
 				else
 				{
 					/*DMA successful*/
+					ide->sector_pos++;
 					ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 
 					ide->secount = (ide->secount - 1) & 0xff;
@@ -1628,8 +1677,25 @@ void callbackide(int ide_board)
 				goto id_not_found;
 			}
 
-			hdd_image_read(ide->hdc_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
+			if (ide->do_initial_read)
+			{
+				ide->do_initial_read = 0;
+				ide->sector_pos = 0;
+				if (ide->secount)
+				{
+					hdd_image_read(ide->hdc_num, ide_get_sector(ide), ide->secount, ide->sector_buffer);
+				}
+				else
+				{
+					hdd_image_read(ide->hdc_num, ide_get_sector(ide), 256, ide->sector_buffer);
+				}
+			}
+
+			memcpy(ide->buffer, &ide->sector_buffer[ide->sector_pos*512], 512);
+
+			ide->sector_pos++;
 			ide->pos=0;
+
 			ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 			if (!ide->blockcount)
 			{

@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.3	2017/06/14
+ * Version:	@(#)win_settings.c	1.0.6	2017/06/21
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2017 Miran Grca.
@@ -35,6 +35,7 @@
 #include "../scsi.h"
 #include "../scsi_buslogic.h"
 #include "../network/network.h"
+#include "../sound/midi.h"
 #include "../sound/sound.h"
 #include "../sound/snd_dbopl.h"
 #include "../sound/snd_mpu401.h"
@@ -49,6 +50,7 @@
 
 /* Machine category */
 static int temp_model, temp_cpu_m, temp_cpu, temp_wait_states, temp_mem_size, temp_dynarec, temp_fpu, temp_sync;
+static wchar_t temp_nvr_path[520];
 
 /* Video category */
 static int temp_gfxcard, temp_video_speed, temp_voodoo;
@@ -57,7 +59,7 @@ static int temp_gfxcard, temp_video_speed, temp_voodoo;
 static int temp_mouse, temp_joystick;
 
 /* Sound category */
-static int temp_sound_card, temp_midi_id, temp_mpu401, temp_SSI2001, temp_GAMEBLASTER, temp_GUS, temp_opl3_type;
+static int temp_sound_card, temp_midi_device, temp_mpu401, temp_SSI2001, temp_GAMEBLASTER, temp_GUS, temp_opl3_type;
 static int temp_float;
 
 /* Network category */
@@ -87,6 +89,7 @@ static int displayed_category = 0;
 extern int is486;
 static int romstolist[ROM_MAX], listtomodel[ROM_MAX], romstomodel[ROM_MAX], modeltolist[ROM_MAX];
 static int settings_sound_to_list[20], settings_list_to_sound[20];
+static int settings_midi_to_list[20], settings_list_to_midi[20];
 static int settings_mouse_to_list[20], settings_list_to_mouse[20];
 static int settings_scsi_to_list[20], settings_list_to_scsi[20];
 static int settings_network_to_list[20], settings_list_to_network[20];
@@ -104,6 +107,8 @@ static void win_settings_init(void)
 	temp_wait_states = cpu_waitstates;
 	temp_cpu = cpu;
 	temp_mem_size = mem_size;
+	memset(temp_nvr_path, 0, sizeof(temp_nvr_path));
+	wcscpy(temp_nvr_path, nvr_path);
 	temp_dynarec = cpu_use_dynarec;
 	temp_fpu = enable_external_fpu;
 	temp_sync = enable_sync;
@@ -119,7 +124,7 @@ static void win_settings_init(void)
 
 	/* Sound category */
 	temp_sound_card = sound_card_current;
-	temp_midi_id = midi_id;
+	temp_midi_device = midi_device_current;
 	temp_mpu401 = mpu401_standalone_enable;
 	temp_SSI2001 = SSI2001;
 	temp_GAMEBLASTER = GAMEBLASTER;
@@ -170,6 +175,7 @@ static int win_settings_changed(void)
 	i = i || (cpu_waitstates != temp_wait_states);
 	i = i || (cpu != temp_cpu);
 	i = i || (mem_size != temp_mem_size);
+	i = i || wcscmp(temp_nvr_path, nvr_path);
 	i = i || (temp_dynarec != cpu_use_dynarec);
 	i = i || (temp_fpu != enable_external_fpu);
 	i = i || (temp_sync != enable_sync);
@@ -185,7 +191,7 @@ static int win_settings_changed(void)
 
 	/* Sound category */
 	i = i || (sound_card_current != temp_sound_card);
-	i = i || (midi_id != temp_midi_id);
+	i = i || (midi_device_current != temp_midi_device);
 	i = i || (mpu401_standalone_enable != temp_mpu401);
 	i = i || (SSI2001 != temp_SSI2001);
 	i = i || (GAMEBLASTER != temp_GAMEBLASTER);
@@ -261,6 +267,8 @@ static void win_settings_save(void)
 {
 	int i = 0;
 
+	resetpchard_close();
+
 	/* Machine category */
 	model = temp_model;
 	romset = model_getromset();
@@ -268,6 +276,8 @@ static void win_settings_save(void)
 	cpu_waitstates = temp_wait_states;
 	cpu = temp_cpu;
 	mem_size = temp_mem_size;
+	memset(nvr_path, 0, sizeof(nvr_path));
+	wcscpy(nvr_path, temp_nvr_path);
 	cpu_use_dynarec = temp_dynarec;
 	enable_external_fpu = temp_fpu;
 	enable_sync = temp_sync;
@@ -283,7 +293,7 @@ static void win_settings_save(void)
 
 	/* Sound category */
 	sound_card_current = temp_sound_card;
-	midi_id = temp_midi_id;
+	midi_device_current = temp_midi_device;
 	mpu401_standalone_enable = temp_mpu401;
 	SSI2001 = temp_SSI2001;
 	GAMEBLASTER = temp_GAMEBLASTER;
@@ -327,7 +337,7 @@ static void win_settings_save(void)
 
 	sound_realloc_buffers();
 
-	resetpchard();
+	resetpchard_init();
 
 	cpu_set();
 
@@ -427,9 +437,9 @@ static void win_settings_machine_recalc_cpu_m(HWND hdlg)
 		c++;
 	}
 	EnableWindow(h, TRUE);
-	if (temp_cpu > c)
+	if (temp_cpu >= c)
 	{
-		temp_cpu = c;
+		temp_cpu = (c - 1);
 	}
 	SendMessage(h, CB_SETCURSEL, temp_cpu, 0);
 
@@ -472,9 +482,9 @@ static void win_settings_machine_recalc_model(HWND hdlg)
 		c++;
 	}
 	EnableWindow(h, TRUE);
-	if (temp_cpu_m > c)
+	if (temp_cpu_m >= c)
 	{
-		temp_cpu_m = c;
+		temp_cpu_m = (c - 1);
 	}
 	SendMessage(h, CB_SETCURSEL, temp_cpu_m, 0);
 	if (c == 1)
@@ -493,7 +503,7 @@ static void win_settings_machine_recalc_model(HWND hdlg)
 	accel.nSec = 0;
 	accel.nInc = models[romstomodel[temp_romset]].ram_granularity;
 	SendMessage(h, UDM_SETACCEL, 1, (LPARAM)&accel);
-	if (!(models[romstomodel[temp_romset]].flags & MODEL_AT))
+	if (!(models[romstomodel[temp_romset]].flags & MODEL_AT) || (models[romstomodel[temp_romset]].ram_granularity >= 128))
 	{
 		SendMessage(h, UDM_SETPOS, 0, temp_mem_size);
 		h = GetDlgItem(hdlg, IDC_TEXT_MB);
@@ -517,6 +527,7 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 	int d = 0;
 	LPTSTR lptsTemp;
 	char *stransi;
+	wchar_t *p;
 
         switch (message)
         {
@@ -568,6 +579,9 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 
 			win_settings_machine_recalc_model(hdlg);
 
+			h = GetDlgItem(hdlg, IDC_EDIT_NVR_PATH);
+			SendMessage(h, WM_SETTEXT, 0, (LPARAM) temp_nvr_path);
+
 			free(lptsTemp);
 
 			return TRUE;
@@ -609,6 +623,24 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
                         
                         		deviceconfig_open(hdlg, (void *)model_getdevice(temp_model));
                         		break;
+				case IDC_BUTTON_NVR_PATH:
+					p = BrowseFolder(temp_nvr_path, win_language_get_string_from_id(IDS_2225));
+					if (wcscmp(p, L""))
+					{
+						memset(temp_nvr_path, 0, sizeof(temp_nvr_path));
+						wcscpy(temp_nvr_path, p);
+						if (temp_nvr_path[wcslen(temp_nvr_path) - 1] == L'/')
+						{
+							temp_nvr_path[wcslen(temp_nvr_path) - 1] = L'\\';
+						}
+						else if (temp_nvr_path[wcslen(temp_nvr_path) - 1] != L'\\')
+						{
+							temp_nvr_path[wcslen(temp_nvr_path)] = L'\\';
+						}
+						h = GetDlgItem(hdlg, IDC_EDIT_NVR_PATH);
+						SendMessage(h, WM_SETTEXT, 0, (LPARAM) temp_nvr_path);
+					}
+					break;
 			}
 
 			return FALSE;
@@ -642,7 +674,7 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 			{
 				temp_mem_size = models[temp_model].max_ram;
 			}
-			if (models[temp_model].flags & MODEL_AT)
+			if ((models[temp_model].flags & MODEL_AT) && (models[temp_model].ram_granularity < 128))
 			{
 				temp_mem_size *= 1024;
 			}
@@ -870,29 +902,35 @@ static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wPa
 				{
 					switch(c)
 					{
-						case 0:	/* MS Serial */
+						case MOUSE_TYPE_NONE:
+							str_id = IDS_2151;
+							break;
+						case MOUSE_TYPE_SERIAL:
 						default:
 							str_id = IDS_2139;
 							break;
-						case 1:	/* PS2 2b */
+						case MOUSE_TYPE_PS2:
 							str_id = IDS_2141;
 							break;
-						case 2:	/* PS2 intelli 3b */
+						case MOUSE_TYPE_PS2_MS:
 							str_id = IDS_2142;
 							break;
-						case 3: /* MS/logi bus 2b */
+						case MOUSE_TYPE_BUS:
 							str_id = IDS_2143;
 							break;
-						case 4:	/* Amstrad */
+						case MOUSE_TYPE_AMSTRAD:
 							str_id = IDS_2162;
 							break;
-						case 5:	/* Olivetti M24 */
+						case MOUSE_TYPE_OLIM24:
 							str_id = IDS_2177;
 							break;
-						case 6:	/* MouseSystems */
+						case MOUSE_TYPE_MSYSTEMS:
 							str_id = IDS_2140;
 							break;
-						case 7:	/* Genius Bus */
+						case MOUSE_TYPE_LOGITECH:
+							str_id = IDS_2224;
+							break;
+						case MOUSE_TYPE_GENIUS:
 							str_id = IDS_2161;
 							break;
 					}
@@ -1114,8 +1152,6 @@ int find_irq_in_array(int irq, int def)
 }
 
 
-static char midi_dev_name_buf[512];
-
 int mpu401_present(void)
 {
 	char *n;
@@ -1134,12 +1170,21 @@ int mpu401_present(void)
 
 int mpu401_standalone_allow(void)
 {
-	char *n;
+	char *n, *md;
 
 	n = sound_card_get_internal_name(temp_sound_card);
+	md = midi_device_get_internal_name(temp_midi_device);
 	if (n != NULL)
 	{
 		if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32"))
+		{
+			return 0;
+		}
+	}
+
+	if (md != NULL)
+	{
+		if (!strcmp(md, "none"))
 		{
 			return 0;
 		}
@@ -1154,8 +1199,8 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 	int c = 0;
 	int d = 0;
 	LPTSTR lptsTemp;
-	device_t *sound_dev;
-	int num = 0;
+	device_t *sound_dev, *midi_dev;
+	char *s;
 
         switch (message)
         {
@@ -1166,7 +1211,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 			c = d = 0;
 			while (1)
 			{
-				char *s = sound_card_getname(c);
+				s = sound_card_getname(c);
 
 				if (!s[0])
 				{
@@ -1210,17 +1255,51 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 			}
 
 			h = GetDlgItem(hdlg, IDC_COMBO_MIDI);
-			num  = midi_get_num_devs();
-			for (c = 0; c < num; c++)
+			c = d = 0;
+			while (1)
 			{
-				memset(midi_dev_name_buf, 0, 512);
-				midi_get_dev_name(c, midi_dev_name_buf);
-				mbstowcs(lptsTemp, midi_dev_name_buf, strlen(midi_dev_name_buf) + 1);
-				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
-				if (c == temp_midi_id)
-					SendMessage(h, CB_SETCURSEL, c, 0);
+				s = midi_device_getname(c);
+
+				if (!s[0])
+				{
+					break;
+				}
+
+				settings_midi_to_list[c] = d;
+
+				if (midi_device_available(c))
+				{
+					midi_dev = midi_device_getdevice(c);
+
+					if (!midi_dev || (midi_dev->flags & DEVICE_MCA) == (models[temp_model].flags & MODEL_MCA))
+					{
+						if (c == 0)
+						{
+							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2152));
+						}
+						else
+						{
+							mbstowcs(lptsTemp, s, strlen(s) + 1);
+							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+						}
+						settings_list_to_midi[d] = c;
+						d++;
+					}
+				}
+
+				c++;
 			}
-			EnableWindow(h, mpu401_present() ? TRUE : FALSE);
+			SendMessage(h, CB_SETCURSEL, settings_sound_to_list[temp_midi_device], 0);
+
+			h = GetDlgItem(hdlg, IDC_CONFIGURE_MIDI);
+			if (midi_device_has_config(temp_midi_device))
+			{
+				EnableWindow(h, TRUE);
+			}
+			else
+			{
+				EnableWindow(h, FALSE);
+			}
 
 		        h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
         	        SendMessage(h, BM_SETCHECK, temp_mpu401, 0);
@@ -1251,13 +1330,6 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 		case WM_COMMAND:
                 	switch (LOWORD(wParam))
 	                {
-				case IDC_CONFIGURE_SND:
-					h = GetDlgItem(hdlg, IDC_COMBO_SOUND);
-					temp_sound_card = settings_list_to_sound[SendMessage(h, CB_GETCURSEL, 0, 0)];
-
-					deviceconfig_open(hdlg, (void *)sound_card_getdevice(temp_sound_card));
-					break;
-
 				case IDC_COMBO_SOUND:
 					h = GetDlgItem(hdlg, IDC_COMBO_SOUND);
 					temp_sound_card = settings_list_to_sound[SendMessage(h, CB_GETCURSEL, 0, 0)];
@@ -1272,8 +1344,48 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 						EnableWindow(h, FALSE);
 					}
 
+				        h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
+        			        SendMessage(h, BM_SETCHECK, temp_mpu401, 0);
+				        EnableWindow(h, mpu401_standalone_allow() ? TRUE : FALSE);
+
+				        h = GetDlgItem(hdlg, IDC_CONFIGURE_MPU401);
+				        EnableWindow(h, (mpu401_standalone_allow() && temp_mpu401) ? TRUE : FALSE);
+					break;
+
+				case IDC_CONFIGURE_SND:
+					h = GetDlgItem(hdlg, IDC_COMBO_SOUND);
+					temp_sound_card = settings_list_to_sound[SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+					deviceconfig_open(hdlg, (void *)sound_card_getdevice(temp_sound_card));
+					break;
+
+				case IDC_COMBO_MIDI:
 					h = GetDlgItem(hdlg, IDC_COMBO_MIDI);
-					EnableWindow(h, mpu401_present() ? TRUE : FALSE);
+					temp_midi_device = settings_list_to_midi[SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+					h = GetDlgItem(hdlg, IDC_CONFIGURE_MIDI);
+					if (midi_device_has_config(temp_midi_device))
+					{
+						EnableWindow(h, TRUE);
+					}
+					else
+					{
+						EnableWindow(h, FALSE);
+					}
+
+				        h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
+        			        SendMessage(h, BM_SETCHECK, temp_mpu401, 0);
+				        EnableWindow(h, mpu401_standalone_allow() ? TRUE : FALSE);
+
+				        h = GetDlgItem(hdlg, IDC_CONFIGURE_MPU401);
+				        EnableWindow(h, (mpu401_standalone_allow() && temp_mpu401) ? TRUE : FALSE);
+					break;
+
+				case IDC_CONFIGURE_MIDI:
+					h = GetDlgItem(hdlg, IDC_COMBO_MIDI);
+					temp_midi_device = settings_list_to_midi[SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+					deviceconfig_open(hdlg, (void *)midi_device_getdevice(temp_midi_device));
 					break;
 
 				case IDC_CHECK_MPU401:
@@ -1281,9 +1393,6 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 					temp_mpu401 = SendMessage(h, BM_GETCHECK, 0, 0);
 
 	        		        h = GetDlgItem(hdlg, IDC_CONFIGURE_MPU401);
-					EnableWindow(h, mpu401_present() ? TRUE : FALSE);
-
-					h = GetDlgItem(hdlg, IDC_COMBO_MIDI);
 					EnableWindow(h, mpu401_present() ? TRUE : FALSE);
 					break;
 
@@ -1298,7 +1407,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 			temp_sound_card = settings_list_to_sound[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 			h = GetDlgItem(hdlg, IDC_COMBO_MIDI);
-			temp_midi_id = SendMessage(h, CB_GETCURSEL, 0, 0);
+			temp_midi_device = settings_list_to_midi[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 			h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
 			temp_mpu401 = SendMessage(h, BM_GETCHECK, 0, 0);
@@ -2062,7 +2171,7 @@ static void recalc_next_free_id(HWND hdlg)
 
 	h = GetDlgItem(hdlg, IDC_BUTTON_HDD_REMOVE);
 
-	if ((c_mfm == 0) && (c_ide_pio == 0) && (c_ide_dma == 0) && (c_scsi == 0))
+	if ((c_mfm == 0) && (c_rll == 0) && (c_xtide == 0) && (c_ide_pio == 0) && (c_ide_dma == 0) && (c_scsi == 0))
 	{
 		EnableWindow(h, FALSE);
 	}
@@ -4185,12 +4294,15 @@ static BOOL CALLBACK win_settings_main_proc(HWND hdlg, UINT message, WPARAM wPar
 			win_settings_main_image_list_init(h);
 			win_settings_main_insert_categories(h);
 			ListView_SetItemState(h, 0, LVIS_FOCUSED | LVIS_SELECTED, 0x000F);
+/* Leave this commented out until we do localization. */
+#if 0
 			h = GetDlgItem(hdlg, IDC_COMBO_LANG);	/* This is currently disabled, I am going to add localization options in the future. */
 			EnableWindow(h, FALSE);
 			ShowWindow(h, SW_HIDE);
 			h = GetDlgItem(hdlg, IDS_LANG_ENUS);	/*was:2047 !*/
 			EnableWindow(h, FALSE);
 			ShowWindow(h, SW_HIDE);
+#endif
 			return TRUE;
 		case WM_NOTIFY:
 			if ((((LPNMHDR)lParam)->code == LVN_ITEMCHANGED) && (((LPNMHDR)lParam)->idFrom == IDC_SETTINGSCATLIST))

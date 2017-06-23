@@ -1,14 +1,19 @@
 /*This is the chipset used in the LaserXT series model*/
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "io.h"
 #include "mem.h"
+#include "device.h"
+#include "model.h"
+
 
 static int laserxt_emspage[4];
 static int laserxt_emscontrol[4];
 static mem_mapping_t laserxt_ems_mapping[4];
 static int laserxt_ems_baseaddr_index = 0;
 
-uint32_t get_laserxt_ems_addr(uint32_t addr)
+
+static uint32_t get_laserxt_ems_addr(uint32_t addr)
 {
         if(laserxt_emspage[(addr >> 14) & 3] & 0x80)
         {
@@ -17,7 +22,8 @@ uint32_t get_laserxt_ems_addr(uint32_t addr)
         return addr;
 }
 
-void laserxt_write(uint16_t port, uint8_t val, void *priv)
+
+static void laserxt_write(uint16_t port, uint8_t val, void *priv)
 {
         int i;
         uint32_t paddr, vaddr;
@@ -68,7 +74,8 @@ void laserxt_write(uint16_t port, uint8_t val, void *priv)
         }
 }
 
-uint8_t laserxt_read(uint16_t port, void *priv)
+
+static uint8_t laserxt_read(uint16_t port, void *priv)
 {
         switch (port)
         {
@@ -82,14 +89,16 @@ uint8_t laserxt_read(uint16_t port, void *priv)
         return 0xff;
 }
 
-void mem_write_laserxtems(uint32_t addr, uint8_t val, void *priv)
+
+static void mem_write_laserxtems(uint32_t addr, uint8_t val, void *priv)
 {
         addr = get_laserxt_ems_addr(addr);
         if (addr < (mem_size << 10))
                 ram[addr] = val;
 }
 
-uint8_t mem_read_laserxtems(uint32_t addr, void *priv)
+
+static uint8_t mem_read_laserxtems(uint32_t addr, void *priv)
 {
         uint8_t val = 0xFF;
         addr = get_laserxt_ems_addr(addr);
@@ -98,7 +107,8 @@ uint8_t mem_read_laserxtems(uint32_t addr, void *priv)
         return val;
 }
 
-void laserxt_init()
+
+void laserxt_init(void)
 {
         int i;
 

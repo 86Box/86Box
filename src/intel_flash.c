@@ -190,9 +190,6 @@ void *intel_flash_init(uint8_t type)
 
 	wcscpy(flash_path, flash_name);
 
-	free(flash_name);
-	free(model_name);
-
 	pclog_w(L"Flash path: %s\n", flash_name);
 
 	flash->flash_id = (type & FLASH_IS_BXB) ? 0x95 : 0x94;
@@ -263,6 +260,9 @@ void *intel_flash_init(uint8_t type)
                 fread(&(flash->array[flash->block_start[BLOCK_DATA2]]), flash->block_len[BLOCK_DATA2], 1, f);
                 fclose(f);
         }
+
+	free(flash_name);
+	free(model_name);
 
         return flash;
 }

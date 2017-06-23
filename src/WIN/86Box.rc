@@ -8,7 +8,7 @@
  *
  *		Windows resource script.
  *
- * Version:	@(#)86Box.rc	1.0.3	2017/06/16
+ * Version:	@(#)86Box.rc	1.0.4	2017/06/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -44,12 +44,46 @@ MAINMENU MENU DISCARDABLE
 BEGIN
     POPUP "&Action"
     BEGIN
-        MENUITEM "Take s&creenshot\tCtrl+F11",  IDM_ACTION_SCREENSHOT
-        MENUITEM SEPARATOR
         MENUITEM "&Hard Reset",                 IDM_ACTION_HRESET
         MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",     IDM_ACTION_RESET_CAD
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       IDM_ACTION_EXIT
+    END
+    POPUP "&View"
+    BEGIN
+        MENUITEM "&Resizeable window",          IDM_VID_RESIZE
+        MENUITEM "R&emember size && position",  IDM_VID_REMEMBER
+        MENUITEM SEPARATOR
+        POPUP "Re&nderer"
+        BEGIN
+            MENUITEM "&DirectDraw",                 IDM_VID_DDRAW
+            MENUITEM "Direct&3D 9",                 IDM_VID_D3D
+        END
+        MENUITEM SEPARATOR
+        POPUP "&Window scale factor"
+        BEGIN
+            MENUITEM "&0.5x",                       IDM_VID_SCALE_1X
+            MENUITEM "&1x",                         IDM_VID_SCALE_2X
+            MENUITEM "1.&5x",                       IDM_VID_SCALE_3X
+            MENUITEM "&2x",                         IDM_VID_SCALE_4X
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "&Fullscreen\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        POPUP "Fullscreen &stretch mode"
+        BEGIN
+            MENUITEM "&Full screen stretch",        IDM_VID_FS_FULL
+            MENUITEM "&4:3",                        IDM_VID_FS_43
+            MENUITEM "&Square pixels",              IDM_VID_FS_SQ
+            MENUITEM "&Integer scale",              IDM_VID_FS_INT
+        END
+        POPUP "E&GA/(S)VGA settings"
+        BEGIN
+            MENUITEM "&Inverted VGA monitor",       IDM_VID_INVERT
+            MENUITEM "E&GA/(S)VGA overscan",        IDM_VID_OVERSCAN
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "F&orce 4:3 display ratio",    IDM_VID_FORCE43
+        MENUITEM "Change contrast for &monochrome display", IDM_VID_CGACON
     END
     POPUP "&Tools"
     BEGIN
@@ -58,38 +92,8 @@ BEGIN
         MENUITEM "&Load configuration...",      IDM_CONFIG_LOAD
         MENUITEM "&Save configuration...",      IDM_CONFIG_SAVE
         MENUITEM SEPARATOR
-        POPUP "&Video"
-        BEGIN
-            MENUITEM "&Resizeable window",          IDM_VID_RESIZE
-            MENUITEM "R&emember size && position",  IDM_VID_REMEMBER
-            MENUITEM SEPARATOR
-            MENUITEM "&DirectDraw",                 IDM_VID_DDRAW
-            MENUITEM "Direct&3D 9",                 IDM_VID_D3D
-            MENUITEM SEPARATOR
-            POPUP "&Window scale factor"
-            BEGIN
-                MENUITEM "&0.5x",                       IDM_VID_SCALE_1X
-                MENUITEM "&1x",                         IDM_VID_SCALE_2X
-                MENUITEM "1.&5x",                       IDM_VID_SCALE_3X
-                MENUITEM "&2x",                         IDM_VID_SCALE_4X
-            END
-            MENUITEM SEPARATOR
-            MENUITEM "&Fullscreen\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
-            POPUP "Fullscreen &stretch mode"
-            BEGIN
-                MENUITEM "&Full screen stretch",        IDM_VID_FS_FULL
-                MENUITEM "&4:3",                        IDM_VID_FS_43
-                MENUITEM "&Square pixels",              IDM_VID_FS_SQ
-                MENUITEM "&Integer scale",              IDM_VID_FS_INT
-            END
-            MENUITEM SEPARATOR
-            MENUITEM "&Inverted VGA monitor",       IDM_VID_INVERT
-            MENUITEM "F&orce 4:3 display ratio",    IDM_VID_FORCE43
-            MENUITEM "E&GA/(S)VGA overscan",        IDM_VID_OVERSCAN
-            MENUITEM "Change contrast for &monochrome display", IDM_VID_CGACON
-
-        END
         MENUITEM "S&tatus",                     IDM_STATUS
+        MENUITEM "Take s&creenshot\tCtrl+F11",  IDM_ACTION_SCREENSHOT
     END
 #if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
     POPUP "&Logging"
@@ -186,7 +190,7 @@ FONT 9, "Segoe UI"
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,129,94,71,12
     ICON            100,IDC_ABOUT_ICON,7,7,20,20
-    LTEXT           "86Box v2.00 - A fork of PCem\n\nAuthors: Sarah Walker, Miran Grca, waltje, SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information.",
+    LTEXT           "86Box v2.00 - A fork of PCem\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information.",
                     IDC_ABOUT_ICON,54,7,146,73
     CONTROL         "",IDC_ABOUT_ICON,"Static",SS_BLACKFRAME | SS_SUNKEN,0,
                     86,208,1
@@ -211,12 +215,15 @@ BEGIN
     CONTROL         "List2",IDC_SETTINGSCATLIST,"SysListView32",LVS_LIST | 
                     LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | WS_TABSTOP,7,7,90,197
     CONTROL         "",-1,"Static",SS_BLACKFRAME | SS_SUNKEN,1,211,363,1
+/* Leave this commented out until we get into localization. */
+#if 0
     LTEXT           "Language:",IDT_1700,7,222,41,10
     COMBOBOX        IDC_COMBO_LANG,48,221,108,120,CBS_DROPDOWN | WS_VSCROLL | 
                     WS_TABSTOP
+#endif
 END
 
-DLG_CFG_MACHINE DIALOG DISCARDABLE  97, 0, 267, 112
+DLG_CFG_MACHINE DIALOG DISCARDABLE  97, 0, 267, 132
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
@@ -227,24 +234,27 @@ BEGIN
     COMBOBOX        IDC_COMBO_CPU_TYPE,71,25,45,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "CPU type:",IDT_1702,7,26,59,10
-    COMBOBOX        IDC_COMBO_WS,71,44,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
-                    WS_TABSTOP
-    LTEXT           "Wait states:",IDT_1703,7,45,60,10
     COMBOBOX        IDC_COMBO_CPU,145,25,115,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "CPU:",IDT_1704,124,26,18,10
-    CONTROL         "Dynamic Recompiler",IDC_CHECK_DYNAREC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,80,94,10
-    CONTROL         "Enable FPU",IDC_CHECK_FPU,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,147,80,113,10
+    COMBOBOX        IDC_COMBO_WS,71,44,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "Wait states:",IDT_1703,7,45,60,10
     EDITTEXT        IDC_MEMTEXT,70,63,45,12,ES_AUTOHSCROLL | ES_NUMBER
     CONTROL         "",IDC_MEMSPIN,"msctls_updown32",UDS_SETBUDDYINT | 
                     UDS_ALIGNRIGHT | UDS_ARROWKEYS | UDS_NOTHOUSANDS,113,63,
                     12,12
     LTEXT           "MB",IDT_1705,123,64,10,10
     LTEXT           "Memory:",IDT_1706,7,64,30,10
+    LTEXT           "NVR Path:",IDT_1700,7,83,60,10
+    EDITTEXT        IDC_EDIT_NVR_PATH,71,82,138,12
+    PUSHBUTTON      "&Specify...",IDC_BUTTON_NVR_PATH,214,82,46,12
+    CONTROL         "Dynamic Recompiler",IDC_CHECK_DYNAREC,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,100,94,10
+    CONTROL         "Enable FPU",IDC_CHECK_FPU,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,147,100,113,10
     CONTROL         "Enable time sync",IDC_CHECK_SYNC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,95,102,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,115,102,10
 END
 
 DLG_CFG_VIDEO DIALOG DISCARDABLE  97, 0, 267, 63
@@ -287,9 +297,11 @@ BEGIN
                     WS_TABSTOP
     LTEXT           "Sound card:",IDT_1711,7,8,59,10
     PUSHBUTTON      "Configure",IDC_CONFIGURE_SND,214,7,46,12
-    COMBOBOX        IDC_COMBO_MIDI,71,25,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+
+    COMBOBOX        IDC_COMBO_MIDI,71,25,140,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
     LTEXT           "MIDI Out Device:",IDT_1712,7,26,59,10
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_MIDI,214,25,46,12
 
     CONTROL         "Standalone MPU-401",IDC_CHECK_MPU401,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,45,199,10
@@ -868,10 +880,12 @@ BEGIN
     IDS_2221	"Turbo"
     IDS_2222	"On"
     IDS_2223	"Off"
-    IDS_2224	"<Placeholder string>"
-    IDS_2225	"English (United States)"
+    IDS_2224	"Logitech 3-button mouse (serial)"
+    IDS_2225	"Specify the NVR Path"
+    IDS_2226	"<Placeholder string>"
+    IDS_2227	"English (United States)"
 END
-#define IDS_LANG_ENUS	IDS_2225
+#define IDS_LANG_ENUS	IDS_2227
 
 
 #ifndef _MAC

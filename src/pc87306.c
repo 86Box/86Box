@@ -154,7 +154,9 @@ void pc87306_write(uint16_t port, uint8_t val, void *priv)
 {
 	uint8_t index;
 	uint8_t valxor;
+#if 0
 	uint16_t or_value;
+#endif
 
 	index = (port & 1) ? 0 : 1;
 
@@ -239,6 +241,7 @@ process_value:
 			}
 			if (valxor & 0xc0)
 			{
+#if 0
 				ide_pri_disable();
 				if (val & 0x80)
 				{
@@ -254,6 +257,7 @@ process_value:
 				{
 					ide_pri_enable_ex();
 				}
+#endif
 			}
 			
 			break;

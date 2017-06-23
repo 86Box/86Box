@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)model.h	1.0.1	2017/06/03
+ * Version:	@(#)model.h	1.0.2	2017/06/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -50,10 +50,12 @@ typedef struct {
 } MODEL;
 
 
-extern MODEL models[];
-extern int model;
+/* Global variables. */
+extern MODEL	models[];
+extern int	model;
 
 
+/* Core functions. */
 extern int	model_count(void);
 extern int	model_getromset(void);
 extern int	model_getmodel(int romset);
@@ -65,5 +67,43 @@ extern device_t	*model_getdevice(int model);
 extern int	model_getromset_ex(int m);
 extern char	*model_get_internal_name_ex(int m);
 extern int	model_get_nvrmask(int m);
+
+
+/* Global variables for boards and systems. */
+#ifdef EMU_MOUSE_H
+extern mouse_t	mouse_amstrad;
+extern mouse_t	mouse_olim24;
+#endif
+
+
+/* Initialization functions for boards and systems. */
+extern void	acer386sx_init(void);
+extern void	acerm3a_io_init(void);
+extern void	ali1429_init(void);
+extern void	ali1429_reset(void);
+extern void	amstrad_init(void);
+extern void	compaq_init(void);
+extern void	headland_init(void);
+extern void	i430fx_init(void);
+extern void	i430hx_init(void);
+extern void	i430lx_init(void);
+extern void	i430nx_init(void);
+extern void	i430vx_init(void);
+extern void	i440fx_init(void);
+extern void	jim_init(void);
+extern void	laserxt_init(void);
+extern void	neat_init(void);
+extern void	olivetti_m24_init(void);
+extern void	opti495_init(void);
+
+extern void	ps1mb_init(void);
+extern void	ps1mb_m2121_init(void);
+extern void	ps1mb_m2133_init(void);
+
+extern void	ps2board_init(void);
+
+extern void	scat_init(void);
+extern void	sis496_init(void);
+
 
 #endif	/*EMU_MODEL_H*/

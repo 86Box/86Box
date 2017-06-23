@@ -1,1 +1,0 @@
-void laserxt_init();

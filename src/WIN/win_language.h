@@ -46,6 +46,8 @@ void win_language_check();
 LPTSTR win_language_get_string_from_id(int i);
 LPTSTR win_language_get_string_from_string(char *str);
 
+wchar_t *BrowseFolder(wchar_t *saved_path, wchar_t *title);
+
 #ifdef __cplusplus
 }
 #endif

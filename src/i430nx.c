@@ -8,23 +8,24 @@
  *
  *		Implementation of the Intel 430NX PCISet chip.
  *
- * Version:	@(#)i430nx.c	1.0.0	2017/05/30
+ * Version:	@(#)i430nx.c	1.0.1	2017/06/17
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
-
 #include <string.h>
-
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "mem.h"
 #include "pci.h"
+#include "device.h"
+#include "model.h"
 
-#include "i430nx.h"
 
 static uint8_t card_i430nx[256];
+
 
 static void i430nx_map(uint32_t addr, uint32_t size, int state)
 {
@@ -46,7 +47,8 @@ static void i430nx_map(uint32_t addr, uint32_t size, int state)
         flushmmucache_nopc();        
 }
 
-void i430nx_write(int func, int addr, uint8_t val, void *priv)
+
+static void i430nx_write(int func, int addr, uint8_t val, void *priv)
 {
         if (func)
            return;
@@ -127,7 +129,8 @@ void i430nx_write(int func, int addr, uint8_t val, void *priv)
         card_i430nx[addr] = val;
 }
 
-uint8_t i430nx_read(int func, int addr, void *priv)
+
+static uint8_t i430nx_read(int func, int addr, void *priv)
 {
         if (func)
                 return 0xff;
@@ -135,7 +138,8 @@ uint8_t i430nx_read(int func, int addr, void *priv)
         return card_i430nx[addr];
 }
 
-void i430nx_reset(void)
+
+static void i430nx_reset(void)
 {
         memset(card_i430nx, 0, 256);
         card_i430nx[0x00] = 0x86; card_i430nx[0x01] = 0x80; /*Intel*/
@@ -151,12 +155,14 @@ void i430nx_reset(void)
 	card_i430nx[0x66] = card_i430nx[0x67] = 0x02;
 }
 
-void i430nx_pci_reset(void)
+
+static void i430nx_pci_reset(void)
 {
 	i430nx_write(0, 0x59, 0x00, NULL);
 }
 
-void i430nx_init()
+
+void i430nx_init(void)
 {
         pci_add_specific(0, i430nx_read, i430nx_write, NULL);
 

@@ -124,17 +124,21 @@ int hdd_image_load(int id)
 	int c;
 	uint64_t i = 0, s = 0, t = 0;
 	wchar_t *fn = hdc[id].fn;
+	int is_hdx[2] = { 0, 0 };
 
 	memset(empty_sector, 0, sizeof(empty_sector));
 
 	hdd_images[id].base = 0;
-	hdd_images[id].loaded = 0;
 
-	if (hdd_images[id].file != NULL)
+	if (hdd_images[id].loaded)
 	{
 		fclose(hdd_images[id].file);
 		hdd_images[id].file = NULL;
+		hdd_images[id].loaded = 0;
 	}
+
+	is_hdx[0] = image_is_hdx(fn, 0);
+	is_hdx[1] = image_is_hdx(fn, 1);
 
 	/* Try to open existing hard disk image */
 	if (fn[0] == '.')
@@ -185,7 +189,7 @@ int hdd_image_load(int id)
 					}
 					hdd_images[id].type = 1;
 				}
-				else if (image_is_hdx(fn, 0))
+				else if (is_hdx[0])
 				{
 					full_size = hdc[id].spt * hdc[id].hpc * hdc[id].tracks * 512;
 					hdd_images[id].base = 0x28;
@@ -257,7 +261,7 @@ int hdd_image_load(int id)
 			hdc[id].tracks = tracks;
 			hdd_images[id].type = 1;
 		}
-		else if (image_is_hdx(fn, 1))
+		else if (is_hdx[1])
 		{
 			hdd_images[id].base = 0x28;
 			fseeko64(hdd_images[id].file, 8, SEEK_SET);

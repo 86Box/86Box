@@ -87,7 +87,10 @@
 #define IDC_SETTINGSCATLIST	1001	/* generic config */
 #define IDC_CFILE		1002	/* Select File dialog */
 #define IDC_CHECK_SYNC		1008
+/* Leave this as is until we finally get into localization in 86Box 3.00(?). */
+#if 0
 #define IDC_COMBO_LANG		1009
+#endif
 
 #define IDC_COMBO_MACHINE	1010	/* machine/cpu config */
 #define IDC_CONFIGURE_MACHINE	1011
@@ -99,6 +102,8 @@
 #define IDC_MEMTEXT		1017
 #define IDC_MEMSPIN		1018
 #define IDC_TEXT_MB		IDT_1705
+#define IDC_EDIT_NVR_PATH	1019
+#define IDC_BUTTON_NVR_PATH	1020
 
 #define IDC_VIDEO		1030	/* video config */
 #define IDC_COMBO_VIDEO		1031
@@ -181,6 +186,7 @@
 #define  IDC_CONFIGURE_BUSLOGIC	1205
 #define  IDC_CONFIGURE_PCAP	1206
 #define  IDC_CONFIGURE_NET	1207
+#define  IDC_CONFIGURE_MIDI	1208
 #define  IDC_JOY1		1210
 #define  IDC_JOY2		1211
 #define  IDC_JOY3		1212
@@ -367,11 +373,13 @@
 #define IDS_2221		2221	// "Turbo"
 #define IDS_2222		2222	// "On"
 #define IDS_2223		2223	// "Off"
-#define IDS_2224		2224	// "<Placeholder string>"
-#define IDS_2225		2225	// "English (United States)"
+#define IDS_2224		2224	// "Logitech 3-button mouse (serial)"
+#define IDS_2225		2225	// "Specify the NVR Path"
+#define IDS_2226		2226	// "<Placeholder string>"
+#define IDS_2227		2227	// "English (United States)"
 
-#define IDS_LANG_ENUS		IDS_2225
-#define STRINGS_NUM		178
+#define IDS_LANG_ENUS		IDS_2227
+#define STRINGS_NUM		180
 
 
 #define IDM_ABOUT		40001

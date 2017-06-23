@@ -1,3 +1,7 @@
+#define EMU8K_MEM_ADDRESS_MASK 0xFFFFFF
+#define EMU8K_RAM_MEM_START 0x200000
+#define EMU8K_ROM_MEM_1MB_END 0x80000 
+
 typedef struct emu8k_t
 {
         struct

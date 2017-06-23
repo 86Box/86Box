@@ -6,13 +6,15 @@
 #include "cpu/cpu.h"
 #include "io.h"
 #include "mem.h"
+#include "device.h"
+#include "model.h"
 
-#include "ali1429.h"
 
 static int ali1429_index;
 static uint8_t ali1429_regs[256];
 
-static void ali1429_recalc()
+
+static void ali1429_recalc(void)
 {
         int c;
         
@@ -75,12 +77,13 @@ uint8_t ali1429_read(uint16_t port, void *priv)
 }
 
 
-void ali1429_reset()
+void ali1429_reset(void)
 {
         memset(ali1429_regs, 0xff, 256);
 }
 
-void ali1429_init()
+
+void ali1429_init(void)
 {
         io_sethandler(0x0022, 0x0002, ali1429_read, NULL, NULL, ali1429_write, NULL, NULL, NULL);
 }

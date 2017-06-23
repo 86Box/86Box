@@ -1,22 +1,50 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Common driver module for MOUSE devices.
+ *
+ * Version:	@(#)mouse.c	1.0.3	2017/06/21
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
 #include "ibm.h"
+#include "cpu/cpu.h"
+#include "device.h"
 #include "mouse.h"
 #include "mouse_serial.h"
 #include "mouse_ps2.h"
 #include "mouse_bus.h"
-#include "amstrad.h"
-#include "keyboard_olim24.h"
+#include "model.h"
+
+
+static mouse_t mouse_none = {
+    "Disabled", "none",
+    MOUSE_TYPE_NONE,
+    NULL, NULL, NULL
+};
 
 
 static mouse_t *mouse_list[] = {
-    &mouse_serial_microsoft,	/* 0 Microsoft Serial Mouse */
-    &mouse_ps2_2_button,	/* 1 PS/2 Mouse 2-button */
-    &mouse_intellimouse,	/* 2 PS/2 Intellimouse 3-button */
-    &mouse_bus,			/* 3 Logitech Bus Mouse 2-button */
-    &mouse_amstrad,		/* 4 Amstrad PC System Mouse */
-    &mouse_olim24,		/* 5 Olivetti M24 System Mouse */
-    &mouse_msystems,		/* 6 Mouse Systems */
+    &mouse_none,
+    &mouse_serial_microsoft,	/* 1 Microsoft Serial Mouse */
+    &mouse_ps2_2_button,	/* 2 PS/2 Mouse 2-button */
+    &mouse_intellimouse,	/* 3 PS/2 Intellimouse 3-button */
+    &mouse_bus,			/* 4 Logitech Bus Mouse 2-button */
+    &mouse_amstrad,		/* 5 Amstrad PC System Mouse */
+    &mouse_olim24,		/* 6 Olivetti M24 System Mouse */
+    &mouse_msystems,		/* 7 Mouse Systems */
+    &mouse_serial_logitech,	/* 1 Logitech 3-button Serial Mouse */
 #if 0
-    &mouse_genius,		/* 7 Genius Bus Mouse */
+    &mouse_genius,		/* 8 Genius Bus Mouse */
 #endif
     NULL
 };
@@ -30,6 +58,9 @@ void
 mouse_emu_init(void)
 {
     cur_mouse = mouse_list[mouse_type];
+
+    if (cur_mouse == NULL || cur_mouse->init == NULL) return;
+
     mouse_p = cur_mouse->init();
 }
 
@@ -37,17 +68,21 @@ mouse_emu_init(void)
 void
 mouse_emu_close(void)
 {
-    if (cur_mouse)
-	cur_mouse->close(mouse_p);
+    if (cur_mouse == NULL || cur_mouse->close == NULL) return;
+
+    cur_mouse->close(mouse_p);
+
     cur_mouse = NULL;
+    mouse_p = NULL;
 }
 
 
 void
 mouse_poll(int x, int y, int z, int b)
 {
-    if (cur_mouse)
-	cur_mouse->poll(x, y, z, b, mouse_p);
+    if (cur_mouse == NULL || cur_mouse->init == NULL) return;
+
+    cur_mouse->poll(x, y, z, b, mouse_p);
 }
 
 
@@ -56,6 +91,7 @@ mouse_get_name(int mouse)
 {
     if (!mouse_list[mouse])
 	return(NULL);
+
     return(mouse_list[mouse]->name);
 }
 

@@ -8,12 +8,10 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.29	2017/06/16
+# Version:	@(#)Makefile.mingw	1.0.31	2017/06/19
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
-#               Sarah Walker,
-#               Richard G.,
 #
 
 # Name of the executable.
@@ -62,7 +60,12 @@ endif
 #########################################################################
 #		Nothing should need changing from here on..		#
 #########################################################################
-VPATH	= . cpu sound sound/resid-fp video lzf network network/slirp win
+VPATH	= . cpu \
+	    sound \
+	      sound/munt sound/munt/c_interface sound/munt/sha1 \
+	      sound/munt/srchelper \
+	      sound/resid-fp \
+	    video lzf network network/slirp win
 PLAT	= win/
 ifeq ($(X64), y)
 CPP	= g++.exe -m64
@@ -76,9 +79,17 @@ WINDRES	= windres.exe
 OPTS	= -DWIN32 -I$(PLAT) $(EXTRAS) $(STUFF)
 
 ifeq ($(X64), y)
- DFLAGS		= 
+ ifeq ($(OPTIM), y)
+  DFLAGS	= -march=native
+ else
+  DFLAGS	= 
+ endif
 else
- DFLAGS		= -march=i686
+ ifeq ($(OPTIM), y)
+  DFLAGS	= -march=native
+ else
+  DFLAGS	= -march=i686
+ endif
 endif
 ifeq ($(DEBUG), y)
  DFLAGS		+= -ggdb -DDEBUG
@@ -170,12 +181,21 @@ NETOBJ	= network.o \
 	  net_ne2000.o
 SCSIOBJ	= scsi.o scsi_disk.o scsi_buslogic.o scsi_aha154x.o
 SNDOBJ	= sound.o \
+	  openal.o \
+	  dbopl.o nukedopl.o \
 	  convolve.o convolve-sse.o envelope.o extfilt.o \
 	  filter.o pot.o sid.o voice.o wave6581__ST.o \
 	  wave6581_P_T.o wave6581_PS_.o wave6581_PST.o \
 	  wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
 	  wave8580_PST.o wave.o \
-	  dbopl.o nukedopl.o openal.o \
+	  midi.o \
+	  midi_mt32.o \
+	    Analog.o BReverbModel.o File.o FileStream.o LA32Ramp.o \
+	    LA32FloatWaveGenerator.o LA32WaveGenerator.o \
+	    MidiStreamParser.o Part.o Partial.o PartialManager.o \
+	    Poly.o ROMInfo.o Synth.o Tables.o TVA.o TVF.o TVP.o \
+	    sha1.o c_interface.o \
+	  midi_system.o \
 	  snd_speaker.o snd_ps1.o snd_pssj.o \
 	  snd_adlib.o snd_adlibgold.o snd_ad1848.o \
 	  snd_sb.o snd_sb_dsp.o snd_cms.o snd_dbopl.o \
@@ -221,9 +241,11 @@ OBJ	= $(MAINOBJ) $(CPUOBJ) $(SYSOBJ) $(DEVOBJ) $(USBOBJ) \
 
 LZFOBJ	= lzf_c.o lzf_d.o
 
-LIBS	= -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 -lopenal.dll \
-	  -mwindows -lcomctl32 -lwinmm -lwsock32 -liphlpapi -lpsapi \
-	  -static-libstdc++ -static -lstdc++ -static-libgcc -static -lgcc
+LIBS	= -mwindows \
+	  -lopenal.dll \
+	  -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 \
+	  -lcomctl32 -lkernel32 -lwsock32 -lwinmm -liphlpapi -lpsapi \
+	  -static -lstdc++ -lgcc
 
 
 # Build rules.
@@ -273,13 +295,13 @@ pcap_if.res:	pcap_if.rc
 
 
 # Module dependencies.
-acer386sx.o:	ibm.h cpu/cpu.h io.h acer386sx.h
+acer386sx.o:	ibm.h cpu/cpu.h io.h device.h model.h
 
-acerm3a.o:	ibm.h io.h acerm3a.h
+acerm3a.o:	ibm.h cpu/cpu.h io.h device.h model.h
 
-ali1429.o:	ibm.h cpu/cpu.h io.h mem.h ali1429.h
+ali1429.o:	ibm.h cpu/cpu.h io.h mem.h device.h model.h
 
-amstrad.o:	ibm.h io.h keyboard.h lpt.h mouse.h amstrad.h
+amstrad.o:	ibm.h cpu/cpu.h io.h device.h model.h keyboard.h lpt.h mouse.h
 
 bugger.o:	ibm.h io.h bugger.h
 
@@ -290,7 +312,7 @@ cdrom_ioctl.o:	ibm.h cdrom.h cdrom_ioctl.h scsi.h
 
 cdrom_null.o:	ibm.h cdrom.h cdrom_ioctl.h
 
-compaq.o:	ibm.h mem.h
+compaq.o:	ibm.h cpu/cpu.h mem.h device.h model.h
 
 config.o:	cdrom.h config.h device.h disc.h fdc.h fdd.h ibm.h \
 		cpu/cpu.h gameport.h ide.h hdd.h model.h mouse.h \
@@ -342,19 +364,19 @@ hdd_image.o:	ibm.h ide.h hdd_image.h
 hdd_esdi.o:	ibm.h device.h dma.h hdd_image.h io.h mca.h mem.h \
 		pic.h rom.h timer.h hdd_esdi.h
 
-headland.o:	ibm.h cpu/cpu.h io.h mem.h headland.h
+headland.o:	ibm.h cpu/cpu.h io.h mem.h device.h model.h
 
-i430fx.o:	ibm.h mem.h pci.h i430fx.h
+i430fx.o:	ibm.h cpu/cpu.h mem.h pci.h device.h model.h
 
-i430hx.o:	ibm.h io.h mem.h pci.h i430hx.h
+i430hx.o:	ibm.h cpu/cpu.h io.h mem.h pci.h device.h model.h
 
-i430lx.o:	ibm.h mem.h pci.h i430lx.h
+i430lx.o:	ibm.h cpu/cpu.h mem.h pci.h device.h model.h
 
-i430nx.o:	ibm.h mem.h pci.h i430nx.h
+i430nx.o:	ibm.h cpu/cpu.h mem.h pci.h device.h model.h
 
-i430vx.o:	ibm.h io.h mem.h pci.h i430vx.h
+i430vx.o:	ibm.h cpu/cpu.h io.h mem.h pci.h device.h model.h
 
-i440fx.o:	ibm.h io.h mem.h pci.h i440fx.h
+i440fx.o:	ibm.h cpu/cpu.h io.h mem.h pci.h device.h model.h
 
 i82335.o:	ibm.h io.h mem.h
 
@@ -366,7 +388,7 @@ intel_flash.o:	ibm.h cpu/cpu.h device.h mem.h model.h rom.h
 
 io.o:		ibm.h io.h
 
-jim.o:		ibm.h io.h
+jim.o:		ibm.h cpu/cpu.h io.h device.h model.h
 
 joystick_ch_flightstick_pro.o:	ibm.h device.h timer.h gameport.h \
 		joystick_standard.h plat_joystick.h
@@ -398,7 +420,7 @@ keyboard_pcjr.o:	ibm.h io.h mem.h nmi.h pic.h pit.h timer.h \
 keyboard_xt.o:	ibm.h io.h mem.h pic.h pit.h timer.h device.h tandy_eeprom.h \
 		sound/sound.h sound/snd_speaker.h keyboard.h keyboard_xt.h
 
-laserxt.o:	ibm.h io.h mem.h
+laserxt.o:	ibm.h cpu/cpu.h io.h mem.h device.h model.h
 
 lpt.o:		ibm.h io.h lpt.h
 
@@ -415,22 +437,20 @@ mfm_at.o:	ibm.h device.h hdd_image.h io.h pic.h timer.h mfm_at.h
 
 mfm_xebec.o:	ibm.h device.h dma.h hdd_image.h io.h mem.h pic.h rom.h timer.h mfm_xebec.h
 
-model.o:	ibm.h cpu/cpu.h io.h mem.h rom.h device.h model.h mouse.h \
-		mouse_ps2.h cdrom.h acerm3a.h ali1429.h amstrad.h compaq.h \
-		disc.h dma.h fdc.h fdc37c665.h fdc37c669.h fdc37c932fr.h \
-		gameport.h headland.h i430fx.h i430hx.h i430lx.h i430nx.h \
-		i430vx.h i440fx.h i82335.h ide.h intel.h intel_flash.h jim.h \
+model.o:	ibm.h io.h mem.h rom.h device.h model.h cpu/cpu.h \
+		mouse.h mouse_ps2.h cdrom.h disc.h dma.h fdc.h \
+		fdc37c665.h fdc37c669.h fdc37c932fr.h \
+		gameport.h i82335.h ide.h intel.h intel_flash.h \
 		keyboard_amstrad.h keyboard_at.h keyboard_olim24.h \
-		keyboard_pcjr.h keyboard_xt.h laserxt.h lpt.h mem.h memregs.h \
-		neat.h nmi.h nvr.h olivetti_m24.h opti495.h pc87306.h pci.h \
-		pic.h piix.h pit.h ps1.h ps2.h ps2_mca.h scat.h serial.h \
-		sis496.h sis85c471.h sio.h sound/snd_ps1.h sound/snd_pssj.h \
+		keyboard_pcjr.h keyboard_xt.h lpt.h mem.h memregs.h \
+		nmi.h nvr.h pc87306.h pci.h pic.h piix.h pit.h ps2_mca.h \
+		serial.h sis85c471.h sio.h sound/snd_ps1.h sound/snd_pssj.h \
 		sound/snd_sn76489.h tandy_eeprom.h tandy_rom.h \
 		video/vid_pcjr.h video/vid_tandy.h w83877f.h wd76c10.h \
 		xtide.h bugger.h
 
-mouse.o:	ibm.h mouse.h mouse_serial.h mouse_ps2.h mouse_bus.h \
-		amstrad.h keyboard_olim24.h
+mouse.o:	ibm.h cpu/cpu.h device.h model.h \
+		mouse.h mouse_serial.h mouse_ps2.h mouse_bus.h keyboard_olim24.h
 
 mouse_bus.o:	ibm.h io.h pic.h mouse.h mouse_bus.h plat_mouse.h
 
@@ -438,28 +458,28 @@ mouse_ps2.o:	ibm.h keyboard_at.h mouse.h mouse_ps2.h plat_mouse.h
 
 mouse_serial.o:	ibm.h timer.h serial.h mouse.h mouse_serial.h
 
-neat.o:		ibm.h io.h neat.h
+neat.o:		ibm.h cpu/cpu.h io.h device.h model.h
 
 nmi.o:		ibm.h io.h nmi.h
 
 nvr.o:		ibm.h cpu/cpu.h device.h io.h mem.h model.h nvr.h \
 		pic.h rom.h timer.h rtc.h
 
-olivetti_m24.o:	ibm.h io.h olivetti_m24.h
+olivetti_m24.o:	ibm.h cpu/cpu.h io.h device.h model.h
 
-opti495.o:	ibm.h cpu/cpu.h io.h mem.h
+opti495.o:	ibm.h cpu/cpu.h io.h mem.h device.h model.h
 
 pc.o:		86box.h ibm.h mem.h cpu/cpu.h cpu/x86_ops.h cpu/codegen.h \
-		dma.h nvr.h pic.h pit.h timer.h device.h ali1429.h disc.h \
+		dma.h nvr.h pic.h pit.h timer.h device.h model.h disc.h \
 		disc_86f.h disc_fdi.h disc_imd.h disc_img.h disc_td0.h \
 		disc_random.h config.h fdc.h fdd.h gameport.h plat_joystick.h \
 		plat_midi.h hdd.h ide.h cdrom.h cdrom_ioctl.h cdrom_image.h \
 		cdrom_null.h scsi.h keyboard.h plat_keyboard.h keyboard_at.h \
-		model.h mouse.h plat_mouse.h network/network.h serial.h \
+		mouse.h plat_mouse.h network/network.h serial.h \
 		sound/sound.h sound/snd_cms.h sound/snd_dbopl.h \
 		sound/snd_mpu401.h sound/snd_opl.h sound/snd_gus.h \
 		sound/snd_sb.h sound/snd_speaker.h sound/snd_ssi2001.h \
-		video/video.h video/vid_voodoo.h amstrad.h win/plat_ui.h
+		video/video.h video/vid_voodoo.h win/plat_ui.h
 
 pc87306.o:	ibm.h disc.h fdc.h fdd.h ide.h io.h lpt.h serial.h pc87306.h
 
@@ -474,9 +494,9 @@ pit.o:		ibm.h cpu/cpu.h dma.h io.h pic.h pit.h device.h timer.h \
 
 ppi.o:		ibm.h pit.h plat_keyboard.h plat_mouse.h
 
-ps1.o:		ibm.h io.h mem.h ps1.h rom.h lpt.h serial.h
+ps1.o:		ibm.h cpu/cpu.h io.h mem.h rom.h device.h model.h lpt.h serial.h
 
-ps2.o:		ibm.h io.h mem.h ps2.h rom.h lpt.h serial.h
+ps2.o:		ibm.h cpu/cpu.h io.h mem.h rom.h device.h model.h lpt.h serial.h
 
 ps2_mca.o:	ibm.h cpu/cpu.h cpu/x86.h io.h mca.h mem.h rom.h device.h \
 		lpt.h ps2_mca.h ps2_nvr.h serial.h
@@ -487,7 +507,7 @@ rom.o:		config.h ibm.h mem.h rom.h
 
 rtc.o:		nvr.h rtc.h
 
-scat.o:		ibm.h io.h scat.h mem.h
+scat.o:		ibm.h cpu/cpu.h io.h mem.h device.h model.h
 
 scsi.o:		86box.h ibm.h timer.h device.h cdrom.h scsi.h \
 		scsi_aha154x.h scsi_buslogic.h
@@ -506,7 +526,7 @@ serial.o:	ibm.h io.h pic.h timer.h serial.h plat_serial.h
 sio.o:		ibm.h cdrom.h disc.h dma.h fdc.h keyboard_at.h ide.h \
 		io.h mem.h pci.h sio.h
 
-sis496.o:	ibm.h device.h io.h mem.h pci.h sis496.h
+sis496.o:	ibm.h cpu/cpu.h io.h mem.h pci.h device.h model.h
 
 sis50x.o:	ibm.h device.h io.h mem.h pci.h sis50x.h
 

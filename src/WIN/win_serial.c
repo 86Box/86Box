@@ -17,7 +17,6 @@
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
  */
-#define _WIN32_WINNT	0x0501
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>

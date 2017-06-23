@@ -764,6 +764,8 @@ extern uint8_t	readdacfifo(void);
 extern void	refreshread(void);
 extern int	rep386(int fv);
 extern void	resetmcr(void);
+extern void	resetpchard_close(void);
+extern void	resetpchard_init(void);
 extern void	resetpchard(void);
 extern void	resetreadlookup(void);
 extern void	resetx86(void);
