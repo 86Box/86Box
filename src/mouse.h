@@ -28,7 +28,8 @@
 #define MOUSE_TYPE_AMSTRAD	5	/* Amstrad PC system mouse */
 #define MOUSE_TYPE_OLIM24	6	/* Olivetti M24 system mouse */
 #define MOUSE_TYPE_MSYSTEMS	7	/* Mouse Systems mouse */
-#define MOUSE_TYPE_GENIUS	8	/* Genius Bus Mouse */
+#define MOUSE_TYPE_LOGITECH	8	/* Logitech Serial Mouse */
+#define MOUSE_TYPE_GENIUS	9	/* Genius Bus Mouse */
 
 #define MOUSE_TYPE_MASK		0x0f
 #define MOUSE_TYPE_3BUTTON	(1<<7)	/* device has 3+ buttons */
