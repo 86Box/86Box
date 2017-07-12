@@ -1,7 +1,28 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Implementation of the Intel 2 Mbit 8-bit flash devices.
+ *
+ * Version:	@(#)intel_flash.c	1.0.0	2017/05/30
+ *
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
+
 #include <stdlib.h>
 #include "ibm.h"
+#include "CPU/cpu.h"
 #include "device.h"
 #include "mem.h"
+#include "model.h"
+#include "rom.h"
 
 #define FLASH_IS_BXB	2
 #define FLASH_INVERT	1
@@ -20,7 +41,8 @@ enum
         CMD_ERASE_SETUP = 0x20,
         CMD_ERASE_CONFIRM = 0xd0,
         CMD_ERASE_SUSPEND = 0xb0,
-        CMD_PROGRAM_SETUP = 0x40
+        CMD_PROGRAM_SETUP = 0x40,
+        CMD_PROGRAM_SETUP_ALT = 0x10
 };
 
 typedef struct flash_t
@@ -33,18 +55,16 @@ typedef struct flash_t
 	uint8_t array[131072];
 } flash_t;
 
-static char flash_path[1024];
+static wchar_t flash_path[1024];
 
 static uint8_t flash_read(uint32_t addr, void *p)
 {
         flash_t *flash = (flash_t *)p;
 	if (flash->invert_high_pin)
 	{
-	        // pclog("flash_read : addr=%08x/%08x val=%02x command=%02x %04x:%08x\n", addr, addr ^ 0x10000, flash->array[(addr ^ 0x10000) & 0x1ffff], flash->command, CS, cpu_state.pc);
 		addr ^= 0x10000;
 		if (addr & 0xfff00000)  return flash->array[addr & 0x1ffff];
 	}
-        // pclog("flash_read : addr=%08x command=%02x %04x:%08x\n", addr, flash->command, CS, cpu_state.pc);
 	addr &= 0x1ffff;
         switch (flash->command)
         {
@@ -65,24 +85,27 @@ static uint8_t flash_read(uint32_t addr, void *p)
 static uint16_t flash_readw(uint32_t addr, void *p)
 {
         flash_t *flash = (flash_t *)p;
+	uint16_t *q;
 	addr &= 0x1ffff;
 	if (flash->invert_high_pin)  addr ^= 0x10000;
-	return *(uint16_t *)&(flash->array[addr]);
+	q = (uint16_t *)&(flash->array[addr]);
+	return *q;
 }
 
 static uint32_t flash_readl(uint32_t addr, void *p)
 {
         flash_t *flash = (flash_t *)p;
+	uint32_t *q;
 	addr &= 0x1ffff;
 	if (flash->invert_high_pin)  addr ^= 0x10000;
-	return *(uint32_t *)&(flash->array[addr]);
+	q = (uint32_t *)&(flash->array[addr]);
+	return *q;
 }
 
 static void flash_write(uint32_t addr, uint8_t val, void *p)
 {
         flash_t *flash = (flash_t *)p;
 	int i;
-        // pclog("flash_write : addr=%08x val=%02x command=%02x %04x:%08x\n", addr, val, flash->command, CS, cpu_state.pc);        
 
 	if (flash->invert_high_pin)
 	{
@@ -96,8 +119,6 @@ static void flash_write(uint32_t addr, uint8_t val, void *p)
                 case CMD_ERASE_SETUP:
                 if (val == CMD_ERASE_CONFIRM)
                 {
-                        // pclog("flash_write: erase %05x\n", addr);
-
 			for (i = 0; i < 3; i++)
 			{
                         	if ((addr >= flash->block_start[i]) && (addr <= flash->block_end[i]))
@@ -110,7 +131,7 @@ static void flash_write(uint32_t addr, uint8_t val, void *p)
                 break;
                 
                 case CMD_PROGRAM_SETUP:
-                // pclog("flash_write: program %05x %02x\n", addr, val);
+                case CMD_PROGRAM_SETUP_ALT:
                 if ((addr & 0x1e000) != (flash->block_start[3] & 0x1e000))
        	                flash->array[addr] = val;
                 flash->command = CMD_READ_STATUS;
@@ -154,68 +175,22 @@ static void intel_flash_add_mappings_inverted(flash_t *flash)
 void *intel_flash_init(uint8_t type)
 {
         FILE *f;
-        flash_t *flash = malloc(sizeof(flash_t));
-        memset(flash, 0, sizeof(flash_t));
-	char fpath[1024];
 	int i;
+        flash_t *flash;
+	wchar_t *model_name;
+	wchar_t *flash_name;
 
-	switch(romset)
-	{
-		case ROM_REVENGE:
-			strcpy(flash_path, "roms/revenge/");
-			break;
-		case ROM_586MC1:
-			strcpy(flash_path, "roms/586mc1/");
-			break;
-		case ROM_PLATO:
-			strcpy(flash_path, "roms/plato/");
-			break;
-		case ROM_ENDEAVOR:
-			strcpy(flash_path, "roms/endeavor/");
-			break;
-		case ROM_MB500N:
-			strcpy(flash_path, "roms/mb500n/");
-			break;
-		case ROM_POWERMATE_V:
-			strcpy(flash_path, "roms/powermate_v/");
-			break;
-		case ROM_P54TP4XE:
-			strcpy(flash_path, "roms/p54tp4xe/");
-			break;
-		case ROM_ACERM3A:
-			strcpy(flash_path, "roms/acerm3a/");
-			break;
-		case ROM_ACERV35N:
-			strcpy(flash_path, "roms/acerv35n/");
-			break;
-		case ROM_430VX:
-			strcpy(flash_path, "roms/430vx/");
-			break;
-		case ROM_P55VA:
-			strcpy(flash_path, "roms/p55va/");
-			break;
-		case ROM_P55T2P4:
-			strcpy(flash_path, "roms/p55t2p4/");
-			break;
-		case ROM_P55TVP4:
-			strcpy(flash_path, "roms/p55tvp4/");
-			break;
-		case ROM_440FX:
-			strcpy(flash_path, "roms/440fx/");
-			break;
-		case ROM_MARL:
-			strcpy(flash_path, "roms/marl/");
-			break;
-		case ROM_THOR:
-			strcpy(flash_path, "roms/thor/");
-			break;
-		case ROM_MRTHOR:
-			strcpy(flash_path, "roms/mrthor/");
-			break;
-		default:
-                fatal("intel_flash_init on unsupported ROM set %i\n", romset);
-	}
-	// pclog("Flash init: Path is: %s\n", flash_path);
+	flash = malloc(sizeof(flash_t));
+        memset(flash, 0, sizeof(flash_t));
+
+	model_name = (wchar_t *) malloc((strlen(model_get_internal_name_ex(model)) << 1) + 2);
+	mbstowcs(model_name, model_get_internal_name_ex(model), strlen(model_get_internal_name_ex(model)) + 1);
+	flash_name = (wchar_t *) malloc((wcslen(model_name) << 1) + 2 + 8);
+	_swprintf(flash_name, L"%s.bin", model_name);
+
+	wcscpy(flash_path, flash_name);
+
+	pclog_w(L"Flash path: %s\n", flash_name);
 
 	flash->flash_id = (type & FLASH_IS_BXB) ? 0x95 : 0x94;
 	flash->invert_high_pin = (type & FLASH_INVERT);
@@ -277,9 +252,7 @@ void *intel_flash_init(uint8_t type)
         flash->command = CMD_READ_ARRAY;
         flash->status = 0;
 
-	strcpy(fpath, flash_path);
-	strcat(fpath, "flash.bin");
-        f = romfopen(fpath, "rb");
+        f = nvrfopen(flash_path, L"rb");
         if (f)
         {
                 fread(&(flash->array[flash->block_start[BLOCK_MAIN]]), flash->block_len[BLOCK_MAIN], 1, f);
@@ -288,7 +261,15 @@ void *intel_flash_init(uint8_t type)
                 fclose(f);
         }
 
+	free(flash_name);
+	free(model_name);
+
         return flash;
+}
+
+void *intel_flash_bxb_ami_init()
+{
+	return intel_flash_init(FLASH_IS_BXB | FLASH_INVERT);
 }
 
 /* For AMI BIOS'es - Intel 28F001BXT with high address pin inverted. */
@@ -314,11 +295,7 @@ void intel_flash_close(void *p)
         FILE *f;
         flash_t *flash = (flash_t *)p;
 
-	char fpath[1024];
-
-	strcpy(fpath, flash_path);
-	strcat(fpath, "flash.bin");
-        f = romfopen(fpath, "wb");
+        f = nvrfopen(flash_path, L"wb");
         fwrite(&(flash->array[flash->block_start[BLOCK_MAIN]]), flash->block_len[BLOCK_MAIN], 1, f);
         fwrite(&(flash->array[flash->block_start[BLOCK_DATA1]]), flash->block_len[BLOCK_DATA1], 1, f);
         fwrite(&(flash->array[flash->block_start[BLOCK_DATA2]]), flash->block_len[BLOCK_DATA2], 1, f);
@@ -332,6 +309,19 @@ device_t intel_flash_bxt_ami_device =
         "Intel 28F001BXT Flash BIOS",
         0,
         intel_flash_bxt_ami_init,
+        intel_flash_close,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+};
+
+device_t intel_flash_bxb_ami_device =
+{
+        "Intel 28F001BXB Flash BIOS",
+        0,
+        intel_flash_bxb_ami_init,
         intel_flash_close,
         NULL,
         NULL,

@@ -1,8 +1,25 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
-#include "ibm.h"
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Generic floppy disk interface that communicates with the
+ *		other handlers.
+ *
+ * Version:	@(#)disc.c	1.0.1	2017/06/03
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
+#define UNICODE
+#include <windows.h>
 
+#include "ibm.h"
 #include "config.h"
 #include "disc.h"
 #include "disc_fdi.h"
@@ -13,6 +30,10 @@
 #include "fdc.h"
 #include "fdd.h"
 #include "timer.h"
+
+
+wchar_t discfns[4][256];
+extern int driveempty[4];
 
 int disc_poll_time[FDD_NUM] = { 16, 16, 16, 16 };
 
@@ -54,94 +75,89 @@ int  (*fdc_getdata)(int last);
 void (*fdc_sectorid)(uint8_t track, uint8_t side, uint8_t sector, uint8_t size, uint8_t crc1, uint8_t crc2);
 void (*fdc_indexpulse)();*/
 
+
 static struct
 {
-        char *ext;
-        void (*load)(int drive, char *fn);
+        wchar_t *ext;
+        void (*load)(int drive, wchar_t *fn);
         void (*close)(int drive);
         int size;
-}
-loaders[]=
+} loaders[]=
 {
-        {"001", img_load,       img_close, -1},
-        {"002", img_load,       img_close, -1},
-        {"003", img_load,       img_close, -1},
-        {"004", img_load,       img_close, -1},
-        {"005", img_load,       img_close, -1},
-        {"006", img_load,       img_close, -1},
-        {"007", img_load,       img_close, -1},
-        {"008", img_load,       img_close, -1},
-        {"009", img_load,       img_close, -1},
-        {"010", img_load,       img_close, -1},
-        {"12",  img_load,       img_close, -1},
-        {"144", img_load,       img_close, -1},
-        {"360", img_load,       img_close, -1},
-        {"720", img_load,       img_close, -1},
-        {"86F", d86f_load,     d86f_close, -1},
-        {"BIN", img_load,       img_close, -1},
-        {"CQ", img_load,        img_close, -1},
-        {"CQM", img_load,       img_close, -1},
-        {"DSK", img_load,       img_close, -1},
-        {"FDI", fdi_load,       fdi_close, -1},
-        {"FLP", img_load,       img_close, -1},
-        {"HDM", img_load,       img_close, -1},
-        {"IMA", img_load,       img_close, -1},
-        {"IMD", imd_load,       imd_close, -1},
-        {"IMG", img_load,       img_close, -1},
-	{"TD0", td0_load,       td0_close, -1},
-        {"VFD", img_load,       img_close, -1},
-	{"XDF", img_load,       img_close, -1},
+        {L"001", img_load,       img_close, -1},
+        {L"002", img_load,       img_close, -1},
+        {L"003", img_load,       img_close, -1},
+        {L"004", img_load,       img_close, -1},
+        {L"005", img_load,       img_close, -1},
+        {L"006", img_load,       img_close, -1},
+        {L"007", img_load,       img_close, -1},
+        {L"008", img_load,       img_close, -1},
+        {L"009", img_load,       img_close, -1},
+        {L"010", img_load,       img_close, -1},
+        {L"12",  img_load,       img_close, -1},
+        {L"144", img_load,       img_close, -1},
+        {L"360", img_load,       img_close, -1},
+        {L"720", img_load,       img_close, -1},
+        {L"86F", d86f_load,     d86f_close, -1},
+        {L"BIN", img_load,       img_close, -1},
+        {L"CQ", img_load,        img_close, -1},
+        {L"CQM", img_load,       img_close, -1},
+        {L"DSK", img_load,       img_close, -1},
+        {L"FDI", fdi_load,       fdi_close, -1},
+        {L"FDF", img_load,       img_close, -1},
+        {L"FLP", img_load,       img_close, -1},
+        {L"HDM", img_load,       img_close, -1},
+        {L"IMA", img_load,       img_close, -1},
+        {L"IMD", imd_load,       imd_close, -1},
+        {L"IMG", img_load,       img_close, -1},
+	{L"TD0", td0_load,       td0_close, -1},
+        {L"VFD", img_load,       img_close, -1},
+	{L"XDF", img_load,       img_close, -1},
         {0,0,0}
 };
 
 static int driveloaders[4];
 
-void disc_load(int drive, char *fn)
+void disc_load(int drive, wchar_t *fn)
 {
         int c = 0, size;
-        char *p;
+        wchar_t *p;
         FILE *f;
-//        pclog("disc_load %i %s\n", drive, fn);
-//        setejecttext(drive, "");
         if (!fn) return;
-        p = get_extension(fn);
+        p = get_extension_w(fn);
         if (!p) return;
-//        setejecttext(drive, fn);
-        // pclog("Loading :%i %s %s\n", drive, fn,p);
-        f = fopen(fn, "rb");
+        f = _wfopen(fn, L"rb");
         if (!f) return;
         fseek(f, -1, SEEK_END);
         size = ftell(f) + 1;
         fclose(f);        
         while (loaders[c].ext)
         {
-                if (!strcasecmp(p, loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1))
+                if (!_wcsicmp(p, loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1))
                 {
-                        // pclog("Loading as %s (UI write protected = %s)\n", p, ui_writeprot[drive] ? "yes" : "no");
                         driveloaders[drive] = c;
                         loaders[c].load(drive, fn);
                         drive_empty[drive] = 0;
-                        strcpy(discfns[drive], fn);
-			// fdd_set_head(real_drive(drive), 0);
+                        memcpy(discfns[drive], fn, (wcslen(fn) << 1) + 2);
                         fdd_forced_seek(real_drive(drive), 0);
                         disc_changed[drive] = 1;
                         return;
                 }
                 c++;
         }
-        pclog("Couldn't load %s %s\n",fn,p);
+        pclog_w(L"Couldn't load %s %s\n",fn,p);
         drive_empty[drive] = 1;
 	fdd_set_head(real_drive(drive), 0);
-        discfns[drive][0] = 0;
+	memset(discfns[drive], 0, sizeof(discfns[drive]));
+	update_status_bar_icon_state(drive, 1);
 }
 
 void disc_close(int drive)
 {
-//        pclog("disc_close %i\n", drive);
         if (loaders[driveloaders[drive]].close) loaders[driveloaders[drive]].close(drive);
         drive_empty[drive] = 1;
 	fdd_set_head(real_drive(drive), 0);
-        discfns[drive][0] = 0;
+        discfns[drive][0] = L'\0';
         drives[drive].hole = NULL;
         drives[drive].poll = NULL;
         drives[drive].seek = NULL;
@@ -152,6 +168,7 @@ void disc_close(int drive)
         drives[drive].format = NULL;
         drives[drive].byteperiod = NULL;
 	drives[drive].stop = NULL;
+	update_status_bar_icon_state(drive, 1);
 }
 
 int disc_notfound=0;
@@ -177,6 +194,11 @@ double disc_byteperiod(int drive)
 
 	if (drives[drive].byteperiod)
 	{
+		if (fdd_get_turbo(drive))
+		{
+			return 1.0;
+		}
+
 		return drives[drive].byteperiod(drive);
 	}
 	else
@@ -194,15 +216,22 @@ double disc_real_period(int drive)
 
 	dusec = (double) TIMER_USEC;
 
-	return (ddbp * dusec);
+	/* This is a giant hack but until the timings become even more correct, this is needed to make floppies work right on that BIOS. */
+	if ((romset == ROM_MRTHOR) && !fdd_get_turbo(drive))
+	{
+		return (ddbp * dusec) / 4.0;
+	}
+	else
+	{
+		return (ddbp * dusec);
+	}
 }
 
 void disc_poll(int drive)
 {
 	if (drive >= FDD_NUM)
 	{
-		disc_poll_time[drive] += (int) (32.0 * TIMER_USEC);
-		return;
+		fatal("Attempting to poll floppy drive %i that is not supposed to be there\n", drive);
 	}
 
         disc_poll_time[drive] += (int) disc_real_period(drive);
@@ -218,29 +247,29 @@ void disc_poll(int drive)
         }
 }
 
-void disc_poll_0()
+void disc_poll_0(void *priv)
 {
 	disc_poll(0);
 }
 
-void disc_poll_1()
+void disc_poll_1(void *priv)
 {
 	disc_poll(1);
 }
 
-void disc_poll_2()
+void disc_poll_2(void *priv)
 {
 	disc_poll(2);
 }
 
-void disc_poll_3()
+void disc_poll_3(void *priv)
 {
 	disc_poll(3);
 }
 
 int disc_get_bitcell_period(int rate)
 {
-        int bit_rate;
+        int bit_rate = 250;
         
         switch (rate)
         {
@@ -303,7 +332,6 @@ void disc_reset()
 
 void disc_init()
 {
-//        pclog("disc_init %p\n", drives);
         drives[0].poll = drives[1].poll = drives[2].poll = drives[3].poll = 0;
         drives[0].seek = drives[1].seek = drives[2].seek = drives[3].seek = 0;
         drives[0].readsector = drives[1].readsector = drives[2].readsector = drives[3].readsector = 0;
@@ -313,13 +341,8 @@ void disc_init()
 int oldtrack[FDD_NUM] = {0, 0, 0, 0};
 void disc_seek(int drive, int track)
 {
-//        pclog("disc_seek: drive=%i track=%i\n", drive, track);
         if (drives[drive].seek)
                 drives[drive].seek(drive, track);
-//        if (track != oldtrack[drive])
-//                fdc_discchange_clear(drive);
-//        ddnoise_seek(track - oldtrack[drive]);
-//        oldtrack[drive] = track;
 }
 
 void disc_readsector(int drive, int sector, int track, int side, int density, int sector_size)

@@ -39,6 +39,11 @@ extern int memspeed[11];
 extern int nopageerrors;
 extern uint32_t biosmask;
 
+#define MEM_MAP_TO_SHADOW_RAM_MASK 1
+#define MEM_MAP_TO_RAM_ADDR_MASK   2
+
+extern uint32_t ram_mapped_addr[64];
+
 void mem_mapping_add(mem_mapping_t *mapping,
                     uint32_t base, 
                     uint32_t size, 
@@ -82,7 +87,9 @@ extern int mem_a20_key;
 void mem_a20_recalc();
 
 uint8_t mem_readb_phys(uint32_t addr);
+uint16_t mem_readw_phys(uint32_t addr);
 void mem_writeb_phys(uint32_t addr, uint8_t val);
+void mem_writew_phys(uint32_t addr, uint16_t val);
 
 uint8_t  mem_read_ram(uint32_t addr, void *priv);
 uint16_t mem_read_ramw(uint32_t addr, void *priv);
@@ -100,10 +107,11 @@ void mem_write_null(uint32_t addr, uint8_t val, void *p);
 void mem_write_nullw(uint32_t addr, uint16_t val, void *p);
 void mem_write_nulll(uint32_t addr, uint32_t val, void *p);
 
-FILE *romfopen(char *fn, char *mode);
-
 mem_mapping_t bios_mapping[8];
 mem_mapping_t bios_high_mapping[8];
+mem_mapping_t romext_mapping;
+
+extern mem_mapping_t ram_high_mapping;
 
 
 typedef struct page_t
@@ -114,12 +122,12 @@ typedef struct page_t
         
         uint8_t *mem;
         
-        struct codeblock_t *block, *block_2;
+        struct codeblock_t *block[4], *block_2[4];
 
         /*Head of codeblock tree associated with this page*/
         struct codeblock_t *head;
         
-        uint64_t code_present_mask, dirty_mask;
+        uint64_t code_present_mask[4], dirty_mask[4];
 } page_t;
 
 extern page_t *pages;
@@ -129,7 +137,7 @@ extern page_t **page_lookup;
 uint32_t mmutranslate_noabrt(uint32_t addr, int rw);
 
 extern uint32_t get_phys_virt,get_phys_phys;
-static inline uint32_t get_phys(uint32_t addr)
+static __inline uint32_t get_phys(uint32_t addr)
 {
         if (!((addr ^ get_phys_virt) & ~0xfff))
                 return get_phys_phys | (addr & 0xfff);
@@ -144,10 +152,10 @@ static inline uint32_t get_phys(uint32_t addr)
 
         get_phys_phys = (mmutranslatereal(addr, 0) & rammask) & ~0xfff;
         return get_phys_phys | (addr & 0xfff);
-//        return mmutranslatereal(addr, 0) & rammask;
+        /* return mmutranslatereal(addr, 0) & rammask; */
 }
 
-static inline uint32_t get_phys_noabrt(uint32_t addr)
+static __inline uint32_t get_phys_noabrt(uint32_t addr)
 {
         if (!(cr0 >> 31))
                 return addr & rammask;
@@ -162,11 +170,27 @@ extern uint32_t mem_logical_addr;
 void mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *p);
 void mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *p);
 void mem_write_raml_page(uint32_t addr, uint32_t val, page_t *p);
+void mem_flush_write_page(uint32_t addr, uint32_t virt);
 
 void mem_reset_page_blocks();
 
 extern mem_mapping_t ram_low_mapping;
  
+void mem_remap_top_256k();
 void mem_remap_top_384k();
+
+void flushmmucache_nopc();
+
+int loadbios();
+
+void mem_add_bios();
+
+void mem_init();
+void mem_resize();
+
+void port_92_reset();
+
+void port_92_add();
+void port_92_remove();
 
 #endif

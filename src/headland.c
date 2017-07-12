@@ -2,22 +2,23 @@
    see COPYING for more details
 */
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "io.h"
 #include "mem.h"
-#include "cpu.h"
+#include "device.h"
+#include "model.h"
 
-#include "headland.h"
 
 static int headland_index;
 static uint8_t headland_regs[256];
 
-void headland_write(uint16_t addr, uint8_t val, void *priv)
+
+static void headland_write(uint16_t addr, uint8_t val, void *priv)
 {
         if (addr & 1)
         {
                 if (headland_index == 0xc1 && !is486) val = 0;
                 headland_regs[headland_index] = val;
-                // pclog("Headland write %02X %02X\n",headland_index,val);
                 if (headland_index == 0x82)
                 {
                         shadowbios = val & 0x10;
@@ -32,7 +33,8 @@ void headland_write(uint16_t addr, uint8_t val, void *priv)
                 headland_index = val;
 }
 
-uint8_t headland_read(uint16_t addr, void *priv)
+
+static uint8_t headland_read(uint16_t addr, void *priv)
 {
         if (addr & 1) 
         {
@@ -43,7 +45,8 @@ uint8_t headland_read(uint16_t addr, void *priv)
         return headland_index;
 }
 
-void headland_init()
+
+void headland_init(void)
 {
         io_sethandler(0x0022, 0x0002, headland_read, NULL, NULL, headland_write, NULL, NULL, NULL);
 }

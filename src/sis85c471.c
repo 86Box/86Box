@@ -1,6 +1,17 @@
-/* Copyright holders: Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		Emulation of the SiS 85c471 chip.
+ *
+ * Version:	@(#)sis85c471.c	1.0.0	2017/05/30
+ *
+ * Author:	Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2017-2017 Miran Grca.
+ */
+
 /*
 	SiS sis85c471 Super I/O Chip
 	Used by Batman's Revenge
@@ -23,9 +34,7 @@ static uint8_t sis85c471_regs[39];
 void sis85c471_write(uint16_t port, uint8_t val, void *priv)
 {
 	uint8_t index = (port & 1) ? 0 : 1;
-        int temp;
 	uint8_t x;
-        // pclog("sis85c471_write : port=%04x reg %02X = %02X\n", port, sis85c471_curreg, val);
 
 	if (index)
 	{
@@ -60,13 +69,13 @@ process_value:
 			{
 				if (val & 0x20)
 				{
-					serial1_init(0x3f8, 4);
-					serial2_init(0x2f8, 3);
+					serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
+					serial_setup(2, SERIAL2_ADDR, SERIAL2_IRQ);
 				}
 				else
 				{
-					serial1_remove();
-					serial2_remove();
+					serial_remove(1);
+					serial_remove(2);
 				}
 			}
 
@@ -85,7 +94,6 @@ process_value:
 
 uint8_t sis85c471_read(uint16_t port, void *priv)
 {
-        // pclog("sis85c471_read : port=%04x reg %02X\n", port, sis85c471_curreg);
 	uint8_t index = (port & 1) ? 0 : 1;
 	uint8_t temp;
 
@@ -106,9 +114,6 @@ void sis85c471_init()
 {
 	int i = 0;
 
-	// pclog("SiS 85c471 Init\n");
-
-	// ide_sec_disable();
 	lpt2_remove();
 
 	sis85c471_curreg = 0;

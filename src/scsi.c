@@ -1,96 +1,162 @@
-/* Copyright holders: SA1988, Tenshi
-   see COPYING for more details
-*/
-/*SCSI layer emulation*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Handling of the SCSI controllers.
+ *
+ * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
+ *
+ * Version:	@(#)scsi.c	1.0.0	2017/06/14
+ *
+ * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Original Buslogic version by SA1988 and Miran Grca.
+ *		Copyright 2017 Fred N. van Kempen.
+ */
 #include <stdlib.h>
 #include <string.h>
 #include "86box.h"
 #include "ibm.h"
+#include "timer.h"
 #include "device.h"
-
 #include "cdrom.h"
 #include "scsi.h"
+#include "scsi_aha154x.h"
+#include "scsi_buslogic.h"
 
-#include "timer.h"
 
-int SCSICallback[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-uint8_t scsi_cdrom_id = 3; /*common setting*/
+uint8_t		SCSIPhase = SCSI_PHASE_BUS_FREE;
+uint8_t		SCSIStatus = SCSI_STATUS_OK;
+uint8_t		scsi_cdrom_id = 3; /*common setting*/
+char		scsi_fn[SCSI_NUM][512];
+uint16_t	scsi_hd_location[SCSI_NUM];
 
-//Get the transfer length of the command
-void SCSIGetLength(uint8_t id, int *datalen)
+int		scsi_card_current = 0;
+int		scsi_card_last = 0;
+
+
+typedef struct {
+    char	name[64];
+    char	internal_name[32];
+    device_t	*device;
+    void	(*reset)(void *p);
+} SCSI_CARD;
+
+
+static SCSI_CARD scsi_cards[] = {
+    { "None",			"none",		NULL,		      NULL		  },
+    { "Adaptec AHA-1540B",	"aha1540b",	&aha1540b_device,     aha_device_reset    },
+    { "Adaptec AHA-1542CF",	"aha1542cf",	&aha1542cf_device,    aha_device_reset    },
+    { "Adaptec AHA-1640",	"aha1640",	&aha1640_device,      aha_device_reset    },
+    { "BusLogic BT-542B",	"bt542b",	&buslogic_device,     BuslogicDeviceReset },
+    { "BusLogic BT-958D PCI",	"bt958d",	&buslogic_pci_device, BuslogicDeviceReset },
+    { "",			"",		NULL,		      NULL		  },
+};
+
+
+int scsi_card_available(int card)
 {
-	*datalen = SCSIDevices[id].CmdBufferLength;
+    if (scsi_cards[card].device)
+	return(device_available(scsi_cards[card].device));
+
+    return(1);
 }
 
-//Execute SCSI command
-void SCSIExecCommand(uint8_t id, uint8_t *buffer, uint8_t *cdb)
+
+char *scsi_card_getname(int card)
 {
-	SCSICDROM_Command(id, buffer, cdb);
+    return(scsi_cards[card].name);
 }
 
-//Read pending data from the resulting SCSI command
-void SCSIReadData(uint8_t id, uint8_t *cdb, uint8_t *data, int datalen)
+
+device_t *scsi_card_getdevice(int card)
 {
-	SCSICDROM_ReadData(id, cdb, data, datalen);
+    return(scsi_cards[card].device);
 }
 
-/////
-void SCSIDMAResetPosition(uint8_t Id)
+
+int scsi_card_has_config(int card)
 {
-	//Reset position in memory after reaching its limit
-	SCSIDevices[Id].pos = 0;
+    if (! scsi_cards[card].device) return(0);
+
+    return(scsi_cards[card].device->config ? 1 : 0);
 }
 
-//Read data from buffer with given position in buffer memory
-void SCSIRead(uint8_t Id, uint8_t *dstbuf, uint8_t *srcbuf, uint32_t len_size)
+
+char *scsi_card_get_internal_name(int card)
 {
-	if (!len_size) //If there's no data, don't try to do anything.
-		return;
+    return(scsi_cards[card].internal_name);
+}
+
+
+int scsi_card_get_from_internal_name(char *s)
+{
+    int c = 0;
+
+    while (strlen(scsi_cards[c].internal_name)) {
+	if (!strcmp(scsi_cards[c].internal_name, s))
+		return(c);
+	c++;
+    }
 	
-	int c;
-	
-	for (c = 0; c <= len_size; c++) //Count as many bytes as the length of the buffer is requested
+    return(0);
+}
+
+
+void scsi_card_init()
+{
+    if (scsi_cards[scsi_card_current].device)
+	device_add(scsi_cards[scsi_card_current].device);
+
+    scsi_card_last = scsi_card_current;
+}
+
+
+void scsi_card_reset(void)
+{
+    void *p = NULL;
+
+    if (scsi_cards[scsi_card_current].device)
+    {
+	p = device_get_priv(scsi_cards[scsi_card_current].device);
+	if (p)
 	{
-		memcpy(dstbuf, srcbuf + SCSIDevices[Id].pos, len_size);
-		SCSIDevices[Id].pos = c;
-		
-		//pclog("SCSI Read: position at %i\n", SCSIDevices[Id].pos);
+		if (scsi_cards[scsi_card_current].reset)
+		{
+			scsi_cards[scsi_card_current].reset(p);
+		}
 	}
+    }
 }
 
-//Write data to buffer with given position in buffer memory
-void SCSIWrite(uint8_t Id, uint8_t *srcbuf, uint8_t *dstbuf, uint32_t len_size)
+
+/* Initialization function for the SCSI layer */
+void SCSIReset(uint8_t id, uint8_t lun)
 {
-	int c;
-	
-	for (c = 0; c <= len_size; c++) //Count as many bytes as the length of the buffer is requested
+    uint8_t cdrom_id = scsi_cdrom_drives[id][lun];
+    uint8_t hdc_id = scsi_hard_disks[id][lun];
+
+    if (hdc_id != 0xff) {
+	scsi_hd_reset(cdrom_id);
+	SCSIDevices[id][lun].LunType = SCSI_DISK;
+    } else {
+	if (cdrom_id != 0xff)
 	{
-		memcpy(srcbuf + SCSIDevices[Id].pos, dstbuf, len_size);
-		SCSIDevices[Id].pos = c;
-
-		//pclog("SCSI Write: position at %i\n", SCSIDevices[Id].pos);			
-	}
-}
-/////
-
-//Initialization function for the SCSI layer
-void SCSIReset(uint8_t Id)
-{
-	page_flags[GPMODE_CDROM_AUDIO_PAGE] &= 0xFD;		/* Clear changed flag for CDROM AUDIO mode page. */
-	memset(mode_pages_in[GPMODE_CDROM_AUDIO_PAGE], 0, 256);	/* Clear the page itself. */
-
-	SCSICallback[Id]=0;
-
-	if (cdrom_enabled && scsi_cdrom_enabled)
-	{
-		SCSIDevices[Id].LunType = SCSI_CDROM;
+		cdrom_reset(cdrom_id);
+		SCSIDevices[id][lun].LunType = SCSI_CDROM;
 	}
 	else
 	{
-		SCSIDevices[Id].LunType = SCSI_NONE;
+		SCSIDevices[id][lun].LunType = SCSI_NONE;
 	}
-	
-	page_flags[GPMODE_CDROM_AUDIO_PAGE] &= ~PAGE_CHANGED;
-	
-	SCSISense.UnitAttention = 0;
+    }
+
+    if(SCSIDevices[id][lun].CmdBuffer != NULL)
+    {
+	free(SCSIDevices[id][lun].CmdBuffer);
+	SCSIDevices[id][lun].CmdBuffer = NULL;
+    }
 }

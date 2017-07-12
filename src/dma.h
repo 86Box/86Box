@@ -1,23 +1,53 @@
-/* Copyright holders: Sarah Walker, SA1988
-   see COPYING for more details
-*/
-void dma_init();
-void dma16_init();
-void dma_reset();
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Implementation of the Intel DMA controllers.
+ *
+ * Version:	@(#)dma.h	1.0.1	2017/06/03
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
+#ifndef EMU_DMA_H
+# define EMU_DMA_H
+
 
 #define DMA_NODATA -1
 #define DMA_OVER 0x10000
 #define DMA_VERIFY 0x20000
 
-void readdma0();
-int readdma1();
-uint8_t readdma2();
-int readdma3();
 
-void writedma2(uint8_t temp);
+extern void	dma_init(void);
+extern void	dma16_init(void);
+extern void	ps2_dma_init(void);
+extern void	dma_reset(void);
+extern int	dma_mode(int channel);
 
-int dma_channel_read(int channel);
-int dma_channel_write(int channel, uint16_t val);
+extern void	readdma0(void);
+extern int	readdma1(void);
+extern uint8_t	readdma2(void);
+extern int	readdma3(void);
 
-void DMAPageRead(uint32_t PhysAddress, void *DataRead, uint32_t TotalSize);
-void DMAPageWrite(uint32_t PhysAddress, const void *DataWrite, uint32_t TotalSize);
+extern void	writedma2(uint8_t temp);
+
+extern int	dma_channel_read(int channel);
+extern int	dma_channel_write(int channel, uint16_t val);
+
+extern void	dma_alias_set(void);
+extern void	dma_alias_remove(void);
+extern void	dma_alias_remove_piix(void);
+
+extern void	DMAPageRead(uint32_t PhysAddress, char *DataRead,
+			    uint32_t TotalSize);
+extern void	DMAPageWrite(uint32_t PhysAddress, const char *DataWrite,
+			     uint32_t TotalSize);
+
+
+#endif	/*EMU_DMA_H*/

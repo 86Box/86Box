@@ -1,16 +1,32 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Implementation of the Intel 430VX PCISet chip.
+ *
+ * Version:	@(#)i430vx.c	1.0.2	2017/06/17
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
 #include <string.h>
-
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "io.h"
 #include "mem.h"
 #include "pci.h"
+#include "device.h"
+#include "model.h"
 
-#include "i430vx.h"
 
 static uint8_t card_i430vx[256];
+
 
 static void i430vx_map(uint32_t addr, uint32_t size, int state)
 {
@@ -32,17 +48,37 @@ static void i430vx_map(uint32_t addr, uint32_t size, int state)
         flushmmucache_nopc();        
 }
 
-void i430vx_write(int func, int addr, uint8_t val, void *priv)
+
+static void i430vx_write(int func, int addr, uint8_t val, void *priv)
 {
         if (func)
            return;
            
+        if ((addr >= 0x10) && (addr < 0x4f))
+                return;
+                
         switch (addr)
         {
                 case 0x00: case 0x01: case 0x02: case 0x03:
                 case 0x08: case 0x09: case 0x0a: case 0x0b:
-                case 0x0e:
+                case 0x0c: case 0x0e:
                 return;
+                
+                case 0x04: /*Command register*/
+                val &= 0x02;
+                val |= 0x04;
+                break;
+                case 0x05:
+                val = 0;
+                break;
+                
+                case 0x06: /*Status*/
+                val = 0;
+                break;
+                case 0x07:
+                val &= 0x80;
+                val |= 0x02;
+                break;
                 
                 case 0x59: /*PAM0*/
                 if ((card_i430vx[0x59] ^ val) & 0xf0)
@@ -50,7 +86,7 @@ void i430vx_write(int func, int addr, uint8_t val, void *priv)
                         i430vx_map(0xf0000, 0x10000, val >> 4);
                         shadowbios = (val & 0x10);
                 }
-                pclog("i430vx_write : PAM0 write %02X\n", val);
+                /* pclog("i430vx_write : PAM0 write %02X\n", val); */
                 break;
                 case 0x5a: /*PAM1*/
                 if ((card_i430vx[0x5a] ^ val) & 0x0f)
@@ -81,21 +117,22 @@ void i430vx_write(int func, int addr, uint8_t val, void *priv)
                         i430vx_map(0xe0000, 0x04000, val & 0xf);
                 if ((card_i430vx[0x5e] ^ val) & 0xf0)
                         i430vx_map(0xe4000, 0x04000, val >> 4);
-                pclog("i430vx_write : PAM5 write %02X\n", val);
+                /* pclog("i430vx_write : PAM5 write %02X\n", val); */
                 break;
                 case 0x5f: /*PAM6*/
                 if ((card_i430vx[0x5f] ^ val) & 0x0f)
                         i430vx_map(0xe8000, 0x04000, val & 0xf);
                 if ((card_i430vx[0x5f] ^ val) & 0xf0)
                         i430vx_map(0xec000, 0x04000, val >> 4);
-                pclog("i430vx_write : PAM6 write %02X\n", val);
+                /* pclog("i430vx_write : PAM6 write %02X\n", val); */
                 break;
         }
                 
         card_i430vx[addr] = val;
 }
 
-uint8_t i430vx_read(int func, int addr, void *priv)
+
+static uint8_t i430vx_read(int func, int addr, void *priv)
 {
         if (func)
            return 0xff;
@@ -103,11 +140,9 @@ uint8_t i430vx_read(int func, int addr, void *priv)
         return card_i430vx[addr];
 }
  
-    
-void i430vx_init()
+
+static void i430vx_reset(void)
 {
-        pci_add_specific(0, i430vx_read, i430vx_write, NULL);
-        
         memset(card_i430vx, 0, 256);
         card_i430vx[0x00] = 0x86; card_i430vx[0x01] = 0x80; /*Intel*/
         card_i430vx[0x02] = 0x30; card_i430vx[0x03] = 0x70; /*82437VX*/
@@ -126,4 +161,20 @@ void i430vx_init()
         card_i430vx[0x72] = 0x02;
         card_i430vx[0x74] = 0x0e;
         card_i430vx[0x78] = 0x23;
+}
+    
+
+static void i430vx_pci_reset(void)
+{
+	i430vx_write(0, 0x59, 0x00, NULL);
+}
+
+
+void i430vx_init(void)
+{
+        pci_add_specific(0, i430vx_read, i430vx_write, NULL);
+        
+	i430vx_reset();
+
+	pci_reset_handler.pci_master_reset = i430vx_pci_reset;
 }

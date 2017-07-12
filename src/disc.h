@@ -1,7 +1,27 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Generic floppy disk interface that communicates with the
+ *		other handlers.
+ *
+ * Version:	@(#)disc.h	1.0.1	2017/06/03
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
+#ifndef EMU_DISC_H
+# define EMU_DISC_H
+
+
 #define FDD_NUM		4
+
 
 typedef struct
 {
@@ -17,42 +37,51 @@ typedef struct
         void (*poll)(int drive);
 } DRIVE;
 
-extern DRIVE drives[FDD_NUM];
 
-extern int curdrive;
+extern DRIVE	drives[FDD_NUM];
+extern int	curdrive;
 
-void disc_load(int drive, char *fn);
-void disc_new(int drive, char *fn);
-void disc_close(int drive);
-void disc_init();
-void disc_reset();
-void disc_poll(int drive);
-void disc_poll_0();
-void disc_poll_1();
-void disc_seek(int drive, int track);
-void disc_readsector(int drive, int sector, int track, int side, int density, int sector_size);
-void disc_writesector(int drive, int sector, int track, int side, int density, int sector_size);
-void disc_comparesector(int drive, int sector, int track, int side, int density, int sector_size);
-void disc_readaddress(int drive, int side, int density);
-void disc_format(int drive, int side, int density, uint8_t fill);
-int disc_hole(int drive);
-double disc_byteperiod(int drive);
-void disc_stop(int drive);
-int disc_empty(int drive);
-void disc_set_rate(int drive, int drvden, int rate);
-extern int disc_time;
-extern int disc_poll_time[FDD_NUM];
+extern int	disc_time;
+extern int	disc_poll_time[FDD_NUM];
 
-void fdc_callback();
-int  fdc_data(uint8_t dat);
-void fdc_spindown();
-void fdc_finishread();
-void fdc_datacrcerror();
-void fdc_headercrcerror();
-void fdc_writeprotect();
-int  fdc_getdata(int last);
-void fdc_sectorid(uint8_t track, uint8_t side, uint8_t sector, uint8_t size, uint8_t crc1, uint8_t crc2);
-void fdc_indexpulse();
+
+extern void	disc_load(int drive, wchar_t *fn);
+extern void	disc_new(int drive, char *fn);
+extern void	disc_close(int drive);
+extern void	disc_init(void);
+extern void	disc_reset(void);
+extern void	disc_poll(int drive);
+extern void	disc_poll_0(void* priv);
+extern void	disc_poll_1(void* priv);
+extern void	disc_poll_2(void* priv);
+extern void	disc_poll_3(void* priv);
+extern void	disc_seek(int drive, int track);
+extern void	disc_readsector(int drive, int sector, int track,
+				int side, int density, int sector_size);
+extern void	disc_writesector(int drive, int sector, int track,
+				 int side, int density, int sector_size);
+extern void	disc_comparesector(int drive, int sector, int track,
+				   int side, int density, int sector_size);
+extern void	disc_readaddress(int drive, int side, int density);
+extern void	disc_format(int drive, int side, int density, uint8_t fill);
+extern int	disc_hole(int drive);
+extern double	disc_byteperiod(int drive);
+extern void	disc_stop(int drive);
+extern int	disc_empty(int drive);
+extern void	disc_set_rate(int drive, int drvden, int rate);
+
+extern void	fdc_callback(void *priv);
+extern int	fdc_data(uint8_t dat);
+extern void	fdc_spindown(void);
+extern void	fdc_finishread(void);
+extern void	fdc_datacrcerror(void);
+extern void	fdc_headercrcerror(void);
+extern void	fdc_writeprotect(void);
+extern int	fdc_getdata(int last);
+extern void	fdc_sectorid(uint8_t track, uint8_t side, uint8_t sector,
+			     uint8_t size, uint8_t crc1, uint8_t crc2);
+extern void	fdc_indexpulse(void);
+
 /*extern int fdc_time;
 extern int fdc_ready;
 extern int fdc_indexcount;*/
@@ -64,7 +93,6 @@ extern int swwp;
 extern int disable_write;
 
 extern int defaultwriteprot;
-//extern char discfns[4][260];
 
 extern int writeprot[FDD_NUM], fwriteprot[FDD_NUM];
 extern int disc_track[FDD_NUM];
@@ -147,7 +175,7 @@ void d86f_reset_index_hole_pos(int drive, int side);
 uint16_t d86f_prepare_pretrack(int drive, int side, int iso);
 uint16_t d86f_prepare_sector(int drive, int side, int prev_pos, uint8_t *id_buf, uint8_t *data_buf, int data_len, int gap2, int gap3, int deleted, int bad_crc);
 
-int gap3_sizes[5][8][256];
+int gap3_sizes[5][8][48];
 
 void null_writeback(int drive);
 void null_write_data(int drive, int side, uint16_t pos, uint8_t data);
@@ -202,3 +230,6 @@ typedef union
 	uint8_t byte_array[4];
 	sector_id_fields_t id;
 } sector_id_t;
+
+
+#endif	/*EMU_DISC_H*/

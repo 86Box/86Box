@@ -1,10 +1,18 @@
-/* Copyright holders: Tenshi
-   see COPYING for more details
-*/
 /*
-	SMSC SMC fdc37c932fr Super I/O Chip
-	Used by all some Acer boards, and by the Epox P55-VA
-*/
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Implementation of the SMC FDC37C932FR Super I/O Chip.
+ *
+ * Version:	@(#)fdc37c932fr.c	1.0.0	2017/05/30
+ *
+ * Author:	Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2016-2017 Miran Grca.
+ */
 
 #include "ibm.h"
 
@@ -144,9 +152,6 @@ void fdc37c932fr_write(uint16_t port, uint8_t val, void *priv)
 	uint8_t index = (port & 1) ? 0 : 1;
 	uint8_t valxor = 0;
 	uint16_t ld_port = 0;
-	uint16_t ld_port2 = 0;
-        int temp;
-        // pclog("fdc37c932fr_write : port=%04x reg %02X = %02X locked=%i\n", port, fdc37c932fr_curreg, val, fdc37c932fr_locked);
 
 	if (index)
 	{
@@ -300,11 +305,11 @@ process_value:
 					if (valxor)
 					{
 						if (!val)
-							serial1_remove();
+							serial_remove(1);
 						else
 						{
 							ld_port = make_port(4);
-							serial1_set(ld_port, fdc37c932fr_ld_regs[4][0x70]);
+							serial_setup(1, ld_port, fdc37c932fr_ld_regs[4][0x70]);
 						}
 					}
 					break;
@@ -314,7 +319,7 @@ process_value:
 					if (valxor && fdc37c932fr_ld_regs[4][0x30])
 					{
 						ld_port = make_port(4);
-						serial1_set(ld_port, fdc37c932fr_ld_regs[4][0x70]);
+						serial_setup(1, ld_port, fdc37c932fr_ld_regs[4][0x70]);
 					}
 					break;
 			}
@@ -328,11 +333,11 @@ process_value:
 					if (valxor)
 					{
 						if (!val)
-							serial2_remove();
+							serial_remove(2);
 						else
 						{
 							ld_port = make_port(5);
-							serial2_set(ld_port, fdc37c932fr_ld_regs[5][0x70]);
+							serial_setup(2, ld_port, fdc37c932fr_ld_regs[5][0x70]);
 						}
 					}
 					break;
@@ -342,7 +347,7 @@ process_value:
 					if (valxor && fdc37c932fr_ld_regs[5][0x30])
 					{
 						ld_port = make_port(5);
-						serial2_set(ld_port, fdc37c932fr_ld_regs[5][0x70]);
+						serial_setup(2, ld_port, fdc37c932fr_ld_regs[5][0x70]);
 					}
 					break;
 			}
@@ -367,7 +372,6 @@ uint8_t fdc37c932fr_gpio_read(uint16_t port, void *priv)
 
 uint8_t fdc37c932fr_read(uint16_t port, void *priv)
 {
-        // pclog("fdc37c932fr_read : port=%04x reg %02X locked=%i\n", port, fdc37c932fr_curreg, fdc37c932fr_locked);
 	uint8_t index = (port & 1) ? 0 : 1;
 
 	if (!fdc37c932fr_locked)
@@ -381,23 +385,19 @@ uint8_t fdc37c932fr_read(uint16_t port, void *priv)
 	{
 		if (fdc37c932fr_curreg < 0x30)
 		{
-			// pclog("0x03F1: %02X\n", fdc37c932fr_regs[fdc37c932fr_curreg]);
 			return fdc37c932fr_regs[fdc37c932fr_curreg];
 		}
 		else
 		{
-			// pclog("0x03F1 (CD=%02X): %02X\n", fdc37c932fr_regs[7], fdc37c932fr_ld_regs[fdc37c932fr_regs[7]][fdc37c932fr_curreg]);
 			if ((fdc37c932fr_regs[7] == 0) && (fdc37c932fr_curreg == 0xF2))  return (fdc_get_rwc(0) | (fdc_get_rwc(1) << 2));
 			return fdc37c932fr_ld_regs[fdc37c932fr_regs[7]][fdc37c932fr_curreg];
 		}
 	}
 }
 
-void fdc37c932fr_init()
+void fdc37c932fr_reset(void)
 {
 	int i = 0;
-
-	lpt2_remove();
 
 	fdc37c932fr_regs[3] = 3;
 	fdc37c932fr_regs[0x20] = 3;
@@ -451,6 +451,7 @@ void fdc37c932fr_init()
 	fdc37c932fr_ld_regs[4][0x61] = 0xf8;
 	fdc37c932fr_ld_regs[4][0x70] = 4;
 	fdc37c932fr_ld_regs[4][0xF0] = 3;
+	serial_setup(1, 0x3f8, fdc37c932fr_ld_regs[4][0x70]);
 
 	/* Logical device 5: Serial Port 2 */
 	fdc37c932fr_ld_regs[5][0x30] = 1;
@@ -460,6 +461,7 @@ void fdc37c932fr_init()
 	fdc37c932fr_ld_regs[5][0x74] = 4;
 	fdc37c932fr_ld_regs[5][0xF1] = 2;
 	fdc37c932fr_ld_regs[5][0xF2] = 3;
+	serial_setup(2, 0x2f8, fdc37c932fr_ld_regs[5][0x70]);
 
 	/* Logical device 6: RTC */
 	fdc37c932fr_ld_regs[6][0x63] = 0x70;
@@ -485,8 +487,19 @@ void fdc37c932fr_init()
 	fdc_update_drvrate(2, 0);
 	fdc_update_drvrate(3, 0);
 	fdc_update_max_track(79);
+
+        fdc37c932fr_locked = 0;
+}
+
+void fdc37c932fr_init()
+{
+	lpt2_remove();
+
+	fdc37c932fr_reset();
+
         io_sethandler(0xe0, 0x0006, fdc37c932fr_gpio_read, NULL, NULL, fdc37c932fr_gpio_write, NULL, NULL,  NULL);
         io_sethandler(0xea, 0x0002, fdc37c932fr_gpio_read, NULL, NULL, fdc37c932fr_gpio_write, NULL, NULL,  NULL);
         io_sethandler(0x3f0, 0x0002, fdc37c932fr_read, NULL, NULL, fdc37c932fr_write, NULL, NULL,  NULL);
-        fdc37c932fr_locked = 0;
+
+	pci_reset_handler.super_io_reset = fdc37c932fr_reset;
 }

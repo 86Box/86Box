@@ -10,13 +10,15 @@
 
 #include "ibm.h"
 #include "pit.h"
+#include "plat_keyboard.h"
+#include "plat_mouse.h"
 
-#include "plat-keyboard.h"
-#include "plat-mouse.h"
+PPI ppi;
+int ppispeakon;
 
 void ppi_reset()
 {
-        ppi.pa=0x0;//0x1D;
+        ppi.pa=0x0;
         ppi.pb=0x40;
 }
 

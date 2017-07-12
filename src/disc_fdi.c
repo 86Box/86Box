@@ -1,8 +1,25 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Implementation of the FDI floppy stream image format
+ *		interface to the FDI2RAW module.
+ *
+ * Version:	@(#)disc_fdi.c	1.0.0	2017/05/30
+ *
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
+
 #include <stdio.h>
 #include <stdint.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "disc.h"
 #include "disc_img.h"
@@ -172,7 +189,6 @@ void fdi_read_revolution(int drive)
 			memset(fdi[drive].track_data[1][density], 0, 106096);
 			fdi[drive].tracklen[0][density] = fdi[drive].tracklen[1][density] = 100000;
 		}
-		// pclog("Track is bigger than last track\n");
 		return;
 	}
 
@@ -185,16 +201,15 @@ void fdi_read_revolution(int drive)
 	                              (track * fdi[drive].sides) + side,
 	                              &fdi[drive].tracklen[side][density],
 	                              &fdi[drive].trackindex[side][density], NULL, density);
-			// pclog("Side 0 [%i]: len %i, index %i\n", density, fdi[drive].tracklen[side][density], fdi[drive].trackindex[side][density]);
 	                if (!c)
 	                        memset(fdi[drive].track_data[side][density], 0, fdi[drive].tracklen[side][density]);
 		}
-	}
 
-	if (fdi[drive].sides == 1)
-	{
-		memset(fdi[drive].track_data[1][density], 0, 106096);
-		fdi[drive].tracklen[1][density] = 100000;
+		if (fdi[drive].sides == 1)
+		{
+			memset(fdi[drive].track_data[1][density], 0, 106096);
+			fdi[drive].tracklen[1][density] = 100000;
+		}
 	}
 }
 
@@ -241,13 +256,17 @@ void d86f_register_fdi(int drive)
 	d86f_handler[drive].check_crc = 1;
 }
 
-void fdi_load(int drive, char *fn)
+void fdi_load(int drive, wchar_t *fn)
 {
 	char header[26];
 
         writeprot[drive] = fwriteprot[drive] = 1;
-        fdi[drive].f = fopen(fn, "rb");
-        if (!fdi[drive].f) return;
+        fdi[drive].f = _wfopen(fn, L"rb");
+        if (!fdi[drive].f)
+	{
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
+		return;
+	}
 
 	d86f_unregister(drive);
 
@@ -264,10 +283,8 @@ void fdi_load(int drive, char *fn)
 	}
 
         fdi[drive].h = fdi2raw_header(fdi[drive].f);
-//        if (!fdih[drive]) printf("Failed to load!\n");
         fdi[drive].lasttrack = fdi2raw_get_last_track(fdi[drive].h);
         fdi[drive].sides = fdi2raw_get_last_head(fdi[drive].h) + 1;
-//        printf("Last track %i\n",fdilasttrack[drive]);
 
 	d86f_register_fdi(drive);
 
@@ -285,7 +302,6 @@ void fdi_close(int drive)
                 fdi2raw_header_free(fdi[drive].h);
         if (fdi[drive].f)
                 fclose(fdi[drive].f);
-        fdi[drive].f = NULL;
 }
 
 void fdi_seek(int drive, int track)
@@ -297,11 +313,9 @@ void fdi_seek(int drive, int track)
 			track /= 2;
 		}
 	}
-	// pclog("fdi_seek(): %i %i (%i)\n", fdi[drive].lasttrack, track);
         
         if (!fdi[drive].f)
                 return;
-//        printf("Track start %i\n",track);
         if (track < 0)
                 track = 0;
         if (track > fdi[drive].lasttrack)
@@ -314,5 +328,5 @@ void fdi_seek(int drive, int track)
 
 void fdi_init()
 {
-//        printf("FDI reset\n");
+	return;
 }

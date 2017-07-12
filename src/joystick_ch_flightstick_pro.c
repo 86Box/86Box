@@ -4,10 +4,12 @@
 #include "timer.h"
 #include "gameport.h"
 #include "joystick_standard.h"
-#include "plat-joystick.h"
+#include "plat_joystick.h"
+
 
 static void *ch_flightstick_pro_init()
 {
+	return NULL;
 }
 
 static void ch_flightstick_pro_close(void *p)
@@ -63,6 +65,8 @@ static int ch_flightstick_pro_read_axis(void *p, int axis)
                 return 0;
                 case 3:
                 return joystick_state[0].axis[2];
+		default:
+		return 0;
         }
 }
 
@@ -72,18 +76,18 @@ static void ch_flightstick_pro_a0_over(void *p)
 
 joystick_if_t joystick_ch_flightstick_pro =
 {
-        .name      = "CH Flightstick Pro",
-        .init      = ch_flightstick_pro_init,
-        .close     = ch_flightstick_pro_close,
-        .read      = ch_flightstick_pro_read,
-        .write     = ch_flightstick_pro_write,
-        .read_axis = ch_flightstick_pro_read_axis,
-        .a0_over   = ch_flightstick_pro_a0_over,
-        .max_joysticks = 1,
-        .axis_count = 3,
-        .button_count = 4,
-        .pov_count = 1,
-        .axis_names = {"X axis", "Y axis", "Throttle"},
-        .button_names = {"Button 1", "Button 2", "Button 3", "Button 4"},
-        .pov_names = {"POV"}
+        "CH Flightstick Pro",
+        ch_flightstick_pro_init,
+        ch_flightstick_pro_close,
+        ch_flightstick_pro_read,
+        ch_flightstick_pro_write,
+        ch_flightstick_pro_read_axis,
+        ch_flightstick_pro_a0_over,
+        1,
+        3,
+        4,
+        1,
+        {"X axis", "Y axis", "Throttle"},
+        {"Button 1", "Button 2", "Button 3", "Button 4"},
+        {"POV"}
 };

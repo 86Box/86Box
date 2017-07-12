@@ -1,20 +1,24 @@
+#include <stdlib.h>
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "io.h"
+#include "device.h"
+#include "model.h"
 #include "keyboard.h"
 #include "lpt.h"
 #include "mouse.h"
 
-#include "amstrad.h"
 
 static uint8_t amstrad_dead;
 
-uint8_t amstrad_read(uint16_t port, void *priv)
+
+static uint8_t amstrad_read(uint16_t port, void *priv)
 {
         pclog("amstrad_read : %04X\n",port);
         switch (port)
         {
                 case 0x379:
-                return 7 | readdacfifo();
+                return 7;
                 case 0x37a:
                 if (romset == ROM_PC1512) return 0x20;
                 if (romset == ROM_PC200)  return 0x80;
@@ -25,7 +29,8 @@ uint8_t amstrad_read(uint16_t port, void *priv)
         return 0xff;
 }
 
-void amstrad_write(uint16_t port, uint8_t val, void *priv)
+
+static void amstrad_write(uint16_t port, uint8_t val, void *priv)
 {
         switch (port)
         {
@@ -34,6 +39,7 @@ void amstrad_write(uint16_t port, uint8_t val, void *priv)
                 break;
         }
 }
+
 
 static uint8_t mousex, mousey;
 static void amstrad_mouse_write(uint16_t addr, uint8_t val, void *p)
@@ -58,7 +64,7 @@ typedef struct mouse_amstrad_t
         int oldb;
 } mouse_amstrad_t;
 
-static void mouse_amstrad_poll(int x, int y, int z, int b, void *p)
+static uint8_t mouse_amstrad_poll(int x, int y, int z, int b, void *p)
 {
         mouse_amstrad_t *mouse = (mouse_amstrad_t *)p;
         
@@ -75,15 +81,19 @@ static void mouse_amstrad_poll(int x, int y, int z, int b, void *p)
                 keyboard_send(0xfd);
         
         mouse->oldb = b;
+
+	return(0);
 }
 
-static void *mouse_amstrad_init()
+
+static void *mouse_amstrad_init(void)
 {
         mouse_amstrad_t *mouse = (mouse_amstrad_t *)malloc(sizeof(mouse_amstrad_t));
         memset(mouse, 0, sizeof(mouse_amstrad_t));
                 
         return mouse;
 }
+
 
 static void mouse_amstrad_close(void *p)
 {
@@ -92,16 +102,19 @@ static void mouse_amstrad_close(void *p)
         free(mouse);
 }
 
+
 mouse_t mouse_amstrad =
 {
         "Amstrad mouse",
+        "amstrad",
+        MOUSE_TYPE_AMSTRAD,
         mouse_amstrad_init,
         mouse_amstrad_close,
-        mouse_amstrad_poll,
-        MOUSE_TYPE_AMSTRAD
+        mouse_amstrad_poll
 };
 
-void amstrad_init()
+
+void amstrad_init(void)
 {
         lpt2_remove_ams();
         

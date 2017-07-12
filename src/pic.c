@@ -1,11 +1,14 @@
 #include "ibm.h"
 #include "io.h"
 #include "pic.h"
+#include "pit.h"
 
 int output;
 int intclear;
 int keywaiting=0;
 int pic_intpending;
+
+PIC pic, pic2;
 
 void pic_updatepending()
 {
@@ -56,7 +59,6 @@ void pic_update_mask(uint8_t *mask, uint8_t ins)
                 if (ins & (1 << c))
                 {
                         *mask = 0xff << c;
-			// pclog("Mask is: %02X\n", *mask);
                         return;
                 }
         }
@@ -88,21 +90,16 @@ static void pic_autoeoi()
 void pic_write(uint16_t addr, uint8_t val, void *priv)
 {
         int c;
-        // if (addr&1)  pclog("Write PIC %04X %02X %04X(%06X):%04X\n",addr,val,CS,cs,cpu_state.pc);
         if (addr&1)
         {
-		// pclog("PIC ICW is: %i\n", pic.icw);
                 switch (pic.icw)
                 {
                         case 0: /*OCW1*/
-//                        printf("Write mask %02X %04X:%04X\n",val,CS,pc);
                         pic.mask=val;
                         pic_updatepending();
                         break;
                         case 1: /*ICW2*/
                         pic.vector=val&0xF8;
-                        // printf("PIC vector now %02X\n",pic.vector);
-           //             output=1;
                         if (pic.icw1&2) pic.icw=3;
                         else            pic.icw=2;
                         break;
@@ -112,7 +109,6 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                         case 3: /*ICW4*/
                         pic.icw4 = val;
-                        // pclog("ICW4 = %02x\n", val);
                         pic.icw=0;
                         break;
                 }
@@ -121,7 +117,6 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
         {
                 if (val&16) /*ICW1*/
                 {
-                        // pclog("ICW1 = %02x\n", val);
                         pic.mask = 0;
                         pic.mask2=0;
                         pic.icw=1;
@@ -131,10 +126,8 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
                 }
                 else if (!(val&8)) /*OCW2*/
                 {
-//                        printf("Clear ints - %02X %02X\n",pic.ins,val);
                         if ((val&0xE0)==0x60)
                         {
-//                                pclog("Specific EOI - %02X %i\n",pic.ins,1<<(val&7));
                                 pic.ins&=~(1<<(val&7));
                                 pic_update_mask(&pic.mask2, pic.ins);
 				if (AT)
@@ -142,8 +135,6 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
 	                                if ((val&7) == 2 && (pic2.pend&~pic2.mask)&~pic2.mask2)
         	                                pic.pend |= (1 << 2);
 				}
-//                                pic.pend&=(1<<(val&7));
-//                                if ((val&7)==1) pollkeywaiting();
                                 pic_updatepending();
                         }
                         else
@@ -164,10 +155,8 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
                                                 if (c==1 && keywaiting)
                                                 {
                                                         intclear&=~1;
-//                                                        pollkeywaiting();
                                                 }
                                                 pic_updatepending();
-//                                                pclog("Generic EOI - Cleared int %i\n",c);
                                                 return;
                                         }
                                 }
@@ -175,9 +164,8 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
                 }
                 else               /*OCW3*/
                 {
-                       // if (val&4) fatal("PIC1 write OCW3 4 %02X\n",val);
                         if (val&2) pic.read=(val&1);
-                        if (val&0x40) { } //fatal("PIC 1 write OCW3 40 %02X\n",val);
+                        if (val&0x40) { }
                 }
         }
 }
@@ -186,7 +174,6 @@ uint8_t pic_read(uint16_t addr, void *priv)
 {
         if (addr&1) { /*pclog("Read PIC mask %02X\n",pic.mask);*/ return pic.mask; }
         if (pic.read) { /*pclog("Read PIC ins %02X\n",pic.ins);*/ return pic.ins | (pic2.ins ? 4 : 0); }
-//        pclog("Read PIC pend %02X %08X\n",pic.pend,EDX);
         return pic.pend;
 }
 
@@ -215,19 +202,16 @@ static void pic2_autoeoi()
 void pic2_write(uint16_t addr, uint8_t val, void *priv)
 {
         int c;
-//        pclog("Write PIC2 %04X %02X %04X:%04X %i\n",addr,val,CS,pc,ins);
         if (addr&1)
         {
                 switch (pic2.icw)
                 {
                         case 0: /*OCW1*/
-//                        printf("PIC2 Write mask %02X %04X:%04X\n",val,CS,pc);
                         pic2.mask=val;
                         pic_updatepending();
                         break;
                         case 1: /*ICW2*/
                         pic2.vector=val&0xF8;
-//                        pclog("PIC2 vector %02X\n", val & 0xf8);
                         if (pic2.icw1&2) pic2.icw=3;
                         else            pic2.icw=2;
                         break;
@@ -301,18 +285,14 @@ void clearpic()
 {
         pic.pend=pic.ins=0;
         pic_updatepending();
-//        pclog("Clear PIC\n");
 }
 
 int pic_current[16];
 
 void picint(uint16_t num)
 {
-	int old_pend = pic_intpending;
         if (AT && (num == (1 << 2)))
                 num = 1 << 9;
-//        pclog("picint : %04X\n", num);
-//        if (num == 0x10) pclog("PICINT 10\n");
         if (num>0xFF)
         {
 		if (!AT)
@@ -348,7 +328,6 @@ void picintlevel(uint16_t num)
                 c = 9;
                 num = 1 << 9;
         }
-//        pclog("INTLEVEL %04X %i\n", num, c);
         if (!pic_current[c])
         {
                 pic_current[c]=1;
@@ -379,7 +358,6 @@ void picintc(uint16_t num)
                 c = 9;
                 num = 1 << 9;
         }
-//        pclog("INTC %04X %i\n", num, c);
         pic_current[c]=0;
 
         if (num > 0xff)
@@ -411,7 +389,10 @@ uint8_t picinterrupt()
                         pic.pend &= ~(1 << c);
                         pic.ins |= (1 << c);
                         pic_update_mask(&pic.mask2, pic.ins);                      
+                   
                         pic_updatepending();
+                        if (!c)
+                                pit_set_gate(&pit2, 0, 0);
                         
                         if (pic.icw4 & 0x02)
                                 pic_autoeoi();
@@ -445,7 +426,6 @@ uint8_t picinterrupt()
                                 pic2.ins |= (1 << c);
                                 pic_update_mask(&pic2.mask2, pic2.ins);
                         
-                                // pic.pend &= ~(1 << c);
                                 pic.ins |= (1 << 2); /*Cascade IRQ*/
                                 pic_update_mask(&pic.mask2, pic.ins);
 

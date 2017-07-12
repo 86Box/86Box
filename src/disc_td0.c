@@ -1,5 +1,29 @@
-// license:BSD-3-Clause
-// copyright-holders:Miodrag Milanovic,Kiririn (translation to C and port to 86Box)
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+*		Implementation of the Teledisk floppy image format.
+  *
+ * Version:	@(#)disc_td0.c	1.0.0	2017/05/30
+ *
+ * Author:	Milodrag Milanovic,
+ *		Haruhiko OKUMURA,
+ *		Haruyasu YOSHIZAKI,
+ *		Kenji RIKITAKE,
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 1988-2017 Haruhiko OKUMURA.
+ *		Copyright 1988-2017 Haruyasu YOSHIZAKI.
+ *		Copyright 1988-2017 Kenji RIKITAKE.
+ *		Copyright 2013-2017 Milodrag Milanovic.
+ *		Copyright 2016-2017 Miran Grca.
+ */
+
+/* license:BSD-3-Clause
+   copyright-holders:Miodrag Milanovic, Miran Grca (translation to C and port to 86Box) */
 /*********************************************************************
 
     formats/td0_dsk.c
@@ -14,6 +38,8 @@
  * Edited and translated to English by Kenji RIKITAKE
  */
 
+#include <wchar.h>
+
 #include "ibm.h"
 #include "disc.h"
 #include "disc_td0.h"
@@ -22,7 +48,7 @@
 
 #include <stdlib.h>
 
-#define BUFSZ           512     // new input buffer
+#define BUFSZ           512     /* new input buffer */
 
 /* LZSS Parameters */
 
@@ -44,10 +70,10 @@
 
 typedef struct {
 	uint16_t r,
-					bufcnt,bufndx,bufpos,  // string buffer
-				// the following to allow block reads from input in next_word()
-					ibufcnt,ibufndx; // input buffer counters
-	uint8_t  inbuf[BUFSZ];    // input buffer
+					bufcnt,bufndx,bufpos,  /* string buffer */
+				/* the following to allow block reads from input in next_word() */
+					ibufcnt,ibufndx; /* input buffer counters */
+	uint8_t  inbuf[BUFSZ];    /* input buffer */
 } tdlzhuf;
 
 typedef struct
@@ -71,8 +97,6 @@ typedef struct
 	uint16_t getbuf;
 	uint8_t getlen;
 } td0dsk_t;
-
-//static td0dsk_t td0dsk;
 
 typedef struct
 {
@@ -118,7 +142,7 @@ void floppy_image_read(int drive, char *buffer, uint32_t offset, uint32_t len)
 
 int td0_dsk_identify(int drive)
 {
-	uint8_t header[2];
+	char header[2];
 
 	floppy_image_read(drive, header, 0, 2);
 	if (header[0]=='T' && header[1]=='D') {
@@ -230,7 +254,7 @@ int td0_state_next_word(td0dsk_t *state)
 		if(state->tdctl.ibufcnt == 0)
 			return(-1);
 	}
-	while (state->getlen <= 8) { // typically reads a word at a time
+	while (state->getlen <= 8) { /* typically reads a word at a time */
 		state->getbuf |= state->tdctl.inbuf[state->tdctl.ibufndx++] << (8 - state->getlen);
 		state->getlen += 8;
 	}
@@ -427,7 +451,7 @@ void td0_state_init_Decode(td0dsk_t *state)
 	int i;
 	state->getbuf = 0;
 	state->getlen = 0;
-	state->tdctl.ibufcnt= state->tdctl.ibufndx = 0; // input buffer is empty
+	state->tdctl.ibufcnt= state->tdctl.ibufndx = 0; /* input buffer is empty */
 	state->tdctl.bufcnt = 0;
 	td0_state_StartHuff(state);
 	for (i = 0; i < N - F; i++)
@@ -439,11 +463,11 @@ void td0_state_init_Decode(td0dsk_t *state)
 int td0_state_Decode(td0dsk_t *state, uint8_t *buf, int len)  /* Decoding/Uncompressing */
 {
 	int16_t c,pos;
-	int  count;  // was an unsigned long, seems unnecessary
+	int  count;  /* was an unsigned long, seems unnecessary */
 	for (count = 0; count < len; ) {
 			if(state->tdctl.bufcnt == 0) {
 				if((c = td0_state_DecodeChar(state)) < 0)
-					return(count); // fatal error
+					return(count); /* fatal error */
 				if (c < 256) {
 					*(buf++) = c;
 					state->text_buf[state->tdctl.r++] = c;
@@ -452,13 +476,13 @@ int td0_state_Decode(td0dsk_t *state, uint8_t *buf, int len)  /* Decoding/Uncomp
 				}
 				else {
 					if((pos = td0_state_DecodePosition(state)) < 0)
-							return(count); // fatal error
+							return(count); /* fatal error */
 					state->tdctl.bufpos = (state->tdctl.r - pos - 1) & (N - 1);
 					state->tdctl.bufcnt = c - 255 + THRESHOLD;
 					state->tdctl.bufndx = 0;
 				}
 			}
-			else { // still chars from last string
+			else { /* still chars from last string */
 				while( state->tdctl.bufndx < state->tdctl.bufcnt && count < len ) {
 					c = state->text_buf[(state->tdctl.bufpos + state->tdctl.bufndx) & (N - 1)];
 					*(buf++) = c;
@@ -467,12 +491,12 @@ int td0_state_Decode(td0dsk_t *state, uint8_t *buf, int len)  /* Decoding/Uncomp
 					state->tdctl.r &= (N - 1);
 					count++;
 				}
-				// reset bufcnt after copy string from text_buf[]
+				/* reset bufcnt after copy string from text_buf[] */
 				if(state->tdctl.bufndx >= state->tdctl.bufcnt)
 					state->tdctl.bufndx = state->tdctl.bufcnt = 0;
 			}
 	}
-	return(count); // count == len, success
+	return(count); /* count == len, success */
 }
 
 
@@ -495,23 +519,23 @@ void td0_init()
 
 void d86f_register_td0(int drive);
 
-// static const int rates[3] = { 2, 1, 0, 2, 3 };		/* 0 = 250 kbps, 1 = 300 kbps, 2 = 500 kbps, 3 = unknown, 4 = 1000 kbps */
-const int max_size = 4*1024*1024; // 4MB ought to be large enough for any floppy
+const int max_size = 4*1024*1024; /* 4MB ought to be large enough for any floppy */
 const int max_processed_size = 5*1024*1024;
 uint8_t imagebuf[4*1024*1024];
 uint8_t processed_buf[5*1024*1024];
 uint8_t header[12];
 
-void td0_load(int drive, char *fn)
+void td0_load(int drive, wchar_t *fn)
 {
 	int ret = 0;
 
 	d86f_unregister(drive);
 
 	writeprot[drive] = 1;
-        td0[drive].f = fopen(fn, "rb");
+        td0[drive].f = _wfopen(fn, L"rb");
         if (!td0[drive].f)
         {
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
         }
         fwriteprot[drive] = writeprot[drive];
@@ -521,6 +545,7 @@ void td0_load(int drive, char *fn)
 	{
 		pclog("TD0: Not a valid Teledisk image\n");
 		fclose(td0[drive].f);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 	else
@@ -535,6 +560,7 @@ void td0_load(int drive, char *fn)
 	{
 		pclog("TD0: Failed to initialize\n");
 		fclose(td0[drive].f);
+		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
 	else
@@ -582,7 +608,6 @@ void td0_close(int drive)
 
         if (td0[drive].f)
                 fclose(td0[drive].f);
-        td0[drive].f = NULL;
 }
 
 uint32_t td0_get_raw_tsize(int side_flags, int slower_rpm)
@@ -632,12 +657,10 @@ int td0_initialize(int drive)
 	int head_count = 0;
 	int track_spt;
 	int offset = 0;
-	int ret = 0;
-	int gap3_len = 0;
-	// int rate = 0;
 	int density = 0;
 	int i = 0;
 	int j = 0;
+	int k = 0;
 	int temp_rate = 0;
 	uint32_t file_size;
 	uint16_t len;
@@ -651,7 +674,6 @@ int td0_initialize(int drive)
 	uint32_t track_size = 0;
 	uint32_t raw_tsize = 0;
 	uint32_t minimum_gap3 = 0;
-	// uint32_t minimum_gap4 = 12;
 	uint32_t minimum_gap4 = 0;
 
         if (!td0[drive].f)
@@ -698,7 +720,7 @@ int td0_initialize(int drive)
 		offset = 10 + imagebuf[2] + (imagebuf[3] << 8);
 
 	track_spt = imagebuf[offset];
-	if(track_spt == 255) // Empty file?
+	if(track_spt == 255) /* Empty file? */
 	{
 		pclog("TD0: File has no tracks\n");
 		return 0;
@@ -738,9 +760,6 @@ int td0_initialize(int drive)
 
 	td0[drive].track_width = (header[7] & 1) ^ 1;
 
-	// rate = (header[5] & 0x7f) >= 3 ? 0 : rates[header[5] & 0x7f];
-	// td0[drive].default_track_flags |= rate;
-
 	for (i = 0; i < 256; i++)
 	{
 		memset(td0[drive].side_flags[i], 0, 4);
@@ -756,7 +775,7 @@ int td0_initialize(int drive)
 	{
 		track = imagebuf[offset + 1];
 		head = imagebuf[offset + 2] & 1;
-		fm = (header[5] & 0x80) || (imagebuf[offset + 2] & 0x80); // ?
+		fm = (header[5] & 0x80) || (imagebuf[offset + 2] & 0x80); /* ? */
 		td0[drive].side_flags[track][head] = td0[drive].default_track_flags | (fm ? 0 : 8);
 		td0[drive].track_in_file[track][head] = 1;
 		offset += 4;
@@ -766,7 +785,6 @@ int td0_initialize(int drive)
 		for(i = 0; i < track_spt; i++)
 		{
 			hs = &imagebuf[offset];
-			size;
 			offset += 6;
 
 			td0[drive].sects[track][head][i].track       = hs[0];
@@ -792,7 +810,6 @@ int td0_initialize(int drive)
 			else
 			{
 				offset += 3;
-				int j, k;
 				switch(hs[8])
 				{
 					default:
@@ -890,7 +907,6 @@ int td0_initialize(int drive)
 	temp_rate = td0[drive].default_track_flags & 7;
 	if ((td0[drive].default_track_flags & 0x27) == 0x20)  temp_rate = 4;
 	td0[drive].gap3_len = gap3_sizes[temp_rate][td0[drive].sects[0][0][0].size][td0[drive].track_spt[0][0]];
-	// pclog("GAP3 length for %i %i %i is %i\n", temp_rate, td0[drive].sects[0][0][0].size, td0[drive].track_spt[0][0], td0[drive].gap3_len);
 	if (!td0[drive].gap3_len)
 	{
 		td0[drive].gap3_len = td0[drive].calculated_gap3_lengths[0][0];		/* If we can't determine the GAP3 length, assume the smallest one we possibly know of. */
@@ -968,12 +984,10 @@ int td0_track_is_xdf(int drive, int side, int track)
 				td0[drive].current_side_flags[side] = (td0[drive].track_spt[track][side] == 19) ?  0x08 : 0x28;
 				return (td0[drive].track_spt[track][side] == 19) ? 2 : 1;
 			}
-			// pclog("XDF: %i %i %i %i\n", high_sectors, expected_high_count, low_sectors, expected_low_count);
 			return 0;
 		}
 		else
 		{
-			// pclog("XDF: %i sectors per track (%i %i)\n", td0[drive].track_spt[track][side], track, side);
 			return 0;
 		}
 	}
@@ -996,7 +1010,6 @@ int td0_track_is_xdf(int drive, int side, int track)
 				td0[drive].xdf_ordered_pos[id[2]][side] = i;
 			}
 		}
-		// pclog("XDF: %i %i\n", effective_sectors, xdf_sectors);
 		if ((effective_sectors == 3) && (xdf_sectors == 3))
 		{
 			td0[drive].current_side_flags[side] = 0x28;
@@ -1087,8 +1100,6 @@ void td0_seek(int drive, int track)
 	td0[drive].current_side_flags[0] = td0[drive].side_flags[track][0];
 	td0[drive].current_side_flags[1] = td0[drive].side_flags[track][1];
 
-	// pclog("TD0 Seek: %02X %02X (%02X)\n", td0[drive].current_side_flags[0], td0[drive].current_side_flags[1], td0[drive].disk_flags);
-
 	d86f_reset_index_hole_pos(drive, 0);
 	d86f_reset_index_hole_pos(drive, 1);
 
@@ -1128,7 +1139,6 @@ void td0_seek(int drive, int track)
 				id[1] = td0[drive].sects[track][side][actual_sector].head;
 				id[2] = real_sector;
 				id[3] = td0[drive].sects[track][side][actual_sector].size;
-				// pclog("TD0: %i %i %i %i (%i %i) (GPL=%i)\n", id[0], id[1], id[2], id[3], td0[drive].sects[track][side][actual_sector].deleted, td0[drive].sects[track][side][actual_sector].bad_crc, track_gap3);
 				ssize = 128 << ((uint32_t) td0[drive].sects[track][side][actual_sector].size);
 				current_pos = d86f_prepare_sector(drive, side, current_pos, id, td0[drive].sects[track][side][actual_sector].data, ssize, track_gap2, track_gap3, td0[drive].sects[track][side][actual_sector].deleted, td0[drive].sects[track][side][actual_sector].bad_crc);
 			}
@@ -1146,7 +1156,6 @@ void td0_seek(int drive, int track)
 				id[3] = is_trackx ? (id[2] & 7) : 2;
 				ssize = 128 << ((uint32_t) id[3]);
 				ordered_pos = td0[drive].xdf_ordered_pos[id[2]][side];
-				// pclog("TD0: XDF: (%i %i) %i %i %i %i (%i %i) (GPL=%i)\n", track, side, id[0], id[1], id[2], id[3], td0[drive].sects[track][side][ordered_pos].deleted, td0[drive].sects[track][side][ordered_pos].bad_crc, track_gap3);
 				if (is_trackx)
 				{
 					current_pos = d86f_prepare_sector(drive, side, xdf_trackx_spos[xdf_type][xdf_sector], id, td0[drive].sects[track][side][ordered_pos].data, ssize, track_gap2, xdf_gap3_sizes[xdf_type][is_trackx], td0[drive].sects[track][side][ordered_pos].deleted, td0[drive].sects[track][side][ordered_pos].bad_crc);
@@ -1158,8 +1167,6 @@ void td0_seek(int drive, int track)
 			}
 		}
 	}
-
-	// pclog("Seeked to track: %i (%02X, %02X)\n", td0[drive].track, td0[drive].current_side_flags[0], td0[drive].current_side_flags[1]);
 }
 
 uint16_t td0_disk_flags(int drive)

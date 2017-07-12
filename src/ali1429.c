@@ -3,16 +3,18 @@
 */
 #include <string.h>
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "io.h"
 #include "mem.h"
-#include "cpu.h"
+#include "device.h"
+#include "model.h"
 
-#include "ali1429.h"
 
 static int ali1429_index;
 static uint8_t ali1429_regs[256];
 
-static void ali1429_recalc()
+
+static void ali1429_recalc(void)
 {
         int c;
         
@@ -46,14 +48,11 @@ static void ali1429_recalc()
 
 void ali1429_write(uint16_t port, uint8_t val, void *priv)
 {
-        int c;
-        
         if (!(port & 1)) 
                 ali1429_index = val;
         else
         {
                 ali1429_regs[ali1429_index] = val;
-//                pclog("ALI1429 write %02X %02X %04X:%04X %i\n",ali1429_index,val,CS,pc,ins);
                 switch (ali1429_index)
                 {
                         case 0x13:
@@ -78,12 +77,13 @@ uint8_t ali1429_read(uint16_t port, void *priv)
 }
 
 
-void ali1429_reset()
+void ali1429_reset(void)
 {
         memset(ali1429_regs, 0xff, 256);
 }
 
-void ali1429_init()
+
+void ali1429_init(void)
 {
         io_sethandler(0x0022, 0x0002, ali1429_read, NULL, NULL, ali1429_write, NULL, NULL, NULL);
 }

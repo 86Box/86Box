@@ -1,11 +1,26 @@
-/* Better random number generator by Battler. */
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		A better random number generation, used for floppy weak bits
+ *		and network MAC address generation.
+ *
+ * Version:	@(#)disc_random.c	1.0.0	2017/05/30
+ *
+ * Author:	Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2016-2017 Miran Grca.
+ */
 
 #include <assert.h>
 #include <stdio.h>
 
 #include <stdint.h>
 
-#include <inttypes.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
@@ -33,7 +48,15 @@ static __inline__ uint32_t rotr32c (uint32_t x, uint32_t n)
 static __inline__ unsigned long long rdtsc(void)
 {
     unsigned hi, lo;
-    __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+#ifdef __MSC__
+    __asm {
+		rdtsc
+		mov hi, edx	; EDX:EAX is already standard return!!
+		mov lo, eax
+    }
+#else
+      __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+#endif
     return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
 }
 

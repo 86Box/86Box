@@ -1,19 +1,20 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
-#include <stdint.h>
-
 #include "ibm.h"
 #include "io.h"
 #include "mem.h"
+#include "pic.h"
 
 #include "pci.h"
 
 void    (*pci_card_write[32])(int func, int addr, uint8_t val, void *priv);
 uint8_t  (*pci_card_read[32])(int func, int addr, void *priv);
 void           *pci_priv[32];
-static uint8_t pci_index, pci_func, pci_card, pci_bus, pci_enable, pci_key;
-static int pci_min_card, pci_max_card;
+static int pci_irq_routing[32];
+/* static int pci_irq_active[32]; */
+static int pci_irqs[4];
+static int pci_card_valid[32];
+static int pci_irq_hold[16];
+
+static int pci_index, pci_func, pci_card, pci_bus, pci_enable, pci_key;
 int pci_burst_time, pci_nonburst_time;
 
 void pci_cf8_write(uint16_t port, uint32_t val, void *p)
@@ -23,7 +24,6 @@ void pci_cf8_write(uint16_t port, uint32_t val, void *p)
         pci_card = (val >> 11) & 31;
         pci_bus = (val >> 16) & 0xff;
         pci_enable = (val >> 31) & 1;
-	// pclog("PCI card selected: %i\n", pci_card);
 }
 
 uint32_t pci_cf8_read(uint16_t port, void *p)
@@ -33,15 +33,12 @@ uint32_t pci_cf8_read(uint16_t port, void *p)
 
 void pci_write(uint16_t port, uint8_t val, void *priv)
 {
-        // pclog("pci_write: port=%04x val=%02x %08x:%08x\n", port, val, cs, cpu_state.pc);
         switch (port)
         {
                 case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff:
                 if (!pci_enable) 
                    return;
                    
-                // pclog("PCI write bus %i card %i func %i index %02X val %02X  %04X:%04X\n", pci_bus, pci_card, pci_func, pci_index | (port & 3), val, CS, cpu_state.pc);
-                
                 if (!pci_bus && pci_card_write[pci_card])
                    pci_card_write[pci_card](pci_func, pci_index | (port & 3), val, pci_priv[pci_card]);
                 
@@ -51,20 +48,54 @@ void pci_write(uint16_t port, uint8_t val, void *priv)
 
 uint8_t pci_read(uint16_t port, void *priv)
 {
-        // pclog("pci_read: port=%04x  %08x:%08x\n", port, cs, cpu_state.pc);
         switch (port)
         {
                 case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff:
                 if (!pci_enable) 
                    return 0xff;
 
-                // pclog("PCI read  bus %i card %i func %i index %02X\n", pci_bus, pci_card, pci_func, pci_index | (port & 3));
-
                 if (!pci_bus && pci_card_read[pci_card])
                    return pci_card_read[pci_card](pci_func, pci_index | (port & 3), pci_priv[pci_card]);
 
                 return 0xff;
         }
+        return 0xff;
+}
+
+uint8_t elcr[2] = { 0, 0 };
+
+void elcr_write(uint16_t port, uint8_t val, void *priv)
+{
+	/* pclog("ELCR%i: WRITE %02X\n", port & 1, val); */
+	elcr[port & 1] = val;
+
+	/* printf("ELCR %i: %c %c %c %c %c %c %c %c\n", port & 1, (val & 1) ? 'L' : 'E', (val & 2) ? 'L' : 'E', (val & 4) ? 'L' : 'E', (val & 8) ? 'L' : 'E', (val & 0x10) ? 'L' : 'E', (val & 0x20) ? 'L' : 'E', (val & 0x40) ? 'L' : 'E', (val & 0x80) ? 'L' : 'E'); */
+}
+
+uint8_t elcr_read(uint16_t port, void *priv)
+{
+	/* pclog("ELCR%i: READ %02X\n", port & 1, elcr[port & 1]); */
+	return elcr[port & 1];
+}
+
+void elcr_reset(void)
+{
+	int i = 0;
+
+	pic_reset();
+	elcr[0] = elcr[1] = 0;
+
+#if 0
+	for (i = 0; i < 32; i++)
+	{
+		pci_irq_active[i] = 0;
+	}
+#endif
+
+	for (i = 0; i < 16; i++)
+	{
+		pci_irq_hold[i] = 0;
+	}
 }
 
 void pci_type2_write(uint16_t port, uint8_t val, void *priv);
@@ -72,7 +103,6 @@ uint8_t pci_type2_read(uint16_t port, void *priv);
 
 void pci_type2_write(uint16_t port, uint8_t val, void *priv)
 {
-//        pclog("pci_type2_write: port=%04x val=%02x %08x:%08x\n", port, val, cs, pc);
         if (port == 0xcf8)
         {
                 pci_func = (val >> 1) & 7;
@@ -91,8 +121,6 @@ void pci_type2_write(uint16_t port, uint8_t val, void *priv)
                 pci_card = (port >> 8) & 0xf;
                 pci_index = port & 0xff;
 
-                // pclog("PCI write bus %i card %i func %i index %02X val %02X  %04X:%04X\n", pci_bus, pci_card, pci_func, pci_index | (port & 3), val, CS, cpu_state.pc);
-                
                 if (!pci_bus && pci_card_write[pci_card])
                         pci_card_write[pci_card](pci_func, pci_index | (port & 3), val, pci_priv[pci_card]);
         }
@@ -100,7 +128,6 @@ void pci_type2_write(uint16_t port, uint8_t val, void *priv)
 
 uint8_t pci_type2_read(uint16_t port, void *priv)
 {
-//        pclog("pci_type2_read: port=%04x  %08x:%08x\n", port, cs, pc);
         if (port == 0xcf8)
         {
                 return pci_key | (pci_func << 1);
@@ -114,19 +141,89 @@ uint8_t pci_type2_read(uint16_t port, void *priv)
                 pci_card = (port >> 8) & 0xf;
                 pci_index = port & 0xff;
 
-                // pclog("PCI read  bus %i card %i func %i index %02X           %04X:%04X\n", pci_bus, pci_card, pci_func, pci_index | (port & 3), CS, cpu_state.pc);
-                
                 if (!pci_bus && pci_card_write[pci_card])
                         return pci_card_read[pci_card](pci_func, pci_index | (port & 3), pci_priv[pci_card]);
         }
         return 0xff;
 }
-                
-void pci_init(int type, int min_card, int max_card)
+
+void pci_set_irq_routing(int pci_int, int irq)
+{
+        pci_irqs[pci_int - 1] = irq;
+}
+
+void pci_set_card_routing(int card, int pci_int)
+{
+        pci_irq_routing[card] = pci_int;
+}
+
+int pci_irq_is_level(int irq)
+{
+	int real_irq = irq & 7;
+	/* int irq_elcr = 0; */
+
+	if (irq > 7)
+	{
+		return !!(elcr[1] & (1 << real_irq));
+	}
+	else
+	{
+		return !!(elcr[0] & (1 << real_irq));
+	}
+}
+
+void pci_issue_irq(int irq)
+{
+	if (pci_irq_is_level(irq))
+	{
+		picintlevel(1 << irq);
+	}
+	else
+	{
+		picint(1 << irq);
+	}
+}
+
+void pci_set_irq(int card, int pci_int)
+{
+	int irq = ((pci_int - PCI_INTA) + (pci_irq_routing[card] - PCI_INTA)) & 3;
+
+        if (pci_irq_routing[card])
+        {
+                if (pci_irqs[irq] != PCI_IRQ_DISABLED/* && !pci_irq_active[card] */)
+			pci_issue_irq(pci_irqs[irq]);
+                /* pci_irq_active[card] = 1; */
+		/* If the IRQ is set to edge, there is no need to hold it. */
+		if (!pci_irq_is_level(pci_irqs[irq]))
+		{
+			pci_irq_hold[pci_irqs[irq]] |= (1 << card);
+		}
+        }
+}
+
+void pci_clear_irq(int card, int pci_int)
+{
+	int irq = ((pci_int - PCI_INTA) + (pci_irq_routing[card] - PCI_INTA)) & 3;
+
+	/* Do not clear the interrupt until we're the last card being serviced. */
+        if (pci_irq_routing[card])
+        {
+		pci_irq_hold[pci_irqs[irq]] &= ~(1 << card);
+                if (pci_irqs[irq] != PCI_IRQ_DISABLED/* && pci_irq_active[card]*/ && !pci_irq_hold[pci_irqs[irq]])
+                        picintc(1 << pci_irqs[irq]);
+                /* pci_irq_active[card] = 0; */
+        }
+}
+
+void pci_init(int type)
 {
         int c;
 
         PCI = 1;
+
+	elcr_reset();
+
+	io_sethandler(0x04d0, 0x0002, elcr_read, NULL, NULL, elcr_write, NULL, NULL,  NULL);
         
         if (type == PCI_CONFIG_TYPE_1)
         {
@@ -140,10 +237,22 @@ void pci_init(int type, int min_card, int max_card)
         }
         
         for (c = 0; c < 32; c++)
-            pci_card_read[c] = pci_card_write[c] = pci_priv[c] = NULL;
+        {
+                pci_card_read[c] = NULL;
+                pci_card_write[c] = NULL;
+                pci_priv[c] = NULL;
+                pci_irq_routing[c] = 0;
+                /* pci_irq_active[c] = 0; */
+                pci_card_valid[c] = 0;
+        }
         
-        pci_min_card = min_card;
-        pci_max_card = max_card;
+        for (c = 0; c < 4; c++)
+                pci_irqs[c] = PCI_IRQ_DISABLED;
+}
+
+void pci_slot(int card)
+{
+        pci_card_valid[card] = 1;
 }
 
 void pci_add_specific(int card, uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv)
@@ -153,19 +262,20 @@ void pci_add_specific(int card, uint8_t (*read)(int func, int addr, void *priv),
               pci_priv[card] = priv;
 }
 
-void pci_add(uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv)
+int pci_add(uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv)
 {
         int c;
         
-        for (c = pci_min_card; c <= pci_max_card; c++)
+        for (c = 0; c < 32; c++)
         {
-                if (!pci_card_read[c] && !pci_card_write[c])
+                if (pci_card_valid[c] && !pci_card_read[c] && !pci_card_write[c])
                 {
                          pci_card_read[c] = read;
                         pci_card_write[c] = write;
                               pci_priv[c] = priv;
-			// pclog("PCI device added to card: %i\n", c);
-                        return;
+                        return c;
                 }
         }
+        
+        return -1;
 }

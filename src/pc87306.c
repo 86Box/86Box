@@ -1,95 +1,95 @@
-/* Copyright holders: Tenshi
-   see COPYING for more details
-*/
 /*
-	National Semiconductors PC87306 Super I/O Chip
-	Used by Intel Advanced/EV
-*/
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Emulation of the National Semiconductors PC87306 Super I/O
+ *		chip.
+ *
+ * Version:	@(#)pc87306.c	1.0.0	2017/05/30
+ *
+ * Author:	Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2016-2017 Miran Grca.
+ */
 
 #include "ibm.h"
 
 #include "disc.h"
 #include "fdc.h"
 #include "fdd.h"
+#include "ide.h"
 #include "io.h"
 #include "lpt.h"
 #include "serial.h"
 #include "pc87306.h"
 
-static int pc87306_locked;
 static int pc87306_curreg;
 static uint8_t pc87306_regs[29];
-static uint8_t pc87306_gpio[2] = {0xFF, 0xFF};
+static uint8_t pc87306_gpio[2] = {0xFF, 0xFB};
 static uint8_t tries;
 static uint16_t lpt_port;
-static int power_down = 0;
 
 void pc87306_gpio_remove();
 void pc87306_gpio_init();
 
 void pc87306_gpio_write(uint16_t port, uint8_t val, void *priv)
 {
-	if (port & 1)
-	{
-		return;
-	}
 	pc87306_gpio[port & 1] = val;
 }
 
 uint8_t uart_int1()
 {
 	/* 0: IRQ3, 1: IRQ4 */
-	return ((pc87306_regs[0x1C] >> 2) & 1) ? 3 : 4;
+	return ((pc87306_regs[0x1C] >> 2) & 1) ? 4 : 3;
 }
 
 uint8_t uart_int2()
 {
-	return ((pc87306_regs[0x1C] >> 6) & 1) ? 3 : 4;
+	/* 0: IRQ3, 1: IRQ4 */
+	return ((pc87306_regs[0x1C] >> 6) & 1) ? 4 : 3;
 }
 
 uint8_t uart1_int()
 {
 	uint8_t temp;
-	temp = ((pc87306_regs[1] >> 2) & 1) ? 3 : 4;	/* 0 = IRQ 4, 1 = IRQ 3 */
-	// pclog("UART 1 set to IRQ %i\n", (pc87306_regs[0x1C] & 1) ? uart_int1() : temp);
+	temp = ((pc87306_regs[1] >> 2) & 1) ? 3 : 4;	/* 0 = COM1 (IRQ 4), 1 = COM2 (IRQ 3), 2 = COM3 (IRQ 4), 3 = COM4 (IRQ 3) */
 	return (pc87306_regs[0x1C] & 1) ? uart_int1() : temp;
 }
 
 uint8_t uart2_int()
 {
 	uint8_t temp;
-	temp = ((pc87306_regs[1] >> 4) & 1) ? 3 : 4;	/* 0 = IRQ 4, 1 = IRQ 3 */
-	// pclog("UART 2 set to IRQ %i\n", (pc87306_regs[0x1C] & 1) ? uart_int2() : temp);
+	temp = ((pc87306_regs[1] >> 4) & 1) ? 3 : 4;	/* 0 = COM1 (IRQ 4), 1 = COM2 (IRQ 3), 2 = COM3 (IRQ 4), 3 = COM4 (IRQ 3) */
 	return (pc87306_regs[0x1C] & 1) ? uart_int2() : temp;
 }
 
 void lpt1_handler()
 {
         int temp;
-	if (pc87306_regs[0x1B] & 0x10)
+	temp = pc87306_regs[0x01] & 3;
+	switch (temp)
 	{
-		temp = (pc87306_regs[0x1B] & 0x20) >> 5;
-		if (temp)
-		{
+		case 0:
 			lpt_port = 0x378;
-		}
-		else
-		{
+			break;
+		case 1:
+			if (pc87306_regs[0x1B] & 0x40)
+			{
+				lpt_port = ((uint16_t) pc87306_regs[0x19]) << 2;
+			}
+			else
+			{
+				lpt_port = 0x3bc;
+			}
+			break;
+		case 2:
 			lpt_port = 0x278;
-		}
-	}
-	else
-	{
-		temp = pc87306_regs[0x01] & 3;
-		switch (temp)
-		{
-			case 0: lpt_port = 0x378;
-			case 1: lpt_port = 0x3bc;
-			case 2: lpt_port = 0x278;
-		}
+			break;
 	}
 	lpt1_init(lpt_port);
-	pc87306_regs[0x19] = lpt_port >> 2;
 }
 
 void serial1_handler()
@@ -98,24 +98,24 @@ void serial1_handler()
 	temp = (pc87306_regs[1] >> 2) & 3;
 	switch (temp)
 	{
-		case 0: serial1_set(0x3f8, uart1_int()); break;
-		case 1: serial1_set(0x2f8, uart1_int()); break;
+		case 0: serial_setup(1, SERIAL1_ADDR, uart1_int()); break;
+		case 1: serial_setup(1, SERIAL2_ADDR, uart1_int()); break;
 		case 2:
 			switch ((pc87306_regs[1] >> 6) & 3)
 			{
-				case 0: serial1_set(0x3e8, uart1_int()); break;
-				case 1: serial1_set(0x338, uart1_int()); break;
-				case 2: serial1_set(0x2e8, uart1_int()); break;
-				case 3: serial1_set(0x220, uart1_int()); break;
+				case 0: serial_setup(1, 0x3e8, uart1_int()); break;
+				case 1: serial_setup(1, 0x338, uart1_int()); break;
+				case 2: serial_setup(1, 0x2e8, uart1_int()); break;
+				case 3: serial_setup(1, 0x220, uart1_int()); break;
 			}
 			break;
 		case 3:
 			switch ((pc87306_regs[1] >> 6) & 3)
 			{
-				case 0: serial1_set(0x2e8, uart1_int()); break;
-				case 1: serial1_set(0x238, uart1_int()); break;
-				case 2: serial1_set(0x2e0, uart1_int()); break;
-				case 3: serial1_set(0x228, uart1_int()); break;
+				case 0: serial_setup(1, 0x2e8, uart1_int()); break;
+				case 1: serial_setup(1, 0x238, uart1_int()); break;
+				case 2: serial_setup(1, 0x2e0, uart1_int()); break;
+				case 3: serial_setup(1, 0x228, uart1_int()); break;
 			}
 			break;
 	}
@@ -127,24 +127,24 @@ void serial2_handler()
 	temp = (pc87306_regs[1] >> 4) & 3;
 	switch (temp)
 	{
-		case 0: serial2_set(0x3f8, uart2_int()); break;
-		case 1: serial2_set(0x2f8, uart2_int()); break;
+		case 0: serial_setup(2, SERIAL1_ADDR, uart2_int()); break;
+		case 1: serial_setup(2, SERIAL2_ADDR, uart2_int()); break;
 		case 2:
 			switch ((pc87306_regs[1] >> 6) & 3)
 			{
-				case 0: serial2_set(0x3e8, uart2_int()); break;
-				case 1: serial2_set(0x338, uart2_int()); break;
-				case 2: serial2_set(0x2e8, uart2_int()); break;
-				case 3: serial2_set(0x220, uart2_int()); break;
+				case 0: serial_setup(2, 0x3e8, uart2_int()); break;
+				case 1: serial_setup(2, 0x338, uart2_int()); break;
+				case 2: serial_setup(2, 0x2e8, uart2_int()); break;
+				case 3: serial_setup(2, 0x220, uart2_int()); break;
 			}
 			break;
 		case 3:
 			switch ((pc87306_regs[1] >> 6) & 3)
 			{
-				case 0: serial2_set(0x2e8, uart2_int()); break;
-				case 1: serial2_set(0x238, uart2_int()); break;
-				case 2: serial2_set(0x2e0, uart2_int()); break;
-				case 3: serial2_set(0x228, uart2_int()); break;
+				case 0: serial_setup(2, 0x2e8, uart2_int()); break;
+				case 1: serial_setup(2, 0x238, uart2_int()); break;
+				case 2: serial_setup(2, 0x2e0, uart2_int()); break;
+				case 3: serial_setup(2, 0x228, uart2_int()); break;
 			}
 			break;
 	}
@@ -153,15 +153,16 @@ void serial2_handler()
 void pc87306_write(uint16_t port, uint8_t val, void *priv)
 {
 	uint8_t index;
-	index = (port & 1) ? 0 : 1;
-        int temp;
 	uint8_t valxor;
-        // pclog("pc87306_write : port=%04x reg %02X = %02X locked=%i\n", port, pc87306_curreg, val, pc87306_locked);
+#if 0
+	uint16_t or_value;
+#endif
+
+	index = (port & 1) ? 0 : 1;
 
 	if (index)
 	{
 		pc87306_curreg = val & 0x1f;
-		// pclog("Register set to: %02X\n", val);
 		tries = 0;
 		return;
 	}
@@ -169,15 +170,29 @@ void pc87306_write(uint16_t port, uint8_t val, void *priv)
 	{
 		if (tries)
 		{
-			if (pc87306_curreg <= 28)  valxor = val ^ pc87306_regs[pc87306_curreg];
-			if (pc87306_curreg == 0xF)  pc87306_gpio_remove();
-			if ((pc87306_curreg <= 28) && (pc87306_curreg != 8))
+			if ((pc87306_curreg == 0) && (val == 8))
 			{
-				pc87306_regs[pc87306_curreg] = val;
-				// pclog("Register %02X set to: %02X (was: %02X)\n", pc87306_curreg, val, pc87306_regs[pc87306_curreg]);
+				val = 0x4b;
 			}
+			if (pc87306_curreg <= 28)  valxor = val ^ pc87306_regs[pc87306_curreg];
 			tries = 0;
-			if ((pc87306_curreg <= 28) && (pc87306_curreg != 8))  goto process_value;
+			if ((pc87306_curreg == 0x19) && !(pc87306_regs[0x1B] & 0x40))
+			{
+				return;
+			}
+			if ((pc87306_curreg <= 28) && (pc87306_curreg != 8)/* && (pc87306_curreg != 0x18)*/)
+			{
+				if (pc87306_curreg == 0)
+				{
+					val &= 0x5f;
+				}
+				if (((pc87306_curreg == 0x0F) || (pc87306_curreg == 0x12)) && valxor)
+				{
+					pc87306_gpio_remove();
+				}
+				pc87306_regs[pc87306_curreg] = val;
+				goto process_value;
+			}
 		}
 		else
 		{
@@ -194,15 +209,15 @@ process_value:
 			if (valxor & 1)
 			{
 				lpt1_remove();
-			}
-			if ((valxor & 1) && (val & 1))
-			{
-				lpt1_handler();
+				if (val & 1)
+				{
+					lpt1_handler();
+				}
 			}
 
 			if (valxor & 2)
 			{
-				serial1_remove();
+				serial_remove(1);
 				if (val & 2)
 				{
 					serial1_handler();
@@ -210,16 +225,44 @@ process_value:
 			}
 			if (valxor & 4)
 			{
-				serial2_remove();
+				serial_remove(2);
 				if (val & 4)
 				{
 					serial2_handler();
 				}
 			}
+			if (valxor & 0x28)
+			{
+				fdc_remove();
+				if (val & 8)
+				{
+					fdc_set_base((val & 0x20) ? 0x370 : 0x3f0, 0);
+				}
+			}
+			if (valxor & 0xc0)
+			{
+#if 0
+				ide_pri_disable();
+				if (val & 0x80)
+				{
+					or_value = 0;
+				}
+				else
+				{
+					or_value = 0x80;
+				}
+				ide_set_base(0, 0x170 | or_value);
+				ide_set_side(0, 0x376 | or_value);
+				if (val & 0x40)
+				{
+					ide_pri_enable_ex();
+				}
+#endif
+			}
 			
 			break;
 		case 1:
-			if (valxor & 1)
+			if (valxor & 3)
 			{
 				lpt1_remove();
 				if (pc87306_regs[0] & 1)
@@ -230,59 +273,113 @@ process_value:
 
 			if (valxor & 0xcc)
 			{
-				serial1_remove();
-
 				if (pc87306_regs[0] & 2)
 				{
 					serial1_handler();
+				}
+				else
+				{
+					serial_remove(1);
 				}
 			}
 
 			if (valxor & 0xf0)
 			{
-				serial2_remove();
-
 				if (pc87306_regs[0] & 4)
 				{
 					serial2_handler();
 				}
+				else
+				{
+					serial_remove(2);
+				}
 			}
 			break;
 		case 2:
-			lpt1_remove();
-			serial1_remove();
-			serial2_remove();
-			if (val & 1)
+			if (valxor & 1)
 			{
-				pc87306_regs[0] &= 0xb0;
-			}
-			else
-			{
-				lpt1_handler();
-				serial1_handler();
-				// serial2_handler();
-				pc87306_regs[0] |= 0x4b;
+				if (val & 1)
+				{
+					lpt1_remove();
+					serial_remove(1);
+					serial_remove(2);
+					fdc_remove();
+				}
+				else
+				{
+					if (pc87306_regs[0] & 1)
+					{
+						lpt1_handler();
+					}
+					if (pc87306_regs[0] & 2)
+					{
+						serial1_handler();
+					}
+					if (pc87306_regs[0] & 4)
+					{
+						serial2_handler();
+					}
+					if (pc87306_regs[0] & 8)
+					{
+						fdc_set_base((pc87306_regs[0] & 0x20) ? 0x370 : 0x3f0, 0);
+					}
+				}
 			}
 			break;
 		case 9:
-			// pclog("Setting DENSEL polarity to: %i (before: %i)\n", (val & 0x40 ? 1 : 0), fdc_get_densel_polarity());
-			fdc_update_enh_mode((val & 4) ? 1 : 0);
-			fdc_update_densel_polarity((val & 0x40) ? 1 : 0);
+			if (valxor & 0x44)
+			{
+				fdc_update_enh_mode((val & 4) ? 1 : 0);
+				fdc_update_densel_polarity((val & 0x40) ? 1 : 0);
+			}
 			break;
 		case 0xF:
-			pc87306_gpio_init();
-			break;
-		case 0x1C:
-			// if (valxor & 0x25)
 			if (valxor)
 			{
-				serial1_remove();
-				serial2_remove();
+				pc87306_gpio_init();
+			}
+			break;
+		case 0x12:
+			if (valxor & 0x30)
+			{
+				pc87306_gpio_init();
+			}
+			break;
+		case 0x19:
+			if (valxor)
+			{
+				lpt1_remove();
+				if (pc87306_regs[0] & 1)
+				{
+					lpt1_handler();
+				}
+			}
+			break;
+		case 0x1B:
+			if (valxor & 0x40)
+			{
+				lpt1_remove();
+				if (!(val & 0x40))
+				{
+					pc87306_regs[0x19] = 0xEF;
+				}
+				if (pc87306_regs[0] & 1)
+				{
+					lpt1_handler();
+				}
+			}
+			break;
+		case 0x1C:
+			if (valxor)
+			{
 				if (pc87306_regs[0] & 2)
 				{
 					serial1_handler();
 				}
-				if (pc87306_regs[0] & 4)  serial2_handler();
+				if (pc87306_regs[0] & 4)
+				{
+					serial2_handler();
+				}
 			}
 			break;
 	}
@@ -290,16 +387,11 @@ process_value:
 
 uint8_t pc87306_gpio_read(uint16_t port, void *priv)
 {
-	if (port & 1)
-	{
-		return 0xfb;	/* Bit 2 clear, since we don't emulate the on-board audio. */
-	}
 	return pc87306_gpio[port & 1];
 }
 
 uint8_t pc87306_read(uint16_t port, void *priv)
 {
-        // pclog("pc87306_read : port=%04x reg %02X locked=%i\n", port, pc87306_curreg, pc87306_locked);
 	uint8_t index;
 	index = (port & 1) ? 0 : 1;
 
@@ -307,29 +399,20 @@ uint8_t pc87306_read(uint16_t port, void *priv)
 
 	if (index)
 	{
-		// pclog("PC87306: Read value %02X at the index register\n", pc87306_curreg & 0x1f);
 		return pc87306_curreg & 0x1f;
 	}
 	else
 	{
 	        if (pc87306_curreg >= 28)
 		{
-			// pclog("PC87306: Read invalid at data register, index %02X\n", pc87306_curreg);
 			return 0xff;
 		}
 		else if (pc87306_curreg == 8)
 		{
-			// pclog("PC87306: Read ID at data register, index 08\n");
 			return 0x70;
-		}
-		else if (pc87306_curreg == 5)
-		{
-			// pclog("PC87306: Read value %02X at data register, index 05\n", pc87306_regs[pc87306_curreg] | 4);
-			return pc87306_regs[pc87306_curreg] | 4;
 		}
 		else
 		{
-			// pclog("PC87306: Read value %02X at data register, index %02X\n", pc87306_regs[pc87306_curreg], pc87306_curreg);
 			return pc87306_regs[pc87306_curreg];
 		}
 	}
@@ -342,27 +425,31 @@ void pc87306_gpio_remove()
 
 void pc87306_gpio_init()
 {
-        io_sethandler(pc87306_regs[0xF] << 2, 0x0002, pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL,  NULL);
+	if ((pc87306_regs[0x12]) & 0x10)
+	{
+	        io_sethandler(pc87306_regs[0xF] << 2, 0x0001, pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL,  NULL);
+	}
+
+	if ((pc87306_regs[0x12]) & 0x20)
+	{
+	        io_sethandler((pc87306_regs[0xF] << 2) + 1, 0x0001, pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL,  NULL);
+	}
 }
 
-void pc87306_init()
+void pc87306_reset(void)
 {
 	memset(pc87306_regs, 0, 29);
-	lpt2_remove();
 
-	// pc87306_regs[0] = 0xF;
 	pc87306_regs[0] = 0x4B;
-	// pc87306_regs[1] = 0x11;
 	pc87306_regs[1] = 0x01;
-	pc87306_regs[3] = 2;
-	pc87306_regs[5] = 0xD;
+	pc87306_regs[3] = 0x01;
+	pc87306_regs[5] = 0x0D;
 	pc87306_regs[8] = 0x70;
-	pc87306_regs[9] = 0xFF;
+	pc87306_regs[9] = 0xC0;
+	pc87306_regs[0xB] = 0x80;
 	pc87306_regs[0xF] = 0x1E;
 	pc87306_regs[0x12] = 0x30;
-	pc87306_regs[0x19] = 0xDE;
-	pc87306_regs[0x1B] = 0x10;
-	pc87306_regs[0x1C] = 0;
+	pc87306_regs[0x19] = 0xEF;
 	/*
 		0 = 360 rpm @ 500 kbps for 3.5"
 		1 = Default, 300 rpm @ 500,300,250,1000 kbps for 3.5"
@@ -371,6 +458,23 @@ void pc87306_init()
 	fdc_update_enh_mode(0);
 	fdc_update_densel_polarity(1);
 	fdc_update_max_track(85);
+	fdc_remove();
+	fdc_set_base(0x3f0, 0);
 	fdd_swap = 0;
+	serial_remove(1);
+	serial_remove(2);
+	serial1_handler();
+	serial2_handler();
+	pc87306_gpio_init();
+}
+
+void pc87306_init()
+{
+	lpt2_remove();
+
+	pc87306_reset();
+
         io_sethandler(0x02e, 0x0002, pc87306_read, NULL, NULL, pc87306_write, NULL, NULL,  NULL);
+
+	pci_reset_handler.super_io_reset = pc87306_reset;
 }

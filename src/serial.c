@@ -1,303 +1,645 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Implementation of NS8250-series UART devices.
+ *
+ *		The original IBM-PC design did not have any serial ports of
+ *		any kind. Rather, these were offered as add-on devices, most
+ *		likely because a) most people did not need one at the time,
+ *		and, b) this way, IBM could make more money off them.
+ *
+ *		So, for the PC, the offerings were for an IBM Asynchronous
+ *		Communications Adapter, and, later, a model for synchronous
+ *		communications.
+ *
+ *		The "Async Adapter" was based on the NS8250 UART chip, and
+ *		is what we now call the "serial" or "com" port of the PC.
+ *
+ *		Of course, many system builders came up with similar boards,
+ *		and even more boards were designed where several I/O functions
+ *		were combined into a single board: the Multi-I/O adapters.
+ *		Initially, these had all the chips as-is, but later many of
+ *		these functions were integrated into a single MIO chip.
+ *
+ *		This file implements the standard NS8250 series of chips, with
+ *		support for the later (16450 and 16550) FIFO additions. On the
+ *		lower half of the driver, we interface to the host system's
+ *		serial ports for real-world access.
+ *
+ * **NOTE**	TEMPORARY VERSION, DO NOT UPDATE/CHANGE !!
+ *
+ *		Based on the 86Box serial port driver as a framework.
+ *
+ * Version:	@(#)serial.c	1.0.8	2017/06/18
+ *
+ * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Copyright 2017 Fred N. van Kempen.
+ */
+#include <stdarg.h>
 #include "ibm.h"
 #include "io.h"
-#include "mouse.h"
 #include "pic.h"
-#include "serial.h"
 #include "timer.h"
+#include "serial.h"
+#include "plat_serial.h"
 
-enum
-{
-        SERIAL_INT_LSR = 1,
-        SERIAL_INT_RECEIVE = 2,
-        SERIAL_INT_TRANSMIT = 4,
-        SERIAL_INT_MSR = 8
+
+#define NUM_SERIAL	2		/* we support 2 ports */
+
+
+enum {
+    SERINT_LSR = 1,
+    SERINT_RECEIVE = 2,
+    SERINT_TRANSMIT = 4,
+    SERINT_MSR = 8
 };
 
-SERIAL serial1, serial2;
 
-void serial_reset()
+/* IER register bits. */
+#define IER_RDAIE	(0x01)
+#define IER_THREIE	(0x02)
+#define IER_RXLSIE	(0x04)
+#define IER_MSIE	(0x08)
+#define IER_SLEEP	(0x10)		/* NS16750 */
+#define IER_LOWPOWER	(0x20)		/* NS16750 */
+#define IER_MASK	(0x0f)		/* not including SLEEP|LOWP */
+
+/* IIR register bits. */
+#define IIR_IP		(0x01)
+#define IIR_IID		(0x0e)
+# define IID_IDMDM	(0x00)
+# define IID_IDTX	(0x02)
+# define IID_IDRX	(0x04)
+# define IID_IDERR	(0x06)
+# define IID_IDTMO	(0x0c)
+#define IIR_IIRFE	(0xc0)
+# define IIR_FIFO64	(0x20)
+# define IIR_FIFOBAD	(0x80)		/* 16550 */
+# define IIR_FIFOENB	(0xc0)
+
+/* FCR register bits. */
+#define FCR_FCRFE	(0x01)
+#define FCR_RFR		(0x02)
+#define FCR_TFR		(0x04)
+#define FCR_SELDMA1	(0x08)
+#define FCR_FENB64	(0x20)		/* 16750 */
+#define FCR_RTLS	(0xc0)
+# define FCR_RTLS1	(0x00)
+# define FCR_RTLS4	(0x40)
+# define FCR_RTLS8	(0x80)
+# define FCR_RTLS14	(0xc0)
+
+/* LCR register bits. */
+#define LCR_WLS		(0x03)
+# define WLS_BITS5	(0x00)
+# define WLS_BITS6	(0x01)
+# define WLS_BITS7	(0x02)
+# define WLS_BITS8	(0x03)
+#define LCR_SBS		(0x04)
+#define LCR_PE		(0x08)
+#define LCR_EP		(0x10)
+#define LCR_PS		(0x20)
+# define PAR_NONE	(0x00)
+# define PAR_EVEN	(LCR_PE | LCR_EP)
+# define PAR_ODD	(LCR_PE)
+# define PAR_MARK	(LCR_PE | LCR_PS)
+# define PAR_SPACE	(LCR_PE | LCR_PS | LCR_EP)
+#define LCR_BC		(0x40)
+#define LCR_DLAB	(0x80)
+
+/* MCR register bits. */
+#define MCR_DTR		(0x01)
+#define MCR_RTS		(0x02)
+#define MCR_OUT1	(0x04)		/* 8250 */
+#define MCR_OUT2	(0x08)		/* 8250, INTEN on IBM-PC */
+#define MCR_LMS		(0x10)
+#define MCR_AUTOFLOW	(0x20)		/* 16750 */
+
+/* LSR register bits. */
+#define	LSR_DR		(0x01)
+#define	LSR_OE		(0x02)
+#define	LSR_PE		(0x04)
+#define	LSR_FE		(0x08)
+#define	LSR_BI		(0x10)
+#define	LSR_THRE	(0x20)
+#define	LSR_TEMT	(0x40)
+#define	LSR_RXFE	(0x80)
+
+/* MSR register bits. */
+#define MSR_DCTS	(0x01)
+#define MSR_DDSR	(0x02)
+#define MSR_TERI	(0x04)
+#define MSR_DDCD	(0x08)
+#define MSR_CTS		(0x10)
+#define MSR_DSR		(0x20)
+#define MSR_RI		(0x40)
+#define MSR_DCD		(0x80)
+#define MSR_MASK	(0x0f)
+
+
+static SERIAL	ports[NUM_SERIAL];	/* serial port data */
+       int	serial_do_log;
+
+
+static void
+serial_log(int lvl, const char *fmt, ...)
 {
-        serial1.iir = serial1.ier = serial1.lcr = 0;
-        serial2.iir = serial2.ier = serial2.lcr = 0;
-        serial1.fifo_read = serial1.fifo_write = 0;
-        serial2.fifo_read = serial2.fifo_write = 0;
+#ifdef ENABLE_SERIAL_LOG
+    va_list ap;
+
+    if (serial_do_log >= lvl) {
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+	fflush(stdout);
+    }
+#endif
 }
 
-void serial_update_ints(SERIAL *serial)
+
+static void
+update_ints(SERIAL *sp)
 {
-        int stat = 0;
+    int stat = 0;
         
-        serial->iir = 1;
+    sp->iir = IIR_IP;
+    if ((sp->ier & IER_RXLSIE) && (sp->int_status & SERINT_LSR)) {
+	/* Line Status interrupt. */
+	stat = 1;
+	sp->iir = IID_IDERR;
+    } else if ((sp->ier & IER_RDAIE) && (sp->int_status & SERINT_RECEIVE)) {
+	/* Received Data available. */
+	stat = 1;
+	sp->iir = IID_IDRX;
+    } else if ((sp->ier & IER_THREIE) && (sp->int_status & SERINT_TRANSMIT)) {
+	/* Transmit Data empty. */
+	stat = 1;
+	sp->iir = IID_IDTX;
+    } else if ((sp->ier & IER_MSIE) && (sp->int_status & SERINT_MSR)) {
+	/* Modem Status interrupt. */
+	stat = 1;
+	sp->iir = IID_IDMDM;
+    }
 
-        if ((serial->ier & 4) && (serial->int_status & SERIAL_INT_LSR)) /*Line status interrupt*/
-        {
-                stat = 1;
-                serial->iir = 6;
-        }
-        else if ((serial->ier & 1) && (serial->int_status & SERIAL_INT_RECEIVE)) /*Recieved data available*/
-        {
-                stat = 1;
-                serial->iir = 4;
-        }
-        else if ((serial->ier & 2) && (serial->int_status & SERIAL_INT_TRANSMIT)) /*Transmit data empty*/
-        {
-                stat = 1;
-                serial->iir = 2;
-        }
-        else if ((serial->ier & 8) && (serial->int_status & SERIAL_INT_MSR)) /*Modem status interrupt*/
-        {
-                stat = 1;
-                serial->iir = 0;
-        }
-
-        if (stat && ((serial->mctrl & 8) || PCJR))
-                picintlevel(1 << serial->irq);               
-        else
-                picintc(1 << serial->irq);
+    /* Raise or clear the level-based IRQ. */
+    if (stat && ((sp->mctrl & MCR_OUT2) || PCJR))
+	picintlevel(1 << sp->irq);               
+      else
+	picintc(1 << sp->irq);
 }
 
-void serial_write_fifo(SERIAL *serial, uint8_t dat)
+
+/* Fake interrupt generator, needed for Serial Mouse. */
+static void
+serial_timer(void *priv)
 {
-//        pclog("serial_write_fifo %02X\n", serial->lsr);
-        serial->fifo[serial->fifo_write] = dat;
-        serial->fifo_write = (serial->fifo_write + 1) & 0xFF;
-        if (!(serial->lsr & 1))
-        {
-                serial->lsr |= 1;
-                serial->int_status |= SERIAL_INT_RECEIVE;
-                serial_update_ints(serial);
-        }
+    SERIAL *sp = (SERIAL *)priv;
+
+    sp->receive_delay = 0;
+
+    if (sp->fifo_read != sp->fifo_write) {
+	sp->lsr |= LSR_DR;
+	sp->int_status |= SERINT_RECEIVE;
+	update_ints(sp);
+    }
 }
 
-uint8_t serial_read_fifo(SERIAL *serial)
+
+/* Write data to the (input) FIFO. Used by MOUSE driver. */
+void
+serial_write_fifo(SERIAL *sp, uint8_t dat, int flag)
 {
-        if (serial->fifo_read != serial->fifo_write)
-        {
-                serial->dat = serial->fifo[serial->fifo_read];
-                serial->fifo_read = (serial->fifo_read + 1) & 0xFF;
-        }
-        return serial->dat;
+    /* Stuff data into FIFO. */
+    sp->fifo[sp->fifo_write] = dat;
+    sp->fifo_write = (sp->fifo_write + 1) & 0xFF;
+
+    if (! (sp->lsr & LSR_DR)) {
+	sp->lsr |= LSR_DR;
+	sp->int_status |= SERINT_RECEIVE;
+	update_ints(sp);
+    }
 }
 
-void serial_write(uint16_t addr, uint8_t val, void *p)
+
+static uint8_t
+read_fifo(SERIAL *sp)
 {
-        SERIAL *serial = (SERIAL *)p;
-//        pclog("Write serial %03X %02X %04X:%04X\n",addr,val,CS,pc);
-        switch (addr&7)
-        {
-                case 0:
-                if (serial->lcr & 0x80)
-                {
-                        serial->dlab1 = val;
-                        return;
-                }
-                serial->thr = val;
-                serial->lsr |= 0x20;
-                serial->int_status |= SERIAL_INT_TRANSMIT;
-                serial_update_ints(serial);
-                if (serial->mctrl & 0x10)
-                {
-                        serial_write_fifo(serial, val);
-                }
-                break;
-                case 1:
-                if (serial->lcr & 0x80)
-                {
-                        serial->dlab2 = val;
-                        return;
-                }
-                serial->ier = val & 0xf;
-                serial_update_ints(serial);
-                break;
-                case 3:
-                serial->lcr = val;
-                break;
-                case 4:
-                if ((val & 2) && !(serial->mctrl & 2))
-                {
-                        if (serial->rcr_callback)
-                                serial->rcr_callback(serial, serial->rcr_callback_p);
-//                        pclog("RCR raised! sending M\n");
-                }
-                serial->mctrl = val;
-                if (val & 0x10)
-                {
-                        uint8_t new_msr;
-                        
-                        new_msr = (val & 0x0c) << 4;
-                        new_msr |= (val & 0x02) ? 0x10: 0;
-                        new_msr |= (val & 0x01) ? 0x20: 0;
-                        
-                        if ((serial->msr ^ new_msr) & 0x10)
-                                new_msr |= 0x01;
-                        if ((serial->msr ^ new_msr) & 0x20)
-                                new_msr |= 0x02;
-                        if ((serial->msr ^ new_msr) & 0x80)
-                                new_msr |= 0x08;
-                        if ((serial->msr & 0x40) && !(new_msr & 0x40))
-                                new_msr |= 0x04;
-                        
-                        serial->msr = new_msr;
-                }
-                break;
-                case 5:
-                serial->lsr = val;
-                if (serial->lsr & 0x01)
-                        serial->int_status |= SERIAL_INT_RECEIVE;
-                if (serial->lsr & 0x1e)
-                        serial->int_status |= SERIAL_INT_LSR;
-                if (serial->lsr & 0x20)
-                        serial->int_status |= SERIAL_INT_TRANSMIT;
-                serial_update_ints(serial);
-                break;
-                case 6:
-                serial->msr = val;
-                if (serial->msr & 0x0f)
-                        serial->int_status |= SERIAL_INT_MSR;
-                serial_update_ints(serial);
-                break;
-                case 7:
-                serial->scratch = val;
-                break;
-        }
+    if (sp->fifo_read != sp->fifo_write) {
+	sp->dat = sp->fifo[sp->fifo_read];
+	sp->fifo_read = (sp->fifo_read + 1) & 0xFF;
+    }
+
+    return(sp->dat);
 }
 
-uint8_t serial_read(uint16_t addr, void *p)
-{
-        SERIAL *serial = (SERIAL *)p;
-        uint8_t temp = 0;
-//        pclog("Read serial %03X %04X(%08X):%04X %i %i  ", addr, CS, cs, pc, mousedelay, ins);
-        switch (addr&7)
-        {
-                case 0:
-                if (serial->lcr & 0x80)
-                {
-                        temp = serial->dlab1;
-                        break;
-                }
 
-                serial->lsr &= ~1;
-                serial->int_status &= ~SERIAL_INT_RECEIVE;
-                serial_update_ints(serial);
-                temp = serial_read_fifo(serial);
-                if (serial->fifo_read != serial->fifo_write)
-                        serial->recieve_delay = 1000 * TIMER_USEC;
-                break;
-                case 1:
-                if (serial->lcr & 0x80)
-                        temp = serial->dlab2;
-                else
-                        temp = serial->ier;
-                break;
-                case 2: 
-                temp = serial->iir;
-                if ((temp & 0xe) == 2)
-                {
-                        serial->int_status &= ~SERIAL_INT_TRANSMIT;
-                        serial_update_ints(serial);
-                }
-                break;
-                case 3:
-                temp = serial->lcr;
-                break;
-                case 4:
-                temp = serial->mctrl;
-                break;
-                case 5:
-                if (serial->lsr & 0x20)
-                        serial->lsr |= 0x40;
-                serial->lsr |= 0x20;
-                temp = serial->lsr;
-                if (serial->lsr & 0x1f)
-                        serial->lsr &= ~0x1e;
-//                serial.lsr |= 0x60;
-                serial->int_status &= ~SERIAL_INT_LSR;
-                serial_update_ints(serial);
-                break;
-                case 6:
-                temp = serial->msr;
-                serial->msr &= ~0x0f;
-                serial->int_status &= ~SERIAL_INT_MSR;
-                serial_update_ints(serial);
-                break;
-                case 7:
-                temp = serial->scratch;
-                break;
-        }
-//        pclog("%02X\n",temp);
-        return temp;
+/* Handle a WRITE operation to one of our registers. */
+static void
+serial_write(uint16_t addr, uint8_t val, void *priv)
+{
+    SERIAL *sp = (SERIAL *)priv;
+    uint8_t wl, sb, pa;
+    uint16_t baud;
+    long speed;
+
+#if ENABLE_SERIAL_LOG
+    serial_log(2, "Serial%d: write(%04x, %02x)\n", sp->port, addr, val);
+#endif
+    switch (addr & 0x07) {
+	case 0:		/* DATA / DLAB1 */
+		if (sp->lcr & LCR_DLAB) {
+			sp->dlab1 = val;
+			return;
+		}
+		sp->thr = val;
+		if (sp->bh != NULL) {
+			/* We are linked, so send to BH layer. */
+			bhtty_write((BHTTY *)sp->bh, sp->thr);
+
+			/* The WRITE completed, we are ready for more. */
+			sp->lsr |= LSR_THRE;
+			sp->int_status |= SERINT_TRANSMIT;
+			update_ints(sp);
+		} else {
+			/* Not linked. Just fake LOOPBACK mode. */
+			if (! (sp->mctrl & MCR_LMS))
+                        	serial_write_fifo(sp, val, 1);
+		}
+
+		if (sp->mctrl & MCR_LMS) {
+			/* Echo data back to RX. */
+                        serial_write_fifo(sp, val, 1);
+		}
+		break;
+
+	case 1:		/* IER / DLAB2 */
+		if (sp->lcr & LCR_DLAB) {
+			sp->dlab2 = val;
+			return;
+		}
+		sp->ier = (val & IER_MASK);
+		update_ints(sp);
+		break;
+
+	case 2:		/* FCR */
+		sp->fcr = val;
+		break;
+
+	case 3:		/* LCR */
+		if ((sp->lcr & LCR_DLAB) && !(val & LCR_DLAB)) {
+			/* We dropped DLAB, so handle baudrate. */
+			baud = ((sp->dlab2<<8) | sp->dlab1);
+			if (baud > 0) {
+				speed = 115200UL/baud;
+				serial_log(2, "Serial%d: divisor %u, baudrate %ld\n",
+						sp->port, baud, speed);
+				if ((sp->bh != NULL) && (speed > 0))
+					bhtty_speed((BHTTY *)sp->bh, speed);
+			} else {
+				serial_log(1, "Serial%d: divisor %u invalid!\n",
+							sp->port, baud);
+			}
+		}
+		wl = (val & LCR_WLS) + 5;		/* databits */
+		sb = (val & LCR_SBS) ? 2 : 1;		/* stopbits */
+		pa = (val & (LCR_PE|LCR_EP|LCR_PS)) >> 3;
+		serial_log(2, "Serial%d: WL=%d SB=%d PA=%d\n", sp->port, wl, sb, pa);
+		if (sp->bh != NULL)
+			bhtty_params((BHTTY *)sp->bh, wl, pa, sb);
+		sp->lcr = val;
+		break;
+
+	case 4:
+		if ((val & MCR_RTS) && !(sp->mctrl & MCR_RTS)) {
+			/*
+			 * This is old code for use by the Serial Mouse
+			 * driver. If the user toggles RTS, serial mice
+			 * are expected to send an ID, to inform any
+			 * enumerator there 'is' something.
+			 */
+			if (sp->rts_callback) {
+				sp->rts_callback(sp->rts_callback_p);
+				serial_log(1, "RTS raised; sending ID\n");
+			}
+		}
+
+		if ((val & MCR_OUT2) && !(sp->mctrl & MCR_OUT2)) {
+			if (sp->bh != NULL) {
+				/* Linked, start host port. */
+				(void)bhtty_active(sp->bh, 1);
+			} else {
+				/* Not linked, start RX timer. */
+				timer_add(serial_timer,
+					  &sp->receive_delay,
+					  &sp->receive_delay, sp);
+
+				/* Fake CTS, DSR and DCD (for now.) */
+				sp->msr = (MSR_CTS | MSR_DCTS |
+					   MSR_DSR | MSR_DDSR |
+					   MSR_DCD | MSR_DDCD);
+				sp->int_status |= SERINT_MSR;
+				update_ints(sp);
+			}
+		}
+		sp->mctrl = val;
+		if (val & MCR_LMS) {	/* loopback mode */
+			uint8_t new_msr;
+
+			/*FIXME: WTF does this do?? --FvK */
+			new_msr = (val & 0x0c) << 4;
+			new_msr |= (val & MCR_RTS) ? MCR_LMS : 0;
+			new_msr |= (val & MCR_DTR) ? MCR_AUTOFLOW : 0;
+
+			if ((sp->msr ^ new_msr) & 0x10)
+				new_msr |= MCR_DTR;
+			if ((sp->msr ^ new_msr) & 0x20)
+				new_msr |= MCR_RTS;
+			if ((sp->msr ^ new_msr) & 0x80)
+				new_msr |= 0x08;
+			if ((sp->msr & 0x40) && !(new_msr & 0x40))
+				new_msr |= 0x04;
+
+			sp->msr = new_msr;
+		}
+		break;
+
+	case 5:
+		sp->lsr = val;
+		if (sp->lsr & LSR_DR)
+			sp->int_status |= SERINT_RECEIVE;
+		if (sp->lsr & 0x1e)
+			sp->int_status |= SERINT_LSR;
+		if (sp->lsr & LSR_THRE)
+			sp->int_status |= SERINT_TRANSMIT;
+		update_ints(sp);
+		break;
+
+	case 6:
+		sp->msr = val;
+		if (sp->msr & MSR_MASK)
+			sp->int_status |= SERINT_MSR;
+		update_ints(sp);
+		break;
+
+	case 7:
+		sp->scratch = val;
+		break;
+    }
 }
 
-void serial_recieve_callback(void *p)
+
+/* BHTTY READ COMPLETE handler. */
+static void
+serial_rd_done(void *arg, int num)
 {
-        SERIAL *serial = (SERIAL *)p;
-        
-        serial->recieve_delay = 0;
-        
-        if (serial->fifo_read != serial->fifo_write)
-        {
-                serial->lsr |= 1;
-                serial->int_status |= SERIAL_INT_RECEIVE;
-                serial_update_ints(serial);
-        }
+    SERIAL *sp = (SERIAL *)arg;
+
+    /* We can do at least 'num' bytes.. */
+    while (num-- > 0) {
+	/* Get a byte from them. */
+	if (bhtty_read(sp->bh, &sp->hold, 1) < 0) break;
+
+	/* Stuff it into the FIFO and set intr. */
+	serial_write_fifo(sp, sp->hold, 1);
+    }
 }
 
-/*Tandy might need COM1 at 2f8*/
-void serial1_init(uint16_t addr, int irq)
+
+/* Handle a READ operation from one of our registers. */
+static uint8_t
+serial_read(uint16_t addr, void *priv)
 {
-        memset(&serial1, 0, sizeof(serial1));
-        io_sethandler(addr, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        serial1.irq = irq;
-        serial1.rcr_callback = NULL;
-        timer_add(serial_recieve_callback, &serial1.recieve_delay, &serial1.recieve_delay, &serial1);
-}
-void serial1_set(uint16_t addr, int irq)
-{
-        serial1_remove();
-        io_sethandler(addr, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        serial1.irq = irq;
-	// pclog("serial1_set(%04X, %02X)\n", addr, irq);
-}
-void serial1_remove()
-{
-        io_removehandler(0x208, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        io_removehandler(0x228, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        io_removehandler(0x238, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        io_removehandler(0x2e0, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        io_removehandler(0x2e8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        io_removehandler(0x2f8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        io_removehandler(0x338, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        io_removehandler(0x3e8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
-        io_removehandler(0x3f8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
+    SERIAL *sp = (SERIAL *)priv;
+    uint8_t ret = 0x00;
+
+    switch (addr&0x07) {
+	case 0:		/* DATA / DLAB1 */
+		if (sp->lcr & LCR_DLAB) {
+			ret = sp->dlab1;
+		} else {
+			sp->lsr &= ~LSR_DR;
+			sp->int_status &= ~SERINT_RECEIVE;
+			update_ints(sp);
+			ret = read_fifo(sp);
+			if ((sp->bh == NULL) &&
+			    (sp->fifo_read != sp->fifo_write))
+				sp->receive_delay = 1000 * TIMER_USEC;
+		}
+		break;
+
+	case 1:		/* LCR / DLAB2 */
+		ret = (sp->lcr & LCR_DLAB) ? sp->dlab2 : sp->ier;
+		break;
+
+	case 2: 	/* IIR */
+		ret = sp->iir;
+		if ((ret & IIR_IID) == IID_IDTX) {
+			sp->int_status &= ~SERINT_TRANSMIT;
+			update_ints(sp);
+		}
+		if (sp->fcr & 0x01)
+			ret |= 0xc0;
+		break;
+
+	case 3:		/* LCR */
+		ret = sp->lcr;
+		break;
+
+	case 4:		/* MCR */
+		ret = sp->mctrl;
+		break;
+
+	case 5:		/* LSR */
+		if (sp->lsr & LSR_THRE)
+			sp->lsr |= LSR_TEMT;
+		sp->lsr |= LSR_THRE;
+		ret = sp->lsr;
+		if (sp->lsr & 0x1f)
+			sp->lsr &= ~0x1e;
+#if 0
+		sp->lsr |= (LSR_THRE | LSR_TEMT);
+#endif
+		sp->int_status &= ~SERINT_LSR;
+		update_ints(sp);
+		break;
+
+	case 6:
+		ret = sp->msr;
+		sp->msr &= ~0x0f;
+		sp->int_status &= ~SERINT_MSR;
+		update_ints(sp);
+		break;
+
+	case 7:
+		ret = sp->scratch;
+		break;
+    }
+
+    return(ret);
 }
 
-void serial2_init(uint16_t addr, int irq)
+
+/* Set up a serial port for use. */
+void
+serial_setup(int port, uint16_t addr, int irq)
 {
-        memset(&serial2, 0, sizeof(serial2));
-        io_sethandler(addr, 0x0008, serial_read, NULL, NULL, serial_write, NULL, NULL, &serial2);
-        serial2.irq = irq;
-        serial2.rcr_callback = NULL;
-        timer_add(serial_recieve_callback, &serial2.recieve_delay, &serial2.recieve_delay, &serial2);
+    SERIAL *sp;
+
+    serial_log(0, "Serial%d: I/O=%04x, IRQ=%d\n", port, addr, irq);
+
+    /* Grab the desired port block. */
+    sp = &ports[port-1];
+
+    /* Set up the basic info. */
+    if (sp->addr != 0x0000) {
+	/* Unlink the previous handler. Just in case. */
+	io_removehandler(sp->addr, 8,
+			 serial_read, NULL, NULL, serial_write, NULL, NULL, sp);
+    }
+    sp->addr = addr;
+    sp->irq = irq;
+
+    /* Request an I/O range. */
+    io_sethandler(sp->addr, 8,
+		  serial_read, NULL, NULL, serial_write, NULL, NULL, sp);
 }
-void serial2_set(uint16_t addr, int irq)
+
+
+/* Release all resources held by a serial port. */
+void
+serial_remove(int port)
 {
-        serial2_remove();
-        io_sethandler(addr, 0x0008, serial_read, NULL, NULL, serial_write, NULL, NULL, &serial2);
-        serial2.irq = irq;
-	// pclog("serial2_set(%04X, %02X)\n", addr, irq);
+    SERIAL *sp;
+
+    /* Grab the desired port block. */
+    sp = &ports[port-1];
+
+    // FIXME: stop timer, if enabled!
+
+    /* Close the host device. */
+    if (sp->bh != NULL)
+	(void)serial_link(port, NULL);
+
+    /* Release our I/O range. */
+    if (sp->addr != 0x0000) {
+	io_removehandler(sp->addr, 8,
+			 serial_read, NULL, NULL, serial_write, NULL, NULL, sp);
+    }
+    sp->addr = 0x0000;
+    sp->irq = 0;
 }
-void serial2_remove()
+
+
+/* Initialize the serial ports. */
+void
+serial_init(void)
 {
-        io_removehandler(0x208, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
-        io_removehandler(0x228, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
-        io_removehandler(0x238, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
-        io_removehandler(0x2e0, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
-        io_removehandler(0x2e8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
-        io_removehandler(0x2f8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
-        io_removehandler(0x338, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
-        io_removehandler(0x3e8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
-        io_removehandler(0x3f8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial2);
+    SERIAL *sp;
+    int i;
+
+#if ENABLE_SERIAL_LOG
+    serial_do_log = ENABLE_SERIAL_LOG;
+#endif
+
+    /* FIXME: we should probably initialize the platform module here. */
+
+    /* Initialize each port. */
+    for (i=0; i<NUM_SERIAL; i++) {
+	sp = &ports[i];
+	memset(sp, 0x00, sizeof(SERIAL));
+	sp->port = (i+1);
+
+	if (i == 0)
+		serial_setup(sp->port, SERIAL1_ADDR, SERIAL1_IRQ);
+	  else
+		serial_setup(sp->port, SERIAL2_ADDR, SERIAL2_IRQ);
+    }
+
+#ifdef WALTJE
+    /* Link to host port. */
+    serial_link(2, "COM2");
+#endif
+}
+
+
+/*
+ * Reset the serial ports.
+ *
+ * This should be a per-port function.
+ */
+void
+serial_reset(void)
+{
+    SERIAL *sp;
+    int i;
+
+    for (i=0; i<NUM_SERIAL; i++) {
+	sp = &ports[i];
+
+	sp->iir = sp->ier = sp->lcr = sp->mctrl = 0x00;
+	sp->fifo_read = sp->fifo_write = 0x00;
+    }
+}
+
+
+/* Link a serial port to a host (serial) port. */
+int
+serial_link(int port, char *arg)
+{
+    SERIAL *sp;
+    BHTTY *bh;
+
+    /* Grab the desired port block. */
+    sp = &ports[port-1];
+
+    if (arg != NULL) {
+	/* Make sure we're not already linked. */
+	if (sp->bh != NULL) {
+		serial_log(0, "Serial%d already linked!\n", port);
+		return(-1);
+	}
+
+	/* Request a port from the host system. */
+	bh = bhtty_open(arg, 0);
+	if (bh == NULL) {
+		serial_log(0, "Serial%d unable to link to '%s' !\n", port, arg);
+		return(-1);
+	}
+	sp->bh = bh;
+
+	/* Set up bottom-half I/O callback info. */
+	bh->rd_done = serial_rd_done;
+	bh->rd_arg = sp;
+    } else {
+	/* If we are linked, unlink it. */
+	if (sp->bh != NULL) {
+		bhtty_close((BHTTY *)sp->bh);
+		sp->bh = NULL;
+	}
+
+    }
+
+    return(0);
+}
+
+
+/* Attach another device (MOUSE) to a serial port. */
+SERIAL *
+serial_attach(int port, void *func, void *arg)
+{
+    SERIAL *sp;
+
+    /* Grab the desired port block. */
+    sp = &ports[port-1];
+
+    /* Set up callback info. */
+    sp->rts_callback = func;
+    sp->rts_callback_p = arg;
+
+    return(sp);
 }

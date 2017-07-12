@@ -1,6 +1,19 @@
-/* Copyright holders: Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Emulation of the Winbond W83877F Super I/O Chip.
+ *
+ * Version:	@(#)w83877f.c	1.0.0	2017/05/30
+ *
+ * Author:	Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2016-2017 Miran Grca.
+ */
+
 /*
 	Winbond W83877F Super I/O Chip
 	Used by the Award 430HX
@@ -203,7 +216,7 @@ static void w83877f_remap()
 	winbond_port = (HEFRAS ? 0x3f0 : 0x250);
 	winbond_key_times = HEFRAS + 1;
 	winbond_key = (HEFRAS ? 0x86 : 0x88) | HEFERE;
-	// pclog("W83877F mapped to %04X, with key %02X required %i times\n", winbond_port, winbond_key, winbond_key_times);
+	pclog("W83877F: Remapped to port %04X, key %02X\n", winbond_port, winbond_key);
 }
 
 static uint8_t is_in_array(uint16_t *port_array, uint8_t max, uint16_t port)
@@ -267,8 +280,25 @@ static uint16_t make_port(uint8_t reg)
 			break;
 	}
 
-	// pclog("Made port %04X (reg %02X)\n", p, reg);
 	return p;
+}
+
+void w83877f_serial_handler(int id)
+{
+	int reg_mask = (id - 1) ? 0x10 : 0x20;
+	int reg_id = (id - 1) ? 0x24 : 0x25;
+	int irq_mask = (id - 1) ? 0xF : 0xF0;
+
+	/* pclog("Registers (%i): %02X %02X %02X\n", id, w83877f_regs[4], w83877f_regs[reg_id], w83877f_regs[0x28]); */
+
+	if ((w83877f_regs[4] & reg_mask) || !(w83877f_regs[reg_id] & 0xc0))
+	{
+		serial_remove(id);
+	}
+	else
+	{
+		serial_setup(id, make_port(reg_id), w83877f_regs[0x28] & irq_mask);
+	}
 }
 
 void w83877f_write(uint16_t port, uint8_t val, void *priv)
@@ -276,21 +306,16 @@ void w83877f_write(uint16_t port, uint8_t val, void *priv)
 	uint8_t index = (port & 1) ? 0 : 1;
 	uint8_t valxor = 0;
 	uint8_t max = 0x2A;
-        int temp;
 
 	if (index)
 	{
-	        // pclog("w83877f_write : port=%04x = %02X locked=%i\n", port, val, w83877f_locked);
-
 		if ((val == winbond_key) && !w83877f_locked)
 		{
 			if (winbond_key_times == 2)
 			{
 				if (tries)
 				{
-					// pclog("W83877F Locked (2 tries)\n");
 					w83877f_locked = 1;
-					// fdc_3f1_enable(0);
 					tries = 0;
 				}
 				else
@@ -300,23 +325,18 @@ void w83877f_write(uint16_t port, uint8_t val, void *priv)
 			}
 			else
 			{
-				// pclog("W83877F Locked (1 try)\n");
 				w83877f_locked = 1;
-				// fdc_3f1_enable(0);
 				tries = 0;
 			}
 		}
 		else
 		{
-		        // pclog("w83877f_write : port=%04x reg %02X = %02X locked=%i\n", port, w83877f_curreg, val, w83877f_locked);
-
 			if (w83877f_locked)
 			{
 				if (val < max)  w83877f_curreg = val;
 				if (val == 0xaa)
 				{
 					w83877f_locked = 0;
-					// fdc_3f1_enable(1);
 				}
 			}
 			else
@@ -328,8 +348,6 @@ void w83877f_write(uint16_t port, uint8_t val, void *priv)
 	}
 	else
 	{
-		// pclog("w83877f_write : port=%04x reg %02X = %02X locked=%i\n", port, w83877f_curreg, val, w83877f_locked);
-
 		if (w83877f_locked)
 		{
 			if (w83877f_rw_locked)  return;
@@ -354,16 +372,11 @@ process_value:
 		case 4:
 			if (valxor & 0x10)
 			{
-				serial2_remove();
-				if (!(w83877f_regs[2] & 0x10))  serial2_set(make_port(0x25), w83877f_regs[0x28] & 0xF);
+				w83877f_serial_handler(2);
 			}
 			if (valxor & 0x20)
 			{
-				serial1_remove();
-				if (!(w83877f_regs[4] & 0x20))
-				{
-					serial1_set(make_port(0x24), (w83877f_regs[0x28] & 0xF0) >> 8);
-				}
+				w83877f_serial_handler(1);
 			}
 			if (valxor & 0x80)
 			{
@@ -379,20 +392,17 @@ process_value:
 			}
 			break;
 		case 7:
-			// pclog("W83877F Write [Reg. %02X]: %02X\n", w83877f_curreg, val);
 			if (valxor & 3)  fdc_update_rwc(0, FDDA_TYPE);
 			if (valxor & 0xC)  fdc_update_rwc(1, FDDB_TYPE);
 			if (valxor & 0x30)  fdc_update_rwc(2, FDDC_TYPE);
 			if (valxor & 0xC0)  fdc_update_rwc(3, FDDD_TYPE);
 			break;
 		case 8:
-			// pclog("W83877F Write [Reg. %02X]: %02X\n", w83877f_curreg, val);
 			if (valxor & 3)  fdc_update_boot_drive(FD_BOOT);
 			if (valxor & 0x10)  swwp = SWWP ? 1 : 0;
 			if (valxor & 0x20)  disable_write = DISFDDWR ? 1 : 0;
 			break;
 		case 9:
-			// pclog("W83877F Write [Reg. %02X]: %02X\n", w83877f_curreg, val);
 			if (valxor & 0x20)
 			{
 				fdc_update_enh_mode(EN3MODE ? 1 : 0);
@@ -403,7 +413,6 @@ process_value:
 			}
 			break;
 		case 0xB:
-			// pclog("W83877F Write [Reg. %02X]: %02X\n", w83877f_curreg, val);
 			if (valxor & 1)  fdc_update_drv2en(DRV2EN_NEG ? 0 : 1);
 			if (valxor & 2)  fdc_update_densel_polarity(INVERTZ ? 1 : 0);
 			break;
@@ -423,30 +432,27 @@ process_value:
 		case 0x24:
 			if (valxor & 0xfe)
 			{
-				if (!(w83877f_regs[4] & 0x20))
-				{
-					serial1_set(make_port(0x24), (w83877f_regs[0x28] & 0xF0) >> 8);
-				}
+				w83877f_serial_handler(1);
 			}
 			break;
 		case 0x25:
 			if (valxor & 0xfe)
 			{
-				if (!(w83877f_regs[2] & 0x10))  serial2_set(make_port(0x25), w83877f_regs[0x28] & 0xF);
+				w83877f_serial_handler(2);
 			}
 			break;
 		case 0x28:
 			if (valxor & 0xf)
 			{
 				if ((w83877f_regs[0x28] & 0xf) == 0)  w83877f_regs[0x28] |= 0x3;
-				if (!(w83877f_regs[2] & 0x10))  serial2_set(make_port(0x25), w83877f_regs[0x28] & 0xF);
+				if (!(w83877f_regs[2] & 0x10))  serial_setup(2, make_port(0x25), w83877f_regs[0x28] & 0xF);
 			}
 			if (valxor & 0xf0)
 			{
 				if ((w83877f_regs[0x28] & 0xf0) == 0)  w83877f_regs[0x28] |= 0x40;
 				if (!(w83877f_regs[4] & 0x20))
 				{
-					serial1_set(make_port(0x24), (w83877f_regs[0x28] & 0xF0) >> 8);
+					serial_setup(1, make_port(0x24), (w83877f_regs[0x28] & 0xF0) >> 8);
 				}
 			}
 			break;
@@ -459,13 +465,11 @@ uint8_t w83877f_read(uint16_t port, void *priv)
 
 	if (!w83877f_locked)
 	{
-		// pclog("w83877f_read : port=%04x = FF locked=%i\n", port, w83877f_locked);
 		return 0xff;
 	}
 
 	if (index)
 	{
-		// pclog("w83877f_read : port=%04x = %02X locked=%i\n", port, w83877f_curreg, w83877f_locked);
 		return w83877f_curreg;
 	}
 	else
@@ -473,28 +477,27 @@ uint8_t w83877f_read(uint16_t port, void *priv)
 		if ((w83877f_curreg < 0x18) && w83877f_rw_locked)  return 0xff;
 		if (w83877f_curreg == 7)
 		{
-			// pclog("w83877f_read : port=%04x reg %02X = %02X locked=%i\n", port, w83877f_curreg,  (fdc_get_rwc(0) | (fdc_get_rwc(1) << 2)), w83877f_locked);
 			return (fdc_get_rwc(0) | (fdc_get_rwc(1) << 2));
 		}
-	        // pclog("w83877f_read : port=%04x reg %02X = %02X locked=%i\n", port, w83877f_curreg, w83877f_regs[w83877f_curreg], w83877f_locked);
 		return w83877f_regs[w83877f_curreg];
 	}
 }
 
-void w83877f_init()
+void w83877f_reset(void)
 {
-	fdc_remove();
-	fdc_add_for_superio();
 	lpt1_remove();
 	lpt1_init(0x378);
-	lpt2_remove();
+
+	fdc_remove();
+	fdc_add_for_superio();
+
 	w83877f_regs[3] = 0x30;
 	w83877f_regs[7] = 0xF5;
 	w83877f_regs[9] = 0x0A;
 	w83877f_regs[0xA] = 0x1F;
 	w83877f_regs[0xC] = 0x28;
 	w83877f_regs[0xD] = 0xA3;
-	w83877f_regs[0x16] = 5;
+	w83877f_regs[0x16] = (romset == ROM_PRESIDENT) ? 4 : 5;
 	w83877f_regs[0x1E] = 0x81;
 	w83877f_regs[0x20] = (0x3f0 >> 2) & 0xfc;
 	w83877f_regs[0x21] = (0x1f0 >> 2) & 0xfc;
@@ -519,9 +522,18 @@ void w83877f_init()
 	disable_write = 0;
 	fdc_update_drv2en(1);
 	fdd_setswap(0);
-	serial1_set(0x3f8, 4);
-	serial2_set(0x2f8, 3);
+	serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
+	serial_setup(2, SERIAL2_ADDR, SERIAL2_IRQ);
 	w83877f_remap();
         w83877f_locked = 0;
         w83877f_rw_locked = 0;
+}
+
+void w83877f_init()
+{
+	lpt2_remove();
+
+	w83877f_reset();
+
+	pci_reset_handler.super_io_reset = w83877f_reset;
 }

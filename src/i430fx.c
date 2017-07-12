@@ -1,15 +1,31 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Implementation of the Intel 430FX PCISet chip.
+ *
+ * Version:	@(#)i430fx.c	1.0.1	2017/06/17
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
 #include <string.h>
-
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "mem.h"
 #include "pci.h"
+#include "device.h"
+#include "model.h"
 
-#include "i430fx.h"
 
 static uint8_t card_i430fx[256];
+
 
 static void i430fx_map(uint32_t addr, uint32_t size, int state)
 {
@@ -31,18 +47,37 @@ static void i430fx_map(uint32_t addr, uint32_t size, int state)
         flushmmucache_nopc();        
 }
 
-void i430fx_write(int func, int addr, uint8_t val, void *priv)
+
+static void i430fx_write(int func, int addr, uint8_t val, void *priv)
 {
         if (func)
-           return;
+		return;
+
+        if (addr >= 0x10 && addr < 0x4f)
+                return;
 
         switch (addr)
         {
                 case 0x00: case 0x01: case 0x02: case 0x03:
                 case 0x08: case 0x09: case 0x0a: case 0x0b:
-                case 0x0e:
+                case 0x0c: case 0x0e:
                 return;
+
+                case 0x04: /*Command register*/
+                val &= 0x02;
+                val |= 0x04;
+                break;
+                case 0x05:
+                val = 0;
+                break;
                 
+                case 0x06: /*Status*/
+                val = 0;
+                break;
+                case 0x07:
+                val = 0x02;
+                break;
+
                 case 0x59: /*PAM0*/
                 if ((card_i430fx[0x59] ^ val) & 0xf0)
                 {
@@ -94,7 +129,8 @@ void i430fx_write(int func, int addr, uint8_t val, void *priv)
         card_i430fx[addr] = val;
 }
 
-uint8_t i430fx_read(int func, int addr, void *priv)
+
+static uint8_t i430fx_read(int func, int addr, void *priv)
 {
         if (func)
                 return 0xff;
@@ -102,27 +138,9 @@ uint8_t i430fx_read(int func, int addr, void *priv)
         return card_i430fx[addr];
 }
 
-/*The Turbo-Reset Control Register isn't listed in the i430FX datasheet, however
-  the Advanced/EV BIOS seems to assume it exists. It aliases with one of the PCI
-  registers.*/ 
-static uint8_t trc = 0;
 
-void i430fx_trc_write(uint16_t port, uint8_t val, void *p)
+static void i430fx_reset(void)
 {
-        if ((val & 4) && !(trc & 4))
-        {
-                if (val & 2) /*Hard reset*/
-                        i430fx_write(0, 0x59, 0xf, NULL); /*Should reset all PCI devices, but just set PAM0 to point to ROM for now*/
-                resetx86();
-        }
-                
-        trc = val;
-}
-
-void i430fx_init()
-{
-        pci_add_specific(0, i430fx_read, i430fx_write, NULL);
-        
         memset(card_i430fx, 0, 256);
         card_i430fx[0x00] = 0x86; card_i430fx[0x01] = 0x80; /*Intel*/
         card_i430fx[0x02] = 0x22; card_i430fx[0x03] = 0x01; /*SB82437FX-66*/
@@ -138,8 +156,6 @@ void i430fx_init()
 	        card_i430fx[0x53] = 0x14;
 	        card_i430fx[0x56] = 0x52; /*DRAM control*/
 	}
-//        card_i430fx[0x53] = 0x14;
-//        card_i430fx[0x56] = 0x52; /*DRAM control*/
         card_i430fx[0x57] = 0x01;
         card_i430fx[0x60] = card_i430fx[0x61] = card_i430fx[0x62] = card_i430fx[0x63] = card_i430fx[0x64] = 0x02;
 	if (romset == ROM_MB500N)
@@ -148,17 +164,26 @@ void i430fx_init()
 	        card_i430fx[0x69] = 0x03;
 	        card_i430fx[0x70] = 0x20;
 	}
-//        card_i430fx[0x67] = 0x11;
-//        card_i430fx[0x69] = 0x03;
-//        card_i430fx[0x70] = 0x20;
         card_i430fx[0x72] = 0x02;
-//        card_i430fx[0x74] = 0x0e;
-//        card_i430fx[0x78] = 0x23;
 	if (romset == ROM_MB500N)
 	{
 	        card_i430fx[0x74] = 0x0e;
 	        card_i430fx[0x78] = 0x23;
 	}
+}
 
-        if (romset != ROM_MB500N)  io_sethandler(0x0cf9, 0x0001, NULL, NULL, NULL, i430fx_trc_write, NULL, NULL, NULL);
+
+static void i430fx_pci_reset(void)
+{
+	i430fx_write(0, 0x59, 0x00, NULL);
+}
+
+
+void i430fx_init(void)
+{
+        pci_add_specific(0, i430fx_read, i430fx_write, NULL);
+
+	i430fx_reset();
+        
+	pci_reset_handler.pci_master_reset = i430fx_pci_reset;
 }

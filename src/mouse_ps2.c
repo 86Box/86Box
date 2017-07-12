@@ -1,8 +1,10 @@
+#include <stdlib.h>
 #include "ibm.h"
 #include "keyboard_at.h"
 #include "mouse.h"
 #include "mouse_ps2.h"
-#include "plat-mouse.h"
+#include "plat_mouse.h"
+
 
 int mouse_scan = 0;
 
@@ -148,16 +150,16 @@ void mouse_ps2_write(uint8_t val, void *p)
         }
 }
 
-void mouse_ps2_poll(int x, int y, int z, int b, void *p)
+uint8_t mouse_ps2_poll(int x, int y, int z, int b, void *p)
 {
         mouse_ps2_t *mouse = (mouse_ps2_t *)p;
         uint8_t packet[3] = {0x08, 0, 0};
         
         if (!x && !y && !z && b == mouse->b)
-                return;        
+                return(0xff);
 
         if (!mouse_scan)
-                return;
+                return(0xff);
                 
         mouse->x += x;
         mouse->y -= y;
@@ -200,6 +202,8 @@ void mouse_ps2_poll(int x, int y, int z, int b, void *p)
 
                 mouse->x = mouse->y = mouse->z = 0;                
         }
+
+	return(0);
 }
 
 void *mouse_ps2_init()
@@ -237,16 +241,18 @@ void mouse_ps2_close(void *p)
 mouse_t mouse_ps2_2_button =
 {
         "2-button mouse (PS/2)",
+        "ps2",
+        MOUSE_TYPE_PS2,
         mouse_ps2_init,
         mouse_ps2_close,
-        mouse_ps2_poll,
-        MOUSE_TYPE_PS2
+        mouse_ps2_poll
 };
 mouse_t mouse_intellimouse =
 {
         "Microsoft Intellimouse (PS/2)",
+        "intellimouse",
+        MOUSE_TYPE_PS2 | MOUSE_TYPE_3BUTTON,
         mouse_intellimouse_init,
         mouse_ps2_close,
-        mouse_ps2_poll,
-        MOUSE_TYPE_PS2 | MOUSE_TYPE_3BUTTON
+        mouse_ps2_poll
 };

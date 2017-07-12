@@ -1,14 +1,16 @@
+#include <stdlib.h>
 #include "ibm.h"
 #include "io.h"
 #include "mem.h"
-#include "mouse.h"
 #include "pic.h"
-#include "sound.h"
-#include "sound_speaker.h"
+#include "pit.h"
 #include "timer.h"
-
+#include "mouse.h"
+#include "sound/sound.h"
+#include "sound/snd_speaker.h"
 #include "keyboard.h"
 #include "keyboard_olim24.h"
+
 
 #define STAT_PARITY     0x80
 #define STAT_RTIMEOUT   0x40
@@ -18,6 +20,7 @@
 #define STAT_SYSFLAG    0x04
 #define STAT_IFULL      0x02
 #define STAT_OFULL      0x01
+
 
 struct
 {
@@ -42,7 +45,6 @@ static uint8_t mouse_scancodes[7];
 void keyboard_olim24_poll()
 {
         keybsenddelay += (1000 * TIMER_USEC);
-        //pclog("poll %i\n", keyboard_olim24.wantirq);
         if (keyboard_olim24.wantirq)
         {
                 keyboard_olim24.wantirq = 0;
@@ -105,8 +107,6 @@ void keyboard_olim24_write(uint16_t port, uint8_t val, void *priv)
                                         
                                         default:
                                         pclog("Bad keyboard command complete %02X\n", keyboard_olim24.command);
-//                                        dumpregs();
-//                                        exit(-1);
                                 }
                         }
                 }
@@ -134,8 +134,6 @@ void keyboard_olim24_write(uint16_t port, uint8_t val, void *priv)
                                 
                                 default:
                                 pclog("Bad keyboard command %02X\n", val);
-//                                dumpregs();
-//                                exit(-1);
                         }
                 }
                         
@@ -152,15 +150,14 @@ void keyboard_olim24_write(uint16_t port, uint8_t val, void *priv)
                 speaker_enable = val & 2;
                 if (speaker_enable) 
                         was_speaker_enable = 1;
-                pit_set_gate(2, val & 1);
+                pit_set_gate(&pit, 2, val & 1);
                 break;
         }
 }
 
 uint8_t keyboard_olim24_read(uint16_t port, void *priv)
 {
-        uint8_t temp;
-//        pclog("keyboard_olim24 : read %04X ", port);
+        uint8_t temp = 0xff;
         switch (port)
         {
                 case 0x60:
@@ -190,10 +187,7 @@ uint8_t keyboard_olim24_read(uint16_t port, void *priv)
                 
                 default:
                 pclog("\nBad olim24 keyboard read %04X\n", port);
-//                dumpregs();
-//                exit(-1);
         }
-//        pclog("%02X\n", temp);
         return temp;
 }
 
@@ -221,17 +215,15 @@ typedef struct mouse_olim24_t
         int x, y, b;
 } mouse_olim24_t;
 
-void mouse_olim24_poll(int x, int y, int z, int b, void *p)
+uint8_t mouse_olim24_poll(int x, int y, int z, int b, void *p)
 {
         mouse_olim24_t *mouse = (mouse_olim24_t *)p;
         
         mouse->x += x;
         mouse->y += y;
 
-//        pclog("mouse_poll - %i, %i  %i, %i\n", x, y, mouse->x, mouse->y);
-        
         if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                return;
+                return(0xff);
         if ((b & 1) && !(mouse->b & 1))
                 keyboard_olim24_adddata(mouse_scancodes[0]);
         if (!(b & 1) && (mouse->b & 1))
@@ -239,7 +231,7 @@ void mouse_olim24_poll(int x, int y, int z, int b, void *p)
         mouse->b = (mouse->b & ~1) | (b & 1);
         
         if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                return;
+                return(0xff);
         if ((b & 2) && !(mouse->b & 2))
                 keyboard_olim24_adddata(mouse_scancodes[2]);
         if (!(b & 2) && (mouse->b & 2))
@@ -247,7 +239,7 @@ void mouse_olim24_poll(int x, int y, int z, int b, void *p)
         mouse->b = (mouse->b & ~2) | (b & 2);
         
         if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                return;
+                return(0xff);
         if ((b & 4) && !(mouse->b & 4))
                 keyboard_olim24_adddata(mouse_scancodes[1]);
         if (!(b & 4) && (mouse->b & 4))
@@ -257,9 +249,9 @@ void mouse_olim24_poll(int x, int y, int z, int b, void *p)
         if (keyboard_olim24.mouse_mode)
         {
                 if (((key_queue_end - key_queue_start) & 0xf) > 12)
-                        return;
+                        return(0xff);
                 if (!mouse->x && !mouse->y)
-                        return;
+                        return(0xff);
                 
                 mouse->y = -mouse->y;
                 
@@ -282,32 +274,34 @@ void mouse_olim24_poll(int x, int y, int z, int b, void *p)
                 while (mouse->x < -4)
                 {
                         if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                                return;
+                                return(0xff);
                         mouse->x += 4;
                         keyboard_olim24_adddata(mouse_scancodes[3]);
                 }
                 while (mouse->x > 4)
                 {
                         if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                                return;
+                                return(0xff);
                         mouse->x -= 4;
                         keyboard_olim24_adddata(mouse_scancodes[4]);
                 }
                 while (mouse->y < -4)
                 {
                         if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                                return;
+                                return(0xff);
                         mouse->y += 4;
                         keyboard_olim24_adddata(mouse_scancodes[5]);
                 }
                 while (mouse->y > 4)
                 {
                         if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                                return;
+                                return(0xff);
                         mouse->y -= 4;
                         keyboard_olim24_adddata(mouse_scancodes[6]);
                 }
         }
+
+	return(0);
 }
 
 static void *mouse_olim24_init()
@@ -328,15 +322,15 @@ static void mouse_olim24_close(void *p)
 mouse_t mouse_olim24 =
 {
         "Olivetti M24 mouse",
+        "olim24",
+        MOUSE_TYPE_OLIM24,
         mouse_olim24_init,
         mouse_olim24_close,
-        mouse_olim24_poll,
-        MOUSE_TYPE_OLIM24
+        mouse_olim24_poll
 };
 
 void keyboard_olim24_init()
 {
-        //return;
         io_sethandler(0x0060, 0x0002, keyboard_olim24_read, NULL, NULL, keyboard_olim24_write, NULL, NULL,  NULL);
         io_sethandler(0x0064, 0x0001, keyboard_olim24_read, NULL, NULL, keyboard_olim24_write, NULL, NULL,  NULL);
         keyboard_olim24_reset();

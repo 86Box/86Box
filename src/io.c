@@ -2,10 +2,8 @@
    see COPYING for more details
 */
 #include "ibm.h"
-#include "ide.h"
 #include "io.h"
-#include "video.h"
-#include "cpu.h"
+
 
 uint8_t  (*port_inb[0x10000][2])(uint16_t addr, void *priv);
 uint16_t (*port_inw[0x10000][2])(uint16_t addr, void *priv);
@@ -17,16 +15,19 @@ void (*port_outl[0x10000][2])(uint16_t addr, uint32_t val, void *priv);
 
 void *port_priv[0x10000][2];
 
+
 void io_init()
 {
         int c;
         pclog("io_init\n");
         for (c = 0; c < 0x10000; c++)
         {
-                port_inb[c][0]  = port_inw[c][0]  = port_inl[c][0]  = NULL;
-                port_outb[c][0] = port_outw[c][0] = port_outl[c][0] = NULL;
-                port_inb[c][1]  = port_inw[c][1]  = port_inl[c][1]  = NULL;
-                port_outb[c][1] = port_outw[c][1] = port_outl[c][1] = NULL;
+                port_inb[c][0]  = port_inb[c][1]  = NULL;
+                port_outb[c][0] = port_outb[c][1] = NULL;
+                port_inw[c][0]  = port_inw[c][1]  = NULL;
+                port_outw[c][0] = port_outw[c][1] = NULL;
+                port_inl[c][0]  = port_inl[c][1]  = NULL;
+                port_outl[c][0] = port_outl[c][1] = NULL;
                 port_priv[c][0] = port_priv[c][1] = NULL;
         }
 }
@@ -94,6 +95,7 @@ void io_removehandler(uint16_t base, int size,
                            port_outw[ base + c][0] = NULL;
                         if (port_outl[ base + c][0] == outl)
                            port_outl[ base + c][0] = NULL;
+			port_priv[base + c][0] = NULL;
                 }
                 if (port_priv[base + c][1] == priv)
                 {
@@ -109,6 +111,7 @@ void io_removehandler(uint16_t base, int size,
                            port_outw[ base + c][1] = NULL;
                         if (port_outl[ base + c][1] == outl)
                            port_outl[ base + c][1] = NULL;
+			port_priv[base + c][1] = NULL;
                 }
         }
 }
@@ -128,8 +131,14 @@ uint8_t inb(uint16_t port)
            temp &= port_inb[port][1](port, port_priv[port][1]);
            
            /* if (!port_inb[port][0] && !port_inb[port][1])
-           	pclog("Bad INB %04X %04X:%04X\n", port, CS, pc); */
+           	pclog("Bad INB %04X %04X:%04X\n", port, CS, cpu_state.pc); */
            	
+           /* if (port_inb[port][0] || port_inb[port][1])
+           	pclog("Good INB %04X %04X:%04X\n", port, CS, cpu_state.pc); */
+           	
+#ifdef IO_TRACE
+if (CS == IO_TRACE) pclog("IOTRACE(%04X): inb(%04x)=%02x\n", IO_TRACE, port, temp);
+#endif
         return temp;
 }
 
@@ -142,8 +151,15 @@ void outb(uint16_t port, uint8_t val)
         if (port_outb[port][1])
            port_outb[port][1](port, val, port_priv[port][1]);
         
+#ifdef IO_TRACE
+if (CS == IO_TRACE) pclog("IOTRACE(%04X): outb(%04x,%02x)\n", IO_TRACE, port, val);
+#endif
         /* if (!port_outb[port][0] && !port_outb[port][1])
-        	pclog("Bad OUTB %04X %02X %04X:%08X\n", port, val, CS, pc); */
+        	pclog("Bad OUTB %04X %02X %04X:%08X\n", port, val, CS, cpu_state.pc); */
+
+        /* if (port_outb[port][0] || port_outb[port][1])
+        	pclog("Good OUTB %04X %02X %04X:%08X\n", port, val, CS, cpu_state.pc); */
+
         return;
 }
 

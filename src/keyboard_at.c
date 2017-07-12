@@ -1,19 +1,35 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
-#include <stdint.h>
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Intel 8042 (AT keyboard controller) emulation.
+ *
+ * Version:	@(#)keyboard_at.c	1.0.0	2017/05/30
+ *
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
 
+#include <stdint.h>
 #include "ibm.h"
 #include "io.h"
 #include "mem.h"
 #include "pic.h"
 #include "pit.h"
-#include "sound.h"
-#include "sound_speaker.h"
 #include "timer.h"
-
+#include "disc.h"
+#include "fdc.h"
+#include "sound/sound.h"
+#include "sound/snd_speaker.h"
 #include "keyboard.h"
 #include "keyboard_at.h"
+
 
 #define STAT_PARITY     0x80
 #define STAT_RTIMEOUT   0x40
@@ -24,6 +40,8 @@
 #define STAT_SYSFLAG    0x04
 #define STAT_IFULL      0x02
 #define STAT_OFULL      0x01
+
+#define PS2_REFRESH_TIME (16 * TIMER_USEC)
 
 #define CCB_UNUSED      0x80
 #define CCB_TRANSLATE   0x40
@@ -63,6 +81,11 @@ struct
         
         void (*mouse_write)(uint8_t val, void *p);
         void *mouse_p;
+        
+        int refresh_time;
+        int refresh;
+        
+        int is_ps2;
 } keyboard_at;
 
 static uint8_t key_ctrl_queue[16];
@@ -136,7 +159,6 @@ void keyboard_at_poll()
                         keyboard_at.status |=  STAT_OFULL;
                         keyboard_at.status &= ~STAT_IFULL;
                         keyboard_at.status |=  STAT_MFULL;
-//                        pclog("keyboard_at : take IRQ12\n");
                         keyboard_at.last_irq = 0x1000;
                 }
                 else
@@ -148,12 +170,17 @@ void keyboard_at_poll()
                         keyboard_at.status |=  STAT_OFULL;
                         keyboard_at.status &= ~STAT_IFULL;
                         keyboard_at.status &= ~STAT_MFULL;
-//                        pclog("keyboard_at : take IRQ1\n");
                         keyboard_at.last_irq = 2;
                 }
         }
 
-        if (!(keyboard_at.status & STAT_OFULL) && keyboard_at.out_new == -1 && /*!(keyboard_at.mem[0] & 0x20) &&*/
+        if (keyboard_at.out_new == -1 && !(keyboard_at.status & STAT_OFULL) && 
+            key_ctrl_queue_start != key_ctrl_queue_end)
+        {
+                keyboard_at.out_new = key_ctrl_queue[key_ctrl_queue_start];
+                key_ctrl_queue_start = (key_ctrl_queue_start + 1) & 0xf;
+        }                
+        else if (!(keyboard_at.status & STAT_OFULL) && keyboard_at.out_new == -1 && /*!(keyboard_at.mem[0] & 0x20) &&*/
             mouse_queue_start != mouse_queue_end)
         {
                 keyboard_at.out_new = mouse_queue[mouse_queue_start] | 0x100;
@@ -165,29 +192,12 @@ void keyboard_at_poll()
                 keyboard_at.out_new = key_queue[key_queue_start];
                 key_queue_start = (key_queue_start + 1) & 0xf;
         }                
-        else if (keyboard_at.out_new == -1 && !(keyboard_at.status & STAT_OFULL) && 
-            key_ctrl_queue_start != key_ctrl_queue_end)
-        {
-                keyboard_at.out_new = key_ctrl_queue[key_ctrl_queue_start];
-                key_ctrl_queue_start = (key_ctrl_queue_start + 1) & 0xf;
-        }                
 }
 
 void keyboard_at_adddata(uint8_t val)
 {
-//        if (keyboard_at.status & STAT_OFULL)
-//        {
                 key_ctrl_queue[key_ctrl_queue_end] = val;
                 key_ctrl_queue_end = (key_ctrl_queue_end + 1) & 0xf;
-//                pclog("keyboard_at : %02X added to queue\n", val);                
-/*                return;
-        }
-        keyboard_at.out = val;
-        keyboard_at.status |=  STAT_OFULL;
-        keyboard_at.status &= ~STAT_IFULL;
-        if (keyboard_at.mem[0] & 0x01)
-           keyboard_at.wantirq = 1;        
-        pclog("keyboard_at : output %02X (IRQ %i)\n", val, keyboard_at.wantirq);*/
 }
 
 uint8_t sc_or = 0;
@@ -223,18 +233,12 @@ void keyboard_at_adddata_mouse(uint8_t val)
 {
         mouse_queue[mouse_queue_end] = val;
         mouse_queue_end = (mouse_queue_end + 1) & 0xf;
-//        pclog("keyboard_at : %02X added to mouse queue\n", val);
         return;
 }
 
 void keyboard_at_write(uint16_t port, uint8_t val, void *priv)
 {
 	int i = 0;
-//        pclog("keyboard_at : write %04X %02X %i  %02X\n", port, val, keyboard_at.key_wantdata, ram[8]);
-/*        if (ram[8] == 0xc3) 
-        {
-                output = 3;
-        }*/
         switch (port)
         {
                 case 0x60:
@@ -244,7 +248,15 @@ void keyboard_at_write(uint16_t port, uint8_t val, void *priv)
                         keyboard_at.want60 = 0;
                         switch (keyboard_at.command)
                         {
-				case 0x40 ... 0x5f:				/* 0x40 - 0x5F are aliases for 0x60-0x7F */
+				/* 0x40 - 0x5F are aliases for 0x60-0x7F */
+                                case 0x40: case 0x41: case 0x42: case 0x43:
+                                case 0x44: case 0x45: case 0x46: case 0x47:
+                                case 0x48: case 0x49: case 0x4a: case 0x4b:
+                                case 0x4c: case 0x4d: case 0x4e: case 0x4f:
+                                case 0x50: case 0x51: case 0x52: case 0x53:
+                                case 0x54: case 0x55: case 0x56: case 0x57:
+                                case 0x58: case 0x59: case 0x5a: case 0x5b:
+                                case 0x5c: case 0x5d: case 0x5e: case 0x5f:
 				keyboard_at.command |= 0x20;
 				goto write_register;
 
@@ -268,7 +280,6 @@ write_register:
                                         mouse_scan = !(val & 0x20);
 
 					/* Addition by OBattler: Scan code translate ON/OFF. */
-					// pclog("KEYBOARD_AT: Writing %02X to system register\n", val);
 					mode &= 0x93;
 					mode |= (val & MODE_MASK);
 					if (first_write)
@@ -285,7 +296,6 @@ write_register:
 						}
 						keyboard_at.default_mode = (mode & 3);
 						first_write = 0;
-						// pclog("Keyboard set to scan code set %i, mode & 0x60 = 0x%02X\n", mode & 3, mode & 0x60);
 						/* No else because in all other cases, translation is off, so we need to keep it
 						   set to set 0 which the mode &= 0xFC above will set it. */
 					}
@@ -295,23 +305,18 @@ write_register:
 				case 0xaf: /*AMI - set extended controller RAM*/
 				if (keyboard_at.secr_phase == 0)
 				{
-					// pclog("Set extended controller RAM - phase 0 (bad)\n");
 					goto bad_command;
 				}
 				else if (keyboard_at.secr_phase == 1)
 				{
-					// pclog("Set extended controller RAM - phase 1\n");
 					keyboard_at.mem_addr = val;
 					keyboard_at.want60 = 1;
 					keyboard_at.secr_phase = 2;
-					// pclog("Set extended controller RAM - starting phase 2\n");
 				}
 				else if (keyboard_at.secr_phase == 2)
 				{
-					// pclog("Set extended controller RAM - phase 2\n");
 					keyboard_at.mem[keyboard_at.mem_addr] = val;
 					keyboard_at.secr_phase = 0;
-					// pclog("Set extended controller RAM - starting phase 0\n");
 				}
 				break;
 
@@ -325,12 +330,10 @@ write_register:
                                 break;
                                 
                                 case 0xd1: /*Write output port*/
-//                                pclog("Write output port - %02X %02X %04X:%04X\n", keyboard_at.output_port, val, CS, pc);
                                 if ((keyboard_at.output_port ^ val) & 0x02) /*A20 enable change*/
                                 {
                                         mem_a20_key = val & 0x02;
                                         mem_a20_recalc();
-//                                        pclog("Rammask change to %08X %02X\n", rammask, val & 0x02);
                                         flushmmucache();
                                 }
                                 keyboard_at.output_port = val;
@@ -352,8 +355,6 @@ write_register:
                                 default:
 bad_command:
                                 pclog("Bad AT keyboard controller 0060 write %02X command %02X\n", val, keyboard_at.command);
-//                                dumpregs();
-//                                exit(-1);
                         }
                 }
                 else
@@ -370,7 +371,6 @@ bad_command:
                                         break;
 
 					case 0xf0: /*Get/set scancode set*/
-					// pclog("KEYBOARD_AT: Get/set scan code set: %i\n", val);
 					if (val == 0)
 					{
 						keyboard_at_adddata_keyboard(mode & 3);
@@ -392,8 +392,6 @@ bad_command:
                                         
                                         default:
                                         pclog("Bad AT keyboard 0060 write %02X command %02X\n", val, keyboard_at.key_command);
-//                                        dumpregs();
-//                                        exit(-1);
                                 }
                         }
                         else
@@ -452,11 +450,9 @@ bad_command:
                                         break;
                                         
                                         case 0xf6: /*Set defaults*/
-					// pclog("KEYBOARD_AT: Set defaults\n");
 					set3_all_break = 0;
 					set3_all_repeat = 0;
 					memset(set3_flags, 0, 272);
-					// mode = (mode & 0xFC) | 2;
 					mode = (mode & 0xFC) | keyboard_at.default_mode;
                                         keyboard_at_adddata_keyboard(0xfa);
                                         break;
@@ -487,7 +483,6 @@ bad_command:
 					break;
                                         
                                         case 0xff: /*Reset*/
-					// pclog("KEYBOARD_AT: Set defaults\n");
                                         key_queue_start = key_queue_end = 0; /*Clear key queue*/
                                         keyboard_at_adddata_keyboard(0xfa);
                                         keyboard_at_adddata_keyboard(0xaa);
@@ -499,8 +494,6 @@ bad_command:
                                         default:
                                         pclog("Bad AT keyboard command %02X\n", val);
                                         keyboard_at_adddata_keyboard(0xfe);
-//                                        dumpregs();
-//                                        exit(-1);
                                 }
                         }
                 }
@@ -517,7 +510,7 @@ bad_command:
                 speaker_enable = val & 2;
                 if (speaker_enable) 
                         was_speaker_enable = 1;
-                pit_set_gate(2, val & 1);
+                pit_set_gate(&pit, 2, val & 1);
                 break;
                 
                 case 0x64:
@@ -526,7 +519,14 @@ bad_command:
                 /*New controller command*/
                 switch (val)
                 {
-			case 0x00 ... 0x1f:
+                        case 0x00: case 0x01: case 0x02: case 0x03:
+                        case 0x04: case 0x05: case 0x06: case 0x07:
+                        case 0x08: case 0x09: case 0x0a: case 0x0b:
+                        case 0x0c: case 0x0d: case 0x0e: case 0x0f:
+                        case 0x10: case 0x11: case 0x12: case 0x13:
+                        case 0x14: case 0x15: case 0x16: case 0x17:
+                        case 0x18: case 0x19: case 0x1a: case 0x1b:
+                        case 0x1c: case 0x1d: case 0x1e: case 0x1f:
 			val |= 0x20;				/* 0x00-0x1f are aliases for 0x20-0x3f */
                         keyboard_at_adddata(keyboard_at.mem[val & 0x1f]);
                         break;
@@ -583,7 +583,6 @@ bad_command:
                         {
                                 mem_a20_key = 2;
                                 mem_a20_recalc();
-//                                pclog("Rammask change to %08X %02X\n", rammask, val & 0x02);
                                 flushmmucache();
                         }
                         keyboard_at.output_port = 0xcf;
@@ -625,10 +624,12 @@ bad_command:
 				case ROM_ENDEAVOR:
 				case ROM_THOR:
 				case ROM_MRTHOR:
+				case ROM_AP53:
+				case ROM_P55T2S:
+				case ROM_S1668:
 					/*Set extended controlled RAM*/
 		                        keyboard_at.want60 = 1;
 					keyboard_at.secr_phase = 1;
-					// pclog("Set extended controller RAM - starting phase 1\n");
 					break;
 				default:
 					/*Read keyboard version*/
@@ -637,24 +638,25 @@ bad_command:
 			}
 			break;
 
-			case 0xb0 ... 0xbf: /*Set keyboard lines low (B0-B7) or high (B8-BF)*/
+			case 0xb0: case 0xb1: case 0xb2: case 0xb3: case 0xb4: case 0xb5: case 0xb6: case 0xb7:
+			case 0xb8: case 0xb9: case 0xba: case 0xbb: case 0xbc: case 0xbd: case 0xbe: case 0xbf:
+			/*Set keyboard lines low (B0-B7) or high (B8-BF)*/
 			keyboard_at_adddata(0x00);
 			break;
 
                         case 0xc0: /*Read input port*/
-                        keyboard_at_adddata((keyboard_at.input_port & 0xf0) | 0x80);
-                        // keyboard_at_adddata(keyboard_at.input_port | 4);
-                        // keyboard_at.input_port = ((keyboard_at.input_port + 1) & 3) | (keyboard_at.input_port & 0xfc);
+                        keyboard_at_adddata(keyboard_at.input_port | 4 | fdc_ps1_525());
+                        keyboard_at.input_port = ((keyboard_at.input_port + 1) & 3) | (keyboard_at.input_port & 0xfc) | fdc_ps1_525();
                         break;
 
 			case 0xc1: /*Copy bits 0 to 3 of input port to status bits 4 to 7*/
 			keyboard_at.status &= 0xf;
-			keyboard_at.status |= ((keyboard_at.input_port & 0xf) << 4);
+			keyboard_at.status |= ((((keyboard_at.input_port & 0xfc) | 0x84 | fdc_ps1_525()) & 0xf) << 4);
 			break;
                         
 			case 0xc2: /*Copy bits 4 to 7 of input port to status bits 4 to 7*/
 			keyboard_at.status &= 0xf;
-			keyboard_at.status |= (keyboard_at.input_port & 0xf0);
+			keyboard_at.status |= (((keyboard_at.input_port & 0xfc) | 0x84 | fdc_ps1_525()) & 0xf0);
 			break;
                         
                         case 0xc9: /*AMI - block P22 and P23 ??? */
@@ -691,7 +693,21 @@ bad_command:
                         case 0xd4: /*Write to mouse*/
                         keyboard_at.want60 = 1;
                         break;
-                        
+
+			case 0xdd: /* Disable A20 Address Line */
+			keyboard_at.output_port &= ~0x02;
+			mem_a20_key = 0;
+			mem_a20_recalc();
+			flushmmucache();
+			break;
+
+			case 0xdf: /* Enable A20 Address Line */
+			keyboard_at.output_port |= 0x02;
+			mem_a20_key = 2;
+			mem_a20_recalc();
+			flushmmucache();
+			break;
+
                         case 0xe0: /*Read test inputs*/
                         keyboard_at_adddata(0x00);
                         break;
@@ -699,19 +715,19 @@ bad_command:
                         case 0xef: /*??? - sent by AMI486*/
                         break;
 
-			case 0xf0 ... 0xff:
+			case 0xf0: case 0xf1: case 0xf2: case 0xf3: case 0xf4: case 0xf5: case 0xf6: case 0xf7:
+			case 0xf8: case 0xf9: case 0xfa: case 0xfb: case 0xfc: case 0xfd: case 0xfe: case 0xff:
 			if (!(val & 1))
 			{
 				/* Pin 0 selected. */
-	                        softresetx86(); /*Pulse reset!*/
-				cpu_set_edx();
+				/* trc_reset(2); */
+        	                softresetx86(); /*Pulse reset!*/
+	                        cpu_set_edx();
 			}
 			break;
                                 
                         default:
                         pclog("Bad AT keyboard controller command %02X\n", val);
-//                        dumpregs();
-//                        exit(-1);
                 }
         }
 }
@@ -719,26 +735,36 @@ bad_command:
 uint8_t keyboard_at_read(uint16_t port, void *priv)
 {
         uint8_t temp = 0xff;
-        cycles -= 4;
-//        if (port != 0x61) pclog("keyboard_at : read %04X ", port);
         switch (port)
         {
                 case 0x60:
                 temp = keyboard_at.out;
                 keyboard_at.status &= ~(STAT_OFULL/* | STAT_MFULL*/);
-                picintc(keyboard_at.last_irq);
 		if (PCI)
 		{
 			/* The PIIX/PIIX3 datasheet mandates that both of these interrupts are cleared on any read of port 0x60. */
 	                picintc(1 << 1);
 	                picintc(1 << 12);
 		}
+		else
+		{
+	                picintc(keyboard_at.last_irq);
+		}
                 keyboard_at.last_irq = 0;
                 break;
 
-                case 0x61:                
-                if (ppispeakon) return (ppi.pb&~0xC0)|0x20;
-                return ppi.pb&~0xe0;
+                case 0x61:
+                temp = ppi.pb & ~0xe0;
+                if (ppispeakon)
+                        temp |= 0x20;
+                if (keyboard_at.is_ps2)
+                {
+                        if (keyboard_at.refresh)
+                                temp |= 0x10;
+                        else
+                                temp &= ~0x10;
+                }
+                break;
                 
                 case 0x64:
                 temp = (keyboard_at.status & 0xFB) | (mode & CCB_SYSTEM);
@@ -746,7 +772,6 @@ uint8_t keyboard_at_read(uint16_t port, void *priv)
                 keyboard_at.status &= ~(STAT_RTIMEOUT/* | STAT_TTIMEOUT*/);
                 break;
         }
-//        if (port != 0x61) pclog("%02X  %08X\n", temp, rammask);
         return temp;
 }
 
@@ -760,7 +785,7 @@ void keyboard_at_reset()
 	first_write = 1;
         keyboard_at.wantirq = 0;
         keyboard_at.output_port = 0xcf;
-        keyboard_at.input_port = 0xb0;
+        keyboard_at.input_port = (MDA) ? 0xf0 : 0xb0;
         keyboard_at.out_new = -1;
         keyboard_at.last_irq = 0;
 	keyboard_at.secr_phase = 0;
@@ -774,15 +799,21 @@ void keyboard_at_reset()
 	memset(set3_flags, 0, 272);
 }
 
+static void at_refresh(void *p)
+{
+        keyboard_at.refresh = !keyboard_at.refresh;
+        keyboard_at.refresh_time += PS2_REFRESH_TIME;
+}
+
 void keyboard_at_init()
 {
-        //return;
         io_sethandler(0x0060, 0x0005, keyboard_at_read, NULL, NULL, keyboard_at_write, NULL, NULL,  NULL);
         keyboard_at_reset();
         keyboard_send = keyboard_at_adddata_keyboard;
         keyboard_poll = keyboard_at_poll;
         keyboard_at.mouse_write = NULL;
         keyboard_at.mouse_p = NULL;
+        keyboard_at.is_ps2 = 0;
 	dtrans = 0;
         
         timer_add(keyboard_at_poll, &keybsenddelay, TIMER_ALWAYS_ENABLED,  NULL);
@@ -792,4 +823,10 @@ void keyboard_at_set_mouse(void (*mouse_write)(uint8_t val, void *p), void *p)
 {
         keyboard_at.mouse_write = mouse_write;
         keyboard_at.mouse_p = p;
+}
+
+void keyboard_at_init_ps2()
+{
+        timer_add(at_refresh, &keyboard_at.refresh_time, TIMER_ALWAYS_ENABLED,  NULL);
+        keyboard_at.is_ps2 = 1;
 }

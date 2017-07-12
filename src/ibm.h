@@ -1,64 +1,69 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		General include file.
+ *
+ * Version:	@(#)ibm.h	1.0.1	2017/06/03
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <wchar.h>
 #define printf pclog
 
+
 /*Memory*/
-uint8_t *ram;
+extern uint8_t *ram;
+extern uint32_t rammask;
 
-uint32_t rammask;
-
-int readlookup[256],readlookupp[256];
-uintptr_t *readlookup2;
-int readlnext;
-int writelookup[256],writelookupp[256];
-uintptr_t *writelookup2;
-int writelnext;
+extern int readlookup[256],readlookupp[256];
+extern uintptr_t *readlookup2;
+extern int readlnext;
+extern int writelookup[256],writelookupp[256];
+extern uintptr_t *writelookup2;
+extern int writelnext;
 
 extern int mmu_perm;
 
 #define readmemb(a) ((readlookup2[(a)>>12]==-1)?readmembl(a):*(uint8_t *)(readlookup2[(a) >> 12] + (a)))
-#define readmemw(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a))&0xFFF)>0xFFE)?readmemwl(s,a):*(uint16_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
-#define readmeml(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a))&0xFFF)>0xFFC)?readmemll(s,a):*(uint32_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
+#define readmemw(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a)) & 1))?readmemwl(s,a):*(uint16_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
+#define readmeml(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a)) & 3))?readmemll(s,a):*(uint32_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
 
-//#define writememb(a,v) if (writelookup2[(a)>>12]==0xFFFFFFFF) writemembl(a,v); else ram[writelookup2[(a)>>12]+((a)&0xFFF)]=v
-//#define writememw(s,a,v) if (writelookup2[((s)+(a))>>12]==0xFFFFFFFF || (s)==0xFFFFFFFF) writememwl(s,a,v); else *((uint16_t *)(&ram[writelookup2[((s)+(a))>>12]+(((s)+(a))&0xFFF)]))=v
-//#define writememl(s,a,v) if (writelookup2[((s)+(a))>>12]==0xFFFFFFFF || (s)==0xFFFFFFFF) writememll(s,a,v); else *((uint32_t *)(&ram[writelookup2[((s)+(a))>>12]+(((s)+(a))&0xFFF)]))=v
-//#define readmemb(a) ((isram[((a)>>16)&255] && !(cr0>>31))?ram[a&0xFFFFFF]:readmembl(a))
-//#define writememb(a,v) if (isram[((a)>>16)&255] && !(cr0>>31)) ram[a&0xFFFFFF]=v; else writemembl(a,v)
+extern uint8_t	readmembl(uint32_t addr);
+extern void	writemembl(uint32_t addr, uint8_t val);
+extern uint8_t	readmemb386l(uint32_t seg, uint32_t addr);
+extern void	writememb386l(uint32_t seg, uint32_t addr, uint8_t val);
+extern uint16_t	readmemwl(uint32_t seg, uint32_t addr);
+extern void	writememwl(uint32_t seg, uint32_t addr, uint16_t val);
+extern uint32_t	readmemll(uint32_t seg, uint32_t addr);
+extern void	writememll(uint32_t seg, uint32_t addr, uint32_t val);
+extern uint64_t	readmemql(uint32_t seg, uint32_t addr);
+extern void	writememql(uint32_t seg, uint32_t addr, uint64_t val);
 
-//void writememb(uint32_t addr, uint8_t val);
-uint8_t readmembl(uint32_t addr);
-void writemembl(uint32_t addr, uint8_t val);
-uint8_t readmemb386l(uint32_t seg, uint32_t addr);
-void writememb386l(uint32_t seg, uint32_t addr, uint8_t val);
-uint16_t readmemwl(uint32_t seg, uint32_t addr);
-void writememwl(uint32_t seg, uint32_t addr, uint16_t val);
-uint32_t readmemll(uint32_t seg, uint32_t addr);
-void writememll(uint32_t seg, uint32_t addr, uint32_t val);
-uint64_t readmemql(uint32_t seg, uint32_t addr);
-void writememql(uint32_t seg, uint32_t addr, uint64_t val);
-
-uint8_t *getpccache(uint32_t a);
-
-uint32_t mmutranslatereal(uint32_t addr, int rw);
-
-void addreadlookup(uint32_t virt, uint32_t phys);
-void addwritelookup(uint32_t virt, uint32_t phys);
+extern uint8_t	*getpccache(uint32_t a);
+extern uint32_t	mmutranslatereal(uint32_t addr, int rw);
+extern void	addreadlookup(uint32_t virt, uint32_t phys);
+extern void	addwritelookup(uint32_t virt, uint32_t phys);
 
 
 /*IO*/
-uint8_t  inb(uint16_t port);
-void outb(uint16_t port, uint8_t  val);
-uint16_t inw(uint16_t port);
-void outw(uint16_t port, uint16_t val);
-uint32_t inl(uint16_t port);
-void outl(uint16_t port, uint32_t val);
+extern uint8_t	inb(uint16_t port);
+extern void	outb(uint16_t port, uint8_t  val);
+extern uint16_t	inw(uint16_t port);
+extern void	outw(uint16_t port, uint16_t val);
+extern uint32_t	inl(uint16_t port);
+extern void	outl(uint16_t port, uint32_t val);
 
-FILE *romfopen(char *fn, char *mode);
 extern int shadowbios,shadowbios_write;
 extern int mem_size;
 extern int readlnum,writelnum;
@@ -138,7 +143,6 @@ struct
         uint32_t pc;
         uint32_t oldpc;
         uint32_t op32;  
-	uint32_t last_ea;
 
 	int TOP;
         
@@ -167,30 +171,46 @@ struct
         MMX_REG MM[8];
         
         uint16_t old_npxc, new_npxc;
+	uint32_t last_ea;
 } cpu_state;
 
 #define cycles cpu_state._cycles
 
-#define COMPILE_TIME_ASSERT(expr) typedef char COMP_TIME_ASSERT[(expr) ? 1 : 0];
+extern uint32_t cpu_cur_status;
 
-COMPILE_TIME_ASSERT(sizeof(cpu_state) <= 128);
+#define CPU_STATUS_USE32   (1 << 0)
+#define CPU_STATUS_STACK32 (1 << 1)
+#define CPU_STATUS_FLATDS  (1 << 2)
+#define CPU_STATUS_FLATSS  (1 << 3)
 
-#define cpu_state_offset(MEMBER) ((uintptr_t)&cpu_state.MEMBER - (uintptr_t)&cpu_state - 128)
+#define cpu_rm  cpu_state.rm_data.rm_mod_reg.rm
+#define cpu_mod cpu_state.rm_data.rm_mod_reg.mod
+#define cpu_reg cpu_state.rm_data.rm_mod_reg.reg
+
+#ifdef __MSC__
+# define COMPILE_TIME_ASSERT(expr)	/*nada*/
+#else
+# define COMPILE_TIME_ASSERT(expr) typedef char COMP_TIME_ASSERT[(expr) ? 1 : 0];
+#endif
+
+COMPILE_TIME_ASSERT(sizeof(cpu_state) <= 128)
+
+#define cpu_state_offset(MEMBER) ((uint8_t)((uintptr_t)&cpu_state.MEMBER - (uintptr_t)&cpu_state - 128))
 
 /*x86reg regs[8];*/
 
-uint16_t flags,eflags;
-uint32_t oldds,oldss,olddslimit,oldsslimit,olddslimitw,oldsslimitw;
+extern uint16_t flags,eflags;
+extern uint32_t oldds,oldss,olddslimit,oldsslimit,olddslimitw,oldsslimitw;
 
 extern int ins,output;
 extern int cycdiff;
 
-x86seg gdt,ldt,idt,tr;
-x86seg _cs,_ds,_es,_ss,_fs,_gs;
-x86seg _oldds;
+extern x86seg gdt,ldt,idt,tr;
+extern x86seg _cs,_ds,_es,_ss,_fs,_gs;
+extern x86seg _oldds;
 
-uint32_t pccache;
-uint8_t *pccache2;
+extern uint32_t pccache;
+extern uint8_t *pccache2;
 /*Segments -
   _cs,_ds,_es,_ss are the segment structures
   CS,DS,ES,SS is the 16-bit data
@@ -222,8 +242,8 @@ union
 #define cr0 CR0.l
 #define msw CR0.w
 
-uint32_t cr2, cr3, cr4;
-uint32_t dr[8];
+extern uint32_t cr2, cr3, cr4;
+extern uint32_t dr[8];
 
 #define C_FLAG  0x0001
 #define P_FLAG  0x0004
@@ -242,9 +262,7 @@ uint32_t dr[8];
 #define IOPL ((flags>>12)&3)
 
 #define IOPLp ((!(msw&1)) || (CPL<=IOPL))
-//#define IOPLp 1
 
-//#define IOPLV86 ((!(msw&1)) || (CPL<=IOPL))
 extern int cycles_lost;
 extern int israpidcad;
 extern int is486;
@@ -260,6 +278,12 @@ extern int CPUID;
 extern int cpl_override;
 
 /*Timer*/
+typedef struct PIT_nr
+{
+        int nr;
+        struct PIT *pit;
+} PIT_nr;
+
 typedef struct PIT
 {
         uint32_t l[3];
@@ -284,23 +308,22 @@ typedef struct PIT
         
         uint8_t read_status[3];
         int do_read_status[3];
+        
+        PIT_nr pit_nr[3];
+        
+        void (*set_out_funcs[3])(int new_out, int old_out);
 } PIT;
 
-PIT pit;
-void setpitclock(float clock);
-
-float pit_timer0_freq();
-
-#define cpu_rm  cpu_state.rm_data.rm_mod_reg.rm
-#define cpu_mod cpu_state.rm_data.rm_mod_reg.mod
-#define cpu_reg cpu_state.rm_data.rm_mod_reg.reg
+PIT pit, pit2;
+extern void	setpitclock(float clock);
+extern float	pit_timer0_freq(void);
 
 
 
 /*DMA*/
 typedef struct DMA
 {
-        uint16_t ab[4],ac[4];
+        uint32_t ab[4],ac[4];
         uint16_t cb[4];
         int cc[4];
         int wp;
@@ -308,9 +331,17 @@ typedef struct DMA
         uint8_t page[4];
         uint8_t stat;
         uint8_t command;
+        uint8_t request;
+        
+        int xfr_command, xfr_channel;
+        int byte_ptr;
+        
+        int is_ps2;
+	uint8_t arb_level[4];
+	uint8_t ps2_mode[4];
 } DMA;
 
-DMA dma,dma16;
+extern DMA dma, dma16;
 
 
 /*PPI*/
@@ -320,7 +351,7 @@ typedef struct PPI
         uint8_t pa,pb;
 } PPI;
 
-PPI ppi;
+extern PPI ppi;
 
 
 /*PIC*/
@@ -332,16 +363,16 @@ typedef struct PIC
         int read;
 } PIC;
 
-PIC pic,pic2;
+extern PIC pic, pic2;
 extern int pic_intpending;
 
 
-int disctime;
-char discfns[4][256];
-int driveempty[4];
+extern int disctime;
+extern wchar_t discfns[4][256];
+extern int driveempty[4];
 
-#define MDA ((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_HERCULESPLUS || gfxcard==GFX_INCOLOR) && (romset<ROM_TANDY || romset>=ROM_IBMAT))
-#define VGA ((gfxcard>=GFX_TVGA || romset==ROM_ACER386) && gfxcard!=GFX_COLORPLUS && gfxcard!=GFX_INCOLOR && gfxcard!=GFX_WY700 && gfxcard!=GFX_COMPAQ_EGA && gfxcard!=GFX_SUPER_EGA && gfxcard!=GFX_HERCULESPLUS && romset!=ROM_PC1640 && romset!=ROM_PC1512 && romset!=ROM_TANDY && romset!=ROM_PC200)
+#define MDA ((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_HERCULESPLUS || gfxcard==GFX_INCOLOR || gfxcard==GFX_GENIUS) && (romset<ROM_TANDY || romset>=ROM_IBMAT))
+#define VGA ((gfxcard>=GFX_TVGA || romset==ROM_ACER386) && gfxcard!=GFX_COLORPLUS && gfxcard!=GFX_INCOLOR && gfxcard!=GFX_WY700 && gfxcard!=GFX_GENIUS && gfxcard!=GFX_COMPAQ_EGA && gfxcard!=GFX_SUPER_EGA && gfxcard!=GFX_HERCULESPLUS && romset!=ROM_PC1640 && romset!=ROM_PC1512 && romset!=ROM_TANDY && romset!=ROM_PC200)
 #define PCJR (romset == ROM_IBMPCJR)
 #define AMIBIOS (romset==ROM_AMI386SX || romset==ROM_AMI486 || romset == ROM_WIN486)
 
@@ -390,11 +421,20 @@ enum
         ROM_ENDEAVOR,
         ROM_REVENGE,
         ROM_IBMPS1_2011,
-        ROM_DESKPRO_386,	
+        ROM_DESKPRO_386,
+		ROM_PORTABLE,
+		ROM_PORTABLEII,
+		ROM_PORTABLEIII,
+		ROM_PORTABLEIII386, /* The original Compaq Portable III shipped with an Intel 80286 CPU, but later switched to a 386DX. */
         ROM_IBMPS1_2121,
 
         ROM_AMI386DX_OPTI495,
         ROM_MR386DX_OPTI495,
+
+	ROM_IBMPS2_M30_286,
+	ROM_IBMPS2_M50,
+	ROM_IBMPS2_M55SX,
+	ROM_IBMPS2_M80,
 
         ROM_DTK486,     /*DTK PKM-0038S E-2 / SiS 471 / Award BIOS / SiS 85C471*/
         ROM_VLI486SV2G, /*ASUS VL/I-486SV2G / SiS 471 / Award BIOS / SiS 85C471*/
@@ -403,26 +443,43 @@ enum
 	ROM_PLATO,      /*Intel Premiere/PCI II / 430NX / AMI BIOS / SMC FDC37C665*/
         ROM_MB500N,     /*PC Partner MB500N / 430FX / Award BIOS / SMC FDC37C665*/
         ROM_P54TP4XE,   /*ASUS P/I-P55TP4XE / 430FX / Award BIOS / SMC FDC37C665*/
+	ROM_AP53,       /*AOpen AP53 / 430HX / AMI BIOS / SMC FDC37C665/669*/
+	ROM_P55T2S,     /*ASUS P/I-P55T2S / 430HX / AMI BIOS / National Semiconductors PC87306*/
 	ROM_ACERM3A,    /*Acer M3A / 430HX / Acer BIOS / SMC FDC37C932FR*/
 	ROM_ACERV35N,   /*Acer V35N / 430HX / Acer BIOS / SMC FDC37C932FR*/
         ROM_P55T2P4,    /*ASUS P/I-P55T2P4 / 430HX / Award BIOS / Winbond W8387F*/
         ROM_P55TVP4,    /*ASUS P/I-P55TVP4 / 430HX / Award BIOS / Winbond W8387F*/
         ROM_P55VA,      /*Epox P55-VA / 430VX / Award BIOS / SMC FDC37C932FR*/
 
-	ROM_440FX,	/*Unknown / 440FX / Award BIOS / SMC FDC37C665*/
+	ROM_440FX,	/*Tyan Titan-Pro AT / 440FX / Award BIOS / SMC FDC37C665*/
 
         ROM_MARL,	/*Intel Advanced/ML / 430HX / AMI BIOS / National Semiconductors PC87306*/
         ROM_THOR,	/*Intel Advanced/ATX / 430FX / AMI BIOS / National Semiconductors PC87306*/
         ROM_MRTHOR,	/*Intel Advanced/ATX / 430FX / MR.BIOS / National Semiconductors PC87306*/
         ROM_POWERMATE_V,/*NEC PowerMate V / 430FX / Phoenix BIOS / SMC FDC37C665*/
-	
+
+        ROM_IBMPS1_2121_ISA,/*IBM PS/1 Model 2121 with ISA expansion bus*/
+
+        ROM_SPC4200P,	/*Samsung SPC-4200P / SCAT / Phoenix BIOS*/
+        ROM_SUPER286TR,	/*Hyundai Super-286TR / SCAT / Award BIOS*/
+
+        ROM_MEGAPCDX,	/*386DX mdoel of the Mega PC - Note by Tohka: The documentation (that I have in German) clearly says such a model exists.*/
+        ROM_ZAPPA,	/*Intel Advanced/ZP / 430FX / AMI BIOS / National Semiconductors PC87306*/
+
+        ROM_CMDPC60,
+
+        ROM_S1668,      /*Tyan Titan-Pro ATX / 440FX / AMI BIOS / SMC FDC37C669*/
+        ROM_IBMPS1_2133,
+
+        ROM_PRESIDENT,  /*President Award 430FX PCI / 430FX / Award BIOS / Unknown Super I/O chip*/
+
         ROM_MAX
 };
 
 extern int romspresent[ROM_MAX];
 
-int hasfpu;
-int romset;
+extern int hasfpu;
+extern int romset;
 
 enum
 {
@@ -449,6 +506,9 @@ enum
        	GFX_INCOLOR,	/* Hercules InColor */
 	GFX_COLORPLUS,	/* Plantronics ColorPlus */
 	GFX_WY700,	/* Wyse 700 */
+	GFX_GENIUS,	/* MDSI Genius */
+        GFX_MACH64VT2,  /*ATI Mach64 VT2*/
+
 	GFX_COMPAQ_EGA,	/*Compaq EGA*/
 	GFX_SUPER_EGA,	/*Using Chips & Technologies SuperEGA BIOS*/
 	GFX_COMPAQ_VGA,	/*Compaq/Paradise VGA*/
@@ -466,6 +526,11 @@ enum
         GFX_RIVATNT2,
 
 	GFX_TRIGEM_UNK,
+        GFX_OTI037,	/*Oak OTI-037*/
+
+        GFX_VIRGEVX,    /*S3 Virge/VX*/
+        GFX_VIRGEDX4,   /*S3 Virge/DX (VBE 2.0)*/
+
         GFX_MAX
 };
 
@@ -477,7 +542,6 @@ int cpuspeed;
 
 
 /*Video*/
-int readflash;
 extern int egareads,egawrites;
 extern int vid_resize;
 extern int vid_api;
@@ -486,14 +550,14 @@ extern int changeframecount;
 
 
 /*Sound*/
-int ppispeakon;
-float CGACONST;
-float MDACONST;
-float VGACONST1,VGACONST2;
-float RTCCONST;
-int gated,speakval,speakon;
+extern int ppispeakon;
+extern float CGACONST;
+extern float MDACONST;
+extern float VGACONST1,VGACONST2;
+extern float RTCCONST;
+extern int gated,speakval,speakon;
 
-#define SOUNDBUFLEN (48000/10)
+#define SOUNDBUFLEN (48000/50)
 
 
 /*Sound Blaster*/
@@ -508,38 +572,75 @@ int gated,speakval,speakon;
 #define SND_WSS   9     /*Windows Sound System*/
 #define SND_PAS16 10    /*Pro Audio Spectrum 16*/
 
-char pcempath[512];
+extern wchar_t pcempath[512];
 
 
-/*Hard disc*/
-
-typedef struct
+/*Hard disk*/
+enum
 {
-        FILE *f;
-        uint64_t spt,hpc; /*Sectors per track, heads per cylinder*/
-        uint64_t tracks;
-	int is_hdi;
-        uint32_t base;
-} hard_disk_t;
+	HDD_BUS_DISABLED = 0,
+	HDD_BUS_MFM,
+	HDD_BUS_XTIDE,
+	HDD_BUS_RLL,
+	HDD_BUS_IDE_PIO_ONLY,
+	HDD_BUS_IDE_PIO_AND_DMA,
+	HDD_BUS_SCSI,
+	HDD_BUS_SCSI_REMOVABLE,
+	HDD_BUS_USB
+};
 
+#define HDC_NUM		30
+#define MFM_NUM		2
+#define RLL_NUM		2
+#define XTIDE_NUM	2
 #define IDE_NUM		8
+#define SCSI_NUM	16	/* Theoretically the controller can have at least 64 devices, or even 128 in case of a wide bus, but
+				   let's not exaggerate with them - 16 ought to be enough for everyone. */
 
-hard_disk_t hdc[IDE_NUM];
+#pragma pack(push,1)
+typedef struct {
+	FILE *f;
+	uint64_t spt,hpc; /*Sectors per track, heads per cylinder*/
+	uint64_t tracks;
+	int is_hdi;
+	int wp;
+	uint32_t base;
+	uint64_t at_spt,at_hpc; /*[Translation] Sectors per track, heads per cylinder*/
+	unsigned int bus;	/* 0 = none, 1 = MFM/RLL, 2 = IDE, 3 = SCSI */
+	unsigned int mfm_channel;
+	unsigned int rll_channel;
+	unsigned int xtide_channel;
+	unsigned int ide_channel;
+	unsigned int scsi_id;
+	unsigned int scsi_lun;
+	wchar_t fn[260];
+	wchar_t prev_fn[260];
+} hard_disk_t;
+#pragma pack(pop)
+
+extern hard_disk_t hdc[HDC_NUM];
 
 uint64_t hdt[128][3];
+uint64_t hdt_mfm[128][3];
 
-int image_is_hdi(const char *s);
+int image_is_hdi(const wchar_t *s);
+int image_is_hdx(const wchar_t *s, int check_signature);
 
 /*Keyboard*/
-int keybsenddelay;
+extern int keybsenddelay;
 
 
 /*CD-ROM*/
-extern int cdrom_drive;
-extern int old_cdrom_drive;
-extern int idecallback[4];
-extern int cdrom_enabled;
-extern int scsi_cdrom_enabled;
+enum
+{
+	CDROM_BUS_DISABLED = 0,
+	CDROM_BUS_ATAPI_PIO_ONLY = 4,
+	CDROM_BUS_ATAPI_PIO_AND_DMA,
+	CDROM_BUS_SCSI,
+	CDROM_BUS_USB = 8
+};
+
+extern int idecallback[5];
 
 #define CD_STATUS_EMPTY		0
 #define CD_STATUS_DATA_ONLY	1
@@ -555,25 +656,24 @@ extern uint32_t SCSIGetCDChannel(int channel);
 
 extern int ui_writeprot[4];
 
-void pclog(const char *format, ...);
-extern int nmi;
 
+extern int nmi;
+extern int nmi_auto_clear;
 
 extern float isa_timing, bus_timing;
 
 
-uint64_t timer_read();
+extern uint64_t timer_read(void);
 extern uint64_t timer_freq;
 
 
-void loadconfig(char *fn);
-
 extern int infocus;
 
-void onesec();
+extern void onesec(void);
 
-void resetpc_cad();
+extern void resetpc_cad(void);
 
+extern int dump_on_exit;
 extern int start_in_fullscreen;
 extern int window_w, window_h, window_x, window_y, window_remember;
 
@@ -590,13 +690,112 @@ extern uint64_t star;
 
 #define FPU_CW_Reserved_Bits (0xe0c0)
 
-extern char nvr_path[1024];
+extern wchar_t nvr_path[1024];
 extern int path_len;
 
-char *nvr_concat(char *to_concat);
+wchar_t *nvr_concat(wchar_t *to_concat);
 
-int mem_a20_state;
+extern int mem_a20_state;
 
-void fatal(const char *format, ...);
 
-extern int scsi_model, scsi_base, scsi_irq, scsi_dma;
+#ifdef ENABLE_LOG_TOGGLES
+extern int buslogic_do_log;
+extern int cdrom_do_log;
+extern int d86f_do_log;
+extern int fdc_do_log;
+extern int ide_do_log;
+extern int serial_do_log;
+extern int nic_do_log;
+#endif
+
+extern int suppress_overscan;
+
+typedef struct PCI_RESET
+{
+	void (*pci_master_reset)(void);
+	void (*pci_set_reset)(void);
+	void (*super_io_reset)(void);
+} PCI_RESET;
+
+extern PCI_RESET pci_reset_handler;
+
+extern uint8_t	trc_read(uint16_t port, void *priv);
+extern void	trc_write(uint16_t port, uint8_t val, void *priv);
+extern void	trc_init(void);
+
+extern int enable_xtide;
+extern int enable_external_fpu;
+
+extern int serial_enabled[2];
+extern int lpt_enabled, bugger_enabled;
+
+extern int invert_display;
+
+uint32_t svga_color_transform(uint32_t color);
+
+extern int scale;
+
+
+/* Function prototypes. */
+extern int	checkio(int port);
+extern void	closepc(void);
+extern void	codegen_block_end(void);
+extern void	codegen_reset(void);
+extern void	cpu_set_edx(void);
+extern int	divl(uint32_t val);
+extern void	dumpregs(int __force);
+extern void	exec386(int cycs);
+extern void	exec386_dynarec(int cycs);
+extern void	execx86(int cycs);
+extern void	flushmmucache(void);
+extern void	flushmmucache_cr3(void);
+extern int	idivl(int32_t val);
+extern void	initmodules(void);
+extern void	initpc(int argc, wchar_t *argv[]);
+extern void	loadcscall(uint16_t seg);
+extern void	loadcsjmp(uint16_t seg, uint32_t oxpc);
+extern void	mmu_invalidate(uint32_t addr);
+extern void	pclog(const char *format, ...);
+extern void	pmodeint(int num, int soft);
+extern void	pmoderetf(int is32, uint16_t off);
+extern void	pmodeiret(int is32);
+extern void	port_92_clear_reset(void);
+extern uint8_t	readdacfifo(void);
+extern void	refreshread(void);
+extern int	rep386(int fv);
+extern void	resetmcr(void);
+extern void	resetpchard_close(void);
+extern void	resetpchard_init(void);
+extern void	resetpchard(void);
+extern void	resetreadlookup(void);
+extern void	resetx86(void);
+extern void	runpc(void);
+extern void	saveconfig(void);
+extern void	softresetx86(void);
+extern void	speedchanged(void);
+extern void	trc_reset(uint8_t val);
+extern void	x86_int_sw(int num);
+extern void	x86gpf(char *s, uint16_t error);
+extern void	x86np(char *s, uint16_t error);
+extern void	x86ss(char *s, uint16_t error);
+extern void	x86ts(char *s, uint16_t error);
+extern void	x87_dumpregs(void);
+extern void	x87_reset(void);
+
+/* Platform functions. */
+extern void	pclog(const char *format, ...);
+extern void	pclog_w(const wchar_t *format, ...);
+extern void	fatal(const char *format, ...);
+
+extern void	update_status_bar_icon(int tag, int active);
+extern void	update_status_bar_icon_state(int tag, int state);
+extern void	status_settextw(wchar_t *wstr);
+extern void	status_settext(char *str);
+
+#define SB_FLOPPY	0x00
+#define SB_CDROM	0x10
+#define SB_RDISK	0x20
+#define SB_HDD		0x40
+#define SB_TEXT		0x50
+
+#define UNUSED(x) (void)x

@@ -1,11 +1,27 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Host to guest keyboard interface and keyboard scan code sets.
+ *
+ * Version:	@(#)keyboard.c	1.0.0	2017/05/30
+ *
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ */
+
 #include "ibm.h"
-#include "plat-keyboard.h"
+#include "plat_keyboard.h"
 #include "keyboard.h"
 
 int keybsendcallback = 0;
+int keybsenddelay;
 
 typedef struct
 {
@@ -467,7 +483,6 @@ void keyboard_process()
 				if (!set3_all_break && !recv_key[scorder[c]] && !(set3_flags[scancodes[scorder[c]].scancodes_make[0]] & 2))
 					continue;
 			}
-//                        pclog("Key %02X start\n", scorder[c]);
                         d = 0;
                         if (recv_key[scorder[c]])
                         {

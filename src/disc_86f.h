@@ -1,8 +1,23 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Implementation of the 86F floppy image format (stores the
+ *		data in the form of FM/MFM-encoded transitions) which also
+ *		forms the core of the emulator's floppy disk emulation.
+ *
+ * Version:	@(#)disc_86f.h	1.0.0	2017/05/30
+ *
+ * Author:	Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2016-2017 Miran Grca.
+ */
+
 void d86f_init();
-void d86f_load(int drive, char *fn);
+void d86f_load(int drive, wchar_t *fn);
 void d86f_close(int drive);
 void d86f_seek(int drive, int track);
 int d86f_hole(int drive);

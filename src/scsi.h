@@ -1,34 +1,39 @@
 /* Copyright holders: SA1988
    see COPYING for more details
 */
-#ifndef __SCSI_H__
-#define __SCSI_H__
+#ifndef SCSI_H
+#define SCSI_H
 
-//#include "scattergather.h"
-
-#include "timer.h"
 
 #define SCSI_TIME (5 * 100 * (1 << TIMER_SHIFT))
 
-/* SCSI Commands */
+
+/* SCSI commands. */
 #define GPCMD_TEST_UNIT_READY           0x00
+#define GPCMD_REZERO_UNIT		0x01
 #define GPCMD_REQUEST_SENSE		0x03
+#define GPCMD_FORMAT_UNIT		0x04
 #define GPCMD_READ_6			0x08
+#define GPCMD_WRITE_6			0x0a
 #define GPCMD_SEEK_6			0x0b
 #define GPCMD_INQUIRY			0x12
+#define GPCMD_VERIFY_6			0x13
 #define GPCMD_MODE_SELECT_6		0x15
 #define GPCMD_MODE_SENSE_6		0x1a
 #define GPCMD_START_STOP_UNIT		0x1b
 #define GPCMD_PREVENT_REMOVAL          	0x1e
 #define GPCMD_READ_CDROM_CAPACITY	0x25
 #define GPCMD_READ_10                   0x28
+#define GPCMD_WRITE_10			0x2a
 #define GPCMD_SEEK_10			0x2b
+#define GPCMD_VERIFY_10			0x2f
 #define GPCMD_READ_SUBCHANNEL		0x42
 #define GPCMD_READ_TOC_PMA_ATIP		0x43
 #define GPCMD_READ_HEADER		0x44
 #define GPCMD_PLAY_AUDIO_10		0x45
 #define GPCMD_GET_CONFIGURATION		0x46
 #define GPCMD_PLAY_AUDIO_MSF	        0x47
+#define GPCMD_PLAY_AUDIO_TRACK_INDEX	0x48
 #define GPCMD_GET_EVENT_STATUS_NOTIFICATION	0x4a
 #define GPCMD_PAUSE_RESUME		0x4b
 #define GPCMD_STOP_PLAY_SCAN            0x4e
@@ -38,13 +43,21 @@
 #define GPCMD_MODE_SENSE_10		0x5a
 #define GPCMD_PLAY_AUDIO_12		0xa5
 #define GPCMD_READ_12                   0xa8
+#define GPCMD_WRITE_12			0xaa
 #define GPCMD_READ_DVD_STRUCTURE	0xad	/* For reading. */
+#define GPCMD_VERIFY_12			0xaf
+#define GPCMD_PLAY_CD_OLD		0xb4
+#define GPCMD_READ_CD_OLD		0xb8
 #define GPCMD_READ_CD_MSF		0xb9
+#define GPCMD_SCAN			0xba
 #define GPCMD_SET_SPEED			0xbb
 #define GPCMD_PLAY_CD			0xbc
 #define GPCMD_MECHANISM_STATUS		0xbd
 #define GPCMD_READ_CD			0xbe
 #define GPCMD_SEND_DVD_STRUCTURE	0xbf	/* This is for writing only, irrelevant to PCem. */
+#define GPCMD_PAUSE_RESUME_ALT		0xc2
+#define GPCMD_SCAN_ALT			0xcd	/* Should be equivalent to 0xba */
+#define GPCMD_SET_SPEED_ALT		0xda	/* Should be equivalent to 0xbb */
 
 /* Mode page codes for mode sense/set */
 #define GPMODE_R_W_ERROR_PAGE		0x01
@@ -65,21 +78,30 @@
 
 /* SCSI Additional Sense Codes */
 #define ASC_AUDIO_PLAY_OPERATION	0x00
+#define ASC_NOT_READY			0x04
 #define ASC_ILLEGAL_OPCODE		0x20
+#define ASC_LBA_OUT_OF_RANGE		0x21
 #define	ASC_INV_FIELD_IN_CMD_PACKET	0x24
+#define	ASC_INV_LUN			0x25
+#define	ASC_INV_FIELD_IN_PARAMETER_LIST	0x26
+#define ASC_WRITE_PROTECTED		0x27
 #define ASC_MEDIUM_MAY_HAVE_CHANGED	0x28
-#define ASC_INCOMPATIBLE_FORMAT              0x30
+#define ASC_CAPACITY_DATA_CHANGED	0x2A
+#define ASC_INCOMPATIBLE_FORMAT		0x30
 #define ASC_MEDIUM_NOT_PRESENT		0x3a
 #define ASC_DATA_PHASE_ERROR		0x4b
 #define ASC_ILLEGAL_MODE_FOR_THIS_TRACK	0x64
 
+#define ASCQ_UNIT_IN_PROCESS_OF_BECOMING_READY	0x01
+#define ASCQ_INITIALIZING_COMMAND_REQUIRED	0x02
+#define ASCQ_CAPACITY_DATA_CHANGED		0x09
 #define ASCQ_AUDIO_PLAY_OPERATION_IN_PROGRESS	0x11
-#define ASCQ_AUDIO_PLAY_OPERATION_PAUSED		0x12
-#define ASCQ_AUDIO_PLAY_OPERATION_COMPLETED		0x13
+#define ASCQ_AUDIO_PLAY_OPERATION_PAUSED	0x12
+#define ASCQ_AUDIO_PLAY_OPERATION_COMPLETED	0x13
 
 /* Tell RISC OS that we have a 4x CD-ROM drive (600kb/sec data, 706kb/sec raw).
    Not that it means anything */
-#define CDROM_SPEED	706
+#define CDROM_SPEED	706		 /* 0x2C2 */
 
 /* Some generally useful CD-ROM information */
 #define CD_MINS                       75 /* max. minutes per CD */
@@ -144,13 +166,14 @@
 #define MMC_PROFILE_HDDVD_RW_DL         0x005A
 #define MMC_PROFILE_INVALID             0xFFFF
 
+#define SCSI_ONLY		32
+#define ATAPI_ONLY		16
+#define IMPLEMENTED		8
 #define NONDATA			4
 #define CHECK_READY		2
 #define ALLOW_UA		1
 
 extern uint8_t SCSICommandTable[0x100];
-
-#define IMPLEMENTED		1
 
 extern uint8_t mode_sense_pages[0x40];
 
@@ -175,7 +198,6 @@ int MediaPresent;
 
 extern uint8_t SCSIStatus;
 extern uint8_t SCSIPhase;
-extern int SCSICallback[16];
 extern uint8_t scsi_cdrom_id;
 
 struct
@@ -192,51 +214,10 @@ extern int cd_status;
 extern int prev_status;
 
 #define SCSI_NONE 0
-#define SCSI_HDD 1 /*not present yet*/
+#define SCSI_DISK 1
 #define SCSI_CDROM 2
 
 #define MSFtoLBA(m,s,f)  ((((m*60)+s)*75)+f)
-
-typedef struct __attribute__((packed))
-{
-	uint8_t user_data[2048];
-	uint8_t ecc[288];
-} m1_data_t;
-
-typedef struct __attribute__((packed))
-{
-	uint8_t sub_header[8];
-	uint8_t user_data[2328];
-} m2_data_t;
-
-typedef union __attribute__((packed))
-{
-	m1_data_t m1_data;
-	m2_data_t m2_data;
-	uint8_t raw_data[2352];
-} sector_data_t;
-
-typedef struct __attribute__((packed))
-{
-	uint8_t sync[12];
-	uint8_t header[4];
-	sector_data_t data;
-	uint8_t c2[296];
-	uint8_t subchannel_raw[96];
-	uint8_t subchannel_q[16];
-	uint8_t subchannel_rw[96];
-} cdrom_sector_t;
-
-typedef union __attribute__((packed))
-{
-	cdrom_sector_t cdrom_sector;
-	uint8_t buffer[2856];
-} sector_buffer_t;
-
-extern sector_buffer_t cdrom_sector_buffer;
-
-extern int cdrom_sector_type, cdrom_sector_flags;
-extern int cdrom_sector_size, cdrom_sector_ismsf;
 
 #define SCSI_PHASE_DATAOUT ( 0 )
 #define SCSI_PHASE_DATAIN ( 1 )
@@ -249,14 +230,13 @@ extern int cdrom_sector_size, cdrom_sector_ismsf;
 
 struct
 {	
-	uint32_t pos;
-	uint8_t CmdBuffer[512*512];
+	uint8_t *CmdBuffer;
 	uint32_t CmdBufferLength;
 	int LunType;
 	uint32_t InitLength;
-} SCSIDevices[16];
+} SCSIDevices[16][8];
 
-extern void SCSIReset(uint8_t Id);
+extern void SCSIReset(uint8_t id, uint8_t lun);
 
 uint32_t SCSICDROMModeSense(uint8_t *buf, uint32_t pos, uint8_t type);
 uint8_t SCSICDROMSetProfile(uint8_t *buf, uint8_t *index, uint16_t profile);
@@ -266,6 +246,67 @@ void SCSICDROM_Insert();
 
 int cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type);
 int cdrom_LBAtoMSF_accurate();
-int cdrom_read_data(uint8_t *buffer);
+
+int mode_select_init(uint8_t command, uint16_t pl_length, uint8_t do_save);
+int mode_select_terminate(int force);
+int mode_select_write(uint8_t val);
+
+extern int scsi_card_current;
+
+int scsi_card_available(int card);
+char *scsi_card_getname(int card);
+struct device_t *scsi_card_getdevice(int card);
+int scsi_card_has_config(int card);
+char *scsi_card_get_internal_name(int card);
+int scsi_card_get_from_internal_name(char *s);
+void scsi_card_init();
+void scsi_card_reset(void);
+
+extern uint8_t scsi_hard_disks[16][8];
+
+int scsi_hd_err_stat_to_scsi(uint8_t id);
+int scsi_hd_phase_to_scsi(uint8_t id);
+int find_hdc_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun);
+void build_scsi_hd_map();
+void scsi_hd_reset(uint8_t id);
+void scsi_hd_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length);
+void scsi_hd_command(uint8_t id, uint8_t *cdb);
+void scsi_hd_callback(uint8_t id);
+
+
+#pragma pack(push,1)
+typedef struct {
+    uint8_t hi;
+    uint8_t mid;
+    uint8_t lo;
+} addr24;
+#pragma pack(pop)
+
+#define ADDR_TO_U32(x)	(((x).hi<<16)|((x).mid<<8)|((x).lo&0xFF))
+#define U32_TO_ADDR(a,x) do {(a).hi=(x)>>16;(a).mid=(x)>>8;(a).lo=(x)&0xFF;}while(0)
+
+
+/*
+ *
+ * Scatter/Gather Segment List Definitions
+ *
+ * Adapter limits
+ */
+#define MAX_SG_DESCRIPTORS 32	/* Always make the array 32 elements long, if less are used, that's not an issue. */
+
+#pragma pack(push,1)
+typedef struct {
+    uint32_t	Segment;
+    uint32_t	SegmentPointer;
+} SGE32;
+#pragma pack(pop)
+
+#pragma pack(push,1)
+typedef struct {
+    addr24	Segment;
+    addr24	SegmentPointer;
+} SGE;
+#pragma pack(pop)
+
 
 #endif

@@ -21,12 +21,6 @@ void writemcr(uint16_t addr, uint8_t val)
                 case 0x22:
                 if (val==6 && mcr22==6) nextreg6=1;
                 else                    nextreg6=0;
-//                if ((val&1) && (mcr22&1)) shadowbios=1;
-//                if (!(val&1) && !(mcr22&1)) shadowbios=0;
-//                if (!mcrfirst) shadowbios=val&1;
-//                mcrfirst=0;
-//                dumpregs();
-//                exit(-1);
                 break;
                 case 0x23:
                 if (nextreg6) shadowbios=!val;

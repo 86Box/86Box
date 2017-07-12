@@ -30,7 +30,6 @@ int timer_start = 0;
 void timer_process()
 {
 	int c;
-	int retry;
 	int process = 0;
 	/*Get actual elapsed time*/
 	int diff = timer_latch - timer_count;
@@ -40,6 +39,11 @@ void timer_process()
 
         for (c = 0; c < timers_present; c++)
         {
+		/* This is needed to avoid timer crashes on hard reset. */
+		if ((timers[c].enable == NULL) || (timers[c].count == NULL))
+		{
+			continue;
+		}
                 enable[c] = *timers[c].enable;
                 if (*timers[c].enable)
                 {
@@ -93,14 +97,26 @@ void timer_reset()
 	pclog("timer_reset\n");
 	timers_present = 0;
 	timer_latch = timer_count = 0;
-//	timer_process();
 }
 
 int timer_add(void (*callback)(void *priv), int *count, int *enable, void *priv)
 {
+	int i = 0;
+
 	if (timers_present < TIMERS_MAX)
 	{
-//		pclog("timer_add : adding timer %i\n", timers_present);
+		if (timers_present != 0)
+		{
+			/* This is the sanity check - it goes through all present timers and makes sure we're not adding a timer that already exists. */
+			for (i = 0; i < timers_present; i++)
+			{
+				if (timers[i].present && (timers[i].callback == callback) && (timers[i].priv == priv) && (timers[i].count == count) && (timers[i].enable == enable))
+				{
+					return 0;
+				}
+			}
+		}
+
 		timers[timers_present].present = 1;
 		timers[timers_present].callback = callback;
 		timers[timers_present].priv = priv;
