@@ -1897,6 +1897,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					endblit();
 					saveconfig();
 					device_force_redraw();
+					cgapal_rebuild();
 					break;
 
 				case IDM_VID_FULLSCREEN:
@@ -1919,6 +1920,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 						endblit();
 						saveconfig();
 						device_force_redraw();
+						cgapal_rebuild();
 					}
 					break;
 
@@ -2248,6 +2250,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			mouse_init();
 			endblit();
 			device_force_redraw();
+			cgapal_rebuild();
 			break;
 
 		case WM_KEYDOWN:
