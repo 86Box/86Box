@@ -138,18 +138,18 @@ void midi_close()
 
 void midi_poll()
 {
-        if (m_device && m_device->poll) m_device->poll(m_device);
+        if (m_device && m_device->poll) m_device->poll();
 }
 
 void play_msg(uint8_t *msg)
 {
-        if (m_device->play_msg) m_device->play_msg(m_device, msg);
+        if (m_device->play_msg) m_device->play_msg(msg);
 }
 
 
 void play_sysex(uint8_t *sysex, unsigned int len)
 {
-        if (m_device->play_sysex) m_device->play_sysex(m_device, sysex, len);
+        if (m_device->play_sysex) m_device->play_sysex(sysex, len);
 }
 
 #define SYSEX_SIZE 1024
@@ -159,7 +159,7 @@ void midi_write(uint8_t val)
 {
         if (!m_device) return;
 
-        if (m_device->write && m_device->write(m_device, val)) return;
+        if (m_device->write && m_device->write(val)) return;
 
         uint32_t passed_ticks;
 

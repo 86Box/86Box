@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../device.h"
+#include "../WIN/plat_midi.h"
 #include "midi_system.h"
 #include "midi.h"
-#include "../WIN/plat_midi.h"
 
 void* system_midi_init()
 {
@@ -15,7 +15,8 @@ void* system_midi_init()
         dev->play_msg = plat_midi_play_msg;
         dev->play_sysex = plat_midi_play_sysex;
         dev->write = plat_midi_write;
-	dev->data = plat_midi_init();
+
+        plat_midi_init();
 
         midi_init(dev);
 
@@ -24,9 +25,7 @@ void* system_midi_init()
 
 void system_midi_close(void* p)
 {
-	midi_device_t *dev = (midi_device_t *)p;
-        plat_midi_close(dev->data);
-	free(dev);
+        plat_midi_close();
 
         midi_close();
 }
@@ -34,11 +33,6 @@ void system_midi_close(void* p)
 int system_midi_available()
 {
         return plat_midi_get_num_devs();
-}
-
-void system_midi_add_status_info(char *s, int max_len, void *p)
-{
-        plat_midi_add_status_info(s, max_len, (midi_device_t*)p);
 }
 
 static device_config_t system_midi_config[] =
@@ -63,6 +57,6 @@ device_t system_midi_device =
         system_midi_available,
         NULL,
         NULL,
-        system_midi_add_status_info,
+        NULL,
         system_midi_config
 };

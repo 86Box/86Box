@@ -42,7 +42,6 @@
 #include "../video/video.h"
 #include "../video/vid_ega.h"
 #include "../mouse.h"
-#include "../sound/midi.h"
 #include "../sound/sound.h"
 #include "../sound/snd_dbopl.h"
 #include "plat_keyboard.h"

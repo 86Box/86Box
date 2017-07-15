@@ -10,11 +10,10 @@ void midi_device_init();
 
 typedef struct midi_device_t
 {
-        void (*play_sysex)(struct midi_device_t* p, uint8_t *sysex, unsigned int len);
-        void (*play_msg)(struct midi_device_t* p, uint8_t *msg);
-        void (*poll)(struct midi_device_t* p);
-        int (*write)(struct midi_device_t* p, uint8_t val);
-        void* data;
+        void (*play_sysex)(uint8_t *sysex, unsigned int len);
+        void (*play_msg)(uint8_t *msg);
+        void (*poll)();
+        int (*write)(uint8_t val);
 } midi_device_t;
 
 void midi_init(midi_device_t* device);
