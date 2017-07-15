@@ -63,7 +63,7 @@ int shadowbios,shadowbios_write;
 
 int mem_a20_state;
 
-static unsigned char isram[0x10000];
+unsigned char isram[0x10000];
 
 static uint8_t ff_array[0x1000];
 
