@@ -142,14 +142,14 @@ static void mt32_thread(void *param)
                 thread_wait_event(data->event, -1);
 		if (sound_is_float)
 		{
-	                memset(data->buffer, 0, data->buf_size * sizeof(float));
+	                memset(data->buffer, 0, data->buf_size);
 	                mt32_stream(data->context, data->buffer, data->buf_size / (sizeof(float) << 1));
 	                if (soundon)
 				givealbuffer_midi(data->buffer, data->buf_size);
 		}
 		else
 		{
-	                memset(data->buffer_int16, 0, data->buf_size * sizeof(int16_t));
+	                memset(data->buffer_int16, 0, data->buf_size);
 	                mt32_stream_int16(data->context, data->buffer_int16, data->buf_size / (sizeof(int16_t) << 1));
 	                if (soundon)
 				givealbuffer_midi(data->buffer_int16, data->buf_size);
@@ -209,7 +209,7 @@ static void* mt32emu_init(wchar_t* control_rom, wchar_t* pcm_rom)
 		data->buffer_int16 = malloc(data->buf_size);
 	}
         data->event = thread_create_event();
-        data->thread_h = thread_create(mt32_thread, 0);
+        data->thread_h = thread_create(mt32_thread, data);
         data->status_show_instruments = device_get_config_int("status_show_instruments");
 
         mt32emu_set_output_gain(context, device_get_config_int("output_gain")/100.0f);
