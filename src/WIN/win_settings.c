@@ -729,10 +729,10 @@ static void recalc_vid_list(HWND hdlg)
         EnableWindow(h, models[temp_model].fixed_gfxcard ? FALSE : TRUE);
 
         h = GetDlgItem(hdlg, IDC_CHECK_VOODOO);
-        EnableWindow(h, (models[model].flags & MODEL_PCI) ? TRUE : FALSE);
+        EnableWindow(h, (models[temp_model].flags & MODEL_PCI) ? TRUE : FALSE);
 
         h = GetDlgItem(hdlg, IDC_BUTTON_VOODOO);
-        EnableWindow(h, ((models[model].flags & MODEL_PCI) && temp_voodoo) ? TRUE : FALSE);
+        EnableWindow(h, ((models[temp_model].flags & MODEL_PCI) && temp_voodoo) ? TRUE : FALSE);
 }
 
 
