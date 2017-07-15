@@ -18,6 +18,7 @@
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"
+#include "../sound/midi.h"
 #include "plat_midi.h"
 #define NO_UNICODE		/*FIXME: not Unicode? */
 #include "win.h"
