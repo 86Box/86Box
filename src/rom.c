@@ -59,7 +59,7 @@ int rom_present(wchar_t *fn)
 }
 
 
-static uint8_t rom_read(uint32_t addr, void *p)
+uint8_t rom_read(uint32_t addr, void *p)
 {
         rom_t *rom = (rom_t *)p;
 #ifdef ROM_TRACE

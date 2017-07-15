@@ -256,8 +256,13 @@ extern uint32_t dr[8];
 #define V_FLAG  0x0800
 #define NT_FLAG 0x4000
 #define VM_FLAG 0x0002 /*In EFLAGS*/
+#define VIF_FLAG 0x0008 /*In EFLAGS*/
+#define VIP_FLAG 0x0010 /*In EFLAGS*/
 
 #define WP_FLAG 0x10000 /*In CR0*/
+
+#define CR4_VME (1 << 0)
+#define CR4_PVI (1 << 1)
 
 #define IOPL ((flags>>12)&3)
 
@@ -775,6 +780,7 @@ extern void	softresetx86(void);
 extern void	speedchanged(void);
 extern void	trc_reset(uint8_t val);
 extern void	x86_int_sw(int num);
+extern int	x86_int_sw_rm(int num);
 extern void	x86gpf(char *s, uint16_t error);
 extern void	x86np(char *s, uint16_t error);
 extern void	x86ss(char *s, uint16_t error);

@@ -819,6 +819,8 @@ static void *esdi_init()
         rom_init_interleaved(&esdi->bios_rom, L"roms/90x8970.bin", L"roms/90x8969.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
         mem_mapping_disable(&esdi->bios_rom.mapping);
 
+	esdi->drives[0].present = esdi->drives[1].present = 0;
+
 	for (i = 0; i < HDC_NUM; i++)
 	{
 		if ((hdc[i].bus == HDD_BUS_RLL) && (hdc[i].rll_channel < RLL_NUM))
@@ -846,11 +848,15 @@ static void *esdi_init()
 static void esdi_close(void *p)
 {
         esdi_t *esdi = (esdi_t *)p;
+	esdi_drive_t *drive;
+
         int d;
+
+	esdi->drives[0].present = esdi->drives[1].present = 0;
 
         for (d = 0; d < 2; d++)
         {
-                esdi_drive_t *drive = &esdi->drives[d];
+                drive = &esdi->drives[d];
 
 		hdd_image_close(drive->hdc_num);
         }

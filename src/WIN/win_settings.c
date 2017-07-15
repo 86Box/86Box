@@ -2538,6 +2538,7 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 	char *big_buf;
 	int b = 0;
 	uint64_t r = 0;
+	int j = 0;
 
         switch (message)
         {
@@ -2852,24 +2853,31 @@ hdd_add_file_open_error:
 								fseeko64(f, 0, SEEK_END);
 								size = ftello64(f);
 								fclose(f);
-								if (((size % 17) == 0) && (size <= 133693440))
+								if (((size % 17) == 0) && (size <= 142606336))
 								{
 									spt = 17;
 									if (size <= 26738688)
 									{
 										hpc = 4;
 									}
-									else if (size <= 53477376)
+									else if (((size % 3072) == 0) && (size <= 53477376))
 									{
 										hpc = 6;
 									}
-									else if (size <= 71303168)
-									{
-										hpc = 8;
-									}
 									else
 									{
-										hpc = 15;
+										for (j = 0; j < 16; j++)
+										{
+											if (((size % (i << 9)) == 0) && (size <= ((i * 17) << 19)))
+											{
+												break;
+											}
+											if (i == 5)
+											{
+												i++;
+											}
+										}
+										hpc = i;
 									}
 								}
 								else
@@ -2907,7 +2915,7 @@ hdd_add_file_open_error:
 							chs_enabled = 1;
 
 							no_update = 0;
-						}
+					}
 						else
 						{
 							fclose(f);
