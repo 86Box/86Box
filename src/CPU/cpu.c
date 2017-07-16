@@ -71,6 +71,8 @@ OpFn *x86_opcodes_df_a32;
 enum
 {
         CPUID_FPU = (1 << 0),
+        CPUID_VME = (1 << 1),
+        CPUID_PSE = (1 << 3),
         CPUID_TSC = (1 << 4),
         CPUID_MSR = (1 << 5),
         CPUID_CMPXCHG8B = (1 << 8),
@@ -90,6 +92,7 @@ int cpu_busspeed;
 int cpu_hasrdtsc;
 int cpu_hasMMX, cpu_hasMSR;
 int cpu_hasCR4;
+int cpu_hasVME;
 int cpu_use_dynarec;
 int cpu_cyrix_alignment;
 
@@ -365,8 +368,8 @@ CPU cpus_i486[] =
         {"i486DX2/40",   CPU_i486DX, 4,  40000000, 2, 20000000, 0x430, 0, 0, CPU_SUPPORTS_DYNAREC, 8,8,6,6},
         {"i486DX2/50",   CPU_i486DX, 5,  50000000, 2, 25000000, 0x430, 0, 0, CPU_SUPPORTS_DYNAREC, 8,8,6,6},
         {"i486DX2/66",   CPU_i486DX, 6,  66666666, 2, 33333333, 0x430, 0, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6},
-        {"iDX4/75",      CPU_i486DX, 7,  75000000, 3, 25000000, 0x481, 0x481, 0, CPU_SUPPORTS_DYNAREC, 12,12,9,9}, /*CPUID available on DX4, >= 75 MHz*/
-        {"iDX4/100",     CPU_i486DX,10, 100000000, 3, 33333333, 0x481, 0x481, 0, CPU_SUPPORTS_DYNAREC, 18,18,9,9}, /*Is on some real Intel DX2s, limit here is pretty arbitary*/
+        {"iDX4/75",      CPU_iDX4,   7,  75000000, 3, 25000000, 0x481, 0x481, 0, CPU_SUPPORTS_DYNAREC, 12,12,9,9}, /*CPUID available on DX4, >= 75 MHz*/
+        {"iDX4/100",     CPU_iDX4,  10, 100000000, 3, 33333333, 0x481, 0x481, 0, CPU_SUPPORTS_DYNAREC, 18,18,9,9}, /*Is on some real Intel DX2s, limit here is pretty arbitary*/
         {"Pentium OverDrive/63",       CPU_PENTIUM,     6,  62500000, 3, 25000000, 0x1531, 0x1531, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10,7,7},
         {"Pentium OverDrive/83",       CPU_PENTIUM,     8,  83333333, 3, 33333333, 0x1532, 0x1532, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15,8,8},
         {"",             -1,        0, 0, 0}
@@ -991,6 +994,10 @@ void cpu_set()
                 timing_misaligned = 3;
                 break;
                 
+		case CPU_iDX4:
+		cpu_hasCR4 = 1;
+		cpu_hasVME = 1;
+		cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_VME;
                 case CPU_i486SX:
                 case CPU_i486DX:
                 x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
@@ -1204,7 +1211,8 @@ void cpu_set()
                 cpu_hasMMX = 0;
                 cpu_hasMSR = 1;
                 cpu_hasCR4 = 1;
-                cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE;
+		cpu_hasVME = 1;
+                cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
                 codegen_timing_set(&codegen_timing_pentium);
                 break;
 
@@ -1244,7 +1252,8 @@ void cpu_set()
                 cpu_hasMMX = 1;
                 cpu_hasMSR = 1;
                 cpu_hasCR4 = 1;
-                cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE;
+		cpu_hasVME = 1;
+                cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
                 codegen_timing_set(&codegen_timing_pentium);
                 break;
 
@@ -1443,7 +1452,8 @@ void cpu_set()
                 cpu_hasMMX = 1;
                 cpu_hasMSR = 1;
                 cpu_hasCR4 = 1;
-                cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE;
+		cpu_hasVME = 1;
+                cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
                 codegen_timing_set(&codegen_timing_pentium);
                 break;
 
@@ -1476,7 +1486,8 @@ void cpu_set()
                 cpu_hasMMX = 0;
                 cpu_hasMSR = 1;
                 cpu_hasCR4 = 1;
-                cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE;
+		cpu_hasVME = 1;
+                cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
          	codegen_timing_set(&codegen_timing_686);
                 break;
 
@@ -1510,7 +1521,8 @@ void cpu_set()
                 cpu_hasMMX = 1;
                 cpu_hasMSR = 1;
                 cpu_hasCR4 = 1;
-                cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE;
+		cpu_hasVME = 1;
+                cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
          	codegen_timing_set(&codegen_timing_686);
                 break;
 #endif
@@ -1544,7 +1556,8 @@ void cpu_set()
                 cpu_hasMMX = 1;
                 cpu_hasMSR = 1;
                 cpu_hasCR4 = 1;
-                cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE | CR4_OSFXSR;
+		cpu_hasVME = 1;
+                cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE | CR4_OSFXSR;
          	codegen_timing_set(&codegen_timing_686);
                 break;
 
@@ -1570,6 +1583,24 @@ void cpu_CPUID()
                         EAX = CPUID;
                         EBX = ECX = 0;
                         EDX = CPUID_FPU; /*FPU*/
+                }
+                else
+                   EAX = 0;
+                break;
+
+                case CPU_iDX4:
+                if (!EAX)
+                {
+                        EAX = 0x00000001;
+                        EBX = 0x756e6547;
+                        EDX = 0x49656e69;
+                        ECX = 0x6c65746e;
+                }
+                else if (EAX == 1)
+                {
+                        EAX = CPUID;
+                        EBX = ECX = 0;
+                        EDX = CPUID_FPU | CPUID_VME;
                 }
                 else
                    EAX = 0;
@@ -1651,7 +1682,7 @@ void cpu_CPUID()
                 {
                         EAX = CPUID;
                         EBX = ECX = 0;
-                        EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
+                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
                 }
                 else
                         EAX = 0;
@@ -1739,7 +1770,7 @@ void cpu_CPUID()
                 {
                         EAX = CPUID;
                         EBX = ECX = 0;
-                        EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
+                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
                 }
                 else if (EAX == 0x80000000)
                 {
@@ -1750,7 +1781,7 @@ void cpu_CPUID()
                 {
                         EAX = CPUID + 0x100;
                         EBX = ECX = 0;
-                        EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_AMDSEP;
+                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_AMDSEP;
                 }
 		else if (EAX == 0x80000002)
 		{
@@ -1801,7 +1832,7 @@ void cpu_CPUID()
                 {
                         EAX = CPUID;
                         EBX = ECX = 0;
-                        EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX;
+                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX;
                 }
                 else
                         EAX = 0;
@@ -1896,7 +1927,7 @@ void cpu_CPUID()
                 {
                         EAX = CPUID;
                         EBX = ECX = 0;
-                        EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_SEP | CPUID_CMOV;
+                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_SEP | CPUID_CMOV;
                 }
 		else if (EAX == 2)
 		{
@@ -1917,7 +1948,7 @@ void cpu_CPUID()
                 {
                         EAX = CPUID;
                         EBX = ECX = 0;
-                        EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_SEP | CPUID_CMOV;
+                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_SEP | CPUID_CMOV;
                 }
 		else if (EAX == 2)
 		{
@@ -1941,7 +1972,7 @@ void cpu_CPUID()
                 {
                         EAX = CPUID;
                         EBX = ECX = 0;
-                        EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_SEP | CPUID_FXSR | CPUID_CMOV;
+                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_SEP | CPUID_FXSR | CPUID_CMOV;
                 }
 		else if (EAX == 2)
 		{

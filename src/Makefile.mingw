@@ -163,7 +163,7 @@ DEVOBJ	= bugger.o lpt.o serial.o \
 	  mouse.o mouse_serial.o mouse_ps2.o mouse_bus.o \
 	  fdd.o fdc.o fdi2raw.o \
 	  hdd.o hdd_image.o \
-	    mfm_at.o mfm_xebec.o hdd_esdi.o ide.o xtide.o piix.o \
+	    esdi_at.o mfm_at.o mfm_xebec.o hdd_esdi.o ide.o xtide.o piix.o \
 	    disc.o \
 	    disc_86f.o disc_fdi.o disc_imd.o disc_img.o \
 	    disc_random.o disc_td0.o \

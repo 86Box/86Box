@@ -362,19 +362,19 @@ void *ati28800_init()
 	if (gfxcard == GFX_VGAWONDERXL)
 	{
 		rom_init_interleaved(&ati28800->bios_rom,
-					L"roms/XLEVEN.BIN",
-					L"roms/XLODD.BIN",
+					L"roms/video/ati28800/XLEVEN.BIN",
+					L"roms/video/ati28800/XLODD.BIN",
 					0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
 	}
 	else if (gfxcard == GFX_VGAWONDERXL24)
 	{
 		rom_init_interleaved(&ati28800->bios_rom,
-					L"roms/112-14318-102.bin",
-					L"roms/112-14319-102.bin",
+					L"roms/video/ati28800/112-14318-102.bin",
+					L"roms/video/ati28800/112-14319-102.bin",
 					0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
 	}
 	else        
-	        rom_init(&ati28800->bios_rom, L"roms/bios.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+	        rom_init(&ati28800->bios_rom, L"roms/video/ati28800/bios.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         
         svga_init(&ati28800->svga, ati28800, memory, /*512kb*/
                    ati28800_recalctimings,
@@ -394,17 +394,17 @@ void *ati28800_init()
 
 static int ati28800_available()
 {
-        return rom_present(L"roms/bios.bin");
+        return rom_present(L"roms/video/ati28800/bios.bin");
 }
 
 static int compaq_ati28800_available()
 {
-        return (rom_present(L"roms/XLEVEN.bin") && rom_present(L"roms/XLODD.bin"));
+        return (rom_present(L"roms/video/ati28800/XLEVEN.bin") && rom_present(L"roms/video/ati28800/XLODD.bin"));
 }
 
 static int ati28800_wonderxl24_available()
 {
-        return (rom_present(L"roms/112-14318-102.bin") && rom_present(L"roms/112-14319-102.bin"));
+        return (rom_present(L"roms/video/ati28800/112-14318-102.bin") && rom_present(L"roms/video/ati28800/112-14319-102.bin"));
 }
 
 void ati28800_close(void *p)

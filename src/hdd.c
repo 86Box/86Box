@@ -4,6 +4,7 @@
 #include "hdd.h"
 #include "model.h"
 
+#include "esdi_at.h"
 #include "hdd_esdi.h"
 #include "mfm_at.h"
 #include "mfm_xebec.h"
@@ -30,10 +31,11 @@ static struct
         {"DTC 5150X",                   "dtc5150x",  &dtc_5150x_device, 1},
         {"Fixed Disk Adapter (Xebec)",  "mfm_xebec", &mfm_xebec_device, 1},
         {"IBM ESDI Fixed Disk Adapter (MCA)", "esdi_mca",  &hdd_esdi_device,  1},
+        {"Western Digital WD1007V-SE1 (ESDI)","wd1007vse1", &wd1007vse1_device, 0},
         {"XTIDE",                 "xtide",    &xtide_device,    0},
         {"XTIDE (AT)",            "xtide_at", &xtide_at_device, 0},
-        {"XTIDE (PS/2)",          "xtide_ps2",&xtide_ps2_device,0},
-        {"XTIDE (AT) (PS/2)",     "xtide_at_ps2",&xtide_at_ps2_device,0},
+        {"XTIDE (Acculogic)",          "xtide_ps2",&xtide_ps2_device,0},
+        {"XTIDE (AT) (1.1.5)",     "xtide_at_ps2",&xtide_at_ps2_device,0},
         {"", "", NULL, 0}
 };
 

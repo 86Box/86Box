@@ -107,6 +107,8 @@ extern int	find_status_bar_part(int tag);
 extern void	cdrom_close(uint8_t id);
 extern void	update_tip(int meaning);
 
+extern BOOL	DirectoryExists(LPCTSTR szPath);
+
 #ifdef __cplusplus
 }
 #endif

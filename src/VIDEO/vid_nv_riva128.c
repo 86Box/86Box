@@ -2783,7 +2783,7 @@ static void *riva128_init()
 	          riva128_in, riva128_out,
 	          NULL, NULL);
 
-	rom_init(&riva128->bios_rom, L"roms/Diamond_V330_rev-e.vbi", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+	rom_init(&riva128->bios_rom, L"roms/video/nv_riva128/Diamond_V330_rev-e.vbi", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 	if (PCI)
 		mem_mapping_disable(&riva128->bios_rom.mapping);
 
@@ -2908,7 +2908,7 @@ static void riva128_close(void *p)
 
 static int riva128_available()
 {
-	return rom_present(L"roms/Diamond_V330_rev-e.vbi");
+	return rom_present(L"roms/video/nv_riva128/Diamond_V330_rev-e.vbi");
 }
 
 static void riva128_speed_changed(void *p)
@@ -3022,7 +3022,7 @@ static void *rivatnt_init()
 	          riva128_in, riva128_out,
 	          NULL, NULL);
 
-	rom_init(&riva128->bios_rom, L"roms/NV4_diamond_revB.rom", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+	rom_init(&riva128->bios_rom, L"roms/video/nv_riva128/NV4_diamond_revB.rom", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
 	if (PCI)
 		mem_mapping_disable(&riva128->bios_rom.mapping);
 
@@ -3131,7 +3131,7 @@ static void rivatnt_close(void *p)
 
 static int rivatnt_available()
 {
-	return rom_present(L"roms/NV4_diamond_revB.rom");
+	return rom_present(L"roms/video/nv_riva128/NV4_diamond_revB.rom");
 }
 
 static void rivatnt_speed_changed(void *p)
@@ -3215,13 +3215,13 @@ static void *rivatnt2_init()
 	switch(model)
 	{
 	case 0:
-		rom_init(&riva128->bios_rom, L"roms/NV5diamond.bin", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+		rom_init(&riva128->bios_rom, L"roms/video/nv_riva128/NV5diamond.bin", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
 		break;
 	case 1:
-		rom_init(&riva128->bios_rom, L"roms/inno3d64bit.BIN", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+		rom_init(&riva128->bios_rom, L"roms/video/nv_riva128/inno3d64bit.BIN", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
 		break;
 	case 2:
-		rom_init(&riva128->bios_rom, L"roms/creative.BIN", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+		rom_init(&riva128->bios_rom, L"roms/video/nv_riva128/creative.BIN", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
 		break;
 	}
 	if (PCI)
@@ -3332,7 +3332,7 @@ static void rivatnt2_close(void *p)
 
 static int rivatnt2_available()
 {
-	return rom_present(L"roms/NV5diamond.bin") || rom_present(L"roms/inno3d64bit.BIN") || rom_present(L"roms/creative.BIN");
+	return rom_present(L"roms/video/nv_riva128/NV5diamond.bin") || rom_present(L"roms/video/nv_riva128/inno3d64bit.BIN") || rom_present(L"roms/video/nv_riva128/creative.BIN");
 }
 
 static void rivatnt2_speed_changed(void *p)

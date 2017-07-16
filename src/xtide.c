@@ -25,8 +25,8 @@
 #include "xtide.h"
 
 
-#define XTIDE_ROM_PATH		L"roms/ide_xt.bin"
-#define ATIDE_ROM_PATH		L"roms/ide_at.bin"
+#define XTIDE_ROM_PATH		L"roms/hdd/xtide/ide_xt.bin"
+#define ATIDE_ROM_PATH		L"roms/hdd/xtide/ide_at.bin"
 
 
 typedef struct xtide_t
@@ -120,7 +120,7 @@ static void *xtide_ps2_init(void)
         xtide_t *xtide = malloc(sizeof(xtide_t));
         memset(xtide, 0, sizeof(xtide_t));
 
-        rom_init(&xtide->bios_rom, L"roms/SIDE1V12.BIN", 0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&xtide->bios_rom, L"roms/hdd/xtide/SIDE1V12.BIN", 0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         ide_xtide_init();
         io_sethandler(0x0360, 0x0010, xtide_read, NULL, NULL, xtide_write, NULL, NULL, xtide);
         
@@ -133,7 +133,7 @@ static void *xtide_at_ps2_init(void)
         xtide_t *xtide = malloc(sizeof(xtide_t));
         memset(xtide, 0, sizeof(xtide_t));
 
-        rom_init(&xtide->bios_rom, L"roms/ide_at_1_1_5.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&xtide->bios_rom, L"roms/hdd/xtide/ide_at_1_1_5.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
         ide_init();
         
         return xtide;
@@ -150,25 +150,25 @@ static void xtide_close(void *p)
 
 static int xtide_available(void)
 {
-        return rom_present(L"roms/ide_xt.bin");
+        return rom_present(L"roms/hdd/xtide/ide_xt.bin");
 }
 
 
 static int xtide_at_available(void)
 {
-        return rom_present(L"roms/ide_at.bin");
+        return rom_present(L"roms/hdd/xtide/ide_at.bin");
 }
 
 
 static int xtide_ps2_available(void)
 {
-        return rom_present(L"roms/SIDE1V12.BIN");
+        return rom_present(L"roms/hdd/xtide/SIDE1V12.BIN");
 }
 
 
 static int xtide_at_ps2_available(void)
 {
-        return rom_present(L"roms/ide_at_1_1_5.bin");
+        return rom_present(L"roms/hdd/xtide/ide_at_1_1_5.bin");
 }
 
 
@@ -199,8 +199,8 @@ device_t xtide_at_device =
 
 device_t xtide_ps2_device =
 {
-        "XTIDE (PS/2)",
-        DEVICE_PS2,
+        "XTIDE (Acculogic)",
+        0,
         xtide_ps2_init,
         xtide_close,
         xtide_ps2_available,
@@ -212,7 +212,7 @@ device_t xtide_ps2_device =
 
 device_t xtide_at_ps2_device =
 {
-        "XTIDE (AT) (PS/2)",
+        "XTIDE (AT) (1.1.5)",
         DEVICE_PS2,
         xtide_at_ps2_init,
         xtide_close,

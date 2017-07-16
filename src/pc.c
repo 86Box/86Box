@@ -470,6 +470,17 @@ void resetpc_cad(void)
 	pc_keyboard_send(211);	/* Delete key released */
 }
 
+
+void ctrl_alt_esc(void)
+{
+	pc_keyboard_send(29);	/* Ctrl key pressed */
+	pc_keyboard_send(56);	/* Alt key pressed */
+	pc_keyboard_send(1);	/* Esc key pressed */
+	pc_keyboard_send(157);	/* Ctrl key released */
+	pc_keyboard_send(184);	/* Alt key released */
+	pc_keyboard_send(129);	/* Esc key released */
+}
+
 int suppress_overscan = 0;
 
 void resetpchard_close(void)

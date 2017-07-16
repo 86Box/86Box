@@ -881,92 +881,92 @@ void *clgd_common_init(wchar_t *romfn, uint8_t id)
 
 void *gd6235_init()
 {
-	return clgd_common_init(L"roms/vga6235.rom", CIRRUS_ID_CLGD6235);
+	return clgd_common_init(L"roms/video/cirruslogic/vga6235.rom", CIRRUS_ID_CLGD6235);
 }
 
 void *gd5422_init()
 {
-	return clgd_common_init(L"roms/CL5422.ROM", CIRRUS_ID_CLGD5422);
+	return clgd_common_init(L"roms/video/cirruslogic/CL5422.ROM", CIRRUS_ID_CLGD5422);
 }
 
 void *gd5429_init()
 {
-	return clgd_common_init(L"roms/5429.vbi", CIRRUS_ID_CLGD5429);
+	return clgd_common_init(L"roms/video/cirruslogic/5429.vbi", CIRRUS_ID_CLGD5429);
 }
 
 void *gd5430_init()
 {
-	return clgd_common_init(L"roms/pci.BIN", CIRRUS_ID_CLGD5430);
+	return clgd_common_init(L"roms/video/cirruslogic/pci.BIN", CIRRUS_ID_CLGD5430);
 }
 
 void *dia5430_init()
 {
-	return clgd_common_init(L"roms/diamondvlbus.BIN", CIRRUS_ID_CLGD5430);
+	return clgd_common_init(L"roms/video/cirruslogic/diamondvlbus.BIN", CIRRUS_ID_CLGD5430);
 }
 
 void *gd5434_init()
 {
-	return clgd_common_init(L"roms/japan.BIN", CIRRUS_ID_CLGD5434);
+	return clgd_common_init(L"roms/video/cirruslogic/japan.BIN", CIRRUS_ID_CLGD5434);
 }
 
 void *gd5436_init()
 {
-	return clgd_common_init(L"roms/5436.VBI", CIRRUS_ID_CLGD5436);
+	return clgd_common_init(L"roms/video/cirruslogic/5436.VBI", CIRRUS_ID_CLGD5436);
 }
 
 void *gd5440_init()
 {
-	return clgd_common_init(L"roms/5440BIOS.BIN", CIRRUS_ID_CLGD5440);
+	return clgd_common_init(L"roms/video/cirruslogic/5440BIOS.BIN", CIRRUS_ID_CLGD5440);
 }
 
 void *gd5446_init()
 {
-	return clgd_common_init(L"roms/5446BV.VBI", CIRRUS_ID_CLGD5446);
+	return clgd_common_init(L"roms/video/cirruslogic/5446BV.VBI", CIRRUS_ID_CLGD5446);
 }
 
 static int gd5422_available()
 {
-        return rom_present(L"roms/CL5422.ROM");
+        return rom_present(L"roms/video/cirruslogic/CL5422.ROM");
 }
 
 static int gd5429_available()
 {
-        return rom_present(L"roms/5429.vbi");
+        return rom_present(L"roms/video/cirruslogic/5429.vbi");
 }
 
 static int gd5430_available()
 {
-        return rom_present(L"roms/pci.BIN");
+        return rom_present(L"roms/video/cirruslogic/pci.BIN");
 }
 
 static int dia5430_available()
 {
-        return rom_present(L"roms/diamondvlbus.BIN");
+        return rom_present(L"roms/video/cirruslogic/diamondvlbus.BIN");
 }
 
 static int gd5434_available()
 {
-        return rom_present(L"roms/japan.BIN");
+        return rom_present(L"roms/video/cirruslogic/japan.BIN");
 }
 
 static int gd5436_available()
 {
-        return rom_present(L"roms/5436.VBI");
+        return rom_present(L"roms/video/cirruslogic/5436.VBI");
 }
 
 static int gd5440_available()
 {
-        return rom_present(L"roms/5440BIOS.BIN");
+        return rom_present(L"roms/video/cirruslogic/5440BIOS.BIN");
 }
 
 static int gd5446_available()
 {
-        return rom_present(L"roms/5446BV.VBI");
+        return rom_present(L"roms/video/cirruslogic/5446BV.VBI");
 }
 
 static int gd6235_available()
 {
-        return rom_present(L"roms/vga6235.rom");
+        return rom_present(L"roms/video/cirruslogic/vga6235.rom");
 }
 
 void clgd_close(void *p)

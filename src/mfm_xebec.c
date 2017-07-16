@@ -823,7 +823,7 @@ static void *xebec_init()
 
 	xebec_set_switches(xebec);
 
-        rom_init(&xebec->bios_rom, L"roms/ibm_xebec_62x0822_1985.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&xebec->bios_rom, L"roms/hdd/mfm_xebec/ibm_xebec_62x0822_1985.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
                 
         io_sethandler(0x0320, 0x0004, xebec_read, NULL, NULL, xebec_write, NULL, NULL, xebec);
 
@@ -849,7 +849,7 @@ static void xebec_close(void *p)
 
 static int xebec_available()
 {
-        return rom_present(L"roms/ibm_xebec_62x0822_1985.bin");
+        return rom_present(L"roms/hdd/mfm_xebec/ibm_xebec_62x0822_1985.bin");
 }
 
 device_t mfm_xebec_device =
@@ -890,7 +890,7 @@ static void *dtc_5150x_init()
         xebec->drives[1].cfg_cyl = xebec->drives[1].tracks;
         xebec->drives[1].cfg_hpc = xebec->drives[1].hpc;
 
-        rom_init(&xebec->bios_rom, L"roms/dtc_cxd21a.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&xebec->bios_rom, L"roms/hdd/mfm_xebec/dtc_cxd21a.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
                 
         io_sethandler(0x0320, 0x0004, xebec_read, NULL, NULL, xebec_write, NULL, NULL, xebec);
 
@@ -900,7 +900,7 @@ static void *dtc_5150x_init()
 }
 static int dtc_5150x_available()
 {
-        return rom_present(L"roms/dtc_cxd21a.bin");
+        return rom_present(L"roms/hdd/mfm_xebec/dtc_cxd21a.bin");
 }
 
 device_t dtc_5150x_device =
