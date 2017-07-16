@@ -1061,9 +1061,30 @@ uint32_t mmutranslate(uint32_t addr, int rw, int is_abrt)
 	/* First check the flags of the page directory entry. */
 	table_flags = ((uint32_t *)ram)[table_addr >> 2];
 
-	if (mmu_page_fault_check(addr, rw, table_flags & 7, 1, is_abrt) == -1)
+	if ((table_flags & 0x80) && (cr4 & CR4_PSE))
 	{
-		return -1;
+		/* Do a PDE-style page fault check. */
+		if (mmu_page_fault_check(addr, rw, table_flags & 7, 0, is_abrt) == -1)
+		{
+			return -1;
+		}
+
+		/* Since PSE is not enabled, there is no page table, so we do a slightly modified skip to the end. */
+		if (is_abrt)
+		{
+			mmu_perm = table_flags & 4;
+			((uint32_t *)ram)[table_addr >> 2] |= (rw ? PAGE_DIRTY_AND_ACCESSED : PAGE_ACCESSED);
+		}
+
+		return (table_flags & ~0x3FFFFF) + (addr & 0x3FFFFF);
+	}
+	else
+	{
+		/* Do a non-PDE-style page fault check. */
+		if (mmu_page_fault_check(addr, rw, table_flags & 7, 1, is_abrt) == -1)
+		{
+			return -1;
+		}
 	}
 
 	page_addr = table_flags & ~0xfff;
