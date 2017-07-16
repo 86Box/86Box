@@ -16,11 +16,15 @@ static uint32_t ropSTD(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32
 
 static uint32_t ropCLI(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
+        if (!IOPLp && (cr4 & (CR4_VME | CR4_PVI)))
+                return 0;
         CLEAR_BITS((uintptr_t)&flags, I_FLAG);
         return op_pc;
 }
 static uint32_t ropSTI(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
+        if (!IOPLp && (cr4 & (CR4_VME | CR4_PVI)))
+                return 0;
         SET_BITS((uintptr_t)&flags, I_FLAG);
         return op_pc;
 }

@@ -998,7 +998,7 @@ void *ega_standalone_init()
 	overscan_x = 16;
 	overscan_y = 28;
 
-        rom_init(&ega->bios_rom, L"roms/ibm_6277356_ega_card_u44_27128.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&ega->bios_rom, L"roms/video/ega/ibm_6277356_ega_card_u44_27128.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
         if (ega->bios_rom.rom[0x3ffe] == 0xaa && ega->bios_rom.rom[0x3fff] == 0x55)
         {
@@ -1036,7 +1036,7 @@ void *cpqega_standalone_init()
 	overscan_x = 16;
 	overscan_y = 28;
 
-        rom_init(&ega->bios_rom, L"roms/108281-001.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&ega->bios_rom, L"roms/video/ega/108281-001.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
         if (ega->bios_rom.rom[0x3ffe] == 0xaa && ega->bios_rom.rom[0x3fff] == 0x55)
         {
@@ -1072,7 +1072,7 @@ void *sega_standalone_init()
 	overscan_x = 16;
 	overscan_y = 28;
 
-        rom_init(&ega->bios_rom, L"roms/lega.vbi", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&ega->bios_rom, L"roms/video/ega/lega.vbi", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
         if (ega->bios_rom.rom[0x3ffe] == 0xaa && ega->bios_rom.rom[0x3fff] == 0x55)
         {
@@ -1198,8 +1198,8 @@ void *jega_standalone_init()
 {
         ega_t *ega = (ega_t *) sega_standalone_init();
 
-	LoadFontxFile(L"roms/JPNHN19X.FNT");
-	LoadFontxFile(L"roms/JPNZN16X.FNT");
+	LoadFontxFile(L"roms/video/ega/JPNHN19X.FNT");
+	LoadFontxFile(L"roms/video/ega/JPNZN16X.FNT");
 
 	ega->is_jega = 1;
 
@@ -1208,17 +1208,17 @@ void *jega_standalone_init()
 
 static int ega_standalone_available()
 {
-        return rom_present(L"roms/ibm_6277356_ega_card_u44_27128.bin");
+        return rom_present(L"roms/video/ega/ibm_6277356_ega_card_u44_27128.bin");
 }
 
 static int cpqega_standalone_available()
 {
-        return rom_present(L"roms/108281-001.bin");
+        return rom_present(L"roms/video/ega/108281-001.bin");
 }
 
 static int sega_standalone_available()
 {
-        return rom_present(L"roms/lega.vbi");
+        return rom_present(L"roms/video/ega/lega.vbi");
 }
 
 void ega_close(void *p)

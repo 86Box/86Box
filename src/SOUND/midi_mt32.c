@@ -54,7 +54,7 @@ static const mt32emu_report_handler_i_v0 handler_v0 = {
 static const mt32emu_report_handler_i handler = { &handler_v0 };
 
 static mt32emu_context context = NULL;
-static int roms_present = -1;
+static int roms_present[2] = {-1, -1};
 
 mt32emu_return_code mt32_check(const char* func, mt32emu_return_code ret, mt32emu_return_code expected)
 {
@@ -68,9 +68,16 @@ mt32emu_return_code mt32_check(const char* func, mt32emu_return_code ret, mt32em
 
 int mt32_available()
 {
-        if (roms_present < 0)
-                roms_present = (rom_present(L"roms/mt32/mt32_control.rom") && rom_present(L"roms/mt32/mt32_pcm.rom"));
-        return roms_present;
+        if (roms_present[0] < 0)
+                roms_present[0] = (rom_present(L"roms/sound/mt32/mt32_control.rom") && rom_present(L"roms/sound/mt32/mt32_pcm.rom"));
+        return roms_present[0];
+}
+
+int cm32l_available()
+{
+        if (roms_present[1] < 0)
+                roms_present[1] = (rom_present(L"roms/sound/cm32l/cm32l_control.rom") && rom_present(L"roms/sound/cm32l/cm32l_pcm.rom"));
+        return roms_present[1];
 }
 
 static thread_t *thread_h = NULL;
@@ -138,15 +145,15 @@ void mt32_sysex(uint8_t* data, unsigned int len)
         if (context) mt32_check("mt32emu_play_sysex", mt32emu_play_sysex(context, data, len), MT32EMU_RC_OK);
 }
 
-void* mt32_init()
+void* mt32emu_init(wchar_t *control_rom, wchar_t *pcm_rom)
 {
         wchar_t s[512];
         char fn[512];
         context = mt32emu_create_context(handler, NULL);
-        if (!rom_getfile(L"roms/mt32/mt32_control.rom", s, 512)) return 0;
+        if (!rom_getfile(control_rom, s, 512)) return 0;
 	wcstombs(fn, s, (wcslen(s) << 1) + 2);
         if (!mt32_check("mt32emu_add_rom_file", mt32emu_add_rom_file(context, fn), MT32EMU_RC_ADDED_CONTROL_ROM)) return 0;
-        if (!rom_getfile(L"roms/mt32/mt32_pcm.rom", s, 512)) return 0;
+        if (!rom_getfile(pcm_rom, s, 512)) return 0;
 	wcstombs(fn, s, (wcslen(s) << 1) + 2);
         if (!mt32_check("mt32emu_add_rom_file", mt32emu_add_rom_file(context, fn), MT32EMU_RC_ADDED_PCM_ROM)) return 0;
 
@@ -191,6 +198,16 @@ void* mt32_init()
         midi_init(dev);
 
         return dev;
+}
+
+void *mt32_init()
+{
+	return mt32emu_init(L"roms/sound/mt32/mt32_control.rom", L"roms/sound/mt32/mt32_pcm.rom");
+}
+
+void *cm32l_init()
+{
+	return mt32emu_init(L"roms/sound/cm32l/cm32l_control.rom", L"roms/sound/cm32l/cm32l_pcm.rom");
 }
 
 void mt32_close(void* p)
@@ -316,6 +333,19 @@ device_t mt32_device =
         mt32_init,
         mt32_close,
         mt32_available,
+        NULL,
+        NULL,
+        NULL,
+        mt32_config
+};
+
+device_t cm32l_device =
+{
+        "Roland CM-32L Emulation",
+        0,
+        cm32l_init,
+        mt32_close,
+        cm32l_available,
         NULL,
         NULL,
         NULL,

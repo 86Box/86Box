@@ -33,7 +33,7 @@
 
 
 typedef struct {
-    char	name[32];
+    char	name[64];
     int		id;
     char	internal_name[24];
     struct {

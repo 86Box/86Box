@@ -38,6 +38,7 @@ extern int readlnum,writelnum;
 extern int memspeed[11];
 extern int nopageerrors;
 extern uint32_t biosmask;
+extern unsigned char isram[0x10000];
 
 #define MEM_MAP_TO_SHADOW_RAM_MASK 1
 #define MEM_MAP_TO_RAM_ADDR_MASK   2
