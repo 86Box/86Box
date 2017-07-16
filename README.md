@@ -1,4 +1,4 @@
-# 86Box [![Build Status](http://dome.rol.im/job/86Box/badge/icon)](http://dome.rol.im/job/86Box)
+# 86Box [![Build Status](http://ci.86box.net/job/86Box/badge/icon)](http://ci.86box.net/job/86Box)
 **86Box** (formerly PCem Unofficial, PCem Experimental, or PCem-X) is an IBM PC 
 system emulator for Microsoft Windows that specializes in running old operating 
 systems and software designed for IBM PC systems and compatibles from 1981 
