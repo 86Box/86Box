@@ -212,6 +212,9 @@ static int op0F00_common(uint32_t fetchdat, int ea32)
                 access = readmemb(0, addr + 5);
                 granularity = readmemb(0, addr + 6) & 0x80;
                 if (cpu_state.abrt) return 1;
+                access |= 2;
+                writememb(0, addr + 5, access);
+                if (cpu_state.abrt) return 1;
                 tr.seg = sel;
                 tr.limit = limit;
                 tr.access = access;
@@ -365,7 +368,12 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
                 }
                 tempw = geteaw();                                       if (cpu_state.abrt) return 1;
                 if (msw & 1) tempw |= 1;
-                if (!is386) tempw &= 0xF;
+                if (is386)
+                {
+                        tempw &= ~0x10;
+                        tempw |= (msw & 0x10);
+                }
+                else tempw &= 0xF;
                 msw = tempw;
                 PREFETCH_RUN(2, 2, rmdat, 0,0,(cpu_mod == 3) ? 0:1,0, ea32);
                 break;
