@@ -199,8 +199,8 @@ device_t xtide_at_device =
 
 device_t xtide_ps2_device =
 {
-        "XTIDE (PS/2)",
-        DEVICE_PS2,
+        "XTIDE (Acculogic)",
+        0,
         xtide_ps2_init,
         xtide_close,
         xtide_ps2_available,
@@ -212,7 +212,7 @@ device_t xtide_ps2_device =
 
 device_t xtide_at_ps2_device =
 {
-        "XTIDE (AT) (PS/2)",
+        "XTIDE (AT) (1.1.5)",
         DEVICE_PS2,
         xtide_at_ps2_init,
         xtide_close,

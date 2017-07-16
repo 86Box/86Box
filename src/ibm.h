@@ -677,6 +677,7 @@ extern int infocus;
 extern void onesec(void);
 
 extern void resetpc_cad(void);
+extern void ctrl_alt_esc(void);
 
 extern int dump_on_exit;
 extern int start_in_fullscreen;

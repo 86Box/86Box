@@ -1836,6 +1836,10 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
 					break;
 
+				case IDM_ACTION_CTRL_ALT_ESC:
+					ctrl_alt_esc();
+					break;
+					
 				case IDM_CONFIG:
 					win_settings_open(hwnd);
 					break;

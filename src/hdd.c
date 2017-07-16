@@ -34,8 +34,8 @@ static struct
         {"Western Digital WD1007V-SE1 (ESDI)","wd1007vse1", &wd1007vse1_device, 0},
         {"XTIDE",                 "xtide",    &xtide_device,    0},
         {"XTIDE (AT)",            "xtide_at", &xtide_at_device, 0},
-        {"XTIDE (PS/2)",          "xtide_ps2",&xtide_ps2_device,0},
-        {"XTIDE (AT) (PS/2)",     "xtide_at_ps2",&xtide_at_ps2_device,0},
+        {"XTIDE (Acculogic)",          "xtide_ps2",&xtide_ps2_device,0},
+        {"XTIDE (AT) (1.1.5)",     "xtide_at_ps2",&xtide_at_ps2_device,0},
         {"", "", NULL, 0}
 };
 
