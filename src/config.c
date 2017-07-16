@@ -835,6 +835,7 @@ static void loadconfig_machine(void)
 {
 	char *cat = "Machine";
         wchar_t *wp;
+	wchar_t last;
         char *p;
 
         p = config_get_string(cat, "model", NULL);
@@ -882,6 +883,16 @@ static void loadconfig_machine(void)
 	}
 
 	path_len = wcslen(nvr_path);
+
+#ifndef __unix
+	last = nvr_path[wcslen(nvr_path) - 1];
+	nvr_path[wcslen(nvr_path) - 1] = 0;
+	if (!DirectoryExists(nvr_path))
+	{
+		CreateDirectory(nvr_path, NULL);
+	}
+	nvr_path[wcslen(nvr_path)] = last;
+#endif
 
         cpu_use_dynarec = !!config_get_int(cat, "cpu_use_dynarec", 0);
 
