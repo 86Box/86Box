@@ -126,7 +126,7 @@ void *pc1640_init()
         ega_t *ega = &pc1640->ega;
         memset(pc1640, 0, sizeof(pc1640_t));
 
-        rom_init(&pc1640->bios_rom, L"roms/pc1640/40100", 0xc0000, 0x8000, 0x7fff, 0, 0);
+        rom_init(&pc1640->bios_rom, L"roms/machines/pc1640/40100", 0xc0000, 0x8000, 0x7fff, 0, 0);
         
         ega_init(&pc1640->ega);
         pc1640->cga.vram = pc1640->ega.vram;
