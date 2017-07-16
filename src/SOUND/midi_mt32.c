@@ -202,12 +202,12 @@ void* mt32emu_init(wchar_t *control_rom, wchar_t *pcm_rom)
 
 void *mt32_init()
 {
-	return mt32emu_init(L"roms/mt32/mt32_control.rom", L"roms/mt32/mt32_pcm.rom");
+	return mt32emu_init(L"roms/sound/mt32/mt32_control.rom", L"roms/sound/mt32/mt32_pcm.rom");
 }
 
 void *cm32l_init()
 {
-	return mt32emu_init(L"roms/cm32l/cm32l_control.rom", L"roms/cm32l/cm32l_pcm.rom");
+	return mt32emu_init(L"roms/sound/cm32l/cm32l_control.rom", L"roms/sound/cm32l/cm32l_pcm.rom");
 }
 
 void mt32_close(void* p)
