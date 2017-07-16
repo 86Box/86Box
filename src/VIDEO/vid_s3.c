@@ -2218,29 +2218,29 @@ void *s3_vision864_init(wchar_t *bios_fn)
 
 void *s3_bahamas64_init()
 {
-	s3_t *s3 = s3_vision864_init(L"roms/bahamas64.BIN");
+	s3_t *s3 = s3_vision864_init(L"roms/video/s3/bahamas64.BIN");
 	return s3;
 }
 
 void *s3_phoenix_vision864_init()
 {
-	s3_t *s3 = s3_vision864_init(L"roms/86c864p.bin");
+	s3_t *s3 = s3_vision864_init(L"roms/video/s3/86c864p.bin");
 	return s3;
 }
 
 int s3_bahamas64_available()
 {
-        return rom_present(L"roms/bahamas64.BIN");
+        return rom_present(L"roms/video/s3/bahamas64.BIN");
 }
 
 int s3_phoenix_vision864_available()
 {
-        return rom_present(L"roms/86c864p.bin");
+        return rom_present(L"roms/video/s3/86c864p.bin");
 }
 
 void *s3_phoenix_trio32_init()
 {
-        s3_t *s3 = s3_init(L"roms/86C732P.bin", S3_TRIO32);
+        s3_t *s3 = s3_init(L"roms/video/s3/86C732P.bin", S3_TRIO32);
 
         s3->id = 0xe1; /*Trio32*/
         s3->id_ext = 0x10;
@@ -2255,7 +2255,7 @@ void *s3_phoenix_trio32_init()
 
 int s3_phoenix_trio32_available()
 {
-        return rom_present(L"roms/86C732P.bin");
+        return rom_present(L"roms/video/s3/86C732P.bin");
 }
 
 void *s3_trio64_init(wchar_t *bios_fn)
@@ -2274,35 +2274,35 @@ void *s3_trio64_init(wchar_t *bios_fn)
 
 void *s3_9fx_init()
 {
-	s3_t *s3 = s3_trio64_init(L"roms/s3_764.bin");
+	s3_t *s3 = s3_trio64_init(L"roms/video/s3/s3_764.bin");
 	return s3;
 }
 
 void *s3_phoenix_trio64_init()
 {
-	s3_t *s3 = s3_trio64_init(L"roms/86C764X1.bin");
+	s3_t *s3 = s3_trio64_init(L"roms/video/s3/86C764X1.bin");
 	return s3;
 }
 
 void *s3_diamond_stealth64_init()
 {
-	s3_t *s3 = s3_trio64_init(L"roms/STEALT64.BIN");
+	s3_t *s3 = s3_trio64_init(L"roms/video/s3/STEALT64.BIN");
 	return s3;
 }
 
 int s3_9fx_available()
 {
-        return rom_present(L"roms/s3_764.bin");
+        return rom_present(L"roms/video/s3/s3_764.bin");
 }
 
 int s3_phoenix_trio64_available()
 {
-        return rom_present(L"roms/86c764x1.bin");
+        return rom_present(L"roms/video/s3/86c764x1.bin");
 }
 
 int s3_diamond_stealth64_available()
 {
-        return rom_present(L"roms/STEALT64.BIN");
+        return rom_present(L"roms/video/s3/STEALT64.BIN");
 }
 
 void s3_close(void *p)

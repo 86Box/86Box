@@ -800,7 +800,7 @@ void *wd1007vse1_init()
         esdi->status = STAT_READY | STAT_DSC;
         esdi->error = 1; /*No errors*/
 
-        rom_init(&esdi->bios_rom, L"roms/62-000279-061.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&esdi->bios_rom, L"roms/hdd/esdi_at/62-000279-061.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
         mem_mapping_set_handler(&esdi->bios_rom.mapping,
                     rom_read, rom_readw, rom_readl,
@@ -836,7 +836,7 @@ void wd1007vse1_close(void *p)
 
 static int wd1007vse1_available()
 {
-        return rom_present(L"roms/62-000279-061.bin");
+        return rom_present(L"roms/hdd/esdi_at/62-000279-061.bin");
 }
 
 device_t wd1007vse1_device =

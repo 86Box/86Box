@@ -186,23 +186,23 @@ void *oti067_common_init(wchar_t *bios_fn, int vram_size, int chip_id)
 void *oti067_init()
 {
         int vram_size = device_get_config_int("memory");
-        return oti067_common_init(L"roms/oti067/bios.bin", vram_size, 2);
+        return oti067_common_init(L"roms/video/oti/bios.bin", vram_size, 2);
 }
 
 void *oti077_init()
 {
         int vram_size = device_get_config_int("memory");
-        return oti067_common_init(L"roms/oti077.vbi", vram_size, 5);
+        return oti067_common_init(L"roms/video/oti/oti077.vbi", vram_size, 5);
 }
 
 static int oti067_available()
 {
-        return rom_present(L"roms/oti067/bios.bin");
+        return rom_present(L"roms/video/oti/bios.bin");
 }
 
 static int oti077_available()
 {
-        return rom_present(L"roms/oti077.vbi");
+        return rom_present(L"roms/video/oti/oti077.vbi");
 }
 
 void oti067_close(void *p)
