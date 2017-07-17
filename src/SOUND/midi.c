@@ -26,6 +26,7 @@ static MIDI_DEVICE devices[] =
         {"None",                        "none",                         NULL},
         {SYSTEM_MIDI_NAME,              SYSTEM_MIDI_INTERNAL_NAME,      &system_midi_device},
         {"Roland MT-32 Emulation",      "mt32",                         &mt32_device},
+        {"Roland CM-32L Emulation",     "cm32l",                        &cm32l_device},
         {"", "", NULL}
 };
 

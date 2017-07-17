@@ -1491,7 +1491,7 @@ void fdc_callback(void *priv)
                 case -1: /*Reset*/
                 fdc_int();
 		fdc.fintr = 0;
-		memset(fdc.pcn, 0, 4);
+		memset(fdc.pcn, 0, 4 * sizeof(int));
                 fdc_reset_stat = 4;
                 return;
 		case 1: /*Mode*/

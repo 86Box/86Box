@@ -722,13 +722,13 @@ page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 	case 0x07:	/* ISR */
 		val &= 0x7f;  /* clear RST bit - status-only bit */
 		/* All other values are cleared iff the ISR bit is 1 */
-		dev->ISR.pkt_rx    &= ~((int)((val & 0x01) == 0x01));
-		dev->ISR.pkt_tx    &= ~((int)((val & 0x02) == 0x02));
-		dev->ISR.rx_err    &= ~((int)((val & 0x04) == 0x04));
-		dev->ISR.tx_err    &= ~((int)((val & 0x08) == 0x08));
-		dev->ISR.overwrite &= ~((int)((val & 0x10) == 0x10));
-		dev->ISR.cnt_oflow &= ~((int)((val & 0x20) == 0x20));
-		dev->ISR.rdma_done &= ~((int)((val & 0x40) == 0x40));
+		dev->ISR.pkt_rx    &= !((int)((val & 0x01) == 0x01));
+		dev->ISR.pkt_tx    &= !((int)((val & 0x02) == 0x02));
+		dev->ISR.rx_err    &= !((int)((val & 0x04) == 0x04));
+		dev->ISR.tx_err    &= !((int)((val & 0x08) == 0x08));
+		dev->ISR.overwrite &= !((int)((val & 0x10) == 0x10));
+		dev->ISR.cnt_oflow &= !((int)((val & 0x20) == 0x20));
+		dev->ISR.rdma_done &= !((int)((val & 0x40) == 0x40));
 		val = ((dev->ISR.rdma_done << 6) |
 		       (dev->ISR.cnt_oflow << 5) |
 		       (dev->ISR.overwrite << 4) |

@@ -141,7 +141,7 @@ void ps1mb_init(void)
 	if (!enable_xtide)
 	{
 	        rom_init(&ps1_high_rom,
-                                L"roms/ibmps1es/f80000_shell.bin",
+                                L"roms/machines/ibmps1es/f80000_shell.bin",
                                 0xf80000,
                                 0x80000,
                                 0x7ffff,
@@ -149,8 +149,8 @@ void ps1mb_init(void)
                                 MEM_MAPPING_EXTERNAL);
 	}
 /*        rom_init_interleaved(&ps1_high_rom,
-                                L"roms/ibmps1es/ibm_1057757_24-05-90.bin",
-                                L"roms/ibmps1es/ibm_1057757_29-15-90.bin",
+                                L"roms/machines/ibmps1es/ibm_1057757_24-05-90.bin",
+                                L"roms/machines/ibmps1es/ibm_1057757_29-15-90.bin",
                                 0xfc0000,
                                 0x40000,
                                 0x3ffff,
@@ -294,12 +294,13 @@ void ps1mb_m2121_init(void)
         io_sethandler(0x0190, 0x0001, ps1_m2121_read, NULL, NULL, ps1_m2121_write, NULL, NULL, NULL);
 
         rom_init(&ps1_high_rom,
-                                L"roms/ibmps1_2121/fc0000_shell.bin",
+                                L"roms/machines/ibmps1_2121/fc0000_shell.bin",
                                 0xfc0000,
                                 0x40000,
                                 0x3ffff,
                                 0,
                                 MEM_MAPPING_EXTERNAL);
+	ps1_92 = 0;
         ps1_190 = 0;
         
         lpt1_init(0x3bc);
@@ -315,6 +316,7 @@ void ps1mb_m2133_init(void)
         io_sethandler(0x0102, 0x0004, ps1_m2121_read, NULL, NULL, ps1_m2121_write, NULL, NULL, NULL);
         io_sethandler(0x0190, 0x0001, ps1_m2121_read, NULL, NULL, ps1_m2121_write, NULL, NULL, NULL);
  
+	ps1_92 = 0;
         ps1_190 = 0;
        
         lpt1_init(0x3bc);

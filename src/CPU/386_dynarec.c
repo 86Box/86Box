@@ -265,6 +265,38 @@ void x86_int_sw(int num)
         CPU_BLOCK_END();
 }
 
+int x86_int_sw_rm(int num)
+{
+        uint32_t addr;
+        uint16_t new_pc, new_cs;
+        
+        flags_rebuild();
+        cycles -= timing_int;
+
+        addr = num << 2;
+        new_pc = readmemw(0, addr);
+        new_cs = readmemw(0, addr + 2);
+
+        if (cpu_state.abrt) return 1;
+
+        writememw(ss,((SP-2)&0xFFFF),flags); if (cpu_state.abrt) {pclog("abrt5\n"); return 1; }
+        writememw(ss,((SP-4)&0xFFFF),CS);
+        writememw(ss,((SP-6)&0xFFFF),cpu_state.pc); if (cpu_state.abrt) {pclog("abrt6\n"); return 1; }
+        SP-=6;
+
+        eflags &= ~VIF_FLAG;
+        flags &= ~T_FLAG;
+        cpu_state.pc = new_pc;
+        loadcs(new_cs);
+        oxpc=cpu_state.pc;
+
+        cycles -= timing_int_rm;
+        trap = 0;
+        CPU_BLOCK_END();
+        
+        return 0;
+}
+
 void x86illegal()
 {
         x86_int(6);

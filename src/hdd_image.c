@@ -361,12 +361,60 @@ void hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer
 	fread(buffer, 1, count, hdd_images[id].file);
 }
 
+uint32_t hdd_sectors(uint8_t id)
+{
+	fseeko64(hdd_images[id].file, 0, SEEK_END);
+	return (uint32_t) (ftello64(hdd_images[id].file) >> 9);
+}
+
+int hdd_image_read_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
+{
+	uint32_t transfer_sectors = count;
+	uint32_t sectors = hdd_sectors(id);
+
+	if ((sectors - sector) < transfer_sectors)
+	{
+		transfer_sectors = sectors - sector;
+	}
+
+	hdd_image_seek(id, sector);
+	memset(buffer, 0, transfer_sectors << 9);
+	fread(buffer, 1, transfer_sectors << 9, hdd_images[id].file);
+
+	if (count != transfer_sectors)
+	{
+		return 1;
+	}
+	return 0;
+}
+
 void hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
 	count <<= 9;
 
 	hdd_image_seek(id, sector);
 	fwrite(buffer, 1, count, hdd_images[id].file);
+}
+
+int hdd_image_write_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
+{
+	uint32_t transfer_sectors = count;
+	uint32_t sectors = hdd_sectors(id);
+
+	if ((sectors - sector) < transfer_sectors)
+	{
+		transfer_sectors = sectors - sector;
+	}
+
+	hdd_image_seek(id, sector);
+	memset(buffer, 0, transfer_sectors << 9);
+	fwrite(buffer, 1, transfer_sectors << 9, hdd_images[id].file);
+
+	if (count != transfer_sectors)
+	{
+		return 1;
+	}
+	return 0;
 }
 
 void hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
@@ -384,6 +432,35 @@ void hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
 	}
 
 	free(b);
+}
+
+int hdd_image_zero_ex(uint8_t id, uint32_t sector, uint32_t count)
+{
+	int i = 0;
+	uint8_t *b;
+
+	uint32_t transfer_sectors = count;
+	uint32_t sectors = hdd_sectors(id);
+
+	if ((sectors - sector) < transfer_sectors)
+	{
+		transfer_sectors = sectors - sector;
+	}
+
+	b = (uint8_t *) malloc(512);
+	memset(b, 0, 512);
+
+	hdd_image_seek(id, sector);
+	for (i = 0; i < transfer_sectors; i++)
+	{
+		fwrite(b, 1, 512, hdd_images[id].file);
+	}
+
+	if (count != transfer_sectors)
+	{
+		return 1;
+	}
+	return 0;
 }
 
 uint32_t hdd_image_get_last_sector(uint8_t id)

@@ -44,26 +44,27 @@ extern int cpu, cpu_manufacturer;
 #define CPU_i486DX  11
 #define CPU_Am486DX 12
 #define CPU_Cx486DX 13
-#define CPU_Cx5x86  14
+#define CPU_iDX4    14
+#define CPU_Cx5x86  15
 
 /*586 class CPUs*/
-#define CPU_WINCHIP 15
-#define CPU_PENTIUM 16
-#define CPU_PENTIUMMMX 17
-#define CPU_Cx6x86 	18
-#define CPU_Cx6x86MX 	19
-#define CPU_Cx6x86L 	20
-#define CPU_CxGX1 	21
-#define CPU_K5 22
-#define CPU_5K86 23
-#define CPU_K6 24
+#define CPU_WINCHIP 16
+#define CPU_PENTIUM 17
+#define CPU_PENTIUMMMX 18
+#define CPU_Cx6x86 	19
+#define CPU_Cx6x86MX 	20
+#define CPU_Cx6x86L 	21
+#define CPU_CxGX1 	22
+#define CPU_K5 23
+#define CPU_5K86 24
+#define CPU_K6 25
 
 /*686 class CPUs*/
-#define CPU_PENTIUMPRO 25
+#define CPU_PENTIUMPRO 26
 /*
-#define CPU_PENTIUM2 26
-#define CPU_PENTIUM2D 27 */
-#define CPU_PENTIUM2D 26
+#define CPU_PENTIUM2 27
+#define CPU_PENTIUM2D 28 */
+#define CPU_PENTIUM2D 27
 
 #define MANU_INTEL 0
 #define MANU_AMD   1
@@ -144,6 +145,7 @@ extern int cpu_hasrdtsc;
 extern int cpu_hasMSR;
 extern int cpu_hasMMX;
 extern int cpu_hasCR4;
+extern int cpu_hasVME;
 
 #define CR4_TSD  (1 << 2)
 #define CR4_DE   (1 << 3)

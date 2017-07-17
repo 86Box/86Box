@@ -85,7 +85,7 @@ void *vga_init()
         vga_t *vga = malloc(sizeof(vga_t));
         memset(vga, 0, sizeof(vga_t));
 
-        rom_init(&vga->bios_rom, L"roms/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
+        rom_init(&vga->bios_rom, L"roms/video/vga/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
 
         svga_init(&vga->svga, vga, 1 << 18, /*256kb*/
                    NULL,
@@ -107,7 +107,7 @@ void *trigem_unk_init()
         vga_t *vga = malloc(sizeof(vga_t));
         memset(vga, 0, sizeof(vga_t));
 
-        rom_init(&vga->bios_rom, L"roms/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
+        rom_init(&vga->bios_rom, L"roms/video/vga/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
 
         svga_init(&vga->svga, vga, 1 << 18, /*256kb*/
                    NULL,
@@ -150,7 +150,7 @@ void *ps1vga_init()
 
 static int vga_available()
 {
-        return rom_present(L"roms/ibm_vga.bin");
+        return rom_present(L"roms/video/vga/ibm_vga.bin");
 }
 
 void vga_close(void *p)

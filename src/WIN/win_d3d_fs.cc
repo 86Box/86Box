@@ -213,7 +213,8 @@ int d3d_fs_init(HWND h)
         d3dpp.BackBufferWidth        = d3d_fs_w;
         d3dpp.BackBufferHeight       = d3d_fs_h;
 
-        d3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, h, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &d3ddev);
+        if (FAILED(d3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, h, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &d3ddev)))
+           fatal("CreateDevice failed\n");
         
         d3d_fs_init_objects();
         
@@ -243,14 +244,16 @@ static void d3d_fs_init_objects()
         int y;
         RECT r;
 
-        d3ddev->CreateVertexBuffer(12*sizeof(CUSTOMVERTEX),
+        if (FAILED(d3ddev->CreateVertexBuffer(12*sizeof(CUSTOMVERTEX),
                                    0,
                                    D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1,
                                    D3DPOOL_MANAGED,
                                    &v_buffer,
-                                   NULL);
+                                   NULL)))
+           fatal("CreateVertexBuffer failed\n");
 
-        d3ddev->CreateTexture(2048, 2048, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &d3dTexture, NULL);
+        if (FAILED(d3ddev->CreateTexture(2048, 2048, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &d3dTexture, NULL)))
+           fatal("CreateTexture failed\n");
      
         r.top    = r.left  = 0;
         r.bottom = r.right = 2047;
@@ -392,9 +395,9 @@ static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
         D3DLOCKED_RECT dr;
         RECT window_rect;
         int yy;
-        double l, t, r, b;
+        double l = 0, t = 0, r = 0, b = 0;
 
-	if (y1 == y2)
+        if (y1 == y2)
 	{
                 video_blit_complete();
 		return; /*Nothing to do*/
@@ -409,14 +412,20 @@ static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
                 lock_rect.bottom = y2;
                 lock_rect.right  = 2047;
 
-                if (FAILED(d3dTexture->LockRect(0, &dr, &lock_rect, 0)))
-                   fatal("LockRect failed\n");
-        
-                for (yy = y1; yy < y2; yy++)
-                        memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
+                hr = d3dTexture->LockRect(0, &dr, &lock_rect, 0);
+                if (hr == D3D_OK)
+                {
+                        for (yy = y1; yy < y2; yy++)
+                                memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
 
-                video_blit_complete();
-                d3dTexture->UnlockRect(0);
+                        video_blit_complete();
+                        d3dTexture->UnlockRect(0);
+                }
+                else
+                {
+                        video_blit_complete();
+                        return;
+                }
         }
         else
                 video_blit_complete();
@@ -498,7 +507,7 @@ static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
         D3DLOCKED_RECT dr;
         RECT window_rect;
         int xx, yy;
-        double l, t, r, b;
+        double l = 0, t = 0, r = 0, b = 0;
 
 	if (!h)
 	{
@@ -515,23 +524,27 @@ static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
                 lock_rect.bottom = 2047;
                 lock_rect.right  = 2047;
 
-                if (FAILED(d3dTexture->LockRect(0, &dr, &lock_rect, 0)))
-                        fatal("LockRect failed\n");
-        
-                for (yy = 0; yy < h; yy++)
+                hr = d3dTexture->LockRect(0, &dr, &lock_rect, 0);
+                if (hr == D3D_OK)
                 {
-                        uint32_t *p = (uint32_t *)((uintptr_t)dr.pBits + (yy * dr.Pitch));
-                        if ((y + yy) >= 0 && (y + yy) < buffer->h)
+                        for (yy = 0; yy < h; yy++)
                         {
-                                for (xx = 0; xx < w; xx++)
-                                        p[xx] = pal_lookup[buffer->line[y + yy][x + xx]];
+                                uint32_t *p = (uint32_t *)((uintptr_t)dr.pBits + (yy * dr.Pitch));
+                                if ((y + yy) >= 0 && (y + yy) < buffer->h)
+                                {
+                                        for (xx = 0; xx < w; xx++)
+                                                p[xx] = pal_lookup[buffer->line[y + yy][x + xx]];
+                                }
                         }
+                        video_blit_complete();
+                        d3dTexture->UnlockRect(0);
                 }
-                
-                video_blit_complete();
-
-                d3dTexture->UnlockRect(0);
-        }
+                else
+                {
+                        video_blit_complete();
+                        return;
+                }
+	}
         else
                 video_blit_complete();
       
