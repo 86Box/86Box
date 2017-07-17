@@ -17,6 +17,7 @@
  */
 
 #include <stdio.h>
+#include <math.h>
 #include "../ibm.h"
 #include "../mem.h"
 #include "video.h"
@@ -25,20 +26,68 @@
 
 
 int invert_display = 0;
-
+int video_grayscale = 0;
 
 uint32_t svga_color_transform(uint32_t color)
 {
 	uint32_t temp = 0;
+	temp = color;
+	if (video_grayscale != 0)
+	{
+		temp = ((77 * (color & 0xff0000)) >> 24) + ((150 * (color & 0xff00)) >> 16) + ((29 * (color & 0xff)) >> 8);
+		if (temp > 0xff)
+			temp = 0xff;
+
+		float temp_r = 0;
+		float temp_g = 0;
+		float temp_b = 0;
+		temp_r = temp_g = temp_b = ((float)temp) / 256;
+		switch (video_grayscale)
+		{
+			case 2:
+				temp_r = pow(temp_r, 0.6);
+				temp_g = 0.9 * pow(temp_g, 2);
+				temp_b = 0.2 * pow(temp_b, 6);
+				break;
+			case 3:
+				temp_r = 0.225 * pow(temp_r, 4);
+				temp_g = pow(temp_g, 0.75);
+				temp_b = 0.375 * pow(temp_b, 2);
+				break;
+			case 4:
+				temp_r = pow(temp_r, 1.05);
+				temp_g = 0.99 * temp_g;
+				temp_b = 0.925 * pow(temp_b, 0.9);
+				break;
+		}
+		if (temp_r >= 1)
+			temp = 0xff0000;
+		else if (temp_r <= 0)
+			temp = 0x000000;
+		else
+			temp = (int)(temp_r * 256) << 16;
+
+		if (temp_g >= 1)
+			temp |= 0x00ff00;
+		else if (temp_g <= 0)
+			temp &= 0xff00ff;
+		else
+			temp = temp + ((int)(temp_g * 256) << 8);
+
+		if (temp_b >= 1)
+			temp |= 0x0000ff;
+		else if (temp_b <= 0)
+			temp &= 0xffff00;
+		else
+			temp = temp + (int)(temp_b * 256);
+
+		color = temp;
+	}
 	if (invert_display)
 	{
-		temp |= (0xff - (color & 0xff));
+		temp = (0xff - (color & 0xff));
 		temp |= (0xff00 - (color & 0xff00));
 		temp |= (0xff0000 - (color & 0xff0000));
-	}
-	else
-	{
-		temp = color;
 	}
 	return temp;
 }

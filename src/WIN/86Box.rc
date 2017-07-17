@@ -46,7 +46,7 @@ BEGIN
     BEGIN
         MENUITEM "&Hard Reset",                 IDM_ACTION_HRESET
         MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",     IDM_ACTION_RESET_CAD
-		MENUITEM "&Ctrl+Alt+Esc",				IDM_ACTION_CTRL_ALT_ESC
+		MENUITEM "Ctrl+Alt+&Esc",				IDM_ACTION_CTRL_ALT_ESC
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       IDM_ACTION_EXIT
     END
@@ -81,6 +81,14 @@ BEGIN
         BEGIN
             MENUITEM "&Inverted VGA monitor",       IDM_VID_INVERT
             MENUITEM "E&GA/(S)VGA overscan",        IDM_VID_OVERSCAN
+        	POPUP "VGA Screen &type"
+    		BEGIN
+    			MENUITEM "RGB &Color",				IDM_VID_GRAY_RGB
+    			MENUITEM "&RGB Grayscale",			IDM_VID_GRAY_MONO
+    			MENUITEM "&Amber monitor",			IDM_VID_GRAY_AMBER
+    			MENUITEM "&Green monitor",			IDM_VID_GRAY_GREEN
+    			MENUITEM "&White monitor",			IDM_VID_GRAY_WHITE
+    		END
         END
         MENUITEM SEPARATOR
         MENUITEM "F&orce 4:3 display ratio",    IDM_VID_FORCE43
