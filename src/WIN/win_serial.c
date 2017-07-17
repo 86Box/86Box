@@ -379,7 +379,7 @@ bhtty_close(BHTTY *pp)
 BHTTY *
 bhtty_open(char *port, int tmo)
 {
-    char temp[64];
+    char temp[84];
     COMMTIMEOUTS to;
     COMMCONFIG conf;
     BHTTY *pp;

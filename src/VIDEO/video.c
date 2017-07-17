@@ -710,7 +710,7 @@ void take_screenshot()
 	info = localtime(&now);
 	memset(screenshot_fn, 0, 8192);
 	memset(screenshot_fn_partial, 0, 4096);
-	memset(screenshot_path, 0, 4096);
+	memset(screenshot_path, 0, 8192);
 	pclog("Video API is: %i\n", vid_api);
 	append_filename_w(screenshot_path, pcempath, L"screenshots", 4095);
 	if (!DirectoryExists(screenshot_path))
