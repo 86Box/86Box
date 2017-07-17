@@ -426,7 +426,6 @@ void loadseg(uint16_t seg, x86seg *s)
                 if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
                         cpu_cur_status |= CPU_STATUS_FLATDS;
                 else
-
                        cpu_cur_status &= ~CPU_STATUS_FLATDS;
         }
         if (s == &_ss)
@@ -625,6 +624,7 @@ void loadcsjmp(uint16_t seg, uint32_t oxpc)
                 {
                         if (!(segdat[2]&0x8000))
                         {
+                                x86np("Load CS JMP system selector not present\n", seg & 0xfffc);
                                 return;
                         }
                         type=segdat[2]&0xF00;
@@ -637,14 +637,12 @@ void loadcsjmp(uint16_t seg, uint32_t oxpc)
                                 cgate32=(type&0x800);
                                 cgate16=!cgate32;
                                 oldcs=CS;
-                                cpu_state.oldpc=cpu_state.pc;
-#if 0
+                                cpu_state.oldpc = cpu_state.pc;
                                 if ((DPL < CPL) || (DPL < (seg&3)))
                                 {
                                         x86gpf(NULL,seg&~3);
                                         return;
                                 }
-#endif
                                 if (DPL < CPL)
                                 {
                                         x86gpf("loadcsjmp(): ex DPL < CPL",seg&~3);
@@ -939,7 +937,7 @@ void loadcscall(uint16_t seg)
                                 cgate16=!cgate32;
                                 oldcs=CS;
                                 count=segdat[2]&31;
-                                if ((DPL < CPL))
+                                if (DPL < CPL)
                                 {
                                         x86gpf("loadcscall(): ex DPL < CPL",seg&~3);
                                         return;

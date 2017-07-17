@@ -97,8 +97,8 @@ int loadbios()
         FILE *f=NULL,*ff=NULL;
         int c;
         
-        loadfont(L"roms/graphics/mda/mda.rom", 0);
-	loadfont(L"roms/graphics/wyse700/wy700.rom", 3);
+        loadfont(L"roms/video/mda/mda.rom", 0);
+	loadfont(L"roms/video/wyse700/wy700.rom", 3);
 
         biosmask = 0xffff;
 
