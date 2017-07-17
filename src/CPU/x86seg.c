@@ -901,7 +901,7 @@ void loadcscall(uint16_t seg)
                         }
                         if (!(segdat[2]&0x8000))
                         {
-                                x86ss("Load CS call not present", seg & 0xfffc);
+                                x86np("Load CS call not present", seg & 0xfffc);
                                 return;
                         }
                         set_use32(segdat[3]&0x40);
@@ -1074,7 +1074,7 @@ void loadcscall(uint16_t seg)
                                                 }
                                                 if (!(segdat2[2]&0x8000))
                                                 {
-                                                        x86np("Call gate loading SS not present\n", newss & 0xfffc);
+                                                        x86ss("Call gate loading SS not present\n", newss & 0xfffc);
                                                         return;
                                                 }
                                                 if (!stack32) oldsp &= 0xFFFF;
@@ -1483,7 +1483,7 @@ void pmodeint(int num, int soft)
         uint32_t oldss,oldsp;
         int type;
         uint32_t newsp;
-        uint16_t seg = ds;
+        uint16_t seg = 0;
         int new_cpl;
         
         if (eflags&VM_FLAG && IOPL!=3 && soft)
@@ -1865,7 +1865,7 @@ void pmodeiret(int is32)
                 segdat[1]=readmemw(0,addr+2);
                 segdat[2]=readmemw(0,addr+4);
                 segdat[3]=readmemw(0,addr+6);
-                taskswitch286(seg,segdat,0);
+                taskswitch286(seg,segdat,segdat[2] & 0x800);
                 cpl_override=0;
                 return;
         }
