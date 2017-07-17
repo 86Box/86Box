@@ -300,6 +300,7 @@ void ps1mb_m2121_init(void)
                                 0x3ffff,
                                 0,
                                 MEM_MAPPING_EXTERNAL);
+	ps1_92 = 0;
         ps1_190 = 0;
         
         lpt1_init(0x3bc);
@@ -315,6 +316,7 @@ void ps1mb_m2133_init(void)
         io_sethandler(0x0102, 0x0004, ps1_m2121_read, NULL, NULL, ps1_m2121_write, NULL, NULL, NULL);
         io_sethandler(0x0190, 0x0001, ps1_m2121_read, NULL, NULL, ps1_m2121_write, NULL, NULL, NULL);
  
+	ps1_92 = 0;
         ps1_190 = 0;
        
         lpt1_init(0x3bc);

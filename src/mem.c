@@ -2316,16 +2316,19 @@ static uint8_t port_92_read(uint16_t port, void *priv)
 
 static void port_92_write(uint16_t port, uint8_t val, void *priv)
 {
-	if (val & 1)
+	if ((mem_a20_alt ^ val) & 2)
+	{
+		mem_a20_alt = val & 2;
+		mem_a20_recalc();
+	}
+
+	if ((~port_92_reg & val) & 1)
 	{
 		softresetx86();
 		cpu_set_edx();
 	}
 
-	port_92_reg = val & ~-1;
-
-	mem_a20_alt = val & 2;
-	mem_a20_recalc();
+	port_92_reg = val;
 }
 
 void port_92_clear_reset()
