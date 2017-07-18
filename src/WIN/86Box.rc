@@ -287,7 +287,7 @@ STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
     LTEXT           "Mouse :",IDT_1709,7,8,57,10
-    COMBOBOX        IDC_COMBO_MOUSE,71,7,189,120,CBS_DROPDOWN | WS_VSCROLL | 
+    COMBOBOX        IDC_COMBO_MOUSE,71,7,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
     LTEXT           "Joystick :",IDT_1710,7,26,58,10
     COMBOBOX        IDC_COMBO_JOYSTICK,71,25,189,120,CBS_DROPDOWNLIST | 
@@ -925,7 +925,7 @@ BEGIN
             VALUE "FileDescription", "86Box - an emulator for X86-based systems\0"
             VALUE "FileVersion", "2.00\0"
             VALUE "InternalName", "86Box\0"
-            VALUE "LegalCopyright", "Copyright © SoftHistory, Sarah Walker, 2007-2017, Released under the GNU GPL v2\0"
+            VALUE "LegalCopyright", "Copyright ï¿½ SoftHistory, Sarah Walker, 2007-2017, Released under the GNU GPL v2\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "86Box.exe\0"
             VALUE "PrivateBuild", "\0"
