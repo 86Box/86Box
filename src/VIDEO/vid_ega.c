@@ -591,6 +591,8 @@ void ega_poll(void *p)
                         if (ega->sc == (ega->crtc[9] & 31))
                         {
                                 ega->sc = 0;
+                                if (ega->sc == (ega->crtc[11] & 31))
+                                        ega->con = 0;
 
                                 ega->maback += (ega->rowoffset << 3);
                                 ega->maback &= ega->vrammask;
