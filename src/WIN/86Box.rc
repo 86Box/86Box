@@ -1,4 +1,4 @@
-/*
+﻿/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -255,8 +255,8 @@ BEGIN
                     12,12
     LTEXT           "MB",IDT_1705,123,64,10,10
     LTEXT           "Memory:",IDT_1706,7,64,30,10
-    LTEXT           "NVR Path:",IDT_1700,7,83,60,10,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT_NVR_PATH,71,82,138,12
+    LTEXT           "NVR Path:",IDT_1700,7,83,60,10
+    EDITTEXT        IDC_EDIT_NVR_PATH,71,82,138,12,ES_AUTOHSCROLL
     PUSHBUTTON      "&Specify...",IDC_BUTTON_NVR_PATH,214,82,46,12
     CONTROL         "Dynamic Recompiler",IDC_CHECK_DYNAREC,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,100,94,10
