@@ -512,6 +512,9 @@ void resetpchard_init(void)
         fdc_init();
 	disc_reset();
 
+#ifndef WALTJE
+	serial_init();
+#endif
         model_init();
         video_init();
         speaker_init();        
