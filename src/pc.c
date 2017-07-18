@@ -366,7 +366,9 @@ void initmodules(void)
 	/* Initialize modules. */
 	network_init();
         mouse_init();
+#ifdef WALTJE
 	serial_init();
+#endif
 	disc_random_init();
 
         joystick_init();

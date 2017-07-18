@@ -244,7 +244,7 @@ void serial_recieve_callback(void *p)
         }
 }
 
-uint16_t base_address[2] = { 0x3f8, 0x2f8 };
+uint16_t base_address[2] = { 0x0000, 0x0000 };
 
 void serial_remove(int port)
 {
@@ -259,68 +259,82 @@ void serial_remove(int port)
 		return;
 	}
 
+	if (!base_address[port - 1])
+	{
+		return;
+	}
+
 	pclog("Removing serial port %i at %04X...\n", port, base_address[port - 1]);
 
-	io_removehandler(base_address[port - 1], 0x0008, serial_read, NULL, NULL, serial_write, NULL, NULL, (port == 1) ? &serial1 : &serial2);
-	base_address[port - 1] = 0x0000;
+	switch(port)
+	{
+		case 1:
+			io_removehandler(base_address[0], 0x0008, serial_read, NULL, NULL, serial_write, NULL, NULL, &serial1);
+			base_address[0] = 0x0000;
+			break;
+		case 2:
+			io_removehandler(base_address[1], 0x0008, serial_read, NULL, NULL, serial_write, NULL, NULL, &serial2);
+			base_address[1] = 0x0000;
+			break;
+	}
 }
 
 void serial_setup(int port, uint16_t addr, int irq)
 {
-	SERIAL *p;
-
-	if ((port < 1) || (port > 2))
-	{
-		fatal("serial_setup(): Invalid serial port: %i\n", port);
-		exit(-1);
-	}
-
-	if (!serial_enabled[port - 1])
-	{
-		return;
-	}
-
-	if (base_address[port - 1] != 0x0000)
-	{
-		serial_remove(port);
-	}
-
-	if (addr == 0x0000)
-	{
-		pclog("Serial port %i at %04X, ignoring...\n", port, base_address[port - 1]);
-		return;
-	}
-
-	if (port == 1)
-	{
-		p = &serial1;
-	}
-	else if (port == 2)
-	{
-		p = &serial2;
-	}
-
 	pclog("Adding serial port %i at %04X...\n", port, addr);
 
-	base_address[port - 1] = addr;
-	io_sethandler(base_address[port - 1], 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, p);
-
-	p->irq = irq;
+	switch(port)
+	{
+		case 1:
+			if (base_address[0] != 0x0000)
+			{
+				serial_remove(port);
+			}
+			if (addr != 0x0000)
+			{
+				base_address[0] = addr;
+				io_sethandler(addr, 0x0008, serial_read, NULL, NULL, serial_write, NULL, NULL, &serial1);
+			}
+			serial1.irq = irq;
+			break;
+		case 2:
+			if (base_address[1] != 0x0000)
+			{
+				serial_remove(port);
+			}
+			if (addr != 0x0000)
+			{
+				base_address[1] = addr;
+				io_sethandler(addr, 0x0008, serial_read, NULL, NULL, serial_write, NULL, NULL, &serial2);
+			}
+			serial2.irq = irq;
+			break;
+		default:
+			fatal("serial_setup(): Invalid serial port: %i\n", port);
+			break;
+	}
 }
 
 void serial_init(void)
 {
+	base_address[0] = 0x03f8;
+	base_address[1] = 0x02f8;
+
 	if (serial_enabled[0])
 	{
 		pclog("Adding serial port 1...\n");
-		serial_setup(1, 0x3f8, 4);
+		memset(&serial1, 0, sizeof(serial1));
+		io_sethandler(0x3f8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
+		serial1.irq = 4;
 		serial1.rcr_callback = NULL;
 		timer_add(serial_recieve_callback, &serial1.recieve_delay, &serial1.recieve_delay, &serial1);
 	}
 	if (serial_enabled[1])
 	{
 		pclog("Adding serial port 2...\n");
-		serial_setup(2, 0x2f8, 3);
+		memset(&serial2, 0, sizeof(serial2));
+		io_sethandler(0x2f8, 0x0008, serial_read, NULL, NULL, serial_write, NULL, NULL, &serial2);
+		serial2.irq = 3;
 		serial2.rcr_callback = NULL;
 		timer_add(serial_recieve_callback, &serial2.recieve_delay, &serial2.recieve_delay, &serial2);
 	}
