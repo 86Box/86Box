@@ -113,6 +113,9 @@ void ddraw_fs_take_screenshot(wchar_t *fn);
 extern int cga_palette;
 extern int vid_cga_contrast;
 
+extern int video_grayscale;
+extern int video_graytype;
+
 void loadfont(wchar_t *s, int format);
 void initvideo();
 void video_init();

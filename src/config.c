@@ -805,6 +805,7 @@ static void loadconfig_general(void)
 	enable_overscan = !!config_get_int(cat, "enable_overscan", 0);
 	vid_cga_contrast = !!config_get_int(cat, "vid_cga_contrast", 0);
 	video_grayscale = config_get_int(cat, "video_grayscale", 0);
+	video_graytype = config_get_int(cat, "video_graytype", 0);
 
         window_remember = config_get_int(cat, "window_remember", 0);
 
@@ -1810,6 +1811,14 @@ static void saveconfig_general(void)
 	        config_set_int(cat, "video_grayscale", video_grayscale);
 	}
 
+	if (video_graytype == 0)
+	{
+		config_delete_var(cat, "video_graytype");
+	}
+	else
+	{
+	        config_set_int(cat, "video_graytype", video_graytype);
+	}
 
 	if (window_remember)
 	{

@@ -468,6 +468,7 @@ enum
 
         ROM_SPC4200P,	/*Samsung SPC-4200P / SCAT / Phoenix BIOS*/
         ROM_SUPER286TR,	/*Hyundai Super-286TR / SCAT / Award BIOS*/
+        ROM_DW486,	/*Daewoo CPC-2800 / SCAT / Phoenix BIOS*/
 
         ROM_MEGAPCDX,	/*386DX mdoel of the Mega PC - Note by Tohka: The documentation (that I have in German) clearly says such a model exists.*/
         ROM_ZAPPA,	/*Intel Advanced/ZP / 430FX / AMI BIOS / National Semiconductors PC87306*/
@@ -737,7 +738,6 @@ extern int serial_enabled[2];
 extern int lpt_enabled, bugger_enabled;
 
 extern int invert_display;
-extern int video_grayscale;
 
 uint32_t svga_color_transform(uint32_t color);
 

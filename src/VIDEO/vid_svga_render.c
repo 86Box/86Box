@@ -26,6 +26,7 @@
 
 int invert_display = 0;
 int video_grayscale = 0;
+int video_graytype = 0;
 
 uint32_t shade[5][256] =
 {
@@ -92,7 +93,15 @@ uint32_t svga_color_transform(uint32_t color)
 	uint32_t temp = 0;
 	if (video_grayscale != 0)
 	{
-		temp = ((76 * (color & 0xff0000)) >> 24) + ((150 * (color & 0xff00)) >> 16) + ((29 * (color & 0xff)) >> 8);
+		if (video_graytype)
+		{
+			if (video_graytype == 1)
+				temp = ((54 * ((color & 0xff0000) >> 16)) + (183 * ((color & 0xff00) >> 8)) + (18 * (color & 0xff))) / 255;
+			else
+				temp = (((color & 0xff0000) >> 16) + ((color & 0xff00) >> 8) + (color & 0xff)) / 3;
+		}
+		else
+			temp = ((76 * ((color & 0xff0000) >> 16)) + (150 * ((color & 0xff00) >> 8)) + (29 * (color & 0xff))) / 255;
 		switch (video_grayscale)
 		{
 			case 2:
