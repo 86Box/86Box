@@ -782,9 +782,15 @@ void ega_write(uint32_t addr, uint8_t val, void *p)
                 if (addr & 1)
                         writemask2 <<= 1;
                 addr &= ~1;
+                if (addr & 0x4000)
+                        addr |= 1;
+                addr &= ~0x4000;
         }
 
         addr <<= 2;
+
+        if (addr >= ega->vram_limit)
+                return;
 
         if (!(ega->gdcreg[6] & 1)) 
                 fullchange = 2;
@@ -909,9 +915,15 @@ uint8_t ega_read(uint32_t addr, void *p)
         {
                 readplane = (readplane & 2) | (addr & 1);
                 addr &= ~1;
+                if (addr & 0x4000)
+                        addr |= 1;
+                addr &= ~0x4000;
         }
 
         addr <<= 2;
+
+        if (addr >= ega->vram_limit)
+                return 0xff;
 
         ega->la = ega->vram[addr];
         ega->lb = ega->vram[addr | 0x1];
@@ -975,6 +987,10 @@ void ega_init(ega_t *ega)
                         pallook16[c] = makecol32(0xaa, 0x55, 0);
         }
         ega->pallook = pallook16;
+
+        ega->vram_limit = 256 * 1024;
+        ega->vrammask = ega->vram_limit-1;
+
 	old_overscan_color = 0;
 }
 
@@ -1024,6 +1040,9 @@ void *ega_standalone_init()
 
 	ega_common_defaults(ega);
 
+        ega->vram_limit = device_get_config_int("memory") * 1024;
+        ega->vrammask = ega->vram_limit-1;
+
         mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
         timer_add(ega_poll, &ega->vidtime, TIMER_ALWAYS_ENABLED, ega);
         io_sethandler(0x03c0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
@@ -1060,6 +1079,9 @@ void *cpqega_standalone_init()
 
 	ega_common_defaults(ega);
 
+        ega->vram_limit = device_get_config_int("memory") * 1024;
+        ega->vrammask = ega->vram_limit-1;
+
         mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
         timer_add(ega_poll, &ega->vidtime, TIMER_ALWAYS_ENABLED, ega);
         io_sethandler(0x03c0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
@@ -1095,6 +1117,9 @@ void *sega_standalone_init()
         ega_init(ega);        
 
 	ega_common_defaults(ega);
+
+        ega->vram_limit = device_get_config_int("memory") * 1024;
+        ega->vrammask = ega->vram_limit-1;
 
         mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
         timer_add(ega_poll, &ega->vidtime, TIMER_ALWAYS_ENABLED, ega);
@@ -1238,6 +1263,30 @@ void ega_speed_changed(void *p)
         ega_recalctimings(ega);
 }
 
+static device_config_t ega_config[] =
+{
+        {
+                "memory", "Memory size", CONFIG_SELECTION, "", 256,
+                {
+                        {
+                                "64 kB", 64
+                        },
+                        {
+                                "128 kB", 128
+                        },
+                        {
+                                "256 kB", 256
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "", "", -1
+        }
+};
+
 device_t ega_device =
 {
         "EGA",
@@ -1247,7 +1296,8 @@ device_t ega_device =
         ega_standalone_available,
         ega_speed_changed,
         NULL,
-        NULL
+        NULL,
+        ega_config
 };
 
 device_t cpqega_device =
@@ -1259,7 +1309,8 @@ device_t cpqega_device =
         cpqega_standalone_available,
         ega_speed_changed,
         NULL,
-        NULL
+        NULL,
+        ega_config
 };
 
 device_t sega_device =
@@ -1271,7 +1322,8 @@ device_t sega_device =
         sega_standalone_available,
         ega_speed_changed,
         NULL,
-        NULL
+        NULL,
+        ega_config
 };
 
 device_t jega_device =
@@ -1283,5 +1335,6 @@ device_t jega_device =
         sega_standalone_available,
         ega_speed_changed,
         NULL,
-        NULL
+        NULL,
+        ega_config
 };
