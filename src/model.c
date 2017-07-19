@@ -415,7 +415,6 @@ void xt_laserxt_init(void)
 void at_init(void)
 {
 	AT = 1;
-        mem_a20_key = mem_a20_alt = 0;
         common_init();
 	if (lpt_enabled)
 	{

@@ -643,6 +643,8 @@ void video_wait_for_buffer()
 
 void video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
+        if (h <= 0)
+                return;
         video_wait_for_blit();
         blit_data.busy = 1;
         blit_data.buffer_in_use = 1;
@@ -658,6 +660,8 @@ void video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 
 void video_blit_memtoscreen_8(int x, int y, int w, int h)
 {
+        if (h <= 0)
+                return;
         video_wait_for_blit();
         blit_data.busy = 1;
         blit_data.x = x;
