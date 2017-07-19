@@ -217,22 +217,23 @@ int loadbios()
                 return 1;
 
                 case ROM_PORTABLEII:
-                f = romfopen(L"roms/machines/portableii/62x0820.u27", L"rb");
-                ff  =romfopen(L"roms/machines/portableii/62x0821.u47", L"rb");
+                f = romfopen(L"roms/machines/portableii/106438-001.BIN", L"rb");
+                ff  =romfopen(L"roms/machines/portableii/106437-001.BIN", L"rb");
                 if (!f || !ff) break;
-                for (c=0x0000;c<0x10000;c+=2)
+                for (c=0x0000;c<0x8000;c+=2)
                 {
                         rom[c]=getc(f);
                         rom[c+1]=getc(ff);
                 }
                 fclose(ff);
                 fclose(f);
+				biosmask = 0x7fff;
                 return 1;
 				
                 case ROM_PORTABLEIII:
                 case ROM_PORTABLEIII386:
-                f = romfopen(L"roms/machines/portableiii/62x0820.u27", L"rb");
-                ff  =romfopen(L"roms/machines/portableiii/62x0821.u47", L"rb");
+                f = romfopen(L"roms/machines/portableiii/109738-002.BIN", L"rb");
+                ff  =romfopen(L"roms/machines/portableiii/109737-002.BIN", L"rb");
                 if (!f || !ff) break;
                 for (c=0x0000;c<0x10000;c+=2)
                 {
