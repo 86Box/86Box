@@ -81,20 +81,20 @@ BEGIN
         BEGIN
             MENUITEM "&Inverted VGA monitor",       IDM_VID_INVERT
             MENUITEM "E&GA/(S)VGA overscan",        IDM_VID_OVERSCAN
-        	POPUP "VGA screen &type"
-    		BEGIN
-    			MENUITEM "RGB &Color",				IDM_VID_GRAY_RGB
-    			MENUITEM "&RGB Grayscale",			IDM_VID_GRAY_MONO
-    			MENUITEM "&Amber monitor",			IDM_VID_GRAY_AMBER
-    			MENUITEM "&Green monitor",			IDM_VID_GRAY_GREEN
-    			MENUITEM "&White monitor",			IDM_VID_GRAY_WHITE
-    		END
-   	     POPUP "Grayscale &conversion type"
-    	    BEGIN
-        	    MENUITEM "BT&601 (NTSC/PAL)",       IDM_VID_GRAYCT_601
-        	    MENUITEM "BT&709 (HDTV)",           IDM_VID_GRAYCT_709
-            	MENUITEM "&Average",                IDM_VID_GRAYCT_AVE
-        	END
+            POPUP "VGA screen &type"
+            BEGIN
+                MENUITEM "RGB &Color",				IDM_VID_GRAY_RGB
+                MENUITEM "&RGB Grayscale",			IDM_VID_GRAY_MONO
+                MENUITEM "&Amber monitor",			IDM_VID_GRAY_AMBER
+                MENUITEM "&Green monitor",			IDM_VID_GRAY_GREEN
+                MENUITEM "&White monitor",			IDM_VID_GRAY_WHITE
+            END
+            POPUP "Grayscale &conversion type"
+            BEGIN
+                MENUITEM "BT&601 (NTSC/PAL)",       IDM_VID_GRAYCT_601
+                MENUITEM "BT&709 (HDTV)",           IDM_VID_GRAYCT_709
+                MENUITEM "&Average",                IDM_VID_GRAYCT_AVE
+            END
         END
         MENUITEM SEPARATOR
         MENUITEM "F&orce 4:3 display ratio",    IDM_VID_FORCE43
