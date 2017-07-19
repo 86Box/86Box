@@ -737,7 +737,6 @@ extern int serial_enabled[2];
 extern int lpt_enabled, bugger_enabled;
 
 extern int invert_display;
-extern int video_grayscale;
 
 uint32_t svga_color_transform(uint32_t color);
 
