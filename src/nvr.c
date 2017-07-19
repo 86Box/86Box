@@ -27,6 +27,7 @@
 #include "io.h"
 #include "mem.h"
 #include "model.h"
+#include "nmi.h"
 #include "nvr.h"
 #include "pic.h"
 #include "rom.h"
@@ -184,7 +185,11 @@ void writenvr(uint16_t addr, uint8_t val, void *priv)
                         }
                 }
         }
-        else        nvraddr=val&nvrmask;
+        else
+        {
+                nvraddr=val&nvrmask;
+                nmi_mask = ~val & 0x80;
+        }
 }
 
 uint8_t readnvr(uint16_t addr, void *priv)
