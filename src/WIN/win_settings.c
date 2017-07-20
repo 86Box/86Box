@@ -663,7 +663,7 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 
 			h = GetDlgItem(hdlg, IDC_MEMTEXT);
 			SendMessage(h, WM_GETTEXT, 255, (LPARAM) lptsTemp);
-			wcstombs(stransi, lptsTemp, sizeof(stransi));
+			wcstombs(stransi, lptsTemp, 512);
 			sscanf(stransi, "%i", &temp_mem_size);
 			temp_mem_size &= ~(models[temp_model].ram_granularity - 1);
 			if (temp_mem_size < models[temp_model].min_ram)
@@ -765,7 +765,7 @@ static BOOL CALLBACK win_settings_video_proc(HWND hdlg, UINT message, WPARAM wPa
 
                         h = GetDlgItem(hdlg, IDC_COMBO_VIDEO);
                         SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
-			wcstombs(stransi, lptsTemp, sizeof(stransi));
+			wcstombs(stransi, lptsTemp, 512);
 			gfx = video_card_getid(stransi);
 
 			h = GetDlgItem(hdlg, IDC_CONFIGURE_VID);
@@ -792,7 +792,7 @@ static BOOL CALLBACK win_settings_video_proc(HWND hdlg, UINT message, WPARAM wPa
 
 		                        h = GetDlgItem(hdlg, IDC_COMBO_VIDEO);
 		                        SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
-					wcstombs(stransi, lptsTemp, sizeof(stransi));
+					wcstombs(stransi, lptsTemp, 512);
 					gfx = video_card_getid(stransi);
 		                        temp_gfxcard = video_new_to_old(gfx);
 
@@ -828,7 +828,7 @@ static BOOL CALLBACK win_settings_video_proc(HWND hdlg, UINT message, WPARAM wPa
 
 					h = GetDlgItem(hdlg, IDC_COMBO_VIDEO);
 		                        SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
-					wcstombs(stransi, lptsTemp, sizeof(stransi));
+					wcstombs(stransi, lptsTemp, 512);
 					deviceconfig_open(hdlg, (void *)video_card_getdevice(video_card_getid(stransi)));
 
 					free(stransi);
@@ -843,7 +843,7 @@ static BOOL CALLBACK win_settings_video_proc(HWND hdlg, UINT message, WPARAM wPa
 
                         h = GetDlgItem(hdlg, IDC_COMBO_VIDEO);
                         SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
-			wcstombs(stransi, lptsTemp, sizeof(stransi));
+			wcstombs(stransi, lptsTemp, 512);
                         temp_gfxcard = video_new_to_old(video_card_getid(stransi));
 
                         h = GetDlgItem(hdlg, IDC_COMBO_VIDEO_SPEED);
@@ -2436,7 +2436,7 @@ static void get_edit_box_contents(HWND hdlg, int id, uint64_t *val)
 
 	h = GetDlgItem(hdlg, id);
 	SendMessage(h, WM_GETTEXT, 255, (LPARAM) szText);
-	wcstombs(stransi, szText, sizeof(stransi));
+	wcstombs(stransi, szText, 256);
 	sscanf(stransi, "%" PRIu64, val);
 }
 
