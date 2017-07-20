@@ -1610,7 +1610,7 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
                 return;
         }
 
-        if ((wx!=xsize || wy!=ysize) && !vid_resize)
+        if (((wx!=xsize) || ((wy + 1)!=ysize)) && !vid_resize)
         {
                 xsize=wx;
                 ysize=wy+1;
