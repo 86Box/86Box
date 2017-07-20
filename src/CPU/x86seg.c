@@ -2197,14 +2197,17 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                 if (optype==OPTYPE_INT || optype==CALL)
                 {
                         writememl(base,0,tr.seg);
-                        new_flags|=NT_FLAG;
+                        if (cpu_state.abrt)
+                                return;
                 }
-                if (cpu_state.abrt) return;
 
                 new_cr3=readmeml(base,0x1C);
                 new_pc=readmeml(base,0x20);
                 new_flags=readmeml(base,0x24);
                 
+                if (optype == OPTYPE_INT || optype == CALL)
+                        new_flags |= NT_FLAG;                
+
                 new_eax=readmeml(base,0x28);
                 new_ecx=readmeml(base,0x2C);
                 new_edx=readmeml(base,0x30);
@@ -2383,13 +2386,16 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                 if (optype==OPTYPE_INT || optype==CALL)
                 {
                         writememw(base,0,tr.seg);
-                        new_flags|=NT_FLAG;
+                        if (cpu_state.abrt)
+                                return;
                 }
-                if (cpu_state.abrt) return;
                 
                 new_pc=readmemw(base,0x0E);
                 new_flags=readmemw(base,0x10);
                 
+                if (optype == OPTYPE_INT || optype == CALL)
+                        new_flags |= NT_FLAG;
+
                 new_eax=readmemw(base,0x12);
                 new_ecx=readmemw(base,0x14);
                 new_edx=readmemw(base,0x16);
