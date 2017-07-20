@@ -985,7 +985,7 @@ int image_open(uint8_t id, wchar_t *fn)
 	}
 
         cdimg[id] = new CDROM_Interface_Image();
-	wcstombs(afn, fn, (wcslen(fn) << 1) + 2);
+	wcstombs(afn, fn, sizeof(afn));
         if (!cdimg[id]->SetDevice(afn, false))
         {
                 image_close(id);

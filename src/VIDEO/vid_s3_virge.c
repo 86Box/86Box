@@ -4034,7 +4034,7 @@ static void *s3_virge_375_4_init()
 static void s3_virge_close(void *p)
 {
         virge_t *virge = (virge_t *)p;
-#ifndef RELEASE_BUILD
+#if 0
         FILE *f = fopen("vram.dmp", "wb");
         fwrite(virge->svga.vram, 4 << 20, 1, f);
         fclose(f);

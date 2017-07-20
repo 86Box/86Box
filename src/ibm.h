@@ -374,7 +374,7 @@ extern int pic_intpending;
 
 
 extern int disctime;
-extern wchar_t discfns[4][256];
+extern wchar_t discfns[4][512];
 extern int driveempty[4];
 
 #define MDA ((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_HERCULESPLUS || gfxcard==GFX_INCOLOR || gfxcard==GFX_GENIUS) && (romset<ROM_TANDY || romset>=ROM_IBMAT))
@@ -737,7 +737,6 @@ extern int serial_enabled[2];
 extern int lpt_enabled, bugger_enabled;
 
 extern int invert_display;
-extern int video_grayscale;
 
 uint32_t svga_color_transform(uint32_t color);
 
