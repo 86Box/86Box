@@ -129,7 +129,7 @@ typedef struct riva128_t
 
 	struct
 	{
-		uint32_t boot0;
+		uint32_t boot_0;
 	} pextdev;
 
 	struct
@@ -986,17 +986,58 @@ static uint8_t riva128_pextdev_read(uint32_t addr, void *p)
 
 	//pclog("RIVA 128 PEXTDEV read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
 
+	//For NV3, we give it PCI 66MHz, card mode, PCI bus type, 13.5MHz crystal, no TV encoder, and PCI 2.1.
+	//For NV4, we give it normal PCI line polarity, card mode, 13.5 MHz crystal, no TV encoder, and PCI bus type
+
 	switch(addr)
 	{
 	case 0x101000:
-		ret = 0x9e;
+		switch(riva128->card_id)
+		{
+		case 0x03:
+			ret = 0x13;
+			break;
+		case 0x04:
+			ret = 0x83;
+			break;
+		}
 		break;
 	case 0x101001:
-		ret = 0x01;
+		switch(riva128->card_id)
+		{
+		case 0x03:
+			if(!riva128->is_nv3t) ret = 0x02;
+			else ret = 0x00;
+			break;
+		}
+		case 0x04:
+			//Bits 12-13 of the NV4+ strap set 0 configure the GPU's PCI device ID.
+			ret = (riva128->pextdev.boot_0 & 0x80000000) ? (0x8f | ((riva128->pextdev.boot_0 >> 8) & 0x30)) : 0x8f;
+			break;
+		}
+		break;
 		break;
 	}
 
 	return ret;
+}
+
+static void riva128_pextdev_write(uint32_t addr, uint32_t val, void *p)
+{
+	riva128_t *riva128 = (riva128_t *)p;
+	//pclog("RIVA 128 PEXTDEV write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
+
+	switch(addr)
+	{
+	case 0x101000:
+		riva128->pextdev.boot_0 = val;
+		if((val & 0x80000000) && ((riva128->card_id == 0x05) || (riva128->card_id == 0x10) || (riva128->card_id == 0x11) || (riva128->card_id == 0x15)
+		|| (riva128->card_id == 0x1a)))
+		{
+			riva128->device_id = (riva128->device_id & 0xfffc) | ((val >> 12) & 3);
+		}
+		break;
+	}
 }
 
 static void rivatnt_pgraph_ctx_switch(void *p)
@@ -1952,6 +1993,7 @@ static void riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 	if((addr >= 0x002000) && (addr <= 0x002fff)) riva128_pfifo_write(addr, val, riva128);
 	if((addr >= 0x009000) && (addr <= 0x009fff)) riva128_ptimer_write(addr, val, riva128);
 	if((addr >= 0x100000) && (addr <= 0x100fff)) riva128_pfb_write(addr, val, riva128);
+	if((addr >= 0x101000) && (addr <= 0x101fff)) riva128_pextdev_write(addr, val, riva128);
 	if((addr >= 0x400000) && (addr <= 0x400fff)) riva128_pgraph_write(addr, val, riva128);
 	if((addr >= 0x680000) && (addr <= 0x680fff)) riva128_pramdac_write(addr, val, riva128);
 	if((addr >= 0x800000) && (addr <= 0xffffff)) riva128_user_write(addr, val, riva128);
