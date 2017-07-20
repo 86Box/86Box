@@ -426,7 +426,6 @@ void loadseg(uint16_t seg, x86seg *s)
                 if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
                         cpu_cur_status |= CPU_STATUS_FLATDS;
                 else
-
                        cpu_cur_status &= ~CPU_STATUS_FLATDS;
         }
         if (s == &_ss)
@@ -625,6 +624,7 @@ void loadcsjmp(uint16_t seg, uint32_t oxpc)
                 {
                         if (!(segdat[2]&0x8000))
                         {
+                                x86np("Load CS JMP system selector not present\n", seg & 0xfffc);
                                 return;
                         }
                         type=segdat[2]&0xF00;
@@ -637,14 +637,12 @@ void loadcsjmp(uint16_t seg, uint32_t oxpc)
                                 cgate32=(type&0x800);
                                 cgate16=!cgate32;
                                 oldcs=CS;
-                                cpu_state.oldpc=cpu_state.pc;
-#if 0
+                                cpu_state.oldpc = cpu_state.pc;
                                 if ((DPL < CPL) || (DPL < (seg&3)))
                                 {
                                         x86gpf(NULL,seg&~3);
                                         return;
                                 }
-#endif
                                 if (DPL < CPL)
                                 {
                                         x86gpf("loadcsjmp(): ex DPL < CPL",seg&~3);
@@ -901,7 +899,7 @@ void loadcscall(uint16_t seg)
                         }
                         if (!(segdat[2]&0x8000))
                         {
-                                x86ss("Load CS call not present", seg & 0xfffc);
+                                x86np("Load CS call not present", seg & 0xfffc);
                                 return;
                         }
                         set_use32(segdat[3]&0x40);
@@ -939,7 +937,7 @@ void loadcscall(uint16_t seg)
                                 cgate16=!cgate32;
                                 oldcs=CS;
                                 count=segdat[2]&31;
-                                if ((DPL < CPL))
+                                if (DPL < CPL)
                                 {
                                         x86gpf("loadcscall(): ex DPL < CPL",seg&~3);
                                         return;
@@ -1074,7 +1072,7 @@ void loadcscall(uint16_t seg)
                                                 }
                                                 if (!(segdat2[2]&0x8000))
                                                 {
-                                                        x86np("Call gate loading SS not present\n", newss & 0xfffc);
+                                                        x86ss("Call gate loading SS not present\n", newss & 0xfffc);
                                                         return;
                                                 }
                                                 if (!stack32) oldsp &= 0xFFFF;
@@ -1483,7 +1481,7 @@ void pmodeint(int num, int soft)
         uint32_t oldss,oldsp;
         int type;
         uint32_t newsp;
-        uint16_t seg = ds;
+        uint16_t seg = 0;
         int new_cpl;
         
         if (eflags&VM_FLAG && IOPL!=3 && soft)
@@ -1865,7 +1863,7 @@ void pmodeiret(int is32)
                 segdat[1]=readmemw(0,addr+2);
                 segdat[2]=readmemw(0,addr+4);
                 segdat[3]=readmemw(0,addr+6);
-                taskswitch286(seg,segdat,0);
+                taskswitch286(seg,segdat,segdat[2] & 0x800);
                 cpl_override=0;
                 return;
         }

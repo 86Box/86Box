@@ -366,7 +366,9 @@ void initmodules(void)
 	/* Initialize modules. */
 	network_init();
         mouse_init();
+#ifdef WALTJE
 	serial_init();
+#endif
 	disc_random_init();
 
         joystick_init();
@@ -512,6 +514,9 @@ void resetpchard_init(void)
         fdc_init();
 	disc_reset();
 
+#ifndef WALTJE
+	serial_init();
+#endif
         model_init();
         video_init();
         speaker_init();        

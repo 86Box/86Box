@@ -8,7 +8,7 @@
 #include "sound_wss.h"*/
 #include "timer.h"
 
-#define TIMERS_MAX 32
+#define TIMERS_MAX 64
 
 int TIMER_USEC;
 

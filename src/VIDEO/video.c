@@ -643,6 +643,8 @@ void video_wait_for_buffer()
 
 void video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
+        if (h <= 0)
+                return;
         video_wait_for_blit();
         blit_data.busy = 1;
         blit_data.buffer_in_use = 1;
@@ -658,6 +660,8 @@ void video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 
 void video_blit_memtoscreen_8(int x, int y, int w, int h)
 {
+        if (h <= 0)
+                return;
         video_wait_for_blit();
         blit_data.busy = 1;
         blit_data.x = x;
@@ -710,7 +714,7 @@ void take_screenshot()
 	info = localtime(&now);
 	memset(screenshot_fn, 0, 8192);
 	memset(screenshot_fn_partial, 0, 4096);
-	memset(screenshot_path, 0, 4096);
+	memset(screenshot_path, 0, 8192);
 	pclog("Video API is: %i\n", vid_api);
 	append_filename_w(screenshot_path, pcempath, L"screenshots", 4095);
 	if (!DirectoryExists(screenshot_path))

@@ -97,8 +97,8 @@ int loadbios()
         FILE *f=NULL,*ff=NULL;
         int c;
         
-        loadfont(L"roms/graphics/mda/mda.rom", 0);
-	loadfont(L"roms/graphics/wyse700/wy700.rom", 3);
+        loadfont(L"roms/video/mda/mda.rom", 0);
+	loadfont(L"roms/video/wyse700/wy700.rom", 3);
 
         biosmask = 0xffff;
 
@@ -217,22 +217,23 @@ int loadbios()
                 return 1;
 
                 case ROM_PORTABLEII:
-                f = romfopen(L"roms/machines/portableii/62x0820.u27", L"rb");
-                ff  =romfopen(L"roms/machines/portableii/62x0821.u47", L"rb");
+                f = romfopen(L"roms/machines/portableii/106438-001.BIN", L"rb");
+                ff  =romfopen(L"roms/machines/portableii/106437-001.BIN", L"rb");
                 if (!f || !ff) break;
-                for (c=0x0000;c<0x10000;c+=2)
+                for (c=0x0000;c<0x8000;c+=2)
                 {
                         rom[c]=getc(f);
                         rom[c+1]=getc(ff);
                 }
                 fclose(ff);
                 fclose(f);
+				biosmask = 0x7fff;
                 return 1;
 				
                 case ROM_PORTABLEIII:
                 case ROM_PORTABLEIII386:
-                f = romfopen(L"roms/machines/portableiii/62x0820.u27", L"rb");
-                ff  =romfopen(L"roms/machines/portableiii/62x0821.u47", L"rb");
+                f = romfopen(L"roms/machines/portableiii/109738-002.BIN", L"rb");
+                ff  =romfopen(L"roms/machines/portableiii/109737-002.BIN", L"rb");
                 if (!f || !ff) break;
                 for (c=0x0000;c<0x10000;c+=2)
                 {
@@ -2179,7 +2180,12 @@ void mem_init()
 	if (mem_size > 768)
 		mem_mapping_add(&ram_mid_mapping,   0xc0000, 0x40000, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + 0xc0000,  MEM_MAPPING_INTERNAL, NULL);
  
-        mem_mapping_add(&romext_mapping,  0xc8000, 0x08000, mem_read_romext, mem_read_romextw, mem_read_romextl, NULL, NULL, NULL,   romext, 0, NULL);
+        if (romset == ROM_IBMPS1_2011)
+                mem_mapping_add(&romext_mapping,  0xc8000, 0x08000, mem_read_romext, mem_read_romextw, mem_read_romextl, NULL, NULL, NULL,   romext, 0, NULL);
+
+        mem_a20_key = 2;
+	mem_a20_alt = 0;
+        mem_a20_recalc();
 }
 
 static void mem_remap_top(int max_size)
@@ -2274,6 +2280,7 @@ void mem_resize()
                 mem_mapping_add(&romext_mapping,  0xc8000, 0x08000, mem_read_romext, mem_read_romextw, mem_read_romextl, NULL, NULL, NULL,   romext, 0, NULL);
 
         mem_a20_key = 2;
+	mem_a20_alt = 0;
         mem_a20_recalc();
 }
 
@@ -2316,16 +2323,19 @@ static uint8_t port_92_read(uint16_t port, void *priv)
 
 static void port_92_write(uint16_t port, uint8_t val, void *priv)
 {
-	if (val & 1)
+	if ((mem_a20_alt ^ val) & 2)
+	{
+		mem_a20_alt = val & 2;
+		mem_a20_recalc();
+	}
+
+	if ((~port_92_reg & val) & 1)
 	{
 		softresetx86();
 		cpu_set_edx();
 	}
 
-	port_92_reg = val & ~-1;
-
-	mem_a20_alt = val & 2;
-	mem_a20_recalc();
+	port_92_reg = val;
 }
 
 void port_92_clear_reset()
