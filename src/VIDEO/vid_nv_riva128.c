@@ -1010,7 +1010,7 @@ static uint8_t riva128_pextdev_read(uint32_t addr, void *p)
 			else ret = 0x00;
 			break;
 		}
-		case 0x04:
+		case 0x04: case 0x05:
 			//Bits 12-13 of the NV4+ strap set 0 configure the GPU's PCI device ID.
 			ret = (riva128->pextdev.boot_0 & 0x80000000) ? (0x8f | ((riva128->pextdev.boot_0 >> 8) & 0x30)) : 0x8f;
 			break;
