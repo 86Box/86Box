@@ -225,7 +225,7 @@ int config_load(wchar_t *fn)
                         strncpy(new_entry->name, ename, 256);
 			memcpy(new_entry->wdata, &cfgbuffer[data_pos], 512);
 			new_entry->wdata[255] = L'\0';
-			wcstombs(new_entry->data, new_entry->wdata, 512);
+			wcstombs(new_entry->data, new_entry->wdata, sizeof(new_entry->data));
 			new_entry->data[255] = '\0';
                         list_add(&new_entry->list, &current_section->entry_head);
                 }

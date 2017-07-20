@@ -132,6 +132,7 @@ endif
 
 
 ifeq ($(WALTJE), y)
+OPENDIR = win_opendir.o
 SERIAL	= serial.o
 WSERIAL = win_serial.o
 WFLAGS	= -DWALTJE
@@ -241,7 +242,7 @@ VIDOBJ	= video.o \
 WINOBJ	= win.o \
 	  win_ddraw.o win_ddraw_fs.o win_ddraw_screenshot.o \
 	  win_d3d.o win_d3d_fs.o \
-	  win_language.o win_status.o win_opendir.o win_dynld.o \
+	  win_language.o win_status.o $(OPENDIR) win_dynld.o \
 	  win_video.o $(WSERIAL) win_keyboard.o win_mouse.o \
 	  win_iodev.o win_joystick.o win_midi.o \
 	  win_settings.o win_deviceconfig.o win_joystickconfig.o \
