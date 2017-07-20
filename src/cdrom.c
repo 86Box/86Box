@@ -2400,7 +2400,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 			break;
 
 		case GPCMD_MECHANISM_STATUS:
-			len = (cdbufferb[7] << 16) | (cdbufferb[8] << 8) | cdbufferb[9];
+			len = (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
 
  			memset(cdbufferb, 0, 8);
 			cdbufferb[5] = 1;
