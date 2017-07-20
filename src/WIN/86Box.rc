@@ -83,11 +83,11 @@ BEGIN
             MENUITEM "E&GA/(S)VGA overscan",        IDM_VID_OVERSCAN
             POPUP "VGA screen &type"
             BEGIN
-                MENUITEM "RGB &Color",				IDM_VID_GRAY_RGB
-                MENUITEM "&RGB Grayscale",			IDM_VID_GRAY_MONO
-                MENUITEM "&Amber monitor",			IDM_VID_GRAY_AMBER
-                MENUITEM "&Green monitor",			IDM_VID_GRAY_GREEN
-                MENUITEM "&White monitor",			IDM_VID_GRAY_WHITE
+                MENUITEM "RGB &Color",              IDM_VID_GRAY_RGB
+                MENUITEM "&RGB Grayscale",          IDM_VID_GRAY_MONO
+                MENUITEM "&Amber monitor",          IDM_VID_GRAY_AMBER
+                MENUITEM "&Green monitor",          IDM_VID_GRAY_GREEN
+                MENUITEM "&White monitor",          IDM_VID_GRAY_WHITE
             END
             POPUP "Grayscale &conversion type"
             BEGIN
@@ -931,7 +931,7 @@ BEGIN
             VALUE "FileDescription", "86Box - an emulator for X86-based systems\0"
             VALUE "FileVersion", "2.00\0"
             VALUE "InternalName", "86Box\0"
-            VALUE "LegalCopyright", "Copyright � SoftHistory, Sarah Walker, 2007-2017, Released under the GNU GPL v2\0"
+            VALUE "LegalCopyright", "Copyright (C)SoftHistory, Sarah Walker, 2007-2017, Released under the GNU GPL v2\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "86Box.exe\0"
             VALUE "PrivateBuild", "\0"
