@@ -17,6 +17,7 @@
 # define EMU_SERIAL_H
 
 
+#ifdef WALTJE
 /* Default settings for the standard ports. */
 #define SERIAL1_ADDR		0x03f8
 #define SERIAL1_IRQ		4
@@ -70,6 +71,47 @@ extern SERIAL	*serial_attach(int, void *, void *);
 extern int	serial_link(int, char *);
 
 extern void	serial_write_fifo(SERIAL *, uint8_t, int);
+
+
+#else
+
+
+void serial_remove(int port);
+void serial_setup(int port, uint16_t addr, int irq);
+void serial_init(void);
+void serial_reset();
+
+struct SERIAL;
+
+typedef struct
+{
+        uint8_t lsr,thr,mctrl,rcr,iir,ier,lcr,msr;
+        uint8_t dlab1,dlab2;
+        uint8_t dat;
+        uint8_t int_status;
+        uint8_t scratch;
+        uint8_t fcr;
+        
+        int irq;
+
+        void (*rcr_callback)(struct SERIAL *serial, void *p);
+        void *rcr_callback_p;
+        uint8_t fifo[256];
+        int fifo_read, fifo_write;
+        
+        int recieve_delay;
+} SERIAL;
+
+void serial_write_fifo(SERIAL *serial, uint8_t dat);
+
+extern SERIAL serial1, serial2;
+
+/* Default settings for the standard ports. */
+#define SERIAL1_ADDR		0x03f8
+#define SERIAL1_IRQ		4
+#define SERIAL2_ADDR		0x02f8
+#define SERIAL2_IRQ		3
+#endif
 
 
 #endif	/*EMU_SERIAL_H*/

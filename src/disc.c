@@ -32,7 +32,7 @@
 #include "timer.h"
 
 
-wchar_t discfns[4][256];
+wchar_t discfns[4][512];
 extern int driveempty[4];
 
 int disc_poll_time[FDD_NUM] = { 16, 16, 16, 16 };
@@ -157,7 +157,7 @@ void disc_close(int drive)
         if (loaders[driveloaders[drive]].close) loaders[driveloaders[drive]].close(drive);
         drive_empty[drive] = 1;
 	fdd_set_head(real_drive(drive), 0);
-        discfns[drive][0] = L'\0';
+        discfns[drive][0] = 0;
         drives[drive].hole = NULL;
         drives[drive].poll = NULL;
         drives[drive].seek = NULL;

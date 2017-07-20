@@ -1532,6 +1532,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
 	CheckMenuItem(menu, IDM_VID_SCALE_1X + scale, MF_CHECKED);
 
 	CheckMenuItem(menu, IDM_VID_CGACON, vid_cga_contrast ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAYCT_601 + video_graytype, MF_CHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAY_RGB + video_grayscale, MF_CHECKED);
 
         d=romset;
         for (c=0;c<ROM_MAX;c++)
@@ -1968,6 +1970,28 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					CheckMenuItem(menu, IDM_VID_CGACON, vid_cga_contrast ? MF_CHECKED : MF_UNCHECKED);
 					cgapal_rebuild();
 					saveconfig();
+					break;
+
+				case IDM_VID_GRAYCT_601:
+				case IDM_VID_GRAYCT_709:
+				case IDM_VID_GRAYCT_AVE:
+					CheckMenuItem(hmenu, IDM_VID_GRAYCT_601 + video_graytype, MF_UNCHECKED);
+					video_graytype = LOWORD(wParam) - IDM_VID_GRAYCT_601;
+					CheckMenuItem(hmenu, IDM_VID_GRAYCT_601 + video_graytype, MF_CHECKED);
+					saveconfig();
+					device_force_redraw();
+					break;
+
+				case IDM_VID_GRAY_RGB:
+				case IDM_VID_GRAY_MONO:
+				case IDM_VID_GRAY_AMBER:
+				case IDM_VID_GRAY_GREEN:
+				case IDM_VID_GRAY_WHITE:
+					CheckMenuItem(hmenu, IDM_VID_GRAY_RGB + video_grayscale, MF_UNCHECKED);
+					video_grayscale = LOWORD(wParam) - IDM_VID_GRAY_RGB;
+					CheckMenuItem(hmenu, IDM_VID_GRAY_RGB + video_grayscale, MF_CHECKED);
+					saveconfig();
+					device_force_redraw();
 					break;
 
 #ifdef ENABLE_LOG_TOGGLES

@@ -204,7 +204,7 @@ void gameport_update_joystick_type()
 
 void *gameport_init()
 {
-        gameport_t *gameport;
+        gameport_t *gameport = NULL;
 
 	if (joystick_type == 7)
 	{

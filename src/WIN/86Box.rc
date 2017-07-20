@@ -46,7 +46,7 @@ BEGIN
     BEGIN
         MENUITEM "&Hard Reset",                 IDM_ACTION_HRESET
         MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",     IDM_ACTION_RESET_CAD
-		MENUITEM "&Ctrl+Alt+Esc",				IDM_ACTION_CTRL_ALT_ESC
+		MENUITEM "Ctrl+Alt+&Esc",				IDM_ACTION_CTRL_ALT_ESC
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       IDM_ACTION_EXIT
     END
@@ -81,6 +81,20 @@ BEGIN
         BEGIN
             MENUITEM "&Inverted VGA monitor",       IDM_VID_INVERT
             MENUITEM "E&GA/(S)VGA overscan",        IDM_VID_OVERSCAN
+            POPUP "VGA screen &type"
+            BEGIN
+                MENUITEM "RGB &Color",				IDM_VID_GRAY_RGB
+                MENUITEM "&RGB Grayscale",			IDM_VID_GRAY_MONO
+                MENUITEM "&Amber monitor",			IDM_VID_GRAY_AMBER
+                MENUITEM "&Green monitor",			IDM_VID_GRAY_GREEN
+                MENUITEM "&White monitor",			IDM_VID_GRAY_WHITE
+            END
+            POPUP "Grayscale &conversion type"
+            BEGIN
+                MENUITEM "BT&601 (NTSC/PAL)",       IDM_VID_GRAYCT_601
+                MENUITEM "BT&709 (HDTV)",           IDM_VID_GRAYCT_709
+                MENUITEM "&Average",                IDM_VID_GRAYCT_AVE
+            END
         END
         MENUITEM SEPARATOR
         MENUITEM "F&orce 4:3 display ratio",    IDM_VID_FORCE43
@@ -248,7 +262,7 @@ BEGIN
     LTEXT           "MB",IDT_1705,123,64,10,10
     LTEXT           "Memory:",IDT_1706,7,64,30,10
     LTEXT           "NVR Path:",IDT_1700,7,83,60,10
-    EDITTEXT        IDC_EDIT_NVR_PATH,71,82,138,12
+    EDITTEXT        IDC_EDIT_NVR_PATH,71,82,138,12,ES_AUTOHSCROLL
     PUSHBUTTON      "&Specify...",IDC_BUTTON_NVR_PATH,214,82,46,12
     CONTROL         "Dynamic Recompiler",IDC_CHECK_DYNAREC,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,100,94,10
@@ -279,7 +293,7 @@ STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
     LTEXT           "Mouse :",IDT_1709,7,8,57,10
-    COMBOBOX        IDC_COMBO_MOUSE,71,7,189,120,CBS_DROPDOWN | WS_VSCROLL | 
+    COMBOBOX        IDC_COMBO_MOUSE,71,7,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
     LTEXT           "Joystick :",IDT_1710,7,26,58,10
     COMBOBOX        IDC_COMBO_JOYSTICK,71,25,189,120,CBS_DROPDOWNLIST | 
@@ -917,7 +931,7 @@ BEGIN
             VALUE "FileDescription", "86Box - an emulator for X86-based systems\0"
             VALUE "FileVersion", "2.00\0"
             VALUE "InternalName", "86Box\0"
-            VALUE "LegalCopyright", "Copyright © SoftHistory, Sarah Walker, 2007-2017, Released under the GNU GPL v2\0"
+            VALUE "LegalCopyright", "Copyright ï¿½ SoftHistory, Sarah Walker, 2007-2017, Released under the GNU GPL v2\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "86Box.exe\0"
             VALUE "PrivateBuild", "\0"

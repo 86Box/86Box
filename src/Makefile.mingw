@@ -129,6 +129,15 @@ PLATCG	= codegen_x86.o
 endif
 
 
+ifeq ($(WALTJE), y)
+SERIAL	= serial.o
+WSERIAL = win_serial.o
+WFLAGS	= -DWALTJE
+else
+SERIAL	= serial_old.o
+endif
+
+
 MAINOBJ	= pc.o config.o device.o timer.o dma.o io.o nmi.o pic.o \
 	  mca.o mcr.o pit.o ppi.o pci.o sio.o intel.o rom.o mem.o \
 	  memregs.o intel_flash.o rtc.o nvr.o ps2_nvr.o
@@ -151,7 +160,7 @@ SYSOBJ	= model.o \
 	  compaq.o laserxt.o jim.o \
 	  olivetti_m24.o ps1.o ps2.o ps2_mca.o \
 	  tandy_eeprom.o tandy_rom.o
-DEVOBJ	= bugger.o lpt.o serial.o \
+DEVOBJ	= bugger.o lpt.o $(SERIAL) \
 	    fdc37c665.o fdc37c669.o fdc37c932fr.o \
 	    pc87306.o sis85c471.o w83877f.o \
 	  keyboard.o \
@@ -232,7 +241,7 @@ WINOBJ	= win.o \
 	  win_ddraw.o win_ddraw_fs.o win_ddraw_screenshot.o \
 	  win_d3d.o win_d3d_fs.o \
 	  win_language.o win_status.o win_opendir.o win_dynld.o \
-	  win_video.o win_serial.o win_keyboard.o win_mouse.o \
+	  win_video.o $(WSERIAL) win_keyboard.o win_mouse.o \
 	  win_iodev.o win_joystick.o win_midi.o \
 	  win_settings.o win_deviceconfig.o win_joystickconfig.o \
 	  86Box.res
@@ -251,15 +260,15 @@ LIBS	= -mwindows \
 # Build rules.
 %.o:		%.c
 		@echo $<
-		@$(CC) $(CFLAGS) -c $<
+		@$(CC) $(CFLAGS) $(WFLAGS) -c $<
 
 %.o:		%.cc
 		@echo $<
-		@$(CPP) $(CFLAGS) -c $<
+		@$(CPP) $(CFLAGS) $(WFLAGS) -c $<
 
 %.o:		%.cpp
 		@echo $<
-		@$(CPP) $(CFLAGS) -c $<
+		@$(CPP) $(CFLAGS) $(WFLAGS) -c $<
 
 all:		$(PROG).exe pcap_if.exe
 

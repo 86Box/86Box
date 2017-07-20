@@ -494,6 +494,7 @@ void scat_init()
         scat_regs[SCAT_DRAM_CONFIGURATION] = cpu_waitstates == 1 ? 2 : 0x12;
         scat_regs[SCAT_EXTENDED_BOUNDARY] = 0;
         scat_regs[SCAT_EMS_CONTROL] = 0;
+	scat_port_92 = 0;
 
         mem_mapping_set_addr(&ram_low_mapping, 0, 0x40000);
 
