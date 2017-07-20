@@ -216,6 +216,7 @@ int loadbios()
                 fclose(f);
                 return 1;
 
+#if 0
                 case ROM_PORTABLEII:
                 f = romfopen(L"roms/machines/portableii/106438-001.BIN", L"rb");
                 ff  =romfopen(L"roms/machines/portableii/106437-001.BIN", L"rb");
@@ -243,6 +244,7 @@ int loadbios()
                 fclose(ff);
                 fclose(f);
                 return 1;				
+#endif
 				
                 case ROM_GENXT:
                 f=romfopen(L"roms/machines/genxt/pcxt.rom",L"rb");

@@ -165,8 +165,10 @@ MODEL models[] =
 
         {"[286] AMI 286 clone",		ROM_AMI286,		"ami286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				512,16384, 128, 127,        at_neat_init, NULL			},
         {"[286] Award 286 clone",	ROM_AWARD286,		"award286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				512,16384, 128, 127,        at_scat_init, NULL			},
+#if 0
         {"[286] Compaq Portable II",	ROM_PORTABLEII,		"portableii",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT,						  1,   15,   1,  63,             at_init, NULL			},
         {"[286] Compaq Portable III",	ROM_PORTABLEIII,	"portableiii",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT,						  1,   15,   1,  63,             at_init, NULL			},
+#endif
         {"[286] Commodore PC 30 III",	ROM_CMDPC30,		"cmdpc30",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				640,16384, 128, 127,        cmdpc30_init, NULL			},
         {"[286] Hyundai Super-286TR",	ROM_SUPER286TR,		"super286tr",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				512,16384, 128, 127,        at_scat_init, NULL			},
         {"[286] IBM AT",		ROM_IBMAT,		"ibmat",		{{"",      cpus_ibmat},       {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT,						256,15872, 128,  63,         ibm_at_init, NULL			},
@@ -185,7 +187,9 @@ MODEL models[] =
         {"[386DX] AMI 386DX clone",	ROM_AMI386DX_OPTI495,	"ami386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,     at_opti495_init, NULL			},
         {"[386DX] Amstrad MegaPC 386DX",ROM_MEGAPCDX,		"megapcdx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 1, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,			  1,   16,   1, 127,     at_wd76c10_init, NULL			},
         {"[386DX] Compaq Deskpro 386",	ROM_DESKPRO_386,	"dekspro386",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT,						  1,   15,   1,  63,     deskpro386_init, NULL			},
+#if 0
         {"[386DX] Compaq Portable III 386",ROM_PORTABLEIII386,	"portableiii386",	{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT,						  1,   15,   1,  63,             at_init, NULL			},
+#endif
         {"[386DX] IBM PS/2 Model 80",	ROM_IBMPS2_M80,		"ibmps2_m80",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 1, MODEL_AT | MODEL_PS2 | MODEL_PS2_HDD | MODEL_MCA,	  1,   12,   1,  63,   ps2_model_80_init, NULL			},
         {"[386DX] MR 386DX clone",	ROM_MR386DX_OPTI495,	"mr386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,     at_opti495_init, NULL			},
 
