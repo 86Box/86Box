@@ -779,7 +779,6 @@ void at_ap53_init(void)
         i430hx_init();
         piix_init(7, 0x11, 0x12, 0x13, 0x14);
         fdc37c669_init();
-        acerm3a_io_init();
         device_add(&intel_flash_bxt_device);
 }
 
@@ -796,14 +795,12 @@ void at_p55t2s_init(void)
         i430hx_init();
         piix_init(7, 0x12, 0x11, 0x14, 0x13);
         pc87306_init();
-        acerm3a_io_init();
         device_add(&intel_flash_bxt_device);
 }
 
 void at_acerm3a_init(void)
 {
         at_ide_init();
-	memregs_init();
 	powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
         pci_slot(0xc);
@@ -813,14 +810,12 @@ void at_acerm3a_init(void)
         i430hx_init();
         piix3_init(7, 0xc, 0xd, 0xe, 0xf);
         fdc37c932fr_init();
-        acerm3a_io_init();
         device_add(&intel_flash_bxb_device);
 }
 
 void at_acerv35n_init(void)
 {
         at_ide_init();
-	memregs_init();
 	powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
         pci_slot(0x11);
@@ -830,7 +825,6 @@ void at_acerv35n_init(void)
         i430hx_init();
         piix3_init(7, 0x11, 0x12, 0x13, 0x14);
         fdc37c932fr_init();
-        acerm3a_io_init();
         device_add(&intel_flash_bxb_device);
 }
 
@@ -884,7 +878,6 @@ void at_p55tvp4_init(void)
 void at_p55va_init(void)
 {
         at_ide_init();
-	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
         pci_slot(8);
         pci_slot(9);

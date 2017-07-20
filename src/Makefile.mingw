@@ -159,7 +159,7 @@ SYSOBJ	= model.o \
 	  scat.o \
 	  sis496.o \
 	  wd76c10.o \
-	  acer386sx.o acerm3a.o amstrad.o \
+	  acer386sx.o amstrad.o \
 	  compaq.o laserxt.o jim.o \
 	  olivetti_m24.o ps1.o ps2.o ps2_mca.o \
 	  tandy_eeprom.o tandy_rom.o
