@@ -165,6 +165,8 @@ void updatewindowsize(int x, int y)
 	int temp_overscan_x = overscan_x;
 	int temp_overscan_y = overscan_y;
 
+	double dx, dy, dtx, dty;
+
         if (vid_resize) return;
 
 	if (x < 160)  x = 160;
@@ -182,30 +184,37 @@ void updatewindowsize(int x, int y)
 
 	if (force_43)
 	{
+		dx = (double) x;
+		dtx = (double) temp_overscan_x;
+
+		dy = (double) y;
+		dty = (double) temp_overscan_y;
+
 		/* Account for possible overscan. */
 		if (temp_overscan_y == 16)
 		{
 			/* CGA */
-			unscaled_size_y = ((int) (((double) (x - temp_overscan_x) / 4.0) * 3.0)) + temp_overscan_y;
+			dy = (((dx - dtx) / 4.0) * 3.0) + dty;
 		}
 		else if (temp_overscan_y < 16)
 		{
 			/* MDA/Hercules */
-			unscaled_size_y = ((int) (((double) (x) / 4.0) * 3.0));
+			dy = (x / 4.0) * 3.0;
 		}
 		else
 		{
 			if (enable_overscan)
 			{
 				/* EGA/(S)VGA with overscan */
-				unscaled_size_y = ((int) (((double) (x - temp_overscan_x) / 4.0) * 3.0)) + temp_overscan_y;
+				dy = (((dx - dtx) / 4.0) * 3.0) + dty;
 			}
 			else
 			{
 				/* EGA/(S)VGA without overscan */
-				unscaled_size_y = ((int) (((double) (x) / 4.0) * 3.0));
+				dy = (x / 4.0) * 3.0;
 			}
 		}
+		unscaled_size_y = (int) dy;
 	}
 	else
 	{
