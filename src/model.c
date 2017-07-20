@@ -777,7 +777,7 @@ void at_ap53_init(void)
         pci_slot(0x13);
         pci_slot(0x14);
         i430hx_init();
-        piix_init(7, 0x11, 0x12, 0x13, 0x14);
+        piix3_init(7, 0x11, 0x12, 0x13, 0x14);
         fdc37c669_init();
         device_add(&intel_flash_bxt_device);
 }
@@ -793,7 +793,7 @@ void at_p55t2s_init(void)
         pci_slot(0x14);
         pci_slot(0x13);
         i430hx_init();
-        piix_init(7, 0x12, 0x11, 0x14, 0x13);
+        piix3_init(7, 0x12, 0x11, 0x14, 0x13);
         pc87306_init();
         device_add(&intel_flash_bxt_device);
 }
