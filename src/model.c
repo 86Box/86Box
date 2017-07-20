@@ -179,6 +179,7 @@ MODEL models[] =
 
         {"[386SX] AMI 386SX clone",	ROM_AMI386SX,		"ami386",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				512,16384, 128, 127,    at_headland_init, NULL			},
         {"[386SX] Amstrad MegaPC",	ROM_MEGAPC,		"megapc",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 1, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,			  1,   16,   1, 127,     at_wd76c10_init, NULL			},
+        {"[386SX] Award 386SX clone",	ROM_AWARD386SX_OPTI495,	"award386sx",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,     at_opti495_init, NULL			},
         {"[386SX] DTK 386SX clone",	ROM_DTK386,		"dtk386",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				512,16384, 128, 127,        at_neat_init, NULL			},
         {"[386SX] IBM PS/1 model 2121",	ROM_IBMPS1_2121,	"ibmps1_2121",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 1, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,			  1,   16,   1, 127,      ps1_m2121_init, NULL			},
         {"[386SX] IBM PS/1 m.2121+ISA", ROM_IBMPS1_2121_ISA,	"ibmps1_2121_isa",	{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,			  1,   16,   1, 127,      ps1_m2121_init, NULL			},
@@ -186,6 +187,7 @@ MODEL models[] =
 
         {"[386DX] AMI 386DX clone",	ROM_AMI386DX_OPTI495,	"ami386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,     at_opti495_init, NULL			},
         {"[386DX] Amstrad MegaPC 386DX",ROM_MEGAPCDX,		"megapcdx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 1, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,			  1,   16,   1, 127,     at_wd76c10_init, NULL			},
+        {"[386DX] Award 386DX clone",	ROM_AWARD386DX_OPTI495,	"award386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,     at_opti495_init, NULL			},
         {"[386DX] Compaq Deskpro 386",	ROM_DESKPRO_386,	"dekspro386",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT,						  1,   15,   1,  63,     deskpro386_init, NULL			},
 #if 0
         {"[386DX] Compaq Portable III 386",ROM_PORTABLEIII386,	"portableiii386",	{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT,						  1,   15,   1,  63,             at_init, NULL			},
@@ -195,6 +197,7 @@ MODEL models[] =
 
         {"[486] AMI 486 clone",		ROM_AMI486,		"ami486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,     at_ali1429_init, NULL			},
         {"[486] AMI WinBIOS 486",	ROM_WIN486,		"win486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,     at_ali1429_init, NULL			},
+        {"[486] Award 486 clone",	ROM_AWARD486_OPTI495,	"award486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,     at_opti495_init, NULL			},
         {"[486] DTK PKM-0038S E-2",	ROM_DTK486,		"dtk486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,      at_dtk486_init, NULL			},
         {"[486] IBM PS/1 model 2133",	ROM_IBMPS1_2133,	"ibmps1_2133",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,			  1,   64,   1, 127,      ps1_m2133_init, NULL			},
         {"[486] Rise Computer R418",	ROM_R418,		"r418",			{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE | MODEL_PCI,			  1,   64,   1, 127,        at_r418_init, NULL			},

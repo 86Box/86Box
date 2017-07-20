@@ -428,10 +428,12 @@ enum
         ROM_REVENGE,
         ROM_IBMPS1_2011,
         ROM_DESKPRO_386,
-		ROM_PORTABLE,
-		ROM_PORTABLEII,
-		ROM_PORTABLEIII,
-		ROM_PORTABLEIII386, /* The original Compaq Portable III shipped with an Intel 80286 CPU, but later switched to a 386DX. */
+	ROM_PORTABLE,
+#if 0
+	ROM_PORTABLEII,
+	ROM_PORTABLEIII,
+	ROM_PORTABLEIII386, /* The original Compaq Portable III shipped with an Intel 80286 CPU, but later switched to a 386DX. */
+#endif
         ROM_IBMPS1_2121,
 
         ROM_AMI386DX_OPTI495,
@@ -468,6 +470,10 @@ enum
 
         ROM_SPC4200P,	/*Samsung SPC-4200P / SCAT / Phoenix BIOS*/
         ROM_SUPER286TR,	/*Hyundai Super-286TR / SCAT / Award BIOS*/
+
+        ROM_AWARD386SX_OPTI495,
+        ROM_AWARD386DX_OPTI495,
+        ROM_AWARD486_OPTI495,
 
         ROM_MEGAPCDX,	/*386DX mdoel of the Mega PC - Note by Tohka: The documentation (that I have in German) clearly says such a model exists.*/
         ROM_ZAPPA,	/*Intel Advanced/ZP / 430FX / AMI BIOS / National Semiconductors PC87306*/
