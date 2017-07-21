@@ -413,7 +413,7 @@ mouse_t mouse_msystems =
 {
 	"Mouse Systems Mouse (serial)",
 	"mssystems",
-	MOUSE_TYPE_MSYSTEMS,
+	MOUSE_TYPE_MSYSTEMS | MOUSE_TYPE_3BUTTON,
         mouse_serial_msystems_init,
         mouse_serial_close,
         mouse_serial_msystems_poll
