@@ -1,4 +1,4 @@
-/* Copyright holders: The DOSBox Team, SA1988
+/* Copyright holders: Sarah Walker, SA1988
    see COPYING for more details
 */
 #ifdef __cplusplus

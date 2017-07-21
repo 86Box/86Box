@@ -6,26 +6,19 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.1	2017/06/03
+ * Version:	@(#)scsi_disk.c	1.0.2	2017/06/16
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2017-2017 Miran Grca.
  */
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
-#define _GNU_SOURCE
-#include <inttypes.h>
-#include <sys/types.h>
-#include <errno.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <malloc.h>
 #include <stdint.h>
-#include <string.h>
+#include <stdio.h>
 
 #include "86box.h"
 #include "cdrom.h"
 #include "ibm.h"
+#include "hdd_image.h"
 #include "ide.h"
 #include "piix.h"
 #include "scsi.h"
@@ -213,278 +206,28 @@ void scsi_disk_insert(uint8_t id)
 	shdc[id].unit_attention = (hdc[id].bus == HDD_BUS_SCSI_REMOVABLE) ? 1 : 0;
 }
 
-static char empty_sector[512];
-static char *empty_sector_1mb;
-
 void scsi_loadhd(int scsi_id, int scsi_lun, int id)
 {
-	uint32_t sector_size = 512;
-	uint32_t zero = 0;
-	uint64_t signature = 0xD778A82044445459ll;
-	uint64_t full_size = 0;
-	uint64_t spt = 0, hpc = 0, tracks = 0;
-	int c;
-	uint64_t i = 0, s = 0, t = 0;
-	wchar_t *fn = hdc[id].fn;
+	int ret = 0;
 
-	memset(empty_sector, 0, sizeof(empty_sector));
+	ret = hdd_image_load(id);
 
-	shdc[id].base = 0;
-
-	if (shdf[id] != NULL)
+	if (!ret)
 	{
-		fclose(shdf[id]);
-		shdf[id] = NULL;
-	}
-
-	/* Try to open existing hard disk image */
-	if (fn[0] == '.')
-	{
-		scsi_hd_log("File name starts with .\n");
-		memset(hdc[id].fn, 0, sizeof(hdc[id].fn));
 		if (hdc[id].bus != HDD_BUS_SCSI_REMOVABLE)
 		{
 			scsi_hard_disks[scsi_id][scsi_lun] = 0xff;
 		}
-		else
-		{
-			shdc[id].cdb_len = 12;
-		}
-		return;
-	}
-	shdf[id] = _wfopen(fn, L"rb+");
-	if (shdf[id] == NULL)
-	{
-		/* Failed to open existing hard disk image */
-		if (errno == ENOENT)
-		{
-			/* Failed because it does not exist,
-			   so try to create new file */
-			if (hdc[id].wp)
-			{
-				scsi_hd_log("A write-protected image must exist\n");
-				goto scsi_hd_load_error;
-			}
-
-			shdf[id] = _wfopen(fn, L"wb+");
-			if (shdf[id] == NULL)
-			{
-scsi_hd_load_error:
-				scsi_hd_log("Unable to open image\n");
-				memset(hdc[id].fn, 0, sizeof(hdc[id].fn));
-				if (hdc[id].bus != HDD_BUS_SCSI_REMOVABLE)
-				{
-					scsi_hard_disks[scsi_id][scsi_lun] = 0xff;
-				}
-				else
-				{
-					shdc[id].cdb_len = 12;
-				}
-				return;
-			}
-			else
-			{
-				memset(&(shdc[id]), 0, sizeof(scsi_hard_disk_t));
-				if (image_is_hdi(fn))
-				{
-					full_size = hdc[id].spt * hdc[id].hpc * hdc[id].tracks * 512;
-					shdc[id].base = 0x1000;
-					fwrite(&zero, 1, 4, shdf[id]);
-					fwrite(&zero, 1, 4, shdf[id]);
-					fwrite(&(shdc[id].base), 1, 4, shdf[id]);
-					fwrite(&full_size, 1, 4, shdf[id]);
-					fwrite(&sector_size, 1, 4, shdf[id]);
-					fwrite(&(hdc[id].spt), 1, 4, shdf[id]);
-					fwrite(&(hdc[id].hpc), 1, 4, shdf[id]);
-					fwrite(&(hdc[id].tracks), 1, 4, shdf[id]);
-					for (c = 0; c < 0x3f8; c++)
-					{
-						fwrite(&zero, 1, 4, shdf[id]);
-					}
-				}
-				else if (image_is_hdx(fn, 0))
-				{
-					full_size = hdc[id].spt * hdc[id].hpc * hdc[id].tracks * 512;
-					shdc[id].base = 0x28;
-					fwrite(&signature, 1, 8, shdf[id]);
-					fwrite(&full_size, 1, 8, shdf[id]);
-					fwrite(&sector_size, 1, 4, shdf[id]);
-					fwrite(&(hdc[id].spt), 1, 4, shdf[id]);
-					fwrite(&(hdc[id].hpc), 1, 4, shdf[id]);
-					fwrite(&(hdc[id].tracks), 1, 4, shdf[id]);
-					fwrite(&zero, 1, 4, shdf[id]);
-					fwrite(&zero, 1, 4, shdf[id]);
-				}
-				shdc[id].last_sector = 0;
-				shdc[id].cdb_len = 12;
-			}
-
-			scsi_disk_insert(id);
-
-			s = full_size = hdc[id].spt * hdc[id].hpc * hdc[id].tracks * 512;
-
-			goto prepare_new_hard_disk;
-		}
-		else
-		{
-			/* Failed for another reason */
-			scsi_hd_log("Failed for another reason\n");
-			if (hdc[id].bus != HDD_BUS_SCSI_REMOVABLE)
-			{
-				scsi_hard_disks[scsi_id][scsi_lun] = 0xff;
-			}
-			else
-			{
-				memset(hdc[id].fn, 0, sizeof(hdc[id].fn));
-				shdc[id].cdb_len = 12;
-			}
-			return;
-		}
 	}
 	else
 	{
-		memset(&(shdc[id]), 0, sizeof(scsi_hard_disk_t));
-		if (image_is_hdi(fn))
-		{
-			fseeko64(shdf[id], 0x8, SEEK_SET);
-			fread(&(shdc[id].base), 1, 4, shdf[id]);
-			fseeko64(shdf[id], 0xC, SEEK_SET);
-			full_size = 0;
-			fread(&full_size, 1, 4, shdf[id]);
-			fseeko64(shdf[id], 0x10, SEEK_SET);
-			fread(&sector_size, 1, 4, shdf[id]);
-			if (sector_size != 512)
-			{
-				/* Sector size is not 512 */
-				scsi_hd_log("HDI: Sector size is not 512\n");
-				fclose(shdf[id]);
-				if (hdc[id].bus != HDD_BUS_SCSI_REMOVABLE)
-				{
-					scsi_hard_disks[scsi_id][scsi_lun] = 0xff;
-				}
-				else
-				{
-					memset(hdc[id].fn, 0, sizeof(hdc[id].fn));
-					shdc[id].cdb_len = 12;
-				}
-				return;
-			}
-			fread(&spt, 1, 4, shdf[id]);
-			fread(&hpc, 1, 4, shdf[id]);
-			fread(&tracks, 1, 4, shdf[id]);
-			if (hdc[id].bus == HDD_BUS_SCSI_REMOVABLE)
-			{
-				if ((spt != hdc[id].spt) || (hpc != hdc[id].hpc) || (tracks != hdc[id].tracks))
-				{
-					fclose(shdf[id]);
-					shdf[id] = NULL;
-					goto scsi_hd_load_error;
-				}
-			}
-			hdc[id].spt = spt;
-			hdc[id].hpc = hpc;
-			hdc[id].tracks = tracks;
-		}
-		else if (image_is_hdx(fn, 1))
-		{
-			shdc[id].base = 0x28;
-			fseeko64(shdf[id], 8, SEEK_SET);
-			fread(&full_size, 1, 8, shdf[id]);
-			fseeko64(shdf[id], 0x10, SEEK_SET);
-			fread(&sector_size, 1, 4, shdf[id]);
-			if (sector_size != 512)
-			{
-				/* Sector size is not 512 */
-				scsi_hd_log("HDX: Sector size is not 512\n");
-				fclose(shdf[id]);
-				if (hdc[id].bus != HDD_BUS_SCSI_REMOVABLE)
-				{
-					scsi_hard_disks[scsi_id][scsi_lun] = 0xff;
-				}
-				else
-				{
-					memset(hdc[id].fn, 0, sizeof(hdc[id].fn));
-					shdc[id].cdb_len = 12;
-				}
-				return;
-			}
-			fread(&spt, 1, 4, shdf[id]);
-			fread(&hpc, 1, 4, shdf[id]);
-			fread(&tracks, 1, 4, shdf[id]);
-			if (hdc[id].bus == HDD_BUS_SCSI_REMOVABLE)
-			{
-				if ((spt != hdc[id].spt) || (hpc != hdc[id].hpc) || (tracks != hdc[id].tracks))
-				{
-					fclose(shdf[id]);
-					shdf[id] = NULL;
-					goto scsi_hd_load_error;
-				}
-			}
-			hdc[id].spt = spt;
-			hdc[id].hpc = hpc;
-			hdc[id].tracks = tracks;
-			fread(&(hdc[id].at_spt), 1, 4, shdf[id]);
-			fread(&(hdc[id].at_hpc), 1, 4, shdf[id]);
-		}
-		else
-		{
-			full_size = hdc[id].spt * hdc[id].hpc * hdc[id].tracks * 512;
-		}
-		shdc[id].cdb_len = 12;
 		scsi_disk_insert(id);
 	}
-
-	fseeko64(shdf[id], 0, SEEK_END);
-	if (ftello64(shdf[id]) < (full_size + shdc[id].base))
-	{
-		s = (full_size + shdc[id].base) - ftello64(shdf[id]);
-prepare_new_hard_disk:
-		s >>= 9;
-		t = (s >> 11) << 11;
-		s -= t;
-		t >>= 11;
-
-		empty_sector_1mb = (char *) malloc(1048576);
-		memset(empty_sector_1mb, 0, 1048576);
-
-		if (s > 0)
-		{
-			for (i = 0; i < s; i++)
-			{
-				fwrite(empty_sector, 1, 512, shdf[id]);
-			}
-		}
-
-		if (t > 0)
-		{
-			for (i = 0; i < t; i++)
-			{
-				fwrite(empty_sector_1mb, 1, 1045876, shdf[id]);
-			}
-		}
-
-		free(empty_sector_1mb);
-	}
-
-	shdc[id].last_sector = (uint32_t) (full_size >> 9) - 1;
-
-#if 0
-	fclose(shdf[id]);
-#endif
 }
 
 void scsi_reloadhd(int id)
 {
-	uint32_t sector_size = 512;
-	uint32_t zero = 0;
-	uint64_t signature = 0xD778A82044445459ll;
-	uint64_t full_size = 0;
-	uint64_t spt = 0, hpc = 0, tracks = 0;
-	int c;
-	uint64_t i = 0, s = 0, t = 0;
-	wchar_t *fn = hdc[id].fn;
-
-	memset(empty_sector, 0, sizeof(empty_sector));
+	int ret = 0;
 
 	if(hdc[id].prev_fn == NULL)
 	{
@@ -496,232 +239,17 @@ void scsi_reloadhd(int id)
 		memset(hdc[id].prev_fn, 0, sizeof(hdc[id].prev_fn));
 	}
 
-	shdc[id].base = 0;
+	ret = hdd_image_load(id);
 
-	if (shdf[id] != NULL)
+	if (ret)
 	{
-		fclose(shdf[id]);
-		shdf[id] = NULL;
-	}
-
-	/* Try to open existing hard disk image */
-	if (fn[0] == '.')
-	{
-		scsi_hd_log("File name starts with .\n");
-		memset(hdc[id].fn, 0, sizeof(hdc[id].fn));
-		shdc[id].cdb_len = 12;
-		return;
-	}
-	shdf[id] = _wfopen(fn, L"rb+");
-	if (shdf[id] == NULL)
-	{
-		/* Failed to open existing hard disk image */
-		if (errno == ENOENT)
-		{
-			/* Failed because it does not exist,
-			   so try to create new file */
-			if (hdc[id].wp)
-			{
-				scsi_hd_log("A write-protected image must exist\n");
-				goto scsi_hd_reload_error;
-			}
-
-			shdf[id] = _wfopen(fn, L"wb+");
-			if (shdf[id] == NULL)
-			{
-scsi_hd_reload_error:
-				scsi_hd_log("Unable to open image\n");
-				memset(hdc[id].fn, 0, sizeof(hdc[id].fn));
-				shdc[id].cdb_len = 12;
-				return;
-			}
-			else
-			{
-				memset(&(shdc[id]), 0, sizeof(scsi_hard_disk_t));
-				if (image_is_hdi(fn))
-				{
-					full_size = hdc[id].spt * hdc[id].hpc * hdc[id].tracks * 512;
-					shdc[id].base = 0x1000;
-					fwrite(&zero, 1, 4, shdf[id]);
-					fwrite(&zero, 1, 4, shdf[id]);
-					fwrite(&(shdc[id].base), 1, 4, shdf[id]);
-					fwrite(&full_size, 1, 4, shdf[id]);
-					fwrite(&sector_size, 1, 4, shdf[id]);
-					fwrite(&(hdc[id].spt), 1, 4, shdf[id]);
-					fwrite(&(hdc[id].hpc), 1, 4, shdf[id]);
-					fwrite(&(hdc[id].tracks), 1, 4, shdf[id]);
-					for (c = 0; c < 0x3f8; c++)
-					{
-						fwrite(&zero, 1, 4, shdf[id]);
-					}
-				}
-				else if (image_is_hdx(fn, 0))
-				{
-					full_size = hdc[id].spt * hdc[id].hpc * hdc[id].tracks * 512;
-					shdc[id].base = 0x28;
-					fwrite(&signature, 1, 8, shdf[id]);
-					fwrite(&full_size, 1, 8, shdf[id]);
-					fwrite(&sector_size, 1, 4, shdf[id]);
-					fwrite(&(hdc[id].spt), 1, 4, shdf[id]);
-					fwrite(&(hdc[id].hpc), 1, 4, shdf[id]);
-					fwrite(&(hdc[id].tracks), 1, 4, shdf[id]);
-					fwrite(&zero, 1, 4, shdf[id]);
-					fwrite(&zero, 1, 4, shdf[id]);
-				}
-				shdc[id].last_sector = 0;
-				shdc[id].cdb_len = 12;
-			}
-
-			scsi_disk_insert(id);
-
-			s = full_size = hdc[id].spt * hdc[id].hpc * hdc[id].tracks * 512;
-
-			goto reload_prepare_new_hard_disk;
-		}
-		else
-		{
-			/* Failed for another reason */
-			scsi_hd_log("Failed for another reason\n");
-			memset(hdc[id].fn, 0, sizeof(hdc[id].fn));
-			shdc[id].cdb_len = 12;
-			return;
-		}
-	}
-	else
-	{
-		memset(&(shdc[id]), 0, sizeof(scsi_hard_disk_t));
-		if (image_is_hdi(fn))
-		{
-			fseeko64(shdf[id], 0x8, SEEK_SET);
-			fread(&(shdc[id].base), 1, 4, shdf[id]);
-			fseeko64(shdf[id], 0xC, SEEK_SET);
-			full_size = 0;
-			fread(&full_size, 1, 4, shdf[id]);
-			fseeko64(shdf[id], 0x10, SEEK_SET);
-			fread(&sector_size, 1, 4, shdf[id]);
-			if (sector_size != 512)
-			{
-				/* Sector size is not 512 */
-				scsi_hd_log("HDI: Sector size is not 512\n");
-				fclose(shdf[id]);
-				memset(hdc[id].fn, 0, sizeof(hdc[id].fn));
-				shdc[id].cdb_len = 12;
-				return;
-			}
-			fread(&spt, 1, 4, shdf[id]);
-			fread(&hpc, 1, 4, shdf[id]);
-			fread(&tracks, 1, 4, shdf[id]);
-			if ((spt != hdc[id].spt) || (hpc != hdc[id].hpc) || (tracks != hdc[id].tracks))
-			{
-				fclose(shdf[id]);
-				shdf[id] = NULL;
-				goto scsi_hd_reload_error;
-			}
-			hdc[id].spt = spt;
-			hdc[id].hpc = hpc;
-			hdc[id].tracks = tracks;
-		}
-		else if (image_is_hdx(fn, 1))
-		{
-			shdc[id].base = 0x28;
-			fseeko64(shdf[id], 8, SEEK_SET);
-			fread(&full_size, 1, 8, shdf[id]);
-			fseeko64(shdf[id], 0x10, SEEK_SET);
-			fread(&sector_size, 1, 4, shdf[id]);
-			if (sector_size != 512)
-			{
-				/* Sector size is not 512 */
-				scsi_hd_log("HDX: Sector size is not 512\n");
-				fclose(shdf[id]);
-				memset(hdc[id].fn, 0, sizeof(hdc[id].fn));
-				shdc[id].cdb_len = 12;
-				return;
-			}
-			fread(&spt, 1, 4, shdf[id]);
-			fread(&hpc, 1, 4, shdf[id]);
-			fread(&tracks, 1, 4, shdf[id]);
-			if ((spt != hdc[id].spt) || (hpc != hdc[id].hpc) || (tracks != hdc[id].tracks))
-			{
-				fclose(shdf[id]);
-				shdf[id] = NULL;
-				goto scsi_hd_reload_error;
-			}
-			hdc[id].spt = spt;
-			hdc[id].hpc = hpc;
-			hdc[id].tracks = tracks;
-			fread(&(hdc[id].at_spt), 1, 4, shdf[id]);
-			fread(&(hdc[id].at_hpc), 1, 4, shdf[id]);
-		}
-		else
-		{
-			full_size = hdc[id].spt * hdc[id].hpc * hdc[id].tracks * 512;
-		}
-		shdc[id].cdb_len = 12;
 		scsi_disk_insert(id);
 	}
-
-	fseeko64(shdf[id], 0, SEEK_END);
-	if (ftello64(shdf[id]) < (full_size + shdc[id].base))
-	{
-		s = (full_size + shdc[id].base) - ftello64(shdf[id]);
-reload_prepare_new_hard_disk:
-		s >>= 9;
-		t = (s >> 11) << 11;
-		s -= t;
-		t >>= 11;
-
-		empty_sector_1mb = (char *) malloc(1048576);
-		memset(empty_sector_1mb, 0, 1048576);
-		
-		if (s > 0)
-		{
-			for (i = 0; i < s; i++)
-			{
-				fwrite(empty_sector, 1, 512, shdf[id]);
-			}
-		}
-
-		if (t > 0)
-		{
-			for (i = 0; i < t; i++)
-			{
-				fwrite(empty_sector_1mb, 1, 1045876, shdf[id]);
-			}
-		}
-
-		free(empty_sector_1mb);
-	}
-
-	shdc[id].last_sector = (uint32_t) (full_size >> 9) - 1;
-
-#if 0
-	fclose(shdf[id]);
-#endif
 }
 
 void scsi_unloadhd(int scsi_id, int scsi_lun, int id)
 {
-	if (wcslen(hdc[id].fn) == 0)
-	{
-		return;
-	}
-
-	if (shdf[id] != NULL)
-	{
-		fclose(shdf[id]);
-		shdf[id] = NULL;
-	}
-
-	shdc[id].last_sector = -1;
-
-	memset(hdc[id].prev_fn, 0, sizeof(hdc[id].prev_fn));
-	wcscpy(hdc[id].prev_fn, hdc[id].fn);
-
-	memset(hdc[id].fn, 0, sizeof(hdc[id].fn));
-
-	shdc[id].cdb_len = 12;
-
-	fclose(shdf[id]);
+	hdd_image_unload(id, 1);
 }
 
 void build_scsi_hd_map()
@@ -746,10 +274,6 @@ void build_scsi_hd_map()
 				{
 					scsi_loadhd(i, j, scsi_hard_disks[i][j]);
 				}
-				else
-				{
-					shdc[scsi_hard_disks[i][j]].cdb_len = 12;
-				}
 			}
 		}
 	}
@@ -759,7 +283,7 @@ int scsi_hd_read_capacity(uint8_t id, uint8_t *cdb, uint8_t *buffer, uint32_t *l
 {
 	int size = 0;
 
-	size = shdc[id].last_sector;
+	size = hdd_image_get_last_sector(id);
 	memset(buffer, 0, 8);
 	buffer[0] = (size >> 24) & 0xff;
 	buffer[1] = (size >> 16) & 0xff;
@@ -769,16 +293,6 @@ int scsi_hd_read_capacity(uint8_t id, uint8_t *cdb, uint8_t *buffer, uint32_t *l
 	*len = 8;
 
 	return 1;
-}
-
-void scsi_hd_set_cdb_len(int id, int cdb_len)
-{
-	shdc[id].cdb_len = cdb_len;
-}
-
-void scsi_hd_reset_cdb_len(int id)
-{
-	shdc[id].cdb_len = 12;
 }
 
 void scsi_hd_update_request_length(uint8_t id, int len, int block_len)
@@ -1080,7 +594,7 @@ int scsi_hd_pre_execution_check(uint8_t id, uint8_t *cdb)
 static void scsi_hd_seek(uint8_t id, uint32_t pos)
 {
         /* scsi_hd_log("SCSI HD %i: Seek %08X\n", id, pos); */
-        shdc[id].seek_pos   = pos;
+	hdd_image_seek(id, pos);
 }
 
 static void scsi_hd_rezero(uint8_t id)
@@ -1179,14 +693,16 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 	unsigned size_idx;
 	unsigned preamble_len;
 	uint32_t alloc_length;
-	uint64_t pos64;
 	char device_identify[9] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', 0 };
 	char device_identify_ex[15] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', ' ', 'v', '1', '.', '0', '0', 0 };
-	char *tempbuffer;
+	uint8_t *tempbuffer;
+	uint32_t last_sector = 0;
 
 #if 0
 	int CdbLength;
 #endif
+	last_sector = hdd_image_get_last_sector(id);
+
 	shdc[id].status &= ~ERR_STAT;
 
 	shdc[id].packet_len = 0;
@@ -1210,7 +726,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 	shdc[id].data_pos = 0;
 
-	memcpy(shdc[id].current_cdb, cdb, shdc[id].cdb_len);
+	memcpy(shdc[id].current_cdb, cdb, 12);
 
 	if (cdb[0] != 0)
 	{
@@ -1218,7 +734,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 		scsi_hd_log("SCSI HD %i: Request length: %04X\n", id, shdc[id].request_length);
 
 #if 0
-		for (CdbLength = 1; CdbLength < shdc[id].cdb_len; CdbLength++)
+		for (CdbLength = 1; CdbLength < 12; CdbLength++)
 		{
 			scsi_hd_log("SCSI HD %i: CDB[%d] = 0x%02X\n", id, CdbLength, cdb[CdbLength]);
 		}
@@ -1284,7 +800,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 					break;
 			}
 
-			if ((shdc[id].sector_pos > shdc[id].last_sector) || ((shdc[id].sector_pos + shdc[id].sector_len - 1) > shdc[id].last_sector))
+			if ((shdc[id].sector_pos > last_sector) || ((shdc[id].sector_pos + shdc[id].sector_len - 1) > last_sector))
 			{
 				scsi_hd_lba_out_of_range(id);
 				return;
@@ -1301,27 +817,18 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			max_len = shdc[id].sector_len;
 			shdc[id].requested_blocks = max_len;
 
-			pos64 = (uint64_t) shdc[id].sector_pos;
-
 			alloc_length = shdc[id].packet_len = max_len << 9;
 
 			if ((shdc[id].requested_blocks > 0) && (SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength > 0))
 			{
-#if 0
-				shdf[id] = _wfopen(hdc[id].fn, L"rb+");
-#endif
-				fseeko64(shdf[id], shdc[id].base + (pos64 << 9), SEEK_SET);
 				if (alloc_length > SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength)
 				{
-					fread(hdbufferb, 1, SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength, shdf[id]);
+					hdd_image_read(id, shdc[id].sector_pos, SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength >> 9, hdbufferb);
 				}
 				else
 				{
-					fread(hdbufferb, 1, alloc_length, shdf[id]);
+					hdd_image_read(id, shdc[id].sector_pos, max_len, hdbufferb);
 				}
-#if 0
-				fclose(shdf[id]);
-#endif
 			}
 
 			if (shdc[id].requested_blocks > 1)
@@ -1369,7 +876,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 					break;
 			}
 
-			if ((shdc[id].sector_pos > shdc[id].last_sector) || ((shdc[id].sector_pos + shdc[id].sector_len - 1) > shdc[id].last_sector))
+			if ((shdc[id].sector_pos > last_sector) || ((shdc[id].sector_pos + shdc[id].sector_len - 1) > last_sector))
 			{
 				scsi_hd_lba_out_of_range(id);
 				return;
@@ -1386,27 +893,18 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			max_len = shdc[id].sector_len;
 			shdc[id].requested_blocks = max_len;
 
-			pos64 = (uint64_t) shdc[id].sector_pos;
-
 			alloc_length = shdc[id].packet_len = max_len << 9;
 
 			if ((shdc[id].requested_blocks > 0) && (SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength > 0))
 			{
-#if 0
-				shdf[id] = _wfopen(hdc[id].fn, L"rb+");
-#endif
-				fseeko64(shdf[id], shdc[id].base + (pos64 << 9), SEEK_SET);
 				if (alloc_length > SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength)
 				{
-					fwrite(hdbufferb, 1, SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength, shdf[id]);
+					hdd_image_write(id, shdc[id].sector_pos, SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength >> 9, hdbufferb);
 				}
 				else
 				{
-					fwrite(hdbufferb, 1, alloc_length, shdf[id]);
+					hdd_image_write(id, shdc[id].sector_pos, max_len, hdbufferb);
 				}
-#if 0
-				fclose(shdf[id]);
-#endif
 			}
 
 			if (shdc[id].requested_blocks > 1)

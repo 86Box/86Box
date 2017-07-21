@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.1	2017/06/01
+ * Version:	@(#)vid_ega.c	1.0.3	2017/07/21
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -45,15 +45,8 @@ static int old_overscan_color = 0;
 
 int update_overscan = 0;
 
-#define SBCS 0
-#define DBCS 1
-#define ID_LEN 6
-#define NAME_LEN 8
-#define SBCS19_LEN 256 * 19
-#define DBCS16_LEN 65536 * 32
-
-uint8_t jfont_sbcs_19[SBCS19_LEN];//256 * 19( * 8)
-uint8_t jfont_dbcs_16[DBCS16_LEN];//65536 * 16 * 2 (* 8)
+uint8_t jfont_sbcs_19[SBCS19_LEN];	/* 256 * 19( * 8) */
+uint8_t jfont_dbcs_16[DBCS16_LEN];	/* 65536 * 16 * 2 (* 8) */
 
 typedef struct {
     char id[ID_LEN];
@@ -67,6 +60,16 @@ typedef struct {
     uint16_t start;
     uint16_t end;
 } fontxTbl;
+
+static __inline int ega_jega_enabled(ega_t *ega)
+{
+	if (!ega->is_jega)
+	{
+		return 0;
+	}
+
+	return !(ega->RMOD1 & 0x40);
+}
 
 void ega_jega_write_font(ega_t *ega)
 {
@@ -451,7 +454,7 @@ void ega_recalctimings(ega_t *ega)
 
         if (ega->crtc[7] & 1)  ega->vtotal |= 0x100;
         if (ega->crtc[7] & 32) ega->vtotal |= 0x200;
-        ega->vtotal++;
+        ega->vtotal += 2;
 
         if (ega->crtc[7] & 2)  ega->dispend |= 0x100;
         if (ega->crtc[7] & 64) ega->dispend |= 0x200;
@@ -463,7 +466,7 @@ void ega_recalctimings(ega_t *ega)
 
         if (ega->crtc[7] & 0x10) ega->split |= 0x100;
         if (ega->crtc[9] & 0x40) ega->split |= 0x200;
-        ega->split+=2;
+        ega->split++;
 
         ega->hdisp = ega->crtc[1];
         ega->hdisp++;
@@ -529,7 +532,14 @@ void ega_poll(void *p)
                         }
                         else if (!(ega->gdcreg[6] & 1))
                         {
-				ega_render_text_standard(ega, drawcursor);
+				if (ega_jega_enabled(ega))
+				{
+					ega_render_text_jega(ega, drawcursor);
+				}
+				else
+				{
+					ega_render_text_standard(ega, drawcursor);
+				}
                         }
                         else
                         {
@@ -562,6 +572,8 @@ void ega_poll(void *p)
                 }
 
                 ega->displine++;
+                if (ega->interlace) 
+                        ega->displine++;
                 if ((ega->stat & 8) && ((ega->displine & 15) == (ega->crtc[0x11] & 15)) && ega->vslines)
                         ega->stat &= ~8;
                 ega->vslines++;
@@ -581,8 +593,12 @@ void ega_poll(void *p)
                         if (ega->sc == (ega->crtc[9] & 31))
                         {
                                 ega->sc = 0;
+                                if (ega->sc == (ega->crtc[11] & 31))
+                                        ega->con = 0;
 
                                 ega->maback += (ega->rowoffset << 3);
+                                if (ega->interlace)
+                                        ega->maback += (ega->rowoffset << 3);
                                 ega->maback &= ega->vrammask;
                                 ega->ma = ega->maback;
                         }
@@ -619,10 +635,14 @@ void ega_poll(void *p)
                         ega->stat |= 8;
                         if (ega->seqregs[1] & 8) x = ega->hdisp * ((ega->seqregs[1] & 1) ? 8 : 9) * 2;
                         else                     x = ega->hdisp * ((ega->seqregs[1] & 1) ? 8 : 9);
+
+                        if (ega->interlace && !ega->oddeven) ega->lastline++;
+                        if (ega->interlace &&  ega->oddeven) ega->firstline--;
+
                         if ((x != xsize || (ega->lastline - ega->firstline) != ysize) || update_overscan)
                         {
                                 xsize = x;
-                                ysize = ega->lastline - ega->firstline;
+                                ysize = ega->lastline - ega->firstline + 1;
                                 if (xsize < 64) xsize = 640;
                                 if (ysize < 32) ysize = 200;
 				y_add = enable_overscan ? 14 : 0;
@@ -702,7 +722,7 @@ void ega_poll(void *p)
 				}
 			}
          
-                        video_blit_memtoscreen(32, 0, ega->firstline, ega->lastline + y_add_ex, xsize + x_add_ex, ega->lastline - ega->firstline + y_add_ex);
+                        video_blit_memtoscreen(32, 0, ega->firstline, ega->lastline + 1 + y_add_ex, xsize + x_add_ex, ega->lastline - ega->firstline + 1 + y_add_ex);
 
                         frames++;
                         
@@ -742,6 +762,7 @@ void ega_poll(void *p)
                         ega->vc = 0;
                         ega->sc = 0;
                         ega->dispon = 1;
+                        ega->displine = (ega->interlace && ega->oddeven) ? 1 : 0;
                         ega->displine = 0;
                         ega->scrollcache = ega->attrregs[0x13] & 7;
                 }
@@ -770,9 +791,15 @@ void ega_write(uint32_t addr, uint8_t val, void *p)
                 if (addr & 1)
                         writemask2 <<= 1;
                 addr &= ~1;
+                if (addr & 0x4000)
+                        addr |= 1;
+                addr &= ~0x4000;
         }
 
         addr <<= 2;
+
+        if (addr >= ega->vram_limit)
+                return;
 
         if (!(ega->gdcreg[6] & 1)) 
                 fullchange = 2;
@@ -897,9 +924,15 @@ uint8_t ega_read(uint32_t addr, void *p)
         {
                 readplane = (readplane & 2) | (addr & 1);
                 addr &= ~1;
+                if (addr & 0x4000)
+                        addr |= 1;
+                addr &= ~0x4000;
         }
 
         addr <<= 2;
+
+        if (addr >= ega->vram_limit)
+                return 0xff;
 
         ega->la = ega->vram[addr];
         ega->lb = ega->vram[addr | 0x1];
@@ -963,6 +996,10 @@ void ega_init(ega_t *ega)
                         pallook16[c] = makecol32(0xaa, 0x55, 0);
         }
         ega->pallook = pallook16;
+
+        ega->vram_limit = 256 * 1024;
+        ega->vrammask = ega->vram_limit-1;
+
 	old_overscan_color = 0;
 }
 
@@ -988,7 +1025,7 @@ void *ega_standalone_init()
 	overscan_x = 16;
 	overscan_y = 28;
 
-        rom_init(&ega->bios_rom, L"roms/ibm_6277356_ega_card_u44_27128.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&ega->bios_rom, L"roms/video/ega/ibm_6277356_ega_card_u44_27128.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
         if (ega->bios_rom.rom[0x3ffe] == 0xaa && ega->bios_rom.rom[0x3fff] == 0x55)
         {
@@ -1012,6 +1049,9 @@ void *ega_standalone_init()
 
 	ega_common_defaults(ega);
 
+        ega->vram_limit = device_get_config_int("memory") * 1024;
+        ega->vrammask = ega->vram_limit-1;
+
         mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
         timer_add(ega_poll, &ega->vidtime, TIMER_ALWAYS_ENABLED, ega);
         io_sethandler(0x03c0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
@@ -1026,7 +1066,7 @@ void *cpqega_standalone_init()
 	overscan_x = 16;
 	overscan_y = 28;
 
-        rom_init(&ega->bios_rom, L"roms/108281-001.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&ega->bios_rom, L"roms/video/ega/108281-001.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
         if (ega->bios_rom.rom[0x3ffe] == 0xaa && ega->bios_rom.rom[0x3fff] == 0x55)
         {
@@ -1047,6 +1087,9 @@ void *cpqega_standalone_init()
         ega_init(ega);        
 
 	ega_common_defaults(ega);
+
+        ega->vram_limit = device_get_config_int("memory") * 1024;
+        ega->vrammask = ega->vram_limit-1;
 
         mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
         timer_add(ega_poll, &ega->vidtime, TIMER_ALWAYS_ENABLED, ega);
@@ -1062,7 +1105,7 @@ void *sega_standalone_init()
 	overscan_x = 16;
 	overscan_y = 28;
 
-        rom_init(&ega->bios_rom, L"roms/lega.vbi", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&ega->bios_rom, L"roms/video/ega/lega.vbi", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
         if (ega->bios_rom.rom[0x3ffe] == 0xaa && ega->bios_rom.rom[0x3fff] == 0x55)
         {
@@ -1083,6 +1126,9 @@ void *sega_standalone_init()
         ega_init(ega);        
 
 	ega_common_defaults(ega);
+
+        ega->vram_limit = device_get_config_int("memory") * 1024;
+        ega->vrammask = ega->vram_limit-1;
 
         mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
         timer_add(ega_poll, &ega->vidtime, TIMER_ALWAYS_ENABLED, ega);
@@ -1188,8 +1234,8 @@ void *jega_standalone_init()
 {
         ega_t *ega = (ega_t *) sega_standalone_init();
 
-	LoadFontxFile(L"roms/JPNHN19X.FNT");
-	LoadFontxFile(L"roms/JPNZN16X.FNT");
+	LoadFontxFile(L"roms/video/ega/JPNHN19X.FNT");
+	LoadFontxFile(L"roms/video/ega/JPNZN16X.FNT");
 
 	ega->is_jega = 1;
 
@@ -1198,17 +1244,17 @@ void *jega_standalone_init()
 
 static int ega_standalone_available()
 {
-        return rom_present(L"roms/ibm_6277356_ega_card_u44_27128.bin");
+        return rom_present(L"roms/video/ega/ibm_6277356_ega_card_u44_27128.bin");
 }
 
 static int cpqega_standalone_available()
 {
-        return rom_present(L"roms/108281-001.bin");
+        return rom_present(L"roms/video/ega/108281-001.bin");
 }
 
 static int sega_standalone_available()
 {
-        return rom_present(L"roms/lega.vbi");
+        return rom_present(L"roms/video/ega/lega.vbi");
 }
 
 void ega_close(void *p)
@@ -1226,6 +1272,30 @@ void ega_speed_changed(void *p)
         ega_recalctimings(ega);
 }
 
+static device_config_t ega_config[] =
+{
+        {
+                "memory", "Memory size", CONFIG_SELECTION, "", 256,
+                {
+                        {
+                                "64 kB", 64
+                        },
+                        {
+                                "128 kB", 128
+                        },
+                        {
+                                "256 kB", 256
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "", "", -1
+        }
+};
+
 device_t ega_device =
 {
         "EGA",
@@ -1235,7 +1305,8 @@ device_t ega_device =
         ega_standalone_available,
         ega_speed_changed,
         NULL,
-        NULL
+        NULL,
+        ega_config
 };
 
 device_t cpqega_device =
@@ -1247,7 +1318,8 @@ device_t cpqega_device =
         cpqega_standalone_available,
         ega_speed_changed,
         NULL,
-        NULL
+        NULL,
+        ega_config
 };
 
 device_t sega_device =
@@ -1259,7 +1331,8 @@ device_t sega_device =
         sega_standalone_available,
         ega_speed_changed,
         NULL,
-        NULL
+        NULL,
+        ega_config
 };
 
 device_t jega_device =
@@ -1271,5 +1344,6 @@ device_t jega_device =
         sega_standalone_available,
         ega_speed_changed,
         NULL,
-        NULL
+        NULL,
+        ega_config
 };

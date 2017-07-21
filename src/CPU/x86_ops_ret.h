@@ -44,7 +44,7 @@
 
 static int opRETF_a16(uint32_t fetchdat)
 {
-        int cycles_old = cycles;
+        int cycles_old = cycles; UNUSED(cycles_old);
         
         CPU_BLOCK_END();
         RETF_a16(0);
@@ -55,7 +55,7 @@ static int opRETF_a16(uint32_t fetchdat)
 }
 static int opRETF_a32(uint32_t fetchdat)
 {
-        int cycles_old = cycles;
+        int cycles_old = cycles; UNUSED(cycles_old);
         
         CPU_BLOCK_END();
         RETF_a32(0);
@@ -67,8 +67,8 @@ static int opRETF_a32(uint32_t fetchdat)
 
 static int opRETF_a16_imm(uint32_t fetchdat)
 {
-        int cycles_old = cycles;
         uint16_t offset = getwordf();
+        int cycles_old = cycles; UNUSED(cycles_old);
 
         CPU_BLOCK_END();
         RETF_a16(offset);
@@ -79,8 +79,8 @@ static int opRETF_a16_imm(uint32_t fetchdat)
 }
 static int opRETF_a32_imm(uint32_t fetchdat)
 {
-        int cycles_old = cycles;
         uint16_t offset = getwordf();
+        int cycles_old = cycles; UNUSED(cycles_old);
 
         CPU_BLOCK_END();
         RETF_a32(offset);
@@ -92,7 +92,7 @@ static int opRETF_a32_imm(uint32_t fetchdat)
 
 static int opIRET_286(uint32_t fetchdat)
 {
-        int cycles_old = cycles;
+        int cycles_old = cycles; UNUSED(cycles_old);
         
         if ((cr0 & 1) && (eflags & VM_FLAG) && (IOPL != 3))
         {
@@ -137,39 +137,71 @@ static int opIRET_286(uint32_t fetchdat)
 
 static int opIRET(uint32_t fetchdat)
 {
-        int cycles_old = cycles;
+        int cycles_old = cycles; UNUSED(cycles_old);
         
         if ((cr0 & 1) && (eflags & VM_FLAG) && (IOPL != 3))
         {
-                x86gpf(NULL,0);
-                return 1;
-        }
-        if (msw&1)
-        {
-                optype = IRET;
-                pmodeiret(0);
-                optype = 0;
-        }
-        else
-        {
-                uint16_t new_cs;
-                oxpc = cpu_state.pc;
-                if (stack32)
+                if (cr4 & CR4_VME)
                 {
-                        cpu_state.pc = readmemw(ss, ESP);
-                        new_cs = readmemw(ss, ESP + 2);
-                        flags = (readmemw(ss, ESP + 4) & 0xffd5) | 2;
-                        ESP += 6;
+                        uint16_t new_pc, new_cs, new_flags;
+
+                        new_pc = readmemw(ss, SP);
+                        new_cs = readmemw(ss, ((SP + 2) & 0xffff));
+                        new_flags = readmemw(ss, ((SP + 4) & 0xffff));
+                        if (cpu_state.abrt)
+                                return 1;
+
+                        if ((new_flags & T_FLAG) || ((new_flags & I_FLAG) && (eflags & VIP_FLAG)))
+                        {
+                                x86gpf(NULL, 0);
+                                return 1;
+                        }
+                        SP += 6;
+                        if (new_flags & I_FLAG)
+                                eflags |= VIF_FLAG;
+                        else
+                                eflags &= ~VIF_FLAG;
+                        flags = (flags & 0x3300) | (new_flags & 0x4cd5) | 2;
+                        loadcs(new_cs);
+                        cpu_state.pc = new_pc;
+
+                        cycles -= timing_iret_rm;
                 }
                 else
                 {
-                        cpu_state.pc = readmemw(ss, SP);
-                        new_cs = readmemw(ss, ((SP + 2) & 0xffff));
-                        flags = (readmemw(ss, ((SP + 4) & 0xffff)) & 0xffd5) | 2;
-                        SP += 6;
+                        x86gpf(NULL,0);
+                        return 1;
                 }
-                loadcs(new_cs);
-                cycles -= timing_iret_rm;
+        }
+        else
+        {
+		if (msw&1)
+                {
+                        optype = IRET;
+                        pmodeiret(0);
+                        optype = 0;
+                }
+                else
+                {
+                        uint16_t new_cs;
+                        oxpc = cpu_state.pc;
+                        if (stack32)
+                        {
+                                cpu_state.pc = readmemw(ss, ESP);
+                                new_cs = readmemw(ss, ESP + 2);
+                                flags = (readmemw(ss, ESP + 4) & 0xffd5) | 2;
+                                ESP += 6;
+                        }
+                        else
+                        {
+                                cpu_state.pc = readmemw(ss, SP);
+                                new_cs = readmemw(ss, ((SP + 2) & 0xffff));
+                                flags = (readmemw(ss, ((SP + 4) & 0xffff)) & 0xffd5) | 2;
+                                SP += 6;
+                        }
+                        loadcs(new_cs);
+                        cycles -= timing_iret_rm;
+                }
         }
         flags_extract();
         nmi_enable = 1;
@@ -182,7 +214,7 @@ static int opIRET(uint32_t fetchdat)
 
 static int opIRETD(uint32_t fetchdat)
 {
-        int cycles_old = cycles;
+        int cycles_old = cycles; UNUSED(cycles_old);
         
         if ((cr0 & 1) && (eflags & VM_FLAG) && (IOPL != 3))
         {

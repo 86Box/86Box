@@ -10,7 +10,7 @@
  *		  0 - BT-542B ISA;
  *		  1 - BT-958 PCI (but BT-542B ISA on non-PCI machines)
  *
- * Version:	@(#)scsi_buslogic.c	1.0.3	2017/06/03
+ * Version:	@(#)scsi_buslogic.c	1.0.4	2017/06/14
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -529,7 +529,18 @@ BuslogicLog(const char *format, ...)
 static void
 BuslogicInterrupt(Buslogic_t *bl, int set)
 {
-	if ((bl->chip != CHIP_BUSLOGIC_PCI) || (bl->Irq != 255))
+	if (bl->chip == CHIP_BUSLOGIC_PCI)
+	{
+	        if (set)
+		{
+        	        pci_set_irq(bl->Card, PCI_INTB);
+		}
+	        else
+		{
+        	        pci_clear_irq(bl->Card, PCI_INTB);
+		}
+	}
+	else
 	{
 		if (set)
 		{
@@ -538,17 +549,6 @@ BuslogicInterrupt(Buslogic_t *bl, int set)
 		else
 		{
 			picintc(1 << bl->Irq);
-		}
-	}
-	else
-	{
-	        if (set)
-		{
-        	        pci_set_irq(bl->Card, PCI_INTA);
-		}
-	        else
-		{
-        	        pci_clear_irq(bl->Card, PCI_INTA);
 		}
 	}
 }
@@ -620,15 +620,6 @@ BuslogicReset(Buslogic_t *bl)
     BuslogicClearInterrupt(bl);
 
     BuslogicLocalRAM(bl);
-}
-
-
-static void
-BuslogicSoftReset(void)
-{
-    if (BuslogicResetDevice != NULL) {
-	BuslogicReset(BuslogicResetDevice);
-    }
 }
 
 
@@ -1685,12 +1676,12 @@ BuslogicHDCommand(Buslogic_t *bl)
 	pclog("SCSI Cdb[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
     }
 
-    memset(temp_cdb, 0, shdc[hdc_id].cdb_len);
-    if (req->CmdBlock.common.CdbLength <= shdc[hdc_id].cdb_len) {
+    memset(temp_cdb, 0, 12);
+    if (req->CmdBlock.common.CdbLength <= 12) {
 	memcpy(temp_cdb, req->CmdBlock.common.Cdb,
 		req->CmdBlock.common.CdbLength);
     } else {
-	memcpy(temp_cdb, req->CmdBlock.common.Cdb, shdc[hdc_id].cdb_len);
+	memcpy(temp_cdb, req->CmdBlock.common.Cdb, 12);
     }
 
     /*
@@ -2125,7 +2116,7 @@ BuslogicPCIRead(int func, int addr, void *p)
 	case 0x3C:
 		return bl->Irq;
 	case 0x3D:
-		return PCI_INTA;
+		return PCI_INTB;
     }
 
     return(0);
@@ -2226,6 +2217,14 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 }
 
 
+void
+BuslogicDeviceReset(void *p)
+{
+	Buslogic_t *dev = (Buslogic_t *) p;
+	BuslogicResetControl(dev, 1);
+}
+
+
 static void *
 BuslogicInit(int chip)
 {
@@ -2287,7 +2286,7 @@ BuslogicInit(int chip)
 	      &BuslogicCallback, &BuslogicCallback, bl);
 
     if (bl->chip == CHIP_BUSLOGIC_PCI) {
-	pci_add(BuslogicPCIRead, BuslogicPCIWrite, bl);
+	bl->Card = pci_add(BuslogicPCIRead, BuslogicPCIWrite, bl);
 
 	buslogic_pci_bar[0].addr_regs[0] = 1;
 	buslogic_pci_bar[1].addr_regs[0] = 0;

@@ -51,8 +51,6 @@ using namespace std;
 
 CDROM_Interface_Image::BinaryFile::BinaryFile(const char *filename, bool &error)
 {
-	// file = fopen64(filename, "rb");
-	// error = (file == NULL);
 	memset(fn, 0, sizeof(fn));
 	strcpy(fn, filename);
 	error = false;
@@ -60,18 +58,16 @@ CDROM_Interface_Image::BinaryFile::BinaryFile(const char *filename, bool &error)
 
 CDROM_Interface_Image::BinaryFile::~BinaryFile()
 {
-	// delete file;
 	memset(fn, 0, sizeof(fn));
 }
 
 bool CDROM_Interface_Image::BinaryFile::read(Bit8u *buffer, uint64_t seek, uint64_t count)
 {
-	uint64_t offs = 0;
 	file = fopen64(fn, "rb");
+	if (file == NULL) return 0;
 	fseeko64(file, seek, SEEK_SET);
-	offs = fread(buffer, 1, count, file);
+	fread(buffer, 1, count, file);
 	fclose(file);
-	// return (offs == count);
 	return 1;
 }
 
@@ -79,6 +75,7 @@ uint64_t CDROM_Interface_Image::BinaryFile::getLength()
 {
 	uint64_t ret = 0;
 	file = fopen64(fn, "rb");
+	if (file == NULL) return 0;
 	fseeko64(file, 0, SEEK_END);
 	ret = ftello64(file);
 	fclose(file);
@@ -177,7 +174,7 @@ bool CDROM_Interface_Image::LoadUnloadMedia(bool unload)
 	return true;
 }
 
-int CDROM_Interface_Image::GetTrack(int sector)
+int CDROM_Interface_Image::GetTrack(unsigned int sector)
 {
 	vector<Track>::iterator i = tracks.begin();
 	vector<Track>::iterator end = tracks.end() - 1;
@@ -223,9 +220,6 @@ bool CDROM_Interface_Image::IsMode2(unsigned long sector)
 
 bool CDROM_Interface_Image::LoadIsoFile(char* filename)
 {
-	int shift = 0;
-	int totalPregap = 0;
-
 	tracks.clear();
 	
 	// data track

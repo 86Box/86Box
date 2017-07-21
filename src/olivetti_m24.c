@@ -2,10 +2,13 @@
    see COPYING for more details
 */
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "io.h"
-#include "olivetti_m24.h"
+#include "device.h"
+#include "model.h"
 
-uint8_t olivetti_m24_read(uint16_t port, void *priv)
+
+static uint8_t olivetti_m24_read(uint16_t port, void *priv)
 {
         switch (port)
         {
@@ -17,7 +20,8 @@ uint8_t olivetti_m24_read(uint16_t port, void *priv)
         return 0xff;
 }
 
-void olivetti_m24_init()
+
+void olivetti_m24_init(void)
 {
         io_sethandler(0x0066, 0x0002, olivetti_m24_read, NULL, NULL, NULL, NULL, NULL, NULL);
 }

@@ -8,7 +8,7 @@
  *
  *		EGA renderers.
  *
- * Version:	@(#)vid_ega_render.h	1.0.0	2017/05/30
+ * Version:	@(#)vid_ega_render.h	1.0.1	2017/06/05
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -29,7 +29,7 @@ extern uint8_t edatlookup[4][4];
 
 void ega_render_blank(ega_t *ega);
 void ega_render_text_standard(ega_t *ega, int drawcursor);
-void ega_render_text_jega(ega_t *ega);
+void ega_render_text_jega(ega_t *ega, int drawcursor);
 
 void ega_render_2bpp_lowres(ega_t *ega);
 void ega_render_2bpp_highres(ega_t *ega);

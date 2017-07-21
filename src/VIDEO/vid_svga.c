@@ -401,7 +401,7 @@ uint8_t svga_in(uint16_t addr, void *p)
                 case 0x3C1: 
                 return svga->attrregs[svga->attraddr];
                 case 0x3c2:
-		if ((romset == ROM_IBMPS1_2011) || (romset == ROM_IBMPS1_2121) || (romset == ROM_IBMPS2_M30_286))
+		if ((romset == ROM_IBMPS1_2011) || (romset == ROM_IBMPS1_2121) || (romset == ROM_IBMPS1_2121_ISA) || (romset == ROM_IBMPS1_2133) || (romset == ROM_IBMPS2_M30_286) || (romset == ROM_IBMPS2_M50) || (romset == ROM_IBMPS2_M55SX) || (romset == ROM_IBMPS2_M80))
 		{
 	                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x50)
 			{
@@ -1610,7 +1610,7 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
                 return;
         }
 
-        if ((wx!=xsize || wy!=ysize) && !vid_resize)
+        if (((wx!=xsize) || ((wy + 1)!=ysize)) && !vid_resize)
         {
                 xsize=wx;
                 ysize=wy+1;

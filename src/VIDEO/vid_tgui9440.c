@@ -511,7 +511,7 @@ void *tgui9440_init()
         tgui->vram_size = device_get_config_int("memory") << 20;
         tgui->vram_mask = tgui->vram_size - 1;
 
-        rom_init(&tgui->bios_rom, L"roms/9440.vbi", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&tgui->bios_rom, L"roms/video/tgui9440/9440.vbi", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
         svga_init(&tgui->svga, tgui, tgui->vram_size,
                    tgui_recalctimings,
@@ -537,7 +537,7 @@ void *tgui9440_init()
 
 static int tgui9440_available()
 {
-        return rom_present(L"roms/9440.vbi");
+        return rom_present(L"roms/video/tgui9440/9440.vbi");
 }
 
 void tgui_close(void *p)

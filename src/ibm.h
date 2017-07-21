@@ -256,8 +256,14 @@ extern uint32_t dr[8];
 #define V_FLAG  0x0800
 #define NT_FLAG 0x4000
 #define VM_FLAG 0x0002 /*In EFLAGS*/
+#define VIF_FLAG 0x0008 /*In EFLAGS*/
+#define VIP_FLAG 0x0010 /*In EFLAGS*/
 
 #define WP_FLAG 0x10000 /*In CR0*/
+
+#define CR4_VME (1 << 0)
+#define CR4_PVI (1 << 1)
+#define CR4_PSE (1 << 4)
 
 #define IOPL ((flags>>12)&3)
 
@@ -368,7 +374,7 @@ extern int pic_intpending;
 
 
 extern int disctime;
-extern wchar_t discfns[4][256];
+extern wchar_t discfns[4][512];
 extern int driveempty[4];
 
 #define MDA ((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_HERCULESPLUS || gfxcard==GFX_INCOLOR || gfxcard==GFX_GENIUS) && (romset<ROM_TANDY || romset>=ROM_IBMAT))
@@ -422,10 +428,12 @@ enum
         ROM_REVENGE,
         ROM_IBMPS1_2011,
         ROM_DESKPRO_386,
-		ROM_PORTABLE,
-		ROM_PORTABLEII,
-		ROM_PORTABLEIII,
-		ROM_PORTABLEIII386, /* The original Compaq Portable III shipped with an Intel 80286 CPU, but later switched to a 386DX. */
+	ROM_PORTABLE,
+#if 0
+	ROM_PORTABLEII,
+	ROM_PORTABLEIII,
+	ROM_PORTABLEIII386, /* The original Compaq Portable III shipped with an Intel 80286 CPU, but later switched to a 386DX. */
+#endif
         ROM_IBMPS1_2121,
 
         ROM_AMI386DX_OPTI495,
@@ -463,6 +471,10 @@ enum
         ROM_SPC4200P,	/*Samsung SPC-4200P / SCAT / Phoenix BIOS*/
         ROM_SUPER286TR,	/*Hyundai Super-286TR / SCAT / Award BIOS*/
 
+        ROM_AWARD386SX_OPTI495,
+        ROM_AWARD386DX_OPTI495,
+        ROM_AWARD486_OPTI495,
+
         ROM_MEGAPCDX,	/*386DX mdoel of the Mega PC - Note by Tohka: The documentation (that I have in German) clearly says such a model exists.*/
         ROM_ZAPPA,	/*Intel Advanced/ZP / 430FX / AMI BIOS / National Semiconductors PC87306*/
 
@@ -470,6 +482,8 @@ enum
 
         ROM_S1668,      /*Tyan Titan-Pro ATX / 440FX / AMI BIOS / SMC FDC37C669*/
         ROM_IBMPS1_2133,
+
+        ROM_PRESIDENT,  /*President Award 430FX PCI / 430FX / Award BIOS / Unknown Super I/O chip*/
 
         ROM_MAX
 };
@@ -670,6 +684,7 @@ extern int infocus;
 extern void onesec(void);
 
 extern void resetpc_cad(void);
+extern void ctrl_alt_esc(void);
 
 extern int dump_on_exit;
 extern int start_in_fullscreen;
@@ -760,8 +775,9 @@ extern void	pmodeiret(int is32);
 extern void	port_92_clear_reset(void);
 extern uint8_t	readdacfifo(void);
 extern void	refreshread(void);
-extern int	rep386(int fv);
 extern void	resetmcr(void);
+extern void	resetpchard_close(void);
+extern void	resetpchard_init(void);
 extern void	resetpchard(void);
 extern void	resetreadlookup(void);
 extern void	resetx86(void);
@@ -771,6 +787,7 @@ extern void	softresetx86(void);
 extern void	speedchanged(void);
 extern void	trc_reset(uint8_t val);
 extern void	x86_int_sw(int num);
+extern int	x86_int_sw_rm(int num);
 extern void	x86gpf(char *s, uint16_t error);
 extern void	x86np(char *s, uint16_t error);
 extern void	x86ss(char *s, uint16_t error);
@@ -793,3 +810,5 @@ extern void	status_settext(char *str);
 #define SB_RDISK	0x20
 #define SB_HDD		0x40
 #define SB_TEXT		0x50
+
+#define UNUSED(x) (void)x

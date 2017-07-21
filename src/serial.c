@@ -31,9 +31,11 @@
  *		lower half of the driver, we interface to the host system's
  *		serial ports for real-world access.
  *
+ * **NOTE**	TEMPORARY VERSION, DO NOT UPDATE/CHANGE !!
+ *
  *		Based on the 86Box serial port driver as a framework.
  *
- * Version:	@(#)serial.c	1.0.7	2017/06/04
+ * Version:	@(#)serial.c	1.0.8	2017/06/18
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -116,7 +118,7 @@ enum {
 #define MCR_OUT1	(0x04)		/* 8250 */
 #define MCR_OUT2	(0x08)		/* 8250, INTEN on IBM-PC */
 #define MCR_LMS		(0x10)
-#define MCR_AUTOFLOW	(0x20)		/* 16750
+#define MCR_AUTOFLOW	(0x20)		/* 16750 */
 
 /* LSR register bits. */
 #define	LSR_DR		(0x01)
@@ -210,7 +212,7 @@ serial_timer(void *priv)
 
 /* Write data to the (input) FIFO. Used by MOUSE driver. */
 void
-serial_write_fifo(SERIAL *sp, uint8_t dat)
+serial_write_fifo(SERIAL *sp, uint8_t dat, int flag)
 {
     /* Stuff data into FIFO. */
     sp->fifo[sp->fifo_write] = dat;
@@ -266,12 +268,12 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 		} else {
 			/* Not linked. Just fake LOOPBACK mode. */
 			if (! (sp->mctrl & MCR_LMS))
-                        	serial_write_fifo(sp, val);
+                        	serial_write_fifo(sp, val, 1);
 		}
 
 		if (sp->mctrl & MCR_LMS) {
 			/* Echo data back to RX. */
-                        serial_write_fifo(sp, val);
+                        serial_write_fifo(sp, val, 1);
 		}
 		break;
 
@@ -294,25 +296,19 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 			baud = ((sp->dlab2<<8) | sp->dlab1);
 			if (baud > 0) {
 				speed = 115200UL/baud;
-#ifdef ENABLE_SERIAL_LOG
 				serial_log(2, "Serial%d: divisor %u, baudrate %ld\n",
 						sp->port, baud, speed);
-#endif
 				if ((sp->bh != NULL) && (speed > 0))
 					bhtty_speed((BHTTY *)sp->bh, speed);
 			} else {
-#ifdef ENABLE_SERIAL_LOG
 				serial_log(1, "Serial%d: divisor %u invalid!\n",
 							sp->port, baud);
-#endif
 			}
 		}
 		wl = (val & LCR_WLS) + 5;		/* databits */
 		sb = (val & LCR_SBS) ? 2 : 1;		/* stopbits */
 		pa = (val & (LCR_PE|LCR_EP|LCR_PS)) >> 3;
-#ifdef ENABLE_SERIAL_LOG
 		serial_log(2, "Serial%d: WL=%d SB=%d PA=%d\n", sp->port, wl, sb, pa);
-#endif
 		if (sp->bh != NULL)
 			bhtty_params((BHTTY *)sp->bh, wl, pa, sb);
 		sp->lcr = val;
@@ -328,9 +324,7 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 			 */
 			if (sp->rts_callback) {
 				sp->rts_callback(sp->rts_callback_p);
-#ifdef ENABLE_SERIAL_LOG
 				serial_log(1, "RTS raised; sending ID\n");
-#endif
 			}
 		}
 
@@ -411,7 +405,7 @@ serial_rd_done(void *arg, int num)
 	if (bhtty_read(sp->bh, &sp->hold, 1) < 0) break;
 
 	/* Stuff it into the FIFO and set intr. */
-	serial_write_fifo(sp, sp->hold);
+	serial_write_fifo(sp, sp->hold, 1);
     }
 }
 
@@ -496,9 +490,7 @@ serial_setup(int port, uint16_t addr, int irq)
 {
     SERIAL *sp;
 
-#ifdef ENABLE_SERIAL_LOG
     serial_log(0, "Serial%d: I/O=%04x, IRQ=%d\n", port, addr, irq);
-#endif
 
     /* Grab the desired port block. */
     sp = &ports[port-1];
@@ -570,7 +562,6 @@ serial_init(void)
 
 #ifdef WALTJE
     /* Link to host port. */
-    serial_link(1, "COM1");
     serial_link(2, "COM2");
 #endif
 }
@@ -609,18 +600,14 @@ serial_link(int port, char *arg)
     if (arg != NULL) {
 	/* Make sure we're not already linked. */
 	if (sp->bh != NULL) {
-#if ENABLE_SERIAL_LOG
 		serial_log(0, "Serial%d already linked!\n", port);
-#endif
 		return(-1);
 	}
 
 	/* Request a port from the host system. */
 	bh = bhtty_open(arg, 0);
 	if (bh == NULL) {
-#if ENABLE_SERIAL_LOG
 		serial_log(0, "Serial%d unable to link to '%s' !\n", port, arg);
-#endif
 		return(-1);
 	}
 	sp->bh = bh;

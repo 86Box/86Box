@@ -38,6 +38,7 @@ extern int readlnum,writelnum;
 extern int memspeed[11];
 extern int nopageerrors;
 extern uint32_t biosmask;
+extern unsigned char isram[0x10000];
 
 #define MEM_MAP_TO_SHADOW_RAM_MASK 1
 #define MEM_MAP_TO_RAM_ADDR_MASK   2
@@ -122,12 +123,12 @@ typedef struct page_t
         
         uint8_t *mem;
         
-        struct codeblock_t *block, *block_2;
+        struct codeblock_t *block[4], *block_2[4];
 
         /*Head of codeblock tree associated with this page*/
         struct codeblock_t *head;
         
-        uint64_t code_present_mask, dirty_mask;
+        uint64_t code_present_mask[4], dirty_mask[4];
 } page_t;
 
 extern page_t *pages;

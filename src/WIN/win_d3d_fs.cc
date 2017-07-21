@@ -51,6 +51,7 @@ static int d3d_fs_w, d3d_fs_h;
 struct CUSTOMVERTEX
 {
      FLOAT x, y, z, rhw;    // from the D3DFVF_XYZRHW flag
+     DWORD color;
      FLOAT tu, tv;
 };
 
@@ -109,13 +110,21 @@ uint32_t pal_lookup[256];
 
 static CUSTOMVERTEX d3d_verts[] =
 {
-     {   0.0f,    0.0f, 1.0f, 1.0f, 0.0f, 0.0f},
-     {2048.0f, 2048.0f, 1.0f, 1.0f, 1.0f, 1.0f},
-     {   0.0f, 2048.0f, 1.0f, 1.0f, 0.0f, 1.0f},
+     {   0.0f,    0.0f, 1.0f, 1.0f, 0xffffff, 0.0f, 0.0f},
+     {2048.0f, 2048.0f, 1.0f, 1.0f, 0xffffff, 1.0f, 1.0f},
+     {   0.0f, 2048.0f, 1.0f, 1.0f, 0xffffff, 0.0f, 1.0f},
 
-     {   0.0f,    0.0f, 1.0f, 1.0f, 0.0f, 0.0f},
-     {2048.0f,    0.0f, 1.0f, 1.0f, 1.0f, 0.0f},
-     {2048.0f, 2048.0f, 1.0f, 1.0f, 1.0f, 1.0f},
+     {   0.0f,    0.0f, 1.0f, 1.0f, 0xffffff, 0.0f, 0.0f},
+     {2048.0f,    0.0f, 1.0f, 1.0f, 0xffffff, 1.0f, 0.0f},
+     {2048.0f, 2048.0f, 1.0f, 1.0f, 0xffffff, 1.0f, 1.0f},
+
+     {   0.0f,    0.0f, 1.0f, 1.0f, 0xffffff, 0.0f, 0.0f},
+     {2048.0f, 2048.0f, 1.0f, 1.0f, 0xffffff, 1.0f, 1.0f},
+     {   0.0f, 2048.0f, 1.0f, 1.0f, 0xffffff, 0.0f, 1.0f},
+
+     {   0.0f,    0.0f, 1.0f, 1.0f, 0xffffff, 0.0f, 0.0f},
+     {2048.0f,    0.0f, 1.0f, 1.0f, 0xffffff, 1.0f, 0.0f},
+     {2048.0f, 2048.0f, 1.0f, 1.0f, 0xffffff, 1.0f, 1.0f}
 };
 
 
@@ -158,13 +167,14 @@ void cgapal_rebuild(void)
 
 int d3d_fs_init(HWND h)
 {
-        HRESULT hr;
+        int c;
 	WCHAR emulator_title[200];
 
         d3d_fs_w = GetSystemMetrics(SM_CXSCREEN);
         d3d_fs_h = GetSystemMetrics(SM_CYSCREEN);
         
-	cgapal_rebuild();
+        for (c = 0; c < 256; c++)
+            pal_lookup[c] = makecol(cgapal[c].r << 2, cgapal[c].g << 2, cgapal[c].b << 2);
 
         d3d_hwnd = h;
 
@@ -186,10 +196,6 @@ int d3d_fs_init(HWND h)
         );
         
         d3d = Direct3DCreate9(D3D_SDK_VERSION);
-	if (d3d == NULL)
-	{
-		return 0;
-	}
 
         memset(&d3dpp, 0, sizeof(d3dpp));      
 
@@ -207,11 +213,8 @@ int d3d_fs_init(HWND h)
         d3dpp.BackBufferWidth        = d3d_fs_w;
         d3dpp.BackBufferHeight       = d3d_fs_h;
 
-        hr = d3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, h, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &d3ddev);
-	if (FAILED(hr))
-	{
-		return 0;
-	}
+        if (FAILED(d3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, h, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &d3ddev)))
+           fatal("CreateDevice failed\n");
         
         d3d_fs_init_objects();
         
@@ -221,8 +224,7 @@ int d3d_fs_init(HWND h)
 	return 1;
 }
 
-
-static void d3d_fs_close_objects(void)
+static void d3d_fs_close_objects()
 {
         if (d3dTexture)
         {
@@ -236,33 +238,34 @@ static void d3d_fs_close_objects(void)
         }
 }
 
-
-static void d3d_fs_init_objects(void)
+static void d3d_fs_init_objects()
 {
         D3DLOCKED_RECT dr;
+        int y;
         RECT r;
 
-        d3ddev->CreateVertexBuffer(6*sizeof(CUSTOMVERTEX),
+        if (FAILED(d3ddev->CreateVertexBuffer(12*sizeof(CUSTOMVERTEX),
                                    0,
-                                   D3DFVF_XYZRHW | D3DFVF_TEX1,
+                                   D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1,
                                    D3DPOOL_MANAGED,
                                    &v_buffer,
-                                   NULL);
+                                   NULL)))
+           fatal("CreateVertexBuffer failed\n");
 
-        d3ddev->CreateTexture(2048, 2048, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &d3dTexture, NULL);
+        if (FAILED(d3ddev->CreateTexture(2048, 2048, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &d3dTexture, NULL)))
+           fatal("CreateTexture failed\n");
      
-        // r.top    = r.left  = 0;
-	r.bottom = 2047;
-        r.right  = 2047;
+        r.top    = r.left  = 0;
+        r.bottom = r.right = 2047;
 
         if (FAILED(d3dTexture->LockRect(0, &dr, &r, 0)))
            fatal("LockRect failed\n");
         
-        /* for (y = 0; y < 2048; y++)
+        for (y = 0; y < 2048; y++)
         {
-                uint32_t *p = (uint32_t *)(dr.pBits + (y * dr.Pitch));
+                uint32_t *p = (uint32_t *)((uintptr_t)dr.pBits + (y * dr.Pitch));
                 memset(p, 0, 2048 * 4);
-        } */
+        }
 
         d3dTexture->UnlockRect(0);
 
@@ -274,7 +277,6 @@ static void d3d_fs_init_objects(void)
         d3ddev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
 }
 
-
 /*void d3d_resize(int x, int y)
 {
         HRESULT hr;
@@ -285,8 +287,7 @@ static void d3d_fs_init_objects(void)
         d3d_reset();
 }*/
         
-
-void d3d_fs_reset(void)
+void d3d_fs_reset()
 {
         HRESULT hr;
 
@@ -321,19 +322,9 @@ void d3d_fs_reset(void)
         device_force_redraw();
 }
 
-
-void d3d_fs_close(void)
+void d3d_fs_close()
 {       
-        if (d3dTexture)
-        {
-                d3dTexture->Release();
-                d3dTexture = NULL;
-        }
-        if (v_buffer)
-        {
-                v_buffer->Release();
-                v_buffer = NULL;
-        }
+        d3d_fs_close_objects();
         if (d3ddev)
         {
                 d3ddev->Release();
@@ -346,7 +337,6 @@ void d3d_fs_close(void)
         }
         DestroyWindow(d3d_device_window);
 }
-
 
 static void d3d_fs_size(RECT window_rect, double *l, double *t, double *r, double *b, int w, int h)
 {
@@ -398,7 +388,6 @@ static void d3d_fs_size(RECT window_rect, double *l, double *t, double *r, doubl
         }
 }
 
-
 static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
         HRESULT hr = D3D_OK;
@@ -406,12 +395,12 @@ static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
         D3DLOCKED_RECT dr;
         RECT window_rect;
         int yy;
-        double l, t, r, b;
+        double l = 0, t = 0, r = 0, b = 0;
 
-	if ((y1 == y2) || (d3dTexture == NULL))
+        if (y1 == y2)
 	{
                 video_blit_complete();
- 		return; /*Nothing to do*/
+		return; /*Nothing to do*/
         }
 
         if (hr == D3D_OK && !(y1 == 0 && y2 == 0))
@@ -423,14 +412,20 @@ static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
                 lock_rect.bottom = y2;
                 lock_rect.right  = 2047;
 
-                if (FAILED(d3dTexture->LockRect(0, &dr, &lock_rect, 0)))
-                   fatal("LockRect failed\n");
-        
-                for (yy = y1; yy < y2; yy++)
-                        memcpy((uint32_t *) &(((uint8_t *) dr.pBits)[(yy - y1) * dr.Pitch]), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
+                hr = d3dTexture->LockRect(0, &dr, &lock_rect, 0);
+                if (hr == D3D_OK)
+                {
+                        for (yy = y1; yy < y2; yy++)
+                                memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
 
-                video_blit_complete();
-                d3dTexture->UnlockRect(0);
+                        video_blit_complete();
+                        d3dTexture->UnlockRect(0);
+                }
+                else
+                {
+                        video_blit_complete();
+                        return;
+                }
         }
         else
                 video_blit_complete();
@@ -439,6 +434,10 @@ static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
         d3d_verts[0].tv = d3d_verts[3].tv = d3d_verts[4].tv = 0;
         d3d_verts[1].tu = d3d_verts[4].tu = d3d_verts[5].tu = (float)w / 2048.0;
         d3d_verts[1].tv = d3d_verts[2].tv = d3d_verts[5].tv = (float)h / 2048.0;
+        d3d_verts[0].color = d3d_verts[1].color = d3d_verts[2].color =
+        d3d_verts[3].color = d3d_verts[4].color = d3d_verts[5].color =
+        d3d_verts[6].color = d3d_verts[7].color = d3d_verts[8].color =
+        d3d_verts[9].color = d3d_verts[10].color = d3d_verts[11].color = 0xffffff;
 
         GetClientRect(d3d_device_window, &window_rect);
         d3d_fs_size(window_rect, &l, &t, &r, &b, w, h);
@@ -455,6 +454,10 @@ static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
         d3d_verts[4].y = t;
         d3d_verts[5].x = r;
         d3d_verts[5].y = b;
+        d3d_verts[6].x = d3d_verts[8].x = d3d_verts[9].x = r - 40.5;
+        d3d_verts[6].y = d3d_verts[9].y = d3d_verts[10].y = t + 8.5;
+        d3d_verts[7].x = d3d_verts[10].x = d3d_verts[11].x = r - 8.5;
+        d3d_verts[7].y = d3d_verts[8].y = d3d_verts[11].y = t + 14.5;
 
         if (hr == D3D_OK)
                 hr = v_buffer->Lock(0, 0, (void**)&pVoid, 0);
@@ -475,7 +478,7 @@ static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
                         hr = d3ddev->SetTexture(0, d3dTexture);
 
                 if (hr == D3D_OK)
-                        hr = d3ddev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
+                        hr = d3ddev->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1);
 
                 if (hr == D3D_OK)
                         hr = d3ddev->SetStreamSource(0, v_buffer, 0, sizeof(CUSTOMVERTEX));
@@ -497,23 +500,21 @@ static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
                 PostMessage(ghwnd, WM_RESETD3D, 0, 0);
 }
 
-
 static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
 {
         HRESULT hr = D3D_OK;
         VOID* pVoid;
         D3DLOCKED_RECT dr;
         RECT window_rect;
-        uint32_t *p;
         int xx, yy;
-        double l, t, r, b;
+        double l = 0, t = 0, r = 0, b = 0;
 
-        if (!h || (d3dTexture == NULL))
+	if (!h)
 	{
                 video_blit_complete();
- 		return; /*Nothing to do*/
+		return; /*Nothing to do*/
         }
- 
+
         if (hr == D3D_OK)
         {
                 RECT lock_rect;
@@ -523,30 +524,38 @@ static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
                 lock_rect.bottom = 2047;
                 lock_rect.right  = 2047;
 
-                if (FAILED(d3dTexture->LockRect(0, &dr, &lock_rect, 0)))
-                        fatal("LockRect failed\n");
-        
-                for (yy = 0; yy < h; yy++)
+                hr = d3dTexture->LockRect(0, &dr, &lock_rect, 0);
+                if (hr == D3D_OK)
                 {
-                        p = (uint32_t *) &(((uint8_t *) dr.pBits)[yy * dr.Pitch]);
-                        if ((y + yy) >= 0 && (y + yy) < buffer->h)
+                        for (yy = 0; yy < h; yy++)
                         {
-                                for (xx = 0; xx < w; xx++)
-                                        p[xx] = pal_lookup[buffer->line[y + yy][x + xx]];
+                                uint32_t *p = (uint32_t *)((uintptr_t)dr.pBits + (yy * dr.Pitch));
+                                if ((y + yy) >= 0 && (y + yy) < buffer->h)
+                                {
+                                        for (xx = 0; xx < w; xx++)
+                                                p[xx] = pal_lookup[buffer->line[y + yy][x + xx]];
+                                }
                         }
+                        video_blit_complete();
+                        d3dTexture->UnlockRect(0);
                 }
-                
-                video_blit_complete();
-
-                d3dTexture->UnlockRect(0);
-        }
+                else
+                {
+                        video_blit_complete();
+                        return;
+                }
+	}
         else
                 video_blit_complete();
-
+      
         d3d_verts[0].tu = d3d_verts[2].tu = d3d_verts[3].tu = 0;
         d3d_verts[0].tv = d3d_verts[3].tv = d3d_verts[4].tv = 0;
         d3d_verts[1].tu = d3d_verts[4].tu = d3d_verts[5].tu = (float)w / 2048.0;
         d3d_verts[1].tv = d3d_verts[2].tv = d3d_verts[5].tv = (float)h / 2048.0;
+        d3d_verts[0].color = d3d_verts[1].color = d3d_verts[2].color =
+        d3d_verts[3].color = d3d_verts[4].color = d3d_verts[5].color =
+        d3d_verts[6].color = d3d_verts[7].color = d3d_verts[8].color =
+        d3d_verts[9].color = d3d_verts[10].color = d3d_verts[11].color = 0xffffff;
 
         GetClientRect(d3d_device_window, &window_rect);
         d3d_fs_size(window_rect, &l, &t, &r, &b, w, h);
@@ -563,6 +572,10 @@ static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
         d3d_verts[4].y = t;
         d3d_verts[5].x = r;
         d3d_verts[5].y = b;
+        d3d_verts[6].x = d3d_verts[8].x = d3d_verts[9].x = r - 40.5;
+        d3d_verts[6].y = d3d_verts[9].y = d3d_verts[10].y = t + 8.5;
+        d3d_verts[7].x = d3d_verts[10].x = d3d_verts[11].x = r - 8.5;
+        d3d_verts[7].y = d3d_verts[8].y = d3d_verts[11].y = t + 14.5;
 
         if (hr == D3D_OK)
                 hr = v_buffer->Lock(0, 0, (void**)&pVoid, 0);
@@ -583,7 +596,7 @@ static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
                         hr = d3ddev->SetTexture(0, d3dTexture);
 
                 if (hr == D3D_OK)
-                        hr = d3ddev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
+                        hr = d3ddev->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1);
 
                 if (hr == D3D_OK)
                         hr = d3ddev->SetStreamSource(0, v_buffer, 0, sizeof(CUSTOMVERTEX));

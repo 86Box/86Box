@@ -38,7 +38,6 @@ typedef struct {
 	int packetstatus;
 	uint8_t asc;
 	int reset;
-	FILE *hdfile;
 	uint16_t buffer[65536];
 	int irqstat;
 	int service;
@@ -52,6 +51,9 @@ typedef struct {
 	int hdc_num;
 	uint8_t specify_success;
 	int mdma_mode;
+	uint8_t sector_buffer[256*512];
+	int do_initial_read;
+	int sector_pos;
 } IDE;
 #pragma pack(pop)
 

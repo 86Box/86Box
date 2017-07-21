@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.3	2017/06/03
+ * Version:	@(#)pc.c	1.0.6	2017/06/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -31,8 +31,8 @@
 #include "pit.h"
 #include "timer.h"
 #include "device.h"
+#include "model.h"
 
-#include "ali1429.h"
 #include "disc.h"
 #include "disc_86f.h"
 #include "disc_fdi.h"
@@ -44,22 +44,28 @@
 #include "fdc.h"
 #include "fdd.h"
 #include "gameport.h"
-#include "plat_joystick.h"
-#include "plat_midi.h"
 #include "hdd.h"
 #include "ide.h"
 #include "cdrom.h"
 #include "cdrom_ioctl.h"
 #include "cdrom_image.h"
 #include "cdrom_null.h"
-#include "scsi.h"
 #include "keyboard.h"
-#include "plat_keyboard.h"
 #include "keyboard_at.h"
-#include "model.h"
+#include "sound/midi.h"
 #include "mouse.h"
+#include "network/network.h"
+#ifdef WALTJE
+# define UNICODE
+# include "plat_dir.h"
+# undef UNICODE
+#endif
+#include "plat_joystick.h"
+#include "plat_keyboard.h"
+#include "plat_midi.h"
 #include "plat_mouse.h"
-#include "network.h"
+#include "plat_ui.h"
+#include "scsi.h"
 #include "serial.h"
 #include "sound/sound.h"
 #include "sound/snd_cms.h"
@@ -72,12 +78,6 @@
 #include "sound/snd_ssi2001.h"
 #include "video/video.h"
 #include "video/vid_voodoo.h"
-#include "amstrad.h"
-#include "win.h"
-#include "win_language.h"
-#ifdef WALTJE
-# include "plat_dir.h"
-#endif
 
 
 wchar_t pcempath[512];
@@ -187,7 +187,7 @@ void fatal(const char *format, ...)
    {
       *newline = 0;
    }
-   msgbox_fatal(ghwnd, msg);
+   plat_msgbox_fatal(msg);
 #endif
    dumppic();
    dumpregs(1);
@@ -288,12 +288,15 @@ void initpc(int argc, wchar_t *argv[])
         wchar_t *p;
         wchar_t *config_file = NULL;
         int c;
-	FILE *ff;
         get_executable_name(pcempath, 511);
-        pclog("executable_name = %ws\n", pcempath);
+        pclog("executable_name = %S\n", pcempath);
         p=get_filename_w(pcempath);
         *p=L'\0';
-        pclog("path = %ws\n", pcempath);        
+        pclog("path = %S\n", pcempath);        
+#ifdef WALTJE
+	DIR *dir;
+	struct direct *dp;
+#endif
 
         for (c = 1; c < argc; c++)
         {
@@ -324,20 +327,17 @@ void initpc(int argc, wchar_t *argv[])
                 {
 			/* some (undocumented) test function here.. */
 #ifdef WALTJE
-			DIR *dir;
-			struct direct *dp;
-
 			dir = opendirw(pcempath);
 			if (dir != NULL) {
-				printf("Directory '%ws':\n", pcempath);
+				printf("Directory '%S':\n", pcempath);
 				for (;;) {
 					dp = readdir(dir);
 					if (dp == NULL) break;
-					printf(">> '%ws'\n", dp->d_name);
+					printf(">> '%S'\n", dp->d_name);
 				}
 				closedir(dir);
 			} else {
-				printf("Could not open '%ws'..\n", pcempath);
+				printf("Could not open '%S'..\n", pcempath);
 			}
 #endif
 
@@ -357,10 +357,6 @@ void initpc(int argc, wchar_t *argv[])
 
         loadconfig(config_file);
         pclog("Config loaded\n");
-#if 0
-        if (config_file)
-                saveconfig();
-#endif
 }
 
 void initmodules(void)
@@ -370,8 +366,9 @@ void initmodules(void)
 	/* Initialize modules. */
 	network_init();
         mouse_init();
-        midi_init();
+#ifdef WALTJE
 	serial_init();
+#endif
 	disc_random_init();
 
         joystick_init();
@@ -475,36 +472,54 @@ void resetpc_cad(void)
 	pc_keyboard_send(211);	/* Delete key released */
 }
 
+
+void ctrl_alt_esc(void)
+{
+	pc_keyboard_send(29);	/* Ctrl key pressed */
+	pc_keyboard_send(56);	/* Alt key pressed */
+	pc_keyboard_send(1);	/* Esc key pressed */
+	pc_keyboard_send(157);	/* Ctrl key released */
+	pc_keyboard_send(184);	/* Alt key released */
+	pc_keyboard_send(129);	/* Esc key released */
+}
+
 int suppress_overscan = 0;
 
-void resetpchard(void)
+void resetpchard_close(void)
 {
-	int i = 0;
-
 	suppress_overscan = 0;
 
 	savenvr();
-#if 0
-	saveconfig();
-#endif
 
         device_close_all();
 	mouse_emu_close();
+        closeal();
+}
+
+void resetpchard_init(void)
+{
+	int i = 0;
+
+	sound_realloc_buffers();
+
+        initalmain(0,NULL);
+
         device_init();
-        
-        midi_close();
-        midi_init();
-        
+        midi_device_init();
+        inital();
+    
         timer_reset();
         sound_reset();
         mem_resize();
         fdc_init();
 	disc_reset();
 
+#ifndef WALTJE
+	serial_init();
+#endif
         model_init();
         video_init();
         speaker_init();        
-	network_reset();
 
 	ide_ter_disable();
 	ide_qua_disable();
@@ -521,6 +536,7 @@ void resetpchard(void)
 
         resetide();
 	scsi_card_init();
+	network_reset();
 
         sound_card_init();
         if (mpu401_standalone_enable)
@@ -560,16 +576,14 @@ void resetpchard(void)
 	sound_cd_thread_reset();
 }
 
-char romsets[17][40]={"IBM PC","IBM XT","Generic Turbo XT","Euro PC","Tandy 1000","Amstrad PC1512","Sinclair PC200","Amstrad PC1640","IBM AT","AMI 286 clone","Dell System 200","Misc 286","IBM AT 386","Misc 386","386 clone","486 clone","486 clone 2"};
-char clockspeeds[3][12][16]=
+void resetpchard(void)
 {
-        {"4.77MHz","8MHz","10MHz","12MHz","16MHz"},
-        {"8MHz","12MHz","16MHz","20MHz","25MHz"},
-        {"16MHz","20MHz","25MHz","33MHz","40MHz","50MHz","66MHz","75MHz","80MHz","100MHz","120MHz","133MHz"},
-};
+	resetpchard_close();
+	resetpchard_init();
+}
+
 int framecountx=0;
 int sndcount=0;
-int oldat70hz;
 
 int sreadlnum,swritelnum,segareads,segawrites, scycles_lost;
 
@@ -577,8 +591,8 @@ int serial_fifo_read, serial_fifo_write;
 
 int emu_fps = 0;
 
-static WCHAR wmodel[2048];
-static WCHAR wcpu[2048];
+static wchar_t wmodel[2048];
+static wchar_t wcpu[2048];
 
 void runpc(void)
 {
@@ -659,7 +673,7 @@ void runpc(void)
                         win_title_update=0;
 			mbstowcs(wmodel, model_getname(), strlen(model_getname()) + 1);
 			mbstowcs(wcpu, models[model].cpu[cpu_manufacturer].cpus[cpu].name, strlen(models[model].cpu[cpu_manufacturer].cpus[cpu].name) + 1);
-                        _swprintf(s, L"%s v%s - %i%% - %s - %s - %s", EMU_NAME_W, EMU_VERSION_W, fps, wmodel, wcpu, (!mousecapture) ? win_language_get_string_from_id(2077) : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? win_language_get_string_from_id(2078) : win_language_get_string_from_id(2079)));
+                        _swprintf(s, L"%s v%s - %i%% - %s - %s - %s", EMU_NAME_W, EMU_VERSION_W, fps, wmodel, wcpu, (!mousecapture) ? plat_get_string_from_id(IDS_2077) : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? plat_get_string_from_id(IDS_2078) : plat_get_string_from_id(IDS_2079)));
                         set_window_title(s);
                 }
                 done++;

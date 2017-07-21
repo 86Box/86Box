@@ -508,10 +508,10 @@ void imd_seek(int drive, int track)
 	int real_sector = 0;
 	int actual_sector = 0;
 
-	char *c_map;
-	char *h_map;
+	char *c_map = NULL;
+	char *h_map = NULL;
 	char *r_map;
-	char *n_map;
+	char *n_map = NULL;
 	uint8_t *data;
 	uint32_t track_buf_pos[2] = { 0, 0 };
        

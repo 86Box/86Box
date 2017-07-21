@@ -77,7 +77,7 @@ static uint32_t ropLOOP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
 
 static void BRANCH_COND_B(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
 {
-        CALL_FUNC((void *) CF_SET);
+        CALL_FUNC((uintptr_t)CF_SET);
         if (not)
                 TEST_ZERO_JUMP_L(0, op_pc+pc_offset+offset, timing_bt);
         else
@@ -122,7 +122,7 @@ static void BRANCH_COND_E(int pc_offset, uint32_t op_pc, uint32_t offset, int no
                 break;
                 
                 case FLAGS_UNKNOWN:
-                CALL_FUNC((void *) ZF_SET);
+                CALL_FUNC((uintptr_t)ZF_SET);
                 if (not)
                         TEST_ZERO_JUMP_L(0, op_pc+pc_offset+offset, timing_bt);
                 else
@@ -133,7 +133,7 @@ static void BRANCH_COND_E(int pc_offset, uint32_t op_pc, uint32_t offset, int no
 
 static void BRANCH_COND_O(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
 {
-        CALL_FUNC((void *) VF_SET);
+        CALL_FUNC((uintptr_t)VF_SET);
         if (not)
                 TEST_ZERO_JUMP_L(0, op_pc+pc_offset+offset, timing_bt);
         else
@@ -142,7 +142,7 @@ static void BRANCH_COND_O(int pc_offset, uint32_t op_pc, uint32_t offset, int no
 
 static void BRANCH_COND_P(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
 {
-        CALL_FUNC((void *) PF_SET);
+        CALL_FUNC((uintptr_t)PF_SET);
         if (not)
                 TEST_ZERO_JUMP_L(0, op_pc+pc_offset+offset, timing_bt);
         else
@@ -204,7 +204,7 @@ static void BRANCH_COND_S(int pc_offset, uint32_t op_pc, uint32_t offset, int no
                 break;
                 
                 case FLAGS_UNKNOWN:
-                CALL_FUNC((void *) NF_SET);
+                CALL_FUNC((uintptr_t)NF_SET);
                 if (not)
                         TEST_ZERO_JUMP_L(0, op_pc+pc_offset+offset, timing_bt);
                 else

@@ -10,7 +10,7 @@
  *
  * NOTE:	FIXME: Strings 2176 and 2193 are same.
  *
- * Version:	@(#)resource.h	1.0.3	2017/06/04
+ * Version:	@(#)resource.h	1.0.4	2017/06/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -37,52 +37,46 @@
 #define  DLG_CFG_REMOVABLE_DEVICES	119	/* sub-dialog of config */
 
 /* Static text label IDs. */
-#define IDT_1700		1700	// Language:
-#define IDT_1701		1701	// Machine:
-#define IDT_1702		1702	// CPU type:
-#define IDT_1703		1703	// Wait states:
-#define IDT_1704		1704	// CPU:
-#define IDT_1705		1705	// MB	== IDC_TEXT_MB
-#define IDT_1706		1706	// Memory:
-#define IDT_1707		1707	// Video:
-#define IDT_1708		1708	// Video speed:
-#define IDT_1709		1709	// Mouse:
-#define IDT_1710		1710	// Joystick:
-#define IDT_1711		1711	// Sound card:
-#define IDT_1712		1712	// MIDI Out Device:
-#define IDT_1713		1713	// Network type:
-#define IDT_1714		1714	// PCap device:
-#define IDT_1715		1715	// Network adapter:
-#define IDT_1716		1716	// SCSI Controller:
-#define IDT_1717		1717	// HD Controller:
-#define IDT_1718		1718	// Tertiary IDE:
-#define IDT_1719		1719	// Quaternary IDE:
-#define IDT_1720		1720	// Hard disks:
-#define IDT_1721		1721	// Bus:
-#define IDT_1722		1722	// Channel:
-#define IDT_1723		1723	// ID:
-#define IDT_1724		1724	// LUN:
-#define IDT_1725		1725	// Channel:
-#define IDT_1726		1726	// Sectors:
-#define IDT_1727		1727	// Heads:
-#define IDT_1728		1728	// Cylinders:
-#define IDT_1729		1729	// Size (MB):
-#define IDT_1730		1730	// Type:
-#define IDT_1731		1731	// File name:
-#define IDT_1732		1732	// Bus:
-#define IDT_1733		1733	// Channel:
-#define IDT_1734		1734	// ID:
-#define IDT_1735		1735	// LUN:
-#define IDT_1736		1736	// Channel:
-#define IDT_1737		1737	// Floppy drives:
-#define IDT_1738		1738	// Type:
-#define IDT_1739		1739	// CD-ROM drives:
-#define IDT_1740		1740	// Bus:
-#define IDT_1741		1741	// ID:
-#define IDT_1742		1742	// LUN:
-#define IDT_1743		1743	// Channel:
-#define IDT_STEXT		1744	// text in status window
-#define IDT_SDEVICE		1745	// text in status window
+#define IDT_1700		1700	/* Language: */
+#define IDT_1701		1701	/* Machine: */
+#define IDT_1702		1702	/* CPU type: */
+#define IDT_1703		1703	/* Wait states: */
+#define IDT_1704		1704	/* CPU: */
+#define IDT_1705		1705	/* MB	== IDC_TEXT_MB */
+#define IDT_1706		1706	/* Memory: */
+#define IDT_1707		1707	/* Video: */
+#define IDT_1708		1708	/* Video speed: */
+#define IDT_1709		1709	/* Mouse: */
+#define IDT_1710		1710	/* Joystick: */
+#define IDT_1711		1711	/* Sound card: */
+#define IDT_1712		1712	/* MIDI Out Device: */
+#define IDT_1713		1713	/* Network type: */
+#define IDT_1714		1714	/* PCap device: */
+#define IDT_1715		1715	/* Network adapter: */
+#define IDT_1716		1716	/* SCSI Controller: */
+#define IDT_1717		1717	/* HD Controller: */
+#define IDT_1718		1718	/* Tertiary IDE: */
+#define IDT_1719		1719	/* Quaternary IDE: */
+#define IDT_1720		1720	/* Hard disks: */
+#define IDT_1721		1721	/* Bus: */
+#define IDT_1722		1722	/* Channel: */
+#define IDT_1723		1723	/* ID: */
+#define IDT_1724		1724	/* LUN: */
+#define IDT_1726		1726	/* Sectors: */
+#define IDT_1727		1727	/* Heads: */
+#define IDT_1728		1728	/* Cylinders: */
+#define IDT_1729		1729	/* Size (MB): */
+#define IDT_1730		1730	/* Type: */
+#define IDT_1731		1731	/* File name: */
+#define IDT_1737		1737	/* Floppy drives: */
+#define IDT_1738		1738	/* Type: */
+#define IDT_1739		1739	/* CD-ROM drives: */
+#define IDT_1740		1740	/* Bus: */
+#define IDT_1741		1741	/* ID: */
+#define IDT_1742		1742	/* LUN: */
+#define IDT_1743		1743	/* Channel: */
+#define IDT_STEXT		1744	/* text in status window */
+#define IDT_SDEVICE		1745	/* text in status window */
 
 
 /*
@@ -93,7 +87,10 @@
 #define IDC_SETTINGSCATLIST	1001	/* generic config */
 #define IDC_CFILE		1002	/* Select File dialog */
 #define IDC_CHECK_SYNC		1008
+/* Leave this as is until we finally get into localization in 86Box 3.00(?). */
+#if 0
 #define IDC_COMBO_LANG		1009
+#endif
 
 #define IDC_COMBO_MACHINE	1010	/* machine/cpu config */
 #define IDC_CONFIGURE_MACHINE	1011
@@ -105,6 +102,8 @@
 #define IDC_MEMTEXT		1017
 #define IDC_MEMSPIN		1018
 #define IDC_TEXT_MB		IDT_1705
+#define IDC_EDIT_NVR_PATH	1019
+#define IDC_BUTTON_NVR_PATH	1020
 
 #define IDC_VIDEO		1030	/* video config */
 #define IDC_COMBO_VIDEO		1031
@@ -126,6 +125,7 @@
 #define IDC_COMBO_MIDI		1076
 #define IDC_CHECK_MPU401	1077
 #define IDC_CONFIGURE_MPU401	1078
+#define IDC_CHECK_FLOAT		1079
 
 #define IDC_COMBO_NET_TYPE	1090	/* network config */
 #define IDC_COMBO_PCAP		1091
@@ -186,6 +186,7 @@
 #define  IDC_CONFIGURE_BUSLOGIC	1205
 #define  IDC_CONFIGURE_PCAP	1206
 #define  IDC_CONFIGURE_NET	1207
+#define  IDC_CONFIGURE_MIDI	1208
 #define  IDC_JOY1		1210
 #define  IDC_JOY2		1211
 #define  IDC_JOY3		1212
@@ -372,11 +373,13 @@
 #define IDS_2221		2221	// "Turbo"
 #define IDS_2222		2222	// "On"
 #define IDS_2223		2223	// "Off"
-#define IDS_2224		2224	// "<Placeholder string>"
-#define IDS_2225		2225	// "English (United States)"
+#define IDS_2224		2224	// "Logitech 3-button mouse (serial)"
+#define IDS_2225		2225	// "Specify the NVR Path"
+#define IDS_2226		2226	// "<Placeholder string>"
+#define IDS_2227		2227	// "English (United States)"
 
-#define IDS_LANG_ENUS		IDS_2225
-#define STRINGS_NUM		178
+#define IDS_LANG_ENUS		IDS_2227
+#define STRINGS_NUM		180
 
 
 #define IDM_ABOUT		40001
@@ -385,6 +388,7 @@
 #define IDM_ACTION_HRESET	40012
 #define IDM_ACTION_RESET_CAD	40013
 #define IDM_ACTION_EXIT		40014
+#define IDM_ACTION_CTRL_ALT_ESC 40015
 #define IDM_CONFIG		40020
 #define IDM_CONFIG_LOAD		40021
 #define IDM_CONFIG_SAVE		40022
@@ -406,6 +410,14 @@
 #define IDM_VID_OVERSCAN	40076
 #define IDM_VID_INVERT		40079
 #define IDM_VID_CGACON		40080
+#define IDM_VID_GRAYCT_601	40085
+#define IDM_VID_GRAYCT_709	40086
+#define IDM_VID_GRAYCT_AVE	40087
+#define IDM_VID_GRAY_RGB	40090
+#define IDM_VID_GRAY_MONO	40091
+#define IDM_VID_GRAY_AMBER	40092
+#define IDM_VID_GRAY_GREEN	40093
+#define IDM_VID_GRAY_WHITE	40094
 
 #define IDM_LOG_BREAKPOINT	51201
 #define IDM_DUMP_VRAM		51202	// should be an Action

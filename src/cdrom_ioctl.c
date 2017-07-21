@@ -796,7 +796,7 @@ static void ioctl_read_capacity(uint8_t id, uint8_t *b)
 	const UCHAR cdb[] = { 0x25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	UCHAR buf[16];
 
-	if (!cdrom_ioctl[id].capacity_read)
+	if (!cdrom_ioctl[id].capacity_read || (b == NULL))
 	{
 		SCSICommand(id, cdb, buf, &len, 1);
 	
@@ -1047,7 +1047,7 @@ split_block_read_iterate:
 static int ioctl_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack, int msf, int maxlen, int single)
 {
         int len=4;
-        long size;
+        DWORD size;
         int c,d;
         uint32_t temp;
 	uint32_t last_block;
@@ -1156,9 +1156,7 @@ static int ioctl_readtoc_raw(uint8_t id, uint8_t *b, int maxlen)
 {
         int len=4;
         int size;
-        uint32_t temp;
 	int i;
-	int BytesRead = 0;
         CDROM_READ_TOC_EX toc_ex;
         CDROM_TOC_FULL_TOC_DATA toc;
         if (!cdrom_drives[id].host_drive)
@@ -1200,7 +1198,7 @@ static int ioctl_readtoc_raw(uint8_t id, uint8_t *b, int maxlen)
 
 static uint32_t ioctl_size(uint8_t id)
 {
-	uint8_t capacity_buffer[8];
+	uint8_t capacity_buffer[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	uint32_t capacity = 0;
 	ioctl_read_capacity(id, capacity_buffer);
 	capacity = ((uint32_t) capacity_buffer[0]) << 24;

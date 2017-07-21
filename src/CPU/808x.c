@@ -34,6 +34,7 @@
 #include "../mem.h"
 #include "../nmi.h"
 #include "../pic.h"
+#include "../scsi.h"
 #include "../timer.h"
 
 int xt_cpu_multi;
@@ -546,7 +547,7 @@ void dumpregs(int force)
         if (is386)
         {
                 printf("386 in %s mode   stack in %s mode\n",(use32)?"32-bit":"16-bit",(stack32)?"32-bit":"16-bit");
-                printf("CR0=%08X CR2=%08X CR3=%08X\n",cr0,cr2,cr3);
+                printf("CR0=%08X CR2=%08X CR3=%08X CR4=%08x\n",cr0,cr2,cr3, cr4);
         }
         printf("Entries in readlookup : %i    writelookup : %i\n",readlnum,writelnum);
         for (c=0;c<1024*1024;c++)
@@ -599,6 +600,7 @@ void resetx86()
         codegen_reset();
         x86_was_reset = 1;
 	port_92_clear_reset();
+	scsi_card_reset();
 }
 
 void softresetx86()
@@ -618,6 +620,7 @@ void softresetx86()
         x86seg_reset();
         x86_was_reset = 1;
 	port_92_clear_reset();
+	scsi_card_reset();
 }
 
 static void setznp8(uint8_t val)

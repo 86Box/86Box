@@ -17,7 +17,6 @@
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
  */
-#define _WIN32_WINNT	0x0501
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,8 +86,6 @@ pclog("%s: queued byte %02x (%d)\n", pp->name, b, pp->icnt+1);
 int
 bhtty_sstate(BHTTY *pp, void *arg)
 {
-    int i = 0;
-
     /* Make sure we can do this. */
     if (arg == NULL) {
 	pclog("%s: invalid argument\n", pp->name);
@@ -109,8 +106,6 @@ bhtty_sstate(BHTTY *pp, void *arg)
 int
 bhtty_gstate(BHTTY *pp, void *arg)
 {
-    int i = 0;
-
     /* Make sure we can do this. */
     if (arg == NULL) {
 	pclog("%s: invalid argument\n", pp->name);
@@ -304,8 +299,6 @@ bhtty_raw(BHTTY *pp, void *arg)
 int
 bhtty_speed(BHTTY *pp, long speed)
 {
-    int i;
-
     /* Get the current mode and speed. */
     if (bhtty_gstate(pp, &pp->dcb) < 0) return(-1);
 
@@ -331,7 +324,6 @@ bhtty_flush(BHTTY *pp)
 {
     DWORD dwErrs;
     COMSTAT cs;
-    int i = 0;
 
     /* First, clear any errors. */
     (void)ClearCommError(pp->handle, &dwErrs, &cs);
@@ -387,7 +379,7 @@ bhtty_close(BHTTY *pp)
 BHTTY *
 bhtty_open(char *port, int tmo)
 {
-    char temp[64];
+    char temp[84];
     COMMTIMEOUTS to;
     COMMCONFIG conf;
     BHTTY *pp;

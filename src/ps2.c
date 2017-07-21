@@ -1,12 +1,16 @@
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "io.h"
 #include "mem.h"
-#include "ps2.h"
 #include "rom.h"
+#include "device.h"
+#include "model.h"
 #include "lpt.h"
 #include "serial.h"
 
+
 static uint8_t ps2_92, ps2_94, ps2_102, ps2_103, ps2_104, ps2_105, ps2_190;
+
 
 static struct
 {
@@ -14,7 +18,8 @@ static struct
         uint8_t attention, ctrl;
 } ps2_hd;
 
-uint8_t ps2_read(uint16_t port, void *p)
+
+static uint8_t ps2_read(uint16_t port, void *p)
 {
         uint8_t temp;
 
@@ -53,7 +58,7 @@ uint8_t ps2_read(uint16_t port, void *p)
         return temp;
 }
 
-void ps2_write(uint16_t port, uint8_t val, void *p)
+static void ps2_write(uint16_t port, uint8_t val, void *p)
 {
         switch (port)
         {
@@ -114,7 +119,8 @@ void ps2_write(uint16_t port, uint8_t val, void *p)
         }
 }
 
-void ps2board_init()
+
+void ps2board_init(void)
 {
         io_sethandler(0x0091, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
         io_sethandler(0x0092, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
@@ -125,14 +131,10 @@ void ps2board_init()
         io_sethandler(0x0322, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
         io_sethandler(0x0324, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
         
+	ps2_92 = 0;
         ps2_190 = 0;
-        
-        lpt1_remove();
-        lpt2_remove();
+
         lpt1_init(0x3bc);
-        
-        serial_remove(1);
-        serial_remove(2);
         
         memset(&ps2_hd, 0, sizeof(ps2_hd));
 }

@@ -8,7 +8,7 @@
  *
  *		Windows device configuration dialog implementation.
  *
- * Version:	@(#)win_deviceconfig.c	1.0.0	2017/05/30
+ * Version:	@(#)win_deviceconfig.c	1.0.1	2017/06/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -18,8 +18,10 @@
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"
+#include "plat_midi.h"
 #define NO_UNICODE		/*FIXME: not Unicode? */
 #include "win.h"
+#include "win_language.h"
 #include <windowsx.h>
 
 
@@ -29,17 +31,22 @@ static device_t *config_device;
 static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
+
 	int val_int;
-	int num;
+	int ret;
+	int id;
+	device_config_t *config;
+	int c;
+        int num;
+	int changed;
 	char s[80];
 
         switch (message)
         {
                 case WM_INITDIALOG:
                 {
-                        int id = IDC_CONFIG_BASE;
-                        device_config_t *config = config_device->config;
-                        int c;
+                        id = IDC_CONFIG_BASE;
+                        config = config_device->config;
 
                         while (config->type != -1)
                         {
@@ -67,6 +74,21 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                                         SendMessage(h, CB_SETCURSEL, c, 0);
                                                 selection++;
                                                 c++;
+                                        }
+                                        
+                                        id += 2;
+                                        break;
+
+                                        case CONFIG_MIDI:
+                                        val_int = config_get_int(config_device->name, config->name, config->default_int);
+                                        
+                                        num  = plat_midi_get_num_devs();
+                                        for (c = 0; c < num; c++)
+                                        {
+                                                plat_midi_get_dev_name(c, s);
+                                                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)s);
+                                                if (val_int == c)
+                                                        SendMessage(h, CB_SETCURSEL, c, 0);
                                         }
                                         
                                         id += 2;
@@ -114,10 +136,9 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                 {
                         case IDOK:
                         {
-                                int id = IDC_CONFIG_BASE;
-                                device_config_t *config = config_device->config;
-                                int c;
-                                int changed = 0;
+                                id = IDC_CONFIG_BASE;
+                                config = config_device->config;
+                                changed = 0;
                                 
                                 while (config->type != -1)
                                 {
@@ -144,6 +165,17 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                                         selection++;
 
                                                 if (val_int != selection->value)
+                                                        changed = 1;
+                                        
+                                                id += 2;
+                                                break;
+
+                                                case CONFIG_MIDI:
+                                                val_int = config_get_int(config_device->name, config->name, config->default_int);
+
+                                                c = SendMessage(h, CB_GETCURSEL, 0, 0);
+
+                                                if (val_int != c)
                                                         changed = 1;
                                         
                                                 id += 2;
@@ -185,11 +217,17 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                         EndDialog(hdlg, 0);
                                         return TRUE;
                                 }
-                                        
-                                if (MessageBox(NULL, "This will reset 86Box!\nOkay to continue?", "86Box", MB_OKCANCEL) != IDOK)
-                                {
-                                        EndDialog(hdlg, 0);
-                                        return TRUE;
+
+				ret = msgbox_reset(ghwnd);
+				switch(ret)
+				{
+					case IDNO:                                        
+	                                        EndDialog(hdlg, 0);
+        	                                return TRUE;
+					case IDCANCEL:
+						return FALSE;
+					default:
+						break;
                                 }
 
                                 id = IDC_CONFIG_BASE;
@@ -213,6 +251,13 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                                 for (; c > 0; c--)
                                                         selection++;
                                                 config_set_int(config_device->name, config->name, selection->value);
+                                        
+                                                id += 2;
+                                                break;
+
+                                                case CONFIG_MIDI:
+                                                c = SendMessage(h, CB_GETCURSEL, 0, 0);
+                                                config_set_int(config_device->name, config->name, c);
                                         
                                                 id += 2;
                                                 break;
@@ -310,6 +355,7 @@ void deviceconfig_open(HWND hwnd, device_t *device)
                         break;
 
                         case CONFIG_SELECTION:
+                        case CONFIG_MIDI:
                         case CONFIG_HEX16:
                         case CONFIG_HEX20:
                         /*Combo box*/

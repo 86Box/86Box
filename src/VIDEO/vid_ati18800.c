@@ -163,7 +163,7 @@ void *ati18800_init()
         ati18800_t *ati18800 = malloc(sizeof(ati18800_t));
         memset(ati18800, 0, sizeof(ati18800_t));
         
-        rom_init(&ati18800->bios_rom, L"roms/vga88.BIN", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&ati18800->bios_rom, L"roms/video/ati18800/vga88.BIN", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
         
         svga_init(&ati18800->svga, ati18800, 1 << 19, /*512kb*/
                    NULL,
@@ -183,7 +183,7 @@ void *ati18800_init()
 
 static int ati18800_available()
 {
-        return rom_present(L"roms/vga88.BIN");
+        return rom_present(L"roms/video/ati18800/vga88.BIN");
 }
 
 void ati18800_close(void *p)

@@ -22,10 +22,10 @@ static int reg_writes = 0, reg_reads = 0;
 
 static int dither[4][4] =
 {
-        0,  4,  1,  5,
-        6,  2,  7,  3,
-        1,  5,  0,  4,
-        7,  3,  6,  2,
+        {0,  4,  1,  5},
+        {6,  2,  7,  3},
+        {1,  5,  0,  4},
+        {7,  3,  6,  2},
 };
 
 #define RB_SIZE 256
@@ -3750,7 +3750,7 @@ static void *s3_virge_init()
                    s3_virge_overlay_draw);
 	virge->svga.vblank_start = s3_virge_vblank_start;
 
-        rom_init(&virge->bios_rom, L"roms/s3virge.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&virge->bios_rom, L"roms/video/s3virge/s3virge.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         if (PCI)
                 mem_mapping_disable(&virge->bios_rom.mapping);
 
@@ -3845,7 +3845,7 @@ static void *s3_virge_988_init()
                    s3_virge_hwcursor_draw,
                    s3_virge_overlay_draw);
 
-        rom_init(&virge->bios_rom, L"roms/diamondstealth3000.VBI", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&virge->bios_rom, L"roms/video/s3virge/diamondstealth3000.VBI", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         if (PCI)
                 mem_mapping_disable(&virge->bios_rom.mapping);
 
@@ -4023,18 +4023,18 @@ static void *s3_virge_375_init(wchar_t *romfn)
 
 static void *s3_virge_375_1_init()
 {
-	return s3_virge_375_init(L"roms/86c375_1.bin");
+	return s3_virge_375_init(L"roms/video/s3virge/86c375_1.bin");
 }
 
 static void *s3_virge_375_4_init()
 {
-	return s3_virge_375_init(L"roms/86c375_4.bin");
+	return s3_virge_375_init(L"roms/video/s3virge/86c375_4.bin");
 }
 
 static void s3_virge_close(void *p)
 {
         virge_t *virge = (virge_t *)p;
-#ifndef RELEASE_BUILD
+#if 0
         FILE *f = fopen("vram.dmp", "wb");
         fwrite(virge->svga.vram, 4 << 20, 1, f);
         fclose(f);
@@ -4056,22 +4056,22 @@ static void s3_virge_close(void *p)
 
 static int s3_virge_available()
 {
-        return rom_present(L"roms/s3virge.bin");
+        return rom_present(L"roms/video/s3virge/s3virge.bin");
 }
 
 static int s3_virge_988_available()
 {
-        return rom_present(L"roms/diamondstealth3000.VBI");
+        return rom_present(L"roms/video/s3virge/diamondstealth3000.VBI");
 }
 
 static int s3_virge_375_1_available()
 {
-        return rom_present(L"roms/86c375_1.bin");
+        return rom_present(L"roms/video/s3virge/86c375_1.bin");
 }
 
 static int s3_virge_375_4_available()
 {
-        return rom_present(L"roms/86c375_4.bin");
+        return rom_present(L"roms/video/s3virge/86c375_4.bin");
 }
 
 static void s3_virge_speed_changed(void *p)

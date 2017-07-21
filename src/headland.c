@@ -5,13 +5,15 @@
 #include "cpu/cpu.h"
 #include "io.h"
 #include "mem.h"
+#include "device.h"
+#include "model.h"
 
-#include "headland.h"
 
 static int headland_index;
 static uint8_t headland_regs[256];
 
-void headland_write(uint16_t addr, uint8_t val, void *priv)
+
+static void headland_write(uint16_t addr, uint8_t val, void *priv)
 {
         if (addr & 1)
         {
@@ -31,7 +33,8 @@ void headland_write(uint16_t addr, uint8_t val, void *priv)
                 headland_index = val;
 }
 
-uint8_t headland_read(uint16_t addr, void *priv)
+
+static uint8_t headland_read(uint16_t addr, void *priv)
 {
         if (addr & 1) 
         {
@@ -42,7 +45,8 @@ uint8_t headland_read(uint16_t addr, void *priv)
         return headland_index;
 }
 
-void headland_init()
+
+void headland_init(void)
 {
         io_sethandler(0x0022, 0x0002, headland_read, NULL, NULL, headland_write, NULL, NULL, NULL);
 }

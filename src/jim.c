@@ -4,9 +4,14 @@
 #include <stdio.h>
 #include <string.h>
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "io.h"
+#include "device.h"
+#include "model.h"
+
 
 uint8_t europcdat[16];
+
 struct 
 {
         uint8_t dat[16];
@@ -14,7 +19,8 @@ struct
         int addr;
 } europc_rtc;
 
-void writejim(uint16_t addr, uint8_t val, void *p)
+
+static void writejim(uint16_t addr, uint8_t val, void *p)
 {
         if ((addr&0xFF0)==0x250) europcdat[addr&0xF]=val;
         switch (addr)
@@ -39,7 +45,8 @@ void writejim(uint16_t addr, uint8_t val, void *p)
         }
 }
 
-uint8_t readjim(uint16_t addr, void *p)
+
+static uint8_t readjim(uint16_t addr, void *p)
 {
         switch (addr)
         {
@@ -61,7 +68,8 @@ uint8_t readjim(uint16_t addr, void *p)
         return 0;
 }
 
-void jim_init()
+
+void jim_init(void)
 {
         uint8_t viddat;
         memset(europc_rtc.dat,0,16);

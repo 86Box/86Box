@@ -4,14 +4,15 @@
 #include "ibm.h"
 #include "cpu/cpu.h"
 #include "io.h"
-#include "acer386sx.h"
+#include "device.h"
+#include "model.h"
 
 
 static int acer_index = 0;
 static uint8_t acer_regs[256];
 
 
-void acer386sx_write(uint16_t addr, uint8_t val, void *priv)
+static void acer386sx_write(uint16_t addr, uint8_t val, void *priv)
 {
         if (addr & 1)
            acer_regs[acer_index] = val;
@@ -19,7 +20,8 @@ void acer386sx_write(uint16_t addr, uint8_t val, void *priv)
            acer_index = val;
 }
 
-uint8_t acer386sx_read(uint16_t addr, void *priv)
+
+static uint8_t acer386sx_read(uint16_t addr, void *priv)
 {
         if (addr & 1)
         {
@@ -31,7 +33,8 @@ uint8_t acer386sx_read(uint16_t addr, void *priv)
            return acer_index;
 }
 
-void acer386sx_init()
+
+void acer386sx_init(void)
 {
         io_sethandler(0x0022, 0x0002, acer386sx_read, NULL, NULL, acer386sx_write, NULL, NULL,  NULL);
 }

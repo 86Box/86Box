@@ -552,12 +552,7 @@ static void ps2_mca_board_common_init()
         
         ps2.setup = 0xff;
         
-        lpt1_remove();
-        lpt2_remove();
         lpt1_init(0x3bc);
-        
-        serial_remove(1);
-        serial_remove(2);
 }
 
 void ps2_mca_board_model_50_init()
@@ -701,7 +696,7 @@ void ps2_mca_board_model_80_type2_init()
 
         mem_remap_top_256k();
         ps2.split_addr = mem_size * 1024;
-        mca_init(8);
+        mca_init(24);
         
         ps2.planar_read = model_80_read;
         ps2.planar_write = model_80_write;
@@ -746,7 +741,7 @@ void ps2_mca_board_model_80_type2_init()
         if (mem_size > 4096)
         {
                 /* Only 4 MB supported on planar, create a memory expansion card for the rest */
-                mem_mapping_set_addr(&ram_high_mapping, 0x100000, 0x300000);
+                mem_mapping_set_addr(&ram_high_mapping, 0x100000, 0x800000);
 
                 ps2.mem_pos_regs[0] = 0xff;
                 ps2.mem_pos_regs[1] = 0xfc;

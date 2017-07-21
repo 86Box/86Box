@@ -265,6 +265,38 @@ void x86_int_sw(int num)
         CPU_BLOCK_END();
 }
 
+int x86_int_sw_rm(int num)
+{
+        uint32_t addr;
+        uint16_t new_pc, new_cs;
+        
+        flags_rebuild();
+        cycles -= timing_int;
+
+        addr = num << 2;
+        new_pc = readmemw(0, addr);
+        new_cs = readmemw(0, addr + 2);
+
+        if (cpu_state.abrt) return 1;
+
+        writememw(ss,((SP-2)&0xFFFF),flags); if (cpu_state.abrt) {pclog("abrt5\n"); return 1; }
+        writememw(ss,((SP-4)&0xFFFF),CS);
+        writememw(ss,((SP-6)&0xFFFF),cpu_state.pc); if (cpu_state.abrt) {pclog("abrt6\n"); return 1; }
+        SP-=6;
+
+        eflags &= ~VIF_FLAG;
+        flags &= ~T_FLAG;
+        cpu_state.pc = new_pc;
+        loadcs(new_cs);
+        oxpc=cpu_state.pc;
+
+        cycles -= timing_int_rm;
+        trap = 0;
+        CPU_BLOCK_END();
+        
+        return 0;
+}
+
 void x86illegal()
 {
         x86_int(6);
@@ -367,828 +399,6 @@ int checkio(int port)
         d = readmemb386l(0, tr.base + t + (port >> 3));
         cpl_override = 0;
         return d&(1<<(port&7));
-}
-
-int rep386(int fv)
-{
-        uint8_t temp;
-        uint32_t c;
-        uint8_t temp2;
-        uint16_t tempw,tempw2,of;
-        uint32_t ipc = cpu_state.oldpc;
-        uint32_t rep32 = cpu_state.op32;
-        uint32_t templ,templ2;
-        int tempz;
-        int tempi;
-        /*Limit the amount of time the instruction is uninterruptable for, so
-          that high frequency timers still work okay. This amount is different
-          for interpreter and recompiler*/
-        int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);
-        int reads = 0, reads_l = 0, writes = 0, writes_l = 0, total_cycles = 0;
-
-        if (trap)
-                cycles_end = cycles+1; /*Force the instruction to end after only one iteration when trap flag set*/
-        
-        cpu_reps++;
-        
-        flags_rebuild();
-        of = flags;
-        startrep:
-        temp=opcode2=readmemb(cs,cpu_state.pc); cpu_state.pc++;
-        c=(rep32&0x200)?ECX:CX;
-        switch (temp|rep32)
-        {
-                case 0xC3: case 0x1C3: case 0x2C3: case 0x3C3:
-                cpu_state.pc--;
-                break;
-                case 0x08:
-                cpu_state.pc=ipc+1;
-                break;
-                case 0x26: case 0x126: case 0x226: case 0x326: /*ES:*/
-                cpu_state.ea_seg = &_es;
-                PREFETCH_PREFIX();
-                goto startrep;
-                break;
-                case 0x2E: case 0x12E: case 0x22E: case 0x32E: /*CS:*/
-                cpu_state.ea_seg = &_cs;
-                PREFETCH_PREFIX();
-                goto startrep;
-                case 0x36: case 0x136: case 0x236: case 0x336: /*SS:*/
-                cpu_state.ea_seg = &_ss;
-                PREFETCH_PREFIX();
-                goto startrep;
-                case 0x3E: case 0x13E: case 0x23E: case 0x33E: /*DS:*/
-                cpu_state.ea_seg = &_ds;
-                PREFETCH_PREFIX();
-                goto startrep;
-                case 0x64: case 0x164: case 0x264: case 0x364: /*FS:*/
-                cpu_state.ea_seg = &_fs;
-                PREFETCH_PREFIX();
-                goto startrep;
-                case 0x65: case 0x165: case 0x265: case 0x365: /*GS:*/
-                cpu_state.ea_seg = &_gs;
-                PREFETCH_PREFIX();
-                goto startrep;
-                case 0x66: case 0x166: case 0x266: case 0x366: /*Data size prefix*/
-                rep32 = (rep32 & 0x200) | ((use32 ^ 0x100) & 0x100);
-                PREFETCH_PREFIX();
-                goto startrep;
-                case 0x67: case 0x167: case 0x267: case 0x367:  /*Address size prefix*/
-                rep32 = (rep32 & 0x100) | ((use32 ^ 0x200) & 0x200);
-                PREFETCH_PREFIX();
-                goto startrep;
-                case 0x6C: case 0x16C: /*REP INSB*/
-                if (c>0)
-                {
-                        checkio_perm(DX);
-                        temp2=inb(DX);
-                        writememb(es,DI,temp2);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) DI--;
-                        else              DI++;
-                        c--;
-                        cycles-=15;
-                        reads++; writes++; total_cycles += 15;
-                }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x26C: case 0x36C: /*REP INSB*/
-                if (c>0)
-                {
-                        checkio_perm(DX);
-                        temp2=inb(DX);
-                        writememb(es,EDI,temp2);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) EDI--;
-                        else              EDI++;
-                        c--;
-                        cycles-=15;
-                        reads++; writes++; total_cycles += 15;
-                }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x6D: /*REP INSW*/
-                if (c>0)
-                {
-                        tempw=inw(DX);
-                        writememw(es,DI,tempw);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) DI-=2;
-                        else              DI+=2;
-                        c--;
-                        cycles-=15;
-                        reads++; writes++; total_cycles += 15;
-                }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x16D: /*REP INSL*/
-                if (c>0)
-                {
-                        templ=inl(DX);
-                        writememl(es,DI,templ);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) DI-=4;
-                        else              DI+=4;
-                        c--;
-                        cycles-=15;
-                        reads_l++; writes_l++; total_cycles += 15;
-                }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x26D: /*REP INSW*/
-                if (c>0)
-                {
-                        tempw=inw(DX);
-                        writememw(es,EDI,tempw);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) EDI-=2;
-                        else              EDI+=2;
-                        c--;
-                        cycles-=15;
-                        reads++; writes++; total_cycles += 15;
-                }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x36D: /*REP INSL*/
-                if (c>0)
-                {
-                        templ=inl(DX);
-                        writememl(es,EDI,templ);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) EDI-=4;
-                        else              EDI+=4;
-                        c--;
-                        cycles-=15;
-                        reads_l++; writes_l++; total_cycles += 15;
-                }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x6E: case 0x16E: /*REP OUTSB*/
-                if (c>0)
-                {
-                        temp2 = readmemb(cpu_state.ea_seg->base, SI);
-                        if (cpu_state.abrt) break;
-                        checkio_perm(DX);
-                        outb(DX,temp2);
-                        if (flags&D_FLAG) SI--;
-                        else              SI++;
-                        c--;
-                        cycles-=14;
-                        reads++; writes++; total_cycles += 14;
-                }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x26E: case 0x36E: /*REP OUTSB*/
-                if (c>0)
-                {
-                        temp2 = readmemb(cpu_state.ea_seg->base, ESI);
-                        if (cpu_state.abrt) break;
-                        checkio_perm(DX);
-                        outb(DX,temp2);
-                        if (flags&D_FLAG) ESI--;
-                        else              ESI++;
-                        c--;
-                        cycles-=14;
-                        reads++; writes++; total_cycles += 14;
-                }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x6F: /*REP OUTSW*/
-                if (c>0)
-                {
-                        tempw = readmemw(cpu_state.ea_seg->base, SI);
-                        if (cpu_state.abrt) break;
-                        outw(DX,tempw);
-                        if (flags&D_FLAG) SI-=2;
-                        else              SI+=2;
-                        c--;
-                        cycles-=14;
-                        reads++; writes++; total_cycles += 14;
-                }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x16F: /*REP OUTSL*/
-                if (c > 0)
-                {
-                        templ = readmeml(cpu_state.ea_seg->base, SI);
-                        if (cpu_state.abrt) break;
-                        outl(DX, templ);
-                        if (flags & D_FLAG) SI -= 4;
-                        else                SI += 4;
-                        c--;
-                        cycles -= 14;
-                        reads_l++; writes_l++; total_cycles += 14;
-                }
-                if (c > 0) { firstrepcycle = 0; cpu_state.pc = ipc; }
-                else firstrepcycle = 1;
-                break;
-                case 0x26F: /*REP OUTSW*/
-                if (c>0)
-                {
-                        tempw = readmemw(cpu_state.ea_seg->base, ESI);
-                        if (cpu_state.abrt) break;
-                        outw(DX,tempw);
-                        if (flags&D_FLAG) ESI-=2;
-                        else              ESI+=2;
-                        c--;
-                        cycles-=14;
-                        reads++; writes++; total_cycles += 14;
-                }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x36F: /*REP OUTSL*/
-                if (c > 0)
-                {
-                        templ = readmeml(cpu_state.ea_seg->base, ESI);
-                        if (cpu_state.abrt) break;
-                        outl(DX, templ);
-                        if (flags & D_FLAG) ESI -= 4;
-                        else                ESI += 4;
-                        c--;
-                        cycles -= 14;
-                        reads_l++; writes_l++; total_cycles += 14;
-                }
-                if (c > 0) { firstrepcycle = 0; cpu_state.pc = ipc; }
-                else firstrepcycle = 1;
-                break;
-                case 0x90: case 0x190: /*REP NOP*/
-		case 0x290: case 0x390:
-                break;
-                case 0xA4: case 0x1A4: /*REP MOVSB*/
-                while (c > 0)
-                {
-                        CHECK_WRITE_REP(&_es, DI, DI);
-                        temp2 = readmemb(cpu_state.ea_seg->base, SI); if (cpu_state.abrt) break;
-                        writememb(es,DI,temp2); if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) { DI--; SI--; }
-                        else              { DI++; SI++; }
-                        c--;
-                        cycles-=(is486)?3:4;
-                        ins++;
-                        reads++; writes++; total_cycles += is486 ? 3 : 4;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x2A4: case 0x3A4: /*REP MOVSB*/
-                while (c > 0)
-                {
-                        CHECK_WRITE_REP(&_es, EDI, EDI);
-                        temp2 = readmemb(cpu_state.ea_seg->base, ESI); if (cpu_state.abrt) break;
-                        writememb(es,EDI,temp2); if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) { EDI--; ESI--; }
-                        else              { EDI++; ESI++; }
-                        c--;
-                        cycles-=(is486)?3:4;
-                        ins++;
-                        reads++; writes++; total_cycles += is486 ? 3 : 4;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0xA5: /*REP MOVSW*/
-                while (c > 0)
-                {
-                        CHECK_WRITE_REP(&_es, DI, DI+1);
-                        tempw = readmemw(cpu_state.ea_seg->base, SI); if (cpu_state.abrt) break;
-                        writememw(es,DI,tempw); if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) { DI-=2; SI-=2; }
-                        else              { DI+=2; SI+=2; }
-                        c--;
-                        cycles-=(is486)?3:4;
-                        ins++;
-                        reads++; writes++; total_cycles += is486 ? 3 : 4;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x1A5: /*REP MOVSL*/
-                while (c > 0)
-                {
-                        CHECK_WRITE_REP(&_es, DI, DI+3);
-                        templ = readmeml(cpu_state.ea_seg->base, SI); if (cpu_state.abrt) break;
-                        writememl(es,DI,templ); if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) { DI-=4; SI-=4; }
-                        else              { DI+=4; SI+=4; }
-                        c--;
-                        cycles-=(is486)?3:4;
-                        ins++;
-                        reads_l++; writes_l++; total_cycles += is486 ? 3 : 4;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x2A5: /*REP MOVSW*/
-                while (c > 0)
-                {
-                        CHECK_WRITE_REP(&_es, EDI, EDI+1);
-                        tempw = readmemw(cpu_state.ea_seg->base, ESI); if (cpu_state.abrt) break;
-                        writememw(es,EDI,tempw); if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) { EDI-=2; ESI-=2; }
-                        else              { EDI+=2; ESI+=2; }
-                        c--;
-                        cycles-=(is486)?3:4;
-                        ins++;
-                        reads++; writes++; total_cycles += is486 ? 3 : 4;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x3A5: /*REP MOVSL*/
-                while (c > 0)
-                {
-                        CHECK_WRITE_REP(&_es, EDI, EDI+3);
-                        templ = readmeml(cpu_state.ea_seg->base, ESI); if (cpu_state.abrt) break;
-                        writememl(es,EDI,templ); if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) { EDI-=4; ESI-=4; }
-                        else              { EDI+=4; ESI+=4; }
-                        c--;
-                        cycles-=(is486)?3:4;
-                        ins++;
-                        reads_l++; writes_l++; total_cycles += is486 ? 3 : 4;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0xA6: case 0x1A6: /*REP CMPSB*/
-                tempz = (fv) ? 1 : 0;
-                if ((c>0) && (fv==tempz))
-                {
-                        temp = readmemb(cpu_state.ea_seg->base, SI);
-                        temp2=readmemb(es,DI);
-                        if (cpu_state.abrt) { flags=of; break; }
-                        if (flags&D_FLAG) { DI--; SI--; }
-                        else              { DI++; SI++; }
-                        c--;
-                        cycles-=(is486)?7:9;
-                        reads += 2; total_cycles += is486 ? 7 : 9;
-                        setsub8(temp,temp2);
-                        tempz = (ZF_SET()) ? 1 : 0;
-                }
-                if ((c>0) && (fv==tempz)) { cpu_state.pc=ipc; firstrepcycle=0; }
-                else firstrepcycle=1;
-                break;
-                case 0x2A6: case 0x3A6: /*REP CMPSB*/
-                tempz = (fv) ? 1 : 0;
-                if ((c>0) && (fv==tempz))
-                {
-                        temp = readmemb(cpu_state.ea_seg->base, ESI);
-                        temp2=readmemb(es,EDI);
-                        if (cpu_state.abrt) { flags=of; break; }
-                        if (flags&D_FLAG) { EDI--; ESI--; }
-                        else              { EDI++; ESI++; }
-                        c--;
-                        cycles-=(is486)?7:9;
-                        reads += 2; total_cycles += is486 ? 7 : 9;
-                        setsub8(temp,temp2);
-                        tempz = (ZF_SET()) ? 1 : 0;
-                }
-                if ((c>0) && (fv==tempz)) { cpu_state.pc=ipc; firstrepcycle=0; }
-                else firstrepcycle=1;
-                break;
-                case 0xA7: /*REP CMPSW*/
-                tempz = (fv) ? 1 : 0;
-                if ((c>0) && (fv==tempz))
-                {
-                        tempw = readmemw(cpu_state.ea_seg->base, SI);
-                        tempw2=readmemw(es,DI);
-
-                        if (cpu_state.abrt) { flags=of; break; }
-                        if (flags&D_FLAG) { DI-=2; SI-=2; }
-                        else              { DI+=2; SI+=2; }
-                        c--;
-                        cycles-=(is486)?7:9;
-                        reads += 2; total_cycles += is486 ? 7 : 9;
-                        setsub16(tempw,tempw2);
-                        tempz = (ZF_SET()) ? 1 : 0;
-                }
-                if ((c>0) && (fv==tempz)) { cpu_state.pc=ipc; firstrepcycle=0; }
-                else firstrepcycle=1;
-                break;
-                case 0x1A7: /*REP CMPSL*/
-                tempz = (fv) ? 1 : 0;
-                if ((c>0) && (fv==tempz))
-                {
-                        templ = readmeml(cpu_state.ea_seg->base, SI);
-                        templ2=readmeml(es,DI);
-                        if (cpu_state.abrt) { flags=of; break; }
-                        if (flags&D_FLAG) { DI-=4; SI-=4; }
-                        else              { DI+=4; SI+=4; }
-                        c--;
-                        cycles-=(is486)?7:9;
-                        reads_l += 2; total_cycles += is486 ? 7 : 9;
-                        setsub32(templ,templ2);
-                        tempz = (ZF_SET()) ? 1 : 0;
-                }
-                if ((c>0) && (fv==tempz)) { cpu_state.pc=ipc; firstrepcycle=0; }
-                else firstrepcycle=1;
-                break;
-                case 0x2A7: /*REP CMPSW*/
-                tempz = (fv) ? 1 : 0;
-                if ((c>0) && (fv==tempz))
-                {
-                        tempw = readmemw(cpu_state.ea_seg->base, ESI);
-                        tempw2=readmemw(es,EDI);
-                        if (cpu_state.abrt) { flags=of; break; }
-                        if (flags&D_FLAG) { EDI-=2; ESI-=2; }
-                        else              { EDI+=2; ESI+=2; }
-                        c--;
-                        cycles-=(is486)?7:9;
-                        reads += 2; total_cycles += is486 ? 7 : 9;
-                        setsub16(tempw,tempw2);
-                        tempz = (ZF_SET()) ? 1 : 0;
-                }
-                if ((c>0) && (fv==tempz)) { cpu_state.pc=ipc; firstrepcycle=0; }
-                else firstrepcycle=1;
-                break;
-                case 0x3A7: /*REP CMPSL*/
-                tempz = (fv) ? 1 : 0;
-                if ((c>0) && (fv==tempz))
-                {
-                        templ = readmeml(cpu_state.ea_seg->base, ESI);
-                        templ2=readmeml(es,EDI);
-                        if (cpu_state.abrt) { flags=of; break; }
-                        if (flags&D_FLAG) { EDI-=4; ESI-=4; }
-                        else              { EDI+=4; ESI+=4; }
-                        c--;
-                        cycles-=(is486)?7:9;
-                        reads_l += 2; total_cycles += is486 ? 7 : 9;
-                        setsub32(templ,templ2);
-                        tempz = (ZF_SET()) ? 1 : 0;
-                }
-                if ((c>0) && (fv==tempz)) { cpu_state.pc=ipc; firstrepcycle=0; }
-                else firstrepcycle=1;
-                break;
-
-                case 0xAA: case 0x1AA: /*REP STOSB*/
-                while (c > 0)
-                {
-                        CHECK_WRITE_REP(&_es, DI, DI);
-                        writememb(es,DI,AL);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) DI--;
-                        else              DI++;
-                        c--;
-                        cycles-=(is486)?4:5;
-                        writes++; total_cycles += is486 ? 4 : 5;
-                        ins++;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x2AA: case 0x3AA: /*REP STOSB*/
-                while (c > 0)
-                {
-                        CHECK_WRITE_REP(&_es, EDI, EDI);
-                        writememb(es,EDI,AL);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) EDI--;
-                        else              EDI++;
-                        c--;
-                        cycles-=(is486)?4:5;
-                        writes++; total_cycles += is486 ? 4 : 5;
-                        ins++;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0xAB: /*REP STOSW*/
-                while (c > 0)
-                {
-                        CHECK_WRITE_REP(&_es, DI, DI+1);
-                        writememw(es,DI,AX);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) DI-=2;
-                        else              DI+=2;
-                        c--;
-                        cycles-=(is486)?4:5;
-                        writes++; total_cycles += is486 ? 4 : 5;
-                        ins++;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x2AB: /*REP STOSW*/
-                while (c > 0)
-                {
-                        CHECK_WRITE_REP(&_es, EDI, EDI+1);
-                        writememw(es,EDI,AX);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) EDI-=2;
-                        else              EDI+=2;
-                        c--;
-                        cycles-=(is486)?4:5;
-                        writes++; total_cycles += is486 ? 4 : 5;
-                        ins++;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x1AB: /*REP STOSL*/
-                while (c > 0)
-                {
-                        CHECK_WRITE_REP(&_es, DI, DI+3);
-                        writememl(es,DI,EAX);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) DI-=4;
-                        else              DI+=4;
-                        c--;
-                        cycles-=(is486)?4:5;
-                        writes_l++; total_cycles += is486 ? 4 : 5;
-                        ins++;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x3AB: /*REP STOSL*/
-                while (c > 0)
-                {
-                        CHECK_WRITE_REP(&_es, EDI, EDI+3);
-                        writememl(es,EDI,EAX);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) EDI-=4;
-                        else              EDI+=4;
-                        c--;
-                        cycles-=(is486)?4:5;
-                        writes_l++; total_cycles += is486 ? 4 : 5;
-                        ins++;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0xAC: case 0x1AC: /*REP LODSB*/
-                if (c>0)
-                {
-                        AL = readmemb(cpu_state.ea_seg->base, SI);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) SI--;
-                        else              SI++;
-                        c--;
-                        cycles-=5;
-                        reads++; total_cycles += 5;
-                }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x2AC: case 0x3AC: /*REP LODSB*/
-                if (c>0)
-                {
-                        AL = readmemb(cpu_state.ea_seg->base, ESI);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) ESI--;
-                        else              ESI++;
-                        c--;
-                        cycles-=5;
-                        reads++; total_cycles += 5;
-                }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0xAD: /*REP LODSW*/
-                if (c>0)
-                {
-                        AX = readmemw(cpu_state.ea_seg->base, SI);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) SI-=2;
-                        else              SI+=2;
-                        c--;
-                        cycles-=5;
-                        reads++; total_cycles += 5;
-                }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x1AD: /*REP LODSL*/
-                if (c>0)
-                {
-                        EAX = readmeml(cpu_state.ea_seg->base, SI);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) SI-=4;
-                        else              SI+=4;
-                        c--;
-                        cycles-=5;
-                        reads_l++; total_cycles += 5;
-                }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x2AD: /*REP LODSW*/
-                if (c>0)
-                {
-                        AX = readmemw(cpu_state.ea_seg->base, ESI);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) ESI-=2;
-                        else              ESI+=2;
-                        c--;
-                        cycles-=5;
-                        reads++; total_cycles += 5;
-                }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0x3AD: /*REP LODSL*/
-                if (c>0)
-                {
-                        EAX = readmeml(cpu_state.ea_seg->base, ESI);
-                        if (cpu_state.abrt) break;
-                        if (flags&D_FLAG) ESI-=4;
-                        else              ESI+=4;
-                        c--;
-                        cycles-=5;
-                        reads_l++; total_cycles += 5;
-                }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; }
-                else firstrepcycle=1;
-                break;
-                case 0xAE: case 0x1AE: /*REP SCASB*/
-                cpu_notreps++;
-                tempz = (fv) ? 1 : 0;
-                while ((c > 0) && (fv == tempz))
-                {
-                        temp2=readmemb(es,DI);
-                        if (cpu_state.abrt) { flags=of; break; }
-                        setsub8(AL,temp2);
-                        tempz = (ZF_SET()) ? 1 : 0;                        
-                        if (flags&D_FLAG) DI--;
-                        else              DI++;
-                        c--;
-                        cycles-=(is486)?5:8;
-                        reads++; total_cycles += is486 ? 5 : 8;
-                        ins++;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if ((c>0) && (fv==tempz))  { cpu_state.pc=ipc; firstrepcycle=0; }
-                else firstrepcycle=1;
-                break;
-                case 0x2AE: case 0x3AE: /*REP SCASB*/
-                cpu_notreps++;
-                tempz = (fv) ? 1 : 0;
-                while ((c > 0) && (fv == tempz))
-                {
-                        temp2=readmemb(es,EDI);
-                        if (cpu_state.abrt) { flags=of; break; }
-                        setsub8(AL,temp2);
-                        tempz = (ZF_SET()) ? 1 : 0;
-                        if (flags&D_FLAG) EDI--;
-                        else              EDI++;
-                        c--;
-                        cycles-=(is486)?5:8;
-                        reads++; total_cycles += is486 ? 5 : 8;
-                        ins++;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if ((c>0) && (fv==tempz))  { cpu_state.pc=ipc; firstrepcycle=0; }
-                else firstrepcycle=1;
-                break;
-                case 0xAF: /*REP SCASW*/
-                cpu_notreps++;
-                tempz = (fv) ? 1 : 0;
-                while ((c > 0) && (fv == tempz))
-                {
-                        tempw=readmemw(es,DI);
-                        if (cpu_state.abrt) { flags=of; break; }
-                        setsub16(AX,tempw);
-                        tempz = (ZF_SET()) ? 1 : 0;
-                        if (flags&D_FLAG) DI-=2;
-                        else              DI+=2;
-                        c--;
-                        cycles-=(is486)?5:8;
-                        reads++; total_cycles += is486 ? 5 : 8;
-                        ins++;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if ((c>0) && (fv==tempz))  { cpu_state.pc=ipc; firstrepcycle=0; }
-                else firstrepcycle=1;
-                break;
-                case 0x1AF: /*REP SCASL*/
-                cpu_notreps++;
-                tempz = (fv) ? 1 : 0;
-                while ((c > 0) && (fv == tempz))
-                {
-                        templ=readmeml(es,DI);
-                        if (cpu_state.abrt) { flags=of; break; }
-                        setsub32(EAX,templ);
-                        tempz = (ZF_SET()) ? 1 : 0;
-                        if (flags&D_FLAG) DI-=4;
-                        else              DI+=4;
-                        c--;
-                        cycles-=(is486)?5:8;
-                        reads_l++; total_cycles += is486 ? 5 : 8;
-                        ins++;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if ((c>0) && (fv==tempz))  { cpu_state.pc=ipc; firstrepcycle=0; }
-                else firstrepcycle=1;
-                break;
-                case 0x2AF: /*REP SCASW*/
-                cpu_notreps++;
-                tempz = (fv) ? 1 : 0;
-                while ((c > 0) && (fv == tempz))
-                {
-                        tempw=readmemw(es,EDI);
-                        if (cpu_state.abrt) { flags=of; break; }
-                        setsub16(AX,tempw);
-                        tempz = (ZF_SET()) ? 1 : 0;
-                        if (flags&D_FLAG) EDI-=2;
-                        else              EDI+=2;
-                        c--;
-                        cycles-=(is486)?5:8;
-                        reads++; total_cycles += is486 ? 5 : 8;
-                        ins++;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if ((c>0) && (fv==tempz))  { cpu_state.pc=ipc; firstrepcycle=0; }
-                else firstrepcycle=1;
-                break;
-                case 0x3AF: /*REP SCASL*/
-                cpu_notreps++;
-                tempz = (fv) ? 1 : 0;
-                while ((c > 0) && (fv == tempz))
-                {
-                        templ=readmeml(es,EDI);
-                        if (cpu_state.abrt) { flags=of; break; }
-                        setsub32(EAX,templ);
-                        tempz = (ZF_SET()) ? 1 : 0;
-                        if (flags&D_FLAG) EDI-=4;
-                        else              EDI+=4;
-                        c--;
-                        cycles-=(is486)?5:8;
-                        reads_l++; total_cycles += is486 ? 5 : 8;
-                        ins++;
-                        if (cycles < cycles_end)
-                                break;
-                }
-                ins--;
-                if ((c>0) && (fv==tempz))  { cpu_state.pc=ipc; firstrepcycle=0; }
-                else firstrepcycle=1;
-                break;
-
-
-                default:
-                cpu_state.pc = ipc+1;
-                break;
-        }
-        if (rep32&0x200) ECX=c;
-        else             CX=c;
-        CPU_BLOCK_END();
-        PREFETCH_RUN(total_cycles, 1, -1, reads, reads_l, writes, writes_l, 0);
-        return cpu_state.abrt;
 }
 
 int xout=0;
@@ -1426,7 +636,7 @@ void exec386_dynarec(int cycs)
                         {
                                 uint64_t mask = (uint64_t)1 << ((phys_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
                                 
-                                if (page->code_present_mask & mask)
+                                if (page->code_present_mask[(phys_addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] & mask)
                                 {
                                         /*Walk page tree to see if we find the correct block*/
                                         codeblock_t *new_block = codeblock_tree_find(phys_addr, cs);
@@ -1439,10 +649,11 @@ void exec386_dynarec(int cycs)
                                         }
                                 }
                         }
-                        if (valid_block && (block->page_mask & page->dirty_mask))
+
+                        if (valid_block && (block->page_mask & *block->dirty_mask))
                         {
-                                codegen_check_flush(page, page->dirty_mask, phys_addr);
-                                page->dirty_mask = 0;
+                                codegen_check_flush(page, page->dirty_mask[(phys_addr >> 10) & 3], phys_addr);
+                                page->dirty_mask[(phys_addr >> 10) & 3] = 0;
                                 if (!block->pc)
                                         valid_block = 0;
                         }
@@ -1455,15 +666,15 @@ void exec386_dynarec(int cycs)
                                   allow the first page to be interpreted and for
                                   the page fault to occur when the page boundary
                                   is actually crossed.*/
-                                uint32_t phys_addr_2 = get_phys_noabrt(block->endpc) & ~0xfff;
+                                uint32_t phys_addr_2 = get_phys_noabrt(block->endpc);
                                 page_t *page_2 = &pages[phys_addr_2 >> 12];
 
                                 if ((block->phys_2 ^ phys_addr_2) & ~0xfff)
                                         valid_block = 0;
-                                else if (block->page_mask2 & page_2->dirty_mask)
+                                else if (block->page_mask2 & *block->dirty_mask2)
                                 {
-                                        codegen_check_flush(page_2, page_2->dirty_mask, phys_addr_2);
-                                        page_2->dirty_mask = 0;
+                                        codegen_check_flush(page_2, page_2->dirty_mask[(phys_addr_2 >> 10) & 3], phys_addr_2);
+                                        page_2->dirty_mask[(phys_addr_2 >> 10) & 3] = 0;
                                         if (!block->pc)
                                                 valid_block = 0;
                                 }
@@ -1537,7 +748,7 @@ inrecomp=0;
                                   will prevent any block from spanning more than
                                   2 pages. In practice this limit will never be
                                   hit, as host block size is only 2kB*/
-                                if ((cpu_state.pc - start_pc) > 4000)
+                                if ((cpu_state.pc - start_pc) > 1000)
                                         CPU_BLOCK_END();
                                         
                                 if (trap)
@@ -1605,7 +816,7 @@ inrecomp=0;
                                   will prevent any block from spanning more than
                                   2 pages. In practice this limit will never be
                                   hit, as host block size is only 2kB*/
-                                if ((cpu_state.pc - start_pc) > 4000)
+                                if ((cpu_state.pc - start_pc) > 1000)
                                         CPU_BLOCK_END();
                                         
                                 if (trap)

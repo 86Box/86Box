@@ -1,7 +1,21 @@
-/* Copyright holders: SA1988, Tenshi
-   see COPYING for more details
-*/
-/*SCSI layer emulation*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Handling of the SCSI controllers.
+ *
+ * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
+ *
+ * Version:	@(#)scsi.c	1.0.0	2017/06/14
+ *
+ * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Original Buslogic version by SA1988 and Miran Grca.
+ *		Copyright 2017 Fred N. van Kempen.
+ */
 #include <stdlib.h>
 #include <string.h>
 #include "86box.h"
@@ -28,17 +42,18 @@ typedef struct {
     char	name[64];
     char	internal_name[32];
     device_t	*device;
+    void	(*reset)(void *p);
 } SCSI_CARD;
 
 
 static SCSI_CARD scsi_cards[] = {
-    { "None",			"none",		NULL			},
-    { "Adaptec AHA-1540B",	"aha1540b",	&aha1540b_device	},
-    { "Adaptec AHA-1542CF",	"aha1542cf",	&aha1542cf_device	},
-    { "Adaptec AHA-1640",	"aha1640",	&aha1640_device	},
-    { "BusLogic BT-542B",	"bt542b",	&buslogic_device	},
-    { "BusLogic BT-958D PCI",	"bt958d",	&buslogic_pci_device	},
-    { "",			"",		NULL			}
+    { "None",			"none",		NULL,		      NULL		  },
+    { "Adaptec AHA-1540B",	"aha1540b",	&aha1540b_device,     aha_device_reset    },
+    { "Adaptec AHA-1542CF",	"aha1542cf",	&aha1542cf_device,    aha_device_reset    },
+    { "Adaptec AHA-1640",	"aha1640",	&aha1640_device,      aha_device_reset    },
+    { "BusLogic BT-542B",	"bt542b",	&buslogic_device,     BuslogicDeviceReset },
+    { "BusLogic BT-958D PCI",	"bt958d",	&buslogic_pci_device, BuslogicDeviceReset },
+    { "",			"",		NULL,		      NULL		  },
 };
 
 
@@ -97,6 +112,24 @@ void scsi_card_init()
 	device_add(scsi_cards[scsi_card_current].device);
 
     scsi_card_last = scsi_card_current;
+}
+
+
+void scsi_card_reset(void)
+{
+    void *p = NULL;
+
+    if (scsi_cards[scsi_card_current].device)
+    {
+	p = device_get_priv(scsi_cards[scsi_card_current].device);
+	if (p)
+	{
+		if (scsi_cards[scsi_card_current].reset)
+		{
+			scsi_cards[scsi_card_current].reset(p);
+		}
+	}
+    }
 }
 
 

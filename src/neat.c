@@ -3,14 +3,18 @@
 */
 /*This is the chipset used in the AMI 286 clone model*/
 #include "ibm.h"
+#include "cpu/cpu.h"
 #include "io.h"
-#include "neat.h"
+#include "device.h"
+#include "model.h"
+
 
 static uint8_t neat_regs[256];
 static int neat_index;
 static int neat_emspage[4];
 
-void neat_write(uint16_t port, uint8_t val, void *priv)
+
+static void neat_write(uint16_t port, uint8_t val, void *priv)
 {
         switch (port)
         {
@@ -38,7 +42,8 @@ void neat_write(uint16_t port, uint8_t val, void *priv)
         }
 }
 
-uint8_t neat_read(uint16_t port, void *priv)
+
+static uint8_t neat_read(uint16_t port, void *priv)
 {
         switch (port)
         {
@@ -51,17 +56,22 @@ uint8_t neat_read(uint16_t port, void *priv)
         return 0xff;
 }
 
-void neat_writeems(uint32_t addr, uint8_t val)
+
+#if NOT_USED
+static void neat_writeems(uint32_t addr, uint8_t val)
 {
         ram[(neat_emspage[(addr >> 14) & 3] << 14) + (addr & 0x3FFF)] = val;
 }
 
-uint8_t neat_readems(uint32_t addr)
+
+static uint8_t neat_readems(uint32_t addr)
 {
         return ram[(neat_emspage[(addr >> 14) & 3] << 14) + (addr & 0x3FFF)];
 }
+#endif
 
-void neat_init()
+
+void neat_init(void)
 {
         io_sethandler(0x0022, 0x0002, neat_read, NULL, NULL, neat_write, NULL, NULL,  NULL);
         io_sethandler(0x0208, 0x0002, neat_read, NULL, NULL, neat_write, NULL, NULL,  NULL);

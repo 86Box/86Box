@@ -17,6 +17,7 @@
 #include "video.h"
 #include "vid_svga.h"
 #ifndef __unix
+# include "../win/win.h"		/*YUCK*/
 # include "../win/win_cgapal.h"		/*YUCK*/
 #endif
 
@@ -642,6 +643,8 @@ void video_wait_for_buffer()
 
 void video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
+        if (h <= 0)
+                return;
         video_wait_for_blit();
         blit_data.busy = 1;
         blit_data.buffer_in_use = 1;
@@ -657,6 +660,8 @@ void video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 
 void video_blit_memtoscreen_8(int x, int y, int w, int h)
 {
+        if (h <= 0)
+                return;
         video_wait_for_blit();
         blit_data.busy = 1;
         blit_data.x = x;
@@ -692,6 +697,15 @@ time_t now;
 struct tm *info;
 wchar_t screenshot_fn_partial[2048];
 wchar_t screenshot_fn[4096];
+wchar_t screenshot_path[4096];
+
+BOOL DirectoryExists(LPCTSTR szPath)
+{
+  DWORD dwAttrib = GetFileAttributes(szPath);
+
+  return (dwAttrib != INVALID_FILE_ATTRIBUTES && 
+         (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+}
 
 void take_screenshot()
 {
@@ -700,7 +714,13 @@ void take_screenshot()
 	info = localtime(&now);
 	memset(screenshot_fn, 0, 8192);
 	memset(screenshot_fn_partial, 0, 4096);
+	memset(screenshot_path, 0, 8192);
 	pclog("Video API is: %i\n", vid_api);
+	append_filename_w(screenshot_path, pcempath, L"screenshots", 4095);
+	if (!DirectoryExists(screenshot_path))
+	{
+		CreateDirectory(screenshot_path, NULL);
+	}
 	if (vid_api == 1)
 	{
 		wcsftime(screenshot_fn_partial, 2048, L"screenshots\\%Y%m%d_%H%M%S.png", info);

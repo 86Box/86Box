@@ -1,4 +1,4 @@
-#include "mem.h"
+#include "../mem.h"
 
 #ifdef __amd64__
 #include "codegen_x86-64.h"
@@ -36,6 +36,7 @@
 typedef struct codeblock_t
 {
 	uint64_t page_mask, page_mask2;
+        uint64_t *dirty_mask, *dirty_mask2;
 	uint64_t cmp;
 
         /*Previous and next pointers, for the codeblock list associated with
@@ -236,8 +237,10 @@ static __inline void codeblock_tree_delete(codeblock_t *block)
         }
 }
 
+#define PAGE_MASK_INDEX_MASK 3
+#define PAGE_MASK_INDEX_SHIFT 10
 #define PAGE_MASK_MASK 63
-#define PAGE_MASK_SHIFT 6
+#define PAGE_MASK_SHIFT 4
 
 extern codeblock_t *codeblock;
 
@@ -308,7 +311,8 @@ static __inline void addbyte(uint8_t val)
 
 static __inline void addword(uint16_t val)
 {
-        *(uint16_t *)&codeblock[block_current].data[block_pos] = val;
+	uint16_t *p = (uint16_t *)&codeblock[block_current].data[block_pos];
+	*p = val;
         block_pos += 2;
         if (block_pos >= BLOCK_MAX)
         {
@@ -318,7 +322,8 @@ static __inline void addword(uint16_t val)
 
 static __inline void addlong(uint32_t val)
 {
-        *(uint32_t *)&codeblock[block_current].data[block_pos] = val;
+	uint32_t *p = (uint32_t *)&codeblock[block_current].data[block_pos];
+	*p = val;
         block_pos += 4;
         if (block_pos >= BLOCK_MAX)
         {
@@ -328,7 +333,8 @@ static __inline void addlong(uint32_t val)
 
 static __inline void addquad(uint64_t val)
 {
-        *(uint64_t *)&codeblock[block_current].data[block_pos] = val;
+	uint64_t *p = (uint64_t *)&codeblock[block_current].data[block_pos];
+	*p = val;
         block_pos += 8;
         if (block_pos >= BLOCK_MAX)
         {

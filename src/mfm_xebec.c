@@ -1,17 +1,10 @@
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
-#define _GNU_SOURCE
-#include <errno.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-
+#include <malloc.h>
 #include <sys/types.h>
 #include "ibm.h"
 
 #include "device.h"
 #include "dma.h"
+#include "hdd_image.h"
 #include "io.h"
 #include "mem.h"
 #include "pic.h"
@@ -43,7 +36,8 @@ typedef struct mfm_drive_t
         int cfg_hpc;
         int cfg_cyl;
         int current_cylinder;
-        FILE *hdfile;
+	int present;
+	int hdc_num;
 } mfm_drive_t;
 
 typedef struct xebec_t
@@ -297,6 +291,8 @@ static void xebec_next_sector(xebec_t *xebec)
 
 static void xebec_callback(void *p)
 {
+	off64_t addr;
+
         xebec_t *xebec = (xebec_t *)p;
         mfm_drive_t *drive;
         
@@ -310,13 +306,13 @@ static void xebec_callback(void *p)
         switch (xebec->command[0])
         {
                 case CMD_TEST_DRIVE_READY:
-                if (!drive->hdfile)
+                if (!drive->present)
                         xebec_error(xebec, ERR_NOT_READY);
                 xebec_complete(xebec);
                 break;
                 
                 case CMD_RECALIBRATE:
-                if (!drive->hdfile)
+                if (!drive->present)
                         xebec_error(xebec, ERR_NOT_READY);
                 else
                 {
@@ -357,8 +353,6 @@ static void xebec_callback(void *p)
                         xebec->sector_count = xebec->command[4];
                         do
                         {
-                                off64_t addr;
-                                        
                                 if (xebec_get_sector(xebec, &addr))
                                 {
                                         pclog("xebec_get_sector failed\n");
@@ -384,9 +378,6 @@ static void xebec_callback(void *p)
 
                 case CMD_FORMAT_TRACK:
                 {
-                        off64_t addr;
-                        int c;
-                        
                         xebec->cylinder = xebec->command[3] | ((xebec->command[2] & 0xc0) << 2);
                         drive->current_cylinder = (xebec->cylinder >= drive->cfg_cyl) ? drive->cfg_cyl-1 : xebec->cylinder;
                         xebec->head = xebec->command[1] & 0x1f;
@@ -398,10 +389,8 @@ static void xebec_callback(void *p)
                                 xebec_complete(xebec);
                                 return;
                         }
-                        
-                        fseeko64(drive->hdfile, addr * 512, SEEK_SET);
-                        for (c = 0; c < 17; c++)
-                                fwrite(xebec->sector_buf, 512, 1, drive->hdfile);
+
+			hdd_image_zero(drive->hdc_num, addr, 17);
                                 
                         xebec_complete(xebec);
                 }
@@ -420,8 +409,6 @@ static void xebec_callback(void *p)
                         xebec->data_pos = 0;
                         xebec->data_len = 512;
                         {
-                                off64_t addr;
-
                                 if (xebec_get_sector(xebec, &addr))
                                 {
                                         xebec_error(xebec, xebec->error);
@@ -429,8 +416,7 @@ static void xebec_callback(void *p)
                                         return;
                                 }
 
-                                fseeko64(drive->hdfile, addr * 512, SEEK_SET);
-                                fread(xebec->sector_buf, 512, 1, drive->hdfile);
+				hdd_image_read(drive->hdc_num, addr, 1, (uint8_t *) xebec->sector_buf);
 		                update_status_bar_icon(SB_HDD | HDD_BUS_MFM, 1);
                         }
                         if (xebec->irq_dma_mask & DMA_ENA)
@@ -474,8 +460,6 @@ static void xebec_callback(void *p)
                         
                         if (xebec->sector_count)
                         {
-                                off64_t addr;
-
                                 if (xebec_get_sector(xebec, &addr))
                                 {
                                         xebec_error(xebec, xebec->error);
@@ -483,8 +467,7 @@ static void xebec_callback(void *p)
                                         return;
                                 }
 
-                                fseeko64(drive->hdfile, addr * 512, SEEK_SET);
-                                fread(xebec->sector_buf, 512, 1, drive->hdfile);
+				hdd_image_read(drive->hdc_num, addr, 1, (uint8_t *) xebec->sector_buf);
 		                update_status_bar_icon(SB_HDD | HDD_BUS_MFM, 1);
 
                                 xebec->state = STATE_SEND_DATA;
@@ -559,8 +542,6 @@ static void xebec_callback(void *p)
                                 memcpy(xebec->sector_buf, xebec->data, 512);
 
                         {
-                                off64_t addr;
-                                                
                                 if (xebec_get_sector(xebec, &addr))
                                 {
                                         xebec_error(xebec, xebec->error);
@@ -568,8 +549,7 @@ static void xebec_callback(void *p)
                                         return;
                                 }
 
-                                fseeko64(drive->hdfile, addr * 512, SEEK_SET);
-                                fwrite(xebec->sector_buf, 512, 1, drive->hdfile);
+				hdd_image_write(drive->hdc_num, addr, 1, (uint8_t *) xebec->sector_buf);
                         }
                                 
 	                update_status_bar_icon(SB_HDD | HDD_BUS_MFM, 1);
@@ -596,7 +576,7 @@ static void xebec_callback(void *p)
                 break;
 
                 case CMD_SEEK:
-                if (!drive->hdfile)
+                if (!drive->present)
                         xebec_error(xebec, ERR_NOT_READY);
                 else
                 {
@@ -766,39 +746,21 @@ static void xebec_callback(void *p)
 static void loadhd(xebec_t *xebec, int c, int d, const wchar_t *fn)
 {
         mfm_drive_t *drive = &xebec->drives[d];
-        
-	if (drive->hdfile == NULL)
-        {
-		/* Try to open existing hard disk image */
-		drive->hdfile = _wfopen(fn, L"rb+");
-		if (drive->hdfile == NULL)
-                {
-			/* Failed to open existing hard disk image */
-			if (errno == ENOENT)
-                        {
-				/* Failed because it does not exist,
-				   so try to create new file */
-				drive->hdfile = _wfopen(fn, L"wb+");
-				if (drive->hdfile == NULL)
-                                {
-					pclog("Cannot create file '%s': %s",
-					      fn, strerror(errno));
-					return;
-				}
-			}
-                        else
-                        {
-				/* Failed for another reason */
-				pclog("Cannot open file '%s': %s",
-				      fn, strerror(errno));
-				return;
-			}
-		}
-	}
+	int ret = 0;
 
+	ret = hdd_image_load(d);
+
+	if (!ret)
+	{
+		drive->present = 0;
+		return;
+	}
+        
         drive->spt = hdc[c].spt;
         drive->hpc = hdc[c].hpc;
         drive->tracks = hdc[c].tracks;
+	drive->hdc_num = c;
+	drive->present = 1;
 }
 
 static struct
@@ -822,7 +784,7 @@ static void xebec_set_switches(xebec_t *xebec)
         {
                 mfm_drive_t *drive = &xebec->drives[d];
                 
-                if (!drive->hdfile)
+                if (!drive->present)
                         continue;
                 
                 for (c = 0; c < 4; c++)
@@ -861,7 +823,7 @@ static void *xebec_init()
 
 	xebec_set_switches(xebec);
 
-        rom_init(&xebec->bios_rom, L"roms/ibm_xebec_62x0822_1985.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&xebec->bios_rom, L"roms/hdd/mfm_xebec/ibm_xebec_62x0822_1985.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
                 
         io_sethandler(0x0320, 0x0004, xebec_read, NULL, NULL, xebec_write, NULL, NULL, xebec);
 
@@ -878,9 +840,8 @@ static void xebec_close(void *p)
         for (d = 0; d < 2; d++)
         {
                 mfm_drive_t *drive = &xebec->drives[d];
-                
-                if (drive->hdfile != NULL)
-                        fclose(drive->hdfile);
+
+		hdd_image_close(drive->hdc_num);
         }
         
         free(xebec);
@@ -888,7 +849,7 @@ static void xebec_close(void *p)
 
 static int xebec_available()
 {
-        return rom_present(L"roms/ibm_xebec_62x0822_1985.bin");
+        return rom_present(L"roms/hdd/mfm_xebec/ibm_xebec_62x0822_1985.bin");
 }
 
 device_t mfm_xebec_device =
@@ -929,7 +890,7 @@ static void *dtc_5150x_init()
         xebec->drives[1].cfg_cyl = xebec->drives[1].tracks;
         xebec->drives[1].cfg_hpc = xebec->drives[1].hpc;
 
-        rom_init(&xebec->bios_rom, L"roms/dtc_cxd21a.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&xebec->bios_rom, L"roms/hdd/mfm_xebec/dtc_cxd21a.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
                 
         io_sethandler(0x0320, 0x0004, xebec_read, NULL, NULL, xebec_write, NULL, NULL, xebec);
 
@@ -939,7 +900,7 @@ static void *dtc_5150x_init()
 }
 static int dtc_5150x_available()
 {
-        return rom_present(L"roms/dtc_cxd21a.bin");
+        return rom_present(L"roms/hdd/mfm_xebec/dtc_cxd21a.bin");
 }
 
 device_t dtc_5150x_device =

@@ -1,17 +1,9 @@
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
-#define _GNU_SOURCE
-#include <errno.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-
-#include <sys/types.h>
+#include <malloc.h>
 #include "ibm.h"
 
 #include "device.h"
 #include "dma.h"
+#include "hdd_image.h"
 #include "io.h"
 #include "mca.h"
 #include "mem.h"
@@ -30,7 +22,8 @@ typedef struct esdi_drive_t
         int spt, hpc;
         int tracks;
         int sectors;
-        FILE *hdfile;
+	int present;
+	int hdc_num;
 } esdi_drive_t;
 
 typedef struct esdi_t
@@ -54,7 +47,7 @@ typedef struct esdi_t
         int data_pos;
         uint16_t data[256];
 
-        uint16_t sector_buffer[16][256];
+        uint16_t sector_buffer[256][256];
 
         int sector_pos;
         int sector_count;
@@ -395,7 +388,7 @@ static void esdi_callback(void *p)
                 case CMD_READ:
                 ESDI_DRIVE_ONLY();
 
-                if (!drive->hdfile)
+                if (!drive->present)
                 {
                         device_not_present(esdi);
                         return;
@@ -431,8 +424,7 @@ static void esdi_callback(void *p)
                                 {
                                         if (esdi->rba >= drive->sectors)
                                                 fatal("Read past end of drive\n");
-                                        fseek(drive->hdfile, esdi->rba * 512, SEEK_SET);
-                                        fread(esdi->data, 512, 1, drive->hdfile);
+					hdd_image_read(drive->hdc_num, esdi->rba, 1, (uint8_t *) esdi->data);
 			                update_status_bar_icon(SB_HDD | HDD_BUS_RLL, 1);
                                 }
                                 while (esdi->data_pos < 256)
@@ -471,7 +463,7 @@ static void esdi_callback(void *p)
                 case CMD_WRITE_VERIFY:
                 ESDI_DRIVE_ONLY();
 
-                if (!drive->hdfile)
+                if (!drive->present)
                 {
                         device_not_present(esdi);
                         return;
@@ -518,8 +510,7 @@ static void esdi_callback(void *p)
 
                                 if (esdi->rba >= drive->sectors)
                                         fatal("Write past end of drive\n");
-                                fseek(drive->hdfile, esdi->rba * 512, SEEK_SET);
-                                fwrite(esdi->data, 512, 1, drive->hdfile);
+				hdd_image_write(drive->hdc_num, esdi->rba, 1, (uint8_t *) esdi->data);
                                 esdi->rba++;
                                 esdi->sector_pos++;
 		                update_status_bar_icon(SB_HDD | HDD_BUS_RLL, 1);
@@ -545,7 +536,7 @@ static void esdi_callback(void *p)
                 case CMD_READ_VERIFY:
                 ESDI_DRIVE_ONLY();
 
-                if (!drive->hdfile)
+                if (!drive->present)
                 {
                         device_not_present(esdi);
                         return;
@@ -560,7 +551,7 @@ static void esdi_callback(void *p)
                 case CMD_SEEK:
                 ESDI_DRIVE_ONLY();
 
-                if (!drive->hdfile)
+                if (!drive->present)
                 {
                         device_not_present(esdi);
                         return;
@@ -575,7 +566,7 @@ static void esdi_callback(void *p)
                 case CMD_GET_DEV_CONFIG:
                 ESDI_DRIVE_ONLY();
 
-                if (!drive->hdfile)
+                if (!drive->present)
                 {
                         device_not_present(esdi);
                         return;
@@ -632,7 +623,7 @@ static void esdi_callback(void *p)
                         case 0:
                         esdi->sector_pos = 0;
                         esdi->sector_count = esdi->cmd_data[1];
-                        if (esdi->sector_count > 16)
+                        if (esdi->sector_count > 256)
                                 fatal("Read sector buffer count %04x\n", esdi->cmd_data[1]);
                                 
                         esdi->status = STATUS_IRQ | STATUS_CMD_IN_PROGRESS | STATUS_TRANSFER_REQ;
@@ -692,7 +683,7 @@ static void esdi_callback(void *p)
                         case 0:
                         esdi->sector_pos = 0;
                         esdi->sector_count = esdi->cmd_data[1];
-                        if (esdi->sector_count > 16)
+                        if (esdi->sector_count > 256)
                                 fatal("Write sector buffer count %04x\n", esdi->cmd_data[1]);
                                 
                         esdi->status = STATUS_IRQ | STATUS_CMD_IN_PROGRESS | STATUS_TRANSFER_REQ;
@@ -799,40 +790,22 @@ static void esdi_mca_write(int port, uint8_t val, void *p)
 static void loadhd(esdi_t *esdi, int hdc_num, int d, const wchar_t *fn)
 {
         esdi_drive_t *drive = &esdi->drives[d];
-        
-	if (drive->hdfile == NULL)
-        {
-		/* Try to open existing hard disk image */
-		drive->hdfile = _wfopen(fn, L"rb+");
-		if (drive->hdfile == NULL)
-                {
-			/* Failed to open existing hard disk image */
-			if (errno == ENOENT)
-                        {
-				/* Failed because it does not exist,
-				   so try to create new file */
-				drive->hdfile = _wfopen(fn, L"wb+");
-				if (drive->hdfile == NULL)
-                                {
-					pclog("Cannot create file '%s': %s",
-					      fn, strerror(errno));
-					return;
-				}
-			}
-                        else
-                        {
-				/* Failed for another reason */
-				pclog("Cannot open file '%s': %s",
-				      fn, strerror(errno));
-				return;
-			}
-		}
-	}
+	int ret = 0;
 
+	ret = hdd_image_load(hdc_num);
+
+	if (!ret)
+	{
+		drive->present = 0;
+		return;
+	}
+        
         drive->spt = hdc[hdc_num].spt;
         drive->hpc = hdc[hdc_num].hpc;
         drive->tracks = hdc[hdc_num].tracks;
         drive->sectors = hdc[hdc_num].spt * hdc[hdc_num].hpc * hdc[hdc_num].tracks;
+	drive->hdc_num = hdc_num;
+	drive->present = 1;
 }
 
 static void *esdi_init()
@@ -843,8 +816,10 @@ static void *esdi_init()
         esdi_t *esdi = malloc(sizeof(esdi_t));
         memset(esdi, 0, sizeof(esdi_t));
 
-        rom_init_interleaved(&esdi->bios_rom, L"roms/90x8970.bin", L"roms/90x8969.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init_interleaved(&esdi->bios_rom, L"roms/hdd/esdi/90x8970.bin", L"roms/hdd/esdi/90x8969.bin", 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
         mem_mapping_disable(&esdi->bios_rom.mapping);
+
+	esdi->drives[0].present = esdi->drives[1].present = 0;
 
 	for (i = 0; i < HDC_NUM; i++)
 	{
@@ -873,14 +848,17 @@ static void *esdi_init()
 static void esdi_close(void *p)
 {
         esdi_t *esdi = (esdi_t *)p;
+	esdi_drive_t *drive;
+
         int d;
+
+	esdi->drives[0].present = esdi->drives[1].present = 0;
 
         for (d = 0; d < 2; d++)
         {
-                esdi_drive_t *drive = &esdi->drives[d];
-                
-                if (drive->hdfile != NULL)
-                        fclose(drive->hdfile);
+                drive = &esdi->drives[d];
+
+		hdd_image_close(drive->hdc_num);
         }
         
         free(esdi);
@@ -888,7 +866,7 @@ static void esdi_close(void *p)
 
 static int esdi_available()
 {
-        return rom_present(L"roms/90x8969.bin") && rom_present(L"roms/90x8970.bin");
+        return rom_present(L"roms/hdd/esdi/90x8969.bin") && rom_present(L"roms/hdd/esdi/90x8970.bin");
 }
 
 device_t hdd_esdi_device =

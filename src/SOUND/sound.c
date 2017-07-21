@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.1	2017/06/04
+ * Version:	@(#)sound.c	1.0.2	2017/06/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,6 +23,7 @@
 #include "../timer.h"
 #include "../cdrom.h"
 #include "../win/plat_thread.h"
+#include "midi.h"
 #include "sound.h"
 #include "snd_opl.h"
 #include "snd_adlib.h"
@@ -136,10 +137,13 @@ int soundon = 1;
 
 static int16_t cd_buffer[CDROM_NUM][CD_BUFLEN * 2];
 static float cd_out_buffer[CD_BUFLEN * 2];
+static int16_t cd_out_buffer_int16[CD_BUFLEN * 2];
 static thread_t *sound_cd_thread_h;
 static event_t *sound_cd_event;
 static unsigned int cd_vol_l, cd_vol_r;
 static int cd_buf_update = CD_BUFLEN / SOUNDBUFLEN;
+
+int sound_is_float = 1;
 
 void sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r)
 {
@@ -151,10 +155,13 @@ static void sound_cd_thread(void *param)
 {
 	int i = 0;
 
+	float cd_buffer_temp[2] = {0.0, 0.0};
+	float cd_buffer_temp2[2] = {0.0, 0.0};
+
+	int c, has_audio;
+
 	while (1)
 	{
-		int c, has_audio;
-
 		thread_wait_event(sound_cd_event, -1);
 		if (!soundon)
 		{
@@ -162,8 +169,16 @@ static void sound_cd_thread(void *param)
 		}
 		for (c = 0; c < CD_BUFLEN*2; c += 2)
 		{
-			cd_out_buffer[c] = 0.0;
-			cd_out_buffer[c+1] = 0.0;
+			if (sound_is_float)
+			{
+				cd_out_buffer[c] = 0.0;
+				cd_out_buffer[c+1] = 0.0;
+			}
+			else
+			{
+				cd_out_buffer_int16[c] = 0;
+				cd_out_buffer_int16[c+1] = 0;
+			}
 		}
 		for (i = 0; i < CDROM_NUM; i++)
 		{
@@ -184,9 +199,6 @@ static void sound_cd_thread(void *param)
 
 				for (c = 0; c < CD_BUFLEN*2; c += 2)
 				{
-					float cd_buffer_temp[2] = {0.0, 0.0};
-					float cd_buffer_temp2[2] = {0.0, 0.0};
-
 					/* First, transfer the CD audio data to the temporary buffer. */
 					cd_buffer_temp[0] = (float) cd_buffer[i][c];
 					cd_buffer_temp[1] = (float) cd_buffer[i][c+1];
@@ -223,19 +235,66 @@ static void sound_cd_thread(void *param)
 					cd_buffer_temp2[1] *= (float) cd_vol_r;
 					cd_buffer_temp2[1] /= 65535.0;
 
-					cd_out_buffer[c] += (cd_buffer_temp2[0] / 32768.0);
-					cd_out_buffer[c+1] += (cd_buffer_temp2[1] / 32768.0);
+					if (sound_is_float)
+					{
+						cd_out_buffer[c] += (cd_buffer_temp2[0] / 32768.0);
+						cd_out_buffer[c+1] += (cd_buffer_temp2[1] / 32768.0);
+					}
+					else
+					{
+						if (cd_buffer_temp2[0] > 32767)
+							cd_buffer_temp2[0] = 32767;
+						if (cd_buffer_temp2[0] < -32768)
+							cd_buffer_temp2[0] = -32768;
+						if (cd_buffer_temp2[1] > 32767)
+							cd_buffer_temp2[1] = 32767;
+						if (cd_buffer_temp2[1] < -32768)
+							cd_buffer_temp2[1] = -32768;
+
+						cd_out_buffer_int16[c] += cd_buffer_temp2[0];
+						cd_out_buffer_int16[c+1] += cd_buffer_temp2[1];
+					}
 				}
 			}
 		}
-		givealbuffer_cd(cd_out_buffer);
+		if (sound_is_float)
+		{
+			givealbuffer_cd(cd_out_buffer);
+		}
+		else
+		{
+			givealbuffer_cd(cd_out_buffer_int16);
+		}
 	}
 }
 
 static int32_t *outbuffer;
 static float *outbuffer_ex;
+static int16_t *outbuffer_ex_int16;
 
 static int cd_thread_enable = 0;
+
+void sound_realloc_buffers(void)
+{
+	if (outbuffer_ex != NULL)
+	{
+		free(outbuffer_ex);
+	}
+
+	if (outbuffer_ex_int16 != NULL)
+	{
+		free(outbuffer_ex_int16);
+	}
+
+	if (sound_is_float)
+	{
+	        outbuffer_ex = malloc(SOUNDBUFLEN * 2 * sizeof(float));
+	}
+	else
+	{
+	        outbuffer_ex_int16 = malloc(SOUNDBUFLEN * 2 * sizeof(int16_t));
+	}
+}
 
 void sound_init(void)
 {
@@ -245,8 +304,12 @@ void sound_init(void)
         initalmain(0,NULL);
         inital();
 
+	outbuffer_ex = NULL;
+	outbuffer_ex_int16 = NULL;
+
         outbuffer = malloc(SOUNDBUFLEN * 2 * sizeof(int32_t));
-        outbuffer_ex = malloc(SOUNDBUFLEN * 2 * sizeof(float));
+
+	sound_realloc_buffers();
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
@@ -275,7 +338,9 @@ void sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *p), vo
 void sound_poll(void *priv)
 {
         sound_poll_time += sound_poll_latch;
-        
+
+	midi_poll();
+
         sound_pos_global++;
         if (sound_pos_global == SOUNDBUFLEN)
         {
@@ -289,10 +354,32 @@ void sound_poll(void *priv)
 
 		for (c = 0; c < SOUNDBUFLEN * 2; c++)
 		{
-			outbuffer_ex[c] = ((float) outbuffer[c]) / 32768.0;
+			if (sound_is_float)
+			{
+				outbuffer_ex[c] = ((float) outbuffer[c]) / 32768.0;
+			}
+			else
+			{
+				if (outbuffer[c] > 32767)
+					outbuffer[c] = 32767;
+				if (outbuffer[c] < -32768)
+					outbuffer[c] = -32768;
+
+				outbuffer_ex_int16[c] = outbuffer[c];
+			}
 		}
         
-                if (soundon) givealbuffer(outbuffer_ex);
+                if (soundon)
+		{
+			if (sound_is_float)
+			{
+				givealbuffer(outbuffer_ex);
+			}
+			else
+			{
+				givealbuffer(outbuffer_ex_int16);
+			}
+		}
         
 		if (cd_thread_enable)
 		{

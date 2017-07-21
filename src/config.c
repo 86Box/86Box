@@ -24,11 +24,12 @@
 #include "hdd.h"
 #include "model.h"
 #include "mouse.h"
-#include "network.h"
+#include "network/network.h"
 #include "nvr.h"
 #include "scsi.h"
 #include "win/plat_joystick.h"
 #include "win/plat_midi.h"
+#include "sound/midi.h"
 #include "sound/snd_dbopl.h"
 #include "sound/snd_mpu401.h"
 #include "sound/snd_opl.h"
@@ -109,6 +110,7 @@ void config_dump(void)
 }
 
 
+#if 0
 static void config_free(void)
 {
         section_t *current_section;
@@ -133,6 +135,7 @@ static void config_free(void)
                 current_section = next_section;
         }
 }
+#endif
 
 
 static wchar_t cfgbuffer[1024];
@@ -222,7 +225,7 @@ int config_load(wchar_t *fn)
                         strncpy(new_entry->name, ename, 256);
 			memcpy(new_entry->wdata, &cfgbuffer[data_pos], 512);
 			new_entry->wdata[255] = L'\0';
-			wcstombs(new_entry->data, new_entry->wdata, 512);
+			wcstombs(new_entry->data, new_entry->wdata, sizeof(new_entry->data));
 			new_entry->data[255] = '\0';
                         list_add(&new_entry->list, &current_section->entry_head);
                 }
@@ -477,7 +480,6 @@ void config_delete_var(char *head, char *name)
 void config_delete_section_if_empty(char *head)
 {
         section_t *section;
-        entry_t *entry;
 
         section = find_section(head);
         
@@ -765,15 +767,11 @@ void config_save(wchar_t *fn)
 }
 
 
-static wchar_t *read_nvr_path;
-
-
 /* General */
 static void loadconfig_general(void)
 {
 	char *cat = "General";
 	char temps[512];
-        wchar_t *wp;
         char *p;
 
         vid_resize = !!config_get_int(cat, "vid_resize", 0);
@@ -806,7 +804,8 @@ static void loadconfig_general(void)
 	}
 	enable_overscan = !!config_get_int(cat, "enable_overscan", 0);
 	vid_cga_contrast = !!config_get_int(cat, "vid_cga_contrast", 0);
-
+	video_grayscale = config_get_int(cat, "video_grayscale", 0);
+	video_graytype = config_get_int(cat, "video_graytype", 0);
 
         window_remember = config_get_int(cat, "window_remember", 0);
 
@@ -824,10 +823,41 @@ static void loadconfig_general(void)
 		window_w = window_h = window_x = window_y = 0;
 	}
 
-	if (read_nvr_path != NULL)
+#ifndef __unix
+	/* Currently, 86Box is English (US) only, but in the future (version 1.30 at the earliest) other languages will be added,
+	   therefore it is better to future-proof the code. */
+	dwLanguage = config_get_hex16(cat, "language", 0x0409);
+#endif
+}
+
+
+/* Machine */
+static void loadconfig_machine(void)
+{
+	char *cat = "Machine";
+        wchar_t *wp;
+	wchar_t last;
+        char *p;
+
+        p = config_get_string(cat, "model", NULL);
+        if (p != NULL)
+                model = model_get_model_from_internal_name(p);
+        else
+                model = 0;
+        if (model >= model_count())
+                model = model_count() - 1;
+
+        romset = model_getromset();
+        cpu_manufacturer = config_get_int(cat, "cpu_manufacturer", 0);
+        cpu = config_get_int(cat, "cpu", 0);
+	cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
+
+        mem_size = config_get_int(cat, "mem_size", 4096);
+        if (mem_size < (((models[model].flags & MODEL_AT) && (models[model].ram_granularity < 128)) ? models[model].min_ram*1024 : models[model].min_ram))
+                mem_size = (((models[model].flags & MODEL_AT) && (models[model].ram_granularity < 128)) ? models[model].min_ram*1024 : models[model].min_ram);
+	if (mem_size > 262144)
 	{
-		free(read_nvr_path);
-		read_nvr_path = NULL;
+		mem_size = 262144;
 	}
 
 	memset(nvr_path, 0x00, sizeof(nvr_path));
@@ -835,8 +865,6 @@ static void loadconfig_general(void)
         if (wp != NULL) {
 		if (wcslen(wp) && (wcslen(wp) <= 992))
 		{
-			read_nvr_path = (wchar_t *) malloc((wcslen(wp) << 1) + 2);
-			wcscpy(read_nvr_path, wp);
 			wcscpy(nvr_path, wp);
 		}
 		else
@@ -858,39 +886,14 @@ static void loadconfig_general(void)
 	path_len = wcslen(nvr_path);
 
 #ifndef __unix
-	/* Currently, 86Box is English (US) only, but in the future (version 1.30 at the earliest) other languages will be added,
-	   therefore it is better to future-proof the code. */
-	dwLanguage = config_get_hex16(cat, "language", 0x0409);
-#endif
-}
-
-
-/* Machine */
-static void loadconfig_machine(void)
-{
-	char *cat = "Machine";
-        char *p;
-
-        p = config_get_string(cat, "model", NULL);
-        if (p != NULL)
-                model = model_get_model_from_internal_name(p);
-        else
-                model = 0;
-        if (model >= model_count())
-                model = model_count() - 1;
-
-        romset = model_getromset();
-        cpu_manufacturer = config_get_int(cat, "cpu_manufacturer", 0);
-        cpu = config_get_int(cat, "cpu", 0);
-	cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
-
-        mem_size = config_get_int(cat, "mem_size", 4096);
-        if (mem_size < ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram))
-                mem_size = ((models[model].flags & MODEL_AT) ? models[model].min_ram*1024 : models[model].min_ram);
-	if (mem_size > 262144)
+	last = nvr_path[wcslen(nvr_path) - 1];
+	nvr_path[wcslen(nvr_path) - 1] = 0;
+	if (!DirectoryExists(nvr_path))
 	{
-		mem_size = 262144;
+		CreateDirectory(nvr_path, NULL);
 	}
+	nvr_path[wcslen(nvr_path)] = last;
+#endif
 
         cpu_use_dynarec = !!config_get_int(cat, "cpu_use_dynarec", 0);
 
@@ -976,7 +979,12 @@ static void loadconfig_sound(void)
         else
                 sound_card_current = 0;
 
-        midi_id = config_get_int(cat, "midi_host_device", 0);
+        p = (char *)config_get_string(cat, "midi_device", NULL);
+        if (p != NULL)
+                midi_device_current = midi_device_get_from_internal_name(p);
+        else
+                midi_device_current = 0;
+
         mpu401_standalone_enable = !!config_get_int(cat, "mpu401_standalone", 0);
 
         SSI2001 = !!config_get_int(cat, "ssi2001", 0);
@@ -996,6 +1004,21 @@ static void loadconfig_sound(void)
 	else
 	{
 		opl3_type = 0;
+	}
+
+	memset(temps, '\0', sizeof(temps));
+        p = config_get_string(cat, "sound_type", "float");
+	if (p != NULL)
+	{
+		strcpy(temps, p);
+	}
+	if (!strcmp(temps, "float") || !strcmp(temps, "1"))
+	{
+		sound_is_float = 1;
+	}
+	else
+	{
+		sound_is_float = 0;
 	}
 }
 
@@ -1779,6 +1802,23 @@ static void saveconfig_general(void)
 	        config_set_int(cat, "vid_cga_contrast", vid_cga_contrast);
 	}
 
+	if (video_grayscale == 0)
+	{
+		config_delete_var(cat, "video_grayscale");
+	}
+	else
+	{
+	        config_set_int(cat, "video_grayscale", video_grayscale);
+	}
+
+	if (video_graytype == 0)
+	{
+		config_delete_var(cat, "video_graytype");
+	}
+	else
+	{
+	        config_set_int(cat, "video_graytype", video_graytype);
+	}
 
 	if (window_remember)
 	{
@@ -1791,15 +1831,6 @@ static void saveconfig_general(void)
 	{
 	        config_delete_var(cat, "window_remember");
 	        config_delete_var(cat, "window_coordinates");
-	}
-
-	if (read_nvr_path == NULL)
-	{
-		config_delete_var(cat, "nvr_path");
-	}
-	else
-	{
-	        config_set_wstring(cat, "nvr_path", nvr_path);
 	}
 
 #ifndef __unix
@@ -1859,6 +1890,8 @@ static void saveconfig_machine(void)
 	{
 	        config_set_int(cat, "mem_size", mem_size);
 	}
+
+        config_set_wstring(cat, "nvr_path", nvr_path);
 
         config_set_int(cat, "cpu_use_dynarec", cpu_use_dynarec);
 
@@ -2005,13 +2038,14 @@ static void saveconfig_sound(void)
 		config_set_string(cat, "sndcard", sound_card_get_internal_name(sound_card_current));
 	}
 
-	if (midi_id == 0)
+
+	if (!strcmp(midi_device_get_internal_name(midi_device_current), "none"))
 	{
-		config_delete_var(cat, "midi_host_device");
+		config_delete_var(cat, "midi_device");
 	}
 	else
 	{
-	        config_set_int(cat, "midi_host_device", midi_id);
+		config_set_string(cat, "midi_device", midi_device_get_internal_name(midi_device_current));
 	}
 
 	if (mpu401_standalone_enable == 0)
@@ -2057,6 +2091,15 @@ static void saveconfig_sound(void)
 	else
 	{
 		config_set_string(cat, "opl3_type", (opl3_type == 1) ? "nukedopl" : "dbopl");
+	}
+
+	if (sound_is_float == 1)
+	{
+		config_delete_var(cat, "sound_type");
+	}
+	else
+	{
+		config_set_string(cat, "sound_type", (sound_is_float == 1) ? "float" : "int16");
 	}
 
 	config_delete_section_if_empty(cat);

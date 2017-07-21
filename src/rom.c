@@ -25,6 +25,22 @@ FILE *nvrfopen(wchar_t *fn, wchar_t *mode)
 }
 
 
+int rom_getfile(wchar_t *fn, wchar_t *s, int size)
+{
+        FILE *f;
+
+        wcscpy(s, pcempath);
+	put_backslash_w(s);
+	wcscat(s, fn);
+	f = _wfopen(s, L"rb");
+	if (f)
+	{
+		fclose(f);
+		return 1;
+	}
+        return 0;
+}
+
 int rom_present(wchar_t *fn)
 {
         FILE *f;
@@ -43,7 +59,7 @@ int rom_present(wchar_t *fn)
 }
 
 
-static uint8_t rom_read(uint32_t addr, void *p)
+uint8_t rom_read(uint32_t addr, void *p)
 {
         rom_t *rom = (rom_t *)p;
 #ifdef ROM_TRACE

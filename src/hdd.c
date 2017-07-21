@@ -4,6 +4,7 @@
 #include "hdd.h"
 #include "model.h"
 
+#include "esdi_at.h"
 #include "hdd_esdi.h"
 #include "mfm_at.h"
 #include "mfm_xebec.h"
@@ -25,15 +26,16 @@ static struct
         int is_mfm;
 } hdd_controllers[] = 
 {
-        {"None",                  "none",     &null_hdd_device, 0},
-        {"AT Fixed Disk Adapter", "mfm_at",   &mfm_at_device,   1},
-        {"DTC 5150X",                   "dtc5150x",  &dtc_5150x_device, 1},
-        {"Fixed Disk Adapter (Xebec)",  "mfm_xebec", &mfm_xebec_device, 1},
-        {"IBM ESDI Fixed Disk Adapter (MCA)", "esdi_mca",  &hdd_esdi_device,  1},
-        {"XTIDE",                 "xtide",    &xtide_device,    0},
-        {"XTIDE (AT)",            "xtide_at", &xtide_at_device, 0},
-        {"XTIDE (PS/2)",          "xtide_ps2",&xtide_ps2_device,0},
-        {"XTIDE (AT) (PS/2)",     "xtide_at_ps2",&xtide_at_ps2_device,0},
+        {"None",					"none",		&null_hdd_device,	0},
+        {"[MFM] AT Fixed Disk Adapter",			"mfm_at",	&mfm_at_device,		1},
+        {"[MFM] DTC 5150X",				"dtc5150x",	&dtc_5150x_device,	1},
+        {"[MFM] Fixed Disk Adapter (Xebec)",		"mfm_xebec",	&mfm_xebec_device,	1},
+        {"[ESDI] IBM ESDI Fixed Disk Adapter",		"esdi_mca",	&hdd_esdi_device,	1},
+        {"[ESDI] Western Digital WD1007V-SE1",		"wd1007vse1",	&wd1007vse1_device,	0},
+        {"[IDE] XTIDE",					"xtide",	&xtide_device,		0},
+        {"[IDE] XTIDE (Acculogic)",			"xtide_ps2",	&xtide_ps2_device,	0},
+        {"[IDE] XTIDE (AT)",				"xtide_at",	&xtide_at_device,	0},
+        {"[IDE] XTIDE (AT) (1.1.5)",			"xtide_at_ps2",	&xtide_at_ps2_device,	0},
         {"", "", NULL, 0}
 };
 
