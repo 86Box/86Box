@@ -48,6 +48,8 @@ OpFn *x86_dynarec_opcodes_de_a16;
 OpFn *x86_dynarec_opcodes_de_a32;
 OpFn *x86_dynarec_opcodes_df_a16;
 OpFn *x86_dynarec_opcodes_df_a32;
+OpFn *x86_dynarec_opcodes_REPE;
+OpFn *x86_dynarec_opcodes_REPNE;
 
 OpFn *x86_opcodes;
 OpFn *x86_opcodes_0f;
@@ -67,6 +69,8 @@ OpFn *x86_opcodes_de_a16;
 OpFn *x86_opcodes_de_a32;
 OpFn *x86_opcodes_df_a16;
 OpFn *x86_opcodes_df_a32;
+OpFn *x86_opcodes_REPE;
+OpFn *x86_opcodes_REPNE;
 
 enum
 {
@@ -679,6 +683,10 @@ void cpu_set()
         pclog("is486 - %i  %i\n",is486,cpu_s->cpu_type);
 
         x86_setopcodes(ops_386, ops_386_0f, dynarec_ops_386, dynarec_ops_386_0f);
+        x86_opcodes_REPE = ops_REPE;
+        x86_opcodes_REPNE = ops_REPNE;
+        x86_dynarec_opcodes_REPE = dynarec_ops_REPE;
+        x86_dynarec_opcodes_REPNE = dynarec_ops_REPNE;
 
         if (hasfpu)
         {

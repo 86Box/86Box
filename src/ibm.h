@@ -775,7 +775,6 @@ extern void	pmodeiret(int is32);
 extern void	port_92_clear_reset(void);
 extern uint8_t	readdacfifo(void);
 extern void	refreshread(void);
-extern int	rep386(int fv);
 extern void	resetmcr(void);
 extern void	resetpchard_close(void);
 extern void	resetpchard_init(void);
