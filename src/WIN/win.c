@@ -334,7 +334,6 @@ void mainthread(LPVOID param)
 
                 if (!video_fullscreen && win_doresize && (winsizex > 0) && (winsizey > 0))
                 {
-                        video_wait_for_blit();
 			SendMessage(hwndStatus, SB_GETBORDERS, 0, (LPARAM) sb_borders);
                         GetWindowRect(ghwnd, &r);
                         MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);

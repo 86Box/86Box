@@ -532,13 +532,16 @@ void ega_poll(void *p)
                         }
                         else if (!(ega->gdcreg[6] & 1))
                         {
-				if (ega_jega_enabled(ega))
+				if (fullchange)
 				{
-					ega_render_text_jega(ega, drawcursor);
-				}
-				else
-				{
-					ega_render_text_standard(ega, drawcursor);
+					if (ega_jega_enabled(ega))
+					{
+						ega_render_text_jega(ega, drawcursor);
+					}
+					else
+					{
+						ega_render_text_standard(ega, drawcursor);
+					}
 				}
                         }
                         else
@@ -639,7 +642,7 @@ void ega_poll(void *p)
                         if (ega->interlace && !ega->oddeven) ega->lastline++;
                         if (ega->interlace &&  ega->oddeven) ega->firstline--;
 
-                        if ((x != xsize || (ega->lastline - ega->firstline) != ysize) || update_overscan)
+                        if ((x != xsize || (ega->lastline - ega->firstline + 1) != ysize) || update_overscan)
                         {
                                 xsize = x;
                                 ysize = ega->lastline - ega->firstline + 1;
@@ -763,7 +766,6 @@ void ega_poll(void *p)
                         ega->sc = 0;
                         ega->dispon = 1;
                         ega->displine = (ega->interlace && ega->oddeven) ? 1 : 0;
-                        ega->displine = 0;
                         ega->scrollcache = ega->attrregs[0x13] & 7;
                 }
                 if (ega->sc == (ega->crtc[10] & 31)) 
