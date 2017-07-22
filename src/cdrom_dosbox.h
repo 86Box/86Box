@@ -171,4 +171,6 @@ typedef	std::vector<Track>::iterator	track_it;
 	std::string	mcn;
 };
 
+void cdrom_image_log(const char *format, ...);
+
 #endif /* __CDROM_INTERFACE__ */
