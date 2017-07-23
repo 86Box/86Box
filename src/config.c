@@ -471,7 +471,8 @@ void config_delete_var(char *head, char *name)
         if (!entry)
                 return;
 
-	memset(entry->name, 0, strlen(entry->name));
+	/* memset(entry->name, 0, strlen(entry->name)); */
+	entry->name[0] = 0;
         
         return;
 }
@@ -488,7 +489,8 @@ void config_delete_section_if_empty(char *head)
 
 	if (entries_num(section) == 0)
 	{
-		memset(section->name, 0, strlen(section->name));
+		/* memset(section->name, 0, strlen(section->name)); */
+		section->name[0] = 0;
 	}
         
         return;
@@ -742,7 +744,7 @@ void config_save(wchar_t *fn)
                 
                 while (current_entry)
                 {
-			if(strlen(current_entry->name) > 0)
+			if(current_entry->name[0])
 			{
 				mbstowcs(wname, current_entry->name, strlen(current_entry->name) + 1);
 				if (current_entry->wdata[0] == L'\0')
