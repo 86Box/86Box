@@ -330,6 +330,7 @@
 #define IDS_3079		3079
 #define IDS_3080		3080
 #define IDS_3081		3081
+#define IDS_3082		3082
 
 #define IDS_4096		4096
 #define IDS_4097		4097
@@ -391,7 +392,7 @@
 #define IDS_LANG_ENUS		IDS_6144
 
 #define STRINGS_NUM_2048	122
-#define STRINGS_NUM_3072	10
+#define STRINGS_NUM_3072	11
 #define STRINGS_NUM_4096	20
 #define STRINGS_NUM_4352	7
 #define STRINGS_NUM_4608	7

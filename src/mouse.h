@@ -22,7 +22,7 @@
 
 #define MOUSE_TYPE_NONE		 0
 #if 0
-#define MOUSE_TYPE_GENIUS	10	/* Genius Bus Mouse */
+#define MOUSE_TYPE_GENIUS	11	/* Genius Bus Mouse */
 #endif
 #define MOUSE_TYPE_BUS		 1	/* Logitech/ATI Bus Mouse */
 #define MOUSE_TYPE_MSYSTEMS	 2	/* Mouse Systems mouse */
@@ -33,6 +33,7 @@
 #define MOUSE_TYPE_PS2_MS	 7	/* Microsoft Intellimouse PS/2 */
 #define MOUSE_TYPE_AMSTRAD	 8	/* Amstrad PC system mouse */
 #define MOUSE_TYPE_OLIM24	 9	/* Olivetti M24 system mouse */
+#define MOUSE_TYPE_INPORT	10  /* Microsoft InPort Mouse */
 
 #define MOUSE_TYPE_MASK		0x0f
 #define MOUSE_TYPE_3BUTTON	(1<<7)	/* device has 3+ buttons */

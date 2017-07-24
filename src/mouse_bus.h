@@ -23,12 +23,8 @@
 # define MOUSE_BUS_H
 
 
-#define BUSMOUSE_PORT		0x023c
-#define BUSMOUSE_PORTLEN	4
-#define BUSMOUSE_IRQ		5
-
-
 extern mouse_t	mouse_bus;
+extern mouse_t  mouse_inport;
 
 
 #endif	/*MOUSE_BUS_H*/

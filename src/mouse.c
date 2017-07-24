@@ -35,7 +35,7 @@ static mouse_t mouse_none = {
 
 static mouse_t *mouse_list[] = {
     &mouse_none,
-    &mouse_bus,			/*  1 Logitech Bus Mouse 2-button */
+    &mouse_bus,			/*  1 Microsoft/Logitech Bus Mouse 2-button */
     &mouse_msystems,		/*  2 Mouse Systems */
     &mouse_serial_microsoft,	/*  3 Microsoft Serial Mouse */
     &mouse_serial_logitech,	/*  4 Logitech 3-button Serial Mouse */
@@ -44,8 +44,9 @@ static mouse_t *mouse_list[] = {
     &mouse_intellimouse,	/*  7 PS/2 Intellimouse 3-button */
     &mouse_amstrad,		/*  8 Amstrad PC System Mouse */
     &mouse_olim24,		/*  9 Olivetti M24 System Mouse */
+	&mouse_inport,		/* 10 Microsoft InPort Mouse */
 #if 0
-    &mouse_genius,		/* 10 Genius Bus Mouse */
+    &mouse_genius,		/* 11 Genius Bus Mouse */
 #endif
     NULL
 };
