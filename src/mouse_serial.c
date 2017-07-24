@@ -349,7 +349,7 @@ void mousecallback(void *p)
 		switch(mouse->type)
 		{
 			case 0:
-		                serial_write_fifo(mouse->serial, 'M');
+		                serial_write_fifo(mouse->serial, 'H');
 				break;
 			case 1:
 			default:
