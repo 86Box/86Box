@@ -258,6 +258,7 @@ static uint8_t inport_read(uint16_t port, void *priv)
 		{
 			case INP_CTRL_READ_BUTTONS:
 			r = inport->but;
+			r |= 0x40;
 			break;
 			
 			case INP_CTRL_READ_X:
