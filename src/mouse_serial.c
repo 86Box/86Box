@@ -295,10 +295,8 @@ uint8_t mouse_serial_msystems_poll(int x, int y, int z, int b, void *p)
 {
         mouse_serial_t *mouse = (mouse_serial_t *)p;
         SERIAL *serial = mouse->serial;        
-        uint8_t mousedat[4];
+        uint8_t mousedat[5];
 
-        if (!(serial->ier & 1))
-                return 0xff;
         if (!x && !y && b == mouse->oldb)
                 return 0xff;
 
@@ -351,7 +349,7 @@ void mousecallback(void *p)
 		switch(mouse->type)
 		{
 			case 0:
-		                serial_write_fifo(mouse->serial, 'H');
+		                serial_write_fifo(mouse->serial, 'M');
 				break;
 			case 1:
 			default:
