@@ -2,6 +2,7 @@
         - X/Y pairing
         - FPU/FXCH pairing
         - Prefix decode delay
+        - AGI stalls
   Elements not taken into account :
         - Branch prediction (beyond most simplistic approximation)
         - FPU queue
@@ -15,6 +16,7 @@
 #include "x87.h"
 #include "../mem.h"
 #include "codegen.h"
+#include "codegen_timing_common.h"
 
 /*Instruction has different execution time for 16 and 32 bit data. Does not pair */
 #define CYCLES_HAS_MULTI (1 << 31)
@@ -33,11 +35,6 @@
 
 #define CYCLES_MASK ((1 << 7) - 1)
 
-/*Instruction is MMX shift or pack/unpack instruction*/
-#define MMX_SHIFTPACK (1 << 7)
-/*Instruction is MMX multiply instruction*/
-#define MMX_MULTIPLY  (1 << 8)
-
 /*Instruction does not pair*/
 #define PAIR_NP (0 << 29)
 /*Instruction pairs in X pipe only*/
@@ -49,35 +46,6 @@
 
 #define PAIR_MASK (3 << 29)
 
-/*Instruction has input dependency on register in REG field*/
-#define SRCDEP_REG (1 << 9)
-/*Instruction has input dependency on register in R/M field*/
-#define SRCDEP_RM  (1 << 10)
-/*Instruction modifies register in REG field*/
-#define DSTDEP_REG (1 << 11)
-/*Instruction modifies register in R/M field*/
-#define DSTDEP_RM  (1 << 12)
-
-/*Instruction has input dependency on given register*/
-#define SRCDEP_EAX (1 << 13)
-#define SRCDEP_ECX (1 << 14)
-#define SRCDEP_EDX (1 << 15)
-#define SRCDEP_EBX (1 << 16)
-#define SRCDEP_ESP (1 << 17)
-#define SRCDEP_EBP (1 << 18)
-#define SRCDEP_ESI (1 << 19)
-#define SRCDEP_EDI (1 << 20)
-
-/*Instruction modifies given register*/
-#define DSTDEP_EAX (1 << 21)
-#define DSTDEP_ECX (1 << 22)
-#define DSTDEP_EDX (1 << 23)
-#define DSTDEP_EBX (1 << 24)
-#define DSTDEP_ESP (1 << 25)
-#define DSTDEP_EBP (1 << 26)
-#define DSTDEP_ESI (1 << 27)
-#define DSTDEP_EDI (1 << 28)
-
 #define INVALID 0
 
 static int prev_full;
@@ -85,119 +53,74 @@ static uint32_t prev_opcode;
 static uint32_t *prev_timings;
 static uint32_t prev_op_32;
 static uint32_t prev_regmask;
+static uint64_t *prev_deps;
+static uint32_t prev_fetchdat;
 
-#define REGMASK_MMX (1 << 8)
+static uint32_t regmask_modified;
 
-static uint32_t get_srcdep_mask(uint32_t data, uint32_t fetchdat, int bit8)
-{
-        uint32_t mask = 0;
-        if (data & SRCDEP_REG)
-        {
-                int reg = (fetchdat >> 3) & 7;
-                if (bit8)
-                        reg &= 3;
-                mask |= (1 << reg);
-        }
-        if (data & SRCDEP_RM)
-        {
-                int reg = fetchdat & 7;
-                if (bit8)
-                        reg &= 3;
-                mask |= (1 << reg);
-        }
-        mask |= ((data >> 16) & 0xff);
-        if (data & (MMX_SHIFTPACK | MMX_MULTIPLY))
-                mask |= REGMASK_MMX;
-        
-        return mask;
-}
-
-static uint32_t get_dstdep_mask(uint32_t data, uint32_t fetchdat, int bit8)
-{
-        uint32_t mask = 0;
-        if (data & DSTDEP_REG)
-        {
-                int reg = (fetchdat >> 3) & 7;
-                if (bit8)
-                        reg &= 3;
-                mask |= (1 << reg);
-        }
-        if (data & DSTDEP_RM)
-        {
-                int reg = fetchdat & 7;
-                if (bit8)
-                        reg &= 3;
-                mask |= (1 << reg);
-        }
-        mask |= ((data >> 24) & 0xff);
-        if (data & (MMX_SHIFTPACK | MMX_MULTIPLY))
-                mask |= REGMASK_MMX;
-        
-        return mask;
-}
 static uint32_t opcode_timings[256] =
 {
-/*      ADD                                             ADD                                             ADD                                            ADD*/
-/*00*/  PAIR_XY | CYCLES_RMW | SRCDEP_REG,              PAIR_XY | CYCLES_RMW | SRCDEP_REG,              PAIR_XY | CYCLES_RM | SRCDEP_REG | DSTDEP_REG, PAIR_XY | CYCLES_RM | SRCDEP_REG | DSTDEP_REG,
-/*      ADD                                             ADD                                             PUSH ES                                        POP ES*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, PAIR_NP | CYCLES(1) | SRCDEP_ESP | DSTDEP_ESP, PAIR_NP | CYCLES(3),
-/*      OR                                              OR                                              OR                                             OR*/
-        PAIR_XY | CYCLES_RMW | SRCDEP_REG,              PAIR_XY | CYCLES_RMW | SRCDEP_REG,              PAIR_XY | CYCLES_RM | SRCDEP_REG | DSTDEP_REG, PAIR_XY | CYCLES_RM | SRCDEP_REG | DSTDEP_REG,
-/*      OR                                              OR                                              PUSH CS                                        */
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, PAIR_NP | CYCLES(1) | SRCDEP_ESP | DSTDEP_ESP, INVALID,
+/*      ADD                                ADD                                ADD                               ADD*/
+/*00*/  PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RM,              PAIR_XY | CYCLES_RM,
+/*      ADD                                ADD                                PUSH ES                           POP ES*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_NP | CYCLES(1),              PAIR_NP | CYCLES(3),
+/*      OR                                 OR                                 OR                                OR*/
+        PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RM,              PAIR_XY | CYCLES_RM,
+/*      OR                                 OR                                 PUSH CS                                        */
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_NP | CYCLES(1),              INVALID,
 
-/*      ADC                                             ADC                                             ADC                                            ADC*/
-/*10*/  PAIR_XY | CYCLES_RMW | SRCDEP_REG,              PAIR_XY | CYCLES_RMW | SRCDEP_REG,              PAIR_XY | CYCLES_RM | SRCDEP_REG | DSTDEP_REG, PAIR_XY | CYCLES_RM | SRCDEP_REG | DSTDEP_REG,
-/*      ADC                                             ADC                                             PUSH SS                                        POP SS*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, PAIR_NP | CYCLES(1) | SRCDEP_ESP | DSTDEP_ESP, PAIR_NP | CYCLES(3),
-/*      SBB                                             SBB                                             SBB                                            SBB*/        
-        PAIR_XY | CYCLES_RMW | SRCDEP_REG,              PAIR_XY | CYCLES_RMW | SRCDEP_REG,              PAIR_XY | CYCLES_RM | SRCDEP_REG | DSTDEP_REG, PAIR_XY | CYCLES_RM | SRCDEP_REG | DSTDEP_REG,
-/*      SBB                                             SBB                                             PUSH DS                                        POP DS*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, PAIR_NP | CYCLES(1) | SRCDEP_ESP | DSTDEP_ESP, PAIR_NP | CYCLES(3),
+/*      ADC                                ADC                                ADC                               ADC*/
+/*10*/  PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RM,              PAIR_XY | CYCLES_RM,
+/*      ADC                                ADC                                PUSH SS                           POP SS*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_NP | CYCLES(1),              PAIR_NP | CYCLES(3),
+/*      SBB                                SBB                                SBB                               SBB*/        
+        PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RM,              PAIR_XY | CYCLES_RM,
+/*      SBB                                SBB                                PUSH DS                           POP DS*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_NP | CYCLES(1),              PAIR_NP | CYCLES(3),
 
-/*      AND                                             AND                                             AND                                            AND*/
-/*20*/  PAIR_XY | CYCLES_RMW | SRCDEP_REG,              PAIR_XY | CYCLES_RMW | SRCDEP_REG,              PAIR_XY | CYCLES_RM | SRCDEP_REG | DSTDEP_REG, PAIR_XY | CYCLES_RM | SRCDEP_REG | DSTDEP_REG,
-/*      AND                                             AND                                                                                            DAA*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, INVALID,                                       PAIR_NP | CYCLES(7),
-/*      SUB                                             SUB                                             SUB                                            SUB*/
-        PAIR_XY | CYCLES_RMW | SRCDEP_REG,              PAIR_XY | CYCLES_RMW | SRCDEP_REG,              PAIR_XY | CYCLES_RM | SRCDEP_REG | DSTDEP_REG, PAIR_XY | CYCLES_RM | SRCDEP_REG | DSTDEP_REG,
-/*      SUB                                             SUB                                                                                            DAS*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, INVALID,                                       PAIR_NP | CYCLES(7),
+/*      AND                                AND                                AND                               AND*/
+/*20*/  PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RM,              PAIR_XY | CYCLES_RM,
+/*      AND                                AND                                                                  DAA*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              INVALID,                          PAIR_NP | CYCLES(7),
+/*      SUB                                SUB                                SUB                               SUB*/
+        PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RM,              PAIR_XY | CYCLES_RM,
+/*      SUB                                SUB                                                                  DAS*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              INVALID,                          PAIR_NP | CYCLES(7),
         
-/*      XOR                                             XOR                                             XOR                                            XOR*/
-/*30*/  PAIR_XY | CYCLES_RMW | SRCDEP_REG,              PAIR_XY | CYCLES_RMW | SRCDEP_REG,              PAIR_XY | CYCLES_RM | SRCDEP_REG | DSTDEP_REG, PAIR_XY | CYCLES_RM | SRCDEP_REG | DSTDEP_REG,
-/*      XOR                                             XOR                                                                                            AAA*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, INVALID,                                       PAIR_NP | CYCLES(7),
-/*      CMP                                             CMP                                             CMP                                            CMP*/
-        PAIR_XY | CYCLES_RM | SRCDEP_REG,               PAIR_XY | CYCLES_RM | SRCDEP_REG,               PAIR_XY | CYCLES_RM | SRCDEP_REG,              PAIR_XY | CYCLES_RM | SRCDEP_REG,
-/*      CMP                                             CMP                                                                                            AAS*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX,              PAIR_XY | CYCLES_REG | SRCDEP_EAX,              INVALID,                                       PAIR_NP | CYCLES(7),
+/*      XOR                                XOR                                XOR                               XOR*/
+/*30*/  PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RM,              PAIR_XY | CYCLES_RM,
+/*      XOR                                XOR                                                                                            AAA*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              INVALID,                          PAIR_NP | CYCLES(7),
+/*      CMP                                CMP                                CMP                               CMP*/
+        PAIR_XY | CYCLES_RM,               PAIR_XY | CYCLES_RM,               PAIR_XY | CYCLES_RM,              PAIR_XY | CYCLES_RM,
+/*      CMP                                CMP                                                                  AAS*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              INVALID,                          PAIR_NP | CYCLES(7),
 
-/*      INC EAX                                         INC ECX                                         INC EDX                                         INC EBX*/
-/*40*/  PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, PAIR_XY | CYCLES_REG | SRCDEP_ECX | DSTDEP_ECX, PAIR_XY | CYCLES_REG | SRCDEP_EDX | DSTDEP_EDX, PAIR_XY | CYCLES_REG | SRCDEP_EBX | DSTDEP_EBX,
-/*      INC ESP                                         INC EBP                                         INC ESI                                         INC EDI*/
-        PAIR_XY | CYCLES_REG | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_EBP | DSTDEP_EBP, PAIR_XY | CYCLES_REG | SRCDEP_ESI | DSTDEP_ESI, PAIR_XY | CYCLES_REG | SRCDEP_EDI | DSTDEP_EDI,
-/*      DEC EAX                                         DEC ECX                                         DEC EDX                                         DEC EBX*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, PAIR_XY | CYCLES_REG | SRCDEP_ECX | DSTDEP_ECX, PAIR_XY | CYCLES_REG | SRCDEP_EDX | DSTDEP_EDX, PAIR_XY | CYCLES_REG | SRCDEP_EBX | DSTDEP_EBX,
-/*      DEC ESP                                         DEC EBP                                         DEC ESI                                         DEC EDI*/
-        PAIR_XY | CYCLES_REG | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_EBP | DSTDEP_EBP, PAIR_XY | CYCLES_REG | SRCDEP_ESI | DSTDEP_ESI, PAIR_XY | CYCLES_REG | SRCDEP_EDI | DSTDEP_EDI,
+/*      INC EAX                INC ECX                INC EDX                INC EBX*/
+/*40*/  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
+/*      INC ESP                INC EBP                INC ESI                INC EDI*/
+        PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
+/*      DEC EAX                DEC ECX                DEC EDX                DEC EBX*/
+        PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
+/*      DEC ESP                DEC EBP                DEC ESI                DEC EDI*/
+        PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
         
-/*      PUSH EAX                                                                  PUSH ECX                                                                  PUSH EDX                                                                  PUSH EBX*/
-/*50*/  PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_ECX | DSTDEP_ECX | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_EDX | DSTDEP_EDX | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_EBX | DSTDEP_EBX | SRCDEP_ESP | DSTDEP_ESP,
-/*      PUSH ESP                                                                  PUSH EBP                                                                  PUSH ESI                                                                  PUSH EDI*/
-        PAIR_XY | CYCLES_REG | SRCDEP_ESP | DSTDEP_ESP,                           PAIR_XY | CYCLES_REG | SRCDEP_EBP | DSTDEP_EBP | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_ESI | DSTDEP_ESI | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_EDI | DSTDEP_EDI | SRCDEP_ESP | DSTDEP_ESP,
-/*      POP EAX                                                                   POP ECX                                                                   POP EDX                                                                   POP EBX*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_ECX | DSTDEP_ECX | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_EDX | DSTDEP_EDX | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_EBX | DSTDEP_EBX | SRCDEP_ESP | DSTDEP_ESP,
-/*      POP ESP                                                                   POP EBP                                                                   POP ESI                                                                   POP EDI*/
-        PAIR_XY | CYCLES_REG | SRCDEP_ESP | DSTDEP_ESP,                           PAIR_XY | CYCLES_REG | SRCDEP_EBP | DSTDEP_EBP | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_ESI | DSTDEP_ESI | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_EDI | DSTDEP_EDI | SRCDEP_ESP | DSTDEP_ESP,
+/*      PUSH EAX               PUSH ECX               PUSH EDX               PUSH EBX*/
+/*50*/  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
+/*      PUSH ESP               PUSH EBP               PUSH ESI               PUSH EDI*/
+        PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
+/*      POP EAX                POP ECX                POP EDX                POP EBX*/
+        PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
+/*      POP ESP                POP EBP                POP ESI                POP EDI*/
+        PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
 
-/*      PUSHA                                           POPA                                            BOUND                                           ARPL*/
-/*60*/  PAIR_NP | CYCLES(6),                            PAIR_NP | CYCLES(6),                            PAIR_NP | CYCLES(11),                           PAIR_NP | CYCLES(9),
-        INVALID,                                        INVALID,                                        INVALID,                                        INVALID,
-/*      PUSH imm                                        IMUL                                            PUSH imm                                        IMUL*/
-        PAIR_XY | CYCLES_REG | SRCDEP_ESP | DSTDEP_ESP, PAIR_NP | CYCLES(10),                           PAIR_XY | CYCLES_REG | SRCDEP_ESP | DSTDEP_ESP, PAIR_NP | CYCLES(10),
-/*      INSB                                            INSW                                            OUTSB                                           OUTSW*/
-        PAIR_NP | CYCLES(14),                           PAIR_NP | CYCLES(14),                           PAIR_NP | CYCLES(14),                           PAIR_NP | CYCLES(14),
+/*      PUSHA                   POPA                   BOUND                  ARPL*/
+/*60*/  PAIR_NP | CYCLES(6),    PAIR_NP | CYCLES(6),   PAIR_NP | CYCLES(11),  PAIR_NP | CYCLES(9),
+        INVALID,                INVALID,               INVALID,               INVALID,
+/*      PUSH imm                IMUL                   PUSH imm               IMUL*/
+        PAIR_XY | CYCLES_REG,   PAIR_NP | CYCLES(10),  PAIR_XY | CYCLES_REG,  PAIR_NP | CYCLES(10),
+/*      INSB                    INSW                   OUTSB                  OUTSW*/
+        PAIR_NP | CYCLES(14),   PAIR_NP | CYCLES(14),  PAIR_NP | CYCLES(14),  PAIR_NP | CYCLES(14),
         
 /*      Jxx*/        
 /*70*/  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,
@@ -205,37 +128,37 @@ static uint32_t opcode_timings[256] =
         PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,
         PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,
 
-/*80*/  INVALID,                                        INVALID,                                        INVALID,                                        INVALID,
-/*      TEST                                            TEST                                            XCHG                                            XCHG*/
-        PAIR_XY | CYCLES_RM | SRCDEP_REG,               PAIR_XY | CYCLES_RM | SRCDEP_REG,               PAIR_XY | CYCLES(2),                            PAIR_XY | CYCLES(2),
-/*      MOV                                             MOV                                             MOV                                             MOV*/
-        PAIR_XY | CYCLES_REG | SRCDEP_REG,              PAIR_XY | CYCLES_REG | SRCDEP_REG,              PAIR_XY | CYCLES_REG | DSTDEP_REG,              PAIR_XY | CYCLES_REG | DSTDEP_REG,
-/*      MOV from seg                                    LEA                                             MOV to seg                                      POP*/
-        PAIR_XY | CYCLES(1),                            PAIR_XY | CYCLES_REG | DSTDEP_REG,              CYCLES(3),                                      PAIR_XY | CYCLES(1),
+/*80*/  INVALID,                           INVALID,                           INVALID,                           INVALID,
+/*      TEST                               TEST                               XCHG                               XCHG*/
+        PAIR_XY | CYCLES_RM,               PAIR_XY | CYCLES_RM,               PAIR_XY | CYCLES(2),               PAIR_XY | CYCLES(2),
+/*      MOV                                MOV                                MOV                                MOV*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,
+/*      MOV from seg                       LEA                                MOV to seg                         POP*/
+        PAIR_XY | CYCLES(1),               PAIR_XY | CYCLES_REG,              CYCLES(3),                         PAIR_XY | CYCLES(1),
         
-/*      NOP                                             XCHG                                            XCHG                                            XCHG*/
-/*90*/  PAIR_XY | CYCLES_REG,                           PAIR_XY | CYCLES(2),                            PAIR_XY | CYCLES(2),                            PAIR_XY | CYCLES(2),
-/*      XCHG                                            XCHG                                            XCHG                                            XCHG*/
-        PAIR_XY | CYCLES(2),                            PAIR_XY | CYCLES(2),                            PAIR_XY | CYCLES(2),                            PAIR_XY | CYCLES(2),
-/*      CBW                                             CWD                                             CALL far                                        WAIT*/
-        PAIR_XY | CYCLES(3),                            PAIR_XY | CYCLES(2),                            PAIR_NP | CYCLES(4),                            PAIR_NP | CYCLES(5),
-/*      PUSHF                                           POPF                                            SAHF                                            LAHF*/
-        PAIR_XY | CYCLES(2) | SRCDEP_ESP | DSTDEP_ESP,  PAIR_XY | CYCLES(9) | SRCDEP_ESP | DSTDEP_ESP,  PAIR_XY | CYCLES(1),                            PAIR_XY | CYCLES(2),
+/*      NOP                    XCHG                  XCHG                  XCHG*/
+/*90*/  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES(2),  PAIR_XY | CYCLES(2),  PAIR_XY | CYCLES(2),
+/*      XCHG                   XCHG                  XCHG                  XCHG*/
+        PAIR_XY | CYCLES(2),   PAIR_XY | CYCLES(2),  PAIR_XY | CYCLES(2),  PAIR_XY | CYCLES(2),
+/*      CBW                    CWD                   CALL far              WAIT*/
+        PAIR_XY | CYCLES(3),   PAIR_XY | CYCLES(2),  PAIR_NP | CYCLES(4),  PAIR_NP | CYCLES(5),
+/*      PUSHF                  POPF                  SAHF                  LAHF*/
+        PAIR_XY | CYCLES(2),   PAIR_XY | CYCLES(9),  PAIR_XY | CYCLES(1),  PAIR_XY | CYCLES(2),
 
-/*      MOV                                             MOV                                             MOV                                             MOV*/        
-/*a0*/  PAIR_XY | CYCLES_REG | DSTDEP_EAX,              PAIR_XY | CYCLES_REG | DSTDEP_EAX,              PAIR_XY | CYCLES_REG | SRCDEP_EAX,              PAIR_XY | CYCLES_REG | SRCDEP_EAX,
-/*      MOVSB                                           MOVSW                                           CMPSB                                           CMPSW*/
-        PAIR_NP | CYCLES(4),                            PAIR_NP | CYCLES(4),                            PAIR_NP | CYCLES(5),                            PAIR_NP | CYCLES(5),
-/*      TEST                                            TEST                                            STOSB                                           STOSW*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX,              PAIR_XY | CYCLES_REG | SRCDEP_EAX,              PAIR_NP | CYCLES(2),                            PAIR_NP | CYCLES(2),
-/*      LODSB                                           LODSW                                           SCASB                                           SCASW*/
-        PAIR_NP | CYCLES(3),                            PAIR_NP | CYCLES(3),                            PAIR_NP | CYCLES(2),                            PAIR_NP | CYCLES(2),
+/*      MOV                                MOV                                MOV                                MOV*/        
+/*a0*/  PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,
+/*      MOVSB                              MOVSW                              CMPSB                              CMPSW*/
+        PAIR_NP | CYCLES(4),               PAIR_NP | CYCLES(4),               PAIR_NP | CYCLES(5),               PAIR_NP | CYCLES(5),
+/*      TEST                               TEST                               STOSB                              STOSW*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_NP | CYCLES(2),               PAIR_NP | CYCLES(2),
+/*      LODSB                              LODSW                              SCASB                              SCASW*/
+        PAIR_NP | CYCLES(3),               PAIR_NP | CYCLES(3),               PAIR_NP | CYCLES(2),               PAIR_NP | CYCLES(2),
 
 /*      MOV*/
-/*b0*/  PAIR_XY | CYCLES_REG | DSTDEP_EAX,              PAIR_XY | CYCLES_REG | DSTDEP_ECX,              PAIR_XY | CYCLES_REG | DSTDEP_EDX,              PAIR_XY | CYCLES_REG | DSTDEP_EBX,
-        PAIR_XY | CYCLES_REG | DSTDEP_EAX,              PAIR_XY | CYCLES_REG | DSTDEP_ECX,              PAIR_XY | CYCLES_REG | DSTDEP_EDX,              PAIR_XY | CYCLES_REG | DSTDEP_EBX,
-        PAIR_XY | CYCLES_REG | DSTDEP_EAX,              PAIR_XY | CYCLES_REG | DSTDEP_ECX,              PAIR_XY | CYCLES_REG | DSTDEP_EDX,              PAIR_XY | CYCLES_REG | DSTDEP_EBX,
-        PAIR_XY | CYCLES_REG | DSTDEP_ESP,              PAIR_XY | CYCLES_REG | DSTDEP_EBP,              PAIR_XY | CYCLES_REG | DSTDEP_ESI,              PAIR_XY | CYCLES_REG | DSTDEP_EDI,
+/*b0*/  PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,
 
 /*                                                                                                      RET imm                                         RET*/
 /*c0*/  INVALID,                                        INVALID,                                        PAIR_X_BRANCH | CYCLES(3),                      PAIR_X_BRANCH | CYCLES(2),
@@ -253,7 +176,7 @@ static uint32_t opcode_timings[256] =
         INVALID,                                        INVALID,                                        INVALID,                                        INVALID,        
         INVALID,                                        INVALID,                                        INVALID,                                        INVALID,
 /*      LOOPNE                                          LOOPE                                           LOOP                                            JCXZ*/
-/*e0*/  PAIR_X_BRANCH| CYCLES_BRANCH | SRCDEP_ECX,      PAIR_X_BRANCH | CYCLES_BRANCH | SRCDEP_ECX,     PAIR_X_BRANCH | CYCLES_BRANCH | SRCDEP_ECX,     PAIR_X_BRANCH | CYCLES_BRANCH | SRCDEP_ECX,
+/*e0*/  PAIR_X_BRANCH| CYCLES_BRANCH,                   PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,
 /*      IN AL                                           IN AX                                           OUT_AL                                          OUT_AX*/
         PAIR_NP | CYCLES(14),                           PAIR_NP | CYCLES(14),                           PAIR_NP | CYCLES(14),                           PAIR_NP | CYCLES(14),
 /*      CALL                                            JMP                                             JMP                                             JMP*/
@@ -273,68 +196,67 @@ static uint32_t opcode_timings[256] =
 
 static uint32_t opcode_timings_mod3[256] =
 {
-/*      ADD                                                             ADD                                                             ADD                                                             ADD*/
-/*00*/  PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,
-/*      ADD                                                             ADD                                                             PUSH ES                                                         POP ES*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_XY | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_XY | CYCLES(1) | SRCDEP_ESP | DSTDEP_ESP,                  PAIR_NP | CYCLES(3),
-/*      OR                                                              OR                                                              OR                                                              OR*/
-        PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,
-/*      OR                                                              OR                                                              PUSH CS                                                         */
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_XY | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_XY | CYCLES(1) | SRCDEP_ESP | DSTDEP_ESP,                  INVALID,
+/*      ADD                                ADD                                ADD                               ADD*/
+/*00*/  PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,
+/*      ADD                                ADD                                PUSH ES                           POP ES*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_NP | CYCLES(1),              PAIR_NP | CYCLES(3),
+/*      OR                                 OR                                 OR                                OR*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,             PAIR_XY | CYCLES_REG,
+/*      OR                                 OR                                 PUSH CS                                        */
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_NP | CYCLES(1),              INVALID,
 
-/*      ADC                                                             ADC                                                             ADC                                                             ADC*/
-/*10*/  PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,
-/*      ADC                                                             ADC                                                             PUSH SS                                                         POP SS*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_XY | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_XY | CYCLES(1) | SRCDEP_ESP | DSTDEP_ESP,                  PAIR_NP | CYCLES(3),
-/*      SBB                                                             SBB                                                             SBB                                                             SBB*/        
-        PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,
-/*      SBB                                                             SBB                                                             PUSH DS                                                         POP DS*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_XY | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_XY | CYCLES(1) | SRCDEP_ESP | DSTDEP_ESP,                  PAIR_NP | CYCLES(3),
+/*      ADC                                ADC                                ADC                               ADC*/
+/*10*/  PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,             PAIR_XY | CYCLES_REG,
+/*      ADC                                ADC                                PUSH SS                           POP SS*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_NP | CYCLES(1),              PAIR_NP | CYCLES(3),
+/*      SBB                                SBB                                SBB                               SBB*/        
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,             PAIR_XY | CYCLES_REG,
+/*      SBB                                SBB                                PUSH DS                           POP DS*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_NP | CYCLES(1),              PAIR_NP | CYCLES(3),
 
-/*      AND                                                             AND                                                             AND                                                             AND*/
-/*20*/  PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,
-/*      AND                                                             AND                                                                                                                             DAA*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_XY | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     INVALID,                                                        PAIR_NP | CYCLES(9),
-/*      SUB                                                             SUB                                                             SUB                                                             SUB*/
-        PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,
-/*      SUB                                                             SUB                                                                                                                             DAS*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_XY | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     INVALID,                                                        PAIR_NP | CYCLES(9),
+/*      AND                                AND                                AND                               AND*/
+/*20*/  PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,             PAIR_XY | CYCLES_REG,
+/*      AND                                AND                                                                  DAA*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              INVALID,                          PAIR_NP | CYCLES(7),
+/*      SUB                                SUB                                SUB                               SUB*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,             PAIR_XY | CYCLES_REG,
+/*      SUB                                SUB                                                                  DAS*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              INVALID,                          PAIR_NP | CYCLES(7),
         
-/*      XOR                                                             XOR                                                             XOR                                                             XOR*/
-/*30*/  PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,     PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM | DSTDEP_REG,
-/*      XOR                                                             XOR                                                                                                                             AAA*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     PAIR_XY | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM | DSTDEP_EAX,     INVALID,                                                        PAIR_NP | CYCLES(7),
-/*      CMP                                                             CMP                                                             CMP                                                             CMP*/
-        PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM,                  PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM,                  PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM,                  PAIR_XY | CYCLES_REG | SRCDEP_RM | SRCDEP_REG,
-/*      CMP                                                             CMP                                                                                                                             AAS*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | SRCDEP_RM,                  PAIR_XY | CYCLES_REG | SRCDEP_EAX,                              INVALID,                                                        PAIR_NP | CYCLES(7),
+/*      XOR                                XOR                                XOR                               XOR*/
+/*30*/  PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,             PAIR_XY | CYCLES_REG,
+/*      XOR                                XOR                                                                  AAA*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              INVALID,                          PAIR_NP | CYCLES(7),
+/*      CMP                                CMP                                CMP                               CMP*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,             PAIR_XY | CYCLES_REG,
+/*      CMP                                CMP                                                                  AAS*/
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              INVALID,                          PAIR_NP | CYCLES(7),
 
-/*      INC EAX                                         INC ECX                                         INC EDX                                         INC EBX*/
-/*40*/  PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, PAIR_XY | CYCLES_REG | SRCDEP_ECX | DSTDEP_ECX, PAIR_XY | CYCLES_REG | SRCDEP_EDX | DSTDEP_EDX, PAIR_XY | CYCLES_REG | SRCDEP_EBX | DSTDEP_EBX,
-/*      INC ESP                                         INC EBP                                         INC ESI                                         INC EDI*/
-        PAIR_XY | CYCLES_REG | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_EBP | DSTDEP_EBP, PAIR_XY | CYCLES_REG | SRCDEP_ESI | DSTDEP_ESI, PAIR_XY | CYCLES_REG | SRCDEP_EDI | DSTDEP_EDI,
-/*      DEC EAX                                         DEC ECX                                         DEC EDX                                         DEC EBX*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX, PAIR_XY | CYCLES_REG | SRCDEP_ECX | DSTDEP_ECX, PAIR_XY | CYCLES_REG | SRCDEP_EDX | DSTDEP_EDX, PAIR_XY | CYCLES_REG | SRCDEP_EBX | DSTDEP_EBX,
-/*      DEC ESP                                         DEC EBP                                         DEC ESI                                         DEC EDI*/
-        PAIR_XY | CYCLES_REG | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_EBP | DSTDEP_EBP, PAIR_XY | CYCLES_REG | SRCDEP_ESI | DSTDEP_ESI, PAIR_XY | CYCLES_REG | SRCDEP_EDI | DSTDEP_EDI,
+/*      INC EAX                INC ECX                INC EDX                INC EBX*/
+/*40*/  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
+/*      INC ESP                INC EBP                INC ESI                INC EDI*/
+        PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
+/*      DEC EAX                DEC ECX                DEC EDX                DEC EBX*/
+        PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
+/*      DEC ESP                DEC EBP                DEC ESI                DEC EDI*/
+        PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
         
-/*      PUSH EAX                                        PUSH ECX                                        PUSH EDX                                        PUSH EBX*/
-/*      PUSH EAX                                                                  PUSH ECX                                                                  PUSH EDX                                                                  PUSH EBX*/
-/*50*/  PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_ECX | DSTDEP_ECX | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_EDX | DSTDEP_EDX | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_EBX | DSTDEP_EBX | SRCDEP_ESP | DSTDEP_ESP,
-/*      PUSH ESP                                                                  PUSH EBP                                                                  PUSH ESI                                                                  PUSH EDI*/
-        PAIR_XY | CYCLES_REG | SRCDEP_ESP | DSTDEP_ESP,                           PAIR_XY | CYCLES_REG | SRCDEP_EBP | DSTDEP_EBP | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_ESI | DSTDEP_ESI | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_EDI | DSTDEP_EDI | SRCDEP_ESP | DSTDEP_ESP,
-/*      POP EAX                                                                   POP ECX                                                                   POP EDX                                                                   POP EBX*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX | DSTDEP_EAX | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_ECX | DSTDEP_ECX | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_EDX | DSTDEP_EDX | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_EBX | DSTDEP_EBX | SRCDEP_ESP | DSTDEP_ESP,
-/*      POP ESP                                                                   POP EBP                                                                   POP ESI                                                                   POP EDI*/
-        PAIR_XY | CYCLES_REG | SRCDEP_ESP | DSTDEP_ESP,                           PAIR_XY | CYCLES_REG | SRCDEP_EBP | DSTDEP_EBP | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_ESI | DSTDEP_ESI | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES_REG | SRCDEP_EDI | DSTDEP_EDI | SRCDEP_ESP | DSTDEP_ESP,
+/*      PUSH EAX               PUSH ECX               PUSH EDX               PUSH EBX*/
+/*50*/  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
+/*      PUSH ESP               PUSH EBP               PUSH ESI               PUSH EDI*/
+        PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
+/*      POP EAX                POP ECX                POP EDX                POP EBX*/
+        PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
+/*      POP ESP                POP EBP                POP ESI                POP EDI*/
+        PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
 
-/*      PUSHA                                           POPA                                            BOUND                                           ARPL*/
-/*60*/  PAIR_NP | CYCLES(6),                            PAIR_NP | CYCLES(6),                            PAIR_NP | CYCLES(11),                           PAIR_NP | CYCLES(9),
-        INVALID,                                        INVALID,                                        INVALID,                                        INVALID,
-/*      PUSH imm                                        IMUL                                            PUSH imm                                        IMUL*/
-        PAIR_XY | CYCLES_REG | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES(10),                           PAIR_XY | CYCLES_REG | SRCDEP_ESP | DSTDEP_ESP, PAIR_XY | CYCLES(10),
-/*      INSB                                            INSW                                            OUTSB                                           OUTSW*/
-        PAIR_NP | CYCLES(14),                           PAIR_NP | CYCLES(14),                           PAIR_NP | CYCLES(14),                           PAIR_NP | CYCLES(14),
+/*      PUSHA                  POPA                   BOUND                  ARPL*/
+/*60*/  PAIR_NP | CYCLES(6),   PAIR_NP | CYCLES(6),   PAIR_NP | CYCLES(11),  PAIR_NP | CYCLES(9),
+        INVALID,               INVALID,               INVALID,               INVALID,
+/*      PUSH imm               IMUL                   PUSH imm               IMUL*/
+        PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES(10),  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES(10),
+/*      INSB                   INSW                   OUTSB                  OUTSW*/
+        PAIR_NP | CYCLES(14),  PAIR_NP | CYCLES(14),  PAIR_NP | CYCLES(14),  PAIR_NP | CYCLES(14),
         
 /*      Jxx*/        
 /*70*/  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,
@@ -342,13 +264,13 @@ static uint32_t opcode_timings_mod3[256] =
         PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,
         PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,
 
-/*80*/  PAIR_XY | CYCLES_REG | SRCDEP_RM | DSTDEP_RM,   PAIR_XY | CYCLES_REG | SRCDEP_RM | DSTDEP_RM,   PAIR_XY | CYCLES_REG | SRCDEP_RM | DSTDEP_RM,   PAIR_XY | CYCLES_REG | SRCDEP_RM | DSTDEP_RM,
-/*      TEST                                            TEST                                            XCHG                                            XCHG*/
-        PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM,  PAIR_XY | CYCLES_REG | SRCDEP_REG | SRCDEP_RM,  PAIR_XY | CYCLES(2),                            PAIR_XY | CYCLES(2),
-/*      MOV                                             MOV                                             MOV                                             MOV*/
-        PAIR_XY | CYCLES_REG | SRCDEP_REG | DSTDEP_RM,  PAIR_XY | CYCLES_REG | SRCDEP_REG | DSTDEP_RM,  PAIR_XY | CYCLES_REG | SRCDEP_RM | DSTDEP_REG,  PAIR_XY | CYCLES_REG | SRCDEP_RM | DSTDEP_REG,
-/*      MOV from seg                                    LEA                                             MOV to seg                                      POP*/
-        PAIR_XY | CYCLES(1),                            PAIR_XY | CYCLES_REG | DSTDEP_REG,              PAIR_NP | CYCLES(3),                            PAIR_XY | CYCLES(1),
+/*80*/  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
+/*      TEST                   TEST                   XCHG                   XCHG*/
+        PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES(2),   PAIR_XY | CYCLES(2),
+/*      MOV                    MOV                    MOV                    MOV*/
+        PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
+/*      MOV from seg           LEA                    MOV to seg             POP*/
+        PAIR_XY | CYCLES(1),   PAIR_XY | CYCLES_REG,  PAIR_NP | CYCLES(3),   PAIR_XY | CYCLES(1),
         
 /*      NOP                                             XCHG                                            XCHG                                            XCHG*/
 /*90*/  PAIR_XY | CYCLES_REG,                           PAIR_XY | CYCLES(2),                            PAIR_XY | CYCLES(2),                            PAIR_XY | CYCLES(2),
@@ -357,22 +279,22 @@ static uint32_t opcode_timings_mod3[256] =
 /*      CBW                                             CWD                                             CALL far                                        WAIT*/
         PAIR_XY | CYCLES(3),                            PAIR_XY | CYCLES(2),                            PAIR_NP | CYCLES(4),                            PAIR_NP | CYCLES(5),
 /*      PUSHF                                           POPF                                            SAHF                                            LAHF*/
-        PAIR_XY | CYCLES(2) | SRCDEP_ESP | DSTDEP_ESP,  PAIR_XY | CYCLES(9) | SRCDEP_ESP | DSTDEP_ESP,  PAIR_XY | CYCLES(1),                            PAIR_XY | CYCLES(2),
+        PAIR_XY | CYCLES(2),                            PAIR_XY | CYCLES(9),                            PAIR_XY | CYCLES(1),                            PAIR_XY | CYCLES(2),
 
 /*      MOV                                             MOV                                             MOV                                             MOV*/        
-/*a0*/  PAIR_XY | CYCLES_REG | DSTDEP_EAX,              PAIR_XY | CYCLES_REG | DSTDEP_EAX,              PAIR_XY | CYCLES_REG | SRCDEP_EAX,              PAIR_XY | CYCLES_REG | SRCDEP_EAX,
+/*a0*/  PAIR_XY | CYCLES_REG,                           PAIR_XY | CYCLES_REG,                           PAIR_XY | CYCLES_REG,                           PAIR_XY | CYCLES_REG,              
 /*      MOVSB                                           MOVSW                                           CMPSB                                           CMPSW*/
         PAIR_NP | CYCLES(4),                            PAIR_NP | CYCLES(4),                            PAIR_NP | CYCLES(5),                            PAIR_NP | CYCLES(5),
 /*      TEST                                            TEST                                            STOSB                                           STOSW*/
-        PAIR_XY | CYCLES_REG | SRCDEP_EAX,              PAIR_XY | CYCLES_REG | SRCDEP_EAX,              PAIR_NP | CYCLES(2),                            PAIR_NP | CYCLES(2),
+        PAIR_XY | CYCLES_REG,                           PAIR_XY | CYCLES_REG,                           PAIR_NP | CYCLES(2),                            PAIR_NP | CYCLES(2),
 /*      LODSB                                           LODSW                                           SCASB                                           SCASW*/
         PAIR_NP | CYCLES(3),                            PAIR_NP | CYCLES(3),                            PAIR_NP | CYCLES(2),                            PAIR_NP | CYCLES(2),
 
 /*      MOV*/
-/*b0*/  PAIR_XY | CYCLES_REG | DSTDEP_EAX,              PAIR_XY | CYCLES_REG | DSTDEP_ECX,              PAIR_XY | CYCLES_REG | DSTDEP_EDX,              PAIR_XY | CYCLES_REG | DSTDEP_EBX,
-        PAIR_XY | CYCLES_REG | DSTDEP_EAX,              PAIR_XY | CYCLES_REG | DSTDEP_ECX,              PAIR_XY | CYCLES_REG | DSTDEP_EDX,              PAIR_XY | CYCLES_REG | DSTDEP_EBX,
-        PAIR_XY | CYCLES_REG | DSTDEP_EAX,              PAIR_XY | CYCLES_REG | DSTDEP_ECX,              PAIR_XY | CYCLES_REG | DSTDEP_EDX,              PAIR_XY | CYCLES_REG | DSTDEP_EBX,
-        PAIR_XY | CYCLES_REG | DSTDEP_ESP,              PAIR_XY | CYCLES_REG | DSTDEP_EBP,              PAIR_XY | CYCLES_REG | DSTDEP_ESI,              PAIR_XY | CYCLES_REG | DSTDEP_EDI,
+/*b0*/  PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,
+        PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,
 
 /*                                                                                                      RET imm                                         RET*/
 /*c0*/  INVALID,                                        INVALID,                                        PAIR_X_BRANCH | CYCLES(3),                      PAIR_X_BRANCH | CYCLES(2),
@@ -391,7 +313,7 @@ static uint32_t opcode_timings_mod3[256] =
         INVALID,                                        INVALID,                                        INVALID,                                        INVALID,
 
 /*      LOOPNE                                          LOOPE                                           LOOP                                            JCXZ*/
-/*e0*/  PAIR_X_BRANCH| CYCLES_BRANCH | SRCDEP_ECX,      PAIR_X_BRANCH | CYCLES_BRANCH | SRCDEP_ECX,     PAIR_X_BRANCH | CYCLES_BRANCH | SRCDEP_ECX,     PAIR_X_BRANCH | CYCLES_BRANCH | SRCDEP_ECX,
+/*e0*/  PAIR_X_BRANCH| CYCLES_BRANCH,                   PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,
 /*      IN AL                                           IN AX                                           OUT_AL                                          OUT_AX*/
         PAIR_NP | CYCLES(14),                           PAIR_NP | CYCLES(14),                           PAIR_NP | CYCLES(14),                           PAIR_NP | CYCLES(14),
 /*      CALL                                            JMP                                             JMP                                             JMP*/
@@ -441,15 +363,15 @@ static uint32_t opcode_timings_0f[256] =
         INVALID,                INVALID,                        INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
         
-/*60*/  PAIR_X | MMX_SHIFTPACK | CYCLES_RM,     PAIR_X | MMX_SHIFTPACK | CYCLES_RM,     PAIR_X | MMX_SHIFTPACK | CYCLES_RM,     PAIR_X | MMX_SHIFTPACK | CYCLES_RM,
-        PAIR_X | CYCLES_RM,                     PAIR_X | CYCLES_RM,                     PAIR_X | CYCLES_RM,                     PAIR_X | CYCLES_RM,
-        PAIR_X | MMX_SHIFTPACK | CYCLES_RM,     PAIR_X | MMX_SHIFTPACK | CYCLES_RM,     PAIR_X | MMX_SHIFTPACK | CYCLES_RM,     PAIR_X | MMX_SHIFTPACK | CYCLES_RM,
-        INVALID,                                INVALID,                                PAIR_X | CYCLES_RM,                     PAIR_X | CYCLES_RM,
+/*60*/  PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,
+        PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,
+        PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,
+        INVALID,                INVALID,                PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,
         
-/*70*/  INVALID,                                PAIR_X | MMX_SHIFTPACK | CYCLES_RM,     PAIR_X | MMX_SHIFTPACK | CYCLES_RM,     PAIR_X | MMX_SHIFTPACK | CYCLES_RM,
-        PAIR_X | CYCLES_RM,                     PAIR_X | CYCLES_RM,                     PAIR_X | CYCLES_RM,                     PAIR_X | CYCLES(1),
-        INVALID,                                INVALID,                                INVALID,                                INVALID,
-        INVALID,                                INVALID,                                PAIR_X | CYCLES_RM,                     PAIR_X | CYCLES_RM,
+/*70*/  INVALID,                PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,
+        PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES(1),
+        INVALID,                INVALID,                INVALID,                INVALID,
+        INVALID,                INVALID,                PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,
 
 /*80*/  PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH,
         PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH,
@@ -476,20 +398,20 @@ static uint32_t opcode_timings_0f[256] =
         PAIR_XY | CYCLES(4),    PAIR_XY | CYCLES(4),            PAIR_XY | CYCLES(4),            PAIR_XY | CYCLES(4),
         PAIR_XY | CYCLES(4),    PAIR_XY | CYCLES(4),            PAIR_XY | CYCLES(4),            PAIR_XY | CYCLES(4),
 
-/*d0*/  INVALID,                PAIR_X | MMX_SHIFTPACK | CYCLES_RM,     PAIR_X | MMX_SHIFTPACK | CYCLES_RM,     PAIR_X | MMX_SHIFTPACK | CYCLES_RM,
-        INVALID,                PAIR_X | CYCLES_RM,                     INVALID,                                INVALID,
-        PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,                     INVALID,                                PAIR_X | CYCLES_RM,
-        PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,                     INVALID,                                PAIR_X | CYCLES_RM,
+/*d0*/  INVALID,                PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,
+        INVALID,                PAIR_X | CYCLES_RM,     INVALID,                INVALID,
+        PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     INVALID,                PAIR_X | CYCLES_RM,
+        PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     INVALID,                PAIR_X | CYCLES_RM,
         
-/*e0*/  INVALID,                PAIR_X | MMX_SHIFTPACK | CYCLES_RM,     PAIR_X | MMX_SHIFTPACK | CYCLES_RM,     INVALID,
-        INVALID,                PAIR_X | CYCLES_RM,                     INVALID,                                INVALID,
-        PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,                     INVALID,                                PAIR_X | CYCLES_RM,
-        PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,                     INVALID,                                PAIR_X | CYCLES_RM,
+/*e0*/  INVALID,                PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     INVALID,
+        INVALID,                PAIR_X | CYCLES_RM,     INVALID,                INVALID,
+        PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     INVALID,                PAIR_X | CYCLES_RM,
+        PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     INVALID,                PAIR_X | CYCLES_RM,
         
-/*f0*/  INVALID,                PAIR_X | MMX_SHIFTPACK | CYCLES_RM,     PAIR_X | MMX_SHIFTPACK | CYCLES_RM,     PAIR_X | MMX_SHIFTPACK | CYCLES_RM,
-        INVALID,                PAIR_X | CYCLES_RM,                     INVALID,                                INVALID,
-        PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,                     PAIR_X | CYCLES_RM,                     INVALID,
-        PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,                     PAIR_X | CYCLES_RM,                     INVALID,
+/*f0*/  INVALID,                PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,
+        INVALID,                PAIR_X | CYCLES_RM,     INVALID,                INVALID,
+        PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     INVALID,
+        PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     INVALID,
 };
 static uint32_t opcode_timings_0f_mod3[256] =
 {
@@ -523,15 +445,15 @@ static uint32_t opcode_timings_0f_mod3[256] =
         INVALID,                INVALID,                        INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
         
-/*60*/  PAIR_X | MMX_SHIFTPACK | CYCLES_REG,    PAIR_X | MMX_SHIFTPACK | CYCLES_REG,    PAIR_X | MMX_SHIFTPACK | CYCLES_REG,    PAIR_X | MMX_SHIFTPACK | CYCLES_REG,
-        PAIR_X | CYCLES_REG,                    PAIR_X | CYCLES_REG,                    PAIR_X | CYCLES_REG,                    PAIR_X | CYCLES_REG,
-        PAIR_X | MMX_SHIFTPACK | CYCLES_REG,    PAIR_X | MMX_SHIFTPACK | CYCLES_REG,    PAIR_X | MMX_SHIFTPACK | CYCLES_REG,    PAIR_X | MMX_SHIFTPACK | CYCLES_REG,
-        INVALID,                                INVALID,                                PAIR_X | CYCLES_REG,                    PAIR_X | CYCLES_REG,
+/*60*/  PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,
+        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,
+        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,
+        INVALID,                INVALID,                PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,
         
-/*70*/  INVALID,                PAIR_X | MMX_SHIFTPACK | CYCLES_REG,    PAIR_X | MMX_SHIFTPACK | CYCLES_REG,    PAIR_X | MMX_SHIFTPACK | CYCLES_REG,
-        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,                    PAIR_X | CYCLES_REG,                    PAIR_X | CYCLES(1),
-        INVALID,                INVALID,                                INVALID,                                INVALID,
-        INVALID,                INVALID,                                PAIR_X | CYCLES_REG,                    PAIR_X | CYCLES_REG,
+/*70*/  INVALID,                PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,
+        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES(1),
+        INVALID,                INVALID,                INVALID,                INVALID,
+        INVALID,                INVALID,                PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,
 
 /*80*/  PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH,
         PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH,
@@ -557,20 +479,20 @@ static uint32_t opcode_timings_0f_mod3[256] =
         PAIR_NP | CYCLES(1),    PAIR_NP | CYCLES(1),            PAIR_NP | CYCLES(1),            PAIR_NP | CYCLES(1),
         PAIR_NP | CYCLES(1),    PAIR_NP | CYCLES(1),            PAIR_NP | CYCLES(1),            PAIR_NP | CYCLES(1),
         
-/*d0*/  INVALID,                PAIR_X | MMX_SHIFTPACK | CYCLES_REG,    PAIR_X | MMX_SHIFTPACK | CYCLES_REG,    PAIR_X | MMX_SHIFTPACK | CYCLES_REG,
-        INVALID,                PAIR_X | MMX_MULTIPLY | CYCLES_REG,     INVALID,                                INVALID,
-        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,                    INVALID,                                PAIR_X | CYCLES_REG,
-        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,                    INVALID,                                PAIR_X | CYCLES_REG,
+/*d0*/  INVALID,                PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,
+        INVALID,                PAIR_X | CYCLES_REG,    INVALID,                INVALID,
+        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    INVALID,                PAIR_X | CYCLES_REG,
+        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    INVALID,                PAIR_X | CYCLES_REG,
         
-/*e0*/  INVALID,                PAIR_X | MMX_SHIFTPACK | CYCLES_REG,    PAIR_X | MMX_SHIFTPACK | CYCLES_REG,    INVALID,
-        INVALID,                PAIR_X | MMX_MULTIPLY | CYCLES_REG,     INVALID,                                INVALID,
-        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,                    INVALID,                                PAIR_X | CYCLES_REG,
-        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,                    INVALID,                                PAIR_X | CYCLES_REG,   
+/*e0*/  INVALID,                PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    INVALID,
+        INVALID,                PAIR_X | CYCLES_REG,    INVALID,                INVALID,
+        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    INVALID,                PAIR_X | CYCLES_REG,
+        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    INVALID,                PAIR_X | CYCLES_REG,   
         
-/*f0*/  INVALID,                PAIR_X | MMX_SHIFTPACK | CYCLES_REG,    PAIR_X | MMX_SHIFTPACK | CYCLES_REG,    PAIR_X | MMX_SHIFTPACK | CYCLES_REG,
-        INVALID,                PAIR_X | MMX_MULTIPLY | CYCLES_REG,     INVALID,                                INVALID,
-        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,                    PAIR_X | CYCLES_REG,                    INVALID,
-        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,                    PAIR_X | CYCLES_REG,                    INVALID,
+/*f0*/  INVALID,                PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,
+        INVALID,                PAIR_X | CYCLES_REG,    INVALID,                INVALID,
+        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    INVALID,
+        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    INVALID,
 };
 
 static uint32_t opcode_timings_shift[8] =
@@ -580,8 +502,8 @@ static uint32_t opcode_timings_shift[8] =
 };
 static uint32_t opcode_timings_shift_mod3[8] =
 {
-        PAIR_XY | CYCLES_REG | DSTDEP_RM,    PAIR_XY | CYCLES_REG | DSTDEP_RM,    PAIR_XY | CYCLES(3) | DSTDEP_RM,     PAIR_XY | CYCLES(4) | DSTDEP_RM,
-        PAIR_XY | CYCLES_REG | DSTDEP_RM,    PAIR_XY | CYCLES_REG | DSTDEP_RM,    PAIR_XY | CYCLES_REG | DSTDEP_RM,    PAIR_XY | CYCLES_REG | DSTDEP_RM,
+        PAIR_XY | CYCLES_REG,    PAIR_XY | CYCLES_REG,    PAIR_XY | CYCLES(3),     PAIR_XY | CYCLES(4),
+        PAIR_XY | CYCLES_REG,    PAIR_XY | CYCLES_REG,    PAIR_XY | CYCLES_REG,    PAIR_XY | CYCLES_REG,
 };
 static uint32_t opcode_timings_shift_imm[8] =
 {
@@ -590,18 +512,18 @@ static uint32_t opcode_timings_shift_imm[8] =
 };
 static uint32_t opcode_timings_shift_imm_mod3[8] =
 {
-        PAIR_XY | CYCLES_REG | DSTDEP_RM,    PAIR_XY | CYCLES_REG | DSTDEP_RM,    PAIR_XY | CYCLES(3) | DSTDEP_RM,     PAIR_XY | CYCLES(4) | DSTDEP_RM,
-        PAIR_XY | CYCLES_REG | DSTDEP_RM,    PAIR_XY | CYCLES_REG | DSTDEP_RM,    PAIR_XY | CYCLES_REG | DSTDEP_RM,    PAIR_XY | CYCLES_REG | DSTDEP_RM,
+        PAIR_XY | CYCLES_REG,    PAIR_XY | CYCLES_REG,    PAIR_XY | CYCLES(3),     PAIR_XY | CYCLES(4),
+        PAIR_XY | CYCLES_REG,    PAIR_XY | CYCLES_REG,    PAIR_XY | CYCLES_REG,    PAIR_XY | CYCLES_REG,
 };
 static uint32_t opcode_timings_shift_cl[8] =
 {
-        PAIR_XY | CYCLES(2) | SRCDEP_ECX,     PAIR_XY | CYCLES(2) | SRCDEP_ECX,     PAIR_XY | CYCLES(8) | SRCDEP_ECX,    PAIR_XY | CYCLES(9) | SRCDEP_ECX,
-        PAIR_XY | CYCLES(2) | SRCDEP_ECX,     PAIR_XY | CYCLES(2) | SRCDEP_ECX,     PAIR_XY | CYCLES(2) | SRCDEP_ECX,    PAIR_XY | CYCLES(2) | SRCDEP_ECX,
+        PAIR_XY | CYCLES(2),     PAIR_XY | CYCLES(2),     PAIR_XY | CYCLES(8),    PAIR_XY | CYCLES(9),
+        PAIR_XY | CYCLES(2),     PAIR_XY | CYCLES(2),     PAIR_XY | CYCLES(2),    PAIR_XY | CYCLES(2),
 };
 static uint32_t opcode_timings_shift_cl_mod3[8] =
 {
-        PAIR_XY | CYCLES(2) | DSTDEP_RM | SRCDEP_ECX,    PAIR_XY | CYCLES(2) | DSTDEP_RM | SRCDEP_ECX,    PAIR_XY | CYCLES(8) | DSTDEP_RM | SRCDEP_ECX,     PAIR_XY | CYCLES(9) | DSTDEP_RM | SRCDEP_ECX,
-        PAIR_XY | CYCLES(2) | DSTDEP_RM | SRCDEP_ECX,    PAIR_XY | CYCLES(2) | DSTDEP_RM | SRCDEP_ECX,    PAIR_XY | CYCLES(2) | DSTDEP_RM | SRCDEP_ECX,     PAIR_XY | CYCLES(2) | DSTDEP_RM | SRCDEP_ECX,
+        PAIR_XY | CYCLES(2),    PAIR_XY | CYCLES(2),    PAIR_XY | CYCLES(8),     PAIR_XY | CYCLES(9),
+        PAIR_XY | CYCLES(2),    PAIR_XY | CYCLES(2),    PAIR_XY | CYCLES(2),     PAIR_XY | CYCLES(2),
 };
 
 static uint32_t opcode_timings_f6[8] =
@@ -613,22 +535,22 @@ static uint32_t opcode_timings_f6[8] =
 };
 static uint32_t opcode_timings_f6_mod3[8] =
 {
-/*      TST                                                                     NOT                     NEG*/
-        PAIR_XY | CYCLES_REG | SRCDEP_RM,               INVALID,                PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
+/*      TST                                             NOT                     NEG*/
+        PAIR_XY | CYCLES_REG,   INVALID,                PAIR_XY | CYCLES(1),    PAIR_XY | CYCLES(1),
 /*      MUL                     IMUL                    DIV                     IDIV*/
         PAIR_NP | CYCLES(4),    PAIR_NP | CYCLES(4),    PAIR_NP | CYCLES(18),   PAIR_NP | CYCLES(18)
 };
 static uint32_t opcode_timings_f7[8] =
 {
 /*      TST                                                                     NOT                             NEG*/
-        PAIR_XY | CYCLES_REG | SRCDEP_RM,       INVALID,                        PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
+        PAIR_XY | CYCLES_REG,                   INVALID,                        PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
 /*      MUL                                     IMUL                            DIV                             IDIV*/
         PAIR_NP | CYCLES_MULTI(4,10),           PAIR_NP | CYCLES_MULTI(4,10),   PAIR_NP | CYCLES_MULTI(19,27),  PAIR_NP | CYCLES_MULTI(22,30)
 };
 static uint32_t opcode_timings_f7_mod3[8] =
 {
 /*      TST                                                                     NOT                             NEG*/
-        PAIR_XY | CYCLES_REG | SRCDEP_RM,       INVALID,                        PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
+        PAIR_XY | CYCLES_REG,                   INVALID,                        PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
 /*      MUL                                     IMUL                            DIV                             IDIV*/
         PAIR_NP | CYCLES_MULTI(4,10),           PAIR_NP | CYCLES_MULTI(4,10),   PAIR_NP | CYCLES_MULTI(19,27),  PAIR_NP | CYCLES_MULTI(22,30)
 };
@@ -637,14 +559,14 @@ static uint32_t opcode_timings_ff[8] =
 /*      INC                        DEC                     CALL                       CALL far*/
         PAIR_XY | CYCLES_RMW,      PAIR_XY | CYCLES_RMW,   PAIR_X_BRANCH | CYCLES(3), PAIR_NP | CYCLES(5),
 /*      JMP                        JMP far                 PUSH*/
-        PAIR_X_BRANCH | CYCLES(3), PAIR_NP | CYCLES(5),    PAIR_XY | CYCLES(1) | SRCDEP_ESP | DSTDEP_ESP,    INVALID
+        PAIR_X_BRANCH | CYCLES(3), PAIR_NP | CYCLES(5),    PAIR_XY | CYCLES(1),       INVALID
 };  
 static uint32_t opcode_timings_ff_mod3[8] =
 {
-/*      INC                                             DEC                                             CALL                       CALL far*/
-        PAIR_XY | CYCLES_REG | SRCDEP_RM | DSTDEP_RM,   PAIR_XY | CYCLES_REG | SRCDEP_RM | DSTDEP_RM,   PAIR_X_BRANCH | CYCLES(1), PAIR_XY | CYCLES(5),
-/*      JMP                        JMP far              PUSH*/
-        PAIR_X_BRANCH | CYCLES(1), PAIR_XY | CYCLES(5), PAIR_XY | CYCLES(2) | SRCDEP_ESP | DSTDEP_ESP,    INVALID
+/*      INC                        DEC                    CALL                       CALL far*/
+        PAIR_XY | CYCLES_REG,      PAIR_XY | CYCLES_REG,  PAIR_X_BRANCH | CYCLES(1), PAIR_XY | CYCLES(5),
+/*      JMP                        JMP far                PUSH*/
+        PAIR_X_BRANCH | CYCLES(1), PAIR_XY | CYCLES(5),   PAIR_XY | CYCLES(2),       INVALID
 };
 
 static uint32_t opcode_timings_d8[8] =
@@ -812,8 +734,23 @@ static uint32_t opcode_timings_df_mod3[8] =
 
 static uint32_t opcode_timings_8x[8] =
 {
-        PAIR_XY | CYCLES_RMW | SRCDEP_REG,      PAIR_XY | CYCLES_RMW | SRCDEP_REG,      PAIR_XY | CYCLES_RMW | SRCDEP_REG,      PAIR_XY | CYCLES_RMW | SRCDEP_REG,
-        PAIR_XY | CYCLES_RMW | SRCDEP_REG,      PAIR_XY | CYCLES_RMW | SRCDEP_REG,      PAIR_XY | CYCLES_RMW | SRCDEP_REG,      PAIR_XY | CYCLES_RM | SRCDEP_REG
+        PAIR_XY | CYCLES_RMW,      PAIR_XY | CYCLES_RMW,      PAIR_XY | CYCLES_RMW,      PAIR_XY | CYCLES_RMW,
+        PAIR_XY | CYCLES_RMW,      PAIR_XY | CYCLES_RMW,      PAIR_XY | CYCLES_RMW,      PAIR_XY | CYCLES_RM
+};
+static uint32_t opcode_timings_8x_mod3[8] =
+{
+        PAIR_XY | CYCLES_REG,      PAIR_XY | CYCLES_REG,      PAIR_XY | CYCLES_REG,      PAIR_XY | CYCLES_REG,
+        PAIR_XY | CYCLES_REG,      PAIR_XY | CYCLES_REG,      PAIR_XY | CYCLES_REG,      PAIR_XY | CYCLES_REG
+};
+static uint32_t opcode_timings_81[8] =
+{
+        PAIR_XY | CYCLES_RMW,      PAIR_XY | CYCLES_RMW,      PAIR_XY | CYCLES_RMW,      PAIR_XY | CYCLES_RMW,
+        PAIR_XY | CYCLES_RMW,      PAIR_XY | CYCLES_RMW,      PAIR_XY | CYCLES_RMW,      PAIR_XY | CYCLES_RM
+};
+static uint32_t opcode_timings_81_mod3[8] =
+{
+        PAIR_XY | CYCLES_REG,      PAIR_XY | CYCLES_REG,      PAIR_XY | CYCLES_REG,      PAIR_XY | CYCLES_REG,
+        PAIR_XY | CYCLES_REG,      PAIR_XY | CYCLES_REG,      PAIR_XY | CYCLES_REG,      PAIR_XY | CYCLES_REG
 };
 
 static int decode_delay;
@@ -836,6 +773,7 @@ static inline int COUNT(uint32_t c, int op_32)
 void codegen_timing_686_block_start()
 {
         prev_full = decode_delay = 0;
+        regmask_modified = 0;
 }
 
 void codegen_timing_686_start()
@@ -853,9 +791,20 @@ void codegen_timing_686_prefix(uint8_t prefix, uint32_t fetchdat)
         last_prefix = prefix;
 }
 
+static int check_agi(uint64_t *deps, uint8_t opcode, uint32_t fetchdat, int op_32)
+{
+        uint32_t addr_regmask = get_addr_regmask(deps[opcode], fetchdat, op_32);
+
+        if (addr_regmask & IMPL_ESP)
+                addr_regmask |= (1 << REG_ESP);
+
+        return regmask_modified & addr_regmask;
+}
+
 void codegen_timing_686_opcode(uint8_t opcode, uint32_t fetchdat, int op_32)
 {
         uint32_t *timings;
+        uint64_t *deps;
         int mod3 = ((fetchdat & 0xc0) == 0xc0);
         int bit8 = !(opcode & 1);
 
@@ -863,80 +812,101 @@ void codegen_timing_686_opcode(uint8_t opcode, uint32_t fetchdat, int op_32)
         {
                 case 0x0f:
                 timings = mod3 ? opcode_timings_0f_mod3 : opcode_timings_0f;
+                deps = mod3 ? opcode_deps_0f_mod3 : opcode_deps_0f;
                 break;
                 
                 case 0xd8:
                 timings = mod3 ? opcode_timings_d8_mod3 : opcode_timings_d8;
+                deps = mod3 ? opcode_deps_d8_mod3 : opcode_deps_d8;
                 opcode = (opcode >> 3) & 7;
                 break;
                 case 0xd9:
                 timings = mod3 ? opcode_timings_d9_mod3 : opcode_timings_d9;
+                deps = mod3 ? opcode_deps_d9_mod3 : opcode_deps_d9;
                 opcode = mod3 ? opcode & 0x3f : (opcode >> 3) & 7;
                 break;
                 case 0xda:
                 timings = mod3 ? opcode_timings_da_mod3 : opcode_timings_da;
+                deps = mod3 ? opcode_deps_da_mod3 : opcode_deps_da;
                 opcode = (opcode >> 3) & 7;
                 break;
                 case 0xdb:
                 timings = mod3 ? opcode_timings_db_mod3 : opcode_timings_db;
+                deps = mod3 ? opcode_deps_db_mod3 : opcode_deps_db;
                 opcode = mod3 ? opcode & 0x3f : (opcode >> 3) & 7;
                 break;
                 case 0xdc:
                 timings = mod3 ? opcode_timings_dc_mod3 : opcode_timings_dc;
+                deps = mod3 ? opcode_deps_dc_mod3 : opcode_deps_dc;
                 opcode = (opcode >> 3) & 7;
                 break;
                 case 0xdd:
                 timings = mod3 ? opcode_timings_dd_mod3 : opcode_timings_dd;
+                deps = mod3 ? opcode_deps_dd_mod3 : opcode_deps_dd;
                 opcode = (opcode >> 3) & 7;
                 break;
                 case 0xde:
                 timings = mod3 ? opcode_timings_de_mod3 : opcode_timings_de;
+                deps = mod3 ? opcode_deps_de_mod3 : opcode_deps_de;
                 opcode = (opcode >> 3) & 7;
                 break;
                 case 0xdf:
                 timings = mod3 ? opcode_timings_df_mod3 : opcode_timings_df;
+                deps = mod3 ? opcode_deps_df_mod3 : opcode_deps_df;
                 opcode = (opcode >> 3) & 7;
                 break;
 
                 default:
                 switch (opcode)
                 {
-                        case 0x80: case 0x81: case 0x82: case 0x83:
-                        timings = mod3 ? opcode_timings_mod3 : opcode_timings_8x;
-                        if (!mod3)
-                                opcode = (fetchdat >> 3) & 7;
+                        case 0x80: case 0x82: case 0x83:
+                        timings = mod3 ? opcode_timings_8x_mod3 : opcode_timings_8x;
+                        deps = mod3 ? opcode_deps_8x_mod3 : opcode_deps_8x_mod3;
+                        opcode = (fetchdat >> 3) & 7;
+                        break;
+                        case 0x81:
+                        timings = mod3 ? opcode_timings_81_mod3 : opcode_timings_81;
+                        deps = mod3 ? opcode_deps_81_mod3 : opcode_deps_81;
+                        opcode = (fetchdat >> 3) & 7;
                         break;
                                 
                         case 0xc0: case 0xc1:
                         timings = mod3 ? opcode_timings_shift_imm_mod3 : opcode_timings_shift_imm;
+                        deps = mod3 ? opcode_deps_shift_mod3 : opcode_deps_shift;
                         opcode = (fetchdat >> 3) & 7;
                         break;
-                                
+
                         case 0xd0: case 0xd1:
                         timings = mod3 ? opcode_timings_shift_mod3 : opcode_timings_shift;
+                        deps = mod3 ? opcode_deps_shift_mod3 : opcode_deps_shift;
                         opcode = (fetchdat >> 3) & 7;
                         break;
-                                
+                        
                         case 0xd2: case 0xd3:
                         timings = mod3 ? opcode_timings_shift_cl_mod3 : opcode_timings_shift_cl;
+                        deps = mod3 ? opcode_deps_shift_cl_mod3 : opcode_deps_shift_cl;
                         opcode = (fetchdat >> 3) & 7;
                         break;
                         
                         case 0xf6:
                         timings = mod3 ? opcode_timings_f6_mod3 : opcode_timings_f6;
+                        deps = mod3 ? opcode_deps_f6_mod3 : opcode_deps_f6;
                         opcode = (fetchdat >> 3) & 7;
                         break;
                         case 0xf7:
                         timings = mod3 ? opcode_timings_f7_mod3 : opcode_timings_f7;
+                        deps = mod3 ? opcode_deps_f7_mod3 : opcode_deps_f7;
                         opcode = (fetchdat >> 3) & 7;
                         break;
                         case 0xff:
                         timings = mod3 ? opcode_timings_ff_mod3 : opcode_timings_ff;
+                        deps = mod3 ? opcode_deps_ff_mod3 : opcode_deps_ff;
                         opcode = (fetchdat >> 3) & 7;
                         break;
 
                         default:
                         timings = mod3 ? opcode_timings_mod3 : opcode_timings;
+                        deps = mod3 ? opcode_deps_mod3 : opcode_deps;
                         break;
                 }
         }
@@ -946,33 +916,43 @@ void codegen_timing_686_opcode(uint8_t opcode, uint32_t fetchdat, int op_32)
                 
         if (prev_full)
         {
-                uint8_t regmask = get_srcdep_mask(timings[opcode], fetchdat, bit8);
-        
+                uint32_t regmask = get_srcdep_mask(deps[opcode], fetchdat, bit8, op_32);
+                int agi_stall = 0;
+                
+                if (regmask & IMPL_ESP)
+                        regmask |= SRCDEP_ESP | DSTDEP_ESP;
+
+                if (check_agi(prev_deps, prev_opcode, prev_fetchdat, prev_op_32))
+                        agi_stall = 2;
+
                 /*Second instruction in the pair*/
                 if ((timings[opcode] & PAIR_MASK) == PAIR_NP)
                 {
                         /*Instruction can not pair with previous*/
                         /*Run previous now*/
-                        codegen_block_cycles += COUNT(prev_timings[prev_opcode], prev_op_32) + decode_delay;
-                        decode_delay = (-COUNT(prev_timings[prev_opcode], prev_op_32)) + 1;
+                        codegen_block_cycles += COUNT(prev_timings[prev_opcode], prev_op_32) + decode_delay + agi_stall;
+                        decode_delay = (-COUNT(prev_timings[prev_opcode], prev_op_32)) + 1 + agi_stall;
                         prev_full = 0;
+                        regmask_modified = prev_regmask;
                 }
                 else if (((timings[opcode] & PAIR_MASK) == PAIR_X || (timings[opcode] & PAIR_MASK) == PAIR_X_BRANCH)
                           && (prev_timings[opcode] & PAIR_MASK) == PAIR_X)
                 {
                         /*Instruction can not pair with previous*/
                         /*Run previous now*/
-                        codegen_block_cycles += COUNT(prev_timings[prev_opcode], prev_op_32) + decode_delay;
-                        decode_delay = (-COUNT(prev_timings[prev_opcode], prev_op_32)) + 1;
+                        codegen_block_cycles += COUNT(prev_timings[prev_opcode], prev_op_32) + decode_delay + agi_stall;
+                        decode_delay = (-COUNT(prev_timings[prev_opcode], prev_op_32)) + 1 + agi_stall;
                         prev_full = 0;
+                        regmask_modified = prev_regmask;
                 }
                 else if (prev_regmask & regmask)
                 {
                         /*Instruction can not pair with previous*/
                         /*Run previous now*/
-                        codegen_block_cycles += COUNT(prev_timings[prev_opcode], prev_op_32) + decode_delay;
-                        decode_delay = (-COUNT(prev_timings[prev_opcode], prev_op_32)) + 1;
+                        codegen_block_cycles += COUNT(prev_timings[prev_opcode], prev_op_32) + decode_delay + agi_stall;
+                        decode_delay = (-COUNT(prev_timings[prev_opcode], prev_op_32)) + 1 + agi_stall;
                         prev_full = 0;
+                        regmask_modified = prev_regmask;
                 }
                 else
                 {
@@ -982,9 +962,14 @@ void codegen_timing_686_opcode(uint8_t opcode, uint32_t fetchdat, int op_32)
 
                         if (!t_pair)
                                 fatal("Pairable 0 cycles! %02x %02x\n", opcode, prev_opcode);
-                        codegen_block_cycles += t_pair;
-                        decode_delay = (-t_pair) + 1;
+
+                        if (check_agi(deps, opcode, fetchdat, op_32))
+                                agi_stall = 2;
+
+                        codegen_block_cycles += t_pair + agi_stall;
+                        decode_delay = (-t_pair) + 1 + agi_stall;
                         
+                        regmask_modified = get_dstdep_mask(deps[opcode], fetchdat, bit8) | prev_regmask;
                         prev_full = 0;
                         return;
                 }
@@ -996,8 +981,14 @@ void codegen_timing_686_opcode(uint8_t opcode, uint32_t fetchdat, int op_32)
                 if ((timings[opcode] & PAIR_MASK) == PAIR_NP || (timings[opcode] & PAIR_MASK) == PAIR_X_BRANCH)
                 {
                         /*Instruction not pairable*/
-                        codegen_block_cycles += COUNT(timings[opcode], op_32) + decode_delay;
-                        decode_delay = (-COUNT(timings[opcode], op_32)) + 1;
+                        int agi_stall = 0;
+                
+                        if (check_agi(deps, opcode, fetchdat, op_32))
+                                agi_stall = 2;
+                                
+                        codegen_block_cycles += COUNT(timings[opcode], op_32) + decode_delay + agi_stall;
+                        decode_delay = (-COUNT(timings[opcode], op_32)) + 1 + agi_stall;
+                        regmask_modified = get_dstdep_mask(deps[opcode], fetchdat, bit8);
                 }
                 else
                 {
@@ -1006,7 +997,11 @@ void codegen_timing_686_opcode(uint8_t opcode, uint32_t fetchdat, int op_32)
                         prev_opcode = opcode;
                         prev_timings = timings;
                         prev_op_32 = op_32;
-                        prev_regmask = get_dstdep_mask(timings[opcode], fetchdat, bit8);
+                        prev_regmask = get_dstdep_mask(deps[opcode], fetchdat, bit8);
+                        if (prev_regmask & IMPL_ESP)
+                                prev_regmask |= SRCDEP_ESP | DSTDEP_ESP;
+                        prev_deps = deps;
+                        prev_fetchdat = fetchdat;
                         return;
                 }
         }

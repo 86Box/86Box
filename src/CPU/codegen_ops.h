@@ -1,3 +1,8 @@
+#ifndef _CODEGEN_OPS_H_
+#define _CODEGEN_OPS_H_
+
+#include "codegen.h"
+
 typedef uint32_t (*RecompOpFn)(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block);
 
 extern RecompOpFn recomp_opcodes[512];
@@ -37,3 +42,5 @@ RecompOpFn recomp_opcodes_REPNE[512];
 #define REG_DH 6
 #define REG_BL 3
 #define REG_BH 7
+
+#endif
