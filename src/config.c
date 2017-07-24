@@ -225,7 +225,7 @@ int config_load(wchar_t *fn)
                         strncpy(new_entry->name, ename, 256);
 			memcpy(new_entry->wdata, &cfgbuffer[data_pos], 512);
 			new_entry->wdata[255] = L'\0';
-			wcstombs(new_entry->data, new_entry->wdata, 512);
+			wcstombs(new_entry->data, new_entry->wdata, sizeof(new_entry->data));
 			new_entry->data[255] = '\0';
                         list_add(&new_entry->list, &current_section->entry_head);
                 }
@@ -471,7 +471,8 @@ void config_delete_var(char *head, char *name)
         if (!entry)
                 return;
 
-	memset(entry->name, 0, strlen(entry->name));
+	/* memset(entry->name, 0, strlen(entry->name)); */
+	entry->name[0] = 0;
         
         return;
 }
@@ -488,7 +489,8 @@ void config_delete_section_if_empty(char *head)
 
 	if (entries_num(section) == 0)
 	{
-		memset(section->name, 0, strlen(section->name));
+		/* memset(section->name, 0, strlen(section->name)); */
+		section->name[0] = 0;
 	}
         
         return;
@@ -742,7 +744,7 @@ void config_save(wchar_t *fn)
                 
                 while (current_entry)
                 {
-			if(strlen(current_entry->name) > 0)
+			if(current_entry->name[0])
 			{
 				mbstowcs(wname, current_entry->name, strlen(current_entry->name) + 1);
 				if (current_entry->wdata[0] == L'\0')
@@ -1056,11 +1058,11 @@ static void loadconfig_network(void)
 		{
 			if ((network_ndev == 1) && strcmp(network_pcap, "none"))
 			{
-				msgbox_error(ghwnd, IDS_2107);
+				msgbox_error(ghwnd, IDS_2140);
 			}
 			else if (network_dev_to_id(p) == -1)
 			{
-				msgbox_error(ghwnd, IDS_2200);
+				msgbox_error(ghwnd, IDS_2141);
 			}
 
 	                strcpy(network_pcap, "none");
@@ -1218,14 +1220,14 @@ static int config_string_to_bus(char *str, int cdrom)
 
 	if (!strcmp(str, "usb"))
 	{
-		msgbox_error(ghwnd, IDS_2199);
+		msgbox_error(ghwnd, IDS_4110);
 		return 0;
 	}
 
 	return 0;
 
 no_mfm_cdrom:
-	msgbox_error(ghwnd, IDS_2095);
+	msgbox_error(ghwnd, IDS_4114);
 	return 0;
 }
 

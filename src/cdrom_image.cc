@@ -985,9 +985,10 @@ int image_open(uint8_t id, wchar_t *fn)
 	}
 
         cdimg[id] = new CDROM_Interface_Image();
-	wcstombs(afn, fn, (wcslen(fn) << 1) + 2);
+	wcstombs(afn, fn, sizeof(afn));
         if (!cdimg[id]->SetDevice(afn, false))
         {
+		pclog("Image failed to load\n");
                 image_close(id);
 		cdrom_set_null_handler(id);
                 return 1;

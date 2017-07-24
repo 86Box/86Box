@@ -118,7 +118,7 @@ void SaveBitmap(wchar_t *szFilename,HBITMAP hBitmap)
 
         if((fp = _wfopen(szFilename,L"wb"))==NULL)
         {
-            _swprintf(szMessage, win_language_get_string_from_id(2194), szFilename);
+            _swprintf(szMessage, win_language_get_string_from_id(IDS_2073), szFilename);
 	    msgbox_error_wstr(ghwnd, szMessage);
             break;
         } 

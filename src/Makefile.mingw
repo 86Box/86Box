@@ -130,6 +130,7 @@ endif
 
 
 ifeq ($(WALTJE), y)
+OPENDIR = win_opendir.o
 SERIAL	= serial.o
 WSERIAL = win_serial.o
 WFLAGS	= -DWALTJE
@@ -143,7 +144,8 @@ MAINOBJ	= pc.o config.o device.o timer.o dma.o io.o nmi.o pic.o \
 	  memregs.o intel_flash.o rtc.o nvr.o ps2_nvr.o
 CPUOBJ	= cpu.o 386.o 386_dynarec.o 386_dynarec_ops.o 808x.o \
 	  codegen.o \
-	    codegen_ops.o codegen_timing_486.o \
+	    codegen_ops.o \
+	    codegen_timing_common.o codegen_timing_486.o \
 	    codegen_timing_686.o codegen_timing_pentium.o \
 	    codegen_timing_winchip.o $(PLATCG) \
 	  x86seg.o x87.o
@@ -156,7 +158,7 @@ SYSOBJ	= model.o \
 	  scat.o \
 	  sis496.o \
 	  wd76c10.o \
-	  acer386sx.o acerm3a.o amstrad.o \
+	  acer386sx.o amstrad.o \
 	  compaq.o laserxt.o jim.o \
 	  olivetti_m24.o ps1.o ps2.o ps2_mca.o \
 	  tandy_eeprom.o tandy_rom.o
@@ -240,7 +242,7 @@ VIDOBJ	= video.o \
 WINOBJ	= win.o \
 	  win_ddraw.o win_ddraw_fs.o win_ddraw_screenshot.o \
 	  win_d3d.o win_d3d_fs.o \
-	  win_language.o win_status.o win_opendir.o win_dynld.o \
+	  win_language.o win_status.o $(OPENDIR) win_dynld.o \
 	  win_video.o $(WSERIAL) win_keyboard.o win_mouse.o \
 	  win_iodev.o win_joystick.o win_midi.o \
 	  win_settings.o win_deviceconfig.o win_joystickconfig.o \

@@ -247,7 +247,11 @@ bool CDROM_Interface_Image::LoadIsoFile(char* filename)
 	} else if (CanReadPVD(track.file, RAW_SECTOR_SIZE, true)) {
 		track.sectorSize = RAW_SECTOR_SIZE;
 		track.mode2 = true;		
-	} else return false;
+	} else {
+		/* Unknown mode: Assume regular 2048-byte sectors, this is needed so Apple Rhapsody ISO's can be mounted. */
+		track.sectorSize = COOKED_SECTOR_SIZE;
+		track.mode2 = false;
+	}
 	
 	track.length = track.file->getLength() / track.sectorSize;
 	tracks.push_back(track);

@@ -1,10 +1,12 @@
 #include "../ibm.h"
-#include "../mem.h"
 #include "cpu.h"
 #include "x86.h"
 #include "x86_ops.h"
 #include "x87.h"
+#include "../mem.h"
 #include "codegen.h"
+#include "codegen_ops.h"
+#include "codegen_timing_common.h"
 
 #define CYCLES(c) (int *)c
 #define CYCLES2(c16, c32) (int *)((-1 & ~0xffff) | c16 | (c32 << 8))
@@ -247,14 +249,27 @@ static int *opcode_timings_8x[8] =
 {
         &timing_mr,     &timing_mr,     &timing_mr,     &timing_mr,     &timing_mr,     &timing_mr,     &timing_mr,     &timing_rm
 };
+static int *opcode_timings_8x_mod3[8] =
+{
+        &timing_mr,     &timing_mr,     &timing_mr,     &timing_mr,     &timing_mr,     &timing_mr,     &timing_mr,     &timing_rm
+};
+static int *opcode_timings_81[8] =
+{
+        &timing_mr,     &timing_mr,     &timing_mr,     &timing_mr,     &timing_mr,     &timing_mr,     &timing_mr,     &timing_rm
+};
+static int *opcode_timings_81_mod3[8] =
+{
+        &timing_mr,     &timing_mr,     &timing_mr,     &timing_mr,     &timing_mr,     &timing_mr,     &timing_mr,     &timing_rm
+};
 
 static int timing_count;
 static uint8_t last_prefix;
+static uint32_t regmask_modified;
 
-static __inline int COUNT(int *c, int op_32)
+static inline int COUNT(int *c, int op_32)
 {
         if ((uintptr_t)c <= 10000)
-                return (int)c;
+                return (int)(uintptr_t)c;
         if (((uintptr_t)c & ~0xffff) == (-1 & ~0xffff))
         {
                 if (op_32 & 0x100)
@@ -266,6 +281,7 @@ static __inline int COUNT(int *c, int op_32)
 
 void codegen_timing_winchip_block_start()
 {
+        regmask_modified = 0;
 }
 
 void codegen_timing_winchip_start()
@@ -283,82 +299,107 @@ void codegen_timing_winchip_prefix(uint8_t prefix, uint32_t fetchdat)
 void codegen_timing_winchip_opcode(uint8_t opcode, uint32_t fetchdat, int op_32)
 {
         int **timings;
+        uint64_t *deps;
         int mod3 = ((fetchdat & 0xc0) == 0xc0);
+        int bit8 = !(opcode & 1);
 
         switch (last_prefix)
         {
                 case 0x0f:
                 timings = mod3 ? opcode_timings_0f_mod3 : opcode_timings_0f;
+                deps = mod3 ? opcode_deps_0f_mod3 : opcode_deps_0f;
                 break;
                 
                 case 0xd8:
                 timings = mod3 ? opcode_timings_d8_mod3 : opcode_timings_d8;
+                deps = mod3 ? opcode_deps_d8_mod3 : opcode_deps_d8;
                 opcode = (opcode >> 3) & 7;
                 break;
                 case 0xd9:
                 timings = mod3 ? opcode_timings_d9_mod3 : opcode_timings_d9;
+                deps = mod3 ? opcode_deps_d9_mod3 : opcode_deps_d9;
                 opcode = mod3 ? opcode & 0x3f : (opcode >> 3) & 7;
                 break;
                 case 0xda:
                 timings = mod3 ? opcode_timings_da_mod3 : opcode_timings_da;
+                deps = mod3 ? opcode_deps_da_mod3 : opcode_deps_da;
                 opcode = (opcode >> 3) & 7;
                 break;
                 case 0xdb:
                 timings = mod3 ? opcode_timings_db_mod3 : opcode_timings_db;
+                deps = mod3 ? opcode_deps_db_mod3 : opcode_deps_db;
                 opcode = mod3 ? opcode & 0x3f : (opcode >> 3) & 7;
                 break;
                 case 0xdc:
                 timings = mod3 ? opcode_timings_dc_mod3 : opcode_timings_dc;
+                deps = mod3 ? opcode_deps_dc_mod3 : opcode_deps_dc;
                 opcode = (opcode >> 3) & 7;
                 break;
                 case 0xdd:
                 timings = mod3 ? opcode_timings_dd_mod3 : opcode_timings_dd;
+                deps = mod3 ? opcode_deps_dd_mod3 : opcode_deps_dd;
                 opcode = (opcode >> 3) & 7;
                 break;
                 case 0xde:
                 timings = mod3 ? opcode_timings_de_mod3 : opcode_timings_de;
+                deps = mod3 ? opcode_deps_de_mod3 : opcode_deps_de;
                 opcode = (opcode >> 3) & 7;
                 break;
                 case 0xdf:
                 timings = mod3 ? opcode_timings_df_mod3 : opcode_timings_df;
+                deps = mod3 ? opcode_deps_df_mod3 : opcode_deps_df;
                 opcode = (opcode >> 3) & 7;
                 break;
 
                 default:
                 switch (opcode)
                 {
-                        case 0x80: case 0x81: case 0x82: case 0x83:
-                        timings = mod3 ? opcode_timings_mod3 : opcode_timings_8x;
-                        if (!mod3)
-                                opcode = (fetchdat >> 3) & 7;
+                        case 0x80: case 0x82: case 0x83:
+                        timings = mod3 ? opcode_timings_8x_mod3 : opcode_timings_8x;
+                        deps = mod3 ? opcode_deps_8x_mod3 : opcode_deps_8x_mod3;
+                        opcode = (fetchdat >> 3) & 7;
+                        break;
+                        case 0x81:
+                        timings = mod3 ? opcode_timings_81_mod3 : opcode_timings_81;
+                        deps = mod3 ? opcode_deps_81_mod3 : opcode_deps_81;
+                        opcode = (fetchdat >> 3) & 7;
                         break;
                                 
                         case 0xc0: case 0xc1: case 0xd0: case 0xd1: case 0xd2: case 0xd3:
                         timings = mod3 ? opcode_timings_shift_mod3 : opcode_timings_shift;
+                        deps = mod3 ? opcode_deps_shift_mod3 : opcode_deps_shift;
                         opcode = (fetchdat >> 3) & 7;
                         break;
                         
                         case 0xf6:
                         timings = mod3 ? opcode_timings_f6_mod3 : opcode_timings_f6;
+                        deps = mod3 ? opcode_deps_f6_mod3 : opcode_deps_f6;
                         opcode = (fetchdat >> 3) & 7;
                         break;
                         case 0xf7:
                         timings = mod3 ? opcode_timings_f7_mod3 : opcode_timings_f7;
+                        deps = mod3 ? opcode_deps_f7_mod3 : opcode_deps_f7;
                         opcode = (fetchdat >> 3) & 7;
                         break;
                         case 0xff:
                         timings = mod3 ? opcode_timings_ff_mod3 : opcode_timings_ff;
+                        deps = mod3 ? opcode_deps_ff_mod3 : opcode_deps_ff;
                         opcode = (fetchdat >> 3) & 7;
                         break;
 
                         default:
                         timings = mod3 ? opcode_timings_mod3 : opcode_timings;
+                        deps = mod3 ? opcode_deps_mod3 : opcode_deps;
                         break;
                 }
         }
         
         timing_count += COUNT(timings[opcode], op_32);
+        if (regmask_modified & get_addr_regmask(deps[opcode], fetchdat, op_32))
+                timing_count++; /*AGI stall*/
         codegen_block_cycles += timing_count;
+        
+        regmask_modified = get_dstdep_mask(deps[opcode], fetchdat, bit8);
 }
 
 void codegen_timing_winchip_block_end()

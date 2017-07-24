@@ -216,6 +216,7 @@ int loadbios()
                 fclose(f);
                 return 1;
 
+#if 0
                 case ROM_PORTABLEII:
                 f = romfopen(L"roms/machines/portableii/106438-001.BIN", L"rb");
                 ff  =romfopen(L"roms/machines/portableii/106437-001.BIN", L"rb");
@@ -243,6 +244,7 @@ int loadbios()
                 fclose(ff);
                 fclose(f);
                 return 1;				
+#endif
 				
                 case ROM_GENXT:
                 f=romfopen(L"roms/machines/genxt/pcxt.rom",L"rb");
@@ -341,6 +343,15 @@ int loadbios()
                 return 1;
                 case ROM_MR386DX_OPTI495: /*This uses the OPTi 82C495 chipset*/
                 f=romfopen(L"roms/machines/mr386dx/OPT495SX.MR",L"rb");
+                if (!f) break;
+                fread(rom,65536,1,f);
+                fclose(f);
+                return 1;
+
+                case ROM_AWARD386SX_OPTI495: /*This uses the OPTi 82C495 chipset*/
+                case ROM_AWARD386DX_OPTI495: /*This uses the OPTi 82C495 chipset*/
+                case ROM_AWARD486_OPTI495: /*This uses the OPTi 82C495 chipset*/
+                f=romfopen(L"roms/machines/award495/OPT495S.AWA",L"rb");
                 if (!f) break;
                 fread(rom,65536,1,f);
                 fclose(f);

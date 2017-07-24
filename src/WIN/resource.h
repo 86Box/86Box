@@ -288,11 +288,11 @@
 #define IDS_2136		2136	// "Slow VLB/PCI"
 #define IDS_2137		2137	// "Mid  VLB/PCI"
 #define IDS_2138		2138	// "Fast VLB/PCI"
-#define IDS_2139		2139	// "Microsoft 2-button mouse (serial)"
-#define IDS_2140		2140	// "Mouse Systems mouse (serial)"
-#define IDS_2141		2141	// "2-button mouse (PS/2)"
-#define IDS_2142		2142	// "Microsoft Intellimouse (PS/2)"
-#define IDS_2143		2143	// "Bus mouse"
+#define IDS_2139                2139
+#define IDS_2140                2140
+#define IDS_2141                2141
+#define IDS_2142                2142
+#define IDS_2143                2143
 #define IDS_2144		2144	// "Standard 2-button joystick(s)"
 #define IDS_2145		2145	// "Standard 4-button joystick"
 #define IDS_2146		2146	// "Standard 6-button joystick"
@@ -310,8 +310,8 @@
 #define IDS_2158		2158	// "SCSI (%02i:%02i)"
 #define IDS_2159		2159	// "Invalid number of cylinders.."
 #define IDS_2160		2160	// "%" PRIu64
-#define IDS_2161		2161	// "Genius Bus mouse"
-#define IDS_2162		2162	// "Amstrad mouse"
+#define IDS_2161                2161
+#define IDS_2162                2162
 #define IDS_2163		2163	// "Attempting to create a spuriously.."
 #define IDS_2164		2164	// "Invalid number of sectors.."
 #define IDS_2165		2165	// "MFM"
@@ -319,67 +319,87 @@
 #define IDS_2167		2167	// "RLL"
 #define IDS_2168		2168	// "IDE (PIO-only)"
 #define IDS_2169		2169	// "%01i:%01i"
-#define IDS_2170		2170	// "Custom..."
-#define IDS_2171		2171	// "%" PRIu64 " MB (CHS: %" ..
-#define IDS_2172		2172	// "Hard disk images .."
-#define IDS_2173		2173	// "All floppy images .."
-#define IDS_2174		2174	// "Configuration files .."
-#define IDS_2175		2175	// "CD-ROM image .."
-#define IDS_2176		2176	// "Use CTRL+ALT+PAGE DOWN .."
-#define IDS_2177		2177	// "Olivetti M24 mouse"
-#define IDS_2178		2178	// "This image exists and will.."
-#define IDS_2179		2179	// "Floppy %i (%s): %ws"
-#define IDS_2180		2180	// "CD-ROM %i: %ws"
-#define IDS_2181		2181	// "MFM hard disk"
-#define IDS_2182		2182	// "IDE hard disk (PIO-only)"
-#define IDS_2183		2183	// "IDE hard disk (PIO and DMA)"
-#define IDS_2184		2184	// "SCSI hard disk"
-#define IDS_2185		2185	// "(empty)"
-#define IDS_2186		2186	// "(host drive %c:)"
-#define IDS_2187		2187	// "Custom (large)..."
-#define IDS_2188		2188	// "Type"
-#define IDS_2189		2189	// "ATAPI (PIO-only)"
-#define IDS_2190		2190	// "ATAPI (PIO and DMA)"
-#define IDS_2191		2191	// "ATAPI (PIO-only) (%01i:%01i)"
-#define IDS_2192		2192	// "ATAPI (PIO and DMA) (%01i:%01i)"
-#define IDS_2193		2193	// "Use CTRL+ALT+PAGE DOWN to .."
-#define IDS_2194		2194	// "Unable to create bitmap file: %s"
-#define IDS_2195		2195	// "IDE (PIO-only) (%01i:%01i)"
-#define IDS_2196		2196	// "Add New Hard Disk"
-#define IDS_2197		2197	// "Add Existing Hard Disk"
-#define IDS_2198		2198	// "SCSI removable disk %i: %s"
-#define IDS_2199		2199	// "USB is not yet supported"
-#define IDS_2200		2200	// "Invalid PCap device"
-#define IDS_2201		2201	// "&Notify disk change"
-#define IDS_2202		2202	// "SCSI (removable)"
-#define IDS_2203		2203	// "SCSI (removable) (%02i:%02i)"
-#define IDS_2204		2204	// "Pcap Library Not Available"
-#define IDS_2205		2205	// "RLL (%01i:%01i)"
-#define IDS_2206		2206	// "XT IDE (%01i:%01i)"
-#define IDS_2207		2207	// "RLL hard disk"
-#define IDS_2208		2208	// "XT IDE hard disk"
-#define IDS_2209		2209	// "IDE (PIO and DMA)"
-#define IDS_2210		2210	// "SCSI"
-#define IDS_2211		2211	// "&New image..."
-#define IDS_2212		2212	// "Existing image..."
-#define IDS_2213		2213	// "Existing image (&Write-.."
-#define IDS_2214		2214	// "E&ject"
-#define IDS_2215		2215	// "&Mute"
-#define IDS_2216		2216	// "E&mpty"
-#define IDS_2217		2217	// "&Reload previous image"
-#define IDS_2218		2218	// "&Image..."
-#define IDS_2219		2219	// "PCap failed to set up .."
-#define IDS_2220		2220	// "Image (&Write-protected)..."
-#define IDS_2221		2221	// "Turbo"
-#define IDS_2222		2222	// "On"
-#define IDS_2223		2223	// "Off"
-#define IDS_2224		2224	// "Logitech 3-button mouse (serial)"
-#define IDS_2225		2225	// "Specify the NVR Path"
-#define IDS_2226		2226	// "<Placeholder string>"
-#define IDS_2227		2227	// "English (United States)"
 
-#define IDS_LANG_ENUS		IDS_2227
-#define STRINGS_NUM		180
+#define IDS_3072		3072
+#define IDS_3073		3073
+#define IDS_3074		3074
+#define IDS_3075		3075
+#define IDS_3076		3076
+#define IDS_3077		3077
+#define IDS_3078		3078
+#define IDS_3079		3079
+#define IDS_3080		3080
+#define IDS_3081		3081
+#define IDS_3082		3082
+
+#define IDS_4096		4096
+#define IDS_4097		4097
+#define IDS_4098		4098
+#define IDS_4099		4099
+#define IDS_4100		4100
+#define IDS_4101		4101
+#define IDS_4102		4102
+#define IDS_4103		4103
+#define IDS_4104		4104
+#define IDS_4105		4105
+#define IDS_4106		4106
+#define IDS_4107		4107
+#define IDS_4108		4108
+#define IDS_4109		4109
+#define IDS_4110		4110
+#define IDS_4111		4111
+#define IDS_4112		4112
+#define IDS_4113		4113
+#define IDS_4114		4114
+#define IDS_4115		4115
+
+#define IDS_4352		4352
+#define IDS_4353		4353
+#define IDS_4354		4354
+#define IDS_4355		4355
+#define IDS_4356		4356
+#define IDS_4357		4357
+#define IDS_4358		4358
+
+#define IDS_4608		4608
+#define IDS_4609		4609
+#define IDS_4610		4610
+#define IDS_4611		4611
+#define IDS_4612		4612
+#define IDS_4613		4613
+#define IDS_4614		4614
+
+#define IDS_5120		5120
+
+#define IDS_5376		5376
+#define IDS_5377		5377
+#define IDS_5378		5378
+#define IDS_5379		5379
+#define IDS_5380		5380
+#define IDS_5381		5381
+#define IDS_5382		5382
+
+#define IDS_5632		5632
+#define IDS_5633		5633
+#define IDS_5634		5634
+#define IDS_5635		5635
+#define IDS_5636		5636
+#define IDS_5637		5637
+#define IDS_5638		5638
+
+#define IDS_6144		6144
+
+#define IDS_LANG_ENUS		IDS_6144
+
+#define STRINGS_NUM_2048	122
+#define STRINGS_NUM_3072	11
+#define STRINGS_NUM_4096	20
+#define STRINGS_NUM_4352	7
+#define STRINGS_NUM_4608	7
+#define STRINGS_NUM_5120	1
+#define STRINGS_NUM_5376	7
+#define STRINGS_NUM_5632	7
+#define STRINGS_NUM_6144	1
 
 
 #define IDM_ABOUT		40001

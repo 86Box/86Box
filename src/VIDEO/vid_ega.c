@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.2	2017/06/05
+ * Version:	@(#)vid_ega.c	1.0.3	2017/07/21
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -454,7 +454,7 @@ void ega_recalctimings(ega_t *ega)
 
         if (ega->crtc[7] & 1)  ega->vtotal |= 0x100;
         if (ega->crtc[7] & 32) ega->vtotal |= 0x200;
-        ega->vtotal++;
+        ega->vtotal += 2;
 
         if (ega->crtc[7] & 2)  ega->dispend |= 0x100;
         if (ega->crtc[7] & 64) ega->dispend |= 0x200;
@@ -466,7 +466,7 @@ void ega_recalctimings(ega_t *ega)
 
         if (ega->crtc[7] & 0x10) ega->split |= 0x100;
         if (ega->crtc[9] & 0x40) ega->split |= 0x200;
-        ega->split+=2;
+        ega->split++;
 
         ega->hdisp = ega->crtc[1];
         ega->hdisp++;
@@ -532,13 +532,16 @@ void ega_poll(void *p)
                         }
                         else if (!(ega->gdcreg[6] & 1))
                         {
-				if (ega_jega_enabled(ega))
+				if (fullchange)
 				{
-					ega_render_text_jega(ega, drawcursor);
-				}
-				else
-				{
-					ega_render_text_standard(ega, drawcursor);
+					if (ega_jega_enabled(ega))
+					{
+						ega_render_text_jega(ega, drawcursor);
+					}
+					else
+					{
+						ega_render_text_standard(ega, drawcursor);
+					}
 				}
                         }
                         else
@@ -572,6 +575,8 @@ void ega_poll(void *p)
                 }
 
                 ega->displine++;
+                if (ega->interlace) 
+                        ega->displine++;
                 if ((ega->stat & 8) && ((ega->displine & 15) == (ega->crtc[0x11] & 15)) && ega->vslines)
                         ega->stat &= ~8;
                 ega->vslines++;
@@ -595,6 +600,8 @@ void ega_poll(void *p)
                                         ega->con = 0;
 
                                 ega->maback += (ega->rowoffset << 3);
+                                if (ega->interlace)
+                                        ega->maback += (ega->rowoffset << 3);
                                 ega->maback &= ega->vrammask;
                                 ega->ma = ega->maback;
                         }
@@ -631,10 +638,14 @@ void ega_poll(void *p)
                         ega->stat |= 8;
                         if (ega->seqregs[1] & 8) x = ega->hdisp * ((ega->seqregs[1] & 1) ? 8 : 9) * 2;
                         else                     x = ega->hdisp * ((ega->seqregs[1] & 1) ? 8 : 9);
-                        if ((x != xsize || (ega->lastline - ega->firstline) != ysize) || update_overscan)
+
+                        if (ega->interlace && !ega->oddeven) ega->lastline++;
+                        if (ega->interlace &&  ega->oddeven) ega->firstline--;
+
+                        if ((x != xsize || (ega->lastline - ega->firstline + 1) != ysize) || update_overscan)
                         {
                                 xsize = x;
-                                ysize = ega->lastline - ega->firstline;
+                                ysize = ega->lastline - ega->firstline + 1;
                                 if (xsize < 64) xsize = 640;
                                 if (ysize < 32) ysize = 200;
 				y_add = enable_overscan ? 14 : 0;
@@ -714,7 +725,7 @@ void ega_poll(void *p)
 				}
 			}
          
-                        video_blit_memtoscreen(32, 0, ega->firstline, ega->lastline + y_add_ex, xsize + x_add_ex, ega->lastline - ega->firstline + y_add_ex);
+                        video_blit_memtoscreen(32, 0, ega->firstline, ega->lastline + 1 + y_add_ex, xsize + x_add_ex, ega->lastline - ega->firstline + 1 + y_add_ex);
 
                         frames++;
                         
@@ -754,7 +765,7 @@ void ega_poll(void *p)
                         ega->vc = 0;
                         ega->sc = 0;
                         ega->dispon = 1;
-                        ega->displine = 0;
+                        ega->displine = (ega->interlace && ega->oddeven) ? 1 : 0;
                         ega->scrollcache = ega->attrregs[0x13] & 7;
                 }
                 if (ega->sc == (ega->crtc[10] & 31)) 

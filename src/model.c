@@ -165,8 +165,10 @@ MODEL models[] =
 
         {"[286] AMI 286 clone",		ROM_AMI286,		"ami286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				512,16384, 128, 127,        at_neat_init, NULL			},
         {"[286] Award 286 clone",	ROM_AWARD286,		"award286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				512,16384, 128, 127,        at_scat_init, NULL			},
+#if 0
         {"[286] Compaq Portable II",	ROM_PORTABLEII,		"portableii",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT,						  1,   15,   1,  63,             at_init, NULL			},
         {"[286] Compaq Portable III",	ROM_PORTABLEIII,	"portableiii",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT,						  1,   15,   1,  63,             at_init, NULL			},
+#endif
         {"[286] Commodore PC 30 III",	ROM_CMDPC30,		"cmdpc30",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				640,16384, 128, 127,        cmdpc30_init, NULL			},
         {"[286] Hyundai Super-286TR",	ROM_SUPER286TR,		"super286tr",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				512,16384, 128, 127,        at_scat_init, NULL			},
         {"[286] IBM AT",		ROM_IBMAT,		"ibmat",		{{"",      cpus_ibmat},       {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT,						256,15872, 128,  63,         ibm_at_init, NULL			},
@@ -177,6 +179,7 @@ MODEL models[] =
 
         {"[386SX] AMI 386SX clone",	ROM_AMI386SX,		"ami386",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				512,16384, 128, 127,    at_headland_init, NULL			},
         {"[386SX] Amstrad MegaPC",	ROM_MEGAPC,		"megapc",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 1, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,			  1,   16,   1, 127,     at_wd76c10_init, NULL			},
+        {"[386SX] Award 386SX clone",	ROM_AWARD386SX_OPTI495,	"award386sx",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,     at_opti495_init, NULL			},
         {"[386SX] DTK 386SX clone",	ROM_DTK386,		"dtk386",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				512,16384, 128, 127,        at_neat_init, NULL			},
         {"[386SX] IBM PS/1 model 2121",	ROM_IBMPS1_2121,	"ibmps1_2121",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 1, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,			  1,   16,   1, 127,      ps1_m2121_init, NULL			},
         {"[386SX] IBM PS/1 m.2121+ISA", ROM_IBMPS1_2121_ISA,	"ibmps1_2121_isa",	{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,			  1,   16,   1, 127,      ps1_m2121_init, NULL			},
@@ -184,13 +187,17 @@ MODEL models[] =
 
         {"[386DX] AMI 386DX clone",	ROM_AMI386DX_OPTI495,	"ami386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,     at_opti495_init, NULL			},
         {"[386DX] Amstrad MegaPC 386DX",ROM_MEGAPCDX,		"megapcdx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 1, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,			  1,   16,   1, 127,     at_wd76c10_init, NULL			},
+        {"[386DX] Award 386DX clone",	ROM_AWARD386DX_OPTI495,	"award386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,     at_opti495_init, NULL			},
         {"[386DX] Compaq Deskpro 386",	ROM_DESKPRO_386,	"dekspro386",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT,						  1,   15,   1,  63,     deskpro386_init, NULL			},
+#if 0
         {"[386DX] Compaq Portable III 386",ROM_PORTABLEIII386,	"portableiii386",	{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT,						  1,   15,   1,  63,             at_init, NULL			},
+#endif
         {"[386DX] IBM PS/2 Model 80",	ROM_IBMPS2_M80,		"ibmps2_m80",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 1, MODEL_AT | MODEL_PS2 | MODEL_PS2_HDD | MODEL_MCA,	  1,   12,   1,  63,   ps2_model_80_init, NULL			},
         {"[386DX] MR 386DX clone",	ROM_MR386DX_OPTI495,	"mr386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,     at_opti495_init, NULL			},
 
         {"[486] AMI 486 clone",		ROM_AMI486,		"ami486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,     at_ali1429_init, NULL			},
         {"[486] AMI WinBIOS 486",	ROM_WIN486,		"win486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,     at_ali1429_init, NULL			},
+        {"[486] Award 486 clone",	ROM_AWARD486_OPTI495,	"award486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,     at_opti495_init, NULL			},
         {"[486] DTK PKM-0038S E-2",	ROM_DTK486,		"dtk486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,      at_dtk486_init, NULL			},
         {"[486] IBM PS/1 model 2133",	ROM_IBMPS1_2133,	"ibmps1_2133",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,			  1,   64,   1, 127,      ps1_m2133_init, NULL			},
         {"[486] Rise Computer R418",	ROM_R418,		"r418",			{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE | MODEL_PCI,			  1,   64,   1, 127,        at_r418_init, NULL			},
@@ -770,9 +777,8 @@ void at_ap53_init(void)
         pci_slot(0x13);
         pci_slot(0x14);
         i430hx_init();
-        piix_init(7, 0x11, 0x12, 0x13, 0x14);
+        piix3_init(7, 0x11, 0x12, 0x13, 0x14);
         fdc37c669_init();
-        acerm3a_io_init();
         device_add(&intel_flash_bxt_device);
 }
 
@@ -787,16 +793,14 @@ void at_p55t2s_init(void)
         pci_slot(0x14);
         pci_slot(0x13);
         i430hx_init();
-        piix_init(7, 0x12, 0x11, 0x14, 0x13);
+        piix3_init(7, 0x12, 0x11, 0x14, 0x13);
         pc87306_init();
-        acerm3a_io_init();
         device_add(&intel_flash_bxt_device);
 }
 
 void at_acerm3a_init(void)
 {
         at_ide_init();
-	memregs_init();
 	powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
         pci_slot(0xc);
@@ -806,14 +810,12 @@ void at_acerm3a_init(void)
         i430hx_init();
         piix3_init(7, 0xc, 0xd, 0xe, 0xf);
         fdc37c932fr_init();
-        acerm3a_io_init();
         device_add(&intel_flash_bxb_device);
 }
 
 void at_acerv35n_init(void)
 {
         at_ide_init();
-	memregs_init();
 	powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
         pci_slot(0x11);
@@ -823,7 +825,6 @@ void at_acerv35n_init(void)
         i430hx_init();
         piix3_init(7, 0x11, 0x12, 0x13, 0x14);
         fdc37c932fr_init();
-        acerm3a_io_init();
         device_add(&intel_flash_bxb_device);
 }
 
@@ -877,7 +878,6 @@ void at_p55tvp4_init(void)
 void at_p55va_init(void)
 {
         at_ide_init();
-	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
         pci_slot(8);
         pci_slot(9);

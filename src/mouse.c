@@ -8,10 +8,11 @@
  *
  *		Common driver module for MOUSE devices.
  *
- * Version:	@(#)mouse.c	1.0.3	2017/06/21
+ * Version:	@(#)mouse.c	1.0.4	2017/07/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *		TheCollector1995,
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
@@ -35,16 +36,18 @@ static mouse_t mouse_none = {
 
 static mouse_t *mouse_list[] = {
     &mouse_none,
-    &mouse_serial_microsoft,	/* 1 Microsoft Serial Mouse */
-    &mouse_ps2_2_button,	/* 2 PS/2 Mouse 2-button */
-    &mouse_intellimouse,	/* 3 PS/2 Intellimouse 3-button */
-    &mouse_bus,			/* 4 Logitech Bus Mouse 2-button */
-    &mouse_amstrad,		/* 5 Amstrad PC System Mouse */
-    &mouse_olim24,		/* 6 Olivetti M24 System Mouse */
-    &mouse_msystems,		/* 7 Mouse Systems */
-    &mouse_serial_logitech,	/* 1 Logitech 3-button Serial Mouse */
+    &mouse_bus,			/*  1 Microsoft/Logitech Bus Mouse 2-button */
+    &mouse_inport,		/*  2 Microsoft InPort Mouse */
+    &mouse_msystems,		/*  3 Mouse Systems */
+    &mouse_serial_microsoft,	/*  4 Microsoft Serial Mouse */
+    &mouse_serial_logitech,	/*  5 Logitech 3-button Serial Mouse */
+    &mouse_serial_mswheel,	/*  6 Microsoft Serial Wheel Mouse */
+    &mouse_ps2_2_button,	/*  7 PS/2 Mouse 2-button */
+    &mouse_intellimouse,	/*  8 PS/2 Intellimouse 3-button */
+    &mouse_amstrad,		/*  9 Amstrad PC System Mouse */
+    &mouse_olim24,		/* 10 Olivetti M24 System Mouse */
 #if 0
-    &mouse_genius,		/* 8 Genius Bus Mouse */
+    &mouse_genius,		/* 11 Genius Bus Mouse */
 #endif
     NULL
 };
