@@ -273,9 +273,18 @@ uint8_t mouse_serial_poll(int x, int y, int z, int b, void *p)
                 serial_write_fifo(mouse->serial, mousedat[0]);
                 serial_write_fifo(mouse->serial, mousedat[1]);
                 serial_write_fifo(mouse->serial, mousedat[2]);
-		if ((b&0x04) && mouse->type)
+		if (mouse->type == 2)
 		{
-                	serial_write_fifo(mouse->serial, 0x20);
+			if (b&0x04)
+			{
+                		serial_write_fifo(mouse->serial, 0x20);
+			}
+		}
+		else if (mouse->type == 3)
+		{
+			mousedat[3] = z & 0xf;
+			if (b&4) mousedat[3] |= 0x10;
+               		serial_write_fifo(mouse->serial, mousedat[3]);
 		}
         }
 
@@ -339,13 +348,23 @@ void mousecallback(void *p)
         if (mouse->mousepos == -1)
         {
                 mouse->mousepos = 0;
-		if (mouse->type < 2)
+		switch(mouse->type)
 		{
-	                serial_write_fifo(mouse->serial, 'M');
-			if (mouse->type == 1)
-			{
+			case 0:
+		                serial_write_fifo(mouse->serial, 'H');
+				break;
+			case 1:
+			default:
+		                serial_write_fifo(mouse->serial, 'M');
+				break;
+			case 2:
+		                serial_write_fifo(mouse->serial, 'M');
 		                serial_write_fifo(mouse->serial, '3');
-			}
+				break;
+			case 3:
+		                serial_write_fifo(mouse->serial, 'M');
+		                serial_write_fifo(mouse->serial, 'Z');
+				break;
 		}
         }
 }
@@ -365,19 +384,24 @@ void *mouse_serial_common_init(int type)
         return mouse;
 }
 
-void *mouse_serial_init()
+void *mouse_serial_msystems_init()
 {
 	return mouse_serial_common_init(0);
 }
 
-void *mouse_serial_logitech_init()
+void *mouse_serial_init()
 {
 	return mouse_serial_common_init(1);
 }
 
-void *mouse_serial_msystems_init()
+void *mouse_serial_logitech_init()
 {
 	return mouse_serial_common_init(2);
+}
+
+void *mouse_serial_mswheel_init()
+{
+	return mouse_serial_common_init(3);
 }
 
 void mouse_serial_close(void *p)
@@ -388,6 +412,16 @@ void mouse_serial_close(void *p)
         
         serial1.rcr_callback = NULL;
 }
+
+mouse_t mouse_msystems =
+{
+	"Mouse Systems Mouse (serial)",
+	"mssystems",
+	MOUSE_TYPE_MSYSTEMS | MOUSE_TYPE_3BUTTON,
+        mouse_serial_msystems_init,
+        mouse_serial_close,
+        mouse_serial_msystems_poll
+};
 
 mouse_t mouse_serial_microsoft =
 {
@@ -403,20 +437,20 @@ mouse_t mouse_serial_logitech =
 {
         "Logitech 3-button mouse (serial)",
 	"lserial",
-        MOUSE_TYPE_SERIAL | MOUSE_TYPE_3BUTTON,
+        MOUSE_TYPE_LOGITECH | MOUSE_TYPE_3BUTTON,
         mouse_serial_logitech_init,
         mouse_serial_close,
         mouse_serial_poll
 };
 
-mouse_t mouse_msystems =
+mouse_t mouse_serial_mswheel =
 {
-	"Mouse Systems Mouse (serial)",
+	"Microsoft wheel mouse (serial)",
 	"mssystems",
-	MOUSE_TYPE_MSYSTEMS | MOUSE_TYPE_3BUTTON,
-        mouse_serial_msystems_init,
+	MOUSE_TYPE_MSWHEEL | MOUSE_TYPE_3BUTTON,
+        mouse_serial_mswheel_init,
         mouse_serial_close,
-        mouse_serial_msystems_poll
+        mouse_serial_poll
 };
 
 

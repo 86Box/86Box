@@ -17,6 +17,10 @@ extern wchar_t	*plat_get_string_from_id(int i);
 #ifndef IDS_2079
 #define IDS_2079 2079
 #endif
+
+#ifndef IDS_2139
+#define IDS_2139 2139
+#endif
 #endif
 
 extern void	plat_msgbox_fatal(char *string);
