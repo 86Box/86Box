@@ -2417,7 +2417,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 						break;
 					}
 
-					if (!file_dlg_w_st(hwnd, IDS_2151, cdrom_image[id].image_path, 0))
+					if (!file_dlg_w_st(hwnd, IDS_2075, cdrom_image[id].image_path, 0))
 					{
 						cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
 						wcscpy(temp_image_path, wopenfilestring);
