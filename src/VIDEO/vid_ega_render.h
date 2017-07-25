@@ -29,7 +29,9 @@ extern uint8_t edatlookup[4][4];
 
 void ega_render_blank(ega_t *ega);
 void ega_render_text_standard(ega_t *ega, int drawcursor);
+#ifdef JEGA
 void ega_render_text_jega(ega_t *ega, int drawcursor);
+#endif
 
 void ega_render_2bpp_lowres(ega_t *ega);
 void ega_render_2bpp_highres(ega_t *ega);

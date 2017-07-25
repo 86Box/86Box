@@ -1,5 +1,23 @@
-/* Copyright holders: Sarah Walker
- * see COPYING for more details
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Configuration file handler.
+ *
+ * Version:	@(#)config.c	1.0.0	2017/07/26
+ *
+ * Authors:	Sarah Walker,
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Overdoze,
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2017-2017 Fred N. van Kempen.
+ *		Copyright 2017-2017 Overdoze.
  *
  * NOTE:	Forcing config files to be in Unicode encoding breaks it on
  *		Windows XP, and possibly also Vista. Use -DANSI_CFG for use
@@ -83,17 +101,14 @@ typedef struct entry_t
 
 #define list_delete(old, head)                          \
         {                                               \
-                struct list_t *cur = head;              \
                 struct list_t *next = head;             \
                                                         \
-                while (next->next != old)               \
+                while ((next)->next != old)             \
                 {                                       \
-                        cur = next;                     \
-                        next = next->next;              \
+                        next = (next)->next;            \
                 }                                       \
                                                         \
-                cur->next = next->next;                 \
-                free(next);                             \
+                (next)->next = (old)->next;             \
         }
 
 
@@ -487,6 +502,7 @@ void config_delete_var(char *head, char *name)
                 return;
 
 	list_delete(&entry->list, &section->entry_head);
+	free(entry);
         
         return;
 }
@@ -504,6 +520,7 @@ void config_delete_section_if_empty(char *head)
 	if (entries_num(section) == 0)
 	{
 	        list_delete(&section->list, &config_head);
+		free(section);
 	}
         
         return;

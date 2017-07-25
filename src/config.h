@@ -1,8 +1,24 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
-
-
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Configuration file handler header.
+ *
+ * Version:	@(#)config.h	1.0.0	2017/07/26
+ *
+ * Authors:	Sarah Walker,
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Overdoze,
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2017-2017 Fred N. van Kempen.
+ *		Copyright 2017-2017 Overdoze.
+ */
 extern wchar_t	config_file_default[256];
 
 
