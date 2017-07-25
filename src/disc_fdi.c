@@ -22,6 +22,7 @@
 #include <wchar.h>
 #include "ibm.h"
 #include "disc.h"
+#include "disc_86f.h"
 #include "disc_img.h"
 #include "disc_fdi.h"
 #include "fdc.h"
@@ -254,6 +255,7 @@ void d86f_register_fdi(int drive)
 	d86f_handler[drive].index_hole_pos = fdi_index_hole_pos;
 	d86f_handler[drive].get_raw_size = fdi_get_raw_size;
 	d86f_handler[drive].check_crc = 1;
+	d86f_set_version(drive, D86FVER);
 }
 
 void fdi_load(int drive, wchar_t *fn)

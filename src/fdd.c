@@ -189,6 +189,11 @@ int fdd_track0(int drive)
         return !fdd[drive].track;
 }
 
+int fdd_track(int drive)
+{
+	return fdd[drive].track;
+}
+
 void fdd_set_densel(int densel)
 {
 	int i = 0;

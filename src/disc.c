@@ -194,11 +194,6 @@ double disc_byteperiod(int drive)
 
 	if (drives[drive].byteperiod)
 	{
-		if (fdd_get_turbo(drive))
-		{
-			return 1.0;
-		}
-
 		return drives[drive].byteperiod(drive);
 	}
 	else
@@ -217,7 +212,12 @@ double disc_real_period(int drive)
 	dusec = (double) TIMER_USEC;
 
 	/* This is a giant hack but until the timings become even more correct, this is needed to make floppies work right on that BIOS. */
-	if ((romset == ROM_MRTHOR) && !fdd_get_turbo(drive))
+	if (fdd_get_turbo(drive))
+	{
+		return (32.0 * dusec);
+	}
+
+	if (romset == ROM_MRTHOR)
 	{
 		return (ddbp * dusec) / 4.0;
 	}

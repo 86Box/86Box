@@ -1103,6 +1103,9 @@ void td0_seek(int drive, int track)
 	d86f_reset_index_hole_pos(drive, 0);
 	d86f_reset_index_hole_pos(drive, 1);
 
+	d86f_zero_bit_field(drive, 0);
+	d86f_zero_bit_field(drive, 1);
+
 	for (side = 0; side < td0[drive].sides; side++)
 	{
 		track_rate = td0[drive].current_side_flags[side] & 7;
@@ -1141,6 +1144,11 @@ void td0_seek(int drive, int track)
 				id[3] = td0[drive].sects[track][side][actual_sector].size;
 				ssize = 128 << ((uint32_t) td0[drive].sects[track][side][actual_sector].size);
 				current_pos = d86f_prepare_sector(drive, side, current_pos, id, td0[drive].sects[track][side][actual_sector].data, ssize, track_gap2, track_gap3, td0[drive].sects[track][side][actual_sector].deleted, td0[drive].sects[track][side][actual_sector].bad_crc);
+
+				if (sector == 0)
+				{
+					d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
+				}
 			}
 		}
 		else
@@ -1163,6 +1171,11 @@ void td0_seek(int drive, int track)
 				else
 				{
 					current_pos = d86f_prepare_sector(drive, side, current_pos, id, td0[drive].sects[track][side][ordered_pos].data, ssize, track_gap2, xdf_gap3_sizes[xdf_type][is_trackx], td0[drive].sects[track][side][ordered_pos].deleted, td0[drive].sects[track][side][ordered_pos].bad_crc);
+				}
+
+				if (sector == 0)
+				{
+					d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
 				}
 			}
 		}
@@ -1201,12 +1214,18 @@ void td0_set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_
 	return;
 }
 
+uint8_t td0_poll_read_data(int drive, int side, uint16_t pos)
+{
+	return td0[drive].sects[td0[drive].track][side][td0[drive].current_sector_index[side]].data[pos];
+}
+
 void d86f_register_td0(int drive)
 {
 	d86f_handler[drive].disk_flags = td0_disk_flags;
 	d86f_handler[drive].side_flags = td0_side_flags;
 	d86f_handler[drive].writeback = null_writeback;
 	d86f_handler[drive].set_sector = td0_set_sector;
+	d86f_handler[drive].read_data = td0_poll_read_data;
 	d86f_handler[drive].write_data = null_write_data;
 	d86f_handler[drive].format_conditions = null_format_conditions;
 	d86f_handler[drive].extra_bit_cells = null_extra_bit_cells;
@@ -1215,4 +1234,5 @@ void d86f_register_td0(int drive)
 	d86f_handler[drive].index_hole_pos = null_index_hole_pos;
 	d86f_handler[drive].get_raw_size = common_get_raw_size;
 	d86f_handler[drive].check_crc = 1;
+	d86f_set_version(drive, 0x0063);
 }
