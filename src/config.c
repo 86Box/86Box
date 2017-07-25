@@ -81,6 +81,21 @@ typedef struct entry_t
                 (new)->next = NULL;                     \
         }
 
+#define list_delete(old, head)                          \
+        {                                               \
+                struct list_t *cur = head;              \
+                struct list_t *next = head;             \
+                                                        \
+                while (next->next != old)               \
+                {                                       \
+                        cur = next;                     \
+                        next = next->next;              \
+                }                                       \
+                                                        \
+                cur->next = next->next;                 \
+                free(next);                             \
+        }
+
 
 void config_dump(void)
 {
@@ -471,8 +486,7 @@ void config_delete_var(char *head, char *name)
         if (!entry)
                 return;
 
-	/* memset(entry->name, 0, strlen(entry->name)); */
-	entry->name[0] = 0;
+	list_delete(&entry->list, &section->entry_head);
         
         return;
 }
@@ -489,8 +503,7 @@ void config_delete_section_if_empty(char *head)
 
 	if (entries_num(section) == 0)
 	{
-		/* memset(section->name, 0, strlen(section->name)); */
-		section->name[0] = 0;
+	        list_delete(&section->list, &config_head);
 	}
         
         return;
