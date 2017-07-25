@@ -389,11 +389,7 @@ static uint8_t busmouse_poll(int x, int y, int z, int b, void *priv)
 		busmouse->mouse_buttons_last = busmouse->mouse_buttons;
 	}
 
-	/* if interrupts are on, fire the interrupt */
-	if (busmouse->interrupts) 
-	{
-		picint(1 << busmouse->irq);
-	}	
+	picint(1 << busmouse->irq);
 	
     return(0);
 }
