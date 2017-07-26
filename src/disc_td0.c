@@ -545,6 +545,7 @@ void td0_load(int drive, wchar_t *fn)
 	{
 		pclog("TD0: Not a valid Teledisk image\n");
 		fclose(td0[drive].f);
+		td0[drive].f = NULL;
 		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
@@ -560,6 +561,7 @@ void td0_load(int drive, wchar_t *fn)
 	{
 		pclog("TD0: Failed to initialize\n");
 		fclose(td0[drive].f);
+		td0[drive].f = NULL;
 		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
@@ -607,7 +609,10 @@ void td0_close(int drive)
 	}
 
         if (td0[drive].f)
+	{
                 fclose(td0[drive].f);
+		td0[drive].f = NULL;
+	}
 }
 
 uint32_t td0_get_raw_tsize(int side_flags, int slower_rpm)

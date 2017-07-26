@@ -110,6 +110,7 @@ void imd_load(int drive, wchar_t *fn)
 	{
 		pclog("IMD: Not a valid ImageDisk image\n");
 		fclose(imd[drive].f);
+		imd[drive].f = NULL;
 		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
@@ -131,6 +132,7 @@ void imd_load(int drive, wchar_t *fn)
 	{
 		pclog("IMD: No ASCII EOF character\n");
 		fclose(imd[drive].f);
+		imd[drive].f = NULL;
 		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
@@ -144,6 +146,7 @@ void imd_load(int drive, wchar_t *fn)
 	{
 		pclog("IMD: File ends after ASCII EOF character\n");
 		fclose(imd[drive].f);
+		imd[drive].f = NULL;
 		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
@@ -263,6 +266,7 @@ void imd_load(int drive, wchar_t *fn)
 				/* If we can't fit the sectors with a reasonable minimum gap even at 2% slower RPM, abort. */
 				pclog("IMD: Unable to fit the %i sectors in a track\n", track_spt);
 				fclose(imd[drive].f);
+				imd[drive].f = NULL;
 				memset(discfns[drive], 0, sizeof(discfns[drive]));
 				return;
 			}
@@ -301,6 +305,7 @@ void imd_close(int drive)
 			memset(&(imd[drive].tracks[i][1]), 0, sizeof(imd_track_t));
 		}
                 fclose(imd[drive].f);
+		imd[drive].f = NULL;
 	}
 }
 

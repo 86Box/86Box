@@ -280,6 +280,7 @@ void fdi_load(int drive, wchar_t *fn)
 		/* This is a Japanese FDI file. */
 		pclog("fdi_load(): Japanese FDI file detected, redirecting to IMG loader\n");
 		fclose(fdi[drive].f);
+		fdi[drive].f = NULL;
 		img_load(drive, fn);
 		return;
 	}
@@ -303,7 +304,10 @@ void fdi_close(int drive)
         if (fdi[drive].h)
                 fdi2raw_header_free(fdi[drive].h);
         if (fdi[drive].f)
+	{
                 fclose(fdi[drive].f);
+		fdi[drive].f = NULL;
+	}
 }
 
 void fdi_seek(int drive, int track)

@@ -2500,7 +2500,6 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 	char *big_buf;
 	int b = 0;
 	uint64_t r = 0;
-	int j = 0;
 
         switch (message)
         {
@@ -2828,7 +2827,7 @@ hdd_add_file_open_error:
 									}
 									else
 									{
-										for (j = 0; j < 16; j++)
+										for (i = 5; i < 16; i++)
 										{
 											if (((size % (i << 9)) == 0) && (size <= ((i * 17) << 19)))
 											{
@@ -3777,21 +3776,21 @@ static void cdrom_add_locations(HWND hdlg)
 	h = GetDlgItem(hdlg, IDC_COMBO_CD_ID);
 	for (i = 0; i < 16; i++)
 	{
-		wsprintf(lptsTemp, win_language_get_string_from_id(2088), i);
+		wsprintf(lptsTemp, win_language_get_string_from_id(IDS_4098), i);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 	}
 
 	h = GetDlgItem(hdlg, IDC_COMBO_CD_LUN);
 	for (i = 0; i < 8; i++)
 	{
-		wsprintf(lptsTemp, win_language_get_string_from_id(2088), i);
+		wsprintf(lptsTemp, win_language_get_string_from_id(IDS_4098), i);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 	}
 
 	h = GetDlgItem(hdlg, IDC_COMBO_CD_CHANNEL_IDE);
 	for (i = 0; i < 8; i++)
 	{
-		wsprintf(lptsTemp, win_language_get_string_from_id(2169), i >> 1, i & 1);
+		wsprintf(lptsTemp, win_language_get_string_from_id(IDS_4097), i >> 1, i & 1);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 	}
 

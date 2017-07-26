@@ -3390,6 +3390,7 @@ void d86f_load(int drive, wchar_t *fn)
 	{
 		/* File is WAY too small, abort. */
 		fclose(d86f[drive].f);
+		d86f[drive].f = NULL;
 		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
@@ -3399,6 +3400,7 @@ void d86f_load(int drive, wchar_t *fn)
 		/* File is not of the valid format, abort. */
 		d86f_log("86F: Unrecognized magic bytes: %08X\n", magic);
 		fclose(d86f[drive].f);
+		d86f[drive].f = NULL;
 		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
@@ -3421,6 +3423,7 @@ void d86f_load(int drive, wchar_t *fn)
 			d86f_log("86F: Unrecognized file version: %i.%02i\n", d86f[drive].version >> 8, d86f[drive].version & 0xFF);
 		}
 		fclose(d86f[drive].f);
+		d86f[drive].f = NULL;
 		update_status_bar_icon_state(drive, 1);
 		return;
 	}
@@ -3437,6 +3440,7 @@ void d86f_load(int drive, wchar_t *fn)
 	{
 		/* File too small, abort. */
 		fclose(d86f[drive].f);
+		d86f[drive].f = NULL;
 		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
@@ -3459,6 +3463,7 @@ void d86f_load(int drive, wchar_t *fn)
 	{
 		d86f_log("86F: CRC64 error\n");
 		fclose(d86f[drive].f);
+		d86f[drive].f = NULL;
 		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
@@ -3470,6 +3475,7 @@ void d86f_load(int drive, wchar_t *fn)
 		memcpy(d86f[drive].original_file_name, fn, (wcslen(fn) << 1) + 2);
 
 		fclose(d86f[drive].f);
+		d86f[drive].f = NULL;
 
 	        d86f[drive].f = _wfopen(temp_file_name, L"wb");
         	if (!d86f[drive].f)
@@ -3500,6 +3506,7 @@ void d86f_load(int drive, wchar_t *fn)
 
 		fclose(tf);
 		fclose(d86f[drive].f);
+		d86f[drive].f = NULL;
 
 		if (!temp)
 		{
@@ -3517,6 +3524,7 @@ void d86f_load(int drive, wchar_t *fn)
 		/* Zoned disk. */
 		d86f_log("86F: Disk is zoned (Apple or Sony)\n");
 		fclose(d86f[drive].f);
+		d86f[drive].f = NULL;
 		if (d86f[drive].is_compressed)
 		{
 			_wremove(temp_file_name);
@@ -3530,6 +3538,7 @@ void d86f_load(int drive, wchar_t *fn)
 		/* Zone type is not 0 but the disk is fixed-RPM. */
 		d86f_log("86F: Disk is fixed-RPM but zone type is not 0\n");
 		fclose(d86f[drive].f);
+		d86f[drive].f = NULL;
 		if (d86f[drive].is_compressed)
 		{
 			_wremove(temp_file_name);
@@ -3547,6 +3556,7 @@ void d86f_load(int drive, wchar_t *fn)
 	if (writeprot[drive])
 	{
 		fclose(d86f[drive].f);
+		d86f[drive].f = NULL;
 
 		if (d86f[drive].is_compressed)
 		{
@@ -3567,6 +3577,7 @@ void d86f_load(int drive, wchar_t *fn)
 		/* File has no track 0 side 0, abort. */
 		d86f_log("86F: No Track 0 side 0\n");
 		fclose(d86f[drive].f);
+		d86f[drive].f = NULL;
 		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
@@ -3576,6 +3587,7 @@ void d86f_load(int drive, wchar_t *fn)
 		/* File is 2-sided but has no track 0 side 1, abort. */
 		d86f_log("86F: No Track 0 side 1\n");
 		fclose(d86f[drive].f);
+		d86f[drive].f = NULL;
 		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
@@ -3657,7 +3669,10 @@ void d86f_close(int drive)
 	memcpy(temp_file_name, drive ? nvr_concat(L"TEMP$$$1.$$$") : nvr_concat(L"TEMP$$$0.$$$"), 26);
 
         if (d86f[drive].f)
+	{
                 fclose(d86f[drive].f);
+		d86f[drive].f = NULL;
+	}
 	if (d86f[drive].is_compressed)
                 _wremove(temp_file_name);
 }
