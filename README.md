@@ -20,5 +20,4 @@ In order to compile 86Box from this repository, please follow this step-by-step 
 
 If you encounter issues at any step or have additional questions, please join the IRC channel and wait patiently for someone to help you.
 
-In order to keep the clone up-to-date, make sure to pull any new changes periodically. With command line git, this is achieved by running **git pull** within the clone directory. If you are using TortoiseGit, the same is achieved by selecting the pull option from the TortoiseGit right-click menu in Explorer.
 
