@@ -2193,6 +2193,22 @@ void d86f_turbo_format(int drive, int side, int nop)
 
 void d86f_turbo_poll(int drive, int side)
 {
+	if ((d86f[drive].state != STATE_IDLE) && (d86f[drive].state != STATE_SECTOR_NOT_FOUND) && ((d86f[drive].state & 0xF8) != 0xE8))
+	{
+		if (!d86f_can_read_address(drive))
+		{
+			/* if (fdc_get_bitcell_period() != d86f_get_bitcell_period(drive))  d86f_log("[%i, %i] Bitcell period mismatch (%i != %i)\n", drive, side, fdc_get_bitcell_period(), d86f_get_bitcell_period(drive));
+			if (!fdd_can_read_medium(real_drive(drive)))  d86f_log("[%i, %i] Drive can not read medium (hole = %01X)\n", drive, side, d86f_hole(drive));
+			if (fdc_is_mfm() != d86f_is_mfm(drive))  d86f_log("[%i, %i] Encoding mismatch\n", drive, side);
+			if (d86f_get_encoding(drive) > 1)  d86f_log("[%i, %i] Image encoding (%s) not FM or MFM\n", drive, side, (d86f_get_encoding(drive) == 2) ? "M2FM" : "GCR"); */
+
+			d86f[drive].id_find.sync_marks = d86f[drive].id_find.bits_obtained = d86f[drive].id_find.bytes_obtained = d86f[drive].error_condition = 0;
+			fdc_noidam();
+			d86f[drive].state = STATE_IDLE;
+			return;
+		}
+	}
+
 	switch(d86f[drive].state)
 	{
 		case STATE_0D_SPIN_TO_INDEX:
@@ -2308,6 +2324,12 @@ void d86f_poll(int drive)
 		}
 	}
 
+	if (fdd_get_turbo(drive) && (d86f[drive].version == 0x0063))
+	{
+		d86f_turbo_poll(drive, side);
+		return;
+	}
+
 	if ((d86f[drive].state != STATE_IDLE) && (d86f[drive].state != STATE_SECTOR_NOT_FOUND) && ((d86f[drive].state & 0xF8) != 0xE8))
 	{
 		if (!d86f_can_read_address(drive))
@@ -2319,12 +2341,6 @@ void d86f_poll(int drive)
 
 			d86f[drive].state = STATE_SECTOR_NOT_FOUND;
 		}
-	}
-
-	if (fdd_get_turbo(drive) && (d86f[drive].version == 0x0063))
-	{
-		d86f_turbo_poll(drive, side);
-		return;
 	}
 
 	if ((d86f[drive].state != STATE_02_SPIN_TO_INDEX) && (d86f[drive].state != STATE_0D_SPIN_TO_INDEX))
