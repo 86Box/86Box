@@ -2133,7 +2133,6 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
 
         base=segdat[1]|((segdat[2]&0xFF)<<16);
         limit=segdat[0];
-
         if(is386)
         {
                 base |= (segdat[3]>>8)<<24;
@@ -2144,7 +2143,6 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
         {
                 if (limit < 103)
                 {
-                        pclog("32-bit TSS %04X limit less than 103.\n", seg);
                         x86ts(NULL, seg);
                         return;
                 }
@@ -2161,7 +2159,7 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                 if (cpu_state.abrt) return;
 
                 if (optype==IRET) flags&=~NT_FLAG;
-                
+
                 cpu_386_flags_rebuild();
                 writememl(tr.base,0x1C,cr3);
                 writememl(tr.base,0x20,cpu_state.pc);
@@ -2200,14 +2198,14 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                         if (cpu_state.abrt)
                                 return;
                 }
+                
 
                 new_cr3=readmeml(base,0x1C);
                 new_pc=readmeml(base,0x20);
                 new_flags=readmeml(base,0x24);
-                
                 if (optype == OPTYPE_INT || optype == CALL)
                         new_flags |= NT_FLAG;                
-
+                        
                 new_eax=readmeml(base,0x28);
                 new_ecx=readmeml(base,0x2C);
                 new_edx=readmeml(base,0x30);
@@ -2245,70 +2243,72 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                 }
                 ldt.base=(readmemw(0,templ+2))|(readmemb(0,templ+4)<<16)|(readmemb(0,templ+7)<<24);
 
-                if (eflags&VM_FLAG)
+                if (eflags & VM_FLAG)
                 {
-                        x86gpf(NULL,0);
-                        return;
-                }
-
-                if (!(new_cs&~3))
-                {
-                        x86ts(NULL,0);
-                        return;
-                }
-                addr=new_cs&~7;
-                if (new_cs&4)
-                {
-                        if (addr>=ldt.limit)
-                        {
-                                x86ts(NULL,new_cs&~3);
-                                return;
-                        }
-                        addr+=ldt.base;
+                        loadcs(new_cs);
+                        set_use32(0);
                 }
                 else
                 {
-                        if (addr>=gdt.limit)
+                        if (!(new_cs&~3))
                         {
+                                x86ts(NULL,0);
+                                return;
+                        }
+                        addr=new_cs&~7;
+                        if (new_cs&4)
+                        {
+                                if (addr>=ldt.limit)
+                                {
+                                        x86ts(NULL,new_cs&~3);
+                                        return;
+                                }
+                                addr+=ldt.base;
+                        }
+                        else
+                        {
+                                if (addr>=gdt.limit)
+                                {
+                                        x86ts(NULL,new_cs&~3);
+                                        return;
+                                }
+                                addr+=gdt.base;
+                        }
+                        segdat2[0]=readmemw(0,addr);
+                        segdat2[1]=readmemw(0,addr+2);
+                        segdat2[2]=readmemw(0,addr+4);
+                        segdat2[3]=readmemw(0,addr+6);
+                        if (!(segdat2[2]&0x8000))
+                        {
+                                x86np("TS loading CS not present\n", new_cs & 0xfffc);
+                                return;
+                        }
+                        switch (segdat2[2]&0x1F00)
+                        {
+                                case 0x1800: case 0x1900: case 0x1A00: case 0x1B00: /*Non-conforming*/
+                                if ((new_cs&3) != DPL2)
+                                {
+                                        x86ts(NULL,new_cs&~3);
+                                        return;
+                                }
+                                break;
+                                case 0x1C00: case 0x1D00: case 0x1E00: case 0x1F00: /*Conforming*/
+                                if ((new_cs&3) < DPL2)
+                                {
+                                        x86ts(NULL,new_cs&~3);
+                                        return;
+                                }
+                                break;
+                                default:
                                 x86ts(NULL,new_cs&~3);
                                 return;
                         }
-                        addr+=gdt.base;
-                }
-                segdat2[0]=readmemw(0,addr);
-                segdat2[1]=readmemw(0,addr+2);
-                segdat2[2]=readmemw(0,addr+4);
-                segdat2[3]=readmemw(0,addr+6);
-                if (!(segdat2[2]&0x8000))
-                {
-                        x86np("TS loading CS not present\n", new_cs & 0xfffc);
-                        return;
-                }
-                switch (segdat2[2]&0x1F00)
-                {
-                        case 0x1800: case 0x1900: case 0x1A00: case 0x1B00: /*Non-conforming*/
-                        if ((new_cs&3) != DPL2)
-                        {
-                                x86ts(NULL,new_cs&~3);
-                                return;
-                        }
-                        break;
-                        case 0x1C00: case 0x1D00: case 0x1E00: case 0x1F00: /*Conforming*/
-                        if ((new_cs&3) < DPL2)
-                        {
-                                x86ts(NULL,new_cs&~3);
-                                return;
-                        }
-                        break;
-                        default:
-                        x86ts(NULL,new_cs&~3);
-                        return;
-                }
 
-                CS=new_cs;
-                do_seg_load(&_cs, segdat2);
-                if (CPL==3 && oldcpl!=3) flushmmucache_cr3();
-                set_use32(segdat2[3] & 0x40);
+                        CS=new_cs;
+                        do_seg_load(&_cs, segdat2);
+                        if (CPL==3 && oldcpl!=3) flushmmucache_cr3();
+                        set_use32(segdat2[3] & 0x40);
+                }
 
                 EAX=new_eax;
                 ECX=new_ecx;
@@ -2319,28 +2319,20 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                 ESI=new_esi;
                 EDI=new_edi;
 
-                if (output) pclog("Load ES %04X\n",new_es);
                 loadseg(new_es,&_es);
-                if (output) pclog("Load SS %04X\n",new_ss);
                 loadseg(new_ss,&_ss);
-                if (output) pclog("Load DS %04X\n",new_ds);
                 loadseg(new_ds,&_ds);
-                if (output) pclog("Load FS %04X\n",new_fs);
                 loadseg(new_fs,&_fs);
-                if (output) pclog("Load GS %04X\n",new_gs);
                 loadseg(new_gs,&_gs);
-
-                if (output) pclog("Resuming at %04X:%08X\n",CS,cpu_state.pc);
         }
         else
         {
                 if (limit < 43)
                 {
-                        pclog("16-bit TSS %04X limit less than 43.\n", seg);
                         x86ts(NULL, seg);
                         return;
                 }
-               
+
                 if (optype==JMP || optype==CALL || optype==OPTYPE_INT)
                 {
                         if (tr.seg&4) tempw=readmemw(ldt.base,(seg&~7)+4);
@@ -2353,7 +2345,7 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                 if (cpu_state.abrt) return;
 
                 if (optype==IRET) flags&=~NT_FLAG;
-                
+
                 cpu_386_flags_rebuild();
                 writememw(tr.base,0x0E,cpu_state.pc);
                 writememw(tr.base,0x10,flags);
@@ -2392,15 +2384,13 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                 
                 new_pc=readmemw(base,0x0E);
                 new_flags=readmemw(base,0x10);
-                
                 if (optype == OPTYPE_INT || optype == CALL)
                         new_flags |= NT_FLAG;
-
+                                
                 new_eax=readmemw(base,0x12);
                 new_ecx=readmemw(base,0x14);
                 new_edx=readmemw(base,0x16);
                 new_ebx=readmemw(base,0x18);
-
                 new_esp=readmemw(base,0x1A);
                 new_ebp=readmemw(base,0x1C);
                 new_esi=readmemw(base,0x1E);
@@ -2434,7 +2424,6 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
 
                 if (!(new_cs&~3))
                 {
-                        pclog("TS loading null CS\n");
                         x86ts(NULL,0);
                         return;
                 }
@@ -2443,7 +2432,6 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                 {
                         if (addr>=ldt.limit)
                         {
-                                pclog("Bigger than LDT limit %04X %04X %04X TS\n",new_cs,ldt.limit,addr);
                                 x86ts(NULL,new_cs&~3);
                                 return;
                         }
@@ -2453,7 +2441,6 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                 {
                         if (addr>=gdt.limit)
                         {
-                                pclog("Bigger than GDT limit %04X %04X TS\n",new_cs,gdt.limit);
                                 x86ts(NULL,new_cs&~3);
                                 return;
                         }
@@ -2465,7 +2452,6 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                 segdat2[3]=readmemw(0,addr+6);
                 if (!(segdat2[2]&0x8000))
                 {
-                        pclog("TS loading CS not present\n");
                         x86np("TS loading CS not present\n", new_cs & 0xfffc);
                         return;
                 }
@@ -2474,7 +2460,6 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                         case 0x1800: case 0x1900: case 0x1A00: case 0x1B00: /*Non-conforming*/
                         if ((new_cs&3) != DPL2)
                         {
-                                pclog("TS load CS non-conforming RPL != DPL");
                                 x86ts(NULL,new_cs&~3);
                                 return;
                         }
@@ -2482,13 +2467,11 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                         case 0x1C00: case 0x1D00: case 0x1E00: case 0x1F00: /*Conforming*/
                         if ((new_cs&3) < DPL2)
                         {
-                                pclog("TS load CS non-conforming RPL < DPL");
                                 x86ts(NULL,new_cs&~3);
                                 return;
                         }
                         break;
                         default:
-                        pclog("TS load CS not code segment\n");
                         x86ts(NULL,new_cs&~3);
                         return;
                 }
@@ -2507,19 +2490,14 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
                 ESI=new_esi | 0xFFFF0000;
                 EDI=new_edi | 0xFFFF0000;
 
-                if (output) pclog("Load ES %04X\n",new_es);
                 loadseg(new_es,&_es);
-                if (output) pclog("Load SS %04X\n",new_ss);
                 loadseg(new_ss,&_ss);
-                if (output) pclog("Load DS %04X\n",new_ds);
                 loadseg(new_ds,&_ds);
                 if (is386)
                 {
                         loadseg(0,&_fs);
                         loadseg(0,&_gs);
                 }
-
-                if (output) pclog("Resuming at %04X:%08X\n",CS,cpu_state.pc);
         }
 
         tr.seg=seg;
@@ -2527,4 +2505,3 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
         tr.limit=limit;
         tr.access=segdat[2]>>8;
 }
-

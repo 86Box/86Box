@@ -21,9 +21,10 @@
 #define SERMOUSE_PORT		1		/* attach to Serial1 */
 
 
+extern mouse_t	mouse_msystems;
 extern mouse_t	mouse_serial_microsoft;
 extern mouse_t	mouse_serial_logitech;
-extern mouse_t	mouse_msystems;
+extern mouse_t	mouse_serial_mswheel;
 
 
 #endif	/*MOUSE_SERIAL_H*/

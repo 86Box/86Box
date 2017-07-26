@@ -231,5 +231,10 @@ typedef union
 	sector_id_fields_t id;
 } sector_id_t;
 
+void d86f_set_version(int drive, uint16_t version);
+
+void d86f_initialize_last_sector_id(int drive, int c, int h, int r, int n);
+void d86f_zero_bit_field(int drive, int side);
+
 
 #endif	/*EMU_DISC_H*/

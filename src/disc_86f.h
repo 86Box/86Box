@@ -33,6 +33,7 @@ void d86f_readaddress(int drive, int side, int density);
 void d86f_format(int drive, int side, int density, uint8_t fill);
 
 void d86f_prepare_track_layout(int drive, int side);
+void d86f_set_version(int drive, uint16_t version);
 
 #define length_gap0	80
 #define length_gap1	50
@@ -59,3 +60,8 @@ extern int gap2_size[2];
 extern int gap3_size[2];
 extern int gap4_size[2];
 #endif
+
+#define D86FVER		0x020B
+
+void d86f_initialize_last_sector_id(int drive, int c, int h, int r, int n);
+void d86f_zero_bit_field(int drive, int side);

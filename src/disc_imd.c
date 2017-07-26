@@ -110,6 +110,7 @@ void imd_load(int drive, wchar_t *fn)
 	{
 		pclog("IMD: Not a valid ImageDisk image\n");
 		fclose(imd[drive].f);
+		imd[drive].f = NULL;
 		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
@@ -131,6 +132,7 @@ void imd_load(int drive, wchar_t *fn)
 	{
 		pclog("IMD: No ASCII EOF character\n");
 		fclose(imd[drive].f);
+		imd[drive].f = NULL;
 		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
@@ -144,6 +146,7 @@ void imd_load(int drive, wchar_t *fn)
 	{
 		pclog("IMD: File ends after ASCII EOF character\n");
 		fclose(imd[drive].f);
+		imd[drive].f = NULL;
 		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
@@ -263,6 +266,7 @@ void imd_load(int drive, wchar_t *fn)
 				/* If we can't fit the sectors with a reasonable minimum gap even at 2% slower RPM, abort. */
 				pclog("IMD: Unable to fit the %i sectors in a track\n", track_spt);
 				fclose(imd[drive].f);
+				imd[drive].f = NULL;
 				memset(discfns[drive], 0, sizeof(discfns[drive]));
 				return;
 			}
@@ -301,6 +305,7 @@ void imd_close(int drive)
 			memset(&(imd[drive].tracks[i][1]), 0, sizeof(imd_track_t));
 		}
                 fclose(imd[drive].f);
+		imd[drive].f = NULL;
 	}
 }
 
@@ -531,6 +536,9 @@ void imd_seek(int drive, int track)
 	d86f_reset_index_hole_pos(drive, 0);
 	d86f_reset_index_hole_pos(drive, 1);
 
+	d86f_zero_bit_field(drive, 0);
+	d86f_zero_bit_field(drive, 1);
+
 	for (side = 0; side < imd[drive].sides; side++)
 	{
 		track_rate = imd[drive].current_side_flags[side] & 7;
@@ -601,6 +609,11 @@ void imd_seek(int drive, int track)
 				imd_sector_to_buffer(drive, track, side, data, actual_sector, ssize);
 				current_pos = d86f_prepare_sector(drive, side, current_pos, id, data, ssize, 22, track_gap3, deleted, bad_crc);
 				track_buf_pos[side] += ssize;
+
+				if (sector == 0)
+				{
+					d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
+				}
 			}
 		}
 		else
@@ -635,6 +648,11 @@ void imd_seek(int drive, int track)
 				}
 
 				track_buf_pos[side] += ssize;
+
+				if (sector == 0)
+				{
+					d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
+				}
 			}
 		}
 	}
@@ -746,6 +764,16 @@ void imd_writeback(int drive)
 	}
 }
 
+uint8_t imd_poll_read_data(int drive, int side, uint16_t pos)
+{
+	int type = imd[drive].current_data[side][0];
+	if (!(type & 1))
+	{
+		return 0xf6;		/* Should never happen. */
+	}
+	return imd[drive].current_data[side][pos + 1];
+}
+
 void imd_poll_write_data(int drive, int side, uint16_t pos, uint8_t data)
 {
 	int type = imd[drive].current_data[side][0];
@@ -777,6 +805,7 @@ void d86f_register_imd(int drive)
 	d86f_handler[drive].side_flags = imd_side_flags;
 	d86f_handler[drive].writeback = imd_writeback;
 	d86f_handler[drive].set_sector = imd_set_sector;
+	d86f_handler[drive].read_data = imd_poll_read_data;
 	d86f_handler[drive].write_data = imd_poll_write_data;
 	d86f_handler[drive].format_conditions = imd_format_conditions;
 	d86f_handler[drive].extra_bit_cells = null_extra_bit_cells;
@@ -785,4 +814,5 @@ void d86f_register_imd(int drive)
 	d86f_handler[drive].index_hole_pos = null_index_hole_pos;
 	d86f_handler[drive].get_raw_size = common_get_raw_size;
 	d86f_handler[drive].check_crc = 1;
+	d86f_set_version(drive, 0x0063);
 }

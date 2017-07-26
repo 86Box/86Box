@@ -146,6 +146,7 @@ void ega_render_text_standard(ega_t *ega, int drawcursor)
         }
 }
 
+#ifdef JEGA
 static __inline int is_kanji1(uint8_t chr)
 {
 	return (chr >= 0x81 && chr <= 0x9f) || (chr >= 0xe0 && chr <= 0xfc);
@@ -374,6 +375,7 @@ void ega_render_text_jega(ega_t *ega, int drawcursor)
 		}
 	}
 }
+#endif
 
 void ega_render_2bpp_lowres(ega_t *ega)
 {

@@ -146,7 +146,8 @@ MAINOBJ	= pc.o config.o device.o timer.o dma.o io.o nmi.o pic.o \
 	  memregs.o intel_flash.o rtc.o nvr.o ps2_nvr.o
 CPUOBJ	= cpu.o 386.o 386_dynarec.o 386_dynarec_ops.o 808x.o \
 	  codegen.o \
-	    codegen_ops.o codegen_timing_486.o \
+	    codegen_ops.o \
+	    codegen_timing_common.o codegen_timing_486.o \
 	    codegen_timing_686.o codegen_timing_pentium.o \
 	    codegen_timing_winchip.o $(PLATCG) \
 	  x86seg.o x87.o

@@ -1,3 +1,5 @@
+extern int trap;
+
 #define REP_OPS(size, CNT_REG, SRC_REG, DEST_REG) \
 static int opREP_INSB_ ## size(uint32_t fetchdat)                               \
 {                                                                               \
@@ -166,7 +168,8 @@ static int opREP_MOVSB_ ## size(uint32_t fetchdat)                              
 {                                                                               \
         int reads = 0, writes = 0, total_cycles = 0;                            \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);    \
-                                                                                \
+        if (trap)                                                               \
+                cycles_end = cycles+1; /*Force the instruction to end after only one iteration when trap flag set*/     \
         while (CNT_REG > 0)                                                     \
         {                                                                       \
                 uint8_t temp;                                                   \
@@ -198,7 +201,8 @@ static int opREP_MOVSW_ ## size(uint32_t fetchdat)                              
 {                                                                               \
         int reads = 0, writes = 0, total_cycles = 0;                            \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);    \
-                                                                                \
+        if (trap)                                                               \
+                cycles_end = cycles+1; /*Force the instruction to end after only one iteration when trap flag set*/     \
         while (CNT_REG > 0)                                                     \
         {                                                                       \
                 uint16_t temp;                                                  \
@@ -230,7 +234,8 @@ static int opREP_MOVSL_ ## size(uint32_t fetchdat)                              
 {                                                                               \
         int reads = 0, writes = 0, total_cycles = 0;                            \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);    \
-                                                                                \
+        if (trap)                                                               \
+                cycles_end = cycles+1; /*Force the instruction to end after only one iteration when trap flag set*/     \
         while (CNT_REG > 0)                                                     \
         {                                                                       \
                 uint32_t temp;                                                  \
@@ -264,7 +269,8 @@ static int opREP_STOSB_ ## size(uint32_t fetchdat)                              
 {                                                                               \
         int writes = 0, total_cycles = 0;                                       \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);    \
-                                                                                \
+        if (trap)                                                               \
+                cycles_end = cycles+1; /*Force the instruction to end after only one iteration when trap flag set*/     \
         while (CNT_REG > 0)                                                     \
         {                                                                       \
                 CHECK_WRITE_REP(&_es, DEST_REG, DEST_REG);                      \
@@ -291,7 +297,8 @@ static int opREP_STOSW_ ## size(uint32_t fetchdat)                              
 {                                                                               \
         int writes = 0, total_cycles = 0;                                       \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);    \
-                                                                                \
+        if (trap)                                                               \
+                cycles_end = cycles+1; /*Force the instruction to end after only one iteration when trap flag set*/     \
         while (CNT_REG > 0)                                                     \
         {                                                                       \
                 CHECK_WRITE_REP(&_es, DEST_REG, DEST_REG+1);                    \
@@ -318,7 +325,8 @@ static int opREP_STOSL_ ## size(uint32_t fetchdat)                              
 {                                                                               \
         int writes = 0, total_cycles = 0;                                       \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);    \
-                                                                                \
+        if (trap)                                                               \
+                cycles_end = cycles+1; /*Force the instruction to end after only one iteration when trap flag set*/     \
         while (CNT_REG > 0)                                                     \
         {                                                                       \
                 CHECK_WRITE_REP(&_es, DEST_REG, DEST_REG+3);                    \
@@ -346,7 +354,8 @@ static int opREP_LODSB_ ## size(uint32_t fetchdat)                              
 {                                                                               \
         int reads = 0, total_cycles = 0;                                        \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);    \
-                                                                                \
+        if (trap)                                                               \
+                cycles_end = cycles+1; /*Force the instruction to end after only one iteration when trap flag set*/     \
         while (CNT_REG > 0)                                                     \
         {                                                                       \
                 AL = readmemb(cpu_state.ea_seg->base, SRC_REG); if (cpu_state.abrt) return 1;      \
@@ -372,7 +381,8 @@ static int opREP_LODSW_ ## size(uint32_t fetchdat)                              
 {                                                                               \
         int reads = 0, total_cycles = 0;                                        \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);    \
-                                                                                \
+        if (trap)                                                               \
+                cycles_end = cycles+1; /*Force the instruction to end after only one iteration when trap flag set*/     \
         while (CNT_REG > 0)                                                     \
         {                                                                       \
                 AX = readmemw(cpu_state.ea_seg->base, SRC_REG); if (cpu_state.abrt) return 1;      \
@@ -398,7 +408,8 @@ static int opREP_LODSL_ ## size(uint32_t fetchdat)                              
 {                                                                               \
         int reads = 0, total_cycles = 0;                                        \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);    \
-                                                                                \
+        if (trap)                                                               \
+                cycles_end = cycles+1; /*Force the instruction to end after only one iteration when trap flag set*/     \
         while (CNT_REG > 0)                                                     \
         {                                                                       \
                 EAX = readmeml(cpu_state.ea_seg->base, SRC_REG); if (cpu_state.abrt) return 1;     \
@@ -509,7 +520,8 @@ static int opREP_SCASB_ ## size(uint32_t fetchdat)                              
 {                                                                               \
         int reads = 0, total_cycles = 0, tempz;                                 \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);    \
-                                                                                \
+        if (trap)                                                               \
+                cycles_end = cycles+1; /*Force the instruction to end after only one iteration when trap flag set*/     \
         tempz = FV;                                                             \
         while ((CNT_REG > 0) && (FV == tempz))                                  \
         {                                                                       \
@@ -539,7 +551,8 @@ static int opREP_SCASW_ ## size(uint32_t fetchdat)                              
 {                                                                               \
         int reads = 0, total_cycles = 0, tempz;                                 \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);    \
-                                                                                \
+        if (trap)                                                               \
+                cycles_end = cycles+1; /*Force the instruction to end after only one iteration when trap flag set*/     \
         tempz = FV;                                                             \
         while ((CNT_REG > 0) && (FV == tempz))                                  \
         {                                                                       \
@@ -569,7 +582,8 @@ static int opREP_SCASL_ ## size(uint32_t fetchdat)                              
 {                                                                               \
         int reads = 0, total_cycles = 0, tempz;                                 \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);    \
-                                                                                \
+        if (trap)                                                               \
+                cycles_end = cycles+1; /*Force the instruction to end after only one iteration when trap flag set*/     \
         tempz = FV;                                                             \
         while ((CNT_REG > 0) && (FV == tempz))                                  \
         {                                                                       \
