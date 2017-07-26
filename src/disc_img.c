@@ -358,7 +358,6 @@ void img_load(int drive, wchar_t *fn)
 		}
                 writeprot[drive] = 1;
         }
-	pclog("Floppy %i file pointer: %08X\n", drive, img[drive].f);
 	if (ui_writeprot[drive])
 	{
                 writeprot[drive] = 1;
