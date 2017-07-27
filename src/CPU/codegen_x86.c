@@ -2039,7 +2039,7 @@ generate_call:
 #endif
         }
 
-        if ((op_table == x86_opcodes_REPNE || op_table == x86_opcodes_REPE) && !op_table[opcode | op_32])
+        if ((op_table == x86_dynarec_opcodes_REPNE || op_table == x86_dynarec_opcodes_REPE) && !op_table[opcode | op_32])
         {
                 op_table = x86_dynarec_opcodes;
                 recomp_op_table = recomp_opcodes;
