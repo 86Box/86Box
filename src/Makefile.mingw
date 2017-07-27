@@ -250,11 +250,11 @@ WINOBJ	= win.o \
 	  win_settings.o win_deviceconfig.o win_joystickconfig.o \
 	  86Box.res
 ifdef DEV_BRANCH
-DEVOBJ = vid_nv_riva128.o
+DEVBRANCHOBJ = vid_nv_riva128.o
 endif
 OBJ	= $(MAINOBJ) $(CPUOBJ) $(SYSOBJ) $(DEVOBJ) $(USBOBJ) \
 	  $(NETOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) $(WINOBJ) \
-	  $(DEVOBJ)
+	  $(DEVBRANCHOBJ)
 
 LZFOBJ	= lzf_c.o lzf_d.o
 
