@@ -35,7 +35,6 @@ static struct
         uint8_t sector_size;
 	int xdf_type;	/* 0 = not XDF, 1-5 = one of the five XDF types */
 	int dmf;
-	int hole;
 	int track;
 	int track_width;
 	uint32_t base;
@@ -341,6 +340,7 @@ void img_load(int drive, wchar_t *fn)
 	uint8_t *bpos;
 	uint16_t track_bytes = 0;
 	uint8_t *literal;
+	int guess = 0;
 
 	ext = get_extension_w(fn);
 
@@ -706,11 +706,17 @@ jump_if_fdf:
         img[drive].sides = 2;
         img[drive].sector_size = 2;
 
-	img[drive].hole = 0;
-
 	pclog("BPB reports %i sides and %i bytes per sector (%i sectors total)\n", bpb_sides, bpb_bps, bpb_total);
 
-	if ((((bpb_sides < 1) || (bpb_sides > 2) || !bps_is_valid(bpb_bps) || !first_byte_is_valid(first_byte)) && !fdi && !cqm) || !fdd_get_check_bpb(drive))
+	guess = (bpb_sides < 1);
+	guess = guess || (bpb_sides > 2);
+	guess = guess || !bps_is_valid(bpb_bps);
+	guess = guess || !first_byte_is_valid(first_byte);
+	guess = guess || !fdd_get_check_bpb(drive);
+	guess = guess && !fdi;
+	guess = guess && !cqm;
+
+	if (guess)
 	{
 		/* The BPB is giving us a wacky number of sides and/or bytes per sector, therefore it is most probably
 		   not a BPB at all, so we have to guess the parameters from file size. */
@@ -756,6 +762,10 @@ jump_if_fdf:
 			memset(discfns[drive], 0, sizeof(discfns[drive]));
 			return;
 		}
+
+		bpb_sides = img[drive].sides;
+		bpb_sectors = img[drive].sectors;
+		bpb_total = size >> (img[drive].sector_size + 7);
 	}
 	else
 	{
