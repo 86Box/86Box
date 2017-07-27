@@ -22,9 +22,7 @@ endif
 # Various compile-time options.
 # -DROM_TRACE=0xcd800 traces ROM access from segment C800
 # -DIO_TACE=0x66 traces I/O on port 0x66
-ifndef STUFF
 STUFF	=
-endif
 
 # Add feature selections here.
 # -DANSI_CFG forces the config file to ANSI encoding.
@@ -53,6 +51,9 @@ RELEASE	= n
 endif
 ifndef USB
 USB	= n
+endif
+ifndef DEV_BRANCH
+DEV_BRANCH = n
 endif
 ifndef X64
 X64	= n
@@ -248,8 +249,12 @@ WINOBJ	= win.o \
 	  win_iodev.o win_joystick.o win_midi.o \
 	  win_settings.o win_deviceconfig.o win_joystickconfig.o \
 	  86Box.res
+ifdef DEV_BRANCH
+DEVOBJ = vid_nv_riva128.o
+endif
 OBJ	= $(MAINOBJ) $(CPUOBJ) $(SYSOBJ) $(DEVOBJ) $(USBOBJ) \
-	  $(NETOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) $(WINOBJ)
+	  $(NETOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) $(WINOBJ) \
+	  $(DEVOBJ)
 
 LZFOBJ	= lzf_c.o lzf_d.o
 

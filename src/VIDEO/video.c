@@ -93,6 +93,10 @@ static VIDEO_CARD video_cards[] =
         {"MDA",                                    "mda",		&mda_device,                 GFX_MDA},
         {"MDSI Genius",                            "genius",            &genius_device,              GFX_GENIUS},
         {"Number Nine 9FX (S3 Trio64)",            "n9_9fx",		&s3_9fx_device,              GFX_N9_9FX},
+#ifdef DEV_BRANCH
+        {"nVidia RIVA 128",                        "riva128",		&riva128_device,             GFX_RIVA128},
+        {"nVidia RIVA TNT",                        "rivatnt",		&rivatnt_device,             GFX_RIVATNT},
+#endif
         {"OAK OTI-067",                            "oti067",		&oti067_device,              GFX_OTI067},
         {"OAK OTI-077",                            "oti077",		&oti077_device,              GFX_OTI077},
         {"Paradise Bahamas 64 (S3 Vision864)",     "bahamas64",		&s3_bahamas64_device,        GFX_BAHAMAS64},

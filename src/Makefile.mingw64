@@ -28,6 +28,6 @@ EXTRAS	=
 DEBUG	= n
 OPTIM	= n
 X64	= y
-
+DEV_BRANCH = n
 
 # End of Makefile.mingw64.
