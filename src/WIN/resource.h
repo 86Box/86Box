@@ -163,17 +163,18 @@
 #define IDC_LIST_FLOPPY_DRIVES	1151
 #define IDC_COMBO_FD_TYPE	1152
 #define IDC_CHECKTURBO		1153
-#define IDC_BUTTON_FDD_ADD	1154	// status bar menu
-#define IDC_BUTTON_FDD_EDIT	1155	// status bar menu
-#define IDC_BUTTON_FDD_REMOVE	1156	// status bar menu
-#define IDC_LIST_CDROM_DRIVES	1157
-#define IDC_COMBO_CD_BUS	1158
-#define IDC_COMBO_CD_ID		1159
-#define IDC_COMBO_CD_LUN	1160
-#define IDC_COMBO_CD_CHANNEL_IDE 1161
-#define IDC_BUTTON_CDROM_ADD	1162	// status bar menu
-#define IDC_BUTTON_CDROM_EDIT	1163	// status bar menu
-#define IDC_BUTTON_CDROM_REMOVE	1164	// status bar menu
+#define IDC_CHECKBPB		1154
+#define IDC_BUTTON_FDD_ADD	1155	// status bar menu
+#define IDC_BUTTON_FDD_EDIT	1156	// status bar menu
+#define IDC_BUTTON_FDD_REMOVE	1157	// status bar menu
+#define IDC_LIST_CDROM_DRIVES	1158
+#define IDC_COMBO_CD_BUS	1159
+#define IDC_COMBO_CD_ID		1160
+#define IDC_COMBO_CD_LUN	1161
+#define IDC_COMBO_CD_CHANNEL_IDE 1162
+#define IDC_BUTTON_CDROM_ADD	1163	// status bar menu
+#define IDC_BUTTON_CDROM_EDIT	1164	// status bar menu
+#define IDC_BUTTON_CDROM_REMOVE	1165	// status bar menu
 
 
 /* For the DeviceConfig code, re-do later. */
@@ -319,6 +320,7 @@
 #define IDS_2167		2167	// "RLL"
 #define IDS_2168		2168	// "IDE (PIO-only)"
 #define IDS_2169		2169	// "%01i:%01i"
+#define IDS_2170		2170	// "%01i:%01i"
 
 #define IDS_3072		3072
 #define IDS_3073		3073
@@ -391,7 +393,7 @@
 
 #define IDS_LANG_ENUS		IDS_6144
 
-#define STRINGS_NUM_2048	122
+#define STRINGS_NUM_2048	123
 #define STRINGS_NUM_3072	11
 #define STRINGS_NUM_4096	20
 #define STRINGS_NUM_4352	7

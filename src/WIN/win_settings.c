@@ -78,6 +78,7 @@ static hard_disk_t temp_hdc[HDC_NUM];
 /* Removable devices category */
 static int temp_fdd_types[FDD_NUM];
 static int temp_fdd_turbo[FDD_NUM];
+static int temp_fdd_check_bpb[FDD_NUM];
 static cdrom_drive_t temp_cdrom_drives[CDROM_NUM];
 
 static HWND hwndParentDialog, hwndChildDialog;
@@ -158,6 +159,7 @@ static void win_settings_init(void)
 	{
 		temp_fdd_types[i] = fdd_get_type(i);
 		temp_fdd_turbo[i] = fdd_get_turbo(i);
+		temp_fdd_check_bpb[i] = fdd_get_check_bpb(i);
 	}
 	memcpy(temp_cdrom_drives, cdrom_drives, CDROM_NUM * sizeof(cdrom_drive_t));
 }
@@ -224,6 +226,7 @@ static int win_settings_changed(void)
 	{
 		i = i || (temp_fdd_types[j] != fdd_get_type(j));
 		i = i || (temp_fdd_turbo[j] != fdd_get_turbo(j));
+		i = i || (temp_fdd_check_bpb[j] != fdd_get_check_bpb(j));
 	}
 	i = i || memcmp(cdrom_drives, temp_cdrom_drives, CDROM_NUM * sizeof(cdrom_drive_t));
 
@@ -327,6 +330,7 @@ static void win_settings_save(void)
 	{
 		fdd_set_type(i, temp_fdd_types[i]);
 		fdd_set_turbo(i, temp_fdd_turbo[i]);
+		fdd_set_check_bpb(i, temp_fdd_check_bpb[i]);
 	}
 	memcpy(cdrom_drives, temp_cdrom_drives, CDROM_NUM * sizeof(cdrom_drive_t));
 
@@ -3531,6 +3535,16 @@ static BOOL win_settings_floppy_drives_recalc_list(HWND hwndList)
 		{
 			return FALSE;
 		}
+
+		lvI.iSubItem = 2;
+		lvI.pszText = win_language_get_string_from_id(temp_fdd_check_bpb[i] ? IDS_2060 : IDS_2061);
+		lvI.iItem = i;
+		lvI.iImage = 0;
+
+		if (ListView_SetItem(hwndList, &lvI) == -1)
+		{
+			return FALSE;
+		}
 	}
 
 	return TRUE;
@@ -3603,7 +3617,7 @@ static BOOL win_settings_floppy_drives_init_columns(HWND hwndList)
 	lvc.iSubItem = 1;
 	lvc.pszText = win_language_get_string_from_id(IDS_2059);
 
-	lvc.cx = 100;
+	lvc.cx = 50;
 	lvc.fmt = LVCFMT_LEFT;
 
 	if (ListView_InsertColumn(hwndList, 1, &lvc) == -1)
@@ -3611,6 +3625,16 @@ static BOOL win_settings_floppy_drives_init_columns(HWND hwndList)
 		return FALSE;
 	}
 
+	lvc.iSubItem = 2;
+	lvc.pszText = win_language_get_string_from_id(IDS_2170);
+
+	lvc.cx = 75;
+	lvc.fmt = LVCFMT_LEFT;
+
+	if (ListView_InsertColumn(hwndList, 2, &lvc) == -1)
+	{
+		return FALSE;
+	}
 	return TRUE;
 }
 
@@ -3703,6 +3727,16 @@ static void win_settings_floppy_drives_update_item(HWND hwndList, int i)
 
 	lvI.iSubItem = 1;
 	lvI.pszText = win_language_get_string_from_id(temp_fdd_turbo[i] ? IDS_2060 : IDS_2061);
+	lvI.iItem = i;
+	lvI.iImage = 0;
+
+	if (ListView_SetItem(hwndList, &lvI) == -1)
+	{
+		return;
+	}
+
+	lvI.iSubItem = 2;
+	lvI.pszText = win_language_get_string_from_id(temp_fdd_check_bpb[i] ? IDS_2060 : IDS_2061);
 	lvI.iItem = i;
 	lvI.iImage = 0;
 
@@ -3897,6 +3931,9 @@ static BOOL CALLBACK win_settings_removable_devices_proc(HWND hdlg, UINT message
 			h = GetDlgItem(hdlg, IDC_CHECKTURBO);
 			SendMessage(h, BM_SETCHECK, temp_fdd_turbo[fdlv_current_sel], 0);
 
+			h = GetDlgItem(hdlg, IDC_CHECKBPB);
+			SendMessage(h, BM_SETCHECK, temp_fdd_check_bpb[fdlv_current_sel], 0);
+
 			cdlv_current_sel = 0;
 			h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
 			win_settings_cdrom_drives_init_columns(h);
@@ -3958,6 +3995,8 @@ static BOOL CALLBACK win_settings_removable_devices_proc(HWND hdlg, UINT message
 				SendMessage(h, CB_SETCURSEL, temp_fdd_types[fdlv_current_sel], 0);
 				h = GetDlgItem(hdlg, IDC_CHECKTURBO);
 				SendMessage(h, BM_SETCHECK, temp_fdd_turbo[fdlv_current_sel], 0);
+				h = GetDlgItem(hdlg, IDC_CHECKBPB);
+				SendMessage(h, BM_SETCHECK, temp_fdd_check_bpb[fdlv_current_sel], 0);
 				rd_ignore_change = 0;
 			}
 			else if ((((LPNMHDR)lParam)->code == LVN_ITEMCHANGED) && (((LPNMHDR)lParam)->idFrom == IDC_LIST_CDROM_DRIVES))
@@ -4030,6 +4069,20 @@ static BOOL CALLBACK win_settings_removable_devices_proc(HWND hdlg, UINT message
 					rd_ignore_change = 1;
 					h = GetDlgItem(hdlg, IDC_CHECKTURBO);
 					temp_fdd_turbo[fdlv_current_sel] = SendMessage(h, BM_GETCHECK, 0, 0);
+					h = GetDlgItem(hdlg, IDC_LIST_FLOPPY_DRIVES);
+					win_settings_floppy_drives_update_item(h, fdlv_current_sel);
+					rd_ignore_change = 0;
+					return FALSE;
+
+				case IDC_CHECKBPB:
+					if (rd_ignore_change)
+					{
+						return FALSE;
+					}
+
+					rd_ignore_change = 1;
+					h = GetDlgItem(hdlg, IDC_CHECKBPB);
+					temp_fdd_check_bpb[fdlv_current_sel] = SendMessage(h, BM_GETCHECK, 0, 0);
 					h = GetDlgItem(hdlg, IDC_LIST_FLOPPY_DRIVES);
 					win_settings_floppy_drives_update_item(h, fdlv_current_sel);
 					rd_ignore_change = 0;

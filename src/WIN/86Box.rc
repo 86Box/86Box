@@ -461,8 +461,10 @@ BEGIN
     COMBOBOX        IDC_COMBO_FD_TYPE,33,85,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Type:",IDT_1738,7,86,24,8
-    CONTROL         "Turbo timings (no accuracy)",IDC_CHECKTURBO,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,131,86,129,10
+    CONTROL         "Turbo timings",IDC_CHECKTURBO,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,131,86,64,10
+    CONTROL         "Check BPB",IDC_CHECKBPB,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,196,86,64,10
     CONTROL         "List1",IDC_LIST_CDROM_DRIVES,"SysListView32",LVS_REPORT | 
                     LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
                     WS_TABSTOP,7,116,253,60
@@ -838,6 +840,7 @@ BEGIN
     IDS_2167	"&Reload previous image"
     IDS_2168	"&Image..."
     IDS_2169	"Image (&Write-protected)..."
+    IDS_2170	"Check BPB"
 
     IDS_3072    "None"
     IDS_3073	"[Bus] Bus mouse"
