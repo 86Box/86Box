@@ -1350,18 +1350,27 @@ static void s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *p)
         svga_t *svga = &virge->svga;
         reg_writes++;
 
-		pclog("Write Address %x\n", addr & 0xe000);
-
         if ((addr & 0xfffc) < 0x8000)
         {
+			if ((addr & 0xe000) == 0)
+			{
+				if (virge->s3d.cmd_set & CMD_SET_MS)
+						s3_virge_bitblt(virge, 32, ((val & 0xff000000) >> 24) | ((val & 0x00ff0000) >> 8) | ((val & 0x0000ff00) << 8) | ((val & 0x000000ff) << 24));
+				else
+						s3_virge_bitblt(virge, 32, val);				
+			}
+			else
+			{
                 s3_virge_queue(virge, addr, val, FIFO_WRITE_DWORD);
+			}
         }
         else switch (addr & 0xfffc)
         {
 				case 0:
-				s3_virge_queue(virge, addr, val, FIFO_WRITE_DWORD);
-                svga_recalctimings(svga);
-                svga->fullchange = changeframecount;
+				if (virge->s3d.cmd_set & CMD_SET_MS)
+						s3_virge_bitblt(virge, 32, ((val & 0xff000000) >> 24) | ((val & 0x00ff0000) >> 8) | ((val & 0x0000ff00) << 8) | ((val & 0x000000ff) << 24));
+				else
+						s3_virge_bitblt(virge, 32, val);
 				break;
 			
                 case 0x8180:
