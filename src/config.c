@@ -873,7 +873,14 @@ static void loadconfig_machine(void)
 
         p = config_get_string(cat, "model", NULL);
         if (p != NULL)
+	{
                 model = model_get_model_from_internal_name(p);
+		/* Detect the old model typo and fix it, so that old configurations don't braek. */
+		if (strcmp(model, "p55r2p4") == 0)
+		{
+			model[3] = 't';
+		}
+	}
         else
                 model = 0;
         if (model >= model_count())
