@@ -91,11 +91,13 @@ typedef struct ega_t
 
         int video_res_x, video_res_y, video_bpp;
 
+#ifdef JEGA
 	uint8_t RMOD1, RMOD2, RDAGS, RDFFB, RDFSB, RDFAP, RPESL, RPULP, RPSSC, RPSSU, RPSSL;
 	uint8_t RPPAJ;
 	uint8_t RCMOD, RCCLH, RCCLL, RCCSL, RCCEL, RCSKW, ROMSL, RSTAT;
 	int is_jega, font_index;
 	int chr_left, chr_wide;
+#endif
 } ega_t;
 
 extern int update_overscan;
@@ -113,6 +115,7 @@ extern device_t ega_device;
 extern device_t cpqega_device;
 extern device_t sega_device;
 
+#ifdef JEGA
 #define SBCS 0
 #define DBCS 1
 #define ID_LEN 6
@@ -122,3 +125,4 @@ extern device_t sega_device;
 
 extern uint8_t jfont_sbcs_19[SBCS19_LEN];	/* 256 * 19( * 8) */
 extern uint8_t jfont_dbcs_16[DBCS16_LEN];	/* 65536 * 16 * 2 (* 8) */
+#endif

@@ -752,6 +752,7 @@ jump_if_fdf:
 		{
 			pclog("Image is bigger than can fit on an ED floppy, ejecting...\n");
 			fclose(img[drive].f);
+			img[drive].f = NULL;
 			memset(discfns[drive], 0, sizeof(discfns[drive]));
 			return;
 		}
@@ -814,6 +815,7 @@ jump_if_fdf:
 	{
 		pclog("Image is bigger than can fit on an ED floppy, ejecting...\n");
 		fclose(img[drive].f);
+		img[drive].f = NULL;
 		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
@@ -831,6 +833,7 @@ jump_if_fdf:
 	{
 		pclog("ERROR: Floppy image of unknown format was inserted into drive %c:!\n", drive + 0x41);
 		fclose(img[drive].f);
+		img[drive].f = NULL;
 		memset(discfns[drive], 0, sizeof(discfns[drive]));
 		return;
 	}
@@ -863,7 +866,10 @@ void img_close(int drive)
 {
 	d86f_unregister(drive);
         if (img[drive].f)
+	{
                 fclose(img[drive].f);
+		img[drive].f = NULL;
+	}
         if (img[drive].disk_data)
                 free(img[drive].disk_data);
 }
@@ -938,6 +944,9 @@ void img_seek(int drive, int track)
 	d86f_reset_index_hole_pos(drive, 0);
 	d86f_reset_index_hole_pos(drive, 1);
 
+	d86f_zero_bit_field(drive, 0);
+	d86f_zero_bit_field(drive, 1);
+
 	if (!img[drive].xdf_type || img[drive].is_cqm)
 	{
 		for (side = 0; side < img[drive].sides; side++)
@@ -980,6 +989,11 @@ void img_seek(int drive, int track)
 				img[drive].sector_pos_side[side][sr] = side;
 				img[drive].sector_pos[side][sr] = (sr - 1) * ssize;
 				current_pos = d86f_prepare_sector(drive, side, current_pos, id, &img[drive].track_data[side][(sr - 1) * ssize], ssize, img[drive].gap2_size, img[drive].gap3_size, 0, 0);
+
+				if (sector == 0)
+				{
+					d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
+				}
 			}
 		}
 	}
@@ -1038,6 +1052,11 @@ void img_seek(int drive, int track)
 					id[3] = id[2] & 7;
 					ssize = (128 << id[3]);
 					current_pos = d86f_prepare_sector(drive, side, xdf_trackx_spos[current_xdft][array_sector], id, &img[drive].track_data[buf_side][buf_pos], ssize, img[drive].gap2_size, xdf_gap3_sizes[current_xdft][!is_t0], 0, 0);
+				}
+
+				if (sector == 0)
+				{
+					d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
 				}
 			}
 		}
@@ -1108,6 +1127,7 @@ void d86f_register_img(int drive)
 	d86f_handler[drive].side_flags = img_side_flags;
 	d86f_handler[drive].writeback = img_writeback;
 	d86f_handler[drive].set_sector = img_set_sector;
+	d86f_handler[drive].read_data = img_poll_read_data;
 	d86f_handler[drive].write_data = img_poll_write_data;
 	d86f_handler[drive].format_conditions = img_format_conditions;
 	d86f_handler[drive].extra_bit_cells = null_extra_bit_cells;
@@ -1116,4 +1136,5 @@ void d86f_register_img(int drive)
 	d86f_handler[drive].index_hole_pos = null_index_hole_pos;
 	d86f_handler[drive].get_raw_size = common_get_raw_size;
 	d86f_handler[drive].check_crc = 1;
+	d86f_set_version(drive, 0x0063);
 }

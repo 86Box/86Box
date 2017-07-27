@@ -45,6 +45,7 @@ static int old_overscan_color = 0;
 
 int update_overscan = 0;
 
+#ifdef JEGA
 uint8_t jfont_sbcs_19[SBCS19_LEN];	/* 256 * 19( * 8) */
 uint8_t jfont_dbcs_16[DBCS16_LEN];	/* 65536 * 16 * 2 (* 8) */
 
@@ -146,6 +147,7 @@ void ega_jega_read_font(ega_t *ega)
 	ega->font_index++;
 	ega->RSTAT |= 0x02;
 }
+#endif
 
 void ega_out(uint16_t addr, uint8_t val, void *p)
 {
@@ -259,7 +261,11 @@ void ega_out(uint16_t addr, uint8_t val, void *p)
                 return;
 		case 0x3d1:
                 case 0x3d5:
+#ifdef JEGA
 		if ((ega->crtcreg < 0xb9) || !ega->is_jega)
+#else
+		if (ega->crtcreg < 0xb9)
+#endif
 		{
 			crtcreg = ega->crtcreg & 0x1f;
 	                if (crtcreg <= 7 && ega->crtc[0x11] & 0x80) return;
@@ -274,6 +280,7 @@ void ega_out(uint16_t addr, uint8_t val, void *p)
         	                }
                 	}
 		}
+#ifdef JEGA
 		else
 		{
 			switch(ega->crtcreg)
@@ -331,6 +338,7 @@ void ega_out(uint16_t addr, uint8_t val, void *p)
 					break;
 			}
 		}
+#endif
                 break;
         }
 }
@@ -391,11 +399,16 @@ uint8_t ega_in(uint16_t addr, void *p)
                 return ega->crtcreg;
 		case 0x3d1:
                 case 0x3d5:
+#ifdef JEGA
 		if ((ega->crtcreg < 0xb9) || !ega->is_jega)
+#else
+		if (ega->crtcreg < 0xb9)
+#endif
 		{
 			crtcreg = ega->crtcreg & 0x1f;
 	                return ega->crtc[crtcreg];
 		}
+#ifdef JEGA
 		else
 		{
 			switch(ega->crtcreg)
@@ -434,6 +447,8 @@ uint8_t ega_in(uint16_t addr, void *p)
 					return 0x00;
 			}
 		}
+#endif
+		return 0xff;
                 case 0x3da:
                 ega->attrff = 0;
                 ega->stat ^= 0x30; /*Fools IBM EGA video BIOS self-test*/
@@ -534,6 +549,7 @@ void ega_poll(void *p)
                         {
 				if (fullchange)
 				{
+#ifdef JEGA
 					if (ega_jega_enabled(ega))
 					{
 						ega_render_text_jega(ega, drawcursor);
@@ -542,6 +558,9 @@ void ega_poll(void *p)
 					{
 						ega_render_text_standard(ega, drawcursor);
 					}
+#else
+					ega_render_text_standard(ega, drawcursor);
+#endif
 				}
                         }
                         else
@@ -1016,7 +1035,9 @@ void ega_common_defaults(ega_t *ega)
 
 	update_overscan = 0;
 
+#ifdef JEGA
 	ega->is_jega = 0;
+#endif
 }
 
 void *ega_standalone_init()
@@ -1138,6 +1159,7 @@ void *sega_standalone_init()
         return ega;
 }
 
+#ifdef JEGA
 uint16_t chrtosht(FILE *fp)
 {
 	uint16_t i, j;
@@ -1243,6 +1265,7 @@ void *jega_standalone_init()
 
 	return ega;
 }
+#endif
 
 static int ega_standalone_available()
 {
@@ -1337,6 +1360,7 @@ device_t sega_device =
         ega_config
 };
 
+#ifdef JEGA
 device_t jega_device =
 {
         "AX JEGA",
@@ -1349,3 +1373,4 @@ device_t jega_device =
         NULL,
         ega_config
 };
+#endif

@@ -793,7 +793,7 @@ void create_floppy_tip(int part)
 	}
 	else
 	{
-		_swprintf(tempTip,  win_language_get_string_from_id(2179), drive + 1, wtext, discfns[drive]);
+		_swprintf(tempTip,  win_language_get_string_from_id(IDS_2158), drive + 1, wtext, discfns[drive]);
 	}
 
 	if (sbTips[part] != NULL)

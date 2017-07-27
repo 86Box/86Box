@@ -49,3 +49,5 @@ char *fdd_getname(int type);
 
 char *fdd_get_internal_name(int type);
 int fdd_get_from_internal_name(char *s);
+
+int fdd_track(int drive);
