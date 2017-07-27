@@ -710,7 +710,7 @@ jump_if_fdf:
 
 	pclog("BPB reports %i sides and %i bytes per sector (%i sectors total)\n", bpb_sides, bpb_bps, bpb_total);
 
-	if (((bpb_sides < 1) || (bpb_sides > 2) || !bps_is_valid(bpb_bps) || !first_byte_is_valid(first_byte)) && !fdi && !cqm)
+	if ((((bpb_sides < 1) || (bpb_sides > 2) || !bps_is_valid(bpb_bps) || !first_byte_is_valid(first_byte)) && !fdi && !cqm) || !fdd_get_check_bpb(drive))
 	{
 		/* The BPB is giving us a wacky number of sides and/or bytes per sector, therefore it is most probably
 		   not a BPB at all, so we have to guess the parameters from file size. */

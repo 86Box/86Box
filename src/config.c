@@ -1547,6 +1547,8 @@ static void loadconfig_removable_devices(void)
 	        ui_writeprot[c] = !!config_get_int(cat, temps, 0);
 		sprintf(temps, "fdd_%02i_turbo", c + 1);
 	        fdd_set_turbo(c, !!config_get_int(cat, temps, 0));
+		sprintf(temps, "fdd_%02i_check_bpb", c + 1);
+	        fdd_set_check_bpb(c, !!config_get_int(cat, temps, 1));
 
 		/* Check, whether each value is default, if yes, delete it so that only non-default values will later be saved. */
 		if (fdd_get_type(c) == ((c < 2) ? 2 : 0))
@@ -1570,6 +1572,12 @@ static void loadconfig_removable_devices(void)
 		if (fdd_get_turbo(c) == 0)
 		{
 			sprintf(temps, "fdd_%02i_turbo", c + 1);
+			config_delete_var(cat, temps);
+		}
+
+		if (fdd_get_check_bpb(c) == 1)
+		{
+			sprintf(temps, "fdd_%02i_check_bpb", c + 1);
 			config_delete_var(cat, temps);
 		}
 	}
@@ -2454,6 +2462,16 @@ static void saveconfig_removable_devices(void)
 		else
 		{
 		        config_set_int(cat, temps, fdd_get_turbo(c));
+		}
+
+		sprintf(temps, "fdd_%02i_check_bpb", c + 1);
+		if (fdd_get_check_bpb(c) == 1)
+		{
+			config_delete_var(cat, temps);
+		}
+		else
+		{
+		        config_set_int(cat, temps, fdd_get_check_bpb(c));
 		}
 	}
 

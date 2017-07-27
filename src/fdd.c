@@ -32,6 +32,8 @@ static struct
 	int head;
 
 	int turbo;
+
+	int check_bpb;
 } fdd[FDD_NUM];
 
 /* Flags:
@@ -327,6 +329,16 @@ void fdd_set_turbo(int drive, int turbo)
 int fdd_get_turbo(int drive)
 {
 	return fdd[drive].turbo;
+}
+
+void fdd_set_check_bpb(int drive, int check_bpb)
+{
+	fdd[drive].check_bpb = check_bpb;
+}
+
+int fdd_get_check_bpb(int drive)
+{
+	return fdd[drive].check_bpb;
 }
 
 int fdd_get_densel(int drive)
