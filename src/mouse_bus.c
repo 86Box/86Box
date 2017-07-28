@@ -155,7 +155,8 @@ static uint8_t busmouse_read(uint16_t port, void *priv)
 		switch (busmouse->control_val & 0x60)
 		{
 			case READ_X_LOW:
-			r = busmouse->x & 0x0f;
+			/* r = busmouse->x & 0x0f; */
+			r = ((busmouse->but ^ 7) << 5) | (busmouse->x & 0x0f);
 			break;
 			
 			case READ_X_HIGH:
