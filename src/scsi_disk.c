@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.2	2017/06/16
+ * Version:	@(#)scsi_disk.c	1.0.3	2017/07/30
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2017-2017 Miran Grca.
@@ -772,7 +772,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			break;
 
 		case GPCMD_MECHANISM_STATUS:
-			len = (hdbufferb[7] << 16) | (hdbufferb[8] << 8) | hdbufferb[9];
+			len = (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
 
  			memset(hdbufferb, 0, 8);
 			hdbufferb[5] = 1;
