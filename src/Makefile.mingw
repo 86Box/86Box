@@ -131,6 +131,9 @@ else
 PLATCG	= codegen_x86.o
 endif
 
+ifeq ($(DEV_BRANCH), y)
+CFLAGS		+= -DDEV_BRANCH
+endif
 
 ifeq ($(WALTJE), y)
 OPENDIR = win_opendir.o
