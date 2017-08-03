@@ -32,7 +32,7 @@
  *		Based on an early driver for MINIX 1.5.
  *		Based on the 86Box PS/2 mouse driver as a framework.
  *
- * Version:	@(#)mouse_bus.c	1.0.6	2017/07/24
+ * Version:	@(#)mouse_bus.c	1.0.7	2017/07/27
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		TheCollector1995,
@@ -45,13 +45,12 @@
 #include "pic.h"
 #include "timer.h"
 #include "mouse.h"
-#include "mouse_bus.h"
-#include "plat_mouse.h"
+
 
 #define BUS_MOUSE_IRQ  5
 #define IRQ_MASK ((1<<5) >> BUS_MOUSE_IRQ)
 
-// MS Inport Bus Mouse Adapter
+/* MS Inport Bus Mouse Adapter. */
 #define INP_PORT_CONTROL     0x023C
 #define INP_PORT_DATA        0x023D
 #define INP_PORT_SIGNATURE   0x023E
@@ -67,7 +66,7 @@
 #define INP_HOLD_COUNTER      (1 << 5)
 #define INP_ENABLE_IRQ        (1 << 0)
 
-// MS/Logictech Standard Bus Mouse Adapter
+/* MS/Logictech Standard Bus Mouse Adapter. */
 #define BUSM_PORT_DATA        0x023C
 #define BUSM_PORT_SIGNATURE   0x023D
 #define BUSM_PORT_CONTROL     0x023E
@@ -462,17 +461,17 @@ static void *inport_init(void)
     return(inport);
 }
 
-mouse_t mouse_bus = 
+mouse_t mouse_bus_logitech = 
 {
-    "Bus Mouse",
+    "Logitech Bus Mouse",
     "msbus",
-    MOUSE_TYPE_BUS,
+    MOUSE_TYPE_LOGIBUS,
     busmouse_init,
     busmouse_close,
     busmouse_poll
 };
 
-mouse_t mouse_inport = 
+mouse_t mouse_bus_msinport = 
 {
     "InPort Mouse",
     "inport",

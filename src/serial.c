@@ -186,8 +186,11 @@ update_ints(SERIAL *sp)
 	sp->iir = IID_IDMDM;
     }
 
+    /* If IRQ line not enabled, done. */
+    if (!(sp->mctrl & MCR_OUT2) && !PCJR) return;
+
     /* Raise or clear the level-based IRQ. */
-    if (stat && ((sp->mctrl & MCR_OUT2) || PCJR))
+    if (stat)
 	picintlevel(1 << sp->irq);               
       else
 	picintc(1 << sp->irq);
@@ -291,26 +294,30 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 
 	case 3:		/* LCR */
-		if ((sp->lcr & LCR_DLAB) && !(val & LCR_DLAB)) {
-			/* We dropped DLAB, so handle baudrate. */
-			baud = ((sp->dlab2<<8) | sp->dlab1);
-			if (baud > 0) {
-				speed = 115200UL/baud;
-				serial_log(2, "Serial%d: divisor %u, baudrate %ld\n",
-						sp->port, baud, speed);
-				if ((sp->bh != NULL) && (speed > 0))
-					bhtty_speed((BHTTY *)sp->bh, speed);
+		if (! (val & LCR_DLAB)) {
+			/* DLAB clear. Was it set? */
+			if (sp->lcr & LCR_DLAB) {
+				/* We dropped DLAB, so handle baudrate. */
+				baud = ((sp->dlab2<<8) | sp->dlab1);
+				if (baud > 0) {
+					speed = 115200UL/baud;
+					serial_log(2, "Serial%d: divisor %u, baudrate %ld\n",
+							sp->port, baud, speed);
+					if ((sp->bh != NULL) && (speed > 0))
+						bhtty_speed((BHTTY *)sp->bh, speed);
+				} else {
+					serial_log(1, "Serial%d: divisor %u invalid!\n",
+								sp->port, baud);
+				}
 			} else {
-				serial_log(1, "Serial%d: divisor %u invalid!\n",
-							sp->port, baud);
+				wl = (val & LCR_WLS) + 5;		/* databits */
+				sb = (val & LCR_SBS) ? 2 : 1;		/* stopbits */
+				pa = (val & (LCR_PE|LCR_EP|LCR_PS)) >> 3;
+				serial_log(2, "Serial%d: WL=%d SB=%d PA=%d\n", sp->port, wl, sb, pa);
+				if (sp->bh != NULL)
+					bhtty_params((BHTTY *)sp->bh, wl, pa, sb);
 			}
 		}
-		wl = (val & LCR_WLS) + 5;		/* databits */
-		sb = (val & LCR_SBS) ? 2 : 1;		/* stopbits */
-		pa = (val & (LCR_PE|LCR_EP|LCR_PS)) >> 3;
-		serial_log(2, "Serial%d: WL=%d SB=%d PA=%d\n", sp->port, wl, sb, pa);
-		if (sp->bh != NULL)
-			bhtty_params((BHTTY *)sp->bh, wl, pa, sb);
 		sp->lcr = val;
 		break;
 
@@ -338,12 +345,14 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
 					  &sp->receive_delay,
 					  &sp->receive_delay, sp);
 
+#if 0
 				/* Fake CTS, DSR and DCD (for now.) */
 				sp->msr = (MSR_CTS | MSR_DCTS |
 					   MSR_DSR | MSR_DDSR |
 					   MSR_DCD | MSR_DDCD);
 				sp->int_status |= SERINT_MSR;
 				update_ints(sp);
+#endif
 			}
 		}
 		sp->mctrl = val;
@@ -424,7 +433,9 @@ serial_read(uint16_t addr, void *priv)
 		} else {
 			sp->lsr &= ~LSR_DR;
 			sp->int_status &= ~SERINT_RECEIVE;
+#if 0
 			update_ints(sp);
+#endif
 			ret = read_fifo(sp);
 			if ((sp->bh == NULL) &&
 			    (sp->fifo_read != sp->fifo_write))

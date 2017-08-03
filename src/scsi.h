@@ -5,7 +5,11 @@
 #define SCSI_H
 
 
+#ifdef WALTJE
+#define SCSI_TIME (50 * (1 << TIMER_SHIFT))
+#else
 #define SCSI_TIME (5 * 100 * (1 << TIMER_SHIFT))
+#endif
 
 
 /* SCSI commands. */

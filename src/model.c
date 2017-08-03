@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)model.c	1.0.4	2017/06/21
+ * Version:	@(#)model.c	1.0.5	2017/07/27
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -26,7 +26,6 @@
 #include "device.h"
 #include "model.h"
 #include "mouse.h"
-#include "mouse_ps2.h"
 #include "cdrom.h"
 
 #include "disc.h"

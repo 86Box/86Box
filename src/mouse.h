@@ -8,7 +8,7 @@
  *
  *		Definitions for the MOUSE driver.
  *
- * Version:	@(#)mouse.h	1.0.3	2017/06/21
+ * Version:	@(#)mouse.h	1.0.4	2017/07/27
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,20 +20,22 @@
 # define EMU_MOUSE_H
 
 
-#define MOUSE_TYPE_NONE		 0
-#if 0
-#define MOUSE_TYPE_GENIUS	11	/* Genius Bus Mouse */
-#endif
-#define MOUSE_TYPE_BUS		 1	/* Logitech/ATI Bus Mouse */
-#define MOUSE_TYPE_INPORT	 2	/* Microsoft InPort Mouse */
-#define MOUSE_TYPE_MSYSTEMS	 3	/* Mouse Systems mouse */
-#define MOUSE_TYPE_SERIAL	 4	/* Serial Mouse */
-#define MOUSE_TYPE_LOGITECH	 5	/* Logitech Serial Mouse */
-#define MOUSE_TYPE_MSWHEEL	 6	/* Serial Wheel Mouse */
-#define MOUSE_TYPE_PS2		 7	/* IBM PS/2 series Bus Mouse */
-#define MOUSE_TYPE_PS2_MS	 8	/* Microsoft Intellimouse PS/2 */
-#define MOUSE_TYPE_AMSTRAD	 9	/* Amstrad PC system mouse */
+#define SERMOUSE_PORT		1	/* attach to Serial1 */
+
+#define MOUSE_TYPE_NONE		0
+#define MOUSE_TYPE_LOGIBUS	1	/* Logitech/ATI Bus Mouse */
+#define MOUSE_TYPE_INPORT	2	/* Microsoft InPort Mouse */
+#define MOUSE_TYPE_MSYSTEMS	3	/* Mouse Systems mouse */
+#define MOUSE_TYPE_MICROSOFT	4	/* Microsoft Serial Mouse */
+#define MOUSE_TYPE_LOGITECH	5	/* Logitech Serial Mouse */
+#define MOUSE_TYPE_MSWHEEL	6	/* Serial Wheel Mouse */
+#define MOUSE_TYPE_PS2		7	/* IBM PS/2 series Bus Mouse */
+#define MOUSE_TYPE_PS2_MS	8	/* Microsoft Intellimouse PS/2 */
+#define MOUSE_TYPE_AMSTRAD	9	/* Amstrad PC system mouse */
 #define MOUSE_TYPE_OLIM24	10	/* Olivetti M24 system mouse */
+#if 0
+# define MOUSE_TYPE_GENIUS	11	/* Genius Bus Mouse */
+#endif
 
 #define MOUSE_TYPE_MASK		0x0f
 #define MOUSE_TYPE_3BUTTON	(1<<7)	/* device has 3+ buttons */
@@ -51,9 +53,21 @@ typedef struct {
 
 extern int	mouse_type;
 
+extern mouse_t	mouse_bus_logitech;
+extern mouse_t  mouse_bus_msinport;
+extern mouse_t	mouse_serial_msystems;
+extern mouse_t	mouse_serial_microsoft;
+extern mouse_t	mouse_serial_logitech;
+extern mouse_t	mouse_serial_mswheel;
+extern mouse_t	mouse_ps2_2button;
+extern mouse_t	mouse_ps2_intellimouse;
+
+
+extern void	*mouse_ps2_init(void);
 
 extern void	mouse_emu_init(void);
 extern void	mouse_emu_close(void);
+
 extern void	mouse_poll(int x, int y, int z, int b);
 extern char	*mouse_get_name(int mouse);
 extern char	*mouse_get_internal_name(int mouse);

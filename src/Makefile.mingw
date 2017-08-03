@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.31	2017/06/19
+# Version:	@(#)Makefile.mingw	1.0.32	2017/07/27
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -455,7 +455,7 @@ mfm_at.o:	ibm.h device.h hdd_image.h io.h pic.h timer.h mfm_at.h
 mfm_xebec.o:	ibm.h device.h dma.h hdd_image.h io.h mem.h pic.h rom.h timer.h mfm_xebec.h
 
 model.o:	ibm.h io.h mem.h rom.h device.h model.h cpu/cpu.h \
-		mouse.h mouse_ps2.h cdrom.h disc.h dma.h fdc.h \
+		mouse.h cdrom.h disc.h dma.h fdc.h \
 		fdc37c665.h fdc37c669.h fdc37c932fr.h \
 		gameport.h i82335.h ide.h intel.h intel_flash.h \
 		keyboard_amstrad.h keyboard_at.h keyboard_olim24.h \
@@ -466,14 +466,13 @@ model.o:	ibm.h io.h mem.h rom.h device.h model.h cpu/cpu.h \
 		video/vid_pcjr.h video/vid_tandy.h w83877f.h wd76c10.h \
 		xtide.h bugger.h
 
-mouse.o:	ibm.h cpu/cpu.h device.h model.h \
-		mouse.h mouse_serial.h mouse_ps2.h mouse_bus.h keyboard_olim24.h
+mouse.o:	ibm.h cpu/cpu.h device.h model.h mouse.h keyboard_olim24.h
 
-mouse_bus.o:	ibm.h io.h pic.h mouse.h mouse_bus.h plat_mouse.h
+mouse_bus.o:	ibm.h io.h pic.h mouse.h
 
-mouse_ps2.o:	ibm.h keyboard_at.h mouse.h mouse_ps2.h plat_mouse.h
+mouse_ps2.o:	ibm.h keyboard_at.h mouse.h plat_mouse.h
 
-mouse_serial.o:	ibm.h timer.h serial.h mouse.h mouse_serial.h
+mouse_serial.o:	ibm.h timer.h serial.h mouse.h
 
 neat.o:		ibm.h cpu/cpu.h io.h device.h model.h
 

@@ -39,6 +39,9 @@
 #include "scsi_aha154x.h"
 
 
+#define SCSI_DELAY_TM	1			/* was 50 */
+
+
 #define AHA		AHA154xCF		/* set desired card type */
 #define  AHA154xB	1			/* AHA-154x Rev.B */
 #define  AHA154xC	2			/* AHA-154x Rev.C */
@@ -419,8 +422,9 @@ again:
 	aha_eep[0] |= (0x10 | 0x20 | 0x40);
     aha_eep[1] = irq-9;			/* IRQ15 */
     aha_eep[1] |= (dma<<4);		/* DMA6 */
-    aha_eep[2] = (EE2_DYNSCAN	|	/* BIOS Space Reserved		*/
-		  EE2_EXT1G | EE2_RMVOK);		/* Immediate return on seek	*/
+    aha_eep[2] = (EE2_HABIOS	| 	/* BIOS enabled		*/
+		  EE2_DYNSCAN	|	/* scan bus		*/
+		  EE2_EXT1G | EE2_RMVOK);/* Immediate return on seek	*/
     aha_eep[3] = SPEED_50;		/* speed 5.0 MB/s		*/
     aha_eep[6] = (EE6_TERM	|	/* host term enable		*/
 		  EE6_RSTBUS);		/* reset SCSI bus on boot	*/
@@ -1371,7 +1375,7 @@ aha_write(uint16_t port, uint8_t val, void *priv)
 			/* If there are no mailboxes configured, don't even try to do anything. */
 			if (dev->MailboxCount) {
 				if (!AHA_Callback) {
-					AHA_Callback = 50 * SCSI_TIME;
+					AHA_Callback = SCSI_DELAY_TM * SCSI_TIME;
 				}
 			}
 			return;
@@ -2106,7 +2110,7 @@ aha_cmd_cb(void *priv)
 	if (dev->MailboxCount) {
 		aha_do_mail(dev);
 	} else {
-		AHA_Callback += 50 * SCSI_TIME;
+		AHA_Callback += SCSI_DELAY_TM * SCSI_TIME;
 		return;
 	}
     } else if (AHA_InOperation == 1) {
@@ -2128,7 +2132,7 @@ aha_cmd_cb(void *priv)
 	fatal("Invalid BusLogic callback phase: %i\n", AHA_InOperation);
     }
 
-    AHA_Callback += 50 * SCSI_TIME;
+    AHA_Callback += SCSI_DELAY_TM * SCSI_TIME;
 }
 
 uint8_t aha_mca_read(int port, void *p)
