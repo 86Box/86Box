@@ -843,7 +843,7 @@ BEGIN
     IDS_2170	"Check BPB"
 
     IDS_3072    "None"
-    IDS_3073	"[Bus] Bus mouse"
+    IDS_3073	"[Bus] Logitech Bus mouse"
     IDS_3074	"[Bus] InPort mouse"
     IDS_3075	"[Serial] Mouse Systems mouse"
     IDS_3076	"[Serial] Microsoft 2-button mouse"

@@ -224,6 +224,7 @@ sermouse_init(int type)
 #else
     ms->serial = &serial1;
     ms->serial->rcr_callback = sermouse_callback;
+    ms->serial->rcr_callback_p = ms;
 #endif
 
     timer_add(sermouse_timer, &ms->delay, &ms->delay, ms);
