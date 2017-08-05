@@ -286,6 +286,10 @@ void serial_setup(int port, uint16_t addr, int irq)
 	switch(port)
 	{
 		case 1:
+			if (!serial_enabled[0])
+			{
+				return;
+			}
 			if (base_address[0] != 0x0000)
 			{
 				serial_remove(port);
@@ -298,6 +302,10 @@ void serial_setup(int port, uint16_t addr, int irq)
 			serial1.irq = irq;
 			break;
 		case 2:
+			if (!serial_enabled[1])
+			{
+				return;
+			}
 			if (base_address[1] != 0x0000)
 			{
 				serial_remove(port);
