@@ -251,6 +251,10 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                                 svga->pallook[svga->dac_write] = makecol32(svga->vgapal[svga->dac_write].r, svga->vgapal[svga->dac_write].g, svga->vgapal[svga->dac_write].b);
                         else
 			{
+				svga->vgapal[svga->dac_write].r &= 0x3f;
+				svga->vgapal[svga->dac_write].g &= 0x3f;
+				svga->vgapal[svga->dac_write].b &= 0x3f;
+
 				if ((romset == ROM_IBMPS1_2011) || (romset == ROM_IBMPS1_2121) || (romset == ROM_IBMPS2_M30_286))
 				{
 					svga->pallook[svga->dac_write] = makecol32((svga->vgapal[svga->dac_write].r & 0x3f) * 4, (svga->vgapal[svga->dac_write].g & 0x3f) * 4, (svga->vgapal[svga->dac_write].b & 0x3f) * 4);
