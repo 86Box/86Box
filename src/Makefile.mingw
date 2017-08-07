@@ -203,6 +203,7 @@ SNDOBJ	= sound.o \
 	  wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
 	  wave8580_PST.o wave.o \
 	  midi.o \
+	  midi_fluidsynth.o \
 	  midi_mt32.o \
 	    Analog.o BReverbModel.o File.o FileStream.o LA32Ramp.o \
 	    LA32FloatWaveGenerator.o LA32WaveGenerator.o \
@@ -262,7 +263,7 @@ LIBS	= -mwindows \
 	  -lopenal.dll \
 	  -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 \
 	  -lcomctl32 -lkernel32 -lwsock32 -lwinmm -liphlpapi -lpsapi \
-	  -static -lstdc++ -lgcc
+	  -static -lstdc++ -lgcc -lfluidsynth -lfluidsynth.dll
 
 
 # Build rules.

@@ -313,6 +313,15 @@ int file_dlg(HWND hwnd, WCHAR *f, char *fn, int save)
 	return file_dlg_w(hwnd, f, ufn, save);
 }
 
+int file_dlg_mb(HWND hwnd, char *f, char *fn, int save)
+{
+	WCHAR uf[512];
+	WCHAR ufn[512];
+	mbstowcs(uf, f, strlen(fn) + 1);
+	mbstowcs(ufn, fn, strlen(fn) + 1);
+	return file_dlg_w(hwnd, uf, ufn, save);
+}
+
 int file_dlg_w_st(HWND hwnd, int i, WCHAR *fn, int save)
 {
 	return file_dlg_w(hwnd, win_language_get_string_from_id(i), fn, save);

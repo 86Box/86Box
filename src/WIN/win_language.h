@@ -34,6 +34,7 @@ void msgbox_critical(HWND hwndParent, int i);
 
 int file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save);
 int file_dlg(HWND hwnd, WCHAR *f, char *fn, int save);
+int file_dlg_mb(HWND hwnd, char *f, char *fn, int save);
 int file_dlg_w_st(HWND hwnd, int i, WCHAR *fn, int save);
 int file_dlg_st(HWND hwnd, int i, char *fn, int save);
 
