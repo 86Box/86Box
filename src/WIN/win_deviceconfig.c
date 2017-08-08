@@ -41,6 +41,7 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
     int cid;
 	device_config_t *config;
 	char s[80];
+	wchar_t ws[512];
 
         switch (message)
         {
@@ -423,14 +424,15 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                                                         c++;
                                                                 }
                                                                 strcat(file_filter, "|All files (*.*)|*.*|");
+								mbstowcs(ws, file_filter, strlen(file_filter) + 1);
                                                                 d = strlen(file_filter);
 
                                                                 /* replace | with \0 */
                                                                 for (c = 0; c < d; ++c)
-                                                                        if (file_filter[c] == '|')
-                                                                                file_filter[c] = '\0';
+                                                                        if (ws[c] == L'|')
+                                                                                ws[c] = 0;
 
-                                                                if (!file_dlg_mb(hdlg, file_filter, s, 0))
+                                                                if (!file_dlg(hdlg, ws, s, 0))
                                                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)openfilestring);
                                                         }
 												}
@@ -469,8 +471,8 @@ void deviceconfig_open(HWND hwnd, device_t *device)
         *data++ = 0; /*predefined dialog box class*/
         data += MultiByteToWideChar(CP_ACP, 0, "Device Configuration", -1, data, 50);
 
-        *data++ = 8; /*Point*/
-        data += MultiByteToWideChar(CP_ACP, 0, "MS Sans Serif", -1, data, 50);
+        *data++ = 9; /*Point*/
+        data += MultiByteToWideChar(CP_ACP, 0, "Segoe UI", -1, data, 50);
         
         if (((unsigned long)data) & 2)
                 data++;

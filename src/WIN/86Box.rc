@@ -841,6 +841,7 @@ BEGIN
     IDS_2168	"&Image..."
     IDS_2169	"Image (&Write-protected)..."
     IDS_2170	"Check BPB"
+    IDS_2171	"Unable to initialize FluidSynth, make sure you have the following libraries\nin your 86Box folder:\n\nlibfluidsynth.dll\nlibglib-2.0-0.dll\nlibiconv-2.dll\nlibintl-8.dll\nlibpcre-1.dll"
 
     IDS_3072    "None"
     IDS_3073	"[Bus] Logitech Bus mouse"

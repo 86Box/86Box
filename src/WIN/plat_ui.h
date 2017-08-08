@@ -2,10 +2,6 @@
 extern void	plat_msgbox_error(int i);
 extern wchar_t	*plat_get_string_from_id(int i);
 
-#ifndef IDS_2219
-#define IDS_2219 2219
-#endif
-
 #ifndef IDS_2077
 #define IDS_2077 2077
 #endif
@@ -20,6 +16,14 @@ extern wchar_t	*plat_get_string_from_id(int i);
 
 #ifndef IDS_2139
 #define IDS_2139 2139
+#endif
+
+#ifndef IDS_2171
+#define IDS_2171 2171
+#endif
+
+#ifndef IDS_2219
+#define IDS_2219 2219
 #endif
 #endif
 

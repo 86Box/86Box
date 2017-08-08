@@ -33,7 +33,6 @@
 #include "../hdd.h"
 #include "../ide.h"
 #include "../scsi.h"
-#include "../scsi_buslogic.h"
 #include "../network/network.h"
 #include "../sound/midi.h"
 #include "../sound/sound.h"

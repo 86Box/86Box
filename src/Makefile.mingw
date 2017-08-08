@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.32	2017/07/27
+# Version:	@(#)Makefile.mingw	1.0.33	2017/08/08
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -127,8 +127,19 @@ endif
 
 ifeq ($(X64), y)
 PLATCG	= codegen_x86-64.o
+CGOPS   = codegen_ops_x86-64.h
+VCG     = vid_voodoo_codegen_x86-64.h
 else
 PLATCG	= codegen_x86.o
+CGOPS   = codegen_ops_x86.h
+VCG     = vid_voodoo_codegen_x86.h
+endif
+
+
+ifeq ($(DEV_BRANCH), y)
+DBFLAGS = -DDEV_BRANCH
+else
+DBFLAGS = 
 endif
 
 
@@ -233,9 +244,9 @@ VIDOBJ	= video.o \
 	  vid_ati_eeprom.o vid_ati18800.o vid_ati28800.o \
 	    vid_ati68860_ramdac.o vid_ati_mach64.o \
 	    vid_ics2595.o \
+	  vid_sc1502x_ramdac.o \
 	  vid_sdac_ramdac.o \
 	  vid_stg_ramdac.o \
-	  vid_unk_ramdac.o \
 	  vid_wy700.o \
 	  vid_voodoo.o \
 	  vid_pcjr.o vid_ps1_svga.o \
@@ -250,8 +261,9 @@ WINOBJ	= win.o \
 	  win_iodev.o win_joystick.o win_midi.o \
 	  win_settings.o win_deviceconfig.o win_joystickconfig.o \
 	  86Box.res
-ifdef DEV_BRANCH
-DEVBRANCHOBJ = vid_nv_riva128.o
+ifeq ($(DEV_BRANCH), y)
+DEVBRANCHOBJ = vid_cl_gd.o vid_cl_gd_blit.o vid_cl_ramdac.o \
+	       vid_nv_riva128.o
 endif
 OBJ	= $(MAINOBJ) $(CPUOBJ) $(SYSOBJ) $(DEVOBJ) $(USBOBJ) \
 	  $(NETOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) $(WINOBJ) \
@@ -263,7 +275,7 @@ LIBS	= -mwindows \
 	  -lopenal.dll \
 	  -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 \
 	  -lcomctl32 -lkernel32 -lwsock32 -lwinmm -liphlpapi -lpsapi \
-	  -static -lstdc++ -lgcc -lfluidsynth -lfluidsynth.dll
+	  -static -lstdc++ -lgcc
 
 
 # Build rules.
@@ -313,9 +325,9 @@ pcap_if.res:	pcap_if.rc
 
 
 # Module dependencies.
-acer386sx.o:	ibm.h cpu/cpu.h io.h device.h model.h
 
-acerm3a.o:	ibm.h cpu/cpu.h io.h device.h model.h
+# /
+acer386sx.o:	ibm.h cpu/cpu.h io.h device.h model.h
 
 ali1429.o:	ibm.h cpu/cpu.h io.h mem.h device.h model.h
 
@@ -325,6 +337,10 @@ bugger.o:	ibm.h io.h bugger.h
 
 cdrom.o:	86box.h cdrom.h ibm.h ide.h piix.h scsi.h timer.h \
 		win/plat_iodev.h
+
+cdrom_dosbox.o:	cdrom_dosbox.h
+
+cdrom_image.o:	config.h cdrom_dosbox.h cdrom.h cdrom_image.h cdrom_null.h
 
 cdrom_ioctl.o:	ibm.h cdrom.h cdrom_ioctl.h scsi.h
 
@@ -337,7 +353,7 @@ config.o:	cdrom.h config.h device.h disc.h fdc.h fdd.h ibm.h \
 		network/network.h nvr.h scsi.h win/plat_joystick.h \
 		win/plat_midi.h sound/snd_dbopl.h sound/snd_mpu401.h \
 		sound/snd_opl.h sound/sound.h video/video.h win/win.h \
-		win/win_language.h
+		win/resource.h win/win_language.h
 
 device.o:	ibm.h cpu/cpu.h config.h device.h model.h sound/sound.h
 
@@ -357,6 +373,9 @@ disc_td0.o:	ibm.h disc.h disc_td0.h fdc.h fdd.h
 
 dma.o:		ibm.h cpu/x86.h mem.h io.h dma.h
 
+esdi_at.o:	ibm.h device.h hdd_image.h io.h mem.h pic.h rom.h timer.h \
+		esdi_at.h
+
 fdc.o:		ibm.h disc.h dma.h fdc.h fdd.h io.h pic.h timer.h
 
 fdc37c665.o:	ibm.h disc.h fdc.h fdd.h ide.h io.h lpt.h serial.h \
@@ -374,8 +393,8 @@ gameport.o:	ibm.h cpu/cpu.h device.h io.h timer.h gameport.h \
 		joystick_ch_flightstick_pro.h joystick_standard.h \
 		joystick_sw_pad.h joystick_tm_fcs.h plat_joystick.h
 
-hdd.o:		ibm.h cpu/cpu.h device.h hdd.h model.h hdd_esdi.h \
-		mfm_at.h mfm_xebec.h xtide.h
+hdd.o:		ibm.h cpu/cpu.h device.h hdd.h model.h esdi_at.h \
+		hdd_esdi.h mfm_at.h mfm_xebec.h xtide.h
 
 hdd_image.o:	ibm.h ide.h hdd_image.h
 
@@ -395,8 +414,6 @@ i430nx.o:	ibm.h cpu/cpu.h mem.h pci.h device.h model.h
 i430vx.o:	ibm.h cpu/cpu.h io.h mem.h pci.h device.h model.h
 
 i440fx.o:	ibm.h cpu/cpu.h io.h mem.h pci.h device.h model.h
-
-i82335.o:	ibm.h io.h mem.h
 
 ide.o:		86box.h cdrom.h hdd_image.h ibm.h io.h pic.h timer.h cdrom.h scsi.h ide.h
 
@@ -458,7 +475,7 @@ mfm_xebec.o:	ibm.h device.h dma.h hdd_image.h io.h mem.h pic.h rom.h timer.h mfm
 model.o:	ibm.h io.h mem.h rom.h device.h model.h cpu/cpu.h \
 		mouse.h cdrom.h disc.h dma.h fdc.h \
 		fdc37c665.h fdc37c669.h fdc37c932fr.h \
-		gameport.h i82335.h ide.h intel.h intel_flash.h \
+		gameport.h ide.h intel.h intel_flash.h \
 		keyboard_amstrad.h keyboard_at.h keyboard_olim24.h \
 		keyboard_pcjr.h keyboard_xt.h lpt.h mem.h memregs.h \
 		nmi.h nvr.h pc87306.h pci.h pic.h piix.h pit.h ps2_mca.h \
@@ -469,7 +486,7 @@ model.o:	ibm.h io.h mem.h rom.h device.h model.h cpu/cpu.h \
 
 mouse.o:	ibm.h cpu/cpu.h device.h model.h mouse.h keyboard_olim24.h
 
-mouse_bus.o:	ibm.h io.h pic.h mouse.h
+mouse_bus.o:	ibm.h io.h pic.h timer.h mouse.h
 
 mouse_ps2.o:	ibm.h keyboard_at.h mouse.h plat_mouse.h
 
@@ -540,6 +557,8 @@ scsi_disk.o:	86box.h cdrom.h hdd_image.h ibm.h ide.h piix.h scsi.h \
 
 serial.o:	ibm.h io.h pic.h timer.h serial.h plat_serial.h
 
+serial_old.o:	ibm.h io.h mouse.h pic.h serial.h timer.h
+
 sio.o:		ibm.h cdrom.h disc.h dma.h fdc.h keyboard_at.h ide.h \
 		io.h mem.h pci.h sio.h
 
@@ -548,6 +567,8 @@ sis496.o:	ibm.h cpu/cpu.h io.h mem.h pci.h device.h model.h
 sis50x.o:	ibm.h device.h io.h mem.h pci.h sis50x.h
 
 sis85c471.o:	ibm.h ide.h disc.h fdc.h fdd.h io.h lpt.h serial.h sis85c471.h
+
+superio_detect.o:	ibm.h io.h disc.h fdd.h fdc.h superio_detect.h
 
 tandy_eeprom.o:	ibm.h device.h mem.h io.h rom.h tandy_eeprom.h
 
@@ -562,6 +583,234 @@ w83877f.o:	ibm.h disc.h fdc.h fdd.h io.h lpt.h serial.h w83877f.h
 wd76c10.o:	ibm.h disc.h fdc.h io.h mem.h serial.h wd76c10.h
 
 xtide.o:	ibm.h io.h mem.h rom.h device.h ide.h xtide.h
+
+# cpu/
+386.o:		ibm.h cpu/cpu.h cpu/x86.h cpu/x87.h mem.h disc.h fdc.h pic.h timer.h cpu/386_common.h
+
+386_dynarec.o:	ibm.h cpu/cpu.h cpu/x86.h cpu/x86_ops.h cpu/x87.h mem.h cpu/codegen.h disc.h fdc.h pic.h timer.h cpu/386_common.h \
+		cpu/x86_ops.h cpu/x86seg.h cpu/x86_ops_arith.h cpu/x86_ops_atomic.h cpu/x86_ops_bcd.h cpu/x86_ops_bit.h \
+		cpu/x86_ops_bitscan.h cpu/x86_ops_call.h cpu/x86_ops_flag.h cpu/x86_ops_fpu.h cpu/x86_ops_inc_dec.h cpu/x86_ops_int.h \
+		cpu/x86_ops_io.h cpu/x86_ops_jump.h cpu/x86_ops_misc.h \
+		cpu/x87_ops_arith.h cpu/x87_ops_misc.h cpu/x87_ops_loadstore.h \
+		cpu/x87_ops.h cpu/x86_ops_i686.h cpu/x86_ops_mmx.h \
+		cpu/x86_ops_mmx_arith.h cpu/x86_ops_mmx_cmp.h cpu/x86_ops_mmx_logic.h cpu/x86_ops_mmx_pack.h cpu/x86_ops_mmx_shift.h \
+		cpu/x86_ops_mov.h cpu/x86_ops_mov_ctrl.h cpu/x86_ops_mov_seg.h cpu/x86_ops_movx.h cpu/x86_ops_msr.h cpu/x86_ops_mul.h \
+		cpu/x86_ops_pmode.h cpu/x86_ops_prefix.h cpu/x86_ops_rep.h cpu/x86_ops_ret.h cpu/x86_ops_set.h cpu/x86_ops_shift.h \
+		cpu/x86_ops_stack.h cpu/x86_ops_string.h cpu/x86_ops_xchg.h \
+		cpu/386_ops.h
+
+386_dynarec_ops.o:	ibm.h cpu/cpu.h cpu/x86.h cpu/x86_ops.h cpu/x87.h cpu/x86_flags.h mem.h cpu/codegen.h pic.h cpu/386_common.h \
+			cpu/x86_ops.h cpu/x86seg.h cpu/x86_ops_arith.h cpu/x86_ops_atomic.h cpu/x86_ops_bcd.h cpu/x86_ops_bit.h \
+			cpu/x86_ops_bitscan.h cpu/x86_ops_call.h cpu/x86_ops_flag.h cpu/x86_ops_fpu.h cpu/x86_ops_inc_dec.h cpu/x86_ops_int.h \
+			cpu/x86_ops_io.h cpu/x86_ops_jump.h cpu/x86_ops_misc.h \
+			cpu/x87_ops_arith.h cpu/x87_ops_misc.h cpu/x87_ops_loadstore.h \
+			cpu/x87_ops.h cpu/x86_ops_i686.h cpu/x86_ops_mmx.h \
+			cpu/x86_ops_mmx_arith.h cpu/x86_ops_mmx_cmp.h cpu/x86_ops_mmx_logic.h cpu/x86_ops_mmx_pack.h cpu/x86_ops_mmx_shift.h \
+			cpu/x86_ops_mov.h cpu/x86_ops_mov_ctrl.h cpu/x86_ops_mov_seg.h cpu/x86_ops_movx.h cpu/x86_ops_msr.h cpu/x86_ops_mul.h \
+			cpu/x86_ops_pmode.h cpu/x86_ops_prefix.h cpu/x86_ops_rep.h cpu/x86_ops_ret.h cpu/x86_ops_set.h cpu/x86_ops_shift.h \
+			cpu/x86_ops_stack.h cpu/x86_ops_string.h cpu/x86_ops_xchg.h \
+			cpu/386_ops.h
+
+808x.o:		ibm.h cpu/cpu.h cpu/x86.h keyboard.h mem.h nmi.h pic.h scsi.h timer.h
+
+codegen.o:	ibm.h cpu/x86_ops.h mem.h cpu/codegen.h
+
+codegen_ops.o:	ibm.h mem.h cpu/x86.h cpu/x86_ops.h cpu/x86_flags.h cpu/x87.h cpu/386_common.h cpu/cpu.h cpu/codegen.h cpu/codegen_ops.h \
+		cpu/$(CGOPS) cpu/codegen_ops_arith.h cpu/codegen_ops_fpu.h cpu/codegen_ops_jump.h cpu/codegen_ops_logic.h cpu/codegen_ops_misc.h \
+		cpu/codegen_ops_mmx.h cpu/codegen_ops_mov.h cpu/codegen_ops_shift.h cpu/codegen_ops_stack.h cpu/codegen_ops_xchg.h
+
+codegen_timing_486.o:	ibm.h cpu/cpu.h cpu/x86.h cpu/x87_ops.h cpu/x87.h mem.h cpu/codegen.h cpu/codegen_ops.h cpu/codegen_timing_common.h
+
+codegen_timing_686.o:	ibm.h cpu/cpu.h cpu/x86.h cpu/x87_ops.h cpu/x87.h mem.h cpu/codegen.h cpu/codegen_timing_common.h
+
+codegen_timing_common.o:	ibm.h cpu/codegen_timing_common.h
+
+codegen_timing_pentium.o:	ibm.h cpu/cpu.h cpu/x86.h cpu/x87_ops.h cpu/x87.h mem.h cpu/codegen.h cpu/codegen_ops.h cpu/codegen_timing_common.h
+
+codegen_timing_winchip.o:	ibm.h cpu/cpu.h cpu/x86.h cpu/x87_ops.h cpu/x87.h mem.h cpu/codegen.h cpu/codegen_ops.h cpu/codegen_timing_common.h
+
+codegen_x86.o:		ibm.h cpu/cpu.h cpu/x86.h cpu/x86_flags.h cpu/x86_ops.h cpu/x87.h mem.h cpu/386_common.h cpu/codegen.h cpu/codegen_ops.h \
+			cpu/codegen_ops_x86.h
+
+codegen_x86-64.o:	ibm.h mem.h cpu/cpu.h cpu/x86.h cpu/x86_flags.h cpu/x86_ops.h cpu/x87.h cpu/386_common.h cpu/codegen.h cpu/codegen_ops.h \
+			cpu/codegen_ops_x86-64.h
+
+cpu.o:		ibm.h cpu/cpu.h device.h model.h io.h cpu/x86_ops.h mem.h pci.h cpu/codegen.h
+
+x86seg.o:	ibm.h mem.h nvr.h cpu/x86.h cpu/386.h cpu/386_common.h cpu/cpu.h
+
+x87.o:		ibm.h pic.h cpu/x86.h cpu/x86_flags.h cpu/x86_ops.h cpu/x87.h cpu/386_common.h
+
+# network/
+net_ne2000.o:	ibm.h io.h mem.h rom.h pci.h pic.h device.h config.h disc_random.h network/network.h network/net_ne2000.h network/bswap.h
+
+net_pcap.o:	ibm.h config.h device.h network/network.h win/plat_dynld.h win/plat_thread.h
+
+net_slirp.o:	network/slirp/slirp.h network/slirp/queue.h ibm.h config.h device.h network/network.h win/plat_thread.h
+
+network.o:	ibm.h device.h network/network.h network/net_ne2000.h win/plat_ui.h
+
+# video/
+vid_ati_eeprom.o:	ibm.h mem.h rom.h video/vid_ati_eeprom.h
+
+vid_ati_mach64.o:	ibm.h device.h io.h mem.h pci.h rom.h win/plat_thread.h video/video.h video/vid_svga.h video/vid_svga_render.h \
+			video/vid_ati68860_ramdac.h video/vid_ati_eeprom.h video/vid_ics2595.h
+
+vid_ati18800.o:		ibm.h io.h mem.h rom.h device.h video/video.h video/vid_ati18800.h video/vid_ati_eeprom.h video/vid_svga.h
+
+vid_ati28800.o:		ibm.h io.h mem.h rom.h device.h timer.h video/video.h video/vid_ati28800.h video/vid_ati_eeprom.h video/vid_svga.h \
+			video/vid_svga_render.h
+
+vid_ati68860_ramdac.o:	ibm.h mem.h video/video.h video/vid_svga.h video/vid_ati68860_ramdac.h video/vid_svga_render.h
+
+vid_cga.o:		ibm.h io.h mem.h timer.h device.h video/video.h video/vid_cga.h video/vid_cga_comp.h win/win_cgapal.h
+
+vid_cga_comp.o:		ibm.h device.h mem.h video/vid_cga.h video/vid_cga_comp.h
+
+vid_cl_gd.o:		ibm.h io.h mem.h rom.h device.h video/video.h video/vid_svga.h video/vid_svga_render.h video/vid_cl_ramdac.h \
+			video/vid_cl_gd.h video/vid_cl_gd_blit.h
+
+vid_cl_gd_blit.o:	ibm.h io.h mem.h rom.h device.h video/video.h video/vid_svga.h video/vid_svga_render.h video/vid_cl_ramdac.h \
+			video/vid_cl_gd.h video/vid_cl_gd_blit.h video/vid_cl_gd_vga_rop.h
+
+vid_cl_gd_ramdac.o:	ibm.h mem.h rom.h device.h video/video.h video/vid_svga.h video/vid_cl_ramdac.h video/vid_cl_gd.h \
+			video/vid_cl_gd_blit.h
+
+vid_colorplus.o:	ibm.h io.h mem.h timer.h device.h video/video.h video/vid_cga.h video/vid_colorplus.h video/vid_cga_comp.h
+
+vid_ega.o:		ibm.h io.h mem.h rom.h timer.h device.h video/video.h video/vid_ega.h video/vid_ega_render.h
+
+vid_ega_render.o:	ibm.h device.h mem.h rom.h video/video.h video/vid_ega.h video/vid_ega_render.h
+
+vid_et4000.o:		ibm.h io.h mem.h rom.h device.h video/video.h video/vid_svga.h video/vid_sc1502x_ramdac.h video/vid_et4000.h
+
+vid_et4000w32.o:	ibm.h io.h mem.h pci.h rom.h device.h win/plat_thread.h video/video.h video/vid_svga.h video/vid_icd2061.h \
+			video/vid_stg_ramdac.h
+
+vid_genius.o:		ibm.h io.h mem.h rom.h timer.h device.h video/video.h video/vid_genius.h
+
+vid_hercules.o:		ibm.h mem.h io.h timer.h device.h video/video.h video/vid_hercules.h win/win_cgapal.h
+
+vid_herculesplus.o:	ibm.h io.h mem.h timer.h device.h video/video.h video/vid_herculesplus.h
+
+vid_icd2061.o:		ibm.h video/vid_icd2061.h
+
+vid_ics2595.o:		ibm.h video/vid_ics2595.h
+
+vid_incolor.o:		ibm.h io.h mem.h timer.h device.h video/video.h video/vid_incolor.h
+
+vid_mda.o:		ibm.h io.h mem.h timer.h device.h video/video.h video/vid_mda.h win/win_cgapal.h
+
+vid_nv_riva128.o:	ibm.h io.h mem.h pci.h pic.h rom.h timer.h device.h win/plat_thread.h video/video.h video/vid_svga.h \
+			video/vid_svga_render.h
+
+vid_olivetti_m24.o:	ibm.h io.h mem.h timer.h device.h video/video.h video/vid_olivetti_m24.h
+
+vid_oti067.o:		ibm.h io.h mem.h rom.h device.h video/video.h video/vid_oti067.h video/vid_svga.h
+
+vid_paradise.o:		ibm.h io.h mem.h rom.h device.h video/video.h video/vid_paradise.h video/vid_svga.h video/vid_svga_render.h
+
+vid_pc200.o:		ibm.h io.h mem.h timer.h device.h video/video.h video/vid_cga.h video/vid_pc200.h
+
+vid_pc1512.o:		ibm.h io.h mem.h timer.h device.h video/video.h video/vid_pc1512.h
+
+vid_pc1640.o:		ibm.h io.h mem.h rom.h timer.h device.h video/video.h video/vid_cga.h video/vid_ega.h video/vid_pc1640.h
+
+vid_pcjr.o:		ibm.h io.h mem.h pic.h timer.h device.h video/video.h video/vid_cga_comp.h video/vid_pcjr.h
+
+vid_ps1_svga.o:		ibm.h io.h mem.h rom.h device.h video/video.h video/vid_svga.h video/vid_vga.h
+
+vid_s3.o:		ibm.h device.h io.h mem.h pci.h rom.h win/plat_thread.h video/video.h video/vid_s3.h video/vid_svga.h \
+			video/vid_svga_render.h video/vid_sdac_ramdac.h
+
+vid_s3_virge.o:		ibm.h io.h mem.h pci.h rom.h device.h win/plat_thread.h video/video.h video/vid_s3_virge.h video/vid_svga.h \
+			video/vid_svga_render.h
+
+vid_sc1502x_ramdac.o:	ibm.h mem.h video/video.h video/vid_svga.h video/vid_sc1502x_ramdac.h
+
+vid_sdac_ramdac.o:	ibm.h mem.h video/video.h video/vid_svga.h video/vid_sdac_ramdac.h
+
+vid_stg_ramdac.o:	ibm.h mem.h video/video.h video/vid_svga.h video/vid_stg_ramdac.h
+
+vid_svga.o:		ibm.h io.h mem.h rom.h timer.h video/video.h video/vid_svga.h video/vid_svga_render.h
+
+vid_svga_render.o:	ibm.h mem.h video/video.h video/vid_svga.h video/vid_svga_render.h
+
+vid_tandy.o:		ibm.h io.h mem.h timer.h device.h video/video.h video/vid_tandy.h video/vid_cga_comp.h
+
+vid_tandysl.o:		ibm.h io.h mem.h timer.h device.h video/video.h video/vid_tandysl.h
+
+vid_tgui9440.o:		ibm.h io.h mem.h pci.h rom.h device.h win/plat_thread.h video/video.h video/vid_svga.h video/vid_svga_render.h \
+			video/vid_tkd8001_ramdac.h video/vid_tgui9440.h
+
+vid_tkd8001_ramdac.o:	ibm.h mem.h video/video.h video/vid_svga.h video/vid_tkd8001_ramdac.h
+
+vid_tvga.o:		ibm.h io.h mem.h rom.h device.h video/video.h video/vid_svga.h video/vid_svga_render.h video/vid_tkd8001_ramdac.h \
+			video/vid_tvga.h
+
+vid_vga.o:		ibm.h io.h mem.h rom.h device.h video/video.h video/vid_svga.h video/vid_vga.h
+
+vid_voodoo.o:		ibm.h cpu/cpu.h mem.h rom.h pci.h timer.h device.h win/plat_thread.h video/video.h video/vid_svga.h \
+			video/vid_voodoo.h video/vid_voodoo_dither.h video/$(VCG)
+
+vid_wy700.o:		ibm.h io.h mem.h timer.h device.h video/video.h video/vid_wy700.h
+
+video.o:		ibm.h cpu/cpu.h io.h mem.h rom.h config.h device.h timer.h win/plat_thread.h video/video.h video/vid_svga.h \
+			win/resource.h win/win.h win/win_cgapal.h \
+			video/vid_ati18800.h video/vid_ati28800.h video/vid_ati_mach64.h video/vid_cga.h \
+			video/vid_cl_ramdac.h video/vid_cl_gd.h \
+			video/vid_ega.h video/vid_et4000.h video/vid_et4000w32.h video/vid_genius.h video/vid_hercules.h \
+			video/vid_herculesplus.h video/vid_incolor.h video/vid_colorplus.h video/vid_mda.h \
+			video/vid_nv_riva128.h \
+			video/vid_olivetti_m24.h video/vid_oti067.h video/vid_paradise.h video/vid_pc1512.h video/vid_pc1640.h \
+			video/vid_pc200.h video/vid_pcjr.h video/vid_ps1_svga.h video/vid_s3.h video/vid_s3_virge.h video/vid_tandy.h \
+			video/vid_tandysl.h video/vid_tgui9440.h video/vid_tvga.h video/vid_vga.h video/vid_wy700.h
+
+# win/
+win.o:		86box.h device.h disc.h fdd.h hdd.h ibm.h cpu/cpu.h mem.h rom.h nvr.h config.h model.h ide.h cdrom.h cdrom_null.h \
+			cdrom_ioctl.h cdrom_image.h scsi.h scsi_disk.h video/video.h video/vid_ega.h mouse.h sound/sound.h sound/snd_dbopl.h \
+			win/plat_keyboard.h win/plat_iodev.h win/plat_mouse.h win/plat_midi.h win/plat_thread.h win/plat_ticks.h win/plat_ui.h \
+			win/resource.h win/win.h win/win_cgapal.h win/win_ddraw.h win/win_d3d.h win/win_language.h
+
+win_d3d.o:		video/video.h win/win.h win/resource.h win/win_d3d.h win/win_cgapal.h
+
+win_d3d_fs.o:	86box.h video/video.h win/win.h win/resource.h win/win_d3d.h win/win_cgapal.h
+
+win_ddraw.o:	video/video.h win/resource.h win/win_ddraw.h win/win_cgapal.h
+
+win_ddraw_fs.o:	video/video.h win/resource.h win/win_ddraw.h win/win_cgapal.h
+
+win_ddraw_screenshot.o:	video/video.h win/resource.h win/win.h win/win_ddraw.h win/win_language.h
+
+win_deviceconfig.o:	win/plat_midi.h win/resource.h win/win.h win/win_language.h
+
+win_dynld.o:	win/plat_dynld.h win/resource.h ibm.h
+
+win_iodev.o:	ibm.h device.h cdrom.h cdrom_image.h cdrom_ioctl.h cdrom_null.h scsi_disk.h win/plat_iodev.h win/resource.h win/win.h
+
+win_joystick.o:	device.h gameport.h win/plat_joystick.h win/resource.h win/win.h
+
+win_joystickconfig.o:	ibm.h config.h device.h gameport.h win/plat_joystick.h win/resource.h win/win.h
+
+win_keyboard.o:	device.h win/plat_keyboard.h win/resource.h win/win.h
+
+win_language.o:	ibm.h device.h ide.h win/plat_ui.h win/resource.h win/win.h win/win_language.h io.h mem.h rom.h device.h ide.h xtide.h
+
+win_midi.o:		ibm.h config.h sound/midi.h win/plat_midi.h win/resource.h
+
+win_mouse.o:	win/plat_mouse.h win/resource.h win/win.h
+
+win_opendir.o:	ibm.h win/plat_dir.h win/resource.h
+
+win_serial.o:	win/plat_thread.h win/plat_serial.h win/resource.h
+
+win_settings.o:	ibm.h mem.h cpu/cpu.h nvr.h device.h model.h cdrom.h disc.h fdd.h hdd.h ide.h scsi.h network/network.h sound/midi.h \
+		sound/sound.h sound/snd_dbopl.h sound/snd_mpu401.h video/video.h video/vid_voodoo.h gameport.h mouse.h win/plat_midi.h \
+		win/resource.h win/win.h win/win_language.h
+
+win_status.o:	ibm.h mem.h cpu/x86_ops.h cpu/codegen.h device.h win/resource.h win/win.h
+
+win_video.o:	video/video.h win/resource.h win/win_cgapal.h
 
 
 # End of Makefile.mingw.

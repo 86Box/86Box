@@ -321,6 +321,7 @@
 #define IDS_2168		2168	// "IDE (PIO-only)"
 #define IDS_2169		2169	// "%01i:%01i"
 #define IDS_2170		2170	// "%01i:%01i"
+#define IDS_2171		2171
 
 #define IDS_3072		3072
 #define IDS_3073		3073
@@ -393,7 +394,7 @@
 
 #define IDS_LANG_ENUS		IDS_6144
 
-#define STRINGS_NUM_2048	123
+#define STRINGS_NUM_2048	124
 #define STRINGS_NUM_3072	11
 #define STRINGS_NUM_4096	20
 #define STRINGS_NUM_4352	7
