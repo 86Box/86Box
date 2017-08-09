@@ -8,7 +8,9 @@
 
 #include "../WIN/plat_midi.h"
 #include "../WIN/plat_ticks.h"
-#include "midi_fluidsynth.h"
+#ifdef USE_FLUIDSYNTH
+# include "midi_fluidsynth.h"
+#endif
 #include "midi_mt32.h"
 #include "midi_system.h"
 
@@ -25,7 +27,9 @@ typedef struct
 static MIDI_DEVICE devices[] =
 {
         {"None",                        "none",                         NULL},
+#ifdef USE_FLUIDSYNTH
         {"FluidSynth",                  "fluidsynth",                   &fluidsynth_device},
+#endif
         {"Roland MT-32 Emulation",      "mt32",                         &mt32_device},
         {"Roland CM-32L Emulation",     "cm32l",                        &cm32l_device},
         {SYSTEM_MIDI_NAME,              SYSTEM_MIDI_INTERNAL_NAME,      &system_midi_device},

@@ -1,4 +1,6 @@
 /* some code borrowed from scummvm */
+#ifdef USE_FLUIDSYNTH
+
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -502,3 +504,6 @@ device_t fluidsynth_device =
         NULL,
         fluidsynth_config
 };
+
+
+#endif	/*USE_FLUIDSYNTH*/

@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.33	2017/08/08
+# Version:	@(#)Makefile.mingw	1.0.34	2017/08/09
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -54,6 +54,9 @@ USB	= n
 endif
 ifndef DEV_BRANCH
 DEV_BRANCH = n
+endif
+ifndef FLUIDSYNTH
+FLUIDSYNTH = y
 endif
 ifndef X64
 X64	= n
@@ -124,7 +127,10 @@ ifeq ($(VRAMDUMP), y)
 CFLAGS		+= -DENABLE_VRAM_DUMP
 RFLAGS		+= -DENABLE_VRAM_DUMP
 endif
-
+ifeq ($(FLUIDSYNTH), y)
+CFLAGS		+= -DUSE_FLUIDSYNTH
+FSYNTHOBJ	= midi_fluidsynth.o
+endif
 ifeq ($(X64), y)
 PLATCG	= codegen_x86-64.o
 CGOPS   = codegen_ops_x86-64.h
@@ -177,8 +183,8 @@ SYSOBJ	= model.o \
 	  olivetti_m24.o ps1.o ps2.o ps2_mca.o \
 	  tandy_eeprom.o tandy_rom.o
 DEVOBJ	= bugger.o lpt.o $(SERIAL) \
-	    fdc37c665.o fdc37c669.o fdc37c932fr.o \
-	    pc87306.o sis85c471.o w83877f.o \
+	  fdc37c665.o fdc37c669.o fdc37c932fr.o \
+	  pc87306.o sis85c471.o w83877f.o \
 	  keyboard.o \
 	    keyboard_xt.o keyboard_at.o keyboard_pcjr.o \
 	    keyboard_amstrad.o keyboard_olim24.o \
@@ -213,8 +219,7 @@ SNDOBJ	= sound.o \
 	  wave6581_P_T.o wave6581_PS_.o wave6581_PST.o \
 	  wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
 	  wave8580_PST.o wave.o \
-	  midi.o \
-	  midi_fluidsynth.o \
+	  midi.o $(FSYNTHOBJ) \
 	  midi_mt32.o \
 	    Analog.o BReverbModel.o File.o FileStream.o LA32Ramp.o \
 	    LA32FloatWaveGenerator.o LA32WaveGenerator.o \
@@ -325,8 +330,6 @@ pcap_if.res:	pcap_if.rc
 
 
 # Module dependencies.
-
-# /
 acer386sx.o:	ibm.h cpu/cpu.h io.h device.h model.h
 
 ali1429.o:	ibm.h cpu/cpu.h io.h mem.h device.h model.h
