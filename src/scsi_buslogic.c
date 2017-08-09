@@ -1080,7 +1080,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 			/* If there are no mailboxes configured, don't even try to do anything. */
 			if (bl->MailboxCount) {
 				if (!BuslogicCallback) {
-					BuslogicCallback = 50 * SCSI_TIME;
+					BuslogicCallback = 1 * TIMER_USEC;
 				}
 			}
 			return;
@@ -1996,7 +1996,7 @@ BuslogicCommandCallback(void *p)
 	if (bl->MailboxCount) {
 		BuslogicProcessMailbox(bl);
 	} else {
-		BuslogicCallback += 50 * SCSI_TIME;
+		BuslogicCallback += 1 * TIMER_USEC;
 		return;
 	}
     } else if (BuslogicInOperation == 1) {
@@ -2005,7 +2005,7 @@ BuslogicCommandCallback(void *p)
 	if (bl->Req.CmdBlock.common.Cdb[0] == 0x42)
 	{
 		/* This is needed since CD Audio inevitably means READ SUBCHANNEL spam. */
-		BuslogicCallback += 1000 * SCSI_TIME;
+		BuslogicCallback += 1000 * TIMER_USEC;
 		return;
 	}
     } else if (BuslogicInOperation == 2) {
@@ -2018,7 +2018,7 @@ BuslogicCommandCallback(void *p)
 	fatal("Invalid BusLogic callback phase: %i\n", BuslogicInOperation);
     }
 
-    BuslogicCallback += 50 * SCSI_TIME;
+    BuslogicCallback += 1 * TIMER_USEC;
 }
 
 

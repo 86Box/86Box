@@ -1375,7 +1375,7 @@ aha_write(uint16_t port, uint8_t val, void *priv)
 			/* If there are no mailboxes configured, don't even try to do anything. */
 			if (dev->MailboxCount) {
 				if (!AHA_Callback) {
-					AHA_Callback = SCSI_DELAY_TM * SCSI_TIME;
+					AHA_Callback = 1 * TIMER_USEC;
 				}
 			}
 			return;
@@ -2110,7 +2110,7 @@ aha_cmd_cb(void *priv)
 	if (dev->MailboxCount) {
 		aha_do_mail(dev);
 	} else {
-		AHA_Callback += SCSI_DELAY_TM * SCSI_TIME;
+		AHA_Callback += 1 * TIMER_USEC;
 		return;
 	}
     } else if (AHA_InOperation == 1) {
@@ -2119,7 +2119,7 @@ aha_cmd_cb(void *priv)
 	if (dev->Req.CmdBlock.common.Cdb[0] == 0x42)
 	{
 		/* This is needed since CD Audio inevitably means READ SUBCHANNEL spam. */
-		AHA_Callback += 1000 * SCSI_TIME;
+		AHA_Callback += 1000 * TIMER_USEC;
 		return;
 	}
     } else if (AHA_InOperation == 2) {
@@ -2132,7 +2132,7 @@ aha_cmd_cb(void *priv)
 	fatal("Invalid BusLogic callback phase: %i\n", AHA_InOperation);
     }
 
-    AHA_Callback += SCSI_DELAY_TM * SCSI_TIME;
+    AHA_Callback += 1 * TIMER_USEC;
 }
 
 uint8_t aha_mca_read(int port, void *p)
