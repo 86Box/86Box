@@ -61,7 +61,7 @@ static dllimp_t fluidsynth_imports[] = {
   { "fluid_synth_pitch_bend",		&f_fluid_synth_pitch_bend		},
   { "fluid_synth_program_change",	&f_fluid_synth_program_change		},
   { "fluid_synth_sfload",		&f_fluid_synth_sfload			},
-  { "fluid_synth_sfunload",		&f_fluid_synth_sfload			},
+  { "fluid_synth_sfunload",		&f_fluid_synth_sfunload			},
   { "fluid_synth_set_interp_method",	&f_fluid_synth_set_interp_method	},
   { "fluid_synth_set_reverb",		&f_fluid_synth_set_reverb		},
   { "fluid_synth_set_reverb_on",	&f_fluid_synth_set_reverb_on		},
