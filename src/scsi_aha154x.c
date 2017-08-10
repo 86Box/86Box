@@ -287,9 +287,16 @@ aha_patch(uint8_t *romptr, uint16_t ioaddr)
 #endif
 
     
+enum {
+    CHIP_AHA154XB,
+    CHIP_AHA154XCF,
+	CHIP_AHA1640
+};
+
+
 /* Initialize AHA-154xNN-specific stuff. */
 static void
-aha154x_bios(uint16_t ioaddr, uint32_t memaddr, aha_info *aha, int irq, int dma)
+aha154x_bios(uint16_t ioaddr, uint32_t memaddr, aha_info *aha, int irq, int dma, int chip)
 {
     uint32_t bios_size;
     uint32_t bios_addr;
@@ -300,7 +307,15 @@ aha154x_bios(uint16_t ioaddr, uint32_t memaddr, aha_info *aha, int irq, int dma)
 
     /* Set BIOS load address. */
     bios_addr = memaddr;
-    bios_path = ROMFILE;
+    /* bios_path = ROMFILE; */
+    if (chip == CHIP_AHA154XB)
+    {
+	bios_path = L"roms/scsi/adaptec/aha1540b310.bin";
+    }
+    else
+    {
+	bios_path = L"roms/scsi/adaptec/aha1542cf201.bin";
+    }
     pclog_w(L"AHA154x: loading BIOS from '%s'\n", bios_path);
 
     /* Open the BIOS image file and make sure it exists. */
@@ -371,6 +386,7 @@ aha154x_bios(uint16_t ioaddr, uint32_t memaddr, aha_info *aha, int irq, int dma)
 		    aha_mem_write, NULL, NULL,
 		    aha_bios.rom, MEM_MAPPING_EXTERNAL, &aha_bios);
 
+#if 0
 #ifdef ROM_IOADDR
     /* Patch the ROM BIOS image to work with us. */
     aha_patch(aha_bios.rom, ioaddr);
@@ -385,7 +401,26 @@ aha154x_bios(uint16_t ioaddr, uint32_t memaddr, aha_info *aha, int irq, int dma)
     aha->fwh = '1';
     aha->fwl = '0';
 #endif
-    aha->bid = AHA_BID;
+#endif
+
+    if (chip == CHIP_AHA154XB)
+    {
+	/* Fake BIOS firmware version. */
+	aha->fwh = '1';
+	aha->fwl = '0';
+    }
+    else
+    {
+	/* Patch the ROM BIOS image to work with us. */
+	aha_patch(aha_bios.rom, ioaddr);
+
+	/* Read firmware version from the BIOS. */
+	aha->fwh = aha_bios.rom[ROM_FWHIGH];
+	aha->fwl = aha_bios.rom[ROM_FWHIGH+1];
+    }
+
+    /* aha->bid = AHA_BID; */
+    aha->bid = (chip == CHIP_AHA154XB) ? 'A' : 'E';
 
     /*
      * Do a checksum on the ROM.
@@ -415,42 +450,47 @@ again:
     mem_mapping_enable(&aha_bios.mapping);
     mem_mapping_set_addr(&aha_bios.mapping, bios_addr, bios_size);
 
-#ifdef EEP_SIZE
+/* #ifdef EEP_SIZE */
     /* Initialize the on-board EEPROM. */
-    memset(aha_eep, 0x00, EEP_SIZE);
-    aha_eep[0] = 7;			/* SCSI ID 7 */
-	aha_eep[0] |= (0x10 | 0x20 | 0x40);
-    aha_eep[1] = irq-9;			/* IRQ15 */
-    aha_eep[1] |= (dma<<4);		/* DMA6 */
-    aha_eep[2] = (EE2_HABIOS	| 	/* BIOS enabled		*/
-		  EE2_DYNSCAN	|	/* scan bus		*/
-		  EE2_EXT1G | EE2_RMVOK);/* Immediate return on seek	*/
-    aha_eep[3] = SPEED_50;		/* speed 5.0 MB/s		*/
-    aha_eep[6] = (EE6_TERM	|	/* host term enable		*/
-		  EE6_RSTBUS);		/* reset SCSI bus on boot	*/
-#endif
+    if (chip != CHIP_AHA154XB)
+    {
+	    memset(aha_eep, 0x00, EEP_SIZE);
+	    aha_eep[0] = 7;			/* SCSI ID 7 */
+		aha_eep[0] |= (0x10 | 0x20 | 0x40);
+	    aha_eep[1] = irq-9;			/* IRQ15 */
+	    aha_eep[1] |= (dma<<4);		/* DMA6 */
+	    aha_eep[2] = (EE2_HABIOS	| 	/* BIOS enabled		*/
+			  EE2_DYNSCAN	|	/* scan bus		*/
+			  EE2_EXT1G | EE2_RMVOK);/* Immediate return on seek	*/
+	    aha_eep[3] = SPEED_50;		/* speed 5.0 MB/s		*/
+	    aha_eep[6] = (EE6_TERM	|	/* host term enable		*/
+			  EE6_RSTBUS);		/* reset SCSI bus on boot	*/
+    }
+/* #endif */
 }
 
 
 /* Mess with the AHA-154xCF's Shadow RAM. */
 static uint8_t
-aha154x_shram(uint8_t cmd)
+aha154x_shram(uint8_t cmd, int chip)
 {
-#ifdef ROM_SHRAM
-    switch(cmd) {
-	case 0x00:	/* disable, make it look like ROM */
-		memset(&aha_bios.rom[ROM_SHRAM], 0xFF, ROM_SHRAMSZ);
-		break;
+/* #ifdef ROM_SHRAM */
+    if (chip != CHIP_AHA154XB) {
+	switch(cmd) {
+		case 0x00:	/* disable, make it look like ROM */
+			memset(&aha_bios.rom[ROM_SHRAM], 0xFF, ROM_SHRAMSZ);
+			break;
 
-	case 0x02:	/* clear it */
-		memset(&aha_bios.rom[ROM_SHRAM], 0x00, ROM_SHRAMSZ);
-		break;
+		case 0x02:	/* clear it */
+			memset(&aha_bios.rom[ROM_SHRAM], 0x00, ROM_SHRAMSZ);
+			break;
 
-	case 0x03:	/* enable, clear for use */
-		memset(&aha_bios.rom[ROM_SHRAM], 0x00, ROM_SHRAMSZ);
+		case 0x03:	/* enable, clear for use */
+			memset(&aha_bios.rom[ROM_SHRAM], 0x00, ROM_SHRAMSZ);
 		break;
+	}
     }
-#endif
+/* #endif */
 
     /* Firmware expects 04 status. */
     return(0x04);
@@ -458,28 +498,30 @@ aha154x_shram(uint8_t cmd)
 
 
 static uint8_t
-aha154x_eeprom(uint8_t cmd,uint8_t arg,uint8_t len,uint8_t off,uint8_t *bufp)
+aha154x_eeprom(uint8_t cmd,uint8_t arg,uint8_t len,uint8_t off,uint8_t *bufp, int chip)
 {
     uint8_t r = 0xff;
 
     pclog("AHA154x: EEPROM cmd=%02x, arg=%02x len=%d, off=%02x\n",
 					cmd, arg, len, off);
 
-#ifdef EEP_SIZE
-    if ((off+len) > EEP_SIZE) return(r);	/* no can do.. */
+/* #ifdef EEP_SIZE */
+    if (chip != CHIP_AHA154XB) {
+	if ((off+len) > EEP_SIZE) return(r);	/* no can do.. */
 
-    if (cmd == 0x22) {
-	/* Write data to the EEPROM. */
-	memcpy(&aha_eep[off], bufp, len);
-	r = 0;
-    }
+	if (cmd == 0x22) {
+		/* Write data to the EEPROM. */
+		memcpy(&aha_eep[off], bufp, len);
+		r = 0;
+	}
 
-    if (cmd == 0x23) {
-	/* Read data from the EEPROM. */
-	memcpy(bufp, &aha_eep[off], len);
-	r = len;
+	if (cmd == 0x23) {
+		/* Read data from the EEPROM. */
+		memcpy(bufp, &aha_eep[off], len);
+		r = len;
+	}
     }
-#endif
+/* #endif */
 
     return(r);
 }
@@ -860,13 +902,6 @@ static int	ResetCB = 0;
 static int	AHA_Callback = 0;
 static int	AHA_InOperation = 0;
 static aha_t	*ResetDev;
-
-
-enum {
-    CHIP_AHA154XB,
-    CHIP_AHA154XCF,
-	CHIP_AHA1640
-};
 
 
 static void
@@ -1431,7 +1466,10 @@ aha_write(uint16_t port, uint8_t val, void *priv)
 					break;
 
 				case 0x29:
-					dev->CmdParamLeft = 2;
+					if (dev->chip != CHIP_AHA154XB)
+					{
+						dev->CmdParamLeft = 2;
+					}
 					break;
 
 				case 0x91:
@@ -1602,7 +1640,8 @@ aha_0x01:
 						   dev->CmdBuf[0],
 						   dev->CmdBuf[1],
 						   dev->CmdBuf[2],
-						   &dev->CmdBuf[3]);
+						   dev->DataBuf,
+						   dev->chip);
 					if (dev->DataReplyLeft == 0xff) {
 						dev->DataReplyLeft = 0;
 						dev->Status |= STAT_INVCMD;
@@ -1615,7 +1654,8 @@ aha_0x01:
 						   dev->CmdBuf[0],
 						   dev->CmdBuf[1],
 						   dev->CmdBuf[2],
-						   dev->DataBuf);
+						   dev->DataBuf,
+						   dev->chip);
 					if (dev->DataReplyLeft == 0xff) {
 						dev->DataReplyLeft = 0;
 						dev->Status |= STAT_INVCMD;
@@ -1630,7 +1670,7 @@ aha_0x01:
 					 * and expects a 0x04 back in the INTR
 					 * register.  --FvK
 					 */
-					dev->Interrupt = aha154x_shram(val);
+					dev->Interrupt = aha154x_shram(val, dev->chip);
 					break;
 
 				case 0x25:
@@ -1643,20 +1683,34 @@ aha_0x01:
 					break;
 
 				case 0x28:
-					dev->DataBuf[0] = 0x08;
-					dev->DataBuf[1] = dev->Lock;
-					dev->DataReplyLeft = 2;
+					if (dev->chip == CHIP_AHA154XB)
+					{
+						dev->DataReplyLeft = 0;
+						dev->Status |= STAT_INVCMD;
+					}
+					else
+					{
+						dev->DataBuf[0] = 0x08;
+						dev->DataBuf[1] = dev->Lock;
+						dev->DataReplyLeft = 2;
+					}
 					break;
-
 				case 0x29:
-					if (dev->CmdBuf[1] == dev->Lock) {
-						if (dev->CmdBuf[0] & 1) {
-							dev->Lock = 1;
-						} else {
-							dev->Lock = 0;
+					dev->DataReplyLeft = 0;
+					if (dev->chip == CHIP_AHA154XB)
+					{
+						dev->Status |= STAT_INVCMD;
+					}
+					else
+					{
+						if (dev->CmdBuf[1] == dev->Lock) {
+							if (dev->CmdBuf[0] & 1) {
+								dev->Lock = 1;
+							} else {
+								dev->Lock = 0;
+							}
 						}
 					}
-					dev->DataReplyLeft = 0;
 					break;
 
 				case 0x2C:	/* AHA-1542CP sends this */
@@ -2116,6 +2170,7 @@ aha_cmd_cb(void *priv)
     } else if (AHA_InOperation == 1) {
 	pclog("BusLogic Callback: Process CD-ROM request\n");
 	aha_cdrom_cmd(dev);
+	aha_mbi(dev);
 	if (dev->Req.CmdBlock.common.Cdb[0] == 0x42)
 	{
 		/* This is needed since CD Audio inevitably means READ SUBCHANNEL spam. */
@@ -2128,6 +2183,7 @@ aha_cmd_cb(void *priv)
     } else if (AHA_InOperation == 0x11) {
 	pclog("BusLogic Callback: Process DISK request\n");
 	aha_disk_cmd(dev);
+	aha_mbi(dev);
     } else {
 	fatal("Invalid BusLogic callback phase: %i\n", AHA_InOperation);
     }
@@ -2260,7 +2316,7 @@ aha_init(int chip, int has_bios)
 
     if (bios) {
 	/* Perform AHA-154xNN-specific initialization. */
-	aha154x_bios(dev->Base, bios_addr, &dev->aha, dev->Irq, dev->DmaChannel);
+	aha154x_bios(dev->Base, bios_addr, &dev->aha, dev->Irq, dev->DmaChannel, chip);
     }
 
     return(dev);
