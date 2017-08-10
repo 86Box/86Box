@@ -22,7 +22,7 @@ extern void pclog(const char *format, ...);
 extern void al_set_midi(int freq, int buf_size);
 extern int soundon;
 
-static void	*fluidsynth_handle;		/* handle to WinPcap DLL */
+static void	*fluidsynth_handle;		/* handle to FluidSynth DLL */
 
 /* Pointers to the real functions. */
 static fluid_settings_t*(*f_new_fluid_settings)(void);
@@ -74,7 +74,7 @@ static dllimp_t fluidsynth_imports[] = {
 };
 
 
-typedef struct fluidsynth_t
+typedef struct fluidsynth
 {
         fluid_settings_t* settings;
         fluid_synth_t* synth;
@@ -92,12 +92,12 @@ typedef struct fluidsynth_t
 
 fluidsynth_t fsdev;
 
-int fluidsynth_available()
+int fluidsynth_available(void)
 {
         return 1;
 }
 
-void fluidsynth_poll()
+void fluidsynth_poll(void)
 {
         fluidsynth_t* data = &fsdev;
         data->midi_pos++;
@@ -179,7 +179,7 @@ void fluidsynth_sysex(uint8_t* data, unsigned int len)
         f_fluid_synth_sysex(d->synth, (const char *) data, len, 0, 0, 0, 0);
 }
 
-void* fluidsynth_init()
+void* fluidsynth_init(void)
 {
         fluidsynth_t* data = &fsdev;
         memset(data, 0, sizeof(fluidsynth_t));
