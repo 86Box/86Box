@@ -51,13 +51,15 @@ static Bit16u keyToPitchTable[] = {
 	21845, 22187, 22528, 22869
 };
 
+// We want to do processing 4000 times per second. FIXME: This is pretty arbitrary.
+static const int NOMINAL_PROCESS_TIMER_PERIOD_SAMPLES = SAMPLE_RATE / 4000;
+
+// The timer runs at 500kHz. This is how much to increment it after 8 samples passes.
+// We multiply by 8 to get rid of the fraction and deal with just integers.
+static const int PROCESS_TIMER_INCREMENT_x8 = 8 * 500000 / SAMPLE_RATE;
+
 TVP::TVP(const Partial *usePartial) :
 	partial(usePartial), system(&usePartial->getSynth()->mt32ram.system) {
-	// We want to do processing 4000 times per second. FIXME: This is pretty arbitrary.
-	maxCounter = SAMPLE_RATE / 4000;
-	// The timer runs at 500kHz. We only need to bother updating it every maxCounter samples, before we do processing.
-	// This is how much to increment it by every maxCounter samples.
-	processTimerIncrement = 500000 * maxCounter / SAMPLE_RATE;
 }
 
 static Bit16s keyToPitch(unsigned int key) {
@@ -76,13 +78,15 @@ static inline Bit32s fineToPitch(Bit8u fine) {
 	return (fine - 50) * 4096 / 1200; // One cent per fine offset
 }
 
-static Bit32u calcBasePitch(const Partial *partial, const TimbreParam::PartialParam *partialParam, const MemParams::PatchTemp *patchTemp, unsigned int key) {
+static Bit32u calcBasePitch(const Partial *partial, const TimbreParam::PartialParam *partialParam, const MemParams::PatchTemp *patchTemp, unsigned int key, const ControlROMFeatureSet *controlROMFeatures) {
 	Bit32s basePitch = keyToPitch(key);
 	basePitch = (basePitch * pitchKeyfollowMult[partialParam->wg.pitchKeyfollow]) >> 13; // PORTABILITY NOTE: Assumes arithmetic shift
 	basePitch += coarseToPitch(partialParam->wg.pitchCoarse);
 	basePitch += fineToPitch(partialParam->wg.pitchFine);
-	// NOTE:Mok: This is done on MT-32, but not LAPC-I:
-	//pitch += coarseToPitch(patchTemp->patch.keyShift + 12);
+	if (controlROMFeatures->quirkKeyShift) {
+		// NOTE:Mok: This is done on MT-32, but not LAPC-I:
+		basePitch += coarseToPitch(patchTemp->patch.keyShift + 12);
+	}
 	basePitch += fineToPitch(patchTemp->patch.fineTune);
 
 	const ControlROMPCMStruct *controlROMPCMStruct = partial->getControlROMPCMStruct();
@@ -97,7 +101,12 @@ static Bit32u calcBasePitch(const Partial *partial, const TimbreParam::PartialPa
 			basePitch += 33037;
 		}
 	}
-	if (basePitch < 0) {
+
+	// MT-32 GEN0 does 16-bit calculations here, allowing an integer overflow.
+	// This quirk is observable playing the patch defined for timbre "HIT BOTTOM" in Larry 3.
+	if (controlROMFeatures->quirkBasePitchOverflow) {
+		basePitch = basePitch & 0xffff;
+	} else if (basePitch < 0) {
 		basePitch = 0;
 	}
 	if (basePitch > 59392) {
@@ -107,18 +116,22 @@ static Bit32u calcBasePitch(const Partial *partial, const TimbreParam::PartialPa
 }
 
 static Bit32u calcVeloMult(Bit8u veloSensitivity, unsigned int velocity) {
-	if (veloSensitivity == 0 || veloSensitivity > 3) {
-		// Note that on CM-32L/LAPC-I veloSensitivity is never > 3, since it's clipped to 3 by the max tables.
+	if (veloSensitivity == 0) {
 		return 21845; // aka floor(4096 / 12 * 64), aka ~64 semitones
+	}
+	unsigned int reversedVelocity = 127 - velocity;
+	unsigned int scaledReversedVelocity;
+	if (veloSensitivity > 3) {
+		// Note that on CM-32L/LAPC-I veloSensitivity is never > 3, since it's clipped to 3 by the max tables.
+		// MT-32 GEN0 has a bug here that leads to unspecified behaviour. We assume it is as follows.
+		scaledReversedVelocity = (reversedVelocity << 8) >> ((3 - veloSensitivity) & 0x1f);
+	} else {
+		scaledReversedVelocity = reversedVelocity << (5 + veloSensitivity);
 	}
 	// When velocity is 127, the multiplier is 21845, aka ~64 semitones (regardless of veloSensitivity).
 	// The lower the velocity, the lower the multiplier. The veloSensitivity determines the amount decreased per velocity value.
-	// The minimum multiplier (with velocity 0, veloSensitivity 3) is 170 (~half a semitone).
-	Bit32u veloMult = 32768;
-	veloMult -= (127 - velocity) << (5 + veloSensitivity);
-	veloMult *= 21845;
-	veloMult >>= 15;
-	return veloMult;
+	// The minimum multiplier on CM-32L/LAPC-I (with velocity 0, veloSensitivity 3) is 170 (~half a semitone).
+	return ((32768 - scaledReversedVelocity) * 21845) >> 15;
 }
 
 static Bit32s calcTargetPitchOffsetWithoutLFO(const TimbreParam::PartialParam *partialParam, int levelIndex, unsigned int velocity) {
@@ -139,7 +152,7 @@ void TVP::reset(const Part *usePart, const TimbreParam::PartialParam *usePartial
 	// FIXME: We're using a per-TVP timer instead of a system-wide one for convenience.
 	timeElapsed = 0;
 
-	basePitch = calcBasePitch(partial, partialParam, patchTemp, key);
+	basePitch = calcBasePitch(partial, partialParam, patchTemp, key, partial->getSynth()->controlROMFeatures);
 	currentPitchOffset = calcTargetPitchOffsetWithoutLFO(partialParam, 0, velocity);
 	targetPitchOffsetWithoutLFO = currentPitchOffset;
 	phase = 0;
@@ -166,22 +179,23 @@ Bit32u TVP::getBasePitch() const {
 void TVP::updatePitch() {
 	Bit32s newPitch = basePitch + currentPitchOffset;
 	if (!partial->isPCM() || (partial->getControlROMPCMStruct()->len & 0x01) == 0) { // FIXME: Use !partial->pcmWaveEntry->unaffectedByMasterTune instead
-		// FIXME: masterTune recalculation doesn't really happen here, and there are various bugs not yet emulated
+		// FIXME: There are various bugs not yet emulated
 		// 171 is ~half a semitone.
-		newPitch += ((system->masterTune - 64) * 171) >> 6; // PORTABILITY NOTE: Assumes arithmetic shift.
+		newPitch += partial->getSynth()->getMasterTunePitchDelta();
 	}
 	if ((partialParam->wg.pitchBenderEnabled & 1) != 0) {
 		newPitch += part->getPitchBend();
 	}
-	if (newPitch < 0) {
+
+	// MT-32 GEN0 does 16-bit calculations here, allowing an integer overflow.
+	// This quirk is exploited e.g. in Colonel's Bequest timbres "Lightning" and "SwmpBackgr".
+	if (partial->getSynth()->controlROMFeatures->quirkPitchEnvelopeOverflow) {
+		newPitch = newPitch & 0xffff;
+	} else if (newPitch < 0) {
 		newPitch = 0;
 	}
-
-	// Skipping this check seems about right emulation of MT-32 GEN0 quirk exploited in Colonel's Bequest timbre "Lightning"
-	if (partial->getSynth()->controlROMFeatures->quirkPitchEnvelopeOverflow == 0) {
-		if (newPitch > 59392) {
-			newPitch = 59392;
-		}
+	if (newPitch > 59392) {
+		newPitch = 59392;
 	}
 	pitch = Bit16u(newPitch);
 
@@ -284,13 +298,19 @@ void TVP::startDecay() {
 }
 
 Bit16u TVP::nextPitch() {
-	// FIXME: Write explanation of counter and time increment
+	// We emulate MCU software timer using these counter and processTimerIncrement variables.
+	// The value of nominalProcessTimerPeriod approximates the period in samples
+	// between subsequent firings of the timer that normally occur.
+	// However, accurate emulation is quite complicated because the timer is not guaranteed to fire in time.
+	// This makes pitch variations on real unit non-deterministic and dependent on various factors.
 	if (counter == 0) {
-		timeElapsed += processTimerIncrement;
-		timeElapsed = timeElapsed & 0x00FFFFFF;
+		timeElapsed = (timeElapsed + processTimerIncrement) & 0x00FFFFFF;
+		// This roughly emulates pitch deviations observed on real units when playing a single partial that uses TVP/LFO.
+		counter = NOMINAL_PROCESS_TIMER_PERIOD_SAMPLES + (rand() & 3);
+		processTimerIncrement = (PROCESS_TIMER_INCREMENT_x8 * counter) >> 3;
 		process();
 	}
-	counter = (counter + 1) % maxCounter;
+	counter--;
 	return pitch;
 }
 

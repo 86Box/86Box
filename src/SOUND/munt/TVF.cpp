@@ -21,6 +21,7 @@
 #include "LA32Ramp.h"
 #include "Partial.h"
 #include "Poly.h"
+#include "Synth.h"
 #include "Tables.h"
 
 namespace MT32Emu {
@@ -52,7 +53,7 @@ enum {
 	PHASE_DONE = 7
 };
 
-static int calcBaseCutoff(const TimbreParam::PartialParam *partialParam, Bit32u basePitch, unsigned int key) {
+static int calcBaseCutoff(const TimbreParam::PartialParam *partialParam, Bit32u basePitch, unsigned int key, bool quirkTVFBaseCutoffLimit) {
 	// This table matches the values used by a real LAPC-I.
 	static const Bit8s biasLevelToBiasMult[] = {85, 42, 21, 16, 10, 5, 2, 0, -2, -5, -10, -16, -21, -74, -85};
 	// These values represent unique options with no consistent pattern, so we have to use something like a table in any case.
@@ -90,8 +91,14 @@ static int calcBaseCutoff(const TimbreParam::PartialParam *partialParam, Bit32u 
 		if (pitchDeltaThing > 0) {
 			baseCutoff -= pitchDeltaThing;
 		}
-	} else if (baseCutoff < -2048) {
-		baseCutoff = -2048;
+	} else if (quirkTVFBaseCutoffLimit) {
+		if (baseCutoff <= -0x400) {
+			baseCutoff = -400;
+		}
+	} else {
+		if (baseCutoff < -2048) {
+			baseCutoff = -2048;
+		}
 	}
 	baseCutoff += 2056;
 	baseCutoff >>= 4; // PORTABILITY NOTE: Hmm... Depends whether it could've been below -2056, but maybe arithmetic shift assumed?
@@ -110,7 +117,7 @@ void TVF::startRamp(Bit8u newTarget, Bit8u newIncrement, int newPhase) {
 	phase = newPhase;
 	cutoffModifierRamp->startRamp(newTarget, newIncrement);
 #if MT32EMU_MONITOR_TVF >= 1
-	partial->getSynth()->printDebug("[+%lu] [Partial %d] TVF,ramp,%d,%d,%d,%d", partial->debugGetSampleNum(), partial->debugGetPartialNum(), newTarget, (newIncrement & 0x80) ? -1 : 1, (newIncrement & 0x7F), newPhase);
+	partial->getSynth()->printDebug("[+%lu] [Partial %d] TVF,ramp,%x,%s%x,%d", partial->debugGetSampleNum(), partial->debugGetPartialNum(), newTarget, (newIncrement & 0x80) ? "-" : "+", (newIncrement & 0x7F), newPhase);
 #endif
 }
 
@@ -122,7 +129,7 @@ void TVF::reset(const TimbreParam::PartialParam *newPartialParam, unsigned int b
 
 	const Tables *tables = &Tables::getInstance();
 
-	baseCutoff = calcBaseCutoff(newPartialParam, basePitch, key);
+	baseCutoff = calcBaseCutoff(newPartialParam, basePitch, key, partial->getSynth()->controlROMFeatures->quirkTVFBaseCutoffLimit);
 #if MT32EMU_MONITOR_TVF >= 1
 	partial->getSynth()->printDebug("[+%lu] [Partial %d] TVF,base,%d", partial->debugGetSampleNum(), partial->debugGetPartialNum(), baseCutoff);
 #endif

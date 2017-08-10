@@ -124,6 +124,7 @@ friend class RhythmPart;
 friend class SamplerateAdapter;
 friend class SoxrAdapter;
 friend class TVA;
+friend class TVF;
 friend class TVP;
 
 private:
@@ -230,6 +231,9 @@ private:
 	// partNum should be 0..7 for Part 1..8, or 8 for Rhythm
 	const Part *getPart(Bit8u partNum) const;
 
+	void resetMasterTunePitchDelta();
+	Bit32s getMasterTunePitchDelta() const;
+
 public:
 	static inline Bit16s clipSampleEx(Bit32s sampleEx) {
 		// Clamp values above 32767 to 32767, and values below -32768 to -32768
@@ -258,11 +262,11 @@ public:
 	}
 
 	static inline Bit16s convertSample(float sample) {
-		return Synth::clipSampleEx(Bit32s(sample * 16384.0f)); // This multiplier takes into account the DAC bit shift
+		return Synth::clipSampleEx(Bit32s(sample * 32768.0f)); // This multiplier corresponds to normalised floats
 	}
 
 	static inline float convertSample(Bit16s sample) {
-		return float(sample) / 16384.0f; // This multiplier takes into account the DAC bit shift
+		return float(sample) / 32768.0f; // This multiplier corresponds to normalised floats
 	}
 
 	// Returns library version as an integer in format: 0x00MMmmpp, where:
@@ -307,6 +311,10 @@ public:
 	// The queue is flushed before reallocation.
 	// Returns the actual queue size being used.
 	MT32EMU_EXPORT Bit32u setMIDIEventQueueSize(Bit32u);
+
+	// Returns current value of the global counter of samples rendered since the synth was created (at the native sample rate 32000 Hz).
+	// This method helps to compute accurate timestamp of a MIDI message to use with the methods below.
+	MT32EMU_EXPORT Bit32u getInternalRenderedSampleCount() const;
 
 	// Enqueues a MIDI event for subsequent playback.
 	// The MIDI event will be processed not before the specified timestamp.
@@ -382,7 +390,6 @@ public:
 	// Sets output gain factor for synth output channels. Applied to all output samples and unrelated with the synth's Master volume,
 	// it rather corresponds to the gain of the output analog circuitry of the hardware units. However, together with setReverbOutputGain()
 	// it offers to the user a capability to control the gain of reverb and non-reverb output channels independently.
-	// Ignored in DACInputMode_PURE
 	MT32EMU_EXPORT void setOutputGain(float gain);
 	// Returns current output gain factor for synth output channels.
 	MT32EMU_EXPORT float getOutputGain() const;
@@ -395,7 +402,6 @@ public:
 	// corresponds to the level of digital capture. Although, according to the CM-64 PCB schematic,
 	// there is a difference in the reverb analogue circuit, and the resulting output gain is 0.68
 	// of that for LA32 analogue output. This factor is applied to the reverb output gain.
-	// Ignored in DACInputMode_PURE
 	MT32EMU_EXPORT void setReverbOutputGain(float gain);
 	// Returns current output gain factor for reverb wet output channels.
 	MT32EMU_EXPORT float getReverbOutputGain() const;
@@ -404,6 +410,16 @@ public:
 	MT32EMU_EXPORT void setReversedStereoEnabled(bool enabled);
 	// Returns whether left and right output channels are swapped.
 	MT32EMU_EXPORT bool isReversedStereoEnabled() const;
+
+	// Allows to toggle the NiceAmpRamp mode.
+	// In this mode, we want to ensure that amp ramp never jumps to the target
+	// value and always gradually increases or decreases. It seems that real units
+	// do not bother to always check if a newly started ramp leads to a jump.
+	// We also prefer the quality improvement over the emulation accuracy,
+	// so this mode is enabled by default.
+	MT32EMU_EXPORT void setNiceAmpRampEnabled(bool enabled);
+	// Returns whether NiceAmpRamp mode is enabled.
+	MT32EMU_EXPORT bool isNiceAmpRampEnabled() const;
 
 	// Selects new type of the wave generator and renderer to be used during subsequent calls to open().
 	// By default, RendererType_BIT16S is selected.

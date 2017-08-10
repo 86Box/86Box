@@ -56,8 +56,8 @@ We haven't fully explored:
 namespace MT32Emu {
 
 // SEMI-CONFIRMED from sample analysis.
-const int TARGET_MULT = 0x40000;
-const unsigned int MAX_CURRENT = 0xFF * TARGET_MULT;
+const unsigned int TARGET_SHIFTS = 18;
+const unsigned int MAX_CURRENT = 0xFF << TARGET_SHIFTS;
 
 // We simulate the delay in handling "target was reached" interrupts by waiting
 // this many samples before setting interruptRaised.
@@ -96,7 +96,7 @@ void LA32Ramp::startRamp(Bit8u target, Bit8u increment) {
 		largeIncrement++;
 	}
 
-	largeTarget = target * TARGET_MULT;
+	largeTarget = target << TARGET_SHIFTS;
 	interruptCountdown = 0;
 	interruptRaised = false;
 }
@@ -150,6 +150,15 @@ void LA32Ramp::reset() {
 	descending = false;
 	interruptCountdown = 0;
 	interruptRaised = false;
+}
+
+// This is actually beyond the LA32 ramp interface.
+// Instead of polling the current value, MCU receives an interrupt when a ramp completes.
+// However, this is a simple way to work around the specific behaviour of TVA
+// when in sustain phase which one normally wants to avoid.
+// See TVA::recalcSustain() for details.
+bool LA32Ramp::isBelowCurrent(Bit8u target) const {
+	return Bit32u(target << TARGET_SHIFTS) < current;
 }
 
 } // namespace MT32Emu

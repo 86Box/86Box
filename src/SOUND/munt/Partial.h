@@ -108,6 +108,7 @@ public:
 	void startAbort();
 	void startDecayAll();
 	bool shouldReverb();
+	bool isRingModulatingNoMix() const;
 	bool hasRingModulatingSlave() const;
 	bool isRingModulatingSlave() const;
 	bool isPCM() const;

@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.34	2017/08/09
+# Version:	@(#)Makefile.mingw	1.0.35	2017/08/10
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -224,8 +224,8 @@ SNDOBJ	= sound.o \
 	    Analog.o BReverbModel.o File.o FileStream.o LA32Ramp.o \
 	    LA32FloatWaveGenerator.o LA32WaveGenerator.o \
 	    MidiStreamParser.o Part.o Partial.o PartialManager.o \
-	    Poly.o ROMInfo.o Synth.o Tables.o TVA.o TVF.o TVP.o \
-	    sha1.o c_interface.o \
+	    Poly.o ROMInfo.o SampleRateConverter_dummy.o Synth.o \
+	    Tables.o TVA.o TVF.o TVP.o sha1.o c_interface.o \
 	  midi_system.o \
 	  snd_speaker.o snd_ps1.o snd_pssj.o \
 	  snd_adlib.o snd_adlibgold.o snd_ad1848.o \

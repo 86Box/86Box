@@ -43,7 +43,7 @@ void TVA::startRamp(Bit8u newTarget, Bit8u newIncrement, int newPhase) {
 	phase = newPhase;
 	ampRamp->startRamp(newTarget, newIncrement);
 #if MT32EMU_MONITOR_TVA >= 1
-	partial->getSynth()->printDebug("[+%lu] [Partial %d] TVA,ramp,%d,%d,%d,%d", partial->debugGetSampleNum(), partial->debugGetPartialNum(), (newIncrement & 0x80) ? -1 : 1, (newIncrement & 0x7F), newPhase);
+	partial->getSynth()->printDebug("[+%lu] [Partial %d] TVA,ramp,%x,%s%x,%d", partial->debugGetSampleNum(), partial->debugGetPartialNum(), newTarget, (newIncrement & 0x80) ? "-" : "+", (newIncrement & 0x7F), newPhase);
 #endif
 }
 
@@ -99,10 +99,10 @@ static int calcVeloAmpSubtraction(Bit8u veloSensitivity, unsigned int velocity) 
 	return absVelocityMult - (velocityMult >> 8); // PORTABILITY NOTE: Assumes arithmetic shift
 }
 
-static int calcBasicAmp(const Tables *tables, const Partial *partial, const MemParams::System *system, const TimbreParam::PartialParam *partialParam, const MemParams::PatchTemp *patchTemp, const MemParams::RhythmTemp *rhythmTemp, int biasAmpSubtraction, int veloAmpSubtraction, Bit8u expression) {
+static int calcBasicAmp(const Tables *tables, const Partial *partial, const MemParams::System *system, const TimbreParam::PartialParam *partialParam, const MemParams::PatchTemp *patchTemp, const MemParams::RhythmTemp *rhythmTemp, int biasAmpSubtraction, int veloAmpSubtraction, Bit8u expression, bool hasRingModQuirk) {
 	int amp = 155;
 
-	if (!partial->isRingModulatingSlave()) {
+	if (!(hasRingModQuirk ? partial->isRingModulatingNoMix() : partial->isRingModulatingSlave())) {
 		amp -= tables->masterVolToAmpSubtraction[system->masterVol];
 		if (amp < 0) {
 			return 0;
@@ -169,7 +169,7 @@ void TVA::reset(const Part *newPart, const TimbreParam::PartialParam *newPartial
 	biasAmpSubtraction = calcBiasAmpSubtractions(partialParam, key);
 	veloAmpSubtraction = calcVeloAmpSubtraction(partialParam->tva.veloSensitivity, velocity);
 
-	int newTarget = calcBasicAmp(tables, partial, system, partialParam, patchTemp, newRhythmTemp, biasAmpSubtraction, veloAmpSubtraction, part->getExpression());
+	int newTarget = calcBasicAmp(tables, partial, system, partialParam, patchTemp, newRhythmTemp, biasAmpSubtraction, veloAmpSubtraction, part->getExpression(), partial->getSynth()->controlROMFeatures->quirkRingModulationNoMix);
 	int newPhase;
 	if (partialParam->tva.envTime[0] == 0) {
 		// Initially go to the TVA_PHASE_ATTACK target amp, and spend the next phase going from there to the TVA_PHASE_2 target amp
@@ -221,18 +221,29 @@ void TVA::recalcSustain() {
 	}
 	// We're sustaining. Recalculate all the values
 	const Tables *tables = &Tables::getInstance();
-	int newTarget = calcBasicAmp(tables, partial, system, partialParam, patchTemp, rhythmTemp, biasAmpSubtraction, veloAmpSubtraction, part->getExpression());
+	int newTarget = calcBasicAmp(tables, partial, system, partialParam, patchTemp, rhythmTemp, biasAmpSubtraction, veloAmpSubtraction, part->getExpression(), partial->getSynth()->controlROMFeatures->quirkRingModulationNoMix);
 	newTarget += partialParam->tva.envLevel[3];
-	// Since we're in TVA_PHASE_SUSTAIN at this point, we know that target has been reached and an interrupt fired, so we can rely on it being the current amp.
+
+	// Although we're in TVA_PHASE_SUSTAIN at this point, we cannot be sure that there is no active ramp at the moment.
+	// In case the channel volume or the expression changes frequently, the previously started ramp may still be in progress.
+	// Real hardware units ignore this possibility and rely on the assumption that the target is the current amp.
+	// This is OK in most situations but when the ramp that is currently in progress needs to change direction
+	// due to a volume/expression update, this leads to a jump in the amp that is audible as an unpleasant click.
+	// To avoid that, we compare the newTarget with the the actual current ramp value and correct the direction if necessary.
 	int targetDelta = newTarget - target;
 
 	// Calculate an increment to get to the new amp value in a short, more or less consistent amount of time
 	Bit8u newIncrement;
-	if (targetDelta >= 0) {
+	bool descending = targetDelta < 0;
+	if (!descending) {
 		newIncrement = tables->envLogarithmicTime[Bit8u(targetDelta)] - 2;
 	} else {
 		newIncrement = (tables->envLogarithmicTime[Bit8u(-targetDelta)] - 2) | 0x80;
 	}
+	if (part->getSynth()->isNiceAmpRampEnabled() && (descending != ampRamp->isBelowCurrent(newTarget))) {
+		newIncrement ^= 0x80;
+	}
+
 	// Configure so that once the transition's complete and nextPhase() is called, we'll just re-enter sustain phase (or decay phase, depending on parameters at the time).
 	startRamp(newTarget, newIncrement, TVA_PHASE_SUSTAIN - 1);
 }
@@ -260,7 +271,7 @@ void TVA::nextPhase() {
 	}
 
 	bool allLevelsZeroFromNowOn = false;
-	if (partialParam->tva.envLevel[3] == 0) {
+	if (!partial->getSynth()->controlROMFeatures->quirkTVAZeroEnvLevels && partialParam->tva.envLevel[3] == 0) {
 		if (newPhase == TVA_PHASE_4) {
 			allLevelsZeroFromNowOn = true;
 		} else if (partialParam->tva.envLevel[2] == 0) {
@@ -283,7 +294,7 @@ void TVA::nextPhase() {
 	int envPointIndex = phase;
 
 	if (!allLevelsZeroFromNowOn) {
-		newTarget = calcBasicAmp(tables, partial, system, partialParam, patchTemp, rhythmTemp, biasAmpSubtraction, veloAmpSubtraction, part->getExpression());
+		newTarget = calcBasicAmp(tables, partial, system, partialParam, patchTemp, rhythmTemp, biasAmpSubtraction, veloAmpSubtraction, part->getExpression(), partial->getSynth()->controlROMFeatures->quirkRingModulationNoMix);
 
 		if (newPhase == TVA_PHASE_SUSTAIN || newPhase == TVA_PHASE_RELEASE) {
 			if (partialParam->tva.envLevel[3] == 0) {

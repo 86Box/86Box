@@ -36,7 +36,6 @@ private:
 	const TimbreParam::PartialParam *partialParam;
 	const MemParams::PatchTemp *patchTemp;
 
-	int maxCounter;
 	int processTimerIncrement;
 	int counter;
 	Bit32u timeElapsed;

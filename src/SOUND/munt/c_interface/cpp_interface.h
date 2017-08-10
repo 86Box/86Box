@@ -61,6 +61,7 @@ mt32emu_service_i mt32emu_get_service_i();
 #define mt32emu_flush_midi_queue i.v0->flushMIDIQueue
 #define mt32emu_set_midi_event_queue_size i.v0->setMIDIEventQueueSize
 #define mt32emu_set_midi_receiver i.v0->setMIDIReceiver
+#define mt32emu_get_internal_rendered_sample_count iV2()->getInternalRenderedSampleCount
 #define mt32emu_parse_stream i.v0->parseStream
 #define mt32emu_parse_stream_at i.v0->parseStream_At
 #define mt32emu_play_short_message i.v0->playShortMessage
@@ -90,6 +91,8 @@ mt32emu_service_i mt32emu_get_service_i();
 #define mt32emu_get_reverb_output_gain i.v0->getReverbOutputGain
 #define mt32emu_set_reversed_stereo_enabled i.v0->setReversedStereoEnabled
 #define mt32emu_is_reversed_stereo_enabled i.v0->isReversedStereoEnabled
+#define mt32emu_set_nice_amp_ramp_enabled iV2()->setNiceAmpRampEnabled
+#define mt32emu_is_nice_amp_ramp_enabled iV2()->isNiceAmpRampEnabled
 #define mt32emu_render_bit16s i.v0->renderBit16s
 #define mt32emu_render_float i.v0->renderFloat
 #define mt32emu_render_bit16s_streams i.v0->renderBit16sStreams
@@ -213,6 +216,7 @@ public:
 	void setMIDIReceiver(mt32emu_midi_receiver_i midi_receiver, void *instance_data) { mt32emu_set_midi_receiver(c, midi_receiver, instance_data); }
 	void setMIDIReceiver(IMidiReceiver &midi_receiver) { setMIDIReceiver(CppInterfaceImpl::getMidiReceiverThunk(), &midi_receiver); }
 
+	Bit32u getInternalRenderedSampleCount() { return mt32emu_get_internal_rendered_sample_count(c); }
 	void parseStream(const Bit8u *stream, Bit32u length) { mt32emu_parse_stream(c, stream, length); }
 	void parseStream_At(const Bit8u *stream, Bit32u length, Bit32u timestamp) { mt32emu_parse_stream_at(c, stream, length, timestamp); }
 	void playShortMessage(Bit32u message) { mt32emu_play_short_message(c, message); }
@@ -249,6 +253,9 @@ public:
 	void setReversedStereoEnabled(const bool enabled) { mt32emu_set_reversed_stereo_enabled(c, enabled ? MT32EMU_BOOL_TRUE : MT32EMU_BOOL_FALSE); }
 	bool isReversedStereoEnabled() { return mt32emu_is_reversed_stereo_enabled(c) != MT32EMU_BOOL_FALSE; }
 
+	void setNiceAmpRampEnabled(const bool enabled) { mt32emu_set_nice_amp_ramp_enabled(c, enabled ? MT32EMU_BOOL_TRUE : MT32EMU_BOOL_FALSE); }
+	bool isNiceAmpRampEnabled() { return mt32emu_is_nice_amp_ramp_enabled(c) != MT32EMU_BOOL_FALSE; }
+
 	void renderBit16s(Bit16s *stream, Bit32u len) { mt32emu_render_bit16s(c, stream, len); }
 	void renderFloat(float *stream, Bit32u len) { mt32emu_render_float(c, stream, len); }
 	void renderBit16sStreams(const mt32emu_dac_output_bit16s_streams *streams, Bit32u len) { mt32emu_render_bit16s_streams(c, streams, len); }
@@ -271,6 +278,7 @@ private:
 
 #if MT32EMU_API_TYPE == 2
 	const mt32emu_service_i_v1 *iV1() { return (getVersionID() < MT32EMU_SERVICE_VERSION_1) ? NULL : i.v1; }
+	const mt32emu_service_i_v2 *iV2() { return (getVersionID() < MT32EMU_SERVICE_VERSION_2) ? NULL : i.v2; }
 #endif
 };
 
@@ -421,6 +429,7 @@ static mt32emu_midi_receiver_i getMidiReceiverThunk() {
 #undef mt32emu_flush_midi_queue
 #undef mt32emu_set_midi_event_queue_size
 #undef mt32emu_set_midi_receiver
+#undef mt32emu_get_internal_rendered_sample_count
 #undef mt32emu_parse_stream
 #undef mt32emu_parse_stream_at
 #undef mt32emu_play_short_message
@@ -450,6 +459,8 @@ static mt32emu_midi_receiver_i getMidiReceiverThunk() {
 #undef mt32emu_get_reverb_output_gain
 #undef mt32emu_set_reversed_stereo_enabled
 #undef mt32emu_is_reversed_stereo_enabled
+#undef mt32emu_set_nice_amp_ramp_enabled
+#undef mt32emu_is_nice_amp_ramp_enabled
 #undef mt32emu_render_bit16s
 #undef mt32emu_render_float
 #undef mt32emu_render_bit16s_streams

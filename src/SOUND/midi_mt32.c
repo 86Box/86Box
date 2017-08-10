@@ -178,6 +178,7 @@ void* mt32emu_init(wchar_t *control_rom, wchar_t *pcm_rom)
         mt32emu_set_reverb_enabled(context, device_get_config_int("reverb"));
         mt32emu_set_reverb_output_gain(context, device_get_config_int("reverb_output_gain")/100.0f);
         mt32emu_set_reversed_stereo_enabled(context, device_get_config_int("reversed_stereo"));
+        mt32emu_set_nice_amp_ramp_enabled(context, device_get_config_int("nice_ramp"));
 
         pclog("mt32 output gain: %f\n", mt32emu_get_output_gain(context));
         pclog("mt32 reverb output gain: %f\n", mt32emu_get_reverb_output_gain(context));
@@ -248,32 +249,11 @@ static device_config_t mt32_config[] =
         {
                 .name = "output_gain",
                 .description = "Output Gain",
-                .type = CONFIG_SELECTION,
-                .selection =
+                .type = CONFIG_SPINNER,
+                .spinner =
                 {
-                        {
-                                .description = "100%",
-                                .value = 100
-                        },
-                        {
-                                .description = "75%",
-                                .value = 75
-                        },
-                        {
-                                .description = "50%",
-                                .value = 50
-                        },
-                        {
-                                .description = "25%",
-                                .value = 25
-                        },
-                        {
-                                .description = "0%",
-                                .value = 0
-                        },
-                        {
-                                .description = ""
-                        }
+                        .min = 0,
+                        .max = 100
                 },
                 .default_int = 100
         },
@@ -286,32 +266,11 @@ static device_config_t mt32_config[] =
         {
                 .name = "reverb_output_gain",
                 .description = "Reverb Output Gain",
-                .type = CONFIG_SELECTION,
-                .selection =
+                .type = CONFIG_SPINNER,
+                .spinner =
                 {
-                        {
-                                .description = "100%",
-                                .value = 100
-                        },
-                        {
-                                .description = "75%",
-                                .value = 75
-                        },
-                        {
-                                .description = "50%",
-                                .value = 50
-                        },
-                        {
-                                .description = "25%",
-                                .value = 25
-                        },
-                        {
-                                .description = "0%",
-                                .value = 0
-                        },
-                        {
-                                .description = ""
-                        }
+                        .min = 0,
+                        .max = 100
                 },
                 .default_int = 100
         },
@@ -320,6 +279,12 @@ static device_config_t mt32_config[] =
                 .description = "Reversed stereo",
                 .type = CONFIG_BINARY,
                 .default_int = 0
+        },
+        {
+                .name = "nice_ramp",
+                .description = "Nice ramp",
+                .type = CONFIG_BINARY,
+                .default_int = 1
         },
         {
                 .type = -1

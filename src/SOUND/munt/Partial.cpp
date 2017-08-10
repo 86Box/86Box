@@ -272,6 +272,10 @@ bool Partial::isRingModulatingSlave() const {
 	return pair != NULL && structurePosition == 1 && (mixType == 1 || mixType == 2);
 }
 
+bool Partial::isRingModulatingNoMix() const {
+	return pair != NULL && ((structurePosition == 1 && mixType == 1) || mixType == 2);
+}
+
 bool Partial::isPCM() const {
 	return pcmWave != NULL;
 }
@@ -368,7 +372,7 @@ bool Partial::doProduceOutput(Sample *leftBuf, Sample *rightBuf, Bit32u length, 
 
 bool Partial::produceOutput(IntSample *leftBuf, IntSample *rightBuf, Bit32u length) {
 	if (floatMode) {
-		synth->printDebug("Partial: Invalid call to produceOutput()!\n", synth->getSelectedRendererType());
+		synth->printDebug("Partial: Invalid call to produceOutput()! Renderer = %d\n", synth->getSelectedRendererType());
 		return false;
 	}
 	return doProduceOutput(leftBuf, rightBuf, length, static_cast<LA32IntPartialPair *>(la32Pair));
@@ -376,7 +380,7 @@ bool Partial::produceOutput(IntSample *leftBuf, IntSample *rightBuf, Bit32u leng
 
 bool Partial::produceOutput(FloatSample *leftBuf, FloatSample *rightBuf, Bit32u length) {
 	if (!floatMode) {
-		synth->printDebug("Partial: Invalid call to produceOutput()!\n", synth->getSelectedRendererType());
+		synth->printDebug("Partial: Invalid call to produceOutput()! Renderer = %d\n", synth->getSelectedRendererType());
 		return false;
 	}
 	return doProduceOutput(leftBuf, rightBuf, length, static_cast<LA32FloatPartialPair *>(la32Pair));
