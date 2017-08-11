@@ -978,9 +978,18 @@ void destroy_menu_handles(void)
 		return;
 	}
 
+	if (!sb_menu_handles)
+	{
+		return;
+	}
+
 	for (i = 0; i < sb_parts; i++)
 	{
-		DestroyMenu(sb_menu_handles[i]);
+		if (sb_menu_handles[i])
+		{
+			DestroyMenu(sb_menu_handles[i]);
+			sb_menu_handles[i] = NULL;
+		}
 	}
 
 	free(sb_menu_handles);
@@ -995,12 +1004,22 @@ void destroy_tips(void)
 		return;
 	}
 
+	if (!sbTips)
+	{
+		return;
+	}
+
 	for (i = 0; i < sb_parts; i++)
 	{
-		free(sbTips[i]);
+		if (sbTips[i])
+		{
+			free(sbTips[i]);
+			sbTips[i] = NULL;
+		}
 	}
 
 	free(sbTips);
+	sbTips = NULL;
 }
 
 void update_status_bar_panes(HWND hwnds)
@@ -1031,15 +1050,33 @@ void update_status_bar_panes(HWND hwnds)
 			SendMessage(hwnds, SB_SETICON, i, (LPARAM) NULL);
 		}
 
-		sb_parts = 0;
+		SendMessage(hwnds, SB_SETPARTS, (WPARAM) 0, (LPARAM) NULL);
 
-		free(iStatusWidths);
-		free(sb_part_meanings);
-		free(sb_part_icons);
-		free(sb_icon_flags);
+		if (iStatusWidths)
+		{
+			free(iStatusWidths);
+			iStatusWidths = NULL;
+		}
+		if (sb_part_meanings)
+		{
+			free(sb_part_meanings);
+			sb_part_meanings = NULL;
+		}
+		if (sb_part_icons)
+		{
+			free(sb_part_icons);
+			sb_part_icons = NULL;
+		}
+		if (sb_icon_flags)
+		{
+			free(sb_icon_flags);
+			sb_icon_flags = NULL;
+		}
 		destroy_menu_handles();
 		destroy_tips();
 	}
+
+	sb_parts = 0;
 
 	for (i = 0; i < FDD_NUM; i++)
 	{
@@ -1051,6 +1088,18 @@ void update_status_bar_panes(HWND hwnds)
 	}
 	for (i = 0; i < CDROM_NUM; i++)
 	{
+		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) && !(models[model].flags & MODEL_HAS_IDE))
+		{
+			continue;
+		}
+		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA) && !(models[model].flags & MODEL_HAS_IDE))
+		{
+			continue;
+		}
+		if ((cdrom_drives[i].bus_type == CDROM_BUS_SCSI) && (scsi_card_current == 0))
+		{
+			continue;
+		}
 		if (cdrom_drives[i].bus_type != 0)
 		{
 			sb_parts++;
@@ -1058,7 +1107,7 @@ void update_status_bar_panes(HWND hwnds)
 	}
 	for (i = 0; i < HDC_NUM; i++)
 	{
-		if (hdc[i].bus == HDD_BUS_SCSI_REMOVABLE)
+		if ((hdc[i].bus == HDD_BUS_SCSI_REMOVABLE) && (scsi_card_current != 0))
 		{
 			sb_parts++;
 		}
@@ -1118,6 +1167,18 @@ void update_status_bar_panes(HWND hwnds)
 	}
 	for (i = 0; i < CDROM_NUM; i++)
 	{
+		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) && !(models[model].flags & MODEL_HAS_IDE))
+		{
+			continue;
+		}
+		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA) && !(models[model].flags & MODEL_HAS_IDE))
+		{
+			continue;
+		}
+		if ((cdrom_drives[i].bus_type == CDROM_BUS_SCSI) && (scsi_card_current == 0))
+		{
+			continue;
+		}
 		if (cdrom_drives[i].bus_type != 0)
 		{
 			edge += SB_ICON_WIDTH;
@@ -1128,7 +1189,7 @@ void update_status_bar_panes(HWND hwnds)
 	}
 	for (i = 0; i < HDC_NUM; i++)
 	{
-		if (hdc[i].bus == HDD_BUS_SCSI_REMOVABLE)
+		if ((hdc[i].bus == HDD_BUS_SCSI_REMOVABLE) && (scsi_card_current != 0))
 		{
 			edge += SB_ICON_WIDTH;
 			iStatusWidths[sb_parts] = edge;
@@ -1171,7 +1232,7 @@ void update_status_bar_panes(HWND hwnds)
 		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_IDE_PIO_AND_DMA;
 		sb_parts++;
 	}
-	if (c_scsi)
+	if (c_scsi && (scsi_card_current != 0))
 	{
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
