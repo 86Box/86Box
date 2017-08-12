@@ -759,14 +759,10 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                 addbyte(0x47);
                 addbyte(0xc3);
 
-		if (depth_jump_pos)
-		{
-			*(uint8_t *)&code_block[depth_jump_pos] = (block_pos - depth_jump_pos) - 1;
-		}
-		if (depth_jump_pos2)
-		{
-			*(uint8_t *)&code_block[depth_jump_pos2] = (block_pos - depth_jump_pos2) - 1;
-		}
+                if (depth_jump_pos)
+                        *(uint8_t *)&code_block[depth_jump_pos] = (block_pos - depth_jump_pos) - 1;
+                if (depth_jump_pos)
+                        *(uint8_t *)&code_block[depth_jump_pos2] = (block_pos - depth_jump_pos2) - 1;
                 
                 if ((params->fogMode & (FOG_ENABLE|FOG_CONSTANT|FOG_Z|FOG_ALPHA)) == FOG_ENABLE)
                 {
@@ -1034,8 +1030,8 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                                 addbyte(params->detail_scale[1]);
                                 addbyte(0x39); /*CMP EAX, EDX*/
                                 addbyte(0xd0);
-                                addbyte(0x0f); /*CMOVA EAX, EDX*/
-                                addbyte(0x47);
+                                addbyte(0x0f); /*CMOVNL EAX, EDX*/
+                                addbyte(0x4d);
                                 addbyte(0xc2);
                                 addbyte(0x66); /*MOVD XMM0, EAX*/
                                 addbyte(0x0f);
@@ -1186,8 +1182,8 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                                 addbyte(params->detail_scale[1]);
                                 addbyte(0x39); /*CMP EAX, EDX*/
                                 addbyte(0xd0);
-                                addbyte(0x0f); /*CMOVA EAX, EDX*/
-                                addbyte(0x47);
+                                addbyte(0x0f); /*CMOVNL EAX, EDX*/
+                                addbyte(0x4d);
                                 addbyte(0xc2);
                                 break;
                                 case TCA_MSELECT_LOD_FRAC:
@@ -1356,8 +1352,8 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                         addbyte(params->detail_scale[0]);
                         addbyte(0x39); /*CMP EAX, EDX*/
                         addbyte(0xd0);
-                        addbyte(0x0f); /*CMOVA EAX, EDX*/
-                        addbyte(0x47);
+                        addbyte(0x0f); /*CMOVNL EAX, EDX*/
+                        addbyte(0x4d);
                         addbyte(0xc2);
                         addbyte(0x66); /*MOVD XMM4, EAX*/
                         addbyte(0x0f);
@@ -1552,8 +1548,8 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                         addbyte(params->detail_scale[1]);
                         addbyte(0x39); /*CMP EBX, EDX*/
                         addbyte(0xd3);
-                        addbyte(0x0f); /*CMOVA EBX, EDX*/
-                        addbyte(0x47);
+                        addbyte(0x0f); /*CMOVNL EBX, EDX*/
+                        addbyte(0x4d);
                         addbyte(0xda);
                         break;
                         case TCA_MSELECT_LOD_FRAC:
