@@ -15,7 +15,8 @@
 #include "midi.h"
 #include "sound.h"
 
-#define RENDER_RATE 30
+#define RENDER_RATE 100
+#define BUFFER_SEGMENTS 10
 
 extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void pclog(const char *format, ...);
@@ -111,9 +112,41 @@ void fluidsynth_poll(void)
 static void fluidsynth_thread(void *param)
 {
         fluidsynth_t* data = (fluidsynth_t*)param;
+	int buf_pos = 0;
+	int buf_size = data->buf_size / BUFFER_SEGMENTS;
         while (1)
         {
                 thread_wait_event(data->event, -1);
+		if (sound_is_float)
+		{
+			float *buf = (float*)((uint8_t*)data->buffer + buf_pos);
+			memset(buf, 0, buf_size);
+	                if (data->synth)
+        	                f_fluid_synth_write_float(data->synth, buf_size/(2 * sizeof(float)), buf, 0, 2, buf, 1, 2);
+			buf_pos += buf_size;
+			if (buf_pos >= data->buf_size)
+			{
+		                if (soundon)
+        		                givealbuffer_midi(data->buffer, data->buf_size / sizeof(float));
+				buf_pos = 0;
+			}
+		}
+		else
+		{
+			int16_t *buf = (int16_t*)((uint8_t*)data->buffer_int16 + buf_pos);
+			memset(buf, 0, buf_size);
+	                if (data->synth)
+        	                f_fluid_synth_write_s16(data->synth, buf_size/(2 * sizeof(int16_t)), buf, 0, 2, buf, 1, 2);
+			buf_pos += buf_size;
+			if (buf_pos >= data->buf_size)
+			{
+		                if (soundon)
+        		                givealbuffer_midi(data->buffer_int16, data->buf_size / sizeof(int16_t));
+				buf_pos = 0;
+			}
+		}
+
+#if 0
 		if (sound_is_float)
 		{
 	                memset(data->buffer, 0, data->buf_size * sizeof(float));
@@ -130,6 +163,7 @@ static void fluidsynth_thread(void *param)
 	                if (soundon)
         	                givealbuffer_midi(data->buffer_int16, data->buf_size);
 		}
+#endif
         }
 }
 
@@ -253,16 +287,17 @@ void* fluidsynth_init(void)
         double samplerate;
         f_fluid_settings_getnum(data->settings, "synth.sample-rate", &samplerate);
         data->samplerate = (int)samplerate;
-        data->buf_size = data->samplerate/RENDER_RATE*2;
 	if (sound_is_float)
 	{
-	        data->buffer = malloc(data->buf_size * sizeof(float));
+	        data->buf_size = (data->samplerate/RENDER_RATE)*2*sizeof(float)*BUFFER_SEGMENTS;
+	        data->buffer = malloc(data->buf_size);
 		data->buffer_int16 = NULL;
 	}
 	else
 	{
+	        data->buf_size = (data->samplerate/RENDER_RATE)*2*sizeof(int16_t)*BUFFER_SEGMENTS;
 	        data->buffer = NULL;
-		data->buffer_int16 = malloc(data->buf_size * sizeof(int16_t));
+		data->buffer_int16 = malloc(data->buf_size);
 	}
         data->event = thread_create_event();
         data->thread_h = thread_create(fluidsynth_thread, data);
@@ -299,11 +334,13 @@ void fluidsynth_close(void* p)
 	if (data->buffer)
 	{
 	        free(data->buffer);
+		data->buffer = NULL;
 	}
 
 	if (data->buffer_int16)
 	{
 	        free(data->buffer_int16);
+		data->buffer_int16 = NULL;
 	}
 
 	/* Unload the DLL if possible. */

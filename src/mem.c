@@ -40,7 +40,7 @@ static int                _mem_state[0x40000];
 static mem_mapping_t base_mapping;
 mem_mapping_t ram_low_mapping;
 mem_mapping_t ram_high_mapping;
-static mem_mapping_t ram_mid_mapping;
+mem_mapping_t ram_mid_mapping;
 static mem_mapping_t ram_remapped_mapping;
 mem_mapping_t bios_mapping[8];
 mem_mapping_t bios_high_mapping[8];

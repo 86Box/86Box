@@ -136,7 +136,7 @@ static int opMOVQ_mm_q_a16(uint32_t fetchdat)
         else
         {
                 CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 7);
-                writememq(easeg, cpu_state.eaaddr,     cpu_state.MM[cpu_reg].l[0]); if (cpu_state.abrt) return 1;
+                writememq(easeg, cpu_state.eaaddr,     cpu_state.MM[cpu_reg].q); if (cpu_state.abrt) return 1;
                 CLOCK_CYCLES(2);
         }
         return 0;
