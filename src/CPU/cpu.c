@@ -96,6 +96,7 @@ int cpu_busspeed;
 int cpu_hasrdtsc;
 int cpu_hasMMX, cpu_hasMSR;
 int cpu_hasCR4;
+int cpu_hasCX8;
 int cpu_hasVME;
 int cpu_use_dynarec;
 int cpu_cyrix_alignment;
@@ -648,6 +649,7 @@ void cpu_set()
         cpu_hasMMX = 0;
         cpu_hasMSR = 0;
         cpu_hasCR4 = 0;
+	cpu_hasCX8 = 0;	
         ccr0 = ccr1 = ccr2 = ccr3 = ccr4 = ccr5 = ccr6 = 0;
 
 	if ((cpu_s->cpu_type == CPU_286) || (cpu_s->cpu_type == CPU_386SX) || (cpu_s->cpu_type == CPU_386DX) || (cpu_s->cpu_type == CPU_i486SX))
@@ -1671,6 +1673,9 @@ void cpu_CPUID()
                         EAX = 0x540;
                         EBX = ECX = 0;
                         EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR;
+			if (cpu_hasCX8) 
+				EDX |= CPUID_CMPXCHG8B;
+			
                         if (msr.fcr & (1 << 9))
                                 EDX |= CPUID_MMX;
                 }
@@ -2235,8 +2240,13 @@ void cpu_WRMSR()
                         msr.cesr = EAX & 0xff00ff;
                         break;
                         case 0x107:
+			pclog("WinChip MSR FCR write: %08X\n", EAX);										
                         msr.fcr = EAX;
                         cpu_hasMMX = EAX & (1 << 9);
+			if (EAX & (1 << 1))
+				cpu_hasCX8 = 1;							
+			else
+ 				cpu_hasCX8 = 0;				
                         if (EAX & (1 << 29))
                                 CPUID = 0;
                         else
