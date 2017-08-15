@@ -571,6 +571,7 @@ void resetx86()
 	cpu_cur_status = 0;
         stack32=0;
         cpu_state.pc=0;
+	msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
         msw=0;
         if (is486)
                 cr0 = 1 << 30;
@@ -609,6 +610,7 @@ void softresetx86()
         stack32=0;
 	cpu_cur_status = 0;
         cpu_state.pc=0;
+	msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
         msw=0;
         cr0=0;
         cr4 = 0;

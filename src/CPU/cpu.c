@@ -162,13 +162,7 @@ int timing_retf_rm, timing_retf_pm, timing_retf_pm_outer;
 int timing_jmp_rm, timing_jmp_pm, timing_jmp_pm_gate;
 int timing_misaligned;
 
-static struct
-{
-        uint32_t tr1, tr12;
-        uint32_t cesr;
-        uint32_t fcr;
-        uint64_t fcr2, fcr3;
-} msr;
+msr_t msr;
 
 /*Available cpuspeeds :
         0 = 16 MHz
@@ -1671,6 +1665,8 @@ void cpu_CPUID()
                         EAX = 0x540;
                         EBX = ECX = 0;
                         EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR;
+                        if (msr.fcr & (1 << 1))
+                                EDX |= CPUID_CMPXCHG8B;
                         if (msr.fcr & (1 << 9))
                                 EDX |= CPUID_MMX;
                 }
