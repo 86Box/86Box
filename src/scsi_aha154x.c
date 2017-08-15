@@ -194,8 +194,6 @@ static uint16_t	aha_ports[] = {
     0x0130, 0x0134, 0x0000, 0x0000
 };
 
-#define WALTJE 1
-
 #ifdef WALTJE
 int aha_do_log = 1;
 # define ENABLE_AHA154X_LOG
@@ -321,15 +319,7 @@ aha154x_bios(uint16_t ioaddr, uint32_t memaddr, aha_info *aha, int irq, int dma,
     /* Set BIOS load address. */
     bios_addr = memaddr;
     /* bios_path = ROMFILE; */
-    if (chip == CHIP_AHA154XB)
-    {
-	/* bios_path = L"roms/scsi/adaptec/aha1540b310.bin"; */
-	bios_path = L"roms/scsi/adaptec/B_AC00.BIN";
-    }
-    else
-    {
 	bios_path = L"roms/scsi/adaptec/aha1542cf201.bin";
-    }
     pclog_w(L"AHA154x: loading BIOS from '%s'\n", bios_path);
 
     /* Open the BIOS image file and make sure it exists. */
