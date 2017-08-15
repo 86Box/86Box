@@ -96,6 +96,7 @@ int cpu_busspeed;
 int cpu_hasrdtsc;
 int cpu_hasMMX, cpu_hasMSR;
 int cpu_hasCR4;
+int cpu_hasCX8;
 int cpu_hasVME;
 int cpu_use_dynarec;
 int cpu_cyrix_alignment;
