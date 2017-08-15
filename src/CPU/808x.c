@@ -255,13 +255,13 @@ r16(/r)                    AX    CX    DX    BX    SP    BP    SI    DI
 r32(/r)                    EAX   ECX   EDX   EBX   ESP   EBP   ESI   EDI
 /digit (Opcode)            0     1     2     3     4     5     6     7
 REG =                      000   001   010   011   100   101   110   111
-  ÚÄÄÄAddress
+  ÃšÃ„Ã„Ã„Address
 disp8 denotes an 8-bit displacement following the ModR/M byte, to be
 sign-extended and added to the index. disp16 denotes a 16-bit displacement
 following the ModR/M byte, to be added to the index. Default segment
 register is SS for the effective addresses containing a BP index, DS for
 other effective addresses.
-            ÄÄ¿ ÚMod R/M¿ ÚÄÄÄÄÄÄÄÄModR/M Values in HexadecimalÄÄÄÄÄÄÄÄ¿
+            Ã„Ã„Â¿ ÃšMod R/MÂ¿ ÃšÃ„Ã„Ã„Ã„Ã„Ã„Ã„Ã„ModR/M Values in HexadecimalÃ„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Â¿
 
 [BX + SI]            000   00    08    10    18    20    28    30    38
 [BX + DI]            001   01    09    11    19    21    29    31    39
@@ -609,6 +609,7 @@ void softresetx86()
         stack32=0;
 	cpu_cur_status = 0;
         cpu_state.pc=0;
+	cpu_hasCX8 = 0;	
         msw=0;
         cr0=0;
         cr4 = 0;
