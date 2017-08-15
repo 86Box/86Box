@@ -1259,7 +1259,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 
 				c++;
 			}
-			SendMessage(h, CB_SETCURSEL, settings_sound_to_list[temp_midi_device], 0);
+			SendMessage(h, CB_SETCURSEL, settings_midi_to_list[temp_midi_device], 0);
 
 			h = GetDlgItem(hdlg, IDC_CONFIGURE_MIDI);
 			if (midi_device_has_config(temp_midi_device))
