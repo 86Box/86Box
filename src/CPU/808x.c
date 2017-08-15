@@ -578,6 +578,8 @@ void resetx86()
                 cr0 = 0;
         cpu_cache_int_enabled = 0;
         cpu_update_waitstates();
+	cpu_hasCX8 = 0;
+	msr.fcr &= ~(1 << 1);	
         cr4 = 0;
         eflags=0;
         cgate32=0;
@@ -609,7 +611,8 @@ void softresetx86()
         stack32=0;
 	cpu_cur_status = 0;
         cpu_state.pc=0;
-	cpu_hasCX8 = 0;	
+	cpu_hasCX8 = 0;
+	msr.fcr &= ~(1 << 1);
         msw=0;
         cr0=0;
         cr4 = 0;
