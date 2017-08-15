@@ -983,7 +983,7 @@ void execx86(int cycs)
         int8_t offset;
         int tempws;
         uint32_t templ;
-        int c;
+        unsigned int c;
         int tempi;
         int trap;
 
@@ -2439,6 +2439,12 @@ void execx86(int cycs)
                         switch (rmdat&0x38)
                         {
                                 case 0x00: /*ROL b,CL*/
+				temp2=(temp&0x80)?1:0;
+				if (!c)
+				{
+        	                        cycles-=((cpu_mod==3)?8:28);
+	                                break;
+				}
                                 while (c>0)
                                 {
                                         temp2=(temp&0x80)?1:0;
@@ -2454,6 +2460,12 @@ void execx86(int cycs)
                                 cycles-=((cpu_mod==3)?8:28);
                                 break;
                                 case 0x08: /*ROR b,CL*/
+				temp2=temp&1;
+				if (!c)
+				{
+					cycles-=((cpu_mod==3)?8:28);
+					break;
+				}
                                 while (c>0)
                                 {
                                         temp2=temp&1;
@@ -2564,6 +2576,12 @@ void execx86(int cycs)
                                 cycles-=((cpu_mod==3)?8:28);
                                 break;
                                 case 0x08: /*ROR w,CL*/
+				tempw2=(tempw&1)?0x8000:0;
+				if (!c)
+				{
+        	                        cycles-=((cpu_mod==3)?8:28);
+	                                break;
+				}
                                 while (c>0)
                                 {
                                         tempw2=(tempw&1)?0x8000:0;
@@ -2596,6 +2614,13 @@ void execx86(int cycs)
                                 cycles-=((cpu_mod==3)?8:28);
                                 break;
                                 case 0x18: /*RCR w,CL*/
+				templ=flags&C_FLAG;
+				tempw2=(templ&1)?0x8000:0;
+				if (!c)
+				{
+	                                cycles-=((cpu_mod==3)?8:28);
+					break;
+				}
                                 while (c>0)
                                 {
                                         templ=flags&C_FLAG;

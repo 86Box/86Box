@@ -289,6 +289,23 @@ typedef struct {
 #define ADDR_TO_U32(x)	(((x).hi<<16)|((x).mid<<8)|((x).lo&0xFF))
 #define U32_TO_ADDR(a,x) do {(a).hi=(x)>>16;(a).mid=(x)>>8;(a).lo=(x)&0xFF;}while(0)
 
+#pragma pack(push,1)
+typedef struct
+{
+	uint8_t command;
+	unsigned char id:3;
+	unsigned char reserved:2;
+	unsigned char lun:3;
+	uint16_t cylinder;
+	uint8_t head;
+	uint8_t sector;
+	uint8_t secount;
+	addr24 dma_address;
+} BIOSCMD;
+#pragma pack(pop)
+
+uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd);
+
 
 /*
  *

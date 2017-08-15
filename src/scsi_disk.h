@@ -52,3 +52,5 @@ extern void	scsi_reloadhd(int id);
 extern void	scsi_unloadhd(int scsi_id, int scsi_lun, int id);
 
 extern FILE *shdf[HDC_NUM];
+
+int scsi_hd_read_capacity(uint8_t id, uint8_t *cdb, uint8_t *buffer, uint32_t *len);

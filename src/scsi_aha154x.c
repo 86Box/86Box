@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.7	2017/06/14
+ * Version:	@(#)scsi_aha154x.c	1.0.8	2017/08/15
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -182,6 +182,7 @@ static uint16_t	aha_ports[] = {
     0x0130, 0x0134, 0x0000, 0x0000
 };
 
+#define WALTJE 1
 
 #ifdef WALTJE
 int aha_do_log = 1;
@@ -310,7 +311,8 @@ aha154x_bios(uint16_t ioaddr, uint32_t memaddr, aha_info *aha, int irq, int dma,
     /* bios_path = ROMFILE; */
     if (chip == CHIP_AHA154XB)
     {
-	bios_path = L"roms/scsi/adaptec/aha1540b310.bin";
+	/* bios_path = L"roms/scsi/adaptec/aha1540b310.bin"; */
+	bios_path = L"roms/scsi/adaptec/B_AC00.BIN";
     }
     else
     {
@@ -545,7 +547,7 @@ aha154x_memory(uint8_t cmd)
 }
 
 
-#define AHA_RESET_DURATION_NS UINT64_C(50000000)
+#define AHA_RESET_DURATION_NS UINT64_C(25000000)
 
 
 /*
@@ -1338,6 +1340,7 @@ aha_read(uint16_t port, void *priv)
 
     switch (port & 3) {
 	case 0:
+	default:
 		ret = dev->Status;
 		break;
 		
@@ -1386,14 +1389,18 @@ aha_write(uint16_t port, uint8_t val, void *priv)
     aha_t *dev = (aha_t *)priv;
     uint8_t Offset;
     MailboxInit_t *MailboxInit;
+    BIOSCMD *BiosCmd;
     ReplyInquireSetupInformation *ReplyISI;
+    uint16_t cyl = 0;
+    uint8_t temp = 0;
 
     pclog("AHA154X: Write Port 0x%02X, Value %02X\n", port, val);
 
     switch (port & 3) {
 	case 0:
 		if ((val & CTRL_HRST) || (val & CTRL_SRST)) {	
-			uint8_t Reset = !(val & CTRL_HRST);
+			uint8_t Reset = (val & CTRL_HRST);
+			pclog("Reset completed = %x\n", Reset);
 			aha_reset_ctrl(dev, Reset);
 			break;
 		}
@@ -1466,10 +1473,7 @@ aha_write(uint16_t port, uint8_t val, void *priv)
 					break;
 
 				case 0x29:
-					if (dev->chip != CHIP_AHA154XB)
-					{
-						dev->CmdParamLeft = 2;
-					}
+					dev->CmdParamLeft = 2;
 					break;
 
 				case 0x91:
@@ -1511,7 +1515,16 @@ aha_0x01:
 				break;
 
 				case 0x03:
-					dev->DataBuf[0] = 0x00;
+					BiosCmd = (BIOSCMD *)dev->CmdBuf;
+
+					cyl = ((BiosCmd->cylinder & 0xff) << 8) | ((BiosCmd->cylinder >> 8) & 0xff);
+					BiosCmd->cylinder = cyl;						
+					temp = BiosCmd->id;
+					BiosCmd->id = BiosCmd->lun;
+					BiosCmd->lun = temp;
+					pclog("C: %04X, H: %02X, S: %02X\n", BiosCmd->cylinder, BiosCmd->head, BiosCmd->sector);
+					dev->DataBuf[0] = HACommand03Handler(7, BiosCmd);
+					pclog("BIOS Completion/Status Code %x\n", dev->DataBuf[0]);
 					dev->DataReplyLeft = 1;
 					break;
 
@@ -1683,32 +1696,17 @@ aha_0x01:
 					break;
 
 				case 0x28:
-					if (dev->chip == CHIP_AHA154XB)
-					{
-						dev->DataReplyLeft = 0;
-						dev->Status |= STAT_INVCMD;
-					}
-					else
-					{
-						dev->DataBuf[0] = 0x08;
-						dev->DataBuf[1] = dev->Lock;
-						dev->DataReplyLeft = 2;
-					}
+					dev->DataBuf[0] = 0x08;
+					dev->DataBuf[1] = dev->Lock;
+					dev->DataReplyLeft = 2;
 					break;
 				case 0x29:
 					dev->DataReplyLeft = 0;
-					if (dev->chip == CHIP_AHA154XB)
-					{
-						dev->Status |= STAT_INVCMD;
-					}
-					else
-					{
-						if (dev->CmdBuf[1] == dev->Lock) {
-							if (dev->CmdBuf[0] & 1) {
-								dev->Lock = 1;
-							} else {
-								dev->Lock = 0;
-							}
+					if (dev->CmdBuf[1] == dev->Lock) {
+						if (dev->CmdBuf[0] & 1) {
+							dev->Lock = 1;
+						} else {
+							dev->Lock = 0;
 						}
 					}
 					break;
@@ -2316,7 +2314,14 @@ aha_init(int chip, int has_bios)
 
     if (bios) {
 	/* Perform AHA-154xNN-specific initialization. */
-	aha154x_bios(dev->Base, bios_addr, &dev->aha, dev->Irq, dev->DmaChannel, chip);
+	if (chip == CHIP_AHA154XB)
+	{
+		rom_init(&dev->bios, L"roms/scsi/adaptec/B_AC00.BIN", 0xd8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+	}
+	else
+	{
+		aha154x_bios(dev->Base, bios_addr, &dev->aha, dev->Irq, dev->DmaChannel, chip);
+	}
     }
 
     return(dev);
