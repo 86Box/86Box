@@ -150,7 +150,7 @@
 #define CMD_NOP		0x00		/* No operation */
 #define CMD_MBINIT	0x01		/* mailbox initialization */
 #define CMD_START_SCSI	0x02		/* Start SCSI command */
-#define CMD_BIOS	0x03		/* Execute ROM BIOS command */
+#define CMD_BIOSCMD	0x03		/* Execute ROM BIOS command */
 #define CMD_INQUIRY	0x04		/* Adapter inquiry */
 #define CMD_EMBOI	0x05		/* enable Mailbox Out Interrupt */
 #define CMD_SELTIMEOUT	0x06		/* Set SEL timeout */
@@ -162,6 +162,18 @@
 #define CMD_TARGET	0x0C		/* set HBA to target mode */
 #define CMD_RETSETUP	0x0D		/* return setup data */
 #define CMD_ECHO	0x1F		/* ECHO command data */
+#define CMD_OPTIONS	0x21		/* set adapter options */
+#define CMD_EXTBIOS     0x28    // return extended BIOS information
+#define CMD_MBENABLE    0x29    // set mailbox interface enable
+
+/* Undocumented commands */
+#define CMD_WRITE_EEPROM 0x22	/* Write EEPROM */
+#define CMD_READ_EEPROM	0x23    /* Read EEPROM */
+#define CMD_SHADOW_RAM	0x24	/* BIOS shadow ram */
+#define CMD_BIOS_MBINIT	0x25	/* BIOS mailbox initialization */
+#define CMD_MEMORY_MAP_1 0x26	/* Memory Mapper */
+#define CMD_MEMORY_MAP_2 0x27	/* Memory Mapper */
+#define CMD_BIOS_SCSI	0x82	/* Start ROM BIOS SCSI command */
 
 /* READ INTERRUPT STATUS. */
 #define INTR_ANY	0x80		/* any interrupt */
@@ -938,32 +950,6 @@ RaiseIntr(aha_t *dev, uint8_t Interrupt)
     }
 }
 
-
-static void
-LocalRAM(aha_t *dev)
-{
-    /*
-     * These values are mostly from what I think is right
-     * looking at the dmesg output from a Linux guest inside
-     * a VMware server VM.
-     *
-     * So they don't have to be right :)
-     */
-    memset(dev->LocalRAM.u8View, 0, sizeof(HALocalRAM));
-    dev->LocalRAM.structured.autoSCSIData.fLevelSensitiveInterrupt = 1;
-    dev->LocalRAM.structured.autoSCSIData.fParityCheckingEnabled = 1;
-    dev->LocalRAM.structured.autoSCSIData.fExtendedTranslation = 1; /* Same as in geometry register. */
-    dev->LocalRAM.structured.autoSCSIData.u16DeviceEnabledMask = UINT16_MAX; /* All enabled. Maybe mask out non present devices? */
-    dev->LocalRAM.structured.autoSCSIData.u16WidePermittedMask = UINT16_MAX;
-    dev->LocalRAM.structured.autoSCSIData.u16FastPermittedMask = UINT16_MAX;
-    dev->LocalRAM.structured.autoSCSIData.u16SynchronousPermittedMask = UINT16_MAX;
-    dev->LocalRAM.structured.autoSCSIData.u16DisconnectPermittedMask = UINT16_MAX;
-    dev->LocalRAM.structured.autoSCSIData.fStrictRoundRobinMode = dev->StrictRoundRobinMode;
-    dev->LocalRAM.structured.autoSCSIData.u16UltraPermittedMask = UINT16_MAX;
-    /** @todo calculate checksum? */
-}
-
-
 static void
 aha_reset(aha_t *dev)
 {
@@ -986,7 +972,8 @@ aha_reset(aha_t *dev)
 
     ClearIntr(dev);
 
-    LocalRAM(dev);
+	/* I think the "local RAM" commands are  for the Buslogic, not Adaptec. */
+    //LocalRAM(dev);
 }
 
 
@@ -1008,7 +995,7 @@ aha_cmd_done(aha_t *dev)
     dev->DataReply = 0;
     dev->Status |= STAT_IDLE;
 				
-    if ((dev->Command != 0x02) && (dev->Command != 0x82)) {
+    if ((dev->Command != CMD_START_SCSI) && (dev->Command != CMD_BIOS_SCSI)) {
 	dev->Status &= ~STAT_DFULL;
 	dev->Interrupt = (INTR_ANY | INTR_HACC);
 	pclog("Raising IRQ %i\n", dev->Irq);
@@ -1345,9 +1332,10 @@ aha_read(uint16_t port, void *priv)
 		break;
 		
 	case 1:
-		if (dev->UseLocalRAM)
-			ret = dev->LocalRAM.u8View[dev->DataReply];
-		else
+		/* Local RAM is for Buslogic or unsupported Adaptec models */
+		//if (dev->UseLocalRAM)
+		//	ret = dev->LocalRAM.u8View[dev->DataReply];
+		//else
 			ret = dev->DataBuf[dev->DataReply];
 		if (dev->DataReplyLeft) {
 			dev->DataReply++;
@@ -1387,7 +1375,6 @@ aha_write(uint16_t port, uint8_t val, void *priv)
     int i = 0;
     uint8_t j = 0;
     aha_t *dev = (aha_t *)priv;
-    uint8_t Offset;
     MailboxInit_t *MailboxInit;
     BIOSCMD *BiosCmd;
     ReplyInquireSetupInformation *ReplyISI;
@@ -1412,12 +1399,12 @@ aha_write(uint16_t port, uint8_t val, void *priv)
 
 	case 1:
 		/* Fast path for the mailbox execution command. */
-		if (((val == 0x02) || (val == 0x82)) &&
+		if (((val == CMD_START_SCSI) || (val == CMD_BIOS_SCSI)) &&
 		    (dev->Command == 0xFF)) {
 			/* If there are no mailboxes configured, don't even try to do anything. */
 			if (dev->MailboxCount) {
 				if (!AHA_Callback) {
-					AHA_Callback = 1 * TIMER_USEC;
+					AHA_Callback = SCSI_DELAY_TM * TIMER_USEC;
 				}
 			}
 			return;
@@ -1431,52 +1418,43 @@ aha_write(uint16_t port, uint8_t val, void *priv)
 			dev->Status &= ~(STAT_INVCMD | STAT_IDLE);
 			pclog("AHA154X: Operation Code 0x%02X\n", val);
 			switch (dev->Command) {
-				case 0x01:
+				case CMD_MBINIT:
 					dev->CmdParamLeft = sizeof(MailboxInit_t);
 					break;
 				
-				case 0x03:		/* Exec BIOS Command */
+				case CMD_BIOSCMD:
 					dev->CmdParamLeft = 10;
 					break;
 
-				case 0x25:
+				case CMD_BIOS_MBINIT:
 					/* Same as 0x01 for AHA. */
 					dev->CmdParamLeft = sizeof(MailboxInit_t);
 					break;
 
-				case 0x05:
-				case 0x07:
-				case 0x08:
-				case 0x09:
-				case 0x0D:
-				case 0x1F:
-				case 0x21:
-				case 0x24:
+				case CMD_EMBOI:
+				case CMD_BUSON_TIME:
+				case CMD_BUSOFF_TIME:
+				case CMD_DMASPEED:
+				case CMD_RETSETUP:
+				case CMD_ECHO:
+				case CMD_OPTIONS:
+				case CMD_SHADOW_RAM:
 					dev->CmdParamLeft = 1;
 					break;	
 
-				case 0x06:
+				case CMD_SELTIMEOUT:
 					dev->CmdParamLeft = 4;
 					break;
 
-				case 0x1C:
-				case 0x1D:
-					dev->CmdParamLeft = 3;
-					break;
-
-				case 0x22:		/* write EEPROM */
+				case CMD_WRITE_EEPROM:
 					dev->CmdParamLeft = 3+32;
 					break;
 
-				case 0x23:		/* read EEPROM */
+				case CMD_READ_EEPROM:
 					dev->CmdParamLeft = 3;
 					break;
 
-				case 0x29:
-					dev->CmdParamLeft = 2;
-					break;
-
-				case 0x91:
+				case CMD_MBENABLE:
 					dev->CmdParamLeft = 2;
 					break;
 			}
@@ -1489,11 +1467,11 @@ aha_write(uint16_t port, uint8_t val, void *priv)
 		if (! dev->CmdParamLeft) {
 			pclog("Running Operation Code 0x%02X\n", dev->Command);
 			switch (dev->Command) {
-				case 0x00:
+				case CMD_NOP: /* No Operation Command */
 					dev->DataReplyLeft = 0;
 					break;
 
-				case 0x01:
+				case CMD_MBINIT: /* Mailbox Initialitation */
 aha_0x01:
 				{
 					dev->Mbx24bit = 1;
@@ -1514,7 +1492,7 @@ aha_0x01:
 				}
 				break;
 
-				case 0x03:
+				case CMD_BIOSCMD: /* Execute BIOS Command */
 					BiosCmd = (BIOSCMD *)dev->CmdBuf;
 
 					cyl = ((BiosCmd->cylinder & 0xff) << 8) | ((BiosCmd->cylinder >> 8) & 0xff);
@@ -1528,7 +1506,7 @@ aha_0x01:
 					dev->DataReplyLeft = 1;
 					break;
 
-				case 0x04:
+				case CMD_INQUIRY: /* Inquiry Command */
 					dev->DataBuf[0] = (dev->chip != CHIP_AHA1640) ? dev->aha.bid : 0x42;
 					dev->DataBuf[1] = (dev->chip != CHIP_AHA1640) ? 0x30 : 0x42;
 					dev->DataBuf[2] = dev->aha.fwh;
@@ -1536,7 +1514,7 @@ aha_0x01:
 					dev->DataReplyLeft = 4;
 					break;
 
-				case 0x05:
+				case CMD_EMBOI: /* Enable Mailbox Out Interrupt */
 					if (dev->CmdBuf[0] <= 1) {
 						dev->MailboxOutInterrupts = dev->CmdBuf[0];
 						pclog("Mailbox out interrupts: %s\n", dev->MailboxOutInterrupts ? "ON" : "OFF");
@@ -1546,29 +1524,26 @@ aha_0x01:
 					dev->DataReplyLeft = 0;
 					break;
 
-				case 0x06:
+				case CMD_SELTIMEOUT: /* Selection Time-out */
 					dev->DataReplyLeft = 0;
 					break;
 						
-				case 0x07:
+				case CMD_BUSON_TIME: /* Bus-on time */
 					dev->DataReplyLeft = 0;
-					dev->LocalRAM.structured.autoSCSIData.uBusOnDelay = dev->CmdBuf[0];
 					pclog("Bus-on time: %d\n", dev->CmdBuf[0]);
 					break;
 						
-				case 0x08:
+				case CMD_BUSOFF_TIME: /* Bus-off time */
 					dev->DataReplyLeft = 0;
-					dev->LocalRAM.structured.autoSCSIData.uBusOffDelay = dev->CmdBuf[0];
 					pclog("Bus-off time: %d\n", dev->CmdBuf[0]);
 					break;
 						
-				case 0x09:
+				case CMD_DMASPEED: /* DMA Transfer Rate Command */
 					dev->DataReplyLeft = 0;
-					dev->LocalRAM.structured.autoSCSIData.uDMATransferRate = dev->CmdBuf[0];
 					pclog("DMA transfer rate: %02X\n", dev->CmdBuf[0]);
 					break;
 
-				case 0x0A:
+				case CMD_RETDEVS: /* Return Installed Devices */
 					memset(dev->DataBuf, 0, 8);
 					for (i=0; i<7; i++) {
 					    dev->DataBuf[i] = 0;
@@ -1581,7 +1556,7 @@ aha_0x01:
 					dev->DataReplyLeft = 8;
 					break;				
 
-				case 0x0B:
+				case CMD_RETCONF: /* Return Configuration Command */
 					dev->DataBuf[0] = (1<<dev->DmaChannel);
 					if (dev->Irq >= 8)
 					    dev->DataBuf[1]=(1<<(dev->Irq-9));
@@ -1591,7 +1566,7 @@ aha_0x01:
 					dev->DataReplyLeft = 3;
 					break;
 
-				case 0x0D:
+				case CMD_RETSETUP: /* Return Setup Command */
 				{
 					dev->DataReplyLeft = dev->CmdBuf[0];
 
@@ -1605,48 +1580,19 @@ aha_0x01:
 					pclog("Return Setup Information: %d\n", dev->CmdBuf[0]);
 				}
 				break;
-
-				case 0x1C:
-				{
-					uint32_t FIFOBuf;
-					addr24 Address;
-					
-					dev->DataReplyLeft = 0;
-					Address.hi = dev->CmdBuf[0];
-					Address.mid = dev->CmdBuf[1];
-					Address.lo = dev->CmdBuf[2];
-					FIFOBuf = ADDR_TO_U32(Address);
-					DMAPageRead(FIFOBuf, (char *)&dev->LocalRAM.u8View[64], 64);
-				}
-				break;
 						
-				case 0x1D:
-				{
-					uint32_t FIFOBuf;
-					addr24 Address;
-					
-					dev->DataReplyLeft = 0;
-					Address.hi = dev->CmdBuf[0];
-					Address.mid = dev->CmdBuf[1];
-					Address.lo = dev->CmdBuf[2];
-					FIFOBuf = ADDR_TO_U32(Address);
-					pclog("FIFO: Writing 64 bytes at %08X\n", FIFOBuf);
-					DMAPageWrite(FIFOBuf, (char *)&dev->LocalRAM.u8View[64], 64);
-				}
-				break;	
-						
-				case 0x1F:
+				case CMD_ECHO: /* ECHO data Command */
 					dev->DataBuf[0] = dev->CmdBuf[0];
 					dev->DataReplyLeft = 1;
 					break;
 
-				case 0x21:
+				case CMD_OPTIONS: /* Set adapter options */
 					if (dev->CmdParam == 1)
 						dev->CmdParamLeft = dev->CmdBuf[0];
 					dev->DataReplyLeft = 0;
 					break;
 
-				case 0x22:	/* write EEPROM */
+				case CMD_WRITE_EEPROM:	/* write EEPROM */
 					/* Sent by CF BIOS. */
 					dev->DataReplyLeft =
 					    aha154x_eeprom(dev->Command,
@@ -1661,7 +1607,8 @@ aha_0x01:
 					}
 					break;
 
-				case 0x23:
+				case CMD_READ_EEPROM: /* read EEPROM */
+					/* Sent by CF BIOS. */
 					dev->DataReplyLeft =
 					    aha154x_eeprom(dev->Command,
 						   dev->CmdBuf[0],
@@ -1675,7 +1622,7 @@ aha_0x01:
 					}
 					break;
 
-				case 0x24:
+				case CMD_SHADOW_RAM: /* Shadow RAM */
 					/*
 					 * For AHA1542CF, this is the command
 					 * to play with the Shadow RAM.  BIOS
@@ -1686,21 +1633,24 @@ aha_0x01:
 					dev->Interrupt = aha154x_shram(val, dev->chip);
 					break;
 
-				case 0x25:
+				case CMD_BIOS_MBINIT: /* BIOS Mailbox Initialitation Command */
+					/* Sent by CF BIOS. */
 					goto aha_0x01;
 
-				case 0x26:	/* AHA memory mapper */
-				case 0x27:	/* AHA memory mapper */
+				case CMD_MEMORY_MAP_1:	/* AHA memory mapper */
+				case CMD_MEMORY_MAP_2:	/* AHA memory mapper */
+					/* Sent by CF BIOS. */
 					dev->DataReplyLeft =
 					    aha154x_memory(dev->Command);
 					break;
 
-				case 0x28:
+				case CMD_EXTBIOS: /* Return extended BIOS information */
 					dev->DataBuf[0] = 0x08;
 					dev->DataBuf[1] = dev->Lock;
 					dev->DataReplyLeft = 2;
 					break;
-				case 0x29:
+					
+				case CMD_MBENABLE: /* Mailbox interface enable Command */
 					dev->DataReplyLeft = 0;
 					if (dev->CmdBuf[1] == dev->Lock) {
 						if (dev->CmdBuf[0] & 1) {
@@ -1722,14 +1672,6 @@ aha_0x01:
 					dev->DataBuf[2] = 0x00;
 					dev->DataBuf[3] = 0x00;
 					dev->DataReplyLeft = 256;
-					break;
-
-				case 0x91:
-					Offset = dev->CmdBuf[0];
-					dev->DataReplyLeft = dev->CmdBuf[1];
-							
-					dev->UseLocalRAM = 1;
-					dev->DataReply = Offset;
 					break;
 
 				default:
@@ -2162,7 +2104,7 @@ aha_cmd_cb(void *priv)
 	if (dev->MailboxCount) {
 		aha_do_mail(dev);
 	} else {
-		AHA_Callback += 1 * TIMER_USEC;
+		AHA_Callback += SCSI_DELAY_TM * TIMER_USEC;
 		return;
 	}
     } else if (AHA_InOperation == 1) {
@@ -2186,7 +2128,7 @@ aha_cmd_cb(void *priv)
 	fatal("Invalid BusLogic callback phase: %i\n", AHA_InOperation);
     }
 
-    AHA_Callback += 1 * TIMER_USEC;
+    AHA_Callback += SCSI_DELAY_TM * TIMER_USEC;
 }
 
 uint8_t aha_mca_read(int port, void *p)
@@ -2261,7 +2203,7 @@ aha_device_reset(void *p)
 
 
 static void *
-aha_init(int chip, int has_bios)
+aha_init(int chip)
 {
     aha_t *dev;
     int i = 0;
@@ -2316,7 +2258,11 @@ aha_init(int chip, int has_bios)
 	/* Perform AHA-154xNN-specific initialization. */
 	if (chip == CHIP_AHA154XB)
 	{
-		rom_init(&dev->bios, L"roms/scsi/adaptec/B_AC00.BIN", 0xd8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+		/* Adaptec 154xB AT/SCSI BIOS Version 3.20 with support for over 1GB drives */
+		if (dev->Base == 0x334 && bios_addr == 0xd8000) /* This BIOS is hardcoded to port 0x334 and address 0xD8000, otherwise it won't work */
+			rom_init(&dev->bios, L"roms/scsi/adaptec/B_AC00.BIN", 0xd8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+		else if (dev->Base == 0x330 && bios_addr == 0xd0000) /* This BIOS is hardcoded to port 0x330 and address 0xD0000, otherwise it won't work */
+			rom_init(&dev->bios, L"roms/scsi/adaptec/bios_3.2.BIN", 0xd0000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 	}
 	else
 	{
@@ -2331,14 +2277,14 @@ aha_init(int chip, int has_bios)
 static void *
 aha_154xB_init(void)
 {
-    return(aha_init(CHIP_AHA154XB, 0));
+    return(aha_init(CHIP_AHA154XB));
 }
 
 
 static void *
 aha_154xCF_init(void)
 {
-    return(aha_init(CHIP_AHA154XCF, 1));
+    return(aha_init(CHIP_AHA154XCF));
 }
 
 static void *
