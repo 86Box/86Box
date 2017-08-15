@@ -146,6 +146,7 @@ extern int cpu_hasMSR;
 extern int cpu_hasMMX;
 extern int cpu_hasCR4;
 extern int cpu_hasVME;
+extern int cpu_hasCX8;
 
 #define CR4_TSD  (1 << 2)
 #define CR4_DE   (1 << 3)
