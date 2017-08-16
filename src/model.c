@@ -395,7 +395,7 @@ void europc_init(void)
 {
         common_init();
 	mem_add_bios();
-	lpt3_init();
+	lpt3_init(0x3bc);
         jim_init();
         keyboard_xt_init();
 	nmi_init();
