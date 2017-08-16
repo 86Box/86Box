@@ -148,7 +148,7 @@ MODEL models[] =
         {"[8088] Generic XT clone",	ROM_GENXT,		"genxt",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, 0,							 64,  640,  64,   0,             xt_init, NULL			},
         {"[8088] Juko XT clone",	ROM_JUKOPC,		"jukopc",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, 0,							 64,  640,  64,   0,             xt_init, NULL			},
         {"[8088] Phoenix XT clone",	ROM_PXXT,		"pxxt",			{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, 0,							 64,  640,  64,   0,             xt_init, NULL			},
-        {"[8088] Schneider EuroPC",	ROM_EUROPC,		"europc",		{{"",      cpus_europc},      {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, 0,							512,  640, 128,   0,         europc_init, NULL			},
+        {"[8088] Schneider EuroPC",	ROM_EUROPC,		"europc",		{{"",      cpus_europc},      {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, 0,							512,  640, 128,  63,         europc_init, NULL			},
         {"[8088] Tandy 1000",		ROM_TANDY,		"tandy",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, 0,							128,  640, 128,   0,        tandy1k_init, &tandy1000_device	},
         {"[8088] Tandy 1000 HX",	ROM_TANDY1000HX,	"tandy1000hx",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, 0,							256,  640, 128,   0,        tandy1k_init, &tandy1000hx_device	},
         {"[8088] VTech Laser Turbo XT",	ROM_LTXT,		"ltxt",			{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, 0,							 64, 1152,  64,   0,     xt_laserxt_init, NULL			},
@@ -395,6 +395,7 @@ void europc_init(void)
 {
         common_init();
 	mem_add_bios();
+	lpt3_init();
         jim_init();
         keyboard_xt_init();
 	nmi_init();
