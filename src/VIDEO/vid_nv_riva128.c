@@ -2200,7 +2200,7 @@ void rivatnt_pgraph_ctx_switch(void *p)
 			ret = (riva128->i2c.sda << 3) | (riva128->i2c.scl << 2);
 			break;
 		case 0x28:
-			ret = svga->crtc[0x28] & 3;
+			ret = svga->crtc[0x28] & 0x3f;
 			break;
 		default:
 			ret = svga->crtc[svga->crtcreg];
