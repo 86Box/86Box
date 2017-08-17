@@ -217,6 +217,7 @@ typedef struct {
     uint8_t	eeprom[128];		/* for RTL8029AS */
     rom_t	bios_rom;
     int		card;			/* PCI card slot */
+    int		has_bios;
 } nic_t;
 
 
@@ -1426,19 +1427,23 @@ nic_update_bios(nic_t *dev)
     int reg_bios_enable;
 	
     reg_bios_enable = 1;
+
+    if (!dev->has_bios) {
+	return;
+    }
+
+    if (PCI && dev->is_pci) {
+	reg_bios_enable = dev->pci_bar[1].addr_regs[0] & 0x01;
+    }
 	
     /* PCI BIOS stuff, just enable_disable. */
-    if ((dev->bios_addr > 0) && reg_bios_enable) {
-	mem_mapping_enable(&dev->bios_rom.mapping);
+    if (reg_bios_enable) {
 	mem_mapping_set_addr(&dev->bios_rom.mapping,
 			     dev->bios_addr, dev->bios_size);
 	nelog(1, "%s: BIOS now at: %06X\n", dev->name, dev->bios_addr);
     } else {
 	nelog(1, "%s: BIOS disabled\n", dev->name);
 	mem_mapping_disable(&dev->bios_rom.mapping);
-	dev->bios_addr = 0;
-	if (dev->is_pci)
-		dev->pci_bar[1].addr = 0;
     }
 }
 
@@ -1527,7 +1532,7 @@ nic_pci_read(int func, int addr, void *priv)
 		ret = dev->pci_bar[1].addr_regs[0] & 0x01;
 		break;
 	case 0x31:			/* PCI_ROMBAR 15:11 */
-		ret = (dev->pci_bar[1].addr_regs[1] & dev->bios_mask) | 0x18;
+		ret = (dev->pci_bar[1].addr_regs[1] & dev->bios_mask);
 		break;
 	case 0x32:			/* PCI_ROMBAR 23:16 */
 		ret = dev->pci_bar[1].addr_regs[2];
@@ -1632,9 +1637,8 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 	case 0x33:			/* PCI_ROMBAR */
 		dev->pci_bar[1].addr_regs[addr & 3] = val;
 		dev->pci_bar[1].addr_regs[1] &= dev->bios_mask;
-		dev->pci_bar[1].addr &= 0xffffe000;
+		dev->pci_bar[1].addr &= 0xffffe001;
 		dev->bios_addr = dev->pci_bar[1].addr;
-		dev->pci_bar[1].addr |= 0x1801;
 		nic_update_bios(dev);
 		return;
 
@@ -1917,8 +1921,17 @@ nic_init(int board)
 	dev->base_irq = 10;
     } else {
 	dev->base_address = device_get_config_hex16("base");
-	dev->bios_addr = device_get_config_hex20("bios_addr");
 	dev->base_irq = device_get_config_int("irq");
+    }
+
+    dev->bios_addr = device_get_config_hex20("bios_addr");
+    if (dev->bios_addr)
+    {
+	dev->has_bios = 1;
+    }
+    else
+    {
+	dev->has_bios = 0;
     }
 
     /* See if we have a local MAC address configured. */
@@ -1962,10 +1975,12 @@ nic_init(int board)
 	if (dev->bios_addr > 0) {
 		dev->pci_bar[1].addr = 0x000F8000;
 		dev->pci_bar[1].addr_regs[1] = dev->bios_mask;
-		dev->pci_bar[1].addr |= 0x1801;
 	} else {
 		dev->pci_bar[1].addr = 0;
+		dev->bios_size = 0;
 	}
+
+	mem_mapping_disable(&dev->bios_rom.mapping);
 
 	/* Initialize the RTL8029 EEPROM. */
         memset(dev->eeprom, 0x00, sizeof(dev->eeprom));
@@ -2225,7 +2240,6 @@ static device_config_t ne2000_config[] =
 
 static device_config_t rtl8029as_config[] =
 {
-#if 1
 	/*
 	 * WTF.
 	 * Even though it is PCI, the user should still have control
@@ -2252,7 +2266,6 @@ static device_config_t rtl8029as_config[] =
 			}
 		},
 	},
-#endif
 	{
 		"mac", "MAC Address", CONFIG_MAC, "", -1
 	},
