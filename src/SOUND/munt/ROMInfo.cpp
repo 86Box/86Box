@@ -31,6 +31,7 @@ static const ROMInfo *getKnownROMInfoFromList(Bit32u index) {
 	static const ROMInfo CTRL_MT32_V1_07 = {65536, "b083518fffb7f66b03c23b7eb4f868e62dc5a987", ROMInfo::Control, "ctrl_mt32_1_07", "MT-32 Control v1.07", ROMInfo::Full, NULL};
 	static const ROMInfo CTRL_MT32_BLUER = {65536, "7b8c2a5ddb42fd0732e2f22b3340dcf5360edf92", ROMInfo::Control, "ctrl_mt32_bluer", "MT-32 Control BlueRidge", ROMInfo::Full, NULL};
 
+	static const ROMInfo CTRL_MT32_V2_04 = {131072, "2c16432b6c73dd2a3947cba950a0f4c19d6180eb", ROMInfo::Control, "ctrl_mt32_2_04", "MT-32 Control v2.04", ROMInfo::Full, NULL};
 	static const ROMInfo CTRL_CM32L_V1_00 = {65536, "73683d585cd6948cc19547942ca0e14a0319456d", ROMInfo::Control, "ctrl_cm32l_1_00", "CM-32L/LAPC-I Control v1.00", ROMInfo::Full, NULL};
 	static const ROMInfo CTRL_CM32L_V1_02 = {65536, "a439fbb390da38cada95a7cbb1d6ca199cd66ef8", ROMInfo::Control, "ctrl_cm32l_1_02", "CM-32L/LAPC-I Control v1.02", ROMInfo::Full, NULL};
 
@@ -43,6 +44,7 @@ static const ROMInfo *getKnownROMInfoFromList(Bit32u index) {
 		&CTRL_MT32_V1_06,
 		&CTRL_MT32_V1_07,
 		&CTRL_MT32_BLUER,
+		&CTRL_MT32_V2_04,
 		&CTRL_CM32L_V1_00,
 		&CTRL_CM32L_V1_02,
 		&PCM_MT32,

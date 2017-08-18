@@ -32,25 +32,50 @@
 #include "ROMInfo.h"
 #include "TVA.h"
 
+#if MT32EMU_MONITOR_SYSEX > 0
+#include "mmath.h"
+#endif
+
 namespace MT32Emu {
 
 // MIDI interface data transfer rate in samples. Used to simulate the transfer delay.
 static const double MIDI_DATA_TRANSFER_RATE = double(SAMPLE_RATE) / 31250.0 * 8.0;
 
 // FIXME: there should be more specific feature sets for various MT-32 control ROM versions
-static const ControlROMFeatureSet OLD_MT32_COMPATIBLE = { true, true, true };
-static const ControlROMFeatureSet CM32L_COMPATIBLE = { false, false, false };
+static const ControlROMFeatureSet OLD_MT32_COMPATIBLE = {
+	true, // quirkBasePitchOverflow
+	true, // quirkPitchEnvelopeOverflow
+	true, // quirkRingModulationNoMix
+	true, // quirkTVAZeroEnvLevels
+	true, // quirkPanMult
+	true, // quirkKeyShift
+	true, // quirkTVFBaseCutoffLimit
+	true, // defaultReverbMT32Compatible
+	true // oldMT32AnalogLPF
+};
+static const ControlROMFeatureSet CM32L_COMPATIBLE = {
+	false, // quirkBasePitchOverflow
+	false, // quirkPitchEnvelopeOverflow
+	false, // quirkRingModulationNoMix
+	false, // quirkTVAZeroEnvLevels
+	false, // quirkPanMult
+	false, // quirkKeyShift
+	false, // quirkTVFBaseCutoffLimit
+	false, // defaultReverbMT32Compatible
+	false // oldMT32AnalogLPF
+};
 
-static const ControlROMMap ControlROMMaps[7] = {
+static const ControlROMMap ControlROMMaps[8] = {
 	//     ID                Features        PCMmap  PCMc  tmbrA  tmbrAO, tmbrAC tmbrB   tmbrBO  tmbrBC tmbrR   trC rhythm rhyC  rsrv   panpot   prog   rhyMax  patMax  sysMax  timMax  sndGrp sGC
 	{ "ctrl_mt32_1_04", OLD_MT32_COMPATIBLE, 0x3000, 128, 0x8000, 0x0000, false, 0xC000, 0x4000, false, 0x3200, 30, 0x73A6, 85, 0x57C7, 0x57E2, 0x57D0, 0x5252, 0x525E, 0x526E, 0x520A, 0x7064, 19 },
 	{ "ctrl_mt32_1_05", OLD_MT32_COMPATIBLE, 0x3000, 128, 0x8000, 0x0000, false, 0xC000, 0x4000, false, 0x3200, 30, 0x7414, 85, 0x57C7, 0x57E2, 0x57D0, 0x5252, 0x525E, 0x526E, 0x520A, 0x70CA, 19 },
 	{ "ctrl_mt32_1_06", OLD_MT32_COMPATIBLE, 0x3000, 128, 0x8000, 0x0000, false, 0xC000, 0x4000, false, 0x3200, 30, 0x7414, 85, 0x57D9, 0x57F4, 0x57E2, 0x5264, 0x5270, 0x5280, 0x521C, 0x70CA, 19 },
 	{ "ctrl_mt32_1_07", OLD_MT32_COMPATIBLE, 0x3000, 128, 0x8000, 0x0000, false, 0xC000, 0x4000, false, 0x3200, 30, 0x73fe, 85, 0x57B1, 0x57CC, 0x57BA, 0x523C, 0x5248, 0x5258, 0x51F4, 0x70B0, 19 }, // MT-32 revision 1
 	{"ctrl_mt32_bluer", OLD_MT32_COMPATIBLE, 0x3000, 128, 0x8000, 0x0000, false, 0xC000, 0x4000, false, 0x3200, 30, 0x741C, 85, 0x57E5, 0x5800, 0x57EE, 0x5270, 0x527C, 0x528C, 0x5228, 0x70CE, 19 }, // MT-32 Blue Ridge mod
+	{"ctrl_mt32_2_04",   CM32L_COMPATIBLE,   0x8100, 128, 0x8000, 0x8000, true,  0x8080, 0x8000, true,  0x8500, 30, 0x8580, 85, 0x4F5D, 0x4F78, 0x4F66, 0x4899, 0x489D, 0x48B6, 0x48CD, 0x5A58, 19 },
 	{"ctrl_cm32l_1_00",  CM32L_COMPATIBLE,   0x8100, 256, 0x8000, 0x8000, true,  0x8080, 0x8000, true,  0x8500, 64, 0x8580, 85, 0x4F65, 0x4F80, 0x4F6E, 0x48A1, 0x48A5, 0x48BE, 0x48D5, 0x5A6C, 19 },
 	{"ctrl_cm32l_1_02",  CM32L_COMPATIBLE,   0x8100, 256, 0x8000, 0x8000, true,  0x8080, 0x8000, true,  0x8500, 64, 0x8580, 85, 0x4F93, 0x4FAE, 0x4F9C, 0x48CB, 0x48CF, 0x48E8, 0x48FF, 0x5A96, 19 }  // CM-32L
-	// (Note that all but CM-32L ROM actually have 86 entries for rhythmTemp)
+	// (Note that old MT-32 ROMs actually have 86 entries for rhythmTemp)
 };
 
 static const PartialState PARTIAL_PHASE_TO_STATE[8] = {
@@ -78,7 +103,7 @@ protected:
 	Synth &synth;
 
 	void printDebug(const char *msg) const {
-		synth.printDebug(msg);
+		synth.printDebug("%s", msg);
 	}
 
 	bool isActivated() const {
@@ -168,6 +193,8 @@ public:
 class Extensions {
 public:
 	RendererType selectedRendererType;
+	Bit32s masterTunePitchDelta;
+	bool niceAmpRamp;
 };
 
 Bit32u Synth::getLibraryVersionInt() {
@@ -222,6 +249,7 @@ Synth::Synth(ReportHandler *useReportHandler) :
 	setOutputGain(1.0f);
 	setReverbOutputGain(1.0f);
 	setReversedStereoEnabled(false);
+	setNiceAmpRampEnabled(true);
 	selectRendererType(RendererType_BIT16S);
 
 	patchTempMemoryRegion = NULL;
@@ -385,6 +413,14 @@ void Synth::setReversedStereoEnabled(bool enabled) {
 
 bool Synth::isReversedStereoEnabled() const {
 	return reversedStereoEnabled;
+}
+
+void Synth::setNiceAmpRampEnabled(bool enabled) {
+	extensions.niceAmpRamp = enabled;
+}
+
+bool Synth::isNiceAmpRampEnabled() const {
+	return extensions.niceAmpRamp;
 }
 
 bool Synth::loadControlROM(const ROMImage &controlROMImage) {
@@ -679,6 +715,7 @@ bool Synth::open(const ROMImage &controlROMImage, const ROMImage &pcmROMImage, B
 	bool oldReverbOverridden = reverbOverridden;
 	reverbOverridden = false;
 	refreshSystem();
+	resetMasterTunePitchDelta();
 	reverbOverridden = oldReverbOverridden;
 
 	char(*writableSoundGroupNames)[9] = new char[controlROMMap->soundGroupsCount][9];
@@ -865,13 +902,17 @@ Bit32u Synth::addMIDIInterfaceDelay(Bit32u len, Bit32u timestamp) {
 	return timestamp;
 }
 
+Bit32u Synth::getInternalRenderedSampleCount() const {
+	return renderedSampleCount;
+}
+
 bool Synth::playMsg(Bit32u msg) {
 	return playMsg(msg, renderedSampleCount);
 }
 
 bool Synth::playMsg(Bit32u msg, Bit32u timestamp) {
 	if ((msg & 0xF8) == 0xF8) {
-		reportHandler->onMIDISystemRealtime(Bit8u(msg));
+		reportHandler->onMIDISystemRealtime(Bit8u(msg & 0xFF));
 		return true;
 	}
 	if (midiQueue == NULL) return false;
@@ -1539,6 +1580,8 @@ void Synth::writeMemoryRegion(const MemoryRegion *region, Bit32u addr, Bit32u le
 }
 
 void Synth::refreshSystemMasterTune() {
+	// 171 is ~half a semitone.
+	extensions.masterTunePitchDelta = ((mt32ram.system.masterTune - 64) * 171) >> 6; // PORTABILITY NOTE: Assumes arithmetic shift.
 #if MT32EMU_MONITOR_SYSEX > 0
 	//FIXME:KG: This is just an educated guess.
 	// The LAPC-I documentation claims a range of 427.5Hz-452.6Hz (similar to what we have here)
@@ -1650,7 +1693,23 @@ void Synth::reset() {
 		}
 	}
 	refreshSystem();
+	resetMasterTunePitchDelta();
 	isActive();
+}
+
+void Synth::resetMasterTunePitchDelta() {
+	// This effectively resets master tune to 440.0Hz.
+	// Despite that the manual claims 442.0Hz is the default setting for master tune,
+	// it doesn't actually take effect upon a reset due to a bug in the reset routine.
+	// CONFIRMED: This bug is present in all supported Control ROMs.
+	extensions.masterTunePitchDelta = 0;
+#if MT32EMU_MONITOR_SYSEX > 0
+	printDebug(" Actual Master Tune reset to 440.0");
+#endif
+}
+
+Bit32s Synth::getMasterTunePitchDelta() const {
+	return extensions.masterTunePitchDelta;
 }
 
 MidiEvent::~MidiEvent() {
@@ -2013,21 +2072,35 @@ void RendererImpl<IntSample>::convertSamplesToOutput(IntSample *buffer, Bit32u l
 }
 
 static inline float produceDistortedSample(float sample) {
-	if (sample < -2.0f) {
-		return sample + 4.0f;
-	} else if (2.0f < sample) {
-		return sample - 4.0f;
+	// Here we roughly simulate the distortion caused by the DAC bit shift.
+	if (sample < -1.0f) {
+		return sample + 2.0f;
+	} else if (1.0f < sample) {
+		return sample - 2.0f;
 	}
 	return sample;
 }
 
 template <>
 void RendererImpl<FloatSample>::produceLA32Output(FloatSample *buffer, Bit32u len) {
-	if (synth.getDACInputMode() == DACInputMode_GENERATION2) {
+	switch (synth.getDACInputMode()) {
+	case DACInputMode_NICE:
+		// Note, we do not do any clamping for floats here to avoid introducing distortions.
+		// This means that the output signal may actually overshoot the unity when the volume is set too high.
+		// We leave it up to the consumer whether the output is to be clamped or properly normalised further on.
 		while (len--) {
-			*buffer = produceDistortedSample(*buffer);
+			*buffer *= 2.0f;
 			buffer++;
 		}
+		break;
+	case DACInputMode_GENERATION2:
+		while (len--) {
+			*buffer = produceDistortedSample(2.0f * *buffer);
+			buffer++;
+		}
+		break;
+	default:
+		break;
 	}
 }
 
@@ -2035,7 +2108,7 @@ template <>
 void RendererImpl<FloatSample>::convertSamplesToOutput(FloatSample *buffer, Bit32u len) {
 	if (synth.getDACInputMode() == DACInputMode_GENERATION1) {
 		while (len--) {
-			*buffer = produceDistortedSample(*buffer);
+			*buffer = produceDistortedSample(2.0f * *buffer);
 			buffer++;
 		}
 	}

@@ -10,7 +10,7 @@
  *		  0 - BT-542B ISA;
  *		  1 - BT-958 PCI (but BT-542B ISA on non-PCI machines)
  *
- * Version:	@(#)scsi_buslogic.c	1.0.4	2017/06/14
+ * Version:	@(#)scsi_buslogic.c	1.0.6	2017/08/17
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -39,7 +39,7 @@
 #include "scsi_buslogic.h"
 
 
-#define BUSLOGIC_RESET_DURATION_NS UINT64_C(50000000)
+#define BUSLOGIC_RESET_DURATION_NS UINT64_C(250000)
 
 
 /*
@@ -437,6 +437,29 @@ typedef union {
 } CCBU;
 #pragma pack(pop)
 
+#pragma pack(push,1)
+typedef struct
+{
+    /** Data length. */
+    uint32_t        DataLength;
+    /** Data pointer. */
+    uint32_t        DataPointer;
+    /** The device the request is sent to. */
+    uint8_t         TargetId;
+    /** The LUN in the device. */
+    uint8_t         LogicalUnit;
+    /** Reserved */
+    unsigned char   Reserved1 : 3;
+    /** Data direction for the request. */
+    unsigned char   DataDirection : 2;
+    /** Reserved */
+    unsigned char   Reserved2 : 3;
+    /** Length of the SCSI CDB. */
+    uint8_t         CDBLength;
+    /** The SCSI CDB.  (A CDB can be 12 bytes long.)   */
+    uint8_t         CDB[12];
+} ESCMD;
+#pragma pack(pop)
 
 #pragma pack(push,1)
 typedef struct {
@@ -465,10 +488,10 @@ typedef struct {
     uint8_t	Geometry;
     uint8_t	Control;
     uint8_t	Command;
-    uint8_t	CmdBuf[53];
+    uint8_t	CmdBuf[128];
     uint8_t	CmdParam;
     uint8_t	CmdParamLeft;
-    uint8_t	DataBuf[64];
+    uint8_t	DataBuf[128];
     uint16_t	DataReply;
     uint16_t	DataReplyLeft;
     uint32_t	MailboxCount;
@@ -490,6 +513,10 @@ typedef struct {
     mem_mapping_t mmio_mapping;
     int		chip;
     int		Card;
+    int		has_bios;
+    uint32_t	bios_addr,
+		bios_size,
+		bios_mask;
 } Buslogic_t;
 #pragma pack(pop)
 
@@ -505,9 +532,8 @@ enum {
     CHIP_BUSLOGIC_PCI
 };
 
-
+/* #define ENABLE_BUSLOGIC_LOG 0 */
 int buslogic_do_log = 0;
-
 
 static void
 BuslogicLog(const char *format, ...)
@@ -525,6 +551,18 @@ BuslogicLog(const char *format, ...)
 }
 #define pclog	BuslogicLog
 
+static void
+SpecificLog(const char *format, ...)
+{
+#ifdef ENABLE_BUSLOGIC_LOG
+	va_list ap;
+	
+	va_start(ap, format);
+	vprintf(format, ap);
+	va_end(ap);
+	fflush(stdout);
+#endif
+}
 
 static void
 BuslogicInterrupt(Buslogic_t *bl, int set)
@@ -545,10 +583,12 @@ BuslogicInterrupt(Buslogic_t *bl, int set)
 		if (set)
 		{
 			picint(1 << bl->Irq);
+			/* pclog("Interrupt Set\n"); */
 		}
 		else
 		{
 			picintc(1 << bl->Irq);
+			/* pclog("Interrupt Cleared\n"); */
 		}
 	}
 }
@@ -557,13 +597,13 @@ BuslogicInterrupt(Buslogic_t *bl, int set)
 static void
 BuslogicClearInterrupt(Buslogic_t *bl)
 {
-    pclog("Buslogic: Lowering Interrupt 0x%02X\n", bl->Interrupt);
+    /* pclog("Buslogic: Lowering Interrupt 0x%02X\n", bl->Interrupt); */
     bl->Interrupt = 0;
-    pclog("Lowering IRQ %i\n", bl->Irq);
+    /* pclog("Lowering IRQ %i\n", bl->Irq); */
     BuslogicInterrupt(bl, 0);
     if (bl->PendingInterrupt) {
 	bl->Interrupt = bl->PendingInterrupt;
-	pclog("Buslogic: Raising Interrupt 0x%02X (Pending)\n", bl->Interrupt);
+	/* pclog("Buslogic: Raising Interrupt 0x%02X (Pending)\n", bl->Interrupt); */
 	if (bl->MailboxOutInterrupts || !(bl->Interrupt & INTR_MBOA)) {
 		if (bl->IrqEnabled)  BuslogicInterrupt(bl, 1);
 	}
@@ -571,39 +611,14 @@ BuslogicClearInterrupt(Buslogic_t *bl)
     }
 }
 
-
-static void
-BuslogicLocalRAM(Buslogic_t *bl)
-{
-    /*
-     * These values are mostly from what I think is right
-     * looking at the dmesg output from a Linux guest inside
-     * a VMware server VM.
-     *
-     * So they don't have to be right :)
-     */
-    memset(bl->LocalRAM.u8View, 0, sizeof(HALocalRAM));
-    bl->LocalRAM.structured.autoSCSIData.fLevelSensitiveInterrupt = 1;
-    bl->LocalRAM.structured.autoSCSIData.fParityCheckingEnabled = 1;
-    bl->LocalRAM.structured.autoSCSIData.fExtendedTranslation = 1; /* Same as in geometry register. */
-    bl->LocalRAM.structured.autoSCSIData.u16DeviceEnabledMask = UINT16_MAX; /* All enabled. Maybe mask out non present devices? */
-    bl->LocalRAM.structured.autoSCSIData.u16WidePermittedMask = UINT16_MAX;
-    bl->LocalRAM.structured.autoSCSIData.u16FastPermittedMask = UINT16_MAX;
-    bl->LocalRAM.structured.autoSCSIData.u16SynchronousPermittedMask = UINT16_MAX;
-    bl->LocalRAM.structured.autoSCSIData.u16DisconnectPermittedMask = UINT16_MAX;
-    bl->LocalRAM.structured.autoSCSIData.fStrictRoundRobinMode = bl->StrictRoundRobinMode;
-    bl->LocalRAM.structured.autoSCSIData.u16UltraPermittedMask = UINT16_MAX;
-    /** @todo calculate checksum? */
-}
-
-
 static void
 BuslogicReset(Buslogic_t *bl)
 {
+	/* pclog("BuslogicReset()\n"); */
     BuslogicCallback = 0;
     BuslogicResetCallback = 0;
+	bl->Geometry = 0x80;
     bl->Status = STAT_IDLE | STAT_INIT;
-    bl->Geometry = 0x80;
     bl->Command = 0xFF;
     bl->CmdParam = 0;
     bl->CmdParamLeft = 0;
@@ -617,15 +632,14 @@ BuslogicReset(Buslogic_t *bl)
     bl->Lock = 0;
     BuslogicInOperation = 0;
 
-    BuslogicClearInterrupt(bl);
-
-    BuslogicLocalRAM(bl);
+	BuslogicClearInterrupt(bl);
 }
 
 
 static void
 BuslogicResetControl(Buslogic_t *bl, uint8_t Reset)
 {
+	/* pclog("BuslogicResetControl()\n");	 */
     BuslogicReset(bl);
     if (Reset) {
 	bl->Status |= STAT_STST;
@@ -638,9 +652,10 @@ BuslogicResetControl(Buslogic_t *bl, uint8_t Reset)
 static void
 BuslogicCommandComplete(Buslogic_t *bl)
 {
-    bl->DataReply = 0;
-    bl->Status |= STAT_IDLE;
-				
+	pclog("BuslogicCommandComplete()\n");
+	bl->DataReply = 0;
+	bl->Status |= STAT_IDLE;
+
     if (bl->Command != 0x02) {
 	bl->Status &= ~STAT_DFULL;
 	bl->Interrupt = (INTR_ANY | INTR_HACC);
@@ -650,7 +665,7 @@ BuslogicCommandComplete(Buslogic_t *bl)
     }
 
     bl->Command = 0xFF;
-    bl->CmdParam = 0;
+    bl->CmdParam = 0;	
 }
 
 
@@ -984,6 +999,888 @@ BuslogicDataBufferFree(Req_t *req)
     }
 }
 
+static uint8_t
+BuslogicConvertSenseLength(uint8_t RequestSenseLength)
+{
+    pclog("Unconverted Request Sense length %i\n", RequestSenseLength);
+
+    if (RequestSenseLength == 0)
+	RequestSenseLength = 14;
+    else if (RequestSenseLength == 1)
+	RequestSenseLength = 0;
+
+    pclog("Request Sense length %i\n", RequestSenseLength);
+
+    return(RequestSenseLength);
+}
+
+
+static void
+BuslogicSCSIBIOSDataBufferAllocate(ESCMD *ESCSICmd, uint8_t TargetID, uint8_t LUN)
+{
+    uint32_t DataPointer, DataLength;
+	
+	DataPointer = ESCSICmd->DataPointer;
+	DataLength = ESCSICmd->DataLength;		
+
+    SpecificLog("BIOS Data Buffer write: length %d, pointer 0x%04X\n",
+				DataLength, DataPointer);	
+
+    if (SCSIDevices[TargetID][LUN].CmdBuffer != NULL)
+    {
+	free(SCSIDevices[TargetID][LUN].CmdBuffer);
+	SCSIDevices[TargetID][LUN].CmdBuffer = NULL;
+    }
+
+    if ((ESCSICmd->DataDirection != 0x03) && DataLength) 
+	{
+		uint32_t Address = DataPointer;
+
+		SCSIDevices[TargetID][LUN].InitLength = DataLength;
+
+		SCSIDevices[TargetID][LUN].CmdBuffer = (uint8_t *) malloc(DataLength);
+		memset(SCSIDevices[TargetID][LUN].CmdBuffer, 0, DataLength);
+
+		if (DataLength > 0) {
+			DMAPageRead(Address,
+					(char *)SCSIDevices[TargetID][LUN].CmdBuffer,
+					SCSIDevices[TargetID][LUN].InitLength);
+		}
+	}
+}
+
+static void
+BuslogicSCSIBIOSDataBufferFree(ESCMD *ESCSICmd, uint8_t TargetID, uint8_t LUN)
+{
+    uint32_t DataPointer = 0;
+    uint32_t DataLength = 0;
+    uint32_t Address;
+    uint32_t Residual;
+
+	DataPointer = ESCSICmd->DataPointer;
+	DataLength = ESCSICmd->DataLength;		
+
+    if ((DataLength != 0) && (ESCSICmd->CDB[0] == GPCMD_TEST_UNIT_READY)) {
+	SpecificLog("Data length not 0 with TEST UNIT READY: %i (%i)\n",
+		DataLength, SCSIDevices[TargetID][LUN].InitLength);
+    }
+
+    if (ESCSICmd->CDB[0] == GPCMD_TEST_UNIT_READY) {
+	DataLength = 0;
+    }
+
+    SpecificLog("BIOS Data Buffer read: length %d, pointer 0x%04X\n",
+				DataLength, DataPointer);
+
+    /* If the control byte is 0x00, it means that the transfer direction is set up by the SCSI command without
+       checking its length, so do this procedure for both read/write commands. */
+    if ((DataLength > 0) &&
+        ((ESCSICmd->DataDirection == CCB_DATA_XFER_IN) ||
+	(ESCSICmd->DataDirection == 0x00))) 
+	{
+		Address = DataPointer;
+
+		SpecificLog("BusLogic BIOS DMA: Writing %i bytes at %08X\n", DataLength, Address);
+		DMAPageWrite(Address, (char *)SCSIDevices[TargetID][LUN].CmdBuffer, DataLength);
+    }
+
+	/* Should be 0 when scatter/gather? */
+	if (DataLength >= SCSIDevices[TargetID][LUN].InitLength) {
+		Residual = DataLength;
+		Residual -= SCSIDevices[TargetID][LUN].InitLength;
+	} else {
+		Residual = 0;
+	}
+
+	ESCSICmd->DataLength = Residual;
+	SpecificLog("BIOS Residual data length for reading: %d\n",
+			ESCSICmd->DataLength);
+
+    if (SCSIDevices[TargetID][LUN].CmdBuffer != NULL)
+    {
+	free(SCSIDevices[TargetID][LUN].CmdBuffer);
+	SCSIDevices[TargetID][LUN].CmdBuffer = NULL;
+    }
+}
+
+static void
+BuslogicSCSIBIOSRequestSetup(Buslogic_t *bl, uint8_t *CmdBuf, uint8_t *DataInBuf, uint8_t DataReply)
+{	
+	ESCMD *ESCSICmd = (ESCMD *)CmdBuf;
+	uint8_t hdc_id, hd_phase;
+	uint8_t cdrom_id, cdrom_phase;
+	uint32_t i;
+	uint8_t temp_cdb[12];
+	
+	DataInBuf[0] = DataInBuf[1] = 0;
+
+    if ((ESCSICmd->TargetId > 15) || (ESCSICmd->LogicalUnit > 7)) {
+	DataInBuf[2] = CCB_INVALID_CCB;
+	DataInBuf[3] = SCSI_STATUS_OK;
+	return;
+    }
+		
+    SpecificLog("Scanning SCSI Target ID %i\n", ESCSICmd->TargetId);		
+
+    SCSIStatus = SCSI_STATUS_OK;
+    SCSIDevices[ESCSICmd->TargetId][ESCSICmd->LogicalUnit].InitLength = 0;
+
+    BuslogicSCSIBIOSDataBufferAllocate(ESCSICmd, ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
+
+    if (SCSIDevices[ESCSICmd->TargetId][ESCSICmd->LogicalUnit].LunType == SCSI_NONE) {
+	SpecificLog("SCSI Target ID %i and LUN %i have no device attached\n",ESCSICmd->TargetId,ESCSICmd->LogicalUnit);
+	BuslogicSCSIBIOSDataBufferFree(ESCSICmd, ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
+	/* BuslogicSCSIBIOSSenseBufferFree(ESCSICmd, Id, Lun, 0, 0); */
+	DataInBuf[2] = CCB_SELECTION_TIMEOUT;
+	DataInBuf[3] = SCSI_STATUS_OK;
+    } else {
+	SpecificLog("SCSI Target ID %i and LUN %i detected and working\n", ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
+
+	SpecificLog("Transfer Control %02X\n", ESCSICmd->DataDirection);
+	SpecificLog("CDB Length %i\n", ESCSICmd->CDBLength);	
+	if (ESCSICmd->DataDirection > 0x03) {
+		SpecificLog("Invalid control byte: %02X\n",
+			ESCSICmd->DataDirection);
+	}
+	}
+
+	if (SCSIDevices[ESCSICmd->TargetId][ESCSICmd->LogicalUnit].LunType == SCSI_DISK)
+	{
+		hdc_id = scsi_hard_disks[ESCSICmd->TargetId][ESCSICmd->LogicalUnit];
+
+		if (hdc_id == 0xff)  fatal("SCSI hard disk on %02i:%02i has disappeared\n", ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
+
+		SpecificLog("SCSI HD command being executed on: SCSI ID %i, SCSI LUN %i, HD %i\n",
+								ESCSICmd->TargetId, ESCSICmd->LogicalUnit, hdc_id);
+
+		SpecificLog("SCSI Cdb[0]=0x%02X\n", ESCSICmd->CDB[0]);
+		for (i = 1; i < ESCSICmd->CDBLength; i++) {
+		SpecificLog("SCSI Cdb[%i]=%i\n", i, ESCSICmd->CDB[i]);
+		}
+
+		memset(temp_cdb, 0, 12);
+		if (ESCSICmd->CDBLength <= 12) {
+		memcpy(temp_cdb, ESCSICmd->CDB,
+			ESCSICmd->CDBLength);
+		} else {
+		memcpy(temp_cdb, ESCSICmd->CDB, 12);
+		}
+
+		/*
+		 * Since that field in the HDC struct is never used when
+		 * the bus type is SCSI, let's use it for this scope.
+		 */
+		shdc[hdc_id].request_length = temp_cdb[1];
+
+		if (ESCSICmd->CDBLength != 12) {
+		/*
+		 * Make sure the LUN field of the temporary CDB is always 0,
+		 * otherwise Daemon Tools drives will misbehave when a command
+		 * is passed through to them.
+		 */
+		temp_cdb[1] &= 0x1f;
+		}
+
+		/* Finally, execute the SCSI command immediately and get the transfer length. */
+		SCSIPhase = SCSI_PHASE_COMMAND;
+		scsi_hd_command(hdc_id, temp_cdb);
+		SCSIStatus = scsi_hd_err_stat_to_scsi(hdc_id);
+		if (SCSIStatus == SCSI_STATUS_OK) {
+		hd_phase = scsi_hd_phase_to_scsi(hdc_id);
+		if (hd_phase == 2) {
+			/* Command completed - call the phase callback to complete the command. */
+			scsi_hd_callback(hdc_id);
+		} else {
+			/* Command first phase complete - call the callback to execute the second phase. */
+			scsi_hd_callback(hdc_id);
+			SCSIStatus = scsi_hd_err_stat_to_scsi(hdc_id);
+			/* Command second phase complete - call the callback to complete the command. */
+			scsi_hd_callback(hdc_id);
+		}
+		} else {
+		/* Error (Check Condition) - call the phase callback to complete the command. */
+		scsi_hd_callback(hdc_id);
+		}
+
+		pclog("SCSI Status: %s, Sense: %02X, ASC: %02X, ASCQ: %02X\n", (SCSIStatus == SCSI_STATUS_OK) ? "OK" : "CHECK CONDITION", shdc[hdc_id].sense[2], shdc[hdc_id].sense[12], shdc[hdc_id].sense[13]);
+
+		BuslogicSCSIBIOSDataBufferFree(ESCSICmd, ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
+		/* BuslogicSCSIBIOSSenseBufferFree(ESCSICmd, Id, Lun, (SCSIStatus != SCSI_STATUS_OK), 1); */
+
+		pclog("BIOS Request complete\n");
+
+		if (SCSIStatus == SCSI_STATUS_OK) {
+		DataInBuf[2] = CCB_COMPLETE;
+		DataInBuf[3] = SCSI_STATUS_OK;
+		} else if (SCSIStatus == SCSI_STATUS_CHECK_CONDITION) {
+		DataInBuf[2] = CCB_COMPLETE;
+		DataInBuf[3] = SCSI_STATUS_CHECK_CONDITION;			
+		}		
+	}
+	else if (SCSIDevices[ESCSICmd->TargetId][ESCSICmd->LogicalUnit].LunType == SCSI_CDROM)
+	{
+		cdrom_id = scsi_cdrom_drives[ESCSICmd->TargetId][ESCSICmd->LogicalUnit];
+
+		if (cdrom_id == 0xff)  fatal("SCSI CD-ROM on %02i:%02i has disappeared\n", ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
+
+		pclog("CD-ROM command being executed on: SCSI ID %i, SCSI LUN %i, CD-ROM %i\n",
+								ESCSICmd->TargetId, ESCSICmd->LogicalUnit, cdrom_id);
+
+		pclog("SCSI Cdb[0]=0x%02X\n", ESCSICmd->CDB[0]);
+		for (i = 1; i < ESCSICmd->CDBLength; i++) {
+		pclog("SCSI Cdb[%i]=%i\n", i, ESCSICmd->CDB[i]);
+		}
+
+		memset(temp_cdb, 0, cdrom[cdrom_id].cdb_len);
+		if (ESCSICmd->CDBLength <= cdrom[cdrom_id].cdb_len) {
+		memcpy(temp_cdb, ESCSICmd->CDB,
+			ESCSICmd->CDBLength);
+		} else {
+		memcpy(temp_cdb, ESCSICmd->CDB, cdrom[cdrom_id].cdb_len);
+		}
+
+		/*
+		 * Since that field in the CDROM struct is never used when
+		 * the bus type is SCSI, let's use it for this scope.
+		 */
+		cdrom[cdrom_id].request_length = temp_cdb[1];
+
+		if (ESCSICmd->CDBLength != 12) {
+		/*
+		 * Make sure the LUN field of the temporary CDB is always 0,
+		 * otherwise Daemon Tools drives will misbehave when a command
+		 * is passed through to them.
+		 */
+		temp_cdb[1] &= 0x1f;
+		}
+
+		/* Finally, execute the SCSI command immediately and get the transfer length. */
+		SCSIPhase = SCSI_PHASE_COMMAND;
+		cdrom_command(cdrom_id, temp_cdb);
+		SCSIStatus = cdrom_CDROM_PHASE_to_scsi(cdrom_id);
+		if (SCSIStatus == SCSI_STATUS_OK) {
+		cdrom_phase = cdrom_atapi_phase_to_scsi(cdrom_id);
+		if (cdrom_phase == 2) {
+			/* Command completed - call the phase callback to complete the command. */
+			cdrom_phase_callback(cdrom_id);
+		} else {
+			/* Command first phase complete - call the callback to execute the second phase. */
+			cdrom_phase_callback(cdrom_id);
+			SCSIStatus = cdrom_CDROM_PHASE_to_scsi(cdrom_id);
+			/* Command second phase complete - call the callback to complete the command. */
+			cdrom_phase_callback(cdrom_id);
+		}
+		} else {
+		/* Error (Check Condition) - call the phase callback to complete the command. */
+		cdrom_phase_callback(cdrom_id);
+		}
+
+		pclog("SCSI Status: %s, Sense: %02X, ASC: %02X, ASCQ: %02X\n", (SCSIStatus == SCSI_STATUS_OK) ? "OK" : "CHECK CONDITION", cdrom[cdrom_id].sense[2], cdrom[cdrom_id].sense[12], cdrom[cdrom_id].sense[13]);
+
+		BuslogicSCSIBIOSDataBufferFree(ESCSICmd, ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
+		
+		pclog("Request complete\n");
+
+		if (SCSIStatus == SCSI_STATUS_OK) {
+		DataInBuf[2] = CCB_COMPLETE;
+		DataInBuf[3] = SCSI_STATUS_OK;
+		} else if (SCSIStatus == SCSI_STATUS_CHECK_CONDITION) {
+		DataInBuf[2] = CCB_COMPLETE;
+		DataInBuf[3] = SCSI_STATUS_CHECK_CONDITION;			
+		}		
+	}
+	
+	/* BuslogicInOperation = (SCSIDevices[Id][Lun].LunType == SCSI_DISK) ? 0x13 : 3; */
+	pclog("SCSI (%i:%i) -> %i\n", ESCSICmd->TargetId, ESCSICmd->LogicalUnit, SCSIDevices[ESCSICmd->TargetId][ESCSICmd->LogicalUnit].LunType);
+	
+	bl->DataReplyLeft = DataReply;	
+}
+
+static uint8_t BuslogicCompletionCode(uint8_t *sense)
+{
+	switch (sense[12])
+	{
+		case 0x00:
+			return 0x00;
+		case 0x20:
+			return 0x01;
+		case 0x12:
+		case 0x21:
+			return 0x02;
+		case 0x27:
+			return 0x03;
+		case 0x14: case 0x16:
+			return 0x04;
+		case 0x10: case 0x11:
+			return 0x10;
+		case 0x17: case 0x18:
+			return 0x11;
+		case 0x01: case 0x03: case 0x05: case 0x06: case 0x07: case 0x08: case 0x09:
+		case 0x1B: case 0x1C: case 0x1D:
+		case 0x40: case 0x41: case 0x42: case 0x43: case 0x44: case 0x45: case 0x46:
+		case 0x47: case 0x48: case 0x49:
+			return 0x20;
+		case 0x15:
+		case 0x02:
+			return 0x40;
+		case 0x04:
+		case 0x28: case 0x29: case 0x2A:
+			return 0xAA;
+		default:
+			return 0xFF;
+	}
+}
+
+uint8_t BuslogicBIOSCommand08(uint8_t id, uint8_t *buffer, int lun_type)
+{
+	uint32_t len = 0;
+	uint8_t cdb[12] = { GPCMD_READ_CDROM_CAPACITY, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	uint8_t rcbuf[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+	int ret = 0;
+	int i = 0;
+	uint8_t sc = 0;
+
+	if (lun_type == SCSI_CDROM)
+	{
+		ret = cdrom_read_capacity(id, cdb, rcbuf, &len);
+		sc = BuslogicCompletionCode(cdrom[id].sense);
+	}
+	else
+	{
+		ret = scsi_hd_read_capacity(id, cdb, rcbuf, &len);
+		sc = BuslogicCompletionCode(shdc[id].sense);
+	}
+
+	if (ret == 0)
+	{
+		return sc;
+	}
+
+	memset(buffer, 0, 6);
+
+	for (i = 0; i < 4; i++)
+	{
+		buffer[i] = rcbuf[i];
+	}
+
+	for (i = 4; i < 6; i++)
+	{
+		buffer[i] = rcbuf[(i + 2) ^ 1];
+	}
+
+	SpecificLog("BIOS Command 0x08: %02X %02X %02X %02X %02X %02X\n", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
+	
+	return 0;
+}
+
+int BuslogicBIOSCommand15(uint8_t id, uint8_t *buffer, int lun_type)
+{
+	uint32_t len = 0;
+	uint8_t cdb[12] = { GPCMD_READ_CDROM_CAPACITY, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	uint8_t rcbuf[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+	int ret = 0;
+	int i = 0;
+	uint8_t sc = 0;
+
+	if (lun_type == SCSI_CDROM)
+	{
+		ret = cdrom_read_capacity(id, cdb, rcbuf, &len);
+		sc = BuslogicCompletionCode(cdrom[id].sense);
+	}
+	else
+	{
+		ret = scsi_hd_read_capacity(id, cdb, rcbuf, &len);
+		sc = BuslogicCompletionCode(shdc[id].sense);
+	}
+
+	memset(buffer, 0, 6);
+
+	for (i = 0; i < 4; i++)
+	{
+		buffer[i] = (ret == 0) ? 0 : rcbuf[i];
+	}
+
+	buffer[4] = (lun_type == SCSI_CDROM) ? 5 : 0;
+	if (lun_type == SCSI_CDROM)
+	{
+		buffer[5] = 0x80;
+	}
+	else
+	{
+		buffer[5] = (hdc[id].bus == HDD_BUS_SCSI_REMOVABLE) ? 0x80 : 0x00;
+	}
+
+	SpecificLog("BIOS Command 0x15: %02X %02X %02X %02X %02X %02X\n", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
+	
+	return sc;
+}
+
+static void BuslogicSCSICDROMPhaseHandler(uint8_t id)
+{
+	int phase = 0;
+
+	SCSIStatus = cdrom_CDROM_PHASE_to_scsi(id);
+	if (SCSIStatus == SCSI_STATUS_OK)
+	{
+		phase = cdrom_atapi_phase_to_scsi(id);
+		if (phase == 2)
+		{
+			/* Command completed - call the phase callback to complete the command. */
+			cdrom_phase_callback(id);
+		}
+		else
+		{
+			/* Command first phase complete - call the callback to execute the second phase. */
+			cdrom_phase_callback(id);
+			SCSIStatus = cdrom_CDROM_PHASE_to_scsi(id);
+			/* Command second phase complete - call the callback to complete the command. */
+			cdrom_phase_callback(id);
+		}
+	}
+	else
+	{
+		/* Error (Check Condition) - call the phase callback to complete the command. */
+		cdrom_phase_callback(id);
+	}
+}
+
+static void BuslogicSCSIDiskPhaseHandler(uint8_t hdc_id)
+{
+	int phase = 0;
+
+	SCSIStatus = scsi_hd_err_stat_to_scsi(hdc_id);
+	if (SCSIStatus == SCSI_STATUS_OK)
+	{
+		phase = scsi_hd_phase_to_scsi(hdc_id);
+		if (phase == 2)
+		{
+			/* Command completed - call the phase callback to complete the command. */
+			scsi_hd_callback(hdc_id);
+		}
+		else
+		{
+			/* Command first phase complete - call the callback to execute the second phase. */
+			scsi_hd_callback(hdc_id);
+			SCSIStatus = scsi_hd_err_stat_to_scsi(hdc_id);
+			/* Command second phase complete - call the callback to complete the command. */
+			scsi_hd_callback(hdc_id);
+		}
+	}
+	else
+	{
+		/* Error (Check Condition) - call the phase callback to complete the command. */
+		scsi_hd_callback(hdc_id);
+	}
+}
+
+static void BuslogicIDCheck(int lun_type, uint8_t cdrom_id, uint8_t hdc_id, BIOSCMD *BiosCmd)
+{
+	if (lun_type == SCSI_CDROM)
+	{
+		if (cdrom_id == 0xff)
+		{
+			fatal("BIOS INT13 CD-ROM on %02i:%02i has disappeared\n", BiosCmd->id, BiosCmd->lun);
+		}
+	}
+	else
+	{
+		if (hdc_id == 0xff)
+		{
+			fatal("BIOS INT13 hard disk on %02i:%02i has disappeared\n", BiosCmd->id, BiosCmd->lun);
+		}
+	}
+}
+
+/* This returns the completion code. */
+uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd)
+{
+	uint32_t dma_address;	
+	uint8_t cdrom_id, hdc_id;
+	int lba = (BiosCmd->cylinder << 9) + (BiosCmd->head << 5) + BiosCmd->sector;
+	int sector_len = BiosCmd->secount;
+	int block_shift = 9;
+	int lun_type = SCSI_NONE;
+	uint8_t ret = 0;
+	uint8_t cdb[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+	SpecificLog("BIOS Command = 0x%02X\n", BiosCmd->command);	
+	
+	if ((BiosCmd->id > last_id) || (BiosCmd->lun > 7)) {
+		return 0x80;
+	}
+
+	lun_type = SCSIDevices[BiosCmd->id][BiosCmd->lun].LunType;
+	
+	cdrom_id = scsi_cdrom_drives[BiosCmd->id][BiosCmd->lun];
+	hdc_id = scsi_hard_disks[BiosCmd->id][BiosCmd->lun];
+
+	SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = 0;
+
+	if (lun_type == SCSI_NONE) 
+	{
+		SpecificLog("BIOS Target ID %i and LUN %i have no device attached\n",BiosCmd->id,BiosCmd->lun);
+		return 0x80;
+	}
+
+	dma_address = ADDR_TO_U32(BiosCmd->dma_address);
+
+	SpecificLog("BIOS Data Buffer write: length %d, pointer 0x%04X\n", sector_len, dma_address);	
+
+	if (SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer != NULL)
+	{
+		free(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer);
+		SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = NULL;
+	}
+
+	switch(BiosCmd->command)
+	{
+		case 0x00:	/* Reset Disk System, in practice it's a nop */
+			return 0;
+
+			break;
+
+		case 0x01:	/* Read Status of Last Operation */
+			BuslogicIDCheck(lun_type, cdrom_id, hdc_id, BiosCmd);
+
+			/* Assuming 14 bytes because that's the default length for SCSI sense, and no command-specific
+			   indication is given. */
+			SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = 14;
+
+			SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = (uint8_t *) malloc(14);
+			memset(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, 0, 14);
+
+			SCSIStatus = BuslogicBIOSCommand08((lun_type == SCSI_CDROM) ? cdrom_id : hdc_id, SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, lun_type) ? SCSI_STATUS_OK : SCSI_STATUS_CHECK_CONDITION;
+
+			if (sector_len > 0) 
+			{
+				SpecificLog("BusLogic BIOS DMA: Reading 14 bytes at %08X\n", dma_address);
+				if (lun_type == SCSI_CDROM)
+				{
+					DMAPageWrite(dma_address, (char *)cdrom[cdrom_id].sense, 14);
+				}
+				else
+				{
+					DMAPageWrite(dma_address, (char *)shdc[hdc_id].sense, 14);
+				}
+			}
+
+			if (SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer != NULL)
+			{
+				free(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer);
+				SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = NULL;
+			}
+
+			return BuslogicCompletionCode((lun_type == SCSI_CDROM) ? cdrom[cdrom_id].sense : shdc[hdc_id].sense);
+
+			break;
+
+		case 0x02:	/* Read Desired Sectors to Memory */
+			BuslogicIDCheck(lun_type, cdrom_id, hdc_id, BiosCmd);
+
+			if (lun_type == SCSI_CDROM)
+			{
+				block_shift = 11;
+			}
+
+			SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = sector_len << block_shift;
+
+			SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = (uint8_t *) malloc(sector_len << block_shift);
+			memset(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, 0, sector_len << block_shift);
+
+			cdb[0] = GPCMD_READ_10;
+			cdb[2] = (lba >> 24) & 0xff;
+			cdb[3] = (lba >> 16) & 0xff;
+			cdb[4] = (lba >> 8) & 0xff;
+			cdb[5] = lba & 0xff;
+			cdb[7] = (sector_len >> 8) & 0xff;
+			cdb[8] = sector_len & 0xff;
+
+			if (lun_type == SCSI_CDROM)
+			{
+				cdrom[cdrom_id].request_length = (BiosCmd->lun & 7) << 5;
+				cdrom_command(cdrom_id, cdb);
+				BuslogicSCSICDROMPhaseHandler(cdrom_id);
+			}
+			else
+			{
+				shdc[hdc_id].request_length = (BiosCmd->lun & 7) << 5;
+				scsi_hd_command(hdc_id, cdb);
+				BuslogicSCSIDiskPhaseHandler(hdc_id);
+			}
+
+			if (sector_len > 0) 
+			{
+				SpecificLog("BusLogic BIOS DMA: Reading %i bytes at %08X\n", sector_len << block_shift, dma_address);
+				DMAPageWrite(dma_address, (char *)SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, sector_len << block_shift);
+			}
+
+			if (SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer != NULL)
+			{
+				free(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer);
+				SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = NULL;
+			}
+
+			return BuslogicCompletionCode((lun_type == SCSI_CDROM) ? cdrom[cdrom_id].sense : shdc[hdc_id].sense);
+
+			break;
+
+		case 0x03:	/* Write Desired Sectors from Memory */
+			BuslogicIDCheck(lun_type, cdrom_id, hdc_id, BiosCmd);
+
+			if (lun_type == SCSI_CDROM)
+			{
+				block_shift = 11;
+			}
+
+			SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = sector_len << block_shift;
+
+			SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = (uint8_t *) malloc(sector_len << block_shift);
+			memset(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, 0, sector_len << block_shift);
+
+			if (sector_len > 0) 
+			{
+				SpecificLog("BusLogic BIOS DMA: Reading %i bytes at %08X\n", sector_len << block_shift, dma_address);
+				DMAPageRead(dma_address, (char *)SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, sector_len << block_shift);
+			}
+
+			cdb[0] = GPCMD_WRITE_10;
+			cdb[2] = (lba >> 24) & 0xff;
+			cdb[3] = (lba >> 16) & 0xff;
+			cdb[4] = (lba >> 8) & 0xff;
+			cdb[5] = lba & 0xff;
+			cdb[7] = (sector_len >> 8) & 0xff;
+			cdb[8] = sector_len & 0xff;
+
+			if (lun_type == SCSI_CDROM)
+			{
+				cdrom[cdrom_id].request_length = (BiosCmd->lun & 7) << 5;
+				cdrom_command(cdrom_id, cdb);
+				BuslogicSCSICDROMPhaseHandler(cdrom_id);
+			}
+			else
+			{
+				shdc[hdc_id].request_length = (BiosCmd->lun & 7) << 5;
+				scsi_hd_command(hdc_id, cdb);
+				BuslogicSCSIDiskPhaseHandler(hdc_id);
+			}
+
+			if (SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer != NULL)
+			{
+				free(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer);
+				SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = NULL;
+			}
+
+			return BuslogicCompletionCode((lun_type == SCSI_CDROM) ? cdrom[cdrom_id].sense : shdc[hdc_id].sense);
+
+			break;
+
+		case 0x04:	/* Verify Desired Sectors */
+			BuslogicIDCheck(lun_type, cdrom_id, hdc_id, BiosCmd);
+
+			if (lun_type == SCSI_CDROM)
+			{
+				block_shift = 11;
+			}
+
+			cdb[0] = GPCMD_VERIFY_10;
+			cdb[2] = (lba >> 24) & 0xff;
+			cdb[3] = (lba >> 16) & 0xff;
+			cdb[4] = (lba >> 8) & 0xff;
+			cdb[5] = lba & 0xff;
+			cdb[7] = (sector_len >> 8) & 0xff;
+			cdb[8] = sector_len & 0xff;
+
+			if (lun_type == SCSI_CDROM)
+			{
+				cdrom[cdrom_id].request_length = (BiosCmd->lun & 7) << 5;
+				cdrom_command(cdrom_id, cdb);
+				BuslogicSCSICDROMPhaseHandler(cdrom_id);
+			}
+			else
+			{
+				shdc[hdc_id].request_length = (BiosCmd->lun & 7) << 5;
+				scsi_hd_command(hdc_id, cdb);
+				BuslogicSCSIDiskPhaseHandler(hdc_id);
+			}
+
+			return BuslogicCompletionCode((lun_type == SCSI_CDROM) ? cdrom[cdrom_id].sense : shdc[hdc_id].sense);
+
+			break;
+
+		case 0x05:	/* Format Track, invalid since SCSI has no tracks */
+			return 1;
+
+			break;
+
+		case 0x06:	/* Identify SCSI Devices, in practice it's a nop */
+			return 0;
+
+			break;
+
+		case 0x07:	/* Format Unit */
+			BuslogicIDCheck(lun_type, cdrom_id, hdc_id, BiosCmd);
+
+			cdb[0] = GPCMD_FORMAT_UNIT;
+
+			if (lun_type == SCSI_CDROM)
+			{
+				cdrom[cdrom_id].request_length = (BiosCmd->lun & 7) << 5;
+				cdrom_command(cdrom_id, cdb);
+				BuslogicSCSICDROMPhaseHandler(cdrom_id);
+			}
+			else
+			{
+				shdc[hdc_id].request_length = (BiosCmd->lun & 7) << 5;
+				scsi_hd_command(hdc_id, cdb);
+				BuslogicSCSIDiskPhaseHandler(hdc_id);
+			}
+
+			return BuslogicCompletionCode((lun_type == SCSI_CDROM) ? cdrom[cdrom_id].sense : shdc[hdc_id].sense);
+
+			break;
+
+		case 0x08:	/* Read Drive Parameters */
+			BuslogicIDCheck(lun_type, cdrom_id, hdc_id, BiosCmd);
+
+			SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = 6;
+
+			SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = (uint8_t *) malloc(6);
+			memset(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, 0, 6);
+
+			ret = BuslogicBIOSCommand08((lun_type == SCSI_CDROM) ? cdrom_id : hdc_id, SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, lun_type);
+
+			SpecificLog("BusLogic BIOS DMA: Reading 6 bytes at %08X\n", dma_address);
+			DMAPageWrite(dma_address, (char *)SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, 6);
+
+			if (SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer != NULL)
+			{
+				free(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer);
+				SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = NULL;
+			}
+
+			return ret;
+
+			break;
+
+		case 0x09:	/* Initialize Drive Pair Characteristics, in practice it's a nop */
+			return 0;
+
+			break;
+
+		case 0x0C:	/* Seek */
+			BuslogicIDCheck(lun_type, cdrom_id, hdc_id, BiosCmd);
+
+			SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = sector_len << block_shift;
+
+			cdb[0] = GPCMD_SEEK_10;
+			cdb[2] = (lba >> 24) & 0xff;
+			cdb[3] = (lba >> 16) & 0xff;
+			cdb[4] = (lba >> 8) & 0xff;
+			cdb[5] = lba & 0xff;
+
+			if (lun_type == SCSI_CDROM)
+			{
+				cdrom[cdrom_id].request_length = (BiosCmd->lun & 7) << 5;
+				cdrom_command(cdrom_id, cdb);
+				BuslogicSCSICDROMPhaseHandler(cdrom_id);
+			}
+			else
+			{
+				shdc[hdc_id].request_length = (BiosCmd->lun & 7) << 5;
+				scsi_hd_command(hdc_id, cdb);
+				BuslogicSCSIDiskPhaseHandler(hdc_id);
+			}
+
+			return (SCSIStatus == SCSI_STATUS_OK) ? 1 : 0;
+
+			break;
+
+		case 0x0D:	/* Alternate Disk Reset, in practice it's a nop */
+			return 0;
+
+			break;
+
+		case 0x10:	/* Test Drive Ready */
+			BuslogicIDCheck(lun_type, cdrom_id, hdc_id, BiosCmd);
+
+			cdb[0] = GPCMD_TEST_UNIT_READY;
+
+			if (lun_type == SCSI_CDROM)
+			{
+				cdrom[cdrom_id].request_length = (BiosCmd->lun & 7) << 5;
+				cdrom_command(cdrom_id, cdb);
+				BuslogicSCSICDROMPhaseHandler(cdrom_id);
+			}
+			else
+			{
+				shdc[hdc_id].request_length = (BiosCmd->lun & 7) << 5;
+				scsi_hd_command(hdc_id, cdb);
+				BuslogicSCSIDiskPhaseHandler(hdc_id);
+			}
+
+			return BuslogicCompletionCode((lun_type == SCSI_CDROM) ? cdrom[cdrom_id].sense : shdc[hdc_id].sense);
+
+			break;
+
+		case 0x11:	/* Recalibrate */
+			BuslogicIDCheck(lun_type, cdrom_id, hdc_id, BiosCmd);
+
+			cdb[0] = GPCMD_REZERO_UNIT;
+
+			if (lun_type == SCSI_CDROM)
+			{
+				cdrom[cdrom_id].request_length = (BiosCmd->lun & 7) << 5;
+				cdrom_command(cdrom_id, cdb);
+				BuslogicSCSICDROMPhaseHandler(cdrom_id);
+			}
+			else
+			{
+				shdc[hdc_id].request_length = (BiosCmd->lun & 7) << 5;
+				scsi_hd_command(hdc_id, cdb);
+				BuslogicSCSIDiskPhaseHandler(hdc_id);
+			}
+
+			return BuslogicCompletionCode((lun_type == SCSI_CDROM) ? cdrom[cdrom_id].sense : shdc[hdc_id].sense);
+
+			break;
+
+		case 0x14:	/* Controller Diagnostic */
+			return 0;
+
+			break;
+
+		case 0x15:	/* Read DASD Type */
+			BuslogicIDCheck(lun_type, cdrom_id, hdc_id, BiosCmd);
+
+			SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = 6;
+
+			SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = (uint8_t *) malloc(6);
+			memset(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, 0, 6);
+
+			ret = BuslogicBIOSCommand15((lun_type == SCSI_CDROM) ? cdrom_id : hdc_id, SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, lun_type);
+
+			SpecificLog("BusLogic BIOS DMA: Reading 6 bytes at %08X\n", dma_address);
+			DMAPageWrite(dma_address, (char *)SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, 6);
+
+			if (SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer != NULL)
+			{
+				free(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer);
+				SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = NULL;
+			}
+
+			return ret;
+
+			break;
+
+		default:
+			SpecificLog("BusLogic BIOS: Unimplemented command: %02X\n", BiosCmd->command);
+			return 1;
+
+			break;
+	}
+	
+	pclog("BIOS Request complete\n");
+}
 
 static uint8_t
 BuslogicRead(uint16_t Port, void *p)
@@ -993,15 +1890,21 @@ BuslogicRead(uint16_t Port, void *p)
 
     switch (Port & 3) {
 	case 0:
+	default:
 		Temp = bl->Status;
 		break;
 		
 	case 1:
-		if (bl->UseLocalRAM)
+		if (bl->UseLocalRAM && (bl->Command == 0x91))
+		{
 			Temp = bl->LocalRAM.u8View[bl->DataReply];
+		}
 		else
+		{
 			Temp = bl->DataBuf[bl->DataReply];
-		if (bl->DataReplyLeft) {
+		}
+		if (bl->DataReplyLeft) 
+		{
 			bl->DataReply++;
 			bl->DataReplyLeft--;
 			if (!bl->DataReplyLeft) {
@@ -1052,19 +1955,24 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
     Buslogic_t *bl = (Buslogic_t *)p;
     uint8_t Offset;
     MailboxInit_t *MailboxInit;
+    BIOSCMD *BiosCmd;
     ReplyInquireSetupInformation *ReplyISI;
     MailboxInitExtended_t *MailboxInitE;
     ReplyInquireExtendedSetupInformation *ReplyIESI;
     BuslogicPCIInformation_t *ReplyPI;
     char aModelName[] = "542B ";  /* Trailing \0 is fine, that's the filler anyway. */
     int cCharsToTransfer;
+    uint16_t cyl = 0;
+    uint8_t temp = 0;
 
     pclog("Buslogic: Write Port 0x%02X, Value %02X\n", Port, Val);
 
-    switch (Port & 3) {
+    switch (Port & 3) 
+	{
 	case 0:
-		if ((Val & CTRL_HRST) || (Val & CTRL_SRST)) {	
-			uint8_t Reset = !(Val & CTRL_HRST);
+		if ((Val & CTRL_HRST) || (Val & CTRL_SRST)) 
+		{	
+			uint8_t Reset = (Val & CTRL_HRST);
 			BuslogicResetControl(bl, Reset);
 			break;
 		}
@@ -1080,7 +1988,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 			/* If there are no mailboxes configured, don't even try to do anything. */
 			if (bl->MailboxCount) {
 				if (!BuslogicCallback) {
-					BuslogicCallback = 50 * SCSI_TIME;
+					BuslogicCallback = 1 * TIMER_USEC;
 				}
 			}
 			return;
@@ -1092,12 +2000,16 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 			bl->CmdParamLeft = 0;
 			
 			bl->Status &= ~(STAT_INVCMD | STAT_IDLE);
-			pclog("Buslogic: Operation Code 0x%02X\n", Val);
+			SpecificLog("Buslogic: Operation Code 0x%02X\n", Val);
 			switch (bl->Command) {
 				case 0x01:
 					bl->CmdParamLeft = sizeof(MailboxInit_t);
 					break;
-				
+
+				case 0x03:
+					bl->CmdParamLeft = 10;
+					break;
+					
 				case 0x25:
 					bl->CmdParamLeft = 1;
 					break;
@@ -1108,18 +2020,20 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				case 0x09:
 				case 0x0D:
 				case 0x1F:
-				case 0x21:
-				case 0x24:
 					bl->CmdParamLeft = 1;
+					break;
+					
+				case 0x21:
+					bl->CmdParamLeft = 5;
 					break;	
+
+				case 0x1A:
+				case 0x1B:
+					bl->CmdParamLeft = 3;
+					break;
 
 				case 0x06:
 					bl->CmdParamLeft = 4;
-					break;
-
-				case 0x1C:
-				case 0x1D:
-					bl->CmdParamLeft = 3;
 					break;
 
 				case 0x8B:
@@ -1128,17 +2042,33 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				case 0x96:
 					bl->CmdParamLeft = 1;
 					break;				
-
+					
 				case 0x81:
 					bl->CmdParamLeft = sizeof(MailboxInitExtended_t);
+					break;
+					
+				case 0x83:
+					bl->CmdParamLeft = 12;
 					break;
 
 				case 0x8C:
 					bl->CmdParamLeft = 1;
 					break;
 
+				case 0x90:	
+					bl->CmdParamLeft = 2;
+					break;
+					
 				case 0x91:
 					bl->CmdParamLeft = 2;
+					break;
+					
+				case 0x92:
+					bl->CmdParamLeft = 1;
+					break;
+					
+				case 0x94:
+					bl->CmdParamLeft = 3;
 					break;
 				
 				case 0x95: /* Valid only for PCI */
@@ -1149,10 +2079,16 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 			bl->CmdBuf[bl->CmdParam] = Val;
 			bl->CmdParam++;
 			bl->CmdParamLeft--;
+
+			if ((bl->CmdParam == 2) && (bl->Command == 0x90))
+			{
+				bl->CmdParamLeft = bl->CmdBuf[1];
+			}
 		}
 		
-		if (!bl->CmdParamLeft) {
-			pclog("Running Operation Code 0x%02X\n", bl->Command);
+		if (!bl->CmdParamLeft) 
+		{
+			SpecificLog("Running Operation Code 0x%02X\n", bl->Command);
 			switch (bl->Command) {
 				case 0x00:
 					bl->DataReplyLeft = 0;
@@ -1177,15 +2113,28 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					break;
 
 				case 0x03:
-					bl->DataBuf[0] = 0x00;
+					BiosCmd = (BIOSCMD *)bl->CmdBuf;
+
+					cyl = ((BiosCmd->cylinder & 0xff) << 8) | ((BiosCmd->cylinder >> 8) & 0xff);
+					BiosCmd->cylinder = cyl;
+					if (bl->chip == CHIP_BUSLOGIC_PCI)
+					{
+						temp = BiosCmd->id;
+						BiosCmd->id = BiosCmd->lun;
+						BiosCmd->lun = temp;
+					}						
+					SpecificLog("C: %04X, H: %02X, S: %02X\n", BiosCmd->cylinder, BiosCmd->head, BiosCmd->sector);
+					bl->DataBuf[0] = HACommand03Handler(15, BiosCmd);
+					SpecificLog("BIOS Completion/Status Code %x\n", bl->DataBuf[0]);
 					bl->DataReplyLeft = 1;
 					break;
 
 				case 0x04:
+					pclog("Inquire Board\n");
 					bl->DataBuf[0] = 0x41;
 					bl->DataBuf[1] = 0x41;
-					bl->DataBuf[2] = '5';
-					bl->DataBuf[3] = '0';
+					bl->DataBuf[2] = '2';
+					bl->DataBuf[3] = '2';
 					bl->DataReplyLeft = 4;
 					break;
 
@@ -1198,8 +2147,9 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					}
 					bl->DataReplyLeft = 0;
 					break;
-
+						
 				case 0x06:
+					pclog("Selection Time-Out\n");
 					bl->DataReplyLeft = 0;
 					break;
 						
@@ -1223,18 +2173,18 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 
 				case 0x0A:
 					memset(bl->DataBuf, 0, 8);
-					for (i=0; i<7; i++) {
+					for (i=0; i<8; i++) {
 					    bl->DataBuf[i] = 0;
 					    for (j=0; j<8; j++) {
 						if (SCSIDevices[i][j].LunType != SCSI_NONE)
 						    bl->DataBuf[i] |= (1 << j);
 					    }
 					}
-					bl->DataBuf[7] = 0;
 					bl->DataReplyLeft = 8;
 					break;				
 
 				case 0x0B:
+					pclog("Inquire Configuration\n");
 					bl->DataBuf[0] = (1 << bl->DmaChannel);
 					if ((bl->Irq >= 9) && (bl->Irq <= 15))
 					{
@@ -1244,7 +2194,8 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 						bl->DataBuf[1] = 0;
 					{
 					}
-					bl->DataBuf[2] = 7;	/* HOST ID */
+					/* bl->DataBuf[2] = 7; */	/* HOST ID */
+					bl->DataBuf[2] = 15;	/* HOST ID */
 					bl->DataReplyLeft = 3;
 					break;
 
@@ -1271,7 +2222,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				}
 				break;
 
-				case 0x1C:
+				case 0x1A:
 				{
 					uint32_t FIFOBuf;
 					addr24 Address;
@@ -1281,11 +2232,12 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					Address.mid = bl->CmdBuf[1];
 					Address.lo = bl->CmdBuf[2];
 					FIFOBuf = ADDR_TO_U32(Address);
-					DMAPageRead(FIFOBuf, (char *)&bl->LocalRAM.u8View[64], 64);
+					pclog("Buslogic LocalRAM: Reading 64 bytes at %08X\n", FIFOBuf);
+					DMAPageRead(FIFOBuf, (char *)bl->LocalRAM.u8View, 64);
 				}
 				break;
 						
-				case 0x1D:
+				case 0x1B:
 				{
 					uint32_t FIFOBuf;
 					addr24 Address;
@@ -1295,8 +2247,8 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					Address.mid = bl->CmdBuf[1];
 					Address.lo = bl->CmdBuf[2];
 					FIFOBuf = ADDR_TO_U32(Address);
-					pclog("Buslogic FIFO: Writing 64 bytes at %08X\n", FIFOBuf);
-					DMAPageWrite(FIFOBuf, (char *)&bl->LocalRAM.u8View[64], 64);
+					pclog("Buslogic LocalRAM: Writing 64 bytes at %08X\n", FIFOBuf);
+					DMAPageWrite(FIFOBuf, (char *)bl->LocalRAM.u8View, 64);
 				}
 				break;	
 						
@@ -1318,20 +2270,14 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 
 				case 0x23:
 					memset(bl->DataBuf, 0, 8);
-					for (i = 8; i < 16; i++) {
-#if 1	/* FIXME: Kotori, check this! */
+					for (i = 8; i < 15; i++) {
 					    bl->DataBuf[i-8] = 0;
 					    for (j=0; j<8; j++) {
 						if (SCSIDevices[i][j].LunType != SCSI_NONE)
 						    bl->DataBuf[i-8] |= (1<<j);
-#else
-					    bl->DataBuf[i] = 0;
-					    for (i=0; j<8; j++) {
-						if (SCSIDevices[i][j].LunType != SCSI_NONE)
-						    bl->DataBuf[i] |= (1<<j);
-#endif
 					    }
 					}
+					bl->DataBuf[7] = 0;
 					bl->DataReplyLeft = 8;
 					break;
 
@@ -1339,11 +2285,9 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				{
 					uint16_t TargetsPresentMask = 0;
 							
-					for (i=0; i<16; i++) {
-					    for (j=0; j<8; j++) {
-						if (SCSIDevices[i][j].LunType != SCSI_NONE)
+					for (i=0; i<15; i++) {
+						if (SCSIDevices[i][0].LunType != SCSI_NONE)
 						    TargetsPresentMask |= (1 << i);
-						}
 					}
 					bl->DataBuf[0] = TargetsPresentMask & 0xFF;
 					bl->DataBuf[1] = TargetsPresentMask >> 8;
@@ -1379,14 +2323,27 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					bl->DataReplyLeft = 0;
 				}
 				break;
+
+				case 0x83:
+					if (bl->CmdParam == 12)
+					{
+						bl->CmdParamLeft = bl->CmdBuf[11];
+						pclog("Execute SCSI BIOS Command: %u more bytes follow\n", bl->CmdParamLeft);
+					}
+					else
+					{
+						pclog("Execute SCSI BIOS Command: received %u bytes\n", bl->CmdBuf[0]);
+						BuslogicSCSIBIOSRequestSetup(bl, bl->CmdBuf, bl->DataBuf, 4);				
+					}
+					break;
 				
 				case 0x84:
-					bl->DataBuf[0] = '7';
+					bl->DataBuf[0] = '1';
 					bl->DataReplyLeft = 1;
 					break;				
 
 				case 0x85:
-					bl->DataBuf[0] = 'B';
+					bl->DataBuf[0] = 'E';
 					bl->DataReplyLeft = 1;
 					break;
 		
@@ -1445,6 +2402,13 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 
 					for (i = 0; i < cCharsToTransfer; i++)
 						bl->DataBuf[i] = aModelName[i];
+					
+					pclog("Model Name\n");
+					pclog("Buffer 0: %x\n", bl->DataBuf[0]);
+					pclog("Buffer 1: %x\n", bl->DataBuf[1]);
+					pclog("Buffer 2: %x\n", bl->DataBuf[2]);
+					pclog("Buffer 3: %x\n", bl->DataBuf[3]);
+					pclog("Buffer 4: %x\n", bl->DataBuf[4]);
 				}
 				break;
 				
@@ -1459,17 +2423,17 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					memset(ReplyIESI, 0, sizeof(ReplyInquireExtendedSetupInformation));
 
 					ReplyIESI->uBusType = (bl->chip == CHIP_BUSLOGIC_PCI) ? 'E' : 'A';         /* ISA style */
-					ReplyIESI->uBiosAddress = 0;
+					ReplyIESI->uBiosAddress = 0xd8;
 					ReplyIESI->u16ScatterGatherLimit = 8192;
 					ReplyIESI->cMailbox = bl->MailboxCount;
 					ReplyIESI->uMailboxAddressBase = bl->MailboxOutAddr;
+					ReplyIESI->fHostWideSCSI = 1;						  /* This should be set for the BT-542B as well. */
 					if (bl->chip == CHIP_BUSLOGIC_PCI) {
 						ReplyIESI->fLevelSensitiveInterrupt = 1;
-						ReplyIESI->fHostWideSCSI = 1;
 						ReplyIESI->fHostUltraSCSI = 1;
 					}
-					memcpy(ReplyIESI->aFirmwareRevision, "07B", sizeof(ReplyIESI->aFirmwareRevision));
-					pclog("Return Extended Setup Information: %d\n", bl->CmdBuf[0]);
+					memcpy(ReplyIESI->aFirmwareRevision, "21E", sizeof(ReplyIESI->aFirmwareRevision));
+					SpecificLog("Return Extended Setup Information: %d\n", bl->CmdBuf[0]);
 					break;
 
 				/* VirtualBox has these two modes implemented in reverse.
@@ -1487,14 +2451,30 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					bl->DataReplyLeft = 0;
 					break;
 
+				case 0x90:	
+					pclog("Store Local RAM\n");
+
+					Offset = bl->CmdBuf[0];
+					bl->DataReplyLeft = 0;
+
+					for (i = 0; i < bl->CmdBuf[1]; i++)
+					{
+						bl->LocalRAM.u8View[Offset + i] = bl->CmdBuf[i + 2];
+					}
+							
+					bl->UseLocalRAM = 0;
+					bl->DataReply = Offset;
+					break;
+				
 				case 0x91:
+					pclog("Fetch Local RAM\n");
 					Offset = bl->CmdBuf[0];
 					bl->DataReplyLeft = bl->CmdBuf[1];
 							
 					bl->UseLocalRAM = 1;
 					bl->DataReply = Offset;
 					break;
-
+					
 				case 0x95:
 				if (bl->chip == CHIP_BUSLOGIC_PCI) {
 					if (bl->Base != 0) {
@@ -1555,18 +2535,25 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					
 					bl->DataReplyLeft = 0;
 					break;
-				
+					
 				default:
+					SpecificLog("Invalid command %x\n", bl->Command);
 					bl->DataReplyLeft = 0;
 					bl->Status |= STAT_INVCMD;
 					break;
 			}
 		}
-		
+
 		if (bl->DataReplyLeft)
+		{
 			bl->Status |= STAT_DFULL;
+			pclog("Data Full\n");
+		}
 		else if (!bl->CmdParamLeft)
+		{
 			BuslogicCommandComplete(bl);
+			pclog("No Command Parameters Left, completing command\n");
+		}
 		break;
 		
 		case 2:
@@ -1591,22 +2578,6 @@ static void
 BuslogicWriteL(uint16_t Port, uint32_t Val, void *p)
 {
     BuslogicWrite(Port, Val & 0xFF, p);
-}
-
-
-static uint8_t
-BuslogicConvertSenseLength(uint8_t RequestSenseLength)
-{
-    pclog("Unconverted Request Sense length %i\n", RequestSenseLength);
-
-    if (RequestSenseLength == 0)
-	RequestSenseLength = 14;
-    else if (RequestSenseLength == 1)
-	RequestSenseLength = 0;
-
-    pclog("Request Sense length %i\n", RequestSenseLength);
-
-    return(RequestSenseLength);
 }
 
 
@@ -1668,12 +2639,12 @@ BuslogicHDCommand(Buslogic_t *bl)
 
     if (hdc_id == 0xff)  fatal("SCSI hard disk on %02i:%02i has disappeared\n", Id, Lun);
 
-    pclog("SCSI HD command being executed on: SCSI ID %i, SCSI LUN %i, HD %i\n",
+    SpecificLog("SCSI HD command being executed on: SCSI ID %i, SCSI LUN %i, HD %i\n",
 							Id, Lun, hdc_id);
 
-    pclog("SCSI Cdb[0]=0x%02X\n", req->CmdBlock.common.Cdb[0]);
+    SpecificLog("SCSI Cdb[0]=0x%02X\n", req->CmdBlock.common.Cdb[0]);
     for (i = 1; i < req->CmdBlock.common.CdbLength; i++) {
-	pclog("SCSI Cdb[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
+	SpecificLog("SCSI Cdb[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
     }
 
     memset(temp_cdb, 0, 12);
@@ -1829,7 +2800,6 @@ BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbox32_t *Mailb
 {	
     Req_t *req = &bl->Req;
     uint8_t Id, Lun;
-    uint8_t last_id = (bl->chip >= CHIP_BUSLOGIC_ISA) ? 15 : 7;
 
     /* Fetch data from the Command Control Block. */
     DMAPageRead(CCBPointer, (char *)&req->CmdBlock, sizeof(CCB32));
@@ -1841,7 +2811,7 @@ BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbox32_t *Mailb
  
     Id = req->TargetID;
     Lun = req->LUN;
-    if ((Id > last_id) || (Lun > 7)) {
+    if ((Id > 15) || (Lun > 7)) {
 	BuslogicMailboxInSetup(bl, CCBPointer, &req->CmdBlock,
 			       CCB_INVALID_CCB, SCSI_STATUS_OK, MBI_ERROR);
 	return;
@@ -1996,7 +2966,7 @@ BuslogicCommandCallback(void *p)
 	if (bl->MailboxCount) {
 		BuslogicProcessMailbox(bl);
 	} else {
-		BuslogicCallback += 50 * SCSI_TIME;
+		BuslogicCallback += 1 * TIMER_USEC;
 		return;
 	}
     } else if (BuslogicInOperation == 1) {
@@ -2005,7 +2975,7 @@ BuslogicCommandCallback(void *p)
 	if (bl->Req.CmdBlock.common.Cdb[0] == 0x42)
 	{
 		/* This is needed since CD Audio inevitably means READ SUBCHANNEL spam. */
-		BuslogicCallback += 1000 * SCSI_TIME;
+		BuslogicCallback += 1000 * TIMER_USEC;
 		return;
 	}
     } else if (BuslogicInOperation == 2) {
@@ -2018,7 +2988,7 @@ BuslogicCommandCallback(void *p)
 	fatal("Invalid BusLogic callback phase: %i\n", BuslogicInOperation);
     }
 
-    BuslogicCallback += 50 * SCSI_TIME;
+    BuslogicCallback += 1 * TIMER_USEC;
 }
 
 
@@ -2053,6 +3023,29 @@ uint8_t	buslogic_pci_regs[256];
 bar_t	buslogic_pci_bar[3];
 
 
+#if 0
+static void
+BuslogicBIOSUpdate(Buslogic_t *bl)
+{
+    int bios_enabled = buslogic_pci_bar[2].addr_regs[0] & 0x01;
+
+    if (!bl->has_bios) {
+	return;
+    }
+
+    /* PCI BIOS stuff, just enable_disable. */
+    if ((bl->bios_addr > 0) && bios_enabled) {
+	mem_mapping_enable(&bl->bios.mapping);
+	mem_mapping_set_addr(&bl->bios.mapping,
+			     bl->bios_addr, bl->bios_size);
+	pclog("BT-958D: BIOS now at: %06X\n", bl->bios_addr);
+    } else {
+	pclog("BT-958D: BIOS disabled\n");
+	mem_mapping_disable(&bl->bios.mapping);
+    }
+}
+#endif
+
 static uint8_t
 BuslogicPCIRead(int func, int addr, void *p)
 {
@@ -2068,9 +3061,9 @@ BuslogicPCIRead(int func, int addr, void *p)
 	case 0x03:
 		return 0x10;
 	case 0x04:
-		return buslogic_pci_regs[0x04];	/*Respond to IO and memory accesses*/
+		return buslogic_pci_regs[0x04] & 0x03;	/*Respond to IO and memory accesses*/
 	case 0x05:
-		return buslogic_pci_regs[0x05];
+		return 0;
 	case 0x07:
 		return 2;
 	case 0x08:
@@ -2105,14 +3098,23 @@ BuslogicPCIRead(int func, int addr, void *p)
 		return 0x40;
 	case 0x2F:
 		return 0x10;
-	case 0x30:
-		return buslogic_pci_bar[2].addr_regs[0] & 0x01;	/*BIOS ROM address*/
-	case 0x31:
-		return buslogic_pci_bar[2].addr_regs[1] | 0x18;
-	case 0x32:
+#if 0
+	case 0x30:			/* PCI_ROMBAR */
+		pclog("BT-958D: BIOS BAR 00 = %02X\n", buslogic_pci_bar[2].addr_regs[0] & 0x01);
+		return buslogic_pci_bar[2].addr_regs[0] & 0x01;
+	case 0x31:			/* PCI_ROMBAR 15:11 */
+		pclog("BT-958D: BIOS BAR 01 = %02X\n", (buslogic_pci_bar[2].addr_regs[1] & bl->bios_mask));
+		return (buslogic_pci_bar[2].addr_regs[1] & bl->bios_mask);
+		break;
+	case 0x32:			/* PCI_ROMBAR 23:16 */
+		pclog("BT-958D: BIOS BAR 02 = %02X\n", buslogic_pci_bar[2].addr_regs[2]);
 		return buslogic_pci_bar[2].addr_regs[2];
-	case 0x33:
+		break;
+	case 0x33:			/* PCI_ROMBAR 31:24 */
+		pclog("BT-958D: BIOS BAR 03 = %02X\n", buslogic_pci_bar[2].addr_regs[3]);
 		return buslogic_pci_bar[2].addr_regs[3];
+		break;
+#endif
 	case 0x3C:
 		return bl->Irq;
 	case 0x3D:
@@ -2204,7 +3206,20 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 						     bl->MMIOBase, 0x20);
 			}
 		}
+		return;	
+#if 0
+	case 0x30:			/* PCI_ROMBAR */
+	case 0x31:			/* PCI_ROMBAR */
+	case 0x32:			/* PCI_ROMBAR */
+	case 0x33:			/* PCI_ROMBAR */
+		buslogic_pci_bar[2].addr_regs[addr & 3] = val;
+		buslogic_pci_bar[2].addr_regs[1] &= bl->bios_mask;
+		buslogic_pci_bar[2].addr &= 0xffffe001;
+		bl->bios_addr = buslogic_pci_bar[2].addr;
+		pclog("BT-958D: BIOS BAR %02X = NOW %02X (%02X)\n", addr & 3, buslogic_pci_bar[2].addr_regs[addr & 3], val);
+		BuslogicBIOSUpdate(bl);
 		return;
+#endif
 
 	case 0x3C:
 		buslogic_pci_regs[addr] = val;
@@ -2222,6 +3237,30 @@ BuslogicDeviceReset(void *p)
 {
 	Buslogic_t *dev = (Buslogic_t *) p;
 	BuslogicResetControl(dev, 1);
+}
+
+
+static void
+BuslogicInitializeLocalRAM(Buslogic_t *bl)
+{
+	memset(bl->LocalRAM.u8View, 0, sizeof(HALocalRAM));
+	if (PCI && (bl->chip == CHIP_BUSLOGIC_PCI))
+	{
+		bl->LocalRAM.structured.autoSCSIData.fLevelSensitiveInterrupt = 1;
+	}
+	else
+	{
+		bl->LocalRAM.structured.autoSCSIData.fLevelSensitiveInterrupt = 0;
+	}
+	bl->LocalRAM.structured.autoSCSIData.fParityCheckingEnabled = 1;
+	bl->LocalRAM.structured.autoSCSIData.fExtendedTranslation = 1;
+	bl->LocalRAM.structured.autoSCSIData.u16DeviceEnabledMask = ~0;
+	bl->LocalRAM.structured.autoSCSIData.u16WidePermittedMask = ~0;
+	bl->LocalRAM.structured.autoSCSIData.u16FastPermittedMask = ~0;
+	bl->LocalRAM.structured.autoSCSIData.u16SynchronousPermittedMask = ~0;
+	bl->LocalRAM.structured.autoSCSIData.u16DisconnectPermittedMask = ~0;
+	bl->LocalRAM.structured.autoSCSIData.fStrictRoundRobinMode = 0;
+	bl->LocalRAM.structured.autoSCSIData.u16UltraPermittedMask = ~0;
 }
 
 
@@ -2247,7 +3286,9 @@ BuslogicInit(int chip)
     bl->MMIOBase = 0;
     bl->Irq = device_get_config_int("irq");
     bl->DmaChannel = device_get_config_int("dma");
+	bl->has_bios = device_get_config_int("bios");
 
+	
     if (bl->Base != 0) {
 	if (bl->chip == CHIP_BUSLOGIC_PCI) {
 		io_sethandler(bl->Base, 4,
@@ -2261,23 +3302,49 @@ BuslogicInit(int chip)
 	}
     }
 
+	if (bl->has_bios)
+	{
+		bl->bios_size = 0x8000;
+
+		bl->bios_mask = (bl->bios_size >> 8) & 0xff;
+		bl->bios_mask = (0x100 - bl->bios_mask) & 0xff;
+
+		if(bl->chip == CHIP_BUSLOGIC_ISA)
+		{
+        		rom_init(&bl->bios, L"roms/scsi/buslogic/542_470.ROM", 0xd8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+		}
+		else
+		{
+        		rom_init(&bl->bios, L"roms/scsi/buslogic/494GNPCI.ROM", 0xd8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		}
+	}
+	else
+	{
+		bl->bios_size = 0;
+
+		bl->bios_mask = 0;
+	}
+	
     pclog("Building SCSI hard disk map...\n");
     build_scsi_hd_map();
     pclog("Building SCSI CD-ROM map...\n");
     build_scsi_cdrom_map();
-
-    for (i=0; i<16; i++) {
-	for (j=0; j<8; j++) {
-		if (scsi_hard_disks[i][j] != 0xff) {
-			SCSIDevices[i][j].LunType = SCSI_DISK;
+	
+    for (i=0; i<16; i++) 
+	{
+		for (j=0; j<8; j++) 
+		{
+			if (scsi_hard_disks[i][j] != 0xff) {
+				SCSIDevices[i][j].LunType = SCSI_DISK;
+			}
+			else if (find_cdrom_for_scsi_id(i, j) != 0xff) {
+				SCSIDevices[i][j].LunType = SCSI_CDROM;
+			}
+			else
+			{
+				SCSIDevices[i][j].LunType = SCSI_NONE;
+			}
 		}
-		else if (find_cdrom_for_scsi_id(i, j) != 0xff) {
-			SCSIDevices[i][j].LunType = SCSI_CDROM;
-		}
-		else {
-			SCSIDevices[i][j].LunType = SCSI_NONE;
-		}
-	}
     }
 
     timer_add(BuslogicResetPoll,
@@ -2295,19 +3362,34 @@ BuslogicInit(int chip)
         buslogic_pci_regs[0x05] = 0;
         buslogic_pci_regs[0x07] = 2;
 #endif
-	buslogic_pci_bar[2].addr = 0;
+
+#if 0
+	/* Enable our BIOS space in PCI, if needed. */
+	if (bl->has_bios)
+	{
+		buslogic_pci_bar[2].addr = 0x000D8000;
+	}
+	else
+	{
+		buslogic_pci_bar[2].addr = 0;
+	}
+#endif
 
 	mem_mapping_add(&bl->mmio_mapping, 0xfffd0000, 0x20,
 		        mem_read_null, mem_read_nullw, mem_read_nulll,
 			mem_write_null, mem_write_nullw, mem_write_nulll,
 			NULL, MEM_MAPPING_EXTERNAL, bl);
 	mem_mapping_disable(&bl->mmio_mapping);
+#if 0
+	mem_mapping_disable(&bl->bios.mapping);
+#endif
     }
 	
     pclog("Buslogic on port 0x%04X\n", bl->Base);
 	
     BuslogicResetControl(bl, CTRL_HRST);
-
+    BuslogicInitializeLocalRAM(bl);
+	
     return(bl);
 }
 
@@ -2408,6 +3490,9 @@ static device_config_t BuslogicConfig[] = {
                         }
                 },
         },
+	{
+		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
+	},
 	{
 		"", "", -1
 	}

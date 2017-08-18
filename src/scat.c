@@ -27,6 +27,7 @@ void scat_shadow_state_update()
 {
         int i, val;
 
+        /* TODO - ROMCS enable features should be implemented later. */
         for (i = 0; i < 24; i++)
         {
                 val = ((scat_regs[SCAT_SHADOW_RAM_ENABLE_1 + (i >> 3)] >> (i & 7)) & 1) ? MEM_READ_INTERNAL : MEM_READ_EXTERNAL;
@@ -95,7 +96,7 @@ void scat_set_xms_bound(uint8_t val)
                 break;
         }
 
-        if ((scat_regs[SCAT_DRAM_CONFIGURATION] & 0x0F) == 3)
+        if ((scat_regs[SCAT_EXTENDED_BOUNDARY] & 0x40) == 0 && (scat_regs[SCAT_DRAM_CONFIGURATION] & 0x0F) == 3)
         {
                 if (val != 1)
                 {
@@ -133,8 +134,12 @@ uint32_t get_scat_addr(uint32_t addr, scat_t *p)
         }
         else if (p == NULL && mem_size < 2048 && ((scat_regs[SCAT_DRAM_CONFIGURATION] & 0x0F) > 7))
                 addr &= 0x7FFFF;
-        if ((scat_regs[SCAT_EXTENDED_BOUNDARY] & 0x40) == 0 && (scat_regs[SCAT_DRAM_CONFIGURATION] & 0x0F) == 3 && addr >= 0x100000)
-                addr -= 0x60000;
+
+        if ((scat_regs[SCAT_EXTENDED_BOUNDARY] & 0x40) == 0 && (scat_regs[SCAT_DRAM_CONFIGURATION] & 0x0F) == 3)
+        {
+                if(addr >= 0x100000) addr -= 0x60000;
+                else if(addr >= 0xA0000) addr = 0xFFFFFFFF;
+        }
 
         return addr;
 }
@@ -153,8 +158,9 @@ void scat_set_global_EMS_state(int state)
                 {
                         virt_addr = get_scat_addr(base_addr, &scat_stat[i]);
                         if(i < 24) mem_mapping_disable(&scat_4000_9FFF_mapping[i]);
-                        mem_mapping_set_exec(&scat_mapping[i], ram + virt_addr);
                         mem_mapping_enable(&scat_mapping[i]);
+                        if(virt_addr < (mem_size << 10)) mem_mapping_set_exec(&scat_mapping[i], ram + virt_addr);
+                        else mem_mapping_set_exec(&scat_mapping[i], NULL);
                 }
                 else
                 {
@@ -214,11 +220,18 @@ void scat_write(uint16_t port, uint8_t val, void *priv)
                         {
                                 if((val & 0x0F) == 3)
                                 {
+                                        if(mem_size > 640) mem_mapping_disable(&scat_A000_BFFF_mapping);
+                                        if(mem_size > 768) mem_mapping_disable(&ram_mid_mapping);
                                         mem_mapping_enable(&scat_shadowram_mapping);
                                 }
                                 else
                                 {
                                         mem_mapping_disable(&scat_shadowram_mapping);
+                                        if(mem_size > 640 && (val & 0x0F) > 3)
+                                        {
+                                                mem_mapping_enable(&scat_A000_BFFF_mapping);
+                                                if(mem_size > 768) mem_mapping_enable(&ram_mid_mapping);
+                                        }
                                 }
                                 if(mem_size < 2048)
                                 {
@@ -252,6 +265,9 @@ void scat_write(uint16_t port, uint8_t val, void *priv)
                 }
                 if (scat_reg_valid)
                         scat_regs[scat_index] = val;
+#ifndef RELEASE_BUILD
+                else pclog("Attemped to write unimplemented SCAT register %02X at %04X:%04X\n", scat_index, val, CS, cpu_state.pc);
+#endif
                 if (scat_shadow_update)
                         scat_shadow_state_update();
                 break;
@@ -271,19 +287,27 @@ void scat_write(uint16_t port, uint8_t val, void *priv)
                 break;
 
                 case 0x208:
-                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == 0x40)
+                case 0x218:
+                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == (0x40 | ((port & 0x10) >> 4)))
                 {
                         index = scat_ems_reg_2xA & 0x1F;
                         scat_stat[index].regs_2x8 = val;
+                        base_addr = (index + 16) << 14;
+                        if(index >= 24)
+                                base_addr += 0x30000;
 
                         if((scat_regs[SCAT_EMS_CONTROL] & 0x80) && (scat_stat[index].regs_2x9 & 0x80))
                         {
+                                virt_addr = get_scat_addr(base_addr, &scat_stat[index]);
+                                if(virt_addr < (mem_size << 10)) mem_mapping_set_exec(&scat_mapping[index], ram + virt_addr);
+                                else mem_mapping_set_exec(&scat_mapping[index], NULL);
                                 flushmmucache();
                         }
                 }
                 break;
                 case 0x209:
-                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == 0x40)
+                case 0x219:
+                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == (0x40 | ((port & 0x10) >> 4)))
                 {
                         index = scat_ems_reg_2xA & 0x1F;
                         scat_stat[index].regs_2x9 = val;
@@ -297,7 +321,8 @@ void scat_write(uint16_t port, uint8_t val, void *priv)
                                 {
                                         virt_addr = get_scat_addr(base_addr, &scat_stat[index]);
                                         if(index < 24) mem_mapping_disable(&scat_4000_9FFF_mapping[index]);
-                                        mem_mapping_set_exec(&scat_mapping[index], ram + virt_addr);
+                                        if(virt_addr < (mem_size << 10)) mem_mapping_set_exec(&scat_mapping[index], ram + virt_addr);
+                                        else mem_mapping_set_exec(&scat_mapping[index], NULL);
                                         mem_mapping_enable(&scat_mapping[index]);
                                 }
                                 else
@@ -316,61 +341,8 @@ void scat_write(uint16_t port, uint8_t val, void *priv)
                 }
                 break;
                 case 0x20A:
-                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == 0x40)
-                {
-                        scat_ems_reg_2xA = val;
-                }
-                break;
-
-                case 0x218:
-                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == 0x41)
-                {
-                        index = scat_ems_reg_2xA & 0x1F;
-                        scat_stat[index].regs_2x8 = val;
-
-                        if((scat_regs[SCAT_EMS_CONTROL] & 0x80) && (scat_stat[index].regs_2x9 & 0x80))
-                        {
-                                flushmmucache();
-                        }
-                }
-                break;
-                case 0x219:
-                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == 0x41)
-                {
-                        index = scat_ems_reg_2xA & 0x1F;
-                        scat_stat[index].regs_2x9 = val;
-                        base_addr = (index + 16) << 14;
-                        if (index >= 24)
-                                base_addr += 0x30000;
-
-                        if (scat_regs[SCAT_EMS_CONTROL] & 0x80)
-                        {
-                                if (val & 0x80)
-                                {
-                                        virt_addr = get_scat_addr(base_addr, &scat_stat[index]);
-                                        if(index < 24) mem_mapping_disable(&scat_4000_9FFF_mapping[index]);
-                                        mem_mapping_set_exec(&scat_mapping[index], ram + virt_addr);
-                                        mem_mapping_enable(&scat_mapping[index]);
-                                        pclog("Map page %d(address %05X) to address %06X\n", scat_ems_reg_2xA & 0x1f, base_addr, virt_addr);
-                                }
-                                else
-                                {
-                                        mem_mapping_set_exec(&scat_mapping[index], ram + base_addr);
-                                        mem_mapping_disable(&scat_mapping[index]);
-                                        if(index < 24) mem_mapping_enable(&scat_4000_9FFF_mapping[index]);
-                                        pclog("Unmap page %d(address %05X)\n", scat_ems_reg_2xA & 0x1f, base_addr);
-                                }
-                                flushmmucache();
-                        }
-
-                        if (scat_ems_reg_2xA & 0x80)
-                        {
-                                scat_ems_reg_2xA = (scat_ems_reg_2xA & 0xe0) | ((scat_ems_reg_2xA + 1) & 0x1f);
-                        }
-                }
-                break;
                 case 0x21A:
-                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == 0x41)
+                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == (0x40 | ((port & 0x10) >> 4)))
                 {
                         scat_ems_reg_2xA = val;
                 }
@@ -403,42 +375,24 @@ uint8_t scat_read(uint16_t port, void *priv)
                 break;
 
                 case 0x208:
-                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == 0x40)
+                case 0x218:
+                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == (0x40 | ((port & 0x10) >> 4)))
                 {
                         index = scat_ems_reg_2xA & 0x1F;
                         val = scat_stat[index].regs_2x8;
                 }
                 break;
                 case 0x209:
-                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == 0x40)
+                case 0x219:
+                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == (0x40 | ((port & 0x10) >> 4)))
                 {
                         index = scat_ems_reg_2xA & 0x1F;
                         val = scat_stat[index].regs_2x9;
                 }
                 break;
                 case 0x20A:
-                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == 0x40)
-                {
-                        val = scat_ems_reg_2xA;
-                }
-                break;
-
-                case 0x218:
-                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == 0x41)
-                {
-                        index = scat_ems_reg_2xA & 0x1F;
-                        val = scat_stat[index].regs_2x8;
-                }
-                break;
-                case 0x219:
-                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == 0x41)
-                {
-                        index = scat_ems_reg_2xA & 0x1F;
-                        val = scat_stat[index].regs_2x9;
-                }
-                break;
                 case 0x21A:
-                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == 0x41)
+                if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == (0x40 | ((port & 0x10) >> 4)))
                 {
                         val = scat_ems_reg_2xA;
                 }

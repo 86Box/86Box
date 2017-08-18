@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.2	2017/06/05
+ * Version:	@(#)vid_ega.c	1.0.3	2017/07/21
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -45,6 +45,7 @@ static int old_overscan_color = 0;
 
 int update_overscan = 0;
 
+#ifdef JEGA
 uint8_t jfont_sbcs_19[SBCS19_LEN];	/* 256 * 19( * 8) */
 uint8_t jfont_dbcs_16[DBCS16_LEN];	/* 65536 * 16 * 2 (* 8) */
 
@@ -146,6 +147,7 @@ void ega_jega_read_font(ega_t *ega)
 	ega->font_index++;
 	ega->RSTAT |= 0x02;
 }
+#endif
 
 void ega_out(uint16_t addr, uint8_t val, void *p)
 {
@@ -259,7 +261,11 @@ void ega_out(uint16_t addr, uint8_t val, void *p)
                 return;
 		case 0x3d1:
                 case 0x3d5:
+#ifdef JEGA
 		if ((ega->crtcreg < 0xb9) || !ega->is_jega)
+#else
+		if (ega->crtcreg < 0xb9)
+#endif
 		{
 			crtcreg = ega->crtcreg & 0x1f;
 	                if (crtcreg <= 7 && ega->crtc[0x11] & 0x80) return;
@@ -274,6 +280,7 @@ void ega_out(uint16_t addr, uint8_t val, void *p)
         	                }
                 	}
 		}
+#ifdef JEGA
 		else
 		{
 			switch(ega->crtcreg)
@@ -331,6 +338,7 @@ void ega_out(uint16_t addr, uint8_t val, void *p)
 					break;
 			}
 		}
+#endif
                 break;
         }
 }
@@ -391,11 +399,16 @@ uint8_t ega_in(uint16_t addr, void *p)
                 return ega->crtcreg;
 		case 0x3d1:
                 case 0x3d5:
+#ifdef JEGA
 		if ((ega->crtcreg < 0xb9) || !ega->is_jega)
+#else
+		if (ega->crtcreg < 0xb9)
+#endif
 		{
 			crtcreg = ega->crtcreg & 0x1f;
 	                return ega->crtc[crtcreg];
 		}
+#ifdef JEGA
 		else
 		{
 			switch(ega->crtcreg)
@@ -434,6 +447,8 @@ uint8_t ega_in(uint16_t addr, void *p)
 					return 0x00;
 			}
 		}
+#endif
+		return 0xff;
                 case 0x3da:
                 ega->attrff = 0;
                 ega->stat ^= 0x30; /*Fools IBM EGA video BIOS self-test*/
@@ -454,7 +469,7 @@ void ega_recalctimings(ega_t *ega)
 
         if (ega->crtc[7] & 1)  ega->vtotal |= 0x100;
         if (ega->crtc[7] & 32) ega->vtotal |= 0x200;
-        ega->vtotal++;
+        ega->vtotal += 2;
 
         if (ega->crtc[7] & 2)  ega->dispend |= 0x100;
         if (ega->crtc[7] & 64) ega->dispend |= 0x200;
@@ -466,7 +481,7 @@ void ega_recalctimings(ega_t *ega)
 
         if (ega->crtc[7] & 0x10) ega->split |= 0x100;
         if (ega->crtc[9] & 0x40) ega->split |= 0x200;
-        ega->split+=2;
+        ega->split++;
 
         ega->hdisp = ega->crtc[1];
         ega->hdisp++;
@@ -532,13 +547,20 @@ void ega_poll(void *p)
                         }
                         else if (!(ega->gdcreg[6] & 1))
                         {
-				if (ega_jega_enabled(ega))
+				if (fullchange)
 				{
-					ega_render_text_jega(ega, drawcursor);
-				}
-				else
-				{
+#ifdef JEGA
+					if (ega_jega_enabled(ega))
+					{
+						ega_render_text_jega(ega, drawcursor);
+					}
+					else
+					{
+						ega_render_text_standard(ega, drawcursor);
+					}
+#else
 					ega_render_text_standard(ega, drawcursor);
+#endif
 				}
                         }
                         else
@@ -572,6 +594,8 @@ void ega_poll(void *p)
                 }
 
                 ega->displine++;
+                if (ega->interlace) 
+                        ega->displine++;
                 if ((ega->stat & 8) && ((ega->displine & 15) == (ega->crtc[0x11] & 15)) && ega->vslines)
                         ega->stat &= ~8;
                 ega->vslines++;
@@ -595,6 +619,8 @@ void ega_poll(void *p)
                                         ega->con = 0;
 
                                 ega->maback += (ega->rowoffset << 3);
+                                if (ega->interlace)
+                                        ega->maback += (ega->rowoffset << 3);
                                 ega->maback &= ega->vrammask;
                                 ega->ma = ega->maback;
                         }
@@ -631,10 +657,14 @@ void ega_poll(void *p)
                         ega->stat |= 8;
                         if (ega->seqregs[1] & 8) x = ega->hdisp * ((ega->seqregs[1] & 1) ? 8 : 9) * 2;
                         else                     x = ega->hdisp * ((ega->seqregs[1] & 1) ? 8 : 9);
-                        if ((x != xsize || (ega->lastline - ega->firstline) != ysize) || update_overscan)
+
+                        if (ega->interlace && !ega->oddeven) ega->lastline++;
+                        if (ega->interlace &&  ega->oddeven) ega->firstline--;
+
+                        if ((x != xsize || (ega->lastline - ega->firstline + 1) != ysize) || update_overscan)
                         {
                                 xsize = x;
-                                ysize = ega->lastline - ega->firstline;
+                                ysize = ega->lastline - ega->firstline + 1;
                                 if (xsize < 64) xsize = 640;
                                 if (ysize < 32) ysize = 200;
 				y_add = enable_overscan ? 14 : 0;
@@ -714,7 +744,7 @@ void ega_poll(void *p)
 				}
 			}
          
-                        video_blit_memtoscreen(32, 0, ega->firstline, ega->lastline + y_add_ex, xsize + x_add_ex, ega->lastline - ega->firstline + y_add_ex);
+                        video_blit_memtoscreen(32, 0, ega->firstline, ega->lastline + 1 + y_add_ex, xsize + x_add_ex, ega->lastline - ega->firstline + 1 + y_add_ex);
 
                         frames++;
                         
@@ -754,7 +784,7 @@ void ega_poll(void *p)
                         ega->vc = 0;
                         ega->sc = 0;
                         ega->dispon = 1;
-                        ega->displine = 0;
+                        ega->displine = (ega->interlace && ega->oddeven) ? 1 : 0;
                         ega->scrollcache = ega->attrregs[0x13] & 7;
                 }
                 if (ega->sc == (ega->crtc[10] & 31)) 
@@ -1005,7 +1035,9 @@ void ega_common_defaults(ega_t *ega)
 
 	update_overscan = 0;
 
+#ifdef JEGA
 	ega->is_jega = 0;
+#endif
 }
 
 void *ega_standalone_init()
@@ -1127,6 +1159,7 @@ void *sega_standalone_init()
         return ega;
 }
 
+#ifdef JEGA
 uint16_t chrtosht(FILE *fp)
 {
 	uint16_t i, j;
@@ -1232,6 +1265,7 @@ void *jega_standalone_init()
 
 	return ega;
 }
+#endif
 
 static int ega_standalone_available()
 {
@@ -1326,6 +1360,7 @@ device_t sega_device =
         ega_config
 };
 
+#ifdef JEGA
 device_t jega_device =
 {
         "AX JEGA",
@@ -1338,3 +1373,4 @@ device_t jega_device =
         NULL,
         ega_config
 };
+#endif

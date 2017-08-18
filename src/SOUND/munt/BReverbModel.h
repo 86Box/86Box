@@ -29,7 +29,7 @@ class BReverbModel {
 public:
 	static BReverbModel *createBReverbModel(const ReverbMode mode, const bool mt32CompatibleModel, const RendererType rendererType);
 
-	virtual ~BReverbModel() {};
+	virtual ~BReverbModel() {}
 	virtual bool isOpen() const = 0;
 	// After construction or a close(), open() must be called at least once before any other call (with the exception of close()).
 	virtual void open() = 0;

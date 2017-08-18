@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.2	2017/06/16
+ * Version:	@(#)scsi_disk.c	1.0.3	2017/07/30
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2017-2017 Miran Grca.
@@ -14,6 +14,7 @@
 #include <malloc.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 #include "86box.h"
 #include "cdrom.h"
@@ -115,11 +116,12 @@ uint8_t scsi_hd_command_flags[0x100] =
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
+/* #define ENABLE_SCSI_HD_LOG 0 */
 int scsi_hd_do_log = 0;
 
 void scsi_hd_log(const char *format, ...)
 {
-#ifdef ENABLE_scsi_hd_LOG
+#ifdef ENABLE_SCSI_HD_LOG
 	if (scsi_hd_do_log)
 	{
 		va_list ap;
@@ -291,7 +293,13 @@ int scsi_hd_read_capacity(uint8_t id, uint8_t *cdb, uint8_t *buffer, uint32_t *l
 	buffer[3] = size & 0xff;
 	buffer[6] = 2;				/* 512 = 0x0200 */
 	*len = 8;
-
+	
+	pclog("Read Capacity\n");
+	pclog("buffer[0]=%x\n", buffer[0]);
+	pclog("buffer[1]=%x\n", buffer[1]);
+	pclog("buffer[2]=%x\n", buffer[2]);
+	pclog("buffer[3]=%x\n", buffer[3]);
+	
 	return 1;
 }
 
@@ -353,7 +361,7 @@ static void scsi_hd_command_common(uint8_t id)
 	}
 }
 
-static void scsi_hd_command_complete(uint8_t id)
+void scsi_hd_command_complete(uint8_t id)
 {
 	shdc[id].packet_status = CDROM_PHASE_COMPLETE;
 	scsi_hd_command_common(id);
@@ -372,7 +380,7 @@ static void scsi_hd_command_write_dma(uint8_t id)
 	scsi_hd_command_common(id);
 }
 
-static void scsi_hd_data_command_finish(uint8_t id, int len, int block_len, int alloc_len, int direction)
+void scsi_hd_data_command_finish(uint8_t id, int len, int block_len, int alloc_len, int direction)
 {
 	scsi_hd_log("SCSI HD %i: Finishing command (%02X): %i, %i, %i, %i, %i\n", id, shdc[id].current_cdb[0], len, block_len, alloc_len, direction, shdc[id].request_length);
 	shdc[id].pos=0;
@@ -470,7 +478,7 @@ static void scsi_hd_illegal_opcode(uint8_t id)
 	scsi_hd_cmd_error(id);
 }
 
-static void scsi_hd_lba_out_of_range(uint8_t id)
+void scsi_hd_lba_out_of_range(uint8_t id)
 {
 	scsi_hd_sense_key = SENSE_ILLEGAL_REQUEST;
 	scsi_hd_asc = ASC_LBA_OUT_OF_RANGE;
@@ -772,7 +780,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			break;
 
 		case GPCMD_MECHANISM_STATUS:
-			len = (hdbufferb[7] << 16) | (hdbufferb[8] << 8) | hdbufferb[9];
+			len = (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
 
  			memset(hdbufferb, 0, 8);
 			hdbufferb[5] = 1;
@@ -792,7 +800,6 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				case GPCMD_READ_10:
 					shdc[id].sector_len = (cdb[7] << 8) | cdb[8];
 					shdc[id].sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
-					scsi_hd_log("SCSI HD %i: Length: %i, LBA: %i\n", id, shdc[id].sector_len, shdc[id].sector_pos);
 					break;
 				case GPCMD_READ_12:
 					shdc[id].sector_len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);

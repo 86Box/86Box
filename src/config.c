@@ -1,5 +1,23 @@
-/* Copyright holders: Sarah Walker
- * see COPYING for more details
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Configuration file handler.
+ *
+ * Version:	@(#)config.c	1.0.0	2017/07/26
+ *
+ * Authors:	Sarah Walker,
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Overdoze,
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2017-2017 Fred N. van Kempen.
+ *		Copyright 2017-2017 Overdoze.
  *
  * NOTE:	Forcing config files to be in Unicode encoding breaks it on
  *		Windows XP, and possibly also Vista. Use -DANSI_CFG for use
@@ -79,6 +97,18 @@ typedef struct entry_t
                                                         \
                 (next)->next = new;                     \
                 (new)->next = NULL;                     \
+        }
+
+#define list_delete(old, head)                          \
+        {                                               \
+                struct list_t *next = head;             \
+                                                        \
+                while ((next)->next != old)             \
+                {                                       \
+                        next = (next)->next;            \
+                }                                       \
+                                                        \
+                (next)->next = (old)->next;             \
         }
 
 
@@ -471,7 +501,8 @@ void config_delete_var(char *head, char *name)
         if (!entry)
                 return;
 
-	memset(entry->name, 0, strlen(entry->name));
+	list_delete(&entry->list, &section->entry_head);
+	free(entry);
         
         return;
 }
@@ -488,7 +519,8 @@ void config_delete_section_if_empty(char *head)
 
 	if (entries_num(section) == 0)
 	{
-		memset(section->name, 0, strlen(section->name));
+	        list_delete(&section->list, &config_head);
+		free(section);
 	}
         
         return;
@@ -742,7 +774,7 @@ void config_save(wchar_t *fn)
                 
                 while (current_entry)
                 {
-			if(strlen(current_entry->name) > 0)
+			if(current_entry->name[0])
 			{
 				mbstowcs(wname, current_entry->name, strlen(current_entry->name) + 1);
 				if (current_entry->wdata[0] == L'\0')
@@ -841,7 +873,17 @@ static void loadconfig_machine(void)
 
         p = config_get_string(cat, "model", NULL);
         if (p != NULL)
-                model = model_get_model_from_internal_name(p);
+	{
+		/* Detect the old model typo and fix it, so that old configurations don't braek. */
+		if (strcmp(p, "p55r2p4") == 0)
+		{
+			model = model_get_model_from_internal_name("p55t2p4");
+		}
+		else
+		{
+			model = model_get_model_from_internal_name(p);
+		}
+	}
         else
                 model = 0;
         if (model >= model_count())
@@ -1056,11 +1098,11 @@ static void loadconfig_network(void)
 		{
 			if ((network_ndev == 1) && strcmp(network_pcap, "none"))
 			{
-				msgbox_error(ghwnd, IDS_2107);
+				msgbox_error(ghwnd, IDS_2140);
 			}
 			else if (network_dev_to_id(p) == -1)
 			{
-				msgbox_error(ghwnd, IDS_2200);
+				msgbox_error(ghwnd, IDS_2141);
 			}
 
 	                strcpy(network_pcap, "none");
@@ -1218,14 +1260,14 @@ static int config_string_to_bus(char *str, int cdrom)
 
 	if (!strcmp(str, "usb"))
 	{
-		msgbox_error(ghwnd, IDS_2199);
+		msgbox_error(ghwnd, IDS_4110);
 		return 0;
 	}
 
 	return 0;
 
 no_mfm_cdrom:
-	msgbox_error(ghwnd, IDS_2095);
+	msgbox_error(ghwnd, IDS_4114);
 	return 0;
 }
 
@@ -1505,6 +1547,8 @@ static void loadconfig_removable_devices(void)
 	        ui_writeprot[c] = !!config_get_int(cat, temps, 0);
 		sprintf(temps, "fdd_%02i_turbo", c + 1);
 	        fdd_set_turbo(c, !!config_get_int(cat, temps, 0));
+		sprintf(temps, "fdd_%02i_check_bpb", c + 1);
+	        fdd_set_check_bpb(c, !!config_get_int(cat, temps, 1));
 
 		/* Check, whether each value is default, if yes, delete it so that only non-default values will later be saved. */
 		if (fdd_get_type(c) == ((c < 2) ? 2 : 0))
@@ -1528,6 +1572,12 @@ static void loadconfig_removable_devices(void)
 		if (fdd_get_turbo(c) == 0)
 		{
 			sprintf(temps, "fdd_%02i_turbo", c + 1);
+			config_delete_var(cat, temps);
+		}
+
+		if (fdd_get_check_bpb(c) == 1)
+		{
+			sprintf(temps, "fdd_%02i_check_bpb", c + 1);
 			config_delete_var(cat, temps);
 		}
 	}
@@ -2412,6 +2462,16 @@ static void saveconfig_removable_devices(void)
 		else
 		{
 		        config_set_int(cat, temps, fdd_get_turbo(c));
+		}
+
+		sprintf(temps, "fdd_%02i_check_bpb", c + 1);
+		if (fdd_get_check_bpb(c) == 1)
+		{
+			config_delete_var(cat, temps);
+		}
+		else
+		{
+		        config_set_int(cat, temps, fdd_get_check_bpb(c));
 		}
 	}
 

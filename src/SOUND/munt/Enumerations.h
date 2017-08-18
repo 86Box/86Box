@@ -85,7 +85,6 @@ enum MT32EMU_DAC_INPUT_MODE_NAME {
 	 * Nicer overdrive characteristics than the DAC hacks (it simply clips samples within range)
 	 * Much less likely to overdrive than any other mode.
 	 * Half the volume of any of the other modes.
-	 * Output gain is ignored for both LA32 and reverb output.
 	 * Perfect for developers while debugging :)
 	 */
 	MT32EMU_DAC_INPUT_MODE(PURE),

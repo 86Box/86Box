@@ -35,11 +35,13 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
 	int val_int;
 	int ret;
 	int id;
-	device_config_t *config;
 	int c;
-        int num;
+    int num;
 	int changed;
+    int cid;
+	device_config_t *config;
 	char s[80];
+	wchar_t ws[512];
 
         switch (message)
         {
@@ -94,6 +96,24 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                         id += 2;
                                         break;
 
+                                        case CONFIG_SPINNER:
+                                        val_int = config_get_int(config_device->name, config->name, config->default_int);
+
+                                        sprintf(s, "%i", val_int);
+                                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+
+                                        id += 2;
+                                        break;
+
+                                        case CONFIG_FILE:
+                                        {
+                                                char* str = config_get_string(config_device->name, config->name, 0);
+                                                if (str)
+                                                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)str);
+                                                id += 3;
+                                        }
+                                        break;
+
                                         case CONFIG_HEX16:
                                         val_int = config_get_hex16(config_device->name, config->name, config->default_int);
                                         
@@ -132,13 +152,14 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                 return TRUE;
                 
                 case WM_COMMAND:
-                switch (LOWORD(wParam))
-                {
-                        case IDOK:
-                        {
+				{
+                    cid = LOWORD(wParam);
+	                if (cid == IDOK)
+                    {
                                 id = IDC_CONFIG_BASE;
                                 config = config_device->config;
                                 changed = 0;
+                                char s[512];
                                 
                                 while (config->type != -1)
                                 {
@@ -181,6 +202,33 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                                 id += 2;
                                                 break;
 
+                                                case CONFIG_FILE:
+                                                {
+                                                        char* str = config_get_string(config_device->name, config->name, (char*)"");
+                                                        SendMessage(h, WM_GETTEXT, 511, (LPARAM)s);
+                                                        if (strcmp(str, s))
+                                                                changed = 1;
+
+                                                        id += 3;
+                                                }
+                                                break;
+
+                                                case CONFIG_SPINNER:
+                                                val_int = config_get_int(config_device->name, config->name, config->default_int);
+                                                if (val_int > config->spinner.max)
+                                                        val_int = config->spinner.max;
+                                                else if (val_int < config->spinner.min)
+                                                        val_int = config->spinner.min;
+
+                                                SendMessage(h, WM_GETTEXT, 79, (LPARAM)s);
+                                                sscanf(s, "%i", &c);
+
+                                                if (val_int != c)
+                                                        changed = 1;
+
+                                                id += 2;
+                                                break;
+
                                                 case CONFIG_HEX16:
                                                 val_int = config_get_hex16(config_device->name, config->name, config->default_int);
 
@@ -218,16 +266,16 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                         return TRUE;
                                 }
 
-				ret = msgbox_reset(ghwnd);
-				switch(ret)
-				{
-					case IDNO:                                        
-	                                        EndDialog(hdlg, 0);
-        	                                return TRUE;
-					case IDCANCEL:
-						return FALSE;
-					default:
-						break;
+                               ret = msgbox_reset(ghwnd);
+                               switch(ret)
+                               {
+                                    case IDNO:                                        
+	                                    EndDialog(hdlg, 0);
+        	                            return TRUE;
+                                    case IDCANCEL:
+                                        return FALSE;
+                                    default:
+                                        break;
                                 }
 
                                 id = IDC_CONFIG_BASE;
@@ -262,6 +310,27 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                                 id += 2;
                                                 break;
 
+                                                case CONFIG_FILE:
+                                                SendMessage(h, WM_GETTEXT, 511, (LPARAM)s);
+
+                                                config_set_string(config_device->name, config->name, s);
+
+                                                id += 3;
+                                                break;
+
+                                                case CONFIG_SPINNER:
+                                                SendMessage(h, WM_GETTEXT, 79, (LPARAM)s);
+                                                sscanf(s, "%i", &c);
+                                                if (c > config->spinner.max)
+                                                        c = config->spinner.max;
+                                                else if (c < config->spinner.min)
+                                                        c = config->spinner.min;
+
+                                                config_set_int(config_device->name, config->name, c);
+
+                                                id += 2;
+                                                break;
+
                                                 case CONFIG_HEX16:
                                                 c = SendMessage(h, CB_GETCURSEL, 0, 0);
                                                 for (; c > 0; c--)
@@ -289,12 +358,91 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
 
                                 EndDialog(hdlg, 0);
                                 return TRUE;
-                        }
-                        case IDCANCEL:
-                        EndDialog(hdlg, 0);
-                        return TRUE;
-                }
-                break;
+                    }
+                    else if (cid == IDCANCEL)
+                    {
+                            EndDialog(hdlg, 0);
+                            return TRUE;
+                    }
+                    else
+                    {
+                                int id = IDC_CONFIG_BASE;
+                                device_config_t *config = config_device->config;
+
+                                while (config->type != -1)
+                                {
+                                        switch (config->type)
+                                        {
+                                                case CONFIG_BINARY:
+                                                id++;
+                                                break;
+
+                                                case CONFIG_SELECTION:
+                                                case CONFIG_MIDI:
+                                                case CONFIG_SPINNER:
+                                                id += 2;
+                                                break;
+
+                                                case CONFIG_FILE:
+                                                {
+                                                        if (cid == id+1)
+                                                        {
+                                                                char s[512];
+                                                                s[0] = 0;
+                                                                int c, d;
+                                                                HWND h = GetDlgItem(hdlg, id);
+                                                                SendMessage(h, WM_GETTEXT, 511, (LPARAM)s);
+                                                                char file_filter[512];
+                                                                file_filter[0] = 0;
+
+                                                                c = 0;
+                                                                while (config->file_filter[c].description[0])
+                                                                {
+                                                                        if (c > 0)
+                                                                                strcat(file_filter, "|");
+                                                                        strcat(file_filter, config->file_filter[c].description);
+                                                                        strcat(file_filter, " (");
+                                                                        d = 0;
+                                                                        while (config->file_filter[c].extensions[d][0])
+                                                                        {
+                                                                                if (d > 0)
+                                                                                        strcat(file_filter, ";");
+                                                                                strcat(file_filter, "*.");
+                                                                                strcat(file_filter, config->file_filter[c].extensions[d]);
+                                                                                d++;
+                                                                        }
+                                                                        strcat(file_filter, ")|");
+                                                                        d = 0;
+                                                                        while (config->file_filter[c].extensions[d][0])
+                                                                        {
+                                                                                if (d > 0)
+                                                                                        strcat(file_filter, ";");
+                                                                                strcat(file_filter, "*.");
+                                                                                strcat(file_filter, config->file_filter[c].extensions[d]);
+                                                                                d++;
+                                                                        }
+                                                                        c++;
+                                                                }
+                                                                strcat(file_filter, "|All files (*.*)|*.*|");
+								mbstowcs(ws, file_filter, strlen(file_filter) + 1);
+                                                                d = strlen(file_filter);
+
+                                                                /* replace | with \0 */
+                                                                for (c = 0; c < d; ++c)
+                                                                        if (ws[c] == L'|')
+                                                                                ws[c] = 0;
+
+                                                                if (!file_dlg(hdlg, ws, s, 0))
+                                                                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)openfilestring);
+                                                        }
+												}
+												break;
+                                        }
+                                        config++;
+                                }
+                    }
+				}
+				break;
         }
         return FALSE;
 }
@@ -323,8 +471,8 @@ void deviceconfig_open(HWND hwnd, device_t *device)
         *data++ = 0; /*predefined dialog box class*/
         data += MultiByteToWideChar(CP_ACP, 0, "Device Configuration", -1, data, 50);
 
-        *data++ = 8; /*Point*/
-        data += MultiByteToWideChar(CP_ACP, 0, "MS Sans Serif", -1, data, 50);
+        *data++ = 9; /*Point*/
+        data += MultiByteToWideChar(CP_ACP, 0, "Segoe UI", -1, data, 50);
         
         if (((unsigned long)data) & 2)
                 data++;
@@ -398,6 +546,122 @@ void deviceconfig_open(HWND hwnd, device_t *device)
                         *data++ = 0;              /* no creation data */
                         
                         if (((unsigned long)data) & 2)
+                                data++;
+
+                        y += 20;
+                        break;
+
+                        case CONFIG_SPINNER:
+                        /*Spinner*/
+                        item = (DLGITEMTEMPLATE *)data;
+                        item->x = 70;
+                        item->y = y;
+                        item->id = id++;
+
+                        item->cx = 140;
+                        item->cy = 14;
+
+                        item->style = WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | ES_NUMBER;
+                        item->dwExtendedStyle = WS_EX_CLIENTEDGE;
+
+                        data = (uint16_t *)(item + 1);
+                        *data++ = 0xFFFF;
+                        *data++ = 0x0081;    /* edit text class */
+
+                        data += MultiByteToWideChar(CP_ACP, 0, "", -1, data, 256);
+                        *data++ = 0;              /* no creation data */
+
+                        if (((uintptr_t)data) & 2)
+                                data++;
+
+                        /* TODO: add up down class */
+                        /*Static text*/
+                        item = (DLGITEMTEMPLATE *)data;
+                        item->x = 10;
+                        item->y = y;
+                        item->id = id++;
+
+                        item->cx = 60;
+                        item->cy = 15;
+
+                        item->style = WS_CHILD | WS_VISIBLE;
+
+                        data = (uint16_t *)(item + 1);
+                        *data++ = 0xFFFF;
+                        *data++ = 0x0082;    /* static class */
+
+                        data += MultiByteToWideChar(CP_ACP, 0, config->description, -1, data, 256);
+                        *data++ = 0;              /* no creation data */
+
+                        if (((uintptr_t)data) & 2)
+                                data++;
+
+                        y += 20;
+                        break;
+
+                        case CONFIG_FILE:
+                        /*File*/
+                        item = (DLGITEMTEMPLATE *)data;
+                        item->x = 70;
+                        item->y = y;
+                        item->id = id++;
+
+                        item->cx = 100;
+                        item->cy = 14;
+
+                        item->style = WS_CHILD | WS_VISIBLE | ES_READONLY;
+                        item->dwExtendedStyle = WS_EX_CLIENTEDGE;
+
+                        data = (uint16_t *)(item + 1);
+                        *data++ = 0xFFFF;
+                        *data++ = 0x0081;    /* edit text class */
+
+                        data += MultiByteToWideChar(CP_ACP, 0, "", -1, data, 256);
+                        *data++ = 0;              /* no creation data */
+
+                        if (((uintptr_t)data) & 2)
+                                data++;
+
+                        /* Button */
+                        item = (DLGITEMTEMPLATE *)data;
+                        item->x = 175;
+                        item->y = y;
+                        item->id = id++;
+
+                        item->cx = 35;
+                        item->cy = 14;
+
+                        item->style = WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON;
+
+                        data = (uint16_t *)(item + 1);
+                        *data++ = 0xFFFF;
+                        *data++ = 0x0080;    /* button class */
+
+                        data += MultiByteToWideChar(CP_ACP, 0, "Browse", -1, data, 256);
+                        *data++ = 0;              /* no creation data */
+
+                        if (((uintptr_t)data) & 2)
+                                data++;
+
+                        /*Static text*/
+                        item = (DLGITEMTEMPLATE *)data;
+                        item->x = 10;
+                        item->y = y;
+                        item->id = id++;
+
+                        item->cx = 60;
+                        item->cy = 15;
+
+                        item->style = WS_CHILD | WS_VISIBLE;
+
+                        data = (uint16_t *)(item + 1);
+                        *data++ = 0xFFFF;
+                        *data++ = 0x0082;    /* static class */
+
+                        data += MultiByteToWideChar(CP_ACP, 0, config->description, -1, data, 256);
+                        *data++ = 0;              /* no creation data */
+
+                        if (((uintptr_t)data) & 2)
                                 data++;
 
                         y += 20;

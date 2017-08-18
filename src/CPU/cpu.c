@@ -48,6 +48,8 @@ OpFn *x86_dynarec_opcodes_de_a16;
 OpFn *x86_dynarec_opcodes_de_a32;
 OpFn *x86_dynarec_opcodes_df_a16;
 OpFn *x86_dynarec_opcodes_df_a32;
+OpFn *x86_dynarec_opcodes_REPE;
+OpFn *x86_dynarec_opcodes_REPNE;
 
 OpFn *x86_opcodes;
 OpFn *x86_opcodes_0f;
@@ -67,6 +69,8 @@ OpFn *x86_opcodes_de_a16;
 OpFn *x86_opcodes_de_a32;
 OpFn *x86_opcodes_df_a16;
 OpFn *x86_opcodes_df_a32;
+OpFn *x86_opcodes_REPE;
+OpFn *x86_opcodes_REPNE;
 
 enum
 {
@@ -158,13 +162,7 @@ int timing_retf_rm, timing_retf_pm, timing_retf_pm_outer;
 int timing_jmp_rm, timing_jmp_pm, timing_jmp_pm_gate;
 int timing_misaligned;
 
-static struct
-{
-        uint32_t tr1, tr12;
-        uint32_t cesr;
-        uint32_t fcr;
-        uint64_t fcr2, fcr3;
-} msr;
+msr_t msr;
 
 /*Available cpuspeeds :
         0 = 16 MHz
@@ -490,8 +488,8 @@ CPU cpus_PentiumS5[] =
         {"Pentium 75",       CPU_PENTIUM,     9,  75000000, 2, 25000000, 0x524, 0x524, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 7,7,4,4},
         {"Pentium OverDrive MMX 75",CPU_PENTIUMMMX,9,75000000,2,25000000,0x1542,0x1542, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 7,7,4,4},
         {"Pentium 90",       CPU_PENTIUM,    12,  90000000, 2, 30000000, 0x524, 0x524, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 9,9,4,4},
-        {"Pentium 100/50",   CPU_PENTIUM,    13, 100000000, 2, 25000000, 0x525, 0x525, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10,6,6},
-        {"Pentium 100/66",   CPU_PENTIUM,    13, 100000000, 2, 33333333, 0x525, 0x525, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 9,9,4,4},
+        {"Pentium 100/50",   CPU_PENTIUM,    13, 100000000, 2, 25000000, 0x524, 0x524, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10,6,6},
+        {"Pentium 100/66",   CPU_PENTIUM,    13, 100000000, 2, 33333333, 0x526, 0x526, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 9,9,4,4},
         {"Pentium 120",      CPU_PENTIUM,    14, 120000000, 2, 30000000, 0x526, 0x526, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12,6,6},
         {"Pentium OverDrive 125",CPU_PENTIUM,15, 125000000, 3, 25000000, 0x52c, 0x52c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12,7,7},
         {"Pentium OverDrive 150",CPU_PENTIUM,17, 150000000, 3, 30000000, 0x52c, 0x52c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15,7,7},
@@ -510,8 +508,8 @@ CPU cpus_Pentium[] =
         {"Pentium 75",       CPU_PENTIUM,     9,  75000000, 2, 25000000, 0x524, 0x524, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 7,7,4,4},
         {"Pentium OverDrive MMX 75",CPU_PENTIUMMMX,9,75000000,2,25000000,0x1542,0x1542, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 7,7,4,4},
         {"Pentium 90",       CPU_PENTIUM,    12,  90000000, 2, 30000000, 0x524, 0x524, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 9,9,4,4},
-        {"Pentium 100/50",   CPU_PENTIUM,    13, 100000000, 2, 25000000, 0x525, 0x525, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10,6,6},
-        {"Pentium 100/66",   CPU_PENTIUM,    13, 100000000, 2, 33333333, 0x525, 0x525, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 9,9,4,4},
+        {"Pentium 100/50",   CPU_PENTIUM,    13, 100000000, 2, 25000000, 0x524, 0x524, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10,6,6},
+        {"Pentium 100/66",   CPU_PENTIUM,    13, 100000000, 2, 33333333, 0x526, 0x526, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 9,9,4,4},
         {"Pentium 120",      CPU_PENTIUM,    14, 120000000, 2, 30000000, 0x526, 0x526, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12,6,6},
         {"Pentium 133",      CPU_PENTIUM,    16, 133333333, 2, 33333333, 0x52c, 0x52c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12,6,6},
         {"Pentium 150",      CPU_PENTIUM,    17, 150000000, 3, 30000000, 0x52c, 0x52c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15,7,7},
@@ -679,6 +677,10 @@ void cpu_set()
         pclog("is486 - %i  %i\n",is486,cpu_s->cpu_type);
 
         x86_setopcodes(ops_386, ops_386_0f, dynarec_ops_386, dynarec_ops_386_0f);
+        x86_opcodes_REPE = ops_REPE;
+        x86_opcodes_REPNE = ops_REPNE;
+        x86_dynarec_opcodes_REPE = dynarec_ops_REPE;
+        x86_dynarec_opcodes_REPNE = dynarec_ops_REPNE;
 
         if (hasfpu)
         {
@@ -1663,6 +1665,8 @@ void cpu_CPUID()
                         EAX = 0x540;
                         EBX = ECX = 0;
                         EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR;
+                        if (msr.fcr & (1 << 1))
+                                EDX |= CPUID_CMPXCHG8B;
                         if (msr.fcr & (1 << 9))
                                 EDX |= CPUID_MMX;
                 }

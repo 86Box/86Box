@@ -519,7 +519,7 @@ OpFn OP_TABLE(winchip_0f)[1024] =
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     ILLEGAL,        opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,ILLEGAL,        opIMUL_w_w_a16,
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
 
-/*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
+/*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
 /*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
@@ -541,7 +541,7 @@ OpFn OP_TABLE(winchip_0f)[1024] =
 /*a0*/  opPUSH_FS_l,    opPOP_FS_l,     opCPUID,        opBT_l_r_a16,   opSHLD_l_i_a16, opSHLD_l_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_l,    opPOP_GS_l,     ILLEGAL,        opBTS_l_r_a16,  opSHRD_l_i_a16, opSHRD_l_CL_a16,ILLEGAL,        opIMUL_l_l_a16,
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_l_a16,opLSS_l_a16,    opBTR_l_r_a16,  opLFS_l_a16,    opLGS_l_a16,    opMOVZX_l_b_a16,opMOVZX_l_w_a16,ILLEGAL,        ILLEGAL,        opBA_l_a16,     opBTC_l_r_a16,  opBSF_l_a16,    opBSR_l_a16,    opMOVSX_l_b_a16,opMOVSX_l_w_a16,
 
-/*c0*/  opXADD_b_a16,   opXADD_l_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
+/*c0*/  opXADD_b_a16,   opXADD_l_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
 /*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
@@ -563,7 +563,7 @@ OpFn OP_TABLE(winchip_0f)[1024] =
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     ILLEGAL,        opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,ILLEGAL,        opIMUL_w_w_a32,
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
 
-/*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
+/*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
 /*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
@@ -585,7 +585,7 @@ OpFn OP_TABLE(winchip_0f)[1024] =
 /*a0*/  opPUSH_FS_l,    opPOP_FS_l,     opCPUID,        opBT_l_r_a32,   opSHLD_l_i_a32, opSHLD_l_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_l,    opPOP_GS_l,     ILLEGAL,        opBTS_l_r_a32,  opSHRD_l_i_a32, opSHRD_l_CL_a32,ILLEGAL,        opIMUL_l_l_a32,
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_l_a32,opLSS_l_a32,    opBTR_l_r_a32,  opLFS_l_a32,    opLGS_l_a32,    opMOVZX_l_b_a32,opMOVZX_l_w_a32,ILLEGAL,        ILLEGAL,        opBA_l_a32,     opBTC_l_r_a32,  opBSF_l_a32,    opBSR_l_a32,    opMOVSX_l_b_a32,opMOVSX_l_w_a32,
 
-/*c0*/  opXADD_b_a32,   opXADD_l_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
+/*c0*/  opXADD_b_a32,   opXADD_l_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
 /*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
@@ -1410,4 +1410,186 @@ OpFn OP_TABLE(386)[1024] =
 /*d0*/  opD0_a32,       opD1_l_a32,     opD2_a32,       opD3_l_a32,     opAAM,          opAAD,          opSETALC,       opXLAT_a32,     opESCAPE_d8_a32,opESCAPE_d9_a32,opESCAPE_da_a32,opESCAPE_db_a32,opESCAPE_dc_a32,opESCAPE_dd_a32,opESCAPE_de_a32,opESCAPE_df_a32,
 /*e0*/  opLOOPNE_l,     opLOOPE_l,      opLOOP_l,       opJECXZ,        opIN_AL_imm,    opIN_EAX_imm,   opOUT_AL_imm,   opOUT_EAX_imm,  opCALL_r32,     opJMP_r32,      opJMP_far_a32,  opJMP_r8,       opIN_AL_DX,     opIN_EAX_DX,    opOUT_AL_DX,    opOUT_EAX_DX,
 /*f0*/  opLOCK,         opINT1,         opREPNE,        opREPE,         opHLT,          opCMC,          opF6_a32,       opF7_l_a32,     opCLC,          opSTC,          opCLI,          opSTI,          opCLD,          opSTD,          opINCDEC_b_a32, opFF_l_a32,
+}; 
+
+OpFn OP_TABLE(REPE)[1024] = 
+{
+        /*16-bit data, 16-bit addr*/
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*00*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*10*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*20*/  0,              0,              0,              0,              0,              0,              opES_REPE_w_a16,0,              0,              0,              0,              0,              0,              0,              opCS_REPE_w_a16,0,
+/*30*/  0,              0,              0,              0,              0,              0,              opSS_REPE_w_a16,0,              0,              0,              0,              0,              0,              0,              opDS_REPE_w_a16,0,
+
+/*40*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*50*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*60*/  0,              0,              0,              0,              opFS_REPE_w_a16,opGS_REPE_w_a16,op_66_REPE,     op_67_REPE,     0,              0,              0,              0,              opREP_INSB_a16, opREP_INSW_a16, opREP_OUTSB_a16,opREP_OUTSW_a16,
+/*70*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*80*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*90*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*a0*/  0,              0,              0,              0,              opREP_MOVSB_a16,opREP_MOVSW_a16,opREP_CMPSB_a16_E,opREP_CMPSW_a16_E,0,    0,              opREP_STOSB_a16,opREP_STOSW_a16,opREP_LODSB_a16,opREP_LODSW_a16,opREP_SCASB_a16_E,opREP_SCASW_a16_E,
+/*b0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*c0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*d0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*e0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*f0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+        /*32-bit data, 16-bit addr*/
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*00*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*10*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*20*/  0,              0,              0,              0,              0,              0,              opES_REPE_l_a16,0,              0,              0,              0,              0,              0,              0,              opCS_REPE_l_a16,0,
+/*30*/  0,              0,              0,              0,              0,              0,              opSS_REPE_l_a16,0,              0,              0,              0,              0,              0,              0,              opDS_REPE_l_a16,0,
+
+/*40*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*50*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*60*/  0,              0,              0,              0,              opFS_REPE_l_a16,opGS_REPE_l_a16,op_66_REPE,     op_67_REPE,     0,              0,              0,              0,              opREP_INSB_a16, opREP_INSL_a16, opREP_OUTSB_a16,opREP_OUTSL_a16,
+/*70*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*80*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*90*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*a0*/  0,              0,              0,              0,              opREP_MOVSB_a16,opREP_MOVSL_a16,opREP_CMPSB_a16_E,opREP_CMPSL_a16_E,0,    0,              opREP_STOSB_a16,opREP_STOSL_a16,opREP_LODSB_a16,opREP_LODSL_a16,opREP_SCASB_a16_E,opREP_SCASL_a16_E,
+/*b0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*c0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*d0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*e0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*f0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+        /*16-bit data, 32-bit addr*/
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*00*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*10*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*20*/  0,              0,              0,              0,              0,              0,              opES_REPE_w_a32,0,              0,              0,              0,              0,              0,              0,              opCS_REPE_w_a32,0,
+/*30*/  0,              0,              0,              0,              0,              0,              opSS_REPE_w_a32,0,              0,              0,              0,              0,              0,              0,              opDS_REPE_w_a32,0,
+
+/*40*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*50*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*60*/  0,              0,              0,              0,              opFS_REPE_w_a32,opGS_REPE_w_a32,op_66_REPE,     op_67_REPE,     0,              0,              0,              0,              opREP_INSB_a32, opREP_INSW_a32, opREP_OUTSB_a32,opREP_OUTSW_a32,
+/*70*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*80*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*90*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*a0*/  0,              0,              0,              0,              opREP_MOVSB_a32,opREP_MOVSW_a32,opREP_CMPSB_a32_E,opREP_CMPSW_a32_E,0,    0,              opREP_STOSB_a32,opREP_STOSW_a32,opREP_LODSB_a32,opREP_LODSW_a32,opREP_SCASB_a32_E,opREP_SCASW_a32_E,
+/*b0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*c0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*d0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*e0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*f0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+        /*32-bit data, 32-bit addr*/
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*00*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*10*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*20*/  0,              0,              0,              0,              0,              0,              opES_REPE_l_a32,0,              0,              0,              0,              0,              0,              0,              opCS_REPE_l_a32,0,
+/*30*/  0,              0,              0,              0,              0,              0,              opSS_REPE_l_a32,0,              0,              0,              0,              0,              0,              0,              opDS_REPE_l_a32,0,
+
+/*40*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*50*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*60*/  0,              0,              0,              0,              opFS_REPE_l_a32,opGS_REPE_l_a32,op_66_REPE,     op_67_REPE,     0,              0,              0,              0,              opREP_INSB_a32, opREP_INSL_a32, opREP_OUTSB_a32,opREP_OUTSL_a32,
+/*70*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*80*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*90*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*a0*/  0,              0,              0,              0,              opREP_MOVSB_a32,opREP_MOVSL_a32,opREP_CMPSB_a32_E,opREP_CMPSL_a32_E,0,    0,              opREP_STOSB_a32,opREP_STOSL_a32,opREP_LODSB_a32,opREP_LODSL_a32,opREP_SCASB_a32_E,opREP_SCASL_a32_E,
+/*b0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*c0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*d0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*e0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*f0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+};
+
+OpFn OP_TABLE(REPNE)[1024] = 
+{
+        /*16-bit data, 16-bit addr*/
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*00*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*10*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*20*/  0,              0,              0,              0,              0,              0,              opES_REPNE_w_a16,0,             0,              0,              0,              0,              0,              0,              opCS_REPNE_w_a16,0,
+/*30*/  0,              0,              0,              0,              0,              0,              opSS_REPNE_w_a16,0,             0,              0,              0,              0,              0,              0,              opDS_REPNE_w_a16,0,
+
+/*40*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*50*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*60*/  0,              0,              0,              0,              opFS_REPNE_w_a16,opGS_REPNE_w_a16,op_66_REPNE,  op_67_REPNE,    0,              0,              0,              0,              opREP_INSB_a16, opREP_INSW_a16, opREP_OUTSB_a16,opREP_OUTSW_a16,
+/*70*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*80*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*90*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*a0*/  0,              0,              0,              0,              opREP_MOVSB_a16,opREP_MOVSW_a16,opREP_CMPSB_a16_NE,opREP_CMPSW_a16_NE,0,  0,              opREP_STOSB_a16,opREP_STOSW_a16,opREP_LODSB_a16,opREP_LODSW_a16,opREP_SCASB_a16_NE,opREP_SCASW_a16_NE,
+/*b0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*c0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*d0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*e0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*f0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+        /*32-bit data, 16-bit addr*/
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*00*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*10*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*20*/  0,              0,              0,              0,              0,              0,              opES_REPNE_l_a16,0,             0,              0,              0,              0,              0,              0,              opCS_REPNE_l_a16,0,
+/*30*/  0,              0,              0,              0,              0,              0,              opSS_REPNE_l_a16,0,             0,              0,              0,              0,              0,              0,              opDS_REPNE_l_a16,0,
+
+/*40*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*50*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*60*/  0,              0,              0,              0,              opFS_REPNE_l_a16,opGS_REPNE_l_a16,op_66_REPNE,  op_67_REPNE,    0,              0,              0,              0,              opREP_INSB_a16, opREP_INSL_a16, opREP_OUTSB_a16,opREP_OUTSL_a16,
+/*70*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*80*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*90*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*a0*/  0,              0,              0,              0,              opREP_MOVSB_a16,opREP_MOVSL_a16,opREP_CMPSB_a16_NE,opREP_CMPSL_a16_NE,0,  0,              opREP_STOSB_a16,opREP_STOSL_a16,opREP_LODSB_a16,opREP_LODSL_a16,opREP_SCASB_a16_NE,opREP_SCASL_a16_NE,
+/*b0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*c0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*d0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*e0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*f0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+        /*16-bit data, 32-bit addr*/
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*00*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*10*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*20*/  0,              0,              0,              0,              0,              0,              opES_REPNE_w_a32,0,             0,              0,              0,              0,              0,              0,              opCS_REPNE_w_a32,0,
+/*30*/  0,              0,              0,              0,              0,              0,              opSS_REPNE_w_a32,0,             0,              0,              0,              0,              0,              0,              opDS_REPNE_w_a32,0,
+
+/*40*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*50*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*60*/  0,              0,              0,              0,              opFS_REPNE_w_a32,opGS_REPNE_w_a32,op_66_REPNE,  op_67_REPNE,    0,              0,              0,              0,              opREP_INSB_a32, opREP_INSW_a32, opREP_OUTSB_a32,opREP_OUTSW_a32,
+/*70*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*80*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*90*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*a0*/  0,              0,              0,              0,              opREP_MOVSB_a32,opREP_MOVSW_a32,opREP_CMPSB_a32_NE,opREP_CMPSW_a32_NE,0,  0,              opREP_STOSB_a32,opREP_STOSW_a32,opREP_LODSB_a32,opREP_LODSW_a32,opREP_SCASB_a32_NE,opREP_SCASW_a32_NE,
+/*b0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*c0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*d0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*e0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*f0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+        /*32-bit data, 32-bit addr*/
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*00*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*10*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*20*/  0,              0,              0,              0,              0,              0,              opES_REPNE_l_a32,0,             0,              0,              0,              0,              0,              0,              opCS_REPNE_l_a32,0,
+/*30*/  0,              0,              0,              0,              0,              0,              opSS_REPNE_l_a32,0,             0,              0,              0,              0,              0,              0,              opDS_REPNE_l_a32,0,
+
+/*40*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*50*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*60*/  0,              0,              0,              0,              opFS_REPNE_l_a32,opGS_REPNE_l_a32,op_66_REPNE,  op_67_REPNE,    0,              0,              0,              0,              opREP_INSB_a32, opREP_INSL_a32, opREP_OUTSB_a32,opREP_OUTSL_a32,
+/*70*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*80*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*90*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*a0*/  0,              0,              0,              0,              opREP_MOVSB_a32,opREP_MOVSL_a32,opREP_CMPSB_a32_NE,opREP_CMPSL_a32_NE,0,        0,              opREP_STOSB_a32,opREP_STOSL_a32,opREP_LODSB_a32,opREP_LODSL_a32,opREP_SCASB_a32_NE,opREP_SCASL_a32_NE,
+/*b0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*c0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*d0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*e0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*f0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
 };

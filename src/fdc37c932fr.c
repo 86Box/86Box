@@ -488,6 +488,9 @@ void fdc37c932fr_reset(void)
 	fdc_update_drvrate(3, 0);
 	fdc_update_max_track(79);
 
+	memset(fdc37c932fr_gpio_regs, 0, sizeof(fdc37c932fr_gpio_regs));
+	fdc37c932fr_gpio_regs[2] = 0xfd;
+
         fdc37c932fr_locked = 0;
 }
 
@@ -498,6 +501,8 @@ void fdc37c932fr_init()
 	fdc37c932fr_reset();
 
         io_sethandler(0xe0, 0x0006, fdc37c932fr_gpio_read, NULL, NULL, fdc37c932fr_gpio_write, NULL, NULL,  NULL);
+        io_sethandler(0xe2, 0x0006, fdc37c932fr_gpio_read, NULL, NULL, fdc37c932fr_gpio_write, NULL, NULL,  NULL);
+        io_sethandler(0xe4, 0x0006, fdc37c932fr_gpio_read, NULL, NULL, fdc37c932fr_gpio_write, NULL, NULL,  NULL);
         io_sethandler(0xea, 0x0002, fdc37c932fr_gpio_read, NULL, NULL, fdc37c932fr_gpio_write, NULL, NULL,  NULL);
         io_sethandler(0x3f0, 0x0002, fdc37c932fr_read, NULL, NULL, fdc37c932fr_write, NULL, NULL,  NULL);
 

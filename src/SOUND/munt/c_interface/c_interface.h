@@ -209,6 +209,12 @@ MT32EMU_EXPORT mt32emu_bit32u mt32emu_set_midi_event_queue_size(mt32emu_const_co
  */
 MT32EMU_EXPORT void mt32emu_set_midi_receiver(mt32emu_context context, mt32emu_midi_receiver_i midi_receiver, void *instance_data);
 
+/**
+ * Returns current value of the global counter of samples rendered since the synth was created (at the native sample rate 32000 Hz).
+ * This method helps to compute accurate timestamp of a MIDI message to use with the methods below.
+ */
+MT32EMU_EXPORT mt32emu_bit32u mt32emu_get_internal_rendered_sample_count(mt32emu_const_context context);
+
 /* Enqueues a MIDI event for subsequent playback.
  * The MIDI event will be processed not before the specified timestamp.
  * The timestamp is measured as the global rendered sample count since the synth was created (at the native sample rate 32000 Hz).
@@ -324,7 +330,6 @@ MT32EMU_EXPORT mt32emu_midi_delay_mode mt32emu_get_midi_delay_mode(mt32emu_const
  * Sets output gain factor for synth output channels. Applied to all output samples and unrelated with the synth's Master volume,
  * it rather corresponds to the gain of the output analog circuitry of the hardware units. However, together with mt32emu_set_reverb_output_gain()
  * it offers to the user a capability to control the gain of reverb and non-reverb output channels independently.
- * Ignored in MT32EMU_DAC_PURE mode.
  */
 MT32EMU_EXPORT void mt32emu_set_output_gain(mt32emu_const_context context, float gain);
 /** Returns current output gain factor for synth output channels. */
@@ -339,7 +344,6 @@ MT32EMU_EXPORT float mt32emu_get_output_gain(mt32emu_const_context context);
  * corresponds to the level of digital capture. Although, according to the CM-64 PCB schematic,
  * there is a difference in the reverb analogue circuit, and the resulting output gain is 0.68
  * of that for LA32 analogue output. This factor is applied to the reverb output gain.
- * Ignored in MT32EMU_DAC_PURE mode.
  */
 MT32EMU_EXPORT void mt32emu_set_reverb_output_gain(mt32emu_const_context context, float gain);
 /** Returns current output gain factor for reverb wet output channels. */
@@ -349,6 +353,18 @@ MT32EMU_EXPORT float mt32emu_get_reverb_output_gain(mt32emu_const_context contex
 MT32EMU_EXPORT void mt32emu_set_reversed_stereo_enabled(mt32emu_const_context context, const mt32emu_boolean enabled);
 /** Returns whether left and right output channels are swapped. */
 MT32EMU_EXPORT mt32emu_boolean mt32emu_is_reversed_stereo_enabled(mt32emu_const_context context);
+
+/**
+ * Allows to toggle the NiceAmpRamp mode.
+ * In this mode, we want to ensure that amp ramp never jumps to the target
+ * value and always gradually increases or decreases. It seems that real units
+ * do not bother to always check if a newly started ramp leads to a jump.
+ * We also prefer the quality improvement over the emulation accuracy,
+ * so this mode is enabled by default.
+ */
+MT32EMU_EXPORT void mt32emu_set_nice_amp_ramp_enabled(mt32emu_const_context context, const mt32emu_boolean enabled);
+/** Returns whether NiceAmpRamp mode is enabled. */
+MT32EMU_EXPORT mt32emu_boolean mt32emu_is_nice_amp_ramp_enabled(mt32emu_const_context context);
 
 /**
  * Renders samples to the specified output stream as if they were sampled at the analog stereo output at the desired sample rate.

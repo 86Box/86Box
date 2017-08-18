@@ -571,6 +571,7 @@ void resetx86()
 	cpu_cur_status = 0;
         stack32=0;
         cpu_state.pc=0;
+	msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
         msw=0;
         if (is486)
                 cr0 = 1 << 30;
@@ -609,6 +610,7 @@ void softresetx86()
         stack32=0;
 	cpu_cur_status = 0;
         cpu_state.pc=0;
+	msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
         msw=0;
         cr0=0;
         cr4 = 0;
@@ -983,7 +985,7 @@ void execx86(int cycs)
         int8_t offset;
         int tempws;
         uint32_t templ;
-        int c;
+        unsigned int c;
         int tempi;
         int trap;
 
@@ -2439,6 +2441,12 @@ void execx86(int cycs)
                         switch (rmdat&0x38)
                         {
                                 case 0x00: /*ROL b,CL*/
+				temp2=(temp&0x80)?1:0;
+				if (!c)
+				{
+        	                        cycles-=((cpu_mod==3)?8:28);
+	                                break;
+				}
                                 while (c>0)
                                 {
                                         temp2=(temp&0x80)?1:0;
@@ -2454,6 +2462,12 @@ void execx86(int cycs)
                                 cycles-=((cpu_mod==3)?8:28);
                                 break;
                                 case 0x08: /*ROR b,CL*/
+				temp2=temp&1;
+				if (!c)
+				{
+					cycles-=((cpu_mod==3)?8:28);
+					break;
+				}
                                 while (c>0)
                                 {
                                         temp2=temp&1;
@@ -2564,6 +2578,12 @@ void execx86(int cycs)
                                 cycles-=((cpu_mod==3)?8:28);
                                 break;
                                 case 0x08: /*ROR w,CL*/
+				tempw2=(tempw&1)?0x8000:0;
+				if (!c)
+				{
+        	                        cycles-=((cpu_mod==3)?8:28);
+	                                break;
+				}
                                 while (c>0)
                                 {
                                         tempw2=(tempw&1)?0x8000:0;
@@ -2596,6 +2616,13 @@ void execx86(int cycs)
                                 cycles-=((cpu_mod==3)?8:28);
                                 break;
                                 case 0x18: /*RCR w,CL*/
+				templ=flags&C_FLAG;
+				tempw2=(templ&1)?0x8000:0;
+				if (!c)
+				{
+	                                cycles-=((cpu_mod==3)?8:28);
+					break;
+				}
                                 while (c>0)
                                 {
                                         templ=flags&C_FLAG;

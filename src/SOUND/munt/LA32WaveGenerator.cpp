@@ -378,22 +378,16 @@ Bit16s LA32IntPartialPair::unlogAndMixWGOutput(const LA32WaveGenerator &wg) {
 	return firstSample + secondSample;
 }
 
+static inline Bit16s produceDistortedSample(Bit16s sample) {
+	return ((sample & 0x2000) == 0) ? Bit16s(sample & 0x1fff) : Bit16s(sample | ~0x1fff);
+}
+
 Bit16s LA32IntPartialPair::nextOutSample() {
 	if (!ringModulated) {
 		return unlogAndMixWGOutput(master) + unlogAndMixWGOutput(slave);
 	}
 
-	/*
-	 * SEMI-CONFIRMED: Ring modulation model derived from sample analysis of specially constructed patches which exploit distortion.
-	 * LA32 ring modulator found to produce distorted output in case if the absolute value of maximal amplitude of one of the input partials exceeds 8191.
-	 * This is easy to reproduce using synth partials with resonance values close to the maximum. It looks like an integer overflow happens in this case.
-	 * As the distortion is strictly bound to the amplitude of the complete mixed square + resonance wave in the linear space,
-	 * it is reasonable to assume the ring modulation is performed also in the linear space by sample multiplication.
-	 * Most probably the overflow is caused by limited precision of the multiplication circuit as the very similar distortion occurs with panning.
-	 */
-	Bit16s nonOverdrivenMasterSample = unlogAndMixWGOutput(master); // Store master partial sample for further mixing
-	Bit16s masterSample = nonOverdrivenMasterSample << 2;
-	masterSample >>= 2;
+	Bit16s masterSample = unlogAndMixWGOutput(master); // Store master partial sample for further mixing
 
 	/* SEMI-CONFIRMED from sample analysis:
 	 * We observe that for partial structures with ring modulation the interpolation is not applied to the slave PCM partial.
@@ -401,10 +395,17 @@ Bit16s LA32IntPartialPair::nextOutSample() {
 	 * is borrowed by the ring modulation circuit (or the LA32 chip has a similar lack of resources assigned to each partial pair).
 	 */
 	Bit16s slaveSample = slave.isPCMWave() ? LA32Utilites::unlog(slave.getOutputLogSample(true)) : unlogAndMixWGOutput(slave);
-	slaveSample <<= 2;
-	slaveSample >>= 2;
-	Bit16s ringModulatedSample = Bit16s((Bit32s(masterSample) * Bit32s(slaveSample)) >> 13);
-	return mixed ? nonOverdrivenMasterSample + ringModulatedSample : ringModulatedSample;
+
+	/* SEMI-CONFIRMED: Ring modulation model derived from sample analysis of specially constructed patches which exploit distortion.
+	 * LA32 ring modulator found to produce distorted output in case if the absolute value of maximal amplitude of one of the input partials exceeds 8191.
+	 * This is easy to reproduce using synth partials with resonance values close to the maximum. It looks like an integer overflow happens in this case.
+	 * As the distortion is strictly bound to the amplitude of the complete mixed square + resonance wave in the linear space,
+	 * it is reasonable to assume the ring modulation is performed also in the linear space by sample multiplication.
+	 * Most probably the overflow is caused by limited precision of the multiplication circuit as the very similar distortion occurs with panning.
+	 */
+	Bit16s ringModulatedSample = Bit16s((Bit32s(produceDistortedSample(masterSample)) * Bit32s(produceDistortedSample(slaveSample))) >> 13);
+
+	return mixed ? masterSample + ringModulatedSample : ringModulatedSample;
 }
 
 void LA32IntPartialPair::deactivate(const PairType useMaster) {

@@ -652,8 +652,8 @@ void cirrus_bitblt_start(clgd_t *clgd, svga_t *svga)
 	clgd->blt.height = (svga->gdcreg[0x22] | (svga->gdcreg[0x23] << 8)) + 1;
 	clgd->blt.dst_pitch = (svga->gdcreg[0x24] | (svga->gdcreg[0x25] << 8));
 	clgd->blt.src_pitch = (svga->gdcreg[0x26] | (svga->gdcreg[0x27] << 8));
-	clgd->blt.dst_addr = (svga->gdcreg[0x28] | (svga->gdcreg[0x29] << 8) || (svga->gdcreg[0x2a] << 16));
-	clgd->blt.src_addr = (svga->gdcreg[0x2c] | (svga->gdcreg[0x2d] << 8) || (svga->gdcreg[0x2e] << 16));
+	clgd->blt.dst_addr = (svga->gdcreg[0x28] | (svga->gdcreg[0x29] << 8) | (svga->gdcreg[0x2a] << 16));
+	clgd->blt.src_addr = (svga->gdcreg[0x2c] | (svga->gdcreg[0x2d] << 8) | (svga->gdcreg[0x2e] << 16));
 	clgd->blt.mode = svga->gdcreg[0x30];
 	clgd->blt.modeext = svga->gdcreg[0x33];
 	blt_rop = svga->gdcreg[0x32];

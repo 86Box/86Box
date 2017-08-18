@@ -37,7 +37,20 @@ LCID dwLanguage;
 
 uint32_t dwLangID, dwSubLangID;
 
-WCHAR lpResourceString[STRINGS_NUM][512];
+typedef struct
+{
+	WCHAR lpString[512];
+} resource_string_t;
+
+resource_string_t *lpResourceString2048;
+resource_string_t *lpResourceString3072;
+resource_string_t *lpResourceString4096;
+resource_string_t *lpResourceString4352;
+resource_string_t *lpResourceString4608;
+resource_string_t *lpResourceString5120;
+resource_string_t *lpResourceString5376;
+resource_string_t *lpResourceString5632;
+resource_string_t *lpResourceString6144;
 
 char openfilestring[260];
 WCHAR wopenfilestring[260];
@@ -51,15 +64,65 @@ void win_language_load_common_strings()
 {
 	int i = 0;
 
-	for (i = 0; i < STRINGS_NUM; i++)
+	lpResourceString2048 = (resource_string_t *) malloc(STRINGS_NUM_2048 * sizeof(resource_string_t));
+	lpResourceString3072 = (resource_string_t *) malloc(STRINGS_NUM_3072 * sizeof(resource_string_t));
+	lpResourceString4096 = (resource_string_t *) malloc(STRINGS_NUM_4096 * sizeof(resource_string_t));
+	lpResourceString4352 = (resource_string_t *) malloc(STRINGS_NUM_4352 * sizeof(resource_string_t));
+	lpResourceString4608 = (resource_string_t *) malloc(STRINGS_NUM_4608 * sizeof(resource_string_t));
+	lpResourceString5120 = (resource_string_t *) malloc(STRINGS_NUM_5120 * sizeof(resource_string_t));
+	lpResourceString5376 = (resource_string_t *) malloc(STRINGS_NUM_5376 * sizeof(resource_string_t));
+	lpResourceString5632 = (resource_string_t *) malloc(STRINGS_NUM_5632 * sizeof(resource_string_t));
+	lpResourceString6144 = (resource_string_t *) malloc(STRINGS_NUM_6144 * sizeof(resource_string_t));
+
+	for (i = 0; i < STRINGS_NUM_2048; i++)
 	{
-		LoadString(hinstance, 2048 + i, lpResourceString[i], 512);
+		LoadString(hinstance, 2048 + i, lpResourceString2048[i].lpString, 512);
+	}
+
+	for (i = 0; i < STRINGS_NUM_3072; i++)
+	{
+		LoadString(hinstance, 3072 + i, lpResourceString3072[i].lpString, 512);
+	}
+
+	for (i = 0; i < STRINGS_NUM_4096; i++)
+	{
+		LoadString(hinstance, 4096 + i, lpResourceString4096[i].lpString, 512);
+	}
+
+	for (i = 0; i < STRINGS_NUM_4352; i++)
+	{
+		LoadString(hinstance, 4352 + i, lpResourceString4352[i].lpString, 512);
+	}
+
+	for (i = 0; i < STRINGS_NUM_4608; i++)
+	{
+		LoadString(hinstance, 4608 + i, lpResourceString4608[i].lpString, 512);
+	}
+
+	for (i = 0; i < STRINGS_NUM_5120; i++)
+	{
+		LoadString(hinstance, 5120 + i, lpResourceString5120[i].lpString, 512);
+	}
+
+	for (i = 0; i < STRINGS_NUM_5376; i++)
+	{
+		LoadString(hinstance, 5376 + i, lpResourceString5376[i].lpString, 512);
+	}
+
+	for (i = 0; i < STRINGS_NUM_5632; i++)
+	{
+		LoadString(hinstance, 5632 + i, lpResourceString5632[i].lpString, 512);
+	}
+
+	for (i = 0; i < STRINGS_NUM_6144; i++)
+	{
+		LoadString(hinstance, 6144 + i, lpResourceString6144[i].lpString, 512);
 	}
 }
 
 LPTSTR win_language_get_settings_category(int i)
 {
-	return lpResourceString[17 + i];
+	return lpResourceString2048[17 + i].lpString;
 }
 
 void win_language_update()
@@ -81,7 +144,42 @@ void win_language_check()
 
 LPTSTR win_language_get_string_from_id(int i)
 {
-	return lpResourceString[i - 2048];
+	if ((i >= 2048) && (i <= 3071))
+	{
+		return lpResourceString2048[i - 2048].lpString;
+	}
+	else if ((i >= 3072) && (i <= 4095))
+	{
+		return lpResourceString3072[i - 3072].lpString;
+	}
+	else if ((i >= 4096) && (i <= 4351))
+	{
+		return lpResourceString4096[i - 4096].lpString;
+	}
+	else if ((i >= 4352) && (i <= 4607))
+	{
+		return lpResourceString4352[i - 4352].lpString;
+	}
+	else if ((i >= 4608) && (i <= 5119))
+	{
+		return lpResourceString4608[i - 4608].lpString;
+	}
+	else if ((i >= 5120) && (i <= 5375))
+	{
+		return lpResourceString5120[i - 5120].lpString;
+	}
+	else if ((i >= 5376) && (i <= 5631))
+	{
+		return lpResourceString5376[i - 5376].lpString;
+	}
+	else if ((i >= 5632) && (i <= 6143))
+	{
+		return lpResourceString5632[i - 5632].lpString;
+	}
+	else
+	{
+		return lpResourceString6144[i - 6144].lpString;
+	}
 }
 
 wchar_t *plat_get_string_from_id(int i)
@@ -91,37 +189,37 @@ wchar_t *plat_get_string_from_id(int i)
 
 LPTSTR win_language_get_string_from_string(char *str)
 {
-	return lpResourceString[atoi(str) - 2048];
+	return win_language_get_string_from_id(atoi(str));
 }
 
 int msgbox_reset(HWND hwndParent)
 {
-	return MessageBox(hwndParent, lpResourceString[3], lpResourceString[0], MB_YESNOCANCEL | MB_ICONQUESTION);
+	return MessageBox(hwndParent, lpResourceString2048[3].lpString, lpResourceString2048[0].lpString, MB_YESNOCANCEL | MB_ICONQUESTION);
 }
 
 int msgbox_reset_yn(HWND hwndParent)
 {
-	return MessageBox(hwndParent, lpResourceString[3], lpResourceString[0], MB_YESNO | MB_ICONQUESTION);
+	return MessageBox(hwndParent, lpResourceString2048[3].lpString, lpResourceString2048[0].lpString, MB_YESNO | MB_ICONQUESTION);
 }
 
 int msgbox_question(HWND hwndParent, int i)
 {
-	return MessageBox(hwndParent, win_language_get_string_from_id(i), lpResourceString[0], MB_YESNO | MB_ICONQUESTION);
+	return MessageBox(hwndParent, win_language_get_string_from_id(i), lpResourceString2048[0].lpString, MB_YESNO | MB_ICONQUESTION);
 }
 
 void msgbox_info(HWND hwndParent, int i)
 {
-	MessageBox(hwndParent, win_language_get_string_from_id(i), lpResourceString[0], MB_OK | MB_ICONINFORMATION);
+	MessageBox(hwndParent, win_language_get_string_from_id(i), lpResourceString2048[0].lpString, MB_OK | MB_ICONINFORMATION);
 }
 
 void msgbox_info_wstr(HWND hwndParent, WCHAR *wstr)
 {
-	MessageBox(hwndParent, wstr, lpResourceString[0], MB_OK | MB_ICONINFORMATION);
+	MessageBox(hwndParent, wstr, lpResourceString2048[0].lpString, MB_OK | MB_ICONINFORMATION);
 }
 
 void msgbox_error(HWND hwndParent, int i)
 {
-	MessageBox(hwndParent, win_language_get_string_from_id(i), lpResourceString[1], MB_OK | MB_ICONWARNING);
+	MessageBox(hwndParent, win_language_get_string_from_id(i), lpResourceString2048[1].lpString, MB_OK | MB_ICONWARNING);
 }
 
 void plat_msgbox_error(int i)
@@ -131,12 +229,12 @@ void plat_msgbox_error(int i)
 
 void msgbox_error_wstr(HWND hwndParent, WCHAR *wstr)
 {
-	MessageBox(hwndParent, wstr, lpResourceString[1], MB_OK | MB_ICONWARNING);
+	MessageBox(hwndParent, wstr, lpResourceString2048[1].lpString, MB_OK | MB_ICONWARNING);
 }
 
 void msgbox_critical(HWND hwndParent, int i)
 {
-	MessageBox(hwndParent, win_language_get_string_from_id(i), lpResourceString[2], MB_OK | MB_ICONERROR);
+	MessageBox(hwndParent, win_language_get_string_from_id(i), lpResourceString2048[2].lpString, MB_OK | MB_ICONERROR);
 }
 
 void msgbox_fatal(HWND hwndParent, char *string)
@@ -146,7 +244,7 @@ void msgbox_fatal(HWND hwndParent, char *string)
 
 	mbstowcs(lptsTemp, string, strlen(string) + 1);
 
-	MessageBox(hwndParent, lptsTemp, lpResourceString[2], MB_OK | MB_ICONERROR);
+	MessageBox(hwndParent, lptsTemp, lpResourceString2048[2].lpString, MB_OK | MB_ICONERROR);
 
 	free(lptsTemp);
 }
@@ -213,6 +311,15 @@ int file_dlg(HWND hwnd, WCHAR *f, char *fn, int save)
 	WCHAR ufn[512];
 	mbstowcs(ufn, fn, strlen(fn) + 1);
 	return file_dlg_w(hwnd, f, ufn, save);
+}
+
+int file_dlg_mb(HWND hwnd, char *f, char *fn, int save)
+{
+	WCHAR uf[512];
+	WCHAR ufn[512];
+	mbstowcs(uf, f, strlen(fn) + 1);
+	mbstowcs(ufn, fn, strlen(fn) + 1);
+	return file_dlg_w(hwnd, uf, ufn, save);
 }
 
 int file_dlg_w_st(HWND hwnd, int i, WCHAR *fn, int save)

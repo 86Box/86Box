@@ -9,10 +9,10 @@
 #include "../mem.h"
 #include "video.h"
 #include "vid_svga.h"
-#include "vid_unk_ramdac.h"
+#include "vid_sc1502x_ramdac.h"
 
 
-void unk_ramdac_out(uint16_t addr, uint8_t val, unk_ramdac_t *ramdac, svga_t *svga)
+void sc1502x_ramdac_out(uint16_t addr, uint8_t val, sc1502x_ramdac_t *ramdac, svga_t *svga)
 {
 	int oldbpp = 0;
         switch (addr)
@@ -74,7 +74,7 @@ void unk_ramdac_out(uint16_t addr, uint8_t val, unk_ramdac_t *ramdac, svga_t *sv
         svga_out(addr, val, svga);
 }
 
-uint8_t unk_ramdac_in(uint16_t addr, unk_ramdac_t *ramdac, svga_t *svga)
+uint8_t sc1502x_ramdac_in(uint16_t addr, sc1502x_ramdac_t *ramdac, svga_t *svga)
 {
         switch (addr)
         {

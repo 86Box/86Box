@@ -10,14 +10,14 @@
 #include "../device.h"
 #include "video.h"
 #include "vid_svga.h"
-#include "vid_unk_ramdac.h"
+#include "vid_sc1502x_ramdac.h"
 #include "vid_et4000.h"
 
 
 typedef struct et4000_t
 {
         svga_t svga;
-        unk_ramdac_t ramdac;
+        sc1502x_ramdac_t ramdac;
         
         rom_t bios_rom;
         
@@ -49,7 +49,7 @@ void et4000_out(uint16_t addr, uint8_t val, void *p)
         switch (addr)
         {
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
-                unk_ramdac_out(addr, val, &et4000->ramdac, svga);
+                sc1502x_ramdac_out(addr, val, &et4000->ramdac, svga);
                 return;
                 
                 case 0x3CD: /*Banking*/
@@ -96,7 +96,7 @@ uint8_t et4000_in(uint16_t addr, void *p)
                 break;
 
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
-                return unk_ramdac_in(addr, &et4000->ramdac, svga);
+                return sc1502x_ramdac_in(addr, &et4000->ramdac, svga);
                 
                 case 0x3CD: /*Banking*/
                 return et4000->banking;

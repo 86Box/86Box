@@ -253,9 +253,10 @@ int slirp_select_fill(int *pnfds,
 			/*
 			 * See if we need a tcp_fasttimo
 			 */
+			if(so->so_tcpcb!=0x0){
 			if(&so->so_tcpcb->t_flags!=0x0){		//This is to prevent a common lockup.
 			if (time_fasttimo == 0 && so->so_tcpcb->t_flags & TF_DELACK)
-				time_fasttimo = curtime; }/* Flag when we want a fasttimo */
+				time_fasttimo = curtime; } }		/* Flag when we want a fasttimo */
 			
 			
 			/*

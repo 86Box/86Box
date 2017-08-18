@@ -251,6 +251,10 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                                 svga->pallook[svga->dac_write] = makecol32(svga->vgapal[svga->dac_write].r, svga->vgapal[svga->dac_write].g, svga->vgapal[svga->dac_write].b);
                         else
 			{
+				svga->vgapal[svga->dac_write].r &= 0x3f;
+				svga->vgapal[svga->dac_write].g &= 0x3f;
+				svga->vgapal[svga->dac_write].b &= 0x3f;
+
 				if ((romset == ROM_IBMPS1_2011) || (romset == ROM_IBMPS1_2121) || (romset == ROM_IBMPS2_M30_286))
 				{
 					svga->pallook[svga->dac_write] = makecol32((svga->vgapal[svga->dac_write].r & 0x3f) * 4, (svga->vgapal[svga->dac_write].g & 0x3f) * 4, (svga->vgapal[svga->dac_write].b & 0x3f) * 4);
@@ -1610,7 +1614,7 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
                 return;
         }
 
-        if ((wx!=xsize || wy!=ysize) && !vid_resize)
+        if (((wx!=xsize) || ((wy + 1)!=ysize)) && !vid_resize)
         {
                 xsize=wx;
                 ysize=wy+1;

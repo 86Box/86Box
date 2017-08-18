@@ -38,7 +38,7 @@ class Analog {
 public:
 	static Analog *createAnalog(const AnalogOutputMode mode, const bool oldMT32AnalogLPF, const RendererType rendererType);
 
-	virtual ~Analog() {};
+	virtual ~Analog() {}
 	virtual unsigned int getOutputSampleRate() const = 0;
 	virtual Bit32u getDACStreamsLength(const Bit32u outputLength) const = 0;
 	virtual void setSynthOutputGain(const float synthGain) = 0;

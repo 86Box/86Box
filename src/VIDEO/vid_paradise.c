@@ -16,7 +16,6 @@
 #include "vid_paradise.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
-#include "vid_unk_ramdac.h"
 
 
 typedef struct paradise_t

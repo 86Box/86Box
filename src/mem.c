@@ -40,7 +40,7 @@ static int                _mem_state[0x40000];
 static mem_mapping_t base_mapping;
 mem_mapping_t ram_low_mapping;
 mem_mapping_t ram_high_mapping;
-static mem_mapping_t ram_mid_mapping;
+mem_mapping_t ram_mid_mapping;
 static mem_mapping_t ram_remapped_mapping;
 mem_mapping_t bios_mapping[8];
 mem_mapping_t bios_high_mapping[8];
@@ -343,6 +343,15 @@ int loadbios()
                 return 1;
                 case ROM_MR386DX_OPTI495: /*This uses the OPTi 82C495 chipset*/
                 f=romfopen(L"roms/machines/mr386dx/OPT495SX.MR",L"rb");
+                if (!f) break;
+                fread(rom,65536,1,f);
+                fclose(f);
+                return 1;
+
+                case ROM_AWARD386SX_OPTI495: /*This uses the OPTi 82C495 chipset*/
+                case ROM_AWARD386DX_OPTI495: /*This uses the OPTi 82C495 chipset*/
+                case ROM_AWARD486_OPTI495: /*This uses the OPTi 82C495 chipset*/
+                f=romfopen(L"roms/machines/award495/OPT495S.AWA",L"rb");
                 if (!f) break;
                 fread(rom,65536,1,f);
                 fclose(f);

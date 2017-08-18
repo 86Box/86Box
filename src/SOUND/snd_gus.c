@@ -341,13 +341,27 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                                         while (c<65536)
                                         {
                                                 int dma_result;
-                                                d = gus->ram[gus->dmaaddr];
-                                                if (val & 0x80) d ^= 0x80;
-                                                dma_result = dma_channel_write(gus->dma, d);
-                                                if (dma_result == DMA_NODATA)
-                                                        break;
+                                                if (val & 0x04)
+                                                {
+                                                        uint32_t gus_addr = (gus->dmaaddr & 0xc0000) | ((gus->dmaaddr & 0x1ffff) << 1);
+                                                        d = gus->ram[gus_addr] | (gus->ram[gus_addr + 1] << 8);
+                                                        if (val & 0x80)
+                                                                d ^= 0x8080;
+                                                        dma_result = dma_channel_write(gus->dma, d);
+                                                        if (dma_result == DMA_NODATA)
+                                                                break;
+                                                }
+                                                else
+                                                {
+                                                        d = gus->ram[gus->dmaaddr];
+                                                        if (val & 0x80)
+                                                                d ^= 0x80;
+                                                        dma_result = dma_channel_write(gus->dma, d);
+                                                        if (dma_result == DMA_NODATA)
+                                                                break;
+                                                }
                                                 gus->dmaaddr++;
-                                                gus->dmaaddr&=0xFFFFF;
+                                                gus->dmaaddr &= 0xFFFFF;
                                                 c++;
                                                 if (dma_result & DMA_OVER)
                                                         break;
@@ -363,10 +377,22 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                                                 d = dma_channel_read(gus->dma);
                                                 if (d == DMA_NODATA)
                                                         break;
-                                                if (val&0x80) d^=0x80;
-                                                gus->ram[gus->dmaaddr]=d;
+                                                if (val & 0x04)
+                                                {
+                                                        uint32_t gus_addr = (gus->dmaaddr & 0xc0000) | ((gus->dmaaddr & 0x1ffff) << 1);
+                                                        if (val & 0x80)
+                                                                d ^= 0x8080;
+                                                        gus->ram[gus_addr] = d & 0xff;
+                                                        gus->ram[gus_addr +1] = (d >> 8) & 0xff;
+                                                }
+                                                else
+                                                {
+                                                        if (val & 0x80)
+                                                                d ^= 0x80;
+                                                        gus->ram[gus->dmaaddr] = d;
+                                                }
                                                 gus->dmaaddr++;
-                                                gus->dmaaddr&=0xFFFFF;
+                                                gus->dmaaddr &= 0xFFFFF;
                                                 c++;
                                                 if (d & DMA_OVER)
                                                         break;

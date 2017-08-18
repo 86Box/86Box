@@ -32,6 +32,8 @@ void fdd_set_head(int drive, int head);
 int fdd_get_head(int drive);
 void fdd_set_turbo(int drive, int turbo);
 int fdd_get_turbo(int drive);
+void fdd_set_check_bpb(int drive, int check_bpb);
+int fdd_get_check_bpb(int drive);
 
 void fdd_set_type(int drive, int type);
 int fdd_get_type(int drive);
@@ -49,3 +51,5 @@ char *fdd_getname(int type);
 
 char *fdd_get_internal_name(int type);
 int fdd_get_from_internal_name(char *s);
+
+int fdd_track(int drive);

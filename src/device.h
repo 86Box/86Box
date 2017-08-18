@@ -25,9 +25,11 @@
 #define CONFIG_BINARY		2
 #define CONFIG_SELECTION	3
 #define CONFIG_MIDI		4
-#define CONFIG_HEX16		5
-#define CONFIG_HEX20		6
-#define CONFIG_MAC		7
+#define CONFIG_FILE		5
+#define CONFIG_SPINNER		6
+#define CONFIG_HEX16		7
+#define CONFIG_HEX20		8
+#define CONFIG_MAC		9
 
 
 enum
@@ -46,6 +48,19 @@ typedef struct device_config_selection_t
         int value;
 } device_config_selection_t;
 
+typedef struct device_config_file_filter_t
+{
+        char description[256];
+        char extensions[25][25];
+} device_config_file_filter_t;
+
+typedef struct device_config_spinner_t
+{
+        int min;
+        int max;
+        int step;
+} device_config_spinner_t;
+
 typedef struct device_config_t
 {
         char name[256];
@@ -54,6 +69,8 @@ typedef struct device_config_t
         char default_string[256];
         int default_int;
         device_config_selection_t selection[16];
+        device_config_file_filter_t file_filter[16];
+        device_config_spinner_t spinner;
 } device_config_t;
 
 typedef struct device_t

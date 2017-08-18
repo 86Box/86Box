@@ -705,11 +705,12 @@ int dma_channel_write(int channel, uint16_t val)
                                 dma16.cc[channel] = dma16.cb[channel] + 1;
                                 dma16.ac[channel] = dma16.ab[channel];
                         }
+			else
                                 dma16.m |= (1 << channel);
                         dma16.stat |= (1 << channel);
                 }
 
-                if (dma.m & (1 << channel))
+                if (dma16.m & (1 << channel))
                         return DMA_OVER;
         }
         return 0;

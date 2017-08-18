@@ -2,7 +2,6 @@
 #include "ibm.h"
 #include "keyboard_at.h"
 #include "mouse.h"
-#include "mouse_ps2.h"
 #include "plat_mouse.h"
 
 
@@ -238,16 +237,18 @@ void mouse_ps2_close(void *p)
         free(mouse);
 }
 
-mouse_t mouse_ps2_2_button =
+
+mouse_t mouse_ps2_2button =
 {
-        "2-button mouse (PS/2)",
+        "Standard 2-button mouse (PS/2)",
         "ps2",
         MOUSE_TYPE_PS2,
         mouse_ps2_init,
         mouse_ps2_close,
         mouse_ps2_poll
 };
-mouse_t mouse_intellimouse =
+
+mouse_t mouse_ps2_intellimouse =
 {
         "Microsoft Intellimouse (PS/2)",
         "intellimouse",

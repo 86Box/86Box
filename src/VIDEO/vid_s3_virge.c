@@ -638,7 +638,7 @@ static void s3_virge_updatemapping(virge_t *virge)
                 return;
         }
 
-        pclog("Update mapping - bank %02X ", svga->gdcreg[6] & 0xc);        
+        //pclog("Update mapping - bank %02X ", svga->gdcreg[6] & 0xc);        
         switch (svga->gdcreg[6] & 0xc) /*Banked framebuffer*/
         {
                 case 0x0: /*128k at A0000*/
@@ -661,7 +661,7 @@ static void s3_virge_updatemapping(virge_t *virge)
         
         virge->linear_base = (svga->crtc[0x5a] << 16) | (svga->crtc[0x59] << 24);
         
-        pclog("Linear framebuffer %02X ", svga->crtc[0x58] & 0x10);
+        //pclog("Linear framebuffer %02X ", svga->crtc[0x58] & 0x10);
         if (svga->crtc[0x58] & 0x10) /*Linear framebuffer*/
         {
                 switch (svga->crtc[0x58] & 3)
@@ -681,7 +681,7 @@ static void s3_virge_updatemapping(virge_t *virge)
                 }
                 virge->linear_base &= ~(virge->linear_size - 1);
 		svga->linear_base = virge->linear_base;
-                pclog("Linear framebuffer at %08X size %08X\n", virge->linear_base, virge->linear_size);
+                //pclog("Linear framebuffer at %08X size %08X\n", virge->linear_base, virge->linear_size);
                 if (virge->linear_base == 0xa0000)
                 {
                         mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
@@ -697,7 +697,7 @@ static void s3_virge_updatemapping(virge_t *virge)
                 svga->fb_only = 0;
         }
         
-        pclog("Memory mapped IO %02X\n", svga->crtc[0x53] & 0x18);
+        //pclog("Memory mapped IO %02X\n", svga->crtc[0x53] & 0x18);
         if (svga->crtc[0x53] & 0x10) /*Old MMIO*/
         {
                 if (svga->crtc[0x53] & 0x20)
@@ -1352,14 +1352,27 @@ static void s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 
         if ((addr & 0xfffc) < 0x8000)
         {
+			if ((addr & 0xe000) == 0)
+			{
+				if (virge->s3d.cmd_set & CMD_SET_MS)
+						s3_virge_bitblt(virge, 32, ((val & 0xff000000) >> 24) | ((val & 0x00ff0000) >> 8) | ((val & 0x0000ff00) << 8) | ((val & 0x000000ff) << 24));
+				else
+						s3_virge_bitblt(virge, 32, val);				
+			}
+			else
+			{
                 s3_virge_queue(virge, addr, val, FIFO_WRITE_DWORD);
-        }
-        else if ((addr & 0xe000) == 0xa000)
-        {
-                s3_virge_queue(virge, addr, val, FIFO_WRITE_DWORD);
+			}
         }
         else switch (addr & 0xfffc)
         {
+				case 0:
+				if (virge->s3d.cmd_set & CMD_SET_MS)
+						s3_virge_bitblt(virge, 32, ((val & 0xff000000) >> 24) | ((val & 0x00ff0000) >> 8) | ((val & 0x0000ff00) << 8) | ((val & 0x000000ff) << 24));
+				else
+						s3_virge_bitblt(virge, 32, val);
+				break;
+			
                 case 0x8180:
                 virge->streams.pri_ctrl = val;
                 svga_recalctimings(svga);
@@ -1879,7 +1892,7 @@ static void s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
         uint32_t *pattern_data;
 	uint32_t src_addr;
 	uint32_t dest_addr;
-	uint32_t source = 0, dest, pattern;
+	uint32_t source = 0, dest = 0, pattern;
 	uint32_t out = 0;
 	int update;
         
@@ -2097,7 +2110,7 @@ static void s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
                 while (count && virge->s3d.h)
                 {
                         uint32_t dest_addr = virge->s3d.dest_base + (virge->s3d.dest_x * x_mul) + (virge->s3d.dest_y * virge->s3d.dest_str);
-                        uint32_t source = 0, dest, pattern = virge->s3d.pat_fg_clr;
+                        uint32_t source = 0, dest = 0, pattern = virge->s3d.pat_fg_clr;
                         uint32_t out = 0;
                         int update = 1;
 
@@ -2170,7 +2183,7 @@ static void s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
                         do
                         {
                                 uint32_t dest_addr = virge->s3d.dest_base + (x * x_mul) + (virge->s3d.dest_y * virge->s3d.dest_str);
-                                uint32_t source = 0, dest, pattern;
+                                uint32_t source = 0, dest = 0, pattern;
                                 uint32_t out = 0;
                                 int update = 1;
 
@@ -2227,7 +2240,7 @@ skip_line:
                         do
                         {
                                 uint32_t dest_addr = virge->s3d.dest_base + (x * x_mul) + (y * virge->s3d.dest_str);
-                                uint32_t source = 0, dest, pattern;
+                                uint32_t source = 0, dest = 0, pattern;
                                 uint32_t out = 0;
                                 int update = 1;
 
@@ -3789,7 +3802,6 @@ static void *s3_virge_init()
         virge->pci_regs[6] = 0;
         virge->pci_regs[7] = 2;
         virge->pci_regs[0x32] = 0x0c;
-	virge->pci_regs[0x3c] = device_get_config_int("irq");
         virge->pci_regs[0x3d] = 1; 
         virge->pci_regs[0x3e] = 4;
         virge->pci_regs[0x3f] = 0xff;
@@ -3884,7 +3896,6 @@ static void *s3_virge_988_init()
         virge->pci_regs[6] = 0;
         virge->pci_regs[7] = 2;
         virge->pci_regs[0x32] = 0x0c;
-	virge->pci_regs[0x3c] = device_get_config_int("irq");
         virge->pci_regs[0x3d] = 1; 
         virge->pci_regs[0x3e] = 4;
         virge->pci_regs[0x3f] = 0xff;
@@ -3911,7 +3922,7 @@ static void *s3_virge_988_init()
 
         virge->is_375 = 0;
         
-        pci_add(s3_virge_pci_read, s3_virge_pci_write, virge);
+        virge->card = pci_add(s3_virge_pci_read, s3_virge_pci_write, virge);
         
         virge->wake_render_thread = thread_create_event();
         virge->wake_main_thread = thread_create_event();
@@ -3979,7 +3990,6 @@ static void *s3_virge_375_init(wchar_t *romfn)
         virge->pci_regs[6] = 0;
         virge->pci_regs[7] = 2;
         virge->pci_regs[0x32] = 0x0c;
-	virge->pci_regs[0x3c] = device_get_config_int("irq");
         virge->pci_regs[0x3d] = 1; 
         virge->pci_regs[0x3e] = 4;
         virge->pci_regs[0x3f] = 0xff;
@@ -4007,7 +4017,7 @@ static void *s3_virge_375_init(wchar_t *romfn)
         
         virge->is_375 = 1;
         
-        pci_add(s3_virge_pci_read, s3_virge_pci_write, virge);
+        virge->card = pci_add(s3_virge_pci_read, s3_virge_pci_write, virge);
  
         virge->wake_render_thread = thread_create_event();
         virge->wake_main_thread = thread_create_event();
@@ -4124,45 +4134,6 @@ static device_config_t s3_virge_config[] =
                                 ""
                         }
                 }
-        },
-        {
-                "irq", "IRQ", CONFIG_SELECTION, "", 3,
-                {
-                        {
-                                "IRQ 3", 3
-                        },
-                        {
-                                "IRQ 4", 4
-                        },
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 7", 7
-                        },
-                        {
-                                "IRQ 9", 9
-                        },
-                        {
-                                "IRQ 10", 10
-                        },
-                        {
-                                "IRQ 11", 11
-                        },
-                        {
-                                "IRQ 12", 12
-                        },
-                        {
-                                "IRQ 14", 14
-                        },
-                        {
-                                "IRQ 15", 15
-                        },
-                        {
-                                ""
-                        }
-                },
-                .default_int = 3
         },
         {
                 "bilinear", "Bilinear filtering", CONFIG_BINARY, "", 1

@@ -165,6 +165,8 @@ void updatewindowsize(int x, int y)
 	int temp_overscan_x = overscan_x;
 	int temp_overscan_y = overscan_y;
 
+	double dx, dy, dtx, dty;
+
         if (vid_resize) return;
 
 	if (x < 160)  x = 160;
@@ -182,30 +184,37 @@ void updatewindowsize(int x, int y)
 
 	if (force_43)
 	{
+		dx = (double) x;
+		dtx = (double) temp_overscan_x;
+
+		dy = (double) y;
+		dty = (double) temp_overscan_y;
+
 		/* Account for possible overscan. */
 		if (temp_overscan_y == 16)
 		{
 			/* CGA */
-			unscaled_size_y = ((int) (((double) (x - temp_overscan_x) / 4.0) * 3.0)) + temp_overscan_y;
+			dy = (((dx - dtx) / 4.0) * 3.0) + dty;
 		}
 		else if (temp_overscan_y < 16)
 		{
 			/* MDA/Hercules */
-			unscaled_size_y = ((int) (((double) (x) / 4.0) * 3.0));
+			dy = (x / 4.0) * 3.0;
 		}
 		else
 		{
 			if (enable_overscan)
 			{
 				/* EGA/(S)VGA with overscan */
-				unscaled_size_y = ((int) (((double) (x - temp_overscan_x) / 4.0) * 3.0)) + temp_overscan_y;
+				dy = (((dx - dtx) / 4.0) * 3.0) + dty;
 			}
 			else
 			{
 				/* EGA/(S)VGA without overscan */
-				unscaled_size_y = ((int) (((double) (x) / 4.0) * 3.0));
+				dy = (x / 4.0) * 3.0;
 			}
 		}
+		unscaled_size_y = (int) dy;
 	}
 	else
 	{
@@ -325,7 +334,6 @@ void mainthread(LPVOID param)
 
                 if (!video_fullscreen && win_doresize && (winsizex > 0) && (winsizey > 0))
                 {
-                        video_wait_for_blit();
 			SendMessage(hwndStatus, SB_GETBORDERS, 0, (LPARAM) sb_borders);
                         GetWindowRect(ghwnd, &r);
                         MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
@@ -454,12 +462,12 @@ HMENU create_popup_menu(int part)
 
 void create_floppy_submenu(HMENU m, int id)
 {
-	AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_NEW | id, win_language_get_string_from_id(2211));
+	AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_NEW | id, win_language_get_string_from_id(IDS_2161));
 	AppendMenu(m, MF_SEPARATOR, 0, 0);
-	AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_EXISTING | id, win_language_get_string_from_id(2212));
-	AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_EXISTING_WP | id, win_language_get_string_from_id(2213));
+	AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_EXISTING | id, win_language_get_string_from_id(IDS_2162));
+	AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_EXISTING_WP | id, win_language_get_string_from_id(IDS_2163));
 	AppendMenu(m, MF_SEPARATOR, 0, 0);
-	AppendMenu(m, MF_STRING, IDM_FLOPPY_EJECT | id, win_language_get_string_from_id(2214));
+	AppendMenu(m, MF_STRING, IDM_FLOPPY_EJECT | id, win_language_get_string_from_id(IDS_2164));
 }
 
 void create_cdrom_submenu(HMENU m, int id)
@@ -467,12 +475,12 @@ void create_cdrom_submenu(HMENU m, int id)
 	int i = 0;
         WCHAR s[64];
 
-	AppendMenu(m, MF_STRING, IDM_CDROM_MUTE | id, win_language_get_string_from_id(2215));
+	AppendMenu(m, MF_STRING, IDM_CDROM_MUTE | id, win_language_get_string_from_id(IDS_2165));
 	AppendMenu(m, MF_SEPARATOR, 0, 0);
-	AppendMenu(m, MF_STRING, IDM_CDROM_EMPTY | id, win_language_get_string_from_id(2216));
-	AppendMenu(m, MF_STRING, IDM_CDROM_RELOAD | id, win_language_get_string_from_id(2217));
+	AppendMenu(m, MF_STRING, IDM_CDROM_EMPTY | id, win_language_get_string_from_id(IDS_2166));
+	AppendMenu(m, MF_STRING, IDM_CDROM_RELOAD | id, win_language_get_string_from_id(IDS_2167));
 	AppendMenu(m, MF_SEPARATOR, 0, 0);
-	AppendMenu(m, MF_STRING, IDM_CDROM_IMAGE | id, win_language_get_string_from_id(2218));
+	AppendMenu(m, MF_STRING, IDM_CDROM_IMAGE | id, win_language_get_string_from_id(IDS_2168));
 
 	if (host_cdrom_drive_available_num == 0)
 	{
@@ -528,13 +536,13 @@ check_menu_items:
 
 void create_removable_disk_submenu(HMENU m, int id)
 {
-	AppendMenu(m, MF_STRING, IDM_RDISK_EJECT | id, win_language_get_string_from_id(2216));
-	AppendMenu(m, MF_STRING, IDM_RDISK_RELOAD | id, win_language_get_string_from_id(2217));
+	AppendMenu(m, MF_STRING, IDM_RDISK_EJECT | id, win_language_get_string_from_id(IDS_2166));
+	AppendMenu(m, MF_STRING, IDM_RDISK_RELOAD | id, win_language_get_string_from_id(IDS_2167));
 	AppendMenu(m, MF_SEPARATOR, 0, 0);
-	AppendMenu(m, MF_STRING, IDM_RDISK_SEND_CHANGE | id, win_language_get_string_from_id(2201));
+	AppendMenu(m, MF_STRING, IDM_RDISK_SEND_CHANGE | id, win_language_get_string_from_id(IDS_2142));
 	AppendMenu(m, MF_SEPARATOR, 0, 0);
-	AppendMenu(m, MF_STRING, IDM_RDISK_IMAGE | id, win_language_get_string_from_id(2218));
-	AppendMenu(m, MF_STRING, IDM_RDISK_IMAGE_WP | id, win_language_get_string_from_id(2220));
+	AppendMenu(m, MF_STRING, IDM_RDISK_IMAGE | id, win_language_get_string_from_id(IDS_2168));
+	AppendMenu(m, MF_STRING, IDM_RDISK_IMAGE_WP | id, win_language_get_string_from_id(IDS_2169));
 }
 
 void get_executable_name(wchar_t *s, int size)
@@ -781,11 +789,11 @@ void create_floppy_tip(int part)
 	mbstowcs(wtext, fdd_getname(fdd_get_type(drive)), strlen(fdd_getname(fdd_get_type(drive))) + 1);
 	if (wcslen(discfns[drive]) == 0)
 	{
-		_swprintf(tempTip,  win_language_get_string_from_id(2179), drive + 1, wtext, win_language_get_string_from_id(2185));
+		_swprintf(tempTip,  win_language_get_string_from_id(IDS_2158), drive + 1, wtext, win_language_get_string_from_id(IDS_2057));
 	}
 	else
 	{
-		_swprintf(tempTip,  win_language_get_string_from_id(2179), drive + 1, wtext, discfns[drive]);
+		_swprintf(tempTip,  win_language_get_string_from_id(IDS_2158), drive + 1, wtext, discfns[drive]);
 	}
 
 	if (sbTips[part] != NULL)
@@ -801,27 +809,36 @@ void create_cdrom_tip(int part)
 	WCHAR wtext[512];
 	WCHAR tempTip[512];
 
+	WCHAR *szText;
+	int id;
+
 	int drive = sb_part_meanings[part] & 0xf;
+
+	int bus = cdrom_drives[drive].bus_type;
+
+	id = IDS_4352 + (bus - 1);
+
+	szText = (WCHAR *) win_language_get_string_from_id(id);
 
 	if (cdrom_drives[drive].host_drive == 200)
 	{
 		if (wcslen(cdrom_image[drive].image_path) == 0)
 		{
-			_swprintf(tempTip, win_language_get_string_from_id(2180), drive + 1, win_language_get_string_from_id(2185));
+			_swprintf(tempTip, win_language_get_string_from_id(IDS_5120), drive + 1, szText, win_language_get_string_from_id(IDS_2057));
 		}
 		else
 		{
-			_swprintf(tempTip, win_language_get_string_from_id(2180), drive + 1, cdrom_image[drive].image_path);
+			_swprintf(tempTip, win_language_get_string_from_id(IDS_5120), drive + 1, szText, cdrom_image[drive].image_path);
 		}
 	}
-	else if (cdrom_drives[drive].host_drive < 0x41)
+	else if ((cdrom_drives[drive].host_drive >= 'A') && (cdrom_drives[drive].host_drive <= 'Z'))
 	{
-		_swprintf(tempTip, win_language_get_string_from_id(2180), drive + 1, win_language_get_string_from_id(2185));
+		_swprintf(wtext, win_language_get_string_from_id(IDS_2058), cdrom_drives[drive].host_drive & ~0x20);
+		_swprintf(tempTip, win_language_get_string_from_id(IDS_5120), drive + 1, szText, wtext);
 	}
 	else
 	{
-		_swprintf(wtext, win_language_get_string_from_id(2186), cdrom_drives[drive].host_drive & ~0x20);
-		_swprintf(tempTip, win_language_get_string_from_id(2180), drive + 1, wtext);
+		_swprintf(tempTip, win_language_get_string_from_id(IDS_5120), drive + 1, szText, win_language_get_string_from_id(IDS_2057));
 	}
 
 	if (sbTips[part] != NULL)
@@ -840,11 +857,11 @@ void create_removable_hd_tip(int part)
 
 	if (wcslen(hdc[drive].fn) == 0)
 	{
-		_swprintf(tempTip,  win_language_get_string_from_id(2198), drive, win_language_get_string_from_id(2185));
+		_swprintf(tempTip,  win_language_get_string_from_id(IDS_4115), drive, win_language_get_string_from_id(IDS_2057));
 	}
 	else
 	{
-		_swprintf(tempTip,  win_language_get_string_from_id(2198), drive, hdc[drive].fn);
+		_swprintf(tempTip,  win_language_get_string_from_id(IDS_4115), drive, hdc[drive].fn);
 	}
 
 	if (sbTips[part] != NULL)
@@ -857,41 +874,24 @@ void create_removable_hd_tip(int part)
 
 void create_hd_tip(int part)
 {
+	WCHAR tempTip[512];
 	WCHAR *szText;
-	int id = 2181;
+	int id;
 
 	int bus = sb_part_meanings[part] & 0xf;
 
-	switch(bus)
-	{
-		case HDD_BUS_MFM:
-			id = 2181;
-			break;
-		case HDD_BUS_RLL:
-			id = 2207;
-			break;
-		case HDD_BUS_XTIDE:
-			id = 2208;
-			break;
-		case HDD_BUS_IDE_PIO_ONLY:
-			id = 2182;
-			break;
-		case HDD_BUS_IDE_PIO_AND_DMA:
-			id = 2183;
-			break;
-		case HDD_BUS_SCSI:
-			id = 2184;
-			break;
-	}
+	id = IDS_4352 + (bus - 1);
 
 	szText = (WCHAR *) win_language_get_string_from_id(id);
+
+	_swprintf(tempTip,  win_language_get_string_from_id(IDS_4096), szText);
 
 	if (sbTips[part] != NULL)
 	{
 		free(sbTips[part]);
 	}
-	sbTips[part] = (WCHAR *) malloc((wcslen(szText) << 1) + 2);
-	wcscpy(sbTips[part], szText);
+	sbTips[part] = (WCHAR *) malloc((wcslen(tempTip) << 1) + 2);
+	wcscpy(sbTips[part], tempTip);
 }
 
 void update_tip(int meaning)
@@ -978,9 +978,18 @@ void destroy_menu_handles(void)
 		return;
 	}
 
+	if (!sb_menu_handles)
+	{
+		return;
+	}
+
 	for (i = 0; i < sb_parts; i++)
 	{
-		DestroyMenu(sb_menu_handles[i]);
+		if (sb_menu_handles[i])
+		{
+			DestroyMenu(sb_menu_handles[i]);
+			sb_menu_handles[i] = NULL;
+		}
 	}
 
 	free(sb_menu_handles);
@@ -995,12 +1004,22 @@ void destroy_tips(void)
 		return;
 	}
 
+	if (!sbTips)
+	{
+		return;
+	}
+
 	for (i = 0; i < sb_parts; i++)
 	{
-		free(sbTips[i]);
+		if (sbTips[i])
+		{
+			free(sbTips[i]);
+			sbTips[i] = NULL;
+		}
 	}
 
 	free(sbTips);
+	sbTips = NULL;
 }
 
 void update_status_bar_panes(HWND hwnds)
@@ -1031,15 +1050,33 @@ void update_status_bar_panes(HWND hwnds)
 			SendMessage(hwnds, SB_SETICON, i, (LPARAM) NULL);
 		}
 
-		sb_parts = 0;
+		SendMessage(hwnds, SB_SETPARTS, (WPARAM) 0, (LPARAM) NULL);
 
-		free(iStatusWidths);
-		free(sb_part_meanings);
-		free(sb_part_icons);
-		free(sb_icon_flags);
+		if (iStatusWidths)
+		{
+			free(iStatusWidths);
+			iStatusWidths = NULL;
+		}
+		if (sb_part_meanings)
+		{
+			free(sb_part_meanings);
+			sb_part_meanings = NULL;
+		}
+		if (sb_part_icons)
+		{
+			free(sb_part_icons);
+			sb_part_icons = NULL;
+		}
+		if (sb_icon_flags)
+		{
+			free(sb_icon_flags);
+			sb_icon_flags = NULL;
+		}
 		destroy_menu_handles();
 		destroy_tips();
 	}
+
+	sb_parts = 0;
 
 	for (i = 0; i < FDD_NUM; i++)
 	{
@@ -1051,6 +1088,18 @@ void update_status_bar_panes(HWND hwnds)
 	}
 	for (i = 0; i < CDROM_NUM; i++)
 	{
+		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) && !(models[model].flags & MODEL_HAS_IDE))
+		{
+			continue;
+		}
+		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA) && !(models[model].flags & MODEL_HAS_IDE))
+		{
+			continue;
+		}
+		if ((cdrom_drives[i].bus_type == CDROM_BUS_SCSI) && (scsi_card_current == 0))
+		{
+			continue;
+		}
 		if (cdrom_drives[i].bus_type != 0)
 		{
 			sb_parts++;
@@ -1058,7 +1107,7 @@ void update_status_bar_panes(HWND hwnds)
 	}
 	for (i = 0; i < HDC_NUM; i++)
 	{
-		if (hdc[i].bus == HDD_BUS_SCSI_REMOVABLE)
+		if ((hdc[i].bus == HDD_BUS_SCSI_REMOVABLE) && (scsi_card_current != 0))
 		{
 			sb_parts++;
 		}
@@ -1118,6 +1167,18 @@ void update_status_bar_panes(HWND hwnds)
 	}
 	for (i = 0; i < CDROM_NUM; i++)
 	{
+		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) && !(models[model].flags & MODEL_HAS_IDE))
+		{
+			continue;
+		}
+		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA) && !(models[model].flags & MODEL_HAS_IDE))
+		{
+			continue;
+		}
+		if ((cdrom_drives[i].bus_type == CDROM_BUS_SCSI) && (scsi_card_current == 0))
+		{
+			continue;
+		}
 		if (cdrom_drives[i].bus_type != 0)
 		{
 			edge += SB_ICON_WIDTH;
@@ -1128,7 +1189,7 @@ void update_status_bar_panes(HWND hwnds)
 	}
 	for (i = 0; i < HDC_NUM; i++)
 	{
-		if (hdc[i].bus == HDD_BUS_SCSI_REMOVABLE)
+		if ((hdc[i].bus == HDD_BUS_SCSI_REMOVABLE) && (scsi_card_current != 0))
 		{
 			edge += SB_ICON_WIDTH;
 			iStatusWidths[sb_parts] = edge;
@@ -1171,7 +1232,7 @@ void update_status_bar_panes(HWND hwnds)
 		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_IDE_PIO_AND_DMA;
 		sb_parts++;
 	}
-	if (c_scsi)
+	if (c_scsi && (scsi_card_current != 0))
 	{
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
@@ -1912,7 +1973,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 						if (video_fullscreen_first)
 						{
 							video_fullscreen_first = 0;
-							msgbox_info(ghwnd, IDS_2193);
+							msgbox_info(ghwnd, IDS_2074);
 						}
 
 						startblit();
@@ -2060,7 +2121,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
 				case IDM_CONFIG_LOAD:
 					pause = 1;
-					if (!file_dlg_st(hwnd, IDS_2174, "", 0))
+					if (!file_dlg_st(hwnd, IDS_2160, "", 0))
 					{
 						if (msgbox_reset_yn(ghwnd) == IDYES)
 						{
@@ -2125,7 +2186,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
 				case IDM_CONFIG_SAVE:
 					pause = 1;
-					if (!file_dlg_st(hwnd, IDS_2174, "", 1))
+					if (!file_dlg_st(hwnd, IDS_2160, "", 1))
 					{
 						config_save(wopenfilestring);
 					}
@@ -2361,7 +2422,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 						break;
 					}
 
-					ret = file_dlg_w_st(hwnd, IDS_2173, discfns[id], 0);
+					ret = file_dlg_w_st(hwnd, IDS_2159, discfns[id], 0);
 					if (!ret)
 					{
 						disc_close(id);
@@ -2417,7 +2478,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 						break;
 					}
 
-					if (!file_dlg_w_st(hwnd, IDS_2175, cdrom_image[id].image_path, 0))
+					if (!file_dlg_w_st(hwnd, IDS_2075, cdrom_image[id].image_path, 0))
 					{
 						cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
 						wcscpy(temp_image_path, wopenfilestring);
@@ -2506,7 +2567,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 				case IDM_RDISK_IMAGE:
 				case IDM_RDISK_IMAGE_WP:
 					id = item_params & 0x001f;
-					ret = file_dlg_w_st(hwnd, IDS_2172, hdc[id].fn, id);
+					ret = file_dlg_w_st(hwnd, IDS_4106, hdc[id].fn, id);
 					if (!ret)
 					{
 						removable_disk_unload(id);

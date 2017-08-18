@@ -83,7 +83,8 @@ int cm32l_available()
 static thread_t *thread_h = NULL;
 static event_t *event = NULL;
 
-#define RENDER_RATE 30
+#define RENDER_RATE 100
+#define BUFFER_SEGMENTS 10
 
 static uint32_t samplerate = 44100;
 static int buf_size = 0;
@@ -115,22 +116,37 @@ extern int soundon;
 
 static void mt32_thread(void *param)
 {
+	int buf_pos = 0;
+	int bsize = buf_size / BUFFER_SEGMENTS;
         while (1)
         {
                 thread_wait_event(event, -1);
+
 		if (sound_is_float)
 		{
-	                memset(buffer, 0, buf_size * sizeof(float));
-	                mt32_stream(buffer, (samplerate/RENDER_RATE));
-	                if (soundon)
-				givealbuffer_midi(buffer, buf_size);
+			float *buf = (float *) ((uint8_t*)buffer + buf_pos);
+			memset(buf, 0, bsize);
+			mt32_stream(buf, bsize / (2 * sizeof(float)));
+			buf_pos += bsize;
+			if (buf_pos >= buf_size)
+			{
+		                if (soundon)
+					givealbuffer_midi(buffer, buf_size / sizeof(float));
+				buf_pos = 0;
+			}
 		}
 		else
 		{
-	                memset(buffer_int16, 0, buf_size * sizeof(int16_t));
-	                mt32_stream_int16(buffer_int16, (samplerate/RENDER_RATE));
-	                if (soundon)
-				givealbuffer_midi(buffer_int16, buf_size);
+			int16_t *buf = (int16_t *) ((uint8_t*)buffer_int16 + buf_pos);
+			memset(buf, 0, bsize);
+			mt32_stream_int16(buf, bsize / (2 * sizeof(int16_t)));
+			buf_pos += bsize;
+			if (buf_pos >= buf_size)
+			{
+		                if (soundon)
+					givealbuffer_midi(buffer_int16, buf_size / sizeof(int16_t));
+				buf_pos = 0;
+			}
 		}
         }
 }
@@ -162,22 +178,25 @@ void* mt32emu_init(wchar_t *control_rom, wchar_t *pcm_rom)
         event = thread_create_event();
         thread_h = thread_create(mt32_thread, 0);
         samplerate = mt32emu_get_actual_stereo_output_samplerate(context);
-        buf_size = samplerate/RENDER_RATE*2;
+        /* buf_size = samplerate/RENDER_RATE*2; */
 	if (sound_is_float)
 	{
-	        buffer = malloc(buf_size * sizeof(float));
+	        buf_size = (samplerate/RENDER_RATE)*2*BUFFER_SEGMENTS*sizeof(float);
+	        buffer = malloc(buf_size);
 		buffer_int16 = NULL;
 	}
 	else
 	{
+	        buf_size = (samplerate/RENDER_RATE)*2*BUFFER_SEGMENTS*sizeof(int16_t);
 	        buffer = NULL;
-		buffer_int16 = malloc(buf_size * sizeof(int16_t));
+		buffer_int16 = malloc(buf_size);
 	}
 
         mt32emu_set_output_gain(context, device_get_config_int("output_gain")/100.0f);
         mt32emu_set_reverb_enabled(context, device_get_config_int("reverb"));
         mt32emu_set_reverb_output_gain(context, device_get_config_int("reverb_output_gain")/100.0f);
         mt32emu_set_reversed_stereo_enabled(context, device_get_config_int("reversed_stereo"));
+        mt32emu_set_nice_amp_ramp_enabled(context, device_get_config_int("nice_ramp"));
 
         pclog("mt32 output gain: %f\n", mt32emu_get_output_gain(context));
         pclog("mt32 reverb output gain: %f\n", mt32emu_get_reverb_output_gain(context));
@@ -248,32 +267,11 @@ static device_config_t mt32_config[] =
         {
                 .name = "output_gain",
                 .description = "Output Gain",
-                .type = CONFIG_SELECTION,
-                .selection =
+                .type = CONFIG_SPINNER,
+                .spinner =
                 {
-                        {
-                                .description = "100%",
-                                .value = 100
-                        },
-                        {
-                                .description = "75%",
-                                .value = 75
-                        },
-                        {
-                                .description = "50%",
-                                .value = 50
-                        },
-                        {
-                                .description = "25%",
-                                .value = 25
-                        },
-                        {
-                                .description = "0%",
-                                .value = 0
-                        },
-                        {
-                                .description = ""
-                        }
+                        .min = 0,
+                        .max = 100
                 },
                 .default_int = 100
         },
@@ -286,32 +284,11 @@ static device_config_t mt32_config[] =
         {
                 .name = "reverb_output_gain",
                 .description = "Reverb Output Gain",
-                .type = CONFIG_SELECTION,
-                .selection =
+                .type = CONFIG_SPINNER,
+                .spinner =
                 {
-                        {
-                                .description = "100%",
-                                .value = 100
-                        },
-                        {
-                                .description = "75%",
-                                .value = 75
-                        },
-                        {
-                                .description = "50%",
-                                .value = 50
-                        },
-                        {
-                                .description = "25%",
-                                .value = 25
-                        },
-                        {
-                                .description = "0%",
-                                .value = 0
-                        },
-                        {
-                                .description = ""
-                        }
+                        .min = 0,
+                        .max = 100
                 },
                 .default_int = 100
         },
@@ -320,6 +297,12 @@ static device_config_t mt32_config[] =
                 .description = "Reversed stereo",
                 .type = CONFIG_BINARY,
                 .default_int = 0
+        },
+        {
+                .name = "nice_ramp",
+                .description = "Nice ramp",
+                .type = CONFIG_BINARY,
+                .default_int = 1
         },
         {
                 .type = -1

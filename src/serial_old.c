@@ -264,7 +264,7 @@ void serial_remove(int port)
 		return;
 	}
 
-	pclog("Removing serial port %i at %04X...\n", port, base_address[port - 1]);
+	/* pclog("Removing serial port %i at %04X...\n", port, base_address[port - 1]); */
 
 	switch(port)
 	{
@@ -281,11 +281,15 @@ void serial_remove(int port)
 
 void serial_setup(int port, uint16_t addr, int irq)
 {
-	pclog("Adding serial port %i at %04X...\n", port, addr);
+	/* pclog("Adding serial port %i at %04X...\n", port, addr); */
 
 	switch(port)
 	{
 		case 1:
+			if (!serial_enabled[0])
+			{
+				return;
+			}
 			if (base_address[0] != 0x0000)
 			{
 				serial_remove(port);
@@ -298,6 +302,10 @@ void serial_setup(int port, uint16_t addr, int irq)
 			serial1.irq = irq;
 			break;
 		case 2:
+			if (!serial_enabled[1])
+			{
+				return;
+			}
 			if (base_address[1] != 0x0000)
 			{
 				serial_remove(port);
@@ -322,7 +330,7 @@ void serial_init(void)
 
 	if (serial_enabled[0])
 	{
-		pclog("Adding serial port 1...\n");
+		/* pclog("Adding serial port 1...\n"); */
 		memset(&serial1, 0, sizeof(serial1));
 		io_sethandler(0x3f8, 0x0008, serial_read,  NULL, NULL, serial_write,  NULL, NULL, &serial1);
 		serial1.irq = 4;
@@ -331,7 +339,7 @@ void serial_init(void)
 	}
 	if (serial_enabled[1])
 	{
-		pclog("Adding serial port 2...\n");
+		/* pclog("Adding serial port 2...\n"); */
 		memset(&serial2, 0, sizeof(serial2));
 		io_sethandler(0x2f8, 0x0008, serial_read, NULL, NULL, serial_write, NULL, NULL, &serial2);
 		serial2.irq = 3;

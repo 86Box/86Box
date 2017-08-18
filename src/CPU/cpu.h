@@ -187,4 +187,14 @@ extern int isa_cycles;
 void cpu_update_waitstates();
 void cpu_set();
 
+typedef struct
+{
+        uint32_t tr1, tr12;
+        uint32_t cesr;
+        uint32_t fcr;
+        uint64_t fcr2, fcr3;
+} msr_t;
+
+extern msr_t msr;
+
 #endif

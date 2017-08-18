@@ -22,6 +22,7 @@
 #include <wchar.h>
 #include "ibm.h"
 #include "disc.h"
+#include "disc_86f.h"
 #include "disc_img.h"
 #include "disc_fdi.h"
 #include "fdc.h"
@@ -254,6 +255,7 @@ void d86f_register_fdi(int drive)
 	d86f_handler[drive].index_hole_pos = fdi_index_hole_pos;
 	d86f_handler[drive].get_raw_size = fdi_get_raw_size;
 	d86f_handler[drive].check_crc = 1;
+	d86f_set_version(drive, D86FVER);
 }
 
 void fdi_load(int drive, wchar_t *fn)
@@ -278,6 +280,7 @@ void fdi_load(int drive, wchar_t *fn)
 		/* This is a Japanese FDI file. */
 		pclog("fdi_load(): Japanese FDI file detected, redirecting to IMG loader\n");
 		fclose(fdi[drive].f);
+		fdi[drive].f = NULL;
 		img_load(drive, fn);
 		return;
 	}
@@ -301,7 +304,10 @@ void fdi_close(int drive)
         if (fdi[drive].h)
                 fdi2raw_header_free(fdi[drive].h);
         if (fdi[drive].f)
+	{
                 fclose(fdi[drive].f);
+		fdi[drive].f = NULL;
+	}
 }
 
 void fdi_seek(int drive, int track)

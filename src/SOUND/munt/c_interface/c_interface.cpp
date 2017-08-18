@@ -22,6 +22,7 @@
 #include "../ROMInfo.h"
 #include "../Synth.h"
 #include "../MidiStreamParser.h"
+#include "../SampleRateConverter.h"
 
 #include "c_types.h"
 #include "c_interface.h"
@@ -30,11 +31,17 @@ using namespace MT32Emu;
 
 namespace MT32Emu {
 
+struct SamplerateConversionState {
+	double outputSampleRate;
+	SamplerateConversionQuality srcQuality;
+	SampleRateConverter *src;
+};
+
 static mt32emu_service_version getSynthVersionID(mt32emu_service_i) {
 	return MT32EMU_SERVICE_VERSION_CURRENT;
 }
 
-static const mt32emu_service_i_v0 SERVICE_VTABLE = {
+static const mt32emu_service_i_v2 SERVICE_VTABLE = {
 	getSynthVersionID,
 	mt32emu_get_supported_report_handler_version,
 	mt32emu_get_supported_midi_receiver_version,
@@ -95,7 +102,17 @@ static const mt32emu_service_i_v0 SERVICE_VTABLE = {
 	mt32emu_get_partial_states,
 	mt32emu_get_playing_notes,
 	mt32emu_get_patch_name,
-	mt32emu_read_memory
+	mt32emu_read_memory,
+	mt32emu_get_best_analog_output_mode,
+	mt32emu_set_stereo_output_samplerate,
+	mt32emu_set_samplerate_conversion_quality,
+	mt32emu_select_renderer_type,
+	mt32emu_get_selected_renderer_type,
+	mt32emu_convert_output_to_synth_timestamp,
+	mt32emu_convert_synth_to_output_timestamp,
+	mt32emu_get_internal_rendered_sample_count,
+	mt32emu_set_nice_amp_ramp_enabled,
+	mt32emu_is_nice_amp_ramp_enabled
 };
 
 } // namespace MT32Emu
@@ -108,6 +125,7 @@ struct mt32emu_data {
 	DefaultMidiStreamParser *midiParser;
 	Bit32u partialCount;
 	AnalogOutputMode analogOutputMode;
+	SamplerateConversionState *srcState;
 };
 
 // Internal C++ utility stuff
@@ -305,7 +323,7 @@ extern "C" {
 
 mt32emu_service_i mt32emu_get_service_i() {
 	mt32emu_service_i i;
-	i.v0 = &SERVICE_VTABLE;
+	i.v2 = &SERVICE_VTABLE;
 	return i;
 }
 
@@ -329,6 +347,10 @@ mt32emu_bit32u mt32emu_get_stereo_output_samplerate(const mt32emu_analog_output_
 	return Synth::getStereoOutputSampleRate(static_cast<AnalogOutputMode>(analog_output_mode));
 }
 
+mt32emu_analog_output_mode mt32emu_get_best_analog_output_mode(const double target_samplerate) {
+	return mt32emu_analog_output_mode(SampleRateConverter::getBestAnalogOutputMode(target_samplerate));
+}
+
 mt32emu_context mt32emu_create_context(mt32emu_report_handler_i report_handler, void *instance_data) {
 	mt32emu_data *data = new mt32emu_data;
 	data->reportHandler = (report_handler.v0 != NULL) ? new DelegatingReportHandlerAdapter(report_handler, instance_data) : new ReportHandler;
@@ -339,11 +361,21 @@ mt32emu_context mt32emu_create_context(mt32emu_report_handler_i report_handler, 
 	data->partialCount = DEFAULT_MAX_PARTIALS;
 	data->analogOutputMode = AnalogOutputMode_COARSE;
 
+	data->srcState = new SamplerateConversionState;
+	data->srcState->outputSampleRate = 0.0;
+	data->srcState->srcQuality = SamplerateConversionQuality_GOOD;
+	data->srcState->src = NULL;
+
 	return data;
 }
 
 void mt32emu_free_context(mt32emu_context data) {
 	if (data == NULL) return;
+
+	delete data->srcState->src;
+	data->srcState->src = NULL;
+	delete data->srcState;
+	data->srcState = NULL;
 
 	if (data->controlROMImage != NULL) {
 		delete data->controlROMImage->getFile();
@@ -417,6 +449,16 @@ void mt32emu_set_analog_output_mode(mt32emu_context context, const mt32emu_analo
 	context->analogOutputMode = static_cast<AnalogOutputMode>(analog_output_mode);
 }
 
+void mt32emu_set_stereo_output_samplerate(mt32emu_context context, const double samplerate) {
+	if (0.0 <= samplerate) {
+		context->srcState->outputSampleRate = samplerate;
+	}
+}
+
+void mt32emu_set_samplerate_conversion_quality(mt32emu_context context, const mt32emu_samplerate_conversion_quality quality) {
+	context->srcState->srcQuality = SamplerateConversionQuality(quality);
+}
+
 void mt32emu_select_renderer_type(mt32emu_context context, const mt32emu_renderer_type renderer_type) {
 	context->synth->selectRendererType(static_cast<RendererType>(renderer_type));
 }
@@ -432,11 +474,16 @@ mt32emu_return_code mt32emu_open_synth(mt32emu_const_context context) {
 	if (!context->synth->open(*context->controlROMImage, *context->pcmROMImage, context->partialCount, context->analogOutputMode)) {
 		return MT32EMU_RC_FAILED;
 	}
+	SamplerateConversionState &srcState = *context->srcState;
+	const double outputSampleRate = (0.0 < srcState.outputSampleRate) ? srcState.outputSampleRate : context->synth->getStereoOutputSampleRate();
+	srcState.src = new SampleRateConverter(*context->synth, outputSampleRate, srcState.srcQuality);
 	return MT32EMU_RC_OK;
 }
 
 void mt32emu_close_synth(mt32emu_const_context context) {
 	context->synth->close();
+	delete context->srcState->src;
+	context->srcState->src = NULL;
 }
 
 mt32emu_boolean mt32emu_is_open(mt32emu_const_context context) {
@@ -444,7 +491,24 @@ mt32emu_boolean mt32emu_is_open(mt32emu_const_context context) {
 }
 
 mt32emu_bit32u mt32emu_get_actual_stereo_output_samplerate(mt32emu_const_context context) {
-	return context->synth->getStereoOutputSampleRate();
+	if (context->srcState->src == NULL) {
+		return context->synth->getStereoOutputSampleRate();
+	}
+	return mt32emu_bit32u(0.5 + context->srcState->src->convertSynthToOutputTimestamp(SAMPLE_RATE));
+}
+
+mt32emu_bit32u mt32emu_convert_output_to_synth_timestamp(mt32emu_const_context context, mt32emu_bit32u output_timestamp) {
+	if (context->srcState->src == NULL) {
+		return output_timestamp;
+	}
+	return mt32emu_bit32u(0.5 + context->srcState->src->convertOutputToSynthTimestamp(output_timestamp));
+}
+
+mt32emu_bit32u mt32emu_convert_synth_to_output_timestamp(mt32emu_const_context context, mt32emu_bit32u synth_timestamp) {
+	if (context->srcState->src == NULL) {
+		return synth_timestamp;
+	}
+	return mt32emu_bit32u(0.5 + context->srcState->src->convertSynthToOutputTimestamp(synth_timestamp));
 }
 
 void mt32emu_flush_midi_queue(mt32emu_const_context context) {
@@ -458,6 +522,10 @@ mt32emu_bit32u mt32emu_set_midi_event_queue_size(mt32emu_const_context context, 
 void mt32emu_set_midi_receiver(mt32emu_context context, mt32emu_midi_receiver_i midi_receiver, void *instance_data) {
 	delete context->midiParser;
 	context->midiParser = (midi_receiver.v0 != NULL) ? new DelegatingMidiStreamParser(context, midi_receiver, instance_data) : new DefaultMidiStreamParser(*context->synth);
+}
+
+mt32emu_bit32u mt32emu_get_internal_rendered_sample_count(mt32emu_const_context context) {
+	return context->synth->getInternalRenderedSampleCount();
 }
 
 void mt32emu_parse_stream(mt32emu_const_context context, const mt32emu_bit8u *stream, mt32emu_bit32u length) {
@@ -584,12 +652,28 @@ mt32emu_boolean mt32emu_is_reversed_stereo_enabled(mt32emu_const_context context
 	return context->synth->isReversedStereoEnabled() ? MT32EMU_BOOL_TRUE : MT32EMU_BOOL_FALSE;
 }
 
+void mt32emu_set_nice_amp_ramp_enabled(mt32emu_const_context context, const mt32emu_boolean enabled) {
+	context->synth->setNiceAmpRampEnabled(enabled != MT32EMU_BOOL_FALSE);
+}
+
+mt32emu_boolean mt32emu_is_nice_amp_ramp_enabled(mt32emu_const_context context) {
+	return context->synth->isNiceAmpRampEnabled() ? MT32EMU_BOOL_TRUE : MT32EMU_BOOL_FALSE;
+}
+
 void mt32emu_render_bit16s(mt32emu_const_context context, mt32emu_bit16s *stream, mt32emu_bit32u len) {
-        context->synth->render(stream, len);
+	if (context->srcState->src != NULL) {
+		context->srcState->src->getOutputSamples(stream, len);
+	} else {
+		context->synth->render(stream, len);
+	}
 }
 
 void mt32emu_render_float(mt32emu_const_context context, float *stream, mt32emu_bit32u len) {
-        context->synth->render(stream, len);
+	if (context->srcState->src != NULL) {
+		context->srcState->src->getOutputSamples(stream, len);
+	} else {
+		context->synth->render(stream, len);
+	}
 }
 
 void mt32emu_render_bit16s_streams(mt32emu_const_context context, const mt32emu_dac_output_bit16s_streams *streams, mt32emu_bit32u len) {
