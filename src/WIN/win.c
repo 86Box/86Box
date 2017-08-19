@@ -2027,8 +2027,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					break;
 
 				case IDM_VID_CGACON:
-					vid_cga_contrast = !vid_cga_contrast;
-					CheckMenuItem(menu, IDM_VID_CGACON, vid_cga_contrast ? MF_CHECKED : MF_UNCHECKED);
+					vid_cga_contrast ^= 1;
+					CheckMenuItem(hmenu, IDM_VID_CGACON, vid_cga_contrast ? MF_CHECKED : MF_UNCHECKED);
 					cgapal_rebuild();
 					saveconfig();
 					break;
@@ -2403,8 +2403,6 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 	int part = 0;
 	int letter = 0;
 
-	HMENU hmenu;
-
 	switch (message)
 	{
 		case WM_COMMAND:
@@ -2452,10 +2450,14 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 
 				case IDM_CDROM_MUTE:
 					id = item_params & 0x0007;
-					hmenu = GetSubMenu(smenu, id + 4);
-					Sleep(100);
-					cdrom_drives[id].sound_on ^= 1;                                             
-					CheckMenuItem(hmenu, IDM_CDROM_MUTE | id, cdrom_drives[id].sound_on ? MF_UNCHECKED : MF_CHECKED);
+					part = find_status_bar_part(SB_CDROM | id);
+					if ((part == -1) || (sb_menu_handles == NULL))
+					{
+						break;
+					}
+
+					cdrom_drives[id].sound_on ^= 1;
+					CheckMenuItem(sb_menu_handles[part], IDM_CDROM_MUTE | id, cdrom_drives[id].sound_on ? MF_UNCHECKED : MF_CHECKED);
 					saveconfig();
 					sound_cd_thread_reset();
 					break;
