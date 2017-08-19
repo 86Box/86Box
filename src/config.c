@@ -1654,8 +1654,9 @@ static void loadconfig_removable_devices(void)
 		}
 
 		sprintf(temps, "cdrom_%02i_image_path", c + 1);
-	        wp = config_get_wstring(cat, temps, L"");
-        	memcpy(cdrom_image[c].image_path, wp, (wcslen(wp) << 1) + 2);
+		wp = config_get_wstring(cat, temps, L"");
+		memcpy(cdrom_image[c].image_path, wp, (wcslen(wp) << 1) + 2);
+		wcscpy(cdrom_image[c].prev_image_path, cdrom_image[c].image_path);
 
 		if (cdrom_drives[c].host_drive < 'A')
 		{

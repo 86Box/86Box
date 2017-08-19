@@ -56,6 +56,15 @@ void cdrom_eject(uint8_t id)
 		/* Switch from empty to empty. Do nothing. */
 		return;
 	}
+	if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z'))
+	{
+		CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_UNCHECKED);
+	}
+	if (cdrom_drives[id].host_drive == 200)
+	{
+		wcscpy(cdrom_image[id].prev_image_path, cdrom_image[id].image_path);
+	}
+	cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
 	cdrom_drives[id].handler->exit(id);
 	cdrom_close(id);
 	cdrom_null_open(id, 0);
@@ -65,8 +74,6 @@ void cdrom_eject(uint8_t id)
 		cdrom_insert(id);
 	}
 	CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_UNCHECKED);
-	CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_UNCHECKED);
-	cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
 	cdrom_drives[id].host_drive=0;
 	CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_CHECKED);
 	update_status_bar_icon_state(SB_CDROM | id, 1);
@@ -95,6 +102,7 @@ void cdrom_reload(uint8_t id)
 	cdrom_close(id);
 	if (cdrom_drives[id].prev_host_drive == 200)
 	{
+		wcscpy(cdrom_image[id].image_path, cdrom_image[id].prev_image_path);
 		image_open(id, cdrom_image[id].image_path);
 		if (cdrom_drives[id].bus_type)
 		{
