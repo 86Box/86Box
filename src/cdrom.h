@@ -162,6 +162,7 @@ typedef struct {
 	uint32_t cdrom_capacity;
 	int image_inited;
 	wchar_t image_path[1024];
+	wchar_t prev_image_path[1024];
 	FILE* image;
 	int image_changed;
 
