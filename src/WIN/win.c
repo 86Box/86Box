@@ -2489,6 +2489,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 							/* Switching from image to the same image. Do nothing. */
 							break;
 						}
+						wcscpy(cdrom_image[id].prev_image_path, cdrom_image[id].image_path);
 						cdrom_drives[id].handler->exit(id);
 						cdrom_close(id);
 						image_open(id, temp_image_path);
@@ -2511,12 +2512,13 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 							CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
 							update_status_bar_icon_state(SB_CDROM | id, 1);
 						}
+						EnableMenuItem(sb_menu_handles[part], IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
 						update_tip(SB_CDROM | id);
 						saveconfig();
 					}
 					break;
 
-	                        case IDM_CDROM_HOST_DRIVE:
+				case IDM_CDROM_HOST_DRIVE:
 					id = item_params & 0x0007;
 					letter = ((item_params >> 3) & 0x001f) + 'A';
 					part = find_status_bar_part(SB_CDROM | id);
@@ -2534,21 +2536,21 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 					cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
 					cdrom_drives[id].handler->exit(id);
 					cdrom_close(id);
-                                	ioctl_open(id, new_cdrom_drive);
+					ioctl_open(id, new_cdrom_drive);
 					/* Signal disc change to the emulated machine. */
 					cdrom_insert(id);
-                	                CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
+					CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
 					if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z'))
 					{
-	                                	CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_UNCHECKED);
+						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_UNCHECKED);
 					}
-        	                        CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_UNCHECKED);
-                	                cdrom_drives[id].host_drive = new_cdrom_drive;
-	                                CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_CHECKED);
+					CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_UNCHECKED);
+					cdrom_drives[id].host_drive = new_cdrom_drive;
+					CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_CHECKED);
 					EnableMenuItem(sb_menu_handles[part], IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
 					update_status_bar_icon_state(SB_CDROM | id, 0);
 					update_tip(SB_CDROM | id);
-                	                saveconfig();
+					saveconfig();
 					break;
 
 				case IDM_RDISK_EJECT:
