@@ -761,7 +761,7 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
 
                 if (depth_jump_pos)
                         *(uint8_t *)&code_block[depth_jump_pos] = (block_pos - depth_jump_pos) - 1;
-                if (depth_jump_pos)
+                if (depth_jump_pos2)
                         *(uint8_t *)&code_block[depth_jump_pos2] = (block_pos - depth_jump_pos2) - 1;
                 
                 if ((params->fogMode & (FOG_ENABLE|FOG_CONSTANT|FOG_Z|FOG_ALPHA)) == FOG_ENABLE)
