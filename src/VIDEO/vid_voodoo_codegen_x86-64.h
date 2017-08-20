@@ -1671,15 +1671,8 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
 
         if (voodoo->trexInit1[0] & (1 << 18))
         {
-                addbyte(0xb8); /*MOV EAX, 0x000001*/
-                if (voodoo->dual_tmus)
-                {
-                        addlong(0x0000c1);
-                }
-                else
-                {
-                        addlong(0x000001);
-                }
+                addbyte(0xb8); /*MOV EAX, tmuConfig*/
+                addlong(voodoo->tmuConfig);
                 addbyte(0x66); /*MOVD XMM0, EAX*/
                 addbyte(0x0f);
                 addbyte(0x6e);
