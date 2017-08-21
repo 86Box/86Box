@@ -187,7 +187,7 @@ SYSOBJ	= model.o \
 	  tandy_eeprom.o tandy_rom.o
 DEVOBJ	= bugger.o lpt.o $(SERIAL) \
 	  fdc37c665.o fdc37c669.o fdc37c932fr.o \
-	  pc87306.o sis85c471.o w83877f.o \
+	  pc87306.o sis85c471.o w83877f.o um8669f.o \
 	  keyboard.o \
 	    keyboard_xt.o keyboard_at.o keyboard_pcjr.o \
 	    keyboard_amstrad.o keyboard_olim24.o \

@@ -441,16 +441,6 @@ int loadbios()
                 fclose(f);
                 return 1;
 
-                case ROM_SIS496:
-                f = romfopen(L"roms/machines/sis496/SIS496_3.AWA", L"rb");
-                if (!f) break;
-                fread(rom,           0x20000, 1, f);                
-                fclose(f);
-                biosmask = 0x1ffff;
-                pclog("Load SIS496 %x %x\n", rom[0x1fff0], rom[0xfff0]);
-                return 1;
-                
-#if 0
                 case ROM_430VX:
                 f = romfopen(L"roms/machines/430vx/55XWUQ0E.BIN", L"rb");
                 if (!f) break;
@@ -458,7 +448,6 @@ int loadbios()
                 fclose(f);
                 biosmask = 0x1ffff;
                 return 1;
-#endif
 
                 case ROM_REVENGE:
                 f = romfopen(L"roms/machines/revenge/1009AF2_.BIO", L"rb");

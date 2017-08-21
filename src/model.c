@@ -66,9 +66,7 @@
 #endif
 #include "tandy_eeprom.h"
 #include "tandy_rom.h"
-#if 0
 #include "um8669f.h"
-#endif
 #include "video/vid_pcjr.h"
 #include "video/vid_tandy.h"
 #include "w83877f.h"
@@ -102,6 +100,7 @@ extern void     at_wd76c10_init(void);
 extern void     at_ali1429_init(void);
 extern void    at_headland_init(void);
 extern void     at_opti495_init(void);
+extern void      at_i430vx_init(void);
 extern void      at_batman_init(void);
 #if 0
 extern void	 at_586mc1_init(void);
@@ -224,6 +223,7 @@ MODEL models[] =
         {"[Socket 7 HX] ASUS P/I-P55T2S",	ROM_P55T2S,	"p55t2s",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	   1,  256,   1, 127,     at_p55t2s_init, NULL			},
 
         {"[Socket 7 VX] ASUS P/I-P55TVP4",	ROM_P55TVP4,	"p55tvp4",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	   1,  256,   1, 127,    at_p55tvp4_init, NULL			},
+        {"[Socket 7 VX] Award 430VX PCI",	ROM_430VX,	"430vx",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	   1,  256,   1, 127,     at_i430vx_init, NULL			},
         {"[Socket 7 VX] Epox P55-VA",		ROM_P55VA,	"p55va",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	   1,  256,   1, 127,      at_p55va_init, NULL			},
 
         {"[Socket 8 FX] Tyan Titan-Pro AT",	ROM_440FX,	"440fx",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	   1,  256,   1, 127,     at_i440fx_init, NULL			},
@@ -872,6 +872,20 @@ void at_p55tvp4_init(void)
         i430vx_init();
         piix3_init(7, 12, 11, 10, 9);
         w83877f_init();
+        device_add(&intel_flash_bxt_device);
+}
+
+void at_i430vx_init(void)
+{
+        at_ide_init();
+        pci_init(PCI_CONFIG_TYPE_1);
+        pci_slot(0x11);
+        pci_slot(0x12);
+        pci_slot(0x13);
+        pci_slot(0x14);
+        i430vx_init();
+        piix_init(7, 18, 17, 20, 19);
+        um8669f_init();
         device_add(&intel_flash_bxt_device);
 }
 
