@@ -3,6 +3,7 @@
 #define EMU8K_RAM_MEM_START 0x200000
 #define EMU8K_FM_MEM_ADDRESS 0xFFFFE0
 #define EMU8K_RAM_POINTERS_MASK 0x3F 
+#define EMU8K_LFOCHORUS_SIZE 0x4000
 
 /*
    Everything in this file assumes little endian
@@ -84,91 +85,140 @@ typedef struct emu8k_envelope_t {
 
 
 
-/* Chorus Params */
-typedef struct {
-        uint16_t    FbkLevReg;   /* Feedback Level (0xE600-0xE6FF) */
-        uint16_t    Delay;       /* Delay (0-0x0DA3)  [1/44100 sec] */
-        uint16_t    LfoDepReg;   /* LFO Depth (0xBC00-0xBCFF) */
-        uint32_t   DelayR;       /* Right Delay (0-0xFFFFFFFF) [1/256/44100 sec] */
-        uint32_t   LfoFreq;      /* LFO Frequency (0-0xFFFFFFFF) */
-} emu8k_chorus_t;
-
-typedef struct {
+typedef struct emu8k_chorus_eng_t {
         int32_t write;
         int32_t feedback;
         int32_t delay_samples_central;
-        int32_t lfodepth_samples;
-        emu8k_mem_internal_t delay_offset_samples_right;
+        double lfodepth_multip;
+        double delay_offset_samples_right;
         emu8k_mem_internal_t lfo_inc;
         emu8k_mem_internal_t lfo_pos; 
         
-        int32_t chorus_left_buffer[SOUNDBUFLEN];
-        int32_t chorus_right_buffer[SOUNDBUFLEN];
+        int32_t chorus_left_buffer[EMU8K_LFOCHORUS_SIZE];
+        int32_t chorus_right_buffer[EMU8K_LFOCHORUS_SIZE];
 
 } emu8k_chorus_eng_t;
+
+/*  32 * 242. 32 comes from the "right" room resso case.*/
+#define MAX_REFL_SIZE 7744
+
+
+/* Reverb parameters description, extracted from AST sources.
+ Mix level        
+ Decay            
+ Link return amp  
+ Link type         Switches between normal or panned
+ Room reso (   ms) L&R (Ref 6 +1)
+ Ref 1 x2 (11 ms)R 
+ Ref 2 x4 (22 ms)R 
+ Ref 3 x8 (44 ms)L 
+ Ref 4 x13(71 ms)R 
+ Ref 5 x19(105ms)L 
+ Ref 6 x  (   ms)R  (multiplier changes with room reso)
+ Ref 1-6 filter    L&R
+ Ref 1-6 amp       L&R
+ Ref 1 feedback    L&R
+ Ref 2 feedback    L&R
+ Ref 3 feedback    L&R
+ Ref 4 feedback    L&R
+ Ref 5 feedback    L&R
+ Ref 6 feedback    L&R
+*/ 
+typedef struct emu8k_reverb_combfilter_t {
+        int read_pos;
+        int32_t reflection[MAX_REFL_SIZE];
+        float output_gain;
+        float feedback;
+        float damp1;
+        float damp2;
+        int bufsize;
+        int32_t filterstore;
+} emu8k_reverb_combfilter_t;
+
+typedef struct emu8k_reverb_eng_t {
+
+        int16_t out_mix;
+        int16_t link_return_amp; /* tail part output gain ? */
+        int8_t link_return_type;
+
+        uint8_t refl_in_amp;
+
+        emu8k_reverb_combfilter_t reflections[6];       
+        emu8k_reverb_combfilter_t allpass[8];
+        emu8k_reverb_combfilter_t tailL;
+        emu8k_reverb_combfilter_t tailR;
+        
+        emu8k_reverb_combfilter_t damper;
+} emu8k_reverb_eng_t;
+
+typedef struct emu8k_slide_t {
+        int32_t last;
+} emu8k_slide_t;
+
 
 typedef struct emu8k_voice_t
 {
         union {
-            uint32_t cpf;
-            struct {
-                uint16_t cpf_curr_frac_addr; /* fractional part of the playing cursor. */
-                uint16_t cpf_curr_pitch;     /* 0x4000 = no shift. Linear increment */
-            };
+                uint32_t cpf;
+                struct {
+                        uint16_t cpf_curr_frac_addr; /* fractional part of the playing cursor. */
+                        uint16_t cpf_curr_pitch; /* 0x4000 = no shift. Linear increment */
+                };
         };
         union {
-            uint32_t ptrx;
-            struct {
-                uint8_t ptrx_pan_aux;
-                uint8_t ptrx_revb_send;
-                uint16_t ptrx_pit_target;   /* target pitch to which slide at curr_pitch speed. */
-            };
+                uint32_t ptrx;
+                struct {
+                        uint8_t ptrx_pan_aux;
+                        uint8_t ptrx_revb_send;
+                        uint16_t ptrx_pit_target; /* target pitch to which slide at curr_pitch speed. */
+                };
         };
         union {
-            uint32_t cvcf;
-            struct {
-                uint16_t cvcf_curr_filt_ctoff;
-                uint16_t cvcf_curr_volume;
-            };
+                uint32_t cvcf;
+                struct {
+                        uint16_t cvcf_curr_filt_ctoff;
+                        uint16_t cvcf_curr_volume;
+                };
         };
+        emu8k_slide_t volumeslide;
         union {
-            uint32_t vtft;
-            struct {
-                uint16_t vtft_filter_target;
-                uint16_t vtft_vol_target; /* written to by the envelope engine. */
-            };
+                uint32_t vtft;
+                struct {
+                        uint16_t vtft_filter_target;
+                        uint16_t vtft_vol_target; /* written to by the envelope engine. */
+                };
         };
         /* These registers are used at least by the Windows drivers, and seem to be resetting
-           something, similarly to targets and current, but... of what?
-           what is curious is that if they are already zero, they are not written to, so it really
-           looks like they are information about the status of the channel. (lfo position maybe?) */
+         * something, similarly to targets and current, but... of what?
+         * what is curious is that if they are already zero, they are not written to, so it really
+         * looks like they are information about the status of the channel. (lfo position maybe?) */
         uint32_t unknown_data0_4;
         uint32_t unknown_data0_5;
         union {
-            uint32_t psst;
-            struct { 
-                uint16_t psst_lw_address;
-                uint8_t psst_hw_address;
-                uint8_t psst_pan;
-            };
-            #define PSST_LOOP_START_MASK 0x00FFFFFF /* In samples, i.e. uint16_t array[BOARD_RAM/2]; */
+                uint32_t psst;
+                struct { 
+                        uint16_t psst_lw_address;
+                        uint8_t psst_hw_address;
+                        uint8_t psst_pan;
+                };
+                #define PSST_LOOP_START_MASK 0x00FFFFFF /* In samples, i.e. uint16_t array[BOARD_RAM/2]; */
         };
         union {
-            uint32_t csl;
-            struct { 
-                uint16_t csl_lw_address;
-                uint8_t csl_hw_address;
-                uint8_t csl_chor_send;
-            };
-            #define CSL_LOOP_END_MASK 0x00FFFFFF   /* In samples, i.e. uint16_t array[BOARD_RAM/2]; */
+                uint32_t csl;
+                struct { 
+                        uint16_t csl_lw_address;
+                        uint8_t csl_hw_address;
+                        uint8_t csl_chor_send;
+                };
+                #define CSL_LOOP_END_MASK 0x00FFFFFF /* In samples, i.e. uint16_t array[BOARD_RAM/2]; */
         };
         union {
-            uint32_t ccca;
-            struct {
-                uint16_t ccca_lw_addr;
-                uint8_t ccca_hb_addr;
-                uint8_t ccca_qcontrol;
-            };
+                uint32_t ccca;
+                struct {
+                        uint16_t ccca_lw_addr;
+                        uint8_t ccca_hb_addr;
+                        uint8_t ccca_qcontrol;
+                };
         };
         #define CCCA_FILTQ_GET(ccca) (ccca>>28)
         #define CCCA_FILTQ_SET(ccca,q) ccca = (ccca&0x0FFFFFFF) | (q<<28)
@@ -223,39 +273,39 @@ typedef struct emu8k_voice_t
         #define INTIAL_PITCH_OCTAVE 0x1000
         
         union {
-            uint16_t ifatn;
-            struct{
-                uint8_t ifatn_attenuation;
-                uint8_t ifatn_init_filter;
-            };
+                uint16_t ifatn;
+                struct{
+                        uint8_t ifatn_attenuation;
+                        uint8_t ifatn_init_filter;
+                };
         };
         union {
-            uint16_t pefe;
-            struct {
-                int8_t pefe_modenv_filter_height;
-                int8_t pefe_modenv_pitch_height;
-            };
+                uint16_t pefe;
+                struct {
+                        int8_t pefe_modenv_filter_height;
+                        int8_t pefe_modenv_pitch_height;
+                };
         };
         union {
-            uint16_t fmmod;
-            struct {
-                int8_t fmmod_lfo1_filt_mod;
-                int8_t fmmod_lfo1_vibrato;
-            };
+                uint16_t fmmod;
+                struct {
+                        int8_t fmmod_lfo1_filt_mod;
+                        int8_t fmmod_lfo1_vibrato;
+                };
         };
         union {
-            uint16_t tremfrq;
-            struct {
-                uint8_t tremfrq_lfo1_freq;
-                int8_t tremfrq_lfo1_tremolo;
-            };
+                uint16_t tremfrq;
+                struct {
+                        uint8_t tremfrq_lfo1_freq;
+                        int8_t tremfrq_lfo1_tremolo;
+                };
         };
         union {
-            uint16_t fm2frq2;
-            struct {
-                uint8_t fm2frq2_lfo2_freq;
-                int8_t fm2frq2_lfo2_vibrato;
-            };
+                uint16_t fm2frq2;
+                struct {
+                        uint8_t fm2frq2_lfo2_freq;
+                        int8_t fm2frq2_lfo2_vibrato;
+                };
         };
         
         int env_engine_on;
@@ -320,8 +370,8 @@ typedef struct emu8k_t
         
         emu8k_chorus_eng_t chorus_engine;
         int32_t chorus_in_buffer[SOUNDBUFLEN];
+        emu8k_reverb_eng_t reverb_engine;
         int32_t reverb_in_buffer[SOUNDBUFLEN];
-        int32_t reverb_out_buffer[SOUNDBUFLEN * 2];
         
         int pos;
         int32_t buffer[SOUNDBUFLEN * 2];
