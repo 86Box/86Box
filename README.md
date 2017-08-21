@@ -15,7 +15,7 @@ In order to compile 86Box from this repository, please follow this step-by-step 
 4) Once the environment is fully updated, **cd** into your cloned **86box\src** directory.
 5) Run **make -j*N* -fmakefile.mingw** to start the actual compilation process. Substitute *N* with the number of threads you want to use for the compilation process. The optimal number depends entirely on your processor, and it is up to you to determine the optimal number. A good starting point is the total number of threads (AKA Logical Processors) you have available.
 6) If the compilation succeeded (which it almost always should), you will find **86Box.exe** in the src directory.
-7) In order to test your fresh build, replace the **86Box.exe** in your current 86Box enviroment with your freshly built one. If you do not have a pre-existing 86Box environment, download the latest successful build from http://ci.86box.net, and the ROM set from http://tinyurl.com/roms201708.
+7) In order to test your fresh build, replace the **86Box.exe** in your current 86Box enviroment with your freshly built one. If you do not have a pre-existing 86Box environment, download the latest successful build from http://ci.86box.net, and the ROM set from http://tinyurl.com/rs20170821.
 8) Enjoy using and testing the emulator! :)
 
 If you encounter issues at any step or have additional questions, please join the IRC channel and wait patiently for someone to help you.
