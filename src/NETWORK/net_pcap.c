@@ -274,6 +274,20 @@ network_pcap_close(void)
 }
 
 
+void
+network_pcap_stop(void)
+{
+	/* OK, now shut down WinPcap itself. */
+	f_pcap_close(pcap);
+
+	/* Unload the DLL if possible. */
+	if (pcap_handle != NULL) {
+		dynld_close(pcap_handle);
+		pcap_handle = NULL;
+	}
+}
+
+
 /* Test WinPcap - 1 = success, 0 = failure. */
 int
 network_pcap_test(void)
@@ -286,7 +300,7 @@ network_pcap_test(void)
     /* Did we already load the DLL? */
     if (pcap_handle == NULL)
     {
-	return 0;
+	pcap_handle = dynld_module("wpcap.dll", pcap_imports);
     }
 
 #if 1
@@ -313,6 +327,13 @@ network_pcap_test(void)
     dev = network_pcap;
     if ((dev[0] == '\0') || !strcmp(dev, "none")) {
 	pclog(" No network device configured!\n");
+
+	/* Unload the DLL if possible. */
+	if (pcap_handle != NULL) {
+		dynld_close(pcap_handle);
+		pcap_handle = NULL;
+	}
+
 	return 0;
     }
     pclog(" Network interface: '%s'\n", dev);
@@ -327,6 +348,13 @@ network_pcap_test(void)
 			   temp);	/* error buffer */
     if (pcap == NULL) {
 	pclog(" Unable to open device: %s!\n", temp);
+
+	/* Unload the DLL if possible. */
+	if (pcap_handle != NULL) {
+		dynld_close(pcap_handle);
+		pcap_handle = NULL;
+	}
+
 	return 0;
     }
 
@@ -338,16 +366,17 @@ network_pcap_test(void)
     if (f_pcap_compile(pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
 	if (f_pcap_setfilter(pcap, &fp) == -1) {
 		pclog(" Error installing filter (%s) !\n", filter_exp);
-		f_pcap_close(pcap);
+		network_pcap_stop();
 		return 0;
 	}
     } else {
 	pclog(" Could not compile filter (%s) !\n", filter_exp);
-	f_pcap_close(pcap);
+	network_pcap_stop();
 	return 0;
     }
 
-    f_pcap_close(pcap);
+    network_pcap_stop();
+
     return 1;
 }
 

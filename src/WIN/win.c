@@ -1462,6 +1462,100 @@ void win_menu_update(void)
 #endif
 }
 
+void reset_menus(void)
+{
+#ifdef ENABLE_LOG_TOGGLES
+# ifdef ENABLE_BUSLOGIC_LOG
+	CheckMenuItem(menu, IDM_LOG_BUSLOGIC, buslogic_do_log ? MF_UNCHECKED);
+# endif
+# ifdef ENABLE_CDROM_LOG
+	CheckMenuItem(menu, IDM_LOG_CDROM, cdrom_do_log ? MF_UNCHECKED);
+# endif
+# ifdef ENABLE_D86F_LOG
+	CheckMenuItem(menu, IDM_LOG_D86F, d86f_do_log ? MF_UNCHECKED);
+# endif
+# ifdef ENABLE_FDC_LOG
+	CheckMenuItem(menu, IDM_LOG_FDC, fdc_do_log ? MF_UNCHECKED);
+# endif
+# ifdef ENABLE_IDE_LOG
+	CheckMenuItem(menu, IDM_LOG_IDE, ide_do_log ? MF_UNCHECKED);
+# endif
+# ifdef ENABLE_SERIAL_LOG
+	CheckMenuItem(menu, IDM_LOG_SERIAL, serial_do_log ? MF_UNCHECKED);
+# endif
+# ifdef ENABLE_NIC_LOG
+	/*FIXME: should be network_setlog(1:0) */
+	CheckMenuItem(menu, IDM_LOG_NIC, nic_do_log ? MF_UNCHECKED);
+# endif
+#endif
+
+	CheckMenuItem(menu, IDM_VID_FORCE43, MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_OVERSCAN, MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_INVERT, MF_UNCHECKED);
+
+        CheckMenuItem(menu, IDM_VID_RESIZE, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_VID_DDRAW + 0, MF_CHECKED);
+        CheckMenuItem(menu, IDM_VID_DDRAW + 1, MF_CHECKED);
+        CheckMenuItem(menu, IDM_VID_FS_FULL + 0, MF_CHECKED);
+        CheckMenuItem(menu, IDM_VID_FS_FULL + 1, MF_CHECKED);
+        CheckMenuItem(menu, IDM_VID_FS_FULL + 2, MF_CHECKED);
+        CheckMenuItem(menu, IDM_VID_FS_FULL + 3, MF_CHECKED);
+        CheckMenuItem(menu, IDM_VID_REMEMBER, MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_SCALE_1X + 0, MF_CHECKED);
+	CheckMenuItem(menu, IDM_VID_SCALE_1X + 1, MF_CHECKED);
+	CheckMenuItem(menu, IDM_VID_SCALE_1X + 2, MF_CHECKED);
+	CheckMenuItem(menu, IDM_VID_SCALE_1X + 3, MF_CHECKED);
+
+	CheckMenuItem(menu, IDM_VID_CGACON, MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAYCT_601 + 0, MF_CHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAYCT_601 + 1, MF_CHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAYCT_601 + 2, MF_CHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAY_RGB + 0, MF_CHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAY_RGB + 1, MF_CHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAY_RGB + 2, MF_CHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAY_RGB + 3, MF_CHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAY_RGB + 4, MF_CHECKED);
+
+#ifdef ENABLE_LOG_TOGGLES
+# ifdef ENABLE_BUSLOGIC_LOG
+	CheckMenuItem(menu, IDM_LOG_BUSLOGIC, buslogic_do_log ? MF_CHECKED : MF_UNCHECKED);
+# endif
+# ifdef ENABLE_CDROM_LOG
+	CheckMenuItem(menu, IDM_LOG_CDROM, cdrom_do_log ? MF_CHECKED : MF_UNCHECKED);
+# endif
+# ifdef ENABLE_D86F_LOG
+	CheckMenuItem(menu, IDM_LOG_D86F, d86f_do_log ? MF_CHECKED : MF_UNCHECKED);
+# endif
+# ifdef ENABLE_FDC_LOG
+	CheckMenuItem(menu, IDM_LOG_FDC, fdc_do_log ? MF_CHECKED : MF_UNCHECKED);
+# endif
+# ifdef ENABLE_IDE_LOG
+	CheckMenuItem(menu, IDM_LOG_IDE, ide_do_log ? MF_CHECKED : MF_UNCHECKED);
+# endif
+# ifdef ENABLE_SERIAL_LOG
+	CheckMenuItem(menu, IDM_LOG_SERIAL, serial_do_log ? MF_CHECKED : MF_UNCHECKED);
+# endif
+# ifdef ENABLE_NIC_LOG
+	/*FIXME: should be network_setlog(1:0) */
+	CheckMenuItem(menu, IDM_LOG_NIC, nic_do_log ? MF_CHECKED : MF_UNCHECKED);
+# endif
+#endif
+
+	CheckMenuItem(menu, IDM_VID_FORCE43, force_43 ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_OVERSCAN, enable_overscan ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_INVERT, invert_display ? MF_CHECKED : MF_UNCHECKED);
+
+        if (vid_resize) CheckMenuItem(menu, IDM_VID_RESIZE, MF_CHECKED);
+        CheckMenuItem(menu, IDM_VID_DDRAW + vid_api, MF_CHECKED);
+        CheckMenuItem(menu, IDM_VID_FS_FULL + video_fullscreen_scale, MF_CHECKED);
+        CheckMenuItem(menu, IDM_VID_REMEMBER, window_remember ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_SCALE_1X + scale, MF_CHECKED);
+
+	CheckMenuItem(menu, IDM_VID_CGACON, vid_cga_contrast ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAYCT_601 + video_graytype, MF_CHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAY_RGB + video_grayscale, MF_CHECKED);
+}
+
 int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpszArgument, int nFunsterStil)
 {
 	HWND hwnd;					/* This is the handle for our window */
@@ -1590,44 +1684,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
         if (vid_resize) SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW&~WS_MINIMIZEBOX)|WS_VISIBLE);
         else            SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW&~WS_SIZEBOX&~WS_THICKFRAME&~WS_MAXIMIZEBOX&~WS_MINIMIZEBOX)|WS_VISIBLE);
 
-#ifdef ENABLE_LOG_TOGGLES
-# ifdef ENABLE_BUSLOGIC_LOG
-	CheckMenuItem(menu, IDM_LOG_BUSLOGIC, buslogic_do_log ? MF_CHECKED : MF_UNCHECKED);
-# endif
-# ifdef ENABLE_CDROM_LOG
-	CheckMenuItem(menu, IDM_LOG_CDROM, cdrom_do_log ? MF_CHECKED : MF_UNCHECKED);
-# endif
-# ifdef ENABLE_D86F_LOG
-	CheckMenuItem(menu, IDM_LOG_D86F, d86f_do_log ? MF_CHECKED : MF_UNCHECKED);
-# endif
-# ifdef ENABLE_FDC_LOG
-	CheckMenuItem(menu, IDM_LOG_FDC, fdc_do_log ? MF_CHECKED : MF_UNCHECKED);
-# endif
-# ifdef ENABLE_IDE_LOG
-	CheckMenuItem(menu, IDM_LOG_IDE, ide_do_log ? MF_CHECKED : MF_UNCHECKED);
-# endif
-# ifdef ENABLE_SERIAL_LOG
-	CheckMenuItem(menu, IDM_LOG_SERIAL, serial_do_log ? MF_CHECKED : MF_UNCHECKED);
-# endif
-# ifdef ENABLE_NIC_LOG
-	/*FIXME: should be network_setlog(1:0) */
-	CheckMenuItem(menu, IDM_LOG_NIC, nic_do_log ? MF_CHECKED : MF_UNCHECKED);
-# endif
-#endif
-
-	CheckMenuItem(menu, IDM_VID_FORCE43, force_43 ? MF_CHECKED : MF_UNCHECKED);
-	CheckMenuItem(menu, IDM_VID_OVERSCAN, enable_overscan ? MF_CHECKED : MF_UNCHECKED);
-	CheckMenuItem(menu, IDM_VID_INVERT, invert_display ? MF_CHECKED : MF_UNCHECKED);
-
-        if (vid_resize) CheckMenuItem(menu, IDM_VID_RESIZE, MF_CHECKED);
-        CheckMenuItem(menu, IDM_VID_DDRAW + vid_api, MF_CHECKED);
-        CheckMenuItem(menu, IDM_VID_FS_FULL + video_fullscreen_scale, MF_CHECKED);
-        CheckMenuItem(menu, IDM_VID_REMEMBER, window_remember ? MF_CHECKED : MF_UNCHECKED);
-	CheckMenuItem(menu, IDM_VID_SCALE_1X + scale, MF_CHECKED);
-
-	CheckMenuItem(menu, IDM_VID_CGACON, vid_cga_contrast ? MF_CHECKED : MF_UNCHECKED);
-	CheckMenuItem(menu, IDM_VID_GRAYCT_601 + video_graytype, MF_CHECKED);
-	CheckMenuItem(menu, IDM_VID_GRAY_RGB + video_grayscale, MF_CHECKED);
+	reset_menus();
 
         d=romset;
         for (c=0;c<ROM_MAX;c++)
@@ -2210,6 +2267,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 							/* pclog_w(L"NVR path: %s\n", nvr_path); */
 							mem_resize();
 							loadbios();
+							network_init();
+							reset_menus();
 							update_status_bar_panes(hwndStatus);
 							resetpchard_init();
 						}
