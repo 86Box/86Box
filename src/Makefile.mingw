@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.35	2017/08/10
+# Version:	@(#)Makefile.mingw	1.0.36	2017/08/21
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -21,7 +21,7 @@ endif
 
 # Various compile-time options.
 # -DROM_TRACE=0xcd800 traces ROM access from segment C800
-# -DIO_TACE=0x66 traces I/O on port 0x66
+# -DIO_TRACE=0x66 traces I/O on port 0x66
 STUFF	=
 
 # Add feature selections here.
