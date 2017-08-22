@@ -1466,26 +1466,26 @@ void reset_menus(void)
 {
 #ifdef ENABLE_LOG_TOGGLES
 # ifdef ENABLE_BUSLOGIC_LOG
-	CheckMenuItem(menu, IDM_LOG_BUSLOGIC, buslogic_do_log ? MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_LOG_BUSLOGIC, buslogic_do_log ? MF_CHECKED : MF_UNCHECKED);
 # endif
 # ifdef ENABLE_CDROM_LOG
-	CheckMenuItem(menu, IDM_LOG_CDROM, cdrom_do_log ? MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_LOG_CDROM, cdrom_do_log ? MF_CHECKED : MF_UNCHECKED);
 # endif
 # ifdef ENABLE_D86F_LOG
-	CheckMenuItem(menu, IDM_LOG_D86F, d86f_do_log ? MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_LOG_D86F, d86f_do_log ? MF_CHECKED : MF_UNCHECKED);
 # endif
 # ifdef ENABLE_FDC_LOG
-	CheckMenuItem(menu, IDM_LOG_FDC, fdc_do_log ? MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_LOG_FDC, fdc_do_log ? MF_CHECKED : MF_UNCHECKED);
 # endif
 # ifdef ENABLE_IDE_LOG
-	CheckMenuItem(menu, IDM_LOG_IDE, ide_do_log ? MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_LOG_IDE, ide_do_log ? MF_CHECKED : MF_UNCHECKED);
 # endif
 # ifdef ENABLE_SERIAL_LOG
-	CheckMenuItem(menu, IDM_LOG_SERIAL, serial_do_log ? MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_LOG_SERIAL, serial_do_log ? MF_CHECKED : MF_UNCHECKED);
 # endif
 # ifdef ENABLE_NIC_LOG
 	/*FIXME: should be network_setlog(1:0) */
-	CheckMenuItem(menu, IDM_LOG_NIC, nic_do_log ? MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_LOG_NIC, nic_do_log ? MF_CHECKED : MF_UNCHECKED);
 # endif
 #endif
 
