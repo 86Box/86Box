@@ -1128,7 +1128,7 @@ BuslogicSCSIBIOSRequestSetup(Buslogic_t *bl, uint8_t *CmdBuf, uint8_t *DataInBuf
 
     BuslogicSCSIBIOSDataBufferAllocate(ESCSICmd, ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
 
-    if (SCSIDevices[ESCSICmd->TargetId][ESCSICmd->LogicalUnit].LunType == SCSI_NONE) {
+    if (!scsi_device_present(ESCSICmd->TargetId, ESCSICmd->LogicalUnit)) {
 	SpecificLog("SCSI Target ID %i and LUN %i have no device attached\n",ESCSICmd->TargetId,ESCSICmd->LogicalUnit);
 	BuslogicSCSIBIOSDataBufferFree(ESCSICmd, ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
 	/* BuslogicSCSIBIOSSenseBufferFree(ESCSICmd, Id, Lun, 0, 0); */
@@ -1177,9 +1177,6 @@ BuslogicSCSIBIOSRequestSetup(Buslogic_t *bl, uint8_t *CmdBuf, uint8_t *DataInBuf
 	DataInBuf[2] = CCB_COMPLETE;
 	DataInBuf[3] = SCSI_STATUS_CHECK_CONDITION;			
     }
-	
-	/* BuslogicInOperation = (SCSIDevices[Id][Lun].LunType == SCSI_DISK) ? 0x13 : 3; */
-	pclog("SCSI (%i:%i) -> %i\n", ESCSICmd->TargetId, ESCSICmd->LogicalUnit, SCSIDevices[ESCSICmd->TargetId][ESCSICmd->LogicalUnit].LunType);
 	
 	bl->DataReplyLeft = DataReply;	
 }
@@ -1875,7 +1872,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					for (i=0; i<8; i++) {
 					    bl->DataBuf[i] = 0;
 					    for (j=0; j<8; j++) {
-						if (SCSIDevices[i][j].LunType != SCSI_NONE)
+						if (scsi_device_present(i, j))
 						    bl->DataBuf[i] |= (1 << j);
 					    }
 					}
@@ -1972,7 +1969,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					for (i = 8; i < 15; i++) {
 					    bl->DataBuf[i-8] = 0;
 					    for (j=0; j<8; j++) {
-						if (SCSIDevices[i][j].LunType != SCSI_NONE)
+						if (scsi_device_present(i, j))
 						    bl->DataBuf[i-8] |= (1<<j);
 					    }
 					}
@@ -1985,7 +1982,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					uint16_t TargetsPresentMask = 0;
 							
 					for (i=0; i<15; i++) {
-						if (SCSIDevices[i][0].LunType != SCSI_NONE)
+						if (scsi_device_present(i, j))
 						    TargetsPresentMask |= (1 << i);
 					}
 					bl->DataBuf[0] = TargetsPresentMask & 0xFF;
@@ -2417,8 +2414,7 @@ BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbox32_t *Mailb
 			req->CmdBlock.common.ControlByte);
 	}
 
-	BuslogicInOperation = (SCSIDevices[Id][Lun].LunType == SCSI_DISK) ? 0x11 : 1;
-	pclog("SCSI (%i:%i) -> %i\n", Id, Lun, SCSIDevices[Id][Lun].LunType);
+	BuslogicInOperation = 1;
     }
 }
 
@@ -2546,7 +2542,7 @@ BuslogicCommandCallback(void *p)
 		return;
 	}
     } else if (BuslogicInOperation == 1) {
-	pclog("BusLogic Callback: Process CD-ROM request\n");
+	pclog("BusLogic Callback: Process SCSI request\n");
 	BuslogicSCSICommand(bl);
 	if (bl->Req.CmdBlock.common.Cdb[0] == 0x42)
 	{
@@ -2557,9 +2553,6 @@ BuslogicCommandCallback(void *p)
     } else if (BuslogicInOperation == 2) {
 	pclog("BusLogic Callback: Send incoming mailbox\n");
 	BuslogicMailboxIn(bl);
-    } else if (BuslogicInOperation == 0x11) {
-	pclog("BusLogic Callback: Process hard disk request\n");
-	BuslogicSCSICommand(bl);
     } else {
 	fatal("Invalid BusLogic callback phase: %i\n", BuslogicInOperation);
     }
