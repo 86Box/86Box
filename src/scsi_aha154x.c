@@ -1934,10 +1934,39 @@ aha_init(int type)
     memset(dev, 0x00, sizeof(aha_t));
     dev->type = type;
 
+    /* Set up the I/O address, IRQ and DMA info. */
+	dev->Base = device_get_config_hex16("base");
+	dev->Irq = device_get_config_int("irq");
+	dev->DmaChannel = device_get_config_int("dma");
+	bios = device_get_config_int("bios");
+	bios_addr = device_get_config_hex20("bios_addr");
+	if (dev->Base != 0) {
+		/* Register our address space. */
+		io_sethandler(dev->Base, 4,
+			      aha_read, aha_readw, NULL,
+			      aha_write, aha_writew, NULL, dev);
+	}
+	pclog("Adaptec %s (IO=0x%04X, IRQ=%d, DMA=%d)\n",
+		dev->name, dev->Base, dev->Irq, dev->DmaChannel);
+
+    ResetDev = dev;
+
+    timer_add(aha_reset_poll, &ResetCB, &ResetCB, dev);
+    timer_add(aha_cmd_cb, &AHA_Callback, &AHA_Callback, dev);
+
+    aha_reset_ctrl(dev, CTRL_HRST);
+
     switch(type) {
 	case AHA_154xB:
 		strcpy(dev->name, "AHA-154xB");
-		dev->bios_path = L"roms/scsi/adaptec/aha1540b310.bin";
+		if (dev->Base == 0x334 && bios_addr == 0xd8000)
+		{
+			dev->bios_path = L"roms/scsi/adaptec/B_AC00.BIN";
+		}
+		else if (dev->Base == 0x330 && bios_addr == 0xd0000)
+		{
+			dev->bios_path = L"roms/scsi/adaptec/bios_3.2.BIN";
+		}
 		dev->bid = 'A';
 		break;
 
@@ -1953,7 +1982,7 @@ aha_init(int type)
 
 	case AHA_154xCF:
 		strcpy(dev->name, "AHA-154xCF");
-		dev->bios_path = L"roms/scsi/adaptec/aha1542cf201.bin";
+		dev->bios_path = L"roms/scsi/adaptec/aha1542cf211.bin";
 		dev->nvr_path = L"nvr/aha1540cf.nvr";
 		dev->bid = 'E';
 		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
@@ -1972,59 +2001,14 @@ aha_init(int type)
 		dev->rom_ioaddr = 0x3F7E;	/* [2:0] idx into addr table */
 		dev->rom_fwhigh = 0x0055;	/* firmware version (hi/lo) */
 		break;
-
-	case AHA_1640:
-		strcpy(dev->name, "AHA-1640");
-		break;
-    }
-
-    /* Set up the I/O address, IRQ and DMA info. */
-    if (type == AHA_1640) {
-	mca_add(aha_mca_read, aha_mca_write, dev);
-	dev->pos_regs[0] = 0x1F;
-	dev->pos_regs[1] = 0x0F;	
-	pclog("Adaptec %s initialized\n", dev->name);
-    } else {
-	dev->Base = device_get_config_hex16("base");
-	dev->Irq = device_get_config_int("irq");
-	dev->DmaChannel = device_get_config_int("dma");
-	bios = device_get_config_int("bios");
-	bios_addr = device_get_config_hex20("bios_addr");
-	if (dev->Base != 0) {
-		/* Register our address space. */
-		io_sethandler(dev->Base, 4,
-			      aha_read, aha_readw, NULL,
-			      aha_write, aha_writew, NULL, dev);
-	}
-	pclog("Adaptec %s (IO=0x%04X, IRQ=%d, DMA=%d)\n",
-		dev->name, dev->Base, dev->Irq, dev->DmaChannel);
-
-    }
-    ResetDev = dev;
-
-    timer_add(aha_reset_poll, &ResetCB, &ResetCB, dev);
-    timer_add(aha_cmd_cb, &AHA_Callback, &AHA_Callback, dev);
-
-    aha_reset_ctrl(dev, CTRL_HRST);
-
+    }	
+	
     /* Initialize ROM BIOS if needed. */
     if (bios)
 	aha_setbios(dev, bios_addr);
 
     /* Initialize EEPROM (NVR) if needed. */
     aha_setnvr(dev);
-
-#if 0
-	/* Perform AHA-154xNN-specific initialization. */
-	if (chip == CHIP_AHA154XB)
-	{
-		/* Adaptec 154xB AT/SCSI BIOS Version 3.20 with support for over 1GB drives */
-		if (dev->Base == 0x334 && bios_addr == 0xd8000) /* This BIOS is hardcoded to port 0x334 and address 0xD8000, otherwise it won't work */
-			rom_init(&dev->bios, L"roms/scsi/adaptec/B_AC00.BIN", 0xd8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
-		else if (dev->Base == 0x330 && bios_addr == 0xd0000) /* This BIOS is hardcoded to port 0x330 and address 0xD0000, otherwise it won't work */
-			rom_init(&dev->bios, L"roms/scsi/adaptec/bios_3.2.BIN", 0xd0000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
-	}
-#endif
 
     return(dev);
 }
