@@ -1494,27 +1494,27 @@ void reset_menus(void)
 	CheckMenuItem(menu, IDM_VID_INVERT, MF_UNCHECKED);
 
         CheckMenuItem(menu, IDM_VID_RESIZE, MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_VID_DDRAW + 0, MF_CHECKED);
-        CheckMenuItem(menu, IDM_VID_DDRAW + 1, MF_CHECKED);
-        CheckMenuItem(menu, IDM_VID_FS_FULL + 0, MF_CHECKED);
-        CheckMenuItem(menu, IDM_VID_FS_FULL + 1, MF_CHECKED);
-        CheckMenuItem(menu, IDM_VID_FS_FULL + 2, MF_CHECKED);
-        CheckMenuItem(menu, IDM_VID_FS_FULL + 3, MF_CHECKED);
+        CheckMenuItem(menu, IDM_VID_DDRAW + 0, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_VID_DDRAW + 1, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_VID_FS_FULL + 0, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_VID_FS_FULL + 1, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_VID_FS_FULL + 2, MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_VID_FS_FULL + 3, MF_UNCHECKED);
         CheckMenuItem(menu, IDM_VID_REMEMBER, MF_UNCHECKED);
-	CheckMenuItem(menu, IDM_VID_SCALE_1X + 0, MF_CHECKED);
-	CheckMenuItem(menu, IDM_VID_SCALE_1X + 1, MF_CHECKED);
-	CheckMenuItem(menu, IDM_VID_SCALE_1X + 2, MF_CHECKED);
-	CheckMenuItem(menu, IDM_VID_SCALE_1X + 3, MF_CHECKED);
+	CheckMenuItem(menu, IDM_VID_SCALE_1X + 0, MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_SCALE_1X + 1, MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_SCALE_1X + 2, MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_SCALE_1X + 3, MF_UNCHECKED);
 
 	CheckMenuItem(menu, IDM_VID_CGACON, MF_UNCHECKED);
-	CheckMenuItem(menu, IDM_VID_GRAYCT_601 + 0, MF_CHECKED);
-	CheckMenuItem(menu, IDM_VID_GRAYCT_601 + 1, MF_CHECKED);
-	CheckMenuItem(menu, IDM_VID_GRAYCT_601 + 2, MF_CHECKED);
-	CheckMenuItem(menu, IDM_VID_GRAY_RGB + 0, MF_CHECKED);
-	CheckMenuItem(menu, IDM_VID_GRAY_RGB + 1, MF_CHECKED);
-	CheckMenuItem(menu, IDM_VID_GRAY_RGB + 2, MF_CHECKED);
-	CheckMenuItem(menu, IDM_VID_GRAY_RGB + 3, MF_CHECKED);
-	CheckMenuItem(menu, IDM_VID_GRAY_RGB + 4, MF_CHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAYCT_601 + 0, MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAYCT_601 + 1, MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAYCT_601 + 2, MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAY_RGB + 0, MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAY_RGB + 1, MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAY_RGB + 2, MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAY_RGB + 3, MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_GRAY_RGB + 4, MF_UNCHECKED);
 
 #ifdef ENABLE_LOG_TOGGLES
 # ifdef ENABLE_BUSLOGIC_LOG
