@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.8	2017/08/15
+ * Version:	@(#)scsi_aha154x.c	1.0.9	2017/08/16
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -39,52 +39,12 @@
 #include "scsi_aha154x.h"
 
 
-#define SCSI_DELAY_TM	1			/* was 50 */
+#define SCSI_DELAY_TM		1			/* was 50 */
+#define AHA_RESET_DURATION_NS	UINT64_C(25000000)
 
 
-#define AHA		AHA154xCF		/* set desired card type */
-#define  AHA154xB	1			/* AHA-154x Rev.B */
-#define  AHA154xC	2			/* AHA-154x Rev.C */
-#define  AHA154xCF	3			/* AHA-154x Rev.CF */
-#define  AHA154xCP	4			/* AHA-154x Rev.CP */
-
-
-#if AHA == AHA154xB
-# define ROMFILE	L"roms/scsi/adaptec/aha1540b310.bin"
-# define AHA_BID	'A'			/* AHA-154x B */
-#endif
-
-#if AHA == AHA154xC
-# define ROMFILE	L"roms/scsi/adaptec/aha1542c101.bin"
-# define AHA_BID	'D'		/* AHA-154x C */
-# define ROM_FWHIGH	0x0022		/* firmware version (hi/lo) */
-# define ROM_SHRAM	0x3F80		/* shadow RAM address base */
-# define ROM_SHRAMSZ	128		/* size of shadow RAM */
-# define ROM_IOADDR	0x3F7E		/* [2:0] idx into addr table */
-# define EEP_SIZE	32		/* 32 bytes of storage */
-#endif
-
-#if AHA == AHA154xCF
-# define ROMFILE	L"roms/scsi/adaptec/aha1542cf201.bin"
-# define AHA_BID	'E'		/* AHA-154x CF */
-# define ROM_FWHIGH	0x0022		/* firmware version (hi/lo) */
-# define ROM_SHRAM	0x3F80		/* shadow RAM address base */
-# define ROM_SHRAMSZ	128		/* size of shadow RAM */
-# define ROM_IOADDR	0x3F7E		/* [2:0] idx into addr table */
-# define EEP_SIZE	32		/* 32 bytes of storage */
-#endif
-
-#if AHA == AHA154xCP
-# define ROMFILE	L"roms/scsi/adaptec/aha1542cp102.bin"
-# define AHA_BID	'F'		/* AHA-154x CP */
-# define ROM_FWHIGH	0x0055		/* firmware version (hi/lo) */
-# define ROM_SHRAM	0x3F80		/* shadow RAM address base */
-# define ROM_SHRAMSZ	128		/* size of shadow RAM */
-# define ROM_IOADDR	0x3F7E		/* [2:0] idx into addr table */
-# define EEP_SIZE	32		/* 32 bytes of storage */
-#endif
-
-#define ROM_SIZE	16384		/* one ROM is 16K */
+#define ROM_SIZE	16384				/* one ROM is 16K */
+#define NVR_SIZE	32				/* size of NVR */
 
 
 /* EEPROM map and bit definitions. */
@@ -163,17 +123,15 @@
 #define CMD_RETSETUP	0x0D		/* return setup data */
 #define CMD_ECHO	0x1F		/* ECHO command data */
 #define CMD_OPTIONS	0x21		/* set adapter options */
-#define CMD_EXTBIOS     0x28    // return extended BIOS information
-#define CMD_MBENABLE    0x29    // set mailbox interface enable
-
-/* Undocumented commands */
-#define CMD_WRITE_EEPROM 0x22	/* Write EEPROM */
-#define CMD_READ_EEPROM	0x23    /* Read EEPROM */
-#define CMD_SHADOW_RAM	0x24	/* BIOS shadow ram */
-#define CMD_BIOS_MBINIT	0x25	/* BIOS mailbox initialization */
-#define CMD_MEMORY_MAP_1 0x26	/* Memory Mapper */
-#define CMD_MEMORY_MAP_2 0x27	/* Memory Mapper */
-#define CMD_BIOS_SCSI	0x82	/* Start ROM BIOS SCSI command */
+#define CMD_WRITE_EEPROM 0x22		/* UNDOC: Write EEPROM */
+#define CMD_READ_EEPROM	0x23		/* UNDOC: Read EEPROM */
+#define CMD_SHADOW_RAM	0x24		/* UNDOC: BIOS shadow ram */
+#define CMD_BIOS_MBINIT	0x25		/* UNDOC: BIOS mailbox initialization */
+#define CMD_MEMORY_MAP_1 0x26		/* UNDOC: Memory Mapper */
+#define CMD_MEMORY_MAP_2 0x27		/* UNDOC: Memory Mapper */
+#define CMD_EXTBIOS     0x28		/* UNDOC: return extended BIOS info */
+#define CMD_MBENABLE    0x29		/* set mailbox interface enable */
+#define CMD_BIOS_SCSI	0x82		/* start ROM BIOS SCSI command */
 
 /* READ INTERRUPT STATUS. */
 #define INTR_ANY	0x80		/* any interrupt */
@@ -183,451 +141,14 @@
 #define INTR_MBIF	0x01		/* MBI full */
 
 
-static rom_t	aha_bios;			/* active ROM */
-static uint8_t	*aha_rom1;			/* main BIOS */
-static uint8_t	*aha_rom2;			/* SCSI-Select */
-#ifdef EEP_SIZE
-static uint8_t	aha_eep[EEP_SIZE];		/* EEPROM storage */
-#endif
-static uint16_t	aha_ports[] = {
-    0x0330, 0x0334, 0x0230, 0x0234,
-    0x0130, 0x0134, 0x0000, 0x0000
-};
-
-#ifdef WALTJE
-int aha_do_log = 1;
-# define ENABLE_AHA154X_LOG
-#else
-int aha_do_log = 0;
-#endif
-
-
-static void
-aha_log(const char *format, ...)
-{
-#ifdef ENABLE_AHA154X_LOG
-    va_list ap;
-
-    if (aha_do_log) {
-	va_start(ap, format);
-	vprintf(format, ap);
-	va_end(ap);
-	fflush(stdout);
-    }
-#endif
-}
-#define pclog	aha_log
-
-
-/*
- * Write data to the BIOS space.
- *
- * AHA-1542C's and up have a feature where they map a 128-byte
- * RAM space into the ROM BIOS' address space, and then use it
- * as working memory. This function implements the writing to
- * that memory.
- *
- * We enable/disable this memory through AHA command 0x24.
- */
-static void
-aha_mem_write(uint32_t addr, uint8_t val, void *priv)
-{
-    rom_t *rom = (rom_t *)priv;
-
-#if 0
-    pclog("AHA1542x: writing to BIOS space, %06lX, val %02x\n", addr, val);
-    pclog("          called from %04X:%04X\n", CS, cpu_state.pc);        
-#endif
-    if ((addr & rom->mask) >= 0x3F80)
-	rom->rom[addr & rom->mask] = val;
-}
-
-
-static uint8_t
-aha_mem_read(uint32_t addr, void *priv)
-{
-    rom_t *rom = (rom_t *)priv;
-
-    return(rom->rom[addr & rom->mask]);
-}
-
-
-static uint16_t
-aha_mem_readw(uint32_t addr, void *priv)
-{
-    rom_t *rom = (rom_t *)priv;
-
-    return(*(uint16_t *)&rom->rom[addr & rom->mask]);
-}
-
-
-static uint32_t
-aha_mem_readl(uint32_t addr, void *priv)
-{
-    rom_t *rom = (rom_t *)priv;
-
-    return(*(uint32_t *)&rom->rom[addr & rom->mask]);
-}
-
-
-#ifdef ROM_IOADDR
-/*
- * Patch the ROM BIOS image for stuff Adaptec deliberately
- * made hard to understand. Well, maybe not, maybe it was
- * their way of handling issues like these at the time..
- *
- * Patch 1: emulate the I/O ADDR SW setting by patching a
- *	    byte in the BIOS that indicates the I/O ADDR
- *	    switch setting on the board.
- */
-static void
-aha_patch(uint8_t *romptr, uint16_t ioaddr)
-{
-    int i;
-
-    /* Look up the I/O address in the table. */
-    for (i=0; i<8; i++)
-	if (aha_ports[i] == ioaddr) break;
-    if (i == 8) {
-	pclog("AHA154x: bad news, invalid I/O address %04x selected!\n",
-								ioaddr);
-	return;
-    }
-    romptr[ROM_IOADDR] = (unsigned char)i;
-}
-#endif
-
-    
 enum {
-    CHIP_AHA154XB,
-    CHIP_AHA154XCF,
-	CHIP_AHA1640
+    AHA_154xB,
+    AHA_154xC,
+    AHA_154xCF,
+    AHA_154xCP,
+    AHA_1640
 };
 
-
-/* Initialize AHA-154xNN-specific stuff. */
-static void
-aha154x_bios(uint16_t ioaddr, uint32_t memaddr, aha_info *aha, int irq, int dma, int chip)
-{
-    uint32_t bios_size;
-    uint32_t bios_addr;
-    uint32_t bios_mask;
-    wchar_t *bios_path;
-    uint32_t temp;
-    FILE *f;
-
-    /* Set BIOS load address. */
-    bios_addr = memaddr;
-    /* bios_path = ROMFILE; */
-	bios_path = L"roms/scsi/adaptec/aha1542cf201.bin";
-    pclog_w(L"AHA154x: loading BIOS from '%s'\n", bios_path);
-
-    /* Open the BIOS image file and make sure it exists. */
-    if ((f = romfopen(bios_path, L"rb")) == NULL) {
-	pclog("AHA154x: BIOS ROM not found!\n");
-	return;
-    }
-
-    /*
-     * Manually load and process the ROM image.
-     *
-     * We *could* use the system "rom_init" function here, but for
-     * this special case, we can't: we may need WRITE access to the
-     * memory later on.
-     */
-    (void)fseek(f, 0L, SEEK_END);
-    temp = ftell(f);
-    (void)fseek(f, 0L, SEEK_SET);
-
-    /* Load first chunk of BIOS (which is the main BIOS, aka ROM1.) */
-    aha_rom1 = malloc(ROM_SIZE);
-    (void)fread(aha_rom1, ROM_SIZE, 1, f);
-    temp -= ROM_SIZE;
-    if (temp > 0) {
-	aha_rom2 = malloc(ROM_SIZE);
-	(void)fread(aha_rom2, ROM_SIZE, 1, f);
-	temp -= ROM_SIZE;
-    } else {
-	aha_rom2 = NULL;
-    }
-    if (temp != 0) {
-	pclog("AHA154x: BIOS ROM size invalid!\n");
-	free(aha_rom1);
-	if (aha_rom2 != NULL)
-		free(aha_rom2);
-	(void)fclose(f);
-	return;
-    }
-    temp = ftell(f);
-    if (temp > ROM_SIZE)
-	temp = ROM_SIZE;
-    (void)fclose(f);
-
-    /* Adjust BIOS size in chunks of 2K, as per BIOS spec. */
-    bios_size = 0x10000;
-    if (temp <= 0x8000)
-	bios_size = 0x8000;
-    if (temp <= 0x4000)
-	bios_size = 0x4000;
-    if (temp <= 0x2000)
-	bios_size = 0x2000;
-    bios_mask = (bios_size - 1);
-    pclog("AHA154x: BIOS at 0x%06lX, size %lu, mask %08lx\n",
-				bios_addr, bios_size, bios_mask);
-
-    /* Initialize the ROM entry for this BIOS. */
-    memset(&aha_bios, 0x00, sizeof(rom_t));
-
-    /* Enable ROM1 into the memory map. */
-    aha_bios.rom = aha_rom1;
-
-    /* Set up an address mask for this memory. */
-    aha_bios.mask = bios_mask;
-
-    /* Map this system into the memory map. */
-    mem_mapping_add(&aha_bios.mapping, bios_addr, bios_size,
-		    aha_mem_read, aha_mem_readw, aha_mem_readl,
-		    aha_mem_write, NULL, NULL,
-		    aha_bios.rom, MEM_MAPPING_EXTERNAL, &aha_bios);
-
-#if 0
-#ifdef ROM_IOADDR
-    /* Patch the ROM BIOS image to work with us. */
-    aha_patch(aha_bios.rom, ioaddr);
-#endif
-
-#if ROM_FWHIGH
-    /* Read firmware version from the BIOS. */
-    aha->fwh = aha_bios.rom[ROM_FWHIGH];
-    aha->fwl = aha_bios.rom[ROM_FWHIGH+1];
-#else
-    /* Fake BIOS firmware version. */
-    aha->fwh = '1';
-    aha->fwl = '0';
-#endif
-#endif
-
-    if (chip == CHIP_AHA154XB)
-    {
-	/* Fake BIOS firmware version. */
-	aha->fwh = '1';
-	aha->fwl = '0';
-    }
-    else
-    {
-	/* Patch the ROM BIOS image to work with us. */
-	aha_patch(aha_bios.rom, ioaddr);
-
-	/* Read firmware version from the BIOS. */
-	aha->fwh = aha_bios.rom[ROM_FWHIGH];
-	aha->fwl = aha_bios.rom[ROM_FWHIGH+1];
-    }
-
-    /* aha->bid = AHA_BID; */
-    aha->bid = (chip == CHIP_AHA154XB) ? 'A' : 'E';
-
-    /*
-     * Do a checksum on the ROM.
-     * The BIOS ROMs on the 154xC(F) boards will always fail
-     * the checksum, because they are incomplete: on the real
-     * boards, a shadow RAM and some other (config) registers
-     * are mapped into its space.  It is assumed that boards
-     * have logic that automatically generate a "fixup" byte
-     * at the end of the data to 'make up' for this.
-     *
-     * We emulated some of those in the patch routine, so now
-     * it is time to "fix up" the BIOS image so that the main
-     * (system) BIOS considers it valid.
-     */
-again:
-    bios_mask = 0;
-    for (temp=0; temp<16384; temp++)
-	bios_mask += aha_bios.rom[temp];
-    bios_mask &= 0xff;
-    if (bios_mask != 0x00) {
-	pclog("AHA154x: fixing BIOS checksum (%02x) ..\n", bios_mask);
-	aha_bios.rom[temp-1] += (256 - bios_mask);
-	goto again;
-    }
-
-    /* Enable the memory. */
-    mem_mapping_enable(&aha_bios.mapping);
-    mem_mapping_set_addr(&aha_bios.mapping, bios_addr, bios_size);
-
-/* #ifdef EEP_SIZE */
-    /* Initialize the on-board EEPROM. */
-    if (chip != CHIP_AHA154XB)
-    {
-	    memset(aha_eep, 0x00, EEP_SIZE);
-	    aha_eep[0] = 7;			/* SCSI ID 7 */
-		aha_eep[0] |= (0x10 | 0x20 | 0x40);
-	    aha_eep[1] = irq-9;			/* IRQ15 */
-	    aha_eep[1] |= (dma<<4);		/* DMA6 */
-	    aha_eep[2] = (EE2_HABIOS	| 	/* BIOS enabled		*/
-			  EE2_DYNSCAN	|	/* scan bus		*/
-			  EE2_EXT1G | EE2_RMVOK);/* Immediate return on seek	*/
-	    aha_eep[3] = SPEED_50;		/* speed 5.0 MB/s		*/
-	    aha_eep[6] = (EE6_TERM	|	/* host term enable		*/
-			  EE6_RSTBUS);		/* reset SCSI bus on boot	*/
-    }
-/* #endif */
-}
-
-
-/* Mess with the AHA-154xCF's Shadow RAM. */
-static uint8_t
-aha154x_shram(uint8_t cmd, int chip)
-{
-/* #ifdef ROM_SHRAM */
-    if (chip != CHIP_AHA154XB) {
-	switch(cmd) {
-		case 0x00:	/* disable, make it look like ROM */
-			memset(&aha_bios.rom[ROM_SHRAM], 0xFF, ROM_SHRAMSZ);
-			break;
-
-		case 0x02:	/* clear it */
-			memset(&aha_bios.rom[ROM_SHRAM], 0x00, ROM_SHRAMSZ);
-			break;
-
-		case 0x03:	/* enable, clear for use */
-			memset(&aha_bios.rom[ROM_SHRAM], 0x00, ROM_SHRAMSZ);
-		break;
-	}
-    }
-/* #endif */
-
-    /* Firmware expects 04 status. */
-    return(0x04);
-}
-
-
-static uint8_t
-aha154x_eeprom(uint8_t cmd,uint8_t arg,uint8_t len,uint8_t off,uint8_t *bufp, int chip)
-{
-    uint8_t r = 0xff;
-
-    pclog("AHA154x: EEPROM cmd=%02x, arg=%02x len=%d, off=%02x\n",
-					cmd, arg, len, off);
-
-/* #ifdef EEP_SIZE */
-    if (chip != CHIP_AHA154XB) {
-	if ((off+len) > EEP_SIZE) return(r);	/* no can do.. */
-
-	if (cmd == 0x22) {
-		/* Write data to the EEPROM. */
-		memcpy(&aha_eep[off], bufp, len);
-		r = 0;
-	}
-
-	if (cmd == 0x23) {
-		/* Read data from the EEPROM. */
-		memcpy(bufp, &aha_eep[off], len);
-		r = len;
-	}
-    }
-/* #endif */
-
-    return(r);
-}
-
-
-static uint8_t
-aha154x_memory(uint8_t cmd)
-{
-    pclog("AHA154x: MEMORY cmd=%02x\n", cmd);
-
-    if (cmd == 0x27) {
-	/* Enable the mapper, so, set ROM2 active. */
-	aha_bios.rom = aha_rom2;
-    }
-    if (cmd == 0x26) {
-	/* Disable the mapper, so, set ROM1 active. */
-	aha_bios.rom = aha_rom1;
-    }
-
-    return(0);
-}
-
-
-#define AHA_RESET_DURATION_NS UINT64_C(25000000)
-
-
-/*
- * Auto SCSI structure which is located in host adapter RAM
- * and contains several configuration parameters.
- */
-#pragma pack(push,1)
-typedef struct {
-    uint8_t	aInternalSignature[2];
-    uint8_t	cbInformation;
-    uint8_t	aHostAdaptertype[6];
-    uint8_t	uReserved1;
-    uint8_t	fFloppyEnabled		:1,
-		fFloppySecondary	:1,
-		fLevelSensitiveInterrupt:1,
-		uReserved2		:2,
-		uSystemRAMAreForBIOS	:3;
-    uint8_t	uDMAChannel		:7,
-		fDMAAutoConfiguration	:1,
-		uIrqChannel		:7,
-		fIrqAutoConfiguration	:1;
-    uint8_t	uDMATransferRate;
-    uint8_t	uSCSIId;
-    uint8_t	fLowByteTerminated	:1,
-		fParityCheckingEnabled	:1,
-		fHighByteTerminated	:1,
-		fNoisyCablingEnvironment:1,
-		fFastSyncNegotiation	:1,
-		fBusResetEnabled	:1,
-		fReserved3		:1,
-		fActiveNegotiationEna	:1;
-    uint8_t	uBusOnDelay;
-    uint8_t	uBusOffDelay;
-    uint8_t	fHostAdapterBIOSEnabled	:1,
-		fBIOSRedirectionOfInt19 :1,
-		fExtendedTranslation	:1,
-		fMapRemovableAsFixed	:1,
-		fReserved4		:1,
-		fBIOSMoreThan2Drives	:1,
-		fBIOSInterruptMode	:1,
-		fFlopticalSupport	:1;
-    uint16_t	u16DeviceEnabledMask;
-    uint16_t	u16WidePermittedMask;
-    uint16_t	u16FastPermittedMask;
-    uint16_t	u16SynchronousPermittedMask;
-    uint16_t	u16DisconnectPermittedMask;
-    uint16_t	u16SendStartUnitCommandMask;
-    uint16_t	u16IgnoreInBIOSScanMask;
-    unsigned char uPCIInterruptPin :                2;
-    unsigned char uHostAdapterIoPortAddress :       2;
-    uint8_t          fStrictRoundRobinMode :           1;
-    uint8_t          fVesaBusSpeedGreaterThan33MHz :   1;
-    uint8_t          fVesaBurstWrite :                 1;
-    uint8_t          fVesaBurstRead :                  1;
-    uint16_t      u16UltraPermittedMask;
-    uint32_t      uReserved5;
-    uint8_t       uReserved6;
-    uint8_t       uAutoSCSIMaximumLUN;
-    uint8_t          fReserved7 :                      1;
-    uint8_t          fSCAMDominant :                   1;
-    uint8_t          fSCAMenabled :                    1;
-    uint8_t          fSCAMLevel2 :                     1;
-    unsigned char uReserved8 :                      4;
-    uint8_t          fInt13Extension :                 1;
-    uint8_t          fReserved9 :                      1;
-    uint8_t          fCDROMBoot :                      1;
-    unsigned char uReserved10 :                     5;
-    unsigned char uBootTargetId :                   4;
-    unsigned char uBootChannel :                    4;
-    uint8_t          fForceBusDeviceScanningOrder :    1;
-    unsigned char uReserved11 :                     7;
-    uint16_t      u16NonTaggedToAlternateLunPermittedMask;
-    uint16_t      u16RenegotiateSyncAfterCheckConditionMask;
-    uint8_t       aReserved12[10];
-    uint8_t       aManufacturingDiagnostic[2];
-    uint16_t      u16Checksum;
-} AutoSCSIRam;
-#pragma pack(pop)
 
 /* The local RAM. */
 #pragma pack(push,1)
@@ -635,7 +156,6 @@ typedef union {
     uint8_t u8View[256];		/* byte view */
     struct {				/* structured view */
         uint8_t     u8Bios[64];		/* offset 0 - 63 is for BIOS */
-        AutoSCSIRam autoSCSIData;	/* Auto SCSI structure */
     } structured;
 } HALocalRAM;
 #pragma pack(pop)
@@ -674,14 +194,12 @@ typedef struct {
 } ReplyInquireSetupInformation;
 #pragma pack(pop)
 
-
 #pragma pack(push,1)
 typedef struct {
     uint8_t	Count;
     addr24	Address;
 } MailboxInit_t;
 #pragma pack(pop)
-
 
 /*
  * Mailbox Definitions.
@@ -698,7 +216,6 @@ typedef struct {
 #define MBI_ABORT                 0x02
 #define MBI_NOT_FOUND             0x03
 #define MBI_ERROR                 0x04
-
 
 #pragma pack(push,1)
 typedef struct {
@@ -724,7 +241,6 @@ typedef struct {
     }		u;
 } Mailbox32_t;
 #pragma pack(pop)
-
 
 /*
  *
@@ -860,10 +376,32 @@ typedef struct {
 } Req_t;
 #pragma pack(pop)
 
-
 #pragma pack(push,1)
 typedef struct {
-    rom_t	bios;
+    int8_t	type;				/* type of device */
+    char	name[16];			/* name of device */
+
+    int8_t	Irq;
+    int8_t	DmaChannel;
+    int8_t	IrqEnabled;
+    uint32_t	Base;
+    mem_mapping_t mmio_mapping;			/* MCA */
+    uint8_t	pos_regs[8];			/* MCA */
+
+    uint8_t	flags;				/* local flags */
+    uint8_t	bid;				/* board ID */
+    char	fwl, fwh;			/* firmware info */
+
+    wchar_t	*bios_path;			/* path to BIOS image file */
+    uint16_t	rom_ioaddr;			/* offset in BIOS of I/O addr */
+    uint16_t	rom_shram;			/* index to shared RAM */
+    uint16_t	rom_shramsz;			/* size of shared RAM */
+    uint16_t	rom_fwhigh;			/* offset in BIOS of ver ID */
+    rom_t	bios;				/* BIOS memory descriptor */
+
+    wchar_t	*nvr_path;			/* path to NVR image file */
+    uint8_t	*nvr;				/* EEPROM buffer */
+
     int		UseLocalRAM;
     int		StrictRoundRobinMode;
     int		ExtendedLUNCCBFormat;
@@ -885,19 +423,11 @@ typedef struct {
     uint32_t	MailboxOutPosCur;
     uint32_t	MailboxInAddr;
     uint32_t	MailboxInPosCur;
-    int		Base;
-    int		Irq;
-    int		DmaChannel;
-    int		IrqEnabled;
     int		Mbx24bit;
     int		MailboxOutInterrupts;
     int		MbiActive[256];
     int		PendingInterrupt;
     int		Lock;
-    mem_mapping_t mmio_mapping;
-    aha_info	aha;
-    int		chip;
-	uint8_t pos_regs[8];
 } aha_t;
 #pragma pack(pop)
 
@@ -906,18 +436,170 @@ static int	ResetCB = 0;
 static int	AHA_Callback = 0;
 static int	AHA_InOperation = 0;
 static aha_t	*ResetDev;
+static rom_t	aha_bios;			/* active ROM */
+static uint8_t	*aha_rom1;			/* main BIOS */
+static uint8_t	*aha_rom2;			/* SCSI-Select */
+static uint16_t	aha_ports[] = {
+    0x0330, 0x0334, 0x0230, 0x0234,
+    0x0130, 0x0134, 0x0000, 0x0000
+};
+
+#ifdef WALTJE
+int aha_do_log = 1;
+# define ENABLE_AHA154X_LOG
+#else
+int aha_do_log = 0;
+#endif
+
+
+static void
+aha_log(const char *format, ...)
+{
+#ifdef ENABLE_AHA154X_LOG
+    va_list ap;
+
+    if (aha_do_log) {
+	va_start(ap, format);
+	vprintf(format, ap);
+	va_end(ap);
+	fflush(stdout);
+    }
+#endif
+}
+#define pclog	aha_log
+
+
+/*
+ * Write data to the BIOS space.
+ *
+ * AHA-1542C's and up have a feature where they map a 128-byte
+ * RAM space into the ROM BIOS' address space, and then use it
+ * as working memory. This function implements the writing to
+ * that memory.
+ *
+ * We enable/disable this memory through AHA command 0x24.
+ */
+static void
+aha_mem_write(uint32_t addr, uint8_t val, void *priv)
+{
+    rom_t *rom = (rom_t *)priv;
+
+    if ((addr & rom->mask) >= 0x3F80)
+	rom->rom[addr & rom->mask] = val;
+}
+
+
+static uint8_t
+aha_mem_read(uint32_t addr, void *priv)
+{
+    rom_t *rom = (rom_t *)priv;
+
+    return(rom->rom[addr & rom->mask]);
+}
+
+
+static uint16_t
+aha_mem_readw(uint32_t addr, void *priv)
+{
+    rom_t *rom = (rom_t *)priv;
+
+    return(*(uint16_t *)&rom->rom[addr & rom->mask]);
+}
+
+
+static uint32_t
+aha_mem_readl(uint32_t addr, void *priv)
+{
+    rom_t *rom = (rom_t *)priv;
+
+    return(*(uint32_t *)&rom->rom[addr & rom->mask]);
+}
+
+
+static uint8_t
+aha154x_shram(aha_t *dev, uint8_t cmd)
+{
+    /* If not supported, give up. */
+    if (dev->rom_shram == 0x0000) return(0x04);
+
+    switch(cmd) {
+	case 0x00:	/* disable, make it look like ROM */
+		memset(&aha_bios.rom[dev->rom_shram], 0xFF, dev->rom_shramsz);
+		break;
+
+	case 0x02:	/* clear it */
+		memset(&aha_bios.rom[dev->rom_shram], 0x00, dev->rom_shramsz);
+		break;
+
+	case 0x03:	/* enable, clear for use */
+		memset(&aha_bios.rom[dev->rom_shram], 0x00, dev->rom_shramsz);
+		break;
+    }
+
+    /* Firmware expects 04 status. */
+    return(0x04);
+}
+
+
+static uint8_t
+aha154x_eeprom(aha_t *dev, uint8_t cmd,uint8_t arg,uint8_t len,uint8_t off,uint8_t *bufp)
+{
+    uint8_t r = 0xff;
+
+    pclog("%s: EEPROM cmd=%02x, arg=%02x len=%d, off=%02x\n",
+				dev->name, cmd, arg, len, off);
+
+    /* Only if we can handle it.. */
+    if (dev->nvr == NULL) return(r);
+
+    if ((off+len) > NVR_SIZE) return(r);	/* no can do.. */
+
+    if (cmd == 0x22) {
+	/* Write data to the EEPROM. */
+	memcpy(&dev->nvr[off], bufp, len);
+	r = 0;
+    }
+
+    if (cmd == 0x23) {
+	/* Read data from the EEPROM. */
+	memcpy(bufp, &dev->nvr[off], len);
+	r = len;
+    }
+
+    return(r);
+}
+
+
+/* Mess with the AHA-154xCF's Shadow RAM. */
+static uint8_t
+aha154x_memory(aha_t *dev, uint8_t cmd)
+{
+    pclog("%s: MEMORY cmd=%02x\n", dev->name, cmd);
+
+    if (cmd == 0x27) {
+	/* Enable the mapper, so, set ROM2 active. */
+	aha_bios.rom = aha_rom2;
+    }
+    if (cmd == 0x26) {
+	/* Disable the mapper, so, set ROM1 active. */
+	aha_bios.rom = aha_rom1;
+    }
+
+    return(0);
+}
 
 
 static void
 ClearIntr(aha_t *dev)
 {
     dev->Interrupt = 0;
-    pclog("AHA154X: lowering IRQ %i (stat 0x%02x)\n",
-				dev->Irq, dev->Interrupt);
+    pclog("%s: lowering IRQ %i (stat 0x%02x)\n",
+		dev->name, dev->Irq, dev->Interrupt);
     picintc(1 << dev->Irq);
     if (dev->PendingInterrupt) {
 	dev->Interrupt = dev->PendingInterrupt;
-	pclog("AHA154X: Raising Interrupt 0x%02X (Pending)\n", dev->Interrupt);
+	pclog("%s: Raising Interrupt 0x%02X (Pending)\n",
+				dev->name, dev->Interrupt);
 	if (dev->MailboxOutInterrupts || !(dev->Interrupt & INTR_MBOA)) {
 		if (dev->IrqEnabled)  picint(1 << dev->Irq);
 	}
@@ -930,15 +612,16 @@ static void
 RaiseIntr(aha_t *dev, uint8_t Interrupt)
 {
     if (dev->Interrupt & INTR_HACC) {
-	pclog("Pending IRQ\n");
+	pclog("%s: Pending IRQ\n", dev->name);
 	dev->PendingInterrupt = Interrupt;
     } else {
 	dev->Interrupt = Interrupt;
-	pclog("Raising IRQ %i\n", dev->Irq);
+	pclog("%s: Raising IRQ %i\n", dev->name, dev->Irq);
 	if (dev->IrqEnabled)
 		picint(1 << dev->Irq);
     }
 }
+
 
 static void
 aha_reset(aha_t *dev)
@@ -961,9 +644,6 @@ aha_reset(aha_t *dev)
     AHA_InOperation = 0;
 
     ClearIntr(dev);
-
-	/* I think the "local RAM" commands are  for the Buslogic, not Adaptec. */
-    //LocalRAM(dev);
 }
 
 
@@ -988,7 +668,7 @@ aha_cmd_done(aha_t *dev)
     if ((dev->Command != CMD_START_SCSI) && (dev->Command != CMD_BIOS_SCSI)) {
 	dev->Status &= ~STAT_DFULL;
 	dev->Interrupt = (INTR_ANY | INTR_HACC);
-	pclog("Raising IRQ %i\n", dev->Irq);
+	pclog("%s: Raising IRQ %i\n", dev->name, dev->Irq);
 	if (dev->IrqEnabled)
 		picint(1 << dev->Irq);
     }
@@ -1077,13 +757,13 @@ aha_mbi(aha_t *dev)
 static void
 aha_rd_sge(int Is24bit, uint32_t SGList, uint32_t Entries, SGE32 *SG)
 {
-    uint32_t i;
     SGE SGE24[MAX_SG_DESCRIPTORS];
+    uint32_t i;
 
     if (Is24bit) {
 	DMAPageRead(SGList, (char *)&SGE24, Entries * sizeof(SGE));
 
-	for (i=0;i<Entries;++i) {
+	for (i=0; i<Entries; ++i) {
 		/* Convert the 24-bit entries into 32-bit entries. */
 		SG[i].Segment = ADDR_TO_U32(SGE24[i].Segment);
 		SG[i].SegmentPointer = ADDR_TO_U32(SGE24[i].SegmentPointer);
@@ -1135,12 +815,12 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 			aha_rd_sge(Is24bit, SGAddrCurrent, SGRead, SGBuffer);
 
 			for (ScatterEntry = 0; ScatterEntry < SGRead; ScatterEntry++) {
-				pclog("BusLogic S/G Write: ScatterEntry=%u\n", ScatterEntry);
+				pclog("S/G Write: ScatterEntry=%u\n", ScatterEntry);
 
 				Address = SGBuffer[ScatterEntry].SegmentPointer;
 				DataToTransfer += SGBuffer[ScatterEntry].Segment;
 
-				pclog("BusLogic S/G Write: Address=%08X DatatoTransfer=%u\n", Address, DataToTransfer);
+				pclog("S/G Write: Address=%08X DatatoTransfer=%u\n", Address, DataToTransfer);
 			}
 
 			SGAddrCurrent += SGRead * SGEntryLength;
@@ -1169,12 +849,12 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 						      SGRead, SGBuffer);
 
 				for (ScatterEntry = 0; ScatterEntry < SGRead; ScatterEntry++) {
-					pclog("BusLogic S/G Write: ScatterEntry=%u\n", ScatterEntry);
+					pclog("S/G Write: ScatterEntry=%u\n", ScatterEntry);
 
 					Address = SGBuffer[ScatterEntry].SegmentPointer;
 					DataToTransfer = SGBuffer[ScatterEntry].Segment;
 
-					pclog("BusLogic S/G Write: Address=%08X DatatoTransfer=%u\n", Address, DataToTransfer);
+					pclog("S/G Write: Address=%08X DatatoTransfer=%u\n", Address, DataToTransfer);
 
 					DMAPageRead(Address, (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer + sg_buffer_pos, DataToTransfer);
 					sg_buffer_pos += DataToTransfer;
@@ -1258,12 +938,12 @@ aha_buf_free(Req_t *req)
 					      SGRead, SGBuffer);
 
 			for (ScatterEntry = 0; ScatterEntry < SGRead; ScatterEntry++) {
-				pclog("BusLogic S/G: ScatterEntry=%u\n", ScatterEntry);
+				pclog("S/G: ScatterEntry=%u\n", ScatterEntry);
 
 				Address = SGBuffer[ScatterEntry].SegmentPointer;
 				DataToTransfer = SGBuffer[ScatterEntry].Segment;
 
-				pclog("BusLogic S/G: Writing %i bytes at %08X\n", DataToTransfer, Address);
+				pclog("S/G: Writing %i bytes at %08X\n", DataToTransfer, Address);
 
 				DMAPageWrite(Address, (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer + sg_buffer_pos, DataToTransfer);
 				sg_buffer_pos += DataToTransfer;
@@ -1275,7 +955,8 @@ aha_buf_free(Req_t *req)
 		   req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES) {
 		Address = DataPointer;
 
-		pclog("BusLogic DMA: Writing %i bytes at %08X\n", DataLength, Address);
+		pclog("DMA: Writing %i bytes at %08X\n",
+						DataLength, Address);
 		DMAPageWrite(Address, (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer, DataLength);
 	}
     }
@@ -1322,11 +1003,7 @@ aha_read(uint16_t port, void *priv)
 		break;
 		
 	case 1:
-		/* Local RAM is for Buslogic or unsupported Adaptec models */
-		//if (dev->UseLocalRAM)
-		//	ret = dev->LocalRAM.u8View[dev->DataReply];
-		//else
-			ret = dev->DataBuf[dev->DataReply];
+		ret = dev->DataBuf[dev->DataReply];
 		if (dev->DataReplyLeft) {
 			dev->DataReply++;
 			dev->DataReplyLeft--;
@@ -1345,7 +1022,8 @@ aha_read(uint16_t port, void *priv)
     }
 
     if (port < 0x1000) {
-	pclog("AHA154X: Read Port 0x%02X, Returned Value %02X\n", port, ret);
+	pclog("%s: Read Port 0x%02X, Returned Value %02X\n",
+					dev->name, port, ret);
     }
 
     return(ret);
@@ -1355,7 +1033,7 @@ aha_read(uint16_t port, void *priv)
 static uint16_t
 aha_readw(uint16_t port, void *priv)
 {
-    return aha_read(port, priv);
+    return(aha_read(port, priv));
 }
 
 
@@ -1371,7 +1049,7 @@ aha_write(uint16_t port, uint8_t val, void *priv)
     uint16_t cyl = 0;
     uint8_t temp = 0;
 
-    pclog("AHA154X: Write Port 0x%02X, Value %02X\n", port, val);
+    pclog("%s: Write Port 0x%02X, Value %02X\n", dev->name, port, val);
 
     switch (port & 3) {
 	case 0:
@@ -1406,7 +1084,7 @@ aha_write(uint16_t port, uint8_t val, void *priv)
 			dev->CmdParamLeft = 0;
 			
 			dev->Status &= ~(STAT_INVCMD | STAT_IDLE);
-			pclog("AHA154X: Operation Code 0x%02X\n", val);
+			pclog("%s: Operation Code 0x%02X\n", dev->name, val);
 			switch (dev->Command) {
 				case CMD_MBINIT:
 					dev->CmdParamLeft = sizeof(MailboxInit_t);
@@ -1472,11 +1150,12 @@ aha_0x01:
 					dev->MailboxOutAddr = ADDR_TO_U32(MailboxInit->Address);
 					dev->MailboxInAddr = dev->MailboxOutAddr + (dev->MailboxCount * sizeof(Mailbox_t));
 						
-					pclog("Initialize Mailbox Command\n");
-					pclog("Mailbox Out Address=0x%08X\n", dev->MailboxOutAddr);
-					pclog("Mailbox In Address=0x%08X\n", dev->MailboxInAddr);
-					pclog("Initialized Mailbox, %d entries at 0x%08X\n", MailboxInit->Count, ADDR_TO_U32(MailboxInit->Address));
-						
+					pclog("Initialize Mailbox: MBI=0x%08lx, MBO=0x%08lx, %d entries at 0x%08lx\n",
+						dev->MailboxOutAddr,
+						dev->MailboxInAddr,
+						MailboxInit->Count,
+						ADDR_TO_U32(MailboxInit->Address));
+
 					dev->Status &= ~STAT_INIT;
 					dev->DataReplyLeft = 0;
 				}
@@ -1497,10 +1176,10 @@ aha_0x01:
 					break;
 
 				case CMD_INQUIRY: /* Inquiry Command */
-					dev->DataBuf[0] = (dev->chip != CHIP_AHA1640) ? dev->aha.bid : 0x42;
-					dev->DataBuf[1] = (dev->chip != CHIP_AHA1640) ? 0x30 : 0x42;
-					dev->DataBuf[2] = dev->aha.fwh;
-					dev->DataBuf[3] = dev->aha.fwl;
+					dev->DataBuf[0] = (dev->type != AHA_1640) ? dev->bid : 0x42;
+					dev->DataBuf[1] = (dev->type != AHA_1640) ? 0x30 : 0x42;
+					dev->DataBuf[2] = dev->fwh;
+					dev->DataBuf[3] = dev->fwl;
 					dev->DataReplyLeft = 4;
 					break;
 
@@ -1534,15 +1213,15 @@ aha_0x01:
 					break;
 
 				case CMD_RETDEVS: /* Return Installed Devices */
-					memset(dev->DataBuf, 0, 8);
+					memset(dev->DataBuf, 0x00, 8);
 					for (i=0; i<7; i++) {
-					    dev->DataBuf[i] = 0;
+					    dev->DataBuf[i] = 0x00;
 					    for (j=0; j<8; j++) {
 						if (SCSIDevices[i][j].LunType != SCSI_NONE)
 						    dev->DataBuf[i] |= (1<<j);
 					    }
 					}
-					dev->DataBuf[7] = 0;
+					dev->DataBuf[7] = 0x00;
 					dev->DataReplyLeft = 8;
 					break;				
 
@@ -1561,7 +1240,7 @@ aha_0x01:
 					dev->DataReplyLeft = dev->CmdBuf[0];
 
 					ReplyISI = (ReplyInquireSetupInformation *)dev->DataBuf;
-					memset(ReplyISI, 0, sizeof(ReplyInquireSetupInformation));
+					memset(ReplyISI, 0x00, sizeof(ReplyInquireSetupInformation));
 					
 					ReplyISI->fSynchronousInitiationEnabled = 1;
 					ReplyISI->fParityCheckingEnabled = 1;
@@ -1585,12 +1264,12 @@ aha_0x01:
 				case CMD_WRITE_EEPROM:	/* write EEPROM */
 					/* Sent by CF BIOS. */
 					dev->DataReplyLeft =
-					    aha154x_eeprom(dev->Command,
+					    aha154x_eeprom(dev,
+						   dev->Command,
 						   dev->CmdBuf[0],
 						   dev->CmdBuf[1],
 						   dev->CmdBuf[2],
-						   dev->DataBuf,
-						   dev->chip);
+						   dev->DataBuf);
 					if (dev->DataReplyLeft == 0xff) {
 						dev->DataReplyLeft = 0;
 						dev->Status |= STAT_INVCMD;
@@ -1600,12 +1279,12 @@ aha_0x01:
 				case CMD_READ_EEPROM: /* read EEPROM */
 					/* Sent by CF BIOS. */
 					dev->DataReplyLeft =
-					    aha154x_eeprom(dev->Command,
+					    aha154x_eeprom(dev,
+						   dev->Command,
 						   dev->CmdBuf[0],
 						   dev->CmdBuf[1],
 						   dev->CmdBuf[2],
-						   dev->DataBuf,
-						   dev->chip);
+						   dev->DataBuf);
 					if (dev->DataReplyLeft == 0xff) {
 						dev->DataReplyLeft = 0;
 						dev->Status |= STAT_INVCMD;
@@ -1620,7 +1299,7 @@ aha_0x01:
 					 * and expects a 0x04 back in the INTR
 					 * register.  --FvK
 					 */
-					dev->Interrupt = aha154x_shram(val, dev->chip);
+					dev->Interrupt = aha154x_shram(dev,val);
 					break;
 
 				case CMD_BIOS_MBINIT: /* BIOS Mailbox Initialitation Command */
@@ -1631,7 +1310,7 @@ aha_0x01:
 				case CMD_MEMORY_MAP_2:	/* AHA memory mapper */
 					/* Sent by CF BIOS. */
 					dev->DataReplyLeft =
-					    aha154x_memory(dev->Command);
+					    aha154x_memory(dev, dev->Command);
 					break;
 
 				case CMD_EXTBIOS: /* Return extended BIOS information */
@@ -1775,7 +1454,7 @@ aha_disk_cmd(aha_t *dev)
 	pclog("SCSI Cdb[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
     }
 
-    memset(temp_cdb, 0, 12);
+    memset(temp_cdb, 0x00, 12);
     if (req->CmdBlock.common.CdbLength <= 12) {
 	memcpy(temp_cdb, req->CmdBlock.common.Cdb,
 		req->CmdBlock.common.CdbLength);
@@ -1851,13 +1530,14 @@ aha_cdrom_cmd(aha_t *dev)
     Lun = req->LUN;
     cdrom_id = scsi_cdrom_drives[Id][Lun];
 
-    if (cdrom_id == 0xff)  fatal("SCSI CD-ROM on %02i:%02i has disappeared\n", Id, Lun);
+    if (cdrom_id == 0xff)
+	fatal("SCSI CD-ROM on %02i:%02i has disappeared\n", Id, Lun);
 
     pclog("CD-ROM command being executed on: SCSI ID %i, SCSI LUN %i, CD-ROM %i\n",
 							Id, Lun, cdrom_id);
 
     pclog("SCSI Cdb[0]=0x%02X\n", req->CmdBlock.common.Cdb[0]);
-    for (i = 1; i < req->CmdBlock.common.CdbLength; i++) {
+    for (i = 1; i<req->CmdBlock.common.CdbLength; i++) {
 	pclog("SCSI Cdb[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
     }
 
@@ -2098,140 +1778,377 @@ aha_cmd_cb(void *priv)
 		return;
 	}
     } else if (AHA_InOperation == 1) {
-	pclog("BusLogic Callback: Process CD-ROM request\n");
+	pclog("%s: Callback: Process CD-ROM request\n", dev->name);
 	aha_cdrom_cmd(dev);
 	aha_mbi(dev);
-	if (dev->Req.CmdBlock.common.Cdb[0] == 0x42)
-	{
+	if (dev->Req.CmdBlock.common.Cdb[0] == 0x42) {
 		/* This is needed since CD Audio inevitably means READ SUBCHANNEL spam. */
 		AHA_Callback += 1000 * TIMER_USEC;
 		return;
 	}
     } else if (AHA_InOperation == 2) {
-	pclog("BusLogic Callback: Send incoming mailbox\n");
+	pclog("%s: Callback: Send incoming mailbox\n", dev->name);
 	aha_mbi(dev);
     } else if (AHA_InOperation == 0x11) {
-	pclog("BusLogic Callback: Process DISK request\n");
+	pclog("%s: Callback: Process DISK request\n", dev->name);
 	aha_disk_cmd(dev);
 	aha_mbi(dev);
     } else {
-	fatal("Invalid BusLogic callback phase: %i\n", AHA_InOperation);
+	fatal("%s: Invalid callback phase: %i\n", dev->name, AHA_InOperation);
     }
 
     AHA_Callback += SCSI_DELAY_TM * TIMER_USEC;
 }
 
-uint8_t aha_mca_read(int port, void *p)
-{
-    aha_t *dev = (aha_t *)p;
 
-	return dev->pos_regs[port & 7];
+static uint8_t
+aha_mca_read(int port, void *priv)
+{
+    aha_t *dev = (aha_t *)priv;
+
+    return(dev->pos_regs[port & 7]);
 }
 
-uint16_t aha_mca_get_port(uint8_t pos_port)
+
+static uint16_t
+aha_mca_get_port(uint8_t pos_port)
 {
-	uint16_t addr = 0;
-	switch (pos_port & 0xC7)
-	{
-		case 0x01:
-		addr = 0x130;
+    uint16_t addr = 0;
+
+    switch (pos_port & 0x00C7) {
+	case 0x01:
+		addr = 0x0130;
 		break;
 		
-		case 0x02:
-		addr = 0x230;
+	case 0x02:
+		addr = 0x0230;
 		break;
 		
-		case 0x03:
-		addr = 0x330;
+	case 0x03:
+		addr = 0x0330;
 		break;
 		
-		case 0x41:
-		addr = 0x134;
+	case 0x41:
+		addr = 0x0134;
 		break;
 		
-		case 0x42:
-		addr = 0x234;
+	case 0x42:
+		addr = 0x0234;
 		break;
 		
-		case 0x43:
-		addr = 0x334;
+	case 0x43:
+		addr = 0x0334;
 		break;
-	}
+    }
 		
-	return addr;
+    return(addr);
 }
 
-void aha_mca_write(int port, uint8_t val, void *p)
+
+static void
+aha_mca_write(int port, uint8_t val, void *priv)
 {
-    aha_t *dev = (aha_t *)p;
+    aha_t *dev = (aha_t *)priv;
     uint16_t addr;
 	
-	if (port < 0x102)
-			return;
+    if (port < 0x0102) return;
 
-	addr = aha_mca_get_port(dev->pos_regs[3]);		
-	io_removehandler(addr, 0x0004, aha_read, aha_readw, NULL, aha_write, aha_writew, NULL, dev);		
+    addr = aha_mca_get_port(dev->pos_regs[3]);		
+    io_removehandler(addr, 4,
+		     aha_read, aha_readw, NULL,
+		     aha_write, aha_writew, NULL, dev);		
 		
-	dev->pos_regs[port & 7] = val;
+    dev->pos_regs[port & 7] = val;
+
+    if (dev->pos_regs[2] & 1) {
+	addr = aha_mca_get_port(dev->pos_regs[3]);
+	io_sethandler(addr, 4,
+		      aha_read, aha_readw, NULL,
+		      aha_write, aha_writew, NULL, dev);
+    }
 	
-	if (dev->pos_regs[2] & 1)
-	{
-		addr = aha_mca_get_port(dev->pos_regs[3]);
-		io_sethandler(addr, 0x0004, aha_read, aha_readw, NULL, aha_write, aha_writew, NULL, dev);
-	}
-	
-	dev->Irq = (dev->pos_regs[4] & 0x7) + 8;
-	dev->DmaChannel = dev->pos_regs[5] & 0xf;	
+    dev->Irq = (dev->pos_regs[4] & 0x7) + 8;
+    dev->DmaChannel = dev->pos_regs[5] & 0xf;	
 }
+
 
 void
 aha_device_reset(void *p)
 {
-	aha_t *dev = (aha_t *) p;
-	aha_reset_ctrl(dev, 1);
+    aha_t *dev = (aha_t *) p;
+
+    aha_reset_ctrl(dev, 1);
 }
 
 
+/* Initialize the board's ROM BIOS. */
+static void
+aha_setbios(aha_t *dev, uint32_t memaddr)
+{
+    uint32_t size;
+    uint32_t mask;
+    uint32_t temp;
+    FILE *f;
+    int i;
+
+    /* Only if this device has a BIOS ROM. */
+    if (dev->bios_path == NULL) return;
+
+    /* Open the BIOS image file and make sure it exists. */
+    pclog_w(L"%S: loading BIOS from '%s'\n", dev->name, dev->bios_path);
+    if ((f = romfopen(dev->bios_path, L"rb")) == NULL) {
+	pclog("%s: BIOS ROM not found!\n", dev->name);
+	return;
+    }
+
+    /*
+     * Manually load and process the ROM image.
+     *
+     * We *could* use the system "rom_init" function here, but for
+     * this special case, we can't: we may need WRITE access to the
+     * memory later on.
+     */
+    (void)fseek(f, 0L, SEEK_END);
+    temp = ftell(f);
+    (void)fseek(f, 0L, SEEK_SET);
+
+    /* Load first chunk of BIOS (which is the main BIOS, aka ROM1.) */
+    aha_rom1 = malloc(ROM_SIZE);
+    (void)fread(aha_rom1, ROM_SIZE, 1, f);
+    temp -= ROM_SIZE;
+    if (temp > 0) {
+	aha_rom2 = malloc(ROM_SIZE);
+	(void)fread(aha_rom2, ROM_SIZE, 1, f);
+	temp -= ROM_SIZE;
+    } else {
+	aha_rom2 = NULL;
+    }
+    if (temp != 0) {
+	pclog("%s: BIOS ROM size invalid!\n", dev->name);
+	free(aha_rom1);
+	if (aha_rom2 != NULL)
+		free(aha_rom2);
+	(void)fclose(f);
+	return;
+    }
+    temp = ftell(f);
+    if (temp > ROM_SIZE)
+	temp = ROM_SIZE;
+    (void)fclose(f);
+
+    /* Adjust BIOS size in chunks of 2K, as per BIOS spec. */
+    size = 0x10000;
+    if (temp <= 0x8000)
+	size = 0x8000;
+    if (temp <= 0x4000)
+	size = 0x4000;
+    if (temp <= 0x2000)
+	size = 0x2000;
+    mask = (size - 1);
+    pclog("%s: BIOS at 0x%06lX, size %lu, mask %08lx\n",
+			dev->name, memaddr, size, mask);
+
+    /* Initialize the ROM entry for this BIOS. */
+    memset(&aha_bios, 0x00, sizeof(rom_t));
+
+    /* Enable ROM1 into the memory map. */
+    aha_bios.rom = aha_rom1;
+
+    /* Set up an address mask for this memory. */
+    aha_bios.mask = mask;
+
+    /* Map this system into the memory map. */
+    mem_mapping_add(&aha_bios.mapping, memaddr, size,
+		    aha_mem_read, aha_mem_readw, aha_mem_readl,
+		    aha_mem_write, NULL, NULL,
+		    aha_bios.rom, MEM_MAPPING_EXTERNAL, &aha_bios);
+
+    /*
+     * Patch the ROM BIOS image for stuff Adaptec deliberately
+     * made hard to understand. Well, maybe not, maybe it was
+     * their way of handling issues like these at the time..
+     *
+     * Patch 1: emulate the I/O ADDR SW setting by patching a
+     *	    byte in the BIOS that indicates the I/O ADDR
+     *	    switch setting on the board.
+     */
+    if (dev->rom_ioaddr != 0x0000) {
+	/* Look up the I/O address in the table. */
+	for (i=0; i<8; i++)
+		if (aha_ports[i] == dev->Base) break;
+	if (i == 8) {
+		pclog("%s: invalid I/O address %04x selected!\n",
+					dev->name, dev->Base);
+		return;
+	}
+	aha_bios.rom[dev->rom_ioaddr] = (uint8_t)i;
+    }
+
+    /*
+     * The more recent BIOS images have their version ID
+     * encoded in the image, and we can use that info to
+     * report it back.
+     *
+     * Start out with a fake BIOS firmware version.
+     */
+    dev->fwh = '1';
+    dev->fwl = '0';
+    if (dev->rom_fwhigh != 0x0000) {
+	/* Read firmware version from the BIOS. */
+	dev->fwh = aha_bios.rom[dev->rom_fwhigh];
+	dev->fwl = aha_bios.rom[dev->rom_fwhigh+1];
+    }
+
+    /*
+     * Do a checksum on the ROM.
+     *
+     * The BIOS ROMs on the 154xC(F) boards will always fail
+     * the checksum, because they are incomplete: on the real
+     * boards, a shadow RAM and some other (config) registers
+     * are mapped into its space.  It is assumed that boards
+     * have logic that automatically generate a "fixup" byte
+     * at the end of the data to 'make up' for this.
+     *
+     * We emulated some of those in the patch routine, so now
+     * it is time to "fix up" the BIOS image so that the main
+     * (system) BIOS considers it valid.
+     */
+again:
+    mask = 0;
+    for (temp=0; temp<ROM_SIZE; temp++)
+	mask += aha_bios.rom[temp];
+    mask &= 0xff;
+    if (mask != 0x00) {
+	pclog("%s: fixing BIOS checksum (%02x) ..\n", dev->name, mask);
+	aha_bios.rom[temp-1] += (256 - mask);
+	goto again;
+    }
+
+    /* Enable the memory. */
+    mem_mapping_enable(&aha_bios.mapping);
+    mem_mapping_set_addr(&aha_bios.mapping, memaddr, size);
+}
+
+
+/* Initialize the board's EEPROM (NVR.) */
+static void
+aha_setnvr(aha_t *dev)
+{
+    /* Only if this device has an EEPROM. */
+    if (dev->nvr_path == NULL) return;
+
+    /* Allocate and initialize the EEPROM. */
+    dev->nvr = (uint8_t *)malloc(NVR_SIZE);
+    memset(dev->nvr, 0x00, NVR_SIZE);
+
+    /* Initialize the on-board EEPROM. */
+    dev->nvr[0] = 7;				/* SCSI ID 7 */
+    dev->nvr[0] |= (0x10 | 0x20 | 0x40);
+    dev->nvr[1] = dev->Irq-9;			/* IRQ15 */
+    dev->nvr[1] |= (dev->DmaChannel<<4);	/* DMA6 */
+    dev->nvr[2] = (EE2_HABIOS	| 		/* BIOS enabled		*/
+		   EE2_DYNSCAN	|		/* scan bus		*/
+		   EE2_EXT1G | EE2_RMVOK);	/* Imm return on seek	*/
+    dev->nvr[3] = SPEED_50;			/* speed 5.0 MB/s	*/
+    dev->nvr[6] = (EE6_TERM	|		/* host term enable	*/
+		   EE6_RSTBUS);			/* reset SCSI bus on boot*/
+}
+
+
+/* General initialization routine for all boards. */
 static void *
-aha_init(int chip)
+aha_init(int type)
 {
     aha_t *dev;
-    int i = 0;
-    int j = 0;
-    uint32_t bios_addr = 0;
+    int i, j;
+    uint32_t bios_addr = 0x00000000;
     int bios = 0;
 
+    /* Allocate control block and set up basic stuff. */
     dev = malloc(sizeof(aha_t));
+    if (dev == NULL) return(dev);
     memset(dev, 0x00, sizeof(aha_t));
+    dev->type = type;
 
-    ResetDev = dev;
-    dev->chip = chip;
-    dev->Base = device_get_config_hex16("base");
-    dev->Irq = device_get_config_int("irq");
-    dev->DmaChannel = device_get_config_int("dma");
-    bios = device_get_config_int("bios");
-    bios_addr = device_get_config_hex20("bios_addr");
+    switch(type) {
+	case AHA_154xB:
+		strcpy(dev->name, "AHA-154xB");
+		dev->bios_path = L"roms/scsi/adaptec/aha1540b310.bin";
+		dev->bid = 'A';
+		break;
 
-    if (dev->Base != 0) {
-	io_sethandler(dev->Base, 4,
-		      aha_read, aha_readw, NULL,
-		      aha_write, aha_writew, NULL, dev);
+	case AHA_154xC:
+		strcpy(dev->name, "AHA-154xC");
+		dev->bios_path = L"roms/scsi/adaptec/aha1542c101.bin";
+		dev->bid = 'D';
+		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
+		dev->rom_shramsz = 128;		/* size of shadow RAM */
+		dev->rom_ioaddr = 0x3F7E;	/* [2:0] idx into addr table */
+		dev->rom_fwhigh = 0x0022;	/* firmware version (hi/lo) */
+		break;
+
+	case AHA_154xCF:
+		strcpy(dev->name, "AHA-154xCF");
+		dev->bios_path = L"roms/scsi/adaptec/aha1542cf201.bin";
+		dev->nvr_path = L"nvr/aha1540cf.nvr";
+		dev->bid = 'E';
+		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
+		dev->rom_shramsz = 128;		/* size of shadow RAM */
+		dev->rom_ioaddr = 0x3F7E;	/* [2:0] idx into addr table */
+		dev->rom_fwhigh = 0x0022;	/* firmware version (hi/lo) */
+		break;
+
+	case AHA_154xCP:
+		strcpy(dev->name, "AHA-154xCP");
+		dev->bios_path = L"roms/scsi/adaptec/aha1542cp102.bin";
+		dev->nvr_path = L"nvr/aha1540cp.nvr";
+		dev->bid = 'F';
+		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
+		dev->rom_shramsz = 128;		/* size of shadow RAM */
+		dev->rom_ioaddr = 0x3F7E;	/* [2:0] idx into addr table */
+		dev->rom_fwhigh = 0x0055;	/* firmware version (hi/lo) */
+		break;
+
+	case AHA_1640:
+		strcpy(dev->name, "AHA-1640");
+		break;
     }
+
+    /* Set up the I/O address, IRQ and DMA info. */
+    if (type == AHA_1640) {
+	mca_add(aha_mca_read, aha_mca_write, dev);
+	dev->pos_regs[0] = 0x1F;
+	dev->pos_regs[1] = 0x0F;	
+	pclog("Adaptec %s initialized\n", dev->name);
+    } else {
+	dev->Base = device_get_config_hex16("base");
+	dev->Irq = device_get_config_int("irq");
+	dev->DmaChannel = device_get_config_int("dma");
+	bios = device_get_config_int("bios");
+	bios_addr = device_get_config_hex20("bios_addr");
+	if (dev->Base != 0) {
+		/* Register our address space. */
+		io_sethandler(dev->Base, 4,
+			      aha_read, aha_readw, NULL,
+			      aha_write, aha_writew, NULL, dev);
+	}
+	pclog("Adaptec %s (IO=0x%04X, IRQ=%d, DMA=%d)\n",
+		dev->name, dev->Base, dev->Irq, dev->DmaChannel);
+
+    }
+    ResetDev = dev;
 
     pclog("Building SCSI hard disk map...\n");
     build_scsi_hd_map();
     pclog("Building SCSI CD-ROM map...\n");
     build_scsi_cdrom_map();
-
     for (i=0; i<16; i++) {
 	for (j=0; j<8; j++) {
 		if (scsi_hard_disks[i][j] != 0xff) {
 			SCSIDevices[i][j].LunType = SCSI_DISK;
-		}
-		else if (find_cdrom_for_scsi_id(i, j) != 0xff) {
+		} else if (find_cdrom_for_scsi_id(i, j) != 0xff) {
 			SCSIDevices[i][j].LunType = SCSI_CDROM;
-		}
-		else {
+		} else {
 			SCSIDevices[i][j].LunType = SCSI_NONE;
 		}
 	}
@@ -2240,11 +2157,16 @@ aha_init(int chip)
     timer_add(aha_reset_poll, &ResetCB, &ResetCB, dev);
     timer_add(aha_cmd_cb, &AHA_Callback, &AHA_Callback, dev);
 
-    pclog("Adaptec AHA-154x on port 0x%04X\n", dev->Base);
-	
     aha_reset_ctrl(dev, CTRL_HRST);
 
-    if (bios) {
+    /* Initialize ROM BIOS if needed. */
+    if (bios)
+	aha_setbios(dev, bios_addr);
+
+    /* Initialize EEPROM (NVR) if needed. */
+    aha_setnvr(dev);
+
+#if 0
 	/* Perform AHA-154xNN-specific initialization. */
 	if (chip == CHIP_AHA154XB)
 	{
@@ -2254,11 +2176,7 @@ aha_init(int chip)
 		else if (dev->Base == 0x330 && bios_addr == 0xd0000) /* This BIOS is hardcoded to port 0x330 and address 0xD0000, otherwise it won't work */
 			rom_init(&dev->bios, L"roms/scsi/adaptec/bios_3.2.BIN", 0xd0000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 	}
-	else
-	{
-		aha154x_bios(dev->Base, bios_addr, &dev->aha, dev->Irq, dev->DmaChannel, chip);
-	}
-    }
+#endif
 
     return(dev);
 }
@@ -2267,39 +2185,38 @@ aha_init(int chip)
 static void *
 aha_154xB_init(void)
 {
-    return(aha_init(CHIP_AHA154XB));
+    return(aha_init(AHA_154xB));
 }
 
 
 static void *
 aha_154xCF_init(void)
 {
-    return(aha_init(CHIP_AHA154XCF));
+    return(aha_init(AHA_154xCF));
 }
+
 
 static void *
 aha_1640_init(void)
 {
     aha_t *dev;
-    int i = 0;
-    int j = 0;
+    int i, j;
 
     dev = malloc(sizeof(aha_t));
     memset(dev, 0x00, sizeof(aha_t));
+    dev->type = AHA_1640;
+	
+    pclog("Aha1640 initialized\n");
+    mca_add(aha_mca_read, aha_mca_write, dev);
+    dev->pos_regs[0] = 0x1F;
+    dev->pos_regs[1] = 0x0F;	
 
     ResetDev = dev;
-	dev->chip = CHIP_AHA1640;
-	
-	pclog("Aha1640 initialized\n");
-	mca_add(aha_mca_read, aha_mca_write, dev);
-	dev->pos_regs[0] = 0x1F;
-	dev->pos_regs[1] = 0x0F;	
-	
+
     pclog("Building SCSI hard disk map...\n");
     build_scsi_hd_map();
     pclog("Building SCSI CD-ROM map...\n");
     build_scsi_cdrom_map();
-
     for (i=0; i<16; i++) {
 	for (j=0; j<8; j++) {
 		if (scsi_hard_disks[i][j] != 0xff) {
@@ -2327,12 +2244,19 @@ static void
 aha_close(void *priv)
 {
     aha_t *dev = (aha_t *)priv;
-    free(dev);
+
+    /* Make sure it won't get called anymore.. */
     ResetDev = NULL;
+
+    if (dev->nvr != NULL)
+	free(dev->nvr);
+
+    free(dev);
+
 }
 
 
-static device_config_t aha_154XCF_config[] = {
+static device_config_t aha_154xCF_config[] = {
         {
 		"base", "Address", CONFIG_HEX16, "", 0x334,
                 {
@@ -2430,6 +2354,7 @@ static device_config_t aha_154XCF_config[] = {
 	}
 };
 
+
 device_t aha1540b_device = {
     "Adaptec AHA-1540B",
     0,
@@ -2439,7 +2364,7 @@ device_t aha1540b_device = {
     NULL,
     NULL,
     NULL,
-    aha_154XCF_config
+    aha_154xCF_config
 };
 
 device_t aha1542cf_device = {
@@ -2451,7 +2376,7 @@ device_t aha1542cf_device = {
     NULL,
     NULL,
     NULL,
-    aha_154XCF_config
+    aha_154xCF_config
 };
 
 device_t aha1640_device = {
