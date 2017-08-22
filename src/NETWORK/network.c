@@ -138,7 +138,24 @@ network_close(void)
 		network_slirp_close();
 		break;
     }
+}
 
+
+/* Test the network. */
+int
+network_test(void)
+{
+    switch(network_type) {
+	case NET_TYPE_PCAP:
+		return network_pcap_test();
+		break;
+
+	case NET_TYPE_SLIRP:
+		return network_slirp_test();
+		break;
+    }
+
+    return 0;
 }
 
 

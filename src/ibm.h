@@ -809,6 +809,7 @@ extern void	status_settext(char *str);
 #define SB_CDROM	0x10
 #define SB_RDISK	0x20
 #define SB_HDD		0x40
-#define SB_TEXT		0x50
+#define SB_NETWORK	0x50
+#define SB_TEXT		0x60
 
 #define UNUSED(x) (void)x

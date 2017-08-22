@@ -364,7 +364,6 @@ void initmodules(void)
 	int i;
 
 	/* Initialize modules. */
-	network_init();
         mouse_init();
 #ifdef WALTJE
 	serial_init();

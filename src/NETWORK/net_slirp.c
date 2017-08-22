@@ -164,6 +164,22 @@ network_slirp_close(void)
 }
 
 
+/* Test SLiRP - 1 = success, 0 = failure. */
+int
+network_slirp_test(void)
+{
+    if (slirp_init() != 0) {
+	pclog("SLiRP could not be initialized!\n");
+	return 0;
+    }
+    else
+    {
+	slirp_exit(0);
+	return 1;
+    }
+}
+
+
 /* Send a packet to the SLiRP interface. */
 void
 network_slirp_in(uint8_t *pkt, int pkt_len)

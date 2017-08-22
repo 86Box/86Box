@@ -1686,6 +1686,8 @@ mcast_index(const void *dst)
 static void
 nic_tx(nic_t *dev, uint32_t val)
 {
+    update_status_bar_icon(SB_NETWORK, 1);
+
     dev->CR.tx_packet = 0;
     dev->TSR.tx_ok = 1;
     dev->ISR.pkt_tx = 1;
@@ -1694,6 +1696,8 @@ nic_tx(nic_t *dev, uint32_t val)
     if (dev->IMR.tx_inte)
 	nic_interrupt(dev, 1);
     dev->tx_timer_active = 0;
+
+    update_status_bar_icon(SB_NETWORK, 0);
 }
 
 
@@ -1713,6 +1717,8 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
     int pages, avail;
     int idx, nextpage;
     int endbytes;
+
+    update_status_bar_icon(SB_NETWORK, 1);
 
     if (io_len != 60)
 	nelog(2, "%s: rx_frame with length %d\n", dev->name, io_len);
@@ -1742,11 +1748,15 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 #endif
 		) {
 	nelog(1, "%s: no space\n", dev->name);
+
+	update_status_bar_icon(SB_NETWORK, 0);
 	return;
     }
 
     if ((io_len < 40/*60*/) && !dev->RCR.runts_ok) {
 	nelog(1, "%s: rejected small packet, length %d\n", dev->name, io_len);
+
+	update_status_bar_icon(SB_NETWORK, 0);
 	return;
     }
 
@@ -1767,6 +1777,8 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 		/* Broadcast not enabled, we're done. */
 		if (! dev->RCR.broadcast) {
 			nelog(2, "%s: RX BC disabled\n", dev->name);
+
+			update_status_bar_icon(SB_NETWORK, 0);
 			return;
 		}
 	}
@@ -1778,6 +1790,8 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 #if 1
 			nelog(2, "%s: RX MC disabled\n", dev->name);
 #endif
+
+			update_status_bar_icon(SB_NETWORK, 0);
 			return;
 		}
 
@@ -1785,6 +1799,8 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 		idx = mcast_index(buf);
 		if (! (dev->mchash[idx>>3] & (1<<(idx&0x7)))) {
 			nelog(2, "%s: RX MC not listed\n", dev->name);
+
+			update_status_bar_icon(SB_NETWORK, 0);
 			return;
 		}
 	}
@@ -1829,6 +1845,8 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 
     if (dev->IMR.rx_inte)
 	nic_interrupt(dev, 1);
+
+    update_status_bar_icon(SB_NETWORK, 0);
 }
 
 

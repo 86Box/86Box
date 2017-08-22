@@ -28,6 +28,7 @@
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../mem.h"
+#include "../network/network.h"
 #include "../rom.h"
 #include "../nvr.h"
 #include "../config.h"
@@ -663,26 +664,20 @@ int fdd_type_to_icon(int type)
 		case 0:
 			return 512;
 		case 1:
-			return 128;
 		case 2:
-			return 130;
 		case 3:
-			return 132;
 		case 4:
 		case 5:
 		case 6:
-			return 134;
+			return 128;
 		case 7:
-			return 144;
 		case 8:
-			return 146;
 		case 9:
 		case 10:
 		case 11:
 		case 12:
-			return 150;
 		case 13:
-			return 152;
+			return 144;
 	}
 }
 
@@ -894,6 +889,20 @@ void create_hd_tip(int part)
 	wcscpy(sbTips[part], tempTip);
 }
 
+void create_network_tip(int part)
+{
+	WCHAR tempTip[512];
+
+	_swprintf(tempTip,  win_language_get_string_from_id(IDS_2069));
+
+	if (sbTips[part] != NULL)
+	{
+		free(sbTips[part]);
+	}
+	sbTips[part] = (WCHAR *) malloc((wcslen(tempTip) << 1) + 2);
+	wcscpy(sbTips[part], tempTip);
+}
+
 void update_tip(int meaning)
 {
 	int i = 0;
@@ -1022,9 +1031,28 @@ void destroy_tips(void)
 	sbTips = NULL;
 }
 
+int display_network_icon(void)
+{
+	if (network_card == 0)
+	{
+		return 0;
+	}
+	else
+	{
+		if (network_type == 0)
+		{
+			return 0;
+		}
+		else
+		{
+			return network_test();
+		}
+	}
+}
+
 void update_status_bar_panes(HWND hwnds)
 {
-	int i, j, id;
+	int i, id;
 	int edge = 0;
 
 	int c_mfm = 0;
@@ -1034,6 +1062,8 @@ void update_status_bar_panes(HWND hwnds)
 	int c_ide_dma = 0;
 	int c_scsi = 0;
 
+	int do_net = 0;
+
 	sb_ready = 0;
 
 	c_mfm = count_hard_disks(HDD_BUS_MFM);
@@ -1042,6 +1072,8 @@ void update_status_bar_panes(HWND hwnds)
 	c_ide_pio = count_hard_disks(HDD_BUS_IDE_PIO_ONLY);
 	c_ide_dma = count_hard_disks(HDD_BUS_IDE_PIO_AND_DMA);
 	c_scsi = count_hard_disks(HDD_BUS_SCSI);
+
+	do_net = display_network_icon();
 
 	if (sb_parts > 0)
 	{
@@ -1133,6 +1165,10 @@ void update_status_bar_panes(HWND hwnds)
 		sb_parts++;
 	}
 	if (c_scsi && (scsi_card_current != 0))
+	{
+		sb_parts++;
+	}
+	if (do_net)
 	{
 		sb_parts++;
 	}
@@ -1239,6 +1275,13 @@ void update_status_bar_panes(HWND hwnds)
 		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_SCSI;
 		sb_parts++;
 	}
+	if (do_net)
+	{
+		edge += SB_ICON_WIDTH;
+		iStatusWidths[sb_parts] = edge;
+		sb_part_meanings[sb_parts] = SB_NETWORK;
+		sb_parts++;
+	}
 	if (sb_parts)
 	{
 		iStatusWidths[sb_parts - 1] += (24 - SB_ICON_WIDTH);
@@ -1277,19 +1320,7 @@ void update_status_bar_panes(HWND hwnds)
 				{
 					sb_icon_flags[i] = 256;
 				}
-				if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
-				{
-					j = 164;
-				}
-				else if (cdrom_drives[id].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA)
-				{
-					j = 162;
-				}
-				else
-				{
-					j = 160;
-				}
-				sb_part_icons[i] = j | sb_icon_flags[i];
+				sb_part_icons[i] = 160 | sb_icon_flags[i];
 				sb_menu_handles[i] = create_popup_menu(i);
 				create_cdrom_submenu(sb_menu_handles[i], sb_part_meanings[i] & 0xf);
 				EnableMenuItem(sb_menu_handles[i], IDM_CDROM_RELOAD | (sb_part_meanings[i] & 0xf), MF_BYCOMMAND | MF_GRAYED);
@@ -1308,8 +1339,13 @@ void update_status_bar_panes(HWND hwnds)
 				break;
 			case SB_HDD:
 				/* Hard disk */
-				sb_part_icons[i] = 192 + (((sb_part_meanings[i] & 0xf) - 1) << 1);
+				sb_part_icons[i] = 192;
 				create_hd_tip(i);
+				break;
+			case SB_NETWORK:
+				/* Hard disk */
+				sb_part_icons[i] = 208;
+				create_network_tip(i);
 				break;
 			case SB_TEXT:
 				/* Status text */
@@ -1340,22 +1376,17 @@ HWND EmulatorStatusBar(HWND hwndParent, int idStatus, HINSTANCE hinst)
 	RECT rectDialog;
 	int dw, dh;
 
-	for (i = 128; i < 136; i++)
+	for (i = 128; i < 130; i++)
 	{
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
 
-	for (i = 144; i < 148; i++)
+	for (i = 144; i < 146; i++)
 	{
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
 
-	for (i = 150; i < 154; i++)
-	{
-		hIcon[i] = LoadIconEx((PCTSTR) i);
-	}
-
-	for (i = 160; i < 166; i++)
+	for (i = 160; i < 162; i++)
 	{
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
@@ -1365,27 +1396,27 @@ HWND EmulatorStatusBar(HWND hwndParent, int idStatus, HINSTANCE hinst)
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
 
-	for (i = 192; i < 204; i++)
+	for (i = 192; i < 194; i++)
 	{
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
 
-	for (i = 384; i < 392; i++)
+	for (i = 208; i < 210; i++)
 	{
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
 
-	for (i = 400; i < 404; i++)
+	for (i = 384; i < 386; i++)
 	{
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
 
-	for (i = 406; i < 410; i++)
+	for (i = 400; i < 402; i++)
 	{
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
 
-	for (i = 416; i < 422; i++)
+	for (i = 416; i < 418; i++)
 	{
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
@@ -1532,6 +1563,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
         initpc(argc, argv);
 
         init_cdrom_host_drives();
+
+	network_init();
 
 	hwndStatus = EmulatorStatusBar(hwnd, IDC_STATUS, hThisInstance);
 

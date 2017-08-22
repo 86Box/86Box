@@ -215,10 +215,15 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
 	mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
 	mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     if (f_pcap_compile(pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
-	if (f_pcap_setfilter(pcap, &fp) == -1)
+	if (f_pcap_setfilter(pcap, &fp) == -1) {
 		pclog(" Error installing filter (%s) !\n", filter_exp);
+		f_pcap_close(pcap);
+		return (-1);
+	}
     } else {
 	pclog(" Could not compile filter (%s) !\n", filter_exp);
+	f_pcap_close(pcap);
+	return (-1);
     }
 
     /* Save the callback info. */
@@ -266,6 +271,84 @@ network_pcap_close(void)
     }
     poll_rx = NULL;
     poll_arg = NULL;
+}
+
+
+/* Test WinPcap - 1 = success, 0 = failure. */
+int
+network_pcap_test(void)
+{
+    char temp[PCAP_ERRBUF_SIZE];
+    char filter_exp[255];
+    struct bpf_program fp;
+    char *dev;
+
+    /* Did we already load the DLL? */
+    if (pcap_handle == NULL)
+    {
+	return 0;
+    }
+
+#if 1
+    /* Get the value of our capture interface. */
+    dev = network_pcap;
+    if (dev == NULL) {
+	pclog(" PCap device is a null pointer!\n");
+	return 0;
+    }
+    if ((dev[0] == '\0') || !strcmp(dev, "none")) {
+	pclog(" No network device configured!\n");
+	return 0;
+    }
+    pclog(" Network interface: '%s'\n", dev);
+#endif
+
+    strcpy(temp, f_pcap_lib_version());
+    dev = strchr(temp, '(');
+    if (dev != NULL) *(dev-1) = '\0';
+    pclog("PCAP: initializing, %s\n", temp);
+
+#if 0
+    /* Get the value of our capture interface. */
+    dev = network_pcap;
+    if ((dev[0] == '\0') || !strcmp(dev, "none")) {
+	pclog(" No network device configured!\n");
+	return 0;
+    }
+    pclog(" Network interface: '%s'\n", dev);
+#else
+    dev = network_pcap;
+#endif
+
+    pcap = f_pcap_open_live(dev,		/* interface name */
+			   1518,	/* maximum packet size */
+			   1,		/* promiscuous mode? */
+			   10,		/* timeout in msec */
+			   temp);	/* error buffer */
+    if (pcap == NULL) {
+	pclog(" Unable to open device: %s!\n", temp);
+	return 0;
+    }
+
+    /* Create a MAC address based packet filter. */
+    sprintf(filter_exp,
+	"( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )",
+	0, 1, 2, 3, 4, 5,
+	0, 1, 2, 3, 4, 5);
+    if (f_pcap_compile(pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
+	if (f_pcap_setfilter(pcap, &fp) == -1) {
+		pclog(" Error installing filter (%s) !\n", filter_exp);
+		f_pcap_close(pcap);
+		return 0;
+	}
+    } else {
+	pclog(" Could not compile filter (%s) !\n", filter_exp);
+	f_pcap_close(pcap);
+	return 0;
+    }
+
+    f_pcap_close(pcap);
+    return 1;
 }
 
 

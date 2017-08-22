@@ -3483,14 +3483,6 @@ static BOOL win_settings_cdrom_drives_image_list_init(HWND hwndList)
 	ImageList_AddIcon(hSmall, hiconItem);
 	DestroyIcon(hiconItem);
 
-	hiconItem = LoadIcon(hinstance, (LPCWSTR) 162);
-	ImageList_AddIcon(hSmall, hiconItem);
-	DestroyIcon(hiconItem);
-
-	hiconItem = LoadIcon(hinstance, (LPCWSTR) 164);
-	ImageList_AddIcon(hSmall, hiconItem);
-	DestroyIcon(hiconItem);
-
 	ListView_SetImageList(hwndList, hSmall, LVSIL_SMALL);
 
 	return TRUE;
@@ -3578,12 +3570,12 @@ static BOOL win_settings_cdrom_drives_recalc_list(HWND hwndList)
 			case CDROM_BUS_ATAPI_PIO_AND_DMA:
 				wsprintf(szText, win_language_get_string_from_id(fsid), temp_cdrom_drives[i].ide_channel >> 1, temp_cdrom_drives[i].ide_channel & 1);
 				lvI.pszText = szText;
-				lvI.iImage = 2;
+				lvI.iImage = 1;
 				break;
 			case CDROM_BUS_SCSI:
 				wsprintf(szText, win_language_get_string_from_id(fsid), temp_cdrom_drives[i].scsi_device_id, temp_cdrom_drives[i].scsi_device_lun);
 				lvI.pszText = szText;
-				lvI.iImage = 3;
+				lvI.iImage = 1;
 				break;
 		}
 
@@ -3774,12 +3766,12 @@ static void win_settings_cdrom_drives_update_item(HWND hwndList, int i)
 		case CDROM_BUS_ATAPI_PIO_AND_DMA:
 			wsprintf(szText, win_language_get_string_from_id(fsid), temp_cdrom_drives[i].ide_channel >> 1, temp_cdrom_drives[i].ide_channel & 1);
 			lvI.pszText = szText;
-			lvI.iImage = 2;
+			lvI.iImage = 1;
 			break;
 		case CDROM_BUS_SCSI:
 			wsprintf(szText, win_language_get_string_from_id(fsid), temp_cdrom_drives[i].scsi_device_id, temp_cdrom_drives[i].scsi_device_lun);
 			lvI.pszText = szText;
-			lvI.iImage = 3;
+			lvI.iImage = 1;
 			break;
 	}
 

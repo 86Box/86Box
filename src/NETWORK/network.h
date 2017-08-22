@@ -59,6 +59,7 @@ extern char	network_pcap[512];
 extern void	network_init(void);
 extern int	network_attach(void *, uint8_t *, NETRXCB);
 extern void	network_close(void);
+extern int	network_test(void);
 extern void	network_reset(void);
 extern void	network_tx(uint8_t *, int);
 
@@ -66,10 +67,12 @@ extern int	network_pcap_init(netdev_t *);
 extern void	network_pcap_reset(void);
 extern int	network_pcap_setup(uint8_t *, NETRXCB, void *);
 extern void	network_pcap_close(void);
+extern int	network_pcap_test(void);
 extern void	network_pcap_in(uint8_t *, int);
 
 extern int	network_slirp_setup(uint8_t *, NETRXCB, void *);
 extern void	network_slirp_close(void);
+extern int	network_slirp_test(void);
 extern void	network_slirp_in(uint8_t *, int);
 
 extern int	network_dev_to_id(char *);
