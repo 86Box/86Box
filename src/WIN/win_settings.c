@@ -1808,8 +1808,6 @@ static BOOL win_settings_hard_disks_image_list_init(HWND hwndList)
 	HICON hiconItem;
 	HIMAGELIST hSmall;
 
-	int i = 0;
-
 	hSmall = ImageList_Create(GetSystemMetrics(SM_CXSMICON),
                                   GetSystemMetrics(SM_CYSMICON),
                                   ILC_MASK | ILC_COLOR32, 1, 1);
