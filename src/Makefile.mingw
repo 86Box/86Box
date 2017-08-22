@@ -213,7 +213,7 @@ NETOBJ	= network.o \
 	    ip_input.o queue.o tcp_input.o debug.o ip_output.o \
 	    sbuf.o tcp_output.o udp.o if.o mbuf.o slirp.o tcp_subr.o \
 	  net_ne2000.o
-SCSIOBJ	= scsi.o scsi_disk.o scsi_buslogic.o scsi_aha154x.o
+SCSIOBJ	= scsi.o scsi_device.o scsi_disk.o scsi_buslogic.o scsi_aha154x.o
 SNDOBJ	= sound.o \
 	  openal.o \
 	  dbopl.o nukedopl.o \
@@ -552,11 +552,14 @@ scat.o:		ibm.h cpu/cpu.h io.h mem.h device.h model.h
 scsi.o:		86box.h ibm.h timer.h device.h cdrom.h scsi.h \
 		scsi_aha154x.h scsi_buslogic.h
 
+scsi_device.o:	ibm.h scsi.h scsi_disk.h cdrom.h
+
 scsi_aha154x.o:	ibm.h io.h mca.h mem.h mca.h rom.h dma.h pic.h timer.h \
 		device.h cdrom.h scsi.h scsi_disk.h scsi_aha154x.h \
 
 scsi_buslogic.o: ibm.h io.h mem.h rom.h dma.h pic.h pci.h timer.h \
-		device.h scsi.h scsi_disk.h cdrom.h scsi_buslogic.h
+		device.h scsi.h scsi_device.h scsi_disk.h cdrom.h \
+		scsi_buslogic.h
 
 scsi_disk.o:	86box.h cdrom.h hdd_image.h ibm.h ide.h piix.h scsi.h \
 		scsi_disk.h timer.h win/plat_iodev.h
