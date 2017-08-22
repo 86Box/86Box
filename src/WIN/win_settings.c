@@ -1814,12 +1814,9 @@ static BOOL win_settings_hard_disks_image_list_init(HWND hwndList)
                                   GetSystemMetrics(SM_CYSMICON),
                                   ILC_MASK | ILC_COLOR32, 1, 1);
 
-	for (i = 0; i < 16; i += 2)
-	{
-		hiconItem = LoadIcon(hinstance, (LPCWSTR) (192 + i));
-		ImageList_AddIcon(hSmall, hiconItem);
-		DestroyIcon(hiconItem);
-	}
+	hiconItem = LoadIcon(hinstance, (LPCWSTR) 192);
+	ImageList_AddIcon(hSmall, hiconItem);
+	DestroyIcon(hiconItem);
 
 	hiconItem = LoadIcon(hinstance, (LPCWSTR) 176);
 	ImageList_AddIcon(hSmall, hiconItem);
@@ -2184,7 +2181,7 @@ static void win_settings_hard_disks_update_item(HWND hwndList, int i, int column
 				break;
 		}
 		lvI.pszText = szText;
-		lvI.iImage = temp_hdc[i].bus - 1;
+		lvI.iImage = (temp_hdc[i].bus == HDD_BUS_SCSI_REMOVABLE) ? 1 : 0;
 	}
 	else if (column == 1)
 	{
@@ -2269,7 +2266,7 @@ static BOOL win_settings_hard_disks_recalc_list(HWND hwndList)
 			}
 			lvI.pszText = szText;
 			lvI.iItem = j;
-			lvI.iImage = temp_hdc[i].bus - 1;
+			lvI.iImage = (temp_hdc[i].bus == HDD_BUS_SCSI_REMOVABLE) ? 1 : 0;
 
 			if (ListView_InsertItem(hwndList, &lvI) == -1)
 			{
