@@ -1,3 +1,20 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		The generic SCSI device command handler.
+ *
+ * Version:	@(#)scsi_device.c	1.0.0	2017/08/22
+ *
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2017-2017 Fred N. van Kempen.
+ */
 #include "ibm.h"
 #include "scsi.h"
 #include "scsi_disk.h"
@@ -119,6 +136,29 @@ uint8_t *scsi_device_sense(uint8_t scsi_id, uint8_t scsi_lun)
 }
 
 
+void scsi_device_request_sense(uint8_t scsi_id, uint8_t scsi_lun, uint8_t *buffer, uint8_t alloc_length)
+{
+    uint8_t lun_type = SCSIDevices[scsi_id][scsi_lun].LunType;
+
+    uint8_t id = 0;
+
+    switch (lun_type)
+    {
+	case SCSI_DISK:
+		id = scsi_hard_disks[scsi_id][scsi_lun];
+		scsi_hd_request_sense_for_scsi(id, buffer, alloc_length);
+		break;
+	case SCSI_CDROM:
+		id = scsi_cdrom_drives[scsi_id][scsi_lun];
+		cdrom_request_sense_for_scsi(id, buffer, alloc_length);
+		break;
+	default:
+		memcpy(buffer, scsi_null_device_sense, alloc_length);
+		break;
+    }
+}
+
+
 void scsi_device_type_data(uint8_t scsi_id, uint8_t scsi_lun, uint8_t *type, uint8_t *rmb)
 {
     uint8_t lun_type = SCSIDevices[scsi_id][scsi_lun].LunType;
@@ -231,7 +271,7 @@ int scsi_device_block_shift(uint8_t scsi_id, uint8_t scsi_lun)
 }
 
 
-void scsi_device_command(int cdb_len, uint8_t scsi_id, uint8_t scsi_lun, uint8_t *cdb)
+void scsi_device_command(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, uint8_t *cdb)
 {
     uint8_t phase = 0;
     uint8_t lun_type = SCSIDevices[scsi_id][scsi_lun].LunType;

@@ -1,6 +1,22 @@
-/* Copyright holders: SA1988
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		SCSI controller handler header.
+ *
+ * Version:	@(#)scsi_h	1.0.0	2017/08/22
+ *
+ * Authors:	TheCollector1995, <mariogplayer@gmail.com>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Copyright 2008-2017 TheCollector1995.
+ *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2017-2017 Fred N. van Kempen.
+ */
 #ifndef SCSI_H
 #define SCSI_H
 

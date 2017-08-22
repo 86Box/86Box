@@ -10,7 +10,7 @@
  *		  0 - BT-542B ISA;
  *		  1 - BT-958 PCI (but BT-542B ISA on non-PCI machines)
  *
- * Version:	@(#)scsi_buslogic.c	1.0.6	2017/08/17
+ * Version:	@(#)scsi_buslogic.c	1.0.7	2017/08/22
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1163,7 +1163,7 @@ BuslogicSCSIBIOSRequestSetup(Buslogic_t *bl, uint8_t *CmdBuf, uint8_t *DataInBuf
 	memcpy(temp_cdb, ESCSICmd->CDB, target_cdb_len);
     }
 
-    scsi_device_command(ESCSICmd->CDBLength, ESCSICmd->TargetId, ESCSICmd->LogicalUnit, temp_cdb);
+    scsi_device_command(ESCSICmd->TargetId, ESCSICmd->LogicalUnit, ESCSICmd->CDBLength, temp_cdb);
 
     BuslogicSCSIBIOSDataBufferFree(ESCSICmd, ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
     /* BuslogicSCSIBIOSSenseBufferFree(ESCSICmd, Id, Lun, (SCSIStatus != SCSI_STATUS_OK), 1); */
@@ -1372,7 +1372,7 @@ uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd)
 			cdb[7] = (sector_len >> 8) & 0xff;
 			cdb[8] = sector_len & 0xff;
 
-			scsi_device_command(12, BiosCmd->id, BiosCmd->lun, cdb);
+			scsi_device_command(BiosCmd->id, BiosCmd->lun, 12, cdb);
 
 			if (sector_len > 0) 
 			{
@@ -1413,7 +1413,7 @@ uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd)
 			cdb[7] = (sector_len >> 8) & 0xff;
 			cdb[8] = sector_len & 0xff;
 
-			scsi_device_command(12, BiosCmd->id, BiosCmd->lun, cdb);
+			scsi_device_command(BiosCmd->id, BiosCmd->lun, 12, cdb);
 
 			if (SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer != NULL)
 			{
@@ -1437,7 +1437,7 @@ uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd)
 			cdb[7] = (sector_len >> 8) & 0xff;
 			cdb[8] = sector_len & 0xff;
 
-			scsi_device_command(12, BiosCmd->id, BiosCmd->lun, cdb);
+			scsi_device_command(BiosCmd->id, BiosCmd->lun, 12, cdb);
 
 			return BuslogicCompletionCode(scsi_device_sense(BiosCmd->id, BiosCmd->lun));
 
@@ -1459,7 +1459,7 @@ uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd)
 			cdb[0] = GPCMD_FORMAT_UNIT;
 			cdb[1] = (BiosCmd->lun & 7) << 5;
 
-			scsi_device_command(12, BiosCmd->id, BiosCmd->lun, cdb);
+			scsi_device_command(BiosCmd->id, BiosCmd->lun, 12, cdb);
 
 			return BuslogicCompletionCode(scsi_device_sense(BiosCmd->id, BiosCmd->lun));
 
@@ -1505,7 +1505,7 @@ uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd)
 			cdb[4] = (lba >> 8) & 0xff;
 			cdb[5] = lba & 0xff;
 
-			scsi_device_command(12, BiosCmd->id, BiosCmd->lun, cdb);
+			scsi_device_command(BiosCmd->id, BiosCmd->lun, 12, cdb);
 
 			return (SCSIStatus == SCSI_STATUS_OK) ? 1 : 0;
 
@@ -1522,7 +1522,7 @@ uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd)
 			cdb[0] = GPCMD_TEST_UNIT_READY;
 			cdb[1] = (BiosCmd->lun & 7) << 5;
 
-			scsi_device_command(12, BiosCmd->id, BiosCmd->lun, cdb);
+			scsi_device_command(BiosCmd->id, BiosCmd->lun, 12, cdb);
 
 			return BuslogicCompletionCode(scsi_device_sense(BiosCmd->id, BiosCmd->lun));
 
@@ -1534,7 +1534,7 @@ uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd)
 			cdb[0] = GPCMD_REZERO_UNIT;
 			cdb[1] = (BiosCmd->lun & 7) << 5;
 
-			scsi_device_command(12, BiosCmd->id, BiosCmd->lun, cdb);
+			scsi_device_command(BiosCmd->id, BiosCmd->lun, 12, cdb);
 
 			return BuslogicCompletionCode(scsi_device_sense(BiosCmd->id, BiosCmd->lun));
 
@@ -2278,23 +2278,14 @@ BuslogicWriteL(uint16_t Port, uint32_t Val, void *p)
 
 
 static void
-BuslogicSenseBufferFree(Req_t *req, int Copy, int is_hd)
+BuslogicSenseBufferFree(Req_t *req, int Copy)
 {
     uint8_t SenseLength = BuslogicConvertSenseLength(req->CmdBlock.common.RequestSenseLength);
-    uint8_t cdrom_id = scsi_cdrom_drives[req->TargetID][req->LUN];
-    uint8_t hdc_id = scsi_hard_disks[req->TargetID][req->LUN];
     uint32_t SenseBufferAddress;
     uint8_t temp_sense[256];
 
     if (SenseLength && Copy) {
-	if (is_hd)
-	{
-		scsi_hd_request_sense_for_scsi(hdc_id, temp_sense, SenseLength);
-	}
-	else
-	{
-		cdrom_request_sense_for_scsi(cdrom_id, temp_sense, SenseLength);
-	}
+        scsi_device_request_sense(req->TargetID, req->LUN, temp_sense, SenseLength);
 
 	/*
 	 * The sense address, in 32-bit mode, is located in the
@@ -2350,11 +2341,11 @@ BuslogicSCSICommand(Buslogic_t *bl)
 	memcpy(temp_cdb, req->CmdBlock.common.Cdb, target_cdb_len);
     }
 
-    scsi_device_command(req->CmdBlock.common.CdbLength, Id, Lun, temp_cdb);
+    scsi_device_command(Id, Lun, req->CmdBlock.common.CdbLength, temp_cdb);
 
     BuslogicDataBufferFree(req);
 
-    BuslogicSenseBufferFree(req, (SCSIStatus != SCSI_STATUS_OK), 0);
+    BuslogicSenseBufferFree(req, (SCSIStatus != SCSI_STATUS_OK));
 
     pclog("Request complete\n");
 
@@ -2400,7 +2391,7 @@ BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbox32_t *Mailb
     if (!scsi_device_present(Id, Lun)) {
 	pclog("SCSI Target ID %i and LUN %i have no device attached\n",Id,Lun);
 	BuslogicDataBufferFree(req);
-	BuslogicSenseBufferFree(req, 0, 0);
+	BuslogicSenseBufferFree(req, 0);
 	BuslogicMailboxInSetup(bl, CCBPointer, &req->CmdBlock,
 			       CCB_SELECTION_TIMEOUT,SCSI_STATUS_OK,MBI_ERROR);
     } else {
@@ -2838,9 +2829,6 @@ BuslogicInit(int chip)
 {
     Buslogic_t *bl;
 
-    int i = 0;
-    int j = 0;
-
     bl = malloc(sizeof(Buslogic_t));
     memset(bl, 0x00, sizeof(Buslogic_t));
 
@@ -2894,28 +2882,6 @@ BuslogicInit(int chip)
 		bl->bios_mask = 0;
 	}
 	
-    pclog("Building SCSI hard disk map...\n");
-    build_scsi_hd_map();
-    pclog("Building SCSI CD-ROM map...\n");
-    build_scsi_cdrom_map();
-	
-    for (i=0; i<16; i++) 
-	{
-		for (j=0; j<8; j++) 
-		{
-			if (scsi_hard_disks[i][j] != 0xff) {
-				SCSIDevices[i][j].LunType = SCSI_DISK;
-			}
-			else if (find_cdrom_for_scsi_id(i, j) != 0xff) {
-				SCSIDevices[i][j].LunType = SCSI_CDROM;
-			}
-			else
-			{
-				SCSIDevices[i][j].LunType = SCSI_NONE;
-			}
-		}
-    }
-
     timer_add(BuslogicResetPoll,
 	      &BuslogicResetCallback, &BuslogicResetCallback, bl);
     timer_add(BuslogicCommandCallback,

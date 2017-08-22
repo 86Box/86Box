@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.9	2017/08/16
+ * Version:	@(#)scsi_aha154x.c	1.0.10	2017/08/22
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -35,6 +35,7 @@
 #include "device.h"
 #include "cdrom.h"
 #include "scsi.h"
+#include "scsi_device.h"
 #include "scsi_disk.h"
 #include "scsi_aha154x.h"
 
@@ -1217,7 +1218,7 @@ aha_0x01:
 					for (i=0; i<7; i++) {
 					    dev->DataBuf[i] = 0x00;
 					    for (j=0; j<8; j++) {
-						if (SCSIDevices[i][j].LunType != SCSI_NONE)
+						if (scsi_device_present(i, j))
 						    dev->DataBuf[i] |= (1<<j);
 					    }
 					}
@@ -1389,23 +1390,14 @@ ConvertSenseLength(uint8_t RequestSenseLength)
 
 
 static void
-SenseBufferFree(Req_t *req, int Copy, int is_hd)
+SenseBufferFree(Req_t *req, int Copy)
 {
     uint8_t SenseLength = ConvertSenseLength(req->CmdBlock.common.RequestSenseLength);
-    uint8_t cdrom_id = scsi_cdrom_drives[req->TargetID][req->LUN];
-    uint8_t hdc_id = scsi_hard_disks[req->TargetID][req->LUN];
     uint32_t SenseBufferAddress;
     uint8_t temp_sense[256];
 
     if (SenseLength && Copy) {
-	if (is_hd)
-	{
-		scsi_hd_request_sense_for_scsi(hdc_id, temp_sense, SenseLength);
-	}
-	else
-	{
-		cdrom_request_sense_for_scsi(cdrom_id, temp_sense, SenseLength);
-	}
+        scsi_device_request_sense(req->TargetID, req->LUN, temp_sense, SenseLength);
 
 	/*
 	 * The sense address, in 32-bit mode, is located in the
@@ -1431,165 +1423,43 @@ SenseBufferFree(Req_t *req, int Copy, int is_hd)
 
 
 static void
-aha_disk_cmd(aha_t *dev)
+aha_scsi_cmd(aha_t *dev)
 {
     Req_t *req = &dev->Req;
     uint8_t Id, Lun;
-    uint8_t hdc_id;
-    uint8_t hd_phase;
     uint8_t temp_cdb[12];
     uint32_t i;
+    int target_cdb_len = 12;
 
     Id = req->TargetID;
     Lun = req->LUN;
-    hdc_id = scsi_hard_disks[Id][Lun];
 
-    if (hdc_id == 0xff)  fatal("SCSI hard disk on %02i:%02i has disappeared\n", Id, Lun);
+    target_cdb_len = scsi_device_cdb_length(Id, Lun);
 
-    pclog("SCSI HD command being executed on: SCSI ID %i, SCSI LUN %i, HD %i\n",
-							Id, Lun, hdc_id);
+    if (!scsi_device_valid(Id, Lun))
+	fatal("SCSI target on %02i:%02i has disappeared\n", Id, Lun);
 
-    pclog("SCSI Cdb[0]=0x%02X\n", req->CmdBlock.common.Cdb[0]);
-    for (i = 1; i < req->CmdBlock.common.CdbLength; i++) {
-	pclog("SCSI Cdb[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
-    }
-
-    memset(temp_cdb, 0x00, 12);
-    if (req->CmdBlock.common.CdbLength <= 12) {
-	memcpy(temp_cdb, req->CmdBlock.common.Cdb,
-		req->CmdBlock.common.CdbLength);
-    } else {
-	memcpy(temp_cdb, req->CmdBlock.common.Cdb, 12);
-    }
-
-    /*
-     * Since that field in the HDC struct is never used when
-     * the bus type is SCSI, let's use it for this scope.
-     */
-    shdc[hdc_id].request_length = temp_cdb[1];
-
-    if (req->CmdBlock.common.CdbLength != 12) {
-	/*
-	 * Make sure the LUN field of the temporary CDB is always 0,
-	 * otherwise Daemon Tools drives will misbehave when a command
-	 * is passed through to them.
-	 */
-	temp_cdb[1] &= 0x1f;
-    }
-
-    /* Finally, execute the SCSI command immediately and get the transfer length. */
-    SCSIPhase = SCSI_PHASE_COMMAND;
-    scsi_hd_command(hdc_id, temp_cdb);
-    SCSIStatus = scsi_hd_err_stat_to_scsi(hdc_id);
-    if (SCSIStatus == SCSI_STATUS_OK) {
-	hd_phase = scsi_hd_phase_to_scsi(hdc_id);
-	if (hd_phase == 2) {
-		/* Command completed - call the phase callback to complete the command. */
-		scsi_hd_callback(hdc_id);
-	} else {
-		/* Command first phase complete - call the callback to execute the second phase. */
-		scsi_hd_callback(hdc_id);
-		SCSIStatus = scsi_hd_err_stat_to_scsi(hdc_id);
-		/* Command second phase complete - call the callback to complete the command. */
-		scsi_hd_callback(hdc_id);
-	}
-    } else {
-	/* Error (Check Condition) - call the phase callback to complete the command. */
-	scsi_hd_callback(hdc_id);
-    }
-
-    pclog("SCSI Status: %s, Sense: %02X, ASC: %02X, ASCQ: %02X\n", (SCSIStatus == SCSI_STATUS_OK) ? "OK" : "CHECK CONDITION", shdc[hdc_id].sense[2], shdc[hdc_id].sense[12], shdc[hdc_id].sense[13]);
-
-    aha_buf_free(req);
-
-    SenseBufferFree(req, (SCSIStatus != SCSI_STATUS_OK), 1);
-
-    pclog("Request complete\n");
-
-    if (SCSIStatus == SCSI_STATUS_OK) {
-	aha_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
-			       CCB_COMPLETE, SCSI_STATUS_OK, MBI_SUCCESS);
-    } else if (SCSIStatus == SCSI_STATUS_CHECK_CONDITION) {
-	aha_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
-			CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION, MBI_ERROR);
-    }
-}
-
-
-static void
-aha_cdrom_cmd(aha_t *dev)
-{
-    Req_t *req = &dev->Req;
-    uint8_t Id, Lun;
-    uint8_t cdrom_id;
-    uint8_t cdrom_phase;
-    uint8_t temp_cdb[12];
-    uint32_t i;
-
-    Id = req->TargetID;
-    Lun = req->LUN;
-    cdrom_id = scsi_cdrom_drives[Id][Lun];
-
-    if (cdrom_id == 0xff)
-	fatal("SCSI CD-ROM on %02i:%02i has disappeared\n", Id, Lun);
-
-    pclog("CD-ROM command being executed on: SCSI ID %i, SCSI LUN %i, CD-ROM %i\n",
-							Id, Lun, cdrom_id);
+    pclog("SCSI command being executed on: SCSI ID %i, SCSI LUN %i\n",
+							Id, Lun);
 
     pclog("SCSI Cdb[0]=0x%02X\n", req->CmdBlock.common.Cdb[0]);
     for (i = 1; i<req->CmdBlock.common.CdbLength; i++) {
 	pclog("SCSI Cdb[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
     }
 
-    memset(temp_cdb, 0, cdrom[cdrom_id].cdb_len);
-    if (req->CmdBlock.common.CdbLength <= cdrom[cdrom_id].cdb_len) {
+    memset(temp_cdb, 0, target_cdb_len);
+    if (req->CmdBlock.common.CdbLength <= target_cdb_len) {
 	memcpy(temp_cdb, req->CmdBlock.common.Cdb,
 		req->CmdBlock.common.CdbLength);
     } else {
-	memcpy(temp_cdb, req->CmdBlock.common.Cdb, cdrom[cdrom_id].cdb_len);
+	memcpy(temp_cdb, req->CmdBlock.common.Cdb, target_cdb_len);
     }
 
-    /*
-     * Since that field in the CDROM struct is never used when
-     * the bus type is SCSI, let's use it for this scope.
-     */
-    cdrom[cdrom_id].request_length = temp_cdb[1];
-
-    if (req->CmdBlock.common.CdbLength != 12) {
-	/*
-	 * Make sure the LUN field of the temporary CDB is always 0,
-	 * otherwise Daemon Tools drives will misbehave when a command
-	 * is passed through to them.
-	 */
-	temp_cdb[1] &= 0x1f;
-    }
-
-    /* Finally, execute the SCSI command immediately and get the transfer length. */
-    SCSIPhase = SCSI_PHASE_COMMAND;
-    cdrom_command(cdrom_id, temp_cdb);
-    SCSIStatus = cdrom_CDROM_PHASE_to_scsi(cdrom_id);
-    if (SCSIStatus == SCSI_STATUS_OK) {
-	cdrom_phase = cdrom_atapi_phase_to_scsi(cdrom_id);
-	if (cdrom_phase == 2) {
-		/* Command completed - call the phase callback to complete the command. */
-		cdrom_phase_callback(cdrom_id);
-	} else {
-		/* Command first phase complete - call the callback to execute the second phase. */
-		cdrom_phase_callback(cdrom_id);
-		SCSIStatus = cdrom_CDROM_PHASE_to_scsi(cdrom_id);
-		/* Command second phase complete - call the callback to complete the command. */
-		cdrom_phase_callback(cdrom_id);
-	}
-    } else {
-	/* Error (Check Condition) - call the phase callback to complete the command. */
-	cdrom_phase_callback(cdrom_id);
-    }
-
-    pclog("SCSI Status: %s, Sense: %02X, ASC: %02X, ASCQ: %02X\n", (SCSIStatus == SCSI_STATUS_OK) ? "OK" : "CHECK CONDITION", cdrom[cdrom_id].sense[2], cdrom[cdrom_id].sense[12], cdrom[cdrom_id].sense[13]);
+    scsi_device_command(Id, Lun, req->CmdBlock.common.CdbLength, temp_cdb);
 
     aha_buf_free(req);
 
-    SenseBufferFree(req, (SCSIStatus != SCSI_STATUS_OK), 0);
+    SenseBufferFree(req, (SCSIStatus != SCSI_STATUS_OK));
 
     pclog("Request complete\n");
 
@@ -1633,10 +1503,10 @@ aha_req_setup(aha_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 
     aha_buf_alloc(req, req->Is24bit);
 
-    if (SCSIDevices[Id][Lun].LunType == SCSI_NONE) {
+    if (!scsi_device_present(Id, Lun)) {
 	pclog("SCSI Target ID %i and LUN %i have no device attached\n",Id,Lun);
 	aha_buf_free(req);
-	SenseBufferFree(req, 0, 0);
+	SenseBufferFree(req, 0);
 	aha_mbi_setup(dev, CCBPointer, &req->CmdBlock,
 		      CCB_SELECTION_TIMEOUT,SCSI_STATUS_OK,MBI_ERROR);
     } else {
@@ -1650,8 +1520,7 @@ aha_req_setup(aha_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 			req->CmdBlock.common.ControlByte);
 	}
 
-	AHA_InOperation = (SCSIDevices[Id][Lun].LunType == SCSI_DISK) ? 0x11 : 1;
-	pclog("SCSI (%i:%i) -> %i\n", Id, Lun, SCSIDevices[Id][Lun].LunType);
+	AHA_InOperation = 1;
     }
 }
 
@@ -1778,8 +1647,8 @@ aha_cmd_cb(void *priv)
 		return;
 	}
     } else if (AHA_InOperation == 1) {
-	pclog("%s: Callback: Process CD-ROM request\n", dev->name);
-	aha_cdrom_cmd(dev);
+	pclog("%s: Callback: Process SCSI request\n", dev->name);
+	aha_scsi_cmd(dev);
 	aha_mbi(dev);
 	if (dev->Req.CmdBlock.common.Cdb[0] == 0x42) {
 		/* This is needed since CD Audio inevitably means READ SUBCHANNEL spam. */
@@ -1788,10 +1657,6 @@ aha_cmd_cb(void *priv)
 	}
     } else if (AHA_InOperation == 2) {
 	pclog("%s: Callback: Send incoming mailbox\n", dev->name);
-	aha_mbi(dev);
-    } else if (AHA_InOperation == 0x11) {
-	pclog("%s: Callback: Process DISK request\n", dev->name);
-	aha_disk_cmd(dev);
 	aha_mbi(dev);
     } else {
 	fatal("%s: Invalid callback phase: %i\n", dev->name, AHA_InOperation);
@@ -2060,7 +1925,6 @@ static void *
 aha_init(int type)
 {
     aha_t *dev;
-    int i, j;
     uint32_t bios_addr = 0x00000000;
     int bios = 0;
 
@@ -2138,22 +2002,6 @@ aha_init(int type)
     }
     ResetDev = dev;
 
-    pclog("Building SCSI hard disk map...\n");
-    build_scsi_hd_map();
-    pclog("Building SCSI CD-ROM map...\n");
-    build_scsi_cdrom_map();
-    for (i=0; i<16; i++) {
-	for (j=0; j<8; j++) {
-		if (scsi_hard_disks[i][j] != 0xff) {
-			SCSIDevices[i][j].LunType = SCSI_DISK;
-		} else if (find_cdrom_for_scsi_id(i, j) != 0xff) {
-			SCSIDevices[i][j].LunType = SCSI_CDROM;
-		} else {
-			SCSIDevices[i][j].LunType = SCSI_NONE;
-		}
-	}
-    }
-
     timer_add(aha_reset_poll, &ResetCB, &ResetCB, dev);
     timer_add(aha_cmd_cb, &AHA_Callback, &AHA_Callback, dev);
 
@@ -2200,7 +2048,6 @@ static void *
 aha_1640_init(void)
 {
     aha_t *dev;
-    int i, j;
 
     dev = malloc(sizeof(aha_t));
     memset(dev, 0x00, sizeof(aha_t));
@@ -2212,24 +2059,6 @@ aha_1640_init(void)
     dev->pos_regs[1] = 0x0F;	
 
     ResetDev = dev;
-
-    pclog("Building SCSI hard disk map...\n");
-    build_scsi_hd_map();
-    pclog("Building SCSI CD-ROM map...\n");
-    build_scsi_cdrom_map();
-    for (i=0; i<16; i++) {
-	for (j=0; j<8; j++) {
-		if (scsi_hard_disks[i][j] != 0xff) {
-			SCSIDevices[i][j].LunType = SCSI_DISK;
-		}
-		else if (find_cdrom_for_scsi_id(i, j) != 0xff) {
-			SCSIDevices[i][j].LunType = SCSI_CDROM;
-		}
-		else {
-			SCSIDevices[i][j].LunType = SCSI_NONE;
-		}
-	}
-    }
 
     timer_add(aha_reset_poll, &ResetCB, &ResetCB, dev);
     timer_add(aha_cmd_cb, &AHA_Callback, &AHA_Callback, dev);
