@@ -1107,11 +1107,13 @@ static void
 BuslogicSCSIBIOSRequestSetup(Buslogic_t *bl, uint8_t *CmdBuf, uint8_t *DataInBuf, uint8_t DataReply)
 {	
 	ESCMD *ESCSICmd = (ESCMD *)CmdBuf;
-	uint8_t hdc_id, hd_phase;
-	uint8_t cdrom_id, cdrom_phase;
+	uint8_t hdc_id, cdrom_id;
 	uint32_t i;
 	uint8_t temp_cdb[12];
-	
+        int lun_type = 0;
+        int target_cdb_len = 12;
+        uint8_t target_id = 0;
+
 	DataInBuf[0] = DataInBuf[1] = 0;
 
     if ((ESCSICmd->TargetId > 15) || (ESCSICmd->LogicalUnit > 7)) {
@@ -1142,153 +1144,55 @@ BuslogicSCSIBIOSRequestSetup(Buslogic_t *bl, uint8_t *CmdBuf, uint8_t *DataInBuf
 		SpecificLog("Invalid control byte: %02X\n",
 			ESCSICmd->DataDirection);
 	}
-	}
+    }
 
-	if (SCSIDevices[ESCSICmd->TargetId][ESCSICmd->LogicalUnit].LunType == SCSI_DISK)
-	{
-		hdc_id = scsi_hard_disks[ESCSICmd->TargetId][ESCSICmd->LogicalUnit];
+    lun_type = SCSIDevices[ESCSICmd->TargetId][ESCSICmd->LogicalUnit].LunType;
 
-		if (hdc_id == 0xff)  fatal("SCSI hard disk on %02i:%02i has disappeared\n", ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
+    hdc_id = scsi_hard_disks[ESCSICmd->TargetId][ESCSICmd->LogicalUnit];
 
-		SpecificLog("SCSI HD command being executed on: SCSI ID %i, SCSI LUN %i, HD %i\n",
-								ESCSICmd->TargetId, ESCSICmd->LogicalUnit, hdc_id);
+    cdrom_id = scsi_cdrom_drives[ESCSICmd->TargetId][ESCSICmd->LogicalUnit];
 
-		SpecificLog("SCSI Cdb[0]=0x%02X\n", ESCSICmd->CDB[0]);
-		for (i = 1; i < ESCSICmd->CDBLength; i++) {
-		SpecificLog("SCSI Cdb[%i]=%i\n", i, ESCSICmd->CDB[i]);
-		}
+    if (lun_type == SCSI_DISK)
+    {
+	target_id = hdc_id;
+	target_cdb_len = 12;
+    }
+    else if (lun_type == SCSI_CDROM)
+    {
+	target_id = cdrom_id;
+	target_cdb_len = cdrom[cdrom_id].cdb_len;
+    }
 
-		memset(temp_cdb, 0, 12);
-		if (ESCSICmd->CDBLength <= 12) {
-		memcpy(temp_cdb, ESCSICmd->CDB,
-			ESCSICmd->CDBLength);
-		} else {
-		memcpy(temp_cdb, ESCSICmd->CDB, 12);
-		}
+    if (target_id == 0xff)  fatal("SCSI target on %02i:%02i has disappeared\n", ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
 
-		/*
-		 * Since that field in the HDC struct is never used when
-		 * the bus type is SCSI, let's use it for this scope.
-		 */
-		shdc[hdc_id].request_length = temp_cdb[1];
+    SpecificLog("SCSI target command being executed on: SCSI ID %i, SCSI LUN %i, Target %i\n", ESCSICmd->TargetId, ESCSICmd->LogicalUnit, target_id);
 
-		if (ESCSICmd->CDBLength != 12) {
-		/*
-		 * Make sure the LUN field of the temporary CDB is always 0,
-		 * otherwise Daemon Tools drives will misbehave when a command
-		 * is passed through to them.
-		 */
-		temp_cdb[1] &= 0x1f;
-		}
+    SpecificLog("SCSI Cdb[0]=0x%02X\n", ESCSICmd->CDB[0]);
+    for (i = 1; i < ESCSICmd->CDBLength; i++) {
+	SpecificLog("SCSI Cdb[%i]=%i\n", i, ESCSICmd->CDB[i]);
+    }
 
-		/* Finally, execute the SCSI command immediately and get the transfer length. */
-		SCSIPhase = SCSI_PHASE_COMMAND;
-		scsi_hd_command(hdc_id, temp_cdb);
-		SCSIStatus = scsi_hd_err_stat_to_scsi(hdc_id);
-		if (SCSIStatus == SCSI_STATUS_OK) {
-		hd_phase = scsi_hd_phase_to_scsi(hdc_id);
-		if (hd_phase == 2) {
-			/* Command completed - call the phase callback to complete the command. */
-			scsi_hd_callback(hdc_id);
-		} else {
-			/* Command first phase complete - call the callback to execute the second phase. */
-			scsi_hd_callback(hdc_id);
-			SCSIStatus = scsi_hd_err_stat_to_scsi(hdc_id);
-			/* Command second phase complete - call the callback to complete the command. */
-			scsi_hd_callback(hdc_id);
-		}
-		} else {
-		/* Error (Check Condition) - call the phase callback to complete the command. */
-		scsi_hd_callback(hdc_id);
-		}
+    memset(temp_cdb, 0, target_cdb_len);
+    if (ESCSICmd->CDBLength <= target_cdb_len) {
+	memcpy(temp_cdb, ESCSICmd->CDB, ESCSICmd->CDBLength);
+    } else {
+	memcpy(temp_cdb, ESCSICmd->CDB, target_cdb_len);
+    }
 
-		pclog("SCSI Status: %s, Sense: %02X, ASC: %02X, ASCQ: %02X\n", (SCSIStatus == SCSI_STATUS_OK) ? "OK" : "CHECK CONDITION", shdc[hdc_id].sense[2], shdc[hdc_id].sense[12], shdc[hdc_id].sense[13]);
+    scsi_command(ESCSICmd->CDBLength, lun_type, target_id, temp_cdb);
 
-		BuslogicSCSIBIOSDataBufferFree(ESCSICmd, ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
-		/* BuslogicSCSIBIOSSenseBufferFree(ESCSICmd, Id, Lun, (SCSIStatus != SCSI_STATUS_OK), 1); */
+    BuslogicSCSIBIOSDataBufferFree(ESCSICmd, ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
+    /* BuslogicSCSIBIOSSenseBufferFree(ESCSICmd, Id, Lun, (SCSIStatus != SCSI_STATUS_OK), 1); */
 
-		pclog("BIOS Request complete\n");
+    pclog("BIOS Request complete\n");
 
-		if (SCSIStatus == SCSI_STATUS_OK) {
-		DataInBuf[2] = CCB_COMPLETE;
-		DataInBuf[3] = SCSI_STATUS_OK;
-		} else if (SCSIStatus == SCSI_STATUS_CHECK_CONDITION) {
-		DataInBuf[2] = CCB_COMPLETE;
-		DataInBuf[3] = SCSI_STATUS_CHECK_CONDITION;			
-		}		
-	}
-	else if (SCSIDevices[ESCSICmd->TargetId][ESCSICmd->LogicalUnit].LunType == SCSI_CDROM)
-	{
-		cdrom_id = scsi_cdrom_drives[ESCSICmd->TargetId][ESCSICmd->LogicalUnit];
-
-		if (cdrom_id == 0xff)  fatal("SCSI CD-ROM on %02i:%02i has disappeared\n", ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
-
-		pclog("CD-ROM command being executed on: SCSI ID %i, SCSI LUN %i, CD-ROM %i\n",
-								ESCSICmd->TargetId, ESCSICmd->LogicalUnit, cdrom_id);
-
-		pclog("SCSI Cdb[0]=0x%02X\n", ESCSICmd->CDB[0]);
-		for (i = 1; i < ESCSICmd->CDBLength; i++) {
-		pclog("SCSI Cdb[%i]=%i\n", i, ESCSICmd->CDB[i]);
-		}
-
-		memset(temp_cdb, 0, cdrom[cdrom_id].cdb_len);
-		if (ESCSICmd->CDBLength <= cdrom[cdrom_id].cdb_len) {
-		memcpy(temp_cdb, ESCSICmd->CDB,
-			ESCSICmd->CDBLength);
-		} else {
-		memcpy(temp_cdb, ESCSICmd->CDB, cdrom[cdrom_id].cdb_len);
-		}
-
-		/*
-		 * Since that field in the CDROM struct is never used when
-		 * the bus type is SCSI, let's use it for this scope.
-		 */
-		cdrom[cdrom_id].request_length = temp_cdb[1];
-
-		if (ESCSICmd->CDBLength != 12) {
-		/*
-		 * Make sure the LUN field of the temporary CDB is always 0,
-		 * otherwise Daemon Tools drives will misbehave when a command
-		 * is passed through to them.
-		 */
-		temp_cdb[1] &= 0x1f;
-		}
-
-		/* Finally, execute the SCSI command immediately and get the transfer length. */
-		SCSIPhase = SCSI_PHASE_COMMAND;
-		cdrom_command(cdrom_id, temp_cdb);
-		SCSIStatus = cdrom_CDROM_PHASE_to_scsi(cdrom_id);
-		if (SCSIStatus == SCSI_STATUS_OK) {
-		cdrom_phase = cdrom_atapi_phase_to_scsi(cdrom_id);
-		if (cdrom_phase == 2) {
-			/* Command completed - call the phase callback to complete the command. */
-			cdrom_phase_callback(cdrom_id);
-		} else {
-			/* Command first phase complete - call the callback to execute the second phase. */
-			cdrom_phase_callback(cdrom_id);
-			SCSIStatus = cdrom_CDROM_PHASE_to_scsi(cdrom_id);
-			/* Command second phase complete - call the callback to complete the command. */
-			cdrom_phase_callback(cdrom_id);
-		}
-		} else {
-		/* Error (Check Condition) - call the phase callback to complete the command. */
-		cdrom_phase_callback(cdrom_id);
-		}
-
-		pclog("SCSI Status: %s, Sense: %02X, ASC: %02X, ASCQ: %02X\n", (SCSIStatus == SCSI_STATUS_OK) ? "OK" : "CHECK CONDITION", cdrom[cdrom_id].sense[2], cdrom[cdrom_id].sense[12], cdrom[cdrom_id].sense[13]);
-
-		BuslogicSCSIBIOSDataBufferFree(ESCSICmd, ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
-		
-		pclog("Request complete\n");
-
-		if (SCSIStatus == SCSI_STATUS_OK) {
-		DataInBuf[2] = CCB_COMPLETE;
-		DataInBuf[3] = SCSI_STATUS_OK;
-		} else if (SCSIStatus == SCSI_STATUS_CHECK_CONDITION) {
-		DataInBuf[2] = CCB_COMPLETE;
-		DataInBuf[3] = SCSI_STATUS_CHECK_CONDITION;			
-		}		
-	}
+    if (SCSIStatus == SCSI_STATUS_OK) {
+	DataInBuf[2] = CCB_COMPLETE;
+	DataInBuf[3] = SCSI_STATUS_OK;
+    } else if (SCSIStatus == SCSI_STATUS_CHECK_CONDITION) {
+	DataInBuf[2] = CCB_COMPLETE;
+	DataInBuf[3] = SCSI_STATUS_CHECK_CONDITION;			
+    }
 	
 	/* BuslogicInOperation = (SCSIDevices[Id][Lun].LunType == SCSI_DISK) ? 0x13 : 3; */
 	pclog("SCSI (%i:%i) -> %i\n", ESCSICmd->TargetId, ESCSICmd->LogicalUnit, SCSIDevices[ESCSICmd->TargetId][ESCSICmd->LogicalUnit].LunType);
@@ -2624,160 +2528,52 @@ BuslogicSenseBufferFree(Req_t *req, int Copy, int is_hd)
 
 
 static void
-BuslogicHDCommand(Buslogic_t *bl)
+BuslogicSCSICommand(Buslogic_t *bl)
 {
     Req_t *req = &bl->Req;
     uint8_t Id, Lun;
-    uint8_t hdc_id;
-    uint8_t hd_phase;
+    uint8_t hdc_id, cdrom_id;
     uint8_t temp_cdb[12];
     uint32_t i;
+    int lun_type = SCSI_NONE;
+    uint8_t target_id = 0;
+    int target_cdb_len = 12;
 
     Id = req->TargetID;
     Lun = req->LUN;
+    lun_type = SCSIDevices[Id][Lun].LunType;
     hdc_id = scsi_hard_disks[Id][Lun];
-
-    if (hdc_id == 0xff)  fatal("SCSI hard disk on %02i:%02i has disappeared\n", Id, Lun);
-
-    SpecificLog("SCSI HD command being executed on: SCSI ID %i, SCSI LUN %i, HD %i\n",
-							Id, Lun, hdc_id);
-
-    SpecificLog("SCSI Cdb[0]=0x%02X\n", req->CmdBlock.common.Cdb[0]);
-    for (i = 1; i < req->CmdBlock.common.CdbLength; i++) {
-	SpecificLog("SCSI Cdb[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
-    }
-
-    memset(temp_cdb, 0, 12);
-    if (req->CmdBlock.common.CdbLength <= 12) {
-	memcpy(temp_cdb, req->CmdBlock.common.Cdb,
-		req->CmdBlock.common.CdbLength);
-    } else {
-	memcpy(temp_cdb, req->CmdBlock.common.Cdb, 12);
-    }
-
-    /*
-     * Since that field in the HDC struct is never used when
-     * the bus type is SCSI, let's use it for this scope.
-     */
-    shdc[hdc_id].request_length = temp_cdb[1];
-
-    if (req->CmdBlock.common.CdbLength != 12) {
-	/*
-	 * Make sure the LUN field of the temporary CDB is always 0,
-	 * otherwise Daemon Tools drives will misbehave when a command
-	 * is passed through to them.
-	 */
-	temp_cdb[1] &= 0x1f;
-    }
-
-    /* Finally, execute the SCSI command immediately and get the transfer length. */
-    SCSIPhase = SCSI_PHASE_COMMAND;
-    scsi_hd_command(hdc_id, temp_cdb);
-    SCSIStatus = scsi_hd_err_stat_to_scsi(hdc_id);
-    if (SCSIStatus == SCSI_STATUS_OK) {
-	hd_phase = scsi_hd_phase_to_scsi(hdc_id);
-	if (hd_phase == 2) {
-		/* Command completed - call the phase callback to complete the command. */
-		scsi_hd_callback(hdc_id);
-	} else {
-		/* Command first phase complete - call the callback to execute the second phase. */
-		scsi_hd_callback(hdc_id);
-		SCSIStatus = scsi_hd_err_stat_to_scsi(hdc_id);
-		/* Command second phase complete - call the callback to complete the command. */
-		scsi_hd_callback(hdc_id);
-	}
-    } else {
-	/* Error (Check Condition) - call the phase callback to complete the command. */
-	scsi_hd_callback(hdc_id);
-    }
-
-    pclog("SCSI Status: %s, Sense: %02X, ASC: %02X, ASCQ: %02X\n", (SCSIStatus == SCSI_STATUS_OK) ? "OK" : "CHECK CONDITION", shdc[hdc_id].sense[2], shdc[hdc_id].sense[12], shdc[hdc_id].sense[13]);
-
-    BuslogicDataBufferFree(req);
-
-    BuslogicSenseBufferFree(req, (SCSIStatus != SCSI_STATUS_OK), 1);
-
-    pclog("Request complete\n");
-
-    if (SCSIStatus == SCSI_STATUS_OK) {
-	BuslogicMailboxInSetup(bl, req->CCBPointer, &req->CmdBlock,
-			       CCB_COMPLETE, SCSI_STATUS_OK, MBI_SUCCESS);
-    } else if (SCSIStatus == SCSI_STATUS_CHECK_CONDITION) {
-	BuslogicMailboxInSetup(bl, req->CCBPointer, &req->CmdBlock,
-			CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION, MBI_ERROR);
-    }
-}
-
-
-static void
-BuslogicCDROMCommand(Buslogic_t *bl)
-{
-    Req_t *req = &bl->Req;
-    uint8_t Id, Lun;
-    uint8_t cdrom_id;
-    uint8_t cdrom_phase;
-    uint8_t temp_cdb[12];
-    uint32_t i;
-
-    Id = req->TargetID;
-    Lun = req->LUN;
     cdrom_id = scsi_cdrom_drives[Id][Lun];
 
-    if (cdrom_id == 0xff)  fatal("SCSI CD-ROM on %02i:%02i has disappeared\n", Id, Lun);
+    if (lun_type == SCSI_DISK)
+    {
+	target_id = hdc_id;
+	target_cdb_len = 12;
+    }
+    else if (lun_type == SCSI_CDROM)
+    {
+	target_id = cdrom_id;
+	target_cdb_len = cdrom[cdrom_id].cdb_len;
+    }
 
-    pclog("CD-ROM command being executed on: SCSI ID %i, SCSI LUN %i, CD-ROM %i\n",
-							Id, Lun, cdrom_id);
+    if (target_id == 0xff)  fatal("Target on %02i:%02i has disappeared\n", Id, Lun);
+
+    pclog("Target command being executed on: SCSI ID %i, SCSI LUN %i, CD-ROM %i\n", Id, Lun, cdrom_id);
 
     pclog("SCSI Cdb[0]=0x%02X\n", req->CmdBlock.common.Cdb[0]);
     for (i = 1; i < req->CmdBlock.common.CdbLength; i++) {
 	pclog("SCSI Cdb[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
     }
 
-    memset(temp_cdb, 0, cdrom[cdrom_id].cdb_len);
-    if (req->CmdBlock.common.CdbLength <= cdrom[cdrom_id].cdb_len) {
+    memset(temp_cdb, 0, target_cdb_len);
+    if (req->CmdBlock.common.CdbLength <= target_cdb_len) {
 	memcpy(temp_cdb, req->CmdBlock.common.Cdb,
 		req->CmdBlock.common.CdbLength);
     } else {
-	memcpy(temp_cdb, req->CmdBlock.common.Cdb, cdrom[cdrom_id].cdb_len);
+	memcpy(temp_cdb, req->CmdBlock.common.Cdb, target_cdb_len);
     }
 
-    /*
-     * Since that field in the CDROM struct is never used when
-     * the bus type is SCSI, let's use it for this scope.
-     */
-    cdrom[cdrom_id].request_length = temp_cdb[1];
-
-    if (req->CmdBlock.common.CdbLength != 12) {
-	/*
-	 * Make sure the LUN field of the temporary CDB is always 0,
-	 * otherwise Daemon Tools drives will misbehave when a command
-	 * is passed through to them.
-	 */
-	temp_cdb[1] &= 0x1f;
-    }
-
-    /* Finally, execute the SCSI command immediately and get the transfer length. */
-    SCSIPhase = SCSI_PHASE_COMMAND;
-    cdrom_command(cdrom_id, temp_cdb);
-    SCSIStatus = cdrom_CDROM_PHASE_to_scsi(cdrom_id);
-    if (SCSIStatus == SCSI_STATUS_OK) {
-	cdrom_phase = cdrom_atapi_phase_to_scsi(cdrom_id);
-	if (cdrom_phase == 2) {
-		/* Command completed - call the phase callback to complete the command. */
-		cdrom_phase_callback(cdrom_id);
-	} else {
-		/* Command first phase complete - call the callback to execute the second phase. */
-		cdrom_phase_callback(cdrom_id);
-		SCSIStatus = cdrom_CDROM_PHASE_to_scsi(cdrom_id);
-		/* Command second phase complete - call the callback to complete the command. */
-		cdrom_phase_callback(cdrom_id);
-	}
-    } else {
-	/* Error (Check Condition) - call the phase callback to complete the command. */
-	cdrom_phase_callback(cdrom_id);
-    }
-
-    pclog("SCSI Status: %s, Sense: %02X, ASC: %02X, ASCQ: %02X\n", (SCSIStatus == SCSI_STATUS_OK) ? "OK" : "CHECK CONDITION", cdrom[cdrom_id].sense[2], cdrom[cdrom_id].sense[12], cdrom[cdrom_id].sense[13]);
+    scsi_command(req->CmdBlock.common.CdbLength, SCSIDevices[Id][Lun].LunType, target_id, temp_cdb);
 
     BuslogicDataBufferFree(req);
 
@@ -2971,7 +2767,7 @@ BuslogicCommandCallback(void *p)
 	}
     } else if (BuslogicInOperation == 1) {
 	pclog("BusLogic Callback: Process CD-ROM request\n");
-	BuslogicCDROMCommand(bl);
+	BuslogicSCSICommand(bl);
 	if (bl->Req.CmdBlock.common.Cdb[0] == 0x42)
 	{
 		/* This is needed since CD Audio inevitably means READ SUBCHANNEL spam. */
@@ -2983,7 +2779,7 @@ BuslogicCommandCallback(void *p)
 	BuslogicMailboxIn(bl);
     } else if (BuslogicInOperation == 0x11) {
 	pclog("BusLogic Callback: Process hard disk request\n");
-	BuslogicHDCommand(bl);
+	BuslogicSCSICommand(bl);
     } else {
 	fatal("Invalid BusLogic callback phase: %i\n", BuslogicInOperation);
     }

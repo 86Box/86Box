@@ -266,6 +266,8 @@ int scsi_card_get_from_internal_name(char *s);
 void scsi_card_init();
 void scsi_card_reset(void);
 
+void scsi_command(int cdb_len, int lun_type, uint8_t id, uint8_t *cdb);
+
 extern uint8_t scsi_hard_disks[16][8];
 
 int scsi_hd_err_stat_to_scsi(uint8_t id);
