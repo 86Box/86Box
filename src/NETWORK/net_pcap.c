@@ -262,6 +262,7 @@ network_pcap_close(void)
 
 	/* OK, now shut down WinPcap itself. */
 	f_pcap_close(pc);
+	pc = pcap = NULL;
 
 	/* Unload the DLL if possible. */
 	if (pcap_handle != NULL) {
@@ -279,6 +280,7 @@ network_pcap_stop(void)
 {
 	/* OK, now shut down WinPcap itself. */
 	f_pcap_close(pcap);
+	pcap = NULL;
 
 	/* Unload the DLL if possible. */
 	if (pcap_handle != NULL) {
