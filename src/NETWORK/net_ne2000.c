@@ -10,7 +10,7 @@
  *
  * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.11	2017/06/14
+ * Version:	@(#)net_ne2000.c	1.0.12	2017/08/23
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -356,7 +356,7 @@ chipmem_read(nic_t *dev, uint32_t addr, unsigned int len)
     }
 
     /* ROM'd MAC address */
-    if ((addr >=0) && (addr <= 31)) {
+    if (addr <= 31) {
 	retval = dev->macaddr[addr % 32];
 	if ((len == 2) || (len == 4)) {
 		retval |= (dev->macaddr[(addr + 1) % 32] << 8);
