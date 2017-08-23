@@ -894,8 +894,10 @@ static int image_readtoc_raw(uint8_t id, unsigned char *b, int maxlen)
 
         cdimg[id]->GetAudioTracks(first_track, last_track, tmsf);
 
-        b[2] = first_track;
-        b[3] = last_track;
+        if (maxlen >= 3)  b[2] = first_track;
+        if (maxlen >= 4)  b[3] = last_track;
+
+	if (maxlen <= 4)  return len;
 
         for (track = first_track; track <= last_track; track++)
         {
@@ -908,16 +910,27 @@ static int image_readtoc_raw(uint8_t id, unsigned char *b, int maxlen)
                 cdimg[id]->GetAudioTrackInfo(track, number, tmsf, attr);
 
                 b[len++] = track;
+		if (len == maxlen)  return len;
                 b[len++]= attr;
+		if (len == maxlen)  return len;
                 b[len++]=0;
+		if (len == maxlen)  return len;
                 b[len++]=0;
+		if (len == maxlen)  return len;
                 b[len++]=0;
+		if (len == maxlen)  return len;
                 b[len++]=0;
+		if (len == maxlen)  return len;
                 b[len++]=0;
+		if (len == maxlen)  return len;
                 b[len++]=0;
+		if (len == maxlen)  return len;
                 b[len++] = tmsf.min;
+		if (len == maxlen)  return len;
        	        b[len++] = tmsf.sec;
+		if (len == maxlen)  return len;
                 b[len++] = tmsf.fr;
+		if (len == maxlen)  return len;
         }
         return len;
 }

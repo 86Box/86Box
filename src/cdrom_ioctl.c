@@ -1172,8 +1172,10 @@ static int ioctl_readtoc_raw(uint8_t id, uint8_t *b, int maxlen)
         ioctl_hopen(id);
         DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL,IOCTL_CDROM_READ_TOC_EX, &toc_ex,sizeof(toc_ex),&toc,sizeof(toc),(PDWORD)&size,NULL);
         ioctl_close(id);
-        b[2]=toc.FirstCompleteSession;
-        b[3]=toc.LastCompleteSession;
+        if (maxlen >= 3)  b[2]=toc.FirstCompleteSession;
+        if (maxlen >= 4)  b[3]=toc.LastCompleteSession;
+
+	if (len >= maxlen)  return len;
 
 	size -= sizeof(CDROM_TOC_FULL_TOC_DATA);
 	size /= sizeof(toc.Descriptors[0]);
@@ -1181,16 +1183,27 @@ static int ioctl_readtoc_raw(uint8_t id, uint8_t *b, int maxlen)
 	for (i = 0; i <= size; i++)
 	{
                 b[len++]=toc.Descriptors[i].SessionNumber;
+		if (len == maxlen)  return len;
                 b[len++]=(toc.Descriptors[i].Adr<<4)|toc.Descriptors[i].Control;
+		if (len == maxlen)  return len;
                 b[len++]=0;
+		if (len == maxlen)  return len;
                 b[len++]=toc.Descriptors[i].Reserved1; /*Reserved*/
+		if (len == maxlen)  return len;
 		b[len++]=toc.Descriptors[i].MsfExtra[0];
+		if (len == maxlen)  return len;
 		b[len++]=toc.Descriptors[i].MsfExtra[1];
+		if (len == maxlen)  return len;
 		b[len++]=toc.Descriptors[i].MsfExtra[2];
+		if (len == maxlen)  return len;
 		b[len++]=toc.Descriptors[i].Zero;
+		if (len == maxlen)  return len;
 		b[len++]=toc.Descriptors[i].Msf[0];
+		if (len == maxlen)  return len;
 		b[len++]=toc.Descriptors[i].Msf[1];
+		if (len == maxlen)  return len;
 		b[len++]=toc.Descriptors[i].Msf[2];
+		if (len == maxlen)  return len;
 	}
 
 	return len;
