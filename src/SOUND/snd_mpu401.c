@@ -665,7 +665,7 @@ static void mpu401_write(uint16_t addr, uint8_t val, void *p)
 static uint8_t mpu401_read(uint16_t addr, void *p)
 {
         mpu_t *mpu = (mpu_t *)p;
-        uint8_t ret;
+        uint8_t ret = 0;
 		
 		switch (addr & 1)
 		{	

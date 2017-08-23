@@ -64,7 +64,7 @@ static int opSETALC(uint32_t fetchdat)
 
 static int opF6_a16(uint32_t fetchdat)
 {
-        int tempws, tempws2;
+        int tempws, tempws2 = 0;
         uint16_t tempw, src16;
         uint8_t src, dst;
         int8_t temps;
@@ -161,7 +161,7 @@ static int opF6_a16(uint32_t fetchdat)
 }
 static int opF6_a32(uint32_t fetchdat)
 {
-        int tempws, tempws2;
+        int tempws, tempws2 = 0;
         uint16_t tempw, src16;
         uint8_t src, dst;
         int8_t temps;
@@ -262,7 +262,7 @@ static int opF6_a32(uint32_t fetchdat)
 static int opF7_w_a16(uint32_t fetchdat)
 {
         uint32_t templ, templ2;
-        int tempws, tempws2;
+        int tempws, tempws2 = 0;
         int16_t temps16;
         uint16_t src, dst;
         
@@ -354,7 +354,7 @@ static int opF7_w_a16(uint32_t fetchdat)
 static int opF7_w_a32(uint32_t fetchdat)
 {
         uint32_t templ, templ2;
-        int tempws, tempws2;
+        int tempws, tempws2 = 0;
         int16_t temps16;
         uint16_t src, dst;
 

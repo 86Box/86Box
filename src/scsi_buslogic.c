@@ -730,8 +730,8 @@ BuslogicMailboxIn(Buslogic_t *bl)
 	CmdBlock->common.TargetStatus = TargetStatus;		
 		
 	/* Rewrite the CCB up to the CDB. */
-	pclog("CCB rewritten to the CDB (pointer %08X, length %i)\n", CCBPointer, offsetof(CCBC, Cdb));
-	DMAPageWrite(CCBPointer, (char *)CmdBlock, offsetof(CCBC, Cdb));
+	pclog("CCB rewritten to the CDB (pointer %08X, length 18)\n", CCBPointer);
+	DMAPageWrite(CCBPointer, (char *)CmdBlock, 18);
     } else {
 	pclog("Mailbox not found!\n");
     }
@@ -2294,7 +2294,7 @@ BuslogicSenseBufferFree(Req_t *req, int Copy)
 	 */
 	if (req->Is24bit) {
 		SenseBufferAddress = req->CCBPointer;
-		SenseBufferAddress += req->CmdBlock.common.CdbLength + offsetof(CCB, Cdb);
+		SenseBufferAddress += req->CmdBlock.common.CdbLength + 18;
 	} else {
 		SenseBufferAddress = req->CmdBlock.new.SensePointer;
 	}
@@ -2461,7 +2461,7 @@ BuslogicProcessMailbox(Buslogic_t *bl)
     uint8_t CmdStatus = MBO_FREE;
     uint32_t CodeOffset = 0;
 
-    CodeOffset = bl->Mbx24bit ? offsetof(Mailbox_t, CmdStatus) : offsetof(Mailbox32_t, u.out.ActionCode);
+    CodeOffset = bl->Mbx24bit ? 0 : 7;
 
     if (! bl->StrictRoundRobinMode) {
 	uint8_t MailboxCur = bl->MailboxOutPosCur;

@@ -314,8 +314,8 @@ int imd_track_is_xdf(int drive, int side, int track)
 	int i, effective_sectors, xdf_sectors;
 	int high_sectors, low_sectors;
 	int max_high_id, expected_high_count, expected_low_count;
-	char *r_map;
-	char *n_map;
+	uint8_t *r_map;
+	uint8_t *n_map;
 	char *data_base;
 	char *cur_data;
 
@@ -334,7 +334,7 @@ int imd_track_is_xdf(int drive, int side, int track)
 	{
 		return 0;
 	}
-	r_map = imd[drive].buffer + imd[drive].tracks[track][side].r_map_offs;
+	r_map = (uint8_t *) (imd[drive].buffer + imd[drive].tracks[track][side].r_map_offs);
 	data_base = imd[drive].buffer + imd[drive].tracks[track][side].data_offs;
 
 	if (!track)
@@ -382,7 +382,7 @@ int imd_track_is_xdf(int drive, int side, int track)
 			return 0;
 		}
 
-		n_map = imd[drive].buffer + imd[drive].tracks[track][side].n_map_offs;
+		n_map = (uint8_t *) (imd[drive].buffer + imd[drive].tracks[track][side].n_map_offs);
 
 		cur_data = data_base;
 		for (i = 0; i < imd[drive].tracks[track][side].params[3]; i++)
@@ -392,7 +392,7 @@ int imd_track_is_xdf(int drive, int side, int track)
 			{
 				effective_sectors--;
 			}
-			if ((r_map[i] == (n_map[i] | 0x80)))
+			if (r_map[i] == (n_map[i] | 0x80))
 			{
 				xdf_sectors++;
 				imd[drive].xdf_ordered_pos[(int) r_map[i]][side] = i;

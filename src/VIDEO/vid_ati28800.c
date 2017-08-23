@@ -307,7 +307,7 @@ void ati28800_recalctimings(svga_t *svga)
 {
         ati28800_t *ati28800 = (ati28800_t *)svga->p;
         uint8_t clock_sel = (svga->miscout >> 2) & 3;
-        double freq;
+        double freq = 0;
 
 #ifndef RELEASE_BUILD
         pclog("ati28800_recalctimings\n");
