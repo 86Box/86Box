@@ -1028,8 +1028,15 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                                 int old_on=emu8k->voice[emu8k->cur_voice].env_engine_on;
                                 emu8k->voice[emu8k->cur_voice].env_engine_on = DCYSUSV_GENERATOR_ENGINE_ON(val);
                                 
-                                if (old_on != emu8k->voice[emu8k->cur_voice].env_engine_on)
-								{
+                                if (emu8k->voice[emu8k->cur_voice].env_engine_on &&
+                                    old_on != emu8k->voice[emu8k->cur_voice].env_engine_on) {
+                                        if (emu8k->hwcf3 != 0x04 && emu8k->cur_voice == 31)
+                                        {
+                                                /* This is a hack for some programs like Doom or cubic player 1.7 that don't initialize
+                                                   the hwcfg and init registers (doom does not init the card at all. only tests the cfg registers) */
+                                                emu8k->hwcf3 = 0x04;
+                                        }
+
                                         /* reset lfos. */
                                         emu8k->voice[emu8k->cur_voice].lfo1_count.addr = 0;
                                         emu8k->voice[emu8k->cur_voice].lfo2_count.addr = 0;
@@ -2071,7 +2078,7 @@ I've recopilated these sentences to get an idea of how to loop
                 }
                 
                 /* Update EMU voice registers. */
-                emu_voice->ccca = emu_voice->ccca_qcontrol | emu_voice->addr.int_address;
+                emu_voice->ccca = (((uint32_t)emu_voice->ccca_qcontrol) << 24) | emu_voice->addr.int_address;
                 emu_voice->cpf_curr_frac_addr = emu_voice->addr.fract_address;
 
                 if ( emu_voice->cvcf_curr_volume != older[c]) {
@@ -2084,8 +2091,8 @@ I've recopilated these sentences to get an idea of how to loop
         buf = &emu8k->buffer[emu8k->pos*2];
         emu8k_work_reverb(&emu8k->reverb_in_buffer[emu8k->pos], buf, &emu8k->reverb_engine, new_pos-emu8k->pos);
         emu8k_work_chorus(&emu8k->chorus_in_buffer[emu8k->pos], buf, &emu8k->chorus_engine, new_pos-emu8k->pos);
-        emu8k_work_eq(&emu8k->chorus_in_buffer[emu8k->pos], new_pos-emu8k->pos);
-        
+        emu8k_work_eq(buf, new_pos-emu8k->pos);
+
         /* Clip signal */
         for (pos = emu8k->pos; pos < new_pos; pos++)        
         {
