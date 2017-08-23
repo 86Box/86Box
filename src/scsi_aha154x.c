@@ -1022,10 +1022,12 @@ aha_read(uint16_t port, void *priv)
 		break;
     }
 
+#ifndef WALTJE
     if (port < 0x1000) {
 	pclog("%s: Read Port 0x%02X, Returned Value %02X\n",
 					dev->name, port, ret);
     }
+#endif
 
     return(ret);
 }
@@ -1439,15 +1441,13 @@ aha_scsi_cmd(aha_t *dev)
     if (!scsi_device_valid(Id, Lun))
 	fatal("SCSI target on %02i:%02i has disappeared\n", Id, Lun);
 
-    pclog("SCSI command being executed on: SCSI ID %i, SCSI LUN %i\n",
-							Id, Lun);
+    pclog("SCSI command being executed on ID %i, LUN %i\n", Id, Lun);
 
-    pclog("SCSI Cdb[0]=0x%02X\n", req->CmdBlock.common.Cdb[0]);
-    for (i = 1; i<req->CmdBlock.common.CdbLength; i++) {
-	pclog("SCSI Cdb[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
-    }
+    pclog("SCSI CDB[0]=0x%02X\n", req->CmdBlock.common.Cdb[0]);
+    for (i=1; i<req->CmdBlock.common.CdbLength; i++)
+	pclog("SCSI CDB[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
 
-    memset(temp_cdb, 0, target_cdb_len);
+    memset(temp_cdb, 0x00, target_cdb_len);
     if (req->CmdBlock.common.CdbLength <= target_cdb_len) {
 	memcpy(temp_cdb, req->CmdBlock.common.Cdb,
 		req->CmdBlock.common.CdbLength);
@@ -1925,8 +1925,7 @@ static void *
 aha_init(int type)
 {
     aha_t *dev;
-    uint32_t bios_addr = 0x00000000;
-    int bios = 0;
+    uint32_t bios;
 
     /* Allocate control block and set up basic stuff. */
     dev = malloc(sizeof(aha_t));
@@ -1934,38 +1933,25 @@ aha_init(int type)
     memset(dev, 0x00, sizeof(aha_t));
     dev->type = type;
 
-    /* Set up the I/O address, IRQ and DMA info. */
-	dev->Base = device_get_config_hex16("base");
-	dev->Irq = device_get_config_int("irq");
-	dev->DmaChannel = device_get_config_int("dma");
-	bios = device_get_config_int("bios");
-	bios_addr = device_get_config_hex20("bios_addr");
-	if (dev->Base != 0) {
-		/* Register our address space. */
-		io_sethandler(dev->Base, 4,
-			      aha_read, aha_readw, NULL,
-			      aha_write, aha_writew, NULL, dev);
-	}
-	pclog("Adaptec %s (IO=0x%04X, IRQ=%d, DMA=%d)\n",
-		dev->name, dev->Base, dev->Irq, dev->DmaChannel);
-
-    ResetDev = dev;
-
-    timer_add(aha_reset_poll, &ResetCB, &ResetCB, dev);
-    timer_add(aha_cmd_cb, &AHA_Callback, &AHA_Callback, dev);
-
-    aha_reset_ctrl(dev, CTRL_HRST);
+    /* Set up the (initial) I/O address, IRQ and DMA info. */
+    dev->Base = device_get_config_hex16("base");
+    dev->Irq = device_get_config_int("irq");
+    dev->DmaChannel = device_get_config_int("dma");
+    bios = device_get_config_hex20("bios_addr");
 
     switch(type) {
 	case AHA_154xB:
 		strcpy(dev->name, "AHA-154xB");
-		if (dev->Base == 0x334 && bios_addr == 0xd8000)
-		{
-			dev->bios_path = L"roms/scsi/adaptec/B_AC00.BIN";
-		}
-		else if (dev->Base == 0x330 && bios_addr == 0xd0000)
-		{
-			dev->bios_path = L"roms/scsi/adaptec/bios_3.2.BIN";
+		switch(dev->Base) {
+			case 0x0330:
+				dev->bios_path =
+				    L"roms/scsi/adaptec/aha1540b320_330.bin";
+				break;
+
+			case 0x0334:
+				dev->bios_path =
+				    L"roms/scsi/adaptec/aha1540b320_334.bin";
+				break;
 		}
 		dev->bid = 'A';
 		break;
@@ -1983,7 +1969,7 @@ aha_init(int type)
 	case AHA_154xCF:
 		strcpy(dev->name, "AHA-154xCF");
 		dev->bios_path = L"roms/scsi/adaptec/aha1542cf211.bin";
-		dev->nvr_path = L"nvr/aha1540cf.nvr";
+		dev->nvr_path = L"aha1540cf.nvr";
 		dev->bid = 'E';
 		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
 		dev->rom_shramsz = 128;		/* size of shadow RAM */
@@ -1994,21 +1980,45 @@ aha_init(int type)
 	case AHA_154xCP:
 		strcpy(dev->name, "AHA-154xCP");
 		dev->bios_path = L"roms/scsi/adaptec/aha1542cp102.bin";
-		dev->nvr_path = L"nvr/aha1540cp.nvr";
+		dev->nvr_path = L"aha1540cp.nvr";
 		dev->bid = 'F';
 		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
 		dev->rom_shramsz = 128;		/* size of shadow RAM */
 		dev->rom_ioaddr = 0x3F7E;	/* [2:0] idx into addr table */
 		dev->rom_fwhigh = 0x0055;	/* firmware version (hi/lo) */
 		break;
+
+	case AHA_1640:
+		/* Enable MCA. */
+		dev->pos_regs[0] = 0x1F;
+		dev->pos_regs[1] = 0x0F;	
+		mca_add(aha_mca_read, aha_mca_write, dev);
+		break;
     }	
+    ResetDev = dev;
 	
     /* Initialize ROM BIOS if needed. */
-    if (bios)
-	aha_setbios(dev, bios_addr);
+    aha_setbios(dev, bios);
 
     /* Initialize EEPROM (NVR) if needed. */
     aha_setnvr(dev);
+
+    timer_add(aha_reset_poll, &ResetCB, &ResetCB, dev);
+    timer_add(aha_cmd_cb, &AHA_Callback, &AHA_Callback, dev);
+
+    if (dev->Base != 0) {
+	/* Register our address space. */
+	io_sethandler(dev->Base, 4,
+		      aha_read, aha_readw, NULL,
+		      aha_write, aha_writew, NULL, dev);
+    }
+
+    /* Say hello! */
+    pclog("Adaptec %s (IO=0x%04X, IRQ=%d, DMA=%d)\n",
+	dev->name, dev->Base, dev->Irq, dev->DmaChannel);
+
+    /* Reset the device. */
+    aha_reset_ctrl(dev, CTRL_HRST);
 
     return(dev);
 }
@@ -2031,25 +2041,7 @@ aha_154xCF_init(void)
 static void *
 aha_1640_init(void)
 {
-    aha_t *dev;
-
-    dev = malloc(sizeof(aha_t));
-    memset(dev, 0x00, sizeof(aha_t));
-    dev->type = AHA_1640;
-	
-    pclog("Aha1640 initialized\n");
-    mca_add(aha_mca_read, aha_mca_write, dev);
-    dev->pos_regs[0] = 0x1F;
-    dev->pos_regs[1] = 0x0F;	
-
-    ResetDev = dev;
-
-    timer_add(aha_reset_poll, &ResetCB, &ResetCB, dev);
-    timer_add(aha_cmd_cb, &AHA_Callback, &AHA_Callback, dev);
-
-    aha_reset_ctrl(dev, CTRL_HRST);
-
-    return(dev);
+    return(aha_init(AHA_1640));
 }
 
 
@@ -2069,7 +2061,7 @@ aha_close(void *priv)
 }
 
 
-static device_config_t aha_154xCF_config[] = {
+static device_config_t aha_154x_config[] = {
         {
 		"base", "Address", CONFIG_HEX16, "", 0x334,
                 {
@@ -2142,12 +2134,12 @@ static device_config_t aha_154xCF_config[] = {
                         }
                 },
         },
-	{
-		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
-	},
         {
-                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xd8000,
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0,
                 {
+                        {
+                                "Disabled", 0
+                        },
                         {
                                 "C800H", 0xc8000
                         },
@@ -2177,7 +2169,7 @@ device_t aha1540b_device = {
     NULL,
     NULL,
     NULL,
-    aha_154xCF_config
+    aha_154x_config
 };
 
 device_t aha1542cf_device = {
@@ -2189,7 +2181,7 @@ device_t aha1542cf_device = {
     NULL,
     NULL,
     NULL,
-    aha_154xCF_config
+    aha_154x_config
 };
 
 device_t aha1640_device = {
