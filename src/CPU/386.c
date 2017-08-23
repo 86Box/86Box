@@ -70,6 +70,7 @@ uint32_t *eal_r, *eal_w;
 uint16_t *mod1add[2][8];
 uint32_t *mod1seg[8];
 
+#if 0
 static __inline void fetch_ea_32_long(uint32_t rmdat)
 {
         eal_r = eal_w = NULL;
@@ -184,6 +185,7 @@ static __inline void fetch_ea_16_long(uint32_t rmdat)
                 	eal_w = (uint32_t *)(writelookup2[addr >> 12] + addr);
         }
 }
+#endif
 
 #define fetch_ea_16(rmdat)              cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_16_long(rmdat); if (cpu_state.abrt) return 0; } 
 #define fetch_ea_32(rmdat)              cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_32_long(rmdat); } if (cpu_state.abrt) return 0

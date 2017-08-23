@@ -390,12 +390,14 @@ static __inline uint16_t geteaw()
         return readmemw(easeg,cpu_state.eaaddr);
 }
 
+#if 0
 static __inline uint16_t geteaw2()
 {
         if (cpu_mod == 3)
                 return cpu_state.regs[cpu_rm].w;
         return readmemw(easeg,(cpu_state.eaaddr+2)&0xFFFF);
 }
+#endif
 
 static __inline void seteab(uint8_t val)
 {

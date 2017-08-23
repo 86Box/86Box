@@ -278,7 +278,7 @@ static int opC0_a16(uint32_t fetchdat)
 {
         int c;
         int tempc;
-        uint8_t temp, temp2;
+        uint8_t temp, temp2 = 0;
         
         fetch_ea_16(fetchdat);
         c = readmemb(cs, cpu_state.pc) & 31; cpu_state.pc++;
@@ -291,7 +291,7 @@ static int opC0_a32(uint32_t fetchdat)
 {
         int c;
         int tempc;
-        uint8_t temp, temp2;
+        uint8_t temp, temp2 = 0;
         
         fetch_ea_32(fetchdat);
         c = readmemb(cs, cpu_state.pc) & 31; cpu_state.pc++;
@@ -304,7 +304,7 @@ static int opC1_w_a16(uint32_t fetchdat)
 {
         int c;
         int tempc;
-        uint16_t temp, temp2;
+        uint16_t temp, temp2 = 0;
         
         fetch_ea_16(fetchdat);
         c = readmemb(cs, cpu_state.pc) & 31; cpu_state.pc++;
@@ -317,7 +317,7 @@ static int opC1_w_a32(uint32_t fetchdat)
 {
         int c;
         int tempc;
-        uint16_t temp, temp2;
+        uint16_t temp, temp2 = 0;
         
         fetch_ea_32(fetchdat);
         c = readmemb(cs, cpu_state.pc) & 31; cpu_state.pc++;
@@ -330,7 +330,7 @@ static int opC1_l_a16(uint32_t fetchdat)
 {
         int c;
         int tempc;
-        uint32_t temp, temp2;
+        uint32_t temp, temp2 = 0;
         
         fetch_ea_16(fetchdat);
         c = readmemb(cs, cpu_state.pc) & 31; cpu_state.pc++;
@@ -343,7 +343,7 @@ static int opC1_l_a32(uint32_t fetchdat)
 {
         int c;
         int tempc;
-        uint32_t temp, temp2;
+        uint32_t temp, temp2 = 0;
         
         fetch_ea_32(fetchdat);
         c = readmemb(cs, cpu_state.pc) & 31; cpu_state.pc++;
@@ -357,7 +357,7 @@ static int opD0_a16(uint32_t fetchdat)
 {
         int c = 1;
         int tempc;
-        uint8_t temp, temp2;
+        uint8_t temp, temp2 = 0;
         
         fetch_ea_16(fetchdat);
         temp = geteab();                if (cpu_state.abrt) return 1;
@@ -368,7 +368,7 @@ static int opD0_a32(uint32_t fetchdat)
 {
         int c = 1;
         int tempc;
-        uint8_t temp, temp2;
+        uint8_t temp, temp2 = 0;
         
         fetch_ea_32(fetchdat);
         temp = geteab();                if (cpu_state.abrt) return 1;
@@ -379,7 +379,7 @@ static int opD1_w_a16(uint32_t fetchdat)
 {
         int c = 1;
         int tempc;
-        uint16_t temp, temp2;
+        uint16_t temp, temp2 = 0;
         
         fetch_ea_16(fetchdat);
         temp = geteaw();                if (cpu_state.abrt) return 1;
@@ -390,7 +390,7 @@ static int opD1_w_a32(uint32_t fetchdat)
 {
         int c = 1;
         int tempc;
-        uint16_t temp, temp2;
+        uint16_t temp, temp2 = 0;
         
         fetch_ea_32(fetchdat);
         temp = geteaw();                if (cpu_state.abrt) return 1;
@@ -401,7 +401,7 @@ static int opD1_l_a16(uint32_t fetchdat)
 {
         int c = 1;
         int tempc;
-        uint32_t temp, temp2;
+        uint32_t temp, temp2 = 0;
         
         fetch_ea_16(fetchdat);
         temp = geteal();                if (cpu_state.abrt) return 1;
@@ -412,7 +412,7 @@ static int opD1_l_a32(uint32_t fetchdat)
 {
         int c = 1;
         int tempc;
-        uint32_t temp, temp2;
+        uint32_t temp, temp2 = 0;
         
         fetch_ea_32(fetchdat);
         temp = geteal();                if (cpu_state.abrt) return 1;
@@ -424,7 +424,7 @@ static int opD2_a16(uint32_t fetchdat)
 {
         int c;
         int tempc;
-        uint8_t temp, temp2;
+        uint8_t temp, temp2 = 0;
         
         fetch_ea_16(fetchdat);
         c = CL & 31;
@@ -436,7 +436,7 @@ static int opD2_a32(uint32_t fetchdat)
 {
         int c;
         int tempc;
-        uint8_t temp, temp2;
+        uint8_t temp, temp2 = 0;
         
         fetch_ea_32(fetchdat);
         c = CL & 31;
@@ -448,7 +448,7 @@ static int opD3_w_a16(uint32_t fetchdat)
 {
         int c;
         int tempc;
-        uint16_t temp, temp2;
+        uint16_t temp, temp2 = 0;
         
         fetch_ea_16(fetchdat);
         c = CL & 31;
@@ -460,7 +460,7 @@ static int opD3_w_a32(uint32_t fetchdat)
 {
         int c;
         int tempc;
-        uint16_t temp, temp2;
+        uint16_t temp, temp2 = 0;
         
         fetch_ea_32(fetchdat);
         c = CL & 31;
@@ -472,7 +472,7 @@ static int opD3_l_a16(uint32_t fetchdat)
 {
         int c;
         int tempc;
-        uint32_t temp, temp2;
+        uint32_t temp, temp2 = 0;
         
         fetch_ea_16(fetchdat);
         c = CL & 31;
@@ -484,7 +484,7 @@ static int opD3_l_a32(uint32_t fetchdat)
 {
         int c;
         int tempc;
-        uint32_t temp, temp2;
+        uint32_t temp, temp2 = 0;
         
         fetch_ea_32(fetchdat);
         c = CL & 31;

@@ -199,7 +199,7 @@ void midi_write(uint8_t val)
                 {
                         midi_sysex_data[midi_pos++] = 0xf7;
 
-                        if ((midi_sysex_start) && (midi_pos >= 4) && (midi_pos <= 9) && (midi_sysex_data[1] == 0x411) && (midi_sysex_data[3] == 0x16))
+                        if ((midi_sysex_start) && (midi_pos >= 4) && (midi_pos <= 9) && (midi_sysex_data[1] == 0x41) && (midi_sysex_data[3] == 0x16))
                         {
                                 /* pclog("MIDI: Skipping invalid MT-32 SysEx MIDI message\n"); */
                         }

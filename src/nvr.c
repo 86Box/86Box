@@ -248,7 +248,7 @@ void loadnvr(void)
                 {
                         nvrram[RTC_SECONDS] = nvrram[RTC_MINUTES] = nvrram[RTC_HOURS] = 0;
                         nvrram[RTC_DOM] = nvrram[RTC_MONTH] = 1;
-                        nvrram[RTC_YEAR] = BCD(80);
+                        nvrram[RTC_YEAR] = (char) BCD(80);
                         nvrram[RTC_CENTURY] = BCD(19);
                         nvrram[RTC_REGB] = RTC_2412;
                 }

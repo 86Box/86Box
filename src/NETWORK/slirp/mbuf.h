@@ -67,7 +67,7 @@ struct m_hdr {
 	struct	SLIRPsocket *mh_so;
 	
 	SLIRPcaddr_t	mh_data;		/* Location of data */
-	size_t	mh_len;			/* Amount of data in this mbuf */
+	int32_t	mh_len;			/* Amount of data in this mbuf */
 };
 
 /* 

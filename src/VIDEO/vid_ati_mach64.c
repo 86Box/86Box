@@ -3044,7 +3044,7 @@ void mach64_overlay_draw(svga_t *svga, int displine)
                 {
                         int h = h_acc >> 12;
                         int gr_cmp = 0, vid_cmp = 0;
-                        int use_video;
+                        int use_video = 0;
 
                         switch (video_key_fn)
                         {

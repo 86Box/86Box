@@ -443,7 +443,7 @@ void adgold_write(uint16_t addr, uint8_t val, void *p)
 uint8_t adgold_read(uint16_t addr, void *p)
 {
         adgold_t *adgold = (adgold_t *)p;
-        uint8_t temp;
+        uint8_t temp = 0;
         
         switch (addr & 7)
         {

@@ -593,7 +593,7 @@ void wy700_cgaline(wy700_t *wy700)
 {
 	int x, c;
 	uint32_t dat;
-	uint8_t ink;
+	uint8_t ink = 0;
 	uint16_t addr;
 
 	uint16_t ma = (wy700->cga_crtc[13] | (wy700->cga_crtc[12] << 8)) & 0x3fff;
@@ -653,7 +653,7 @@ void wy700_medresline(wy700_t *wy700)
 {
 	int x, c;
 	uint32_t dat;
-	uint8_t ink;
+	uint8_t ink = 0;
 	uint32_t addr;
 
 	addr = (wy700->displine >> 1) * 80 + 4 * wy700->wy700_base;
@@ -711,7 +711,7 @@ void wy700_hiresline(wy700_t *wy700)
 {
 	int x, c;
 	uint32_t dat;
-	uint8_t ink;
+	uint8_t ink = 0;
 	uint32_t addr;
 
 	addr = (wy700->displine >> 1) * 160 + 4 * wy700->wy700_base;

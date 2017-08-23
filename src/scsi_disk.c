@@ -231,7 +231,7 @@ void scsi_reloadhd(int id)
 {
 	int ret = 0;
 
-	if(hdc[id].prev_fn == NULL)
+	if(wcslen(hdc[id].prev_fn) == 0)
 	{
 		return;
 	}
