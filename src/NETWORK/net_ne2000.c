@@ -10,7 +10,7 @@
  *
  * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.12	2017/08/23
+ * Version:	@(#)net_ne2000.c	1.0.13	2017/08/23
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -2077,9 +2077,9 @@ nic_close(void *priv)
 
     nic_ioremove(dev, dev->base_address);
 
-    free(dev);
-
     nelog(1, "%s: closed\n", dev->name);
+
+    free(dev);
 }
 
 
