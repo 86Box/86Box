@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.10	2017/08/22
+ * Version:	@(#)scsi_aha154x.c	1.0.11	2017/08/23
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -577,13 +577,16 @@ aha154x_memory(aha_t *dev, uint8_t cmd)
 {
     pclog("%s: MEMORY cmd=%02x\n", dev->name, cmd);
 
-    if (cmd == 0x27) {
-	/* Enable the mapper, so, set ROM2 active. */
-	aha_bios.rom = aha_rom2;
-    }
-    if (cmd == 0x26) {
-	/* Disable the mapper, so, set ROM1 active. */
-	aha_bios.rom = aha_rom1;
+    switch(cmd) {
+	case 0x26:
+		/* Disable the mapper, so, set ROM1 active. */
+		aha_bios.rom = aha_rom1;
+		break;
+
+	case 0x27:
+		/* Enable the mapper, so, set ROM2 active. */
+		aha_bios.rom = aha_rom2;
+		break;
     }
 
     return(0);
@@ -723,8 +726,8 @@ aha_mbi(aha_t *dev)
 	CmdBlock->common.TargetStatus = TargetStatus;		
 		
 	/* Rewrite the CCB up to the CDB. */
-	pclog("CCB rewritten to the CDB (pointer %08X, length %i)\n", CCBPointer, offsetof(CCBC, Cdb));
-	DMAPageWrite(CCBPointer, (char *)CmdBlock, offsetof(CCBC, Cdb));
+	pclog("CCB rewritten to the CDB (pointer %08X)\n", CCBPointer);
+	DMAPageWrite(CCBPointer, (char *)CmdBlock, 18);
     } else {
 	pclog("Mailbox not found!\n");
     }
@@ -1408,7 +1411,7 @@ SenseBufferFree(Req_t *req, int Copy)
 	 */
 	if (req->Is24bit) {
 		SenseBufferAddress = req->CCBPointer;
-		SenseBufferAddress += req->CmdBlock.common.CdbLength + offsetof(CCB, Cdb);
+		SenseBufferAddress += req->CmdBlock.common.CdbLength + 18;
 	} else {
 		SenseBufferAddress = req->CmdBlock.new.SensePointer;
 	}
@@ -1575,7 +1578,7 @@ aha_do_mail(aha_t *dev)
     uint8_t CmdStatus = MBO_FREE;
     uint32_t CodeOffset = 0;
 
-    CodeOffset = dev->Mbx24bit ? offsetof(Mailbox_t, CmdStatus) : offsetof(Mailbox32_t, u.out.ActionCode);
+    CodeOffset = dev->Mbx24bit ? 0 : 7;
 
     if (! dev->StrictRoundRobinMode) {
 	uint8_t MailboxCur = dev->MailboxOutPosCur;
