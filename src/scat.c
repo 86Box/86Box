@@ -151,7 +151,7 @@ uint32_t get_scat_addr(uint32_t addr, scat_t *p)
         else if((scat_regs[SCAT_DRAM_CONFIGURATION] & 0x0F) < 8 && (scat_regs[SCAT_EXTENDED_BOUNDARY] & 0x40) == 0)
         {
                 addr &= ~0x600000;
-                if(mem_size >= 2048)
+                if(mem_size > 2048 || (mem_size == 2048 && (scat_regs[SCAT_DRAM_CONFIGURATION] & 0x0F) < 6))
                         addr |= (addr & 0x180000) << 2;
         }
 
