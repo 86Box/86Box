@@ -3,12 +3,13 @@
 #include "pic.h"
 #include "pit.h"
 
+
 int output;
 int intclear;
 int keywaiting=0;
 int pic_intpending;
-
 PIC pic, pic2;
+
 
 void pic_updatepending()
 {

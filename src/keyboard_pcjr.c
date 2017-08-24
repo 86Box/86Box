@@ -10,9 +10,9 @@
 #include "pit.h"
 #include "timer.h"
 #include "device.h"
-#include "sound/sound.h"
-#include "sound/snd_speaker.h"
-#include "sound/snd_sn76489.h"
+#include "SOUND/sound.h"
+#include "SOUND/snd_speaker.h"
+#include "SOUND/snd_sn76489.h"
 #include "keyboard.h"
 #include "keyboard_pcjr.h"
 
@@ -197,5 +197,5 @@ void keyboard_pcjr_init()
         keyboard_send = keyboard_pcjr_adddata;
         keyboard_poll = keyboard_pcjr_poll;
 
-        timer_add(keyboard_pcjr_poll, &keybsenddelay, TIMER_ALWAYS_ENABLED,  NULL);
+        timer_add((void (*)(void *))keyboard_pcjr_poll, &keybsenddelay, TIMER_ALWAYS_ENABLED,  NULL);
 }

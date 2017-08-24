@@ -9,12 +9,15 @@
 #include "serial.h"
 #include "wd76c10.h"
 
+
 static uint16_t wd76c10_0092;
 static uint16_t wd76c10_2072;
 static uint16_t wd76c10_2872;
 static uint16_t wd76c10_5872;
 
-uint16_t wd76c10_read(uint16_t port, void *priv)
+
+static uint16_t
+wd76c10_read(uint16_t port, void *priv)
 {
         switch (port)
         {
@@ -33,7 +36,9 @@ uint16_t wd76c10_read(uint16_t port, void *priv)
         return 0;
 }
 
-void wd76c10_write(uint16_t port, uint16_t val, void *priv)
+
+static void
+wd76c10_write(uint16_t port, uint16_t val, void *priv)
 {
         pclog("WD76C10 write %04X %04X\n", port, val);
         switch (port)
@@ -88,14 +93,18 @@ void wd76c10_write(uint16_t port, uint16_t val, void *priv)
         }
 }
 
-uint8_t wd76c10_readb(uint16_t port, void *priv)
+
+static uint8_t
+wd76c10_readb(uint16_t port, void *priv)
 {
         if (port & 1)
            return wd76c10_read(port & ~1, priv) >> 8;
         return wd76c10_read(port, priv) & 0xff;
 }
 
-void wd76c10_writeb(uint16_t port, uint8_t val, void *priv)
+
+static void
+wd76c10_writeb(uint16_t port, uint8_t val, void *priv)
 {
         uint16_t temp = wd76c10_read(port, priv);
         if (port & 1)
@@ -104,10 +113,19 @@ void wd76c10_writeb(uint16_t port, uint8_t val, void *priv)
            wd76c10_write(port     , (temp & 0xff00) | val, priv);
 }
 
-void wd76c10_init()
+
+void wd76c10_init(void)
 {
-        io_sethandler(0x0092, 0x0002, wd76c10_readb, wd76c10_read, NULL, wd76c10_writeb, wd76c10_write, NULL,  NULL);
-        io_sethandler(0x2072, 0x0002, wd76c10_readb, wd76c10_read, NULL, wd76c10_writeb, wd76c10_write, NULL,  NULL);
-        io_sethandler(0x2872, 0x0002, wd76c10_readb, wd76c10_read, NULL, wd76c10_writeb, wd76c10_write, NULL,  NULL);
-        io_sethandler(0x5872, 0x0002, wd76c10_readb, wd76c10_read, NULL, wd76c10_writeb, wd76c10_write, NULL,  NULL);
+        io_sethandler(0x0092, 2,
+		      wd76c10_readb, wd76c10_read, NULL,
+		      wd76c10_writeb, wd76c10_write, NULL, NULL);
+        io_sethandler(0x2072, 2,
+		      wd76c10_readb, wd76c10_read, NULL,
+		      wd76c10_writeb, wd76c10_write, NULL, NULL);
+        io_sethandler(0x2872, 2,
+		      wd76c10_readb, wd76c10_read, NULL,
+		      wd76c10_writeb, wd76c10_write, NULL, NULL);
+        io_sethandler(0x5872, 2,
+		      wd76c10_readb, wd76c10_read, NULL,
+		      wd76c10_writeb, wd76c10_write, NULL, NULL);
 }

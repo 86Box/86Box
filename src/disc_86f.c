@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)disc_86f.c	1.0.0	2017/05/30
+ * Version:	@(#)disc_86f.c	1.0.1	2017/08/23
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2017 Miran Grca.
@@ -24,7 +24,7 @@
 #include <assert.h>
 #include <wchar.h>
 
-#include "lzf/lzf.h"
+#include "LZF/lzf.h"
 
 #include "config.h"
 #include "dma.h"

@@ -2,8 +2,8 @@
 #include "io.h"
 #include "mem.h"
 #include "pic.h"
-
 #include "pci.h"
+
 
 void    (*pci_card_write[32])(int func, int addr, uint8_t val, void *priv);
 uint8_t  (*pci_card_read[32])(int func, int addr, void *priv);

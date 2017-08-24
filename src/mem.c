@@ -10,15 +10,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include "ibm.h"
-#include "cpu/cpu.h"
-#include "cpu/x86_ops.h"
-#include "cpu/x86.h"
+#include "CPU/cpu.h"
+#include "CPU/x86_ops.h"
+#include "CPU/x86.h"
 #include "config.h"
 #include "io.h"
 #include "mem.h"
 #include "rom.h"
-#include "cpu/codegen.h"
-#include "video/video.h"
+#include "CPU/codegen.h"
+#include "VIDEO/video.h"
 
 
 page_t *pages;

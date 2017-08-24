@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 440FX PCISet chip.
  *
- * Version:	@(#)i440fx.c	1.0.1	2017/06/17
+ * Version:	@(#)i440fx.c	1.0.2	2017/08/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -17,7 +17,7 @@
  */
 #include <string.h>
 #include "ibm.h"
-#include "cpu/cpu.h"
+#include "CPU/cpu.h"
 #include "io.h"
 #include "mem.h"
 #include "pci.h"

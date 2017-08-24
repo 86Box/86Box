@@ -8,13 +8,19 @@
  *
  *		Implementation of the IMD floppy image format.
  *
- * Version:	@(#)disc_imd.h	1.0.0	2017/05/30
+ * Version:	@(#)disc_imd.h	1.0.1	2017/08/23
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
+#ifndef EMU_DISK_IMD_H
+# define EMU_DISK_IMD_H
 
-void imd_init();
-void imd_load(int drive, wchar_t *fn);
-void imd_close(int drive);
-void imd_seek(int drive, int track);
+
+extern void imd_init(void);
+extern void imd_load(int drive, wchar_t *fn);
+extern void imd_close(int drive);
+extern void imd_seek(int drive, int track);
+
+
+#endif	/*EMU_DISK_IMD_H*/

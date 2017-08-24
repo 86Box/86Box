@@ -8,14 +8,14 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.1	2017/08/22
+ * Version:	@(#)scsi.c	1.0.2	2017/08/23
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2008-2017 TheCollector1995.
- *		Copyright 2016-2017 Miran Grca.
- *		Copyright 2017-2017 Fred N. van Kempen.
+ *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdlib.h>
 #include <string.h>
@@ -107,7 +107,7 @@ int scsi_card_get_from_internal_name(char *s)
 }
 
 
-void scsi_card_init()
+void scsi_card_init(void)
 {
     int i, j;
 
@@ -117,20 +117,20 @@ void scsi_card_init()
     build_scsi_cdrom_map();
 	
     for (i=0; i<16; i++) 
+    {
+	for (j=0; j<8; j++) 
 	{
-		for (j=0; j<8; j++) 
-		{
-			if (scsi_hard_disks[i][j] != 0xff) {
-				SCSIDevices[i][j].LunType = SCSI_DISK;
-			}
-			else if (scsi_cdrom_drives[i][j] != 0xff) {
-				SCSIDevices[i][j].LunType = SCSI_CDROM;
-			}
-			else
-			{
-				SCSIDevices[i][j].LunType = SCSI_NONE;
-			}
+		if (scsi_hard_disks[i][j] != 0xff) {
+			SCSIDevices[i][j].LunType = SCSI_DISK;
 		}
+		else if (scsi_cdrom_drives[i][j] != 0xff) {
+			SCSIDevices[i][j].LunType = SCSI_CDROM;
+		}
+		else
+		{
+			SCSIDevices[i][j].LunType = SCSI_NONE;
+		}
+	}
     }
 
     if (scsi_cards[scsi_card_current].device)

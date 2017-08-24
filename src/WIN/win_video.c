@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../video/video.h"
+#include "../VIDEO/video.h"
 #include "win_cgapal.h"
 
 

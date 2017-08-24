@@ -6,10 +6,10 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.h	1.0.0	2017/05/30
+ * Version:	@(#)scsi_disk.h	1.0.1	2017/08/23
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2017-2017 Miran Grca.
+ *		Copyright 2017 Miran Grca.
  */
 
 #pragma pack(push,1)

@@ -9,14 +9,14 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)ide.h	1.0.0	2017/05/30
+ * Version:	@(#)ide.h	1.0.1	2017/08/23
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
- *		Copyright 2016-2017 TheCollector1995.
+ *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2016,2017 TheCollector1995.
  */
 #ifndef EMU_IDE_H
 # define EMU_IDE_H
@@ -63,42 +63,42 @@ extern int ideboard;
 extern int ide_enable[5];
 extern int ide_irq[5];
 
-IDE ide_drives[IDE_NUM + XTIDE_NUM];
-
-
+extern IDE ide_drives[IDE_NUM + XTIDE_NUM];
 extern int idecallback[5];
-extern void writeide(int ide_board, uint16_t addr, uint8_t val);
-extern void writeidew(int ide_board, uint16_t val);
-extern uint8_t readide(int ide_board, uint16_t addr);
-extern uint16_t readidew(int ide_board);
-extern void callbackide(int ide_board);
-extern void resetide(void);
-extern void ide_init(void);
-extern void ide_xtide_init(void);
-extern void ide_ter_init(void);
-extern void ide_qua_init(void);
-extern void ide_pri_enable(void);
-extern void ide_sec_enable(void);
-extern void ide_ter_enable(void);
-extern void ide_qua_enable(void);
-extern void ide_pri_disable(void);
-extern void ide_sec_disable(void);
-extern void ide_ter_disable(void);
-extern void ide_qua_disable(void);
-extern void ide_set_bus_master(int (*read)(int channel, uint8_t *data, int transfer_length), int (*write)(int channel, uint8_t *data, int transfer_length), void (*set_irq)(int channel));
 
-void ide_irq_raise(IDE *ide);
-void ide_irq_lower(IDE *ide);
 
-void ide_padstr8(uint8_t *buf, int buf_size, const char *src);
+extern void	writeide(int ide_board, uint16_t addr, uint8_t val);
+extern void	writeidew(int ide_board, uint16_t val);
+extern uint8_t	readide(int ide_board, uint16_t addr);
+extern uint16_t	readidew(int ide_board);
+extern void	callbackide(int ide_board);
+extern void	resetide(void);
+extern void	ide_init(void);
+extern void	ide_xtide_init(void);
+extern void	ide_ter_init(void);
+extern void	ide_qua_init(void);
+extern void	ide_pri_enable(void);
+extern void	ide_sec_enable(void);
+extern void	ide_ter_enable(void);
+extern void	ide_qua_enable(void);
+extern void	ide_pri_disable(void);
+extern void	ide_sec_disable(void);
+extern void	ide_ter_disable(void);
+extern void	ide_qua_disable(void);
+extern void	ide_set_bus_master(int (*read)(int channel, uint8_t *data, int transfer_length), int (*write)(int channel, uint8_t *data, int transfer_length), void (*set_irq)(int channel));
 
-void win_cdrom_eject(uint8_t id);
-void win_cdrom_reload(uint8_t id);
+extern void	ide_irq_raise(IDE *ide);
+extern void	ide_irq_lower(IDE *ide);
 
-void ide_pri_disable(void);
-void ide_pri_enable_ex(void);
-void ide_set_base(int controller, uint16_t port);
-void ide_set_side(int controller, uint16_t port);
+extern void	ide_padstr8(uint8_t *buf, int buf_size, const char *src);
+
+extern void	win_cdrom_eject(uint8_t id);
+extern void	win_cdrom_reload(uint8_t id);
+
+extern void	ide_pri_disable(void);
+extern void	ide_pri_enable_ex(void);
+extern void	ide_set_base(int controller, uint16_t port);
+extern void	ide_set_side(int controller, uint16_t port);
 
 
 #endif	/*EMU_IDE_H*/

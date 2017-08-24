@@ -2,7 +2,7 @@
    see COPYING for more details
 */
 #include "ibm.h"
-#include "cpu/cpu.h"
+#include "CPU/cpu.h"
 #include "io.h"
 #include "mem.h"
 #include "device.h"

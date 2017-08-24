@@ -34,16 +34,16 @@
 #include "timer.h"
 #include "rtc.h"
 
+
 int oldmodel;
 int nvrmask=63;
 char nvrram[128];
 int nvraddr;
-
 int nvr_dosave = 0;
 
 static int nvr_onesec_time = 0, nvr_onesec_cnt = 0;
-
 static int rtctime;
+
 
 void getnvrtime(void)
 {

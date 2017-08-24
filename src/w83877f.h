@@ -8,10 +8,10 @@
  *
  *		Emulation of the Winbond W83877F Super I/O Chip.
  *
- * Version:	@(#)w83877f.h	1.0.0	2017/05/30
+ * Version:	@(#)w83877f.h	1.0.1	2017/08/23
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2017 Miran Grca.
  */
 
-extern void w83877f_init();
+extern void w83877f_init(void);

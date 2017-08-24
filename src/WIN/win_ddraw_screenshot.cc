@@ -8,10 +8,10 @@
  *
  *		DirectDraw screenshot taking code.
  *
- * Version:	@(#)win_ddraw_screenshot.cc	1.0.0	2017/05/30
+ * Version:	@(#)win_ddraw_screenshot.cc	1.0.1	2017/08/23
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
 
 #include <stdio.h>
@@ -20,7 +20,7 @@
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #undef BITMAP
-#include "../video/video.h"
+#include "../VIDEO/video.h"
 #include "win.h"
 #include "win_ddraw.h"
 #include "win_language.h"

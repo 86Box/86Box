@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.6	2017/06/21
+ * Version:	@(#)win_settings.c	1.0.7	2017/08/23
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2017 Miran Grca.
@@ -23,7 +23,7 @@
 #include <inttypes.h>
 #include "../ibm.h"
 #include "../mem.h"
-#include "../cpu/cpu.h"
+#include "../CPU/cpu.h"
 #include "../nvr.h"
 #include "../device.h"
 #include "../model.h"
@@ -33,13 +33,13 @@
 #include "../hdd.h"
 #include "../ide.h"
 #include "../scsi.h"
-#include "../network/network.h"
-#include "../sound/midi.h"
-#include "../sound/sound.h"
-#include "../sound/snd_dbopl.h"
-#include "../sound/snd_mpu401.h"
-#include "../video/video.h"
-#include "../video/vid_voodoo.h"
+#include "../NETWORK/network.h"
+#include "../SOUND/sound.h"
+#include "../SOUND/midi.h"
+#include "../SOUND/snd_dbopl.h"
+#include "../SOUND/snd_mpu401.h"
+#include "../VIDEO/video.h"
+#include "../VIDEO/vid_voodoo.h"
 #include "../gameport.h"
 #include "../mouse.h"
 #include "plat_midi.h"

@@ -6,11 +6,11 @@
  *
  *		This file is part of the 86Box distribution.
  *
-*		Implementation of the Teledisk floppy image format.
-  *
- * Version:	@(#)disc_td0.c	1.0.0	2017/05/30
+ *		Implementation of the Teledisk floppy image format.
  *
- * Author:	Milodrag Milanovic,
+ * Version:	@(#)disc_td0.c	1.0.1	2017/08/23
+ *
+ * Authors:	Milodrag Milanovic,
  *		Haruhiko OKUMURA,
  *		Haruyasu YOSHIZAKI,
  *		Kenji RIKITAKE,

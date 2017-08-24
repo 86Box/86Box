@@ -8,13 +8,13 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.3	2017/06/12
+ * Version:	@(#)win.c	1.0.4	2017/08/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
 #include <stdint.h>
 #include <stdio.h>
@@ -26,9 +26,9 @@
 #include "../fdd.h"
 #include "../hdd.h"
 #include "../ibm.h"
-#include "../cpu/cpu.h"
+#include "../CPU/cpu.h"
 #include "../mem.h"
-#include "../network/network.h"
+#include "../NETWORK/network.h"
 #include "../rom.h"
 #include "../nvr.h"
 #include "../config.h"
@@ -40,11 +40,11 @@
 #include "../cdrom_image.h"
 #include "../scsi.h"
 #include "../scsi_disk.h"
-#include "../video/video.h"
-#include "../video/vid_ega.h"
+#include "../VIDEO/video.h"
+#include "../VIDEO/vid_ega.h"
 #include "../mouse.h"
-#include "../sound/sound.h"
-#include "../sound/snd_dbopl.h"
+#include "../SOUND/sound.h"
+#include "../SOUND/snd_dbopl.h"
 #include "plat_keyboard.h"
 #include "plat_iodev.h"
 #include "plat_mouse.h"

@@ -9,25 +9,32 @@
 #include "rom.h"
 #include "tandy_rom.h"
 
+
 static uint8_t *tandy_rom;
 static uint8_t tandy_rom_bank;
 static int tandy_rom_offset;
 static mem_mapping_t tandy_rom_mapping;
+
 
 uint8_t tandy_read_rom(uint32_t addr, void *p)
 {
         uint32_t addr2 = (addr & 0xffff) + tandy_rom_offset;
         return tandy_rom[addr2];
 }
+
+
 uint16_t tandy_read_romw(uint32_t addr, void *p)
 {
         uint32_t addr2 = (addr & 0xffff) + tandy_rom_offset;
         return *(uint16_t *)&tandy_rom[addr2];
 }
+
+
 uint32_t tandy_read_roml(uint32_t addr, void *p)
 {
         return *(uint32_t *)&tandy_rom[addr];
 }
+
 
 uint8_t tandy_rom_bank_read(uint16_t port, void *p)
 {
@@ -36,6 +43,8 @@ uint8_t tandy_rom_bank_read(uint16_t port, void *p)
         else
                 return 0xff;
 }
+
+
 void tandy_rom_bank_write(uint16_t port, uint8_t val, void *p)
 {
         if (port == 0xffea)
@@ -46,7 +55,8 @@ void tandy_rom_bank_write(uint16_t port, uint8_t val, void *p)
         }
 }
 
-void *tandy_rom_init()
+
+void *tandy_rom_init(void)
 {
         FILE *f, *ff;
         int c;
@@ -73,10 +83,12 @@ void *tandy_rom_init()
         return tandy_rom;
 }
 
+
 void tandy_rom_close(void *p)
 {
         free(p);
 }
+
 
 device_t tandy_rom_device =
 {

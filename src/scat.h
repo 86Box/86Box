@@ -19,4 +19,4 @@ typedef struct scat_t
         uint8_t regs_2x9;
 } scat_t;
 
-void scat_init();
+extern void scat_init(void);

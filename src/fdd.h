@@ -8,48 +8,57 @@
  *
  *		Implementation of the floppy drive emulation.
  *
- * Version:	@(#)fdd.h	1.0.0	2017/05/30
+ * Version:	@(#)fdd.h	1.0.1	2017/08/23
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
+#ifndef EMU_FDD_H
+# define EMU_FDD_H
+
 
 #define SEEK_RECALIBRATE -999
-void fdd_forced_seek(int drive, int track_diff);
-void fdd_seek(int drive, int track_diff);
-int fdd_track0(int drive);
-int fdd_getrpm(int drive);
-void fdd_set_densel(int densel);
-int fdd_can_read_medium(int drive);
-int fdd_doublestep_40(int drive);
-int fdd_is_525(int drive);
-int fdd_is_dd(int drive);
-int fdd_is_ed(int drive);
-int fdd_is_double_sided(int drive);
-void fdd_set_head(int drive, int head);
-int fdd_get_head(int drive);
-void fdd_set_turbo(int drive, int turbo);
-int fdd_get_turbo(int drive);
-void fdd_set_check_bpb(int drive, int check_bpb);
-int fdd_get_check_bpb(int drive);
 
-void fdd_set_type(int drive, int type);
-int fdd_get_type(int drive);
-
-int fdd_get_flags(int drive);
 
 extern int fdd_swap;
 
-void fdd_init();
-int fdd_get_densel(int drive);
 
-void fdd_setswap(int swap);
+extern void	fdd_forced_seek(int drive, int track_diff);
+extern void	fdd_seek(int drive, int track_diff);
+extern int	fdd_track0(int drive);
+extern int	fdd_getrpm(int drive);
+extern void	fdd_set_densel(int densel);
+extern int	fdd_can_read_medium(int drive);
+extern int	fdd_doublestep_40(int drive);
+extern int	fdd_is_525(int drive);
+extern int	fdd_is_dd(int drive);
+extern int	fdd_is_ed(int drive);
+extern int	fdd_is_double_sided(int drive);
+extern void	fdd_set_head(int drive, int head);
+extern int	fdd_get_head(int drive);
+extern void	fdd_set_turbo(int drive, int turbo);
+extern int	fdd_get_turbo(int drive);
+extern void	fdd_set_check_bpb(int drive, int check_bpb);
+extern int	fdd_get_check_bpb(int drive);
 
-char *fdd_getname(int type);
+extern void	fdd_set_type(int drive, int type);
+extern int	fdd_get_type(int drive);
 
-char *fdd_get_internal_name(int type);
-int fdd_get_from_internal_name(char *s);
+extern int	fdd_get_flags(int drive);
 
-int fdd_track(int drive);
+extern void	fdd_init(void);
+extern int	fdd_get_densel(int drive);
+
+extern void	fdd_setswap(int swap);
+
+extern char	*fdd_getname(int type);
+
+extern char	*fdd_get_internal_name(int type);
+extern int	fdd_get_from_internal_name(char *s);
+
+extern int	fdd_track(int drive);
+
+
+#endif	/*EMU_FDD_H*/

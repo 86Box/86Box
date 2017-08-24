@@ -7,6 +7,7 @@
 #include "CPU/x86.h"
 #include "CPU/cpu.h"
 
+
 static uint8_t scat_regs[256];
 static int scat_index;
 static uint8_t scat_port_92 = 0;
@@ -19,10 +20,12 @@ static mem_mapping_t scat_shadowram_mapping[6];
 static mem_mapping_t scat_4000_9FFF_mapping[24];
 static mem_mapping_t scat_A000_BFFF_mapping;
 
+
 uint8_t scat_read(uint16_t port, void *priv);
 void scat_write(uint16_t port, uint8_t val, void *priv);
 
-void scat_shadow_state_update()
+
+void scat_shadow_state_update(void)
 {
         int i, val;
 
@@ -50,6 +53,7 @@ void scat_shadow_state_update()
 
         flushmmucache();
 }
+
 
 void scat_set_xms_bound(uint8_t val)
 {
@@ -134,6 +138,7 @@ void scat_set_xms_bound(uint8_t val)
         }
 }
 
+
 uint32_t get_scat_addr(uint32_t addr, scat_t *p)
 {
         if (p && (scat_regs[SCAT_EMS_CONTROL] & 0x80) && (p->regs_2x9 & 0x80))
@@ -155,7 +160,8 @@ uint32_t get_scat_addr(uint32_t addr, scat_t *p)
         return addr;
 }
 
-void scat_memmap_state_update()
+
+void scat_memmap_state_update(void)
 {
         int i;
         uint32_t addr;
@@ -175,6 +181,7 @@ void scat_memmap_state_update()
 
         flushmmucache();
 }
+
 
 void scat_set_global_EMS_state(int state)
 {
@@ -202,6 +209,7 @@ void scat_set_global_EMS_state(int state)
                 }
         }
 }
+
 
 void scat_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -382,6 +390,7 @@ void scat_write(uint16_t port, uint8_t val, void *priv)
         }
 }
 
+
 uint8_t scat_read(uint16_t port, void *priv)
 {
         uint8_t val = 0xff, index;
@@ -433,6 +442,7 @@ uint8_t scat_read(uint16_t port, void *priv)
         return val;
 }
 
+
 uint8_t mem_read_scatems(uint32_t addr, void *priv)
 {
         uint8_t val = 0xff;
@@ -445,6 +455,7 @@ uint8_t mem_read_scatems(uint32_t addr, void *priv)
         return val;
 }
 
+
 void mem_write_scatems(uint32_t addr, uint8_t val, void *priv)
 {
         scat_t *stat = (scat_t *)priv;
@@ -454,7 +465,8 @@ void mem_write_scatems(uint32_t addr, uint8_t val, void *priv)
                 mem_write_ram(addr, val, priv);
 }
 
-void scat_init()
+
+void scat_init(void)
 {
         int i;
 

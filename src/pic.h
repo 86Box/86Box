@@ -1,10 +1,10 @@
-void pic_init();
-void pic2_init();
-void pic_reset();
+extern void pic_init(void);
+extern void pic2_init(void);
+extern void pic_reset(void);
 
-void picint(uint16_t num);
-void picintlevel(uint16_t num);
-void picintc(uint16_t num);
-uint8_t picinterrupt();
-void picclear(int num);
-void dumppic();
+extern void picint(uint16_t num);
+extern void picintlevel(uint16_t num);
+extern void picintc(uint16_t num);
+extern uint8_t picinterrupt(void);
+extern void picclear(int num);
+extern void dumppic(void);

@@ -6,10 +6,10 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.3	2017/07/30
+ * Version:	@(#)scsi_disk.c	1.0.5	2017/08/23
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2017-2017 Miran Grca.
+ *		Copyright 2017 Miran Grca.
  */
 #include <malloc.h>
 #include <stdint.h>
@@ -25,7 +25,8 @@
 #include "scsi.h"
 #include "scsi_disk.h"
 #include "timer.h"
-#include "win/plat_iodev.h"
+#include "WIN/plat_iodev.h"
+
 
 /* Bits of 'status' */
 #define ERR_STAT		0x01
@@ -46,78 +47,82 @@
 #define scsi_hd_asc shdc[id].sense[12]
 #define scsi_hd_ascq shdc[id].sense[13]
 
-scsi_hard_disk_t shdc[HDC_NUM];
 
+scsi_hard_disk_t shdc[HDC_NUM];
 FILE *shdf[HDC_NUM];
 
-uint8_t scsi_hard_disks[16][8] =	{	{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }	};
+uint8_t scsi_hard_disks[16][8] = {
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }
+};
+
 
 /* Table of all SCSI commands and their flags, needed for the new disc change / not ready handler. */
-uint8_t scsi_hd_command_flags[0x100] =
-{
-	IMPLEMENTED | CHECK_READY | NONDATA,					/* 0x00 */
-	IMPLEMENTED | ALLOW_UA | NONDATA | SCSI_ONLY,				/* 0x01 */
-	0,
-	IMPLEMENTED | ALLOW_UA,							/* 0x03 */
-	IMPLEMENTED | CHECK_READY | ALLOW_UA | NONDATA | SCSI_ONLY,		/* 0x04 */
-	0, 0, 0,
-	IMPLEMENTED | CHECK_READY,						/* 0x08 */
-	0,
-	IMPLEMENTED | CHECK_READY,						/* 0x0A */
-	0, 0, 0, 0, 0, 0, 0,
-	IMPLEMENTED | ALLOW_UA,							/* 0x12 */
-	IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,			/* 0x13 */
-	0, 0, 0, 0, 0, 0, 0,
-	IMPLEMENTED | CHECK_READY,						/* 0x1B */
-	0, 0,
-	IMPLEMENTED | CHECK_READY,						/* 0x1E */
-	0, 0, 0, 0, 0, 0,
-	IMPLEMENTED | CHECK_READY,						/* 0x25 */
-	0, 0,
-	IMPLEMENTED | CHECK_READY,						/* 0x28 */
-	0,
-	IMPLEMENTED | CHECK_READY,						/* 0x2A */
-	0, 0, 0, 0,
-	IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,			/* 0x2F */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0,
-	IMPLEMENTED | CHECK_READY,						/* 0xA8 */
-	0,
-	IMPLEMENTED | CHECK_READY,						/* 0xAA */
-	0, 0, 0, 0,
-	IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,			/* 0xAF */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	IMPLEMENTED,								/* 0xBD */
-	0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+uint8_t scsi_hd_command_flags[0x100] = {
+    IMPLEMENTED | CHECK_READY | NONDATA,			/* 0x00 */
+    IMPLEMENTED | ALLOW_UA | NONDATA | SCSI_ONLY,		/* 0x01 */
+    0,
+    IMPLEMENTED | ALLOW_UA,					/* 0x03 */
+    IMPLEMENTED | CHECK_READY | ALLOW_UA | NONDATA | SCSI_ONLY,	/* 0x04 */
+    0, 0, 0,
+    IMPLEMENTED | CHECK_READY,					/* 0x08 */
+    0,
+    IMPLEMENTED | CHECK_READY,					/* 0x0A */
+    0, 0, 0, 0, 0, 0, 0,
+    IMPLEMENTED | ALLOW_UA,					/* 0x12 */
+    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,		/* 0x13 */
+    0, 0, 0, 0, 0, 0, 0,
+    IMPLEMENTED | CHECK_READY,					/* 0x1B */
+    0, 0,
+    IMPLEMENTED | CHECK_READY,					/* 0x1E */
+    0, 0, 0, 0, 0, 0,
+    IMPLEMENTED | CHECK_READY,					/* 0x25 */
+    0, 0,
+    IMPLEMENTED | CHECK_READY,					/* 0x28 */
+    0,
+    IMPLEMENTED | CHECK_READY,					/* 0x2A */
+    0, 0, 0, 0,
+    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,		/* 0x2F */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    IMPLEMENTED | CHECK_READY,					/* 0xA8 */
+    0,
+    IMPLEMENTED | CHECK_READY,					/* 0xAA */
+    0, 0, 0, 0,
+    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,		/* 0xAF */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    IMPLEMENTED,						/* 0xBD */
+    0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
+
 
 /* #define ENABLE_SCSI_HD_LOG 0 */
 int scsi_hd_do_log = 0;
+
 
 void scsi_hd_log(const char *format, ...)
 {
@@ -133,6 +138,7 @@ void scsi_hd_log(const char *format, ...)
 #endif
 }
 
+
 /* Translates ATAPI status (ERR_STAT flag) to SCSI status. */
 int scsi_hd_err_stat_to_scsi(uint8_t id)
 {
@@ -147,6 +153,7 @@ int scsi_hd_err_stat_to_scsi(uint8_t id)
 
 	return SCSI_STATUS_OK;
 }
+
 
 /* Translates ATAPI phase (DRQ, I/O, C/D) to SCSI phase (MSG, C/D, I/O). */
 int scsi_hd_phase_to_scsi(uint8_t id)
@@ -181,6 +188,7 @@ int scsi_hd_phase_to_scsi(uint8_t id)
 	return 0;
 }
 
+
 int find_hdc_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun)
 {
 	uint8_t i = 0;
@@ -203,10 +211,12 @@ int find_hdc_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun)
 	return 0xff;
 }
 
+
 void scsi_disk_insert(uint8_t id)
 {
 	shdc[id].unit_attention = (hdc[id].bus == HDD_BUS_SCSI_REMOVABLE) ? 1 : 0;
 }
+
 
 void scsi_loadhd(int scsi_id, int scsi_lun, int id)
 {
@@ -226,6 +236,7 @@ void scsi_loadhd(int scsi_id, int scsi_lun, int id)
 		scsi_disk_insert(id);
 	}
 }
+
 
 void scsi_reloadhd(int id)
 {
@@ -249,12 +260,14 @@ void scsi_reloadhd(int id)
 	}
 }
 
+
 void scsi_unloadhd(int scsi_id, int scsi_lun, int id)
 {
 	hdd_image_unload(id, 1);
 }
 
-void build_scsi_hd_map()
+
+void build_scsi_hd_map(void)
 {
 	uint8_t i = 0;
 	uint8_t j = 0;
@@ -281,6 +294,7 @@ void build_scsi_hd_map()
 	}
 }
 
+
 int scsi_hd_read_capacity(uint8_t id, uint8_t *cdb, uint8_t *buffer, uint32_t *len)
 {
 	int size = 0;
@@ -302,6 +316,7 @@ int scsi_hd_read_capacity(uint8_t id, uint8_t *cdb, uint8_t *buffer, uint32_t *l
 	
 	return 1;
 }
+
 
 void scsi_hd_update_request_length(uint8_t id, int len, int block_len)
 {
@@ -346,6 +361,7 @@ void scsi_hd_update_request_length(uint8_t id, int len, int block_len)
 	return;
 }
 
+
 static void scsi_hd_command_common(uint8_t id)
 {
 	shdc[id].status = BUSY_STAT;
@@ -361,11 +377,13 @@ static void scsi_hd_command_common(uint8_t id)
 	}
 }
 
+
 void scsi_hd_command_complete(uint8_t id)
 {
 	shdc[id].packet_status = CDROM_PHASE_COMPLETE;
 	scsi_hd_command_common(id);
 }
+
 
 static void scsi_hd_command_read_dma(uint8_t id)
 {
@@ -374,11 +392,13 @@ static void scsi_hd_command_read_dma(uint8_t id)
 	shdc[id].total_read = 0;
 }
 
+
 static void scsi_hd_command_write_dma(uint8_t id)
 {
 	shdc[id].packet_status = CDROM_PHASE_DATA_OUT_DMA;
 	scsi_hd_command_common(id);
 }
+
 
 void scsi_hd_data_command_finish(uint8_t id, int len, int block_len, int alloc_len, int direction)
 {
@@ -412,11 +432,13 @@ void scsi_hd_data_command_finish(uint8_t id, int len, int block_len, int alloc_l
 	scsi_hd_log("SCSI HD %i: Status: %i, cylinder %i, packet length: %i, position: %i, phase: %i\n", id, shdc[id].packet_status, shdc[id].request_length, shdc[id].packet_len, shdc[id].pos, shdc[id].phase);
 }
 
+
 static void scsi_hd_sense_clear(int id, int command)
 {
 	shdc[id].previous_command = command;
 	scsi_hd_sense_key = scsi_hd_asc = scsi_hd_ascq = 0;
 }
+
 
 static void scsi_hd_cmd_error(uint8_t id)
 {
@@ -432,6 +454,7 @@ static void scsi_hd_cmd_error(uint8_t id)
 	scsi_hd_log("SCSI HD %i: ERROR: %02X/%02X/%02X\n", id, scsi_hd_sense_key, scsi_hd_asc, scsi_hd_ascq);
 }
 
+
 static void scsi_hd_unit_attention(uint8_t id)
 {
 	shdc[id].error = (SENSE_NOT_READY << 4) | ABRT_ERR;
@@ -446,6 +469,7 @@ static void scsi_hd_unit_attention(uint8_t id)
 	scsi_hd_log("SCSI HD %i: UNIT ATTENTION\n", id);
 }
 
+
 static void scsi_hd_not_ready(uint8_t id)
 {
 	scsi_hd_sense_key = SENSE_NOT_READY;
@@ -453,6 +477,7 @@ static void scsi_hd_not_ready(uint8_t id)
 	scsi_hd_ascq = 0;
 	scsi_hd_cmd_error(id);
 }
+
 
 static void scsi_hd_write_protected(uint8_t id)
 {
@@ -462,6 +487,7 @@ static void scsi_hd_write_protected(uint8_t id)
 	scsi_hd_cmd_error(id);
 }
 
+
 static void scsi_hd_invalid_lun(uint8_t id)
 {
 	scsi_hd_sense_key = SENSE_ILLEGAL_REQUEST;
@@ -469,6 +495,7 @@ static void scsi_hd_invalid_lun(uint8_t id)
 	scsi_hd_ascq = 0;
 	scsi_hd_cmd_error(id);
 }
+
 
 static void scsi_hd_illegal_opcode(uint8_t id)
 {
@@ -478,6 +505,7 @@ static void scsi_hd_illegal_opcode(uint8_t id)
 	scsi_hd_cmd_error(id);
 }
 
+
 void scsi_hd_lba_out_of_range(uint8_t id)
 {
 	scsi_hd_sense_key = SENSE_ILLEGAL_REQUEST;
@@ -485,6 +513,7 @@ void scsi_hd_lba_out_of_range(uint8_t id)
 	scsi_hd_ascq = 0;
 	scsi_hd_cmd_error(id);
 }
+
 
 static void scsi_hd_invalid_field(uint8_t id)
 {
@@ -495,6 +524,7 @@ static void scsi_hd_invalid_field(uint8_t id)
 	shdc[id].status = 0x53;
 }
 
+
 static void scsi_hd_data_phase_error(uint8_t id)
 {
 	scsi_hd_sense_key = SENSE_ILLEGAL_REQUEST;
@@ -503,6 +533,7 @@ static void scsi_hd_data_phase_error(uint8_t id)
 	scsi_hd_cmd_error(id);
 }
 
+
 /*SCSI Sense Initialization*/
 void scsi_hd_sense_code_ok(uint8_t id)
 {	
@@ -510,6 +541,7 @@ void scsi_hd_sense_code_ok(uint8_t id)
 	scsi_hd_asc = 0;
 	scsi_hd_ascq = 0;
 }
+
 
 int scsi_hd_pre_execution_check(uint8_t id, uint8_t *cdb)
 {
@@ -599,11 +631,13 @@ int scsi_hd_pre_execution_check(uint8_t id, uint8_t *cdb)
 	return 1;
 }
 
+
 static void scsi_hd_seek(uint8_t id, uint32_t pos)
 {
         /* scsi_hd_log("SCSI HD %i: Seek %08X\n", id, pos); */
 	hdd_image_seek(id, pos);
 }
+
 
 static void scsi_hd_rezero(uint8_t id)
 {
@@ -616,6 +650,7 @@ static void scsi_hd_rezero(uint8_t id)
 	scsi_hd_seek(id, 0);
 }
 
+
 void scsi_hd_reset(uint8_t id)
 {
 	scsi_hd_rezero(id);
@@ -623,6 +658,7 @@ void scsi_hd_reset(uint8_t id)
 	shdc[id].callback = 0;
 	shdc[id].packet_status = 0xff;
 }
+
 
 void scsi_hd_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
 {				
@@ -654,6 +690,7 @@ void scsi_hd_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
 	/* Clear the sense stuff as per the spec. */
 	scsi_hd_sense_clear(id, GPCMD_REQUEST_SENSE);
 }
+
 
 void scsi_hd_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
 {
@@ -689,6 +726,7 @@ void scsi_hd_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_l
 
 	scsi_hd_request_sense(id, buffer, alloc_length);
 }
+
 
 void scsi_hd_command(uint8_t id, uint8_t *cdb)
 {
@@ -1106,7 +1144,6 @@ atapi_out:
 	/* scsi_hd_log("SCSI HD %i: Phase: %02X, request length: %i\n", shdc[id].phase, shdc[id].request_length); */
 }
 
-void scsi_hd_callback(uint8_t id);
 
 /* If the result is 1, issue an IRQ, otherwise not. */
 void scsi_hd_callback(uint8_t id)

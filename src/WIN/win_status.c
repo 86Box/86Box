@@ -8,8 +8,8 @@
 
 #include "../ibm.h"
 #include "../mem.h"
-#include "../cpu/x86_ops.h"
-#include "../cpu/codegen.h"
+#include "../CPU/x86_ops.h"
+#include "../CPU/codegen.h"
 #include "../device.h"
 #include "win.h"
 

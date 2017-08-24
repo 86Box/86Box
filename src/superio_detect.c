@@ -2,19 +2,19 @@
 	SMSC SMC FDC37C665 Super I/O Chip
 	Used by Batman's Revenge
 */
-
 #include "ibm.h"
-
 #include "io.h"
 #include "disc.h"
 #include "fdd.h"
 #include "fdc.h"
 #include "superio_detect.h"
 
+
 static int fdc37c665_locked;
 static int fdc37c665_curreg = 0;
 static uint8_t detect_regs[2];
 static uint8_t tries;
+
 
 void superio_detect_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -27,6 +27,7 @@ void superio_detect_write(uint16_t port, uint8_t val, void *priv)
 	return;
 }
 
+
 uint8_t superio_detect_read(uint16_t port, void *priv)
 {
         pclog("superio_detect_read : port=%04x = %02X\n", port, detect_regs[port & 1]);
@@ -34,7 +35,8 @@ uint8_t superio_detect_read(uint16_t port, void *priv)
 	return detect_regs[port & 1];
 }
 
-void superio_detect_init()
+
+void superio_detect_init(void)
 {
 	fdc_remove();
 	fdc_add_for_superio();

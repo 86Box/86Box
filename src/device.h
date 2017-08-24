@@ -9,12 +9,12 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.h	1.0.1	2017/06/03
+ * Version:	@(#)device.h	1.0.2	2017/08/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2016 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
 #ifndef EMU_DEVICE_H
 # define EMU_DEVICE_H

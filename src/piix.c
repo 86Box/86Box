@@ -8,9 +8,9 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)piix.c	1.0.0	2017/05/30
+ * Version:	@(#)piix.c	1.0.1	2017/08/23
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
@@ -29,16 +29,18 @@
 #include "io.h"
 #include "mem.h"
 #include "pci.h"
-
 #include "piix.h"
 
+
 uint8_t piix_33 = 0;
+
+static uint8_t piix_type = 1;
+static uint8_t card_piix[256], card_piix_ide[256];
+
 
 uint8_t piix_bus_master_read(uint16_t port, void *priv);
 void piix_bus_master_write(uint16_t port, uint8_t val, void *priv);
 
-static uint8_t piix_type = 1;
-static uint8_t card_piix[256], card_piix_ide[256];
 
 void piix_write(int func, int addr, uint8_t val, void *priv)
 {

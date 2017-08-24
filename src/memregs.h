@@ -9,11 +9,17 @@
  *		Emulation of the memory I/O scratch registers on ports 0xE1
  *		and 0xE2, used by just about any emulated machine.
  *
- * Version:	@(#)memregs.h	1.0.0	2017/05/30
+ * Version:	@(#)memregs.h	1.0.1	2017/08/23
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
+#ifndef EMU_MEMREGS_H
+# define EMU_MEMREGS_H
 
-extern void memregs_init();
-void powermate_memregs_init();
+
+extern void powermate_memregs_init(void);
+extern void memregs_init(void);
+
+
+#endif	/*EMU_MEMREGS_H*/

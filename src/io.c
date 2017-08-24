@@ -16,7 +16,7 @@ void (*port_outl[0x10000][2])(uint16_t addr, uint32_t val, void *priv);
 void *port_priv[0x10000][2];
 
 
-void io_init()
+void io_init(void)
 {
         int c;
         pclog("io_init\n");

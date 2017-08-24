@@ -16,8 +16,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "slirp/slirp.h"
-#include "slirp/queue.h"
+#include "SLIRP/slirp.h"
+#include "SLIRP/queue.h"
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"

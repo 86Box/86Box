@@ -167,8 +167,8 @@ enum RTC_RD_BITS
         RTC_VRT = 0x80
 };
 
-void rtc_tick();
-void time_update(char *nvrram, int reg);
-void time_get(char *nvrram);
-void time_internal_set_nvrram(char *nvrram);
-void time_internal_sync(char *nvrram);
+extern void rtc_tick(void);
+extern void time_update(char *nvrram, int reg);
+extern void time_get(char *nvrram);
+extern void time_internal_set_nvrram(char *nvrram);
+extern void time_internal_sync(char *nvrram);

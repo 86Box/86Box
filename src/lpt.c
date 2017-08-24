@@ -3,11 +3,12 @@
 */
 #include "ibm.h"
 #include "io.h"
-
 #include "lpt.h"
+
 
 static uint8_t lpt1_dat, lpt2_dat, lpt3_dat;
 static uint8_t lpt1_ctrl, lpt2_ctrl, lpt3_ctrl;
+
 
 void lpt1_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -83,7 +84,7 @@ uint8_t lpt3_read(uint16_t port, void *priv)
 
 uint16_t lpt_addr[3] = { 0x378, 0x278, 0x3bc };
 
-void lpt_init()
+void lpt_init(void)
 {
 	if (lpt_enabled)
 	{
@@ -102,7 +103,7 @@ void lpt1_init(uint16_t port)
 		lpt_addr[0] = port;
 	}
 }
-void lpt1_remove()
+void lpt1_remove(void)
 {
 	if (lpt_enabled)
 	{
@@ -117,7 +118,7 @@ void lpt2_init(uint16_t port)
 		lpt_addr[1] = port;
 	}
 }
-void lpt2_remove()
+void lpt2_remove(void)
 {
 	if (lpt_enabled)
 	{
@@ -125,7 +126,7 @@ void lpt2_remove()
 	}
 }
 
-void lpt2_remove_ams()
+void lpt2_remove_ams(void)
 {
 	if (lpt_enabled)
 	{
@@ -141,7 +142,7 @@ void lpt3_init(uint16_t port)
 		lpt_addr[2] = port;
 	}
 }
-void lpt3_remove()
+void lpt3_remove(void)
 {
 	if (lpt_enabled)
 	{

@@ -8,14 +8,13 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.0	2017/05/30
+ * Version:	@(#)keyboard_at.c	1.0.1	2017/08/23
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
-
 #include <stdint.h>
 #include "ibm.h"
 #include "io.h"
@@ -25,8 +24,8 @@
 #include "timer.h"
 #include "disc.h"
 #include "fdc.h"
-#include "sound/sound.h"
-#include "sound/snd_speaker.h"
+#include "SOUND/sound.h"
+#include "SOUND/snd_speaker.h"
 #include "keyboard.h"
 #include "keyboard_at.h"
 
@@ -143,7 +142,7 @@ static uint8_t nont_to_t[256] = {	0xFF, 0x43, 0x41, 0x3F, 0x3D, 0x3B, 0x3C, 0x58
 					0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
 					0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF	};
 
-void keyboard_at_poll()
+static void keyboard_at_poll(void)
 {
 	keybsenddelay += (1000 * TIMER_USEC);
 
@@ -775,7 +774,7 @@ uint8_t keyboard_at_read(uint16_t port, void *priv)
         return temp;
 }
 
-void keyboard_at_reset()
+void keyboard_at_reset(void)
 {
         keyboard_at.initialised = 0;
         keyboard_at.status = STAT_LOCK | STAT_CD;
@@ -805,7 +804,7 @@ static void at_refresh(void *p)
         keyboard_at.refresh_time += PS2_REFRESH_TIME;
 }
 
-void keyboard_at_init()
+void keyboard_at_init(void)
 {
         io_sethandler(0x0060, 0x0005, keyboard_at_read, NULL, NULL, keyboard_at_write, NULL, NULL,  NULL);
         keyboard_at_reset();
@@ -816,7 +815,7 @@ void keyboard_at_init()
         keyboard_at.is_ps2 = 0;
 	dtrans = 0;
         
-        timer_add(keyboard_at_poll, &keybsenddelay, TIMER_ALWAYS_ENABLED,  NULL);
+        timer_add((void (*)(void *))keyboard_at_poll, &keybsenddelay, TIMER_ALWAYS_ENABLED,  NULL);
 }
 
 void keyboard_at_set_mouse(void (*mouse_write)(uint8_t val, void *p), void *p)
@@ -825,7 +824,7 @@ void keyboard_at_set_mouse(void (*mouse_write)(uint8_t val, void *p), void *p)
         keyboard_at.mouse_p = p;
 }
 
-void keyboard_at_init_ps2()
+void keyboard_at_init_ps2(void)
 {
         timer_add(at_refresh, &keyboard_at.refresh_time, TIMER_ALWAYS_ENABLED,  NULL);
         keyboard_at.is_ps2 = 1;

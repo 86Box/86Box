@@ -8,17 +8,17 @@
  *
  *		Direct3D 9 full screen rendererer and screenshots taking.
  *
- * Version:	@(#)win_d3d_fs.cc	1.0.1	2017/06/03
+ * Version:	@(#)win_d3d_fs.cc	1.0.2	2017/08/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
 #include <stdint.h>
 #include <stdio.h>
 #include "../86box.h"
-#include "../video/video.h"
+#include "../VIDEO/video.h"
 #include "win.h"
 #include "win_d3d.h"
 #include "win_cgapal.h"

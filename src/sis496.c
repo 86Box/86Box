@@ -3,7 +3,7 @@
 */
 #include <stdlib.h>
 #include "ibm.h"
-#include "cpu/cpu.h"
+#include "CPU/cpu.h"
 #include "io.h"
 #include "mem.h"
 #include "pci.h"

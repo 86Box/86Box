@@ -10,13 +10,13 @@
 #include "mfm_xebec.h"
 #include "xtide.h"
 
+
 char hdd_controller_name[16];
+hard_disk_t hdc[HDC_NUM];
 
 static device_t null_hdd_device;
-
 static int hdd_controller_current;
 
-hard_disk_t hdc[HDC_NUM];
 
 static struct
 {

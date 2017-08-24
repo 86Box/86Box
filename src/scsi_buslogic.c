@@ -10,14 +10,13 @@
  *		  0 - BT-542B ISA;
  *		  1 - BT-958 PCI (but BT-542B ISA on non-PCI machines)
  *
- * Version:	@(#)scsi_buslogic.c	1.0.7	2017/08/22
+ * Version:	@(#)scsi_buslogic.c	1.0.8	2017/08/23
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
- *		Copyright 2017-2017 Fred N. van Kempen.
+ *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdint.h>
 #include <stdio.h>

@@ -1,9 +1,9 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
-void io_init();
+extern void io_init(void);
 
-void io_sethandler(uint16_t base, int size, 
+extern void io_sethandler(uint16_t base, int size, 
                    uint8_t  (*inb)(uint16_t addr, void *priv), 
                    uint16_t (*inw)(uint16_t addr, void *priv), 
                    uint32_t (*inl)(uint16_t addr, void *priv), 
@@ -12,7 +12,7 @@ void io_sethandler(uint16_t base, int size,
                    void (*outl)(uint16_t addr, uint32_t val, void *priv),
                    void *priv);
                    
-void io_removehandler(uint16_t base, int size, 
+extern void io_removehandler(uint16_t base, int size, 
                    uint8_t  (*inb)(uint16_t addr, void *priv), 
                    uint16_t (*inw)(uint16_t addr, void *priv), 
                    uint32_t (*inl)(uint16_t addr, void *priv), 

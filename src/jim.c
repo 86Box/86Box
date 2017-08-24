@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "ibm.h"
-#include "cpu/cpu.h"
+#include "CPU/cpu.h"
 #include "io.h"
 #include "device.h"
 #include "model.h"

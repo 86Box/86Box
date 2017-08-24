@@ -2,7 +2,7 @@
    see COPYING for more details
 */
 #include <stdint.h>
-#include "../video/video.h"
+#include "../VIDEO/video.h"
 #include "win_ddraw.h"
 #include "win_cgapal.h"
 

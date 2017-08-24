@@ -8,17 +8,17 @@
  *
  *		SCSI controller handler header.
  *
- * Version:	@(#)scsi_h	1.0.0	2017/08/22
+ * Version:	@(#)scsi_h	1.0.1	2017/08/23
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 2008-2017 TheCollector1995.
- *		Copyright 2016-2017 Miran Grca.
- *		Copyright 2017-2017 Fred N. van Kempen.
+ *		Copyright 2016,2017 TheCollector1995.
+ *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2017 Fred N. van Kempen.
  */
-#ifndef SCSI_H
-#define SCSI_H
+#ifndef EMU_SCSI_H
+#define EMU_SCSI_H
 
 
 #ifdef WALTJE
@@ -208,13 +208,13 @@ extern uint8_t page_flags[256];
 extern uint8_t prefix_len;
 extern uint8_t page_current; 
 
-uint32_t DataLength;
-uint32_t DataPointer;
+extern uint32_t DataLength;
+extern uint32_t DataPointer;
 
-int SectorLBA;
-int SectorLen;
+extern int SectorLBA;
+extern int SectorLen;
 
-int MediaPresent;
+extern int MediaPresent;
 
 extern uint8_t SCSIStatus;
 extern uint8_t SCSIPhase;
@@ -258,40 +258,40 @@ struct
 
 extern void SCSIReset(uint8_t id, uint8_t lun);
 
-uint32_t SCSICDROMModeSense(uint8_t *buf, uint32_t pos, uint8_t type);
-uint8_t SCSICDROMSetProfile(uint8_t *buf, uint8_t *index, uint16_t profile);
-int SCSICDROMReadDVDStructure(int format, const uint8_t *packet, uint8_t *buf);
-uint32_t SCSICDROMEventStatus(uint8_t *buffer);
-void SCSICDROM_Insert();
+extern uint32_t SCSICDROMModeSense(uint8_t *buf, uint32_t pos, uint8_t type);
+extern uint8_t SCSICDROMSetProfile(uint8_t *buf, uint8_t *index, uint16_t profile);
+extern int SCSICDROMReadDVDStructure(int format, const uint8_t *packet, uint8_t *buf);
+extern uint32_t SCSICDROMEventStatus(uint8_t *buffer);
+extern void SCSICDROM_Insert(void);
 
-int cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type);
-int cdrom_LBAtoMSF_accurate();
+extern int cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type);
+extern int cdrom_LBAtoMSF_accurate(void);
 
-int mode_select_init(uint8_t command, uint16_t pl_length, uint8_t do_save);
-int mode_select_terminate(int force);
-int mode_select_write(uint8_t val);
+extern int mode_select_init(uint8_t command, uint16_t pl_length, uint8_t do_save);
+extern int mode_select_terminate(int force);
+extern int mode_select_write(uint8_t val);
 
 extern int scsi_card_current;
 
-int scsi_card_available(int card);
-char *scsi_card_getname(int card);
-struct device_t *scsi_card_getdevice(int card);
-int scsi_card_has_config(int card);
-char *scsi_card_get_internal_name(int card);
-int scsi_card_get_from_internal_name(char *s);
-void scsi_card_init();
-void scsi_card_reset(void);
+extern int scsi_card_available(int card);
+extern char *scsi_card_getname(int card);
+extern struct device_t *scsi_card_getdevice(int card);
+extern int scsi_card_has_config(int card);
+extern char *scsi_card_get_internal_name(int card);
+extern int scsi_card_get_from_internal_name(char *s);
+extern void scsi_card_init();
+extern void scsi_card_reset(void);
 
 extern uint8_t scsi_hard_disks[16][8];
 
-int scsi_hd_err_stat_to_scsi(uint8_t id);
-int scsi_hd_phase_to_scsi(uint8_t id);
-int find_hdc_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun);
-void build_scsi_hd_map();
-void scsi_hd_reset(uint8_t id);
-void scsi_hd_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length);
-void scsi_hd_command(uint8_t id, uint8_t *cdb);
-void scsi_hd_callback(uint8_t id);
+extern int scsi_hd_err_stat_to_scsi(uint8_t id);
+extern int scsi_hd_phase_to_scsi(uint8_t id);
+extern int find_hdc_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun);
+extern void build_scsi_hd_map(void);
+extern void scsi_hd_reset(uint8_t id);
+extern void scsi_hd_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length);
+extern void scsi_hd_command(uint8_t id, uint8_t *cdb);
+extern void scsi_hd_callback(uint8_t id);
 
 
 #pragma pack(push,1)
@@ -320,7 +320,7 @@ typedef struct
 } BIOSCMD;
 #pragma pack(pop)
 
-uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd);
+extern uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd);
 
 
 /*
@@ -346,4 +346,4 @@ typedef struct {
 #pragma pack(pop)
 
 
-#endif
+#endif	/*EMU_SCSI_H*/

@@ -27,11 +27,6 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
-//#include "dosbox.h"
-//#include "mem.h"
-//#include "mixer.h"
-//#include "SDL.h"
-//#include "SDL_thread.h"
 
 #include <stdint.h>
 typedef signed int Bits;

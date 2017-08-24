@@ -10,8 +10,8 @@
 #include "timer.h"
 #include "device.h"
 #include "tandy_eeprom.h"
-#include "sound/sound.h"
-#include "sound/snd_speaker.h"
+#include "SOUND/sound.h"
+#include "SOUND/Snd_speaker.h"
 #include "keyboard.h"
 #include "keyboard_xt.h"
 
@@ -39,7 +39,8 @@ struct
 static uint8_t key_queue[16];
 static int key_queue_start = 0, key_queue_end = 0;
 
-void keyboard_xt_poll()
+
+static void keyboard_xt_poll(void)
 {
         keybsenddelay += (1000 * TIMER_USEC);
         if (key_queue_start != key_queue_end && !keyboard_xt.blocked)
@@ -60,7 +61,7 @@ void keyboard_xt_adddata(uint8_t val)
         return;
 }
 
-void keyboard_xt_write(uint16_t port, uint8_t val, void *priv)
+static void keyboard_xt_write(uint16_t port, uint8_t val, void *priv)
 {
         switch (port)
         {
@@ -94,7 +95,7 @@ void keyboard_xt_write(uint16_t port, uint8_t val, void *priv)
         }
 }
 
-uint8_t keyboard_xt_read(uint16_t port, void *priv)
+static uint8_t keyboard_xt_read(uint16_t port, void *priv)
 {
         uint8_t temp;
         switch (port)
@@ -151,14 +152,14 @@ uint8_t keyboard_xt_read(uint16_t port, void *priv)
         return temp;
 }
 
-void keyboard_xt_reset()
+void keyboard_xt_reset(void)
 {
         keyboard_xt.blocked = 0;
         
         keyboard_scan = 1;
 }
 
-void keyboard_xt_init()
+void keyboard_xt_init(void)
 {
         io_sethandler(0x0060, 0x0004, keyboard_xt_read, NULL, NULL, keyboard_xt_write, NULL, NULL,  NULL);
         keyboard_xt_reset();
@@ -166,10 +167,10 @@ void keyboard_xt_init()
         keyboard_poll = keyboard_xt_poll;
         keyboard_xt.tandy = 0;
 
-        timer_add(keyboard_xt_poll, &keybsenddelay, TIMER_ALWAYS_ENABLED,  NULL);
+        timer_add((void (*)(void *))keyboard_xt_poll, &keybsenddelay, TIMER_ALWAYS_ENABLED,  NULL);
 }
 
-void keyboard_tandy_init()
+void keyboard_tandy_init(void)
 {
         io_sethandler(0x0060, 0x0004, keyboard_xt_read, NULL, NULL, keyboard_xt_write, NULL, NULL,  NULL);
         keyboard_xt_reset();
@@ -177,5 +178,5 @@ void keyboard_tandy_init()
         keyboard_poll = keyboard_xt_poll;
         keyboard_xt.tandy = (romset != ROM_TANDY) ? 1 : 0;
         
-        timer_add(keyboard_xt_poll, &keybsenddelay, TIMER_ALWAYS_ENABLED,  NULL);
+        timer_add((void (*)(void *))keyboard_xt_poll, &keybsenddelay, TIMER_ALWAYS_ENABLED,  NULL);
 }

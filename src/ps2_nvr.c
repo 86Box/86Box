@@ -6,11 +6,13 @@
 #include "rom.h"
 #include "ps2_nvr.h"
 
+
 typedef struct ps2_nvr_t
 {
         int addr;
         uint8_t ram[8192];
 } ps2_nvr_t;
+
 
 static uint8_t ps2_nvr_read(uint16_t port, void *p)
 {

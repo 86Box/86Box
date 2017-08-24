@@ -12,12 +12,12 @@
  *		This file lists the functions provided by various platform-
  *		specific cdrom-ioctl files.
  *
- * Version:	@(#)cdrom_ioctl.h	1.0.1	2017/06/03
+ * Version:	@(#)cdrom_ioctl.h	1.0.2	2017/08/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2016 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
 #ifndef EMU_CDROM_IOCTL_H
 #define EMU_CDROM_IOCTL_H

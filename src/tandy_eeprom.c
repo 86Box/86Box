@@ -9,6 +9,7 @@
 #include "rom.h"
 #include "tandy_eeprom.h"
 
+
 typedef struct
 {
         int state;
@@ -29,7 +30,9 @@ enum
         EEPROM_WRITE
 };
 
+
 static int eeprom_data_out;
+
 
 void tandy_eeprom_write(uint16_t addr, uint8_t val, void *p)
 {
@@ -110,12 +113,14 @@ void tandy_eeprom_write(uint16_t addr, uint8_t val, void *p)
         eeprom->clock = val & 4;
 }
 
-int tandy_eeprom_read()
+
+int tandy_eeprom_read(void)
 {
         return eeprom_data_out;
 }
 
-void *tandy_eeprom_init()
+
+static void *tandy_eeprom_init(void)
 {
         tandy_eeprom_t *eeprom = malloc(sizeof(tandy_eeprom_t));
         FILE *f = NULL;
@@ -145,6 +150,7 @@ void *tandy_eeprom_init()
         return eeprom;
 }
 
+
 void tandy_eeprom_close(void *p)
 {
         tandy_eeprom_t *eeprom = (tandy_eeprom_t *)p;
@@ -164,6 +170,7 @@ void tandy_eeprom_close(void *p)
 
         free(eeprom);
 }
+
 
 device_t tandy_eeprom_device =
 {

@@ -9,15 +9,21 @@
  *		Implementation of the raw sector-based floppy image format,
  *		as well as the Japanese FDI, CopyQM, and FDF formats.
  *
- * Version:	@(#)disc_img.h	1.0.0	2017/05/30
+ * Version:	@(#)disc_img.h	1.0.1	2017/08/23
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
+#ifndef EMU_DISC_IMG_H
+# define EMU_DISC_IMG_H
 
-void img_init();
-void img_load(int drive, wchar_t *fn);
-void img_close(int drive);
-void img_seek(int drive, int track);
+
+extern void img_init(void);
+extern void img_load(int drive, wchar_t *fn);
+extern void img_close(int drive);
+extern void img_seek(int drive, int track);
+
+
+#endif	/*EMU_DISC_IMG_H*/

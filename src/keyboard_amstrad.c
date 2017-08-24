@@ -8,8 +8,8 @@
 #include "pic.h"
 #include "pit.h"
 #include "timer.h"
-#include "sound/sound.h"
-#include "sound/snd_speaker.h"
+#include "SOUND/sound.h"
+#include "SOUND/snd_speaker.h"
 #include "keyboard.h"
 #include "keyboard_amstrad.h"
 
@@ -37,7 +37,7 @@ static int key_queue_start = 0, key_queue_end = 0;
 
 static uint8_t amstrad_systemstat_1, amstrad_systemstat_2;
 
-void keyboard_amstrad_poll()
+void keyboard_amstrad_poll(void)
 {
         keybsenddelay += (1000 * TIMER_USEC);
         if (keyboard_amstrad.wantirq)
@@ -156,14 +156,14 @@ uint8_t keyboard_amstrad_read(uint16_t port, void *priv)
         return temp;
 }
 
-void keyboard_amstrad_reset()
+void keyboard_amstrad_reset(void)
 {
         keyboard_amstrad.wantirq = 0;
         
         keyboard_scan = 1;
 }
 
-void keyboard_amstrad_init()
+void keyboard_amstrad_init(void)
 {
         pclog("keyboard_amstrad_init\n");
         io_sethandler(0x0060, 0x0006, keyboard_amstrad_read, NULL, NULL, keyboard_amstrad_write, NULL, NULL,  NULL);
@@ -171,5 +171,5 @@ void keyboard_amstrad_init()
         keyboard_send = keyboard_amstrad_adddata;
         keyboard_poll = keyboard_amstrad_poll;
 
-        timer_add(keyboard_amstrad_poll, &keybsenddelay, TIMER_ALWAYS_ENABLED,  NULL);
+        timer_add((void (*)(void *))keyboard_amstrad_poll, &keybsenddelay, TIMER_ALWAYS_ENABLED,  NULL);
 }

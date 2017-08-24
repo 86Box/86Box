@@ -1,6 +1,6 @@
 /*This is the chipset used in the LaserXT series model*/
 #include "ibm.h"
-#include "cpu/cpu.h"
+#include "CPU/cpu.h"
 #include "io.h"
 #include "mem.h"
 #include "device.h"

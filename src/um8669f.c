@@ -31,6 +31,7 @@ PnP registers :
 #include "serial.h"
 #include "um8669f.h"
 
+
 typedef struct um8669f_t
 {
         int locked;
@@ -48,7 +49,9 @@ typedef struct um8669f_t
         } dev[8];
 } um8669f_t;
 
+
 static um8669f_t um8669f_global;
+
 
 #define DEV_FDC  0
 #define DEV_COM1 1
@@ -62,6 +65,7 @@ static um8669f_t um8669f_global;
 #define REG_ADDRLO 0x61
 #define REG_IRQ    0x70
 #define REG_DMA    0x74
+
 
 void um8669f_pnp_write(uint16_t port, uint8_t val, void *p)
 {
@@ -146,6 +150,7 @@ void um8669f_pnp_write(uint16_t port, uint8_t val, void *p)
         }
 }
 
+
 uint8_t um8669f_pnp_read(uint16_t port, void *p)
 {
         um8669f_t *um8669f = (um8669f_t *)p;
@@ -170,6 +175,7 @@ uint8_t um8669f_pnp_read(uint16_t port, void *p)
         
         return 0xff;
 }
+
 
 void um8669f_write(uint16_t port, uint8_t val, void *p)
 {
@@ -207,6 +213,7 @@ void um8669f_write(uint16_t port, uint8_t val, void *p)
         }
 }
 
+
 uint8_t um8669f_read(uint16_t port, void *p)
 {
         um8669f_t *um8669f = (um8669f_t *)p;
@@ -220,6 +227,7 @@ uint8_t um8669f_read(uint16_t port, void *p)
         else
                 return um8669f->regs_108[um8669f->cur_reg_108];
 }
+
 
 void um8669f_reset(void)
 {
@@ -267,7 +275,8 @@ void um8669f_reset(void)
 	um8669f_global.dev[DEV_LPT1].irq = 7;
 }
 
-void um8669f_init()
+
+void um8669f_init(void)
 {
         io_sethandler(0x0108, 0x0002, um8669f_read, NULL, NULL, um8669f_write, NULL, NULL,  &um8669f_global);
 

@@ -6,20 +6,19 @@
  *
  *		Emulation of the SiS 50x PCI chips.
  *
- * Version:	@(#)sis50x.c	1.0.0	2017/05/30
+ * Version:	@(#)sis50x.c	1.0.1	2017/08/23
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2017-2017 Miran Grca.
+ *		Copyright 2017 Miran Grca.
  */
-
 #include <stdlib.h>
 #include "ibm.h"
 #include "device.h"
 #include "io.h"
 #include "mem.h"
 #include "pci.h"
-
 #include "sis50x.h"
+
 
 typedef struct sis501_t
 {
@@ -38,7 +37,8 @@ typedef struct sis50x_t
 	uint8_t reg;
 } sis50x_t;
 
-void sis501_recalcmapping(sis501_t *sis501)
+
+static void sis501_recalcmapping(sis501_t *sis501)
 {
         int c, d;
         
@@ -75,7 +75,8 @@ void sis501_recalcmapping(sis501_t *sis501)
         shadowbios = 1;
 }
 
-void sis501_write(int func, int addr, uint8_t val, void *p)
+
+static void sis501_write(int func, int addr, uint8_t val, void *p)
 {
         sis501_t *sis501 = (sis501_t *)p;
         //pclog("sis501_write : addr=%02x val=%02x\n", addr, val);
@@ -94,7 +95,8 @@ void sis501_write(int func, int addr, uint8_t val, void *p)
            sis501->pci_conf[addr] = val;
 }
 
-void sis501_turbo_write(uint16_t port, uint8_t val, void *priv)
+
+static void sis501_turbo_write(uint16_t port, uint8_t val, void *priv)
 {
 	sis501_t *sis501 = (sis501_t *)priv;
 
@@ -111,7 +113,8 @@ void sis501_turbo_write(uint16_t port, uint8_t val, void *priv)
 	}
 }
 
-void sis503_write(int func, int addr, uint8_t val, void *p)
+
+static void sis503_write(int func, int addr, uint8_t val, void *p)
 {
         sis503_t *sis503 = (sis503_t *)p;
         //pclog("sis503_write : addr=%02x val=%02x\n", addr, val);
@@ -120,7 +123,8 @@ void sis503_write(int func, int addr, uint8_t val, void *p)
            sis503->pci_conf[addr] = val;
 }
 
-void sis50x_write(uint16_t port, uint8_t val, void *priv)
+
+static void sis50x_write(uint16_t port, uint8_t val, void *priv)
 {
 	sis50x_t *sis50x = (sis50x_t *)priv;
 
@@ -134,28 +138,32 @@ void sis50x_write(uint16_t port, uint8_t val, void *priv)
 	}
 }
 
-uint8_t sis501_read(int func, int addr, void *p)
+
+static uint8_t sis501_read(int func, int addr, void *p)
 {
         sis501_t *sis501 = (sis501_t *)p;
         
         return sis501->pci_conf[addr];
 }
 
-uint8_t sis501_turbo_read(uint16_t port, void *priv)
+
+static uint8_t sis501_turbo_read(uint16_t port, void *priv)
 {
         sis501_t *sis501 = (sis501_t *)priv;
         
         return sis501->turbo_reg;
 }
  
-uint8_t sis503_read(int func, int addr, void *p)
+
+static uint8_t sis503_read(int func, int addr, void *p)
 {
         sis503_t *sis503 = (sis503_t *)p;
         
         return sis503->pci_conf[addr];
 }
  
-uint8_t sis50x_read(uint16_t port, void *priv)
+
+static uint8_t sis50x_read(uint16_t port, void *priv)
 {
 	sis50x_t *sis50x = (sis50x_t *)priv;
 
@@ -172,7 +180,8 @@ uint8_t sis50x_read(uint16_t port, void *priv)
 	}
 }
 
-void *sis501_init()
+
+static void *sis501_init(void)
 {
         sis501_t *sis501 = malloc(sizeof(sis501_t));
         memset(sis501, 0, sizeof(sis501_t));
@@ -206,7 +215,8 @@ void *sis501_init()
 	return sis501;
 }
 
-void *sis503_init()
+
+static void *sis503_init(void)
 {
         sis503_t *sis503 = malloc(sizeof(sis503_t));
         memset(sis503, 0, sizeof(sis503_t));
@@ -236,7 +246,8 @@ void *sis503_init()
 	return sis503;
 }
 
-void *sis50x_init()
+
+static void *sis50x_init(void)
 {
         sis50x_t *sis50x = malloc(sizeof(sis50x_t));
         memset(sis50x, 0, sizeof(sis50x_t));
@@ -244,26 +255,30 @@ void *sis50x_init()
 	io_sethandler(0x22, 0x0002, sis50x_read, NULL, NULL, sis50x_write, NULL, NULL,  sis50x);
 }
 
-void sis501_close(void *p)
+
+static void sis501_close(void *p)
 {
         sis501_t *sis501 = (sis501_t *)p;
 
         free(sis501);
 }
 
-void sis503_close(void *p)
+
+static void sis503_close(void *p)
 {
         sis503_t *sis503 = (sis503_t *)p;
 
         free(sis503);
 }
 
-void sis50x_close(void *p)
+
+static void sis50x_close(void *p)
 {
         sis50x_t *sis50x = (sis50x_t *)p;
 
         free(sis50x);
 }
+
 
 device_t sis501_device =
 {

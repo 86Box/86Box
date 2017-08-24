@@ -8,19 +8,15 @@
  *
  *		Emulation of the Winbond W83877F Super I/O Chip.
  *
- * Version:	@(#)w83877f.c	1.0.0	2017/05/30
+ *		Winbond W83877F Super I/O Chip
+ *		Used by the Award 430HX
+ *
+ * Version:	@(#)w83877f.c	1.0.1	2017/08/23
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
-
-/*
-	Winbond W83877F Super I/O Chip
-	Used by the Award 430HX
-*/
-
 #include "ibm.h"
-
 #include "disc.h"
 #include "fdc.h"
 #include "fdd.h"
@@ -28,6 +24,7 @@
 #include "lpt.h"
 #include "serial.h"
 #include "w83877f.h"
+
 
 static int w83877f_locked;
 static int w83877f_rw_locked = 0;
@@ -38,6 +35,7 @@ static uint8_t tries;
 static int winbond_port = 0x3f0;
 static int winbond_key = 0x89;
 static int winbond_key_times = 1;
+
 
 void w83877f_write(uint16_t port, uint8_t val, void *priv);
 uint8_t w83877f_read(uint16_t port, void *priv);
@@ -208,7 +206,8 @@ static uint16_t lpt1_valid_ports[3] = {0x3BC, 0x378, 0x278};
 static uint16_t com1_valid_ports[9] = {0x3F8, 0x2F8, 0x3E8, 0x2E8};
 static uint16_t com2_valid_ports[9] = {0x3F8, 0x2F8, 0x3E8, 0x2E8};
 
-static void w83877f_remap()
+
+static void w83877f_remap(void)
 {
         io_removehandler(0x250, 0x0002, w83877f_read, NULL, NULL, w83877f_write, NULL, NULL,  NULL);
         io_removehandler(0x3f0, 0x0002, w83877f_read, NULL, NULL, w83877f_write, NULL, NULL,  NULL);
@@ -218,6 +217,7 @@ static void w83877f_remap()
 	winbond_key = (HEFRAS ? 0x86 : 0x88) | HEFERE;
 	pclog("W83877F: Remapped to port %04X, key %02X\n", winbond_port, winbond_key);
 }
+
 
 static uint8_t is_in_array(uint16_t *port_array, uint8_t max, uint16_t port)
 {
@@ -229,6 +229,7 @@ static uint8_t is_in_array(uint16_t *port_array, uint8_t max, uint16_t port)
 	}
 	return 0;
 }
+
 
 static uint16_t make_port(uint8_t reg)
 {
@@ -283,6 +284,7 @@ static uint16_t make_port(uint8_t reg)
 	return p;
 }
 
+
 void w83877f_serial_handler(int id)
 {
 	int reg_mask = (id - 1) ? 0x10 : 0x20;
@@ -300,6 +302,7 @@ void w83877f_serial_handler(int id)
 		serial_setup(id, make_port(reg_id), w83877f_regs[0x28] & irq_mask);
 	}
 }
+
 
 void w83877f_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -459,6 +462,7 @@ process_value:
 	}
 }
 
+
 uint8_t w83877f_read(uint16_t port, void *priv)
 {
 	uint8_t index = (port & 1) ? 0 : 1;
@@ -482,6 +486,7 @@ uint8_t w83877f_read(uint16_t port, void *priv)
 		return w83877f_regs[w83877f_curreg];
 	}
 }
+
 
 void w83877f_reset(void)
 {
@@ -529,7 +534,8 @@ void w83877f_reset(void)
         w83877f_rw_locked = 0;
 }
 
-void w83877f_init()
+
+void w83877f_init(void)
 {
 	lpt2_remove();
 

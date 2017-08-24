@@ -1,6 +1,6 @@
 #include "ibm.h"
-#include "cpu/cpu.h"
-#include "cpu/x86.h"
+#include "CPU/cpu.h"
+#include "CPU/x86.h"
 #include "io.h"
 #include "mca.h"
 #include "mem.h"

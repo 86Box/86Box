@@ -9,11 +9,17 @@
  *		A better random number generation, used for floppy weak bits
  *		and network MAC address generation.
  *
- * Version:	@(#)disc_random.h	1.0.0	2017/05/30
+ * Version:	@(#)disc_random.h	1.0.1	2017/08/23
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
+#ifndef EMU_DISC_RANDOM_H
+# define EMU_DISC_RANDOM_H
 
-uint8_t disc_random_generate();
-void disc_random_init();
+
+extern uint8_t disc_random_generate(void);
+extern void disc_random_init(void);
+
+
+#endif	/*EMU_DISC_RANDOM_H*/

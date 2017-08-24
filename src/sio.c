@@ -6,16 +6,14 @@
  *
  *		Emulation of Intel System I/O PCI chip.
  *
- * Version:	@(#)sio.c	1.0.1	2017/06/02
+ * Version:	@(#)sio.c	1.0.2	2017/08/23
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
-
 #include <string.h>
-
 #include "ibm.h"
 #include "cdrom.h"
 #include "disc.h"
@@ -26,10 +24,11 @@
 #include "io.h"
 #include "mem.h"
 #include "pci.h"
-
 #include "sio.h"
 
+
 static uint8_t card_sio[256];
+
 
 void sio_write(int func, int addr, uint8_t val, void *priv)
 {
@@ -120,6 +119,7 @@ void sio_write(int func, int addr, uint8_t val, void *priv)
         card_sio[addr] = val;
 }
 
+
 uint8_t sio_read(int func, int addr, void *priv)
 {
         if (func > 0)
@@ -128,12 +128,15 @@ uint8_t sio_read(int func, int addr, void *priv)
         return card_sio[addr];
 }
 
+
 static int trc_reg = 0;
+
 
 uint8_t trc_read(uint16_t port, void *priv)
 {
 	return trc_reg & 0xfb;
 }
+
 
 void trc_reset(uint8_t val)
 {
@@ -175,6 +178,7 @@ void trc_reset(uint8_t val)
 	resetx86();
 }
 
+
 void trc_write(uint16_t port, uint8_t val, void *priv)
 {
 	pclog("TRC Write: %02X\n", val);
@@ -185,12 +189,14 @@ void trc_write(uint16_t port, uint8_t val, void *priv)
 	trc_reg = val & 0xfd;
 }
 
+
 void trc_init(void)
 {
 	trc_reg = 0;
 
 	io_sethandler(0x0cf9, 0x0001, trc_read, NULL, NULL, trc_write, NULL, NULL, NULL);
 }
+
 
 void sio_reset(void)
 {
@@ -215,6 +221,7 @@ void sio_reset(void)
         card_sio[0xa0] = 0x08;
         card_sio[0xa8] = 0x0f;
 }
+
 
 void sio_init(int card, int pci_a, int pci_b, int pci_c, int pci_d)
 {

@@ -6,20 +6,16 @@
  *
  *		Emulation of the SiS 85c471 chip.
  *
- * Version:	@(#)sis85c471.c	1.0.0	2017/05/30
+ *		SiS sis85c471 Super I/O Chip
+ *		Used by Batman's Revenge
+ *
+ * Version:	@(#)sis85c471.c	1.0.1	2017/08/23
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2017-2017 Miran Grca.
+ *		Copyright 2017 Miran Grca.
  */
-
-/*
-	SiS sis85c471 Super I/O Chip
-	Used by Batman's Revenge
-*/
-
 #include "ibm.h"
 #include "ide.h"
-
 #include "disc.h"
 #include "fdc.h"
 #include "fdd.h"
@@ -28,10 +24,12 @@
 #include "serial.h"
 #include "sis85c471.h"
 
+
 static int sis85c471_curreg;
 static uint8_t sis85c471_regs[39];
 
-void sis85c471_write(uint16_t port, uint8_t val, void *priv)
+
+static void sis85c471_write(uint16_t port, uint8_t val, void *priv)
 {
 	uint8_t index = (port & 1) ? 0 : 1;
 	uint8_t x;
@@ -92,7 +90,8 @@ process_value:
 	sis85c471_curreg = 0;
 }
 
-uint8_t sis85c471_read(uint16_t port, void *priv)
+
+static uint8_t sis85c471_read(uint16_t port, void *priv)
 {
 	uint8_t index = (port & 1) ? 0 : 1;
 	uint8_t temp;
@@ -110,7 +109,8 @@ uint8_t sis85c471_read(uint16_t port, void *priv)
 			return 0xFF;
 }
 
-void sis85c471_init()
+
+void sis85c471_init(void)
 {
 	int i = 0;
 

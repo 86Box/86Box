@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.0	2017/07/26
+ * Version:	@(#)config.c	1.0.1	2017/08/23
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -17,7 +17,6 @@
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  *		Copyright 2017-2017 Fred N. van Kempen.
- *		Copyright 2017-2017 Overdoze.
  *
  * NOTE:	Forcing config files to be in Unicode encoding breaks it on
  *		Windows XP, and possibly also Vista. Use -DANSI_CFG for use
@@ -36,26 +35,26 @@
 #include "fdc.h"
 #include "fdd.h"
 #include "ibm.h"
-#include "cpu/cpu.h"
+#include "CPU/cpu.h"
 #include "gameport.h"
 #include "ide.h"
 #include "hdd.h"
 #include "model.h"
 #include "mouse.h"
-#include "network/network.h"
+#include "NETWORK/network.h"
 #include "nvr.h"
 #include "scsi.h"
-#include "win/plat_joystick.h"
-#include "win/plat_midi.h"
-#include "sound/midi.h"
-#include "sound/snd_dbopl.h"
-#include "sound/snd_mpu401.h"
-#include "sound/snd_opl.h"
-#include "sound/sound.h"
-#include "video/video.h"
+#include "WIN/plat_joystick.h"
+#include "WIN/plat_midi.h"
+#include "SOUND/midi.h"
+#include "SOUND/snd_dbopl.h"
+#include "SOUND/snd_mpu401.h"
+#include "SOUND/snd_opl.h"
+#include "SOUND/sound.h"
+#include "VIDEO/video.h"
 
-#include "win/win.h"
-#include "win/win_language.h"
+#include "WIN/win.h"
+#include "WIN/win_language.h"
 
 
 wchar_t config_file_default[256];

@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)model.c	1.0.5	2017/07/27
+ * Version:	@(#)model.c	1.0.6	2017/08/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -19,7 +19,7 @@
 #include <stdio.h>
 
 #include "ibm.h"
-#include "cpu/cpu.h"
+#include "CPU/cpu.h"
 #include "io.h"
 #include "mem.h"
 #include "rom.h"
@@ -58,17 +58,17 @@
 #include "serial.h"
 #include "sis85c471.h"
 #include "sio.h"
-#include "sound/snd_ps1.h"
-#include "sound/snd_pssj.h"
-#include "sound/snd_sn76489.h"
+#include "SOUND/snd_ps1.h"
+#include "SOUND/snd_pssj.h"
+#include "SOUND/snd_sn76489.h"
 #if 0
 #include "superio_detect.h"
 #endif
 #include "tandy_eeprom.h"
 #include "tandy_rom.h"
 #include "um8669f.h"
-#include "video/vid_pcjr.h"
-#include "video/vid_tandy.h"
+#include "VIDEO/vid_pcjr.h"
+#include "VIDEO/vid_tandy.h"
 #include "w83877f.h"
 #include "wd76c10.h"
 #include "xtide.h"

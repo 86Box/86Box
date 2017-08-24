@@ -17,11 +17,11 @@
  *		Copyright 2016-2017 Miran Grca.
  */
 #include "ibm.h"
-#include "cpu/cpu.h"
+#include "CPU/cpu.h"
 #include "config.h"
 #include "device.h"
 #include "model.h"
-#include "sound/sound.h"
+#include "SOUND/sound.h"
 
 
 static void *device_priv[256];
