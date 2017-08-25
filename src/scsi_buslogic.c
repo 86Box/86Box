@@ -8,7 +8,7 @@
  *		supported:
  *
  *		  0 - BT-542B ISA;
- *		  1 - BT-958 PCI (but BT-542B ISA on non-PCI machines)
+ *		  1 - BT-946C PCI (but BT-542B ISA on non-PCI machines)
  *
  * Version:	@(#)scsi_buslogic.c	1.0.8	2017/08/23
  *
@@ -119,24 +119,10 @@ typedef struct {
 		fIrqAutoConfiguration	:1;
     uint8_t	uDMATransferRate;
     uint8_t	uSCSIId;
-    uint8_t	fLowByteTerminated	:1,
-		fParityCheckingEnabled	:1,
-		fHighByteTerminated	:1,
-		fNoisyCablingEnvironment:1,
-		fFastSyncNegotiation	:1,
-		fBusResetEnabled	:1,
-		fReserved3		:1,
-		fActiveNegotiationEna	:1;
+    uint8_t	uSCSIConfiguration;
     uint8_t	uBusOnDelay;
     uint8_t	uBusOffDelay;
-    uint8_t	fHostAdapterBIOSEnabled	:1,
-		fBIOSRedirectionOfInt19 :1,
-		fExtendedTranslation	:1,
-		fMapRemovableAsFixed	:1,
-		fReserved4		:1,
-		fBIOSMoreThan2Drives	:1,
-		fBIOSInterruptMode	:1,
-		fFlopticalSupport	:1;
+    uint8_t	uBIOSConfiguration;
     uint16_t	u16DeviceEnabledMask;
     uint16_t	u16WidePermittedMask;
     uint16_t	u16FastPermittedMask;
@@ -491,7 +477,7 @@ typedef struct {
     uint8_t	CmdBuf[128];
     uint8_t	CmdParam;
     uint8_t	CmdParamLeft;
-    uint8_t	DataBuf[128];
+    uint8_t	DataBuf[65536];
     uint16_t	DataReply;
     uint16_t	DataReplyLeft;
     uint32_t	MailboxCount;
@@ -517,6 +503,7 @@ typedef struct {
     uint32_t	bios_addr,
 		bios_size,
 		bios_mask;
+    uint8_t     AutoSCSIROM[32768];
 } Buslogic_t;
 #pragma pack(pop)
 
@@ -529,6 +516,7 @@ static Buslogic_t *BuslogicResetDevice;
 
 enum {
     CHIP_BUSLOGIC_ISA,
+    CHIP_BUSLOGIC_MCA,
     CHIP_BUSLOGIC_PCI
 };
 
@@ -591,6 +579,122 @@ BuslogicInterrupt(Buslogic_t *bl, int set)
 			/* pclog("Interrupt Cleared\n"); */
 		}
 	}
+}
+
+
+static wchar_t *
+BuslogicGetNVRFileName(Buslogic_t *bl)
+{
+	switch(bl->chip)
+	{
+		case CHIP_BUSLOGIC_ISA:
+			return L"bt542b.nvr";
+		case CHIP_BUSLOGIC_MCA:
+			return L"bt640.nvr";
+		case CHIP_BUSLOGIC_PCI:
+			return L"bt946c.nvr";
+		default:
+			fatal("Unrecognized BusLogic chip: %i\n", bl->chip);
+			return NULL;
+	}
+}
+
+
+static void
+BuslogicInitializeAutoSCSIRam(Buslogic_t *bl, uint8_t safe)
+{
+	HALocalRAM *HALR = &bl->LocalRAM;
+
+	memset(&(HALR->structured.autoSCSIData), 0, sizeof(AutoSCSIRam));
+
+	HALR->structured.autoSCSIData.aInternalSignature[0] = 'F';
+	HALR->structured.autoSCSIData.aInternalSignature[1] = 'A';
+
+	HALR->structured.autoSCSIData.cbInformation = 64;
+
+	HALR->structured.autoSCSIData.aHostAdaptertype[0] = (bl->chip == CHIP_BUSLOGIC_PCI) ? '9' : '5';
+	HALR->structured.autoSCSIData.aHostAdaptertype[1] = '4';
+	HALR->structured.autoSCSIData.aHostAdaptertype[2] = (bl->chip == CHIP_BUSLOGIC_PCI) ? '6' : '2';
+	HALR->structured.autoSCSIData.aHostAdaptertype[3] = (bl->chip == CHIP_BUSLOGIC_PCI) ? 'C' : 'B';
+	HALR->structured.autoSCSIData.aHostAdaptertype[4] = ' ';
+
+	HALR->structured.autoSCSIData.fLevelSensitiveInterrupt = (bl->chip == CHIP_BUSLOGIC_PCI) ? 1 : 0;
+	HALR->structured.autoSCSIData.uSystemRAMAreForBIOS = 6;
+
+	if (bl->chip != CHIP_BUSLOGIC_PCI)
+	{
+		switch(bl->DmaChannel)
+		{
+			case 5:
+				HALR->structured.autoSCSIData.uDMAChannel = 1;
+				break;
+			case 6:
+				HALR->structured.autoSCSIData.uDMAChannel = 2;
+				break;
+			case 7:
+				HALR->structured.autoSCSIData.uDMAChannel = 3;
+				break;
+			default:
+				HALR->structured.autoSCSIData.uDMAChannel = 0;
+				break;
+		}
+	}
+	HALR->structured.autoSCSIData.fDMAAutoConfiguration = (bl->chip == CHIP_BUSLOGIC_PCI) ? 0 : 1;
+
+	if (bl->chip != CHIP_BUSLOGIC_PCI)
+	{
+		switch(bl->Irq)
+		{
+			case 9:
+				HALR->structured.autoSCSIData.uIrqChannel = 1;
+				break;
+			case 10:
+				HALR->structured.autoSCSIData.uIrqChannel = 2;
+				break;
+			case 11:
+				HALR->structured.autoSCSIData.uIrqChannel = 3;
+				break;
+			case 12:
+				HALR->structured.autoSCSIData.uIrqChannel = 4;
+				break;
+			case 14:
+				HALR->structured.autoSCSIData.uIrqChannel = 5;
+				break;
+			case 15:
+				HALR->structured.autoSCSIData.uIrqChannel = 6;
+				break;
+			default:
+				HALR->structured.autoSCSIData.uIrqChannel = 0;
+				break;
+		}
+	}
+	HALR->structured.autoSCSIData.fIrqAutoConfiguration = (bl->chip == CHIP_BUSLOGIC_PCI) ? 0 : 1;
+
+	HALR->structured.autoSCSIData.uDMATransferRate = (bl->chip == CHIP_BUSLOGIC_ISA) ? 1 : 0;
+
+	HALR->structured.autoSCSIData.uSCSIId = 15;
+	HALR->structured.autoSCSIData.uSCSIConfiguration = 0x3F;
+	HALR->structured.autoSCSIData.uBusOnDelay = (bl->chip == CHIP_BUSLOGIC_PCI) ? 0 : 7;
+	HALR->structured.autoSCSIData.uBusOffDelay = (bl->chip == CHIP_BUSLOGIC_PCI) ? 0 : 4;
+	HALR->structured.autoSCSIData.uBIOSConfiguration = (bl->has_bios) ? 0x33 : 0x32;
+	if (!safe)
+	{
+		HALR->structured.autoSCSIData.uBIOSConfiguration |= 0x04;
+	}
+
+	HALR->structured.autoSCSIData.u16DeviceEnabledMask = 0xffff;
+	HALR->structured.autoSCSIData.u16WidePermittedMask = 0xffff;
+	HALR->structured.autoSCSIData.u16FastPermittedMask = 0xffff;
+	HALR->structured.autoSCSIData.u16SynchronousPermittedMask = 0xffff;
+	HALR->structured.autoSCSIData.u16DisconnectPermittedMask = 0xffff;
+
+	HALR->structured.autoSCSIData.uPCIInterruptPin = PCI_INTB;
+	HALR->structured.autoSCSIData.fVesaBusSpeedGreaterThan33MHz = 1;
+
+	HALR->structured.autoSCSIData.uAutoSCSIMaximumLUN = 7;
+
+	HALR->structured.autoSCSIData.fInt13Extension = safe ? 0 : 1;
+	HALR->structured.autoSCSIData.fCDROMBoot = safe ? 0 : 1;
 }
 
 
@@ -1590,14 +1694,7 @@ BuslogicRead(uint16_t Port, void *p)
 		break;
 		
 	case 1:
-		if (bl->UseLocalRAM && (bl->Command == 0x91))
-		{
-			Temp = bl->LocalRAM.u8View[bl->DataReply];
-		}
-		else
-		{
-			Temp = bl->DataBuf[bl->DataReply];
-		}
+		Temp = bl->DataBuf[bl->DataReply];
 		if (bl->DataReplyLeft) 
 		{
 			bl->DataReply++;
@@ -1617,7 +1714,8 @@ BuslogicRead(uint16_t Port, void *p)
 		break;
     }
 
-    if (Port < 0x1000) {
+    /* if (Port < 0x1000) { */
+    if (Port & 3) {
 	pclog("Buslogic: Read Port 0x%02X, Returned Value %02X\n",
 							Port, Temp);
     }
@@ -1640,6 +1738,29 @@ BuslogicReadL(uint16_t Port, void *p)
 }
 
 
+static uint8_t
+BuslogicMemRead(uint32_t addr, void *p)
+{
+    pclog("BuslogicMemRead(%08X, %08X)\n", addr, p);
+    return BuslogicRead(addr & 3, p);
+}
+
+
+static uint16_t
+BuslogicMemReadW(uint32_t addr, void *p)
+{
+    pclog("BuslogicMemReadW(%08X, %08X)\n", addr, p);
+    return BuslogicReadW(addr & 3, p);
+}
+
+static uint32_t
+BuslogicMemReadL(uint32_t addr, void *p)
+{
+    pclog("BuslogicMemReadL(%08X, %08X)\n", addr, p);
+    return BuslogicReadL(addr & 3, p);
+}
+
+
 static void BuslogicWriteW(uint16_t Port, uint16_t Val, void *p);
 static void BuslogicWriteL(uint16_t Port, uint32_t Val, void *p);
 static void
@@ -1659,6 +1780,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
     int cCharsToTransfer;
     uint16_t cyl = 0;
     uint8_t temp = 0;
+    FILE *f;
 
     pclog("Buslogic: Write Port 0x%02X, Value %02X\n", Port, Val);
 
@@ -1784,6 +1906,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 		if (!bl->CmdParamLeft) 
 		{
 			SpecificLog("Running Operation Code 0x%02X\n", bl->Command);
+			bl->DataReply = 0;
 			switch (bl->Command) {
 				case 0x00:
 					bl->DataReplyLeft = 0;
@@ -1828,8 +1951,8 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					pclog("Inquire Board\n");
 					bl->DataBuf[0] = 0x41;
 					bl->DataBuf[1] = 0x41;
-					bl->DataBuf[2] = '2';
-					bl->DataBuf[3] = '2';
+					bl->DataBuf[2] = (bl->chip == CHIP_BUSLOGIC_PCI) ? '5' : '2';
+					bl->DataBuf[3] = (bl->chip == CHIP_BUSLOGIC_PCI) ? '0' : '2';
 					bl->DataReplyLeft = 4;
 					break;
 
@@ -1981,7 +2104,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					uint16_t TargetsPresentMask = 0;
 							
 					for (i=0; i<15; i++) {
-						if (scsi_device_present(i, j))
+						if (scsi_device_present(i, 0))
 						    TargetsPresentMask |= (1 << i);
 					}
 					bl->DataBuf[0] = TargetsPresentMask & 0xFF;
@@ -2033,12 +2156,12 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					break;
 				
 				case 0x84:
-					bl->DataBuf[0] = '1';
+					bl->DataBuf[0] = (bl->chip == CHIP_BUSLOGIC_PCI) ? '7' : '1';
 					bl->DataReplyLeft = 1;
 					break;				
 
 				case 0x85:
-					bl->DataBuf[0] = 'E';
+					bl->DataBuf[0] = (bl->chip == CHIP_BUSLOGIC_PCI) ? 'B' : 'E';
 					bl->DataReplyLeft = 1;
 					break;
 		
@@ -2087,9 +2210,9 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					memset(bl->DataBuf, 0, bl->DataReplyLeft);
 					if (bl->chip == CHIP_BUSLOGIC_PCI) {
 						aModelName[0] = '9';
-						aModelName[1] = '5';
-						aModelName[2] = '8';
-						aModelName[3] = 'D';
+						aModelName[1] = '4';
+						aModelName[2] = '6';
+						aModelName[3] = 'C';
 					}
 					cCharsToTransfer =   bl->DataReplyLeft <= sizeof(aModelName)
 							? bl->DataReplyLeft
@@ -2127,7 +2250,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 						ReplyIESI->fLevelSensitiveInterrupt = 1;
 						ReplyIESI->fHostUltraSCSI = 1;
 					}
-					memcpy(ReplyIESI->aFirmwareRevision, "21E", sizeof(ReplyIESI->aFirmwareRevision));
+					memcpy(ReplyIESI->aFirmwareRevision, (bl->chip == CHIP_BUSLOGIC_PCI) ? "07B" : "21E", sizeof(ReplyIESI->aFirmwareRevision));
 					SpecificLog("Return Extended Setup Information: %d\n", bl->CmdBuf[0]);
 					break;
 
@@ -2148,28 +2271,65 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 
 				case 0x90:	
 					pclog("Store Local RAM\n");
-
 					Offset = bl->CmdBuf[0];
 					bl->DataReplyLeft = 0;
-
-					for (i = 0; i < bl->CmdBuf[1]; i++)
-					{
-						bl->LocalRAM.u8View[Offset + i] = bl->CmdBuf[i + 2];
-					}
-							
-					bl->UseLocalRAM = 0;
-					bl->DataReply = Offset;
+					memcpy(&(bl->LocalRAM.u8View[Offset]), &(bl->CmdBuf[2]), bl->CmdBuf[1]);
+	
+					bl->DataReply = 0;
 					break;
 				
 				case 0x91:
 					pclog("Fetch Local RAM\n");
 					Offset = bl->CmdBuf[0];
 					bl->DataReplyLeft = bl->CmdBuf[1];
-							
-					bl->UseLocalRAM = 1;
-					bl->DataReply = Offset;
+					memcpy(bl->DataBuf, &(bl->LocalRAM.u8View[Offset]), bl->CmdBuf[1]);
+
+					bl->DataReply = 0;
 					break;
-					
+
+				case 0x92:
+					bl->DataReplyLeft = 0;
+
+					switch (bl->CmdBuf[0])
+					{
+						case 0:
+						case 2:
+							BuslogicInitializeAutoSCSIRam(bl, 0);
+							break;
+						case 3:
+							BuslogicInitializeAutoSCSIRam(bl, 3);
+							break;
+						case 1:
+							f = nvrfopen(BuslogicGetNVRFileName(bl), L"wb");
+							if (f)
+							{
+								fwrite(&(bl->LocalRAM.u8View[64]), 1, 64, f);
+								fclose(f);
+								f = NULL;
+							}
+							break;
+						default:
+							bl->Status |= STAT_INVCMD;
+							break;
+					}
+					break;
+
+				case 0x94:
+					if (bl->CmdBuf[0])
+					{
+						SpecificLog("Invalid AutoSCSI command mode %x\n", bl->CmdBuf[0]);
+						bl->DataReplyLeft = 0;
+						bl->Status |= STAT_INVCMD;
+					}
+					else
+					{
+						bl->DataReplyLeft = bl->CmdBuf[2];
+						bl->DataReplyLeft <<= 8;
+						bl->DataReplyLeft |= bl->CmdBuf[1];
+						memcpy(bl->DataBuf, bl->AutoSCSIROM, bl->DataReplyLeft);
+					}
+					break;
+
 				case 0x95:
 				if (bl->chip == CHIP_BUSLOGIC_PCI) {
 					if (bl->Base != 0) {
@@ -2273,6 +2433,30 @@ static void
 BuslogicWriteL(uint16_t Port, uint32_t Val, void *p)
 {
     BuslogicWrite(Port, Val & 0xFF, p);
+}
+
+
+static void
+BuslogicMemWrite(uint32_t addr, uint8_t Val, void *p)
+{
+    pclog("BuslogicMemWrite(%08X, %02X, %08X)\n", addr, Val, p);
+    BuslogicWrite(addr & 3, Val, p);
+}
+
+
+static void
+BuslogicMemWriteW(uint32_t addr, uint16_t Val, void *p)
+{
+    pclog("BuslogicMemWriteW(%08X, %04X, %08X)\n", addr, Val, p);
+    BuslogicWriteW(addr & 3, Val, p);
+}
+
+
+static void
+BuslogicMemWriteL(uint32_t addr, uint32_t Val, void *p)
+{
+    pclog("BuslogicMemWriteL(%08X, %08X, %08X)\n", addr, Val, p);
+    BuslogicWriteL(addr & 3, Val, p);
 }
 
 
@@ -2551,27 +2735,6 @@ BuslogicCommandCallback(void *p)
 }
 
 
-static uint8_t
-mem_read_null(uint32_t addr, void *priv)
-{
-    return(0);
-}
-
-
-static uint16_t
-mem_read_nullw(uint32_t addr, void *priv)
-{
-    return(0);
-}
-
-
-static uint32_t
-mem_read_nulll(uint32_t addr, void *priv)
-{
-    return(0);
-}
-
-
 typedef union {
     uint32_t	addr;
     uint8_t	addr_regs[4];
@@ -2597,9 +2760,9 @@ BuslogicBIOSUpdate(Buslogic_t *bl)
 	mem_mapping_enable(&bl->bios.mapping);
 	mem_mapping_set_addr(&bl->bios.mapping,
 			     bl->bios_addr, bl->bios_size);
-	pclog("BT-958D: BIOS now at: %06X\n", bl->bios_addr);
+	pclog("BT-946C: BIOS now at: %06X\n", bl->bios_addr);
     } else {
-	pclog("BT-958D: BIOS disabled\n");
+	pclog("BT-946C: BIOS disabled\n");
 	mem_mapping_disable(&bl->bios.mapping);
     }
 }
@@ -2609,6 +2772,8 @@ static uint8_t
 BuslogicPCIRead(int func, int addr, void *p)
 {
     Buslogic_t *bl = (Buslogic_t *)p;
+
+    pclog("BT-946C: Reading register %02X\n", addr & 0xff);
 
     switch (addr) {
 	case 0x00:
@@ -2632,7 +2797,9 @@ BuslogicPCIRead(int func, int addr, void *p)
 	case 0x0A:
 		return 0;			/*Subclass*/
 	case 0x0B:
-		return 1;			/* Class code*/
+		return 1;			/*Class code*/
+	case 0x0E:
+		return 0;			/*Header type */
 	case 0x10:
 		return (buslogic_pci_bar[0].addr_regs[0] & 0xe0) | 1;	/*I/O space*/
 	case 0x11:
@@ -2659,18 +2826,18 @@ BuslogicPCIRead(int func, int addr, void *p)
 		return 0x10;
 #if 0
 	case 0x30:			/* PCI_ROMBAR */
-		pclog("BT-958D: BIOS BAR 00 = %02X\n", buslogic_pci_bar[2].addr_regs[0] & 0x01);
+		pclog("BT-946C: BIOS BAR 00 = %02X\n", buslogic_pci_bar[2].addr_regs[0] & 0x01);
 		return buslogic_pci_bar[2].addr_regs[0] & 0x01;
 	case 0x31:			/* PCI_ROMBAR 15:11 */
-		pclog("BT-958D: BIOS BAR 01 = %02X\n", (buslogic_pci_bar[2].addr_regs[1] & bl->bios_mask));
+		pclog("BT-946C: BIOS BAR 01 = %02X\n", (buslogic_pci_bar[2].addr_regs[1] & bl->bios_mask));
 		return (buslogic_pci_bar[2].addr_regs[1] & bl->bios_mask);
 		break;
 	case 0x32:			/* PCI_ROMBAR 23:16 */
-		pclog("BT-958D: BIOS BAR 02 = %02X\n", buslogic_pci_bar[2].addr_regs[2]);
+		pclog("BT-946C: BIOS BAR 02 = %02X\n", buslogic_pci_bar[2].addr_regs[2]);
 		return buslogic_pci_bar[2].addr_regs[2];
 		break;
 	case 0x33:			/* PCI_ROMBAR 31:24 */
-		pclog("BT-958D: BIOS BAR 03 = %02X\n", buslogic_pci_bar[2].addr_regs[3]);
+		pclog("BT-946C: BIOS BAR 03 = %02X\n", buslogic_pci_bar[2].addr_regs[3]);
 		return buslogic_pci_bar[2].addr_regs[3];
 		break;
 #endif
@@ -2690,11 +2857,13 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
     Buslogic_t *bl = (Buslogic_t *)p;
     uint8_t valxor;
 
+    pclog("BT-946C: Write value %02X to register %02X\n", val, addr & 0xff);
+
     switch (addr) {
 	case 0x04:
 		valxor = (val & 0x27) ^ buslogic_pci_regs[addr];
 		if (valxor & PCI_COMMAND_IO) {
-			io_removehandler(bl->PCIBase, 4,
+			io_removehandler(bl->PCIBase, 0x20,
 				 BuslogicRead, BuslogicReadW, BuslogicReadL,
 				 BuslogicWrite, BuslogicWriteW, BuslogicWriteL,
 				 bl);
@@ -2760,7 +2929,7 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 		pclog("BusLogic PCI: New MMIO base is %04X\n" , bl->MMIOBase);
 		/* We're done, so get out of the here. */
 		if (buslogic_pci_regs[4] & PCI_COMMAND_MEM) {
-			if (bl->PCIBase != 0) {
+			if (bl->MMIOBase != 0) {
 				mem_mapping_set_addr(&bl->mmio_mapping,
 						     bl->MMIOBase, 0x20);
 			}
@@ -2775,7 +2944,7 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 		buslogic_pci_bar[2].addr_regs[1] &= bl->bios_mask;
 		buslogic_pci_bar[2].addr &= 0xffffe001;
 		bl->bios_addr = buslogic_pci_bar[2].addr;
-		pclog("BT-958D: BIOS BAR %02X = NOW %02X (%02X)\n", addr & 3, buslogic_pci_bar[2].addr_regs[addr & 3], val);
+		pclog("BT-946C: BIOS BAR %02X = NOW %02X (%02X)\n", addr & 3, buslogic_pci_bar[2].addr_regs[addr & 3], val);
 		BuslogicBIOSUpdate(bl);
 		return;
 #endif
@@ -2811,8 +2980,6 @@ BuslogicInitializeLocalRAM(Buslogic_t *bl)
 	{
 		bl->LocalRAM.structured.autoSCSIData.fLevelSensitiveInterrupt = 0;
 	}
-	bl->LocalRAM.structured.autoSCSIData.fParityCheckingEnabled = 1;
-	bl->LocalRAM.structured.autoSCSIData.fExtendedTranslation = 1;
 	bl->LocalRAM.structured.autoSCSIData.u16DeviceEnabledMask = ~0;
 	bl->LocalRAM.structured.autoSCSIData.u16WidePermittedMask = ~0;
 	bl->LocalRAM.structured.autoSCSIData.u16FastPermittedMask = ~0;
@@ -2827,6 +2994,7 @@ static void *
 BuslogicInit(int chip)
 {
     Buslogic_t *bl;
+    FILE *f;
 
     bl = malloc(sizeof(Buslogic_t));
     memset(bl, 0x00, sizeof(Buslogic_t));
@@ -2871,7 +3039,16 @@ BuslogicInit(int chip)
 		}
 		else
 		{
-        		rom_init(&bl->bios, L"roms/scsi/buslogic/494GNPCI.ROM", 0xd8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        		rom_init(&bl->bios, L"roms/scsi/buslogic/428A494G.BIN", 0xd8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+			memset(bl->AutoSCSIROM, 0xff, 32768);
+			f = romfopen(L"roms/scsi/buslogic/AutoSCSI.rom", L"rb");
+		}
+
+		if (f)
+		{
+			fread(bl->AutoSCSIROM, 1, 32768, f);
+			fclose(f);
+			f = NULL;
 		}
 	}
 	else
@@ -2880,11 +3057,23 @@ BuslogicInit(int chip)
 
 		bl->bios_mask = 0;
 	}
-	
+
     timer_add(BuslogicResetPoll,
 	      &BuslogicResetCallback, &BuslogicResetCallback, bl);
     timer_add(BuslogicCommandCallback,
 	      &BuslogicCallback, &BuslogicCallback, bl);
+
+    f = nvrfopen(BuslogicGetNVRFileName(bl), L"wb");
+    if (f)
+    {
+	fread(&(bl->LocalRAM.u8View[64]), 1, 64, f);
+	fclose(f);
+	f = NULL;
+    }
+    else
+    {
+	BuslogicInitializeAutoSCSIRam(bl, 0);
+    }
 
     if (bl->chip == CHIP_BUSLOGIC_PCI) {
 	bl->Card = pci_add(BuslogicPCIRead, BuslogicPCIWrite, bl);
@@ -2910,8 +3099,8 @@ BuslogicInit(int chip)
 #endif
 
 	mem_mapping_add(&bl->mmio_mapping, 0xfffd0000, 0x20,
-		        mem_read_null, mem_read_nullw, mem_read_nulll,
-			mem_write_null, mem_write_nullw, mem_write_nulll,
+		        BuslogicMemRead, BuslogicMemReadW, BuslogicMemReadL,
+			BuslogicMemWrite, BuslogicMemWriteW, BuslogicMemWriteL,
 			NULL, MEM_MAPPING_EXTERNAL, bl);
 	mem_mapping_disable(&bl->mmio_mapping);
 #if 0
@@ -2936,7 +3125,7 @@ Buslogic_542B_Init(void)
 
 
 static void *
-Buslogic_958D_Init(void)
+Buslogic_946C_Init(void)
 {
 	return BuslogicInit(CHIP_BUSLOGIC_PCI);
 }
@@ -3046,9 +3235,9 @@ device_t buslogic_device = {
 };
 
 device_t buslogic_pci_device = {
-	"Buslogic BT-958D PCI",
+	"Buslogic BT-946C PCI",
 	0,
-	Buslogic_958D_Init,
+	Buslogic_946C_Init,
 	BuslogicClose,
 	NULL,
 	NULL,
