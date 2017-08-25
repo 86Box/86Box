@@ -3041,9 +3041,9 @@ BuslogicInit(int chip)
 		{
         		rom_init(&bl->bios, L"roms/scsi/buslogic/428A494G.BIN", 0xd8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 			memset(bl->AutoSCSIROM, 0xff, 32768);
-			f = romfopen(L"roms/scsi/buslogic/AutoSCSI.rom", L"rb");
 		}
 
+		f = romfopen(L"roms/scsi/buslogic/AutoSCSI.rom", L"rb");
 		if (f)
 		{
 			fread(bl->AutoSCSIROM, 1, 32768, f);
@@ -3063,7 +3063,7 @@ BuslogicInit(int chip)
     timer_add(BuslogicCommandCallback,
 	      &BuslogicCallback, &BuslogicCallback, bl);
 
-    f = nvrfopen(BuslogicGetNVRFileName(bl), L"wb");
+    f = nvrfopen(BuslogicGetNVRFileName(bl), L"rb");
     if (f)
     {
 	fread(&(bl->LocalRAM.u8View[64]), 1, 64, f);

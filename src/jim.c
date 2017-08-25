@@ -7,7 +7,10 @@
 #include "CPU/cpu.h"
 #include "io.h"
 #include "device.h"
+#include "jim.h"
+#include "mem.h"
 #include "model.h"
+#include "rom.h"
 
 
 uint8_t europcdat[16];
@@ -15,9 +18,41 @@ uint8_t europcdat[16];
 struct 
 {
         uint8_t dat[16];
-        int stat;
-        int addr;
+        uint8_t stat;
+        uint8_t addr;
 } europc_rtc;
+
+
+static uint8_t jim_load_nvr(void)
+{
+	FILE *f;
+
+	f = nvrfopen(L"europc_jim.nvr", L"rb");
+	if (f)
+	{
+		fread(europcdat, 1, 16, f);
+		fread(europc_rtc.dat, 1, 16, f);
+		fclose(f);
+		f = NULL;
+		return 1;
+	}
+	return 0;
+}
+
+
+void jim_save_nvr(void)
+{
+	FILE *f;
+
+	f = nvrfopen(L"europc_jim.nvr", L"wb");
+	if (f)
+	{
+		fwrite(europcdat, 1, 16, f);
+		fwrite(europc_rtc.dat, 1, 16, f);
+		fclose(f);
+		f = NULL;
+	}
+}
 
 
 static void writejim(uint16_t addr, uint8_t val, void *p)
@@ -73,12 +108,15 @@ void jim_init(void)
 {
         uint8_t viddat;
         memset(europc_rtc.dat,0,16);
-        europc_rtc.dat[0xF]=1;
-        europc_rtc.dat[3]=1;
-        europc_rtc.dat[4]=1;
-        europc_rtc.dat[5]=0x88;
+	if (!jim_load_nvr())
+	{
+	        europc_rtc.dat[0xF]=1;
+        	europc_rtc.dat[3]=1;
+	        europc_rtc.dat[4]=1;
+        	europc_rtc.dat[5]=0x88;
+	}
         if (gfxcard==GFX_CGA || gfxcard == GFX_COLORPLUS) viddat=0x12;
-        else if (gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_INCOLOR) viddat=3;
+       	else if (gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_INCOLOR) viddat=3;
         else viddat=0x10;
         europc_rtc.dat[0xB]=viddat;
         europc_rtc.dat[0xD]=viddat; /*Checksum*/
