@@ -4,11 +4,11 @@
 #include "hdd.h"
 #include "model.h"
 
-#include "esdi_at.h"
-#include "hdd_esdi.h"
-#include "mfm_at.h"
-#include "mfm_xebec.h"
-#include "xtide.h"
+#include "hdd_esdi_at.h"
+#include "hdd_esdi_mca.h"
+#include "hdd_mfm_at.h"
+#include "hdd_mfm_xebec.h"
+#include "hdd_ide_xt.h"
 
 
 char hdd_controller_name[16];

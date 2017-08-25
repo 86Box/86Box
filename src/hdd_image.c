@@ -8,7 +8,7 @@
 #include <stdint.h>
 
 #include "ibm.h"
-#include "ide.h"
+#include "hdd_ide_at.h"
 #include "hdd_image.h"
 
 typedef struct

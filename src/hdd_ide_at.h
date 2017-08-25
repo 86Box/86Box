@@ -9,14 +9,13 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)ide.h	1.0.1	2017/08/23
+ * Version:	@(#)hdd_ide_at.h	1.0.2	2017/08/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2016,2017 TheCollector1995.
  */
 #ifndef EMU_IDE_H
 # define EMU_IDE_H

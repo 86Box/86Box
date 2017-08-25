@@ -10,7 +10,7 @@
  *
  *		Based on the 86Box Serial Mouse driver as a framework.
  *
- * Version:	@(#)mouse_serial.c	1.0.7	2017/07/27
+ * Version:	@(#)mouse_serial.c	1.0.8	2017/08/03
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */

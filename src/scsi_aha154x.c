@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.11	2017/08/23
+ * Version:	@(#)scsi_aha154x.c	1.0.12	2017/08/24
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -654,6 +654,10 @@ aha_reset(aha_t *dev)
 static void
 aha_reset_ctrl(aha_t *dev, uint8_t Reset)
 {
+    /* Say hello! */
+    pclog("Adaptec %s (IO=0x%04X, IRQ=%d, DMA=%d)\n",
+	dev->name, dev->Base, dev->Irq, dev->DmaChannel);
+
     aha_reset(dev);
     if (Reset) {
 	dev->Status |= STAT_STST;
@@ -1730,13 +1734,19 @@ aha_mca_write(int port, uint8_t val, void *priv)
 
     if (dev->pos_regs[2] & 1) {
 	addr = aha_mca_get_port(dev->pos_regs[3]);
+	dev->Base = addr;
 	io_sethandler(addr, 4,
 		      aha_read, aha_readw, NULL,
 		      aha_write, aha_writew, NULL, dev);
     }
 	
-    dev->Irq = (dev->pos_regs[4] & 0x7) + 8;
-    dev->DmaChannel = dev->pos_regs[5] & 0xf;	
+    dev->Irq = (dev->pos_regs[4] & 0x07) + 8;
+    dev->DmaChannel = dev->pos_regs[5] & 0x0f;	
+
+    /* Initialize the device if fully configured. */
+    if (dev->Base != 0 && dev->Irq != 0 && dev->DmaChannel != 0) {
+	aha_reset_ctrl(dev, CTRL_HRST);
+    }
 }
 
 
@@ -1936,7 +1946,13 @@ aha_init(int type)
     memset(dev, 0x00, sizeof(aha_t));
     dev->type = type;
 
-    /* Set up the (initial) I/O address, IRQ and DMA info. */
+    /*
+     * Set up the (initial) I/O address, IRQ and DMA info.
+     *
+     * Note that on MCA, configuration is handled by the BIOS,
+     * and so any info we get here will be overwritten by the
+     * MCA-assigned values later on!
+     */
     dev->Base = device_get_config_hex16("base");
     dev->Irq = device_get_config_int("irq");
     dev->DmaChannel = device_get_config_int("dma");
@@ -1992,6 +2008,8 @@ aha_init(int type)
 		break;
 
 	case AHA_1640:
+		strcpy(dev->name, "AHA-1640");
+
 		/* Enable MCA. */
 		dev->pos_regs[0] = 0x1F;
 		dev->pos_regs[1] = 0x0F;	
@@ -2014,14 +2032,10 @@ aha_init(int type)
 	io_sethandler(dev->Base, 4,
 		      aha_read, aha_readw, NULL,
 		      aha_write, aha_writew, NULL, dev);
+
+	/* Initialize the device. */
+	aha_reset_ctrl(dev, CTRL_HRST);
     }
-
-    /* Say hello! */
-    pclog("Adaptec %s (IO=0x%04X, IRQ=%d, DMA=%d)\n",
-	dev->name, dev->Base, dev->Irq, dev->DmaChannel);
-
-    /* Reset the device. */
-    aha_reset_ctrl(dev, CTRL_HRST);
 
     return(dev);
 }

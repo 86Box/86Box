@@ -8,12 +8,12 @@
  *
  *		General include file.
  *
- * Version:	@(#)ibm.h	1.0.1	2017/06/03
+ * Version:	@(#)ibm.h	1.0.2	2017/08/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -593,7 +593,7 @@ enum
 	HDD_BUS_DISABLED = 0,
 	HDD_BUS_MFM,
 	HDD_BUS_XTIDE,
-	HDD_BUS_RLL,
+	HDD_BUS_ESDI,
 	HDD_BUS_IDE_PIO_ONLY,
 	HDD_BUS_IDE_PIO_AND_DMA,
 	HDD_BUS_SCSI,
@@ -603,7 +603,7 @@ enum
 
 #define HDC_NUM		30
 #define MFM_NUM		2
-#define RLL_NUM		2
+#define ESDI_NUM	2
 #define XTIDE_NUM	2
 #define IDE_NUM		8
 #define SCSI_NUM	16	/* Theoretically the controller can have at least 64 devices, or even 128 in case of a wide bus, but
@@ -618,9 +618,9 @@ typedef struct {
 	int wp;
 	uint32_t base;
 	uint64_t at_spt,at_hpc; /*[Translation] Sectors per track, heads per cylinder*/
-	unsigned int bus;	/* 0 = none, 1 = MFM/RLL, 2 = IDE, 3 = SCSI */
+	unsigned int bus;
 	unsigned int mfm_channel;
-	unsigned int rll_channel;
+	unsigned int esdi_channel;
 	unsigned int xtide_channel;
 	unsigned int ide_channel;
 	unsigned int scsi_id;

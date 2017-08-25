@@ -8,21 +8,19 @@
  *
  *		Implementation of the SMC FDC37C669 Super I/O Chip.
  *
- * Version:	@(#)fdc37c669.c	1.0.0	2017/05/30
+ * Version:	@(#)fdc37c669.c	1.0.1	2017/08/24
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
-
 #include "ibm.h"
-
 #include "disc.h"
 #include "fdc.h"
 #include "fdd.h"
 #include "io.h"
-#include "ide.h"
 #include "lpt.h"
 #include "serial.h"
+#include "hdd_ide_at.h"
 #include "fdc37c669.h"
 
 static int fdc37c669_locked;

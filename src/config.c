@@ -8,15 +8,15 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.1	2017/08/23
+ * Version:	@(#)config.c	1.0.2	2017/08/24
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Overdoze,
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
- *		Copyright 2017-2017 Fred N. van Kempen.
+ *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2017 Fred N. van Kempen.
  *
  * NOTE:	Forcing config files to be in Unicode encoding breaks it on
  *		Windows XP, and possibly also Vista. Use -DANSI_CFG for use
@@ -37,8 +37,8 @@
 #include "ibm.h"
 #include "CPU/cpu.h"
 #include "gameport.h"
-#include "ide.h"
 #include "hdd.h"
+#include "hdd_ide_at.h"
 #include "model.h"
 #include "mouse.h"
 #include "NETWORK/network.h"
@@ -1172,18 +1172,12 @@ static int config_string_to_bus(char *str, int cdrom)
 		return HDD_BUS_MFM;
 	}
 
-	if (!strcmp(str, "rll"))
+	/* FIXME: delete 'rll' in a year or so.. --FvK */
+	if (!strcmp(str, "esdi") || !strcmp(str, "rll"))
 	{
 		if (cdrom)  goto no_mfm_cdrom;
 
-		return HDD_BUS_RLL;
-	}
-
-	if (!strcmp(str, "esdi"))
-	{
-		if (cdrom)  goto no_mfm_cdrom;
-
-		return HDD_BUS_RLL;
+		return HDD_BUS_ESDI;
 	}
 
 	if (!strcmp(str, "ide_pio_only"))
@@ -1362,7 +1356,7 @@ static void loadconfig_hard_disks(void)
 				max_hpc = 15;
 				max_tracks = 1023;
 				break;
-			case HDD_BUS_RLL:
+			case HDD_BUS_ESDI:
 			case HDD_BUS_XTIDE:
 				max_spt = 63;
 				max_hpc = 16;
@@ -1417,11 +1411,11 @@ static void loadconfig_hard_disks(void)
 			config_delete_var(cat, temps);
 		}
 
-		/* RLL (ESDI) */
-		sprintf(temps, "hdd_%02i_rll_channel", c + 1);
-		if (hdc[c].bus == HDD_BUS_RLL)
+		/* ESDI */
+		sprintf(temps, "hdd_%02i_esdi_channel", c + 1);
+		if (hdc[c].bus == HDD_BUS_ESDI)
 		{
-			hdc[c].rll_channel = !!config_get_int(cat, temps, c & 1);
+			hdc[c].esdi_channel = !!config_get_int(cat, temps, c & 1);
 		}
 		else
 		{
@@ -2296,8 +2290,8 @@ static char *config_bus_to_string(int bus, int cdrom)
 		case HDD_BUS_XTIDE:
 			return "xtide";
 			break;
-		case HDD_BUS_RLL:
-			return "rll";
+		case HDD_BUS_ESDI:
+			return "esdi";
 			break;
 		case HDD_BUS_IDE_PIO_ONLY:
 			return cdrom ? "atapi_pio_only" : "ide_pio_only";
@@ -2361,14 +2355,14 @@ static void saveconfig_hard_disks(void)
 			config_set_int(cat, temps, hdc[c].xtide_channel);
 		}
 
-		sprintf(temps, "hdd_%02i_rll_channel", c + 1);
-		if (!hard_disk_is_valid(c) || (hdc[c].bus != HDD_BUS_RLL))
+		sprintf(temps, "hdd_%02i_esdi_channel", c + 1);
+		if (!hard_disk_is_valid(c) || (hdc[c].bus != HDD_BUS_ESDI))
 		{
 			config_delete_var(cat, temps);
 		}
 		else
 		{
-			config_set_int(cat, temps, hdc[c].rll_channel);
+			config_set_int(cat, temps, hdc[c].esdi_channel);
 		}
 
 		sprintf(temps, "hdd_%02i_ide_channel", c + 1);

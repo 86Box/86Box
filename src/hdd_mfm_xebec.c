@@ -10,7 +10,7 @@
 #include "pic.h"
 #include "rom.h"
 #include "timer.h"
-#include "mfm_xebec.h"
+#include "hdd_mfm_xebec.h"
 
 
 #define XEBEC_TIME (2000 * TIMER_USEC)

@@ -8,17 +8,16 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.6	2017/06/17
+ * Version:	@(#)pc.c	1.0.7	2017/08/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-
 #include "86box.h"
 #include "ibm.h"
 #include "mem.h"
@@ -45,7 +44,7 @@
 #include "fdd.h"
 #include "gameport.h"
 #include "hdd.h"
-#include "ide.h"
+#include "hdd_ide_at.h"
 #include "cdrom.h"
 #include "cdrom_ioctl.h"
 #include "cdrom_image.h"

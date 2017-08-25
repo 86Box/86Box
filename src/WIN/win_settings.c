@@ -8,10 +8,10 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.7	2017/08/23
+ * Version:	@(#)win_settings.c	1.0.8	2017/08/24
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -31,7 +31,7 @@
 #include "../disc.h"
 #include "../fdd.h"
 #include "../hdd.h"
-#include "../ide.h"
+#include "../hdd_ide_at.h"
 #include "../scsi.h"
 #include "../NETWORK/network.h"
 #include "../SOUND/sound.h"
@@ -1980,7 +1980,7 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg)
 				EnableWindow(h, TRUE);
 				SendMessage(h, CB_SETCURSEL, is_add_dlg ? new_hdc.xtide_channel : temp_hdc[hdlv_current_sel].xtide_channel, 0);
 				break;
-			case HDD_BUS_RLL:		/* RLL */
+			case HDD_BUS_ESDI:		/* ESDI */
 				h = GetDlgItem(hdlg, IDT_1722);
 				ShowWindow(h, SW_SHOW);
 				EnableWindow(h, TRUE);
@@ -1988,7 +1988,7 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg)
 				h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL);
 				ShowWindow(h, SW_SHOW);
 				EnableWindow(h, TRUE);
-				SendMessage(h, CB_SETCURSEL, is_add_dlg ? new_hdc.rll_channel : temp_hdc[hdlv_current_sel].rll_channel, 0);
+				SendMessage(h, CB_SETCURSEL, is_add_dlg ? new_hdc.esdi_channel : temp_hdc[hdlv_current_sel].esdi_channel, 0);
 				break;
 			case HDD_BUS_IDE_PIO_ONLY:		/* IDE (PIO-only) */
 			case HDD_BUS_IDE_PIO_AND_DMA:		/* IDE (PIO and DMA) */
@@ -2050,7 +2050,7 @@ static void recalc_next_free_id(HWND hdlg)
 	int i;
 
 	int c_mfm = 0;
-	int c_rll = 0;
+	int c_esdi = 0;
 	int c_xtide = 0;
 	int c_ide_pio = 0;
 	int c_ide_dma = 0;
@@ -2065,9 +2065,9 @@ static void recalc_next_free_id(HWND hdlg)
 		{
 			c_mfm++;
 		}
-		else if (temp_hdc[i].bus == HDD_BUS_RLL)
+		else if (temp_hdc[i].bus == HDD_BUS_ESDI)
 		{
-			c_rll++;
+			c_esdi++;
 		}
 		else if (temp_hdc[i].bus == HDD_BUS_XTIDE)
 		{
@@ -2104,7 +2104,7 @@ static void recalc_next_free_id(HWND hdlg)
 
 	enable_add = enable_add || (next_free_id >= 0);
 	/* pclog("Enable add: %i\n", enable_add); */
-	enable_add = enable_add && ((c_mfm < MFM_NUM) || (c_rll < RLL_NUM) || (c_xtide < XTIDE_NUM) || (c_ide_pio < IDE_NUM) || (c_ide_dma < IDE_NUM) || (c_scsi < SCSI_NUM));
+	enable_add = enable_add && ((c_mfm < MFM_NUM) || (c_esdi < ESDI_NUM) || (c_xtide < XTIDE_NUM) || (c_ide_pio < IDE_NUM) || (c_ide_dma < IDE_NUM) || (c_scsi < SCSI_NUM));
 	/* pclog("Enable add: %i\n", enable_add); */
 
 	h = GetDlgItem(hdlg, IDC_BUTTON_HDD_ADD_NEW);
@@ -2131,7 +2131,7 @@ static void recalc_next_free_id(HWND hdlg)
 
 	h = GetDlgItem(hdlg, IDC_BUTTON_HDD_REMOVE);
 
-	if ((c_mfm == 0) && (c_rll == 0) && (c_xtide == 0) && (c_ide_pio == 0) && (c_ide_dma == 0) && (c_scsi == 0))
+	if ((c_mfm == 0) && (c_esdi == 0) && (c_xtide == 0) && (c_ide_pio == 0) && (c_ide_dma == 0) && (c_scsi == 0))
 	{
 		EnableWindow(h, FALSE);
 	}
@@ -2162,8 +2162,8 @@ static void win_settings_hard_disks_update_item(HWND hwndList, int i, int column
 			case HDD_BUS_XTIDE:
 				wsprintf(szText, win_language_get_string_from_id(IDS_4609), temp_hdc[i].xtide_channel >> 1, temp_hdc[i].xtide_channel & 1);
 				break;
-			case HDD_BUS_RLL:
-				wsprintf(szText, win_language_get_string_from_id(IDS_4610), temp_hdc[i].rll_channel >> 1, temp_hdc[i].rll_channel & 1);
+			case HDD_BUS_ESDI:
+				wsprintf(szText, win_language_get_string_from_id(IDS_4610), temp_hdc[i].esdi_channel >> 1, temp_hdc[i].esdi_channel & 1);
 				break;
 			case HDD_BUS_IDE_PIO_ONLY:
 				wsprintf(szText, win_language_get_string_from_id(IDS_4611), temp_hdc[i].ide_channel >> 1, temp_hdc[i].ide_channel & 1);
@@ -2246,8 +2246,8 @@ static BOOL win_settings_hard_disks_recalc_list(HWND hwndList)
 				case HDD_BUS_XTIDE:
 					wsprintf(szText, win_language_get_string_from_id(IDS_4609), temp_hdc[i].xtide_channel >> 1, temp_hdc[i].xtide_channel & 1);
 					break;
-				case HDD_BUS_RLL:
-					wsprintf(szText, win_language_get_string_from_id(IDS_4610), temp_hdc[i].rll_channel >> 1, temp_hdc[i].rll_channel & 1);
+				case HDD_BUS_ESDI:
+					wsprintf(szText, win_language_get_string_from_id(IDS_4610), temp_hdc[i].esdi_channel >> 1, temp_hdc[i].esdi_channel & 1);
 					break;
 				case HDD_BUS_IDE_PIO_ONLY:
 					wsprintf(szText, win_language_get_string_from_id(IDS_4611), temp_hdc[i].ide_channel >> 1, temp_hdc[i].ide_channel & 1);
@@ -2650,9 +2650,9 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 								h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL);
 								hdc_ptr->mfm_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
 								break;
-							case HDD_BUS_RLL:
+							case HDD_BUS_ESDI:
 								h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL);
-								hdc_ptr->rll_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
+								hdc_ptr->esdi_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
 								break;
 							case HDD_BUS_XTIDE:
 								h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL);
@@ -3093,7 +3093,7 @@ hdd_add_file_open_error:
 							max_hpc = 15;
 							max_tracks = 1023;
 							break;
-						case HDD_BUS_RLL:
+						case HDD_BUS_ESDI:
 						case HDD_BUS_XTIDE:
 							max_spt = 63;
 							max_hpc = 16;
@@ -3315,9 +3315,9 @@ hd_bus_skip:
 					{
 						temp_hdc[hdlv_current_sel].mfm_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
 					}
-					else if (temp_hdc[hdlv_current_sel].bus == HDD_BUS_RLL)
+					else if (temp_hdc[hdlv_current_sel].bus == HDD_BUS_ESDI)
 					{
-						temp_hdc[hdlv_current_sel].rll_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
+						temp_hdc[hdlv_current_sel].esdi_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
 					}
 					else if (temp_hdc[hdlv_current_sel].bus == HDD_BUS_XTIDE)
 					{

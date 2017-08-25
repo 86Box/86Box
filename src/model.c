@@ -8,16 +8,15 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)model.c	1.0.6	2017/08/23
+ * Version:	@(#)model.c	1.0.7	2017/08/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
 #include <stdint.h>
 #include <stdio.h>
-
 #include "ibm.h"
 #include "CPU/cpu.h"
 #include "io.h"
@@ -36,7 +35,7 @@
 #include "fdc37c932fr.h"
 #include "gameport.h"
 #include "i82335.h"
-#include "ide.h"
+#include "hdd_ide_at.h"
 #include "intel.h"
 #include "intel_flash.h"
 #include "keyboard_amstrad.h"
@@ -71,7 +70,7 @@
 #include "VIDEO/vid_tandy.h"
 #include "w83877f.h"
 #include "wd76c10.h"
-#include "xtide.h"
+#include "hdd_ide_xt.h"
 #include "bugger.h"
 
 

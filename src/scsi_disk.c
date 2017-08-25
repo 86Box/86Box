@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.5	2017/08/23
+ * Version:	@(#)scsi_disk.c	1.0.6	2017/08/24
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2017 Miran Grca.
@@ -20,7 +20,7 @@
 #include "cdrom.h"
 #include "ibm.h"
 #include "hdd_image.h"
-#include "ide.h"
+#include "hdd_ide_at.h"
 #include "piix.h"
 #include "scsi.h"
 #include "scsi_disk.h"

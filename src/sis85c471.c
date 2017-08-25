@@ -9,19 +9,19 @@
  *		SiS sis85c471 Super I/O Chip
  *		Used by Batman's Revenge
  *
- * Version:	@(#)sis85c471.c	1.0.1	2017/08/23
+ * Version:	@(#)sis85c471.c	1.0.2	2017/08/24
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2017 Miran Grca.
  */
 #include "ibm.h"
-#include "ide.h"
+#include "io.h"
+#include "lpt.h"
 #include "disc.h"
 #include "fdc.h"
 #include "fdd.h"
-#include "io.h"
-#include "lpt.h"
 #include "serial.h"
+#include "hdd_ide_at.h"
 #include "sis85c471.h"
 
 

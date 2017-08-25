@@ -6,7 +6,7 @@
 #include "io.h"
 #include "pic.h"
 #include "timer.h"
-#include "mfm_at.h"
+#include "hdd_mfm_at.h"
 
 
 #define IDE_TIME (TIMER_USEC*10)

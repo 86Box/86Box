@@ -9,21 +9,19 @@
  *		Emulation of the National Semiconductors PC87306 Super I/O
  *		chip.
  *
- * Version:	@(#)pc87306.c	1.0.0	2017/05/30
+ * Version:	@(#)pc87306.c	1.0.1	2017/08/24
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
-
 #include "ibm.h"
-
 #include "disc.h"
 #include "fdc.h"
 #include "fdd.h"
-#include "ide.h"
 #include "io.h"
 #include "lpt.h"
 #include "serial.h"
+#include "hdd_ide_at.h"
 #include "pc87306.h"
 
 static int pc87306_curreg;

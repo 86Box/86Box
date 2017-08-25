@@ -8,11 +8,11 @@
  *
  *		Windows resource script.
  *
- * Version:	@(#)86Box.rc	1.0.5	2017/08/08
+ * Version:	@(#)86Box.rc	1.0.6	2017/08/24
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
 #include <inttypes.h>
 #define IN_RESOURCE_H
@@ -833,10 +833,10 @@ BEGIN
     IDS_4111	"This image exists and will be overwritten.\nAre you sure you want to use it?"
     IDS_4112	"Please enter a valid file name"
     IDS_4113	"Remember to partition and format the new drive"
-    IDS_4114	"MFM or ESDI CD-ROM drives never existed"
+    IDS_4114	"MFM/RLL or ESDI CD-ROM drives never existed"
     IDS_4115	"Removable disk %i (SCSI): %ws"
 
-    IDS_4352    "MFM"
+    IDS_4352    "MFM/RLL"
     IDS_4353    "XT IDE"
     IDS_4354    "ESDI"
     IDS_4355    "IDE (PIO-only)"
@@ -844,7 +844,7 @@ BEGIN
     IDS_4357    "SCSI"
     IDS_4358    "SCSI (removable)"
 
-    IDS_4608	"MFM (%01i:%01i)"
+    IDS_4608	"MFM/RLL (%01i:%01i)"
     IDS_4609	"XT IDE (%01i:%01i)"
     IDS_4610	"ESDI (%01i:%01i)"
     IDS_4611	"IDE (PIO-only) (%01i:%01i)"

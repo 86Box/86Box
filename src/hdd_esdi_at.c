@@ -18,7 +18,7 @@
 #include "rom.h"
 #include "timer.h"
 
-#include "esdi_at.h"
+#include "hdd_esdi_at.h"
 
 
 #define IDE_TIME (TIMER_USEC*10)
@@ -501,7 +501,7 @@ void esdi_callback(void *p)
                         esdi->pos = 0;
                         esdi->status = STAT_DRQ | STAT_READY | STAT_DSC;
                         esdi_irq_raise(esdi);
-                        update_status_bar_icon(SB_HDD | HDD_BUS_RLL, 1);
+                        update_status_bar_icon(SB_HDD | HDD_BUS_ESDI, 1);
                 }
                 break;
 
@@ -538,7 +538,7 @@ void esdi_callback(void *p)
                         }
                         else
                                 esdi->status = STAT_READY | STAT_DSC;
-                        update_status_bar_icon(SB_HDD | HDD_BUS_RLL, 1);
+                        update_status_bar_icon(SB_HDD | HDD_BUS_ESDI, 1);
                 }
                 break;
                 
@@ -565,7 +565,7 @@ void esdi_callback(void *p)
                                 esdi_irq_raise(esdi);
                                 break;
                         }
-                        update_status_bar_icon(SB_HDD | HDD_BUS_RLL, 1);
+                        update_status_bar_icon(SB_HDD | HDD_BUS_ESDI, 1);
                         esdi_next_sector(esdi);
                         esdi->secount = (esdi->secount - 1) & 0xff;
                         if (esdi->secount)
@@ -604,7 +604,7 @@ void esdi_callback(void *p)
                         }                        
                         esdi->status = STAT_READY | STAT_DSC;
                         esdi_irq_raise(esdi);
-                        update_status_bar_icon(SB_HDD | HDD_BUS_RLL, 1);
+                        update_status_bar_icon(SB_HDD | HDD_BUS_ESDI, 1);
                 }
                 break;
 
@@ -744,7 +744,7 @@ void esdi_callback(void *p)
         	break;
         }
 
-	update_status_bar_icon(SB_HDD | HDD_BUS_RLL, 0);
+	update_status_bar_icon(SB_HDD | HDD_BUS_ESDI, 0);
 }
 
 static void esdi_rom_write(uint32_t addr, uint8_t val, void *p)
@@ -789,11 +789,11 @@ void *wd1007vse1_init()
 
 	for (i = 0; i < HDC_NUM; i++)
 	{
-		if ((hdc[i].bus == HDD_BUS_RLL) && (hdc[i].rll_channel < RLL_NUM))
+		if ((hdc[i].bus == HDD_BUS_ESDI) && (hdc[i].esdi_channel < ESDI_NUM))
 		{
-			loadhd(esdi, i, hdc[i].rll_channel, hdc[i].fn);
+			loadhd(esdi, i, hdc[i].esdi_channel, hdc[i].fn);
 			c++;
-			if (c >= RLL_NUM)  break;
+			if (c >= ESDI_NUM)  break;
 		}
 	}
 

@@ -8,7 +8,7 @@
  *
  *		XT IDE controller emulation.
  *
- * Version:	@(#)xtide.c	1.0.1	2017/06/03
+ * Version:	@(#)xtide.c	1.0.3	2017/08/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,8 +21,8 @@
 #include "mem.h"
 #include "rom.h"
 #include "device.h"
-#include "ide.h"
-#include "xtide.h"
+#include "hdd_ide_at.h"
+#include "hdd_ide_xt.h"
 
 
 #define XTIDE_ROM_PATH		L"roms/hdd/xtide/ide_xt.bin"

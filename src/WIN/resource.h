@@ -9,14 +9,15 @@
  *		Windows resource defines.
  *
  * NOTE:	FIXME: Strings 2176 and 2193 are same.
+ * NOTE:	FIXME: string 2095 not in use.
  *
- * Version:	@(#)resource.h	1.0.4	2017/06/16
+ * Version:	@(#)resource.h	1.0.5	2017/08/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempem, <decwiz@yahoo.com>
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
 #ifndef WIN_RESOURCE_H
 # define WIN_RESOURCE_H
@@ -245,7 +246,7 @@
 #define IDS_2092		2092	// "Bus"
 #define IDS_2093		2093	// "DMA"
 #define IDS_2094		2094	// "KB"
-#define IDS_2095		2095	// "MFM, RLL, or ESDI CD-ROM.."
+#define IDS_2095		2095
 #define IDS_2096		2096	// "Slave"
 #define IDS_2097		2097	// "SCSI (ID %s, LUN %s)"
 #define IDS_2098		2098	// "Adapter Type"
@@ -317,7 +318,7 @@
 #define IDS_2164		2164	// "Invalid number of sectors.."
 #define IDS_2165		2165	// "MFM"
 #define IDS_2166		2166	// "XT IDE"
-#define IDS_2167		2167	// "RLL"
+#define IDS_2167		2167	// "ESDI"
 #define IDS_2168		2168	// "IDE (PIO-only)"
 #define IDS_2169		2169	// "%01i:%01i"
 #define IDS_2170		2170	// "%01i:%01i"

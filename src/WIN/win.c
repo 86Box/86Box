@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.4	2017/08/23
+ * Version:	@(#)win.c	1.0.6	2017/08/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -33,7 +33,7 @@
 #include "../nvr.h"
 #include "../config.h"
 #include "../model.h"
-#include "../ide.h"
+#include "../hdd_ide_at.h"
 #include "../cdrom.h"
 #include "../cdrom_null.h"
 #include "../cdrom_ioctl.h"
@@ -1056,7 +1056,7 @@ void update_status_bar_panes(HWND hwnds)
 	int edge = 0;
 
 	int c_mfm = 0;
-	int c_rll = 0;
+	int c_esdi = 0;
 	int c_xtide = 0;
 	int c_ide_pio = 0;
 	int c_ide_dma = 0;
@@ -1067,7 +1067,7 @@ void update_status_bar_panes(HWND hwnds)
 	sb_ready = 0;
 
 	c_mfm = count_hard_disks(HDD_BUS_MFM);
-	c_rll = count_hard_disks(HDD_BUS_RLL);
+	c_esdi = count_hard_disks(HDD_BUS_ESDI);
 	c_xtide = count_hard_disks(HDD_BUS_XTIDE);
 	c_ide_pio = count_hard_disks(HDD_BUS_IDE_PIO_ONLY);
 	c_ide_dma = count_hard_disks(HDD_BUS_IDE_PIO_AND_DMA);
@@ -1148,7 +1148,7 @@ void update_status_bar_panes(HWND hwnds)
 	{
 		sb_parts++;
 	}
-	if (c_rll && !memcmp(hdd_controller_name, "esdi", 4))
+	if (c_esdi && !memcmp(hdd_controller_name, "esdi", 4))
 	{
 		sb_parts++;
 	}
@@ -1240,11 +1240,11 @@ void update_status_bar_panes(HWND hwnds)
 		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_MFM;
 		sb_parts++;
 	}
-	if (c_rll && !memcmp(hdd_controller_name, "esdi", 4))
+	if (c_esdi && !memcmp(hdd_controller_name, "esdi", 4))
 	{
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
-		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_RLL;
+		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_ESDI;
 		sb_parts++;
 	}
 	if (c_xtide && !memcmp(hdd_controller_name, "xtide", 5))
