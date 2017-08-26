@@ -1174,16 +1174,26 @@ aha_0x01:
 
 				case CMD_BIOSCMD: /* Execute BIOS Command */
 					BiosCmd = (BIOSCMD *)dev->CmdBuf;
-
-					cyl = ((BiosCmd->cylinder & 0xff) << 8) | ((BiosCmd->cylinder >> 8) & 0xff);
-					BiosCmd->cylinder = cyl;						
+					if (dev->type != AHA_1640) {
+						cyl = ((BiosCmd->u.chs.cyl & 0xff) << 8) | ((BiosCmd->u.chs.cyl >> 8) & 0xff);
+					BiosCmd->u.chs.cyl = cyl;						
+					}
 					temp = BiosCmd->id;
 					BiosCmd->id = BiosCmd->lun;
 					BiosCmd->lun = temp;
-					BiosCmd->head &= 0xf;
-					BiosCmd->sector &= 0x1f;
-					pclog("C: %04X, H: %02X, S: %02X\n", BiosCmd->cylinder, BiosCmd->head, BiosCmd->sector);
-					dev->DataBuf[0] = HACommand03Handler(7, BiosCmd);
+					if (dev->type == AHA_1640) {
+						pclog("BIOS LBA=%06lx (%lu)\n",
+							lba32_blk(BiosCmd),
+							lba32_blk(BiosCmd));
+					} else {
+						BiosCmd->u.chs.head &= 0xf;
+						BiosCmd->u.chs.sec &= 0x1f;
+						pclog("BIOS CHS=%04X/%02X%02X\n",
+							BiosCmd->u.chs.cyl,
+							BiosCmd->u.chs.head,
+							BiosCmd->u.chs.sec);
+					}
+					dev->DataBuf[0] = scsi_bios_cmd(7, BiosCmd, (dev->type==AHA_1640)?1:0);
 					pclog("BIOS Completion/Status Code %x\n", dev->DataBuf[0]);
 					dev->DataReplyLeft = 1;
 					break;

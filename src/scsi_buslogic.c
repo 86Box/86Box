@@ -10,7 +10,7 @@
  *		  0 - BT-542B ISA;
  *		  1 - BT-946C PCI (but BT-542B ISA on non-PCI machines)
  *
- * Version:	@(#)scsi_buslogic.c	1.0.8	2017/08/23
+ * Version:	@(#)scsi_buslogic.c	1.0.9	2017/08/25
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1420,15 +1420,21 @@ static void BuslogicIDCheck(uint8_t id, uint8_t lun)
 	}
 }
 
+
 /* This returns the completion code. */
-uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd)
+uint8_t scsi_bios_cmd(uint8_t last_id, BIOSCMD *BiosCmd, int8_t islba)
 {
 	uint32_t dma_address;	
-	int lba = (BiosCmd->cylinder << 9) + (BiosCmd->head << 5) + BiosCmd->sector;
+	uint32_t lba;
 	int sector_len = BiosCmd->secount;
 	int block_shift = 9;
 	uint8_t ret = 0;
 	uint8_t cdb[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+	if (islba)
+		lba = lba32_blk(BiosCmd);
+	  else
+	lba = (BiosCmd->u.chs.cyl << 9) + (BiosCmd->u.chs.head << 5) + BiosCmd->u.chs.sec;
 
 	SpecificLog("BIOS Command = 0x%02X\n", BiosCmd->command);	
 	
@@ -1460,8 +1466,6 @@ uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd)
 	{
 		case 0x00:	/* Reset Disk System, in practice it's a nop */
 			return 0;
-
-			break;
 
 		case 0x01:	/* Read Status of Last Operation */
 			BuslogicIDCheck(BiosCmd->id, BiosCmd->lun);
@@ -1507,12 +1511,15 @@ uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd)
 			cdb[5] = lba & 0xff;
 			cdb[7] = (sector_len >> 8) & 0xff;
 			cdb[8] = sector_len & 0xff;
+#if 0
+pclog("BIOS CMD(READ, %08lx, %d)\n", lba, BiosCmd->secount);
+#endif
 
 			scsi_device_command(BiosCmd->id, BiosCmd->lun, 12, cdb);
 
 			if (sector_len > 0) 
 			{
-				SpecificLog("BusLogic BIOS DMA: Reading %i bytes at %08X\n", sector_len << block_shift, dma_address);
+				SpecificLog("BIOS DMA: Reading %i bytes at %08X\n", sector_len << block_shift, dma_address);
 				DMAPageWrite(dma_address, (char *)SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, sector_len << block_shift);
 			}
 
@@ -1536,7 +1543,7 @@ uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd)
 
 			if (sector_len > 0) 
 			{
-				SpecificLog("BusLogic BIOS DMA: Reading %i bytes at %08X\n", sector_len << block_shift, dma_address);
+				SpecificLog("BIOS DMA: Reading %i bytes at %08X\n", sector_len << block_shift, dma_address);
 				DMAPageRead(dma_address, (char *)SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, sector_len << block_shift);
 			}
 
@@ -1548,6 +1555,9 @@ uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd)
 			cdb[5] = lba & 0xff;
 			cdb[7] = (sector_len >> 8) & 0xff;
 			cdb[8] = sector_len & 0xff;
+#if 0
+pclog("BIOS CMD(WRITE, %08lx, %d)\n", lba, BiosCmd->secount);
+#endif
 
 			scsi_device_command(BiosCmd->id, BiosCmd->lun, 12, cdb);
 
@@ -1611,7 +1621,7 @@ uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd)
 
 			ret = BuslogicBIOSCommand08(BiosCmd->id, BiosCmd->lun, SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer);
 
-			SpecificLog("BusLogic BIOS DMA: Reading 6 bytes at %08X\n", dma_address);
+			SpecificLog("BIOS DMA: Reading 6 bytes at %08X\n", dma_address);
 			DMAPageWrite(dma_address, (char *)SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, 6);
 
 			if (SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer != NULL)
@@ -1966,18 +1976,18 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				case 0x03:
 					BiosCmd = (BIOSCMD *)bl->CmdBuf;
 
-					cyl = ((BiosCmd->cylinder & 0xff) << 8) | ((BiosCmd->cylinder >> 8) & 0xff);
-					BiosCmd->cylinder = cyl;
+					cyl = ((BiosCmd->u.chs.cyl & 0xff) << 8) | ((BiosCmd->u.chs.cyl >> 8) & 0xff);
+					BiosCmd->u.chs.cyl = cyl;
 					if (bl->chip == CHIP_BUSLOGIC_PCI)
 					{
 						temp = BiosCmd->id;
 						BiosCmd->id = BiosCmd->lun;
 						BiosCmd->lun = temp;
 					}
-					BiosCmd->head &= 0xf;
-					BiosCmd->sector &= 0x1f;
-					SpecificLog("C: %04X, H: %02X, S: %02X\n", BiosCmd->cylinder, BiosCmd->head, BiosCmd->sector);
-					bl->DataBuf[0] = HACommand03Handler(15, BiosCmd);
+					BiosCmd->u.chs.head &= 0x0f;
+					BiosCmd->u.chs.sec &= 0x1f;
+					SpecificLog("C: %04X, H: %02X, S: %02X\n", BiosCmd->u.chs.cyl, BiosCmd->u.chs.head, BiosCmd->u.chs.sec);
+					bl->DataBuf[0] = scsi_bios_cmd(15, BiosCmd, 0);
 					SpecificLog("BIOS Completion/Status Code %x\n", bl->DataBuf[0]);
 					bl->DataReplyLeft = 1;
 					break;

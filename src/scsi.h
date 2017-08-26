@@ -8,7 +8,7 @@
  *
  *		SCSI controller handler header.
  *
- * Version:	@(#)scsi_h	1.0.1	2017/08/23
+ * Version:	@(#)scsi_h	1.0.3	2017/08/25
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -308,19 +308,31 @@ typedef struct {
 #pragma pack(push,1)
 typedef struct
 {
-	uint8_t command;
-	unsigned char id:3;
-	unsigned char reserved:2;
-	unsigned char lun:3;
-	uint16_t cylinder;
-	uint8_t head;
-	uint8_t sector;
-	uint8_t secount;
-	addr24 dma_address;
+	uint8_t	command;
+	uint8_t	id:3,
+		reserved:2,
+		lun:3;
+	union {
+	    struct {
+		uint16_t cyl;
+		uint8_t	head;
+		uint8_t	sec;
+	    } chs;
+	    struct {
+		uint8_t lba0;	/* MSB */
+		uint8_t lba1;
+		uint8_t lba2;
+		uint8_t lba3;	/* LSB */
+	    } lba;
+	}	u;
+	uint8_t	secount;
+	addr24	dma_address;
 } BIOSCMD;
 #pragma pack(pop)
+#define lba32_blk(p)	((uint32_t)(p->u.lba.lba0<<24) | (p->u.lba.lba1<<16) | \
+				   (p->u.lba.lba2<<8) | p->u.lba.lba3)
 
-extern uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd);
+extern uint8_t scsi_bios_cmd(uint8_t last_id, BIOSCMD *BiosCmd, int8_t islba);
 
 
 /*

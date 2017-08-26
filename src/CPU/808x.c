@@ -34,8 +34,8 @@
 #include "../mem.h"
 #include "../nmi.h"
 #include "../pic.h"
-#include "../scsi.h"
 #include "../timer.h"
+#include "../scsi.h"
 
 int xt_cpu_multi;
 int nmi = 0;
