@@ -519,6 +519,7 @@ static Buslogic_t *BuslogicResetDevice;
 enum {
     CHIP_BUSLOGIC_ISA,
     CHIP_BUSLOGIC_MCA,
+    CHIP_BUSLOGIC_VLB,
     CHIP_BUSLOGIC_PCI
 };
 
@@ -593,6 +594,8 @@ BuslogicGetNVRFileName(Buslogic_t *bl)
 			return L"bt542b.nvr";
 		case CHIP_BUSLOGIC_MCA:
 			return L"bt640.nvr";
+		case CHIP_BUSLOGIC_VLB:
+			return L"bt445s.nvr";
 		case CHIP_BUSLOGIC_PCI:
 			return L"bt946c.nvr";
 		default:
@@ -615,10 +618,33 @@ BuslogicInitializeAutoSCSIRam(Buslogic_t *bl, uint8_t safe)
 	HALR->structured.autoSCSIData.cbInformation = 64;
 
 	HALR->structured.autoSCSIData.aHostAdaptertype[0] = ' ';
-	HALR->structured.autoSCSIData.aHostAdaptertype[1] = (bl->chip == CHIP_BUSLOGIC_PCI) ? '9' : '5';
-	HALR->structured.autoSCSIData.aHostAdaptertype[2] = '4';
-	HALR->structured.autoSCSIData.aHostAdaptertype[3] = (bl->chip == CHIP_BUSLOGIC_PCI) ? '6' : '2';
-	HALR->structured.autoSCSIData.aHostAdaptertype[4] = (bl->chip == CHIP_BUSLOGIC_PCI) ? 'C' : 'B';
+	switch (bl->chip)
+	{
+		case CHIP_BUSLOGIC_ISA:
+			HALR->structured.autoSCSIData.aHostAdaptertype[1] = '5';
+			HALR->structured.autoSCSIData.aHostAdaptertype[2] = '4';
+			HALR->structured.autoSCSIData.aHostAdaptertype[3] = '2';
+			HALR->structured.autoSCSIData.aHostAdaptertype[4] = 'B';
+			break;
+		case CHIP_BUSLOGIC_VLB:
+			HALR->structured.autoSCSIData.aHostAdaptertype[1] = '4';
+			HALR->structured.autoSCSIData.aHostAdaptertype[2] = '4';
+			HALR->structured.autoSCSIData.aHostAdaptertype[3] = '5';
+			HALR->structured.autoSCSIData.aHostAdaptertype[4] = 'S';
+			break;
+		case CHIP_BUSLOGIC_MCA:
+			HALR->structured.autoSCSIData.aHostAdaptertype[1] = '6';
+			HALR->structured.autoSCSIData.aHostAdaptertype[2] = '4';
+			HALR->structured.autoSCSIData.aHostAdaptertype[3] = '0';
+			HALR->structured.autoSCSIData.aHostAdaptertype[4] = ' ';
+			break;
+		case CHIP_BUSLOGIC_PCI:
+			HALR->structured.autoSCSIData.aHostAdaptertype[1] = '9';
+			HALR->structured.autoSCSIData.aHostAdaptertype[2] = '4';
+			HALR->structured.autoSCSIData.aHostAdaptertype[3] = '6';
+			HALR->structured.autoSCSIData.aHostAdaptertype[4] = 'C';
+			break;
+	}
 	HALR->structured.autoSCSIData.aHostAdaptertype[5] = ' ';
 
 	HALR->structured.autoSCSIData.fLevelSensitiveInterrupt = (bl->chip == CHIP_BUSLOGIC_PCI) ? 1 : 0;
@@ -1395,7 +1421,7 @@ static void BuslogicIDCheck(uint8_t id, uint8_t lun)
 }
 
 /* This returns the completion code. */
-uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd)
+uint8_t HACommand03Handler(uint8_t last_id, uint8_t max_heads, BIOSCMD *BiosCmd)
 {
 	uint32_t dma_address;	
 	int lba = (BiosCmd->cylinder << 9) + (BiosCmd->head << 5) + BiosCmd->sector;
@@ -1403,6 +1429,11 @@ uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd)
 	int block_shift = 9;
 	uint8_t ret = 0;
 	uint8_t cdb[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+	if (max_heads == 64)
+	{
+		lba = (BiosCmd->cylinder << 11) + (BiosCmd->head << 5) + BiosCmd->sector;
+	}
 
 	SpecificLog("BIOS Command = 0x%02X\n", BiosCmd->command);	
 	
@@ -1949,7 +1980,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 						BiosCmd->lun = temp;
 					}						
 					SpecificLog("C: %04X, H: %02X, S: %02X\n", BiosCmd->cylinder, BiosCmd->head, BiosCmd->sector);
-					bl->DataBuf[0] = HACommand03Handler(15, BiosCmd);
+					bl->DataBuf[0] = HACommand03Handler(15, (bl->chip == CHIP_BUSLOGIC_MCA) ? 64 : 32, BiosCmd);
 					SpecificLog("BIOS Completion/Status Code %x\n", bl->DataBuf[0]);
 					bl->DataReplyLeft = 1;
 					break;
@@ -2040,7 +2071,21 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					* friendly with Adaptec hardware and upsetting the HBA state.
 					*/
 					ReplyISI->uCharacterD = 'D';      /* BusLogic model. */
-					ReplyISI->uHostBusType = (bl->chip == CHIP_BUSLOGIC_PCI) ? 'F' : 'A';     /* ISA bus. */
+					switch(bl->chip)
+					{
+						case CHIP_BUSLOGIC_ISA:
+							ReplyISI->uHostBusType = 'A';
+							break;
+						case CHIP_BUSLOGIC_MCA:
+							ReplyISI->uHostBusType = 'B';
+							break;
+						case CHIP_BUSLOGIC_VLB:
+							ReplyISI->uHostBusType = 'E';
+							break;
+						case CHIP_BUSLOGIC_PCI:
+							ReplyISI->uHostBusType = 'F';
+							break;
+					}
 
 					pclog("Return Setup Information: %d\n", bl->CmdBuf[0]);
 				}
@@ -2213,11 +2258,32 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					/* The reply length is set by the guest and is found in the first byte of the command buffer. */
 					bl->DataReplyLeft = bl->CmdBuf[0];
 					memset(bl->DataBuf, 0, bl->DataReplyLeft);
-					if (bl->chip == CHIP_BUSLOGIC_PCI) {
-						aModelName[0] = '9';
-						aModelName[1] = '4';
-						aModelName[2] = '6';
-						aModelName[3] = 'C';
+					switch(bl->chip)
+					{
+						case CHIP_BUSLOGIC_ISA:
+							aModelName[0] = '5';
+							aModelName[1] = '4';
+							aModelName[2] = '2';
+							aModelName[3] = 'B';
+							break;
+						case CHIP_BUSLOGIC_MCA:
+							aModelName[0] = '6';
+							aModelName[1] = '4';
+							aModelName[2] = '0';
+							aModelName[3] = 0x00;
+							break;
+						case CHIP_BUSLOGIC_VLB:
+							aModelName[0] = '4';
+							aModelName[1] = '4';
+							aModelName[2] = '5';
+							aModelName[3] = 'S';
+							break;
+						case CHIP_BUSLOGIC_PCI:
+							aModelName[0] = '9';
+							aModelName[1] = '4';
+							aModelName[2] = '6';
+							aModelName[3] = 'C';
+							break;
 					}
 					cCharsToTransfer =   bl->DataReplyLeft <= sizeof(aModelName)
 							? bl->DataReplyLeft
@@ -2245,7 +2311,19 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					ReplyIESI = (ReplyInquireExtendedSetupInformation *)bl->DataBuf;
 					memset(ReplyIESI, 0, sizeof(ReplyInquireExtendedSetupInformation));
 
-					ReplyIESI->uBusType = (bl->chip == CHIP_BUSLOGIC_PCI) ? 'E' : 'A';         /* ISA style */
+					switch (bl->chip)
+					{
+						case CHIP_BUSLOGIC_ISA:
+						case CHIP_BUSLOGIC_VLB:
+							ReplyIESI->uBusType = 'A';				   /* ISA style */
+							break;
+						case CHIP_BUSLOGIC_MCA:
+							ReplyIESI->uBusType = 'M';				   /* MCA style */
+							break;
+						case CHIP_BUSLOGIC_PCI:
+							ReplyIESI->uBusType = 'E';				   /* PCI style */
+							break;
+					}
 					ReplyIESI->uBiosAddress = 0xd8;
 					ReplyIESI->u16ScatterGatherLimit = 8192;
 					ReplyIESI->cMailbox = bl->MailboxCount;
