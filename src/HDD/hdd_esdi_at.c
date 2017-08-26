@@ -9,14 +9,14 @@
 
 #include <sys/types.h>
 
-#include "ibm.h"
-#include "device.h"
+#include "../ibm.h"
+#include "../device.h"
 #include "hdd_image.h"
-#include "io.h"
-#include "mem.h"
-#include "pic.h"
-#include "rom.h"
-#include "timer.h"
+#include "../io.h"
+#include "../mem.h"
+#include "../pic.h"
+#include "../rom.h"
+#include "../timer.h"
 
 #include "hdd_esdi_at.h"
 

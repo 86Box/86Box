@@ -22,15 +22,15 @@
 #include <stdarg.h>
 #include <wchar.h>
 
-#include "86box.h"
-#include "cdrom.h"
-#include "ibm.h"
+#include "../86box.h"
+#include "../cdrom.h"
+#include "../ibm.h"
 #include "hdd_image.h"
-#include "io.h"
-#include "pic.h"
-#include "timer.h"
-#include "cdrom.h"
-#include "scsi.h"
+#include "../io.h"
+#include "../pic.h"
+#include "../timer.h"
+#include "../cdrom.h"
+#include "../SCSI/scsi.h"
 #include "hdd_ide_at.h"
 
 /* Bits of 'atastat' */

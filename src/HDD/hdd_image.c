@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "ibm.h"
+#include "../ibm.h"
 #include "hdd_ide_at.h"
 #include "hdd_image.h"
 

@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.38	2017/08/24
+# Version:	@(#)Makefile.mingw	1.0.39	2017/08/26
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -55,8 +55,23 @@ endif
 ifndef DEV_BRANCH
 DEV_BRANCH = n
 endif
+ifndef CIRRUS
+CIRRUS = n
+endif
+ifndef NV_RIVA
+CIRRUS = n
+endif
 ifndef FLUIDSYNTH
 FLUIDSYNTH = y
+endif
+ifndef MUNT
+MUNT = y
+endif
+ifndef PAS16
+PAS16 = n
+endif
+ifndef NETWORK
+NETWORK = y
 endif
 ifndef X64
 X64	= n
@@ -67,11 +82,12 @@ endif
 #		Nothing should need changing from here on..		#
 #########################################################################
 VPATH	= . CPU \
+	    HDD \
 	    SOUND \
-	      SOUND/MUNT SOUND/MUNT/c_interface SOUND/MUNT/sha1 \
-	      SOUND/MUNT/srchelper \
-	      SOUND/RESID-FP \
-	    VIDEO LZF NETWORK NETWORK/SLIRP WIN
+	      SOUND/munt SOUND/munt/c_interface SOUND/munt/sha1 \
+	      SOUND/munt/srchelper \
+	      SOUND/resid-fp \
+	    SCSI VIDEO lzf NETWORK NETWORK/slirp WIN
 PLAT	= WIN/
 ifeq ($(X64), y)
 CPP	= g++.exe -m64
@@ -131,6 +147,13 @@ ifeq ($(FLUIDSYNTH), y)
 CFLAGS		+= -DUSE_FLUIDSYNTH
 FSYNTHOBJ	= midi_fluidsynth.o
 endif
+ifeq ($(MUNT), y)
+CFLAGS		+= -DUSE_MUNT
+endif
+ifeq ($(NETWORK), y)
+CFLAGS		+= -DUSE_NETWORK
+RFLAGS		+= -DUSE_NETWORK
+endif
 ifeq ($(X64), y)
 PLATCG	= codegen_x86-64.o
 CGOPS   = codegen_ops_x86-64.h
@@ -143,13 +166,16 @@ endif
 
 
 ifeq ($(DEV_BRANCH), y)
-DBFLAGS = -DDEV_BRANCH
-else
-DBFLAGS = 
-endif
-
-ifeq ($(DEV_BRANCH), y)
 CFLAGS		+= -DDEV_BRANCH
+ifeq ($(CIRRUS), y)
+CFLAGS		+= -DUSE_CIRRUS
+endif
+ifeq ($(NV_RIVA), y)
+CFLAGS		+= -DUSE_RIVA
+endif
+ifeq ($(PAS16), y)
+CFLAGS		+= -DUSE_PAS16
+endif
 endif
 
 ifeq ($(WALTJE), y)
@@ -196,17 +222,26 @@ DEVOBJ	= bugger.o lpt.o $(SERIAL) \
 	    joystick_sw_pad.o joystick_tm_fcs.o \
 	  mouse.o mouse_serial.o mouse_ps2.o mouse_bus.o \
 	  fdd.o fdc.o fdi2raw.o \
-	  hdd.o hdd_image.o \
-	    hdd_mfm_at.o hdd_mfm_xebec.o hdd_esdi_at.o hdd_esdi_mca.o \
-	    hdd_ide_at.o hdd_ide_xt.o piix.o \
 	    disc.o \
 	    disc_86f.o disc_fdi.o disc_imd.o disc_img.o \
 	    disc_random.o disc_td0.o \
 	  cdrom.o \
 	    cdrom_dosbox.o cdrom_image.o cdrom_ioctl.o cdrom_null.o
-ifdef USB
+HDDOBJ	= hdd.o hdd_image.o \
+	    hdd_mfm_at.o hdd_mfm_xebec.o hdd_esdi_at.o hdd_esdi_mca.o \
+	    hdd_ide_at.o hdd_ide_xt.o piix.o
+ifeq ($(USB), y)
 USBOBJ	= usb.o
 endif
+ifeq ($(MUNT), y)
+MUNTOBJ	= midi_mt32.o \
+	    Analog.o BReverbModel.o File.o FileStream.o LA32Ramp.o \
+	    LA32FloatWaveGenerator.o LA32WaveGenerator.o \
+	    MidiStreamParser.o Part.o Partial.o PartialManager.o \
+	    Poly.o ROMInfo.o SampleRateConverter_dummy.o Synth.o \
+	    Tables.o TVA.o TVF.o TVP.o sha1.o c_interface.o
+endif
+ifeq ($(NETWORK), y)
 NETOBJ	= network.o \
 	  net_pcap.o \
 	  net_slirp.o \
@@ -214,7 +249,14 @@ NETOBJ	= network.o \
 	    ip_input.o queue.o tcp_input.o debug.o ip_output.o \
 	    sbuf.o tcp_output.o udp.o if.o mbuf.o slirp.o tcp_subr.o \
 	  net_ne2000.o
-SCSIOBJ	= scsi.o scsi_device.o scsi_disk.o scsi_buslogic.o scsi_aha154x.o
+endif
+SCSIOBJ	= scsi.o scsi_bios_command.o scsi_device.o scsi_disk.o \
+	  scsi_buslogic.o scsi_aha154x.o
+ifeq ($(DEV_BRANCH), y)
+ifeq ($(PAS16), y)
+PAS16OBJ = snd_pas16.o
+endif
+endif
 SNDOBJ	= sound.o \
 	  openal.o \
 	  dbopl.o nukedopl.o \
@@ -223,19 +265,13 @@ SNDOBJ	= sound.o \
 	  wave6581_P_T.o wave6581_PS_.o wave6581_PST.o \
 	  wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
 	  wave8580_PST.o wave.o \
-	  midi.o $(FSYNTHOBJ) \
-	  midi_mt32.o \
-	    Analog.o BReverbModel.o File.o FileStream.o LA32Ramp.o \
-	    LA32FloatWaveGenerator.o LA32WaveGenerator.o \
-	    MidiStreamParser.o Part.o Partial.o PartialManager.o \
-	    Poly.o ROMInfo.o SampleRateConverter_dummy.o Synth.o \
-	    Tables.o TVA.o TVF.o TVP.o sha1.o c_interface.o \
+	  midi.o $(FSYNTHOBJ) $(MUNTOBJ) \
 	  midi_system.o \
 	  snd_speaker.o snd_ps1.o snd_pssj.o \
 	  snd_adlib.o snd_adlibgold.o snd_ad1848.o \
 	  snd_sb.o snd_sb_dsp.o snd_cms.o snd_dbopl.o \
 	  snd_emu8k.o snd_gus.o snd_opl.o \
-	  snd_mpu401.o snd_pas16.o snd_resid.o \
+	  snd_mpu401.o $(PAS16OBJ) snd_resid.o \
 	  snd_sn76489.o snd_ssi2001.o snd_wss.o \
 	  snd_ym7128.o
 VIDOBJ	= video.o \
@@ -271,20 +307,28 @@ WINOBJ	= win.o \
 	  win_settings.o win_deviceconfig.o win_joystickconfig.o \
 	  86Box.res
 ifeq ($(DEV_BRANCH), y)
-DEVBRANCHOBJ = vid_cl_gd.o vid_cl_gd_blit.o vid_cl_ramdac.o \
-	       vid_nv_riva128.o
+ifeq ($(CIRRUS), y)
+CIRRUSOBJ = vid_cl_gd.o vid_cl_gd_blit.o vid_cl_ramdac.o
 endif
-OBJ	= $(MAINOBJ) $(CPUOBJ) $(SYSOBJ) $(DEVOBJ) $(USBOBJ) \
-	  $(NETOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) $(WINOBJ) \
-	  $(DEVBRANCHOBJ)
+ifeq ($(NV_RIVA), y)
+RIVAOBJ = vid_nv_riva128.o
+endif
+DEVBRANCHOBJ = $(CIRRUSOBJ) $(RIVAOBJ)
+endif
+OBJ	= $(MAINOBJ) $(CPUOBJ) $(SYSOBJ) $(HDDOBJ) $(DEVOBJ) \
+	  $(USBOBJ) $(NETOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) \
+	  $(WINOBJ) $(DEVBRANCHOBJ)
 
 LZFOBJ	= lzf_c.o lzf_d.o
 
 LIBS	= -mwindows \
 	  -lopenal.dll \
 	  -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 \
-	  -lcomctl32 -lkernel32 -lwsock32 -lwinmm -liphlpapi -lpsapi \
-	  -static -lstdc++ -lgcc
+	  -lcomctl32 -lwinmm
+ifeq ($(NETWORK), y)
+LIBS	+= -lkernel32 -lwsock32 -liphlpapi -lpsapi
+endif
+LIBS	+= -static -lstdc++ -lgcc
 
 
 # Build rules.
@@ -535,7 +579,7 @@ pic.o:		ibm.h io.h pic.h pit.h
 piix.o:		ibm.h dma.h hdd_ide_at.h io.h mem.h pci.h piix.h
 
 pit.o:		ibm.h CPU/cpu.h dma.h io.h pic.h pit.h device.h timer.h \
-		model.h SOUND/snd_speaker.h video/video.h
+		model.h SOUND/snd_speaker.h VIDEO/video.h
 
 ppi.o:		ibm.h pit.h plat_keyboard.h plat_mouse.h
 
@@ -557,13 +601,15 @@ scat.o:		ibm.h CPU/cpu.h io.h mem.h device.h model.h
 scsi.o:		86box.h ibm.h timer.h device.h cdrom.h scsi.h \
 		scsi_aha154x.h scsi_buslogic.h
 
+scsi_bios_command.o:	ibm.h dma.h scsi.h scsi_bios_command.h scsi_device.h
+
 scsi_device.o:	ibm.h scsi.h scsi_disk.h cdrom.h
 
 scsi_aha154x.o:	ibm.h io.h mca.h mem.h mca.h rom.h dma.h pic.h timer.h \
-		device.h cdrom.h scsi.h scsi_disk.h scsi_aha154x.h \
+		device.h scsi.h scsi_bios_command.h scsi_aha154x.h \
 
 scsi_buslogic.o: ibm.h io.h mem.h rom.h dma.h pic.h pci.h timer.h \
-		device.h scsi.h scsi_device.h scsi_disk.h cdrom.h \
+		device.h scsi.h scsi_bios_command.h scsi_device.h \
 		scsi_buslogic.h
 
 scsi_disk.o:	86box.h cdrom.h hdd_image.h ibm.h hdd_ide_at.h piix.h scsi.h \
@@ -659,6 +705,66 @@ net_pcap.o:	ibm.h config.h device.h NETWORK/network.h WIN/plat_dynld.h WIN/plat_
 net_slirp.o:	NETWORK/slirp/slirp.h NETWORK/slirp/queue.h ibm.h config.h device.h NETWORK/network.h WIN/plat_thread.h
 
 network.o:	ibm.h device.h NETWORK/network.h NETWORK/net_ne2000.h WIN/plat_ui.h
+
+dbopl.o:	SOUND/dbopl.h
+
+midi.o:		device.h SOUND/midi.h ibm.h WIN/plat_midi.h WIN/plat_ticks.h SOUND/midi_fluidsynth.h SOUND/midi_mt32.h SOUND/midi_system.h
+
+midi_fluidsynth.o:	config.h WIN/plat_dynld.h WIN/plat_thread.h WIN/plat_ui.h device.h SOUND/midi_fluidsynth.h SOUND/midi.h SOUND/sound.h
+
+midi_mt32.o:		SOUND/munt/c_interface/c_interface.h WIN/plat_thread.h ibm.h device.h mem.h rom.h MIDI/midi_mt32.h MIDI/midi.h \
+			SOUND/sound.h
+
+midi_system.o:		device.h WIN/plat_midi.h SOUND/midi_system.h SOUND/midi.h
+
+nukedopl.o:		SOUND/nukedopl.h
+
+openal.o:		ibm.h SOUND/sound.h
+
+snd_ad1848.o:		ibm.h dma.h pic.h timer.h SOUND/sound.h SOUND/snd_ad1848.h
+
+snd_adlib.o:		ibm.h io.h mca.h device.h SOUND/sound.h SOUND/snd_adlib.h SOUND/snd_opl.h
+
+snd_adlibgold.o:	ibm.h io.h dma.h pic.h pit.h mem.h rom.h timer.h device.h SOUND/sound.h SOUND/filters.h SOUND/snd_opl.h SOUND/snd_ym7128.h
+
+snd_cms.o:		ibm.h io.h device.h SOUND/sound.h SOUND/snd_cms.h
+
+snd_dbopl.o:		SOUND/dbopl.h SOUND/nukedopl.h SOUND/snd_dbopl.h
+
+snd_emu8k.o:		ibm.h io.h mem.h rom.h timer.h device.h SOUND/sound.h SOUND/snd_emu8k.h
+
+snd_gus.o:		ibm.h io.h pic.h dma.h timer.h device.h SOUND/sound.h SOUND/snd_gus.h
+
+snd_mpu401.o:		ibm.h device.h io.h pic.h timer.h SOUND/midi.h SOUND/sound.h SOUND/snd_mpu401.h
+
+snd_opl.o:		ibm.h io.h timer.h SOUND/sound.h SOUND/snd_opl.h SOUND/snd_dbopl.h
+
+snd_pas16.o:		ibm.h io.h pic.h pit.h dma.h timer.h device.h SOUND/sound.h SOUND/snd_opl.h SOUND/snd_pas16.h SOUND/snd_sb_dsp.h \
+			SOUND\filters.h
+
+snd_ps1.o:		ibm.h io.h pic.h timer.h device.h SOUND/sound.h SOUND/snd_ps1.h SOUND/snd_sn76489.h
+
+snd_pssj.o:		ibm.h io.h dma.h pic.h timer.h device.h SOUND/sound.h SOUND/snd_pssj.h SOUND/snd_sn76489.h
+
+snd_resid.o:		SOUND/resid-fp/sid.h SOUND/snd_resid.h
+
+snd_sb.o:		ibm.h io.h mca.h mem.h rom.h device.h SOUND/sound.h SOUND/snd_dbopl.h SOUND/snd_emu8k.h SOUND/snd_mpu401.h \
+			SOUND/snd_opl.h SOUND/snd_sb.h SOUND/snd_sb_dsp.h SOUND/filters.h
+
+snd_sb_dsp.o:		ibm.h io.h pic.h dma.h timer.h device.h SOUND/midi.h SOUND/sound.h SOUND/snd_mpu401.h SOUND/snd_sb_dsp.h
+
+snd_sn76489.o:		ibm.h io.h device.h SOUND/sound.h SOUND/snd_sn76489.h
+
+snd_speaker.o:		ibm.h SOUND/sound.h SOUND/snd_speaker.h
+
+snd_ssi2001.o:		ibm.h io.h device.h SOUND/sound.h SOUND/snd_resid.h SOUND/snd_ssi2001.h
+
+snd_wss.o:		ibm.h io.h pic.h dma.h device.h SOUND/sound.h SOUND/snd_ad1848.h SOUND/snd_opl.h SOUND/snd_wss.h
+
+snd_ym7128.o:		ibm.h SOUND/snd_ym7128.h
+
+sound.o:		ibm.h device.h timer.h cdrom.h WIN/plat_thread.h SOUND/midi.h SOUND/sound.h SOUND/snd_opl.h SOUND/snd_adlib.h \
+			SOUND/snd_pas16.h SOUND/snd_sb.h SOUND/snd_sb_dsp.h SOUND/snd_wss.h SOUND/filters.h
 
 vid_ati_eeprom.o:	ibm.h mem.h rom.h VIDEO/vid_ati_eeprom.h
 

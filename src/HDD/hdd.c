@@ -1,8 +1,9 @@
-#include "ibm.h"
-#include "CPU/cpu.h"
-#include "device.h"
+#include "../ibm.h"
+#include "../CPU/cpu.h"
+#include "../device.h"
+#include "../model.h"
+
 #include "hdd.h"
-#include "model.h"
 
 #include "hdd_esdi_at.h"
 #include "hdd_esdi_mca.h"

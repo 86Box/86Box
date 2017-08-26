@@ -8,7 +8,7 @@
  *
  *		SCSI controller handler header.
  *
- * Version:	@(#)scsi_h	1.0.3	2017/08/25
+ * Version:	@(#)scsi_h	1.0.4	2017/08/26
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -304,35 +304,6 @@ typedef struct {
 
 #define ADDR_TO_U32(x)	(((x).hi<<16)|((x).mid<<8)|((x).lo&0xFF))
 #define U32_TO_ADDR(a,x) do {(a).hi=(x)>>16;(a).mid=(x)>>8;(a).lo=(x)&0xFF;}while(0)
-
-#pragma pack(push,1)
-typedef struct
-{
-	uint8_t	command;
-	uint8_t	id:3,
-		reserved:2,
-		lun:3;
-	union {
-	    struct {
-		uint16_t cyl;
-		uint8_t	head;
-		uint8_t	sec;
-	    } chs;
-	    struct {
-		uint8_t lba0;	/* MSB */
-		uint8_t lba1;
-		uint8_t lba2;
-		uint8_t lba3;	/* LSB */
-	    } lba;
-	}	u;
-	uint8_t	secount;
-	addr24	dma_address;
-} BIOSCMD;
-#pragma pack(pop)
-#define lba32_blk(p)	((uint32_t)(p->u.lba.lba0<<24) | (p->u.lba.lba1<<16) | \
-				   (p->u.lba.lba2<<8) | p->u.lba.lba3)
-
-extern uint8_t scsi_bios_cmd(uint8_t last_id, BIOSCMD *BiosCmd, int8_t islba);
 
 
 /*

@@ -43,8 +43,8 @@
 #include "fdc.h"
 #include "fdd.h"
 #include "gameport.h"
-#include "hdd.h"
-#include "hdd_ide_at.h"
+#include "HDD/hdd.h"
+#include "HDD/hdd_ide_at.h"
 #include "cdrom.h"
 #include "cdrom_ioctl.h"
 #include "cdrom_image.h"
@@ -53,7 +53,9 @@
 #include "keyboard_at.h"
 #include "SOUND/midi.h"
 #include "mouse.h"
+#ifdef USE_NETWORK
 #include "NETWORK/network.h"
+#endif
 #ifdef WALTJE
 # define UNICODE
 # include "plat_dir.h"
@@ -64,7 +66,7 @@
 #include "plat_midi.h"
 #include "plat_mouse.h"
 #include "plat_ui.h"
-#include "scsi.h"
+#include "SCSI/scsi.h"
 #include "serial.h"
 #include "SOUND/sound.h"
 #include "SOUND/snd_cms.h"
@@ -534,7 +536,9 @@ void resetpchard_init(void)
 
         resetide();
 	scsi_card_init();
+#ifdef USE_NETWORK
 	network_reset();
+#endif
 
         sound_card_init();
         if (mpu401_standalone_enable)
@@ -717,5 +721,7 @@ void closepc(void)
         closevideo();
         device_close_all();
         midi_close();
+#ifdef USE_NETWORK
 	network_close();
+#endif
 }

@@ -16,11 +16,11 @@
  *		Copyright 2016,2017 Miran Grca.
  */
 #include <malloc.h>
-#include "ibm.h"
-#include "io.h"
-#include "mem.h"
-#include "rom.h"
-#include "device.h"
+#include "../ibm.h"
+#include "../io.h"
+#include "../mem.h"
+#include "../rom.h"
+#include "../device.h"
 #include "hdd_ide_at.h"
 #include "hdd_ide_xt.h"
 

@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.13	2017/08/25
+ * Version:	@(#)scsi_aha154x.c	1.0.14	2017/08/26
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -23,20 +23,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-#include "ibm.h"
-#include "io.h"
-#include "mca.h"
-#include "mem.h"
-#include "mca.h"
-#include "rom.h"
-#include "dma.h"
-#include "pic.h"
-#include "timer.h"
-#include "device.h"
-#include "cdrom.h"
+#include "../ibm.h"
+#include "../io.h"
+#include "../mca.h"
+#include "../mem.h"
+#include "../mca.h"
+#include "../rom.h"
+#include "../dma.h"
+#include "../pic.h"
+#include "../timer.h"
+#include "../device.h"
 #include "scsi.h"
+#include "scsi_bios_command.h"
 #include "scsi_device.h"
-#include "scsi_disk.h"
 #include "scsi_aha154x.h"
 
 
@@ -1057,7 +1056,6 @@ aha_write(uint16_t port, uint8_t val, void *priv)
     BIOSCMD *BiosCmd;
     ReplyInquireSetupInformation *ReplyISI;
     uint16_t cyl = 0;
-    uint8_t temp = 0;
 
     pclog("%s: Write Port 0x%02X, Value %02X\n", dev->name, port, val);
 
@@ -1177,9 +1175,6 @@ aha_0x01:
 						cyl = ((BiosCmd->u.chs.cyl & 0xff) << 8) | ((BiosCmd->u.chs.cyl >> 8) & 0xff);
 					BiosCmd->u.chs.cyl = cyl;						
 					}
-					temp = BiosCmd->id;
-					BiosCmd->id = BiosCmd->lun;
-					BiosCmd->lun = temp;
 					if (dev->type == AHA_1640) {
 						pclog("BIOS LBA=%06lx (%lu)\n",
 							lba32_blk(BiosCmd),
@@ -1192,7 +1187,7 @@ aha_0x01:
 							BiosCmd->u.chs.head,
 							BiosCmd->u.chs.sec);
 					}
-					dev->DataBuf[0] = scsi_bios_cmd(7, BiosCmd, (dev->type==AHA_1640)?1:0);
+					dev->DataBuf[0] = scsi_bios_command(7, BiosCmd, (dev->type==AHA_1640)?1:0);
 					pclog("BIOS Completion/Status Code %x\n", dev->DataBuf[0]);
 					dev->DataReplyLeft = 1;
 					break;

@@ -27,8 +27,10 @@
 #include "vid_ati_mach64.h"
 #include "vid_cga.h"
 #ifdef DEV_BRANCH
+#ifdef USE_CIRRUS
 #include "vid_cl_ramdac.h" /* vid_cl_gd.c needs this */
 #include "vid_cl_gd.h"
+#endif
 #endif
 #include "vid_ega.h"
 #include "vid_et4000.h"
@@ -40,7 +42,9 @@
 #include "vid_colorplus.h"
 #include "vid_mda.h"
 #ifdef DEV_BRANCH
+#ifdef USE_RIVA
 #include "vid_nv_riva128.h"
+#endif
 #endif
 #include "vid_olivetti_m24.h"
 #include "vid_oti067.h"
@@ -94,8 +98,10 @@ static VIDEO_CARD video_cards[] =
         {"MDSI Genius",                            "genius",            &genius_device,              GFX_GENIUS},
         {"Number Nine 9FX (S3 Trio64)",            "n9_9fx",		&s3_9fx_device,              GFX_N9_9FX},
 #ifdef DEV_BRANCH
+#ifdef USE_RIVA
         {"nVidia RIVA 128",                        "riva128",		&riva128_device,             GFX_RIVA128},
         {"nVidia RIVA TNT",                        "rivatnt",		&rivatnt_device,             GFX_RIVATNT},
+#endif
 #endif
         {"OAK OTI-067",                            "oti067",		&oti067_device,              GFX_OTI067},
         {"OAK OTI-077",                            "oti077",		&oti077_device,              GFX_OTI077},

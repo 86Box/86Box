@@ -37,13 +37,15 @@
 #include "ibm.h"
 #include "CPU/cpu.h"
 #include "gameport.h"
-#include "hdd.h"
-#include "hdd_ide_at.h"
+#include "HDD/hdd.h"
+#include "HDD/hdd_ide_at.h"
 #include "model.h"
 #include "mouse.h"
+#ifdef USE_NETWORK
 #include "NETWORK/network.h"
+#endif
 #include "nvr.h"
-#include "scsi.h"
+#include "SCSI/scsi.h"
 #include "WIN/plat_joystick.h"
 #include "WIN/plat_midi.h"
 #include "SOUND/midi.h"
@@ -1064,6 +1066,7 @@ static void loadconfig_sound(void)
 }
 
 
+#ifdef USE_NETWORK
 /* Network */
 static void loadconfig_network(void)
 {
@@ -1118,6 +1121,7 @@ static void loadconfig_network(void)
 	else
 		network_card = 0;
 }
+#endif
 
 
 /* Other peripherals */
@@ -1730,8 +1734,10 @@ void loadconfig(wchar_t *fn)
 	/* Sound */
 	loadconfig_sound();
 
+#ifdef USE_NETWORK
 	/* Network */
 	loadconfig_network();
+#endif
 
 	/* Other peripherals */
 	loadconfig_other_peripherals();
@@ -2150,6 +2156,7 @@ static void saveconfig_sound(void)
 }
 
 
+#ifdef USE_NETWORK
 /* Network */
 static void saveconfig_network(void)
 {
@@ -2192,6 +2199,7 @@ static void saveconfig_network(void)
 
 	config_delete_section_if_empty(cat);
 }
+#endif
 
 
 /* Other peripherals */
@@ -2547,8 +2555,10 @@ void saveconfig(void)
 	/* Sound */
 	saveconfig_sound();
 
+#ifdef USE_NETWORK
 	/* Network */
 	saveconfig_network();
+#endif
 
 	/* Other peripherals */
 	saveconfig_other_peripherals();

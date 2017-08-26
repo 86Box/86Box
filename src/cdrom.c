@@ -23,9 +23,9 @@
 #include "cdrom.h"
 #include "ibm.h"
 #include "piix.h"
-#include "scsi.h"
+#include "SCSI/scsi.h"
 #include "timer.h"
-#include "hdd_ide_at.h"
+#include "HDD/hdd_ide_at.h"
 #include "WIN/plat_iodev.h"
 
 /* Bits of 'status' */

@@ -16,16 +16,16 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "86box.h"
-#include "cdrom.h"
-#include "ibm.h"
-#include "hdd_image.h"
-#include "hdd_ide_at.h"
-#include "piix.h"
+#include "../86box.h"
+#include "../cdrom.h"
+#include "../ibm.h"
+#include "../HDD/hdd_image.h"
+#include "../HDD/hdd_ide_at.h"
+#include "../piix.h"
 #include "scsi.h"
 #include "scsi_disk.h"
-#include "timer.h"
-#include "WIN/plat_iodev.h"
+#include "../timer.h"
+#include "../WIN/plat_iodev.h"
 
 
 /* Bits of 'status' */

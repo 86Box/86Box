@@ -1,11 +1,11 @@
 #include <malloc.h>
 
-#include "ibm.h"
+#include "../ibm.h"
 #include "hdd_image.h"
-#include "device.h"
-#include "io.h"
-#include "pic.h"
-#include "timer.h"
+#include "../device.h"
+#include "../io.h"
+#include "../pic.h"
+#include "../timer.h"
 #include "hdd_mfm_at.h"
 
 

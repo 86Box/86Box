@@ -60,16 +60,16 @@
  *		Copyright 2017 Fred N. van Kempen.
  */
 #include <malloc.h>
-#include "ibm.h"
-#include "device.h"
-#include "dma.h"
+#include "../ibm.h"
+#include "../device.h"
+#include "../dma.h"
 #include "hdd_image.h"
-#include "io.h"
-#include "mca.h"
-#include "mem.h"
-#include "pic.h"
-#include "rom.h"
-#include "timer.h"
+#include "../io.h"
+#include "../mca.h"
+#include "../mem.h"
+#include "../pic.h"
+#include "../rom.h"
+#include "../timer.h"
 #include "hdd_esdi_mca.h"
 
 

@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.6	2017/08/24
+ * Version:	@(#)win.c	1.0.7	2017/08/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -24,22 +24,24 @@
 #include "../device.h"
 #include "../disc.h"
 #include "../fdd.h"
-#include "../hdd.h"
+#include "../HDD/hdd.h"
 #include "../ibm.h"
 #include "../CPU/cpu.h"
 #include "../mem.h"
+#ifdef USE_NETWORK
 #include "../NETWORK/network.h"
+#endif
 #include "../rom.h"
 #include "../nvr.h"
 #include "../config.h"
 #include "../model.h"
-#include "../hdd_ide_at.h"
+#include "../HDD/hdd_ide_at.h"
 #include "../cdrom.h"
 #include "../cdrom_null.h"
 #include "../cdrom_ioctl.h"
 #include "../cdrom_image.h"
-#include "../scsi.h"
-#include "../scsi_disk.h"
+#include "../SCSI/scsi.h"
+#include "../SCSI/scsi_disk.h"
 #include "../VIDEO/video.h"
 #include "../VIDEO/vid_ega.h"
 #include "../mouse.h"
@@ -889,6 +891,7 @@ void create_hd_tip(int part)
 	wcscpy(sbTips[part], tempTip);
 }
 
+#ifdef USE_NETWORK
 void create_network_tip(int part)
 {
 	WCHAR tempTip[512];
@@ -902,6 +905,7 @@ void create_network_tip(int part)
 	sbTips[part] = (WCHAR *) malloc((wcslen(tempTip) << 1) + 2);
 	wcscpy(sbTips[part], tempTip);
 }
+#endif
 
 void update_tip(int meaning)
 {
@@ -1031,6 +1035,7 @@ void destroy_tips(void)
 	sbTips = NULL;
 }
 
+#ifdef USE_NETWORK
 int display_network_icon(void)
 {
 	if (network_card == 0)
@@ -1049,6 +1054,7 @@ int display_network_icon(void)
 		}
 	}
 }
+#endif
 
 void update_status_bar_panes(HWND hwnds)
 {
@@ -1062,7 +1068,9 @@ void update_status_bar_panes(HWND hwnds)
 	int c_ide_dma = 0;
 	int c_scsi = 0;
 
+#ifdef USE_NETWORK
 	int do_net = 0;
+#endif
 
 	sb_ready = 0;
 
@@ -1073,7 +1081,9 @@ void update_status_bar_panes(HWND hwnds)
 	c_ide_dma = count_hard_disks(HDD_BUS_IDE_PIO_AND_DMA);
 	c_scsi = count_hard_disks(HDD_BUS_SCSI);
 
+#ifdef USE_NETWORK
 	do_net = display_network_icon();
+#endif
 
 	if (sb_parts > 0)
 	{
@@ -1168,10 +1178,12 @@ void update_status_bar_panes(HWND hwnds)
 	{
 		sb_parts++;
 	}
+#ifdef USE_NETWORK
 	if (do_net)
 	{
 		sb_parts++;
 	}
+#endif
 	sb_parts++;
 
 	iStatusWidths = (int *) malloc(sb_parts * sizeof(int));
@@ -1275,6 +1287,7 @@ void update_status_bar_panes(HWND hwnds)
 		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_SCSI;
 		sb_parts++;
 	}
+#ifdef USE_NETWORK
 	if (do_net)
 	{
 		edge += SB_ICON_WIDTH;
@@ -1282,6 +1295,7 @@ void update_status_bar_panes(HWND hwnds)
 		sb_part_meanings[sb_parts] = SB_NETWORK;
 		sb_parts++;
 	}
+#endif
 	if (sb_parts)
 	{
 		iStatusWidths[sb_parts - 1] += (24 - SB_ICON_WIDTH);
@@ -1342,11 +1356,13 @@ void update_status_bar_panes(HWND hwnds)
 				sb_part_icons[i] = 192;
 				create_hd_tip(i);
 				break;
+#ifdef USE_NETWORK
 			case SB_NETWORK:
 				/* Hard disk */
 				sb_part_icons[i] = 208;
 				create_network_tip(i);
 				break;
+#endif
 			case SB_TEXT:
 				/* Status text */
 				SendMessage(hwnds, SB_SETTEXT, i | SBT_NOBORDERS, (LPARAM) L"");
@@ -1401,10 +1417,12 @@ HWND EmulatorStatusBar(HWND hwndParent, int idStatus, HINSTANCE hinst)
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
 
+#ifdef USE_NETWORK
 	for (i = 208; i < 210; i++)
 	{
 		hIcon[i] = LoadIconEx((PCTSTR) i);
 	}
+#endif
 
 	for (i = 384; i < 386; i++)
 	{
@@ -1483,10 +1501,12 @@ void reset_menus(void)
 # ifdef ENABLE_SERIAL_LOG
 	CheckMenuItem(menu, IDM_LOG_SERIAL, MF_UNCHECKED);
 # endif
+#ifdef USE_NETWORK
 # ifdef ENABLE_NIC_LOG
 	/*FIXME: should be network_setlog(1:0) */
 	CheckMenuItem(menu, IDM_LOG_NIC, MF_UNCHECKED);
 # endif
+#endif
 #endif
 
 	CheckMenuItem(menu, IDM_VID_FORCE43, MF_UNCHECKED);
@@ -1535,10 +1555,12 @@ void reset_menus(void)
 # ifdef ENABLE_SERIAL_LOG
 	CheckMenuItem(menu, IDM_LOG_SERIAL, serial_do_log ? MF_CHECKED : MF_UNCHECKED);
 # endif
+#ifdef USE_NETWORK
 # ifdef ENABLE_NIC_LOG
 	/*FIXME: should be network_setlog(1:0) */
 	CheckMenuItem(menu, IDM_LOG_NIC, nic_do_log ? MF_CHECKED : MF_UNCHECKED);
 # endif
+#endif
 #endif
 
 	CheckMenuItem(menu, IDM_VID_FORCE43, force_43 ? MF_CHECKED : MF_UNCHECKED);
@@ -1658,7 +1680,9 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
 
         init_cdrom_host_drives();
 
+#ifdef USE_NETWORK
 	network_init();
+#endif
 
 	hwndStatus = EmulatorStatusBar(hwnd, IDC_STATUS, hThisInstance);
 
@@ -2188,12 +2212,14 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					break;
 #endif
 
+#ifdef USE_NETWORK
 #ifdef ENABLE_NIC_LOG
 				case IDM_LOG_NIC:
 					/*FIXME: should be network_setlog() */
 					nic_do_log ^= 1;
 					CheckMenuItem(hmenu, IDM_LOG_NIC, nic_do_log ? MF_CHECKED : MF_UNCHECKED);
 					break;
+#endif
 #endif
 #endif
 
@@ -2267,7 +2293,9 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 							/* pclog_w(L"NVR path: %s\n", nvr_path); */
 							mem_resize();
 							loadbios();
+#ifdef USE_NETWORK
 							network_init();
+#endif
 							reset_menus();
 							update_status_bar_panes(hwndStatus);
 							resetpchard_init();

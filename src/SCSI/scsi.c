@@ -19,11 +19,11 @@
  */
 #include <stdlib.h>
 #include <string.h>
-#include "86box.h"
-#include "ibm.h"
-#include "timer.h"
-#include "device.h"
-#include "cdrom.h"
+#include "../86box.h"
+#include "../ibm.h"
+#include "../timer.h"
+#include "../device.h"
+#include "../cdrom.h"
 #include "scsi.h"
 #include "scsi_aha154x.h"
 #include "scsi_buslogic.h"
@@ -52,8 +52,8 @@ static SCSI_CARD scsi_cards[] = {
     { "Adaptec AHA-1540B",	"aha1540b",	&aha1540b_device,     aha_device_reset    },
     { "Adaptec AHA-1542CF",	"aha1542cf",	&aha1542cf_device,    aha_device_reset    },
     { "Adaptec AHA-1640",	"aha1640",	&aha1640_device,      aha_device_reset    },
-    { "BusLogic BT-542B",	"bt542b",	&buslogic_device,     BuslogicDeviceReset },
-    { "BusLogic BT-946C PCI",	"bt946c",	&buslogic_pci_device, BuslogicDeviceReset },
+    { "BusLogic BT-545C",	"bt545c",	&buslogic_device,     BuslogicDeviceReset },
+    { "BusLogic BT-958D PCI",	"bt958d",	&buslogic_pci_device, BuslogicDeviceReset },
     { "",			"",		NULL,		      NULL		  },
 };
 

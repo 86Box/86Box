@@ -35,7 +35,7 @@
 #include "../cdrom_image.h"
 #include "../cdrom_ioctl.h"
 #include "../cdrom_null.h"
-#include "../scsi_disk.h"
+#include "../SCSI/scsi_disk.h"
 #include "plat_iodev.h"
 #include "win.h"
 

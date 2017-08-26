@@ -15,10 +15,10 @@
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
-#include "ibm.h"
+#include "../ibm.h"
 #include "scsi.h"
 #include "scsi_disk.h"
-#include "cdrom.h"
+#include "../cdrom.h"
 
 
 static uint8_t scsi_null_device_sense[14] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };

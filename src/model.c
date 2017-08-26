@@ -35,7 +35,7 @@
 #include "fdc37c932fr.h"
 #include "gameport.h"
 #include "i82335.h"
-#include "hdd_ide_at.h"
+#include "HDD/hdd_ide_at.h"
 #include "intel.h"
 #include "intel_flash.h"
 #include "keyboard_amstrad.h"
@@ -70,7 +70,7 @@
 #include "VIDEO/vid_tandy.h"
 #include "w83877f.h"
 #include "wd76c10.h"
-#include "hdd_ide_xt.h"
+#include "HDD/hdd_ide_xt.h"
 #include "bugger.h"
 
 

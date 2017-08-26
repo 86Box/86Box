@@ -20,7 +20,7 @@
 #include "io.h"
 #include "lpt.h"
 #include "serial.h"
-#include "hdd_ide_at.h"
+#include "HDD/hdd_ide_at.h"
 #include "fdc37c669.h"
 
 static int fdc37c669_locked;
