@@ -1183,7 +1183,7 @@ aha_0x01:
 					BiosCmd->head &= 0xf;
 					BiosCmd->sector &= 0x1f;
 					pclog("C: %04X, H: %02X, S: %02X\n", BiosCmd->cylinder, BiosCmd->head, BiosCmd->sector);
-					dev->DataBuf[0] = HACommand03Handler(7, (dev->type == AHA_1640) ? 64 : 32, BiosCmd);
+					dev->DataBuf[0] = HACommand03Handler(7, BiosCmd);
 					pclog("BIOS Completion/Status Code %x\n", dev->DataBuf[0]);
 					dev->DataReplyLeft = 1;
 					break;
