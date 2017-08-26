@@ -386,7 +386,6 @@ typedef struct {
     int8_t	DmaChannel;
     int8_t	IrqEnabled;
     uint32_t	Base;
-    mem_mapping_t mmio_mapping;			/* MCA */
     uint8_t	pos_regs[8];			/* MCA */
 
     uint8_t	flags;				/* local flags */
@@ -1711,6 +1710,7 @@ aha_mca_write(int port, uint8_t val, void *priv)
     /* Save the MCA register value. */
     dev->pos_regs[port & 7] = val;
 
+pclog("MCA: 1640 [%02x] [%02x] [%02x]\n", dev->pos_regs[2], dev->pos_regs[3], dev->pos_regs[4]);
     /* Get the new assigned I/O base address. */
     if (dev->pos_regs[2] & 1) {
 	addr = 0x0000;
@@ -2057,8 +2057,10 @@ aha_init(int type)
 		dev->bios_path = L"roms/scsi/adaptec/aha1640.bin";
 
 		/* Enable MCA. */
-		dev->pos_regs[0] = 0x1F;
+		dev->pos_regs[0] = 0x1F;	/* MCA board ID */
 		dev->pos_regs[1] = 0x0F;	
+		dev->pos_regs[2] = 0x01;	/* as per ADF */
+		dev->pos_regs[5] = 0x20;	/* as per ADF */
 		mca_add(aha_mca_read, aha_mca_write, dev);
 		break;
     }	
@@ -2084,7 +2086,7 @@ aha_init(int type)
     }
 
     /* Enable the memory. */
-    if (dev->type != AHA_1640) {
+    if (dev->rom_addr != 0x000000) {
 	mem_mapping_enable(&aha_bios.mapping);
 	mem_mapping_set_addr(&aha_bios.mapping, dev->rom_addr, 0x4000);
     }
