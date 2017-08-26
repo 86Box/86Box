@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.12	2017/08/24
+ * Version:	@(#)scsi_aha154x.c	1.0.13	2017/08/25
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -41,7 +41,7 @@
 
 
 #define SCSI_DELAY_TM		1			/* was 50 */
-#define AHA_RESET_DURATION_NS	UINT64_C(25000000)
+#define AHA_RESET_DURATION_US	UINT64_C(5000)
 
 
 #define ROM_SIZE	16384				/* one ROM is 16K */
@@ -394,6 +394,7 @@ typedef struct {
     char	fwl, fwh;			/* firmware info */
 
     wchar_t	*bios_path;			/* path to BIOS image file */
+    uint32_t	rom_addr;			/* address of BIOS ROM */
     uint16_t	rom_ioaddr;			/* offset in BIOS of I/O addr */
     uint16_t	rom_shram;			/* index to shared RAM */
     uint16_t	rom_shramsz;			/* size of shared RAM */
@@ -655,15 +656,15 @@ static void
 aha_reset_ctrl(aha_t *dev, uint8_t Reset)
 {
     /* Say hello! */
-    pclog("Adaptec %s (IO=0x%04X, IRQ=%d, DMA=%d)\n",
-	dev->name, dev->Base, dev->Irq, dev->DmaChannel);
+    pclog("Adaptec %s (IO=0x%04X, IRQ=%d, DMA=%d) BIOS @ %06lX\n",
+	dev->name, dev->Base, dev->Irq, dev->DmaChannel, dev->rom_addr);
 
     aha_reset(dev);
     if (Reset) {
 	dev->Status |= STAT_STST;
 	dev->Status &= ~STAT_IDLE;
     }
-    ResetCB = AHA_RESET_DURATION_NS * TIMER_USEC;
+    ResetCB = AHA_RESET_DURATION_US * TIMER_USEC;
 }
 
 
@@ -1682,41 +1683,6 @@ aha_mca_read(int port, void *priv)
 }
 
 
-static uint16_t
-aha_mca_get_port(uint8_t pos_port)
-{
-    uint16_t addr = 0;
-
-    switch (pos_port & 0x00C7) {
-	case 0x01:
-		addr = 0x0130;
-		break;
-		
-	case 0x02:
-		addr = 0x0230;
-		break;
-		
-	case 0x03:
-		addr = 0x0330;
-		break;
-		
-	case 0x41:
-		addr = 0x0134;
-		break;
-		
-	case 0x42:
-		addr = 0x0234;
-		break;
-		
-	case 0x43:
-		addr = 0x0334;
-		break;
-    }
-		
-    return(addr);
-}
-
-
 static void
 aha_mca_write(int port, uint8_t val, void *priv)
 {
@@ -1725,27 +1691,95 @@ aha_mca_write(int port, uint8_t val, void *priv)
 	
     if (port < 0x0102) return;
 
-    addr = aha_mca_get_port(dev->pos_regs[3]);		
-    io_removehandler(addr, 4,
+    /* Remove the current I/O handler. */
+    io_removehandler(dev->Base, 4,
 		     aha_read, aha_readw, NULL,
 		     aha_write, aha_writew, NULL, dev);		
-		
+
+    /* Save the MCA register value. */
     dev->pos_regs[port & 7] = val;
 
+    /* Get the new assigned I/O base address. */
     if (dev->pos_regs[2] & 1) {
-	addr = aha_mca_get_port(dev->pos_regs[3]);
+	addr = 0x0000;
+	switch(dev->pos_regs[3] & 0xc7) {
+		case 0x01:
+			addr = 0x0130;
+			break;
+
+		case 0x02:
+			addr = 0x0230;
+			break;
+
+		case 0x03:
+			addr = 0x0330;
+			break;
+
+		case 0x41:
+			addr = 0x0134;
+			break;
+
+		case 0x42:
+			addr = 0x0234;
+			break;
+
+		case 0x43:
+			addr = 0x0334;
+			break;
+	}
 	dev->Base = addr;
+
+	/* Register the new I/O range. */
 	io_sethandler(addr, 4,
 		      aha_read, aha_readw, NULL,
 		      aha_write, aha_writew, NULL, dev);
+
+	/* Save the new IRQ and DMA channel values. */
+	dev->Irq = (dev->pos_regs[4] & 0x07) + 8;
+	dev->DmaChannel = dev->pos_regs[5] & 0x0f;	
+
+	/* Extract the BIOS ROM address info. */
+	if (! (dev->pos_regs[2] & 0x80)) {
+		switch(dev->pos_regs[3] & 0x38) {
+			case 0x38:		/* [1]=xx11 1xxx */
+				dev->rom_addr = 0xDC000;
+				break;
+
+			case 0x30:		/* [1]=xx11 0xxx */
+				dev->rom_addr = 0xD8000;
+				break;
+
+			case 0x28:		/* [1]=xx10 1xxx */
+				dev->rom_addr = 0xD4000;
+				break;
+
+			case 0x20:		/* [1]=xx10 0xxx */
+				dev->rom_addr = 0xD0000;
+				break;
+
+			case 0x18:		/* [1]=xx01 1xxx */
+				dev->rom_addr = 0xCC000;
+				break;
+
+			case 0x10:		/* [1]=xx01 0xxx */
+				dev->rom_addr = 0xC8000;
+				break;
+		}
+	} else {
+		/* Disabled. */
+		dev->rom_addr = 0x000000;
+	}
     }
-	
-    dev->Irq = (dev->pos_regs[4] & 0x07) + 8;
-    dev->DmaChannel = dev->pos_regs[5] & 0x0f;	
 
     /* Initialize the device if fully configured. */
     if (dev->Base != 0 && dev->Irq != 0 && dev->DmaChannel != 0) {
 	aha_reset_ctrl(dev, CTRL_HRST);
+
+	/* Enable the memory. */
+	if (dev->rom_addr != 0x000000) {
+		mem_mapping_enable(&aha_bios.mapping);
+		mem_mapping_set_addr(&aha_bios.mapping, dev->rom_addr, 0x4000);
+	}
     }
 }
 
@@ -1902,9 +1936,8 @@ again:
 	goto again;
     }
 
-    /* Enable the memory. */
-    mem_mapping_enable(&aha_bios.mapping);
-    mem_mapping_set_addr(&aha_bios.mapping, memaddr, size);
+    /* Save the BIOS address. */
+    dev->rom_addr = memaddr;
 }
 
 
@@ -2009,6 +2042,7 @@ aha_init(int type)
 
 	case AHA_1640:
 		strcpy(dev->name, "AHA-1640");
+		dev->bios_path = L"roms/scsi/adaptec/aha1640.bin";
 
 		/* Enable MCA. */
 		dev->pos_regs[0] = 0x1F;
@@ -2017,7 +2051,7 @@ aha_init(int type)
 		break;
     }	
     ResetDev = dev;
-	
+
     /* Initialize ROM BIOS if needed. */
     aha_setbios(dev, bios);
 
@@ -2035,6 +2069,12 @@ aha_init(int type)
 
 	/* Initialize the device. */
 	aha_reset_ctrl(dev, CTRL_HRST);
+    }
+
+    /* Enable the memory. */
+    if (dev->type != AHA_1640) {
+	mem_mapping_enable(&aha_bios.mapping);
+	mem_mapping_set_addr(&aha_bios.mapping, dev->rom_addr, 0x4000);
     }
 
     return(dev);
