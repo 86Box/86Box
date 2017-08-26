@@ -1421,7 +1421,7 @@ static void BuslogicIDCheck(uint8_t id, uint8_t lun)
 }
 
 /* This returns the completion code. */
-uint8_t HACommand03Handler(uint8_t last_id, uint8_t max_heads, BIOSCMD *BiosCmd)
+uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd)
 {
 	uint32_t dma_address;	
 	int lba = (BiosCmd->cylinder << 9) + (BiosCmd->head << 5) + BiosCmd->sector;
@@ -1429,11 +1429,6 @@ uint8_t HACommand03Handler(uint8_t last_id, uint8_t max_heads, BIOSCMD *BiosCmd)
 	int block_shift = 9;
 	uint8_t ret = 0;
 	uint8_t cdb[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
-	if (max_heads == 64)
-	{
-		lba = (BiosCmd->cylinder << 11) + (BiosCmd->head << 5) + BiosCmd->sector;
-	}
 
 	SpecificLog("BIOS Command = 0x%02X\n", BiosCmd->command);	
 	
@@ -1978,16 +1973,18 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 						temp = BiosCmd->id;
 						BiosCmd->id = BiosCmd->lun;
 						BiosCmd->lun = temp;
-					}						
+					}
+					BiosCmd->head &= 0xf;
+					BiosCmd->sector &= 0x1f;
 					SpecificLog("C: %04X, H: %02X, S: %02X\n", BiosCmd->cylinder, BiosCmd->head, BiosCmd->sector);
-					bl->DataBuf[0] = HACommand03Handler(15, (bl->chip == CHIP_BUSLOGIC_MCA) ? 64 : 32, BiosCmd);
+					bl->DataBuf[0] = HACommand03Handler(15, BiosCmd);
 					SpecificLog("BIOS Completion/Status Code %x\n", bl->DataBuf[0]);
 					bl->DataReplyLeft = 1;
 					break;
 
 				case 0x04:
 					pclog("Inquire Board\n");
-					bl->DataBuf[0] = 0x41;
+					bl->DataBuf[0] = (bl->chip == CHIP_BUSLOGIC_MCA) ? 0x42 : 0x41;
 					bl->DataBuf[1] = 0x41;
 					bl->DataBuf[2] = (bl->chip == CHIP_BUSLOGIC_PCI) ? '5' : '2';
 					bl->DataBuf[3] = (bl->chip == CHIP_BUSLOGIC_PCI) ? '0' : '2';

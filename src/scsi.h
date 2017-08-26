@@ -320,7 +320,7 @@ typedef struct
 } BIOSCMD;
 #pragma pack(pop)
 
-extern uint8_t HACommand03Handler(uint8_t last_id, uint8_t max_heads, BIOSCMD *BiosCmd);
+extern uint8_t HACommand03Handler(uint8_t last_id, BIOSCMD *BiosCmd);
 
 
 /*
