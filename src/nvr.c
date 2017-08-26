@@ -25,6 +25,7 @@
 #include "CPU/cpu.h"
 #include "device.h"
 #include "io.h"
+#include "jim.h"
 #include "mem.h"
 #include "model.h"
 #include "nmi.h"
@@ -278,6 +279,12 @@ void savenvr(void)
 
 	wchar_t *model_name;
 	wchar_t *nvr_name;
+
+	if (romset == ROM_EUROPC)
+	{
+		jim_save_nvr();
+		return;
+	}
 
 	model_name = (wchar_t *) malloc((strlen(model_get_internal_name_ex(oldmodel)) << 1) + 2);
 	mbstowcs(model_name, model_get_internal_name_ex(oldmodel), strlen(model_get_internal_name_ex(oldmodel)) + 1);
