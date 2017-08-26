@@ -386,22 +386,22 @@ amstrad.o:	ibm.h CPU/cpu.h io.h device.h model.h keyboard.h lpt.h mouse.h
 
 bugger.o:	ibm.h io.h bugger.h
 
-cdrom.o:	86box.h cdrom.h ibm.h hdd_ide_at.h piix.h scsi.h timer.h \
+cdrom.o:	86box.h cdrom.h ibm.h HDD/hdd_ide_at.h piix.h SCSI/scsi.h timer.h \
 		WIN/plat_iodev.h
 
 cdrom_dosbox.o:	cdrom_dosbox.h
 
 cdrom_image.o:	config.h cdrom_dosbox.h cdrom.h cdrom_image.h cdrom_null.h
 
-cdrom_ioctl.o:	ibm.h cdrom.h cdrom_ioctl.h scsi.h
+cdrom_ioctl.o:	ibm.h cdrom.h cdrom_ioctl.h SCSI/scsi.h
 
 cdrom_null.o:	ibm.h cdrom.h cdrom_ioctl.h
 
 compaq.o:	ibm.h CPU/cpu.h mem.h device.h model.h
 
 config.o:	cdrom.h config.h device.h disc.h fdc.h fdd.h ibm.h \
-		CPU/cpu.h gameport.h hdd_ide_at.h hdd.h model.h mouse.h \
-		NETWORK/network.h nvr.h scsi.h WIN/plat_joystick.h \
+		CPU/cpu.h gameport.h HDD/hdd_ide_at.h HDD/hdd.h model.h mouse.h \
+		NETWORK/network.h nvr.h SCSI/scsi.h WIN/plat_joystick.h \
 		WIN/plat_midi.h SOUND/snd_dbopl.h SOUND/snd_mpu401.h \
 		SOUND/snd_opl.h SOUND/sound.h VIDEO/video.h WIN/win.h \
 		WIN/resource.h WIN/win_language.h
@@ -426,11 +426,11 @@ dma.o:		ibm.h CPU/x86.h mem.h io.h dma.h
 
 fdc.o:		ibm.h disc.h dma.h fdc.h fdd.h io.h pic.h timer.h
 
-fdc37c665.o:	ibm.h disc.h fdc.h fdd.h hdd_ide_at.h io.h lpt.h serial.h \
-		fdc37c665.h disc.h fdc.h fdd.h io.h hdd_ide_at.h \
+fdc37c665.o:	ibm.h disc.h fdc.h fdd.h HDD/hdd_ide_at.h io.h lpt.h serial.h \
+		fdc37c665.h disc.h fdc.h fdd.h io.h HDD/hdd_ide_at.h \
 		lpt.h serial.h fdc37c669.h
 
-fdc37c932fr.o:	ibm.h disc.h fdc.h fdd.h hdd_ide_at.h io.h lpt.h \
+fdc37c932fr.o:	ibm.h disc.h fdc.h fdd.h HDD/hdd_ide_at.h io.h lpt.h \
 		serial.h fdc37c932fr.h
 
 fdd.o:		ibm.h disc.h fdc.h fdd.h
@@ -441,26 +441,26 @@ gameport.o:	ibm.h CPU/cpu.h device.h io.h timer.h gameport.h \
 		joystick_ch_flightstick_pro.h joystick_standard.h \
 		joystick_sw_pad.h joystick_tm_fcs.h plat_joystick.h
 
-hdd.o:		ibm.h CPU/cpu.h device.h hdd.h model.h hdd_esdi_at.h \
-		hdd_esdi_mca.h hdd_mfm_at.h hdd_mfm_xebec.h hdd_ide_xt.h
+hdd.o:		ibm.h CPU/cpu.h device.h HDD/hdd.h model.h HDD/hdd_esdi_at.h \
+		HDD/hdd_esdi_mca.h HDD/hdd_mfm_at.h HDD/hdd_mfm_xebec.h HDD/hdd_ide_xt.h
 
-hdd_image.o:	ibm.h hdd_ide_at.h hdd_image.h
+hdd_image.o:	ibm.h HDD/hdd_ide_at.h HDD/hdd_image.h
 
 hdd_esdi_at.o:	ibm.h device.h hdd_image.h io.h mem.h pic.h rom.h timer.h \
-		hdd_esdi_at.h
+		HDD/hdd_esdi_at.h
 
-hdd_esdi_mca.o:	ibm.h device.h dma.h hdd_image.h io.h mca.h mem.h \
-		pic.h rom.h timer.h hdd_esdi_mca.h
+hdd_esdi_mca.o:	ibm.h device.h dma.h HDD/hdd_image.h io.h mca.h mem.h \
+		pic.h rom.h timer.h HDD/hdd_esdi_mca.h
 
-hdd_ide_at.o:	86box.h cdrom.h hdd_image.h ibm.h io.h pic.h timer.h \
-		cdrom.h scsi.h hdd_ide_at.h
+hdd_ide_at.o:	86box.h cdrom.h HDD/hdd_image.h ibm.h io.h pic.h timer.h \
+		cdrom.h SCSI/scsi.h HDD/hdd_ide_at.h
 
-hdd_ide_xt.o:	ibm.h io.h mem.h rom.h device.h hdd_ide_at.h hdd_ide_xt.h
+hdd_ide_xt.o:	ibm.h io.h mem.h rom.h device.h HDD/hdd_ide_at.h HDD/hdd_ide_xt.h
 
-hdd_mfm_at.o:	ibm.h device.h hdd_image.h io.h pic.h timer.h hdd_mfm_at.h
+hdd_mfm_at.o:	ibm.h device.h HDD/hdd_image.h io.h pic.h timer.h HDD/hdd_mfm_at.h
 
-hdd_mfm_xebec.o: ibm.h device.h dma.h hdd_image.h io.h mem.h pic.h rom.h \
-		timer.h hdd_mfm_xebec.h
+hdd_mfm_xebec.o: ibm.h device.h dma.h HDD/hdd_image.h io.h mem.h pic.h rom.h \
+		timer.h HDD/hdd_mfm_xebec.h
 
 headland.o:	ibm.h CPU/cpu.h io.h mem.h device.h model.h
 
@@ -529,14 +529,14 @@ memregs.o:	ibm.h io.h memregs.h
 
 model.o:	ibm.h io.h mem.h rom.h device.h model.h CPU/cpu.h \
 		mouse.h cdrom.h disc.h dma.h fdc.h fdc37c665.h fdc37c669.h \
-		fdc37c932fr.h gameport.h hdd_ide_at.h intel.h intel_flash.h \
+		fdc37c932fr.h gameport.h HDD/hdd_ide_at.h intel.h intel_flash.h \
 		keyboard_amstrad.h keyboard_at.h keyboard_olim24.h \
 		keyboard_pcjr.h keyboard_xt.h lpt.h mem.h memregs.h \
 		nmi.h nvr.h pc87306.h pci.h pic.h piix.h pit.h ps2_mca.h \
 		serial.h sis85c471.h sio.h SOUND/snd_ps1.h SOUND/snd_pssj.h \
 		SOUND/snd_sn76489.h tandy_eeprom.h tandy_rom.h \
 		VIDEO/vid_pcjr.h VIDEO/vid_tandy.h w83877f.h wd76c10.h \
-		hdd_ide_xt.h bugger.h
+		HDD/hdd_ide_xt.h bugger.h
 
 mouse.o:	ibm.h CPU/cpu.h device.h model.h mouse.h keyboard_olim24.h
 
@@ -561,22 +561,22 @@ pc.o:		86box.h ibm.h mem.h CPU/cpu.h CPU/x86_ops.h CPU/codegen.h \
 		dma.h nvr.h pic.h pit.h timer.h device.h model.h disc.h \
 		disc_86f.h disc_fdi.h disc_imd.h disc_img.h disc_td0.h \
 		disc_random.h config.h fdc.h fdd.h gameport.h plat_joystick.h \
-		plat_midi.h hdd.h hdd_ide_at.h cdrom.h cdrom_ioctl.h \
-		cdrom_image.h cdrom_null.h scsi.h keyboard.h plat_keyboard.h \
+		plat_midi.h HDD/hdd.h HDD/hdd_ide_at.h cdrom.h cdrom_ioctl.h \
+		cdrom_image.h cdrom_null.h SCSI/scsi.h keyboard.h plat_keyboard.h \
 		keyboard_at.h mouse.h plat_mouse.h NETWORK/network.h serial.h \
 		SOUND/sound.h SOUND/snd_cms.h SOUND/snd_dbopl.h \
 		SOUND/snd_mpu401.h SOUND/snd_opl.h SOUND/snd_gus.h \
 		SOUND/snd_sb.h SOUND/snd_speaker.h SOUND/snd_ssi2001.h \
 		VIDEO/video.h VIDEO/vid_voodoo.h WIN/plat_ui.h
 
-pc87306.o:	ibm.h disc.h fdc.h fdd.h hdd_ide_at.h io.h lpt.h serial.h \
+pc87306.o:	ibm.h disc.h fdc.h fdd.h HDD/hdd_ide_at.h io.h lpt.h serial.h \
 		pc87306.h
 
 pci.o:		ibm.h io.h mem.h pic.h pci.h
 
 pic.o:		ibm.h io.h pic.h pit.h
 
-piix.o:		ibm.h dma.h hdd_ide_at.h io.h mem.h pci.h piix.h
+piix.o:		ibm.h dma.h HDD/hdd_ide_at.h io.h mem.h pci.h piix.h
 
 pit.o:		ibm.h CPU/cpu.h dma.h io.h pic.h pit.h device.h timer.h \
 		model.h SOUND/snd_speaker.h VIDEO/video.h
@@ -598,35 +598,35 @@ rtc.o:		nvr.h rtc.h
 
 scat.o:		ibm.h CPU/cpu.h io.h mem.h device.h model.h
 
-scsi.o:		86box.h ibm.h timer.h device.h cdrom.h scsi.h \
-		scsi_aha154x.h scsi_buslogic.h
+scsi.o:		86box.h ibm.h timer.h device.h cdrom.h SCSI/scsi.h \
+		SCSI/scsi_aha154x.h SCSI/scsi_buslogic.h
 
-scsi_bios_command.o:	ibm.h dma.h scsi.h scsi_bios_command.h scsi_device.h
+scsi_bios_command.o:	ibm.h dma.h SCSI/scsi.h SCSI/scsi_bios_command.h SCSI/scsi_device.h
 
-scsi_device.o:	ibm.h scsi.h scsi_disk.h cdrom.h
+scsi_device.o:	ibm.h SCSI/scsi.h SCSI/scsi_disk.h cdrom.h
 
 scsi_aha154x.o:	ibm.h io.h mca.h mem.h mca.h rom.h dma.h pic.h timer.h \
-		device.h scsi.h scsi_bios_command.h scsi_aha154x.h \
+		device.h SCSI/scsi.h SCSI/scsi_bios_command.h SCSI/scsi_aha154x.h \
 
 scsi_buslogic.o: ibm.h io.h mem.h rom.h dma.h pic.h pci.h timer.h \
-		device.h scsi.h scsi_bios_command.h scsi_device.h \
-		scsi_buslogic.h
+		device.h SCSI/scsi.h SCSI/scsi_bios_command.h SCSI/scsi_device.h \
+		SCSI/scsi_buslogic.h
 
-scsi_disk.o:	86box.h cdrom.h hdd_image.h ibm.h hdd_ide_at.h piix.h scsi.h \
-		scsi_disk.h timer.h WIN/plat_iodev.h
+scsi_disk.o:	86box.h cdrom.h HDD/hdd_image.h ibm.h HDD/hdd_ide_at.h piix.h SCSI/scsi.h \
+		SCSI/scsi_disk.h timer.h WIN/plat_iodev.h
 
 serial.o:	ibm.h io.h pic.h timer.h serial.h plat_serial.h
 
 serial_old.o:	ibm.h io.h mouse.h pic.h serial.h timer.h
 
 sio.o:		ibm.h cdrom.h disc.h dma.h fdc.h keyboard_at.h io.h mem.h \
-		hdd_ide_at.h pci.h sio.h
+		HDD/hdd_ide_at.h pci.h sio.h
 
 sis496.o:	ibm.h CPU/cpu.h io.h mem.h pci.h device.h model.h
 
 sis50x.o:	ibm.h device.h io.h mem.h pci.h sis50x.h
 
-sis85c471.o:	ibm.h hdd_ide_at.h disc.h fdc.h fdd.h io.h lpt.h serial.h sis85c471.h
+sis85c471.o:	ibm.h HDD/hdd_ide_at.h disc.h fdc.h fdd.h io.h lpt.h serial.h sis85c471.h
 
 superio_detect.o:	ibm.h io.h disc.h fdd.h fdc.h superio_detect.h
 
@@ -668,7 +668,7 @@ wd76c10.o:	ibm.h disc.h fdc.h io.h mem.h serial.h wd76c10.h
 			CPU/x86_ops_stack.h CPU/x86_ops_string.h CPU/x86_ops_xchg.h \
 			CPU/386_ops.h
 
-808x.o:		ibm.h CPU/cpu.h CPU/x86.h keyboard.h mem.h nmi.h pic.h scsi.h timer.h
+808x.o:		ibm.h CPU/cpu.h CPU/x86.h keyboard.h mem.h nmi.h pic.h SCSI/scsi.h timer.h
 
 codegen.o:	ibm.h CPU/x86_ops.h mem.h CPU/codegen.h
 
@@ -712,7 +712,7 @@ midi.o:		device.h SOUND/midi.h ibm.h WIN/plat_midi.h WIN/plat_ticks.h SOUND/midi
 
 midi_fluidsynth.o:	config.h WIN/plat_dynld.h WIN/plat_thread.h WIN/plat_ui.h device.h SOUND/midi_fluidsynth.h SOUND/midi.h SOUND/sound.h
 
-midi_mt32.o:		SOUND/munt/c_interface/c_interface.h WIN/plat_thread.h ibm.h device.h mem.h rom.h MIDI/midi_mt32.h MIDI/midi.h \
+midi_mt32.o:		SOUND/munt/c_interface/c_interface.h WIN/plat_thread.h ibm.h device.h mem.h rom.h SOUND/midi_mt32.h SOUND/midi.h \
 			SOUND/sound.h
 
 midi_system.o:		device.h WIN/plat_midi.h SOUND/midi_system.h SOUND/midi.h
@@ -881,8 +881,8 @@ video.o:		ibm.h CPU/cpu.h io.h mem.h rom.h config.h device.h timer.h WIN/plat_th
 			VIDEO/vid_pc200.h VIDEO/vid_pcjr.h VIDEO/vid_ps1_svga.h VIDEO/vid_s3.h VIDEO/vid_s3_virge.h VIDEO/vid_tandy.h \
 			VIDEO/vid_tandysl.h VIDEO/vid_tgui9440.h VIDEO/vid_tvga.h VIDEO/vid_vga.h VIDEO/vid_wy700.h
 
-win.o:		86box.h device.h disc.h fdd.h hdd.h ibm.h CPU/cpu.h mem.h rom.h nvr.h config.h model.h hdd_ide_at.h cdrom.h cdrom_null.h \
-			cdrom_ioctl.h cdrom_image.h scsi.h scsi_disk.h VIDEO/video.h VIDEO/vid_ega.h mouse.h SOUND/sound.h SOUND/snd_dbopl.h \
+win.o:		86box.h device.h disc.h fdd.h hdd.h ibm.h CPU/cpu.h mem.h rom.h nvr.h config.h model.h HDD/hdd_ide_at.h cdrom.h cdrom_null.h \
+			cdrom_ioctl.h cdrom_image.h SCSI/scsi.h scsi_disk.h VIDEO/video.h VIDEO/vid_ega.h mouse.h SOUND/sound.h SOUND/snd_dbopl.h \
 			WIN/plat_keyboard.h WIN/plat_iodev.h WIN/plat_mouse.h WIN/plat_midi.h WIN/plat_thread.h WIN/plat_ticks.h WIN/plat_ui.h \
 			WIN/resource.h WIN/win.h WIN/win_cgapal.h WIN/win_ddraw.h WIN/win_d3d.h WIN/win_language.h
 
@@ -900,7 +900,7 @@ win_deviceconfig.o:	WIN/plat_midi.h WIN/resource.h WIN/win.h WIN/win_language.h
 
 win_dynld.o:	WIN/plat_dynld.h WIN/resource.h ibm.h
 
-win_iodev.o:	ibm.h device.h cdrom.h cdrom_image.h cdrom_ioctl.h cdrom_null.h scsi_disk.h WIN/plat_iodev.h WIN/resource.h WIN/win.h
+win_iodev.o:	ibm.h device.h cdrom.h cdrom_image.h cdrom_ioctl.h cdrom_null.h SCSI/scsi_disk.h WIN/plat_iodev.h WIN/resource.h WIN/win.h
 
 win_joystick.o:	device.h gameport.h WIN/plat_joystick.h WIN/resource.h WIN/win.h
 
@@ -918,7 +918,7 @@ win_opendir.o:	ibm.h WIN/plat_dir.h WIN/resource.h
 
 win_serial.o:	WIN/plat_thread.h WIN/plat_serial.h WIN/resource.h
 
-win_settings.o:	ibm.h mem.h CPU/cpu.h nvr.h device.h model.h cdrom.h disc.h fdd.h hdd.h hdd_ide_at.h scsi.h NETWORK/network.h SOUND/midi.h \
+win_settings.o:	ibm.h mem.h CPU/cpu.h nvr.h device.h model.h cdrom.h disc.h fdd.h HDD/hdd.h HDD/hdd_ide_at.h SCSI/scsi.h NETWORK/network.h SOUND/midi.h \
 		SOUND/sound.h SOUND/snd_dbopl.h SOUND/snd_mpu401.h VIDEO/video.h VIDEO/vid_voodoo.h gameport.h mouse.h WIN/plat_midi.h \
 		WIN/resource.h WIN/win.h WIN/win_language.h
 

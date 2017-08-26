@@ -4,7 +4,7 @@
   Expects aa55 back*/
 
 #include <string.h>
-#include "IBM.h"
+#include "ibm.h"
 #include "CPU/cpu.h"
 #include "dma.h"
 #include "io.h"
