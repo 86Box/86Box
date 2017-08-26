@@ -307,13 +307,13 @@ int scsi_hd_read_capacity(uint8_t id, uint8_t *cdb, uint8_t *buffer, uint32_t *l
 	buffer[3] = size & 0xff;
 	buffer[6] = 2;				/* 512 = 0x0200 */
 	*len = 8;
-	
-	pclog("Read Capacity\n");
-	pclog("buffer[0]=%x\n", buffer[0]);
-	pclog("buffer[1]=%x\n", buffer[1]);
-	pclog("buffer[2]=%x\n", buffer[2]);
-	pclog("buffer[3]=%x\n", buffer[3]);
-	
+
+	scsi_hd_log("Read Capacity\n");
+	scsi_hd_log("buffer[0]=%x\n", buffer[0]);
+	scsi_hd_log("buffer[1]=%x\n", buffer[1]);
+	scsi_hd_log("buffer[2]=%x\n", buffer[2]);
+	scsi_hd_log("buffer[3]=%x\n", buffer[3]);
+
 	return 1;
 }
 

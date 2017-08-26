@@ -39,7 +39,7 @@
 #include "scsi_buslogic.h"
 
 
-#define BUSLOGIC_RESET_DURATION_NS UINT64_C(250000)
+#define BUSLOGIC_RESET_DURATION_US UINT64_C(50000)
 
 
 /*
@@ -148,14 +148,16 @@ typedef struct {
     uint8_t          fInt13Extension :                 1;
     uint8_t          fReserved9 :                      1;
     uint8_t          fCDROMBoot :                      1;
-    unsigned char uReserved10 :                     5;
+    unsigned char uReserved10 :                     2;
+    uint8_t          fMultiBoot :                      1;
+    unsigned char uReserved11 :                     2;
     unsigned char uBootTargetId :                   4;
     unsigned char uBootChannel :                    4;
     uint8_t          fForceBusDeviceScanningOrder :    1;
-    unsigned char uReserved11 :                     7;
+    unsigned char uReserved12 :                     7;
     uint16_t      u16NonTaggedToAlternateLunPermittedMask;
     uint16_t      u16RenegotiateSyncAfterCheckConditionMask;
-    uint8_t       aReserved12[10];
+    uint8_t       aReserved14[10];
     uint8_t       aManufacturingDiagnostic[2];
     uint16_t      u16Checksum;
 } AutoSCSIRam;
@@ -612,11 +614,12 @@ BuslogicInitializeAutoSCSIRam(Buslogic_t *bl, uint8_t safe)
 
 	HALR->structured.autoSCSIData.cbInformation = 64;
 
-	HALR->structured.autoSCSIData.aHostAdaptertype[0] = (bl->chip == CHIP_BUSLOGIC_PCI) ? '9' : '5';
-	HALR->structured.autoSCSIData.aHostAdaptertype[1] = '4';
-	HALR->structured.autoSCSIData.aHostAdaptertype[2] = (bl->chip == CHIP_BUSLOGIC_PCI) ? '6' : '2';
-	HALR->structured.autoSCSIData.aHostAdaptertype[3] = (bl->chip == CHIP_BUSLOGIC_PCI) ? 'C' : 'B';
-	HALR->structured.autoSCSIData.aHostAdaptertype[4] = ' ';
+	HALR->structured.autoSCSIData.aHostAdaptertype[0] = ' ';
+	HALR->structured.autoSCSIData.aHostAdaptertype[1] = (bl->chip == CHIP_BUSLOGIC_PCI) ? '9' : '5';
+	HALR->structured.autoSCSIData.aHostAdaptertype[2] = '4';
+	HALR->structured.autoSCSIData.aHostAdaptertype[3] = (bl->chip == CHIP_BUSLOGIC_PCI) ? '6' : '2';
+	HALR->structured.autoSCSIData.aHostAdaptertype[4] = (bl->chip == CHIP_BUSLOGIC_PCI) ? 'C' : 'B';
+	HALR->structured.autoSCSIData.aHostAdaptertype[5] = ' ';
 
 	HALR->structured.autoSCSIData.fLevelSensitiveInterrupt = (bl->chip == CHIP_BUSLOGIC_PCI) ? 1 : 0;
 	HALR->structured.autoSCSIData.uSystemRAMAreForBIOS = 6;
@@ -672,7 +675,7 @@ BuslogicInitializeAutoSCSIRam(Buslogic_t *bl, uint8_t safe)
 
 	HALR->structured.autoSCSIData.uDMATransferRate = (bl->chip == CHIP_BUSLOGIC_ISA) ? 1 : 0;
 
-	HALR->structured.autoSCSIData.uSCSIId = 15;
+	HALR->structured.autoSCSIData.uSCSIId = 7;
 	HALR->structured.autoSCSIData.uSCSIConfiguration = 0x3F;
 	HALR->structured.autoSCSIData.uBusOnDelay = (bl->chip == CHIP_BUSLOGIC_PCI) ? 0 : 7;
 	HALR->structured.autoSCSIData.uBusOffDelay = (bl->chip == CHIP_BUSLOGIC_PCI) ? 0 : 4;
@@ -693,8 +696,12 @@ BuslogicInitializeAutoSCSIRam(Buslogic_t *bl, uint8_t safe)
 
 	HALR->structured.autoSCSIData.uAutoSCSIMaximumLUN = 7;
 
+	HALR->structured.autoSCSIData.fForceBusDeviceScanningOrder = 1;
+	HALR->structured.autoSCSIData.uReserved12 = 0x7f;
+
 	HALR->structured.autoSCSIData.fInt13Extension = safe ? 0 : 1;
 	HALR->structured.autoSCSIData.fCDROMBoot = safe ? 0 : 1;
+	HALR->structured.autoSCSIData.fMultiBoot = safe ? 0 : 1;
 }
 
 
@@ -749,7 +756,7 @@ BuslogicResetControl(Buslogic_t *bl, uint8_t Reset)
 	bl->Status |= STAT_STST;
 	bl->Status &= ~STAT_IDLE;
     }
-    BuslogicResetCallback = BUSLOGIC_RESET_DURATION_NS * TIMER_USEC;
+    BuslogicResetCallback = BUSLOGIC_RESET_DURATION_US * TIMER_USEC;
 }
 
 
@@ -1994,7 +2001,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					for (i=0; i<8; i++) {
 					    bl->DataBuf[i] = 0;
 					    for (j=0; j<8; j++) {
-						if (scsi_device_present(i, j))
+						if (scsi_device_present(i, j) && (i != 7))
 						    bl->DataBuf[i] |= (1 << j);
 					    }
 					}
@@ -2012,8 +2019,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 						bl->DataBuf[1] = 0;
 					{
 					}
-					/* bl->DataBuf[2] = 7; */	/* HOST ID */
-					bl->DataBuf[2] = 15;	/* HOST ID */
+					bl->DataBuf[2] = 7;	/* HOST ID */
 					bl->DataReplyLeft = 3;
 					break;
 
@@ -2095,7 +2101,6 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 						    bl->DataBuf[i-8] |= (1<<j);
 					    }
 					}
-					bl->DataBuf[7] = 0;
 					bl->DataReplyLeft = 8;
 					break;
 
@@ -2104,7 +2109,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					uint16_t TargetsPresentMask = 0;
 							
 					for (i=0; i<15; i++) {
-						if (scsi_device_present(i, 0))
+						if (scsi_device_present(i, 0) && (i != 7))
 						    TargetsPresentMask |= (1 << i);
 					}
 					bl->DataBuf[0] = TargetsPresentMask & 0xFF;
@@ -2303,7 +2308,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 							f = nvrfopen(BuslogicGetNVRFileName(bl), L"wb");
 							if (f)
 							{
-								fwrite(&(bl->LocalRAM.u8View[64]), 1, 64, f);
+								fwrite(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, f);
 								fclose(f);
 								f = NULL;
 							}
@@ -3039,10 +3044,12 @@ BuslogicInit(int chip)
 		}
 		else
 		{
-        		rom_init(&bl->bios, L"roms/scsi/buslogic/428A494G.BIN", 0xd8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
-			memset(bl->AutoSCSIROM, 0xff, 32768);
+        		/* rom_init(&bl->bios, L"roms/scsi/buslogic/428A494G.BIN", 0xd8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL); */
+        		/* rom_init(&bl->bios, L"roms/scsi/buslogic/BT9X6C_BIOS.rom", 0xd8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL); */
+        		rom_init(&bl->bios, L"roms/scsi/buslogic/Womper97.rom", 0xd8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 		}
 
+		memset(bl->AutoSCSIROM, 0xff, 32768);
 		f = romfopen(L"roms/scsi/buslogic/AutoSCSI.rom", L"rb");
 		if (f)
 		{
@@ -3062,18 +3069,6 @@ BuslogicInit(int chip)
 	      &BuslogicResetCallback, &BuslogicResetCallback, bl);
     timer_add(BuslogicCommandCallback,
 	      &BuslogicCallback, &BuslogicCallback, bl);
-
-    f = nvrfopen(BuslogicGetNVRFileName(bl), L"rb");
-    if (f)
-    {
-	fread(&(bl->LocalRAM.u8View[64]), 1, 64, f);
-	fclose(f);
-	f = NULL;
-    }
-    else
-    {
-	BuslogicInitializeAutoSCSIRam(bl, 0);
-    }
 
     if (bl->chip == CHIP_BUSLOGIC_PCI) {
 	bl->Card = pci_add(BuslogicPCIRead, BuslogicPCIWrite, bl);
@@ -3112,6 +3107,18 @@ BuslogicInit(int chip)
 	
     BuslogicResetControl(bl, CTRL_HRST);
     BuslogicInitializeLocalRAM(bl);
+
+    f = nvrfopen(BuslogicGetNVRFileName(bl), L"rb");
+    if (f)
+    {
+	fread(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, f);
+	fclose(f);
+	f = NULL;
+    }
+    else
+    {
+	BuslogicInitializeAutoSCSIRam(bl, 0);
+    }
 	
     return(bl);
 }
