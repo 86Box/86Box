@@ -174,12 +174,15 @@ int pci_irq_is_level(int irq)
 
 void pci_issue_irq(int irq)
 {
+	/* pclog("Issuing PCI IRQ %i: ", irq); */
 	if (pci_irq_is_level(irq))
 	{
+		/* pclog("Level\n"); */
 		picintlevel(1 << irq);
 	}
 	else
 	{
+		/* pclog("Edge\n"); */
 		picint(1 << irq);
 	}
 }
@@ -188,13 +191,12 @@ void pci_set_irq(int card, int pci_int)
 {
 	int irq = ((pci_int - PCI_INTA) + (pci_irq_routing[card] - PCI_INTA)) & 3;
 
-        if (pci_irq_routing[card])
+        if (pci_irq_routing[card] && (pci_irqs[irq] != PCI_IRQ_DISABLED))
         {
-                if (pci_irqs[irq] != PCI_IRQ_DISABLED/* && !pci_irq_active[card] */)
-			pci_issue_irq(pci_irqs[irq]);
-                /* pci_irq_active[card] = 1; */
+		pci_issue_irq(pci_irqs[irq]);
+
 		/* If the IRQ is set to edge, there is no need to hold it. */
-		if (!pci_irq_is_level(pci_irqs[irq]))
+		if (pci_irq_is_level(pci_irqs[irq]))
 		{
 			pci_irq_hold[pci_irqs[irq]] |= (1 << card);
 		}
@@ -206,12 +208,30 @@ void pci_clear_irq(int card, int pci_int)
 	int irq = ((pci_int - PCI_INTA) + (pci_irq_routing[card] - PCI_INTA)) & 3;
 
 	/* Do not clear the interrupt until we're the last card being serviced. */
-        if (pci_irq_routing[card])
+        if (pci_irq_routing[card] && (pci_irqs[irq] != PCI_IRQ_DISABLED))
         {
-		pci_irq_hold[pci_irqs[irq]] &= ~(1 << card);
-                if (pci_irqs[irq] != PCI_IRQ_DISABLED/* && pci_irq_active[card]*/ && !pci_irq_hold[pci_irqs[irq]])
-                        picintc(1 << pci_irqs[irq]);
-                /* pci_irq_active[card] = 0; */
+		/* pclog("Clearing PCI IRQ %i: ", pci_irqs[irq]); */
+
+		if (pci_irq_is_level(pci_irqs[irq]))
+		{
+			pci_irq_hold[pci_irqs[irq]] &= ~(1 << card);
+
+			/* pclog("Level "); */
+	                if (!pci_irq_hold[pci_irqs[irq]])
+			{
+				/* pclog("(clearing)\n"); */
+                	        picintc(1 << pci_irqs[irq]);
+			}
+			else
+			{
+				/* pclog("(held)\n"); */
+			}
+		}
+		else
+		{
+			/* pclog("Edge\n"); */
+               	        picintc(1 << pci_irqs[irq]);
+		}
         }
 }
 

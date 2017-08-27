@@ -38,7 +38,7 @@
 #include "scsi_buslogic.h"
 
 
-#define BUSLOGIC_RESET_DURATION_US UINT64_C(50000)
+#define BUSLOGIC_RESET_DURATION_US UINT64_C(50)
 
 
 /*
@@ -131,7 +131,7 @@ typedef struct {
     uint16_t	u16IgnoreInBIOSScanMask;
     unsigned char uPCIInterruptPin :                2;
     unsigned char uHostAdapterIoPortAddress :       2;
-    uint8_t          fStrictRoundRobinMode :           1;
+    uint8_t          fAggressiveRoundRobinMode :           1;
     uint8_t          fVesaBusSpeedGreaterThan33MHz :   1;
     uint8_t          fVesaBurstWrite :                 1;
     uint8_t          fVesaBurstRead :                  1;
@@ -466,7 +466,6 @@ typedef struct {
 typedef struct {
     rom_t	bios;
     int		UseLocalRAM;
-    int		StrictRoundRobinMode;
     int		ExtendedLUNCCBFormat;
     HALocalRAM	LocalRAM;
     Req_t Req;
@@ -560,7 +559,14 @@ BuslogicInterrupt(Buslogic_t *bl, int set)
 	{
 		if (set)
 		{
-			picint(1 << bl->Irq);
+			if (bl->LocalRAM.structured.autoSCSIData.fLevelSensitiveInterrupt)
+			{
+				picintlevel(1 << bl->Irq);
+			}
+			else
+			{
+				picint(1 << bl->Irq);
+			}
 			/* pclog("Interrupt Set\n"); */
 		}
 		else
@@ -593,7 +599,7 @@ BuslogicGetNVRFileName(Buslogic_t *bl)
 
 
 static void
-BuslogicInitializeAutoSCSIRam(Buslogic_t *bl, uint8_t safe)
+BuslogicAutoSCSIRamSetDefaults(Buslogic_t *bl, uint8_t safe)
 {
 	HALocalRAM *HALR = &bl->LocalRAM;
 
@@ -701,7 +707,6 @@ BuslogicInitializeAutoSCSIRam(Buslogic_t *bl, uint8_t safe)
 	HALR->structured.autoSCSIData.u16DeviceEnabledMask = 0xffff;
 	HALR->structured.autoSCSIData.u16WidePermittedMask = 0xffff;
 	HALR->structured.autoSCSIData.u16FastPermittedMask = 0xffff;
-	HALR->structured.autoSCSIData.u16SynchronousPermittedMask = 0xffff;
 	HALR->structured.autoSCSIData.u16DisconnectPermittedMask = 0xffff;
 
 	HALR->structured.autoSCSIData.uPCIInterruptPin = PCI_INTB;
@@ -713,6 +718,73 @@ BuslogicInitializeAutoSCSIRam(Buslogic_t *bl, uint8_t safe)
 	HALR->structured.autoSCSIData.fInt13Extension = safe ? 0 : 1;
 	HALR->structured.autoSCSIData.fCDROMBoot = safe ? 0 : 1;
 	HALR->structured.autoSCSIData.fMultiBoot = safe ? 0 : 1;
+	HALR->structured.autoSCSIData.fAggressiveRoundRobinMode = safe ? 0 : 1;	/* 1 = aggressive, 0 = strict */
+}
+
+
+static void BuslogicInitializeAutoSCSIRam(Buslogic_t *bl)
+{
+    FILE *f;
+
+    f = nvrfopen(BuslogicGetNVRFileName(bl), L"rb");
+    if (f)
+    {
+	fread(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, f);
+	fclose(f);
+	f = NULL;
+    }
+    else
+    {
+	BuslogicAutoSCSIRamSetDefaults(bl, 0);
+    }
+}
+
+
+static void
+BuslogicRaiseInterrupt(Buslogic_t *bl, int suppress, uint8_t Interrupt)
+{
+#if 0
+    if (bl->Interrupt & INTR_HACC) {
+	pclog("Pending IRQ\n");
+	bl->PendingInterrupt = Interrupt;
+    } else {
+	bl->Interrupt = Interrupt;
+	pclog("Raising IRQ %i\n", bl->Irq);
+	if (bl->IrqEnabled)
+		BuslogicInterrupt(bl, 1);
+    }
+#endif
+
+	if (Interrupt & (INTR_MBIF | INTR_MBOA))
+	{
+		if (!(bl->Interrupt & INTR_HACC))
+		{
+			bl->Interrupt |= Interrupt;	/* Report now. */
+		}
+		else
+		{
+			bl->PendingInterrupt |= Interrupt;	/* Report later. */
+		}
+	}
+	else if (Interrupt & INTR_HACC)
+	{
+		if (bl->Interrupt == 0 || bl->Interrupt == (INTR_ANY | INTR_HACC))
+		{
+			pclog("BuslogicRaiseInterrupt(): Interrupt=%02X\n", bl->Interrupt);
+		}
+		bl->Interrupt |= Interrupt;
+	}
+	else
+	{
+		pclog("BuslogicRaiseInterrupt(): Invalid interrupt state!\n");
+	}
+
+	bl->Interrupt |= INTR_ANY;
+
+	if (bl->IrqEnabled && !suppress)
+	{
+		BuslogicInterrupt(bl, 1);
+	}
 }
 
 
@@ -724,10 +796,9 @@ BuslogicClearInterrupt(Buslogic_t *bl)
     /* pclog("Lowering IRQ %i\n", bl->Irq); */
     BuslogicInterrupt(bl, 0);
     if (bl->PendingInterrupt) {
-	bl->Interrupt = bl->PendingInterrupt;
-	/* pclog("Buslogic: Raising Interrupt 0x%02X (Pending)\n", bl->Interrupt); */
+	/* pclog("Buslogic: Raising Interrupt 0x%02X (Pending)\n", bl->PendingInterrupt); */
 	if (bl->MailboxOutInterrupts || !(bl->Interrupt & INTR_MBOA)) {
-		if (bl->IrqEnabled)  BuslogicInterrupt(bl, 1);
+		BuslogicRaiseInterrupt(bl,  0, bl->PendingInterrupt);
 	}
 	bl->PendingInterrupt = 0;
     }
@@ -745,7 +816,6 @@ BuslogicReset(Buslogic_t *bl)
     bl->CmdParam = 0;
     bl->CmdParamLeft = 0;
     bl->IrqEnabled = 1;
-    bl->StrictRoundRobinMode = 0;
     bl->ExtendedLUNCCBFormat = 0;
     bl->MailboxOutPosCur = 0;
     bl->MailboxInPosCur = 0;
@@ -772,37 +842,22 @@ BuslogicResetControl(Buslogic_t *bl, uint8_t Reset)
 
 
 static void
-BuslogicCommandComplete(Buslogic_t *bl)
+BuslogicCommandComplete(Buslogic_t *bl, int suppress)
 {
 	pclog("BuslogicCommandComplete()\n");
 	bl->DataReply = 0;
 	bl->Status |= STAT_IDLE;
 
-    if (bl->Command != 0x02) {
-	bl->Status &= ~STAT_DFULL;
-	bl->Interrupt = (INTR_ANY | INTR_HACC);
-	pclog("Raising IRQ %i\n", bl->Irq);
-	if (bl->IrqEnabled)
-		BuslogicInterrupt(bl, 1);
-    }
+	if (bl->Command != 0x02)
+	{
+		bl->Status &= ~STAT_DFULL;
 
-    bl->Command = 0xFF;
-    bl->CmdParam = 0;	
-}
+		pclog("BuslogicCommandComplete(): Raising IRQ %i\n", bl->Irq);
+		BuslogicRaiseInterrupt(bl, suppress, INTR_HACC);
+   	}
 
-
-static void
-BuslogicRaiseInterrupt(Buslogic_t *bl, uint8_t Interrupt)
-{
-    if (bl->Interrupt & INTR_HACC) {
-	pclog("Pending IRQ\n");
-	bl->PendingInterrupt = Interrupt;
-    } else {
-	bl->Interrupt = Interrupt;
-	pclog("Raising IRQ %i\n", bl->Irq);
-	if (bl->IrqEnabled)
-		BuslogicInterrupt(bl, 1);
-    }
+	bl->Command = 0xFF;
+	bl->CmdParam = 0;	
 }
 
 
@@ -878,7 +933,7 @@ BuslogicMailboxIn(Buslogic_t *bl)
     if (bl->MailboxInPosCur >= bl->MailboxCount)
 		bl->MailboxInPosCur = 0;
 
-    BuslogicRaiseInterrupt(bl, INTR_MBIF | INTR_ANY);
+    BuslogicRaiseInterrupt(bl, 0, INTR_MBIF | INTR_ANY);
 
     BuslogicInOperation = 0;
 }
@@ -1321,7 +1376,7 @@ BuslogicRead(uint16_t Port, void *p)
 			bl->DataReply++;
 			bl->DataReplyLeft--;
 			if (!bl->DataReplyLeft) {
-				BuslogicCommandComplete(bl);
+				BuslogicCommandComplete(bl, 0);
 			}
 		}
 		break;
@@ -1399,6 +1454,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
     BuslogicPCIInformation_t *ReplyPI;
     char aModelName[] = "542B ";  /* Trailing \0 is fine, that's the filler anyway. */
     int cCharsToTransfer;
+    int suppress = 0;
     uint16_t cyl = 0;
     FILE *f;
 
@@ -1618,6 +1674,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					if (bl->CmdBuf[0] <= 1) {
 						bl->MailboxOutInterrupts = bl->CmdBuf[0];
 						pclog("Mailbox out interrupts: %s\n", bl->MailboxOutInterrupts ? "ON" : "OFF");
+						suppress = 1;
 					} else {
 						bl->Status |= STAT_INVCMD;
 					}
@@ -1652,7 +1709,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					for (i=0; i<8; i++) {
 					    bl->DataBuf[i] = 0;
 					    for (j=0; j<8; j++) {
-						if (scsi_device_present(i, j) && (i != 7))
+						if (scsi_device_present(i, j) && (i != bl->LocalRAM.structured.autoSCSIData.uSCSIId))
 						    bl->DataBuf[i] |= (1 << j);
 					    }
 					}
@@ -1670,7 +1727,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 						bl->DataBuf[1] = 0;
 					{
 					}
-					bl->DataBuf[2] = 7;	/* HOST ID */
+					bl->DataBuf[2] = bl->LocalRAM.structured.autoSCSIData.uSCSIId;	/* HOST ID */
 					bl->DataReplyLeft = 3;
 					break;
 
@@ -1762,7 +1819,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					for (i = 8; i < 15; i++) {
 					    bl->DataBuf[i-8] = 0;
 					    for (j=0; j<8; j++) {
-						if (scsi_device_present(i, j))
+						if (scsi_device_present(i, j) && (i != bl->LocalRAM.structured.autoSCSIData.uSCSIId))
 						    bl->DataBuf[i-8] |= (1<<j);
 					    }
 					}
@@ -1774,7 +1831,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					uint16_t TargetsPresentMask = 0;
 							
 					for (i=0; i<15; i++) {
-						if (scsi_device_present(i, 0) && (i != 7))
+						if (scsi_device_present(i, 0) && (i != bl->LocalRAM.structured.autoSCSIData.uSCSIId))
 						    TargetsPresentMask |= (1 << i);
 					}
 					bl->DataBuf[0] = TargetsPresentMask & 0xFF;
@@ -1788,8 +1845,9 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 						bl->IrqEnabled = 0;
 					else
 						bl->IrqEnabled = 1;
-					pclog("Lowering IRQ %i\n", bl->Irq);
-					BuslogicInterrupt(bl, 0);
+					/* pclog("Lowering IRQ %i\n", bl->Irq);
+					BuslogicInterrupt(bl, 0); */
+					suppress = 1;
 					break;
 
 				case 0x81:
@@ -1949,8 +2007,8 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					ReplyIESI->cMailbox = bl->MailboxCount;
 					ReplyIESI->uMailboxAddressBase = bl->MailboxOutAddr;
 					ReplyIESI->fHostWideSCSI = 1;						  /* This should be set for the BT-542B as well. */
+					ReplyIESI->fLevelSensitiveInterrupt = bl->LocalRAM.structured.autoSCSIData.fLevelSensitiveInterrupt;
 					if (bl->chip == CHIP_BUSLOGIC_PCI) {
-						ReplyIESI->fLevelSensitiveInterrupt = 1;
 						ReplyIESI->fHostUltraSCSI = 1;
 					}
 					memcpy(ReplyIESI->aFirmwareRevision, (bl->chip == CHIP_BUSLOGIC_PCI) ? "07B" : "21E", sizeof(ReplyIESI->aFirmwareRevision));
@@ -1964,10 +2022,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 				   1 is the aggressive round robin mode, which "hunts" for an active outgoing mailbox and then
 				   processes it. */
 				case 0x8F:
-					if (bl->CmdBuf[0] == 0)
-						bl->StrictRoundRobinMode = 1;
-					else if (bl->CmdBuf[0] == 1)
-						bl->StrictRoundRobinMode = 0;
+					bl->LocalRAM.structured.autoSCSIData.fAggressiveRoundRobinMode = bl->CmdBuf[0] & 1;
 
 					bl->DataReplyLeft = 0;
 					break;
@@ -1997,10 +2052,10 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					{
 						case 0:
 						case 2:
-							BuslogicInitializeAutoSCSIRam(bl, 0);
+							BuslogicAutoSCSIRamSetDefaults(bl, 0);
 							break;
 						case 3:
-							BuslogicInitializeAutoSCSIRam(bl, 3);
+							BuslogicAutoSCSIRamSetDefaults(bl, 3);
 							break;
 						case 1:
 							f = nvrfopen(BuslogicGetNVRFileName(bl), L"wb");
@@ -2079,6 +2134,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 							      bl);
 					}
 					bl->DataReplyLeft = 0;
+					suppress = 1;
 				} else {
 					bl->DataReplyLeft = 0;
 					bl->Status |= STAT_INVCMD;					
@@ -2158,7 +2214,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 		}
 		else if (!bl->CmdParamLeft)
 		{
-			BuslogicCommandComplete(bl);
+			BuslogicCommandComplete(bl, suppress);
 			pclog("No Command Parameters Left, completing command\n");
 		}
 		break;
@@ -2234,12 +2290,12 @@ BuslogicSenseBufferFree(Req_t *req, int Copy)
 		SenseBufferAddress = req->CmdBlock.new.SensePointer;
 	}
 
-	pclog("Request Sense address: %02X\n", SenseBufferAddress);
+	pclog("BuslogicSenseBufferFree(): Request Sense address: %02X\n", SenseBufferAddress);
 
 	pclog("BuslogicSenseBufferFree(): Writing %i bytes at %08X\n",
 					SenseLength, SenseBufferAddress);
 	DMAPageWrite(SenseBufferAddress, (char *)temp_sense, SenseLength);
-	pclog("Sense data written to buffer: %02X %02X %02X\n",
+	pclog("BuslogicSenseBufferFree(): Sense data written to buffer: %02X %02X %02X\n",
 		temp_sense[2], temp_sense[12], temp_sense[13]);
     }
 }
@@ -2259,13 +2315,12 @@ BuslogicSCSICommand(Buslogic_t *bl)
 
     target_cdb_len = scsi_device_cdb_length(Id, Lun);
 
-    if (!scsi_device_valid(Id, Lun))  fatal("Target on %02i:%02i has disappeared\n", Id, Lun);
+    if (!scsi_device_valid(Id, Lun))  fatal("BuslogicSCSICommand(): Target on %02i:%02i has disappeared\n", Id, Lun);
 
-    pclog("Target command being executed on: SCSI ID %i, SCSI LUN %i\n", Id, Lun);
+    pclog("BuslogicSCSICommand(): Target command being executed on: SCSI ID %i, SCSI LUN %i\n", Id, Lun);
 
-    pclog("SCSI Cdb[0]=0x%02X\n", req->CmdBlock.common.Cdb[0]);
-    for (i = 1; i < req->CmdBlock.common.CdbLength; i++) {
-	pclog("SCSI Cdb[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
+    for (i = 0; i < req->CmdBlock.common.CdbLength; i++) {
+	pclog("BuslogicSCSICommand(): SCSI Cdb[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
     }
 
     memset(temp_cdb, 0, target_cdb_len);
@@ -2282,7 +2337,7 @@ BuslogicSCSICommand(Buslogic_t *bl)
 
     BuslogicSenseBufferFree(req, (SCSIStatus != SCSI_STATUS_OK));
 
-    pclog("Request complete\n");
+    pclog("BuslogicSCSICommand(): Request complete\n");
 
     if (SCSIStatus == SCSI_STATUS_OK) {
 	BuslogicMailboxInSetup(bl, req->CCBPointer, &req->CmdBlock,
@@ -2307,6 +2362,16 @@ BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbox32_t *Mailb
     req->CCBPointer = CCBPointer;
     req->TargetID = bl->Mbx24bit ? req->CmdBlock.old.Id : req->CmdBlock.new.Id;
     req->LUN = bl->Mbx24bit ? req->CmdBlock.old.Lun : req->CmdBlock.new.Lun;
+
+    if (!bl->Mbx24bit)
+    {
+	if (req->CmdBlock.new.TagQueued || req->CmdBlock.new.LegacyTagEnable) {
+		fatal("BuslogicSCSIRequestSetup(): Attempting to queue tags\n");
+		BuslogicMailboxInSetup(bl, CCBPointer, &req->CmdBlock,
+				       CCB_INVALID_CCB, SCSI_STATUS_OK, MBI_ERROR);
+		return;
+	}
+    }
  
     Id = req->TargetID;
     Lun = req->LUN;
@@ -2316,7 +2381,7 @@ BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbox32_t *Mailb
 	return;
     }
 	
-    pclog("Scanning SCSI Target ID %i\n", Id);		
+    pclog("BuslogicSCSIRequestSetup(): Scanning SCSI Target ID %i\n", Id);		
 
     SCSIStatus = SCSI_STATUS_OK;
     SCSIDevices[Id][Lun].InitLength = 0;
@@ -2324,19 +2389,19 @@ BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbox32_t *Mailb
     BuslogicDataBufferAllocate(req, req->Is24bit);
 
     if (!scsi_device_present(Id, Lun)) {
-	pclog("SCSI Target ID %i and LUN %i have no device attached\n",Id,Lun);
+	pclog("BuslogicSCSIRequestSetup(): SCSI Target ID %i and LUN %i have no device attached\n",Id,Lun);
 	BuslogicDataBufferFree(req);
 	BuslogicSenseBufferFree(req, 0);
 	BuslogicMailboxInSetup(bl, CCBPointer, &req->CmdBlock,
 			       CCB_SELECTION_TIMEOUT,SCSI_STATUS_OK,MBI_ERROR);
     } else {
-	pclog("SCSI Target ID %i and LUN %i detected and working\n", Id, Lun);
+	pclog("BuslogicSCSIRequestSetup(): SCSI Target ID %i and LUN %i detected and working\n", Id, Lun);
 
-	pclog("Transfer Control %02X\n", req->CmdBlock.common.ControlByte);
-	pclog("CDB Length %i\n", req->CmdBlock.common.CdbLength);	
-	pclog("CCB Opcode %x\n", req->CmdBlock.common.Opcode);		
+	pclog("BuslogicSCSIRequestSetup(): Transfer Control %02X\n", req->CmdBlock.common.ControlByte);
+	pclog("BuslogicSCSIRequestSetup(): CDB Length %i\n", req->CmdBlock.common.CdbLength);	
+	pclog("BuslogicSCSIRequestSetup(): CCB Opcode %x\n", req->CmdBlock.common.Opcode);		
 	if (req->CmdBlock.common.ControlByte > 0x03) {
-		pclog("Invalid control byte: %02X\n",
+		pclog("BuslogicSCSIRequestSetup(): Invalid control byte: %02X\n",
 			req->CmdBlock.common.ControlByte);
 	}
 
@@ -2398,7 +2463,12 @@ BuslogicProcessMailbox(Buslogic_t *bl)
 
     CodeOffset = bl->Mbx24bit ? 0 : 7;
 
-    if (! bl->StrictRoundRobinMode) {
+#if 0
+    pclog("BuslogicProcessMailbox(): Operating in %s mode\n", bl->LocalRAM.structured.autoSCSIData.fAggressiveRoundRobinMode ? "aggressive" : "strict");
+#endif
+
+    /* 0 = strict, 1 = aggressive */
+    if (bl->LocalRAM.structured.autoSCSIData.fAggressiveRoundRobinMode) {
 	uint8_t MailboxCur = bl->MailboxOutPosCur;
 
 	/* Search for a filled mailbox - stop if we have scanned all mailboxes. */
@@ -2420,7 +2490,11 @@ BuslogicProcessMailbox(Buslogic_t *bl)
     }
 
     if (bl->MailboxOutInterrupts)
-	BuslogicRaiseInterrupt(bl, INTR_MBOA | INTR_ANY);
+	BuslogicRaiseInterrupt(bl, 0, INTR_MBOA | INTR_ANY);
+
+#if 0
+    pclog("BuslogicProcessMailbox(): Outgoing mailbox action code: %i\n", mb32.u.out.ActionCode);
+#endif
 
     /* Check if the mailbox is actually loaded. */
     if (mb32.u.out.ActionCode == MBO_FREE) {
@@ -2438,7 +2512,7 @@ BuslogicProcessMailbox(Buslogic_t *bl)
     }
 
     /* Advance to the next mailbox. */
-    if (bl->StrictRoundRobinMode)
+    if (! bl->LocalRAM.structured.autoSCSIData.fAggressiveRoundRobinMode)
 	BuslogicMailboxOutAdvance(bl);
 }
 
@@ -2706,14 +2780,6 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 }
 
 
-void
-BuslogicDeviceReset(void *p)
-{
-	Buslogic_t *dev = (Buslogic_t *) p;
-	BuslogicResetControl(dev, 1);
-}
-
-
 static void
 BuslogicInitializeLocalRAM(Buslogic_t *bl)
 {
@@ -2731,8 +2797,19 @@ BuslogicInitializeLocalRAM(Buslogic_t *bl)
 	bl->LocalRAM.structured.autoSCSIData.u16FastPermittedMask = ~0;
 	bl->LocalRAM.structured.autoSCSIData.u16SynchronousPermittedMask = ~0;
 	bl->LocalRAM.structured.autoSCSIData.u16DisconnectPermittedMask = ~0;
-	bl->LocalRAM.structured.autoSCSIData.fStrictRoundRobinMode = 0;
+	bl->LocalRAM.structured.autoSCSIData.fAggressiveRoundRobinMode = 0;
 	bl->LocalRAM.structured.autoSCSIData.u16UltraPermittedMask = ~0;
+}
+
+
+void
+BuslogicDeviceReset(void *p)
+{
+	Buslogic_t *dev = (Buslogic_t *) p;
+	BuslogicResetControl(dev, 1);
+
+	BuslogicInitializeLocalRAM(dev);
+	BuslogicInitializeAutoSCSIRam(dev);
 }
 
 
@@ -2887,20 +2964,10 @@ BuslogicInit(int chip)
     pclog("Buslogic on port 0x%04X\n", bl->Base);
 	
     BuslogicResetControl(bl, CTRL_HRST);
-    BuslogicInitializeLocalRAM(bl);
 
-    f = nvrfopen(BuslogicGetNVRFileName(bl), L"rb");
-    if (f)
-    {
-	fread(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, f);
-	fclose(f);
-	f = NULL;
-    }
-    else
-    {
-	BuslogicInitializeAutoSCSIRam(bl, 0);
-    }
-	
+    BuslogicInitializeLocalRAM(bl);
+    BuslogicInitializeAutoSCSIRam(bl);
+
     return(bl);
 }
 

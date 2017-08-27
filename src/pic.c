@@ -9,6 +9,7 @@ int intclear;
 int keywaiting=0;
 int pic_intpending;
 PIC pic, pic2;
+uint16_t pic_current;
 
 
 void pic_updatepending()
@@ -284,11 +285,9 @@ void pic2_init()
 
 void clearpic()
 {
-        pic.pend=pic.ins=0;
+        pic.pend=pic.ins=pic_current=0;
         pic_updatepending();
 }
-
-int pic_current[16];
 
 void picint(uint16_t num)
 {
@@ -329,9 +328,9 @@ void picintlevel(uint16_t num)
                 c = 9;
                 num = 1 << 9;
         }
-        if (!pic_current[c])
+        if (!(pic_current & num))
         {
-                pic_current[c]=1;
+                pic_current |= num;
                 if (num>0xFF)
                 {
 			if (!AT)
@@ -359,7 +358,7 @@ void picintc(uint16_t num)
                 c = 9;
                 num = 1 << 9;
         }
-        pic_current[c]=0;
+        pic_current &= ~num;
 
         if (num > 0xff)
         {
@@ -387,16 +386,19 @@ uint8_t picinterrupt()
         {
                 if (temp & (1 << c))
                 {
-                        pic.pend &= ~(1 << c);
-                        pic.ins |= (1 << c);
-                        pic_update_mask(&pic.mask2, pic.ins);                      
-                   
-                        pic_updatepending();
-                        if (!c)
-                                pit_set_gate(&pit2, 0, 0);
-                        
-                        if (pic.icw4 & 0x02)
-                                pic_autoeoi();
+			if (!(pic_current & (1 << c)))
+			{
+	                        pic.pend &= ~(1 << c);
+        	                pic.ins |= (1 << c);
+                	        pic_update_mask(&pic.mask2, pic.ins);                      
+
+	                        pic_updatepending();
+        	                if (!c)
+                	                pit_set_gate(&pit2, 0, 0);
+
+	                        if (pic.icw4 & 0x02)
+        	                        pic_autoeoi();
+			}
                                 
                         return c+pic.vector;
                 }
@@ -405,14 +407,17 @@ uint8_t picinterrupt()
         {
                 if (temp & (1 << 2))
                 {
-                        pic.pend &= ~(1 << 2);
-                        pic.ins |= (1 << 2);
-                        pic_update_mask(&pic.mask2, pic.ins);                      
-                        pic_updatepending();
-                        
-                        if (pic.icw4 & 0x02)
-                                pic_autoeoi();
-                                
+			if (!(pic_current & (1 << 2)))
+			{
+	                        pic.pend &= ~(1 << 2);
+        	                pic.ins |= (1 << 2);
+                	        pic_update_mask(&pic.mask2, pic.ins);                      
+	                        pic_updatepending();
+
+        	                if (pic.icw4 & 0x02)
+                	                pic_autoeoi();
+			}
+
                         return c+pic.vector;
                 }
 	}
@@ -421,19 +426,22 @@ uint8_t picinterrupt()
                 uint8_t temp2 = pic2.pend & ~pic2.mask;
                 for (c = 0; c < 8; c++)
                 {
-                        if (temp2 & (1 << c))
+	                if (temp2 & (1 << c))
                         {
-                                pic2.pend &= ~(1 << c);
-                                pic2.ins |= (1 << c);
-                                pic_update_mask(&pic2.mask2, pic2.ins);
-                        
-                                pic.ins |= (1 << 2); /*Cascade IRQ*/
-                                pic_update_mask(&pic.mask2, pic.ins);
+				if (!(pic_current & (256 << c)))
+				{
+	                                pic2.pend &= ~(1 << c);
+        	                        pic2.ins |= (1 << c);
+	                                pic_update_mask(&pic2.mask2, pic2.ins);
 
-                                pic_updatepending();
+	                                pic.ins |= (1 << 2); /*Cascade IRQ*/
+        	                        pic_update_mask(&pic.mask2, pic.ins);
 
-                                if (pic2.icw4 & 0x02)
-                                        pic2_autoeoi();
+	                                pic_updatepending();
+
+	                                if (pic2.icw4 & 0x02)
+        	                                pic2_autoeoi();
+				}
 
                                 return c+pic2.vector;
                         }
@@ -443,13 +451,16 @@ uint8_t picinterrupt()
         {
                 if (temp & (1 << c))
                 {
-                        pic.pend &= ~(1 << c);
-                        pic.ins |= (1 << c);
-                        pic_update_mask(&pic.mask2, pic.ins);                      
-                        pic_updatepending();
+			if (!(pic_current & (1 << c)))
+			{
+	                        pic.pend &= ~(1 << c);
+        	                pic.ins |= (1 << c);
+                	        pic_update_mask(&pic.mask2, pic.ins);                      
+                        	pic_updatepending();
 
-                        if (pic.icw4 & 0x02)
-                                pic_autoeoi();
+	                        if (pic.icw4 & 0x02)
+        	                        pic_autoeoi();
+			}
 
                         return c+pic.vector;
                 }
