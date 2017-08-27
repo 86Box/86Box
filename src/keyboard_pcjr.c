@@ -10,9 +10,9 @@
 #include "pit.h"
 #include "timer.h"
 #include "device.h"
-#include "SOUND/sound.h"
-#include "SOUND/snd_speaker.h"
-#include "SOUND/snd_sn76489.h"
+#include "sound/sound.h"
+#include "sound/snd_speaker.h"
+#include "sound/snd_sn76489.h"
 #include "keyboard.h"
 #include "keyboard_pcjr.h"
 

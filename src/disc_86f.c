@@ -24,7 +24,7 @@
 #include <assert.h>
 #include <wchar.h>
 
-#include "LZF/lzf.h"
+#include "lzf/lzf.h"
 
 #include "config.h"
 #include "dma.h"

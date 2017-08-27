@@ -1,0 +1,20 @@
+{
+    "files.associations": {
+        "slirp.h": "c",
+        "midi_system.h": "c",
+        "midi.h": "c",
+        "snd_dbopl.h": "c",
+        "snd_mpu401.h": "c",
+        "snd_opl.h": "c",
+        "lzf.h": "c",
+        "hdd_ide_at.h": "c",
+        "sound.h": "c",
+        "snd_speaker.h": "c",
+        "keyboard.h": "c",
+        "snd_ps1.h": "c",
+        "snd_pssj.h": "c",
+        "snd_sn76489.h": "c",
+        "sio.h": "c",
+        "video.h": "c"
+    }
+}

@@ -22,7 +22,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "ibm.h"
-#include "CPU/cpu.h"
+#include "cpu/cpu.h"
 #include "device.h"
 #include "io.h"
 #include "jim.h"

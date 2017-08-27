@@ -17,11 +17,11 @@
  *		Copyright 2016,2017 Miran Grca.
  */
 #include "ibm.h"
-#include "CPU/cpu.h"
+#include "cpu/cpu.h"
 #include "config.h"
 #include "device.h"
 #include "model.h"
-#include "SOUND/sound.h"
+#include "sound/sound.h"
 
 
 #define DEVICE_MAX	256			/* max # of devices */

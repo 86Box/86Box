@@ -16,7 +16,7 @@
  *		Copyright 2016-2017 Miran Grca.
  */
 #include "ibm.h"
-#include "CPU/x86.h"
+#include "cpu/x86.h"
 #include "mem.h"
 #include "io.h"
 #include "dma.h"

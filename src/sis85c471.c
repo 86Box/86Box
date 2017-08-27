@@ -21,7 +21,7 @@
 #include "fdc.h"
 #include "fdd.h"
 #include "serial.h"
-#include "HDD/hdd_ide_at.h"
+#include "hdd/hdd_ide_at.h"
 #include "sis85c471.h"
 
 

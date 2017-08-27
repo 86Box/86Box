@@ -21,7 +21,7 @@
 #include "io.h"
 #include "lpt.h"
 #include "serial.h"
-#include "HDD/hdd_ide_at.h"
+#include "hdd/hdd_ide_at.h"
 #include "pc87306.h"
 
 static int pc87306_curreg;

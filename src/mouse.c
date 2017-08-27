@@ -18,7 +18,7 @@
  *		Copyright 2016-2017 Miran Grca.
  */
 #include "ibm.h"
-#include "CPU/cpu.h"
+#include "cpu/cpu.h"
 #include "device.h"
 #include "mouse.h"
 #include "model.h"

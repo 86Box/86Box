@@ -6,8 +6,8 @@
 #include "pit.h"
 #include "timer.h"
 #include "mouse.h"
-#include "SOUND/sound.h"
-#include "SOUND/snd_speaker.h"
+#include "sound/sound.h"
+#include "sound/snd_speaker.h"
 #include "keyboard.h"
 #include "keyboard_olim24.h"
 

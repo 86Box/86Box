@@ -18,7 +18,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "ibm.h"
-#include "CPU/cpu.h"
+#include "cpu/cpu.h"
 #include "io.h"
 #include "mem.h"
 #include "rom.h"
@@ -35,7 +35,7 @@
 #include "fdc37c932fr.h"
 #include "gameport.h"
 #include "i82335.h"
-#include "HDD/hdd_ide_at.h"
+#include "hdd/hdd_ide_at.h"
 #include "intel.h"
 #include "intel_flash.h"
 #include "keyboard_amstrad.h"
@@ -57,20 +57,20 @@
 #include "serial.h"
 #include "sis85c471.h"
 #include "sio.h"
-#include "SOUND/snd_ps1.h"
-#include "SOUND/snd_pssj.h"
-#include "SOUND/snd_sn76489.h"
+#include "sound/snd_ps1.h"
+#include "sound/snd_pssj.h"
+#include "sound/snd_sn76489.h"
 #if 0
 #include "superio_detect.h"
 #endif
 #include "tandy_eeprom.h"
 #include "tandy_rom.h"
 #include "um8669f.h"
-#include "VIDEO/vid_pcjr.h"
-#include "VIDEO/vid_tandy.h"
+#include "video/vid_pcjr.h"
+#include "video/vid_tandy.h"
 #include "w83877f.h"
 #include "wd76c10.h"
-#include "HDD/hdd_ide_xt.h"
+#include "hdd/hdd_ide_xt.h"
 #include "bugger.h"
 
 

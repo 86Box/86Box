@@ -24,7 +24,7 @@
 #include "ibm.h"
 #include "cdrom.h"
 #include "cdrom_ioctl.h"
-#include "SCSI/scsi.h"
+#include "scsi/scsi.h"
 
 #define MSFtoLBA(m,s,f)  ((((m*60)+s)*75)+f)
 
