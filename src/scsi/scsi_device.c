@@ -195,7 +195,7 @@ int scsi_device_read_capacity(uint8_t scsi_id, uint8_t scsi_lun, uint8_t *cdb, u
 		id = scsi_hard_disks[scsi_id][scsi_lun];
 		return scsi_hd_read_capacity(id, cdb, buffer, len);
 	case SCSI_CDROM:
-		id = scsi_hard_disks[scsi_id][scsi_lun];
+		id = scsi_cdrom_drives[scsi_id][scsi_lun];
 		return cdrom_read_capacity(id, cdb, buffer, len);
 	default:
 		return 0;

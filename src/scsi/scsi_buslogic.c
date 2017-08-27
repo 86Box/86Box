@@ -710,8 +710,6 @@ BuslogicInitializeAutoSCSIRam(Buslogic_t *bl, uint8_t safe)
 	HALR->structured.autoSCSIData.uAutoSCSIMaximumLUN = 7;
 
 	HALR->structured.autoSCSIData.fForceBusDeviceScanningOrder = 1;
-	HALR->structured.autoSCSIData.uReserved12 = 0x7f;
-
 	HALR->structured.autoSCSIData.fInt13Extension = safe ? 0 : 1;
 	HALR->structured.autoSCSIData.fCDROMBoot = safe ? 0 : 1;
 	HALR->structured.autoSCSIData.fMultiBoot = safe ? 0 : 1;
@@ -1904,7 +1902,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 							aModelName[0] = '9';
 							aModelName[1] = '5';
 							aModelName[2] = '8';
-							aModelName[3] = 'C';
+							aModelName[3] = 'D';
 							break;
 					}
 					cCharsToTransfer =   bl->DataReplyLeft <= sizeof(aModelName)
@@ -2499,7 +2497,6 @@ uint8_t	buslogic_pci_regs[256];
 bar_t	buslogic_pci_bar[3];
 
 
-#if 0
 static void
 BuslogicBIOSUpdate(Buslogic_t *bl)
 {
@@ -2514,20 +2511,19 @@ BuslogicBIOSUpdate(Buslogic_t *bl)
 	mem_mapping_enable(&bl->bios.mapping);
 	mem_mapping_set_addr(&bl->bios.mapping,
 			     bl->bios_addr, bl->bios_size);
-	pclog("BT-946C: BIOS now at: %06X\n", bl->bios_addr);
+	pclog("BT-958D: BIOS now at: %06X\n", bl->bios_addr);
     } else {
-	pclog("BT-946C: BIOS disabled\n");
+	pclog("BT-958D: BIOS disabled\n");
 	mem_mapping_disable(&bl->bios.mapping);
     }
 }
-#endif
 
 static uint8_t
 BuslogicPCIRead(int func, int addr, void *p)
 {
     Buslogic_t *bl = (Buslogic_t *)p;
 
-    pclog("BT-946C: Reading register %02X\n", addr & 0xff);
+    pclog("BT-958D: Reading register %02X\n", addr & 0xff);
 
     switch (addr) {
 	case 0x00:
@@ -2578,23 +2574,21 @@ BuslogicPCIRead(int func, int addr, void *p)
 		return 0x40;
 	case 0x2F:
 		return 0x10;
-#if 0
 	case 0x30:			/* PCI_ROMBAR */
-		pclog("BT-946C: BIOS BAR 00 = %02X\n", buslogic_pci_bar[2].addr_regs[0] & 0x01);
+		pclog("BT-958D: BIOS BAR 00 = %02X\n", buslogic_pci_bar[2].addr_regs[0] & 0x01);
 		return buslogic_pci_bar[2].addr_regs[0] & 0x01;
 	case 0x31:			/* PCI_ROMBAR 15:11 */
-		pclog("BT-946C: BIOS BAR 01 = %02X\n", (buslogic_pci_bar[2].addr_regs[1] & bl->bios_mask));
-		return (buslogic_pci_bar[2].addr_regs[1] & bl->bios_mask);
+		pclog("BT-958D: BIOS BAR 01 = %02X\n", (buslogic_pci_bar[2].addr_regs[1] & bl->bios_mask));
+		return buslogic_pci_bar[2].addr_regs[1];
 		break;
 	case 0x32:			/* PCI_ROMBAR 23:16 */
-		pclog("BT-946C: BIOS BAR 02 = %02X\n", buslogic_pci_bar[2].addr_regs[2]);
+		pclog("BT-958D: BIOS BAR 02 = %02X\n", buslogic_pci_bar[2].addr_regs[2]);
 		return buslogic_pci_bar[2].addr_regs[2];
 		break;
 	case 0x33:			/* PCI_ROMBAR 31:24 */
-		pclog("BT-946C: BIOS BAR 03 = %02X\n", buslogic_pci_bar[2].addr_regs[3]);
+		pclog("BT-958D: BIOS BAR 03 = %02X\n", buslogic_pci_bar[2].addr_regs[3]);
 		return buslogic_pci_bar[2].addr_regs[3];
 		break;
-#endif
 	case 0x3C:
 		return bl->Irq;
 	case 0x3D:
@@ -2611,7 +2605,7 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
     Buslogic_t *bl = (Buslogic_t *)p;
     uint8_t valxor;
 
-    pclog("BT-946C: Write value %02X to register %02X\n", val, addr & 0xff);
+    pclog("BT-958D: Write value %02X to register %02X\n", val, addr & 0xff);
 
     switch (addr) {
 	case 0x04:
@@ -2689,19 +2683,17 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 			}
 		}
 		return;	
-#if 0
+
 	case 0x30:			/* PCI_ROMBAR */
 	case 0x31:			/* PCI_ROMBAR */
 	case 0x32:			/* PCI_ROMBAR */
 	case 0x33:			/* PCI_ROMBAR */
 		buslogic_pci_bar[2].addr_regs[addr & 3] = val;
-		buslogic_pci_bar[2].addr_regs[1] &= bl->bios_mask;
-		buslogic_pci_bar[2].addr &= 0xffffe001;
-		bl->bios_addr = buslogic_pci_bar[2].addr;
-		pclog("BT-946C: BIOS BAR %02X = NOW %02X (%02X)\n", addr & 3, buslogic_pci_bar[2].addr_regs[addr & 3], val);
+		buslogic_pci_bar[2].addr &= 0xffffc001;
+		bl->bios_addr = buslogic_pci_bar[2].addr & 0xffffc000;
+		pclog("BT-958D: BIOS BAR %02X = NOW %02X (%02X)\n", addr & 3, buslogic_pci_bar[2].addr_regs[addr & 3], val);
 		BuslogicBIOSUpdate(bl);
 		return;
-#endif
 
 	case 0x3C:
 		buslogic_pci_regs[addr] = val;
@@ -2804,8 +2796,8 @@ BuslogicInit(int chip)
 			break;
 		case CHIP_BUSLOGIC_PCI:
 			bios_rom_name = L"roms/scsi/buslogic/BT-958D_BIOS.rom";
-			bios_rom_size = 0x8000;
-			bios_rom_mask = 0x7fff;
+			bios_rom_size = 0x4000;
+			bios_rom_mask = 0x3fff;
 			has_autoscsi_rom = 1;
 			autoscsi_rom_name = L"roms/scsi/buslogic/BT-958D_AutoSCSI.rom";
 			autoscsi_rom_size = 0x8000;
@@ -2823,10 +2815,9 @@ BuslogicInit(int chip)
 
 	if (bl->has_bios)
 	{
-		bl->bios_size = 0x8000;
+		bl->bios_size = bios_rom_size;
 
-		bl->bios_mask = (bl->bios_size >> 8) & 0xff;
-		bl->bios_mask = (0x100 - bl->bios_mask) & 0xff;
+		bl->bios_mask = 0xffffc000;
 
        		rom_init(&bl->bios, bios_rom_name, 0xd8000, bios_rom_size, bios_rom_mask, 0, MEM_MAPPING_EXTERNAL);
 
@@ -2875,26 +2866,22 @@ BuslogicInit(int chip)
         buslogic_pci_regs[0x07] = 2;
 #endif
 
-#if 0
 	/* Enable our BIOS space in PCI, if needed. */
 	if (bl->has_bios)
 	{
-		buslogic_pci_bar[2].addr = 0x000D8000;
+		buslogic_pci_bar[2].addr = 0xFFFFC000;
 	}
 	else
 	{
 		buslogic_pci_bar[2].addr = 0;
 	}
-#endif
 
 	mem_mapping_add(&bl->mmio_mapping, 0xfffd0000, 0x20,
 		        BuslogicMemRead, BuslogicMemReadW, BuslogicMemReadL,
 			BuslogicMemWrite, BuslogicMemWriteW, BuslogicMemWriteL,
 			NULL, MEM_MAPPING_EXTERNAL, bl);
 	mem_mapping_disable(&bl->mmio_mapping);
-#if 0
 	mem_mapping_disable(&bl->bios.mapping);
-#endif
     }
 	
     pclog("Buslogic on port 0x%04X\n", bl->Base);

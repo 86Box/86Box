@@ -25,16 +25,22 @@
 #include "scsi_bios_command.h"
 #include "scsi_device.h"
 
+/* #define ENABLE_SCSI_BIOS_COMMAND_LOG 0 */
+int scsi_bios_command_do_log = 0;
+
 static void
 scsi_bios_command_log(const char *format, ...)
 {
 #ifdef ENABLE_SCSI_BIOS_COMMAND_LOG
-	va_list ap;
-	
-	va_start(ap, format);
-	vprintf(format, ap);
-	va_end(ap);
-	fflush(stdout);
+	if (scsi_bios_command_do_log)
+	{
+		va_list ap;
+
+		va_start(ap, format);
+		vprintf(format, ap);
+		va_end(ap);
+		fflush(stdout);
+	}
 #endif
 }
 
@@ -133,7 +139,7 @@ int scsi_bios_command_15(uint8_t id, uint8_t lun, uint8_t *buffer)
 	return sc;
 }
 
-static void BuslogicIDCheck(uint8_t id, uint8_t lun)
+static void scsi_bios_command_id_check(uint8_t id, uint8_t lun)
 {
 	if (!scsi_device_valid(id, lun))
 	{
@@ -189,7 +195,7 @@ uint8_t scsi_bios_command(uint8_t last_id, BIOSCMD *BiosCmd, int8_t islba)
 			return 0;
 
 		case 0x01:	/* Read Status of Last Operation */
-			BuslogicIDCheck(BiosCmd->id, BiosCmd->lun);
+			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
 
 			/* Assuming 14 bytes because that's the default length for SCSI sense, and no command-specific
 			   indication is given. */
@@ -217,7 +223,7 @@ uint8_t scsi_bios_command(uint8_t last_id, BIOSCMD *BiosCmd, int8_t islba)
 			break;
 
 		case 0x02:	/* Read Desired Sectors to Memory */
-			BuslogicIDCheck(BiosCmd->id, BiosCmd->lun);
+			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
 
 			SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = sector_len << block_shift;
 
@@ -255,7 +261,7 @@ pclog("BIOS CMD(READ, %08lx, %d)\n", lba, BiosCmd->secount);
 			break;
 
 		case 0x03:	/* Write Desired Sectors from Memory */
-			BuslogicIDCheck(BiosCmd->id, BiosCmd->lun);
+			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
 
 			SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = sector_len << block_shift;
 
@@ -293,7 +299,7 @@ pclog("BIOS CMD(WRITE, %08lx, %d)\n", lba, BiosCmd->secount);
 			break;
 
 		case 0x04:	/* Verify Desired Sectors */
-			BuslogicIDCheck(BiosCmd->id, BiosCmd->lun);
+			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
 
 			cdb[0] = GPCMD_VERIFY_10;
 			cdb[1] = (BiosCmd->lun & 7) << 5;
@@ -321,7 +327,7 @@ pclog("BIOS CMD(WRITE, %08lx, %d)\n", lba, BiosCmd->secount);
 			break;
 
 		case 0x07:	/* Format Unit */
-			BuslogicIDCheck(BiosCmd->id, BiosCmd->lun);
+			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
 
 			cdb[0] = GPCMD_FORMAT_UNIT;
 			cdb[1] = (BiosCmd->lun & 7) << 5;
@@ -333,7 +339,7 @@ pclog("BIOS CMD(WRITE, %08lx, %d)\n", lba, BiosCmd->secount);
 			break;
 
 		case 0x08:	/* Read Drive Parameters */
-			BuslogicIDCheck(BiosCmd->id, BiosCmd->lun);
+			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
 
 			SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = 6;
 
@@ -361,7 +367,7 @@ pclog("BIOS CMD(WRITE, %08lx, %d)\n", lba, BiosCmd->secount);
 			break;
 
 		case 0x0C:	/* Seek */
-			BuslogicIDCheck(BiosCmd->id, BiosCmd->lun);
+			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
 
 			SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = sector_len << block_shift;
 
@@ -384,7 +390,7 @@ pclog("BIOS CMD(WRITE, %08lx, %d)\n", lba, BiosCmd->secount);
 			break;
 
 		case 0x10:	/* Test Drive Ready */
-			BuslogicIDCheck(BiosCmd->id, BiosCmd->lun);
+			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
 
 			cdb[0] = GPCMD_TEST_UNIT_READY;
 			cdb[1] = (BiosCmd->lun & 7) << 5;
@@ -396,7 +402,7 @@ pclog("BIOS CMD(WRITE, %08lx, %d)\n", lba, BiosCmd->secount);
 			break;
 
 		case 0x11:	/* Recalibrate */
-			BuslogicIDCheck(BiosCmd->id, BiosCmd->lun);
+			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
 
 			cdb[0] = GPCMD_REZERO_UNIT;
 			cdb[1] = (BiosCmd->lun & 7) << 5;
@@ -413,7 +419,7 @@ pclog("BIOS CMD(WRITE, %08lx, %d)\n", lba, BiosCmd->secount);
 			break;
 
 		case 0x15:	/* Read DASD Type */
-			BuslogicIDCheck(BiosCmd->id, BiosCmd->lun);
+			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
 
 			SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = 6;
 
