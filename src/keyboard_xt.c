@@ -10,8 +10,8 @@
 #include "timer.h"
 #include "device.h"
 #include "tandy_eeprom.h"
-#include "SOUND/sound.h"
-#include "SOUND/Snd_speaker.h"
+#include "sound/sound.h"
+#include "sound/snd_speaker.h"
 #include "keyboard.h"
 #include "keyboard_xt.h"
 

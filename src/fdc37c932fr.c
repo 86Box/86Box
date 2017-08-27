@@ -20,7 +20,7 @@
 #include "io.h"
 #include "lpt.h"
 #include "serial.h"
-#include "HDD/hdd_ide_at.h"
+#include "hdd/hdd_ide_at.h"
 #include "fdc37c932fr.h"
 
 static int fdc37c932fr_locked;

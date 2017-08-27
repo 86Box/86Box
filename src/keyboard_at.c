@@ -24,8 +24,8 @@
 #include "timer.h"
 #include "disc.h"
 #include "fdc.h"
-#include "SOUND/sound.h"
-#include "SOUND/snd_speaker.h"
+#include "sound/sound.h"
+#include "sound/snd_speaker.h"
 #include "keyboard.h"
 #include "keyboard_at.h"
 

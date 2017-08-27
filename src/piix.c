@@ -28,7 +28,7 @@
 #include "io.h"
 #include "mem.h"
 #include "pci.h"
-#include "HDD/hdd_ide_at.h"
+#include "hdd/hdd_ide_at.h"
 #include "piix.h"
 
 

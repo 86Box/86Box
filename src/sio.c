@@ -20,7 +20,7 @@
 #include "dma.h"
 #include "fdc.h"
 #include "keyboard_at.h"
-#include "HDD/hdd_ide_at.h"
+#include "hdd/hdd_ide_at.h"
 #include "io.h"
 #include "mem.h"
 #include "pci.h"

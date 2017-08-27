@@ -17,7 +17,7 @@
  */
 #include <string.h>
 #include "ibm.h"
-#include "CPU/cpu.h"
+#include "cpu/cpu.h"
 #include "mem.h"
 #include "pci.h"
 #include "device.h"

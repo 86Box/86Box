@@ -23,10 +23,10 @@
 #include "cdrom.h"
 #include "ibm.h"
 #include "piix.h"
-#include "SCSI/scsi.h"
+#include "scsi/scsi.h"
 #include "timer.h"
-#include "HDD/hdd_ide_at.h"
-#include "WIN/plat_iodev.h"
+#include "hdd/hdd_ide_at.h"
+#include "win/plat_iodev.h"
 
 /* Bits of 'status' */
 #define ERR_STAT		0x01

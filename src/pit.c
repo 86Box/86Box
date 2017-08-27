@@ -5,7 +5,7 @@
 
 #include <string.h>
 #include "ibm.h"
-#include "CPU/cpu.h"
+#include "cpu/cpu.h"
 #include "dma.h"
 #include "io.h"
 #include "pic.h"
@@ -13,8 +13,8 @@
 #include "device.h"
 #include "timer.h"
 #include "model.h"
-#include "SOUND/snd_speaker.h"
-#include "VIDEO/video.h"
+#include "sound/snd_speaker.h"
+#include "video/video.h"
 
 
 /*B0 to 40, two writes to 43, then two reads - value does not change!*/
