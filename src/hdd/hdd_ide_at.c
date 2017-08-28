@@ -28,6 +28,7 @@
 #include "hdd_image.h"
 #include "../io.h"
 #include "../pic.h"
+#include "../pci.h"
 #include "../timer.h"
 #include "../cdrom.h"
 #include "../scsi/scsi.h"
@@ -171,7 +172,21 @@ void ide_irq_raise(IDE *ide)
 	
 	if (!(ide->fdisk&2))
 	{
-		picint(1 << ide_irq[ide->board]);
+		if (PCI && (ide->board < 2))
+		{
+			if (pci_irq_is_level(ide_irq[ide->board]))
+			{
+				picintlevel(1 << ide_irq[ide->board]);
+			}
+			else
+			{
+				picint(1 << ide_irq[ide->board]);
+			}
+		}
+		else
+		{
+			picint(1 << ide_irq[ide->board]);
+		}
 
 		if (ide->board < 2)
 		{

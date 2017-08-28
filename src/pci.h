@@ -8,6 +8,7 @@ void pci_set_irq_routing(int card, int irq);
 void pci_set_card_routing(int card, int pci_int);
 void pci_set_irq(int card, int pci_int);
 void pci_clear_irq(int card, int pci_int);
+int pci_irq_is_level(int irq);
 
 #define PCI_REG_COMMAND 0x04
 
