@@ -378,92 +378,82 @@ void picintc(uint16_t num)
         pic_updatepending();
 }
 
+static uint8_t pic_process_interrupt(PIC* target_pic, int c)
+{
+	uint8_t pending = target_pic->pend & ~target_pic->mask;
+
+	int pic_int = c & 7;
+	int pic_int_num = 1 << pic_int;
+
+	int pic_cur_num = 1 << c;
+
+       	if (pending & pic_int_num)
+	{
+		if (!(pic_current & pic_cur_num))
+		{
+			target_pic->pend &= ~pic_int_num;
+		}
+		target_pic->ins |= pic_int_num;
+		pic_update_mask(&target_pic->mask2, target_pic->ins);
+
+		if (c >= 8)
+		{
+			pic.ins |= (1 << 2); /*Cascade IRQ*/
+			pic_update_mask(&pic.mask2, pic.ins);
+		}
+
+		pic_updatepending();
+
+		if (target_pic->icw4 & 0x02)
+		{
+			(c >= 8) ? pic2_autoeoi() : pic_autoeoi();
+		}
+
+		if (!c)
+		{
+			pit_set_gate(&pit2, 0, 0);
+		}
+
+		return pic_int + target_pic->vector;
+	}
+	else
+	{
+		return 0xFF;
+	}
+}
+
 uint8_t picinterrupt()
 {
-        uint8_t temp=pic.pend&~pic.mask;
         int c;
-        for (c = 0; c < 2; c++)
+	uint8_t ret;
+
+	uint8_t irq2_pending = (pic.pend & ~pic.mask) & (1 << 2);
+
+        for (c = 0; c <= 1; c++)
         {
-                if (temp & (1 << c))
-                {
-			if (!(pic_current & (1 << c)))
-			{
-	                        pic.pend &= ~(1 << c);
-        	                pic.ins |= (1 << c);
-                	        pic_update_mask(&pic.mask2, pic.ins);                      
-
-	                        pic_updatepending();
-        	                if (!c)
-                	                pit_set_gate(&pit2, 0, 0);
-
-	                        if (pic.icw4 & 0x02)
-        	                        pic_autoeoi();
-			}
-                                
-                        return c+pic.vector;
-                }
+		ret = pic_process_interrupt(&pic, c);
+		if (ret != 0xFF)  return ret;
         }
-        if ((temp & (1 << 2)) && !AT)
+       	if (irq2_pending)
         {
-                if (temp & (1 << 2))
+       	        if (AT)
+		{
+        	        for (c = 8; c <= 15; c++)
+	                {
+				ret = pic_process_interrupt(&pic2, c);
+				if (ret != 0xFF)  return ret;
+	                }
+		}
+		else
                 {
-			if (!(pic_current & (1 << 2)))
-			{
-	                        pic.pend &= ~(1 << 2);
-        	                pic.ins |= (1 << 2);
-                	        pic_update_mask(&pic.mask2, pic.ins);                      
-	                        pic_updatepending();
-
-        	                if (pic.icw4 & 0x02)
-                	                pic_autoeoi();
-			}
-
-                        return c+pic.vector;
+			ret = pic_process_interrupt(&pic, 2);
+			if (ret != 0xFF)  return ret;
                 }
 	}
-        if ((temp & (1 << 2)) && AT)
+        for (c = 3; c <= 7; c++)
         {
-                uint8_t temp2 = pic2.pend & ~pic2.mask;
-                for (c = 0; c < 8; c++)
-                {
-	                if (temp2 & (1 << c))
-                        {
-				if (!(pic_current & (256 << c)))
-				{
-	                                pic2.pend &= ~(1 << c);
-        	                        pic2.ins |= (1 << c);
-	                                pic_update_mask(&pic2.mask2, pic2.ins);
-
-	                                pic.ins |= (1 << 2); /*Cascade IRQ*/
-        	                        pic_update_mask(&pic.mask2, pic.ins);
-
-	                                pic_updatepending();
-
-	                                if (pic2.icw4 & 0x02)
-        	                                pic2_autoeoi();
-				}
-
-                                return c+pic2.vector;
-                        }
-                }
-        }
-        for (c = 3; c < 8; c++)
-        {
-                if (temp & (1 << c))
-                {
-			if (!(pic_current & (1 << c)))
-			{
-	                        pic.pend &= ~(1 << c);
-        	                pic.ins |= (1 << c);
-                	        pic_update_mask(&pic.mask2, pic.ins);                      
-                        	pic_updatepending();
-
-	                        if (pic.icw4 & 0x02)
-        	                        pic_autoeoi();
-			}
-
-                        return c+pic.vector;
-                }
+		ret = pic_process_interrupt(&pic, c);
+		if (ret != 0xFF)  return ret;
         }
         return 0xFF;
 }
