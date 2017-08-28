@@ -61,7 +61,7 @@ ifndef CIRRUS
 CIRRUS = n
 endif
 ifndef NV_RIVA
-CIRRUS = n
+NV_RIVA = n
 endif
 ifndef FLUIDSYNTH
 FLUIDSYNTH = y
