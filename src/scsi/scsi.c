@@ -8,12 +8,11 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.2	2017/08/23
+ * Version:	@(#)scsi.c	1.0.3	2017/08/27
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 2008-2017 TheCollector1995.
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
@@ -29,6 +28,7 @@
 #include "scsi_buslogic.h"
 
 
+scsi_device_t	SCSIDevices[SCSI_ID_MAX][SCSI_LUN_MAX];
 uint8_t		SCSIPhase = SCSI_PHASE_BUS_FREE;
 uint8_t		SCSIStatus = SCSI_STATUS_OK;
 uint8_t		scsi_cdrom_id = 3; /*common setting*/
@@ -116,18 +116,13 @@ void scsi_card_init(void)
     pclog("Building SCSI CD-ROM map...\n");
     build_scsi_cdrom_map();
 	
-    for (i=0; i<16; i++) 
-    {
-	for (j=0; j<8; j++) 
-	{
+    for (i=0; i<SCSI_ID_MAX; i++) {
+	for (j=0; j<SCSI_LUN_MAX; j++) {
 		if (scsi_hard_disks[i][j] != 0xff) {
 			SCSIDevices[i][j].LunType = SCSI_DISK;
-		}
-		else if (scsi_cdrom_drives[i][j] != 0xff) {
+		} else if (scsi_cdrom_drives[i][j] != 0xff) {
 			SCSIDevices[i][j].LunType = SCSI_CDROM;
-		}
-		else
-		{
+		} else {
 			SCSIDevices[i][j].LunType = SCSI_NONE;
 		}
 	}
@@ -144,13 +139,10 @@ void scsi_card_reset(void)
 {
     void *p = NULL;
 
-    if (scsi_cards[scsi_card_current].device)
-    {
+    if (scsi_cards[scsi_card_current].device) {
 	p = device_get_priv(scsi_cards[scsi_card_current].device);
-	if (p)
-	{
-		if (scsi_cards[scsi_card_current].reset)
-		{
+	if (p) {
+		if (scsi_cards[scsi_card_current].reset) {
 			scsi_cards[scsi_card_current].reset(p);
 		}
 	}
@@ -168,19 +160,15 @@ void SCSIReset(uint8_t id, uint8_t lun)
 	scsi_hd_reset(cdrom_id);
 	SCSIDevices[id][lun].LunType = SCSI_DISK;
     } else {
-	if (cdrom_id != 0xff)
-	{
+	if (cdrom_id != 0xff) {
 		cdrom_reset(cdrom_id);
 		SCSIDevices[id][lun].LunType = SCSI_CDROM;
-	}
-	else
-	{
+	} else {
 		SCSIDevices[id][lun].LunType = SCSI_NONE;
 	}
     }
 
-    if(SCSIDevices[id][lun].CmdBuffer != NULL)
-    {
+    if (SCSIDevices[id][lun].CmdBuffer != NULL) {
 	free(SCSIDevices[id][lun].CmdBuffer);
 	SCSIDevices[id][lun].CmdBuffer = NULL;
     }

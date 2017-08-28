@@ -8,445 +8,443 @@
  *
  *		The shared AHA and Buslogic SCSI BIOS command handler.
  *
- * Version:	@(#)scsi_bios_command.c	1.0.0	2017/08/26
+ * Version:	@(#)scsi_bios_command.c	1.0.1	2017/08/27
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdlib.h>
-
 #include "../ibm.h"
 #include "../dma.h"
 #include "scsi.h"
 #include "scsi_bios_command.h"
 #include "scsi_device.h"
 
-/* #define ENABLE_SCSI_BIOS_COMMAND_LOG 0 */
-int scsi_bios_command_do_log = 0;
+
+#if ENABLE_SCSI_BIOS_COMMAND_LOG
+int scsi_bios_command_do_log = ENABLE_SCSI_BIOS_COMMAND_LOG;
+#endif
+
 
 static void
-scsi_bios_command_log(const char *format, ...)
+cmd_log(const char *fmt, ...)
 {
-#ifdef ENABLE_SCSI_BIOS_COMMAND_LOG
-	if (scsi_bios_command_do_log)
-	{
-		va_list ap;
+#if ENABLE_SCSI_BIOS_COMMAND_LOG
+    va_list ap;
 
-		va_start(ap, format);
-		vprintf(format, ap);
-		va_end(ap);
-		fflush(stdout);
-	}
+    if (scsi_bios_command_do_log) {
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+	fflush(stdout);
+    }
 #endif
 }
 
-static uint8_t scsi_bios_completion_code(uint8_t *sense)
+
+static void
+target_check(uint8_t id, uint8_t lun)
 {
-	switch (sense[12])
-	{
-		case 0x00:
-			return 0x00;
-		case 0x20:
-			return 0x01;
-		case 0x12:
-		case 0x21:
-			return 0x02;
-		case 0x27:
-			return 0x03;
-		case 0x14: case 0x16:
-			return 0x04;
-		case 0x10: case 0x11:
-			return 0x10;
-		case 0x17: case 0x18:
-			return 0x11;
-		case 0x01: case 0x03: case 0x05: case 0x06: case 0x07: case 0x08: case 0x09:
-		case 0x1B: case 0x1C: case 0x1D:
-		case 0x40: case 0x41: case 0x42: case 0x43: case 0x44: case 0x45: case 0x46:
-		case 0x47: case 0x48: case 0x49:
-			return 0x20;
-		case 0x15:
-		case 0x02:
-			return 0x40;
-		case 0x04:
-		case 0x28: case 0x29: case 0x2A:
-			return 0xAA;
-		default:
-			return 0xFF;
-	}
+    if (! scsi_device_valid(id, lun)) {
+	fatal("BIOS INT13 device on %02i:%02i has disappeared\n", id, lun);
+    }
 }
 
-uint8_t scsi_bios_command_08(uint8_t id, uint8_t lun, uint8_t *buffer)
+
+static uint8_t
+completion_code(uint8_t *sense)
 {
-	uint32_t len = 0;
-	uint8_t cdb[12] = { GPCMD_READ_CDROM_CAPACITY, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-	uint8_t rcbuf[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-	int ret = 0;
-	int i = 0;
-	uint8_t sc = 0;
+    switch (sense[12]) {
+	case 0x00:
+		return(0x00);
 
-	ret = scsi_device_read_capacity(id, lun, cdb, rcbuf, &len);
-	sc = scsi_bios_completion_code(scsi_device_sense(id, lun));
+	case 0x20:
+		return(0x01);
 
-	if (ret == 0)
-	{
-		return sc;
-	}
+	case 0x12:
+	case 0x21:
+		return(0x02);
 
-	memset(buffer, 0, 6);
+	case 0x27:
+		return(0x03);
 
-	for (i = 0; i < 4; i++)
-	{
-		buffer[i] = rcbuf[i];
-	}
+	case 0x14:
+	case 0x16:
+		return(0x04);
 
-	for (i = 4; i < 6; i++)
-	{
-		buffer[i] = rcbuf[(i + 2) ^ 1];
-	}
+	case 0x10:
+	case 0x11:
+		return(0x10);
 
-	scsi_bios_command_log("BIOS Command 0x08: %02X %02X %02X %02X %02X %02X\n", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
-	
-	return 0;
+	case 0x17:
+	case 0x18:
+		return(0x11);
+
+	case 0x01:
+	case 0x03:
+	case 0x05:
+	case 0x06:
+	case 0x07:
+	case 0x08:
+	case 0x09:
+	case 0x1B:
+	case 0x1C:
+	case 0x1D:
+	case 0x40:
+	case 0x41:
+	case 0x42:
+	case 0x43:
+	case 0x44:
+	case 0x45:
+	case 0x46:
+	case 0x47:
+	case 0x48:
+	case 0x49:
+		return(0x20);
+
+	case 0x15:
+	case 0x02:
+		return(0x40);
+
+	case 0x04:
+	case 0x28:
+	case 0x29:
+	case 0x2a:
+		return(0xaa);
+
+	default:
+		break;
+    };
+
+    return(0xff);
 }
 
-int scsi_bios_command_15(uint8_t id, uint8_t lun, uint8_t *buffer)
+
+uint8_t
+scsi_bios_command_08(uint8_t id, uint8_t lun, uint8_t *buffer)
 {
-	uint32_t len = 0;
-	uint8_t cdb[12] = { GPCMD_READ_CDROM_CAPACITY, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-	uint8_t rcbuf[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-	int ret = 0;
-	int i = 0;
-	uint8_t sc = 0;
+    uint8_t cdb[12] = { GPCMD_READ_CDROM_CAPACITY, 0,0,0,0,0,0,0,0,0,0,0 };
+    uint8_t rcbuf[8] = { 0,0,0,0,0,0,0,0 };
+    uint32_t len = 0;
+    int i, ret, sc;
 
-	ret = scsi_device_read_capacity(id, lun, cdb, rcbuf, &len);
-	sc = scsi_bios_completion_code(scsi_device_sense(id, lun));
+    ret = scsi_device_read_capacity(id, lun, cdb, rcbuf, &len);
+    sc = completion_code(scsi_device_sense(id, lun));
+    if (ret == 0) return(sc);
 
-	memset(buffer, 0, 6);
+    memset(buffer, 0x00, 6);
+    for (i=0; i<4; i++)
+	buffer[i] = rcbuf[i];
+    for (i=4; i<6; i++)
+	buffer[i] = rcbuf[(i + 2) ^ 1];
+    cmd_log("BIOS Command 0x08: %02X %02X %02X %02X %02X %02X\n",
+	buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
 
-	for (i = 0; i < 4; i++)
-	{
-		buffer[i] = (ret == 0) ? 0 : rcbuf[i];
-	}
-
-	scsi_device_type_data(id, lun, &(buffer[4]), &(buffer[5]));
-
-	scsi_bios_command_log("BIOS Command 0x15: %02X %02X %02X %02X %02X %02X\n", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
-	
-	return sc;
+    return(0);
 }
 
-static void scsi_bios_command_id_check(uint8_t id, uint8_t lun)
+
+int
+scsi_bios_command_15(uint8_t id, uint8_t lun, uint8_t *buffer)
 {
-	if (!scsi_device_valid(id, lun))
-	{
-		fatal("BIOS INT13 CD-ROM on %02i:%02i has disappeared\n", id, lun);
-	}
+    uint8_t cdb[12] = { GPCMD_READ_CDROM_CAPACITY, 0,0,0,0,0,0,0,0,0,0,0 };
+    uint8_t rcbuf[8] = { 0,0,0,0,0,0,0,0 };
+    uint32_t len = 0;
+    int i, ret, sc;
+
+    ret = scsi_device_read_capacity(id, lun, cdb, rcbuf, &len);
+    sc = completion_code(scsi_device_sense(id, lun));
+
+    memset(buffer, 0x00, 6);
+    for (i=0; i<4; i++)
+	buffer[i] = (ret == 0) ? 0 : rcbuf[i];
+
+    scsi_device_type_data(id, lun, &(buffer[4]), &(buffer[5]));
+
+    cmd_log("BIOS Command 0x15: %02X %02X %02X %02X %02X %02X\n",
+	buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
+
+    return(sc);
 }
 
 
 /* This returns the completion code. */
-uint8_t scsi_bios_command(uint8_t last_id, BIOSCMD *BiosCmd, int8_t islba)
+uint8_t
+scsi_bios_command(uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 {
-	uint32_t dma_address;	
-	uint32_t lba;
-	int sector_len = BiosCmd->secount;
-	int block_shift = 9;
-	uint8_t ret = 0;
-	uint8_t cdb[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    uint8_t cdb[12] = { 0,0,0,0,0,0,0,0,0,0,0,0 };
+    scsi_device_t *dev;
+    uint32_t dma_address;
+    uint32_t lba;
+    int sector_len = cmd->secount;
+    int block_shift;
+    uint8_t ret;
 
-	if (islba)
-		lba = lba32_blk(BiosCmd);
-	  else
-	lba = (BiosCmd->u.chs.cyl << 9) + (BiosCmd->u.chs.head << 5) + BiosCmd->u.chs.sec;
+    if (islba)
+	lba = lba32_blk(cmd);
+      else
+	lba = (cmd->u.chs.cyl << 9) + (cmd->u.chs.head << 5) + cmd->u.chs.sec;
 
-	scsi_bios_command_log("BIOS Command = 0x%02X\n", BiosCmd->command);	
+    cmd_log("BIOS Command = 0x%02X\n", cmd->command);	
 	
-	if ((BiosCmd->id > last_id) || (BiosCmd->lun > 7)) {
-		return 0x80;
-	}
+    if ((cmd->id > max_id) || (cmd->lun > 7)) return(0x80);
 
-	SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = 0;
+    /* Get pointer to selected device. */
+    dev = &SCSIDevices[cmd->id][cmd->lun];
+    dev->InitLength = 0;
 
-	if (!scsi_device_present(BiosCmd->id, BiosCmd->lun)) 
-	{
-		scsi_bios_command_log("BIOS Target ID %i and LUN %i have no device attached\n",BiosCmd->id,BiosCmd->lun);
-		return 0x80;
-	}
+    if (! scsi_device_present(cmd->id, cmd->lun)) {
+	cmd_log("BIOS Target ID %i and LUN %i have no device attached\n",
+							cmd->id, cmd->lun);
+	return(0x80);
+    }
 
-	dma_address = ADDR_TO_U32(BiosCmd->dma_address);
+    dma_address = ADDR_TO_U32(cmd->dma_address);
 
-	scsi_bios_command_log("BIOS Data Buffer write: length %d, pointer 0x%04X\n", sector_len, dma_address);	
+    cmd_log("BIOS Data Buffer write: length %d, pointer 0x%04X\n",
+					sector_len, dma_address);	
 
-	if (SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer != NULL)
-	{
-		free(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer);
-		SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = NULL;
-	}
+    if (dev->CmdBuffer != NULL) {
+	free(dev->CmdBuffer);
+	dev->CmdBuffer = NULL;
+    }
 
-	block_shift = scsi_device_block_shift(BiosCmd->id, BiosCmd->lun);
+    block_shift = scsi_device_block_shift(cmd->id, cmd->lun);
 
-	switch(BiosCmd->command)
-	{
-		case 0x00:	/* Reset Disk System, in practice it's a nop */
-			return 0;
+    switch(cmd->command) {
+	case 0x00:	/* Reset Disk System, in practice it's a nop */
+		return(0);
 
-		case 0x01:	/* Read Status of Last Operation */
-			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
+	case 0x01:	/* Read Status of Last Operation */
+		target_check(cmd->id, cmd->lun);
 
-			/* Assuming 14 bytes because that's the default length for SCSI sense, and no command-specific
-			   indication is given. */
-			SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = 14;
+		/*
+		 * Assuming 14 bytes because that is the default
+		 * length for SCSI sense, and no command-specific
+		 * indication is given.
+		 */
+		dev->InitLength = 14;
+		dev->CmdBuffer = (uint8_t *)malloc(14);
+		memset(dev->CmdBuffer, 0x00, 14);
 
-			SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = (uint8_t *) malloc(14);
-			memset(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, 0, 14);
-
-			/* SCSIStatus = scsi_bios_command_08(BiosCmd->id, BiosCmd->lun, SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer) ? SCSI_STATUS_OK : SCSI_STATUS_CHECK_CONDITION; */
-
-			if (sector_len > 0) 
-			{
-				scsi_bios_command_log("BusLogic BIOS DMA: Reading 14 bytes at %08X\n", dma_address);
-				DMAPageWrite(dma_address, (char *)scsi_device_sense(BiosCmd->id, BiosCmd->lun), 14);
-			}
-
-			if (SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer != NULL)
-			{
-				free(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer);
-				SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = NULL;
-			}
-
-			return 0;
-
-			break;
-
-		case 0x02:	/* Read Desired Sectors to Memory */
-			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
-
-			SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = sector_len << block_shift;
-
-			SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = (uint8_t *) malloc(sector_len << block_shift);
-			memset(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, 0, sector_len << block_shift);
-
-			cdb[0] = GPCMD_READ_10;
-			cdb[1] = (BiosCmd->lun & 7) << 5;
-			cdb[2] = (lba >> 24) & 0xff;
-			cdb[3] = (lba >> 16) & 0xff;
-			cdb[4] = (lba >> 8) & 0xff;
-			cdb[5] = lba & 0xff;
-			cdb[7] = (sector_len >> 8) & 0xff;
-			cdb[8] = sector_len & 0xff;
 #if 0
-pclog("BIOS CMD(READ, %08lx, %d)\n", lba, BiosCmd->secount);
+		SCSIStatus = scsi_bios_command_08(cmd->id, cmd->lun, dev->CmdBuffer) ? SCSI_STATUS_OK : SCSI_STATUS_CHECK_CONDITION;
 #endif
 
-			scsi_device_command(BiosCmd->id, BiosCmd->lun, 12, cdb);
+		if (sector_len > 0) {
+			cmd_log("BIOS DMA: Reading 14 bytes at %08X\n",
+							dma_address);
+			DMAPageWrite(dma_address,
+			    (char *)scsi_device_sense(cmd->id, cmd->lun), 14);
+		}
 
-			if (sector_len > 0) 
-			{
-				scsi_bios_command_log("BIOS DMA: Reading %i bytes at %08X\n", sector_len << block_shift, dma_address);
-				DMAPageWrite(dma_address, (char *)SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, sector_len << block_shift);
-			}
+		if (dev->CmdBuffer != NULL) {
+			free(dev->CmdBuffer);
+			dev->CmdBuffer = NULL;
+		}
 
-			if (SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer != NULL)
-			{
-				free(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer);
-				SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = NULL;
-			}
+		return(0);
 
-			return scsi_bios_completion_code(scsi_device_sense(BiosCmd->id, BiosCmd->lun));
+	case 0x02:	/* Read Desired Sectors to Memory */
+		target_check(cmd->id, cmd->lun);
 
-			break;
+		dev->InitLength = sector_len << block_shift;
+		dev->CmdBuffer = (uint8_t *)malloc(dev->InitLength);
+		memset(dev->CmdBuffer, 0x00, dev->InitLength);
 
-		case 0x03:	/* Write Desired Sectors from Memory */
-			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
-
-			SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = sector_len << block_shift;
-
-			SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = (uint8_t *) malloc(sector_len << block_shift);
-			memset(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, 0, sector_len << block_shift);
-
-			if (sector_len > 0) 
-			{
-				scsi_bios_command_log("BIOS DMA: Reading %i bytes at %08X\n", sector_len << block_shift, dma_address);
-				DMAPageRead(dma_address, (char *)SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, sector_len << block_shift);
-			}
-
-			cdb[0] = GPCMD_WRITE_10;
-			cdb[1] = (BiosCmd->lun & 7) << 5;
-			cdb[2] = (lba >> 24) & 0xff;
-			cdb[3] = (lba >> 16) & 0xff;
-			cdb[4] = (lba >> 8) & 0xff;
-			cdb[5] = lba & 0xff;
-			cdb[7] = (sector_len >> 8) & 0xff;
-			cdb[8] = sector_len & 0xff;
+		cdb[0] = GPCMD_READ_10;
+		cdb[1] = (cmd->lun & 7) << 5;
+		cdb[2] = (lba >> 24) & 0xff;
+		cdb[3] = (lba >> 16) & 0xff;
+		cdb[4] = (lba >> 8) & 0xff;
+		cdb[5] = lba & 0xff;
+		cdb[7] = (sector_len >> 8) & 0xff;
+		cdb[8] = sector_len & 0xff;
 #if 0
-pclog("BIOS CMD(WRITE, %08lx, %d)\n", lba, BiosCmd->secount);
+		cmd_log("BIOS CMD(READ, %08lx, %d)\n", lba, cmd->secount);
 #endif
 
-			scsi_device_command(BiosCmd->id, BiosCmd->lun, 12, cdb);
+		scsi_device_command(cmd->id, cmd->lun, 12, cdb);
+		if (sector_len > 0) {
+			cmd_log("BIOS DMA: Reading %i bytes at %08X\n",
+					dev->InitLength, dma_address);
+			DMAPageWrite(dma_address,
+				     (char *)dev->CmdBuffer, dev->InitLength);
+		}
 
-			if (SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer != NULL)
-			{
-				free(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer);
-				SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = NULL;
-			}
+		if (dev->CmdBuffer != NULL) {
+			free(dev->CmdBuffer);
+			dev->CmdBuffer = NULL;
+		}
 
-			return scsi_bios_completion_code(scsi_device_sense(BiosCmd->id, BiosCmd->lun));
+		return(completion_code(scsi_device_sense(cmd->id, cmd->lun)));
 
-			break;
+	case 0x03:	/* Write Desired Sectors from Memory */
+		target_check(cmd->id, cmd->lun);
 
-		case 0x04:	/* Verify Desired Sectors */
-			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
+		dev->InitLength = sector_len << block_shift;
+		dev->CmdBuffer = (uint8_t *)malloc(dev->InitLength);
+		memset(dev->CmdBuffer, 0x00, dev->InitLength);
 
-			cdb[0] = GPCMD_VERIFY_10;
-			cdb[1] = (BiosCmd->lun & 7) << 5;
-			cdb[2] = (lba >> 24) & 0xff;
-			cdb[3] = (lba >> 16) & 0xff;
-			cdb[4] = (lba >> 8) & 0xff;
-			cdb[5] = lba & 0xff;
-			cdb[7] = (sector_len >> 8) & 0xff;
-			cdb[8] = sector_len & 0xff;
+		if (sector_len > 0) {
+			cmd_log("BIOS DMA: Reading %i bytes at %08X\n",
+					dev->InitLength, dma_address);
+			DMAPageRead(dma_address,
+				    (char *)dev->CmdBuffer, dev->InitLength);
+		}
 
-			scsi_device_command(BiosCmd->id, BiosCmd->lun, 12, cdb);
+		cdb[0] = GPCMD_WRITE_10;
+		cdb[1] = (cmd->lun & 7) << 5;
+		cdb[2] = (lba >> 24) & 0xff;
+		cdb[3] = (lba >> 16) & 0xff;
+		cdb[4] = (lba >> 8) & 0xff;
+		cdb[5] = lba & 0xff;
+		cdb[7] = (sector_len >> 8) & 0xff;
+		cdb[8] = sector_len & 0xff;
+#if 0
+		cmd_log("BIOS CMD(WRITE, %08lx, %d)\n", lba, cmd->secount);
+#endif
 
-			return scsi_bios_completion_code(scsi_device_sense(BiosCmd->id, BiosCmd->lun));
+		scsi_device_command(cmd->id, cmd->lun, 12, cdb);
 
-			break;
+		if (dev->CmdBuffer != NULL) {
+			free(dev->CmdBuffer);
+			dev->CmdBuffer = NULL;
+		}
 
-		case 0x05:	/* Format Track, invalid since SCSI has no tracks */
-			return 1;
+		return(completion_code(scsi_device_sense(cmd->id, cmd->lun)));
 
-			break;
+	case 0x04:	/* Verify Desired Sectors */
+		target_check(cmd->id, cmd->lun);
 
-		case 0x06:	/* Identify SCSI Devices, in practice it's a nop */
-			return 0;
+		cdb[0] = GPCMD_VERIFY_10;
+		cdb[1] = (cmd->lun & 7) << 5;
+		cdb[2] = (lba >> 24) & 0xff;
+		cdb[3] = (lba >> 16) & 0xff;
+		cdb[4] = (lba >> 8) & 0xff;
+		cdb[5] = lba & 0xff;
+		cdb[7] = (sector_len >> 8) & 0xff;
+		cdb[8] = sector_len & 0xff;
 
-			break;
+		scsi_device_command(cmd->id, cmd->lun, 12, cdb);
 
-		case 0x07:	/* Format Unit */
-			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
+		return(completion_code(scsi_device_sense(cmd->id, cmd->lun)));
 
-			cdb[0] = GPCMD_FORMAT_UNIT;
-			cdb[1] = (BiosCmd->lun & 7) << 5;
+	case 0x05:	/* Format Track, invalid since SCSI has no tracks */
+//FIXME: add a longer delay here --FvK
+		return(1);
 
-			scsi_device_command(BiosCmd->id, BiosCmd->lun, 12, cdb);
+	case 0x06:	/* Identify SCSI Devices, in practice it's a nop */
+//FIXME: add a longer delay here --FvK
+		return(0);
 
-			return scsi_bios_completion_code(scsi_device_sense(BiosCmd->id, BiosCmd->lun));
+	case 0x07:	/* Format Unit */
+		target_check(cmd->id, cmd->lun);
 
-			break;
+		cdb[0] = GPCMD_FORMAT_UNIT;
+		cdb[1] = (cmd->lun & 7) << 5;
 
-		case 0x08:	/* Read Drive Parameters */
-			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
+		scsi_device_command(cmd->id, cmd->lun, 12, cdb);
 
-			SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = 6;
+		return(completion_code(scsi_device_sense(cmd->id, cmd->lun)));
 
-			SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = (uint8_t *) malloc(6);
-			memset(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, 0, 6);
+	case 0x08:	/* Read Drive Parameters */
+		target_check(cmd->id, cmd->lun);
 
-			ret = scsi_bios_command_08(BiosCmd->id, BiosCmd->lun, SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer);
+		dev->InitLength = 6;
+		dev->CmdBuffer = (uint8_t *)malloc(dev->InitLength);
+		memset(dev->CmdBuffer, 0x00, dev->InitLength);
 
-			scsi_bios_command_log("BIOS DMA: Reading 6 bytes at %08X\n", dma_address);
-			DMAPageWrite(dma_address, (char *)SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, 6);
+		ret = scsi_bios_command_08(cmd->id, cmd->lun, dev->CmdBuffer);
 
-			if (SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer != NULL)
-			{
-				free(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer);
-				SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = NULL;
-			}
+		cmd_log("BIOS DMA: Reading 6 bytes at %08X\n", dma_address);
+		DMAPageWrite(dma_address,
+			     (char *)dev->CmdBuffer, dev->InitLength);
 
-			return ret;
+		if (dev->CmdBuffer != NULL) {
+			free(dev->CmdBuffer);
+			dev->CmdBuffer = NULL;
+		}
 
-			break;
+		return(ret);
 
-		case 0x09:	/* Initialize Drive Pair Characteristics, in practice it's a nop */
-			return 0;
+	case 0x09:	/* Initialize Drive Pair Characteristics, in practice it's a nop */
+//FIXME: add a longer delay here --FvK
+		return(0);
 
-			break;
+	case 0x0c:	/* Seek */
+		target_check(cmd->id, cmd->lun);
 
-		case 0x0C:	/* Seek */
-			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
+//FIXME: is this needed?  Looks like a copy-paste leftover.. --FvK
+		dev->InitLength = sector_len << block_shift;
 
-			SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = sector_len << block_shift;
+		cdb[0] = GPCMD_SEEK_10;
+		cdb[1] = (cmd->lun & 7) << 5;
+		cdb[2] = (lba >> 24) & 0xff;
+		cdb[3] = (lba >> 16) & 0xff;
+		cdb[4] = (lba >> 8) & 0xff;
+		cdb[5] = lba & 0xff;
 
-			cdb[0] = GPCMD_SEEK_10;
-			cdb[1] = (BiosCmd->lun & 7) << 5;
-			cdb[2] = (lba >> 24) & 0xff;
-			cdb[3] = (lba >> 16) & 0xff;
-			cdb[4] = (lba >> 8) & 0xff;
-			cdb[5] = lba & 0xff;
+		scsi_device_command(cmd->id, cmd->lun, 12, cdb);
 
-			scsi_device_command(BiosCmd->id, BiosCmd->lun, 12, cdb);
+		return((SCSIStatus == SCSI_STATUS_OK) ? 1 : 0);
 
-			return (SCSIStatus == SCSI_STATUS_OK) ? 1 : 0;
+	case 0x0d:	/* Alternate Disk Reset, in practice it's a nop */
+//FIXME: add a longer delay here --FvK
+		return(0);
 
-			break;
+	case 0x10:	/* Test Drive Ready */
+		target_check(cmd->id, cmd->lun);
 
-		case 0x0D:	/* Alternate Disk Reset, in practice it's a nop */
-			return 0;
+		cdb[0] = GPCMD_TEST_UNIT_READY;
+		cdb[1] = (cmd->lun & 7) << 5;
 
-			break;
+		scsi_device_command(cmd->id, cmd->lun, 12, cdb);
 
-		case 0x10:	/* Test Drive Ready */
-			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
+		return(completion_code(scsi_device_sense(cmd->id, cmd->lun)));
 
-			cdb[0] = GPCMD_TEST_UNIT_READY;
-			cdb[1] = (BiosCmd->lun & 7) << 5;
+	case 0x11:	/* Recalibrate */
+		target_check(cmd->id, cmd->lun);
 
-			scsi_device_command(BiosCmd->id, BiosCmd->lun, 12, cdb);
+		cdb[0] = GPCMD_REZERO_UNIT;
+		cdb[1] = (cmd->lun & 7) << 5;
 
-			return scsi_bios_completion_code(scsi_device_sense(BiosCmd->id, BiosCmd->lun));
+		scsi_device_command(cmd->id, cmd->lun, 12, cdb);
 
-			break;
+		return(completion_code(scsi_device_sense(cmd->id, cmd->lun)));
 
-		case 0x11:	/* Recalibrate */
-			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
+	case 0x14:	/* Controller Diagnostic */
+//FIXME: add a longer delay here --FvK
+		return(0);
 
-			cdb[0] = GPCMD_REZERO_UNIT;
-			cdb[1] = (BiosCmd->lun & 7) << 5;
+	case 0x15:	/* Read DASD Type */
+		target_check(cmd->id, cmd->lun);
 
-			scsi_device_command(BiosCmd->id, BiosCmd->lun, 12, cdb);
+		dev->InitLength = 6;
+		dev->CmdBuffer = (uint8_t *)malloc(dev->InitLength);
+		memset(dev->CmdBuffer, 0x00, dev->InitLength);
 
-			return scsi_bios_completion_code(scsi_device_sense(BiosCmd->id, BiosCmd->lun));
+		ret = scsi_bios_command_15(cmd->id, cmd->lun, dev->CmdBuffer);
 
-			break;
+		cmd_log("BIOS DMA: Reading 6 bytes at %08X\n", dma_address);
+		DMAPageWrite(dma_address,
+			     (char *)dev->CmdBuffer, dev->InitLength);
 
-		case 0x14:	/* Controller Diagnostic */
-			return 0;
+		if (dev->CmdBuffer != NULL) {
+			free(dev->CmdBuffer);
+			dev->CmdBuffer = NULL;
+		}
 
-			break;
+		return(ret);
 
-		case 0x15:	/* Read DASD Type */
-			scsi_bios_command_id_check(BiosCmd->id, BiosCmd->lun);
-
-			SCSIDevices[BiosCmd->id][BiosCmd->lun].InitLength = 6;
-
-			SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = (uint8_t *) malloc(6);
-			memset(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, 0, 6);
-
-			ret = scsi_bios_command_15(BiosCmd->id, BiosCmd->lun, SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer);
-
-			scsi_bios_command_log("BusLogic BIOS DMA: Reading 6 bytes at %08X\n", dma_address);
-			DMAPageWrite(dma_address, (char *)SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer, 6);
-
-			if (SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer != NULL)
-			{
-				free(SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer);
-				SCSIDevices[BiosCmd->id][BiosCmd->lun].CmdBuffer = NULL;
-			}
-
-			return ret;
-
-			break;
-
-		default:
-			scsi_bios_command_log("BusLogic BIOS: Unimplemented command: %02X\n", BiosCmd->command);
-			return 1;
-
-			break;
-	}
+	default:
+		cmd_log("BIOS: Unimplemented command: %02X\n", cmd->command);
+		return(1);
+    }
 	
-	pclog("BIOS Request complete\n");
+    cmd_log("BIOS Request complete\n");
 }

@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.39	2017/08/26
+# Version:	@(#)Makefile.mingw	1.0.40	2017/08/27
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -28,7 +28,9 @@ STUFF	=
 # -DANSI_CFG forces the config file to ANSI encoding.
 # -DENABLE_VRAM_DUMP enables Video Ram dumping.
 # -DENABLE_LOG_BREAKPOINT enables extra logging.
-# -DENABLE_BUSLOGIC_LOG enables extra logging.
+# -DENABLE_SCSI_BIOS_COMMAND_LOG=n enables extra logging.
+# -DENABLE_AHA154X_LOG=n enables extra logging.
+# -DENABLE_BUSLOGIC_LOG=n enables extra logging.
 # -DENABLE_CDROM_LOG enables extra logging.
 # -DENABLE_D86F_LOG enables extra logging.
 # -DENABLE_FDC_LOG enables extra logging.

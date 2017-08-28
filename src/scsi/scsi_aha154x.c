@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.14	2017/08/26
+ * Version:	@(#)scsi_aha154x.c	1.0.14	2017/08/27
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -149,16 +149,6 @@ enum {
     AHA_1640
 };
 
-
-/* The local RAM. */
-#pragma pack(push,1)
-typedef union {
-    uint8_t u8View[256];		/* byte view */
-    struct {				/* structured view */
-        uint8_t     u8Bios[64];		/* offset 0 - 63 is for BIOS */
-    } structured;
-} HALocalRAM;
-#pragma pack(pop)
 
 /* Structure for the INQUIRE_SETUP_INFORMATION reply. */
 #pragma pack(push,1)
@@ -383,11 +373,10 @@ typedef struct {
 
     int8_t	Irq;
     int8_t	DmaChannel;
-    int8_t	IrqEnabled;
+    int8_t	HostID;
     uint32_t	Base;
     uint8_t	pos_regs[8];			/* MCA */
 
-    uint8_t	flags;				/* local flags */
     uint8_t	bid;				/* board ID */
     char	fwl, fwh;			/* firmware info */
 
@@ -398,14 +387,19 @@ typedef struct {
     uint16_t	rom_shramsz;			/* size of shared RAM */
     uint16_t	rom_fwhigh;			/* offset in BIOS of ver ID */
     rom_t	bios;				/* BIOS memory descriptor */
+    uint8_t	*rom1;				/* main BIOS image */
+    uint8_t	*rom2;				/* SCSI-Select image */
 
     wchar_t	*nvr_path;			/* path to NVR image file */
     uint8_t	*nvr;				/* EEPROM buffer */
 
-    int		UseLocalRAM;
+    int		Callback;
+    int		InOperation;
+    int		ResetCB;
+
+    int8_t	IrqEnabled;
     int		StrictRoundRobinMode;
     int		ExtendedLUNCCBFormat;
-    HALocalRAM	LocalRAM;
     Req_t	Req;
     uint8_t	Status;
     uint8_t	Interrupt;
@@ -432,41 +426,30 @@ typedef struct {
 #pragma pack(pop)
 
 
-static int	ResetCB = 0;
-static int	AHA_Callback = 0;
-static int	AHA_InOperation = 0;
-static aha_t	*ResetDev;
-static rom_t	aha_bios;			/* active ROM */
-static uint8_t	*aha_rom1;			/* main BIOS */
-static uint8_t	*aha_rom2;			/* SCSI-Select */
 static uint16_t	aha_ports[] = {
     0x0330, 0x0334, 0x0230, 0x0234,
     0x0130, 0x0134, 0x0000, 0x0000
 };
 
-#ifdef WALTJE
-int aha_do_log = 1;
-# define ENABLE_AHA154X_LOG
-#else
-int aha_do_log = 0;
+#if ENABLE_AHA154X_LOG
+int aha_do_log = ENABLE_AHA154X_LOG;
 #endif
 
 
 static void
-aha_log(const char *format, ...)
+aha_log(const char *fmt, ...)
 {
-#ifdef ENABLE_AHA154X_LOG
+#if ENABLE_AHA154X_LOG
     va_list ap;
 
     if (aha_do_log) {
-	va_start(ap, format);
-	vprintf(format, ap);
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
 	va_end(ap);
 	fflush(stdout);
     }
 #endif
 }
-#define pclog	aha_log
 
 
 /*
@@ -524,15 +507,15 @@ aha154x_shram(aha_t *dev, uint8_t cmd)
 
     switch(cmd) {
 	case 0x00:	/* disable, make it look like ROM */
-		memset(&aha_bios.rom[dev->rom_shram], 0xFF, dev->rom_shramsz);
+		memset(&dev->bios.rom[dev->rom_shram], 0xFF, dev->rom_shramsz);
 		break;
 
 	case 0x02:	/* clear it */
-		memset(&aha_bios.rom[dev->rom_shram], 0x00, dev->rom_shramsz);
+		memset(&dev->bios.rom[dev->rom_shram], 0x00, dev->rom_shramsz);
 		break;
 
 	case 0x03:	/* enable, clear for use */
-		memset(&aha_bios.rom[dev->rom_shram], 0x00, dev->rom_shramsz);
+		memset(&dev->bios.rom[dev->rom_shram], 0x00, dev->rom_shramsz);
 		break;
     }
 
@@ -546,7 +529,7 @@ aha154x_eeprom(aha_t *dev, uint8_t cmd,uint8_t arg,uint8_t len,uint8_t off,uint8
 {
     uint8_t r = 0xff;
 
-    pclog("%s: EEPROM cmd=%02x, arg=%02x len=%d, off=%02x\n",
+    aha_log("%s: EEPROM cmd=%02x, arg=%02x len=%d, off=%02x\n",
 				dev->name, cmd, arg, len, off);
 
     /* Only if we can handle it.. */
@@ -572,19 +555,19 @@ aha154x_eeprom(aha_t *dev, uint8_t cmd,uint8_t arg,uint8_t len,uint8_t off,uint8
 
 /* Mess with the AHA-154xCF's Shadow RAM. */
 static uint8_t
-aha154x_memory(aha_t *dev, uint8_t cmd)
+aha154x_mmap(aha_t *dev, uint8_t cmd)
 {
-    pclog("%s: MEMORY cmd=%02x\n", dev->name, cmd);
+    aha_log("%s: MEMORY cmd=%02x\n", dev->name, cmd);
 
     switch(cmd) {
 	case 0x26:
 		/* Disable the mapper, so, set ROM1 active. */
-		aha_bios.rom = aha_rom1;
+		dev->bios.rom = dev->rom1;
 		break;
 
 	case 0x27:
 		/* Enable the mapper, so, set ROM2 active. */
-		aha_bios.rom = aha_rom2;
+		dev->bios.rom = dev->rom2;
 		break;
     }
 
@@ -596,12 +579,12 @@ static void
 ClearIntr(aha_t *dev)
 {
     dev->Interrupt = 0;
-    pclog("%s: lowering IRQ %i (stat 0x%02x)\n",
+    aha_log("%s: lowering IRQ %i (stat 0x%02x)\n",
 		dev->name, dev->Irq, dev->Interrupt);
     picintc(1 << dev->Irq);
     if (dev->PendingInterrupt) {
 	dev->Interrupt = dev->PendingInterrupt;
-	pclog("%s: Raising Interrupt 0x%02X (Pending)\n",
+	aha_log("%s: Raising Interrupt 0x%02X (Pending)\n",
 				dev->name, dev->Interrupt);
 	if (dev->MailboxOutInterrupts || !(dev->Interrupt & INTR_MBOA)) {
 		if (dev->IrqEnabled)  picint(1 << dev->Irq);
@@ -615,11 +598,11 @@ static void
 RaiseIntr(aha_t *dev, uint8_t Interrupt)
 {
     if (dev->Interrupt & INTR_HACC) {
-	pclog("%s: Pending IRQ\n", dev->name);
+	aha_log("%s: Pending IRQ\n", dev->name);
 	dev->PendingInterrupt = Interrupt;
     } else {
 	dev->Interrupt = Interrupt;
-	pclog("%s: Raising IRQ %i\n", dev->name, dev->Irq);
+	aha_log("%s: Raising IRQ %i\n", dev->name, dev->Irq);
 	if (dev->IrqEnabled)
 		picint(1 << dev->Irq);
     }
@@ -629,8 +612,9 @@ RaiseIntr(aha_t *dev, uint8_t Interrupt)
 static void
 aha_reset(aha_t *dev)
 {
-    AHA_Callback = 0;
-    ResetCB = 0;
+    dev->ResetCB = 0;
+    dev->Callback = 0;
+
     dev->Status = STAT_IDLE | STAT_INIT;
     dev->Geometry = 0x80;
     dev->Command = 0xFF;
@@ -644,7 +628,7 @@ aha_reset(aha_t *dev)
     dev->MailboxOutInterrupts = 0;
     dev->PendingInterrupt = 0;
     dev->Lock = 0;
-    AHA_InOperation = 0;
+    dev->InOperation = 0;
 
     ClearIntr(dev);
 }
@@ -653,16 +637,32 @@ aha_reset(aha_t *dev)
 static void
 aha_reset_ctrl(aha_t *dev, uint8_t Reset)
 {
+    /* Only if configured.. */
+    if (dev->Base == 0x0000) return;
+
     /* Say hello! */
-    pclog("Adaptec %s (IO=0x%04X, IRQ=%d, DMA=%d) BIOS @ %06lX\n",
-	dev->name, dev->Base, dev->Irq, dev->DmaChannel, dev->rom_addr);
+    pclog("Adaptec %s (IO=0x%04X, IRQ=%d, DMA=%d, BIOS @%05lX) ID=%d\n",
+	dev->name, dev->Base, dev->Irq, dev->DmaChannel,
+	dev->rom_addr, dev->HostID);
 
     aha_reset(dev);
     if (Reset) {
 	dev->Status |= STAT_STST;
 	dev->Status &= ~STAT_IDLE;
     }
-    ResetCB = AHA_RESET_DURATION_US * TIMER_USEC;
+    dev->ResetCB = AHA_RESET_DURATION_US * TIMER_USEC;
+}
+
+
+static void
+aha_reset_poll(void *priv)
+{
+    aha_t *dev = (aha_t *)priv;
+
+    dev->Status &= ~STAT_STST;
+    dev->Status |= STAT_IDLE;
+
+    dev->ResetCB = 0;
 }
 
 
@@ -671,16 +671,16 @@ aha_cmd_done(aha_t *dev)
 {
     dev->DataReply = 0;
     dev->Status |= STAT_IDLE;
-				
+
     if ((dev->Command != CMD_START_SCSI) && (dev->Command != CMD_BIOS_SCSI)) {
 	dev->Status &= ~STAT_DFULL;
 	dev->Interrupt = (INTR_ANY | INTR_HACC);
-	pclog("%s: Raising IRQ %i\n", dev->name, dev->Irq);
+	aha_log("%s: Raising IRQ %i\n", dev->name, dev->Irq);
 	if (dev->IrqEnabled)
 		picint(1 << dev->Irq);
     }
 
-    dev->Command = 0xFF;
+    dev->Command = 0xff;
     dev->CmdParam = 0;
 }
 
@@ -698,9 +698,9 @@ aha_mbi_setup(aha_t *dev, uint32_t CCBPointer, CCBU *CmdBlock,
     req->TargetStatus = TargetStatus;
     req->MailboxCompletionCode = mbcc;
 
-    pclog("Mailbox in setup\n");
+    aha_log("Mailbox in setup\n");
 
-    AHA_InOperation = 2;
+    dev->InOperation = 2;
 }
 
 
@@ -729,26 +729,26 @@ aha_mbi(aha_t *dev)
 	CmdBlock->common.TargetStatus = TargetStatus;		
 		
 	/* Rewrite the CCB up to the CDB. */
-	pclog("CCB rewritten to the CDB (pointer %08X)\n", CCBPointer);
+	aha_log("CCB rewritten to the CDB (pointer %08X)\n", CCBPointer);
 	DMAPageWrite(CCBPointer, (char *)CmdBlock, 18);
     } else {
-	pclog("Mailbox not found!\n");
+	aha_log("Mailbox not found!\n");
     }
 
-    pclog("Host Status 0x%02X, Target Status 0x%02X\n",HostStatus,TargetStatus);
+    aha_log("Host Status 0x%02X, Target Status 0x%02X\n",HostStatus,TargetStatus);
 
     if (dev->Mbx24bit) {
 	MailboxIn.CmdStatus = Mailbox32.u.in.CompletionCode;
 	U32_TO_ADDR(MailboxIn.CCBPointer, Mailbox32.CCBPointer);
-	pclog("Mailbox 24-bit: Status=0x%02X, CCB at 0x%04X\n", MailboxIn.CmdStatus, ADDR_TO_U32(MailboxIn.CCBPointer));
+	aha_log("Mailbox 24-bit: Status=0x%02X, CCB at 0x%04X\n", MailboxIn.CmdStatus, ADDR_TO_U32(MailboxIn.CCBPointer));
 
 	DMAPageWrite(Incoming, (char *)&MailboxIn, sizeof(Mailbox_t));
-	pclog("%i bytes of 24-bit mailbox written to: %08X\n", sizeof(Mailbox_t), Incoming);
+	aha_log("%i bytes of 24-bit mailbox written to: %08X\n", sizeof(Mailbox_t), Incoming);
     } else {
-	pclog("Mailbox 32-bit: Status=0x%02X, CCB at 0x%04X\n", Mailbox32.u.in.CompletionCode, Mailbox32.CCBPointer);
+	aha_log("Mailbox 32-bit: Status=0x%02X, CCB at 0x%04X\n", Mailbox32.u.in.CompletionCode, Mailbox32.CCBPointer);
 
 	DMAPageWrite(Incoming, (char *)&Mailbox32, sizeof(Mailbox32_t));		
-	pclog("%i bytes of 32-bit mailbox written to: %08X\n", sizeof(Mailbox32_t), Incoming);
+	aha_log("%i bytes of 32-bit mailbox written to: %08X\n", sizeof(Mailbox32_t), Incoming);
     }
 
     dev->MailboxInPosCur++;
@@ -757,7 +757,7 @@ aha_mbi(aha_t *dev)
 
     RaiseIntr(dev, INTR_MBIF | INTR_ANY);
 
-    AHA_InOperation = 0;
+    dev->InOperation = 0;
 }
 
 
@@ -796,11 +796,10 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 	DataPointer = req->CmdBlock.new.DataPointer;
 	DataLength = req->CmdBlock.new.DataLength;		
     }
-    pclog("Data Buffer write: length %d, pointer 0x%04X\n",
+    aha_log("Data Buffer write: length %d, pointer 0x%04X\n",
 				DataLength, DataPointer);	
 
-    if (SCSIDevices[req->TargetID][req->LUN].CmdBuffer != NULL)
-    {
+    if (SCSIDevices[req->TargetID][req->LUN].CmdBuffer != NULL) {
 	free(SCSIDevices[req->TargetID][req->LUN].CmdBuffer);
 	SCSIDevices[req->TargetID][req->LUN].CmdBuffer = NULL;
     }
@@ -821,23 +820,23 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 
 			aha_rd_sge(Is24bit, SGAddrCurrent, SGRead, SGBuffer);
 
-			for (ScatterEntry = 0; ScatterEntry < SGRead; ScatterEntry++) {
-				pclog("S/G Write: ScatterEntry=%u\n", ScatterEntry);
+			for (ScatterEntry=0; ScatterEntry<SGRead; ScatterEntry++) {
+				aha_log("S/G Write: ScatterEntry=%u\n", ScatterEntry);
 
 				Address = SGBuffer[ScatterEntry].SegmentPointer;
 				DataToTransfer += SGBuffer[ScatterEntry].Segment;
 
-				pclog("S/G Write: Address=%08X DatatoTransfer=%u\n", Address, DataToTransfer);
+				aha_log("S/G Write: Address=%08X DatatoTransfer=%u\n", Address, DataToTransfer);
 			}
 
 			SGAddrCurrent += SGRead * SGEntryLength;
 		} while (SGLeft > 0);
 
-		pclog("Data to transfer (S/G) %d\n", DataToTransfer);
+		aha_log("Data to transfer (S/G) %d\n", DataToTransfer);
 
 		SCSIDevices[req->TargetID][req->LUN].InitLength = DataToTransfer;
 
-		pclog("Allocating buffer for Scatter/Gather (%i bytes)\n", DataToTransfer);
+		aha_log("Allocating buffer for Scatter/Gather (%i bytes)\n", DataToTransfer);
 		SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataToTransfer);
 		memset(SCSIDevices[req->TargetID][req->LUN].CmdBuffer, 0, DataToTransfer);
 
@@ -855,13 +854,13 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 				aha_rd_sge(Is24bit, SGAddrCurrent,
 						      SGRead, SGBuffer);
 
-				for (ScatterEntry = 0; ScatterEntry < SGRead; ScatterEntry++) {
-					pclog("S/G Write: ScatterEntry=%u\n", ScatterEntry);
+				for (ScatterEntry=0; ScatterEntry<SGRead; ScatterEntry++) {
+					aha_log("S/G Write: ScatterEntry=%u\n", ScatterEntry);
 
 					Address = SGBuffer[ScatterEntry].SegmentPointer;
 					DataToTransfer = SGBuffer[ScatterEntry].Segment;
 
-					pclog("S/G Write: Address=%08X DatatoTransfer=%u\n", Address, DataToTransfer);
+					aha_log("S/G Write: Address=%08X DatatoTransfer=%u\n", Address, DataToTransfer);
 
 					DMAPageRead(Address, (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer + sg_buffer_pos, DataToTransfer);
 					sg_buffer_pos += DataToTransfer;
@@ -876,7 +875,7 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 
 			SCSIDevices[req->TargetID][req->LUN].InitLength = DataLength;
 
-			pclog("Allocating buffer for direct transfer (%i bytes)\n", DataLength);
+			aha_log("Allocating buffer for direct transfer (%i bytes)\n", DataLength);
 			SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataLength);
 			memset(SCSIDevices[req->TargetID][req->LUN].CmdBuffer, 0, DataLength);
 
@@ -915,7 +914,7 @@ aha_buf_free(Req_t *req)
     }
 
     if ((DataLength != 0) && (req->CmdBlock.common.Cdb[0] == GPCMD_TEST_UNIT_READY)) {
-	pclog("Data length not 0 with TEST UNIT READY: %i (%i)\n",
+	aha_log("Data length not 0 with TEST UNIT READY: %i (%i)\n",
 		DataLength, SCSIDevices[req->TargetID][req->LUN].InitLength);
     }
 
@@ -923,7 +922,7 @@ aha_buf_free(Req_t *req)
 	DataLength = 0;
     }
 
-    pclog("Data Buffer read: length %d, pointer 0x%04X\n",
+    aha_log("Data Buffer read: length %d, pointer 0x%04X\n",
 				DataLength, DataPointer);
 
     /* If the control byte is 0x00, it means that the transfer direction is set up by the SCSI command without
@@ -944,13 +943,13 @@ aha_buf_free(Req_t *req)
 			aha_rd_sge(req->Is24bit, SGAddrCurrent,
 					      SGRead, SGBuffer);
 
-			for (ScatterEntry = 0; ScatterEntry < SGRead; ScatterEntry++) {
-				pclog("S/G: ScatterEntry=%u\n", ScatterEntry);
+			for (ScatterEntry=0; ScatterEntry<SGRead; ScatterEntry++) {
+				aha_log("S/G: ScatterEntry=%u\n", ScatterEntry);
 
 				Address = SGBuffer[ScatterEntry].SegmentPointer;
 				DataToTransfer = SGBuffer[ScatterEntry].Segment;
 
-				pclog("S/G: Writing %i bytes at %08X\n", DataToTransfer, Address);
+				aha_log("S/G: Writing %i bytes at %08X\n", DataToTransfer, Address);
 
 				DMAPageWrite(Address, (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer + sg_buffer_pos, DataToTransfer);
 				sg_buffer_pos += DataToTransfer;
@@ -962,8 +961,8 @@ aha_buf_free(Req_t *req)
 		   req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES) {
 		Address = DataPointer;
 
-		pclog("DMA: Writing %i bytes at %08X\n",
-						DataLength, Address);
+		aha_log("DMA: Writing %i bytes at %08X\n",
+					DataLength, Address);
 		DMAPageWrite(Address, (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer, DataLength);
 	}
     }
@@ -980,20 +979,296 @@ aha_buf_free(Req_t *req)
 
 	if (req->Is24bit) {
 		U32_TO_ADDR(req->CmdBlock.old.DataLength, Residual);
-		pclog("24-bit Residual data length for reading: %d\n",
+		aha_log("24-bit Residual data length for reading: %d\n",
 			ADDR_TO_U32(req->CmdBlock.old.DataLength));
 	} else {
 		req->CmdBlock.new.DataLength = Residual;
-		pclog("32-bit Residual data length for reading: %d\n",
+		aha_log("32-bit Residual data length for reading: %d\n",
 				req->CmdBlock.new.DataLength);
 	}
     }
 
-    if (SCSIDevices[req->TargetID][req->LUN].CmdBuffer != NULL)
-    {
+    if (SCSIDevices[req->TargetID][req->LUN].CmdBuffer != NULL) {
 	free(SCSIDevices[req->TargetID][req->LUN].CmdBuffer);
 	SCSIDevices[req->TargetID][req->LUN].CmdBuffer = NULL;
     }
+}
+
+
+static uint8_t
+ConvertSenseLength(uint8_t RequestSenseLength)
+{
+    aha_log("Unconverted Request Sense length %i\n", RequestSenseLength);
+
+    if (RequestSenseLength == 0)
+	RequestSenseLength = 14;
+    else if (RequestSenseLength == 1)
+	RequestSenseLength = 0;
+
+    aha_log("Request Sense length %i\n", RequestSenseLength);
+
+    return(RequestSenseLength);
+}
+
+
+static void
+SenseBufferFree(Req_t *req, int Copy)
+{
+    uint8_t SenseLength = ConvertSenseLength(req->CmdBlock.common.RequestSenseLength);
+    uint32_t SenseBufferAddress;
+    uint8_t temp_sense[256];
+
+    if (SenseLength && Copy) {
+        scsi_device_request_sense(req->TargetID, req->LUN, temp_sense, SenseLength);
+
+	/*
+	 * The sense address, in 32-bit mode, is located in the
+	 * Sense Pointer of the CCB, but in 24-bit mode, it is
+	 * located at the end of the Command Descriptor Block.
+	 */
+	if (req->Is24bit) {
+		SenseBufferAddress = req->CCBPointer;
+		SenseBufferAddress += req->CmdBlock.common.CdbLength + 18;
+	} else {
+		SenseBufferAddress = req->CmdBlock.new.SensePointer;
+	}
+
+	aha_log("Request Sense address: %02X\n", SenseBufferAddress);
+
+	aha_log("SenseBufferFree(): Writing %i bytes at %08X\n",
+					SenseLength, SenseBufferAddress);
+	DMAPageWrite(SenseBufferAddress, (char *)temp_sense, SenseLength);
+	aha_log("Sense data written to buffer: %02X %02X %02X\n",
+		temp_sense[2], temp_sense[12], temp_sense[13]);
+    }
+}
+
+
+static void
+aha_scsi_cmd(aha_t *dev)
+{
+    Req_t *req = &dev->Req;
+    uint8_t id, lun;
+    uint8_t temp_cdb[12];
+    uint32_t i;
+    int target_cdb_len = 12;
+
+    id = req->TargetID;
+    lun = req->LUN;
+
+    target_cdb_len = scsi_device_cdb_length(id, lun);
+
+    if (!scsi_device_valid(id, lun))
+	fatal("SCSI target on %02i:%02i has disappeared\n", id, lun);
+
+    aha_log("SCSI command being executed on ID %i, LUN %i\n", id, lun);
+
+    aha_log("SCSI CDB[0]=0x%02X\n", req->CmdBlock.common.Cdb[0]);
+    for (i=1; i<req->CmdBlock.common.CdbLength; i++)
+	aha_log("SCSI CDB[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
+
+    memset(temp_cdb, 0x00, target_cdb_len);
+    if (req->CmdBlock.common.CdbLength <= target_cdb_len) {
+	memcpy(temp_cdb, req->CmdBlock.common.Cdb,
+		req->CmdBlock.common.CdbLength);
+    } else {
+	memcpy(temp_cdb, req->CmdBlock.common.Cdb, target_cdb_len);
+    }
+
+    scsi_device_command(id, lun, req->CmdBlock.common.CdbLength, temp_cdb);
+
+    aha_buf_free(req);
+
+    SenseBufferFree(req, (SCSIStatus != SCSI_STATUS_OK));
+
+    aha_log("Request complete\n");
+
+    if (SCSIStatus == SCSI_STATUS_OK) {
+	aha_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
+			       CCB_COMPLETE, SCSI_STATUS_OK, MBI_SUCCESS);
+    } else if (SCSIStatus == SCSI_STATUS_CHECK_CONDITION) {
+	aha_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
+			CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION, MBI_ERROR);
+    }
+}
+
+
+static void
+aha_req_setup(aha_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
+{	
+    Req_t *req = &dev->Req;
+    uint8_t id, lun;
+    uint8_t max_id = SCSI_ID_MAX-1;
+
+    /* Fetch data from the Command Control Block. */
+    DMAPageRead(CCBPointer, (char *)&req->CmdBlock, sizeof(CCB32));
+
+    req->Is24bit = dev->Mbx24bit;
+    req->CCBPointer = CCBPointer;
+    req->TargetID = dev->Mbx24bit ? req->CmdBlock.old.Id : req->CmdBlock.new.Id;
+    req->LUN = dev->Mbx24bit ? req->CmdBlock.old.Lun : req->CmdBlock.new.Lun;
+
+    id = req->TargetID;
+    lun = req->LUN;
+    if ((id > max_id) || (lun > 7)) {
+	aha_mbi_setup(dev, CCBPointer, &req->CmdBlock,
+		      CCB_INVALID_CCB, SCSI_STATUS_OK, MBI_ERROR);
+	return;
+    }
+	
+    aha_log("Scanning SCSI Target ID %i\n", id);		
+
+    SCSIStatus = SCSI_STATUS_OK;
+    SCSIDevices[id][lun].InitLength = 0;
+
+    aha_buf_alloc(req, req->Is24bit);
+
+    if (! scsi_device_present(id, lun)) {
+	aha_log("SCSI Target ID %i and LUN %i have no device attached\n",id,lun);
+	aha_buf_free(req);
+	SenseBufferFree(req, 0);
+	aha_mbi_setup(dev, CCBPointer, &req->CmdBlock,
+		      CCB_SELECTION_TIMEOUT,SCSI_STATUS_OK,MBI_ERROR);
+    } else {
+	aha_log("SCSI Target ID %i and LUN %i detected and working\n", id, lun);
+
+	aha_log("Transfer Control %02X\n", req->CmdBlock.common.ControlByte);
+	aha_log("CDB Length %i\n", req->CmdBlock.common.CdbLength);	
+	aha_log("CCB Opcode %x\n", req->CmdBlock.common.Opcode);		
+	if (req->CmdBlock.common.ControlByte > 0x03) {
+		aha_log("Invalid control byte: %02X\n",
+			req->CmdBlock.common.ControlByte);
+	}
+
+	dev->InOperation = 1;
+    }
+}
+
+
+static void
+aha_req_abort(aha_t *dev, uint32_t CCBPointer)
+{
+    CCBU CmdBlock;
+
+    /* Fetch data from the Command Control Block. */
+    DMAPageRead(CCBPointer, (char *)&CmdBlock, sizeof(CCB32));
+
+    aha_mbi_setup(dev, CCBPointer, &CmdBlock,
+		  0x26, SCSI_STATUS_OK, MBI_NOT_FOUND);
+}
+
+
+static uint32_t
+aha_mbo(aha_t *dev, Mailbox32_t *Mailbox32)
+{	
+    Mailbox_t MailboxOut;
+    uint32_t Outgoing;
+
+    if (dev->Mbx24bit) {
+	Outgoing = dev->MailboxOutAddr + (dev->MailboxOutPosCur * sizeof(Mailbox_t));
+	DMAPageRead(Outgoing, (char *)&MailboxOut, sizeof(Mailbox_t));
+
+	Mailbox32->CCBPointer = ADDR_TO_U32(MailboxOut.CCBPointer);
+	Mailbox32->u.out.ActionCode = MailboxOut.CmdStatus;
+    } else {
+	Outgoing = dev->MailboxOutAddr + (dev->MailboxOutPosCur * sizeof(Mailbox32_t));
+
+	DMAPageRead(Outgoing, (char *)Mailbox32, sizeof(Mailbox32_t));	
+    }
+
+    return(Outgoing);
+}
+
+
+static void
+aha_mbo_adv(aha_t *dev)
+{
+    dev->MailboxOutPosCur = (dev->MailboxOutPosCur + 1) % dev->MailboxCount;
+}
+
+
+static void
+aha_do_mail(aha_t *dev)
+{
+    Mailbox32_t mb32;
+    uint32_t Outgoing;
+    uint8_t CmdStatus = MBO_FREE;
+    uint32_t CodeOffset = 0;
+
+    CodeOffset = dev->Mbx24bit ? 0 : 7;
+
+    if (! dev->StrictRoundRobinMode) {
+	uint8_t MailboxCur = dev->MailboxOutPosCur;
+
+	/* Search for a filled mailbox - stop if we have scanned all mailboxes. */
+	do {
+		/* Fetch mailbox from guest memory. */
+		Outgoing = aha_mbo(dev, &mb32);
+
+		/* Check the next mailbox. */
+		aha_mbo_adv(dev);
+	} while ((mb32.u.out.ActionCode == MBO_FREE) && (MailboxCur != dev->MailboxOutPosCur));
+    } else {
+	Outgoing = aha_mbo(dev, &mb32);
+    }
+
+    if (mb32.u.out.ActionCode != MBO_FREE) {
+	/* We got the mailbox, mark it as free in the guest. */
+	aha_log("aha_do_mail(): Writing %i bytes at %08X\n", sizeof(CmdStatus), Outgoing + CodeOffset);
+		DMAPageWrite(Outgoing + CodeOffset, (char *)&CmdStatus, sizeof(CmdStatus));
+    }
+
+    if (dev->MailboxOutInterrupts)
+	RaiseIntr(dev, INTR_MBOA | INTR_ANY);
+
+    /* Check if the mailbox is actually loaded. */
+    if (mb32.u.out.ActionCode == MBO_FREE) return;
+
+    if (mb32.u.out.ActionCode == MBO_START) {
+	aha_log("Start Mailbox Command\n");
+	aha_req_setup(dev, mb32.CCBPointer, &mb32);
+    } else if (mb32.u.out.ActionCode == MBO_ABORT) {
+		aha_log("Abort Mailbox Command\n");
+		aha_req_abort(dev, mb32.CCBPointer);
+    } else {
+	aha_log("Invalid action code: %02X\n", mb32.u.out.ActionCode);
+    }
+
+    /* Advance to the next mailbox. */
+    if (dev->StrictRoundRobinMode)
+	aha_mbo_adv(dev);
+}
+
+
+static void
+aha_cmd_cb(void *priv)
+{
+    aha_t *dev = (aha_t *)priv;
+
+    if (dev->InOperation == 0) {
+	if (dev->MailboxCount) {
+		aha_do_mail(dev);
+	} else {
+		dev->Callback += SCSI_DELAY_TM * TIMER_USEC;
+		return;
+	}
+    } else if (dev->InOperation == 1) {
+	aha_log("%s: Callback: Process SCSI request\n", dev->name);
+	aha_scsi_cmd(dev);
+	aha_mbi(dev);
+	if (dev->Req.CmdBlock.common.Cdb[0] == 0x42) {
+		/* This is needed since CD Audio inevitably means READ SUBCHANNEL spam. */
+		dev->Callback += 1000 * TIMER_USEC;
+		return;
+	}
+    } else if (dev->InOperation == 2) {
+	aha_log("%s: Callback: Send incoming mailbox\n", dev->name);
+	aha_mbi(dev);
+    } else {
+	fatal("%s: Invalid callback phase: %i\n", dev->name, dev->InOperation);
+    }
+
+    dev->Callback += SCSI_DELAY_TM * TIMER_USEC;
 }
 
 
@@ -1029,10 +1304,8 @@ aha_read(uint16_t port, void *priv)
     }
 
 #ifndef WALTJE
-    if (port < 0x1000) {
-	pclog("%s: Read Port 0x%02X, Returned Value %02X\n",
+    aha_log("%s: Read Port 0x%02X, Returned Value %02X\n",
 					dev->name, port, ret);
-    }
 #endif
 
     return(ret);
@@ -1049,21 +1322,21 @@ aha_readw(uint16_t port, void *priv)
 static void
 aha_write(uint16_t port, uint8_t val, void *priv)
 {
+    ReplyInquireSetupInformation *ReplyISI;
+    aha_t *dev = (aha_t *)priv;
+    MailboxInit_t *mbi;
     int i = 0;
     uint8_t j = 0;
-    aha_t *dev = (aha_t *)priv;
-    MailboxInit_t *MailboxInit;
-    BIOSCMD *BiosCmd;
-    ReplyInquireSetupInformation *ReplyISI;
+    BIOSCMD *cmd;
     uint16_t cyl = 0;
 
-    pclog("%s: Write Port 0x%02X, Value %02X\n", dev->name, port, val);
+    aha_log("%s: Write Port 0x%02X, Value %02X\n", dev->name, port, val);
 
     switch (port & 3) {
 	case 0:
 		if ((val & CTRL_HRST) || (val & CTRL_SRST)) {	
 			uint8_t Reset = (val & CTRL_HRST);
-			pclog("Reset completed = %x\n", Reset);
+			aha_log("Reset completed = %x\n", Reset);
 			aha_reset_ctrl(dev, Reset);
 			break;
 		}
@@ -1076,23 +1349,23 @@ aha_write(uint16_t port, uint8_t val, void *priv)
 	case 1:
 		/* Fast path for the mailbox execution command. */
 		if (((val == CMD_START_SCSI) || (val == CMD_BIOS_SCSI)) &&
-		    (dev->Command == 0xFF)) {
+		    (dev->Command == 0xff)) {
 			/* If there are no mailboxes configured, don't even try to do anything. */
 			if (dev->MailboxCount) {
-				if (!AHA_Callback) {
-					AHA_Callback = SCSI_DELAY_TM * TIMER_USEC;
+				if (! dev->Callback) {
+					 dev->Callback = SCSI_DELAY_TM * TIMER_USEC;
 				}
 			}
 			return;
 		}
 
-		if (dev->Command == 0xFF) {
+		if (dev->Command == 0xff) {
 			dev->Command = val;
 			dev->CmdParam = 0;
 			dev->CmdParamLeft = 0;
 			
 			dev->Status &= ~(STAT_INVCMD | STAT_IDLE);
-			pclog("%s: Operation Code 0x%02X\n", dev->name, val);
+			aha_log("%s: Operation Code 0x%02X\n", dev->name, val);
 			switch (dev->Command) {
 				case CMD_MBINIT:
 					dev->CmdParamLeft = sizeof(MailboxInit_t);
@@ -1141,69 +1414,71 @@ aha_write(uint16_t port, uint8_t val, void *priv)
 		}
 		
 		if (! dev->CmdParamLeft) {
-			pclog("Running Operation Code 0x%02X\n", dev->Command);
+			aha_log("Running Operation Code 0x%02X\n", dev->Command);
 			switch (dev->Command) {
-				case CMD_NOP: /* No Operation Command */
+				case CMD_NOP: /* No Operation */
 					dev->DataReplyLeft = 0;
 					break;
 
-				case CMD_MBINIT: /* Mailbox Initialitation */
+				case CMD_MBINIT: /* mailbox initialization */
 aha_0x01:
 				{
 					dev->Mbx24bit = 1;
 							
-					MailboxInit = (MailboxInit_t *)dev->CmdBuf;
+					mbi = (MailboxInit_t *)dev->CmdBuf;
 
-					dev->MailboxCount = MailboxInit->Count;
-					dev->MailboxOutAddr = ADDR_TO_U32(MailboxInit->Address);
+					dev->MailboxCount = mbi->Count;
+					dev->MailboxOutAddr = ADDR_TO_U32(mbi->Address);
 					dev->MailboxInAddr = dev->MailboxOutAddr + (dev->MailboxCount * sizeof(Mailbox_t));
 						
-					pclog("Initialize Mailbox: MBI=0x%08lx, MBO=0x%08lx, %d entries at 0x%08lx\n",
+					aha_log("Initialize Mailbox: MBI=0x%08lx, MBO=0x%08lx, %d entries at 0x%08lx\n",
 						dev->MailboxOutAddr,
 						dev->MailboxInAddr,
-						MailboxInit->Count,
-						ADDR_TO_U32(MailboxInit->Address));
+						mbi->Count,
+						ADDR_TO_U32(mbi->Address));
 
 					dev->Status &= ~STAT_INIT;
 					dev->DataReplyLeft = 0;
 				}
 				break;
 
-				case CMD_BIOSCMD: /* Execute BIOS Command */
-					BiosCmd = (BIOSCMD *)dev->CmdBuf;
+				case CMD_BIOSCMD: /* execute BIOS */
+					cmd = (BIOSCMD *)dev->CmdBuf;
 					if (dev->type != AHA_1640) {
-						cyl = ((BiosCmd->u.chs.cyl & 0xff) << 8) | ((BiosCmd->u.chs.cyl >> 8) & 0xff);
-					BiosCmd->u.chs.cyl = cyl;						
+						/* 1640 uses LBA. */
+						cyl = ((cmd->u.chs.cyl & 0xff) << 8) | ((cmd->u.chs.cyl >> 8) & 0xff);
+					cmd->u.chs.cyl = cyl;						
 					}
 					if (dev->type == AHA_1640) {
-						pclog("BIOS LBA=%06lx (%lu)\n",
-							lba32_blk(BiosCmd),
-							lba32_blk(BiosCmd));
+						/* 1640 uses LBA. */
+						aha_log("BIOS LBA=%06lx (%lu)\n",
+							lba32_blk(cmd),
+							lba32_blk(cmd));
 					} else {
-						BiosCmd->u.chs.head &= 0xf;
-						BiosCmd->u.chs.sec &= 0x1f;
-						pclog("BIOS CHS=%04X/%02X%02X\n",
-							BiosCmd->u.chs.cyl,
-							BiosCmd->u.chs.head,
-							BiosCmd->u.chs.sec);
+						cmd->u.chs.head &= 0xf;
+						cmd->u.chs.sec &= 0x1f;
+						aha_log("BIOS CHS=%04X/%02X%02X\n",
+							cmd->u.chs.cyl,
+							cmd->u.chs.head,
+							cmd->u.chs.sec);
 					}
-					dev->DataBuf[0] = scsi_bios_command(7, BiosCmd, (dev->type==AHA_1640)?1:0);
-					pclog("BIOS Completion/Status Code %x\n", dev->DataBuf[0]);
+					dev->DataBuf[0] = scsi_bios_command(7, cmd, (dev->type==AHA_1640)?1:0);
+					aha_log("BIOS Completion/Status Code %x\n", dev->DataBuf[0]);
 					dev->DataReplyLeft = 1;
 					break;
 
-				case CMD_INQUIRY: /* Inquiry Command */
-					dev->DataBuf[0] = (dev->type != AHA_1640) ? dev->bid : 0x42;
+				case CMD_INQUIRY: /* Inquiry */
+					dev->DataBuf[0] = dev->bid;
 					dev->DataBuf[1] = (dev->type != AHA_1640) ? 0x30 : 0x42;
 					dev->DataBuf[2] = dev->fwh;
 					dev->DataBuf[3] = dev->fwl;
 					dev->DataReplyLeft = 4;
 					break;
 
-				case CMD_EMBOI: /* Enable Mailbox Out Interrupt */
+				case CMD_EMBOI: /* enable MBO Interrupt */
 					if (dev->CmdBuf[0] <= 1) {
 						dev->MailboxOutInterrupts = dev->CmdBuf[0];
-						pclog("Mailbox out interrupts: %s\n", dev->MailboxOutInterrupts ? "ON" : "OFF");
+						aha_log("Mailbox out interrupts: %s\n", dev->MailboxOutInterrupts ? "ON" : "OFF");
 					} else {
 						dev->Status |= STAT_INVCMD;
 					}
@@ -1214,45 +1489,48 @@ aha_0x01:
 					dev->DataReplyLeft = 0;
 					break;
 						
-				case CMD_BUSON_TIME: /* Bus-on time */
+				case CMD_BUSON_TIME: /* bus-on time */
 					dev->DataReplyLeft = 0;
-					pclog("Bus-on time: %d\n", dev->CmdBuf[0]);
+					aha_log("Bus-on time: %d\n", dev->CmdBuf[0]);
 					break;
 						
-				case CMD_BUSOFF_TIME: /* Bus-off time */
+				case CMD_BUSOFF_TIME: /* bus-off time */
 					dev->DataReplyLeft = 0;
-					pclog("Bus-off time: %d\n", dev->CmdBuf[0]);
+					aha_log("Bus-off time: %d\n", dev->CmdBuf[0]);
 					break;
 						
-				case CMD_DMASPEED: /* DMA Transfer Rate Command */
+				case CMD_DMASPEED: /* DMA Transfer Rate */
 					dev->DataReplyLeft = 0;
-					pclog("DMA transfer rate: %02X\n", dev->CmdBuf[0]);
+					aha_log("DMA transfer rate: %02X\n", dev->CmdBuf[0]);
 					break;
 
-				case CMD_RETDEVS: /* Return Installed Devices */
+				case CMD_RETDEVS: /* return Installed Devices */
 					memset(dev->DataBuf, 0x00, 8);
-					for (i=0; i<7; i++) {
+					for (i=0; i<SCSI_ID_MAX; i++) {
 					    dev->DataBuf[i] = 0x00;
-					    for (j=0; j<8; j++) {
+
+					    /* Skip the HA .. */
+					    if (i == dev->HostID) continue;
+
+					    for (j=0; j<SCSI_LUN_MAX; j++) {
 						if (scsi_device_present(i, j))
 						    dev->DataBuf[i] |= (1<<j);
 					    }
 					}
-					dev->DataBuf[7] = 0x00;
-					dev->DataReplyLeft = 8;
+					dev->DataReplyLeft = i;
 					break;				
 
-				case CMD_RETCONF: /* Return Configuration Command */
+				case CMD_RETCONF: /* return Configuration */
 					dev->DataBuf[0] = (1<<dev->DmaChannel);
 					if (dev->Irq >= 8)
 					    dev->DataBuf[1]=(1<<(dev->Irq-9));
 					else
 					    dev->DataBuf[1]=(1<<dev->Irq);
-					dev->DataBuf[2] = 7;	/* HOST ID */
+					dev->DataBuf[2] = dev->HostID;
 					dev->DataReplyLeft = 3;
 					break;
 
-				case CMD_RETSETUP: /* Return Setup Command */
+				case CMD_RETSETUP: /* return Setup */
 				{
 					dev->DataReplyLeft = dev->CmdBuf[0];
 
@@ -1263,11 +1541,11 @@ aha_0x01:
 					ReplyISI->fParityCheckingEnabled = 1;
 					ReplyISI->cMailbox = dev->MailboxCount;
 					U32_TO_ADDR(ReplyISI->MailboxAddress, dev->MailboxOutAddr);
-					pclog("Return Setup Information: %d\n", dev->CmdBuf[0]);
+					aha_log("Return Setup Information: %d\n", dev->CmdBuf[0]);
 				}
 				break;
 						
-				case CMD_ECHO: /* ECHO data Command */
+				case CMD_ECHO: /* ECHO data */
 					dev->DataBuf[0] = dev->CmdBuf[0];
 					dev->DataReplyLeft = 1;
 					break;
@@ -1319,7 +1597,7 @@ aha_0x01:
 					dev->Interrupt = aha154x_shram(dev,val);
 					break;
 
-				case CMD_BIOS_MBINIT: /* BIOS Mailbox Initialitation Command */
+				case CMD_BIOS_MBINIT: /* BIOS Mailbox Initialization */
 					/* Sent by CF BIOS. */
 					goto aha_0x01;
 
@@ -1327,7 +1605,7 @@ aha_0x01:
 				case CMD_MEMORY_MAP_2:	/* AHA memory mapper */
 					/* Sent by CF BIOS. */
 					dev->DataReplyLeft =
-					    aha154x_memory(dev, dev->Command);
+					    aha154x_mmap(dev, dev->Command);
 					break;
 
 				case CMD_EXTBIOS: /* Return extended BIOS information */
@@ -1390,297 +1668,6 @@ aha_writew(uint16_t Port, uint16_t Val, void *p)
 
 
 static uint8_t
-ConvertSenseLength(uint8_t RequestSenseLength)
-{
-    pclog("Unconverted Request Sense length %i\n", RequestSenseLength);
-
-    if (RequestSenseLength == 0)
-	RequestSenseLength = 14;
-    else if (RequestSenseLength == 1)
-	RequestSenseLength = 0;
-
-    pclog("Request Sense length %i\n", RequestSenseLength);
-
-    return(RequestSenseLength);
-}
-
-
-static void
-SenseBufferFree(Req_t *req, int Copy)
-{
-    uint8_t SenseLength = ConvertSenseLength(req->CmdBlock.common.RequestSenseLength);
-    uint32_t SenseBufferAddress;
-    uint8_t temp_sense[256];
-
-    if (SenseLength && Copy) {
-        scsi_device_request_sense(req->TargetID, req->LUN, temp_sense, SenseLength);
-
-	/*
-	 * The sense address, in 32-bit mode, is located in the
-	 * Sense Pointer of the CCB, but in 24-bit mode, it is
-	 * located at the end of the Command Descriptor Block.
-	 */
-	if (req->Is24bit) {
-		SenseBufferAddress = req->CCBPointer;
-		SenseBufferAddress += req->CmdBlock.common.CdbLength + 18;
-	} else {
-		SenseBufferAddress = req->CmdBlock.new.SensePointer;
-	}
-
-	pclog("Request Sense address: %02X\n", SenseBufferAddress);
-
-	pclog("SenseBufferFree(): Writing %i bytes at %08X\n",
-					SenseLength, SenseBufferAddress);
-	DMAPageWrite(SenseBufferAddress, (char *)temp_sense, SenseLength);
-	pclog("Sense data written to buffer: %02X %02X %02X\n",
-		temp_sense[2], temp_sense[12], temp_sense[13]);
-    }
-}
-
-
-static void
-aha_scsi_cmd(aha_t *dev)
-{
-    Req_t *req = &dev->Req;
-    uint8_t Id, Lun;
-    uint8_t temp_cdb[12];
-    uint32_t i;
-    int target_cdb_len = 12;
-
-    Id = req->TargetID;
-    Lun = req->LUN;
-
-    target_cdb_len = scsi_device_cdb_length(Id, Lun);
-
-    if (!scsi_device_valid(Id, Lun))
-	fatal("SCSI target on %02i:%02i has disappeared\n", Id, Lun);
-
-    pclog("SCSI command being executed on ID %i, LUN %i\n", Id, Lun);
-
-    pclog("SCSI CDB[0]=0x%02X\n", req->CmdBlock.common.Cdb[0]);
-    for (i=1; i<req->CmdBlock.common.CdbLength; i++)
-	pclog("SCSI CDB[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
-
-    memset(temp_cdb, 0x00, target_cdb_len);
-    if (req->CmdBlock.common.CdbLength <= target_cdb_len) {
-	memcpy(temp_cdb, req->CmdBlock.common.Cdb,
-		req->CmdBlock.common.CdbLength);
-    } else {
-	memcpy(temp_cdb, req->CmdBlock.common.Cdb, target_cdb_len);
-    }
-
-    scsi_device_command(Id, Lun, req->CmdBlock.common.CdbLength, temp_cdb);
-
-    aha_buf_free(req);
-
-    SenseBufferFree(req, (SCSIStatus != SCSI_STATUS_OK));
-
-    pclog("Request complete\n");
-
-    if (SCSIStatus == SCSI_STATUS_OK) {
-	aha_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
-			       CCB_COMPLETE, SCSI_STATUS_OK, MBI_SUCCESS);
-    } else if (SCSIStatus == SCSI_STATUS_CHECK_CONDITION) {
-	aha_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
-			CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION, MBI_ERROR);
-    }
-}
-
-
-static void
-aha_req_setup(aha_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
-{	
-    Req_t *req = &dev->Req;
-    uint8_t Id, Lun;
-    uint8_t last_id = 7;
-
-    /* Fetch data from the Command Control Block. */
-    DMAPageRead(CCBPointer, (char *)&req->CmdBlock, sizeof(CCB32));
-
-    req->Is24bit = dev->Mbx24bit;
-    req->CCBPointer = CCBPointer;
-    req->TargetID = dev->Mbx24bit ? req->CmdBlock.old.Id : req->CmdBlock.new.Id;
-    req->LUN = dev->Mbx24bit ? req->CmdBlock.old.Lun : req->CmdBlock.new.Lun;
- 
-    Id = req->TargetID;
-    Lun = req->LUN;
-    if ((Id > last_id) || (Lun > 7)) {
-	aha_mbi_setup(dev, CCBPointer, &req->CmdBlock,
-		      CCB_INVALID_CCB, SCSI_STATUS_OK, MBI_ERROR);
-	return;
-    }
-	
-    pclog("Scanning SCSI Target ID %i\n", Id);		
-
-    SCSIStatus = SCSI_STATUS_OK;
-    SCSIDevices[Id][Lun].InitLength = 0;
-
-    aha_buf_alloc(req, req->Is24bit);
-
-    if (!scsi_device_present(Id, Lun)) {
-	pclog("SCSI Target ID %i and LUN %i have no device attached\n",Id,Lun);
-	aha_buf_free(req);
-	SenseBufferFree(req, 0);
-	aha_mbi_setup(dev, CCBPointer, &req->CmdBlock,
-		      CCB_SELECTION_TIMEOUT,SCSI_STATUS_OK,MBI_ERROR);
-    } else {
-	pclog("SCSI Target ID %i and LUN %i detected and working\n", Id, Lun);
-
-	pclog("Transfer Control %02X\n", req->CmdBlock.common.ControlByte);
-	pclog("CDB Length %i\n", req->CmdBlock.common.CdbLength);	
-	pclog("CCB Opcode %x\n", req->CmdBlock.common.Opcode);		
-	if (req->CmdBlock.common.ControlByte > 0x03) {
-		pclog("Invalid control byte: %02X\n",
-			req->CmdBlock.common.ControlByte);
-	}
-
-	AHA_InOperation = 1;
-    }
-}
-
-
-static void
-aha_req_abort(aha_t *dev, uint32_t CCBPointer)
-{
-    CCBU CmdBlock;
-
-    /* Fetch data from the Command Control Block. */
-    DMAPageRead(CCBPointer, (char *)&CmdBlock, sizeof(CCB32));
-
-    aha_mbi_setup(dev, CCBPointer, &CmdBlock,
-		  0x26, SCSI_STATUS_OK, MBI_NOT_FOUND);
-}
-
-
-static uint32_t
-aha_mbo(aha_t *dev, Mailbox32_t *Mailbox32)
-{	
-    Mailbox_t MailboxOut;
-    uint32_t Outgoing;
-
-    if (dev->Mbx24bit) {
-	Outgoing = dev->MailboxOutAddr + (dev->MailboxOutPosCur * sizeof(Mailbox_t));
-	DMAPageRead(Outgoing, (char *)&MailboxOut, sizeof(Mailbox_t));
-
-	Mailbox32->CCBPointer = ADDR_TO_U32(MailboxOut.CCBPointer);
-	Mailbox32->u.out.ActionCode = MailboxOut.CmdStatus;
-    } else {
-	Outgoing = dev->MailboxOutAddr + (dev->MailboxOutPosCur * sizeof(Mailbox32_t));
-
-	DMAPageRead(Outgoing, (char *)Mailbox32, sizeof(Mailbox32_t));	
-    }
-	
-    return Outgoing;
-}
-
-
-static void
-aha_mbo_adv(aha_t *dev)
-{
-    dev->MailboxOutPosCur = (dev->MailboxOutPosCur + 1) % dev->MailboxCount;
-}
-
-
-static void
-aha_do_mail(aha_t *dev)
-{
-    Mailbox32_t mb32;
-    uint32_t Outgoing;
-    uint8_t CmdStatus = MBO_FREE;
-    uint32_t CodeOffset = 0;
-
-    CodeOffset = dev->Mbx24bit ? 0 : 7;
-
-    if (! dev->StrictRoundRobinMode) {
-	uint8_t MailboxCur = dev->MailboxOutPosCur;
-
-	/* Search for a filled mailbox - stop if we have scanned all mailboxes. */
-	do {
-		/* Fetch mailbox from guest memory. */
-		Outgoing = aha_mbo(dev, &mb32);
-
-		/* Check the next mailbox. */
-		aha_mbo_adv(dev);
-	} while ((mb32.u.out.ActionCode == MBO_FREE) && (MailboxCur != dev->MailboxOutPosCur));
-    } else {
-	Outgoing = aha_mbo(dev, &mb32);
-    }
-
-    if (mb32.u.out.ActionCode != MBO_FREE) {
-	/* We got the mailbox, mark it as free in the guest. */
-	pclog("aha_do_mail(): Writing %i bytes at %08X\n", sizeof(CmdStatus), Outgoing + CodeOffset);
-		DMAPageWrite(Outgoing + CodeOffset, (char *)&CmdStatus, sizeof(CmdStatus));
-    }
-
-    if (dev->MailboxOutInterrupts)
-	RaiseIntr(dev, INTR_MBOA | INTR_ANY);
-
-    /* Check if the mailbox is actually loaded. */
-    if (mb32.u.out.ActionCode == MBO_FREE) {
-	return;
-    }
-
-    if (mb32.u.out.ActionCode == MBO_START) {
-	pclog("Start Mailbox Command\n");
-	aha_req_setup(dev, mb32.CCBPointer, &mb32);
-    } else if (mb32.u.out.ActionCode == MBO_ABORT) {
-		pclog("Abort Mailbox Command\n");
-		aha_req_abort(dev, mb32.CCBPointer);
-    } else {
-	pclog("Invalid action code: %02X\n", mb32.u.out.ActionCode);
-    }
-
-    /* Advance to the next mailbox. */
-    if (dev->StrictRoundRobinMode)
-	aha_mbo_adv(dev);
-}
-
-
-static void
-aha_reset_poll(void *priv)
-{
-    aha_t *dev = (aha_t *)priv;
-
-    dev->Status &= ~STAT_STST;
-    dev->Status |= STAT_IDLE;
-
-    ResetCB = 0;
-}
-
-
-static void
-aha_cmd_cb(void *priv)
-{
-    aha_t *dev = (aha_t *)priv;
-
-    if (AHA_InOperation == 0) {
-	if (dev->MailboxCount) {
-		aha_do_mail(dev);
-	} else {
-		AHA_Callback += SCSI_DELAY_TM * TIMER_USEC;
-		return;
-	}
-    } else if (AHA_InOperation == 1) {
-	pclog("%s: Callback: Process SCSI request\n", dev->name);
-	aha_scsi_cmd(dev);
-	aha_mbi(dev);
-	if (dev->Req.CmdBlock.common.Cdb[0] == 0x42) {
-		/* This is needed since CD Audio inevitably means READ SUBCHANNEL spam. */
-		AHA_Callback += 1000 * TIMER_USEC;
-		return;
-	}
-    } else if (AHA_InOperation == 2) {
-	pclog("%s: Callback: Send incoming mailbox\n", dev->name);
-	aha_mbi(dev);
-    } else {
-	fatal("%s: Invalid callback phase: %i\n", dev->name, AHA_InOperation);
-    }
-
-    AHA_Callback += SCSI_DELAY_TM * TIMER_USEC;
-}
-
-
-static uint8_t
 aha_mca_read(int port, void *priv)
 {
     aha_t *dev = (aha_t *)priv;
@@ -1693,116 +1680,117 @@ static void
 aha_mca_write(int port, uint8_t val, void *priv)
 {
     aha_t *dev = (aha_t *)priv;
-    uint16_t addr;
-	
-    if (port < 0x0102) return;
 
-    /* Remove the current I/O handler. */
-    io_removehandler(dev->Base, 4,
-		     aha_read, aha_readw, NULL,
-		     aha_write, aha_writew, NULL, dev);		
+    /* MCA does not write registers below 0x0100. */
+    if (port < 0x0102) return;
 
     /* Save the MCA register value. */
     dev->pos_regs[port & 7] = val;
 
-pclog("MCA: 1640 [%02x] [%02x] [%02x]\n", dev->pos_regs[2], dev->pos_regs[3], dev->pos_regs[4]);
     /* Get the new assigned I/O base address. */
-    if (dev->pos_regs[2] & 1) {
-	addr = 0x0000;
-	switch(dev->pos_regs[3] & 0xc7) {
-		case 0x01:
-			addr = 0x0130;
-			break;
+    switch(dev->pos_regs[3] & 0xc7) {
+	case 0x01:		/* [1]=00xx x001 */
+		dev->Base = 0x0130;
+		break;
 
-		case 0x02:
-			addr = 0x0230;
-			break;
+	case 0x02:		/* [1]=00xx x010 */
+		dev->Base = 0x0230;
+		break;
 
-		case 0x03:
-			addr = 0x0330;
-			break;
+	case 0x03:		/* [1]=00xx x011 */
+		dev->Base = 0x0330;
+		break;
 
-		case 0x41:
-			addr = 0x0134;
-			break;
+	case 0x41:
+		dev->Base = 0x0134;
+		break;
 
-		case 0x42:
-			addr = 0x0234;
-			break;
+	case 0x42:		/* [1]=01xx x010 */
+		dev->Base = 0x0234;
+		break;
 
-		case 0x43:
-			addr = 0x0334;
-			break;
-	}
-	dev->Base = addr;
+	case 0x43:		/* [1]=01xx x011 */
+		dev->Base = 0x0334;
+		break;
+    }
+
+    /* Save the new IRQ and DMA channel values. */
+    dev->Irq = (dev->pos_regs[4] & 0x07) + 8;
+    dev->DmaChannel = dev->pos_regs[5] & 0x0f;	
+
+    /* Extract the BIOS ROM address info. */
+    if (! (dev->pos_regs[2] & 0x80)) switch(dev->pos_regs[3] & 0x38) {
+	case 0x38:		/* [1]=xx11 1xxx */
+		dev->rom_addr = 0xDC000;
+		break;
+
+	case 0x30:		/* [1]=xx11 0xxx */
+		dev->rom_addr = 0xD8000;
+		break;
+
+	case 0x28:		/* [1]=xx10 1xxx */
+		dev->rom_addr = 0xD4000;
+		break;
+
+	case 0x20:		/* [1]=xx10 0xxx */
+		dev->rom_addr = 0xD0000;
+		break;
+
+	case 0x18:		/* [1]=xx01 1xxx */
+		dev->rom_addr = 0xCC000;
+		break;
+
+	case 0x10:		/* [1]=xx01 0xxx */
+		dev->rom_addr = 0xC8000;
+		break;
+    } else {
+	/* Disabled. */
+	dev->rom_addr = 0x000000;
+    }
+
+    /*
+     * Get misc SCSI config stuff.  For now, we are only
+     * interested in the configured HA target ID:
+     *
+     *  pos[2]=111xxxxx = 7
+     *  pos[2]=000xxxxx = 0
+     */
+    dev->HostID = (dev->pos_regs[4] >> 5) & 0x07;
+
+    /*
+     * SYNC mode is pos[2]=xxxx1xxx.
+     *
+     * SCSI Parity is pos[2]=xxx1xxxx.
+     */
+
+    /* Initialize the device if fully configured. */
+    if (dev->pos_regs[2] & 0x01) {
+	/* Card has been enabled! First, remove the current I/O handler. */
+	io_removehandler(dev->Base, 4,
+			 aha_read, aha_readw, NULL,
+			 aha_write, aha_writew, NULL, dev);		
+	mem_mapping_disable(&dev->bios.mapping);
 
 	/* Register the new I/O range. */
-	io_sethandler(addr, 4,
+	io_sethandler(dev->Base, 4,
 		      aha_read, aha_readw, NULL,
 		      aha_write, aha_writew, NULL, dev);
 
-	/* Save the new IRQ and DMA channel values. */
-	dev->Irq = (dev->pos_regs[4] & 0x07) + 8;
-	dev->DmaChannel = dev->pos_regs[5] & 0x0f;	
-
-	/* Extract the BIOS ROM address info. */
-	if (! (dev->pos_regs[2] & 0x80)) {
-		switch(dev->pos_regs[3] & 0x38) {
-			case 0x38:		/* [1]=xx11 1xxx */
-				dev->rom_addr = 0xDC000;
-				break;
-
-			case 0x30:		/* [1]=xx11 0xxx */
-				dev->rom_addr = 0xD8000;
-				break;
-
-			case 0x28:		/* [1]=xx10 1xxx */
-				dev->rom_addr = 0xD4000;
-				break;
-
-			case 0x20:		/* [1]=xx10 0xxx */
-				dev->rom_addr = 0xD0000;
-				break;
-
-			case 0x18:		/* [1]=xx01 1xxx */
-				dev->rom_addr = 0xCC000;
-				break;
-
-			case 0x10:		/* [1]=xx01 0xxx */
-				dev->rom_addr = 0xC8000;
-				break;
-		}
-	} else {
-		/* Disabled. */
-		dev->rom_addr = 0x000000;
-	}
-    }
-
-    /* Initialize the device if fully configured. */
-    if (dev->Base != 0 && dev->Irq != 0 && dev->DmaChannel != 0) {
+	/* Reset the device. */
 	aha_reset_ctrl(dev, CTRL_HRST);
 
 	/* Enable the memory. */
 	if (dev->rom_addr != 0x000000) {
-		mem_mapping_enable(&aha_bios.mapping);
-		mem_mapping_set_addr(&aha_bios.mapping, dev->rom_addr, 0x4000);
+		mem_mapping_enable(&dev->bios.mapping);
+		mem_mapping_set_addr(&dev->bios.mapping, dev->rom_addr, ROM_SIZE);
 	}
     }
-}
-
-
-void
-aha_device_reset(void *p)
-{
-    aha_t *dev = (aha_t *) p;
-
-    aha_reset_ctrl(dev, 1);
 }
 
 
 /* Initialize the board's ROM BIOS. */
 static void
-aha_setbios(aha_t *dev, uint32_t memaddr)
+aha_setbios(aha_t *dev)
 {
     uint32_t size;
     uint32_t mask;
@@ -1832,21 +1820,21 @@ aha_setbios(aha_t *dev, uint32_t memaddr)
     (void)fseek(f, 0L, SEEK_SET);
 
     /* Load first chunk of BIOS (which is the main BIOS, aka ROM1.) */
-    aha_rom1 = malloc(ROM_SIZE);
-    (void)fread(aha_rom1, ROM_SIZE, 1, f);
+    dev->rom1 = malloc(ROM_SIZE);
+    (void)fread(dev->rom1, ROM_SIZE, 1, f);
     temp -= ROM_SIZE;
     if (temp > 0) {
-	aha_rom2 = malloc(ROM_SIZE);
-	(void)fread(aha_rom2, ROM_SIZE, 1, f);
+	dev->rom2 = malloc(ROM_SIZE);
+	(void)fread(dev->rom2, ROM_SIZE, 1, f);
 	temp -= ROM_SIZE;
     } else {
-	aha_rom2 = NULL;
+	dev->rom2 = NULL;
     }
     if (temp != 0) {
 	pclog("%s: BIOS ROM size invalid!\n", dev->name);
-	free(aha_rom1);
-	if (aha_rom2 != NULL)
-		free(aha_rom2);
+	free(dev->rom1);
+	if (dev->rom2 != NULL)
+		free(dev->rom2);
 	(void)fclose(f);
 	return;
     }
@@ -1865,22 +1853,23 @@ aha_setbios(aha_t *dev, uint32_t memaddr)
 	size = 0x2000;
     mask = (size - 1);
     pclog("%s: BIOS at 0x%06lX, size %lu, mask %08lx\n",
-			dev->name, memaddr, size, mask);
+			dev->name, dev->rom_addr, size, mask);
 
     /* Initialize the ROM entry for this BIOS. */
-    memset(&aha_bios, 0x00, sizeof(rom_t));
+    memset(&dev->bios, 0x00, sizeof(rom_t));
 
     /* Enable ROM1 into the memory map. */
-    aha_bios.rom = aha_rom1;
+    dev->bios.rom = dev->rom1;
 
     /* Set up an address mask for this memory. */
-    aha_bios.mask = mask;
+    dev->bios.mask = mask;
 
     /* Map this system into the memory map. */
-    mem_mapping_add(&aha_bios.mapping, memaddr, size,
+    mem_mapping_add(&dev->bios.mapping, dev->rom_addr, size,
 		    aha_mem_read, aha_mem_readw, aha_mem_readl,
 		    aha_mem_write, NULL, NULL,
-		    aha_bios.rom, MEM_MAPPING_EXTERNAL, &aha_bios);
+		    dev->bios.rom, MEM_MAPPING_EXTERNAL, &dev->bios);
+    mem_mapping_disable(&dev->bios.mapping);
 
     /*
      * Patch the ROM BIOS image for stuff Adaptec deliberately
@@ -1900,7 +1889,7 @@ aha_setbios(aha_t *dev, uint32_t memaddr)
 					dev->name, dev->Base);
 		return;
 	}
-	aha_bios.rom[dev->rom_ioaddr] = (uint8_t)i;
+	dev->bios.rom[dev->rom_ioaddr] = (uint8_t)i;
     }
 
     /*
@@ -1914,8 +1903,8 @@ aha_setbios(aha_t *dev, uint32_t memaddr)
     dev->fwl = '0';
     if (dev->rom_fwhigh != 0x0000) {
 	/* Read firmware version from the BIOS. */
-	dev->fwh = aha_bios.rom[dev->rom_fwhigh];
-	dev->fwl = aha_bios.rom[dev->rom_fwhigh+1];
+	dev->fwh = dev->bios.rom[dev->rom_fwhigh];
+	dev->fwl = dev->bios.rom[dev->rom_fwhigh+1];
     }
 
     /*
@@ -1935,16 +1924,12 @@ aha_setbios(aha_t *dev, uint32_t memaddr)
 again:
     mask = 0;
     for (temp=0; temp<ROM_SIZE; temp++)
-	mask += aha_bios.rom[temp];
+	mask += dev->bios.rom[temp];
     mask &= 0xff;
     if (mask != 0x00) {
-	pclog("%s: fixing BIOS checksum (%02x) ..\n", dev->name, mask);
-	aha_bios.rom[temp-1] += (256 - mask);
+	dev->bios.rom[temp-1] += (256 - mask);
 	goto again;
     }
-
-    /* Save the BIOS address. */
-    dev->rom_addr = memaddr;
 }
 
 
@@ -1960,7 +1945,7 @@ aha_setnvr(aha_t *dev)
     memset(dev->nvr, 0x00, NVR_SIZE);
 
     /* Initialize the on-board EEPROM. */
-    dev->nvr[0] = 7;				/* SCSI ID 7 */
+    dev->nvr[0] = dev->HostID;			/* SCSI ID 7 */
     dev->nvr[0] |= (0x10 | 0x20 | 0x40);
     dev->nvr[1] = dev->Irq-9;			/* IRQ15 */
     dev->nvr[1] |= (dev->DmaChannel<<4);	/* DMA6 */
@@ -1978,7 +1963,6 @@ static void *
 aha_init(int type)
 {
     aha_t *dev;
-    uint32_t bios;
 
     /* Allocate control block and set up basic stuff. */
     dev = malloc(sizeof(aha_t));
@@ -1996,8 +1980,14 @@ aha_init(int type)
     dev->Base = device_get_config_hex16("base");
     dev->Irq = device_get_config_int("irq");
     dev->DmaChannel = device_get_config_int("dma");
-    bios = device_get_config_hex20("bios_addr");
+    dev->rom_addr = device_get_config_hex20("bios_addr");
+#if NOT_YET_USED
+    dev->HostID = device_get_config_int("hostid");
+#else
+    dev->HostID = 7;		/* default HA ID */
+#endif
 
+    /* Perform per-board initialization. */
     switch(type) {
 	case AHA_154xB:
 		strcpy(dev->name, "AHA-154xB");
@@ -2050,25 +2040,23 @@ aha_init(int type)
 	case AHA_1640:
 		strcpy(dev->name, "AHA-1640");
 		dev->bios_path = L"roms/scsi/adaptec/aha1640.bin";
+		dev->bid = 'B';
 
 		/* Enable MCA. */
 		dev->pos_regs[0] = 0x1F;	/* MCA board ID */
 		dev->pos_regs[1] = 0x0F;	
-		dev->pos_regs[2] = 0x01;	/* as per ADF */
-		dev->pos_regs[5] = 0x20;	/* as per ADF */
 		mca_add(aha_mca_read, aha_mca_write, dev);
 		break;
     }	
-    ResetDev = dev;
 
     /* Initialize ROM BIOS if needed. */
-    aha_setbios(dev, bios);
+    aha_setbios(dev);
 
     /* Initialize EEPROM (NVR) if needed. */
     aha_setnvr(dev);
 
-    timer_add(aha_reset_poll, &ResetCB, &ResetCB, dev);
-    timer_add(aha_cmd_cb, &AHA_Callback, &AHA_Callback, dev);
+    timer_add(aha_reset_poll, &dev->ResetCB, &dev->ResetCB, dev);
+    timer_add(aha_cmd_cb, &dev->Callback, &dev->Callback, dev);
 
     if (dev->Base != 0) {
 	/* Register our address space. */
@@ -2078,12 +2066,12 @@ aha_init(int type)
 
 	/* Initialize the device. */
 	aha_reset_ctrl(dev, CTRL_HRST);
-    }
 
-    /* Enable the memory. */
-    if (dev->rom_addr != 0x000000) {
-	mem_mapping_enable(&aha_bios.mapping);
-	mem_mapping_set_addr(&aha_bios.mapping, dev->rom_addr, 0x4000);
+	/* Enable the memory. */
+	if (dev->rom_addr != 0x000000) {
+		mem_mapping_enable(&dev->bios.mapping);
+		mem_mapping_set_addr(&dev->bios.mapping, dev->rom_addr, ROM_SIZE);
+	}
     }
 
     return(dev);
@@ -2116,14 +2104,20 @@ aha_close(void *priv)
 {
     aha_t *dev = (aha_t *)priv;
 
-    /* Make sure it won't get called anymore.. */
-    ResetDev = NULL;
-
     if (dev->nvr != NULL)
 	free(dev->nvr);
 
     free(dev);
 
+}
+
+
+void
+aha_device_reset(void *priv)
+{
+    aha_t *dev = (aha_t *)priv;
+
+    aha_reset_ctrl(dev, 1);
 }
 
 

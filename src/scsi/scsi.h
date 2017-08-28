@@ -8,7 +8,7 @@
  *
  *		SCSI controller handler header.
  *
- * Version:	@(#)scsi_h	1.0.4	2017/08/26
+ * Version:	@(#)scsi_h	1.0.5	2017/08/27
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -28,73 +28,78 @@
 #endif
 
 
+/* Configuration. */
+#define SCSI_ID_MAX		8		/* 16 on wide buses */
+#define SCSI_LUN_MAX		8		/* always 8 */
+
+
 /* SCSI commands. */
-#define GPCMD_TEST_UNIT_READY           0x00
-#define GPCMD_REZERO_UNIT		0x01
-#define GPCMD_REQUEST_SENSE		0x03
-#define GPCMD_FORMAT_UNIT		0x04
-#define GPCMD_READ_6			0x08
-#define GPCMD_WRITE_6			0x0a
-#define GPCMD_SEEK_6			0x0b
-#define GPCMD_INQUIRY			0x12
-#define GPCMD_VERIFY_6			0x13
-#define GPCMD_MODE_SELECT_6		0x15
-#define GPCMD_MODE_SENSE_6		0x1a
-#define GPCMD_START_STOP_UNIT		0x1b
-#define GPCMD_PREVENT_REMOVAL          	0x1e
-#define GPCMD_READ_CDROM_CAPACITY	0x25
-#define GPCMD_READ_10                   0x28
-#define GPCMD_WRITE_10			0x2a
-#define GPCMD_SEEK_10			0x2b
-#define GPCMD_VERIFY_10			0x2f
-#define GPCMD_READ_SUBCHANNEL		0x42
-#define GPCMD_READ_TOC_PMA_ATIP		0x43
-#define GPCMD_READ_HEADER		0x44
-#define GPCMD_PLAY_AUDIO_10		0x45
-#define GPCMD_GET_CONFIGURATION		0x46
-#define GPCMD_PLAY_AUDIO_MSF	        0x47
-#define GPCMD_PLAY_AUDIO_TRACK_INDEX	0x48
-#define GPCMD_GET_EVENT_STATUS_NOTIFICATION	0x4a
-#define GPCMD_PAUSE_RESUME		0x4b
-#define GPCMD_STOP_PLAY_SCAN            0x4e
-#define GPCMD_READ_DISC_INFORMATION	0x51
+#define GPCMD_TEST_UNIT_READY	0x00
+#define GPCMD_REZERO_UNIT	0x01
+#define GPCMD_REQUEST_SENSE	0x03
+#define GPCMD_FORMAT_UNIT	0x04
+#define GPCMD_READ_6		0x08
+#define GPCMD_WRITE_6		0x0a
+#define GPCMD_SEEK_6		0x0b
+#define GPCMD_INQUIRY		0x12
+#define GPCMD_VERIFY_6		0x13
+#define GPCMD_MODE_SELECT_6	0x15
+#define GPCMD_MODE_SENSE_6	0x1a
+#define GPCMD_START_STOP_UNIT	0x1b
+#define GPCMD_PREVENT_REMOVAL	0x1e
+#define GPCMD_READ_CDROM_CAPACITY 0x25
+#define GPCMD_READ_10		0x28
+#define GPCMD_WRITE_10		0x2a
+#define GPCMD_SEEK_10		0x2b
+#define GPCMD_VERIFY_10		0x2f
+#define GPCMD_READ_SUBCHANNEL	0x42
+#define GPCMD_READ_TOC_PMA_ATIP	0x43
+#define GPCMD_READ_HEADER	0x44
+#define GPCMD_PLAY_AUDIO_10	0x45
+#define GPCMD_GET_CONFIGURATION	0x46
+#define GPCMD_PLAY_AUDIO_MSF	0x47
+#define GPCMD_PLAY_AUDIO_TRACK_INDEX 0x48
+#define GPCMD_GET_EVENT_STATUS_NOTIFICATION 0x4a
+#define GPCMD_PAUSE_RESUME	0x4b
+#define GPCMD_STOP_PLAY_SCAN	0x4e
+#define GPCMD_READ_DISC_INFORMATION 0x51
 #define GPCMD_READ_TRACK_INFORMATION 0x52
-#define GPCMD_MODE_SELECT_10		0x55
-#define GPCMD_MODE_SENSE_10		0x5a
-#define GPCMD_PLAY_AUDIO_12		0xa5
-#define GPCMD_READ_12                   0xa8
-#define GPCMD_WRITE_12			0xaa
-#define GPCMD_READ_DVD_STRUCTURE	0xad	/* For reading. */
-#define GPCMD_VERIFY_12			0xaf
-#define GPCMD_PLAY_CD_OLD		0xb4
-#define GPCMD_READ_CD_OLD		0xb8
-#define GPCMD_READ_CD_MSF		0xb9
-#define GPCMD_SCAN			0xba
-#define GPCMD_SET_SPEED			0xbb
-#define GPCMD_PLAY_CD			0xbc
-#define GPCMD_MECHANISM_STATUS		0xbd
-#define GPCMD_READ_CD			0xbe
-#define GPCMD_SEND_DVD_STRUCTURE	0xbf	/* This is for writing only, irrelevant to PCem. */
-#define GPCMD_PAUSE_RESUME_ALT		0xc2
-#define GPCMD_SCAN_ALT			0xcd	/* Should be equivalent to 0xba */
-#define GPCMD_SET_SPEED_ALT		0xda	/* Should be equivalent to 0xbb */
+#define GPCMD_MODE_SELECT_10	0x55
+#define GPCMD_MODE_SENSE_10	0x5a
+#define GPCMD_PLAY_AUDIO_12	0xa5
+#define GPCMD_READ_12		0xa8
+#define GPCMD_WRITE_12		0xaa
+#define GPCMD_READ_DVD_STRUCTURE 0xad	/* For reading. */
+#define GPCMD_VERIFY_12		0xaf
+#define GPCMD_PLAY_CD_OLD	0xb4
+#define GPCMD_READ_CD_OLD	0xb8
+#define GPCMD_READ_CD_MSF	0xb9
+#define GPCMD_SCAN		0xba
+#define GPCMD_SET_SPEED		0xbb
+#define GPCMD_PLAY_CD		0xbc
+#define GPCMD_MECHANISM_STATUS	0xbd
+#define GPCMD_READ_CD		0xbe
+#define GPCMD_SEND_DVD_STRUCTURE 0xbf	/* This is for writing only, irrelevant to PCem. */
+#define GPCMD_PAUSE_RESUME_ALT	0xc2
+#define GPCMD_SCAN_ALT		0xcd	/* Should be equivalent to 0xba */
+#define GPCMD_SET_SPEED_ALT	0xda	/* Should be equivalent to 0xbb */
 
 /* Mode page codes for mode sense/set */
-#define GPMODE_R_W_ERROR_PAGE		0x01
-#define GPMODE_CDROM_PAGE		0x0d
-#define GPMODE_CDROM_AUDIO_PAGE		0x0e
-#define GPMODE_CAPABILITIES_PAGE	0x2a
-#define GPMODE_ALL_PAGES		0x3f
+#define GPMODE_R_W_ERROR_PAGE	0x01
+#define GPMODE_CDROM_PAGE	0x0d
+#define GPMODE_CDROM_AUDIO_PAGE	0x0e
+#define GPMODE_CAPABILITIES_PAGE 0x2a
+#define GPMODE_ALL_PAGES	0x3f
 
 /* SCSI Status Codes */
-#define SCSI_STATUS_OK				0
+#define SCSI_STATUS_OK		0
 #define SCSI_STATUS_CHECK_CONDITION 2
 
 /* SCSI Sense Keys */
-#define SENSE_NONE			0
-#define SENSE_NOT_READY			2
-#define SENSE_ILLEGAL_REQUEST		5
-#define SENSE_UNIT_ATTENTION		6
+#define SENSE_NONE		0
+#define SENSE_NOT_READY		2
+#define SENSE_ILLEGAL_REQUEST	5
+#define SENSE_UNIT_ATTENTION	6
 
 /* SCSI Additional Sense Codes */
 #define ASC_AUDIO_PLAY_OPERATION	0x00
@@ -193,45 +198,43 @@
 #define CHECK_READY		2
 #define ALLOW_UA		1
 
-extern uint8_t SCSICommandTable[0x100];
 
-extern uint8_t mode_sense_pages[0x40];
-
-extern int readcdmode;
+extern uint8_t	SCSICommandTable[0x100];
+extern uint8_t	mode_sense_pages[0x40];
+extern int	readcdmode;
 
 /* Mode sense/select stuff. */
-extern uint8_t mode_pages_in[256][256];
+extern uint8_t	mode_pages_in[256][256];
+extern uint8_t	page_flags[256];
+extern uint8_t	prefix_len;
+extern uint8_t	page_current; 
 #define PAGE_CHANGEABLE		1
 #define PAGE_CHANGED		2
 
-extern uint8_t page_flags[256];
-extern uint8_t prefix_len;
-extern uint8_t page_current; 
 
-extern uint32_t DataLength;
-extern uint32_t DataPointer;
+extern uint32_t	DataLength;
+extern uint32_t	DataPointer;
 
-extern int SectorLBA;
-extern int SectorLen;
+extern int	SectorLBA;
+extern int	SectorLen;
 
-extern int MediaPresent;
+extern int	MediaPresent;
 
-extern uint8_t SCSIStatus;
-extern uint8_t SCSIPhase;
-extern uint8_t scsi_cdrom_id;
+extern uint8_t	SCSIStatus;
+extern uint8_t	SCSIPhase;
+extern uint8_t	scsi_cdrom_id;
 
-struct
-{
-	uint8_t SenseBuffer[18];
-	uint8_t SenseLength;	
-	uint8_t UnitAttention;
-	uint8_t SenseKey;
-	uint8_t Asc;
-	uint8_t Ascq;		
+struct {
+    uint8_t	SenseBuffer[18];
+    uint8_t	SenseLength;	
+    uint8_t	UnitAttention;
+    uint8_t	SenseKey;
+    uint8_t	Asc;
+    uint8_t	Ascq;		
 } SCSISense;
 
-extern int cd_status;
-extern int prev_status;
+extern int	cd_status;
+extern int	prev_status;
 
 #define SCSI_NONE 0
 #define SCSI_DISK 1
@@ -248,13 +251,16 @@ extern int prev_status;
 #define SCSI_PHASE_BUS_FREE ( 8 )
 #define SCSI_PHASE_SELECT ( 9 )
 
-struct
-{	
-	uint8_t *CmdBuffer;
-	uint32_t CmdBufferLength;
-	int LunType;
-	uint32_t InitLength;
-} SCSIDevices[16][8];
+
+typedef struct {	
+    uint8_t	*CmdBuffer;
+    uint32_t	CmdBufferLength;
+    int		LunType;
+    uint32_t	InitLength;
+} scsi_device_t;
+
+
+extern scsi_device_t	SCSIDevices[SCSI_ID_MAX][SCSI_LUN_MAX];
 
 extern void SCSIReset(uint8_t id, uint8_t lun);
 
