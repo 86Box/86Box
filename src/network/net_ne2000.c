@@ -1532,7 +1532,7 @@ nic_pci_read(int func, int addr, void *priv)
 		ret = dev->pci_bar[1].addr_regs[0] & 0x01;
 		break;
 	case 0x31:			/* PCI_ROMBAR 15:11 */
-		ret = (dev->pci_bar[1].addr_regs[1] & dev->bios_mask);
+		ret = dev->pci_bar[1].addr_regs[1] & 0x80;
 		break;
 	case 0x32:			/* PCI_ROMBAR 23:16 */
 		ret = dev->pci_bar[1].addr_regs[2];
@@ -1566,7 +1566,7 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 
     switch(addr) {
 	case 0x04:			/* PCI_COMMAND_LO */
-		valxor = (val & 0x23) ^ dev->pci_regs[addr];
+		valxor = (val & 0x03) ^ dev->pci_regs[addr];
 		if (valxor & PCI_COMMAND_IO)
 		{
 			nic_ioremove(dev, dev->base_address);
@@ -1580,7 +1580,7 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 			...
 		}
 #endif
-		dev->pci_regs[addr] = val & 0x23;
+		dev->pci_regs[addr] = val & 0x03;
 		break;
 
 #if 0
@@ -1602,7 +1602,7 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 #endif
 
 	case 0x10:			/* PCI_BAR */
-		val &= 0xfc;	/* 0xe0 acc to RTL DS */
+		val &= 0xe0;	/* 0xe0 acc to RTL DS */
 		val |= 0x01;	/* re-enable IOIN bit */
 		/*FALLTHROUGH*/
 
@@ -1636,8 +1636,8 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 	case 0x32:			/* PCI_ROMBAR */
 	case 0x33:			/* PCI_ROMBAR */
 		dev->pci_bar[1].addr_regs[addr & 3] = val;
-		dev->pci_bar[1].addr_regs[1] &= dev->bios_mask;
-		dev->pci_bar[1].addr &= 0xffffe001;
+		/* dev->pci_bar[1].addr_regs[1] &= dev->bios_mask; */
+		dev->pci_bar[1].addr &= 0xffff8001;
 		dev->bios_addr = dev->pci_bar[1].addr;
 		nic_update_bios(dev);
 		return;
@@ -1967,14 +1967,18 @@ nic_init(int board)
 	 *
 	 * We do this here, so the I/O routines are generic.
 	 */
+	memset(dev->pci_regs, 0, PCI_REGSIZE);
+
 	dev->pci_regs[0x00] = (PCI_VENDID&0xff);
 	dev->pci_regs[0x01] = (PCI_VENDID>>8);
 	dev->pci_regs[0x02] = (PCI_DEVID&0xff);
 	dev->pci_regs[0x03] = (PCI_DEVID>>8);
 
-        dev->pci_regs[0x04] = 0x01;		/* IOEN */
+        dev->pci_regs[0x04] = 0x03;		/* IOEN */
         dev->pci_regs[0x05] = 0x00;
         dev->pci_regs[0x07] = 0x02;		/* DST0, medium devsel */
+
+        dev->pci_regs[0x09] = 0x00;		/* PIFR */
 
         dev->pci_regs[0x0B] = 0x02;		/* BCR: Network Controller */
         dev->pci_regs[0x0A] = 0x00;		/* SCR: Ethernet */
@@ -1984,14 +1988,14 @@ nic_init(int board)
 	dev->pci_regs[0x2E] = (PCI_DEVID&0xff);
 	dev->pci_regs[0x2F] = (PCI_DEVID>>8);
 
-        dev->pci_regs[0x3D] = PCI_INTC;		/* PCI_IPR */
+        dev->pci_regs[0x3D] = PCI_INTA;		/* PCI_IPR */
 
 	/* Enable our address space in PCI. */
 	dev->pci_bar[0].addr_regs[0] = 0x01;
 
 	/* Enable our BIOS space in PCI, if needed. */
 	if (dev->bios_addr > 0) {
-		dev->pci_bar[1].addr = 0x000F8000;
+		dev->pci_bar[1].addr = 0xFFFF8000;
 		dev->pci_bar[1].addr_regs[1] = dev->bios_mask;
 	} else {
 		dev->pci_bar[1].addr = 0;

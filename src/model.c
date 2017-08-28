@@ -664,7 +664,7 @@ void at_premiere_common_init(void)
         pci_slot(0xc);
         pci_slot(0xe);
         pci_slot(0x6);
- 	sio_init(1, 0xc, 0xe, 0x6, 0);
+ 	sio_init(2, 0xc, 0xe, 0x6, 0);
         fdc37c665_init();
         intel_batman_init();
         device_add(&intel_flash_bxt_ami_device);
@@ -686,7 +686,7 @@ void at_586mc1_init(void)
         pci_slot(0xc);
         pci_slot(0xe);
         pci_slot(0x6);
-	sio_init(1, 0xc, 0xe, 0x6, 0);
+	sio_init(2, 0xc, 0xe, 0x6, 0);
         device_add(&intel_flash_bxt_device);
 	secondary_ide_check();
 }
