@@ -1988,7 +1988,7 @@ nic_init(int board)
 	dev->pci_regs[0x2E] = (PCI_DEVID&0xff);
 	dev->pci_regs[0x2F] = (PCI_DEVID>>8);
 
-        dev->pci_regs[0x3D] = PCI_INTA;		/* PCI_IPR */
+        dev->pci_regs[0x3D] = PCI_INTC;		/* PCI_IPR */
 
 	/* Enable our address space in PCI. */
 	dev->pci_bar[0].addr_regs[0] = 0x01;
