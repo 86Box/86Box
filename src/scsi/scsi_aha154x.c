@@ -1763,15 +1763,21 @@ aha_mca_write(int port, uint8_t val, void *priv)
      * SCSI Parity is pos[2]=xxx1xxxx.
      */
 
+    /*
+     * The PS/2 Model 80 BIOS always enables a card if it finds one,
+     * even if no resources were assigned yet (because we only added
+     * the card, but have not run AutoConfig yet...)
+     *
+     * So, remove current address, if any.
+     */
+    io_removehandler(dev->Base, 4,
+		     aha_read, aha_readw, NULL,
+		     aha_write, aha_writew, NULL, dev);		
+    mem_mapping_disable(&dev->bios.mapping);
+
     /* Initialize the device if fully configured. */
     if (dev->pos_regs[2] & 0x01) {
-	/* Card has been enabled! First, remove the current I/O handler. */
-	io_removehandler(dev->Base, 4,
-			 aha_read, aha_readw, NULL,
-			 aha_write, aha_writew, NULL, dev);		
-	mem_mapping_disable(&dev->bios.mapping);
-
-	/* Register the new I/O range. */
+	/* Card enabled; register (new) I/O handler. */
 	io_sethandler(dev->Base, 4,
 		      aha_read, aha_readw, NULL,
 		      aha_write, aha_writew, NULL, dev);
@@ -1779,7 +1785,7 @@ aha_mca_write(int port, uint8_t val, void *priv)
 	/* Reset the device. */
 	aha_reset_ctrl(dev, CTRL_HRST);
 
-	/* Enable the memory. */
+	/* Enable or disable the BIOS ROM. */
 	if (dev->rom_addr != 0x000000) {
 		mem_mapping_enable(&dev->bios.mapping);
 		mem_mapping_set_addr(&dev->bios.mapping, dev->rom_addr, ROM_SIZE);
