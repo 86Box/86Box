@@ -11,6 +11,7 @@ void pci_set_irq(int card, int pci_int);
 void pci_ide_clear_irq(int ide_board, int irq);
 void pci_clear_irq(int card, int pci_int);
 int pci_irq_is_level(int irq);
+void pci_reset(void);
 
 #define PCI_REG_COMMAND 0x04
 

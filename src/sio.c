@@ -173,7 +173,7 @@ void trc_reset(uint8_t val)
 		port_92_reset();
 		keyboard_at_reset();
 
-		elcr_reset();
+		pci_reset();
 	}
 	resetx86();
 }

@@ -282,13 +282,30 @@ void pci_clear_irq(int card, int pci_int)
         }
 }
 
+void pci_reset(void)
+{
+	int i = 0;
+
+	for (i = 0; i < 16; i++)
+	{
+		if (pci_irq_hold[i])
+		{
+			pci_irq_hold[i] = 0;
+
+			picintc(1 << i);
+		}
+	}
+
+	elcr_reset();
+}
+
 void pci_init(int type)
 {
         int c;
 
         PCI = 1;
 
-	elcr_reset();
+	pci_reset();
 
 	io_sethandler(0x04d0, 0x0002, elcr_read, NULL, NULL, elcr_write, NULL, NULL,  NULL);
         
