@@ -17,6 +17,8 @@
  */
 
 extern void piix_init(int card, int pci_a, int pci_b, int pci_c, int pci_d);
+extern void piix_init_thor(int card, int pci_d_only, int pci_a, int pci_b, int pci_c, int pci_d);
+
 extern void piix3_init(int card, int pci_a, int pci_b, int pci_c, int pci_d);
 
 extern uint8_t piix_bus_master_read(uint16_t port, void *priv);

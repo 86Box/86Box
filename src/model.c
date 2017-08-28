@@ -109,9 +109,11 @@ extern void    at_endeavor_init(void);
 extern void      at_dtk486_init(void);
 extern void        at_r418_init(void);
 extern void       at_plato_init(void);
+extern void       at_zappa_init(void);
 extern void      at_mb500n_init(void);
 extern void   at_president_init(void);
 extern void    at_p54tp4xe_init(void);
+extern void        at_thor_init(void);
 extern void        at_ap53_init(void);
 extern void      at_p55t2s_init(void);
 extern void     at_acerm3a_init(void);
@@ -208,12 +210,12 @@ MODEL models[] =
 
         {"[Socket 5 FX] ASUS P/I-P54TP4XE",	ROM_P54TP4XE,	"p54tp4xe",		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"AMD",   cpus_K5},     {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	   1,  256,   1, 127,   at_p54tp4xe_init, NULL			},
         {"[Socket 5 FX] Intel Advanced/EV",	ROM_ENDEAVOR,	"endeavor",		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"AMD",   cpus_K5},     {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	   1,  128,   1, 127,   at_endeavor_init, NULL			},
-        {"[Socket 5 FX] Intel Advanced/ZP",	ROM_ZAPPA,	"zappa",		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"AMD",   cpus_K5},     {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	   1,  128,   1, 127,   at_endeavor_init, NULL			},
+        {"[Socket 5 FX] Intel Advanced/ZP",	ROM_ZAPPA,	"zappa",		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"AMD",   cpus_K5},     {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	   1,  128,   1, 127,      at_zappa_init, NULL			},
         {"[Socket 5 FX] PC Partner MB500N",	ROM_MB500N,	"mb500n",		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"AMD",   cpus_K5},     {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	   1,  128,   1, 127,     at_mb500n_init, NULL			},
         {"[Socket 5 FX] President Award 430FX PCI",ROM_PRESIDENT,"president",		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"AMD",   cpus_K5},     {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE | MODEL_PCI,			  1,  128,   1, 127,   at_president_init, NULL			},
 
-        {"[Socket 7 FX] Intel Advanced/ATX",	ROM_THOR,	"thor",			{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	   1,  256,   1, 127,   at_endeavor_init, NULL			},
-        {"[Socket 7 FX] MR Intel Advanced/ATX",	ROM_MRTHOR,	"mrthor",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	   1,  256,   1, 127,   at_endeavor_init, NULL			},
+        {"[Socket 7 FX] Intel Advanced/ATX",	ROM_THOR,	"thor",			{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	   1,  256,   1, 127,       at_thor_init, NULL			},
+        {"[Socket 7 FX] MR Intel Advanced/ATX",	ROM_MRTHOR,	"mrthor",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	   1,  256,   1, 127,       at_thor_init, NULL			},
 
         {"[Socket 7 HX] Acer M3a",		ROM_ACERM3A,	"acerm3a",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	   1,  256,   1, 127,    at_acerm3a_init, NULL			},
         {"[Socket 7 HX] Acer V35n",		ROM_ACERV35N,	"acerv35n",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	   1,  256,   1, 127,   at_acerv35n_init, NULL			},
@@ -698,7 +700,7 @@ void at_plato_init(void)
         i430nx_init();
 }
 
-void at_advanced_common_init(void)
+void at_endeavor_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -710,11 +712,20 @@ void at_advanced_common_init(void)
         i430fx_init();
         piix_init(7, 0xd, 0xe, 0xf, 0x10);
         pc87306_init();
+        device_add(&intel_flash_bxt_ami_device);
 }
 
-void at_endeavor_init(void)
+void at_zappa_init(void)
 {
-        at_advanced_common_init();
+        at_ide_init();
+	memregs_init();
+        pci_init(PCI_CONFIG_TYPE_1);
+        pci_slot(0xd);
+        pci_slot(0xf);
+        pci_slot(0xe);
+        i430fx_init();
+        piix_init(7, 0xd, 0xf, 0xe, 0);
+        pc87306_init();
         device_add(&intel_flash_bxt_ami_device);
 }
 
@@ -763,6 +774,22 @@ void at_p54tp4xe_init(void)
         piix_init(7, 12, 11, 10, 9);
         fdc37c665_init();
         device_add(&intel_flash_bxt_device);
+}
+
+void at_thor_init(void)
+{
+        at_ide_init();
+	memregs_init();
+        pci_init(PCI_CONFIG_TYPE_1);
+        pci_slot(8);
+        pci_slot(0xd);
+        pci_slot(0xe);
+        pci_slot(0xf);
+        pci_slot(0x10);
+        i430fx_init();
+        piix_init_thor(7, 8, 0xd, 0xf, 0xe, 0x10);
+        pc87306_init();
+        device_add(&intel_flash_bxt_ami_device);
 }
 
 void at_ap53_init(void)
