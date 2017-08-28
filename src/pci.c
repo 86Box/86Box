@@ -12,7 +12,7 @@ static int pci_irq_routing[32];
 /* static int pci_irq_active[32]; */
 static int pci_irqs[4];
 static int pci_card_valid[32];
-static int pci_irq_hold[16];
+static uint64_t pci_irq_hold[16];
 
 static int pci_index, pci_func, pci_card, pci_bus, pci_enable, pci_key;
 int pci_burst_time, pci_nonburst_time;
@@ -187,20 +187,67 @@ void pci_issue_irq(int irq)
 	}
 }
 
+void pci_ide_set_irq(int ide_board, int irq)
+{
+	if (pci_irq_is_level(irq) && (pci_irq_hold[irq] & (1LL << (0x20LL + ide_board))))
+	{
+		/* IRQ already held, do nothing. */
+		return;
+	}
+
+	if (!pci_irq_is_level(irq) || !pci_irq_hold[irq])
+	{
+		/* Only raise the interrupt if it's edge-triggered or level-triggered and not yet being held. */
+		pci_issue_irq(irq);
+	}
+
+	/* If the IRQ is level-triggered, mark that this card is holding it. */
+	if (pci_irq_is_level(irq))
+	{
+		pci_irq_hold[irq] |= (1LL << (0x20LL + ide_board));
+	}
+}
+
 void pci_set_irq(int card, int pci_int)
 {
 	int irq = ((pci_int - PCI_INTA) + (pci_irq_routing[card] - PCI_INTA)) & 3;
 
         if (pci_irq_routing[card] && (pci_irqs[irq] != PCI_IRQ_DISABLED))
         {
-		pci_issue_irq(pci_irqs[irq]);
+		if (pci_irq_is_level(pci_irqs[irq]) && (pci_irq_hold[pci_irqs[irq]] & (1 << card)))
+		{
+			/* IRQ already held, do nothing. */
+			return;
+		}
 
-		/* If the IRQ is set to edge, there is no need to hold it. */
+		if (!pci_irq_is_level(pci_irqs[irq]) || !pci_irq_hold[pci_irqs[irq]])
+		{
+			/* Only raise the interrupt if it's edge-triggered or level-triggered and not yet being held. */
+			pci_issue_irq(pci_irqs[irq]);
+		}
+
+		/* If the IRQ is level-triggered, mark that this card is holding it. */
 		if (pci_irq_is_level(pci_irqs[irq]))
 		{
 			pci_irq_hold[pci_irqs[irq]] |= (1 << card);
 		}
         }
+}
+
+void pci_ide_clear_irq(int ide_board, int irq)
+{
+	if (pci_irq_is_level(irq))
+	{
+		pci_irq_hold[irq] &= ~(1LL << (0x20LL + ide_board));
+                if (!pci_irq_hold[irq])
+		{
+               	        picintc(1 << irq);
+		}
+	}
+	else
+	{
+		picintc(1 << irq);
+	}
 }
 
 void pci_clear_irq(int card, int pci_int)

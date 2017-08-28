@@ -172,16 +172,9 @@ void ide_irq_raise(IDE *ide)
 	
 	if (!(ide->fdisk&2))
 	{
-		if (PCI && (ide->board < 2))
+		if (PCI && (ide->board < 2) && ide_bus_master_set_irq)
 		{
-			if (pci_irq_is_level(ide_irq[ide->board]))
-			{
-				picintlevel(1 << ide_irq[ide->board]);
-			}
-			else
-			{
-				picint(1 << ide_irq[ide->board]);
-			}
+			pci_ide_set_irq(ide->board, ide_irq[ide->board]);
 		}
 		else
 		{
@@ -211,7 +204,14 @@ void ide_irq_lower(IDE *ide)
 
 	ide_log("Lowering IRQ %i (board %i)\n", ide_irq[ide->board], ide->board);
 
-	picintc(1 << ide_irq[ide->board]);
+	if (PCI && (ide->board < 2) && ide_bus_master_set_irq)
+	{
+		pci_ide_clear_irq(ide->board, ide_irq[ide->board]);
+	}
+	else
+	{
+		picintc(1 << ide_irq[ide->board]);
+	}
 	ide->irqstat=0;
 }
 
@@ -233,11 +233,25 @@ void ide_irq_update(IDE *ide)
 
 	if (ide->irqstat && !pending && !(ide->fdisk & 2))
 	{
-		picint(1 << ide_irq[ide->board]);
+		if (PCI && (ide->board < 2) && ide_bus_master_set_irq)
+		{
+			pci_ide_set_irq(ide->board, ide_irq[ide->board]);
+		}
+		else
+		{
+			picint(1 << ide_irq[ide->board]);
+		}
 	}
 	else if (pending)
 	{
-		picintc(1 << ide_irq[ide->board]);
+		if (PCI && (ide->board < 2) && ide_bus_master_set_irq)
+		{
+			pci_ide_clear_irq(ide->board, ide_irq[ide->board]);
+		}
+		else
+		{
+			picintc(1 << ide_irq[ide->board]);
+		}
 	}
 }
 /**

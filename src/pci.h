@@ -6,7 +6,9 @@ void pci_add_specific(int card, uint8_t (*read)(int func, int addr, void *priv),
 int pci_add(uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv);
 void pci_set_irq_routing(int card, int irq);
 void pci_set_card_routing(int card, int pci_int);
+void pci_ide_set_irq(int ide_board, int irq);
 void pci_set_irq(int card, int pci_int);
+void pci_ide_clear_irq(int ide_board, int irq);
 void pci_clear_irq(int card, int pci_int);
 int pci_irq_is_level(int irq);
 
