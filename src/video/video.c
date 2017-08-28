@@ -101,6 +101,7 @@ static VIDEO_CARD video_cards[] =
 #ifdef USE_RIVA
         {"nVidia RIVA 128",                        "riva128",		&riva128_device,             GFX_RIVA128},
         {"nVidia RIVA TNT",                        "rivatnt",		&rivatnt_device,             GFX_RIVATNT},
+        {"nVidia RIVA TNT2",                       "rivatnt2",		&rivatnt2_device,            GFX_RIVATNT2},
 #endif
 #endif
         {"OAK OTI-067",                            "oti067",		&oti067_device,              GFX_OTI067},
