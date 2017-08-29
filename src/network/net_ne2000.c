@@ -1506,7 +1506,7 @@ nic_pci_read(int func, int addr, void *priv)
 #endif
 
 	case 0x10:			/* PCI_BAR 7:5 */
-		ret = (dev->pci_bar[0].addr_regs[1] & 0xe0) | 0x01;
+		ret = (dev->pci_bar[0].addr_regs[0] & 0xe0) | 0x01;
 		break;
 	case 0x11:			/* PCI_BAR 15:8 */
 		ret = dev->pci_bar[0].addr_regs[1];
