@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)model.c	1.0.7	2017/08/24
+ * Version:	@(#)model.c	1.0.8	2017/08/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -74,68 +74,73 @@
 #include "bugger.h"
 
 
-extern void             xt_init(void);
-extern void           pcjr_init(void);
-extern void        tandy1k_init(void);
-extern void     tandy1ksl2_init(void);
-extern void            ams_init(void);
-extern void         europc_init(void);
-extern void         olim24_init(void);
-extern void             at_init(void);
-extern void         ibm_at_init(void);
-extern void         at_ide_init(void);
-extern void        cmdpc30_init(void);
-extern void     deskpro386_init(void);
-extern void      ps1_m2011_init(void);
-extern void      ps1_m2121_init(void);
-extern void      ps1_m2133_init(void);
-extern void    ps2_m30_286_init(void);
-extern void   ps2_model_50_init(void);
-extern void ps2_model_55sx_init(void);
-extern void   ps2_model_80_init(void);
-extern void        at_neat_init(void);
-extern void        at_scat_init(void);
-extern void     at_wd76c10_init(void);
-extern void     at_ali1429_init(void);
-extern void    at_headland_init(void);
-extern void     at_opti495_init(void);
-extern void      at_i430vx_init(void);
-extern void      at_batman_init(void);
+/* Configuration values. */
+//FIXME: move these to a central include file!!  --FvK
+#define SERIAL_MAX	2
+#define PARALLEL_MAX	1
+
+
+static void             xt_init(void);
+static void           pcjr_init(void);
+static void        tandy1k_init(void);
+static void     tandy1ksl2_init(void);
+static void            ams_init(void);
+static void         europc_init(void);
+static void         olim24_init(void);
+static void             at_init(void);
+static void         ibm_at_init(void);
+static void         at_ide_init(void);
+static void        cmdpc30_init(void);
+static void     deskpro386_init(void);
+static void      ps1_m2011_init(void);
+static void      ps1_m2121_init(void);
+static void      ps1_m2133_init(void);
+static void    ps2_m30_286_init(void);
+static void   ps2_model_50_init(void);
+static void ps2_model_55sx_init(void);
+static void   ps2_model_80_init(void);
+static void ps2_model_80_486_init(void);
+static void        at_neat_init(void);
+static void        at_scat_init(void);
+static void     at_wd76c10_init(void);
+static void     at_ali1429_init(void);
+static void    at_headland_init(void);
+static void     at_opti495_init(void);
+static void      at_i430vx_init(void);
+static void      at_batman_init(void);
 #if 0
-extern void	 at_586mc1_init(void);
+static void	 at_586mc1_init(void);
 #endif
-extern void    at_endeavor_init(void);
+static void    at_endeavor_init(void);
 
-extern void      at_dtk486_init(void);
-extern void        at_r418_init(void);
-extern void       at_plato_init(void);
-extern void       at_zappa_init(void);
-extern void      at_mb500n_init(void);
-extern void   at_president_init(void);
-extern void    at_p54tp4xe_init(void);
-extern void        at_thor_init(void);
-extern void        at_ap53_init(void);
-extern void      at_p55t2s_init(void);
-extern void     at_acerm3a_init(void);
-extern void    at_acerv35n_init(void);
-extern void     at_p55t2p4_init(void);
-extern void     at_p55tvp4_init(void);
-extern void       at_p55va_init(void);
-extern void      at_i440fx_init(void);
-extern void       at_s1668_init(void);
+static void      at_dtk486_init(void);
+static void        at_r418_init(void);
+static void       at_plato_init(void);
+static void       at_zappa_init(void);
+static void      at_mb500n_init(void);
+static void   at_president_init(void);
+static void    at_p54tp4xe_init(void);
+static void        at_thor_init(void);
+static void        at_ap53_init(void);
+static void      at_p55t2s_init(void);
+static void     at_acerm3a_init(void);
+static void    at_acerv35n_init(void);
+static void     at_p55t2p4_init(void);
+static void     at_p55tvp4_init(void);
+static void       at_p55va_init(void);
+static void      at_i440fx_init(void);
+static void       at_s1668_init(void);
 
-extern void     xt_laserxt_init(void);
+static void     xt_laserxt_init(void);
+
 
 int model;
-
 int AMSTRAD, AT, PCI, TANDY;
-
 PCI_RESET pci_reset_handler;
-
-int serial_enabled[2] = { 0, 0 };
+int serial_enabled[SERIAL_MAX] = { 0, 0 };
 int lpt_enabled = 0, bugger_enabled = 0;
-
 int romset;
+
 
 MODEL models[] =
 {
@@ -200,6 +205,7 @@ MODEL models[] =
         {"[486] DTK PKM-0038S E-2",	ROM_DTK486,		"dtk486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE,				  1,   64,   1, 127,      at_dtk486_init, NULL			},
         {"[486] IBM PS/1 model 2133",	ROM_IBMPS1_2133,	"ibmps1_2133",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE,			  1,   64,   1, 127,      ps1_m2133_init, NULL			},
         {"[486] Rise Computer R418",	ROM_R418,		"r418",			{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_HAS_IDE | MODEL_PCI,			  1,   64,   1, 127,        at_r418_init, NULL			},
+        {"[486DX] IBM PS/2 Model 80-486",	ROM_IBMPS2_M80,		"ibmps2_m80-486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486}, {"Cyrix", cpus_Cx486}, {"",      NULL},     {"",      NULL}}, 1, MODEL_AT | MODEL_PS2 | MODEL_PS2_HDD | MODEL_MCA,	  1,   32,   1,  63,   ps2_model_80_486_init, NULL			},
 
         {"[Socket 4 LX] Intel Premiere/PCI",ROM_REVENGE,	"revenge",		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MODEL_AT | MODEL_PS2 | MODEL_HAS_IDE | MODEL_PCI,	  1,  128,   1, 127,      at_batman_init, NULL			},
 #if 0
@@ -238,15 +244,18 @@ int model_count(void)
         return (sizeof(models) / sizeof(MODEL)) - 1;
 }
 
+
 int model_getromset(void)
 {
         return models[model].id;
 }
 
+
 int model_getromset_ex(int m)
 {
         return models[m].id;
 }
+
 
 int model_getmodel(int romset)
 {
@@ -262,7 +271,8 @@ int model_getmodel(int romset)
 	return 0;
 }
 
-char *model_getname()
+
+char *model_getname(void)
 {
         return models[model].name;
 }
@@ -273,20 +283,24 @@ device_t *model_getdevice(int model)
         return models[model].device;
 }
 
+
 char *model_get_internal_name(void)
 {
         return models[model].internal_name;
 }
+
 
 char *model_get_internal_name_ex(int m)
 {
         return models[m].internal_name;
 }
 
+
 int model_get_nvrmask(int m)
 {
         return models[m].nvrmask;
 }
+
 
 int model_get_model_from_internal_name(char *s)
 {
@@ -302,41 +316,48 @@ int model_get_model_from_internal_name(char *s)
 	return 0;
 }
 
+
+/*
+ * Start of model-support hardware initializations.
+ */
 void common_init(void)
 {
+	/* System devices first. */
         dma_init();
-        fdc_add();
-	if (lpt_enabled)
-	{
-	        lpt_init();
-	}
         pic_init();
         pit_init();
+
+        fdc_add();
+
+	if (lpt_enabled)
+	        lpt_init();
+
 	if (serial_enabled[0])
-	{
-	        serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
-	}
+	        	serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
 	if (serial_enabled[1])
-	{
 	        serial_setup(2, SERIAL2_ADDR, SERIAL2_IRQ);
-	}
 }
 
-void xt_init(void)
+
+static void xt_init(void)
 {
         common_init();
+
 	mem_add_bios();
+
         pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
+
         keyboard_xt_init();
 	nmi_init();
-	if (joystick_type != 7)  device_add(&gameport_device);
+	if (joystick_type != 7)
+		device_add(&gameport_device);
+
 	if (bugger_enabled)
-	{
 		bugger_init();
-	}
 }
 
-void pcjr_init(void)
+
+static void pcjr_init(void)
 {
 	mem_add_bios();
         fdc_add_pcjr();
@@ -344,17 +365,17 @@ void pcjr_init(void)
         pit_init();
         pit_set_out_func(&pit, 0, pit_irq0_timer_pcjr);
 	if (serial_enabled[0])
-	{
 	        serial_setup(1, 0x2f8, 3);
-	}
         keyboard_pcjr_init();
         device_add(&sn76489_device);
 	nmi_mask = 0x80;
 }
 
-void tandy1k_init(void)
+
+static void tandy1k_init(void)
 {
         TANDY = 1;
+
         common_init();
 	mem_add_bios();
         keyboard_tandy_init();
@@ -365,9 +386,12 @@ void tandy1k_init(void)
 	nmi_init();
 	if (romset != ROM_TANDY)
                 device_add(&tandy_eeprom_device);
-	if (joystick_type != 7)  device_add(&gameport_device);
+	if (joystick_type != 7)
+		device_add(&gameport_device);
 }
-void tandy1ksl2_init(void)
+
+
+static void tandy1ksl2_init(void)
 {
         common_init();
 	mem_add_bios();
@@ -379,9 +403,11 @@ void tandy1ksl2_init(void)
 	if (joystick_type != 7)  device_add(&gameport_device);
 }
 
-void ams_init(void)
+
+static void ams_init(void)
 {
         AMSTRAD = 1;
+
         common_init();
 	mem_add_bios();
         amstrad_init();
@@ -389,10 +415,12 @@ void ams_init(void)
         nvr_init();
 	nmi_init();
 	fdc_set_dskchg_activelow();
-	if (joystick_type != 7)  device_add(&gameport_device);
+	if (joystick_type != 7)
+		device_add(&gameport_device);
 }
 
-void europc_init(void)
+
+static void europc_init(void)
 {
         common_init();
 	mem_add_bios();
@@ -400,10 +428,12 @@ void europc_init(void)
         jim_init();
         keyboard_xt_init();
 	nmi_init();
-	if (joystick_type != 7)  device_add(&gameport_device);
+	if (joystick_type != 7)
+		device_add(&gameport_device);
 }
 
-void olim24_init(void)
+
+static void olim24_init(void)
 {
         common_init();
 	mem_add_bios();
@@ -414,60 +444,66 @@ void olim24_init(void)
 	if (joystick_type != 7)  device_add(&gameport_device);
 }
 
-void xt_laserxt_init(void)
+
+static void xt_laserxt_init(void)
 {
         xt_init();
         laserxt_init();
 }
 
-void at_init(void)
+
+static void at_init(void)
 {
 	AT = 1;
+
         common_init();
 	if (lpt_enabled)
-	{
 		lpt2_remove();
-	}
 	mem_add_bios();
         pit_set_out_func(&pit, 1, pit_refresh_timer_at);
         dma16_init();
         keyboard_at_init();
         nvr_init();
         pic2_init();
-	if (joystick_type != 7)  device_add(&gameport_device);
+	if (joystick_type != 7)
+		device_add(&gameport_device);
 	if (bugger_enabled)
-	{
 		bugger_init();
-	}
 }
 
-void ibm_at_init(void)
+
+static void ibm_at_init(void)
 {
         at_init();
         mem_remap_top_384k();
 }
 
-void at_ide_init(void)
+
+static void at_ide_init(void)
 {
 	at_init();
 	ide_init();
 }
 
-void cmdpc30_init(void)
+
+static void cmdpc30_init(void)
 {
 	at_ide_init();
         mem_remap_top_384k();
 }
 
-void deskpro386_init(void)
+
+static void deskpro386_init(void)
 {
         at_init();
         compaq_init();
 }
 
-void ps1_common_init(void)
+
+static void ps1_common_init(void)
 {
         AT = 1;
+
         common_init();
 	mem_add_bios();
         pit_set_out_func(&pit, 1, pit_refresh_timer_at);
@@ -479,38 +515,45 @@ void ps1_common_init(void)
         keyboard_at_init();
         nvr_init();
         pic2_init();
-		if (romset != ROM_IBMPS1_2133)
-		{			
-			fdc_set_dskchg_activelow();
-			device_add(&ps1_audio_device);
-		}
+	if (romset != ROM_IBMPS1_2133)
+	{			
+		fdc_set_dskchg_activelow();
+		device_add(&ps1_audio_device);
+	}
+
         /*PS/1 audio uses ports 200h and 202-207h, so only initialise gameport on 201h*/
-        if (joystick_type != 7)  device_add(&gameport_201_device);
+        if (joystick_type != 7)
+		device_add(&gameport_201_device);
 }
  
-void ps1_m2011_init(void)
+
+static void ps1_m2011_init(void)
 {
         ps1_common_init();
         ps1mb_init();
         mem_remap_top_384k();
 }
 
-void ps1_m2121_init(void)
+
+static void ps1_m2121_init(void)
 {
         ps1_common_init();
         ps1mb_m2121_init();
         fdc_set_ps1();
 }
 
-void ps1_m2133_init(void)
+
+static void ps1_m2133_init(void)
 {
         ps1_common_init();
         ps1mb_m2133_init();
 }
 
-void ps2_m30_286_init(void)
+
+static void ps2_m30_286_init(void)
 {
         AT = 1;
+
         common_init();
         mem_add_bios();
         pit_set_out_func(&pit, 1, pit_refresh_timer_at);
@@ -523,14 +566,15 @@ void ps2_m30_286_init(void)
         fdc_set_ps1();
 }
 
+
 static void ps2_common_init(void)
 {
         AT = 1;
+
         common_init();
         mem_add_bios();
         dma16_init();
         ps2_dma_init();
-        ide_init();
         keyboard_at_init();
         keyboard_at_init_ps2();
         mouse_ps2_init();
@@ -540,72 +584,92 @@ static void ps2_common_init(void)
         pit_ps2_init();
 }
 
-void ps2_model_50_init(void)
+
+static void ps2_model_50_init(void)
 {
         ps2_common_init();
         ps2_mca_board_model_50_init();
 }
 
-void ps2_model_55sx_init(void)
+
+static void ps2_model_55sx_init(void)
 {
         ps2_common_init();
         ps2_mca_board_model_55sx_init();
 }
 
-void ps2_model_80_init(void)
+
+static void ps2_model_80_init(void)
 {
         ps2_common_init();
         ps2_mca_board_model_80_type2_init();
 }
 
-void at_neat_init(void)
+
+static void ps2_model_80_486_init(void)
+{
+        ps2_common_init();
+        ps2_mca_board_model_80_type2_init();
+}
+
+
+static void at_neat_init(void)
 {
         at_ide_init();
         neat_init();
 }
 
-void at_scat_init(void)
+
+static void at_scat_init(void)
 {
         at_ide_init();
         scat_init();
 }
 
-/* void at_acer386sx_init(void)
+
+#if 0
+static void at_acer386sx_init(void)
 {
         at_ide_init();
         acer386sx_init();
 }
 
-void at_82335_init(void)
+
+static void at_82335_init(void)
 {
         at_ide_init();
         i82335_init();
-} */
+}
+#endif
 
-void at_wd76c10_init(void)
+
+static void at_wd76c10_init(void)
 {
         at_ide_init();
         wd76c10_init();
 }
 
-void at_headland_init(void)
+
+static void at_headland_init(void)
 {
         at_ide_init();
         headland_init();
 }
 
-void at_opti495_init(void)
+
+static void at_opti495_init(void)
 {
         at_ide_init();
         opti495_init();
 }
 
-void secondary_ide_check(void)
+
+static void secondary_ide_check(void)
 {
 	int i = 0;
 	int secondary_cdroms = 0;
 
-	for (i = 0; i < CDROM_NUM; i++)
+	for (i=0; i<CDROM_NUM; i++)
 	{
 		if ((cdrom_drives[i].ide_channel >= 2) && (cdrom_drives[i].ide_channel <= 3) && ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) || (cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA)))
 		{
@@ -615,7 +679,8 @@ void secondary_ide_check(void)
 	if (!secondary_cdroms)  ide_sec_disable();
 }
 
-void at_ali1429_init(void)
+
+static void at_ali1429_init(void)
 {
         ali1429_reset();
 
@@ -625,14 +690,18 @@ void at_ali1429_init(void)
 	secondary_ide_check();
 }
 
-/* void at_um8881f_init(void)
+
+#if 0
+static void at_um8881f_init(void)
 {
         at_ide_init();
         pci_init(PCI_CONFIG_TYPE_1, 0, 31);
         um8881f_init();
-} */
+}
+#endif
 
-void at_dtk486_init(void)
+
+static void at_dtk486_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -640,7 +709,8 @@ void at_dtk486_init(void)
 	secondary_ide_check();
 }
 
-void at_sis496_init(void)
+
+static void at_sis496_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -652,13 +722,15 @@ void at_sis496_init(void)
 	trc_init();
 }
 
-void at_r418_init(void)
+
+static void at_r418_init(void)
 {
 	at_sis496_init();
         fdc37c665_init();
 }
 
-void at_premiere_common_init(void)
+
+static void at_premiere_common_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -672,14 +744,16 @@ void at_premiere_common_init(void)
         device_add(&intel_flash_bxt_ami_device);
 }
 
-void at_batman_init(void)
+
+static void at_batman_init(void)
 {
 	at_premiere_common_init();
         i430lx_init();
 }
 
+
 #if 0
-void at_586mc1_init(void)
+static void at_586mc1_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -694,13 +768,15 @@ void at_586mc1_init(void)
 }
 #endif
 
-void at_plato_init(void)
+
+static void at_plato_init(void)
 {
 	at_premiere_common_init();
         i430nx_init();
 }
 
-void at_endeavor_init(void)
+
+static void at_endeavor_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -715,7 +791,8 @@ void at_endeavor_init(void)
         device_add(&intel_flash_bxt_ami_device);
 }
 
-void at_zappa_init(void)
+
+static void at_zappa_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -729,7 +806,8 @@ void at_zappa_init(void)
         device_add(&intel_flash_bxt_ami_device);
 }
 
-void at_mb500n_init(void)
+
+static void at_mb500n_init(void)
 {
         at_ide_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -743,7 +821,8 @@ void at_mb500n_init(void)
         device_add(&intel_flash_bxt_device);
 }
 
-void at_president_init(void)
+
+static void at_president_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -761,7 +840,8 @@ void at_president_init(void)
         device_add(&intel_flash_bxt_device);
 }
 
-void at_p54tp4xe_init(void)
+
+static void at_p54tp4xe_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -776,7 +856,8 @@ void at_p54tp4xe_init(void)
         device_add(&intel_flash_bxt_device);
 }
 
-void at_thor_init(void)
+
+static void at_thor_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -792,7 +873,8 @@ void at_thor_init(void)
         device_add(&intel_flash_bxt_ami_device);
 }
 
-void at_ap53_init(void)
+
+static void at_ap53_init(void)
 {
         at_ide_init();
         memregs_init();
@@ -808,7 +890,8 @@ void at_ap53_init(void)
         device_add(&intel_flash_bxt_device);
 }
 
-void at_p55t2s_init(void)
+
+static void at_p55t2s_init(void)
 {
         at_ide_init();
         memregs_init();
@@ -824,7 +907,8 @@ void at_p55t2s_init(void)
         device_add(&intel_flash_bxt_device);
 }
 
-void at_acerm3a_init(void)
+
+static void at_acerm3a_init(void)
 {
         at_ide_init();
 	powermate_memregs_init();
@@ -839,7 +923,8 @@ void at_acerm3a_init(void)
         device_add(&intel_flash_bxb_device);
 }
 
-void at_acerv35n_init(void)
+
+static void at_acerv35n_init(void)
 {
         at_ide_init();
 	powermate_memregs_init();
@@ -854,7 +939,8 @@ void at_acerv35n_init(void)
         device_add(&intel_flash_bxb_device);
 }
 
-void at_p55t2p4_init(void)
+
+static void at_p55t2p4_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -869,8 +955,9 @@ void at_p55t2p4_init(void)
         device_add(&intel_flash_bxt_device);
 }
 
+
 #if 0
-void at_i430vx_init(void)
+static void at_i430vx_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -886,7 +973,8 @@ void at_i430vx_init(void)
 }
 #endif
 
-void at_p55tvp4_init(void)
+
+static void at_p55tvp4_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -901,7 +989,8 @@ void at_p55tvp4_init(void)
         device_add(&intel_flash_bxt_device);
 }
 
-void at_i430vx_init(void)
+
+static void at_i430vx_init(void)
 {
         at_ide_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -915,7 +1004,8 @@ void at_i430vx_init(void)
         device_add(&intel_flash_bxt_device);
 }
 
-void at_p55va_init(void)
+
+static void at_p55va_init(void)
 {
         at_ide_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -929,7 +1019,8 @@ void at_p55va_init(void)
         device_add(&intel_flash_bxt_device);
 }
 
-void at_i440fx_init(void)
+
+static void at_i440fx_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -944,7 +1035,8 @@ void at_i440fx_init(void)
         device_add(&intel_flash_bxt_device);
 }
 
-void at_s1668_init(void)
+
+static void at_s1668_init(void)
 {
         at_ide_init();
 	memregs_init();
@@ -959,17 +1051,23 @@ void at_s1668_init(void)
         device_add(&intel_flash_bxt_device);
 }
 
+
 void model_init(void)
 {
         pclog("Initializing as %s\n", model_getname());
+
         AMSTRAD = AT = PCI = TANDY = 0;
+
         io_init();
         
 	pci_reset_handler.pci_master_reset = NULL;
 	pci_reset_handler.pci_set_reset = NULL;
 	pci_reset_handler.super_io_reset = NULL;
+
 	fdc_update_is_nsc(0);
+
         models[model].init();
+
         if (models[model].device)
                 device_add(models[model].device);
 }
