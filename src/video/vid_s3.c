@@ -2179,8 +2179,8 @@ static void *s3_init(wchar_t *bios_fn, int chip)
 
         s3_io_set(s3);
 
-        s3->card = pci_add(s3_pci_read, s3_pci_write, s3);
-        
+        s3->card = pci_add_card(PCI_ADD_VIDEO, s3_pci_read, s3_pci_write, s3);
+
         s3->pci_regs[0x04] = 7;
         
         s3->pci_regs[0x30] = 0x00;

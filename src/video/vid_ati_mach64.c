@@ -3315,7 +3315,7 @@ static void *mach64_common_init()
 
         mach64_io_set(mach64);
 
-        mach64->card = pci_add(mach64_pci_read, mach64_pci_write, mach64);
+        mach64->card = pci_add_card(PCI_ADD_VIDEO, mach64_pci_read, mach64_pci_write, mach64);
 
         mach64->pci_regs[PCI_REG_COMMAND] = 3;
         mach64->pci_regs[0x30] = 0x00;

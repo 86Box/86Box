@@ -49,13 +49,6 @@
 #define PCI_REGSIZE		256		/* size of PCI space */
 
 
-/* For PCI. */
-typedef union {
-    uint32_t addr;
-    uint8_t addr_regs[4];
-} bar_t;
-
-
 /* Never completely fill the ne2k ring so that we never
    hit the unclear completely full buffer condition. */
 #define NE2K_NEVER_FULL_RING (1)
@@ -2018,7 +2011,7 @@ nic_init(int board)
 	 dev->eeprom[0x7D] = (PCI_VENDID>>8);
 
 	/* Insert this device onto the PCI bus, keep its slot number. */
-	dev->card = pci_add(nic_pci_read, nic_pci_write, dev);
+	dev->card = pci_add_card(PCI_ADD_NORMAL, nic_pci_read, nic_pci_write, dev);
     }
 
     /* Set up our BIA. */

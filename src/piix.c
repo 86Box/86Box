@@ -683,9 +683,9 @@ void piix3_reset(void)
 	card_piix_ide[0x44] = 0x00;
 }
 
-void piix_init_common(int card)
+void piix_init(int card)
 {
-        pci_add_specific(card, piix_read, piix_write, NULL);
+        pci_add_card(card, piix_read, piix_write, NULL);
 
 	piix_reset();
 
@@ -704,30 +704,9 @@ void piix_init_common(int card)
 	pci_reset_handler.pci_set_reset = piix_reset;
 }
 
-void piix_init(int card, int pci_a, int pci_b, int pci_c, int pci_d)
+void piix3_init(int card)
 {
-	piix_init_common(card);
-
-        pci_set_card_routing(pci_a, PCI_INTA);
-        pci_set_card_routing(pci_b, PCI_INTB);
-        pci_set_card_routing(pci_c, PCI_INTC);
-        pci_set_card_routing(pci_d, PCI_INTD);
-}
-
-void piix_init_thor(int card, int pci_d_only, int pci_a, int pci_b, int pci_c, int pci_d)
-{
-	piix_init_common(card);
-
-        pci_set_card_routing(pci_d_only, PCI_INTD);
-        pci_set_card_routing(pci_a, PCI_INTA);
-        pci_set_card_routing(pci_b, PCI_INTB);
-        pci_set_card_routing(pci_c, PCI_INTC);
-        pci_set_card_routing(pci_d, PCI_INTD);
-}
-
-void piix3_init(int card, int pci_a, int pci_b, int pci_c, int pci_d)
-{
-        pci_add_specific(card, piix_read, piix_write, NULL);
+        pci_add_card(card, piix_read, piix_write, NULL);
         
 	piix3_reset();
 
@@ -744,9 +723,4 @@ void piix3_init(int card, int pci_a, int pci_b, int pci_c, int pci_d)
 	dma_alias_set();
 
 	pci_reset_handler.pci_set_reset = piix3_reset;
-
-        pci_set_card_routing(pci_a, PCI_INTA);
-        pci_set_card_routing(pci_b, PCI_INTB);
-        pci_set_card_routing(pci_c, PCI_INTC);
-        pci_set_card_routing(pci_d, PCI_INTD);
 }

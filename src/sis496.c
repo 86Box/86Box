@@ -146,15 +146,11 @@ static void sis496_pci_reset(void)
 
 void sis496_init(void)
 {
-        pci_add_specific(5, sis496_read, sis496_write, NULL);
+        pci_add_card(5, sis496_read, sis496_write, NULL);
 
 	sis496_reset();
 
 	pci_reset_handler.pci_master_reset = sis496_pci_reset;
-
-        pci_set_card_routing(15, PCI_INTA);
-        pci_set_card_routing(13, PCI_INTD);
-        pci_set_card_routing(11, PCI_INTC);
 }
 
 

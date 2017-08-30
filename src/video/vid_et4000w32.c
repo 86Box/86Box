@@ -1161,7 +1161,7 @@ void *et4000w32p_init()
 
         et4000w32p_io_set(et4000);
         
-        pci_add(et4000w32p_pci_read, et4000w32p_pci_write, et4000);
+        pci_add_card(PCI_ADD_VIDEO, et4000w32p_pci_read, et4000w32p_pci_write, et4000);
 
 	/* Hardwired bits: 00000000 1xx0x0xx */
 	/* R/W bits:                 xx xxxx */

@@ -2883,7 +2883,7 @@ void rivatnt_pgraph_ctx_switch(void *p)
 	riva128->pgraph.intr = 0;
 	riva128->ptimer.intr = 0;
 
-	riva128->pci_card = pci_add(riva128_pci_read, riva128_pci_write, riva128);
+	riva128->pci_card = pci_add_card(PCI_ADD_VIDEO, riva128_pci_read, riva128_pci_write, riva128);
 
 	riva128->ptimer.clock_mul = 1;
 	riva128->ptimer.clock_div = 1;
@@ -3109,7 +3109,7 @@ device_t riva128_device =
 	riva128->pfifo.intr = 0;
 	riva128->pgraph.intr = 0;
 
-	riva128->pci_card = pci_add(riva128_pci_read, rivatnt_pci_write, riva128);
+	riva128->pci_card = pci_add_card(PCI_ADD_VIDEO, riva128_pci_read, rivatnt_pci_write, riva128);
 
 	//Some bullshit default values so that the emulator won't shit itself trying to boot. These'll be overwritten by the video BIOS anyway.
 	riva128->pramdac.m_m = 0x03;
@@ -3310,7 +3310,7 @@ device_t rivatnt_device =
 	riva128->pfifo.intr = 0;
 	riva128->pgraph.intr = 0;
 
-	riva128->pci_card = pci_add(riva128_pci_read, rivatnt_pci_write, riva128);
+	riva128->pci_card = pci_add_card(PCI_ADD_VIDEO, riva128_pci_read, rivatnt_pci_write, riva128);
 
 	//Some bullshit default values so that the emulator won't shit itself trying to boot. These'll be overwritten by the video BIOS anyway.
 	riva128->pramdac.m_m = 0x03;

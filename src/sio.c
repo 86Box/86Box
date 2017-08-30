@@ -223,9 +223,9 @@ void sio_reset(void)
 }
 
 
-void sio_init(int card, int pci_a, int pci_b, int pci_c, int pci_d)
+void sio_init(int card)
 {
-        pci_add_specific(card, sio_read, sio_write, NULL);
+        pci_add_card(card, sio_read, sio_write, NULL);
         
 	sio_reset();
 
@@ -238,13 +238,4 @@ void sio_init(int card, int pci_a, int pci_b, int pci_c, int pci_d)
 	dma_alias_set();
 
 	pci_reset_handler.pci_set_reset = sio_reset;
-        
-        if (pci_a)
-                pci_set_card_routing(pci_a, PCI_INTA);
-        if (pci_b)
-                pci_set_card_routing(pci_b, PCI_INTB);
-        if (pci_c)
-                pci_set_card_routing(pci_c, PCI_INTC);
-        if (pci_d)
-                pci_set_card_routing(pci_d, PCI_INTD);
 }

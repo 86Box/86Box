@@ -50,6 +50,9 @@
 #include "nvr.h"
 #include "pc87306.h"
 #include "pci.h"
+#if 0
+#include "pci_dummy.h"
+#endif
 #include "pic.h"
 #include "piix.h"
 #include "pit.h"
@@ -715,9 +718,11 @@ static void at_sis496_init(void)
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(0xb);
-        pci_slot(0xd);
-        pci_slot(0xf);
+	pci_register_slot(0x05, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x0B, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x07, PCI_CARD_NORMAL, 4, 1, 2, 3);
 	sis496_init();
 	trc_init();
 }
@@ -735,10 +740,13 @@ static void at_premiere_common_init(void)
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_2);
-        pci_slot(0xc);
-        pci_slot(0xe);
-        pci_slot(0x6);
- 	sio_init(2, 0xc, 0xe, 0x6, 0);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x01, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x06, PCI_CARD_NORMAL, 3, 2, 1, 4);
+	pci_register_slot(0x0E, PCI_CARD_NORMAL, 2, 1, 3, 4);
+	pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 3, 2, 4);
+	pci_register_slot(0x02, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+ 	sio_init(2);
         fdc37c665_init();
         intel_batman_init();
         device_add(&intel_flash_bxt_ami_device);
@@ -762,7 +770,7 @@ static void at_586mc1_init(void)
         pci_slot(0xc);
         pci_slot(0xe);
         pci_slot(0x6);
-	sio_init(2, 0xc, 0xe, 0x6, 0);
+	sio_init(2);
         device_add(&intel_flash_bxt_device);
 	secondary_ide_check();
 }
@@ -781,12 +789,15 @@ static void at_endeavor_init(void)
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(0xd);
-        pci_slot(0xe);
-        pci_slot(0xf);
-        pci_slot(0x10);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x08, PCI_CARD_ONBOARD, 4, 0, 0, 0);
+	pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x0E, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x10, PCI_CARD_NORMAL, 4, 1, 2, 3);
+	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
         i430fx_init();
-        piix_init(7, 0xd, 0xe, 0xf, 0x10);
+        piix_init(7);
         pc87306_init();
         device_add(&intel_flash_bxt_ami_device);
 }
@@ -797,11 +808,13 @@ static void at_zappa_init(void)
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(0xd);
-        pci_slot(0xf);
-        pci_slot(0xe);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x0F, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
         i430fx_init();
-        piix_init(7, 0xd, 0xf, 0xe, 0);
+        piix_init(7);
         pc87306_init();
         device_add(&intel_flash_bxt_ami_device);
 }
@@ -811,12 +824,14 @@ static void at_mb500n_init(void)
 {
         at_ide_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(0x14);
-        pci_slot(0x13);
-        pci_slot(0x12);
-        pci_slot(0x11);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x14, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x13, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x12, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x11, PCI_CARD_NORMAL, 4, 1, 2, 3);
+	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
         i430fx_init();
-        piix_init(7, 0x14, 0x13, 0x12, 0x11);
+        piix_init(7);
         fdc37c665_init();
         device_add(&intel_flash_bxt_device);
 }
@@ -827,15 +842,14 @@ static void at_president_init(void)
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(8);
-        pci_slot(9);
-        pci_slot(10);
-        pci_slot(11);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
+	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
         i430fx_init();
-        piix_init(7, 8, 9, 10, 11);
-#if 0
-	superio_detect_init();
-#endif
+        piix_init(7);
         w83877f_init();
         device_add(&intel_flash_bxt_device);
 }
@@ -846,12 +860,14 @@ static void at_p54tp4xe_init(void)
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(12);
-        pci_slot(11);
-        pci_slot(10);
-        pci_slot(9);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x09, PCI_CARD_NORMAL, 4, 1, 2, 3);
+	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
         i430fx_init();
-        piix_init(7, 12, 11, 10, 9);
+        piix_init(7);
         fdc37c665_init();
         device_add(&intel_flash_bxt_device);
 }
@@ -862,13 +878,15 @@ static void at_thor_init(void)
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(8);
-        pci_slot(0xd);
-        pci_slot(0xe);
-        pci_slot(0xf);
-        pci_slot(0x10);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x08, PCI_CARD_ONBOARD, 4, 0, 0, 0);
+	pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x0E, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 2, 1);
+	pci_register_slot(0x10, PCI_CARD_NORMAL, 4, 3, 2, 1);
+	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
         i430fx_init();
-        piix_init_thor(7, 8, 0xd, 0xf, 0xe, 0x10);
+        piix_init(7);
         pc87306_init();
         device_add(&intel_flash_bxt_ami_device);
 }
@@ -880,12 +898,15 @@ static void at_ap53_init(void)
         memregs_init();
         powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(0x11);
-        pci_slot(0x12);
-        pci_slot(0x13);
-        pci_slot(0x14);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x14, PCI_CARD_NORMAL, 4, 1, 2, 3);
+	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x06, PCI_CARD_ONBOARD, 1, 2, 3, 4);
         i430hx_init();
-        piix3_init(7, 0x11, 0x12, 0x13, 0x14);
+        piix3_init(7);
         fdc37c669_init();
         device_add(&intel_flash_bxt_device);
 }
@@ -897,12 +918,14 @@ static void at_p55t2s_init(void)
         memregs_init();
         powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(0x12);
-        pci_slot(0x11);
-        pci_slot(0x14);
-        pci_slot(0x13);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x12, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x13, PCI_CARD_NORMAL, 4, 1, 2, 3);
+	pci_register_slot(0x14, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x11, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
         i430hx_init();
-        piix3_init(7, 0x12, 0x11, 0x14, 0x13);
+        piix3_init(7);
         pc87306_init();
         device_add(&intel_flash_bxt_device);
 }
@@ -913,12 +936,15 @@ static void at_acerm3a_init(void)
         at_ide_init();
 	powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(0xc);
-        pci_slot(0xd);
-        pci_slot(0xe);
-        pci_slot(0xf);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x1F, PCI_CARD_NORMAL, 4, 1, 2, 3);
+	pci_register_slot(0x10, PCI_CARD_ONBOARD, 4, 0, 0, 0);
         i430hx_init();
-        piix3_init(7, 0xc, 0xd, 0xe, 0xf);
+        piix3_init(7);
         fdc37c932fr_init();
         device_add(&intel_flash_bxb_device);
 }
@@ -929,12 +955,15 @@ static void at_acerv35n_init(void)
         at_ide_init();
 	powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(0x11);
-        pci_slot(0x12);
-        pci_slot(0x13);
-        pci_slot(0x14);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x14, PCI_CARD_NORMAL, 4, 1, 2, 3);
+	pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
         i430hx_init();
-        piix3_init(7, 0x11, 0x12, 0x13, 0x14);
+        piix3_init(7);
         fdc37c932fr_init();
         device_add(&intel_flash_bxb_device);
 }
@@ -945,33 +974,35 @@ static void at_p55t2p4_init(void)
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(12);
-        pci_slot(11);
-        pci_slot(10);
-        pci_slot(9);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x09, PCI_CARD_NORMAL, 4, 1, 2, 3);
+	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
         i430hx_init();
-        piix3_init(7, 12, 11, 10, 9);
+        piix3_init(7);
         w83877f_init();
         device_add(&intel_flash_bxt_device);
 }
 
 
-#if 0
 static void at_i430vx_init(void)
 {
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(0x11);
-        pci_slot(0x12);
-        pci_slot(0x13);
-        pci_slot(0x14);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x11, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x12, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x14, PCI_CARD_NORMAL, 4, 1, 2, 3);
+	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
         i430vx_init();
-        piix3_init(7, 17, 18, 20, 19);
+        piix3_init(7);
         um8669f_init();
         device_add(&intel_flash_bxt_device);
 }
-#endif
 
 
 static void at_p55tvp4_init(void)
@@ -979,28 +1010,15 @@ static void at_p55tvp4_init(void)
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(12);
-        pci_slot(11);
-        pci_slot(10);
-        pci_slot(9);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x09, PCI_CARD_NORMAL, 4, 1, 2, 3);
+	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
         i430vx_init();
-        piix3_init(7, 12, 11, 10, 9);
+        piix3_init(7);
         w83877f_init();
-        device_add(&intel_flash_bxt_device);
-}
-
-
-static void at_i430vx_init(void)
-{
-        at_ide_init();
-        pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(0x11);
-        pci_slot(0x12);
-        pci_slot(0x13);
-        pci_slot(0x14);
-        i430vx_init();
-        piix_init(7, 18, 17, 20, 19);
-        um8669f_init();
         device_add(&intel_flash_bxt_device);
 }
 
@@ -1009,12 +1027,14 @@ static void at_p55va_init(void)
 {
         at_ide_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(8);
-        pci_slot(9);
-        pci_slot(10);
-        pci_slot(11);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
+	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
         i430vx_init();
-        piix3_init(7, 8, 9, 10, 11);
+        piix3_init(7);
         fdc37c932fr_init();
         device_add(&intel_flash_bxt_device);
 }
@@ -1025,12 +1045,15 @@ static void at_i440fx_init(void)
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(0xe);
-        pci_slot(0xd);
-        pci_slot(0xc);
-        pci_slot(0xb);
-        i430vx_init();
-        piix3_init(7, 0xe, 0xd, 0xc, 0xb);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x0E, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x0C, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
+	pci_register_slot(0x0A, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+        i440fx_init();
+        piix3_init(7);
 	fdc37c665_init();
         device_add(&intel_flash_bxt_device);
 }
@@ -1041,12 +1064,15 @@ static void at_s1668_init(void)
         at_ide_init();
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
-        pci_slot(0xe);
-        pci_slot(0xd);
-        pci_slot(0xc);
-        pci_slot(0xb);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x0E, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x0C, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
+	pci_register_slot(0x0A, PCI_CARD_NORMAL, 1, 2, 3, 4);
         i440fx_init();
-        piix3_init(7, 0xe, 0xd, 0xc, 0xb);
+        piix3_init(7);
 	fdc37c665_init();
         device_add(&intel_flash_bxt_device);
 }

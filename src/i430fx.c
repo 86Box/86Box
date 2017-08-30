@@ -181,7 +181,7 @@ static void i430fx_pci_reset(void)
 
 void i430fx_init(void)
 {
-        pci_add_specific(0, i430fx_read, i430fx_write, NULL);
+        pci_add_card(0, i430fx_read, i430fx_write, NULL);
 
 	i430fx_reset();
         

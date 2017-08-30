@@ -173,7 +173,7 @@ static void i440fx_pci_reset(void)
 
 void i440fx_init(void)
 {
-        pci_add_specific(0, i440fx_read, i440fx_write, NULL);
+        pci_add_card(0, i440fx_read, i440fx_write, NULL);
         
 	i440fx_reset();
 

@@ -3828,7 +3828,7 @@ static void *s3_virge_init()
 
         virge->is_375 = 0;
         
-        virge->card = pci_add(s3_virge_pci_read, s3_virge_pci_write, virge);
+        virge->card = pci_add_card(PCI_ADD_VIDEO, s3_virge_pci_read, s3_virge_pci_write, virge);
         
         virge->wake_render_thread = thread_create_event();
         virge->wake_main_thread = thread_create_event();
@@ -3922,7 +3922,7 @@ static void *s3_virge_988_init()
 
         virge->is_375 = 0;
         
-        virge->card = pci_add(s3_virge_pci_read, s3_virge_pci_write, virge);
+        virge->card = pci_add_card(PCI_ADD_VIDEO, s3_virge_pci_read, s3_virge_pci_write, virge);
         
         virge->wake_render_thread = thread_create_event();
         virge->wake_main_thread = thread_create_event();
@@ -4017,7 +4017,7 @@ static void *s3_virge_375_init(wchar_t *romfn)
         
         virge->is_375 = 1;
         
-        virge->card = pci_add(s3_virge_pci_read, s3_virge_pci_write, virge);
+        virge->card = pci_add_card(PCI_ADD_VIDEO, s3_virge_pci_read, s3_virge_pci_write, virge);
  
         virge->wake_render_thread = thread_create_event();
         virge->wake_main_thread = thread_create_event();

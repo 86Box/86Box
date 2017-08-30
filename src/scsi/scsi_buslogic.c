@@ -2561,12 +2561,6 @@ BuslogicCommandCallback(void *p)
 }
 
 
-typedef union {
-    uint32_t	addr;
-    uint8_t	addr_regs[4];
-} bar_t;
-
-
 uint8_t	buslogic_pci_regs[256];
 bar_t	buslogic_pci_bar[3];
 
@@ -2933,7 +2927,7 @@ BuslogicInit(int chip)
 	      &BuslogicCallback, &BuslogicCallback, bl);
 
     if (bl->chip == CHIP_BUSLOGIC_PCI) {
-	bl->Card = pci_add(BuslogicPCIRead, BuslogicPCIWrite, bl);
+	bl->Card = pci_add_card(PCI_ADD_NORMAL, BuslogicPCIRead, BuslogicPCIWrite, bl);
 
 	buslogic_pci_bar[0].addr_regs[0] = 1;
 	buslogic_pci_bar[1].addr_regs[0] = 0;
