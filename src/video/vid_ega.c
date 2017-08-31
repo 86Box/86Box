@@ -961,18 +961,18 @@ uint8_t ega_read(uint32_t addr, void *p)
         ega->ld = ega->vram[addr | 0x3];
         if (ega->readmode)
         {
-                temp   = (ega->colournocare & 1)  ? 0xff : 0;
-                temp  &= ega->la;
+                temp   = ega->la;
                 temp  ^= (ega->colourcompare & 1) ? 0xff : 0;
-                temp2  = (ega->colournocare & 2)  ? 0xff : 0;
-                temp2 &= ega->lb;
+                temp  &= (ega->colournocare & 1)  ? 0xff : 0;
+                temp2  = ega->lb;
                 temp2 ^= (ega->colourcompare & 2) ? 0xff : 0;
-                temp3  = (ega->colournocare & 4)  ? 0xff : 0;
-                temp3 &= ega->lc;
+                temp2 &= (ega->colournocare & 2)  ? 0xff : 0;
+                temp3  = ega->lc;
                 temp3 ^= (ega->colourcompare & 4) ? 0xff : 0;
-                temp4  = (ega->colournocare & 8)  ? 0xff : 0;
-                temp4 &= ega->ld;
+                temp3 &= (ega->colournocare & 4)  ? 0xff : 0;
+                temp4  = ega->ld;
                 temp4 ^= (ega->colourcompare & 8) ? 0xff : 0;
+                temp4 &= (ega->colournocare & 8)  ? 0xff : 0;
                 return ~(temp | temp2 | temp3 | temp4);
         }
         return ega->vram[addr | readplane];

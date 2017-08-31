@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.40	2017/08/27
+# Version:	@(#)Makefile.mingw	1.0.41	2017/09/01
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -207,15 +207,15 @@ SYSOBJ	= model.o \
 	  ali1429.o \
 	  opti495.o \
 	  scat.o \
-	  sis496.o \
+	  sis85c471.o sis496.o \
 	  wd76c10.o \
 	  acer386sx.o amstrad.o \
 	  compaq.o laserxt.o jim.o \
 	  olivetti_m24.o ps1.o ps2.o ps2_mca.o \
 	  tandy_eeprom.o tandy_rom.o
-DEVOBJ	= bugger.o lpt.o $(SERIAL) \
+DEVOBJ	= bugger.o lpt.o $(SERIAL) cbm_io.o \
 	  fdc37c665.o fdc37c669.o fdc37c932fr.o \
-	  pc87306.o sis85c471.o w83877f.o um8669f.o \
+	  pc87306.o w83877f.o um8669f.o \
 	  keyboard.o \
 	    keyboard_xt.o keyboard_at.o keyboard_pcjr.o \
 	    keyboard_amstrad.o keyboard_olim24.o \
@@ -387,6 +387,8 @@ ali1429.o:	ibm.h cpu/cpu.h io.h mem.h device.h model.h
 amstrad.o:	ibm.h cpu/cpu.h io.h device.h model.h keyboard.h lpt.h mouse.h
 
 bugger.o:	ibm.h io.h bugger.h
+
+cmb_io.o:	ibm.h io.h lpt.h serial.h
 
 cdrom.o:	86box.h cdrom.h ibm.h hdd/hdd_ide_at.h piix.h scsi/scsi.h timer.h \
 		win/plat_iodev.h

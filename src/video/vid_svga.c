@@ -1306,18 +1306,18 @@ uint8_t svga_read(uint32_t addr, void *p)
 
         if (svga->readmode)
         {
-                temp   = (svga->colournocare & 1)  ? 0xff : 0;
-                temp  &= svga->la;
+                temp   = svga->la;
                 temp  ^= (svga->colourcompare & 1) ? 0xff : 0;
-                temp2  = (svga->colournocare & 2)  ? 0xff : 0;
-                temp2 &= svga->lb;
+                temp  &= (svga->colournocare & 1)  ? 0xff : 0;
+                temp2  = svga->lb;
                 temp2 ^= (svga->colourcompare & 2) ? 0xff : 0;
-                temp3  = (svga->colournocare & 4)  ? 0xff : 0;
-                temp3 &= svga->lc;
+                temp2 &= (svga->colournocare & 2)  ? 0xff : 0;
+                temp3  = svga->lc;
                 temp3 ^= (svga->colourcompare & 4) ? 0xff : 0;
-                temp4  = (svga->colournocare & 8)  ? 0xff : 0;
-                temp4 &= svga->ld;
+                temp3 &= (svga->colournocare & 4)  ? 0xff : 0;
+                temp4  = svga->ld;
                 temp4 ^= (svga->colourcompare & 8) ? 0xff : 0;
+                temp4 &= (svga->colournocare & 8)  ? 0xff : 0;
                 return ~(temp | temp2 | temp3 | temp4);
         }
         return svga->vram[addr | readplane];
@@ -1572,18 +1572,18 @@ uint8_t svga_read_linear(uint32_t addr, void *p)
         svga->ld = svga->vram[addr | 0x3];
         if (svga->readmode)
         {
-                temp   = (svga->colournocare & 1)  ? 0xff : 0;
-                temp  &= svga->la;
+                temp   = svga->la;
                 temp  ^= (svga->colourcompare & 1) ? 0xff : 0;
-                temp2  = (svga->colournocare & 2)  ? 0xff : 0;
-                temp2 &= svga->lb;
+                temp  &= (svga->colournocare & 1)  ? 0xff : 0;
+                temp2  = svga->lb;
                 temp2 ^= (svga->colourcompare & 2) ? 0xff : 0;
-                temp3  = (svga->colournocare & 4)  ? 0xff : 0;
-                temp3 &= svga->lc;
+                temp2 &= (svga->colournocare & 2)  ? 0xff : 0;
+                temp3  = svga->lc;
                 temp3 ^= (svga->colourcompare & 4) ? 0xff : 0;
-                temp4  = (svga->colournocare & 8)  ? 0xff : 0;
-                temp4 &= svga->ld;
+                temp3 &= (svga->colournocare & 4)  ? 0xff : 0;
+                temp4  = svga->ld;
                 temp4 ^= (svga->colourcompare & 8) ? 0xff : 0;
+                temp4 &= (svga->colournocare & 8)  ? 0xff : 0;
                 return ~(temp | temp2 | temp3 | temp4);
         }
         return svga->vram[addr | readplane];

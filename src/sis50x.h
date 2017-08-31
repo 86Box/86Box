@@ -12,6 +12,6 @@
  *		Copyright 2017 Miran Grca.
  */
 
-extern device_t sis501_device;
-extern device_t sis503_device;
-extern device_t sis50x_device;
+void sis501_init(void);
+void sis503_init(int card);
+void sis50x_isa_init(void);

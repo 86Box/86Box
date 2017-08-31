@@ -702,7 +702,7 @@ int dma_channel_write(int channel, uint16_t val)
                 {
                         if (dma16.mode[channel] & 0x10) /*Auto-init*/
                         {
-                                dma16.cc[channel] = dma16.cb[channel] + 1;
+                                dma16.cc[channel] = dma16.cb[channel];
                                 dma16.ac[channel] = dma16.ab[channel];
                         }
 			else

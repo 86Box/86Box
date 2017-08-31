@@ -62,6 +62,13 @@ typedef struct sb_t
         uint8_t pos_regs[8];
 } sb_t;
 
+/* 0 to 7 -> -14dB to 0dB i 2dB steps. 8 to 15 -> 0 to +14dB in 2dB steps.
+  Note that for positive dB values, this is not amplitude, it is amplitude-1. */
+const float sb_bass_treble_4bits[]= {
+   0.199526231, 0.25, 0.316227766, 0.398107170, 0.5, 0.63095734, 0.794328234, 1, 
+    0, 0.25892541, 0.584893192, 1, 1.511886431, 2.16227766, 3, 4.011872336
+};
+
 static int sb_att[]=
 {
         50,65,82,103,130,164,207,260,328,413,520,655,825,1038,1307,
@@ -101,14 +108,15 @@ static void sb_get_buffer_opl2(int32_t *buffer, int len, void *p)
 
                 if (mixer->bass_l != 8 || mixer->bass_r != 8 || mixer->treble_l != 8 || mixer->treble_r != 8)
                 {
-                        if (mixer->bass_l>8)   out_l = (out_l + (((int16_t)     low_iir(0, (float)out_l) * (mixer->bass_l   - 8)) >> 1)) * ((15 - mixer->bass_l)   + 16) >> 5;
-                        if (mixer->bass_r>8)   out_r = (out_r + (((int16_t)     low_iir(1, (float)out_r) * (mixer->bass_r   - 8)) >> 1)) * ((15 - mixer->bass_r)   + 16) >> 5;
-                        if (mixer->treble_l>8) out_l = (out_l + (((int16_t)    high_iir(0, (float)out_l) * (mixer->treble_l - 8)) >> 1)) * ((15 - mixer->treble_l) + 16) >> 5;
-                        if (mixer->treble_r>8) out_r = (out_r + (((int16_t)    high_iir(1, (float)out_r) * (mixer->treble_r - 8)) >> 1)) * ((15 - mixer->treble_r) + 16) >> 5;
-                        if (mixer->bass_l<8)   out_l = (out_l + (((int16_t) low_cut_iir(0, (float)out_l) * (8 - mixer->bass_l))   >> 1)) * (mixer->bass_l   + 16)        >> 5;
-                        if (mixer->bass_r<8)   out_r = (out_r + (((int16_t) low_cut_iir(1, (float)out_r) * (8 - mixer->bass_r))   >> 1)) * (mixer->bass_r   + 16)        >> 5;
-                        if (mixer->treble_l<8) out_l = (out_l + (((int16_t)high_cut_iir(0, (float)out_l) * (8 - mixer->treble_l)) >> 1)) * (mixer->treble_l + 16)        >> 5;
-                        if (mixer->treble_r<8) out_r = (out_r + (((int16_t)high_cut_iir(1, (float)out_r) * (8 - mixer->treble_r)) >> 1)) * (mixer->treble_r + 16)        >> 5;
+                        /* This is not exactly how one does bass/treble controls, but the end result is like it. A better implementation would reduce the cpu usage */
+                        if (mixer->bass_l>8) out_l += (int32_t)(low_iir(0, (float)out_l)*sb_bass_treble_4bits[mixer->bass_l]);
+                        if (mixer->bass_r>8)  out_r += (int32_t)(low_iir(1, (float)out_r)*sb_bass_treble_4bits[mixer->bass_r]);
+                        if (mixer->treble_l>8) out_l += (int32_t)(high_iir(0, (float)out_l)*sb_bass_treble_4bits[mixer->treble_l]);
+                        if (mixer->treble_r>8) out_r += (int32_t)(high_iir(1, (float)out_r)*sb_bass_treble_4bits[mixer->treble_r]);
+                        if (mixer->bass_l<8)   out_l = (int32_t)((out_l )*sb_bass_treble_4bits[mixer->bass_l] + low_cut_iir(0, (float)out_l)*(1.0-sb_bass_treble_4bits[mixer->bass_l]));
+                        if (mixer->bass_r<8)   out_r = (int32_t)((out_r )*sb_bass_treble_4bits[mixer->bass_r] + low_cut_iir(1, (float)out_r)*(1.0-sb_bass_treble_4bits[mixer->bass_r])); 
+                        if (mixer->treble_l<8) out_l = (int32_t)((out_l )*sb_bass_treble_4bits[mixer->treble_l] + high_cut_iir(0, (float)out_l)*(1.0-sb_bass_treble_4bits[mixer->treble_l]));
+                        if (mixer->treble_r<8) out_r = (int32_t)((out_r )*sb_bass_treble_4bits[mixer->treble_r] + high_cut_iir(1, (float)out_r)*(1.0-sb_bass_treble_4bits[mixer->treble_r]));
                 }
                         
                 buffer[c]     += out_l;
@@ -152,14 +160,15 @@ static void sb_get_buffer_opl3(int32_t *buffer, int len, void *p)
 
                 if (mixer->bass_l != 8 || mixer->bass_r != 8 || mixer->treble_l != 8 || mixer->treble_r != 8)
                 {
-                        if (mixer->bass_l>8)   out_l = (out_l + (((int16_t)     low_iir(0, (float)out_l) * (mixer->bass_l   - 8)) >> 1)) * ((15 - mixer->bass_l)   + 16) >> 5;
-                        if (mixer->bass_r>8)   out_r = (out_r + (((int16_t)     low_iir(1, (float)out_r) * (mixer->bass_r   - 8)) >> 1)) * ((15 - mixer->bass_r)   + 16) >> 5;
-                        if (mixer->treble_l>8) out_l = (out_l + (((int16_t)    high_iir(0, (float)out_l) * (mixer->treble_l - 8)) >> 1)) * ((15 - mixer->treble_l) + 16) >> 5;
-                        if (mixer->treble_r>8) out_r = (out_r + (((int16_t)    high_iir(1, (float)out_r) * (mixer->treble_r - 8)) >> 1)) * ((15 - mixer->treble_r) + 16) >> 5;
-                        if (mixer->bass_l<8)   out_l = (out_l + (((int16_t) low_cut_iir(0, (float)out_l) * (8 - mixer->bass_l))   >> 1)) * (mixer->bass_l   + 16)        >> 5;
-                        if (mixer->bass_r<8)   out_r = (out_r + (((int16_t) low_cut_iir(1, (float)out_r) * (8 - mixer->bass_r))   >> 1)) * (mixer->bass_r   + 16)        >> 5;
-                        if (mixer->treble_l<8) out_l = (out_l + (((int16_t)high_cut_iir(0, (float)out_l) * (8 - mixer->treble_l)) >> 1)) * (mixer->treble_l + 16)        >> 5;
-                        if (mixer->treble_r<8) out_r = (out_r + (((int16_t)high_cut_iir(1, (float)out_r) * (8 - mixer->treble_r)) >> 1)) * (mixer->treble_r + 16)        >> 5;
+                        /* This is not exactly how one does bass/treble controls, but the end result is like it. A better implementation would reduce the cpu usage */
+                        if (mixer->bass_l>8) out_l += (int32_t)(low_iir(0, (float)out_l)*sb_bass_treble_4bits[mixer->bass_l]);
+                        if (mixer->bass_r>8)  out_r += (int32_t)(low_iir(1, (float)out_r)*sb_bass_treble_4bits[mixer->bass_r]);
+                        if (mixer->treble_l>8) out_l += (int32_t)(high_iir(0, (float)out_l)*sb_bass_treble_4bits[mixer->treble_l]);
+                        if (mixer->treble_r>8) out_r += (int32_t)(high_iir(1, (float)out_r)*sb_bass_treble_4bits[mixer->treble_r]);
+                        if (mixer->bass_l<8)   out_l = (int32_t)((out_l )*sb_bass_treble_4bits[mixer->bass_l] + low_cut_iir(0, (float)out_l)*(1.0-sb_bass_treble_4bits[mixer->bass_l]));
+                        if (mixer->bass_r<8)   out_r = (int32_t)((out_r )*sb_bass_treble_4bits[mixer->bass_r] + low_cut_iir(1, (float)out_r)*(1.0-sb_bass_treble_4bits[mixer->bass_r])); 
+                        if (mixer->treble_l<8) out_l = (int32_t)((out_l )*sb_bass_treble_4bits[mixer->treble_l] + high_cut_iir(0, (float)out_l)*(1.0-sb_bass_treble_4bits[mixer->treble_l]));
+                        if (mixer->treble_r<8) out_r = (int32_t)((out_r )*sb_bass_treble_4bits[mixer->treble_r] + high_cut_iir(1, (float)out_r)*(1.0-sb_bass_treble_4bits[mixer->treble_r]));
                 }
                         
                 buffer[c]     += out_l;
@@ -209,14 +218,15 @@ static void sb_get_buffer_emu8k(int32_t *buffer, int len, void *p)
 
                 if (mixer->bass_l != 8 || mixer->bass_r != 8 || mixer->treble_l != 8 || mixer->treble_r != 8)
                 {
-                        if (mixer->bass_l>8)   out_l = (out_l + (((int16_t)     low_iir(0, (float)out_l) * (mixer->bass_l   - 8)) >> 1)) * ((15 - mixer->bass_l)   + 16) >> 5;
-                        if (mixer->bass_r>8)   out_r = (out_r + (((int16_t)     low_iir(1, (float)out_r) * (mixer->bass_r   - 8)) >> 1)) * ((15 - mixer->bass_r)   + 16) >> 5;
-                        if (mixer->treble_l>8) out_l = (out_l + (((int16_t)    high_iir(0, (float)out_l) * (mixer->treble_l - 8)) >> 1)) * ((15 - mixer->treble_l) + 16) >> 5;
-                        if (mixer->treble_r>8) out_r = (out_r + (((int16_t)    high_iir(1, (float)out_r) * (mixer->treble_r - 8)) >> 1)) * ((15 - mixer->treble_r) + 16) >> 5;
-                        if (mixer->bass_l<8)   out_l = (out_l + (((int16_t) low_cut_iir(0, (float)out_l) * (8 - mixer->bass_l))   >> 1)) * (mixer->bass_l   + 16)        >> 5;
-                        if (mixer->bass_r<8)   out_r = (out_r + (((int16_t) low_cut_iir(1, (float)out_r) * (8 - mixer->bass_r))   >> 1)) * (mixer->bass_r   + 16)        >> 5;
-                        if (mixer->treble_l<8) out_l = (out_l + (((int16_t)high_cut_iir(0, (float)out_l) * (8 - mixer->treble_l)) >> 1)) * (mixer->treble_l + 16)        >> 5;
-                        if (mixer->treble_r<8) out_r = (out_r + (((int16_t)high_cut_iir(1, (float)out_r) * (8 - mixer->treble_r)) >> 1)) * (mixer->treble_r + 16)        >> 5;
+                        /* This is not exactly how one does bass/treble controls, but the end result is like it. A better implementation would reduce the cpu usage */
+                        if (mixer->bass_l>8) out_l += (int32_t)(low_iir(0, (float)out_l)*sb_bass_treble_4bits[mixer->bass_l]);
+                        if (mixer->bass_r>8)  out_r += (int32_t)(low_iir(1, (float)out_r)*sb_bass_treble_4bits[mixer->bass_r]);
+                        if (mixer->treble_l>8) out_l += (int32_t)(high_iir(0, (float)out_l)*sb_bass_treble_4bits[mixer->treble_l]);
+                        if (mixer->treble_r>8) out_r += (int32_t)(high_iir(1, (float)out_r)*sb_bass_treble_4bits[mixer->treble_r]);
+                        if (mixer->bass_l<8)   out_l = (int32_t)((out_l )*sb_bass_treble_4bits[mixer->bass_l] + low_cut_iir(0, (float)out_l)*(1.0-sb_bass_treble_4bits[mixer->bass_l]));
+                        if (mixer->bass_r<8)   out_r = (int32_t)((out_r )*sb_bass_treble_4bits[mixer->bass_r] + low_cut_iir(1, (float)out_r)*(1.0-sb_bass_treble_4bits[mixer->bass_r])); 
+                        if (mixer->treble_l<8) out_l = (int32_t)((out_l )*sb_bass_treble_4bits[mixer->treble_l] + high_cut_iir(0, (float)out_l)*(1.0-sb_bass_treble_4bits[mixer->treble_l]));
+                        if (mixer->treble_r<8) out_r = (int32_t)((out_r )*sb_bass_treble_4bits[mixer->treble_r] + high_cut_iir(1, (float)out_r)*(1.0-sb_bass_treble_4bits[mixer->treble_r]));
                 }
                         
                 buffer[c]     += out_l;

@@ -27,6 +27,7 @@
 #include "mouse.h"
 #include "cdrom.h"
 
+#include "cbm_io.h"
 #include "disc.h"
 #include "dma.h"
 #include "fdc.h"
@@ -58,6 +59,9 @@
 #include "pit.h"
 #include "ps2_mca.h"
 #include "serial.h"
+#if 0
+#include "sis50x.h"
+#endif
 #include "sis85c471.h"
 #include "sio.h"
 #include "sound/snd_ps1.h"
@@ -493,6 +497,7 @@ static void cmdpc30_init(void)
 {
 	at_ide_init();
         mem_remap_top_384k();
+	cbm_io_init();
 }
 
 
@@ -761,18 +766,27 @@ static void at_batman_init(void)
 
 
 #if 0
+/* Slots present: 00 01 02 (special) */
+/* Slots not present: 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F 10 11 12 13 14 15 16 17 18 */
+#define SIO_SLOT	0x07
 static void at_586mc1_init(void)
 {
         at_ide_init();
 	memregs_init();
-        pci_init(PCI_CONFIG_TYPE_2);
-        i430lx_init();
-        pci_slot(0xc);
-        pci_slot(0xe);
-        pci_slot(0x6);
-	sio_init(2);
+        pci_init(PCI_CONFIG_TYPE_1);
+	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x19, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x1A, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x1B, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x1C, PCI_CARD_NORMAL, 4, 1, 2, 3);
+	pci_register_slot(SIO_SLOT, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+        fdc37c665_init();
+        intel_batman_init();
         device_add(&intel_flash_bxt_device);
 	secondary_ide_check();
+	sis501_init();
+	sis503_init(SIO_SLOT);
+	sis50x_isa_init();
 }
 #endif
 
