@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.14	2017/08/27
+ * Version:	@(#)scsi_aha154x.c	1.0.15	2017/09/01
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -33,6 +33,7 @@
 #include "../pic.h"
 #include "../timer.h"
 #include "../device.h"
+#include "../win/plat_thread.h"
 #include "scsi.h"
 #include "scsi_bios_command.h"
 #include "scsi_device.h"
@@ -393,12 +394,8 @@ typedef struct {
     wchar_t	*nvr_path;			/* path to NVR image file */
     uint8_t	*nvr;				/* EEPROM buffer */
 
-    int		Callback;
-    int		InOperation;
     int		ResetCB;
 
-    int8_t	IrqEnabled;
-    int		StrictRoundRobinMode;
     int		ExtendedLUNCCBFormat;
     Req_t	Req;
     uint8_t	Status;
@@ -422,6 +419,8 @@ typedef struct {
     int		MbiActive[256];
     int		PendingInterrupt;
     int		Lock;
+    event_t	*evt;
+    int		scan_restart;
 } aha_t;
 #pragma pack(pop)
 
@@ -430,6 +429,11 @@ static uint16_t	aha_ports[] = {
     0x0330, 0x0334, 0x0230, 0x0234,
     0x0130, 0x0134, 0x0000, 0x0000
 };
+
+
+static void	aha_cmd_thread(void *priv);
+static thread_t	*poll_tid;
+
 
 #if ENABLE_AHA154X_LOG
 int aha_do_log = ENABLE_AHA154X_LOG;
@@ -576,6 +580,42 @@ aha154x_mmap(aha_t *dev, uint8_t cmd)
 
 
 static void
+RaiseIntr(aha_t *dev, int suppress, uint8_t Interrupt)
+{
+	if (Interrupt & (INTR_MBIF | INTR_MBOA))
+	{
+		if (!(dev->Interrupt & INTR_HACC))
+		{
+			dev->Interrupt |= Interrupt;	/* Report now. */
+		}
+		else
+		{
+			dev->PendingInterrupt |= Interrupt;	/* Report later. */
+		}
+	}
+	else if (Interrupt & INTR_HACC)
+	{
+		if (dev->Interrupt == 0 || dev->Interrupt == (INTR_ANY | INTR_HACC))
+		{
+			aha_log("%s: BuslogicRaiseInterrupt(): Interrupt=%02X\n", dev->name, dev->Interrupt);
+		}
+		dev->Interrupt |= Interrupt;
+	}
+	else
+	{
+		aha_log("%s: BuslogicRaiseInterrupt(): Invalid interrupt state!\n", dev->name);
+	}
+
+	dev->Interrupt |= INTR_ANY;
+
+	if (!suppress)
+	{
+		picint(1 << dev->Irq);
+	}
+}
+
+
+static void
 ClearIntr(aha_t *dev)
 {
     dev->Interrupt = 0;
@@ -583,11 +623,10 @@ ClearIntr(aha_t *dev)
 		dev->name, dev->Irq, dev->Interrupt);
     picintc(1 << dev->Irq);
     if (dev->PendingInterrupt) {
-	dev->Interrupt = dev->PendingInterrupt;
 	aha_log("%s: Raising Interrupt 0x%02X (Pending)\n",
 				dev->name, dev->Interrupt);
 	if (dev->MailboxOutInterrupts || !(dev->Interrupt & INTR_MBOA)) {
-		if (dev->IrqEnabled)  picint(1 << dev->Irq);
+		RaiseIntr(dev, 0, dev->PendingInterrupt);
 	}
 	dev->PendingInterrupt = 0;
     }
@@ -595,40 +634,30 @@ ClearIntr(aha_t *dev)
 
 
 static void
-RaiseIntr(aha_t *dev, uint8_t Interrupt)
-{
-    if (dev->Interrupt & INTR_HACC) {
-	aha_log("%s: Pending IRQ\n", dev->name);
-	dev->PendingInterrupt = Interrupt;
-    } else {
-	dev->Interrupt = Interrupt;
-	aha_log("%s: Raising IRQ %i\n", dev->name, dev->Irq);
-	if (dev->IrqEnabled)
-		picint(1 << dev->Irq);
-    }
-}
-
-
-static void
 aha_reset(aha_t *dev)
 {
+    if (dev->evt) {
+	thread_destroy_event(dev->evt);
+	dev->evt = NULL;
+	if (poll_tid) {
+		poll_tid = NULL;
+	}
+   }
+
     dev->ResetCB = 0;
-    dev->Callback = 0;
+    dev->scan_restart = 0;
 
     dev->Status = STAT_IDLE | STAT_INIT;
     dev->Geometry = 0x80;
     dev->Command = 0xFF;
     dev->CmdParam = 0;
     dev->CmdParamLeft = 0;
-    dev->IrqEnabled = 1;
-    dev->StrictRoundRobinMode = 0;
     dev->ExtendedLUNCCBFormat = 0;
     dev->MailboxOutPosCur = 0;
     dev->MailboxInPosCur = 0;
     dev->MailboxOutInterrupts = 0;
     dev->PendingInterrupt = 0;
     dev->Lock = 0;
-    dev->InOperation = 0;
 
     ClearIntr(dev);
 }
@@ -667,17 +696,15 @@ aha_reset_poll(void *priv)
 
 
 static void
-aha_cmd_done(aha_t *dev)
+aha_cmd_done(aha_t *dev, int suppress)
 {
     dev->DataReply = 0;
     dev->Status |= STAT_IDLE;
 
     if ((dev->Command != CMD_START_SCSI) && (dev->Command != CMD_BIOS_SCSI)) {
 	dev->Status &= ~STAT_DFULL;
-	dev->Interrupt = (INTR_ANY | INTR_HACC);
 	aha_log("%s: Raising IRQ %i\n", dev->name, dev->Irq);
-	if (dev->IrqEnabled)
-		picint(1 << dev->Irq);
+	RaiseIntr(dev, suppress, INTR_HACC);
     }
 
     dev->Command = 0xff;
@@ -699,8 +726,6 @@ aha_mbi_setup(aha_t *dev, uint32_t CCBPointer, CCBU *CmdBlock,
     req->MailboxCompletionCode = mbcc;
 
     aha_log("Mailbox in setup\n");
-
-    dev->InOperation = 2;
 }
 
 
@@ -755,9 +780,7 @@ aha_mbi(aha_t *dev)
     if (dev->MailboxInPosCur >= dev->MailboxCount)
 		dev->MailboxInPosCur = 0;
 
-    RaiseIntr(dev, INTR_MBIF | INTR_ANY);
-
-    dev->InOperation = 0;
+    RaiseIntr(dev, 0, INTR_MBIF | INTR_ANY);
 }
 
 
@@ -1113,6 +1136,8 @@ aha_req_setup(aha_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
     if ((id > max_id) || (lun > 7)) {
 	aha_mbi_setup(dev, CCBPointer, &req->CmdBlock,
 		      CCB_INVALID_CCB, SCSI_STATUS_OK, MBI_ERROR);
+	aha_log("%s: Callback: Send incoming mailbox\n", dev->name);
+	aha_mbi(dev);
 	return;
     }
 	
@@ -1129,6 +1154,8 @@ aha_req_setup(aha_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 	SenseBufferFree(req, 0);
 	aha_mbi_setup(dev, CCBPointer, &req->CmdBlock,
 		      CCB_SELECTION_TIMEOUT,SCSI_STATUS_OK,MBI_ERROR);
+	aha_log("%s: Callback: Send incoming mailbox\n", dev->name);
+	aha_mbi(dev);
     } else {
 	aha_log("SCSI Target ID %i and LUN %i detected and working\n", id, lun);
 
@@ -1140,7 +1167,11 @@ aha_req_setup(aha_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 			req->CmdBlock.common.ControlByte);
 	}
 
-	dev->InOperation = 1;
+	aha_log("%s: Callback: Process SCSI request\n", dev->name);
+	aha_scsi_cmd(dev);
+
+	aha_log("%s: Callback: Send incoming mailbox\n", dev->name);
+	aha_mbi(dev);
     }
 }
 
@@ -1155,6 +1186,8 @@ aha_req_abort(aha_t *dev, uint32_t CCBPointer)
 
     aha_mbi_setup(dev, CCBPointer, &CmdBlock,
 		  0x26, SCSI_STATUS_OK, MBI_NOT_FOUND);
+    aha_log("%s: Callback: Send incoming mailbox\n", dev->name);
+    aha_mbi(dev);
 }
 
 
@@ -1187,7 +1220,7 @@ aha_mbo_adv(aha_t *dev)
 }
 
 
-static void
+static uint8_t
 aha_do_mail(aha_t *dev)
 {
     Mailbox32_t mb32;
@@ -1197,32 +1230,25 @@ aha_do_mail(aha_t *dev)
 
     CodeOffset = dev->Mbx24bit ? 0 : 7;
 
-    if (! dev->StrictRoundRobinMode) {
-	uint8_t MailboxCur = dev->MailboxOutPosCur;
-
-	/* Search for a filled mailbox - stop if we have scanned all mailboxes. */
-	do {
-		/* Fetch mailbox from guest memory. */
-		Outgoing = aha_mbo(dev, &mb32);
-
-		/* Check the next mailbox. */
-		aha_mbo_adv(dev);
-	} while ((mb32.u.out.ActionCode == MBO_FREE) && (MailboxCur != dev->MailboxOutPosCur));
-    } else {
-	Outgoing = aha_mbo(dev, &mb32);
+    if (dev->Interrupt || dev->PendingInterrupt)
+    {
+	aha_log("%s: Interrupt set, waiting...\n", dev->name);
+	return 1;
     }
+
+    Outgoing = aha_mbo(dev, &mb32);
 
     if (mb32.u.out.ActionCode != MBO_FREE) {
 	/* We got the mailbox, mark it as free in the guest. */
 	aha_log("aha_do_mail(): Writing %i bytes at %08X\n", sizeof(CmdStatus), Outgoing + CodeOffset);
 		DMAPageWrite(Outgoing + CodeOffset, (char *)&CmdStatus, sizeof(CmdStatus));
     }
+    else {
+	return 0;
+    }
 
     if (dev->MailboxOutInterrupts)
-	RaiseIntr(dev, INTR_MBOA | INTR_ANY);
-
-    /* Check if the mailbox is actually loaded. */
-    if (mb32.u.out.ActionCode == MBO_FREE) return;
+	RaiseIntr(dev, 0, INTR_MBOA | INTR_ANY);
 
     if (mb32.u.out.ActionCode == MBO_START) {
 	aha_log("Start Mailbox Command\n");
@@ -1235,40 +1261,42 @@ aha_do_mail(aha_t *dev)
     }
 
     /* Advance to the next mailbox. */
-    if (dev->StrictRoundRobinMode)
-	aha_mbo_adv(dev);
+    aha_mbo_adv(dev);
+
+    return 1;
 }
 
 
 static void
-aha_cmd_cb(void *priv)
+aha_cmd_thread(void *priv)
 {
     aha_t *dev = (aha_t *)priv;
 
-    if (dev->InOperation == 0) {
-	if (dev->MailboxCount) {
-		aha_do_mail(dev);
-	} else {
-		dev->Callback += SCSI_DELAY_TM * TIMER_USEC;
-		return;
-	}
-    } else if (dev->InOperation == 1) {
-	aha_log("%s: Callback: Process SCSI request\n", dev->name);
-	aha_scsi_cmd(dev);
-	aha_mbi(dev);
-	if (dev->Req.CmdBlock.common.Cdb[0] == 0x42) {
-		/* This is needed since CD Audio inevitably means READ SUBCHANNEL spam. */
-		dev->Callback += 1000 * TIMER_USEC;
-		return;
-	}
-    } else if (dev->InOperation == 2) {
-	aha_log("%s: Callback: Send incoming mailbox\n", dev->name);
-	aha_mbi(dev);
-    } else {
-	fatal("%s: Invalid callback phase: %i\n", dev->name, dev->InOperation);
+aha_event_restart:
+    /* Create a waitable event. */
+    dev->evt = thread_create_event();
+
+aha_scan_restart:
+    while (aha_do_mail(dev) != 0)
+    {
     }
 
-    dev->Callback += SCSI_DELAY_TM * TIMER_USEC;
+    if (dev->scan_restart)
+    {
+	goto aha_scan_restart;
+    }
+
+    thread_destroy_event(dev->evt);
+    dev->evt = NULL;
+
+    if (dev->scan_restart)
+    {
+	goto aha_event_restart;
+    }
+
+    poll_tid = NULL;
+
+    aha_log("%s: Callback: polling stopped.\n", dev->name);
 }
 
 
@@ -1290,7 +1318,7 @@ aha_read(uint16_t port, void *priv)
 			dev->DataReply++;
 			dev->DataReplyLeft--;
 			if (! dev->DataReplyLeft)
-				aha_cmd_done(dev);
+				aha_cmd_done(dev, 0);
 		}
 		break;
 		
@@ -1329,6 +1357,7 @@ aha_write(uint16_t port, uint8_t val, void *priv)
     uint8_t j = 0;
     BIOSCMD *cmd;
     uint16_t cyl = 0;
+    int suppress = 0;
 
     aha_log("%s: Write Port 0x%02X, Value %02X\n", dev->name, port, val);
 
@@ -1352,8 +1381,13 @@ aha_write(uint16_t port, uint8_t val, void *priv)
 		    (dev->Command == 0xff)) {
 			/* If there are no mailboxes configured, don't even try to do anything. */
 			if (dev->MailboxCount) {
-				if (! dev->Callback) {
-					 dev->Callback = SCSI_DELAY_TM * TIMER_USEC;
+				if (! poll_tid) {
+					aha_log("%s: starting thread..\n", dev->name);
+					poll_tid = thread_create(aha_cmd_thread, dev);
+					dev->scan_restart = 0;
+				}
+				else {
+					dev->scan_restart = 1;
 				}
 			}
 			return;
@@ -1479,6 +1513,7 @@ aha_0x01:
 					if (dev->CmdBuf[0] <= 1) {
 						dev->MailboxOutInterrupts = dev->CmdBuf[0];
 						aha_log("Mailbox out interrupts: %s\n", dev->MailboxOutInterrupts ? "ON" : "OFF");
+						suppress = 1;
 					} else {
 						dev->Status |= STAT_INVCMD;
 					}
@@ -1648,7 +1683,7 @@ aha_0x01:
 		if (dev->DataReplyLeft)
 			dev->Status |= STAT_DFULL;
 		else if (!dev->CmdParamLeft)
-			aha_cmd_done(dev);
+			aha_cmd_done(dev, suppress);
 		break;
 		
 	case 2:
@@ -2062,7 +2097,6 @@ aha_init(int type)
     aha_setnvr(dev);
 
     timer_add(aha_reset_poll, &dev->ResetCB, &dev->ResetCB, dev);
-    timer_add(aha_cmd_cb, &dev->Callback, &dev->Callback, dev);
 
     if (dev->Base != 0) {
 	/* Register our address space. */
@@ -2110,11 +2144,22 @@ aha_close(void *priv)
 {
     aha_t *dev = (aha_t *)priv;
 
-    if (dev->nvr != NULL)
-	free(dev->nvr);
+    if (dev)
+    {
+	if (dev->evt) {
+		thread_destroy_event(dev->evt);
+		dev->evt = NULL;
+		if (poll_tid) {
+			poll_tid = NULL;
+		}
+	}
 
-    free(dev);
+	if (dev->nvr != NULL)
+		free(dev->nvr);
 
+	free(dev);
+	dev = NULL;
+    }
 }
 
 

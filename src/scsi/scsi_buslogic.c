@@ -10,7 +10,7 @@
  *		  0 - BT-545C ISA;
  *		  1 - BT-958D PCI (but BT-545C ISA on non-PCI machines)
  *
- * Version:	@(#)scsi_buslogic.c	1.0.10	2017/08/26
+ * Version:	@(#)scsi_buslogic.c	1.0.11	2017/09/01
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -32,6 +32,7 @@
 #include "../pci.h"
 #include "../timer.h"
 #include "../device.h"
+#include "../win/plat_thread.h"
 #include "scsi.h"
 #include "scsi_bios_command.h"
 #include "scsi_device.h"
@@ -505,14 +506,17 @@ typedef struct {
 		bios_mask;
     uint8_t     AutoSCSIROM[32768];
     uint8_t     SCAMData[65536];
+    event_t	*evt;
+    int		scan_restart;
 } Buslogic_t;
 #pragma pack(pop)
 
 
 static int	BuslogicResetCallback = 0;
-static int	BuslogicCallback = 0;
-static int	BuslogicInOperation = 0;
-static Buslogic_t *BuslogicResetDevice;
+
+
+static void	BuslogicCommandThread(void *p);
+static thread_t	*poll_tid;
 
 
 enum {
@@ -743,18 +747,6 @@ static void BuslogicInitializeAutoSCSIRam(Buslogic_t *bl)
 static void
 BuslogicRaiseInterrupt(Buslogic_t *bl, int suppress, uint8_t Interrupt)
 {
-#if 0
-    if (bl->Interrupt & INTR_HACC) {
-	pclog("Pending IRQ\n");
-	bl->PendingInterrupt = Interrupt;
-    } else {
-	bl->Interrupt = Interrupt;
-	pclog("Raising IRQ %i\n", bl->Irq);
-	if (bl->IrqEnabled)
-		BuslogicInterrupt(bl, 1);
-    }
-#endif
-
 	if (Interrupt & (INTR_MBIF | INTR_MBOA))
 	{
 		if (!(bl->Interrupt & INTR_HACC))
@@ -807,10 +799,21 @@ BuslogicClearInterrupt(Buslogic_t *bl)
 static void
 BuslogicReset(Buslogic_t *bl)
 {
-	/* pclog("BuslogicReset()\n"); */
-    BuslogicCallback = 0;
+    /* pclog("BuslogicReset()\n"); */
+    if (bl->evt)
+    {
+	thread_destroy_event(bl->evt);
+	bl->evt = NULL;
+	if (poll_tid)
+	{
+		poll_tid = NULL;
+	}
+    }
+
     BuslogicResetCallback = 0;
-	bl->Geometry = 0x80;
+    bl->scan_restart = 0;
+
+    bl->Geometry = 0x80;
     bl->Status = STAT_IDLE | STAT_INIT;
     bl->Command = 0xFF;
     bl->CmdParam = 0;
@@ -822,9 +825,8 @@ BuslogicReset(Buslogic_t *bl)
     bl->MailboxOutInterrupts = 0;
     bl->PendingInterrupt = 0;
     bl->Lock = 0;
-    BuslogicInOperation = 0;
 
-	BuslogicClearInterrupt(bl);
+    BuslogicClearInterrupt(bl);
 }
 
 
@@ -876,8 +878,6 @@ BuslogicMailboxInSetup(Buslogic_t *bl, uint32_t CCBPointer, CCBU *CmdBlock,
     req->MailboxCompletionCode = MailboxCompletionCode;
 
     pclog("Mailbox in setup\n");
-
-    BuslogicInOperation = 2;
 }
 
 
@@ -934,8 +934,6 @@ BuslogicMailboxIn(Buslogic_t *bl)
 		bl->MailboxInPosCur = 0;
 
     BuslogicRaiseInterrupt(bl, 0, INTR_MBIF | INTR_ANY);
-
-    BuslogicInOperation = 0;
 }
 
 
@@ -1480,8 +1478,13 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 		if ((Val == 0x02) && (bl->Command == 0xFF)) {
 			/* If there are no mailboxes configured, don't even try to do anything. */
 			if (bl->MailboxCount) {
-				if (!BuslogicCallback) {
-					BuslogicCallback = 1 * TIMER_USEC;
+				if (!poll_tid) {
+					pclog("Buslogic: starting thread..\n");
+					poll_tid = thread_create(BuslogicCommandThread, bl);
+					bl->scan_restart = 0;
+				}
+				else {
+					bl->scan_restart = 1;
 				}
 			}
 			return;
@@ -2369,6 +2372,8 @@ BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbox32_t *Mailb
 		fatal("BuslogicSCSIRequestSetup(): Attempting to queue tags\n");
 		BuslogicMailboxInSetup(bl, CCBPointer, &req->CmdBlock,
 				       CCB_INVALID_CCB, SCSI_STATUS_OK, MBI_ERROR);
+		pclog("BusLogic Callback: Send incoming mailbox\n");
+		BuslogicMailboxIn(bl);
 		return;
 	}
     }
@@ -2379,6 +2384,9 @@ BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbox32_t *Mailb
 	BuslogicMailboxInSetup(bl, CCBPointer, &req->CmdBlock,
 			       CCB_INVALID_CCB, SCSI_STATUS_OK, MBI_ERROR);
 	return;
+
+	pclog("BusLogic Callback: Send incoming mailbox\n");
+	BuslogicMailboxIn(bl);
     }
 	
     pclog("BuslogicSCSIRequestSetup(): Scanning SCSI Target ID %i\n", Id);		
@@ -2394,6 +2402,9 @@ BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbox32_t *Mailb
 	BuslogicSenseBufferFree(req, 0);
 	BuslogicMailboxInSetup(bl, CCBPointer, &req->CmdBlock,
 			       CCB_SELECTION_TIMEOUT,SCSI_STATUS_OK,MBI_ERROR);
+
+	pclog("BusLogic Callback: Send incoming mailbox\n");
+	BuslogicMailboxIn(bl);
     } else {
 	pclog("BuslogicSCSIRequestSetup(): SCSI Target ID %i and LUN %i detected and working\n", Id, Lun);
 
@@ -2405,7 +2416,11 @@ BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbox32_t *Mailb
 			req->CmdBlock.common.ControlByte);
 	}
 
-	BuslogicInOperation = 1;
+	pclog("BusLogic Callback: Process SCSI request\n");
+	BuslogicSCSICommand(bl);
+
+	pclog("BusLogic Callback: Send incoming mailbox\n");
+	BuslogicMailboxIn(bl);
     }
 }
 
@@ -2421,6 +2436,9 @@ BuslogicSCSIRequestAbort(Buslogic_t *bl, uint32_t CCBPointer)
     /* Only SCSI CD-ROMs are supported at the moment, SCSI hard disk support will come soon. */
     BuslogicMailboxInSetup(bl, CCBPointer, &CmdBlock,
 			   0x26, SCSI_STATUS_OK, MBI_NOT_FOUND);
+
+    pclog("BusLogic Callback: Send incoming mailbox\n");
+    BuslogicMailboxIn(bl);
 }
 
 
@@ -2453,7 +2471,7 @@ BuslogicMailboxOutAdvance(Buslogic_t *bl)
 }
 
 
-static void
+static uint8_t
 BuslogicProcessMailbox(Buslogic_t *bl)
 {
     Mailbox32_t mb32;
@@ -2466,6 +2484,12 @@ BuslogicProcessMailbox(Buslogic_t *bl)
 #if 0
     pclog("BuslogicProcessMailbox(): Operating in %s mode\n", bl->LocalRAM.structured.autoSCSIData.fAggressiveRoundRobinMode ? "aggressive" : "strict");
 #endif
+
+    if (bl->Interrupt || bl->PendingInterrupt)
+    {
+	/* pclog("Interrupt set, waiting...\n"); */
+	return 1;
+    }
 
     /* 0 = strict, 1 = aggressive */
     if (bl->LocalRAM.structured.autoSCSIData.fAggressiveRoundRobinMode) {
@@ -2488,6 +2512,10 @@ BuslogicProcessMailbox(Buslogic_t *bl)
 	pclog("BuslogicProcessMailbox(): Writing %i bytes at %08X\n", sizeof(CmdStatus), Outgoing + CodeOffset);
 		DMAPageWrite(Outgoing + CodeOffset, (char *)&CmdStatus, sizeof(CmdStatus));
     }
+    else
+    {
+	return 0;
+    }
 
     if (bl->MailboxOutInterrupts)
 	BuslogicRaiseInterrupt(bl, 0, INTR_MBOA | INTR_ANY);
@@ -2495,11 +2523,6 @@ BuslogicProcessMailbox(Buslogic_t *bl)
 #if 0
     pclog("BuslogicProcessMailbox(): Outgoing mailbox action code: %i\n", mb32.u.out.ActionCode);
 #endif
-
-    /* Check if the mailbox is actually loaded. */
-    if (mb32.u.out.ActionCode == MBO_FREE) {
-	return;
-    }
 
     if (mb32.u.out.ActionCode == MBO_START) {
 	pclog("Start Mailbox Command\n");
@@ -2514,6 +2537,8 @@ BuslogicProcessMailbox(Buslogic_t *bl)
     /* Advance to the next mailbox. */
     if (! bl->LocalRAM.structured.autoSCSIData.fAggressiveRoundRobinMode)
 	BuslogicMailboxOutAdvance(bl);
+
+    return 1;
 }
 
 
@@ -2530,34 +2555,35 @@ BuslogicResetPoll(void *p)
 
 
 static void
-BuslogicCommandCallback(void *p)
+BuslogicCommandThread(void *p)
 {
     Buslogic_t *bl = (Buslogic_t *)p;
 
-    if (BuslogicInOperation == 0) {
-	if (bl->MailboxCount) {
-		BuslogicProcessMailbox(bl);
-	} else {
-		BuslogicCallback += 1 * TIMER_USEC;
-		return;
-	}
-    } else if (BuslogicInOperation == 1) {
-	pclog("BusLogic Callback: Process SCSI request\n");
-	BuslogicSCSICommand(bl);
-	if (bl->Req.CmdBlock.common.Cdb[0] == 0x42)
-	{
-		/* This is needed since CD Audio inevitably means READ SUBCHANNEL spam. */
-		BuslogicCallback += 1000 * TIMER_USEC;
-		return;
-	}
-    } else if (BuslogicInOperation == 2) {
-	pclog("BusLogic Callback: Send incoming mailbox\n");
-	BuslogicMailboxIn(bl);
-    } else {
-	fatal("Invalid BusLogic callback phase: %i\n", BuslogicInOperation);
+BuslogicEventRestart:
+    /* Create a waitable event. */
+    bl->evt = thread_create_event();
+
+BuslogicScanRestart:
+    while (BuslogicProcessMailbox(bl) != 0)
+    {
     }
 
-    BuslogicCallback += 1 * TIMER_USEC;
+    if (bl->scan_restart)
+    {
+	goto BuslogicScanRestart;
+    }
+
+    thread_destroy_event(bl->evt);
+    bl->evt = NULL;
+
+    if (bl->scan_restart)
+    {
+	goto BuslogicEventRestart;
+    }
+
+    poll_tid = NULL;
+
+    pclog("Buslogic: polling stopped.\n");
 }
 
 
@@ -2825,7 +2851,6 @@ BuslogicInit(int chip)
     bl = malloc(sizeof(Buslogic_t));
     memset(bl, 0x00, sizeof(Buslogic_t));
 
-    BuslogicResetDevice = bl;
     if (!PCI && (chip == CHIP_BUSLOGIC_PCI))
     {
 	chip = CHIP_BUSLOGIC_ISA;
@@ -2923,8 +2948,6 @@ BuslogicInit(int chip)
 
     timer_add(BuslogicResetPoll,
 	      &BuslogicResetCallback, &BuslogicResetCallback, bl);
-    timer_add(BuslogicCommandCallback,
-	      &BuslogicCallback, &BuslogicCallback, bl);
 
     if (bl->chip == CHIP_BUSLOGIC_PCI) {
 	bl->Card = pci_add_card(PCI_ADD_NORMAL, BuslogicPCIRead, BuslogicPCIWrite, bl);
@@ -2984,8 +3007,22 @@ static void
 BuslogicClose(void *p)
 {
     Buslogic_t *bl = (Buslogic_t *)p;
-    free(bl);
-    BuslogicResetDevice = NULL;
+    if (bl)
+    {
+	if (bl->evt)
+	{
+		thread_destroy_event(bl->evt);
+		bl->evt = NULL;
+
+		if (poll_tid)
+		{
+			poll_tid = NULL;
+		}
+	}
+
+    	free(bl);
+	bl = NULL;
+    }
 }
 
 
