@@ -18,20 +18,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+
 #include "86box.h"
 #include "ibm.h"
-#include "mem.h"
-#include "cpu/cpu.h"
-#include "cpu/x86_ops.h"
-#include "cpu/codegen.h"
-#include "dma.h"
-#include "nvr.h"
-#include "pic.h"
-#include "pit.h"
-#include "timer.h"
-#include "device.h"
-#include "machine/machine.h"
 
+#include "mem.h"
+#include "cpu/codegen.h"
+#include "cpu/cpu.h"
+#include "dma.h"
+#include "device.h"
 #include "disc.h"
 #include "disc_86f.h"
 #include "disc_fdi.h"
@@ -39,33 +34,38 @@
 #include "disc_img.h"
 #include "disc_td0.h"
 #include "disc_random.h"
+#include "cdrom.h"
+#include "cdrom_image.h"
+#include "cdrom_ioctl.h"
+#include "cdrom_null.h"
 #include "config.h"
 #include "fdc.h"
 #include "fdd.h"
 #include "gameport.h"
 #include "hdd/hdd.h"
 #include "hdd/hdd_ide_at.h"
-#include "cdrom.h"
-#include "cdrom_ioctl.h"
-#include "cdrom_image.h"
-#include "cdrom_null.h"
 #include "keyboard.h"
 #include "keyboard_at.h"
+#include "lpt.h"
+#include "machine/machine.h"
 #include "sound/midi.h"
 #include "mouse.h"
 #ifdef USE_NETWORK
 #include "network/network.h"
 #endif
+#include "nvr.h"
+#include "pic.h"
+#include "pit.h"
 #ifdef WALTJE
 # define UNICODE
-# include "plat_dir.h"
+# include "win/plat_dir.h"
 # undef UNICODE
 #endif
-#include "plat_joystick.h"
-#include "plat_keyboard.h"
-#include "plat_midi.h"
-#include "plat_mouse.h"
-#include "plat_ui.h"
+#include "win/plat_joystick.h"
+#include "win/plat_keyboard.h"
+#include "win/plat_midi.h"
+#include "win/plat_mouse.h"
+#include "win/plat_ui.h"
 #include "scsi/scsi.h"
 #include "serial.h"
 #include "sound/sound.h"
@@ -77,8 +77,10 @@
 #include "sound/snd_sb.h"
 #include "sound/snd_speaker.h"
 #include "sound/snd_ssi2001.h"
+#include "timer.h"
 #include "video/video.h"
 #include "video/vid_voodoo.h"
+#include "cpu/x86_ops.h"
 
 
 wchar_t pcempath[512];
@@ -519,7 +521,8 @@ void resetpchard_init(void)
 #endif
         machine_init();
         video_init();
-        speaker_init();        
+        speaker_init();
+	lpt1_device_init();
 
 	ide_ter_disable();
 	ide_qua_disable();
@@ -719,6 +722,7 @@ void closepc(void)
 	}
         dumpregs(0);
         closevideo();
+	lpt1_device_close();
         device_close_all();
         midi_close();
 #ifdef USE_NETWORK

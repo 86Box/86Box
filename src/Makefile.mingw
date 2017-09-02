@@ -276,7 +276,9 @@ SNDOBJ	= sound.o \
 	  wave8580_PST.o wave.o \
 	  midi.o $(FSYNTHOBJ) $(MUNTOBJ) \
 	  midi_system.o \
-	  snd_speaker.o snd_ps1.o snd_pssj.o \
+	  snd_speaker.o \
+	  snd_ps1.o snd_pssj.o \
+	  snd_lpt_dac.o snd_lpt_dss.o \
 	  snd_adlib.o snd_adlibgold.o snd_ad1848.o \
 	  snd_sb.o snd_sb_dsp.o snd_cms.o snd_dbopl.o \
 	  snd_emu8k.o snd_gus.o snd_opl.o \
@@ -478,7 +480,7 @@ keyboard_pcjr.o:	ibm.h io.h mem.h nmi.h pic.h pit.h timer.h \
 keyboard_xt.o:	ibm.h io.h mem.h pic.h pit.h timer.h device.h tandy_eeprom.h \
 		sound/sound.h sound/snd_speaker.h keyboard.h keyboard_xt.h
 
-lpt.o:		ibm.h io.h lpt.h
+lpt.o:		ibm.h io.h lpt.h sound/snd_lpt_dac.h sound/snd_lpt_dss.h
 
 mca.o:		ibm.h io.h mem.h mca.h
 
@@ -765,6 +767,10 @@ snd_dbopl.o:		sound/dbopl.h sound/nukedopl.h sound/snd_dbopl.h
 snd_emu8k.o:		ibm.h io.h mem.h rom.h timer.h device.h sound/sound.h sound/snd_emu8k.h
 
 snd_gus.o:		ibm.h io.h pic.h dma.h timer.h device.h sound/sound.h sound/snd_gus.h
+
+snd_lpt_dac.o:		ibm.h cpu/cpu.h sound/filters.h lpt.h sound/snd_lpt_dac.h sound/sound.h timer.h
+
+snd_lpt_dss.o:		ibm.h cpu/cpu.h sound/filters.h lpt.h sound/snd_lpt_dss.h sound/sound.h timer.h
 
 snd_mpu401.o:		ibm.h device.h io.h pic.h timer.h sound/midi.h sound/sound.h sound/snd_mpu401.h
 

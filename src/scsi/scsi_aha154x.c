@@ -784,7 +784,6 @@ aha_mbi(aha_t *dev)
     RaiseIntr(dev, 0, INTR_MBIF | INTR_ANY);
 
     while (dev->Interrupt) {
-	thread_wait_event(dev->evt, 10);
     }
 }
 
@@ -1118,6 +1117,10 @@ aha_scsi_cmd(aha_t *dev)
 	aha_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
 			CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION, MBI_ERROR);
     }
+
+    if (temp_cdb[0] == 0x42) {
+	thread_wait_event(dev->evt, 10);
+    }
 }
 
 
@@ -1259,7 +1262,6 @@ aha_do_mail(aha_t *dev)
 	RaiseIntr(dev, 0, INTR_MBOA | INTR_ANY);
 
 	while (dev->Interrupt) {
-		thread_wait_event(dev->evt, 10);
 	}
     }
 
@@ -1289,7 +1291,6 @@ aha_event_restart:
 aha_scan_restart:
     while (aha_do_mail(dev) && dev->MailboxCount)
     {
-	thread_wait_event(dev->evt, 10);
     }
 
     if (!dev->MailboxCount)

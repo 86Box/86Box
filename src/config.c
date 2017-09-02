@@ -34,6 +34,7 @@
 #include "disc.h"
 #include "fdc.h"
 #include "fdd.h"
+#include "lpt.h"
 #include "ibm.h"
 #include "cpu/cpu.h"
 #include "gameport.h"
@@ -1134,6 +1135,24 @@ static void loadconfig_network(void)
 #endif
 
 
+/* Ports (COM & LPT) */
+static void loadconfig_ports(void)
+{
+	char *cat = "Ports (COM & LPT)";
+        char *p;
+
+        serial_enabled[0] = !!config_get_int(cat, "serial1_enabled", 1);
+        serial_enabled[1] = !!config_get_int(cat, "serial2_enabled", 1);
+        lpt_enabled = !!config_get_int(cat, "lpt_enabled", 1);
+
+	p = (char *)config_get_string(cat, "lpt1_device", "none");
+	if (p != NULL)
+		strcpy(lpt1_device_name, p);
+	else
+		strcpy(lpt1_device_name, "none");
+}
+
+
 /* Other peripherals */
 static void loadconfig_other_peripherals(void)
 {
@@ -1166,8 +1185,11 @@ static void loadconfig_other_peripherals(void)
 	}
 
         serial_enabled[0] = !!config_get_int(cat, "serial1_enabled", 1);
+	config_delete_var(cat, "serial1_enabled");
         serial_enabled[1] = !!config_get_int(cat, "serial2_enabled", 1);
+	config_delete_var(cat, "serial2_enabled");
         lpt_enabled = !!config_get_int(cat, "lpt_enabled", 1);
+	config_delete_var(cat, "lpt_enabled");
         bugger_enabled = !!config_get_int(cat, "bugger_enabled", 0);
 }
 
@@ -1749,6 +1771,9 @@ void loadconfig(wchar_t *fn)
 	loadconfig_network();
 #endif
 
+	/* Ports (COM & LPT) */
+	loadconfig_ports();
+
 	/* Other peripherals */
 	loadconfig_other_peripherals();
 
@@ -2212,6 +2237,51 @@ static void saveconfig_network(void)
 #endif
 
 
+/* Ports (COM & LPT) */
+static void saveconfig_ports(void)
+{
+	char *cat = "Ports (COM & LPT)";
+
+	if (serial_enabled[0])
+	{
+		config_delete_var(cat, "serial1_enabled");
+	}
+	else
+	{
+	        config_set_int(cat, "serial1_enabled", serial_enabled[0]);
+	}
+
+	if (serial_enabled[1])
+	{
+		config_delete_var(cat, "serial2_enabled");
+	}
+	else
+	{
+	        config_set_int(cat, "serial2_enabled", serial_enabled[1]);
+	}
+
+	if (lpt_enabled)
+	{
+		config_delete_var(cat, "lpt_enabled");
+	}
+	else
+	{
+	        config_set_int(cat, "lpt_enabled", lpt_enabled);
+	}
+
+	if (!strcmp(lpt1_device_name, "none"))
+	{
+		config_delete_var(cat, "lpt1_device");
+	}
+	else
+	{
+		config_set_string(cat, "lpt1_device", lpt1_device_name);
+	}
+
+	config_delete_section_if_empty(cat);
+}
+
+
 /* Other peripherals */
 static void saveconfig_other_peripherals(void)
 {
@@ -2252,33 +2322,6 @@ static void saveconfig_other_peripherals(void)
 		{
 		        config_set_string(cat, temps, temps2);
 		}
-	}
-
-	if (serial_enabled[0])
-	{
-		config_delete_var(cat, "serial1_enabled");
-	}
-	else
-	{
-	        config_set_int(cat, "serial1_enabled", serial_enabled[0]);
-	}
-
-	if (serial_enabled[1])
-	{
-		config_delete_var(cat, "serial2_enabled");
-	}
-	else
-	{
-	        config_set_int(cat, "serial2_enabled", serial_enabled[1]);
-	}
-
-	if (lpt_enabled)
-	{
-		config_delete_var(cat, "lpt_enabled");
-	}
-	else
-	{
-	        config_set_int(cat, "lpt_enabled", lpt_enabled);
 	}
 
 	if (bugger_enabled == 0)
@@ -2569,6 +2612,9 @@ void saveconfig(void)
 	/* Network */
 	saveconfig_network();
 #endif
+
+	/* Ports (COM & LPT) */
+	saveconfig_ports();
 
 	/* Other peripherals */
 	saveconfig_other_peripherals();

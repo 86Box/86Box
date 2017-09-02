@@ -937,7 +937,6 @@ BuslogicMailboxIn(Buslogic_t *bl)
     BuslogicRaiseInterrupt(bl, 0, INTR_MBIF | INTR_ANY);
 
     while (bl->Interrupt) {
-	thread_wait_event(bl->evt, 10);
     }
 }
 
@@ -2354,6 +2353,10 @@ BuslogicSCSICommand(Buslogic_t *bl)
 	BuslogicMailboxInSetup(bl, req->CCBPointer, &req->CmdBlock,
 			CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION, MBI_ERROR);
     }
+
+    if (temp_cdb[0] == 0x42) {
+	thread_wait_event(bl->evt, 10);
+    }
 }
 
 
@@ -2520,7 +2523,6 @@ BuslogicProcessMailbox(Buslogic_t *bl)
 	BuslogicRaiseInterrupt(bl, 0, INTR_MBOA | INTR_ANY);
 
 	while (bl->Interrupt) {
-		thread_wait_event(bl->evt, 10);
 	}
     }
 
@@ -2570,7 +2572,6 @@ BuslogicEventRestart:
 BuslogicScanRestart:
     while (BuslogicProcessMailbox(bl) && bl->MailboxCount)
     {
-	thread_wait_event(bl->evt, 10);
     }
 
     if (!bl->MailboxCount)

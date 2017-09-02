@@ -8,7 +8,7 @@
  *
  *		Windows resource script.
  *
- * Version:	@(#)86Box.rc	1.0.7	2017/08/26
+ * Version:	@(#)86Box.rc	1.0.8	2017/09/02
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -358,7 +358,24 @@ BEGIN
 END
 #endif
 
-DLG_CFG_PERIPHERALS DIALOG DISCARDABLE  97, 0, 267, 115
+DLG_CFG_PORTS DIALOG DISCARDABLE  97, 0, 267, 61
+STYLE DS_CONTROL | WS_CHILD
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT           "LPT1 Device:",IDT_1716,7,8,61,10
+    COMBOBOX        IDC_COMBO_LPT1,71,7,189,120,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+
+    CONTROL         "Serial port 1",IDC_CHECK_SERIAL1,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,26,94,10
+    CONTROL         "Serial port 2",IDC_CHECK_SERIAL2,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,147,26,94,10
+
+    CONTROL         "Parallel port",IDC_CHECK_PARALLEL,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,44,94,10
+END
+
+DLG_CFG_PERIPHERALS DIALOG DISCARDABLE  97, 0, 267, 97
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
@@ -379,15 +396,8 @@ BEGIN
     COMBOBOX        IDC_COMBO_IDE_QUA,71,61,189,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
 
-    CONTROL         "Serial port 1",IDC_CHECK_SERIAL1,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,80,94,10
-    CONTROL         "Serial port 2",IDC_CHECK_SERIAL2,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,147,80,94,10
-
-    CONTROL         "Parallel port",IDC_CHECK_PARALLEL,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,98,94,10
     CONTROL         "ISABugger device",IDC_CHECK_BUGGER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,147,98,94,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,80,94,10
 END
 
 DLG_CFG_HARD_DISKS DIALOG DISCARDABLE  97, 0, 267, 154
@@ -529,13 +539,15 @@ END
 259                     ICON    DISCARDABLE     "win/icons/sound.ico"
 #ifdef USE_NETWORK
 260                     ICON    DISCARDABLE     "win/icons/network.ico"
+261                     ICON    DISCARDABLE     "win/icons/ports.ico"
+262                     ICON    DISCARDABLE     "win/icons/other_peripherals.ico"
+263                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
+264                     ICON    DISCARDABLE     "win/icons/removable_devices.ico"
+#else
+260                     ICON    DISCARDABLE     "win/icons/ports.ico"
 261                     ICON    DISCARDABLE     "win/icons/other_peripherals.ico"
 262                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
 263                     ICON    DISCARDABLE     "win/icons/removable_devices.ico"
-#else
-260                     ICON    DISCARDABLE     "win/icons/other_peripherals.ico"
-261                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
-262                     ICON    DISCARDABLE     "win/icons/removable_devices.ico"
 #endif
 384                     ICON    DISCARDABLE     "win/icons/floppy_525_empty.ico"
 385                     ICON    DISCARDABLE     "win/icons/floppy_525_empty_active.ico"
@@ -585,7 +597,7 @@ END
 #ifdef APSTUDIO_INVOKED
 GUIDELINES DESIGNINFO DISCARDABLE 
 BEGIN
-    CONFIGUREDLG_MAIN, DIALOG
+    DLG_CFG_MAIN, DIALOG
     BEGIN
         RIGHTMARGIN, 365
     END
@@ -595,7 +607,7 @@ BEGIN
         RIGHTMARGIN, 208
     END
 
-    CONFIGUREDLG_MACHINE, DIALOG
+    DLG_CFG_MACHINE, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 260
@@ -603,7 +615,7 @@ BEGIN
         BOTTOMMARGIN, 105
     END
 
-    CONFIGUREDLG_VIDEO, DIALOG
+    DLG_CFG_VIDEO, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 260
@@ -611,7 +623,7 @@ BEGIN
         BOTTOMMARGIN, 56
     END
 
-    CONFIGUREDLG_INPUT, DIALOG
+    DLG_CFG_INPUT, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 260
@@ -619,7 +631,7 @@ BEGIN
         BOTTOMMARGIN, 58
     END
 
-    CONFIGUREDLG_SOUND, DIALOG
+    DLG_CFG_SOUND, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 260
@@ -628,7 +640,7 @@ BEGIN
     END
 
 #ifdef USE_NETWORK
-    CONFIGUREDLG_NETWORK, DIALOG
+    DLG_CFG_NETWORK, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 260
@@ -637,15 +649,23 @@ BEGIN
     END
 #endif
 
-    CONFIGUREDLG_PERIPHERALS, DIALOG
+    DLG_CFG_PORTS, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 260
         TOPMARGIN, 7
-        BOTTOMMARGIN, 102
+        BOTTOMMARGIN, 48
     END
 
-    CONFIGUREDLG_HARD_DISKS, DIALOG
+    DLG_CFG_PERIPHERALS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 260
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 85
+    END
+
+    DLG_CFG_HARD_DISKS, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 260
@@ -653,7 +673,7 @@ BEGIN
         BOTTOMMARGIN, 137
     END
 
-    CONFIGUREDLG_REMOVABLE_DEVICES, DIALOG
+    DLG_CFG_REMOVABLE_DEVICES, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 260
@@ -698,15 +718,16 @@ BEGIN
     IDS_2068	"Sound"
 #ifdef USE_NETWORK
     IDS_2069	"Network"
+    IDS_2070	"Ports (COM & LPT)"
+    IDS_2071	"Other peripherals"
+    IDS_2072	"Hard disks"
+    IDS_2073	"Removable devices"
+#else
+    IDS_2069	"Ports (COM & LPT)"
     IDS_2070	"Other peripherals"
     IDS_2071	"Hard disks"
     IDS_2072	"Removable devices"
-#else
-    IDS_2069	"Other peripherals"
-    IDS_2070	"Hard disks"
-    IDS_2071	"Removable devices"
 #endif
-    IDS_2073	"Unable to create bitmap file: %s"
     IDS_2074	"Use CTRL+ALT+PAGE DOWN to return to windowed mode"
     IDS_2075	"CD-ROM images (*.ISO;*.CUE)\0*.ISO;*.CUE\0All files (*.*)\0*.*\0"
     IDS_2076	"Host CD/DVD Drive (%c:)"
@@ -725,6 +746,7 @@ BEGIN
     IDS_2085	"H"
     IDS_2086	"S"
     IDS_2087	"MB"
+    IDS_2088	"Unable to create bitmap file: %s"
     IDS_2089	"Enabled"
     IDS_2090	"Mute"
     IDS_2091	"Type"

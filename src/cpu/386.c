@@ -231,12 +231,13 @@ void exec386(int cycs)
         int tempi;
         int cycdiff;
         int oldcyc;
-        int cycle_period = cycs / 2000; /*Use a 5us timing granularity*/
 
         cycles+=cycs;
         /* output=3; */
         while (cycles>0)
         {
+                int cycle_period = (timer_count >> TIMER_SHIFT) + 1;
+                
                 cycdiff=0;
                 oldcyc=cycles;
                 timer_start_period(cycles << TIMER_SHIFT);

@@ -32,10 +32,11 @@
 #define  DLG_CFG_INPUT		113	/* sub-dialog of config */
 #define  DLG_CFG_SOUND		114	/* sub-dialog of config */
 #define  DLG_CFG_NETWORK	115	/* sub-dialog of config */
-#define  DLG_CFG_PERIPHERALS	116	/* sub-dialog of config */
-#define  DLG_CFG_HARD_DISKS	117	/* sub-dialog of config */
-#define  DLG_CFG_HARD_DISKS_ADD	118	/* sub-dialog of config */
-#define  DLG_CFG_REMOVABLE_DEVICES	119	/* sub-dialog of config */
+#define  DLG_CFG_PORTS		116	/* sub-dialog of config */
+#define  DLG_CFG_PERIPHERALS	117	/* sub-dialog of config */
+#define  DLG_CFG_HARD_DISKS	118	/* sub-dialog of config */
+#define  DLG_CFG_HARD_DISKS_ADD	119	/* sub-dialog of config */
+#define  DLG_CFG_REMOVABLE_DEVICES	120	/* sub-dialog of config */
 
 /* Static text label IDs. */
 #define IDT_1700		1700	/* Language: */
@@ -132,16 +133,18 @@
 #define IDC_COMBO_PCAP		1091
 #define IDC_COMBO_NET		1092
 
-#define IDC_OTHER_PERIPH	1110	/* other periph config */
-#define IDC_COMBO_SCSI		1111
-#define IDC_CONFIGURE_SCSI	1112
-#define IDC_COMBO_HDC		1113
-#define IDC_COMBO_IDE_TER	1114
-#define IDC_COMBO_IDE_QUA	1115
-#define IDC_CHECK_SERIAL1	1116
-#define IDC_CHECK_SERIAL2	1117
-#define IDC_CHECK_PARALLEL	1118
-#define IDC_CHECK_BUGGER	1119
+#define IDC_COMBO_LPT1		1110	/* ports config */
+#define IDC_CHECK_SERIAL1	1111
+#define IDC_CHECK_SERIAL2	1112
+#define IDC_CHECK_PARALLEL	1113
+
+#define IDC_OTHER_PERIPH	1120	/* other periph config */
+#define IDC_COMBO_SCSI		1121
+#define IDC_CONFIGURE_SCSI	1122
+#define IDC_COMBO_HDC		1123
+#define IDC_COMBO_IDE_TER	1124
+#define IDC_COMBO_IDE_QUA	1125
+#define IDC_CHECK_BUGGER	1126
 
 #define IDC_HARD_DISKS		1130	/* hard disk config */
 #define IDC_LIST_HARD_DISKS	1131
@@ -153,7 +156,8 @@
 #define IDC_COMBO_HD_ID		1137
 #define IDC_COMBO_HD_LUN	1138
 #define IDC_COMBO_HD_CHANNEL_IDE 1139
-#define IDC_EDIT_HD_FILE_NAME	1140
+
+#define IDC_EDIT_HD_FILE_NAME	1140	/* add hard disk dialog */
 #define IDC_EDIT_HD_SPT		1141
 #define IDC_EDIT_HD_HPC		1142
 #define IDC_EDIT_HD_CYL		1143
