@@ -20,7 +20,7 @@
 #include "../ibm.h"
 #include "cpu.h"
 #include "../device.h"
-#include "../model.h"
+#include "../machine/machine.h"
 #include "../io.h"
 #include "x86_ops.h"
 #include "../mem.h"
@@ -606,7 +606,7 @@ CPU cpus_PentiumPro[] =
 
 void cpu_set_edx()
 {
-        EDX = models[model].cpu[cpu_manufacturer].cpus[cpu].edx_reset;
+        EDX = machines[machine].cpu[cpu_manufacturer].cpus[cpu].edx_reset;
 }
 
 int enable_external_fpu = 0;
@@ -615,14 +615,14 @@ void cpu_set()
 {
         CPU *cpu_s;
         
-        if (!models[model].cpu[cpu_manufacturer].cpus)
+        if (!machines[machine].cpu[cpu_manufacturer].cpus)
         {
                 /*CPU is invalid, set to default*/
                 cpu_manufacturer = 0;
                 cpu = 0;
         }
         
-        cpu_s = &models[model].cpu[cpu_manufacturer].cpus[cpu];
+        cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu];
 
         CPUID    = cpu_s->cpuid_model;
         cpuspeed = cpu_s->speed;
@@ -1570,7 +1570,7 @@ void cpu_set()
 
 void cpu_CPUID()
 {
-        switch (models[model].cpu[cpu_manufacturer].cpus[cpu].cpu_type)
+        switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type)
         {
                 case CPU_i486DX:
                 if (!EAX)
@@ -1993,7 +1993,7 @@ void cpu_CPUID()
 
 void cpu_RDMSR()
 {
-        switch (models[model].cpu[cpu_manufacturer].cpus[cpu].cpu_type)
+        switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type)
         {
                 case CPU_WINCHIP:
                 EAX = EDX = 0;
@@ -2093,7 +2093,7 @@ void cpu_RDMSR()
                         EDX = tsc >> 32;
                         break;
                         case 0x17:
-			if (models[model].cpu[cpu_manufacturer].cpus[cpu].cpu_type != CPU_PENTIUM2D)  goto i686_invalid_rdmsr;
+			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type != CPU_PENTIUM2D)  goto i686_invalid_rdmsr;
                         EAX = ecx17_msr & 0xffffffff;
                         EDX = ecx17_msr >> 32;
                         break;
@@ -2134,16 +2134,16 @@ void cpu_RDMSR()
                         EDX = ecx11e_msr >> 32;
 			break;
 			case 0x174:
-			if (models[model].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_rdmsr;
+			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_rdmsr;
 			EAX &= 0xFFFF0000;
 			EAX |= cs_msr;
 			break;
 			case 0x175:
-			if (models[model].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_rdmsr;
+			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_rdmsr;
 			EAX = esp_msr;
 			break;
 			case 0x176:
-			if (models[model].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_rdmsr;
+			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_rdmsr;
 			EAX = eip_msr;
 			break;
 			case 0x186:
@@ -2213,7 +2213,7 @@ i686_invalid_rdmsr:
 
 void cpu_WRMSR()
 {
-        switch (models[model].cpu[cpu_manufacturer].cpus[cpu].cpu_type)
+        switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type)
         {
                 case CPU_WINCHIP:
                 switch (ECX)
@@ -2236,7 +2236,7 @@ void cpu_WRMSR()
                         if (EAX & (1 << 29))
                                 CPUID = 0;
                         else
-                                CPUID = models[model].cpu[cpu_manufacturer].cpus[cpu].cpuid_model;
+                                CPUID = machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpuid_model;
                         break;
                         case 0x108:
                         msr.fcr2 = EAX | ((uint64_t)EDX << 32);
@@ -2298,7 +2298,7 @@ void cpu_WRMSR()
                         tsc = EAX | ((uint64_t)EDX << 32);
                         break;
 			case 0x17:
-			if (models[model].cpu[cpu_manufacturer].cpus[cpu].cpu_type != CPU_PENTIUM2D)  goto i686_invalid_wrmsr;
+			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type != CPU_PENTIUM2D)  goto i686_invalid_wrmsr;
 			ecx17_msr = EAX | ((uint64_t)EDX << 32);
 			break;
 			case 0x1B:
@@ -2326,15 +2326,15 @@ void cpu_WRMSR()
 			ecx11e_msr = EAX | ((uint64_t)EDX << 32);
 			break;
 			case 0x174:
-			if (models[model].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_wrmsr;
+			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_wrmsr;
 			cs_msr = EAX & 0xFFFF;
 			break;
 			case 0x175:
-			if (models[model].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_wrmsr;
+			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_wrmsr;
 			esp_msr = EAX;
 			break;
 			case 0x176:
-			if (models[model].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_wrmsr;
+			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_wrmsr;
 			eip_msr = EAX;
 			break;
 			case 0x186:
@@ -2410,10 +2410,10 @@ void cyrix_write(uint16_t addr, uint8_t val, void *priv)
                 if ((ccr3 & 0xf0) == 0x10)
                 {
                         ccr4 = val;
-                        if (models[model].cpu[cpu_manufacturer].cpus[cpu].cpu_type >= CPU_Cx6x86)
+                        if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type >= CPU_Cx6x86)
                         {
                                 if (val & 0x80)
-                                        CPUID = models[model].cpu[cpu_manufacturer].cpus[cpu].cpuid_model;
+                                        CPUID = machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpuid_model;
                                 else
                                         CPUID = 0;
                         }
@@ -2443,11 +2443,11 @@ uint8_t cyrix_read(uint16_t addr, void *priv)
                         case 0xe8: return ((ccr3 & 0xf0) == 0x10) ? ccr4 : 0xff;
                         case 0xe9: return ((ccr3 & 0xf0) == 0x10) ? ccr5 : 0xff;
                         case 0xea: return ((ccr3 & 0xf0) == 0x10) ? ccr6 : 0xff;
-                        case 0xfe: return models[model].cpu[cpu_manufacturer].cpus[cpu].cyrix_id & 0xff;
-                        case 0xff: return models[model].cpu[cpu_manufacturer].cpus[cpu].cyrix_id >> 8;
+                        case 0xfe: return machines[machine].cpu[cpu_manufacturer].cpus[cpu].cyrix_id & 0xff;
+                        case 0xff: return machines[machine].cpu[cpu_manufacturer].cpus[cpu].cyrix_id >> 8;
                 }
                 if ((cyrix_addr & 0xf0) == 0xc0) return 0xff;
-                if (cyrix_addr == 0x20 && models[model].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_Cx5x86) return 0xff;
+                if (cyrix_addr == 0x20 && machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_Cx5x86) return 0xff;
         }
         return 0xff;
 }
@@ -2462,7 +2462,7 @@ void x86_setopcodes(OpFn *opcodes, OpFn *opcodes_0f, OpFn *dynarec_opcodes, OpFn
 
 void cpu_update_waitstates()
 {
-        cpu_s = &models[model].cpu[cpu_manufacturer].cpus[cpu];
+        cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu];
         
         cpu_prefetch_width = cpu_16bitbus ? 2 : 4;
         

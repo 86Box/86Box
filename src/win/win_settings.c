@@ -26,7 +26,7 @@
 #include "../cpu/cpu.h"
 #include "../nvr.h"
 #include "../device.h"
-#include "../model.h"
+#include "../machine/machine.h"
 #include "../cdrom.h"
 #include "../disc.h"
 #include "../fdd.h"
@@ -50,7 +50,7 @@
 
 
 /* Machine category */
-static int temp_model, temp_cpu_m, temp_cpu, temp_wait_states, temp_mem_size, temp_dynarec, temp_fpu, temp_sync;
+static int temp_machine, temp_cpu_m, temp_cpu, temp_wait_states, temp_mem_size, temp_dynarec, temp_fpu, temp_sync;
 static wchar_t temp_nvr_path[520];
 
 /* Video category */
@@ -91,7 +91,7 @@ int hdd_controller_current;
 static int displayed_category = 0;
 
 extern int is486;
-static int romstolist[ROM_MAX], listtomodel[ROM_MAX], romstomodel[ROM_MAX], modeltolist[ROM_MAX];
+static int romstolist[ROM_MAX], listtomachine[ROM_MAX], romstomachine[ROM_MAX], machinetolist[ROM_MAX];
 static int settings_sound_to_list[20], settings_list_to_sound[20];
 static int settings_midi_to_list[20], settings_list_to_midi[20];
 static int settings_mouse_to_list[20], settings_list_to_mouse[20];
@@ -108,7 +108,7 @@ static void win_settings_init(void)
 	int i = 0;
 
 	/* Machine category */
-	temp_model = model;
+	temp_machine = machine;
 	temp_cpu_m = cpu_manufacturer;
 	temp_wait_states = cpu_waitstates;
 	temp_cpu = cpu;
@@ -179,7 +179,7 @@ static int win_settings_changed(void)
 	int j = 0;
 
 	/* Machine category */
-	i = i || (model != temp_model);
+	i = i || (machine != temp_machine);
 	i = i || (cpu_manufacturer != temp_cpu_m);
 	i = i || (cpu_waitstates != temp_wait_states);
 	i = i || (cpu != temp_cpu);
@@ -282,8 +282,8 @@ static void win_settings_save(void)
 	resetpchard_close();
 
 	/* Machine category */
-	model = temp_model;
-	romset = model_getromset();
+	machine = temp_machine;
+	romset = machine_getromset();
 	cpu_manufacturer = temp_cpu_m;
 	cpu_waitstates = temp_wait_states;
 	cpu = temp_cpu;
@@ -373,10 +373,10 @@ static void win_settings_machine_recalc_cpu(HWND hdlg)
         int cpu_flags;
         int cpu_type;
 
-	temp_romset = model_getromset_ex(temp_model);
+	temp_romset = machine_getromset_ex(temp_machine);
 
 	h = GetDlgItem(hdlg, IDC_COMBO_WS);
-	cpu_type = models[romstomodel[temp_romset]].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
+	cpu_type = machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
 	if ((cpu_type >= CPU_286) && (cpu_type <= CPU_386DX))
 	{
 		EnableWindow(h, TRUE);
@@ -387,7 +387,7 @@ static void win_settings_machine_recalc_cpu(HWND hdlg)
 	}
 
 	h=GetDlgItem(hdlg, IDC_CHECK_DYNAREC);
-	cpu_flags = models[romstomodel[temp_romset]].cpu[temp_cpu_m].cpus[temp_cpu].cpu_flags;
+	cpu_flags = machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[temp_cpu].cpu_flags;
 	if (!(cpu_flags & CPU_SUPPORTS_DYNAREC) && (cpu_flags & CPU_REQUIRES_DYNAREC))
 	{
 		fatal("Attempting to select a CPU that requires the recompiler and does not support it at the same time\n");
@@ -411,7 +411,7 @@ static void win_settings_machine_recalc_cpu(HWND hdlg)
 	}
 
 	h = GetDlgItem(hdlg, IDC_CHECK_FPU);
-	cpu_type = models[romstomodel[temp_romset]].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
+	cpu_type = machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
 	if ((cpu_type < CPU_i486DX) && (cpu_type >= CPU_286))
 	{
 		EnableWindow(h, TRUE);
@@ -438,15 +438,15 @@ static void win_settings_machine_recalc_cpu_m(HWND hdlg)
 	LPTSTR lptsTemp;
 	char *stransi;
 
-	temp_romset = model_getromset_ex(temp_model);
+	temp_romset = machine_getromset_ex(temp_machine);
 	lptsTemp = (LPTSTR) malloc(512);
 
 	h = GetDlgItem(hdlg, IDC_COMBO_CPU);
 	SendMessage(h, CB_RESETCONTENT, 0, 0);
 	c = 0;
-	while (models[romstomodel[temp_romset]].cpu[temp_cpu_m].cpus[c].cpu_type != -1)
+	while (machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[c].cpu_type != -1)
 	{
-		stransi = models[romstomodel[temp_romset]].cpu[temp_cpu_m].cpus[c].name;
+		stransi = machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[c].name;
 		mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
 		c++;
@@ -464,7 +464,7 @@ static void win_settings_machine_recalc_cpu_m(HWND hdlg)
 }
 
 
-static void win_settings_machine_recalc_model(HWND hdlg)
+static void win_settings_machine_recalc_machine(HWND hdlg)
 {
 	HWND h;
 	int c = 0;
@@ -473,11 +473,11 @@ static void win_settings_machine_recalc_model(HWND hdlg)
 	char *stransi;
         UDACCEL accel;
 
-	temp_romset = model_getromset_ex(temp_model);
+	temp_romset = machine_getromset_ex(temp_machine);
 	lptsTemp = (LPTSTR) malloc(512);
 
 	h = GetDlgItem(hdlg, IDC_CONFIGURE_MACHINE);
-	if (model_getdevice(temp_model))
+	if (machine_getdevice(temp_machine))
 	{
 		EnableWindow(h, TRUE);
 	}
@@ -489,9 +489,9 @@ static void win_settings_machine_recalc_model(HWND hdlg)
 	h = GetDlgItem(hdlg, IDC_COMBO_CPU_TYPE);
 	SendMessage(h, CB_RESETCONTENT, 0, 0);
 	c = 0;
-	while (models[romstomodel[temp_romset]].cpu[c].cpus != NULL && c < 4)
+	while (machines[romstomachine[temp_romset]].cpu[c].cpus != NULL && c < 4)
 	{
-		stransi = models[romstomodel[temp_romset]].cpu[c].name;
+		stransi = machines[romstomachine[temp_romset]].cpu[c].name;
 		mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
 		c++;
@@ -514,11 +514,11 @@ static void win_settings_machine_recalc_model(HWND hdlg)
 	win_settings_machine_recalc_cpu_m(hdlg);
 
 	h = GetDlgItem(hdlg, IDC_MEMSPIN);
-	SendMessage(h, UDM_SETRANGE, 0, (models[romstomodel[temp_romset]].min_ram << 16) | models[romstomodel[temp_romset]].max_ram);
+	SendMessage(h, UDM_SETRANGE, 0, (machines[romstomachine[temp_romset]].min_ram << 16) | machines[romstomachine[temp_romset]].max_ram);
 	accel.nSec = 0;
-	accel.nInc = models[romstomodel[temp_romset]].ram_granularity;
+	accel.nInc = machines[romstomachine[temp_romset]].ram_granularity;
 	SendMessage(h, UDM_SETACCEL, 1, (LPARAM)&accel);
-	if (!(models[romstomodel[temp_romset]].flags & MODEL_AT) || (models[romstomodel[temp_romset]].ram_granularity >= 128))
+	if (!(machines[romstomachine[temp_romset]].flags & MACHINE_AT) || (machines[romstomachine[temp_romset]].ram_granularity >= 128))
 	{
 		SendMessage(h, UDM_SETPOS, 0, temp_mem_size);
 		h = GetDlgItem(hdlg, IDC_TEXT_MB);
@@ -555,22 +555,22 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 				romstolist[c] = 0;
 			}
 			c = d = 0;
-			while (models[c].id != -1)
+			while (machines[c].id != -1)
 			{
-				if (romspresent[models[c].id])
+				if (romspresent[machines[c].id])
 				{
-					stransi = models[c].name;
+					stransi = machines[c].name;
 					mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
-					modeltolist[c] = d;
-					listtomodel[d] = c;
-					romstolist[models[c].id] = d;
-					romstomodel[models[c].id] = c;
+					machinetolist[c] = d;
+					listtomachine[d] = c;
+					romstolist[machines[c].id] = d;
+					romstomachine[machines[c].id] = c;
 					d++;
 				}
 				c++;
 			}
-			SendMessage(h, CB_SETCURSEL, modeltolist[temp_model], 0);
+			SendMessage(h, CB_SETCURSEL, machinetolist[temp_machine], 0);
 
 			h = GetDlgItem(hdlg, IDC_COMBO_WS);
 	                SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2131));
@@ -592,7 +592,7 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
         	        h=GetDlgItem(hdlg, IDC_CHECK_SYNC);
 	                SendMessage(h, BM_SETCHECK, temp_sync, 0);
 
-			win_settings_machine_recalc_model(hdlg);
+			win_settings_machine_recalc_machine(hdlg);
 
 			h = GetDlgItem(hdlg, IDC_EDIT_NVR_PATH);
 			SendMessage(h, WM_SETTEXT, 0, (LPARAM) temp_nvr_path);
@@ -608,9 +608,9 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 	        	                if (HIWORD(wParam) == CBN_SELCHANGE)
 		                        {
         		                        h = GetDlgItem(hdlg, IDC_COMBO_MACHINE);
-	                	                temp_model = listtomodel[SendMessage(h,CB_GETCURSEL,0,0)];
+	                	                temp_machine = listtomachine[SendMessage(h,CB_GETCURSEL,0,0)];
 
-						win_settings_machine_recalc_model(hdlg);
+						win_settings_machine_recalc_machine(hdlg);
 					}
 					break;
 				case IDC_COMBO_CPU_TYPE:
@@ -634,9 +634,9 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 					break;
 				case IDC_CONFIGURE_MACHINE:
 					h = GetDlgItem(hdlg, IDC_COMBO_MACHINE);
-					temp_model = listtomodel[SendMessage(h, CB_GETCURSEL, 0, 0)];
+					temp_machine = listtomachine[SendMessage(h, CB_GETCURSEL, 0, 0)];
                         
-                        		deviceconfig_open(hdlg, (void *)model_getdevice(temp_model));
+                        		deviceconfig_open(hdlg, (void *)machine_getdevice(temp_machine));
                         		break;
 				case IDC_BUTTON_NVR_PATH:
 					p = BrowseFolder(temp_nvr_path, win_language_get_string_from_id(IDS_2056));
@@ -680,16 +680,16 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 			SendMessage(h, WM_GETTEXT, 255, (LPARAM) lptsTemp);
 			wcstombs(stransi, lptsTemp, 512);
 			sscanf(stransi, "%i", &temp_mem_size);
-			temp_mem_size &= ~(models[temp_model].ram_granularity - 1);
-			if (temp_mem_size < models[temp_model].min_ram)
+			temp_mem_size &= ~(machines[temp_machine].ram_granularity - 1);
+			if (temp_mem_size < machines[temp_machine].min_ram)
 			{
-				temp_mem_size = models[temp_model].min_ram;
+				temp_mem_size = machines[temp_machine].min_ram;
 			}
-			else if (temp_mem_size > models[temp_model].max_ram)
+			else if (temp_mem_size > machines[temp_machine].max_ram)
 			{
-				temp_mem_size = models[temp_model].max_ram;
+				temp_mem_size = machines[temp_machine].max_ram;
 			}
-			if ((models[temp_model].flags & MODEL_AT) && (models[temp_model].ram_granularity < 128))
+			if ((machines[temp_machine].flags & MACHINE_AT) && (machines[temp_machine].ram_granularity < 128))
 			{
 				temp_mem_size *= 1024;
 			}
@@ -723,7 +723,7 @@ static void recalc_vid_list(HWND hdlg)
                         break;
 
                 if (video_card_available(c) && gfx_present[video_new_to_old(c)] &&
-                    ((models[temp_model].flags & MODEL_PCI) || !(video_card_getdevice(c)->flags & DEVICE_PCI)))
+                    ((machines[temp_machine].flags & MACHINE_PCI) || !(video_card_getdevice(c)->flags & DEVICE_PCI)))
                 {
 			mbstowcs(szText, s, strlen(s) + 1);
                         SendMessage(h, CB_ADDSTRING, 0, (LPARAM) szText);
@@ -741,13 +741,13 @@ static void recalc_vid_list(HWND hdlg)
         }
         if (!found_card)
                 SendMessage(h, CB_SETCURSEL, 0, 0);
-        EnableWindow(h, models[temp_model].fixed_gfxcard ? FALSE : TRUE);
+        EnableWindow(h, machines[temp_machine].fixed_gfxcard ? FALSE : TRUE);
 
         h = GetDlgItem(hdlg, IDC_CHECK_VOODOO);
-        EnableWindow(h, (models[temp_model].flags & MODEL_PCI) ? TRUE : FALSE);
+        EnableWindow(h, (machines[temp_machine].flags & MACHINE_PCI) ? TRUE : FALSE);
 
         h = GetDlgItem(hdlg, IDC_BUTTON_VOODOO);
-        EnableWindow(h, ((models[temp_model].flags & MODEL_PCI) && temp_voodoo) ? TRUE : FALSE);
+        EnableWindow(h, ((machines[temp_machine].flags & MACHINE_PCI) && temp_voodoo) ? TRUE : FALSE);
 }
 
 
@@ -877,18 +877,18 @@ static BOOL CALLBACK win_settings_video_proc(HWND hdlg, UINT message, WPARAM wPa
 }
 
 
-static int mouse_valid(int type, int model)
+static int mouse_valid(int type, int machine)
 {
 	type &= MOUSE_TYPE_MASK;
 
 	if ((type == MOUSE_TYPE_PS2) &&
-	    !(models[model].flags & MODEL_PS2)) return(0);
+	    !(machines[machine].flags & MACHINE_PS2)) return(0);
 
 	if ((type == MOUSE_TYPE_AMSTRAD) &&
-	    !(models[model].flags & MODEL_AMSTRAD)) return(0);
+	    !(machines[machine].flags & MACHINE_AMSTRAD)) return(0);
 
 	if ((type == MOUSE_TYPE_OLIM24) &&
-	    !(models[model].flags & MODEL_OLIM24)) return(0);
+	    !(machines[machine].flags & MACHINE_OLIM24)) return(0);
 
 	return(1);
 }
@@ -913,7 +913,7 @@ static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wPa
 
 				settings_mouse_to_list[c] = d;
 
-				if (mouse_valid(type, temp_model))
+				if (mouse_valid(type, temp_machine))
 				{
 					str_id = IDS_3072 + c;
 
@@ -1007,7 +1007,7 @@ static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wPa
 }
 
 
-static void recalc_hdd_list(HWND hdlg, int model, int use_selected_hdd)
+static void recalc_hdd_list(HWND hdlg, int machine, int use_selected_hdd)
 {
 	HWND h;
 
@@ -1022,7 +1022,7 @@ static void recalc_hdd_list(HWND hdlg, int model, int use_selected_hdd)
 
 	h = GetDlgItem(hdlg, IDC_COMBO_HDC);
 
-	if (models[temp_model].flags & MODEL_HAS_IDE)
+	if (machines[temp_machine].flags & MACHINE_HAS_IDE)
 	{
 		hdc_ignore = 1;
 
@@ -1064,17 +1064,17 @@ static void recalc_hdd_list(HWND hdlg, int model, int use_selected_hdd)
 			{
 				break;
 			}
-			if ((hdd_controller_get_flags(c) & DEVICE_AT) && !(models[model].flags & MODEL_AT))
+			if ((hdd_controller_get_flags(c) & DEVICE_AT) && !(machines[machine].flags & MACHINE_AT))
 			{
 				c++;
 				continue;
 			}
-			if ((hdd_controller_get_flags(c) & DEVICE_PS2) && !(models[model].flags & MODEL_PS2_HDD))
+			if ((hdd_controller_get_flags(c) & DEVICE_PS2) && !(machines[machine].flags & MACHINE_PS2_HDD))
 			{
 				c++;
 				continue;
 			}
-			if ((hdd_controller_get_flags(c) & DEVICE_MCA) && !(models[model].flags & MODEL_MCA))
+			if ((hdd_controller_get_flags(c) & DEVICE_MCA) && !(machines[machine].flags & MACHINE_MCA))
 			{
 				c++;
 				continue;
@@ -1206,7 +1206,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 				{
 					sound_dev = sound_card_getdevice(c);
 
-					if (!sound_dev || (sound_dev->flags & DEVICE_MCA) == (models[temp_model].flags & MODEL_MCA))
+					if (!sound_dev || (sound_dev->flags & DEVICE_MCA) == (machines[temp_machine].flags & MACHINE_MCA))
 					{
 						if (c == 0)
 						{
@@ -1253,7 +1253,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 				{
 					midi_dev = midi_device_getdevice(c);
 
-					if (!midi_dev || (midi_dev->flags & DEVICE_MCA) == (models[temp_model].flags & MODEL_MCA))
+					if (!midi_dev || (midi_dev->flags & DEVICE_MCA) == (machines[temp_machine].flags & MACHINE_MCA))
 					{
 						if (c == 0)
 						{
@@ -1447,7 +1447,7 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 				{
 					scsi_dev = scsi_card_getdevice(c);
 					
-					if (!scsi_dev || (scsi_dev->flags & DEVICE_MCA) == (models[temp_model].flags & MODEL_MCA))
+					if (!scsi_dev || (scsi_dev->flags & DEVICE_MCA) == (machines[temp_machine].flags & MACHINE_MCA))
 					{
 						if (c == 0)
 						{
@@ -1477,7 +1477,7 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 				EnableWindow(h, FALSE);
 			}
 
-			recalc_hdd_list(hdlg, temp_model, 0);
+			recalc_hdd_list(hdlg, temp_machine, 0);
 
 			h=GetDlgItem(hdlg, IDC_COMBO_IDE_TER);
 			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_5376));

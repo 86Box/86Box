@@ -2292,3 +2292,18 @@ void ide_set_bus_master(int (*read)(int channel, uint8_t *data, int transfer_len
 	ide_bus_master_write = write;
 	ide_bus_master_set_irq = set_irq;
 }
+
+void secondary_ide_check(void)
+{
+	int i = 0;
+	int secondary_cdroms = 0;
+
+	for (i=0; i<CDROM_NUM; i++)
+	{
+		if ((cdrom_drives[i].ide_channel >= 2) && (cdrom_drives[i].ide_channel <= 3) && ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) || (cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA)))
+		{
+			secondary_cdroms++;
+		}
+	}
+	if (!secondary_cdroms)  ide_sec_disable();
+}

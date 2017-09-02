@@ -1,7 +1,7 @@
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../device.h"
-#include "../model.h"
+#include "../machine/machine.h"
 
 #include "hdd.h"
 
@@ -69,7 +69,7 @@ void hdd_controller_init(char *internal_name)
 {
         int c = 0;
 
-	if (models[model].flags & MODEL_HAS_IDE)
+	if (machines[machine].flags & MACHINE_HAS_IDE)
 	{
 		return;
 	}

@@ -107,8 +107,8 @@ extern void	device_set_config_hex20(char *s, int val);
 extern void	device_set_config_mac(char *s, int val);
 extern char	*device_get_config_string(char *name);
 
-extern int	model_get_config_int(char *s);
-extern char	*model_get_config_string(char *s);
+extern int	machine_get_config_int(char *s);
+extern char	*machine_get_config_string(char *s);
 
 
 #endif	/*EMU_DEVICE_H*/

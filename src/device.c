@@ -9,7 +9,7 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.c	1.0.2	2017/08/24
+ * Version:	@(#)device.c	1.0.3	2017/09/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,7 +20,7 @@
 #include "cpu/cpu.h"
 #include "config.h"
 #include "device.h"
-#include "model.h"
+#include "machine/machine.h"
 #include "sound/sound.h"
 
 
@@ -320,9 +320,9 @@ char *device_get_config_string(char *s)
 }
 
 
-int model_get_config_int(char *s)
+int machine_get_config_int(char *s)
 {
-        device_t *device = model_getdevice(model);
+        device_t *device = machine_getdevice(machine);
         device_config_t *config;
 
         if (!device)
@@ -341,9 +341,9 @@ int model_get_config_int(char *s)
 }
 
 
-char *model_get_config_string(char *s)
+char *machine_get_config_string(char *s)
 {
-        device_t *device = model_getdevice(model);
+        device_t *device = machine_getdevice(machine);
         device_config_t *config;
         
         if (!device)

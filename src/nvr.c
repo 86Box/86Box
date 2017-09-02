@@ -25,9 +25,9 @@
 #include "cpu/cpu.h"
 #include "device.h"
 #include "io.h"
-#include "jim.h"
+#include "machine/machine.h"
+#include "machine/machine_europc.h"
 #include "mem.h"
-#include "model.h"
 #include "nmi.h"
 #include "nvr.h"
 #include "pic.h"
@@ -36,7 +36,7 @@
 #include "rtc.h"
 
 
-int oldmodel;
+int oldmachine;
 int nvrmask=63;
 char nvrram[128];
 int nvraddr;
@@ -220,25 +220,25 @@ void loadnvr(void)
         FILE *f = NULL;
         int c;
         nvrmask=63;
-        oldmodel = model;
+        oldmachine = machine;
 
-	wchar_t *model_name;
+	wchar_t *machine_name;
 	wchar_t *nvr_name;
 
-	model_name = (wchar_t *) malloc((strlen(model_get_internal_name_ex(model)) << 1) + 2);
-	mbstowcs(model_name, model_get_internal_name_ex(model), strlen(model_get_internal_name_ex(model)) + 1);
-	nvr_name = (wchar_t *) malloc((wcslen(model_name) << 1) + 2 + 8);
-	_swprintf(nvr_name, L"%s.nvr", model_name);
+	machine_name = (wchar_t *) malloc((strlen(machine_get_internal_name_ex(machine)) << 1) + 2);
+	mbstowcs(machine_name, machine_get_internal_name_ex(machine), strlen(machine_get_internal_name_ex(machine)) + 1);
+	nvr_name = (wchar_t *) malloc((wcslen(machine_name) << 1) + 2 + 8);
+	_swprintf(nvr_name, L"%s.nvr", machine_name);
 
 	pclog_w(L"Opening NVR file: %s...\n", nvr_name);
 
-	if (model_get_nvrmask(model) != 0)
+	if (machine_get_nvrmask(machine) != 0)
 	{
 		f = nvrfopen(nvr_name, L"rb");
-		nvrmask = model_get_nvrmask(model);
+		nvrmask = machine_get_nvrmask(machine);
 	}
 
-        if (!f || (model_get_nvrmask(model) == 0))
+        if (!f || (machine_get_nvrmask(machine) == 0))
         {
 		if (f)
 		{
@@ -255,7 +255,7 @@ void loadnvr(void)
                 }
 
 		free(nvr_name);
-		free(model_name);
+		free(machine_name);
                 return;
         }
         fread(nvrram,128,1,f);
@@ -270,14 +270,14 @@ void loadnvr(void)
         rtctime += (int)(RTCCONST * c * (1 << TIMER_SHIFT));
 
 	free(nvr_name);
-	free(model_name);
+	free(machine_name);
 }
 
 void savenvr(void)
 {
         FILE *f = NULL;
 
-	wchar_t *model_name;
+	wchar_t *machine_name;
 	wchar_t *nvr_name;
 
 	if (romset == ROM_EUROPC)
@@ -286,19 +286,19 @@ void savenvr(void)
 		return;
 	}
 
-	model_name = (wchar_t *) malloc((strlen(model_get_internal_name_ex(oldmodel)) << 1) + 2);
-	mbstowcs(model_name, model_get_internal_name_ex(oldmodel), strlen(model_get_internal_name_ex(oldmodel)) + 1);
-	nvr_name = (wchar_t *) malloc((wcslen(model_name) << 1) + 2 + 8);
-	_swprintf(nvr_name, L"%s.nvr", model_name);
+	machine_name = (wchar_t *) malloc((strlen(machine_get_internal_name_ex(oldmachine)) << 1) + 2);
+	mbstowcs(machine_name, machine_get_internal_name_ex(oldmachine), strlen(machine_get_internal_name_ex(oldmachine)) + 1);
+	nvr_name = (wchar_t *) malloc((wcslen(machine_name) << 1) + 2 + 8);
+	_swprintf(nvr_name, L"%s.nvr", machine_name);
 
 	pclog_w(L"Saving NVR file: %s...\n", nvr_name);
 
-	if (model_get_nvrmask(oldmodel) != 0)
+	if (machine_get_nvrmask(oldmachine) != 0)
 	{
 		f = nvrfopen(nvr_name, L"wb");
 	}
 
-	if (!f || (model_get_nvrmask(oldmodel) == 0))
+	if (!f || (machine_get_nvrmask(oldmachine) == 0))
 	{
 		if (f)
 		{
@@ -306,7 +306,7 @@ void savenvr(void)
 		}
 
 		free(nvr_name);
-		free(model_name);
+		free(machine_name);
 		return;
 	}
 
@@ -314,7 +314,7 @@ void savenvr(void)
         fclose(f);
 
 	free(nvr_name);
-	free(model_name);
+	free(machine_name);
 }
 
 void nvr_init(void)

@@ -693,8 +693,6 @@ void piix_init(int card)
         
         ide_set_bus_master(piix_bus_master_dma_read, piix_bus_master_dma_write, piix_bus_master_set_irq);
 
-	trc_init();
-
 	port_92_reset();
 
 	port_92_add();
@@ -713,8 +711,6 @@ void piix3_init(int card)
 	piix_type = 3;
         
         ide_set_bus_master(piix_bus_master_dma_read, piix_bus_master_dma_write, piix_bus_master_set_irq);
-
-	trc_init();
 
 	port_92_reset();
 

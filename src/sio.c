@@ -6,7 +6,7 @@
  *
  *		Emulation of Intel System I/O PCI chip.
  *
- * Version:	@(#)sio.c	1.0.3	2017/08/24
+ * Version:	@(#)sio.c	1.0.4	2017/09/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -15,12 +15,7 @@
  */
 #include <string.h>
 #include "ibm.h"
-#include "cdrom.h"
-#include "disc.h"
 #include "dma.h"
-#include "fdc.h"
-#include "keyboard_at.h"
-#include "hdd/hdd_ide_at.h"
 #include "io.h"
 #include "mem.h"
 #include "pci.h"
@@ -129,75 +124,6 @@ uint8_t sio_read(int func, int addr, void *priv)
 }
 
 
-static int trc_reg = 0;
-
-
-uint8_t trc_read(uint16_t port, void *priv)
-{
-	return trc_reg & 0xfb;
-}
-
-
-void trc_reset(uint8_t val)
-{
-	int i = 0;
-
-	if (val & 2)
-	{
-		if (pci_reset_handler.pci_master_reset)
-		{
-			pci_reset_handler.pci_master_reset();
-		}
-
-		if (pci_reset_handler.pci_set_reset)
-		{
-			pci_reset_handler.pci_set_reset();
-		}
-
-		fdc_hard_reset();
-
-		if (pci_reset_handler.super_io_reset)
-		{
-			pci_reset_handler.super_io_reset();
-		}
-
-		resetide();
-		for (i = 0; i < CDROM_NUM; i++)
-		{
-			if (!cdrom_drives[i].bus_type)
-			{
-				cdrom_reset(i);
-			}
-		}
-
-		port_92_reset();
-		keyboard_at_reset();
-
-		pci_reset();
-	}
-	resetx86();
-}
-
-
-void trc_write(uint16_t port, uint8_t val, void *priv)
-{
-	pclog("TRC Write: %02X\n", val);
-	if (!(trc_reg & 4) && (val & 4))
-	{
-		trc_reset(val);
-	}
-	trc_reg = val & 0xfd;
-}
-
-
-void trc_init(void)
-{
-	trc_reg = 0;
-
-	io_sethandler(0x0cf9, 0x0001, trc_read, NULL, NULL, trc_write, NULL, NULL, NULL);
-}
-
-
 void sio_reset(void)
 {
         memset(card_sio, 0, 256);
@@ -228,8 +154,6 @@ void sio_init(int card)
         pci_add_card(card, sio_read, sio_write, NULL);
         
 	sio_reset();
-
-	trc_init();
 
 	port_92_reset();
 

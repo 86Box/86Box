@@ -99,5 +99,7 @@ extern void	ide_pri_enable_ex(void);
 extern void	ide_set_base(int controller, uint16_t port);
 extern void	ide_set_side(int controller, uint16_t port);
 
+extern void	secondary_ide_check(void);
+
 
 #endif	/*EMU_IDE_H*/

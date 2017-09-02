@@ -21,7 +21,7 @@
 #include "cpu/cpu.h"
 #include "device.h"
 #include "mem.h"
-#include "model.h"
+#include "machine/machine.h"
 #include "rom.h"
 
 #define FLASH_IS_BXB	2
@@ -177,16 +177,16 @@ void *intel_flash_init(uint8_t type)
         FILE *f;
 	int i;
         flash_t *flash;
-	wchar_t *model_name;
+	wchar_t *machine_name;
 	wchar_t *flash_name;
 
 	flash = malloc(sizeof(flash_t));
         memset(flash, 0, sizeof(flash_t));
 
-	model_name = (wchar_t *) malloc((strlen(model_get_internal_name_ex(model)) << 1) + 2);
-	mbstowcs(model_name, model_get_internal_name_ex(model), strlen(model_get_internal_name_ex(model)) + 1);
-	flash_name = (wchar_t *) malloc((wcslen(model_name) << 1) + 2 + 8);
-	_swprintf(flash_name, L"%s.bin", model_name);
+	machine_name = (wchar_t *) malloc((strlen(machine_get_internal_name_ex(machine)) << 1) + 2);
+	mbstowcs(machine_name, machine_get_internal_name_ex(machine), strlen(machine_get_internal_name_ex(machine)) + 1);
+	flash_name = (wchar_t *) malloc((wcslen(machine_name) << 1) + 2 + 8);
+	_swprintf(flash_name, L"%s.bin", machine_name);
 
 	wcscpy(flash_path, flash_name);
 
@@ -262,7 +262,7 @@ void *intel_flash_init(uint8_t type)
         }
 
 	free(flash_name);
-	free(model_name);
+	free(machine_name);
 
         return flash;
 }

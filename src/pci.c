@@ -1,7 +1,13 @@
 #include <stdarg.h>
 
 #include "ibm.h"
+
+#include "cdrom.h"
+#include "disc.h"
+#include "fdc.h"
+#include "hdd/hdd_ide_at.h"
 #include "io.h"
+#include "keyboard_at.h"
 #include "mem.h"
 #include "pic.h"
 #include "pci.h"
@@ -31,6 +37,10 @@ static int pci_index, pci_func, pci_card, pci_bus, pci_enable, pci_key;
 int pci_burst_time, pci_nonburst_time;
 
 int pci_do_log = 0;
+
+static int trc_reg = 0;
+
+PCI_RESET pci_reset_handler;
 
 void pci_log(const char *format, ...)
 {
@@ -490,6 +500,68 @@ static void pci_slots_clear(void)
 	}
 }
 
+static uint8_t trc_read(uint16_t port, void *priv)
+{
+	return trc_reg & 0xfb;
+}
+
+static void trc_reset(uint8_t val)
+{
+	int i = 0;
+
+	if (val & 2)
+	{
+		if (pci_reset_handler.pci_master_reset)
+		{
+			pci_reset_handler.pci_master_reset();
+		}
+
+		if (pci_reset_handler.pci_set_reset)
+		{
+			pci_reset_handler.pci_set_reset();
+		}
+
+		fdc_hard_reset();
+
+		if (pci_reset_handler.super_io_reset)
+		{
+			pci_reset_handler.super_io_reset();
+		}
+
+		resetide();
+		for (i = 0; i < CDROM_NUM; i++)
+		{
+			if (!cdrom_drives[i].bus_type)
+			{
+				cdrom_reset(i);
+			}
+		}
+
+		port_92_reset();
+		keyboard_at_reset();
+
+		pci_reset();
+	}
+	resetx86();
+}
+
+static void trc_write(uint16_t port, uint8_t val, void *priv)
+{
+	/* pclog("TRC Write: %02X\n", val); */
+	if (!(trc_reg & 4) && (val & 4))
+	{
+		trc_reset(val);
+	}
+	trc_reg = val & 0xfd;
+}
+
+void trc_init(void)
+{
+	trc_reg = 0;
+
+	io_sethandler(0x0cf9, 0x0001, trc_read, NULL, NULL, trc_write, NULL, NULL, NULL);
+}
+
 void pci_init(int type)
 {
         int c;
@@ -499,6 +571,8 @@ void pci_init(int type)
 	pci_slots_clear();
 
 	pci_reset();
+
+	trc_init();
 
 	io_sethandler(0x04d0, 0x0002, elcr_read, NULL, NULL, elcr_write, NULL, NULL,  NULL);
         
@@ -517,6 +591,10 @@ void pci_init(int type)
 	{
 		pci_irqs[c] = PCI_IRQ_DISABLED;
 	}
+
+	pci_reset_handler.pci_master_reset = NULL;
+	pci_reset_handler.pci_set_reset = NULL;
+	pci_reset_handler.super_io_reset = NULL;
 }
 
 void pci_register_slot(int card, int type, int inta, int intb, int intc, int intd)

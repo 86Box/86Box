@@ -30,7 +30,7 @@
 #include "pit.h"
 #include "timer.h"
 #include "device.h"
-#include "model.h"
+#include "machine/machine.h"
 
 #include "disc.h"
 #include "disc_86f.h"
@@ -277,7 +277,7 @@ void pc_reset(void)
         serial_reset();
 
         if (AT)
-                setpitclock(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed);
+                setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
         else
                 setpitclock(14318184.0);
 }
@@ -517,7 +517,7 @@ void resetpchard_init(void)
 #ifndef WALTJE
 	serial_init();
 #endif
-        model_init();
+        machine_init();
         video_init();
         speaker_init();        
 
@@ -593,7 +593,7 @@ int serial_fifo_read, serial_fifo_write;
 
 int emu_fps = 0;
 
-static wchar_t wmodel[2048];
+static wchar_t wmachine[2048];
 static wchar_t wcpu[2048];
 
 void runpc(void)
@@ -602,22 +602,22 @@ void runpc(void)
         int done=0;
 
         startblit();
-        clockrate = models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed;
+        clockrate = machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed;
         
         if (is386)   
         {
                 if (cpu_use_dynarec)
-                        exec386_dynarec(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
+                        exec386_dynarec(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
                 else
-                        exec386(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
+                        exec386(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
         }
         else if (AT)
 	{
-                exec386(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
+                exec386(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
 	}
         else
 	{
-                execx86(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
+                execx86(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
 	}
         
                 keyboard_process();
@@ -673,9 +673,9 @@ void runpc(void)
                 if (win_title_update)
                 {
                         win_title_update=0;
-			mbstowcs(wmodel, model_getname(), strlen(model_getname()) + 1);
-			mbstowcs(wcpu, models[model].cpu[cpu_manufacturer].cpus[cpu].name, strlen(models[model].cpu[cpu_manufacturer].cpus[cpu].name) + 1);
-                        _swprintf(s, L"%s v%s - %i%% - %s - %s - %s", EMU_NAME_W, EMU_VERSION_W, fps, wmodel, wcpu, (!mousecapture) ? plat_get_string_from_id(IDS_2077) : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? plat_get_string_from_id(IDS_2078) : plat_get_string_from_id(IDS_2079)));
+			mbstowcs(wmachine, machine_getname(), strlen(machine_getname()) + 1);
+			mbstowcs(wcpu, machines[machine].cpu[cpu_manufacturer].cpus[cpu].name, strlen(machines[machine].cpu[cpu_manufacturer].cpus[cpu].name) + 1);
+                        _swprintf(s, L"%s v%s - %i%% - %s - %s - %s", EMU_NAME_W, EMU_VERSION_W, fps, wmachine, wcpu, (!mousecapture) ? plat_get_string_from_id(IDS_2077) : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? plat_get_string_from_id(IDS_2078) : plat_get_string_from_id(IDS_2079)));
                         set_window_title(s);
                 }
                 done++;
@@ -688,7 +688,7 @@ void fullspeed(void)
         {
                 printf("Set fullspeed - %i %i %i\n",is386,AT,cpuspeed2);
                 if (AT)
-                        setpitclock(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed);
+                        setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
                 else
                         setpitclock(14318184.0);
         }
@@ -699,7 +699,7 @@ void fullspeed(void)
 void speedchanged(void)
 {
         if (AT)
-                setpitclock(models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed);
+                setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
         else
                 setpitclock(14318184.0);
         nvr_recalc();

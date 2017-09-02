@@ -39,7 +39,7 @@
 #include "gameport.h"
 #include "hdd/hdd.h"
 #include "hdd/hdd_ide_at.h"
-#include "model.h"
+#include "machine/machine.h"
 #include "mouse.h"
 #ifdef USE_NETWORK
 #include "network/network.h"
@@ -872,32 +872,44 @@ static void loadconfig_machine(void)
 	wchar_t last;
         char *p;
 
+        p = config_get_string(cat, "machine", NULL);
+        if (p != NULL)
+	{
+		machine = machine_get_machine_from_internal_name(p);
+	}
+        else
+                machine = 0;
+        if (machine >= machine_count())
+                machine = machine_count() - 1;
+
+	/* This is for backwards compatibility. */
         p = config_get_string(cat, "model", NULL);
         if (p != NULL)
 	{
 		/* Detect the old model typo and fix it, so that old configurations don't braek. */
 		if (strcmp(p, "p55r2p4") == 0)
 		{
-			model = model_get_model_from_internal_name("p55t2p4");
+			machine = machine_get_machine_from_internal_name("p55t2p4");
 		}
 		else
 		{
-			model = model_get_model_from_internal_name(p);
+			machine = machine_get_machine_from_internal_name(p);
 		}
+	        config_delete_var(cat, "machine");
 	}
         else
-                model = 0;
-        if (model >= model_count())
-                model = model_count() - 1;
+                machine = 0;
+        if (machine >= machine_count())
+                machine = machine_count() - 1;
 
-        romset = model_getromset();
+        romset = machine_getromset();
         cpu_manufacturer = config_get_int(cat, "cpu_manufacturer", 0);
         cpu = config_get_int(cat, "cpu", 0);
 	cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
 
         mem_size = config_get_int(cat, "mem_size", 4096);
-        if (mem_size < (((models[model].flags & MODEL_AT) && (models[model].ram_granularity < 128)) ? models[model].min_ram*1024 : models[model].min_ram))
-                mem_size = (((models[model].flags & MODEL_AT) && (models[model].ram_granularity < 128)) ? models[model].min_ram*1024 : models[model].min_ram);
+        if (mem_size < (((machines[machine].flags & MACHINE_AT) && (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram))
+                mem_size = (((machines[machine].flags & MACHINE_AT) && (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram);
 	if (mem_size > 262144)
 	{
 		mem_size = 262144;
@@ -1903,7 +1915,7 @@ static void saveconfig_machine(void)
 {
 	char *cat = "Machine";
 
-        config_set_string(cat, "model", model_get_internal_name());
+        config_set_string(cat, "machine", machine_get_internal_name());
 
 	if (cpu_manufacturer == 0)
 	{

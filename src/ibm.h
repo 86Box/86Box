@@ -732,8 +732,6 @@ typedef struct PCI_RESET
 
 extern PCI_RESET pci_reset_handler;
 
-extern uint8_t	trc_read(uint16_t port, void *priv);
-extern void	trc_write(uint16_t port, uint8_t val, void *priv);
 extern void	trc_init(void);
 
 extern int enable_xtide;
@@ -785,7 +783,6 @@ extern void	runpc(void);
 extern void	saveconfig(void);
 extern void	softresetx86(void);
 extern void	speedchanged(void);
-extern void	trc_reset(uint8_t val);
 extern void	x86_int_sw(int num);
 extern int	x86_int_sw_rm(int num);
 extern void	x86gpf(char *s, uint16_t error);
@@ -813,3 +810,7 @@ extern void	status_settext(char *str);
 #define SB_TEXT		0x60
 
 #define UNUSED(x) (void)x
+
+/* Configuration values. */
+#define SERIAL_MAX	2
+#define PARALLEL_MAX	1

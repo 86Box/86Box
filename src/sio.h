@@ -14,5 +14,4 @@
  *		Copyright 2016,2017 Miran Grca.
  */
 
-void trc_init(void);
 void sio_init(int card);

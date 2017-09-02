@@ -587,7 +587,7 @@ void *tandy_init()
         tandy_t *tandy = malloc(sizeof(tandy_t));
         memset(tandy, 0, sizeof(tandy_t));
 
-        display_type = model_get_config_int("display_type");
+        display_type = machine_get_config_int("display_type");
         tandy->composite = (display_type != TANDY_RGB);
 
 	cga_comp_init(1);

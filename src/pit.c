@@ -12,7 +12,7 @@
 #include "pit.h"
 #include "device.h"
 #include "timer.h"
-#include "model.h"
+#include "machine/machine.h"
 #include "sound/snd_speaker.h"
 #include "video/video.h"
 
@@ -43,7 +43,7 @@ void setpitclock(float clock)
         bus_timing = clock/(double)cpu_busspeed;
         video_updatetiming();
         
-        xt_cpu_multi = (int)((14318184.0*(double)(1 << TIMER_SHIFT)) / (double)models[model].cpu[cpu_manufacturer].cpus[cpu].rspeed);
+        xt_cpu_multi = (int)((14318184.0*(double)(1 << TIMER_SHIFT)) / (double)machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
         RTCCONST=clock/32768.0;
         TIMER_USEC = (int)((clock / 1000000.0f) * (float)(1 << TIMER_SHIFT));
         device_speed_changed();

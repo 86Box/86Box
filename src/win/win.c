@@ -34,7 +34,7 @@
 #include "../rom.h"
 #include "../nvr.h"
 #include "../config.h"
-#include "../model.h"
+#include "../machine/machine.h"
 #include "../hdd/hdd_ide_at.h"
 #include "../cdrom.h"
 #include "../cdrom_null.h"
@@ -1130,11 +1130,11 @@ void update_status_bar_panes(HWND hwnds)
 	}
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) && !(models[model].flags & MODEL_HAS_IDE))
+		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) && !(machines[machine].flags & MACHINE_HAS_IDE))
 		{
 			continue;
 		}
-		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA) && !(models[model].flags & MODEL_HAS_IDE))
+		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA) && !(machines[machine].flags & MACHINE_HAS_IDE))
 		{
 			continue;
 		}
@@ -1154,7 +1154,7 @@ void update_status_bar_panes(HWND hwnds)
 			sb_parts++;
 		}
 	}
-	if (c_mfm && !(models[model].flags & MODEL_HAS_IDE) && !!memcmp(hdd_controller_name, "none", 4) && !!memcmp(hdd_controller_name, "xtide", 5) && !!memcmp(hdd_controller_name, "esdi", 4))
+	if (c_mfm && !(machines[machine].flags & MACHINE_HAS_IDE) && !!memcmp(hdd_controller_name, "none", 4) && !!memcmp(hdd_controller_name, "xtide", 5) && !!memcmp(hdd_controller_name, "esdi", 4))
 	{
 		sb_parts++;
 	}
@@ -1166,11 +1166,11 @@ void update_status_bar_panes(HWND hwnds)
 	{
 		sb_parts++;
 	}
-	if (c_ide_pio && (models[model].flags & MODEL_HAS_IDE))
+	if (c_ide_pio && (machines[machine].flags & MACHINE_HAS_IDE))
 	{
 		sb_parts++;
 	}
-	if (c_ide_dma && (models[model].flags & MODEL_HAS_IDE))
+	if (c_ide_dma && (machines[machine].flags & MACHINE_HAS_IDE))
 	{
 		sb_parts++;
 	}
@@ -1215,11 +1215,11 @@ void update_status_bar_panes(HWND hwnds)
 	}
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) && !(models[model].flags & MODEL_HAS_IDE))
+		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) && !(machines[machine].flags & MACHINE_HAS_IDE))
 		{
 			continue;
 		}
-		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA) && !(models[model].flags & MODEL_HAS_IDE))
+		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA) && !(machines[machine].flags & MACHINE_HAS_IDE))
 		{
 			continue;
 		}
@@ -1245,7 +1245,7 @@ void update_status_bar_panes(HWND hwnds)
 			sb_parts++;
 		}
 	}
-	if (c_mfm && !(models[model].flags & MODEL_HAS_IDE) && !!memcmp(hdd_controller_name, "none", 4) && !!memcmp(hdd_controller_name, "xtide", 5) && !!memcmp(hdd_controller_name, "esdi", 4))
+	if (c_mfm && !(machines[machine].flags & MACHINE_HAS_IDE) && !!memcmp(hdd_controller_name, "none", 4) && !!memcmp(hdd_controller_name, "xtide", 5) && !!memcmp(hdd_controller_name, "esdi", 4))
 	{
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
@@ -1266,14 +1266,14 @@ void update_status_bar_panes(HWND hwnds)
 		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_XTIDE;
 		sb_parts++;
 	}
-	if (c_ide_pio && (models[model].flags & MODEL_HAS_IDE))
+	if (c_ide_pio && (machines[machine].flags & MACHINE_HAS_IDE))
 	{
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_IDE_PIO_ONLY;
 		sb_parts++;
 	}
-	if (c_ide_dma && (models[model].flags & MODEL_HAS_IDE))
+	if (c_ide_dma && (machines[machine].flags & MACHINE_HAS_IDE))
 	{
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
@@ -1743,7 +1743,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
                         if (romspresent[c])
                         {
                                 romset = c;
-                                model = model_getmodel(romset);
+                                machine = machine_getmachine(romset);
                                 saveconfig();
                                 resetpchard();
                                 break;
