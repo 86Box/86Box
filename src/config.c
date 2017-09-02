@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.2	2017/08/24
+ * Version:	@(#)config.c	1.0.3	2017/09/02
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -895,7 +895,7 @@ static void loadconfig_machine(void)
 		{
 			machine = machine_get_machine_from_internal_name(p);
 		}
-	        config_delete_var(cat, "machine");
+	        config_delete_var(cat, "model");
 	}
         else
                 machine = 0;
