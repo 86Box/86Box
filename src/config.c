@@ -897,8 +897,6 @@ static void loadconfig_machine(void)
 		}
 	        config_delete_var(cat, "model");
 	}
-        else
-                machine = 0;
         if (machine >= machine_count())
                 machine = machine_count() - 1;
 
