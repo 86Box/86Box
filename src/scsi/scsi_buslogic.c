@@ -806,6 +806,7 @@ BuslogicReset(Buslogic_t *bl)
 	bl->evt = NULL;
 	if (poll_tid)
 	{
+		thread_kill(poll_tid);
 		poll_tid = NULL;
 	}
     }
@@ -934,6 +935,10 @@ BuslogicMailboxIn(Buslogic_t *bl)
 		bl->MailboxInPosCur = 0;
 
     BuslogicRaiseInterrupt(bl, 0, INTR_MBIF | INTR_ANY);
+
+    while (bl->Interrupt) {
+	thread_wait_event(bl->evt, 10);
+    }
 }
 
 
@@ -2485,12 +2490,6 @@ BuslogicProcessMailbox(Buslogic_t *bl)
     pclog("BuslogicProcessMailbox(): Operating in %s mode\n", bl->LocalRAM.structured.autoSCSIData.fAggressiveRoundRobinMode ? "aggressive" : "strict");
 #endif
 
-    if (bl->Interrupt || bl->PendingInterrupt)
-    {
-	/* pclog("Interrupt set, waiting...\n"); */
-	return 1;
-    }
-
     /* 0 = strict, 1 = aggressive */
     if (bl->LocalRAM.structured.autoSCSIData.fAggressiveRoundRobinMode) {
 	uint8_t MailboxCur = bl->MailboxOutPosCur;
@@ -2517,8 +2516,13 @@ BuslogicProcessMailbox(Buslogic_t *bl)
 	return 0;
     }
 
-    if (bl->MailboxOutInterrupts)
+    if (bl->MailboxOutInterrupts) {
 	BuslogicRaiseInterrupt(bl, 0, INTR_MBOA | INTR_ANY);
+
+	while (bl->Interrupt) {
+		thread_wait_event(bl->evt, 10);
+	}
+    }
 
 #if 0
     pclog("BuslogicProcessMailbox(): Outgoing mailbox action code: %i\n", mb32.u.out.ActionCode);
@@ -2564,12 +2568,22 @@ BuslogicEventRestart:
     bl->evt = thread_create_event();
 
 BuslogicScanRestart:
-    while (BuslogicProcessMailbox(bl) != 0)
+    while (BuslogicProcessMailbox(bl) && bl->MailboxCount)
     {
+	thread_wait_event(bl->evt, 10);
+    }
+
+    if (!bl->MailboxCount)
+    {
+	thread_destroy_event(bl->evt);
+	bl->evt = NULL;
+	poll_tid = NULL;
+	return;
     }
 
     if (bl->scan_restart)
     {
+	bl->scan_restart = 0;
 	goto BuslogicScanRestart;
     }
 
@@ -2578,6 +2592,7 @@ BuslogicScanRestart:
 
     if (bl->scan_restart)
     {
+	bl->scan_restart = 0;
 	goto BuslogicEventRestart;
     }
 
@@ -3009,6 +3024,8 @@ BuslogicClose(void *p)
     Buslogic_t *bl = (Buslogic_t *)p;
     if (bl)
     {
+	bl->MailboxCount = 0;
+
 	if (bl->evt)
 	{
 		thread_destroy_event(bl->evt);
@@ -3016,6 +3033,7 @@ BuslogicClose(void *p)
 
 		if (poll_tid)
 		{
+			thread_kill(poll_tid);
 			poll_tid = NULL;
 		}
 	}

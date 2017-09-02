@@ -640,6 +640,7 @@ aha_reset(aha_t *dev)
 	thread_destroy_event(dev->evt);
 	dev->evt = NULL;
 	if (poll_tid) {
+		thread_kill(poll_tid);
 		poll_tid = NULL;
 	}
    }
@@ -1234,14 +1235,6 @@ aha_do_mail(aha_t *dev)
 
     CodeOffset = dev->Mbx24bit ? 0 : 7;
 
-#if 0
-    if (dev->Interrupt || dev->PendingInterrupt)
-    {
-	aha_log("%s: Interrupt set, waiting...\n", dev->name);
-	return 1;
-    }
-#endif
-
     uint8_t MailboxCur = dev->MailboxOutPosCur;
 
     /* Search for a filled mailbox - stop if we have scanned all mailboxes. */
@@ -1294,13 +1287,22 @@ aha_event_restart:
     dev->evt = thread_create_event();
 
 aha_scan_restart:
-    while (aha_do_mail(dev) != 0)
+    while (aha_do_mail(dev) && dev->MailboxCount)
     {
 	thread_wait_event(dev->evt, 10);
     }
 
+    if (!dev->MailboxCount)
+    {
+	thread_destroy_event(dev->evt);
+	dev->evt = NULL;
+	poll_tid = NULL;
+	return;
+    }
+
     if (dev->scan_restart)
     {
+	dev->scan_restart = 0;
 	goto aha_scan_restart;
     }
 
@@ -1309,6 +1311,7 @@ aha_scan_restart:
 
     if (dev->scan_restart)
     {
+	dev->scan_restart = 0;
 	goto aha_event_restart;
     }
 
@@ -2166,10 +2169,13 @@ aha_close(void *priv)
 
     if (dev)
     {
+	dev->MailboxCount = 0;
+
 	if (dev->evt) {
 		thread_destroy_event(dev->evt);
 		dev->evt = NULL;
 		if (poll_tid) {
+			thread_kill(poll_tid);
 			poll_tid = NULL;
 		}
 	}
