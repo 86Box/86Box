@@ -2389,6 +2389,13 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 		case GPCMD_REQUEST_SENSE:
 			/* If there's a unit attention condition and there's a buffered not ready, a standalone REQUEST SENSE
 			   should forget about the not ready, and report unit attention straight away. */
+			if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
+			{
+				if (SCSIDevices[cdrom_drives[id].scsi_device_id][cdrom_drives[id].scsi_device_lun].InitLength < cdb[4])
+				{
+					cdb[4] = SCSIDevices[cdrom_drives[id].scsi_device_id][cdrom_drives[id].scsi_device_lun].InitLength;
+				}
+			}
 			cdrom_request_sense(id, cdbufferb, cdb[4]);
 			cdrom_data_command_finish(id, 18, 18, cdb[4], 0);
 			break;

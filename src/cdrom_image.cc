@@ -780,6 +780,7 @@ static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack,
         int number;
         unsigned char attr;
         TMSF tmsf;
+
         cdimg[id]->GetAudioTracks(first_track, last_track, tmsf);
 
         b[2] = first_track;
@@ -795,8 +796,12 @@ static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack,
                         break;
                 }
         }
-        cdimg[id]->GetAudioTrackInfo(c+1, number, tmsf, attr);
-        b[2] = number;
+
+	if (starttrack != 0xAA)
+	{
+        	cdimg[id]->GetAudioTrackInfo(c+1, number, tmsf, attr);
+        	b[2] = number;
+	}
 
         for (c = d; c <= last_track; c++)
         {

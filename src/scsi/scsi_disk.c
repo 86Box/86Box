@@ -813,6 +813,10 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 		case GPCMD_REQUEST_SENSE:
 			/* If there's a unit attention condition and there's a buffered not ready, a standalone REQUEST SENSE
 			   should forget about the not ready, and report unit attention straight away. */
+			if (SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength < cdb[4])
+			{
+				cdb[4] = SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength;
+			}
 			scsi_hd_request_sense(id, hdbufferb, cdb[4]);
 			scsi_hd_data_command_finish(id, 18, 18, cdb[4], 0);
 			break;

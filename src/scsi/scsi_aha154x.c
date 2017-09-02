@@ -781,6 +781,10 @@ aha_mbi(aha_t *dev)
 		dev->MailboxInPosCur = 0;
 
     RaiseIntr(dev, 0, INTR_MBIF | INTR_ANY);
+
+    while (dev->Interrupt) {
+	thread_wait_event(dev->evt, 10);
+    }
 }
 
 
@@ -1230,13 +1234,24 @@ aha_do_mail(aha_t *dev)
 
     CodeOffset = dev->Mbx24bit ? 0 : 7;
 
+#if 0
     if (dev->Interrupt || dev->PendingInterrupt)
     {
 	aha_log("%s: Interrupt set, waiting...\n", dev->name);
 	return 1;
     }
+#endif
 
-    Outgoing = aha_mbo(dev, &mb32);
+    uint8_t MailboxCur = dev->MailboxOutPosCur;
+
+    /* Search for a filled mailbox - stop if we have scanned all mailboxes. */
+    do {
+	/* Fetch mailbox from guest memory. */
+	Outgoing = aha_mbo(dev, &mb32);
+
+	/* Check the next mailbox. */
+	aha_mbo_adv(dev);
+    } while ((mb32.u.out.ActionCode == MBO_FREE) && (MailboxCur != dev->MailboxOutPosCur));
 
     if (mb32.u.out.ActionCode != MBO_FREE) {
 	/* We got the mailbox, mark it as free in the guest. */
@@ -1247,8 +1262,13 @@ aha_do_mail(aha_t *dev)
 	return 0;
     }
 
-    if (dev->MailboxOutInterrupts)
+    if (dev->MailboxOutInterrupts) {
 	RaiseIntr(dev, 0, INTR_MBOA | INTR_ANY);
+
+	while (dev->Interrupt) {
+		thread_wait_event(dev->evt, 10);
+	}
+    }
 
     if (mb32.u.out.ActionCode == MBO_START) {
 	aha_log("Start Mailbox Command\n");
@@ -1259,9 +1279,6 @@ aha_do_mail(aha_t *dev)
     } else {
 	aha_log("Invalid action code: %02X\n", mb32.u.out.ActionCode);
     }
-
-    /* Advance to the next mailbox. */
-    aha_mbo_adv(dev);
 
     return 1;
 }
@@ -1279,6 +1296,7 @@ aha_event_restart:
 aha_scan_restart:
     while (aha_do_mail(dev) != 0)
     {
+	thread_wait_event(dev->evt, 10);
     }
 
     if (dev->scan_restart)
@@ -1331,9 +1349,11 @@ aha_read(uint16_t port, void *priv)
 		break;
     }
 
+#if 0
 #ifndef WALTJE
     aha_log("%s: Read Port 0x%02X, Returned Value %02X\n",
 					dev->name, port, ret);
+#endif
 #endif
 
     return(ret);
