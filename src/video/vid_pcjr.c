@@ -579,7 +579,7 @@ static device_config_t pcjr_config[] =
 
 /*This isn't really a device as such - more of a convenient way to hook in the
   config information*/
-device_t pcjr_device =
+static device_t pcjr_device =
 {
         "IBM PCjr",
         0,
@@ -591,3 +591,8 @@ device_t pcjr_device =
         NULL,
         pcjr_config
 };
+
+device_t *pcjr_get_device(void)
+{
+	return &pcjr_device;
+}

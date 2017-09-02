@@ -655,7 +655,7 @@ static device_config_t tandy_config[] =
 
 /*These aren't really devices as such - more of a convenient way to hook in the
   config information*/
-device_t tandy1000_device =
+static device_t tandy1000_device =
 {
         "Tandy 1000",
         0,
@@ -667,7 +667,7 @@ device_t tandy1000_device =
         NULL,
         tandy_config
 };
-device_t tandy1000hx_device =
+static device_t tandy1000hx_device =
 {
         "Tandy 1000HX",
         0,
@@ -679,3 +679,13 @@ device_t tandy1000hx_device =
         NULL,
         tandy_config
 };
+
+device_t *tandy1000_get_device(void)
+{
+	return &tandy1000_device;
+}
+
+device_t *tandy1000hx_get_device(void)
+{
+	return &tandy1000hx_device;
+}

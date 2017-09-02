@@ -46,7 +46,7 @@ typedef struct {
     int		ram_granularity;
     int		nvrmask;
     void	(*init)(void);
-    device_t	*device;
+    device_t	*(*get_device)(void);
 } MODEL;
 
 
