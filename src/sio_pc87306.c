@@ -6,10 +6,9 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Emulation of the National Semiconductors PC87306 Super I/O
- *		chip.
+ *		Emulation of the NatSemi PC87306 Super I/O chip.
  *
- * Version:	@(#)sio_pc87306.c	1.0.2	2017/09/03
+ * Version:	@(#)sio_pc87306.c	1.0.3	2017/09/03
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -439,7 +438,8 @@ void pc87306_reset(void)
 {
 	memset(pc87306_regs, 0, 29);
 
-	pc87306_regs[0] = 0x4B;
+	/* pc87306_regs[0] = 0x4B; */
+	pc87306_regs[0] = 0x0B;
 	pc87306_regs[1] = 0x01;
 	pc87306_regs[3] = 0x01;
 	pc87306_regs[5] = 0x0D;

@@ -8,7 +8,7 @@
  *
  *		Implementation of the SMC FDC37C665 Super I/O Chip.
  *
- * Version:	@(#)sio_fdc37c665.c	1.0.3	2017/09/03
+ * Version:	@(#)sio_fdc37c665.c	1.0.4	2017/09/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -280,7 +280,7 @@ void fdc37c665_reset(void)
         
 	memset(fdc37c665_lock, 0, 2);
 	memset(fdc37c665_regs, 0, 16);
-        fdc37c665_regs[0x0] = 0x3b;
+        fdc37c665_regs[0x0] = 0x3a;
         fdc37c665_regs[0x1] = 0x9f;
         fdc37c665_regs[0x2] = 0xdc;
         fdc37c665_regs[0x3] = 0x78;

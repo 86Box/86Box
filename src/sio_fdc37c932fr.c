@@ -8,7 +8,7 @@
  *
  *		Implementation of the SMC FDC37C932FR Super I/O Chip.
  *
- * Version:	@(#)sio_fdc37c932fr.c	1.0.2	2017/09/03
+ * Version:	@(#)sio_fdc37c932fr.c	1.0.3	2017/09/03
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -420,7 +420,7 @@ void fdc37c932fr_reset(void)
 	fdc37c932fr_ld_regs[0][0xF2] = 0xFF;
 
 	/* Logical device 1: IDE1 */
-	fdc37c932fr_ld_regs[1][0x30] = 1;
+	fdc37c932fr_ld_regs[1][0x30] = 0;
 	fdc37c932fr_ld_regs[1][0x60] = 1;
 	fdc37c932fr_ld_regs[1][0x61] = 0xF0;
 	fdc37c932fr_ld_regs[1][0x62] = 3;
@@ -429,7 +429,7 @@ void fdc37c932fr_reset(void)
 	fdc37c932fr_ld_regs[1][0xF0] = 0xC;
 
 	/* Logical device 2: IDE2 */
-	fdc37c932fr_ld_regs[2][0x30] = 1;
+	fdc37c932fr_ld_regs[2][0x30] = 0;
 	fdc37c932fr_ld_regs[2][0x60] = 1;
 	fdc37c932fr_ld_regs[2][0x61] = 0x70;
 	fdc37c932fr_ld_regs[2][0x62] = 3;
