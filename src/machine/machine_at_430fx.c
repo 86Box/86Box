@@ -211,7 +211,7 @@ void machine_at_p54tp4xe_init(void)
 	pci_register_slot(0x09, PCI_CARD_NORMAL, 4, 1, 2, 3);
 	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
         i430fx_init();
-        piix_init(7);
+        piix3_init(7);
         fdc37c665_init();
         device_add(&intel_flash_bxt_device);
 }

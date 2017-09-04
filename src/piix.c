@@ -26,6 +26,7 @@
 #include "ibm.h"
 #include "dma.h"
 #include "io.h"
+#include "keyboard_at.h"
 #include "mem.h"
 #include "pci.h"
 #include "hdd/hdd_ide_at.h"
@@ -50,6 +51,8 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
         
         if (func == 1) /*IDE*/
         {
+		/* pclog("PIIX IDE write: %02X %02X\n", addr, val); */
+
                 switch (addr)
                 {
                         case 0x04:
@@ -148,6 +151,27 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
                         else
                                 pci_set_irq_routing(PCI_INTD, val & 0xf);
                         break;
+                        case 0x70:
+			pclog("Set MIRQ routing: MIRQ0 -> %02X\n", val);
+                        if (val & 0x80)
+                                pci_set_mirq_routing(PCI_MIRQ0, PCI_IRQ_DISABLED);
+                        else
+                                pci_set_mirq_routing(PCI_MIRQ0, val & 0xf);
+                        break;
+                        case 0x71:
+			if (piix_type == 1)
+			{
+				pclog("Set MIRQ routing: MIRQ1 -> %02X\n", val);
+        	                if (val & 0x80)
+                	                pci_set_mirq_routing(PCI_MIRQ1, PCI_IRQ_DISABLED);
+	                        else
+        	                        pci_set_mirq_routing(PCI_MIRQ1, val & 0xf);
+			}
+			else
+			{
+				pclog("Set unused MIRQ routing: MIRQ1 -> %02X\n", val);
+			}
+                        break;
                 }
 		if (addr == 0x4C)
 		{
@@ -173,6 +197,14 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
 			{
 				dma_alias_set();
 			}
+		}
+		else if (addr == 0x4E)
+		{
+			if ((val ^ card_piix[addr]) & 0x10)
+			{
+				keyboard_at_mouse_set_enabled((val & 0x10) ? 1 : 0);
+			}
+	                card_piix[addr] = val;
 		}
 		else if (addr == 0x6A)
 		{
@@ -384,6 +416,7 @@ static void piix_bus_master_next_addr(int channel)
 
 void piix_bus_master_write(uint16_t port, uint8_t val, void *priv)
 {
+	/* pclog("PIIX Bus master write: %04X %02X\n", port, val); */
         int channel = (port & 8) ? 1 : 0;
         switch (port & 7)
         {
@@ -424,6 +457,7 @@ void piix_bus_master_write(uint16_t port, uint8_t val, void *priv)
                 
 uint8_t piix_bus_master_read(uint16_t port, void *priv)
 {
+	/* pclog("PIIX Bus master read: %04X\n", port); */
         int channel = (port & 8) ? 1 : 0;
         switch (port & 7)
         {
@@ -570,7 +604,9 @@ int piix_bus_master_dma_write(int channel, uint8_t *data, int transfer_length)
 
 void piix_bus_master_set_irq(int channel)
 {
-        piix_busmaster[channel].status |= 4;
+        // piix_busmaster[channel].status |= 4;
+        piix_busmaster[channel & 0x0F].status &= ~4;
+        piix_busmaster[channel & 0x0F].status |= (channel >> 4);
 }
 
 /* static int reset_reg = 0;
@@ -619,7 +655,7 @@ void piix_reset(void)
         card_piix[0x4e] = 0x03;
         card_piix[0x60] = card_piix[0x61] = card_piix[0x62] = card_piix[0x63] = 0x80;
         card_piix[0x69] = 0x02;
-        card_piix[0x70] = card_piix[0x71] = 0x80;
+        card_piix[0x70] = card_piix[0x71] = 0xc0;
         card_piix[0x76] = card_piix[0x77] = 0x0c;
         card_piix[0x78] = 0x02; card_piix[0x79] = 0x00;
         card_piix[0xa0] = 0x08;
@@ -639,8 +675,11 @@ void piix_reset(void)
         card_piix_ide[0x0d] = 0x00;
         card_piix_ide[0x0e] = 0x00;
         card_piix_ide[0x20] = 0x01; card_piix_ide[0x21] = card_piix_ide[0x22] = card_piix_ide[0x23] = 0x00; /*Bus master interface base address*/
-        card_piix_ide[0x40] = card_piix_ide[0x41] = 0x00;
-        card_piix_ide[0x42] = card_piix_ide[0x43] = 0x00;
+        card_piix_ide[0x40] = card_piix_ide[0x42] = 0x00;
+	card_piix_ide[0x41] = card_piix_ide[0x43] = 0x80;
+
+	pci_set_mirq_routing(PCI_MIRQ0, PCI_IRQ_DISABLED);
+	pci_set_mirq_routing(PCI_MIRQ1, PCI_IRQ_DISABLED);
 }
 
 void piix3_reset(void)
@@ -657,7 +696,7 @@ void piix3_reset(void)
         card_piix[0x4e] = card_piix[0x4f] = 0x03;
         card_piix[0x60] = card_piix[0x61] = card_piix[0x62] = card_piix[0x63] = 0x80;
         card_piix[0x69] = 0x02;
-        card_piix[0x70] = 0x80;
+        card_piix[0x70] = 0xc0;
         card_piix[0x76] = card_piix[0x77] = 0x0c;
         card_piix[0x78] = 0x02; card_piix[0x79] = 0x00;
         card_piix[0x80] = card_piix[0x82] = 0x00;
@@ -678,9 +717,11 @@ void piix3_reset(void)
         card_piix_ide[0x0d] = 0x00;
         card_piix_ide[0x0e] = 0x00;
         card_piix_ide[0x20] = 0x01; card_piix_ide[0x21] = card_piix_ide[0x22] = card_piix_ide[0x23] = 0x00; /*Bus master interface base address*/
-        card_piix_ide[0x40] = card_piix_ide[0x41] = 0x00;
-        card_piix_ide[0x42] = card_piix_ide[0x43] = 0x00;
+        card_piix_ide[0x40] = card_piix_ide[0x42] = 0x00;
+	card_piix_ide[0x41] = card_piix_ide[0x43] = 0x80;
 	card_piix_ide[0x44] = 0x00;
+
+	pci_set_mirq_routing(PCI_MIRQ0, PCI_IRQ_DISABLED);
 }
 
 void piix_init(int card)
@@ -700,6 +741,9 @@ void piix_init(int card)
 	dma_alias_set();
 
 	pci_reset_handler.pci_set_reset = piix_reset;
+
+	pci_enable_mirq(0);
+	pci_enable_mirq(1);
 }
 
 void piix3_init(int card)
@@ -719,4 +763,6 @@ void piix3_init(int card)
 	dma_alias_set();
 
 	pci_reset_handler.pci_set_reset = piix3_reset;
+
+	pci_enable_mirq(0);
 }

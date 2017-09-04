@@ -1,8 +1,13 @@
 void pci_set_irq_routing(int pci_int, int irq);
 
-void pci_ide_set_irq(int ide_board, int irq);
+void pci_enable_mirq(int mirq);
+void pci_set_mirq_routing(int mirq, int irq);
+
+uint8_t pci_use_mirq(uint8_t mirq);
+
+void pci_set_mirq(uint8_t mirq, uint8_t channel);
 void pci_set_irq(uint8_t card, uint8_t pci_int);
-void pci_ide_clear_irq(int ide_board, int irq);
+void pci_clear_mirq(uint8_t mirq, uint8_t channel);
 void pci_clear_irq(uint8_t card, uint8_t pci_int);
 
 void pci_reset(void);
@@ -22,6 +27,9 @@ uint8_t pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void 
 #define PCI_INTB 2
 #define PCI_INTC 3
 #define PCI_INTD 4
+
+#define PCI_MIRQ0 0
+#define PCI_MIRQ1 1
 
 #define PCI_IRQ_DISABLED -1
 

@@ -239,9 +239,9 @@ nic_interrupt(nic_t *dev, int set)
 {
     if (PCI && dev->is_pci) {
 	if (set)
-		pci_set_irq(dev->card, PCI_INTC);
+		pci_set_irq(dev->card, PCI_INTA);
 	  else
-		pci_clear_irq(dev->card, PCI_INTC);
+		pci_clear_irq(dev->card, PCI_INTA);
     } else {
 	if (set)
 		picint(1<<dev->base_irq);
@@ -1981,7 +1981,7 @@ nic_init(int board)
 	dev->pci_regs[0x2E] = (PCI_DEVID&0xff);
 	dev->pci_regs[0x2F] = (PCI_DEVID>>8);
 
-        dev->pci_regs[0x3D] = PCI_INTC;		/* PCI_IPR */
+        dev->pci_regs[0x3D] = PCI_INTA;		/* PCI_IPR */
 
 	/* Enable our address space in PCI. */
 	dev->pci_bar[0].addr_regs[0] = 0x01;

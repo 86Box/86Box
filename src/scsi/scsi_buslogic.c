@@ -552,11 +552,11 @@ BuslogicInterrupt(Buslogic_t *bl, int set)
 	{
 	        if (set)
 		{
-        	        pci_set_irq(bl->Card, PCI_INTB);
+        	        pci_set_irq(bl->Card, PCI_INTA);
 		}
 	        else
 		{
-        	        pci_clear_irq(bl->Card, PCI_INTB);
+        	        pci_clear_irq(bl->Card, PCI_INTA);
 		}
 	}
 	else
@@ -713,7 +713,7 @@ BuslogicAutoSCSIRamSetDefaults(Buslogic_t *bl, uint8_t safe)
 	HALR->structured.autoSCSIData.u16FastPermittedMask = 0xffff;
 	HALR->structured.autoSCSIData.u16DisconnectPermittedMask = 0xffff;
 
-	HALR->structured.autoSCSIData.uPCIInterruptPin = PCI_INTB;
+	HALR->structured.autoSCSIData.uPCIInterruptPin = PCI_INTA;
 	HALR->structured.autoSCSIData.fVesaBusSpeedGreaterThan33MHz = 1;
 
 	HALR->structured.autoSCSIData.uAutoSCSIMaximumLUN = 7;
@@ -2702,7 +2702,7 @@ BuslogicPCIRead(int func, int addr, void *p)
 	case 0x3C:
 		return bl->Irq;
 	case 0x3D:
-		return PCI_INTB;
+		return PCI_INTA;
     }
 
     return(0);

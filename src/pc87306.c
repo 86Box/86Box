@@ -438,7 +438,8 @@ void pc87306_reset(void)
 {
 	memset(pc87306_regs, 0, 29);
 
-	pc87306_regs[0] = 0x4B;
+	/* pc87306_regs[0] = 0x4B; */
+	pc87306_regs[0] = 0x0B;
 	pc87306_regs[1] = 0x01;
 	pc87306_regs[3] = 0x01;
 	pc87306_regs[5] = 0x0D;

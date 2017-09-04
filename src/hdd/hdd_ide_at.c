@@ -160,6 +160,8 @@ int ide_irq[5] = { 14, 15, 10, 11, 0 };
 
 void ide_irq_raise(IDE *ide)
 {
+	/* pclog("Attempting to raise IRQ %i (board %i)\n", ide_irq[ide->board], ide->board); */
+
 	if ((ide->board > 3) || ide->irqstat)
 	{
 		ide->irqstat=1;
@@ -172,9 +174,9 @@ void ide_irq_raise(IDE *ide)
 	
 	if (!(ide->fdisk&2))
 	{
-		if (PCI && (ide->board < 2) && ide_bus_master_set_irq)
+		if (pci_use_mirq(0) && (ide->board < 2))
 		{
-			pci_ide_set_irq(ide->board, ide_irq[ide->board]);
+			pci_set_mirq(0, ide->board);
 		}
 		else
 		{
@@ -185,7 +187,7 @@ void ide_irq_raise(IDE *ide)
 		{
 			if (ide_bus_master_set_irq)
 			{
-				ide_bus_master_set_irq(ide->board);
+				ide_bus_master_set_irq(ide->board | 0x40);
 			}
 		}
 	}
@@ -204,13 +206,18 @@ void ide_irq_lower(IDE *ide)
 
 	ide_log("Lowering IRQ %i (board %i)\n", ide_irq[ide->board], ide->board);
 
-	if (PCI && (ide->board < 2) && ide_bus_master_set_irq)
+	if (pci_use_mirq(0) && (ide->board < 2))
 	{
-		pci_ide_clear_irq(ide->board, ide_irq[ide->board]);
+		pci_clear_mirq(0, ide->board);
 	}
 	else
 	{
 		picintc(1 << ide_irq[ide->board]);
+	}
+
+	if (ide_bus_master_set_irq)
+	{
+		ide_bus_master_set_irq(ide->board);
 	}
 	ide->irqstat=0;
 }
@@ -225,6 +232,8 @@ void ide_irq_update(IDE *ide)
 		return;
 	}
 
+	ide_log("Updating IRQ %i (board %i)\n", ide_irq[ide->board], ide->board);
+
 	mask = ide_irq[ide->board];
 	mask &= 7;
 
@@ -233,24 +242,40 @@ void ide_irq_update(IDE *ide)
 
 	if (ide->irqstat && !pending && !(ide->fdisk & 2))
 	{
-		if (PCI && (ide->board < 2) && ide_bus_master_set_irq)
+		if (pci_use_mirq(0) && (ide->board < 2))
 		{
-			pci_ide_set_irq(ide->board, ide_irq[ide->board]);
+			pci_set_mirq(0, ide->board);
 		}
 		else
 		{
 			picint(1 << ide_irq[ide->board]);
 		}
+
+		if (ide->board < 2)
+		{
+			if (ide_bus_master_set_irq)
+			{
+				ide_bus_master_set_irq(ide->board | 0x40);
+			}
+		}
 	}
 	else if (pending)
 	{
-		if (PCI && (ide->board < 2) && ide_bus_master_set_irq)
+		if (pci_use_mirq(0) && (ide->board < 2))
 		{
-			pci_ide_clear_irq(ide->board, ide_irq[ide->board]);
+			pci_clear_mirq(0, ide->board);
 		}
 		else
 		{
 			picintc(1 << ide_irq[ide->board]);
+		}
+
+		if (ide->board < 2)
+		{
+			if (ide_bus_master_set_irq)
+			{
+				ide_bus_master_set_irq(ide->board);
+			}
 		}
 	}
 }
@@ -1410,7 +1435,7 @@ uint8_t readide(int ide_board, uint16_t addr)
 			ide_irq_lower(ide);
 			if (ide->type == IDE_NONE)
 			{
-				return 0;
+				temp = 0;
 			}
 			if (ide_drive_is_cdrom(ide))
 			{
@@ -1425,7 +1450,7 @@ uint8_t readide(int ide_board, uint16_t addr)
 		case 0x3F6: /* Alternate Status */
 			if (ide->type == IDE_NONE)
 			{
-				return 0;
+				temp = 0;
 			}
 			if (ide_drive_is_cdrom(ide))
 			{
@@ -1438,7 +1463,8 @@ uint8_t readide(int ide_board, uint16_t addr)
 			break;
 
 		default:
-			return 0xff;
+			temp = 0xff;
+			break;
 	}
 	/* if (ide_board) */  ide_log("Read IDEb %04X %02X   %02X %02X %i %04X:%04X %i\n", addr, temp, ide->atastat,(ide->atastat & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0),cur_ide[ide_board],CS,cpu_state.pc,ide_board);
 	return temp;

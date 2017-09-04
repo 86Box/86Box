@@ -96,6 +96,8 @@ static int key_queue_start = 0, key_queue_end = 0;
 static uint8_t mouse_queue[16];
 int mouse_queue_start = 0, mouse_queue_end = 0;
 
+static uint8_t mouse_enabled;
+
 int first_write = 1;
 int dtrans = 0;
 
@@ -151,7 +153,7 @@ static void keyboard_at_poll(void)
                 keyboard_at.wantirq = 0;
                 if (keyboard_at.out_new & 0x100)
                 {
-                        if (keyboard_at.mem[0] & 0x02)
+                        if ((keyboard_at.mem[0] & 0x02) && mouse_enabled)
                                 picint(0x1000);
                         keyboard_at.out = keyboard_at.out_new & 0xff;
                         keyboard_at.out_new = -1;
@@ -731,6 +733,12 @@ bad_command:
         }
 }
 
+void keyboard_at_mouse_set_enabled(uint8_t enabled)
+{
+	/* pclog("Keyboard AT mouse: %i\n", enabled); */
+	mouse_enabled = enabled;
+}
+
 uint8_t keyboard_at_read(uint16_t port, void *priv)
 {
         uint8_t temp = 0xff;
@@ -743,7 +751,10 @@ uint8_t keyboard_at_read(uint16_t port, void *priv)
 		{
 			/* The PIIX/PIIX3 datasheet mandates that both of these interrupts are cleared on any read of port 0x60. */
 	                picintc(1 << 1);
-	                picintc(1 << 12);
+			if (mouse_enabled)
+			{
+		                picintc(1 << 12);
+			}
 		}
 		else
 		{

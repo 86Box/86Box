@@ -278,7 +278,7 @@ void fdc37c665_reset(void)
         
 	memset(fdc37c665_lock, 0, 2);
 	memset(fdc37c665_regs, 0, 16);
-        fdc37c665_regs[0x0] = 0x3b;
+        fdc37c665_regs[0x0] = 0x3a;
         fdc37c665_regs[0x1] = 0x9f;
         fdc37c665_regs[0x2] = 0xdc;
         fdc37c665_regs[0x3] = 0x78;
