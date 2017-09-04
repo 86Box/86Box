@@ -1,15 +1,14 @@
 #include "../ibm.h"
-
 #include "../dma.h"
-#include "../disc.h"
-#include "../fdd.h"
-#include "../fdc.h"
-#include "../lpt.h"
 #include "../pic.h"
 #include "../pit.h"
+#include "../lpt.h"
 #include "../serial.h"
-
+#include "../floppy/floppy.h"
+#include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
 #include "machine_common.h"
+
 
 void machine_common_init(void)
 {

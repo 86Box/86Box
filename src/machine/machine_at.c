@@ -1,19 +1,18 @@
 #include "../ibm.h"
-
-#include "../bugger.h"
-#include "../device.h"
-#include "../dma.h"
-#include "../gameport.h"
-#include "../hdd/hdd_ide_at.h"
-#include "../keyboard_at.h"
-#include "../lpt.h"
-#include "../mem.h"
-#include "../nvr.h"
 #include "../pic.h"
 #include "../pit.h"
-
+#include "../dma.h"
+#include "../mem.h"
+#include "../device.h"
+#include "../nvr.h"
+#include "../bugger.h"
+#include "../gameport.h"
+#include "../keyboard_at.h"
+#include "../lpt.h"
+#include "../hdd/hdd_ide_at.h"
 #include "machine_common.h"
 #include "machine_at.h"
+
 
 void machine_at_init(void)
 {

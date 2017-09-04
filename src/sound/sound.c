@@ -8,12 +8,12 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.2	2017/06/14
+ * Version:	@(#)sound.c	1.0.3	2017/09/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
 #include <stdint.h>
 #include <stdio.h>
@@ -21,7 +21,7 @@
 #include "../ibm.h"
 #include "../device.h"
 #include "../timer.h"
-#include "../cdrom.h"
+#include "../cdrom/cdrom.h"
 #include "../win/plat_thread.h"
 #include "midi.h"
 #include "sound.h"
@@ -29,9 +29,9 @@
 #include "snd_adlib.h"
 #include "snd_adlibgold.h"
 #ifdef DEV_BRANCH
-#ifdef USE_PAS16
-#include "snd_pas16.h"
-#endif
+# ifdef USE_PAS16
+#  include "snd_pas16.h"
+# endif
 #endif
 #include "snd_sb.h"
 #include "snd_sb_dsp.h"

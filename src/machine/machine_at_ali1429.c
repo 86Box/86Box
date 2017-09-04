@@ -2,14 +2,11 @@
    see COPYING for more details
 */
 #include <string.h>
-
 #include "../ibm.h"
-
 #include "../cpu/cpu.h"
-#include "../hdd/hdd_ide_at.h"
 #include "../io.h"
 #include "../mem.h"
-
+#include "../hdd/hdd_ide_at.h"
 #include "machine_at.h"
 #include "machine_at_ali1429.h"
 

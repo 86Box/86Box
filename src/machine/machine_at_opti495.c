@@ -252,11 +252,9 @@ Note:	the block address is forced to be a multiple of the block size by
 SeeAlso: #P0178,#P0187
 */
 #include "../ibm.h"
-
 #include "../cpu/cpu.h"
 #include "../io.h"
 #include "../mem.h"
-
 #include "machine_at.h"
 #include "machine_at_opti495.h"
 

@@ -1,18 +1,17 @@
 #include "../ibm.h"
-
-#include "../device.h"
-#include "../disc.h"
-#include "../fdc.h"
-#include "../fdd.h"
-#include "../keyboard_pcjr.h"
-#include "../mem.h"
 #include "../nmi.h"
 #include "../pic.h"
 #include "../pit.h"
+#include "../mem.h"
+#include "../device.h"
 #include "../serial.h"
+#include "../keyboard_pcjr.h"
+#include "../floppy/floppy.h"
+#include "../floppy/fdc.h"
+#include "../floppy/fdd.h"
 #include "../sound/snd_sn76489.h"
-
 #include "machine_pcjr.h"
+
 
 void machine_pcjr_init(void)
 {

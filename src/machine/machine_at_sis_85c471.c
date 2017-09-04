@@ -9,22 +9,20 @@
  *		SiS sis85c471 Super I/O Chip
  *		Used by DTK PKM-0038S E-2
  *
- * Version:	@(#)sis85c471.c	1.0.3	2017/09/02
+ * Version:	@(#)sis85c471.c	1.0.4	2017/09/03
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2017 Miran Grca.
  */
 #include "../ibm.h"
-
-#include "../disc.h"
-#include "../fdc.h"
-#include "../fdd.h"
-#include "../hdd/hdd_ide_at.h"
 #include "../io.h"
-#include "../lpt.h"
 #include "../memregs.h"
+#include "../lpt.h"
 #include "../serial.h"
-
+#include "../floppy/floppy.h"
+#include "../floppy/fdc.h"
+#include "../floppy/fdd.h"
+#include "../hdd/hdd_ide_at.h"
 #include "machine_at.h"
 #include "machine_at_sis_85c471.h"
 

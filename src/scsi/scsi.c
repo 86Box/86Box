@@ -8,7 +8,7 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.3	2017/08/27
+ * Version:	@(#)scsi.c	1.0.4	2017/09/03
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,7 +22,7 @@
 #include "../ibm.h"
 #include "../timer.h"
 #include "../device.h"
-#include "../cdrom.h"
+#include "../cdrom/cdrom.h"
 #include "scsi.h"
 #include "scsi_aha154x.h"
 #include "scsi_buslogic.h"

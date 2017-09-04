@@ -1,11 +1,10 @@
 #include "../ibm.h"
-
 #include "../io.h"
 #include "../lpt.h"
 #include "../serial.h"
-
 #include "machine_at.h"
 #include "machine_at_commodore.h"
+
 
 static void cbm_io_write(uint16_t port, uint8_t val, void *p)
 {

@@ -12,13 +12,10 @@
  *		Copyright 2017 Miran Grca.
  */
 #include <stdlib.h>
-
 #include "../ibm.h"
-
 #include "../io.h"
-#include "../mem.h"
 #include "../pci.h"
-
+#include "../mem.h"
 #include "machine_at.h"
 #include "machine_at_sis_85c50x.h"
 

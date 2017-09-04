@@ -8,10 +8,10 @@
  *
  *		Windows IO device menu handler.
  *
- * Version:	@(#)win_iodev.c	1.0.0	2017/05/30
+ * Version:	@(#)win_iodev.c	1.0.1	2017/09/03
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
 #define UNICODE
 #define  _WIN32_WINNT 0x0501
@@ -28,13 +28,12 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdint.h>
-
 #include "../ibm.h"
 #include "../device.h"
-#include "../cdrom.h"
-#include "../cdrom_image.h"
-#include "../cdrom_ioctl.h"
-#include "../cdrom_null.h"
+#include "../cdrom/cdrom.h"
+#include "../cdrom/cdrom_image.h"
+#include "../cdrom/cdrom_ioctl.h"
+#include "../cdrom/cdrom_null.h"
 #include "../scsi/scsi_disk.h"
 #include "plat_iodev.h"
 #include "win.h"

@@ -3,10 +3,8 @@
 */
 /*This is the chipset used in the AMI 286 clone model*/
 #include "../ibm.h"
-
 #include "../cpu/cpu.h"
 #include "../io.h"
-
 #include "machine_at.h"
 #include "machine_at_neat.h"
 

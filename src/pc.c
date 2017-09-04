@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.7	2017/08/24
+ * Version:	@(#)pc.c	1.0.8	2017/09/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -18,30 +18,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-
 #include "86box.h"
+#include "config.h"
 #include "ibm.h"
-
 #include "mem.h"
 #include "cpu/codegen.h"
 #include "cpu/cpu.h"
 #include "dma.h"
+#include "random.h"
 #include "device.h"
-#include "disc.h"
-#include "disc_86f.h"
-#include "disc_fdi.h"
-#include "disc_imd.h"
-#include "disc_img.h"
-#include "disc_td0.h"
-#include "disc_random.h"
-#include "cdrom.h"
-#include "cdrom_image.h"
-#include "cdrom_ioctl.h"
-#include "cdrom_null.h"
-#include "config.h"
-#include "fdc.h"
-#include "fdd.h"
 #include "gameport.h"
+#include "floppy/floppy.h"
+#include "floppy/floppy_86f.h"
+#include "floppy/floppy_fdi.h"
+#include "floppy/floppy_imd.h"
+#include "floppy/floppy_img.h"
+#include "floppy/floppy_td0.h"
+#include "floppy/fdc.h"
+#include "floppy/fdd.h"
+#include "cdrom/cdrom.h"
+#include "cdrom/cdrom_image.h"
+#include "cdrom/cdrom_ioctl.h"
+#include "cdrom/cdrom_null.h"
 #include "hdd/hdd.h"
 #include "hdd/hdd_ide_at.h"
 #include "keyboard.h"
@@ -371,7 +369,7 @@ void initmodules(void)
 #ifdef WALTJE
 	serial_init();
 #endif
-	disc_random_init();
+	random_init();
 
         joystick_init();
 
@@ -412,17 +410,17 @@ void initmodules(void)
 
         sound_reset();
 	fdc_init();
-	disc_init();
+	floppy_init();
 	fdi_init();
         img_init();
         d86f_init();
 	td0_init();
 	imd_init();
 
-        disc_load(0, discfns[0]);
-        disc_load(1, discfns[1]);
-        disc_load(2, discfns[2]);
-        disc_load(3, discfns[3]);
+        floppy_load(0, floppyfns[0]);
+        floppy_load(1, floppyfns[1]);
+        floppy_load(2, floppyfns[2]);
+        floppy_load(3, floppyfns[3]);
                 
         loadnvr();
         sound_init();
@@ -514,7 +512,7 @@ void resetpchard_init(void)
         sound_reset();
         mem_resize();
         fdc_init();
-	disc_reset();
+	floppy_reset();
 
 #ifndef WALTJE
 	serial_init();
@@ -718,7 +716,7 @@ void closepc(void)
         dumppic();
 	for (i = 0; i < FDD_NUM; i++)
 	{
-	        disc_close(i);
+	        floppy_close(i);
 	}
         dumpregs(0);
         closevideo();

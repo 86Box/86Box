@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 430VX PCISet chip.
  *
- * Version:	@(#)machine_at_430vx.c	1.0.4	2017/09/02
+ * Version:	@(#)machine_at_430vx.c	1.0.5	2017/09/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -16,21 +16,16 @@
  *		Copyright 2016-2017 Miran Grca.
  */
 #include <string.h>
-
 #include "../ibm.h"
-
 #include "../cpu/cpu.h"
-#include "../device.h"
-#include "../fdc37c932fr.h"
 #include "../io.h"
+#include "../pci.h"
 #include "../mem.h"
 #include "../memregs.h"
-#include "../intel_flash.h"
-#include "../pci.h"
+#include "../device.h"
 #include "../piix.h"
-#include "../um8669f.h"
-#include "../w83877f.h"
-
+#include "../intel_flash.h"
+#include "../sio.h"
 #include "machine_at.h"
 #include "machine_at_430vx.h"
 

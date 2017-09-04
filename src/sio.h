@@ -4,14 +4,26 @@
  *		PC systems and compatibles from 1981 through fairly recent
  *		system designs based on the PCI bus.
  *
- *		Emulation of Intel System I/O PCI chip.
+ *		This file is part of the 86Box distribution.
  *
- * Version:	@(#)sio.h	1.0.2	2017/08/23
+ *		Definitions for the Super I/O chips.
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ * Version:	@(#)sio.h	1.0.1	2017/09/03
+ *
+ * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Copyright 2017 Fred N. van Kempen.
  */
+#ifndef EMU_SIO_H
+# define EMU_SIO_H
 
-void sio_init(int card);
+
+extern void	superio_detect_init(void);
+extern void	fdc37c665_init(void);
+extern void	fdc37c669_init(void);
+extern void	fdc37c932fr_init(void);
+extern void	pc87306_init(void);
+extern void	um8669f_init(void);
+extern void	w83877f_init(void);
+
+
+#endif	/*EMU_SIO_H*/

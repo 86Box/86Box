@@ -1,21 +1,19 @@
 #include <stdlib.h>
 #include "../ibm.h"
-
 #include "../cpu/cpu.h"
-#include "../device.h"
-#include "../disc.h"
-#include "../fdd.h"
-#include "../fdc.h"
-#include "../gameport.h"
 #include "../io.h"
+#include "../nmi.h"
+#include "../mem.h"
+#include "../device.h"
+#include "../nvr.h"
+#include "../gameport.h"
 #include "../keyboard.h"
 #include "../keyboard_amstrad.h"
-#include "../lpt.h"
-#include "../mem.h"
 #include "../mouse.h"
-#include "../nmi.h"
-#include "../nvr.h"
-
+#include "../lpt.h"
+#include "../floppy/floppy.h"
+#include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
 #include "machine_common.h"
 
 

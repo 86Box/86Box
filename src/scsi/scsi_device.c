@@ -8,7 +8,7 @@
  *
  *		The generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.c	1.0.1	2017/08/23
+ * Version:	@(#)scsi_device.c	1.0.2	2017/09/03
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -16,9 +16,9 @@
  *		Copyright 2017 Fred N. van Kempen.
  */
 #include "../ibm.h"
+#include "../cdrom/cdrom.h"
 #include "scsi.h"
 #include "scsi_disk.h"
-#include "../cdrom.h"
 
 
 static uint8_t scsi_null_device_sense[14] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };

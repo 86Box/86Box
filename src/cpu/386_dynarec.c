@@ -11,13 +11,13 @@
 #include "x86_ops.h"
 #include "x87.h"
 #include "../mem.h"
-#include "codegen.h"
-#include "../disc.h"
-#include "../fdc.h"
 #include "../pic.h"
 #include "../timer.h"
-
+#include "../floppy/floppy.h"
+#include "../floppy/fdc.h"
+#include "codegen.h"
 #include "386_common.h"
+
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 

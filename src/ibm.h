@@ -8,7 +8,7 @@
  *
  *		General include file.
  *
- * Version:	@(#)ibm.h	1.0.2	2017/08/24
+ * Version:	@(#)ibm.h	1.0.3	2017/09/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -373,8 +373,8 @@ extern PIC pic, pic2;
 extern int pic_intpending;
 
 
-extern int disctime;
-extern wchar_t discfns[4][512];
+extern int floppytime;
+extern wchar_t floppyfns[4][512];
 extern int driveempty[4];
 
 #define MDA ((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_HERCULESPLUS || gfxcard==GFX_INCOLOR || gfxcard==GFX_GENIUS) && (romset<ROM_TANDY || romset>=ROM_IBMAT))

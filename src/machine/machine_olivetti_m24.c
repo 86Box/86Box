@@ -2,16 +2,14 @@
    see COPYING for more details
 */
 #include "../ibm.h"
-
 #include "../cpu/cpu.h"
+#include "../io.h"
+#include "../nmi.h"
+#include "../mem.h"
 #include "../device.h"
+#include "../nvr.h"
 #include "../gameport.h"
 #include "../keyboard_olim24.h"
-#include "../mem.h"
-#include "../nmi.h"
-#include "../nvr.h"
-#include "../io.h"
-
 #include "machine_common.h"
 #include "machine_olivetti_m24.h"
 

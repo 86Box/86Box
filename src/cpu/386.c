@@ -10,12 +10,12 @@
 #include "x86.h"
 #include "x87.h"
 #include "../mem.h"
-#include "../disc.h"
-#include "../fdc.h"
 #include "../pic.h"
 #include "../timer.h"
-
+#include "../floppy/floppy.h"
+#include "../floppy/fdc.h"
 #include "386_common.h"
+
 
 #define CPU_BLOCK_END()
 

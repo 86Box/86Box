@@ -1,16 +1,15 @@
 #include "../ibm.h"
-
+#include "../nmi.h"
+#include "../mem.h"
 #include "../device.h"
 #include "../gameport.h"
 #include "../keyboard_xt.h"
-#include "../mem.h"
-#include "../nmi.h"
 #include "../tandy_eeprom.h"
 #include "../tandy_rom.h"
 #include "../sound/snd_pssj.h"
 #include "../sound/snd_sn76489.h"
-
 #include "machine_common.h"
+
 
 void machine_tandy1k_init(void)
 {

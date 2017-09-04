@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.3	2017/09/02
+ * Version:	@(#)config.c	1.0.4	2017/09/03
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -27,17 +27,17 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-
-#include "cdrom.h"
-#include "config.h"
-#include "device.h"
-#include "disc.h"
-#include "fdc.h"
-#include "fdd.h"
-#include "lpt.h"
 #include "ibm.h"
 #include "cpu/cpu.h"
+#include "config.h"
+#include "device.h"
 #include "gameport.h"
+#include "lpt.h"
+#include "nvr.h"
+#include "cdrom/cdrom.h"
+#include "floppy/floppy.h"
+#include "floppy/fdc.h"
+#include "floppy/fdd.h"
 #include "hdd/hdd.h"
 #include "hdd/hdd_ide_at.h"
 #include "machine/machine.h"
@@ -45,7 +45,6 @@
 #ifdef USE_NETWORK
 #include "network/network.h"
 #endif
-#include "nvr.h"
 #include "scsi/scsi.h"
 #include "win/plat_joystick.h"
 #include "win/plat_midi.h"
@@ -55,7 +54,6 @@
 #include "sound/snd_opl.h"
 #include "sound/sound.h"
 #include "video/video.h"
-
 #include "win/win.h"
 #include "win/win_language.h"
 
@@ -1570,8 +1568,8 @@ static void loadconfig_removable_devices(void)
 
 		sprintf(temps, "fdd_%02i_fn", c + 1);
 	        wp = config_get_wstring(cat, temps, L"");
-        	memcpy(discfns[c], wp, (wcslen(wp) << 1) + 2);
-		printf("Floppy: %ws\n", discfns[c]);
+        	memcpy(floppyfns[c], wp, (wcslen(wp) << 1) + 2);
+		printf("Floppy: %ws\n", floppyfns[c]);
 		sprintf(temps, "fdd_%02i_writeprot", c + 1);
 	        ui_writeprot[c] = !!config_get_int(cat, temps, 0);
 		sprintf(temps, "fdd_%02i_turbo", c + 1);
@@ -1586,7 +1584,7 @@ static void loadconfig_removable_devices(void)
 			config_delete_var(cat, temps);
 		}
 
-		if (wcslen(discfns[c]) == 0)
+		if (wcslen(floppyfns[c]) == 0)
 		{
 			sprintf(temps, "fdd_%02i_fn", c + 1);
 			config_delete_var(cat, temps);
@@ -2485,7 +2483,7 @@ static void saveconfig_removable_devices(void)
 		}
 
 		sprintf(temps, "fdd_%02i_fn", c + 1);
-		if (wcslen(discfns[c]) == 0)
+		if (wcslen(floppyfns[c]) == 0)
 		{
 			config_delete_var(cat, temps);
 
@@ -2496,7 +2494,7 @@ static void saveconfig_removable_devices(void)
 		}
 		else
 		{
-		        config_set_wstring(cat, temps, discfns[c]);
+		        config_set_wstring(cat, temps, floppyfns[c]);
 		}
 
 		sprintf(temps, "fdd_%02i_writeprot", c + 1);

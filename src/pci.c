@@ -1,16 +1,14 @@
 #include <stdarg.h>
-
 #include "ibm.h"
-
-#include "cdrom.h"
-#include "disc.h"
-#include "fdc.h"
-#include "hdd/hdd_ide_at.h"
 #include "io.h"
-#include "keyboard_at.h"
-#include "mem.h"
 #include "pic.h"
+#include "mem.h"
 #include "pci.h"
+#include "keyboard_at.h"
+#include "floppy/floppy.h"
+#include "floppy/fdc.h"
+#include "hdd/hdd_ide_at.h"
+#include "cdrom/cdrom.h"
 
 
 static uint64_t pci_irq_hold[16];

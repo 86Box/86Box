@@ -2,11 +2,9 @@
    see COPYING for more details
 */
 #include "../ibm.h"
-
 #include "../cpu/cpu.h"
 #include "../io.h"
 #include "../mem.h"
-
 #include "machine_at.h"
 #include "machine_at_headland.h"
 

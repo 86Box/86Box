@@ -1,15 +1,14 @@
 #include "../ibm.h"
-
-#include "../bugger.h"
-#include "../device.h"
-#include "../gameport.h"
-#include "../keyboard_xt.h"
-#include "../mem.h"
 #include "../nmi.h"
 #include "../pit.h"
-
+#include "../mem.h"
+#include "../device.h"
+#include "../bugger.h"
+#include "../gameport.h"
+#include "../keyboard_xt.h"
 #include "machine_common.h"
 #include "machine_xt.h"
+
 
 void machine_xt_init(void)
 {

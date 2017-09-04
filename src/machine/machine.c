@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.9	2017/09/02
+ * Version:	@(#)machine.c	1.0.11	2017/09/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -17,16 +17,13 @@
  */
 #include <stdint.h>
 #include <stdio.h>
-
 #include "../ibm.h"
-
 #include "../cpu/cpu.h"
-#include "../device.h"
-#include "../disc.h"
-#include "../fdc.h"
-#include "../fdd.h"
 #include "../io.h"
-
+#include "../device.h"
+#include "../floppy/floppy.h"
+#include "../floppy/fdc.h"
+#include "../floppy/fdd.h"
 #include "machine.h"
 #include "machine_common.h"
 
@@ -62,7 +59,6 @@
 #include "machine_at_440fx.h"
 
 #include "../video/vid_pcjr.h"
-
 #include "../video/vid_tandy.h"
 #include "../video/vid_tandysl.h"
 
@@ -85,7 +81,7 @@ machine_t machines[] =
         {"[8088] Generic XT clone",		ROM_GENXT,		"genxt",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, 0,								 64,  640,  64,   0,		      machine_xt_init, NULL			},
         {"[8088] Juko XT clone",		ROM_JUKOPC,		"jukopc",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, 0,								 64,  640,  64,   0,		      machine_xt_init, NULL			},
         {"[8088] Phoenix XT clone",		ROM_PXXT,		"pxxt",			{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, 0,								 64,  640,  64,   0,		      machine_xt_init, NULL			},
-        {"[8088] Schneider EuroPC",		ROM_EUROPC,		"europc",		{{"",      cpus_europc},      {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, 0,								512,  640, 128,   0,		  machine_europc_init, NULL			},
+        {"[8088] Schneider EuroPC",		ROM_EUROPC,		"europc",		{{"Siemens",      cpus_europc},      {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, 0,								512,  640, 128,   0,		  machine_europc_init, NULL			},
         {"[8088] Tandy 1000",			ROM_TANDY,		"tandy",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, 0,								128,  640, 128,   0,		 machine_tandy1k_init, tandy1000_get_device	},
         {"[8088] Tandy 1000 HX",		ROM_TANDY1000HX,	"tandy1000hx",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, 0,								256,  640, 128,   0,		 machine_tandy1k_init, tandy1000hx_get_device	},
         {"[8088] VTech Laser Turbo XT",		ROM_LTXT,		"ltxt",			{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, 0,								 64, 1152,  64,   0,	      machine_xt_laserxt_init, NULL			},

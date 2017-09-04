@@ -10,7 +10,7 @@
  *
  * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.13	2017/08/23
+ * Version:	@(#)net_ne2000.c	1.0.14	2017/09/03
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -24,15 +24,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include "../config.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../pci.h"
 #include "../pic.h"
+#include "../random.h"
 #include "../device.h"
-#include "../config.h"
-#include "../disc_random.h"
 #include "network.h"
 #include "net_ne2000.h"
 #include "bswap.h"
@@ -2017,9 +2017,9 @@ nic_init(int board)
     /* Set up our BIA. */
     if (mac & 0xff000000) {
 	/* Generate new local MAC. */
-	dev->maclocal[3] = disc_random_generate();
-	dev->maclocal[4] = disc_random_generate();
-	dev->maclocal[5] = disc_random_generate();
+	dev->maclocal[3] = random_generate();
+	dev->maclocal[4] = random_generate();
+	dev->maclocal[5] = random_generate();
 	mac = (((int) dev->maclocal[3]) << 16);
 	mac |= (((int) dev->maclocal[4]) << 8);
 	mac |= ((int) dev->maclocal[5]);

@@ -2,13 +2,11 @@
    see COPYING for more details
 */
 #include "../ibm.h"
-
-#include "../disc.h"
-#include "../fdc.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../serial.h"
-
+#include "../floppy/floppy.h"
+#include "../floppy/fdc.h"
 #include "machine_at.h"
 #include "machine_at_wd76c10.h"
 

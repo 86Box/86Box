@@ -3,24 +3,22 @@
 */
 #include <stdio.h>
 #include <string.h>
-
 #include "../ibm.h"
-
 #include "../cpu/cpu.h"
 #include "../io.h"
+#include "../nmi.h"
+#include "../mem.h"
+#include "../rom.h"
 #include "../device.h"
 #include "../gameport.h"
 #include "../keyboard_xt.h"
 #include "../lpt.h"
-#include "../mem.h"
-#include "../nmi.h"
-#include "../rom.h"
-
 #include "machine_common.h"
 #include "machine_europc.h"
 
 
 uint8_t europcdat[16];
+
 
 struct 
 {
@@ -47,7 +45,7 @@ static uint8_t jim_load_nvr(void)
 }
 
 
-void jim_save_nvr(void)
+void europc_save_nvr(void)
 {
 	FILE *f;
 

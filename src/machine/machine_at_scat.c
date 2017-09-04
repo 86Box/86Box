@@ -1,13 +1,12 @@
 /*This is the chipset used in the Award 286 clone model*/
 #include "../ibm.h"
-
 #include "../cpu/cpu.h"
+#include "../cpu/x86.h"
 #include "../io.h"
 #include "../mem.h"
-#include "../cpu/x86.h"
-
 #include "machine_at.h"
 #include "machine_at_scat.h"
+
 
 #define SCAT_DMA_WAIT_STATE_CONTROL 0x01
 #define SCAT_VERSION                0x40

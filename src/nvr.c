@@ -8,14 +8,14 @@
  *
  *		CMOS NVRAM emulation.
  *
- * Version:	@(#)nvr.c	1.0.1	2017/06/03
+ * Version:	@(#)nvr.c	1.0.2	2017/09/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Mahod,
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
- *		Copyright 2016-2017 Mahod.
+ *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2016,2017 Mahod.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -282,7 +282,7 @@ void savenvr(void)
 
 	if (romset == ROM_EUROPC)
 	{
-		jim_save_nvr();
+		europc_save_nvr();
 		return;
 	}
 

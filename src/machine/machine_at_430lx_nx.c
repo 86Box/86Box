@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 430LX and 430NX PCISet chips.
  *
- * Version:	@(#)machine_at_430lx_nx.c	1.0.3	2017/09/02
+ * Version:	@(#)machine_at_430lx_nx.c	1.0.4	2017/09/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -16,19 +16,16 @@
  *		Copyright 2016-2017 Miran Grca.
  */
 #include <string.h>
-
 #include "../ibm.h"
-
 #include "../cpu/cpu.h"
-#include "../device.h"
-#include "../fdc37c665.h"
-#include "../intel.h"
-#include "../intel_flash.h"
 #include "../mem.h"
 #include "../memregs.h"
 #include "../pci.h"
+#include "../device.h"
+#include "../intel.h"
+#include "../intel_flash.h"
+#include "../intel_sio.h"
 #include "../sio.h"
-
 #include "machine_at.h"
 #include "machine_at_430lx_nx.h"
 

@@ -2,16 +2,13 @@
    see COPYING for more details
 */
 #include <stdlib.h>
-
 #include "../ibm.h"
-
 #include "../cpu/cpu.h"
-#include "../fdc37c665.h"
 #include "../io.h"
+#include "../pci.h"
 #include "../mem.h"
 #include "../memregs.h"
-#include "../pci.h"
-
+#include "../sio.h"
 #include "machine_at.h"
 #include "machine_at_sis_85c496.h"
 

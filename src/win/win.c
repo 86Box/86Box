@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.7	2017/08/26
+ * Version:	@(#)win.c	1.0.8	2017/09/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,30 +21,30 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../86box.h"
-#include "../device.h"
-#include "../disc.h"
-#include "../fdd.h"
-#include "../hdd/hdd.h"
+#include "../config.h"
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../mem.h"
-#ifdef USE_NETWORK
-#include "../network/network.h"
-#endif
 #include "../rom.h"
+#include "../device.h"
 #include "../nvr.h"
-#include "../config.h"
+#include "../mouse.h"
 #include "../machine/machine.h"
+#include "../cdrom/cdrom.h"
+#include "../cdrom/cdrom_ioctl.h"
+#include "../cdrom/cdrom_image.h"
+#include "../cdrom/cdrom_null.h"
+#include "../floppy/floppy.h"
+#include "../floppy/fdd.h"
+#include "../hdd/hdd.h"
 #include "../hdd/hdd_ide_at.h"
-#include "../cdrom.h"
-#include "../cdrom_null.h"
-#include "../cdrom_ioctl.h"
-#include "../cdrom_image.h"
 #include "../scsi/scsi.h"
 #include "../scsi/scsi_disk.h"
+#ifdef USE_NETWORK
+# include "../network/network.h"
+#endif
 #include "../video/video.h"
 #include "../video/vid_ega.h"
-#include "../mouse.h"
 #include "../sound/sound.h"
 #include "../sound/snd_dbopl.h"
 #include "plat_keyboard.h"
@@ -54,7 +54,6 @@
 #include "plat_thread.h"
 #include "plat_ticks.h"
 #include "plat_ui.h"
-
 #include "win.h"
 #include "win_cgapal.h"
 #include "win_ddraw.h"
@@ -784,13 +783,13 @@ void create_floppy_tip(int part)
 	int drive = sb_part_meanings[part] & 0xf;
 
 	mbstowcs(wtext, fdd_getname(fdd_get_type(drive)), strlen(fdd_getname(fdd_get_type(drive))) + 1);
-	if (wcslen(discfns[drive]) == 0)
+	if (wcslen(floppyfns[drive]) == 0)
 	{
 		_swprintf(tempTip,  win_language_get_string_from_id(IDS_2158), drive + 1, wtext, win_language_get_string_from_id(IDS_2057));
 	}
 	else
 	{
-		_swprintf(tempTip,  win_language_get_string_from_id(IDS_2158), drive + 1, wtext, discfns[drive]);
+		_swprintf(tempTip,  win_language_get_string_from_id(IDS_2158), drive + 1, wtext, floppyfns[drive]);
 	}
 
 	if (sbTips[part] != NULL)
@@ -1312,7 +1311,7 @@ void update_status_bar_panes(HWND hwnds)
 		{
 			case SB_FLOPPY:
 				/* Floppy */
-				sb_icon_flags[i] = (wcslen(discfns[sb_part_meanings[i] & 0xf]) == 0) ? 256 : 0;
+				sb_icon_flags[i] = (wcslen(floppyfns[sb_part_meanings[i] & 0xf]) == 0) ? 256 : 0;
 				sb_part_icons[i] = fdd_type_to_icon(fdd_get_type(sb_part_meanings[i] & 0xf)) | sb_icon_flags[i];
 				sb_menu_handles[i] = create_popup_menu(i);
 				create_floppy_submenu(sb_menu_handles[i], sb_part_meanings[i] & 0xf);
@@ -2244,7 +2243,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 							config_save(config_file_default);
 							for (i = 0; i < FDD_NUM; i++)
 							{
-								disc_close(i);
+								floppy_close(i);
 							}
 							for (i = 0; i < CDROM_NUM; i++)
 							{
@@ -2285,10 +2284,10 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 								}
 							}
 
-							disc_load(0, discfns[0]);
-							disc_load(1, discfns[1]);
-							disc_load(2, discfns[2]);
-							disc_load(3, discfns[3]);
+							floppy_load(0, floppyfns[0]);
+							floppy_load(1, floppyfns[1]);
+							floppy_load(2, floppyfns[2]);
+							floppy_load(3, floppyfns[3]);
 
 							/* pclog_w(L"NVR path: %s\n", nvr_path); */
 							mem_resize();
@@ -2540,14 +2539,14 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 						break;
 					}
 
-					ret = file_dlg_w_st(hwnd, IDS_2159, discfns[id], 0);
+					ret = file_dlg_w_st(hwnd, IDS_2159, floppyfns[id], 0);
 					if (!ret)
 					{
-						disc_close(id);
+						floppy_close(id);
 						ui_writeprot[id] = (item_id == IDM_FLOPPY_IMAGE_EXISTING_WP) ? 1 : 0;
-						disc_load(id, wopenfilestring);
-						update_status_bar_icon_state(SB_FLOPPY | id, wcslen(discfns[id]) ? 0 : 1);
-						EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | (wcslen(discfns[id]) ? MF_ENABLED : MF_GRAYED));
+						floppy_load(id, wopenfilestring);
+						update_status_bar_icon_state(SB_FLOPPY | id, wcslen(floppyfns[id]) ? 0 : 1);
+						EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | (wcslen(floppyfns[id]) ? MF_ENABLED : MF_GRAYED));
 						update_tip(SB_FLOPPY | id);
 						saveconfig();
 					}
@@ -2561,7 +2560,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 						break;
 					}
 
-					disc_close(id);
+					floppy_close(id);
 					update_status_bar_icon_state(SB_FLOPPY | id, 1);
 					EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
 					update_tip(SB_FLOPPY | id);
@@ -2613,7 +2612,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 						cdrom_drives[id].handler->exit(id);
 						cdrom_close(id);
 						image_open(id, temp_image_path);
-						/* Signal disc change to the emulated machine. */
+						/* Signal media change to the emulated machine. */
 						cdrom_insert(id);
 						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
 						if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z'))
@@ -2657,7 +2656,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 					cdrom_drives[id].handler->exit(id);
 					cdrom_close(id);
 					ioctl_open(id, new_cdrom_drive);
-					/* Signal disc change to the emulated machine. */
+					/* Signal media change to the emulated machine. */
 					cdrom_insert(id);
 					CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
 					if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z'))
