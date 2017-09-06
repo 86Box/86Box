@@ -1436,13 +1436,16 @@ uint8_t readide(int ide_board, uint16_t addr)
 			{
 				temp = 0;
 			}
-			if (ide_drive_is_cdrom(ide))
-			{
-				temp = (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].status & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0);
-			}
 			else
 			{
-				temp = ide->atastat;
+				if (ide_drive_is_cdrom(ide))
+				{
+					temp = (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].status & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0);
+				}
+				else
+				{
+					temp = ide->atastat;
+				}
 			}
 			break;
 
@@ -1451,13 +1454,16 @@ uint8_t readide(int ide_board, uint16_t addr)
 			{
 				temp = 0;
 			}
-			if (ide_drive_is_cdrom(ide))
-			{
-				temp = (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].status & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0);
-			}
 			else
 			{
-				temp = ide->atastat;
+				if (ide_drive_is_cdrom(ide))
+				{
+					temp = (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].status & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0);
+				}
+				else
+				{
+					temp = ide->atastat;
+				}
 			}
 			break;
 
