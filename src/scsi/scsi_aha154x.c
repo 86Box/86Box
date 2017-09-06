@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.15	2017/09/01
+ * Version:	@(#)scsi_aha154x.c	1.0.16	2017/09/05
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -582,36 +582,26 @@ aha154x_mmap(aha_t *dev, uint8_t cmd)
 static void
 RaiseIntr(aha_t *dev, int suppress, uint8_t Interrupt)
 {
-	if (Interrupt & (INTR_MBIF | INTR_MBOA))
-	{
-		if (!(dev->Interrupt & INTR_HACC))
-		{
-			dev->Interrupt |= Interrupt;	/* Report now. */
-		}
-		else
-		{
-			dev->PendingInterrupt |= Interrupt;	/* Report later. */
-		}
+    if (Interrupt & (INTR_MBIF | INTR_MBOA)) {
+	if (! (dev->Interrupt & INTR_HACC)) {
+		dev->Interrupt |= Interrupt;		/* Report now. */
+	} else {
+		dev->PendingInterrupt |= Interrupt;	/* Report later. */
 	}
-	else if (Interrupt & INTR_HACC)
-	{
-		if (dev->Interrupt == 0 || dev->Interrupt == (INTR_ANY | INTR_HACC))
-		{
-			aha_log("%s: BuslogicRaiseInterrupt(): Interrupt=%02X\n", dev->name, dev->Interrupt);
-		}
-		dev->Interrupt |= Interrupt;
+    } else if (Interrupt & INTR_HACC) {
+	if (dev->Interrupt == 0 || dev->Interrupt == (INTR_ANY | INTR_HACC)) {
+		aha_log("%s: RaiseInterrupt(): Interrupt=%02X\n",
+					dev->name, dev->Interrupt);
 	}
-	else
-	{
-		aha_log("%s: BuslogicRaiseInterrupt(): Invalid interrupt state!\n", dev->name);
-	}
+	dev->Interrupt |= Interrupt;
+    } else {
+	aha_log("%s: RaiseInterrupt(): Invalid interrupt state!\n", dev->name);
+    }
 
-	dev->Interrupt |= INTR_ANY;
+    dev->Interrupt |= INTR_ANY;
 
-	if (!suppress)
-	{
-		picint(1 << dev->Irq);
-	}
+    if (! suppress)
+	picint(1 << dev->Irq);
 }
 
 
