@@ -42,11 +42,11 @@ static pci_mirq_t pci_mirqs[2];
 static int pci_index, pci_func, pci_card, pci_bus, pci_enable, pci_key;
 int pci_burst_time, pci_nonburst_time;
 
-int pci_do_log = 0;
-
 static int trc_reg = 0;
 
 PCI_RESET pci_reset_handler;
+
+int pci_do_log = 0;
 
 void pci_log(const char *format, ...)
 {

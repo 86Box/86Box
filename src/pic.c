@@ -214,6 +214,7 @@ void pic2_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                         case 1: /*ICW2*/
                         pic2.vector=val&0xF8;
+			pclog("PIC2 vector now: %02X\n", pic2.vector);
                         if (pic2.icw1&2) pic2.icw=3;
                         else            pic2.icw=2;
                         break;
@@ -378,6 +379,14 @@ void picintc(uint16_t num)
         pic_updatepending();
 }
 
+/* TODO: Verify this whole level-edge thing... edge/level mode is supposedly handled by bit 3 of ICW1,
+	 but the PIIX spec mandates it being able to be edge/level per IRQ... maybe the PCI-era on-board
+	 PIC ignores bit 3 of ICW1 but instead uses whatever is set in ELCR?
+
+   Edit: Yes, the PIIX (and I suppose also the SIO) disables bit 3 of ICW1 and instead, uses the ELCR.
+
+	 Also, shouldn't there be only one picint(), and then edge/level is handled on processing? */
+
 static uint8_t pic_process_interrupt(PIC* target_pic, int c)
 {
 	uint8_t pending = target_pic->pend & ~target_pic->mask;
@@ -441,6 +450,7 @@ uint8_t picinterrupt()
         	        for (c = 8; c <= 15; c++)
 	                {
 				ret = pic_process_interrupt(&pic2, c);
+				pclog("Processing IRQ %i: %02X\n", c, ret);
 				if (ret != 0xFF)  return ret;
 	                }
 		}

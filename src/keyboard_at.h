@@ -27,4 +27,5 @@ extern void keyboard_at_reset(void);
 extern void keyboard_at_adddata_keyboard_raw(uint8_t val);
 extern void keyboard_at_adddata_mouse(uint8_t val);
 extern void keyboard_at_set_mouse(void (*mouse_write)(uint8_t val, void *p), void *p);
-extern void keyboard_at_mouse_set_enabled(uint8_t enabled);
+uint8_t keyboard_at_get_mouse_scan(void);
+void keyboard_at_set_mouse_scan(uint8_t val);

@@ -200,10 +200,7 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
 		}
 		else if (addr == 0x4E)
 		{
-			if ((val ^ card_piix[addr]) & 0x10)
-			{
-				keyboard_at_mouse_set_enabled((val & 0x10) ? 1 : 0);
-			}
+			keyboard_at_set_mouse_scan((val & 0x10) ? 1 : 0);
 	                card_piix[addr] = val;
 		}
 		else if (addr == 0x6A)
@@ -303,6 +300,10 @@ uint8_t piix_read(int func, int addr, void *priv)
 				return card_piix[addr] & 0x3E;
 			else if (piix_type == 3)
 				return card_piix[addr];
+		}
+		else if (addr == 0x4E)
+		{
+			return (card_piix[addr] & 0xEF) | keyboard_at_get_mouse_scan();
 		}
 		else if (addr == 0x69)
 		{
@@ -693,7 +694,8 @@ void piix3_reset(void)
         card_piix[0x09] = 0x00; card_piix[0x0a] = 0x01; card_piix[0x0b] = 0x06;
         card_piix[0x0e] = 0x80; /*Multi-function device*/
         card_piix[0x4c] = 0x4d;
-        card_piix[0x4e] = card_piix[0x4f] = 0x03;
+        card_piix[0x4e] = 0x03;
+	card_piix[0x4f] = 0x00;
         card_piix[0x60] = card_piix[0x61] = card_piix[0x62] = card_piix[0x63] = 0x80;
         card_piix[0x69] = 0x02;
         card_piix[0x70] = 0xc0;

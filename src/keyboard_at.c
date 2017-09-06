@@ -28,6 +28,9 @@
 #include "sound/snd_speaker.h"
 #include "keyboard.h"
 #include "keyboard_at.h"
+#include "cpu/cpu.h"
+#include "device.h"
+#include "machine/machine.h"
 
 
 #define STAT_PARITY     0x80
@@ -96,35 +99,11 @@ static int key_queue_start = 0, key_queue_end = 0;
 static uint8_t mouse_queue[16];
 int mouse_queue_start = 0, mouse_queue_end = 0;
 
-static uint8_t mouse_enabled;
-
 int first_write = 1;
 int dtrans = 0;
 
 /* Bits 0 - 1 = scan code set, bit 6 = translate or not. */
 uint8_t mode = 0x42;
-
-#if 0
-/* Translated to non-translated scan codes. */
-					/*	Assuming we get XSET1, SET1/XSET2/XSET3 = T_TO_NONT(XSET1), and then we go through
-						T_TO_NONT again to get SET2/SET3.							*/
-/* static uint8_t t_to_nont[256] = {	0xFF, 0x76, 0x16, 0x1E, 0x26, 0x25, 0x2E, 0x36, 0x3D, 0x3E, 0x46, 0x45, 0x4E, 0x55, 0x66, 0x0D,
-					0x15, 0x1D, 0x24, 0x2D, 0x2C, 0x35, 0x3C, 0x43, 0x44, 0x4D, 0x54, 0x5B, 0x5A, 0x14, 0x1C, 0x1B,
-					0x23, 0x2B, 0x34, 0x33, 0x3B, 0x42, 0x4B, 0x4C, 0x52, 0x0E, 0x12, 0x5D, 0x1A, 0x22, 0x21, 0x2A,
-					0x32, 0x31, 0x3A, 0x41, 0x49, 0x4A, 0x59, 0x7C, 0x11, 0x29, 0x58, 0x05, 0x06, 0x04, 0x0C, 0x03,
-					0x0B, 0x02, 0x0A, 0x01, 0x09, 0x77, 0x7E, 0x6C, 0x75, 0x7D, 0x7B, 0x6B, 0x73, 0x74, 0x79, 0x69,
-					0x72, 0x7A, 0x70, 0x71, 0x7F, 0x60, 0x61, 0x78, 0x07, 0x0F, 0x17, 0x1F, 0x27, 0x2F, 0x37, 0x3F,
-					0x47, 0x4F, 0x56, 0x5E, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38, 0x40, 0x48, 0x50, 0x57, 0x6F,
-					0x13, 0x19, 0x39, 0x51, 0x53, 0x5C, 0x5F, 0x62, 0x63, 0x64, 0x65, 0x67, 0x68, 0x6A, 0x6D, 0x6E,
-					0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F,
-					0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F,
-					0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
-					0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF,
-					0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF,
-					0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF,
-					0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
-					0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF	}; */
-#endif
 
 /* Non-translated to translated scan codes. */
 static uint8_t nont_to_t[256] = {	0xFF, 0x43, 0x41, 0x3F, 0x3D, 0x3B, 0x3C, 0x58, 0x64, 0x44, 0x42, 0x40, 0x3E, 0x0F, 0x29, 0x59,
@@ -144,16 +123,33 @@ static uint8_t nont_to_t[256] = {	0xFF, 0x43, 0x41, 0x3F, 0x3D, 0x3B, 0x3C, 0x58
 					0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
 					0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF	};
 
+int keyboard_at_do_log = 0;
+
+void keyboard_at_log(const char *format, ...)
+{
+#ifdef ENABLE_KEYBOARD_AT_LOG
+	if (keyboard_at_do_log)
+	{
+		va_list ap;
+		va_start(ap, format);
+		vprintf(format, ap);
+		va_end(ap);
+		fflush(stdout);
+	}
+#endif
+}
+
 static void keyboard_at_poll(void)
 {
 	keybsenddelay += (1000 * TIMER_USEC);
 
-        if (keyboard_at.out_new != -1 && !keyboard_at.last_irq)
+        if ((keyboard_at.out_new != -1) && !keyboard_at.last_irq)
         {
                 keyboard_at.wantirq = 0;
                 if (keyboard_at.out_new & 0x100)
                 {
-                        if ((keyboard_at.mem[0] & 0x02) && mouse_enabled)
+			keyboard_at_log("Want mouse data\n");
+                        if (keyboard_at.mem[0] & 0x02)
                                 picint(0x1000);
                         keyboard_at.out = keyboard_at.out_new & 0xff;
                         keyboard_at.out_new = -1;
@@ -164,6 +160,7 @@ static void keyboard_at_poll(void)
                 }
                 else
                 {
+			keyboard_at_log("Want keyboard data\n");
                         if (keyboard_at.mem[0] & 0x01)
                                 picint(2);
                         keyboard_at.out = keyboard_at.out_new;
@@ -181,14 +178,14 @@ static void keyboard_at_poll(void)
                 keyboard_at.out_new = key_ctrl_queue[key_ctrl_queue_start];
                 key_ctrl_queue_start = (key_ctrl_queue_start + 1) & 0xf;
         }                
-        else if (!(keyboard_at.status & STAT_OFULL) && keyboard_at.out_new == -1 && /*!(keyboard_at.mem[0] & 0x20) &&*/
-            mouse_queue_start != mouse_queue_end)
+        else if (!(keyboard_at.status & STAT_OFULL) && keyboard_at.out_new == -1/* && !(keyboard_at.mem[0] & 0x20)*/ &&
+            (mouse_queue_start != mouse_queue_end))
         {
                 keyboard_at.out_new = mouse_queue[mouse_queue_start] | 0x100;
                 mouse_queue_start = (mouse_queue_start + 1) & 0xf;
         }                
         else if (!(keyboard_at.status & STAT_OFULL) && keyboard_at.out_new == -1 &&
-                 !(keyboard_at.mem[0] & 0x10) && key_queue_start != key_queue_end)
+                 !(keyboard_at.mem[0] & 0x10) && (key_queue_start != key_queue_end))
         {
                 keyboard_at.out_new = key_queue[key_queue_start];
                 key_queue_start = (key_queue_start + 1) & 0xf;
@@ -279,6 +276,8 @@ write_register:
                                         if (!(val & 1) && keyboard_at.wantirq)
                                            keyboard_at.wantirq = 0;
                                         mouse_scan = !(val & 0x20);
+					keyboard_at_log("Mouse is now %s\n",  mouse_scan ? "enabled" : "disabled");
+					keyboard_at_log("Mouse interrupt is now %s\n",  (val & 0x02) ? "enabled" : "disabled");
 
 					/* Addition by OBattler: Scan code translate ON/OFF. */
 					mode &= 0x93;
@@ -304,6 +303,7 @@ write_register:
                                 break;
 
 				case 0xaf: /*AMI - set extended controller RAM*/
+				keyboard_at_log("AMI - set extended controller RAM\n");
 				if (keyboard_at.secr_phase == 0)
 				{
 					goto bad_command;
@@ -322,15 +322,18 @@ write_register:
 				break;
 
                                 case 0xcb: /*AMI - set keyboard mode*/
+				keyboard_at_log("AMI - set keyboard mode\n");
                                 break;
                                 
                                 case 0xcf: /*??? - sent by MegaPC BIOS*/
+				keyboard_at_log("??? - sent by MegaPC BIOS\n");
 				/* To make sure the keyboard works correctly on the MegaPC. */
 				mode &= 0xFC;
 				mode |= 2;
                                 break;
                                 
                                 case 0xd1: /*Write output port*/
+				keyboard_at_log("Write output port\n");
                                 if ((keyboard_at.output_port ^ val) & 0x02) /*A20 enable change*/
                                 {
                                         mem_a20_key = val & 0x02;
@@ -341,21 +344,26 @@ write_register:
                                 break;
                                 
                                 case 0xd2: /*Write to keyboard output buffer*/
+				keyboard_at_log("Write to keyboard output buffer\n");
                                 keyboard_at_adddata_keyboard(val);
                                 break;
                                 
                                 case 0xd3: /*Write to mouse output buffer*/
+				keyboard_at_log("Write to mouse output buffer\n");
                                 keyboard_at_adddata_mouse(val);
                                 break;
                                 
                                 case 0xd4: /*Write to mouse*/
-                                if (keyboard_at.mouse_write)
+				keyboard_at_log("Write to mouse (%02X)\n", val);
+                                if (keyboard_at.mouse_write && (machines[machine].flags & MACHINE_PS2))
                                         keyboard_at.mouse_write(val, keyboard_at.mouse_p);
+				else
+					keyboard_at_adddata_mouse(0xff);
                                 break;     
                                 
                                 default:
 bad_command:
-                                pclog("Bad AT keyboard controller 0060 write %02X command %02X\n", val, keyboard_at.command);
+                                keyboard_at_log("Bad AT keyboard controller 0060 write %02X command %02X\n", val, keyboard_at.command);
                         }
                 }
                 else
@@ -392,7 +400,7 @@ bad_command:
                                         break;
                                         
                                         default:
-                                        pclog("Bad AT keyboard 0060 write %02X command %02X\n", val, keyboard_at.key_command);
+                                        keyboard_at_log("Bad AT keyboard 0060 write %02X command %02X\n", val, keyboard_at.key_command);
                                 }
                         }
                         else
@@ -493,7 +501,7 @@ bad_command:
                                         break;
                                         
                                         default:
-                                        pclog("Bad AT keyboard command %02X\n", val);
+                                        keyboard_at_log("Bad AT keyboard command %02X\n", val);
                                         keyboard_at_adddata_keyboard(0xfe);
                                 }
                         }
@@ -554,22 +562,50 @@ bad_command:
                         keyboard_at.want60 = 1;
                         break;
                         
-                        case 0xa1: /*AMI - get controlled version*/
+                        case 0xa1: /*AMI - get controller version*/
+			keyboard_at_log("AMI - get controller version\n");
                         break;
                                 
                         case 0xa7: /*Disable mouse port*/
-                        mouse_scan = 0;
+			if (machines[machine].flags & MACHINE_PS2)
+			{
+				keyboard_at_log("Disable mouse port\n");
+        	                mouse_scan = 0;
+				keyboard_at.mem[0] |= 0x20;
+			}
+			else
+			{
+				keyboard_at_log("Write Cache Bad\n");
+			}
                         break;
 
                         case 0xa8: /*Enable mouse port*/
-                        mouse_scan = 1;
+			if (machines[machine].flags & MACHINE_PS2)
+			{
+				keyboard_at_log("Enable mouse port\n");
+        	                mouse_scan = 1;
+				keyboard_at.mem[0] &= 0xDF;
+			}
+			else
+			{
+				keyboard_at_log("Write Cache Good\n");
+			}
                         break;
                         
                         case 0xa9: /*Test mouse port*/
-                        keyboard_at_adddata(0x00); /*no error*/
+			keyboard_at_log("Test mouse port\n");
+			if (machines[machine].flags & MACHINE_PS2)
+			{
+	                        keyboard_at_adddata(0x00); /*no error*/
+			}
+			else
+			{
+	                        keyboard_at_adddata(0xff); /*no mouse*/
+			}
                         break;
                         
                         case 0xaa: /*Self-test*/
+			keyboard_at_log("Self-test\n");
                         if (!keyboard_at.initialised)
                         {
                                 keyboard_at.initialised = 1;
@@ -590,10 +626,12 @@ bad_command:
                         break;
                         
                         case 0xab: /*Interface test*/
+			keyboard_at_log("Interface test\n");
                         keyboard_at_adddata(0x00); /*no error*/
                         break;
                         
                         case 0xac: /*Diagnostic dump*/
+			keyboard_at_log("Diagnostic dump\n");
 			for (i = 0; i < 16; i++)
 			{
 	                        keyboard_at_adddata(keyboard_at.mem[i]);
@@ -604,10 +642,12 @@ bad_command:
                         break;
                         
                         case 0xad: /*Disable keyboard*/
+			keyboard_at_log("Disable keyboard\n");
                         keyboard_at.mem[0] |=  0x10;
                         break;
 
                         case 0xae: /*Enable keyboard*/
+			keyboard_at_log("Enable keyboard\n");
                         keyboard_at.mem[0] &= ~0x10;
                         break;
                         
@@ -628,12 +668,14 @@ bad_command:
 				case ROM_AP53:
 				case ROM_P55T2S:
 				case ROM_S1668:
-					/*Set extended controlled RAM*/
+					/*Set extended controller RAM*/
+					keyboard_at_log("Set extended controller RAM\n");
 		                        keyboard_at.want60 = 1;
 					keyboard_at.secr_phase = 1;
 					break;
 				default:
 					/*Read keyboard version*/
+					keyboard_at_log("Read keyboard version\n");
 		                        keyboard_at_adddata(0x00);
 					break;
 			}
@@ -642,60 +684,74 @@ bad_command:
 			case 0xb0: case 0xb1: case 0xb2: case 0xb3: case 0xb4: case 0xb5: case 0xb6: case 0xb7:
 			case 0xb8: case 0xb9: case 0xba: case 0xbb: case 0xbc: case 0xbd: case 0xbe: case 0xbf:
 			/*Set keyboard lines low (B0-B7) or high (B8-BF)*/
+			keyboard_at_log("Set keyboard lines low (B0-B7) or high (B8-BF)\n");
 			keyboard_at_adddata(0x00);
 			break;
 
                         case 0xc0: /*Read input port*/
+			keyboard_at_log("Read input port\n");
                         keyboard_at_adddata(keyboard_at.input_port | 4 | fdc_ps1_525());
                         keyboard_at.input_port = ((keyboard_at.input_port + 1) & 3) | (keyboard_at.input_port & 0xfc) | fdc_ps1_525();
                         break;
 
 			case 0xc1: /*Copy bits 0 to 3 of input port to status bits 4 to 7*/
+			keyboard_at_log("Copy bits 0 to 3 of input port to status bits 4 to 7\n");
 			keyboard_at.status &= 0xf;
 			keyboard_at.status |= ((((keyboard_at.input_port & 0xfc) | 0x84 | fdc_ps1_525()) & 0xf) << 4);
 			break;
                         
 			case 0xc2: /*Copy bits 4 to 7 of input port to status bits 4 to 7*/
+			keyboard_at_log("Copy bits 4 to 7 of input port to status bits 4 to 7\n");
 			keyboard_at.status &= 0xf;
 			keyboard_at.status |= (((keyboard_at.input_port & 0xfc) | 0x84 | fdc_ps1_525()) & 0xf0);
 			break;
                         
-                        case 0xc9: /*AMI - block P22 and P23 ??? */
+                        case 0xc9: /*AMI - block P22 and P23 ???*/
+			keyboard_at_log("AMI - block P22 and P23 ???\n");
                         break;
                         
                         case 0xca: /*AMI - read keyboard mode*/
+			keyboard_at_log("AMI - read keyboard mode\n");
                         keyboard_at_adddata(0x00); /*ISA mode*/
                         break;
                         
                         case 0xcb: /*AMI - set keyboard mode*/
+			keyboard_at_log("AMI - set keyboard mode\n");
                         keyboard_at.want60 = 1;
                         break;
                         
                         case 0xcf: /*??? - sent by MegaPC BIOS*/
+			keyboard_at_log("??? - sent by MegaPC BIOS\n");
                         keyboard_at.want60 = 1;
                         break;
                         
                         case 0xd0: /*Read output port*/
+			keyboard_at_log("Read output port\n");
                         keyboard_at_adddata(keyboard_at.output_port);
                         break;
                         
                         case 0xd1: /*Write output port*/
+			keyboard_at_log("Write output port\n");
                         keyboard_at.want60 = 1;
                         break;
 
                         case 0xd2: /*Write keyboard output buffer*/
+			keyboard_at_log("Write keyboard output buffer\n");
                         keyboard_at.want60 = 1;
                         break;
                         
                         case 0xd3: /*Write mouse output buffer*/
+			keyboard_at_log("Write mouse output buffer\n");
                         keyboard_at.want60 = 1;
                         break;
                         
                         case 0xd4: /*Write to mouse*/
+			keyboard_at_log("Write to mouse\n");
                         keyboard_at.want60 = 1;
                         break;
 
 			case 0xdd: /* Disable A20 Address Line */
+			keyboard_at_log("Disable A20 Address Line\n");
 			keyboard_at.output_port &= ~0x02;
 			mem_a20_key = 0;
 			mem_a20_recalc();
@@ -703,6 +759,7 @@ bad_command:
 			break;
 
 			case 0xdf: /* Enable A20 Address Line */
+			keyboard_at_log("Enable A20 Address Line\n");
 			keyboard_at.output_port |= 0x02;
 			mem_a20_key = 2;
 			mem_a20_recalc();
@@ -710,14 +767,17 @@ bad_command:
 			break;
 
                         case 0xe0: /*Read test inputs*/
+			keyboard_at_log("Read test inputs\n");
                         keyboard_at_adddata(0x00);
                         break;
                         
                         case 0xef: /*??? - sent by AMI486*/
+			keyboard_at_log("??? - sent by AMI486\n");
                         break;
 
 			case 0xf0: case 0xf1: case 0xf2: case 0xf3: case 0xf4: case 0xf5: case 0xf6: case 0xf7:
 			case 0xf8: case 0xf9: case 0xfa: case 0xfb: case 0xfc: case 0xfd: case 0xfe: case 0xff:
+			keyboard_at_log("Pulse\n");
 			if (!(val & 1))
 			{
 				/* Pin 0 selected. */
@@ -728,15 +788,31 @@ bad_command:
 			break;
                                 
                         default:
-                        pclog("Bad AT keyboard controller command %02X\n", val);
+                        keyboard_at_log("Bad AT keyboard controller command %02X\n", val);
                 }
         }
 }
 
-void keyboard_at_mouse_set_enabled(uint8_t enabled)
+uint8_t keyboard_at_get_mouse_scan(void)
 {
-	/* pclog("Keyboard AT mouse: %i\n", enabled); */
-	mouse_enabled = enabled;
+	return mouse_scan ? 0x10 : 0x00;
+}
+
+void keyboard_at_set_mouse_scan(uint8_t val)
+{
+	uint8_t temp_mouse_scan = val ? 1 : 0;
+
+	if (temp_mouse_scan == mouse_scan)
+	{
+		return;
+	}
+
+	mouse_scan = val ? 1 : 0;
+
+	keyboard_at.mem[0] &= 0xDF;
+	keyboard_at.mem[0] |= (val ? 0x00 : 0x20);
+
+	keyboard_at_log("Mouse scan %sabled via PCI\n", mouse_scan ? "en" : "dis");
 }
 
 uint8_t keyboard_at_read(uint16_t port, void *priv)
@@ -747,16 +823,7 @@ uint8_t keyboard_at_read(uint16_t port, void *priv)
                 case 0x60:
                 temp = keyboard_at.out;
                 keyboard_at.status &= ~(STAT_OFULL/* | STAT_MFULL*/);
-		if (PCI)
-		{
-			/* The PIIX/PIIX3 datasheet mandates that both of these interrupts are cleared on any read of port 0x60. */
-	                picintc(1 << 1);
-			if (mouse_enabled)
-			{
-		                picintc(1 << 12);
-			}
-		}
-		else
+		if (keyboard_at.last_irq != 0x1000)
 		{
 	                picintc(keyboard_at.last_irq);
 		}
@@ -789,7 +856,7 @@ void keyboard_at_reset(void)
 {
         keyboard_at.initialised = 0;
         keyboard_at.status = STAT_LOCK | STAT_CD;
-        keyboard_at.mem[0] = 0x11;
+        keyboard_at.mem[0] = 0x31;
 	mode = 0x02 | dtrans;
 	keyboard_at.default_mode = 2;
 	first_write = 1;
@@ -803,6 +870,8 @@ void keyboard_at_reset(void)
         keyboard_at.key_wantdata = 0;
         
         keyboard_scan = 1;
+
+	mouse_scan = 0;
 
 	sc_or = 0;
 

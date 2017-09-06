@@ -30,72 +30,32 @@ static int fdc37c669_curreg = 0;
 static uint8_t fdc37c669_regs[42];
 static uint8_t tries;
 
-static uint16_t fdc_valid_ports[2] = {0x3F0, 0x370};
-static uint16_t ide_valid_ports[2] = {0x1F0, 0x170};
-static uint16_t ide_as_valid_ports[2] = {0x3F6, 0x376};
-static uint16_t lpt1_valid_ports[3] = {0x3BC, 0x378, 0x278};
-static uint16_t com1_valid_ports[9] = {0x3F8, 0x2F8, 0x338, 0x3E8, 0x2E8, 0x220, 0x238, 0x2E0, 0x228};
-static uint16_t com2_valid_ports[9] = {0x3F8, 0x2F8, 0x338, 0x3E8, 0x2E8, 0x220, 0x238, 0x2E0, 0x228};
-
-static uint8_t is_in_array(uint16_t *port_array, uint8_t max, uint16_t port)
-{
-	uint8_t i = 0;
-
-	for (i = 0; i < max; i++)
-	{
-		if (port_array[i] == port)  return 1;
-	}
-	return 0;
-}
-
 static uint16_t make_port(uint8_t reg)
 {
 	uint16_t p = 0;
 
+	uint16_t mask = 0;
+
 	switch(reg)
 	{
 		case 0x20:
-			p = ((uint16_t) (fdc37c669_regs[reg] & 0xfc)) << 2;
-			p &= 0xFF0;
-			if ((p < 0x100) || (p > 0x3F0))  p = 0x3F0;
-			if (!(is_in_array(fdc_valid_ports, 2, p)))  p = 0x3F0;
-			fdc37c669_regs[reg] = ((p >> 2) & 0xfc) | (fdc37c669_regs[reg] & 3);
-			break;
 		case 0x21:
-			p = ((uint16_t) (fdc37c669_regs[reg] & 0xfc)) << 2;
-			p &= 0xFF0;
-			if ((p < 0x100) || (p > 0x3F0))  p = 0x1F0;
-			if (!(is_in_array(ide_valid_ports, 2, p)))  p = 0x1F0;
-			fdc37c669_regs[reg] = ((p >> 2) & 0xfc) | (fdc37c669_regs[reg] & 3);
-			break;
 		case 0x22:
-			p = ((uint16_t) (fdc37c669_regs[reg] & 0xfc)) << 2;
-			p &= 0xFF0;
-			if ((p < 0x106) || (p > 0x3F6))  p = 0x3F6;
-			if (!(is_in_array(ide_as_valid_ports, 2, p)))  p = 0x3F6;
-			fdc37c669_regs[reg] = ((p >> 2) & 0xfc) | (fdc37c669_regs[reg] & 3);
+			mask = 0xfc;
 			break;
 		case 0x23:
-			p = ((uint16_t) (fdc37c669_regs[reg] & 0xff)) << 2;
-			p &= 0xFFC;
-			if ((p < 0x100) || (p > 0x3F8))  p = 0x378;
-			if (!(is_in_array(lpt1_valid_ports, 3, p)))  p = 0x378;
-			fdc37c669_regs[reg] = (p >> 2);
+			mask = 0xff;
 			break;
 		case 0x24:
-			p = ((uint16_t) (fdc37c669_regs[reg] & 0xfe)) << 2;
-			p &= 0xFF8;
-			if ((p < 0x100) || (p > 0x3F8))  p = 0x3F8;
-			if (!(is_in_array(com1_valid_ports, 9, p)))  p = 0x3F8;
-			fdc37c669_regs[reg] = ((p >> 2) & 0xfe) | (fdc37c669_regs[reg] & 1);
-			break;
 		case 0x25:
-			p = ((uint16_t) (fdc37c669_regs[reg] & 0xfe)) << 2;
-			p &= 0xFF8;
-			if ((p < 0x100) || (p > 0x3F8))  p = 0x2F8;
-			if (!(is_in_array(com2_valid_ports, 9, p)))  p = 0x2F8;
-			fdc37c669_regs[reg] = ((p >> 2) & 0xfe) | (fdc37c669_regs[reg] & 1);
+			mask = 0xfe;
 			break;
+	}
+
+	p = ((uint16_t) (fdc37c669_regs[reg] & mask)) << 2;
+	if (reg == 0x22)
+	{
+		p |= 6;
 	}
 
 	return p;
@@ -106,7 +66,7 @@ void fdc37c669_write(uint16_t port, uint8_t val, void *priv)
 	uint8_t index = (port & 1) ? 0 : 1;
 	uint8_t valxor = 0;
 	uint8_t max = 42;
-        pclog("fdc37c669_write : port=%04x reg %02X = %02X locked=%i\n", port, fdc37c669_curreg, val, fdc37c669_locked);
+        /* pclog("fdc37c669_write : port=%04x reg %02X = %02X locked=%i\n", port, fdc37c669_curreg, val, fdc37c669_locked); */
 
 	if (index)
 	{
@@ -154,12 +114,14 @@ process_value:
 	switch(fdc37c669_curreg)
 	{
 		case 0:
+#if 0
 			if (valxor & 3)
 			{
 				ide_pri_disable();
 				if ((fdc37c669_regs[0] & 3) == 2)  ide_pri_enable_ex();
 				break;
 			}
+#endif
 			if (valxor & 8)
 			{
 				fdc_remove();
@@ -169,8 +131,13 @@ process_value:
 		case 1:
 			if (valxor & 4)
 			{
+				/* pclog("Removing LPT1\n"); */
 				lpt1_remove();
-				if ((fdc37c669_regs[1] & 4) && (fdc37c669_regs[0x23] & 0xc0))  lpt1_init(make_port(0x23));
+				if ((fdc37c669_regs[1] & 4) && (fdc37c669_regs[0x23] >= 0x40)) 
+				{
+					/* pclog("LPT1 init (%02X)\n", make_port(0x23)); */
+					lpt1_init(make_port(0x23));
+				}
 			}
 			if (valxor & 7)
 			{
@@ -180,13 +147,23 @@ process_value:
 		case 2:
 			if (valxor & 8)
 			{
+				/* pclog("Removing UART1\n"); */
 				serial_remove(1);
-				if ((fdc37c669_regs[2] & 8) && (fdc37c669_regs[0x24] & 0xc0))  serial_setup(1, make_port(0x24), (fdc37c669_regs[0x28] & 0xF0) >> 8);
+				if ((fdc37c669_regs[2] & 8) && (fdc37c669_regs[0x24] >= 0x40))
+				{
+					/* pclog("UART1 init (%02X, %i)\n", make_port(0x24), (fdc37c669_regs[0x28] & 0xF0) >> 4); */
+					serial_setup(1, make_port(0x24), (fdc37c669_regs[0x28] & 0xF0) >> 4);
+				}
 			}
 			if (valxor & 0x80)
 			{
+				/* pclog("Removing UART2\n"); */
 				serial_remove(2);
-				if ((fdc37c669_regs[2] & 0x80) && (fdc37c669_regs[0x25] & 0xc0))  serial_setup(2, make_port(0x25), fdc37c669_regs[0x28] & 0xF);
+				if ((fdc37c669_regs[2] & 0x80) && (fdc37c669_regs[0x25] >= 0x40))
+				{
+					/* pclog("UART2 init (%02X, %i)\n", make_port(0x25), fdc37c669_regs[0x28] & 0x0F); */
+					serial_setup(2, make_port(0x25), fdc37c669_regs[0x28] & 0x0F);
+				}
 			}
 			break;
 		case 3:
@@ -209,6 +186,7 @@ process_value:
 			break;
 		case 0x21:
 		case 0x22:
+#if 0
 			if (valxor & 0xfc)
 			{
 				ide_pri_disable();
@@ -223,40 +201,64 @@ process_value:
 				}
 				if ((fdc37c669_regs[0] & 3) == 2)  ide_pri_enable_ex();
 			}
+#endif
 			break;
 		case 0x23:
 			if (valxor)
 			{
+				/* pclog("Removing LPT1\n"); */
 				lpt1_remove();
-				if ((fdc37c669_regs[1] & 4) && (fdc37c669_regs[0x23] & 0xc0))  lpt1_init(make_port(0x23));
+				if ((fdc37c669_regs[1] & 4) && (fdc37c669_regs[0x23] >= 0x40)) 
+				{
+					/* pclog("LPT1 init (%02X)\n", make_port(0x23)); */
+					lpt1_init(make_port(0x23));
+				}
 			}
 			break;
 		case 0x24:
 			if (valxor & 0xfe)
 			{
+				/* pclog("Removing UART1\n"); */
 				serial_remove(1);
-				if ((fdc37c669_regs[2] & 8) && (fdc37c669_regs[0x24] & 0xc0))  serial_setup(1, make_port(0x24), (fdc37c669_regs[0x28] & 0xF0) >> 8);
+				if ((fdc37c669_regs[2] & 8) && (fdc37c669_regs[0x24] >= 0x40))
+				{
+					/* pclog("UART1 init (%02X, %i)\n", make_port(0x24), (fdc37c669_regs[0x28] & 0xF0) >> 4); */
+					serial_setup(1, make_port(0x24), (fdc37c669_regs[0x28] & 0xF0) >> 4);
+				}
 			}
 			break;
 		case 0x25:
 			if (valxor & 0xfe)
 			{
+				/* pclog("Removing UART2\n"); */
 				serial_remove(2);
-				if ((fdc37c669_regs[2] & 0x80) && (fdc37c669_regs[0x25] & 0xc0))  serial_setup(2, make_port(0x25), fdc37c669_regs[0x28] & 0xF);
+				if ((fdc37c669_regs[2] & 0x80) && (fdc37c669_regs[0x25] >= 0x40))
+				{
+					/* pclog("UART2 init (%02X, %i)\n", make_port(0x25), fdc37c669_regs[0x28] & 0x0F); */
+					serial_setup(2, make_port(0x25), fdc37c669_regs[0x28] & 0x0F);
+				}
 			}
 			break;
 		case 0x28:
 			if (valxor & 0xf)
 			{
+				/* pclog("Removing UART2\n"); */
 				serial_remove(2);
-				if ((fdc37c669_regs[0x28] & 0xf) == 0)  fdc37c669_regs[0x28] |= 0x3;
-				if ((fdc37c669_regs[2] & 0x80) && (fdc37c669_regs[0x25] & 0xc0))  serial_setup(2, make_port(0x25), fdc37c669_regs[0x28] & 0xF);
+				if ((fdc37c669_regs[2] & 0x80) && (fdc37c669_regs[0x25] >= 0x40))
+				{
+					/* pclog("UART2 init (%02X, %i)\n", make_port(0x25), fdc37c669_regs[0x28] & 0x0F); */
+					serial_setup(2, make_port(0x25), fdc37c669_regs[0x28] & 0x0F);
+				}
 			}
 			if (valxor & 0xf0)
 			{
+				/* pclog("Removing UART1\n"); */
 				serial_remove(1);
-				if ((fdc37c669_regs[0x28] & 0xf0) == 0)  fdc37c669_regs[0x28] |= 0x40;
-				if ((fdc37c669_regs[2] & 8) && (fdc37c669_regs[0x24] & 0xc0))  serial_setup(1, make_port(0x24), (fdc37c669_regs[0x28] & 0xF0) >> 8);
+				if ((fdc37c669_regs[2] & 8) && (fdc37c669_regs[0x24] >= 0x40))
+				{
+					/* pclog("UART1 init (%02X, %i)\n", make_port(0x24), (fdc37c669_regs[0x28] & 0xF0) >> 4); */
+					serial_setup(1, make_port(0x24), (fdc37c669_regs[0x28] & 0xF0) >> 4);
+				}
 			}
 			break;
 	}
@@ -266,7 +268,7 @@ uint8_t fdc37c669_read(uint16_t port, void *priv)
 {
 	uint8_t index = (port & 1) ? 0 : 1;
 
-        pclog("fdc37c669_read : port=%04x reg %02X locked=%i\n", port, fdc37c669_curreg, fdc37c669_locked);
+        /* pclog("fdc37c669_read : port=%04x reg %02X locked=%i\n", port, fdc37c669_curreg, fdc37c669_locked); */
 
 	if (!fdc37c669_locked)
 	{
@@ -277,7 +279,7 @@ uint8_t fdc37c669_read(uint16_t port, void *priv)
 		return fdc37c669_curreg;
 	else
 	{
-		pclog("0x03F1: %02X\n", fdc37c669_regs[fdc37c669_curreg]);
+		/* pclog("0x03F1: %02X\n", fdc37c669_regs[fdc37c669_curreg]); */
 		if ((fdc37c669_curreg < 0x18) && (fdc37c669_rw_locked))  return 0xff;
 		return fdc37c669_regs[fdc37c669_curreg];
 	}

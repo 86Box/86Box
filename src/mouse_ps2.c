@@ -127,7 +127,7 @@ void mouse_ps2_write(uint8_t val, void *p)
                         keyboard_at_adddata_mouse(0xaa);
                         keyboard_at_adddata_mouse(0x00);
                         break;
-                        
+
 //                        default:
 //                        fatal("mouse_ps2 : Bad command %02X\n", val, mouse->command);
                 }
