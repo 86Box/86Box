@@ -10,7 +10,7 @@
  *		  0 - BT-545C ISA;
  *		  1 - BT-958D PCI (but BT-545C ISA on non-PCI machines)
  *
- * Version:	@(#)scsi_buslogic.c	1.0.11	2017/09/01
+ * Version:	@(#)scsi_buslogic.c	1.0.12	2017/09/05
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -470,8 +470,9 @@ typedef struct {
     int		ExtendedLUNCCBFormat;
     HALocalRAM	LocalRAM;
     Req_t Req;
-    uint8_t	Status;
-    uint8_t	Interrupt;
+    volatile uint8_t				/* for multi-threading, keep */
+		Status,				/* these volatile */
+		Interrupt;
     uint8_t	Geometry;
     uint8_t	Control;
     uint8_t	Command;

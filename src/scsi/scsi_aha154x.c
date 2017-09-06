@@ -396,10 +396,12 @@ typedef struct {
 
     int		ResetCB;
 
+    volatile uint8_t				/* for multi-threading, keep */
+		Status,				/* these volatile */
+		Interrupt;
+
     int		ExtendedLUNCCBFormat;
     Req_t	Req;
-    uint8_t	Status;
-    uint8_t	Interrupt;
     uint8_t	Geometry;
     uint8_t	Control;
     uint8_t	Command;
