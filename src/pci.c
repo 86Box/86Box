@@ -133,9 +133,17 @@ static uint8_t pci_read(uint16_t port, void *priv)
 static void elcr_write(uint16_t port, uint8_t val, void *priv)
 {
 	/* pci_log("ELCR%i: WRITE %02X\n", port & 1, val); */
+	if (port & 1)
+	{
+		val &= 0xDE;
+	}
+	else
+	{
+		val &= 0xF8;
+	}
 	elcr[port & 1] = val;
 
-	/* printf("ELCR %i: %c %c %c %c %c %c %c %c\n", port & 1, (val & 1) ? 'L' : 'E', (val & 2) ? 'L' : 'E', (val & 4) ? 'L' : 'E', (val & 8) ? 'L' : 'E', (val & 0x10) ? 'L' : 'E', (val & 0x20) ? 'L' : 'E', (val & 0x40) ? 'L' : 'E', (val & 0x80) ? 'L' : 'E'); */
+	printf("ELCR %i: %c %c %c %c %c %c %c %c\n", port & 1, (val & 1) ? 'L' : 'E', (val & 2) ? 'L' : 'E', (val & 4) ? 'L' : 'E', (val & 8) ? 'L' : 'E', (val & 0x10) ? 'L' : 'E', (val & 0x20) ? 'L' : 'E', (val & 0x40) ? 'L' : 'E', (val & 0x80) ? 'L' : 'E');
 }
 
 static uint8_t elcr_read(uint16_t port, void *priv)
@@ -147,7 +155,9 @@ static uint8_t elcr_read(uint16_t port, void *priv)
 static void elcr_reset(void)
 {
 	pic_reset();
-	elcr[0] = elcr[1] = 0;
+	/* elcr[0] = elcr[1] = 0; */
+	elcr[0] = 0x98;
+	elcr[1] = 0x00;
 }
 
 static void pci_type2_write(uint16_t port, uint8_t val, void *priv);
@@ -236,9 +246,14 @@ void pci_set_mirq_routing(int mirq, int irq)
         pci_mirqs[mirq].irq_line = irq;
 }
 
-static int pci_irq_is_level(int irq)
+int pci_irq_is_level(int irq)
 {
 	int real_irq = irq & 7;
+
+	if ((irq <= 2) || (irq == 8) || (irq == 13))
+	{
+		return 0;
+	}
 
 	if (irq > 7)
 	{
@@ -247,21 +262,6 @@ static int pci_irq_is_level(int irq)
 	else
 	{
 		return !!(elcr[0] & (1 << real_irq));
-	}
-}
-
-static void pci_issue_irq(int irq)
-{
-	/* pci_log("Issuing PCI IRQ %i: ", irq); */
-	if (pci_irq_is_level(irq))
-	{
-		/* pci_log("Level\n"); */
-		picintlevel(1 << irq);
-	}
-	else
-	{
-		/* pci_log("Edge\n"); */
-		picint(1 << irq);
 	}
 }
 
@@ -328,7 +328,7 @@ void pci_set_mirq(uint8_t mirq, uint8_t channel)
 		pci_mirq_log("pci_set_mirq(%02X, %02X): Issuing %s-triggered IRQ (%sheld)\n", mirq, channel, level ? "level" : "edge", pci_irq_hold[irq_line] ? "" : "not ");
 
 		/* Only raise the interrupt if it's edge-triggered or level-triggered and not yet being held. */
-		pci_issue_irq(irq_line);
+		picintlevel(1 << irq_line);
 	}
 	else if (level && pci_irq_hold[irq_line])
 	{
@@ -417,7 +417,7 @@ void pci_set_irq(uint8_t card, uint8_t pci_int)
 		pci_log("pci_set_irq(%02X, %02X): Issuing %s-triggered IRQ (%sheld)\n", card, pci_int, level ? "level" : "edge", pci_irq_hold[irq_line] ? "" : "not ");
 
 		/* Only raise the interrupt if it's edge-triggered or level-triggered and not yet being held. */
-		pci_issue_irq(irq_line);
+		picintlevel(1 << irq_line);
 	}
 	else if (level && pci_irq_hold[irq_line])
 	{

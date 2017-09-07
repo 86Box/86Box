@@ -422,7 +422,6 @@ typedef struct {
     int		PendingInterrupt;
     int		Lock;
     event_t	*evt;
-    int		scan_restart;
 } aha_t;
 #pragma pack(pop)
 
@@ -638,7 +637,6 @@ aha_reset(aha_t *dev)
    }
 
     dev->ResetCB = 0;
-    dev->scan_restart = 0;
 
     dev->Status = STAT_IDLE | STAT_INIT;
     dev->Geometry = 0x80;
@@ -1220,7 +1218,7 @@ aha_mbo_adv(aha_t *dev)
 }
 
 
-static uint8_t
+static void
 aha_do_mail(aha_t *dev)
 {
     Mailbox32_t mb32;
@@ -1247,7 +1245,7 @@ aha_do_mail(aha_t *dev)
 		DMAPageWrite(Outgoing + CodeOffset, (char *)&CmdStatus, sizeof(CmdStatus));
     }
     else {
-	return 0;
+	return;
     }
 
     if (dev->MailboxOutInterrupts) {
@@ -1266,8 +1264,6 @@ aha_do_mail(aha_t *dev)
     } else {
 	aha_log("Invalid action code: %02X\n", mb32.u.out.ActionCode);
     }
-
-    return 1;
 }
 
 
@@ -1276,13 +1272,12 @@ aha_cmd_thread(void *priv)
 {
     aha_t *dev = (aha_t *)priv;
 
-aha_event_restart:
     /* Create a waitable event. */
     dev->evt = thread_create_event();
 
-aha_scan_restart:
-    while (aha_do_mail(dev) && dev->MailboxCount)
+    while (dev->MailboxCount)
     {
+	aha_do_mail(dev);
     }
 
     if (!dev->MailboxCount)
@@ -1293,22 +1288,8 @@ aha_scan_restart:
 	return;
     }
 
-    if (dev->scan_restart)
-    {
-	dev->scan_restart = 0;
-	goto aha_scan_restart;
-    }
-
     thread_destroy_event(dev->evt);
-    dev->evt = NULL;
-
-    if (dev->scan_restart)
-    {
-	dev->scan_restart = 0;
-	goto aha_event_restart;
-    }
-
-    poll_tid = NULL;
+    dev->evt = poll_tid = NULL;
 
     aha_log("%s: Callback: polling stopped.\n", dev->name);
 }
@@ -1400,10 +1381,6 @@ aha_write(uint16_t port, uint8_t val, void *priv)
 				if (! poll_tid) {
 					aha_log("%s: starting thread..\n", dev->name);
 					poll_tid = thread_create(aha_cmd_thread, dev);
-					dev->scan_restart = 0;
-				}
-				else {
-					dev->scan_restart = 1;
 				}
 			}
 			return;

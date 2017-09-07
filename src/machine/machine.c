@@ -128,7 +128,7 @@ machine_t machines[] =
         {"[486 ISA] DTK PKM-0038S E-2",		ROM_DTK486,		"dtk486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_AT | MACHINE_HAS_IDE,					  1,   64,   1, 127,	       machine_at_dtk486_init, NULL			},
         {"[486 ISA] IBM PS/1 machine 2133",	ROM_IBMPS1_2133,	"ibmps1_2133",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_AT | MACHINE_PS2 | MACHINE_HAS_IDE,			  1,   64,   1, 127,	       machine_ps1_m2133_init, NULL			},
 
-        {"[486 MCA] IBM PS/2 model 80-486",	ROM_IBMPS2_M80,		"ibmps2_m80-486",	{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 1, MACHINE_AT | MACHINE_PS2 | MACHINE_PS2_HDD | MACHINE_MCA,	  1,   32,   1,  63,	machine_ps2_model_80_486_init, NULL			},
+        {"[486 MCA] IBM PS/2 model 80-486",	ROM_IBMPS2_M80_486,	"ibmps2_m80-486",	{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 1, MACHINE_AT | MACHINE_PS2 | MACHINE_PS2_HDD | MACHINE_MCA,	  1,   32,   1,  63,	machine_ps2_model_80_486_init, NULL			},
 
         {"[486 PCI] Rise Computer R418",	ROM_R418,		"r418",			{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_AT | MACHINE_HAS_IDE | MACHINE_PCI,			  1,   64,   1, 127,		 machine_at_r418_init, NULL			},
 

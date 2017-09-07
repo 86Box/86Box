@@ -1118,9 +1118,10 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 					else
 					{
 						ide->atastat = BUSY_STAT;
+						ide_other->atastat = BUSY_STAT;
 					}
 					timer_process();
-					callbackide(ide_board);
+					/* callbackide(ide_board); */
 					if (ide_drive_is_cdrom(ide))
 					{
 						cdrom[atapi_cdrom_drives[ide->channel]].callback = 200 * IDE_TIME;
@@ -1502,6 +1503,7 @@ void callbackide(int ide_board)
 	IDE *ide, *ide_other;
 	int64_t snum;
 	int cdrom_id;
+	int cdrom_id_other;
 	uint64_t full_size = 0;
 
 	ide = &ide_drives[cur_ide[ide_board]];
@@ -1549,15 +1551,15 @@ void callbackide(int ide_board)
 		}
 		if (ide_drive_is_cdrom(ide_other))
 		{
-			cdrom_id = atapi_cdrom_drives[cur_ide[ide_board] ^ 1];
-			cdrom[cdrom_id].status = READY_STAT | DSC_STAT;
-			cdrom[cdrom_id].error = 1;
-			cdrom[cdrom_id].phase = 1;
-			cdrom[cdrom_id].request_length=0xEB14;
+			cdrom_id_other = atapi_cdrom_drives[cur_ide[ide_board] ^ 1];
+			cdrom[cdrom_id_other].status = READY_STAT | DSC_STAT;
+			cdrom[cdrom_id_other].error = 1;
+			cdrom[cdrom_id_other].phase = 1;
+			cdrom[cdrom_id_other].request_length=0xEB14;
 			ide_other->cylinder = 0xEB14;
-			if (cdrom_drives[cdrom_id].handler->stop)
+			if (cdrom_drives[cdrom_id_other].handler->stop)
 			{
-				cdrom_drives[cdrom_id].handler->stop(cdrom_id);
+				cdrom_drives[cdrom_id_other].handler->stop(cdrom_id_other);
 			}
 		}
 		if (ide_other->type == IDE_NONE)
@@ -1568,6 +1570,7 @@ void callbackide(int ide_board)
 	}
 
 	cdrom_id = atapi_cdrom_drives[cur_ide[ide_board]];
+	cdrom_id_other = atapi_cdrom_drives[cur_ide[ide_board] ^ 1];
 
 	switch (ide->command)
 	{
@@ -1918,6 +1921,24 @@ void callbackide(int ide_board)
 				ide->error = 1;
 				ide_irq_raise(ide);
 			}
+
+			ide_set_signature(ide_other);
+			ide_other->error=1; /*No error detected*/
+
+			if (ide_drive_is_cdrom(ide_other))
+			{
+				cdrom[cdrom_id_other].status = 0;
+				cdrom[cdrom_id_other].error = 1;
+				// ide_irq_raise(ide_other);
+			}
+			else
+			{
+				ide_other->atastat = READY_STAT | DSC_STAT;
+				ide_other->error = 1;
+				// ide_irq_raise(ide_other);
+			}
+
+			cur_ide[ide_board] &= ~1;
 			return;
 
 		case WIN_SPECIFY: /* Initialize Drive Parameters */

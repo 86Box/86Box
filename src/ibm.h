@@ -363,7 +363,7 @@ extern PPI ppi;
 /*PIC*/
 typedef struct PIC
 {
-        uint8_t icw1,icw4,mask,ins,pend,mask2;
+        uint8_t icw1,icw3,icw4,mask,ins,pend,mask2;
         int icw;
         uint8_t vector;
         int read;
@@ -484,6 +484,7 @@ enum
         ROM_IBMPS1_2133,
 
         ROM_PRESIDENT,  /*President Award 430FX PCI / 430FX / Award BIOS / Unknown Super I/O chip*/
+	ROM_IBMPS2_M80_486,
 
         ROM_MAX
 };

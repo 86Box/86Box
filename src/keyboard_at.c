@@ -823,10 +823,7 @@ uint8_t keyboard_at_read(uint16_t port, void *priv)
                 case 0x60:
                 temp = keyboard_at.out;
                 keyboard_at.status &= ~(STAT_OFULL/* | STAT_MFULL*/);
-		if (keyboard_at.last_irq != 0x1000)
-		{
-	                picintc(keyboard_at.last_irq);
-		}
+                picintc(keyboard_at.last_irq);
                 keyboard_at.last_irq = 0;
                 break;
 

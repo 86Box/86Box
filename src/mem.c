@@ -852,6 +852,7 @@ int loadbios()
                 return 1;
 
                 case ROM_IBMPS2_M80:
+                case ROM_IBMPS2_M80_486:
                 f=romfopen(L"roms/machines/ibmps2_m80/15f6637.bin",L"rb");
                 ff=romfopen(L"roms/machines/ibmps2_m80/15f6639.bin",L"rb");
                 if (!f || !ff) break;

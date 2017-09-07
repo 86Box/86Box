@@ -1489,7 +1489,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 					bl->scan_restart = 0;
 				}
 				else {
-					bl->scan_restart = 1;
+					bl->scan_restart = bl->LocalRAM.structured.autoSCSIData.fAggressiveRoundRobinMode ? 0 : 1;
 				}
 			}
 			return;
@@ -2571,8 +2571,18 @@ BuslogicEventRestart:
     bl->evt = thread_create_event();
 
 BuslogicScanRestart:
-    while (BuslogicProcessMailbox(bl) && bl->MailboxCount)
+    if (bl->LocalRAM.structured.autoSCSIData.fAggressiveRoundRobinMode)
     {
+	while (bl->MailboxCount)
+	{
+		BuslogicProcessMailbox(bl);
+	}
+    }
+    else
+    {
+	while (BuslogicProcessMailbox(bl) && bl->MailboxCount)
+	{
+	}
     }
 
     if (!bl->MailboxCount)
