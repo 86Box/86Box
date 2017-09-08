@@ -25,6 +25,7 @@
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../mem.h"
+#include "../pic.h"
 #include "../rom.h"
 #include "../device.h"
 #include "../nvr.h"
@@ -98,6 +99,7 @@ int		winsizex=640, winsizey=480;
 int		efwinsizey=480;
 int		gfx_present[GFX_MAX];
 HANDLE		ghMutex;
+HANDLE		slirpMutex;
 HANDLE		mainthreadh;
 int		infocus=1;
 int		drawits=0;
@@ -278,6 +280,16 @@ void endblit(void)
         ReleaseMutex(ghMutex);
 }
 
+void startslirp(void)
+{
+        WaitForSingleObject(slirpMutex, INFINITE);
+}
+
+void endslirp(void)
+{
+        ReleaseMutex(slirpMutex);
+}
+
 void leave_fullscreen(void)
 {
         leave_fullscreen_flag = 1;
@@ -426,6 +438,35 @@ void thread_destroy_event(event_t *_event)
         CloseHandle(event->handle);
         
         free(event);
+}
+
+void *thread_create_mutex(wchar_t *name)
+{
+	return (void*) CreateMutex(NULL, FALSE, name);
+}
+
+void thread_close_mutex(void *mutex)
+{
+	CloseHandle((HANDLE) mutex);
+}
+
+uint8_t thread_wait_mutex(void *mutex)
+{
+	DWORD dwres = WaitForSingleObject((HANDLE) mutex, INFINITE);
+
+	switch (dwres)
+	{
+		case WAIT_OBJECT_0:
+			return 1;
+		case WAIT_ABANDONED:
+		default:
+			return 0;
+	}
+}
+
+uint8_t thread_release_mutex(void *mutex)
+{
+	return !!ReleaseMutex((HANDLE) mutex);
 }
 
 static void init_cdrom_host_drives(void)
@@ -1780,7 +1821,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
         
         atexit(releasemouse);
 
-        ghMutex = CreateMutex(NULL, FALSE, NULL);
+        ghMutex = CreateMutex(NULL, FALSE, L"86Box.BlitMutex");
+        slirpMutex = CreateMutex(NULL, FALSE, L"86Box.SlirpMutex");
         mainthreadh=(HANDLE)_beginthread(mainthread,0,NULL);
         SetThreadPriority(mainthreadh, THREAD_PRIORITY_HIGHEST);
 
@@ -2235,6 +2277,9 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 #endif
 
 				case IDM_CONFIG_LOAD:
+					picint(1 << 12);
+					break;
+
 					pause = 1;
 					if (!file_dlg_st(hwnd, IDS_2160, "", 0))
 					{

@@ -63,6 +63,25 @@ slirp_tic(void)
 }
 
 
+static struct
+{
+        int busy;
+	int queue_in_use;
+
+        event_t *wake_poll_thread;
+        event_t *poll_complete;
+        event_t *queue_not_in_use;
+} poll_data;
+
+
+void network_slirp_wait_for_poll()
+{
+        while (poll_data.busy)
+                thread_wait_event(poll_data.poll_complete, -1);
+        thread_reset_event(poll_data.poll_complete);
+}
+
+
 /* Handle the receiving of frames. */
 static void
 poll_thread(void *arg)
@@ -76,6 +95,10 @@ poll_thread(void *arg)
     evt = thread_create_event();
 
     while (slirpq != NULL) {
+	startslirp();
+
+	network_slirp_wait_for_poll();
+
 	/* See if there is any work. */
 	slirp_tic();
 
@@ -98,10 +121,12 @@ poll_thread(void *arg)
 
 	/* Done with this one. */
 	free(qp);
+
+	endslirp();
     }
 
     thread_destroy_event(evt);
-    poll_tid = NULL;
+    evt = poll_tid = NULL;
 
     pclog("SLiRP: polling stopped.\n");
 }
@@ -124,6 +149,9 @@ network_slirp_setup(uint8_t *mac, NETRXCB func, void *arg)
     /* Save the callback info. */
     poll_rx = func;
     poll_arg = arg;
+
+    poll_data.wake_poll_thread = thread_create_event();
+    poll_data.poll_complete = thread_create_event();
 
     pclog("SLiRP: starting thread..\n");
     poll_tid = thread_create(poll_thread, mac);
@@ -184,8 +212,14 @@ network_slirp_test(void)
 void
 network_slirp_in(uint8_t *pkt, int pkt_len)
 {
-    if (slirpq != NULL)
+    if (slirpq != NULL) {
+	poll_data.busy = 1;
+
 	slirp_input((const uint8_t *)pkt, pkt_len);
+
+	poll_data.busy = 0;
+	thread_set_event(poll_data.poll_complete);
+    }
 }
 
 

@@ -20,5 +20,13 @@ extern void	thread_destroy_event(event_t *_event);
 
 extern void	thread_sleep(int t);
 
+extern void	*thread_create_mutex(wchar_t *name);
+extern void	thread_close_mutex(void *mutex);
+extern uint8_t	thread_wait_mutex(void *mutex);
+extern uint8_t	thread_release_mutex(void *mutex);
+
+extern void	startslirp(void);
+extern void	endslirp(void);
+
 
 #endif	/*PLAT_THREAD_H*/

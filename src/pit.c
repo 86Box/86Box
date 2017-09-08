@@ -34,7 +34,7 @@ int firsttime=1;
 void setpitclock(float clock)
 {
         cpuclock=clock;
-        PITCONST=clock/1193182.0;
+        PITCONST=clock/(1193181.0 + (2.0 / 3.0));
         CGACONST=(clock/(19687503.0/11.0));
         MDACONST=(clock/2032125.0);
         VGACONST1=(clock/25175000.0);
@@ -79,9 +79,9 @@ void clearpit()
 float pit_timer0_freq()
 {
         if (pit.l[0])
-                return 1193182.0f/(float)pit.l[0];
+                return (1193181.0 + (2.0 / 3.0))/(float)pit.l[0];
         else
-                return 1193182.0f/(float)0x10000;
+                return (1193181.0 + (2.0 / 3.0))/(float)0x10000;
 }
 
 static void pit_set_out(PIT *pit, int t, int out)
