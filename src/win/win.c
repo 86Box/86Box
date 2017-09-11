@@ -22,10 +22,9 @@
 #include <string.h>
 #include "../86box.h"
 #include "../config.h"
-#include "../ibm.h"
 #include "../cpu/cpu.h"
+#include "../ibm.h"
 #include "../mem.h"
-#include "../pic.h"
 #include "../rom.h"
 #include "../device.h"
 #include "../nvr.h"
@@ -2277,9 +2276,6 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 #endif
 
 				case IDM_CONFIG_LOAD:
-					picint(1 << 12);
-					break;
-
 					pause = 1;
 					if (!file_dlg_st(hwnd, IDS_2160, "", 0))
 					{
