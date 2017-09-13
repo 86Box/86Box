@@ -9,7 +9,7 @@
  *		Generic floppy disk interface that communicates with the
  *		other handlers.
  *
- * Version:	@(#)floppy.c	1.0.2	2017/09/03
+ * Version:	@(#)floppy.c	1.0.3	2017/09/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,11 +22,12 @@
 #include "../config.h"
 #include "../timer.h"
 #include "floppy.h"
-#include "floppy_fdi.h"
-#include "floppy_img.h"
 #include "floppy_86f.h"
-#include "floppy_td0.h"
+#include "floppy_fdi.h"
 #include "floppy_imd.h"
+#include "floppy_img.h"
+#include "floppy_json.h"
+#include "floppy_td0.h"
 #include "fdc.h"
 #include "fdd.h"
 
@@ -102,7 +103,7 @@ static struct
         {L"720", img_load,       img_close, -1},
         {L"86F", d86f_load,     d86f_close, -1},
         {L"BIN", img_load,       img_close, -1},
-        {L"CQ", img_load,        img_close, -1},
+        {L"CQ",  img_load,       img_close, -1},
         {L"CQM", img_load,       img_close, -1},
         {L"DSK", img_load,       img_close, -1},
         {L"FDI", fdi_load,       fdi_close, -1},
@@ -112,6 +113,7 @@ static struct
         {L"IMA", img_load,       img_close, -1},
         {L"IMD", imd_load,       imd_close, -1},
         {L"IMG", img_load,       img_close, -1},
+	{L"JSON", json_load,    json_close, -1},
 	{L"TD0", td0_load,       td0_close, -1},
         {L"VFD", img_load,       img_close, -1},
 	{L"XDF", img_load,       img_close, -1},
@@ -138,9 +140,9 @@ void floppy_load(int drive, wchar_t *fn)
                 if (!_wcsicmp(p, loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1))
                 {
                         driveloaders[drive] = c;
-                        loaders[c].load(drive, fn);
-                        drive_empty[drive] = 0;
                         memcpy(floppyfns[drive], fn, (wcslen(fn) << 1) + 2);
+                        loaders[c].load(drive, floppyfns[drive]);
+                        drive_empty[drive] = 0;
                         fdd_forced_seek(real_drive(drive), 0);
                         floppy_changed[drive] = 1;
                         return;

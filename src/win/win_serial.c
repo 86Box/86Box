@@ -12,12 +12,13 @@
  *		Windows and UNIX systems, with support for FTDI and Prolific
  *		USB ports. Support for these has been removed.
  *
- * Version:	@(#)win_serial.c	1.0.3	2017/06/04
+ * Version:	@(#)win_serial.c	1.0.4	2017/09/12
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
  */
 #include <windows.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "plat_thread.h"

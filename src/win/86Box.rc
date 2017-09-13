@@ -8,7 +8,7 @@
  *
  *		Windows resource script.
  *
- * Version:	@(#)86Box.rc	1.0.8	2017/09/02
+ * Version:	@(#)86Box.rc	1.0.9	2017/09/07
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -833,7 +833,7 @@ BEGIN
     IDS_2156	"%" PRIu64
     IDS_2157	"%" PRIu64 " MB (CHS: %" PRIu64 ", %" PRIu64 ", %" PRIu64 ")"
     IDS_2158	"Floppy %i (%s): %ws"
-    IDS_2159"All floppy images (*.0??;*.12;*.144;*.360;*.720;*.86F;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.TD0;*.VFD;*.XDF)\0*.0??;*.12;*.144;*.360;*.720;*.86F;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.TD0;*.VFD;*.XDF\0Advanced sector-based images (*.IMD;*.TD0)\0*.IMD;*.TD0\0Basic sector-based images (*.0??;*.12;*.144;*.360;*.720;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMG;*.VFD;*.XDF)\0*.0??;*.12;*.144;*.360;*.720;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMG;*.VFD;*.XDF\0Flux images (*.FDI)\0*.FDI\0Surface-based images (*.86F)\0*.86F\0All files (*.*)\0*.*\0"
+    IDS_2159"All floppy images (*.0??;*.12;*.144;*.360;*.720;*.86F;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.JSON;*.TD0;*.VFD;*.XDF)\0*.0??;*.12;*.144;*.360;*.720;*.86F;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.JSON;*.TD0;*.VFD;*.XDF\0Advanced sector-based images (*.IMD;*.TD0)\0*.IMD;*.JSON;*.TD0\0Basic sector-based images (*.0??;*.12;*.144;*.360;*.720;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMG;*.JSON;*.VFD;*.XDF)\0*.0??;*.12;*.144;*.360;*.720;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMG;*.JSON;*.VFD;*.XDF\0Flux images (*.FDI)\0*.FDI\0Surface-based images (*.86F)\0*.86F\0All files (*.*)\0*.*\0"
     IDS_2160	"Configuration files (*.CFG)\0*.CFG\0All files (*.*)\0*.*\0"
     IDS_2161	"&New image..."
     IDS_2162	"Existing image..."
