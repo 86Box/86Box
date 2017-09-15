@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.43	2017/09/03
+# Version:	@(#)Makefile.mingw	1.0.45	2017/09/12
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -103,6 +103,9 @@ WINDRES	= windres.exe
 OPTS	= -DWIN32 -I$(PLAT) $(EXTRAS) $(STUFF)
 ifdef EXFLAGS
 OPTS	+= $(EXFLAGS)
+endif
+ifdef EXINC
+OPTS	+= -I$(EXINC)
 endif
 
 ifeq ($(X64), y)
@@ -239,8 +242,8 @@ DEVOBJ	= bugger.o lpt.o $(SERIAL) \
 	  mouse.o mouse_serial.o mouse_ps2.o mouse_bus.o
 
 FDDOBJ	= fdd.o fdc.o fdi2raw.o \
-	    floppy.o \
-	    floppy_86f.o floppy_fdi.o floppy_imd.o floppy_img.o floppy_td0.o
+	    floppy.o floppy_common.o floppy_86f.o \
+	    floppy_fdi.o floppy_imd.o floppy_img.o floppy_json.o floppy_td0.o
 
 CDROMOBJ= cdrom.o \
 	    cdrom_dosbox.o cdrom_image.o cdrom_ioctl.o cdrom_null.o
@@ -485,6 +488,8 @@ dma.o:		ibm.h cpu/x86.h mem.h io.h dma.h
 floppy.o:	ibm.h config.h floppy.h floppy_fdi.h fdc.h fdd.h timer.h \
 		floppy_img.h floppy_86f.h floppy_td0.h floppy_imd.h
 
+floppy_common.o:	ibm.h floppy.h floppy_common.h fdc.h fdd.h
+
 floppy_86f.o:	lzf/lzf.h config.h dma.h random.h floppy.h floppy_86f.h \
 		fdc.h fdd.h ibm.h
 
@@ -492,6 +497,8 @@ floppy_fdi.o:	ibm.h floppy.h floppy_img.h floppy_fdi.h fdc.h fdd.h fdi2raw.h \
 		floppy.h floppy_imd.h fdc.h fdd.h config.h floppy_img.h
 
 floppy_td0.o:	ibm.h floppy.h floppy_td0.h fdc.h fdd.h
+
+floppy_json.o:	ibm.h floppy.h floppy_common.h floppy_json.h fdc.h fdd.h
 
 fdc.o:		ibm.h io.h dma.h pic.h timer.h floppy.h fdc.h fdd.h
 
