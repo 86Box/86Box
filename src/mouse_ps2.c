@@ -55,7 +55,10 @@ void mouse_ps2_write(uint8_t val, void *p)
                         mouse->sample_rate = val;
                         keyboard_at_adddata_mouse(0xfa);
                         break;
-                        
+
+			default:
+			keyboard_at_adddata_mouse(0xfc);
+
 //                        default:
 //                        fatal("mouse_ps2 : Bad data write %02X for command %02X\n", val, mouse->command);
                 }
@@ -127,6 +130,9 @@ void mouse_ps2_write(uint8_t val, void *p)
                         keyboard_at_adddata_mouse(0xaa);
                         keyboard_at_adddata_mouse(0x00);
                         break;
+
+			default:
+			keyboard_at_adddata_mouse(0xfe);
 
 //                        default:
 //                        fatal("mouse_ps2 : Bad command %02X\n", val, mouse->command);

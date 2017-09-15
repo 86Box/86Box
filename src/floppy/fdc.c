@@ -673,6 +673,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 floppytime = 128 * (1 << TIMER_SHIFT);
                                 timer_update_outstanding();
                                 floppyint=-1;
+				update_status_bar_icon(SB_FLOPPY | 0, 0);
                                 fdc_reset();
                         }
 			if (!fdd_get_flags(0))
@@ -706,6 +707,12 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 timer_update_outstanding();
                                 floppyint=-1;
 				fdc.perp &= 0xfc;
+
+				for (i = 0; i < FDD_NUM; i++)
+				{
+					update_status_bar_icon(SB_FLOPPY | i, 0);
+				}
+
                                 fdc_reset();
                         }
 			timer_process();
@@ -2131,6 +2138,7 @@ void fdc_sectorid(uint8_t track, uint8_t side, uint8_t sector, uint8_t size, uin
         fdc.res[8]=side;
         fdc.res[9]=sector;
         fdc.res[10]=size;
+	update_status_bar_icon(SB_FLOPPY | fdc.drive, 0);
         paramstogo=7;
 }
 
@@ -2141,6 +2149,7 @@ void fdc_indexpulse()
 
 void fdc_hard_reset()
 {
+	int i = 0;
 	int base_address = fdc.base_address;
 
 	memset(&fdc, 0, sizeof(FDC));
@@ -2182,6 +2191,11 @@ void fdc_hard_reset()
 
 	fdc.max_track = 79;
 	fdc.base_address = base_address;
+
+	for (i = 0; i < FDD_NUM; i++)
+	{
+		update_status_bar_icon(SB_FLOPPY | i, 0);
+	}
 }
 
 void fdc_init()
