@@ -907,9 +907,9 @@ static void loadconfig_machine(void)
         mem_size = config_get_int(cat, "mem_size", 4096);
         if (mem_size < (((machines[machine].flags & MACHINE_AT) && (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram))
                 mem_size = (((machines[machine].flags & MACHINE_AT) && (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram);
-	if (mem_size > 262144)
+	if (mem_size > 1048576)
 	{
-		mem_size = 262144;
+		mem_size = 1048576;
 	}
 
 	memset(nvr_path, 0x00, sizeof(nvr_path));
