@@ -1614,7 +1614,7 @@ void rivatnt_pgraph_ctx_switch(void *p)
 		}
 }
 
- void riva128_pgraph_interrupt(int num, void *p)
+void riva128_pgraph_interrupt(int num, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
@@ -1623,7 +1623,16 @@ void rivatnt_pgraph_ctx_switch(void *p)
 	riva128_pmc_interrupt(12, riva128);
 }
 
- void riva128_pgraph_invalid_interrupt(int num, void *p)
+void riva128_pgraph_vblank_interrupt(void *p)
+{
+	riva128_t *riva128 = (riva128_t *)p;
+
+	riva128->pgraph.intr |= (1 << 8);
+
+	riva128_pmc_interrupt(24, riva128);
+}
+
+void riva128_pgraph_invalid_interrupt(int num, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
@@ -2015,11 +2024,9 @@ void rivatnt_pgraph_ctx_switch(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
-	double time = (double)riva128->ptimer.clock_mul / (double)riva128->ptimer.clock_div;
+	double time = ((double)riva128->ptimer.clock_mul * 10000.0f) / (double)riva128->ptimer.clock_div;
 	uint64_t tmp;
 	int alarm_check;
-
-	time *= 10000;
 
 	tmp = riva128->ptimer.time;
 	riva128->ptimer.time += (uint64_t)time << 5;
@@ -2039,7 +2046,7 @@ void rivatnt_pgraph_ctx_switch(void *p)
 
 	if(riva128->card_id == 0x03) riva128_ptimer_tick(riva128);
 
-	riva128->mtime += cpuclock / riva128->mfreq;
+	riva128->mtime += (int)((TIMER_USEC * 100.0) / riva128->mfreq);
 }
 
  void riva128_nvclk_poll(void *p)
@@ -2048,14 +2055,14 @@ void rivatnt_pgraph_ctx_switch(void *p)
 
 	if(riva128->card_id < 0x40 && riva128->card_id != 0x03) riva128_ptimer_tick(riva128);
 
-	riva128->nvtime += cpuclock / riva128->nvfreq;
+	riva128->nvtime += (int)((TIMER_USEC * 100.0) / riva128->nvfreq);
 }
 
- void riva128_vblank_poll(svga_t *svga)
+ void riva128_vblank_start(svga_t *svga)
 {
 	riva128_t *riva128 = (riva128_t *)svga->p;
 	
-	riva128_pmc_interrupt(24, riva128);
+	riva128_pgraph_vblank_interrupt(riva128);
 }
 
  uint8_t riva128_rma_in(uint16_t addr, void *p)
@@ -2435,6 +2442,14 @@ void rivatnt_pgraph_ctx_switch(void *p)
 		ret = riva128->pci_regs[addr];
 		break;
 
+	case 0x18:
+		ret = 0x01;
+		break;
+	
+	case 0x19: case 0x1a: case 0x1b:
+		ret = riva128->pci_regs[addr];
+		break;
+
 	case 0x2c:
 	case 0x2d:
 	case 0x2e:
@@ -2588,6 +2603,18 @@ void rivatnt_pgraph_ctx_switch(void *p)
 		return;
 	}
 
+	case 0x19: case 0x1a: case 0x1b:
+	{
+		riva128->pci_regs[addr] = val;
+		riva128->rma_addr = riva128->pci_regs[0x19] << 8;
+        io_removehandler(riva128->rma_addr, 0x0100, riva128_rma_in, NULL, NULL, riva128_rma_out, NULL, NULL, riva128);
+        if(riva128->rma_addr)
+        {
+            io_sethandler(riva128->rma_addr, 0x0100, riva128_rma_in, NULL, NULL, riva128_rma_out, NULL, NULL, riva128);
+        }
+		return;
+	}
+
 	case 0x30:
 	case 0x32:
 	case 0x33:
@@ -2712,9 +2739,9 @@ void rivatnt_pgraph_ctx_switch(void *p)
 		}
 		return;
 
-	/* case 0x3c:
+	case 0x3c:
 		riva128->pci_regs[0x3c] = val & 0x0f;
-		return; */
+		return;
 
 	case 0x40:
 	case 0x41:
@@ -2782,18 +2809,7 @@ void rivatnt_pgraph_ctx_switch(void *p)
 		svga->clock = cpuclock / freq;
 	}
 
-	freq = 1350.0;
-
-	if(riva128->pramdac.nv_m == 0) freq = 0;
-	else
-	{
-		freq = (freq * riva128->pramdac.nv_n) / (1 << riva128->pramdac.nv_p) / riva128->pramdac.nv_m;
-		//pclog("RIVA 128 Core clock is %f Hz\n", freq);
-	}
-
-	riva128->mfreq = freq;
-
-	freq = 1350.0;
+	freq = 13.5;
 
 	if(riva128->pramdac.m_m == 0) freq = 0;
 	else
@@ -2802,7 +2818,20 @@ void rivatnt_pgraph_ctx_switch(void *p)
 		//pclog("RIVA 128 Core clock is %f Hz\n", freq);
 	}
 
+	riva128->mfreq = freq;
+	riva128->mtime = (int)((TIMER_USEC * 100.0) / riva128->mfreq);
+
+	freq = 13.5;
+
+	if(riva128->pramdac.nv_m == 0) freq = 0;
+	else
+	{
+		freq = (freq * riva128->pramdac.nv_n) / (1 << riva128->pramdac.nv_p) / riva128->pramdac.nv_m;
+		//pclog("RIVA 128 Core clock is %f Hz\n", freq);
+	}
+
 	riva128->nvfreq = freq;
+	riva128->nvtime = (int)((TIMER_USEC * 100.0) / riva128->nvfreq);
 }
 
  void *riva128_init()
@@ -2868,6 +2897,11 @@ void rivatnt_pgraph_ctx_switch(void *p)
 	riva128->pci_regs[6] = 0;
 	riva128->pci_regs[7] = 2;
 
+	riva128->pci_regs[0x18] = 0x01;
+	riva128->pci_regs[0x19] = 0xff;
+	riva128->pci_regs[0x1a] = 0xff;
+	riva128->pci_regs[0x1b] = 0xff;
+
 	riva128->pci_regs[0x2c] = 0xd2;
 	riva128->pci_regs[0x2d] = 0x12;
 	riva128->pci_regs[0x2e] = 0x00;
@@ -2926,10 +2960,34 @@ void rivatnt_pgraph_ctx_switch(void *p)
 		}
 	}
 
+	double freq = 13.5;	
+	
+	if(riva128->pramdac.m_m == 0) freq = 0;
+	else
+	{
+		freq = (freq * riva128->pramdac.m_n) / (1 << riva128->pramdac.m_p) / riva128->pramdac.m_m;
+		//pclog("RIVA 128 Core clock is %f Hz\n", freq);
+	}
+	
+	riva128->mfreq = freq;
+	riva128->mtime = (int)((TIMER_USEC * 100.0) / riva128->mfreq);
+
+	freq = 13.5;
+	
+	if(riva128->pramdac.nv_m == 0) freq = 0;
+	else
+	{
+		freq = (freq * riva128->pramdac.nv_n) / (1 << riva128->pramdac.nv_p) / riva128->pramdac.nv_m;
+		//pclog("RIVA 128 Core clock is %f Hz\n", freq);
+	}
+	
+	riva128->nvfreq = freq;
+	riva128->nvtime = (int)((TIMER_USEC * 100.0) / riva128->nvfreq);
+
 	timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
 	timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
 
-	riva128->svga.vblank_start = riva128_vblank_poll;
+	riva128->svga.vblank_start = riva128_vblank_start;
 
 	return riva128;
 }
@@ -3149,10 +3207,34 @@ device_t riva128_device =
 		}
 	}
 
+	double freq = 13.5;	
+	
+	if(riva128->pramdac.m_m == 0) freq = 0;
+	else
+	{
+		freq = (freq * riva128->pramdac.m_n) / (1 << riva128->pramdac.m_p) / riva128->pramdac.m_m;
+		//pclog("RIVA 128 Core clock is %f Hz\n", freq);
+	}
+	
+	riva128->mfreq = freq;
+	riva128->mtime = (int)((TIMER_USEC * 100.0) / riva128->mfreq);
+
+	freq = 13.5;
+	
+	if(riva128->pramdac.nv_m == 0) freq = 0;
+	else
+	{
+		freq = (freq * riva128->pramdac.nv_n) / (1 << riva128->pramdac.nv_p) / riva128->pramdac.nv_m;
+		//pclog("RIVA 128 Core clock is %f Hz\n", freq);
+	}
+	
+	riva128->nvfreq = freq;
+	riva128->nvtime = (int)((TIMER_USEC * 100.0) / riva128->nvfreq);
+
 	timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
 	timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
 
-	riva128->svga.vblank_start = riva128_vblank_poll;
+	//riva128->svga.vblank_start = riva128_vblank_poll;
 
 	return riva128;
 }
@@ -3350,10 +3432,34 @@ device_t rivatnt_device =
 		}
 	}
 
+	double freq = 13.5;	
+	
+	if(riva128->pramdac.m_m == 0) freq = 0;
+	else
+	{
+		freq = (freq * riva128->pramdac.m_n) / (1 << riva128->pramdac.m_p) / riva128->pramdac.m_m;
+		//pclog("RIVA 128 Core clock is %f Hz\n", freq);
+	}
+	
+	riva128->mfreq = freq;
+	riva128->mtime = (int)((TIMER_USEC * 100.0) / riva128->mfreq);
+
+	freq = 13.5;
+	
+	if(riva128->pramdac.nv_m == 0) freq = 0;
+	else
+	{
+		freq = (freq * riva128->pramdac.nv_n) / (1 << riva128->pramdac.nv_p) / riva128->pramdac.nv_m;
+		//pclog("RIVA 128 Core clock is %f Hz\n", freq);
+	}
+	
+	riva128->nvfreq = freq;
+	riva128->nvtime = (int)((TIMER_USEC * 100.0) / riva128->nvfreq);
+
 	timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
 	timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
 
-	riva128->svga.vblank_start = riva128_vblank_poll;
+	//riva128->svga.vblank_start = riva128_vblank_poll;
 
 	return riva128;
 }
