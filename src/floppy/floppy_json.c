@@ -8,7 +8,7 @@
  *
  *		Implementation of the PCjs JSON floppy image format.
  *
- * Version:	@(#)floppy_json.c	1.0.1	2017/09/12
+ * Version:	@(#)floppy_json.c	1.0.2	2017/09/16
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -122,10 +122,6 @@ handle(json_t *img, char *name, char *str)
 		l >>= 8;
 		*p++ = (l & 0x000000ff);
 	}
-#if 1
-	pclog("JSON: added sector (%d,%d,%d/%d) size=%d pat=%08lx\n",
-		sec->track,sec->side,sec->sector,img->dmf,sec->size,pat);
-#endif
     } else if (! strcmp(name, "data")) {
 	if (sec->data == NULL)
 		sec->data = (uint8_t *)malloc(sec->size);
@@ -135,11 +131,6 @@ handle(json_t *img, char *name, char *str)
 		if (sp != NULL) *sp++ = '\0';
 		l = atol(str);
 
-#if 1
-		if (p==sec->data)
-		    pclog("JSON: added sector (%d,%d,%d/%d) size=%d data=%08lx\n",
-			sec->track,sec->side,sec->sector,img->dmf,sec->size,l);
-#endif
 		*p++ = (l & 0x000000ff);
 		l >>= 8;
 		*p++ = (l & 0x000000ff);

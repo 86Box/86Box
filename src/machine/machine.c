@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.11	2017/09/03
+ * Version:	@(#)machine.c	1.0.12	2017/09/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -95,14 +95,26 @@ machine_t machines[] =
         {"[8086] Sinclair PC200",		ROM_PC200,		"pc200",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_AMSTRAD,							512,  640, 128,  63,		 machine_amstrad_init, NULL			},
         {"[8086] Tandy 1000 SL/2",		ROM_TANDY1000SL2,	"tandy1000sl2",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, 0,								512,  768, 128,   0,	      machine_tandy1ksl2_init, NULL			},
 
+#ifdef WALTJE
+        {"[286 ISA] AMI 286 clone",		ROM_AMI286,		"ami286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_AT,					512,16384, 128, 127,		 machine_at_neat_init, NULL			},
+#else
         {"[286 ISA] AMI 286 clone",		ROM_AMI286,		"ami286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_AT | MACHINE_HAS_IDE,					512,16384, 128, 127,		 machine_at_neat_init, NULL			},
+#endif
         {"[286 ISA] Award 286 clone",		ROM_AWARD286,		"award286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_AT | MACHINE_HAS_IDE,					512,16384, 128, 127,		 machine_at_scat_init, NULL			},
         {"[286 ISA] Commodore PC 30 III",	ROM_CMDPC30,		"cmdpc30",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_AT | MACHINE_HAS_IDE,					640,16384, 128, 127,		machine_at_cmdpc_init, NULL			},
+#ifdef WALTJE
+        {"[286 ISA] Hyundai Super-286TR",	ROM_SUPER286TR,		"super286tr",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_AT,					512,16384, 128, 127,		 machine_at_scat_init, NULL			},
+#else
         {"[286 ISA] Hyundai Super-286TR",	ROM_SUPER286TR,		"super286tr",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_AT | MACHINE_HAS_IDE,					512,16384, 128, 127,		 machine_at_scat_init, NULL			},
+#endif
         {"[286 ISA] IBM AT",			ROM_IBMAT,		"ibmat",		{{"",      cpus_ibmat},       {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_AT,							256,15872, 128,  63,	    machine_at_top_remap_init, NULL			},
         {"[286 ISA] IBM PS/1 model 2011",	ROM_IBMPS1_2011,	"ibmps1es",		{{"",      cpus_ps1_m2011},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_AT | MACHINE_PS2 | MACHINE_PS2_HDD,			512,16384, 512, 127,	       machine_ps1_m2011_init, NULL			},
         {"[286 ISA] IBM PS/2 model 30-286",	ROM_IBMPS2_M30_286,	"ibmps2_m30_286",	{{"",      cpus_ps2_m30_286}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_AT | MACHINE_PS2 | MACHINE_PS2_HDD,			  1,   16,   1, 127,	     machine_ps2_m30_286_init, NULL			},
+#ifdef WALTJE
+        {"[286 ISA] Samsung SPC-4200P",		ROM_SPC4200P,		"spc4200p",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_AT | MACHINE_PS2,			512,16384, 128, 127,		 machine_at_scat_spc4200p_init, NULL			},
+#else
         {"[286 ISA] Samsung SPC-4200P",		ROM_SPC4200P,		"spc4200p",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_AT | MACHINE_PS2 | MACHINE_HAS_IDE,			512,16384, 128, 127,		 machine_at_scat_init, NULL			},
+#endif
 
         {"[286 MCA] IBM PS/2 model 50",		ROM_IBMPS2_M50,		"ibmps2_m50",		{{"",      cpus_ps2_m30_286}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_AT | MACHINE_PS2 | MACHINE_PS2_HDD | MACHINE_MCA,	  1,   16,   1,  63,	    machine_ps2_model_50_init, NULL			},
 

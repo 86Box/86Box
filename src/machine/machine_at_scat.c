@@ -554,3 +554,11 @@ void machine_at_scat_init(void)
         machine_at_ide_init();
         scat_init();
 }
+
+
+void machine_at_scat_spc4200p_init(void)
+{
+	machine_at_init();
+	mem_remap_top_384k();
+        scat_init();
+}
