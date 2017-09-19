@@ -83,10 +83,7 @@ static void neat_init(void)
 
 void machine_at_neat_init(void)
 {
-#ifdef WALTJE
         machine_at_init();
-#else
-        machine_at_ide_init();
-#endif
+
         neat_init();
 }

@@ -8,12 +8,12 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.3	2017/09/02
+ * Version:	@(#)machine.h	1.0.4	2017/09/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
 #ifndef EMU_MACHINE_H
 # define EMU_MACHINE_H
