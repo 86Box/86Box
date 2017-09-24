@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.45	2017/09/12
+# Version:	@(#)Makefile.mingw	1.0.46	2017/09/19
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -34,6 +34,7 @@ STUFF	=
 # -DENABLE_CDROM_LOG enables extra logging.
 # -DENABLE_D86F_LOG enables extra logging.
 # -DENABLE_FDC_LOG enables extra logging.
+# -DENABLE_HDD_IMAGE_LOG enables extra logging.
 # -DENABLE_IDE_LOG enables extra logging.
 # -DENABLE_SERIAL_LOG enables extra logging.
 # -DENABLE_NIC_LOG enables extra logging.
@@ -464,8 +465,8 @@ x87.o:		ibm.h pic.h cpu/x86.h cpu/x86_flags.h cpu/x86_ops.h cpu/x87.h cpu/386_co
 
 bugger.o:	ibm.h io.h bugger.h
 
-cdrom.o:	86box.h cdrom.h ibm.h hdd/hdd_ide_at.h piix.h scsi/scsi.h timer.h \
-		win/plat_iodev.h
+cdrom.o:	86box.h cdrom.h ibm.h hdd/hdd_ide_at.h piix.h scsi/scsi.h \
+		timer.h nvr.h win/plat_iodev.h
 
 cdrom_dosbox.o:	cdrom_dosbox.h
 
@@ -492,7 +493,7 @@ floppy.o:	ibm.h config.h floppy.h floppy_fdi.h fdc.h fdd.h timer.h \
 floppy_common.o:	ibm.h floppy.h floppy_common.h fdc.h fdd.h
 
 floppy_86f.o:	lzf/lzf.h config.h dma.h random.h floppy.h floppy_86f.h \
-		fdc.h fdd.h ibm.h
+		fdc.h fdd.h ibm.h nvr.h
 
 floppy_fdi.o:	ibm.h floppy.h floppy_img.h floppy_fdi.h fdc.h fdd.h fdi2raw.h \
 		floppy.h floppy_imd.h fdc.h fdd.h config.h floppy_img.h
@@ -535,7 +536,7 @@ hdd_mfm_xebec.o: ibm.h device.h dma.h hdd/hdd_image.h io.h mem.h pic.h rom.h \
 
 intel.o:	ibm.h cpu/cpu.h io.h mem.h pit.h timer.h intel.h
 
-intel_flash.o:	ibm.h cpu/cpu.h device.h mem.h machine/machine.h rom.h
+intel_flash.o:	ibm.h cpu/cpu.h device.h mem.h machine/machine.h nvr.h
 
 intel_sio.o:	ibm.h dma.h mem.h pci.h intel_sio.h
 
@@ -629,7 +630,7 @@ machine_at_wd76c10.o:		ibm.h floppy.h fdc.h io.h mem.h serial.h machine/machine_
 
 machine_common.o:		ibm.h dma.h floppy.h fdd.h fdc.h lpt.h pic.h pit.h serial.h machine/machine_common.h
 
-machine_europc.o:		ibm.h cpu/cpu.h io.h device.h gameport.h keyboard_xt.h lpt.h mem.h nmi.h rom.h machine/machine_common.h \
+machine_europc.o:		ibm.h cpu/cpu.h io.h device.h gameport.h keyboard_xt.h lpt.h mem.h nmi.h rom.h nvr.h machine/machine_common.h \
 				machine/machine_europc.h
 europc_hdd.o:			ibm.h io.h dma.h pic.h device.h timer.h hdd/hdd_image.h europc.h
 
@@ -684,10 +685,10 @@ net_slirp.o:	network/slirp/slirp.h network/slirp/queue.h ibm.h config.h device.h
 
 net_ne2000.o:	ibm.h io.h mem.h rom.h pci.h pic.h device.h config.h random.h network/network.h network/net_ne2000.h network/bswap.h
 
-nvr.o:		ibm.h cpu/cpu.h device.h io.h mem.h machine/machine.h \
+nvr.o:		ibm.h cpu/cpu.h device.h io.h mem.h nvr.h machine/machine.h \
 		machine/machine_europc.h nvr.h pic.h rom.h timer.h rtc.h
 
-nvr_ps2.o:	ibm.h device.h io.h mem.h rom.h nvr_ps2.h
+nvr_ps2.o:	ibm.h device.h io.h mem.h nvr.h nvr_ps2.h
 
 pc.o:		86box.h config.h random.h ibm.h mem.h \
 		cpu/cpu.h cpu/x86_ops.h cpu/codegen.h \
@@ -770,7 +771,7 @@ snd_ad1848.o:		ibm.h dma.h pic.h timer.h sound/sound.h sound/snd_ad1848.h
 
 snd_adlib.o:		ibm.h io.h mca.h device.h sound/sound.h sound/snd_adlib.h sound/snd_opl.h
 
-snd_adlibgold.o:	ibm.h io.h dma.h pic.h pit.h mem.h rom.h timer.h device.h sound/sound.h sound/filters.h sound/snd_opl.h sound/snd_ym7128.h
+snd_adlibgold.o:	ibm.h io.h dma.h pic.h pit.h mem.h rom.h nvr.h timer.h device.h sound/sound.h sound/filters.h sound/snd_opl.h sound/snd_ym7128.h
 
 snd_cms.o:		ibm.h io.h device.h sound/sound.h sound/snd_cms.h
 
@@ -815,7 +816,7 @@ snd_ym7128.o:		ibm.h sound/snd_ym7128.h
 sound.o:		ibm.h device.h timer.h cdrom.h win/plat_thread.h sound/midi.h sound/sound.h sound/snd_opl.h sound/snd_adlib.h \
 			sound/snd_pas16.h sound/snd_sb.h sound/snd_sb_dsp.h sound/snd_wss.h sound/filters.h
 
-tandy_eeprom.o:	ibm.h device.h mem.h io.h rom.h tandy_eeprom.h
+tandy_eeprom.o:	ibm.h device.h mem.h io.h nvr.h tandy_eeprom.h
 
 tandy_rom.o:	ibm.h device.h io.h mem.h rom.h tandy_rom.h
 
@@ -823,7 +824,7 @@ timer.o:	ibm.h timer.h
 
 usb.o:		ibm.h io.h mem.h usb.h
 
-vid_ati_eeprom.o:	ibm.h mem.h rom.h video/vid_ati_eeprom.h
+vid_ati_eeprom.o:	ibm.h mem.h nvr.h video/vid_ati_eeprom.h
 
 vid_ati_mach64.o:	ibm.h device.h io.h mem.h pci.h rom.h win/plat_thread.h video/video.h video/vid_svga.h video/vid_svga_render.h \
 			video/vid_ati68860_ramdac.h video/vid_ati_eeprom.h video/vid_ics2595.h
@@ -904,7 +905,7 @@ vid_sdac_ramdac.o:	ibm.h mem.h video/video.h video/vid_svga.h video/vid_sdac_ram
 
 vid_stg_ramdac.o:	ibm.h mem.h video/video.h video/vid_svga.h video/vid_stg_ramdac.h
 
-vid_svga.o:		ibm.h io.h mem.h rom.h timer.h video/video.h video/vid_svga.h video/vid_svga_render.h
+vid_svga.o:		ibm.h io.h mem.h nvr.h timer.h video/video.h video/vid_svga.h video/vid_svga_render.h
 
 vid_svga_render.o:	ibm.h mem.h video/video.h video/vid_svga.h video/vid_svga_render.h
 

@@ -8,12 +8,12 @@
  *
  *		808x CPU emulation.
  *
- * Version:	@(#)808x.c	1.0.0	2017/05/30
+ * Version:	@(#)808x.c	1.0.1	2017/09/19
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
 
 /*SHR AX,1
@@ -503,7 +503,7 @@ void dumpregs(int force)
 #ifndef RELEASE_BUILD
         indump = 1;
         output=0;
-	_wchdir(pcempath);
+	_wchdir(cfg_path);
         nopageerrors=1;
         f=fopen("ram.dmp","wb");
         fwrite(ram,mem_size*1024,1,f);

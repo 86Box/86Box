@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.4	2017/09/03
+ * Version:	@(#)config.c	1.0.5	2017/09/22
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -18,9 +18,9 @@
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  *
- * NOTE:	Forcing config files to be in Unicode encoding breaks it on
- *		Windows XP, and possibly also Vista. Use -DANSI_CFG for use
- *		on these systems.
+ * NOTE:	Forcing config files to be in Unicode encoding breaks
+ *		it on Windows XP, and possibly also Vista. Use the
+ *		-DANSI_CFG for use on these systems.
  */
 #include <inttypes.h>
 #include <stdio.h>
@@ -58,123 +58,199 @@
 #include "win/win_language.h"
 
 
-wchar_t config_file_default[256];
-
-static wchar_t config_file[256];
-
-
-typedef struct list_t
+typedef struct _list_
 {
-        struct list_t *next;
+        struct _list_ *next;
 } list_t;
 
-static list_t config_head;
-
-typedef struct section_t
+typedef struct
 {
-        struct list_t list;
+        list_t list;
         
         char name[256];
         
-        struct list_t entry_head;
+        list_t entry_head;
 } section_t;
 
-typedef struct entry_t
+typedef struct
 {
-        struct list_t list;
+        list_t list;
         
         char name[256];
         char data[256];
         wchar_t wdata[256];
 } entry_t;
 
-#define list_add(new, head)                             \
-        {                                               \
-                struct list_t *next = head;             \
-                                                        \
-                while (next->next)                      \
-                        next = next->next;              \
-                                                        \
-                (next)->next = new;                     \
-                (new)->next = NULL;                     \
-        }
+#define list_add(new, head)              \
+{                                        \
+        list_t *next = head;             \
+                                         \
+        while (next->next != NULL)       \
+                next = next->next;       \
+                                         \
+        (next)->next = new;              \
+        (new)->next = NULL;              \
+}
 
-#define list_delete(old, head)                          \
-        {                                               \
-                struct list_t *next = head;             \
-                                                        \
-                while ((next)->next != old)             \
-                {                                       \
-                        next = (next)->next;            \
-                }                                       \
-                                                        \
-                (next)->next = (old)->next;             \
-        }
+#define list_delete(old, head)           \
+{                                        \
+        list_t *next = head;             \
+                                         \
+        while ((next)->next != old)      \
+        {                                \
+                next = (next)->next;     \
+        }                                \
+                                         \
+        (next)->next = (old)->next;      \
+}
 
 
-void config_dump(void)
+wchar_t config_file_default[256];
+
+static list_t	config_head;
+
+
+static section_t *
+find_section(char *name)
 {
-        section_t *current_section;
+        section_t *sec;
+        char blank[] = "";
         
-        pclog("Config data :\n");
-        
-        current_section = (section_t *)config_head.next;
-        
-        while (current_section)
+        sec = (section_t *)config_head.next;
+        if (name == NULL)
+                name = blank;
+
+        while (sec != NULL)
         {
-                entry_t *current_entry;
+                if (! strncmp(sec->name, name, 256))
+                        return(sec);
                 
-                pclog("[%s]\n", current_section->name);
-                
-                current_entry = (entry_t *)current_section->entry_head.next;
-                
-                while (current_entry)
-                {
-                        pclog("%s = %s\n", current_entry->name, current_entry->data);
-
-                        current_entry = (entry_t *)current_entry->list.next;
-                }
-
-                current_section = (section_t *)current_section->list.next;
+                sec = (section_t *)sec->list.next;
         }
+
+        return(NULL);
+}
+
+
+static entry_t *
+find_entry(section_t *section, char *name)
+{
+        entry_t *ent;
+        
+        ent = (entry_t *)section->entry_head.next;
+        
+        while (ent != NULL)
+        {
+                if (! strncmp(ent->name, name, 256))
+                        return(ent);
+
+                ent = (entry_t *)ent->list.next;
+        }
+
+        return(NULL);
+}
+
+
+static int
+entries_num(section_t *section)
+{
+        entry_t *ent;
+	int i = 0;
+        
+        ent = (entry_t *)section->entry_head.next;
+        
+        while (ent != NULL)
+        {
+                if (strlen(ent->name) > 0)
+		{
+                        i++;
+		}
+
+                ent = (entry_t *)ent->list.next;
+        }
+
+        return(i);
+}
+
+
+static void
+delete_section_if_empty(char *head)
+{
+        section_t *section;
+
+        section = find_section(head);
+        if (section == NULL) return;
+
+	if (entries_num(section) == 0)
+	{
+	        list_delete(&section->list, &config_head);
+		free(section);
+	}
+}
+
+
+static section_t *
+create_section(char *name)
+{
+        section_t *ns = malloc(sizeof(section_t));
+
+        memset(ns, 0x00, sizeof(section_t));
+        strncpy(ns->name, name, 256);
+        list_add(&ns->list, &config_head);
+        
+        return(ns);
+}
+
+
+static entry_t *
+create_entry(section_t *section, char *name)
+{
+        entry_t *ne = malloc(sizeof(entry_t));
+
+        memset(ne, 0x00, sizeof(entry_t));
+        strncpy(ne->name, name, 256);
+        list_add(&ne->list, &section->entry_head);
+        
+        return(ne);
 }
 
 
 #if 0
-static void config_free(void)
+static void
+config_free(void)
 {
-        section_t *current_section;
-        current_section = (section_t *)config_head.next;
-        
-        while (current_section)
+        section_t *sec;
+
+        sec = (section_t *)config_head.next;
+        while (sec != NULL)
         {
-                section_t *next_section = (section_t *)current_section->list.next;
-                entry_t *current_entry;
-                
-                current_entry = (entry_t *)current_section->entry_head.next;
-                
-                while (current_entry)
+                section_t *ns = (section_t *)sec->list.next;
+                entry_t *ent;
+
+                ent = (entry_t *)sec->entry_head.next;
+
+                while (ent != NULL)
                 {
-                        entry_t *next_entry = (entry_t *)current_entry->list.next;
-                        
-                        free(current_entry);
-                        current_entry = next_entry;
+                        entry_t *nent = (entry_t *)ent->list.next;
+    
+                        free(ent);
+                        ent = nent;
                 }
 
-                free(current_section);                
-                current_section = next_section;
+                free(sec);                
+                sec = ns;
         }
 }
 #endif
 
 
-static wchar_t cfgbuffer[1024];
-static char sname[256];
-static char ename[256];
-
-int config_load(wchar_t *fn)
+/* Read and parse the configuration file into memory. */
+static int
+config_read(wchar_t *fn)
 {
         section_t *current_section;
+        char sname[256], ename[256];
+        wchar_t cfgbuffer[1024];
 	section_t *new_section;
 	entry_t *new_entry;
         FILE *f;
@@ -196,7 +272,7 @@ int config_load(wchar_t *fn)
 
         while (1)
         {
-		memset(cfgbuffer, 0, 2048);
+		memset(cfgbuffer, 0, sizeof(cfgbuffer));
                 fgetws(cfgbuffer, 255, f);
                 if (feof(f)) break;
                 
@@ -207,8 +283,10 @@ int config_load(wchar_t *fn)
 
                 if (cfgbuffer[c] == L'\0') continue;
                 
-                if (cfgbuffer[c] == L'#') /*Comment*/
+                if ((cfgbuffer[c] == L'#') || (cfgbuffer[c] == L';')) {
+			/*Comment*/
                         continue;
+		}
 
                 if (cfgbuffer[c] == L'[') /*Section*/
                 {
@@ -222,7 +300,7 @@ int config_load(wchar_t *fn)
                         sname[sd] = 0;
                         
                         new_section = malloc(sizeof(section_t));
-                        memset(new_section, 0, sizeof(section_t));
+                        memset(new_section, 0x00, sizeof(section_t));
                         strncpy(new_section->name, sname, 256);
                         list_add(&new_section->list, &config_head);
                         
@@ -261,7 +339,7 @@ int config_load(wchar_t *fn)
                 }
         }
         
-        fclose(f);
+        (void)fclose(f);
         
         config_dump();
 
@@ -269,477 +347,17 @@ int config_load(wchar_t *fn)
 }
 
 
-void config_new(void)
+/*
+ * Write the in-memory configuration to disk.
+ * This is a public function, because the Settings UI
+ * want to directly write the configuration after it
+ * has changed it.
+ */
+void
+config_write(wchar_t *fn)
 {
-#ifdef ANSI_CFG
-        FILE *f = _wfopen(config_file, L"wt");
-#else
-        FILE *f = _wfopen(config_file, L"wt, ccs=UNICODE");
-#endif
-        fclose(f);
-}
-
-
-static section_t *find_section(char *name)
-{
-        section_t *current_section;
-        char blank[] = "";
-        
-        current_section = (section_t *)config_head.next;
-        if (!name)
-                name = blank;
-
-        while (current_section)
-        {
-                if (!strncmp(current_section->name, name, 256))
-                        return current_section;
-                
-                current_section = (section_t *)current_section->list.next;
-        }
-        return NULL;
-}
-
-
-static entry_t *find_entry(section_t *section, char *name)
-{
-        entry_t *current_entry;
-        
-        current_entry = (entry_t *)section->entry_head.next;
-        
-        while (current_entry)
-        {
-                if (!strncmp(current_entry->name, name, 256))
-                        return current_entry;
-
-                current_entry = (entry_t *)current_entry->list.next;
-        }
-        return NULL;
-}
-
-
-static int entries_num(section_t *section)
-{
-        entry_t *current_entry;
-	int i = 0;
-        
-        current_entry = (entry_t *)section->entry_head.next;
-        
-        while (current_entry)
-        {
-                if (strlen(current_entry->name) > 0)
-		{
-                        i++;
-		}
-
-                current_entry = (entry_t *)current_entry->list.next;
-        }
-        return i;
-}
-
-
-static section_t *create_section(char *name)
-{
-        section_t *new_section = malloc(sizeof(section_t));
-
-        memset(new_section, 0, sizeof(section_t));
-        strncpy(new_section->name, name, 256);
-        list_add(&new_section->list, &config_head);
-        
-        return new_section;
-}
-
-
-static entry_t *create_entry(section_t *section, char *name)
-{
-        entry_t *new_entry = malloc(sizeof(entry_t));
-        memset(new_entry, 0, sizeof(entry_t));
-        strncpy(new_entry->name, name, 256);
-        list_add(&new_entry->list, &section->entry_head);
-        
-        return new_entry;
-}
-
-
-int config_get_int(char *head, char *name, int def)
-{
-        section_t *section;
-        entry_t *entry;
-        int value;
-
-        section = find_section(head);
-        
-        if (!section)
-                return def;
-                
-        entry = find_entry(section, name);
-
-        if (!entry)
-                return def;
-        
-        sscanf(entry->data, "%i", &value);
-        
-        return value;
-}
-
-
-int config_get_hex16(char *head, char *name, int def)
-{
-        section_t *section;
-        entry_t *entry;
-        int value;
-
-        section = find_section(head);
-        
-        if (!section)
-                return def;
-                
-        entry = find_entry(section, name);
-
-        if (!entry)
-                return def;
-        
-        sscanf(entry->data, "%04X", &value);
-        
-        return value;
-}
-
-
-int config_get_hex20(char *head, char *name, int def)
-{
-        section_t *section;
-        entry_t *entry;
-        int value;
-
-        section = find_section(head);
-        
-        if (!section)
-                return def;
-                
-        entry = find_entry(section, name);
-
-        if (!entry)
-                return def;
-        
-        sscanf(entry->data, "%05X", &value);
-        
-        return value;
-}
-
-
-int config_get_mac(char *head, char *name, int def)
-{
-        section_t *section;
-        entry_t *entry;
-        int val0 = 0, val1 = 0, val2 = 0;
-
-        section = find_section(head);
-        
-        if (!section)
-                return def;
-                
-        entry = find_entry(section, name);
-
-        if (!entry)
-                return def;
-        
-        sscanf(entry->data, "%02x:%02x:%02x", &val0, &val1, &val2);
-
-        return (val0 << 16) + (val1 << 8) + val2;
-}
-
-
-char *config_get_string(char *head, char *name, char *def)
-{
-        section_t *section;
-        entry_t *entry;
-
-        section = find_section(head);
-        
-        if (!section)
-                return def;
-                
-        entry = find_entry(section, name);
-
-        if (!entry)
-                return def;
-       
-        return entry->data; 
-}
-
-
-wchar_t *config_get_wstring(char *head, char *name, wchar_t *def)
-{
-        section_t *section;
-        entry_t *entry;
-
-        section = find_section(head);
-        
-        if (!section)
-                return def;
-                
-        entry = find_entry(section, name);
-
-        if (!entry)
-                return def;
-       
-        return entry->wdata; 
-}
-
-
-void config_delete_var(char *head, char *name)
-{
-        section_t *section;
-        entry_t *entry;
-
-        section = find_section(head);
-        
-        if (!section)
-                return;
-                
-        entry = find_entry(section, name);
-
-        if (!entry)
-                return;
-
-	list_delete(&entry->list, &section->entry_head);
-	free(entry);
-        
-        return;
-}
-
-
-void config_delete_section_if_empty(char *head)
-{
-        section_t *section;
-
-        section = find_section(head);
-        
-        if (!section)
-                return;
-
-	if (entries_num(section) == 0)
-	{
-	        list_delete(&section->list, &config_head);
-		free(section);
-	}
-        
-        return;
-}
-
-
-void config_set_int(char *head, char *name, int val)
-{
-        section_t *section;
-        entry_t *entry;
-
-        section = find_section(head);
-        
-        if (!section)
-                section = create_section(head);
-                
-        entry = find_entry(section, name);
-
-        if (!entry)
-                entry = create_entry(section, name);
-
-        sprintf(entry->data, "%i", val);
-	mbstowcs(entry->wdata, entry->data, 512);
-}
-
-
-void config_set_hex16(char *head, char *name, int val)
-{
-        section_t *section;
-        entry_t *entry;
-
-        section = find_section(head);
-        
-        if (!section)
-                section = create_section(head);
-                
-        entry = find_entry(section, name);
-
-        if (!entry)
-                entry = create_entry(section, name);
-
-        sprintf(entry->data, "%04X", val);
-	mbstowcs(entry->wdata, entry->data, 512);
-}
-
-
-void config_set_hex20(char *head, char *name, int val)
-{
-        section_t *section;
-        entry_t *entry;
-
-        section = find_section(head);
-        
-        if (!section)
-                section = create_section(head);
-                
-        entry = find_entry(section, name);
-
-        if (!entry)
-                entry = create_entry(section, name);
-
-        sprintf(entry->data, "%05X", val);
-	mbstowcs(entry->wdata, entry->data, 512);
-}
-
-
-void config_set_mac(char *head, char *name, int val)
-{
-        section_t *section;
-        entry_t *entry;
-
-        section = find_section(head);
-        
-        if (!section)
-                section = create_section(head);
-                
-        entry = find_entry(section, name);
-
-        if (!entry)
-                entry = create_entry(section, name);
-
-        sprintf(entry->data, "%02x:%02x:%02x", (val >> 16) & 0xff, (val >> 8) & 0xff, val & 0xff);
-	mbstowcs(entry->wdata, entry->data, 512);
-}
-
-
-void config_set_string(char *head, char *name, char *val)
-{
-        section_t *section;
-        entry_t *entry;
-
-        section = find_section(head);
-        
-        if (!section)
-                section = create_section(head);
-                
-        entry = find_entry(section, name);
-
-        if (!entry)
-                entry = create_entry(section, name);
-
-        strncpy(entry->data, val, 256);
-	mbstowcs(entry->wdata, entry->data, 256);
-}
-
-
-void config_set_wstring(char *head, char *name, wchar_t *val)
-{
-        section_t *section;
-        entry_t *entry;
-
-        section = find_section(head);
-        
-        if (!section)
-                section = create_section(head);
-                
-        entry = find_entry(section, name);
-
-        if (!entry)
-                entry = create_entry(section, name);
-
-        memcpy(entry->wdata, val, 512);
-}
-
-
-char *get_filename(char *s)
-{
-        int c = strlen(s) - 1;
-        while (c > 0)
-        {
-                if (s[c] == '/' || s[c] == '\\')
-                   return &s[c+1];
-               c--;
-        }
-        return s;
-}
-
-
-wchar_t *get_filename_w(wchar_t *s)
-{
-        int c = wcslen(s) - 1;
-        while (c > 0)
-        {
-                if (s[c] == L'/' || s[c] == L'\\')
-                   return &s[c+1];
-               c--;
-        }
-        return s;
-}
-
-
-void append_filename(char *dest, char *s1, char *s2, int size)
-{
-        sprintf(dest, "%s%s", s1, s2);
-}
-
-
-void append_filename_w(wchar_t *dest, wchar_t *s1, wchar_t *s2, int size)
-{
-        _swprintf(dest, L"%s%s", s1, s2);
-}
-
-
-void put_backslash(char *s)
-{
-        int c = strlen(s) - 1;
-        if (s[c] != '/' && s[c] != '\\')
-           s[c] = '/';
-}
-
-
-void put_backslash_w(wchar_t *s)
-{
-        int c = wcslen(s) - 1;
-        if (s[c] != L'/' && s[c] != L'\\')
-           s[c] = L'/';
-}
-
-
-char *get_extension(char *s)
-{
-        int c = strlen(s) - 1;
-
-        if (c <= 0)
-                return s;
-        
-        while (c && s[c] != '.')
-                c--;
-                
-        if (!c)
-                return &s[strlen(s)];
-
-        return &s[c+1];
-}               
-
-
-wchar_t *get_extension_w(wchar_t *s)
-{
-        int c = wcslen(s) - 1;
-
-        if (c <= 0)
-                return s;
-        
-        while (c && s[c] != L'.')
-                c--;
-                
-        if (!c)
-                return &s[wcslen(s)];
-
-        return &s[c+1];
-}               
-
-
-static wchar_t wname[512];
-
-
-void config_save(wchar_t *fn)
-{
-        section_t *current_section;
+        wchar_t wname[512];
+        section_t *sec;
         FILE *f;
 	int fl = 0;
 
@@ -748,73 +366,77 @@ void config_save(wchar_t *fn)
 #else
         f = _wfopen(fn, L"wt, ccs=UNICODE");
 #endif
-	if (f == NULL)
-		return;
+	if (f == NULL) return;
 
-        current_section = (section_t *)config_head.next;
-        while (current_section)
+        sec = (section_t *)config_head.next;
+        while (sec != NULL)
         {
-                entry_t *current_entry;
+                entry_t *ent;
                 
-                if (current_section->name[0])
+                if (sec->name[0])
 		{
-			mbstowcs(wname, current_section->name, strlen(current_section->name) + 1);
+			mbstowcs(wname, sec->name, strlen(sec->name)+1);
 			if (fl)
-			{
 	                        fwprintf(f, L"\n[%ws]\n", wname);
-			}
-			else
-			{
+			  else
 	                        fwprintf(f, L"[%ws]\n", wname);
-			}
 			fl++;
 		}
                 
-                current_entry = (entry_t *)current_section->entry_head.next;
-                
-                while (current_entry)
+                ent = (entry_t *)sec->entry_head.next;
+                while (ent != NULL)
                 {
-			if(current_entry->name[0])
+			if (ent->name[0])
 			{
-				mbstowcs(wname, current_entry->name, strlen(current_entry->name) + 1);
-				if (current_entry->wdata[0] == L'\0')
-				{
+				mbstowcs(wname, ent->name, strlen(ent->name)+1);
+				if (ent->wdata[0] == L'\0')
 	                	        fwprintf(f, L"%ws = \n", wname);
-				}
-				else
-				{
-	                	        fwprintf(f, L"%ws = %ws\n", wname, current_entry->wdata);
-				}
-
+				  else
+	                	        fwprintf(f, L"%ws = %ws\n", wname, ent->wdata);
 				fl++;
 			}
 
-                        current_entry = (entry_t *)current_entry->list.next;
+                        ent = (entry_t *)ent->list.next;
                 }
 
-                current_section = (section_t *)current_section->list.next;
+                sec = (section_t *)sec->list.next;
         }
         
-        fclose(f);
+        (void)fclose(f);
 }
 
 
-/* General */
-static void loadconfig_general(void)
+#if NOT_USED
+static void
+config_new(void)
+{
+#ifdef ANSI_CFG
+        FILE *f = _wfopen(config_file, L"wt");
+#else
+        FILE *f = _wfopen(config_file, L"wt, ccs=UNICODE");
+#endif
+        (void)fclose(f);
+}
+#endif
+
+
+/* Load "General" section. */
+static void
+load_general(void)
 {
 	char *cat = "General";
-	char temps[512];
+	char temp[512];
         char *p;
 
         vid_resize = !!config_get_int(cat, "vid_resize", 0);
 
-	memset(temps, '\0', sizeof(temps));
+	memset(temp, '\0', sizeof(temp));
         p = config_get_string(cat, "vid_renderer", "d3d9");
 	if (p != NULL)
 	{
-		strcpy(temps, p);
+		strcpy(temp, p);
 	}
-	if (!strcmp(temps, "ddraw"))
+	if (!strcmp(temp, "ddraw"))
 	{
 		vid_api = 0;
 	}
@@ -856,19 +478,22 @@ static void loadconfig_general(void)
 	}
 
 #ifndef __unix
-	/* Currently, 86Box is English (US) only, but in the future (version 1.30 at the earliest) other languages will be added,
-	   therefore it is better to future-proof the code. */
+	/*
+	 * Currently, 86Box is English (US) only, but in the future
+	 * (version 1.30 at the earliest) other languages will be
+	 * added, therefore it is better to future-proof the code.
+	 */
 	dwLanguage = config_get_hex16(cat, "language", 0x0409);
 #endif
 }
 
 
-/* Machine */
-static void loadconfig_machine(void)
+/* Load "Machine" section. */
+static void
+load_machine(void)
 {
 	char *cat = "Machine";
         wchar_t *wp;
-	wchar_t last;
         char *p;
 
         p = config_get_string(cat, "machine", NULL);
@@ -917,35 +542,31 @@ static void loadconfig_machine(void)
         if (wp != NULL) {
 		if (wcslen(wp) && (wcslen(wp) <= 992))
 		{
+#if 1
+			/*
+			 * NOTE:
+			 * Temporary hack to remove the absolute
+			 * path currently saved in most config
+			 * files.  We should remove this before
+			 * finalizing this release!  --FvK
+			 */
+			if (! wcsnicmp(wp, exe_path, wcslen(exe_path))) {
+				/*
+				 * Yep, its absolute and prefixed
+				 * with the EXE path.  Just strip
+				 * that off for now...
+				 */
+				wcscpy(nvr_path, &wp[wcslen(exe_path)]);
+			} else
+#endif
 			wcscpy(nvr_path, wp);
 		}
 		else
 		{
-			append_filename_w(nvr_path, pcempath, L"nvr\\", 511);
+			wcscpy(nvr_path, L"nvr\\");
 		}
 	}
-        else   append_filename_w(nvr_path, pcempath, L"nvr\\", 511);
-
-	if (nvr_path[wcslen(nvr_path) - 1] != L'/')
-	{
-		if (nvr_path[wcslen(nvr_path) - 1] != L'\\')
-		{
-			nvr_path[wcslen(nvr_path)] = L'\\';
-			nvr_path[wcslen(nvr_path) + 1] = L'\0';
-		}
-	}
-
-	path_len = wcslen(nvr_path);
-
-#ifndef __unix
-	last = nvr_path[wcslen(nvr_path) - 1];
-	nvr_path[wcslen(nvr_path) - 1] = 0;
-	if (!DirectoryExists(nvr_path))
-	{
-		CreateDirectory(nvr_path, NULL);
-	}
-	nvr_path[wcslen(nvr_path)] = last;
-#endif
+        else   wcscpy(nvr_path, L"nvr\\");
 
         cpu_use_dynarec = !!config_get_int(cat, "cpu_use_dynarec", 0);
 
@@ -955,8 +576,9 @@ static void loadconfig_machine(void)
 }
 
 
-/* Video */
-static void loadconfig_video(void)
+/* Load "Video" section. */
+static void
+load_video(void)
 {
 	char *cat = "Video";
         char *p;
@@ -973,11 +595,12 @@ static void loadconfig_video(void)
 }
 
 
-/* Input devices */
-static void loadconfig_input_devices(void)
+/* Load "Input Devices" section. */
+static void
+load_input_devices(void)
 {
 	char *cat = "Input devices";
-	char temps[512];
+	char temp[512];
 	int c, d;
         char *p;
 
@@ -991,25 +614,25 @@ static void loadconfig_input_devices(void)
 
         for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++)
         {
-                sprintf(temps, "joystick_%i_nr", c);
-                joystick_state[c].plat_joystick_nr = config_get_int(cat, temps, 0);
+                sprintf(temp, "joystick_%i_nr", c);
+                joystick_state[c].plat_joystick_nr = config_get_int(cat, temp, 0);
 
                 if (joystick_state[c].plat_joystick_nr)
                 {
                         for (d = 0; d < joystick_get_axis_count(joystick_type); d++)
                         {                        
-                                sprintf(temps, "joystick_%i_axis_%i", c, d);
-                                joystick_state[c].axis_mapping[d] = config_get_int(cat, temps, d);
+                                sprintf(temp, "joystick_%i_axis_%i", c, d);
+                                joystick_state[c].axis_mapping[d] = config_get_int(cat, temp, d);
                         }
                         for (d = 0; d < joystick_get_button_count(joystick_type); d++)
                         {                        
-                                sprintf(temps, "joystick_%i_button_%i", c, d);
-                                joystick_state[c].button_mapping[d] = config_get_int(cat, temps, d);
+                                sprintf(temp, "joystick_%i_button_%i", c, d);
+                                joystick_state[c].button_mapping[d] = config_get_int(cat, temp, d);
                         }
                         for (d = 0; d < joystick_get_pov_count(joystick_type); d++)
                         {                        
-                                sprintf(temps, "joystick_%i_pov_%i", c, d);
-			        p = config_get_string(cat, temps, "0, 0");
+                                sprintf(temp, "joystick_%i_pov_%i", c, d);
+			        p = config_get_string(cat, temp, "0, 0");
 				joystick_state[c].pov_mapping[d][0] = joystick_state[c].pov_mapping[d][1] = 0;
 				sscanf(p, "%i, %i", &joystick_state[c].pov_mapping[d][0], &joystick_state[c].pov_mapping[d][1]);
                         }
@@ -1018,11 +641,12 @@ static void loadconfig_input_devices(void)
 }
 
 
-/* Sound */
-static void loadconfig_sound(void)
+/* Load "Sound" section. */
+static void
+load_sound(void)
 {
 	char *cat = "Sound";
-	char temps[512];
+	char temp[512];
         char *p;
 
         p = config_get_string(cat, "sndcard", NULL);
@@ -1043,13 +667,13 @@ static void loadconfig_sound(void)
         GAMEBLASTER = !!config_get_int(cat, "gameblaster", 0);
         GUS = !!config_get_int(cat, "gus", 0);
 
-	memset(temps, '\0', sizeof(temps));
+	memset(temp, '\0', sizeof(temp));
         p = config_get_string(cat, "opl3_type", "dbopl");
 	if (p != NULL)
 	{
-		strcpy(temps, p);
+		strcpy(temp, p);
 	}
-	if (!strcmp(temps, "nukedopl") || !strcmp(temps, "1"))
+	if (!strcmp(temp, "nukedopl") || !strcmp(temp, "1"))
 	{
 		opl3_type = 1;
 	}
@@ -1058,13 +682,13 @@ static void loadconfig_sound(void)
 		opl3_type = 0;
 	}
 
-	memset(temps, '\0', sizeof(temps));
+	memset(temp, '\0', sizeof(temp));
         p = config_get_string(cat, "sound_type", "float");
 	if (p != NULL)
 	{
-		strcpy(temps, p);
+		strcpy(temp, p);
 	}
-	if (!strcmp(temps, "float") || !strcmp(temps, "1"))
+	if (!strcmp(temp, "float") || !strcmp(temp, "1"))
 	{
 		sound_is_float = 1;
 	}
@@ -1076,24 +700,25 @@ static void loadconfig_sound(void)
 
 
 #ifdef USE_NETWORK
-/* Network */
-static void loadconfig_network(void)
+/* Load "Network" section. */
+static void
+load_network(void)
 {
 	char *cat = "Network";
-	char temps[512];
+	char temp[512];
         char *p;
 
-	memset(temps, '\0', sizeof(temps));
+	memset(temp, '\0', sizeof(temp));
         p = config_get_string(cat, "net_type", "none");
 	if (p != NULL)
 	{
-		strcpy(temps, p);
+		strcpy(temp, p);
 	}
-	if (!strcmp(temps, "slirp") || !strcmp(temps, "2"))
+	if (!strcmp(temp, "slirp") || !strcmp(temp, "2"))
 	{
 		network_type = NET_TYPE_SLIRP;
 	}
-	else if (!strcmp(temps, "pcap") || !strcmp(temps, "1"))
+	else if (!strcmp(temp, "pcap") || !strcmp(temp, "1"))
 	{
 		network_type = NET_TYPE_PCAP;
 	}
@@ -1133,8 +758,9 @@ static void loadconfig_network(void)
 #endif
 
 
-/* Ports (COM & LPT) */
-static void loadconfig_ports(void)
+/* Load "Ports" section. */
+static void
+load_ports(void)
 {
 	char *cat = "Ports (COM & LPT)";
         char *p;
@@ -1151,11 +777,12 @@ static void loadconfig_ports(void)
 }
 
 
-/* Other peripherals */
-static void loadconfig_other_peripherals(void)
+/* Load "Other Peripherals" section. */
+static void
+load_other_peripherals(void)
 {
 	char *cat = "Other peripherals";
-	char temps[512];
+	char temp[512];
         char *p;
 	int c;
 
@@ -1172,11 +799,11 @@ static void loadconfig_other_peripherals(void)
         else
                 strcpy(hdd_controller_name, "none");
 
-	memset(temps, '\0', sizeof(temps));
+	memset(temp, '\0', sizeof(temp));
 	for (c = 2; c < 4; c++)
 	{
-		sprintf(temps, "ide_%02i", c + 1);
-		p = config_get_string(cat, temps, NULL);
+		sprintf(temp, "ide_%02i", c + 1);
+		p = config_get_string(cat, temp, NULL);
 		if (p == NULL)
 			p = "0, 00";
 		sscanf(p, "%i, %02i", &ide_enable[c], &ide_irq[c]);
@@ -1192,14 +819,16 @@ static void loadconfig_other_peripherals(void)
 }
 
 
-static int config_string_to_bus(char *str, int cdrom)
+/* FIXME: this should be in HDD somewhere. --FvK */
+static int
+string_to_bus(char *str, int cdrom)
 {
-	if (!strcmp(str, "none"))
+	if (! strcmp(str, "none"))
 	{
 		return HDD_BUS_DISABLED;
 	}
 
-	if (!strcmp(str, "mfm"))
+	if (! strcmp(str, "mfm"))
 	{
 		if (cdrom)  goto no_mfm_cdrom;
 
@@ -1214,78 +843,78 @@ static int config_string_to_bus(char *str, int cdrom)
 		return HDD_BUS_ESDI;
 	}
 
-	if (!strcmp(str, "ide_pio_only"))
+	if (! strcmp(str, "ide_pio_only"))
 	{
 		return HDD_BUS_IDE_PIO_ONLY;
 	}
 
-	if (!strcmp(str, "ide"))
+	if (! strcmp(str, "ide"))
 	{
 		return HDD_BUS_IDE_PIO_ONLY;
 	}
 
-	if (!strcmp(str, "atapi_pio_only"))
+	if (! strcmp(str, "atapi_pio_only"))
 	{
 		return HDD_BUS_IDE_PIO_ONLY;
 	}
 
-	if (!strcmp(str, "atapi"))
+	if (! strcmp(str, "atapi"))
 	{
 		return HDD_BUS_IDE_PIO_ONLY;
 	}
 
-	if (!strcmp(str, "eide"))
+	if (! strcmp(str, "eide"))
 	{
 		return HDD_BUS_IDE_PIO_ONLY;
 	}
 
-	if (!strcmp(str, "xtide"))
+	if (! strcmp(str, "xtide"))
 	{
 		return HDD_BUS_XTIDE;
 	}
 
-	if (!strcmp(str, "atide"))
+	if (! strcmp(str, "atide"))
 	{
 		return HDD_BUS_IDE_PIO_ONLY;
 	}
 
-	if (!strcmp(str, "ide_pio_and_dma"))
+	if (! strcmp(str, "ide_pio_and_dma"))
 	{
 		return HDD_BUS_IDE_PIO_AND_DMA;
 	}
 
-	if (!strcmp(str, "atapi_pio_and_dma"))
+	if (! strcmp(str, "atapi_pio_and_dma"))
 	{
 		return HDD_BUS_IDE_PIO_AND_DMA;
 	}
 
-	if (!strcmp(str, "scsi"))
+	if (! strcmp(str, "scsi"))
 	{
 		return HDD_BUS_SCSI;
 	}
 
-	if (!strcmp(str, "removable"))
+	if (! strcmp(str, "removable"))
 	{
 		if (cdrom)  goto no_mfm_cdrom;
 
 		return HDD_BUS_SCSI_REMOVABLE;
 	}
 
-	if (!strcmp(str, "scsi_removable"))
+	if (! strcmp(str, "scsi_removable"))
 	{
 		if (cdrom)  goto no_mfm_cdrom;
 
 		return HDD_BUS_SCSI_REMOVABLE;
 	}
 
-	if (!strcmp(str, "removable_scsi"))
+	if (! strcmp(str, "removable_scsi"))
 	{
 		if (cdrom)  goto no_mfm_cdrom;
 
 		return HDD_BUS_SCSI_REMOVABLE;
 	}
 
-	if (!strcmp(str, "usb"))
+	if (! strcmp(str, "usb"))
 	{
 		msgbox_error(ghwnd, IDS_4110);
 		return 0;
@@ -1299,7 +928,9 @@ no_mfm_cdrom:
 }
 
 
-static int hard_disk_is_valid(int c)
+/* FIXME: this should be in HDD. --FvK */
+static int
+hard_disk_is_valid(int c)
 {
 	if (hdc[c].bus == HDD_BUS_DISABLED)
 	{
@@ -1320,7 +951,8 @@ static int hard_disk_is_valid(int c)
 }
 
 
-static int tally_char(char *string, char c)
+static int
+tally_char(char *string, char c)
 {
 	int i = 0;
 	int tally = 0;
@@ -1347,8 +979,9 @@ static int tally_char(char *string, char c)
 }
 
 
-/* Hard disks */
-static void loadconfig_hard_disks(void)
+/* Load "Hard Disks" section. */
+static void
+load_hard_disks(void)
 {
 	char *cat = "Hard disks";
 	char temps[512];
@@ -1377,7 +1010,7 @@ static void loadconfig_hard_disks(void)
 			sscanf(p, "%" PRIu64 ", %" PRIu64", %" PRIu64 ", %i, %s", &hdc[c].spt, &hdc[c].hpc, &hdc[c].tracks, &hdc[c].wp, s);
 		}
 
-		hdc[c].bus = config_string_to_bus(s, 0);
+		hdc[c].bus = string_to_bus(s, 0);
 
 		switch(hdc[c].bus)
 		{
@@ -1423,7 +1056,7 @@ static void loadconfig_hard_disks(void)
 			hdc[c].tracks = max_tracks;
 		}
 
-		/* MFM */
+		/* MFM/RLL */
 		sprintf(temps, "hdd_%02i_mfm_channel", c + 1);
 		if (hdc[c].bus == HDD_BUS_MFM)
 		{
@@ -1510,10 +1143,27 @@ static void loadconfig_hard_disks(void)
 			config_delete_var(cat, temps);
 		}
 
-		memset(hdc[c].fn, 0, sizeof(hdc[c].fn));
-		memset(hdc[c].prev_fn, 0, sizeof(hdc[c].prev_fn));
+		memset(hdc[c].fn, 0x00, sizeof(hdc[c].fn));
+		memset(hdc[c].prev_fn, 0x00, sizeof(hdc[c].prev_fn));
 		sprintf(temps, "hdd_%02i_fn", c + 1);
 	        wp = config_get_wstring(cat, temps, L"");
+#if 1
+		/*
+		 * NOTE:
+		 * Temporary hack to remove the absolute
+		 * path currently saved in most config
+		 * files.  We should remove this before
+		 * finalizing this release!  --FvK
+		 */
+		if (! wcsnicmp(wp, cfg_path, wcslen(cfg_path))) {
+			/*
+			 * Yep, its absolute and prefixed
+			 * with the CFG path.  Just strip
+			 * that off for now...
+			 */
+			wcscpy((wchar_t *)hdc[c].fn, &wp[wcslen(cfg_path)]);
+		} else
+#endif
         	memcpy(hdc[c].fn, wp, (wcslen(wp) << 1) + 2);
 
 		/* If the hard disk is in any way empty or invalid, mark the relevant variables for deletion. */
@@ -1544,8 +1194,9 @@ static void loadconfig_hard_disks(void)
 }
 
 
-/* Removable devices */
-static void loadconfig_removable_devices(void)
+/* Load "Removable Devices" section. */
+static void
+load_removable_devices(void)
 {
 	char *cat = "Removable devices";
 	char temps[512];
@@ -1568,6 +1219,23 @@ static void loadconfig_removable_devices(void)
 
 		sprintf(temps, "fdd_%02i_fn", c + 1);
 	        wp = config_get_wstring(cat, temps, L"");
+#if 0
+		/*
+		 * NOTE:
+		 * Temporary hack to remove the absolute
+		 * path currently saved in most config
+		 * files.  We should remove this before
+		 * finalizing this release!  --FvK
+		 */
+		if (! wcsnicmp(wp, cfg_path, wcslen(cfg_path))) {
+			/*
+			 * Yep, its absolute and prefixed
+			 * with the EXE path.  Just strip
+			 * that off for now...
+			 */
+			wcscpy((wchar_t *)floppyfns[c], &wp[wcslen(cfg_path)]);
+		} else
+#endif
         	memcpy(floppyfns[c], wp, (wcslen(wp) << 1) + 2);
 		printf("Floppy: %ws\n", floppyfns[c]);
 		sprintf(temps, "fdd_%02i_writeprot", c + 1);
@@ -1627,7 +1295,7 @@ static void loadconfig_removable_devices(void)
 			sscanf("0, none", "%u, %s", &cdrom_drives[c].sound_on, s);
 		}
 
-		cdrom_drives[c].bus_type = config_string_to_bus(s, 1);
+		cdrom_drives[c].bus_type = string_to_bus(s, 1);
 
 		sprintf(temps, "cdrom_%02i_ide_channel", c + 1);
 		if ((cdrom_drives[c].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) || (cdrom_drives[c].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA))
@@ -1682,6 +1350,23 @@ static void loadconfig_removable_devices(void)
 
 		sprintf(temps, "cdrom_%02i_image_path", c + 1);
 		wp = config_get_wstring(cat, temps, L"");
+#if 0
+		/*
+		 * NOTE:
+		 * Temporary hack to remove the absolute
+		 * path currently saved in most config
+		 * files.  We should remove this before
+		 * finalizing this release!  --FvK
+		 */
+		if (! wcsnicmp(wp, cfg_path, wcslen(cfg_path))) {
+			/*
+			 * Yep, its absolute and prefixed
+			 * with the EXE path.  Just strip
+			 * that off for now...
+			 */
+			wcscpy((wchar_t *)cdrom_image[c].image_path, &wp[wcslen(cfg_path)]);
+		} else
+#endif
 		memcpy(cdrom_image[c].image_path, wp, (wcslen(wp) << 1) + 2);
 		wcscpy(cdrom_image[c].prev_image_path, cdrom_image[c].image_path);
 
@@ -1720,13 +1405,16 @@ static void loadconfig_removable_devices(void)
 }
 
 
-void loadconfig(wchar_t *fn)
+/* Load the specified or a default configuration file. */
+void
+config_load(wchar_t *fn)
 {
 	int i = 0;
 
 	if (fn == NULL)
 		fn = config_file_default;
-	i = config_load(fn);
+	pclog("Loading config file '%S'..\n", fn);
+	i = config_read(fn);
 
 	if (i == 0)
 	{
@@ -1746,66 +1434,52 @@ void loadconfig(wchar_t *fn)
 		fdd_set_type(1, 2);
 		mem_size = 640;
 
+		pclog("Config file not present or invalid!\n");
 		return;
 	}
 
 	/* General */
-	loadconfig_general();
+	load_general();
 
 	/* Machine */
-	loadconfig_machine();
+	load_machine();
 
 	/* Video */
-	loadconfig_video();
+	load_video();
 
 	/* Input devices */
-	loadconfig_input_devices();
+	load_input_devices();
 
 	/* Sound */
-	loadconfig_sound();
+	load_sound();
 
 #ifdef USE_NETWORK
 	/* Network */
-	loadconfig_network();
+	load_network();
 #endif
 
 	/* Ports (COM & LPT) */
-	loadconfig_ports();
+	load_ports();
 
 	/* Other peripherals */
-	loadconfig_other_peripherals();
+	load_other_peripherals();
 
 	/* Hard disks */
-	loadconfig_hard_disks();
+	load_hard_disks();
 
 	/* Removable devices */
-	loadconfig_removable_devices();
+	load_removable_devices();
 
+	pclog("Config loaded.\n");
 }
 
 
-wchar_t *nvr_concat(wchar_t *to_concat)
-{
-	static wchar_t temp_nvr_path[1024];
-	char *p;
-	wchar_t *wp;
-
-	memset(temp_nvr_path, 0, 2048);
-	wcscpy(temp_nvr_path, nvr_path);
-
-	p = (char *) temp_nvr_path;
-	p += (path_len * 2);
-	wp = (wchar_t *) p;
-
-	wcscpy(wp, to_concat);
-	return temp_nvr_path;
-}
-
-
-static void saveconfig_general(void)
+/* Save "General" section. */
+static void
+save_general(void)
 {
 	char *cat = "General";
-	char temps[512];
+	char temp[512];
 
         config_set_int(cat, "vid_resize", vid_resize);
 	if (vid_resize == 0)
@@ -1907,8 +1581,8 @@ static void saveconfig_general(void)
 	{
 	        config_set_int(cat, "window_remember", window_remember);
 
-		sprintf(temps, "%i, %i, %i, %i", window_w, window_h, window_x, window_y);
-		config_set_string(cat, "window_coordinates", temps);
+		sprintf(temp, "%i, %i, %i, %i", window_w, window_h, window_x, window_y);
+		config_set_string(cat, "window_coordinates", temp);
 	}
 	else
 	{
@@ -1927,12 +1601,13 @@ static void saveconfig_general(void)
 	}
 #endif
 
-	config_delete_section_if_empty(cat);
+	delete_section_if_empty(cat);
 }
 
 
-/* Machine */
-static void saveconfig_machine(void)
+/* Save "Machine" section. */
+static void
+save_machine(void)
 {
 	char *cat = "Machine";
 
@@ -1996,12 +1671,13 @@ static void saveconfig_machine(void)
 	        config_set_int(cat, "enable_sync", enable_sync);
 	}
 
-	config_delete_section_if_empty(cat);
+	delete_section_if_empty(cat);
 }
 
 
-/* Video */
-static void saveconfig_video(void)
+/* Save "Video" section. */
+static void
+save_video(void)
 {
 	char *cat = "Video";
 
@@ -2025,15 +1701,16 @@ static void saveconfig_video(void)
 	        config_set_int(cat, "voodoo", voodoo_enabled);
 	}
 
-	config_delete_section_if_empty(cat);
+	delete_section_if_empty(cat);
 }
 
 
-/* Input devices */
-static void saveconfig_input_devices(void)
+/* Save "Input Devices" section. */
+static void
+save_input_devices(void)
 {
 	char *cat = "Input devices";
-	char temps[512];
+	char temp[512];
 	char s[512];
         int c, d;
 
@@ -2096,19 +1773,20 @@ static void saveconfig_input_devices(void)
         	                for (d = 0; d < joystick_get_pov_count(joystick_type); d++)
                 	        {                        
                         	        sprintf(s, "joystick_%i_pov_%i", c, d);
-					sprintf(temps, "%i, %i", joystick_state[c].pov_mapping[d][0], joystick_state[c].pov_mapping[d][1]);
-        	                        config_set_string(cat, s, temps);
+					sprintf(temp, "%i, %i", joystick_state[c].pov_mapping[d][0], joystick_state[c].pov_mapping[d][1]);
+        	                        config_set_string(cat, s, temp);
                 	        }
 	                }
         	}
 	}
 
-	config_delete_section_if_empty(cat);
+	delete_section_if_empty(cat);
 }
 
 
-/* Sound */
-static void saveconfig_sound(void)
+/* Save "Sound" section. */
+static void
+save_sound(void)
 {
 	char *cat = "Sound";
 
@@ -2185,13 +1863,14 @@ static void saveconfig_sound(void)
 		config_set_string(cat, "sound_type", (sound_is_float == 1) ? "float" : "int16");
 	}
 
-	config_delete_section_if_empty(cat);
+	delete_section_if_empty(cat);
 }
 
 
 #ifdef USE_NETWORK
-/* Network */
-static void saveconfig_network(void)
+/* Save "Network" section. */
+static void
+save_network(void)
 {
 	char *cat = "Network";
 
@@ -2230,13 +1909,14 @@ static void saveconfig_network(void)
 		config_set_string(cat, "net_card", network_card_get_internal_name(network_card));
 	}
 
-	config_delete_section_if_empty(cat);
+	delete_section_if_empty(cat);
 }
 #endif
 
 
-/* Ports (COM & LPT) */
-static void saveconfig_ports(void)
+/* Save "Ports" section. */
+static void
+save_ports(void)
 {
 	char *cat = "Ports (COM & LPT)";
 
@@ -2276,12 +1956,13 @@ static void saveconfig_ports(void)
 		config_set_string(cat, "lpt1_device", lpt1_device_name);
 	}
 
-	config_delete_section_if_empty(cat);
+	delete_section_if_empty(cat);
 }
 
 
-/* Other peripherals */
-static void saveconfig_other_peripherals(void)
+/* Save "Other Peripherals" section. */
+static void
+save_other_peripherals(void)
 {
 	char *cat = "Other peripherals";
 	char temps[512];
@@ -2331,11 +2012,12 @@ static void saveconfig_other_peripherals(void)
 	        config_set_int(cat, "bugger_enabled", bugger_enabled);
 	}
 
-	config_delete_section_if_empty(cat);
+	delete_section_if_empty(cat);
 }
 
 
-static char *config_bus_to_string(int bus, int cdrom)
+static char *
+bus_to_string(int bus, int cdrom)
 {
 	switch (bus)
 	{
@@ -2368,8 +2050,9 @@ static char *config_bus_to_string(int bus, int cdrom)
 }
 
 
-/* Hard disks */
-static void saveconfig_hard_disks(void)
+/* Save "Hard Disks" section. */
+static void
+save_hard_disks(void)
 {
 	char *cat = "Hard disks";
 	char temps[24];
@@ -2389,7 +2072,7 @@ static void saveconfig_hard_disks(void)
 		}
 		else
 		{
-			p = config_bus_to_string(hdc[c].bus, 0);
+			p = bus_to_string(hdc[c].bus, 0);
 			sprintf(temps2, "%" PRIu64 ", %" PRIu64", %" PRIu64 ", %i, %s", hdc[c].spt, hdc[c].hpc, hdc[c].tracks, hdc[c].wp, p);
 			config_set_string(cat, temps, temps2);
 		}
@@ -2457,12 +2140,13 @@ static void saveconfig_hard_disks(void)
 		}
 	}
 
-	config_delete_section_if_empty(cat);
+	delete_section_if_empty(cat);
 }
 
 
-/* Removable devices */
-static void saveconfig_removable_devices(void)
+/* Save "Removable Devices" section. */
+static void
+save_removable_devices(void)
 {
 	char *cat = "Removable devices";
 	char temps[512];
@@ -2548,7 +2232,7 @@ static void saveconfig_removable_devices(void)
 		}
 		else
 		{
-			sprintf(temps2, "%u, %s", cdrom_drives[c].sound_on, config_bus_to_string(cdrom_drives[c].bus_type, 1));
+			sprintf(temps2, "%u, %s", cdrom_drives[c].sound_on, bus_to_string(cdrom_drives[c].bus_type, 1));
 			config_set_string(cat, temps, temps2);
 		}
 		
@@ -2585,43 +2269,451 @@ static void saveconfig_removable_devices(void)
 		}
 	}
 
-	config_delete_section_if_empty(cat);
+	delete_section_if_empty(cat);
 }
 
 
-void saveconfig(void)
+void
+config_save(void)
 {
 	/* General */
-	saveconfig_general();
+	save_general();
 
 	/* Machine */
-	saveconfig_machine();
+	save_machine();
 
 	/* Video */
-	saveconfig_video();
+	save_video();
 
 	/* Input devices */
-	saveconfig_input_devices();
+	save_input_devices();
 
 	/* Sound */
-	saveconfig_sound();
+	save_sound();
 
 #ifdef USE_NETWORK
 	/* Network */
-	saveconfig_network();
+	save_network();
 #endif
 
 	/* Ports (COM & LPT) */
-	saveconfig_ports();
+	save_ports();
 
 	/* Other peripherals */
-	saveconfig_other_peripherals();
+	save_other_peripherals();
 
 	/* Hard disks */
-	saveconfig_hard_disks();
+	save_hard_disks();
 
 	/* Removable devices */
-	saveconfig_removable_devices();
+	save_removable_devices();
 
-        config_save(config_file_default);
+        config_write(config_file_default);
 }
+
+
+void
+config_dump(void)
+{
+        section_t *sec;
+        
+        pclog("Config data :\n");
+        
+        sec = (section_t *)config_head.next;
+        while (sec != NULL)
+        {
+                entry_t *ent;
+                
+                pclog("[%s]\n", sec->name);
+                
+                ent = (entry_t *)sec->entry_head.next;
+       
+                while (ent != NULL)
+                {
+                        pclog("%s = %s\n", ent->name, ent->data);
+
+                        ent = (entry_t *)ent->list.next;
+                }
+
+                sec = (section_t *)sec->list.next;
+        }
+}
+
+
+void
+config_delete_var(char *head, char *name)
+{
+        section_t *section;
+        entry_t *entry;
+
+        section = find_section(head);
+        if (section == NULL) return;
+                
+        entry = find_entry(section, name);
+        if (entry == NULL) return;
+
+	list_delete(&entry->list, &section->entry_head);
+	free(entry);
+}
+
+
+int
+config_get_int(char *head, char *name, int def)
+{
+        section_t *section;
+        entry_t *entry;
+        int value;
+
+        section = find_section(head);
+        
+        if (!section)
+                return def;
+                
+        entry = find_entry(section, name);
+
+        if (!entry)
+                return def;
+        
+        sscanf(entry->data, "%i", &value);
+        
+        return value;
+}
+
+
+int
+config_get_hex16(char *head, char *name, int def)
+{
+        section_t *section;
+        entry_t *entry;
+        int value;
+
+        section = find_section(head);
+        
+        if (!section)
+                return def;
+                
+        entry = find_entry(section, name);
+
+        if (!entry)
+                return def;
+        
+        sscanf(entry->data, "%04X", &value);
+        
+        return value;
+}
+
+
+int
+config_get_hex20(char *head, char *name, int def)
+{
+        section_t *section;
+        entry_t *entry;
+        int value;
+
+        section = find_section(head);
+        
+        if (!section)
+                return def;
+                
+        entry = find_entry(section, name);
+
+        if (!entry)
+                return def;
+        
+        sscanf(entry->data, "%05X", &value);
+        
+        return value;
+}
+
+
+int
+config_get_mac(char *head, char *name, int def)
+{
+        section_t *section;
+        entry_t *entry;
+        int val0 = 0, val1 = 0, val2 = 0;
+
+        section = find_section(head);
+        
+        if (!section)
+                return def;
+                
+        entry = find_entry(section, name);
+
+        if (!entry)
+                return def;
+        
+        sscanf(entry->data, "%02x:%02x:%02x", &val0, &val1, &val2);
+
+        return (val0 << 16) + (val1 << 8) + val2;
+}
+
+
+char *
+config_get_string(char *head, char *name, char *def)
+{
+        section_t *section;
+        entry_t *entry;
+
+        section = find_section(head);
+        
+        if (!section)
+                return def;
+                
+        entry = find_entry(section, name);
+
+        if (!entry)
+                return def;
+       
+        return entry->data; 
+}
+
+
+wchar_t *
+config_get_wstring(char *head, char *name, wchar_t *def)
+{
+        section_t *section;
+        entry_t *entry;
+
+        section = find_section(head);
+        
+        if (!section)
+                return def;
+                
+        entry = find_entry(section, name);
+
+        if (!entry)
+                return def;
+       
+        return entry->wdata; 
+}
+
+
+void
+config_set_int(char *head, char *name, int val)
+{
+        section_t *section;
+        entry_t *entry;
+
+        section = find_section(head);
+        
+        if (!section)
+                section = create_section(head);
+                
+        entry = find_entry(section, name);
+
+        if (!entry)
+                entry = create_entry(section, name);
+
+        sprintf(entry->data, "%i", val);
+	mbstowcs(entry->wdata, entry->data, 512);
+}
+
+
+void
+config_set_hex16(char *head, char *name, int val)
+{
+        section_t *section;
+        entry_t *entry;
+
+        section = find_section(head);
+        
+        if (!section)
+                section = create_section(head);
+                
+        entry = find_entry(section, name);
+
+        if (!entry)
+                entry = create_entry(section, name);
+
+        sprintf(entry->data, "%04X", val);
+	mbstowcs(entry->wdata, entry->data, 512);
+}
+
+
+void
+config_set_hex20(char *head, char *name, int val)
+{
+        section_t *section;
+        entry_t *entry;
+
+        section = find_section(head);
+        
+        if (!section)
+                section = create_section(head);
+                
+        entry = find_entry(section, name);
+
+        if (!entry)
+                entry = create_entry(section, name);
+
+        sprintf(entry->data, "%05X", val);
+	mbstowcs(entry->wdata, entry->data, 512);
+}
+
+
+void
+config_set_mac(char *head, char *name, int val)
+{
+        section_t *section;
+        entry_t *entry;
+
+        section = find_section(head);
+        
+        if (!section)
+                section = create_section(head);
+                
+        entry = find_entry(section, name);
+
+        if (!entry)
+                entry = create_entry(section, name);
+
+        sprintf(entry->data, "%02x:%02x:%02x",
+		(val>>16)&0xff, (val>>8)&0xff, val&0xff);
+	mbstowcs(entry->wdata, entry->data, 512);
+}
+
+
+void
+config_set_string(char *head, char *name, char *val)
+{
+        section_t *section;
+        entry_t *entry;
+
+        section = find_section(head);
+        
+        if (!section)
+                section = create_section(head);
+                
+        entry = find_entry(section, name);
+
+        if (!entry)
+                entry = create_entry(section, name);
+
+        strncpy(entry->data, val, 256);
+	mbstowcs(entry->wdata, entry->data, 256);
+}
+
+
+void
+config_set_wstring(char *head, char *name, wchar_t *val)
+{
+        section_t *section;
+        entry_t *entry;
+
+        section = find_section(head);
+        
+        if (!section)
+                section = create_section(head);
+                
+        entry = find_entry(section, name);
+
+        if (!entry)
+                entry = create_entry(section, name);
+
+        memcpy(entry->wdata, val, 512);
+}
+
+
+/* FIXME: should be moved elsewhere. --FvK */
+char *
+get_filename(char *s)
+{
+        int c = strlen(s) - 1;
+        while (c > 0)
+        {
+                if (s[c] == '/' || s[c] == '\\')
+                   return &s[c+1];
+               c--;
+        }
+        return s;
+}
+
+
+/* FIXME: should be moved elsewhere. --FvK */
+wchar_t *
+get_filename_w(wchar_t *s)
+{
+        int c = wcslen(s) - 1;
+        while (c > 0)
+        {
+                if (s[c] == L'/' || s[c] == L'\\')
+                   return &s[c+1];
+               c--;
+        }
+        return s;
+}
+
+
+/* FIXME: should be moved elsewhere. --FvK */
+void
+append_filename(char *dest, char *s1, char *s2, int size)
+{
+        sprintf(dest, "%s%s", s1, s2);
+}
+
+
+/* FIXME: should be moved elsewhere. --FvK */
+void
+append_filename_w(wchar_t *dest, wchar_t *s1, wchar_t *s2, int size)
+{
+        _swprintf(dest, L"%s%s", s1, s2);
+}
+
+
+/* FIXME: should be moved elsewhere. --FvK */
+void
+put_backslash(char *s)
+{
+        int c = strlen(s) - 1;
+        if (s[c] != '/' && s[c] != '\\')
+           s[c] = '/';
+}
+
+
+/* FIXME: should be moved elsewhere. --FvK */
+void
+put_backslash_w(wchar_t *s)
+{
+        int c = wcslen(s) - 1;
+        if (s[c] != L'/' && s[c] != L'\\')
+           s[c] = L'/';
+}
+
+
+/* FIXME: should be moved elsewhere. --FvK */
+char *
+get_extension(char *s)
+{
+        int c = strlen(s) - 1;
+
+        if (c <= 0)
+                return s;
+        
+        while (c && s[c] != '.')
+                c--;
+                
+        if (!c)
+                return &s[strlen(s)];
+
+        return &s[c+1];
+}               
+
+
+/* FIXME: should be moved elsewhere. --FvK */
+wchar_t
+*get_extension_w(wchar_t *s)
+{
+        int c = wcslen(s) - 1;
+
+        if (c <= 0)
+                return s;
+        
+        while (c && s[c] != L'.')
+                c--;
+                
+        if (!c)
+                return &s[wcslen(s)];
+
+        return &s[c+1];
+}               

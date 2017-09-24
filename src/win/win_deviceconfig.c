@@ -8,7 +8,7 @@
  *
  *		Windows device configuration dialog implementation.
  *
- * Version:	@(#)win_deviceconfig.c	1.0.1	2017/06/19
+ * Version:	@(#)win_deviceconfig.c	1.0.2	2017/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -352,7 +352,7 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                         config++;
                                 }
 
-                                saveconfig();
+                                config_save();
                         
                                 resetpchard();
 

@@ -3,7 +3,7 @@
 */
 #include "../ibm.h"
 #include "../mem.h"
-#include "../rom.h"
+#include "../nvr.h"
 #include "vid_ati_eeprom.h"
 
 

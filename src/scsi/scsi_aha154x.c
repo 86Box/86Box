@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.16	2017/09/05
+ * Version:	@(#)scsi_aha154x.c	1.0.17	2017/09/19
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -29,6 +29,7 @@
 #include "../mem.h"
 #include "../mca.h"
 #include "../rom.h"
+#include "../nvr.h"
 #include "../dma.h"
 #include "../pic.h"
 #include "../timer.h"

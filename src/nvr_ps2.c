@@ -3,7 +3,7 @@
 #include "device.h"
 #include "io.h"
 #include "mem.h"
-#include "rom.h"
+#include "nvr.h"
 #include "nvr_ps2.h"
 
 

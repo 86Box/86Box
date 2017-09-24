@@ -11,25 +11,22 @@
 
 FILE *romfopen(wchar_t *fn, wchar_t *mode)
 {
-        wchar_t s[512];
-        wcscpy(s, pcempath);
+        wchar_t s[1024];
+
+        wcscpy(s, exe_path);
         put_backslash_w(s);
         wcscat(s, fn);
+
         return _wfopen(s, mode);
 }
 
-
-FILE *nvrfopen(wchar_t *fn, wchar_t *mode)
-{
-        return _wfopen(nvr_concat(fn), mode);
-}
 
 
 int rom_getfile(wchar_t *fn, wchar_t *s, int size)
 {
         FILE *f;
 
-        wcscpy(s, pcempath);
+        wcscpy(s, exe_path);
 	put_backslash_w(s);
 	wcscat(s, fn);
 	f = _wfopen(s, L"rb");
@@ -46,7 +43,7 @@ int rom_present(wchar_t *fn)
         FILE *f;
         wchar_t s[512];
         
-        wcscpy(s, pcempath);
+        wcscpy(s, exe_path);
         put_backslash_w(s);
         wcscat(s, fn);
         f = _wfopen(s, L"rb");

@@ -8,7 +8,7 @@
  *
  *		Windows IO device menu handler.
  *
- * Version:	@(#)win_iodev.c	1.0.1	2017/09/03
+ * Version:	@(#)win_iodev.c	1.0.2	2017/09/19
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "../ibm.h"
+#include "../config.h"
 #include "../device.h"
 #include "../cdrom/cdrom.h"
 #include "../cdrom/cdrom_image.h"
@@ -78,7 +79,7 @@ void cdrom_eject(uint8_t id)
 	update_status_bar_icon_state(SB_CDROM | id, 1);
 	EnableMenuItem(sb_menu_handles[part], IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
 	update_tip(SB_CDROM | id);
-	saveconfig();
+	config_save();
 }
 
 void cdrom_reload(uint8_t id)
@@ -139,7 +140,7 @@ void cdrom_reload(uint8_t id)
 	}
 	EnableMenuItem(sb_menu_handles[part], IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
 	update_tip(SB_CDROM | id);
-	saveconfig();
+	config_save();
 }
 
 void removable_disk_unload(uint8_t id)
@@ -170,7 +171,7 @@ void removable_disk_eject(uint8_t id)
 	EnableMenuItem(sb_menu_handles[part], IDM_RDISK_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
 	EnableMenuItem(sb_menu_handles[part], IDM_RDISK_SEND_CHANGE | id, MF_BYCOMMAND | MF_GRAYED);
 	update_tip(SB_RDISK | id);
-	saveconfig();
+	config_save();
 }
 
 void removable_disk_reload(uint8_t id)
@@ -196,6 +197,6 @@ void removable_disk_reload(uint8_t id)
 	EnableMenuItem(sb_menu_handles[part], IDM_RDISK_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
 	EnableMenuItem(sb_menu_handles[part], IDM_RDISK_SEND_CHANGE | id, MF_BYCOMMAND | (wcslen(hdc[id].fn) ? MF_ENABLED : MF_GRAYED));
 	update_tip(SB_RDISK | id);
-	saveconfig();
+	config_save();
 }
 

@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 2 Mbit 8-bit flash devices.
  *
- * Version:	@(#)intel_flash.c	1.0.1	2017/08/23
+ * Version:	@(#)intel_flash.c	1.0.2	2017/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,7 +22,7 @@
 #include "device.h"
 #include "mem.h"
 #include "machine/machine.h"
-#include "rom.h"
+#include "nvr.h"
 
 #define FLASH_IS_BXB	2
 #define FLASH_INVERT	1

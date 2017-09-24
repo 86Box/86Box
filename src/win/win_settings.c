@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.10	2017/09/03
+ * Version:	@(#)win_settings.c	1.0.11	2017/09/19
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -22,6 +22,7 @@
 #include <commctrl.h>
 #include <inttypes.h>
 #include "../ibm.h"
+#include "../config.h"
 #include "../cpu/cpu.h"
 #include "../mem.h"
 #include "../device.h"
@@ -372,7 +373,7 @@ static void win_settings_save(void)
 
 	cpu_update_waitstates();
 
-	saveconfig();
+	config_save();
 
 	speedchanged();
 

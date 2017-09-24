@@ -2,7 +2,6 @@
    see COPYING for more details
 */
 extern FILE *romfopen(wchar_t *fn, wchar_t *mode);
-extern FILE *nvrfopen(wchar_t *fn, wchar_t *mode);
 extern int rom_getfile(wchar_t *fn, wchar_t *s, int size);
 extern int rom_present(wchar_t *fn);
 

@@ -6,7 +6,7 @@
 #include "device.h"
 #include "mem.h"
 #include "io.h"
-#include "rom.h"
+#include "nvr.h"
 #include "tandy_eeprom.h"
 
 

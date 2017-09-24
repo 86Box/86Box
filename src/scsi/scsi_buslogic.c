@@ -10,7 +10,7 @@
  *		  0 - BT-545C ISA;
  *		  1 - BT-958D PCI (but BT-545C ISA on non-PCI machines)
  *
- * Version:	@(#)scsi_buslogic.c	1.0.12	2017/09/05
+ * Version:	@(#)scsi_buslogic.c	1.0.13	2017/09/19
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -27,6 +27,7 @@
 #include "../io.h"
 #include "../mem.h"
 #include "../rom.h"
+#include "../nvr.h"
 #include "../dma.h"
 #include "../pic.h"
 #include "../pci.h"

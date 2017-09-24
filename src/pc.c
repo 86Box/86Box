@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.8	2017/09/03
+ * Version:	@(#)pc.c	1.0.10	2017/09/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <direct.h>
 #include "86box.h"
 #include "config.h"
 #include "ibm.h"
@@ -81,9 +82,9 @@
 #include "cpu/x86_ops.h"
 
 
-wchar_t pcempath[512];
-
-wchar_t nvr_path[1024];
+wchar_t	exe_path[1024];
+wchar_t	cfg_path[1024];
+wchar_t	nvr_path[1024];
 int path_len;
 
 int window_w, window_h, window_x, window_y, window_remember;
@@ -108,7 +109,6 @@ int framecount,fps;
 int output;
 int atfullspeed;
 
-void saveconfig();
 int infocus;
 int mousecapture;
 
@@ -181,7 +181,7 @@ void fatal(const char *format, ...)
    va_end(ap);
    fflush(stdout);
    savenvr();
-   saveconfig();
+   config_save();
 #ifndef __unix
    newline = memmem(msg, strlen(msg), "\n", strlen("\n"));
    if (newline != NULL)
@@ -286,41 +286,56 @@ void pc_reset(void)
 #undef printf
 void initpc(int argc, wchar_t *argv[])
 {
-        wchar_t *p;
         wchar_t *config_file = NULL;
-        int c;
-        get_executable_name(pcempath, 511);
-        pclog("executable_name = %S\n", pcempath);
-        p=get_filename_w(pcempath);
-        *p=L'\0';
-        pclog("path = %S\n", pcempath);        
+        wchar_t *p;
 #ifdef WALTJE
-	DIR *dir;
 	struct direct *dp;
+	DIR *dir;
 #endif
+        int c;
+
+	/* Grab the executable's full path. */
+        get_executable_name(exe_path, sizeof(exe_path)-1);
+        p = get_filename_w(exe_path);
+        *p = L'\0';
+        pclog("exe_path=%S\n", exe_path);
+
+	/*
+	 * Get the current working directory.
+	 * This is normally the directory from where the
+	 * program was run. If we have been started via
+	 * a shortcut (desktop icon), however, the CWD
+	 * could have been set to something else.
+	 */
+	_wgetcwd(cfg_path, sizeof(cfg_path)-1);
 
         for (c = 1; c < argc; c++)
         {
                 if (!_wcsicmp(argv[c], L"--help"))
                 {
+usage:
                         printf("Command line options :\n\n");
                         printf("--config file.cfg - use given config file as initial configuration\n");
                         printf("--dump            - always dump memory on exit\n");
                         printf("--fullscreen      - start in fullscreen mode\n");
+			printf("--vmpath pathname - set 'path' to be root for vm\n");
                         exit(-1);
                 }
-                else if (!_wcsicmp(argv[c], L"--config"))
+                else if (!_wcsicmp(argv[c], L"--config") ||
+			 !_wcsicmp(argv[c], L"-C"))
                 {
                         if ((c+1) == argc)
                                 break;
                         config_file = argv[c+1];
                         c++;
                 }
-                else if (!_wcsicmp(argv[c], L"--dump"))
+                else if (!_wcsicmp(argv[c], L"--dump") ||
+			 !_wcsicmp(argv[c], L"-D"))
                 {
                         dump_on_exit = 1;
                 }
-                else if (!_wcsicmp(argv[c], L"--fullscreen"))
+                else if (!_wcsicmp(argv[c], L"--fullscreen") ||
+			 !_wcsicmp(argv[c], L"-F"))
                 {
                         start_in_fullscreen = 1;
                 }
@@ -328,9 +343,9 @@ void initpc(int argc, wchar_t *argv[])
                 {
 			/* some (undocumented) test function here.. */
 #ifdef WALTJE
-			dir = opendirw(pcempath);
+			dir = opendirw(exe_path);
 			if (dir != NULL) {
-				printf("Directory '%S':\n", pcempath);
+				printf("Directory '%S':\n", exe_path);
 				for (;;) {
 					dp = readdir(dir);
 					if (dp == NULL) break;
@@ -338,26 +353,56 @@ void initpc(int argc, wchar_t *argv[])
 				}
 				closedir(dir);
 			} else {
-				printf("Could not open '%S'..\n", pcempath);
+				printf("Could not open '%S'..\n", exe_path);
 			}
 #endif
 
 			/* .. and then exit. */
 			exit(0);
 		}
+                else if (!_wcsicmp(argv[c], L"--vmpath") ||
+			 !_wcsicmp(argv[c], L"-P"))
+                {
+                        if ((c+1) == argc)
+                                break;
+                        wcscpy(cfg_path, argv[c+1]);
+                        c++;
+                }
+
+		/* Uhm... out of options here.. */
+		else goto usage;
         }
 
-	if (config_file == NULL)
-	{
-	        append_filename_w(config_file_default, pcempath, CONFIG_FILE_W, 511);
+	/* Make sure cfg_path has a trailing backslash. */
+	if ((cfg_path[wcslen(cfg_path)-1] != L'\\') &&
+	    (cfg_path[wcslen(cfg_path)-1] != L'/')) {
+		wcscat(cfg_path, L"\\");
 	}
-	else
-	{
-	        append_filename_w(config_file_default, pcempath, config_file, 511);
+        pclog("cwd_path=%S\n", cfg_path);
+
+	if (config_file != NULL) {
+		/*
+		 * The user specified a configuration file.
+		 *
+		 * If this is an absolute path, keep it, as
+		 * they probably have a reason to do that.
+		 * Otherwise, assume the pathname given is
+		 * relative to whatever the cfg_path is.
+		 */
+		if ((config_file[1] == L':') ||	/* drive letter present */
+		    (config_file[0] == L'\\'))	/* backslash, root dir */
+			append_filename_w(config_file_default,
+					  NULL,	/* empty */
+					  config_file, 511);
+		  else
+			append_filename_w(config_file_default,
+					  cfg_path,
+					  config_file, 511);
+	} else {
+	        append_filename_w(config_file_default, cfg_path, CONFIG_FILE_W, 511);
 	}
 
-        loadconfig(config_file);
-        pclog("Config loaded\n");
+        config_load(config_file);
 }
 
 void initmodules(void)

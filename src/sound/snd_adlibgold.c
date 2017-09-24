@@ -7,6 +7,7 @@
 #include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
+#include "../nvr.h"
 #include "../timer.h"
 #include "../device.h"
 #include "sound.h"

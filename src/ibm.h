@@ -8,7 +8,7 @@
  *
  *		General include file.
  *
- * Version:	@(#)ibm.h	1.0.3	2017/09/03
+ * Version:	@(#)ibm.h	1.0.4	2017/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -585,7 +585,9 @@ extern int gated,speakval,speakon;
 #define SND_WSS   9     /*Windows Sound System*/
 #define SND_PAS16 10    /*Pro Audio Spectrum 16*/
 
-extern wchar_t pcempath[512];
+extern wchar_t exe_path[1024];
+extern wchar_t cfg_path[1024];
+extern wchar_t nvr_path[1024];
 
 
 /*Hard disk*/
@@ -704,10 +706,6 @@ extern uint64_t star;
 
 #define FPU_CW_Reserved_Bits (0xe0c0)
 
-extern wchar_t nvr_path[1024];
-extern int path_len;
-
-wchar_t *nvr_concat(wchar_t *to_concat);
 
 extern int mem_a20_state;
 
@@ -781,7 +779,6 @@ extern void	resetpchard(void);
 extern void	resetreadlookup(void);
 extern void	resetx86(void);
 extern void	runpc(void);
-extern void	saveconfig(void);
 extern void	softresetx86(void);
 extern void	speedchanged(void);
 extern void	x86_int_sw(int num);

@@ -718,7 +718,7 @@ BOOL DirectoryExists(LPCTSTR szPath)
          (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 }
 
-void take_screenshot()
+void take_screenshot(void)
 {
 	if ((vid_api < 0) || (vid_api > 1))  return;
 	time(&now);
@@ -727,7 +727,7 @@ void take_screenshot()
 	memset(screenshot_fn_partial, 0, 4096);
 	memset(screenshot_path, 0, 8192);
 	pclog("Video API is: %i\n", vid_api);
-	append_filename_w(screenshot_path, pcempath, L"screenshots", 4095);
+	append_filename_w(screenshot_path, cfg_path, L"screenshots", 4095);
 	if (!DirectoryExists(screenshot_path))
 	{
 		CreateDirectory(screenshot_path, NULL);
@@ -735,7 +735,7 @@ void take_screenshot()
 	if (vid_api == 1)
 	{
 		wcsftime(screenshot_fn_partial, 2048, L"screenshots\\%Y%m%d_%H%M%S.png", info);
-		append_filename_w(screenshot_fn, pcempath, screenshot_fn_partial, 4095);
+		append_filename_w(screenshot_fn, cfg_path, screenshot_fn_partial, 4095);
 		if (video_fullscreen)
 		{
 			d3d_fs_take_screenshot(screenshot_fn);
@@ -749,7 +749,7 @@ void take_screenshot()
 	else if (vid_api == 0)
 	{
 		wcsftime(screenshot_fn_partial, 2048, L"screenshots\\%Y%m%d_%H%M%S.bmp", info);
-		append_filename_w(screenshot_fn, pcempath, screenshot_fn_partial, 4095);
+		append_filename_w(screenshot_fn, cfg_path, screenshot_fn_partial, 4095);
 		if (video_fullscreen)
 		{
 			ddraw_fs_take_screenshot(screenshot_fn);

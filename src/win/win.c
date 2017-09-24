@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.8	2017/09/03
+ * Version:	@(#)win.c	1.0.9	2017/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1783,7 +1783,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
                         {
                                 romset = c;
                                 machine = machine_getmachine(romset);
-                                saveconfig();
+                                config_save();
                                 resetpchard();
                                 break;
                         }
@@ -1806,7 +1806,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
                         if (gfx_present[c])
                         {
                                 gfxcard = c;
-                                saveconfig();
+                                config_save();
                                 resetpchard();
                                 break;
                         }
@@ -1899,7 +1899,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
         Sleep(200);
         TerminateThread(mainthreadh,0);
         savenvr();
-	saveconfig();
+	config_save();
         closepc();
 
         vid_apis[video_fullscreen][vid_api].close();
@@ -1996,7 +1996,7 @@ static void win_pc_reset(int hard)
 	pause=1;
 	Sleep(100);
 	savenvr();
-	saveconfig();
+	config_save();
 	if (hard)
 	{
 		resetpchard();
@@ -2015,7 +2015,7 @@ void video_toggle_option(HMENU hmenu, int *val, int id)
 	*val ^= 1;
 	CheckMenuItem(hmenu, id, *val ? MF_CHECKED : MF_UNCHECKED);
 	endblit();
-	saveconfig();
+	config_save();
 	device_force_redraw();
 }
 
@@ -2089,7 +2089,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					EnableMenuItem(hmenu, IDM_VID_SCALE_3X, vid_resize ? MF_GRAYED : MF_ENABLED);
 					EnableMenuItem(hmenu, IDM_VID_SCALE_4X, vid_resize ? MF_GRAYED : MF_ENABLED);
 					win_doresize = 1;
-					saveconfig();
+					config_save();
 					break;
 
 				case IDM_VID_REMEMBER:
@@ -2103,7 +2103,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 						window_w = rect.right - rect.left;
 						window_h = rect.bottom - rect.top;
 					}
-					saveconfig();
+					config_save();
 					break;
 
 				case IDM_VID_DDRAW:
@@ -2116,7 +2116,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					CheckMenuItem(hmenu, IDM_VID_DDRAW + vid_api, MF_CHECKED);
 					vid_apis[0][vid_api].init(hwndRender);
 					endblit();
-					saveconfig();
+					config_save();
 					device_force_redraw();
 					cgapal_rebuild();
 					break;
@@ -2139,7 +2139,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 						mouse_init();
 						leave_fullscreen_flag = 0;
 						endblit();
-						saveconfig();
+						config_save();
 						device_force_redraw();
 						cgapal_rebuild();
 					}
@@ -2152,7 +2152,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					CheckMenuItem(hmenu, IDM_VID_FS_FULL + video_fullscreen_scale, MF_UNCHECKED);
 					video_fullscreen_scale = LOWORD(wParam) - IDM_VID_FS_FULL;
 					CheckMenuItem(hmenu, IDM_VID_FS_FULL + video_fullscreen_scale, MF_CHECKED);
-					saveconfig();
+					config_save();
 					device_force_redraw();
 					break;
 
@@ -2163,7 +2163,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_UNCHECKED);
 					scale = LOWORD(wParam) - IDM_VID_SCALE_1X;
 					CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_CHECKED);
-					saveconfig();
+					config_save();
 					device_force_redraw();
 					break;
 
@@ -2184,7 +2184,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					vid_cga_contrast ^= 1;
 					CheckMenuItem(hmenu, IDM_VID_CGACON, vid_cga_contrast ? MF_CHECKED : MF_UNCHECKED);
 					cgapal_rebuild();
-					saveconfig();
+					config_save();
 					break;
 
 				case IDM_VID_GRAYCT_601:
@@ -2193,7 +2193,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					CheckMenuItem(hmenu, IDM_VID_GRAYCT_601 + video_graytype, MF_UNCHECKED);
 					video_graytype = LOWORD(wParam) - IDM_VID_GRAYCT_601;
 					CheckMenuItem(hmenu, IDM_VID_GRAYCT_601 + video_graytype, MF_CHECKED);
-					saveconfig();
+					config_save();
 					device_force_redraw();
 					break;
 
@@ -2205,7 +2205,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					CheckMenuItem(hmenu, IDM_VID_GRAY_RGB + video_grayscale, MF_UNCHECKED);
 					video_grayscale = LOWORD(wParam) - IDM_VID_GRAY_RGB;
 					CheckMenuItem(hmenu, IDM_VID_GRAY_RGB + video_grayscale, MF_CHECKED);
-					saveconfig();
+					config_save();
 					device_force_redraw();
 					break;
 
@@ -2281,7 +2281,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					{
 						if (msgbox_reset_yn(ghwnd) == IDYES)
 						{
-							config_save(config_file_default);
+							config_write(config_file_default);
 							for (i = 0; i < FDD_NUM; i++)
 							{
 								floppy_close(i);
@@ -2303,7 +2303,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 								}
 							}
 							resetpchard_close();
-							loadconfig(wopenfilestring);
+							config_load(wopenfilestring);
 							for (i = 0; i < CDROM_NUM; i++)
 							{
 								if (cdrom_drives[i].bus_type)
@@ -2348,7 +2348,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					pause = 1;
 					if (!file_dlg_st(hwnd, IDS_2160, "", 1))
 					{
-						config_save(wopenfilestring);
+						config_write(wopenfilestring);
 					}
 					pause = 0;
 					break;                                                
@@ -2454,7 +2454,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				save_window_pos = 1;
 			}
 
-			saveconfig();
+			config_save();
 			break;
 
 		case WM_MOVE:
@@ -2494,7 +2494,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			mouse_close();
 			vid_apis[1][vid_api].close();
 			video_fullscreen = 0;
-			saveconfig();
+			config_save();
 			vid_apis[0][vid_api].init(hwndRender);
 			mouse_init();
 			endblit();
@@ -2589,7 +2589,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 						update_status_bar_icon_state(SB_FLOPPY | id, wcslen(floppyfns[id]) ? 0 : 1);
 						EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | (wcslen(floppyfns[id]) ? MF_ENABLED : MF_GRAYED));
 						update_tip(SB_FLOPPY | id);
-						saveconfig();
+						config_save();
 					}
 					break;
 
@@ -2605,7 +2605,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 					update_status_bar_icon_state(SB_FLOPPY | id, 1);
 					EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
 					update_tip(SB_FLOPPY | id);
-					saveconfig();
+					config_save();
 					break;
 
 				case IDM_CDROM_MUTE:
@@ -2618,7 +2618,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 
 					cdrom_drives[id].sound_on ^= 1;
 					CheckMenuItem(sb_menu_handles[part], IDM_CDROM_MUTE | id, cdrom_drives[id].sound_on ? MF_UNCHECKED : MF_CHECKED);
-					saveconfig();
+					config_save();
 					sound_cd_thread_reset();
 					break;
 
@@ -2674,7 +2674,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 						}
 						EnableMenuItem(sb_menu_handles[part], IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
 						update_tip(SB_CDROM | id);
-						saveconfig();
+						config_save();
 					}
 					break;
 
@@ -2710,7 +2710,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 					EnableMenuItem(sb_menu_handles[part], IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
 					update_status_bar_icon_state(SB_CDROM | id, 0);
 					update_tip(SB_CDROM | id);
-					saveconfig();
+					config_save();
 					break;
 
 				case IDM_RDISK_EJECT:
@@ -2755,7 +2755,7 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 							EnableMenuItem(sb_menu_handles[part], IDM_RDISK_SEND_CHANGE | id, MF_BYCOMMAND | MF_GRAYED);
 						}
 						update_tip(SB_RDISK | id);
-						saveconfig();
+						config_save();
 					}
 					break;
 

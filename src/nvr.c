@@ -8,7 +8,7 @@
  *
  *		CMOS NVRAM emulation.
  *
- * Version:	@(#)nvr.c	1.0.2	2017/09/03
+ * Version:	@(#)nvr.c	1.0.3	2017/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,6 +22,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "ibm.h"
+#include "config.h"
 #include "cpu/cpu.h"
 #include "device.h"
 #include "io.h"
@@ -34,6 +35,7 @@
 #include "rom.h"
 #include "timer.h"
 #include "rtc.h"
+#include "win/win.h"
 
 
 int oldmachine;
@@ -317,11 +319,62 @@ void savenvr(void)
 	free(machine_name);
 }
 
-void nvr_init(void)
+
+void
+nvr_init(void)
 {
         io_sethandler(0x0070, 0x0002, readnvr, NULL, NULL, writenvr, NULL, NULL,  NULL);
         timer_add(nvr_rtc, &rtctime, TIMER_ALWAYS_ENABLED, NULL);
         timer_add(nvr_onesec, &nvr_onesec_time, TIMER_ALWAYS_ENABLED, NULL);
         timer_add(nvr_update_end, &nvr_update_end_count, &nvr_update_end_count, NULL);
 
+}
+
+
+wchar_t *
+nvr_concat(wchar_t *str)
+{
+    static wchar_t temp[1024];
+    wchar_t last;
+
+    /* Get the full prefix in place. */
+    memset(temp, 0x00, sizeof(temp));
+    append_filename_w(temp, cfg_path, nvr_path, sizeof(temp)-1);
+
+    /* Make sure we have a trailing backslash. */
+    if (temp[wcslen(temp) - 1] != L'/') {
+	if (temp[wcslen(temp) - 1] != L'\\') {
+		temp[wcslen(temp)] = L'\\';
+		temp[wcslen(temp) + 1] = L'\0';
+	}
+    }
+
+#ifndef __unix
+    /* Save the backslash and zap it. */
+    last = temp[wcslen(temp) - 1];
+    temp[wcslen(temp) - 1] = 0;
+
+    /* Create the directory if needed. */
+    if (! DirectoryExists(temp))
+	CreateDirectory(temp, NULL);
+
+    /* Restore the backslash. */
+    temp[wcslen(temp)] = last;
+#endif
+
+    /* Now append the actual filename. */
+    wcscat(temp, str);
+
+    return(temp);
+}
+
+
+FILE *
+nvrfopen(wchar_t *fn, wchar_t *mode)
+{
+    wchar_t *p;
+
+    p = nvr_concat(fn);
+
+    return(_wfopen(p, mode));
 }
