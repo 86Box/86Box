@@ -555,13 +555,3 @@ void machine_at_scat_init(void)
 
         scat_init();
 }
-
-
-void machine_at_scat_remap_init(void)
-{
-	machine_at_init();
-
-	mem_remap_top_384k();
-
-        scat_init();
-}
