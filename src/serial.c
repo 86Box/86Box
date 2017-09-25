@@ -1,11 +1,17 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
-
+#include <wchar.h>
 #include "ibm.h"
 #include "io.h"
-#include "mouse.h"
 #include "pic.h"
+#include "mem.h"
+#include "rom.h"
 #include "serial.h"
 #include "timer.h"
+#include "mouse.h"
+
 
 enum
 {

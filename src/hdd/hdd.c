@@ -1,10 +1,12 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../device.h"
 #include "../machine/machine.h"
-
 #include "hdd.h"
-
 #include "hdd_esdi_at.h"
 #include "hdd_esdi_mca.h"
 #include "hdd_mfm_at.h"

@@ -4,7 +4,11 @@
 /*PC200 video emulation.
   CGA with some NMI stuff. But we don't need that as it's only used for TV and
   LCD displays, and we're emulating a CRT*/
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"

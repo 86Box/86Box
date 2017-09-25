@@ -8,23 +8,25 @@
  *
  *		Windows localization core.
  *
- * Version:	@(#)win_language.c	1.0.1	2017/08/24
+ * Version:	@(#)win_language.c	1.0.2	2017/09/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
-#include <inttypes.h>
+//#include <inttypes.h>
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #include <windowsx.h>
 #include <shlobj.h>
 #undef BITMAP
-
 #include <commdlg.h>
-
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../device.h"
 #include "plat_ui.h"

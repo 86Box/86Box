@@ -12,19 +12,20 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.10	2017/06/14
+ * Version:	@(#)network.c	1.0.11	2017/09/24
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../device.h"
+#include "../win/plat_ui.h"
 #include "network.h"
 #include "net_ne2000.h"
-#include "../win/plat_ui.h"
 
 
 static netcard_t net_cards[] = {

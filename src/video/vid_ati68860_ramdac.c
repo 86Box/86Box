@@ -21,6 +21,10 @@ bit   0  Controls 6/8bit DAC. 0: 8bit DAC/LUT, 1: 6bit DAC/LUT
     5-6  Always set ?
       7  If set can remove "snow" in some cases (A860_Delay_L ?) ??
 */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../mem.h"
 #include "video.h"

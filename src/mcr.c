@@ -1,6 +1,10 @@
 /*INTEL 82355 MCR emulation
   This chip was used as part of many 386 chipsets
   It controls memory addressing and shadowing*/
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "ibm.h"
 
 

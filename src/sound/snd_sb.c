@@ -8,17 +8,19 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.c	1.0.0	2017/05/30
+ * Version:	@(#)sound_sb.c	1.0.1	2017/09/24
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
- *		Copyright 2016-2017 TheCollector1995.
+ *		Copyright 2016,2017 Miran Grca.
  */
-
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mca.h"
@@ -26,13 +28,13 @@
 #include "../rom.h"
 #include "../device.h"
 #include "sound.h"
+#include "filters.h"
 #include "snd_dbopl.h"
 #include "snd_emu8k.h"
 #include "snd_mpu401.h"
 #include "snd_opl.h"
 #include "snd_sb.h"
 #include "snd_sb_dsp.h"
-#include "filters.h"
 
 
 typedef struct sb_mixer_t

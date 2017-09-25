@@ -2,7 +2,11 @@
    see COPYING for more details
 */
 /*ATI 28800 emulation (VGA Charger)*/
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"

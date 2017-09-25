@@ -1,15 +1,17 @@
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
-#include <errno.h>
-#include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <stdint.h>
-
+#include <string.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <wchar.h>
+#include <errno.h>
 #include "../ibm.h"
-#include "hdd_ide_at.h"
 #include "hdd_image.h"
+#include "hdd_ide_at.h"
+
 
 typedef struct
 {

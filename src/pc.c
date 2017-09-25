@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.10	2017/09/22
+ * Version:	@(#)pc.c	1.0.12	2017/09/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -16,13 +16,16 @@
  *		Copyright 2016,2017 Miran Grca.
  */
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdarg.h>
-#include <direct.h>
+#include <wchar.h>
 #include "86box.h"
 #include "config.h"
 #include "ibm.h"
 #include "mem.h"
+#include "rom.h"
 #include "cpu/codegen.h"
 #include "cpu/cpu.h"
 #include "dma.h"
@@ -57,6 +60,7 @@
 #include "pit.h"
 #ifdef WALTJE
 # define UNICODE
+# include <direct.h>
 # include "win/plat_dir.h"
 # undef UNICODE
 #endif
@@ -85,7 +89,6 @@
 wchar_t	exe_path[1024];
 wchar_t	cfg_path[1024];
 wchar_t	nvr_path[1024];
-int path_len;
 
 int window_w, window_h, window_x, window_y, window_remember;
 
@@ -423,7 +426,7 @@ void initmodules(void)
 
         initvideo();
         mem_init();
-        loadbios();
+        rom_load_bios(romset);
         mem_add_bios();
 
         codegen_init();

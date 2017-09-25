@@ -8,18 +8,22 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.14	2017/09/21
+ * Version:	@(#)machine.c	1.0.15	2017/09/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
-#include <stdint.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
+#include "../mem.h"
+#include "../rom.h"
 #include "../device.h"
 #include "../floppy/floppy.h"
 #include "../floppy/fdc.h"
@@ -161,103 +165,108 @@ machine_t machines[] =
 };
 
 
-int machine_count(void)
+void
+machine_init(void)
 {
-        return (sizeof(machines) / sizeof(machine)) - 1;
+    pclog("Initializing as \"%s\"\n", machine_getname());
+
+    AMSTRAD = AT = PCI = TANDY = 0;
+
+    io_init();
+
+    fdc_update_is_nsc(0);
+
+    machines[machine].init();
+
+    if (machines[machine].get_device)
+	device_add(machines[machine].get_device());
 }
 
 
-int machine_getromset(void)
+int
+machine_count(void)
 {
-        return machines[machine].id;
+    return((sizeof(machines) / sizeof(machine)) - 1);
 }
 
 
-int machine_getromset_ex(int m)
+int
+machine_getromset(void)
 {
-        return machines[m].id;
+    return(machines[machine].id);
 }
 
 
-int machine_getmachine(int romset)
+int
+machine_getromset_ex(int m)
 {
-	int c = 0;
-	
-	while (machines[c].id != -1)
-	{
-		if (machines[c].id == romset)
-			return c;
-		c++;
-	}
-	
-	return 0;
+    return(machines[m].id);
 }
 
 
-char *machine_getname(void)
+int
+machine_getmachine(int romset)
 {
-        return machines[machine].name;
+    int c = 0;
+
+    while (machines[c].id != -1) {
+	if (machines[c].id == romset)
+		return(c);
+	c++;
+    }
+
+    return(0);
 }
 
 
-device_t *machine_getdevice(int machine)
+char *
+machine_getname(void)
 {
-	if (machines[machine].get_device)
-	{
-	        return machines[machine].get_device();
-	}
-	else
-	{
-		return NULL;
-	}
+    return(machines[machine].name);
 }
 
 
-char *machine_get_internal_name(void)
+device_t *
+machine_getdevice(int machine)
 {
-        return machines[machine].internal_name;
+    if (machines[machine].get_device)
+	return(machines[machine].get_device());
+
+    return(NULL);
 }
 
 
-char *machine_get_internal_name_ex(int m)
+char *
+machine_get_internal_name(void)
 {
-        return machines[m].internal_name;
+    return(machines[machine].internal_name);
 }
 
 
-int machine_get_nvrmask(int m)
+char *
+machine_get_internal_name_ex(int m)
 {
-        return machines[m].nvrmask;
+    return(machines[m].internal_name);
 }
 
 
-int machine_get_machine_from_internal_name(char *s)
+int
+machine_get_nvrmask(int m)
 {
-	int c = 0;
-	
-	while (machines[c].id != -1)
-	{
-		if (!strcmp(machines[c].internal_name, s))
-			return c;
-		c++;
-	}
-	
-	return 0;
+    return(machines[m].nvrmask);
 }
 
 
-void machine_init(void)
+int
+machine_get_machine_from_internal_name(char *s)
 {
-        pclog("Initializing as %s\n", machine_getname());
+    int c = 0;
 
-        AMSTRAD = AT = PCI = TANDY = 0;
+    while (machines[c].id != -1) {
+	if (!strcmp(machines[c].internal_name, s))
+		return(c);
+	c++;
+    }
 
-        io_init();
-        
-	fdc_update_is_nsc(0);
-
-        machines[machine].init();
-
-        if (machines[machine].get_device)
-                device_add(machines[machine].get_device());
+    return(0);
 }

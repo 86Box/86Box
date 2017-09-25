@@ -8,17 +8,18 @@
  *
  *		Try to load a support DLL.
  *
- * Version:	@(#)win_dynld.c	1.0.2	2017/05/24
+ * Version:	@(#)win_dynld.c	1.0.3	2017/09/24
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen
  */
-#include <windows.h>
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include <pcap.h>
+#include <windows.h>
 #include "plat_dynld.h"
 #include "../ibm.h"
 

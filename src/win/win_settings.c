@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.11	2017/09/19
+ * Version:	@(#)win_settings.c	1.0.13	2017/09/24
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -18,13 +18,17 @@
 #include <windows.h>
 #include <windowsx.h>
 #undef BITMAP
-
 #include <commctrl.h>
 #include <inttypes.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../config.h"
 #include "../cpu/cpu.h"
 #include "../mem.h"
+#include "../rom.h"
 #include "../device.h"
 #include "../nvr.h"
 #include "../machine/machine.h"
@@ -361,7 +365,7 @@ static void win_settings_save(void)
 	memcpy(cdrom_drives, temp_cdrom_drives, CDROM_NUM * sizeof(cdrom_drive_t));
 
 	mem_resize();
-	loadbios();
+	rom_load_bios(romset);
 
 	update_status_bar_panes(hwndStatus);
 

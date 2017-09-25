@@ -5,7 +5,10 @@
 #include <windows.h>
 #include <windowsx.h>
 #undef BITMAP
-
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../mem.h"
 #include "../cpu/x86_ops.h"

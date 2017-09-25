@@ -1,6 +1,9 @@
 /* Intel 82335 SX emulation, used by the Phoenix 386 clone. */
 
+#include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "io.h"
 #include "mem.h"

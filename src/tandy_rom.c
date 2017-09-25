@@ -1,7 +1,11 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "device.h"
 #include "io.h"
@@ -63,8 +67,8 @@ void *tandy_rom_init(void)
 
         tandy_rom = malloc(0x80000);
 
-        f  = romfopen(L"roms/machines/tandy1000sl2/8079047.hu1", L"rb");
-        ff = romfopen(L"roms/machines/tandy1000sl2/8079048.hu2", L"rb");
+        f  = rom_fopen(L"roms/machines/tandy1000sl2/8079047.hu1", L"rb");
+        ff = rom_fopen(L"roms/machines/tandy1000sl2/8079048.hu2", L"rb");
         for (c = 0x0000; c < 0x80000; c += 2)
         {
                 tandy_rom[c] = getc(f);

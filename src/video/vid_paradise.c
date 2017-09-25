@@ -6,7 +6,11 @@
   PC2086, PC3086 use PVGA1A
   MegaPC uses W90C11A
   */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"

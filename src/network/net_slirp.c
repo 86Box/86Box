@@ -8,14 +8,15 @@
  *
  *		Handle SLiRP library processing.
  *
- * Version:	@(#)net_slirp.c	1.0.4	2017/06/14
+ * Version:	@(#)net_slirp.c	1.0.5	2017/09/24
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include "slirp/slirp.h"
 #include "slirp/queue.h"
 #include "../ibm.h"

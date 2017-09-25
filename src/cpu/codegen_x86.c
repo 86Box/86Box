@@ -1,13 +1,17 @@
 #if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32
 
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
+#include "../mem.h"
 #include "cpu.h"
 #include "x86.h"
 #include "x86_flags.h"
 #include "x86_ops.h"
 #include "x87.h"
-#include "../mem.h"
 
 #include "386_common.h"
 

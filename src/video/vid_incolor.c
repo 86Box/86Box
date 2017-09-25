@@ -2,10 +2,15 @@
    see COPYING for more details
 */
 /*Hercules InColor emulation*/
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
+#include "../rom.h"
 #include "../timer.h"
 #include "../device.h"
 #include "video.h"

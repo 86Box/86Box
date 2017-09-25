@@ -8,7 +8,7 @@
  *
  *		Windows resource script.
  *
- * Version:	@(#)86Box.rc	1.0.9	2017/09/07
+ * Version:	@(#)86Box.rc	1.0.10	2017/09/23
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -45,8 +45,12 @@ BEGIN
     POPUP "&Action"
     BEGIN
         MENUITEM "&Hard Reset",                 IDM_ACTION_HRESET
+        MENUITEM SEPARATOR
         MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",     IDM_ACTION_RESET_CAD
-		MENUITEM "Ctrl+Alt+&Esc",				IDM_ACTION_CTRL_ALT_ESC
+        MENUITEM SEPARATOR
+	MENUITEM "Ctrl+Alt+&Esc",		IDM_ACTION_CTRL_ALT_ESC
+        MENUITEM SEPARATOR
+        MENUITEM "&Pause",                      IDM_ACTION_PAUSE
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       IDM_ACTION_EXIT
     END
@@ -57,43 +61,43 @@ BEGIN
         MENUITEM SEPARATOR
         POPUP "Re&nderer"
         BEGIN
-            MENUITEM "&DirectDraw",                 IDM_VID_DDRAW
-            MENUITEM "Direct&3D 9",                 IDM_VID_D3D
+            MENUITEM "&DirectDraw",             IDM_VID_DDRAW
+            MENUITEM "Direct&3D 9",             IDM_VID_D3D
         END
         MENUITEM SEPARATOR
         POPUP "&Window scale factor"
         BEGIN
-            MENUITEM "&0.5x",                       IDM_VID_SCALE_1X
-            MENUITEM "&1x",                         IDM_VID_SCALE_2X
-            MENUITEM "1.&5x",                       IDM_VID_SCALE_3X
-            MENUITEM "&2x",                         IDM_VID_SCALE_4X
+            MENUITEM "&0.5x",                   IDM_VID_SCALE_1X
+            MENUITEM "&1x",                     IDM_VID_SCALE_2X
+            MENUITEM "1.&5x",                   IDM_VID_SCALE_3X
+            MENUITEM "&2x",                     IDM_VID_SCALE_4X
         END
         MENUITEM SEPARATOR
         MENUITEM "&Fullscreen\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
         POPUP "Fullscreen &stretch mode"
         BEGIN
-            MENUITEM "&Full screen stretch",        IDM_VID_FS_FULL
-            MENUITEM "&4:3",                        IDM_VID_FS_43
-            MENUITEM "&Square pixels",              IDM_VID_FS_SQ
-            MENUITEM "&Integer scale",              IDM_VID_FS_INT
+            MENUITEM "&Full screen stretch",    IDM_VID_FS_FULL
+            MENUITEM "&4:3",                    IDM_VID_FS_43
+            MENUITEM "&Square pixels",          IDM_VID_FS_SQ
+            MENUITEM "&Integer scale",          IDM_VID_FS_INT
         END
         POPUP "E&GA/(S)VGA settings"
         BEGIN
-            MENUITEM "&Inverted VGA monitor",       IDM_VID_INVERT
-            MENUITEM "E&GA/(S)VGA overscan",        IDM_VID_OVERSCAN
+            MENUITEM "&Inverted VGA monitor",   IDM_VID_INVERT
+            MENUITEM "E&GA/(S)VGA overscan",    IDM_VID_OVERSCAN
             POPUP "VGA screen &type"
             BEGIN
-                MENUITEM "RGB &Color",              IDM_VID_GRAY_RGB
-                MENUITEM "&RGB Grayscale",          IDM_VID_GRAY_MONO
-                MENUITEM "&Amber monitor",          IDM_VID_GRAY_AMBER
-                MENUITEM "&Green monitor",          IDM_VID_GRAY_GREEN
-                MENUITEM "&White monitor",          IDM_VID_GRAY_WHITE
+                MENUITEM "RGB &Color",          IDM_VID_GRAY_RGB
+                MENUITEM "&RGB Grayscale",      IDM_VID_GRAY_MONO
+                MENUITEM "&Amber monitor",      IDM_VID_GRAY_AMBER
+                MENUITEM "&Green monitor",      IDM_VID_GRAY_GREEN
+                MENUITEM "&White monitor",      IDM_VID_GRAY_WHITE
             END
             POPUP "Grayscale &conversion type"
             BEGIN
-                MENUITEM "BT&601 (NTSC/PAL)",       IDM_VID_GRAYCT_601
-                MENUITEM "BT&709 (HDTV)",           IDM_VID_GRAYCT_709
-                MENUITEM "&Average",                IDM_VID_GRAYCT_AVE
+                MENUITEM "BT&601 (NTSC/PAL)",   IDM_VID_GRAYCT_601
+                MENUITEM "BT&709 (HDTV)",       IDM_VID_GRAYCT_709
+                MENUITEM "&Average",            IDM_VID_GRAYCT_AVE
             END
         END
         MENUITEM SEPARATOR
@@ -193,6 +197,7 @@ BEGIN
     VK_PRIOR,IDM_VID_FULLSCREEN,     VIRTKEY, CONTROL , ALT
     VK_F11,  IDM_ACTION_SCREENSHOT,  VIRTKEY, CONTROL
     VK_F12,  IDM_ACTION_RESET_CAD,   VIRTKEY, CONTROL
+    VK_PAUSE,IDM_ACTION_PAUSE
 END
 
 

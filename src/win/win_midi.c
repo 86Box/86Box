@@ -1,5 +1,9 @@
 #include <windows.h>
 #include <mmsystem.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../config.h"
 #include "../sound/midi.h"

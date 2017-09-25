@@ -10,7 +10,7 @@
  *		  0 - BT-545C ISA;
  *		  1 - BT-958D PCI (but BT-545C ISA on non-PCI machines)
  *
- * Version:	@(#)scsi_buslogic.c	1.0.13	2017/09/19
+ * Version:	@(#)scsi_buslogic.c	1.0.14	2017/09/24
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -18,11 +18,12 @@
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 #include <stdarg.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -2947,7 +2948,7 @@ BuslogicInit(int chip)
 
 		if (has_autoscsi_rom)
 		{
-			f = romfopen(autoscsi_rom_name, L"rb");
+			f = rom_fopen(autoscsi_rom_name, L"rb");
 			if (f)
 			{
 				fread(bl->AutoSCSIROM, 1, autoscsi_rom_size, f);
@@ -2958,7 +2959,7 @@ BuslogicInit(int chip)
 
 		if (has_scam_rom)
 		{
-			f = romfopen(scam_rom_name, L"rb");
+			f = rom_fopen(scam_rom_name, L"rb");
 			if (f)
 			{
 				fread(bl->SCAMData, 1, scam_rom_size, f);

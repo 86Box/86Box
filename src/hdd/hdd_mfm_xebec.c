@@ -1,16 +1,17 @@
-#include <malloc.h>
-#include <sys/types.h>
-
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
-
 #include "../device.h"
 #include "../dma.h"
-#include "hdd_image.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../pic.h"
 #include "../rom.h"
 #include "../timer.h"
+#include "hdd_image.h"
 #include "hdd_mfm_xebec.h"
 
 

@@ -1,9 +1,14 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
 #include "../nmi.h"
 #include "../mem.h"
+#include "../rom.h"
 #include "../device.h"
 #include "../nvr.h"
 #include "../gameport.h"

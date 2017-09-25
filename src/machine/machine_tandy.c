@@ -1,6 +1,11 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../nmi.h"
 #include "../mem.h"
+#include "../rom.h"
 #include "../device.h"
 #include "../gameport.h"
 #include "../keyboard_xt.h"

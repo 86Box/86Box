@@ -1,6 +1,10 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
-#include "x86_ops.h"
 #include "../mem.h"
+#include "x86_ops.h"
 #include "codegen.h"
 
 void (*codegen_timing_start)();

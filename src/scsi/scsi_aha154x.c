@@ -12,17 +12,18 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.17	2017/09/19
+ * Version:	@(#)scsi_aha154x.c	1.0.18	2017/09/24
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
-#include <stdint.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 #include <stdarg.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mca.h"
@@ -1838,7 +1839,7 @@ aha_setbios(aha_t *dev)
 
     /* Open the BIOS image file and make sure it exists. */
     pclog_w(L"%S: loading BIOS from '%s'\n", dev->name, dev->bios_path);
-    if ((f = romfopen(dev->bios_path, L"rb")) == NULL) {
+    if ((f = rom_fopen(dev->bios_path, L"rb")) == NULL) {
 	pclog("%s: BIOS ROM not found!\n", dev->name);
 	return;
     }

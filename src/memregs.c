@@ -9,12 +9,15 @@
  *		Emulation of the memory I/O scratch registers on ports 0xE1
  *		and 0xE2, used by just about any emulated machine.
  *
- * Version:	@(#)memregs.c	1.0.1	2017/08/23
+ * Version:	@(#)memregs.c	1.0.2	2017/09/24
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2017 Miran Grca.
  */
-
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "io.h"
 #include "memregs.h"
@@ -23,6 +26,7 @@
 static uint8_t mem_regs[16] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 static uint8_t mem_reg_ffff = 0;
+
 
 void memregs_write(uint16_t port, uint8_t val, void *priv)
 {

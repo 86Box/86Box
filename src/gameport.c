@@ -1,8 +1,11 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
+#include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "cpu/cpu.h"
 #include "device.h"

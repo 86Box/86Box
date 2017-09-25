@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include "../device.h"
 #include "../win/plat_midi.h"
-#include "midi_system.h"
 #include "midi.h"
+#include "midi_system.h"
+
 
 void* system_midi_init()
 {

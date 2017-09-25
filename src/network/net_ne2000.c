@@ -10,7 +10,7 @@
  *
  * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.14	2017/09/03
+ * Version:	@(#)net_ne2000.c	1.0.15	2017/09/24
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -19,10 +19,12 @@
  * Based on	@(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
  *		Portions Copyright (C) 2002  MandrakeSoft S.A.
  */
-#include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <wchar.h>
 #include <time.h>
 #include "../config.h"
 #include "../ibm.h"
@@ -1855,7 +1857,7 @@ nic_rom_init(nic_t *dev, wchar_t *s)
     }
 
     if (dev->bios_addr > 0) {
-	if ((f = romfopen(s, L"rb")) != NULL) {
+	if ((f = rom_fopen(s, L"rb")) != NULL) {
 		fseek(f, 0L, SEEK_END);
 		temp = ftell(f);
 		fclose(f);

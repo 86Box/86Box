@@ -1,14 +1,18 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include <math.h>
 #include "../ibm.h"
 #include "../device.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../rom.h"
+#include "../timer.h"
 #include "sound.h"
 #include "snd_emu8k.h"
-#include "../timer.h"
-#include <inttypes.h>
+
 
 #if !defined FILTER_INITIAL && !defined FILTER_MOOG && !defined FILTER_CONSTANT
 #define FILTER_MOOG
@@ -2088,7 +2092,7 @@ void emu8k_init(emu8k_t *emu8k, int onboard_ram)
         int c;
         double out;
  
-        f = romfopen(L"roms/sound/awe32.raw", L"rb");
+        f = rom_fopen(L"roms/sound/awe32.raw", L"rb");
         if (!f)
                 fatal("AWE32.RAW not found\n");
         

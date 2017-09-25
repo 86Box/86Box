@@ -8,15 +8,19 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.c	1.0.1	2017/06/03
+ * Version:	@(#)cpu.c	1.0.2	2017/09/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 leilei.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "cpu.h"
 #include "../device.h"

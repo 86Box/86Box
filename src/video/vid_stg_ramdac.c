@@ -2,6 +2,10 @@
    see COPYING for more details
 */
 /*STG1702 true colour RAMDAC emulation*/
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../mem.h"
 #include "video.h"

@@ -1,10 +1,12 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include <math.h>
 #ifndef INFINITY
 # define INFINITY   (__builtin_inff())
 #endif
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include "../ibm.h"
 #include "cpu.h"
 #include "x86.h"

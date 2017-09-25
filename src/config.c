@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.5	2017/09/22
+ * Version:	@(#)config.c	1.0.6	2017/09/24
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,11 +22,12 @@
  *		it on Windows XP, and possibly also Vista. Use the
  *		-DANSI_CFG for use on these systems.
  */
-#include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
+#include <inttypes.h>
 #include "ibm.h"
 #include "cpu/cpu.h"
 #include "config.h"

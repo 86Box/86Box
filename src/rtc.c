@@ -5,16 +5,18 @@
 
    http://dev-docs.atariforge.org/files/MC146818A_RTC_1984.pdf  
  */
-
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include <time.h>
 #include "nvr.h"
 #include "rtc.h"
 
+
 int enable_sync;
+
 
 struct
 {

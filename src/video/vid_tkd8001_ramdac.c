@@ -2,6 +2,10 @@
    see COPYING for more details
 */
 /*Trident TKD8001 RAMDAC emulation*/
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../mem.h"
 #include "video.h"

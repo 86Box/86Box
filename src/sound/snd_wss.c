@@ -2,7 +2,11 @@
 
   Windows Sound System emulation*/
 
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include <math.h>  
 #include "../ibm.h"
 #include "../io.h"

@@ -19,9 +19,10 @@
 
 #define STATIC_INLINE
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 
 /* IF UAE */
 /*#include "sysconfig.h"
@@ -37,7 +38,6 @@
 #define VERBOSE
 #undef VERBOSE
 
-#include <assert.h>
 
 #ifdef DEBUG
 static char *datalog(uae_u8 *src, int len)

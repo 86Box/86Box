@@ -8,7 +8,7 @@
  *
  *		The shared AHA and Buslogic SCSI BIOS command handler.
  *
- * Version:	@(#)scsi_bios_command.c	1.0.1	2017/08/27
+ * Version:	@(#)scsi_bios_command.c	1.0.2	2017/09/24
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -16,8 +16,12 @@
  *		Copyright 2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
-#include <stdarg.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../dma.h"
 #include "scsi.h"

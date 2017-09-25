@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.1	2017/09/19
+ * Version:	@(#)vid_svga.c	1.0.3	2017/09/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -19,14 +19,18 @@
  *		Copyright 2016,2017 Miran Grca.
  */
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
+#include "../rom.h"
+#include "../timer.h"
 #ifdef ENABLE_VRAM_DUMP
 # include "../nvr.h"
 #endif
-#include "../timer.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"

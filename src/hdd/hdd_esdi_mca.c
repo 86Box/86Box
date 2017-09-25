@@ -52,24 +52,28 @@
  *		however, are auto-configured by the system software as
  *		shown above.
  *
- * Version:	@(#)hdd_esdi_mca.c	1.0.2	2017/08/27
+ * Version:	@(#)hdd_esdi_mca.c	1.0.3	2017/09/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2017 Fred N. van Kempen.
  */
-#include <malloc.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../device.h"
 #include "../dma.h"
-#include "hdd_image.h"
 #include "../io.h"
 #include "../mca.h"
 #include "../mem.h"
 #include "../pic.h"
 #include "../rom.h"
 #include "../timer.h"
+#include "hdd_image.h"
 #include "hdd_esdi_mca.h"
 
 

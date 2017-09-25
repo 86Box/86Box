@@ -1,8 +1,13 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "device.h"
 #include "io.h"
 #include "mem.h"
+#include "rom.h"
 #include "nvr.h"
 #include "nvr_ps2.h"
 

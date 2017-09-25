@@ -1,6 +1,10 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
@@ -149,7 +153,8 @@ void ps1mb_init(void)
         io_sethandler(0x0320, 0x0001, ps1_read, NULL, NULL, ps1_write, NULL, NULL, NULL);
         io_sethandler(0x0322, 0x0001, ps1_read, NULL, NULL, ps1_write, NULL, NULL, NULL);
         io_sethandler(0x0324, 0x0001, ps1_read, NULL, NULL, ps1_write, NULL, NULL, NULL);
-        
+
+#if 0
 	if (!enable_xtide)
 	{
 	        rom_init(&ps1_high_rom,
@@ -160,14 +165,7 @@ void ps1mb_init(void)
                                 0,
                                 MEM_MAPPING_EXTERNAL);
 	}
-/*        rom_init_interleaved(&ps1_high_rom,
-                                L"roms/machines/ibmps1es/ibm_1057757_24-05-90.bin",
-                                L"roms/machines/ibmps1es/ibm_1057757_29-15-90.bin",
-                                0xfc0000,
-                                0x40000,
-                                0x3ffff,
-                                0,
-                                MEM_MAPPING_EXTERNAL);*/
+#endif
         ps1_190 = 0;
         
         lpt1_remove();

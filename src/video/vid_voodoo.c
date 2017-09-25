@@ -1,5 +1,9 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+//#include <stddef.h>
 #include <stdlib.h>
-#include <stddef.h>
+#include <wchar.h>
 #include <math.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"

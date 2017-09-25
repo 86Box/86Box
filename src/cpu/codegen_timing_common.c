@@ -1,5 +1,10 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "codegen_timing_common.h"
+
 
 uint64_t opcode_deps[256] =
 {

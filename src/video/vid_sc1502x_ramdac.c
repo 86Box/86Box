@@ -5,6 +5,10 @@
   It is possibly a Sierra 1502x
   It's addressed by the TLIVESA1 driver for ET4000*/
 /* Note by Tenshi: Not possibly, this *IS* a Sierra 1502x. */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../mem.h"
 #include "video.h"

@@ -3,6 +3,10 @@
 */
 /*ICS2595 clock chip emulation
   Used by ATI Mach64*/
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "vid_ics2595.h"
 

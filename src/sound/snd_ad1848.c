@@ -2,6 +2,10 @@
 
   AD1848 CODEC emulation (Windows Sound System compatible)*/
 
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include <math.h>
 #include "../ibm.h"
 #include "../dma.h"

@@ -1,22 +1,25 @@
 /* some code borrowed from scummvm */
 #ifdef USE_FLUIDSYNTH
 
-
-#include <stdlib.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include <fluidsynth.h>
 #include "../config.h"
 #include "../win/plat_dynld.h"
 #include "../win/plat_thread.h"
 #include "../win/plat_ui.h"
 #include "../device.h"
-#include "midi_fluidsynth.h"
 #include "midi.h"
+#include "midi_fluidsynth.h"
 #include "sound.h"
+
 
 #define RENDER_RATE 100
 #define BUFFER_SEGMENTS 10
+
 
 extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void pclog(const char *format, ...);

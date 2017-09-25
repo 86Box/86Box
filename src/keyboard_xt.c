@@ -1,10 +1,14 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
+#include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "io.h"
 #include "mem.h"
+#include "rom.h"
 #include "pic.h"
 #include "pit.h"
 #include "timer.h"

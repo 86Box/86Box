@@ -1,13 +1,8 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "ibm.h"
-#if 0
-//FIXME: Kotori, do we need to keep this? --FvK
-#include "sound_opl.h"
-#include "adlibgold.h"
-#include "sound_pas16.h"
-#include "sound_sb.h"
-#include "sound_sb_dsp.h"
-#include "sound_wss.h"
-#endif
 #include "timer.h"
 
 

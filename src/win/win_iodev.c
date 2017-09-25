@@ -8,7 +8,7 @@
  *
  *		Windows IO device menu handler.
  *
- * Version:	@(#)win_iodev.c	1.0.2	2017/09/19
+ * Version:	@(#)win_iodev.c	1.0.3	2017/09/24
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -23,11 +23,12 @@
 #include <commctrl.h>
 #include <commdlg.h>
 #include <process.h>
-#include <string.h>
 #include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"

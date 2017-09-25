@@ -2,7 +2,9 @@
    see COPYING for more details
 */
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
@@ -10,6 +12,7 @@
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
+#include "../nvr.h"
 #include "../gameport.h"
 #include "../keyboard_xt.h"
 #include "../lpt.h"

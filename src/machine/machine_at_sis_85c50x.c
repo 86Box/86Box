@@ -6,12 +6,16 @@
  *
  *		Emulation of the SiS 50x PCI chips.
  *
- * Version:	@(#)machine_at_sis_85c50x.c	1.0.2	2017/09/02
+ * Version:	@(#)machine_at_sis_85c50x.c	1.0.3	2017/09/24
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2017 Miran Grca.
  */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../pci.h"

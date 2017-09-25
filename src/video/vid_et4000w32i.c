@@ -9,6 +9,10 @@
   */
 #if 0
 
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "ibm.h"
 
 int et4k_b8000;

@@ -1,4 +1,8 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../pic.h"
@@ -7,10 +11,10 @@
 #include "../timer.h"
 #include "../device.h"
 #include "sound.h"
+#include "filters.h"
 #include "snd_opl.h"
 #include "snd_pas16.h"
 #include "snd_sb_dsp.h"
-#include "filters.h"
 
 
 /*      Original PAS uses

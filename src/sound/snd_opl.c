@@ -1,8 +1,11 @@
 /* Copyright holders: Sarah Walker, SA1988
    see COPYING for more details
 */
+#include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../timer.h"
@@ -11,7 +14,7 @@
 #include "snd_dbopl.h"
 
 
-/*Interfaces between PCem and the actual OPL emulator*/
+/*Interfaces between 86Box and the actual OPL emulator*/
 
 
 uint8_t opl2_read(uint16_t a, void *priv)

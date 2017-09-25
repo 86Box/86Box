@@ -1,4 +1,8 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdarg.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "io.h"
 #include "pic.h"

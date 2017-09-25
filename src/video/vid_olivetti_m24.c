@@ -3,7 +3,11 @@
 */
 /*Olivetti M24 video emulation
   Essentially double-res CGA*/
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"

@@ -8,21 +8,21 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)piix.c	1.0.2	2017/08/24
+ *		PRD format :
+ *		    word 0 - base address
+ *		    word 1 - bits 1 - 15 = byte count, bit 31 = end of transfer
+ *
+ * Version:	@(#)piix.c	1.0.3	2017/09/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
-
-/*PRD format :
-        
-        word 0 - base address
-        word 1 - bits 1 - 15 = byte count, bit 31 = end of transfer
-*/
+#include <stdio.h>
+#include <stdint.h>
 #include <string.h>
-
+#include <wchar.h>
 #include "ibm.h"
 #include "dma.h"
 #include "io.h"

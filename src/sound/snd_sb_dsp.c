@@ -3,16 +3,18 @@
   486-33 - 20kHz
   486-50 - 32kHz
   Pentium - 45kHz*/
-#include <stdint.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../pic.h"
 #include "../dma.h"
 #include "../timer.h"
 #include "../device.h"
-#include "midi.h"
 #include "sound.h"
+#include "midi.h"
 #include "snd_mpu401.h"
 #include "snd_sb_dsp.h"
 

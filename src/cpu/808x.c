@@ -8,30 +8,34 @@
  *
  *		808x CPU emulation.
  *
- * Version:	@(#)808x.c	1.0.1	2017/09/19
+ *		SHR AX,1
+ *
+ *		4 clocks - fetch opcode
+ *		4 clocks - fetch mod/rm
+ *		2 clocks - execute              2 clocks - fetch opcode 1
+ *		                                2 clocks - fetch opcode 2
+ *		                                4 clocks - fetch mod/rm
+ *		2 clocks - fetch opcode 1       2 clocks - execute
+ *		2 clocks - fetch opcode 2  etc
+ *
+ * Version:	@(#)808x.c	1.0.2	2017/09/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
-
-/*SHR AX,1
-
-        4 clocks - fetch opcode
-        4 clocks - fetch mod/rm
-        2 clocks - execute              2 clocks - fetch opcode 1
-                                        2 clocks - fetch opcode 2
-                                        4 clocks - fetch mod/rm
-        2 clocks - fetch opcode 1       2 clocks - execute
-        2 clocks - fetch opcode 2  etc*/
 #include <stdio.h>
-#include <unistd.h>
+#include <stdint.h>
+#include <string.h>
+//#include <unistd.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "cpu.h"
 #include "x86.h"
 #include "../keyboard.h"
 #include "../mem.h"
+#include "../rom.h"
 #include "../nmi.h"
 #include "../pic.h"
 #include "../timer.h"

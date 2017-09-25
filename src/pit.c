@@ -2,8 +2,10 @@
   Write B0
   Write aa55
   Expects aa55 back*/
-
+#include <stdio.h>
+#include <stdint.h>
 #include <string.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "cpu/cpu.h"
 #include "dma.h"

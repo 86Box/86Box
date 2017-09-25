@@ -9,7 +9,11 @@
   
   The Technical Reference Manual lists the video waitstate time as between 12 
   and 46 cycles. PCem currently always uses the lower number.*/
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"

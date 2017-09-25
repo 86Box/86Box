@@ -8,23 +8,25 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.3	2017/09/03
+ * Version:	@(#)sound.c	1.0.4	2017/09/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
-#include <stdint.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../device.h"
 #include "../timer.h"
 #include "../cdrom/cdrom.h"
 #include "../win/plat_thread.h"
-#include "midi.h"
 #include "sound.h"
+#include "midi.h"
 #include "snd_opl.h"
 #include "snd_adlib.h"
 #include "snd_adlibgold.h"

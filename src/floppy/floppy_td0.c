@@ -8,7 +8,7 @@
  *
  *		Implementation of the Teledisk floppy image format.
  *
- * Version:	@(#)floppy_td0.c	1.0.2	2017/09/-3
+ * Version:	@(#)floppy_td0.c	1.0.3	2017/09/24
  *
  * Authors:	Milodrag Milanovic,
  *		Haruhiko OKUMURA,
@@ -37,8 +37,11 @@
  * Adaptive Huffman Coding coded by Haruyasu YOSHIZAKI
  * Edited and translated to English by Kenji RIKITAKE
  */
-#include <wchar.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "floppy.h"
 #include "floppy_td0.h"

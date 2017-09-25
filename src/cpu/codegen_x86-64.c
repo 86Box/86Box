@@ -1,6 +1,10 @@
 #ifdef __amd64__
 
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../mem.h"
 #include "cpu.h"

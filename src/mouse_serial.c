@@ -10,11 +10,15 @@
  *
  *		Based on the 86Box Serial Mouse driver as a framework.
  *
- * Version:	@(#)mouse_serial.c	1.0.8	2017/08/03
+ * Version:	@(#)mouse_serial.c	1.0.9	2017/09/24
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "timer.h"
 #include "serial.h"

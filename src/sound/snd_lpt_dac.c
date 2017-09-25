@@ -1,11 +1,15 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"
-#include "filters.h"
 #include "../lpt.h"
-#include "snd_lpt_dac.h"
-#include "sound.h"
 #include "../timer.h"
+#include "sound.h"
+#include "filters.h"
+#include "snd_lpt_dac.h"
 
 typedef struct lpt_dac_t
 {

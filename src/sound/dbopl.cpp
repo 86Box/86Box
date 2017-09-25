@@ -20,10 +20,9 @@
 
 /* $Id: dbopl.cpp,v 1.10 2009-06-10 19:54:51 harekiet Exp $ */
 
-#include <math.h>
 #include <stdlib.h>
 #include <string.h>
-//#include "dosbox.h"
+#include <math.h>
 #include "dbopl.h"
 
 

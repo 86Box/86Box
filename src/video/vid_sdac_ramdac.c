@@ -3,6 +3,10 @@
 */
 /*87C716 'SDAC' true colour RAMDAC emulation*/
 /*Misidentifies as AT&T 21C504*/
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../mem.h"
 #include "video.h"

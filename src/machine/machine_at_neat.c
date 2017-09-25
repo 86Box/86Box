@@ -2,6 +2,10 @@
    see COPYING for more details
 */
 /*This is the chipset used in the AMI 286 clone model*/
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../io.h"

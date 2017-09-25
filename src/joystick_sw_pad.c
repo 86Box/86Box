@@ -19,8 +19,11 @@
         - Some DOS stuff will write to 0x201 while a packet is being transferred.
           This seems to be ignored.
 */
-
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "device.h"
 #include "timer.h"

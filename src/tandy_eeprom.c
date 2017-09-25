@@ -1,10 +1,15 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "device.h"
 #include "mem.h"
+#include "rom.h"
 #include "io.h"
 #include "nvr.h"
 #include "tandy_eeprom.h"

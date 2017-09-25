@@ -8,29 +8,31 @@
  *
  *		Roland MPU-401 emulation.
  *
- * Version:	@(#)sound_mpu401.c	1.0.1	2017/06/19
+ * Version:	@(#)snd_mpu401.c	1.0.2	2017/09/24
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		DOSBox Team,
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2008-2017 DOSBox Team.
- *		Copyright 2016-2017 Miran Grca.
- *		Copyright 2016-2017 TheCollector1995.
+ *		Copyright 2016,2017 Miran Grca.
  */
-
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../device.h"
 #include "../io.h"
 #include "../pic.h"
 #include "../timer.h"
-#include "midi.h"
 #include "sound.h"
 #include "snd_mpu401.h"
+#include "midi.h"
 
-#include <malloc.h>
-#include <stdarg.h>
 
 enum
 {

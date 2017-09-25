@@ -1,23 +1,19 @@
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-
-#include <sys/types.h>
-
+#include <wchar.h>
 #include "../ibm.h"
 #include "../device.h"
-#include "hdd_image.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../pic.h"
 #include "../rom.h"
 #include "../timer.h"
-
+#include "hdd_image.h"
 #include "hdd_esdi_at.h"
 
 

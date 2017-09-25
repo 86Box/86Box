@@ -8,7 +8,7 @@
  *
  *		Windows raw keyboard input handler.
  *
- * Version:	@(#)win_d3d.cc	1.0.0	2017/05/30
+ * Version:	@(#)win_d3d.cc	1.0.1	2017/09/24
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2017 Miran Grca.
@@ -20,7 +20,6 @@
 #include <windows.h>
 #include <windowsx.h>
 #undef BITMAP
-
 #include <commctrl.h>
 #include <commdlg.h>
 #include <process.h>
@@ -29,11 +28,10 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdint.h>
-
 #include "../device.h"
 #include "plat_keyboard.h"
-
 #include "win.h"
+
 
 #ifndef MAPVK_VK_TO_VSC
 #define MAPVK_VK_TO_VSC 0

@@ -5,6 +5,10 @@
 
   ICD2061 clock generator emulation
   Used by ET4000w32/p (Diamond Stealth 32)*/
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "vid_icd2061.h"
 

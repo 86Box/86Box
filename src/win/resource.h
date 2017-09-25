@@ -11,7 +11,7 @@
  * NOTE:	FIXME: Strings 2176 and 2193 are same.
  * NOTE:	FIXME: string 2095 not in use.
  *
- * Version:	@(#)resource.h	1.0.5	2017/08/24
+ * Version:	@(#)resource.h	1.0.6	2017/09/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -417,6 +417,7 @@
 #define IDM_ACTION_RESET_CAD	40013
 #define IDM_ACTION_EXIT		40014
 #define IDM_ACTION_CTRL_ALT_ESC 40015
+#define IDM_ACTION_PAUSE	40016
 #define IDM_CONFIG		40020
 #define IDM_CONFIG_LOAD		40021
 #define IDM_CONFIG_SAVE		40022

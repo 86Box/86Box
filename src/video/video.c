@@ -1,8 +1,11 @@
 /* Copyright holders: Sarah Walker, Tenshi
    see COPYING for more details
 */
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include <math.h>
 #include <time.h>
 #include "../ibm.h"
@@ -376,7 +379,7 @@ PALETTE cgapal;
 
 void loadfont(wchar_t *s, int format)
 {
-        FILE *f=romfopen(s,L"rb");
+        FILE *f=rom_fopen(s,L"rb");
         int c,d;
         if (!f)
 	{

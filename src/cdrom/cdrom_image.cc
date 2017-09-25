@@ -6,8 +6,11 @@
 #define __USE_LARGEFILE64
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
-#include <wchar.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdarg.h>
+#include <wchar.h>
 #include "../config.h"
 #include "cdrom_dosbox.h"
 #include "cdrom.h"

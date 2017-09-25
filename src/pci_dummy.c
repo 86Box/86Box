@@ -1,4 +1,8 @@
 /* This can also serve as a sample PCI device. */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "io.h"
 #include "pci.h"

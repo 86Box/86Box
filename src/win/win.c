@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.9	2017/09/19
+ * Version:	@(#)win.c	1.0.11	2017/09/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -16,10 +16,19 @@
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
-#include <stdint.h>
+#define UNICODE
+#define BITMAP WINDOWS_BITMAP
+#include <windows.h>
+#include <windowsx.h>
+#include <commctrl.h>
+#include <commdlg.h>
+#include <process.h>
+#undef BITMAP
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include "../86box.h"
 #include "../config.h"
 #include "../cpu/cpu.h"
@@ -60,11 +69,6 @@
 #include "win_d3d.h"
 #include "win_language.h"
 
-#include <windowsx.h>
-#include <commctrl.h>
-#include <commdlg.h>
-#include <process.h>
-
 
 #ifndef MAPVK_VK_TO_VSC
 #define MAPVK_VK_TO_VSC 0
@@ -86,6 +90,7 @@ typedef struct win_event_t
         HANDLE handle;
 } win_event_t;
 
+static wchar_t	wTitle[512];
 LONG_PTR	OriginalStatusBarProcedure;
 HWND		ghwnd;
 HINSTANCE	hinstance;
@@ -102,7 +107,6 @@ HANDLE		slirpMutex;
 HANDLE		mainthreadh;
 int		infocus=1;
 int		drawits=0;
-int		romspresent[ROM_MAX];
 int		quited=0;
 RECT		oldclip;
 int		mousecapture=0;
@@ -594,9 +598,14 @@ void get_executable_name(wchar_t *s, int size)
 
 void set_window_title(wchar_t *s)
 {
-        if (video_fullscreen)
-                return;
-        SetWindowText(ghwnd, s);
+        if (! video_fullscreen) {
+		if (s != NULL)
+			wcscpy(wTitle, s);
+		  else
+			s = wTitle;
+
+        	SetWindowText(ghwnd, s);
+	}
 }
 
 uint64_t timer_read(void)
@@ -1715,6 +1724,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
 
 	hwndRender = CreateWindow(L"STATIC", NULL, WS_VISIBLE | WS_CHILD | SS_BITMAP, 0, 0, 1, 1, ghwnd, NULL, hinstance, NULL);
 
+
+/* FIXME: Kotori, code below should be moved to pc.c, as its not Win specific. */
         initpc(argc, argv);
 
         init_cdrom_host_drives();
@@ -1749,34 +1760,32 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
 
 	reset_menus();
 
-        d=romset;
+/* FIXME: Kotori, code below should be moved to pc.c, its not Win specific. */
+	d = 0;
         for (c=0;c<ROM_MAX;c++)
         {
-                romset=c;
-                romspresent[c]=loadbios();
-                pclog("romset %i - %i\n", c, romspresent[c]);
+                romspresent[c] = rom_load_bios(c);
+                pclog("romset %i - %s\n", c, romspresent[c]?"YES":"NO");
+		d |= romspresent[c];
         }
-        
-        for (c = 0; c < ROM_MAX; c++)
+        if (d == 0)
         {
-                if (romspresent[c])
-                   break;
-        }
-        if (c == ROM_MAX)
-        {
+		/* Dang, no ROMs found at all! */
 		msgbox_critical(ghwnd, IDS_2062);
                 return 0;
         }
 
-        romset=d;
-        c=loadbios();
-
-        if (!c)
+	/* Load the ROMs for the selected machine. */
+        c = rom_load_bios(romset);
+        if (c == 0)
         {
+		/* Whoops, ROMs not found. */
                 if (romset!=-1)
 		{
 			msgbox_info(ghwnd, IDS_2063);
 		}
+
+		/* Select another machine to use. */
                 for (c=0;c<ROM_MAX;c++)
                 {
                         if (romspresent[c])
@@ -1813,7 +1822,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
                 }
         }
 
-        loadbios();
+        rom_load_bios(romset);
         resetpchard();
         
         timeBeginPeriod(1);
@@ -2021,6 +2030,7 @@ void video_toggle_option(HMENU hmenu, int *val, int id)
 
 LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	static wchar_t wOldTitle[512];
 	HMENU hmenu;
 	RECT rect;
 	int i = 0;
@@ -2056,7 +2066,18 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				case IDM_ACTION_CTRL_ALT_ESC:
 					ctrl_alt_esc();
 					break;
-					
+
+				case IDM_ACTION_PAUSE:
+					pause ^= 1;
+					if (pause) {
+						wcscpy(wOldTitle, wTitle);
+						wcscat(wTitle, L" - PAUSED -");
+
+						set_window_title(NULL);
+					} else
+						set_window_title(wOldTitle);
+					break;
+
 				case IDM_CONFIG:
 					win_settings_open(hwnd);
 					break;
@@ -2332,7 +2353,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
 							/* pclog_w(L"NVR path: %s\n", nvr_path); */
 							mem_resize();
-							loadbios();
+							rom_load_bios(romset);
 #ifdef USE_NETWORK
 							network_init();
 #endif

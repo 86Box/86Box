@@ -4,6 +4,10 @@
 /*Brooktree BT485 true colour RAMDAC emulation*/
 /*Currently only a dummy stub for logging and passing output to the generic SVGA handler*/
 #include "../ibm.h"
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../mem.h"
 #include "video.h"
 #include "vid_svga.h"

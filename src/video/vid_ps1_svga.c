@@ -7,7 +7,11 @@
   native drivers for any operating system and there is no VBE implementation, so
   it's just a VGA for now.
 */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"

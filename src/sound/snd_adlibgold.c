@@ -1,5 +1,8 @@
-#include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../dma.h"
