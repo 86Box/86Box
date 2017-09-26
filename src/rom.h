@@ -1,6 +1,18 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Definitions for the ROM image handler.
+ *
+ * Version:	@(#)rom.h	1.0.2	2017/09/25
+ *
+ * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Copyright 2017 Fred N. van Kempen.
+ */
 #ifndef EMU_ROM_H
 # define EMU_ROM_H
 
@@ -131,6 +143,11 @@ extern uint32_t	rom_readl(uint32_t addr, void *p);
 extern FILE	*rom_fopen(wchar_t *fn, wchar_t *mode);
 extern int	rom_getfile(wchar_t *fn, wchar_t *s, int size);
 extern int	rom_present(wchar_t *fn);
+
+extern int	rom_load_linear(wchar_t *fn, uint32_t addr, int sz,
+				int off, uint8_t *ptr);
+extern int	rom_load_interleaved(wchar_t *fnl, wchar_t *fnh, uint32_t addr,
+				     int sz, int off, uint8_t *ptr);
 
 extern int	rom_init(rom_t *rom, wchar_t *fn, uint32_t address, int size,
 			 int mask, int file_offset, uint32_t flags);
