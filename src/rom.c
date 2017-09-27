@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.3	2017/09/25
+ * Version:	@(#)rom.c	1.0.4	2017/09/27
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -300,7 +300,7 @@ rom_load_bios(int rom_id)
 		if (rom_load_interleaved(
 			L"roms/machines/ibmat/62x0820.u27",
 			L"roms/machines/ibmat/62x0821.u47",
-			0x000000, 32768, 0, rom)) return(1);
+			0x000000, 65536, 0, rom)) return(1);
 		break;
 
 	case ROM_GENXT:		/* Generic PC-XT clone */
