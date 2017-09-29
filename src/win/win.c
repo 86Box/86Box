@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.11	2017/09/24
+ * Version:	@(#)win.c	1.0.12	2017/09/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1761,24 +1761,27 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
 	reset_menus();
 
 /* FIXME: Kotori, code below should be moved to pc.c, its not Win specific. */
+	pclog("Scanning for ROM images:\n");
 	d = 0;
         for (c=0;c<ROM_MAX;c++)
         {
                 romspresent[c] = rom_load_bios(c);
+#if 0
                 pclog("romset %i - %s\n", c, romspresent[c]?"YES":"NO");
-		d |= romspresent[c];
+#endif
+		d += romspresent[c];
         }
         if (d == 0)
         {
 		/* Dang, no ROMs found at all! */
+		pclog("No usable ROM images found - aborting!\n");
 		msgbox_critical(ghwnd, IDS_2062);
                 return 0;
         }
+	pclog("A total of %d ROM sets have been loaded.\n", d);
 
 	/* Load the ROMs for the selected machine. */
-        c = rom_load_bios(romset);
-        if (c == 0)
-        {
+        if (! rom_load_bios(romset)) {
 		/* Whoops, ROMs not found. */
                 if (romset!=-1)
 		{
