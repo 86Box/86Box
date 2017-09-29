@@ -54,11 +54,15 @@ static void keyboard_olim24_poll(void)
         {
                 keyboard_olim24.wantirq = 0;
                 picint(2);
+#if ENABLE_KEYBOARD_LOG
                 pclog("keyboard_olim24 : take IRQ\n");
+#endif
         }
         if (!(keyboard_olim24.status & STAT_OFULL) && key_queue_start != key_queue_end)
         {
+#if ENABLE_KEYBOARD_LOG
                 pclog("Reading %02X from the key queue at %i\n", keyboard_olim24.out, key_queue_start);
+#endif
                 keyboard_olim24.out = key_queue[key_queue_start];
                 key_queue_start = (key_queue_start + 1) & 0xf;
                 keyboard_olim24.status |=  STAT_OFULL;
@@ -72,14 +76,18 @@ void keyboard_olim24_adddata(uint8_t val)
 {
         key_queue[key_queue_end] = val;
         key_queue_end = (key_queue_end + 1) & 0xf;
+#if ENABLE_KEYBOARD_LOG
         pclog("keyboard_olim24 : %02X added to key queue %02X\n", val, keyboard_olim24.status);
+#endif
         return;
 }
 
 
 static void keyboard_olim24_write(uint16_t port, uint8_t val, void *priv)
 {
+#if ENABLE_KEYBOARD_LOG
         pclog("keyboard_olim24 : write %04X %02X\n", port, val);
+#endif
 /*        if (ram[8] == 0xc3) 
         {
                 output = 3;

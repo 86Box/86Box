@@ -51,7 +51,9 @@ static void keyboard_xt_poll(void)
         {
                 keyboard_xt.pa = key_queue[key_queue_start];
 		picint(2);
+#if ENABLE_KEYBOARD_LOG
                 pclog("Reading %02X from the key queue at %i\n", keyboard_xt.pa, key_queue_start);
+#endif
                 key_queue_start = (key_queue_start + 1) & 0xf;
                 keyboard_xt.blocked = 1;
         }                
@@ -60,7 +62,9 @@ static void keyboard_xt_poll(void)
 void keyboard_xt_adddata(uint8_t val)
 {
         key_queue[key_queue_end] = val;
+#if ENABLE_KEYBOARD_LOG
         pclog("keyboard_xt : %02X added to key queue at %i\n", val, key_queue_end);
+#endif
         key_queue_end = (key_queue_end + 1) & 0xf;
         return;
 }
@@ -72,7 +76,9 @@ static void keyboard_xt_write(uint16_t port, uint8_t val, void *priv)
                 case 0x61:
                 if (!(keyboard_xt.pb & 0x40) && (val & 0x40)) /*Reset keyboard*/
                 {
+#if ENABLE_KEYBOARD_LOG
                         pclog("keyboard_xt : reset keyboard\n");
+#endif
 			key_queue_end = key_queue_start;
                         keyboard_xt_adddata(0xaa);
                 }
