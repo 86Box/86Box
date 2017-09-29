@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.4	2017/09/27
+ * Version:	@(#)rom.c	1.0.5	2017/09/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -366,7 +366,7 @@ rom_load_bios(int rom_id)
 		if (! rom_load_interleaved(
 			L"roms/machines/portableii/106438-001.BIN",
 			L"roms/machines/portableii/106437-001.BIN",
-			0x000000, 16384, 0, rom)) break;
+			0x000000, 32768, 0, rom)) break;
 		biosmask = 0x7fff;
 		return(1);
 
@@ -376,6 +376,7 @@ rom_load_bios(int rom_id)
 			L"roms/machines/portableiii/109738-002.BIN",
 			L"roms/machines/portableiii/109737-002.BIN",
 			0x000000, 32768, 0, rom)) return(1);
+		biosmask = 0x7fff;
 		break;
 #endif
 
@@ -389,14 +390,14 @@ rom_load_bios(int rom_id)
 		if (rom_load_interleaved(
 			L"roms/machines/olivetti_m24/olivetti_m24_version_1.43_low.bin",
 			L"roms/machines/olivetti_m24/olivetti_m24_version_1.43_high.bin",
-			0x00c000, 8192, 0, rom)) return(1);
+			0x00c000, 16384, 0, rom)) return(1);
 		break;
 
 	case ROM_PC2086:
 		if (! rom_load_interleaved(
 			L"roms/machines/pc2086/40179.ic129",
 			L"roms/machines/pc2086/40180.ic132",
-			0x000000, 8192, 0, rom)) break;
+			0x000000, 16384, 0, rom)) break;
 		f = rom_fopen(L"roms/machines/pc2086/40186.ic171", L"rb");
 		if (f == NULL) break;
 		(void)fclose(f);
@@ -470,7 +471,7 @@ rom_load_bios(int rom_id)
 		if (rom_load_interleaved(
 			L"roms/machines/megapc/41651-bios lo.u18",
 			L"roms/machines/megapc/211253-bios hi.u19",
-			0x000000, 32768, 0x08000, rom)) return(1);
+			0x000000, 65536, 0x08000, rom)) return(1);
 		break;
 
 	case ROM_AMI486:
@@ -488,7 +489,7 @@ rom_load_bios(int rom_id)
 	case ROM_430VX:
 		if (! rom_load_linear(
 			L"roms/machines/430vx/55XWUQ0E.BIN",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
@@ -515,7 +516,7 @@ rom_load_bios(int rom_id)
 	case ROM_IBMPS1_2011:
 		if (! rom_load_linear(
 			L"roms/machines/ibmps1es/f80000.bin",
-			0x000000, 0x20000, 0x60000, rom)) break;
+			0x000000, 131072, 0x60000, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
  
@@ -523,14 +524,14 @@ rom_load_bios(int rom_id)
 	case ROM_IBMPS1_2121_ISA:
 		if (! rom_load_linear(
 			L"roms/machines/ibmps1_2121/fc0000.bin",
-			0x000000, 0x20000, 0x20000, rom)) break;
+			0x000000, 131072, 0x20000, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
 	case ROM_IBMPS1_2133:
 		if (! rom_load_linear(
 			L"roms/machines/ibmps1_2133/PS1_2133_52G2974_ROM.bin",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
@@ -538,7 +539,7 @@ rom_load_bios(int rom_id)
 		if (rom_load_interleaved(
 			L"roms/machines/deskpro386/109592-005.U11.bin",
 			L"roms/machines/deskpro386/109591-005.U13.bin",
-			0x000000, 16384, 0, rom)) break;
+			0x000000, 32768, 0, rom)) break;
 		biosmask = 0x7fff;
 		return(1);
 
@@ -593,7 +594,7 @@ rom_load_bios(int rom_id)
 	case ROM_IBMPS2_M30_286:
 		if (! rom_load_linear(
 			L"roms/machines/ibmps2_m30_286/33f5381a.bin",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
@@ -606,7 +607,7 @@ rom_load_bios(int rom_id)
 	case ROM_R418:
 		if (! rom_load_linear(
 			L"roms/machines/r418/r418i.bin",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
@@ -614,7 +615,7 @@ rom_load_bios(int rom_id)
 	case ROM_586MC1:
 		if (! rom_load_linear(
 			L"roms/machines/586mc1/IS.34",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 #endif
@@ -632,84 +633,84 @@ rom_load_bios(int rom_id)
 	case ROM_MB500N:
 		if (! rom_load_linear(
 			L"roms/machines/mb500n/031396S.BIN",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
 	case ROM_AP53:
 		if (! rom_load_linear(
 			L"roms/machines/ap53/AP53R2C0.ROM",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
 	case ROM_P55T2S:
 		if (! rom_load_linear(
 			L"roms/machines/p55t2s/S6Y08T.ROM",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
 	case ROM_PRESIDENT:
 		if (! rom_load_linear(
 			L"roms/machines/president/BIOS.BIN",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
 	case ROM_P54TP4XE:
 		if (! rom_load_linear(
 			L"roms/machines/p54tp4xe/T15I0302.AWD",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
 	case ROM_ACERM3A:
 		if (! rom_load_linear(
 			L"roms/machines/acerm3a/r01-b3.bin",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
 	case ROM_ACERV35N:
 		if (! rom_load_linear(
 			L"roms/machines/acerv35n/V35ND1S1.BIN",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
 	case ROM_P55VA:
 		if (! rom_load_linear(
 			L"roms/machines/p55va/VA021297.BIN",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
 	case ROM_P55T2P4:
 		if (! rom_load_linear(
 			L"roms/machines/p55t2p4/0207_J2.BIN",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
 	case ROM_P55TVP4:
 		if (! rom_load_linear(
 			L"roms/machines/p55tvp4/TV5I0204.AWD",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
 	case ROM_440FX:		/* working Tyan BIOS */
 		if (! rom_load_linear(
 			L"roms/machines/440fx/NTMAW501.BIN",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
 	case ROM_S1668:		/* working Tyan BIOS */
 		if (! rom_load_linear(
 			L"roms/machines/tpatx/S1668P.ROM",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
@@ -719,14 +720,14 @@ rom_load_bios(int rom_id)
 			0x010000, 65536, 128, rom)) break;
 		if (! rom_load_linear(
 			L"roms/machines/thor/1006CN0_.BI1",
-			0x000000, 0x010000, 128, rom)) break;
+			0x000000, 65536, 128, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
 	case ROM_MRTHOR:
 		if (! rom_load_linear(
 			L"roms/machines/mrthor/MR_ATX.BIO",
-			0x000000, 0x20000, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
@@ -736,7 +737,7 @@ rom_load_bios(int rom_id)
 			0x010000, 65536, 128, rom)) break;
 		if (! rom_load_linear(
 			L"roms/machines/zappa/1006BS0_.BI1",
-			0x000000, 0x010000, 128, rom)) break;
+			0x000000, 65536, 128, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
@@ -744,11 +745,11 @@ rom_load_bios(int rom_id)
 		if (! rom_load_interleaved(
 			L"roms/machines/ibmps2_m50/90x7423.zm14",
 			L"roms/machines/ibmps2_m50/90x7426.zm16",
-			0x000000, 32768, 0, rom)) break;
+			0x000000, 65536, 0, rom)) break;
 		if (! rom_load_interleaved(
 			L"roms/machines/ibmps2_m50/90x7420.zm13",
 			L"roms/machines/ibmps2_m50/90x7429.zm18",
-			0x010000, 32768, 0, rom)) break;
+			0x010000, 65536, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
@@ -765,7 +766,7 @@ rom_load_bios(int rom_id)
 		if (! rom_load_interleaved(
 			L"roms/machines/ibmps2_m80/15f6637.bin",
 			L"roms/machines/ibmps2_m80/15f6639.bin",
-			0x000000, 65536, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
