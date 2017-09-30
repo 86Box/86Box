@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.5	2017/09/28
+ * Version:	@(#)rom.c	1.0.6	2017/09/30
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -48,7 +48,6 @@ rom_fopen(wchar_t *fn, wchar_t *mode)
 
     return(_wfopen(temp, mode));
 }
-
 
 
 int
@@ -138,6 +137,9 @@ rom_load_linear(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 	return(0);
     }
 
+    /* Make sure we only look at the base-256K offset. */
+    addr &= 0x03ffff;
+
     (void)fseek(f, off, SEEK_SET);
     (void)fread(ptr+addr, sz, 1, f);
     (void)fclose(f);
@@ -162,6 +164,9 @@ rom_load_interleaved(wchar_t *fnl, wchar_t *fnh, uint32_t addr, int sz, int off,
 
 	return(0);
     }
+
+    /* Make sure we only look at the base-256K offset. */
+    addr &= 0x03ffff;
 
     (void)fseek(fl, off, SEEK_SET);
     (void)fseek(fh, off, SEEK_SET);
@@ -239,13 +244,13 @@ rom_load_bios(int rom_id)
     loadfont(L"roms/video/mda/mda.rom", 0);
     loadfont(L"roms/video/wyse700/wy700.rom", 3);
 
-    /* Default to a 64K ROM BIOS image. */
-    biosmask = 0xffff;
-
     /* If not done yet, allocate a 128KB buffer for the BIOS ROM. */
     if (rom == NULL)
-	rom = (uint8_t *)malloc(0x20000);
-    memset(rom, 0xff, 0x20000);
+	rom = (uint8_t *)malloc(131072);
+    memset(rom, 0xff, 131072);
+
+    /* Default to a 64K ROM BIOS image. */
+    biosmask = 0xffff;
 
     /* Zap the BIOS ROM EXTENSION area. */
     memset(romext, 0xff, 0x8000);

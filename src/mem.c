@@ -68,7 +68,7 @@ uint32_t biosmask;
 int readlnum=0,writelnum=0;
 int cachesize=256;
 
-uint8_t *ram,*rom;
+uint8_t *rom;
 uint8_t romext[32768];
 
 uint32_t ram_mapped_addr[64];
@@ -1327,6 +1327,7 @@ void mem_init(void)
         ram = malloc(mem_size * 1024);
         readlookup2  = malloc(1024 * 1024 * sizeof(uintptr_t));
         writelookup2 = malloc(1024 * 1024 * sizeof(uintptr_t));
+	rom = NULL;
         biosmask = 0xffff;
         pages = malloc((((mem_size + 384) * 1024) >> 12) * sizeof(page_t));
         page_lookup = malloc((1 << 20) * sizeof(page_t *));
