@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.49	2017/09/28
+# Version:	@(#)Makefile.mingw	1.0.49	2017/09/29
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -264,7 +264,7 @@ DEVOBJ		:= bugger.o lpt.o $(SERIAL) \
 		   tandy_eeprom.o tandy_rom.o \
 		   sio_detect.o \
 		    sio_fdc37c665.o sio_fdc37c669.o sio_fdc37c932fr.o \
-		    sio_pc87306.o sio_w83877f.o sio_um8669f.o \
+		    sio_pc87306.o sio_w83877f.o sio_um8669f.o piix.o \
 		   keyboard.o \
 		    keyboard_xt.o keyboard_at.o keyboard_pcjr.o \
 		    keyboard_amstrad.o keyboard_olim24.o \
@@ -279,12 +279,14 @@ FDDOBJ		:= fdd.o fdc.o fdi2raw.o \
 		   floppy_fdi.o floppy_imd.o floppy_img.o floppy_json.o \
 		   floppy_td0.o
 
+HDDOBJ		:= hdd.o \
+		    hdd_image.o hdd_table.o \
+		   hdc.o \
+		    hdc_esdi_at.o hdc_esdi_mca.o hdc_ide.o hdc_mfm_at.o \
+		    hdc_mfm_xt.o hdc_xtide.o
+
 CDROMOBJ	:= cdrom.o \
 		    cdrom_dosbox.o cdrom_image.o cdrom_ioctl.o cdrom_null.o
-
-HDDOBJ		:= hdd.o hdd_image.o \
-		   hdd_mfm_at.o hdd_mfm_xebec.o hdd_esdi_at.o hdd_esdi_mca.o \
-		   hdd_ide_at.o hdd_ide_xt.o piix.o
 
 ifeq ($(USB), y)
 USBOBJ		:= usb.o

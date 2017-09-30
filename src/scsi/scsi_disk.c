@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.8	2017/09/24
+ * Version:	@(#)scsi_disk.c	1.0.9	2017/09/29
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2017 Miran Grca.
@@ -22,8 +22,8 @@
 #include "../timer.h"
 #include "../piix.h"
 #include "../cdrom/cdrom.h"
-#include "../hdd/hdd_image.h"
-#include "../hdd/hdd_ide_at.h"
+#include "../hdd/hdd.h"
+#include "../hdd/hdc_ide.h"
 #include "../win/plat_iodev.h"
 #include "scsi.h"
 #include "scsi_disk.h"
@@ -49,8 +49,8 @@
 #define scsi_hd_ascq shdc[id].sense[13]
 
 
-scsi_hard_disk_t shdc[HDC_NUM];
-FILE *shdf[HDC_NUM];
+scsi_hard_disk_t shdc[HDD_NUM];
+FILE *shdf[HDD_NUM];
 
 uint8_t scsi_hard_disks[16][8] = {
     { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
@@ -190,21 +190,21 @@ int scsi_hd_phase_to_scsi(uint8_t id)
 }
 
 
-int find_hdc_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun)
+int find_hdd_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun)
 {
 	uint8_t i = 0;
 
-	for (i = 0; i < HDC_NUM; i++)
+	for (i = 0; i < HDD_NUM; i++)
 	{
-		if ((wcslen(hdc[i].fn) == 0) && (hdc[i].bus != HDD_BUS_SCSI_REMOVABLE))
+		if ((wcslen(hdd[i].fn) == 0) && (hdd[i].bus != HDD_BUS_SCSI_REMOVABLE))
 		{
 			continue;
 		}
-		if (((hdc[i].spt == 0) || (hdc[i].hpc == 0) || (hdc[i].tracks == 0)) && (hdc[i].bus != HDD_BUS_SCSI_REMOVABLE))
+		if (((hdd[i].spt == 0) || (hdd[i].hpc == 0) || (hdd[i].tracks == 0)) && (hdd[i].bus != HDD_BUS_SCSI_REMOVABLE))
 		{
 			continue;
 		}
-		if (((hdc[i].bus == HDD_BUS_SCSI) || (hdc[i].bus == HDD_BUS_SCSI_REMOVABLE)) && (hdc[i].scsi_id == scsi_id) && (hdc[i].scsi_lun == scsi_lun))
+		if (((hdd[i].bus == HDD_BUS_SCSI) || (hdd[i].bus == HDD_BUS_SCSI_REMOVABLE)) && (hdd[i].scsi_id == scsi_id) && (hdd[i].scsi_lun == scsi_lun))
 		{
 			return i;
 		}
@@ -215,19 +215,14 @@ int find_hdc_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun)
 
 void scsi_disk_insert(uint8_t id)
 {
-	shdc[id].unit_attention = (hdc[id].bus == HDD_BUS_SCSI_REMOVABLE) ? 1 : 0;
+	shdc[id].unit_attention = (hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? 1 : 0;
 }
 
 
 void scsi_loadhd(int scsi_id, int scsi_lun, int id)
 {
-	int ret = 0;
-
-	ret = hdd_image_load(id);
-
-	if (!ret)
-	{
-		if (hdc[id].bus != HDD_BUS_SCSI_REMOVABLE)
+	if (! hdd_image_load(id)) {
+		if (hdd[id].bus != HDD_BUS_SCSI_REMOVABLE)
 		{
 			scsi_hard_disks[scsi_id][scsi_lun] = 0xff;
 		}
@@ -243,14 +238,14 @@ void scsi_reloadhd(int id)
 {
 	int ret = 0;
 
-	if(wcslen(hdc[id].prev_fn) == 0)
+	if (wcslen(hdd[id].prev_fn) == 0)
 	{
 		return;
 	}
 	else
 	{
-		wcscpy(hdc[id].fn, hdc[id].prev_fn);
-		memset(hdc[id].prev_fn, 0, sizeof(hdc[id].prev_fn));
+		wcscpy(hdd[id].fn, hdd[id].prev_fn);
+		memset(hdd[id].prev_fn, 0, sizeof(hdd[id].prev_fn));
 	}
 
 	ret = hdd_image_load(id);
@@ -282,11 +277,11 @@ void build_scsi_hd_map(void)
 	{
 		for (j = 0; j < 8; j++)
 		{
-			scsi_hard_disks[i][j] = find_hdc_for_scsi_id(i, j);
+			scsi_hard_disks[i][j] = find_hdd_for_scsi_id(i, j);
 			if (scsi_hard_disks[i][j] != 0xff)
 			{
 				memset(&(shdc[scsi_hard_disks[i][j]]), 0, sizeof(shdc[scsi_hard_disks[i][j]]));
-				if (wcslen(hdc[scsi_hard_disks[i][j]].fn) > 0)
+				if (wcslen(hdd[scsi_hard_disks[i][j]].fn) > 0)
 				{
 					scsi_loadhd(i, j, scsi_hard_disks[i][j]);
 				}
@@ -414,14 +409,14 @@ void scsi_hd_data_command_finish(uint8_t id, int len, int block_len, int alloc_l
 	}
 	if (len == 0)
 	{
-		SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength = 0;
+		SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength = 0;
 		scsi_hd_command_complete(id);
 	}
 	else
 	{
 		if (direction == 0)
 		{
-			SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength = alloc_len;
+			SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength = alloc_len;
 			scsi_hd_command_read_dma(id);
 		}
 		else
@@ -548,7 +543,7 @@ int scsi_hd_pre_execution_check(uint8_t id, uint8_t *cdb)
 {
 	int ready = 1;
 
-	if (((shdc[id].request_length >> 5) & 7) != hdc[id].scsi_lun)
+	if (((shdc[id].request_length >> 5) & 7) != hdd[id].scsi_lun)
 	{
 		scsi_hd_log("SCSI HD %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n", id, ((shdc[id].request_length >> 5) & 7));
 		scsi_hd_invalid_lun(id);
@@ -563,10 +558,10 @@ int scsi_hd_pre_execution_check(uint8_t id, uint8_t *cdb)
 		return 0;
 	}
 
-	if (hdc[id].bus == HDD_BUS_SCSI_REMOVABLE)
+	if (hdd[id].bus == HDD_BUS_SCSI_REMOVABLE)
 	{
 		/* Removable disk, set ready state. */
-		if (wcslen(hdc[id].fn) > 0)
+		if (wcslen(hdd[id].fn) > 0)
 		{
 			ready = 1;
 		}
@@ -697,10 +692,10 @@ void scsi_hd_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_l
 {
 	int ready = 1;
 
-	if (hdc[id].bus == HDD_BUS_SCSI_REMOVABLE)
+	if (hdd[id].bus == HDD_BUS_SCSI_REMOVABLE)
 	{
 		/* Removable disk, set ready state. */
-		if (wcslen(hdc[id].fn) > 0)
+		if (wcslen(hdd[id].fn) > 0)
 		{
 			ready = 1;
 		}
@@ -732,7 +727,7 @@ void scsi_hd_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_l
 void scsi_hd_command(uint8_t id, uint8_t *cdb)
 {
 	/* uint8_t *hdbufferb = (uint8_t *) shdc[id].buffer; */
-	uint8_t *hdbufferb = SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].CmdBuffer;
+	uint8_t *hdbufferb = SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].CmdBuffer;
 	uint32_t len;
 	int pos=0;
 	int max_len;
@@ -764,7 +759,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 	device_identify_ex[12] = EMU_VERSION[2];
 	device_identify_ex[13] = EMU_VERSION[3];
 
-	if (hdc[id].bus == HDD_BUS_SCSI_REMOVABLE)
+	if (hdd[id].bus == HDD_BUS_SCSI_REMOVABLE)
 	{
 		device_identify[4] = 'R';
 
@@ -814,9 +809,9 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 		case GPCMD_REQUEST_SENSE:
 			/* If there's a unit attention condition and there's a buffered not ready, a standalone REQUEST SENSE
 			   should forget about the not ready, and report unit attention straight away. */
-			if (SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength < cdb[4])
+			if (SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength < cdb[4])
 			{
-				cdb[4] = SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength;
+				cdb[4] = SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength;
 			}
 			scsi_hd_request_sense(id, hdbufferb, cdb[4]);
 			scsi_hd_data_command_finish(id, 18, 18, cdb[4], 0);
@@ -856,7 +851,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				return;
 			}
 
-			if ((!shdc[id].sector_len) || (SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength == 0))
+			if ((!shdc[id].sector_len) || (SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength == 0))
 			{
 				/* scsi_hd_log("SCSI HD %i: All done - callback set\n", id); */
 				shdc[id].packet_status = CDROM_PHASE_COMPLETE;
@@ -869,11 +864,11 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 			alloc_length = shdc[id].packet_len = max_len << 9;
 
-			if ((shdc[id].requested_blocks > 0) && (SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength > 0))
+			if ((shdc[id].requested_blocks > 0) && (SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength > 0))
 			{
-				if (alloc_length > SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength)
+				if (alloc_length > SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength)
 				{
-					hdd_image_read(id, shdc[id].sector_pos, SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength >> 9, hdbufferb);
+					hdd_image_read(id, shdc[id].sector_pos, SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength >> 9, hdbufferb);
 				}
 				else
 				{
@@ -892,18 +887,18 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			shdc[id].all_blocks_total = shdc[id].block_total;
 			if (shdc[id].packet_status != CDROM_PHASE_COMPLETE)
 			{
-				update_status_bar_icon((hdc[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 1);
+				update_status_bar_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 1);
 			}
 			else
 			{
-				update_status_bar_icon((hdc[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
+				update_status_bar_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
 			}
 			return;
 
 		case GPCMD_WRITE_6:
 		case GPCMD_WRITE_10:
 		case GPCMD_WRITE_12:
-			if ((hdc[id].bus == HDD_BUS_SCSI_REMOVABLE) && hdc[id].wp)
+			if ((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) && hdd[id].wp)
 			{
 				scsi_hd_write_protected(id);
 				return;
@@ -932,7 +927,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				return;
 			}
 
-			if ((!shdc[id].sector_len) || (SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength == 0))
+			if ((!shdc[id].sector_len) || (SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength == 0))
 			{
 				/* scsi_hd_log("SCSI HD %i: All done - callback set\n", id); */
 				shdc[id].packet_status = CDROM_PHASE_COMPLETE;
@@ -945,11 +940,11 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 			alloc_length = shdc[id].packet_len = max_len << 9;
 
-			if ((shdc[id].requested_blocks > 0) && (SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength > 0))
+			if ((shdc[id].requested_blocks > 0) && (SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength > 0))
 			{
-				if (alloc_length > SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength)
+				if (alloc_length > SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength)
 				{
-					hdd_image_write(id, shdc[id].sector_pos, SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength >> 9, hdbufferb);
+					hdd_image_write(id, shdc[id].sector_pos, SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength >> 9, hdbufferb);
 				}
 				else
 				{
@@ -968,16 +963,16 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			shdc[id].all_blocks_total = shdc[id].block_total;
 			if (shdc[id].packet_status != CDROM_PHASE_COMPLETE)
 			{
-				update_status_bar_icon((hdc[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 1);
+				update_status_bar_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 1);
 			}
 			else
 			{
-				update_status_bar_icon((hdc[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
+				update_status_bar_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
 			}
 			return;
 
 		case GPCMD_START_STOP_UNIT:
-			if (hdc[id].bus != HDD_BUS_SCSI_REMOVABLE)
+			if (hdd[id].bus != HDD_BUS_SCSI_REMOVABLE)
 			{
 				scsi_hd_illegal_opcode(id);
 				break;
@@ -1004,7 +999,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			max_len <<= 8;
 			max_len |= cdb[4];
 
-			if ((!max_len) || (SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength == 0))
+			if ((!max_len) || (SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength == 0))
 			{
 				/* scsi_hd_log("SCSI HD %i: All done - callback set\n", id); */
 				shdc[id].packet_status = CDROM_PHASE_COMPLETE;
@@ -1073,7 +1068,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 				memset(tempbuffer, 0, 8);
 				tempbuffer[0] = 0; /*SCSI HD*/
-				if (hdc[id].bus == HDD_BUS_SCSI_REMOVABLE)
+				if (hdd[id].bus == HDD_BUS_SCSI_REMOVABLE)
 				{
 					tempbuffer[1] = 0x80; /*Removable*/
 				}
@@ -1100,9 +1095,9 @@ atapi_out:
 				len = max_len;
 			}
 
-			if (len > SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength)
+			if (len > SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength)
 			{
-				len = SCSIDevices[hdc[id].scsi_id][hdc[id].scsi_lun].InitLength;
+				len = SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength;
 			}
 
 			memcpy(hdbufferb, tempbuffer, len);
@@ -1166,7 +1161,7 @@ void scsi_hd_callback(uint8_t id)
 			shdc[id].status = READY_STAT;
 			shdc[id].phase = 3;
 			shdc[id].packet_status = 0xFF;
-			update_status_bar_icon((hdc[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
+			update_status_bar_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
 			return;
 		case CDROM_PHASE_DATA_OUT:
 			scsi_hd_log("SCSI HD %i: PHASE_DATA_OUT\n", id);
@@ -1178,7 +1173,7 @@ void scsi_hd_callback(uint8_t id)
 			shdc[id].packet_status = CDROM_PHASE_COMPLETE;
 			shdc[id].status = READY_STAT;
 			shdc[id].phase = 3;
-			update_status_bar_icon((hdc[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
+			update_status_bar_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
 			return;
 		case CDROM_PHASE_DATA_IN:
 			scsi_hd_log("SCSI HD %i: PHASE_DATA_IN\n", id);
@@ -1190,7 +1185,7 @@ void scsi_hd_callback(uint8_t id)
 			shdc[id].packet_status = CDROM_PHASE_COMPLETE;
 			shdc[id].status = READY_STAT;
 			shdc[id].phase = 3;
-			update_status_bar_icon((hdc[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
+			update_status_bar_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
 			return;
 		case CDROM_PHASE_ERROR:
 			scsi_hd_log("SCSI HD %i: PHASE_ERROR\n", id);

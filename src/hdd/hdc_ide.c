@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdd_ide_at.c	1.0.7	2017/09/24
+ * Version:	@(#)hdc_ide.c	1.0.8	2017/09/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -28,10 +28,12 @@
 #include "../pic.h"
 #include "../pci.h"
 #include "../timer.h"
+#include "../device.h"
 #include "../cdrom/cdrom.h"
 #include "../scsi/scsi.h"
-#include "hdd_image.h"
-#include "hdd_ide_at.h"
+#include "hdd.h"
+#include "hdc.h"
+#include "hdc_ide.h"
 
 
 /* Bits of 'atastat' */
@@ -84,23 +86,7 @@ enum
         IDE_CDROM
 };
 
-uint64_t hdt[128][3] = {	{  306,  4, 17 }, {  615,  2, 17 }, {  306,  4, 26 }, { 1024,  2, 17 }, {  697,  3, 17 }, {  306,  8, 17 }, {  614,  4, 17 }, {  615,  4, 17 },		/* 000-007 */
-			{  670,  4, 17 }, {  697,  4, 17 }, {  987,  3, 17 }, {  820,  4, 17 }, {  670,  5, 17 }, {  697,  5, 17 }, {  733,  5, 17 }, {  615,  6, 17 },		/* 008-015 */
-			{  462,  8, 17 }, {  306,  8, 26 }, {  615,  4, 26 }, { 1024,  4, 17 }, {  855,  5, 17 }, {  925,  5, 17 }, {  932,  5, 17 }, { 1024,  2, 40 },		/* 016-023 */
-			{  809,  6, 17 }, {  976,  5, 17 }, {  977,  5, 17 }, {  698,  7, 17 }, {  699,  7, 17 }, {  981,  5, 17 }, {  615,  8, 17 }, {  989,  5, 17 },		/* 024-031 */
-			{  820,  4, 26 }, { 1024,  5, 17 }, {  733,  7, 17 }, {  754,  7, 17 }, {  733,  5, 26 }, {  940,  6, 17 }, {  615,  6, 26 }, {  462,  8, 26 },		/* 032-039 */
-			{  830,  7, 17 }, {  855,  7, 17 }, {  751,  8, 17 }, { 1024,  4, 26 }, {  918,  7, 17 }, {  925,  7, 17 }, {  855,  5, 26 }, {  977,  7, 17 },		/* 040-047 */
-			{  987,  7, 17 }, { 1024,  7, 17 }, {  823,  4, 38 }, {  925,  8, 17 }, {  809,  6, 26 }, {  976,  5, 26 }, {  977,  5, 26 }, {  698,  7, 26 },		/* 048-055 */
-			{  699,  7, 26 }, {  940,  8, 17 }, {  615,  8, 26 }, { 1024,  5, 26 }, {  733,  7, 26 }, { 1024,  8, 17 }, {  823, 10, 17 }, {  754, 11, 17 },		/* 056-063 */
-			{  830, 10, 17 }, {  925,  9, 17 }, { 1224,  7, 17 }, {  940,  6, 26 }, {  855,  7, 26 }, {  751,  8, 26 }, { 1024,  9, 17 }, {  965, 10, 17 },		/* 064-071 */
-			{  969,  5, 34 }, {  980, 10, 17 }, {  960,  5, 35 }, {  918, 11, 17 }, { 1024, 10, 17 }, {  977,  7, 26 }, { 1024,  7, 26 }, { 1024, 11, 17 },		/* 072-079 */
-			{  940,  8, 26 }, {  776,  8, 33 }, {  755, 16, 17 }, { 1024, 12, 17 }, { 1024,  8, 26 }, {  823, 10, 26 }, {  830, 10, 26 }, {  925,  9, 26 },		/* 080-087 */
-			{  960,  9, 26 }, { 1024, 13, 17 }, { 1224, 11, 17 }, {  900, 15, 17 }, {  969,  7, 34 }, {  917, 15, 17 }, {  918, 15, 17 }, { 1524,  4, 39 },		/* 088-095 */
-			{ 1024,  9, 26 }, { 1024, 14, 17 }, {  965, 10, 26 }, {  980, 10, 26 }, { 1020, 15, 17 }, { 1023, 15, 17 }, { 1024, 15, 17 }, { 1024, 16, 17 },		/* 096-103 */
-			{ 1224, 15, 17 }, {  755, 16, 26 }, {  903,  8, 46 }, {  984, 10, 34 }, {  900, 15, 26 }, {  917, 15, 26 }, { 1023, 15, 26 }, {  684, 16, 38 },		/* 104-111 */
-			{ 1930,  4, 62 }, {  967, 16, 31 }, { 1013, 10, 63 }, { 1218, 15, 36 }, {  654, 16, 63 }, {  659, 16, 63 }, {  702, 16, 63 }, { 1002, 13, 63 },		/* 112-119 */
-			{  854, 16, 63 }, {  987, 16, 63 }, {  995, 16, 63 }, { 1024, 16, 63 }, { 1036, 16, 63 }, { 1120, 16, 59 }, { 1054, 16, 63 }, {    0,  0,  0 }	};	/* 119-127 */
-			
+
 IDE ide_drives[IDE_NUM + XTIDE_NUM];
 
 IDE *ext_ide;
@@ -341,29 +327,29 @@ static void ide_identify(IDE *ide)
 	uint32_t c, h, s;
 	char device_identify[9] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', 0 };
 #if 0
-	uint64_t full_size = (hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt);
+	uint64_t full_size = (hdd[ide->hdd_num].tracks * hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt);
 #endif
 
-	device_identify[6] = (ide->hdc_num / 10) + 0x30;
-	device_identify[7] = (ide->hdc_num % 10) + 0x30;
+	device_identify[6] = (ide->hdd_num / 10) + 0x30;
+	device_identify[7] = (ide->hdd_num % 10) + 0x30;
 	ide_log("IDE Identify: %s\n", device_identify);
 
 	memset(ide->buffer, 0, 512);
 	
-	c = hdc[ide->hdc_num].tracks; /* Cylinders */
-	h = hdc[ide->hdc_num].hpc;  /* Heads */
-	s = hdc[ide->hdc_num].spt;  /* Sectors */
+	c = hdd[ide->hdd_num].tracks; /* Cylinders */
+	h = hdd[ide->hdd_num].hpc;  /* Heads */
+	s = hdd[ide->hdd_num].spt;  /* Sectors */
 
-	if (hdc[ide->hdc_num].tracks <= 16383)
+	if (hdd[ide->hdd_num].tracks <= 16383)
 	{
-		ide->buffer[1] = hdc[ide->hdc_num].tracks; /* Cylinders */
+		ide->buffer[1] = hdd[ide->hdd_num].tracks; /* Cylinders */
 	}
 	else
 	{
 		ide->buffer[1] = 16383; /* Cylinders */
 	}
-	ide->buffer[3] = hdc[ide->hdc_num].hpc;  /* Heads */
-	ide->buffer[6] = hdc[ide->hdc_num].spt;  /* Sectors */
+	ide->buffer[3] = hdd[ide->hdd_num].hpc;  /* Heads */
+	ide->buffer[6] = hdd[ide->hdd_num].spt;  /* Sectors */
 	ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
 	ide_padstr((char *) (ide->buffer + 23), EMU_VERSION, 8); /* Firmware */
 	ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
@@ -371,7 +357,7 @@ static void ide_identify(IDE *ide)
 	ide->buffer[21] = 512; /*Buffer size*/
 	ide->buffer[47] = 16;  /*Max sectors on multiple transfer command*/
 	ide->buffer[48] = 1;   /*Dword transfers supported*/
-	if (PCI && (ide->board < 2) && (hdc[ide->hdc_num].bus == HDD_BUS_IDE_PIO_AND_DMA))
+	if (PCI && (ide->board < 2) && (hdd[ide->hdd_num].bus == HDD_BUS_IDE_PIO_AND_DMA))
 	{
 		ide->buffer[49] = (1 << 8); /* LBA and DMA supported */
 	}
@@ -404,10 +390,10 @@ static void ide_identify(IDE *ide)
 	ide->buffer[59] = ide->blocksize ? (ide->blocksize | 0x100) : 0;
 	if (ide->buffer[49] & (1 << 9))
 	{
-		ide->buffer[60] = (hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt) & 0xFFFF; /* Total addressable sectors (LBA) */
-		ide->buffer[61] = ((hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt) >> 16) & 0x0FFF;
+		ide->buffer[60] = (hdd[ide->hdd_num].tracks * hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt) & 0xFFFF; /* Total addressable sectors (LBA) */
+		ide->buffer[61] = ((hdd[ide->hdd_num].tracks * hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt) >> 16) & 0x0FFF;
 	}
-	if (PCI && (ide->board < 2) && (hdc[ide->hdc_num].bus == HDD_BUS_IDE_PIO_AND_DMA))
+	if (PCI && (ide->board < 2) && (hdd[ide->hdd_num].bus == HDD_BUS_IDE_PIO_AND_DMA))
 	{
 		ide->buffer[52] = 2 << 8; /*DMA timing mode*/
 
@@ -497,21 +483,16 @@ static void ide_next_sector(IDE *ide)
 
 static void loadhd(IDE *ide, int d, const wchar_t *fn)
 {
-	int ret = 0;
-
-	ret = hdd_image_load(d);
-
-	if (!ret)
-	{
+	if (! hdd_image_load(d)) {
 		ide->type = IDE_NONE;
 		return;
 	}
 
-	ide->spt = hdc[d].spt;
-	ide->hpc = hdc[d].hpc;
-	ide->tracks = hdc[d].tracks;
+	ide->spt = hdd[d].spt;
+	ide->hpc = hdd[d].hpc;
+	ide->tracks = hdd[d].tracks;
 	ide->type = IDE_HDD;
-	ide->hdc_num = d;
+	ide->hdd_num = d;
 	ide->hdi = hdd_image_get_type(d);
 }
 
@@ -588,7 +569,7 @@ static int ide_set_features(IDE *ide)
 					break;
 
 				case 0x04:	/* Multiword DMA mode */
-					if (!PCI || (hdc[ide->hdc_num].bus != HDD_BUS_IDE_PIO_AND_DMA) || (ide->board >= 2) || (submode > 2))
+					if (!PCI || (hdd[ide->hdd_num].bus != HDD_BUS_IDE_PIO_AND_DMA) || (ide->board >= 2) || (submode > 2))
 					{
 						return 0;
 					}
@@ -617,11 +598,11 @@ void ide_set_sector(IDE *ide, int64_t sector_num)
 	}
 	else
 	{
-		cyl = sector_num / (hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt);
-		r = sector_num % (hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt);
+		cyl = sector_num / (hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt);
+		r = sector_num % (hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt);
 		ide->cylinder = cyl;
-		ide->head = ((r / hdc[ide->hdc_num].spt) & 0x0f);
-		ide->sector = (r % hdc[ide->hdc_num].spt) + 1;
+		ide->head = ((r / hdd[ide->hdd_num].spt) & 0x0f);
+		ide->sector = (r % hdd[ide->hdd_num].spt) + 1;
 	}
 }
 
@@ -635,11 +616,11 @@ void resetide(void)
 	build_atapi_cdrom_map();
 
 	/* Close hard disk image files (if previously open) */
-	for (d = 0; d < (IDE_NUM + XTIDE_NUM); d++)
+	for (d = 0; d < (IDE_NUM+XTIDE_NUM); d++)
 	{
 		ide_drives[d].channel = d;
 		ide_drives[d].type = IDE_NONE;
-		hdd_image_close(ide_drives[d].hdc_num);
+		hdd_image_close(ide_drives[d].hdd_num);
 		if (ide_drive_is_cdrom(&ide_drives[d]))
 		{
 			cdrom[atapi_cdrom_drives[d]].status = READY_STAT | DSC_STAT;
@@ -654,21 +635,19 @@ void resetide(void)
 	idecallback[4]=0;
 
 	c = 0;
-	for (d = 0; d < HDC_NUM; d++)
+	for (d = 0; d < HDD_NUM; d++)
 	{
-		if (((hdc[d].bus == HDD_BUS_IDE_PIO_ONLY) || (hdc[d].bus == HDD_BUS_IDE_PIO_AND_DMA)) && (hdc[d].ide_channel < IDE_NUM))
+		if (((hdd[d].bus == HDD_BUS_IDE_PIO_ONLY) || (hdd[d].bus == HDD_BUS_IDE_PIO_AND_DMA)) && (hdd[d].ide_channel < IDE_NUM))
 		{
-			ide_log("Found IDE hard disk on channel %i\n", hdc[d].ide_channel);
-			loadhd(&ide_drives[hdc[d].ide_channel], d, hdc[d].fn);
-			c++;
-			if (c >= (IDE_NUM + XTIDE_NUM))  break;
+			ide_log("Found IDE hard disk on channel %i\n", hdd[d].ide_channel);
+			loadhd(&ide_drives[hdd[d].ide_channel], d, hdd[d].fn);
+			if (++c >= (IDE_NUM+XTIDE_NUM)) break;
 		}
-		if ((hdc[d].bus == HDD_BUS_XTIDE) && (hdc[d].xtide_channel < XTIDE_NUM))
+		if ((hdd[d].bus==HDD_BUS_XTIDE) && (hdd[d].xtide_channel < XTIDE_NUM))
 		{
-			ide_log("Found XT IDE hard disk on channel %i\n", hdc[d].xtide_channel);
-			loadhd(&ide_drives[hdc[d].xtide_channel | 8], d, hdc[d].fn);
-			c++;
-			if (c >= (IDE_NUM + XTIDE_NUM))  break;
+			ide_log("Found XT IDE hard disk on channel %i\n", hdd[d].xtide_channel);
+			loadhd(&ide_drives[hdd[d].xtide_channel | 8], d, hdd[d].fn);
+			if (++c >= (IDE_NUM+XTIDE_NUM)) break;
 		}
 	}
 
@@ -1317,7 +1296,7 @@ uint32_t ide_read_data(int ide_board, int length)
 			}
 			else
 			{
-				update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 0);
+				update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 			}
 		}
 	}
@@ -1511,7 +1490,7 @@ void callbackide(int ide_board)
 	ide_other = &ide_drives[cur_ide[ide_board] ^ 1];
 	if (ide->type == IDE_HDD)
 	{
-		full_size = (hdc[ide->hdc_num].tracks * hdc[ide->hdc_num].hpc * hdc[ide->hdc_num].spt);
+		full_size = (hdd[ide->hdd_num].tracks * hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt);
 	}
 	ext_ide = ide;
 
@@ -1648,11 +1627,11 @@ void callbackide(int ide_board)
 				ide->sector_pos = 0;
 				if (ide->secount)
 				{
-					hdd_image_read(ide->hdc_num, ide_get_sector(ide), ide->secount, ide->sector_buffer);
+					hdd_image_read(ide->hdd_num, ide_get_sector(ide), ide->secount, ide->sector_buffer);
 				}
 				else
 				{
-					hdd_image_read(ide->hdc_num, ide_get_sector(ide), 256, ide->sector_buffer);
+					hdd_image_read(ide->hdd_num, ide_get_sector(ide), 256, ide->sector_buffer);
 				}
 			}
 
@@ -1665,7 +1644,7 @@ void callbackide(int ide_board)
 
 			ide_irq_raise(ide);
 
-			update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 1);
+			update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 			return;
 
 		case WIN_READ_DMA:
@@ -1684,11 +1663,11 @@ void callbackide(int ide_board)
 				ide->sector_pos = 0;
 				if (ide->secount)
 				{
-					hdd_image_read(ide->hdc_num, ide_get_sector(ide), ide->secount, ide->sector_buffer);
+					hdd_image_read(ide->hdd_num, ide_get_sector(ide), ide->secount, ide->sector_buffer);
 				}
 				else
 				{
-					hdd_image_read(ide->hdc_num, ide_get_sector(ide), 256, ide->sector_buffer);
+					hdd_image_read(ide->hdd_num, ide_get_sector(ide), 256, ide->sector_buffer);
 				}
 			}
 
@@ -1712,12 +1691,12 @@ void callbackide(int ide_board)
 						ide_next_sector(ide);
 						ide->atastat = BUSY_STAT;
 						idecallback[ide_board]=6*IDE_TIME;
-						update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 1);
+						update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 					}
 					else
 					{
 						ide_irq_raise(ide);
-						update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 0);
+						update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 					}
 				}
 			}
@@ -1746,11 +1725,11 @@ void callbackide(int ide_board)
 				ide->sector_pos = 0;
 				if (ide->secount)
 				{
-					hdd_image_read(ide->hdc_num, ide_get_sector(ide), ide->secount, ide->sector_buffer);
+					hdd_image_read(ide->hdd_num, ide_get_sector(ide), ide->secount, ide->sector_buffer);
 				}
 				else
 				{
-					hdd_image_read(ide->hdc_num, ide_get_sector(ide), 256, ide->sector_buffer);
+					hdd_image_read(ide->hdd_num, ide_get_sector(ide), 256, ide->sector_buffer);
 				}
 			}
 
@@ -1770,7 +1749,7 @@ void callbackide(int ide_board)
 				ide->blockcount = 0;
 			}
 
-			update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 1);
+			update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 			return;
 
 		case WIN_WRITE:
@@ -1783,7 +1762,7 @@ void callbackide(int ide_board)
 			{
 				goto id_not_found;
 			}
-			hdd_image_write(ide->hdc_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
+			hdd_image_write(ide->hdd_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
 			ide_irq_raise(ide);
 			ide->secount = (ide->secount - 1) & 0xff;
 			if (ide->secount)
@@ -1791,12 +1770,12 @@ void callbackide(int ide_board)
 				ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 				ide->pos=0;
 				ide_next_sector(ide);
-				update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 1);
+				update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 			}
 			else
 			{
 				ide->atastat = READY_STAT | DSC_STAT;
-				update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 0);
+				update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 			}
 
 			return;
@@ -1820,7 +1799,7 @@ void callbackide(int ide_board)
 				else
 				{
 					/*DMA successful*/
-					hdd_image_write(ide->hdc_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
+					hdd_image_write(ide->hdd_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
 
 					ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 
@@ -1830,12 +1809,12 @@ void callbackide(int ide_board)
 						ide_next_sector(ide);
 						ide->atastat = BUSY_STAT;
 						idecallback[ide_board]=6*IDE_TIME;
-						update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 1);
+						update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 					}
 					else
 					{
 						ide_irq_raise(ide);
-						update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 0);
+						update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 					}
 				}
 			}
@@ -1851,7 +1830,7 @@ void callbackide(int ide_board)
 			{
 				goto id_not_found;
 			}
-			hdd_image_write(ide->hdc_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
+			hdd_image_write(ide->hdd_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
 			ide->blockcount++;
 			if (ide->blockcount >= ide->blocksize || ide->secount == 1)
 			{
@@ -1864,12 +1843,12 @@ void callbackide(int ide_board)
 				ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 				ide->pos=0;
 				ide_next_sector(ide);
-				update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 1);
+				update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 			}
 			else
 			{
 				ide->atastat = READY_STAT | DSC_STAT;
-				update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 0);
+				update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 			}
 			return;
 
@@ -1886,7 +1865,7 @@ void callbackide(int ide_board)
 			ide->pos=0;
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
-			update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 1);
+			update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 			return;
 
 		case WIN_FORMAT:
@@ -1898,12 +1877,12 @@ void callbackide(int ide_board)
 			{
 				goto id_not_found;
 			}
-			hdd_image_zero(ide->hdc_num, ide_get_sector(ide), ide->secount);
+			hdd_image_zero(ide->hdd_num, ide_get_sector(ide), ide->secount);
 
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
 
-			/* update_status_bar_icon(SB_HDD | hdc[ide->hdc_num].bus, 1); */
+			/* update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 1); */
 			return;
 
 		case WIN_DRIVE_DIAGNOSTICS:
@@ -1950,7 +1929,7 @@ void callbackide(int ide_board)
 			full_size /= (ide->head+1);
 			full_size /= ide->secount;
 			ide->specify_success = 1;
-			hdd_image_specify(ide->hdc_num, ide->head + 1, ide->secount);
+			hdd_image_specify(ide->hdd_num, ide->head + 1, ide->secount);
 			ide->spt=ide->secount;
 			ide->hpc=ide->head+1;
 			ide->atastat = READY_STAT | DSC_STAT;
@@ -2002,9 +1981,9 @@ void callbackide(int ide_board)
 			{
 				goto abort_cmd;
 			}
-			snum = hdc[ide->hdc_num].spt;
-			snum *= hdc[ide->hdc_num].hpc;
-			snum *= hdc[ide->hdc_num].tracks;
+			snum = hdd[ide->hdd_num].spt;
+			snum *= hdd[ide->hdd_num].hpc;
+			snum *= hdd[ide->hdd_num].tracks;
 			ide_set_sector(ide, snum - 1);
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
@@ -2204,7 +2183,8 @@ uint32_t ide_read_qua_l(uint16_t addr, void *priv)
 static uint16_t ide_base_main[2] = { 0x1f0, 0x170 };
 static uint16_t ide_side_main[2] = { 0x3f6, 0x376 };
 
-void ide_pri_enable()
+
+void ide_pri_enable(void)
 {
 	io_sethandler(0x01f0, 0x0008, ide_read_pri, ide_read_pri_w, ide_read_pri_l, ide_write_pri, ide_write_pri_w, ide_write_pri_l, NULL);
 	io_sethandler(0x03f6, 0x0001, ide_read_pri, NULL,           NULL,           ide_write_pri, NULL,            NULL           , NULL);
@@ -2212,7 +2192,7 @@ void ide_pri_enable()
 	ide_side_main[0] = 0x3f6;
 }
 
-void ide_pri_enable_ex()
+void ide_pri_enable_ex(void)
 {
 	if (ide_base_main[0] & 0x300)
 	{
@@ -2226,13 +2206,13 @@ void ide_pri_enable_ex()
 	}
 }
 
-void ide_pri_disable()
+void ide_pri_disable(void)
 {
 	io_removehandler(ide_base_main[0], 0x0008, ide_read_pri, ide_read_pri_w, ide_read_pri_l, ide_write_pri, ide_write_pri_w, ide_write_pri_l, NULL);
 	io_removehandler(ide_side_main[0], 0x0001, ide_read_pri, NULL,           NULL,           ide_write_pri, NULL,            NULL           , NULL);
 }
 
-void ide_sec_enable()
+void ide_sec_enable(void)
 {
 	io_sethandler(0x0170, 0x0008, ide_read_sec, ide_read_sec_w, ide_read_sec_l, ide_write_sec, ide_write_sec_w, ide_write_sec_l, NULL);
 	io_sethandler(0x0376, 0x0001, ide_read_sec, NULL,           NULL,           ide_write_sec, NULL,            NULL           , NULL);
@@ -2240,7 +2220,7 @@ void ide_sec_enable()
 	ide_side_main[1] = 0x376;
 }
 
-void ide_sec_enable_ex()
+void ide_sec_enable_ex(void)
 {
 	if (ide_base_main[1] & 0x300)
 	{
@@ -2252,11 +2232,12 @@ void ide_sec_enable_ex()
 	}
 }
 
-void ide_sec_disable()
+void ide_sec_disable(void)
 {
 	io_removehandler(ide_base_main[1], 0x0008, ide_read_sec, ide_read_sec_w, ide_read_sec_l, ide_write_sec, ide_write_sec_w, ide_write_sec_l, NULL);
 	io_removehandler(ide_side_main[1], 0x0001, ide_read_sec, NULL,           NULL,           ide_write_sec, NULL,            NULL           , NULL);
 }
+
 
 void ide_set_base(int controller, uint16_t port)
 {
@@ -2268,19 +2249,19 @@ void ide_set_side(int controller, uint16_t port)
 	ide_side_main[controller] = port;
 }
 
-void ide_ter_enable()
+void ide_ter_enable(void)
 {
 	io_sethandler(0x0168, 0x0008, ide_read_ter, ide_read_ter_w, ide_read_ter_l, ide_write_ter, ide_write_ter_w, ide_write_ter_l, NULL);
 	io_sethandler(0x036e, 0x0001, ide_read_ter, NULL,           NULL,           ide_write_ter, NULL,            NULL           , NULL);
 }
 
-void ide_ter_disable()
+void ide_ter_disable(void)
 {
 	io_removehandler(0x0168, 0x0008, ide_read_ter, ide_read_ter_w, ide_read_ter_l, ide_write_ter, ide_write_ter_w, ide_write_ter_l, NULL);
 	io_removehandler(0x036e, 0x0001, ide_read_ter, NULL,           NULL,           ide_write_ter, NULL,            NULL           , NULL);
 }
 
-void ide_ter_disable_cond()
+void ide_ter_disable_cond(void)
 {
 	if ((ide_drives[4].type == IDE_NONE) && (ide_drives[5].type == IDE_NONE))
 	{
@@ -2288,20 +2269,20 @@ void ide_ter_disable_cond()
 	}
 }
 
-void ide_ter_init()
+void ide_ter_init(void)
 {
 	ide_ter_enable();
 
 	timer_add(ide_callback_ter, &idecallback[2], &idecallback[2],  NULL);
 }
 
-void ide_qua_enable()
+void ide_qua_enable(void)
 {
 	io_sethandler(0x01e8, 0x0008, ide_read_qua, ide_read_qua_w, ide_read_qua_l, ide_write_qua, ide_write_qua_w, ide_write_qua_l, NULL);
 	io_sethandler(0x03ee, 0x0001, ide_read_qua, NULL,           NULL,           ide_write_qua, NULL,            NULL           , NULL);
 }
 
-void ide_qua_disable_cond()
+void ide_qua_disable_cond(void)
 {
 	if ((ide_drives[6].type == IDE_NONE) && (ide_drives[7].type == IDE_NONE))
 	{
@@ -2309,20 +2290,21 @@ void ide_qua_disable_cond()
 	}
 }
 
-void ide_qua_disable()
+void ide_qua_disable(void)
 {
 	io_removehandler(0x01e8, 0x0008, ide_read_qua, ide_read_qua_w, ide_read_qua_l, ide_write_qua, ide_write_qua_w, ide_write_qua_l, NULL);
 	io_removehandler(0x03ee, 0x0001, ide_read_qua, NULL,           NULL,           ide_write_qua, NULL,            NULL           , NULL);
 }
 
-void ide_qua_init()
+void ide_qua_init(void)
 {
 	ide_qua_enable();
 
 	timer_add(ide_callback_qua, &idecallback[3], &idecallback[3],  NULL);
 }
 
-void ide_init()
+
+void ide_init(void)
 {
 	ide_pri_enable();
 	ide_sec_enable();
@@ -2332,7 +2314,8 @@ void ide_init()
 	timer_add(ide_callback_sec, &idecallback[1], &idecallback[1],  NULL);
 }
 
-void ide_xtide_init()
+
+void ide_xtide_init(void)
 {
 	ide_bus_master_read = ide_bus_master_write = NULL;
 

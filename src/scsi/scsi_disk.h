@@ -6,13 +6,13 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.h	1.0.1	2017/08/23
+ * Version:	@(#)scsi_disk.h	1.0.2	2017/09/29
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2017 Miran Grca.
  */
 
-#pragma pack(push,1)
+
 typedef struct {
 	/* Stuff for SCSI hard disks. */
 	uint8_t cdb[16];
@@ -42,15 +42,15 @@ typedef struct {
 	int request_pos;
 	uint8_t hd_cdb[16];
 } scsi_hard_disk_t;
-#pragma pack(pop)
 
-extern scsi_hard_disk_t shdc[HDC_NUM];
+
+extern scsi_hard_disk_t shdc[HDD_NUM];
+extern FILE		*shdf[HDD_NUM];
+
 
 extern void	scsi_disk_insert(uint8_t id);
 extern void	scsi_loadhd(int scsi_id, int scsi_lun, int id);
 extern void	scsi_reloadhd(int id);
 extern void	scsi_unloadhd(int scsi_id, int scsi_lun, int id);
-
-extern FILE *shdf[HDC_NUM];
 
 int scsi_hd_read_capacity(uint8_t id, uint8_t *cdb, uint8_t *buffer, uint32_t *len);

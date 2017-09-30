@@ -12,7 +12,7 @@
  *		based design. Most cards were WD1003-WA2 or -WAH, where the
  *		-WA2 cards had a floppy controller as well (to save space.)
  *
- * Version:	@(#)hdd_mfm_at.c	1.0.3	2017/09/24
+ * Version:	@(#)hdd_mfm_at.c	1.0.4	2017/09/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -31,8 +31,8 @@
 #include "../io.h"
 #include "../pic.h"
 #include "../timer.h"
-#include "hdd_image.h"
-#include "hdd_mfm_at.h"
+#include "hdc.h"
+#include "hdd.h"
 
 
 #define MFM_TIME		(TIMER_USEC*10)
@@ -66,7 +66,7 @@
 
 typedef struct {
     int8_t	present,		/* drive is present */
-		hdc_num,		/* drive number in system */
+		hdd_num,		/* drive number in system */
 		steprate,		/* current servo step rate */
 		spt,			/* physical #sectors per track */
 		hpc,			/* physical #heads per cylinder */
@@ -77,7 +77,7 @@ typedef struct {
 		cfg_hpc;		/* configured #heads per track */
 
     int16_t	curcyl;			/* current track number */
-} mfm_drive_t;
+} drive_t;
 
 
 typedef struct {
@@ -101,7 +101,7 @@ typedef struct {
 
     uint16_t	buffer[256];		/* data buffer (16b wide) */
 
-    mfm_drive_t drives[MFM_NUM];	/* attached drives */
+    drive_t	drives[MFM_NUM];	/* attached drives */
 } mfm_t;
 
 
@@ -152,7 +152,7 @@ static __inline void irq_lower(mfm_t *mfm)
 static int
 get_sector(mfm_t *mfm, off64_t *addr)
 {
-    mfm_drive_t *drive = &mfm->drives[mfm->drvsel];
+    drive_t *drive = &mfm->drives[mfm->drvsel];
 
     if (drive->curcyl != mfm->cylinder) {
 	pclog("WD1003(%d) sector: wrong cylinder\n");
@@ -195,7 +195,7 @@ get_sector(mfm_t *mfm, off64_t *addr)
 static void
 next_sector(mfm_t *mfm)
 {
-    mfm_drive_t *drive = &mfm->drives[mfm->drvsel];
+    drive_t *drive = &mfm->drives[mfm->drvsel];
 
     if (++mfm->sector == (drive->cfg_spt+1)) {
 	mfm->sector = 1;
@@ -212,7 +212,7 @@ next_sector(mfm_t *mfm)
 static void
 mfm_cmd(mfm_t *mfm, uint8_t val)
 {
-    mfm_drive_t *drive = &mfm->drives[mfm->drvsel];
+    drive_t *drive = &mfm->drives[mfm->drvsel];
 
     if (! drive->present) {
 	/* This happens if sofware polls all drives. */
@@ -526,7 +526,7 @@ mfm_read(uint16_t port, void *priv)
 static void
 do_seek(mfm_t *mfm)
 {
-    mfm_drive_t *drive = &mfm->drives[mfm->drvsel];
+    drive_t *drive = &mfm->drives[mfm->drvsel];
 
 #if MFM_DEBUG
     pclog("WD1003(%d) seek(%d) max=%d\n",
@@ -543,7 +543,7 @@ static void
 do_callback(void *priv)
 {
     mfm_t *mfm = (mfm_t *)priv;
-    mfm_drive_t *drive = &mfm->drives[mfm->drvsel];
+    drive_t *drive = &mfm->drives[mfm->drvsel];
     off64_t addr;
 
     mfm->callback = 0;
@@ -592,7 +592,7 @@ do_callback(void *priv)
 			break;
 		}
 
-		hdd_image_read(drive->hdc_num, addr, 1, (uint8_t *)mfm->buffer);
+		hdd_image_read(drive->hdd_num, addr, 1, (uint8_t *)mfm->buffer);
 
 		mfm->pos = 0;
 		mfm->status = STAT_DRQ|STAT_READY|STAT_DSC;
@@ -613,7 +613,7 @@ do_callback(void *priv)
 			break;
 		}
 
-		hdd_image_write(drive->hdc_num, addr, 1,(uint8_t *)mfm->buffer);
+		hdd_image_write(drive->hdd_num, addr, 1,(uint8_t *)mfm->buffer);
 
 		mfm->status = STAT_READY|STAT_DSC;
 		mfm->secount = (mfm->secount - 1) & 0xff;
@@ -654,7 +654,7 @@ do_callback(void *priv)
 			break;
 		}
 
-		hdd_image_zero(drive->hdc_num, addr, mfm->secount);
+		hdd_image_zero(drive->hdd_num, addr, mfm->secount);
 
 		mfm->status = STAT_READY|STAT_DSC;
 		irq_raise(mfm);
@@ -685,7 +685,7 @@ do_callback(void *priv)
 static void
 loadhd(mfm_t *mfm, int c, int d, const wchar_t *fn)
 {
-    mfm_drive_t *drive = &mfm->drives[c];
+    drive_t *drive = &mfm->drives[c];
 
     if (! hdd_image_load(d)) {
 	drive->present = 0;
@@ -693,10 +693,10 @@ loadhd(mfm_t *mfm, int c, int d, const wchar_t *fn)
 	return;
     }
 
-    drive->spt = hdc[d].spt;
-    drive->hpc = hdc[d].hpc;
-    drive->tracks = hdc[d].tracks;
-    drive->hdc_num = d;
+    drive->spt = hdd[d].spt;
+    drive->hpc = hdd[d].hpc;
+    drive->tracks = hdd[d].tracks;
+    drive->hdd_num = d;
     drive->present = 1;
 }
 
@@ -712,12 +712,12 @@ mfm_init(void)
     memset(mfm, 0x00, sizeof(mfm_t));
 
     c = 0;
-    for (d=0; d<HDC_NUM; d++) {
-	if ((hdc[d].bus == HDD_BUS_MFM) && (hdc[d].mfm_channel < MFM_NUM)) {
-		loadhd(mfm, hdc[d].mfm_channel, d, hdc[d].fn);
+    for (d=0; d<HDD_NUM; d++) {
+	if ((hdd[d].bus == HDD_BUS_MFM) && (hdd[d].mfm_channel < MFM_NUM)) {
+		loadhd(mfm, hdd[d].mfm_channel, d, hdd[d].fn);
 
-		pclog("WD1003(%d): (%S) geometry %d/%d/%d\n", c, hdc[d].fn,
-			(int)hdc[d].tracks, (int)hdc[d].hpc, (int)hdc[d].spt);
+		pclog("WD1003(%d): (%S) geometry %d/%d/%d\n", c, hdd[d].fn,
+			(int)hdd[d].tracks, (int)hdd[d].hpc, (int)hdd[d].spt);
 
 		if (++c >= MFM_NUM) break;
 	}
@@ -748,9 +748,9 @@ mfm_close(void *priv)
     int d;
 
     for (d=0; d<2; d++) {
-	mfm_drive_t *drive = &mfm->drives[d];
+	drive_t *drive = &mfm->drives[d];
 
-	hdd_image_close(drive->hdc_num);		
+	hdd_image_close(drive->hdd_num);		
     }
 
     free(mfm);
@@ -759,15 +759,9 @@ mfm_close(void *priv)
 }
 
 
-device_t mfm_at_device =
-{
+device_t mfm_at_wd1003_device = {
     "WD1003 AT MFM/RLL Controller",
     DEVICE_AT,
-    mfm_init,
-    mfm_close,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL
+    mfm_init, mfm_close, NULL,
+    NULL, NULL, NULL, NULL
 };

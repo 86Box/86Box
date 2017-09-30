@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdd_ide_at.h	1.0.2	2017/08/24
+ * Version:	@(#)hdd_ide.h	1.0.3	2017/09/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,7 +21,6 @@
 # define EMU_IDE_H
 
 
-#pragma pack(push,1)
 typedef struct {
 	int type;
 	int board;
@@ -47,14 +46,13 @@ typedef struct {
 	int blocksize, blockcount;
 	uint16_t dma_identify_data[3];
 	int hdi,base;
-	int hdc_num;
+	int hdd_num;
 	uint8_t specify_success;
 	int mdma_mode;
 	uint8_t sector_buffer[256*512];
 	int do_initial_read;
 	int sector_pos;
 } IDE;
-#pragma pack(pop)
 
 
 extern int ideboard;

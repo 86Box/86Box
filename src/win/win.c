@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.12	2017/09/25
+ * Version:	@(#)win.c	1.0.13	2017/09/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -46,7 +46,8 @@
 #include "../floppy/floppy.h"
 #include "../floppy/fdd.h"
 #include "../hdd/hdd.h"
-#include "../hdd/hdd_ide_at.h"
+#include "../hdd/hdc.h"
+#include "../hdd/hdc_ide.h"
 #include "../scsi/scsi.h"
 #include "../scsi/scsi_disk.h"
 #ifdef USE_NETWORK
@@ -731,15 +732,17 @@ int fdd_type_to_icon(int type)
 	}
 }
 
-int count_hard_disks(int bus)
+
+/* FIXME: should be hdd_count() in hdd.c */
+int hdd_count(int bus)
 {
 	int i = 0;
 
 	int c = 0;
 
-	for (i = 0; i < HDC_NUM; i++)
+	for (i = 0; i < HDD_NUM; i++)
 	{
-		if (hdc[i].bus == bus)
+		if (hdd[i].bus == bus)
 		{
 			c++;
 		}
@@ -747,6 +750,7 @@ int count_hard_disks(int bus)
 
 	return c;
 }
+
 
 int find_status_bar_part(int tag)
 {
@@ -900,13 +904,13 @@ void create_removable_hd_tip(int part)
 
 	int drive = sb_part_meanings[part] & 0x1f;
 
-	if (wcslen(hdc[drive].fn) == 0)
+	if (wcslen(hdd[drive].fn) == 0)
 	{
 		_swprintf(tempTip,  win_language_get_string_from_id(IDS_4115), drive, win_language_get_string_from_id(IDS_2057));
 	}
 	else
 	{
-		_swprintf(tempTip,  win_language_get_string_from_id(IDS_4115), drive, hdc[drive].fn);
+		_swprintf(tempTip,  win_language_get_string_from_id(IDS_4115), drive, hdd[drive].fn);
 	}
 
 	if (sbTips[part] != NULL)
@@ -1122,12 +1126,12 @@ void update_status_bar_panes(HWND hwnds)
 
 	sb_ready = 0;
 
-	c_mfm = count_hard_disks(HDD_BUS_MFM);
-	c_esdi = count_hard_disks(HDD_BUS_ESDI);
-	c_xtide = count_hard_disks(HDD_BUS_XTIDE);
-	c_ide_pio = count_hard_disks(HDD_BUS_IDE_PIO_ONLY);
-	c_ide_dma = count_hard_disks(HDD_BUS_IDE_PIO_AND_DMA);
-	c_scsi = count_hard_disks(HDD_BUS_SCSI);
+	c_mfm = hdd_count(HDD_BUS_MFM);
+	c_esdi = hdd_count(HDD_BUS_ESDI);
+	c_xtide = hdd_count(HDD_BUS_XTIDE);
+	c_ide_pio = hdd_count(HDD_BUS_IDE_PIO_ONLY);
+	c_ide_dma = hdd_count(HDD_BUS_IDE_PIO_AND_DMA);
+	c_scsi = hdd_count(HDD_BUS_SCSI);
 
 #ifdef USE_NETWORK
 	do_net = display_network_icon();
@@ -1195,22 +1199,22 @@ void update_status_bar_panes(HWND hwnds)
 			sb_parts++;
 		}
 	}
-	for (i = 0; i < HDC_NUM; i++)
+	for (i = 0; i < HDD_NUM; i++)
 	{
-		if ((hdc[i].bus == HDD_BUS_SCSI_REMOVABLE) && (scsi_card_current != 0))
+		if ((hdd[i].bus == HDD_BUS_SCSI_REMOVABLE) && (scsi_card_current != 0))
 		{
 			sb_parts++;
 		}
 	}
-	if (c_mfm && !(machines[machine].flags & MACHINE_HAS_IDE) && !!memcmp(hdd_controller_name, "none", 4) && !!memcmp(hdd_controller_name, "xtide", 5) && !!memcmp(hdd_controller_name, "esdi", 4))
+	if (c_mfm && !(machines[machine].flags & MACHINE_HAS_IDE) && !!memcmp(hdc_name, "none", 4) && !!memcmp(hdc_name, "xtide", 5) && !!memcmp(hdc_name, "esdi", 4))
 	{
 		sb_parts++;
 	}
-	if (c_esdi && !memcmp(hdd_controller_name, "esdi", 4))
+	if (c_esdi && !memcmp(hdc_name, "esdi", 4))
 	{
 		sb_parts++;
 	}
-	if (c_xtide && !memcmp(hdd_controller_name, "xtide", 5))
+	if (c_xtide && !memcmp(hdc_name, "xtide", 5))
 	{
 		sb_parts++;
 	}
@@ -1283,9 +1287,9 @@ void update_status_bar_panes(HWND hwnds)
 			sb_parts++;
 		}
 	}
-	for (i = 0; i < HDC_NUM; i++)
+	for (i = 0; i < HDD_NUM; i++)
 	{
-		if ((hdc[i].bus == HDD_BUS_SCSI_REMOVABLE) && (scsi_card_current != 0))
+		if ((hdd[i].bus == HDD_BUS_SCSI_REMOVABLE) && (scsi_card_current != 0))
 		{
 			edge += SB_ICON_WIDTH;
 			iStatusWidths[sb_parts] = edge;
@@ -1293,21 +1297,21 @@ void update_status_bar_panes(HWND hwnds)
 			sb_parts++;
 		}
 	}
-	if (c_mfm && !(machines[machine].flags & MACHINE_HAS_IDE) && !!memcmp(hdd_controller_name, "none", 4) && !!memcmp(hdd_controller_name, "xtide", 5) && !!memcmp(hdd_controller_name, "esdi", 4))
+	if (c_mfm && !(machines[machine].flags & MACHINE_HAS_IDE) && !!memcmp(hdc_name, "none", 4) && !!memcmp(hdc_name, "xtide", 5) && !!memcmp(hdc_name, "esdi", 4))
 	{
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_MFM;
 		sb_parts++;
 	}
-	if (c_esdi && !memcmp(hdd_controller_name, "esdi", 4))
+	if (c_esdi && !memcmp(hdc_name, "esdi", 4))
 	{
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_ESDI;
 		sb_parts++;
 	}
-	if (c_xtide && !memcmp(hdd_controller_name, "xtide", 5))
+	if (c_xtide && !memcmp(hdc_name, "xtide", 5))
 	{
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
@@ -1390,7 +1394,7 @@ void update_status_bar_panes(HWND hwnds)
 				break;
 			case SB_RDISK:
 				/* Removable hard disk */
-				sb_icon_flags[i] = (wcslen(hdc[sb_part_meanings[i] & 0x1f].fn) == 0) ? 256 : 0;
+				sb_icon_flags[i] = (wcslen(hdd[sb_part_meanings[i] & 0x1f].fn) == 0) ? 256 : 0;
 				sb_part_icons[i] = 176 + sb_icon_flags[i];
 				sb_menu_handles[i] = create_popup_menu(i);
 				create_removable_disk_submenu(sb_menu_handles[i], sb_part_meanings[i] & 0x1f);
@@ -2755,16 +2759,16 @@ LRESULT CALLBACK StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPAR
 				case IDM_RDISK_IMAGE:
 				case IDM_RDISK_IMAGE_WP:
 					id = item_params & 0x001f;
-					ret = file_dlg_w_st(hwnd, IDS_4106, hdc[id].fn, id);
+					ret = file_dlg_w_st(hwnd, IDS_4106, hdd[id].fn, id);
 					if (!ret)
 					{
 						removable_disk_unload(id);
-						memset(hdc[id].fn, 0, sizeof(hdc[id].fn));
-						wcscpy(hdc[id].fn, wopenfilestring);
-						hdc[id].wp = (item_id == IDM_RDISK_IMAGE_WP) ? 1 : 0;
-						scsi_loadhd(hdc[id].scsi_id, hdc[id].scsi_lun, id);
+						memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
+						wcscpy(hdd[id].fn, wopenfilestring);
+						hdd[id].wp = (item_id == IDM_RDISK_IMAGE_WP) ? 1 : 0;
+						scsi_loadhd(hdd[id].scsi_id, hdd[id].scsi_lun, id);
 						scsi_disk_insert(id);
-						if (wcslen(hdc[id].fn) > 0)
+						if (wcslen(hdd[id].fn) > 0)
 						{
 							update_status_bar_icon_state(SB_RDISK | id, 0);
 							EnableMenuItem(sb_menu_handles[part], IDM_RDISK_EJECT | id, MF_BYCOMMAND | MF_ENABLED);

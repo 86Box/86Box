@@ -9,7 +9,8 @@
 #include "../cpu/cpu.h"
 #include "../io.h"
 #include "../mem.h"
-#include "../hdd/hdd_ide_at.h"
+#include "../hdd/hdd.h"
+#include "../hdd/hdc_ide.h"
 #include "machine_at.h"
 #include "machine_at_ali1429.h"
 

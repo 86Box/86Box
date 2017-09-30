@@ -11,7 +11,8 @@
 #include "keyboard_at.h"
 #include "floppy/floppy.h"
 #include "floppy/fdc.h"
-#include "hdd/hdd_ide_at.h"
+#include "hdd/hdd.h"
+#include "hdd/hdc_ide.h"
 #include "cdrom/cdrom.h"
 
 

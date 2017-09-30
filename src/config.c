@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.6	2017/09/24
+ * Version:	@(#)config.c	1.0.7	2017/09/29
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -40,7 +40,8 @@
 #include "floppy/fdc.h"
 #include "floppy/fdd.h"
 #include "hdd/hdd.h"
-#include "hdd/hdd_ide_at.h"
+#include "hdd/hdc.h"
+#include "hdd/hdc_ide.h"
 #include "machine/machine.h"
 #include "mouse.h"
 #ifdef USE_NETWORK
@@ -793,12 +794,17 @@ load_other_peripherals(void)
         else
                 scsi_card_current = 0;
 
-	memset(hdd_controller_name, '\0', sizeof(hdd_controller_name));
-        p = config_get_string(cat, "hdd_controller", NULL);
-        if (p != NULL)
-                strcpy(hdd_controller_name, p);
+	memset(hdc_name, '\0', sizeof(hdc_name));
+        p = config_get_string(cat, "hdc", NULL);
+        if (p == NULL) {
+        	p = config_get_string(cat, "hdd_controller", NULL);
+		if (p != NULL)
+			config_delete_var(cat, "hdd_controller");
+	}
+	if (p != NULL)
+                strcpy(hdc_name, p);
         else
-                strcpy(hdd_controller_name, "none");
+                strcpy(hdc_name, "none");
 
 	memset(temp, '\0', sizeof(temp));
 	for (c = 2; c < 4; c++)
@@ -821,8 +827,9 @@ load_other_peripherals(void)
 
 
 /* FIXME: this should be in HDD somewhere. --FvK */
-static int
-string_to_bus(char *str, int cdrom)
+/*        will be moved to hdd.c */
+int
+hdd_string_to_bus(char *str, int cdrom)
 {
 	if (! strcmp(str, "none"))
 	{
@@ -929,21 +936,55 @@ no_mfm_cdrom:
 }
 
 
-/* FIXME: this should be in HDD. --FvK */
-static int
-hard_disk_is_valid(int c)
+char *
+hdd_bus_to_string(int bus, int cdrom)
 {
-	if (hdc[c].bus == HDD_BUS_DISABLED)
+	switch (bus)
+	{
+		case HDD_BUS_DISABLED:
+		default:
+			return "none";
+			break;
+		case HDD_BUS_MFM:
+			return "mfm";
+			break;
+		case HDD_BUS_XTIDE:
+			return "xtide";
+			break;
+		case HDD_BUS_ESDI:
+			return "esdi";
+			break;
+		case HDD_BUS_IDE_PIO_ONLY:
+			return cdrom ? "atapi_pio_only" : "ide_pio_only";
+			break;
+		case HDD_BUS_IDE_PIO_AND_DMA:
+			return cdrom ? "atapi_pio_and_dma" : "ide_pio_and_dma";
+			break;
+		case HDD_BUS_SCSI:
+			return "scsi";
+			break;
+		case HDD_BUS_SCSI_REMOVABLE:
+			return "scsi_removable";
+			break;
+	}
+}
+
+
+/* FIXME: this should be in HDD. --FvK */
+int
+hdd_is_valid(int c)
+{
+	if (hdd[c].bus == HDD_BUS_DISABLED)
 	{
 		return 0;
 	}
 
-	if ((wcslen(hdc[c].fn) == 0) && (hdc[c].bus != HDD_BUS_SCSI_REMOVABLE))
+	if ((wcslen(hdd[c].fn) == 0) && (hdd[c].bus != HDD_BUS_SCSI_REMOVABLE))
 	{
 		return 0;
 	}
 
-	if ((hdc[c].tracks == 0) || (hdc[c].hpc == 0) || (hdc[c].spt == 0))
+	if ((hdd[c].tracks == 0) || (hdd[c].hpc == 0) || (hdd[c].spt == 0))
 	{
 		return 0;
 	}
@@ -995,7 +1036,7 @@ load_hard_disks(void)
 	int board = 0, dev = 0;
 
 	memset(temps, '\0', sizeof(temps));
-	for (c = 0; c < HDC_NUM; c++)
+	for (c = 0; c < HDD_NUM; c++)
 	{
 		sprintf(temps, "hdd_%02i_parameters", c + 1);
 		p = config_get_string(cat, temps, NULL);
@@ -1003,17 +1044,19 @@ load_hard_disks(void)
 			p = "0, 0, 0, 0, none";
 		if (tally_char(p, ',') == 3)
 		{
-			sscanf(p, "%" PRIu64 ", %" PRIu64", %" PRIu64 ", %s", &hdc[c].spt, &hdc[c].hpc, &hdc[c].tracks, s);
-			hdc[c].wp = 0;
+			sscanf(p, "%" PRIu64 ", %" PRIu64", %" PRIu64 ", %s",
+				&hdd[c].spt, &hdd[c].hpc, &hdd[c].tracks, s);
+			hdd[c].wp = 0;
 		}
 		else
 		{
-			sscanf(p, "%" PRIu64 ", %" PRIu64", %" PRIu64 ", %i, %s", &hdc[c].spt, &hdc[c].hpc, &hdc[c].tracks, &hdc[c].wp, s);
+			sscanf(p, "%" PRIu64 ", %" PRIu64", %" PRIu64 ", %i, %s",
+				&hdd[c].spt, &hdd[c].hpc, &hdd[c].tracks, (int *)&hdd[c].wp, s);
 		}
 
-		hdc[c].bus = string_to_bus(s, 0);
+		hdd[c].bus = hdd_string_to_bus(s, 0);
 
-		switch(hdc[c].bus)
+		switch(hdd[c].bus)
 		{
 			case HDD_BUS_DISABLED:
 			default:
@@ -1044,63 +1087,45 @@ load_hard_disks(void)
 				break;
 		}
 
-		if (hdc[c].spt > max_spt)
-		{
-			hdc[c].spt = max_spt;
-		}
-		if (hdc[c].hpc > max_hpc)
-		{
-			hdc[c].hpc = max_hpc;
-		}
-		if (hdc[c].tracks > max_tracks)
-		{
-			hdc[c].tracks = max_tracks;
-		}
+		if (hdd[c].spt > max_spt)
+			hdd[c].spt = max_spt;
+		if (hdd[c].hpc > max_hpc)
+			hdd[c].hpc = max_hpc;
+		if (hdd[c].tracks > max_tracks)
+			hdd[c].tracks = max_tracks;
 
 		/* MFM/RLL */
 		sprintf(temps, "hdd_%02i_mfm_channel", c + 1);
-		if (hdc[c].bus == HDD_BUS_MFM)
-		{
-			hdc[c].mfm_channel = !!config_get_int(cat, temps, c & 1);
-		}
+		if (hdd[c].bus == HDD_BUS_MFM)
+			hdd[c].mfm_channel = !!config_get_int(cat, temps, c & 1);
 		else
-		{
 			config_delete_var(cat, temps);
-		}
 
 		/* XT IDE */
 		sprintf(temps, "hdd_%02i_xtide_channel", c + 1);
-		if (hdc[c].bus == HDD_BUS_XTIDE)
-		{
-			hdc[c].xtide_channel = !!config_get_int(cat, temps, c & 1);
-		}
+		if (hdd[c].bus == HDD_BUS_XTIDE)
+			hdd[c].xtide_channel = !!config_get_int(cat, temps, c & 1);
 		else
-		{
 			config_delete_var(cat, temps);
-		}
 
 		/* ESDI */
 		sprintf(temps, "hdd_%02i_esdi_channel", c + 1);
-		if (hdc[c].bus == HDD_BUS_ESDI)
-		{
-			hdc[c].esdi_channel = !!config_get_int(cat, temps, c & 1);
-		}
+		if (hdd[c].bus == HDD_BUS_ESDI)
+			hdd[c].esdi_channel = !!config_get_int(cat, temps, c & 1);
 		else
-		{
 			config_delete_var(cat, temps);
-		}
 
 		/* IDE */
 		sprintf(temps, "hdd_%02i_ide_channel", c + 1);
-		if ((hdc[c].bus == HDD_BUS_IDE_PIO_ONLY) || (hdc[c].bus == HDD_BUS_IDE_PIO_AND_DMA))
+		if ((hdd[c].bus == HDD_BUS_IDE_PIO_ONLY) || (hdd[c].bus == HDD_BUS_IDE_PIO_AND_DMA))
 		{
 			sprintf(temps2, "%01u:%01u", c >> 1, c & 1);
 			p = config_get_string(cat, temps, temps2);
 
 			if (strstr(p, ":") == NULL)
 			{
-				sscanf(p, "%i", &hdc[c].ide_channel);
-				hdc[c].ide_channel &= 7;
+				sscanf(p, "%i", (int *)&hdd[c].ide_channel);
+				hdd[c].ide_channel &= 7;
 			}
 			else
 			{
@@ -1108,13 +1133,11 @@ load_hard_disks(void)
 
 				board &= 3;
 				dev &= 1;
-				hdc[c].ide_channel = (board << 1) + dev;
+				hdd[c].ide_channel = (board << 1) + dev;
 			}
 
-			if (hdc[c].ide_channel > 7)
-			{
-				hdc[c].ide_channel = 7;
-			}
+			if (hdd[c].ide_channel > 7)
+				hdd[c].ide_channel = 7;
 		}
 		else
 		{
@@ -1123,32 +1146,28 @@ load_hard_disks(void)
 
 		/* SCSI */
 		sprintf(temps, "hdd_%02i_scsi_location", c + 1);
-		if ((hdc[c].bus == HDD_BUS_SCSI) || (hdc[c].bus == HDD_BUS_SCSI_REMOVABLE))
+		if ((hdd[c].bus == HDD_BUS_SCSI) || (hdd[c].bus == HDD_BUS_SCSI_REMOVABLE))
 		{
 			sprintf(temps2, "%02u:%02u", c, 0);
 			p = config_get_string(cat, temps, temps2);
 
-			sscanf(p, "%02u:%02u", &hdc[c].scsi_id, &hdc[c].scsi_lun);
+			sscanf(p, "%02u:%02u", (int *)&hdd[c].scsi_id, (int *)&hdd[c].scsi_lun);
 
-			if (hdc[c].scsi_id > 15)
-			{
-				hdc[c].scsi_id = 15;
-			}
-			if (hdc[c].scsi_lun > 7)
-			{
-				hdc[c].scsi_lun = 7;
-			}
+			if (hdd[c].scsi_id > 15)
+				hdd[c].scsi_id = 15;
+			if (hdd[c].scsi_lun > 7)
+				hdd[c].scsi_lun = 7;
 		}
 		else
 		{
 			config_delete_var(cat, temps);
 		}
 
-		memset(hdc[c].fn, 0x00, sizeof(hdc[c].fn));
-		memset(hdc[c].prev_fn, 0x00, sizeof(hdc[c].prev_fn));
+		memset(hdd[c].fn, 0x00, sizeof(hdd[c].fn));
+		memset(hdd[c].prev_fn, 0x00, sizeof(hdd[c].prev_fn));
 		sprintf(temps, "hdd_%02i_fn", c + 1);
 	        wp = config_get_wstring(cat, temps, L"");
-#if 1
+#if 0
 		/*
 		 * NOTE:
 		 * Temporary hack to remove the absolute
@@ -1165,31 +1184,31 @@ load_hard_disks(void)
 			wcscpy((wchar_t *)hdc[c].fn, &wp[wcslen(cfg_path)]);
 		} else
 #endif
-        	memcpy(hdc[c].fn, wp, (wcslen(wp) << 1) + 2);
+        	memcpy(hdd[c].fn, wp, (wcslen(wp) << 1) + 2);
 
 		/* If the hard disk is in any way empty or invalid, mark the relevant variables for deletion. */
-		if (!hard_disk_is_valid(c))
+		if (! hdd_is_valid(c))
 		{
-			sprintf(temps, "hdd_%02i_parameters", c + 1);
+			sprintf(temps, "hdd_%02i_parameters", c+1);
 			config_delete_var(cat, temps);
 
-			sprintf(temps, "hdd_%02i_preide_channels", c + 1);
+			sprintf(temps, "hdd_%02i_preide_channels", c+1);
 			config_delete_var(cat, temps);
 
-			sprintf(temps, "hdd_%02i_ide_channels", c + 1);
+			sprintf(temps, "hdd_%02i_ide_channels", c+1);
 			config_delete_var(cat, temps);
 
-			sprintf(temps, "hdd_%02i_scsi_location", c + 1);
+			sprintf(temps, "hdd_%02i_scsi_location", c+1);
 			config_delete_var(cat, temps);
 
-			sprintf(temps, "hdd_%02i_fn", c + 1);
+			sprintf(temps, "hdd_%02i_fn", c+1);
 			config_delete_var(cat, temps);
 		}
 
-		sprintf(temps, "hdd_%02i_mfm_channel", c + 1);
+		sprintf(temps, "hdd_%02i_mfm_channel", c+1);
 		config_delete_var(cat, temps);
 
-		sprintf(temps, "hdd_%02i_ide_channel", c + 1);
+		sprintf(temps, "hdd_%02i_ide_channel", c+1);
 		config_delete_var(cat, temps);
 	}
 }
@@ -1296,7 +1315,7 @@ load_removable_devices(void)
 			sscanf("0, none", "%u, %s", &cdrom_drives[c].sound_on, s);
 		}
 
-		cdrom_drives[c].bus_type = string_to_bus(s, 1);
+		cdrom_drives[c].bus_type = hdd_string_to_bus(s, 1);
 
 		sprintf(temps, "cdrom_%02i_ide_channel", c + 1);
 		if ((cdrom_drives[c].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) || (cdrom_drives[c].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA))
@@ -1306,7 +1325,7 @@ load_removable_devices(void)
 
 			if (strstr(p, ":") == NULL)
 			{
-				sscanf(p, "%i", &hdc[c].ide_channel);
+				sscanf(p, "%i", (int *)&hdd[c].ide_channel);
 				cdrom_drives[c].ide_channel &= 7;
 			}
 			else
@@ -1427,7 +1446,7 @@ config_load(wchar_t *fn)
 		vid_api = 1;
 		enable_sync = 1;
 		joystick_type = 7;
-		strcpy(hdd_controller_name, "none");
+		strcpy(hdc_name, "none");
 		serial_enabled[0] = 1;
 		serial_enabled[1] = 1;
 		lpt_enabled = 1;
@@ -1979,13 +1998,13 @@ save_other_peripherals(void)
 		config_set_string(cat, "scsicard", scsi_card_get_internal_name(scsi_card_current));
 	}
 
-	if (!strcmp(hdd_controller_name, "none"))
+	if (!strcmp(hdc_name, "none"))
 	{
-		config_delete_var(cat, "hdd_controller");
+		config_delete_var(cat, "hdc");
 	}
 	else
 	{
-	        config_set_string(cat, "hdd_controller", hdd_controller_name);
+	        config_set_string(cat, "hdc", hdc_name);
 	}
 
 	memset(temps, '\0', sizeof(temps));
@@ -2017,40 +2036,6 @@ save_other_peripherals(void)
 }
 
 
-static char *
-bus_to_string(int bus, int cdrom)
-{
-	switch (bus)
-	{
-		case HDD_BUS_DISABLED:
-		default:
-			return "none";
-			break;
-		case HDD_BUS_MFM:
-			return "mfm";
-			break;
-		case HDD_BUS_XTIDE:
-			return "xtide";
-			break;
-		case HDD_BUS_ESDI:
-			return "esdi";
-			break;
-		case HDD_BUS_IDE_PIO_ONLY:
-			return cdrom ? "atapi_pio_only" : "ide_pio_only";
-			break;
-		case HDD_BUS_IDE_PIO_AND_DMA:
-			return cdrom ? "atapi_pio_and_dma" : "ide_pio_and_dma";
-			break;
-		case HDD_BUS_SCSI:
-			return "scsi";
-			break;
-		case HDD_BUS_SCSI_REMOVABLE:
-			return "scsi_removable";
-			break;
-	}
-}
-
-
 /* Save "Hard Disks" section. */
 static void
 save_hard_disks(void)
@@ -2063,81 +2048,82 @@ save_hard_disks(void)
 	char *p;
 
 	memset(temps, 0, sizeof(temps));
-	for (c = 0; c < HDC_NUM; c++)
+	for (c = 0; c < HDD_NUM; c++)
 	{
-		sprintf(temps, "hdd_%02i_parameters", c + 1);
+		sprintf(temps, "hdd_%02i_parameters", c+1);
 		memset(s, 0, sizeof(s));
-		if (!hard_disk_is_valid(c))
+		if (! hdd_is_valid(c))
 		{
 			config_delete_var(cat, temps);
 		}
 		else
 		{
-			p = bus_to_string(hdc[c].bus, 0);
-			sprintf(temps2, "%" PRIu64 ", %" PRIu64", %" PRIu64 ", %i, %s", hdc[c].spt, hdc[c].hpc, hdc[c].tracks, hdc[c].wp, p);
+			p = hdd_bus_to_string(hdd[c].bus, 0);
+			sprintf(temps2, "%" PRIu64 ", %" PRIu64", %" PRIu64 ", %i, %s",
+				hdd[c].spt, hdd[c].hpc, hdd[c].tracks, hdd[c].wp, p);
 			config_set_string(cat, temps, temps2);
 		}
 
-		sprintf(temps, "hdd_%02i_mfm_channel", c + 1);
-		if (!hard_disk_is_valid(c) || (hdc[c].bus != HDD_BUS_MFM))
+		sprintf(temps, "hdd_%02i_mfm_channel", c+1);
+		if (! hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_MFM))
 		{
 			config_delete_var(cat, temps);
 		}
 		else
 		{
-			config_set_int(cat, temps, hdc[c].mfm_channel);
+			config_set_int(cat, temps, hdd[c].mfm_channel);
 		}
 
-		sprintf(temps, "hdd_%02i_xtide_channel", c + 1);
-		if (!hard_disk_is_valid(c) || (hdc[c].bus != HDD_BUS_XTIDE))
+		sprintf(temps, "hdd_%02i_xtide_channel", c+1);
+		if (! hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_XTIDE))
 		{
 			config_delete_var(cat, temps);
 		}
 		else
 		{
-			config_set_int(cat, temps, hdc[c].xtide_channel);
+			config_set_int(cat, temps, hdd[c].xtide_channel);
 		}
 
-		sprintf(temps, "hdd_%02i_esdi_channel", c + 1);
-		if (!hard_disk_is_valid(c) || (hdc[c].bus != HDD_BUS_ESDI))
+		sprintf(temps, "hdd_%02i_esdi_channel", c+1);
+		if (! hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_ESDI))
 		{
 			config_delete_var(cat, temps);
 		}
 		else
 		{
-			config_set_int(cat, temps, hdc[c].esdi_channel);
+			config_set_int(cat, temps, hdd[c].esdi_channel);
 		}
 
 		sprintf(temps, "hdd_%02i_ide_channel", c + 1);
-		if (!hard_disk_is_valid(c) || ((hdc[c].bus != HDD_BUS_IDE_PIO_ONLY) && (hdc[c].bus != HDD_BUS_IDE_PIO_AND_DMA)))
+		if (! hdd_is_valid(c) || ((hdd[c].bus != HDD_BUS_IDE_PIO_ONLY) && (hdd[c].bus != HDD_BUS_IDE_PIO_AND_DMA)))
 		{
 			config_delete_var(cat, temps);
 		}
 		else
 		{
-			sprintf(temps2, "%01u:%01u", hdc[c].ide_channel >> 1, hdc[c].ide_channel & 1);
+			sprintf(temps2, "%01u:%01u", hdd[c].ide_channel >> 1, hdd[c].ide_channel & 1);
 			config_set_string(cat, temps, temps2);
 		}
 
 		sprintf(temps, "hdd_%02i_scsi_location", c + 1);
-		if (!hard_disk_is_valid(c) || ((hdc[c].bus != HDD_BUS_SCSI) && (hdc[c].bus != HDD_BUS_SCSI_REMOVABLE)))
+		if (! hdd_is_valid(c) || ((hdd[c].bus != HDD_BUS_SCSI) && (hdd[c].bus != HDD_BUS_SCSI_REMOVABLE)))
 		{
 			config_delete_var(cat, temps);
 		}
 		else
 		{
-			sprintf(temps2, "%02u:%02u", hdc[c].scsi_id, hdc[c].scsi_lun);
+			sprintf(temps2, "%02u:%02u", hdd[c].scsi_id, hdd[c].scsi_lun);
 			config_set_string(cat, temps, temps2);
 		}
 
-		sprintf(temps, "hdd_%02i_fn", c + 1);
-		if (!hard_disk_is_valid(c) || (wcslen(hdc[c].fn) == 0))
+		sprintf(temps, "hdd_%02i_fn", c+1);
+		if (! hdd_is_valid(c) || (wcslen(hdd[c].fn) == 0))
 		{
 			config_delete_var(cat, temps);
 		}
 		else
 		{
-		        config_set_wstring(cat, temps, hdc[c].fn);
+		        config_set_wstring(cat, temps, hdd[c].fn);
 		}
 	}
 
@@ -2233,7 +2219,7 @@ save_removable_devices(void)
 		}
 		else
 		{
-			sprintf(temps2, "%u, %s", cdrom_drives[c].sound_on, bus_to_string(cdrom_drives[c].bus_type, 1));
+			sprintf(temps2, "%u, %s", cdrom_drives[c].sound_on, hdd_bus_to_string(cdrom_drives[c].bus_type, 1));
 			config_set_string(cat, temps, temps2);
 		}
 		

@@ -8,7 +8,7 @@
  *
  *		The generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.c	1.0.3	2017/09/24
+ * Version:	@(#)scsi_device.c	1.0.4	2017/09/29
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -21,6 +21,7 @@
 #include <wchar.h>
 #include "../ibm.h"
 #include "../cdrom/cdrom.h"
+#include "../hdd/hdd.h"
 #include "scsi.h"
 #include "scsi_disk.h"
 
@@ -174,7 +175,7 @@ void scsi_device_type_data(uint8_t scsi_id, uint8_t scsi_lun, uint8_t *type, uin
 	case SCSI_DISK:
 		id = scsi_hard_disks[scsi_id][scsi_lun];
 		*type = 0x00;
-		*rmb = (hdc[id].bus == HDD_BUS_SCSI_REMOVABLE) ? 0x80 : 0x00;
+		*rmb = (hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? 0x80 : 0x00;
 		break;
 	case SCSI_CDROM:
 		*type = 0x05;

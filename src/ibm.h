@@ -8,7 +8,9 @@
  *
  *		General include file.
  *
- * Version:	@(#)ibm.h	1.0.5	2017/09/24
+ * !!!NOTE!!!	The goal is to GET RID of this file.  Do NOT add stuff !!
+ *
+ * Version:	@(#)ibm.h	1.0.6	2017/09/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -480,57 +482,6 @@ extern wchar_t exe_path[1024];
 extern wchar_t cfg_path[1024];
 extern wchar_t nvr_path[1024];
 
-
-/*Hard disk*/
-enum
-{
-	HDD_BUS_DISABLED = 0,
-	HDD_BUS_MFM,
-	HDD_BUS_XTIDE,
-	HDD_BUS_ESDI,
-	HDD_BUS_IDE_PIO_ONLY,
-	HDD_BUS_IDE_PIO_AND_DMA,
-	HDD_BUS_SCSI,
-	HDD_BUS_SCSI_REMOVABLE,
-	HDD_BUS_USB
-};
-
-#define HDC_NUM		30
-#define MFM_NUM		2
-#define ESDI_NUM	2
-#define XTIDE_NUM	2
-#define IDE_NUM		8
-#define SCSI_NUM	16	/* Theoretically the controller can have at least 64 devices, or even 128 in case of a wide bus, but
-				   let's not exaggerate with them - 16 ought to be enough for everyone. */
-
-#pragma pack(push,1)
-typedef struct {
-	FILE *f;
-	uint64_t spt,hpc; /*Sectors per track, heads per cylinder*/
-	uint64_t tracks;
-	int is_hdi;
-	int wp;
-	uint32_t base;
-	uint64_t at_spt,at_hpc; /*[Translation] Sectors per track, heads per cylinder*/
-	unsigned int bus;
-	unsigned int mfm_channel;
-	unsigned int esdi_channel;
-	unsigned int xtide_channel;
-	unsigned int ide_channel;
-	unsigned int scsi_id;
-	unsigned int scsi_lun;
-	wchar_t fn[260];
-	wchar_t prev_fn[260];
-} hard_disk_t;
-#pragma pack(pop)
-
-extern hard_disk_t hdc[HDC_NUM];
-
-uint64_t hdt[128][3];
-uint64_t hdt_mfm[128][3];
-
-int image_is_hdi(const wchar_t *s);
-int image_is_hdx(const wchar_t *s, int check_signature);
 
 /*Keyboard*/
 extern int keybsenddelay;

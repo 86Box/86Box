@@ -52,7 +52,7 @@
  *		however, are auto-configured by the system software as
  *		shown above.
  *
- * Version:	@(#)hdd_esdi_mca.c	1.0.3	2017/09/24
+ * Version:	@(#)hdc_esdi_mca.c	1.0.4	2017/09/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -73,8 +73,8 @@
 #include "../pic.h"
 #include "../rom.h"
 #include "../timer.h"
-#include "hdd_image.h"
-#include "hdd_esdi_mca.h"
+#include "hdc.h"
+#include "hdd.h"
 
 
 /* These are hardwired. */
@@ -82,8 +82,11 @@
 #define ESDI_IOADDR_SEC	0x3518
 #define ESDI_IRQCHAN	14
 
+#define BIOS_FILE_L	L"roms/hdd/esdi/90x8969.bin"
+#define BIOS_FILE_H	L"roms/hdd/esdi/90x8970.bin"
 
-#define ESDI_TIME	(2000 * TIMER_USEC)
+
+#define ESDI_TIME	(200*TIMER_USEC)
 #define CMD_ADAPTER	0
 
 
@@ -92,8 +95,8 @@ typedef struct esdi_drive {
     int tracks;
     int sectors;
     int present;
-    int hdc_num;
-} esdi_drive_t;
+    int hdd_num;
+} drive_t;
 
 typedef struct esdi {
     uint16_t	base;
@@ -137,7 +140,7 @@ typedef struct esdi {
         int req_in_progress;
     }		cmds[3];
         
-    esdi_drive_t drives[2];
+    drive_t	drives[2];
 
     uint8_t	pos_regs[8];
 } esdi_t;
@@ -271,7 +274,7 @@ static void
 esdi_callback(void *priv)
 {
     esdi_t *dev = (esdi_t *)priv;
-    esdi_drive_t *drive;
+    drive_t *drive;
     int val;
 
     dev->callback = 0;
@@ -321,7 +324,7 @@ esdi_callback(void *priv)
                                 	if (! dev->data_pos) {
                                         	if (dev->rba >= drive->sectors)
                                                 	fatal("Read past end of drive\n");
-						hdd_image_read(drive->hdc_num, dev->rba, 1, (uint8_t *)dev->data);
+						hdd_image_read(drive->hdd_num, dev->rba, 1, (uint8_t *)dev->data);
 			                	update_status_bar_icon(SB_HDD | HDD_BUS_ESDI, 1);
                                 	}
 
@@ -400,7 +403,7 @@ esdi_callback(void *priv)
 
                                 	if (dev->rba >= drive->sectors)
                                         	fatal("Write past end of drive\n");
-					hdd_image_write(drive->hdc_num, dev->rba, 1, (uint8_t *)dev->data);
+					hdd_image_write(drive->hdd_num, dev->rba, 1, (uint8_t *)dev->data);
                                 	dev->rba++;
                                 	dev->sector_pos++;
 		                	update_status_bar_icon(SB_HDD | HDD_BUS_ESDI, 1);
@@ -969,7 +972,7 @@ esdi_mca_write(int port, uint8_t val, void *priv)
 static void *
 esdi_init(void)
 {
-    esdi_drive_t *drive;
+    drive_t *drive;
     esdi_t *dev;
     int c, i;
 
@@ -984,17 +987,16 @@ esdi_init(void)
     dev->irq = ESDI_IRQCHAN;
 
     rom_init_interleaved(&dev->bios_rom,
-			 L"roms/hdd/esdi/90x8970.bin",
-			 L"roms/hdd/esdi/90x8969.bin",
-			 0x00000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+			 BIOS_FILE_L, BIOS_FILE_H,
+			 0x00000, 16384, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
     mem_mapping_disable(&dev->bios_rom.mapping);
 
     dev->drives[0].present = dev->drives[1].present = 0;
 
-    for (c=0,i=0; i<HDC_NUM; i++) {
-	if ((hdc[i].bus == HDD_BUS_ESDI) && (hdc[i].esdi_channel < ESDI_NUM)) {
+    for (c=0,i=0; i<HDD_NUM; i++) {
+	if ((hdd[i].bus == HDD_BUS_ESDI) && (hdd[i].esdi_channel < ESDI_NUM)) {
 		/* This is an ESDI drive. */
-		drive = &dev->drives[hdc[i].esdi_channel];
+		drive = &dev->drives[hdd[i].esdi_channel];
 
 		/* Try to load an image for the drive. */
 		if (! hdd_image_load(i)) {
@@ -1004,11 +1006,11 @@ esdi_init(void)
 		}
 
 		/* OK, so fill in geometry info. */
-       		drive->spt = hdc[i].spt;
-       		drive->hpc = hdc[i].hpc;
-       		drive->tracks = hdc[i].tracks;
-       		drive->sectors = hdc[i].spt*hdc[i].hpc*hdc[i].tracks;
-		drive->hdc_num = i;
+       		drive->spt = hdd[i].spt;
+       		drive->hpc = hdd[i].hpc;
+       		drive->tracks = hdd[i].tracks;
+       		drive->sectors = hdd[i].spt*hdd[i].hpc*hdd[i].tracks;
+		drive->hdd_num = i;
 
 		/* Mark drive as present. */
 		drive->present = 1;
@@ -1040,7 +1042,7 @@ static void
 esdi_close(void *priv)
 {
     esdi_t *dev = (esdi_t *)priv;
-    esdi_drive_t *drive;
+    drive_t *drive;
     int d;
 
     dev->drives[0].present = dev->drives[1].present = 0;
@@ -1048,7 +1050,7 @@ esdi_close(void *priv)
     for (d=0; d<2; d++) {
 	drive = &dev->drives[d];
 
-	hdd_image_close(drive->hdc_num);
+	hdd_image_close(drive->hdd_num);
     }
 
     free(dev);
@@ -1058,20 +1060,13 @@ esdi_close(void *priv)
 static int
 esdi_available(void)
 {
-    return(rom_present(L"roms/hdd/esdi/90x8969.bin") &&
-	   rom_present(L"roms/hdd/esdi/90x8970.bin"));
+    return(rom_present(BIOS_FILE_L) && rom_present(BIOS_FILE_H));
 }
 
 
-device_t hdd_esdi_device =
-{
+device_t esdi_ps2_device = {
     "IBM ESDI Fixed Disk Adapter (MCA)",
     DEVICE_MCA,
-    esdi_init,
-    esdi_close,
-    esdi_available,
-    NULL,
-    NULL,
-    NULL,
-    NULL
+    esdi_init, esdi_close, esdi_available,
+    NULL, NULL, NULL, NULL
 };

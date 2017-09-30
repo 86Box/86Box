@@ -8,7 +8,7 @@
  *
  *		Windows IO device menu handler.
  *
- * Version:	@(#)win_iodev.c	1.0.3	2017/09/24
+ * Version:	@(#)win_iodev.c	1.0.4	2017/09/29
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -36,6 +36,7 @@
 #include "../cdrom/cdrom_image.h"
 #include "../cdrom/cdrom_ioctl.h"
 #include "../cdrom/cdrom_null.h"
+#include "../hdd/hdd.h"
 #include "../scsi/scsi_disk.h"
 #include "plat_iodev.h"
 #include "win.h"
@@ -146,12 +147,12 @@ void cdrom_reload(uint8_t id)
 
 void removable_disk_unload(uint8_t id)
 {
-	if (wcslen(hdc[id].fn) == 0)
+	if (wcslen(hdd[id].fn) == 0)
 	{
 		/* Switch from empty to empty. Do nothing. */
 		return;
 	}
-	scsi_unloadhd(hdc[id].scsi_id, hdc[id].scsi_lun, id);
+	scsi_unloadhd(hdd[id].scsi_id, hdd[id].scsi_lun, id);
 	scsi_disk_insert(id);
 }
 
@@ -186,17 +187,17 @@ void removable_disk_reload(uint8_t id)
 		return;
 	}
 
-	if (wcslen(hdc[id].fn) != 0)
+	if (wcslen(hdd[id].fn) != 0)
 	{
 		/* Attempting to reload while an image is already loaded. Do nothing. */
 		return;
 	}
 	scsi_reloadhd(id);
 	/* scsi_disk_insert(id); */
-	update_status_bar_icon_state(SB_RDISK | id, wcslen(hdc[id].fn) ? 0 : 1);
-	EnableMenuItem(sb_menu_handles[part], IDM_RDISK_EJECT | id, MF_BYCOMMAND | (wcslen(hdc[id].fn) ? MF_ENABLED : MF_GRAYED));
+	update_status_bar_icon_state(SB_RDISK | id, wcslen(hdd[id].fn) ? 0 : 1);
+	EnableMenuItem(sb_menu_handles[part], IDM_RDISK_EJECT | id, MF_BYCOMMAND | (wcslen(hdd[id].fn) ? MF_ENABLED : MF_GRAYED));
 	EnableMenuItem(sb_menu_handles[part], IDM_RDISK_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
-	EnableMenuItem(sb_menu_handles[part], IDM_RDISK_SEND_CHANGE | id, MF_BYCOMMAND | (wcslen(hdc[id].fn) ? MF_ENABLED : MF_GRAYED));
+	EnableMenuItem(sb_menu_handles[part], IDM_RDISK_SEND_CHANGE | id, MF_BYCOMMAND | (wcslen(hdd[id].fn) ? MF_ENABLED : MF_GRAYED));
 	update_tip(SB_RDISK | id);
 	config_save();
 }

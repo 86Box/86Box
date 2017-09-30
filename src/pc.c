@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.12	2017/09/24
+ * Version:	@(#)pc.c	1.0.13	2017/09/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -45,7 +45,8 @@
 #include "cdrom/cdrom_ioctl.h"
 #include "cdrom/cdrom_null.h"
 #include "hdd/hdd.h"
-#include "hdd/hdd_ide_at.h"
+#include "hdd/hdc.h"
+#include "hdd/hdc_ide.h"
 #include "keyboard.h"
 #include "keyboard_at.h"
 #include "lpt.h"
@@ -401,6 +402,7 @@ usage:
 			append_filename_w(config_file_default,
 					  cfg_path,
 					  config_file, 511);
+		config_file = NULL;
 	} else {
 	        append_filename_w(config_file_default, cfg_path, CONFIG_FILE_W, 511);
 	}
@@ -473,7 +475,9 @@ void initmodules(void)
         loadnvr();
         sound_init();
 
+#if 0
         resetide();
+#endif
 	scsi_card_init();
 
 	fullspeed();
@@ -562,6 +566,7 @@ void resetpchard_init(void)
         fdc_init();
 	floppy_reset();
 
+	hdc_init(hdc_name);
 #ifndef WALTJE
 	serial_init();
 #endif
@@ -583,7 +588,9 @@ void resetpchard_init(void)
 		ide_qua_init();
 	}
 
+#if 0
         resetide();
+#endif
 	scsi_card_init();
 #ifdef USE_NETWORK
 	network_reset();
@@ -600,7 +607,6 @@ void resetpchard_init(void)
                 device_add(&ssi2001_device);
         if (voodoo_enabled)
                 device_add(&voodoo_device);
-	hdd_controller_init(hdd_controller_name);
         pc_reset();
 	mouse_emu_init();
  
