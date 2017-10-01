@@ -140,8 +140,11 @@ int hdd_image_load(int id)
 
 	if (hdd_images[id].loaded)
 	{
-		fclose(hdd_images[id].file);
-		hdd_images[id].file = NULL;
+		if (hdd_images[id].file)
+		{
+			fclose(hdd_images[id].file);
+			hdd_images[id].file = NULL;
+		}
 		hdd_images[id].loaded = 0;
 	}
 
@@ -347,14 +350,9 @@ prepare_new_hard_disk:
 
 	hdd_images[id].last_sector = (uint32_t) (full_size >> 9) - 1;
 
-#ifdef WALTJE
 	hdd_images[id].loaded = 1;
 pclog("HDD: disk %d image '%S' file 0x%08lx\n", id, hdd[id].fn, hdd_images[id].file);
 	return 1;
-#else
-	return 1;
-	hdd_images[id].loaded = 1;
-#endif
 }
 
 void hdd_image_seek(uint8_t id, uint32_t sector)
@@ -533,5 +531,6 @@ void hdd_image_close(uint8_t id)
 	{
 		fclose(hdd_images[id].file);
 		hdd_images[id].file = NULL;
+		hdd_images[id].loaded = 0;
 	}
 }
