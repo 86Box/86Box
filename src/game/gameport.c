@@ -6,17 +6,17 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "ibm.h"
-#include "cpu/cpu.h"
-#include "device.h"
-#include "io.h"
-#include "timer.h"
+#include "../ibm.h"
+#include "../cpu/cpu.h"
+#include "../device.h"
+#include "../io.h"
+#include "../timer.h"
 #include "gameport.h"
 #include "joystick_ch_flightstick_pro.h"
 #include "joystick_standard.h"
 #include "joystick_sw_pad.h"
 #include "joystick_tm_fcs.h"
-#include "plat_joystick.h"
+#include "../win/plat_joystick.h"
 
 
 int joystick_type;

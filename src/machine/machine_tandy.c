@@ -7,7 +7,7 @@
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
-#include "../gameport.h"
+#include "../game/gameport.h"
 #include "../keyboard_xt.h"
 #include "../tandy_eeprom.h"
 #include "../tandy_rom.h"

@@ -8,7 +8,7 @@
  *
  *		Joystick interface to host device.
  *
- * Version:	@(#)win_joystick.cc	1.0.1	2017/09/24
+ * Version:	@(#)win_joystick.cc	1.0.2	2017/10/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,7 +21,7 @@
 #include <stdint.h>
 extern "C" {
 #include "../device.h"
-#include "../gameport.h"
+#include "../game/gameport.h"
 }
 #include "plat_joystick.h"
 #include "win.h"

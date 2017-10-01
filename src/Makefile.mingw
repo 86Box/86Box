@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.50	2017/10/01
+# Version:	@(#)Makefile.mingw	1.0.51	2017/10/01
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -96,7 +96,7 @@ endif
 #		Nothing should need changing from here on..		#
 #########################################################################
 VPATH		:= $(EXPATH) . cpu \
-		   cdrom floppy hdd machine \
+		   cdrom floppy game hdd machine \
 		   sound \
 			    sound/munt sound/munt/c_interface sound/munt/sha1 \
 		     sound/munt/srchelper \

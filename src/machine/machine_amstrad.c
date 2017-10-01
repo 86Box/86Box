@@ -11,7 +11,7 @@
 #include "../rom.h"
 #include "../device.h"
 #include "../nvr.h"
-#include "../gameport.h"
+#include "../game/gameport.h"
 #include "../keyboard.h"
 #include "../keyboard_amstrad.h"
 #include "../mouse.h"

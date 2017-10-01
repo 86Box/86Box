@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.15	2017/10/01
+ * Version:	@(#)pc.c	1.0.16	2017/10/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -33,7 +33,7 @@
 #include "dma.h"
 #include "random.h"
 #include "device.h"
-#include "gameport.h"
+#include "game/gameport.h"
 #include "floppy/floppy.h"
 #include "floppy/floppy_86f.h"
 #include "floppy/floppy_fdi.h"

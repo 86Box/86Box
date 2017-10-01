@@ -12,7 +12,7 @@
 #include "../mem.h"
 #include "../device.h"
 #include "../nvr.h"
-#include "../gameport.h"
+#include "../game/gameport.h"
 #include "../keyboard_olim24.h"
 #include "machine_common.h"
 #include "machine_olivetti_m24.h"

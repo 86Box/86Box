@@ -10,7 +10,7 @@
 #include "../device.h"
 #include "../nvr.h"
 #include "../bugger.h"
-#include "../gameport.h"
+#include "../game/gameport.h"
 #include "../keyboard_at.h"
 #include "../lpt.h"
 #include "../hdd/hdc.h"

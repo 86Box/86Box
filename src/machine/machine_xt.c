@@ -8,7 +8,7 @@
 #include "../mem.h"
 #include "../device.h"
 #include "../bugger.h"
-#include "../gameport.h"
+#include "../game/gameport.h"
 #include "../keyboard_xt.h"
 #include "machine_common.h"
 #include "machine_xt.h"

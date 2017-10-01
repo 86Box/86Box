@@ -15,7 +15,7 @@
 #include "../rom.h"
 #include "../device.h"
 #include "../nvr.h"
-#include "../gameport.h"
+#include "../game/gameport.h"
 #include "../lpt.h"
 #include "../serial.h"
 #include "../keyboard_at.h"

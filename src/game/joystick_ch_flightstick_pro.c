@@ -3,12 +3,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "ibm.h"
-#include "device.h"
-#include "timer.h"
+#include "../ibm.h"
+#include "../device.h"
+#include "../timer.h"
+#include "../win/plat_joystick.h"
 #include "gameport.h"
 #include "joystick_standard.h"
-#include "plat_joystick.h"
 
 
 static void *ch_flightstick_pro_init()

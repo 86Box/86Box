@@ -12,7 +12,7 @@
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"
-#include "../gameport.h"
+#include "../game/gameport.h"
 #include "plat_joystick.h"
 #include "win.h"
 

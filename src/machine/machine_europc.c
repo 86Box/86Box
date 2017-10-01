@@ -13,7 +13,7 @@
 #include "../rom.h"
 #include "../device.h"
 #include "../nvr.h"
-#include "../gameport.h"
+#include "../game/gameport.h"
 #include "../keyboard_xt.h"
 #include "../lpt.h"
 #include "machine_common.h"
