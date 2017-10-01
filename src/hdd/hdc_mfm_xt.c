@@ -6,22 +6,46 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Driver for the IBM PC-XT MFM/RLL Fixed Disk controller.
+ *		Driver for the IBM PC-XT Fixed Disk controller.
  *
  *		The original controller shipped by IBM was made by Xebec, and
- *		several variations had been made.
+ *		several variations had been made:
  *
+ *		#1	Original, single drive (ST412), 10MB, 2 heads.
+ *		#2	Update, single drive (ST412) but with option for a
+ *			switch block that can be used to 'set' the actual
+ *			drive type. Four switches are define, where switches
+ *			1 and 2 define drive0, and switches 3 and 4 drive1.
  *
- *		Since all controllers (including the ones made by DTC) we do
- *		keep them all in this module.
+ *			  0  ON  ON	306  2  0
+ *			  1  ON  OFF	375  8  0
+ *			  2  OFF ON	306  6  256
+ *			  3  OFF OFF	306  4  0
  *
- * Version:	@(#)hdd_mfm_xt.c	1.0.5	2017/09/29
+ *			The latter option is the default, in use on boards
+ *			without the switch block option.
+ *
+ *		#3	Another updated board, mostly to accomodate the new
+ *			20MB disk now being shipped. The controller can have
+ *			up to 2 drives, the type of which is set using the
+ *			switch block:
+ *
+ *			     SW1 SW2	CYLS HD SPT WPC
+ *			  0  ON  ON	306  4  17  0
+ *			  1  ON  OFF	612  4  17  0	(type 16)
+ *			  2  OFF ON    	615  4  17  300	(Seagate ST-225, 2)
+ *			  3  OFF OFF	306  8  17  128 (IBM WD25, 13)
+ *
+ *		Examples of #3 are IBM/Xebec, WD10004A-WX1 and ST11R.
+ *
+ *		Since all controllers (including the ones made by DTC) use
+ *		(mostly) the same API, we keep them all in this module.
+ *
+ * Version:	@(#)hdd_mfm_xt.c	1.0.6	2017/09/30
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdio.h>

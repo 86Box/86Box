@@ -8,7 +8,7 @@
  *
  *		Definitions for the common disk controller handler.
  *
- * Version:	@(#)hdc.h	1.0.1	2017/09/29
+ * Version:	@(#)hdc.h	1.0.3	2017/09/30
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -18,6 +18,14 @@
 #ifndef EMU_HDC_H
 # define EMU_HDC_H
 
+
+#define MFM_NUM		2	/* 2 drives per controller supported */
+#define ESDI_NUM	2	/* 2 drives per controller supported */
+#define XTIDE_NUM	2	/* 2 drives per controller supported */
+#define IDE_NUM		8
+#define SCSI_NUM	16	/* theoretically the controller can have at
+				 * least 7 devices, with each device being
+				 * able to support 8 units, but hey... */
 
 extern char	hdc_name[16];
 extern int	hdc_current;
@@ -36,12 +44,14 @@ extern device_t	xtide_ps2_device;		/* xtide_ps2 */
 extern device_t	xtide_at_ps2_device;		/* xtide_at_ps2 */
 
 
+extern void	hdc_init(void);
+extern void	hdc_reset(char *name);
+
 extern char	*hdc_get_name(int hdc);
 extern char	*hdc_get_internal_name(int hdc);
 extern int	hdc_get_flags(int hdc);
 extern int	hdc_available(int hdc);
 extern int	hdc_current_is_mfm(void);
-extern void	hdc_init(char *internal_name);
 
 
 #endif	/*EMU_HDC_H*/

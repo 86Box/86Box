@@ -8,7 +8,7 @@
  *
  *		Implementation of the SMC FDC37C665 Super I/O Chip.
  *
- * Version:	@(#)sio_fdc37c665.c	1.0.6	2017/09/29
+ * Version:	@(#)sio_fdc37c665.c	1.0.6	2017/09/30
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,12 +21,13 @@
 #include <wchar.h>
 #include "ibm.h"
 #include "io.h"
+#include "device.h"
 #include "lpt.h"
 #include "serial.h"
 #include "floppy/floppy.h"
 #include "floppy/fdc.h"
 #include "floppy/fdd.h"
-#include "hdd/hdd.h"
+#include "hdd/hdc.h"
 #include "hdd/hdc_ide.h"
 #include "sio.h"
 

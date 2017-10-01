@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.13	2017/09/29
+ * Version:	@(#)pc.c	1.0.14	2017/09/30
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -407,6 +407,14 @@ usage:
 	        append_filename_w(config_file_default, cfg_path, CONFIG_FILE_W, 511);
 	}
 
+	/*
+	 * This is weird, but we need to clear that global
+	 * data before we actually use it, and the config
+	 * file reader will add data to those areas..  --FvK
+	 */
+	hdd_init();
+	hdc_init();
+
         config_load(config_file);
 }
 
@@ -415,21 +423,21 @@ void initmodules(void)
 	int i;
 
 	/* Initialize modules. */
+	random_init();
         mouse_init();
 #ifdef WALTJE
 	serial_init();
 #endif
-	random_init();
-
         joystick_init();
+        video_init();
+	ide_init_first();
 
-        cpuspeed2=(AT)?2:1;
-        atfullspeed=0;
-
-        initvideo();
         mem_init();
         rom_load_bios(romset);
         mem_add_bios();
+
+        cpuspeed2=(AT)?2:1;
+        atfullspeed=0;
 
         codegen_init();
 
@@ -475,9 +483,8 @@ void initmodules(void)
         loadnvr();
         sound_init();
 
-#if 0
-        resetide();
-#endif
+        ide_reset();
+
 	scsi_card_init();
 
 	fullspeed();
@@ -566,31 +573,23 @@ void resetpchard_init(void)
         fdc_init();
 	floppy_reset();
 
-	hdc_init(hdc_name);
+	hdc_reset(hdc_name);
 #ifndef WALTJE
 	serial_init();
 #endif
         machine_init();
-        video_init();
+        video_reset();
         speaker_init();
 	lpt1_device_init();
 
 	ide_ter_disable();
 	ide_qua_disable();
-
 	if (ide_enable[2])
-	{
 		ide_ter_init();
-	}
-
 	if (ide_enable[3])
-	{
 		ide_qua_init();
-	}
+        ide_reset();
 
-#if 0
-        resetide();
-#endif
 	scsi_card_init();
 #ifdef USE_NETWORK
 	network_reset();
@@ -773,7 +772,7 @@ void closepc(void)
 	        floppy_close(i);
 	}
         dumpregs(0);
-        closevideo();
+        video_close();
 	lpt1_device_close();
         device_close_all();
         midi_close();

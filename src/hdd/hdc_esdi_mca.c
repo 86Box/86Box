@@ -55,7 +55,7 @@
  * Version:	@(#)hdc_esdi_mca.c	1.0.4	2017/09/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2017 Fred N. van Kempen.
  */

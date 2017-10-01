@@ -8,7 +8,7 @@
  *
  *		Windows resource script.
  *
- * Version:	@(#)86Box.rc	1.0.10	2017/09/23
+ * Version:	@(#)86Box.rc	1.0.11	2017/09/30
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -833,7 +833,7 @@ BEGIN
     IDS_2151	"Disabled"
     IDS_2152	"None"
     IDS_2153	"AT Fixed Disk Adapter"
-    IDS_2154	"Internal IDE"
+    IDS_2154	"Internal Controller"
     IDS_2155	"IRQ %i"
     IDS_2156	"%" PRIu64
     IDS_2157	"%" PRIu64 " MB (CHS: %" PRIu64 ", %" PRIu64 ", %" PRIu64 ")"

@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.13	2017/09/29
+ * Version:	@(#)win.c	1.0.13	2017/09/30
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1110,7 +1110,7 @@ int display_network_icon(void)
 
 void update_status_bar_panes(HWND hwnds)
 {
-	int i, id;
+	int i, id, hdint;
 	int edge = 0;
 
 	int c_mfm = 0;
@@ -1119,20 +1119,19 @@ void update_status_bar_panes(HWND hwnds)
 	int c_ide_pio = 0;
 	int c_ide_dma = 0;
 	int c_scsi = 0;
-
 #ifdef USE_NETWORK
 	int do_net = 0;
 #endif
 
 	sb_ready = 0;
 
+	hdint = (machines[machine].flags & MACHINE_HAS_HDC) ? 1 : 0;
 	c_mfm = hdd_count(HDD_BUS_MFM);
 	c_esdi = hdd_count(HDD_BUS_ESDI);
 	c_xtide = hdd_count(HDD_BUS_XTIDE);
 	c_ide_pio = hdd_count(HDD_BUS_IDE_PIO_ONLY);
 	c_ide_dma = hdd_count(HDD_BUS_IDE_PIO_AND_DMA);
 	c_scsi = hdd_count(HDD_BUS_SCSI);
-
 #ifdef USE_NETWORK
 	do_net = display_network_icon();
 #endif
@@ -1182,11 +1181,15 @@ void update_status_bar_panes(HWND hwnds)
 	}
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) && !(machines[machine].flags & MACHINE_HAS_IDE))
+		/* Could be Internal or External IDE.. */
+		if ((cdrom_drives[i].bus_type==CDROM_BUS_ATAPI_PIO_ONLY) &&
+		    !(hdint || !memcmp(hdc_name, "ide", 3)))
 		{
 			continue;
 		}
-		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA) && !(machines[machine].flags & MACHINE_HAS_IDE))
+		/* Could be Internal or External IDE.. */
+		if ((cdrom_drives[i].bus_type==CDROM_BUS_ATAPI_PIO_AND_DMA) &&
+		    !(hdint || !memcmp(hdc_name, "ide", 3)))
 		{
 			continue;
 		}
@@ -1206,24 +1209,28 @@ void update_status_bar_panes(HWND hwnds)
 			sb_parts++;
 		}
 	}
-	if (c_mfm && !(machines[machine].flags & MACHINE_HAS_IDE) && !!memcmp(hdc_name, "none", 4) && !!memcmp(hdc_name, "xtide", 5) && !!memcmp(hdc_name, "esdi", 4))
+	if (c_mfm && (hdint || !memcmp(hdc_name, "mfm", 3)))
 	{
+		/* MFM drives, and MFM or Internal controller. */
 		sb_parts++;
 	}
-	if (c_esdi && !memcmp(hdc_name, "esdi", 4))
+	if (c_esdi && (hdint || !memcmp(hdc_name, "esdi", 4)))
 	{
+		/* ESDI drives, and ESDI or Internal controller. */
 		sb_parts++;
 	}
 	if (c_xtide && !memcmp(hdc_name, "xtide", 5))
 	{
 		sb_parts++;
 	}
-	if (c_ide_pio && (machines[machine].flags & MACHINE_HAS_IDE))
+	if (c_ide_pio && (hdint || !memcmp(hdc_name, "ide", 3)))
 	{
+		/* IDE_PIO drives, and IDE or Internal controller. */
 		sb_parts++;
 	}
-	if (c_ide_dma && (machines[machine].flags & MACHINE_HAS_IDE))
+	if (c_ide_dma && (hdint || !memcmp(hdc_name, "ide", 3)))
 	{
+		/* IDE_DMA drives, and IDE or Internal controller. */
 		sb_parts++;
 	}
 	if (c_scsi && (scsi_card_current != 0))
@@ -1267,11 +1274,15 @@ void update_status_bar_panes(HWND hwnds)
 	}
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) && !(machines[machine].flags & MACHINE_HAS_IDE))
+		/* Could be Internal or External IDE.. */
+		if ((cdrom_drives[i].bus_type==CDROM_BUS_ATAPI_PIO_ONLY) &&
+		    !(hdint || !memcmp(hdc_name, "ide", 3)))
 		{
 			continue;
 		}
-		if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA) && !(machines[machine].flags & MACHINE_HAS_IDE))
+		/* Could be Internal or External IDE.. */
+		if ((cdrom_drives[i].bus_type==CDROM_BUS_ATAPI_PIO_AND_DMA) &&
+		    !(hdint || !memcmp(hdc_name, "ide", 3)))
 		{
 			continue;
 		}
@@ -1297,14 +1308,14 @@ void update_status_bar_panes(HWND hwnds)
 			sb_parts++;
 		}
 	}
-	if (c_mfm && !(machines[machine].flags & MACHINE_HAS_IDE) && !!memcmp(hdc_name, "none", 4) && !!memcmp(hdc_name, "xtide", 5) && !!memcmp(hdc_name, "esdi", 4))
+	if (c_mfm && (hdint || !memcmp(hdc_name, "mfm", 3)))
 	{
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_MFM;
 		sb_parts++;
 	}
-	if (c_esdi && !memcmp(hdc_name, "esdi", 4))
+	if (c_esdi && (hdint || !memcmp(hdc_name, "esdi", 4)))
 	{
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
@@ -1318,14 +1329,14 @@ void update_status_bar_panes(HWND hwnds)
 		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_XTIDE;
 		sb_parts++;
 	}
-	if (c_ide_pio && (machines[machine].flags & MACHINE_HAS_IDE))
+	if (c_ide_pio && (hdint || !memcmp(hdc_name, "ide", 3)))
 	{
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_IDE_PIO_ONLY;
 		sb_parts++;
 	}
-	if (c_ide_dma && (machines[machine].flags & MACHINE_HAS_IDE))
+	if (c_ide_dma && (hdint || !memcmp(hdc_name, "ide", 3)))
 	{
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;

@@ -13,7 +13,7 @@
 #include "../gameport.h"
 #include "../keyboard_at.h"
 #include "../lpt.h"
-#include "../hdd/hdd.h"
+#include "../hdd/hdc.h"
 #include "../hdd/hdc_ide.h"
 #include "machine_common.h"
 #include "machine_at.h"

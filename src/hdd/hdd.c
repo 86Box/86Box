@@ -8,7 +8,7 @@
  *
  *		Common code to handle all sorts of hard disk images.
  *
- * Version:	@(#)hdd.c	1.0.1	2017/09/29
+ * Version:	@(#)hdd.c	1.0.2	2017/09/30
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -27,3 +27,13 @@
 
 
 hard_disk_t	hdd[HDD_NUM];
+
+
+int
+hdd_init(void)
+{
+    /* Clear all global data. */
+    memset(hdd, 0x00, sizeof(hdd));
+
+    return(0);
+}

@@ -8,7 +8,7 @@
  *
  *		Definitions for the hard disk image handler.
  *
- * Version:	@(#)hdd.h	1.0.1	2017/09/29
+ * Version:	@(#)hdd.h	1.0.2	2017/09/30
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -20,13 +20,7 @@
 
 
 #define HDD_NUM		30	/* total of 30 images supported */
-#define MFM_NUM		2	/* 2 drives per controller supported */
-#define ESDI_NUM	2	/* 2 drives per controller supported */
-#define XTIDE_NUM	2	/* 2 drives per controller supported */
-#define IDE_NUM		8
-#define SCSI_NUM	16	/* theoretically the controller can have at
-				 * least 7 devices, with each device being
-				 * able to support 8 units, but hey... */
+
 
 /* Hard Disk bus types. */
 enum {
@@ -75,6 +69,8 @@ typedef struct {
 extern hard_disk_t      hdd[HDD_NUM];
 extern uint64_t		hdd_table[128][3];
 
+
+extern int	hdd_init(void);
 
 extern int	hdd_image_load(int id);
 extern void	hdd_image_seek(uint8_t id, uint32_t sector);

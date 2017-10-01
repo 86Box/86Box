@@ -7,11 +7,12 @@
 #include "io.h"
 #include "pic.h"
 #include "mem.h"
+#include "device.h"
 #include "pci.h"
 #include "keyboard_at.h"
 #include "floppy/floppy.h"
 #include "floppy/fdc.h"
-#include "hdd/hdd.h"
+#include "hdd/hdc.h"
 #include "hdd/hdc_ide.h"
 #include "cdrom/cdrom.h"
 
@@ -655,7 +656,7 @@ static void trc_reset(uint8_t val)
 			pci_reset_handler.super_io_reset();
 		}
 
-		resetide();
+		ide_reset();
 		for (i = 0; i < CDROM_NUM; i++)
 		{
 			if (!cdrom_drives[i].bus_type)

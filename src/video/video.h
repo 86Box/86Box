@@ -1,11 +1,6 @@
 /* Copyright holders: Sarah Walker, Tenshi
    see COPYING for more details
 */
-#ifdef __unix
-
-#include "allegro-main.h"
-
-#else
 
 typedef struct
 {
@@ -28,7 +23,6 @@ typedef RGB PALETTE[256];
 #define makecol(r, g, b)    ((b) | ((g) << 8) | ((r) << 16))
 #define makecol32(r, g, b)  ((b) | ((g) << 8) | ((r) << 16))
 
-#endif
 
 extern BITMAP *buffer, *buffer32;
 
@@ -92,15 +86,15 @@ extern int video_res_x, video_res_y, video_bpp;
 
 extern int vid_resize;
 
-void video_wait_for_blit();
-void video_wait_for_buffer();
+void video_wait_for_blit(void);
+void video_wait_for_buffer(void);
 
 extern int winsizex,winsizey;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-void take_screenshot();
+void take_screenshot(void);
 
 void d3d_take_screenshot(wchar_t *fn);
 void d3d_fs_take_screenshot(wchar_t *fn);
@@ -117,14 +111,14 @@ extern int video_grayscale;
 extern int video_graytype;
 
 void loadfont(wchar_t *s, int format);
-void initvideo();
-void video_init();
-void closevideo();
-void video_updatetiming();
+void video_init(void);
+void video_close(void);
+void video_reset(void);
+void video_updatetiming(void);
 
 void hline(BITMAP *b, int x1, int y, int x2, uint32_t col);
 void updatewindowsize(int x, int y);
 
 #ifdef ENABLE_VRAM_DUMP
-void svga_dump_vram();
+void svga_dump_vram(void);
 #endif

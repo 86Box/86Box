@@ -25,8 +25,10 @@
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -38,7 +40,6 @@
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
-#include "hdd.h"
 #include "hdc.h"
 #include "hdc_ide.h"
 

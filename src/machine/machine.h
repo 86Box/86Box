@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.4	2017/09/18
+ * Version:	@(#)machine.h	1.0.5	2017/09/30
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,10 +23,10 @@
 #define MACHINE_PS2	   2
 #define MACHINE_AMSTRAD	   4
 #define MACHINE_OLIM24	   8
-#define MACHINE_HAS_IDE	  16
+#define MACHINE_HAS_HDC	  16
 #define MACHINE_MCA	  32
 #define MACHINE_PCI	  64
-#define MACHINE_PS2_HDD	 128
+#define MACHINE_PS2_HDD	 128		// can now remove? --FvK
 #define MACHINE_NEC	 256
 #define MACHINE_FUJITSU	 512
 #define MACHINE_RM	1024

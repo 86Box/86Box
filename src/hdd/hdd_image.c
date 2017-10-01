@@ -1,3 +1,22 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Handling of hard disk image files.
+ *
+ * Version:	@(#)hdd_image.c	1.0.2	2017/10/01
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2017 Fred N. van Kempen.
+ */
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
@@ -10,7 +29,6 @@
 #include <errno.h>
 #include "../ibm.h"
 #include "hdd.h"
-//#include "hdc_ide.h"
 
 
 typedef struct
@@ -351,7 +369,7 @@ prepare_new_hard_disk:
 	hdd_images[id].last_sector = (uint32_t) (full_size >> 9) - 1;
 
 	hdd_images[id].loaded = 1;
-pclog("HDD: disk %d image '%S' file 0x%08lx\n", id, hdd[id].fn, hdd_images[id].file);
+
 	return 1;
 }
 
@@ -368,7 +386,6 @@ void hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer
 {
 	count <<= 9;
 
-pclog("HDD: read_image(id=%d sector=%lu cnt=%d, bufp=%08lx) fp=%08lx\n",id,sector,count,buffer,hdd_images[id].file);
 	hdd_image_seek(id, sector);
 	memset(buffer, 0, count);
 	fread(buffer, 1, count, hdd_images[id].file);
@@ -512,16 +529,14 @@ void hdd_image_unload(uint8_t id, int fn_preserve)
 			fclose(hdd_images[id].file);
 			hdd_images[id].file = NULL;
 		}
+		hdd_images[id].loaded = 0;
 	}
 
 	hdd_images[id].last_sector = -1;
 
 	memset(hdd[id].prev_fn, 0, sizeof(hdd[id].prev_fn));
 	if (fn_preserve)
-	{
 		wcscpy(hdd[id].prev_fn, hdd[id].fn);
-	}
-
 	memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
 }
 
@@ -531,6 +546,6 @@ void hdd_image_close(uint8_t id)
 	{
 		fclose(hdd_images[id].file);
 		hdd_images[id].file = NULL;
-		hdd_images[id].loaded = 0;
 	}
+	hdd_images[id].loaded = 0;
 }

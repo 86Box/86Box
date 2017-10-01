@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.7	2017/09/29
+ * Version:	@(#)config.c	1.0.8	2017/09/30
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -801,10 +801,14 @@ load_other_peripherals(void)
 		if (p != NULL)
 			config_delete_var(cat, "hdd_controller");
 	}
-	if (p != NULL)
-                strcpy(hdc_name, p);
-        else
-                strcpy(hdc_name, "none");
+	if (p == NULL) {
+		if (machines[machine].flags & MACHINE_HAS_HDC)
+			strcpy(hdc_name, "internal");
+		else
+                	strcpy(hdc_name, "none");
+	} else
+                	strcpy(hdc_name, p);
+	config_set_string(cat, "hdc", hdc_name);
 
 	memset(temp, '\0', sizeof(temp));
 	for (c = 2; c < 4; c++)
@@ -1181,7 +1185,7 @@ load_hard_disks(void)
 			 * with the CFG path.  Just strip
 			 * that off for now...
 			 */
-			wcscpy((wchar_t *)hdc[c].fn, &wp[wcslen(cfg_path)]);
+			wcscpy((wchar_t *)hdd[c].fn, &wp[wcslen(cfg_path)]);
 		} else
 #endif
         	memcpy(hdd[c].fn, wp, (wcslen(wp) << 1) + 2);
@@ -1998,14 +2002,7 @@ save_other_peripherals(void)
 		config_set_string(cat, "scsicard", scsi_card_get_internal_name(scsi_card_current));
 	}
 
-	if (!strcmp(hdc_name, "none"))
-	{
-		config_delete_var(cat, "hdc");
-	}
-	else
-	{
-	        config_set_string(cat, "hdc", hdc_name);
-	}
+        config_set_string(cat, "hdc", hdc_name);
 
 	memset(temps, '\0', sizeof(temps));
 	for (c = 2; c < 4; c++)
@@ -2043,7 +2040,6 @@ save_hard_disks(void)
 	char *cat = "Hard disks";
 	char temps[24];
 	char temps2[64];
-	char s[512];
         int c;
 	char *p;
 
@@ -2051,7 +2047,6 @@ save_hard_disks(void)
 	for (c = 0; c < HDD_NUM; c++)
 	{
 		sprintf(temps, "hdd_%02i_parameters", c+1);
-		memset(s, 0, sizeof(s));
 		if (! hdd_is_valid(c))
 		{
 			config_delete_var(cat, temps);
@@ -2310,8 +2305,9 @@ config_dump(void)
         while (sec != NULL)
         {
                 entry_t *ent;
-                
-                pclog("[%s]\n", sec->name);
+
+		if (sec->name && sec->name[0])
+                	pclog("[%s]\n", sec->name);
                 
                 ent = (entry_t *)sec->entry_head.next;
        

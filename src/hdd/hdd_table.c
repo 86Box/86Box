@@ -9,13 +9,12 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdd_table.c	1.0.2	2017/09/29
+ * Version:	@(#)hdd_table.c	1.0.3	2017/09/30
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		TheCollector1995, <mariogplayer8@gmail.com>
- *		Copyright 2008-2017 Sarah Walker.
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>

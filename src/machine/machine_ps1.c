@@ -22,7 +22,7 @@
 #include "../floppy/floppy.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
-#include "../hdd/hdd.h"
+#include "../hdd/hdc.h"
 #include "../hdd/hdc_ide.h"
 #include "../sound/snd_ps1.h"
 #include "machine_common.h"

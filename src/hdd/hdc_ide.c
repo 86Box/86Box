@@ -9,11 +9,10 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.8	2017/09/29
+ * Version:	@(#)hdc_ide.c	1.0.9	2017/09/30
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
- *		TheCollector1995, <mariogplayer8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -31,9 +30,9 @@
 #include "../device.h"
 #include "../cdrom/cdrom.h"
 #include "../scsi/scsi.h"
-#include "hdd.h"
 #include "hdc.h"
 #include "hdc_ide.h"
+#include "hdd.h"
 
 
 /* Bits of 'atastat' */
@@ -88,20 +87,17 @@ enum
 
 
 IDE ide_drives[IDE_NUM + XTIDE_NUM];
-
 IDE *ext_ide;
-
 int (*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length);
 int (*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length);
 void (*ide_bus_master_set_irq)(int channel);
-
 int idecallback[5] = {0, 0, 0, 0, 0};
-
 int cur_ide[5];
+
 
 int ide_do_log = 0;
 
-void ide_log(const char *format, ...)
+static void ide_log(const char *format, ...)
 {
 #ifdef ENABLE_IDE_LOG
    if (ide_do_log)
@@ -609,10 +605,11 @@ void ide_set_sector(IDE *ide, int64_t sector_num)
 void ide_ter_disable_cond();
 void ide_qua_disable_cond();
 
-void resetide(void)
+
+void ide_reset(void)
 {
 	int c, d;
-	
+
 	build_atapi_cdrom_map();
 
 	/* Close hard disk image files (if previously open) */
@@ -620,7 +617,8 @@ void resetide(void)
 	{
 		ide_drives[d].channel = d;
 		ide_drives[d].type = IDE_NONE;
-		hdd_image_close(ide_drives[d].hdd_num);
+		if (ide_drives[d].hdd_num != -1)
+			hdd_image_close(ide_drives[d].hdd_num);
 		if (ide_drive_is_cdrom(&ide_drives[d]))
 		{
 			cdrom[atapi_cdrom_drives[d]].status = READY_STAT | DSC_STAT;
@@ -634,6 +632,7 @@ void resetide(void)
 	idecallback[2]=idecallback[3]=0;
 	idecallback[4]=0;
 
+	pclog("IDE: start loading disks...\n");
 	c = 0;
 	for (d = 0; d < HDD_NUM; d++)
 	{
@@ -650,6 +649,7 @@ void resetide(void)
 			if (++c >= (IDE_NUM+XTIDE_NUM)) break;
 		}
 	}
+	pclog("IDE: done loading, %d disks.\n", c);
 
 	for (d = 0; d < IDE_NUM; d++)
 	{
@@ -2301,6 +2301,26 @@ void ide_qua_init(void)
 	ide_qua_enable();
 
 	timer_add(ide_callback_qua, &idecallback[3], &idecallback[3],  NULL);
+}
+
+
+/*FIXME: this will go away after Kotori's rewrite. --FvK */
+void ide_init_first(void)
+{
+	int d;
+
+	pclog("IDE: initializing...\n");
+
+	memset(ide_drives, 0x00, sizeof(ide_drives));
+	for (d = 0; d < (IDE_NUM+XTIDE_NUM); d++)
+	{
+		ide_drives[d].channel = d;
+		ide_drives[d].type = IDE_NONE;
+		ide_drives[d].hdd_num = -1;
+		ide_drives[d].atastat = READY_STAT | DSC_STAT;
+		ide_drives[d].service = 0;
+		ide_drives[d].board = d >> 1;
+	}
 }
 
 

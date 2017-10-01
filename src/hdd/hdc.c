@@ -8,7 +8,7 @@
  *
  *		Common code to handle all sorts of disk controllers.
  *
- * Version:	@(#)hdc.c	1.0.1	2017/09/29
+ * Version:	@(#)hdc.c	1.0.2	2017/09/30
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -50,6 +50,26 @@ static device_t null_device = {
 };
 
 
+static void *
+inthdc_init(void)
+{
+    return(NULL);
+}
+
+
+static void
+inthdc_close(void *priv)
+{
+}
+
+
+static device_t inthdc_device = {
+    "Internal Controller", 0,
+    inthdc_init, inthdc_close,
+    NULL, NULL, NULL, NULL, NULL
+};
+
+
 static struct {
     char	name[50];
     char	internal_name[16];
@@ -60,22 +80,30 @@ static struct {
       &null_device,				0		},
 
     { "Internal Controller",			"internal",
-      &null_device,				0		},
+      &inthdc_device,				0		},
 
-    { "IBM PC Fixed Disk Adapter (MFM,Xebec)",	"mfm_xebec",
+    { "[MFM] IBM PC Fixed Disk Adapter",	"mfm_xebec",
       &mfm_xt_xebec_device,			1		},
 
-    { "PC DTC-5150X Fixed Disk Adapter (MFM)",	"dtc5150x",
+    { "[MFM] DTC-5150X Fixed Disk Adapter",	"mfm_dtc5150x",
       &mfm_xt_dtc5150x_device,			1		},
 
-    { "IBM PC/AT Fixed Disk Adapter (WD1003)",	"mfm_at",
+    { "[MFM] IBM PC/AT Fixed Disk Adapter",	"mfm_at",
       &mfm_at_wd1003_device,			1		},
 
-    { "PC/AT ESDI Fixed Disk Adapter (WD1007V-SE1)",	"wd1007vse1",
+    { "[ESDI] PC/AT ESDI Fixed Disk Adapter",	"esdi_wd1007vse1",
       &esdi_at_wd1007vse1_device,		0		},
 
-    { "IBM PS/2 ESDI Fixed Disk Adapter (ESDI)","esdi_mca",
+    { "[ESDI] IBM PS/2 ESDI Fixed Disk Adapter","esdi_mca",
       &esdi_ps2_device,				1		},
+
+#if 0
+    { "[IDE] PC/AT IDE Adapter",		"ide_isa",
+      &ide_isa_device,				0		},
+
+    { "[IDE] PCI IDE Adapter",			"ide_pci",
+      &ide_pci_device,				0		},
+#endif
 
     { "[IDE] PC/XT XTIDE",			"xtide",
       &xtide_device		,		0		},
@@ -129,17 +157,27 @@ hdc_current_is_mfm(void)
 
 
 void
-hdc_init(char *name)
+hdc_init(void)
+{
+    pclog("HDC: initializing..\n");
+
+    hdc_current = 0;
+}
+
+
+void
+hdc_reset(char *name)
 {
     int c;
 
-    if (machines[machine].flags & MACHINE_HAS_IDE) return;
+    pclog("HDC: reset(name='%s', internal=%d)\n", name,
+	(machines[machine].flags & MACHINE_HAS_HDC)?1:0);
 
     for (c=0; controllers[c].device; c++) {
 	if (! strcmp(name, controllers[c].internal_name)) {
 		hdc_current = c;
 
-		if (strcmp(name, "none")) {
+		if (strcmp(name, "none") && strcmp(name, "internal")) {
 			device_add(controllers[c].device);
 
 			return;

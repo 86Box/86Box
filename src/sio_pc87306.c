@@ -8,7 +8,7 @@
  *
  *		Emulation of the NatSemi PC87306 Super I/O chip.
  *
- * Version:	@(#)sio_pc87306.c	1.0.5	2017/09/29
+ * Version:	@(#)sio_pc87306.c	1.0.5	2017/09/30
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -19,12 +19,13 @@
 #include <wchar.h>
 #include "ibm.h"
 #include "io.h"
+#include "device.h"
 #include "lpt.h"
 #include "serial.h"
 #include "floppy/floppy.h"
 #include "floppy/fdc.h"
 #include "floppy/fdd.h"
-#include "hdd/hdd.h"
+#include "hdd/hdc.h"
 #include "hdd/hdc_ide.h"
 #include "sio.h"
 

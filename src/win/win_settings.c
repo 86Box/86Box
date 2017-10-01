@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.14	2017/09/29
+ * Version:	@(#)win_settings.c	1.0.14	2017/09/30
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -82,8 +82,9 @@ static int temp_serial[2], temp_lpt;
 
 /* Peripherals category */
 static int temp_scsi_card, hdc_ignore, temp_ide_ter, temp_ide_ter_irq, temp_ide_qua, temp_ide_qua_irq;
-static int temp_bugger;
 static char temp_hdc_name[16];
+static char *hdc_names[16];
+static int temp_bugger;
 
 /* Hard disks category */
 static hard_disk_t temp_hdd[HDD_NUM];
@@ -96,8 +97,6 @@ static cdrom_drive_t temp_cdrom_drives[CDROM_NUM];
 
 static HWND hwndParentDialog, hwndChildDialog;
 
-int hdd_controller_current;
-
 static int displayed_category = 0;
 
 extern int is486;
@@ -109,7 +108,6 @@ static int settings_scsi_to_list[20], settings_list_to_scsi[20];
 #ifdef USE_NETWORK
 static int settings_network_to_list[20], settings_list_to_network[20];
 #endif
-static char *hdc_names[16];
 
 
 /* This does the initial read of global variables into the temporary ones. */
@@ -1385,7 +1383,7 @@ static BOOL CALLBACK win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wPa
 }
 
 
-static void recalc_hdd_list(HWND hdlg, int machine, int use_selected_hdc)
+static void recalc_hdc_list(HWND hdlg, int machine, int use_selected_hdc)
 {
 	HWND h;
 
@@ -1400,17 +1398,25 @@ static void recalc_hdd_list(HWND hdlg, int machine, int use_selected_hdc)
 
 	h = GetDlgItem(hdlg, IDC_COMBO_HDC);
 
-	if (machines[temp_machine].flags & MACHINE_HAS_IDE)
+#if 0
+	/*
+	 * We do not ignore this entry, nor do we zap the selection
+	 * list, as we might want to override the internal controller
+	 * with an external one.  --FvK 
+	 */
+	if (machines[temp_machine].flags & MACHINE_HAS_HDC)
 	{
 		hdc_ignore = 1;
 
 		SendMessage(h, CB_RESETCONTENT, 0, 0);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2154));
+		/* See above, don't disable it. */
 		EnableWindow(h, FALSE);
-		SendMessage(h, CB_SETCURSEL, 0, 0);
+		SendMessage(h, CB_SETCURSEL, 1, 0);
 	}
 	else
 	{
+#endif
 		hdc_ignore = 0;
 
 		valid = 0;
@@ -1462,11 +1468,13 @@ static void recalc_hdd_list(HWND hdlg, int machine, int use_selected_hdc)
 				c++;
 				continue;
 			}
+#if 0
 			if (c < 2)
 			{
 				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2152 + c));
 			}
 			else
+#endif
 			{
 				mbstowcs(lptsTemp, s, strlen(s) + 1);
 				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
@@ -1487,7 +1495,10 @@ static void recalc_hdd_list(HWND hdlg, int machine, int use_selected_hdc)
 		}
 
 		EnableWindow(h, TRUE);
+#if 0
+	if (machines[temp_machine].flags & MACHINE_HAS_HDC)
 	}
+#endif
 
 	free(lptsTemp);
 }
@@ -1573,7 +1584,7 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 				EnableWindow(h, FALSE);
 			}
 
-			recalc_hdd_list(hdlg, temp_machine, 0);
+			recalc_hdc_list(hdlg, temp_machine, 0);
 
 			h=GetDlgItem(hdlg, IDC_COMBO_IDE_TER);
 			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_5376));
@@ -1925,7 +1936,7 @@ static void normalize_hd_list()
 	int i, j;
 
 	j = 0;
-	memset(ihdd, 0, HDD_NUM * sizeof(hard_disk_t));
+	memset(ihdd, 0x00, HDD_NUM * sizeof(hard_disk_t));
 
 	for (i = 0; i < HDD_NUM; i++)
 	{
