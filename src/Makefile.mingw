@@ -59,6 +59,9 @@ endif
 ifndef USB
 USB	:= n
 endif
+ifndef DEV_BUILD
+DEV_BUILD := n
+endif
 ifndef DEV_BRANCH
 DEV_BRANCH := n
 endif
@@ -82,6 +85,13 @@ NETWORK := y
 endif
 ifndef X64
 X64	:= n
+endif
+
+ifeq ($(DEV_BUILD), y)
+ DEV_BRANCH	:= y
+ CIRRUS	:= y
+ NV_RIVA	:= y
+ PAS16	:= y
 endif
 
 
