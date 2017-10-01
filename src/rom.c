@@ -138,7 +138,14 @@ rom_load_linear(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
     }
 
     /* Make sure we only look at the base-256K offset. */
-    addr &= 0x03ffff;
+    if (addr >= 0x40000)
+    {
+	addr = 0;
+    }
+    else
+    {
+	addr &= 0x03ffff;
+    }
 
     (void)fseek(f, off, SEEK_SET);
     (void)fread(ptr+addr, sz, 1, f);
@@ -166,7 +173,14 @@ rom_load_interleaved(wchar_t *fnl, wchar_t *fnh, uint32_t addr, int sz, int off,
     }
 
     /* Make sure we only look at the base-256K offset. */
-    addr &= 0x03ffff;
+    if (addr >= 0x40000)
+    {
+	addr = 0;
+    }
+    else
+    {
+	addr &= 0x03ffff;
+    }
 
     (void)fseek(fl, off, SEEK_SET);
     (void)fseek(fh, off, SEEK_SET);
