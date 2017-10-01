@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.8	2017/09/30
+ * Version:	@(#)config.c	1.0.9	2017/10/01
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -44,9 +44,7 @@
 #include "hdd/hdc_ide.h"
 #include "machine/machine.h"
 #include "mouse.h"
-#ifdef USE_NETWORK
 #include "network/network.h"
-#endif
 #include "scsi/scsi.h"
 #include "win/plat_joystick.h"
 #include "win/plat_midi.h"
@@ -701,7 +699,6 @@ load_sound(void)
 }
 
 
-#ifdef USE_NETWORK
 /* Load "Network" section. */
 static void
 load_network(void)
@@ -757,7 +754,6 @@ load_network(void)
 	else
 		network_card = 0;
 }
-#endif
 
 
 /* Load "Ports" section. */
@@ -1477,10 +1473,8 @@ config_load(wchar_t *fn)
 	/* Sound */
 	load_sound();
 
-#ifdef USE_NETWORK
 	/* Network */
 	load_network();
-#endif
 
 	/* Ports (COM & LPT) */
 	load_ports();
@@ -1891,7 +1885,6 @@ save_sound(void)
 }
 
 
-#ifdef USE_NETWORK
 /* Save "Network" section. */
 static void
 save_network(void)
@@ -1935,7 +1928,6 @@ save_network(void)
 
 	delete_section_if_empty(cat);
 }
-#endif
 
 
 /* Save "Ports" section. */
@@ -2273,10 +2265,8 @@ config_save(void)
 	/* Sound */
 	save_sound();
 
-#ifdef USE_NETWORK
 	/* Network */
 	save_network();
-#endif
 
 	/* Ports (COM & LPT) */
 	save_ports();

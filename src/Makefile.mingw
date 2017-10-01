@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.49	2017/09/29
+# Version:	@(#)Makefile.mingw	1.0.50	2017/10/01
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -79,9 +79,6 @@ MUNT	:= y
 endif
 ifndef PAS16
 PAS16	:= n
-endif
-ifndef NETWORK
-NETWORK := y
 endif
 ifndef X64
 X64	:= n
@@ -194,19 +191,6 @@ MUNTOBJ		:= midi_mt32.o \
 		    Tables.o TVA.o TVF.o TVP.o sha1.o c_interface.o
 endif
 
-ifeq ($(NETWORK), y)
-CFLAGS		+= -DUSE_NETWORK
-RFLAGS		+= -DUSE_NETWORK
-NETOBJ		:= network.o \
-		    net_pcap.o \
-		    net_slirp.o \
-		     bootp.o ip_icmp.o misc.o socket.o tcp_timer.o cksum.o \
-		     ip_input.o queue.o tcp_input.o debug.o ip_output.o \
-		     sbuf.o tcp_output.o udp.o if.o mbuf.o slirp.o tcp_subr.o \
-		    net_ne2000.o
-endif
-
-
 # Options for the DEV branch.
 ifeq ($(DEV_BRANCH), y)
 CFLAGS		+= -DDEV_BRANCH
@@ -306,6 +290,14 @@ SCSIOBJ		:= scsi.o \
 		    scsi_bios_command.o scsi_device.o scsi_disk.o \
 		    scsi_buslogic.o scsi_aha154x.o
 
+NETOBJ		:= network.o \
+		    net_pcap.o \
+		    net_slirp.o \
+		     bootp.o ip_icmp.o misc.o socket.o tcp_timer.o cksum.o \
+		     ip_input.o queue.o tcp_input.o debug.o ip_output.o \
+		     sbuf.o tcp_output.o udp.o if.o mbuf.o slirp.o tcp_subr.o \
+		    net_ne2000.o
+
 SNDOBJ		:= sound.o \
 		    openal.o \
 		    dbopl.o nukedopl.o \
@@ -376,9 +368,7 @@ LIBS		:= -mwindows \
 		   -lopenal.dll \
 		   -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 \
 		   -lcomctl32 -lwinmm
-ifeq ($(NETWORK), y)
 LIBS		+= -lkernel32 -lwsock32 -liphlpapi -lpsapi
-endif
 LIBS		+= -static -lstdc++ -lgcc
 LIBS		+= -Wl,--large-address-aware
 

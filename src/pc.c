@@ -8,12 +8,14 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.14	2017/09/30
+ * Version:	@(#)pc.c	1.0.15	2017/10/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -53,9 +55,7 @@
 #include "machine/machine.h"
 #include "sound/midi.h"
 #include "mouse.h"
-#ifdef USE_NETWORK
 #include "network/network.h"
-#endif
 #include "nvr.h"
 #include "pic.h"
 #include "pit.h"
@@ -591,9 +591,7 @@ void resetpchard_init(void)
         ide_reset();
 
 	scsi_card_init();
-#ifdef USE_NETWORK
 	network_reset();
-#endif
 
         sound_card_init();
         if (mpu401_standalone_enable)
@@ -776,7 +774,5 @@ void closepc(void)
 	lpt1_device_close();
         device_close_all();
         midi_close();
-#ifdef USE_NETWORK
 	network_close();
-#endif
 }

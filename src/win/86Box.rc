@@ -8,7 +8,7 @@
  *
  *		Windows resource script.
  *
- * Version:	@(#)86Box.rc	1.0.11	2017/09/30
+ * Version:	@(#)86Box.rc	1.0.12	2017/10/01
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -135,11 +135,9 @@ BEGIN
 # ifdef ENABLE_SERIAL_LOG
         MENUITEM "Enable Serial Port logs\tCtrl+F3", IDM_LOG_SERIAL
 # endif
-#ifdef USE_NETWORK
 # ifdef ENABLE_NIC_LOG
         MENUITEM "Enable Network logs\tCtrl+F9", IDM_LOG_NIC
 # endif
-#endif
 # ifdef ENABLE_LOG_COMMANDS
 #  ifdef ENABLE_LOG_TOGGLES
 	MENUITEM SEPARATOR
@@ -343,7 +341,6 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,99,94,10
 END
 
-#ifdef USE_NETWORK
 DLG_CFG_NETWORK DIALOG DISCARDABLE  97, 0, 267, 63
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
@@ -361,7 +358,6 @@ BEGIN
                     WS_TABSTOP
     PUSHBUTTON      "Configure",IDC_CONFIGURE_NET,214,43,46,12
 END
-#endif
 
 DLG_CFG_PORTS DIALOG DISCARDABLE  97, 0, 267, 61
 STYLE DS_CONTROL | WS_CHILD
@@ -534,26 +530,17 @@ END
 177                     ICON    DISCARDABLE     "win/icons/removable_disk_active.ico"
 192                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
 193                     ICON    DISCARDABLE     "win/icons/hard_disk_active.ico"
-#ifdef USE_NETWORK
 208                     ICON    DISCARDABLE     "win/icons/network.ico"
 209                     ICON    DISCARDABLE     "win/icons/network_active.ico"
-#endif
 256                     ICON    DISCARDABLE     "win/icons/machine.ico"
 257                     ICON    DISCARDABLE     "win/icons/display.ico"
 258                     ICON    DISCARDABLE     "win/icons/input_devices.ico"
 259                     ICON    DISCARDABLE     "win/icons/sound.ico"
-#ifdef USE_NETWORK
 260                     ICON    DISCARDABLE     "win/icons/network.ico"
 261                     ICON    DISCARDABLE     "win/icons/ports.ico"
 262                     ICON    DISCARDABLE     "win/icons/other_peripherals.ico"
 263                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
 264                     ICON    DISCARDABLE     "win/icons/removable_devices.ico"
-#else
-260                     ICON    DISCARDABLE     "win/icons/ports.ico"
-261                     ICON    DISCARDABLE     "win/icons/other_peripherals.ico"
-262                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
-263                     ICON    DISCARDABLE     "win/icons/removable_devices.ico"
-#endif
 384                     ICON    DISCARDABLE     "win/icons/floppy_525_empty.ico"
 385                     ICON    DISCARDABLE     "win/icons/floppy_525_empty_active.ico"
 400                     ICON    DISCARDABLE     "win/icons/floppy_35_empty.ico"
@@ -644,7 +631,6 @@ BEGIN
         BOTTOMMARGIN, 109
     END
 
-#ifdef USE_NETWORK
     DLG_CFG_NETWORK, DIALOG
     BEGIN
         LEFTMARGIN, 7
@@ -652,7 +638,6 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 56
     END
-#endif
 
     DLG_CFG_PORTS, DIALOG
     BEGIN
@@ -721,18 +706,11 @@ BEGIN
     IDS_2066	"Display"
     IDS_2067	"Input devices"
     IDS_2068	"Sound"
-#ifdef USE_NETWORK
     IDS_2069	"Network"
     IDS_2070	"Ports (COM & LPT)"
     IDS_2071	"Other peripherals"
     IDS_2072	"Hard disks"
     IDS_2073	"Removable devices"
-#else
-    IDS_2069	"Ports (COM & LPT)"
-    IDS_2070	"Other peripherals"
-    IDS_2071	"Hard disks"
-    IDS_2072	"Removable devices"
-#endif
     IDS_2074	"Use CTRL+ALT+PAGE DOWN to return to windowed mode"
     IDS_2075	"CD-ROM images (*.ISO;*.CUE)\0*.ISO;*.CUE\0All files (*.*)\0*.*\0"
     IDS_2076	"Host CD/DVD Drive (%c:)"
@@ -816,11 +794,9 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-#ifdef USE_NETWORK
     IDS_2139	"PCap failed to set up because it may not be initialized"
     IDS_2140	"No PCap devices found"
     IDS_2141	"Invalid PCap device"
-#endif
     IDS_2142	"&Notify disk change"
     IDS_2143	"Type"
     IDS_2144	"Standard 2-button joystick(s)"

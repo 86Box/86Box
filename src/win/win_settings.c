@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.14	2017/09/30
+ * Version:	@(#)win_settings.c	1.0.15	2017/10/01
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -42,9 +42,7 @@
 #include "../hdd/hdc.h"
 #include "../hdd/hdc_ide.h"
 #include "../scsi/scsi.h"
-#ifdef USE_NETWORK
 #include "../network/network.h"
-#endif
 #include "../sound/sound.h"
 #include "../sound/midi.h"
 #include "../sound/snd_dbopl.h"
@@ -70,11 +68,9 @@ static int temp_mouse, temp_joystick;
 static int temp_sound_card, temp_midi_device, temp_mpu401, temp_SSI2001, temp_GAMEBLASTER, temp_GUS, temp_opl3_type;
 static int temp_float;
 
-#ifdef USE_NETWORK
 /* Network category */
 static int temp_net_type, temp_net_card;
 static char temp_pcap_dev[520];
-#endif
 
 /* Ports category */
 static char temp_lpt1_device_name[16];
@@ -105,9 +101,7 @@ static int settings_sound_to_list[20], settings_list_to_sound[20];
 static int settings_midi_to_list[20], settings_list_to_midi[20];
 static int settings_mouse_to_list[20], settings_list_to_mouse[20];
 static int settings_scsi_to_list[20], settings_list_to_scsi[20];
-#ifdef USE_NETWORK
 static int settings_network_to_list[20], settings_list_to_network[20];
-#endif
 
 
 /* This does the initial read of global variables into the temporary ones. */
@@ -146,13 +140,11 @@ static void win_settings_init(void)
 	temp_opl3_type = opl3_type;
 	temp_float = sound_is_float;
 
-#ifdef USE_NETWORK
 	/* Network category */
 	temp_net_type = network_type;
 	memset(temp_pcap_dev, 0, sizeof(temp_pcap_dev));
 	strcpy(temp_pcap_dev, network_pcap);
 	temp_net_card = network_card;
-#endif
 
 	/* Ports category */
 	strncpy(temp_lpt1_device_name, lpt1_device_name, sizeof(temp_lpt1_device_name) - 1);
@@ -219,12 +211,10 @@ static int win_settings_changed(void)
 	i = i || (opl3_type != temp_opl3_type);
 	i = i || (sound_is_float != temp_float);
 
-#ifdef USE_NETWORK
 	/* Network category */
 	i = i || (network_type != temp_net_type);
 	i = i || strcmp(temp_pcap_dev, network_pcap);
 	i = i || (network_card != temp_net_card);
-#endif
 
 	/* Ports category */
 	i = i || strncmp(temp_lpt1_device_name, lpt1_device_name, sizeof(temp_lpt1_device_name) - 1);
@@ -327,13 +317,11 @@ static void win_settings_save(void)
 	opl3_type = temp_opl3_type;
 	sound_is_float = temp_float;
 
-#ifdef USE_NETWORK
 	/* Network category */
 	network_type = temp_net_type;
 	memset(network_pcap, '\0', sizeof(network_pcap));
 	strcpy(network_pcap, temp_pcap_dev);
 	network_card = temp_net_card;
-#endif
 
 	/* Ports category */
 	strncpy(lpt1_device_name, temp_lpt1_device_name, sizeof(temp_lpt1_device_name) - 1);
@@ -1704,7 +1692,6 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 }
 
 
-#ifdef USE_NETWORK
 int net_ignore_message = 0;
 
 static void network_recalc_combos(HWND hdlg)
@@ -1904,7 +1891,6 @@ static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM w
 
 	return FALSE;
 }
-#endif
 
 static BOOL win_settings_hard_disks_image_list_init(HWND hwndList)
 {
@@ -4267,18 +4253,11 @@ cdrom_bus_skip:
 #define SETTINGS_PAGE_VIDEO	1
 #define SETTINGS_PAGE_INPUT	2
 #define SETTINGS_PAGE_SOUND	3
-#ifdef USE_NETWORK
 #define SETTINGS_PAGE_NETWORK	4
 #define SETTINGS_PAGE_PORTS		5
 #define SETTINGS_PAGE_PERIPHERALS	6
 #define SETTINGS_PAGE_HARD_DISKS	7
 #define SETTINGS_PAGE_REMOVABLE_DEVICES	8
-#else
-#define SETTINGS_PAGE_PORTS		4
-#define SETTINGS_PAGE_PERIPHERALS	5
-#define SETTINGS_PAGE_HARD_DISKS	6
-#define SETTINGS_PAGE_REMOVABLE_DEVICES	7
-#endif
 
 void win_settings_show_child(HWND hwndParent, DWORD child_id)
 {
@@ -4309,11 +4288,9 @@ void win_settings_show_child(HWND hwndParent, DWORD child_id)
 		case SETTINGS_PAGE_SOUND:
 			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_SOUND, hwndParent, win_settings_sound_proc);
 			break;
-#ifdef USE_NETWORK
 		case SETTINGS_PAGE_NETWORK:
 			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_NETWORK, hwndParent, win_settings_network_proc);
 			break;
-#endif
 		case SETTINGS_PAGE_PORTS:
 			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_PORTS, hwndParent, win_settings_ports_proc);
 			break;
@@ -4345,11 +4322,7 @@ static BOOL win_settings_main_image_list_init(HWND hwndList)
                                   GetSystemMetrics(SM_CYSMICON),
                                   ILC_MASK | ILC_COLOR32, 1, 1);
 
-#ifdef USE_NETWORK
 	for (i = 0; i < 9; i++)
-#else
-	for (i = 0; i < 8; i++)
-#endif
 	{
 		hiconItem = LoadIcon(hinstance, (LPCWSTR) (256 + i));
 		ImageList_AddIcon(hSmall, hiconItem);
@@ -4369,11 +4342,7 @@ static BOOL win_settings_main_insert_categories(HWND hwndList)
 	lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
 	lvI.stateMask = lvI.iSubItem = lvI.state = 0;
 
-#ifdef USE_NETWORK
 	for (i = 0; i < 9; i++)
-#else
-	for (i = 0; i < 8; i++)
-#endif
 	{
 		lvI.pszText = win_language_get_settings_category(i);
 		lvI.iItem = i;
@@ -4419,11 +4388,7 @@ static BOOL CALLBACK win_settings_main_proc(HWND hdlg, UINT message, WPARAM wPar
 			if ((((LPNMHDR)lParam)->code == LVN_ITEMCHANGED) && (((LPNMHDR)lParam)->idFrom == IDC_SETTINGSCATLIST))
 			{
 				category = -1;
-#ifdef USE_NETWORK
 				for (i = 0; i < 9; i++)
-#else
-				for (i = 0; i < 8; i++)
-#endif
 				{
 					h = GetDlgItem(hdlg, IDC_SETTINGSCATLIST);
 					j = ListView_GetItemState(h, i, LVIS_SELECTED);
