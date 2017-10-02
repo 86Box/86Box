@@ -9,7 +9,7 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.c	1.0.4	2017/09/24
+ * Version:	@(#)device.c	1.0.4	2017/10/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -49,7 +49,6 @@ void device_add(device_t *d)
         
 	while (devices[c] != NULL && c < 256)
                 c++;
-        
 	if (c >= DEVICE_MAX)
                 fatal("device_add : too many devices\n");
         

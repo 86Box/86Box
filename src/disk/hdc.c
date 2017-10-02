@@ -8,7 +8,7 @@
  *
  *		Common code to handle all sorts of disk controllers.
  *
- * Version:	@(#)hdc.c	1.0.2	2017/09/30
+ * Version:	@(#)hdc.c	1.0.2	2017/10/01
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -26,8 +26,8 @@
 #include "hdc.h"
 
 
-char		hdc_name[16];
-int		hdc_current;
+char	hdc_name[16];		/* configured HDC name */
+int	hdc_current;
 
 
 static void *
@@ -121,6 +121,36 @@ static struct {
 };
 
 
+/* Initialize the 'hdc_current' value based on configured HDC name. */
+void
+hdc_init(char *name)
+{
+    int c;
+
+    pclog("HDC: initializing..\n");
+
+    for (c=0; controllers[c].device; c++) {
+	if (! strcmp(name, controllers[c].internal_name)) {
+		hdc_current = c;
+		break;
+	}
+    }
+}
+
+
+/* Reset the HDC, whichever one that is. */
+void
+hdc_reset(void)
+{
+    pclog("HDC: reset(current=%d, internal=%d)\n",
+	hdc_current, (machines[machine].flags & MACHINE_HAS_HDC)?1:0);
+
+    /* If we have a valid controller, add its device. */
+    if (hdc_current > 1)
+	device_add(controllers[hdc_current].device);
+}
+
+
 char *
 hdc_get_name(int hdc)
 {
@@ -153,35 +183,4 @@ int
 hdc_current_is_mfm(void)
 {
     return(controllers[hdc_current].is_mfm);
-}
-
-
-void
-hdc_init(void)
-{
-    pclog("HDC: initializing..\n");
-
-    hdc_current = 0;
-}
-
-
-void
-hdc_reset(char *name)
-{
-    int c;
-
-    pclog("HDC: reset(name='%s', internal=%d)\n", name,
-	(machines[machine].flags & MACHINE_HAS_HDC)?1:0);
-
-    for (c=0; controllers[c].device; c++) {
-	if (! strcmp(name, controllers[c].internal_name)) {
-		hdc_current = c;
-
-		if (strcmp(name, "none") && strcmp(name, "internal")) {
-			device_add(controllers[c].device);
-
-			return;
-		}
-        }
-    }
 }

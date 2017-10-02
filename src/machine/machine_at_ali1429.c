@@ -10,8 +10,8 @@
 #include "../io.h"
 #include "../mem.h"
 #include "../device.h"
-#include "../hdd/hdc.h"
-#include "../hdd/hdc_ide.h"
+#include "../disk/hdc.h"
+#include "../disk/hdc_ide.h"
 #include "machine_at.h"
 #include "machine_at_ali1429.h"
 

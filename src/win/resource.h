@@ -10,8 +10,9 @@
  *
  * NOTE:	FIXME: Strings 2176 and 2193 are same.
  * NOTE:	FIXME: string 2095 not in use.
+ * NOTE:	FIXME: strings 2152-2154 not in use.
  *
- * Version:	@(#)resource.h	1.0.6	2017/09/23
+ * Version:	@(#)resource.h	1.0.8	2017/10/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -308,8 +309,10 @@
 #define IDS_2150		2150	// "Thrustmaster Flight Control System"
 #define IDS_2151		2151	// "Disabled"
 #define IDS_2152		2152	// "None"
-#define IDS_2153		2153	// "AT Fixed Disk Adapter"
-#define IDS_2154		2154	// "Internal IDE"
+#if NOTUSED
+#define IDS_2153		2153
+#define IDS_2154		2154
+#endif
 #define IDS_2155		2155	// "IRQ %i"
 #define IDS_2156		2156	// "MFM (%01i:%01i)"
 #define IDS_2157		2157	// "IDE (PIO+DMA) (%01i:%01i)"

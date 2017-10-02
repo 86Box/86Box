@@ -10,11 +10,11 @@
 #include "device.h"
 #include "pci.h"
 #include "keyboard_at.h"
+#include "cdrom/cdrom.h"
+#include "disk/hdc.h"
+#include "disk/hdc_ide.h"
 #include "floppy/floppy.h"
 #include "floppy/fdc.h"
-#include "hdd/hdc.h"
-#include "hdd/hdc_ide.h"
-#include "cdrom/cdrom.h"
 
 
 static uint64_t pci_irq_hold[16];

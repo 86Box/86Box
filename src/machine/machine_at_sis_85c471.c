@@ -24,11 +24,11 @@
 #include "../device.h"
 #include "../lpt.h"
 #include "../serial.h"
+#include "../disk/hdc.h"
+#include "../disk/hdc_ide.h"
 #include "../floppy/floppy.h"
 #include "../floppy/fdc.h"
 #include "../floppy/fdd.h"
-#include "../hdd/hdc.h"
-#include "../hdd/hdc_ide.h"
 #include "machine_at.h"
 #include "machine_at_sis_85c471.h"
 

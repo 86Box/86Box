@@ -120,11 +120,13 @@ void io_removehandler(uint16_t base, int size,
         }
 }
 
+#if 0
 uint8_t cgamode,cgastat=0,cgacol;
 int hsync;
 uint8_t lpt2dat;
 int sw9;
 int t237=0;
+#endif
 uint8_t inb(uint16_t port)
 {
         uint8_t temp = 0xff;

@@ -10,7 +10,7 @@
  *
  * !!!NOTE!!!	The goal is to GET RID of this file.  Do NOT add stuff !!
  *
- * Version:	@(#)ibm.h	1.0.6	2017/09/29
+ * Version:	@(#)ibm.h	1.0.7	2017/10/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -526,10 +526,6 @@ extern uint64_t timer_freq;
 
 extern int infocus;
 
-extern void onesec(void);
-
-extern void resetpc_cad(void);
-extern void ctrl_alt_esc(void);
 
 extern int dump_on_exit;
 extern int start_in_fullscreen;
@@ -589,8 +585,24 @@ extern int scale;
 
 
 /* Function prototypes. */
+extern void	pclog(const char *format, ...);
+extern void	pclog_w(const wchar_t *format, ...);
+extern void	fatal(const char *format, ...);
+extern void	pc_init_modules(void);
+extern void	pc_init(int argc, wchar_t *argv[]);
+extern void	pc_close(void);
+extern void	resetpchard_close(void);
+extern void	resetpchard_init(void);
+extern void	pc_reset_hard(void);
+extern void	pc_full_speed(void);
+extern void	pc_speed_changed(void);
+extern void	pc_send_cad(void);
+extern void	pc_send_cae(void);
+extern void	pc_run(void);
+extern void	onesec(void);
+
+
 extern int	checkio(int port);
-extern void	closepc(void);
 extern void	codegen_block_end(void);
 extern void	codegen_reset(void);
 extern void	cpu_set_edx(void);
@@ -602,12 +614,9 @@ extern void	execx86(int cycs);
 extern void	flushmmucache(void);
 extern void	flushmmucache_cr3(void);
 extern int	idivl(int32_t val);
-extern void	initmodules(void);
-extern void	initpc(int argc, wchar_t *argv[]);
 extern void	loadcscall(uint16_t seg);
 extern void	loadcsjmp(uint16_t seg, uint32_t oxpc);
 extern void	mmu_invalidate(uint32_t addr);
-extern void	pclog(const char *format, ...);
 extern void	pmodeint(int num, int soft);
 extern void	pmoderetf(int is32, uint16_t off);
 extern void	pmodeiret(int is32);
@@ -615,14 +624,9 @@ extern void	port_92_clear_reset(void);
 extern uint8_t	readdacfifo(void);
 extern void	refreshread(void);
 extern void	resetmcr(void);
-extern void	resetpchard_close(void);
-extern void	resetpchard_init(void);
-extern void	resetpchard(void);
 extern void	resetreadlookup(void);
 extern void	resetx86(void);
-extern void	runpc(void);
 extern void	softresetx86(void);
-extern void	speedchanged(void);
 extern void	x86_int_sw(int num);
 extern int	x86_int_sw_rm(int num);
 extern void	x86gpf(char *s, uint16_t error);
@@ -633,10 +637,6 @@ extern void	x87_dumpregs(void);
 extern void	x87_reset(void);
 
 /* Platform functions. */
-extern void	pclog(const char *format, ...);
-extern void	pclog_w(const wchar_t *format, ...);
-extern void	fatal(const char *format, ...);
-
 extern void	update_status_bar_icon(int tag, int active);
 extern void	update_status_bar_icon_state(int tag, int state);
 extern void	status_settextw(wchar_t *wstr);

@@ -96,11 +96,11 @@ endif
 #		Nothing should need changing from here on..		#
 #########################################################################
 VPATH		:= $(EXPATH) . cpu \
-		   cdrom floppy game hdd machine \
+		   cdrom disk floppy game machine \
 		   sound \
-			    sound/munt sound/munt/c_interface sound/munt/sha1 \
-		     sound/munt/srchelper \
-		     sound/resid-fp \
+		    sound/munt sound/munt/c_interface sound/munt/sha1 \
+		    sound/munt/srchelper \
+		    sound/resid-fp \
 		   scsi video lzf network network/slirp win
 PLAT		:= win/
 ifeq ($(X64), y)

@@ -43,11 +43,11 @@
 #include "../cdrom/cdrom_ioctl.h"
 #include "../cdrom/cdrom_image.h"
 #include "../cdrom/cdrom_null.h"
+#include "../disk/hdd.h"
+#include "../disk/hdc.h"
+#include "../disk/hdc_ide.h"
 #include "../floppy/floppy.h"
 #include "../floppy/fdd.h"
-#include "../hdd/hdd.h"
-#include "../hdd/hdc.h"
-#include "../hdd/hdc_ide.h"
 #include "../scsi/scsi.h"
 #include "../scsi/scsi_disk.h"
 #include "../network/network.h"
@@ -158,7 +158,6 @@ static int	*sb_icon_flags;
 static int	*sb_part_meanings;
 static int	*sb_part_icons;
 static WCHAR	**sbTips;
-
 static int	sb_parts = 0;
 static int	sb_ready = 0;
 
@@ -334,7 +333,7 @@ void mainthread(LPVOID param)
                 {
 			start_time = timer_read();
                         drawits-=10;        if (drawits>50) drawits=0;
-                        runpc();
+                        pc_run();
                         frames++;
                         if (frames >= 200 && nvr_dosave)
                         {
@@ -496,7 +495,7 @@ static void init_cdrom_host_drives(void)
 }
 
 
-HMENU create_popup_menu(int part)
+static HMENU create_popup_menu(int part)
 {
 	HMENU newHandle;
 	newHandle = CreatePopupMenu();
@@ -505,7 +504,7 @@ HMENU create_popup_menu(int part)
 }
 
 
-void create_floppy_submenu(HMENU m, int id)
+static void create_floppy_submenu(HMENU m, int id)
 {
 	AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_NEW | id, win_language_get_string_from_id(IDS_2161));
 	AppendMenu(m, MF_SEPARATOR, 0, 0);
@@ -515,7 +514,7 @@ void create_floppy_submenu(HMENU m, int id)
 	AppendMenu(m, MF_STRING, IDM_FLOPPY_EJECT | id, win_language_get_string_from_id(IDS_2164));
 }
 
-void create_cdrom_submenu(HMENU m, int id)
+static void create_cdrom_submenu(HMENU m, int id)
 {
 	int i = 0;
         WCHAR s[64];
@@ -579,7 +578,7 @@ check_menu_items:
 	}
 }
 
-void create_removable_disk_submenu(HMENU m, int id)
+static void create_removable_disk_submenu(HMENU m, int id)
 {
 	AppendMenu(m, MF_STRING, IDM_RDISK_EJECT | id, win_language_get_string_from_id(IDS_2166));
 	AppendMenu(m, MF_STRING, IDM_RDISK_RELOAD | id, win_language_get_string_from_id(IDS_2167));
@@ -1621,79 +1620,81 @@ void reset_menus(void)
 
 int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpszArgument, int nFunsterStil)
 {
-	HWND hwnd;					/* This is the handle for our window */
-	MSG messages;					/* Here messages to the application are saved */
-	WNDCLASSEX wincl;				/* Data structure for the windowclass */
+	HWND hwnd;			/* handle for our window */
+	MSG messages;			/* received-messages buffer */
+	WNDCLASSEX wincl;		/* buffer for main window's class */
+	HACCEL haccel;			/* handle to accelerator table */
 	int c, d, bRet;
-	WCHAR emulator_title[200];
+	WCHAR title[200];
 	LARGE_INTEGER qpc_freq;
-	HACCEL haccel;					/* Handle to accelerator table */
+
+	/* Process the command line for options. */
+	process_command_line();
 
 	memset(recv_key, 0, sizeof(recv_key));
 
-	process_command_line();
-
 	win_language_load_common_strings();
 
-	hinstance=hThisInstance;
-	/* The Window structure */
+	/* The Window structure. */
+	hinstance = hThisInstance;
 	wincl.hInstance = hThisInstance;
 	wincl.lpszClassName = szClassName;
-	wincl.lpfnWndProc = WindowProcedure;		/* This function is called by windows */
-	wincl.style = CS_DBLCLKS;			/* Catch double-clicks */
+	wincl.lpfnWndProc = WindowProcedure;	/* called by Windows */
+	wincl.style = CS_DBLCLKS;		/* Catch double-clicks */
 	wincl.cbSize = sizeof (WNDCLASSEX);
 
-	/* Use default icon and mouse-pointer */
+	/* Use default icon and mouse-pointer. */
 	wincl.hIcon = LoadIcon(hinstance, (LPCTSTR) 100);
 	wincl.hIconSm = LoadIcon(hinstance, (LPCTSTR) 100);
 	wincl.hCursor = NULL;
-	wincl.lpszMenuName = NULL;			/* No menu */
-	wincl.cbClsExtra = 0;				/* No extra bytes after the window class */
-	wincl.cbWndExtra = 0;				/* structure or the window instance */
-	/* Use Windows's default color as the background of the window */
+	wincl.lpszMenuName = NULL;	/* no menu */
+	wincl.cbClsExtra = 0;		/* no extra bytes after window class */
+	wincl.cbWndExtra = 0;		/* structure or the window instance */
+
+	/* Use Windows's default color as the background of the window. */
 	wincl.hbrBackground = (HBRUSH) COLOR_BACKGROUND;
 
-	/* Register the window class, and if it fails quit the program */
-	if (!RegisterClassEx(&wincl))
-	{
-		return 0;
+	/* Register the window class, and if it fails quit the program. */
+	if (! RegisterClassEx(&wincl)) {
+		return(0);
 	}
 
 	wincl.lpszClassName = szSubClassName;
-	wincl.lpfnWndProc = subWindowProcedure;		/* This function is called by windows */
-
-	if (!RegisterClassEx(&wincl))
-	{
-		return 0;
+	wincl.lpfnWndProc = subWindowProcedure;	/* called by Windows */
+	if (! RegisterClassEx(&wincl)) {
+		return(0);
 	}
 
 	menu = LoadMenu(hThisInstance, TEXT("MainMenu"));
 
-	_swprintf(emulator_title, L"%s v%s", EMU_NAME_W, EMU_VERSION_W);
+	_swprintf(title, L"%s v%s", EMU_NAME_W, EMU_VERSION_W);
 
 	/* The class is registered, let's create the program*/
 	hwnd = CreateWindowEx (
-		0,                   /* Extended possibilites for variation */
-		szClassName,         /* Classname */
-		emulator_title,      /* Title Text */
-		(WS_OVERLAPPEDWINDOW & ~WS_SIZEBOX)/* | DS_3DLOOK*/, /* default window */
+		0,			/* no extended possibilites */
+		szClassName,		/* class name */
+		title,			/* Title Text */
+#if 0
+		(WS_OVERLAPPEDWINDOW & ~WS_SIZEBOX),	/* default window */
+#else
+		(WS_OVERLAPPEDWINDOW & ~WS_SIZEBOX) | DS_3DLOOK,
+#endif
 		CW_USEDEFAULT,       /* Windows decides the position */
-		CW_USEDEFAULT,       /* where the window ends up on the screen */
-		640+(GetSystemMetrics(SM_CXFIXEDFRAME)*2),                 /* The programs width */
-		480+(GetSystemMetrics(SM_CYFIXEDFRAME)*2)+GetSystemMetrics(SM_CYMENUSIZE)+GetSystemMetrics(SM_CYCAPTION)+1,                 /* and height in pixels */
-		HWND_DESKTOP,        /* The window is a child-window to desktop */
-		menu,                /* Menu */
+		CW_USEDEFAULT,       /* where window ends up on the screen */
+		640+(GetSystemMetrics(SM_CXFIXEDFRAME)*2),	/* width */
+		480+(GetSystemMetrics(SM_CYFIXEDFRAME)*2)+GetSystemMetrics(SM_CYMENUSIZE)+GetSystemMetrics(SM_CYCAPTION)+1,	/* and height in pixels */
+		HWND_DESKTOP,        /* window is a child to desktop */
+		menu,                /* menu */
 		hThisInstance,       /* Program Instance handler */
-		NULL                 /* No Window Creation data */
+		NULL                 /* no Window Creation data */
         );
 
-	/* Make the window visible on the screen */
-	ShowWindow (hwnd, nFunsterStil);
+	/* Make the window visible on the screen. */
+	ShowWindow(hwnd, nFunsterStil);
 
 	/* Load the accelerator table */
 	haccel = LoadAccelerators(hinstAcc, L"MainAccel");
-	if (haccel == NULL)
-	{
+	if (haccel == NULL) {
 		fatal("haccel is null\n");
 	}
 
@@ -1701,38 +1702,37 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
 	device.usUsage = 0x06;
 	device.dwFlags = RIDEV_NOHOTKEYS;
 	device.hwndTarget = hwnd;
-	
-	if (RegisterRawInputDevices(&device, 1, sizeof(device)))
-	{
+	if (RegisterRawInputDevices(&device, 1, sizeof(device))) {
 		pclog("Raw input registered!\n");
-	}
-	else
-	{
+	} else {
 		pclog("Raw input registration failed!\n");
 	}
 
 	get_registry_key_map();
 
-        ghwnd=hwnd;
+        ghwnd = hwnd;
 
-	hwndRender = CreateWindow(L"STATIC", NULL, WS_VISIBLE | WS_CHILD | SS_BITMAP, 0, 0, 1, 1, ghwnd, NULL, hinstance, NULL);
+	hwndRender = CreateWindow(L"STATIC", NULL,
+				  WS_VISIBLE|WS_CHILD|SS_BITMAP,
+				  0, 0, 1, 1, ghwnd, NULL, hinstance, NULL);
 
 
 /* FIXME: Kotori, code below should be moved to pc.c, as its not Win specific. */
-        initpc(argc, argv);
+	/* Pre-initialize the system, this loads the config file. */
+        pc_init(argc, argv);
 
         init_cdrom_host_drives();
 
 	network_init();
 
+	/* Now that we know our window sizes, adjust to that. */
 	hwndStatus = EmulatorStatusBar(hwnd, IDC_STATUS, hThisInstance);
-
 	OriginalStatusBarProcedure = GetWindowLongPtr(hwndStatus, GWLP_WNDPROC);
 	SetWindowLongPtr(hwndStatus, GWL_WNDPROC, (LONG_PTR) &StatusBarProcedure);
 
 	smenu = LoadMenu(hThisInstance, TEXT("StatusBarMenu"));
 
-	initmodules();
+	pc_init_modules();
 
 	if (vid_apis[0][vid_api].init(hwndRender) == 0)
 	{
@@ -1746,8 +1746,12 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
 		}
 	}
 
-        if (vid_resize) SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW&~WS_MINIMIZEBOX)|WS_VISIBLE);
-        else            SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW&~WS_SIZEBOX&~WS_THICKFRAME&~WS_MAXIMIZEBOX&~WS_MINIMIZEBOX)|WS_VISIBLE);
+        if (vid_resize)
+		SetWindowLongPtr(hwnd, GWL_STYLE,
+			(WS_OVERLAPPEDWINDOW&~WS_MINIMIZEBOX)|WS_VISIBLE);
+        else
+		SetWindowLongPtr(hwnd, GWL_STYLE,
+			(WS_OVERLAPPEDWINDOW&~WS_SIZEBOX&~WS_THICKFRAME&~WS_MAXIMIZEBOX&~WS_MINIMIZEBOX)|WS_VISIBLE);
 
 	reset_menus();
 
@@ -1771,7 +1775,16 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
         }
 	pclog("A total of %d ROM sets have been loaded.\n", d);
 
-	/* Load the ROMs for the selected machine. */
+	/*
+	 * Load the ROMs for the selected machine.
+	 *
+	 * FIXME:
+	 * We should not do that here.  If something turns out
+	 * to be wrong with the configuration (such as missing
+	 * ROM images, we should just display a fatal message
+	 * in the render window's center, let them click OK,
+	 * and then exit so they can remedy the situation.
+	 */
         if (! rom_load_bios(romset)) {
 		/* Whoops, ROMs not found. */
                 if (romset!=-1)
@@ -1787,17 +1800,14 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
                                 romset = c;
                                 machine = machine_getmachine(romset);
                                 config_save();
-                                resetpchard();
+                                pc_reset_hard();
                                 break;
                         }
                 }
         }
         
 	for (c = 0; c < GFX_MAX; c++)
-	{
 		gfx_present[c] = video_card_available(video_old_to_new(c));
-	}
-
         if (!video_card_available(video_old_to_new(gfxcard)))
         {
                 if (romset!=-1)
@@ -1810,14 +1820,17 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
                         {
                                 gfxcard = c;
                                 config_save();
-                                resetpchard();
+                                pc_reset_hard();
                                 break;
                         }
                 }
         }
 
+	/* Load the selected machine's BIOS. */
         rom_load_bios(romset);
-        resetpchard();
+
+	/* Perform a hard reset to start the machine. */
+        pc_reset_hard();
         
         timeBeginPeriod(1);
         
@@ -1845,65 +1858,57 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
                 endblit();
                 device_force_redraw();
         }
-        if (window_remember)
-        {
-                MoveWindow(hwnd, window_x, window_y,
-                        window_w,
-                        window_h,
-                        TRUE);
-        }
-	else
-	{
-		MoveWindow(hwndRender, 0, 0,
-			winsizex,
-			winsizey,
-			TRUE);
-		MoveWindow(hwndStatus, 0, winsizey + 6,
-			winsizex,
-			17,
-			TRUE);
+
+        if (window_remember) {
+                MoveWindow(hwnd, window_x, window_y, window_w, window_h, TRUE);
+        } else {
+		MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
+		MoveWindow(hwndStatus, 0, winsizey+6, winsizex, 17, TRUE);
 	}
                         
         /* Run the message loop. It will run until GetMessage() returns 0 */
-        while (!quited)
+        while (! quited)
         {
-                while (((bRet = GetMessage(&messages,NULL,0,0)) != 0) && !quited)
-                {
-			if (bRet == -1)
-			{
-				fatal("bRet is -1\n");
-			}
+                bRet = GetMessage(&messages, NULL, 0, 0);
+		if ((bRet == 0) || quited) break;
 
-                        if (messages.message==WM_QUIT) quited=1;
-			if (!TranslateAccelerator(hwnd, haccel, &messages))
-			{
-	                        TranslateMessage(&messages);
-	                        DispatchMessage(&messages);
-			}
-
-	                if (recv_key[0x58] && recv_key[0x42] && mousecapture)
-	                {
-	                        ClipCursor(&oldclip);
-	                        ShowCursor(TRUE);
-	                        mousecapture=0;
-	                }
-
-		         if ((recv_key[0x1D] || recv_key[0x9D]) && (recv_key[0x38] || recv_key[0xB8]) && (recv_key[0x51] || recv_key[0xD1]) &&
-		              video_fullscreen)
-			{
-				leave_fullscreen();
-	                }
+		if (bRet == -1) {
+			fatal("bRet is -1\n");
 		}
 
-                quited=1;
+                if (messages.message == WM_QUIT) {
+			quited = 1;
+			break;
+		}
+
+		if (! TranslateAccelerator(hwnd, haccel, &messages)) {
+	                TranslateMessage(&messages);
+	                DispatchMessage(&messages);
+		}
+
+                if (recv_key[0x58] && recv_key[0x42] && mousecapture) {
+			ClipCursor(&oldclip);
+			ShowCursor(TRUE);
+			mousecapture = 0;
+	        }
+
+	         if ((recv_key[0x1D] || recv_key[0x9D]) &&
+		     (recv_key[0x38] || recv_key[0xB8]) &&
+		     (recv_key[0x51] || recv_key[0xD1]) && video_fullscreen) {
+			leave_fullscreen();
+                }
         }
         
         startblit();
+
         Sleep(200);
-        TerminateThread(mainthreadh,0);
+        TerminateThread(mainthreadh, 0);
+
         savenvr();
+
 	config_save();
-        closepc();
+
+        pc_close();
 
         vid_apis[video_fullscreen][vid_api].close();
         
@@ -1917,8 +1922,9 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
         UnregisterClass(szSubClassName, hinstance);
         UnregisterClass(szClassName, hinstance);
 
-        return messages.wParam;
+        return(messages.wParam);
 }
+
 
 HHOOK hKeyboardHook;
 int hook_enabled = 0;
@@ -1935,30 +1941,44 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 	
 	p = (KBDLLHOOKSTRUCT*)lParam;
 
-        if (p->vkCode == VK_TAB && p->flags & LLKHF_ALTDOWN) return 1; /* disable alt-tab */
-        if (p->vkCode == VK_SPACE && p->flags & LLKHF_ALTDOWN) return 1; /* disable alt-tab */
-	if((p->vkCode == VK_LWIN) || (p->vkCode == VK_RWIN)) return 1; /* disable windows keys */
-	if (p->vkCode == VK_ESCAPE && p->flags & LLKHF_ALTDOWN) return 1; /* disable alt-escape */
-	bControlKeyDown = GetAsyncKeyState (VK_CONTROL) >> ((sizeof(SHORT) * 8) - 1); /* checks ctrl key pressed */
-	if (p->vkCode == VK_ESCAPE && bControlKeyDown) return 1; /* disable ctrl-escape */
+	/* disable alt-tab */
+        if (p->vkCode == VK_TAB && p->flags & LLKHF_ALTDOWN) return 1;
+
+	/* disable alt-space */
+        if (p->vkCode == VK_SPACE && p->flags & LLKHF_ALTDOWN) return 1;
+
+	/* disable alt-escape */
+	if (p->vkCode == VK_ESCAPE && p->flags & LLKHF_ALTDOWN) return 1;
+
+	/* disable windows keys */
+	if((p->vkCode == VK_LWIN) || (p->vkCode == VK_RWIN)) return 1;
+
+	/* checks ctrl key pressed */
+	bControlKeyDown = GetAsyncKeyState(VK_CONTROL)>>((sizeof(SHORT)*8)-1);
+
+	/* disable ctrl-escape */
+	if (p->vkCode == VK_ESCAPE && bControlKeyDown) return 1;
 
 	return CallNextHookEx( hKeyboardHook, nCode, wParam, lParam );
 }
 
-void cdrom_close(uint8_t id)
+
+void
+cdrom_close(uint8_t id)
 {
-	switch (cdrom_drives[id].host_drive)
-	{
-		case 0:
-			null_close(id);
-			break;
-		default:
-			ioctl_close(id);
-			break;
-		case 200:
-			image_close(id);
-			break;
-	}
+    switch (cdrom_drives[id].host_drive) {
+	case 0:
+		null_close(id);
+		break;
+
+	case 200:
+		image_close(id);
+		break;
+
+	default:
+		ioctl_close(id);
+		break;
+    }
 }
 
 static BOOL CALLBACK about_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -1994,22 +2014,26 @@ void about_open(HWND hwnd)
 	DialogBox(hinstance, (LPCTSTR)DLG_ABOUT, hwnd, about_dlgproc);
 }
 
-static void win_pc_reset(int hard)
+
+static void
+win_pc_reset(int hard)
 {
-	pause=1;
-	Sleep(100);
-	savenvr();
-	config_save();
-	if (hard)
-	{
-		resetpchard();
-	}
-	else
-	{
-		resetpc_cad();
-	}
-	pause=0;
+    pause = 1;
+
+    Sleep(100);
+
+    savenvr();
+
+    config_save();
+
+    if (hard)
+	pc_reset_hard();
+      else
+	pc_send_cad();
+
+    pause = 0;
 }
+
 
 void video_toggle_option(HMENU hmenu, int *val, int id)
 {
@@ -2021,6 +2045,7 @@ void video_toggle_option(HMENU hmenu, int *val, int id)
 	config_save();
 	device_force_redraw();
 }
+
 
 LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -2054,11 +2079,11 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					break;
 
 				case IDM_ACTION_EXIT:
-					PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
+					PostQuitMessage(0);
 					break;
 
 				case IDM_ACTION_CTRL_ALT_ESC:
-					ctrl_alt_esc();
+					pc_send_cae();
 					break;
 
 				case IDM_ACTION_PAUSE:

@@ -358,7 +358,7 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
 
                                 config_save();
                         
-                                resetpchard();
+                                pc_reset_hard();
 
                                 EndDialog(hdlg, 0);
                                 return TRUE;

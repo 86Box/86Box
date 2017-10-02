@@ -8,7 +8,7 @@
  *
  *		Windows IO device menu handler.
  *
- * Version:	@(#)win_iodev.c	1.0.4	2017/09/29
+ * Version:	@(#)win_iodev.c	1.0.4	2017/10/01
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -36,7 +36,7 @@
 #include "../cdrom/cdrom_image.h"
 #include "../cdrom/cdrom_ioctl.h"
 #include "../cdrom/cdrom_null.h"
-#include "../hdd/hdd.h"
+#include "../disk/hdd.h"
 #include "../scsi/scsi_disk.h"
 #include "plat_iodev.h"
 #include "win.h"

@@ -21,7 +21,7 @@
  *		already on their way out, the newer IDE standard based on the
  *		PC/AT controller and 16b design became the IDE we now know.
  *
- * Version:	@(#)xtide.c	1.0.5	2017/09/29
+ * Version:	@(#)xtide.c	1.0.6	2017/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -44,10 +44,10 @@
 #include "hdc_ide.h"
 
 
-#define XT_ROM_PATH	L"roms/hdd/xtide/ide_xt.bin"
-#define AT_ROM_PATH	L"roms/hdd/xtide/ide_at.bin"
-#define PS2_ROM_PATH	L"roms/hdd/xtide/SIDE1V12.BIN"
-#define PS2AT_ROM_PATH	L"roms/hdd/xtide/ide_at_1_1_5.bin"
+#define ROM_PATH_XT	L"roms/hdd/xtide/ide_xt.bin"
+#define ROM_PATH_AT	L"roms/hdd/xtide/ide_at.bin"
+#define ROM_PATH_PS2	L"roms/hdd/xtide/SIDE1V12.BIN"
+#define ROM_PATH_PS2AT	L"roms/hdd/xtide/ide_at_1_1_5.bin"
 
 
 typedef struct {
@@ -91,13 +91,13 @@ static uint8_t
 xtide_read(uint16_t port, void *priv)
 {
     xtide_t *xtide = (xtide_t *)priv;
-    uint16_t tempw;
+    uint16_t tempw = 0xffff;
 
     switch (port & 0xf) {
 	case 0x0:
 		tempw = readidew(4);
 		xtide->data_high = tempw >> 8;
-		return(tempw & 0xff);
+		break;
 
 	case 0x1:
 	case 0x2:
@@ -106,17 +106,22 @@ xtide_read(uint16_t port, void *priv)
 	case 0x5:
 	case 0x6:
 	case 0x7:
-		return(readide(4, (port  & 0xf) | 0x1f0));
+		tempw = readide(4, (port  & 0xf) | 0x1f0);
+		break;
 
 	case 0x8:
-		return(xtide->data_high);
+		tempw = xtide->data_high;
+		break;
 
 	case 0xe:
-		return(readide(4, 0x3f6));
+		tempw = readide(4, 0x3f6);
+		break;
 
 	default:
-		return(0xff);
+		break;
     }
+
+    return(tempw & 0xff);
 }
 
 
@@ -127,7 +132,7 @@ xtide_init(void)
 
     memset(xtide, 0x00, sizeof(xtide_t));
 
-    rom_init(&xtide->bios_rom, XT_ROM_PATH,
+    rom_init(&xtide->bios_rom, ROM_PATH_XT,
 	     0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
     ide_xtide_init();
@@ -135,7 +140,7 @@ xtide_init(void)
     io_sethandler(0x0300, 16,
 		  xtide_read, NULL, NULL,
 		  xtide_write, NULL, NULL, xtide);
-        
+
     return(xtide);
 }
 
@@ -143,7 +148,7 @@ xtide_init(void)
 static int
 xtide_available(void)
 {
-    return(rom_present(XT_ROM_PATH));
+    return(rom_present(ROM_PATH_XT));
 }
 
 
@@ -154,7 +159,7 @@ xtide_at_init(void)
 
     memset(xtide, 0x00, sizeof(xtide_t));
 
-    rom_init(&xtide->bios_rom, AT_ROM_PATH,
+    rom_init(&xtide->bios_rom, ROM_PATH_AT,
 	     0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
     ide_init();
@@ -166,7 +171,7 @@ xtide_at_init(void)
 static int
 xtide_at_available(void)
 {
-    return(rom_present(AT_ROM_PATH));
+    return(rom_present(ROM_PATH_AT));
 }
 
 
@@ -177,7 +182,7 @@ xtide_ps2_init(void)
 
     memset(xtide, 0x00, sizeof(xtide_t));
 
-    rom_init(&xtide->bios_rom, PS2_ROM_PATH,
+    rom_init(&xtide->bios_rom, ROM_PATH_PS2,
 	     0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     ide_xtide_init();
@@ -193,7 +198,7 @@ xtide_ps2_init(void)
 static int
 xtide_ps2_available(void)
 {
-    return(rom_present(PS2_ROM_PATH));
+    return(rom_present(ROM_PATH_PS2));
 }
 
 
@@ -204,7 +209,7 @@ xtide_at_ps2_init(void)
 
     memset(xtide, 0x00, sizeof(xtide_t));
 
-    rom_init(&xtide->bios_rom, PS2AT_ROM_PATH,
+    rom_init(&xtide->bios_rom, ROM_PATH_PS2AT,
 	     0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
     ide_init();
@@ -216,7 +221,7 @@ xtide_at_ps2_init(void)
 static int
 xtide_at_ps2_available(void)
 {
-    return(rom_present(PS2AT_ROM_PATH));
+    return(rom_present(ROM_PATH_PS2AT));
 }
 
 

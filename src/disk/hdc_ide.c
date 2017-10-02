@@ -632,7 +632,7 @@ void ide_reset(void)
 	idecallback[2]=idecallback[3]=0;
 	idecallback[4]=0;
 
-	pclog("IDE: start loading disks...\n");
+	pclog("IDE: loading disks...\n");
 	c = 0;
 	for (d = 0; d < HDD_NUM; d++)
 	{
@@ -649,7 +649,7 @@ void ide_reset(void)
 			if (++c >= (IDE_NUM+XTIDE_NUM)) break;
 		}
 	}
-	pclog("IDE: done loading, %d disks.\n", c);
+	pclog("IDE: done, loaded %d disks.\n", c);
 
 	for (d = 0; d < IDE_NUM; d++)
 	{
@@ -2308,8 +2308,6 @@ void ide_qua_init(void)
 void ide_init_first(void)
 {
 	int d;
-
-	pclog("IDE: initializing...\n");
 
 	memset(ide_drives, 0x00, sizeof(ide_drives));
 	for (d = 0; d < (IDE_NUM+XTIDE_NUM); d++)

@@ -8,7 +8,7 @@
  *
  *		Definitions for the common disk controller handler.
  *
- * Version:	@(#)hdc.h	1.0.3	2017/09/30
+ * Version:	@(#)hdc.h	1.0.3	2017/10/01
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -44,8 +44,8 @@ extern device_t	xtide_ps2_device;		/* xtide_ps2 */
 extern device_t	xtide_at_ps2_device;		/* xtide_at_ps2 */
 
 
-extern void	hdc_init(void);
-extern void	hdc_reset(char *name);
+extern void	hdc_init(char *name);
+extern void	hdc_reset(void);
 
 extern char	*hdc_get_name(int hdc);
 extern char	*hdc_get_internal_name(int hdc);

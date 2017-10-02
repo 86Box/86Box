@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.16	2017/10/01
+ * Version:	@(#)win_settings.c	1.0.17	2017/10/01
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -36,11 +36,11 @@
 #include "../lpt.h"
 #include "../mouse.h"
 #include "../cdrom/cdrom.h"
+#include "../disk/hdd.h"
+#include "../disk/hdc.h"
+#include "../disk/hdc_ide.h"
 #include "../floppy/floppy.h"
 #include "../floppy/fdd.h"
-#include "../hdd/hdd.h"
-#include "../hdd/hdc.h"
-#include "../hdd/hdc_ide.h"
 #include "../scsi/scsi.h"
 #include "../network/network.h"
 #include "../sound/sound.h"
@@ -77,7 +77,7 @@ static char temp_lpt1_device_name[16];
 static int temp_serial[2], temp_lpt;
 
 /* Peripherals category */
-static int temp_scsi_card, hdc_ignore, temp_ide_ter, temp_ide_ter_irq, temp_ide_qua, temp_ide_qua_irq;
+static int temp_scsi_card, temp_ide_ter, temp_ide_ter_irq, temp_ide_qua, temp_ide_qua_irq;
 static char temp_hdc_name[16];
 static char *hdc_names[16];
 static int temp_bugger;
@@ -332,6 +332,7 @@ static void win_settings_save(void)
 	/* Peripherals category */
 	scsi_card_current = temp_scsi_card;
 	strncpy(hdc_name, temp_hdc_name, sizeof(temp_hdc_name) - 1);
+	hdc_init(hdc_name);
 	ide_enable[2] = temp_ide_ter;
 	ide_irq[2] = temp_ide_ter_irq;
 	ide_enable[3] = temp_ide_qua;
@@ -365,7 +366,7 @@ static void win_settings_save(void)
 
 	config_save();
 
-	speedchanged();
+	pc_speed_changed();
 
 	if (joystick_type != 7)  gameport_update_joystick_type();
 }
@@ -1386,107 +1387,80 @@ static void recalc_hdc_list(HWND hdlg, int machine, int use_selected_hdc)
 
 	h = GetDlgItem(hdlg, IDC_COMBO_HDC);
 
-#if 0
-	/*
-	 * We do not ignore this entry, nor do we zap the selection
-	 * list, as we might want to override the internal controller
-	 * with an external one.  --FvK 
-	 */
-	if (machines[temp_machine].flags & MACHINE_HAS_HDC)
+	valid = 0;
+
+	if (use_selected_hdc)
 	{
-		hdc_ignore = 1;
+		c = SendMessage(h, CB_GETCURSEL, 0, 0);
 
-		SendMessage(h, CB_RESETCONTENT, 0, 0);
-		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2154));
-		/* See above, don't disable it. */
-		EnableWindow(h, FALSE);
-		SendMessage(h, CB_SETCURSEL, 1, 0);
-	}
-	else
-	{
-#endif
-		hdc_ignore = 0;
-
-		valid = 0;
-
-		if (use_selected_hdc)
+		if (c != -1 && hdc_names[c])
 		{
-			c = SendMessage(h, CB_GETCURSEL, 0, 0);
-
-			if (c != -1 && hdc_names[c])
-			{
-				strncpy(old_name, hdc_names[c], sizeof(old_name) - 1);
-			}
-			else
-			{
-				strcpy(old_name, "none");
-			}
+			strncpy(old_name, hdc_names[c], sizeof(old_name) - 1);
 		}
 		else
 		{
-			strncpy(old_name, temp_hdc_name, sizeof(old_name) - 1);
+			strcpy(old_name, "none");
 		}
-
-		SendMessage(h, CB_RESETCONTENT, 0, 0);
-		c = d = 0;
-		while (1)
-		{
-			s = hdc_get_name(c);
-			if (s[0] == 0)
-			{
-				break;
-			}
-			if ((hdc_get_flags(c) & DEVICE_AT) && !(machines[machine].flags & MACHINE_AT))
-			{
-				c++;
-				continue;
-			}
-			if ((hdc_get_flags(c) & DEVICE_PS2) && !(machines[machine].flags & MACHINE_PS2_HDD))
-			{
-				c++;
-				continue;
-			}
-			if ((hdc_get_flags(c) & DEVICE_MCA) && !(machines[machine].flags & MACHINE_MCA))
-			{
-				c++;
-				continue;
-			}
-			if (!hdc_available(c))
-			{
-				c++;
-				continue;
-			}
-#if 0
-			if (c < 2)
-			{
-				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2152 + c));
-			}
-			else
-#endif
-			{
-				mbstowcs(lptsTemp, s, strlen(s) + 1);
-				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
-			}
-			hdc_names[d] = hdc_get_internal_name(c);
-			if (!strcmp(old_name, hdc_names[d]))
-			{
-				SendMessage(h, CB_SETCURSEL, d, 0);
-				valid = 1;
-			}
-			c++;
-			d++;
-		}
-
-		if (!valid)
-		{
-			SendMessage(h, CB_SETCURSEL, 0, 0);
-		}
-
-		EnableWindow(h, TRUE);
-#if 0
-	if (machines[temp_machine].flags & MACHINE_HAS_HDC)
 	}
-#endif
+	else
+	{
+		strncpy(old_name, temp_hdc_name, sizeof(old_name) - 1);
+	}
+
+	SendMessage(h, CB_RESETCONTENT, 0, 0);
+	c = d = 0;
+	while (1)
+	{
+		s = hdc_get_name(c);
+		if (s[0] == 0)
+		{
+			break;
+		}
+		if (c==1 && !(machines[temp_machine].flags&MACHINE_HAS_HDC))
+		{
+			/* Skip "Internal" if machine doesn't have one. */
+			c++;
+			continue;
+		}
+		if ((hdc_get_flags(c) & DEVICE_AT) && !(machines[machine].flags & MACHINE_AT))
+		{
+			c++;
+			continue;
+		}
+		if ((hdc_get_flags(c) & DEVICE_PS2) && !(machines[machine].flags & MACHINE_PS2_HDD))
+		{
+			c++;
+			continue;
+		}
+		if ((hdc_get_flags(c) & DEVICE_MCA) && !(machines[machine].flags & MACHINE_MCA))
+		{
+			c++;
+			continue;
+		}
+		if (!hdc_available(c))
+		{
+			c++;
+			continue;
+		}
+		mbstowcs(lptsTemp, s, strlen(s) + 1);
+		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+
+		hdc_names[d] = hdc_get_internal_name(c);
+		if (!strcmp(old_name, hdc_names[d]))
+		{
+			SendMessage(h, CB_SETCURSEL, d, 0);
+			valid = 1;
+		}
+		c++;
+		d++;
+	}
+
+	if (!valid)
+	{
+		SendMessage(h, CB_SETCURSEL, 0, 0);
+	}
+
+	EnableWindow(h, TRUE);
 
 	free(lptsTemp);
 }
@@ -1645,18 +1619,11 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 			return FALSE;
 
 		case WM_SAVESETTINGS:
-			if (hdc_ignore == 0)
+			h = GetDlgItem(hdlg, IDC_COMBO_HDC);
+			c = SendMessage(h, CB_GETCURSEL, 0, 0);
+			if (hdc_names[c])
 			{
-				h = GetDlgItem(hdlg, IDC_COMBO_HDC);
-				c = SendMessage(h, CB_GETCURSEL, 0, 0);
-				if (hdc_names[c])
-				{
-					strncpy(temp_hdc_name, hdc_names[c], sizeof(temp_hdc_name) - 1);
-				}
-				else
-				{
-					strcpy(temp_hdc_name, "none");
-				}
+				strncpy(temp_hdc_name, hdc_names[c], sizeof(temp_hdc_name) - 1);
 			}
 			else
 			{
