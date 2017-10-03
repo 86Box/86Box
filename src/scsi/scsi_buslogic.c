@@ -10,7 +10,7 @@
  *		  0 - BT-545C ISA;
  *		  1 - BT-958D PCI (but BT-545C ISA on non-PCI machines)
  *
- * Version:	@(#)scsi_buslogic.c	1.0.14	2017/09/24
+ * Version:	@(#)scsi_buslogic.c	1.0.15	2017/10/02
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -733,7 +733,7 @@ static void BuslogicInitializeAutoSCSIRam(Buslogic_t *bl)
 {
     FILE *f;
 
-    f = nvrfopen(BuslogicGetNVRFileName(bl), L"rb");
+    f = nvr_fopen(BuslogicGetNVRFileName(bl), L"rb");
     if (f)
     {
 	fread(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, f);
@@ -2068,7 +2068,7 @@ BuslogicWrite(uint16_t Port, uint8_t Val, void *p)
 							BuslogicAutoSCSIRamSetDefaults(bl, 3);
 							break;
 						case 1:
-							f = nvrfopen(BuslogicGetNVRFileName(bl), L"wb");
+							f = nvr_fopen(BuslogicGetNVRFileName(bl), L"wb");
 							if (f)
 							{
 								fwrite(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, f);

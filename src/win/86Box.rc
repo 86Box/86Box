@@ -8,7 +8,7 @@
  *
  *		Windows resource script.
  *
- * Version:	@(#)86Box.rc	1.0.13	2017/10/01
+ * Version:	@(#)86Box.rc	1.0.14	2017/10/01
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -266,9 +266,6 @@ BEGIN
                     12,12
     LTEXT           "MB",IDT_1705,123,64,10,10
     LTEXT           "Memory:",IDT_1706,7,64,30,10
-    LTEXT           "NVR Path:",IDT_1700,7,83,60,10
-    EDITTEXT        IDC_EDIT_NVR_PATH,71,82,138,12,ES_AUTOHSCROLL
-    PUSHBUTTON      "&Specify...",IDC_BUTTON_NVR_PATH,214,82,46,12
     CONTROL         "Dynamic Recompiler",IDC_CHECK_DYNAREC,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,100,94,10
     CONTROL         "Enable FPU",IDC_CHECK_FPU,"Button",BS_AUTOCHECKBOX | 
@@ -689,7 +686,9 @@ BEGIN
     IDS_2053	"Invalid number of sectors (valid values are between 1 and 63)"
     IDS_2054	"Invalid number of heads (valid values are between 1 and 16)"
     IDS_2055	"Invalid number of cylinders (valid values are between 1 and 266305)"
-    IDS_2056	"Specify the NVR Path"
+#if NOTUSED
+    IDS_2056
+#endif
     IDS_2057	"(empty)"
     IDS_2058	"(host drive %c:)"
     IDS_2059	"Turbo"

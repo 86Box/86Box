@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.10	2017/10/01
+ * Version:	@(#)config.c	1.0.12	2017/10/02
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -30,10 +30,10 @@
 #include <inttypes.h>
 #include "ibm.h"
 #include "cpu/cpu.h"
+#include "nvr.h"
 #include "config.h"
 #include "device.h"
 #include "lpt.h"
-#include "nvr.h"
 #include "cdrom/cdrom.h"
 #include "disk/hdd.h"
 #include "disk/hdc.h"
@@ -493,7 +493,6 @@ static void
 load_machine(void)
 {
 	char *cat = "Machine";
-        wchar_t *wp;
         char *p;
 
         p = config_get_string(cat, "machine", NULL);
@@ -537,42 +536,15 @@ load_machine(void)
 		mem_size = 1048576;
 	}
 
-	memset(nvr_path, 0x00, sizeof(nvr_path));
-        wp = config_get_wstring(cat, "nvr_path", L"");
-        if (wp != NULL) {
-		if (wcslen(wp) && (wcslen(wp) <= 992))
-		{
-#if 1
-			/*
-			 * NOTE:
-			 * Temporary hack to remove the absolute
-			 * path currently saved in most config
-			 * files.  We should remove this before
-			 * finalizing this release!  --FvK
-			 */
-			if (! wcsnicmp(wp, exe_path, wcslen(exe_path))) {
-				/*
-				 * Yep, its absolute and prefixed
-				 * with the EXE path.  Just strip
-				 * that off for now...
-				 */
-				wcscpy(nvr_path, &wp[wcslen(exe_path)]);
-			} else
-#endif
-			wcscpy(nvr_path, wp);
-		}
-		else
-		{
-			wcscpy(nvr_path, L"nvr\\");
-		}
-	}
-        else   wcscpy(nvr_path, L"nvr\\");
-
         cpu_use_dynarec = !!config_get_int(cat, "cpu_use_dynarec", 0);
 
 	enable_external_fpu = !!config_get_int(cat, "cpu_enable_fpu", 0);
 
         enable_sync = !!config_get_int(cat, "enable_sync", 1);
+
+	/* Remove this after a while.. */
+        if (config_get_string(cat, "nvr_path", NULL) != NULL)
+	        config_delete_var(cat, "nvr_path");
 }
 
 
@@ -1433,7 +1405,7 @@ config_load(wchar_t *fn)
 
 	if (fn == NULL)
 		fn = config_file_default;
-	pclog("Loading config file '%S'..\n", fn);
+	pclog("Loading config file '%ws'..\n", fn);
 	i = config_read(fn);
 
 	if (i == 0)
@@ -1666,8 +1638,6 @@ save_machine(void)
 	{
 	        config_set_int(cat, "mem_size", mem_size);
 	}
-
-        config_set_wstring(cat, "nvr_path", nvr_path);
 
         config_set_int(cat, "cpu_use_dynarec", cpu_use_dynarec);
 

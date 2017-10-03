@@ -65,7 +65,7 @@ static void *ps2_nvr_init()
 
         switch (romset)
         {
-                case ROM_IBMPS2_M80:  f = nvrfopen(L"ibmps2_m80_sec.nvr", L"rb"); break;
+                case ROM_IBMPS2_M80:  f = nvr_fopen(L"ibmps2_m80_sec.nvr", L"rb"); break;
         }
         if (f)
         {
@@ -85,7 +85,7 @@ static void ps2_nvr_close(void *p)
 
         switch (romset)
         {
-                case ROM_IBMPS2_M80:  f = nvrfopen(L"ibmps2_m80_sec.nvr", L"wb"); break;
+                case ROM_IBMPS2_M80:  f = nvr_fopen(L"ibmps2_m80_sec.nvr", L"wb"); break;
         }
         if (f)
         {

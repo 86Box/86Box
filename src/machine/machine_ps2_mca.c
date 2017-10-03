@@ -813,7 +813,7 @@ static void machine_ps2_common_init(void)
         keyboard_at_init();
         keyboard_at_init_ps2();
         mouse_ps2_init();
-        nvr_init();
+        nvr_at_init(8);
         pic2_init();
 
         pit_ps2_init();

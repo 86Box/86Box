@@ -9,7 +9,7 @@
  *		Generic floppy disk interface that communicates with the
  *		other handlers.
  *
- * Version:	@(#)floppy.c	1.0.4	2017/09/24
+ * Version:	@(#)floppy.c	1.0.5	2017/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -153,7 +153,7 @@ void floppy_load(int drive, wchar_t *fn)
                 }
                 c++;
         }
-        pclog_w(L"Couldn't load %s %s\n",fn,p);
+        pclog("Couldn't load %ws %s\n",fn,p);
         drive_empty[drive] = 1;
 	fdd_set_head(real_drive(drive), 0);
 	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));

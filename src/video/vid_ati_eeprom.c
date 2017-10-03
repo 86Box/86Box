@@ -43,7 +43,7 @@ void ati_eeprom_load(ati_eeprom_t *eeprom, wchar_t *fn, int type)
         FILE *f;
         eeprom->type = type;
         wcscpy(eeprom->fn, fn);
-        f = nvrfopen(eeprom->fn, L"rb");
+        f = nvr_fopen(eeprom->fn, L"rb");
         if (!f)
         {
                 memset(eeprom->data, 0, eeprom->type ? 512 : 128);
@@ -55,7 +55,7 @@ void ati_eeprom_load(ati_eeprom_t *eeprom, wchar_t *fn, int type)
 
 void ati_eeprom_save(ati_eeprom_t *eeprom)
 {
-        FILE *f = nvrfopen(eeprom->fn, L"wb");
+        FILE *f = nvr_fopen(eeprom->fn, L"wb");
         if (!f) return;
         fwrite(eeprom->data, 1, eeprom->type ? 512 : 128, f);
         fclose(f);

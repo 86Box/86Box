@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 2 Mbit 8-bit flash devices.
  *
- * Version:	@(#)intel_flash.c	1.0.3	2017/09/24
+ * Version:	@(#)intel_flash.c	1.0.4	2017/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -193,7 +193,7 @@ void *intel_flash_init(uint8_t type)
 
 	wcscpy(flash_path, flash_name);
 
-	pclog_w(L"Flash path: %s\n", flash_name);
+	pclog("Flash path: %ws\n", flash_name);
 
 	flash->flash_id = (type & FLASH_IS_BXB) ? 0x95 : 0x94;
 	flash->invert_high_pin = (type & FLASH_INVERT);
@@ -255,7 +255,7 @@ void *intel_flash_init(uint8_t type)
         flash->command = CMD_READ_ARRAY;
         flash->status = 0;
 
-        f = nvrfopen(flash_path, L"rb");
+        f = nvr_fopen(flash_path, L"rb");
         if (f)
         {
                 fread(&(flash->array[flash->block_start[BLOCK_MAIN]]), flash->block_len[BLOCK_MAIN], 1, f);
@@ -298,7 +298,7 @@ void intel_flash_close(void *p)
         FILE *f;
         flash_t *flash = (flash_t *)p;
 
-        f = nvrfopen(flash_path, L"wb");
+        f = nvr_fopen(flash_path, L"wb");
         fwrite(&(flash->array[flash->block_start[BLOCK_MAIN]]), flash->block_len[BLOCK_MAIN], 1, f);
         fwrite(&(flash->array[flash->block_start[BLOCK_DATA1]]), flash->block_len[BLOCK_DATA1], 1, f);
         fwrite(&(flash->array[flash->block_start[BLOCK_DATA2]]), flash->block_len[BLOCK_DATA2], 1, f);

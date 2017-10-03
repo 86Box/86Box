@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.8	2017/10/01
+ * Version:	@(#)cdrom.c	1.0.9	2017/10/02
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -990,16 +990,16 @@ void cdrom_mode_sense_load(uint8_t id)
 	switch(id)
 	{
 		case 0:
-			f = _wfopen(nvr_concat(L"cdrom_1_mode_sense.bin"), L"rb");
+			f = _wfopen(nvr_path(L"cdrom_1_mode_sense.bin"), L"rb");
 			break;
 		case 1:
-			f = _wfopen(nvr_concat(L"cdrom_2_mode_sense.bin"), L"rb");
+			f = _wfopen(nvr_path(L"cdrom_2_mode_sense.bin"), L"rb");
 			break;
 		case 2:
-			f = _wfopen(nvr_concat(L"cdrom_3_mode_sense.bin"), L"rb");
+			f = _wfopen(nvr_path(L"cdrom_3_mode_sense.bin"), L"rb");
 			break;
 		case 3:
-			f = _wfopen(nvr_concat(L"cdrom_4_mode_sense.bin"), L"rb");
+			f = _wfopen(nvr_path(L"cdrom_4_mode_sense.bin"), L"rb");
 			break;
 		default:
 			return;
@@ -1018,16 +1018,16 @@ void cdrom_mode_sense_save(uint8_t id)
 	switch(id)
 	{
 		case 0:
-			f = _wfopen(nvr_concat(L"cdrom_1_mode_sense.bin"), L"wb");
+			f = _wfopen(nvr_path(L"cdrom_1_mode_sense.bin"), L"wb");
 			break;
 		case 1:
-			f = _wfopen(nvr_concat(L"cdrom_2_mode_sense.bin"), L"wb");
+			f = _wfopen(nvr_path(L"cdrom_2_mode_sense.bin"), L"wb");
 			break;
 		case 2:
-			f = _wfopen(nvr_concat(L"cdrom_3_mode_sense.bin"), L"wb");
+			f = _wfopen(nvr_path(L"cdrom_3_mode_sense.bin"), L"wb");
 			break;
 		case 3:
-			f = _wfopen(nvr_concat(L"cdrom_4_mode_sense.bin"), L"wb");
+			f = _wfopen(nvr_path(L"cdrom_4_mode_sense.bin"), L"wb");
 			break;
 		default:
 			return;

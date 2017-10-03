@@ -348,7 +348,7 @@ static void machine_ps1_common_init(void)
 		ide_init();
 	}
         keyboard_at_init();
-        nvr_init();
+        nvr_at_init(8);
         pic2_init();
 	if (romset != ROM_IBMPS1_2133)
 	{			

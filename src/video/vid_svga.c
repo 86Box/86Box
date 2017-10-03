@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.3	2017/09/24
+ * Version:	@(#)vid_svga.c	1.0.4	2017/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1939,7 +1939,7 @@ void svga_dump_vram()
 		return;
 	}
 
-	f = nvrfopen(L"svga_vram.dmp", L"wb");
+	f = nvr_fopen(L"svga_vram.dmp", L"wb");
 	if (f == NULL)
 	{
 		return;

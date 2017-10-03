@@ -163,7 +163,7 @@ void machine_ps2_m30_286_init(void)
         pit_set_out_func(&pit, 1, pit_refresh_timer_at);
         dma16_init();
         keyboard_at_init();
-        nvr_init();
+        nvr_at_init(8);
         pic2_init();
         ps2board_init();
         fdc_set_dskchg_activelow();

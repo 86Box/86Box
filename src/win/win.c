@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.14	2017/10/01
+ * Version:	@(#)win.c	1.0.14	2017/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -338,8 +338,8 @@ void mainthread(LPVOID param)
                         if (frames >= 200 && nvr_dosave)
                         {
                                 frames = 0;
+                                nvr_save();
                                 nvr_dosave = 0;
-                                savenvr();
                         }
                         end_time = timer_read();
                         main_time += end_time - start_time;
@@ -1904,7 +1904,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpsz
         Sleep(200);
         TerminateThread(mainthreadh, 0);
 
-        savenvr();
+        nvr_save();
 
 	config_save();
 
@@ -2022,7 +2022,7 @@ win_pc_reset(int hard)
 
     Sleep(100);
 
-    savenvr();
+    nvr_save();
 
     config_save();
 

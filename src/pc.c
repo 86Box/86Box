@@ -70,6 +70,7 @@
 #include "win/plat_midi.h"
 #include "win/plat_mouse.h"
 #include "win/plat_ui.h"
+#include "win/win.h"
 #include "scsi/scsi.h"
 #include "serial.h"
 #include "sound/sound.h"
@@ -86,10 +87,6 @@
 #include "video/vid_voodoo.h"
 #include "cpu/x86_ops.h"
 
-
-wchar_t	exe_path[1024];
-wchar_t	cfg_path[1024];
-wchar_t	nvr_path[1024];
 
 int	window_w, window_h, window_x, window_y, window_remember;
 int	dump_on_exit = 0;
@@ -109,6 +106,8 @@ int	pollmouse_delay = 2;
 int	mousecapture;
 int	suppress_overscan = 0;
 int	cpuspeed2;
+wchar_t	exe_path[1024];
+wchar_t	cfg_path[1024];
 
 
 extern int mmuflush;
@@ -129,20 +128,6 @@ pclog(const char *format, ...)
 }
 
 
-/* Log something to the logfile or stdout. */
-void
-pclog_w(const wchar_t *format, ...)
-{
-#ifndef RELEASE_BUILD
-   va_list ap;
-   va_start(ap, format);
-   vwprintf(format, ap);
-   va_end(ap);
-   fflush(stdout);
-#endif
-}
-
-
 /* Log a fatal error, and display a UI message before exiting. */
 void
 fatal(const char *format, ...)
@@ -157,7 +142,7 @@ fatal(const char *format, ...)
    va_end(ap);
    fflush(stdout);
 
-   savenvr();
+   nvr_save();
 
    config_save();
 
@@ -174,6 +159,33 @@ fatal(const char *format, ...)
    fflush(stdout);
 
    exit(-1);
+}
+
+
+/*
+ * This function returns the absolute pathname to a file (str)
+ * that is to be found in the user (formerly 'nvr_path' area.
+ */
+wchar_t *
+pc_concat(wchar_t *str)
+{
+    static wchar_t temp[1024];
+
+    /* Get the full prefix in place. */
+    memset(temp, 0x00, sizeof(temp));
+    wcscpy(temp, cfg_path);
+
+#ifndef __unix
+    /* Create the directory if needed. */
+    if (! DirectoryExists(temp))
+	CreateDirectory(temp, NULL);
+#endif
+
+    /* Now append the actual filename. */
+    wcscat(temp, L"\\");
+    wcscat(temp, str);
+
+    return(temp);
 }
 
 
@@ -201,7 +213,7 @@ usage(void)
 void
 pc_init(int argc, wchar_t *argv[])
 {
-    wchar_t *config_file = NULL;
+    wchar_t *cfg = NULL;
     wchar_t *p;
 #ifdef WALTJE
     struct direct *dp;
@@ -213,7 +225,7 @@ pc_init(int argc, wchar_t *argv[])
     get_executable_name(exe_path, sizeof(exe_path)-1);
     p = get_filename_w(exe_path);
     *p = L'\0';
-    pclog("exe_path=%S\n", exe_path);
+    pclog("exe_path=%ws\n", exe_path);
 
     /*
      * Get the current working directory.
@@ -233,7 +245,7 @@ usage:
 		   !_wcsicmp(argv[c], L"-C")) {
 		if ((c+1) == argc) break;
 
-		config_file = argv[++c];
+		cfg = argv[++c];
 	} else if (!_wcsicmp(argv[c], L"--dump") ||
 		   !_wcsicmp(argv[c], L"-D")) {
 		dump_on_exit = 1;
@@ -245,15 +257,15 @@ usage:
 #ifdef WALTJE
 		dir = opendirw(exe_path);
 		if (dir != NULL) {
-			printf("Directory '%S':\n", exe_path);
+			printf("Directory '%ws':\n", exe_path);
 			for (;;) {
 				dp = readdir(dir);
 				if (dp == NULL) break;
-				printf(">> '%S'\n", dp->d_name);
+				printf(">> '%ws'\n", dp->d_name);
 			}
 			closedir(dir);
 		} else {
-			printf("Could not open '%S'..\n", exe_path);
+			printf("Could not open '%ws'..\n", exe_path);
 		}
 #endif
 
@@ -276,9 +288,9 @@ usage:
 	(cfg_path[wcslen(cfg_path)-1] != L'/')) {
 	wcscat(cfg_path, L"\\");
     }
-    pclog("cwd_path=%S\n", cfg_path);
+    pclog("cfg_path=%ws\n", cfg_path);
 
-    if (config_file != NULL) {
+    if (cfg != NULL) {
 	/*
 	 * The user specified a configuration file.
 	 *
@@ -287,14 +299,14 @@ usage:
 	 * Otherwise, assume the pathname given is
 	 * relative to whatever the cfg_path is.
 	 */
-	if ((config_file[1] == L':') ||	/* drive letter present */
-	    (config_file[0] == L'\\'))	/* backslash, root dir */
+	if ((cfg[1] == L':') ||	/* drive letter present */
+	    (cfg[0] == L'\\'))	/* backslash, root dir */
 		append_filename_w(config_file_default,
-				  NULL,	config_file, 511);
+				  NULL,	cfg, 511);
 	  else
 		append_filename_w(config_file_default,
-				  cfg_path, config_file, 511);
-	config_file = NULL;
+				  cfg_path, cfg, 511);
+	cfg = NULL;
     } else {
         append_filename_w(config_file_default, cfg_path, CONFIG_FILE_W, 511);
     }
@@ -307,7 +319,7 @@ usage:
      */
     hdd_init();
 
-    config_load(config_file);
+    config_load(cfg);
 }
 
 
@@ -407,7 +419,7 @@ pc_init_modules(void)
     floppy_load(3, floppyfns[3]);
 #endif
                 
-    loadnvr();
+    nvr_load();
 
     sound_init();
 
@@ -490,7 +502,7 @@ resetpchard_close(void)
 {
     suppress_overscan = 0;
 
-    savenvr();
+    nvr_save();
 
     device_close_all();
     mouse_emu_close();
@@ -554,7 +566,7 @@ resetpchard_init(void)
 
     mouse_emu_init();
  
-    loadnvr();
+    nvr_load();
 
     shadowbios = 0;
         

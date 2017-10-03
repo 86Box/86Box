@@ -136,10 +136,10 @@ static void *tandy_eeprom_init(void)
         switch (romset)
         {
                 case ROM_TANDY1000HX:
-                f = nvrfopen(L"tandy1000hx.bin", L"rb");
+                f = nvr_fopen(L"tandy1000hx.bin", L"rb");
                 break;
                 case ROM_TANDY1000SL2:
-                f = nvrfopen(L"tandy1000sl2.bin", L"rb");
+                f = nvr_fopen(L"tandy1000sl2.bin", L"rb");
                 break;
         }
         if (f)
@@ -164,10 +164,10 @@ void tandy_eeprom_close(void *p)
         switch (eeprom->romset)
         {
                 case ROM_TANDY1000HX:
-                f = nvrfopen(L"tandy1000hx.bin", L"wb");
+                f = nvr_fopen(L"tandy1000hx.bin", L"wb");
                 break;
                 case ROM_TANDY1000SL2:
-                f = nvrfopen(L"tandy1000sl2.bin", L"wb");
+                f = nvr_fopen(L"tandy1000sl2.bin", L"wb");
                 break;
         }
         fwrite(eeprom->store, 128, 1, f);

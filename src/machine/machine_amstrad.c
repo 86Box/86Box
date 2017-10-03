@@ -144,7 +144,10 @@ void machine_amstrad_init(void)
 	mem_add_bios();
         amstrad_init();
         keyboard_amstrad_init();
-        nvr_init();
+
+	/* FIXME: make sure this is correct? */
+        nvr_at_init(1);
+
 	nmi_init();
 	fdc_set_dskchg_activelow();
 	if (joystick_type != 7)

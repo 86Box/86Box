@@ -30,7 +30,7 @@ void machine_at_init(void)
         pit_set_out_func(&pit, 1, pit_refresh_timer_at);
         dma16_init();
         keyboard_at_init();
-        nvr_init();
+        nvr_at_init(8);
         pic2_init();
 	if (joystick_type != 7)
 		device_add(&gameport_device);

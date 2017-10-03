@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.51	2017/10/01
+# Version:	@(#)Makefile.mingw	1.0.52	2017/10/02
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -224,8 +224,8 @@ endif
 
 MAINOBJ		:= pc.o config.o random.o timer.o io.o dma.o nmi.o pic.o \
 		   pit.o ppi.o pci.o mca.o mcr.o mem.o memregs.o rom.o \
-		   device.o rtc.o nvr.o nvr_ps2.o intel.o intel_flash.o \
-		   intel_sio.o
+		   device.o nvr.o nvr_at.o nvr_ps2.o \
+		   intel.o intel_flash.o intel_sio.o
 
 CPUOBJ		:= cpu.o 386.o 386_dynarec.o 386_dynarec_ops.o 808x.o \
 		   codegen.o \

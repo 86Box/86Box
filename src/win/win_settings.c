@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.17	2017/10/01
+ * Version:	@(#)win_settings.c	1.0.17	2017/10/02
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -56,7 +56,6 @@
 
 /* Machine category */
 static int temp_machine, temp_cpu_m, temp_cpu, temp_wait_states, temp_mem_size, temp_dynarec, temp_fpu, temp_sync;
-static wchar_t temp_nvr_path[520];
 
 /* Video category */
 static int temp_gfxcard, temp_video_speed, temp_voodoo;
@@ -115,8 +114,6 @@ static void win_settings_init(void)
 	temp_wait_states = cpu_waitstates;
 	temp_cpu = cpu;
 	temp_mem_size = mem_size;
-	memset(temp_nvr_path, 0, sizeof(temp_nvr_path));
-	wcscpy(temp_nvr_path, nvr_path);
 	temp_dynarec = cpu_use_dynarec;
 	temp_fpu = enable_external_fpu;
 	temp_sync = enable_sync;
@@ -187,7 +184,6 @@ static int win_settings_changed(void)
 	i = i || (cpu_waitstates != temp_wait_states);
 	i = i || (cpu != temp_cpu);
 	i = i || (mem_size != temp_mem_size);
-	i = i || wcscmp(temp_nvr_path, nvr_path);
 	i = i || (temp_dynarec != cpu_use_dynarec);
 	i = i || (temp_fpu != enable_external_fpu);
 	i = i || (temp_sync != enable_sync);
@@ -292,8 +288,6 @@ static void win_settings_save(void)
 	cpu_waitstates = temp_wait_states;
 	cpu = temp_cpu;
 	mem_size = temp_mem_size;
-	memset(nvr_path, 0, sizeof(nvr_path));
-	wcscpy(nvr_path, temp_nvr_path);
 	cpu_use_dynarec = temp_dynarec;
 	enable_external_fpu = temp_fpu;
 	enable_sync = temp_sync;
@@ -548,7 +542,6 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 	int d = 0;
 	LPTSTR lptsTemp;
 	char *stransi;
-	wchar_t *p;
 
         switch (message)
         {
@@ -600,9 +593,6 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 
 			win_settings_machine_recalc_machine(hdlg);
 
-			h = GetDlgItem(hdlg, IDC_EDIT_NVR_PATH);
-			SendMessage(h, WM_SETTEXT, 0, (LPARAM) temp_nvr_path);
-
 			free(lptsTemp);
 
 			return TRUE;
@@ -644,24 +634,6 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
                         
                         		deviceconfig_open(hdlg, (void *)machine_getdevice(temp_machine));
                         		break;
-				case IDC_BUTTON_NVR_PATH:
-					p = BrowseFolder(temp_nvr_path, win_language_get_string_from_id(IDS_2056));
-					if (wcscmp(p, L""))
-					{
-						memset(temp_nvr_path, 0, sizeof(temp_nvr_path));
-						wcscpy(temp_nvr_path, p);
-						if (temp_nvr_path[wcslen(temp_nvr_path) - 1] == L'/')
-						{
-							temp_nvr_path[wcslen(temp_nvr_path) - 1] = L'\\';
-						}
-						else if (temp_nvr_path[wcslen(temp_nvr_path) - 1] != L'\\')
-						{
-							temp_nvr_path[wcslen(temp_nvr_path)] = L'\\';
-						}
-						h = GetDlgItem(hdlg, IDC_EDIT_NVR_PATH);
-						SendMessage(h, WM_SETTEXT, 0, (LPARAM) temp_nvr_path);
-					}
-					break;
 			}
 
 			return FALSE;

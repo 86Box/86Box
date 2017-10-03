@@ -10,7 +10,7 @@
  *
  * !!!NOTE!!!	The goal is to GET RID of this file.  Do NOT add stuff !!
  *
- * Version:	@(#)ibm.h	1.0.7	2017/10/01
+ * Version:	@(#)ibm.h	1.0.7	2017/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -480,7 +480,6 @@ extern int gated,speakval,speakon;
 
 extern wchar_t exe_path[1024];
 extern wchar_t cfg_path[1024];
-extern wchar_t nvr_path[1024];
 
 
 /*Keyboard*/
@@ -586,8 +585,8 @@ extern int scale;
 
 /* Function prototypes. */
 extern void	pclog(const char *format, ...);
-extern void	pclog_w(const wchar_t *format, ...);
 extern void	fatal(const char *format, ...);
+extern wchar_t	*pc_concat(wchar_t *str);
 extern void	pc_init_modules(void);
 extern void	pc_init(int argc, wchar_t *argv[]);
 extern void	pc_close(void);

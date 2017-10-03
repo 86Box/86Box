@@ -9,10 +9,11 @@
  *		Windows resource defines.
  *
  * NOTE:	FIXME: Strings 2176 and 2193 are same.
+ * NOTE:	FIXME: string 2052 not in use.
  * NOTE:	FIXME: string 2095 not in use.
- * NOTE:	FIXME: strings 2152-2154 not in use.
+ * NOTE:	FIXME: strings 2153-2154 not in use.
  *
- * Version:	@(#)resource.h	1.0.8	2017/10/01
+ * Version:	@(#)resource.h	1.0.9	2017/10/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -105,8 +106,6 @@
 #define IDC_MEMTEXT		1017
 #define IDC_MEMSPIN		1018
 #define IDC_TEXT_MB		IDT_1705
-#define IDC_EDIT_NVR_PATH	1019
-#define IDC_BUTTON_NVR_PATH	1020
 
 #define IDC_VIDEO		1030	/* video config */
 #define IDC_COMBO_VIDEO		1031

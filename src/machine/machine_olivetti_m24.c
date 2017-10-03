@@ -42,7 +42,10 @@ void machine_olim24_init(void)
         machine_common_init();
 	mem_add_bios();
         keyboard_olim24_init();
-        nvr_init();
+
+	/* FIXME: make sure this is correct?? */
+        nvr_at_init(8);
+
         olivetti_m24_init();
 	nmi_init();
 	if (joystick_type != 7)  device_add(&gameport_device);

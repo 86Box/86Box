@@ -8,7 +8,7 @@
  *
  *		x86 CPU segment emulation.
  *
- * Version:	@(#)x86seg.c	1.0.1	2017/09/24
+ * Version:	@(#)x86seg.c	1.0.2	2017/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -28,6 +28,7 @@
 #include "386.h"
 #include "386_common.h"
 #include "cpu.h"
+
 
 /*Controls whether the accessed bit in a descriptor is set when CS is loaded.*/
 #define CS_ACCESSED
@@ -63,7 +64,7 @@ void x86abort(const char *format, ...)
    vprintf(format, ap);
    va_end(ap);
    fflush(stdout);
-   savenvr();
+   nvr_save();
    dumpregs(1);
    fflush(stdout);
    exit(-1);

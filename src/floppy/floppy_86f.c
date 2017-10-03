@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)floppy_86f.c	1.0.4	2017/09/24
+ * Version:	@(#)floppy_86f.c	1.0.5	2017/10/02
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -3471,7 +3471,7 @@ void d86f_load(int drive, wchar_t *fn)
 
 	if (d86f[drive].is_compressed)
 	{
-		memcpy(temp_file_name, drive ? nvr_concat(L"TEMP$$$1.$$$") : nvr_concat(L"TEMP$$$0.$$$"), 256);
+		memcpy(temp_file_name, drive ? nvr_path(L"TEMP$$$1.$$$") : nvr_path(L"TEMP$$$0.$$$"), 256);
 		memcpy(d86f[drive].original_file_name, fn, (wcslen(fn) << 1) + 2);
 
 		fclose(d86f[drive].f);
@@ -3666,7 +3666,7 @@ void d86f_close(int drive)
 {
 	wchar_t temp_file_name[2048];
 
-	memcpy(temp_file_name, drive ? nvr_concat(L"TEMP$$$1.$$$") : nvr_concat(L"TEMP$$$0.$$$"), 26);
+	memcpy(temp_file_name, drive ? nvr_path(L"TEMP$$$1.$$$") : nvr_path(L"TEMP$$$0.$$$"), 26);
 
         if (d86f[drive].f)
 	{
