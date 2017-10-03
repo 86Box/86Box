@@ -350,11 +350,13 @@ pc_init_modules(void)
     cpuspeed2 = (AT) ? 2 : 1;
     atfullspeed = 0;
 
-    codegen_init();
 
     random_init();
 
     mem_init();
+
+    codegen_init();
+
     rom_load_bios(romset);
     mem_add_bios();
 
