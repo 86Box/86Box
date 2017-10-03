@@ -35,7 +35,7 @@ static uint8_t jim_load_nvr(void)
 {
 	FILE *f;
 
-	f = nvrfopen(L"europc_jim.nvr", L"rb");
+	f = nvr_fopen(L"europc_jim.nvr", L"rb");
 	if (f)
 	{
 		fread(europcdat, 1, 16, f);
@@ -52,7 +52,7 @@ void europc_save_nvr(void)
 {
 	FILE *f;
 
-	f = nvrfopen(L"europc_jim.nvr", L"wb");
+	f = nvr_fopen(L"europc_jim.nvr", L"wb");
 	if (f)
 	{
 		fwrite(europcdat, 1, 16, f);
