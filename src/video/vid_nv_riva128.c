@@ -231,6 +231,8 @@ typedef struct riva128_t
 
 	int mtime, mfreq;
 	int nvtime, nvfreq;
+	int menable;
+	int nvenable;
 } riva128_t;
 
 //Internally, the RIVA 128 operates in a weird 38-bit color depth, with 10 bits for RGB, and 8 bits for alpha, according to envytools.
@@ -2807,7 +2809,9 @@ void riva128_ptimer_tick(void *p)
 	}
 
 	riva128->mfreq = freq;
+	riva128->menable = 0;
 	riva128->mtime = (int)((TIMER_USEC * 1000000.0) / riva128->mfreq);
+	riva128->menable = 1;
 
 	freq = 13500000.0;
 
@@ -2819,7 +2823,9 @@ void riva128_ptimer_tick(void *p)
 	}
 
 	riva128->nvfreq = freq;
+	riva128->nvenable = 0;
 	riva128->nvtime = (int)((TIMER_USEC * 1000000.0) / riva128->nvfreq);
+	riva128->nvenable = 1;
 }
 
  void *riva128_init()
@@ -2943,8 +2949,11 @@ void riva128_ptimer_tick(void *p)
 		}
 	}
 
-	timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
-	timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
+	riva128->menable = 0;
+	riva128->nvenable = 0;
+
+	timer_add(riva128_mclk_poll, &riva128->mtime, &riva128->menable, riva128);
+	timer_add(riva128_nvclk_poll, &riva128->nvtime, &riva128->nvenable, riva128);
 
 	riva128->svga.vblank_start = riva128_vblank_start;
 
@@ -3168,8 +3177,11 @@ device_t riva128_device =
 		}
 	}
 
-	timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
-	timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
+	riva128->menable = 0;
+	riva128->nvenable = 0;
+
+	timer_add(riva128_mclk_poll, &riva128->mtime, &riva128->menable, riva128);
+	timer_add(riva128_nvclk_poll, &riva128->nvtime, &riva128->nvenable, riva128);
 
 	riva128->svga.vblank_start = riva128_vblank_start;
 
@@ -3369,8 +3381,11 @@ device_t rivatnt_device =
 		}
 	}
 
-	timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
-	timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
+	riva128->menable = 0;
+	riva128->nvenable = 0;
+
+	timer_add(riva128_mclk_poll, &riva128->mtime, &riva128->menable, riva128);
+	timer_add(riva128_nvclk_poll, &riva128->nvtime, &riva128->nvenable, riva128);
 
 	riva128->svga.vblank_start = riva128_vblank_start;
 
