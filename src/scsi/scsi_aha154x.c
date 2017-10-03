@@ -853,7 +853,7 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 
 		aha_log("Data to transfer (S/G) %d\n", DataToTransfer);
 
-		SCSIDevices[req->TargetID][req->LUN].InitLength = DataToTransfer;
+		SCSI_BufferLength = DataToTransfer;
 
 		aha_log("Allocating buffer for Scatter/Gather (%i bytes)\n", DataToTransfer);
 		SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataToTransfer);
@@ -892,7 +892,7 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 		   req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES) {
 			Address = DataPointer;
 
-			SCSIDevices[req->TargetID][req->LUN].InitLength = DataLength;
+			SCSI_BufferLength = DataLength;
 
 			aha_log("Allocating buffer for direct transfer (%i bytes)\n", DataLength);
 			SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataLength);
@@ -901,7 +901,7 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 			if (DataLength > 0) {
 				DMAPageRead(Address,
 					    (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer,
-					    SCSIDevices[req->TargetID][req->LUN].InitLength);
+					    SCSI_BufferLength);
 			}
 	}
     }
@@ -934,7 +934,7 @@ aha_buf_free(Req_t *req)
 
     if ((DataLength != 0) && (req->CmdBlock.common.Cdb[0] == GPCMD_TEST_UNIT_READY)) {
 	aha_log("Data length not 0 with TEST UNIT READY: %i (%i)\n",
-		DataLength, SCSIDevices[req->TargetID][req->LUN].InitLength);
+		DataLength, SCSI_BufferLength);
     }
 
     if (req->CmdBlock.common.Cdb[0] == GPCMD_TEST_UNIT_READY) {
@@ -989,9 +989,9 @@ aha_buf_free(Req_t *req)
     if ((req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES) ||
 	(req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES)) {
 	/* Should be 0 when scatter/gather? */
-	if (DataLength >= SCSIDevices[req->TargetID][req->LUN].InitLength) {
+	if (DataLength >= SCSI_BufferLength) {
 		Residual = DataLength;
-		Residual -= SCSIDevices[req->TargetID][req->LUN].InitLength;
+		Residual -= SCSI_BufferLength;
 	} else {
 		Residual = 0;
 	}
@@ -1144,7 +1144,7 @@ aha_req_setup(aha_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
     aha_log("Scanning SCSI Target ID %i\n", id);		
 
     SCSIStatus = SCSI_STATUS_OK;
-    SCSIDevices[id][lun].InitLength = 0;
+    SCSI_BufferLength = 0;
 
     aha_buf_alloc(req, req->Is24bit);
 
@@ -2141,8 +2141,6 @@ aha_close(void *priv)
 
     if (dev)
     {
-	dev->MailboxCount = 0;
-
 	if (dev->evt) {
 		thread_destroy_event(dev->evt);
 		dev->evt = NULL;

@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.9	2017/10/01
+ * Version:	@(#)scsi_disk.c	1.0.10	2017/10/04
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2017 Miran Grca.
@@ -123,7 +123,7 @@ uint8_t scsi_hd_command_flags[0x100] = {
 };
 
 
-/* #define ENABLE_SCSI_HD_LOG 0 */
+#define ENABLE_SCSI_HD_LOG 0
 int scsi_hd_do_log = 0;
 
 
@@ -306,12 +306,6 @@ int scsi_hd_read_capacity(uint8_t id, uint8_t *cdb, uint8_t *buffer, uint32_t *l
 	buffer[6] = 2;				/* 512 = 0x0200 */
 	*len = 8;
 
-	scsi_hd_log("Read Capacity\n");
-	scsi_hd_log("buffer[0]=%x\n", buffer[0]);
-	scsi_hd_log("buffer[1]=%x\n", buffer[1]);
-	scsi_hd_log("buffer[2]=%x\n", buffer[2]);
-	scsi_hd_log("buffer[3]=%x\n", buffer[3]);
-
 	return 1;
 }
 
@@ -411,14 +405,14 @@ void scsi_hd_data_command_finish(uint8_t id, int len, int block_len, int alloc_l
 	}
 	if (len == 0)
 	{
-		SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength = 0;
+		SCSI_BufferLength = 0;
 		scsi_hd_command_complete(id);
 	}
 	else
 	{
 		if (direction == 0)
 		{
-			SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength = alloc_len;
+			SCSI_BufferLength = alloc_len;
 			scsi_hd_command_read_dma(id);
 		}
 		else
@@ -440,6 +434,7 @@ static void scsi_hd_sense_clear(int id, int command)
 
 static void scsi_hd_cmd_error(uint8_t id)
 {
+	SCSIPhase = SCSI_PHASE_STATUS;
 	shdc[id].error = ((scsi_hd_sense_key & 0xf) << 4) | ABRT_ERR;
 	if (shdc[id].unit_attention & 3)
 	{
@@ -455,6 +450,7 @@ static void scsi_hd_cmd_error(uint8_t id)
 
 static void scsi_hd_unit_attention(uint8_t id)
 {
+	SCSIPhase = SCSI_PHASE_STATUS;
 	shdc[id].error = (SENSE_NOT_READY << 4) | ABRT_ERR;
 	if (shdc[id].unit_attention & 3)
 	{
@@ -491,6 +487,7 @@ static void scsi_hd_invalid_lun(uint8_t id)
 	scsi_hd_sense_key = SENSE_ILLEGAL_REQUEST;
 	scsi_hd_asc = ASC_INV_LUN;
 	scsi_hd_ascq = 0;
+	SCSIPhase = BUS_CD | BUS_IO;
 	scsi_hd_cmd_error(id);
 }
 
@@ -671,12 +668,13 @@ void scsi_hd_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
 
 	if (shdc[id].unit_attention && (scsi_hd_sense_key == 0))
 	{
+		SCSIPhase = SCSI_PHASE_STATUS;
 		buffer[2]=SENSE_UNIT_ATTENTION;
 		buffer[12]=ASC_MEDIUM_MAY_HAVE_CHANGED;
 		buffer[13]=0x00;
 	}
 
-	/* scsi_hd_log("SCSI HD %i: Reporting sense: %02X %02X %02X\n", id, hdbufferb[2], hdbufferb[12], hdbufferb[13]); */
+	scsi_hd_log("SCSI HD %i: Reporting sense: %02X %02X %02X\n", id, buffer[2], buffer[12], buffer[13]);
 
 	if (buffer[2] == SENSE_UNIT_ATTENTION)
 	{
@@ -742,7 +740,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 	uint8_t *tempbuffer;
 	uint32_t last_sector = 0;
 
-#if 0
+#if 1
 	int CdbLength;
 #endif
 	last_sector = hdd_image_get_last_sector(id);
@@ -777,10 +775,10 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 		scsi_hd_log("SCSI HD %i: Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, %i\n", id, cdb[0], scsi_hd_sense_key, scsi_hd_asc, scsi_hd_ascq, ins);
 		scsi_hd_log("SCSI HD %i: Request length: %04X\n", id, shdc[id].request_length);
 
-#if 0
+#if 1
 		for (CdbLength = 1; CdbLength < 12; CdbLength++)
 		{
-			scsi_hd_log("SCSI HD %i: CDB[%d] = 0x%02X\n", id, CdbLength, cdb[CdbLength]);
+			scsi_hd_log("SCSI HD %i: CDB[%d] = %d\n", id, CdbLength, cdb[CdbLength]);
 		}
 #endif
 	}
@@ -800,37 +798,46 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 		case GPCMD_VERIFY_6:
 		case GPCMD_VERIFY_10:
 		case GPCMD_VERIFY_12:
+			SCSIPhase = SCSI_PHASE_STATUS;
 			scsi_hd_command_complete(id);
 			break;
 
 		case GPCMD_REZERO_UNIT:
 			shdc[id].sector_pos = shdc[id].sector_len = 0;
 			scsi_hd_seek(id, 0);
+			SCSIPhase = SCSI_PHASE_STATUS;
 			break;
 
 		case GPCMD_REQUEST_SENSE:
 			/* If there's a unit attention condition and there's a buffered not ready, a standalone REQUEST SENSE
 			   should forget about the not ready, and report unit attention straight away. */
-			if (SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength < cdb[4])
+			SCSIPhase = SCSI_PHASE_DATA_IN;
+			if (SCSI_BufferLength < cdb[4])
 			{
-				cdb[4] = SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength;
+				cdb[4] = SCSI_BufferLength;
 			}
 			scsi_hd_request_sense(id, hdbufferb, cdb[4]);
 			scsi_hd_data_command_finish(id, 18, 18, cdb[4], 0);
+			SCSIPhase = BUS_IO;
 			break;
 
 		case GPCMD_MECHANISM_STATUS:
+			SCSIPhase = SCSI_PHASE_DATA_IN;
+		
 			len = (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
 
  			memset(hdbufferb, 0, 8);
 			hdbufferb[5] = 1;
 
 			scsi_hd_data_command_finish(id, 8, 8, len, 0);
+			SCSIPhase = BUS_IO;
 			break;
 
 		case GPCMD_READ_6:
 		case GPCMD_READ_10:
 		case GPCMD_READ_12:
+			SCSIPhase = SCSI_PHASE_DATA_IN;
+		
 			switch(cdb[0])
 			{
 				case GPCMD_READ_6:
@@ -853,8 +860,9 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				return;
 			}
 
-			if ((!shdc[id].sector_len) || (SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength == 0))
+			if ((!shdc[id].sector_len) || (SCSI_BufferLength == 0))
 			{
+				SCSIPhase = SCSI_PHASE_STATUS;
 				/* scsi_hd_log("SCSI HD %i: All done - callback set\n", id); */
 				shdc[id].packet_status = CDROM_PHASE_COMPLETE;
 				shdc[id].callback = 20 * SCSI_TIME;
@@ -866,11 +874,11 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 			alloc_length = shdc[id].packet_len = max_len << 9;
 
-			if ((shdc[id].requested_blocks > 0) && (SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength > 0))
+			if ((shdc[id].requested_blocks > 0) && (SCSI_BufferLength > 0))
 			{
-				if (alloc_length > SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength)
+				if (alloc_length > SCSI_BufferLength)
 				{
-					hdd_image_read(id, shdc[id].sector_pos, SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength >> 9, hdbufferb);
+					hdd_image_read(id, shdc[id].sector_pos, SCSI_BufferLength >> 9, hdbufferb);
 				}
 				else
 				{
@@ -900,6 +908,8 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 		case GPCMD_WRITE_6:
 		case GPCMD_WRITE_10:
 		case GPCMD_WRITE_12:
+			SCSIPhase = SCSI_PHASE_DATA_OUT;
+		
 			if ((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) && hdd[id].wp)
 			{
 				scsi_hd_write_protected(id);
@@ -929,8 +939,9 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				return;
 			}
 
-			if ((!shdc[id].sector_len) || (SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength == 0))
+			if ((!shdc[id].sector_len) || (SCSI_BufferLength == 0))
 			{
+				SCSIPhase = SCSI_PHASE_STATUS;
 				/* scsi_hd_log("SCSI HD %i: All done - callback set\n", id); */
 				shdc[id].packet_status = CDROM_PHASE_COMPLETE;
 				shdc[id].callback = 20 * SCSI_TIME;
@@ -939,14 +950,14 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 			max_len = shdc[id].sector_len;
 			shdc[id].requested_blocks = max_len;
-
+			
 			alloc_length = shdc[id].packet_len = max_len << 9;
 
-			if ((shdc[id].requested_blocks > 0) && (SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength > 0))
+			if ((shdc[id].requested_blocks > 0) && (SCSI_BufferLength > 0))
 			{
-				if (alloc_length > SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength)
+				if (alloc_length > SCSI_BufferLength)
 				{
-					hdd_image_write(id, shdc[id].sector_pos, SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength >> 9, hdbufferb);
+					hdd_image_write(id, shdc[id].sector_pos, SCSI_BufferLength >> 9, hdbufferb);
 				}
 				else
 				{
@@ -974,6 +985,8 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			return;
 
 		case GPCMD_START_STOP_UNIT:
+			SCSIPhase = SCSI_PHASE_STATUS;
+		
 			if (hdd[id].bus != HDD_BUS_SCSI_REMOVABLE)
 			{
 				scsi_hd_illegal_opcode(id);
@@ -997,17 +1010,11 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			break;
 
 		case GPCMD_INQUIRY:
+			SCSIPhase = SCSI_PHASE_DATA_IN;
+		
 			max_len = cdb[3];
 			max_len <<= 8;
 			max_len |= cdb[4];
-
-			if ((!max_len) || (SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength == 0))
-			{
-				/* scsi_hd_log("SCSI HD %i: All done - callback set\n", id); */
-				shdc[id].packet_status = CDROM_PHASE_COMPLETE;
-				shdc[id].callback = 20 * SCSI_TIME;
-				break;
-			}
 
 			tempbuffer = malloc(1024);
 
@@ -1091,17 +1098,14 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 atapi_out:
 			tempbuffer[size_idx] = idx - preamble_len;
 			len=idx;
-
+			
 			if (len > max_len)
 			{
 				len = max_len;
 			}
-
-			if (len > SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength)
-			{
-				len = SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength;
-			}
-
+			
+			scsi_hd_log("Inquiry length %i\n", len);
+			
 			memcpy(hdbufferb, tempbuffer, len);
 
 			free(tempbuffer);
@@ -1110,11 +1114,14 @@ atapi_out:
 			break;
 
 		case GPCMD_PREVENT_REMOVAL:
+			SCSIPhase = SCSI_PHASE_STATUS;
 			scsi_hd_command_complete(id);
 			break;
 
 		case GPCMD_SEEK_6:
 		case GPCMD_SEEK_10:
+			SCSIPhase = SCSI_PHASE_STATUS;
+		
 			switch(cdb[0])
 			{
 				case GPCMD_SEEK_6:
@@ -1129,6 +1136,8 @@ atapi_out:
 			break;
 
 		case GPCMD_READ_CDROM_CAPACITY:
+			SCSIPhase = SCSI_PHASE_DATA_IN;
+		
 			if (scsi_hd_read_capacity(id, shdc[id].current_cdb, hdbufferb, &len) == 0)
 			{
 				return;
@@ -1142,7 +1151,7 @@ atapi_out:
 			scsi_hd_illegal_opcode(id);
 			break;
 	}
-
+	
 	/* scsi_hd_log("SCSI HD %i: Phase: %02X, request length: %i\n", shdc[id].phase, shdc[id].request_length); */
 }
 
