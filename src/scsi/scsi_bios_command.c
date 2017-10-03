@@ -199,7 +199,7 @@ scsi_bios_command(uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 
     /* Get pointer to selected device. */
     dev = &SCSIDevices[cmd->id][cmd->lun];
-    dev->InitLength = 0;
+	SCSI_BufferLength = 0;
 
     if (! scsi_device_present(cmd->id, cmd->lun)) {
 	cmd_log("BIOS Target ID %i and LUN %i have no device attached\n",
@@ -231,7 +231,7 @@ scsi_bios_command(uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		 * length for SCSI sense, and no command-specific
 		 * indication is given.
 		 */
-		dev->InitLength = 14;
+		SCSI_BufferLength = 14;
 		dev->CmdBuffer = (uint8_t *)malloc(14);
 		memset(dev->CmdBuffer, 0x00, 14);
 
@@ -256,9 +256,9 @@ scsi_bios_command(uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 	case 0x02:	/* Read Desired Sectors to Memory */
 		target_check(cmd->id, cmd->lun);
 
-		dev->InitLength = sector_len << block_shift;
-		dev->CmdBuffer = (uint8_t *)malloc(dev->InitLength);
-		memset(dev->CmdBuffer, 0x00, dev->InitLength);
+		SCSI_BufferLength = sector_len << block_shift;
+		dev->CmdBuffer = (uint8_t *)malloc(SCSI_BufferLength);
+		memset(dev->CmdBuffer, 0x00, SCSI_BufferLength);
 
 		cdb[0] = GPCMD_READ_10;
 		cdb[1] = (cmd->lun & 7) << 5;
@@ -275,9 +275,9 @@ scsi_bios_command(uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		scsi_device_command(cmd->id, cmd->lun, 12, cdb);
 		if (sector_len > 0) {
 			cmd_log("BIOS DMA: Reading %i bytes at %08X\n",
-					dev->InitLength, dma_address);
+					SCSI_BufferLength, dma_address);
 			DMAPageWrite(dma_address,
-				     (char *)dev->CmdBuffer, dev->InitLength);
+				     (char *)dev->CmdBuffer, SCSI_BufferLength);
 		}
 
 		if (dev->CmdBuffer != NULL) {
@@ -290,15 +290,15 @@ scsi_bios_command(uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 	case 0x03:	/* Write Desired Sectors from Memory */
 		target_check(cmd->id, cmd->lun);
 
-		dev->InitLength = sector_len << block_shift;
-		dev->CmdBuffer = (uint8_t *)malloc(dev->InitLength);
-		memset(dev->CmdBuffer, 0x00, dev->InitLength);
+		SCSI_BufferLength = sector_len << block_shift;
+		dev->CmdBuffer = (uint8_t *)malloc(SCSI_BufferLength);
+		memset(dev->CmdBuffer, 0x00, SCSI_BufferLength);
 
 		if (sector_len > 0) {
 			cmd_log("BIOS DMA: Reading %i bytes at %08X\n",
-					dev->InitLength, dma_address);
+					SCSI_BufferLength, dma_address);
 			DMAPageRead(dma_address,
-				    (char *)dev->CmdBuffer, dev->InitLength);
+				    (char *)dev->CmdBuffer, SCSI_BufferLength);
 		}
 
 		cdb[0] = GPCMD_WRITE_10;
@@ -359,15 +359,15 @@ scsi_bios_command(uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 	case 0x08:	/* Read Drive Parameters */
 		target_check(cmd->id, cmd->lun);
 
-		dev->InitLength = 6;
-		dev->CmdBuffer = (uint8_t *)malloc(dev->InitLength);
-		memset(dev->CmdBuffer, 0x00, dev->InitLength);
+		SCSI_BufferLength = 6;
+		dev->CmdBuffer = (uint8_t *)malloc(SCSI_BufferLength);
+		memset(dev->CmdBuffer, 0x00, SCSI_BufferLength);
 
 		ret = scsi_bios_command_08(cmd->id, cmd->lun, dev->CmdBuffer);
 
 		cmd_log("BIOS DMA: Reading 6 bytes at %08X\n", dma_address);
 		DMAPageWrite(dma_address,
-			     (char *)dev->CmdBuffer, dev->InitLength);
+			     (char *)dev->CmdBuffer, SCSI_BufferLength);
 
 		if (dev->CmdBuffer != NULL) {
 			free(dev->CmdBuffer);
@@ -384,7 +384,7 @@ scsi_bios_command(uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		target_check(cmd->id, cmd->lun);
 
 //FIXME: is this needed?  Looks like a copy-paste leftover.. --FvK
-		dev->InitLength = sector_len << block_shift;
+		SCSI_BufferLength = sector_len << block_shift;
 
 		cdb[0] = GPCMD_SEEK_10;
 		cdb[1] = (cmd->lun & 7) << 5;
@@ -428,15 +428,15 @@ scsi_bios_command(uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 	case 0x15:	/* Read DASD Type */
 		target_check(cmd->id, cmd->lun);
 
-		dev->InitLength = 6;
-		dev->CmdBuffer = (uint8_t *)malloc(dev->InitLength);
-		memset(dev->CmdBuffer, 0x00, dev->InitLength);
+		SCSI_BufferLength = 6;
+		dev->CmdBuffer = (uint8_t *)malloc(SCSI_BufferLength);
+		memset(dev->CmdBuffer, 0x00, SCSI_BufferLength);
 
 		ret = scsi_bios_command_15(cmd->id, cmd->lun, dev->CmdBuffer);
 
 		cmd_log("BIOS DMA: Reading 6 bytes at %08X\n", dma_address);
 		DMAPageWrite(dma_address,
-			     (char *)dev->CmdBuffer, dev->InitLength);
+			     (char *)dev->CmdBuffer, SCSI_BufferLength);
 
 		if (dev->CmdBuffer != NULL) {
 			free(dev->CmdBuffer);
