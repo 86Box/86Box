@@ -1016,6 +1016,15 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			max_len <<= 8;
 			max_len |= cdb[4];
 
+			if ((!max_len) || (SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength == 0))
+			{
+				SCSIPhase = SCSI_PHASE_STATUS;
+				/* scsi_hd_log("SCSI HD %i: All done - callback set\n", id); */
+				shdc[id].packet_status = CDROM_PHASE_COMPLETE;
+				shdc[id].callback = 20 * SCSI_TIME;
+				break;
+			}			
+			
 			tempbuffer = malloc(1024);
 
 			if (cdb[1] & 1)
@@ -1104,7 +1113,10 @@ atapi_out:
 				len = max_len;
 			}
 			
-			scsi_hd_log("Inquiry length %i\n", len);
+			if (len > SCSI_BufferLength)
+			{
+				len = SCSI_BufferLength;
+			}
 			
 			memcpy(hdbufferb, tempbuffer, len);
 
