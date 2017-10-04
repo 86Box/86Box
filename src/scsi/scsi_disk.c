@@ -123,8 +123,8 @@ uint8_t scsi_hd_command_flags[0x100] = {
 };
 
 
-#define ENABLE_SCSI_HD_LOG 0
-int scsi_hd_do_log = 0;
+#define ENABLE_SCSI_HD_LOG 1
+int scsi_hd_do_log = 1;
 
 
 void scsi_hd_log(const char *format, ...)
@@ -818,7 +818,6 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			}
 			scsi_hd_request_sense(id, hdbufferb, cdb[4]);
 			scsi_hd_data_command_finish(id, 18, 18, cdb[4], 0);
-			SCSIPhase = BUS_IO;
 			break;
 
 		case GPCMD_MECHANISM_STATUS:
@@ -830,7 +829,6 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			hdbufferb[5] = 1;
 
 			scsi_hd_data_command_finish(id, 8, 8, len, 0);
-			SCSIPhase = BUS_IO;
 			break;
 
 		case GPCMD_READ_6:
@@ -843,10 +841,12 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				case GPCMD_READ_6:
 					shdc[id].sector_len = cdb[4];
 					shdc[id].sector_pos = ((((uint32_t) cdb[1]) & 0x1f) << 16) | (((uint32_t) cdb[2]) << 8) | ((uint32_t) cdb[3]);
+					scsi_hd_log("SCSI HD %i: Read Length: %i, LBA: %i\n", id, shdc[id].sector_len, shdc[id].sector_pos);
 					break;
 				case GPCMD_READ_10:
 					shdc[id].sector_len = (cdb[7] << 8) | cdb[8];
 					shdc[id].sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+					scsi_hd_log("SCSI HD %i: Read Length: %i, LBA: %i\n", id, shdc[id].sector_len, shdc[id].sector_pos);
 					break;
 				case GPCMD_READ_12:
 					shdc[id].sector_len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
@@ -921,11 +921,12 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				case GPCMD_WRITE_6:
 					shdc[id].sector_len = cdb[4];
 					shdc[id].sector_pos = ((((uint32_t) cdb[1]) & 0x1f) << 16) | (((uint32_t) cdb[2]) << 8) | ((uint32_t) cdb[3]);
+					scsi_hd_log("SCSI HD %i: Write Length: %i, LBA: %i\n", id, shdc[id].sector_len, shdc[id].sector_pos);
 					break;
 				case GPCMD_WRITE_10:
 					shdc[id].sector_len = (cdb[7] << 8) | cdb[8];
 					shdc[id].sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
-					scsi_hd_log("SCSI HD %i: Length: %i, LBA: %i\n", id, shdc[id].sector_len, shdc[id].sector_pos);
+					scsi_hd_log("SCSI HD %i: Write Length: %i, LBA: %i\n", id, shdc[id].sector_len, shdc[id].sector_pos);
 					break;
 				case GPCMD_WRITE_12:
 					shdc[id].sector_len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);

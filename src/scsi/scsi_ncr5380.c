@@ -139,7 +139,7 @@ enum
         DMA_INITIATOR_RECEIVE
 };
 
-#if ENABLE_NCR5380_LOG
+#ifdef ENABLE_NCR5380_LOG
 int ncr5380_do_log = ENABLE_NCR5380_LOG;
 #endif
 
@@ -166,6 +166,11 @@ static void ncr53c400_dma_changed(void *p, int mode, int enable)
 	scsi->ncr5380_dma_enabled = (mode && enable);
 	
 	scsi->dma_enabled = (scsi->ncr5380_dma_enabled && scsi->block_count_loaded);
+}
+
+void ncr5380_reset(ncr5380_t *ncr)
+{
+	memset(ncr, 0, sizeof(ncr5380_t));
 }
 
 static uint32_t get_bus_host(ncr5380_t *ncr)
@@ -722,9 +727,7 @@ static void *scsi_53c400_init(wchar_t *bios_fn)
 {
 	lcs6821n_t *scsi = malloc(sizeof(lcs6821n_t));
 	memset(scsi, 0, sizeof(lcs6821n_t));
-	
-	SCSI_BufferLength = 0;
-	
+
 	rom_init(&scsi->bios_rom, bios_fn, 0xdc000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 	mem_mapping_disable(&scsi->bios_rom.mapping);
 
@@ -733,6 +736,8 @@ static void *scsi_53c400_init(wchar_t *bios_fn)
 					lcs6821n_write, NULL, NULL,
                     scsi->bios_rom.rom, 0, scsi);
 
+	ncr5380_reset(&scsi->ncr);
+	
 	scsi->status_ctrl = STATUS_BUFFER_NOT_READY;
 	scsi->buffer_host_pos = 128;
 
@@ -755,8 +760,6 @@ static void *scsi_t130b_init(void)
 	lcs6821n_t *scsi = malloc(sizeof(lcs6821n_t));
 	memset(scsi, 0, sizeof(lcs6821n_t));
 
-	SCSI_BufferLength = 0;
-	
 	rom_init(&scsi->bios_rom, L"roms/scsi/ncr5380/trantor_t130b_bios_v2.14.bin", 0xdc000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
 	mem_mapping_add(&scsi->mapping, 0xdc000, 0x4000, 
@@ -767,6 +770,8 @@ static void *scsi_t130b_init(void)
 					t130b_in, NULL, NULL,
 					t130b_out, NULL, NULL,
 					scsi);
+
+	ncr5380_reset(&scsi->ncr);
 					
 	scsi->status_ctrl = STATUS_BUFFER_NOT_READY;
 	scsi->buffer_host_pos = 128;

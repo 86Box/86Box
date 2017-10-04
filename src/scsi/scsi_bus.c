@@ -49,7 +49,7 @@ static int get_cmd_len(int cbyte)
 	if (group == 1 || group == 2) len = 10;
 	if (group == 5) len = 12;
 
-	//pclog("Command group %d, length %d\n", group, len);
+	pclog("Command group %d, length %d\n", group, len);
 	
 	return len;
 }
@@ -73,7 +73,7 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 {
 	scsi_device_t *dev;
 	
-	dev = &SCSIDevices[bus->dev_id][0];
+	dev = &SCSIDevices[bus->dev_id][(bus->command[1] >> 5) & 7];
 	
 	if (bus_assert & BUS_ARB)
 			bus->state = STATE_IDLE;	
@@ -90,7 +90,7 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 					uint8_t sel_data = BUS_GETDATA(bus_assert);
 				
 					bus->dev_id = get_dev_id(sel_data);
-					if (scsi_device_present(bus->dev_id, 0))
+					if (scsi_device_present(bus->dev_id, (bus->command[1] >> 5) & 7))
 					{
 							bus->bus_out |= BUS_BSY;
 							bus->state = STATE_PHASESEL;
@@ -105,7 +105,7 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 			{
 				if (!(bus_assert & BUS_ATN))
 				{
-					if (scsi_device_present(bus->dev_id, 0))
+					if (scsi_device_present(bus->dev_id, (bus->command[1] >> 5) & 7))
 					{
 							bus->state = STATE_COMMAND;
 							bus->bus_out = BUS_BSY | BUS_REQ;
@@ -136,13 +136,22 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 				{
 					bus->data_pos = 0;
 					
-					if (bus->command[0] == 0x03)
+					if (bus->command[0] == 0x03 || bus->command[0] == 0x12)
 					{
 						SCSI_BufferLength = bus->command[4];
 						//pclog("Request Sense len %i, buffer len %i\n", bus->command[4], SCSI_BufferLength);
 					}
 					
-					scsi_device_command(bus->dev_id, 0, get_cmd_len(bus->command[0]), bus->command);					
+					pclog("Command 0x%02X\n", bus->command[0]);
+
+					if (bus->command != 0x0A)
+					{
+						scsi_device_command(bus->dev_id, (bus->command[1] >> 5) & 7, get_cmd_len(bus->command[0]), bus->command);					
+					}
+					else
+					{
+						bus->state = STATE_DATAOUT;
+					}
 					
 					if ((SCSIPhase & (BUS_IO | BUS_CD | BUS_MSG)) == BUS_CD)
 					{
@@ -160,7 +169,7 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 
 		case STATE_COMMANDWAIT:
 			{
-				scsi_device_command(bus->dev_id, 0, get_cmd_len(bus->command[0]), bus->command);
+				scsi_device_command(bus->dev_id, (bus->command[1] >> 5) & 7, get_cmd_len(bus->command[0]), bus->command);
 				
 				if ((SCSIPhase & (BUS_IO | BUS_CD | BUS_MSG)) != BUS_CD)
 				{
@@ -197,13 +206,14 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 		case STATE_DATAOUT:
 			if ((bus_assert & BUS_ACK) && !(bus->bus_in & BUS_ACK))
 			{
-					dev->CmdBuffer[bus->data_pos++] = SCSI_BufferLength;				
+					dev->CmdBuffer[bus->data_pos++] = BUS_GETDATA(bus_assert);
 					
 					if (bus->data_pos >= SCSI_BufferLength)
 					{
+							pclog("Data out: data pos %i, buffer length %i\n", bus->data_pos, SCSI_BufferLength);
 							bus->data_pos = SCSI_BufferLength;
 							bus->bus_out &= ~BUS_REQ;
-							scsi_device_command(bus->dev_id, 0, get_cmd_len(bus->command[0]), bus->command);
+							scsi_device_command(bus->dev_id, (bus->command[1] >> 5) & 7, get_cmd_len(bus->command[0]), bus->command);
 							bus->new_state = SCSIPhase;
 							bus->change_state_delay = 4;
 							bus->new_req_delay = 8;
@@ -243,7 +253,7 @@ int scsi_bus_read(scsi_bus_t *bus)
 {
 	scsi_device_t *dev;
 
-	dev = &SCSIDevices[bus->dev_id][0];
+	dev = &SCSIDevices[bus->dev_id][(bus->command[1] >> 5) & 7];
 
 	dev->CmdBuffer = (uint8_t *)bus->buffer;
 	
@@ -277,11 +287,15 @@ int scsi_bus_read(scsi_bus_t *bus)
 				case 0:
 					if (bus->new_state & BUS_IDLE)
 					{
+							pclog("Phase data out: idle\n");
 							bus->state = STATE_IDLE;
 							bus->bus_out &= ~BUS_BSY;
 					}
 					else
+					{
+							pclog("Phase data out\n");
 							bus->state = STATE_DATAOUT;
+					}
 					break;
 
 				case (BUS_IO | BUS_CD):
