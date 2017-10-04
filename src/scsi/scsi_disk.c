@@ -1016,7 +1016,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			max_len <<= 8;
 			max_len |= cdb[4];
 
-			if ((!max_len) || (SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].InitLength == 0))
+			if ((!max_len) || (SCSI_BufferLength == 0))
 			{
 				SCSIPhase = SCSI_PHASE_STATUS;
 				/* scsi_hd_log("SCSI HD %i: All done - callback set\n", id); */
