@@ -545,6 +545,7 @@ int scsi_hd_pre_execution_check(uint8_t id, uint8_t *cdb)
 	if (((shdc[id].request_length >> 5) & 7) != hdd[id].scsi_lun)
 	{
 		scsi_hd_log("SCSI HD %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n", id, ((shdc[id].request_length >> 5) & 7));
+		pclog("SCSI HD %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n", id, ((shdc[id].request_length >> 5) & 7));
 		scsi_hd_invalid_lun(id);
 		return 0;
 	}
@@ -552,6 +553,7 @@ int scsi_hd_pre_execution_check(uint8_t id, uint8_t *cdb)
 	if (!(scsi_hd_command_flags[cdb[0]] & IMPLEMENTED))
 	{
 		scsi_hd_log("SCSI HD %i: Attempting to execute unknown command %02X\n", id, cdb[0]);
+		pclog("SCSI HD %i: Attempting to execute unknown command %02X\n", id, cdb[0]);
 		/* pclog("SCSI HD %i: Attempting to execute unknown command %02X (%02X %02X)\n", id, cdb[0], ((cdb[1] >> 3) & 1) ? 0 : 1, cdb[2] & 0x3F); */
 		scsi_hd_illegal_opcode(id);
 		return 0;
@@ -591,6 +593,7 @@ int scsi_hd_pre_execution_check(uint8_t id, uint8_t *cdb)
 		if (!(scsi_hd_command_flags[cdb[0]] & ALLOW_UA))
 		{
 			/* scsi_hd_log("SCSI HD %i: Unit attention now 2\n", id); */
+			pclog("SCSI HD %i: Unit attention now 2\n", id);
 			shdc[id].unit_attention = 2;
 			scsi_hd_log("SCSI HD %i: UNIT ATTENTION: Command %02X not allowed to pass through\n", id, cdb[0]);
 			scsi_hd_unit_attention(id);
@@ -602,6 +605,7 @@ int scsi_hd_pre_execution_check(uint8_t id, uint8_t *cdb)
 		if (cdb[0] != GPCMD_REQUEST_SENSE)
 		{
 			/* scsi_hd_log("SCSI HD %i: Unit attention now 0\n", id); */
+			pclog("SCSI HD %i: Unit attention now 0\n", id);
 			shdc[id].unit_attention = 0;
 		}
 	}
@@ -617,11 +621,13 @@ int scsi_hd_pre_execution_check(uint8_t id, uint8_t *cdb)
 	if ((scsi_hd_command_flags[cdb[0]] & CHECK_READY) && !ready)
 	{
 		scsi_hd_log("SCSI HD %i: Not ready (%02X)\n", id, cdb[0]);
+		pclog("SCSI HD %i: Not ready (%02X)\n", id, cdb[0]);
 		scsi_hd_not_ready(id);
 		return 0;
 	}
 
 	scsi_hd_log("SCSI HD %i: Continuing with command\n", id);
+	pclog("SCSI HD %i: Continuing with command\n", id);
 		
 	return 1;
 }
@@ -907,6 +913,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 		case GPCMD_WRITE_12:
 			if ((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) && hdd[id].wp)
 			{
+				pclog("Write-protected disk\n");
 				scsi_hd_write_protected(id);
 				return;
 			}
@@ -917,6 +924,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 					shdc[id].sector_len = cdb[4];
 					shdc[id].sector_pos = ((((uint32_t) cdb[1]) & 0x1f) << 16) | (((uint32_t) cdb[2]) << 8) | ((uint32_t) cdb[3]);
 					scsi_hd_log("SCSI HD %i: Length: %i, LBA: %i\n", id, shdc[id].sector_len, shdc[id].sector_pos);
+					pclog("SCSI HD %i: Length: %i, LBA: %i\n", id, shdc[id].sector_len, shdc[id].sector_pos);
 					break;
 				case GPCMD_WRITE_10:
 					shdc[id].sector_len = (cdb[7] << 8) | cdb[8];
@@ -931,18 +939,24 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 			if ((shdc[id].sector_pos > last_sector) || ((shdc[id].sector_pos + shdc[id].sector_len - 1) > last_sector))
 			{
+				pclog("LBA out of range\n");
 				scsi_hd_lba_out_of_range(id);
 				return;
 			}
 
+			pclog("Valid LBA\n");
+
 			if ((!shdc[id].sector_len) || (SCSI_BufferLength == 0))
 			{
+				pclog("Zero buffer\n");
 				SCSIPhase = SCSI_PHASE_STATUS;
 				scsi_hd_log("SCSI HD %i: All done - callback set\n", id);
 				shdc[id].packet_status = CDROM_PHASE_COMPLETE;
 				shdc[id].callback = 20 * SCSI_TIME;
 				break;
 			}
+
+			pclog("Non-zero buffer\n");
 
 			max_len = shdc[id].sector_len;
 			shdc[id].requested_blocks = max_len;
@@ -961,6 +975,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				}
 			}
 			scsi_hd_log("HDD image written\n");
+			pclog("HDD image written\n");
 			SCSIPhase = SCSI_PHASE_STATUS; /*This is odd, but scsi_bus.c requires this to be non-0*/
 			
 			if (shdc[id].requested_blocks > 1)
