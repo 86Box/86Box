@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.52	2017/10/05
+# Version:	@(#)Makefile.mingw	1.0.53	2017/10/06
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -347,12 +347,12 @@ VIDOBJ		:= video.o \
 		    vid_tandy.o vid_tandysl.o
 
 WINOBJ		:= win.o \
-		    win_ddraw.o win_ddraw_fs.o win_ddraw_screenshot.o \
-		    win_d3d.o win_d3d_fs.o \
+		    win_ddraw.o win_ddraw_fs.o win_d3d.o win_d3d_fs.o \
 		    win_language.o win_status.o $(OPENDIR) win_dynld.o \
 		    win_video.o $(WSERIAL) win_keyboard.o win_mouse.o \
-		    win_joystick.o win_midi.o win_thread.o \
-		    win_settings.o win_deviceconfig.o win_joystickconfig.o
+		    win_joystick.o win_midi.o win_cdrom.o win_thread.o \
+		    win_about.o win_stbar.o win_settings.o \
+		    win_deviceconfig.o win_joystickconfig.o
 
 OBJ		:= $(MAINOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \
 		   $(FDDOBJ) $(CDROMOBJ) $(HDDOBJ) \

@@ -12,7 +12,7 @@
  *		Windows-specific header files needed, to keep them
  *		out of the main code.
  *
- * Version:	@(#)win.h	1.0.2	2017/10/05
+ * Version:	@(#)win.h	1.0.3	2017/10/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -54,6 +54,7 @@
 
 extern HINSTANCE	hinstance;
 extern HWND		hwndMain;
+extern HICON		hIcon[512];
 extern int		status_is_open;
 extern int		mousecapture;
 
@@ -84,7 +85,6 @@ extern void	startblit(void);
 extern void	endblit(void);
 
 extern void	win_settings_open(HWND hwnd);
-extern void	win_menu_update();
 
 extern void	hard_disk_add_open(HWND hwnd, int is_existing);
 extern int	hard_disk_was_added(void);
@@ -95,12 +95,16 @@ extern void	process_raw_input(LPARAM lParam, int infocus);
 extern void	cdrom_init_host_drives(void);
 extern void	cdrom_close(uint8_t id);
 
+extern HICON	LoadIconEx(PCTSTR pszIconName);
+
 extern BOOL	DirectoryExists(LPCTSTR szPath);
+
+/* About dialog definitions. */
+extern void	AboutDialogCreate(HWND hwnd);
 
 /* Status Window definitions. */
 extern HWND	hwndStatus;
 extern void	StatusWindowCreate(HWND hwnd);
-
 
 /* Status Bar definitions. */
 #define SB_ICON_WIDTH	24
@@ -111,12 +115,16 @@ extern void	StatusWindowCreate(HWND hwnd);
 #define SB_NETWORK      0x50
 #define SB_TEXT         0x60
 
+extern HWND	hwndSBAR;
+extern void	StatusBarCreate(HWND hwndParent, int idStatus, HINSTANCE hInst);
 extern int	fdd_type_to_icon(int type);
 extern int	StatusBarFindPart(int tag);
 extern void	StatusBarUpdatePanes(void);
 extern void	StatusBarUpdateTip(int meaning);
 extern void	StatusBarUpdateIcon(int tag, int val);
 extern void	StatusBarUpdateIconState(int tag, int active);
+extern void	StatusBarCheckMenuItem(int tag, int id, int chk);
+extern void	StatusBarEnableMenuItem(int tag, int id, int val);
 extern void	StatusBarSetTextW(wchar_t *wstr);
 extern void	StatusBarSetText(char *str);
 

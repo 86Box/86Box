@@ -29,6 +29,7 @@
 #include <wchar.h>
 #include "../config.h"
 #include "../cdrom/cdrom.h"
+#include "../cdrom/cdrom_ioctl.h"
 #include "../cdrom/cdrom_image.h"
 #include "../cdrom/cdrom_null.h"
 #include "../disk/hdd.h"
@@ -36,7 +37,6 @@
 #include "../scsi/scsi_disk.h"
 #include "plat_ui.h"
 #include "win.h"
-#include "win_cdrom_ioctl.h"
 #include "win_language.h"
 
 
