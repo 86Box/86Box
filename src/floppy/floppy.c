@@ -9,7 +9,7 @@
  *		Generic floppy disk interface that communicates with the
  *		other handlers.
  *
- * Version:	@(#)floppy.c	1.0.5	2017/10/02
+ * Version:	@(#)floppy.c	1.0.5	2017/10/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -25,6 +25,7 @@
 #include "../rom.h"
 #include "../config.h"
 #include "../timer.h"
+#include "../win/win.h"
 #include "floppy.h"
 #include "floppy_86f.h"
 #include "floppy_fdi.h"
@@ -157,7 +158,7 @@ void floppy_load(int drive, wchar_t *fn)
         drive_empty[drive] = 1;
 	fdd_set_head(real_drive(drive), 0);
 	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
-	update_status_bar_icon_state(drive, 1);
+	StatusBarUpdateIconState(drive, 1);
 }
 
 void floppy_close(int drive)
@@ -176,7 +177,7 @@ void floppy_close(int drive)
         drives[drive].format = NULL;
         drives[drive].byteperiod = NULL;
 	drives[drive].stop = NULL;
-	update_status_bar_icon_state(drive, 1);
+	StatusBarUpdateIconState(drive, 1);
 }
 
 int floppy_notfound=0;

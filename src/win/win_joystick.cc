@@ -151,7 +151,7 @@ void joystick_init()
 
                 lpdi_joystick[c]->EnumObjects(DIEnumDeviceObjectsCallback, &plat_joystick_state[c], DIDFT_ALL); 
                 
-                if (FAILED(lpdi_joystick[c]->SetCooperativeLevel(ghwnd, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE)))
+                if (FAILED(lpdi_joystick[c]->SetCooperativeLevel(hwndMain, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE)))
                         fatal("joystick_init : SetCooperativeLevel failed\n");
                 if (FAILED(lpdi_joystick[c]->SetDataFormat(&c_dfDIJoystick)))
                         fatal("joystick_init : SetDataFormat failed\n");

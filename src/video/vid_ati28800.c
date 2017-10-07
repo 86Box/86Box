@@ -354,7 +354,7 @@ void ati28800_recalctimings(svga_t *svga)
         }
 }               
 
-void *ati28800_init()
+void *ati28800_init(device_t *info)
 {
 	uint32_t memory = 512;
         ati28800_t *ati28800;
@@ -396,17 +396,17 @@ void *ati28800_init()
         return ati28800;
 }
 
-static int ati28800_available()
+static int ati28800_available(void)
 {
         return rom_present(L"roms/video/ati28800/bios.bin");
 }
 
-static int compaq_ati28800_available()
+static int compaq_ati28800_available(void)
 {
         return (rom_present(L"roms/video/ati28800/XLEVEN.bin") && rom_present(L"roms/video/ati28800/XLODD.bin"));
 }
 
-static int ati28800_wonderxl24_available()
+static int ati28800_wonderxl24_available(void)
 {
         return (rom_present(L"roms/video/ati28800/112-14318-102.bin") && rom_present(L"roms/video/ati28800/112-14319-102.bin"));
 }
@@ -490,8 +490,10 @@ device_t ati28800_device =
 {
         "ATI-28800",
         0,
+	0,
         ati28800_init,
         ati28800_close,
+	NULL,
         ati28800_available,
         ati28800_speed_changed,
         ati28800_force_redraw,
@@ -503,8 +505,10 @@ device_t compaq_ati28800_device =
 {
         "Compaq ATI-28800",
         0,
+	0,
         ati28800_init,
         ati28800_close,
+	NULL,
         compaq_ati28800_available,
         ati28800_speed_changed,
         ati28800_force_redraw,
@@ -516,8 +520,10 @@ device_t ati28800_wonderxl24_device =
 {
         "ATI-28800 (VGA Wonder XL24)",
         0,
+	0,
         ati28800_init,
         ati28800_close,
+	NULL,
         ati28800_wonderxl24_available,
         ati28800_speed_changed,
         ati28800_force_redraw,

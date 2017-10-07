@@ -54,7 +54,7 @@ static void ps2_nvr_write(uint16_t port, uint8_t val, void *p)
         }
 }
 
-static void *ps2_nvr_init()
+static void *ps2_nvr_init(device_t *info)
 {
         ps2_nvr_t *nvr = (ps2_nvr_t *)malloc(sizeof(ps2_nvr_t));
         FILE *f = NULL;
@@ -100,10 +100,9 @@ device_t ps2_nvr_device =
 {
         "PS/2 NVRRAM",
         0,
+	0,
         ps2_nvr_init,
         ps2_nvr_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL
+	NULL,
+	NULL, NULL, NULL, NULL
 };

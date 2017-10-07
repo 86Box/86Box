@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 2 Mbit 8-bit flash devices.
  *
- * Version:	@(#)intel_flash.c	1.0.4	2017/10/02
+ * Version:	@(#)intel_flash.c	1.0.5	2017/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -307,54 +307,43 @@ void intel_flash_close(void *p)
         free(flash);
 }
 
+
 device_t intel_flash_bxt_ami_device =
 {
         "Intel 28F001BXT Flash BIOS",
-        0,
+        0, 0,
         intel_flash_bxt_ami_init,
         intel_flash_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
+	NULL,
+        NULL, NULL, NULL, NULL, NULL
 };
 
 device_t intel_flash_bxb_ami_device =
 {
         "Intel 28F001BXB Flash BIOS",
-        0,
+        0, 0,
         intel_flash_bxb_ami_init,
         intel_flash_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
+	NULL,
+        NULL, NULL, NULL, NULL, NULL
 };
 
 device_t intel_flash_bxt_device =
 {
         "Intel 28F001BXT Flash BIOS",
-        0,
+        0, 0,
         intel_flash_bxt_init,
         intel_flash_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
+	NULL,
+        NULL, NULL, NULL, NULL, NULL
 };
 
 device_t intel_flash_bxb_device =
 {
         "Intel 28F001BXB Flash BIOS",
-        0,
+        0, 0,
         intel_flash_bxb_init,
         intel_flash_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
+	NULL,
+        NULL, NULL, NULL, NULL, NULL
 };

@@ -12,7 +12,7 @@
  *		based design. Most cards were WD1003-WA2 or -WAH, where the
  *		-WA2 cards had a floppy controller as well (to save space.)
  *
- * Version:	@(#)hdd_mfm_at.c	1.0.4	2017/09/29
+ * Version:	@(#)hdd_mfm_at.c	1.0.5	2017/10/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -29,6 +29,7 @@
 #include "../io.h"
 #include "../pic.h"
 #include "../timer.h"
+#include "../win/win.h"
 #include "hdc.h"
 #include "hdd.h"
 
@@ -461,7 +462,7 @@ mfm_readw(uint16_t port, void *priv)
 			mfm->callback = 6*MFM_TIME;
 			timer_update_outstanding();
 		} else {
-			update_status_bar_icon(SB_HDD|HDD_BUS_MFM, 0);
+			StatusBarUpdateIcon(SB_HDD|HDD_BUS_MFM, 0);
 		}
 	}
     }
@@ -561,7 +562,7 @@ do_callback(void *priv)
 
 	mfm->reset = 0;
 
-	update_status_bar_icon(SB_HDD|HDD_BUS_MFM, 0);
+	StatusBarUpdateIcon(SB_HDD|HDD_BUS_MFM, 0);
 
 	return;
     }
@@ -595,7 +596,7 @@ do_callback(void *priv)
 		mfm->pos = 0;
 		mfm->status = STAT_DRQ|STAT_READY|STAT_DSC;
 		irq_raise(mfm);
-		update_status_bar_icon(SB_HDD|HDD_BUS_MFM, 1);
+		StatusBarUpdateIcon(SB_HDD|HDD_BUS_MFM, 1);
 		break;
 
 	case CMD_WRITE:
@@ -620,9 +621,9 @@ do_callback(void *priv)
 			mfm->status |= STAT_DRQ;
 			mfm->pos = 0;
 			next_sector(mfm);
-			update_status_bar_icon(SB_HDD|HDD_BUS_MFM, 1);
+			StatusBarUpdateIcon(SB_HDD|HDD_BUS_MFM, 1);
 		} else {
-			update_status_bar_icon(SB_HDD|HDD_BUS_MFM, 0);
+			StatusBarUpdateIcon(SB_HDD|HDD_BUS_MFM, 0);
 		}
 		irq_raise(mfm);
 		break;
@@ -636,7 +637,7 @@ do_callback(void *priv)
 		mfm->pos = 0;
 		mfm->status = STAT_READY|STAT_DSC;
 		irq_raise(mfm);
-		update_status_bar_icon(SB_HDD|HDD_BUS_MFM, 1);
+		StatusBarUpdateIcon(SB_HDD|HDD_BUS_MFM, 1);
 		break;
 
 	case CMD_FORMAT:
@@ -656,7 +657,7 @@ do_callback(void *priv)
 
 		mfm->status = STAT_READY|STAT_DSC;
 		irq_raise(mfm);
-		update_status_bar_icon(SB_HDD|HDD_BUS_MFM, 1);
+		StatusBarUpdateIcon(SB_HDD|HDD_BUS_MFM, 1);
 		break;
 
 	case CMD_DIAGNOSE:
@@ -700,7 +701,7 @@ loadhd(mfm_t *mfm, int c, int d, const wchar_t *fn)
 
 
 static void *
-mfm_init(void)
+mfm_init(device_t *info)
 {
     mfm_t *mfm;
     int c, d;
@@ -733,7 +734,7 @@ mfm_init(void)
 
     timer_add(do_callback, &mfm->callback, &mfm->callback, mfm);	
 
-    update_status_bar_icon(SB_HDD|HDD_BUS_MFM, 0);
+    StatusBarUpdateIcon(SB_HDD|HDD_BUS_MFM, 0);
 
     return(mfm);
 }
@@ -753,13 +754,13 @@ mfm_close(void *priv)
 
     free(mfm);
 
-    update_status_bar_icon(SB_HDD|HDD_BUS_MFM, 0);
+    StatusBarUpdateIcon(SB_HDD|HDD_BUS_MFM, 0);
 }
 
 
 device_t mfm_at_wd1003_device = {
     "WD1003 AT MFM/RLL Controller",
-    DEVICE_AT,
+    DEVICE_AT, 0,
     mfm_init, mfm_close, NULL,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL, NULL, NULL
 };

@@ -123,7 +123,8 @@ void pc1640_poll(void *p)
         }
 }
 
-void *pc1640_init()
+
+void *pc1640_init(device_t *info)
 {
         pc1640_t *pc1640 = malloc(sizeof(pc1640_t));
         cga_t *cga = &pc1640->cga;
@@ -145,7 +146,7 @@ void *pc1640_init()
         return pc1640;
 }
 
-void pc1640_close(void *p)
+static void pc1640_close(void *p)
 {
         pc1640_t *pc1640 = (pc1640_t *)p;
 
@@ -153,7 +154,7 @@ void pc1640_close(void *p)
         free(pc1640);
 }
 
-void pc1640_speed_changed(void *p)
+static void pc1640_speed_changed(void *p)
 {
         pc1640_t *pc1640 = (pc1640_t *)p;
         
@@ -163,9 +164,10 @@ void pc1640_speed_changed(void *p)
 device_t pc1640_device =
 {
         "Amstrad PC1640 (video)",
-        0,
+        0, 0,
         pc1640_init,
         pc1640_close,
+	NULL,
         NULL,
         pc1640_speed_changed,
         NULL,

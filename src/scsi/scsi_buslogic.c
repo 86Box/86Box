@@ -10,7 +10,7 @@
  *		  0 - BT-545C ISA;
  *		  1 - BT-958D PCI (but BT-545C ISA on non-PCI machines)
  *
- * Version:	@(#)scsi_buslogic.c	1.0.15	2017/10/02
+ * Version:	@(#)scsi_buslogic.c	1.0.16	2017/10/04
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -3019,14 +3019,14 @@ BuslogicInit(int chip)
 
 
 static void *
-Buslogic_545C_Init(void)
+Buslogic_545C_Init(device_t *info)
 {
 	return BuslogicInit(CHIP_BUSLOGIC_ISA);
 }
 
 
 static void *
-Buslogic_958D_Init(void)
+Buslogic_958D_Init(device_t *info)
 {
 	return BuslogicInit(CHIP_BUSLOGIC_PCI);
 }
@@ -3143,8 +3143,10 @@ static device_config_t BuslogicConfig[] = {
 device_t buslogic_device = {
 	"Buslogic BT-545C ISA",
 	0,
+	0,
 	Buslogic_545C_Init,
 	BuslogicClose,
+	NULL,
 	NULL,
 	NULL,
 	NULL,
@@ -3155,8 +3157,10 @@ device_t buslogic_device = {
 device_t buslogic_pci_device = {
 	"Buslogic BT-958D PCI",
 	0,
+	0,
 	Buslogic_958D_Init,
 	BuslogicClose,
+	NULL,
 	NULL,
 	NULL,
 	NULL,

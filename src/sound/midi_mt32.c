@@ -222,12 +222,12 @@ void* mt32emu_init(wchar_t *control_rom, wchar_t *pcm_rom)
         return dev;
 }
 
-void *mt32_init()
+void *mt32_init(device_t *info)
 {
 	return mt32emu_init(L"roms/sound/mt32/mt32_control.rom", L"roms/sound/mt32/mt32_pcm.rom");
 }
 
-void *cm32l_init()
+void *cm32l_init(device_t *info)
 {
 	return mt32emu_init(L"roms/sound/cm32l/cm32l_control.rom", L"roms/sound/cm32l/cm32l_pcm.rom");
 }
@@ -316,8 +316,10 @@ device_t mt32_device =
 {
         "Roland MT-32 Emulation",
         0,
+        0,
         mt32_init,
         mt32_close,
+	NULL,
         mt32_available,
         NULL,
         NULL,
@@ -329,8 +331,10 @@ device_t cm32l_device =
 {
         "Roland CM-32L Emulation",
         0,
+        0,
         cm32l_init,
         mt32_close,
+	NULL,
         cm32l_available,
         NULL,
         NULL,

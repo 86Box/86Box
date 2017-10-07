@@ -365,7 +365,7 @@ void colorplus_init(colorplus_t *colorplus)
 	cga_init(&colorplus->cga);
 }
 
-void *colorplus_standalone_init()
+void *colorplus_standalone_init(device_t *info)
 {
         int display_type;
 
@@ -445,10 +445,10 @@ static device_config_t colorplus_config[] =
 device_t colorplus_device =
 {
         "Colorplus",
-        0,
+        0, 0,
         colorplus_standalone_init,
         colorplus_close,
-        NULL,
+	NULL, NULL,
         colorplus_speed_changed,
         NULL,
         NULL,

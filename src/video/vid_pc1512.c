@@ -448,7 +448,8 @@ static void pc1512_poll(void *p)
         }
 }
 
-static void *pc1512_init()
+
+static void *pc1512_init(device_t *info)
 {
         pc1512_t *pc1512 = malloc(sizeof(pc1512_t));
         memset(pc1512, 0, sizeof(pc1512_t));
@@ -483,9 +484,10 @@ static void pc1512_speed_changed(void *p)
 device_t pc1512_device =
 {
         "Amstrad PC1512 (video)",
-        0,
+        0, 0,
         pc1512_init,
         pc1512_close,
+	NULL,
         NULL,
         pc1512_speed_changed,
         NULL,

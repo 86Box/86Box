@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.9	2017/10/02
+ * Version:	@(#)cdrom.c	1.0.9	2017/10/05
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -29,6 +29,7 @@
 #include "../nvr.h"
 #include "../disk/hdc.h"
 #include "../disk/hdc_ide.h"
+#include "../win/win.h"
 #include "../win/plat_iodev.h"
 #include "cdrom.h"
 
@@ -2565,11 +2566,11 @@ cdrom_readtoc_fallback:
 			cdrom[id].all_blocks_total = cdrom[id].block_total;
 			if (cdrom[id].packet_status != CDROM_PHASE_COMPLETE)
 			{
-				update_status_bar_icon(SB_CDROM | id, 1);
+				StatusBarUpdateIcon(SB_CDROM | id, 1);
 			}
 			else
 			{
-				update_status_bar_icon(SB_CDROM | id, 0);
+				StatusBarUpdateIcon(SB_CDROM | id, 0);
 			}
 			return;
 
@@ -3675,7 +3676,7 @@ void cdrom_phase_callback(uint8_t id)
 			cdrom[id].status = READY_STAT;
 			cdrom[id].phase = 3;
 			cdrom[id].packet_status = 0xFF;
-			update_status_bar_icon(SB_CDROM | id, 0);
+			StatusBarUpdateIcon(SB_CDROM | id, 0);
 			cdrom_irq_raise(id);
 			return;
 		case CDROM_PHASE_DATA_OUT:
@@ -3690,7 +3691,7 @@ void cdrom_phase_callback(uint8_t id)
 			cdrom[id].packet_status = CDROM_PHASE_COMPLETE;
 			cdrom[id].status = READY_STAT;
 			cdrom[id].phase = 3;
-			update_status_bar_icon(SB_CDROM | id, 0);
+			StatusBarUpdateIcon(SB_CDROM | id, 0);
 			cdrom_irq_raise(id);
 			return;
 		case CDROM_PHASE_DATA_IN:
@@ -3705,7 +3706,7 @@ void cdrom_phase_callback(uint8_t id)
 			cdrom[id].packet_status = CDROM_PHASE_COMPLETE;
 			cdrom[id].status = READY_STAT;
 			cdrom[id].phase = 3;
-			update_status_bar_icon(SB_CDROM | id, 0);
+			StatusBarUpdateIcon(SB_CDROM | id, 0);
 			cdrom_irq_raise(id);
 			return;
 		case CDROM_PHASE_ERROR:

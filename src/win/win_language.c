@@ -8,14 +8,13 @@
  *
  *		Windows localization core.
  *
- * Version:	@(#)win_language.c	1.0.2	2017/09/24
+ * Version:	@(#)win_language.c	1.0.3	2017/10/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
-//#include <inttypes.h>
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
@@ -129,7 +128,9 @@ LPTSTR win_language_get_settings_category(int i)
 void win_language_update()
 {
 	win_language_set();
+#if 0
 	win_menu_update();
+#endif
 	win_language_load_common_strings();
 }
 
@@ -225,7 +226,7 @@ void msgbox_error(HWND hwndParent, int i)
 
 void plat_msgbox_error(int i)
 {
-	msgbox_error(ghwnd, i);
+	msgbox_error(hwndMain, i);
 }
 
 void msgbox_error_wstr(HWND hwndParent, WCHAR *wstr)
@@ -252,7 +253,7 @@ void msgbox_fatal(HWND hwndParent, char *string)
 
 void plat_msgbox_fatal(char *string)
 {
-	msgbox_fatal(ghwnd, string);
+	msgbox_fatal(hwndMain, string);
 }
 
 int file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save)

@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.9	2017/10/01
+ * Version:	@(#)scsi_disk.c	1.0.9	2017/10/05
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2017 Miran Grca.
@@ -26,6 +26,7 @@
 #include "../disk/hdd.h"
 #include "../disk/hdc.h"
 #include "../disk/hdc_ide.h"
+#include "../win/win.h"
 #include "../win/plat_iodev.h"
 #include "scsi.h"
 #include "scsi_disk.h"
@@ -889,11 +890,11 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			shdc[id].all_blocks_total = shdc[id].block_total;
 			if (shdc[id].packet_status != CDROM_PHASE_COMPLETE)
 			{
-				update_status_bar_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 1);
+				StatusBarUpdateIcon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 1);
 			}
 			else
 			{
-				update_status_bar_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
+				StatusBarUpdateIcon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
 			}
 			return;
 
@@ -965,11 +966,11 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			shdc[id].all_blocks_total = shdc[id].block_total;
 			if (shdc[id].packet_status != CDROM_PHASE_COMPLETE)
 			{
-				update_status_bar_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 1);
+				StatusBarUpdateIcon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 1);
 			}
 			else
 			{
-				update_status_bar_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
+				StatusBarUpdateIcon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
 			}
 			return;
 
@@ -1163,7 +1164,7 @@ void scsi_hd_callback(uint8_t id)
 			shdc[id].status = READY_STAT;
 			shdc[id].phase = 3;
 			shdc[id].packet_status = 0xFF;
-			update_status_bar_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
+			StatusBarUpdateIcon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
 			return;
 		case CDROM_PHASE_DATA_OUT:
 			scsi_hd_log("SCSI HD %i: PHASE_DATA_OUT\n", id);
@@ -1175,7 +1176,7 @@ void scsi_hd_callback(uint8_t id)
 			shdc[id].packet_status = CDROM_PHASE_COMPLETE;
 			shdc[id].status = READY_STAT;
 			shdc[id].phase = 3;
-			update_status_bar_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
+			StatusBarUpdateIcon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
 			return;
 		case CDROM_PHASE_DATA_IN:
 			scsi_hd_log("SCSI HD %i: PHASE_DATA_IN\n", id);
@@ -1187,7 +1188,7 @@ void scsi_hd_callback(uint8_t id)
 			shdc[id].packet_status = CDROM_PHASE_COMPLETE;
 			shdc[id].status = READY_STAT;
 			shdc[id].phase = 3;
-			update_status_bar_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
+			StatusBarUpdateIcon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
 			return;
 		case CDROM_PHASE_ERROR:
 			scsi_hd_log("SCSI HD %i: PHASE_ERROR\n", id);

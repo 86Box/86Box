@@ -9,7 +9,7 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.c	1.0.4	2017/10/01
+ * Version:	@(#)device.c	1.0.4	2017/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -31,335 +31,339 @@
 #define DEVICE_MAX	256			/* max # of devices */
 
 
-static void *device_priv[DEVICE_MAX];
-static device_t *devices[DEVICE_MAX];
-static device_t *current_device;
+static device_t	*devices[DEVICE_MAX];
+static void	*device_priv[DEVICE_MAX];
+static device_t	*device_current;
 
 
-void device_init(void)
+void
+device_init(void)
 {
-	memset(devices, 0x00, sizeof(devices));
+    memset(devices, 0x00, sizeof(devices));
 }
 
 
-void device_add(device_t *d)
+void
+device_add(device_t *d)
 {
-	int c = 0;
-	void *priv = NULL;
-        
-	while (devices[c] != NULL && c < 256)
+    void *priv = NULL;
+    int c = 0;
+
+    while (devices[c] != NULL && c < 256)
                 c++;
-	if (c >= DEVICE_MAX)
-                fatal("device_add : too many devices\n");
+    if (c >= DEVICE_MAX)
+	fatal("device_add: too many devices\n");
         
-	current_device = d;
-        
-	if (d->init != NULL)
-        {
-                priv = d->init();
-                if (priv == NULL)
-                        fatal("device_add : device init failed\n");
-        }
-        
-        devices[c] = d;
-        device_priv[c] = priv;        
+    device_current = d;
+
+    if (d->init != NULL) {
+	priv = d->init(d);
+	if (priv == NULL)
+		fatal("device_add: device init failed\n");
+    }
+
+    devices[c] = d;
+    device_priv[c] = priv;        
 }
 
 
-void device_close_all(void)
+void
+device_close_all(void)
 {
-        int c;
+    int c;
 
-        for (c=0; c<DEVICE_MAX; c++)
-        {
-                if (devices[c] != NULL)
-                {
-                        if (devices[c]->close != NULL)
-                                devices[c]->close(device_priv[c]);
-                        devices[c] = device_priv[c] = NULL;
-                }
-        }
+    for (c=0; c<DEVICE_MAX; c++) {
+	if (devices[c] != NULL) {
+		if (devices[c]->close != NULL)
+			devices[c]->close(device_priv[c]);
+		devices[c] = device_priv[c] = NULL;
+	}
+    }
 }
 
 
-void *device_get_priv(device_t *d)
+void
+device_reset_all(void)
 {
-	int c;
+    int c;
 
-        for (c=0; c<DEVICE_MAX; c++)
-        {
-                if (devices[c] != NULL)
-                {
-                        if (devices[c] == d)
-                                return device_priv[c];
-                }
-        }
-
-	return NULL;
+    for (c=0; c<DEVICE_MAX; c++) {
+	if (devices[c] != NULL) {
+		if (devices[c]->reset != NULL)
+			devices[c]->reset(device_priv[c]);
+	}
+    }
 }
 
 
-int device_available(device_t *d)
+void *
+device_get_priv(device_t *d)
+{
+    int c;
+
+    for (c=0; c<DEVICE_MAX; c++) {
+	if (devices[c] != NULL) {
+		if (devices[c] == d)
+			return(device_priv[c]);
+	}
+    }
+
+    return(NULL);
+}
+
+
+int
+device_available(device_t *d)
 {
 #ifdef RELEASE_BUILD
-        if (d->flags & DEVICE_NOT_WORKING)
-                return 0;
+    if (d->flags & DEVICE_NOT_WORKING) return(0);
 #endif
-        if (d->available)
-                return d->available();
-                
-        return 1;        
+    if (d->available != NULL)
+	return(d->available());
+
+    return(1);
 }
 
 
-void device_speed_changed(void)
+void
+device_speed_changed(void)
 {
-        int c;
-        
-        for (c=0; c<DEVICE_MAX; c++)
-        {
-                if (devices[c] != NULL)
-                {
-                        if (devices[c]->speed_changed != NULL)
-                        {
-                                devices[c]->speed_changed(device_priv[c]);
-                        }
-                }
-        }
-        
-        sound_speed_changed();
+    int c;
+
+    for (c=0; c<DEVICE_MAX; c++) {
+	if (devices[c] != NULL) {
+		if (devices[c]->speed_changed != NULL)
+			devices[c]->speed_changed(device_priv[c]);
+	}
+    }
+
+    sound_speed_changed();
 }
 
 
-void device_force_redraw(void)
+void
+device_force_redraw(void)
 {
-        int c;
-        
-        for (c=0; c<DEVICE_MAX; c++)
-        {
-                if (devices[c] != NULL)
-                {
-                        if (devices[c]->force_redraw != NULL)
-                        {
+    int c;
+
+    for (c=0; c<DEVICE_MAX; c++) {
+	if (devices[c] != NULL) {
+		if (devices[c]->force_redraw != NULL)
                                 devices[c]->force_redraw(device_priv[c]);
-                        }
-                }
-        }
+	}
+    }
 }
 
 
-char *device_add_status_info(char *s, int max_len)
+void
+device_add_status_info(char *s, int max_len)
 {
-        int c;
-        
-        for (c=0; c<DEVICE_MAX; c++)
-        {
-                if (devices[c] != NULL)
-                {
-                        if (devices[c]->add_status_info != NULL)
-                                devices[c]->add_status_info(s, max_len, device_priv[c]);
-                }
-        }
+    int c;
 
-	return NULL;
+    for (c=0; c<DEVICE_MAX; c++) {
+	if (devices[c] != NULL) {
+		if (devices[c]->add_status_info != NULL)
+			devices[c]->add_status_info(s, max_len, device_priv[c]);
+	}
+    }
 }
 
 
-int device_get_config_int(char *s)
+char *
+device_get_config_string(char *s)
 {
-        device_config_t *config = current_device->config;
-        
-        while (config && config->type != -1)
-        {
-                if (!strcmp(s, config->name))
-                        return config_get_int(current_device->name, s, config->default_int);
+    device_config_t *c = device_current->config;
 
-                config++;
-        }
-        return 0;
+    while (c && c->type != -1) {
+	if (! strcmp(s, c->name))
+		return(config_get_string(device_current->name, s, c->default_string));
+
+	c++;
+    }
+
+    return(NULL);
 }
 
 
-int device_get_config_int_ex(char *s, int default_int)
+int
+device_get_config_int(char *s)
 {
-        device_config_t *config = current_device->config;
-        
-        while (config && config->type != -1)
-        {
-                if (!strcmp(s, config->name))
-                        return config_get_int(current_device->name, s, default_int);
+    device_config_t *c = device_current->config;
 
-                config++;
-        }
-        return default_int;
+    while (c && c->type != -1) {
+	if (! strcmp(s, c->name))
+		return(config_get_int(device_current->name, s, c->default_int));
+
+	c++;
+    }
+
+    return(0);
 }
 
 
-int device_get_config_hex16(char *s)
+int
+device_get_config_int_ex(char *s, int default_int)
 {
-        device_config_t *config = current_device->config;
+    device_config_t *c = device_current->config;
 
-        while (config && config->type != -1)
-        {
-                if (!strcmp(s, config->name))
-                        return config_get_hex16(current_device->name, s, config->default_int);
+    while (c && c->type != -1) {
+	if (! strcmp(s, c->name))
+		return(config_get_int(device_current->name, s, default_int));
 
-                config++;
-        }
-        return 0;
+	c++;
+    }
+
+    return(default_int);
 }
 
 
-int device_get_config_hex20(char *s)
+int
+device_get_config_hex16(char *s)
 {
-        device_config_t *config = current_device->config;
-        
-        while (config && config->type != -1)
-        {
-                if (!strcmp(s, config->name))
-                        return config_get_hex20(current_device->name, s, config->default_int);
+    device_config_t *c = device_current->config;
 
-                config++;
-        }
-        return 0;
+    while (c && c->type != -1) {
+	if (! strcmp(s, c->name))
+		return(config_get_hex16(device_current->name, s, c->default_int));
+
+	c++;
+    }
+
+    return(0);
 }
 
 
-int device_get_config_mac(char *s, int default_int)
+int
+device_get_config_hex20(char *s)
 {
-        device_config_t *config = current_device->config;
-        
-        while (config && config->type != -1)
-        {
-                if (!strcmp(s, config->name))
-                        return config_get_mac(current_device->name, s, default_int);
+    device_config_t *c = device_current->config;
 
-                config++;
-        }
-        return default_int;
+    while (c && c->type != -1) {
+	if (! strcmp(s, c->name))
+		return(config_get_hex20(device_current->name, s, c->default_int));
+
+	c++;
+    }
+
+    return(0);
 }
 
 
-void device_set_config_int(char *s, int val)
+int
+device_get_config_mac(char *s, int default_int)
 {
-        device_config_t *config = current_device->config;
-        
-        while (config && config->type != -1)
-        {
-                if (!strcmp(s, config->name))
-		{
-                        config_set_int(current_device->name, s, val);
-			return;
-		}
+    device_config_t *c = device_current->config;
 
-                config++;
-        }
+    while (c && c->type != -1) {
+	if (! strcmp(s, c->name))
+		return(config_get_mac(device_current->name, s, default_int));
+
+	c++;
+    }
+
+    return(default_int);
 }
 
 
-void device_set_config_hex16(char *s, int val)
+void
+device_set_config_int(char *s, int val)
 {
-        device_config_t *config = current_device->config;
-        
-        while (config && config->type != -1)
-        {
-                if (!strcmp(s, config->name))
-		{
-                        config_set_hex16(current_device->name, s, val);
-			return;
-		}
+    device_config_t *c = device_current->config;
 
-                config++;
-        }
+    while (c && c->type != -1) {
+	if (! strcmp(s, c->name)) {
+		config_set_int(device_current->name, s, val);
+		break;
+	}
+
+	c++;
+    }
 }
 
 
-void device_set_config_hex20(char *s, int val)
+void
+device_set_config_hex16(char *s, int val)
 {
-        device_config_t *config = current_device->config;
-        
-        while (config && config->type != -1)
-        {
-                if (!strcmp(s, config->name))
-		{
-                        config_set_hex20(current_device->name, s, val);
-			return;
-		}
+    device_config_t *c = device_current->config;
 
-                config++;
-        }
+    while (c && c->type != -1) {
+	if (! strcmp(s, c->name)) {
+		config_set_hex16(device_current->name, s, val);
+		break;
+	}
+
+	c++;
+    }
 }
 
 
-void device_set_config_mac(char *s, int val)
+void
+device_set_config_hex20(char *s, int val)
 {
-        device_config_t *config = current_device->config;
-        
-        while (config && config->type != -1)
-        {
-                if (!strcmp(s, config->name))
-		{
-                        config_set_mac(current_device->name, s, val);
-			return;
-		}
+    device_config_t *c = device_current->config;
 
-                config++;
-        }
+    while (c && c->type != -1) {
+	if (! strcmp(s, c->name)) {
+		config_set_hex20(device_current->name, s, val);
+		break;
+	}
+
+	c++;
+    }
 }
 
 
-char *device_get_config_string(char *s)
+void
+device_set_config_mac(char *s, int val)
 {
-        device_config_t *config = current_device->config;
-        
-        while (config && config->type != -1)
-        {
-                if (!strcmp(s, config->name))
-                        return config_get_string(current_device->name, s, config->default_string);
+    device_config_t *c = device_current->config;
 
-                config++;
-        }
-        return NULL;
+    while (c && c->type != -1) {
+	if (! strcmp(s, c->name)) {
+		config_set_mac(device_current->name, s, val);
+		break;
+	}
+
+	c++;
+    }
 }
 
 
-int machine_get_config_int(char *s)
+int
+machine_get_config_int(char *s)
 {
-        device_t *device = machine_getdevice(machine);
-        device_config_t *config;
+    device_t *d = machine_getdevice(machine);
+    device_config_t *c;
 
-        if (!device)
-                return 0;                
+    if (d == NULL) return(0);
 
-        config = device->config;
-        
-        while (config && config->type != -1)
-        {
-                if (!strcmp(s, config->name))
-                        return config_get_int(device->name, s, config->default_int);
+    c = d->config;
+    while (c && c->type != -1) {
+	if (! strcmp(s, c->name))
+		return(config_get_int(d->name, s, c->default_int));
 
-                config++;
-        }
-        return 0;
+	c++;
+    }
+
+    return(0);
 }
 
 
-char *machine_get_config_string(char *s)
+char *
+machine_get_config_string(char *s)
 {
-        device_t *device = machine_getdevice(machine);
-        device_config_t *config;
-        
-        if (!device)
-                return 0;                
+    device_t *d = machine_getdevice(machine);
+    device_config_t *c;
 
-        config = device->config;
-        
-        while (config && config->type != -1)
-        {
-                if (!strcmp(s, config->name))
-                        return config_get_string(device->name, s, config->default_string);
+    if (d == NULL) return(0);
 
-                config++;
-        }
-        return NULL;
+    c = d->config;
+    while (c && c->type != -1) {
+	if (! strcmp(s, c->name))
+		return(config_get_string(d->name, s, c->default_string));
+
+	c++;
+    }
+
+    return(NULL);
 }

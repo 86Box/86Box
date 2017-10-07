@@ -316,7 +316,8 @@ void hercules_poll(void *p)
         }
 }
 
-void *hercules_init()
+
+void *hercules_init(device_t *info)
 {
         int c;
         hercules_t *hercules = malloc(sizeof(hercules_t));
@@ -408,16 +409,17 @@ static device_config_t hercules_config[] =
 device_t hercules_device =
 {
         "Hercules",
-        0,
+        0, 0,
         hercules_init,
         hercules_close,
+	NULL,
         NULL,
         hercules_speed_changed,
         NULL,
+	NULL,
 #ifdef __unix
         NULL
 #else
-        NULL,
 	hercules_config
 #endif
 };

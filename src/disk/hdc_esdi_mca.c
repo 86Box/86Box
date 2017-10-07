@@ -52,7 +52,7 @@
  *		however, are auto-configured by the system software as
  *		shown above.
  *
- * Version:	@(#)hdc_esdi_mca.c	1.0.4	2017/09/29
+ * Version:	@(#)hdc_esdi_mca.c	1.0.5	2017/10/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -73,6 +73,7 @@
 #include "../pic.h"
 #include "../rom.h"
 #include "../timer.h"
+#include "../win/win.h"
 #include "hdc.h"
 #include "hdd.h"
 
@@ -325,7 +326,7 @@ esdi_callback(void *priv)
                                         	if (dev->rba >= drive->sectors)
                                                 	fatal("Read past end of drive\n");
 						hdd_image_read(drive->hdd_num, dev->rba, 1, (uint8_t *)dev->data);
-			                	update_status_bar_icon(SB_HDD | HDD_BUS_ESDI, 1);
+			                	StatusBarUpdateIcon(SB_HDD | HDD_BUS_ESDI, 1);
                                 	}
 
                                 	while (dev->data_pos < 256) {
@@ -406,11 +407,11 @@ esdi_callback(void *priv)
 					hdd_image_write(drive->hdd_num, dev->rba, 1, (uint8_t *)dev->data);
                                 	dev->rba++;
                                 	dev->sector_pos++;
-		                	update_status_bar_icon(SB_HDD | HDD_BUS_ESDI, 1);
+		                	StatusBarUpdateIcon(SB_HDD | HDD_BUS_ESDI, 1);
 
                                 	dev->data_pos = 0;
                         	}
-	                	update_status_bar_icon(SB_HDD | HDD_BUS_ESDI, 0);
+	                	StatusBarUpdateIcon(SB_HDD | HDD_BUS_ESDI, 0);
 
                         	dev->status = STATUS_CMD_IN_PROGRESS;
                         	dev->cmd_state = 2;
@@ -970,7 +971,7 @@ esdi_mca_write(int port, uint8_t val, void *priv)
 
 
 static void *
-esdi_init(void)
+esdi_init(device_t *info)
 {
     drive_t *drive;
     esdi_t *dev;
@@ -1066,7 +1067,7 @@ esdi_available(void)
 
 device_t esdi_ps2_device = {
     "IBM ESDI Fixed Disk Adapter (MCA)",
-    DEVICE_MCA,
-    esdi_init, esdi_close, esdi_available,
-    NULL, NULL, NULL, NULL
+    DEVICE_MCA, 0,
+    esdi_init, esdi_close, NULL,
+    esdi_available, NULL, NULL, NULL, NULL
 };

@@ -21,7 +21,7 @@
  *		already on their way out, the newer IDE standard based on the
  *		PC/AT controller and 16b design became the IDE we now know.
  *
- * Version:	@(#)xtide.c	1.0.6	2017/10/10
+ * Version:	@(#)hdc_xtide.c	1.0.7	2017/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -126,7 +126,7 @@ xtide_read(uint16_t port, void *priv)
 
 
 static void *
-xtide_init(void)
+xtide_init(device_t *info)
 {
     xtide_t *xtide = malloc(sizeof(xtide_t));
 
@@ -153,7 +153,7 @@ xtide_available(void)
 
 
 static void *
-xtide_at_init(void)
+xtide_at_init(device_t *info)
 {
     xtide_t *xtide = malloc(sizeof(xtide_t));
 
@@ -176,7 +176,7 @@ xtide_at_available(void)
 
 
 static void *
-xtide_ps2_init(void)
+xtide_ps2_init(device_t *info)
 {
     xtide_t *xtide = malloc(sizeof(xtide_t));
 
@@ -203,7 +203,7 @@ xtide_ps2_available(void)
 
 
 static void *
-xtide_at_ps2_init(void)
+xtide_at_ps2_init(device_t *info)
 {
     xtide_t *xtide = malloc(sizeof(xtide_t));
 
@@ -237,27 +237,35 @@ xtide_close(void *priv)
 device_t xtide_device = {
     "XTIDE",
     0,
-    xtide_init, xtide_close, xtide_available,
-    NULL, NULL, NULL, NULL
+    0,
+    xtide_init, xtide_close, NULL,
+    xtide_available, NULL, NULL, NULL,
+    NULL
 };
 
 device_t xtide_at_device = {
     "XTIDE (AT)",
     DEVICE_AT,
-    xtide_at_init, xtide_close, xtide_at_available,
-    NULL, NULL, NULL, NULL
+    0,
+    xtide_at_init, xtide_close, NULL,
+    xtide_at_available, NULL, NULL, NULL,
+    NULL
 };
 
 device_t xtide_ps2_device = {
     "XTIDE (Acculogic)",
     0,
-    xtide_ps2_init, xtide_close, xtide_ps2_available,
-    NULL, NULL, NULL, NULL
+    0,
+    xtide_ps2_init, xtide_close, NULL,
+    xtide_ps2_available, NULL, NULL, NULL,
+    NULL
 };
 
 device_t xtide_at_ps2_device = {
     "XTIDE (AT) (1.1.5)",
     DEVICE_PS2,
-    xtide_at_ps2_init, xtide_close, xtide_at_ps2_available,
-    NULL, NULL, NULL, NULL
+    0,
+    xtide_at_ps2_init, xtide_close, NULL,
+    xtide_at_ps2_available, NULL, NULL, NULL,
+    NULL
 };

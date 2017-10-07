@@ -8,7 +8,7 @@
  *
  *		Common code to handle all sorts of hard disk images.
  *
- * Version:	@(#)hdd.c	1.0.2	2017/09/30
+ * Version:	@(#)hdd.c	1.0.3	2017/10/05
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -23,6 +23,8 @@
 #include "../cpu/cpu.h"
 #include "../device.h"
 #include "../machine/machine.h"
+#include "../win/win.h"
+#include "../win/win_language.h"
 #include "hdd.h"
 
 
@@ -36,4 +38,139 @@ hdd_init(void)
     memset(hdd, 0x00, sizeof(hdd));
 
     return(0);
+}
+
+
+int
+hdd_string_to_bus(char *str, int cdrom)
+{
+    if (! strcmp(str, "none"))
+	return(HDD_BUS_DISABLED);
+
+    if (! strcmp(str, "mfm")) {
+	if (cdrom) {
+no_cdrom:
+		msgbox_error(hwndMain, IDS_4114);
+		return(0);
+	}
+
+	return(HDD_BUS_MFM);
+    }
+
+    /* FIXME: delete 'rll' in a year or so.. --FvK */
+    if (!strcmp(str, "esdi") || !strcmp(str, "rll")) {
+	if (cdrom) goto no_cdrom;
+
+	return(HDD_BUS_ESDI);
+    }
+
+    if (! strcmp(str, "ide_pio_only"))
+	return(HDD_BUS_IDE_PIO_ONLY);
+
+    if (! strcmp(str, "ide"))
+	return(HDD_BUS_IDE_PIO_ONLY);
+
+    if (! strcmp(str, "atapi_pio_only"))
+	return(HDD_BUS_IDE_PIO_ONLY);
+
+    if (! strcmp(str, "atapi"))
+	return(HDD_BUS_IDE_PIO_ONLY);
+
+    if (! strcmp(str, "eide"))
+	return(HDD_BUS_IDE_PIO_ONLY);
+
+    if (! strcmp(str, "xtide"))
+	return(HDD_BUS_XTIDE);
+
+    if (! strcmp(str, "atide"))
+	return(HDD_BUS_IDE_PIO_ONLY);
+
+    if (! strcmp(str, "ide_pio_and_dma"))
+	return(HDD_BUS_IDE_PIO_AND_DMA);
+
+    if (! strcmp(str, "atapi_pio_and_dma"))
+	return(HDD_BUS_IDE_PIO_AND_DMA);
+
+    if (! strcmp(str, "scsi"))
+	return(HDD_BUS_SCSI);
+
+    if (! strcmp(str, "removable")) {
+	if (cdrom) goto no_cdrom;
+
+	return(HDD_BUS_SCSI_REMOVABLE);
+    }
+
+    if (! strcmp(str, "scsi_removable")) {
+	if (cdrom) goto no_cdrom;
+
+	return(HDD_BUS_SCSI_REMOVABLE);
+    }
+
+    if (! strcmp(str, "removable_scsi")) {
+	if (cdrom) goto no_cdrom;
+
+	return(HDD_BUS_SCSI_REMOVABLE);
+    }
+
+    if (! strcmp(str, "usb"))
+	msgbox_error(hwndMain, IDS_4110);
+
+    return(0);
+}
+
+
+char *
+hdd_bus_to_string(int bus, int cdrom)
+{
+    char *s = "none";
+
+    switch (bus) {
+	case HDD_BUS_DISABLED:
+	default:
+		break;
+
+	case HDD_BUS_MFM:
+		s = "mfm";
+		break;
+
+	case HDD_BUS_XTIDE:
+		s = "xtide";
+		break;
+
+	case HDD_BUS_ESDI:
+		s = "esdi";
+		break;
+
+	case HDD_BUS_IDE_PIO_ONLY:
+		s = cdrom ? "atapi_pio_only" : "ide_pio_only";
+		break;
+
+	case HDD_BUS_IDE_PIO_AND_DMA:
+		s = cdrom ? "atapi_pio_and_dma" : "ide_pio_and_dma";
+		break;
+
+	case HDD_BUS_SCSI:
+		s = "scsi";
+		break;
+
+	case HDD_BUS_SCSI_REMOVABLE:
+		s = "scsi_removable";
+		break;
+    }
+
+    return(s);
+}
+
+
+int
+hdd_is_valid(int c)
+{
+    if (hdd[c].bus == HDD_BUS_DISABLED) return(0);
+
+    if ((wcslen(hdd[c].fn) == 0) &&
+	(hdd[c].bus != HDD_BUS_SCSI_REMOVABLE)) return(0);
+
+    if ((hdd[c].tracks==0) || (hdd[c].hpc==0) || (hdd[c].spt==0)) return(0);
+
+    return(1);
 }

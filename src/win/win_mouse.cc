@@ -48,7 +48,7 @@ void mouse_init(void)
                 fatal("mouse_init : DirectInputCreate failed\n"); 
         if (FAILED(lpdi->CreateDevice(GUID_SysMouse, &lpdi_mouse, NULL)))
            fatal("mouse_init : CreateDevice failed\n");
-        if (FAILED(lpdi_mouse->SetCooperativeLevel(ghwnd, DISCL_FOREGROUND | (video_fullscreen ? DISCL_EXCLUSIVE : DISCL_NONEXCLUSIVE))))
+        if (FAILED(lpdi_mouse->SetCooperativeLevel(hwndMain, DISCL_FOREGROUND | (video_fullscreen ? DISCL_EXCLUSIVE : DISCL_NONEXCLUSIVE))))
            fatal("mouse_init : SetCooperativeLevel failed\n");
         if (FAILED(lpdi_mouse->SetDataFormat(&c_dfDIMouse)))
            fatal("mouse_init : SetDataFormat failed\n");

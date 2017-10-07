@@ -8,7 +8,7 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.6	2017/10/01
+ * Version:	@(#)scsi.c	1.0.7	2017/10/03
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -54,6 +54,7 @@ typedef struct {
 static SCSI_CARD scsi_cards[] = {
     { "None",			"none",		NULL,		      NULL		  },
     { "Adaptec AHA-1540B",	"aha1540b",	&aha1540b_device,     aha_device_reset    },
+    { "Adaptec AHA-1542C",	"aha1542c",	&aha1542c_device,     aha_device_reset    },
     { "Adaptec AHA-1542CF",	"aha1542cf",	&aha1542cf_device,    aha_device_reset    },
     { "Adaptec AHA-1640",	"aha1640",	&aha1640_device,      aha_device_reset    },
     { "BusLogic BT-545C",	"bt545c",	&buslogic_device,     BuslogicDeviceReset },

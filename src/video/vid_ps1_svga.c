@@ -122,7 +122,8 @@ uint8_t ps1_m2121_svga_in(uint16_t addr, void *p)
         return temp;
 }
 
-void *ps1_m2121_svga_init()
+
+static void *ps1_m2121_svga_init(device_t *info)
 {
         ps1_m2121_svga_t *ps1 = malloc(sizeof(ps1_m2121_svga_t));
         memset(ps1, 0, sizeof(ps1_m2121_svga_t));
@@ -176,10 +177,11 @@ void ps1_m2121_svga_add_status_info(char *s, int max_len, void *p)
 device_t ps1_m2121_svga_device =
 {
         "PS/1 Model 2121 SVGA",
-        0,
+        0, 0,
         ps1_m2121_svga_init,
         ps1_m2121_svga_close,
         NULL,
+	NULL,
         ps1_m2121_svga_speed_changed,
         ps1_m2121_svga_force_redraw,
         ps1_m2121_svga_add_status_info

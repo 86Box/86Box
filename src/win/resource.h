@@ -9,11 +9,8 @@
  *		Windows resource defines.
  *
  * NOTE:	FIXME: Strings 2176 and 2193 are same.
- * NOTE:	FIXME: string 2052 not in use.
- * NOTE:	FIXME: string 2095 not in use.
- * NOTE:	FIXME: strings 2153-2154 not in use.
  *
- * Version:	@(#)resource.h	1.0.9	2017/10/01
+ * Version:	@(#)resource.h	1.0.10	2017/10/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -211,7 +208,7 @@
 #define IDS_2053		2053	// "Invalid number of sectors.."
 #define IDS_2054		2054	// "Invalid number of heads.."
 #define IDS_2055		2055	// "Invalid number of cylinders.."
-#define IDS_2056		2056	// "Please enter a valid file name"
+#define IDS_2056		2056	// "No usable ROM images found!"
 #define IDS_2057		2057	// "Unable to open the file for write"
 #define IDS_2058		2058	// "Attempting to create a HDI.."
 #define IDS_2059		2059	// "Remember to partition and.."
@@ -250,7 +247,7 @@
 #define IDS_2092		2092	// "Bus"
 #define IDS_2093		2093	// "DMA"
 #define IDS_2094		2094	// "KB"
-#define IDS_2095		2095
+#define IDS_2095		2095	// "No renderer available!"
 #define IDS_2096		2096	// "Slave"
 #define IDS_2097		2097	// "SCSI (ID %s, LUN %s)"
 #define IDS_2098		2098	// "Adapter Type"
@@ -308,12 +305,10 @@
 #define IDS_2150		2150	// "Thrustmaster Flight Control System"
 #define IDS_2151		2151	// "Disabled"
 #define IDS_2152		2152	// "None"
-#if NOTUSED
-#define IDS_2153		2153
-#define IDS_2154		2154
-#endif
+#define IDS_2153		2153	// "Unable to load Accelerators"
+#define IDS_2154		2154	// "Unable to register Raw Input"
 #define IDS_2155		2155	// "IRQ %i"
-#define IDS_2156		2156	// "MFM (%01i:%01i)"
+#define IDS_2156		2156	// "MFM/RLL (%91i:%01i)"
 #define IDS_2157		2157	// "IDE (PIO+DMA) (%01i:%01i)"
 #define IDS_2158		2158	// "SCSI (%02i:%02i)"
 #define IDS_2159		2159	// "Invalid number of cylinders.."

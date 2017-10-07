@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.4	2017/09/24
+ * Version:	@(#)vid_ega.c	1.0.5	2017/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1121,7 +1121,7 @@ void *cpqega_standalone_init()
         return ega;
 }
 
-void *sega_standalone_init()
+void *sega_standalone_init(device_t *info)
 {
         ega_t *ega = malloc(sizeof(ega_t));
         memset(ega, 0, sizeof(ega_t));
@@ -1255,7 +1255,7 @@ static void LoadFontxFile(wchar_t *fname)
 	fclose(mfile);
 }
 
-void *jega_standalone_init()
+void *jega_standalone_init(device_t *info)
 {
         ega_t *ega = (ega_t *) sega_standalone_init();
 
@@ -1268,17 +1268,17 @@ void *jega_standalone_init()
 }
 #endif
 
-static int ega_standalone_available()
+static int ega_standalone_available(void)
 {
         return rom_present(L"roms/video/ega/ibm_6277356_ega_card_u44_27128.bin");
 }
 
-static int cpqega_standalone_available()
+static int cpqega_standalone_available(void)
 {
         return rom_present(L"roms/video/ega/108281-001.bin");
 }
 
-static int sega_standalone_available()
+static int sega_standalone_available(void)
 {
         return rom_present(L"roms/video/ega/lega.vbi");
 }
@@ -1326,8 +1326,10 @@ device_t ega_device =
 {
         "EGA",
         0,
+	0,
         ega_standalone_init,
         ega_close,
+	NULL,
         ega_standalone_available,
         ega_speed_changed,
         NULL,
@@ -1339,8 +1341,10 @@ device_t cpqega_device =
 {
         "Compaq EGA",
         0,
+	0,
         cpqega_standalone_init,
         ega_close,
+	NULL,
         cpqega_standalone_available,
         ega_speed_changed,
         NULL,
@@ -1352,8 +1356,10 @@ device_t sega_device =
 {
         "SuperEGA",
         0,
+	0,
         sega_standalone_init,
         ega_close,
+	NULL,
         sega_standalone_available,
         ega_speed_changed,
         NULL,
@@ -1366,8 +1372,10 @@ device_t jega_device =
 {
         "AX JEGA",
         0,
+	0,
         jega_standalone_init,
         ega_close,
+	NULL,
         sega_standalone_available,
         ega_speed_changed,
         NULL,

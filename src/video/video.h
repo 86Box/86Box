@@ -1,6 +1,9 @@
 /* Copyright holders: Sarah Walker, Tenshi
    see COPYING for more details
 */
+#ifndef EMU_VIDEO_H
+# define EMU_VIDEO_H
+
 
 typedef struct
 {
@@ -28,7 +31,9 @@ extern BITMAP *buffer, *buffer32;
 
 int video_card_available(int card);
 char *video_card_getname(int card);
-struct device_t *video_card_getdevice(int card);
+#ifdef EMU_DEVICE_H
+device_t *video_card_getdevice(int card);
+#endif
 int video_card_has_config(int card);
 int video_card_getid(char *s);
 int video_old_to_new(int card);
@@ -122,3 +127,6 @@ void updatewindowsize(int x, int y);
 #ifdef ENABLE_VRAM_DUMP
 void svga_dump_vram(void);
 #endif
+
+
+#endif	/*EMU_VIDEO_H*/

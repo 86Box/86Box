@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.19	2017/10/02
+ * Version:	@(#)scsi_aha154x.c	1.0.20	2017/10/04
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -369,7 +369,6 @@ typedef struct {
 } Req_t;
 #pragma pack(pop)
 
-#pragma pack(push,1)
 typedef struct {
     int8_t	type;				/* type of device */
     char	name[16];			/* name of device */
@@ -425,7 +424,6 @@ typedef struct {
     int		Lock;
     event_t	*evt;
 } aha_t;
-#pragma pack(pop)
 
 
 static uint16_t	aha_ports[] = {
@@ -2043,7 +2041,7 @@ aha_init(int type)
 
 	case AHA_154xC:
 		strcpy(dev->name, "AHA-154xC");
-		dev->bios_path = L"roms/scsi/adaptec/aha1542c101.bin";
+		dev->bios_path = L"roms/scsi/adaptec/aha1542c102.bin";
 		dev->bid = 'D';
 		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
 		dev->rom_shramsz = 128;		/* size of shadow RAM */
@@ -2114,21 +2112,28 @@ aha_init(int type)
 
 
 static void *
-aha_154xB_init(void)
+aha_154xB_init(device_t *info)
 {
     return(aha_init(AHA_154xB));
 }
 
 
 static void *
-aha_154xCF_init(void)
+aha_154xC_init(device_t *info)
+{
+    return(aha_init(AHA_154xC));
+}
+
+
+static void *
+aha_154xCF_init(device_t *info)
 {
     return(aha_init(AHA_154xCF));
 }
 
 
 static void *
-aha_1640_init(void)
+aha_1640_init(device_t *info)
 {
     return(aha_init(AHA_1640));
 }
@@ -2272,8 +2277,24 @@ static device_config_t aha_154x_config[] = {
 device_t aha1540b_device = {
     "Adaptec AHA-1540B",
     0,
+    0,
     aha_154xB_init,
     aha_close,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    aha_154x_config
+};
+
+device_t aha1542c_device = {
+    "Adaptec AHA-1542C",
+    0,
+    0,
+    aha_154xC_init,
+    aha_close,
+    NULL,
     NULL,
     NULL,
     NULL,
@@ -2284,8 +2305,10 @@ device_t aha1540b_device = {
 device_t aha1542cf_device = {
     "Adaptec AHA-1542CF",
     0,
+    0,
     aha_154xCF_init,
     aha_close,
+    NULL,
     NULL,
     NULL,
     NULL,
@@ -2296,8 +2319,10 @@ device_t aha1542cf_device = {
 device_t aha1640_device = {
     "Adaptec AHA-1640",
     DEVICE_MCA,
+    0,
     aha_1640_init,
     aha_close,
+    NULL,
     NULL,
     NULL,
     NULL,

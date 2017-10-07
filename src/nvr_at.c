@@ -14,7 +14,7 @@
  *		of those batteries would create corrosion issues later on
  *		in mainboard life...
  *
- * Version:	@(#)nvr_at.c	1.0.5	2017/10/02
+ * Version:	@(#)nvr_at.c	1.0.6	2017/10/04
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -105,4 +105,7 @@ nvr_at_init(int irq)
     /* Set up the PC/AT handler for this device. */
     io_sethandler(0x0070, 2,
 		  nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
+
+    /* Load the NVR into memory! */
+    (void)nvr_load();
 }

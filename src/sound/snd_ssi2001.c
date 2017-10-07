@@ -57,7 +57,7 @@ static void ssi2001_write(uint16_t addr, uint8_t val, void *p)
         sid_write(addr, val, p);
 }
 
-void *ssi2001_init()
+void *ssi2001_init(device_t *info)
 {
         ssi2001_t *ssi2001 = malloc(sizeof(ssi2001_t));
         memset(ssi2001, 0, sizeof(ssi2001_t));
@@ -82,11 +82,8 @@ void ssi2001_close(void *p)
 device_t ssi2001_device =
 {
         "Innovation SSI-2001",
-        0,
-        ssi2001_init,
-        ssi2001_close,
-        NULL,
-        NULL,
-        NULL,
+        0, 0,
+        ssi2001_init, ssi2001_close, NULL,
+	NULL, NULL, NULL, NULL,
         NULL
 };

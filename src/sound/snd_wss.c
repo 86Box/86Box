@@ -77,7 +77,7 @@ static void wss_get_buffer(int32_t *buffer, int len, void *p)
         wss->ad1848.pos = 0;
 }
 
-void *wss_init()
+void *wss_init(device_t *info)
 {
         wss_t *wss = malloc(sizeof(wss_t));
 
@@ -115,11 +115,10 @@ void wss_speed_changed(void *p)
 device_t wss_device =
 {
         "Windows Sound System",
-        0,
-        wss_init,
-        wss_close,
+        0, 0,
+        wss_init, wss_close, NULL,
         NULL,
         wss_speed_changed,
-        NULL,
+        NULL, NULL,
         NULL
 };

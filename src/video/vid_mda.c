@@ -265,7 +265,8 @@ void mda_poll(void *p)
         }
 }
 
-void *mda_init()
+
+void *mda_init(device_t *info)
 {
         int c;
         mda_t *mda = malloc(sizeof(mda_t));
@@ -357,16 +358,17 @@ static device_config_t mda_config[] =
 device_t mda_device =
 {
         "MDA",
-        0,
+        0, 0,
         mda_init,
         mda_close,
+	NULL,
         NULL,
         mda_speed_changed,
+        NULL,
         NULL,
 #ifdef __unix
         NULL
 #else
-        NULL,
 	mda_config
 #endif
 };
