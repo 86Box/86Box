@@ -281,7 +281,9 @@ extern int scsi_card_current;
 
 extern int scsi_card_available(int card);
 extern char *scsi_card_getname(int card);
+#ifdef EMU_DEVICE_H
 extern device_t *scsi_card_getdevice(int card);
+#endif
 extern int scsi_card_has_config(int card);
 extern char *scsi_card_get_internal_name(int card);
 extern int scsi_card_get_from_internal_name(char *s);

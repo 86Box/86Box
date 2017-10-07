@@ -33,6 +33,7 @@ extern int	d3d_init(HWND h);
 extern void	d3d_close(void);
 extern void	d3d_reset(void);
 extern void	d3d_resize(int x, int y);
+extern void	d3d_take_screenshot(wchar_t *fn);
 
 extern int	d3d_fs_init(HWND h);
 extern void	d3d_fs_close(void);

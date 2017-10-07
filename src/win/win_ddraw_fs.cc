@@ -26,7 +26,10 @@ extern "C" void device_force_redraw(void);
 extern "C" int ddraw_fs_init(HWND h);
 extern "C" void ddraw_fs_close(void);
  
+extern void ddraw_common_take_screenshot(wchar_t *fn, IDirectDrawSurface7 *pDDSurface);
+
 extern "C" void video_blit_complete(void);
+
 
 static void ddraw_fs_blit_memtoscreen(int, int, int, int, int, int);
 static void ddraw_fs_blit_memtoscreen_8(int, int, int, int);
