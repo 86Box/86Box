@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.53	2017/10/06
+# Version:	@(#)Makefile.mingw	1.0.52	2017/10/05
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -68,9 +68,6 @@ endif
 ifndef CIRRUS
 CIRRUS	:= n
 endif
-ifndef NCR_SCSI
-NCR_SCSI	:= n
-endif
 ifndef NV_RIVA
 NV_RIVA	:= n
 endif
@@ -90,7 +87,6 @@ endif
 ifeq ($(DEV_BUILD), y)
  DEV_BRANCH	:= y
  CIRRUS	:= y
- NCR_SCSI	:= y
  NV_RIVA	:= y
  PAS16	:= y
 endif
@@ -205,11 +201,6 @@ CFLAGS		+= -DUSE_CIRRUS
 DEVBROBJ	+= vid_cl_gd.o vid_cl_gd_blit.o vid_cl_ramdac.o
 endif
 
-ifeq ($(NCR_SCSI), y)
-CFLAGS		+= -DUSE_NCR
-DEVBROBJ	+= scsi_bus.o scsi_ncr5380.o
-endif
-
 ifeq ($(NV_RIVA), y)
 CFLAGS		+= -DUSE_RIVA
 DEVBROBJ	+= vid_nv_riva128.o
@@ -289,7 +280,7 @@ HDDOBJ		:= hdd.o \
 		    hdc_mfm_xt.o hdc_xtide.o
 
 CDROMOBJ	:= cdrom.o \
-		    cdrom_dosbox.o cdrom_image.o cdrom_null.o
+		    cdrom_dosbox.o cdrom_image.o cdrom_ioctl.o cdrom_null.o
 
 ifeq ($(USB), y)
 USBOBJ		:= usb.o
@@ -356,12 +347,12 @@ VIDOBJ		:= video.o \
 		    vid_tandy.o vid_tandysl.o
 
 WINOBJ		:= win.o \
-		    win_ddraw.o win_ddraw_fs.o win_d3d.o win_d3d_fs.o \
+		    win_ddraw.o win_ddraw_fs.o win_ddraw_screenshot.o \
+		    win_d3d.o win_d3d_fs.o \
 		    win_language.o win_status.o $(OPENDIR) win_dynld.o \
 		    win_video.o $(WSERIAL) win_keyboard.o win_mouse.o \
-		    win_joystick.o win_midi.o win_cdrom.o win_cdrom_ioctl.o \
-		    win_thread.o win_about.o win_stbar.o win_settings.o \
-		    win_deviceconfig.o win_joystickconfig.o
+		    win_joystick.o win_midi.o win_thread.o \
+		    win_settings.o win_deviceconfig.o win_joystickconfig.o
 
 OBJ		:= $(MAINOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \
 		   $(FDDOBJ) $(CDROMOBJ) $(HDDOBJ) \

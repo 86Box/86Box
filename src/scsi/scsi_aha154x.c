@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.22	2017/10/08
+ * Version:	@(#)scsi_aha154x.c	1.0.20	2017/10/04
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -851,7 +851,7 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 
 		aha_log("Data to transfer (S/G) %d\n", DataToTransfer);
 
-		SCSI_BufferLength = DataToTransfer;
+		SCSIDevices[req->TargetID][req->LUN].InitLength = DataToTransfer;
 
 		aha_log("Allocating buffer for Scatter/Gather (%i bytes)\n", DataToTransfer);
 		SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataToTransfer);
@@ -890,7 +890,7 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 		   req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES) {
 			Address = DataPointer;
 
-			SCSI_BufferLength = DataLength;
+			SCSIDevices[req->TargetID][req->LUN].InitLength = DataLength;
 
 			aha_log("Allocating buffer for direct transfer (%i bytes)\n", DataLength);
 			SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataLength);
@@ -899,7 +899,7 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 			if (DataLength > 0) {
 				DMAPageRead(Address,
 					    (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer,
-					    SCSI_BufferLength);
+					    SCSIDevices[req->TargetID][req->LUN].InitLength);
 			}
 	}
     }
@@ -932,7 +932,7 @@ aha_buf_free(Req_t *req)
 
     if ((DataLength != 0) && (req->CmdBlock.common.Cdb[0] == GPCMD_TEST_UNIT_READY)) {
 	aha_log("Data length not 0 with TEST UNIT READY: %i (%i)\n",
-		DataLength, SCSI_BufferLength);
+		DataLength, SCSIDevices[req->TargetID][req->LUN].InitLength);
     }
 
     if (req->CmdBlock.common.Cdb[0] == GPCMD_TEST_UNIT_READY) {
@@ -987,9 +987,9 @@ aha_buf_free(Req_t *req)
     if ((req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES) ||
 	(req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES)) {
 	/* Should be 0 when scatter/gather? */
-	if (DataLength >= SCSI_BufferLength) {
+	if (DataLength >= SCSIDevices[req->TargetID][req->LUN].InitLength) {
 		Residual = DataLength;
-		Residual -= SCSI_BufferLength;
+		Residual -= SCSIDevices[req->TargetID][req->LUN].InitLength;
 	} else {
 		Residual = 0;
 	}
@@ -1142,7 +1142,7 @@ aha_req_setup(aha_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
     aha_log("Scanning SCSI Target ID %i\n", id);		
 
     SCSIStatus = SCSI_STATUS_OK;
-    SCSI_BufferLength = 0;
+    SCSIDevices[id][lun].InitLength = 0;
 
     aha_buf_alloc(req, req->Is24bit);
 
@@ -1994,7 +1994,7 @@ aha_setnvr(aha_t *dev)
 
 /* General initialization routine for all boards. */
 static void *
-aha_init(device_t *info)
+aha_init(int type)
 {
     aha_t *dev;
 
@@ -2002,7 +2002,7 @@ aha_init(device_t *info)
     dev = malloc(sizeof(aha_t));
     if (dev == NULL) return(dev);
     memset(dev, 0x00, sizeof(aha_t));
-    dev->type = info->local;
+    dev->type = type;
 
     /*
      * Set up the (initial) I/O address, IRQ and DMA info.
@@ -2022,7 +2022,7 @@ aha_init(device_t *info)
 #endif
 
     /* Perform per-board initialization. */
-    switch(dev->type) {
+    switch(type) {
 	case AHA_154xB:
 		strcpy(dev->name, "AHA-154xB");
 		switch(dev->Base) {
@@ -2042,7 +2042,6 @@ aha_init(device_t *info)
 	case AHA_154xC:
 		strcpy(dev->name, "AHA-154xC");
 		dev->bios_path = L"roms/scsi/adaptec/aha1542c102.bin";
-		dev->nvr_path = L"aha1540c.nvr";
 		dev->bid = 'D';
 		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
 		dev->rom_shramsz = 128;		/* size of shadow RAM */
@@ -2112,6 +2111,34 @@ aha_init(device_t *info)
 }
 
 
+static void *
+aha_154xB_init(device_t *info)
+{
+    return(aha_init(AHA_154xB));
+}
+
+
+static void *
+aha_154xC_init(device_t *info)
+{
+    return(aha_init(AHA_154xC));
+}
+
+
+static void *
+aha_154xCF_init(device_t *info)
+{
+    return(aha_init(AHA_154xCF));
+}
+
+
+static void *
+aha_1640_init(device_t *info)
+{
+    return(aha_init(AHA_1640));
+}
+
+
 static void
 aha_close(void *priv)
 {
@@ -2119,6 +2146,8 @@ aha_close(void *priv)
 
     if (dev)
     {
+	dev->MailboxCount = 0;
+
 	if (dev->evt) {
 		thread_destroy_event(dev->evt);
 		dev->evt = NULL;
@@ -2248,8 +2277,8 @@ static device_config_t aha_154x_config[] = {
 device_t aha1540b_device = {
     "Adaptec AHA-1540B",
     0,
-    AHA_154xB,
-    aha_init,
+    0,
+    aha_154xB_init,
     aha_close,
     NULL,
     NULL,
@@ -2262,8 +2291,8 @@ device_t aha1540b_device = {
 device_t aha1542c_device = {
     "Adaptec AHA-1542C",
     0,
-    AHA_154xC,
-    aha_init,
+    0,
+    aha_154xC_init,
     aha_close,
     NULL,
     NULL,
@@ -2276,8 +2305,8 @@ device_t aha1542c_device = {
 device_t aha1542cf_device = {
     "Adaptec AHA-1542CF",
     0,
-    AHA_154xCF,
-    aha_init,
+    0,
+    aha_154xCF_init,
     aha_close,
     NULL,
     NULL,
@@ -2290,8 +2319,8 @@ device_t aha1542cf_device = {
 device_t aha1640_device = {
     "Adaptec AHA-1640",
     DEVICE_MCA,
-    AHA_1640,
-    aha_init,
+    0,
+    aha_1640_init,
     aha_close,
     NULL,
     NULL,

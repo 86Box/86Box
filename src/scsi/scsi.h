@@ -8,7 +8,7 @@
  *
  *		SCSI controller handler header.
  *
- * Version:	@(#)scsi_h	1.0.7	2017/10/07
+ * Version:	@(#)scsi_h	1.0.6	2017/10/04
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -211,6 +211,15 @@ extern uint8_t	page_current;
 #define PAGE_CHANGEABLE		1
 #define PAGE_CHANGED		2
 
+
+extern uint32_t	DataLength;
+extern uint32_t	DataPointer;
+
+extern int	SectorLBA;
+extern int	SectorLen;
+
+extern int	MediaPresent;
+
 extern uint8_t	SCSIStatus;
 extern uint8_t	SCSIPhase;
 extern uint8_t	scsi_cdrom_id;
@@ -233,37 +242,21 @@ extern int	prev_status;
 
 #define MSFtoLBA(m,s,f)  ((((m*60)+s)*75)+f)
 
-#define MSG_COMMAND_COMPLETE 0x00
+#define SCSI_PHASE_DATAOUT ( 0 )
+#define SCSI_PHASE_DATAIN ( 1 )
+#define SCSI_PHASE_COMMAND ( 2 )
+#define SCSI_PHASE_STATUS ( 3 )
+#define SCSI_PHASE_MESSAGE_OUT ( 6 )
+#define SCSI_PHASE_MESSAGE_IN ( 7 )
+#define SCSI_PHASE_BUS_FREE ( 8 )
+#define SCSI_PHASE_SELECT ( 9 )
 
-#define BUS_DBP 0x01
-#define BUS_SEL 0x02
-#define BUS_IO  0x04
-#define BUS_CD  0x08
-#define BUS_MSG 0x10
-#define BUS_REQ 0x20
-#define BUS_BSY 0x40
-#define BUS_RST 0x80
-#define BUS_ACK 0x200
-#define BUS_ATN 0x200
-#define BUS_ARB 0x8000
-#define BUS_SETDATA(val) ((uint32_t)val << 16)
-#define BUS_GETDATA(val) ((val >> 16) & 0xff)
-#define BUS_DATAMASK 0xff0000
-
-#define BUS_IDLE (1 << 31)
-
-#define SCSI_PHASE_DATA_OUT    0
-#define SCSI_PHASE_DATA_IN     BUS_IO
-#define SCSI_PHASE_COMMAND     BUS_CD
-#define SCSI_PHASE_STATUS      (BUS_CD | BUS_IO)
-#define SCSI_PHASE_MESSAGE_OUT (BUS_MSG | BUS_CD)
-#define SCSI_PHASE_MESSAGE_IN  (BUS_MSG | BUS_CD | BUS_IO)
-
-extern uint32_t SCSI_BufferLength;
 
 typedef struct {	
     uint8_t	*CmdBuffer;
+    uint32_t	CmdBufferLength;
     int		LunType;
+    uint32_t	InitLength;
 } scsi_device_t;
 
 
@@ -288,9 +281,7 @@ extern int scsi_card_current;
 
 extern int scsi_card_available(int card);
 extern char *scsi_card_getname(int card);
-#ifdef EMU_DEVICE_H
 extern device_t *scsi_card_getdevice(int card);
-#endif
 extern int scsi_card_has_config(int card);
 extern char *scsi_card_get_internal_name(int card);
 extern int scsi_card_get_from_internal_name(char *s);
@@ -343,11 +334,5 @@ typedef struct {
 } SGE;
 #pragma pack(pop)
 
-
-#define MODE_SELECT_PHASE_IDLE		0
-#define MODE_SELECT_PHASE_HEADER	1
-#define MODE_SELECT_PHASE_BLOCK_DESC	2
-#define MODE_SELECT_PHASE_PAGE_HEADER	3
-#define MODE_SELECT_PHASE_PAGE		4
 
 #endif	/*EMU_SCSI_H*/
