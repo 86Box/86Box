@@ -216,7 +216,7 @@ void fluidsynth_sysex(uint8_t* data, unsigned int len)
         f_fluid_synth_sysex(d->synth, (const char *) data, len, 0, 0, 0, 0);
 }
 
-void* fluidsynth_init(void)
+void* fluidsynth_init(device_t *info)
 {
         fluidsynth_t* data = &fsdev;
         memset(data, 0, sizeof(fluidsynth_t));
@@ -536,8 +536,10 @@ device_t fluidsynth_device =
 {
         "FluidSynth",
         0,
+        0,
         fluidsynth_init,
         fluidsynth_close,
+        NULL,
         fluidsynth_available,
         NULL,
         NULL,

@@ -1067,7 +1067,6 @@ device_t incolor_device =
 	NULL,
         NULL,
         incolor_speed_changed,
-        NULL,
 	NULL,
 	NULL,
         NULL

@@ -8,7 +8,7 @@
  *
  *		Implementation of the PCjs JSON floppy image format.
  *
- * Version:	@(#)floppy_json.c	1.0.3	2017/09/24
+ * Version:	@(#)floppy_json.c	1.0.4	2017/10/07
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -28,7 +28,7 @@
 
 #define NTRACKS			256
 #define NSIDES			2
-#define NSECTORS		128
+#define NSECTORS		256
 
 
 typedef struct {
