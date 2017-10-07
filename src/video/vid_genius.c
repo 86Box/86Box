@@ -553,7 +553,7 @@ void genius_poll(void *p)
         }
 }
 
-void *genius_init()
+void *genius_init(device_t *info)
 {
         int c;
         genius_t *genius = malloc(sizeof(genius_t));
@@ -609,7 +609,7 @@ void genius_close(void *p)
         free(genius);
 }
 
-static int genius_available()
+static int genius_available(void)
 {
         return rom_present(L"roms/video/genius/8x12.bin");
 }
@@ -624,11 +624,13 @@ void genius_speed_changed(void *p)
 device_t genius_device =
 {
         "Genius VHR",
-        0,
+        0, 0,
         genius_init,
         genius_close,
+	NULL,
         genius_available,
         genius_speed_changed,
+	NULL,
         NULL,
         NULL
 };

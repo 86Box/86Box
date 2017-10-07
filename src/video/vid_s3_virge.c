@@ -3751,7 +3751,7 @@ static void s3_virge_pci_write(int func, int addr, uint8_t val, void *p)
         }
 }
 
-static void *s3_virge_init()
+static void *s3_virge_init(device_t *info)
 {
         virge_t *virge = malloc(sizeof(virge_t));
         memset(virge, 0, sizeof(virge_t));
@@ -3846,7 +3846,7 @@ static void *s3_virge_init()
         return virge;
 }
 
-static void *s3_virge_988_init()
+static void *s3_virge_988_init(device_t *info)
 {
         virge_t *virge = malloc(sizeof(virge_t));
         memset(virge, 0, sizeof(virge_t));
@@ -4035,12 +4035,12 @@ static void *s3_virge_375_init(wchar_t *romfn)
         return virge;
 }
 
-static void *s3_virge_375_1_init()
+static void *s3_virge_375_1_init(device_t *info)
 {
 	return s3_virge_375_init(L"roms/video/s3virge/86c375_1.bin");
 }
 
-static void *s3_virge_375_4_init()
+static void *s3_virge_375_4_init(device_t *info)
 {
 	return s3_virge_375_init(L"roms/video/s3virge/86c375_4.bin");
 }
@@ -4068,22 +4068,22 @@ static void s3_virge_close(void *p)
         free(virge);
 }
 
-static int s3_virge_available()
+static int s3_virge_available(void)
 {
         return rom_present(L"roms/video/s3virge/s3virge.bin");
 }
 
-static int s3_virge_988_available()
+static int s3_virge_988_available(void)
 {
         return rom_present(L"roms/video/s3virge/diamondstealth3000.VBI");
 }
 
-static int s3_virge_375_1_available()
+static int s3_virge_375_1_available(void)
 {
         return rom_present(L"roms/video/s3virge/86c375_1.bin");
 }
 
-static int s3_virge_375_4_available()
+static int s3_virge_375_4_available(void)
 {
         return rom_present(L"roms/video/s3virge/86c375_4.bin");
 }
@@ -4154,8 +4154,10 @@ device_t s3_virge_device =
 {
         "Diamond Stealth 3D 2000 (S3 ViRGE)",
         0,
+        0,
         s3_virge_init,
         s3_virge_close,
+	NULL,
         s3_virge_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4167,8 +4169,10 @@ device_t s3_virge_988_device =
 {
         "Diamond Stealth 3D 3000 (S3 ViRGE/VX)",
         0,
+        0,
         s3_virge_988_init,
         s3_virge_close,
+	NULL,
         s3_virge_988_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4180,8 +4184,10 @@ device_t s3_virge_375_device =
 {
         "S3 ViRGE/DX",
         0,
+        0,
         s3_virge_375_1_init,
         s3_virge_close,
+	NULL,
         s3_virge_375_1_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4193,8 +4199,10 @@ device_t s3_virge_375_4_device =
 {
         "S3 ViRGE/DX (VBE 2.0)",
         0,
+        0,
         s3_virge_375_4_init,
         s3_virge_close,
+	NULL,
         s3_virge_375_4_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,

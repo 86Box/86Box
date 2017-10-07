@@ -8,7 +8,7 @@
  *
  *		Windows resource script.
  *
- * Version:	@(#)86Box.rc	1.0.14	2017/10/01
+ * Version:	@(#)86Box.rc	1.0.15	2017/10/05
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -40,7 +40,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // Menu
 //
 
-MAINMENU MENU DISCARDABLE 
+MainMenu MENU DISCARDABLE 
 BEGIN
     POPUP "&Action"
     BEGIN
@@ -157,13 +157,17 @@ BEGIN
     END
 END
 
+StatusBarMenu MENU DISCARDABLE 
+BEGIN
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Accelerator
 //
 
-MAINACCEL ACCELERATORS MOVEABLE PURE 
+MainAccel ACCELERATORS MOVEABLE PURE 
 BEGIN
 #ifdef ENABLE_VRAM_DUMP
     VK_F1,   IDM_DUMP_VRAM,          CONTROL, VIRTKEY
@@ -686,9 +690,7 @@ BEGIN
     IDS_2053	"Invalid number of sectors (valid values are between 1 and 63)"
     IDS_2054	"Invalid number of heads (valid values are between 1 and 16)"
     IDS_2055	"Invalid number of cylinders (valid values are between 1 and 266305)"
-#if NOTUSED
-    IDS_2056
-#endif
+    IDS_2056	"No usable ROM images found!"
     IDS_2057	"(empty)"
     IDS_2058	"(host drive %c:)"
     IDS_2059	"Turbo"
@@ -735,6 +737,7 @@ BEGIN
     IDS_2092	"Bus"
     IDS_2093	"DMA"
     IDS_2094	"KB"
+    IDS_2095	"Neither DirectDraw nor Direct3D available !"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -807,10 +810,8 @@ BEGIN
     IDS_2150	"Thrustmaster Flight Control System"
     IDS_2151	"Disabled"
     IDS_2152	"None"
-#if UNUSED
-    IDS_2153
-    IDS_2154
-#endif
+    IDS_2153	"Unable to load Keyboard Accelerators!"
+    IDS_2154	"Unable to register Raw Input!"
     IDS_2155	"IRQ %i"
     IDS_2156	"%" PRIu64
     IDS_2157	"%" PRIu64 " MB (CHS: %" PRIu64 ", %" PRIu64 ", %" PRIu64 ")"

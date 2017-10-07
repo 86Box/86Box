@@ -60,7 +60,7 @@ void tandy_rom_bank_write(uint16_t port, uint8_t val, void *p)
 }
 
 
-void *tandy_rom_init(void)
+void *tandy_rom_init(device_t *info)
 {
         FILE *f, *ff;
         int c;
@@ -97,12 +97,8 @@ void tandy_rom_close(void *p)
 device_t tandy_rom_device =
 {
         "Tandy 1000SL/2 ROM",
-        0,
-        tandy_rom_init,
-        tandy_rom_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
+        0, 0,
+        tandy_rom_init, tandy_rom_close, NULL,
+        NULL, NULL, NULL, NULL,
         NULL
 };

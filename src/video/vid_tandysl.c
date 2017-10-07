@@ -654,7 +654,8 @@ static void tandysl_poll(void *p)
         }
 }
 
-static void *tandysl_init()
+
+static void *tandysl_init(device_t *info)
 {
         tandysl_t *tandy = malloc(sizeof(tandysl_t));
         memset(tandy, 0, sizeof(tandysl_t));
@@ -694,10 +695,13 @@ device_t tandysl_device =
 {
         "Tandy 1000SL (video)",
         0,
+	0,
         tandysl_init,
         tandysl_close,
+	NULL,
         NULL,
         tandysl_speed_changed,
         NULL,
+	NULL,
         NULL
 };

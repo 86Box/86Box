@@ -10,7 +10,7 @@
  *
  * !!!NOTE!!!	The goal is to GET RID of this file.  Do NOT add stuff !!
  *
- * Version:	@(#)ibm.h	1.0.7	2017/10/02
+ * Version:	@(#)ibm.h	1.0.8	2017/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -587,11 +587,11 @@ extern int scale;
 extern void	pclog(const char *format, ...);
 extern void	fatal(const char *format, ...);
 extern wchar_t	*pc_concat(wchar_t *str);
-extern void	pc_init_modules(void);
-extern void	pc_init(int argc, wchar_t *argv[]);
+extern int	pc_init_modules(void);
+extern int	pc_init(int argc, wchar_t *argv[]);
 extern void	pc_close(void);
-extern void	resetpchard_close(void);
-extern void	resetpchard_init(void);
+extern void	pc_reset_hard_close(void);
+extern void	pc_reset_hard_init(void);
 extern void	pc_reset_hard(void);
 extern void	pc_full_speed(void);
 extern void	pc_speed_changed(void);
@@ -635,20 +635,6 @@ extern void	x86ts(char *s, uint16_t error);
 extern void	x87_dumpregs(void);
 extern void	x87_reset(void);
 
-/* Platform functions. */
-extern void	update_status_bar_icon(int tag, int active);
-extern void	update_status_bar_icon_state(int tag, int state);
-extern void	status_settextw(wchar_t *wstr);
-extern void	status_settext(char *str);
-
-#define SB_FLOPPY	0x00
-#define SB_CDROM	0x10
-#define SB_RDISK	0x20
-#define SB_HDD		0x40
-#define SB_NETWORK	0x50
-#define SB_TEXT		0x60
-
-#define UNUSED(x) (void)x
 
 /* Configuration values. */
 #define SERIAL_MAX	2

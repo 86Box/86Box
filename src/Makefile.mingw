@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.53	2017/10/04
+# Version:	@(#)Makefile.mingw	1.0.52	2017/10/05
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -287,8 +287,8 @@ USBOBJ		:= usb.o
 endif
 
 SCSIOBJ		:= scsi.o \
-		    scsi_bios_command.o scsi_device.o scsi_bus.o scsi_disk.o \
-		    scsi_buslogic.o scsi_aha154x.o scsi_ncr5380.o
+		    scsi_bios_command.o scsi_device.o scsi_disk.o \
+		    scsi_buslogic.o scsi_aha154x.o
 
 NETOBJ		:= network.o \
 		    net_pcap.o \
@@ -351,7 +351,7 @@ WINOBJ		:= win.o \
 		    win_d3d.o win_d3d_fs.o \
 		    win_language.o win_status.o $(OPENDIR) win_dynld.o \
 		    win_video.o $(WSERIAL) win_keyboard.o win_mouse.o \
-		    win_iodev.o win_joystick.o win_midi.o \
+		    win_joystick.o win_midi.o win_thread.o \
 		    win_settings.o win_deviceconfig.o win_joystickconfig.o
 
 OBJ		:= $(MAINOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \

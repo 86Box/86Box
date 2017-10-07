@@ -8,7 +8,7 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.c	1.0.2	2017/09/24
+ * Version:	@(#)vid_ati_mach64.c	1.0.3	2017/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -3294,7 +3294,7 @@ void mach64_pci_write(int func, int addr, uint8_t val, void *p)
         }
 }
 
-static void *mach64_common_init()
+static void *mach64_common_init(void)
 {
         mach64_t *mach64 = malloc(sizeof(mach64_t));
         memset(mach64, 0, sizeof(mach64_t));
@@ -3337,7 +3337,7 @@ static void *mach64_common_init()
         return mach64;
 }
 
-static void *mach64gx_init()
+static void *mach64gx_init(device_t *info)
 {
         mach64_t *mach64 = mach64_common_init();
 
@@ -3357,7 +3357,7 @@ static void *mach64gx_init()
                 
         return mach64;
 }
-static void *mach64vt2_init()
+static void *mach64vt2_init(device_t *info)
 {
         mach64_t *mach64 = mach64_common_init();
         svga_t *svga = &mach64->svga;
@@ -3378,11 +3378,11 @@ static void *mach64vt2_init()
         return mach64;
 }
 
-int mach64gx_available()
+int mach64gx_available(void)
 {
         return rom_present(L"roms/video/mach64/bios.bin");
 }
-int mach64vt2_available()
+int mach64vt2_available(void)
 {
         return rom_present(L"roms/video/mach64/atimach64vt2pci.bin");
 }
@@ -3511,8 +3511,10 @@ device_t mach64gx_device =
 {
         "ATI Mach64GX",
         0,
+	0,
         mach64gx_init,
         mach64_close,
+	NULL,
         mach64gx_available,
         mach64_speed_changed,
         mach64_force_redraw,
@@ -3523,8 +3525,10 @@ device_t mach64vt2_device =
 {
         "ATI Mach64VT2",
         DEVICE_PCI,
+	0,
         mach64vt2_init,
         mach64_close,
+	NULL,
         mach64vt2_available,
         mach64_speed_changed,
         mach64_force_redraw,

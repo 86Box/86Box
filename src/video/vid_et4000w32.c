@@ -1140,7 +1140,7 @@ void et4000w32p_pci_write(int func, int addr, uint8_t val, void *p)
         }
 }
 
-void *et4000w32p_init()
+void *et4000w32p_init(device_t *info)
 {
         int vram_size;
         et4000w32p_t *et4000 = malloc(sizeof(et4000w32p_t));
@@ -1189,7 +1189,7 @@ void *et4000w32p_init()
         return et4000;
 }
 
-int et4000w32p_available()
+int et4000w32p_available(void)
 {
         return rom_present(L"roms/video/et4000w32/et4000w32.bin");
 }
@@ -1262,8 +1262,10 @@ device_t et4000w32p_device =
 {
         "Tseng Labs ET4000/w32p",
         0,
+	0,
         et4000w32p_init,
         et4000w32p_close,
+	NULL,
         et4000w32p_available,
         et4000w32p_speed_changed,
         et4000w32p_force_redraw,

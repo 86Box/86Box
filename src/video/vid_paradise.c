@@ -254,7 +254,8 @@ uint8_t paradise_read(uint32_t addr, void *p)
         return svga_read_linear(addr, &paradise->svga);
 }
 
-void *paradise_pvga1a_init()
+
+void *paradise_pvga1a_init(device_t *info)
 {
         paradise_t *paradise = malloc(sizeof(paradise_t));
         svga_t *svga = &paradise->svga;
@@ -287,7 +288,7 @@ void *paradise_pvga1a_init()
         return paradise;
 }
 
-void *paradise_wd90c11_init()
+void *paradise_wd90c11_init(device_t *info)
 {
         paradise_t *paradise = malloc(sizeof(paradise_t));
         svga_t *svga = &paradise->svga;
@@ -322,18 +323,18 @@ void *paradise_wd90c11_init()
         return paradise;
 }
 
-static void *paradise_pvga1a_pc2086_init()
+static void *paradise_pvga1a_pc2086_init(device_t *info)
 {
-        paradise_t *paradise = paradise_pvga1a_init();
+        paradise_t *paradise = paradise_pvga1a_init(info);
         
         if (paradise)
                 rom_init(&paradise->bios_rom, L"roms/machines/pc2086/40186.ic171", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
                 
         return paradise;
 }
-static void *paradise_pvga1a_pc3086_init()
+static void *paradise_pvga1a_pc3086_init(device_t *info)
 {
-        paradise_t *paradise = paradise_pvga1a_init();
+        paradise_t *paradise = paradise_pvga1a_init(info);
 
         if (paradise)
                 rom_init(&paradise->bios_rom, L"roms/machines/pc3086/c000.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
@@ -341,9 +342,9 @@ static void *paradise_pvga1a_pc3086_init()
         return paradise;
 }
 
-static void *paradise_wd90c11_megapc_init()
+static void *paradise_wd90c11_megapc_init(device_t *info)
 {
-        paradise_t *paradise = paradise_wd90c11_init();
+        paradise_t *paradise = paradise_wd90c11_init(info);
         
         if (paradise)
                 rom_init_interleaved(&paradise->bios_rom,
@@ -354,7 +355,7 @@ static void *paradise_wd90c11_megapc_init()
         return paradise;
 }
 
-static int paradise_wd90c11_standalone_available()
+static int paradise_wd90c11_standalone_available(void)
 {
         return rom_present(L"roms/machines/megapc/41651-bios lo.u18") && rom_present(L"roms/machines/megapc/211253-bios hi.u19");
 }
@@ -389,13 +390,16 @@ void paradise_add_status_info(char *s, int max_len, void *p)
         svga_add_status_info(s, max_len, &paradise->svga);
 }
 
+
 device_t paradise_pvga1a_pc2086_device =
 {
         "Paradise PVGA1A (Amstrad PC2086)",
         0,
+	0,
         paradise_pvga1a_pc2086_init,
         paradise_close,
         NULL,
+	NULL,
         paradise_speed_changed,
         paradise_force_redraw,
         paradise_add_status_info
@@ -404,8 +408,10 @@ device_t paradise_pvga1a_pc3086_device =
 {
         "Paradise PVGA1A (Amstrad PC3086)",
         0,
+	0,
         paradise_pvga1a_pc3086_init,
         paradise_close,
+	NULL,
         NULL,
         paradise_speed_changed,
         paradise_force_redraw,
@@ -415,8 +421,10 @@ device_t paradise_wd90c11_megapc_device =
 {
         "Paradise WD90C11 (Amstrad MegaPC)",
         0,
+	0,
         paradise_wd90c11_megapc_init,
         paradise_close,
+	NULL,
         NULL,
         paradise_speed_changed,
         paradise_force_redraw,
@@ -426,8 +434,10 @@ device_t paradise_wd90c11_device =
 {
         "Paradise WD90C11",
         0,
+	0,
         paradise_wd90c11_megapc_init,
         paradise_close,
+	NULL,
         paradise_wd90c11_standalone_available,
         paradise_speed_changed,
         paradise_force_redraw,

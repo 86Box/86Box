@@ -282,7 +282,8 @@ void tvga_recalctimings(svga_t *svga)
         }
 }
 
-void *tvga8900d_init()
+
+static void *tvga8900d_init(device_t *info)
 {
         tvga_t *tvga = malloc(sizeof(tvga_t));
         memset(tvga, 0, sizeof(tvga_t));
@@ -303,7 +304,7 @@ void *tvga8900d_init()
         return tvga;
 }
 
-static int tvga8900d_available()
+static int tvga8900d_available(void)
 {
         return rom_present(L"roms/video/tvga/TRIDENT.BIN");
 }
@@ -367,8 +368,10 @@ device_t tvga8900d_device =
 {
         "Trident TVGA 8900D",
         0,
+	0,
         tvga8900d_init,
         tvga_close,
+	NULL,
         tvga8900d_available,
         tvga_speed_changed,
         tvga_force_redraw,

@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.16	2017/09/30
+ * Version:	@(#)machine.c	1.0.17	2017/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -172,14 +172,14 @@ machine_init(void)
 
     AMSTRAD = AT = PCI = TANDY = 0;
 
-    io_init();
-
-    fdc_update_is_nsc(0);
-
-    machines[machine].init();
+    /* Load the machine's ROM BIOS. */
+    rom_load_bios(romset);
+    mem_add_bios();
 
     if (machines[machine].get_device)
 	device_add(machines[machine].get_device());
+
+    machines[machine].init();
 }
 
 

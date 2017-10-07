@@ -2828,7 +2828,8 @@ void riva128_ptimer_tick(void *p)
 	riva128->nvenable = 1;
 }
 
- void *riva128_init()
+
+void *riva128_init(device_t *info)
 {
 	riva128_t *riva128 = malloc(sizeof(riva128_t));
 	memset(riva128, 0, sizeof(riva128_t));
@@ -2911,7 +2912,7 @@ void riva128_ptimer_tick(void *p)
 	riva128->ptimer.clock_mul = 1;
 	riva128->ptimer.clock_div = 1;
 
-	//Some bullshit default values so that the emulator won't shit itself trying to boot. These'll be overwritten by the video BIOS anyway.
+	//default values so that the emulator can boot. These'll be overwritten by the video BIOS anyway.
 	riva128->pramdac.m_m = 0x03;
 	riva128->pramdac.m_n = 0xc2;
 	riva128->pramdac.m_p = 0x0d;
@@ -2962,7 +2963,7 @@ void riva128_ptimer_tick(void *p)
 	return riva128;
 }
 
- void riva128_close(void *p)
+void riva128_close(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 	FILE *f = fopen("vram.dmp", "wb");
@@ -2974,12 +2975,12 @@ void riva128_ptimer_tick(void *p)
 	free(riva128);
 }
 
- int riva128_available()
+int riva128_available(void)
 {
 	return rom_present(L"roms/video/nv_riva128/Diamond_V330_rev-e.vbi");
 }
 
- void riva128_speed_changed(void *p)
+void riva128_speed_changed(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
@@ -3024,7 +3025,8 @@ device_config_t riva128_config[] =
 	}
 };
 
-/* device_config_t riva128zx_config[] =
+#if 0
+device_config_t riva128zx_config[] =
 {
 	{
 		.name = "memory",
@@ -3057,14 +3059,17 @@ device_config_t riva128_config[] =
 	{
 		.type = -1
 	}
-};*/
+};
+#endif
 
 device_t riva128_device =
 {
 	"nVidia RIVA 128",
 	0,
+	0,
 	riva128_init,
 	riva128_close,
+	NULL,
 	riva128_available,
 	riva128_speed_changed,
 	riva128_force_redraw,
@@ -3072,7 +3077,8 @@ device_t riva128_device =
 	riva128_config
 };
 
- void *rivatnt_init()
+
+void *rivatnt_init(device_t *info)
 {
 	riva128_t *riva128 = malloc(sizeof(riva128_t));
 	memset(riva128, 0, sizeof(riva128_t));
@@ -3139,7 +3145,7 @@ device_t riva128_device =
 
 	riva128->pci_card = pci_add_card(PCI_ADD_VIDEO, riva128_pci_read, rivatnt_pci_write, riva128);
 
-	//Some bullshit default values so that the emulator won't shit itself trying to boot. These'll be overwritten by the video BIOS anyway.
+	//default values so that the emulator can boot. These'll be overwritten by the video BIOS anyway.
 	riva128->pramdac.m_m = 0x03;
 	riva128->pramdac.m_n = 0xc2;
 	riva128->pramdac.m_p = 0x0d;
@@ -3188,7 +3194,7 @@ device_t riva128_device =
 	return riva128;
 }
 
- void rivatnt_close(void *p)
+void rivatnt_close(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 	FILE *f = fopen("vram.dmp", "wb");
@@ -3200,33 +3206,33 @@ device_t riva128_device =
 	free(riva128);
 }
 
- int rivatnt_available()
+int rivatnt_available(void)
 {
 	return rom_present(L"roms/video/nv_riva128/NV4_diamond_revB.rom");
 }
 
- void rivatnt_speed_changed(void *p)
+void rivatnt_speed_changed(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
 	svga_recalctimings(&riva128->svga);
 }
 
- void rivatnt_force_redraw(void *p)
+void rivatnt_force_redraw(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
 	riva128->svga.fullchange = changeframecount;
 }
 
- void rivatnt_add_status_info(char *s, int max_len, void *p)
+void rivatnt_add_status_info(char *s, int max_len, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
 	svga_add_status_info(s, max_len, &riva128->svga);
 }
 
- device_config_t rivatnt_config[] =
+device_config_t rivatnt_config[] =
 {
 	{
 		"memory", "Memory size", CONFIG_SELECTION, "", 16,
@@ -3254,8 +3260,10 @@ device_t rivatnt_device =
 {
 	"nVidia RIVA TNT",
 	0,
+	0,
 	rivatnt_init,
 	rivatnt_close,
+	NULL,
 	rivatnt_available,
 	rivatnt_speed_changed,
 	rivatnt_force_redraw,
@@ -3263,7 +3271,7 @@ device_t rivatnt_device =
 	rivatnt_config
 };
 
- void *rivatnt2_init()
+void *rivatnt2_init(device_t *info)
 {
 	riva128_t *riva128 = malloc(sizeof(riva128_t));
 	memset(riva128, 0, sizeof(riva128_t));
@@ -3343,7 +3351,7 @@ device_t rivatnt_device =
 
 	riva128->pci_card = pci_add_card(PCI_ADD_VIDEO, riva128_pci_read, rivatnt_pci_write, riva128);
 
-	//Some bullshit default values so that the emulator won't shit itself trying to boot. These'll be overwritten by the video BIOS anyway.
+	//default values so that the emulator can boot. These'll be overwritten by the video BIOS anyway.
 	riva128->pramdac.m_m = 0x03;
 	riva128->pramdac.m_n = 0xc2;
 	riva128->pramdac.m_p = 0x0d;
@@ -3392,7 +3400,7 @@ device_t rivatnt_device =
 	return riva128;
 }
 
- void rivatnt2_close(void *p)
+void rivatnt2_close(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 	FILE *f = fopen("vram.dmp", "wb");
@@ -3404,33 +3412,33 @@ device_t rivatnt_device =
 	free(riva128);
 }
 
- int rivatnt2_available()
+int rivatnt2_available(void)
 {
 	return rom_present(L"roms/video/nv_riva128/NV5diamond.bin") || rom_present(L"roms/video/nv_riva128/inno3d64bit.BIN") || rom_present(L"roms/video/nv_riva128/creative.BIN");
 }
 
- void rivatnt2_speed_changed(void *p)
+void rivatnt2_speed_changed(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
 	svga_recalctimings(&riva128->svga);
 }
 
- void rivatnt2_force_redraw(void *p)
+void rivatnt2_force_redraw(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
 	riva128->svga.fullchange = changeframecount;
 }
 
- void rivatnt2_add_status_info(char *s, int max_len, void *p)
+void rivatnt2_add_status_info(char *s, int max_len, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
 	svga_add_status_info(s, max_len, &riva128->svga);
 }
 
- device_config_t rivatnt2_config[] =
+device_config_t rivatnt2_config[] =
 {
 	{
 		"model", "Card model", CONFIG_SELECTION, "", 0,
@@ -3475,8 +3483,10 @@ device_t rivatnt2_device =
 {
 	"nVidia RIVA TNT2",
 	0,
+	0,
 	rivatnt2_init,
 	rivatnt2_close,
+	NULL,
 	rivatnt2_available,
 	rivatnt2_speed_changed,
 	rivatnt2_force_redraw,

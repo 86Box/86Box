@@ -187,29 +187,29 @@ void *oti067_common_init(wchar_t *bios_fn, int vram_size, int chip_id)
         return oti067;
 }
 
-void *oti067_init()
+void *oti067_init(device_t *info)
 {
         int vram_size = device_get_config_int("memory");
         return oti067_common_init(L"roms/video/oti/bios.bin", vram_size, 2);
 }
 
-void *oti077_init()
+void *oti077_init(device_t *info)
 {
         int vram_size = device_get_config_int("memory");
         return oti067_common_init(L"roms/video/oti/oti077.vbi", vram_size, 5);
 }
 
-static int oti067_available()
+static int oti067_available(void)
 {
         return rom_present(L"roms/video/oti/bios.bin");
 }
 
-static int oti077_available()
+static int oti077_available(void)
 {
         return rom_present(L"roms/video/oti/oti077.vbi");
 }
 
-void oti067_close(void *p)
+static void oti067_close(void *p)
 {
         oti067_t *oti067 = (oti067_t *)p;
 
@@ -218,21 +218,21 @@ void oti067_close(void *p)
         free(oti067);
 }
 
-void oti067_speed_changed(void *p)
+static void oti067_speed_changed(void *p)
 {
         oti067_t *oti067 = (oti067_t *)p;
         
         svga_recalctimings(&oti067->svga);
 }
         
-void oti067_force_redraw(void *p)
+static void oti067_force_redraw(void *p)
 {
         oti067_t *oti067 = (oti067_t *)p;
 
         oti067->svga.fullchange = changeframecount;
 }
 
-void oti067_add_status_info(char *s, int max_len, void *p)
+static void oti067_add_status_info(char *s, int max_len, void *p)
 {
         oti067_t *oti067 = (oti067_t *)p;
         
@@ -288,8 +288,10 @@ device_t oti067_device =
 {
         "Oak OTI-067",
         0,
+	0,
         oti067_init,
         oti067_close,
+	NULL,
         oti067_available,
         oti067_speed_changed,
         oti067_force_redraw,
@@ -300,8 +302,10 @@ device_t oti077_device =
 {
         "Oak OTI-077",
         0,
+	0,
         oti077_init,
         oti067_close,
+	NULL,
         oti077_available,
         oti067_speed_changed,
         oti067_force_redraw,

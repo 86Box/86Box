@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.9	2017/09/30
+ * Version:	@(#)hdc_ide.c	1.0.10	2017/10/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -30,6 +30,7 @@
 #include "../device.h"
 #include "../cdrom/cdrom.h"
 #include "../scsi/scsi.h"
+#include "../win/win.h"
 #include "hdc.h"
 #include "hdc_ide.h"
 #include "hdd.h"
@@ -1296,7 +1297,7 @@ uint32_t ide_read_data(int ide_board, int length)
 			}
 			else
 			{
-				update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
+				StatusBarUpdateIcon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 			}
 		}
 	}
@@ -1644,7 +1645,7 @@ void callbackide(int ide_board)
 
 			ide_irq_raise(ide);
 
-			update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
+			StatusBarUpdateIcon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 			return;
 
 		case WIN_READ_DMA:
@@ -1691,12 +1692,12 @@ void callbackide(int ide_board)
 						ide_next_sector(ide);
 						ide->atastat = BUSY_STAT;
 						idecallback[ide_board]=6*IDE_TIME;
-						update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
+						StatusBarUpdateIcon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 					}
 					else
 					{
 						ide_irq_raise(ide);
-						update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
+						StatusBarUpdateIcon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 					}
 				}
 			}
@@ -1749,7 +1750,7 @@ void callbackide(int ide_board)
 				ide->blockcount = 0;
 			}
 
-			update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
+			StatusBarUpdateIcon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 			return;
 
 		case WIN_WRITE:
@@ -1770,12 +1771,12 @@ void callbackide(int ide_board)
 				ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 				ide->pos=0;
 				ide_next_sector(ide);
-				update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
+				StatusBarUpdateIcon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 			}
 			else
 			{
 				ide->atastat = READY_STAT | DSC_STAT;
-				update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
+				StatusBarUpdateIcon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 			}
 
 			return;
@@ -1809,12 +1810,12 @@ void callbackide(int ide_board)
 						ide_next_sector(ide);
 						ide->atastat = BUSY_STAT;
 						idecallback[ide_board]=6*IDE_TIME;
-						update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
+						StatusBarUpdateIcon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 					}
 					else
 					{
 						ide_irq_raise(ide);
-						update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
+						StatusBarUpdateIcon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 					}
 				}
 			}
@@ -1843,12 +1844,12 @@ void callbackide(int ide_board)
 				ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
 				ide->pos=0;
 				ide_next_sector(ide);
-				update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
+				StatusBarUpdateIcon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 			}
 			else
 			{
 				ide->atastat = READY_STAT | DSC_STAT;
-				update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
+				StatusBarUpdateIcon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 			}
 			return;
 
@@ -1865,7 +1866,7 @@ void callbackide(int ide_board)
 			ide->pos=0;
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
-			update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
+			StatusBarUpdateIcon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 			return;
 
 		case WIN_FORMAT:
@@ -1882,7 +1883,7 @@ void callbackide(int ide_board)
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
 
-			/* update_status_bar_icon(SB_HDD | hdd[ide->hdd_num].bus, 1); */
+			/* StatusBarUpdateIcon(SB_HDD | hdd[ide->hdd_num].bus, 1); */
 			return;
 
 		case WIN_DRIVE_DIAGNOSTICS:

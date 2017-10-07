@@ -8,7 +8,7 @@
  *
  *		Emulation of the old and new IBM CGA graphics cards.
  *
- * Version:	@(#)vid_cga.c	1.0.2	2017/09/24
+ * Version:	@(#)vid_cga.c	1.0.3	2017/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -468,7 +468,7 @@ void cga_init(cga_t *cga)
         cga->composite = 0;
 }
 
-void *cga_standalone_init()
+void *cga_standalone_init(device_t *info)
 {
         int display_type;
         cga_t *cga = malloc(sizeof(cga_t));
@@ -578,9 +578,10 @@ static device_config_t cga_config[] =
 device_t cga_device =
 {
         "CGA",
-        0,
+        0, 0,
         cga_standalone_init,
         cga_close,
+	NULL,
         NULL,
         cga_speed_changed,
         NULL,

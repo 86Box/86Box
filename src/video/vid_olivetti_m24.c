@@ -449,7 +449,9 @@ void m24_poll(void *p)
         }
 }
 
-void *m24_init()
+
+static void *
+m24_init(device_t *info)
 {
         m24_t *m24 = malloc(sizeof(m24_t));
         memset(m24, 0, sizeof(m24_t));
@@ -463,7 +465,9 @@ void *m24_init()
         return m24;
 }
 
-void m24_close(void *p)
+
+static void
+m24_close(void *p)
 {
         m24_t *m24 = (m24_t *)p;
 
@@ -471,21 +475,23 @@ void m24_close(void *p)
         free(m24);
 }
 
-void m24_speed_changed(void *p)
+
+static void
+m24_speed_changed(void *p)
 {
         m24_t *m24 = (m24_t *)p;
         
         m24_recalctimings(m24);
 }
 
+
 device_t m24_device =
 {
         "Olivetti M24 (video)",
-        0,
+        0, 0,
         m24_init,
         m24_close,
-        NULL,
-        m24_speed_changed,
-        NULL,
+	NULL, NULL, m24_speed_changed,
+        NULL, NULL, NULL, NULL,
         NULL
 };

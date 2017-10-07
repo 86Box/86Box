@@ -8,7 +8,7 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.c	1.0.1	2017/09/24
+ * Version:	@(#)sound_sb.c	1.0.2	2017/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -502,7 +502,7 @@ void sb_pro_mcv_write(int port, uint8_t val, void *p)
         sb_dsp_setdma8(&sb->dsp, sb->pos_regs[4] & 3);
 }
         
-void *sb_1_init()
+void *sb_1_init(device_t *info)
 {
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");        
@@ -519,7 +519,7 @@ void *sb_1_init()
         sound_add_handler(sb_get_buffer_opl2, sb);
         return sb;
 }
-void *sb_15_init()
+void *sb_15_init(device_t *info)
 {
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
@@ -537,7 +537,7 @@ void *sb_15_init()
         return sb;
 }
 
-void *sb_mcv_init()
+void *sb_mcv_init(device_t *info)
 {
         sb_t *sb = malloc(sizeof(sb_t));
         memset(sb, 0, sizeof(sb_t));
@@ -554,7 +554,7 @@ void *sb_mcv_init()
         sb->pos_regs[1] = 0x50;
         return sb;
 }
-void *sb_2_init()
+void *sb_2_init(device_t *info)
 {
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
@@ -572,7 +572,7 @@ void *sb_2_init()
         return sb;
 }
 
-void *sb_pro_v1_init()
+void *sb_pro_v1_init(device_t *info)
 {
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
@@ -600,7 +600,7 @@ void *sb_pro_v1_init()
         return sb;
 }
 
-void *sb_pro_v2_init()
+void *sb_pro_v2_init(device_t *info)
 {
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
@@ -627,7 +627,7 @@ void *sb_pro_v2_init()
         return sb;
 }
 
-void *sb_pro_mcv_init()
+void *sb_pro_mcv_init(device_t *info)
 {
         sb_t *sb = malloc(sizeof(sb_t));
         memset(sb, 0, sizeof(sb_t));
@@ -650,7 +650,7 @@ void *sb_pro_mcv_init()
         return sb;
 }
 
-void *sb_16_init()
+void *sb_16_init(device_t *info)
 {
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
@@ -690,12 +690,12 @@ void *sb_16_init()
         return sb;
 }
 
-int sb_awe32_available()
+int sb_awe32_available(void)
 {
         return rom_present(L"roms/sound/awe32.raw");
 }
 
-void *sb_awe32_init()
+void *sb_awe32_init(device_t *info)
 {
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");        
@@ -1212,9 +1212,8 @@ device_t sb_1_device =
 {
         "Sound Blaster v1.0",
         0,
-        sb_1_init,
-        sb_close,
-        NULL,
+	0,
+        sb_1_init, sb_close, NULL, NULL,
         sb_speed_changed,
         NULL,
         sb_add_status_info,
@@ -1224,9 +1223,8 @@ device_t sb_15_device =
 {
         "Sound Blaster v1.5",
         0,
-        sb_15_init,
-        sb_close,
-        NULL,
+	0,
+        sb_15_init, sb_close, NULL, NULL,
         sb_speed_changed,
         NULL,
         sb_add_status_info,
@@ -1236,9 +1234,8 @@ device_t sb_mcv_device =
 {
         "Sound Blaster MCV",
         DEVICE_MCA,
-        sb_mcv_init,
-        sb_close,
-        NULL,
+	0,
+        sb_mcv_init, sb_close, NULL, NULL,
         sb_speed_changed,
         NULL,
         sb_add_status_info,
@@ -1248,9 +1245,8 @@ device_t sb_2_device =
 {
         "Sound Blaster v2.0",
         0,
-        sb_2_init,
-        sb_close,
-        NULL,
+	0,
+        sb_2_init, sb_close, NULL, NULL,
         sb_speed_changed,
         NULL,
         sb_add_status_info,
@@ -1260,9 +1256,8 @@ device_t sb_pro_v1_device =
 {
         "Sound Blaster Pro v1",
         0,
-        sb_pro_v1_init,
-        sb_close,
-        NULL,
+	0,
+        sb_pro_v1_init, sb_close, NULL, NULL,
         sb_speed_changed,
         NULL,
         sb_add_status_info,
@@ -1272,9 +1267,8 @@ device_t sb_pro_v2_device =
 {
         "Sound Blaster Pro v2",
         0,
-        sb_pro_v2_init,
-        sb_close,
-        NULL,
+	0,
+        sb_pro_v2_init, sb_close, NULL, NULL,
         sb_speed_changed,
         NULL,
         sb_add_status_info,
@@ -1284,9 +1278,8 @@ device_t sb_pro_mcv_device =
 {
         "Sound Blaster Pro MCV",
         DEVICE_MCA,
-        sb_pro_mcv_init,
-        sb_close,
-        NULL,
+	0,
+        sb_pro_mcv_init, sb_close, NULL, NULL,
         sb_speed_changed,
         NULL,
         sb_add_status_info,
@@ -1296,9 +1289,8 @@ device_t sb_16_device =
 {
         "Sound Blaster 16",
         0,
-        sb_16_init,
-        sb_close,
-        NULL,
+	0,
+        sb_16_init, sb_close, NULL, NULL,
         sb_speed_changed,
         NULL,
         sb_add_status_info,
@@ -1308,8 +1300,8 @@ device_t sb_awe32_device =
 {
         "Sound Blaster AWE32",
         0,
-        sb_awe32_init,
-        sb_close,
+	0,
+        sb_awe32_init, sb_close, NULL,
         sb_awe32_available,
         sb_speed_changed,
         NULL,

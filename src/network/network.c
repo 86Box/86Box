@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.11	2017/09/24
+ * Version:	@(#)network.c	1.0.12	2017/10/04
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -43,12 +43,12 @@ static netcard_t net_cards[] = {
 
 
 /* Global variables. */
-int		network_card;
 int		network_type;
 int		network_ndev;
-int		nic_do_log;
+int		network_card;
 netdev_t	network_devs[32];
 char		network_pcap[512];
+int		nic_do_log;
 
 
 /*
@@ -69,10 +69,9 @@ network_init(void)
     nic_do_log = 0;
 #endif
 
-#if 0
+    /* Initialize to a known state. */
     network_type = NET_TYPE_NONE;
     network_card = 0;
-#endif
 
     /* Create a first device entry that's always there, as needed by UI. */
     strcpy(network_devs[0].device, "none");

@@ -4,6 +4,10 @@
 #ifndef _X86_OPS_H
 #define _X86_OPS_H
 
+
+#define UNUSED(x)	(void)(x)
+
+
 typedef int (*OpFn)(uint32_t fetchdat);
 
 void x86_setopcodes(OpFn *opcodes, OpFn *opcodes_0f, OpFn *dynarec_opcodes, OpFn *dynarec_opcodes_0f);

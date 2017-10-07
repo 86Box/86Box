@@ -110,7 +110,8 @@ uint8_t pc200_in(uint16_t addr, void *p)
         return cga_in(addr, cga);
 }
 
-void *pc200_init()
+
+static void *pc200_init(device_t *info)
 {
         pc200_t *pc200 = malloc(sizeof(pc200_t));
         cga_t *cga = &pc200->cga;
@@ -126,7 +127,7 @@ void *pc200_init()
         return pc200;
 }
 
-void pc200_close(void *p)
+static void pc200_close(void *p)
 {
         pc200_t *pc200 = (pc200_t *)p;
 
@@ -134,7 +135,7 @@ void pc200_close(void *p)
         free(pc200);
 }
 
-void pc200_speed_changed(void *p)
+static void pc200_speed_changed(void *p)
 {
         pc200_t *pc200 = (pc200_t *)p;
         
@@ -144,9 +145,10 @@ void pc200_speed_changed(void *p)
 device_t pc200_device =
 {
         "Amstrad PC200 (video)",
-        0,
+        0, 0,
         pc200_init,
         pc200_close,
+	NULL,
         NULL,
         pc200_speed_changed,
         NULL,

@@ -18,7 +18,7 @@
  *		2 clocks - fetch opcode 1       2 clocks - execute
  *		2 clocks - fetch opcode 2  etc
  *
- * Version:	@(#)808x.c	1.0.2	2017/09/24
+ * Version:	@(#)808x.c	1.0.3	2017/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -28,18 +28,18 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-//#include <unistd.h>
 #include <wchar.h>
 #include "../ibm.h"
 #include "cpu.h"
 #include "x86.h"
-#include "../keyboard.h"
+#include "../keyboard.h"	/* its WRONG to have this in here!! --FvK */
 #include "../mem.h"
 #include "../rom.h"
 #include "../nmi.h"
 #include "../pic.h"
 #include "../timer.h"
-#include "../scsi/scsi.h"
+#include "../device.h"		/* for scsi.h */
+#include "../scsi/scsi.h"	/* its WRONG to have this in here!! --FvK */
 
 int xt_cpu_multi;
 int nmi = 0;

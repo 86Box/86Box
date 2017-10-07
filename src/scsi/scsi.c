@@ -8,7 +8,7 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.7	2017/10/04
+ * Version:	@(#)scsi.c	1.0.7	2017/10/03
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -30,11 +30,10 @@
 #include "scsi.h"
 #include "scsi_aha154x.h"
 #include "scsi_buslogic.h"
-#include "scsi_ncr5380.h"
 
 
 scsi_device_t	SCSIDevices[SCSI_ID_MAX][SCSI_LUN_MAX];
-uint8_t		SCSIPhase = 0xff;
+uint8_t		SCSIPhase = SCSI_PHASE_BUS_FREE;
 uint8_t		SCSIStatus = SCSI_STATUS_OK;
 uint8_t		scsi_cdrom_id = 3; /*common setting*/
 char		scsi_fn[SCSI_NUM][512];
@@ -55,13 +54,11 @@ typedef struct {
 static SCSI_CARD scsi_cards[] = {
     { "None",			"none",		NULL,		      NULL		  },
     { "Adaptec AHA-1540B",	"aha1540b",	&aha1540b_device,     aha_device_reset    },
+    { "Adaptec AHA-1542C",	"aha1542c",	&aha1542c_device,     aha_device_reset    },
     { "Adaptec AHA-1542CF",	"aha1542cf",	&aha1542cf_device,    aha_device_reset    },
     { "Adaptec AHA-1640",	"aha1640",	&aha1640_device,      aha_device_reset    },
     { "BusLogic BT-545C",	"bt545c",	&buslogic_device,     BuslogicDeviceReset },
     { "BusLogic BT-958D PCI",	"bt958d",	&buslogic_pci_device, BuslogicDeviceReset },
-    { "Longshine LCS-6821N",	"lcs6821n",	&scsi_lcs6821n_device, NULL },
-    { "Ranco RT1000B",	"rt1000b",	&scsi_rt1000b_device,  NULL },
-	{ "Trantor T130B",	"t130b",	&scsi_t130b_device, NULL },
     { "",			"",		NULL,		      NULL		  },
 };
 

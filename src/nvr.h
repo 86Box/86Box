@@ -76,6 +76,12 @@
 typedef struct _nvr_ {
     uint8_t	regs[RTC_REGS+114];	/* these are the registers */
 
+    int		mask,
+		irq,
+		addr;
+
+    wchar_t	*fname;
+
     int		upd_stat,
 		upd_ecount,
 		onesec_time,
@@ -83,14 +89,16 @@ typedef struct _nvr_ {
     		rtctime,
 		oldmachine;
 
-    int		mask,
-		irq,
-		addr;
-
+    /* Hooks to internal RTC I/O functions. */
     void	(*set)(struct _nvr_ *, uint16_t, uint8_t);
     uint8_t	(*get)(struct _nvr_ *, uint16_t);
 
-    wchar_t	*fname;
+    /* Hooks to alternative load/save functions. */
+    int8_t	(*load)(wchar_t *fname);
+    int8_t	(*save)(wchar_t *fname);
+
+    /* Hook to RTC ticker handler. */
+    void	(*hook)(struct _nvr_ *);
 } nvr_t;
 
 
@@ -99,8 +107,8 @@ extern int	nvr_dosave;
 
 
 extern void	nvr_init(nvr_t *);
-extern void	nvr_load(void);
-extern void	nvr_save(void);
+extern int	nvr_load(void);
+extern int	nvr_save(void);
 extern void	nvr_recalc(void);
 
 extern wchar_t	*nvr_path(wchar_t *str);

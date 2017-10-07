@@ -138,7 +138,7 @@ static void ps1_audio_get_buffer(int32_t *buffer, int len, void *p)
         ps1->pos = 0;
 }
 
-static void *ps1_audio_init()
+static void *ps1_audio_init(device_t *info)
 {
         ps1_audio_t *ps1 = malloc(sizeof(ps1_audio_t));
         memset(ps1, 0, sizeof(ps1_audio_t));
@@ -163,9 +163,10 @@ static void ps1_audio_close(void *p)
 device_t ps1_audio_device =
 {
         "PS/1 Audio Card",
-        0,
+        0, 0,
         ps1_audio_init,
         ps1_audio_close,
+	NULL,
         NULL,
         NULL,
         NULL,

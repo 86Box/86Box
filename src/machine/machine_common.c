@@ -21,8 +21,6 @@ void machine_common_init(void)
         pic_init();
         pit_init();
 
-        fdc_add();
-
 	if (lpt_enabled)
 	{
 		lpt_init();
@@ -37,4 +35,6 @@ void machine_common_init(void)
 	{
 		serial_setup(2, SERIAL2_ADDR, SERIAL2_IRQ);
 	}
+
+        fdc_add();
 }

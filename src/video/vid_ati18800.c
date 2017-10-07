@@ -162,7 +162,7 @@ void ati18800_recalctimings(svga_t *svga)
         }
 }
 
-void *ati18800_init()
+void *ati18800_init(device_t *info)
 {
         ati18800_t *ati18800 = malloc(sizeof(ati18800_t));
         memset(ati18800, 0, sizeof(ati18800_t));
@@ -185,7 +185,7 @@ void *ati18800_init()
         return ati18800;
 }
 
-static int ati18800_available()
+static int ati18800_available(void)
 {
         return rom_present(L"roms/video/ati18800/vga88.BIN");
 }
@@ -223,12 +223,13 @@ void ati18800_add_status_info(char *s, int max_len, void *p)
 device_t ati18800_device =
 {
         "ATI-18800",
-        0,
+        0, 0,
         ati18800_init,
         ati18800_close,
+	NULL,
         ati18800_available,
         ati18800_speed_changed,
         ati18800_force_redraw,
-        ati18800_add_status_info
+        ati18800_add_status_info,
+	NULL
 };
-

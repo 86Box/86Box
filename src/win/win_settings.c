@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.17	2017/10/02
+ * Version:	@(#)win_settings.c	1.0.18	2017/10/05
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -279,7 +279,7 @@ static void win_settings_save(void)
 {
 	int i = 0;
 
-	resetpchard_close();
+	pc_reset_hard_close();
 
 	/* Machine category */
 	machine = temp_machine;
@@ -348,11 +348,11 @@ static void win_settings_save(void)
 	mem_resize();
 	rom_load_bios(romset);
 
-	update_status_bar_panes(hwndStatus);
+	StatusBarUpdatePanes();
 
 	sound_realloc_buffers();
 
-	resetpchard_init();
+	pc_reset_hard_init();
 
 	cpu_set();
 
@@ -2804,7 +2804,7 @@ hd_add_ok_common:
 							if (f != NULL)
 							{
 								fclose(f);
-								if (msgbox_question(ghwnd, IDS_4111) != IDYES)
+								if (msgbox_question(hwndMain, IDS_4111) != IDYES)
 								{
 									return FALSE;
 								}

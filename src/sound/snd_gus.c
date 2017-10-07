@@ -995,7 +995,7 @@ static void gus_get_buffer(int32_t *buffer, int len, void *p)
 }
 
 
-void *gus_init()
+void *gus_init(device_t *info)
 {
         int c;
 	double out = 1.0;
@@ -1060,11 +1060,8 @@ void gus_speed_changed(void *p)
 device_t gus_device =
 {
         "Gravis UltraSound",
-        0,
-        gus_init,
-        gus_close,
-        NULL,
-        gus_speed_changed,
-        NULL,
+        0, 0,
+        gus_init, gus_close, NULL, NULL,
+        gus_speed_changed, NULL, NULL,
         NULL
 };

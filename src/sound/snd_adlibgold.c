@@ -754,7 +754,7 @@ static void adgold_get_buffer(int32_t *buffer, int len, void *p)
 }
 
 
-void *adgold_init()
+void *adgold_init(device_t *info)
 {
         FILE *f;
         int c;
@@ -840,9 +840,10 @@ static device_config_t adgold_config[] =
 device_t adgold_device =
 {
         "AdLib Gold",
-        0,
+        0, 0,
         adgold_init,
         adgold_close,
+	NULL,
         NULL,
         NULL,
         NULL,

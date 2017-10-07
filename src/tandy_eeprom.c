@@ -125,7 +125,7 @@ int tandy_eeprom_read(void)
 }
 
 
-static void *tandy_eeprom_init(void)
+static void *tandy_eeprom_init(device_t *info)
 {
         tandy_eeprom_t *eeprom = malloc(sizeof(tandy_eeprom_t));
         FILE *f = NULL;
@@ -180,12 +180,9 @@ void tandy_eeprom_close(void *p)
 device_t tandy_eeprom_device =
 {
         "Tandy EEPROM",
-        0,
+        0, 0,
         tandy_eeprom_init,
         tandy_eeprom_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
+	NULL, NULL, NULL, NULL, NULL,
         NULL
 };

@@ -2216,29 +2216,30 @@ void *s3_vision864_init(wchar_t *bios_fn)
         return s3;
 }
 
-void *s3_bahamas64_init()
+
+static void *s3_bahamas64_init(device_t *info)
 {
 	s3_t *s3 = s3_vision864_init(L"roms/video/s3/bahamas64.BIN");
 	return s3;
 }
 
-void *s3_phoenix_vision864_init()
+static void *s3_phoenix_vision864_init(device_t *info)
 {
 	s3_t *s3 = s3_vision864_init(L"roms/video/s3/86c864p.bin");
 	return s3;
 }
 
-int s3_bahamas64_available()
+static int s3_bahamas64_available(void)
 {
         return rom_present(L"roms/video/s3/bahamas64.BIN");
 }
 
-int s3_phoenix_vision864_available()
+static int s3_phoenix_vision864_available(void)
 {
         return rom_present(L"roms/video/s3/86c864p.bin");
 }
 
-void *s3_phoenix_trio32_init()
+static void *s3_phoenix_trio32_init(device_t *info)
 {
         s3_t *s3 = s3_init(L"roms/video/s3/86C732P.bin", S3_TRIO32);
 
@@ -2253,12 +2254,12 @@ void *s3_phoenix_trio32_init()
         return s3;
 }
 
-int s3_phoenix_trio32_available()
+static int s3_phoenix_trio32_available(void)
 {
         return rom_present(L"roms/video/s3/86C732P.bin");
 }
 
-void *s3_trio64_init(wchar_t *bios_fn)
+static void *s3_trio64_init(wchar_t *bios_fn)
 {
         s3_t *s3 = s3_init(bios_fn, S3_TRIO64);
 
@@ -2272,40 +2273,40 @@ void *s3_trio64_init(wchar_t *bios_fn)
         return s3;
 }
 
-void *s3_9fx_init()
+static void *s3_9fx_init(device_t *info)
 {
 	s3_t *s3 = s3_trio64_init(L"roms/video/s3/s3_764.bin");
 	return s3;
 }
 
-void *s3_phoenix_trio64_init()
+static void *s3_phoenix_trio64_init(device_t *info)
 {
 	s3_t *s3 = s3_trio64_init(L"roms/video/s3/86C764X1.bin");
 	return s3;
 }
 
-void *s3_diamond_stealth64_init()
+static void *s3_diamond_stealth64_init(device_t *info)
 {
 	s3_t *s3 = s3_trio64_init(L"roms/video/s3/STEALT64.BIN");
 	return s3;
 }
 
-int s3_9fx_available()
+static int s3_9fx_available(void)
 {
         return rom_present(L"roms/video/s3/s3_764.bin");
 }
 
-int s3_phoenix_trio64_available()
+static int s3_phoenix_trio64_available(void)
 {
         return rom_present(L"roms/video/s3/86c764x1.bin");
 }
 
-int s3_diamond_stealth64_available()
+static int s3_diamond_stealth64_available(void)
 {
         return rom_present(L"roms/video/s3/STEALT64.BIN");
 }
 
-void s3_close(void *p)
+static void s3_close(void *p)
 {
         s3_t *s3 = (s3_t *)p;
 
@@ -2318,21 +2319,21 @@ void s3_close(void *p)
         free(s3);
 }
 
-void s3_speed_changed(void *p)
+static void s3_speed_changed(void *p)
 {
         s3_t *s3 = (s3_t *)p;
         
         svga_recalctimings(&s3->svga);
 }
 
-void s3_force_redraw(void *p)
+static void s3_force_redraw(void *p)
 {
         s3_t *s3 = (s3_t *)p;
 
         s3->svga.fullchange = changeframecount;
 }
 
-void s3_add_status_info(char *s, int max_len, void *p)
+static void s3_add_status_info(char *s, int max_len, void *p)
 {
         s3_t *s3 = (s3_t *)p;
         char temps[256];
@@ -2466,8 +2467,10 @@ device_t s3_bahamas64_device =
 {
         "Paradise Bahamas 64 (S3 Vision864)",
         0,
+	0,
         s3_bahamas64_init,
         s3_close,
+	NULL,
         s3_bahamas64_available,
         s3_speed_changed,
         s3_force_redraw,
@@ -2479,8 +2482,10 @@ device_t s3_9fx_device =
 {
         "Number 9 9FX (S3 Trio64)",
         0,
+	0,
         s3_9fx_init,
         s3_close,
+	NULL,
         s3_9fx_available,
         s3_speed_changed,
         s3_force_redraw,
@@ -2492,8 +2497,10 @@ device_t s3_phoenix_trio32_device =
 {
         "Phoenix S3 Trio32",
         0,
+	0,
         s3_phoenix_trio32_init,
         s3_close,
+	NULL,
         s3_phoenix_trio32_available,
         s3_speed_changed,
         s3_force_redraw,
@@ -2505,8 +2512,10 @@ device_t s3_phoenix_trio64_device =
 {
         "Phoenix S3 Trio64",
         0,
+	0,
         s3_phoenix_trio64_init,
         s3_close,
+	NULL,
         s3_phoenix_trio64_available,
         s3_speed_changed,
         s3_force_redraw,
@@ -2518,8 +2527,10 @@ device_t s3_phoenix_vision864_device =
 {
         "Phoenix S3 Vision864",
         0,
+	0,
         s3_phoenix_vision864_init,
         s3_close,
+	NULL,
         s3_phoenix_vision864_available,
         s3_speed_changed,
         s3_force_redraw,
@@ -2531,8 +2542,10 @@ device_t s3_diamond_stealth64_device =
 {
         "S3 Trio64 (Diamond Stealth64 DRAM)",
         0,
+	0,
         s3_diamond_stealth64_init,
         s3_close,
+	NULL,
         s3_diamond_stealth64_available,
         s3_speed_changed,
         s3_force_redraw,

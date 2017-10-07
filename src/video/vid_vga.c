@@ -84,7 +84,8 @@ uint8_t vga_in(uint16_t addr, void *p)
         return temp;
 }
 
-void *vga_init()
+
+static void *vga_init(device_t *info)
 {
         vga_t *vga = malloc(sizeof(vga_t));
         memset(vga, 0, sizeof(vga_t));
@@ -105,8 +106,9 @@ void *vga_init()
         return vga;
 }
 
+
 #ifdef DEV_BRANCH
-void *trigem_unk_init()
+static void *trigem_unk_init(device_t *info)
 {
         vga_t *vga = malloc(sizeof(vga_t));
         memset(vga, 0, sizeof(vga_t));
@@ -133,7 +135,7 @@ void *trigem_unk_init()
 #endif
 
 /*PS/1 uses a standard VGA controller, but with no option ROM*/
-void *ps1vga_init()
+void *ps1vga_init(device_t *info)
 {
         vga_t *vga = malloc(sizeof(vga_t));
         memset(vga, 0, sizeof(vga_t));
@@ -152,7 +154,7 @@ void *ps1vga_init()
         return vga;
 }
 
-static int vga_available()
+static int vga_available(void)
 {
         return rom_present(L"roms/video/vga/ibm_vga.bin");
 }
@@ -191,8 +193,10 @@ device_t vga_device =
 {
         "VGA",
         0,
+	0,
         vga_init,
         vga_close,
+	NULL,
         vga_available,
         vga_speed_changed,
         vga_force_redraw,
@@ -203,8 +207,10 @@ device_t trigem_unk_device =
 {
         "VGA",
         0,
+	0,
         trigem_unk_init,
         vga_close,
+	NULL,
         vga_available,
         vga_speed_changed,
         vga_force_redraw,
@@ -215,8 +221,10 @@ device_t ps1vga_device =
 {
         "PS/1 VGA",
         0,
+	0,
         ps1vga_init,
         vga_close,
+	NULL,
         vga_available,
         vga_speed_changed,
         vga_force_redraw,

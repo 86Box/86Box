@@ -397,6 +397,9 @@ onesec_timer(void *priv)
 		/* Update the system RTC. */
 		rtc_tick();
 
+		if (nvr->hook != NULL)
+			(*nvr->hook)(nvr);
+
 		/* Re-calculate the timer. */
 		nvr_recalc();
 
@@ -455,7 +458,8 @@ update_timer(void *priv)
 			nvr->regs[RTC_REGC] |= REGC_IRQF;
 
 			/* Generate an interrupt. */
-			picint(1<<nvr->irq);
+			if (nvr->irq != -1)
+				picint(1<<nvr->irq);
 		}
 	}
 
@@ -468,7 +472,8 @@ update_timer(void *priv)
 		nvr->regs[RTC_REGC] |= REGC_IRQF;
 
 		/* Generate an interrupt. */
-		picint(1<<nvr->irq);
+		if (nvr->irq != -1)
+			picint(1<<nvr->irq);
 	}
     }
 
@@ -496,7 +501,8 @@ ticker_timer(void *priv)
 	nvr->regs[RTC_REGC] |= REGC_IRQF;
 
 	/* Generate an interrupt. */
-	picint(1<<nvr->irq);
+	if (nvr->irq != -1)
+		picint(1<<nvr->irq);
     }
 }
 
@@ -642,58 +648,53 @@ nvr_recalc(void)
 }
 
 
-/* Load an NVR from file. */
-void
+/*
+ * Load an NVR from file.
+ *
+ * This function does two things, really.  It clear and initializes
+ * the RTC and NVRAM areas, sets up defaults for the RTC part, and
+ * then attempts to load data from a saved file.
+ *
+ * Either way, after that loading, it will continue to configure
+ * the local RTC to operate, so it can update either the local RTC,
+ * and/or the supplied by a client.
+ */
+int
 nvr_load(void)
 {
     FILE *f;
     int c;
 
     /* Make sure we have been initialized. */
-    if (saved_nvr == NULL) return;
+    if (saved_nvr == NULL) return(0);
 
     /* Clear out any old data. */
     memset(saved_nvr->regs, 0xff, sizeof(saved_nvr->regs));
+
+    /* Set the defaults. */
     memset(saved_nvr->regs, 0x00, RTC_REGS);
+    saved_nvr->regs[RTC_DOM] = 1;
+    saved_nvr->regs[RTC_MONTH] = 1;
+    saved_nvr->regs[RTC_YEAR] = RTC_BCD(80);
+    saved_nvr->regs[RTC_CENTURY] = RTC_BCD(19);
 
-#if 0
-    europc_load_nvr();
-
-    if (saved_nvr->load)
-	(*saved_nvr->load();
-	return;
-    }
-#endif
-
-    f = NULL;
-    if (saved_nvr->mask != 0) {
-	pclog("Opening NVR file: %ws...\n", saved_nvr->fname);
-	f = _wfopen(nvr_path(saved_nvr->fname), L"rb");
-    }
-
-    if (f==NULL || saved_nvr->mask==0) {
-	if (f != NULL)
-		fclose(f);
-
-	/* No file loaded, or no file available. */
-	if (! enable_sync) {
-		/* No time-sync enabled, so just set the defaults. */
-		saved_nvr->regs[RTC_SECONDS] = 0;
-		saved_nvr->regs[RTC_MINUTES] = 0;
-		saved_nvr->regs[RTC_HOURS] = 0;
-		saved_nvr->regs[RTC_DOM] = 1;
-		saved_nvr->regs[RTC_MONTH] = 1;
-		saved_nvr->regs[RTC_YEAR] = RTC_BCD(80);
-		saved_nvr->regs[RTC_REGB] = REGB_2412;
-		saved_nvr->regs[RTC_CENTURY] = RTC_BCD(19);
+    if (saved_nvr->load == NULL) {
+	/* We are responsible for loading. */
+	f = NULL;
+	if (saved_nvr->mask != 0) {
+		pclog("Opening NVR file: %ws...\n", saved_nvr->fname);
+		f = _wfopen(nvr_path(saved_nvr->fname), L"rb");
 	}
 
-	return;
+	if (f != NULL) {
+		/* Read NVR contents from file. */
+		fread(saved_nvr->regs, sizeof(saved_nvr->regs), 1, f);
+		(void)fclose(f);
+	}
+    } else {
+	/* OK, use alternate function. */
+	(*saved_nvr->load)(saved_nvr->fname);
     }
-
-    /* Read NVR contents from file. */
-    fread(saved_nvr->regs, sizeof(saved_nvr->regs), 1, f);
-    (void)fclose(f);
 
     /* Update the internal clock state based on the NVR registers. */
     if (enable_sync)
@@ -701,48 +702,47 @@ nvr_load(void)
       else
 	rtc_setnvr(saved_nvr->regs);
 
-    saved_nvr->regs[RTC_REGA] = 0x06;
+    /* Get the local RTC running! */
+    saved_nvr->regs[RTC_REGA] = (REGA_RS2|REGA_RS1);
     saved_nvr->regs[RTC_REGB] = REGB_2412;
-
     c = 1 << ((saved_nvr->regs[RTC_REGA] & REGA_RS) - 1);
     saved_nvr->rtctime += (int)(RTCCONST * c * (1<<TIMER_SHIFT));
+
+    return(1);
 }
 
 
 /* Save the current NVR to a file. */
-void
+int
 nvr_save(void)
 {
     FILE *f;
 
     /* Make sure we have been initialized. */
-    if (saved_nvr == NULL) return;
+    if (saved_nvr == NULL) return(0);
 
-#if 0
-    europc_save_nvr();
+    if (saved_nvr->save == NULL) {
+	/* We are responsible for saving. */
+	f = NULL;
+	if (saved_nvr->mask != 0) {
+		pclog("Saving NVR file: %ws...\n", saved_nvr->fname);
+		f = _wfopen(nvr_path(saved_nvr->fname), L"wb");
+	}
 
-    if (saved_nvr->save)
-	(*saved_nvr->save)();
-	return;
+	if (f != NULL) {
+		/* Save NVR contents to file. */
+		(void)fwrite(saved_nvr->regs, sizeof(saved_nvr->regs), 1, f);
+		(void)fclose(f);
+	}
+    } else {
+	/* OK, use alternate function. */
+	(*saved_nvr->save)(saved_nvr->fname);
     }
-#endif
-
-    f = NULL;
-    if (saved_nvr->mask != 0) {
-	pclog("Saving NVR file: %ws...\n", saved_nvr->fname);
-	f = _wfopen(nvr_path(saved_nvr->fname), L"wb");
-    }
-    if (f==NULL || saved_nvr->mask==0) {
-	if (f != NULL)
-		fclose(f);
-	return;
-    }
-
-    (void)fwrite(saved_nvr->regs, sizeof(saved_nvr->regs), 1, f);
-    (void)fclose(f);
 
     /* Device is clean again. */
     nvr_dosave = 0;
+
+    return(1);
 }
 
 

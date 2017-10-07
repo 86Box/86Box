@@ -8,7 +8,7 @@
  *
  *		Definitions for the hard disk image handler.
  *
- * Version:	@(#)hdd.h	1.0.2	2017/09/30
+ * Version:	@(#)hdd.h	1.0.3	2017/10/05
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -71,6 +71,9 @@ extern uint64_t		hdd_table[128][3];
 
 
 extern int	hdd_init(void);
+extern int	hdd_string_to_bus(char *str, int cdrom);
+extern char	*hdd_bus_to_string(int bus, int cdrom);
+extern int	hdd_is_valid(int c);
 
 extern int	hdd_image_load(int id);
 extern void	hdd_image_seek(uint8_t id, uint32_t sector);

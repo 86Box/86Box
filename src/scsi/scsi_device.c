@@ -20,6 +20,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "../ibm.h"
+#include "../device.h"
 #include "../cdrom/cdrom.h"
 #include "../disk/hdd.h"
 #include "scsi.h"

@@ -33,7 +33,9 @@ static HWND ddraw_hwnd;
 
 int ddraw_init(HWND h)
 {
+#if NO_THIS_CRASHES_NOW
 	cgapal_rebuild();
+#endif
 
         if (FAILED(DirectDrawCreate(NULL, &lpdd, NULL)))
            return 0;

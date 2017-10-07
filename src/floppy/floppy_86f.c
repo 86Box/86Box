@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)floppy_86f.c	1.0.5	2017/10/02
+ * Version:	@(#)floppy_86f.c	1.0.5	2017/10/05
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -28,6 +28,7 @@
 #include "../dma.h"
 #include "../nvr.h"
 #include "../random.h"
+#include "../win/win.h"
 #include "floppy.h"
 #include "fdc.h"
 #include "fdd.h"
@@ -3424,7 +3425,7 @@ void d86f_load(int drive, wchar_t *fn)
 		}
 		fclose(d86f[drive].f);
 		d86f[drive].f = NULL;
-		update_status_bar_icon_state(drive, 1);
+		StatusBarUpdateIconState(drive, 1);
 		return;
 	}
 	else

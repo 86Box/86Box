@@ -662,7 +662,7 @@ void herculesplus_poll(void *p)
         }
 }
 
-void *herculesplus_init()
+void *herculesplus_init(device_t *info)
 {
         int c;
         herculesplus_t *herculesplus = malloc(sizeof(herculesplus_t));
@@ -714,11 +714,13 @@ void herculesplus_speed_changed(void *p)
 device_t herculesplus_device =
 {
         "Hercules Plus",
-        0,
+        0, 0,
         herculesplus_init,
         herculesplus_close,
+	NULL,
         NULL,
         herculesplus_speed_changed,
         NULL,
+	NULL,
         NULL
 };

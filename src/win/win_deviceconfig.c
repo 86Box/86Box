@@ -8,7 +8,7 @@
  *
  *		Windows device configuration dialog implementation.
  *
- * Version:	@(#)win_deviceconfig.c	1.0.3	2017/09/24
+ * Version:	@(#)win_deviceconfig.c	1.0.4	2017/10/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -32,7 +32,8 @@
 static device_t *config_device;
 
 
-static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+static BOOL CALLBACK
+deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
 
@@ -270,7 +271,7 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                         return TRUE;
                                 }
 
-                               ret = msgbox_reset(ghwnd);
+                               ret = msgbox_reset(hwndMain);
                                switch(ret)
                                {
                                     case IDNO:                                        

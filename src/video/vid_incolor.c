@@ -1010,7 +1010,7 @@ void incolor_poll(void *p)
         }
 }
 
-void *incolor_init()
+void *incolor_init(device_t *info)
 {
         int c;
         incolor_t *incolor = malloc(sizeof(incolor_t));
@@ -1061,11 +1061,14 @@ void incolor_speed_changed(void *p)
 device_t incolor_device =
 {
         "Hercules InColor",
-        0,
+        0, 0,
         incolor_init,
         incolor_close,
+	NULL,
         NULL,
         incolor_speed_changed,
         NULL,
+	NULL,
+	NULL,
         NULL
 };

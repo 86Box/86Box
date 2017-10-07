@@ -585,7 +585,8 @@ void tandy_poll(void *p)
         }
 }
 
-void *tandy_init()
+
+static void *tandy_init(device_t *info)
 {
         int display_type;
         tandy_t *tandy = malloc(sizeof(tandy_t));
@@ -610,14 +611,14 @@ void *tandy_init()
         return tandy;
 }
 
-void tandy_close(void *p)
+static void tandy_close(void *p)
 {
         tandy_t *tandy = (tandy_t *)p;
 
         free(tandy);
 }
 
-void tandy_speed_changed(void *p)
+static void tandy_speed_changed(void *p)
 {
         tandy_t *tandy = (tandy_t *)p;
         
@@ -628,11 +629,14 @@ device_t tandy_device =
 {
         "Tandy 1000 (video)",
         0,
+	0,
         tandy_init,
         tandy_close,
+	NULL,
         NULL,
         tandy_speed_changed,
         NULL,
+	NULL,
         NULL
 };
 
@@ -662,8 +666,9 @@ static device_config_t tandy_config[] =
 static device_t tandy1000_device =
 {
         "Tandy 1000",
-        0,
+        0, 0,
         NULL,
+	NULL,
         NULL,
         NULL,
         NULL,
@@ -674,8 +679,9 @@ static device_t tandy1000_device =
 static device_t tandy1000hx_device =
 {
         "Tandy 1000HX",
-        0,
+        0, 0,
         NULL,
+	NULL,
         NULL,
         NULL,
         NULL,

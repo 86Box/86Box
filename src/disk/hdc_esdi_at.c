@@ -8,7 +8,7 @@
  *
  *		Driver for the ESDI controller (WD1007-vse1) for PC/AT.
  *
- * Version:	@(#)hdc_esdi_at.c	1.0.2	2017/10/01
+ * Version:	@(#)hdc_esdi_at.c	1.0.3	2017/10/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -32,6 +32,7 @@
 #include "../pic.h"
 #include "../rom.h"
 #include "../timer.h"
+#include "../win/win.h"
 #include "hdc.h"
 #include "hdd.h"
 
@@ -513,7 +514,7 @@ esdi_callback(void *priv)
 		esdi->pos = 0;
 		esdi->status = STAT_DRQ | STAT_READY | STAT_DSC;
 		irq_raise(esdi);
-		update_status_bar_icon(SB_HDD | HDD_BUS_ESDI, 1);
+		StatusBarUpdateIcon(SB_HDD | HDD_BUS_ESDI, 1);
 		break;
 
 	case CMD_WRITE:
@@ -548,7 +549,7 @@ esdi_callback(void *priv)
 		} else {
 			esdi->status = STAT_READY | STAT_DSC;
 		}
-		update_status_bar_icon(SB_HDD | HDD_BUS_ESDI, 1);
+		StatusBarUpdateIcon(SB_HDD | HDD_BUS_ESDI, 1);
 		break;
 		
 	case CMD_VERIFY:
@@ -574,7 +575,7 @@ esdi_callback(void *priv)
 			break;
 		}
 
-		update_status_bar_icon(SB_HDD | HDD_BUS_ESDI, 1);
+		StatusBarUpdateIcon(SB_HDD | HDD_BUS_ESDI, 1);
 		next_sector(esdi);
 		esdi->secount = (esdi->secount - 1) & 0xff;
 		if (esdi->secount)
@@ -608,7 +609,7 @@ esdi_callback(void *priv)
 		}			
 		esdi->status = STAT_READY | STAT_DSC;
 		irq_raise(esdi);
-		update_status_bar_icon(SB_HDD | HDD_BUS_ESDI, 1);
+		StatusBarUpdateIcon(SB_HDD | HDD_BUS_ESDI, 1);
 		break;
 
 	case CMD_DIAGNOSE:
@@ -736,7 +737,7 @@ esdi_callback(void *priv)
 		break;
     }
 
-	update_status_bar_icon(SB_HDD | HDD_BUS_ESDI, 0);
+    StatusBarUpdateIcon(SB_HDD | HDD_BUS_ESDI, 0);
 }
 
 
@@ -770,7 +771,7 @@ loadhd(esdi_t *esdi, int hdd_num, int d, const wchar_t *fn)
 
 
 static void *
-wd1007vse1_init(void)
+wd1007vse1_init(device_t *info)
 {
     int i, c = 0;
 
@@ -842,8 +843,10 @@ wd1007vse1_available(void)
 device_t esdi_at_wd1007vse1_device = {
     "Western Digital WD1007V-SE1 (ESDI)",
     DEVICE_AT,
+    0,
     wd1007vse1_init,
     wd1007vse1_close,
+    NULL,
     wd1007vse1_available,
     NULL, NULL, NULL, NULL
 };

@@ -1,8 +1,15 @@
+#ifndef EMU_SOUND_MIDI_H
+# define EMU_SOUND_MIDI_H
+
+
 extern int midi_device_current;
+
 
 int midi_device_available(int card);
 char *midi_device_getname(int card);
-struct device_t *midi_device_getdevice(int card);
+#ifdef EMU_DEVICE_H
+device_t *midi_device_getdevice(int card);
+#endif
 int midi_device_has_config(int card);
 char *midi_device_get_internal_name(int card);
 int midi_device_get_from_internal_name(char *s);
@@ -33,3 +40,6 @@ void midi_poll();
 #define SYSTEM_MIDI_NAME "System MIDI"
 #define SYSTEM_MIDI_INTERNAL_NAME "system_midi"
 #endif
+
+
+#endif	/*EMU_SOUND_MIDI_H*/

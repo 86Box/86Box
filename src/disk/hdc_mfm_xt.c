@@ -41,7 +41,7 @@
  *		Since all controllers (including the ones made by DTC) use
  *		(mostly) the same API, we keep them all in this module.
  *
- * Version:	@(#)hdd_mfm_xt.c	1.0.6	2017/09/30
+ * Version:	@(#)hdd_mfm_xt.c	1.0.7	2017/10/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -61,6 +61,7 @@
 #include "../pic.h"
 #include "../rom.h"
 #include "../timer.h"
+#include "../win/win.h"
 #include "hdc.h"
 #include "hdd.h"
 
@@ -402,7 +403,7 @@ mfm_callback(void *priv)
 
 				mfm_complete(mfm);
 
-				update_status_bar_icon(SB_HDD | HDD_BUS_MFM, 1);
+				StatusBarUpdateIcon(SB_HDD | HDD_BUS_MFM, 1);
 				break;
 
 			default:
@@ -447,7 +448,7 @@ mfm_callback(void *priv)
 
 				hdd_image_read(drive->hdd_num, addr, 1,
 					       (uint8_t *) mfm->sector_buf);
-				update_status_bar_icon(SB_HDD|HDD_BUS_MFM, 1);
+				StatusBarUpdateIcon(SB_HDD|HDD_BUS_MFM, 1);
 
 				if (mfm->irq_dma_mask & DMA_ENA)
 					mfm->callback = MFM_TIME;
@@ -492,7 +493,7 @@ mfm_callback(void *priv)
 
 					hdd_image_read(drive->hdd_num, addr, 1,
 						(uint8_t *) mfm->sector_buf);
-					update_status_bar_icon(SB_HDD|HDD_BUS_MFM, 1);
+					StatusBarUpdateIcon(SB_HDD|HDD_BUS_MFM, 1);
 
 					mfm->state = STATE_SEND_DATA;
 
@@ -504,7 +505,7 @@ mfm_callback(void *priv)
 					}
 				} else {
 					mfm_complete(mfm);
-					update_status_bar_icon(SB_HDD | HDD_BUS_MFM, 0);
+					StatusBarUpdateIcon(SB_HDD | HDD_BUS_MFM, 0);
 				}
 				break;
 
@@ -565,7 +566,7 @@ mfm_callback(void *priv)
 
 				hdd_image_write(drive->hdd_num, addr, 1,
 						(uint8_t *) mfm->sector_buf);
-				update_status_bar_icon(SB_HDD|HDD_BUS_MFM, 1);
+				StatusBarUpdateIcon(SB_HDD|HDD_BUS_MFM, 1);
 
 				next_sector(mfm);
 				mfm->data_pos = 0;
@@ -802,7 +803,7 @@ mfm_set_switches(mfm_t *mfm)
 
 
 static void *
-xebec_init(void)
+xebec_init(device_t *info)
 {
     int i, c = 0;
 
@@ -856,14 +857,15 @@ xebec_available(void)
 
 device_t mfm_xt_xebec_device = {
     "IBM PC Fixed Disk Adapter",
-    0,
-    xebec_init, mfm_close, xebec_available,
-    NULL, NULL, NULL, NULL
+    0, 0,
+    xebec_init, mfm_close, NULL,
+    xebec_available, NULL, NULL, NULL,
+    NULL
 };
 
 
 static void *
-dtc5150x_init(void)
+dtc5150x_init(device_t *info)
 {
     int i, c = 0;
 
@@ -906,7 +908,8 @@ dtc5150x_available(void)
 
 device_t mfm_xt_dtc5150x_device = {
     "DTC 5150X",
-    0,
-    dtc5150x_init, mfm_close, dtc5150x_available,
-    NULL, NULL, NULL, NULL
+    0, 0,
+    dtc5150x_init, mfm_close, NULL,
+    dtc5150x_available, NULL, NULL, NULL,
+    NULL
 };

@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.16	2017/10/01
+ * Version:	@(#)pc.c	1.0.17	2017/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -26,6 +26,7 @@
 #include "86box.h"
 #include "config.h"
 #include "ibm.h"
+#include "io.h"
 #include "mem.h"
 #include "rom.h"
 #include "cpu/codegen.h"
@@ -71,6 +72,7 @@
 #include "win/plat_mouse.h"
 #include "win/plat_ui.h"
 #include "win/win.h"
+#include "win/win_language.h"
 #include "scsi/scsi.h"
 #include "serial.h"
 #include "sound/sound.h"
@@ -189,20 +191,6 @@ pc_concat(wchar_t *str)
 }
 
 
-static void
-usage(void)
-{
-    printf("Command line options:\n\n");
-    printf("--config file.cfg - use given file as initial configuration\n");
-    printf("--dump            - always dump memory on exit\n");
-    printf("--fullscreen      - start in fullscreen mode\n");
-    printf("--vmpath pathname - set 'path' to be root for vm\n");
-
-    exit(-1);
-    /*NOTREACHED*/
-}
-
-
 /*
  * Perform initial startup of the PC.
  *
@@ -210,7 +198,7 @@ usage(void)
  * where we check commandline arguments and loading a
  * configuration file.
  */
-void
+int
 pc_init(int argc, wchar_t *argv[])
 {
     wchar_t *cfg = NULL;
@@ -225,7 +213,6 @@ pc_init(int argc, wchar_t *argv[])
     get_executable_name(exe_path, sizeof(exe_path)-1);
     p = get_filename_w(exe_path);
     *p = L'\0';
-    pclog("exe_path=%ws\n", exe_path);
 
     /*
      * Get the current working directory.
@@ -239,8 +226,12 @@ pc_init(int argc, wchar_t *argv[])
     for (c=1; c<argc; c++) {
 	if (! _wcsicmp(argv[c], L"--help")) {
 usage:
-		usage();
-		/*NOTRECHED*/
+		printf("\nCommand line options:\n\n");
+		printf("--config file.cfg - use given file as configuration\n");
+		printf("--dump            - always dump memory on exit\n");
+		printf("--fullscreen      - start in fullscreen mode\n");
+		printf("--vmpath pathname - set 'path' to be root for vm\n");
+		return(0);
 	} else if (!_wcsicmp(argv[c], L"--config") ||
 		   !_wcsicmp(argv[c], L"-C")) {
 		if ((c+1) == argc) break;
@@ -270,8 +261,7 @@ usage:
 #endif
 
 		/* .. and then exit. */
-		exit(0);
-		/*NOTREACHED*/
+		return(0);
 	} else if (!_wcsicmp(argv[c], L"--vmpath") ||
 		   !_wcsicmp(argv[c], L"-P")) {
 		if ((c+1) == argc) break;
@@ -283,7 +273,14 @@ usage:
 	else goto usage;
     }
 
+    /*
+     * This is where we start outputting to the log file,
+     * if there is one. Maybe we should log a header with
+     * application build info and such?  --FvK
+     */
+
     /* Make sure cfg_path has a trailing backslash. */
+    pclog("exe_path=%ws\n", exe_path);
     if ((cfg_path[wcslen(cfg_path)-1] != L'\\') &&
 	(cfg_path[wcslen(cfg_path)-1] != L'/')) {
 	wcscat(cfg_path, L"\\");
@@ -318,8 +315,13 @@ usage:
      * modules before we load the config..
      */
     hdd_init();
+    network_init();
 
+    /* Load the configuration file. */
     config_load(cfg);
+
+    /* All good! */
+    return(1);
 }
 
 
@@ -354,14 +356,73 @@ pc_speed_changed(void)
 
 
 /* Initialize modules, ran once, after pc_init. */
-void
+int
 pc_init_modules(void)
 {
-    int i;
+    int c, i;
+
+    pclog("Scanning for ROM images:\n");
+    c = 0;
+    for (i=0; i<ROM_MAX; i++) {
+	romspresent[i] = rom_load_bios(i);
+	c += romspresent[i];
+    }
+    if (c == 0) {
+	/* No usable ROMs found, aborting. */
+	return(0);
+    }
+    pclog("A total of %d ROM sets have been loaded.\n", c);
+
+    /*
+     * Load the ROMs for the selected machine.
+     *
+     * FIXME:
+     * We should not do that here.  If something turns out
+     * to be wrong with the configuration (such as missing
+     * ROM images, we should just display a fatal message
+     * in the render window's center, let them click OK,
+     * and then exit so they can remedy the situation.
+     */
+again:
+    if (! rom_load_bios(romset)) {
+	/* Whoops, ROMs not found. */
+	if (romset != -1)
+		msgbox_info(hwndMain, IDS_2063);
+
+	/* Select another machine to use. */
+	for (c=0; c<ROM_MAX; c++) {
+		if (romspresent[c]) {
+			romset = c;
+			machine = machine_getmachine(romset);
+			config_save();
+
+			/* This can loop if all ROMs are now bad.. */
+			goto again;
+		}
+	}
+    }
+        
+    /* Make sure we have a usable video card. */
+    for (c=0; c<GFX_MAX; c++)
+	gfx_present[c] = video_card_available(video_old_to_new(c));
+again2:
+    if (! video_card_available(video_old_to_new(gfxcard))) {
+	if (romset != -1) {
+		msgbox_info(hwndMain, IDS_2064);
+	}
+	for (c=GFX_MAX-1; c>=0; c--) {
+		if (gfx_present[c]) {
+			gfxcard = c;
+			config_save();
+
+			/* This can loop if all cards now bad.. */
+			goto again2;
+		}
+	}
+    }
 
     cpuspeed2 = (AT) ? 2 : 1;
     atfullspeed = 0;
-
 
     random_init();
 
@@ -369,36 +430,39 @@ pc_init_modules(void)
 
     codegen_init();
 
-    rom_load_bios(romset);
-    mem_add_bios();
-
     mouse_init();
 #ifdef WALTJE
     serial_init();
 #endif
     joystick_init();
     video_init();
+
     ide_init_first();
+
+#if 1
+    /* should be in cdrom.c */
+    cdrom_init_host_drives();
+
+    for (c=0; c<CDROM_NUM; c++) {
+	if (cdrom_drives[c].bus_type) {
+		SCSIReset(cdrom_drives[c].scsi_device_id, cdrom_drives[c].scsi_device_lun);
+	}
+
+	if (cdrom_drives[c].host_drive == 200) {
+		image_open(c, cdrom_image[c].image_path);
+	} else
+	if ((cdrom_drives[c].host_drive>='A') && (cdrom_drives[c].host_drive <= 'Z'))
+		{
+		ioctl_open(c, cdrom_drives[c].host_drive);
+	} else {
+		cdrom_null_open(c, cdrom_drives[c].host_drive);
+	}
+    }
+#endif
 
     device_init();        
                        
     timer_reset();
-
-    for (i=0; i<CDROM_NUM; i++) {
-	if (cdrom_drives[i].bus_type) {
-		SCSIReset(cdrom_drives[i].scsi_device_id, cdrom_drives[i].scsi_device_lun);
-	}
-
-	if (cdrom_drives[i].host_drive == 200) {
-		image_open(i, cdrom_image[i].image_path);
-	} else
-	if ((cdrom_drives[i].host_drive>='A') && (cdrom_drives[i].host_drive <= 'Z'))
-		{
-		ioctl_open(i, cdrom_drives[i].host_drive);
-	} else {
-		cdrom_null_open(i, cdrom_drives[i].host_drive);
-	}
-    }
 
     sound_reset();
 
@@ -418,18 +482,12 @@ pc_init_modules(void)
     floppy_load(2, floppyfns[2]);
     floppy_load(3, floppyfns[3]);
 #endif
-                
-    nvr_load();
 
     sound_init();
 
     hdc_init(hdc_name);
 
     ide_reset();
-
-    scsi_card_init();
-
-    pc_full_speed();
 
     for (i=0; i<CDROM_NUM; i++) {
 	if (cdrom_drives[i].host_drive == 200) {
@@ -440,30 +498,17 @@ pc_init_modules(void)
 	}
     }
 
+    scsi_card_init();
+
+    pc_full_speed();
     shadowbios = 0;
+
+    return(1);
 }
 
 
-void
-pc_reset(void)
-{
-    cpu_set();
-    resetx86();
-    dma_reset();
-    fdc_reset();
-    pic_reset();
-    serial_reset();
-
-    if (AT)
-	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
-      else
- 	setpitclock(14318184.0);
-
-    shadowbios = 0;
-}
-
-
-void
+/* Insert keystrokes into the machine's keyboard buffer. */
+static void
 pc_keyboard_send(uint8_t val)
 {
     if (AT)
@@ -473,6 +518,7 @@ pc_keyboard_send(uint8_t val)
 }
 
 
+/* Send the machine a Control-Alt-DEL sequence. */
 void
 pc_send_cad(void)
 {
@@ -485,6 +531,7 @@ pc_send_cad(void)
 }
 
 
+/* Send the machine a Control-Alt-ESC sequence. */
 void
 pc_send_cae(void)
 {
@@ -498,7 +545,7 @@ pc_send_cae(void)
 
 
 void
-resetpchard_close(void)
+pc_reset_hard_close(void)
 {
     suppress_overscan = 0;
 
@@ -510,35 +557,70 @@ resetpchard_close(void)
 }
 
 
+/*
+ * This is basically the spot where we start up the actual machine,
+ * by issuing a 'hard reset' to the entire configuration. Order is
+ * somewhat important here. Functions here should be named _reset
+ * really, as that is what they do.
+ */
 void
-resetpchard_init(void)
+pc_reset_hard_init(void)
 {
     int i;
 
+    /* First, we reset the modules that are not part of the
+     * actual machine, but which support some of the modules
+     * that are.
+     */
     sound_realloc_buffers();
+    sound_cd_thread_reset();
+    initalmain(0, NULL);
 
-    initalmain(0,NULL);
-
+    /* Reset the general machine support modules. */
+    mem_resize();
+    io_init();
     device_init();
+    timer_reset();
+
     midi_device_init();
     inital();
-    
-    timer_reset();
     sound_reset();
-    mem_resize();
+
     fdc_init();
+    fdc_update_is_nsc(0);
     floppy_reset();
 
-#ifndef WALTJE
-    serial_init();
-#endif
+    /* Initialize the actual machine and its basic modules. */
     machine_init();
-    video_reset();
+
+    /*
+     * Once the machine has been initialized, all that remains
+     * should be resetting all devices set up for it, to their
+     * current configurations !
+     *
+     * For, we will call their reset functions here, but that
+     * will be a call to device_reset_all() later !
+     */
+
+    /* Reset some basic devices. */
     speaker_init();
+    serial_reset();
     lpt1_device_init();
 
+    /* Reset keyboard and/or mouse. */
+    keyboard_at_reset();
+    mouse_emu_init();
+        
+    /* Reset the video card. */
+    video_reset();
+
+    /* Reset the Floppy Disk controller. */
+    fdc_reset();
+
+    /* Reset the Hard Disk Controller module. */
     hdc_reset();
 
+    /* Reconfire and reset the IDE layer. */
     ide_ter_disable();
     ide_qua_disable();
     if (ide_enable[2])
@@ -547,9 +629,13 @@ resetpchard_init(void)
 	ide_qua_init();
     ide_reset();
 
+    /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
+
+    /* Reset and reconfigure the Network Card layer. */
     network_reset();
 
+    /* Reset and reconfigure the Sound Card layer. */
     sound_card_init();
     if (mpu401_standalone_enable)
 		mpu401_device_add();
@@ -562,16 +648,18 @@ resetpchard_init(void)
     if (voodoo_enabled)
                 device_add(&voodoo_device);
 
-    pc_reset();
+    /* Reset the CPU module. */
+    cpu_set();
+    resetx86();
+    dma_reset();
+    pic_reset();
 
-    mouse_emu_init();
- 
-    nvr_load();
+    if (AT)
+	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
+      else
+ 	setpitclock(14318184.0);
 
     shadowbios = 0;
-        
-    keyboard_at_reset();
-        
     cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
 
     for (i=0; i<CDROM_NUM; i++) {
@@ -583,17 +671,15 @@ resetpchard_init(void)
 		ioctl_reset(i);
 	}
     }
-
-    sound_cd_thread_reset();
 }
 
 
 void
 pc_reset_hard(void)
 {
-    resetpchard_close();
+    pc_reset_hard_close();
 
-    resetpchard_init();
+    pc_reset_hard_init();
 }
 
 

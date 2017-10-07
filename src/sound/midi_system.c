@@ -9,7 +9,7 @@
 #include "midi_system.h"
 
 
-void* system_midi_init()
+void* system_midi_init(device_t *info)
 {
         midi_device_t* dev = malloc(sizeof(midi_device_t));
         memset(dev, 0, sizeof(midi_device_t));
@@ -32,7 +32,7 @@ void system_midi_close(void* p)
         midi_close();
 }
 
-int system_midi_available()
+int system_midi_available(void)
 {
         return plat_midi_get_num_devs();
 }
@@ -53,9 +53,10 @@ static device_config_t system_midi_config[] =
 device_t system_midi_device =
 {
         SYSTEM_MIDI_NAME,
-        0,
+        0, 0,
         system_midi_init,
         system_midi_close,
+	NULL,
         system_midi_available,
         NULL,
         NULL,

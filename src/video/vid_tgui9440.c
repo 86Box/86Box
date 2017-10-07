@@ -507,7 +507,7 @@ void tgui_pci_write(int func, int addr, uint8_t val, void *p)
         }
 }
 
-void *tgui9440_init()
+void *tgui9440_init(device_t *info)
 {
         tgui_t *tgui = malloc(sizeof(tgui_t));
         memset(tgui, 0, sizeof(tgui_t));
@@ -539,7 +539,7 @@ void *tgui9440_init()
         return tgui;
 }
 
-static int tgui9440_available()
+static int tgui9440_available(void)
 {
         return rom_present(L"roms/video/tgui9440/9440.vbi");
 }
@@ -1275,8 +1275,10 @@ device_t tgui9440_device =
 {
         "Trident TGUI 9440",
         0,
+	0,
         tgui9440_init,
         tgui_close,
+	NULL,
         tgui9440_available,
         tgui_speed_changed,
         tgui_force_redraw,
