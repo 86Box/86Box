@@ -1527,19 +1527,19 @@ save_hard_disks(void)
 	}
 
 	sprintf(temp, "hdd_%02i_mfm_channel", c+1);
-	if (hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_MFM))
+	if (hdd_is_valid(c) && (hdd[c].bus == HDD_BUS_MFM))
 		config_set_int(cat, temp, hdd[c].mfm_channel);
 	  else
 		config_delete_var(cat, temp);
 
 	sprintf(temp, "hdd_%02i_xtide_channel", c+1);
-	if (hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_XTIDE))
+	if (hdd_is_valid(c) && (hdd[c].bus == HDD_BUS_XTIDE))
 		config_set_int(cat, temp, hdd[c].xtide_channel);
 	  else
 		config_delete_var(cat, temp);
 
 	sprintf(temp, "hdd_%02i_esdi_channel", c+1);
-	if (hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_ESDI))
+	if (hdd_is_valid(c) && (hdd[c].bus == HDD_BUS_ESDI))
 		config_set_int(cat, temp, hdd[c].esdi_channel);
 	  else
 		config_delete_var(cat, temp);
@@ -1561,7 +1561,7 @@ save_hard_disks(void)
 	}
 
 	sprintf(temp, "hdd_%02i_fn", c+1);
-	if (hdd_is_valid(c) || (wcslen(hdd[c].fn) == 0))
+	if (hdd_is_valid(c) && (wcslen(hdd[c].fn) != 0))
 		config_set_wstring(cat, temp, hdd[c].fn);
 	  else
 		config_delete_var(cat, temp);
