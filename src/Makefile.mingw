@@ -289,7 +289,7 @@ HDDOBJ		:= hdd.o \
 		    hdc_mfm_xt.o hdc_xtide.o
 
 CDROMOBJ	:= cdrom.o \
-		    cdrom_dosbox.o cdrom_image.o cdrom_ioctl.o cdrom_null.o
+		    cdrom_dosbox.o cdrom_image.o cdrom_null.o
 
 ifeq ($(USB), y)
 USBOBJ		:= usb.o
@@ -359,8 +359,8 @@ WINOBJ		:= win.o \
 		    win_ddraw.o win_ddraw_fs.o win_d3d.o win_d3d_fs.o \
 		    win_language.o win_status.o $(OPENDIR) win_dynld.o \
 		    win_video.o $(WSERIAL) win_keyboard.o win_mouse.o \
-		    win_joystick.o win_midi.o win_cdrom.o win_thread.o \
-		    win_about.o win_stbar.o win_settings.o \
+		    win_joystick.o win_midi.o win_cdrom.o win_cdrom_ioctl.o \
+		    win_thread.o win_about.o win_stbar.o win_settings.o \
 		    win_deviceconfig.o win_joystickconfig.o
 
 OBJ		:= $(MAINOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \
