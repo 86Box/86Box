@@ -22,7 +22,7 @@
 #include <wchar.h>
 #include "../ibm.h"
 #include "cdrom.h"
-#include "cdrom_ioctl.h"
+#include "../win/win_cdrom_ioctl.h"
 
 
 static CDROM null_cdrom;
