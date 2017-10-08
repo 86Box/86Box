@@ -27,11 +27,12 @@
 #define MACHINE_AT		0x000001	/* PC/AT architecture */
 #define MACHINE_PS2		0x000002	/* PS/2 architecture */
 #define MACHINE_ISA		0x000010	/* machine has ISA bus */
-#define MACHINE_EISA		0x000020	/* machine has EISA bus */
-#define MACHINE_VLB		0x000040	/* machine has VL bus */
-#define MACHINE_MCA		0x000080	/* machine has MCA bus */
-#define MACHINE_PCI		0x000100	/* machine has PCI */
-#define MACHINE_AGP		0x000200	/* machine has AGP */
+#define MACHINE_CBUS		0x000020	/* machine has C-BUS bus */
+#define MACHINE_EISA		0x000040	/* machine has EISA bus */
+#define MACHINE_VLB		0x000080	/* machine has VL bus */
+#define MACHINE_MCA		0x000100	/* machine has MCA bus */
+#define MACHINE_PCI		0x000200	/* machine has PCI */
+#define MACHINE_AGP		0x000400	/* machine has AGP */
 #define MACHINE_HAS_HDC		0x001000	/* machine has internal HDC */
 #define MACHINE_PS2_HDD		0x002000	// can now remove? --FvK
 #define MACHINE_NEC		0x010000
