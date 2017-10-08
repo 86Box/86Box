@@ -10,12 +10,11 @@
  *		  0 - BT-545C ISA;
  *		  1 - BT-958D PCI (but BT-545C ISA on non-PCI machines)
  *
- * Version:	@(#)scsi_buslogic.c	1.0.17	2017/10/07
+ * Version:	@(#)scsi_buslogic.c	1.0.18	2017/10/08
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
- *
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
@@ -42,7 +41,7 @@
 #include "scsi_buslogic.h"
 
 
-#define BUSLOGIC_RESET_DURATION_US UINT64_C(50)
+#define BUSLOGIC_RESET_DURATION_US UINT64_C(5000)
 
 
 /*
@@ -1020,7 +1019,7 @@ BuslogicDataBufferAllocate(Req_t *req, int Is24bit)
 
 		pclog("Data to transfer (S/G) %d\n", DataToTransfer);
 
-		SCSIDevices[req->TargetID][req->LUN].InitLength = DataToTransfer;
+		SCSI_BufferLength = DataToTransfer;
 
 		SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataToTransfer);
 		memset(SCSIDevices[req->TargetID][req->LUN].CmdBuffer, 0, DataToTransfer);
@@ -1060,7 +1059,7 @@ BuslogicDataBufferAllocate(Req_t *req, int Is24bit)
 		   req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES) {
 			uint32_t Address = DataPointer;
 
-			SCSIDevices[req->TargetID][req->LUN].InitLength = DataLength;
+			SCSI_BufferLength = DataLength;
 
 			SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataLength);
 			memset(SCSIDevices[req->TargetID][req->LUN].CmdBuffer, 0, DataLength);
@@ -1068,7 +1067,7 @@ BuslogicDataBufferAllocate(Req_t *req, int Is24bit)
 			if (DataLength > 0) {
 				DMAPageRead(Address,
 					    (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer,
-					    SCSIDevices[req->TargetID][req->LUN].InitLength);
+					    SCSI_BufferLength);
 			}
 	}
     }
@@ -1100,7 +1099,7 @@ BuslogicDataBufferFree(Req_t *req)
 
     if ((DataLength != 0) && (req->CmdBlock.common.Cdb[0] == GPCMD_TEST_UNIT_READY)) {
 	pclog("Data length not 0 with TEST UNIT READY: %i (%i)\n",
-		DataLength, SCSIDevices[req->TargetID][req->LUN].InitLength);
+		DataLength, SCSI_BufferLength);
     }
 
     if (req->CmdBlock.common.Cdb[0] == GPCMD_TEST_UNIT_READY) {
@@ -1157,9 +1156,9 @@ BuslogicDataBufferFree(Req_t *req)
     if ((req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES) ||
 	(req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES)) {
 	/* Should be 0 when scatter/gather? */
-	if (DataLength >= SCSIDevices[req->TargetID][req->LUN].InitLength) {
+	if (DataLength >= SCSI_BufferLength) {
 		Residual = DataLength;
-		Residual -= SCSIDevices[req->TargetID][req->LUN].InitLength;
+		Residual -= SCSI_BufferLength;
 	} else {
 		Residual = 0;
 	}
@@ -1219,7 +1218,7 @@ BuslogicSCSIBIOSDataBufferAllocate(ESCMD *ESCSICmd, uint8_t TargetID, uint8_t LU
 	{
 		uint32_t Address = DataPointer;
 
-		SCSIDevices[TargetID][LUN].InitLength = DataLength;
+		SCSI_BufferLength = DataLength;
 
 		SCSIDevices[TargetID][LUN].CmdBuffer = (uint8_t *) malloc(DataLength);
 		memset(SCSIDevices[TargetID][LUN].CmdBuffer, 0, DataLength);
@@ -1227,7 +1226,7 @@ BuslogicSCSIBIOSDataBufferAllocate(ESCMD *ESCSICmd, uint8_t TargetID, uint8_t LU
 		if (DataLength > 0) {
 			DMAPageRead(Address,
 					(char *)SCSIDevices[TargetID][LUN].CmdBuffer,
-					SCSIDevices[TargetID][LUN].InitLength);
+					SCSI_BufferLength);
 		}
 	}
 }
@@ -1245,7 +1244,7 @@ BuslogicSCSIBIOSDataBufferFree(ESCMD *ESCSICmd, uint8_t TargetID, uint8_t LUN)
 
     if ((DataLength != 0) && (ESCSICmd->CDB[0] == GPCMD_TEST_UNIT_READY)) {
 	pclog("Data length not 0 with TEST UNIT READY: %i (%i)\n",
-		DataLength, SCSIDevices[TargetID][LUN].InitLength);
+		DataLength, SCSI_BufferLength);
     }
 
     if (ESCSICmd->CDB[0] == GPCMD_TEST_UNIT_READY) {
@@ -1268,9 +1267,9 @@ BuslogicSCSIBIOSDataBufferFree(ESCMD *ESCSICmd, uint8_t TargetID, uint8_t LUN)
     }
 
 	/* Should be 0 when scatter/gather? */
-	if (DataLength >= SCSIDevices[TargetID][LUN].InitLength) {
+	if (DataLength >= SCSI_BufferLength) {
 		Residual = DataLength;
-		Residual -= SCSIDevices[TargetID][LUN].InitLength;
+		Residual -= SCSI_BufferLength;
 	} else {
 		Residual = 0;
 	}
@@ -1306,7 +1305,7 @@ BuslogicSCSIBIOSRequestSetup(Buslogic_t *bl, uint8_t *CmdBuf, uint8_t *DataInBuf
     pclog("Scanning SCSI Target ID %i\n", ESCSICmd->TargetId);		
 
     SCSIStatus = SCSI_STATUS_OK;
-    SCSIDevices[ESCSICmd->TargetId][ESCSICmd->LogicalUnit].InitLength = 0;
+    SCSI_BufferLength = 0;
 
     BuslogicSCSIBIOSDataBufferAllocate(ESCSICmd, ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
 
@@ -2404,7 +2403,7 @@ BuslogicSCSIRequestSetup(Buslogic_t *bl, uint32_t CCBPointer, Mailbox32_t *Mailb
     pclog("BuslogicSCSIRequestSetup(): Scanning SCSI Target ID %i\n", Id);		
 
     SCSIStatus = SCSI_STATUS_OK;
-    SCSIDevices[Id][Lun].InitLength = 0;
+    SCSI_BufferLength = 0;
 
     BuslogicDataBufferAllocate(req, req->Is24bit);
 
@@ -2880,6 +2879,7 @@ Buslogic_Init(device_t *info)
 
     bl = malloc(sizeof(Buslogic_t));
     memset(bl, 0x00, sizeof(Buslogic_t));
+
     bl->chip = info->local;
     if ((bl->chip == CHIP_BUSLOGIC_PCI) && !PCI)
     {
@@ -3019,13 +3019,11 @@ Buslogic_Init(device_t *info)
 
 
 static void
-Buslogic_Close(void *p)
+BuslogicClose(void *p)
 {
     Buslogic_t *bl = (Buslogic_t *)p;
     if (bl)
     {
-	bl->MailboxCount = 0;
-
 	if (bl->evt)
 	{
 		thread_destroy_event(bl->evt);
@@ -3130,8 +3128,13 @@ device_t buslogic_device = {
 	"Buslogic BT-545C ISA",
 	0,
 	CHIP_BUSLOGIC_ISA,
-	Buslogic_Init, Buslogic_Close, NULL,
-	NULL, NULL, NULL, NULL,
+	Buslogic_Init,
+	BuslogicClose,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
 	BuslogicConfig
 };
 
@@ -3139,7 +3142,12 @@ device_t buslogic_pci_device = {
 	"Buslogic BT-958D PCI",
 	0,
 	CHIP_BUSLOGIC_PCI,
-	Buslogic_Init, Buslogic_Close, NULL,
-	NULL, NULL, NULL, NULL,
+	Buslogic_Init,
+	BuslogicClose,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
 	BuslogicConfig
 };

@@ -160,48 +160,35 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 					lun = (bus->command[1] >> 5) & 7;
 					bus->data_pos = 0;
 					
-					/* Get the allocation length right */
-					if (bus->command[0] == GPCMD_REQUEST_SENSE || bus->command[0] == GPCMD_INQUIRY)
-					{
-						SCSI_BufferLength = bus->command[4];
-					}
-
-					/* For some reason, they default to 0, skipping the r/w routines, so here we go for the SCSI disk */
-					if ((bus->command[0] == GPCMD_READ_6 || bus->command[0] == GPCMD_WRITE_6) && (dev->LunType == SCSI_DISK))
-					{
-						SCSI_BufferLength = bus->command[4] << 9;
-					}
-					
-					if ((bus->command[0] == GPCMD_READ_10 || bus->command[0] == GPCMD_WRITE_10) && (dev->LunType == SCSI_DISK))
-					{
-						SCSI_BufferLength = ((bus->command[7] << 8) | bus->command[8]) << 9;
-					}
-					
 					scsi_bus_log("Command 0x%02X\n", bus->command[0]);
 
-					if ((bus->command[0] == GPCMD_WRITE_6) || (bus->command[0] == GPCMD_MODE_SELECT_6) || (bus->command[0] == GPCMD_WRITE_10) || (bus->command[0] == GPCMD_MODE_SELECT_10) || (bus->command[0] == GPCMD_WRITE_12))
+					SCSI_BufferLength = -1;
+					scsi_device_command_phase0(bus->dev_id, lun, get_cmd_len(bus->command[0]), bus->command);
+
+					if (SCSIPhase == SCSI_PHASE_DATA_OUT)
 					{
 						/* Write direction commands have delayed execution - only execute them after the bus has gotten all the data from the host. */
 						scsi_bus_log("Next state is data out\n");
-						bus->state = STATE_DATAOUT;
-						SET_BUS_STATE(bus, STATE_DATAOUT);
-						bus->bus_out |= BUS_REQ;				
 
-						bus->change_state_delay = 0;
+						bus->state = STATE_COMMANDWAIT;
 						bus->clear_req = 0;
 					}
 					else
 					{
 						/* Other command - execute immediately. */
-						scsi_device_command(bus->dev_id, lun, get_cmd_len(bus->command[0]), bus->command);
 						scsi_bus_log("Next state is defined by command\n");
 						bus->new_state = SCSIPhase;
 
 						bus->change_state_delay = 4;
-						bus->clear_req = 4;
 					}
 				}
 			}
+			break;
+
+		case STATE_COMMANDWAIT:
+			bus->new_state = SCSI_PHASE_DATA_OUT;
+			bus->change_state_delay = 4;
+			bus->clear_req = 4;
 			break;
                                         
 		case STATE_DATAIN:
@@ -240,11 +227,11 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 
 				if (bus->data_pos >= SCSI_BufferLength)
 				{
-					pclog("%04X bytes written (%02X %02X)\n", bus->data_pos, bus->command[0], bus->command[1]);
+					/* pclog("%04X bytes written (%02X %02X)\n", bus->data_pos, bus->command[0], bus->command[1]); */
 					scsi_bus_log("Actually executing write command\n");
 					lun = (bus->command[1] >> 5) & 7;
 					bus->bus_out &= ~BUS_REQ;
-					scsi_device_command(bus->dev_id, lun, get_cmd_len(bus->command[0]), bus->command);
+					scsi_device_command_phase1(bus->dev_id, lun);
 					bus->new_state = SCSI_PHASE_STATUS;
 					bus->change_state_delay = 4;
 					bus->new_req_delay = 8;	
@@ -261,7 +248,7 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 		
 			if ((bus_assert & BUS_ACK) && !(bus->bus_in & BUS_ACK))
 			{	
-					pclog("Preparing for message in\n");
+					/* pclog("Preparing for message in\n"); */
 					bus->bus_out &= ~BUS_REQ;
 					bus->new_state = SCSI_PHASE_MESSAGE_IN;
 					bus->change_state_delay = 4;
@@ -343,12 +330,12 @@ int scsi_bus_read(scsi_bus_t *bus)
 					bus->state = STATE_STATUS;
 					bus->bus_out |= BUS_REQ;
 					bus->bus_out = (bus->bus_out & ~BUS_DATAMASK) | BUS_SETDATA(SCSIStatus) | BUS_DBP;
-					pclog("SCSI Status (command %02X): %02X (%08X)\n", bus->command[0], SCSIStatus, bus->bus_out);
+					/* pclog("SCSI Status (command %02X): %02X (%08X)\n", bus->command[0], SCSIStatus, bus->bus_out); */
 					break;
 					
 				case SCSI_PHASE_MESSAGE_IN:
 					scsi_bus_log("Phase message in\n");
-					pclog("Message in\n");
+					/* pclog("Message in\n"); */
 					bus->state = STATE_MESSAGEIN;
 					bus->bus_out = (bus->bus_out & ~BUS_DATAMASK) | BUS_SETDATA(0) | BUS_DBP;
 					break;

@@ -269,7 +269,7 @@ ncr5380_write(uint16_t port, uint8_t val, void *priv)
 			break;
 
 		default:
-		pclog("Bad NCR5380 write %06x %02x\n", port, val);
+		// pclog("Bad NCR5380 write %06x %02x\n", port, val);
 		break;
 	}
 	
@@ -707,7 +707,7 @@ static void ncr53c400_dma_callback(void *p)
 			break;
                 
 			default:
-                pclog("DMA callback bad mode %i\n", scsi->ncr.dma_mode);
+                // pclog("DMA callback bad mode %i\n", scsi->ncr.dma_mode);
                 break;
         }
 
@@ -746,16 +746,16 @@ static void *scsi_53c400_init(wchar_t *bios_fn)
 	return scsi;
 }
 
-static void *scsi_lcs6821n_init(void)
+static void *scsi_lcs6821n_init(device_t *info)
 {
 	return scsi_53c400_init(L"roms/scsi/ncr5380/Longshine LCS-6821N - BIOS version 1.04.bin");
 }
-static void *scsi_rt1000b_init(void)
+static void *scsi_rt1000b_init(device_t *info)
 {
 	return scsi_53c400_init(L"roms/scsi/ncr5380/Rancho_RT1000_RTBios_version_8.10R.bin");
 }
 
-static void *scsi_t130b_init(void)
+static void *scsi_t130b_init(device_t *info)
 {
 	lcs6821n_t *scsi = malloc(sizeof(lcs6821n_t));
 	memset(scsi, 0, sizeof(lcs6821n_t));
@@ -809,8 +809,10 @@ device_t scsi_lcs6821n_device =
 {
         "Longshine LCS-6821N (SCSI)",
         0,
+        0,
         scsi_lcs6821n_init,
         scsi_53c400_close,
+	NULL,
         scsi_lcs6821n_available,
         NULL,
         NULL,
@@ -822,8 +824,10 @@ device_t scsi_rt1000b_device =
 {
         "Ranco RT1000B (SCSI)",
         0,
+        0,
         scsi_rt1000b_init,
         scsi_53c400_close,
+	NULL,
         scsi_rt1000b_available,
         NULL,
         NULL,
@@ -836,8 +840,10 @@ device_t scsi_t130b_device =
 {
         "Trantor T130B (SCSI)",
         0,
+        0,
         scsi_t130b_init,
         scsi_53c400_close,
+	NULL,
         scsi_t130b_available,
         NULL,
         NULL,

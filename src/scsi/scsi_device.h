@@ -48,7 +48,10 @@ extern int	scsi_device_cdb_length(uint8_t id, uint8_t lun);
 extern int	scsi_device_block_shift(uint8_t id, uint8_t lun);
 extern void	scsi_device_command(uint8_t id, uint8_t lun, int cdb_len,
 				    uint8_t *cdb);
-					
+extern void	scsi_device_command_phase0(uint8_t scsi_id, uint8_t scsi_lun,
+					   int cdb_len, uint8_t *cdb);
+extern void	scsi_device_command_phase1(uint8_t scsi_id, uint8_t scsi_lun);
+
 extern int scsi_bus_update(scsi_bus_t *bus, int bus_assert);
 extern int scsi_bus_read(scsi_bus_t *bus);
 extern int scsi_bus_match(scsi_bus_t *bus, int bus_assert);

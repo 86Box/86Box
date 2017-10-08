@@ -35,9 +35,6 @@
 #include "random.h"
 #include "device.h"
 #include "cdrom/cdrom.h"
-#include "cdrom/cdrom_image.h"
-#include "cdrom/cdrom_ioctl.h"
-#include "cdrom/cdrom_null.h"
 #include "disk/hdd.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
@@ -439,26 +436,7 @@ again2:
 
     ide_init_first();
 
-#if 1
-    /* should be in cdrom.c */
-    cdrom_init_host_drives();
-
-    for (c=0; c<CDROM_NUM; c++) {
-	if (cdrom_drives[c].bus_type) {
-		SCSIReset(cdrom_drives[c].scsi_device_id, cdrom_drives[c].scsi_device_lun);
-	}
-
-	if (cdrom_drives[c].host_drive == 200) {
-		image_open(c, cdrom_image[c].image_path);
-	} else
-	if ((cdrom_drives[c].host_drive>='A') && (cdrom_drives[c].host_drive <= 'Z'))
-		{
-		ioctl_open(c, cdrom_drives[c].host_drive);
-	} else {
-		cdrom_null_open(c, cdrom_drives[c].host_drive);
-	}
-    }
-#endif
+    cdrom_general_init();
 
     device_init();        
                        
@@ -466,22 +444,9 @@ again2:
 
     sound_reset();
 
-#if 1
-    /* This should be in floppy.c and fdc.c --FvK */
     fdc_init();
 
-    floppy_init();
-    fdi_init();
-    img_init();
-    d86f_init();
-    td0_init();
-    imd_init();
-
-    floppy_load(0, floppyfns[0]);
-    floppy_load(1, floppyfns[1]);
-    floppy_load(2, floppyfns[2]);
-    floppy_load(3, floppyfns[3]);
-#endif
+    floppy_general_init();
 
     sound_init();
 
@@ -489,14 +454,7 @@ again2:
 
     ide_reset();
 
-    for (i=0; i<CDROM_NUM; i++) {
-	if (cdrom_drives[i].host_drive == 200) {
-		image_reset(i);
-	}
-	else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z')) {
-		ioctl_reset(i);
-	}
-    }
+    cdrom_hard_reset();
 
     scsi_card_init();
 
@@ -566,8 +524,6 @@ pc_reset_hard_close(void)
 void
 pc_reset_hard_init(void)
 {
-    int i;
-
     /* First, we reset the modules that are not part of the
      * actual machine, but which support some of the modules
      * that are.
@@ -662,15 +618,7 @@ pc_reset_hard_init(void)
     shadowbios = 0;
     cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
 
-    for (i=0; i<CDROM_NUM; i++) {
-	if (cdrom_drives[i].host_drive == 200) {
-		image_reset(i);
-	}
-	else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
-	{
-		ioctl_reset(i);
-	}
-    }
+    cdrom_hard_reset();
 }
 
 
