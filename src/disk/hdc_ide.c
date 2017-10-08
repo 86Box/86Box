@@ -92,7 +92,7 @@ IDE *ext_ide;
 int (*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length);
 int (*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length);
 void (*ide_bus_master_set_irq)(int channel);
-int idecallback[5] = {0, 0, 0, 0, 0};
+int64_t idecallback[5] = {0LL, 0LL, 0LL, 0LL, 0LL};
 int cur_ide[5];
 
 
@@ -629,9 +629,9 @@ void ide_reset(void)
 		ide_drives[d].board = d >> 1;
 	}
 		
-	idecallback[0]=idecallback[1]=0;
-	idecallback[2]=idecallback[3]=0;
-	idecallback[4]=0;
+	idecallback[0]=idecallback[1]=0LL;
+	idecallback[2]=idecallback[3]=0LL;
+	idecallback[4]=0LL;
 
 	pclog("IDE: loading disks...\n");
 	c = 0;
@@ -748,7 +748,7 @@ void ide_write_data(int ide_board, uint32_t val, int length)
 			}
 			else
 			{
-				idecallback[ide_board]=6*IDE_TIME;
+				idecallback[ide_board]=6LL*IDE_TIME;
 			}
 			timer_update_outstanding();
 		}
@@ -878,7 +878,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 						cdrom[atapi_cdrom_drives[ide->channel]].error = 1;
 						cdrom[atapi_cdrom_drives[ide->channel]].phase = 1;
 						cdrom[atapi_cdrom_drives[ide->channel]].request_length = 0xEB14;
-						cdrom[atapi_cdrom_drives[ide->channel]].callback = 0;
+						cdrom[atapi_cdrom_drives[ide->channel]].callback = 0LL;
 						ide->cylinder = 0xEB14;
 					}
 					if (ide_drive_is_cdrom(ide_other))
@@ -887,11 +887,11 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 						cdrom[atapi_cdrom_drives[ide_other->channel]].error = 1;
 						cdrom[atapi_cdrom_drives[ide_other->channel]].phase = 1;
 						cdrom[atapi_cdrom_drives[ide_other->channel]].request_length = 0xEB14;
-						cdrom[atapi_cdrom_drives[ide_other->channel]].callback = 0;
+						cdrom[atapi_cdrom_drives[ide_other->channel]].callback = 0LL;
 						ide->cylinder = 0xEB14;
 					}
 
-					idecallback[ide_board] = 0;
+					idecallback[ide_board] = 0LL;
 					timer_update_outstanding();
 					return;
 				}
@@ -938,9 +938,9 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				timer_process();
 				if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 100*IDE_TIME;
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 100LL*IDE_TIME;
 				}
-                	        idecallback[ide_board]=100*IDE_TIME;
+                	        idecallback[ide_board]=100LL*IDE_TIME;
 	                        timer_update_outstanding();
         	                return;
 
@@ -957,9 +957,9 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				timer_process();
 				if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 100*IDE_TIME;
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 100LL*IDE_TIME;
 				}
-				idecallback[ide_board]=100*IDE_TIME;
+				idecallback[ide_board]=100LL*IDE_TIME;
 				timer_update_outstanding();
 				return;
 
@@ -985,9 +985,9 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				timer_process();
 				if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200*IDE_TIME;
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200LL*IDE_TIME;
 				}
-				idecallback[ide_board]=200*IDE_TIME;
+				idecallback[ide_board]=200LL*IDE_TIME;
 				timer_update_outstanding();
 				ide->do_initial_read = 1;
 				return;
@@ -1025,9 +1025,9 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				timer_process();
 				if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200*IDE_TIME;
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200LL*IDE_TIME;
 				}
-				idecallback[ide_board]=200*IDE_TIME;
+				idecallback[ide_board]=200LL*IDE_TIME;
 				timer_update_outstanding();
 				return;
 
@@ -1044,9 +1044,9 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				timer_process();
 				if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200*IDE_TIME;
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200LL*IDE_TIME;
 				}
-				idecallback[ide_board]=200*IDE_TIME;
+				idecallback[ide_board]=200LL*IDE_TIME;
 				timer_update_outstanding();
 				return;
 
@@ -1074,9 +1074,9 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				timer_process();
 				if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 30*IDE_TIME;
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 30LL*IDE_TIME;
 				}
-				idecallback[ide_board]=30*IDE_TIME;
+				idecallback[ide_board]=30LL*IDE_TIME;
 				timer_update_outstanding();
 				return;
 
@@ -1105,9 +1105,9 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 					/* callbackide(ide_board); */
 					if (ide_drive_is_cdrom(ide))
 					{
-						cdrom[atapi_cdrom_drives[ide->channel]].callback = 200 * IDE_TIME;
+						cdrom[atapi_cdrom_drives[ide->channel]].callback = 200LL * IDE_TIME;
 					}
-					idecallback[ide_board] = 200 * IDE_TIME;
+					idecallback[ide_board] = 200LL * IDE_TIME;
 					timer_update_outstanding();
 				}
 				else
@@ -1123,9 +1123,9 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 					timer_process();
 					if (ide_drive_is_cdrom(ide))
 					{
-						cdrom[atapi_cdrom_drives[ide->channel]].callback = 30 * IDE_TIME;
+						cdrom[atapi_cdrom_drives[ide->channel]].callback = 30LL * IDE_TIME;
 					}
-					idecallback[ide_board] = 30 * IDE_TIME;
+					idecallback[ide_board] = 30LL * IDE_TIME;
 					timer_update_outstanding();
 				}
 				return;
@@ -1143,9 +1143,9 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				timer_process();
 				if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200*IDE_TIME;
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200LL*IDE_TIME;
 				}
-				idecallback[ide_board]=200*IDE_TIME;
+				idecallback[ide_board]=200LL*IDE_TIME;
 				timer_update_outstanding();
 				return;
 
@@ -1162,7 +1162,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				{
 					ide->atastat = BUSY_STAT;
 					timer_process();
-					idecallback[ide_board]=1;
+					idecallback[ide_board]=1LL;
 					timer_update_outstanding();
 					ide->pos=0;
 				}
@@ -1192,9 +1192,9 @@ ide_bad_command:
 				timer_process();
 				if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 0;
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 0LL;
 				}
-				idecallback[ide_board]=500*IDE_TIME;
+				idecallback[ide_board]=500LL*IDE_TIME;
 				timer_update_outstanding();
 
 				if (ide->type != IDE_NONE)
@@ -1215,7 +1215,7 @@ ide_bad_command:
 			{
 				/*Drive held in reset*/
 				timer_process();
-				idecallback[ide_board] = 0;
+				idecallback[ide_board] = 0LL;
 				timer_update_outstanding();
 				ide->atastat = ide_other->atastat = BUSY_STAT;
 			}
@@ -1291,7 +1291,7 @@ uint32_t ide_read_data(int ide_board, int length)
 				}
 				else
 				{
-					idecallback[ide_board]=6*IDE_TIME;
+					idecallback[ide_board]=6LL*IDE_TIME;
 				}
 				timer_update_outstanding();
 			}
@@ -1497,7 +1497,7 @@ void callbackide(int ide_board)
 
 	if (ide_drive_is_cdrom(ide))
 	{
-		cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback = 0;
+		cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback = 0LL;
 	}
 	
 	if (ide->command==0x30) times30++;
@@ -1678,7 +1678,7 @@ void callbackide(int ide_board)
 			{
 				if (ide_bus_master_read(ide_board, &ide->sector_buffer[ide->sector_pos*512], 512))
 				{
-					idecallback[ide_board]=6*IDE_TIME;           /*DMA not performed, try again later*/
+					idecallback[ide_board]=6LL*IDE_TIME;           /*DMA not performed, try again later*/
 				}
 				else
 				{
@@ -1691,7 +1691,7 @@ void callbackide(int ide_board)
 					{
 						ide_next_sector(ide);
 						ide->atastat = BUSY_STAT;
-						idecallback[ide_board]=6*IDE_TIME;
+						idecallback[ide_board]=6LL*IDE_TIME;
 						StatusBarUpdateIcon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 					}
 					else
@@ -1795,7 +1795,7 @@ void callbackide(int ide_board)
 			{
 				if (ide_bus_master_write(ide_board, (uint8_t *)ide->buffer, 512))
 				{
-					idecallback[ide_board]=6*IDE_TIME;           /*DMA not performed, try again later*/
+					idecallback[ide_board]=6LL*IDE_TIME;           /*DMA not performed, try again later*/
 				}
 				else
 				{
@@ -1809,7 +1809,7 @@ void callbackide(int ide_board)
 					{
 						ide_next_sector(ide);
 						ide->atastat = BUSY_STAT;
-						idecallback[ide_board]=6*IDE_TIME;
+						idecallback[ide_board]=6LL*IDE_TIME;
 						StatusBarUpdateIcon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 					}
 					else
@@ -2053,31 +2053,31 @@ id_not_found:
 
 void ide_callback_pri()
 {
-	idecallback[0] = 0;
+	idecallback[0] = 0LL;
 	callbackide(0);
 }
 
 void ide_callback_sec()
 {
-	idecallback[1] = 0;
+	idecallback[1] = 0LL;
 	callbackide(1);
 }
 
 void ide_callback_ter()
 {
-	idecallback[2] = 0;
+	idecallback[2] = 0LL;
 	callbackide(2);
 }
 
 void ide_callback_qua()
 {
-	idecallback[3] = 0;
+	idecallback[3] = 0LL;
 	callbackide(3);
 }
 
 void ide_callback_xtide()
 {
-	idecallback[4] = 0;
+	idecallback[4] = 0LL;
 	callbackide(4);
 }
 

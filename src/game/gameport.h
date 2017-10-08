@@ -30,14 +30,14 @@ extern device_t gameport_201_device;
 extern int joystick_type;
 
 
-extern char	*joystick_get_name(int joystick);
-extern int	joystick_get_max_joysticks(int joystick);
-extern int	joystick_get_axis_count(int joystick);
-extern int	joystick_get_button_count(int joystick);
-extern int	joystick_get_pov_count(int joystick);
-extern char	*joystick_get_axis_name(int joystick, int id);
-extern char	*joystick_get_button_name(int joystick, int id);
-extern char	*joystick_get_pov_name(int joystick, int id);
+extern char	*joystick_get_name(int64_t joystick);
+extern int64_t	joystick_get_max_joysticks(int64_t joystick);
+extern int64_t	joystick_get_axis_count(int64_t joystick);
+extern int64_t	joystick_get_button_count(int64_t joystick);
+extern int64_t	joystick_get_pov_count(int64_t joystick);
+extern char	*joystick_get_axis_name(int64_t joystick, int64_t id);
+extern char	*joystick_get_button_name(int64_t joystick, int64_t id);
+extern char	*joystick_get_pov_name(int64_t joystick, int64_t id);
 
 extern void	gameport_update_joystick_type(void);
 

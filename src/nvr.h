@@ -76,13 +76,13 @@
 typedef struct _nvr_ {
     uint8_t	regs[RTC_REGS+114];	/* these are the registers */
 
-    int		mask,
+    int64_t	mask,
 		irq,
 		addr;
 
     wchar_t	*fname;
 
-    int		upd_stat,
+    int64_t	upd_stat,
 		upd_ecount,
 		onesec_time,
 		onesec_cnt,
@@ -102,19 +102,19 @@ typedef struct _nvr_ {
 } nvr_t;
 
 
-extern int	enable_sync;
-extern int	nvr_dosave;
+extern int64_t	enable_sync;
+extern int64_t	nvr_dosave;
 
 
 extern void	nvr_init(nvr_t *);
-extern int	nvr_load(void);
-extern int	nvr_save(void);
+extern int64_t	nvr_load(void);
+extern int64_t	nvr_save(void);
 extern void	nvr_recalc(void);
 
 extern wchar_t	*nvr_path(wchar_t *str);
 extern FILE	*nvr_fopen(wchar_t *str, wchar_t *mode);
 
-extern void	nvr_at_init(int irq);
+extern void	nvr_at_init(int64_t irq);
 
 
 #endif	/*EMU_NVR_H*/

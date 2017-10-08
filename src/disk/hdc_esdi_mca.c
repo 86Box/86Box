@@ -87,7 +87,7 @@
 #define BIOS_FILE_H	L"roms/hdd/esdi/90x8970.bin"
 
 
-#define ESDI_TIME	(200*TIMER_USEC)
+#define ESDI_TIME	(200LL*TIMER_USEC)
 #define CMD_ADAPTER	0
 
 
@@ -133,7 +133,7 @@ typedef struct esdi {
     int		cmd_state;
         
     int		in_reset;
-    int		callback;
+    int64_t	callback;
         
     uint32_t	rba;
         
@@ -278,7 +278,7 @@ esdi_callback(void *priv)
     drive_t *drive;
     int val;
 
-    dev->callback = 0;
+    dev->callback = 0LL;
 
     /* If we are returning from a RESET, handle this first. */
     if (dev->in_reset) {
@@ -679,7 +679,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 	case 2:					/*Basic control register*/
 		if ((dev->basic_ctrl & CTRL_RESET) && !(val & CTRL_RESET)) {
 			dev->in_reset = 1;
-			dev->callback = ESDI_TIME * 50;
+			dev->callback = ESDI_TIME * 50LL;
 			dev->status = STATUS_BUSY;
 		}
 		dev->basic_ctrl = val;
@@ -709,7 +709,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 
                                		case ATTN_RESET:
                                			dev->in_reset = 1;
-                               			dev->callback = ESDI_TIME * 50;
+                               			dev->callback = ESDI_TIME * 50LL;
                                			dev->status = STATUS_BUSY;
                                			break;
                                
@@ -1029,7 +1029,7 @@ esdi_init(device_t *info)
 
     /* Mark for a reset. */
     dev->in_reset = 1;
-    dev->callback = ESDI_TIME * 50;
+    dev->callback = ESDI_TIME * 50LL;
     dev->status = STATUS_BUSY;
 
     /* Set the reply timer. */

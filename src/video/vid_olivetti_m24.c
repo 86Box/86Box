@@ -36,13 +36,14 @@ typedef struct m24_t
         int linepos, displine;
         int sc, vc;
         int con, coff, cursoron, blink;
-        int vsynctime, vadj;
+        int64_t vsynctime;
+	int vadj;
         int lineff;
         uint16_t ma, maback;
         int dispon;
         
-        int dispontime, dispofftime;
-	int vidtime;
+        int64_t dispontime, dispofftime;
+	int64_t vidtime;
         
         int firstline, lastline;
 } m24_t;
@@ -135,8 +136,8 @@ void m24_recalctimings(m24_t *m24)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= CGACONST / 2;
         _dispofftime *= CGACONST / 2;
-	m24->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	m24->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	m24->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
+	m24->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
 }
 
 void m24_poll(void *p)

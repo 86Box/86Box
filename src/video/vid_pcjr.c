@@ -39,10 +39,11 @@ typedef struct pcjr_t
         int sc, vc;
         int dispon;
         int con, coff, cursoron, blink;
-        int vsynctime, vadj;
+        int64_t vsynctime;
+	int vadj;
         uint16_t ma, maback;
         
-        int dispontime, dispofftime, vidtime;
+        int64_t dispontime, dispofftime, vidtime;
         int firstline, lastline;
         
         int composite;
@@ -166,8 +167,8 @@ void pcjr_recalctimings(pcjr_t *pcjr)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= CGACONST;
         _dispofftime *= CGACONST;
-	pcjr->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	pcjr->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	pcjr->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
+	pcjr->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
 }
 
 

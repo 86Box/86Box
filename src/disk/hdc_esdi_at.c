@@ -37,7 +37,7 @@
 #include "hdd.h"
 
 
-#define HDC_TIME		(TIMER_USEC*10)
+#define HDC_TIME		(TIMER_USEC*10LL)
 #define BIOS_FILE		L"roms/hdd/esdi_at/62-000279-061.bin"
 
 #define STAT_ERR		0x01
@@ -95,7 +95,7 @@ typedef struct {
     uint16_t buffer[256];
     int irqstat;
 
-    int callback;
+    int64_t callback;
 
     drive_t drives[2];
         
@@ -201,7 +201,7 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
 	esdi->pos = 0;
 	esdi->status = STAT_BUSY;
 	timer_process();
-      	esdi->callback = 6*HDC_TIME;
+      	esdi->callback = 6LL*HDC_TIME;
 	timer_update_outstanding();
     }
 }
@@ -256,7 +256,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 				esdi->command &= ~0x0f; /*Mask off step rate*/
 				esdi->status = STAT_BUSY;
 				timer_process();
-				esdi->callback = 200*HDC_TIME;
+				esdi->callback = 200LL*HDC_TIME;
 				timer_update_outstanding();
 				break;
 
@@ -264,7 +264,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 				esdi->command &= ~0x0f; /*Mask off step rate*/
 				esdi->status = STAT_BUSY;
 				timer_process();
-				esdi->callback = 200*HDC_TIME;
+				esdi->callback = 200LL*HDC_TIME;
 				timer_update_outstanding();
 				break;
 
@@ -273,7 +273,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 					case CMD_NOP:
 						esdi->status = STAT_BUSY;
 						timer_process();
-						esdi->callback = 200*HDC_TIME;
+						esdi->callback = 200LL*HDC_TIME;
 						timer_update_outstanding();
 						break;
 				
@@ -288,7 +288,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 					case 0xa0:
 						esdi->status = STAT_BUSY;
 						timer_process();
-						esdi->callback = 200*HDC_TIME;
+						esdi->callback = 200LL*HDC_TIME;
 						timer_update_outstanding();
 						break;
 
@@ -308,7 +308,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 						esdi->command &= ~1;
 						esdi->status = STAT_BUSY;
 						timer_process();
-						esdi->callback = 200*HDC_TIME;
+						esdi->callback = 200LL*HDC_TIME;
 						timer_update_outstanding();
 						break;
 
@@ -320,14 +320,14 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 					case CMD_SET_PARAMETERS: /* Initialize Drive Parameters */
 						esdi->status = STAT_BUSY;
 						timer_process();
-						esdi->callback = 30*HDC_TIME;
+						esdi->callback = 30LL*HDC_TIME;
 						timer_update_outstanding();
 						break;
 
 					case CMD_DIAGNOSE: /* Execute Drive Diagnostics */
 						esdi->status = STAT_BUSY;
 						timer_process();
-						esdi->callback = 200*HDC_TIME;
+						esdi->callback = 200LL*HDC_TIME;
 						timer_update_outstanding();
 						break;
 
@@ -335,7 +335,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 					case CMD_READ_PARAMETERS:
 						esdi->status = STAT_BUSY;
 						timer_process();
-						esdi->callback = 200*HDC_TIME;
+						esdi->callback = 200LL*HDC_TIME;
 						timer_update_outstanding();
 						break;
 
@@ -344,7 +344,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 					case 0xe8: /*???*/
 						esdi->status = STAT_BUSY;
 						timer_process();
-						esdi->callback = 200*HDC_TIME;
+						esdi->callback = 200LL*HDC_TIME;
 						timer_update_outstanding();
 						break;
 				}
@@ -354,7 +354,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 	case 0x3F6: /* Device control */
 		if ((esdi->fdisk & 4) && !(val & 4)) {
 			timer_process();
-			esdi->callback = 500*HDC_TIME;
+			esdi->callback = 500LL*HDC_TIME;
 			timer_update_outstanding();
 			esdi->reset = 1;
 			esdi->status = STAT_BUSY;
@@ -363,7 +363,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 		if (val & 4) {
 			/*Drive held in reset*/
 			timer_process();
-			esdi->callback = 0;
+			esdi->callback = 0LL;
 			timer_update_outstanding();
 			esdi->status = STAT_BUSY;
 		}
@@ -391,7 +391,7 @@ esdi_readw(uint16_t port, void *priv)
 			next_sector(esdi);
 			esdi->status = STAT_BUSY;
 			timer_process();
-			esdi->callback = 6*HDC_TIME;
+			esdi->callback = 6LL*HDC_TIME;
 			timer_update_outstanding();
 		}
 	}
@@ -579,7 +579,7 @@ esdi_callback(void *priv)
 		next_sector(esdi);
 		esdi->secount = (esdi->secount - 1) & 0xff;
 		if (esdi->secount)
-			esdi->callback = 6*HDC_TIME;
+			esdi->callback = 6LL*HDC_TIME;
 		else {
 			esdi->pos = 0;
 			esdi->status = STAT_READY | STAT_DSC;

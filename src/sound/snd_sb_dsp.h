@@ -42,17 +42,17 @@ typedef struct sb_dsp_t
         uint8_t sbreaddat;
         uint8_t sb_command;
         uint8_t sb_test;
-        int sb_timei, sb_timeo;
+        int64_t sb_timei, sb_timeo;
 
         int sb_irq8, sb_irq16;
 
         uint8_t sb_asp_regs[256];
         
-        int sbenable, sb_enable_i;
+        int64_t sbenable, sb_enable_i;
         
-        int sbcount, sb_count_i;
+        int64_t sbcount, sb_count_i;
         
-        int sblatcho, sblatchi;
+        int64_t sblatcho, sblatchi;
         
         uint16_t sb_addr;
         
@@ -60,7 +60,7 @@ typedef struct sb_dsp_t
         
         int asp_data_len;
         
-        int wb_time, wb_full;
+        int64_t wb_time, wb_full;
         
         int16_t buffer[SOUNDBUFLEN * 2];
         int pos;

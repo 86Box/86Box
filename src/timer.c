@@ -11,29 +11,29 @@
 
 static struct
 {
-	int present;
+	int64_t present;
 	void (*callback)(void *priv);
 	void *priv;
-	int *enable;
-	int *count;
+	int64_t *enable;
+	int64_t *count;
 } timers[TIMERS_MAX];
 
 
-int TIMER_USEC;
-int timers_present = 0;
-int timer_one = 1;
+int64_t TIMER_USEC;
+int64_t timers_present = 0;
+int64_t timer_one = 1;
 	
-int timer_count = 0, timer_latch = 0;
-int timer_start = 0;
+int64_t timer_count = 0, timer_latch = 0;
+int64_t timer_start = 0;
 
 
 void timer_process(void)
 {
-	int c;
-	int process = 0;
+	int64_t c;
+	int64_t process = 0;
 	/*Get actual elapsed time*/
-	int diff = timer_latch - timer_count;
-	int enable[TIMERS_MAX];
+	int64_t diff = timer_latch - timer_count;
+	int64_t enable[TIMERS_MAX];
 
 	timer_latch = 0;
 
@@ -58,7 +58,7 @@ void timer_process(void)
 
         while (1)
         {
-                int lowest = 1, lowest_c;
+                int64_t lowest = 1, lowest_c;
                 
                 for (c = 0; c < timers_present; c++)
                 {
@@ -83,8 +83,8 @@ void timer_process(void)
 
 void timer_update_outstanding(void)
 {
-	int c;
-	timer_latch = 0x7fffffff;
+	int64_t c;
+	timer_latch = 0x7fffffffffffffff;
 	for (c = 0; c < timers_present; c++)
 	{
 		if (*timers[c].enable && *timers[c].count < timer_latch)
@@ -102,9 +102,9 @@ void timer_reset(void)
 }
 
 
-int timer_add(void (*callback)(void *priv), int *count, int *enable, void *priv)
+int64_t timer_add(void (*callback)(void *priv), int64_t *count, int64_t *enable, void *priv)
 {
-	int i = 0;
+	int64_t i = 0;
 
 	if (timers_present < TIMERS_MAX)
 	{
@@ -132,7 +132,7 @@ int timer_add(void (*callback)(void *priv), int *count, int *enable, void *priv)
 }
 
 
-void timer_set_callback(int timer, void (*callback)(void *priv))
+void timer_set_callback(int64_t timer, void (*callback)(void *priv))
 {
 	timers[timer].callback = callback;
 }

@@ -229,10 +229,10 @@ typedef struct riva128_t
 		} edid_rom;
 	} i2c;
 
-	int mtime, mfreq;
-	int nvtime, nvfreq;
-	int menable;
-	int nvenable;
+	int64_t mtime, mfreq;
+	int64_t nvtime, nvfreq;
+	int64_t menable;
+	int64_t nvenable;
 } riva128_t;
 
 //Internally, the RIVA 128 operates in a weird 38-bit color depth, with 10 bits for RGB, and 8 bits for alpha, according to envytools.

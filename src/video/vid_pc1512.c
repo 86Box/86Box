@@ -38,13 +38,14 @@ typedef struct pc1512_t
         int sc, vc;
         int cgadispon;
         int con, coff, cursoron, cgablink;
-        int vsynctime, vadj;
+        int64_t vsynctime;
+	int vadj;
         uint16_t ma, maback;
         int dispon;
         int blink;
         
-        int dispontime, dispofftime;
-	int vidtime;
+        int64_t dispontime, dispofftime;
+	int64_t vidtime;
         int firstline, lastline;
         
         uint8_t *vram;
@@ -158,8 +159,8 @@ static void pc1512_recalctimings(pc1512_t *pc1512)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= CGACONST;
         _dispofftime *= CGACONST;
-	pc1512->dispontime  = (int)(_dispontime * (1 << TIMER_SHIFT));
-	pc1512->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	pc1512->dispontime  = (int64_t)(_dispontime * (1 << TIMER_SHIFT));
+	pc1512->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
 }
 
 static void pc1512_poll(void *p)

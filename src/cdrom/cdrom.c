@@ -1434,23 +1434,23 @@ static void cdrom_command_common(uint8_t id)
 	cdrom[id].pos = 0;
 	if (cdrom[id].packet_status == CDROM_PHASE_COMPLETE)
 	{
-		cdrom[id].callback = 20 * CDROM_TIME;
+		cdrom[id].callback = 20LL * CDROM_TIME;
 	}
 	else if (cdrom[id].packet_status == CDROM_PHASE_DATA_IN)
 	{
 		if (cdrom[id].current_cdb[0] == 0x42)
 		{
 			cdrom_log("CD-ROM %i: READ SUBCHANNEL\n");
-			cdrom[id].callback = 1000 * CDROM_TIME;
+			cdrom[id].callback = 1000LL * CDROM_TIME;
 		}
 		else
 		{
-			cdrom[id].callback = 60 * CDROM_TIME;
+			cdrom[id].callback = 60LL * CDROM_TIME;
 		}
 	}
 	else
 	{
-		cdrom[id].callback = 60 * CDROM_TIME;
+		cdrom[id].callback = 60LL * CDROM_TIME;
 	}
 }
 
@@ -1565,7 +1565,7 @@ static void cdrom_cmd_error(uint8_t id)
 	cdrom[id].status = READY_STAT | ERR_STAT;
 	cdrom[id].phase = 3;
 	cdrom[id].packet_status = 0x80;
-	cdrom[id].callback = 50 * CDROM_TIME;
+	cdrom[id].callback = 50LL * CDROM_TIME;
 	cdrom_log("CD-ROM %i: ERROR: %02X/%02X/%02X\n", id, cdrom_sense_key, cdrom_asc, cdrom_ascq);
 }
 
@@ -1580,7 +1580,7 @@ static void cdrom_unit_attention(uint8_t id)
 	cdrom[id].status = READY_STAT | ERR_STAT;
 	cdrom[id].phase = 3;
 	cdrom[id].packet_status = 0x80;
-	cdrom[id].callback = 50 * CDROM_TIME;
+	cdrom[id].callback = 50LL * CDROM_TIME;
 	cdrom_log("CD-ROM %i: UNIT ATTENTION\n", id);
 }
 
@@ -2179,7 +2179,7 @@ void cdrom_clear_callback(uint8_t channel)
 
 	if (id <= CDROM_NUM)
 	{
-		cdrom[id].callback = 0;
+		cdrom[id].callback = 0LL;
 	}
 }
 
@@ -2207,7 +2207,7 @@ void cdrom_reset(uint8_t id)
 {
 	cdrom_rezero(id);
 	cdrom[id].status = 0;
-	cdrom[id].callback = 0;
+	cdrom[id].callback = 0LL;
 	cdrom[id].packet_status = 0xff;
 	cdrom[id].unit_attention = 0;
 }
@@ -2560,7 +2560,7 @@ cdrom_readtoc_fallback:
 				SCSIPhase = SCSI_PHASE_STATUS;
 				/* cdrom_log("CD-ROM %i: All done - callback set\n", id); */
 				cdrom[id].packet_status = CDROM_PHASE_COMPLETE;
-				cdrom[id].callback = 20 * CDROM_TIME;
+				cdrom[id].callback = 20LL * CDROM_TIME;
 				break;
 			}
 

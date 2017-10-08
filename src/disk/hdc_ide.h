@@ -60,7 +60,7 @@ extern int ide_enable[5];
 extern int ide_irq[5];
 
 extern IDE ide_drives[IDE_NUM + XTIDE_NUM];
-extern int idecallback[5];
+extern int64_t idecallback[5];
 
 
 extern void	ide_irq_raise(IDE *ide);

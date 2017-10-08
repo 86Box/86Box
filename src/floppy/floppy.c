@@ -41,7 +41,7 @@ extern int driveempty[4];
 
 wchar_t floppyfns[4][512];
 
-int floppy_poll_time[FDD_NUM] = { 16, 16, 16, 16 };
+int64_t floppy_poll_time[FDD_NUM] = { 16LL, 16LL, 16LL, 16LL };
 
 int floppy_track[FDD_NUM];
 int writeprot[FDD_NUM], fwriteprot[FDD_NUM];
@@ -65,7 +65,7 @@ int drive_empty[FDD_NUM] = {1, 1, 1, 1};
 int floppy_changed[FDD_NUM];
 
 int motorspin;
-int motoron[FDD_NUM];
+int64_t motoron[FDD_NUM];
 
 int fdc_indexcount = 52;
 
@@ -243,7 +243,7 @@ void floppy_poll(int drive)
 		fatal("Attempting to poll floppy drive %i that is not supposed to be there\n", drive);
 	}
 
-        floppy_poll_time[drive] += (int) floppy_real_period(drive);
+        floppy_poll_time[drive] += (int64_t) floppy_real_period(drive);
 
         if (drives[drive].poll)
                 drives[drive].poll(drive);

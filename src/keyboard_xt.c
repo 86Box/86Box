@@ -46,7 +46,7 @@ static int key_queue_start = 0, key_queue_end = 0;
 
 static void keyboard_xt_poll(void)
 {
-        keybsenddelay += (1000 * TIMER_USEC);
+        keybsenddelay += (1000LL * TIMER_USEC);
         if (key_queue_start != key_queue_end && !keyboard_xt.blocked)
         {
                 keyboard_xt.pa = key_queue[key_queue_start];

@@ -18,7 +18,7 @@ typedef struct dss_t
         
         uint8_t dac_val;
         
-        int time;
+        int64_t time;
         
         int16_t buffer[SOUNDBUFLEN];
         int pos;
@@ -88,7 +88,7 @@ static void dss_callback(void *p)
                 dss->read_idx++;
         }
         
-        dss->time += (TIMER_USEC * (1000000.0 / 7000.0));
+        dss->time += (int64_t) (TIMER_USEC * (1000000.0 / 7000.0));
 }
 
 static void *dss_init()

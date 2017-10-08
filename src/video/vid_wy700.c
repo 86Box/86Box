@@ -194,13 +194,13 @@ typedef struct wy700_t
 	int enabled;		/* Display enabled, 0 or 1 */
 	int detach;		/* Detach cursor, 0 or 1 */
 
-        int dispontime, dispofftime;
-        int vidtime;
+        int64_t dispontime, dispofftime;
+        int64_t vidtime;
         
         int linepos, displine;
         int vc;
         int dispon, blink;
-        int vsynctime;
+        int64_t vsynctime;
 
         uint8_t *vram;
 } wy700_t;
@@ -494,8 +494,8 @@ void wy700_recalctimings(wy700_t *wy700)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= MDACONST;
         _dispofftime *= MDACONST;
-	wy700->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	wy700->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	wy700->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
+	wy700->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
 }
 
 

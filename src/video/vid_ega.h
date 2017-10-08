@@ -65,8 +65,8 @@ typedef struct ega_t
         
         int vres;
         
-        int dispontime, dispofftime;
-        int vidtime;
+        int64_t dispontime, dispofftime;
+        int64_t vidtime;
         
         uint8_t scrblank;
         

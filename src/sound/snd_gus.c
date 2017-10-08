@@ -44,13 +44,13 @@ typedef struct gus_t
         int16_t buffer[2][SOUNDBUFLEN];
         int pos;
         
-        int samp_timer, samp_latch;
+        int64_t samp_timer, samp_latch;
         
         uint8_t *ram;
         
         int irqnext;
         
-        int timer_1, timer_2;
+        int64_t timer_1, timer_2;
         
         int irq, dma, irq_midi;
         int latch_enable;
@@ -742,7 +742,7 @@ void gus_poll_timer_1(void *p)
 {
         gus_t *gus = (gus_t *)p;
         
-	gus->timer_1 += (TIMER_USEC * 80);
+	gus->timer_1 += (TIMER_USEC * 80LL);
         if (gus->t1on)
         {
                 gus->t1++;
@@ -773,7 +773,7 @@ void gus_poll_timer_2(void *p)
 {
         gus_t *gus = (gus_t *)p;
         
-	gus->timer_2 += (TIMER_USEC * 320);
+	gus->timer_2 += (TIMER_USEC * 320LL);
         if (gus->t2on)
         {
                 gus->t2++;
@@ -1022,7 +1022,7 @@ void *gus_init(device_t *info)
 	printf("Top volume %f %f %f %f\n",vol16bit[4095],vol16bit[3800],vol16bit[3000],vol16bit[2048]);
 	gus->voices=14;
 
-        gus->samp_timer = gus->samp_latch = (int)(TIMER_USEC * (1000000.0 / 44100.0));
+        gus->samp_timer = gus->samp_latch = (int64_t)(TIMER_USEC * (1000000.0 / 44100.0));
 
         gus->t1l = gus->t2l = 0xff;
                 

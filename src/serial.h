@@ -56,7 +56,7 @@ typedef struct _serial_ {
     uint8_t	fifo[256];
     int		fifo_read, fifo_write;
 
-    int		receive_delay;
+    int64_t	receive_delay;
 
     void	*bh;			/* BottomHalf handler */
 } SERIAL;
@@ -99,7 +99,7 @@ typedef struct
         uint8_t fifo[256];
         int fifo_read, fifo_write;
         
-        int recieve_delay;
+        int64_t recieve_delay;
 } SERIAL;
 
 void serial_write_fifo(SERIAL *serial, uint8_t dat);

@@ -114,7 +114,7 @@ void ym3812_timer_set_0(void *param, int timer, int64_t period)
 {
         opl_t *opl = (opl_t *)param;
         
-        opl->timers[0][timer] = period * TIMER_USEC * 20;
+        opl->timers[0][timer] = period * TIMER_USEC * 20LL;
         if (!opl->timers[0][timer]) opl->timers[0][timer] = 1;
         opl->timers_enable[0][timer] = period ? 1 : 0;
 }
@@ -122,7 +122,7 @@ void ym3812_timer_set_1(void *param, int timer, int64_t period)
 {
         opl_t *opl = (opl_t *)param;
 
-        opl->timers[1][timer] = period * TIMER_USEC * 20;
+        opl->timers[1][timer] = period * TIMER_USEC * 20LL;
         if (!opl->timers[1][timer]) opl->timers[1][timer] = 1;
         opl->timers_enable[1][timer] = period ? 1 : 0;
 }
@@ -131,7 +131,7 @@ void ymf262_timer_set(void *param, int timer, int64_t period)
 {
         opl_t *opl = (opl_t *)param;
 
-        opl->timers[0][timer] = period * TIMER_USEC * 20;
+        opl->timers[0][timer] = period * TIMER_USEC * 20LL;
         if (!opl->timers[0][timer]) opl->timers[0][timer] = 1;
         opl->timers_enable[0][timer] = period ? 1 : 0;
 }

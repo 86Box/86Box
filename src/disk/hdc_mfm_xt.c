@@ -66,7 +66,7 @@
 #include "hdd.h"
 
 
-#define MFM_TIME	(2000*TIMER_USEC)
+#define MFM_TIME	(2000LL*TIMER_USEC)
 #define XEBEC_BIOS_FILE	L"roms/hdd/mfm_xebec/ibm_xebec_62x0822_1985.bin"
 #define DTC_BIOS_FILE	L"roms/hdd/mfm_xebec/dtc_cxd21a.bin"
 
@@ -97,7 +97,7 @@ typedef struct {
 
 typedef struct {
     rom_t bios_rom;
-    int callback;
+    int64_t callback;
     int state;
     uint8_t status;
     uint8_t command[6];
@@ -338,7 +338,7 @@ mfm_callback(void *priv)
     drive_t *drive;
     off64_t addr;
 
-    mfm->callback = 0;
+    mfm->callback = 0LL;
 
     mfm->drive_sel = (mfm->command[1] & 0x20) ? 1 : 0;
     mfm->completion_byte = mfm->drive_sel & 0x20;

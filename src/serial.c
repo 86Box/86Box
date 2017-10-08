@@ -189,7 +189,7 @@ uint8_t serial_read(uint16_t addr, void *p)
                 serial_update_ints(serial);
                 temp = serial_read_fifo(serial);
                 if (serial->fifo_read != serial->fifo_write)
-                        serial->recieve_delay = 1000 * TIMER_USEC;
+                        serial->recieve_delay = 1000LL * TIMER_USEC;
                 break;
                 case 1:
                 if (serial->lcr & 0x80)

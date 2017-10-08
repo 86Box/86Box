@@ -221,7 +221,7 @@ typedef struct voodoo_t
         uint16_t dac_pll_regs[16];
         
         float pixel_clock;
-        int line_time;
+        int64_t line_time;
         
         voodoo_params_t params;
         
@@ -255,7 +255,7 @@ typedef struct voodoo_t
         int swap_count;
         
         int disp_buffer, draw_buffer;
-        int timer_count;
+        int64_t timer_count;
         
         int line;
         svga_t *svga;
@@ -264,7 +264,7 @@ typedef struct voodoo_t
         uint32_t videoDimensions;
         uint32_t hSync, vSync;
         
-        int h_total, v_total, v_disp;
+        int64_t h_total, v_total, v_disp;
         int h_disp;
         int v_retrace;
 
@@ -391,9 +391,9 @@ typedef struct voodoo_t
         int fb_write_buffer, fb_draw_buffer;
         int buffer_cutoff;
 
-        int read_time, write_time, burst_time;
+        int64_t read_time, write_time, burst_time;
 
-        int wake_timer;
+        int64_t wake_timer;
                 
         uint8_t thefilter[256][256]; // pixel filter, feeding from one or two
         uint8_t thefilterg[256][256]; // for green
@@ -5766,7 +5766,7 @@ static void voodoo_tex_writel(uint32_t addr, uint32_t val, void *p)
         *(uint32_t *)(&voodoo->tex_mem[tmu][addr & voodoo->texture_mask]) = val;
 }
 
-#define WAKE_DELAY (TIMER_USEC * 100)
+#define WAKE_DELAY (TIMER_USEC * 100LL)
 static inline void wake_fifo_thread(voodoo_t *voodoo)
 {
         if (!voodoo->wake_timer)
@@ -5790,7 +5790,7 @@ static void voodoo_wake_timer(void *p)
 {
         voodoo_t *voodoo = (voodoo_t *)p;
         
-        voodoo->wake_timer = 0;
+        voodoo->wake_timer = 0LL;
 
         thread_set_event(voodoo->wake_fifo_thread); /*Wake up FIFO thread if moving from idle*/
 }
@@ -6101,7 +6101,7 @@ static void voodoo_pixelclock_update(voodoo_t *voodoo)
         int n2 = ((voodoo->dac_pll_regs[0] >> 13) & 0x07);
         float t = (14318184.0 * ((float)m / (float)n1)) / (float)(1 << n2);
         double clock_const;
-        int line_length;
+        int64_t line_length;
         
         if ((voodoo->dac_data[6] & 0xf0) == 0x20 ||
             (voodoo->dac_data[6] & 0xf0) == 0x60 ||
@@ -6115,7 +6115,7 @@ static void voodoo_pixelclock_update(voodoo_t *voodoo)
         voodoo->pixel_clock = t;
 
         clock_const = cpuclock / t;
-        voodoo->line_time = (int)((double)line_length * clock_const * (double)(1 << TIMER_SHIFT));
+        voodoo->line_time = (int64_t)((double)line_length * clock_const * (double)(1 << TIMER_SHIFT));
 }
 
 static void voodoo_writel(uint32_t addr, uint32_t val, void *p)
@@ -7351,7 +7351,7 @@ skip_draw:
         if (voodoo->line_time)
                 voodoo->timer_count += voodoo->line_time;
         else
-                voodoo->timer_count += TIMER_USEC * 32;
+                voodoo->timer_count += TIMER_USEC * 32LL;
 }
 
 static void voodoo_add_status_info(char *s, int max_len, void *p)

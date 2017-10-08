@@ -11,13 +11,13 @@ typedef struct ad1848_t
         
         int16_t out_l, out_r;
                 
-        int enable;
+        int64_t enable;
 
         int irq, dma;
         
-        int freq;
+        int64_t freq;
         
-        int timer_count, timer_latch;
+        int64_t timer_count, timer_latch;
 
         int16_t buffer[SOUNDBUFLEN * 2];
         int pos;

@@ -33,8 +33,8 @@
 
 #define CDROM_IMAGE 200
 
-#define IDE_TIME (5 * 100 * (1 << TIMER_SHIFT))
-#define CDROM_TIME (5 * 100 * (1 << TIMER_SHIFT))
+#define IDE_TIME (5LL * 100LL * (1LL << TIMER_SHIFT))
+#define CDROM_TIME (5LL * 100LL * (1LL << TIMER_SHIFT))
 
 
 typedef struct {

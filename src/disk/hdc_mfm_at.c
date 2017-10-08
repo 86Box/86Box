@@ -34,7 +34,7 @@
 #include "hdd.h"
 
 
-#define MFM_TIME		(TIMER_USEC*10)
+#define MFM_TIME		(TIMER_USEC*10LL)
 #define MFM_DEBUG		0
 
 #define STAT_ERR		0x01
@@ -96,7 +96,7 @@ typedef struct {
 		pad;
 
     int		pos;			/* offset within data buffer */
-    int		callback;		/* callback delay timer */
+    int64_t	callback;		/* callback delay timer */
 
     uint16_t	buffer[256];		/* data buffer (16b wide) */
 
@@ -220,7 +220,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 	mfm->command = 0xff;
 	mfm->status = STAT_BUSY;
 	timer_process();
-	mfm->callback = 200*MFM_TIME;
+	mfm->callback = 200LL*MFM_TIME;
 	timer_update_outstanding();
 
 	return;
@@ -247,7 +247,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 		mfm->command = (val & 0xf0);
 		mfm->status = STAT_BUSY;
 		timer_process();
-		mfm->callback = 200*MFM_TIME;
+		mfm->callback = 200LL*MFM_TIME;
 		timer_update_outstanding();
 		break;
 
@@ -266,7 +266,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 					fatal("WD1003: READ with ECC\n");
 				mfm->status = STAT_BUSY;
 				timer_process();
-				mfm->callback = 200*MFM_TIME;
+				mfm->callback = 200LL*MFM_TIME;
 				timer_update_outstanding();
 				break;
 
@@ -290,7 +290,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 				mfm->command = (val & 0xfe);
 				mfm->status = STAT_BUSY;
 				timer_process();
-				mfm->callback = 200*MFM_TIME;
+				mfm->callback = 200LL*MFM_TIME;
 				timer_update_outstanding();
 				break;
 
@@ -304,7 +304,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 				mfm->command = val;
 				mfm->status = STAT_BUSY;
 				timer_process();
-				mfm->callback = 200*MFM_TIME;
+				mfm->callback = 200LL*MFM_TIME;
 				timer_update_outstanding();
 				break;
 
@@ -347,7 +347,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 				pclog("WD1003: bad command %02X\n", val);
 				mfm->status = STAT_BUSY;
 				timer_process();
-				mfm->callback = 200*MFM_TIME;
+				mfm->callback = 200LL*MFM_TIME;
 				timer_update_outstanding();
 				break;
 		}
@@ -367,7 +367,7 @@ mfm_writew(uint16_t port, uint16_t val, void *priv)
 	mfm->pos = 0;
 	mfm->status = STAT_BUSY;
 	timer_process();
-	mfm->callback = 6*MFM_TIME;
+	mfm->callback = 6LL*MFM_TIME;
 	timer_update_outstanding();
     }
 }
@@ -425,14 +425,14 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
 			mfm->status = STAT_BUSY;
 			mfm->reset = 1;
 			timer_process();
-			mfm->callback = 500*MFM_TIME;
+			mfm->callback = 500LL*MFM_TIME;
 			timer_update_outstanding();
 		}
 
 		if (val & 0x04) {
 			/* Drive held in reset. */
 			mfm->status = STAT_BUSY;
-			mfm->callback = 0;
+			mfm->callback = 0LL;
 			timer_process();
 			timer_update_outstanding();
 		}
@@ -459,7 +459,7 @@ mfm_readw(uint16_t port, void *priv)
 			next_sector(mfm);
 			mfm->status = STAT_BUSY;
 			timer_process();
-			mfm->callback = 6*MFM_TIME;
+			mfm->callback = 6LL*MFM_TIME;
 			timer_update_outstanding();
 		} else {
 			StatusBarUpdateIcon(SB_HDD|HDD_BUS_MFM, 0);
@@ -545,7 +545,7 @@ do_callback(void *priv)
     drive_t *drive = &mfm->drives[mfm->drvsel];
     off64_t addr;
 
-    mfm->callback = 0;
+    mfm->callback = 0LL;
     if (mfm->reset) {
 #if MFM_DEBUG
 	pclog("WD1003(%d) reset\n", mfm->drvsel);

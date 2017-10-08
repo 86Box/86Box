@@ -40,7 +40,7 @@ typedef struct adgold_t
         int16_t adgold_mma_out[2];
         int adgold_mma_intpos[2];
 
-        int adgold_mma_timer_count;
+        int64_t adgold_mma_timer_count;
 
         struct
         {
@@ -579,9 +579,9 @@ void adgold_timer_poll(void *p)
 {
         adgold_t *adgold = (adgold_t *)p;
         
-        while (adgold->adgold_mma_timer_count <= 0)
+        while (adgold->adgold_mma_timer_count <= 0LL)
         {
-                adgold->adgold_mma_timer_count += (int)((double)TIMER_USEC * 1.88964);
+                adgold->adgold_mma_timer_count += (int64_t)((double)TIMER_USEC * 1.88964);
                 if (adgold->adgold_mma_regs[0][8] & 0x01) /*Timer 0*/
                 {
                         adgold->adgold_mma.timer0_count--;

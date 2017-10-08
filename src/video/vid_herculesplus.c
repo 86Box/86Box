@@ -56,8 +56,8 @@ typedef struct herculesplus_t
 
         uint8_t ctrl, ctrl2, stat;
 
-        int dispontime, dispofftime;
-        int vidtime;
+        int64_t dispontime, dispofftime;
+        int64_t vidtime;
         
         int firstline, lastline;
 
@@ -66,7 +66,8 @@ typedef struct herculesplus_t
         uint16_t ma, maback;
         int con, coff, cursoron;
         int dispon, blink;
-        int vsynctime, vadj;
+        int64_t vsynctime;
+	int vadj;
 
         uint8_t *vram;
 } herculesplus_t;
@@ -163,8 +164,8 @@ void herculesplus_recalctimings(herculesplus_t *herculesplus)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= MDACONST;
         _dispofftime *= MDACONST;
-	herculesplus->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	herculesplus->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	herculesplus->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
+	herculesplus->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
 }
 
 

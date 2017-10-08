@@ -288,38 +288,38 @@ extern int cpl_override;
 /*Timer*/
 typedef struct PIT_nr
 {
-        int nr;
+        int64_t nr;
         struct PIT *pit;
 } PIT_nr;
 
 typedef struct PIT
 {
         uint32_t l[3];
-        int c[3];
+        int64_t c[3];
         uint8_t m[3];
         uint8_t ctrl,ctrls[3];
-        int wp,rm[3],wm[3];
+        int64_t wp,rm[3],wm[3];
         uint16_t rl[3];
-        int thit[3];
-        int delay[3];
-        int rereadlatch[3];
-        int gate[3];
-        int out[3];
-        int running[3];
-        int enabled[3];
-        int newcount[3];
-        int count[3];
-        int using_timer[3];
-        int initial[3];
-        int latched[3];
-        int disabled[3];
+        int64_t thit[3];
+        int64_t delay[3];
+        int64_t rereadlatch[3];
+        int64_t gate[3];
+        int64_t out[3];
+        int64_t running[3];
+        int64_t enabled[3];
+        int64_t newcount[3];
+        int64_t count[3];
+        int64_t using_timer[3];
+        int64_t initial[3];
+        int64_t latched[3];
+        int64_t disabled[3];
         
         uint8_t read_status[3];
-        int do_read_status[3];
+        int64_t do_read_status[3];
         
         PIT_nr pit_nr[3];
         
-        void (*set_out_funcs[3])(int new_out, int old_out);
+        void (*set_out_funcs[3])(int64_t new_out, int64_t old_out);
 } PIT;
 
 PIT pit, pit2;
@@ -375,7 +375,7 @@ extern PIC pic, pic2;
 extern int pic_intpending;
 
 
-extern int floppytime;
+extern int64_t floppytime;
 extern wchar_t floppyfns[4][512];
 extern int driveempty[4];
 
@@ -483,7 +483,7 @@ extern wchar_t cfg_path[1024];
 
 
 /*Keyboard*/
-extern int keybsenddelay;
+extern int64_t keybsenddelay;
 
 
 /*CD-ROM*/
@@ -496,7 +496,7 @@ enum
 	CDROM_BUS_USB = 8
 };
 
-extern int idecallback[5];
+extern int64_t idecallback[5];
 
 #define CD_STATUS_EMPTY		0
 #define CD_STATUS_DATA_ONLY	1

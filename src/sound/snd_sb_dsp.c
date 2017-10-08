@@ -158,14 +158,14 @@ void sb_doreset(sb_dsp_t *dsp)
 void sb_dsp_speed_changed(sb_dsp_t *dsp)
 {
         if (dsp->sb_timeo < 256)
-                dsp->sblatcho = TIMER_USEC * (256 - dsp->sb_timeo);
+                dsp->sblatcho = TIMER_USEC * (256LL - dsp->sb_timeo);
         else
-                dsp->sblatcho = (int)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_timeo - 256)));
+                dsp->sblatcho = (int64_t)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_timeo - 256LL)));
 
         if (dsp->sb_timei < 256)
                 dsp->sblatchi = TIMER_USEC * (256 - dsp->sb_timei);
         else
-                dsp->sblatchi = (int)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_timei - 256)));
+                dsp->sblatchi = (int64_t)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_timei - 256LL)));
 }
 
 void sb_add_data(sb_dsp_t *dsp, uint8_t v)
@@ -322,7 +322,7 @@ void sb_exec_command(sb_dsp_t *dsp)
                 break;
                 case 0x40: /*Set time constant*/
                 dsp->sb_timei = dsp->sb_timeo = dsp->sb_data[0];
-                dsp->sblatcho = dsp->sblatchi = TIMER_USEC * (256 - dsp->sb_data[0]);
+                dsp->sblatcho = dsp->sblatchi = TIMER_USEC * (256LL - dsp->sb_data[0]);
                 temp = 256 - dsp->sb_data[0];
                 temp = 1000000 / temp;
                 dsp->sb_freq = temp;
@@ -353,7 +353,7 @@ void sb_exec_command(sb_dsp_t *dsp)
                 case 0x41: /*Set output sampling rate*/
                 case 0x42: /*Set input sampling rate*/
                 if (dsp->sb_type < SB16) break;
-                dsp->sblatcho = (int)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_data[1] + (dsp->sb_data[0] << 8))));
+                dsp->sblatcho = (int64_t)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_data[1] + (dsp->sb_data[0] << 8))));
                 dsp->sb_freq = dsp->sb_data[1] + (dsp->sb_data[0] << 8);
                 dsp->sb_timeo = 256 + dsp->sb_freq;
                 dsp->sblatchi = dsp->sblatcho;
@@ -554,7 +554,7 @@ void sb_write(uint16_t a, uint8_t v, void *priv)
 					return;
 				}
                 timer_process();
-                dsp->wb_time = TIMER_USEC * 1;
+                dsp->wb_time = TIMER_USEC * 1LL;
                 dsp->wb_full = 1;
                 timer_update_outstanding();
                 if (dsp->asp_data_len)
@@ -622,7 +622,7 @@ static void sb_wb_clear(void *p)
 {
         sb_dsp_t *dsp = (sb_dsp_t *)p;
         
-        dsp->wb_time = 0;
+        dsp->wb_time = 0LL;
 }
 
 void sb_dsp_init(sb_dsp_t *dsp, int type)

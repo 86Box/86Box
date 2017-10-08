@@ -84,7 +84,7 @@ nvr_at_close(void *priv)
 
 
 void
-nvr_at_init(int irq)
+nvr_at_init(int64_t irq)
 {
     nvr_t *nvr;
 

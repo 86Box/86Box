@@ -511,8 +511,8 @@ void ega_recalctimings(ega_t *ega)
         _dispontime  *= crtcconst;
         _dispofftime *= crtcconst;
 
-	ega->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	ega->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	ega->dispontime  = (int64_t)(_dispontime  * (1LL << TIMER_SHIFT));
+	ega->dispofftime = (int64_t)(_dispofftime * (1LL << TIMER_SHIFT));
 }
 
 void ega_poll(void *p)
@@ -1064,10 +1064,10 @@ void *ega_standalone_init()
         }
 
         ega->crtc[0] = 63;
-        ega->dispontime = 1000 * (1 << TIMER_SHIFT);
-        ega->dispofftime = 1000 * (1 << TIMER_SHIFT);
-	ega->dispontime <<= 1;
-	ega->dispofftime <<= 1;
+        ega->dispontime = 1000LL * (1LL << TIMER_SHIFT);
+        ega->dispofftime = 1000LL * (1LL << TIMER_SHIFT);
+	ega->dispontime <<= 1LL;
+	ega->dispofftime <<= 1LL;
 
         ega_init(ega);        
 

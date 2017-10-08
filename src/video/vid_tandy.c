@@ -40,10 +40,11 @@ typedef struct tandy_t
         int sc, vc;
         int dispon;
         int con, coff, cursoron, blink;
-        int vsynctime, vadj;
+        int64_t vsynctime;
+	int vadj;
         uint16_t ma, maback;
         
-        int dispontime, dispofftime, vidtime;
+        int64_t dispontime, dispofftime, vidtime;
         int firstline, lastline;
         
         int composite;
@@ -184,8 +185,8 @@ void tandy_recalctimings(tandy_t *tandy)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= CGACONST;
         _dispofftime *= CGACONST;
-	tandy->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	tandy->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	tandy->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
+	tandy->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
 }
 
 void tandy_poll(void *p)

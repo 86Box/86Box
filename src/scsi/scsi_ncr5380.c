@@ -59,7 +59,7 @@
 #define NCR_DMAINIRECV	7		/* DMA initiator receive (write only) */
 #define NCR_RESETPARITY	7		/* reset parity/interrupt (read only) */
 
-#define POLL_TIME_US 10
+#define POLL_TIME_US 10LL
 #define MAX_BYTES_TRANSFERRED_PER_POLL 50
 /*10us poll period with 50 bytes transferred per poll = 5MB/sec*/
 
@@ -131,8 +131,8 @@ typedef struct {
     ncr5380_t	ncr;
     int		ncr5380_dma_enabled;
 
-    int		dma_callback;
-    int		dma_enabled;
+    int64_t	dma_callback;
+    int64_t	dma_enabled;
 
     int		ncr_busy;
 } ncr_t;

@@ -103,13 +103,13 @@ typedef struct genius_t
 	int enabled;		/* Display enabled, 0 or 1 */
 	int detach;		/* Detach cursor, 0 or 1 */
 
-        int dispontime, dispofftime;
-        int vidtime;
+        int64_t dispontime, dispofftime;
+        int64_t vidtime;
         
         int linepos, displine;
         int vc;
         int dispon, blink;
-        int vsynctime;
+        int64_t vsynctime;
 
         uint8_t *vram;
 } genius_t;
@@ -249,8 +249,8 @@ void genius_recalctimings(genius_t *genius)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= MDACONST;
         _dispofftime *= MDACONST;
-	genius->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	genius->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	genius->dispontime  = (int64_t)(_dispontime  * (1LL << TIMER_SHIFT));
+	genius->dispofftime = (int64_t)(_dispofftime * (1LL << TIMER_SHIFT));
 }
 
 

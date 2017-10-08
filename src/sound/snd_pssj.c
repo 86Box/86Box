@@ -25,8 +25,8 @@ typedef struct pssj_t
         int amplitude;
         
         int irq;
-        int timer_count;
-        int enable;
+        int64_t timer_count;
+        int64_t enable;
         
         int wave_pos;
         int pulse_width;
@@ -168,7 +168,7 @@ static void pssj_callback(void *p)
                 pssj->wave_pos = (pssj->wave_pos + 1) & 31;
         }
 
-        pssj->timer_count += (int)(TIMER_USEC * (1000000.0 / 3579545.0) * (double)(pssj->freq ? pssj->freq : 0x400));
+        pssj->timer_count += (int64_t)(TIMER_USEC * (1000000.0 / 3579545.0) * (double)(pssj->freq ? pssj->freq : 0x400));
 }
 
 static void pssj_get_buffer(int32_t *buffer, int len, void *p)

@@ -40,11 +40,12 @@ typedef struct tandysl_t
         int sc, vc;
         int dispon;
         int con, coff, cursoron, blink;
-        int vsynctime, vadj;
+        int64_t vsynctime;
+	int vadj;
         uint16_t ma, maback;
         
-        int dispontime, dispofftime;
-	int vidtime;
+        int64_t dispontime, dispofftime;
+	int64_t vidtime;
         int firstline, lastline;
 } tandysl_t;
 
@@ -240,8 +241,8 @@ static void tandysl_recalctimings(tandysl_t *tandy)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= CGACONST;
         _dispofftime *= CGACONST;
-	tandy->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	tandy->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	tandy->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
+	tandy->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
 }
 
 

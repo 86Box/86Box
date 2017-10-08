@@ -25,7 +25,7 @@
 
 
 int keybsendcallback = 0;
-int keybsenddelay;
+int64_t keybsenddelay;
 
 
 typedef struct

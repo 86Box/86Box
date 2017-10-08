@@ -27,7 +27,7 @@ uint8_t batman_brdconfig(uint16_t port, void *p)
 }
 
 static uint16_t batman_timer_latch;
-static int batman_timer = 0;
+static int64_t batman_timer = 0;
 static void batman_timer_over(void *p)
 {
         batman_timer = 0;

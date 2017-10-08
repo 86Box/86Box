@@ -31,8 +31,8 @@ typedef struct pc1640_t
         rom_t bios_rom;
         
         int cga_enabled;
-        int dispontime, dispofftime;
-	int vidtime;
+        int64_t dispontime, dispofftime;
+	int64_t vidtime;
 } pc1640_t;
 
 void pc1640_out(uint16_t addr, uint8_t val, void *p)

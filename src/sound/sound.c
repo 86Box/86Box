@@ -136,7 +136,7 @@ static struct
 
 static int sound_handlers_num;
 
-static int sound_poll_time = 0, sound_poll_latch;
+static int64_t sound_poll_time = 0LL, sound_poll_latch;
 int sound_pos_global = 0;
 
 int soundon = 1;
@@ -403,7 +403,7 @@ void sound_poll(void *priv)
 
 void sound_speed_changed(void)
 {
-        sound_poll_latch = (int)((double)TIMER_USEC * (1000000.0 / 48000.0));
+        sound_poll_latch = (int64_t)((double)TIMER_USEC * (1000000.0 / 48000.0));
 }
 
 void sound_reset(void)

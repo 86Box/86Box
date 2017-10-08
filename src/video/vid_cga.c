@@ -154,8 +154,8 @@ void cga_recalctimings(cga_t *cga)
         _dispofftime = disptime - _dispontime;
         _dispontime *= CGACONST;
         _dispofftime *= CGACONST;
-	cga->dispontime = (int)(_dispontime * (1 << TIMER_SHIFT));
-	cga->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	cga->dispontime = (int64_t)(_dispontime * (1LL << TIMER_SHIFT));
+	cga->dispofftime = (int64_t)(_dispofftime * (1LL << TIMER_SHIFT));
 }
 
 void cga_poll(void *p)

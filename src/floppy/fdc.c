@@ -34,7 +34,7 @@
 #include "fdd.h"
 
 
-extern int motoron[FDD_NUM];
+extern int64_t motoron[FDD_NUM];
 
 
 int ui_writeprot[FDD_NUM] = {0, 0, 0, 0};
@@ -106,8 +106,8 @@ typedef struct FDC
         
         int pcjr, ps1;
         
-        int watchdog_timer;
-        int watchdog_count;
+        int64_t watchdog_timer;
+        int64_t watchdog_count;
 
         int data_ready;
         int inread;
@@ -152,7 +152,7 @@ typedef struct FDC
 	uint16_t base_address;
 } FDC;
 
-int floppytime;
+int64_t floppytime;
 
 static FDC fdc;
 
@@ -393,10 +393,10 @@ static void fdc_watchdog_poll(void *p)
 
         fdc->watchdog_count--;
         if (fdc->watchdog_count)
-                fdc->watchdog_timer += 1000 * TIMER_USEC;
+                fdc->watchdog_timer += 1000LL * TIMER_USEC;
         else
         {        
-                fdc->watchdog_timer = 0;
+                fdc->watchdog_timer = 0LL;
                 if (fdc->dor & 0x20)
                         picint(1 << 6);
         }
@@ -668,14 +668,14 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                 {
                         if ((fdc.dor & 0x40) && !(val & 0x40))
                         {
-                                fdc.watchdog_timer = 1000 * TIMER_USEC;
-                                fdc.watchdog_count = 1000;
+                                fdc.watchdog_timer = 1000LL * TIMER_USEC;
+                                fdc.watchdog_count = 1000LL;
                                 picintc(1 << 6);
                         }
                         if ((val & 0x80) && !(fdc.dor & 0x80))
                         {
         			timer_process();
-                                floppytime = 128 * (1 << TIMER_SHIFT);
+                                floppytime = 128LL * (1LL << TIMER_SHIFT);
                                 timer_update_outstanding();
                                 floppyint=-1;
 				StatusBarUpdateIcon(SB_FLOPPY | 0, 0);
@@ -708,7 +708,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                         if ((val&4) && !(fdc.dor&4))
                         {
         			timer_process();
-                                floppytime = 128 * (1 << TIMER_SHIFT);
+                                floppytime = 128LL * (1LL << TIMER_SHIFT);
                                 timer_update_outstanding();
                                 floppyint=-1;
 				fdc.perp &= 0xfc;
@@ -751,7 +751,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                 if (val & 0x80)
                 {
 			timer_process();
-                        floppytime = 128 * (1 << TIMER_SHIFT);
+                        floppytime = 128LL * (1LL << TIMER_SHIFT);
                         timer_update_outstanding();
                         floppyint=-1;
 			fdc.perp &= 0xfc;
@@ -932,7 +932,7 @@ bad_command:
                                 fdc.stat |= 0x10;
                                 floppyint=0xfc;
         			timer_process();
-        			floppytime = 200 * (1 << TIMER_SHIFT);
+        			floppytime = 200LL * (1LL << TIMER_SHIFT);
         			timer_update_outstanding();
                                 break;
                         }
@@ -958,7 +958,7 @@ bad_command:
                                 fdc_log("Got all params %02X\n", fdc.command);
                                 floppyint=fdc.command&0x1F;
         			timer_process();
-       				floppytime = 1024 * (1 << TIMER_SHIFT);
+       				floppytime = 1024LL * (1LL << TIMER_SHIFT);
         			timer_update_outstanding();
                                 fdc_reset_stat = 0;
                                 switch (floppyint & 0x1F)
@@ -987,7 +987,7 @@ bad_command:
 					{
 						fdc.stat = 0x50;
 					}
-					floppytime = 0;
+					floppytime = 0LL;
 					StatusBarUpdateIcon(SB_FLOPPY | fdc.drive, 1);
 					fdc.inread = 1;
                                         break;
@@ -997,7 +997,7 @@ bad_command:
 					fdc.specify[0] = fdc.params[0];
 					fdc.specify[1] = fdc.params[1];
 					fdc.dma = (fdc.specify[1] & 1) ^ 1;
-					floppytime = 0;
+					floppytime = 0LL;
                                         break;
 
 			                case 0x12:
@@ -1011,7 +1011,7 @@ bad_command:
 						fdc.perp &= 0xfc;
 						fdc.perp |= (fdc.params[0] & 0x03);
 					}
-			                floppytime = 0;
+			                floppytime = 0LL;
 			                return;
 
 					case 4:
@@ -1031,7 +1031,7 @@ bad_command:
 					fdc_implied_seek();
                                         fdc.rw_track = fdc.params[1];                                        
 	                                floppy_writesector(fdc.drive, fdc.sector, fdc.params[1], fdc.head, fdc.rate, fdc.params[4]);
-        	                        floppytime = 0;
+        	                        floppytime = 0LL;
 	                                fdc.written = 0;
         	                        StatusBarUpdateIcon(SB_FLOPPY | fdc.drive, 1);
                 	                fdc.pos = 0;
@@ -1064,7 +1064,7 @@ bad_command:
 					fdc_implied_seek();
                                         fdc.rw_track = fdc.params[1];                                        
 	                                floppy_comparesector(fdc.drive, fdc.sector, fdc.params[1], fdc.head, fdc.rate, fdc.params[4]);
-        	                        floppytime = 0;
+        	                        floppytime = 0LL;
 	                                fdc.written = 0;
         	                        StatusBarUpdateIcon(SB_FLOPPY | fdc.drive, 1);
                 	                fdc.pos = 0;
@@ -1109,7 +1109,7 @@ bad_command:
 					{
 						fdc.stat = 0x50;
 					}
-                	                floppytime = 0;
+                	                floppytime = 0LL;
         	                        StatusBarUpdateIcon(SB_FLOPPY | fdc.drive, 1);
 	                                fdc.inread = 1;
                                         break;
@@ -1117,7 +1117,7 @@ bad_command:
                                         case 7: /*Recalibrate*/
 					seek_time_base = fdd_doublestep_40(real_drive(fdc.drive)) ? 10 : 5;
                                         fdc.stat =  (1 << real_drive(fdc.drive)) | 0x80;
-                                        floppytime = 0;
+                                        floppytime = 0LL;
 
 					drive_num = real_drive(fdc.drive);
 
@@ -1133,10 +1133,10 @@ bad_command:
                         				fdc.st0 = 0x20 | (fdc.params[0] & 3);
 						}
 				                fdc.pcn[fdc.params[0] & 3] = 0;
-						floppytime = 0;
+						floppytime = 0LL;
 				                floppyint=-3;
 						timer_process();
-						floppytime = 2048 * (1 << TIMER_SHIFT);
+						floppytime = 2048LL * (1LL << TIMER_SHIFT);
 						timer_update_outstanding();
 						break;
 					}
@@ -1145,7 +1145,7 @@ bad_command:
 					{
 	                                        fdc_seek(fdc.drive, -fdc.max_track);
 					}
-                                        floppytime = fdc.max_track * seek_time_base * TIMER_USEC;
+                                        floppytime = ((int64_t) fdc.max_track) * ((int64_t)  seek_time_base) * TIMER_USEC;
                                         break;
 
                                         case 0x0d: /*Format*/
@@ -1165,7 +1165,7 @@ bad_command:
                                         fdc.stat =  (1 << fdc.drive) | 0x80;
                                         fdc.head = (fdc.params[0] & 4) ? 1 : 0;
 					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
-                                        floppytime = 0;
+                                        floppytime = 0LL;
 
 					drive_num = real_drive(fdc.drive);
 					seek_time_base = fdd_doublestep_40(drive_num) ? 10 : 5;
@@ -1190,10 +1190,10 @@ bad_command:
 						{
 					                fdc.pcn[fdc.params[0] & 3] = fdc.params[1];
 						}
-						floppytime = 0;
+						floppytime = 0LL;
 				                floppyint=-3;
 						timer_process();
-						floppytime = 2048 * (1 << TIMER_SHIFT);
+						floppytime = 2048LL * (1LL << TIMER_SHIFT);
 						timer_update_outstanding();
 						break;
 					}
@@ -1214,17 +1214,17 @@ bad_command:
 								fdc_seek(fdc.drive, -fdc.params[1]);
 						                fdc.pcn[fdc.params[0] & 3] -= fdc.params[1];
 							}
-	        	                                floppytime = ((int) fdc.params[1]) * seek_time_base * TIMER_USEC;
+	        	                                floppytime = ((int64_t) fdc.params[1]) * ((int64_t) seek_time_base) * TIMER_USEC;
 						}
 						else
 						{
-							floppytime = seek_time_base * TIMER_USEC;
+							floppytime = ((int64_t) seek_time_base) * TIMER_USEC;
 
                         				fdc.st0 = 0x20 | (fdc.params[0] & 7);
-							floppytime = 0;
+							floppytime = 0LL;
 					                floppyint=-3;
 							timer_process();
-							floppytime = 2048 * (1 << TIMER_SHIFT);
+							floppytime = 2048LL * (1LL << TIMER_SHIFT);
 							timer_update_outstanding();
 							break;
 						}
@@ -1237,10 +1237,10 @@ bad_command:
 						if ((fdc.params[1] - fdc.pcn[fdc.params[0] & 3]) == 0)
 						{
                         				fdc.st0 = 0x20 | (fdc.params[0] & 7);
-							floppytime = 0;
+							floppytime = 0LL;
 					                floppyint=-3;
 							timer_process();
-							floppytime = 2048 * (1 << TIMER_SHIFT);
+							floppytime = 2048LL * (1LL << TIMER_SHIFT);
 							timer_update_outstanding();
 							break;
 						}
@@ -1248,13 +1248,13 @@ bad_command:
 	                                        fdc_seek(fdc.drive, fdc.params[1] - fdc.pcn[fdc.params[0] & 3]);
 				                fdc.pcn[fdc.params[0] & 3] = fdc.params[1];
 						if (seek_time < 0)  seek_time = -seek_time;
-	                                        floppytime = seek_time;
+	                                        floppytime = ((int64_t) seek_time);
 					}
                                         break;
                                         
                                         case 10: /*Read sector ID*/
 					fdc_rate(fdc.drive);
-                                        floppytime = 0;
+                                        floppytime = 0LL;
                                         fdc.head = (fdc.params[0] & 4) ? 1 : 0;                                        
 					fdd_set_head(fdc.drive, (fdc.params[0] & 4) ? 1 : 0);
 					if ((real_drive(fdc.drive) != 1) || fdc.drv2en)
@@ -1390,7 +1390,7 @@ uint8_t fdc_read(uint16_t addr, void *priv)
                 /* if (floppyint==0xA) 
 		{
 			timer_process();
-			floppytime = 1024 * (1 << TIMER_SHIFT);
+			floppytime = 1024LL * (1LL << TIMER_SHIFT);
 			timer_update_outstanding();
 		} */
                 fdc.stat &= 0xf0;
@@ -1481,7 +1481,7 @@ void fdc_poll_readwrite_finish(int compare)
 
 void fdc_no_dma_end(int compare)
 {
-        floppytime = 0;
+        floppytime = 0LL;
 
 	fdc_poll_common_finish(compare, 0x80);
 }
@@ -1491,7 +1491,7 @@ void fdc_callback(void *priv)
 	int compare = 0;
 	int drive_num = 0;
 	int old_sector = 0;
-        floppytime = 0;
+        floppytime = 0LL;
         switch (floppyint)
         {
                 case -3: /*End of command with interrupt*/
@@ -1549,7 +1549,7 @@ void fdc_callback(void *priv)
                 fdc.stat = (fdc.stat & 0xf) | 0xd0;
                 paramstogo = 1;
                 floppyint = 0;
-                floppytime = 0;
+                floppytime = 0LL;
                 return;
                 case 5: /*Write data*/
                 case 9: /*Write deleted data*/
@@ -1728,7 +1728,7 @@ void fdc_callback(void *priv)
 		}
                 floppyint=-3;
 		timer_process();
-		floppytime = 2048 * (1 << TIMER_SHIFT);
+		floppytime = 2048LL * (1LL << TIMER_SHIFT);
 		timer_update_outstanding();
                 fdc.stat = 0x80 | (1 << fdc.drive);
                 return;
@@ -1766,7 +1766,7 @@ void fdc_callback(void *priv)
 
                 paramstogo = 2;
                 floppyint = 0;
-		floppytime = 0;
+		floppytime = 0LL;
 		return;
                 
                 case 0x0d: /*Format track*/
@@ -1774,7 +1774,7 @@ void fdc_callback(void *priv)
                 {
                         fdc.format_state = 2;
 			timer_process();
-			floppytime = 128 * (1 << TIMER_SHIFT);
+			floppytime = 128LL * (1LL << TIMER_SHIFT);
 			timer_update_outstanding();
                 }                
                 else if (fdc.format_state == 2)
@@ -1805,7 +1805,7 @@ void fdc_callback(void *priv)
 		fdc.st0 = 0x20 | (fdc.params[0] & 7);
                 floppyint=-3;
 		timer_process();
-		floppytime = 2048 * (1 << TIMER_SHIFT);
+		floppytime = 2048LL * (1LL << TIMER_SHIFT);
 		timer_update_outstanding();
                 fdc.stat = 0x80 | (1 << fdc.drive);
                 return;
@@ -1823,7 +1823,7 @@ void fdc_callback(void *priv)
 		fdc.res[10] = fdc.pretrk;
 		paramstogo = 10;
                 floppyint=0;
-		floppytime = 0;
+		floppytime = 0LL;
                 return;
 
                 case 0x10: /*Version*/
@@ -1831,7 +1831,7 @@ void fdc_callback(void *priv)
                 fdc.res[10] = 0x90;
                 paramstogo=1;
                 floppyint=0;
-                floppytime = 0;
+                floppytime = 0LL;
                 return;
                 
 	        case 0x13: /*Configure*/
@@ -1840,7 +1840,7 @@ void fdc_callback(void *priv)
 		fdc.fifo = (fdc.params[1] & 0x20) ? 0 : 1;
 		fdc.tfifo = (fdc.params[1] & 0xF);
                 fdc.stat = 0x80;
-                floppytime = 0;
+                floppytime = 0LL;
                 return;
                 case 0x14: /*Unlock*/
                 fdc.lock = 0;
@@ -1848,7 +1848,7 @@ void fdc_callback(void *priv)
                 fdc.res[10] = 0;
                 paramstogo=1;
                 floppyint=0;
-                floppytime = 0;
+                floppytime = 0LL;
                 return;
                 case 0x94: /*Lock*/
                 fdc.lock = 1;
@@ -1856,7 +1856,7 @@ void fdc_callback(void *priv)
                 fdc.res[10] = 0x10;
                 paramstogo=1;
                 floppyint=0;
-                floppytime = 0;
+                floppytime = 0LL;
                 return;
 
                 case 0x18: /*NSC*/
@@ -1864,7 +1864,7 @@ void fdc_callback(void *priv)
                 fdc.res[10] = 0x73;
                 paramstogo=1;
                 floppyint=0;
-                floppytime = 0;
+                floppytime = 0LL;
                 return;
 
                 case 0xfc: /*Invalid*/
@@ -1873,14 +1873,14 @@ void fdc_callback(void *priv)
                 fdc.res[10] = fdc.st0;
                 paramstogo=1;
                 floppyint=0;
-                floppytime = 0;
+                floppytime = 0LL;
                 return;
         }
 }
 
 void fdc_error(int st5, int st6)
 {
-        floppytime = 0;
+        floppytime = 0LL;
 
         fdc_int();
 	fdc.fintr = 0;

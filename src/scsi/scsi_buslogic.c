@@ -515,7 +515,7 @@ typedef struct {
 #pragma pack(pop)
 
 
-static int	BuslogicResetCallback = 0;
+static int64_t	BuslogicResetCallback = 0LL;
 
 
 static void	BuslogicCommandThread(void *p);
@@ -814,7 +814,7 @@ BuslogicReset(Buslogic_t *bl)
 	}
     }
 
-    BuslogicResetCallback = 0;
+    BuslogicResetCallback = 0LL;
     bl->scan_restart = 0;
 
     bl->Geometry = 0x80;
@@ -2559,7 +2559,7 @@ BuslogicResetPoll(void *p)
     bl->Status &= ~STAT_STST;
     bl->Status |= STAT_IDLE;
 
-    BuslogicResetCallback = 0;
+    BuslogicResetCallback = 0LL;
 }
 
 

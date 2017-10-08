@@ -49,7 +49,7 @@ static uint8_t mouse_scancodes[7];
 
 static void keyboard_olim24_poll(void)
 {
-        keybsenddelay += (1000 * TIMER_USEC);
+        keybsenddelay += (1000LL * TIMER_USEC);
         if (keyboard_olim24.wantirq)
         {
                 keyboard_olim24.wantirq = 0;

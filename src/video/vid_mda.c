@@ -29,8 +29,8 @@ typedef struct mda_t
         
         uint8_t ctrl, stat;
         
-        int dispontime, dispofftime;
-        int vidtime;
+        int64_t dispontime, dispofftime;
+        int64_t vidtime;
         
         int firstline, lastline;
 
@@ -39,7 +39,8 @@ typedef struct mda_t
         uint16_t ma, maback;
         int con, coff, cursoron;
         int dispon, blink;
-        int vsynctime, vadj;
+        int64_t vsynctime;
+	int vadj;
 
         uint8_t *vram;
 } mda_t;
@@ -111,8 +112,8 @@ void mda_recalctimings(mda_t *mda)
         _dispofftime = disptime - _dispontime;
         _dispontime *= MDACONST;
         _dispofftime *= MDACONST;
-	mda->dispontime = (int)(_dispontime * (1 << TIMER_SHIFT));
-	mda->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	mda->dispontime = (int64_t)(_dispontime * (1 << TIMER_SHIFT));
+	mda->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
 }
 
 void mda_poll(void *p)

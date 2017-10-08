@@ -35,8 +35,8 @@ typedef struct cga_t
         uint16_t ma, maback;
         int oddeven;
 
-        int dispontime, dispofftime;
-        int vidtime;
+        int64_t dispontime, dispofftime;
+        int64_t vidtime;
         
         int firstline, lastline;
         

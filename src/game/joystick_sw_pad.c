@@ -34,14 +34,14 @@
 
 typedef struct
 {
-        int poll_time;
-        int poll_left;
-        int poll_clock;
+        int64_t poll_time;
+        int64_t poll_left;
+        int64_t poll_clock;
         uint64_t poll_data;
-        int poll_mode;
+        int64_t poll_mode;
                 
-        int trigger_time;
-        int data_mode;
+        int64_t trigger_time;
+        int64_t data_mode;
 } sw_data;
 
 static void sw_timer_over(void *p)
@@ -59,7 +59,7 @@ static void sw_timer_over(void *p)
                 }
 
                 if (sw->poll_left == 1 && !sw->poll_clock)
-                        sw->poll_time += TIMER_USEC * 160;
+                        sw->poll_time += TIMER_USEC * 160LL;
                 else if (sw->poll_left)
                         sw->poll_time += TIMER_USEC * 5;
                 else
@@ -225,7 +225,7 @@ static int sw_read_axis(void *p, int axis)
         if (!JOYSTICK_PRESENT(0))
                 return AXIS_NOT_PRESENT;
                 
-        return 0; /*No analogue support on Sidewinder game pad*/
+        return 0LL; /*No analogue support on Sidewinder game pad*/
 }
 
 static void sw_a0_over(void *p)

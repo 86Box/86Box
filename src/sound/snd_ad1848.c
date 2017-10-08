@@ -62,7 +62,7 @@ void ad1848_write(uint16_t addr, uint8_t val, void *p)
                 switch (ad1848->index)
                 {
                         case 8:
-                        freq = (val & 1) ? 16934400 : 24576000;
+                        freq = (val & 1) ? 16934400LL : 24576000LL;
                         switch ((val >> 1) & 7)
                         {
                                 case 0: freq /= 3072; break;
@@ -75,7 +75,7 @@ void ad1848_write(uint16_t addr, uint8_t val, void *p)
                                 case 7: freq /= 2560; break;
                         }
                         ad1848->freq = freq;
-                        ad1848->timer_latch = (int)((double)TIMER_USEC * (1000000.0 / (double)ad1848->freq));
+                        ad1848->timer_latch = (int64_t)((double)TIMER_USEC * (1000000.0 / (double)ad1848->freq));
                         break;
                         
                         case 9:
@@ -101,7 +101,7 @@ void ad1848_write(uint16_t addr, uint8_t val, void *p)
 
 void ad1848_speed_changed(ad1848_t *ad1848)
 {
-        ad1848->timer_latch = (int)((double)TIMER_USEC * (1000000.0 / (double)ad1848->freq));
+        ad1848->timer_latch = (int64_t)((double)TIMER_USEC * (1000000.0 / (double)ad1848->freq));
 }
 
 void ad1848_update(ad1848_t *ad1848)

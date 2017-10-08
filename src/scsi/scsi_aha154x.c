@@ -395,7 +395,7 @@ typedef struct {
     wchar_t	*nvr_path;			/* path to NVR image file */
     uint8_t	*nvr;				/* EEPROM buffer */
 
-    int		ResetCB;
+    int64_t	ResetCB;
 
     volatile uint8_t				/* for multi-threading, keep */
 		Status,				/* these volatile */
@@ -636,7 +636,7 @@ aha_reset(aha_t *dev)
 	}
    }
 
-    dev->ResetCB = 0;
+    dev->ResetCB = 0LL;
 
     dev->Status = STAT_IDLE | STAT_INIT;
     dev->Geometry = 0x80;
@@ -682,7 +682,7 @@ aha_reset_poll(void *priv)
     dev->Status &= ~STAT_STST;
     dev->Status |= STAT_IDLE;
 
-    dev->ResetCB = 0;
+    dev->ResetCB = 0LL;
 }
 
 

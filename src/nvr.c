@@ -216,25 +216,25 @@
 #define NVR_FOLDER_PATH	L"NVR"
 
 
-int	enable_sync;		/* configuration variable: enable time sync */
-int	nvr_dosave;		/* NVR is dirty, needs saved */
+int64_t	enable_sync;		/* configuration variable: enable time sync */
+int64_t	nvr_dosave;		/* NVR is dirty, needs saved */
 
 
 static nvr_t	*saved_nvr = NULL;
 static int8_t	days_in_month[12] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
 static struct {
-   int sec;
-   int min;
-   int hour;
-   int mday;
-   int mon;
-   int year;
+   int64_t sec;
+   int64_t min;
+   int64_t hour;
+   int64_t mday;
+   int64_t mon;
+   int64_t year;
 }		intclk;		/* the internal clock */
 
 
 /* Determine whether or not the year is leap. */
 static int
-is_leap(int year)
+is_leap(int64_t year)
 {
     if (year % 400 == 0) return(1);
     if (year % 100 == 0) return(0);
@@ -246,7 +246,7 @@ is_leap(int year)
 
 /* Determine the days in the current month. */
 static int
-get_days(int month, int year)
+get_days(int64_t month, int64_t year)
 {
     if (month != 2)
 	return(days_in_month[month - 1]);
@@ -333,7 +333,7 @@ rtc_getnvr(uint8_t *nvr, struct tm *tm)
 static void
 rtc_setnvr(uint8_t *nvr)
 {
-    int temp;
+    int64_t temp;
 
     if (nvr[RTC_REGB] & REGB_DM) {
 	intclk.sec = nvr[RTC_SECONDS];
@@ -403,18 +403,18 @@ onesec_timer(void *priv)
 		/* Re-calculate the timer. */
 		nvr_recalc();
 
-		nvr->upd_ecount = (int)((244.0 + 1984.0) * TIMER_USEC);
+		nvr->upd_ecount = (int64_t)((244.0 + 1984.0) * TIMER_USEC);
 	}
 	nvr->onesec_cnt = 0;
     }
 
-    nvr->onesec_time += (int)(10000 * TIMER_USEC);
+    nvr->onesec_time += (int64_t)(10000 * TIMER_USEC);
 }
 
 
 /* Check if the current time matches a set alarm time. */
 static int
-check_alarm(nvr_t *nvr, int addr)
+check_alarm(nvr_t *nvr, int64_t addr)
 {
 #define ALARM_DONTCARE 0xc0
     return((nvr->regs[addr+1] == nvr->regs[addr]) ||
@@ -428,7 +428,7 @@ update_timer(void *priv)
 {
     nvr_t *nvr = (nvr_t *)priv;
     struct tm tm;
-    int dom, mon, yr, cent, sum, wd;
+    int64_t dom, mon, yr, cent, sum, wd;
 
     if (! (nvr->regs[RTC_REGB] & REGB_SET)) {
 	/* Get the current time from the internal clock. */
@@ -485,7 +485,7 @@ static void
 ticker_timer(void *priv)
 {
     nvr_t *nvr = (nvr_t *)priv;
-    int c;
+    int64_t c;
 
     if (! (nvr->regs[RTC_REGA] & REGA_RS)) {
 	nvr->rtctime = 0x7fffffff;
@@ -494,7 +494,7 @@ ticker_timer(void *priv)
 
     /* Update our ticker interval. */
     c = 1 << ((nvr->regs[RTC_REGA] & REGA_RS) - 1);
-    nvr->rtctime += (int)(RTCCONST*c*(1<<TIMER_SHIFT));
+    nvr->rtctime += (int64_t)(RTCCONST*c*(1<<TIMER_SHIFT));
 
     nvr->regs[RTC_REGC] |= REGC_PF;
     if (nvr->regs[RTC_REGB] & REGB_PIE) {
@@ -511,7 +511,7 @@ ticker_timer(void *priv)
 static void
 nvr_write(nvr_t *nvr, uint16_t reg, uint8_t val)
 {
-    int c, old;
+    int64_t c, old;
 
     old = nvr->regs[reg];
     switch(reg) {
@@ -519,7 +519,7 @@ nvr_write(nvr_t *nvr, uint16_t reg, uint8_t val)
 		nvr->regs[reg] = val;
 		if (val & REGA_RS) {
 			c = 1 << ((val & REGA_RS) - 1);
-			nvr->rtctime += (int)(RTCCONST*c*(1<<TIMER_SHIFT));
+			nvr->rtctime += (int64_t)(RTCCONST*c*(1<<TIMER_SHIFT));
 		} else {
 			nvr->rtctime = 0x7fffffff;
 		}
@@ -598,7 +598,7 @@ void
 nvr_init(nvr_t *nvr)
 {
     char temp[32];
-    int c;
+    int64_t c;
 
     /* Clear some of it. */
     nvr->upd_stat = 0;
@@ -636,13 +636,13 @@ nvr_init(nvr_t *nvr)
 void
 nvr_recalc(void)
 {
-    int c, nt;
+    int64_t c, nt;
 
     /* Make sure we have been initialized. */
     if (saved_nvr == NULL) return;
 
     c = 1 << ((saved_nvr->regs[RTC_REGA] & REGA_RS) - 1);
-    nt = (int)(RTCCONST * c * (1<<TIMER_SHIFT));
+    nt = (int64_t)(RTCCONST * c * (1<<TIMER_SHIFT));
     if (saved_nvr->rtctime > nt)
 	saved_nvr->rtctime = nt;
 }
@@ -659,11 +659,11 @@ nvr_recalc(void)
  * the local RTC to operate, so it can update either the local RTC,
  * and/or the supplied by a client.
  */
-int
+int64_t
 nvr_load(void)
 {
     FILE *f;
-    int c;
+    int64_t c;
 
     /* Make sure we have been initialized. */
     if (saved_nvr == NULL) return(0);
@@ -706,14 +706,14 @@ nvr_load(void)
     saved_nvr->regs[RTC_REGA] = (REGA_RS2|REGA_RS1);
     saved_nvr->regs[RTC_REGB] = REGB_2412;
     c = 1 << ((saved_nvr->regs[RTC_REGA] & REGA_RS) - 1);
-    saved_nvr->rtctime += (int)(RTCCONST * c * (1<<TIMER_SHIFT));
+    saved_nvr->rtctime += (int64_t)(RTCCONST * c * (1<<TIMER_SHIFT));
 
     return(1);
 }
 
 
 /* Save the current NVR to a file. */
-int
+int64_t
 nvr_save(void)
 {
     FILE *f;

@@ -155,8 +155,8 @@ typedef struct incolor_t
 
         uint8_t ctrl, ctrl2, stat;
 
-        int dispontime, dispofftime;
-        int vidtime;
+        int64_t dispontime, dispofftime;
+        int64_t vidtime;
         
         int firstline, lastline;
 
@@ -165,7 +165,8 @@ typedef struct incolor_t
         uint16_t ma, maback;
         int con, coff, cursoron;
         int dispon, blink;
-        int vsynctime, vadj;
+        int64_t vsynctime;
+	int vadj;
 
 	uint8_t palette[16];	/* EGA-style 16 -> 64 palette registers */
 	uint8_t palette_idx;	/* Palette write index */
@@ -372,8 +373,8 @@ void incolor_recalctimings(incolor_t *incolor)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= MDACONST;
         _dispofftime *= MDACONST;
-	incolor->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	incolor->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	incolor->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
+	incolor->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
 }
 
 

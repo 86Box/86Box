@@ -2,7 +2,7 @@
 #define _TIMER_H_
 
 
-extern int timer_start;
+extern int64_t timer_start;
 
 #define timer_start_period(cycles)                      \
         timer_start = cycles;
@@ -10,7 +10,7 @@ extern int timer_start;
 #define timer_end_period(cycles) 			\
 	do 						\
 	{						\
-                int diff = timer_start - (cycles);      \
+                int64_t diff = timer_start - (cycles);      \
 		timer_count -= diff;			\
                 timer_start = cycles;                   \
 		if (timer_count <= 0)			\
@@ -23,7 +23,7 @@ extern int timer_start;
 #define timer_clock()                                                   \
 	do 						                \
 	{						                \
-                int diff;                                               \
+                int64_t diff;                                               \
                 if (AT)                                                 \
                 {                                                       \
                         diff = timer_start - (cycles << TIMER_SHIFT);   \
@@ -42,16 +42,16 @@ extern int timer_start;
 extern void timer_process(void);
 extern void timer_update_outstanding(void);
 extern void timer_reset(void);
-extern int timer_add(void (*callback)(void *priv), int *count, int *enable, void *priv);
-extern void timer_set_callback(int timer, void (*callback)(void *priv));
+extern int64_t timer_add(void (*callback)(void *priv), int64_t *count, int64_t *enable, void *priv);
+extern void timer_set_callback(int64_t timer, void (*callback)(void *priv));
 
 #define TIMER_ALWAYS_ENABLED &timer_one
 
-extern int timer_count;
-extern int timer_one;
+extern int64_t timer_count;
+extern int64_t timer_one;
 
 #define TIMER_SHIFT 6
 
-extern int TIMER_USEC;
+extern int64_t TIMER_USEC;
 
 #endif /*_TIMER_H_*/

@@ -47,7 +47,7 @@
 #define STAT_IFULL      0x02
 #define STAT_OFULL      0x01
 
-#define PS2_REFRESH_TIME (16 * TIMER_USEC)
+#define PS2_REFRESH_TIME (16LL * TIMER_USEC)
 
 #define CCB_UNUSED      0x80
 #define CCB_TRANSLATE   0x40
@@ -88,7 +88,7 @@ struct
         void (*mouse_write)(uint8_t val, void *p);
         void *mouse_p;
         
-        int refresh_time;
+        int64_t refresh_time;
         int refresh;
         
         int is_ps2;
@@ -145,7 +145,7 @@ void keyboard_at_log(const char *format, ...)
 
 static void keyboard_at_poll(void)
 {
-	keybsenddelay += (1000 * TIMER_USEC);
+	keybsenddelay += (1000LL * TIMER_USEC);
 
         if ((keyboard_at.out_new != -1) && !keyboard_at.last_irq)
         {
