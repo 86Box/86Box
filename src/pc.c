@@ -545,6 +545,10 @@ pc_reset_hard_init(void)
     fdc_init();
     fdc_update_is_nsc(0);
     floppy_reset();
+#ifndef WALTJE
+    /* This is needed to initialize the serial timer. */
+    serial_init();
+#endif
 
     /* Initialize the actual machine and its basic modules. */
     machine_init();
