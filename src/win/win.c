@@ -1198,6 +1198,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     /* Fire up the machine. */
     pc_reset_hard();
 
+    StatusBarUpdatePanes();
+
     /*
      * Everything has been configured, and all seems to work,
      * so now it is time to start the main thread to do some
