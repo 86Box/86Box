@@ -8,9 +8,10 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.18	2017/10/05
+ * Version:	@(#)win_settings.c	1.0.18	2017/10/07
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2016,2017 Miran Grca.
  */
 #define UNICODE
@@ -51,7 +52,6 @@
 #include "../video/vid_voodoo.h"
 #include "plat_midi.h"
 #include "win.h"
-#include "win_language.h"
 
 
 /* Machine category */
@@ -522,13 +522,13 @@ static void win_settings_machine_recalc_machine(HWND hdlg)
 	{
 		SendMessage(h, UDM_SETPOS, 0, temp_mem_size);
 		h = GetDlgItem(hdlg, IDC_TEXT_MB);
-		SendMessage(h, WM_SETTEXT, 0, (LPARAM) win_language_get_string_from_id(IDS_2094));
+		SendMessage(h, WM_SETTEXT, 0, (LPARAM) win_get_string(IDS_2094));
 	}
 	else
 	{
 		SendMessage(h, UDM_SETPOS, 0, temp_mem_size / 1024);
 		h = GetDlgItem(hdlg, IDC_TEXT_MB);
-		SendMessage(h, WM_SETTEXT, 0, (LPARAM) win_language_get_string_from_id(IDS_2087));
+		SendMessage(h, WM_SETTEXT, 0, (LPARAM) win_get_string(IDS_2087));
 	}
 
 	free(lptsTemp);
@@ -572,11 +572,11 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 			SendMessage(h, CB_SETCURSEL, machinetolist[temp_machine], 0);
 
 			h = GetDlgItem(hdlg, IDC_COMBO_WS);
-	                SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2131));
+	                SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_get_string(IDS_2131));
 
 			for (c = 0; c < 8; c++)
 			{
-				wsprintf(lptsTemp, win_language_get_string_from_id(2132), c);
+				wsprintf(lptsTemp, win_get_string(2132), c);
 	        	        SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 			}
 
@@ -745,12 +745,12 @@ static BOOL CALLBACK win_settings_video_proc(HWND hdlg, UINT message, WPARAM wPa
 			recalc_vid_list(hdlg);
 
 			h = GetDlgItem(hdlg, IDC_COMBO_VIDEO_SPEED);
-			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2133));
-			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2134));
-			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2135));
-			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2136));
-			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2137));
-			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2138));
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)win_get_string(IDS_2133));
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)win_get_string(IDS_2134));
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)win_get_string(IDS_2135));
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)win_get_string(IDS_2136));
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)win_get_string(IDS_2137));
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)win_get_string(IDS_2138));
 			SendMessage(h, CB_SETCURSEL, temp_video_speed, 0);
 
 	                h=GetDlgItem(hdlg, IDC_CHECK_VOODOO);
@@ -895,7 +895,7 @@ static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wPa
 				{
 					str_id = IDS_3072 + c;
 
-					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(str_id));
+					SendMessage(h, CB_ADDSTRING, 0, (LPARAM)win_get_string(str_id));
 
 					settings_list_to_mouse[d] = c;
 					d++;
@@ -908,7 +908,7 @@ static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wPa
 			c = 0;
 			while (joystick_get_name(c))
 			{
-				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2144 + c));
+				SendMessage(h, CB_ADDSTRING, 0, (LPARAM)win_get_string(2144 + c));
 				c++;
 			}
 			EnableWindow(h, TRUE);
@@ -1061,7 +1061,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 					{
 						if (c == 0)
 						{
-							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2152));
+							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_get_string(IDS_2152));
 						}
 						else
 						{
@@ -1108,7 +1108,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 					{
 						if (c == 0)
 						{
-							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2152));
+							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_get_string(IDS_2152));
 						}
 						else
 						{
@@ -1293,7 +1293,7 @@ static BOOL CALLBACK win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wPa
 
 				if (c == 0)
 				{
-					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2152));
+					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_get_string(IDS_2152));
 				}
 				else
 				{
@@ -1504,7 +1504,7 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 					{
 						if (c == 0)
 						{
-							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_2152));
+							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_get_string(IDS_2152));
 						}
 						else
 						{
@@ -1533,11 +1533,11 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 			recalc_hdc_list(hdlg, temp_machine, 0);
 
 			h=GetDlgItem(hdlg, IDC_COMBO_IDE_TER);
-			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_5376));
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)win_get_string(IDS_5376));
 
 			for (c = 0; c < 11; c++)
 			{
-				wsprintf(lptsTemp, win_language_get_string_from_id(IDS_2155), valid_ide_irqs[c]);
+				wsprintf(lptsTemp, win_get_string(IDS_2155), valid_ide_irqs[c]);
 	        	        SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 			}
 
@@ -1551,11 +1551,11 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 			}
 
 			h=GetDlgItem(hdlg, IDC_COMBO_IDE_QUA);
-			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_5376));
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)win_get_string(IDS_5376));
 
 			for (c = 0; c < 11; c++)
 			{
-				wsprintf(lptsTemp, win_language_get_string_from_id(IDS_2155), valid_ide_irqs[c]);
+				wsprintf(lptsTemp, win_get_string(IDS_2155), valid_ide_irqs[c]);
 	        	        SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 			}
 
@@ -1751,7 +1751,7 @@ static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM w
 				{
 					if (c == 0)
 					{
-						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(2152));
+						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_get_string(2152));
 					}
 					else
 					{
@@ -1929,34 +1929,34 @@ static void add_locations(HWND hdlg)
 	h = GetDlgItem(hdlg, IDC_COMBO_HD_BUS);
 	for (i = 0; i < 7; i++)
 	{
-		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_4352 + i));
+		SendMessage(h, CB_ADDSTRING, 0, (LPARAM)win_get_string(IDS_4352 + i));
 	}
 
 	h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL);
 	for (i = 0; i < 8; i++)
 	{
-		wsprintf(lptsTemp, win_language_get_string_from_id(IDS_4097), i >> 1, i & 1);
+		wsprintf(lptsTemp, win_get_string(IDS_4097), i >> 1, i & 1);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 	}
 
 	h = GetDlgItem(hdlg, IDC_COMBO_HD_ID);
 	for (i = 0; i < 16; i++)
 	{
-		wsprintf(lptsTemp, win_language_get_string_from_id(IDS_4098), i);
+		wsprintf(lptsTemp, win_get_string(IDS_4098), i);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 	}
 
 	h = GetDlgItem(hdlg, IDC_COMBO_HD_LUN);
 	for (i = 0; i < 8; i++)
 	{
-		wsprintf(lptsTemp, win_language_get_string_from_id(IDS_4098), i);
+		wsprintf(lptsTemp, win_get_string(IDS_4098), i);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 	}
 
 	h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL_IDE);
 	for (i = 0; i < 8; i++)
 	{
-		wsprintf(lptsTemp, win_language_get_string_from_id(IDS_4097), i >> 1, i & 1);
+		wsprintf(lptsTemp, win_get_string(IDS_4097), i >> 1, i & 1);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 	}
 
@@ -2198,25 +2198,25 @@ static void win_settings_hard_disks_update_item(HWND hwndList, int i, int column
 		switch(temp_hdd[i].bus)
 		{
 			case HDD_BUS_MFM:
-				wsprintf(szText, win_language_get_string_from_id(IDS_4608), temp_hdd[i].mfm_channel >> 1, temp_hdd[i].mfm_channel & 1);
+				wsprintf(szText, win_get_string(IDS_4608), temp_hdd[i].mfm_channel >> 1, temp_hdd[i].mfm_channel & 1);
 				break;
 			case HDD_BUS_XTIDE:
-				wsprintf(szText, win_language_get_string_from_id(IDS_4609), temp_hdd[i].xtide_channel >> 1, temp_hdd[i].xtide_channel & 1);
+				wsprintf(szText, win_get_string(IDS_4609), temp_hdd[i].xtide_channel >> 1, temp_hdd[i].xtide_channel & 1);
 				break;
 			case HDD_BUS_ESDI:
-				wsprintf(szText, win_language_get_string_from_id(IDS_4610), temp_hdd[i].esdi_channel >> 1, temp_hdd[i].esdi_channel & 1);
+				wsprintf(szText, win_get_string(IDS_4610), temp_hdd[i].esdi_channel >> 1, temp_hdd[i].esdi_channel & 1);
 				break;
 			case HDD_BUS_IDE_PIO_ONLY:
-				wsprintf(szText, win_language_get_string_from_id(IDS_4611), temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
+				wsprintf(szText, win_get_string(IDS_4611), temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
 				break;
 			case HDD_BUS_IDE_PIO_AND_DMA:
-				wsprintf(szText, win_language_get_string_from_id(IDS_4612), temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
+				wsprintf(szText, win_get_string(IDS_4612), temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
 				break;
 			case HDD_BUS_SCSI:
-				wsprintf(szText, win_language_get_string_from_id(IDS_4613), temp_hdd[i].scsi_id, temp_hdd[i].scsi_lun);
+				wsprintf(szText, win_get_string(IDS_4613), temp_hdd[i].scsi_id, temp_hdd[i].scsi_lun);
 				break;
 			case HDD_BUS_SCSI_REMOVABLE:
-				wsprintf(szText, win_language_get_string_from_id(IDS_4614), temp_hdd[i].scsi_id, temp_hdd[i].scsi_lun);
+				wsprintf(szText, win_get_string(IDS_4614), temp_hdd[i].scsi_id, temp_hdd[i].scsi_lun);
 				break;
 		}
 		lvI.pszText = szText;
@@ -2229,25 +2229,25 @@ static void win_settings_hard_disks_update_item(HWND hwndList, int i, int column
 	}
 	else if (column == 2)
 	{
-		wsprintf(szText, win_language_get_string_from_id(IDS_4098), temp_hdd[i].tracks);
+		wsprintf(szText, win_get_string(IDS_4098), temp_hdd[i].tracks);
 		lvI.pszText = szText;
 		lvI.iImage = 0;
 	}
 	else if (column == 3)
 	{
-		wsprintf(szText, win_language_get_string_from_id(IDS_4098), temp_hdd[i].hpc);
+		wsprintf(szText, win_get_string(IDS_4098), temp_hdd[i].hpc);
 		lvI.pszText = szText;
 		lvI.iImage = 0;
 	}
 	else if (column == 4)
 	{
-		wsprintf(szText, win_language_get_string_from_id(IDS_4098), temp_hdd[i].spt);
+		wsprintf(szText, win_get_string(IDS_4098), temp_hdd[i].spt);
 		lvI.pszText = szText;
 		lvI.iImage = 0;
 	}
 	else if (column == 5)
 	{
-		wsprintf(szText, win_language_get_string_from_id(IDS_4098), (temp_hdd[i].tracks * temp_hdd[i].hpc * temp_hdd[i].spt) >> 11);
+		wsprintf(szText, win_get_string(IDS_4098), (temp_hdd[i].tracks * temp_hdd[i].hpc * temp_hdd[i].spt) >> 11);
 		lvI.pszText = szText;
 		lvI.iImage = 0;
 	}
@@ -2282,25 +2282,25 @@ static BOOL win_settings_hard_disks_recalc_list(HWND hwndList)
 			switch(temp_hdd[i].bus)
 			{
 				case HDD_BUS_MFM:
-					wsprintf(szText, win_language_get_string_from_id(IDS_4608), temp_hdd[i].mfm_channel >> 1, temp_hdd[i].mfm_channel & 1);
+					wsprintf(szText, win_get_string(IDS_4608), temp_hdd[i].mfm_channel >> 1, temp_hdd[i].mfm_channel & 1);
 					break;
 				case HDD_BUS_XTIDE:
-					wsprintf(szText, win_language_get_string_from_id(IDS_4609), temp_hdd[i].xtide_channel >> 1, temp_hdd[i].xtide_channel & 1);
+					wsprintf(szText, win_get_string(IDS_4609), temp_hdd[i].xtide_channel >> 1, temp_hdd[i].xtide_channel & 1);
 					break;
 				case HDD_BUS_ESDI:
-					wsprintf(szText, win_language_get_string_from_id(IDS_4610), temp_hdd[i].esdi_channel >> 1, temp_hdd[i].esdi_channel & 1);
+					wsprintf(szText, win_get_string(IDS_4610), temp_hdd[i].esdi_channel >> 1, temp_hdd[i].esdi_channel & 1);
 					break;
 				case HDD_BUS_IDE_PIO_ONLY:
-					wsprintf(szText, win_language_get_string_from_id(IDS_4611), temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
+					wsprintf(szText, win_get_string(IDS_4611), temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
 					break;
 				case HDD_BUS_IDE_PIO_AND_DMA:
-					wsprintf(szText, win_language_get_string_from_id(IDS_4612), temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
+					wsprintf(szText, win_get_string(IDS_4612), temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
 					break;
 				case HDD_BUS_SCSI:
-					wsprintf(szText, win_language_get_string_from_id(IDS_4613), temp_hdd[i].scsi_id, temp_hdd[i].scsi_lun);
+					wsprintf(szText, win_get_string(IDS_4613), temp_hdd[i].scsi_id, temp_hdd[i].scsi_lun);
 					break;
 				case HDD_BUS_SCSI_REMOVABLE:
-					wsprintf(szText, win_language_get_string_from_id(IDS_4614), temp_hdd[i].scsi_id, temp_hdd[i].scsi_lun);
+					wsprintf(szText, win_get_string(IDS_4614), temp_hdd[i].scsi_id, temp_hdd[i].scsi_lun);
 					break;
 			}
 			lvI.pszText = szText;
@@ -2323,7 +2323,7 @@ static BOOL win_settings_hard_disks_recalc_list(HWND hwndList)
 			}
 
 			lvI.iSubItem = 2;
-			wsprintf(szText, win_language_get_string_from_id(IDS_4098), temp_hdd[i].tracks);
+			wsprintf(szText, win_get_string(IDS_4098), temp_hdd[i].tracks);
 			lvI.pszText = szText;
 			lvI.iItem = j;
 			lvI.iImage = 0;
@@ -2334,7 +2334,7 @@ static BOOL win_settings_hard_disks_recalc_list(HWND hwndList)
 			}
 
 			lvI.iSubItem = 3;
-			wsprintf(szText, win_language_get_string_from_id(IDS_4098), temp_hdd[i].hpc);
+			wsprintf(szText, win_get_string(IDS_4098), temp_hdd[i].hpc);
 			lvI.pszText = szText;
 			lvI.iItem = j;
 			lvI.iImage = 0;
@@ -2345,7 +2345,7 @@ static BOOL win_settings_hard_disks_recalc_list(HWND hwndList)
 			}
 
 			lvI.iSubItem = 4;
-			wsprintf(szText, win_language_get_string_from_id(IDS_4098), temp_hdd[i].spt);
+			wsprintf(szText, win_get_string(IDS_4098), temp_hdd[i].spt);
 			lvI.pszText = szText;
 			lvI.iItem = j;
 			lvI.iImage = 0;
@@ -2356,7 +2356,7 @@ static BOOL win_settings_hard_disks_recalc_list(HWND hwndList)
 			}
 
 			lvI.iSubItem = 5;
-			wsprintf(szText, win_language_get_string_from_id(IDS_4098), (temp_hdd[i].tracks * temp_hdd[i].hpc * temp_hdd[i].spt) >> 11);
+			wsprintf(szText, win_get_string(IDS_4098), (temp_hdd[i].tracks * temp_hdd[i].hpc * temp_hdd[i].spt) >> 11);
 			lvI.pszText = szText;
 			lvI.iItem = j;
 			lvI.iImage = 0;
@@ -2392,7 +2392,7 @@ static BOOL win_settings_hard_disks_init_columns(HWND hwndList)
 	for (iCol = 0; iCol < C_COLUMNS_HARD_DISKS; iCol++)
 	{
 		lvc.iSubItem = iCol;
-		lvc.pszText = win_language_get_string_from_id(2082 + iCol);
+		lvc.pszText = win_get_string(2082 + iCol);
 
 		switch(iCol)
 		{
@@ -2455,7 +2455,7 @@ static void set_edit_box_contents(HWND hdlg, int id, uint64_t val)
 	WCHAR szText[256];
 
 	h = GetDlgItem(hdlg, id);
-	wsprintf(szText, win_language_get_string_from_id(IDS_2156), val);
+	wsprintf(szText, win_get_string(IDS_2156), val);
 	SendMessage(h, WM_SETTEXT, (WPARAM) wcslen(szText), (LPARAM) szText);
 }
 
@@ -2489,15 +2489,15 @@ static int hdconf_initialize_hdt_combo(HWND hdlg)
 	{	
 		temp_size = hdd_table[i][0] * hdd_table[i][1] * hdd_table[i][2];
 		size_mb = temp_size >> 11;
-                wsprintf(szText, win_language_get_string_from_id(IDS_2157), size_mb, hdd_table[i][0], hdd_table[i][1], hdd_table[i][2]);
+                wsprintf(szText, win_get_string(IDS_2157), size_mb, hdd_table[i][0], hdd_table[i][1], hdd_table[i][2]);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) szText);
 		if ((tracks == hdd_table[i][0]) && (hpc == hdd_table[i][1]) && (spt == hdd_table[i][2]))
 		{
 			selection = i;
 		}
 	}
-	SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_4100));
-	SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_4101));
+	SendMessage(h, CB_ADDSTRING, 0, (LPARAM)win_get_string(IDS_4100));
+	SendMessage(h, CB_ADDSTRING, 0, (LPARAM)win_get_string(IDS_4101));
 	SendMessage(h, CB_SETCURSEL, selection, 0);
 	return selection;
 }
@@ -2555,7 +2555,7 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 				hdd_ptr = &(temp_hdd[next_free_id]);
 			}
 
-			SetWindowText(hdlg, win_language_get_string_from_id((existing & 1) ? IDS_4103 : IDS_4102));
+			SetWindowText(hdlg, win_get_string((existing & 1) ? IDS_4103 : IDS_4102));
 
 			no_update = 1;
 			spt = (existing & 1) ? 0 : 17;
@@ -2809,7 +2809,7 @@ hd_add_ok_common:
 					return TRUE;
 
 				case IDC_CFILE:
-		                        if (!file_dlg_w(hdlg, win_language_get_string_from_id(IDS_4106), L"", !(existing & 1)))
+		                        if (!file_dlg_w(hdlg, win_get_string(IDS_4106), L"", !(existing & 1)))
        			                {
 						if (!(existing & 1))
 						{
@@ -3545,7 +3545,7 @@ static BOOL win_settings_floppy_drives_recalc_list(HWND hwndList)
 		}
 		else
 		{
-			lvI.pszText = win_language_get_string_from_id(IDS_5376);
+			lvI.pszText = win_get_string(IDS_5376);
 		}
 		lvI.iItem = i;
 		lvI.iImage = temp_fdd_types[i];
@@ -3554,7 +3554,7 @@ static BOOL win_settings_floppy_drives_recalc_list(HWND hwndList)
 			return FALSE;
 
 		lvI.iSubItem = 1;
-		lvI.pszText = win_language_get_string_from_id(temp_fdd_turbo[i] ? IDS_2060 : IDS_2061);
+		lvI.pszText = win_get_string(temp_fdd_turbo[i] ? IDS_2060 : IDS_2061);
 		lvI.iItem = i;
 		lvI.iImage = 0;
 
@@ -3564,7 +3564,7 @@ static BOOL win_settings_floppy_drives_recalc_list(HWND hwndList)
 		}
 
 		lvI.iSubItem = 2;
-		lvI.pszText = win_language_get_string_from_id(temp_fdd_check_bpb[i] ? IDS_2060 : IDS_2061);
+		lvI.pszText = win_get_string(temp_fdd_check_bpb[i] ? IDS_2060 : IDS_2061);
 		lvI.iItem = i;
 		lvI.iImage = 0;
 
@@ -3595,21 +3595,21 @@ static BOOL win_settings_cdrom_drives_recalc_list(HWND hwndList)
 		{
 			case CDROM_BUS_DISABLED:
 			default:
-				lvI.pszText = win_language_get_string_from_id(fsid);
+				lvI.pszText = win_get_string(fsid);
 				lvI.iImage = 0;
 				break;
 			case CDROM_BUS_ATAPI_PIO_ONLY:
-				wsprintf(szText, win_language_get_string_from_id(fsid), temp_cdrom_drives[i].ide_channel >> 1, temp_cdrom_drives[i].ide_channel & 1);
+				wsprintf(szText, win_get_string(fsid), temp_cdrom_drives[i].ide_channel >> 1, temp_cdrom_drives[i].ide_channel & 1);
 				lvI.pszText = szText;
 				lvI.iImage = 1;
 				break;
 			case CDROM_BUS_ATAPI_PIO_AND_DMA:
-				wsprintf(szText, win_language_get_string_from_id(fsid), temp_cdrom_drives[i].ide_channel >> 1, temp_cdrom_drives[i].ide_channel & 1);
+				wsprintf(szText, win_get_string(fsid), temp_cdrom_drives[i].ide_channel >> 1, temp_cdrom_drives[i].ide_channel & 1);
 				lvI.pszText = szText;
 				lvI.iImage = 1;
 				break;
 			case CDROM_BUS_SCSI:
-				wsprintf(szText, win_language_get_string_from_id(fsid), temp_cdrom_drives[i].scsi_device_id, temp_cdrom_drives[i].scsi_device_lun);
+				wsprintf(szText, win_get_string(fsid), temp_cdrom_drives[i].scsi_device_id, temp_cdrom_drives[i].scsi_device_lun);
 				lvI.pszText = szText;
 				lvI.iImage = 1;
 				break;
@@ -3631,7 +3631,7 @@ static BOOL win_settings_floppy_drives_init_columns(HWND hwndList)
 	lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 
 	lvc.iSubItem = 0;
-	lvc.pszText = win_language_get_string_from_id(IDS_2143);
+	lvc.pszText = win_get_string(IDS_2143);
 
 	lvc.cx = 292;
 	lvc.fmt = LVCFMT_LEFT;
@@ -3642,7 +3642,7 @@ static BOOL win_settings_floppy_drives_init_columns(HWND hwndList)
 	}
 
 	lvc.iSubItem = 1;
-	lvc.pszText = win_language_get_string_from_id(IDS_2059);
+	lvc.pszText = win_get_string(IDS_2059);
 
 	lvc.cx = 50;
 	lvc.fmt = LVCFMT_LEFT;
@@ -3653,7 +3653,7 @@ static BOOL win_settings_floppy_drives_init_columns(HWND hwndList)
 	}
 
 	lvc.iSubItem = 2;
-	lvc.pszText = win_language_get_string_from_id(IDS_2170);
+	lvc.pszText = win_get_string(IDS_2170);
 
 	lvc.cx = 75;
 	lvc.fmt = LVCFMT_LEFT;
@@ -3672,7 +3672,7 @@ static BOOL win_settings_cdrom_drives_init_columns(HWND hwndList)
 	lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 
 	lvc.iSubItem = 0;
-	lvc.pszText = win_language_get_string_from_id(2082);
+	lvc.pszText = win_get_string(IDS_2082);
 
 	lvc.cx = 392;
 	lvc.fmt = LVCFMT_LEFT;
@@ -3743,7 +3743,7 @@ static void win_settings_floppy_drives_update_item(HWND hwndList, int i)
 	}
 	else
 	{
-		lvI.pszText = win_language_get_string_from_id(IDS_5376);
+		lvI.pszText = win_get_string(IDS_5376);
 	}
 	lvI.iImage = temp_fdd_types[i];
 
@@ -3753,7 +3753,7 @@ static void win_settings_floppy_drives_update_item(HWND hwndList, int i)
 	}
 
 	lvI.iSubItem = 1;
-	lvI.pszText = win_language_get_string_from_id(temp_fdd_turbo[i] ? IDS_2060 : IDS_2061);
+	lvI.pszText = win_get_string(temp_fdd_turbo[i] ? IDS_2060 : IDS_2061);
 	lvI.iItem = i;
 	lvI.iImage = 0;
 
@@ -3763,7 +3763,7 @@ static void win_settings_floppy_drives_update_item(HWND hwndList, int i)
 	}
 
 	lvI.iSubItem = 2;
-	lvI.pszText = win_language_get_string_from_id(temp_fdd_check_bpb[i] ? IDS_2060 : IDS_2061);
+	lvI.pszText = win_get_string(temp_fdd_check_bpb[i] ? IDS_2060 : IDS_2061);
 	lvI.iItem = i;
 	lvI.iImage = 0;
 
@@ -3791,21 +3791,21 @@ static void win_settings_cdrom_drives_update_item(HWND hwndList, int i)
 	{
 		case CDROM_BUS_DISABLED:
 		default:
-			lvI.pszText = win_language_get_string_from_id(fsid);
+			lvI.pszText = win_get_string(fsid);
 			lvI.iImage = 0;
 			break;
 		case CDROM_BUS_ATAPI_PIO_ONLY:
-			wsprintf(szText, win_language_get_string_from_id(fsid), temp_cdrom_drives[i].ide_channel >> 1, temp_cdrom_drives[i].ide_channel & 1);
+			wsprintf(szText, win_get_string(fsid), temp_cdrom_drives[i].ide_channel >> 1, temp_cdrom_drives[i].ide_channel & 1);
 			lvI.pszText = szText;
 			lvI.iImage = 1;
 			break;
 		case CDROM_BUS_ATAPI_PIO_AND_DMA:
-			wsprintf(szText, win_language_get_string_from_id(fsid), temp_cdrom_drives[i].ide_channel >> 1, temp_cdrom_drives[i].ide_channel & 1);
+			wsprintf(szText, win_get_string(fsid), temp_cdrom_drives[i].ide_channel >> 1, temp_cdrom_drives[i].ide_channel & 1);
 			lvI.pszText = szText;
 			lvI.iImage = 1;
 			break;
 		case CDROM_BUS_SCSI:
-			wsprintf(szText, win_language_get_string_from_id(fsid), temp_cdrom_drives[i].scsi_device_id, temp_cdrom_drives[i].scsi_device_lun);
+			wsprintf(szText, win_get_string(fsid), temp_cdrom_drives[i].scsi_device_id, temp_cdrom_drives[i].scsi_device_lun);
 			lvI.pszText = szText;
 			lvI.iImage = 1;
 			break;
@@ -3830,28 +3830,28 @@ static void cdrom_add_locations(HWND hdlg)
 	{
 		if ((i == CDROM_BUS_DISABLED) || (i >= CDROM_BUS_ATAPI_PIO_ONLY))
 		{
-			SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(combo_id_to_string_id(i)));
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)win_get_string(combo_id_to_string_id(i)));
 		}
 	}
 
 	h = GetDlgItem(hdlg, IDC_COMBO_CD_ID);
 	for (i = 0; i < 16; i++)
 	{
-		wsprintf(lptsTemp, win_language_get_string_from_id(IDS_4098), i);
+		wsprintf(lptsTemp, win_get_string(IDS_4098), i);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 	}
 
 	h = GetDlgItem(hdlg, IDC_COMBO_CD_LUN);
 	for (i = 0; i < 8; i++)
 	{
-		wsprintf(lptsTemp, win_language_get_string_from_id(IDS_4098), i);
+		wsprintf(lptsTemp, win_get_string(IDS_4098), i);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 	}
 
 	h = GetDlgItem(hdlg, IDC_COMBO_CD_CHANNEL_IDE);
 	for (i = 0; i < 8; i++)
 	{
-		wsprintf(lptsTemp, win_language_get_string_from_id(IDS_4097), i >> 1, i & 1);
+		wsprintf(lptsTemp, win_get_string(IDS_4097), i >> 1, i & 1);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 	}
 
@@ -3945,7 +3945,7 @@ static BOOL CALLBACK win_settings_removable_devices_proc(HWND hdlg, UINT message
 			{
 				if (i == 0)
 				{
-					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) win_language_get_string_from_id(IDS_5376));
+					SendMessage(h, CB_ADDSTRING, 0, (LPARAM)win_get_string(IDS_5376));
 				}
 				else
 				{
@@ -4296,7 +4296,7 @@ static BOOL win_settings_main_insert_categories(HWND hwndList)
 
 	for (i = 0; i < 9; i++)
 	{
-		lvI.pszText = win_language_get_settings_category(i);
+		lvI.pszText = win_get_string(IDS_2065+i);
 		lvI.iItem = i;
 		lvI.iImage = i;
 

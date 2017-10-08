@@ -11,7 +11,6 @@
 #include "win_ddraw.h"
 #include "win_cgapal.h"
 #include "win.h"
-#include "win_language.h"
 
 
 extern "C" void fatal(const char *format, ...);
@@ -107,7 +106,7 @@ SaveBitmap(wchar_t *szFilename, HBITMAP hBitmap)
 
 	if ((fp = _wfopen(szFilename, L"wb")) == NULL) {
 		_swprintf(szMessage,
-			  win_language_get_string_from_id(IDS_2088), szFilename);
+			  win_get_string(IDS_2088), szFilename);
 		msgbox_error_wstr(hwndMain, szMessage);
 		break;
 	} 

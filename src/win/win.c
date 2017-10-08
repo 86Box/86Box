@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.16	2017/10/06
+ * Version:	@(#)win.c	1.0.17	2017/10/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -27,6 +27,7 @@
 #include <fcntl.h>
 #include <io.h>
 #include <process.h>
+#include <shlobj.h>
 #undef BITMAP
 #include <stdio.h>
 #include <stdint.h>
@@ -63,15 +64,20 @@
 #include "win_cgapal.h"
 #include "win_ddraw.h"
 #include "win_d3d.h"
-#include "win_language.h"
 
 
 #ifndef MAPVK_VK_TO_VSC
-#define MAPVK_VK_TO_VSC 0
+# define MAPVK_VK_TO_VSC 0
 #endif
 
 
 #define TIMER_1SEC	1
+
+
+typedef struct {
+    WCHAR str[512];
+} rc_str_t;
+
 
 extern int	updatestatus;
 
@@ -84,6 +90,19 @@ HANDLE		slirpMutex;
 HINSTANCE	hinstance;
 HICON		hIcon[512];
 RECT		oldclip;
+LCID		dwLanguage;
+uint32_t	dwLangID,
+		dwSubLangID;
+rc_str_t	*lpRCstr2048;
+rc_str_t	*lpRCstr3072;
+rc_str_t	*lpRCstr4096;
+rc_str_t	*lpRCstr4352;
+rc_str_t	*lpRCstr4608;
+rc_str_t	*lpRCstr5120;
+rc_str_t	*lpRCstr5376;
+rc_str_t	*lpRCstr5632;
+rc_str_t	*lpRCstr6144;
+
 
 int		pause = 0;
 int		scale = 0;
@@ -97,6 +116,8 @@ int		drawits = 0;
 int		quited = 0;
 int		mousecapture = 0;
 uint64_t	main_time;
+char		openfilestring[260];
+WCHAR		wopenfilestring[260];
 
 
 static RAWINPUTDEVICE	device;
@@ -905,6 +926,50 @@ SubWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 
+static void
+LoadCommonStrings(void)
+{
+    int i;
+
+    lpRCstr2048 = (rc_str_t *)malloc(STRINGS_NUM_2048*sizeof(rc_str_t));
+    lpRCstr3072 = (rc_str_t *)malloc(STRINGS_NUM_3072*sizeof(rc_str_t));
+    lpRCstr4096 = (rc_str_t *)malloc(STRINGS_NUM_4096*sizeof(rc_str_t));
+    lpRCstr4352 = (rc_str_t *)malloc(STRINGS_NUM_4352*sizeof(rc_str_t));
+    lpRCstr4608 = (rc_str_t *)malloc(STRINGS_NUM_4608*sizeof(rc_str_t));
+    lpRCstr5120 = (rc_str_t *)malloc(STRINGS_NUM_5120*sizeof(rc_str_t));
+    lpRCstr5376 = (rc_str_t *)malloc(STRINGS_NUM_5376*sizeof(rc_str_t));
+    lpRCstr5632 = (rc_str_t *)malloc(STRINGS_NUM_5632*sizeof(rc_str_t));
+    lpRCstr6144 = (rc_str_t *)malloc(STRINGS_NUM_6144*sizeof(rc_str_t));
+
+    for (i=0; i<STRINGS_NUM_2048; i++)
+	LoadString(hinstance, 2048+i, lpRCstr2048[i].str, 512);
+
+    for (i=0; i<STRINGS_NUM_3072; i++)
+	LoadString(hinstance, 3072+i, lpRCstr3072[i].str, 512);
+
+    for (i=0; i<STRINGS_NUM_4096; i++)
+	LoadString(hinstance, 4096+i, lpRCstr4096[i].str, 512);
+
+    for (i=0; i<STRINGS_NUM_4352; i++)
+	LoadString(hinstance, 4352+i, lpRCstr4352[i].str, 512);
+
+    for (i=0; i<STRINGS_NUM_4608; i++)
+	LoadString(hinstance, 4608+i, lpRCstr4608[i].str, 512);
+
+    for (i=0; i<STRINGS_NUM_5120; i++)
+	LoadString(hinstance, 5120+i, lpRCstr5120[i].str, 512);
+
+    for (i=0; i<STRINGS_NUM_5376; i++)
+	LoadString(hinstance, 5376+i, lpRCstr5376[i].str, 512);
+
+    for (i=0; i<STRINGS_NUM_5632; i++)
+	LoadString(hinstance, 5632+i, lpRCstr5632[i].str, 512);
+
+    for (i=0; i<STRINGS_NUM_6144; i++)
+	LoadString(hinstance, 6144+i, lpRCstr6144[i].str, 512);
+}
+
+
 #ifdef USE_CONSOLE
 /* Create a console if we don't already have one. */
 static void
@@ -1050,7 +1115,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     hinstance = hInst;
 
     /* Load common strings from the resource file. */
-    win_language_load_common_strings();
+    LoadCommonStrings();
 
     /* Create our main window's class and register it. */
     wincl.hInstance = hInst;
@@ -1119,8 +1184,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     haccel = LoadAccelerators(hInst, ACCEL_NAME);
     if (haccel == NULL) {
 	MessageBox(hwndMain,
-		   win_language_get_string_from_id(IDS_2053),
-		   win_language_get_string_from_id(IDS_2050),
+		   win_get_string(IDS_2053),
+		   win_get_string(IDS_2050),
 		   MB_OK | MB_ICONERROR);
 	return(3);
     }
@@ -1133,8 +1198,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     device.hwndTarget = hwnd;
     if (! RegisterRawInputDevices(&device, 1, sizeof(device))) {
 	MessageBox(hwndMain,
-		   win_language_get_string_from_id(IDS_2054),
-		   win_language_get_string_from_id(IDS_2050),
+		   win_get_string(IDS_2054),
+		   win_get_string(IDS_2050),
 		   MB_OK | MB_ICONERROR);
 	return(4);
     }
@@ -1159,8 +1224,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 	vid_api ^= 1;
 	if (! vid_apis[0][vid_api].init(hwndRender)) {
 		MessageBox(hwnd,
-			   win_language_get_string_from_id(IDS_2095),
-			   win_language_get_string_from_id(IDS_2050),
+			   win_get_string(IDS_2095),
+			   win_get_string(IDS_2050),
 			   MB_OK | MB_ICONERROR);
 		return(5);
 	}
@@ -1189,8 +1254,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     if (! pc_init_modules()) {
 	/* Dang, no ROMs found at all! */
 	MessageBox(hwnd,
-		   win_language_get_string_from_id(IDS_2056),
-		   win_language_get_string_from_id(IDS_2050),
+		   win_get_string(IDS_2056),
+		   win_get_string(IDS_2050),
 		   MB_OK | MB_ICONERROR);
 	return(6);
     }
@@ -1198,6 +1263,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     /* Fire up the machine. */
     pc_reset_hard();
 
+    /* Make sure the status bar is up-to-date. */
     StatusBarUpdatePanes();
 
     /*
@@ -1322,6 +1388,82 @@ delay_ms(uint32_t count)
 }
 
 
+/* We should have the language ID as a parameter. */
+void
+win_set_language(void)
+{
+    SetThreadLocale(dwLanguage);
+}
+
+
+/* Update the global language used. This needs a parameter.. */
+void
+win_language_update(void)
+{
+    win_set_language();
+#if 0
+    MenuUpdate();
+#endif
+    LoadCommonStrings();
+}
+
+
+void
+win_language_check(void)
+{
+    LCID dwLanguageNew = MAKELCID(dwLangID, dwSubLangID);
+
+    if (dwLanguageNew != dwLanguage) {
+	dwLanguage = dwLanguageNew;
+
+	win_language_update();
+    }
+}
+
+
+LPTSTR
+win_get_string(int i)
+{
+    LPTSTR str;
+
+    if ((i >= 2048) && (i <= 3071)) {
+	str = lpRCstr2048[i-2048].str;
+    } else if ((i >= 3072) && (i <= 4095)) {
+	str = lpRCstr3072[i-3072].str;
+    } else if ((i >= 4096) && (i <= 4351)) {
+	str = lpRCstr4096[i-4096].str;
+    } else if ((i >= 4352) && (i <= 4607)) {
+	str = lpRCstr4352[i-4352].str;
+    } else if ((i >= 4608) && (i <= 5119)) {
+	str = lpRCstr4608[i-4608].str;
+    } else if ((i >= 5120) && (i <= 5375)) {
+	str = lpRCstr5120[i-5120].str;
+    } else if ((i >= 5376) && (i <= 5631)) {
+	str = lpRCstr5376[i-5376].str;
+    } else if ((i >= 5632) && (i <= 6143)) {
+	str = lpRCstr5632[i-5632].str;
+    } else {
+	str = lpRCstr6144[i-6144].str;
+    }
+
+    return(str);
+}
+
+
+LPTSTR
+win_get_string_from_string(char *str)
+{
+    return(win_get_string(atoi(str)));
+}
+
+
+wchar_t *
+plat_get_string(int i)
+{
+    return((wchar_t *)win_get_string(i));
+}
+
+
 void
 startblit(void)
 {
@@ -1428,11 +1570,11 @@ updatewindowsize(int x, int y)
 }
 
 
-//void
-//uws_natural(void)
-//{
-    //updatewindowsize(unscaled_size_x, efwinsizey);
-//}
+void
+uws_natural(void)
+{
+    updatewindowsize(unscaled_size_x, efwinsizey);
+}
 
 
 void

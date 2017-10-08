@@ -8,10 +8,11 @@
  *
  *		Common code to handle all sorts of hard disk images.
  *
- * Version:	@(#)hdd.c	1.0.3	2017/10/05
+ * Version:	@(#)hdd.c	1.0.3	2017/10/07
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
@@ -24,7 +25,6 @@
 #include "../device.h"
 #include "../machine/machine.h"
 #include "../win/win.h"
-#include "../win/win_language.h"
 #include "hdd.h"
 
 

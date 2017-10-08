@@ -10,11 +10,12 @@
  *
  * NOTE:	FIXME: Strings 2176 and 2193 are same.
  *
- * Version:	@(#)resource.h	1.0.10	2017/10/05
+ * Version:	@(#)resource.h	1.0.11	2017/10/07
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempem, <decwiz@yahoo.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */

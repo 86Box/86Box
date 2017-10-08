@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.2	2017/10/06
+ * Version:	@(#)win_stbar.c	1.0.2	2017/10/07
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -49,7 +49,6 @@
 #include "plat_ui.h"
 #include "win.h"
 #include "win_cdrom_ioctl.h"
-#include "win_language.h"
 
 
 HWND		hwndSBAR;
@@ -133,15 +132,15 @@ static void
 StatusBarCreateFloppySubmenu(HMENU m, int id)
 {
     AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_NEW | id,
-	       win_language_get_string_from_id(IDS_2161));
+	       win_get_string(IDS_2161));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_EXISTING | id,
-	       win_language_get_string_from_id(IDS_2162));
+	       win_get_string(IDS_2162));
     AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_EXISTING_WP | id,
-	       win_language_get_string_from_id(IDS_2163));
+	       win_get_string(IDS_2163));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_FLOPPY_EJECT | id,
-	       win_language_get_string_from_id(IDS_2164));
+	       win_get_string(IDS_2164));
 }
 
 
@@ -152,15 +151,15 @@ StatusBarCreateCdromSubmenu(HMENU m, int id)
     int i;
 
     AppendMenu(m, MF_STRING, IDM_CDROM_MUTE | id,
-	       win_language_get_string_from_id(IDS_2165));
+	       win_get_string(IDS_2165));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_CDROM_EMPTY | id,
-	       win_language_get_string_from_id(IDS_2166));
+	       win_get_string(IDS_2166));
     AppendMenu(m, MF_STRING, IDM_CDROM_RELOAD | id,
-	       win_language_get_string_from_id(IDS_2167));
+	       win_get_string(IDS_2167));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_CDROM_IMAGE | id,
-	       win_language_get_string_from_id(IDS_2168));
+	       win_get_string(IDS_2168));
 
     if (host_cdrom_drive_available_num == 0) {
 	if ((cdrom_drives[id].host_drive >= 'A') &&
@@ -207,17 +206,17 @@ static void
 StatusBarCreateRemovableDiskSubmenu(HMENU m, int id)
 {
     AppendMenu(m, MF_STRING, IDM_RDISK_EJECT | id,
-	       win_language_get_string_from_id(IDS_2166));
+	       win_get_string(IDS_2166));
     AppendMenu(m, MF_STRING, IDM_RDISK_RELOAD | id,
-	       win_language_get_string_from_id(IDS_2167));
+	       win_get_string(IDS_2167));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_RDISK_SEND_CHANGE | id,
-	       win_language_get_string_from_id(IDS_2142));
+	       win_get_string(IDS_2142));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_RDISK_IMAGE | id,
-	       win_language_get_string_from_id(IDS_2168));
+	       win_get_string(IDS_2168));
     AppendMenu(m, MF_STRING, IDM_RDISK_IMAGE_WP | id,
-	       win_language_get_string_from_id(IDS_2169));
+	       win_get_string(IDS_2169));
 }
 
 
@@ -307,10 +306,10 @@ StatusBarCreateFloppyTip(int part)
     mbstowcs(wtext, fdd_getname(fdd_get_type(drive)),
 	     strlen(fdd_getname(fdd_get_type(drive))) + 1);
     if (wcslen(floppyfns[drive]) == 0) {
-	_swprintf(tempTip,  win_language_get_string_from_id(IDS_2158),
-		  drive+1, wtext, win_language_get_string_from_id(IDS_2057));
+	_swprintf(tempTip, win_get_string(IDS_2158),
+		  drive+1, wtext, win_get_string(IDS_2057));
     } else {
-	_swprintf(tempTip,  win_language_get_string_from_id(IDS_2158),
+	_swprintf(tempTip, win_get_string(IDS_2158),
 		  drive+1, wtext, floppyfns[drive]);
     }
 
@@ -332,24 +331,24 @@ StatusBarCreateCdromTip(int part)
     int bus = cdrom_drives[drive].bus_type;
 
     id = IDS_4352 + (bus - 1);
-    szText = (WCHAR *)win_language_get_string_from_id(id);
+    szText = (WCHAR *)win_get_string(id);
 
     if (cdrom_drives[drive].host_drive == 200) {
 	if (wcslen(cdrom_image[drive].image_path) == 0) {
-		_swprintf(tempTip, win_language_get_string_from_id(IDS_5120), drive + 1, szText, win_language_get_string_from_id(IDS_2057));
+		_swprintf(tempTip, win_get_string(IDS_5120), drive + 1, szText, win_get_string(IDS_2057));
 	} else {
-		_swprintf(tempTip, win_language_get_string_from_id(IDS_5120), drive + 1, szText, cdrom_image[drive].image_path);
+		_swprintf(tempTip, win_get_string(IDS_5120), drive + 1, szText, cdrom_image[drive].image_path);
 	}
     } else if ((cdrom_drives[drive].host_drive >= 'A') && (cdrom_drives[drive].host_drive <= 'Z')) {
-	_swprintf(wtext, win_language_get_string_from_id(IDS_2058), cdrom_drives[drive].host_drive & ~0x20);
-	_swprintf(tempTip, win_language_get_string_from_id(IDS_5120), drive + 1, szText, wtext);
+	_swprintf(wtext, win_get_string(IDS_2058), cdrom_drives[drive].host_drive & ~0x20);
+	_swprintf(tempTip, win_get_string(IDS_5120), drive + 1, szText, wtext);
     } else {
-	_swprintf(tempTip, win_language_get_string_from_id(IDS_5120), drive + 1, szText, win_language_get_string_from_id(IDS_2057));
+	_swprintf(tempTip, win_get_string(IDS_5120), drive + 1, szText, win_get_string(IDS_2057));
     }
 
     if (sbTips[part] != NULL)
 	free(sbTips[part]);
-    sbTips[part] = (WCHAR *) malloc((wcslen(tempTip) << 1) + 2);
+    sbTips[part] = (WCHAR *)malloc((wcslen(tempTip) << 1) + 2);
     wcscpy(sbTips[part], tempTip);
 }
 
@@ -361,14 +360,14 @@ StatusBarCreateRemovableDiskTip(int part)
     int drive = sb_part_meanings[part] & 0x1f;
 
     if (wcslen(hdd[drive].fn) == 0) {
-	_swprintf(tempTip,  win_language_get_string_from_id(IDS_4115), drive, win_language_get_string_from_id(IDS_2057));
+	_swprintf(tempTip, win_get_string(IDS_4115), drive, win_get_string(IDS_2057));
     } else {
-	_swprintf(tempTip,  win_language_get_string_from_id(IDS_4115), drive, hdd[drive].fn);
+	_swprintf(tempTip, win_get_string(IDS_4115), drive, hdd[drive].fn);
     }
 
     if (sbTips[part] != NULL)
 	free(sbTips[part]);
-    sbTips[part] = (WCHAR *) malloc((wcslen(tempTip) << 1) + 2);
+    sbTips[part] = (WCHAR *)malloc((wcslen(tempTip) << 1) + 2);
     wcscpy(sbTips[part], tempTip);
 }
 
@@ -382,12 +381,12 @@ StatusBarCreateDiskTip(int part)
     int bus = sb_part_meanings[part] & 0xf;
 
     id = IDS_4352 + (bus - 1);
-    szText = (WCHAR *)win_language_get_string_from_id(id);
+    szText = (WCHAR *)win_get_string(id);
 
-    _swprintf(tempTip, win_language_get_string_from_id(IDS_4096), szText);
+    _swprintf(tempTip, win_get_string(IDS_4096), szText);
     if (sbTips[part] != NULL)
 	free(sbTips[part]);
-    sbTips[part] = (WCHAR *) malloc((wcslen(tempTip) << 1) + 2);
+    sbTips[part] = (WCHAR *)malloc((wcslen(tempTip) << 1) + 2);
     wcscpy(sbTips[part], tempTip);
 }
 
@@ -397,11 +396,11 @@ StatusBarCreateNetworkTip(int part)
 {
     WCHAR tempTip[512];
 
-    _swprintf(tempTip, win_language_get_string_from_id(IDS_2069));
+    _swprintf(tempTip, win_get_string(IDS_2069));
 
     if (sbTips[part] != NULL)
 	free(sbTips[part]);
-    sbTips[part] = (WCHAR *) malloc((wcslen(tempTip) << 1) + 2);
+    sbTips[part] = (WCHAR *)malloc((wcslen(tempTip) << 1) + 2);
     wcscpy(sbTips[part], tempTip);
 }
 

@@ -8,12 +8,13 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.13	2017/10/05
+ * Version:	@(#)config.c	1.0.14	2017/10/07
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Overdoze,
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
@@ -55,7 +56,6 @@
 #include "sound/sound.h"
 #include "video/video.h"
 #include "win/win.h"
-#include "win/win_language.h"
 
 
 typedef struct _list_ {

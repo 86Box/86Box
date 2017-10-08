@@ -9,9 +9,10 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.11	2017/10/07
+ * Version:	@(#)cdrom.c	1.0.12	2017/10/07
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2016,2017 Miran Grca.
  */
 #include <stdio.h>
@@ -725,7 +726,6 @@ uint8_t cdrom_mode_sense_pages_saved[CDROM_NUM][0x40][0x40] =
 		{ GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1,  0, 0, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0 }	}
 };
 
-#define ENABLE_CDROM_LOG 0
 int cdrom_do_log = 0;
 
 void cdrom_log(const char *format, ...)

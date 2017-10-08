@@ -12,12 +12,15 @@
  *		Windows-specific header files needed, to keep them
  *		out of the main code.
  *
- * Version:	@(#)win.h	1.0.3	2017/10/06
+ * Version:	@(#)win.h	1.0.4	2017/10/07
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2017 Fred N. van Kempen.
  */
 #ifndef BOX_WIN_H
 # define BOX_WIN_H
@@ -57,6 +60,7 @@ extern HWND		hwndMain;
 extern HICON		hIcon[512];
 extern int		status_is_open;
 extern int		mousecapture;
+extern LCID		dwLanguage;
 
 extern char		openfilestring[260];
 extern WCHAR		wopenfilestring[260];
@@ -68,7 +72,23 @@ extern int		pause;
 extern "C" {
 #endif
 
+extern HICON	LoadIconEx(PCTSTR pszIconName);
+extern BOOL	DirectoryExists(LPCTSTR szPath);
+
 extern void	leave_fullscreen(void);
+extern void	get_executable_name(wchar_t *s, int size);
+extern void	set_window_title(wchar_t *s);
+
+extern void	win_language_set(void);
+extern void	win_language_update(void);
+extern void	win_language_check(void);
+
+extern LPTSTR	win_get_string(int i);
+extern LPTSTR	win_get_string_from_string(char *str);
+
+extern void	startblit(void);
+extern void	endblit(void);
+
 
 #ifdef EMU_DEVICE_H
 extern void	deviceconfig_open(HWND hwnd, device_t *device);
@@ -77,12 +97,6 @@ extern void	joystickconfig_open(HWND hwnd, int joy_nr, int type);
 
 extern int	getfile(HWND hwnd, char *f, char *fn);
 extern int	getsfile(HWND hwnd, char *f, char *fn);
-
-extern void	get_executable_name(wchar_t *s, int size);
-extern void	set_window_title(wchar_t *s);
-
-extern void	startblit(void);
-extern void	endblit(void);
 
 extern void	win_settings_open(HWND hwnd);
 
@@ -95,18 +109,17 @@ extern void	process_raw_input(LPARAM lParam, int infocus);
 extern void	cdrom_init_host_drives(void);
 extern void	cdrom_close(uint8_t id);
 
-extern HICON	LoadIconEx(PCTSTR pszIconName);
 
-extern BOOL	DirectoryExists(LPCTSTR szPath);
-
-/* About dialog definitions. */
+/* Functions in win_about.c: */
 extern void	AboutDialogCreate(HWND hwnd);
 
-/* Status Window definitions. */
+
+/* Functions in win_status.c: */
 extern HWND	hwndStatus;
 extern void	StatusWindowCreate(HWND hwnd);
 
-/* Status Bar definitions. */
+
+/* Functions in win_stbar.c: */
 #define SB_ICON_WIDTH	24
 #define SB_FLOPPY       0x00
 #define SB_CDROM        0x10
@@ -127,6 +140,27 @@ extern void	StatusBarCheckMenuItem(int tag, int id, int chk);
 extern void	StatusBarEnableMenuItem(int tag, int id, int val);
 extern void	StatusBarSetTextW(wchar_t *wstr);
 extern void	StatusBarSetText(char *str);
+
+
+/* Functions in win_dialog.c: */
+extern int	msgbox_reset(HWND hwndParent);
+extern int	msgbox_reset_yn(HWND hwndParent);
+extern int	msgbox_question(HWND hwndParent, int i);
+extern void	msgbox_info(HWND hwndParent, int i);
+extern void	msgbox_info_wstr(HWND hwndParent, WCHAR *wstr);
+extern void	msgbox_error(HWND hwndParent, int i);
+extern void	msgbox_error_wstr(HWND hwndParent, WCHAR *wstr);
+extern void	msgbox_fatal(HWND hwndParent, char *string);
+extern void	msgbox_critical(HWND hwndParent, int i);
+
+extern int	file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save);
+extern int	file_dlg(HWND hwnd, WCHAR *f, char *fn, int save);
+extern int	file_dlg_mb(HWND hwnd, char *f, char *fn, int save);
+extern int	file_dlg_w_st(HWND hwnd, int i, WCHAR *fn, int save);
+extern int	file_dlg_st(HWND hwnd, int i, char *fn, int save);
+
+extern wchar_t	*BrowseFolder(wchar_t *saved_path, wchar_t *title);
+
 
 #ifdef __cplusplus
 }

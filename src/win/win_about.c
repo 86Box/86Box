@@ -8,7 +8,7 @@
  *
  *		Handle the About dialog.
  *
- * Version:	@(#)win_about.c	1.0.1	2017/10/06
+ * Version:	@(#)win_about.c	1.0.1	2017/10/07
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -31,12 +31,6 @@
 #include "../86box.h"
 #include "../ibm.h"
 #include "win.h"
-#include "win_language.h"
-
-
-#ifndef MAPVK_VK_TO_VSC
-#define MAPVK_VK_TO_VSC 0
-#endif
 
 
 static BOOL CALLBACK

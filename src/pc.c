@@ -8,11 +8,12 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.17	2017/10/04
+ * Version:	@(#)pc.c	1.0.18	2017/10/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
@@ -39,13 +40,7 @@
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
 #include "floppy/floppy.h"
-#include "floppy/floppy_86f.h"
-#include "floppy/floppy_fdi.h"
-#include "floppy/floppy_imd.h"
-#include "floppy/floppy_img.h"
-#include "floppy/floppy_td0.h"
 #include "floppy/fdc.h"
-#include "floppy/fdd.h"
 #include "game/gameport.h"
 #include "keyboard.h"
 #include "keyboard_at.h"
@@ -69,7 +64,6 @@
 #include "win/plat_mouse.h"
 #include "win/plat_ui.h"
 #include "win/win.h"
-#include "win/win_language.h"
 #include "scsi/scsi.h"
 #include "serial.h"
 #include "sound/sound.h"
@@ -545,6 +539,7 @@ pc_reset_hard_init(void)
     fdc_init();
     fdc_update_is_nsc(0);
     floppy_reset();
+
 #ifndef WALTJE
     /* This is needed to initialize the serial timer. */
     serial_init();
@@ -773,8 +768,8 @@ pc_run(void)
 	_swprintf(s, L"%s v%s - %i%% - %s - %s - %s",
 		  EMU_NAME_W, EMU_VERSION_W,
 		  fps, wmachine, wcpu,
-		  (!mousecapture) ? plat_get_string_from_id(IDS_2077)
-				  : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? plat_get_string_from_id(IDS_2078) : plat_get_string_from_id(IDS_2079)));
+		  (!mousecapture) ? plat_get_string(IDS_2077)
+				  : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079)));
 	set_window_title(s);
 
 	win_title_update = 0;

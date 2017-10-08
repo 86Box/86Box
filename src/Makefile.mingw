@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.53	2017/10/06
+# Version:	@(#)Makefile.mingw	1.0.54	2017/10/07
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -16,13 +16,13 @@
 
 # Name of the executable.
 ifndef PROG
-PROG	:= 86Box
+PROG		:= 86Box
 endif
 
 # Various compile-time options.
 # -DROM_TRACE=0xc800 traces ROM access from segment C800
 # -DIO_TRACE=0x66 traces I/O on port 0x66
-STUFF	:=
+STUFF		:=
 
 # Add feature selections here.
 # -DANSI_CFG forces the config file to ANSI encoding.
@@ -40,59 +40,59 @@ STUFF	:=
 # -DENABLE_NIC_LOG enables extra logging.
 # -DENABLE_KEYBOARD_LOG enables extra logging.
 ifndef EXTRAS
-EXTRAS	:=
+EXTRAS		:=
 endif
 
 # Defaults for several build options (possibly defined in a chained file.)
 ifndef AUTODEP
-AUTODEP	:= n
+AUTODEP		:= n
 endif
 ifndef DEBUG
-DEBUG	:= n
+DEBUG		:= n
 endif
 ifndef OPTIM
-OPTIM	:= n
+OPTIM		:= n
 endif
 ifndef RELEASE
-RELEASE	:= n
+RELEASE		:= n
 endif
 ifndef USB
-USB	:= n
+USB		:= n
 endif
 ifndef DEV_BUILD
-DEV_BUILD := n
+DEV_BUILD	:= n
 endif
 ifndef DEV_BRANCH
-DEV_BRANCH := n
+DEV_BRANCH	:= n
 endif
 ifndef CIRRUS
-CIRRUS	:= n
+CIRRUS		:= n
 endif
 ifndef NCR_SCSI
 NCR_SCSI	:= n
 endif
 ifndef NV_RIVA
-NV_RIVA	:= n
+NV_RIVA		:= n
 endif
 ifndef FLUIDSYNTH
-FLUIDSYNTH := y
+FLUIDSYNTH	:= y
 endif
 ifndef MUNT
-MUNT	:= y
+MUNT		:= y
 endif
 ifndef PAS16
-PAS16	:= n
+PAS16		= n
 endif
 ifndef X64
-X64	:= n
+X64		:= n
 endif
 
 ifeq ($(DEV_BUILD), y)
- DEV_BRANCH	:= y
- CIRRUS	:= y
- NCR_SCSI	:= y
- NV_RIVA	:= y
- PAS16	:= y
+DEV_BRANCH	:= y
+CIRRUS		:= y
+NCR_SCSI	:= y
+NV_RIVA		:= y
+PAS16		:= y
 endif
 
 
@@ -357,11 +357,11 @@ VIDOBJ		:= video.o \
 
 WINOBJ		:= win.o \
 		    win_ddraw.o win_ddraw_fs.o win_d3d.o win_d3d_fs.o \
-		    win_language.o win_status.o $(OPENDIR) win_dynld.o \
-		    win_video.o $(WSERIAL) win_keyboard.o win_mouse.o \
-		    win_joystick.o win_midi.o win_cdrom.o win_cdrom_ioctl.o \
-		    win_thread.o win_about.o win_stbar.o win_settings.o \
-		    win_deviceconfig.o win_joystickconfig.o
+		    win_dialog.o win_about.o win_status.o win_stbar.o \
+		    win_settings.o $(OPENDIR) win_dynld.o win_video.o \
+		    $(WSERIAL) win_keyboard.o win_mouse.o win_joystick.o \
+		    win_midi.o win_cdrom.o win_cdrom_ioctl.o \
+		    win_thread.o win_deviceconfig.o win_joystickconfig.o
 
 OBJ		:= $(MAINOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \
 		   $(FDDOBJ) $(CDROMOBJ) $(HDDOBJ) \

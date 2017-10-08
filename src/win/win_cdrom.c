@@ -8,7 +8,7 @@
  *
  *		Handle the platform-side of CDROM drives.
  *
- * Version:	@(#)win_cdrom.c	1.0.1	2017/10/06
+ * Version:	@(#)win_cdrom.c	1.0.2	2017/10/07
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -37,7 +37,6 @@
 #include "plat_ui.h"
 #include "win.h"
 #include "win_cdrom_ioctl.h"
-#include "win_language.h"
 
 
 uint8_t	host_cdrom_drive_available[26];
