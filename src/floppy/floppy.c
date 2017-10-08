@@ -409,3 +409,18 @@ void floppy_stop(int drive)
         if (drives[drive].stop)
                 drives[drive].stop(drive);
 }
+
+void floppy_general_init(void)
+{
+    floppy_init();
+    fdi_init();
+    img_init();
+    d86f_init();
+    td0_init();
+    imd_init();
+
+    floppy_load(0, floppyfns[0]);
+    floppy_load(1, floppyfns[1]);
+    floppy_load(2, floppyfns[2]);
+    floppy_load(3, floppyfns[3]);
+}

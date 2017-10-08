@@ -10,12 +10,11 @@
  *		  0 - BT-545C ISA;
  *		  1 - BT-958D PCI (but BT-545C ISA on non-PCI machines)
  *
- * Version:	@(#)scsi_buslogic.c	1.0.17	2017/10/07
+ * Version:	@(#)scsi_buslogic.c	1.0.18	2017/10/08
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
- *
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
@@ -2880,6 +2879,7 @@ Buslogic_Init(device_t *info)
 
     bl = malloc(sizeof(Buslogic_t));
     memset(bl, 0x00, sizeof(Buslogic_t));
+
     bl->chip = info->local;
     if ((bl->chip == CHIP_BUSLOGIC_PCI) && !PCI)
     {
@@ -3019,7 +3019,7 @@ Buslogic_Init(device_t *info)
 
 
 static void
-Buslogic_Close(void *p)
+BuslogicClose(void *p)
 {
     Buslogic_t *bl = (Buslogic_t *)p;
     if (bl)
@@ -3128,8 +3128,13 @@ device_t buslogic_device = {
 	"Buslogic BT-545C ISA",
 	0,
 	CHIP_BUSLOGIC_ISA,
-	Buslogic_Init, Buslogic_Close, NULL,
-	NULL, NULL, NULL, NULL,
+	Buslogic_Init,
+	BuslogicClose,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
 	BuslogicConfig
 };
 
@@ -3137,7 +3142,12 @@ device_t buslogic_pci_device = {
 	"Buslogic BT-958D PCI",
 	0,
 	CHIP_BUSLOGIC_PCI,
-	Buslogic_Init, Buslogic_Close, NULL,
-	NULL, NULL, NULL, NULL,
+	Buslogic_Init,
+	BuslogicClose,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
 	BuslogicConfig
 };

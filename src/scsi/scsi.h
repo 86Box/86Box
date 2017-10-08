@@ -8,7 +8,7 @@
  *
  *		SCSI controller handler header.
  *
- * Version:	@(#)scsi_h	1.0.6	2017/10/04
+ * Version:	@(#)scsi_h	1.0.7	2017/10/07
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -343,5 +343,11 @@ typedef struct {
 } SGE;
 #pragma pack(pop)
 
+
+#define MODE_SELECT_PHASE_IDLE		0
+#define MODE_SELECT_PHASE_HEADER	1
+#define MODE_SELECT_PHASE_BLOCK_DESC	2
+#define MODE_SELECT_PHASE_PAGE_HEADER	3
+#define MODE_SELECT_PHASE_PAGE		4
 
 #endif	/*EMU_SCSI_H*/

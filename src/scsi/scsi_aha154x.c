@@ -12,11 +12,10 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.21	2017/10/07
+ * Version:	@(#)scsi_aha154x.c	1.0.22	2017/10/08
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
- *
  *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdio.h>
@@ -2043,6 +2042,7 @@ aha_init(device_t *info)
 	case AHA_154xC:
 		strcpy(dev->name, "AHA-154xC");
 		dev->bios_path = L"roms/scsi/adaptec/aha1542c102.bin";
+		dev->nvr_path = L"aha1540c.nvr";
 		dev->bid = 'D';
 		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
 		dev->rom_shramsz = 128;		/* size of shadow RAM */
@@ -2247,9 +2247,15 @@ static device_config_t aha_154x_config[] = {
 
 device_t aha1540b_device = {
     "Adaptec AHA-1540B",
-    0, AHA_154xB,
-    aha_init, aha_close, NULL,
-    NULL, NULL, NULL, NULL,
+    0,
+    AHA_154xB,
+    aha_init,
+    aha_close,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
     aha_154x_config
 };
 
@@ -2257,8 +2263,13 @@ device_t aha1542c_device = {
     "Adaptec AHA-1542C",
     0,
     AHA_154xC,
-    aha_init, aha_close, NULL,
-    NULL, NULL, NULL, NULL,
+    aha_init,
+    aha_close,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
     aha_154x_config
 };
 
@@ -2266,8 +2277,13 @@ device_t aha1542cf_device = {
     "Adaptec AHA-1542CF",
     0,
     AHA_154xCF,
-    aha_init, aha_close, NULL,
-    NULL, NULL, NULL, NULL,
+    aha_init,
+    aha_close,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
     aha_154x_config
 };
 
@@ -2275,7 +2291,11 @@ device_t aha1640_device = {
     "Adaptec AHA-1640",
     DEVICE_MCA,
     AHA_1640,
-    aha_init, aha_close, NULL,
-    NULL, NULL, NULL, NULL,
+    aha_init,
+    aha_close,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
     NULL
 };
