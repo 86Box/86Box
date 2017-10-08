@@ -68,6 +68,9 @@ endif
 ifndef CIRRUS
 CIRRUS	:= n
 endif
+ifndef NCR_SCSI
+NCR_SCSI	:= n
+endif
 ifndef NV_RIVA
 NV_RIVA	:= n
 endif
@@ -87,6 +90,7 @@ endif
 ifeq ($(DEV_BUILD), y)
  DEV_BRANCH	:= y
  CIRRUS	:= y
+ NCR_SCSI	:= y
  NV_RIVA	:= y
  PAS16	:= y
 endif
@@ -199,6 +203,11 @@ DEVBROBJ	:=
 ifeq ($(CIRRUS), y)
 CFLAGS		+= -DUSE_CIRRUS
 DEVBROBJ	+= vid_cl_gd.o vid_cl_gd_blit.o vid_cl_ramdac.o
+endif
+
+ifeq ($(NCR_SCSI), y)
+CFLAGS		+= -DUSE_NCR
+DEVBROBJ	+= scsi_bus.o scsi_ncr5380.o
 endif
 
 ifeq ($(NV_RIVA), y)

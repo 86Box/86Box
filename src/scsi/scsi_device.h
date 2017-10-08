@@ -8,7 +8,7 @@
  *
  *		Definitions for the generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.h	1.0.2	2017/08/22
+ * Version:	@(#)scsi_device.h	1.0.3	2017/10/04
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -16,6 +16,22 @@
 #ifndef SCSI_DEVICE_H
 # define SCSI_DEVICE_H
 
+typedef struct
+{
+	int state;
+	int new_state;
+	int clear_req;
+	uint32_t bus_in, bus_out;
+	int dev_id;
+
+	int command_pos;
+	uint8_t command[20];
+	int data_pos;
+	uint8_t buffer[390144];
+	
+	int change_state_delay;
+	int new_req_delay;	
+} scsi_bus_t;
 
 extern uint8_t	*scsi_device_sense(uint8_t id, uint8_t lun);
 extern void	scsi_device_type_data(uint8_t id, uint8_t lun,
@@ -32,6 +48,13 @@ extern int	scsi_device_cdb_length(uint8_t id, uint8_t lun);
 extern int	scsi_device_block_shift(uint8_t id, uint8_t lun);
 extern void	scsi_device_command(uint8_t id, uint8_t lun, int cdb_len,
 				    uint8_t *cdb);
+extern void	scsi_device_command_phase0(uint8_t scsi_id, uint8_t scsi_lun,
+					   int cdb_len, uint8_t *cdb);
+extern void	scsi_device_command_phase1(uint8_t scsi_id, uint8_t scsi_lun);
+
+extern int scsi_bus_update(scsi_bus_t *bus, int bus_assert);
+extern int scsi_bus_read(scsi_bus_t *bus);
+extern int scsi_bus_match(scsi_bus_t *bus, int bus_assert);
 
 
 #endif	/*SCSI_DEVICE_H*/

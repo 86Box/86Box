@@ -41,6 +41,19 @@ typedef struct {
 	int old_len;
 	int request_pos;
 	uint8_t hd_cdb[16];
+
+	uint64_t current_page_code;
+	int current_page_len;
+
+	int current_page_pos;
+
+	int mode_select_phase;
+
+	int total_length;
+	int written_length;
+
+	int do_page_save;
+	int block_descriptor_len;
 } scsi_hard_disk_t;
 
 

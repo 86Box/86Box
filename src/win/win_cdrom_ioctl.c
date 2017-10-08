@@ -28,8 +28,8 @@
 #include "../ibm.h"
 #include "../device.h"
 #include "../scsi/scsi.h"
-#include "cdrom.h"
-#include "cdrom_ioctl.h"
+#include "../cdrom/cdrom.h"
+#include "win_cdrom_ioctl.h"
 
 
 #define MSFtoLBA(m,s,f)  ((((m*60)+s)*75)+f)

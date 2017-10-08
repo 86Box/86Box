@@ -49,6 +49,7 @@ extern void	floppy_load(int drive, wchar_t *fn);
 extern void	floppy_new(int drive, char *fn);
 extern void	floppy_close(int drive);
 extern void	floppy_init(void);
+extern void	floppy_general_init(void);
 extern void	floppy_reset(void);
 extern void	floppy_poll(int drive);
 extern void	floppy_poll_0(void* priv);
