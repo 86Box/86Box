@@ -10,10 +10,11 @@
  *
  *		Re-worked version based on the 82C235 datasheet and errata.
  *
- * Version:	@(#)at_scat.c	1.0.2	2017/09/24
+ * Version:	@(#)at_scat.c	1.0.2	2017/10/07
  *
  * Authors:	Original by GreatPsycho for PCem.
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdio.h>
@@ -25,8 +26,7 @@
 #include "../cpu/x86.h"
 #include "../io.h"
 #include "../mem.h"
-#include "machine_at.h"
-#include "machine_at_scat.h"
+#include "machine.h"
 
 
 #define SCAT_DEBUG		2
@@ -757,9 +757,9 @@ scat_init(void)
 
 
 void
-machine_at_scat_init(void)
+machine_at_scat_init(machine_t *model)
 {
-    machine_at_init();
+    machine_at_init(model);
 
     scat_init();
 }

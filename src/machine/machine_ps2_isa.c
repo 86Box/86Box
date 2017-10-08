@@ -19,8 +19,7 @@
 #include "../floppy/floppy.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
-#include "machine_common.h"
-#include "machine_ps2_isa.h"
+#include "machine.h"
 
 
 static uint8_t ps2_92, ps2_94, ps2_102, ps2_103, ps2_104, ps2_105, ps2_190;
@@ -154,11 +153,13 @@ static void ps2board_init(void)
 }
 
 
-void machine_ps2_m30_286_init(void)
+void
+machine_ps2_m30_286_init(machine_t *model)
 {
         AT = 1;
 
-        machine_common_init();
+        machine_common_init(model);
+
         mem_add_bios();
         pit_set_out_func(&pit, 1, pit_refresh_timer_at);
         dma16_init();

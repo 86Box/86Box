@@ -10,13 +10,13 @@
 #include "../bugger.h"
 #include "../game/gameport.h"
 #include "../keyboard_xt.h"
-#include "machine_common.h"
-#include "machine_xt.h"
+#include "machine.h"
 
 
-void machine_xt_init(void)
+void
+machine_xt_init(machine_t *model)
 {
-        machine_common_init();
+        machine_common_init(model);
 
 	mem_add_bios();
 

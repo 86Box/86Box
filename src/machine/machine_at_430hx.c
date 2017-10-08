@@ -8,10 +8,11 @@
  *
  *		Implementation of the Intel 430HX PCISet chip.
  *
- * Version:	@(#)machine_at_430hx.c	1.0.5	2017/09/24
+ * Version:	@(#)machine_at_430hx.c	1.0.6	2017/10/07
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
@@ -20,7 +21,6 @@
 #include <string.h>
 #include <wchar.h>
 #include "../ibm.h"
-#include "../cpu/cpu.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../memregs.h"
@@ -29,8 +29,7 @@
 #include "../piix.h"
 #include "../intel_flash.h"
 #include "../sio.h"
-#include "machine_at.h"
-#include "machine_at_430hx.h"
+#include "machine.h"
 
 
 static uint8_t card_i430hx[256];
@@ -185,9 +184,11 @@ static void i430hx_init(void)
 }
 
 
-void machine_at_acerm3a_init(void)
+void
+machine_at_acerm3a_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
 	powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
 	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
@@ -200,13 +201,16 @@ void machine_at_acerm3a_init(void)
         i430hx_init();
         piix3_init(7);
         fdc37c932fr_init();
+
         device_add(&intel_flash_bxb_device);
 }
 
 
-void machine_at_acerv35n_init(void)
+void
+machine_at_acerv35n_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
 	powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
 	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
@@ -219,13 +223,16 @@ void machine_at_acerv35n_init(void)
         i430hx_init();
         piix3_init(7);
         fdc37c932fr_init();
+
         device_add(&intel_flash_bxb_device);
 }
 
 
-void machine_at_ap53_init(void)
+void
+machine_at_ap53_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
         memregs_init();
         powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -239,13 +246,16 @@ void machine_at_ap53_init(void)
         i430hx_init();
         piix3_init(7);
         fdc37c669_init();
+
         device_add(&intel_flash_bxt_device);
 }
 
 
-void machine_at_p55t2p4_init(void)
+void
+machine_at_p55t2p4_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
 	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
@@ -257,13 +267,16 @@ void machine_at_p55t2p4_init(void)
         i430hx_init();
         piix3_init(7);
         w83877f_init();
+
         device_add(&intel_flash_bxt_device);
 }
 
 
-void machine_at_p55t2s_init(void)
+void
+machine_at_p55t2s_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
         memregs_init();
         powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -276,5 +289,6 @@ void machine_at_p55t2s_init(void)
         i430hx_init();
         piix3_init(7);
         pc87306_init();
+
         device_add(&intel_flash_bxt_device);
 }
