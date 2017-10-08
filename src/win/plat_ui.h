@@ -18,9 +18,9 @@ extern wchar_t	*plat_get_string(int i);
 # define IDS_2139 2139		/* network/network.c */
 #endif
 
-//#ifndef IDS_2171
-//#define IDS_2171 2171
-//#endif
+#ifndef IDS_2171
+#define IDS_2171 2171		/* sound/midi_fluidsynth.c */
+#endif
 
 //#ifndef IDS_2219
 //#define IDS_2219 2219
