@@ -10,7 +10,7 @@
  *
  * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.16	2017/10/05
+ * Version:	@(#)net_ne2000.c	1.0.17	2017/10/07
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -1874,7 +1874,7 @@ nic_rom_init(nic_t *dev, wchar_t *s)
 
 
 static void *
-nic_init(int board)
+nic_init(device_t *info)
 {
     uint32_t mac;
     wchar_t *rom;
@@ -1887,7 +1887,7 @@ nic_init(int board)
 
     dev = malloc(sizeof(nic_t));
     memset(dev, 0x00, sizeof(nic_t));
-    dev->board = board;
+    dev->board = info->local;
     rom = NULL;
     switch(dev->board) {
 	case NE2K_NE1000:
@@ -2062,27 +2062,6 @@ nic_close(void *priv)
     nelog(1, "%s: closed\n", dev->name);
 
     free(dev);
-}
-
-
-static void *
-ne1000_init(device_t *info)
-{
-    return(nic_init(NE2K_NE1000));
-}
-
-
-static void *
-ne2000_init(device_t *info)
-{
-    return(nic_init(NE2K_NE2000));
-}
-
-
-static void *
-rtl8029as_init(device_t *info)
-{
-    return(nic_init(NE2K_RTL8029AS));
 }
 
 
@@ -2280,7 +2259,7 @@ device_t ne1000_device = {
     "Novell NE1000",
     0,
     NE2K_NE1000,
-    ne1000_init, nic_close, NULL,
+    nic_init, nic_close, NULL,
     NULL, NULL, NULL, NULL,
     ne1000_config
 };
@@ -2289,7 +2268,7 @@ device_t ne2000_device = {
     "Novell NE2000",
     DEVICE_AT,
     NE2K_NE2000,
-    ne2000_init, nic_close, NULL,
+    nic_init, nic_close, NULL,
     NULL, NULL, NULL, NULL,
     ne2000_config
 };
@@ -2298,7 +2277,7 @@ device_t rtl8029as_device = {
     "Realtek RTL8029AS",
     0,
     NE2K_RTL8029AS,
-    rtl8029as_init, nic_close, NULL,
+    nic_init, nic_close, NULL,
     NULL, NULL, NULL, NULL,
     rtl8029as_config
 };

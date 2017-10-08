@@ -13,8 +13,7 @@
 #include "../mem.h"
 #include "../memregs.h"
 #include "../sio.h"
-#include "machine_at.h"
-#include "machine_at_sis_85c496.h"
+#include "machine.h"
 
 
 typedef struct sis_85c496_t
@@ -160,9 +159,11 @@ static void sis_85c496_init(void)
 }
 
 
-static void machine_at_sis_85c496_common_init(void)
+static void
+machine_at_sis_85c496_common_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
 	pci_register_slot(0x05, PCI_CARD_SPECIAL, 0, 0, 0, 0);
@@ -170,12 +171,15 @@ static void machine_at_sis_85c496_common_init(void)
 	pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
 	pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
 	pci_register_slot(0x07, PCI_CARD_NORMAL, 4, 1, 2, 3);
+
 	sis_85c496_init();
 }
 
 
-void machine_at_r418_init(void)
+void
+machine_at_r418_init(machine_t *model)
 {
-	machine_at_sis_85c496_common_init();
+	machine_at_sis_85c496_common_init(model);
+
         fdc37c665_init();
 }

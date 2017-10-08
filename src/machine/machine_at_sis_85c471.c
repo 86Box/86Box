@@ -9,9 +9,10 @@
  *		SiS sis85c471 Super I/O Chip
  *		Used by DTK PKM-0038S E-2
  *
- * Version:	@(#)sis85c471.c	1.0.6	2017/09/30
+ * Version:	@(#)sis85c471.c	1.0.6	2017/10/07
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2017 Miran Grca.
  */
 #include <stdio.h>
@@ -29,8 +30,7 @@
 #include "../floppy/floppy.h"
 #include "../floppy/fdc.h"
 #include "../floppy/fdd.h"
-#include "machine_at.h"
-#include "machine_at_sis_85c471.h"
+#include "machine.h"
 
 
 static int sis_85c471_curreg;
@@ -243,9 +243,11 @@ static void sis_85c471_init(void)
 }
 
 
-void machine_at_dtk486_init(void)
+void
+machine_at_dtk486_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
 	memregs_init();
 	sis_85c471_init();
 	secondary_ide_check();

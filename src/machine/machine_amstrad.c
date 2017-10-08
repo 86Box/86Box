@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../ibm.h"
-#include "../cpu/cpu.h"
 #include "../io.h"
 #include "../nmi.h"
 #include "../mem.h"
@@ -19,7 +18,7 @@
 #include "../floppy/floppy.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
-#include "machine_common.h"
+#include "machine.h"
 
 
 static uint8_t amstrad_dead;
@@ -136,11 +135,13 @@ static void amstrad_init(void)
 }
 
 
-void machine_amstrad_init(void)
+void
+machine_amstrad_init(machine_t *model)
 {
         AMSTRAD = 1;
 
-        machine_common_init();
+        machine_common_init(model);
+
 	mem_add_bios();
         amstrad_init();
         keyboard_amstrad_init();

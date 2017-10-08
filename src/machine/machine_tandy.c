@@ -13,14 +13,16 @@
 #include "../tandy_rom.h"
 #include "../sound/snd_pssj.h"
 #include "../sound/snd_sn76489.h"
-#include "machine_common.h"
+#include "machine.h"
 
 
-void machine_tandy1k_init(void)
+void
+machine_tandy1k_init(machine_t *model)
 {
         TANDY = 1;
 
-        machine_common_init();
+        machine_common_init(model);
+
 	mem_add_bios();
         keyboard_tandy_init();
         if (romset == ROM_TANDY)
@@ -35,9 +37,11 @@ void machine_tandy1k_init(void)
 }
 
 
-void machine_tandy1ksl2_init(void)
+void
+machine_tandy1ksl2_init(machine_t *model)
 {
-        machine_common_init();
+        machine_common_init(model);
+
 	mem_add_bios();
         keyboard_tandy_init();
         device_add(&pssj_device);

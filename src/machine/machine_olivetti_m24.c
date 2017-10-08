@@ -6,7 +6,6 @@
 #include <string.h>
 #include <wchar.h>
 #include "../ibm.h"
-#include "../cpu/cpu.h"
 #include "../io.h"
 #include "../nmi.h"
 #include "../mem.h"
@@ -14,8 +13,7 @@
 #include "../nvr.h"
 #include "../game/gameport.h"
 #include "../keyboard_olim24.h"
-#include "machine_common.h"
-#include "machine_olivetti_m24.h"
+#include "machine.h"
 
 
 static uint8_t olivetti_m24_read(uint16_t port, void *priv)
@@ -37,9 +35,11 @@ static void olivetti_m24_init(void)
 }
 
 
-void machine_olim24_init(void)
+void
+machine_olim24_init(machine_t *model)
 {
-        machine_common_init();
+        machine_common_init(model);
+
 	mem_add_bios();
         keyboard_olim24_init();
 

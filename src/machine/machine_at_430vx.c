@@ -8,10 +8,11 @@
  *
  *		Implementation of the Intel 430VX PCISet chip.
  *
- * Version:	@(#)machine_at_430vx.c	1.0.6	2017/09/24
+ * Version:	@(#)machine_at_430vx.c	1.0.7	2017/10/07
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -20,7 +21,6 @@
 #include <string.h>
 #include <wchar.h>
 #include "../ibm.h"
-#include "../cpu/cpu.h"
 #include "../io.h"
 #include "../pci.h"
 #include "../mem.h"
@@ -29,8 +29,7 @@
 #include "../piix.h"
 #include "../intel_flash.h"
 #include "../sio.h"
-#include "machine_at.h"
-#include "machine_at_430vx.h"
+#include "machine.h"
 
 
 static uint8_t card_i430vx[256];
@@ -188,9 +187,11 @@ void i430vx_init(void)
 }
 
 
-void machine_at_p55tvp4_init(void)
+void
+machine_at_p55tvp4_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
 	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
@@ -202,13 +203,16 @@ void machine_at_p55tvp4_init(void)
         i430vx_init();
         piix3_init(7);
         w83877f_init();
+
         device_add(&intel_flash_bxt_device);
 }
 
 
-void machine_at_i430vx_init(void)
+void
+machine_at_i430vx_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
 	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
@@ -220,13 +224,16 @@ void machine_at_i430vx_init(void)
         i430vx_init();
         piix3_init(7);
         um8669f_init();
+
         device_add(&intel_flash_bxt_device);
 }
 
 
-void machine_at_p55va_init(void)
+void
+machine_at_p55va_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
         pci_init(PCI_CONFIG_TYPE_1);
 	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
 	pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
@@ -237,5 +244,6 @@ void machine_at_p55va_init(void)
         i430vx_init();
         piix3_init(7);
         fdc37c932fr_init();
+
         device_add(&intel_flash_bxt_device);
 }

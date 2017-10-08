@@ -12,10 +12,11 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.20	2017/10/04
+ * Version:	@(#)scsi_aha154x.c	1.0.21	2017/10/07
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
+ *
  *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdio.h>
@@ -1994,7 +1995,7 @@ aha_setnvr(aha_t *dev)
 
 /* General initialization routine for all boards. */
 static void *
-aha_init(int type)
+aha_init(device_t *info)
 {
     aha_t *dev;
 
@@ -2002,7 +2003,7 @@ aha_init(int type)
     dev = malloc(sizeof(aha_t));
     if (dev == NULL) return(dev);
     memset(dev, 0x00, sizeof(aha_t));
-    dev->type = type;
+    dev->type = info->local;
 
     /*
      * Set up the (initial) I/O address, IRQ and DMA info.
@@ -2022,7 +2023,7 @@ aha_init(int type)
 #endif
 
     /* Perform per-board initialization. */
-    switch(type) {
+    switch(dev->type) {
 	case AHA_154xB:
 		strcpy(dev->name, "AHA-154xB");
 		switch(dev->Base) {
@@ -2108,34 +2109,6 @@ aha_init(int type)
     }
 
     return(dev);
-}
-
-
-static void *
-aha_154xB_init(device_t *info)
-{
-    return(aha_init(AHA_154xB));
-}
-
-
-static void *
-aha_154xC_init(device_t *info)
-{
-    return(aha_init(AHA_154xC));
-}
-
-
-static void *
-aha_154xCF_init(device_t *info)
-{
-    return(aha_init(AHA_154xCF));
-}
-
-
-static void *
-aha_1640_init(device_t *info)
-{
-    return(aha_init(AHA_1640));
 }
 
 
@@ -2274,55 +2247,35 @@ static device_config_t aha_154x_config[] = {
 
 device_t aha1540b_device = {
     "Adaptec AHA-1540B",
-    0,
-    0,
-    aha_154xB_init,
-    aha_close,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    0, AHA_154xB,
+    aha_init, aha_close, NULL,
+    NULL, NULL, NULL, NULL,
     aha_154x_config
 };
 
 device_t aha1542c_device = {
     "Adaptec AHA-1542C",
     0,
-    0,
-    aha_154xC_init,
-    aha_close,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    AHA_154xC,
+    aha_init, aha_close, NULL,
+    NULL, NULL, NULL, NULL,
     aha_154x_config
 };
 
 device_t aha1542cf_device = {
     "Adaptec AHA-1542CF",
     0,
-    0,
-    aha_154xCF_init,
-    aha_close,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    AHA_154xCF,
+    aha_init, aha_close, NULL,
+    NULL, NULL, NULL, NULL,
     aha_154x_config
 };
 
 device_t aha1640_device = {
     "Adaptec AHA-1640",
     DEVICE_MCA,
-    0,
-    aha_1640_init,
-    aha_close,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    AHA_1640,
+    aha_init, aha_close, NULL,
+    NULL, NULL, NULL, NULL,
     NULL
 };

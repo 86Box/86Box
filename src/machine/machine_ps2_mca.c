@@ -19,8 +19,7 @@
 #include "../lpt.h"
 #include "../mouse.h"
 #include "../serial.h"
-#include "machine_common.h"
-#include "machine_ps2_mca.h"
+#include "machine.h"
 
 
 static struct
@@ -802,11 +801,14 @@ static void ps2_mca_board_model_80_type2_init()
         }
 }
 
-static void machine_ps2_common_init(void)
+
+static void
+machine_ps2_common_init(machine_t *model)
 {
         AT = 1;
 
-        machine_common_init();
+        machine_common_init(model);
+
         mem_add_bios();
         dma16_init();
         ps2_dma_init();
@@ -820,29 +822,37 @@ static void machine_ps2_common_init(void)
 }
 
 
-void machine_ps2_model_50_init(void)
+void
+machine_ps2_model_50_init(machine_t *model)
 {
-        machine_ps2_common_init();
+        machine_ps2_common_init(model);
+
         ps2_mca_board_model_50_init();
 }
 
 
-void machine_ps2_model_55sx_init(void)
+void
+machine_ps2_model_55sx_init(machine_t *model)
 {
-        machine_ps2_common_init();
+        machine_ps2_common_init(model);
+
         ps2_mca_board_model_55sx_init();
 }
 
 
-void machine_ps2_model_80_init(void)
+void
+machine_ps2_model_80_init(machine_t *model)
 {
-        machine_ps2_common_init();
+        machine_ps2_common_init(model);
+
         ps2_mca_board_model_80_type2_init();
 }
 
 
-void machine_ps2_model_80_486_init(void)
+void
+machine_ps2_model_80_486_init(machine_t *model)
 {
-        machine_ps2_common_init();
+        machine_ps2_common_init(model);
+
         ps2_mca_board_model_80_type2_init();
 }

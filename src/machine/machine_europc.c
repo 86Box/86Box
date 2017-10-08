@@ -6,7 +6,6 @@
 #include <string.h>
 #include <wchar.h>
 #include "../ibm.h"
-#include "../cpu/cpu.h"
 #include "../io.h"
 #include "../nmi.h"
 #include "../mem.h"
@@ -16,8 +15,7 @@
 #include "../game/gameport.h"
 #include "../keyboard_xt.h"
 #include "../lpt.h"
-#include "machine_common.h"
-#include "machine_europc.h"
+#include "machine.h"
 
 
 uint8_t europcdat[16];
@@ -132,9 +130,11 @@ static void jim_init(void)
 }
 
 
-void machine_europc_init(void)
+void
+machine_europc_init(machine_t *model)
 {
-        machine_common_init();
+        machine_common_init(model);
+
 	mem_add_bios();
 	lpt3_init(0x3bc);
         jim_init();

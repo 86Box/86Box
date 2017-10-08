@@ -6,9 +6,10 @@
  *
  *		Emulation of the SiS 50x PCI chips.
  *
- * Version:	@(#)machine_at_sis_85c50x.c	1.0.3	2017/09/24
+ * Version:	@(#)machine_at_sis_85c50x.c	1.0.3	2017/10/07
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2017 Miran Grca.
  */
 #include <stdio.h>
@@ -20,8 +21,7 @@
 #include "../io.h"
 #include "../pci.h"
 #include "../mem.h"
-#include "machine_at.h"
-#include "machine_at_sis_85c50x.h"
+#include "machine.h"
 
 
 typedef struct sis_85c501_t

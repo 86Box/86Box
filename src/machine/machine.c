@@ -8,12 +8,15 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.17	2017/10/04
+ * Version:	@(#)machine.c	1.0.18	2017/10/07
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -21,7 +24,6 @@
 #include <wchar.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"
-#include "../io.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
@@ -29,38 +31,6 @@
 #include "../floppy/fdc.h"
 #include "../floppy/fdd.h"
 #include "machine.h"
-#include "machine_common.h"
-
-#include "machine_amstrad.h"
-#include "machine_europc.h"
-#include "machine_olivetti_m24.h"
-#include "machine_pcjr.h"
-#include "machine_tandy.h"
-
-#include "machine_xt.h"
-#include "machine_xt_laserxt.h"
-
-#include "machine_at.h"
-#include "machine_at_ali1429.h"
-#include "machine_at_commodore.h"
-#include "machine_at_headland.h"
-#include "machine_at_neat.h"
-#include "machine_at_opti495.h"
-#include "machine_at_scat.h"
-#include "machine_at_wd76c10.h"
-
-#include "machine_ps1.h"
-#include "machine_ps2_isa.h"
-#include "machine_ps2_mca.h"
-
-#include "machine_at_sis_85c471.h"
-#include "machine_at_sis_85c496.h"
-
-#include "machine_at_430lx_nx.h"
-#include "machine_at_430fx.h"
-#include "machine_at_430hx.h"
-#include "machine_at_430vx.h"
-#include "machine_at_440fx.h"
 
 #include "../video/vid_pcjr.h"
 #include "../video/vid_tandy.h"
@@ -179,7 +149,7 @@ machine_init(void)
     if (machines[machine].get_device)
 	device_add(machines[machine].get_device());
 
-    machines[machine].init();
+    machines[machine].init(&machines[machine]);
 }
 
 

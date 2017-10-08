@@ -14,10 +14,11 @@
 #include "../floppy/fdc.h"
 #include "../floppy/fdd.h"
 #include "../sound/snd_sn76489.h"
-#include "machine_pcjr.h"
+#include "machine.h"
 
 
-void machine_pcjr_init(void)
+void
+machine_pcjr_init(machine_t *model)
 {
 	mem_add_bios();
         fdc_add_pcjr();

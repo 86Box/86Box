@@ -25,8 +25,7 @@
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
 #include "../sound/snd_ps1.h"
-#include "machine_common.h"
-#include "machine_ps1.h"
+#include "machine.h"
 
 
 static rom_t ps1_high_rom;
@@ -335,11 +334,14 @@ static void ps1mb_m2133_init(void)
         mem_remap_top_384k();
 }
 
-static void machine_ps1_common_init(void)
+
+static void
+machine_ps1_common_init(machine_t *model)
 {
         AT = 1;
 
-        machine_common_init();
+        machine_common_init(model);
+
 	mem_add_bios();
         pit_set_out_func(&pit, 1, pit_refresh_timer_at);
         dma16_init();
@@ -361,22 +363,31 @@ static void machine_ps1_common_init(void)
 		device_add(&gameport_201_device);
 }
 
-void machine_ps1_m2011_init(void)
+
+void
+machine_ps1_m2011_init(machine_t *model)
 {
-        machine_ps1_common_init();
+        machine_ps1_common_init(model);
+
         ps1mb_init();
         mem_remap_top_384k();
 }
 
-void machine_ps1_m2121_init(void)
+
+void
+machine_ps1_m2121_init(machine_t *model)
 {
-        machine_ps1_common_init();
+        machine_ps1_common_init(model);
+
         ps1mb_m2121_init();
         fdc_set_ps1();
 }
 
-void machine_ps1_m2133_init(void)
+
+void
+machine_ps1_m2133_init(machine_t *model)
 {
-        machine_ps1_common_init();
+        machine_ps1_common_init(model);
+
         ps1mb_m2133_init();
 }
