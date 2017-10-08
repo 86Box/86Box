@@ -1919,16 +1919,14 @@ nic_init(device_t *info)
     if (dev->is_pci) {
 	dev->base_address = 0x340;
 	dev->base_irq = 10;
+	dev->bios_addr = 0xD0000;
+	dev->has_bios = device_get_config_int("bios");
     } else {
 	dev->base_address = device_get_config_hex16("base");
 	dev->base_irq = device_get_config_int("irq");
+	dev->bios_addr = device_get_config_hex20("bios_addr");
+	dev->has_bios = !!dev->bios_addr;
     }
-
-    dev->bios_addr = device_get_config_hex20("bios_addr");
-    if (dev->bios_addr)
-	dev->has_bios = 1;
-      else
-	dev->has_bios = 0;
 
     /* See if we have a local MAC address configured. */
     mac = device_get_config_mac("mac", -1);
@@ -2219,31 +2217,8 @@ static device_config_t ne2000_config[] =
 
 static device_config_t rtl8029as_config[] =
 {
-	/*
-	 * WTF.
-	 * Even though it is PCI, the user should still have control
-	 * over whether or not it's Option ROM BIOS will be enabled
-	 * or not.
-	 */
 	{
-		"bios_addr", "BIOS address", CONFIG_HEX20, "", 0,
-		{
-			{
-				"Disabled", 0x00000
-			},
-			{
-				"D000", 0xD0000
-			},
-			{
-				"D800", 0xD8000
-			},
-			{
-				"C800", 0xC8000
-			},
-			{
-				""
-			}
-		},
+		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
 	},
 	{
 		"mac", "MAC Address", CONFIG_MAC, "", -1
@@ -2275,7 +2250,7 @@ device_t ne2000_device = {
 
 device_t rtl8029as_device = {
     "Realtek RTL8029AS",
-    0,
+    DEVICE_PCI,
     NE2K_RTL8029AS,
     nic_init, nic_close, NULL,
     NULL, NULL, NULL, NULL,

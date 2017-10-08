@@ -39,7 +39,9 @@ enum {
     DEVICE_AT = 2,		/* requires an AT-compatible system */
     DEVICE_PS2 = 4,		/* requires a PS/1 or PS/2 system */
     DEVICE_MCA = 0x20,		/* requires the MCA bus */
-    DEVICE_PCI = 0x40		/* requires the PCI bus */
+    DEVICE_VLB = 0x40,		/* requires the PCI bus */
+    DEVICE_PCI = 0x80,		/* requires the VLB bus */
+    DEVICE_AGP = 0x100		/* requires the AGP bus */
 };
 
 

@@ -2881,11 +2881,6 @@ Buslogic_Init(device_t *info)
     memset(bl, 0x00, sizeof(Buslogic_t));
 
     bl->chip = info->local;
-    if ((bl->chip == CHIP_BUSLOGIC_PCI) && !PCI)
-    {
-	/* This is just wrong. Simply disallow PCI cards in non-PCI systems! */
-	bl->chip = CHIP_BUSLOGIC_ISA;
-    }
     bl->Base = device_get_config_hex16("base");
     bl->PCIBase = 0;
     bl->MMIOBase = 0;
@@ -3042,13 +3037,10 @@ BuslogicClose(void *p)
 }
 
 
-static device_config_t BuslogicConfig[] = {
+static device_config_t BT545C_Config[] = {
         {
 		"base", "Address", CONFIG_HEX16, "", 0x334,
                 {
-                        {
-                                "None",      0
-                        },
                         {
                                 "0x330", 0x330
                         },
@@ -3124,6 +3116,45 @@ static device_config_t BuslogicConfig[] = {
 };
 
 
+static device_config_t BT958D_Config[] = {
+        {
+		"base", "Legacy Address", CONFIG_HEX16, "", 0x334,
+                {
+                        {
+                                "None",      0
+                        },
+                        {
+                                "0x330", 0x330
+                        },
+                        {
+                                "0x334", 0x334
+                        },
+                        {
+                                "0x230", 0x230
+                        },
+                        {
+                                "0x234", 0x234
+                        },
+                        {
+                                "0x130", 0x130
+                        },
+                        {
+                                "0x134", 0x134
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+	{
+		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
+	},
+	{
+		"", "", -1
+	}
+};
+
+
 device_t buslogic_device = {
 	"Buslogic BT-545C ISA",
 	0,
@@ -3135,12 +3166,12 @@ device_t buslogic_device = {
 	NULL,
 	NULL,
 	NULL,
-	BuslogicConfig
+	BT545C_Config
 };
 
 device_t buslogic_pci_device = {
 	"Buslogic BT-958D PCI",
-	0,
+	DEVICE_PCI,
 	CHIP_BUSLOGIC_PCI,
 	Buslogic_Init,
 	BuslogicClose,
@@ -3149,5 +3180,5 @@ device_t buslogic_pci_device = {
 	NULL,
 	NULL,
 	NULL,
-	BuslogicConfig
+	BT958D_Config
 };

@@ -1057,7 +1057,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 				{
 					sound_dev = sound_card_getdevice(c);
 
-					if (!sound_dev || (sound_dev->flags & DEVICE_MCA) == (machines[temp_machine].flags & MACHINE_MCA))
+					if (!sound_dev || (sound_dev->flags & DEVICE_MCA) == (machines[temp_machine].flags & MACHINE_MCA) || (sound_dev->flags & DEVICE_PCI) == (machines[temp_machine].flags & MACHINE_PCI))
 					{
 						if (c == 0)
 						{
@@ -1409,6 +1409,16 @@ static void recalc_hdc_list(HWND hdlg, int machine, int use_selected_hdc)
 			c++;
 			continue;
 		}
+		if ((hdc_get_flags(c) & DEVICE_VLB) && !(machines[machine].flags & MACHINE_VLB))
+		{
+			c++;
+			continue;
+		}
+		if ((hdc_get_flags(c) & DEVICE_PCI) && !(machines[machine].flags & MACHINE_PCI))
+		{
+			c++;
+			continue;
+		}
 		if (!hdc_available(c))
 		{
 			c++;
@@ -1488,7 +1498,9 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 				{
 					scsi_dev = scsi_card_getdevice(c);
 					
-					if (!scsi_dev || (scsi_dev->flags & DEVICE_MCA) == (machines[temp_machine].flags & MACHINE_MCA))
+					if (!scsi_dev || ((scsi_dev->flags & DEVICE_MCA) == (machines[temp_machine].flags & MACHINE_MCA)) ||
+					    ((scsi_dev->flags & DEVICE_VLB) == (machines[temp_machine].flags & MACHINE_VLB)) ||
+					    ((scsi_dev->flags & DEVICE_PCI) == (machines[temp_machine].flags & MACHINE_PCI)))
 					{
 						if (c == 0)
 						{
@@ -1734,7 +1746,8 @@ static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM w
 
 				settings_network_to_list[c] = d;
 
-				if (network_card_available(c))
+				if (network_card_available(c) || ((network_card_getdevice(c)->flags & DEVICE_MCA) == (machines[temp_machine].flags & MACHINE_MCA)) ||
+				    ((network_card_getdevice(c)->flags & DEVICE_PCI) == (machines[temp_machine].flags & MACHINE_PCI)))
 				{
 					if (c == 0)
 					{
