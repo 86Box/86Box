@@ -122,7 +122,7 @@ typedef struct pas16_t
         struct
         {
                 uint32_t l[3];
-                int c[3];
+                int64_t c[3];
                 uint8_t m[3];
                 uint8_t ctrl, ctrls[2];
                 int wp, rm[3], wm[3];
@@ -130,7 +130,7 @@ typedef struct pas16_t
                 int thit[3];
                 int delay[3];
                 int rereadlatch[3];
-                int enable[3];
+                int64_t enable[3];
         } pit;
 
         opl_t    opl;
