@@ -3804,17 +3804,14 @@ static void *s3_virge_init(device_t *info)
 
         io_sethandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
 
-        if (info->flags & DEVICE_PCI)
-	{
-	        virge->pci_regs[4] = 3;
-        	virge->pci_regs[5] = 0;        
-	        virge->pci_regs[6] = 0;
-        	virge->pci_regs[7] = 2;
-	        virge->pci_regs[0x32] = 0x0c;
-        	virge->pci_regs[0x3d] = 1; 
-	        virge->pci_regs[0x3e] = 4;
-        	virge->pci_regs[0x3f] = 0xff;
-	}
+        virge->pci_regs[4] = 3;
+       	virge->pci_regs[5] = 0;        
+        virge->pci_regs[6] = 0;
+       	virge->pci_regs[7] = 2;
+        virge->pci_regs[0x32] = 0x0c;
+       	virge->pci_regs[0x3d] = 1; 
+        virge->pci_regs[0x3e] = 4;
+       	virge->pci_regs[0x3f] = 0xff;
         
         virge->virge_id_high = 0x56;
         virge->virge_id_low = 0x31;
@@ -3906,17 +3903,14 @@ static void *s3_virge_988_init(device_t *info)
 
         io_sethandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
 
-        if (info->flags & DEVICE_PCI)
-	{
-	        virge->pci_regs[4] = 3;
-        	virge->pci_regs[5] = 0;        
-	        virge->pci_regs[6] = 0;
-        	virge->pci_regs[7] = 2;
-	        virge->pci_regs[0x32] = 0x0c;
-        	virge->pci_regs[0x3d] = 1; 
-	        virge->pci_regs[0x3e] = 4;
-        	virge->pci_regs[0x3f] = 0xff;
-	}
+        virge->pci_regs[4] = 3;
+       	virge->pci_regs[5] = 0;        
+        virge->pci_regs[6] = 0;
+       	virge->pci_regs[7] = 2;
+        virge->pci_regs[0x32] = 0x0c;
+       	virge->pci_regs[0x3d] = 1; 
+        virge->pci_regs[0x3e] = 4;
+       	virge->pci_regs[0x3f] = 0xff;
         
         virge->virge_id_high = 0x88;
         virge->virge_id_low = 0x3d;
@@ -4008,17 +4002,14 @@ static void *s3_virge_375_init(device_t *info, wchar_t *romfn)
 
         io_sethandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
 
-        if (info->flags & DEVICE_PCI)
-	{
-	        virge->pci_regs[4] = 3;
-        	virge->pci_regs[5] = 0;        
-	        virge->pci_regs[6] = 0;
-        	virge->pci_regs[7] = 2;
-	        virge->pci_regs[0x32] = 0x0c;
-        	virge->pci_regs[0x3d] = 1; 
-	        virge->pci_regs[0x3e] = 4;
-        	virge->pci_regs[0x3f] = 0xff;
-	}
+        virge->pci_regs[4] = 3;
+       	virge->pci_regs[5] = 0;        
+        virge->pci_regs[6] = 0;
+       	virge->pci_regs[7] = 2;
+        virge->pci_regs[0x32] = 0x0c;
+       	virge->pci_regs[0x3d] = 1; 
+        virge->pci_regs[0x3e] = 4;
+       	virge->pci_regs[0x3f] = 0xff;
         
         virge->virge_id_high = 0x8a;
         virge->virge_id_low = 0x01;

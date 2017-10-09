@@ -2186,13 +2186,13 @@ static void *s3_init(device_t *info, wchar_t *bios_fn, int chip)
         if (info->flags & DEVICE_PCI)
 	{
 	        s3->card = pci_add_card(PCI_ADD_VIDEO, s3_pci_read, s3_pci_write, s3);
-
-	        s3->pci_regs[0x04] = 7;
-        
-	        s3->pci_regs[0x30] = 0x00;
-        	s3->pci_regs[0x32] = 0x0c;
-	        s3->pci_regs[0x33] = 0x00;
 	}
+
+        s3->pci_regs[0x04] = 7;
+        
+        s3->pci_regs[0x30] = 0x00;
+       	s3->pci_regs[0x32] = 0x0c;
+        s3->pci_regs[0x33] = 0x00;
         
         s3->chip = chip;
 

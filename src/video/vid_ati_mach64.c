@@ -3322,12 +3322,12 @@ static void *mach64_common_init(device_t *info)
 	if (info->flags & DEVICE_PCI)
 	{
 	        mach64->card = pci_add_card(PCI_ADD_VIDEO, mach64_pci_read, mach64_pci_write, mach64);
-
-	        mach64->pci_regs[PCI_REG_COMMAND] = 3;
-        	mach64->pci_regs[0x30] = 0x00;
-	        mach64->pci_regs[0x32] = 0x0c;
-        	mach64->pci_regs[0x33] = 0x00;
 	}
+
+        mach64->pci_regs[PCI_REG_COMMAND] = 3;
+       	mach64->pci_regs[0x30] = 0x00;
+        mach64->pci_regs[0x32] = 0x0c;
+       	mach64->pci_regs[0x33] = 0x00;
                 
         ati68860_ramdac_init(&mach64->ramdac);
                 
