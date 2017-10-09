@@ -108,13 +108,13 @@ VPATH		:= $(EXPATH) . cpu \
 		   scsi video lzf network network/slirp win
 PLAT		:= win/
 ifeq ($(X64), y)
-CPP		:= g++.exe -m64
-CC		:= gcc.exe -m64
+CPP		:= g++ -m64
+CC		:= gcc -m64
 else
-CPP		:= g++.exe -m32
-CC		:= gcc.exe -m32
+CPP		:= g++ -m32
+CC		:= gcc -m32
 endif
-WINDRES		:= windres.exe
+WINDRES		:= windres
 DEPS		= -MMD -MF $*.d -c $<
 
 # Set up the correct toolchain flags.
@@ -422,16 +422,16 @@ else
 endif
 
 
-all:		$(PROG).exe pcap_if.exe
+all:		$(PROG) pcap_if
 
 
 86Box.res:	86Box.rc
 		@echo Processing $<
 		@$(WINDRES) $(RFLAGS) $(EXTRAS) -i $< -o 86Box.res
 
-$(PROG).exe:	$(OBJ) $(LZFOBJ) 86Box.res
-		@echo Linking $(PROG).exe ..
-		@$(CC) -o $(PROG).exe $(OBJ) $(LZFOBJ) 86Box.res $(LIBS)
+$(PROG):	$(OBJ) $(LZFOBJ) 86Box.res
+		@echo Linking $(PROG) ..
+		@$(CC) -o $(PROG) $(OBJ) $(LZFOBJ) 86Box.res $(LIBS)
 ifneq ($(DEBUG), y)
 		@strip $(PROG).exe
 endif
@@ -440,9 +440,9 @@ pcap_if.res:	pcap_if.rc
 		@echo Processing $<
 		@$(WINDRES) $(RFLAGS) -i $< -o pcap_if.res
 
-pcap_if.exe:	pcap_if.o win_dynld.o pcap_if.res
-		@echo Linking pcap_if.exe ..
-		@$(CC) -o pcap_if.exe pcap_if.o win_dynld.o pcap_if.res
+pcap_if:	pcap_if.o win_dynld.o pcap_if.res
+		@echo Linking pcap_if ..
+		@$(CC) -o pcap_if pcap_if.o win_dynld.o pcap_if.res
 ifneq ($(DEBUG), y)
 		@strip pcap_if.exe
 endif
