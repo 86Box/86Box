@@ -423,6 +423,7 @@ typedef struct {
     int		PendingInterrupt;
     int		Lock;
     event_t	*evt;
+    uint8_t	MailboxIsBIOS;
 } aha_t;
 
 
@@ -717,6 +718,26 @@ aha_mbi_setup(aha_t *dev, uint32_t CCBPointer, CCBU *CmdBlock,
     req->MailboxCompletionCode = mbcc;
 
     aha_log("Mailbox in setup\n");
+}
+
+
+static void
+aha_ccb(aha_t *dev)
+{
+    Req_t *req = &dev->Req;
+    uint32_t CCBPointer = req->CCBPointer;
+    CCBU *CmdBlock = &(req->CmdBlock);
+    uint8_t HostStatus = req->HostStatus;
+    uint8_t TargetStatus = req->TargetStatus;
+    uint8_t MailboxCompletionCode = req->MailboxCompletionCode;
+
+    CmdBlock->common.Pad3[9] = MailboxCompletionCode;
+    CmdBlock->common.HostStatus = HostStatus;
+    CmdBlock->common.TargetStatus = TargetStatus;		
+		
+    /* Rewrite the CCB up to the CDB. */
+    aha_log("CCB rewritten to the CDB (pointer %08X)\n", CCBPointer);
+    DMAPageWrite(CCBPointer, (char *)CmdBlock, 18);
 }
 
 
@@ -1115,6 +1136,20 @@ aha_scsi_cmd(aha_t *dev)
 
 
 static void
+aha_notify(aha_t *dev)
+{
+	if (dev->MailboxIsBIOS)
+	{
+		aha_ccb(dev);
+	}
+	else
+	{
+		aha_mbi(dev);
+	}
+}
+
+
+static void
 aha_req_setup(aha_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 {	
     Req_t *req = &dev->Req;
@@ -1135,7 +1170,7 @@ aha_req_setup(aha_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 	aha_mbi_setup(dev, CCBPointer, &req->CmdBlock,
 		      CCB_INVALID_CCB, SCSI_STATUS_OK, MBI_ERROR);
 	aha_log("%s: Callback: Send incoming mailbox\n", dev->name);
-	aha_mbi(dev);
+	aha_notify(dev);
 	return;
     }
 	
@@ -1153,7 +1188,7 @@ aha_req_setup(aha_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 	aha_mbi_setup(dev, CCBPointer, &req->CmdBlock,
 		      CCB_SELECTION_TIMEOUT,SCSI_STATUS_OK,MBI_ERROR);
 	aha_log("%s: Callback: Send incoming mailbox\n", dev->name);
-	aha_mbi(dev);
+	aha_notify(dev);
     } else {
 	aha_log("SCSI Target ID %i and LUN %i detected and working\n", id, lun);
 
@@ -1169,7 +1204,7 @@ aha_req_setup(aha_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 	aha_scsi_cmd(dev);
 
 	aha_log("%s: Callback: Send incoming mailbox\n", dev->name);
-	aha_mbi(dev);
+	aha_notify(dev);
     }
 }
 
@@ -1185,7 +1220,7 @@ aha_req_abort(aha_t *dev, uint32_t CCBPointer)
     aha_mbi_setup(dev, CCBPointer, &CmdBlock,
 		  0x26, SCSI_STATUS_OK, MBI_NOT_FOUND);
     aha_log("%s: Callback: Send incoming mailbox\n", dev->name);
-    aha_mbi(dev);
+    aha_notify(dev);
 }
 
 
@@ -1268,6 +1303,10 @@ aha_do_mail(aha_t *dev)
 
 
 static void
+aha_cmd_done(aha_t *dev, int suppress);
+
+
+static void
 aha_cmd_thread(void *priv)
 {
     aha_t *dev = (aha_t *)priv;
@@ -1304,6 +1343,7 @@ aha_read(uint16_t port, void *priv)
     switch (port & 3) {
 	case 0:
 	default:
+		pclog("Read status: %02X\n", dev->Interrupt);
 		ret = dev->Status;
 		break;
 		
@@ -1318,6 +1358,7 @@ aha_read(uint16_t port, void *priv)
 		break;
 		
 	case 2:
+		pclog("Read interrupt: %02X\n", dev->Interrupt);
 		ret = dev->Interrupt;
 		break;
 		
@@ -1380,6 +1421,7 @@ aha_write(uint16_t port, uint8_t val, void *priv)
 			if (dev->MailboxCount) {
 				if (! poll_tid) {
 					aha_log("%s: starting thread..\n", dev->name);
+					dev->MailboxIsBIOS = (val == CMD_BIOS_SCSI);
 					poll_tid = thread_create(aha_cmd_thread, dev);
 				}
 			}
@@ -2044,8 +2086,10 @@ aha_init(device_t *info)
 		dev->bios_path = L"roms/scsi/adaptec/aha1542c102.bin";
 		dev->nvr_path = L"aha1540c.nvr";
 		dev->bid = 'D';
+#if 0
 		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
 		dev->rom_shramsz = 128;		/* size of shadow RAM */
+#endif
 		dev->rom_ioaddr = 0x3F7E;	/* [2:0] idx into addr table */
 		dev->rom_fwhigh = 0x0022;	/* firmware version (hi/lo) */
 		break;
@@ -2055,8 +2099,10 @@ aha_init(device_t *info)
 		dev->bios_path = L"roms/scsi/adaptec/aha1542cf211.bin";
 		dev->nvr_path = L"aha1540cf.nvr";
 		dev->bid = 'E';
+#if 0
 		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
 		dev->rom_shramsz = 128;		/* size of shadow RAM */
+#endif
 		dev->rom_ioaddr = 0x3F7E;	/* [2:0] idx into addr table */
 		dev->rom_fwhigh = 0x0022;	/* firmware version (hi/lo) */
 		break;
