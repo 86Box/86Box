@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.12	2017/10/07
+ * Version:	@(#)cdrom.c	1.0.13	2017/10/08
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -4018,7 +4018,9 @@ void cdrom_general_init(void)
 {
     int c = 0;
 
+#if 0
     cdrom_init_host_drives();
+#endif
 
     for (c=0; c<CDROM_NUM; c++) {
 	if (cdrom_drives[c].bus_type) {

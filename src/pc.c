@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.18	2017/10/08
+ * Version:	@(#)pc.c	1.0.19	2017/10/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -27,31 +27,46 @@
 #include "86box.h"
 #include "config.h"
 #include "ibm.h"
+#include "cpu/cpu.h"
+#include "cpu/codegen.h"
+#include "cpu/x86_ops.h"
 #include "io.h"
 #include "mem.h"
 #include "rom.h"
-#include "cpu/codegen.h"
-#include "cpu/cpu.h"
 #include "dma.h"
+#include "pic.h"
+#include "pit.h"
 #include "random.h"
+#include "timer.h"
+#include "mouse.h"
 #include "device.h"
+#include "nvr.h"
+#include "machine/machine.h"
+#include "game/gameport.h"
+#include "keyboard.h"
+#include "keyboard_at.h"
+#include "lpt.h"
+#include "serial.h"
 #include "cdrom/cdrom.h"
 #include "disk/hdd.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
 #include "floppy/floppy.h"
 #include "floppy/fdc.h"
-#include "game/gameport.h"
-#include "keyboard.h"
-#include "keyboard_at.h"
-#include "lpt.h"
-#include "machine/machine.h"
-#include "sound/midi.h"
-#include "mouse.h"
+#include "scsi/scsi.h"
 #include "network/network.h"
-#include "nvr.h"
-#include "pic.h"
-#include "pit.h"
+#include "sound/sound.h"
+#include "sound/midi.h"
+#include "sound/snd_cms.h"
+#include "sound/snd_dbopl.h"
+#include "sound/snd_mpu401.h"
+#include "sound/snd_opl.h"
+#include "sound/snd_gus.h"
+#include "sound/snd_sb.h"
+#include "sound/snd_speaker.h"
+#include "sound/snd_ssi2001.h"
+#include "video/video.h"
+#include "video/vid_voodoo.h"
 #ifdef WALTJE
 # define UNICODE
 # include <direct.h>
@@ -62,23 +77,9 @@
 #include "win/plat_keyboard.h"
 #include "win/plat_midi.h"
 #include "win/plat_mouse.h"
+#include "win/plat_iodev.h"
 #include "win/plat_ui.h"
 #include "win/win.h"
-#include "scsi/scsi.h"
-#include "serial.h"
-#include "sound/sound.h"
-#include "sound/snd_cms.h"
-#include "sound/snd_dbopl.h"
-#include "sound/snd_mpu401.h"
-#include "sound/snd_opl.h"
-#include "sound/snd_gus.h"
-#include "sound/snd_sb.h"
-#include "sound/snd_speaker.h"
-#include "sound/snd_ssi2001.h"
-#include "timer.h"
-#include "video/video.h"
-#include "video/vid_voodoo.h"
-#include "cpu/x86_ops.h"
 
 
 int	window_w, window_h, window_x, window_y, window_remember;
@@ -307,6 +308,7 @@ usage:
      */
     hdd_init();
     network_init();
+    cdrom_init_host_drives();
 
     /* Load the configuration file. */
     config_load(cfg);

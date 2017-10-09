@@ -766,7 +766,7 @@ StatusBarUpdatePanes(void)
 			break;
 
 		case SB_TEXT:		/* Status text */
-			SendMessage(hwndSBAR, SB_SETTEXT, i | SBT_NOBORDERS, (LPARAM) L"");
+			SendMessage(hwndSBAR, SB_SETTEXT, i | SBT_NOBORDERS, (LPARAM)L"");
 			sb_part_icons[i] = -1;
 			break;
 	}
@@ -1116,6 +1116,7 @@ StatusBarSetTextW(wchar_t *wstr)
     int part = -1;
     int i;
 
+pclog("SB_settext(%ws)", wstr);
     if (!sb_ready || (sb_parts == 0) || (sb_part_meanings == NULL)) return;
 
     for (i=0; i<sb_parts; i++) {
@@ -1123,9 +1124,11 @@ StatusBarSetTextW(wchar_t *wstr)
 		part = i;
 	}
     }
+pclog(" part=%d", part);
 
     if (part != -1)
 	SendMessage(hwndSBAR, SB_SETTEXT, part | SBT_NOBORDERS, (LPARAM)wstr);
+pclog(" done\n");
 }
 
 

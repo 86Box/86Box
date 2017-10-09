@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.17	2017/10/08
+ * Version:	@(#)win.c	1.0.18	2017/10/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1262,9 +1262,6 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 
     /* Fire up the machine. */
     pc_reset_hard();
-
-    /* Make sure the status bar is up-to-date. */
-    StatusBarUpdatePanes();
 
     /*
      * Everything has been configured, and all seems to work,

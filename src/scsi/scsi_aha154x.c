@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.22	2017/10/08
+ * Version:	@(#)scsi_aha154x.c	1.0.23	2017/10/08
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -1249,7 +1249,8 @@ aha_mbo(aha_t *dev, Mailbox32_t *Mailbox32)
 static void
 aha_mbo_adv(aha_t *dev)
 {
-    dev->MailboxOutPosCur = (dev->MailboxOutPosCur + 1) % dev->MailboxCount;
+    if (dev->MailboxCount > 0)
+	dev->MailboxOutPosCur = (dev->MailboxOutPosCur + 1) % dev->MailboxCount;
 }
 
 
