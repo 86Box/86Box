@@ -64,7 +64,9 @@ typedef struct {
 #pragma pack(push,1)
 typedef struct {
 	uint8_t previous_command;
+
 	int toctimes;
+	int media_status;
 
 	int is_dma;
 

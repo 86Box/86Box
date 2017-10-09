@@ -2017,47 +2017,6 @@ static int cdrom_read_dvd_structure(uint8_t id, int format, const uint8_t *packe
 	}
 }
 
-/*SCSI Get Event Status Notification*/
-static uint32_t cdrom_get_event_status(uint8_t id, uint8_t *buffer)
-{
-	uint8_t event_code, media_status = 0;
-
-	if (buffer[5])
-	{
-		media_status = MS_TRAY_OPEN;
-		if (cdrom_drives[id].handler->stop)
-		{
-			cdrom_drives[id].handler->stop(id);
-		}
-	}
-	else
-	{
-		media_status = MS_MEDIA_PRESENT;
-	}
-	
-	event_code = MEC_NO_CHANGE;
-	if (media_status != MS_TRAY_OPEN)
-	{
-		if (!buffer[4])
-		{
-			event_code = MEC_NEW_MEDIA;
-			cdrom_drives[id].handler->load(id);
-		}
-		else if (buffer[4]==2)
-		{
-			event_code = MEC_EJECT_REQUESTED;
-			cdrom_drives[id].handler->eject(id);
-		}
-	}
-	
-	buffer[4] = event_code;
-	buffer[5] = media_status;
-	buffer[6] = 0;
-	buffer[7] = 0;
-	
-	return 8;
-}
-
 void cdrom_insert(uint8_t id)
 {
 	cdrom[id].unit_attention = 1;
@@ -2161,6 +2120,15 @@ skip_ready_check:
 	}
 
 	/* Next it's time for NOT READY. */
+	if (!ready)
+	{
+		cdrom[id].media_status = MEC_MEDIA_REMOVAL;
+	}
+	else
+	{
+		cdrom[id].media_status = (cdrom[id].unit_attention) ? MEC_NEW_MEDIA : MEC_NO_CHANGE;
+	}
+
 	if ((cdrom_command_flags[cdb[0]] & CHECK_READY) && !ready)
 	{
 		cdrom_log("CD-ROM %i: Not ready (%02X)\n", id, cdb[0]);
@@ -2865,7 +2833,12 @@ cdrom_readtoc_fallback:
 			if (gesn_cdb->class & (1 << GESN_MEDIA))
 			{
 				gesn_event_header->notification_class |= GESN_MEDIA;
-				used_len = cdrom_get_event_status(id, cdbufferb);
+
+				cdbufferb[4] = cdrom[id].media_status;	/* Bits 7-4 = Reserved, Bits 4-1 = Media Status */
+				cdbufferb[5] = 1;			/* Power Status (1 = Active) */
+				cdbufferb[6] = 0;
+				cdbufferb[7] = 0;
+				used_len = 8;
 			}
 			else
 			{
@@ -2873,6 +2846,8 @@ cdrom_readtoc_fallback:
 				used_len = sizeof(*gesn_event_header);
 			}
 			gesn_event_header->len = used_len - sizeof(*gesn_event_header);
+
+			memcpy(cdbufferb, gesn_event_header, 4);
 
 			if (SCSI_BufferLength == -1)
 			{
