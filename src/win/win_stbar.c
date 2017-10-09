@@ -313,8 +313,10 @@ StatusBarCreateFloppyTip(int part)
 		  drive+1, wtext, floppyfns[drive]);
     }
 
-    if (sbTips[part] != NULL)
+    if (sbTips[part] != NULL) {
 	free(sbTips[part]);
+	sbTips[part] = NULL;
+    }
     sbTips[part] = (WCHAR *) malloc((wcslen(tempTip) << 1) + 2);
     wcscpy(sbTips[part], tempTip);
 }
@@ -346,8 +348,10 @@ StatusBarCreateCdromTip(int part)
 	_swprintf(tempTip, win_get_string(IDS_5120), drive + 1, szText, win_get_string(IDS_2057));
     }
 
-    if (sbTips[part] != NULL)
+    if (sbTips[part] != NULL) {
 	free(sbTips[part]);
+	sbTips[part] = NULL;
+    }
     sbTips[part] = (WCHAR *)malloc((wcslen(tempTip) << 1) + 2);
     wcscpy(sbTips[part], tempTip);
 }
@@ -365,8 +369,10 @@ StatusBarCreateRemovableDiskTip(int part)
 	_swprintf(tempTip, win_get_string(IDS_4115), drive, hdd[drive].fn);
     }
 
-    if (sbTips[part] != NULL)
+    if (sbTips[part] != NULL) {
 	free(sbTips[part]);
+	sbTips[part] = NULL;
+    }
     sbTips[part] = (WCHAR *)malloc((wcslen(tempTip) << 1) + 2);
     wcscpy(sbTips[part], tempTip);
 }
