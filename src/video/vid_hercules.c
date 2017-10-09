@@ -410,7 +410,7 @@ static device_config_t hercules_config[] =
 device_t hercules_device =
 {
         "Hercules",
-        0, 0,
+        DEVICE_ISA, 0,
         hercules_init,
         hercules_close,
 	NULL,

@@ -73,6 +73,44 @@ void io_sethandler(uint16_t base, int size,
         }
 }
 
+void io_sethandler_interleaved(uint16_t base, int size, 
+                   uint8_t  (*inb)(uint16_t addr, void *priv), 
+                   uint16_t (*inw)(uint16_t addr, void *priv), 
+                   uint32_t (*inl)(uint16_t addr, void *priv), 
+                   void (*outb)(uint16_t addr, uint8_t  val, void *priv),
+                   void (*outw)(uint16_t addr, uint16_t val, void *priv),
+                   void (*outl)(uint16_t addr, uint32_t val, void *priv),
+                   void *priv)
+{
+        int c;
+	size <<= 2;
+        for (c = 0; c < size; c += 2)
+        {
+                if (!port_inb[ base + c][0] && !port_inw[ base + c][0] && !port_inl[ base + c][0] &&
+                    !port_outb[base + c][0] && !port_outw[base + c][0] && !port_outl[base + c][0])
+                {
+                        port_inb[ base + c][0] = inb;
+                        port_inw[ base + c][0] = inw;
+                        port_inl[ base + c][0] = inl;
+                        port_outb[base + c][0] = outb;
+                        port_outw[base + c][0] = outw;
+                        port_outl[base + c][0] = outl;
+                        port_priv[base + c][0] = priv;
+                }
+                else if (!port_inb[ base + c][1] && !port_inw[ base + c][1] && !port_inl[ base + c][1] &&
+                         !port_outb[base + c][1] && !port_outw[base + c][1] && !port_outl[base + c][1])
+                {
+                        port_inb[ base + c][1] = inb;
+                        port_inw[ base + c][1] = inw;
+                        port_inl[ base + c][1] = inl;
+                        port_outb[base + c][1] = outb;
+                        port_outw[base + c][1] = outw;
+                        port_outl[base + c][1] = outl;
+                        port_priv[base + c][1] = priv;
+                }
+        }
+}
+
 void io_removehandler(uint16_t base, int size, 
                    uint8_t  (*inb)(uint16_t addr, void *priv), 
                    uint16_t (*inw)(uint16_t addr, void *priv), 
@@ -84,6 +122,54 @@ void io_removehandler(uint16_t base, int size,
 {
         int c;
         for (c = 0; c < size; c++)
+        {
+                if (port_priv[base + c][0] == priv)
+                {
+                        if (port_inb[ base + c][0] == inb)
+                           port_inb[ base + c][0] = NULL;
+                        if (port_inw[ base + c][0] == inw)
+                           port_inw[ base + c][0] = NULL;
+                        if (port_inl[ base + c][0] == inl)
+                           port_inl[ base + c][0] = NULL;
+                        if (port_outb[ base + c][0] == outb)
+                           port_outb[ base + c][0] = NULL;
+                        if (port_outw[ base + c][0] == outw)
+                           port_outw[ base + c][0] = NULL;
+                        if (port_outl[ base + c][0] == outl)
+                           port_outl[ base + c][0] = NULL;
+			port_priv[base + c][0] = NULL;
+                }
+                if (port_priv[base + c][1] == priv)
+                {
+                        if (port_inb[ base + c][1] == inb)
+                           port_inb[ base + c][1] = NULL;
+                        if (port_inw[ base + c][1] == inw)
+                           port_inw[ base + c][1] = NULL;
+                        if (port_inl[ base + c][1] == inl)
+                           port_inl[ base + c][1] = NULL;
+                        if (port_outb[ base + c][1] == outb)
+                           port_outb[ base + c][1] = NULL;
+                        if (port_outw[ base + c][1] == outw)
+                           port_outw[ base + c][1] = NULL;
+                        if (port_outl[ base + c][1] == outl)
+                           port_outl[ base + c][1] = NULL;
+			port_priv[base + c][1] = NULL;
+                }
+        }
+}
+
+void io_removehandler_interleaved(uint16_t base, int size, 
+                   uint8_t  (*inb)(uint16_t addr, void *priv), 
+                   uint16_t (*inw)(uint16_t addr, void *priv), 
+                   uint32_t (*inl)(uint16_t addr, void *priv), 
+                   void (*outb)(uint16_t addr, uint8_t  val, void *priv),
+                   void (*outw)(uint16_t addr, uint16_t val, void *priv),
+                   void (*outl)(uint16_t addr, uint32_t val, void *priv),
+                   void *priv)
+{
+        int c;
+	size <<= 2;
+        for (c = 0; c < size; c += 2)
         {
                 if (port_priv[base + c][0] == priv)
                 {

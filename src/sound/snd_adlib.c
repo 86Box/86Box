@@ -97,7 +97,7 @@ void adlib_close(void *p)
 device_t adlib_device =
 {
         "AdLib",
-        0,
+        DEVICE_ISA,
 	0,
         adlib_init, adlib_close, NULL,
         NULL, NULL, NULL, NULL,

@@ -31,11 +31,15 @@
 static netcard_t net_cards[] = {
     { "None",			"none",		NULL,
       NULL,			NULL					},
-    { "Novell NE1000",		"ne1k",		&ne1000_device,
+#ifdef DEV_BRANCH
+#ifdef USE_NE1000
+    { "[ISA] Novell NE1000",	"ne1k",		&ne1000_device,
       NULL,			NULL					},
-    { "Novell NE2000",		"ne2k",		&ne2000_device,
+#endif
+#endif
+    { "[ISA] Novell NE2000",	"ne2k",		&ne2000_device,
       NULL,			NULL					},
-    { "Realtek RTL8029AS",	"ne2kpci",	&rtl8029as_device,
+    { "[PCI] Realtek RTL8029AS","ne2kpci",	&rtl8029as_device,
       NULL,			NULL					},
     { "",			"",		NULL,
       NULL,			NULL					}

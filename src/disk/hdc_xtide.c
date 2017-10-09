@@ -236,7 +236,7 @@ xtide_close(void *priv)
 
 device_t xtide_device = {
     "XTIDE",
-    0,
+    DEVICE_ISA,
     0,
     xtide_init, xtide_close, NULL,
     xtide_available, NULL, NULL, NULL,
@@ -245,7 +245,7 @@ device_t xtide_device = {
 
 device_t xtide_at_device = {
     "XTIDE (AT)",
-    DEVICE_AT,
+    DEVICE_ISA | DEVICE_AT,
     0,
     xtide_at_init, xtide_close, NULL,
     xtide_at_available, NULL, NULL, NULL,
@@ -254,7 +254,7 @@ device_t xtide_at_device = {
 
 device_t xtide_ps2_device = {
     "XTIDE (Acculogic)",
-    0,
+    DEVICE_ISA,
     0,
     xtide_ps2_init, xtide_close, NULL,
     xtide_ps2_available, NULL, NULL, NULL,
@@ -263,7 +263,7 @@ device_t xtide_ps2_device = {
 
 device_t xtide_at_ps2_device = {
     "XTIDE (AT) (1.1.5)",
-    DEVICE_PS2,
+    DEVICE_ISA | DEVICE_PS2,
     0,
     xtide_at_ps2_init, xtide_close, NULL,
     xtide_at_ps2_available, NULL, NULL, NULL,

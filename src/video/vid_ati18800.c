@@ -223,7 +223,7 @@ void ati18800_add_status_info(char *s, int max_len, void *p)
 device_t ati18800_device =
 {
         "ATI-18800",
-        0, 0,
+        DEVICE_ISA, 0,
         ati18800_init,
         ati18800_close,
 	NULL,

@@ -908,7 +908,7 @@ dtc5150x_available(void)
 
 device_t mfm_xt_dtc5150x_device = {
     "DTC 5150X",
-    0, 0,
+    DEVICE_ISA, 0,
     dtc5150x_init, mfm_close, NULL,
     dtc5150x_available, NULL, NULL, NULL,
     NULL

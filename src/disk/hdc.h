@@ -49,6 +49,7 @@ extern void	hdc_reset(void);
 
 extern char	*hdc_get_name(int hdc);
 extern char	*hdc_get_internal_name(int hdc);
+extern device_t	*hdc_get_device(int hdc);
 extern int	hdc_get_flags(int hdc);
 extern int	hdc_available(int hdc);
 extern int	hdc_current_is_mfm(void);

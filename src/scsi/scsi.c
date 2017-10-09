@@ -8,7 +8,7 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.8	2017/10/07
+ * Version:	@(#)scsi.c	1.0.9	2017/10/10
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -30,11 +30,7 @@
 #include "scsi.h"
 #include "scsi_aha154x.h"
 #include "scsi_buslogic.h"
-#ifdef DEV_BRANCH
-#ifdef USE_NCR
 #include "scsi_ncr5380.h"
-#endif
-#endif
 
 
 scsi_device_t	SCSIDevices[SCSI_ID_MAX][SCSI_LUN_MAX];
@@ -60,19 +56,15 @@ typedef struct {
 
 static SCSI_CARD scsi_cards[] = {
     { "None",			"none",		NULL,		      NULL		  },
-    { "Adaptec AHA-1540B",	"aha1540b",	&aha1540b_device,     aha_device_reset    },
-    { "Adaptec AHA-1542C",	"aha1542c",	&aha1542c_device,     aha_device_reset    },
-    { "Adaptec AHA-1542CF",	"aha1542cf",	&aha1542cf_device,    aha_device_reset    },
-    { "Adaptec AHA-1640",	"aha1640",	&aha1640_device,      aha_device_reset    },
-    { "BusLogic BT-545C",	"bt545c",	&buslogic_device,     BuslogicDeviceReset },
-    { "BusLogic BT-958D PCI",	"bt958d",	&buslogic_pci_device, BuslogicDeviceReset },
-#ifdef DEV_BRANCH
-#ifdef USE_NCR
-    { "Longshine LCS-6821N",	"lcs6821n",	&scsi_lcs6821n_device,NULL		  },
-    { "Ranco RT1000B",		"rt1000b",	&scsi_rt1000b_device, NULL		  },
-    { "Trantor T130B",		"t130b",	&scsi_t130b_device,   NULL		  },
-#endif
-#endif
+    { "[ISA] Adaptec AHA-1540B","aha1540b",	&aha1540b_device,     aha_device_reset    },
+    { "[ISA] Adaptec AHA-1542C","aha1542c",	&aha1542c_device,     aha_device_reset    },
+    { "[ISA] Adaptec AHA-1542CF","aha1542cf",	&aha1542cf_device,    aha_device_reset    },
+    { "[ISA] Longshine LCS-6821N","lcs6821n",	&scsi_lcs6821n_device,NULL		  },
+    { "[ISA] Ranco RT1000B",	"rt1000b",	&scsi_rt1000b_device, NULL		  },
+    { "[ISA] Trantor T130B",	"t130b",	&scsi_t130b_device,   NULL		  },
+    { "[MCA] Adaptec AHA-1640",	"aha1640",	&aha1640_device,      aha_device_reset    },
+    { "[PCI] BusLogic BT-545C",	"bt545c",	&buslogic_device,     BuslogicDeviceReset },
+    { "[PCI] BusLogic BT-958D",	"bt958d",	&buslogic_pci_device, BuslogicDeviceReset },
     { "",			"",		NULL,		      NULL		  },
 };
 

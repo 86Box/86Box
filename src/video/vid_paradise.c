@@ -433,7 +433,7 @@ device_t paradise_wd90c11_megapc_device =
 device_t paradise_wd90c11_device =
 {
         "Paradise WD90C11",
-        0,
+        DEVICE_ISA,
 	0,
         paradise_wd90c11_megapc_init,
         paradise_close,

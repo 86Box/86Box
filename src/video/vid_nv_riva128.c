@@ -3065,7 +3065,7 @@ device_config_t riva128zx_config[] =
 device_t riva128_device =
 {
 	"nVidia RIVA 128",
-	0,
+	DEVICE_PCI,
 	0,
 	riva128_init,
 	riva128_close,
@@ -3259,7 +3259,7 @@ device_config_t rivatnt_config[] =
 device_t rivatnt_device =
 {
 	"nVidia RIVA TNT",
-	0,
+	DEVICE_PCI,
 	0,
 	rivatnt_init,
 	rivatnt_close,
@@ -3482,7 +3482,7 @@ device_config_t rivatnt2_config[] =
 device_t rivatnt2_device =
 {
 	"nVidia RIVA TNT2",
-	0,
+	DEVICE_PCI,
 	0,
 	rivatnt2_init,
 	rivatnt2_close,

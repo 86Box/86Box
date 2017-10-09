@@ -2294,7 +2294,7 @@ static device_config_t aha_154x_config[] = {
 
 device_t aha1540b_device = {
     "Adaptec AHA-1540B",
-    0,
+    DEVICE_ISA | DEVICE_AT,
     AHA_154xB,
     aha_init,
     aha_close,
@@ -2308,7 +2308,7 @@ device_t aha1540b_device = {
 
 device_t aha1542c_device = {
     "Adaptec AHA-1542C",
-    0,
+    DEVICE_ISA | DEVICE_AT,
     AHA_154xC,
     aha_init,
     aha_close,
@@ -2322,7 +2322,7 @@ device_t aha1542c_device = {
 
 device_t aha1542cf_device = {
     "Adaptec AHA-1542CF",
-    0,
+    DEVICE_ISA | DEVICE_AT,
     AHA_154xCF,
     aha_init,
     aha_close,

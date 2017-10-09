@@ -68,8 +68,8 @@ endif
 ifndef CIRRUS
 CIRRUS		:= n
 endif
-ifndef NCR_SCSI
-NCR_SCSI	:= n
+ifndef NE1000
+NE1000		:= n
 endif
 ifndef NV_RIVA
 NV_RIVA		:= n
@@ -90,7 +90,7 @@ endif
 ifeq ($(DEV_BUILD), y)
 DEV_BRANCH	:= y
 CIRRUS		:= y
-NCR_SCSI	:= y
+NE1000		:= y
 NV_RIVA		:= y
 PAS16		:= y
 endif
@@ -205,9 +205,8 @@ CFLAGS		+= -DUSE_CIRRUS
 DEVBROBJ	+= vid_cl_gd.o vid_cl_gd_blit.o vid_cl_ramdac.o
 endif
 
-ifeq ($(NCR_SCSI), y)
-CFLAGS		+= -DUSE_NCR
-DEVBROBJ	+= scsi_bus.o scsi_ncr5380.o
+ifeq ($(NE1000), y)
+CFLAGS		+= -DUSE_NE1000
 endif
 
 ifeq ($(NV_RIVA), y)
@@ -296,8 +295,9 @@ USBOBJ		:= usb.o
 endif
 
 SCSIOBJ		:= scsi.o \
-		    scsi_bios_command.o scsi_device.o scsi_disk.o \
-		    scsi_buslogic.o scsi_aha154x.o
+		    scsi_bios_command.o scsi_bus.o scsi_device.o scsi_disk.o \
+		    scsi_buslogic.o scsi_aha154x.o \
+		    scsi_ncr5380.o
 
 NETOBJ		:= network.o \
 		    net_pcap.o \

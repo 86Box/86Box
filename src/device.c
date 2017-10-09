@@ -330,6 +330,54 @@ device_set_config_mac(char *s, int val)
 
 
 int
+device_is_valid(device_t *device, int machine_flags)
+{
+    if (!device)
+    {
+	return 1;
+    }
+
+    if ((device->flags & DEVICE_AT) && !(machine_flags & MACHINE_AT)) {
+	return 0;
+    }
+
+    if ((device->flags & DEVICE_CBUS) && !(machine_flags & MACHINE_CBUS)) {
+	return 0;
+    }
+
+    if ((device->flags & DEVICE_ISA) && !(machine_flags & MACHINE_ISA)) {
+	return 0;
+    }
+
+    if ((device->flags & DEVICE_MCA) && !(machine_flags & MACHINE_MCA)) {
+	return 0;
+    }
+
+    if ((device->flags & DEVICE_EISA) && !(machine_flags & MACHINE_EISA)) {
+	return 0;
+    }
+
+    if ((device->flags & DEVICE_VLB) && !(machine_flags & MACHINE_VLB)) {
+	return 0;
+    }
+
+    if ((device->flags & DEVICE_PCI) && !(machine_flags & MACHINE_PCI)) {
+	return 0;
+    }
+
+    if ((device->flags & DEVICE_PS2) && !(machine_flags & MACHINE_PS2_HDD)) {
+	return 0;
+    }
+
+    if ((device->flags & DEVICE_AGP) && !(machine_flags & MACHINE_AGP)) {
+	return 0;
+    }
+
+    return 1;
+}
+
+
+int
 machine_get_config_int(char *s)
 {
     device_t *d = machine_getdevice(machine);

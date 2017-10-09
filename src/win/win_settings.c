@@ -701,7 +701,7 @@ static void recalc_vid_list(HWND hdlg)
                         break;
 
                 if (video_card_available(c) && gfx_present[video_new_to_old(c)] &&
-                    ((machines[temp_machine].flags & MACHINE_PCI) || !(video_card_getdevice(c)->flags & DEVICE_PCI)))
+                    device_is_valid(video_card_getdevice(c), machines[temp_machine].flags))
                 {
 			mbstowcs(szText, s, strlen(s) + 1);
                         SendMessage(h, CB_ADDSTRING, 0, (LPARAM) szText);
@@ -1057,7 +1057,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 				{
 					sound_dev = sound_card_getdevice(c);
 
-					if (!sound_dev || (sound_dev->flags & DEVICE_MCA) == (machines[temp_machine].flags & MACHINE_MCA) || (sound_dev->flags & DEVICE_PCI) == (machines[temp_machine].flags & MACHINE_PCI))
+					if (device_is_valid(sound_dev, machines[temp_machine].flags))
 					{
 						if (c == 0)
 						{
@@ -1076,6 +1076,8 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 				c++;
 			}
 			SendMessage(h, CB_SETCURSEL, settings_sound_to_list[temp_sound_card], 0);
+
+			EnableWindow(h, d ? TRUE : FALSE);
 
 			h = GetDlgItem(hdlg, IDC_CONFIGURE_SND);
 			if (sound_card_has_config(temp_sound_card))
@@ -1104,7 +1106,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 				{
 					midi_dev = midi_device_getdevice(c);
 
-					if (!midi_dev || (midi_dev->flags & DEVICE_MCA) == (machines[temp_machine].flags & MACHINE_MCA))
+					if (!midi_dev)
 					{
 						if (c == 0)
 						{
@@ -1394,32 +1396,7 @@ static void recalc_hdc_list(HWND hdlg, int machine, int use_selected_hdc)
 			c++;
 			continue;
 		}
-		if ((hdc_get_flags(c) & DEVICE_AT) && !(machines[machine].flags & MACHINE_AT))
-		{
-			c++;
-			continue;
-		}
-		if ((hdc_get_flags(c) & DEVICE_PS2) && !(machines[machine].flags & MACHINE_PS2_HDD))
-		{
-			c++;
-			continue;
-		}
-		if ((hdc_get_flags(c) & DEVICE_MCA) && !(machines[machine].flags & MACHINE_MCA))
-		{
-			c++;
-			continue;
-		}
-		if ((hdc_get_flags(c) & DEVICE_VLB) && !(machines[machine].flags & MACHINE_VLB))
-		{
-			c++;
-			continue;
-		}
-		if ((hdc_get_flags(c) & DEVICE_PCI) && !(machines[machine].flags & MACHINE_PCI))
-		{
-			c++;
-			continue;
-		}
-		if (!hdc_available(c))
+		if (!hdc_available(c) || !device_is_valid(hdc_get_device(c), machines[temp_machine].flags))
 		{
 			c++;
 			continue;
@@ -1442,7 +1419,7 @@ static void recalc_hdc_list(HWND hdlg, int machine, int use_selected_hdc)
 		SendMessage(h, CB_SETCURSEL, 0, 0);
 	}
 
-	EnableWindow(h, TRUE);
+	EnableWindow(h, d ? TRUE : FALSE);
 
 	free(lptsTemp);
 }
@@ -1497,10 +1474,8 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 				if (scsi_card_available(c))
 				{
 					scsi_dev = scsi_card_getdevice(c);
-					
-					if (!scsi_dev || ((scsi_dev->flags & DEVICE_MCA) == (machines[temp_machine].flags & MACHINE_MCA)) ||
-					    ((scsi_dev->flags & DEVICE_VLB) == (machines[temp_machine].flags & MACHINE_VLB)) ||
-					    ((scsi_dev->flags & DEVICE_PCI) == (machines[temp_machine].flags & MACHINE_PCI)))
+
+					if (device_is_valid(scsi_dev, machines[temp_machine].flags))
 					{
 						if (c == 0)
 						{
@@ -1519,6 +1494,8 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 				c++;
 			}
 			SendMessage(h, CB_SETCURSEL, settings_scsi_to_list[temp_scsi_card], 0);
+
+			EnableWindow(h, d ? TRUE : FALSE);
 
 			h = GetDlgItem(hdlg, IDC_CONFIGURE_SCSI);
 			if (scsi_card_has_config(temp_scsi_card))
@@ -1746,8 +1723,7 @@ static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM w
 
 				settings_network_to_list[c] = d;
 
-				if (network_card_available(c) || ((network_card_getdevice(c)->flags & DEVICE_MCA) == (machines[temp_machine].flags & MACHINE_MCA)) ||
-				    ((network_card_getdevice(c)->flags & DEVICE_PCI) == (machines[temp_machine].flags & MACHINE_PCI)))
+				if (network_card_available(c) && device_is_valid(network_card_getdevice(c), machines[temp_machine].flags))
 				{
 					if (c == 0)
 					{
@@ -1765,6 +1741,8 @@ static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM w
 				c++;
 			}
 			SendMessage(h, CB_SETCURSEL, settings_network_to_list[temp_net_card], 0);
+
+			EnableWindow(h, d ? TRUE : FALSE);
 
 			network_recalc_combos(hdlg);
 

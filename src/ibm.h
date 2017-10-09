@@ -392,50 +392,63 @@ enum
         GFX_CGA = 0,
         GFX_MDA,
         GFX_HERCULES,
-        GFX_EGA,        /*Using IBM EGA BIOS*/
-        GFX_TVGA,       /*Using Trident TVGA8900D BIOS*/
-        GFX_ET4000,     /*Tseng ET4000*/
-        GFX_ET4000W32,  /*Tseng ET4000/W32p (Diamond Stealth 32)*/
-        GFX_BAHAMAS64,  /*S3 Vision864 (Paradise Bahamas 64)*/
-        GFX_N9_9FX,     /*S3 764/Trio64 (Number Nine 9FX)*/
-        GFX_VIRGE,      /*S3 Virge*/
-        GFX_TGUI9440,   /*Trident TGUI9440*/
-        GFX_VGA,        /*IBM VGA*/        
-        GFX_VGAEDGE16,  /*ATI VGA Edge-16 (18800-1)*/
-        GFX_VGACHARGER, /*ATI VGA Charger (28800-5)*/
-        GFX_OTI067,     /*Oak OTI-067*/
-        GFX_MACH64GX,   /*ATI Graphics Pro Turbo (Mach64)*/
-        GFX_CL_GD5429,  /*Cirrus Logic CL-GD5429*/
-        GFX_VIRGEDX,    /*S3 Virge/DX*/
-        GFX_PHOENIX_TRIO32, /*S3 732/Trio32 (Phoenix)*/
-        GFX_PHOENIX_TRIO64, /*S3 764/Trio64 (Phoenix)*/
-       	GFX_INCOLOR,	/* Hercules InColor */
-	GFX_COLORPLUS,	/* Plantronics ColorPlus */
-	GFX_WY700,	/* Wyse 700 */
-	GFX_GENIUS,	/* MDSI Genius */
-        GFX_MACH64VT2,  /*ATI Mach64 VT2*/
+        GFX_EGA,			/*Using IBM EGA BIOS*/
+        GFX_TVGA,			/*Using Trident TVGA8900D BIOS*/
+        GFX_ET4000,			/*Tseng ET4000*/
+        GFX_ET4000W32_VLB,		/*Tseng ET4000/W32p (Diamond Stealth 32) VLB*/
+        GFX_ET4000W32_PCI,		/*Tseng ET4000/W32p (Diamond Stealth 32) PCI*/
+        GFX_BAHAMAS64_VLB,		/*S3 Vision864 (Paradise Bahamas 64) VLB*/
+        GFX_BAHAMAS64_PCI,		/*S3 Vision864 (Paradise Bahamas 64) PCI*/
+        GFX_N9_9FX_VLB,			/*S3 764/Trio64 (Number Nine 9FX) VLB*/
+        GFX_N9_9FX_PCI,			/*S3 764/Trio64 (Number Nine 9FX) PCI*/
+        GFX_VIRGE_VLB,      		/*S3 Virge VLB*/
+        GFX_VIRGE_PCI,      		/*S3 Virge PCI*/
+        GFX_TGUI9440_VLB,   		/*Trident TGUI9440 VLB*/
+        GFX_TGUI9440_PCI,   		/*Trident TGUI9440 PCI*/
+        GFX_VGA,        		/*IBM VGA*/
+        GFX_VGAEDGE16,  		/*ATI VGA Edge-16 (18800-1)*/
+        GFX_VGACHARGER, 		/*ATI VGA Charger (28800-5)*/
+        GFX_OTI067,     		/*Oak OTI-067*/
+        GFX_MACH64GX_VLB,		/*ATI Graphics Pro Turbo (Mach64) VLB*/
+        GFX_MACH64GX_PCI,		/*ATI Graphics Pro Turbo (Mach64) PCI*/
+        GFX_CL_GD5429,  		/*Cirrus Logic CL-GD5429*/
+        GFX_VIRGEDX_VLB,    		/*S3 Virge/DX VLB*/
+        GFX_VIRGEDX_PCI,    		/*S3 Virge/DX PCI*/
+        GFX_PHOENIX_TRIO32_VLB, 	/*S3 732/Trio32 (Phoenix) VLB*/
+        GFX_PHOENIX_TRIO32_PCI, 	/*S3 732/Trio32 (Phoenix) PCI*/
+        GFX_PHOENIX_TRIO64_VLB, 	/*S3 764/Trio64 (Phoenix) VLB*/
+        GFX_PHOENIX_TRIO64_PCI, 	/*S3 764/Trio64 (Phoenix) PCI*/
+       	GFX_INCOLOR,			/*Hercules InColor*/
+	GFX_COLORPLUS,			/*Plantronics ColorPlus*/
+	GFX_WY700,			/*Wyse 700*/
+	GFX_GENIUS,			/*MDSI Genius*/
+        GFX_MACH64VT2,  		/*ATI Mach64 VT2*/
 
-	GFX_COMPAQ_EGA,	/*Compaq EGA*/
-	GFX_SUPER_EGA,	/*Using Chips & Technologies SuperEGA BIOS*/
-	GFX_COMPAQ_VGA,	/*Compaq/Paradise VGA*/
-        GFX_MIRO_VISION964, /*S3 Vision964 (Miro Crystal)*/
-	GFX_CL_GD5446,	/*Cirrus Logic CL-GD5446*/
-	GFX_VGAWONDERXL,	/*Compaq ATI VGA Wonder XL (28800-5)*/
-	GFX_WD90C11,	/*Paradise WD90C11 Standalone*/
-        GFX_OTI077,     /*Oak OTI-077*/
-	GFX_VGAWONDERXL24,	/*Compaq ATI VGA Wonder XL24 (28800-6)*/
-	GFX_STEALTH64,	/*S3 Vision864 (Diamond Stealth 64)*/
-	GFX_PHOENIX_VISION864,	/*S3 Vision864 (Phoenix)*/
-        GFX_RIVATNT,
-        GFX_RIVA128,
+	GFX_COMPAQ_EGA,			/*Compaq EGA*/
+	GFX_SUPER_EGA,			/*Using Chips & Technologies SuperEGA BIOS*/
+	GFX_COMPAQ_VGA,			/*Compaq/Paradise VGA*/
+	GFX_CL_GD5446,			/*Cirrus Logic CL-GD5446*/
+	GFX_VGAWONDERXL,		/*Compaq ATI VGA Wonder XL (28800-5)*/
+	GFX_WD90C11,			/*Paradise WD90C11 Standalone*/
+        GFX_OTI077,     		/*Oak OTI-077*/
+	GFX_VGAWONDERXL24,		/*Compaq ATI VGA Wonder XL24 (28800-6)*/
+	GFX_STEALTH64_VLB,		/*S3 Vision864 (Diamond Stealth 64) VLB*/
+	GFX_STEALTH64_PCI,		/*S3 Vision864 (Diamond Stealth 64) PCI*/
+	GFX_PHOENIX_VISION864_VLB,	/*S3 Vision864 (Phoenix) VLB*/
+	GFX_PHOENIX_VISION864_PCI,	/*S3 Vision864 (Phoenix) PCI*/
+        GFX_RIVATNT,			/*nVidia Riva TNT*/
+        GFX_RIVATNT2,			/*nVidia Riva TNT2*/
+        GFX_RIVA128,			/*nVidia Riva 128*/
         GFX_HERCULESPLUS,
-        GFX_RIVATNT2,
+        GFX_VIRGEVX_VLB,		/*S3 Virge/VX VLB*/
+        GFX_VIRGEVX_PCI,		/*S3 Virge/VX PCI*/
+        GFX_VIRGEDX4_VLB,		/*S3 Virge/DX (VBE 2.0) VLB*/
+        GFX_VIRGEDX4_PCI,		/*S3 Virge/DX (VBE 2.0) PCI*/
 
-	GFX_TRIGEM_UNK,
-        GFX_OTI037,	/*Oak OTI-037*/
+        GFX_OTI037,			/*Oak OTI-037*/
 
-        GFX_VIRGEVX,    /*S3 Virge/VX*/
-        GFX_VIRGEDX4,   /*S3 Virge/DX (VBE 2.0)*/
+	GFX_TRIGEM_UNK,			/*Unknown TriGem graphics card with Hangeul ROM*/
+        GFX_MIRO_VISION964, 		/*S3 Vision964 (Miro Crystal)*/
 
         GFX_MAX
 };

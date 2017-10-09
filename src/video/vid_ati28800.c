@@ -489,7 +489,7 @@ static device_config_t ati28800_wonderxl_config[] =
 device_t ati28800_device =
 {
         "ATI-28800",
-        0,
+        DEVICE_ISA,
 	0,
         ati28800_init,
         ati28800_close,
@@ -504,7 +504,7 @@ device_t ati28800_device =
 device_t compaq_ati28800_device =
 {
         "Compaq ATI-28800",
-        0,
+        DEVICE_ISA,
 	0,
         ati28800_init,
         ati28800_close,
@@ -519,7 +519,7 @@ device_t compaq_ati28800_device =
 device_t ati28800_wonderxl24_device =
 {
         "ATI-28800 (VGA Wonder XL24)",
-        0,
+        DEVICE_ISA,
 	0,
         ati28800_init,
         ati28800_close,

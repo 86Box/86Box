@@ -112,6 +112,7 @@ extern void	device_set_config_hex16(char *s, int val);
 extern void	device_set_config_hex20(char *s, int val);
 extern void	device_set_config_mac(char *s, int val);
 extern char	*device_get_config_string(char *name);
+extern int	device_is_valid(device_t *device, int machine_flags);
 
 extern int	machine_get_config_int(char *s);
 extern char	*machine_get_config_string(char *s);

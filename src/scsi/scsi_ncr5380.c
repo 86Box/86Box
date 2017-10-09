@@ -837,7 +837,7 @@ t130b_available(void)
 device_t scsi_lcs6821n_device =
 {
     "Longshine LCS-6821N (SCSI)",
-    0,
+    DEVICE_ISA,
     0,
     ncr_init, ncr_close, NULL,
     lcs6821n_available,
@@ -848,7 +848,7 @@ device_t scsi_lcs6821n_device =
 device_t scsi_rt1000b_device =
 {
     "Ranco RT1000B (SCSI)",
-    0,
+    DEVICE_ISA,
     1,
     ncr_init, ncr_close, NULL,
     rt1000b_available,
@@ -859,7 +859,7 @@ device_t scsi_rt1000b_device =
 device_t scsi_t130b_device =
 {
     "Trantor T130B (SCSI)",
-    0,
+    DEVICE_ISA,
     2,
     ncr_init, ncr_close, NULL,
     t130b_available,

@@ -2143,7 +2143,7 @@ static int vram_sizes[] =
         3 /*8 MB*/
 };
 
-static void *s3_init(wchar_t *bios_fn, int chip)
+static void *s3_init(device_t *info, wchar_t *bios_fn, int chip)
 {
         s3_t *s3 = malloc(sizeof(s3_t));
         svga_t *svga = &s3->svga;
@@ -2160,7 +2160,7 @@ static void *s3_init(wchar_t *bios_fn, int chip)
         s3->vram_mask = vram_size - 1;
 
         rom_init(&s3->bios_rom, bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-        if (PCI)
+        if (info->flags & DEVICE_PCI)
                 mem_mapping_disable(&s3->bios_rom.mapping);
 
         mem_mapping_add(&s3->linear_mapping, 0,       0,       svga_read_linear, svga_readw_linear, svga_readl_linear, svga_write_linear, svga_writew_linear, svga_writel_linear, NULL, MEM_MAPPING_EXTERNAL, &s3->svga);
@@ -2173,7 +2173,7 @@ static void *s3_init(wchar_t *bios_fn, int chip)
                    s3_hwcursor_draw,
                    NULL);
 
-        if (PCI)
+        if (info->flags & DEVICE_PCI)
                 svga->crtc[0x36] = 2 | (3 << 2) | (1 << 4) | (vram_sizes[vram] << 5);
         else
                 svga->crtc[0x36] = 1 | (3 << 2) | (1 << 4) | (vram_sizes[vram] << 5);
@@ -2183,13 +2183,16 @@ static void *s3_init(wchar_t *bios_fn, int chip)
 
         s3_io_set(s3);
 
-        s3->card = pci_add_card(PCI_ADD_VIDEO, s3_pci_read, s3_pci_write, s3);
+        if (info->flags & DEVICE_PCI)
+	{
+	        s3->card = pci_add_card(PCI_ADD_VIDEO, s3_pci_read, s3_pci_write, s3);
 
-        s3->pci_regs[0x04] = 7;
+	        s3->pci_regs[0x04] = 7;
         
-        s3->pci_regs[0x30] = 0x00;
-        s3->pci_regs[0x32] = 0x0c;
-        s3->pci_regs[0x33] = 0x00;
+	        s3->pci_regs[0x30] = 0x00;
+        	s3->pci_regs[0x32] = 0x0c;
+	        s3->pci_regs[0x33] = 0x00;
+	}
         
         s3->chip = chip;
 
@@ -2202,9 +2205,9 @@ static void *s3_init(wchar_t *bios_fn, int chip)
         return s3;
 }
 
-void *s3_vision864_init(wchar_t *bios_fn)
+void *s3_vision864_init(device_t *info, wchar_t *bios_fn)
 {
-	s3_t *s3 = s3_init(bios_fn, S3_VISION864);
+	s3_t *s3 = s3_init(info, bios_fn, S3_VISION864);
 
         s3->id = 0xc1; /*Vision864P*/
         s3->id_ext = s3->id_ext_pci = 0xc1;
@@ -2219,13 +2222,13 @@ void *s3_vision864_init(wchar_t *bios_fn)
 
 static void *s3_bahamas64_init(device_t *info)
 {
-	s3_t *s3 = s3_vision864_init(L"roms/video/s3/bahamas64.BIN");
+	s3_t *s3 = s3_vision864_init(info, L"roms/video/s3/bahamas64.BIN");
 	return s3;
 }
 
 static void *s3_phoenix_vision864_init(device_t *info)
 {
-	s3_t *s3 = s3_vision864_init(L"roms/video/s3/86c864p.bin");
+	s3_t *s3 = s3_vision864_init(info, L"roms/video/s3/86c864p.bin");
 	return s3;
 }
 
@@ -2241,7 +2244,7 @@ static int s3_phoenix_vision864_available(void)
 
 static void *s3_phoenix_trio32_init(device_t *info)
 {
-        s3_t *s3 = s3_init(L"roms/video/s3/86C732P.bin", S3_TRIO32);
+        s3_t *s3 = s3_init(info, L"roms/video/s3/86C732P.bin", S3_TRIO32);
 
         s3->id = 0xe1; /*Trio32*/
         s3->id_ext = 0x10;
@@ -2259,9 +2262,9 @@ static int s3_phoenix_trio32_available(void)
         return rom_present(L"roms/video/s3/86C732P.bin");
 }
 
-static void *s3_trio64_init(wchar_t *bios_fn)
+static void *s3_trio64_init(device_t *info, wchar_t *bios_fn)
 {
-        s3_t *s3 = s3_init(bios_fn, S3_TRIO64);
+        s3_t *s3 = s3_init(info, bios_fn, S3_TRIO64);
 
         s3->id = 0xe1; /*Trio64*/
        	s3->id_ext = s3->id_ext_pci = 0x11;
@@ -2275,19 +2278,19 @@ static void *s3_trio64_init(wchar_t *bios_fn)
 
 static void *s3_9fx_init(device_t *info)
 {
-	s3_t *s3 = s3_trio64_init(L"roms/video/s3/s3_764.bin");
+	s3_t *s3 = s3_trio64_init(info, L"roms/video/s3/s3_764.bin");
 	return s3;
 }
 
 static void *s3_phoenix_trio64_init(device_t *info)
 {
-	s3_t *s3 = s3_trio64_init(L"roms/video/s3/86C764X1.bin");
+	s3_t *s3 = s3_trio64_init(info, L"roms/video/s3/86C764X1.bin");
 	return s3;
 }
 
 static void *s3_diamond_stealth64_init(device_t *info)
 {
-	s3_t *s3 = s3_trio64_init(L"roms/video/s3/STEALT64.BIN");
+	s3_t *s3 = s3_trio64_init(info, L"roms/video/s3/STEALT64.BIN");
 	return s3;
 }
 
@@ -2463,10 +2466,10 @@ static device_config_t s3_phoenix_trio64_config[] =
         }
 };
 
-device_t s3_bahamas64_device =
+device_t s3_bahamas64_vlb_device =
 {
-        "Paradise Bahamas 64 (S3 Vision864)",
-        0,
+        "Paradise Bahamas 64 (S3 Vision864) VLB",
+        DEVICE_VLB,
 	0,
         s3_bahamas64_init,
         s3_close,
@@ -2478,10 +2481,25 @@ device_t s3_bahamas64_device =
         s3_bahamas64_config
 };
 
-device_t s3_9fx_device =
+device_t s3_bahamas64_pci_device =
 {
-        "Number 9 9FX (S3 Trio64)",
-        0,
+        "Paradise Bahamas 64 (S3 Vision864) PCI",
+        DEVICE_PCI,
+	0,
+        s3_bahamas64_init,
+        s3_close,
+	NULL,
+        s3_bahamas64_available,
+        s3_speed_changed,
+        s3_force_redraw,
+        s3_add_status_info,
+        s3_bahamas64_config
+};
+
+device_t s3_9fx_vlb_device =
+{
+        "Number 9 9FX (S3 Trio64) VLB",
+        DEVICE_VLB,
 	0,
         s3_9fx_init,
         s3_close,
@@ -2493,10 +2511,25 @@ device_t s3_9fx_device =
         s3_9fx_config
 };
 
-device_t s3_phoenix_trio32_device =
+device_t s3_9fx_pci_device =
 {
-        "Phoenix S3 Trio32",
-        0,
+        "Number 9 9FX (S3 Trio64) PCI",
+        DEVICE_PCI,
+	0,
+        s3_9fx_init,
+        s3_close,
+	NULL,
+        s3_9fx_available,
+        s3_speed_changed,
+        s3_force_redraw,
+        s3_add_status_info,
+        s3_9fx_config
+};
+
+device_t s3_phoenix_trio32_vlb_device =
+{
+        "Phoenix S3 Trio32 VLB",
+        DEVICE_VLB,
 	0,
         s3_phoenix_trio32_init,
         s3_close,
@@ -2508,10 +2541,25 @@ device_t s3_phoenix_trio32_device =
         s3_phoenix_trio32_config
 };
 
-device_t s3_phoenix_trio64_device =
+device_t s3_phoenix_trio32_pci_device =
 {
-        "Phoenix S3 Trio64",
-        0,
+        "Phoenix S3 Trio32 PCI",
+        DEVICE_PCI,
+	0,
+        s3_phoenix_trio32_init,
+        s3_close,
+	NULL,
+        s3_phoenix_trio32_available,
+        s3_speed_changed,
+        s3_force_redraw,
+        s3_add_status_info,
+        s3_phoenix_trio32_config
+};
+
+device_t s3_phoenix_trio64_vlb_device =
+{
+        "Phoenix S3 Trio64 VLB",
+        DEVICE_VLB,
 	0,
         s3_phoenix_trio64_init,
         s3_close,
@@ -2523,10 +2571,25 @@ device_t s3_phoenix_trio64_device =
         s3_phoenix_trio64_config
 };
 
-device_t s3_phoenix_vision864_device =
+device_t s3_phoenix_trio64_pci_device =
 {
-        "Phoenix S3 Vision864",
-        0,
+        "Phoenix S3 Trio64 PCI",
+        DEVICE_PCI,
+	0,
+        s3_phoenix_trio64_init,
+        s3_close,
+	NULL,
+        s3_phoenix_trio64_available,
+        s3_speed_changed,
+        s3_force_redraw,
+        s3_add_status_info,
+        s3_phoenix_trio64_config
+};
+
+device_t s3_phoenix_vision864_vlb_device =
+{
+        "Phoenix S3 Vision864 VLB",
+        DEVICE_VLB,
 	0,
         s3_phoenix_vision864_init,
         s3_close,
@@ -2538,10 +2601,40 @@ device_t s3_phoenix_vision864_device =
         s3_bahamas64_config
 };
 
-device_t s3_diamond_stealth64_device =
+device_t s3_phoenix_vision864_pci_device =
 {
-        "S3 Trio64 (Diamond Stealth64 DRAM)",
-        0,
+        "Phoenix S3 Vision864 PCI",
+        DEVICE_PCI,
+	0,
+        s3_phoenix_vision864_init,
+        s3_close,
+	NULL,
+        s3_phoenix_vision864_available,
+        s3_speed_changed,
+        s3_force_redraw,
+        s3_add_status_info,
+        s3_bahamas64_config
+};
+
+device_t s3_diamond_stealth64_vlb_device =
+{
+        "S3 Trio64 (Diamond Stealth64 DRAM) VLB",
+        DEVICE_PCI,
+	0,
+        s3_diamond_stealth64_init,
+        s3_close,
+	NULL,
+        s3_diamond_stealth64_available,
+        s3_speed_changed,
+        s3_force_redraw,
+        s3_add_status_info,
+        s3_phoenix_trio64_config
+};
+
+device_t s3_diamond_stealth64_pci_device =
+{
+        "S3 Trio64 (Diamond Stealth64 DRAM) PCI",
+        DEVICE_PCI,
 	0,
         s3_diamond_stealth64_init,
         s3_close,

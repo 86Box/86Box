@@ -55,6 +55,7 @@ typedef struct tgui_t
         rom_t bios_rom;
         
         svga_t svga;
+	int pci;
 
         struct
         {
@@ -229,7 +230,7 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
 			case 0x21:
 			if (old != val)
 			{
-                                if (!PCI)
+                                if (!tgui->pci)
                                 {
                                         tgui->linear_base = ((val & 0xf) | ((val >> 2) & 0x30)) << 20;
                                         tgui->linear_size = (val & 0x10) ? 0x200000 : 0x100000;
@@ -515,6 +516,8 @@ void *tgui9440_init(device_t *info)
         tgui->vram_size = device_get_config_int("memory") << 20;
         tgui->vram_mask = tgui->vram_size - 1;
 
+	tgui->pci = !!(info->flags & DEVICE_PCI);
+
         rom_init(&tgui->bios_rom, L"roms/video/tgui9440/9440.vbi", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
         svga_init(&tgui->svga, tgui, tgui->vram_size,
@@ -530,7 +533,10 @@ void *tgui9440_init(device_t *info)
         io_sethandler(0x03c0, 0x0020, tgui_in, NULL, NULL, tgui_out, NULL, NULL, tgui);
         io_sethandler(0x43c8, 0x0002, tgui_in, NULL, NULL, tgui_out, NULL, NULL, tgui);
 
-        pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
+	if (info->flags & DEVICE_PCI)
+	{
+	        pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
+	}
 
         tgui->wake_fifo_thread = thread_create_event();
         tgui->fifo_not_full_event = thread_create_event();
@@ -1271,10 +1277,25 @@ static device_config_t tgui9440_config[] =
         }
 };
 
-device_t tgui9440_device =
+device_t tgui9440_vlb_device =
 {
-        "Trident TGUI 9440",
-        0,
+        "Trident TGUI 9440 VLB",
+        DEVICE_VLB,
+	0,
+        tgui9440_init,
+        tgui_close,
+	NULL,
+        tgui9440_available,
+        tgui_speed_changed,
+        tgui_force_redraw,
+        tgui_add_status_info,
+        tgui9440_config
+};
+
+device_t tgui9440_pci_device =
+{
+        "Trident TGUI 9440 PCI",
+        DEVICE_PCI,
 	0,
         tgui9440_init,
         tgui_close,

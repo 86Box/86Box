@@ -199,7 +199,7 @@ void et4000_add_status_info(char *s, int max_len, void *p)
 device_t et4000_device =
 {
         "Tseng Labs ET4000AX",
-        0,
+        DEVICE_ISA,
 	0,
         et4000_init,
         et4000_close,

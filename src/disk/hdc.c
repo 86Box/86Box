@@ -82,40 +82,40 @@ static struct {
     { "Internal Controller",			"internal",
       &inthdc_device,				0		},
 
-    { "[MFM] IBM PC Fixed Disk Adapter",	"mfm_xebec",
+    { "[ISA] [MFM] IBM PC Fixed Disk Adapter",	"mfm_xebec",
       &mfm_xt_xebec_device,			1		},
 
-    { "[MFM] DTC-5150X Fixed Disk Adapter",	"mfm_dtc5150x",
+    { "[ISA] [MFM] DTC-5150X Fixed Disk Adapter",	"mfm_dtc5150x",
       &mfm_xt_dtc5150x_device,			1		},
 
-    { "[MFM] IBM PC/AT Fixed Disk Adapter",	"mfm_at",
+    { "[ISA] [MFM] IBM PC/AT Fixed Disk Adapter",	"mfm_at",
       &mfm_at_wd1003_device,			1		},
 
-    { "[ESDI] PC/AT ESDI Fixed Disk Adapter",	"esdi_wd1007vse1",
+    { "[ISA] [ESDI] PC/AT ESDI Fixed Disk Adapter",	"esdi_wd1007vse1",
       &esdi_at_wd1007vse1_device,		0		},
 
-    { "[ESDI] IBM PS/2 ESDI Fixed Disk Adapter","esdi_mca",
-      &esdi_ps2_device,				1		},
-
 #if 0
-    { "[IDE] PC/AT IDE Adapter",		"ide_isa",
+    { "[ISA] [IDE] PC/AT IDE Adapter",		"ide_isa",
       &ide_isa_device,				0		},
 
-    { "[IDE] PCI IDE Adapter",			"ide_pci",
+    { "[PCI] [IDE] PCI IDE Adapter",		"ide_pci",
       &ide_pci_device,				0		},
 #endif
 
-    { "[IDE] PC/XT XTIDE",			"xtide",
+    { "[ISA] [IDE] PC/XT XTIDE",		"xtide",
       &xtide_device		,		0		},
 
-    { "[IDE] PC/AT XTIDE",			"xtide_at",
+    { "[ISA] [IDE] PC/AT XTIDE",		"xtide_at",
       &xtide_at_device,				0		},
 
-    { "[IDE] PS/2 XTIDE (Acculogic)",		"xtide_ps2",
+    { "[ISA] [IDE] PS/2 XTIDE (Acculogic)",	"xtide_ps2",
       &xtide_ps2_device,			0		},
 
-    { "[IDE] PS/2 AT XTIDE (1.1.5)",		"xtide_at_ps2",
+    { "[ISA] [IDE] PS/2 AT XTIDE (1.1.5)",	"xtide_at_ps2",
       &xtide_at_ps2_device,			0		},
+
+    { "[MCA] [ESDI] IBM PS/2 ESDI Fixed Disk Adapter","esdi_mca",
+      &esdi_ps2_device,				1		},
 
     { "",					"", NULL, 0	}
 };
@@ -162,6 +162,13 @@ char *
 hdc_get_internal_name(int hdc)
 {
     return(controllers[hdc].internal_name);
+}
+
+
+device_t *
+hdc_get_device(int hdc)
+{
+    return(controllers[hdc].device);
 }
 
 

@@ -192,7 +192,7 @@ void vga_add_status_info(char *s, int max_len, void *p)
 device_t vga_device =
 {
         "VGA",
-        0,
+        DEVICE_ISA,
 	0,
         vga_init,
         vga_close,
@@ -206,7 +206,7 @@ device_t vga_device =
 device_t trigem_unk_device =
 {
         "VGA",
-        0,
+        DEVICE_ISA,
 	0,
         trigem_unk_init,
         vga_close,

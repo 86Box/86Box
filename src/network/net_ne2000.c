@@ -42,7 +42,11 @@
 
 
 /* ROM BIOS file paths. */
+#ifdef DEV_BRANCH
+#ifdef USE_NE1000
 #define ROM_PATH_NE1000		L"roms/network/ne1000/ne1000.rom"
+#endif
+#endif
 #define ROM_PATH_NE2000		L"roms/network/ne2000/ne2000.rom"
 #define ROM_PATH_RTL8029	L"roms/network/rtl8029as/rtl8029as.rom"
 
@@ -1890,6 +1894,8 @@ nic_init(device_t *info)
     dev->board = info->local;
     rom = NULL;
     switch(dev->board) {
+#ifdef DEV_BRANCH
+#ifdef USE_NE1000
 	case NE2K_NE1000:
 		strcpy(dev->name, "NE1000");
 		dev->maclocal[0] = 0x00;  /* 00:00:D8 (NE1000 ISA OID) */
@@ -1897,6 +1903,8 @@ nic_init(device_t *info)
 		dev->maclocal[2] = 0xD8;
 		rom = ROM_PATH_NE1000;
 		break;
+#endif
+#endif
 
 	case NE2K_NE2000:
 		strcpy(dev->name, "NE2000");
@@ -2063,6 +2071,8 @@ nic_close(void *priv)
 }
 
 
+#ifdef DEV_BRANCH
+#ifdef USE_NE1000
 static device_config_t ne1000_config[] =
 {
 	{
@@ -2135,6 +2145,8 @@ static device_config_t ne1000_config[] =
 		"", "", -1
 	}
 };
+#endif
+#endif
 
 static device_config_t ne2000_config[] =
 {
@@ -2229,19 +2241,22 @@ static device_config_t rtl8029as_config[] =
 };
 
 
-
+#ifdef DEV_BRANCH
+#ifdef USE_NE1000
 device_t ne1000_device = {
     "Novell NE1000",
-    0,
+    DEVICE_ISA,
     NE2K_NE1000,
     nic_init, nic_close, NULL,
     NULL, NULL, NULL, NULL,
     ne1000_config
 };
+#endif
+#endif
 
 device_t ne2000_device = {
     "Novell NE2000",
-    DEVICE_AT,
+    DEVICE_ISA | DEVICE_AT,
     NE2K_NE2000,
     nic_init, nic_close, NULL,
     NULL, NULL, NULL, NULL,

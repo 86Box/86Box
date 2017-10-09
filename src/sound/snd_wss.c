@@ -115,7 +115,7 @@ void wss_speed_changed(void *p)
 device_t wss_device =
 {
         "Windows Sound System",
-        0, 0,
+        DEVICE_ISA, 0,
         wss_init, wss_close, NULL,
         NULL,
         wss_speed_changed,

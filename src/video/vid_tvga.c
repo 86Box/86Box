@@ -367,7 +367,7 @@ static device_config_t tvga_config[] =
 device_t tvga8900d_device =
 {
         "Trident TVGA 8900D",
-        0,
+        DEVICE_ISA,
 	0,
         tvga8900d_init,
         tvga_close,

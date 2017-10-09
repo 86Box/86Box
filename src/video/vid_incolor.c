@@ -1062,7 +1062,7 @@ void incolor_speed_changed(void *p)
 device_t incolor_device =
 {
         "Hercules InColor",
-        0, 0,
+        DEVICE_ISA, 0,
         incolor_init,
         incolor_close,
 	NULL,

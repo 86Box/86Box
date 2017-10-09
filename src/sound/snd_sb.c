@@ -1211,7 +1211,7 @@ static device_config_t sb_awe32_config[] =
 device_t sb_1_device =
 {
         "Sound Blaster v1.0",
-        0,
+        DEVICE_ISA,
 	0,
         sb_1_init, sb_close, NULL, NULL,
         sb_speed_changed,
@@ -1222,7 +1222,7 @@ device_t sb_1_device =
 device_t sb_15_device =
 {
         "Sound Blaster v1.5",
-        0,
+        DEVICE_ISA,
 	0,
         sb_15_init, sb_close, NULL, NULL,
         sb_speed_changed,
@@ -1244,7 +1244,7 @@ device_t sb_mcv_device =
 device_t sb_2_device =
 {
         "Sound Blaster v2.0",
-        0,
+        DEVICE_ISA,
 	0,
         sb_2_init, sb_close, NULL, NULL,
         sb_speed_changed,
@@ -1255,7 +1255,7 @@ device_t sb_2_device =
 device_t sb_pro_v1_device =
 {
         "Sound Blaster Pro v1",
-        0,
+        DEVICE_ISA,
 	0,
         sb_pro_v1_init, sb_close, NULL, NULL,
         sb_speed_changed,
@@ -1266,7 +1266,7 @@ device_t sb_pro_v1_device =
 device_t sb_pro_v2_device =
 {
         "Sound Blaster Pro v2",
-        0,
+        DEVICE_ISA,
 	0,
         sb_pro_v2_init, sb_close, NULL, NULL,
         sb_speed_changed,
@@ -1288,7 +1288,7 @@ device_t sb_pro_mcv_device =
 device_t sb_16_device =
 {
         "Sound Blaster 16",
-        0,
+        DEVICE_ISA,
 	0,
         sb_16_init, sb_close, NULL, NULL,
         sb_speed_changed,
@@ -1299,7 +1299,7 @@ device_t sb_16_device =
 device_t sb_awe32_device =
 {
         "Sound Blaster AWE32",
-        0,
+        DEVICE_ISA,
 	0,
         sb_awe32_init, sb_close, NULL,
         sb_awe32_available,

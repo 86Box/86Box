@@ -1325,7 +1325,7 @@ static device_config_t ega_config[] =
 device_t ega_device =
 {
         "EGA",
-        0,
+        DEVICE_ISA,
 	0,
         ega_standalone_init,
         ega_close,
@@ -1340,7 +1340,7 @@ device_t ega_device =
 device_t cpqega_device =
 {
         "Compaq EGA",
-        0,
+        DEVICE_ISA,
 	0,
         cpqega_standalone_init,
         ega_close,
@@ -1355,7 +1355,7 @@ device_t cpqega_device =
 device_t sega_device =
 {
         "SuperEGA",
-        0,
+        DEVICE_ISA,
 	0,
         sega_standalone_init,
         ega_close,
@@ -1371,7 +1371,7 @@ device_t sega_device =
 device_t jega_device =
 {
         "AX JEGA",
-        0,
+        DEVICE_ISA,
 	0,
         jega_standalone_init,
         ega_close,

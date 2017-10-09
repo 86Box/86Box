@@ -746,7 +746,7 @@ static void pas16_close(void *p)
 device_t pas16_device =
 {
         "Pro Audio Spectrum 16",
-        DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         pas16_init, pas16_close, NULL,
         NULL, NULL, NULL, NULL,

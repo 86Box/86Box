@@ -16,5 +16,6 @@
  *		Copyright 2016-2017 Miran Grca.
  */
 
-extern device_t mach64gx_device;
+extern device_t mach64gx_vlb_device;
+extern device_t mach64gx_pci_device;
 extern device_t mach64vt2_device;

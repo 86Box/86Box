@@ -287,7 +287,7 @@ static device_config_t oti077_config[] =
 device_t oti067_device =
 {
         "Oak OTI-067",
-        0,
+        DEVICE_ISA,
 	0,
         oti067_init,
         oti067_close,
@@ -301,7 +301,7 @@ device_t oti067_device =
 device_t oti077_device =
 {
         "Oak OTI-077",
-        0,
+        DEVICE_ISA,
 	0,
         oti077_init,
         oti067_close,

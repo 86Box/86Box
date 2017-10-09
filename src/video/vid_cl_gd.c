@@ -1006,7 +1006,7 @@ void clgd_add_status_info(char *s, int max_len, void *p)
 device_t gd5422_device =
 {
         "Cirrus Logic GD5422",
-        DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         gd5422_init,
         clgd_close,
@@ -1021,7 +1021,7 @@ device_t gd5422_device =
 device_t gd5429_device =
 {
         "Cirrus Logic GD5429",
-        DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         gd5429_init,
         clgd_close,
@@ -1036,7 +1036,7 @@ device_t gd5429_device =
 device_t gd5430_device =
 {
         "Cirrus Logic GD5430",
-        DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         gd5430_init,
         clgd_close,
@@ -1051,7 +1051,7 @@ device_t gd5430_device =
 device_t dia5430_device =
 {
         "Diamond CL-GD5430",
-        DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         dia5430_init,
         clgd_close,
@@ -1066,7 +1066,7 @@ device_t dia5430_device =
 device_t gd5434_device =
 {
         "Cirrus Logic GD5434",
-        DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         gd5434_init,
         clgd_close,
@@ -1081,7 +1081,7 @@ device_t gd5434_device =
 device_t gd5436_device =
 {
         "Cirrus Logic GD5436",
-        DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         gd5436_init,
         clgd_close,
@@ -1096,7 +1096,7 @@ device_t gd5436_device =
 device_t gd5440_device =
 {
         "Cirrus Logic GD5440",
-        DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         gd5440_init,
         clgd_close,
@@ -1111,7 +1111,7 @@ device_t gd5440_device =
 device_t gd5446_device =
 {
         "Cirrus Logic GD5446",
-        DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         gd5446_init,
         clgd_close,
@@ -1126,7 +1126,7 @@ device_t gd5446_device =
 device_t gd6235_device =
 {
         "Cirrus Logic GD6235",
-        DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         gd6235_init,
         clgd_close,

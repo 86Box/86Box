@@ -715,7 +715,7 @@ void herculesplus_speed_changed(void *p)
 device_t herculesplus_device =
 {
         "Hercules Plus",
-        0, 0,
+        DEVICE_ISA, 0,
         herculesplus_init,
         herculesplus_close,
 	NULL,

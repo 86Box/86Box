@@ -57,6 +57,7 @@ typedef struct et4000w32p_t
         icd2061_t icd2061;
 
         int index;
+	int pci;
         uint8_t regs[256];
         uint32_t linearbase, linearbase_old;
 
@@ -177,7 +178,7 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
                 }
                 if (svga->crtcreg == 0x30)
                 {
-			if (PCI)
+			if (et4000->pci)
 			{
 				et4000->linearbase &= 0xc0000000;
 				et4000->linearbase = (val & 0xfc) << 22;
@@ -248,8 +249,8 @@ uint8_t et4000w32p_in(uint16_t addr, void *p)
                         return (et4000->regs[0xec] & 0xf) | 0x60; /*ET4000/W32p rev D*/
                 if (et4000->index == 0xef) 
                 {
-                        if (PCI) return et4000->regs[0xef] | 0xe0;       /*PCI*/
-                        else     return et4000->regs[0xef] | 0x60;       /*VESA local bus*/
+                        if (et4000->pci) return et4000->regs[0xef] | 0xe0;       /*PCI*/
+                        else             return et4000->regs[0xef] | 0x60;       /*VESA local bus*/
                 }
                 return et4000->regs[et4000->index];
         }
@@ -1157,7 +1158,8 @@ void *et4000w32p_init(device_t *info)
                    NULL); 
 
         rom_init(&et4000->bios_rom, L"roms/video/et4000w32/et4000w32.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-        if (PCI)
+	et4000->pci = !!(info->flags & DEVICE_PCI);
+        if (info->flags & DEVICE_PCI)
                 mem_mapping_disable(&et4000->bios_rom.mapping);
 
         mem_mapping_add(&et4000->linear_mapping, 0, 0, svga_read_linear, svga_readw_linear, svga_readl_linear, svga_write_linear, svga_writew_linear, svga_writel_linear, NULL, 0, &et4000->svga);
@@ -1165,7 +1167,8 @@ void *et4000w32p_init(device_t *info)
 
         et4000w32p_io_set(et4000);
         
-        pci_add_card(PCI_ADD_VIDEO, et4000w32p_pci_read, et4000w32p_pci_write, et4000);
+        if (info->flags & DEVICE_PCI)
+	        pci_add_card(PCI_ADD_VIDEO, et4000w32p_pci_read, et4000w32p_pci_write, et4000);
 
 	/* Hardwired bits: 00000000 1xx0x0xx */
 	/* R/W bits:                 xx xxxx */
@@ -1258,10 +1261,25 @@ static device_config_t et4000w32p_config[] =
         }
 };
 
-device_t et4000w32p_device =
+device_t et4000w32p_vlb_device =
 {
-        "Tseng Labs ET4000/w32p",
-        0,
+        "Tseng Labs ET4000/w32p VLB",
+        DEVICE_VLB,
+	0,
+        et4000w32p_init,
+        et4000w32p_close,
+	NULL,
+        et4000w32p_available,
+        et4000w32p_speed_changed,
+        et4000w32p_force_redraw,
+        et4000w32p_add_status_info,
+        et4000w32p_config
+};
+
+device_t et4000w32p_pci_device =
+{
+        "Tseng Labs ET4000/w32p PCI",
+        DEVICE_PCI,
 	0,
         et4000w32p_init,
         et4000w32p_close,

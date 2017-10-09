@@ -987,7 +987,7 @@ void wy700_speed_changed(void *p)
 device_t wy700_device =
 {
         "Wyse 700",
-        0, 0,
+        DEVICE_ISA, 0,
         wy700_init,
         wy700_close,
 	NULL,

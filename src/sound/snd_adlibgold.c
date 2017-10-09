@@ -840,7 +840,7 @@ static device_config_t adgold_config[] =
 device_t adgold_device =
 {
         "AdLib Gold",
-        0, 0,
+        DEVICE_ISA, 0,
         adgold_init,
         adgold_close,
 	NULL,

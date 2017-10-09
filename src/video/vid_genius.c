@@ -624,7 +624,7 @@ void genius_speed_changed(void *p)
 device_t genius_device =
 {
         "Genius VHR",
-        0, 0,
+        DEVICE_ISA, 0,
         genius_init,
         genius_close,
 	NULL,

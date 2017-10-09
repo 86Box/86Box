@@ -3157,7 +3157,7 @@ static device_config_t BT958D_Config[] = {
 
 device_t buslogic_device = {
 	"Buslogic BT-545C ISA",
-	0,
+	DEVICE_ISA | DEVICE_AT,
 	CHIP_BUSLOGIC_ISA,
 	Buslogic_Init,
 	BuslogicClose,

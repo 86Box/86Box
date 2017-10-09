@@ -578,7 +578,7 @@ static device_config_t cga_config[] =
 device_t cga_device =
 {
         "CGA",
-        0, 0,
+        DEVICE_ISA, 0,
         cga_standalone_init,
         cga_close,
 	NULL,

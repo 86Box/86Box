@@ -54,25 +54,25 @@ typedef struct
 
 static SOUND_CARD sound_cards[] =
 {
-    { "None",                  "none",		NULL			},
-    { "Adlib",                 "adlib",		&adlib_device		},
-    { "Adlib MCA",             "adlib_mca",	&adlib_mca_device	},
-    { "Sound Blaster 1.0",     "sb",		&sb_1_device		},
-    { "Sound Blaster 1.5",     "sb1.5",		&sb_15_device		},
-    { "Sound Blaster MCV",     "sbmcv",		&sb_mcv_device		},
-    { "Sound Blaster 2.0",     "sb2.0",		&sb_2_device		},
-    { "Sound Blaster Pro v1",  "sbprov1",	&sb_pro_v1_device	},
-    { "Sound Blaster Pro v2",  "sbprov2",	&sb_pro_v2_device	},
-    { "Sound Blaster Pro MCV", "sbpromcv",	&sb_pro_mcv_device	},
-    { "Sound Blaster 16",      "sb16",		&sb_16_device		},
-    { "Sound Blaster AWE32",   "sbawe32",	&sb_awe32_device	},
-    { "Adlib Gold",            "adlibgold",	&adgold_device		},
-    { "Windows Sound System",  "wss",		&wss_device		},
+    { "None",                       "none",	NULL			},
+    { "[ISA] Adlib",                "adlib",	&adlib_device		},
+    { "[ISA] Adlib Gold",           "adlibgold",&adgold_device		},
+    { "[ISA] Sound Blaster 1.0",    "sb",	&sb_1_device		},
+    { "[ISA] Sound Blaster 1.5",    "sb1.5",	&sb_15_device		},
+    { "[ISA] Sound Blaster 2.0",    "sb2.0",	&sb_2_device		},
+    { "[ISA] Sound Blaster Pro v1", "sbprov1",	&sb_pro_v1_device	},
+    { "[ISA] Sound Blaster Pro v2", "sbprov2",	&sb_pro_v2_device	},
+    { "[ISA] Sound Blaster 16",     "sb16",	&sb_16_device		},
+    { "[ISA] Sound Blaster AWE32",  "sbawe32",	&sb_awe32_device	},
 #ifdef DEV_BRANCH
 #ifdef USE_PAS16
-    { "Pro Audio Spectrum 16", "pas16",		&pas16_device		},
+    { "[ISA] Pro Audio Spectrum 16","pas16",	&pas16_device		},
 #endif
 #endif
+    { "[ISA] Windows Sound System", "wss",	&wss_device		},
+    { "[MCA] Adlib",            "adlib_mca",	&adlib_mca_device	},
+    { "[MCA] Sound Blaster MCV","sbmcv",	&sb_mcv_device		},
+    { "[MCA] Sound Blaster Pro MCV","sbpromcv",	&sb_pro_mcv_device	},
     { "",			"",		NULL			}
 };
 

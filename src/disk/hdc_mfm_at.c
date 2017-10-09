@@ -760,7 +760,7 @@ mfm_close(void *priv)
 
 device_t mfm_at_wd1003_device = {
     "WD1003 AT MFM/RLL Controller",
-    DEVICE_AT, 0,
+    DEVICE_ISA | DEVICE_AT, 0,
     mfm_init, mfm_close, NULL,
     NULL, NULL, NULL, NULL, NULL
 };

@@ -445,7 +445,7 @@ static device_config_t colorplus_config[] =
 device_t colorplus_device =
 {
         "Colorplus",
-        0, 0,
+        DEVICE_ISA, 0,
         colorplus_standalone_init,
         colorplus_close,
 	NULL, NULL,

@@ -359,7 +359,7 @@ static device_config_t mda_config[] =
 device_t mda_device =
 {
         "MDA",
-        0, 0,
+        DEVICE_ISA, 0,
         mda_init,
         mda_close,
 	NULL,
