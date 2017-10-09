@@ -1441,6 +1441,8 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 	
 	shdc[id].sector_len = 0;
 
+	SCSIPhase = SCSI_PHASE_STATUS;
+
 	/* This handles the Not Ready/Unit Attention check if it has to be handled at this point. */
 	if (scsi_hd_pre_execution_check(id, cdb) == 0)
 	{

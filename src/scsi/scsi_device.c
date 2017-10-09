@@ -46,6 +46,7 @@ static void scsi_device_target_command(int lun_type, uint8_t id, uint8_t *cdb)
 	}
 	else
 	{
+		SCSIPhase = SCSI_PHASE_STATUS;
 		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
 	}
 }
