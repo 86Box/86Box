@@ -8,7 +8,7 @@
  *
  *		Handle SLiRP library processing.
  *
- * Version:	@(#)net_slirp.c	1.0.5	2017/09/24
+ * Version:	@(#)net_slirp.c	1.0.6	2017/10/09
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -22,8 +22,8 @@
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"
-#include "network.h"
 #include "../win/plat_thread.h"
+#include "network.h"
 
 
 static queueADT	slirpq;			/* SLiRP library handle */

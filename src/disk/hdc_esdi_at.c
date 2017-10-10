@@ -8,11 +8,12 @@
  *
  *		Driver for the ESDI controller (WD1007-vse1) for PC/AT.
  *
- * Version:	@(#)hdc_esdi_at.c	1.0.3	2017/10/05
+ * Version:	@(#)hdc_esdi_at.c	1.0.4	2017/10/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
@@ -32,7 +33,7 @@
 #include "../pic.h"
 #include "../rom.h"
 #include "../timer.h"
-#include "../win/win.h"
+#include "../ui.h"
 #include "hdc.h"
 #include "hdd.h"
 
@@ -514,7 +515,7 @@ esdi_callback(void *priv)
 		esdi->pos = 0;
 		esdi->status = STAT_DRQ | STAT_READY | STAT_DSC;
 		irq_raise(esdi);
-		StatusBarUpdateIcon(SB_HDD | HDD_BUS_ESDI, 1);
+		ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
 		break;
 
 	case CMD_WRITE:
@@ -549,7 +550,7 @@ esdi_callback(void *priv)
 		} else {
 			esdi->status = STAT_READY | STAT_DSC;
 		}
-		StatusBarUpdateIcon(SB_HDD | HDD_BUS_ESDI, 1);
+		ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
 		break;
 		
 	case CMD_VERIFY:
@@ -575,7 +576,7 @@ esdi_callback(void *priv)
 			break;
 		}
 
-		StatusBarUpdateIcon(SB_HDD | HDD_BUS_ESDI, 1);
+		ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
 		next_sector(esdi);
 		esdi->secount = (esdi->secount - 1) & 0xff;
 		if (esdi->secount)
@@ -609,7 +610,7 @@ esdi_callback(void *priv)
 		}			
 		esdi->status = STAT_READY | STAT_DSC;
 		irq_raise(esdi);
-		StatusBarUpdateIcon(SB_HDD | HDD_BUS_ESDI, 1);
+		ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
 		break;
 
 	case CMD_DIAGNOSE:
@@ -737,7 +738,7 @@ esdi_callback(void *priv)
 		break;
     }
 
-    StatusBarUpdateIcon(SB_HDD | HDD_BUS_ESDI, 0);
+    ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
 }
 
 

@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.c	1.0.4	2017/10/05
+ * Version:	@(#)fdc.c	1.0.5	2017/10/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -28,7 +28,7 @@
 #include "../dma.h"
 #include "../pic.h"
 #include "../timer.h"
-#include "../win/win.h"
+#include "../ui.h"
 #include "floppy.h"
 #include "fdc.h"
 #include "fdd.h"
@@ -678,7 +678,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 floppytime = 128LL * (1LL << TIMER_SHIFT);
                                 timer_update_outstanding();
                                 floppyint=-1;
-				StatusBarUpdateIcon(SB_FLOPPY | 0, 0);
+				ui_sb_update_icon(SB_FLOPPY | 0, 0);
                                 fdc_reset();
                         }
 			if (!fdd_get_flags(0))
@@ -715,7 +715,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
 
 				for (i = 0; i < FDD_NUM; i++)
 				{
-					StatusBarUpdateIcon(SB_FLOPPY | i, 0);
+					ui_sb_update_icon(SB_FLOPPY | i, 0);
 				}
 
                                 fdc_reset();
@@ -988,7 +988,7 @@ bad_command:
 						fdc.stat = 0x50;
 					}
 					floppytime = 0LL;
-					StatusBarUpdateIcon(SB_FLOPPY | fdc.drive, 1);
+					ui_sb_update_icon(SB_FLOPPY | fdc.drive, 1);
 					fdc.inread = 1;
                                         break;
 
@@ -1033,7 +1033,7 @@ bad_command:
 	                                floppy_writesector(fdc.drive, fdc.sector, fdc.params[1], fdc.head, fdc.rate, fdc.params[4]);
         	                        floppytime = 0LL;
 	                                fdc.written = 0;
-        	                        StatusBarUpdateIcon(SB_FLOPPY | fdc.drive, 1);
+        	                        ui_sb_update_icon(SB_FLOPPY | fdc.drive, 1);
                 	                fdc.pos = 0;
 	                                if (fdc.pcjr)
 	                                        fdc.stat = 0xb0;
@@ -1066,7 +1066,7 @@ bad_command:
 	                                floppy_comparesector(fdc.drive, fdc.sector, fdc.params[1], fdc.head, fdc.rate, fdc.params[4]);
         	                        floppytime = 0LL;
 	                                fdc.written = 0;
-        	                        StatusBarUpdateIcon(SB_FLOPPY | fdc.drive, 1);
+        	                        ui_sb_update_icon(SB_FLOPPY | fdc.drive, 1);
                 	                fdc.pos = 0;
 					if (fdc.pcjr || !fdc.dma)
 					{
@@ -1110,7 +1110,7 @@ bad_command:
 						fdc.stat = 0x50;
 					}
                 	                floppytime = 0LL;
-        	                        StatusBarUpdateIcon(SB_FLOPPY | fdc.drive, 1);
+        	                        ui_sb_update_icon(SB_FLOPPY | fdc.drive, 1);
 	                                fdc.inread = 1;
                                         break;
                                         
@@ -1467,7 +1467,7 @@ void fdc_poll_common_finish(int compare, int st5)
         fdc.res[9]=fdc.sector;
         fdc.res[10]=fdc.params[4];
 	fdc_log("Read/write finish (%02X %02X %02X %02X %02X %02X %02X)\n" , fdc.res[4], fdc.res[5], fdc.res[6], fdc.res[7], fdc.res[8], fdc.res[9], fdc.res[10]);
-	StatusBarUpdateIcon(SB_FLOPPY | fdc.drive, 0);
+	ui_sb_update_icon(SB_FLOPPY | fdc.drive, 0);
         paramstogo=7;
 }
 
@@ -1513,7 +1513,7 @@ void fdc_callback(void *priv)
 		return;
 
                 case 2: /*Read track*/
-                StatusBarUpdateIcon(SB_FLOPPY | fdc.drive, 1);
+                ui_sb_update_icon(SB_FLOPPY | fdc.drive, 1);
                 fdc.eot[fdc.drive]--;
 		fdc.read_track_sector.id.r++;
                 if (!fdc.eot[fdc.drive] || fdc.tc)
@@ -1673,7 +1673,7 @@ void fdc_callback(void *priv)
 		{
 	                fdc.sector++;
 		}
-                StatusBarUpdateIcon(SB_FLOPPY | fdc.drive, 1);
+                ui_sb_update_icon(SB_FLOPPY | fdc.drive, 1);
 		switch (floppyint)
 		{
 			case 5:
@@ -1912,7 +1912,7 @@ void fdc_error(int st5, int st6)
 		        fdc.res[10]=0;
 			break;
 	}
-	StatusBarUpdateIcon(SB_FLOPPY | fdc.drive, 0);
+	ui_sb_update_icon(SB_FLOPPY | fdc.drive, 0);
         paramstogo=7;
 }
 
@@ -2143,7 +2143,7 @@ void fdc_sectorid(uint8_t track, uint8_t side, uint8_t sector, uint8_t size, uin
         fdc.res[8]=side;
         fdc.res[9]=sector;
         fdc.res[10]=size;
-	StatusBarUpdateIcon(SB_FLOPPY | fdc.drive, 0);
+	ui_sb_update_icon(SB_FLOPPY | fdc.drive, 0);
         paramstogo=7;
 }
 
@@ -2199,7 +2199,7 @@ void fdc_hard_reset()
 
 	for (i = 0; i < FDD_NUM; i++)
 	{
-		StatusBarUpdateIcon(SB_FLOPPY | i, 0);
+		ui_sb_update_icon(SB_FLOPPY | i, 0);
 	}
 }
 

@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.19	2017/10/08
+ * Version:	@(#)pc.c	1.0.20	2017/10/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -73,13 +73,12 @@
 # include "win/plat_dir.h"
 # undef UNICODE
 #endif
+#include "ui.h"
+#include "plat.h"
 #include "win/plat_joystick.h"
 #include "win/plat_keyboard.h"
 #include "win/plat_midi.h"
 #include "win/plat_mouse.h"
-#include "win/plat_iodev.h"
-#include "win/plat_ui.h"
-#include "win/win.h"
 
 
 int	window_w, window_h, window_x, window_y, window_remember;
@@ -146,9 +145,7 @@ fatal(const char *format, ...)
    /* Make sure the message does not have a trailing newline. */
    if ((sp = strchr(msg, '\n')) != NULL) *sp = '\0';
 
-#ifndef __unix
-   plat_msgbox_fatal(msg);
-#endif
+   ui_msgbox(MBX_ERROR|MBX_FATAL|MBX_ANSI, msg);
 
    fflush(stdout);
 
@@ -169,14 +166,16 @@ pc_concat(wchar_t *str)
     memset(temp, 0x00, sizeof(temp));
     wcscpy(temp, cfg_path);
 
-#ifndef __unix
     /* Create the directory if needed. */
-    if (! DirectoryExists(temp))
-	CreateDirectory(temp, NULL);
-#endif
+    if (! dir_check_exist(temp))
+	dir_create(temp);
 
     /* Now append the actual filename. */
+#ifdef WIN32
     wcscat(temp, L"\\");
+#else
+    wcscat(temp, L"/");
+#endif
     wcscat(temp, str);
 
     return(temp);
@@ -380,7 +379,7 @@ again:
     if (! rom_load_bios(romset)) {
 	/* Whoops, ROMs not found. */
 	if (romset != -1)
-		msgbox_info(hwndMain, IDS_2063);
+		ui_msgbox(MBX_INFO, (wchar_t *)IDS_2063);
 
 	/* Select another machine to use. */
 	for (c=0; c<ROM_MAX; c++) {
@@ -401,7 +400,7 @@ again:
 again2:
     if (! video_card_available(video_old_to_new(gfxcard))) {
 	if (romset != -1) {
-		msgbox_info(hwndMain, IDS_2064);
+		ui_msgbox(MBX_INFO, (wchar_t *)IDS_2064);
 	}
 	for (c=GFX_MAX-1; c>=0; c--) {
 		if (gfx_present[c]) {

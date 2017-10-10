@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.18	2017/10/08
+ * Version:	@(#)win.c	1.0.19	2017/10/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -52,15 +52,14 @@
 #include "../video/vid_ega.h"
 #include "../sound/sound.h"
 #include "../sound/snd_dbopl.h"
+#include "../plat.h"
+#include "../ui.h"
 #include "plat_keyboard.h"
-#include "plat_iodev.h"
 #include "plat_mouse.h"
 #include "plat_midi.h"
 #include "plat_thread.h"
 #include "plat_ticks.h"
-#include "plat_ui.h"
 #include "win.h"
-#include "win_cdrom_ioctl.h"
 #include "win_cgapal.h"
 #include "win_ddraw.h"
 #include "win_d3d.h"
@@ -165,16 +164,15 @@ LoadIconEx(PCTSTR pszIconName)
 static void
 win_menu_update(void)
 {
-#if 0
-        menu = LoadMenu(hThisInstance, TEXT("MainMenu"));
+    menuMain = LoadMenu(hinstance, L"MainMenu"));
 
-	smenu = LoadMenu(hThisInstance, TEXT("StatusBarMenu"));
-        initmenu();
+    menuSBAR = LoadMenu(hinstance, L"StatusBarMenu");
 
-	SetMenu(hwndMain, menu);
+    initmenu();
 
-	win_title_update = 1;
-#endif
+    SetMenu(hwndMain, menu);
+
+    win_title_update = 1;
 }
 #endif
 
@@ -545,7 +543,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				if (video_fullscreen_first) {
 					video_fullscreen_first = 0;
-					msgbox_info(hwndMain, IDS_2074);
+					ui_msgbox(MBX_INFO, (wchar_t *)IDS_2074);
 				}
 
 				startblit();
@@ -693,7 +691,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_CONFIG_LOAD:
 				pause = 1;
 				if (! file_dlg_st(hwnd, IDS_2160, "", 0)) {
-					if (msgbox_reset_yn(hwndMain) == IDYES) {
+					if (ui_msgbox(MBX_QUESTION, (wchar_t *)IDS_2051) == IDYES) {
 						config_write(config_file_default);
 						for (i = 0; i < FDD_NUM; i++)
 						{
@@ -747,7 +745,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 						rom_load_bios(romset);
 						network_init();
 						ResetAllMenus();
-						StatusBarUpdatePanes();
+						ui_sb_update_panes();
 						pc_reset_hard_init();
 					}
 				}
@@ -1184,8 +1182,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     haccel = LoadAccelerators(hInst, ACCEL_NAME);
     if (haccel == NULL) {
 	MessageBox(hwndMain,
-		   win_get_string(IDS_2053),
-		   win_get_string(IDS_2050),
+		   plat_get_string(IDS_2053),
+		   plat_get_string(IDS_2050),
 		   MB_OK | MB_ICONERROR);
 	return(3);
     }
@@ -1198,8 +1196,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     device.hwndTarget = hwnd;
     if (! RegisterRawInputDevices(&device, 1, sizeof(device))) {
 	MessageBox(hwndMain,
-		   win_get_string(IDS_2054),
-		   win_get_string(IDS_2050),
+		   plat_get_string(IDS_2054),
+		   plat_get_string(IDS_2050),
 		   MB_OK | MB_ICONERROR);
 	return(4);
     }
@@ -1224,8 +1222,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 	vid_api ^= 1;
 	if (! vid_apis[0][vid_api].init(hwndRender)) {
 		MessageBox(hwnd,
-			   win_get_string(IDS_2095),
-			   win_get_string(IDS_2050),
+			   plat_get_string(IDS_2095),
+			   plat_get_string(IDS_2050),
 			   MB_OK | MB_ICONERROR);
 		return(5);
 	}
@@ -1254,8 +1252,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     if (! pc_init_modules()) {
 	/* Dang, no ROMs found at all! */
 	MessageBox(hwnd,
-		   win_get_string(IDS_2056),
-		   win_get_string(IDS_2050),
+		   plat_get_string(IDS_2056),
+		   plat_get_string(IDS_2050),
 		   MB_OK | MB_ICONERROR);
 	return(6);
     }
@@ -1360,6 +1358,23 @@ set_window_title(wchar_t *s)
 }
 
 
+int
+dir_check_exist(wchar_t *path)
+{
+    DWORD dwAttrib = GetFileAttributes(path);
+
+    return(((dwAttrib != INVALID_FILE_ATTRIBUTES &&
+	   (dwAttrib & FILE_ATTRIBUTE_DIRECTORY))) ? 1 : 0);
+}
+
+
+int
+dir_create(wchar_t *path)
+{
+    return((int)CreateDirectory(path, NULL));
+}
+
+
 uint64_t
 timer_read(void)
 {
@@ -1418,8 +1433,8 @@ win_language_check(void)
 }
 
 
-LPTSTR
-win_get_string(int i)
+wchar_t *
+plat_get_string(int i)
 {
     LPTSTR str;
 
@@ -1443,21 +1458,14 @@ win_get_string(int i)
 	str = lpRCstr6144[i-6144].str;
     }
 
-    return(str);
-}
-
-
-LPTSTR
-win_get_string_from_string(char *str)
-{
-    return(win_get_string(atoi(str)));
+    return((wchar_t *)str);
 }
 
 
 wchar_t *
-plat_get_string(int i)
+plat_get_string_from_string(char *str)
 {
-    return((wchar_t *)win_get_string(i));
+    return(plat_get_string(atoi(str)));
 }
 
 

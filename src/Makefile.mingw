@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.54	2017/10/07
+# Version:	@(#)Makefile.mingw	1.0.55	2017/10/09
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -106,19 +106,18 @@ VPATH		:= $(EXPATH) . cpu \
 		    sound/munt/srchelper \
 		    sound/resid-fp \
 		   scsi video lzf network network/slirp win
-PLAT		:= win/
 ifeq ($(X64), y)
-CPP		:= g++.exe -m64
-CC		:= gcc.exe -m64
+CPP		:= g++ -m64
+CC		:= gcc -m64
 else
-CPP		:= g++.exe -m32
-CC		:= gcc.exe -m32
+CPP		:= g++ -m32
+CC		:= gcc -m32
 endif
-WINDRES		:= windres.exe
+WINDRES		:= windres
 DEPS		= -MMD -MF $*.d -c $<
 
 # Set up the correct toolchain flags.
-OPTS		:= -DWIN32 -I$(PLAT) $(EXTRAS) $(STUFF)
+OPTS		:= -DWIN32 $(EXTRAS) $(STUFF)
 ifdef EXFLAGS
 OPTS		+= $(EXFLAGS)
 endif
@@ -295,9 +294,8 @@ USBOBJ		:= usb.o
 endif
 
 SCSIOBJ		:= scsi.o \
-		    scsi_bios_command.o scsi_bus.o scsi_device.o scsi_disk.o \
-		    scsi_buslogic.o scsi_aha154x.o \
-		    scsi_ncr5380.o
+		    scsi_bus.o scsi_bios_command.o scsi_device.o scsi_disk.o \
+		    scsi_buslogic.o scsi_aha154x.o scsi_ncr5380.o
 
 NETOBJ		:= network.o \
 		    net_pcap.o \

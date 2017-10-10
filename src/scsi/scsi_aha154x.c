@@ -12,10 +12,11 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.23	2017/10/08
+ * Version:	@(#)scsi_aha154x.c	1.0.24	2017/10/09
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
+ *
  *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdio.h>
@@ -552,7 +553,7 @@ aha154x_eeprom(aha_t *dev, uint8_t cmd,uint8_t arg,uint8_t len,uint8_t off,uint8
 }
 
 
-/* Mess with the AHA-154xCF's Shadow RAM. */
+/* Map either the main or utility (Select) ROM into the memory space. */
 static uint8_t
 aha154x_mmap(aha_t *dev, uint8_t cmd)
 {
@@ -575,7 +576,7 @@ aha154x_mmap(aha_t *dev, uint8_t cmd)
 
 
 static void
-RaiseIntr(aha_t *dev, int suppress, uint8_t Interrupt)
+raise_irq(aha_t *dev, int suppress, uint8_t Interrupt)
 {
     if (Interrupt & (INTR_MBIF | INTR_MBOA)) {
 	if (! (dev->Interrupt & INTR_HACC)) {
@@ -601,7 +602,7 @@ RaiseIntr(aha_t *dev, int suppress, uint8_t Interrupt)
 
 
 static void
-ClearIntr(aha_t *dev)
+clear_irq(aha_t *dev)
 {
     dev->Interrupt = 0;
     aha_log("%s: lowering IRQ %i (stat 0x%02x)\n",
@@ -611,7 +612,7 @@ ClearIntr(aha_t *dev)
 	aha_log("%s: Raising Interrupt 0x%02X (Pending)\n",
 				dev->name, dev->Interrupt);
 	if (dev->MailboxOutInterrupts || !(dev->Interrupt & INTR_MBOA)) {
-		RaiseIntr(dev, 0, dev->PendingInterrupt);
+		raise_irq(dev, 0, dev->PendingInterrupt);
 	}
 	dev->PendingInterrupt = 0;
     }
@@ -646,7 +647,7 @@ aha_reset(aha_t *dev)
     dev->shram_mode = 0;
     dev->last_mb = 0;
 
-    ClearIntr(dev);
+    clear_irq(dev);
 }
 
 
@@ -691,7 +692,7 @@ aha_cmd_done(aha_t *dev, int suppress)
     if ((dev->Command != CMD_START_SCSI) && (dev->Command != CMD_BIOS_SCSI)) {
 	dev->Status &= ~STAT_DFULL;
 	aha_log("%s: Raising IRQ %i\n", dev->name, dev->Irq);
-	RaiseIntr(dev, suppress, INTR_HACC);
+	raise_irq(dev, suppress, INTR_HACC);
     }
 
     dev->Command = 0xff;
@@ -1292,7 +1293,7 @@ aha_do_mail(aha_t *dev)
 	aha_log("aha_do_mail(): Writing %i bytes at %08X\n", sizeof(CmdStatus), Outgoing + CodeOffset);
 	DMAPageWrite(Outgoing + CodeOffset, (char *)&CmdStatus, sizeof(CmdStatus));
 
-	RaiseIntr(dev, 0, dev->ToRaise);
+	raise_irq(dev, 0, dev->ToRaise);
 
 	while (dev->Interrupt) {
 	}
@@ -1397,7 +1398,7 @@ aha_write(uint16_t port, uint8_t val, void *priv)
 		}
 		
 		if (val & CTRL_IRST) {
-			ClearIntr(dev);
+			clear_irq(dev);
 		}
 		break;
 
@@ -2277,13 +2278,8 @@ device_t aha1540b_device = {
     "Adaptec AHA-1540B",
     DEVICE_ISA | DEVICE_AT,
     AHA_154xB,
-    aha_init,
-    aha_close,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    aha_init, aha_close, NULL,
+    NULL, NULL, NULL, NULL,
     aha_154x_config
 };
 
@@ -2291,13 +2287,8 @@ device_t aha1542c_device = {
     "Adaptec AHA-1542C",
     DEVICE_ISA | DEVICE_AT,
     AHA_154xC,
-    aha_init,
-    aha_close,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    aha_init, aha_close, NULL,
+    NULL, NULL, NULL, NULL,
     aha_154x_config
 };
 
@@ -2305,13 +2296,8 @@ device_t aha1542cf_device = {
     "Adaptec AHA-1542CF",
     DEVICE_ISA | DEVICE_AT,
     AHA_154xCF,
-    aha_init,
-    aha_close,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    aha_init, aha_close, NULL,
+    NULL, NULL, NULL, NULL,
     aha_154x_config
 };
 
@@ -2319,11 +2305,7 @@ device_t aha1640_device = {
     "Adaptec AHA-1640",
     DEVICE_MCA,
     AHA_1640,
-    aha_init,
-    aha_close,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    aha_init, aha_close, NULL,
+    NULL, NULL, NULL, NULL,
     NULL
 };

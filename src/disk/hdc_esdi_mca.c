@@ -52,10 +52,11 @@
  *		however, are auto-configured by the system software as
  *		shown above.
  *
- * Version:	@(#)hdc_esdi_mca.c	1.0.5	2017/10/05
+ * Version:	@(#)hdc_esdi_mca.c	1.0.6	2017/10/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2017 Fred N. van Kempen.
  */
@@ -73,7 +74,7 @@
 #include "../pic.h"
 #include "../rom.h"
 #include "../timer.h"
-#include "../win/win.h"
+#include "../ui.h"
 #include "hdc.h"
 #include "hdd.h"
 
@@ -326,7 +327,7 @@ esdi_callback(void *priv)
                                         	if (dev->rba >= drive->sectors)
                                                 	fatal("Read past end of drive\n");
 						hdd_image_read(drive->hdd_num, dev->rba, 1, (uint8_t *)dev->data);
-			                	StatusBarUpdateIcon(SB_HDD | HDD_BUS_ESDI, 1);
+			                	ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
                                 	}
 
                                 	while (dev->data_pos < 256) {
@@ -407,11 +408,11 @@ esdi_callback(void *priv)
 					hdd_image_write(drive->hdd_num, dev->rba, 1, (uint8_t *)dev->data);
                                 	dev->rba++;
                                 	dev->sector_pos++;
-		                	StatusBarUpdateIcon(SB_HDD | HDD_BUS_ESDI, 1);
+		                	ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
 
                                 	dev->data_pos = 0;
                         	}
-	                	StatusBarUpdateIcon(SB_HDD | HDD_BUS_ESDI, 0);
+	                	ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
 
                         	dev->status = STATUS_CMD_IN_PROGRESS;
                         	dev->cmd_state = 2;

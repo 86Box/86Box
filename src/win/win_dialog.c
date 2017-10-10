@@ -8,7 +8,7 @@
  *
  *		Several dialogs for the application.
  *
- * Version:	@(#)win_dialog.c	1.0.1	2017/10/07
+ * Version:	@(#)win_dialog.c	1.0.2	2017/10/09
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -29,7 +29,8 @@
 #include <wchar.h>
 #include "../ibm.h"
 #include "../device.h"
-#include "plat_ui.h"
+#include "../plat.h"
+#include "../ui.h"
 #include "win.h"
 
 
@@ -78,97 +79,80 @@ BrowseFolder(wchar_t *saved_path, wchar_t *title)
 
 
 int
-msgbox_reset(HWND hwnd)
+ui_msgbox(int flags, void *arg)
 {
-    return(MessageBox(hwnd, win_get_string(IDS_2051),
-		      win_get_string(IDS_STRINGS),
-		      MB_YESNOCANCEL | MB_ICONQUESTION));
+    WCHAR temp[512];
+    DWORD fl = 0;
+    WCHAR *str = NULL;
+    WCHAR *cap = NULL;
+
+    switch(flags & 0x1f) {
+	case MBX_INFO:		/* just an informational message */
+		fl = (MB_OK | MB_ICONINFORMATION);
+		cap = plat_get_string(IDS_STRINGS);	    /* "86Box" */
+		break;
+
+	case MBX_ERROR:		/* error message */
+		if (flags & MBX_FATAL) {
+			fl = (MB_OK | MB_ICONERROR);
+			cap = plat_get_string(IDS_2050);    /* "Fatal Error"*/
+		} else {
+			fl = (MB_OK | MB_ICONWARNING);
+			cap = plat_get_string(IDS_2049);    /* "Error" */
+		}
+		break;
+
+	case MBX_QUESTION:	/* question */
+		fl = (MB_YESNOCANCEL | MB_ICONQUESTION);
+		cap = plat_get_string(IDS_STRINGS);	    /* "86Box" */
+		break;
+    }
+
+    /* If ANSI string, convert it. */
+    str = (WCHAR *)arg;
+    if (flags & MBX_ANSI) {
+	mbstowcs(temp, (char *)arg, strlen((char *)arg)+1);
+	str = temp;
+    } else {
+	/*
+	 * It's a Unicode string.
+	 *
+	 * Well, no, maybe not. It could also be one of the
+	 * strings stored in the Resources. Those are wide,
+	 * but referenced by a numeric ID.
+	 *
+	 * The good news is, that strings are usually stored
+	 * in the executable near the end of the code/rodata
+	 * segment. This means, that *real* string pointers
+	 * usually have a pretty high (numeric) value, much
+	 * higher than the numeric ID's.  So, we guesswork
+	 * that if the value of 'arg' is low, its an ID..
+	 */
+	if (((int64_t)arg) < ((int64_t)65636))
+		str = plat_get_string((int)arg);
+    }
+
+    /* At any rate, we do have a valid (wide) string now. */
+    fl = MessageBox(hwndMain,		/* our main window */
+		    str,		/* error message etc */
+		    cap,		/* window caption */
+		    fl);
+
+    /* Convert return values to generic ones. */
+    if (fl == IDNO) fl = 1;
+     else if (fl == IDCANCEL) fl = -1;
+     else fl = 0;
+
+    return(fl);
 }
 
 
+#if 0
 int
 msgbox_reset_yn(HWND hwnd)
 {
-    return(MessageBox(hwnd, win_get_string(IDS_2051),
-		      win_get_string(IDS_STRINGS),
-		      MB_YESNO | MB_ICONQUESTION));
-}
-
-
-int
-msgbox_question(HWND hwnd, int i)
-{
-    return(MessageBox(hwnd, win_get_string(i),
-		      win_get_string(IDS_STRINGS),
-		      MB_YESNO | MB_ICONQUESTION));
-}
-
-
-void
-msgbox_info(HWND hwnd, int i)
-{
-    MessageBox(hwnd, win_get_string(i), win_get_string(IDS_STRINGS),
-	       MB_OK | MB_ICONINFORMATION);
-}
-
-
-void
-msgbox_info_wstr(HWND hwnd, WCHAR *wstr)
-{
-    MessageBox(hwnd, wstr, win_get_string(IDS_STRINGS),
-	       MB_OK | MB_ICONINFORMATION);
-}
-
-
-void
-msgbox_error(HWND hwnd, int i)
-{
-    MessageBox(hwnd, win_get_string(i), win_get_string(IDS_2049),
-	       MB_OK | MB_ICONWARNING);
-}
-
-
-void
-plat_msgbox_error(int i)
-{
-    msgbox_error(hwndMain, i);
-}
-
-
-void
-msgbox_error_wstr(HWND hwnd, WCHAR *wstr)
-{
-    MessageBox(hwnd, wstr, win_get_string(IDS_2049), MB_OK | MB_ICONWARNING);
-}
-
-
-void
-msgbox_critical(HWND hwnd, int i)
-{
-    MessageBox(hwnd, win_get_string(i), win_get_string(IDS_2050),
-	       MB_OK | MB_ICONERROR);
-}
-
-
-void
-msgbox_fatal(HWND hwnd, char *string)
-{
-    LPTSTR temp;
-
-    temp = (LPTSTR)malloc(512);
-    mbstowcs(temp, string, strlen(string)+1);
-
-    MessageBox(hwnd, temp, win_get_string(IDS_2050), MB_OK | MB_ICONERROR);
-
-    free(temp);
-}
-
-
-void
-plat_msgbox_fatal(char *string)
-{
-    msgbox_fatal(hwndMain, string);
-}
+    return(MessageBox(hwnd, plat_get_string(IDS_2051),
+#endif
 
 
 int
@@ -249,12 +233,12 @@ file_dlg_mb(HWND hwnd, char *f, char *fn, int save)
 int
 file_dlg_w_st(HWND hwnd, int id, WCHAR *fn, int save)
 {
-    return(file_dlg_w(hwnd, win_get_string(id), fn, save));
+    return(file_dlg_w(hwnd, plat_get_string(id), fn, save));
 }
 
 
 int
 file_dlg_st(HWND hwnd, int id, char *fn, int save)
 {
-    return(file_dlg(hwnd, win_get_string(id), fn, save));
+    return(file_dlg(hwnd, plat_get_string(id), fn, save));
 }

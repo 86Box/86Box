@@ -8,13 +8,16 @@
  *
  *		Main emulator include file.
  *
- * Version:	@(#)86box.h	1.0.2	2017/06/04
+ * Version:	@(#)86box.h	1.0.3	2017/10/09
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2017 Fred N. van Kempen.
  */
-#ifndef BOX_H
-# define BOX_H
+#ifndef EMU_86BOX_H
+# define EMU_86BOX_H
 
 
 #if defined(ENABLE_BUSLOGIC_LOG) || \
@@ -38,5 +41,8 @@
 
 #define CONFIG_FILE_W	L"86box.cfg"
 
+#define NVR_PATH        L"nvr"
+#define SCREENSHOT_PATH L"screenshots"
 
-#endif	/*BOX_H*/
+
+#endif	/*EMU_86BOX_H*/

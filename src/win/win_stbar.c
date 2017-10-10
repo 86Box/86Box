@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.2	2017/10/07
+ * Version:	@(#)win_stbar.c	1.0.3	2017/10/09
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -45,16 +45,15 @@
 #include "../network/network.h"
 #include "../video/video.h"
 #include "../sound/sound.h"
-#include "plat_iodev.h"
-#include "plat_ui.h"
+#include "../plat.h"
+#include "../ui.h"
 #include "win.h"
-#include "win_cdrom_ioctl.h"
 
 
 HWND		hwndSBAR;
 
 
-static LONG_PTR	OriginalStatusBarProcedure;
+static LONG_PTR	OriginalProcedure;
 static HMENU	*sb_menu_handles;
 static HMENU	menuSBAR;
 static WCHAR	**sbTips;
@@ -132,15 +131,15 @@ static void
 StatusBarCreateFloppySubmenu(HMENU m, int id)
 {
     AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_NEW | id,
-	       win_get_string(IDS_2161));
+	       plat_get_string(IDS_2161));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_EXISTING | id,
-	       win_get_string(IDS_2162));
+	       plat_get_string(IDS_2162));
     AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_EXISTING_WP | id,
-	       win_get_string(IDS_2163));
+	       plat_get_string(IDS_2163));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_FLOPPY_EJECT | id,
-	       win_get_string(IDS_2164));
+	       plat_get_string(IDS_2164));
 }
 
 
@@ -151,15 +150,15 @@ StatusBarCreateCdromSubmenu(HMENU m, int id)
     int i;
 
     AppendMenu(m, MF_STRING, IDM_CDROM_MUTE | id,
-	       win_get_string(IDS_2165));
+	       plat_get_string(IDS_2165));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_CDROM_EMPTY | id,
-	       win_get_string(IDS_2166));
+	       plat_get_string(IDS_2166));
     AppendMenu(m, MF_STRING, IDM_CDROM_RELOAD | id,
-	       win_get_string(IDS_2167));
+	       plat_get_string(IDS_2167));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_CDROM_IMAGE | id,
-	       win_get_string(IDS_2168));
+	       plat_get_string(IDS_2168));
 
     if (host_cdrom_drive_available_num == 0) {
 	if ((cdrom_drives[id].host_drive >= 'A') &&
@@ -206,23 +205,23 @@ static void
 StatusBarCreateRemovableDiskSubmenu(HMENU m, int id)
 {
     AppendMenu(m, MF_STRING, IDM_RDISK_EJECT | id,
-	       win_get_string(IDS_2166));
+	       plat_get_string(IDS_2166));
     AppendMenu(m, MF_STRING, IDM_RDISK_RELOAD | id,
-	       win_get_string(IDS_2167));
+	       plat_get_string(IDS_2167));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_RDISK_SEND_CHANGE | id,
-	       win_get_string(IDS_2142));
+	       plat_get_string(IDS_2142));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_RDISK_IMAGE | id,
-	       win_get_string(IDS_2168));
+	       plat_get_string(IDS_2168));
     AppendMenu(m, MF_STRING, IDM_RDISK_IMAGE_WP | id,
-	       win_get_string(IDS_2169));
+	       plat_get_string(IDS_2169));
 }
 
 
 /* API */
 int
-StatusBarFindPart(int tag)
+ui_sb_find_part(int tag)
 {
     int found = -1;
     int i;
@@ -244,7 +243,7 @@ StatusBarFindPart(int tag)
 
 /* API: update one of the icons after activity. */
 void
-StatusBarUpdateIcon(int tag, int active)
+ui_sb_update_icon(int tag, int active)
 {
     int temp_flags = 0;
     int found;
@@ -255,7 +254,7 @@ StatusBarUpdateIcon(int tag, int active)
 
     temp_flags |= active;
 
-    found = StatusBarFindPart(tag);
+    found = ui_sb_find_part(tag);
     if (found != -1) {
 	if (temp_flags != (sb_icon_flags[found] & 1)) {
 		sb_icon_flags[found] &= ~1;
@@ -273,7 +272,7 @@ StatusBarUpdateIcon(int tag, int active)
 
 /* API: This is for the drive state indicator. */
 void
-StatusBarUpdateIconState(int tag, int state)
+ui_sb_update_icon_state(int tag, int state)
 {
     int found = -1;
 
@@ -281,7 +280,7 @@ StatusBarUpdateIconState(int tag, int state)
 	return;
     }
 
-    found = StatusBarFindPart(tag);
+    found = ui_sb_find_part(tag);
     if (found != -1) {
 	sb_icon_flags[found] &= ~256;
 	sb_icon_flags[found] |= state ? 256 : 0;
@@ -306,10 +305,10 @@ StatusBarCreateFloppyTip(int part)
     mbstowcs(wtext, fdd_getname(fdd_get_type(drive)),
 	     strlen(fdd_getname(fdd_get_type(drive))) + 1);
     if (wcslen(floppyfns[drive]) == 0) {
-	_swprintf(tempTip, win_get_string(IDS_2158),
-		  drive+1, wtext, win_get_string(IDS_2057));
+	_swprintf(tempTip, plat_get_string(IDS_2158),
+		  drive+1, wtext, plat_get_string(IDS_2057));
     } else {
-	_swprintf(tempTip, win_get_string(IDS_2158),
+	_swprintf(tempTip, plat_get_string(IDS_2158),
 		  drive+1, wtext, floppyfns[drive]);
     }
 
@@ -317,7 +316,7 @@ StatusBarCreateFloppyTip(int part)
 	free(sbTips[part]);
 	sbTips[part] = NULL;
     }
-    sbTips[part] = (WCHAR *) malloc((wcslen(tempTip) << 1) + 2);
+    sbTips[part] = (WCHAR *)malloc((wcslen(tempTip) << 1) + 2);
     wcscpy(sbTips[part], tempTip);
 }
 
@@ -333,19 +332,19 @@ StatusBarCreateCdromTip(int part)
     int bus = cdrom_drives[drive].bus_type;
 
     id = IDS_4352 + (bus - 1);
-    szText = (WCHAR *)win_get_string(id);
+    szText = plat_get_string(id);
 
     if (cdrom_drives[drive].host_drive == 200) {
 	if (wcslen(cdrom_image[drive].image_path) == 0) {
-		_swprintf(tempTip, win_get_string(IDS_5120), drive + 1, szText, win_get_string(IDS_2057));
+		_swprintf(tempTip, plat_get_string(IDS_5120), drive+1, szText, plat_get_string(IDS_2057));
 	} else {
-		_swprintf(tempTip, win_get_string(IDS_5120), drive + 1, szText, cdrom_image[drive].image_path);
+		_swprintf(tempTip, plat_get_string(IDS_5120), drive+1, szText, cdrom_image[drive].image_path);
 	}
     } else if ((cdrom_drives[drive].host_drive >= 'A') && (cdrom_drives[drive].host_drive <= 'Z')) {
-	_swprintf(wtext, win_get_string(IDS_2058), cdrom_drives[drive].host_drive & ~0x20);
-	_swprintf(tempTip, win_get_string(IDS_5120), drive + 1, szText, wtext);
+	_swprintf(wtext, plat_get_string(IDS_2058), cdrom_drives[drive].host_drive & ~0x20);
+	_swprintf(tempTip, plat_get_string(IDS_5120), drive+1, szText, wtext);
     } else {
-	_swprintf(tempTip, win_get_string(IDS_5120), drive + 1, szText, win_get_string(IDS_2057));
+	_swprintf(tempTip, plat_get_string(IDS_5120), drive+1, szText, plat_get_string(IDS_2057));
     }
 
     if (sbTips[part] != NULL) {
@@ -364,9 +363,9 @@ StatusBarCreateRemovableDiskTip(int part)
     int drive = sb_part_meanings[part] & 0x1f;
 
     if (wcslen(hdd[drive].fn) == 0) {
-	_swprintf(tempTip, win_get_string(IDS_4115), drive, win_get_string(IDS_2057));
+	_swprintf(tempTip, plat_get_string(IDS_4115), drive, plat_get_string(IDS_2057));
     } else {
-	_swprintf(tempTip, win_get_string(IDS_4115), drive, hdd[drive].fn);
+	_swprintf(tempTip, plat_get_string(IDS_4115), drive, hdd[drive].fn);
     }
 
     if (sbTips[part] != NULL) {
@@ -387,9 +386,9 @@ StatusBarCreateDiskTip(int part)
     int bus = sb_part_meanings[part] & 0xf;
 
     id = IDS_4352 + (bus - 1);
-    szText = (WCHAR *)win_get_string(id);
+    szText = plat_get_string(id);
 
-    _swprintf(tempTip, win_get_string(IDS_4096), szText);
+    _swprintf(tempTip, plat_get_string(IDS_4096), szText);
     if (sbTips[part] != NULL)
 	free(sbTips[part]);
     sbTips[part] = (WCHAR *)malloc((wcslen(tempTip) << 1) + 2);
@@ -402,7 +401,7 @@ StatusBarCreateNetworkTip(int part)
 {
     WCHAR tempTip[512];
 
-    _swprintf(tempTip, win_get_string(IDS_2069));
+    _swprintf(tempTip, plat_get_string(IDS_2069));
 
     if (sbTips[part] != NULL)
 	free(sbTips[part]);
@@ -413,7 +412,7 @@ StatusBarCreateNetworkTip(int part)
 
 /* API */
 void
-StatusBarUpdateTip(int meaning)
+ui_sb_update_tip(int meaning)
 {
     int part = -1;
     int i;
@@ -513,7 +512,7 @@ StatusBarCreatePopupMenu(int part)
 
 /* API: update the status bar panes. */
 void
-StatusBarUpdatePanes(void)
+ui_sb_update_panes(void)
 {
     int i, id, hdint;
     int edge = 0;
@@ -556,8 +555,8 @@ StatusBarUpdatePanes(void)
 	StatusBarDestroyMenus();
 	StatusBarDestroyTips();
     }
-    sb_parts = 0;
 
+    sb_parts = 0;
     for (i=0; i<FDD_NUM; i++) {
 	if (fdd_get_type(i) != 0)
 		sb_parts++;
@@ -802,7 +801,7 @@ StatusBarPopupMenu(HWND hwnd, POINT pt, int id)
 static LRESULT CALLBACK
 StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    WCHAR temp_image_path[1024];
+    WCHAR temp_path[1024];
     RECT rc;
     POINT pt;
     int new_cdrom_drive;
@@ -822,7 +821,7 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_FLOPPY_IMAGE_EXISTING:
 			case IDM_FLOPPY_IMAGE_EXISTING_WP:
 				id = item_params & 0x0003;
-				part = StatusBarFindPart(SB_FLOPPY | id);
+				part = ui_sb_find_part(SB_FLOPPY | id);
 				if ((part == -1) || (sb_menu_handles == NULL))
 					break;
 
@@ -831,29 +830,29 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 					floppy_close(id);
 					ui_writeprot[id] = (item_id == IDM_FLOPPY_IMAGE_EXISTING_WP) ? 1 : 0;
 					floppy_load(id, wopenfilestring);
-					StatusBarUpdateIconState(SB_FLOPPY | id, wcslen(floppyfns[id]) ? 0 : 1);
+					ui_sb_update_icon_state(SB_FLOPPY | id, wcslen(floppyfns[id]) ? 0 : 1);
 					EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | (wcslen(floppyfns[id]) ? MF_ENABLED : MF_GRAYED));
-					StatusBarUpdateTip(SB_FLOPPY | id);
+					ui_sb_update_tip(SB_FLOPPY | id);
 					config_save();
 				}
 				break;
 
 			case IDM_FLOPPY_EJECT:
 				id = item_params & 0x0003;
-				part = StatusBarFindPart(SB_FLOPPY | id);
+				part = ui_sb_find_part(SB_FLOPPY | id);
 				if ((part == -1) || (sb_menu_handles == NULL))
 						break;
 
 				floppy_close(id);
-				StatusBarUpdateIconState(SB_FLOPPY | id, 1);
+				ui_sb_update_icon_state(SB_FLOPPY | id, 1);
 				EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
-				StatusBarUpdateTip(SB_FLOPPY | id);
+				ui_sb_update_tip(SB_FLOPPY | id);
 				config_save();
 				break;
 
 			case IDM_CDROM_MUTE:
 				id = item_params & 0x0007;
-				part = StatusBarFindPart(SB_CDROM | id);
+				part = ui_sb_find_part(SB_CDROM | id);
 				if ((part == -1) || (sb_menu_handles == NULL))
 						break;
 
@@ -875,21 +874,21 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_CDROM_IMAGE:
 				id = item_params & 0x0007;
-				part = StatusBarFindPart(SB_CDROM | id);
+				part = ui_sb_find_part(SB_CDROM | id);
 				if ((part == -1) || (sb_menu_handles == NULL))
 						break;
 
 				if (!file_dlg_w_st(hwnd, IDS_2075, cdrom_image[id].image_path, 0)) {
 					cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
-					wcscpy(temp_image_path, wopenfilestring);
-					if ((wcscmp(cdrom_image[id].image_path, temp_image_path) == 0) && (cdrom_drives[id].host_drive == 200)) {
+					wcscpy(temp_path, wopenfilestring);
+					if ((wcscmp(cdrom_image[id].image_path, temp_path) == 0) && (cdrom_drives[id].host_drive == 200)) {
 						/* Switching from image to the same image. Do nothing. */
 						break;
 					}
 					wcscpy(cdrom_image[id].prev_image_path, cdrom_image[id].image_path);
 					cdrom_drives[id].handler->exit(id);
 					cdrom_close(id);
-					image_open(id, temp_image_path);
+					image_open(id, temp_path);
 					/* Signal media change to the emulated machine. */
 					cdrom_insert(id);
 					CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
@@ -899,14 +898,14 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 					cdrom_drives[id].host_drive = (wcslen(cdrom_image[id].image_path) == 0) ? 0 : 200;
 					if (cdrom_drives[id].host_drive == 200) {
 						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_CHECKED);
-						StatusBarUpdateIconState(SB_CDROM | id, 0);
+						ui_sb_update_icon_state(SB_CDROM | id, 0);
 					} else {
 						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_UNCHECKED);
 						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
-						StatusBarUpdateIconState(SB_CDROM | id, 1);
+						ui_sb_update_icon_state(SB_CDROM | id, 1);
 					}
 					EnableMenuItem(sb_menu_handles[part], IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
-					StatusBarUpdateTip(SB_CDROM | id);
+					ui_sb_update_tip(SB_CDROM | id);
 					config_save();
 				}
 				break;
@@ -914,7 +913,7 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_CDROM_HOST_DRIVE:
 				id = item_params & 0x0007;
 				letter = ((item_params >> 3) & 0x001f) + 'A';
-				part = StatusBarFindPart(SB_CDROM | id);
+				part = ui_sb_find_part(SB_CDROM | id);
 				if ((part == -1) || (sb_menu_handles == NULL))
 				{
 					break;
@@ -941,8 +940,8 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				cdrom_drives[id].host_drive = new_cdrom_drive;
 				CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_CHECKED);
 				EnableMenuItem(sb_menu_handles[part], IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
-				StatusBarUpdateIconState(SB_CDROM | id, 0);
-				StatusBarUpdateTip(SB_CDROM | id);
+				ui_sb_update_icon_state(SB_CDROM | id, 0);
+				ui_sb_update_tip(SB_CDROM | id);
 				config_save();
 				break;
 
@@ -973,18 +972,18 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 					scsi_loadhd(hdd[id].scsi_id, hdd[id].scsi_lun, id);
 					scsi_disk_insert(id);
 					if (wcslen(hdd[id].fn) > 0) {
-						StatusBarUpdateIconState(SB_RDISK | id, 0);
+						ui_sb_update_icon_state(SB_RDISK | id, 0);
 						EnableMenuItem(sb_menu_handles[part], IDM_RDISK_EJECT | id, MF_BYCOMMAND | MF_ENABLED);
 						EnableMenuItem(sb_menu_handles[part], IDM_RDISK_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
 						EnableMenuItem(sb_menu_handles[part], IDM_RDISK_SEND_CHANGE | id, MF_BYCOMMAND | MF_ENABLED);
 					}
 					else {
-						StatusBarUpdateIconState(SB_RDISK | id, 1);
+						ui_sb_update_icon_state(SB_RDISK | id, 1);
 						EnableMenuItem(sb_menu_handles[part], IDM_RDISK_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
 						EnableMenuItem(sb_menu_handles[part], IDM_RDISK_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
 						EnableMenuItem(sb_menu_handles[part], IDM_RDISK_SEND_CHANGE | id, MF_BYCOMMAND | MF_GRAYED);
 					}
-					StatusBarUpdateTip(SB_RDISK | id);
+					ui_sb_update_tip(SB_RDISK | id);
 					config_save();
 				}
 				break;
@@ -1004,7 +1003,7 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	default:
-		return(CallWindowProc((WNDPROC)OriginalStatusBarProcedure,
+		return(CallWindowProc((WNDPROC)OriginalProcedure,
 				      hwnd, message, wParam, lParam));
     }
 
@@ -1058,7 +1057,7 @@ StatusBarCreate(HWND hwndParent, int idStatus, HINSTANCE hInst)
 			      (HMENU)idStatus, hInst, NULL);
 
     /* Replace the original procedure with ours. */
-    OriginalStatusBarProcedure = GetWindowLongPtr(hwndSBAR, GWLP_WNDPROC);
+    OriginalProcedure = GetWindowLongPtr(hwndSBAR, GWLP_WNDPROC);
     SetWindowLongPtr(hwndSBAR, GWL_WNDPROC, (LONG_PTR)&StatusBarProcedure);
 
     SendMessage(hwndSBAR, SB_SETMINHEIGHT, (WPARAM)17, (LPARAM)0);
@@ -1077,17 +1076,17 @@ StatusBarCreate(HWND hwndParent, int idStatus, HINSTANCE hInst)
 
     /* Initialize the status bar and populate the icons and menus. */
     sb_parts = 0;
-    StatusBarUpdatePanes();
+    ui_sb_update_panes();
 }
 
 
-/* API */
+/* API (Settings) */
 void
-StatusBarCheckMenuItem(int tag, int id, int chk)
+ui_sb_check_menu_item(int tag, int id, int chk)
 {
     int part;
 
-    part = StatusBarFindPart(tag);
+    part = ui_sb_find_part(tag);
     if ((part == -1) || (sb_menu_handles == NULL))
         return;
 
@@ -1095,13 +1094,13 @@ StatusBarCheckMenuItem(int tag, int id, int chk)
 }
 
 
-/* API */
+/* API (Settings) */
 void
-StatusBarEnableMenuItem(int tag, int id, int flg)
+ui_sb_enable_menu_item(int tag, int id, int flg)
 {
     int part;
 
-    part = StatusBarFindPart(tag);
+    part = ui_sb_find_part(tag);
     if ((part == -1) || (sb_menu_handles == NULL))
         return;
 
@@ -1111,12 +1110,11 @@ StatusBarEnableMenuItem(int tag, int id, int flg)
 
 /* API */
 void
-StatusBarSetTextW(wchar_t *wstr)
+ui_sb_set_text_w(wchar_t *wstr)
 {
     int part = -1;
     int i;
 
-pclog("SB_settext(%ws)", wstr);
     if (!sb_ready || (sb_parts == 0) || (sb_part_meanings == NULL)) return;
 
     for (i=0; i<sb_parts; i++) {
@@ -1124,22 +1122,20 @@ pclog("SB_settext(%ws)", wstr);
 		part = i;
 	}
     }
-pclog(" part=%d", part);
 
     if (part != -1)
 	SendMessage(hwndSBAR, SB_SETTEXT, part | SBT_NOBORDERS, (LPARAM)wstr);
-pclog(" done\n");
 }
 
 
 
 /* API */
 void
-StatusBarSetText(char *str)
+ui_sb_set_text(char *str)
 {
-    static wchar_t cwstr[512];
+    static wchar_t wstr[512];
 
-    memset(cwstr, 0, 1024);
-    mbstowcs(cwstr, str, strlen(str) + 1);
-    StatusBarSetTextW(cwstr);
+    memset(wstr, 0x00, 1024);
+    mbstowcs(wstr, str, strlen(str) + 1);
+    ui_sb_set_text_w(wstr);
 }

@@ -186,7 +186,7 @@
  *		(DS12887A) which implemented a "century" register to be 
  *		compatible with Y2K.
  *
- * Version:	@(#)nvr.c	1.0.5	2017/10/02
+ * Version:	@(#)nvr.c	1.0.6	2017/10/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -203,17 +203,15 @@
 #include <stdlib.h>
 #include <time.h>
 #include <wchar.h>
+#include "86Box.h"
 #include "ibm.h"
 #include "cpu/cpu.h"
 #include "pic.h"
 #include "timer.h"
 #include "device.h"
 #include "machine/machine.h"
-#include "win/win.h"
+#include "plat.h"
 #include "nvr.h"
-
-
-#define NVR_FOLDER_PATH	L"NVR"
 
 
 int64_t	enable_sync;		/* configuration variable: enable time sync */
@@ -755,16 +753,18 @@ nvr_path(wchar_t *str)
     /* Get the full prefix in place. */
     memset(temp, 0x00, sizeof(temp));
     wcscpy(temp, cfg_path);
-    wcscat(temp, NVR_FOLDER_PATH);
+    wcscat(temp, NVR_PATH);
 
-#ifndef __unix
     /* Create the directory if needed. */
-    if (! DirectoryExists(temp))
-	CreateDirectory(temp, NULL);
-#endif
+    if (! dir_check_exist(temp))
+	dir_create(temp);
 
     /* Now append the actual filename. */
+#ifdef WIN32
     wcscat(temp, L"\\");
+#else
+    wcscat(temp, L"/");
+#endif
     wcscat(temp, str);
 
     return(temp);

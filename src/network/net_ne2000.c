@@ -10,7 +10,7 @@
  *
  * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.17	2017/10/07
+ * Version:	@(#)net_ne2000.c	1.0.18	2017/10/09
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -18,6 +18,7 @@
  *
  * Based on	@(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
  *		Portions Copyright (C) 2002  MandrakeSoft S.A.
+ *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -35,18 +36,14 @@
 #include "../pic.h"
 #include "../random.h"
 #include "../device.h"
-#include "../win/win.h"
+#include "../ui.h"
 #include "network.h"
 #include "net_ne2000.h"
 #include "bswap.h"
 
 
 /* ROM BIOS file paths. */
-#ifdef DEV_BRANCH
-#ifdef USE_NE1000
 #define ROM_PATH_NE1000		L"roms/network/ne1000/ne1000.rom"
-#endif
-#endif
 #define ROM_PATH_NE2000		L"roms/network/ne2000/ne2000.rom"
 #define ROM_PATH_RTL8029	L"roms/network/rtl8029as/rtl8029as.rom"
 
@@ -1675,7 +1672,7 @@ mcast_index(const void *dst)
 static void
 nic_tx(nic_t *dev, uint32_t val)
 {
-    StatusBarUpdateIcon(SB_NETWORK, 1);
+    ui_sb_update_icon(SB_NETWORK, 1);
 
     dev->CR.tx_packet = 0;
     dev->TSR.tx_ok = 1;
@@ -1686,7 +1683,7 @@ nic_tx(nic_t *dev, uint32_t val)
 	nic_interrupt(dev, 1);
     dev->tx_timer_active = 0;
 
-    StatusBarUpdateIcon(SB_NETWORK, 0);
+    ui_sb_update_icon(SB_NETWORK, 0);
 }
 
 
@@ -1707,7 +1704,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
     int idx, nextpage;
     int endbytes;
 
-    StatusBarUpdateIcon(SB_NETWORK, 1);
+    ui_sb_update_icon(SB_NETWORK, 1);
 
     if (io_len != 60)
 	nelog(2, "%s: rx_frame with length %d\n", dev->name, io_len);
@@ -1738,14 +1735,14 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 		) {
 	nelog(1, "%s: no space\n", dev->name);
 
-	StatusBarUpdateIcon(SB_NETWORK, 0);
+	ui_sb_update_icon(SB_NETWORK, 0);
 	return;
     }
 
     if ((io_len < 40/*60*/) && !dev->RCR.runts_ok) {
 	nelog(1, "%s: rejected small packet, length %d\n", dev->name, io_len);
 
-	StatusBarUpdateIcon(SB_NETWORK, 0);
+	ui_sb_update_icon(SB_NETWORK, 0);
 	return;
     }
 
@@ -1767,7 +1764,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 		if (! dev->RCR.broadcast) {
 			nelog(2, "%s: RX BC disabled\n", dev->name);
 
-			StatusBarUpdateIcon(SB_NETWORK, 0);
+			ui_sb_update_icon(SB_NETWORK, 0);
 			return;
 		}
 	}
@@ -1780,7 +1777,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 			nelog(2, "%s: RX MC disabled\n", dev->name);
 #endif
 
-			StatusBarUpdateIcon(SB_NETWORK, 0);
+			ui_sb_update_icon(SB_NETWORK, 0);
 			return;
 		}
 
@@ -1789,7 +1786,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 		if (! (dev->mchash[idx>>3] & (1<<(idx&0x7)))) {
 			nelog(2, "%s: RX MC not listed\n", dev->name);
 
-			StatusBarUpdateIcon(SB_NETWORK, 0);
+			ui_sb_update_icon(SB_NETWORK, 0);
 			return;
 		}
 	}
@@ -1835,7 +1832,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
     if (dev->IMR.rx_inte)
 	nic_interrupt(dev, 1);
 
-    StatusBarUpdateIcon(SB_NETWORK, 0);
+    ui_sb_update_icon(SB_NETWORK, 0);
 }
 
 
@@ -1894,8 +1891,7 @@ nic_init(device_t *info)
     dev->board = info->local;
     rom = NULL;
     switch(dev->board) {
-#ifdef DEV_BRANCH
-#ifdef USE_NE1000
+#if defined(DEV_BRANCH) && defined(USE_NE1000)
 	case NE2K_NE1000:
 		strcpy(dev->name, "NE1000");
 		dev->maclocal[0] = 0x00;  /* 00:00:D8 (NE1000 ISA OID) */
@@ -1903,7 +1899,6 @@ nic_init(device_t *info)
 		dev->maclocal[2] = 0xD8;
 		rom = ROM_PATH_NE1000;
 		break;
-#endif
 #endif
 
 	case NE2K_NE2000:
@@ -2051,6 +2046,8 @@ nic_init(device_t *info)
     nelog(1, "%s: %s attached IO=0x%X IRQ=%d\n", dev->name,
 	dev->is_pci?"PCI":"ISA", dev->base_address, dev->base_irq);
 
+    ui_sb_update_icon(SB_NETWORK, 0);
+
     return(dev);
 }
 
@@ -2071,8 +2068,7 @@ nic_close(void *priv)
 }
 
 
-#ifdef DEV_BRANCH
-#ifdef USE_NE1000
+#if defined(DEV_BRANCH) && defined(USE_NE1000)
 static device_config_t ne1000_config[] =
 {
 	{
@@ -2145,7 +2141,6 @@ static device_config_t ne1000_config[] =
 		"", "", -1
 	}
 };
-#endif
 #endif
 
 static device_config_t ne2000_config[] =
@@ -2241,22 +2236,20 @@ static device_config_t rtl8029as_config[] =
 };
 
 
-#ifdef DEV_BRANCH
-#ifdef USE_NE1000
+#if defined(DEV_BRANCH) && defined(USE_NE1000)
 device_t ne1000_device = {
     "Novell NE1000",
-    DEVICE_ISA,
+    0,
     NE2K_NE1000,
     nic_init, nic_close, NULL,
     NULL, NULL, NULL, NULL,
     ne1000_config
 };
 #endif
-#endif
 
 device_t ne2000_device = {
     "Novell NE2000",
-    DEVICE_ISA | DEVICE_AT,
+    DEVICE_AT,
     NE2K_NE2000,
     nic_init, nic_close, NULL,
     NULL, NULL, NULL, NULL,

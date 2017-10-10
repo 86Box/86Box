@@ -6,7 +6,7 @@
 #include "ibm.h"
 #include "keyboard_at.h"
 #include "mouse.h"
-#include "plat_mouse.h"
+#include "win/plat_mouse.h"
 
 
 int mouse_scan = 0;

@@ -12,9 +12,11 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.12	2017/10/04
+ * Version:	@(#)network.c	1.0.13	2017/10/09
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -23,7 +25,7 @@
 #include <wchar.h>
 #include "../ibm.h"
 #include "../device.h"
-#include "../win/plat_ui.h"
+#include "../ui.h"
 #include "network.h"
 #include "net_ne2000.h"
 
@@ -31,15 +33,13 @@
 static netcard_t net_cards[] = {
     { "None",			"none",		NULL,
       NULL,			NULL					},
-#ifdef DEV_BRANCH
-#ifdef USE_NE1000
-    { "[ISA] Novell NE1000",	"ne1k",		&ne1000_device,
+#if defined(DEV_BRANCH) && defined(USE_NE1000)
+    { "Novell NE1000",		"ne1k",		&ne1000_device,
       NULL,			NULL					},
 #endif
-#endif
-    { "[ISA] Novell NE2000",	"ne2k",		&ne2000_device,
+    { "Novell NE2000",		"ne2k",		&ne2000_device,
       NULL,			NULL					},
-    { "[PCI] Realtek RTL8029AS","ne2kpci",	&rtl8029as_device,
+    { "Realtek RTL8029AS",	"ne2kpci",	&rtl8029as_device,
       NULL,			NULL					},
     { "",			"",		NULL,
       NULL,			NULL					}
@@ -115,7 +115,7 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
 	case NET_TYPE_PCAP:
 		ret = network_pcap_setup(mac, rx, dev);
 		if (ret < 0) {
-			plat_msgbox_error(IDS_2139);
+			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2139);
 			network_type = NET_TYPE_NONE;
 		}
 		break;

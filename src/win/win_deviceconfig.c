@@ -8,7 +8,7 @@
  *
  *		Windows device configuration dialog implementation.
  *
- * Version:	@(#)win_deviceconfig.c	1.0.4	2017/10/07
+ * Version:	@(#)win_deviceconfig.c	1.0.5	2017/10/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,6 +23,8 @@
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"
+#include "../plat.h"
+#include "../ui.h"
 #include "plat_midi.h"
 #define NO_UNICODE		/*FIXME: not Unicode? */
 #include "win.h"
@@ -271,13 +273,13 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                         return TRUE;
                                 }
 
-                               ret = msgbox_reset(hwndMain);
+                               ret = ui_msgbox(MBX_QUESTION, (wchar_t *)IDS_2051);
                                switch(ret)
                                {
-                                    case IDNO:                                        
+                                    case 1:                                        
 	                                    EndDialog(hdlg, 0);
         	                            return TRUE;
-                                    case IDCANCEL:
+                                    case -1:
                                         return FALSE;
                                     default:
                                         break;

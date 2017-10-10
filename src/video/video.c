@@ -8,6 +8,7 @@
 #include <wchar.h>
 #include <math.h>
 #include <time.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
@@ -17,10 +18,10 @@
 #include "../device.h"
 #include "../timer.h"
 #include "../win/plat_thread.h"
+#include "../plat.h"
 #include "video.h"
 #include "vid_svga.h"
 #ifndef __unix
-# include "../win/win.h"		/*YUCK*/
 # include "../win/win_cgapal.h"		/*YUCK*/
 #endif
 
@@ -30,10 +31,10 @@
 #include "vid_ati_mach64.h"
 #include "vid_cga.h"
 #ifdef DEV_BRANCH
-#ifdef USE_CIRRUS
-#include "vid_cl_ramdac.h" /* vid_cl_gd.c needs this */
-#include "vid_cl_gd.h"
-#endif
+# ifdef USE_CIRRUS
+#  include "vid_cl_ramdac.h" /* vid_cl_gd.c needs this */
+#  include "vid_cl_gd.h"
+# endif
 #endif
 #include "vid_ega.h"
 #include "vid_et4000.h"
@@ -45,9 +46,9 @@
 #include "vid_colorplus.h"
 #include "vid_mda.h"
 #ifdef DEV_BRANCH
-#ifdef USE_RIVA
-#include "vid_nv_riva128.h"
-#endif
+# ifdef USE_RIVA
+#  include "vid_nv_riva128.h"
+# endif
 #endif
 #include "vid_olivetti_m24.h"
 #include "vid_oti067.h"
@@ -120,12 +121,10 @@ static VIDEO_CARD video_cards[] =
         {"[PCI] Diamond Stealth 3D 2000 (S3 ViRGE)",    "stealth3d_2000_pci",		&s3_virge_pci_device,            	GFX_VIRGE_PCI},
         {"[PCI] Diamond Stealth 3D 3000 (S3 ViRGE/VX)", "stealth3d_3000_pci",		&s3_virge_988_pci_device,        	GFX_VIRGEVX_PCI},
         {"[PCI] Diamond Stealth 64 DRAM (S3 Trio64)",	"stealth64d_pci",		&s3_diamond_stealth64_pci_device,	GFX_STEALTH64_PCI},
-#ifdef DEV_BRANCH
-#ifdef USE_RIVA
+#if defined(DEV_BRANCH) && defined(USE_RIVA)
         {"[PCI] nVidia RIVA 128",                  	"riva128",			&riva128_device,             		GFX_RIVA128},
         {"[PCI] nVidia RIVA TNT",                  	"rivatnt",			&rivatnt_device,             		GFX_RIVATNT},
         {"[PCI] nVidia RIVA TNT2",                 	"rivatnt2",			&rivatnt2_device,            		GFX_RIVATNT2},
-#endif
 #endif
         {"[PCI] Number Nine 9FX (S3 Trio64)",           "n9_9fx_pci",			&s3_9fx_pci_device,          		GFX_N9_9FX_PCI},
         {"[PCI] Paradise Bahamas 64 (S3 Vision864)",    "bahamas64_pci",		&s3_bahamas64_pci_device,        	GFX_BAHAMAS64_PCI},
@@ -703,59 +702,49 @@ void video_blit_memtoscreen_8(int x, int y, int w, int h)
         thread_set_event(blit_data.wake_blit_thread);
 }
 
-time_t now;
-struct tm *info;
-wchar_t screenshot_fn_partial[2048];
-wchar_t screenshot_fn[4096];
-wchar_t screenshot_path[4096];
 
-BOOL DirectoryExists(LPCTSTR szPath)
+void
+take_screenshot(void)
 {
-  DWORD dwAttrib = GetFileAttributes(szPath);
+    wchar_t path[1024], fn[128];
+    struct tm *info;
+    time_t now;
 
-  return (dwAttrib != INVALID_FILE_ATTRIBUTES && 
-         (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
-}
+    pclog("Screenshot: video API is: %i\n", vid_api);
+    if ((vid_api < 0) || (vid_api > 1)) return;
 
-void take_screenshot(void)
-{
-	if ((vid_api < 0) || (vid_api > 1))  return;
-	time(&now);
-	info = localtime(&now);
-	memset(screenshot_fn, 0, 8192);
-	memset(screenshot_fn_partial, 0, 4096);
-	memset(screenshot_path, 0, 8192);
-	pclog("Video API is: %i\n", vid_api);
-	append_filename_w(screenshot_path, cfg_path, L"screenshots", 4095);
-	if (!DirectoryExists(screenshot_path))
-	{
-		CreateDirectory(screenshot_path, NULL);
-	}
-	if (vid_api == 1)
-	{
-		wcsftime(screenshot_fn_partial, 2048, L"screenshots\\%Y%m%d_%H%M%S.png", info);
-		append_filename_w(screenshot_fn, cfg_path, screenshot_fn_partial, 4095);
-		if (video_fullscreen)
-		{
-			d3d_fs_take_screenshot(screenshot_fn);
-		}
-		else
-		{
-			pclog("Direct 3D...\n");
-			d3d_take_screenshot(screenshot_fn);
-		}
-	}
-	else if (vid_api == 0)
-	{
-		wcsftime(screenshot_fn_partial, 2048, L"screenshots\\%Y%m%d_%H%M%S.bmp", info);
-		append_filename_w(screenshot_fn, cfg_path, screenshot_fn_partial, 4095);
-		if (video_fullscreen)
-		{
-			ddraw_fs_take_screenshot(screenshot_fn);
-		}
-		else
-		{
-			ddraw_take_screenshot(screenshot_fn);
-		}
-	}
+    memset(fn, 0, sizeof(fn));
+    memset(path, 0, sizeof(path));
+
+    (void)time(&now);
+    info = localtime(&now);
+
+    append_filename_w(path, cfg_path, SCREENSHOT_PATH, sizeof(path)-2);
+
+    if (! dir_check_exist(path))
+	dir_create(path);
+
+#ifdef WIN32
+    wcscat(path, L"\\");
+#else
+    wcscat(path, L"/");
+#endif
+
+    if (vid_api == 1) {
+	wcsftime(fn, 128, L"%Y%m%d_%H%M%S.png", info);
+	append_filename_w(path, cfg_path, fn, 1024);
+	if (video_fullscreen)
+		d3d_fs_take_screenshot(path);
+	  else
+		d3d_take_screenshot(path);
+    } else if (vid_api == 0) {
+	wcsftime(path, 128, L"%Y%m%d_%H%M%S.bmp", info);
+	append_filename_w(path, cfg_path, fn, 1024);
+	if (video_fullscreen)
+		ddraw_fs_take_screenshot(path);
+	  else
+		ddraw_take_screenshot(path);
+    }
+
+    pclog("Screenshot: fn='%ws'\n", path);
 }

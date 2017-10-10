@@ -8,7 +8,7 @@
  *
  *		Common code to handle all sorts of hard disk images.
  *
- * Version:	@(#)hdd.c	1.0.3	2017/10/07
+ * Version:	@(#)hdd.c	1.0.4	2017/10/09
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -21,10 +21,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "../ibm.h"
-#include "../cpu/cpu.h"
-#include "../device.h"
-#include "../machine/machine.h"
-#include "../win/win.h"
+#include "../ui.h"
 #include "hdd.h"
 
 
@@ -50,7 +47,7 @@ hdd_string_to_bus(char *str, int cdrom)
     if (! strcmp(str, "mfm")) {
 	if (cdrom) {
 no_cdrom:
-		msgbox_error(hwndMain, IDS_4114);
+		ui_msgbox(MBX_ERROR, (wchar_t *)IDS_4114);
 		return(0);
 	}
 
@@ -113,7 +110,7 @@ no_cdrom:
     }
 
     if (! strcmp(str, "usb"))
-	msgbox_error(hwndMain, IDS_4110);
+	ui_msgbox(MBX_ERROR, (wchar_t *)IDS_4110);
 
     return(0);
 }

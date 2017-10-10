@@ -8,7 +8,7 @@
  *
  *		Handle the platform-side of CDROM drives.
  *
- * Version:	@(#)win_cdrom.c	1.0.2	2017/10/07
+ * Version:	@(#)win_cdrom.c	1.0.3	2017/10/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -34,9 +34,9 @@
 #include "../disk/hdd.h"
 #include "../scsi/scsi.h"
 #include "../scsi/scsi_disk.h"
-#include "plat_ui.h"
+#include "../plat.h"
+#include "../ui.h"
 #include "win.h"
-#include "win_cdrom_ioctl.h"
 
 
 uint8_t	host_cdrom_drive_available[26];
@@ -93,7 +93,7 @@ cdrom_eject(uint8_t id)
 
     if ((cdrom_drives[id].host_drive >= 'A') &&
 	(cdrom_drives[id].host_drive <= 'Z')) {
-	StatusBarCheckMenuItem(SB_CDROM|id,
+	ui_sb_check_menu_item(SB_CDROM|id,
 		IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_UNCHECKED);
     }
 
@@ -109,12 +109,12 @@ cdrom_eject(uint8_t id)
 	cdrom_insert(id);
     }
 
-    StatusBarCheckMenuItem(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_UNCHECKED);
+    ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_UNCHECKED);
     cdrom_drives[id].host_drive=0;
-    StatusBarCheckMenuItem(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_CHECKED);
-    StatusBarUpdateIconState(SB_CDROM|id, 1);
-    StatusBarEnableMenuItem(SB_CDROM|id, IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
-    StatusBarUpdateTip(SB_CDROM|id);
+    ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_CHECKED);
+    ui_sb_update_icon_state(SB_CDROM|id, 1);
+    ui_sb_enable_menu_item(SB_CDROM|id, IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
+    ui_sb_update_tip(SB_CDROM|id);
 
     config_save();
 }
@@ -140,15 +140,15 @@ cdrom_reload(uint8_t id)
 		cdrom_insert(id);
 	}
 	if (wcslen(cdrom_image[id].image_path) == 0) {
-		StatusBarCheckMenuItem(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_CHECKED);
+		ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_CHECKED);
 		cdrom_drives[id].host_drive = 0;
-		StatusBarCheckMenuItem(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_UNCHECKED);
-		StatusBarUpdateIconState(SB_CDROM|id, 1);
+		ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_UNCHECKED);
+		ui_sb_update_icon_state(SB_CDROM|id, 1);
 	} else {
-		StatusBarCheckMenuItem(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_UNCHECKED);
+		ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_UNCHECKED);
 		cdrom_drives[id].host_drive = 200;
-		StatusBarCheckMenuItem(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_CHECKED);
-		StatusBarUpdateIconState(SB_CDROM|id, 0);
+		ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_CHECKED);
+		ui_sb_update_icon_state(SB_CDROM|id, 0);
 	}
     } else {
 	new_cdrom_drive = cdrom_drives[id].prev_host_drive;
@@ -157,14 +157,14 @@ cdrom_reload(uint8_t id)
 		/* Signal disc change to the emulated machine. */
 		cdrom_insert(id);
 	}
-	StatusBarCheckMenuItem(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_UNCHECKED);
+	ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_UNCHECKED);
 	cdrom_drives[id].host_drive = new_cdrom_drive;
-	StatusBarCheckMenuItem(SB_CDROM|id, IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_CHECKED);
-	StatusBarUpdateIconState(SB_CDROM|id, 0);
+	ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_CHECKED);
+	ui_sb_update_icon_state(SB_CDROM|id, 0);
     }
 
-    StatusBarEnableMenuItem(SB_CDROM|id, IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
-    StatusBarUpdateTip(SB_CDROM|id);
+    ui_sb_enable_menu_item(SB_CDROM|id, IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
+    ui_sb_update_tip(SB_CDROM|id);
 
     config_save();
 }
@@ -187,12 +187,12 @@ void
 removable_disk_eject(uint8_t id)
 {
     removable_disk_unload(id);
-    StatusBarUpdateIconState(SB_RDISK|id, 1);
-    StatusBarEnableMenuItem(SB_RDISK|id, IDM_RDISK_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
-    StatusBarEnableMenuItem(SB_RDISK|id, IDM_RDISK_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
-    StatusBarEnableMenuItem(SB_RDISK|id, IDM_RDISK_SEND_CHANGE | id, MF_BYCOMMAND | MF_GRAYED);
+    ui_sb_update_icon_state(SB_RDISK|id, 1);
+    ui_sb_enable_menu_item(SB_RDISK|id, IDM_RDISK_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
+    ui_sb_enable_menu_item(SB_RDISK|id, IDM_RDISK_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
+    ui_sb_enable_menu_item(SB_RDISK|id, IDM_RDISK_SEND_CHANGE | id, MF_BYCOMMAND | MF_GRAYED);
 
-    StatusBarUpdateTip(SB_RDISK|id);
+    ui_sb_update_tip(SB_RDISK|id);
 
     config_save();
 }
@@ -211,13 +211,13 @@ removable_disk_reload(uint8_t id)
     scsi_disk_insert(id);
 #endif
 
-    StatusBarUpdateIconState(SB_RDISK|id, wcslen(hdd[id].fn) ? 0 : 1);
+    ui_sb_update_icon_state(SB_RDISK|id, wcslen(hdd[id].fn) ? 0 : 1);
 
-    StatusBarEnableMenuItem(SB_RDISK|id, IDM_RDISK_EJECT | id, MF_BYCOMMAND | (wcslen(hdd[id].fn) ? MF_ENABLED : MF_GRAYED));
-    StatusBarEnableMenuItem(SB_RDISK|id, IDM_RDISK_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
-    StatusBarEnableMenuItem(SB_RDISK|id, IDM_RDISK_SEND_CHANGE | id, MF_BYCOMMAND | (wcslen(hdd[id].fn) ? MF_ENABLED : MF_GRAYED));
+    ui_sb_enable_menu_item(SB_RDISK|id, IDM_RDISK_EJECT | id, MF_BYCOMMAND | (wcslen(hdd[id].fn) ? MF_ENABLED : MF_GRAYED));
+    ui_sb_enable_menu_item(SB_RDISK|id, IDM_RDISK_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
+    ui_sb_enable_menu_item(SB_RDISK|id, IDM_RDISK_SEND_CHANGE | id, MF_BYCOMMAND | (wcslen(hdd[id].fn) ? MF_ENABLED : MF_GRAYED));
 
-    StatusBarUpdateTip(SB_RDISK|id);
+    ui_sb_update_tip(SB_RDISK|id);
 
     config_save();
 }

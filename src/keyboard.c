@@ -8,10 +8,11 @@
  *
  *		Host to guest keyboard interface and keyboard scan code sets.
  *
- * Version:	@(#)keyboard.c	1.0.2	2017/09/24
+ * Version:	@(#)keyboard.c	1.0.3	2017/10/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -20,7 +21,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "ibm.h"
-#include "plat_keyboard.h"
+#include "win/plat_keyboard.h"
 #include "keyboard.h"
 
 

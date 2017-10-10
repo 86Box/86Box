@@ -41,10 +41,11 @@
  *		Since all controllers (including the ones made by DTC) use
  *		(mostly) the same API, we keep them all in this module.
  *
- * Version:	@(#)hdd_mfm_xt.c	1.0.7	2017/10/05
+ * Version:	@(#)hdd_mfm_xt.c	1.0.8	2017/10/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2017 Fred N. van Kempen.
  */
@@ -61,7 +62,7 @@
 #include "../pic.h"
 #include "../rom.h"
 #include "../timer.h"
-#include "../win/win.h"
+#include "../ui.h"
 #include "hdc.h"
 #include "hdd.h"
 
@@ -403,7 +404,7 @@ mfm_callback(void *priv)
 
 				mfm_complete(mfm);
 
-				StatusBarUpdateIcon(SB_HDD | HDD_BUS_MFM, 1);
+				ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 1);
 				break;
 
 			default:
@@ -448,7 +449,7 @@ mfm_callback(void *priv)
 
 				hdd_image_read(drive->hdd_num, addr, 1,
 					       (uint8_t *) mfm->sector_buf);
-				StatusBarUpdateIcon(SB_HDD|HDD_BUS_MFM, 1);
+				ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 1);
 
 				if (mfm->irq_dma_mask & DMA_ENA)
 					mfm->callback = MFM_TIME;
@@ -493,7 +494,7 @@ mfm_callback(void *priv)
 
 					hdd_image_read(drive->hdd_num, addr, 1,
 						(uint8_t *) mfm->sector_buf);
-					StatusBarUpdateIcon(SB_HDD|HDD_BUS_MFM, 1);
+					ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 1);
 
 					mfm->state = STATE_SEND_DATA;
 
@@ -505,7 +506,7 @@ mfm_callback(void *priv)
 					}
 				} else {
 					mfm_complete(mfm);
-					StatusBarUpdateIcon(SB_HDD | HDD_BUS_MFM, 0);
+					ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
 				}
 				break;
 
@@ -566,7 +567,7 @@ mfm_callback(void *priv)
 
 				hdd_image_write(drive->hdd_num, addr, 1,
 						(uint8_t *) mfm->sector_buf);
-				StatusBarUpdateIcon(SB_HDD|HDD_BUS_MFM, 1);
+				ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 1);
 
 				next_sector(mfm);
 				mfm->data_pos = 0;
@@ -857,7 +858,8 @@ xebec_available(void)
 
 device_t mfm_xt_xebec_device = {
     "IBM PC Fixed Disk Adapter",
-    0, 0,
+    DEVICE_ISA,
+    0,
     xebec_init, mfm_close, NULL,
     xebec_available, NULL, NULL, NULL,
     NULL
@@ -908,7 +910,8 @@ dtc5150x_available(void)
 
 device_t mfm_xt_dtc5150x_device = {
     "DTC 5150X",
-    DEVICE_ISA, 0,
+    DEVICE_ISA,
+    0,
     dtc5150x_init, mfm_close, NULL,
     dtc5150x_available, NULL, NULL, NULL,
     NULL

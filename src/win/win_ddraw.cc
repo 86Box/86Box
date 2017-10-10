@@ -8,6 +8,8 @@
 #include <windows.h>
 #undef BITMAP
 #include "../video/video.h"
+#include "../plat.h"
+#include "../ui.h"
 #include "win_ddraw.h"
 #include "win_cgapal.h"
 #include "win.h"
@@ -106,8 +108,8 @@ SaveBitmap(wchar_t *szFilename, HBITMAP hBitmap)
 
 	if ((fp = _wfopen(szFilename, L"wb")) == NULL) {
 		_swprintf(szMessage,
-			  win_get_string(IDS_2088), szFilename);
-		msgbox_error_wstr(hwndMain, szMessage);
+			  plat_get_string(IDS_2088), szFilename);
+		ui_msgbox(MBX_ERROR, szMessage);
 		break;
 	} 
 

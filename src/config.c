@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.14	2017/10/07
+ * Version:	@(#)config.c	1.0.15	2017/10/09
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -47,15 +47,15 @@
 #include "mouse.h"
 #include "network/network.h"
 #include "scsi/scsi.h"
-#include "win/plat_joystick.h"
-#include "win/plat_midi.h"
 #include "sound/midi.h"
 #include "sound/snd_dbopl.h"
 #include "sound/snd_mpu401.h"
 #include "sound/snd_opl.h"
 #include "sound/sound.h"
 #include "video/video.h"
-#include "win/win.h"
+#include "ui.h"
+#include "win/plat_joystick.h"
+#include "win/plat_midi.h"
 
 
 typedef struct _list_ {
@@ -442,13 +442,13 @@ load_general(void)
 	window_w = window_h = window_x = window_y = 0;
     }
 
-#ifndef __unix
+#ifdef USE_LANGUAGE
     /*
      * Currently, 86Box is English (US) only, but in the future
      * (version 1.30 at the earliest) other languages will be
      * added, therefore it is better to future-proof the code.
      */
-    dwLanguage = config_get_hex16(cat, "language", 0x0409);
+    plat_language = config_get_hex16(cat, "language", 0x0409);
 #endif
 }
 
@@ -633,9 +633,9 @@ load_network(void)
     if (p != NULL) {
 	if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
 		if ((network_ndev == 1) && strcmp(network_pcap, "none")) {
-			msgbox_error(hwndMain, IDS_2140);
+			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2140);
 		} else if (network_dev_to_id(p) == -1) {
-			msgbox_error(hwndMain, IDS_2141);
+			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2141);
 		}
 
 		strcpy(network_pcap, "none");
@@ -1110,8 +1110,8 @@ config_load(wchar_t *fn)
 
     if (! config_read(fn)) {
 	cpu = 0;
-#ifndef __unix
-	dwLanguage = 0x0409;
+#ifdef USE_LANGUAGE
+	plat_language = 0x0409;
 #endif
 	scale = 1;
 	vid_api = 1;
@@ -1218,11 +1218,11 @@ save_general(void)
 	config_delete_var(cat, "window_coordinates");
     }
 
-#ifndef __unix
-    if (dwLanguage == 0x0409)
+#ifdef USE_LANGUAGE
+    if (plat_language == 0x0409)
 	config_delete_var(cat, "language");
       else
-	config_set_hex16(cat, "language", dwLanguage);
+	config_set_hex16(cat, "language", plat_language);
 #endif
 
     delete_section_if_empty(cat);
