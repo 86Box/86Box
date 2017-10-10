@@ -43,7 +43,7 @@
 
 
 #define SCSI_DELAY_TM		1			/* was 50 */
-#define AHA_RESET_DURATION_US	UINT64_C(5000)
+#define AHA_RESET_DURATION_US	UINT64_C(50000)
 
 
 #define ROM_SIZE	16384				/* one ROM is 16K */
@@ -422,8 +422,12 @@ typedef struct {
     int		MbiActive[256];
     int		PendingInterrupt;
     int		Lock;
+    uint8_t	shadow_ram[128];
     event_t	*evt;
     uint8_t	MailboxIsBIOS;
+    uint8_t	shram_mode;
+    uint8_t	last_mb;
+    uint8_t	ToRaise;
 } aha_t;
 
 
@@ -471,37 +475,27 @@ aha_log(const char *fmt, ...)
 static void
 aha_mem_write(uint32_t addr, uint8_t val, void *priv)
 {
-    rom_t *rom = (rom_t *)priv;
+    aha_t *dev = (aha_t *)priv;
 
-    if ((addr & rom->mask) >= 0x3F80)
-	rom->rom[addr & rom->mask] = val;
+    addr &= 0x3fff;
+
+    if ((addr >= dev->rom_shram) && (dev->shram_mode & 1))
+	dev->shadow_ram[addr & (dev->rom_shramsz - 1)] = val;
 }
 
 
 static uint8_t
 aha_mem_read(uint32_t addr, void *priv)
 {
-    rom_t *rom = (rom_t *)priv;
+    aha_t *dev = (aha_t *)priv;
+    rom_t *rom = &dev->bios;
 
-    return(rom->rom[addr & rom->mask]);
-}
+    addr &= 0x3fff;
 
+    if ((addr >= dev->rom_shram) && (dev->shram_mode & 2))
+	return dev->shadow_ram[addr & (dev->rom_shramsz - 1)];
 
-static uint16_t
-aha_mem_readw(uint32_t addr, void *priv)
-{
-    rom_t *rom = (rom_t *)priv;
-
-    return(*(uint16_t *)&rom->rom[addr & rom->mask]);
-}
-
-
-static uint32_t
-aha_mem_readl(uint32_t addr, void *priv)
-{
-    rom_t *rom = (rom_t *)priv;
-
-    return(*(uint32_t *)&rom->rom[addr & rom->mask]);
+    return(rom->rom[addr]);
 }
 
 
@@ -511,19 +505,9 @@ aha154x_shram(aha_t *dev, uint8_t cmd)
     /* If not supported, give up. */
     if (dev->rom_shram == 0x0000) return(0x04);
 
-    switch(cmd) {
-	case 0x00:	/* disable, make it look like ROM */
-		memset(&dev->bios.rom[dev->rom_shram], 0xFF, dev->rom_shramsz);
-		break;
-
-	case 0x02:	/* clear it */
-		memset(&dev->bios.rom[dev->rom_shram], 0x00, dev->rom_shramsz);
-		break;
-
-	case 0x03:	/* enable, clear for use */
-		memset(&dev->bios.rom[dev->rom_shram], 0x00, dev->rom_shramsz);
-		break;
-    }
+    /* Bit 0 = Shadow RAM write enable;
+       Bit 1 = Shadow RAM read enable. */
+    dev->shram_mode = cmd;
 
     /* Firmware expects 04 status. */
     return(0x04);
@@ -533,6 +517,7 @@ aha154x_shram(aha_t *dev, uint8_t cmd)
 static uint8_t
 aha154x_eeprom(aha_t *dev, uint8_t cmd,uint8_t arg,uint8_t len,uint8_t off,uint8_t *bufp)
 {
+    FILE *f;
     uint8_t r = 0xff;
 
     aha_log("%s: EEPROM cmd=%02x, arg=%02x len=%d, off=%02x\n",
@@ -547,6 +532,14 @@ aha154x_eeprom(aha_t *dev, uint8_t cmd,uint8_t arg,uint8_t len,uint8_t off,uint8
 	/* Write data to the EEPROM. */
 	memcpy(&dev->nvr[off], bufp, len);
 	r = 0;
+
+	f = nvr_fopen(dev->nvr_path, L"wb");
+	if (f)
+	{
+		fwrite(dev->nvr, 1, NVR_SIZE, f);
+		fclose(f);
+		f = NULL;
+	}
     }
 
     if (cmd == 0x23) {
@@ -650,6 +643,8 @@ aha_reset(aha_t *dev)
     dev->MailboxOutInterrupts = 0;
     dev->PendingInterrupt = 0;
     dev->Lock = 0;
+    dev->shram_mode = 0;
+    dev->last_mb = 0;
 
     ClearIntr(dev);
 }
@@ -738,6 +733,12 @@ aha_ccb(aha_t *dev)
     /* Rewrite the CCB up to the CDB. */
     aha_log("CCB rewritten to the CDB (pointer %08X)\n", CCBPointer);
     DMAPageWrite(CCBPointer, (char *)CmdBlock, 18);
+
+    dev->ToRaise = INTR_HACC | INTR_ANY;
+    if (dev->MailboxOutInterrupts)
+    {
+	dev->ToRaise |= INTR_MBOA;
+    }
 }
 
 
@@ -792,9 +793,10 @@ aha_mbi(aha_t *dev)
     if (dev->MailboxInPosCur >= dev->MailboxCount)
 		dev->MailboxInPosCur = 0;
 
-    RaiseIntr(dev, 0, INTR_MBIF | INTR_ANY);
-
-    while (dev->Interrupt) {
+    dev->ToRaise = INTR_MBIF | INTR_ANY;
+    if (dev->MailboxOutInterrupts)
+    {
+	dev->ToRaise |= INTR_MBOA;
     }
 }
 
@@ -1273,32 +1275,27 @@ aha_do_mail(aha_t *dev)
 
 	/* Check the next mailbox. */
 	aha_mbo_adv(dev);
-    } while ((mb32.u.out.ActionCode == MBO_FREE) && (MailboxCur != dev->MailboxOutPosCur));
-
-    if (mb32.u.out.ActionCode != MBO_FREE) {
-	/* We got the mailbox, mark it as free in the guest. */
-	aha_log("aha_do_mail(): Writing %i bytes at %08X\n", sizeof(CmdStatus), Outgoing + CodeOffset);
-		DMAPageWrite(Outgoing + CodeOffset, (char *)&CmdStatus, sizeof(CmdStatus));
-    }
-    else {
-	return;
-    }
-
-    if (dev->MailboxOutInterrupts) {
-	RaiseIntr(dev, 0, INTR_MBOA | INTR_ANY);
-
-	while (dev->Interrupt) {
-	}
-    }
+    } while ((mb32.u.out.ActionCode != MBO_START) && (mb32.u.out.ActionCode != MBO_ABORT) && (MailboxCur != dev->MailboxOutPosCur));
 
     if (mb32.u.out.ActionCode == MBO_START) {
 	aha_log("Start Mailbox Command\n");
 	aha_req_setup(dev, mb32.CCBPointer, &mb32);
-    } else if (mb32.u.out.ActionCode == MBO_ABORT) {
+    } else if (!dev->MailboxIsBIOS && (mb32.u.out.ActionCode == MBO_ABORT)) {
 		aha_log("Abort Mailbox Command\n");
 		aha_req_abort(dev, mb32.CCBPointer);
     } else {
 	aha_log("Invalid action code: %02X\n", mb32.u.out.ActionCode);
+    }
+
+    if ((mb32.u.out.ActionCode == MBO_START) || (mb32.u.out.ActionCode == MBO_ABORT)) {
+	/* We got the mailbox, mark it as free in the guest. */
+	aha_log("aha_do_mail(): Writing %i bytes at %08X\n", sizeof(CmdStatus), Outgoing + CodeOffset);
+	DMAPageWrite(Outgoing + CodeOffset, (char *)&CmdStatus, sizeof(CmdStatus));
+
+	RaiseIntr(dev, 0, dev->ToRaise);
+
+	while (dev->Interrupt) {
+	}
     }
 }
 
@@ -1320,14 +1317,6 @@ aha_cmd_thread(void *priv)
 	aha_do_mail(dev);
     }
 
-    if (!dev->MailboxCount)
-    {
-	thread_destroy_event(dev->evt);
-	dev->evt = NULL;
-	poll_tid = NULL;
-	return;
-    }
-
     thread_destroy_event(dev->evt);
     dev->evt = poll_tid = NULL;
 
@@ -1344,7 +1333,6 @@ aha_read(uint16_t port, void *priv)
     switch (port & 3) {
 	case 0:
 	default:
-		pclog("Read status: %02X\n", dev->Interrupt);
 		ret = dev->Status;
 		break;
 		
@@ -1359,7 +1347,6 @@ aha_read(uint16_t port, void *priv)
 		break;
 		
 	case 2:
-		pclog("Read interrupt: %02X\n", dev->Interrupt);
 		ret = dev->Interrupt;
 		break;
 		
@@ -1665,7 +1652,8 @@ aha_0x01:
 					 * and expects a 0x04 back in the INTR
 					 * register.  --FvK
 					 */
-					dev->Interrupt = aha154x_shram(dev,val);
+					/* dev->Interrupt = aha154x_shram(dev,val); */
+					dev->Interrupt = aha154x_shram(dev, dev->CmdBuf[0]);
 					break;
 
 				case CMD_BIOS_MBINIT: /* BIOS Mailbox Initialization */
@@ -1943,9 +1931,9 @@ aha_setbios(aha_t *dev)
 
     /* Map this system into the memory map. */
     mem_mapping_add(&dev->bios.mapping, dev->rom_addr, size,
-		    aha_mem_read, aha_mem_readw, aha_mem_readl,
+		    aha_mem_read, NULL, NULL, /* aha_mem_readw, aha_mem_readl, */
 		    aha_mem_write, NULL, NULL,
-		    dev->bios.rom, MEM_MAPPING_EXTERNAL, &dev->bios);
+		    dev->bios.rom, MEM_MAPPING_EXTERNAL, dev);
     mem_mapping_disable(&dev->bios.mapping);
 
     /*
@@ -1967,6 +1955,8 @@ aha_setbios(aha_t *dev)
 		return;
 	}
 	dev->bios.rom[dev->rom_ioaddr] = (uint8_t)i;
+	/* Negation of the DIP switches to satify the checksum. */
+	dev->bios.rom[dev->rom_ioaddr + 1] = (uint8_t)((i ^ 0xff) + 1);
     }
 
     /*
@@ -1980,47 +1970,15 @@ aha_setbios(aha_t *dev)
     dev->fwl = '0';
     if (dev->rom_fwhigh != 0x0000) {
 	/* Read firmware version from the BIOS. */
-	dev->fwh = dev->bios.rom[dev->rom_fwhigh];
-	dev->fwl = dev->bios.rom[dev->rom_fwhigh+1];
-    }
-
-    /*
-     * Do a checksum on the ROM.
-     *
-     * The BIOS ROMs on the 154xC(F) boards will always fail
-     * the checksum, because they are incomplete: on the real
-     * boards, a shadow RAM and some other (config) registers
-     * are mapped into its space.  It is assumed that boards
-     * have logic that automatically generate a "fixup" byte
-     * at the end of the data to 'make up' for this.
-     *
-     * We emulated some of those in the patch routine, so now
-     * it is time to "fix up" the BIOS image so that the main
-     * (system) BIOS considers it valid.
-     */
-again:
-    mask = 0;
-    for (temp=0; temp<ROM_SIZE; temp++)
-	mask += dev->bios.rom[temp];
-    mask &= 0xff;
-    if (mask != 0x00) {
-	dev->bios.rom[temp-1] += (256 - mask);
-	goto again;
+	dev->fwh = dev->bios.rom[dev->rom_fwhigh] + 0x30;
+	dev->fwl = dev->bios.rom[dev->rom_fwhigh+1] + 0x30;
     }
 }
 
 
-/* Initialize the board's EEPROM (NVR.) */
 static void
-aha_setnvr(aha_t *dev)
+aha_initnvr(aha_t *dev)
 {
-    /* Only if this device has an EEPROM. */
-    if (dev->nvr_path == NULL) return;
-
-    /* Allocate and initialize the EEPROM. */
-    dev->nvr = (uint8_t *)malloc(NVR_SIZE);
-    memset(dev->nvr, 0x00, NVR_SIZE);
-
     /* Initialize the on-board EEPROM. */
     dev->nvr[0] = dev->HostID;			/* SCSI ID 7 */
     dev->nvr[0] |= (0x10 | 0x20 | 0x40);
@@ -2032,6 +1990,33 @@ aha_setnvr(aha_t *dev)
     dev->nvr[3] = SPEED_50;			/* speed 5.0 MB/s	*/
     dev->nvr[6] = (EE6_TERM	|		/* host term enable	*/
 		   EE6_RSTBUS);			/* reset SCSI bus on boot*/
+}
+
+
+/* Initialize the board's EEPROM (NVR.) */
+static void
+aha_setnvr(aha_t *dev)
+{
+    FILE *f;
+
+    /* Only if this device has an EEPROM. */
+    if (dev->nvr_path == NULL) return;
+
+    /* Allocate and initialize the EEPROM. */
+    dev->nvr = (uint8_t *)malloc(NVR_SIZE);
+    memset(dev->nvr, 0x00, NVR_SIZE);
+
+    f = nvr_fopen(dev->nvr_path, L"rb");
+    if (f)
+    {
+	fread(dev->nvr, 1, NVR_SIZE, f);
+	fclose(f);
+	f = NULL;
+    }
+    else
+    {
+	aha_initnvr(dev);
+    }
 }
 
 
@@ -2085,12 +2070,10 @@ aha_init(device_t *info)
 	case AHA_154xC:
 		strcpy(dev->name, "AHA-154xC");
 		dev->bios_path = L"roms/scsi/adaptec/aha1542c102.bin";
-		dev->nvr_path = L"aha1540c.nvr";
+		dev->nvr_path = L"aha1542c.nvr";
 		dev->bid = 'D';
-#if 0
 		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
 		dev->rom_shramsz = 128;		/* size of shadow RAM */
-#endif
 		dev->rom_ioaddr = 0x3F7E;	/* [2:0] idx into addr table */
 		dev->rom_fwhigh = 0x0022;	/* firmware version (hi/lo) */
 		break;
@@ -2098,12 +2081,10 @@ aha_init(device_t *info)
 	case AHA_154xCF:
 		strcpy(dev->name, "AHA-154xCF");
 		dev->bios_path = L"roms/scsi/adaptec/aha1542cf211.bin";
-		dev->nvr_path = L"aha1540cf.nvr";
+		dev->nvr_path = L"aha1542cf.nvr";
 		dev->bid = 'E';
-#if 0
 		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
 		dev->rom_shramsz = 128;		/* size of shadow RAM */
-#endif
 		dev->rom_ioaddr = 0x3F7E;	/* [2:0] idx into addr table */
 		dev->rom_fwhigh = 0x0022;	/* firmware version (hi/lo) */
 		break;

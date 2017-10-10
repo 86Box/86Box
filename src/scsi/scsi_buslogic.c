@@ -511,6 +511,7 @@ typedef struct {
     uint8_t     SCAMData[65536];
     event_t	*evt;
     int		scan_restart;
+    uint8_t	ToRaise;
 } Buslogic_t;
 #pragma pack(pop)
 
@@ -937,9 +938,9 @@ BuslogicMailboxIn(Buslogic_t *bl)
     if (bl->MailboxInPosCur >= bl->MailboxCount)
 		bl->MailboxInPosCur = 0;
 
-    BuslogicRaiseInterrupt(bl, 0, INTR_MBIF | INTR_ANY);
-
-    while (bl->Interrupt) {
+    bl->ToRaise = INTR_MBIF | INTR_ANY;
+    if (bl->MailboxOutInterrupts) {
+	bl->ToRaise |= INTR_MBOA;
     }
 }
 
@@ -2512,23 +2513,6 @@ BuslogicProcessMailbox(Buslogic_t *bl)
 	Outgoing = BuslogicMailboxOut(bl, &mb32);
     }
 
-    if (mb32.u.out.ActionCode != MBO_FREE) {
-	/* We got the mailbox, mark it as free in the guest. */
-	pclog("BuslogicProcessMailbox(): Writing %i bytes at %08X\n", sizeof(CmdStatus), Outgoing + CodeOffset);
-		DMAPageWrite(Outgoing + CodeOffset, (char *)&CmdStatus, sizeof(CmdStatus));
-    }
-    else
-    {
-	return 0;
-    }
-
-    if (bl->MailboxOutInterrupts) {
-	BuslogicRaiseInterrupt(bl, 0, INTR_MBOA | INTR_ANY);
-
-	while (bl->Interrupt) {
-	}
-    }
-
 #if 0
     pclog("BuslogicProcessMailbox(): Outgoing mailbox action code: %i\n", mb32.u.out.ActionCode);
 #endif
@@ -2541,6 +2525,17 @@ BuslogicProcessMailbox(Buslogic_t *bl)
 		BuslogicSCSIRequestAbort(bl, mb32.CCBPointer);
     } else {
 	pclog("Invalid action code: %02X\n", mb32.u.out.ActionCode);
+    }
+
+    if ((mb32.u.out.ActionCode == MBO_START) || (mb32.u.out.ActionCode == MBO_ABORT)) {
+	/* We got the mailbox, mark it as free in the guest. */
+	pclog("BuslogicProcessMailbox(): Writing %i bytes at %08X\n", sizeof(CmdStatus), Outgoing + CodeOffset);
+	DMAPageWrite(Outgoing + CodeOffset, (char *)&CmdStatus, sizeof(CmdStatus));
+
+	BuslogicRaiseInterrupt(bl, 0, bl->ToRaise);
+
+	while (bl->Interrupt) {
+	}
     }
 
     /* Advance to the next mailbox. */
