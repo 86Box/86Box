@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.12	2017/10/09
+ * Version:	@(#)scsi_disk.c	1.0.13	2017/10/10
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2017 Miran Grca.
@@ -1469,7 +1469,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 		case GPCMD_REQUEST_SENSE:
 			/* If there's a unit attention condition and there's a buffered not ready, a standalone REQUEST SENSE
 			   should forget about the not ready, and report unit attention straight away. */
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (cdb[4] < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = cdb[4];
 			}
@@ -1487,7 +1487,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 		case GPCMD_MECHANISM_STATUS:
 			len = (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
 
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (len < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = len;
 			}
@@ -1538,7 +1538,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 			alloc_length = shdc[id].packet_len = max_len << 9;
 
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (alloc_length < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = alloc_length;
 			}
@@ -1640,7 +1640,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				alloc_length = len;
 			}
 
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (alloc_length < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = alloc_length;
 			}
@@ -1663,7 +1663,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				len = (cdb[7] << 8) | cdb[8];
 			}
 
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (len < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = len;
 			}
@@ -1720,7 +1720,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			
 			alloc_length = shdc[id].packet_len = max_len << 9;
 
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (alloc_length < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = alloc_length;
 			}
@@ -1865,7 +1865,7 @@ atapi_out:
 				len = max_len;
 			}
 			
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (len < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = len;
 			}
@@ -1911,7 +1911,7 @@ atapi_out:
 				return;
 			}
 			
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (len < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = len;
 			}

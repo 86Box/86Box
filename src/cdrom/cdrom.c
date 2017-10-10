@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.14	2017/10/09
+ * Version:	@(#)cdrom.c	1.0.15	2017/10/10
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -2016,47 +2016,6 @@ static int cdrom_read_dvd_structure(uint8_t id, int format, const uint8_t *packe
 	}
 }
 
-/*SCSI Get Event Status Notification*/
-static uint32_t cdrom_get_event_status(uint8_t id, uint8_t *buffer)
-{
-	uint8_t event_code, media_status = 0;
-
-	if (buffer[5])
-	{
-		media_status = MS_TRAY_OPEN;
-		if (cdrom_drives[id].handler->stop)
-		{
-			cdrom_drives[id].handler->stop(id);
-		}
-	}
-	else
-	{
-		media_status = MS_MEDIA_PRESENT;
-	}
-	
-	event_code = MEC_NO_CHANGE;
-	if (media_status != MS_TRAY_OPEN)
-	{
-		if (!buffer[4])
-		{
-			event_code = MEC_NEW_MEDIA;
-			cdrom_drives[id].handler->load(id);
-		}
-		else if (buffer[4]==2)
-		{
-			event_code = MEC_EJECT_REQUESTED;
-			cdrom_drives[id].handler->eject(id);
-		}
-	}
-	
-	buffer[4] = event_code;
-	buffer[5] = media_status;
-	buffer[6] = 0;
-	buffer[7] = 0;
-	
-	return 8;
-}
-
 void cdrom_insert(uint8_t id)
 {
 	cdrom[id].unit_attention = 1;
@@ -2160,6 +2119,15 @@ skip_ready_check:
 	}
 
 	/* Next it's time for NOT READY. */
+	if (!ready)
+	{
+		cdrom[id].media_status = MEC_MEDIA_REMOVAL;
+	}
+	else
+	{
+		cdrom[id].media_status = (cdrom[id].unit_attention) ? MEC_NEW_MEDIA : MEC_NO_CHANGE;
+	}
+
 	if ((cdrom_command_flags[cdb[0]] & CHECK_READY) && !ready)
 	{
 		cdrom_log("CD-ROM %i: Not ready (%02X)\n", id, cdb[0]);
@@ -2396,7 +2364,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 			SCSIPhase = SCSI_PHASE_DATA_IN;
 			if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
 			{
-				if (SCSI_BufferLength == -1)
+				if ((SCSI_BufferLength == -1) || (cdb[4] < SCSI_BufferLength))
 				{
 					SCSI_BufferLength = cdb[4];
 				}
@@ -2420,7 +2388,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 		
 			len = (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
 
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (len < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = len;
 			}
@@ -2451,7 +2419,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				}
 				else
 				{
-					if (SCSI_BufferLength == -1)
+					if ((SCSI_BufferLength == -1) || (len < SCSI_BufferLength))
 					{
 						SCSI_BufferLength = len;
 					}
@@ -2501,7 +2469,7 @@ cdrom_readtoc_fallback:
 				cdbufferb[1] = (len - 2) & 0xff;
 			}
 
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (len < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = len;
 			}
@@ -2584,7 +2552,7 @@ cdrom_readtoc_fallback:
 
 			cdrom[id].packet_len = max_len * alloc_length;
 
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (cdrom[id].packet_len < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = cdrom[id].packet_len;
 			}
@@ -2620,7 +2588,7 @@ cdrom_readtoc_fallback:
 				}
 				else
 				{
-					if (SCSI_BufferLength == -1)
+					if ((SCSI_BufferLength == -1) || (len < SCSI_BufferLength))
 					{
 						SCSI_BufferLength = len;
 					}
@@ -2648,7 +2616,7 @@ cdrom_readtoc_fallback:
 				len = 8;
 			}
 
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (len < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = len;
 			}
@@ -2729,7 +2697,7 @@ cdrom_readtoc_fallback:
 				alloc_length = len;
 			}
 
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (alloc_length < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = alloc_length;
 			}
@@ -2752,7 +2720,7 @@ cdrom_readtoc_fallback:
 				len = (cdb[7] << 8) | cdb[8];
 			}
 
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (len < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = len;
 			}
@@ -2814,7 +2782,7 @@ cdrom_readtoc_fallback:
 			cdbufferb[2] = ((alloc_length - 4) >> 8) & 0xff;
 			cdbufferb[3] = (alloc_length - 4) & 0xff;           
 
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (len < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = len;
 			}
@@ -2864,7 +2832,12 @@ cdrom_readtoc_fallback:
 			if (gesn_cdb->class & (1 << GESN_MEDIA))
 			{
 				gesn_event_header->notification_class |= GESN_MEDIA;
-				used_len = cdrom_get_event_status(id, cdbufferb);
+
+				cdbufferb[4] = cdrom[id].media_status;	/* Bits 7-4 = Reserved, Bits 4-1 = Media Status */
+				cdbufferb[5] = 1;			/* Power Status (1 = Active) */
+				cdbufferb[6] = 0;
+				cdbufferb[7] = 0;
+				used_len = 8;
 			}
 			else
 			{
@@ -2873,7 +2846,9 @@ cdrom_readtoc_fallback:
 			}
 			gesn_event_header->len = used_len - sizeof(*gesn_event_header);
 
-			if (SCSI_BufferLength == -1)
+			memcpy(cdbufferb, gesn_event_header, 4);
+
+			if ((SCSI_BufferLength == -1) || (used_len < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = used_len;
 			}
@@ -2917,7 +2892,7 @@ cdrom_readtoc_fallback:
 				len=34;
 			}
 
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (len < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = len;
 			}
@@ -2985,7 +2960,7 @@ cdrom_readtoc_fallback:
 				}
 			}
 		
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (len < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = len;
 			}
@@ -3154,7 +3129,7 @@ cdrom_readtoc_fallback:
 				}
 			}
 
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (len < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = len;
 			}
@@ -3174,7 +3149,7 @@ cdrom_readtoc_fallback:
 				}
 				else
 				{
-					if (SCSI_BufferLength == -1)
+					if ((SCSI_BufferLength == -1) || (len < SCSI_BufferLength))
 					{
 						SCSI_BufferLength = len;
 					}
@@ -3224,7 +3199,7 @@ cdrom_readtoc_fallback:
 						{
 							ret = cdrom_read_dvd_structure(id, format, cdb, cdbufferb);
 
-							if (SCSI_BufferLength == -1)
+							if ((SCSI_BufferLength == -1) || (alloc_length < SCSI_BufferLength))
 							{
 								SCSI_BufferLength = alloc_length;
 							}
@@ -3361,7 +3336,7 @@ atapi_out:
 			cdbufferb[size_idx] = idx - preamble_len;
 			len=idx;
 
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (len < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = len;
 			}
@@ -3430,7 +3405,7 @@ atapi_out:
 				return;
 			}
 			
-			if (SCSI_BufferLength == -1)
+			if ((SCSI_BufferLength == -1) || (len < SCSI_BufferLength))
 			{
 				SCSI_BufferLength = len;
 			}

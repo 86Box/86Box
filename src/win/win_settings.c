@@ -1044,7 +1044,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 	int c = 0;
 	int d = 0;
 	LPTSTR lptsTemp;
-	device_t *sound_dev, *midi_dev;
+	device_t *sound_dev/*, *midi_dev*/;
 	char *s;
 
         switch (message)
@@ -1116,22 +1116,19 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 
 				if (midi_device_available(c))
 				{
-					midi_dev = midi_device_getdevice(c);
+					/* midi_dev = midi_device_getdevice(c); */
 
-					if (midi_dev)
+					if (c == 0)
 					{
-						if (c == 0)
-						{
-							SendMessage(h, CB_ADDSTRING, 0, (LPARAM)plat_get_string(IDS_2152));
-						}
-						else
-						{
-							mbstowcs(lptsTemp, s, strlen(s) + 1);
-							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
-						}
-						settings_list_to_midi[d] = c;
-						d++;
+						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)plat_get_string(IDS_2152));
 					}
+					else
+					{
+						mbstowcs(lptsTemp, s, strlen(s) + 1);
+						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+					}
+					settings_list_to_midi[d] = c;
+					d++;
 				}
 
 				c++;

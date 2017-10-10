@@ -273,7 +273,7 @@ scsi_bios_command(uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		cmd_log("BIOS CMD(READ, %08lx, %d)\n", lba, cmd->secount);
 #endif
 
-		scsi_device_command(cmd->id, cmd->lun, 12, cdb);
+		scsi_device_command_phase0(cmd->id, cmd->lun, 12, cdb);
 		if (sector_len > 0) {
 			cmd_log("BIOS DMA: Reading %i bytes at %08X\n",
 					SCSI_BufferLength, dma_address);
@@ -295,13 +295,6 @@ scsi_bios_command(uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		dev->CmdBuffer = (uint8_t *)malloc(SCSI_BufferLength);
 		memset(dev->CmdBuffer, 0x00, SCSI_BufferLength);
 
-		if (sector_len > 0) {
-			cmd_log("BIOS DMA: Reading %i bytes at %08X\n",
-					SCSI_BufferLength, dma_address);
-			DMAPageRead(dma_address,
-				    (char *)dev->CmdBuffer, SCSI_BufferLength);
-		}
-
 		cdb[0] = GPCMD_WRITE_10;
 		cdb[1] = (cmd->lun & 7) << 5;
 		cdb[2] = (lba >> 24) & 0xff;
@@ -314,7 +307,16 @@ scsi_bios_command(uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		cmd_log("BIOS CMD(WRITE, %08lx, %d)\n", lba, cmd->secount);
 #endif
 
-		scsi_device_command(cmd->id, cmd->lun, 12, cdb);
+		scsi_device_command_phase0(cmd->id, cmd->lun, 12, cdb);
+
+		if (sector_len > 0) {
+			cmd_log("BIOS DMA: Reading %i bytes at %08X\n",
+					SCSI_BufferLength, dma_address);
+			DMAPageRead(dma_address,
+				    (char *)dev->CmdBuffer, SCSI_BufferLength);
+		}
+
+		scsi_device_command_phase1(cmd->id, cmd->lun);
 
 		if (dev->CmdBuffer != NULL) {
 			free(dev->CmdBuffer);
@@ -335,7 +337,7 @@ scsi_bios_command(uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		cdb[7] = (sector_len >> 8) & 0xff;
 		cdb[8] = sector_len & 0xff;
 
-		scsi_device_command(cmd->id, cmd->lun, 12, cdb);
+		scsi_device_command_phase0(cmd->id, cmd->lun, 12, cdb);
 
 		return(completion_code(scsi_device_sense(cmd->id, cmd->lun)));
 
@@ -353,7 +355,7 @@ scsi_bios_command(uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		cdb[0] = GPCMD_FORMAT_UNIT;
 		cdb[1] = (cmd->lun & 7) << 5;
 
-		scsi_device_command(cmd->id, cmd->lun, 12, cdb);
+		scsi_device_command_phase0(cmd->id, cmd->lun, 12, cdb);
 
 		return(completion_code(scsi_device_sense(cmd->id, cmd->lun)));
 
@@ -394,7 +396,7 @@ scsi_bios_command(uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		cdb[4] = (lba >> 8) & 0xff;
 		cdb[5] = lba & 0xff;
 
-		scsi_device_command(cmd->id, cmd->lun, 12, cdb);
+		scsi_device_command_phase0(cmd->id, cmd->lun, 12, cdb);
 
 		return((SCSIStatus == SCSI_STATUS_OK) ? 1 : 0);
 
@@ -408,7 +410,7 @@ scsi_bios_command(uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		cdb[0] = GPCMD_TEST_UNIT_READY;
 		cdb[1] = (cmd->lun & 7) << 5;
 
-		scsi_device_command(cmd->id, cmd->lun, 12, cdb);
+		scsi_device_command_phase0(cmd->id, cmd->lun, 12, cdb);
 
 		return(completion_code(scsi_device_sense(cmd->id, cmd->lun)));
 
@@ -418,7 +420,7 @@ scsi_bios_command(uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		cdb[0] = GPCMD_REZERO_UNIT;
 		cdb[1] = (cmd->lun & 7) << 5;
 
-		scsi_device_command(cmd->id, cmd->lun, 12, cdb);
+		scsi_device_command_phase0(cmd->id, cmd->lun, 12, cdb);
 
 		return(completion_code(scsi_device_sense(cmd->id, cmd->lun)));
 

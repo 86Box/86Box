@@ -59,11 +59,11 @@ static SCSI_CARD scsi_cards[] = {
     { "[ISA] Adaptec AHA-1540B","aha1540b",	&aha1540b_device,     aha_device_reset    },
     { "[ISA] Adaptec AHA-1542C","aha1542c",	&aha1542c_device,     aha_device_reset    },
     { "[ISA] Adaptec AHA-1542CF","aha1542cf",	&aha1542cf_device,    aha_device_reset    },
+    { "[ISA] BusLogic BT-545C",	"bt545c",	&buslogic_device,     BuslogicDeviceReset },
     { "[ISA] Longshine LCS-6821N","lcs6821n",	&scsi_lcs6821n_device,NULL		  },
     { "[ISA] Ranco RT1000B",	"rt1000b",	&scsi_rt1000b_device, NULL		  },
     { "[ISA] Trantor T130B",	"t130b",	&scsi_t130b_device,   NULL		  },
     { "[MCA] Adaptec AHA-1640",	"aha1640",	&aha1640_device,      aha_device_reset    },
-    { "[PCI] BusLogic BT-545C",	"bt545c",	&buslogic_device,     BuslogicDeviceReset },
     { "[PCI] BusLogic BT-958D",	"bt958d",	&buslogic_pci_device, BuslogicDeviceReset },
     { "",			"",		NULL,		      NULL		  },
 };

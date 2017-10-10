@@ -8,7 +8,7 @@
  *
  *		The generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.c	1.0.6	2017/10/07
+ * Version:	@(#)scsi_device.c	1.0.7	2017/10/10
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -278,7 +278,7 @@ int scsi_device_block_shift(uint8_t scsi_id, uint8_t scsi_lun)
 }
 
 
-void scsi_device_command_common(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, uint8_t *cdb, int multi_phase)
+void scsi_device_command_phase0(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, uint8_t *cdb)
 {
     uint8_t phase = 0;
     uint8_t lun_type = SCSIDevices[scsi_id][scsi_lun].LunType;
@@ -322,7 +322,7 @@ void scsi_device_command_common(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, 
 		scsi_device_target_phase_callback(lun_type, id);
 	} else {
 		/* Command first phase complete - call the callback to execute the second phase. */
-		if (multi_phase || (SCSIPhase != SCSI_PHASE_DATA_OUT))
+		if (SCSIPhase != SCSI_PHASE_DATA_OUT)
 		{
 			scsi_device_target_phase_callback(lun_type, id);
 			SCSIStatus = scsi_device_target_err_stat_to_scsi(lun_type, id);
@@ -334,16 +334,6 @@ void scsi_device_command_common(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, 
 	/* Error (Check Condition) - call the phase callback to complete the command. */
 	scsi_device_target_phase_callback(lun_type, id);
     }
-}
-
-void scsi_device_command(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, uint8_t *cdb)
-{
-	scsi_device_command_common(scsi_id, scsi_lun, cdb_len, cdb, 1);
-}
-
-void scsi_device_command_phase0(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, uint8_t *cdb)
-{
-	scsi_device_command_common(scsi_id, scsi_lun, cdb_len, cdb, 0);
 }
 
 void scsi_device_command_phase1(uint8_t scsi_id, uint8_t scsi_lun)

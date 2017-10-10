@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.24	2017/10/09
+ * Version:	@(#)scsi_aha154x.c	1.0.25	2017/10/10
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -390,6 +390,7 @@ typedef struct {
     uint16_t	rom_shramsz;			/* size of shared RAM */
     uint16_t	rom_fwhigh;			/* offset in BIOS of ver ID */
     rom_t	bios;				/* BIOS memory descriptor */
+    rom_t	uppersck;			/* BIOS memory descriptor */
     uint8_t	*rom1;				/* main BIOS image */
     uint8_t	*rom2;				/* SCSI-Select image */
 
@@ -735,10 +736,13 @@ aha_ccb(aha_t *dev)
     aha_log("CCB rewritten to the CDB (pointer %08X)\n", CCBPointer);
     DMAPageWrite(CCBPointer, (char *)CmdBlock, 18);
 
-    dev->ToRaise = INTR_HACC | INTR_ANY;
     if (dev->MailboxOutInterrupts)
     {
-	dev->ToRaise |= INTR_MBOA;
+	dev->ToRaise = INTR_MBOA | INTR_ANY;
+    }
+    else
+    {
+	dev->ToRaise = 0;
     }
 }
 
@@ -822,10 +826,9 @@ aha_rd_sge(int Is24bit, uint32_t SGList, uint32_t Entries, SGE32 *SG)
 }
 
 
-static void
-aha_buf_alloc(Req_t *req, int Is24bit)
+static int
+aha_get_length(Req_t *req, int Is24bit)
 {
-    uint32_t sg_buffer_pos = 0;
     uint32_t DataPointer, DataLength;
     uint32_t SGEntryLength = (Is24bit ? sizeof(SGE) : sizeof(SGE32));
     uint32_t Address;
@@ -833,6 +836,7 @@ aha_buf_alloc(Req_t *req, int Is24bit)
     if (Is24bit) {
 	DataPointer = ADDR_TO_U32(req->CmdBlock.old.DataPointer);
 	DataLength = ADDR_TO_U32(req->CmdBlock.old.DataLength);
+	aha_log("Data length: %08X\n", req->CmdBlock.old.DataLength);
     } else {
 	DataPointer = req->CmdBlock.new.DataPointer;
 	DataLength = req->CmdBlock.new.DataLength;		
@@ -875,15 +879,75 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 
 		aha_log("Data to transfer (S/G) %d\n", DataToTransfer);
 
-		SCSI_BufferLength = DataToTransfer;
+		return DataToTransfer;
+	} else if (req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND ||
+		   req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES) {
+			return DataLength;
+	} else {
+		return 0;
+	}
+    } else {
+	return 0;
+    }
+}
 
-		aha_log("Allocating buffer for Scatter/Gather (%i bytes)\n", DataToTransfer);
-		SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataToTransfer);
-		memset(SCSIDevices[req->TargetID][req->LUN].CmdBuffer, 0, DataToTransfer);
 
+static void
+aha_residual_on_error(Req_t *req, int length)
+{
+    if ((req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES) ||
+	(req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES)) {
+	/* Should be 0 when scatter/gather? */
+
+	if (req->Is24bit) {
+		U32_TO_ADDR(req->CmdBlock.old.DataLength, length);
+		aha_log("24-bit Residual data length for reading: %d\n",
+			ADDR_TO_U32(req->CmdBlock.old.DataLength));
+	} else {
+		req->CmdBlock.new.DataLength = length;
+		aha_log("32-bit Residual data length for reading: %d\n",
+				req->CmdBlock.new.DataLength);
+	}
+    }
+}
+
+
+static void
+aha_buf_dma_transfer(Req_t *req, int Is24bit, int TransferLength, int dir)
+{
+    uint32_t sg_buffer_pos = 0;
+    uint32_t DataPointer, DataLength;
+    uint32_t SGEntryLength = (Is24bit ? sizeof(SGE) : sizeof(SGE32));
+    uint32_t Address;
+    uint32_t Residual;
+    /* uint32_t CCBPointer = req->CCBPointer; */
+
+    if (Is24bit) {
+	DataPointer = ADDR_TO_U32(req->CmdBlock.old.DataPointer);
+	DataLength = ADDR_TO_U32(req->CmdBlock.old.DataLength);
+    } else {
+	DataPointer = req->CmdBlock.new.DataPointer;
+	DataLength = req->CmdBlock.new.DataLength;		
+    }
+    aha_log("Data Buffer %s: length %d, pointer 0x%04X\n",
+				dir ? "write" : "read", SCSI_BufferLength, DataPointer);	
+
+    if ((req->CmdBlock.common.ControlByte != 0x03) && DataLength) {
+	if (req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND ||
+	    req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES) {
+		uint32_t SGRead;
+		uint32_t ScatterEntry;
+		SGE32 SGBuffer[MAX_SG_DESCRIPTORS];
+		uint32_t SGLeft = DataLength / SGEntryLength;
+		uint32_t SGAddrCurrent = DataPointer;
+		uint32_t DataToTransfer = 0;
+
+		TransferLength -= SCSI_BufferLength;
+			
 		/* If the control byte is 0x00, it means that the transfer direction is set up by the SCSI command without
 		   checking its length, so do this procedure for both no read/write commands. */
 		if ((req->CmdBlock.common.ControlByte == CCB_DATA_XFER_OUT) ||
+		    (req->CmdBlock.common.ControlByte == CCB_DATA_XFER_IN) ||
 		    (req->CmdBlock.common.ControlByte == 0x00)) {
 			SGLeft = DataLength / SGEntryLength;
 			SGAddrCurrent = DataPointer;
@@ -898,17 +962,32 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 				for (ScatterEntry=0; ScatterEntry<SGRead; ScatterEntry++) {
 					aha_log("S/G Write: ScatterEntry=%u\n", ScatterEntry);
 
+					/* If we've already written all data, do nothing. */
+					if (SCSI_BufferLength <= 0)
+					{
+						continue;
+					}
+
 					Address = SGBuffer[ScatterEntry].SegmentPointer;
 					DataToTransfer = SGBuffer[ScatterEntry].Segment;
 
-					aha_log("S/G Write: Address=%08X DatatoTransfer=%u\n", Address, DataToTransfer);
+					aha_log("S/G Write: Address=%08X DatatoTransfer=%u\n", Address, (SCSI_BufferLength < DataToTransfer) ? SCSI_BufferLength : DataToTransfer);
 
-					DMAPageRead(Address, (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer + sg_buffer_pos, DataToTransfer);
+					if (dir && ((req->CmdBlock.common.ControlByte == CCB_DATA_XFER_OUT) || (req->CmdBlock.common.ControlByte == 0x00)))
+					{
+						DMAPageRead(Address, (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer + sg_buffer_pos, (SCSI_BufferLength < DataToTransfer) ? SCSI_BufferLength : DataToTransfer);
+					}
+					else
+					if (!dir && ((req->CmdBlock.common.ControlByte == CCB_DATA_XFER_IN) || (req->CmdBlock.common.ControlByte == 0x00)))
+					{
+						DMAPageWrite(Address, (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer + sg_buffer_pos, (SCSI_BufferLength < DataToTransfer) ? SCSI_BufferLength : DataToTransfer);
+					}
 					sg_buffer_pos += DataToTransfer;
+					SCSI_BufferLength -= DataToTransfer;
 				}
 
 				SGAddrCurrent += SGRead * (Is24bit ? sizeof(SGE) : sizeof(SGE32));
-			} while (SGLeft > 0);				
+			} while (SGLeft > 0);
 		}
 	} else if (req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND ||
 		   req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES) {
@@ -916,104 +995,25 @@ aha_buf_alloc(Req_t *req, int Is24bit)
 
 			SCSI_BufferLength = DataLength;
 
-			aha_log("Allocating buffer for direct transfer (%i bytes)\n", DataLength);
-			SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(DataLength);
-			memset(SCSIDevices[req->TargetID][req->LUN].CmdBuffer, 0, DataLength);
-
-			if (DataLength > 0) {
-				DMAPageRead(Address,
-					    (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer,
-					    SCSI_BufferLength);
+			if ((DataLength > 0) && (SCSI_BufferLength > 0)) {
+					if (dir && ((req->CmdBlock.common.ControlByte == CCB_DATA_XFER_OUT) || (req->CmdBlock.common.ControlByte == 0x00)))
+					{
+						DMAPageRead(Address, (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer, (SCSI_BufferLength < DataLength) ? SCSI_BufferLength : DataLength);
+					}
+					else
+					if (!dir && ((req->CmdBlock.common.ControlByte == CCB_DATA_XFER_IN) || (req->CmdBlock.common.ControlByte == 0x00)))
+					{
+						DMAPageWrite(Address, (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer, (SCSI_BufferLength < DataLength) ? SCSI_BufferLength : DataLength);
+					}
 			}
-	}
-    }
-}
-
-
-static void
-aha_buf_free(Req_t *req)
-{
-    SGE32 SGBuffer[MAX_SG_DESCRIPTORS];
-    uint32_t DataPointer = 0;
-    uint32_t DataLength = 0;
-    uint32_t sg_buffer_pos = 0;
-    uint32_t SGRead;
-    uint32_t ScatterEntry;
-    uint32_t SGEntrySize;
-    uint32_t SGLeft;
-    uint32_t SGAddrCurrent;
-    uint32_t Address;
-    uint32_t Residual;
-    uint32_t DataToTransfer;
-
-    if (req->Is24bit) {
-	DataPointer = ADDR_TO_U32(req->CmdBlock.old.DataPointer);
-	DataLength = ADDR_TO_U32(req->CmdBlock.old.DataLength);
-    } else {
-	DataPointer = req->CmdBlock.new.DataPointer;
-	DataLength = req->CmdBlock.new.DataLength;		
-    }
-
-    if ((DataLength != 0) && (req->CmdBlock.common.Cdb[0] == GPCMD_TEST_UNIT_READY)) {
-	aha_log("Data length not 0 with TEST UNIT READY: %i (%i)\n",
-		DataLength, SCSI_BufferLength);
-    }
-
-    if (req->CmdBlock.common.Cdb[0] == GPCMD_TEST_UNIT_READY) {
-	DataLength = 0;
-    }
-
-    aha_log("Data Buffer read: length %d, pointer 0x%04X\n",
-				DataLength, DataPointer);
-
-    /* If the control byte is 0x00, it means that the transfer direction is set up by the SCSI command without
-       checking its length, so do this procedure for both read/write commands. */
-    if ((DataLength > 0) &&
-        ((req->CmdBlock.common.ControlByte == CCB_DATA_XFER_IN) ||
-	(req->CmdBlock.common.ControlByte == 0x00))) {	
-	if ((req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND) ||
-	    (req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES)) {
-		SGEntrySize = (req->Is24bit ? sizeof(SGE) : sizeof(SGE32));			
-		SGLeft = DataLength / SGEntrySize;
-		SGAddrCurrent = DataPointer;
-
-		do {
-			SGRead = (SGLeft < ELEMENTS(SGBuffer)) ? SGLeft : ELEMENTS(SGBuffer);
-			SGLeft -= SGRead;
-
-			aha_rd_sge(req->Is24bit, SGAddrCurrent,
-					      SGRead, SGBuffer);
-
-			for (ScatterEntry=0; ScatterEntry<SGRead; ScatterEntry++) {
-				aha_log("S/G: ScatterEntry=%u\n", ScatterEntry);
-
-				Address = SGBuffer[ScatterEntry].SegmentPointer;
-				DataToTransfer = SGBuffer[ScatterEntry].Segment;
-
-				aha_log("S/G: Writing %i bytes at %08X\n", DataToTransfer, Address);
-
-				DMAPageWrite(Address, (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer + sg_buffer_pos, DataToTransfer);
-				sg_buffer_pos += DataToTransfer;
-			}
-
-			SGAddrCurrent += (SGRead * SGEntrySize);
-		} while (SGLeft > 0);
-	} else if (req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND ||
-		   req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES) {
-		Address = DataPointer;
-
-		aha_log("DMA: Writing %i bytes at %08X\n",
-					DataLength, Address);
-		DMAPageWrite(Address, (char *)SCSIDevices[req->TargetID][req->LUN].CmdBuffer, DataLength);
 	}
     }
 
     if ((req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES) ||
 	(req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES)) {
 	/* Should be 0 when scatter/gather? */
-	if (DataLength >= SCSI_BufferLength) {
-		Residual = DataLength;
-		Residual -= SCSI_BufferLength;
+	if (TransferLength > 0) {
+		Residual = TransferLength;
 	} else {
 		Residual = 0;
 	}
@@ -1028,7 +1028,26 @@ aha_buf_free(Req_t *req)
 				req->CmdBlock.new.DataLength);
 	}
     }
+}
 
+
+static void
+aha_buf_alloc(Req_t *req, int length)
+{
+    if (SCSIDevices[req->TargetID][req->LUN].CmdBuffer != NULL) {
+	free(SCSIDevices[req->TargetID][req->LUN].CmdBuffer);
+	SCSIDevices[req->TargetID][req->LUN].CmdBuffer = NULL;
+    }
+
+    aha_log("Allocating data buffer (%i bytes)\n", length);
+    SCSIDevices[req->TargetID][req->LUN].CmdBuffer = (uint8_t *) malloc(length);
+    memset(SCSIDevices[req->TargetID][req->LUN].CmdBuffer, 0, length);
+}
+
+
+static void
+aha_buf_free(Req_t *req)
+{
     if (SCSIDevices[req->TargetID][req->LUN].CmdBuffer != NULL) {
 	free(SCSIDevices[req->TargetID][req->LUN].CmdBuffer);
 	SCSIDevices[req->TargetID][req->LUN].CmdBuffer = NULL;
@@ -1059,7 +1078,7 @@ SenseBufferFree(Req_t *req, int Copy)
     uint32_t SenseBufferAddress;
     uint8_t temp_sense[256];
 
-    if (SenseLength && Copy) {
+    if (SenseLength/* && Copy*/) {
         scsi_device_request_sense(req->TargetID, req->LUN, temp_sense, SenseLength);
 
 	/*
@@ -1093,14 +1112,19 @@ aha_scsi_cmd(aha_t *dev)
     uint8_t temp_cdb[12];
     uint32_t i;
     int target_cdb_len = 12;
+    int target_data_len;
+    uint8_t bit24 = !!req->Is24bit;
 
     id = req->TargetID;
     lun = req->LUN;
 
     target_cdb_len = scsi_device_cdb_length(id, lun);
+    target_data_len = aha_get_length(req, bit24);
 
     if (!scsi_device_valid(id, lun))
 	fatal("SCSI target on %02i:%02i has disappeared\n", id, lun);
+
+    aha_buf_alloc(req, target_data_len);
 
     aha_log("SCSI command being executed on ID %i, LUN %i\n", id, lun);
 
@@ -1116,7 +1140,24 @@ aha_scsi_cmd(aha_t *dev)
 	memcpy(temp_cdb, req->CmdBlock.common.Cdb, target_cdb_len);
     }
 
-    scsi_device_command(id, lun, req->CmdBlock.common.CdbLength, temp_cdb);
+    SCSI_BufferLength = target_data_len;
+    scsi_device_command_phase0(id, lun, req->CmdBlock.common.CdbLength, temp_cdb);
+
+    if (SCSIPhase == SCSI_PHASE_DATA_OUT)
+    {
+	aha_buf_dma_transfer(req, bit24, target_data_len, 1);
+	scsi_device_command_phase1(id, lun);
+    }
+    else if (SCSIPhase == SCSI_PHASE_DATA_IN)
+    {
+	aha_buf_dma_transfer(req, bit24, target_data_len, 0);
+    }
+    else
+    {
+	if (target_data_len) {
+		aha_residual_on_error(req, target_data_len);
+	}
+    }
 
     aha_buf_free(req);
 
@@ -1131,6 +1172,8 @@ aha_scsi_cmd(aha_t *dev)
 	aha_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
 			CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION, MBI_ERROR);
     }
+
+    aha_log("SCSIStatus = %02X\n", SCSIStatus);
 
     if (temp_cdb[0] == 0x42) {
 	thread_wait_event(dev->evt, 10);
@@ -1158,6 +1201,7 @@ aha_req_setup(aha_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
     Req_t *req = &dev->Req;
     uint8_t id, lun;
     uint8_t max_id = SCSI_ID_MAX-1;
+    int len;
 
     /* Fetch data from the Command Control Block. */
     DMAPageRead(CCBPointer, (char *)&req->CmdBlock, sizeof(CCB32));
@@ -1182,11 +1226,12 @@ aha_req_setup(aha_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
     SCSIStatus = SCSI_STATUS_OK;
     SCSI_BufferLength = 0;
 
-    aha_buf_alloc(req, req->Is24bit);
-
     if (! scsi_device_present(id, lun)) {
 	aha_log("SCSI Target ID %i and LUN %i have no device attached\n",id,lun);
-	aha_buf_free(req);
+	len = aha_get_length(req, req->Is24bit);
+	if (len) {
+		aha_residual_on_error(req, len);
+	}
 	SenseBufferFree(req, 0);
 	aha_mbi_setup(dev, CCBPointer, &req->CmdBlock,
 		      CCB_SELECTION_TIMEOUT,SCSI_STATUS_OK,MBI_ERROR);
@@ -1232,12 +1277,14 @@ aha_mbo(aha_t *dev, Mailbox32_t *Mailbox32)
 {	
     Mailbox_t MailboxOut;
     uint32_t Outgoing;
+    uint32_t ccbp;
 
     if (dev->Mbx24bit) {
 	Outgoing = dev->MailboxOutAddr + (dev->MailboxOutPosCur * sizeof(Mailbox_t));
 	DMAPageRead(Outgoing, (char *)&MailboxOut, sizeof(Mailbox_t));
 
-	Mailbox32->CCBPointer = ADDR_TO_U32(MailboxOut.CCBPointer);
+	ccbp = *(uint32_t *) &MailboxOut;
+	Mailbox32->CCBPointer = (ccbp >> 24) | ((ccbp >> 8) & 0xff00) | ((ccbp << 8) & 0xff0000);
 	Mailbox32->u.out.ActionCode = MailboxOut.CmdStatus;
     } else {
 	Outgoing = dev->MailboxOutAddr + (dev->MailboxOutPosCur * sizeof(Mailbox32_t));
@@ -1267,8 +1314,6 @@ aha_do_mail(aha_t *dev)
 
     CodeOffset = dev->Mbx24bit ? 0 : 7;
 
-    uint8_t MailboxCur = dev->MailboxOutPosCur;
-
     /* Search for a filled mailbox - stop if we have scanned all mailboxes. */
     do {
 	/* Fetch mailbox from guest memory. */
@@ -1276,7 +1321,7 @@ aha_do_mail(aha_t *dev)
 
 	/* Check the next mailbox. */
 	aha_mbo_adv(dev);
-    } while ((mb32.u.out.ActionCode != MBO_START) && (mb32.u.out.ActionCode != MBO_ABORT) && (MailboxCur != dev->MailboxOutPosCur));
+    } while ((mb32.u.out.ActionCode != MBO_START) && (dev->MailboxIsBIOS || (mb32.u.out.ActionCode != MBO_ABORT)));
 
     if (mb32.u.out.ActionCode == MBO_START) {
 	aha_log("Start Mailbox Command\n");
@@ -1288,14 +1333,17 @@ aha_do_mail(aha_t *dev)
 	aha_log("Invalid action code: %02X\n", mb32.u.out.ActionCode);
     }
 
-    if ((mb32.u.out.ActionCode == MBO_START) || (mb32.u.out.ActionCode == MBO_ABORT)) {
+    if ((mb32.u.out.ActionCode == MBO_START) || (!dev->MailboxIsBIOS && (mb32.u.out.ActionCode == MBO_ABORT))) {
 	/* We got the mailbox, mark it as free in the guest. */
 	aha_log("aha_do_mail(): Writing %i bytes at %08X\n", sizeof(CmdStatus), Outgoing + CodeOffset);
-	DMAPageWrite(Outgoing + CodeOffset, (char *)&CmdStatus, sizeof(CmdStatus));
+	DMAPageWrite(Outgoing + CodeOffset, (char *)&CmdStatus, 1);
 
-	raise_irq(dev, 0, dev->ToRaise);
+        if (dev->ToRaise)
+        {
+		raise_irq(dev, 0, dev->ToRaise);
 
-	while (dev->Interrupt) {
+		while (dev->Interrupt) {
+		}
 	}
     }
 }
@@ -1967,13 +2015,15 @@ aha_setbios(aha_t *dev)
      *
      * Start out with a fake BIOS firmware version.
      */
-    dev->fwh = '1';
-    dev->fwl = '0';
+    dev->fwh = '3';
+    dev->fwl = '4';
+#if 0
     if (dev->rom_fwhigh != 0x0000) {
 	/* Read firmware version from the BIOS. */
 	dev->fwh = dev->bios.rom[dev->rom_fwhigh] + 0x30;
 	dev->fwl = dev->bios.rom[dev->rom_fwhigh+1] + 0x30;
     }
+#endif
 }
 
 
@@ -2081,7 +2131,7 @@ aha_init(device_t *info)
 
 	case AHA_154xCF:
 		strcpy(dev->name, "AHA-154xCF");
-		dev->bios_path = L"roms/scsi/adaptec/aha1542cf211.bin";
+		dev->bios_path = L"roms/scsi/adaptec/aha1542cf201.bin";
 		dev->nvr_path = L"aha1542cf.nvr";
 		dev->bid = 'E';
 		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
