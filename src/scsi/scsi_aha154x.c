@@ -125,6 +125,8 @@
 #define CMD_RETCONF	0x0B		/* return configuration data */
 #define CMD_TARGET	0x0C		/* set HBA to target mode */
 #define CMD_RETSETUP	0x0D		/* return setup data */
+#define CMD_WRITE_CH2	0x1A		/* write channel 2 buffer */
+#define CMD_READ_CH2	0x1B		/* read channel 2 buffer */
 #define CMD_ECHO	0x1F		/* ECHO command data */
 #define CMD_OPTIONS	0x21		/* set adapter options */
 #define CMD_WRITE_EEPROM 0x22		/* UNDOC: Write EEPROM */
@@ -430,6 +432,7 @@ typedef struct {
     uint8_t	shram_mode;
     uint8_t	last_mb;
     uint8_t	ToRaise;
+    uint8_t	dma_buffer[64];
 } aha_t;
 
 
@@ -1433,6 +1436,7 @@ aha_write(uint16_t port, uint8_t val, void *priv)
     BIOSCMD *cmd;
     uint16_t cyl = 0;
     int suppress = 0;
+    uint32_t addr = 0;
 
     aha_log("%s: Write Port 0x%02X, Value %02X\n", dev->name, port, val);
 
@@ -1506,6 +1510,8 @@ aha_write(uint16_t port, uint8_t val, void *priv)
 					break;
 
 				case CMD_READ_EEPROM:
+				case CMD_WRITE_CH2:
+				case CMD_READ_CH2:
 					dev->CmdParamLeft = 3;
 					break;
 
@@ -1655,6 +1661,20 @@ aha_0x01:
 				case CMD_ECHO: /* ECHO data */
 					dev->DataBuf[0] = dev->CmdBuf[0];
 					dev->DataReplyLeft = 1;
+					break;
+
+				case CMD_WRITE_CH2:	/* write channel 2 buffer */
+					addr = dev->CmdBuf[2] | (dev->CmdBuf[1] << 8) | (dev->CmdBuf[0] << 16);
+					aha_log("Write channel 2 buffer: %06X\n", addr);
+					DMAPageRead(addr, (char *)dev->dma_buffer, 64);
+					dev->DataReplyLeft = 0;
+					break;
+
+				case CMD_READ_CH2:	/* write channel 2 buffer */
+					addr = dev->CmdBuf[2] | (dev->CmdBuf[1] << 8) | (dev->CmdBuf[0] << 16);
+					aha_log("Write channel 2 buffer: %06X\n", addr);
+					DMAPageWrite(addr, (char *)dev->dma_buffer, 64);
+					dev->DataReplyLeft = 0;
 					break;
 
 				case CMD_OPTIONS: /* Set adapter options */
