@@ -13,11 +13,12 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.6	2017/09/30
+ * Version:	@(#)rom.c	1.0.7	2017/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
@@ -437,7 +438,7 @@ rom_load_bios(int rom_id)
 		if (! rom_load_interleaved(
 			L"roms/machines/cmdpc30/commodore pc 30 iii even.bin",
 			L"roms/machines/cmdpc30/commodore pc 30 iii odd.bin",
-			0x000000, 16384, 0, rom)) break;
+			0x000000, 32768, 0, rom)) break;
 		biosmask = 0x7fff;
 		return(1);
 
@@ -776,7 +777,7 @@ rom_load_bios(int rom_id)
 		if (! rom_load_interleaved(
 			L"roms/machines/ibmps2_m55sx/33f8146.zm41",
 			L"roms/machines/ibmps2_m55sx/33f8145.zm40",
-			0x000000, 65536, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 

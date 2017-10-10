@@ -8,7 +8,7 @@
  *
  *		Several dialogs for the application.
  *
- * Version:	@(#)win_dialog.c	1.0.2	2017/10/09
+ * Version:	@(#)win_dialog.c	1.0.3	2017/10/10
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -128,7 +128,13 @@ ui_msgbox(int flags, void *arg)
 	 * higher than the numeric ID's.  So, we guesswork
 	 * that if the value of 'arg' is low, its an ID..
 	 */
+#if defined(__gcc__) && defined(__x86_64__)
+	/* GCC, 64-bit mode. */
 	if (((int64_t)arg) < ((int64_t)65636))
+#else
+	/* Assume 32-bit mode. */
+	if (((uint32_t)arg) < ((uint32_t)65636))
+#endif
 		str = plat_get_string((int)arg);
     }
 

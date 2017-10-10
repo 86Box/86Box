@@ -809,8 +809,8 @@ machine_ps2_common_init(machine_t *model)
 
         machine_common_init(model);
 
-#if 0
-	/* Already done in pc.c. */
+#if 1
+	/* Already done in machine.c. */
         mem_add_bios();
 #endif
         dma16_init();

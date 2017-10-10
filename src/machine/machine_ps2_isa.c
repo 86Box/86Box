@@ -160,6 +160,9 @@ machine_ps2_m30_286_init(machine_t *model)
 
         machine_common_init(model);
 
+#if 0
+	/* Already done in machine.c */
+#endif
         mem_add_bios();
         pit_set_out_func(&pit, 1, pit_refresh_timer_at);
         dma16_init();

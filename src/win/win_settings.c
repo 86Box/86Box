@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.19	2017/10/09
+ * Version:	@(#)win_settings.c	1.0.20	2017/10/10
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -1118,11 +1118,11 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 				{
 					midi_dev = midi_device_getdevice(c);
 
-					if (!midi_dev)
+					if (midi_dev)
 					{
 						if (c == 0)
 						{
-							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) plat_get_string(IDS_2152));
+							SendMessage(h, CB_ADDSTRING, 0, (LPARAM)plat_get_string(IDS_2152));
 						}
 						else
 						{

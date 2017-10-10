@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.20	2017/10/09
+ * Version:	@(#)pc.c	1.0.21	2017/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -554,8 +554,8 @@ pc_reset_hard_init(void)
      * should be resetting all devices set up for it, to their
      * current configurations !
      *
-     * For, we will call their reset functions here, but that
-     * will be a call to device_reset_all() later !
+     * For now, we will call their reset functions here, but
+     * that will be a call to device_reset_all() later !
      */
 
     /* Reset some basic devices. */
@@ -569,6 +569,8 @@ pc_reset_hard_init(void)
         
     /* Reset the video card. */
     video_reset();
+    if (voodoo_enabled)
+	device_add(&voodoo_device);
 
     /* Reset the Floppy Disk controller. */
     fdc_reset();
@@ -588,37 +590,35 @@ pc_reset_hard_init(void)
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
 
+    cdrom_hard_reset();
+
     /* Reset and reconfigure the Network Card layer. */
     network_reset();
 
     /* Reset and reconfigure the Sound Card layer. */
     sound_card_init();
     if (mpu401_standalone_enable)
-		mpu401_device_add();
+	mpu401_device_add();
     if (GUS)
-                device_add(&gus_device);
+	device_add(&gus_device);
     if (GAMEBLASTER)
-                device_add(&cms_device);
+	device_add(&cms_device);
     if (SSI2001)
-                device_add(&ssi2001_device);
-    if (voodoo_enabled)
-                device_add(&voodoo_device);
+	device_add(&ssi2001_device);
 
     /* Reset the CPU module. */
     cpu_set();
+    cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
     resetx86();
     dma_reset();
     pic_reset();
+
+    shadowbios = 0;
 
     if (AT)
 	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
       else
  	setpitclock(14318184.0);
-
-    shadowbios = 0;
-    cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
-
-    cdrom_hard_reset();
 }
 
 
