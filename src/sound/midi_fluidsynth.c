@@ -9,7 +9,7 @@
 #include <fluidsynth.h>
 #include "../config.h"
 #include "../device.h"
-#include "../plat.h"
+#include "../ui.h"
 #include "../win/plat_dynld.h"
 #include "../win/plat_thread.h"
 #include "midi.h"
@@ -225,7 +225,7 @@ void* fluidsynth_init(device_t *info)
 	fluidsynth_handle = dynld_module("libfluidsynth.dll", fluidsynth_imports);
 	if (fluidsynth_handle == NULL)
 	{
-		plat_msgbox_error(IDS_2171);
+		ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2171);
 		return NULL;
 	}
 
