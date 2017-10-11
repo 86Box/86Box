@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.3	2017/10/10
+ * Version:	@(#)plat.h	1.0.4	2017/10/10
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -46,7 +46,6 @@ extern uint8_t	host_cdrom_drive_available_num;
 extern uint32_t	cdrom_capacity;
 
 extern void	cdrom_init_host_drives(void);
-extern void	cdrom_close(uint8_t id);
 extern void	cdrom_eject(uint8_t id);
 extern void	cdrom_reload(uint8_t id);
 extern void	removable_disk_unload(uint8_t id);

@@ -244,8 +244,9 @@ int cdrom_read_capacity(uint8_t id, uint8_t *cdb, uint8_t *buffer, uint32_t *len
 #define cdrom_ascq cdrom[id].sense[13]
 #define cdrom_drive cdrom_drives[id].host_drive
 
-void cdrom_hard_reset(void);
-void cdrom_general_init(void);
+extern void     cdrom_close(uint8_t id);
+extern void	cdrom_hard_reset(void);
+extern void	cdrom_general_init(void);
 
 
 #endif	/*EMU_CDROM_H*/

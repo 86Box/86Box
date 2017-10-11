@@ -65,25 +65,6 @@ cdrom_init_host_drives(void)
 
 
 void
-cdrom_close(uint8_t id)
-{
-    switch (cdrom_drives[id].host_drive) {
-	case 0:
-		null_close(id);
-		break;
-
-	case 200:
-		image_close(id);
-		break;
-
-	default:
-		ioctl_close(id);
-		break;
-    }
-}
-
-
-void
 cdrom_eject(uint8_t id)
 {
     if (cdrom_drives[id].host_drive == 0) {
