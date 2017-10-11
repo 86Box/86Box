@@ -8,7 +8,11 @@
  *
  *		Configuration file handler.
  *
+<<<<<<< HEAD
  * Version:	@(#)config.c	1.0.16	2017/10/10
+=======
+ * Version:	@(#)config.c	1.0.16	2017/10/11
+>>>>>>> 89ec4e0fa703eacfdada3ab3d55f885bc28522f1
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1958,6 +1962,7 @@ config_set_wstring(char *head, char *name, wchar_t *val)
 	entry = create_entry(section, name);
 
     memcpy(entry->wdata, val, 512);
+    wcstombs(entry->data, entry->wdata, 256);
 }
 
 
