@@ -433,6 +433,9 @@ typedef struct {
     uint8_t	last_mb;
     uint8_t	ToRaise;
     uint8_t	dma_buffer[64];
+    uint32_t	BIOSMailboxCount;
+    uint32_t	BIOSMailboxOutAddr;
+    uint32_t	BIOSMailboxOutPosCur;
 } aha_t;
 
 
@@ -731,12 +734,14 @@ aha_ccb(aha_t *dev)
     uint8_t TargetStatus = req->TargetStatus;
     uint8_t MailboxCompletionCode = req->MailboxCompletionCode;
 
+    aha_log("%02X%02X%02X %02X\n", CmdBlock->common.Pad3[6], CmdBlock->common.Pad3[7], CmdBlock->common.Pad3[8], CmdBlock->common.Pad3[9]);
     CmdBlock->common.Pad3[9] = MailboxCompletionCode;
     CmdBlock->common.HostStatus = HostStatus;
     CmdBlock->common.TargetStatus = TargetStatus;		
 		
     /* Rewrite the CCB up to the CDB. */
     aha_log("CCB rewritten to the CDB (pointer %08X)\n", CCBPointer);
+    aha_log("%02X%02X%02X %02X\n", CmdBlock->common.Pad3[6], CmdBlock->common.Pad3[7], CmdBlock->common.Pad3[8], CmdBlock->common.Pad3[9]);
     DMAPageWrite(CCBPointer, (char *)CmdBlock, 18);
 
     if (dev->MailboxOutInterrupts)
@@ -1281,16 +1286,26 @@ aha_mbo(aha_t *dev, Mailbox32_t *Mailbox32)
     Mailbox_t MailboxOut;
     uint32_t Outgoing;
     uint32_t ccbp;
+    uint32_t Addr;
+    uint32_t Cur;
+
+    if (dev->MailboxIsBIOS) {
+	Addr = dev->BIOSMailboxOutAddr;
+	Cur = dev->BIOSMailboxOutPosCur;
+    } else {
+	Addr = dev->MailboxOutAddr;
+	Cur = dev->MailboxOutPosCur;
+    }
 
     if (dev->Mbx24bit) {
-	Outgoing = dev->MailboxOutAddr + (dev->MailboxOutPosCur * sizeof(Mailbox_t));
+	Outgoing = Addr + (Cur * sizeof(Mailbox_t));
 	DMAPageRead(Outgoing, (char *)&MailboxOut, sizeof(Mailbox_t));
 
 	ccbp = *(uint32_t *) &MailboxOut;
 	Mailbox32->CCBPointer = (ccbp >> 24) | ((ccbp >> 8) & 0xff00) | ((ccbp << 8) & 0xff0000);
 	Mailbox32->u.out.ActionCode = MailboxOut.CmdStatus;
     } else {
-	Outgoing = dev->MailboxOutAddr + (dev->MailboxOutPosCur * sizeof(Mailbox32_t));
+	Outgoing = Addr + (Cur * sizeof(Mailbox32_t));
 
 	DMAPageRead(Outgoing, (char *)Mailbox32, sizeof(Mailbox32_t));	
     }
@@ -1302,41 +1317,60 @@ aha_mbo(aha_t *dev, Mailbox32_t *Mailbox32)
 static void
 aha_mbo_adv(aha_t *dev)
 {
-    if (dev->MailboxCount > 0)
-	dev->MailboxOutPosCur = (dev->MailboxOutPosCur + 1) % dev->MailboxCount;
+    if (dev->MailboxIsBIOS) {
+	if (dev->BIOSMailboxCount > 0)
+		dev->BIOSMailboxOutPosCur = (dev->BIOSMailboxOutPosCur + 1) % dev->BIOSMailboxCount;
+    } else {
+	if (dev->MailboxCount > 0)
+		dev->MailboxOutPosCur = (dev->MailboxOutPosCur + 1) % dev->MailboxCount;
+    }
 }
 
 
-static void
+static uint8_t
 aha_do_mail(aha_t *dev)
 {
     Mailbox32_t mb32;
     uint32_t Outgoing;
     uint8_t CmdStatus = MBO_FREE;
     uint32_t CodeOffset = 0;
+    uint32_t Cur = 0;
 
     CodeOffset = dev->Mbx24bit ? 0 : 7;
 
+    if (!dev->MailboxCount && !dev->BIOSMailboxCount) {
+	aha_log("aha_do_mail(): No Mailboxes of any kind\n");
+	return 0;
+    }
+
+    if (!dev->MailboxCount) {
+	aha_log("aha_do_mail(): No Mailboxes\n");
+	goto aha_mbo_skip_to_bios;
+    }
+
     /* Search for a filled mailbox - stop if we have scanned all mailboxes. */
+    dev->MailboxIsBIOS = 0;
+    Cur = dev->MailboxOutPosCur;
+
     do {
 	/* Fetch mailbox from guest memory. */
 	Outgoing = aha_mbo(dev, &mb32);
 
 	/* Check the next mailbox. */
 	aha_mbo_adv(dev);
-    } while ((mb32.u.out.ActionCode != MBO_START) && (dev->MailboxIsBIOS || (mb32.u.out.ActionCode != MBO_ABORT)));
+    } while ((mb32.u.out.ActionCode != MBO_START) && (mb32.u.out.ActionCode != MBO_ABORT) && (dev->MailboxOutPosCur != Cur));
 
     if (mb32.u.out.ActionCode == MBO_START) {
 	aha_log("Start Mailbox Command\n");
 	aha_req_setup(dev, mb32.CCBPointer, &mb32);
-    } else if (!dev->MailboxIsBIOS && (mb32.u.out.ActionCode == MBO_ABORT)) {
+    } else if (mb32.u.out.ActionCode == MBO_ABORT) {
 		aha_log("Abort Mailbox Command\n");
 		aha_req_abort(dev, mb32.CCBPointer);
-    } else {
+    } /* else {
 	aha_log("Invalid action code: %02X\n", mb32.u.out.ActionCode);
-    }
+    } */
 
-    if ((mb32.u.out.ActionCode == MBO_START) || (!dev->MailboxIsBIOS && (mb32.u.out.ActionCode == MBO_ABORT))) {
+    if ((mb32.u.out.ActionCode == MBO_START) || (mb32.u.out.ActionCode == MBO_ABORT)) {
 	/* We got the mailbox, mark it as free in the guest. */
 	aha_log("aha_do_mail(): Writing %i bytes at %08X\n", sizeof(CmdStatus), Outgoing + CodeOffset);
 	DMAPageWrite(Outgoing + CodeOffset, (char *)&CmdStatus, 1);
@@ -1349,6 +1383,47 @@ aha_do_mail(aha_t *dev)
 		}
 	}
     }
+
+aha_mbo_skip_to_bios:
+    if (!dev->BIOSMailboxCount) {
+	aha_log("aha_do_mail(): No BIOS Mailboxes\n");
+	return 1;
+    }
+
+    /* Search for a filled BIOS mailbox - stop if we have scanned all mailboxes. */
+    dev->MailboxIsBIOS = 1;
+    Cur = dev->BIOSMailboxOutPosCur;
+
+    do {
+	/* Fetch mailbox from guest memory. */
+	Outgoing = aha_mbo(dev, &mb32);
+
+	/* Check the next mailbox. */
+	aha_mbo_adv(dev);
+    } while ((mb32.u.out.ActionCode != MBO_START) && (dev->BIOSMailboxOutPosCur != Cur));
+
+    if (mb32.u.out.ActionCode == MBO_START) {
+	aha_log("Start Mailbox Command\n");
+	aha_req_setup(dev, mb32.CCBPointer, &mb32);
+    } /* else {
+	aha_log("Invalid action code: %02X\n", mb32.u.out.ActionCode);
+    } */
+
+    if (mb32.u.out.ActionCode == MBO_START) {
+	/* We got the mailbox, mark it as free in the guest. */
+	aha_log("aha_do_mail(): Writing %i bytes at %08X\n", sizeof(CmdStatus), Outgoing + CodeOffset);
+	DMAPageWrite(Outgoing + CodeOffset, (char *)&CmdStatus, 1);
+
+        if (dev->ToRaise)
+        {
+		raise_irq(dev, 0, dev->ToRaise);
+
+		while (dev->Interrupt) {
+		}
+	}
+    }
+
+    return 1;
 }
 
 
@@ -1364,9 +1439,11 @@ aha_cmd_thread(void *priv)
     /* Create a waitable event. */
     dev->evt = thread_create_event();
 
-    while (dev->MailboxCount)
+    while (1)
     {
-	aha_do_mail(dev);
+	if (!aha_do_mail(dev)) {
+		break;
+	}
     }
 
     thread_destroy_event(dev->evt);
@@ -1407,12 +1484,12 @@ aha_read(uint16_t port, void *priv)
 		break;
     }
 
-#if 0
+// #if 0
 #ifndef WALTJE
     aha_log("%s: Read Port 0x%02X, Returned Value %02X\n",
 					dev->name, port, ret);
 #endif
-#endif
+// #endif
 
     return(ret);
 }
@@ -1459,11 +1536,13 @@ aha_write(uint16_t port, uint8_t val, void *priv)
 		if (((val == CMD_START_SCSI) || (val == CMD_BIOS_SCSI)) &&
 		    (dev->Command == 0xff)) {
 			/* If there are no mailboxes configured, don't even try to do anything. */
-			if (dev->MailboxCount) {
+			if (((val == CMD_START_SCSI) && dev->MailboxCount) || ((val == CMD_BIOS_SCSI) && dev->BIOSMailboxCount)) {
 				if (! poll_tid) {
-					aha_log("%s: starting thread..\n", dev->name);
-					dev->MailboxIsBIOS = (val == CMD_BIOS_SCSI);
+					aha_log("%s: starting thread.. [%04X:%04X] [%04X]\n", dev->name, CS, cpu_state.pc, DS);
 					poll_tid = thread_create(aha_cmd_thread, dev);
+				}
+				else {
+					aha_log("%s: continuing thread.. [%04X:%04X] [%04X]\n", dev->name, CS, cpu_state.pc, DS);
 				}
 			}
 			return;
@@ -1533,8 +1612,6 @@ aha_write(uint16_t port, uint8_t val, void *priv)
 					break;
 
 				case CMD_MBINIT: /* mailbox initialization */
-aha_0x01:
-				{
 					dev->Mbx24bit = 1;
 							
 					mbi = (MailboxInit_t *)dev->CmdBuf;
@@ -1543,7 +1620,7 @@ aha_0x01:
 					dev->MailboxOutAddr = ADDR_TO_U32(mbi->Address);
 					dev->MailboxInAddr = dev->MailboxOutAddr + (dev->MailboxCount * sizeof(Mailbox_t));
 						
-					aha_log("Initialize Mailbox: MBI=0x%08lx, MBO=0x%08lx, %d entries at 0x%08lx\n",
+					aha_log("Initialize Mailbox: MBO=0x%08lx, MBI=0x%08lx, %d entries at 0x%08lx\n",
 						dev->MailboxOutAddr,
 						dev->MailboxInAddr,
 						mbi->Count,
@@ -1551,8 +1628,7 @@ aha_0x01:
 
 					dev->Status &= ~STAT_INIT;
 					dev->DataReplyLeft = 0;
-				}
-				break;
+					break;
 
 				case CMD_BIOSCMD: /* execute BIOS */
 					cmd = (BIOSCMD *)dev->CmdBuf;
@@ -1727,7 +1803,21 @@ aha_0x01:
 
 				case CMD_BIOS_MBINIT: /* BIOS Mailbox Initialization */
 					/* Sent by CF BIOS. */
-					goto aha_0x01;
+					dev->Mbx24bit = 1;
+							
+					mbi = (MailboxInit_t *)dev->CmdBuf;
+
+					dev->BIOSMailboxCount = mbi->Count;
+					dev->BIOSMailboxOutAddr = ADDR_TO_U32(mbi->Address);
+						
+					aha_log("Initialize BIOS Mailbox: MBO=0x%08lx, %d entries at 0x%08lx\n",
+						dev->BIOSMailboxOutAddr,
+						mbi->Count,
+						ADDR_TO_U32(mbi->Address));
+
+					dev->Status &= ~STAT_INIT;
+					dev->DataReplyLeft = 0;
+					break;
 
 				case CMD_MEMORY_MAP_1:	/* AHA memory mapper */
 				case CMD_MEMORY_MAP_2:	/* AHA memory mapper */
