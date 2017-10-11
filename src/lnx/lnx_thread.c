@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <pthread.h>
-#include "plat_thread.h"
+#include "../plat.h"
 
 
 typedef struct {
@@ -14,7 +14,8 @@ typedef struct {
 } event_pthread_t;
 
 
-thread_t *thread_create(void (*thread_rout)(void *param), void *param)
+thread_t *
+thread_create(void (*thread_rout)(void *param), void *param)
 {
     pthread_t *thread = malloc(sizeof(pthread_t));
 
@@ -25,7 +26,8 @@ thread_t *thread_create(void (*thread_rout)(void *param), void *param)
 }
 
 
-void thread_kill(thread_t *handle)
+void
+thread_kill(thread_t *handle)
 {
     pthread_t *thread = (pthread_t *)handle;
 
@@ -38,7 +40,8 @@ void thread_kill(thread_t *handle)
 }
 
 
-event_t *thread_create_event(void)
+event_t *
+thread_create_event(void)
 {
     event_pthread_t *event = malloc(sizeof(event_pthread_t));
 
@@ -51,7 +54,8 @@ event_t *thread_create_event(void)
 }
 
 
-void thread_set_event(event_t *handle)
+void
+thread_set_event(event_t *handle)
 {
     event_pthread_t *event = (event_pthread_t *)handle;
 
@@ -63,12 +67,14 @@ void thread_set_event(event_t *handle)
 }
 
 
-void thread_reset_event(event_t *handle)
+void
+thread_reset_event(event_t *handle)
 {
 }
 
 
-int thread_wait_event(event_t *handle, int timeout)
+int
+thread_wait_event(event_t *handle, int timeout)
 {
     event_pthread_t *event = (event_pthread_t *)handle;
     struct timespec abstime;
@@ -89,7 +95,8 @@ int thread_wait_event(event_t *handle, int timeout)
 }
 
 
-void thread_destroy_event(event_t *handle)
+void
+thread_destroy_event(event_t *handle)
 {
     event_pthread_t *event = (event_pthread_t *)handle;
 
@@ -102,7 +109,8 @@ void thread_destroy_event(event_t *handle)
 }
 
 
-void thread_sleep(int t)
+void
+thread_sleep(int t)
 {
     usleep(t * 1000);
 }

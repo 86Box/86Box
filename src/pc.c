@@ -217,13 +217,14 @@ pc_init(int argc, wchar_t *argv[])
     for (c=1; c<argc; c++) {
 	if (argv[c][0] != L'-') break;
 
-	if (! _wcsicmp(argv[c], L"--help")) {
+	if (!_wcsicmp(argv[c], L"--help") || !_wcsicmp(argv[c], L"-?")) {
 usage:
 		printf("\nUsage: 86box [options] [cfg-file]\n\n");
 		printf("Valid options are:\n\n");
-		printf("-D or --dump            - always dump memory on exit\n");
-		printf("-F or --fullscreen      - start in fullscreen mode\n");
-		printf("-P or --vmpath pathname - set 'path' to be root for vm\n");
+		printf("-? or --help        - show this information\n");
+		printf("-D or --dump        - dump memory on exit\n");
+		printf("-F or --fullscreen  - start in fullscreen mode\n");
+		printf("-P or --vmpath path - set 'path' to be root for vm\n");
 		printf("\nA config file can be specified. If none ie, the default file will be used.\n");
 		return(0);
 	} else if (!_wcsicmp(argv[c], L"--dump") ||
