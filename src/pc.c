@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.22	2017/10/10
+ * Version:	@(#)pc.c	1.0.23	2017/10/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -215,25 +215,28 @@ pc_init(int argc, wchar_t *argv[])
     _wgetcwd(cfg_path, sizeof(cfg_path)-1);
 
     for (c=1; c<argc; c++) {
+	if (argv[c][0] != L'-') break;
+
 	if (! _wcsicmp(argv[c], L"--help")) {
 usage:
-		printf("\nCommand line options:\n\n");
-		printf("--config file.cfg - use given file as configuration\n");
-		printf("--dump            - always dump memory on exit\n");
-		printf("--fullscreen      - start in fullscreen mode\n");
-		printf("--vmpath pathname - set 'path' to be root for vm\n");
+		printf("\nUsage: 86box [options] [cfg-file]\n\n");
+		printf("Valid options are:\n\n");
+		printf("-D or --dump            - always dump memory on exit\n");
+		printf("-F or --fullscreen      - start in fullscreen mode\n");
+		printf("-P or --vmpath pathname - set 'path' to be root for vm\n");
+		printf("\nA config file can be specified. If none ie, the default file will be used.\n");
 		return(0);
-	} else if (!_wcsicmp(argv[c], L"--config") ||
-		   !_wcsicmp(argv[c], L"-C")) {
-		if ((c+1) == argc) break;
-
-		cfg = argv[++c];
 	} else if (!_wcsicmp(argv[c], L"--dump") ||
 		   !_wcsicmp(argv[c], L"-D")) {
 		dump_on_exit = 1;
 	} else if (!_wcsicmp(argv[c], L"--fullscreen") ||
 		   !_wcsicmp(argv[c], L"-F")) {
 		start_in_fullscreen = 1;
+	} else if (!_wcsicmp(argv[c], L"--vmpath") ||
+		   !_wcsicmp(argv[c], L"-P")) {
+		if ((c+1) == argc) break;
+
+		wcscpy(cfg_path, argv[++c]);
 	} else if (!_wcsicmp(argv[c], L"--test")) {
 		/* some (undocumented) test function here.. */
 #ifdef WALTJE
@@ -253,16 +256,16 @@ usage:
 
 		/* .. and then exit. */
 		return(0);
-	} else if (!_wcsicmp(argv[c], L"--vmpath") ||
-		   !_wcsicmp(argv[c], L"-P")) {
-		if ((c+1) == argc) break;
-
-		wcscpy(cfg_path, argv[++c]);
 	}
 
 	/* Uhm... out of options here.. */
 	else goto usage;
     }
+
+    /* One argument (config file) allowed. */
+    if (c < argc)
+	cfg = argv[c++];
+    if (c != argc) goto usage;
 
     /*
      * This is where we start outputting to the log file,
