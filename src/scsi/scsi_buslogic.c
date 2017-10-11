@@ -10,7 +10,7 @@
  *		  0 - BT-545C ISA;
  *		  1 - BT-958D PCI (but BT-545C ISA on non-PCI machines)
  *
- * Version:	@(#)scsi_buslogic.c	1.0.21	2017/10/10
+ * Version:	@(#)scsi_buslogic.c	1.0.22	2017/10/11
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -827,6 +827,7 @@ BuslogicReset(Buslogic_t *bl)
     bl->CmdParamLeft = 0;
     bl->IrqEnabled = 1;
     bl->ExtendedLUNCCBFormat = 0;
+    bl->MailboxCount = 0;
     bl->MailboxOutPosCur = 0;
     bl->MailboxInPosCur = 0;
     bl->MailboxOutInterrupts = 0;

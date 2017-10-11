@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.26	2017/10/10
+ * Version:	@(#)scsi_aha154x.c	1.0.27	2017/10/11
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -646,6 +646,7 @@ aha_reset(aha_t *dev)
     dev->CmdParam = 0;
     dev->CmdParamLeft = 0;
     dev->ExtendedLUNCCBFormat = 0;
+    dev->MailboxCount = 0;
     dev->MailboxOutPosCur = 0;
     dev->MailboxInPosCur = 0;
     dev->MailboxOutInterrupts = 0;
@@ -653,6 +654,10 @@ aha_reset(aha_t *dev)
     dev->Lock = 0;
     dev->shram_mode = 0;
     dev->last_mb = 0;
+    dev->MailboxIsBIOS = 0;
+    dev->BIOSMailboxCount = 0;
+    dev->BIOSMailboxOutPosCur = 0;
+    dev->BIOSMailboxOutInterrupts = 0;
 
     clear_irq(dev);
 }
