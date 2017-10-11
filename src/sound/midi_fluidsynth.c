@@ -1,6 +1,5 @@
 /* some code borrowed from scummvm */
 #ifdef USE_FLUIDSYNTH
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
