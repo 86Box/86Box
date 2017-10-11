@@ -10,9 +10,10 @@
  *
  *		Based on old original code @(#)dir_win32.c 1.2.0 2007/04/19
  *
- * Version:	@(#)win_opendir.c	1.0.2	2017/09/24
+ * Version:	@(#)win_opendir.c	1.0.3	2017/10/10
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 1998-2007 MicroWalt Corporation
  *		Copyright 2017 Fred N. van Kempen
  */
@@ -25,7 +26,8 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../ibm.h"
-#include "plat_dir.h"
+#include "../plat.h"
+#include "../plat_dir.h"
 
 
 #ifdef UNICODE

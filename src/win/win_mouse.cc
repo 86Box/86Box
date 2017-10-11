@@ -8,17 +8,19 @@
  *
  *		Mouse interface to host device.
  *
- * Version:	@(#)win_mouse.cc	1.0.2	2017/09/24
+ * Version:	@(#)win_mouse.cc	1.0.3	2017/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
 #include <stdint.h>
-#include "plat_mouse.h"
+#include "../plat.h"
+#include "../plat_mouse.h"
 #include "win.h"
 
 

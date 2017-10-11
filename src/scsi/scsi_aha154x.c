@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.25	2017/10/10
+ * Version:	@(#)scsi_aha154x.c	1.0.26	2017/10/10
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -36,7 +36,7 @@
 #include "../pic.h"
 #include "../timer.h"
 #include "../device.h"
-#include "../win/plat_thread.h"
+#include "../plat.h"
 #include "scsi.h"
 #include "scsi_bios_command.h"
 #include "scsi_device.h"
@@ -449,7 +449,7 @@ static void	aha_cmd_thread(void *priv);
 static thread_t	*poll_tid;
 
 
-#if ENABLE_AHA154X_LOG
+#ifdef ENABLE_AHA154X_LOG
 int aha_do_log = ENABLE_AHA154X_LOG;
 #endif
 

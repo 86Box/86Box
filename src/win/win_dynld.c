@@ -8,9 +8,10 @@
  *
  *		Try to load a support DLL.
  *
- * Version:	@(#)win_dynld.c	1.0.3	2017/09/24
+ * Version:	@(#)win_dynld.c	1.0.4	2017/10/10
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2017 Fred N. van Kempen
  */
 #include <stdio.h>
@@ -20,8 +21,8 @@
 #include <wchar.h>
 #include <pcap.h>
 #include <windows.h>
-#include "plat_dynld.h"
 #include "../ibm.h"
+#include "../plat_dynld.h"
 
 
 void *

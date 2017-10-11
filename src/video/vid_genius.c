@@ -1,4 +1,21 @@
-/* MDSI Genius VHR emulation*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		MDSI Genius VHR emulation.
+ *
+ * Version:	@(#)vid_genius.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -10,6 +27,7 @@
 #include "../rom.h"
 #include "../timer.h"
 #include "../device.h"
+#include "../plat.h"
 #include "video.h"
 #include "vid_genius.h"
 
@@ -18,9 +36,8 @@
 #define GENIUS_YSIZE 1008
 
 
-void updatewindowsize(int x, int y);
-
 extern uint8_t fontdat8x12[256][16];	
+
 
 /* I'm at something of a disadvantage writing this emulation: I don't have an
  * MDSI Genius card, nor do I have the BIOS extension (VHRBIOS.SYS) that came 

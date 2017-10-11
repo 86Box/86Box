@@ -16,7 +16,7 @@
 #include "joystick_standard.h"
 #include "joystick_sw_pad.h"
 #include "joystick_tm_fcs.h"
-#include "../win/plat_joystick.h"
+#include "../plat_joystick.h"
 
 
 int joystick_type;

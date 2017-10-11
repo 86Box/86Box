@@ -21,7 +21,7 @@ typedef struct {
     char	name[80];		/* name of open port */
     void	(*rd_done)(void *, int);
     void	*rd_arg;
-#ifdef BHTTY_C
+#ifdef PLAT_SERIAL_C
     HANDLE	handle;
     OVERLAPPED	rov,			/* READ and WRITE events */
 		wov;

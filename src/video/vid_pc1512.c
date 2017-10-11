@@ -1,14 +1,28 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
-/*PC1512 CGA emulation
-
-  The PC1512 extends CGA with a bit-planar 640x200x16 mode.
-  
-  Most CRTC registers are fixed.
-  
-  The Technical Reference Manual lists the video waitstate time as between 12 
-  and 46 cycles. PCem currently always uses the lower number.*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		PC1512 CGA emulation
+ *
+ *		The PC1512 extends CGA with a bit-planar 640x200x16 mode.
+ *		Most CRTC registers are fixed.
+ *
+ *		The Technical Reference Manual lists the video waitstate
+ *		time as between 12 and 46 cycles. We currently always use
+ *		the lower number.
+ *
+ * Version:	@(#)vid_pc1512.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

@@ -1,8 +1,23 @@
-/*ET4000/W32p emulation (Diamond Stealth 32)*/
-/*Known bugs :
-
-  - Accelerator doesn't work in planar modes
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		ET4000/W32p emulation (Diamond Stealth 32)
+ *
+ * Known bugs:	Accelerator doesn't work in planar modes
+ *
+ * Version:	@(#)vid_et4000w32.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -14,7 +29,7 @@
 #include "../pci.h"
 #include "../rom.h"
 #include "../device.h"
-#include "../win/plat_thread.h"
+#include "../plat.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_icd2061.h"

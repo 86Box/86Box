@@ -8,10 +8,11 @@
  *
  *		Implement threads and mutexes for the Win32 platform.
  *
- * Version:	@(#)win_thread.c	1.0.1	2017/10/05
+ * Version:	@(#)win_thread.c	1.0.2	2017/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2017 Fred N. van Kempen.
  */
@@ -27,7 +28,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../ibm.h"
-#include "plat_thread.h"
+#include "../plat.h"
 
 
 typedef struct {

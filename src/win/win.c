@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.19	2017/10/09
+ * Version:	@(#)win.c	1.0.20	2017/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -33,6 +33,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include <wchar.h>
 #include "../86box.h"
 #include "../config.h"
@@ -53,14 +54,11 @@
 #include "../sound/sound.h"
 #include "../sound/snd_dbopl.h"
 #include "../plat.h"
+#include "../plat_keyboard.h"
+#include "../plat_mouse.h"
+#include "../plat_midi.h"
 #include "../ui.h"
-#include "plat_keyboard.h"
-#include "plat_mouse.h"
-#include "plat_midi.h"
-#include "plat_thread.h"
-#include "plat_ticks.h"
 #include "win.h"
-#include "win_cgapal.h"
 #include "win_ddraw.h"
 #include "win_d3d.h"
 
@@ -527,10 +525,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_D3D:
 				startblit();
 				video_wait_for_blit();
-				CheckMenuItem(hmenu, IDM_VID_DDRAW + vid_api, MF_UNCHECKED);
+				CheckMenuItem(hmenu, IDM_VID_DDRAW+vid_api, MF_UNCHECKED);
 				vid_apis[0][vid_api].close();
 				vid_api = LOWORD(wParam) - IDM_VID_DDRAW;
-				CheckMenuItem(hmenu, IDM_VID_DDRAW + vid_api, MF_CHECKED);
+				CheckMenuItem(hmenu, IDM_VID_DDRAW+vid_api, MF_CHECKED);
 				vid_apis[0][vid_api].init(hwndRender);
 				endblit();
 				config_save();
@@ -1466,6 +1464,60 @@ wchar_t *
 plat_get_string_from_string(char *str)
 {
     return(plat_get_string(atoi(str)));
+}
+
+
+
+/* If these are in the headers, doesn't work...? --FvK */
+//extern void	ddraw_take_screenshot(wchar_t *);
+//extern void	ddraw_fs_take_screenshot(wchar_t *);
+//extern void	d3d_take_screenshot(wchar_t *);
+//extern void	d3d_fs_take_screenshot(wchar_t *);
+
+void
+take_screenshot(void)
+{
+    wchar_t path[1024], fn[128];
+    struct tm *info;
+    time_t now;
+
+    pclog("Screenshot: video API is: %i\n", vid_api);
+    if ((vid_api < 0) || (vid_api > 1)) return;
+
+    memset(fn, 0, sizeof(fn));
+    memset(path, 0, sizeof(path));
+
+    (void)time(&now);
+    info = localtime(&now);
+
+    append_filename_w(path, cfg_path, SCREENSHOT_PATH, sizeof(path)-2);
+
+    if (! dir_check_exist(path))
+	dir_create(path);
+
+#ifdef WIN32
+    wcscat(path, L"\\");
+#else
+    wcscat(path, L"/");
+#endif
+
+    if (vid_api == 1) {
+	wcsftime(fn, 128, L"%Y%m%d_%H%M%S.png", info);
+	append_filename_w(path, cfg_path, fn, 1024);
+	if (video_fullscreen)
+		d3d_fs_take_screenshot(path);
+	  else
+		d3d_take_screenshot(path);
+    } else if (vid_api == 0) {
+	wcsftime(path, 128, L"%Y%m%d_%H%M%S.bmp", info);
+	append_filename_w(path, cfg_path, fn, 1024);
+	if (video_fullscreen)
+		ddraw_fs_take_screenshot(path);
+	  else
+		ddraw_take_screenshot(path);
+    }
+
+    pclog("Screenshot: fn='%ws'\n", path);
 }
 
 

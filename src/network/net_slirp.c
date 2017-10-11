@@ -8,9 +8,11 @@
  *
  *		Handle SLiRP library processing.
  *
- * Version:	@(#)net_slirp.c	1.0.6	2017/10/09
+ * Version:	@(#)net_slirp.c	1.0.7	2017/10/10
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -22,7 +24,7 @@
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"
-#include "../win/plat_thread.h"
+#include "../plat.h"
 #include "network.h"
 
 

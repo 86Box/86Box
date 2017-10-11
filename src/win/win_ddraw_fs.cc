@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include "../video/video.h"
 #include "win_ddraw.h"
-#include "win_cgapal.h"
 
 
 static LPDIRECTDRAW  lpdd  = NULL;
@@ -25,6 +24,7 @@ extern "C" void device_force_redraw(void);
 
 extern "C" int ddraw_fs_init(HWND h);
 extern "C" void ddraw_fs_close(void);
+extern "C" void ddraw_fs_take_screenshot(wchar_t *fn);
  
 extern void ddraw_common_take_screenshot(wchar_t *fn, IDirectDrawSurface7 *pDDSurface);
 
@@ -92,8 +92,12 @@ int ddraw_fs_init(HWND h)
            
         pclog("DDRAW_INIT complete\n");
         ddraw_hwnd = h;
+#if 0
+        video_setblit(ddraw_fs_blit_memtoscreen_8, ddraw_fs_blit_memtoscreen);
+#else
         video_blit_memtoscreen_func   = ddraw_fs_blit_memtoscreen;
         video_blit_memtoscreen_8_func = ddraw_fs_blit_memtoscreen_8;
+#endif
 
 	return 1;
 }

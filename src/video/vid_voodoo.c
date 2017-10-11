@@ -1,3 +1,20 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Emulation of the 3DFX Voodoo Graphics controller.
+ *
+ * Version:	@(#)vid_voodoo.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		leilei
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -11,11 +28,12 @@
 #include "../pci.h"
 #include "../timer.h"
 #include "../device.h"
-#include "../win/plat_thread.h"
+#include "../plat.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_voodoo.h"
 #include "vid_voodoo_dither.h"
+
 
 #ifdef MIN
 #undef MIN
@@ -38,12 +56,14 @@
 
 #define TEX_CACHE_MAX 64
 
+
 enum
 {
         VOODOO_1 = 0,
         VOODOO_SB50 = 1,
         VOODOO_2 = 2
 };
+
 
 static uint32_t texture_offset[LOD_MAX+3] =
 {

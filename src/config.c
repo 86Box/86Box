@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.15	2017/10/09
+ * Version:	@(#)config.c	1.0.16	2017/10/10
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -54,8 +54,8 @@
 #include "sound/sound.h"
 #include "video/video.h"
 #include "ui.h"
-#include "win/plat_joystick.h"
-#include "win/plat_midi.h"
+#include "plat_joystick.h"
+#include "plat_midi.h"
 
 
 typedef struct _list_ {

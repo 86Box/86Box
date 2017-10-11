@@ -27,7 +27,7 @@
 #include "../ibm.h"
 #include "../device.h"
 #include "../timer.h"
-#include "../win/plat_joystick.h"
+#include "../plat_joystick.h"
 #include "gameport.h"
 #include "joystick_sw_pad.h"
 

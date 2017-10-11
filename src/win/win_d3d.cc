@@ -8,10 +8,11 @@
  *
  *		Direct3D 9 rendererer and screenshots taking.
  *
- * Version:	@(#)win_d3d.cc	1.0.1	2017/08/23
+ * Version:	@(#)win_d3d.cc	1.0.2	2017/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -19,7 +20,6 @@
 #include "../video/video.h"
 #include "win.h"
 #include "win_d3d.h"
-#include "win_cgapal.h"
 
 
 extern "C" void fatal(const char *format, ...);
@@ -28,6 +28,7 @@ extern "C" void pclog(const char *format, ...);
 extern "C" void device_force_redraw(void);
 extern "C" void video_blit_complete(void);
 
+extern "C" void d3d_take_screenshot(wchar_t *fn);
 
 void d3d_init_objects(void);
 void d3d_close_objects(void);
@@ -99,9 +100,13 @@ int d3d_init(HWND h)
            fatal("CreateDevice failed\n");
         
         d3d_init_objects();
-        
+
+#if 0
+	video_setblit(d3d_blit_memtoscreen_8, d3d_blit_memtoscreen);
+#else
         video_blit_memtoscreen_func = d3d_blit_memtoscreen;
         video_blit_memtoscreen_8_func = d3d_blit_memtoscreen_8;
+#endif
 
 	return 1;
 }

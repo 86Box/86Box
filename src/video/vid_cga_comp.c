@@ -9,12 +9,13 @@
  *		IBM CGA composite filter, borrowed from reenigne's DOSBox
  *		patch and ported to C.
  *
- * Version:	@(#)vid_cga.c	1.0.1	2017/09/24
+ * Version:	@(#)vid_cga_comp.c	1.0.2	2017/10/10
  *
  * Authors:	reenigne,
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2015-2017 reenigne.
- *		Copyright 2015,2017 Miran Grca.
+ *		Copyright 2015-2017 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>

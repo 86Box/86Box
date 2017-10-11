@@ -5,8 +5,8 @@
 #include <wchar.h>
 #include "../device.h"
 #include "../ibm.h"
-#include "../win/plat_midi.h"
-#include "../win/plat_ticks.h"
+#include "../plat.h"
+#include "../plat_midi.h"
 #include "midi.h"
 #include "midi_system.h"
 #ifdef USE_FLUIDSYNTH

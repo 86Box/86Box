@@ -1,26 +1,41 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
-/*ATI 68860 RAMDAC emulation (for Mach64)*/
 /*
-ATI 68860/68880 Truecolor DACs:
-REG08 (R/W):
-bit 0-?  Always 2 ??
-
-REG0A (R/W):
-bit 0-?  Always 1Dh ??
-
-REG0B (R/W):  (GMR ?)
-bit 0-7  Mode. 82h: 4bpp, 83h: 8bpp, A0h: 15bpp, A1h: 16bpp, C0h: 24bpp,
-          E3h: 32bpp  (80h for VGA modes ?)
-
-REG0C (R/W):  Device Setup Register A
-bit   0  Controls 6/8bit DAC. 0: 8bit DAC/LUT, 1: 6bit DAC/LUT
-    2-3  Depends on Video memory (= VRAM width ?) . 1: Less than 1Mb, 2: 1Mb,
-           3: > 1Mb
-    5-6  Always set ?
-      7  If set can remove "snow" in some cases (A860_Delay_L ?) ??
-*/
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		ATI 68860 RAMDAC emulation (for Mach64)
+ *
+ *		ATI 68860/68880 Truecolor DACs:
+ *		  REG08 (R/W):
+ *		  bit 0-?  Always 2 ??
+ *
+ *		  REG0A (R/W):
+ *		  bit 0-?  Always 1Dh ??
+ *
+ *		  REG0B (R/W):  (GMR ?)
+ *		  bit 0-7  Mode. 82h: 4bpp, 83h: 8bpp,
+ *				 A0h: 15bpp, A1h: 16bpp, C0h: 24bpp,
+ *				 E3h: 32bpp  (80h for VGA modes ?)
+ *		  
+ *		  REG0C (R/W):  Device Setup Register A
+ *		  bit   0  Controls 6/8bit DAC. 0: 8bit DAC/LUT, 1: 6bit DAC/LUT
+ *		  2-3  Depends on Video memory (= VRAM width ?) .
+ *			1: Less than 1Mb, 2: 1Mb, 3: > 1Mb
+ *		  5-6  Always set ?
+ *		    7  If set can remove "snow" in some cases
+ *			(A860_Delay_L ?) ??
+ *
+ * Version:	@(#)vid_ati68860.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

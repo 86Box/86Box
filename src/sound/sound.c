@@ -8,10 +8,11 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.4	2017/09/24
+ * Version:	@(#)sound.c	1.0.5	2017/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -24,16 +25,14 @@
 #include "../device.h"
 #include "../timer.h"
 #include "../cdrom/cdrom.h"
-#include "../win/plat_thread.h"
+#include "../plat.h"
 #include "sound.h"
 #include "midi.h"
 #include "snd_opl.h"
 #include "snd_adlib.h"
 #include "snd_adlibgold.h"
-#ifdef DEV_BRANCH
-# ifdef USE_PAS16
-#  include "snd_pas16.h"
-# endif
+#if defined(DEV_BRANCH) && defined(USE_PAS16)
+# include "snd_pas16.h"
 #endif
 #include "snd_sb.h"
 #include "snd_sb_dsp.h"
@@ -64,10 +63,8 @@ static SOUND_CARD sound_cards[] =
     { "[ISA] Sound Blaster Pro v2", "sbprov2",	&sb_pro_v2_device	},
     { "[ISA] Sound Blaster 16",     "sb16",	&sb_16_device		},
     { "[ISA] Sound Blaster AWE32",  "sbawe32",	&sb_awe32_device	},
-#ifdef DEV_BRANCH
-#ifdef USE_PAS16
+#if defined(DEV_BRANCH) && defined(USE_PAS16)
     { "[ISA] Pro Audio Spectrum 16","pas16",	&pas16_device		},
-#endif
 #endif
     { "[ISA] Windows Sound System", "wss",	&wss_device		},
     { "[MCA] Adlib",            "adlib_mca",	&adlib_mca_device	},

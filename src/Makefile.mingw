@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.55	2017/10/09
+# Version:	@(#)Makefile.mingw	1.0.56	2017/10/10
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -327,6 +327,7 @@ SNDOBJ		:= sound.o \
 		    snd_ym7128.o
 
 VIDOBJ		:= video.o \
+		    vid_table.o \
 		    vid_cga.o vid_cga_comp.o vid_mda.o \
 		    vid_ega.o vid_ega_render.o \
 		    vid_vga.o vid_svga.o vid_svga_render.o \
@@ -353,18 +354,18 @@ VIDOBJ		:= video.o \
 		    vid_pc200.o \
 		    vid_tandy.o vid_tandysl.o
 
-WINOBJ		:= win.o \
+PLATOBJ		:= win.o \
 		    win_ddraw.o win_ddraw_fs.o win_d3d.o win_d3d_fs.o \
+		    win_dynld.o win_thread.o $(WSERIAL) win_cdrom.o win_cdrom_ioctl.o \
+		    win_keyboard.o win_mouse.o win_joystick.o win_midi.o \
 		    win_dialog.o win_about.o win_status.o win_stbar.o \
-		    win_settings.o $(OPENDIR) win_dynld.o win_video.o \
-		    $(WSERIAL) win_keyboard.o win_mouse.o win_joystick.o \
-		    win_midi.o win_cdrom.o win_cdrom_ioctl.o \
-		    win_thread.o win_deviceconfig.o win_joystickconfig.o
+		    win_settings.o win_deviceconfig.o win_joystickconfig.o \
+		    $(OPENDIR)
 
 OBJ		:= $(MAINOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \
 		   $(FDDOBJ) $(CDROMOBJ) $(HDDOBJ) \
 		   $(USBOBJ) $(NETOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) \
-		   $(WINOBJ) $(DEVBROBJ)
+		   $(PLATOBJ) $(DEVBROBJ)
 ifdef EXOBJ
 OBJ		+= $(EXOBJ)
 endif

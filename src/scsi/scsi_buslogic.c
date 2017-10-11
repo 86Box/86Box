@@ -10,11 +10,12 @@
  *		  0 - BT-545C ISA;
  *		  1 - BT-958D PCI (but BT-545C ISA on non-PCI machines)
  *
- * Version:	@(#)scsi_buslogic.c	1.0.20	2017/10/10
+ * Version:	@(#)scsi_buslogic.c	1.0.21	2017/10/10
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
@@ -34,7 +35,7 @@
 #include "../pci.h"
 #include "../timer.h"
 #include "../device.h"
-#include "../win/plat_thread.h"
+#include "../plat.h"
 #include "scsi.h"
 #include "scsi_bios_command.h"
 #include "scsi_device.h"
@@ -530,7 +531,7 @@ enum {
     CHIP_BUSLOGIC_PCI
 };
 
-#if ENABLE_BUSLOGIC_LOG
+#ifdef ENABLE_BUSLOGIC_LOG
 int buslogic_do_log = ENABLE_BUSLOGIC_LOG;
 #endif
 

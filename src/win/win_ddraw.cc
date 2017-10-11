@@ -11,7 +11,6 @@
 #include "../plat.h"
 #include "../ui.h"
 #include "win_ddraw.h"
-#include "win_cgapal.h"
 #include "win.h"
 
 
@@ -22,6 +21,7 @@ extern "C" void device_force_redraw(void);
 
 extern "C" int ddraw_init(HWND h);
 extern "C" void ddraw_close(void);
+extern "C" void ddraw_take_screenshot(wchar_t *fn);
  
 extern "C" void video_blit_complete(void);
 
@@ -365,8 +365,13 @@ ddraw_init(HWND h)
     if (FAILED(lpdds_pri->SetClipper(lpdd_clipper))) return(0);
 
     ddraw_hwnd = h;
+
+#if 0
+    video_setblit(ddraw_blit_memtoscreen_8, ddraw_blit_memtoscreen);
+#else
     video_blit_memtoscreen_func   = ddraw_blit_memtoscreen;
     video_blit_memtoscreen_8_func = ddraw_blit_memtoscreen_8;
+#endif
 
     return(1);
 }

@@ -51,8 +51,8 @@
 #include "../video/video.h"
 #include "../video/vid_voodoo.h"
 #include "../plat.h"
+#include "../plat_midi.h"
 #include "../ui.h"
-#include "plat_midi.h"
 #include "win.h"
 
 

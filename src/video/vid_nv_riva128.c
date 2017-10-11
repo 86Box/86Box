@@ -1,7 +1,21 @@
-/* Copyright holders: Melissa Goad, Tenshi
-   see COPYING for more details
-*/
-/*nVidia RIVA 128 emulation*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		nVidia RIVA 128 emulation.
+ *
+ * Version:	@(#)vid_nv_riva128.c	1.0.1	2017/10/10
+ *
+ * Author:	Melissa Goad
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2017 Melissa Goad.
+ *		Copyright 2017 Miran Grca.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -15,7 +29,7 @@
 #include "../rom.h"
 #include "../timer.h"
 #include "../device.h"
-#include "../win/plat_thread.h"
+#include "../plat.h"
 #include "video.h"
 #include "vid_nv_riva128.h"
 #include "vid_svga.h"

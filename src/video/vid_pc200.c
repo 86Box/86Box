@@ -1,9 +1,23 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
-/*PC200 video emulation.
-  CGA with some NMI stuff. But we don't need that as it's only used for TV and
-  LCD displays, and we're emulating a CRT*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		PC200 video emulation.
+ *		CGA with some NMI stuff. But we don't need that as it's only
+ *		used for TV and LCD displays, and we're emulating a CRT.
+ *
+ * Version:	@(#)vid_pc200.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

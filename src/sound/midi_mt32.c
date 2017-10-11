@@ -4,11 +4,11 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "munt/c_interface/c_interface.h"
-#include "../win/plat_thread.h"
 #include "../ibm.h"
 #include "../device.h"
 #include "../mem.h"
 #include "../rom.h"
+#include "../plat.h"
 #include "sound.h"
 #include "midi.h"
 #include "midi_mt32.h"

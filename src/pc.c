@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.21	2017/10/10
+ * Version:	@(#)pc.c	1.0.22	2017/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -70,15 +70,15 @@
 #ifdef WALTJE
 # define UNICODE
 # include <direct.h>
-# include "win/plat_dir.h"
+# include "plat_dir.h"
 # undef UNICODE
 #endif
 #include "ui.h"
 #include "plat.h"
-#include "win/plat_joystick.h"
-#include "win/plat_keyboard.h"
-#include "win/plat_midi.h"
-#include "win/plat_mouse.h"
+#include "plat_joystick.h"
+#include "plat_keyboard.h"
+#include "plat_midi.h"
+#include "plat_mouse.h"
 
 
 int	window_w, window_h, window_x, window_y, window_remember;

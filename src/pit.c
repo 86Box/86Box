@@ -43,7 +43,7 @@ void setpitclock(float clock)
         VGACONST2=(clock/28322000.0);
         isa_timing = clock/8000000.0;
         bus_timing = clock/(double)cpu_busspeed;
-        video_updatetiming();
+        video_update_timing();
         
         xt_cpu_multi = (int64_t)((14318184.0*(double)(1 << TIMER_SHIFT)) / (double)machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
         RTCCONST=clock/32768.0;

@@ -8,10 +8,11 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.c	1.0.3	2017/10/04
+ * Version:	@(#)vid_ati_mach64.c	1.0.4	2017/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -26,7 +27,7 @@
 #include "../mem.h"
 #include "../pci.h"
 #include "../rom.h"
-#include "../win/plat_thread.h"
+#include "../plat.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"

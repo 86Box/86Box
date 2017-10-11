@@ -22,6 +22,7 @@
 #include <stdarg.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../config.h"
 #include "../ibm.h"
 #include "../timer.h"
 #include "../device.h"
@@ -4010,5 +4011,24 @@ void cdrom_general_init(void)
 	} else {
 		cdrom_null_open(c, cdrom_drives[c].host_drive);
 	}
+    }
+}
+
+
+void
+cdrom_close(uint8_t id)
+{
+    switch (cdrom_drives[id].host_drive) {
+	case 0:
+		null_close(id);
+		break;
+
+	case 200:
+		image_close(id);
+		break;
+
+	default:
+		ioctl_close(id);
+		break;
     }
 }
