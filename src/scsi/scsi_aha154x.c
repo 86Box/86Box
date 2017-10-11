@@ -657,7 +657,6 @@ aha_reset(aha_t *dev)
     dev->MailboxIsBIOS = 0;
     dev->BIOSMailboxCount = 0;
     dev->BIOSMailboxOutPosCur = 0;
-    dev->BIOSMailboxOutInterrupts = 0;
 
     clear_irq(dev);
 }
