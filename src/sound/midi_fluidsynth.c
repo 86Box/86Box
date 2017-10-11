@@ -9,9 +9,9 @@
 #include <fluidsynth.h>
 #include "../config.h"
 #include "../device.h"
+#include "../plat.h"
+#include "../plat_dynld.h"
 #include "../ui.h"
-#include "../win/plat_dynld.h"
-#include "../win/plat_thread.h"
 #include "midi.h"
 #include "midi_fluidsynth.h"
 #include "sound.h"
