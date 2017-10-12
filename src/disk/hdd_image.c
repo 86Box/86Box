@@ -8,11 +8,12 @@
  *
  *		Handling of hard disk image files.
  *
- * Version:	@(#)hdd_image.c	1.0.2	2017/10/01
+ * Version:	@(#)hdd_image.c	1.0.4	2017/11/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
@@ -28,6 +29,7 @@
 #include <wchar.h>
 #include <errno.h>
 #include "../ibm.h"
+#include "../plat.h"
 #include "hdd.h"
 
 
@@ -75,7 +77,7 @@ int image_is_hdi(const wchar_t *s)
 		return 0;
 	}
 	memcpy(ext, ws + ((len - 4) << 1), 8);
-	if (wcsicmp(ext, L".HDI") == 0)
+	if (! wcscasecmp(ext, L".HDI"))
 	{
 		return 1;
 	}
@@ -105,7 +107,7 @@ image_is_hdx(const wchar_t *s, int check_signature)
 	{
 		if (check_signature)
 		{
-			f = _wfopen(s, L"rb");
+			f = plat_fopen((wchar_t *)s, L"rb");
 			if (!f)
 			{
 				return 0;
@@ -176,7 +178,7 @@ int hdd_image_load(int id)
 		memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
 		return 0;
 	}
-	hdd_images[id].file = _wfopen(fn, L"rb+");
+	hdd_images[id].file = plat_fopen(fn, L"rb+");
 	if (hdd_images[id].file == NULL)
 	{
 		/* Failed to open existing hard disk image */
@@ -191,7 +193,7 @@ int hdd_image_load(int id)
 				return 0;
 			}
 
-			hdd_images[id].file = _wfopen(fn, L"wb+");
+			hdd_images[id].file = plat_fopen(fn, L"wb+");
 			if (hdd_images[id].file == NULL)
 			{
 				hdd_image_log("Unable to open image\n");

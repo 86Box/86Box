@@ -9,7 +9,7 @@
  *		Generic floppy disk interface that communicates with the
  *		other handlers.
  *
- * Version:	@(#)floppy.c	1.0.6	2017/10/09
+ * Version:	@(#)floppy.c	1.0.8	2017/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -26,6 +26,7 @@
 #include "../rom.h"
 #include "../config.h"
 #include "../timer.h"
+#include "../plat.h"
 #include "../ui.h"
 #include "floppy.h"
 #include "floppy_86f.h"
@@ -136,14 +137,14 @@ void floppy_load(int drive, wchar_t *fn)
         if (!fn) return;
         p = get_extension_w(fn);
         if (!p) return;
-        f = _wfopen(fn, L"rb");
+        f = plat_fopen(fn, L"rb");
         if (!f) return;
         fseek(f, -1, SEEK_END);
         size = ftell(f) + 1;
         fclose(f);        
         while (loaders[c].ext)
         {
-                if (!_wcsicmp(p, loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1))
+                if (!wcscasecmp(p, loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1))
                 {
                         driveloaders[drive] = c;
                         memcpy(floppyfns[drive], fn, (wcslen(fn) << 1) + 2);

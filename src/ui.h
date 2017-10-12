@@ -28,7 +28,7 @@ extern "C" {
 #ifdef WIN32
 # include "win/resource.h"
 #else
-# ... dunno yet ...
+# include "lnx/strings.h"
 #endif
 
 

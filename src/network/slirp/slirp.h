@@ -59,6 +59,12 @@ typedef unsigned long 	ioctlsockopt_t;
 # define init_udp slirp_init_udp
 # define final_udp slirp_final_udp
 #else
+# include <inttypes.h>	
+typedef uint8_t u_int8_t;
+typedef uint16_t u_int16_t;
+typedef uint32_t u_int32_t;
+typedef uint64_t u_int64_t;
+typedef char *SLIRPcaddr_t;
 typedef int ioctlsockopt_t;
 # define ioctlsocket ioctl
 # define closesocket(s) close(s)

@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.13	2017/10/10
+ * Version:	@(#)scsi_disk.c	1.0.14	2017/10/12
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2017 Miran Grca.
@@ -698,8 +698,8 @@ void scsi_hd_mode_sense_load(uint8_t id)
 	FILE *f;
 	wchar_t temp[512];
 	memset(temp, 0, 1024);
-	_swprintf(temp, L"scsi_hd_%02i_mode_sense.bin", id);
-	f = _wfopen(nvr_path(temp), L"rb");
+	swprintf(temp, 512, L"scsi_hd_%02i_mode_sense.bin", id);
+	f = plat_fopen(nvr_path(temp), L"rb");
 	if (!f)
 	{
 		return;
@@ -713,8 +713,8 @@ void scsi_hd_mode_sense_save(uint8_t id)
 	FILE *f;
 	wchar_t temp[512];
 	memset(temp, 0, 1024);
-	_swprintf(temp, L"scsi_hd_%02i_mode_sense.bin", id);
-	f = _wfopen(nvr_path(temp), L"wb");
+	swprintf(temp, 512, L"scsi_hd_%02i_mode_sense.bin", id);
+	f = plat_fopen(nvr_path(temp), L"wb");
 	if (!f)
 	{
 		return;

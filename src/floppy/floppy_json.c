@@ -8,9 +8,10 @@
  *
  *		Implementation of the PCjs JSON floppy image format.
  *
- * Version:	@(#)floppy_json.c	1.0.4	2017/10/07
+ * Version:	@(#)floppy_json.c	1.0.6	2017/10/12
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdio.h>
@@ -19,6 +20,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../ibm.h"
+#include "../plat.h"
 #include "floppy.h"
 #include "fdc.h"
 #include "fdd.h"
@@ -476,7 +478,7 @@ json_load(int drive, wchar_t *fn)
     memset(img, 0x00, sizeof(json_t));
 
     /* Open the image file. */
-    img->f = _wfopen(fn, L"rb");
+    img->f = plat_fopen(fn, L"rb");
     if (img->f == NULL) {
 	memset(fn, 0x00, sizeof(wchar_t));
 	return;

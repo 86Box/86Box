@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.20	2017/10/10
+ * Version:	@(#)win.c	1.0.21	2017/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1332,6 +1332,36 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     UnregisterClass(CLASS_NAME, hInst);
 
     return(messages.wParam);
+}
+
+
+FILE *
+plat_fopen(wchar_t *path, wchar_t *mode)
+{
+    return(_wfopen(path, mode));
+}
+
+
+void
+plat_remove(wchar_t *path)
+{
+    _wremove(path);
+}
+
+
+int
+plat_getcwd(wchar_t *bufp, int max)
+{
+    (void)_wgetcwd(bufp, max);
+
+    return(0);
+}
+
+
+int
+plat_chdir(wchar_t *path)
+{
+    return(_wchdir(path));
 }
 
 

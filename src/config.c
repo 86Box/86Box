@@ -8,11 +8,7 @@
  *
  *		Configuration file handler.
  *
-<<<<<<< HEAD
- * Version:	@(#)config.c	1.0.16	2017/10/10
-=======
- * Version:	@(#)config.c	1.0.16	2017/10/11
->>>>>>> 89ec4e0fa703eacfdada3ab3d55f885bc28522f1
+ * Version:	@(#)config.c	1.0.18	2017/10/12
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -57,9 +53,10 @@
 #include "sound/snd_opl.h"
 #include "sound/sound.h"
 #include "video/video.h"
-#include "ui.h"
+#include "plat.h"
 #include "plat_joystick.h"
 #include "plat_midi.h"
+#include "ui.h"
 
 
 typedef struct _list_ {
@@ -245,9 +242,9 @@ config_read(wchar_t *fn)
     FILE *f;
 
 #ifdef ANSI_CFG
-    f = _wfopen(fn, L"rt");
+    f = plat_fopen(fn, L"rt");
 #else
-    f = _wfopen(fn, L"rt, ccs=UNICODE");
+    f = plat_fopen(fn, L"rt, ccs=UNICODE");
 #endif
     if (f == NULL) return(0);
 	
@@ -343,9 +340,9 @@ config_write(wchar_t *fn)
     int fl = 0;
 
 #ifdef ANSI_CFG
-    f = _wfopen(fn, L"wt");
+    f = plat_fopen(fn, L"wt");
 #else
-    f = _wfopen(fn, L"wt, ccs=UNICODE");
+    f = plat_fopen(fn, L"wt, ccs=UNICODE");
 #endif
     if (f == NULL) return;
 
@@ -2010,7 +2007,8 @@ append_filename(char *dest, char *s1, char *s2, int size)
 void
 append_filename_w(wchar_t *dest, wchar_t *s1, wchar_t *s2, int size)
 {
-    _swprintf(dest, L"%s%s", s1, s2);
+    /* We assume 512 here (pathnames) which "should" be safe. --FvK */
+    swprintf(dest, 512, L"%s%s", s1, s2);
 }
 
 

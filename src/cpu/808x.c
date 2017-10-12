@@ -18,10 +18,11 @@
  *		2 clocks - fetch opcode 1       2 clocks - execute
  *		2 clocks - fetch opcode 2  etc
  *
- * Version:	@(#)808x.c	1.0.3	2017/10/04
+ * Version:	@(#)808x.c	1.0.4	2017/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -32,14 +33,16 @@
 #include "../ibm.h"
 #include "cpu.h"
 #include "x86.h"
-#include "../keyboard.h"	/* its WRONG to have this in here!! --FvK */
 #include "../mem.h"
 #include "../rom.h"
 #include "../nmi.h"
 #include "../pic.h"
 #include "../timer.h"
 #include "../device.h"		/* for scsi.h */
+#include "../keyboard.h"	/* its WRONG to have this in here!! --FvK */
 #include "../scsi/scsi.h"	/* its WRONG to have this in here!! --FvK */
+#include "../plat.h"
+
 
 int xt_cpu_multi;
 int nmi = 0;
@@ -131,7 +134,10 @@ int noint=0;
 
 int output=0;
 
+#if 0
+/* Also in mem.c */
 int shadowbios=0;
+#endif
 
 int ins=0;
 
@@ -487,7 +493,10 @@ void makeznptable()
                 if (c&0x8000) znptable16[c]|=N_FLAG;
       }      
 }
+#if 1
+/* Also in mem.c */
 int timetolive=0;
+#endif
 
 extern uint32_t oldcs2;
 extern uint32_t oldpc2;
@@ -507,7 +516,7 @@ void dumpregs(int force)
 #ifndef RELEASE_BUILD
         indump = 1;
         output=0;
-	_wchdir(cfg_path);
+	(void)plat_chdir(cfg_path);
         nopageerrors=1;
         f=fopen("ram.dmp","wb");
         fwrite(ram,mem_size*1024,1,f);

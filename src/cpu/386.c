@@ -41,20 +41,20 @@ x86seg _oldds;
 
 extern int cpl_override;
 
-int has_fpu;
 extern int fpucount;
 uint16_t rds;
 uint16_t ea_rseg;
 
-int is486;
 int cgate32;
 
 uint32_t cr2, cr3, cr4;
 uint32_t dr[8];
 
-
+#if FIXME
+/* in mem.c and rom.c */
 uint8_t romext[32768];
 uint8_t *ram,*rom;
+#endif
 
 uint32_t rmdat32;
 #define rmdat rmdat32

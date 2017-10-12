@@ -55,7 +55,8 @@ int writelookup[256],writelookupp[256];
 uintptr_t *writelookup2;
 int writelnext;
 
-int shadowbios,shadowbios_write;
+int shadowbios = 0,
+    shadowbios_write;
 
 int mem_a20_state;
 

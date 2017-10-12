@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.56	2017/10/10
+# Version:	@(#)Makefile.mingw	1.0.57	2017/10/11
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -453,7 +453,7 @@ clean:
 		@-rm *.res 2>NUL
 
 clobber:	clean
-		@echO Cleaning executables..
+		@echo Cleaning executables..
 		@-rm *.d 2>NUL
 		@-rm *.exe 2>NUL
 #		@-rm *.depends 2>NUL

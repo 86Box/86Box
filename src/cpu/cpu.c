@@ -8,11 +8,12 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.c	1.0.2	2017/09/24
+ * Version:	@(#)cpu.c	1.0.3	2017/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 leilei.
  *		Copyright 2016,2017 Miran Grca.
@@ -114,7 +115,7 @@ int cpu_waitstates;
 int cpu_cache_int_enabled, cpu_cache_ext_enabled;
 int cpu_pci_speed;
 
-int is286, is386;
+int is286, is386, is486;
 int israpidcad, is_pentium;
 
 uint64_t tsc = 0;

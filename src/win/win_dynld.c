@@ -8,7 +8,7 @@
  *
  *		Try to load a support DLL.
  *
- * Version:	@(#)win_dynld.c	1.0.4	2017/10/10
+ * Version:	@(#)win_dynld.c	1.0.5	2017/10/11
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -19,7 +19,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include <pcap.h>
 #include <windows.h>
 #include "../ibm.h"
 #include "../plat_dynld.h"
@@ -31,7 +30,6 @@ dynld_module(const char *name, dllimp_t *table)
     HMODULE h;
     dllimp_t *imp;
     void *func;
-    /* char **foo; */
 
     /* See if we can load the desired module. */
     if ((h = LoadLibrary(name)) == NULL) {

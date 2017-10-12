@@ -8,10 +8,11 @@
  *
  *		x86 CPU segment emulation.
  *
- * Version:	@(#)x86seg.h	1.0.0	2017/05/30
+ * Version:	@(#)x86seg.h	1.0.1	2017/10/12
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2016-2017 Miran Grca.
  */
 
-void do_seg_load(x86seg *s, uint16_t *segdat);
+extern void do_seg_load(x86seg *s, uint16_t *segdat);

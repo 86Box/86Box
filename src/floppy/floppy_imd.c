@@ -8,7 +8,7 @@
  *
  *		Implementation of the IMD floppy image format.
  *
- * Version:	@(#)floppy_imd.c	1.0.2	2017/09/24
+ * Version:	@(#)floppy_imd.c	1.0.3	2017/10/12
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../ibm.h"
+#include "../plat.h"
 #include "floppy.h"
 #include "floppy_imd.h"
 #include "fdc.h"
@@ -89,10 +90,10 @@ void imd_load(int drive, wchar_t *fn)
 	d86f_unregister(drive);
 
 	writeprot[drive] = 0;
-        imd[drive].f = _wfopen(fn, L"rb+");
+        imd[drive].f = plat_fopen(fn, L"rb+");
         if (!imd[drive].f)
         {
-                imd[drive].f = _wfopen(fn, L"rb");
+                imd[drive].f = plat_fopen(fn, L"rb");
                 if (!imd[drive].f)
 		{
 			memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));

@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.4	2017/10/10
+ * Version:	@(#)plat.h	1.0.5	2017/10/12
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -28,11 +28,19 @@ extern "C" {
 
 
 /* System-related functions. */
+extern FILE	*plat_fopen(wchar_t *path, wchar_t *mode);
+extern void	plat_remove(wchar_t *path);
+extern int	plat_getcwd(wchar_t *bufp, int max);
+extern int	plat_chdir(wchar_t *path);
 extern void	get_executable_name(wchar_t *s, int size);
 extern void	set_window_title(wchar_t *s);
 extern int	dir_check_exist(wchar_t *path);
 extern int	dir_create(wchar_t *path);
 extern void	leave_fullscreen(void);
+
+#ifdef WIN32
+# define wcscasecmp	_wcsicmp
+#endif
 
 
 /* Resource management. */
@@ -93,7 +101,6 @@ extern void	delay_ms(uint32_t count);
 
 extern void	startslirp(void);
 extern void	endslirp(void);
-
 
 
 #endif	/*EMU_PLAT_H*/

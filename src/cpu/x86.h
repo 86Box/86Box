@@ -17,7 +17,7 @@ uint8_t opcode;
 int noint;
 
 uint16_t lastcs,lastpc;
-int timetolive,keyboardtimer;
+extern int timetolive,keyboardtimer;
 
 #define setznp168 setznp16
 

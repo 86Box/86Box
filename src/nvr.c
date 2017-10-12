@@ -186,7 +186,7 @@
  *		(DS12887A) which implemented a "century" register to be 
  *		compatible with Y2K.
  *
- * Version:	@(#)nvr.c	1.0.6	2017/10/09
+ * Version:	@(#)nvr.c	1.0.7	2017/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -681,7 +681,7 @@ nvr_load(void)
 	f = NULL;
 	if (saved_nvr->mask != 0) {
 		pclog("Opening NVR file: %ws...\n", saved_nvr->fname);
-		f = _wfopen(nvr_path(saved_nvr->fname), L"rb");
+		f = plat_fopen(nvr_path(saved_nvr->fname), L"rb");
 	}
 
 	if (f != NULL) {
@@ -724,7 +724,7 @@ nvr_save(void)
 	f = NULL;
 	if (saved_nvr->mask != 0) {
 		pclog("Saving NVR file: %ws...\n", saved_nvr->fname);
-		f = _wfopen(nvr_path(saved_nvr->fname), L"wb");
+		f = plat_fopen(nvr_path(saved_nvr->fname), L"wb");
 	}
 
 	if (f != NULL) {
@@ -775,5 +775,5 @@ nvr_path(wchar_t *str)
 FILE *
 nvr_fopen(wchar_t *str, wchar_t *mode)
 {
-    return(_wfopen(nvr_path(str), mode));
+    return(plat_fopen(nvr_path(str), mode));
 }

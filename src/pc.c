@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.23	2017/10/11
+ * Version:	@(#)pc.c	1.0.24	2017/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -212,12 +212,12 @@ pc_init(int argc, wchar_t *argv[])
      * a shortcut (desktop icon), however, the CWD
      * could have been set to something else.
      */
-    _wgetcwd(cfg_path, sizeof(cfg_path)-1);
+    plat_getcwd(cfg_path, sizeof(cfg_path)-1);
 
     for (c=1; c<argc; c++) {
 	if (argv[c][0] != L'-') break;
 
-	if (!_wcsicmp(argv[c], L"--help") || !_wcsicmp(argv[c], L"-?")) {
+	if (!wcscasecmp(argv[c], L"--help") || !wcscasecmp(argv[c], L"-?")) {
 usage:
 		printf("\nUsage: 86box [options] [cfg-file]\n\n");
 		printf("Valid options are:\n\n");
@@ -770,9 +770,8 @@ pc_run(void)
 	mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
 	mbstowcs(wcpu, machines[machine].cpu[cpu_manufacturer].cpus[cpu].name,
 		 strlen(machines[machine].cpu[cpu_manufacturer].cpus[cpu].name)+1);
-	_swprintf(s, L"%s v%s - %i%% - %s - %s - %s",
-		  EMU_NAME_W, EMU_VERSION_W,
-		  fps, wmachine, wcpu,
+	swprintf(s, 100, L"%s v%s - %i%% - %s - %s - %s",
+		  EMU_NAME_W, EMU_VERSION_W, fps, wmachine, wcpu,
 		  (!mousecapture) ? plat_get_string(IDS_2077)
 				  : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079)));
 	set_window_title(s);

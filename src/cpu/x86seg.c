@@ -8,10 +8,11 @@
  *
  *		x86 CPU segment emulation.
  *
- * Version:	@(#)x86seg.c	1.0.2	2017/10/02
+ * Version:	@(#)x86seg.c	1.0.3	2017/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -39,7 +40,6 @@
 int stimes = 0;
 int dtimes = 0;
 int btimes = 0;
-int is486=1;
 
 uint32_t abrt_error;
 int cgate16,cgate32;

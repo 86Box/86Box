@@ -45,17 +45,16 @@ int trap;
 
 int cpl_override=0;
 
-int has_fpu;
 int fpucount=0;
 uint16_t rds;
 uint16_t ea_rseg;
 
-int is486;
 int cgate32;
 
-
+#if FIXME
 uint8_t romext[32768];
 uint8_t *ram,*rom;
+#endif
 
 uint32_t rmdat32;
 uint32_t backupregs[16];

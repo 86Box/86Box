@@ -8,7 +8,7 @@
  *
  *		Implementation of the Teledisk floppy image format.
  *
- * Version:	@(#)floppy_td0.c	1.0.3	2017/09/24
+ * Version:	@(#)floppy_td0.c	1.0.4	2017/10/12
  *
  * Authors:	Milodrag Milanovic,
  *		Haruhiko OKUMURA,
@@ -43,6 +43,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../ibm.h"
+#include "../plat.h"
 #include "floppy.h"
 #include "floppy_td0.h"
 #include "fdc.h"
@@ -533,7 +534,7 @@ void td0_load(int drive, wchar_t *fn)
 	d86f_unregister(drive);
 
 	writeprot[drive] = 1;
-        td0[drive].f = _wfopen(fn, L"rb");
+        td0[drive].f = plat_fopen(fn, L"rb");
         if (!td0[drive].f)
         {
 		memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));

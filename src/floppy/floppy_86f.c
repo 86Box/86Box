@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)floppy_86f.c	1.0.6	2017/10/09
+ * Version:	@(#)floppy_86f.c	1.0.7	2017/10/12
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -28,6 +28,7 @@
 #include "../dma.h"
 #include "../nvr.h"
 #include "../random.h"
+#include "../plat.h"
 #include "../ui.h"
 #include "floppy.h"
 #include "fdc.h"
@@ -3072,7 +3073,7 @@ void d86f_writeback(int drive)
 		/* The image is compressed. */
 
 		/* Open the original, compressed file. */
-		cf = _wfopen(d86f[drive].original_file_name, L"wb");
+		cf = plat_fopen(d86f[drive].original_file_name, L"wb");
 
 		/* Write the header to the original file. */
 		fwrite(header, 1, header_size, cf);
@@ -3364,10 +3365,10 @@ void d86f_load(int drive, wchar_t *fn)
 	d86f_unregister(drive);
 
 	writeprot[drive] = 0;
-        d86f[drive].f = _wfopen(fn, L"rb+");
+        d86f[drive].f = plat_fopen(fn, L"rb+");
         if (!d86f[drive].f)
         {
-                d86f[drive].f = _wfopen(fn, L"rb");
+                d86f[drive].f = plat_fopen(fn, L"rb");
                 if (!d86f[drive].f)
 		{
 			memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
@@ -3478,7 +3479,7 @@ void d86f_load(int drive, wchar_t *fn)
 		fclose(d86f[drive].f);
 		d86f[drive].f = NULL;
 
-	        d86f[drive].f = _wfopen(temp_file_name, L"wb");
+	        d86f[drive].f = plat_fopen(temp_file_name, L"wb");
         	if (!d86f[drive].f)
 	        {
 			d86f_log("86F: Unable to create temporary decompressed file\n");
@@ -3486,7 +3487,7 @@ void d86f_load(int drive, wchar_t *fn)
                         return;
 		}
 
-		tf = _wfopen(fn, L"rb");
+		tf = plat_fopen(fn, L"rb");
 
 		for (i = 0; i < 8; i++)
 		{
@@ -3512,12 +3513,12 @@ void d86f_load(int drive, wchar_t *fn)
 		if (!temp)
 		{
 			d86f_log("86F: Error decompressing file\n");
-			_wremove(temp_file_name);
+			plat_remove(temp_file_name);
 			memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
 			return;
 		}
 
-		d86f[drive].f = _wfopen(temp_file_name, L"rb+");
+		d86f[drive].f = plat_fopen(temp_file_name, L"rb+");
 	}
 
 	if (d86f[drive].disk_flags & 0x100)
@@ -3528,7 +3529,7 @@ void d86f_load(int drive, wchar_t *fn)
 		d86f[drive].f = NULL;
 		if (d86f[drive].is_compressed)
 		{
-			_wremove(temp_file_name);
+			plat_remove(temp_file_name);
 		}
 		memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
 		return;
@@ -3542,7 +3543,7 @@ void d86f_load(int drive, wchar_t *fn)
 		d86f[drive].f = NULL;
 		if (d86f[drive].is_compressed)
 		{
-			_wremove(temp_file_name);
+			plat_remove(temp_file_name);
 		}
 		memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
 		return;
@@ -3561,11 +3562,11 @@ void d86f_load(int drive, wchar_t *fn)
 
 		if (d86f[drive].is_compressed)
 		{
-			d86f[drive].f = _wfopen(temp_file_name, L"rb");
+			d86f[drive].f = plat_fopen(temp_file_name, L"rb");
 		}
 		else
 		{
-			d86f[drive].f = _wfopen(fn, L"rb");
+			d86f[drive].f = plat_fopen(fn, L"rb");
 		}
 	}
 
@@ -3675,5 +3676,5 @@ void d86f_close(int drive)
 		d86f[drive].f = NULL;
 	}
 	if (d86f[drive].is_compressed)
-                _wremove(temp_file_name);
+                plat_remove(temp_file_name);
 }

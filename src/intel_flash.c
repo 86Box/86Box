@@ -8,10 +8,11 @@
  *
  *		Implementation of the Intel 2 Mbit 8-bit flash devices.
  *
- * Version:	@(#)intel_flash.c	1.0.5	2017/10/04
+ * Version:	@(#)intel_flash.c	1.0.7	2017/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -26,6 +27,8 @@
 #include "mem.h"
 #include "machine/machine.h"
 #include "nvr.h"
+#include "plat.h"
+
 
 #define FLASH_IS_BXB	2
 #define FLASH_INVERT	1
@@ -178,7 +181,7 @@ static void intel_flash_add_mappings_inverted(flash_t *flash)
 void *intel_flash_init(uint8_t type)
 {
         FILE *f;
-	int i;
+	int i, l;
         flash_t *flash;
 	wchar_t *machine_name;
 	wchar_t *flash_name;
@@ -186,10 +189,12 @@ void *intel_flash_init(uint8_t type)
 	flash = malloc(sizeof(flash_t));
         memset(flash, 0, sizeof(flash_t));
 
-	machine_name = (wchar_t *) malloc((strlen(machine_get_internal_name_ex(machine)) << 1) + 2);
-	mbstowcs(machine_name, machine_get_internal_name_ex(machine), strlen(machine_get_internal_name_ex(machine)) + 1);
-	flash_name = (wchar_t *) malloc((wcslen(machine_name) << 1) + 2 + 8);
-	_swprintf(flash_name, L"%s.bin", machine_name);
+	l = strlen(machine_get_internal_name_ex(machine)) + 1;
+	machine_name = (wchar_t *) malloc(l << 1);
+	mbstowcs(machine_name, machine_get_internal_name_ex(machine), l);
+	l = wcslen(machine_name) + 5;
+	flash_name = (wchar_t *) malloc(l << 1);
+	swprintf(flash_name, l, L"%s.bin", machine_name);
 
 	wcscpy(flash_path, flash_name);
 

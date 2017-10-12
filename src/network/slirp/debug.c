@@ -6,6 +6,9 @@
  * terms and conditions of the copyright.
  */
 
+#ifndef WIN32
+# include <unistd.h>
+#endif
 #include "slirp.h"
 
 FILE *dfd = NULL;

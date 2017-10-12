@@ -8,7 +8,7 @@
  *
  *		Joystick interface to host device.
  *
- * Version:	@(#)win_joystick.cc	1.0.3	2017/10/10
+ * Version:	@(#)win_joystick.cc	1.0.4	2017/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -19,6 +19,7 @@
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdint.h>
 extern "C" {
 #include "../device.h"

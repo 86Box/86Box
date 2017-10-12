@@ -20,7 +20,10 @@
 
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
-#define _GNU_SOURCE
+#ifdef WIN32
+//FIXME: should not be needed. */
+# define _GNU_SOURCE
+#endif
 #include <stdio.h>
 
 #include <cctype>

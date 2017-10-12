@@ -41,7 +41,7 @@
  *		Since all controllers (including the ones made by DTC) use
  *		(mostly) the same API, we keep them all in this module.
  *
- * Version:	@(#)hdd_mfm_xt.c	1.0.8	2017/10/09
+ * Version:	@(#)hdd_mfm_xt.c	1.0.9	2017/10/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -49,6 +49,9 @@
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2017 Fred N. van Kempen.
  */
+#define __USE_LARGEFILE64
+#define _LARGEFILE_SOURCE
+#define _LARGEFILE64_SOURCE
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

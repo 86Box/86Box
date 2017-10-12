@@ -12,7 +12,7 @@
  *		based design. Most cards were WD1003-WA2 or -WAH, where the
  *		-WA2 cards had a floppy controller as well (to save space.)
  *
- * Version:	@(#)hdd_mfm_at.c	1.0.6	2017/10/09
+ * Version:	@(#)hdd_mfm_at.c	1.0.7	2017/10/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -20,6 +20,9 @@
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2017 Fred N. van Kempen.
  */
+#define __USE_LARGEFILE64
+#define _LARGEFILE_SOURCE
+#define _LARGEFILE64_SOURCE
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

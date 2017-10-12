@@ -8,7 +8,7 @@
  *
  *		Handle SLiRP library processing.
  *
- * Version:	@(#)net_slirp.c	1.0.7	2017/10/10
+ * Version:	@(#)net_slirp.c	1.0.8	2017/10/11
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

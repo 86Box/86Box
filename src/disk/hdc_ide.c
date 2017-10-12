@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.11	2017/10/09
+ * Version:	@(#)hdc_ide.c	1.0.12	2017/10/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -17,6 +17,9 @@
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
+#define __USE_LARGEFILE64
+#define _LARGEFILE_SOURCE
+#define _LARGEFILE64_SOURCE
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -621,7 +624,7 @@ void ide_reset(void)
 		ide_drives[d].type = IDE_NONE;
 		if (ide_drives[d].hdd_num != -1)
 			hdd_image_close(ide_drives[d].hdd_num);
-		if (ide_drive_is_cdrom(&ide_drives[d]))
+		if ((d < 8) && ide_drive_is_cdrom(&ide_drives[d]))
 		{
 			cdrom[atapi_cdrom_drives[d]].status = READY_STAT | DSC_STAT;
 		}

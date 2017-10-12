@@ -9,9 +9,10 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include <stdarg.h>
+#include <stdlib.h>
 #include <wchar.h>
 #include "../config.h"
+#include "../plat.h"
 #include "cdrom_dosbox.h"
 #include "cdrom.h"
 #include "cdrom_image.h"
@@ -990,10 +991,10 @@ int image_open(uint8_t id, wchar_t *fn)
 
 	if (!cdrom_image[id].image_inited || cdrom_image[id].image_changed)
 	{
-		_swprintf(cdrom_image[id].image_path, L"%ws", fn);
+		swprintf(cdrom_image[id].image_path, sizeof(cdrom_image[id].image_path)/sizeof(wchar_t), L"%ws", fn);
 	}
 
-	if (!wcsicmp(get_extension_w(fn), L"ISO"))
+	if (! wcscasecmp(get_extension_w(fn), L"ISO"))
 	{
 		cdrom_image[id].image_is_iso = 1;
 	}
