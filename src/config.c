@@ -258,9 +258,11 @@ config_read(wchar_t *fn)
 	fgetws(buff, sizeof(buff)-1, f);
 	if (feof(f)) break;
 
+#if 0
 	/* Make sure there are no stray newlines or hard-returns in there. */
 	if (buff[wcslen(buff)-1] == L'\n') buff[wcslen(buff)-1] = L'\0';
 	if (buff[wcslen(buff)-1] == L'\r') buff[wcslen(buff)-1] = L'\0';
+#endif
 
 	c = 0;
 	while (buff[c] == L' ')
@@ -357,9 +359,9 @@ config_write(wchar_t *fn)
 	if (sec->name[0]) {
 		mbstowcs(wname, sec->name, strlen(sec->name)+1);
 		if (fl)
-			fwprintf(f, L"\n[%S]\n", wname);
+			fwprintf(f, L"\n[%ls]\n", wname);
 		  else
-			fwprintf(f, L"[%S]\n", wname);
+			fwprintf(f, L"[%ls]\n", wname);
 		fl++;
 	}
 
@@ -368,9 +370,9 @@ config_write(wchar_t *fn)
 		if (ent->name[0]) {
 			mbstowcs(wname, ent->name, strlen(ent->name)+1);
 			if (ent->wdata[0] == L'\0')
-				fwprintf(f, L"%S = \n", wname);
+				fwprintf(f, L"%ls = \n", wname);
 			  else
-				fwprintf(f, L"%S = %S\n", wname, ent->wdata);
+				fwprintf(f, L"%ls = %ls\n", wname, ent->wdata);
 			fl++;
 		}
 
@@ -968,7 +970,7 @@ load_removable_devices(void)
 	memcpy(floppyfns[c], wp, (wcslen(wp) << 1) + 2);
 
 	if (*wp != L'\0')
-		printf("Floppy%d: %S\n", c, floppyfns[c]);
+		printf("Floppy%d: %ls\n", c, floppyfns[c]);
 	sprintf(temp, "fdd_%02i_writeprot", c+1);
 	ui_writeprot[c] = !!config_get_int(cat, temp, 0);
 	sprintf(temp, "fdd_%02i_turbo", c + 1);
@@ -1111,7 +1113,7 @@ config_load(wchar_t *fn)
 {
     if (fn == NULL)
 	fn = config_file_default;
-    pclog("Loading config file '%S'..\n", fn);
+    pclog("Loading config file '%ls'..\n", fn);
 
     if (! config_read(fn)) {
 	cpu = 0;
