@@ -51,11 +51,6 @@ uint16_t ea_rseg;
 
 int cgate32;
 
-#if FIXME
-uint8_t romext[32768];
-uint8_t *ram,*rom;
-#endif
-
 uint32_t rmdat32;
 uint32_t backupregs[16];
 int oddeven=0;

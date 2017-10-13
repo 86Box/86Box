@@ -156,7 +156,7 @@ void floppy_load(int drive, wchar_t *fn)
                 }
                 c++;
         }
-        pclog("Couldn't load %ws %s\n",fn,p);
+        pclog("Couldn't load %S %s\n",fn,p);
         drive_empty[drive] = 1;
 	fdd_set_head(real_drive(drive), 0);
 	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));

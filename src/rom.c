@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.9	2017/10/12
+ * Version:	@(#)rom.c	1.0.10	2017/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -135,7 +135,7 @@ rom_load_linear(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
     FILE *f = rom_fopen(fn, L"rb");
         
     if (f == NULL) {
-	pclog("ROM: image '%ws' not found\n", fn);
+	pclog("ROM: image '%S' not found\n", fn);
 	return(0);
     }
 
@@ -166,9 +166,9 @@ rom_load_interleaved(wchar_t *fnl, wchar_t *fnh, uint32_t addr, int sz, int off,
     int c;
 
     if (fl == NULL || fh == NULL) {
-	if (fl == NULL) pclog("ROM: image '%ws' not found\n", fnl);
+	if (fl == NULL) pclog("ROM: image '%S' not found\n", fnl);
 	  else (void)fclose(fl);
-	if (fh == NULL) pclog("ROM: image '%ws' not found\n", fnh);
+	if (fh == NULL) pclog("ROM: image '%S' not found\n", fnh);
 	  else (void)fclose(fh);
 
 	return(0);

@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.21	2017/10/12
+ * Version:	@(#)win.c	1.0.22	2017/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1547,7 +1547,7 @@ take_screenshot(void)
 		ddraw_take_screenshot(path);
     }
 
-    pclog("Screenshot: fn='%ws'\n", path);
+    pclog("Screenshot: fn='%S'\n", path);
 }
 
 

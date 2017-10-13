@@ -64,7 +64,9 @@ static int last_ssegs;
 
 void codegen_init()
 {
+#if UNUSED
         int c;
+#endif
 #ifdef __linux__
 	void *start;
 	size_t len;
@@ -238,7 +240,9 @@ void codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr)
 void codegen_block_init(uint32_t phys_addr)
 {
         codeblock_t *block;
+#if UNUSED
         int has_evicted = 0;
+#endif
         page_t *page = &pages[phys_addr >> 12];
         
         if (!page->block[(phys_addr >> 10) & 3])
@@ -278,7 +282,9 @@ void codegen_block_init(uint32_t phys_addr)
 
 void codegen_block_start_recompile(codeblock_t *block)
 {
+#if UNUSED
         int has_evicted = 0;
+#endif
         page_t *page = &pages[block->phys >> 12];
         
         if (!page->block[(block->phys >> 10) & 3])
@@ -594,7 +600,7 @@ static x86seg *codegen_generate_ea_16_long(x86seg *op_ea_seg, uint32_t fetchdat,
         }
         else
         {
-                int base_reg, index_reg;
+                int base_reg = 0, index_reg = 0;
                 
                 switch (cpu_rm)
                 {
@@ -1078,11 +1084,11 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
 generate_call:
         codegen_timing_opcode(opcode, fetchdat, op_32);
         
-        if ((op_table == x86_dynarec_opcodes &&
-             ((opcode & 0xf0) == 0x70 || (opcode & 0xfc) == 0xe0 || opcode == 0xc2 ||
-              (opcode & 0xfe) == 0xca || (opcode & 0xfc) == 0xcc || (opcode & 0xfc) == 0xe8 ||
-              (opcode == 0xff && ((fetchdat & 0x38) >= 0x10 && (fetchdat & 0x38) < 0x30))) ||
-            (op_table == x86_dynarec_opcodes_0f && ((opcode & 0xf0) == 0x80))))
+        if (((op_table == x86_dynarec_opcodes) &&
+             (((opcode & 0xf0) == 0x70) || ((opcode & 0xfc) == 0xe0) || (opcode == 0xc2) ||
+              ((opcode & 0xfe) == 0xca) || ((opcode & 0xfc) == 0xcc) || ((opcode & 0xfc) == 0xe8) ||
+              ((opcode == 0xff) && (((fetchdat & 0x38) >= 0x10) && ((fetchdat & 0x38) < 0x30)))) ||
+            ((op_table == x86_dynarec_opcodes_0f) && ((opcode & 0xf0) == 0x80))))
         {
                 /*Opcode is likely to cause block to exit, update cycle count*/
                 if (codegen_block_cycles)

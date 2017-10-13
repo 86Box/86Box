@@ -12,7 +12,7 @@
  *
  * NOTE:	THIS IS CURRENTLY A MESS, but will be cleaned up as I go.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.27	2017/10/11
+ * Version:	@(#)scsi_aha154x.c	1.0.28	2017/10/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -2030,7 +2030,7 @@ aha_setbios(aha_t *dev)
     if (dev->bios_path == NULL) return;
 
     /* Open the BIOS image file and make sure it exists. */
-    pclog("%s: loading BIOS from '%ws'\n", dev->name, dev->bios_path);
+    pclog("%s: loading BIOS from '%S'\n", dev->name, dev->bios_path);
     if ((f = rom_fopen(dev->bios_path, L"rb")) == NULL) {
 	pclog("%s: BIOS ROM not found!\n", dev->name);
 	return;

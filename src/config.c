@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.18	2017/10/12
+ * Version:	@(#)config.c	1.0.19	2017/10/12
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -258,6 +258,10 @@ config_read(wchar_t *fn)
 	fgetws(buff, sizeof(buff)-1, f);
 	if (feof(f)) break;
 
+	/* Make sure there are no stray newlines or hard-returns in there. */
+	if (buff[wcslen(buff)-1] == L'\n') buff[wcslen(buff)-1] = L'\0';
+	if (buff[wcslen(buff)-1] == L'\r') buff[wcslen(buff)-1] = L'\0';
+
 	c = 0;
 	while (buff[c] == L' ')
 		  c++;
@@ -353,9 +357,9 @@ config_write(wchar_t *fn)
 	if (sec->name[0]) {
 		mbstowcs(wname, sec->name, strlen(sec->name)+1);
 		if (fl)
-			fwprintf(f, L"\n[%ws]\n", wname);
+			fwprintf(f, L"\n[%S]\n", wname);
 		  else
-			fwprintf(f, L"[%ws]\n", wname);
+			fwprintf(f, L"[%S]\n", wname);
 		fl++;
 	}
 
@@ -364,9 +368,9 @@ config_write(wchar_t *fn)
 		if (ent->name[0]) {
 			mbstowcs(wname, ent->name, strlen(ent->name)+1);
 			if (ent->wdata[0] == L'\0')
-				fwprintf(f, L"%ws = \n", wname);
+				fwprintf(f, L"%S = \n", wname);
 			  else
-				fwprintf(f, L"%ws = %ws\n", wname, ent->wdata);
+				fwprintf(f, L"%S = %S\n", wname, ent->wdata);
 			fl++;
 		}
 
@@ -964,7 +968,7 @@ load_removable_devices(void)
 	memcpy(floppyfns[c], wp, (wcslen(wp) << 1) + 2);
 
 	if (*wp != L'\0')
-		printf("Floppy%d: %ws\n", c, floppyfns[c]);
+		printf("Floppy%d: %S\n", c, floppyfns[c]);
 	sprintf(temp, "fdd_%02i_writeprot", c+1);
 	ui_writeprot[c] = !!config_get_int(cat, temp, 0);
 	sprintf(temp, "fdd_%02i_turbo", c + 1);
@@ -1107,7 +1111,7 @@ config_load(wchar_t *fn)
 {
     if (fn == NULL)
 	fn = config_file_default;
-    pclog("Loading config file '%ws'..\n", fn);
+    pclog("Loading config file '%S'..\n", fn);
 
     if (! config_read(fn)) {
 	cpu = 0;
@@ -1963,6 +1967,7 @@ config_set_wstring(char *head, char *name, wchar_t *val)
 }
 
 
+#if 0
 /* FIXME: should be moved elsewhere. --FvK */
 char *
 get_filename(char *s)
@@ -1977,6 +1982,7 @@ get_filename(char *s)
 
     return(s);
 }
+#endif
 
 
 /* FIXME: should be moved elsewhere. --FvK */
@@ -1995,23 +2001,26 @@ get_filename_w(wchar_t *s)
 }
 
 
+#if 0
 /* FIXME: should be moved elsewhere. --FvK */
 void
 append_filename(char *dest, char *s1, char *s2, int size)
 {
     sprintf(dest, "%s%s", s1, s2);
 }
+#endif
 
 
 /* FIXME: should be moved elsewhere. --FvK */
 void
 append_filename_w(wchar_t *dest, wchar_t *s1, wchar_t *s2, int size)
 {
-    /* We assume 512 here (pathnames) which "should" be safe. --FvK */
-    swprintf(dest, 512, L"%s%s", s1, s2);
+    wcscat(dest, s1);
+    wcscat(dest, s2);
 }
 
 
+#if 0
 /* FIXME: should be moved elsewhere. --FvK */
 void
 put_backslash(char *s)
@@ -2021,6 +2030,7 @@ put_backslash(char *s)
     if (s[c] != '/' && s[c] != '\\')
 	   s[c] = '/';
 }
+#endif
 
 
 /* FIXME: should be moved elsewhere. --FvK */
@@ -2045,12 +2055,12 @@ get_extension(char *s)
 
     while (c && s[c] != '.')
 		c--;
-		
+
     if (!c)
 	return(&s[strlen(s)]);
 
     return(&s[c+1]);
-}	       
+}
 
 
 /* FIXME: should be moved elsewhere. --FvK */
@@ -2061,12 +2071,12 @@ wchar_t
 
     if (c <= 0)
 	return(s);
-	
+
     while (c && s[c] != L'.')
 		c--;
-		
+
     if (!c)
 	return(&s[wcslen(s)]);
 
     return(&s[c+1]);
-}	       
+}

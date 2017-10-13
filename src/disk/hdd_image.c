@@ -103,7 +103,7 @@ image_is_hdx(const wchar_t *s, int check_signature)
 		return 0;
 	}
 	memcpy(ext, ws + ((len - 4) << 1), 8);
-	if (wcsicmp(ext, L".HDX") == 0)
+	if (wcscasecmp(ext, L".HDX") == 0)
 	{
 		if (check_signature)
 		{

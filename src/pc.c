@@ -67,12 +67,6 @@
 #include "sound/snd_ssi2001.h"
 #include "video/video.h"
 #include "video/vid_voodoo.h"
-#ifdef WALTJE
-# define UNICODE
-# include <direct.h>
-# include "plat_dir.h"
-# undef UNICODE
-#endif
 #include "ui.h"
 #include "plat.h"
 #include "plat_joystick.h"
@@ -192,12 +186,7 @@ pc_concat(wchar_t *str)
 int
 pc_init(int argc, wchar_t *argv[])
 {
-    wchar_t *cfg = NULL;
-    wchar_t *p;
-#ifdef WALTJE
-    struct direct *dp;
-    DIR *dir;
-#endif
+    wchar_t *cfg = NULL, *p;
     int c;
 
     /* Grab the executable's full path. */
@@ -227,33 +216,19 @@ usage:
 		printf("-P or --vmpath path - set 'path' to be root for vm\n");
 		printf("\nA config file can be specified. If none ie, the default file will be used.\n");
 		return(0);
-	} else if (!_wcsicmp(argv[c], L"--dump") ||
-		   !_wcsicmp(argv[c], L"-D")) {
+	} else if (!wcscasecmp(argv[c], L"--dump") ||
+		   !wcscasecmp(argv[c], L"-D")) {
 		dump_on_exit = 1;
-	} else if (!_wcsicmp(argv[c], L"--fullscreen") ||
-		   !_wcsicmp(argv[c], L"-F")) {
+	} else if (!wcscasecmp(argv[c], L"--fullscreen") ||
+		   !wcscasecmp(argv[c], L"-F")) {
 		start_in_fullscreen = 1;
-	} else if (!_wcsicmp(argv[c], L"--vmpath") ||
-		   !_wcsicmp(argv[c], L"-P")) {
+	} else if (!wcscasecmp(argv[c], L"--vmpath") ||
+		   !wcscasecmp(argv[c], L"-P")) {
 		if ((c+1) == argc) break;
 
 		wcscpy(cfg_path, argv[++c]);
-	} else if (!_wcsicmp(argv[c], L"--test")) {
+	} else if (!wcscasecmp(argv[c], L"--test")) {
 		/* some (undocumented) test function here.. */
-#ifdef WALTJE
-		dir = opendirw(exe_path);
-		if (dir != NULL) {
-			printf("Directory '%ws':\n", exe_path);
-			for (;;) {
-				dp = readdir(dir);
-				if (dp == NULL) break;
-				printf(">> '%ws'\n", dp->d_name);
-			}
-			closedir(dir);
-		} else {
-			printf("Could not open '%ws'..\n", exe_path);
-		}
-#endif
 
 		/* .. and then exit. */
 		return(0);
@@ -275,12 +250,16 @@ usage:
      */
 
     /* Make sure cfg_path has a trailing backslash. */
-    pclog("exe_path=%ws\n", exe_path);
+    pclog("exe_path=%S\n", exe_path);
     if ((cfg_path[wcslen(cfg_path)-1] != L'\\') &&
 	(cfg_path[wcslen(cfg_path)-1] != L'/')) {
+#ifdef WIN32
 	wcscat(cfg_path, L"\\");
+#else
+	wcscat(cfg_path, L"/");
+#endif
     }
-    pclog("cfg_path=%ws\n", cfg_path);
+    pclog("cfg_path=%S\n", cfg_path);
 
     if (cfg != NULL) {
 	/*
@@ -291,10 +270,13 @@ usage:
 	 * Otherwise, assume the pathname given is
 	 * relative to whatever the cfg_path is.
 	 */
+#ifdef WIN32
 	if ((cfg[1] == L':') ||	/* drive letter present */
 	    (cfg[0] == L'\\'))	/* backslash, root dir */
-		append_filename_w(config_file_default,
-				  NULL,	cfg, 511);
+#else
+	if (cfg[0] == L'/')	/* slash, root dir */
+#endif
+		wcscpy(config_file_default, cfg);
 	  else
 		append_filename_w(config_file_default,
 				  cfg_path, cfg, 511);
@@ -311,7 +293,7 @@ usage:
      */
     hdd_init();
     network_init();
-    cdrom_init_host_drives();
+    cdrom_global_init();
 
     /* Load the configuration file. */
     config_load(cfg);
@@ -435,7 +417,7 @@ again2:
 
     ide_init_first();
 
-    cdrom_general_init();
+    cdrom_global_reset();
 
     device_init();        
                        

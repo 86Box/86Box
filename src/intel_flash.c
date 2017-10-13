@@ -198,7 +198,7 @@ void *intel_flash_init(uint8_t type)
 
 	wcscpy(flash_path, flash_name);
 
-	pclog("Flash path: %ws\n", flash_name);
+	pclog("Flash path: %S\n", flash_name);
 
 	flash->flash_id = (type & FLASH_IS_BXB) ? 0x95 : 0x94;
 	flash->invert_high_pin = (type & FLASH_INVERT);

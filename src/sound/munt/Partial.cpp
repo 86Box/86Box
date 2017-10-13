@@ -43,7 +43,7 @@ static Bit32s getPANFactor(Bit32s panSetting) {
 
 	if (firstRun) {
 		firstRun = false;
-		for (Bit32u i = 1; i < PAN_FACTORS_COUNT; i++) {
+		for (Bit32u i = 1; i < (Bit32u)PAN_FACTORS_COUNT; i++) {
 			PAN_FACTORS[i] = Bit32s(0.5 + i * 8192.0 / double(PAN_FACTORS_COUNT - 1));
 		}
 	}

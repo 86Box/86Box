@@ -70,12 +70,9 @@ uint8_t scsi_cdrom_drives[16][8] =	{	{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
 						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }	};
 
-#ifdef __MSC__
-# pragma pack(push,1)
+
+#pragma pack(push,1)
 static struct
-#else
-static struct __attribute__((__packed__))
-#endif
 {
 	uint8_t opcode;
 	uint8_t polled;
@@ -85,24 +82,17 @@ static struct __attribute__((__packed__))
 	uint16_t len;
 	uint8_t control;
 } *gesn_cdb;
-#ifdef __MSC__
-# pragma pack(pop)
-#endif
+#pragma pack(pop)
 
-#ifdef __MSC__
-# pragma pack(push,1)
+#pragma pack(push,1)
 static struct
-#else
-static struct __attribute__((__packed__))
-#endif
 {
 	uint16_t len;
 	uint8_t notification_class;
 	uint8_t supported_events;
 } *gesn_event_header;
-#ifdef __MSC__
-# pragma pack(pop)
-#endif
+#pragma pack(pop)
+
 
 /* Table of all SCSI commands and their flags, needed for the new disc change / not ready handler. */
 uint8_t cdrom_command_flags[0x100] =
@@ -3989,24 +3979,41 @@ void cdrom_hard_reset(void)
     }
 }
 
-void cdrom_general_init(void)
-{
-    int c = 0;
 
-#if 0
+/* Peform a master init on the entire module. */
+void
+cdrom_global_init(void)
+{
+    int c;
+
+    /* Clear the global data. */
+    memset(cdrom, 0x00, sizeof(cdrom));
+    memset(cdrom_drives, 0x00, sizeof(cdrom_drives));
+
+    /* Initialize the host devices, if any. */
     cdrom_init_host_drives();
-#endif
+
+    /* Set all drives to NULL mode. */
+    for (c=0; c<CDROM_NUM; c++)
+	cdrom_null_open(c, cdrom_drives[c].host_drive);
+}
+
+
+void
+cdrom_global_reset(void)
+{
+    int c;
 
     for (c=0; c<CDROM_NUM; c++) {
 	if (cdrom_drives[c].bus_type) {
 		SCSIReset(cdrom_drives[c].scsi_device_id, cdrom_drives[c].scsi_device_lun);
 	}
 
+pclog("CDROM global_reset drive=%d host=%02x\n", c, cdrom_drives[c].host_drive);
 	if (cdrom_drives[c].host_drive == 200) {
 		image_open(c, cdrom_image[c].image_path);
 	} else
-	if ((cdrom_drives[c].host_drive>='A') && (cdrom_drives[c].host_drive <= 'Z'))
-		{
+	if ((cdrom_drives[c].host_drive>='A') && (cdrom_drives[c].host_drive <= 'Z')) {
 		ioctl_open(c, cdrom_drives[c].host_drive);
 	} else {
 		cdrom_null_open(c, cdrom_drives[c].host_drive);
