@@ -8,7 +8,7 @@
  *
  *		Handling of hard disk image files.
  *
- * Version:	@(#)hdd_image.c	1.0.4	2017/11/12
+ * Version:	@(#)hdd_image.c	1.0.5	2017/11/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

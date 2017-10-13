@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.19	2017/10/12
+ * Version:	@(#)config.c	1.0.20	2017/10/13
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -64,19 +64,19 @@ typedef struct _list_ {
 } list_t;
 
 typedef struct {
-    list_t list;
+    list_t	list;
 
-    char name[256];
+    char	name[128];
 
-    list_t entry_head;
+    list_t	entry_head;
 } section_t;
 
 typedef struct {
-    list_t list;
+    list_t	list;
 
-    char name[256];
-    char data[256];
-    wchar_t wdata[256];
+    char	name[128];
+    char	data[256];
+    wchar_t	wdata[512];
 } entry_t;
 
 #define list_add(new, head) {		\
@@ -116,7 +116,7 @@ find_section(char *name)
 	name = blank;
 
     while (sec != NULL) {
-	if (! strncmp(sec->name, name, 256))
+	if (! strncmp(sec->name, name, sizeof(sec->name)))
 				return(sec);
 
 	sec = (section_t *)sec->list.next;
@@ -134,7 +134,7 @@ find_entry(section_t *section, char *name)
     ent = (entry_t *)section->entry_head.next;
 
     while (ent != NULL) {
-	if (! strncmp(ent->name, name, 256))
+	if (! strncmp(ent->name, name, sizeof(ent->name)))
 				return(ent);
 
 	ent = (entry_t *)ent->list.next;
@@ -183,7 +183,7 @@ create_section(char *name)
     section_t *ns = malloc(sizeof(section_t));
 
     memset(ns, 0x00, sizeof(section_t));
-    strncpy(ns->name, name, 256);
+    strncpy(ns->name, name, sizeof(ns->name));
     list_add(&ns->list, &config_head);
 
     return(ns);
@@ -196,7 +196,7 @@ create_entry(section_t *section, char *name)
     entry_t *ne = malloc(sizeof(entry_t));
 
     memset(ne, 0x00, sizeof(entry_t));
-    strncpy(ne->name, name, 256);
+    strncpy(ne->name, name, sizeof(ne->name));
     list_add(&ne->list, &section->entry_head);
 
     return(ne);
@@ -233,15 +233,14 @@ config_free(void)
 static int
 config_read(wchar_t *fn)
 {
-    char sname[256], ename[256];
+    char sname[128], ename[128];
     wchar_t buff[1024];
     section_t *sec, *ns;
-    int sd = 0, ed = 0;
-    int c, data_pos;
     entry_t *ne;
+    int c, d;
     FILE *f;
 
-#ifdef ANSI_CFG
+#if defined(ANSI_CFG) || !defined(WIN32)
     f = plat_fopen(fn, L"rt");
 #else
     f = plat_fopen(fn, L"rt, ccs=UNICODE");
@@ -255,72 +254,75 @@ config_read(wchar_t *fn)
 
     while (1) {
 	memset(buff, 0x00, sizeof(buff));
-	fgetws(buff, sizeof(buff)-1, f);
+	fgetws(buff, sizeof_w(buff), f);
 	if (feof(f)) break;
 
-#if 0
 	/* Make sure there are no stray newlines or hard-returns in there. */
 	if (buff[wcslen(buff)-1] == L'\n') buff[wcslen(buff)-1] = L'\0';
 	if (buff[wcslen(buff)-1] == L'\r') buff[wcslen(buff)-1] = L'\0';
-#endif
 
+	/* Skip any leading whitespace. */
 	c = 0;
-	while (buff[c] == L' ')
+	while ((buff[c] == L' ') || (buff[c] == L'\t'))
 		  c++;
 
+	/* Skip empty lines. */
 	if (buff[c] == L'\0') continue;
 
-	if ((buff[c] == L'#') || (buff[c] == L';')) {
-		/*Comment*/
-		continue;
-	}
+	/* Skip lines that (only) have a comment. */
+	if ((buff[c] == L'#') || (buff[c] == L';')) continue;
 
 	if (buff[c] == L'[') {	/*Section*/
-		sd = 0;
 		c++;
+		d = 0;
 		while (buff[c] != L']' && buff[c])
-			wctomb(&(sname[sd++]), buff[c++]);
+			wctomb(&(sname[d++]), buff[c++]);
+		sname[d] = L'\0';
 
+		/* Is the section name properly terminated? */
 		if (buff[c] != L']') continue;
 
-		sname[sd] = 0;
-
+		/* Create a new section and insert it. */
 		ns = malloc(sizeof(section_t));
 		memset(ns, 0x00, sizeof(section_t));
 		strncpy(ns->name, sname, sizeof(ns->name));
 		list_add(&ns->list, &config_head);
-		
+
+		/* New section is now the current one. */
 		sec = ns;			
-	} else {
-		ed = 0;
-		while (buff[c] != L'=' && buff[c] != L' ' && buff[c])
-				wctomb(&(ename[ed++]), buff[c++]);
-
-		if (buff[c] == L'\0') continue;
-
-		ename[ed] = 0;
-
-		while ((buff[c] == L'=' || buff[c] == L' ') && buff[c])
-			c++;
-
-		if (! buff[c]) continue;
-
-		data_pos = c;
-		while (buff[c]) {
-			if (buff[c] == L'\n')
-				buff[c] = L'\0';
-			c++;
-		}
-
-		ne = malloc(sizeof(entry_t));
-		memset(ne, 0x00, sizeof(entry_t));
-		strncpy(ne->name, ename, 256);
-		memcpy(ne->wdata, &buff[data_pos], 512);
-		ne->wdata[255] = L'\0';
-		wcstombs(ne->data, ne->wdata, sizeof(ne->data));
-		ne->data[255] = '\0';
-		list_add(&ne->list, &sec->entry_head);
+		continue;
 	}
+
+	/* Get the variable name. */
+	d = 0;
+	while ((buff[c] != L'=') && (buff[c] != L' ') && buff[c])
+		wctomb(&(ename[d++]), buff[c++]);
+	ename[d] = L'\0';
+
+	/* Skip incomplete lines. */
+	if (buff[c] == L'\0') continue;
+
+	/* Look for =, skip whitespace. */
+	while ((buff[c] == L'=' || buff[c] == L' ') && buff[c])
+		c++;
+
+	/* Skip incomplete lines. */
+	if (buff[c] == L'\0') continue;
+
+	/* This is where the value part starts. */
+	d = c;
+
+	/* Allocate a new variable entry.. */
+	ne = malloc(sizeof(entry_t));
+	memset(ne, 0x00, sizeof(entry_t));
+	strncpy(ne->name, ename, sizeof(ne->name));
+	wcsncpy(ne->wdata, &buff[d], sizeof_w(ne->wdata)-1);
+	ne->wdata[sizeof_w(ne->wdata)-1] = L'\0';
+	wcstombs(ne->data, ne->wdata, sizeof(ne->data));
+	ne->data[sizeof(ne->data)-1] = '\0';
+
+	/* .. and insert it. */
+	list_add(&ne->list, &sec->entry_head);
     }
 
     (void)fclose(f);
@@ -340,12 +342,12 @@ config_read(wchar_t *fn)
 void
 config_write(wchar_t *fn)
 {
-    wchar_t wname[512];
+    wchar_t wtemp[512];
     section_t *sec;
     FILE *f;
     int fl = 0;
 
-#ifdef ANSI_CFG
+#if defined(ANSI_CFG) || !defined(WIN32)
     f = plat_fopen(fn, L"wt");
 #else
     f = plat_fopen(fn, L"wt, ccs=UNICODE");
@@ -357,22 +359,22 @@ config_write(wchar_t *fn)
 	entry_t *ent;
 
 	if (sec->name[0]) {
-		mbstowcs(wname, sec->name, strlen(sec->name)+1);
+		mbstowcs(wtemp, sec->name, strlen(sec->name)+1);
 		if (fl)
-			fwprintf(f, L"\n[%ls]\n", wname);
+			fwprintf(f, L"\n[%ls]\n", wtemp);
 		  else
-			fwprintf(f, L"[%ls]\n", wname);
+			fwprintf(f, L"[%ls]\n", wtemp);
 		fl++;
 	}
 
 	ent = (entry_t *)sec->entry_head.next;
 	while (ent != NULL) {
-		if (ent->name[0]) {
-			mbstowcs(wname, ent->name, strlen(ent->name)+1);
+		if (ent->name[0] != '\0') {
+			mbstowcs(wtemp, ent->name, sizeof_w(wtemp));
 			if (ent->wdata[0] == L'\0')
-				fwprintf(f, L"%ls = \n", wname);
+				fwprintf(f, L"%ls = \n", wtemp);
 			  else
-				fwprintf(f, L"%ls = %ls\n", wname, ent->wdata);
+				fwprintf(f, L"%ls = %ls\n", wtemp, ent->wdata);
 			fl++;
 		}
 
@@ -390,7 +392,7 @@ config_write(wchar_t *fn)
 static void
 config_new(void)
 {
-#ifdef ANSI_CFG
+#if defined(ANSI_CFG) || !defined(WIN32)
     FILE *f = _wfopen(config_file, L"wt");
 #else
     FILE *f = _wfopen(config_file, L"wt, ccs=UNICODE");
@@ -418,8 +420,16 @@ load_general(void)
 	strcpy(temp, p);
     if (! strcmp(temp, "ddraw"))
 	vid_api = 0;
-      else
+      else if (! strcmp(temp, "d3d9"))
 	vid_api = 1;
+      else if (! strcmp(temp, "vnc"))
+	vid_api = 2;
+#if 0
+      else if (! strcmp(temp, "rdp"))
+	vid_api = 3;
+#endif
+      else
+	vid_api = 1;		/* default to d3d9 on invalid values */
     config_delete_var(cat, "vid_api");
 
     video_fullscreen_scale = config_get_int(cat, "video_fullscreen_scale", 0);
@@ -455,7 +465,7 @@ load_general(void)
      * (version 1.30 at the earliest) other languages will be
      * added, therefore it is better to future-proof the code.
      */
-    plat_language = config_get_hex16(cat, "language", 0x0409);
+    plat_langid = config_get_hex16(cat, "language", 0x0409);
 #endif
 }
 
@@ -750,8 +760,7 @@ static void
 load_hard_disks(void)
 {
     char *cat = "Hard disks";
-    char temp[512];
-    char temp2[512];
+    char temp[512], tmp2[512];
     char s[512];
     int c;
     char *p;
@@ -761,10 +770,8 @@ load_hard_disks(void)
 
     memset(temp, '\0', sizeof(temp));
     for (c=0; c<HDD_NUM; c++) {
-	sprintf(temp, "hdd_%02i_parameters", c + 1);
-	p = config_get_string(cat, temp, NULL);
-	if (p == NULL)
-		p = "0, 0, 0, 0, none";
+	sprintf(temp, "hdd_%02i_parameters", c+1);
+	p = config_get_string(cat, temp, "0, 0, 0, 0, none");
 	if (tally_char(p, ',') == 3) {
 		sscanf(p, "%" PRIu64 ", %" PRIu64", %" PRIu64 ", %s",
 			&hdd[c].spt, &hdd[c].hpc, &hdd[c].tracks, s);
@@ -841,8 +848,8 @@ load_hard_disks(void)
 	sprintf(temp, "hdd_%02i_ide_channel", c+1);
 	if ((hdd[c].bus == HDD_BUS_IDE_PIO_ONLY) ||
 	    (hdd[c].bus == HDD_BUS_IDE_PIO_AND_DMA)) {
-		sprintf(temp2, "%01u:%01u", c>>1, c&1);
-		p = config_get_string(cat, temp, temp2);
+		sprintf(tmp2, "%01u:%01u", c>>1, c&1);
+		p = config_get_string(cat, temp, tmp2);
 		if (! strstr(p, ":")) {
 			sscanf(p, "%i", (int *)&hdd[c].ide_channel);
 			hdd[c].ide_channel &= 7;
@@ -861,11 +868,11 @@ load_hard_disks(void)
 	}
 
 	/* SCSI */
-	sprintf(temp, "hdd_%02i_scsi_location", c + 1);
+	sprintf(temp, "hdd_%02i_scsi_location", c+1);
 	if ((hdd[c].bus == HDD_BUS_SCSI) ||
 	    (hdd[c].bus == HDD_BUS_SCSI_REMOVABLE)) {
-		sprintf(temp, "%02u:%02u", c, 0);
-		p = config_get_string(cat, temp, temp2);
+		sprintf(tmp2, "%02u:%02u", c, 0);
+		p = config_get_string(cat, temp, tmp2);
 
 		sscanf(p, "%02u:%02u",
 			(int *)&hdd[c].scsi_id, (int *)&hdd[c].scsi_lun);
@@ -880,7 +887,7 @@ load_hard_disks(void)
 
 	memset(hdd[c].fn, 0x00, sizeof(hdd[c].fn));
 	memset(hdd[c].prev_fn, 0x00, sizeof(hdd[c].prev_fn));
-	sprintf(temp, "hdd_%02i_fn", c + 1);
+	sprintf(temp, "hdd_%02i_fn", c+1);
 	wp = config_get_wstring(cat, temp, L"");
 
 #if 0
@@ -897,10 +904,10 @@ load_hard_disks(void)
 		 * with the CFG path.  Just strip
 		 * that off for now...
 		 */
-		wcscpy((wchar_t *)hdd[c].fn, &wp[wcslen(cfg_path)]);
+		wcsncpy(hdd[c].fn, &wp[wcslen(cfg_path)], sizeof_w(hdd[c].fn));
 	} else
 #endif
-	memcpy(hdd[c].fn, wp, (wcslen(wp) << 1) + 2);
+	wcsncpy(hdd[c].fn, wp, sizeof_w(hdd[c].fn));
 
 	/* If disk is empty or invalid, mark it for deletion. */
 	if (! hdd_is_valid(c)) {
@@ -934,7 +941,7 @@ static void
 load_removable_devices(void)
 {
     char *cat = "Removable devices";
-    char temp[512], temp2[512], *p;
+    char temp[512], tmp2[512], *p;
     char s[512];
     unsigned int board = 0, dev = 0;
     wchar_t *wp;
@@ -964,10 +971,10 @@ load_removable_devices(void)
 		 * with the EXE path.  Just strip
 		 * that off for now...
 		 */
-		wcscpy((wchar_t *)floppyfns[c], &wp[wcslen(cfg_path)]);
+		wcsncpy(floppyfns[c], &wp[wcslen(cfg_path)], sizeof_w(floppyfns[c]));
 	} else
 #endif
-	memcpy(floppyfns[c], wp, (wcslen(wp) << 1) + 2);
+	wcsncpy(floppyfns[c], wp, sizeof_w(floppyfns[c]));
 
 	if (*wp != L'\0')
 		printf("Floppy%d: %ls\n", c, floppyfns[c]);
@@ -978,7 +985,7 @@ load_removable_devices(void)
 	sprintf(temp, "fdd_%02i_check_bpb", c+1);
 	fdd_set_check_bpb(c, !!config_get_int(cat, temp, 1));
 
-	/* Check, whether each value is default, if yes, delete it so that only non-default values will later be saved. */
+	/* Check whether each value is default, if yes, delete it so that only non-default values will later be saved. */
 	if (fdd_get_type(c) == ((c < 2) ? 2 : 0)) {
 		sprintf(temp, "fdd_%02i_type", c+1);
 		config_delete_var(cat, temp);
@@ -1018,8 +1025,8 @@ load_removable_devices(void)
 	sprintf(temp, "cdrom_%02i_ide_channel", c+1);
 	if ((cdrom_drives[c].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) ||
 	    (cdrom_drives[c].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA)) {
-		sprintf(temp2, "%01u:%01u", (c+2)>>1, (c+2)&1);
-		p = config_get_string(cat, temp, temp2);
+		sprintf(tmp2, "%01u:%01u", (c+2)>>1, (c+2)&1);
+		p = config_get_string(cat, temp, tmp2);
 		if (! strstr(p, ":")) {
 			sscanf(p, "%i", (int *)&hdd[c].ide_channel);
 			cdrom_drives[c].ide_channel &= 7;
@@ -1038,8 +1045,8 @@ load_removable_devices(void)
 	} else {
 		sprintf(temp, "cdrom_%02i_scsi_location", c+1);
 		if (cdrom_drives[c].bus_type == CDROM_BUS_SCSI) {
-			sprintf(temp2, "%02u:%02u", c+2, 0);
-			p = config_get_string(cat, temp, temp2);
+			sprintf(tmp2, "%02u:%02u", c+2, 0);
+			p = config_get_string(cat, temp, tmp2);
 			sscanf(p, "%02u:%02u",
 				&cdrom_drives[c].scsi_device_id,
 				&cdrom_drives[c].scsi_device_lun);
@@ -1070,10 +1077,10 @@ load_removable_devices(void)
 		 * with the EXE path.  Just strip
 		 * that off for now...
 		 */
-		wcscpy(cdrom_image[c].image_path,&wp[wcslen(cfg_path)]);
+		wcsncpy(cdrom_image[c].image_path, &wp[wcslen(cfg_path)], sizeof_w(cdrom_image[c].image_path));
 	} else
 #endif
-	memcpy(cdrom_image[c].image_path, wp, (wcslen(wp) << 1) + 2);
+	wcsncpy(cdrom_image[c].image_path, wp, sizeof_w(cdrom_image[c].image_path));
 	wcscpy(cdrom_image[c].prev_image_path, cdrom_image[c].image_path);
 
 	if (cdrom_drives[c].host_drive < 'A')
@@ -1118,7 +1125,7 @@ config_load(wchar_t *fn)
     if (! config_read(fn)) {
 	cpu = 0;
 #ifdef USE_LANGUAGE
-	plat_language = 0x0409;
+	plat_langid = 0x0409;
 #endif
 	scale = 1;
 	vid_api = 1;
@@ -1147,7 +1154,7 @@ config_load(wchar_t *fn)
     load_hard_disks();		/* Hard disks */
     load_removable_devices();	/* Removable devices */
 
-    pclog("Config loaded.\n");
+    pclog("Config loaded.\n\n");
 }
 
 
@@ -1173,6 +1180,16 @@ save_general(void)
 	default:
 		config_set_string(cat, "vid_renderer", "d3d9");
 		break;
+
+	case 2:
+		config_set_string(cat, "vid_renderer", "vnc");
+		break;
+
+#if 0
+	case 3:
+		config_set_string(cat, "vid_renderer", "rdp");
+		break;
+#endif
     }
 
     if (video_fullscreen_scale == 0)
@@ -1226,10 +1243,10 @@ save_general(void)
     }
 
 #ifdef USE_LANGUAGE
-    if (plat_language == 0x0409)
+    if (plat_langid == 0x0409)
 	config_delete_var(cat, "language");
       else
-	config_set_hex16(cat, "language", plat_language);
+	config_set_hex16(cat, "language", plat_langid);
 #endif
 
     delete_section_if_empty(cat);
@@ -1308,7 +1325,7 @@ static void
 save_input_devices(void)
 {
     char *cat = "Input devices";
-    char temp[512], temp2[512];
+    char temp[512], tmp2[512];
     int c, d;
 
     config_set_string(cat, "mouse_type", mouse_get_internal_name(mouse_type));
@@ -1320,42 +1337,42 @@ save_input_devices(void)
 		config_set_int(cat, "joystick_type", joystick_type);
 
 	for (c=0; c<16; c++) {
-		sprintf(temp2, "joystick_%i_nr", c);
-		config_delete_var(cat, temp2);
+		sprintf(tmp2, "joystick_%i_nr", c);
+		config_delete_var(cat, tmp2);
 
 		for (d=0; d<16; d++) {			
-			sprintf(temp2, "joystick_%i_axis_%i", c, d);
-			config_delete_var(cat, temp2);
+			sprintf(tmp2, "joystick_%i_axis_%i", c, d);
+			config_delete_var(cat, tmp2);
 		}
 		for (d=0; d<16; d++) {			
-			sprintf(temp2, "joystick_%i_button_%i", c, d);
-			config_delete_var(cat, temp2);
+			sprintf(tmp2, "joystick_%i_button_%i", c, d);
+			config_delete_var(cat, tmp2);
 		}
 		for (d=0; d<16; d++) {			
-			sprintf(temp2, "joystick_%i_pov_%i", c, d);
-			config_delete_var(cat, temp2);
+			sprintf(tmp2, "joystick_%i_pov_%i", c, d);
+			config_delete_var(cat, tmp2);
 		}
 	}
     } else {
 	config_set_int(cat, "joystick_type", joystick_type);
 
 	for (c=0; c<joystick_get_max_joysticks(joystick_type); c++) {
-		sprintf(temp2, "joystick_%i_nr", c);
-		config_set_int(cat, temp2, joystick_state[c].plat_joystick_nr);
+		sprintf(tmp2, "joystick_%i_nr", c);
+		config_set_int(cat, tmp2, joystick_state[c].plat_joystick_nr);
 
 		if (joystick_state[c].plat_joystick_nr) {
 			for (d=0; d<joystick_get_axis_count(joystick_type); d++) {			
-				sprintf(temp2, "joystick_%i_axis_%i", c, d);
-				config_set_int(cat, temp2, joystick_state[c].axis_mapping[d]);
+				sprintf(tmp2, "joystick_%i_axis_%i", c, d);
+				config_set_int(cat, tmp2, joystick_state[c].axis_mapping[d]);
 			}
 			for (d=0; d<joystick_get_button_count(joystick_type); d++) {			
-				sprintf(temp2, "joystick_%i_button_%i", c, d);
-				config_set_int(cat, temp2, joystick_state[c].button_mapping[d]);
+				sprintf(tmp2, "joystick_%i_button_%i", c, d);
+				config_set_int(cat, tmp2, joystick_state[c].button_mapping[d]);
 			}
 			for (d=0; d<joystick_get_pov_count(joystick_type); d++) {			
-				sprintf(temp2, "joystick_%i_pov_%i", c, d);
+				sprintf(tmp2, "joystick_%i_pov_%i", c, d);
 				sprintf(temp, "%i, %i", joystick_state[c].pov_mapping[d][0], joystick_state[c].pov_mapping[d][1]);
-				config_set_string(cat, temp2, temp);
+				config_set_string(cat, tmp2, temp);
 			}
 		}
 	}
@@ -1430,7 +1447,7 @@ save_network(void)
     if (network_pcap[0] != '\0') {
 	if (! strcmp(network_pcap, "none"))
 		config_delete_var(cat, "net_pcap_device");
-	else
+	  else
 		config_set_string(cat, "net_pcap_device", network_pcap);
     } else {
 	/* config_set_string(cat, "net_pcap_device", "none"); */
@@ -1439,7 +1456,7 @@ save_network(void)
 
     if (network_card == 0)
 	config_delete_var(cat, "net_card");
-	else
+      else
 	config_set_string(cat, "net_card",
 			  network_card_get_internal_name(network_card));
 
@@ -1482,7 +1499,7 @@ static void
 save_other_peripherals(void)
 {
     char *cat = "Other peripherals";
-    char temp[512], temp2[512];
+    char temp[512], tmp2[512];
     int c;
 
     if (scsi_card_current == 0)
@@ -1496,11 +1513,11 @@ save_other_peripherals(void)
     memset(temp, '\0', sizeof(temp));
     for (c=2; c<4; c++) {
 	sprintf(temp, "ide_%02i", c + 1);
-	sprintf(temp2, "%i, %02i", !!ide_enable[c], ide_irq[c]);
+	sprintf(tmp2, "%i, %02i", !!ide_enable[c], ide_irq[c]);
 	if (ide_enable[c] == 0)
 		config_delete_var(cat, temp);
 	  else
-		config_set_string(cat, temp, temp2);
+		config_set_string(cat, temp, tmp2);
     }
 
     if (bugger_enabled == 0)
@@ -1517,7 +1534,7 @@ static void
 save_hard_disks(void)
 {
     char *cat = "Hard disks";
-    char temp[24], temp2[64];
+    char temp[24], tmp2[64];
     char *p;
     int c;
 
@@ -1526,9 +1543,9 @@ save_hard_disks(void)
 	sprintf(temp, "hdd_%02i_parameters", c+1);
 	if (hdd_is_valid(c)) {
 		p = hdd_bus_to_string(hdd[c].bus, 0);
-		sprintf(temp2, "%" PRIu64 ", %" PRIu64", %" PRIu64 ", %i, %s",
+		sprintf(tmp2, "%" PRIu64 ", %" PRIu64", %" PRIu64 ", %i, %s",
 			hdd[c].spt, hdd[c].hpc, hdd[c].tracks, hdd[c].wp, p);
-		config_set_string(cat, temp, temp2);
+		config_set_string(cat, temp, tmp2);
 	} else {
 		config_delete_var(cat, temp);
 	}
@@ -1555,16 +1572,16 @@ save_hard_disks(void)
 	if (! hdd_is_valid(c) || ((hdd[c].bus != HDD_BUS_IDE_PIO_ONLY) && (hdd[c].bus != HDD_BUS_IDE_PIO_AND_DMA))) {
 		config_delete_var(cat, temp);
 	} else {
-		sprintf(temp2, "%01u:%01u", hdd[c].ide_channel >> 1, hdd[c].ide_channel & 1);
-		config_set_string(cat, temp, temp2);
+		sprintf(tmp2, "%01u:%01u", hdd[c].ide_channel >> 1, hdd[c].ide_channel & 1);
+		config_set_string(cat, temp, tmp2);
 	}
 
 	sprintf(temp, "hdd_%02i_scsi_location", c+1);
 	if (! hdd_is_valid(c) || ((hdd[c].bus != HDD_BUS_SCSI) && (hdd[c].bus != HDD_BUS_SCSI_REMOVABLE))) {
 		config_delete_var(cat, temp);
 	} else {
-		sprintf(temp2, "%02u:%02u", hdd[c].scsi_id, hdd[c].scsi_lun);
-		config_set_string(cat, temp, temp2);
+		sprintf(tmp2, "%02u:%02u", hdd[c].scsi_id, hdd[c].scsi_lun);
+		config_set_string(cat, temp, tmp2);
 	}
 
 	sprintf(temp, "hdd_%02i_fn", c+1);
@@ -1583,7 +1600,7 @@ static void
 save_removable_devices(void)
 {
     char *cat = "Removable devices";
-    char temp[512], temp2[512];
+    char temp[512], tmp2[512];
     int c;
 
     for (c=0; c<FDD_NUM; c++) {
@@ -1638,9 +1655,9 @@ save_removable_devices(void)
 	if (cdrom_drives[c].bus_type == 0) {
 		config_delete_var(cat, temp);
 	} else {
-		sprintf(temp2, "%u, %s", cdrom_drives[c].sound_on,
+		sprintf(tmp2, "%u, %s", cdrom_drives[c].sound_on,
 			hdd_bus_to_string(cdrom_drives[c].bus_type, 1));
-		config_set_string(cat, temp, temp2);
+		config_set_string(cat, temp, tmp2);
 	}
 		
 	sprintf(temp, "cdrom_%02i_ide_channel", c+1);
@@ -1648,18 +1665,18 @@ save_removable_devices(void)
 	    (cdrom_drives[c].bus_type != CDROM_BUS_ATAPI_PIO_AND_DMA)) {
 		config_delete_var(cat, temp);
 	} else {
-		sprintf(temp2, "%01u:%01u", cdrom_drives[c].ide_channel>>1,
+		sprintf(tmp2, "%01u:%01u", cdrom_drives[c].ide_channel>>1,
 					cdrom_drives[c].ide_channel & 1);
-		config_set_string(cat, temp, temp2);
+		config_set_string(cat, temp, tmp2);
 	}
 
 	sprintf(temp, "cdrom_%02i_scsi_location", c + 1);
 	if (cdrom_drives[c].bus_type != CDROM_BUS_SCSI) {
 		config_delete_var(cat, temp);
 	} else {
-		sprintf(temp2, "%02u:%02u", cdrom_drives[c].scsi_device_id,
+		sprintf(tmp2, "%02u:%02u", cdrom_drives[c].scsi_device_id,
 					cdrom_drives[c].scsi_device_lun);
-		config_set_string(cat, temp, temp2);
+		config_set_string(cat, temp, tmp2);
 	}
 
 	sprintf(temp, "cdrom_%02i_image_path", c + 1);
@@ -1707,7 +1724,7 @@ config_dump(void)
 	
 	ent = (entry_t *)sec->entry_head.next;
 	while (ent != NULL) {
-		pclog("%s = %s\n", ent->name, ent->data);
+		pclog("%s = %ls\n", ent->name, ent->wdata);
 
 		ent = (entry_t *)ent->list.next;
 	}
@@ -1858,18 +1875,18 @@ void
 config_set_int(char *head, char *name, int val)
 {
     section_t *section;
-    entry_t *entry;
+    entry_t *ent;
 
     section = find_section(head);
     if (section == NULL)
 	section = create_section(head);
 
-    entry = find_entry(section, name);
-    if (entry == NULL)
-	entry = create_entry(section, name);
+    ent = find_entry(section, name);
+    if (ent == NULL)
+	ent = create_entry(section, name);
 
-    sprintf(entry->data, "%i", val);
-    mbstowcs(entry->wdata, entry->data, 512);
+    sprintf(ent->data, "%i", val);
+    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
 }
 
 
@@ -1877,18 +1894,18 @@ void
 config_set_hex16(char *head, char *name, int val)
 {
     section_t *section;
-    entry_t *entry;
+    entry_t *ent;
 
     section = find_section(head);
     if (section == NULL)
 	section = create_section(head);
 
-    entry = find_entry(section, name);
-    if (entry == NULL)
-	entry = create_entry(section, name);
+    ent = find_entry(section, name);
+    if (ent == NULL)
+	ent = create_entry(section, name);
 
-    sprintf(entry->data, "%04X", val);
-    mbstowcs(entry->wdata, entry->data, 512);
+    sprintf(ent->data, "%04X", val);
+    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
 }
 
 
@@ -1896,18 +1913,18 @@ void
 config_set_hex20(char *head, char *name, int val)
 {
     section_t *section;
-    entry_t *entry;
+    entry_t *ent;
 
     section = find_section(head);
     if (section == NULL)
 	section = create_section(head);
 
-    entry = find_entry(section, name);
-    if (entry == NULL)
-	entry = create_entry(section, name);
+    ent = find_entry(section, name);
+    if (ent == NULL)
+	ent = create_entry(section, name);
 
-    sprintf(entry->data, "%05X", val);
-    mbstowcs(entry->wdata, entry->data, 512);
+    sprintf(ent->data, "%05X", val);
+    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
 }
 
 
@@ -1915,19 +1932,19 @@ void
 config_set_mac(char *head, char *name, int val)
 {
     section_t *section;
-    entry_t *entry;
+    entry_t *ent;
 
     section = find_section(head);
     if (section == NULL)
 	section = create_section(head);
 
-    entry = find_entry(section, name);
-    if (entry == NULL)
-	entry = create_entry(section, name);
+    ent = find_entry(section, name);
+    if (ent == NULL)
+	ent = create_entry(section, name);
 
-    sprintf(entry->data, "%02x:%02x:%02x",
+    sprintf(ent->data, "%02x:%02x:%02x",
 		(val>>16)&0xff, (val>>8)&0xff, val&0xff);
-    mbstowcs(entry->wdata, entry->data, 512);
+    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
 }
 
 
@@ -1935,18 +1952,18 @@ void
 config_set_string(char *head, char *name, char *val)
 {
     section_t *section;
-    entry_t *entry;
+    entry_t *ent;
 
     section = find_section(head);
     if (section == NULL)
 	section = create_section(head);
 
-    entry = find_entry(section, name);
-    if (entry == NULL)
-	entry = create_entry(section, name);
+    ent = find_entry(section, name);
+    if (ent == NULL)
+	ent = create_entry(section, name);
 
-    strncpy(entry->data, val, 256);
-    mbstowcs(entry->wdata, entry->data, 256);
+    strncpy(ent->data, val, sizeof(ent->data));
+    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
 }
 
 
@@ -1954,18 +1971,18 @@ void
 config_set_wstring(char *head, char *name, wchar_t *val)
 {
     section_t *section;
-    entry_t *entry;
+    entry_t *ent;
 
     section = find_section(head);
     if (section == NULL)
 	section = create_section(head);
 
-    entry = find_entry(section, name);
-    if (entry == NULL)
-	entry = create_entry(section, name);
+    ent = find_entry(section, name);
+    if (ent == NULL)
+	ent = create_entry(section, name);
 
-    memcpy(entry->wdata, val, 512);
-    wcstombs(entry->data, entry->wdata, 256);
+    memcpy(ent->wdata, val, sizeof_w(ent->wdata));
+    wcstombs(ent->data, ent->wdata, sizeof(ent->data));
 }
 
 
@@ -2046,6 +2063,7 @@ put_backslash_w(wchar_t *s)
 }
 
 
+#if 0
 /* FIXME: should be moved elsewhere. --FvK */
 char *
 get_extension(char *s)
@@ -2063,6 +2081,7 @@ get_extension(char *s)
 
     return(&s[c+1]);
 }
+#endif
 
 
 /* FIXME: should be moved elsewhere. --FvK */

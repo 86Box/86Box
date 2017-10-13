@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.5	2017/10/12
+ * Version:	@(#)plat.h	1.0.6	2017/10/13
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -38,6 +38,10 @@ extern int	dir_check_exist(wchar_t *path);
 extern int	dir_create(wchar_t *path);
 extern void	leave_fullscreen(void);
 
+/* Return the size (in wchar's) of a wchar_t array. */
+#define sizeof_w(x)	(sizeof((x)) / sizeof(wchar_t))
+
+/* The Win32 API uses _wcsicmp. */
 #ifdef WIN32
 # define wcscasecmp	_wcsicmp
 #endif
