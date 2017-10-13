@@ -135,7 +135,6 @@ machine_europc_init(machine_t *model)
 {
         machine_common_init(model);
 
-	mem_add_bios();
 	lpt3_init(0x3bc);
         jim_init();
         keyboard_xt_init();

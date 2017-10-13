@@ -19,11 +19,10 @@
 void
 machine_tandy1k_init(machine_t *model)
 {
-        TANDY = 1;
+	TANDY = 1;
 
         machine_common_init(model);
 
-	mem_add_bios();
         keyboard_tandy_init();
         if (romset == ROM_TANDY)
                 device_add(&sn76489_device);
@@ -42,7 +41,6 @@ machine_tandy1ksl2_init(machine_t *model)
 {
         machine_common_init(model);
 
-	mem_add_bios();
         keyboard_tandy_init();
         device_add(&pssj_device);
 	nmi_init();

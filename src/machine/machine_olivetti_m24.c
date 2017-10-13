@@ -40,7 +40,6 @@ machine_olim24_init(machine_t *model)
 {
         machine_common_init(model);
 
-	mem_add_bios();
         keyboard_olim24_init();
 
 	/* FIXME: make sure this is correct?? */

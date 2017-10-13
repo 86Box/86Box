@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.18	2017/10/07
+ * Version:	@(#)machine.c	1.0.19	2017/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -140,7 +140,11 @@ machine_init(void)
 {
     pclog("Initializing as \"%s\"\n", machine_getname());
 
-    AMSTRAD = AT = PCI = TANDY = 0;
+    /* Set up the architecture flags. */
+    AT = IS_ARCH(machine, MACHINE_AT);
+    PCI = IS_ARCH(machine, MACHINE_PCI);
+    AMSTRAD = IS_ARCH(machine, MACHINE_AMSTRAD);
+    TANDY = 0;
 
     /* Load the machine's ROM BIOS. */
     rom_load_bios(romset);

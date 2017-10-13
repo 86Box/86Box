@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.6	2017/10/07
+ * Version:	@(#)machine.h	1.0.7	2017/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -40,6 +40,8 @@
 #define MACHINE_AMSTRAD		0x040000
 #define MACHINE_OLIM24		0x080000
 #define MACHINE_RM		0x100000
+
+#define IS_ARCH(m, a)		(machines[(m)].flags & (a)) ? 1 : 0;
 
 
 typedef struct _machine_ {

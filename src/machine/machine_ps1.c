@@ -338,14 +338,8 @@ static void ps1mb_m2133_init(void)
 static void
 machine_ps1_common_init(machine_t *model)
 {
-        AT = 1;
-
         machine_common_init(model);
 
-#if 0
-	/* Already done in machine.c */
-	mem_add_bios();
-#endif
         pit_set_out_func(&pit, 1, pit_refresh_timer_at);
         dma16_init();
         if (romset != ROM_IBMPS1_2011)

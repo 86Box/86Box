@@ -21,8 +21,6 @@
 void
 machine_at_init(machine_t *model)
 {
-    AT = 1;
-
     machine_common_init(model);
 
     pit_set_out_func(&pit, 1, pit_refresh_timer_at);

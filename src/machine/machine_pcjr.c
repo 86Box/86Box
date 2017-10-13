@@ -20,7 +20,6 @@
 void
 machine_pcjr_init(machine_t *model)
 {
-	mem_add_bios();
         fdc_add_pcjr();
         pic_init();
         pit_init();

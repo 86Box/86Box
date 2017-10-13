@@ -138,11 +138,8 @@ static void amstrad_init(void)
 void
 machine_amstrad_init(machine_t *model)
 {
-        AMSTRAD = 1;
-
         machine_common_init(model);
 
-	mem_add_bios();
         amstrad_init();
         keyboard_amstrad_init();
 

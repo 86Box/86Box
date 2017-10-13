@@ -805,14 +805,8 @@ static void ps2_mca_board_model_80_type2_init()
 static void
 machine_ps2_common_init(machine_t *model)
 {
-        AT = 1;
-
         machine_common_init(model);
 
-#if 1
-	/* Already done in machine.c. */
-        mem_add_bios();
-#endif
         dma16_init();
         ps2_dma_init();
         keyboard_at_init();

@@ -18,8 +18,6 @@ machine_xt_init(machine_t *model)
 {
         machine_common_init(model);
 
-	mem_add_bios();
-
         pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
 
         keyboard_xt_init();
