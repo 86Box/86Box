@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.59	2017/10/14
+# Version:	@(#)Makefile.mingw	1.0.60	2017/10/14
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -99,6 +99,7 @@ CIRRUS		:= y
 NE1000		:= y
 NV_RIVA		:= y
 PAS16		:= y
+VNC		:= y
 endif
 
 
