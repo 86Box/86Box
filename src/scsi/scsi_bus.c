@@ -38,7 +38,6 @@
 
 uint32_t SCSI_BufferLength;
 
-#define ENABLE_SCSI_BUS_LOG 0
 int scsi_bus_do_log = 0;
 
 
@@ -94,12 +93,8 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 	scsi_device_t *dev;
 	uint8_t lun = 0;
 	
-	dev = &SCSIDevices[bus->dev_id][0];
-	
 	if (bus_assert & BUS_ARB)
 			bus->state = STATE_IDLE;	
-		
-	dev->CmdBuffer = (uint8_t *)bus->buffer;
 
 	switch (bus->state)
 	{
@@ -159,11 +154,25 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 				{
 					lun = (bus->command[1] >> 5) & 7;
 					bus->data_pos = 0;
-					
+
+					dev = &SCSIDevices[bus->dev_id][lun];
+
 					scsi_bus_log("Command 0x%02X\n", bus->command[0]);
 
-					SCSI_BufferLength = -1;
+					dev->BufferLength = -1;
+
+					pclog("(%02X:%02X): Command %02X: Buffer length %i\n", bus->dev_id, lun, bus->command[0], dev->BufferLength);
+
 					scsi_device_command_phase0(bus->dev_id, lun, get_cmd_len(bus->command[0]), bus->command);
+
+					pclog("SCSI Phase: %02X\n", SCSIPhase);
+
+					if ((SCSIPhase == SCSI_PHASE_DATA_IN) || (SCSIPhase == SCSI_PHASE_DATA_OUT))
+					{
+						pclog("dev->CmdBuffer = %08X\n", dev->CmdBuffer);
+						dev->CmdBuffer = (uint8_t *) malloc(dev->BufferLength);
+						pclog("dev->CmdBuffer = %08X\n", dev->CmdBuffer);
+					}
 
 					if (SCSIPhase == SCSI_PHASE_DATA_OUT)
 					{
@@ -176,8 +185,11 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 					else
 					{
 						/* Other command - execute immediately. */
-						scsi_bus_log("Next state is defined by command\n");
 						bus->new_state = SCSIPhase;
+						if (SCSIPhase == SCSI_PHASE_DATA_IN)
+						{
+							scsi_device_command_phase1(bus->dev_id, lun);
+						}
 
 						bus->change_state_delay = 4;
 					}
@@ -197,9 +209,15 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 				scsi_bus_log("State Data In\n");
 				
 				/* This seems to be read, so we first execute the command, then we return the bytes to the host. */
-				
-				if (bus->data_pos >= SCSI_BufferLength)
+
+				lun = (bus->command[1] >> 5) & 7;
+
+				dev = &SCSIDevices[bus->dev_id][lun];
+
+				if (bus->data_pos >= SCSIDevices[bus->dev_id][lun].BufferLength)
 				{
+					free(dev->CmdBuffer);
+					dev->CmdBuffer = NULL;
 					bus->bus_out &= ~BUS_REQ;
 					bus->new_state = SCSI_PHASE_STATUS;
 					bus->change_state_delay = 4;
@@ -221,17 +239,22 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 			if ((bus_assert & BUS_ACK) && !(bus->bus_in & BUS_ACK))
 			{
 				scsi_bus_log("State Data Out\n");	
+
+				lun = (bus->command[1] >> 5) & 7;
+
+				dev = &SCSIDevices[bus->dev_id][lun];
 				
 				/* This is write, so first get the data from the host, then execute the last phase of the command. */
 				dev->CmdBuffer[bus->data_pos++] = BUS_GETDATA(bus_assert);	
 
-				if (bus->data_pos >= SCSI_BufferLength)
+				if (bus->data_pos >= SCSIDevices[bus->dev_id][lun].BufferLength)
 				{
 					/* pclog("%04X bytes written (%02X %02X)\n", bus->data_pos, bus->command[0], bus->command[1]); */
 					scsi_bus_log("Actually executing write command\n");
-					lun = (bus->command[1] >> 5) & 7;
-					bus->bus_out &= ~BUS_REQ;
 					scsi_device_command_phase1(bus->dev_id, lun);
+					free(dev->CmdBuffer);
+					dev->CmdBuffer = NULL;
+					bus->bus_out &= ~BUS_REQ;
 					bus->new_state = SCSI_PHASE_STATUS;
 					bus->change_state_delay = 4;
 					bus->new_req_delay = 8;	
@@ -275,10 +298,7 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 int scsi_bus_read(scsi_bus_t *bus)
 {
 	scsi_device_t *dev;
-
-	dev = &SCSIDevices[bus->dev_id][0];
-
-	dev->CmdBuffer = (uint8_t *)bus->buffer;
+	uint8_t lun = 0;
 	
 	if (bus->clear_req)
 	{
@@ -306,6 +326,9 @@ int scsi_bus_read(scsi_bus_t *bus)
 			switch (bus->bus_out & SCSI_PHASE_MESSAGE_IN)
 			{
 				case SCSI_PHASE_DATA_IN:
+					lun = (bus->command[1] >> 5) & 7;
+					dev = &SCSIDevices[bus->dev_id][lun];
+
 					scsi_bus_log("Phase data in\n");
 					bus->state = STATE_DATAIN;
 					val = dev->CmdBuffer[bus->data_pos++];

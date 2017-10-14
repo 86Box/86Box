@@ -106,8 +106,5 @@ extern void	delay_ms(uint32_t count);
 }
 #endif
 
-extern void	startslirp(void);
-extern void	endslirp(void);
-
 
 #endif	/*EMU_PLAT_H*/

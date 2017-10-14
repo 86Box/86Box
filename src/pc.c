@@ -294,6 +294,7 @@ usage:
     hdd_init();
     network_init();
     cdrom_global_init();
+    scsi_mutex_init();
 
     /* Load the configuration file. */
     config_load(cfg);
@@ -491,6 +492,7 @@ pc_reset_hard_close(void)
     nvr_save();
 
     device_close_all();
+    midi_close();
     mouse_emu_close();
     closeal();
 }

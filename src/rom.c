@@ -311,6 +311,13 @@ rom_load_bios(int rom_id)
 			0x008000, 32768, 0, rom)) return(1);
 		break;
 
+	case ROM_IBMXT286:	/* IBM PX-XT 286 */
+		if (rom_load_interleaved(
+			L"roms/machines/ibmxt286/BIOS_5162_21APR86_U34_78X7460_27256.BIN",
+			L"roms/machines/ibmxt286/BIOS_5162_21APR86_U35_78X7461_27256.BIN",
+			0x000000, 65536, 0, rom)) return(1);
+		break;
+
 	case ROM_IBMPCJR:	/* IBM PCjr */
 		if (rom_load_linear(
 			L"roms/machines/ibmpcjr/bios.rom",

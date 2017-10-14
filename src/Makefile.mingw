@@ -8,7 +8,7 @@
 #
 #		Modified Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.58	2017/10/13
+# Version:	@(#)Makefile.mingw	1.0.59	2017/10/14
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -316,8 +316,11 @@ USBOBJ		:= usb.o
 endif
 
 SCSIOBJ		:= scsi.o \
-		    scsi_bus.o scsi_bios_command.o scsi_device.o scsi_disk.o \
-		    scsi_buslogic.o scsi_aha154x.o scsi_ncr5380.o
+		    scsi_bus.o scsi_device.o \
+		    scsi_disk.o \
+		    scsi_x54x.o \
+		    scsi_buslogic.o scsi_aha154x.o \
+		    scsi_ncr5380.o
 
 NETOBJ		:= network.o \
 		    net_pcap.o \
@@ -341,7 +344,7 @@ SNDOBJ		:= sound.o \
 		    snd_speaker.o \
 		    snd_ps1.o snd_pssj.o \
 		    snd_lpt_dac.o snd_lpt_dss.o \
-		    snd_adlib.o snd_adlibgold.o snd_ad1848.o \
+		    snd_adlib.o snd_adlibgold.o snd_ad1848.o snd_audiopci.o \
 		    snd_sb.o snd_sb_dsp.o snd_cms.o snd_dbopl.o \
 		    snd_emu8k.o snd_gus.o snd_opl.o \
 		    snd_mpu401.o \

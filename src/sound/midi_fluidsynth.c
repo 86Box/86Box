@@ -326,10 +326,20 @@ void fluidsynth_close(void* p)
 
         fluidsynth_t* data = &fsdev;
 
-        if (data->sound_font != -1)
+        if (data->sound_font != -1) {
                 f_fluid_synth_sfunload(data->synth, data->sound_font, 1);
-        f_delete_fluid_synth(data->synth);
-        f_delete_fluid_settings(data->settings);
+		data->sound_font = -1;
+	}
+
+	if (data->synth) {
+	        f_delete_fluid_synth(data->synth);
+		data->synth = NULL;
+	}
+
+	if (data->settings) {
+	        f_delete_fluid_settings(data->settings);
+		data->settings = NULL;
+	}
 
         midi_close();
 

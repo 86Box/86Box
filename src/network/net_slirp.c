@@ -32,6 +32,29 @@ static queueADT	slirpq;			/* SLiRP library handle */
 static thread_t	*poll_tid;
 static NETRXCB	poll_rx;		/* network RX function to call */
 static void	*poll_arg;		/* network RX function arg */
+static void	*slirpMutex;
+
+
+
+void
+network_slirp_mutex_init(void)
+{
+    slirpMutex = thread_create_mutex(L"86Box.SLiRPMutex");
+}
+
+
+static void
+startslirp(void)
+{
+    thread_wait_mutex(slirpMutex);
+}
+
+
+static void
+endslirp(void)
+{
+    thread_release_mutex(slirpMutex);
+}
 
 
 /* Instead of calling this and crashing some times

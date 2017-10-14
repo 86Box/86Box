@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -13,14 +14,18 @@
 #include "sound.h"
 #include "snd_emu8k.h"
 
-
 #if !defined FILTER_INITIAL && !defined FILTER_MOOG && !defined FILTER_CONSTANT
+//#define FILTER_INITIAL
 #define FILTER_MOOG
+//#define FILTER_CONSTANT
 #endif
 
 #if !defined RESAMPLER_LINEAR && !defined RESAMPLER_CUBIC
+//#define RESAMPLER_LINEAR
 #define RESAMPLER_CUBIC
 #endif
+
+//#define EMU8K_DEBUG_REGISTERS
 
 char *PORT_NAMES[][8] =
 {
@@ -53,8 +58,8 @@ char *PORT_NAMES[][8] =
                 "AWE_HWCF2"  
                 "AWE_HWCF3"  
                 */
-                0,
-                0,
+                0,//"AWE_INIT1",
+                0,//"AWE_INIT3",
                 "AWE_ENVVOL",
                 "AWE_DCYSUSV",
                 "AWE_ENVVAL",
@@ -63,8 +68,8 @@ char *PORT_NAMES[][8] =
         /* Data 2 0xA22 */
         {       "AWE_CCCA",
                 0,
-                0,
-                0,
+                0,//"AWE_INIT2",
+                0,//"AWE_INIT4",
                 "AWE_ATKHLDV",
                 "AWE_LFO1VAL",
                 "AWE_ATKHLD",
@@ -88,7 +93,9 @@ enum
         ENV_DELAY  = 1,
         ENV_ATTACK  = 2,
         ENV_HOLD  = 3,
+        //ENV_DECAY   = 4,
         ENV_SUSTAIN = 5,
+        //ENV_RELEASE = 6,
         ENV_RAMP_DOWN = 7,
         ENV_RAMP_UP = 8
 };
@@ -231,15 +238,15 @@ uint32_t rep_count_w = 0;
 # define READ16(addr, var)       READ16_SWITCH(addr, var) \
                                 { \
                                     const char *name=0;   \
-                                    switch(addr) \
+                                    switch(addr&0xF02) \
                                     { \
-                                    case 0x620: case 0x622: \
+                                    case 0x600: case 0x602: \
                                         name = PORT_NAMES[0][emu8k->cur_reg]; \
                                         break; \
-                                    case 0xA20: \
+                                    case 0xA00: \
                                         name = PORT_NAMES[1][emu8k->cur_reg]; \
                                         break; \
-                                    case 0xA22: \
+                                    case 0xA02: \
                                         name = PORT_NAMES[2][emu8k->cur_reg]; \
                                         break; \
                                     } \
@@ -255,15 +262,15 @@ uint32_t rep_count_w = 0;
 # define WRITE16(addr, var, val) WRITE16_SWITCH(addr, var, val) \
                                 { \
                                     const char *name=0;   \
-                                    switch(addr) \
+                                    switch(addr&0xF02) \
                                     { \
-                                    case 0x620: case 0x622: \
+                                    case 0x600: case 0x602: \
                                         name = PORT_NAMES[0][emu8k->cur_reg]; \
                                         break; \
-                                    case 0xA20: \
+                                    case 0xA00: \
                                         name = PORT_NAMES[1][emu8k->cur_reg]; \
                                         break; \
-                                    case 0xA22: \
+                                    case 0xA02: \
                                         name = PORT_NAMES[2][emu8k->cur_reg]; \
                                         break; \
                                     } \
@@ -280,7 +287,7 @@ uint32_t rep_count_w = 0;
 #else
 # define READ16(addr, var)       READ16_SWITCH(addr, var)                                                      
 # define WRITE16(addr, var, val) WRITE16_SWITCH(addr, var, val)
-#endif /* EMU8K_DEBUG_REGISTERS */
+#endif //EMU8K_DEBUG_REGISTERS 
 
 
 static inline int16_t EMU8K_READ(emu8k_t *emu8k, uint32_t addr)
@@ -312,7 +319,7 @@ static inline int32_t EMU8K_READ_INTERP_CUBIC(emu8k_t *emu8k, uint32_t int_addr,
          * the card could use two oscillators (usually 31 and 32) where it would
          * be writing the OPL3 output, and to which, chorus and reverb could be applied to get
          * those effects for OPL3 sounds.*/
-/*        if ((addr & EMU8K_FM_MEM_ADDRESS) == EMU8K_FM_MEM_ADDRESS) {} */
+//        if ((addr & EMU8K_FM_MEM_ADDRESS) == EMU8K_FM_MEM_ADDRESS) {}
 
         /* This is cubic interpolation.
          * Not the same than 3-point interpolation, but a better approximation than linear
@@ -389,7 +396,7 @@ uint16_t emu8k_inw(uint16_t addr, void *p)
                         last_read=tmpz;
                         pclog("EMU8K READ RAM I/O or configuration or clock \n");
                 }
-                /* pclog("EMU8K READ %04X-%02X(%d/%d)\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice, emu8k->cur_reg, emu8k->cur_voice); */
+                //pclog("EMU8K READ %04X-%02X(%d/%d)\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice, emu8k->cur_reg, emu8k->cur_voice); 
         }
         else if ((addr&0xF00) == 0xA00 && (emu8k->cur_reg == 2 || emu8k->cur_reg == 3))
         {
@@ -404,7 +411,7 @@ uint16_t emu8k_inw(uint16_t addr, void *p)
                         last_read=tmpz;
                         pclog("EMU8K READ INIT \n");
                 }
-                /* pclog("EMU8K READ %04X-%02X(%d/%d)\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice, emu8k->cur_reg, emu8k->cur_voice); */
+                //pclog("EMU8K READ %04X-%02X(%d/%d)\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice, emu8k->cur_reg, emu8k->cur_voice); 
         }
         else
         { 
@@ -472,7 +479,7 @@ uint16_t emu8k_inw(uint16_t addr, void *p)
                 }
                 rep_count_r++;
         }
-#endif /*  EMU8K_DEBUG_REGISTERS */
+#endif //  EMU8K_DEBUG_REGISTERS
 
 
         switch (addr & 0xF02)
@@ -724,7 +731,7 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
 #ifdef EMU8K_DEBUG_REGISTERS
         if (addr == 0xE22)
         {
-                /* pclog("EMU8K WRITE POINTER: %d\n", val); */
+                //pclog("EMU8K WRITE POINTER: %d\n", val);
         }
         else if ((addr&0xF00) == 0x600)
         {
@@ -759,7 +766,7 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                         last_write=tmpz;
                         pclog("EMU8K WRITE RAM I/O or configuration \n");
                 }
-                /* pclog("EMU8K WRITE %04X-%02X(%d/%d): %04X\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice,emu8k->cur_reg,emu8k->cur_voice, val); */
+                //pclog("EMU8K WRITE %04X-%02X(%d/%d): %04X\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice,emu8k->cur_reg,emu8k->cur_voice, val); 
         }
         else if ((addr&0xF00) == 0xA00 && (emu8k->cur_reg == 2 || emu8k->cur_reg == 3))
         {
@@ -774,12 +781,12 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                         last_write=tmpz;
                         pclog("EMU8K WRITE INIT \n");
                 }
-                /* pclog("EMU8K WRITE %04X-%02X(%d/%d): %04X\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice,emu8k->cur_reg,emu8k->cur_voice, val); */
+                //pclog("EMU8K WRITE %04X-%02X(%d/%d): %04X\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice,emu8k->cur_reg,emu8k->cur_voice, val); 
         }
         else if (addr != 0xE22)
         { 
                 uint32_t tmpz = (addr << 16)|(emu8k->cur_reg<<5)| emu8k->cur_voice;
-                /* if (tmpz != last_write) */
+                //if (tmpz != last_write)
                 if(1)
                 {
                         char* name = 0;
@@ -814,7 +821,7 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                 }
                 rep_count_w++;
         }
-#endif /* EMU8K_DEBUG_REGISTERS */
+#endif //EMU8K_DEBUG_REGISTERS
 
 
         switch (addr & 0xF02)
@@ -954,15 +961,15 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                                         break;
                                         case 0x9: emu8k->reverb_engine.reflections[0].feedback =  (val&0xF)/15.0;
                                         break;
-                                        case 0xB: /* emu8k->reverb_engine.reflections[0].feedback_r =  (val&0xF)/15.0; */
+                                        case 0xB: //emu8k->reverb_engine.reflections[0].feedback_r =  (val&0xF)/15.0;
                                         break;
                                         case 0x11:emu8k->reverb_engine.reflections[1].feedback =  (val&0xF)/15.0;
                                         break;
-                                        case 0x13: /* emu8k->reverb_engine.reflections[1].feedback_r =  (val&0xF)/15.0; */
+                                        case 0x13: //emu8k->reverb_engine.reflections[1].feedback_r =  (val&0xF)/15.0;
                                         break;
                                         case 0x19: emu8k->reverb_engine.reflections[2].feedback =  (val&0xF)/15.0;
                                         break;
-                                        case 0x1B: /* emu8k->reverb_engine.reflections[2].feedback_r =  (val&0xF)/15.0; */
+                                        case 0x1B: //emu8k->reverb_engine.reflections[2].feedback_r =  (val&0xF)/15.0;
                                         break;
                                 }
                         }
@@ -979,12 +986,13 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                                         emu8k->chorus_engine.feedback = (val&0xFF);
                                         break;
                                         case 12:
-                                        emu8k->chorus_engine.delay_samples_central = val;
+                                        /* Limiting this to a sane value given our buffer. */
+                                        emu8k->chorus_engine.delay_samples_central = (val&0x1FFF);
                                         break;
                                         
                                         case 1: emu8k->reverb_engine.refl_in_amp = val&0xFF;
                                         break;
-                                        case 3: /* emu8k->reverb_engine.refl_in_amp_r = val&0xFF; */
+                                        case 3: //emu8k->reverb_engine.refl_in_amp_r = val&0xFF;
                                         break;
                                 }                            
                         }
@@ -1005,17 +1013,17 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                                 if (emu8k->voice[emu8k->cur_voice].env_engine_on &&
                                     old_on != emu8k->voice[emu8k->cur_voice].env_engine_on)
                                 {
-                                        if (emu8k->hwcf3 != 0x04 && emu8k->cur_voice == 31)
+                                        if (emu8k->hwcf3 != 0x04)
                                         {
                                                 /* This is a hack for some programs like Doom or cubic player 1.7 that don't initialize
                                                    the hwcfg and init registers (doom does not init the card at all. only tests the cfg registers) */
                                                 emu8k->hwcf3 = 0x04;
                                         }
                                     
-                                        /* reset lfos. */
+                                        //reset lfos.
                                         emu8k->voice[emu8k->cur_voice].lfo1_count.addr = 0;
                                         emu8k->voice[emu8k->cur_voice].lfo2_count.addr = 0;
-                                        /* Trigger envelopes */
+                                        // Trigger envelopes
                                         if (ATKHLDV_TRIGGER(emu8k->voice[emu8k->cur_voice].atkhldv))
                                         {
                                                 vol_env->value_amp_hz = 0;
@@ -1092,7 +1100,7 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
 
                         case 7:
                         {
-                                /* TODO: Look for a bug on delay (first trigger it works, next trigger it doesn't) */
+                                //TODO: Look for a bug on delay (first trigger it works, next trigger it doesn't)
                                 emu8k->voice[emu8k->cur_voice].dcysus = val;
                                 emu8k_envelope_t* const mod_env = &emu8k->voice[emu8k->cur_voice].mod_envelope;
                                 /* Converting the input in octaves to envelope value range. */
@@ -1137,7 +1145,9 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                                 if (emu8k->init1[0] != 0x03FF)
                                 {
                                         /*(1/256th of a 44Khz sample) */
-                                        emu8k->chorus_engine.delay_offset_samples_right = ((double)emu8k->hwcf4)/256.0;
+                                        /* clip the value to a reasonable value given our buffer */
+                                        int32_t tmp = emu8k->hwcf4&0x1FFFFF;
+                                        emu8k->chorus_engine.delay_offset_samples_right = ((double)tmp)/256.0;
                                 }
                                 return;
                                 case 10:
@@ -1147,9 +1157,14 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                                 {
                                         /* The scale of this value is unknown. I've taken it as milliHz.
                                          * Another interpretation could be periods. (and so, Hz = 1/period)*/
-                                        double osc_speed = emu8k->hwcf5;/* *1.316; */
+                                        double osc_speed = emu8k->hwcf5;//*1.316;
+#if 1 // milliHz
                                         /*milliHz to lfotable samples.*/
                                         osc_speed *= 65.536/44100.0;
+#elif 0 //periods
+                                        /* 44.1Khz ticks to lfotable samples.*/
+                                        osc_speed = 65.536/osc_speed;
+#endif
                                         /*left shift 32bits for 32.32 fixed.point*/
                                         osc_speed *= 65536.0*65536.0;
                                         emu8k->chorus_engine.lfo_inc.addr = (uint64_t)osc_speed;
@@ -1235,15 +1250,15 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                                         break;
                                         case 0x1: emu8k->reverb_engine.reflections[3].feedback =  (val&0xF)/15.0;
                                         break;
-                                        case 0x3: /* emu8k->reverb_engine.reflections[3].feedback_r =  (val&0xF)/15.0; */
+                                        case 0x3: //emu8k->reverb_engine.reflections[3].feedback_r =  (val&0xF)/15.0;
                                         break;
                                         case 0x9: emu8k->reverb_engine.reflections[4].feedback =  (val&0xF)/15.0;
                                         break;
-                                        case 0xb: /* emu8k->reverb_engine.reflections[4].feedback_r =  (val&0xF)/15.0; */
+                                        case 0xb: //emu8k->reverb_engine.reflections[4].feedback_r =  (val&0xF)/15.0;
                                         break;
                                         case 0x11: emu8k->reverb_engine.reflections[5].feedback =  (val&0xF)/15.0;
                                         break;
-                                        case 0x13: /* emu8k->reverb_engine.reflections[5].feedback_r =  (val&0xF)/15.0; */
+                                        case 0x13: //emu8k->reverb_engine.reflections[5].feedback_r =  (val&0xF)/15.0;
                                         break;
                                 }
                         }
@@ -1260,6 +1275,7 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                                         {
                                                 int32_t samples = ((val&0xFF)*emu8k->chorus_engine.delay_samples_central) >> 8;
                                                 emu8k->chorus_engine.lfodepth_multip = samples;
+
                                         }
                                         break;
                                         
@@ -1386,8 +1402,8 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                                 if ((val&0xFF) == 0 && the_voice->cvcf_curr_volume == 0 && the_voice->vtft_vol_target == 0 
                                     && the_voice->dcysusv == 0x80 && the_voice->ip == 0)
                                 {
-                                    /* Patch to avoid some clicking noises with Impulse tracker or other software that sets different values to 0
-                                       to set noteoff, but here, 0 means no attenuation = full volume. */
+                                    // Patch to avoid some clicking noises with Impulse tracker or other software that sets 
+                                    // different values to 0 to set noteoff, but here, 0 means no attenuation = full volume.
                                     return;
                                 }
                                 the_voice->ifatn = val;
@@ -1496,7 +1512,7 @@ void emu8k_work_chorus(int32_t *inbuf, int32_t *outbuf, emu8k_chorus_eng_t *engi
         for (pos = 0; pos < count; pos++)
         {            
                 double lfo_inter1 = chortable[engine->lfo_pos.int_address];
-                /* double lfo_inter2 = chortable[(engine->lfo_pos.int_address+1)&0xFFFF]; */
+                // double lfo_inter2 = chortable[(engine->lfo_pos.int_address+1)&0xFFFF];
 
                 double offset_lfo =lfo_inter1; //= lfo_inter1 + ((lfo_inter2-lfo_inter1)*engine->lfo_pos.fract_address/65536.0);
                 offset_lfo *= engine->lfodepth_multip;
@@ -1505,18 +1521,16 @@ void emu8k_work_chorus(int32_t *inbuf, int32_t *outbuf, emu8k_chorus_eng_t *engi
                 double readdouble = (double)engine->write - (double)engine->delay_samples_central - offset_lfo;
                 int read = (int32_t)floor(readdouble);
                 int fraction_part = (readdouble - (double)read)*65536.0;
-                if (read < 0)
-                        read = 0;
                 int next_value = read + 1;
                 if(read < 0)
                 {
-                        read += SOUNDBUFLEN;
-                        if(next_value < 0) next_value += SOUNDBUFLEN;
+                        read += EMU8K_LFOCHORUS_SIZE;
+                        if(next_value < 0) next_value += EMU8K_LFOCHORUS_SIZE;
                 }
-                else if(next_value >= SOUNDBUFLEN)
+                else if(next_value >= EMU8K_LFOCHORUS_SIZE)
                 {
-                        next_value -= SOUNDBUFLEN;
-                        if(read >= SOUNDBUFLEN) read -= SOUNDBUFLEN;
+                        next_value -= EMU8K_LFOCHORUS_SIZE;
+                        if(read >= EMU8K_LFOCHORUS_SIZE) read -= EMU8K_LFOCHORUS_SIZE;
                 }
                 int32_t dat1 = engine->chorus_left_buffer[read];
                 int32_t dat2 = engine->chorus_left_buffer[next_value];
@@ -1528,18 +1542,16 @@ void emu8k_work_chorus(int32_t *inbuf, int32_t *outbuf, emu8k_chorus_eng_t *engi
                 /* Work right */
                 readdouble = (double)engine->write - (double)engine->delay_samples_central - engine->delay_offset_samples_right - offset_lfo;
                 read = (int32_t)floor(readdouble);
-                if (read < 0)
-                        read = 0;
                 next_value = read + 1;
                 if(read < 0)
                 {
-                        read += SOUNDBUFLEN;
-                        if(next_value < 0) next_value += SOUNDBUFLEN;
+                        read += EMU8K_LFOCHORUS_SIZE;
+                        if(next_value < 0) next_value += EMU8K_LFOCHORUS_SIZE;
                 }
-                else if(next_value >= SOUNDBUFLEN)
+                else if(next_value >= EMU8K_LFOCHORUS_SIZE)
                 {
-                        next_value -= SOUNDBUFLEN;
-                        if(read >= SOUNDBUFLEN) read -= SOUNDBUFLEN;
+                        next_value -= EMU8K_LFOCHORUS_SIZE;
+                        if(read >= EMU8K_LFOCHORUS_SIZE) read -= EMU8K_LFOCHORUS_SIZE;
                 }
                 int32_t dat3 = engine->chorus_right_buffer[read];
                 int32_t dat4 = engine->chorus_right_buffer[next_value];
@@ -1548,7 +1560,7 @@ void emu8k_work_chorus(int32_t *inbuf, int32_t *outbuf, emu8k_chorus_eng_t *engi
                 engine->chorus_right_buffer[engine->write] = *inbuf + ((dat3 * engine->feedback)>>8);
                 
                 ++engine->write;
-                engine->write %= SOUNDBUFLEN;
+                engine->write %= EMU8K_LFOCHORUS_SIZE;
                 engine->lfo_pos.addr +=engine->lfo_inc.addr;
                 engine->lfo_pos.int_address &= 0xFFFF;
 
@@ -1598,10 +1610,10 @@ int32_t emu8k_reverb_tail_work(emu8k_reverb_combfilter_t* comb, emu8k_reverb_com
         /* store new value in delayed buffer */
         comb->reflection[comb->read_pos] = in;
         
-        /* output = emu8k_reverb_allpass_work(&allpasses[0],output); */
+        //output = emu8k_reverb_allpass_work(&allpasses[0],output);
         output = emu8k_reverb_diffuser_work(&allpasses[1],output);
         output = emu8k_reverb_diffuser_work(&allpasses[2],output);
-        /* output = emu8k_reverb_allpass_work(&allpasses[3],output); */
+        //output = emu8k_reverb_allpass_work(&allpasses[3],output);
         
         if(++comb->read_pos>=comb->bufsize) comb->read_pos = 0;
         
@@ -1664,7 +1676,7 @@ void emu8k_work_reverb(int32_t *inbuf, int32_t *outbuf, emu8k_reverb_eng_t *engi
 }
 void emu8k_work_eq(int32_t *inoutbuf, int count)
 {
-        /* TODO: Work EQ over buf */
+        // TODO: Work EQ over buf
 }
 
 
@@ -1683,6 +1695,9 @@ int32_t emu8k_vol_slide(emu8k_slide_t* slide, int32_t target)
         return slide->last;
 }
 
+//int32_t old_pitch[32]={0};
+//int32_t old_cut[32]={0};
+//int32_t old_vol[32]={0};
 void emu8k_update(emu8k_t *emu8k)
 {
         int new_pos = (sound_pos_global * 44100) / 48000;
@@ -2055,6 +2070,12 @@ I've recopilated these sentences to get an idea of how to loop
                 /* Update EMU voice registers. */
                 emu_voice->ccca = (((uint32_t)emu_voice->ccca_qcontrol) << 24) | emu_voice->addr.int_address;
                 emu_voice->cpf_curr_frac_addr = emu_voice->addr.fract_address;
+
+                //if ( emu_voice->cvcf_curr_volume != old_vol[c]) {
+                //    pclog("EMUVOL (%d):%d\n", c, emu_voice->cvcf_curr_volume);
+                //    old_vol[c]=emu_voice->cvcf_curr_volume;
+                //}
+                //pclog("EMUFILT :%d\n", emu_voice->cvcf_curr_filt_ctoff);
         }
 
         
@@ -2063,7 +2084,7 @@ I've recopilated these sentences to get an idea of how to loop
         emu8k_work_chorus(&emu8k->chorus_in_buffer[emu8k->pos], buf, &emu8k->chorus_engine, new_pos-emu8k->pos);
         emu8k_work_eq(buf, new_pos-emu8k->pos);
         
-        /* Clip signal */
+        // Clip signal
         for (pos = emu8k->pos; pos < new_pos; pos++)        
         {
                 if (buf[0] < -32768)
@@ -2085,7 +2106,7 @@ I've recopilated these sentences to get an idea of how to loop
         emu8k->pos = new_pos;
 }
 /* onboard_ram in kilobytes */
-void emu8k_init(emu8k_t *emu8k, int onboard_ram)
+void emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
 {
         uint32_t const BLOCK_SIZE_WORDS = 0x10000;
         FILE *f;
@@ -2145,9 +2166,9 @@ void emu8k_init(emu8k_t *emu8k, int onboard_ram)
                 
         }
 
-        io_sethandler(0x0620, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
-        io_sethandler(0x0a20, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
-        io_sethandler(0x0e20, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
+        io_sethandler(emu_addr,       0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
+        io_sethandler(emu_addr+0x400, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
+        io_sethandler(emu_addr+0x800, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
 
         /*Create frequency table. (Convert initial pitch register value to a linear speed change)
          * The input is encoded such as 0xe000 is center note (no pitch shift)
@@ -2178,6 +2199,8 @@ void emu8k_init(emu8k_t *emu8k, int onboard_ram)
         out = 65535.0;
         for (c = 0; c < 0x10000; c++)
         {
+                //double db = -(c*6.0205999/65535.0)*16.0;
+                //out = powf(10.f,db/20.f) * 65536.0;
                 env_vol_db_to_vol_target[c] = (int32_t)out;
                 /* calculated from the 65536th root of 65536 */
                 out /= 1.00016923970;
@@ -2283,12 +2306,13 @@ void emu8k_init(emu8k_t *emu8k, int onboard_ram)
                         filt_coeffs[qidx][c][0] = (int32_t)(coef0 * 16777216.0); 
                         filt_coeffs[qidx][c][1] = (int32_t)(coef1 * 16777216.0);
                         filt_coeffs[qidx][c][2] = (int32_t)(coef2 * 16777216.0);
-#endif /* FILTER_TYPE */
+#endif //FILTER_TYPE
                         /* 42.66 divisions per octave (the doc says quarter seminotes which is 48, but then it would be almost an octave less) */
                         out *= 1.016378315;
                         /* 42 divisions. This moves the max frequency to 8.5Khz.*/
-                        /* out *= 1.0166404394; */
+                        //out *= 1.0166404394;
                         /* This is a linear increment method, that corresponds to the NRPN table, but contradicts the EMU8KPRM doc: */
+                        //out = 100.0 + (c+1.0)*31.25; //31.25Hz steps */
                 }
         }
         /* NOTE! read_pos and buffer content is implicitly initialized to zero by the sb_t structure memset on sb_awe32_init() */
@@ -2321,8 +2345,8 @@ void emu8k_init(emu8k_t *emu8k, int onboard_ram)
                 cubic_table[c*4+2] = (-1.5 * x * x * x + 2.0 * x * x + 0.5 * x)       ;
                 cubic_table[c*4+3] = ( 0.5 * x * x * x - 0.5 * x * x)                 ;
         }
-        /* If this is not set here, AWE card is not detected on Windows with Aweman driver. It's weird that the EMU8k says that this
-         * has to be set by applications, and the AWE driver does not set it. */
+        /* Even when the documentation says that this has to be written by applications to initialize the card, 
+         * several applications and drivers ( aweman on windows, linux oss driver..) read it to detect an AWE card. */
         emu8k->hwcf1 = 0x59;
         emu8k->hwcf2 = 0x20;
         /* Initial state is muted. 0x04 is unmuted. */

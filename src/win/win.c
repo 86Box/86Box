@@ -94,7 +94,6 @@ uint64_t	main_time;
 HWND		hwndMain;
 HMENU		menuMain;
 HANDLE		ghMutex;
-HANDLE		slirpMutex;
 HINSTANCE	hinstance;
 HICON		hIcon[512];
 RECT		oldclip;
@@ -1275,9 +1274,6 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 	endblit();
     }
 
-    /* Move this to SLiRP. */
-    slirpMutex = CreateMutex(NULL, FALSE, L"86Box.SlirpMutex");
-
     /* All done, fire up the actual emulated machine. */
     if (! pc_init_modules()) {
 	/* Dang, no ROMs found at all! */
@@ -1630,20 +1626,6 @@ void
 endblit(void)
 {
     ReleaseMutex(ghMutex);
-}
-
-
-void
-startslirp(void)
-{
-    WaitForSingleObject(slirpMutex, INFINITE);
-}
-
-
-void
-endslirp(void)
-{
-    ReleaseMutex(slirpMutex);
 }
 
 

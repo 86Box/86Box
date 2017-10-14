@@ -23,14 +23,18 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../ibm.h"
+#include "../mem.h"
+#include "../rom.h"
 #include "../timer.h"
 #include "../device.h"
 #include "../cdrom/cdrom.h"
 #include "../disk/hdc.h"
+#include "../plat.h"
 #include "scsi.h"
 #include "scsi_aha154x.h"
 #include "scsi_buslogic.h"
 #include "scsi_ncr5380.h"
+#include "scsi_x54x.h"
 
 
 scsi_device_t	SCSIDevices[SCSI_ID_MAX][SCSI_LUN_MAX];
@@ -44,6 +48,7 @@ int		scsi_card_current = 0;
 int		scsi_card_last = 0;
 
 uint32_t	SCSI_BufferLength;
+void		*scsiMutex;
 
 
 typedef struct {
@@ -56,14 +61,15 @@ typedef struct {
 
 static SCSI_CARD scsi_cards[] = {
     { "None",			"none",		NULL,		      NULL		  },
-    { "[ISA] Adaptec AHA-1540B","aha1540b",	&aha1540b_device,     aha_device_reset    },
-    { "[ISA] Adaptec AHA-1542C","aha1542c",	&aha1542c_device,     aha_device_reset    },
-    { "[ISA] Adaptec AHA-1542CF","aha1542cf",	&aha1542cf_device,    aha_device_reset    },
-    { "[ISA] BusLogic BT-545C",	"bt545c",	&buslogic_device,     BuslogicDeviceReset },
+    { "[ISA] Adaptec AHA-1540B","aha1540b",	&aha1540b_device,     x54x_device_reset   },
+    { "[ISA] Adaptec AHA-1542C","aha1542c",	&aha1542c_device,     x54x_device_reset   },
+    { "[ISA] Adaptec AHA-1542CF","aha1542cf",	&aha1542cf_device,    x54x_device_reset   },
+    { "[ISA] BusLogic BT-542BH","bt542bh",	&buslogic_device,     BuslogicDeviceReset },
+    { "[ISA] BusLogic BT-545S",	"bt545s",	&buslogic_545s_device,BuslogicDeviceReset },
     { "[ISA] Longshine LCS-6821N","lcs6821n",	&scsi_lcs6821n_device,NULL		  },
     { "[ISA] Ranco RT1000B",	"rt1000b",	&scsi_rt1000b_device, NULL		  },
     { "[ISA] Trantor T130B",	"t130b",	&scsi_t130b_device,   NULL		  },
-    { "[MCA] Adaptec AHA-1640",	"aha1640",	&aha1640_device,      aha_device_reset    },
+    { "[MCA] Adaptec AHA-1640",	"aha1640",	&aha1640_device,      x54x_device_reset   },
     { "[PCI] BusLogic BT-958D",	"bt958d",	&buslogic_pci_device, BuslogicDeviceReset },
     { "",			"",		NULL,		      NULL		  },
 };
@@ -118,6 +124,12 @@ int scsi_card_get_from_internal_name(char *s)
 }
 
 
+void scsi_mutex_init(void)
+{
+    scsiMutex = thread_create_mutex(L"86Box.SCSIMutex");
+}
+
+
 void scsi_card_init(void)
 {
     int i, j;
@@ -136,6 +148,7 @@ void scsi_card_init(void)
 		} else {
 			SCSIDevices[i][j].LunType = SCSI_NONE;
 		}
+		SCSIDevices[i][j].CmdBuffer = NULL;
 	}
     }
 
@@ -183,4 +196,18 @@ void SCSIReset(uint8_t id, uint8_t lun)
 	free(SCSIDevices[id][lun].CmdBuffer);
 	SCSIDevices[id][lun].CmdBuffer = NULL;
     }
+}
+
+
+void
+startscsi(void)
+{
+    thread_wait_mutex(scsiMutex);
+}
+
+
+void
+endscsi(void)
+{
+    thread_release_mutex(scsiMutex);
 }

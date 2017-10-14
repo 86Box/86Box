@@ -31,6 +31,7 @@
 #include "snd_opl.h"
 #include "snd_adlib.h"
 #include "snd_adlibgold.h"
+#include "snd_audiopci.h"
 #if defined(DEV_BRANCH) && defined(USE_PAS16)
 # include "snd_pas16.h"
 #endif
@@ -67,9 +68,11 @@ static SOUND_CARD sound_cards[] =
     { "[ISA] Pro Audio Spectrum 16","pas16",	&pas16_device		},
 #endif
     { "[ISA] Windows Sound System", "wss",	&wss_device		},
-    { "[MCA] Adlib",            "adlib_mca",	&adlib_mca_device	},
-    { "[MCA] Sound Blaster MCV","sbmcv",	&sb_mcv_device		},
+    { "[MCA] Adlib",                "adlib_mca",	&adlib_mca_device	},
+    { "[MCA] Sound Blaster MCV",    "sbmcv",	&sb_mcv_device		},
     { "[MCA] Sound Blaster Pro MCV","sbpromcv",	&sb_pro_mcv_device	},
+    { "[PCI] Ensoniq AudioPCI (ES1371)","es1371",    &es1371_device},
+    { "[PCI] Sound Blaster PCI 128",    "sbpci128",  &es1371_device},
     { "",			"",		NULL			}
 };
 

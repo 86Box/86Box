@@ -27,7 +27,6 @@ typedef struct
 	int command_pos;
 	uint8_t command[20];
 	int data_pos;
-	uint8_t buffer[390144];
 	
 	int change_state_delay;
 	int new_req_delay;	
@@ -51,10 +50,10 @@ extern void	scsi_device_command(uint8_t id, uint8_t lun, int cdb_len,
 extern void	scsi_device_command_phase0(uint8_t scsi_id, uint8_t scsi_lun,
 					   int cdb_len, uint8_t *cdb);
 extern void	scsi_device_command_phase1(uint8_t scsi_id, uint8_t scsi_lun);
+extern int32_t	*scsi_device_get_buf_len(uint8_t scsi_id, uint8_t scsi_lun);
 
 extern int scsi_bus_update(scsi_bus_t *bus, int bus_assert);
 extern int scsi_bus_read(scsi_bus_t *bus);
 extern int scsi_bus_match(scsi_bus_t *bus, int bus_assert);
-
 
 #endif	/*SCSI_DEVICE_H*/

@@ -46,6 +46,10 @@ thread_create(void (*thread_rout)(void *param), void *param)
 void
 thread_kill(void *handle)
 {
+    if (handle == NULL) {
+	return;
+    }
+
     TerminateThread(handle, 0);
 }
 
@@ -71,6 +75,10 @@ thread_create_event(void)
 void
 thread_set_event(event_t *_event)
 {
+    if (_event == NULL) {
+	return;
+    }
+
     win_event_t *event = (win_event_t *)_event;
 
     SetEvent(event->handle);
@@ -80,6 +88,10 @@ thread_set_event(event_t *_event)
 void
 thread_reset_event(event_t *_event)
 {
+    if (_event == NULL) {
+	return;
+    }
+
     win_event_t *event = (win_event_t *)_event;
 
     ResetEvent(event->handle);
@@ -89,6 +101,10 @@ thread_reset_event(event_t *_event)
 int
 thread_wait_event(event_t *_event, int timeout)
 {
+    if (_event == NULL) {
+	return 0;
+    }
+
     win_event_t *event = (win_event_t *)_event;
 
     if (timeout == -1)
@@ -104,6 +120,10 @@ void
 thread_destroy_event(event_t *_event)
 {
     win_event_t *event = (win_event_t *)_event;
+
+    if (_event == NULL) {
+	return;
+    }
 
     CloseHandle(event->handle);
 
@@ -121,6 +141,10 @@ thread_create_mutex(wchar_t *name)
 void
 thread_close_mutex(void *mutex)
 {
+    if (mutex == NULL) {
+	return;
+    }
+
     CloseHandle((HANDLE)mutex);
 }
 
@@ -128,6 +152,10 @@ thread_close_mutex(void *mutex)
 uint8_t
 thread_wait_mutex(void *mutex)
 {
+    if (mutex == NULL) {
+	return 0;
+    }
+
     DWORD dwres = WaitForSingleObject((HANDLE)mutex, INFINITE);
 
     switch (dwres) {
@@ -144,5 +172,9 @@ thread_wait_mutex(void *mutex)
 uint8_t
 thread_release_mutex(void *mutex)
 {
+    if (mutex == NULL) {
+	return 0;
+    }
+
     return(!!ReleaseMutex((HANDLE)mutex));
 }

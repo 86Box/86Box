@@ -100,6 +100,7 @@ typedef struct {
     uint8_t	tcr;
     uint8_t	ser;
     uint8_t	isr;
+    uint8_t	output_data;
 
     int		target_bsy;
     int		target_req;
@@ -211,7 +212,7 @@ get_bus_host(ncr5380_t *ncr)
     if (ncr->mode & MODE_ARBITRATE)
 	bus_host |= BUS_ARB;
 
-    return(bus_host | BUS_SETDATA(SCSI_BufferLength));
+    return(bus_host | BUS_SETDATA(ncr->output_data));
 }
 
 
@@ -227,13 +228,13 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 #endif
     switch (port & 7) {
 	case 0:		/* Output data register */
-		SCSI_BufferLength = val;
+		ncr->output_data = val;
 		break;
 
 	case 1:		/* Initiator Command Register */
 		if ((val & (ICR_BSY | ICR_SEL)) == (ICR_BSY | ICR_SEL) &&
 			(ncr->icr & (ICR_BSY | ICR_SEL)) == ICR_SEL) {
-			uint8_t temp = SCSI_BufferLength & 0x7f;
+			uint8_t temp = ncr->output_data & 0x7f;
 
 			ncr->target_id = -1;
 			while (temp) {
@@ -302,7 +303,7 @@ ncr_read(uint16_t port, void *priv)
     switch (port & 7) {
 	case 0:		/* current SCSI data */
 		if (ncr->icr & ICR_DBP) {
-			temp = SCSI_BufferLength;
+			temp = ncr->output_data;
 		} else {	
 			bus = scsi_bus_read(&ncr->bus);
 			temp = BUS_GETDATA(bus);

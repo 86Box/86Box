@@ -295,7 +295,7 @@ void scsi_device_command_phase0(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, 
 		break;
 	default:
 		id = 0;
-		break;
+		return;
     }
 
     /*
@@ -322,7 +322,7 @@ void scsi_device_command_phase0(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, 
 		scsi_device_target_phase_callback(lun_type, id);
 	} else {
 		/* Command first phase complete - call the callback to execute the second phase. */
-		if (SCSIPhase != SCSI_PHASE_DATA_OUT)
+		if (SCSIPhase == SCSI_PHASE_STATUS)
 		{
 			scsi_device_target_phase_callback(lun_type, id);
 			SCSIStatus = scsi_device_target_err_stat_to_scsi(lun_type, id);
@@ -352,11 +352,16 @@ void scsi_device_command_phase1(uint8_t scsi_id, uint8_t scsi_lun)
 			break;
 		default:
 			id = 0;
-			break;
+			return;
 	}
 
 	scsi_device_target_phase_callback(lun_type, id);
 	SCSIStatus = scsi_device_target_err_stat_to_scsi(lun_type, id);
 	/* Command second phase complete - call the callback to complete the command. */
 	scsi_device_target_phase_callback(lun_type, id);
+}
+
+int32_t *scsi_device_get_buf_len(uint8_t scsi_id, uint8_t scsi_lun)
+{
+	return &SCSIDevices[scsi_id][scsi_lun].BufferLength;
 }

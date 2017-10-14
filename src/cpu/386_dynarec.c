@@ -13,6 +13,7 @@
 #include "x86_ops.h"
 #include "x87.h"
 #include "../mem.h"
+#include "../nmi.h"
 #include "../pic.h"
 #include "../timer.h"
 #include "../floppy/floppy.h"
@@ -602,6 +603,9 @@ void exec386_dynarec(int cycs)
                                 if (trap)
                                         CPU_BLOCK_END();
 
+                                if (nmi && nmi_enable && nmi_mask)
+                                        CPU_BLOCK_END();
+
                                 ins++;
                                 insc++;
                                 
@@ -750,6 +754,9 @@ inrecomp=0;
                                 if (trap)
                                         CPU_BLOCK_END();
 
+                                if (nmi && nmi_enable && nmi_mask)
+                                        CPU_BLOCK_END();
+
 
                                 if (cpu_state.abrt)
                                 {
@@ -818,6 +825,9 @@ inrecomp=0;
                                 if (trap)
                                         CPU_BLOCK_END();
 
+                                if (nmi && nmi_enable && nmi_mask)
+                                        CPU_BLOCK_END();
+
 
                                 if (cpu_state.abrt)
                                 {
@@ -882,6 +892,19 @@ inrecomp=0;
                                 flags&=~T_FLAG;
                                 cpu_state.pc=readmemw(0,addr);
                                 loadcs(readmemw(0,addr+2));
+                        }
+                }
+                else if (nmi && nmi_enable && nmi_mask)
+                {
+                        cpu_state.oldpc = cpu_state.pc;
+                        oldcs = CS;
+                        pclog("NMI\n");
+                        x86_int(2);
+                        nmi_enable = 0;
+                        if (nmi_auto_clear)
+                        {
+                                nmi_auto_clear = 0;
+                                nmi = 0;
                         }
                 }
                 else if ((flags&I_FLAG) && pic_intpending)

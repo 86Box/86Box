@@ -1,9 +1,5 @@
 typedef struct sb_dsp_t
-{		
-		int uart_midi;
-		int uart_irq;
-		int onebyte_midi;
-		
+{
         int sb_type;
 
         int sb_8_length,  sb_8_format,  sb_8_autoinit,  sb_8_pause,  sb_8_enable,  sb_8_autolen,  sb_8_output;
@@ -15,8 +11,12 @@ typedef struct sb_dsp_t
         uint8_t sb_read_data[256];
         int sb_read_wp, sb_read_rp;
         int sb_speaker;
+        int muted;
 
         int sb_data_stat;
+	int uart_midi;
+	int uart_irq;
+	int onebyte_midi;
 
         int sb_irqnum;
 
@@ -61,12 +61,16 @@ typedef struct sb_dsp_t
         int asp_data_len;
         
         int64_t wb_time, wb_full;
-        
+
+        int record_pos_read;
+        int record_pos_write;
+        int16_t record_buffer[0xFFFF];
         int16_t buffer[SOUNDBUFLEN * 2];
         int pos;
 } sb_dsp_t;
 
 void sb_dsp_init(sb_dsp_t *dsp, int type);
+void sb_dsp_close(sb_dsp_t *dsp);
 
 void sb_dsp_setirq(sb_dsp_t *dsp, int irq);
 void sb_dsp_setdma8(sb_dsp_t *dsp, int dma);

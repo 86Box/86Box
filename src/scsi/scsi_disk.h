@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.h	1.0.2	2017/09/29
+ * Version:	@(#)scsi_disk.h	1.0.3	2017/10/14
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2017 Miran Grca.
@@ -54,6 +54,8 @@ typedef struct {
 
 	int do_page_save;
 	int block_descriptor_len;
+
+	uint8_t *temp_buffer;
 } scsi_hard_disk_t;
 
 

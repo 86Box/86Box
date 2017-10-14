@@ -259,11 +259,10 @@ extern int	prev_status;
 #define SCSI_PHASE_MESSAGE_OUT (BUS_MSG | BUS_CD)
 #define SCSI_PHASE_MESSAGE_IN  (BUS_MSG | BUS_CD | BUS_IO)
 
-extern uint32_t SCSI_BufferLength;
-
 typedef struct {	
     uint8_t	*CmdBuffer;
     int		LunType;
+    int32_t	BufferLength;
 } scsi_device_t;
 
 
@@ -294,7 +293,8 @@ extern device_t *scsi_card_getdevice(int card);
 extern int scsi_card_has_config(int card);
 extern char *scsi_card_get_internal_name(int card);
 extern int scsi_card_get_from_internal_name(char *s);
-extern void scsi_card_init();
+extern void scsi_mutex_init(void);
+extern void scsi_card_init(void);
 extern void scsi_card_reset(void);
 
 extern uint8_t scsi_hard_disks[16][8];
@@ -351,3 +351,6 @@ typedef struct {
 #define MODE_SELECT_PHASE_PAGE		4
 
 #endif	/*EMU_SCSI_H*/
+
+extern void	startscsi(void);
+extern void	endscsi(void);

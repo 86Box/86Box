@@ -89,6 +89,8 @@ network_init(void)
 
     if (network_type != NET_TYPE_PCAP)
 	network_pcap_close();
+
+    network_slirp_mutex_init();
 }
 
 
