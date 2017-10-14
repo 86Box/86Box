@@ -205,7 +205,8 @@ ifeq ($(VNC), y)
 CFLAGS		+= -DUSE_VNC
 RFLAGS		+= -DUSE_VNC
 CFLAGS		+= -I$(VNC_PATH)\INCLUDE
-VNCLIB		:= $(VNC_PATH)\LIB\libvncserver.a
+# VNCLIB		:= $(VNC_PATH)\LIB\libvncserver.a
+VNCLIB		:= -lvncserver
 VNCOBJ		:= win_vnc.o
 endif
 
