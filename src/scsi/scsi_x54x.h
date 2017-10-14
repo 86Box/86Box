@@ -28,7 +28,7 @@
 
 
 #define ROM_SIZE	16384				/* one ROM is 16K */
-#define NVR_SIZE	32				/* size of NVR */
+#define NVR_SIZE	256				/* size of NVR */
 
 
 /* EEPROM map and bit definitions. */

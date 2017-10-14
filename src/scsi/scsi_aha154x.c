@@ -171,6 +171,7 @@ static uint8_t
 aha154x_eeprom(x54x_t *dev, uint8_t cmd,uint8_t arg,uint8_t len,uint8_t off,uint8_t *bufp)
 {
     uint8_t r = 0xff;
+    int c;
 
     aha_log("%s: EEPROM cmd=%02x, arg=%02x len=%d, off=%02x\n",
 				dev->name, cmd, arg, len, off);
@@ -178,11 +179,10 @@ aha154x_eeprom(x54x_t *dev, uint8_t cmd,uint8_t arg,uint8_t len,uint8_t off,uint
     /* Only if we can handle it.. */
     if (dev->nvr == NULL) return(r);
 
-    if ((off+len) > NVR_SIZE) return(r);	/* no can do.. */
-
     if (cmd == 0x22) {
 	/* Write data to the EEPROM. */
-	memcpy(&dev->nvr[off], bufp, len);
+	for (c = 0; c < len; c++)
+		dev->nvr[(off + c) & 0xff] = bufp[c];
 	r = 0;
 
 	aha_eeprom_save(dev);
@@ -190,7 +190,8 @@ aha154x_eeprom(x54x_t *dev, uint8_t cmd,uint8_t arg,uint8_t len,uint8_t off,uint
 
     if (cmd == 0x23) {
 	/* Read data from the EEPROM. */
-	memcpy(bufp, &dev->nvr[off], len);
+	for (c = 0; c < len; c++)
+		bufp[c] = dev->nvr[(off + c) & 0xff];
 	r = len;
     }
 
@@ -325,7 +326,7 @@ aha_cmds(void *p)
 					   dev->CmdBuf[0],
 					   dev->CmdBuf[1],
 					   dev->CmdBuf[2],
-					   dev->DataBuf);
+					   &(dev->CmdBuf[3]));
 			if (dev->DataReplyLeft == 0xff) {
 				dev->DataReplyLeft = 0;
 				dev->Status |= STAT_INVCMD;
