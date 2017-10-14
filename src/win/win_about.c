@@ -8,7 +8,7 @@
  *
  *		Handle the About dialog.
  *
- * Version:	@(#)win_about.c	1.0.2	2017/10/09
+ * Version:	@(#)win_about.c	1.0.3	2017/10/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../plat.h"
 #include "win.h"
 
 
@@ -39,7 +40,7 @@ AboutDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
     switch (message) {
 	case WM_INITDIALOG:
-		pause = 1;
+		plat_pause(1);
 		h = GetDlgItem(hdlg, IDC_ABOUT_ICON);
 		SendMessage(h, STM_SETIMAGE, (WPARAM)IMAGE_ICON,
 		  (LPARAM)LoadImage(hinstance,(PCTSTR)100,IMAGE_ICON,64,64,0));
@@ -49,7 +50,7 @@ AboutDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                 switch (LOWORD(wParam)) {
 			case IDOK:
 				EndDialog(hdlg, 0);
-				pause = 0;
+				plat_pause(0);
 				return TRUE;
 
 			default:

@@ -422,9 +422,11 @@ load_general(void)
 	vid_api = 0;
       else if (! strcmp(temp, "d3d9"))
 	vid_api = 1;
+#ifdef USE_VNC
       else if (! strcmp(temp, "vnc"))
 	vid_api = 2;
-#if 0
+#endif
+#ifdef USE_RDP
       else if (! strcmp(temp, "rdp"))
 	vid_api = 3;
 #endif
@@ -1181,11 +1183,13 @@ save_general(void)
 		config_set_string(cat, "vid_renderer", "d3d9");
 		break;
 
+#ifdef USE_VNC
 	case 2:
 		config_set_string(cat, "vid_renderer", "vnc");
 		break;
+#endif
 
-#if 0
+#ifdef USE_RDP
 	case 3:
 		config_set_string(cat, "vid_renderer", "rdp");
 		break;

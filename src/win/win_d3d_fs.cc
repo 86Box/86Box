@@ -8,7 +8,7 @@
  *
  *		Direct3D 9 full-screen rendererer.
  *
- * Version:	@(#)win_d3d_fs.cc	1.0.4	2017/10/10
+ * Version:	@(#)win_d3d_fs.cc	1.0.5	2017/10/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -252,6 +252,11 @@ void d3d_fs_close()
                 d3d = NULL;
         }
         DestroyWindow(d3d_device_window);
+}
+
+int d3d_fs_pause(void)
+{
+	return(0);
 }
 
 static void d3d_fs_size(RECT window_rect, double *l, double *t, double *r, double *b, int w, int h)

@@ -20,6 +20,7 @@ extern "C" void pclog(const char *format, ...);
 extern "C" void device_force_redraw(void);
 
 extern "C" int ddraw_init(HWND h);
+extern "C" int ddraw_pause(void);
 extern "C" void ddraw_close(void);
 extern "C" void ddraw_take_screenshot(wchar_t *fn);
  
@@ -304,10 +305,6 @@ ddraw_blit_memtoscreen_8(int x, int y, int w, int h)
 int
 ddraw_init(HWND h)
 {
-#if NO_THIS_CRASHES_NOW
-    cgapal_rebuild();
-#endif
-
     if (FAILED(DirectDrawCreate(NULL, &lpdd, NULL))) return(0);
 
     if (FAILED(lpdd->QueryInterface(IID_IDirectDraw7, (LPVOID *)&lpdd7)))
@@ -400,6 +397,13 @@ ddraw_close(void)
 	lpdd7->Release();
 	lpdd7 = NULL;
     }
+}
+
+
+int
+ddraw_pause(void)
+{
+    return(0);
 }
 
 

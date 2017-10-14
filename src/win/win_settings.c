@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.20	2017/10/10
+ * Version:	@(#)win_settings.c	1.0.21	2017/10/13
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -4307,7 +4307,7 @@ static BOOL CALLBACK win_settings_main_proc(HWND hdlg, UINT message, WPARAM wPar
         switch (message)
         {
 		case WM_INITDIALOG:
-			pause = 1;
+			plat_pause(1);
 			win_settings_init();
 			displayed_category = -1;
 			h = GetDlgItem(hdlg, IDC_SETTINGSCATLIST);
@@ -4362,7 +4362,7 @@ static BOOL CALLBACK win_settings_main_proc(HWND hdlg, UINT message, WPARAM wPar
 						/* pclog("Destroying window...\n"); */
 						DestroyWindow(hwndChildDialog);
 	                                        EndDialog(hdlg, 0);
-        	                                pause = 0;
+        	                                plat_pause(0);
 	                                        return TRUE;
 					}
 					else
@@ -4372,7 +4372,7 @@ static BOOL CALLBACK win_settings_main_proc(HWND hdlg, UINT message, WPARAM wPar
 				case IDCANCEL:
 					DestroyWindow(hwndChildDialog);
                 		        EndDialog(hdlg, 0);
-        	                	pause=0;
+        	                	plat_pause(0);
 		                        return TRUE;
 			}
 			break;

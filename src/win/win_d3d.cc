@@ -8,7 +8,7 @@
  *
  *		Direct3D 9 rendererer and screenshots taking.
  *
- * Version:	@(#)win_d3d.cc	1.0.2	2017/10/10
+ * Version:	@(#)win_d3d.cc	1.0.3	2017/10/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -231,6 +231,11 @@ void d3d_close()
                 d3d->Release();
                 d3d = NULL;
         }
+}
+
+int d3d_pause(void)
+{
+	return(0);
 }
 
 void d3d_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)

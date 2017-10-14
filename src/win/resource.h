@@ -10,7 +10,7 @@
  *
  * NOTE:	FIXME: Strings 2176 and 2193 are same.
  *
- * Version:	@(#)resource.h	1.0.11	2017/10/07
+ * Version:	@(#)resource.h	1.0.12	2017/10/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -424,6 +424,8 @@
 #define IDM_VID_REMEMBER	40051
 #define IDM_VID_DDRAW		40060
 #define IDM_VID_D3D		40061
+#define IDM_VID_VNC		40062
+#define IDM_VID_RDP		40063
 #define IDM_VID_SCALE_1X	40064
 #define IDM_VID_SCALE_2X	40065
 #define IDM_VID_SCALE_3X	40066

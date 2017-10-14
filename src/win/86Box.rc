@@ -64,6 +64,12 @@ BEGIN
         BEGIN
             MENUITEM "&DirectDraw",             IDM_VID_DDRAW
             MENUITEM "Direct&3D 9",             IDM_VID_D3D
+#ifdef USE_VNC
+            MENUITEM "&VNC",                    IDM_VID_VNC
+#endif
+#ifdef USE_RDP
+            MENUITEM "&RDP",                    IDM_VID_RDP
+#endif
         END
         MENUITEM SEPARATOR
         POPUP "&Window scale factor"

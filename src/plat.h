@@ -36,7 +36,10 @@ extern void	get_executable_name(wchar_t *s, int size);
 extern void	set_window_title(wchar_t *s);
 extern int	dir_check_exist(wchar_t *path);
 extern int	dir_create(wchar_t *path);
+
 extern void	leave_fullscreen(void);
+extern void	plat_pause(int p);
+
 
 /* Return the size (in wchar's) of a wchar_t array. */
 #define sizeof_w(x)	(sizeof((x)) / sizeof(wchar_t))

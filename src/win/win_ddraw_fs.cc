@@ -24,6 +24,7 @@ extern "C" void device_force_redraw(void);
 
 extern "C" int ddraw_fs_init(HWND h);
 extern "C" void ddraw_fs_close(void);
+extern "C" int ddraw_fs_pause(void);
 extern "C" void ddraw_fs_take_screenshot(wchar_t *fn);
  
 extern void ddraw_common_take_screenshot(wchar_t *fn, IDirectDrawSurface7 *pDDSurface);
@@ -319,6 +320,14 @@ static void ddraw_fs_blit_memtoscreen_8(int x, int y, int w, int h)
         
         lpdds_pri->Flip(NULL, DDFLIP_NOVSYNC);        
 }
+
+
+int
+ddraw_fs_pause(void)
+{
+    return(0);
+}
+
 
 void ddraw_fs_take_screenshot(wchar_t *fn)
 {

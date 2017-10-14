@@ -10,7 +10,7 @@
  *		support modules for Windows.  Generic definitions for UI and
  *		platform go into ../plat*.h.
  *
- * Version:	@(#)win.h	1.0.4	2017/10/09
+ * Version:	@(#)win.h	1.0.5	2017/10/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -45,7 +45,6 @@
 #define SUB_CLASS_NAME		L"86BoxSubWnd"
 #define SB_CLASS_NAME		L"86BoxStatusBar"
 #define SB_MENU_NAME		L"StatusBarMenu"
-#define RENDER_NAME		L"RenderWindow"
 
 /* Application-specific window messages. */
 #define WM_RESETD3D		WM_USER
@@ -53,7 +52,6 @@
 #define WM_SAVESETTINGS		0x8888
 
 
-extern int		pause;
 extern int		status_is_open;
 extern int		mousecapture;
 extern LCID		dwLanguage;
