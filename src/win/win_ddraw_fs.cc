@@ -29,11 +29,9 @@ extern "C" void ddraw_fs_take_screenshot(wchar_t *fn);
  
 extern void ddraw_common_take_screenshot(wchar_t *fn, IDirectDrawSurface7 *pDDSurface);
 
-extern "C" void video_blit_complete(void);
 
-
-static void ddraw_fs_blit_memtoscreen(int, int, int, int, int, int);
-static void ddraw_fs_blit_memtoscreen_8(int, int, int, int);
+static void blit_memtoscreen(int, int, int, int, int, int);
+static void blit_memtoscreen_8(int, int, int, int);
 
 
 int ddraw_fs_init(HWND h)
@@ -93,12 +91,8 @@ int ddraw_fs_init(HWND h)
            
         pclog("DDRAW_INIT complete\n");
         ddraw_hwnd = h;
-#if 0
-        video_setblit(ddraw_fs_blit_memtoscreen_8, ddraw_fs_blit_memtoscreen);
-#else
-        video_blit_memtoscreen_func   = ddraw_fs_blit_memtoscreen;
-        video_blit_memtoscreen_8_func = ddraw_fs_blit_memtoscreen_8;
-#endif
+
+        video_setblit(blit_memtoscreen_8, blit_memtoscreen);
 
 	return 1;
 }
@@ -182,7 +176,7 @@ static void ddraw_fs_size(RECT window_rect, RECT *r_dest, int w, int h)
         }
 }
 
-static void ddraw_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
+static void blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
         RECT r_src;
         RECT r_dest;
@@ -250,7 +244,7 @@ static void ddraw_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h
         }
 }
 
-static void ddraw_fs_blit_memtoscreen_8(int x, int y, int w, int h)
+static void blit_memtoscreen_8(int x, int y, int w, int h)
 {
         RECT r_src;
         RECT r_dest;

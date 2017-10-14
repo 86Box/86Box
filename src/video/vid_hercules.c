@@ -8,7 +8,7 @@
  *
  *		Hercules emulation.
  *
- * Version:	@(#)vid_hercules.c	1.0.1	2017/10/10
+ * Version:	@(#)vid_hercules.c	1.0.2	2017/10/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -362,14 +362,12 @@ void *hercules_init(device_t *info)
 
 	overscan_x = overscan_y = 0;
 
-#ifndef __unix
         cga_palette = device_get_config_int("rgb_type") << 1;
 	if (cga_palette > 6)
 	{
 		cga_palette = 0;
 	}
 	cgapal_rebuild();
-#endif
 
         return hercules;
 }
@@ -389,7 +387,6 @@ void hercules_speed_changed(void *p)
         hercules_recalctimings(hercules);
 }
 
-#ifndef __unix
 static device_config_t hercules_config[] =
 {
         {
@@ -416,7 +413,6 @@ static device_config_t hercules_config[] =
                 "", "", -1
         }
 };
-#endif
 
 device_t hercules_device =
 {
@@ -429,9 +425,5 @@ device_t hercules_device =
         hercules_speed_changed,
         NULL,
 	NULL,
-#ifdef __unix
-        NULL
-#else
 	hercules_config
-#endif
 };

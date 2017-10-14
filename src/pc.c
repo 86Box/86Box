@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.24	2017/10/12
+ * Version:	@(#)pc.c	1.0.25	2017/10/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -214,7 +214,7 @@ usage:
 		printf("-D or --dump        - dump memory on exit\n");
 		printf("-F or --fullscreen  - start in fullscreen mode\n");
 		printf("-P or --vmpath path - set 'path' to be root for vm\n");
-		printf("\nA config file can be specified. If none ie, the default file will be used.\n");
+		printf("\nA config file can be specified. If none is, the default file will be used.\n");
 		return(0);
 	} else if (!wcscasecmp(argv[c], L"--dump") ||
 		   !wcscasecmp(argv[c], L"-D")) {
@@ -678,7 +678,7 @@ pollmouse(void)
 void
 pc_run(void)
 {
-    wchar_t s[200];
+    wchar_t temp[200];
     int done = 0;
 
     startblit();
@@ -753,11 +753,11 @@ pc_run(void)
 	mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
 	mbstowcs(wcpu, machines[machine].cpu[cpu_manufacturer].cpus[cpu].name,
 		 strlen(machines[machine].cpu[cpu_manufacturer].cpus[cpu].name)+1);
-	swprintf(s, 200, L"%ls v%ls - %i%% - %ls - %ls - %ls",
+	swprintf(temp, sizeof_w(temp), L"%ls v%ls - %i%% - %ls - %ls - %ls",
 		  EMU_NAME_W, EMU_VERSION_W, fps, wmachine, wcpu,
 		  (!mousecapture) ? plat_get_string(IDS_2077)
 				  : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079)));
-	set_window_title(s);
+	set_window_title(temp);
 
 	win_title_update = 0;
     }

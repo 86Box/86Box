@@ -8,7 +8,7 @@
  *
  *		Direct3D 9 full-screen rendererer.
  *
- * Version:	@(#)win_d3d_fs.cc	1.0.5	2017/10/13
+ * Version:	@(#)win_d3d_fs.cc	1.0.6	2017/10/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -35,8 +35,8 @@ extern "C" void d3d_fs_take_screenshot(wchar_t *fn);
 
 static void d3d_fs_init_objects(void);
 static void d3d_fs_close_objects(void);
-static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
-static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h);
+static void blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
+static void blit_memtoscreen_8(int x, int y, int w, int h);
 
 
 static LPDIRECT3D9             d3d        = NULL;
@@ -130,12 +130,7 @@ int d3d_fs_init(HWND h)
         
         d3d_fs_init_objects();
 
-#if 0
-	video_setblit(d3d_fs_blit_memtoscreen_8, d3d_fs_blit_memtoscreen);
-#else
-        video_blit_memtoscreen_func   = d3d_fs_blit_memtoscreen;
-        video_blit_memtoscreen_8_func = d3d_fs_blit_memtoscreen_8;
-#endif
+	video_setblit(blit_memtoscreen_8, blit_memtoscreen);
 
 	return 1;
 }
@@ -309,7 +304,7 @@ static void d3d_fs_size(RECT window_rect, double *l, double *t, double *r, doubl
         }
 }
 
-static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
+static void blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
         HRESULT hr = D3D_OK;
         VOID* pVoid;
@@ -421,7 +416,7 @@ static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
                 PostMessage(hwndMain, WM_RESETD3D, 0, 0);
 }
 
-static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
+static void blit_memtoscreen_8(int x, int y, int w, int h)
 {
         HRESULT hr = D3D_OK;
         VOID* pVoid;

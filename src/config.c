@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.20	2017/10/13
+ * Version:	@(#)config.c	1.0.21	2017/10/13
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1990,24 +1990,6 @@ config_set_wstring(char *head, char *name, wchar_t *val)
 }
 
 
-#if 0
-/* FIXME: should be moved elsewhere. --FvK */
-char *
-get_filename(char *s)
-{
-    int c = strlen(s) - 1;
-
-    while (c > 0) {
-	if (s[c] == '/' || s[c] == '\\')
-	   return(&s[c+1]);
-       c--;
-    }
-
-    return(s);
-}
-#endif
-
-
 /* FIXME: should be moved elsewhere. --FvK */
 wchar_t *
 get_filename_w(wchar_t *s)
@@ -2024,16 +2006,6 @@ get_filename_w(wchar_t *s)
 }
 
 
-#if 0
-/* FIXME: should be moved elsewhere. --FvK */
-void
-append_filename(char *dest, char *s1, char *s2, int size)
-{
-    sprintf(dest, "%s%s", s1, s2);
-}
-#endif
-
-
 /* FIXME: should be moved elsewhere. --FvK */
 void
 append_filename_w(wchar_t *dest, wchar_t *s1, wchar_t *s2, int size)
@@ -2041,19 +2013,6 @@ append_filename_w(wchar_t *dest, wchar_t *s1, wchar_t *s2, int size)
     wcscat(dest, s1);
     wcscat(dest, s2);
 }
-
-
-#if 0
-/* FIXME: should be moved elsewhere. --FvK */
-void
-put_backslash(char *s)
-{
-    int c = strlen(s) - 1;
-
-    if (s[c] != '/' && s[c] != '\\')
-	   s[c] = '/';
-}
-#endif
 
 
 /* FIXME: should be moved elsewhere. --FvK */
@@ -2065,27 +2024,6 @@ put_backslash_w(wchar_t *s)
     if (s[c] != L'/' && s[c] != L'\\')
 	   s[c] = L'/';
 }
-
-
-#if 0
-/* FIXME: should be moved elsewhere. --FvK */
-char *
-get_extension(char *s)
-{
-    int c = strlen(s) - 1;
-
-    if (c <= 0)
-	return(s);
-
-    while (c && s[c] != '.')
-		c--;
-
-    if (!c)
-	return(&s[strlen(s)]);
-
-    return(&s[c+1]);
-}
-#endif
 
 
 /* FIXME: should be moved elsewhere. --FvK */

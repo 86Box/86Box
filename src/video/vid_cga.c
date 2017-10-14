@@ -8,7 +8,7 @@
  *
  *		Emulation of the old and new IBM CGA graphics cards.
  *
- * Version:	@(#)vid_cga.c	1.0.4	2017/10/10
+ * Version:	@(#)vid_cga.c	1.0.5	2017/10/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -74,13 +74,13 @@ void cga_out(uint16_t addr, uint8_t val, void *p)
                         cga->cgamode = val;
                         update_cga16_color(cga->cgamode);
                 }
-#ifndef __unix
+
 		if ((cga->cgamode ^ val) & 1)
 		{
 			cga_palette = (cga->rgb_type << 1);
 			cgapal_rebuild();
 		}
-#endif
+
                 cga->cgamode = val;
                 return;
                 case 0x3D9:
@@ -478,7 +478,7 @@ void *cga_standalone_init(device_t *info)
         cga->snow_enabled = device_get_config_int("snow_enabled");
 
         cga->vram = malloc(0x4000);
-                
+
 	cga_comp_init(cga->revision);
         timer_add(cga_poll, &cga->vidtime, TIMER_ALWAYS_ENABLED, cga);
         mem_mapping_add(&cga->mapping, 0xb8000, 0x08000, cga_read, NULL, NULL, cga_write, NULL, NULL,  NULL, MEM_MAPPING_EXTERNAL, cga);
@@ -486,12 +486,10 @@ void *cga_standalone_init(device_t *info)
 
         overscan_x = overscan_y = 16;
 
-#ifndef __unix
         cga->rgb_type = device_get_config_int("rgb_type");
 	cga_palette = (cga->rgb_type << 1);
 	cgapal_rebuild();
-#endif
-		
+
         return cga;
 }
 
@@ -506,7 +504,7 @@ void cga_close(void *p)
 void cga_speed_changed(void *p)
 {
         cga_t *cga = (cga_t *)p;
-        
+
         cga_recalctimings(cga);
 }
 
@@ -540,7 +538,6 @@ static device_config_t cga_config[] =
                         }
                 }
         },
-#ifndef __unix
         {
                 "rgb_type", "RGB type", CONFIG_SELECTION, "", 0,
                 {
@@ -564,7 +561,6 @@ static device_config_t cga_config[] =
                         }
                 }
         },
-#endif
         {
                 "snow_enabled", "Snow emulation", CONFIG_BINARY, "", 1
         },

@@ -8,7 +8,7 @@
  *
  *		MDA emulation.
  *
- * Version:	@(#)vid_mda.c	1.0.1	2017/10/10
+ * Version:	@(#)vid_mda.c	1.0.2	2017/10/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -311,14 +311,12 @@ void *mda_init(device_t *info)
 
 	overscan_x = overscan_y = 0;
 
-#ifndef __unix
         cga_palette = device_get_config_int("rgb_type") << 1;
 	if (cga_palette > 6)
 	{
 		cga_palette = 0;
 	}
 	cgapal_rebuild();
-#endif
 
         return mda;
 }
@@ -338,7 +336,6 @@ void mda_speed_changed(void *p)
         mda_recalctimings(mda);
 }
 
-#ifndef __unix
 static device_config_t mda_config[] =
 {
         {
@@ -365,7 +362,6 @@ static device_config_t mda_config[] =
                 "", "", -1
         }
 };
-#endif
 
 device_t mda_device =
 {
@@ -378,9 +374,5 @@ device_t mda_device =
         mda_speed_changed,
         NULL,
         NULL,
-#ifdef __unix
-        NULL
-#else
 	mda_config
-#endif
 };

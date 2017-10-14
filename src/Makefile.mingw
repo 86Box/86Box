@@ -6,9 +6,9 @@
 #
 #		This file is part of the 86Box distribution.
 #
-#		Modified Makefile for Win32 (MinGW32) environment.
+#		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.60	2017/10/14
+# Version:	@(#)Makefile.mingw	1.0.61	2017/10/14
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -404,10 +404,13 @@ LIBS		:= -mwindows \
 		   -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 \
 		   -lcomctl32 -lwinmm
 ifeq ($(VNC), y)
-LIBS		+= $(VNCLIB) -lws2_32 -lz -lpthread
+LIBS		+= $(VNCLIB) -lws2_32 -lz
+endif
+ifeq ($(RDP), y)
+LIBS		+= $(RDPLIB)
 endif
 LIBS		+= -lkernel32 -lwsock32 -liphlpapi -lpsapi
-LIBS		+= -static -lstdc++ -lgcc
+LIBS		+= -lpthread -static -lstdc++ -lgcc
 LIBS		+= -Wl,--large-address-aware
 
 

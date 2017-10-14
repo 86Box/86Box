@@ -8,12 +8,13 @@
  *
  *		Configuration file handler header.
  *
- * Version:	@(#)config.h	1.0.2	2017/09/19
+ * Version:	@(#)config.h	1.0.3	2017/10/13
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Overdoze,
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
@@ -48,13 +49,9 @@ extern void	config_set_mac(char *head, char *name, int val);
 extern void	config_set_string(char *head, char *name, char *val);
 extern void	config_set_wstring(char *head, char *name, wchar_t *val);
 
-extern char	*get_filename(char *s);
 extern wchar_t	*get_filename_w(wchar_t *s);
-extern void	append_filename(char *dest, char *s1, char *s2, int size);
 extern void	append_filename_w(wchar_t *dest, wchar_t *s1, wchar_t *s2, int size);
-extern void	put_backslash(char *s);
 extern void	put_backslash_w(wchar_t *s);
-extern char	*get_extension(char *s);
 extern wchar_t	*get_extension_w(wchar_t *s);
 
 

@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.1	2017/10/10
+ * Version:	@(#)video.c	1.0.2	2017/10/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -196,8 +196,8 @@ static struct {
 } blit_data;
 
 
-void (*video_blit_memtoscreen_func)(int x, int y, int y1, int y2, int w, int h);
-void (*video_blit_memtoscreen_8_func)(int x, int y, int w, int h);
+static void (*memtoscreen_func)(int x, int y, int y1, int y2, int w, int h);
+static void (*memtoscreen_8_func)(int x, int y, int w, int h);
 
 
 static
@@ -208,13 +208,21 @@ void blit_thread(void *param)
 	thread_reset_event(blit_data.wake_blit_thread);
 
 	if (blit_data.blit8)
-		video_blit_memtoscreen_8_func(blit_data.x, blit_data.y, blit_data.w, blit_data.h);
+		memtoscreen_8_func(blit_data.x, blit_data.y, blit_data.w, blit_data.h);
 	else
-		video_blit_memtoscreen_func(blit_data.x, blit_data.y, blit_data.y1, blit_data.y2, blit_data.w, blit_data.h);
+		memtoscreen_func(blit_data.x, blit_data.y, blit_data.y1, blit_data.y2, blit_data.w, blit_data.h);
 
 	blit_data.busy = 0;
 	thread_set_event(blit_data.blit_complete);
     }
+}
+
+
+void
+video_setblit(void(*blit8)(int,int,int,int),void(*blit)(int,int,int,int,int,int))
+{
+    memtoscreen_func = blit;
+    memtoscreen_8_func = blit8;
 }
 
 
@@ -556,10 +564,8 @@ video_reset(void)
 {
     pclog("Video_reset(rom=%i, gfx=%i)\n", romset, gfxcard);
 
-#ifndef __unix
     cga_palette = 0;
     cgapal_rebuild();
-#endif
 
     /*
      * Add and initialize the selected video card device.

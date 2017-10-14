@@ -24,8 +24,6 @@ extern "C" int ddraw_pause(void);
 extern "C" void ddraw_close(void);
 extern "C" void ddraw_take_screenshot(wchar_t *fn);
  
-extern "C" void video_blit_complete(void);
-
 
 static LPDIRECTDRAW  lpdd  = NULL;
 static LPDIRECTDRAW7 lpdd7 = NULL;
@@ -169,7 +167,7 @@ ddraw_common_take_screenshot(wchar_t *fn, IDirectDrawSurface7 *pDDSurface)
 
 
 static void
-ddraw_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
+blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
     RECT r_src;
     RECT r_dest;
@@ -239,7 +237,7 @@ ddraw_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 
 
 static void
-ddraw_blit_memtoscreen_8(int x, int y, int w, int h)
+blit_memtoscreen_8(int x, int y, int w, int h)
 {
     RECT r_src;
     RECT r_dest;
@@ -363,12 +361,7 @@ ddraw_init(HWND h)
 
     ddraw_hwnd = h;
 
-#if 0
-    video_setblit(ddraw_blit_memtoscreen_8, ddraw_blit_memtoscreen);
-#else
-    video_blit_memtoscreen_func   = ddraw_blit_memtoscreen;
-    video_blit_memtoscreen_8_func = ddraw_blit_memtoscreen_8;
-#endif
+    video_setblit(blit_memtoscreen_8, blit_memtoscreen);
 
     return(1);
 }
