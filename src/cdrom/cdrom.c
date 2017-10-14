@@ -2197,14 +2197,12 @@ void cdrom_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
 
 	if ((cdrom_sense_key > 0) && ((cdrom[id].cd_status < CD_STATUS_PLAYING) || (cdrom[id].cd_status == CD_STATUS_STOPPED)) && cdrom_playing_completed(id))
 	{
-		SCSIPhase = SCSI_PHASE_STATUS;
 		buffer[2]=SENSE_ILLEGAL_REQUEST;
 		buffer[12]=ASC_AUDIO_PLAY_OPERATION;
 		buffer[13]=ASCQ_AUDIO_PLAY_OPERATION_COMPLETED;
 	}
 	else if ((cdrom_sense_key == 0) && (cdrom[id].cd_status >= CD_STATUS_PLAYING) && (cdrom[id].cd_status != CD_STATUS_STOPPED))
 	{
-		SCSIPhase = SCSI_PHASE_STATUS;
 		buffer[2]=SENSE_ILLEGAL_REQUEST;
 		buffer[12]=ASC_AUDIO_PLAY_OPERATION;
 		buffer[13]=(cdrom[id].cd_status == CD_STATUS_PLAYING) ? ASCQ_AUDIO_PLAY_OPERATION_IN_PROGRESS : ASCQ_AUDIO_PLAY_OPERATION_PAUSED;
@@ -2213,7 +2211,6 @@ void cdrom_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
 	{
 		if (cdrom[id].unit_attention && (cdrom_sense_key == 0))
 		{
-			SCSIPhase = SCSI_PHASE_STATUS;
 			buffer[2]=SENSE_UNIT_ATTENTION;
 			buffer[12]=ASC_MEDIUM_MAY_HAVE_CHANGED;
 			buffer[13]=0;

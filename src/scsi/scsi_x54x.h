@@ -419,14 +419,14 @@ typedef struct {
     uint8_t	bus;		/* Basically a copy of device flags */
     uint8_t	setup_info_len;
     uint8_t	max_id;
+    uint8_t	pci_slot;
 
     uint32_t	reset_duration;
-
-    uint8_t	pci_slot;
 
     mem_mapping_t mmio_mapping;
 
     uint8_t	int_geom_writable;
+    uint8_t	cdrom_boot;
 
     /* Pointer to a structure of vendor-specific data that only the vendor-specific code can understand */
     void	*ven_data;

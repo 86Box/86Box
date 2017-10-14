@@ -1326,7 +1326,6 @@ void scsi_hd_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
 
 	if (shdc[id].unit_attention && (scsi_hd_sense_key == 0))
 	{
-		SCSIPhase = SCSI_PHASE_STATUS;
 		buffer[2]=SENSE_UNIT_ATTENTION;
 		buffer[12]=ASC_MEDIUM_MAY_HAVE_CHANGED;
 		buffer[13]=0x00;

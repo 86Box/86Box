@@ -225,7 +225,7 @@ aha_get_host_id(void *p)
 {
     x54x_t *dev = (x54x_t *)p;
 
-    return dev->nvr[0] & 3;
+    return dev->nvr[0] & 0x07;
 }
 
 
@@ -234,7 +234,7 @@ aha_get_irq(void *p)
 {
     x54x_t *dev = (x54x_t *)p;
 
-    return (dev->nvr[1] & 0x0F) + 9;
+    return (dev->nvr[1] & 0x07) + 9;
 }
 
 
@@ -243,7 +243,7 @@ aha_get_dma(void *p)
 {
     x54x_t *dev = (x54x_t *)p;
 
-    return (dev->nvr[1] & 0xF0) >> 4;
+    return (dev->nvr[1] >> 4) & 0x07;
 }
 
 
@@ -628,9 +628,9 @@ aha_setbios(x54x_t *dev)
     if (dev->bios_path == NULL) return;
 
     /* Open the BIOS image file and make sure it exists. */
-    pclog("%s: loading BIOS from '%ls'\n", dev->name, dev->bios_path);
+    aha_log("%s: loading BIOS from '%ls'\n", dev->name, dev->bios_path);
     if ((f = rom_fopen(dev->bios_path, L"rb")) == NULL) {
-	pclog("%s: BIOS ROM not found!\n", dev->name);
+	aha_log("%s: BIOS ROM not found!\n", dev->name);
 	return;
     }
 
@@ -657,7 +657,7 @@ aha_setbios(x54x_t *dev)
 	dev->rom2 = NULL;
     }
     if (temp != 0) {
-	pclog("%s: BIOS ROM size invalid!\n", dev->name);
+	aha_log("%s: BIOS ROM size invalid!\n", dev->name);
 	free(dev->rom1);
 	if (dev->rom2 != NULL)
 		free(dev->rom2);
@@ -678,7 +678,7 @@ aha_setbios(x54x_t *dev)
     if (temp <= 0x2000)
 	size = 0x2000;
     mask = (size - 1);
-    pclog("%s: BIOS at 0x%06lX, size %lu, mask %08lx\n",
+    aha_log("%s: BIOS at 0x%06lX, size %lu, mask %08lx\n",
 			dev->name, dev->rom_addr, size, mask);
 
     /* Initialize the ROM entry for this BIOS. */
@@ -711,7 +711,7 @@ aha_setbios(x54x_t *dev)
 	for (i=0; i<8; i++)
 		if (aha_ports[i] == dev->Base) break;
 	if (i == 8) {
-		pclog("%s: invalid I/O address %04x selected!\n",
+		aha_log("%s: invalid I/O address %04x selected!\n",
 					dev->name, dev->Base);
 		return;
 	}
@@ -791,6 +791,7 @@ aha_init(device_t *info)
     dev->reset_duration = AHA_RESET_DURATION_US;
     dev->max_id = 7;
     dev->int_geom_writable = 0;
+    dev->cdrom_boot = 0;
 
     dev->ven_thread = aha_thread;
     dev->ven_cmd_is_fast = aha_cmd_is_fast;
@@ -845,6 +846,7 @@ aha_init(device_t *info)
 		dev->rom_shramsz = 128;		/* size of shadow RAM */
 		dev->rom_ioaddr = 0x3F7E;	/* [2:0] idx into addr table */
 		dev->rom_fwhigh = 0x0022;	/* firmware version (hi/lo) */
+    		dev->cdrom_boot = 1;
 		dev->ven_get_host_id = aha_get_host_id;	/* function to return host ID from EEPROM */
 		dev->ven_get_irq = aha_get_irq;		/* function to return IRQ from EEPROM */
 		dev->ven_get_dma = aha_get_dma;		/* function to return DMA channel from EEPROM */

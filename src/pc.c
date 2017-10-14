@@ -753,7 +753,7 @@ pc_run(void)
 	mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
 	mbstowcs(wcpu, machines[machine].cpu[cpu_manufacturer].cpus[cpu].name,
 		 strlen(machines[machine].cpu[cpu_manufacturer].cpus[cpu].name)+1);
-	swprintf(s, 100, L"%s v%s - %i%% - %s - %s - %s",
+	swprintf(s, 200, L"%ls v%ls - %i%% - %ls - %ls - %ls",
 		  EMU_NAME_W, EMU_VERSION_W, fps, wmachine, wcpu,
 		  (!mousecapture) ? plat_get_string(IDS_2077)
 				  : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079)));

@@ -1303,6 +1303,7 @@ buslogic_init(device_t *info)
     dev->reset_duration = BUSLOGIC_RESET_DURATION_US;
     dev->max_id = 7;
     dev->int_geom_writable = 1;
+    dev->cdrom_boot = 0;
 
     bl->chip = info->local;
     bl->PCIBase = 0;
@@ -1375,6 +1376,7 @@ buslogic_init(device_t *info)
 		scam_rom_name = L"roms/scsi/buslogic/BT-958D_SCAM.rom";
 		scam_rom_size = 0x0200;
 		dev->fw_rev = "AA507B";
+		dev->cdrom_boot = 1;
 		break;
     }
 

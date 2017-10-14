@@ -147,6 +147,8 @@ poll_thread(void *arg)
     thread_destroy_event(evt);
     evt = poll_tid = NULL;
 
+    thread_close_mutex(slirpMutex);
+
     pclog("SLiRP: polling stopped.\n");
 }
 
