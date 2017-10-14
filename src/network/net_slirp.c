@@ -36,13 +36,6 @@ static void	*slirpMutex;
 
 
 
-void
-network_slirp_mutex_init(void)
-{
-    slirpMutex = thread_create_mutex(L"86Box.SLiRPMutex");
-}
-
-
 static void
 startslirp(void)
 {
@@ -176,6 +169,8 @@ network_slirp_setup(uint8_t *mac, NETRXCB func, void *arg)
     poll_rx = func;
     poll_arg = arg;
 
+    slirpMutex = thread_create_mutex(L"86Box.SLiRPMutex");
+
     poll_data.wake_poll_thread = thread_create_event();
     poll_data.poll_complete = thread_create_event();
 
@@ -207,6 +202,8 @@ network_slirp_close(void)
 	while (poll_tid != NULL)
 		;
 #endif
+
+        thread_close_mutex(slirpMutex);
 
 	/* OK, now shut down SLiRP itself. */
 	QueueDestroy(sl);

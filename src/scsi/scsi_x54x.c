@@ -1861,6 +1861,8 @@ x54x_init(device_t *info)
 
     timer_add(x54x_reset_poll, &dev->ResetCB, &dev->ResetCB, dev);
 
+    scsi_mutex_init();
+
     poll_complete = thread_create_event();
 
     /* Create a waitable event. */
@@ -1898,6 +1900,8 @@ x54x_close(void *priv)
 		thread_destroy_event(evt);
 		evt = NULL;
 	}
+
+	scsi_mutex_close();
 
 	if (dev->nvr != NULL)
 		free(dev->nvr);

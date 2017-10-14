@@ -294,7 +294,6 @@ usage:
     hdd_init();
     network_init();
     cdrom_global_init();
-    scsi_mutex_init();
 
     /* Load the configuration file. */
     config_load(cfg);

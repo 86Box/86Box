@@ -130,6 +130,12 @@ void scsi_mutex_init(void)
 }
 
 
+void scsi_mutex_close(void)
+{
+    thread_close_mutex(scsiMutex);
+}
+
+
 void scsi_card_init(void)
 {
     int i, j;

@@ -294,6 +294,7 @@ extern int scsi_card_has_config(int card);
 extern char *scsi_card_get_internal_name(int card);
 extern int scsi_card_get_from_internal_name(char *s);
 extern void scsi_mutex_init(void);
+extern void scsi_mutex_close(void);
 extern void scsi_card_init(void);
 extern void scsi_card_reset(void);
 
