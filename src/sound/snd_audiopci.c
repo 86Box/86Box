@@ -55,7 +55,7 @@ typedef struct es1371_t
                 int16_t out_l, out_r;
                 
                 int32_t vol_l, vol_r;
-        } dac[2];
+        } dac[2], adc;
         
         int64_t dac_latch, dac_time;
         
@@ -190,6 +190,10 @@ static uint8_t es1371_inb(uint16_t port, void *p)
                 ret = es1371->uart_status;
                 break;
                 
+                case 0x0c:
+                ret = es1371->mem_page;
+                break;
+                
                 case 0x1a:
                 ret = es1371->legacy_ctrl >> 16;
                 break;
@@ -299,6 +303,36 @@ static uint32_t es1371_inl(uint16_t port, void *p)
                 ret = es1371->codec_ctrl & 0x00ff0000;
                 ret |= es1371->codec_regs[(es1371->codec_ctrl >> 16) & 0x3f];
                 ret |= CODEC_READY;
+                break;
+
+                case 0x34:
+                switch (es1371->mem_page)
+                {
+
+                        case 0xc:
+                        ret = es1371->dac[0].size | (es1371->dac[0].count << 16);
+                        break;
+                        
+                        case 0xd:
+
+                        ret = es1371->adc.size | (es1371->adc.count << 16);
+                        break;
+
+                        default:
+                        pclog("Bad es1371_inl: mem_page=%x port=%04x\n", es1371->mem_page, port);
+                }
+                break;
+
+                case 0x3c:
+                switch (es1371->mem_page)
+                {
+                        case 0xc:
+                        ret = es1371->dac[1].size | (es1371->dac[1].count << 16);
+                        break;
+                                                
+                        default:
+                        pclog("Bad es1371_inl: mem_page=%x port=%04x\n", es1371->mem_page, port);
+                }
                 break;
                 
                 default:
@@ -541,6 +575,11 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
                                 es1371->dac[0].count -= 4;
                         break;
                         
+                        case 0xd:
+                        es1371->adc.size = val & 0xffff;
+                        es1371->adc.count = val >> 16;
+                        break;
+
                         default:
                         pclog("Bad es1371_outl: mem_page=%x port=%04x val=%08x\n", es1371->mem_page, port, val);
                 }
@@ -577,9 +616,6 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
                         es1371->dac[1].count = val >> 16;
                         break;
 
-                        case 0xd:
-                        break;
-                        
                         default:
                         pclog("Bad es1371_outl: mem_page=%x port=%04x val=%08x\n", es1371->mem_page, port, val);
                 }
