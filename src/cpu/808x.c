@@ -1,4 +1,4 @@
-/*
+﻿/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -613,7 +613,9 @@ void resetx86()
         mmu_perm=4;
         memset(inscounts, 0, sizeof(inscounts));
         x86seg_reset();
+#ifdef USE_DYNAREC
         codegen_reset();
+#endif
         x86_was_reset = 1;
 	port_92_clear_reset();
 	scsi_card_reset();

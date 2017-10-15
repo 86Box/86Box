@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.26	2017/10/14
+ * Version:	@(#)pc.c	1.0.27	2017/10/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -28,7 +28,9 @@
 #include "config.h"
 #include "ibm.h"
 #include "cpu/cpu.h"
+#ifdef USE_DYNAREC
 #include "cpu/codegen.h"
+#endif
 #include "cpu/x86_ops.h"
 #include "io.h"
 #include "mem.h"
@@ -406,7 +408,9 @@ again2:
 
     mem_init();
 
+#ifdef USE_DYNAREC
     codegen_init();
+#endif
 
     mouse_init();
 #ifdef WALTJE
@@ -685,9 +689,11 @@ pc_run(void)
     clockrate = machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed;
         
     if (is386)   {
+#ifdef USE_DYNAREC
 	if (cpu_use_dynarec)
 		exec386_dynarec(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
-	  else
+	else
+#endif
 		exec386(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
     } else if (AT) {
 	exec386(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
@@ -718,6 +724,7 @@ pc_run(void)
 	segawrites = egawrites;
 	scycles_lost = cycles_lost;
 
+#ifdef USE_DYNAREC
 	cpu_recomp_blocks_latched = cpu_recomp_blocks;
 	cpu_recomp_ins_latched = cpu_state.cpu_recomp_ins;
 	cpu_recomp_full_ins_latched = cpu_recomp_full_ins;
@@ -739,6 +746,7 @@ pc_run(void)
 	cpu_recomp_removed = 0;
 	cpu_reps = 0;
 	cpu_notreps = 0;
+#endif
 
 	updatestatus = 1;
 	readlnum = writelnum = 0;

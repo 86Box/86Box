@@ -12,7 +12,9 @@
 #include "../ibm.h"
 #include "../mem.h"
 #include "../cpu/x86_ops.h"
+#ifdef USE_DYNAREC
 #include "../cpu/codegen.h"
+#endif
 #include "../device.h"
 #include "win.h"
 
@@ -52,8 +54,10 @@ StatusWindowProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			"Timer 0 frequency : %fHz\n\n"
 			"CPU time : %f%% (%f%%)\n"
 
+#ifdef USE_DYNAREC
 			"New blocks : %i\nOld blocks : %i\nRecompiled speed : %f MIPS\nAverage size : %f\n"
-			"Flushes : %i\nEvicted : %i\nReused : %i\nRemoved : %i\nReal speed : %f MIPS"
+			"Flushes : %i\nEvicted : %i\nReused : %i\nRemoved : %i"
+#endif
 			,mips,
 			flops,
 			segareads,
@@ -61,13 +65,13 @@ StatusWindowProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			clockrate - scycles_lost,
 			pit_timer0_freq(),
 			((double)main_time * 100.0) / status_diff,
-			((double)main_time * 100.0) / timer_freq
+                        ((double)main_time * 100.0) / timer_freq
 
+#ifdef USE_DYNAREC
 			, cpu_new_blocks_latched, cpu_recomp_blocks_latched, (double)cpu_recomp_ins_latched / 1000000.0, (double)cpu_recomp_ins_latched/cpu_recomp_blocks_latched,
 			cpu_recomp_flushes_latched, cpu_recomp_evicted_latched,
-			cpu_recomp_reuse_latched, cpu_recomp_removed_latched,
-			
-			((double)cpu_recomp_ins_latched / 1000000.0) / ((double)main_time / timer_freq)
+			cpu_recomp_reuse_latched, cpu_recomp_removed_latched
+#endif
 		);
 		main_time = 0;
 		SendDlgItemMessage(hdlg, IDT_SDEVICE, WM_SETTEXT,

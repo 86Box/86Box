@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.h	1.0.1	2017/10/07
+ * Version:	@(#)cpu.h	1.0.2	2017/10/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,

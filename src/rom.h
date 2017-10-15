@@ -47,7 +47,6 @@ enum {
     ROM_AMIXT,		/* XT Clone with AMI BIOS */
     ROM_LTXT,
     ROM_LXT3,
-    ROM_PX386,
     ROM_DTK386,
     ROM_PXXT,
     ROM_JUKOPC,
@@ -57,16 +56,10 @@ enum {
     ROM_CMDPC30,
     ROM_AMI286,
     ROM_AWARD286,
-    ROM_DELL200,
-    ROM_MISC286,
-    ROM_IBMAT386,
-    ROM_ACER386,
     ROM_MEGAPC,
     ROM_AMI386SX,
     ROM_AMI486,
     ROM_WIN486,
-    ROM_PCI486,
-    ROM_SIS496,
     ROM_430VX,
     ROM_ENDEAVOR,
     ROM_REVENGE,
@@ -74,11 +67,6 @@ enum {
     ROM_IBMXT286,
     ROM_DESKPRO_386,
     ROM_PORTABLE,
-#if 0
-    ROM_PORTABLEII,
-    ROM_PORTABLEIII,
-    ROM_PORTABLEIII386,	/* original shipped w/80286, later switched to 386DX */
-#endif
     ROM_IBMPS1_2121,
 
     ROM_AMI386DX_OPTI495,
@@ -90,9 +78,8 @@ enum {
     ROM_IBMPS2_M80,
 
     ROM_DTK486,		/* DTK PKM-0038S E-2/SiS 471/Award/SiS 85C471 */
-    ROM_VLI486SV2G,	/* ASUS VL/I-486SV2G/SiS 471/Award/SiS 85C471 */
+    ROM_VLI486SV2G,	/* ASUS VL/I-486SV2G/SiS 471/Award/SiS 85C471 */	/* 51 */
     ROM_R418,		/* Rise Computer R418/SiS 496/497/Award/SMC FDC37C665 */
-    ROM_586MC1,		/* Micro Star 586MC1 MS-5103/430LX/Award */
     ROM_PLATO,		/* Intel Premiere/PCI II/430NX/AMI/SMC FDC37C665 */
     ROM_MB500N,		/* PC Partner MB500N/430FX/Award/SMC FDC37C665 */
     ROM_P54TP4XE,	/* ASUS P/I-P55TP4XE/430FX/Award/SMC FDC37C665 */
@@ -103,13 +90,11 @@ enum {
     ROM_P55T2P4,	/* ASUS P/I-P55T2P4/430HX/Award/Winbond W8387F*/
     ROM_P55TVP4,	/* ASUS P/I-P55TVP4/430HX/Award/Winbond W8387F*/
     ROM_P55VA,		/* Epox P55-VA/430VX/Award/SMC FDC37C932FR*/
-
-    ROM_440FX,		/* Tyan Titan-Pro AT/440FX/Award BIOS/SMC FDC37C665 */
- 
-    ROM_MARL,		/* Intel Advanced_ML/430HX/AMI/NS PC87306 */
     ROM_THOR,		/* Intel Advanced_ATX/430FX/AMI/NS PC87306 */
     ROM_MRTHOR,		/* Intel Advanced_ATX/430FX/MR.BIOS/NS PC87306 */
-    ROM_POWERMATE_V,	/* NEC PowerMate V/430FX/Phoenix/SMC FDC37C66 5*/
+    ROM_POWERMATE_V,	/* NEC PowerMate V/430FX/Phoenix/SMC FDC37C66 5*/	/* 68 */
+
+    ROM_440FX,		/* Tyan Titan-Pro AT/440FX/Award BIOS/SMC FDC37C665 */
 
     ROM_IBMPS1_2121_ISA,/* IBM PS/1 Model 2121 with ISA expansion bus */
 
@@ -122,8 +107,6 @@ enum {
 
     ROM_MEGAPCDX,	/* 386DX mdl - Note: documentation (in German) clearly says such a model exists */
     ROM_ZAPPA,		/* Intel Advanced_ZP/430FX/AMI/NS PC87306 */
-
-    ROM_CMDPC60,
 
     ROM_S1668,		/* Tyan Titan-Pro ATX/440FX/AMI/SMC FDC37C669 */
     ROM_IBMPS1_2133,

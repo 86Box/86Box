@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.62	2017/10/14
+# Version:	@(#)Makefile.mingw	1.0.63	2017/10/14
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -88,6 +88,9 @@ MUNT		:= y
 endif
 ifndef PAS16
 PAS16		= n
+endif
+ifndef DYNAREC
+DYNAREC		:= y
 endif
 ifndef X64
 X64		:= n
@@ -187,6 +190,17 @@ endif
 
 
 # Optional modules.
+ifeq ($(DYNAREC), y)
+CFLAGS		+= -DUSE_DYNAREC
+RFLAGS		+= -DUSE_DYNAREC
+DYNARECOBJ	:= 386_dynarec_ops.o \
+		    codegen.o \
+		    codegen_ops.o \
+		    codegen_timing_common.o codegen_timing_486.o \
+		    codegen_timing_686.o codegen_timing_pentium.o \
+		    codegen_timing_winchip.o $(PLATCG)
+endif
+
 ifeq ($(FLUIDSYNTH), y)
 CFLAGS		+= -DUSE_FLUIDSYNTH
 FSYNTHOBJ	:= midi_fluidsynth.o
@@ -265,13 +279,9 @@ MAINOBJ		:= pc.o config.o random.o timer.o io.o dma.o nmi.o pic.o \
 		   device.o nvr.o nvr_at.o nvr_ps2.o \
 		   intel.o intel_flash.o intel_sio.o
 
-CPUOBJ		:= cpu.o 386.o 386_dynarec.o 386_dynarec_ops.o 808x.o \
-		   codegen.o \
-		    codegen_ops.o \
-		    codegen_timing_common.o codegen_timing_486.o \
-		    codegen_timing_686.o codegen_timing_pentium.o \
-		    codegen_timing_winchip.o $(PLATCG) \
-		   x86seg.o x87.o
+CPUOBJ		:= cpu.o 386.o 386_dynarec.o 808x.o \
+		   x86seg.o x87.o \
+		   $(DYNARECOBJ)
 
 MCHOBJ		:= machine.o \
 		    machine_common.o \

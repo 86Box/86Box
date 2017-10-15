@@ -380,7 +380,7 @@ extern wchar_t floppyfns[4][512];
 extern int driveempty[4];
 
 #define MDA ((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_HERCULESPLUS || gfxcard==GFX_INCOLOR || gfxcard==GFX_GENIUS) && (romset<ROM_TANDY || romset>=ROM_IBMAT))
-#define VGA ((gfxcard>=GFX_TVGA || romset==ROM_ACER386) && gfxcard!=GFX_COLORPLUS && gfxcard!=GFX_INCOLOR && gfxcard!=GFX_WY700 && gfxcard!=GFX_GENIUS && gfxcard!=GFX_COMPAQ_EGA && gfxcard!=GFX_SUPER_EGA && gfxcard!=GFX_HERCULESPLUS && romset!=ROM_PC1640 && romset!=ROM_PC1512 && romset!=ROM_TANDY && romset!=ROM_PC200)
+#define VGA ((gfxcard>=GFX_TVGA) && gfxcard!=GFX_COLORPLUS && gfxcard!=GFX_INCOLOR && gfxcard!=GFX_WY700 && gfxcard!=GFX_GENIUS && gfxcard!=GFX_COMPAQ_EGA && gfxcard!=GFX_SUPER_EGA && gfxcard!=GFX_HERCULESPLUS && romset!=ROM_PC1640 && romset!=ROM_PC1512 && romset!=ROM_TANDY && romset!=ROM_PC200)
 
 int GAMEBLASTER, GUS, SSI2001, voodoo_enabled, buslogic_enabled;
 extern int AMSTRAD, AT, is286, is386, PCI, TANDY;

@@ -187,10 +187,6 @@ video_reset_device(int rs, int gc)
 		device_add(&paradise_wd90c11_megapc_device);
 		return;
 			
-	case ROM_ACER386:
-		device_add(&oti067_device);
-		return;
-		
 	case ROM_IBMPS1_2011:
 	case ROM_IBMPS2_M30_286:
 	case ROM_IBMPS2_M50:

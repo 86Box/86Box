@@ -57,7 +57,10 @@
 
 
 /* Machine category */
-static int temp_machine, temp_cpu_m, temp_cpu, temp_wait_states, temp_mem_size, temp_dynarec, temp_fpu, temp_sync;
+static int temp_machine, temp_cpu_m, temp_cpu, temp_wait_states, temp_mem_size, temp_fpu, temp_sync;
+#ifdef USE_DYNAREC
+static int temp_dynarec;
+#endif
 
 /* Video category */
 static int temp_gfxcard, temp_video_speed, temp_voodoo;
@@ -135,7 +138,9 @@ static void win_settings_init(void)
 	temp_wait_states = cpu_waitstates;
 	temp_cpu = cpu;
 	temp_mem_size = mem_size;
+#ifdef USE_DYNAREC
 	temp_dynarec = cpu_use_dynarec;
+#endif
 	temp_fpu = enable_external_fpu;
 	temp_sync = enable_sync;
 
@@ -205,7 +210,9 @@ static int win_settings_changed(void)
 	i = i || (cpu_waitstates != temp_wait_states);
 	i = i || (cpu != temp_cpu);
 	i = i || (mem_size != temp_mem_size);
+#ifdef USE_DYNAREC
 	i = i || (temp_dynarec != cpu_use_dynarec);
+#endif
 	i = i || (temp_fpu != enable_external_fpu);
 	i = i || (temp_sync != enable_sync);
 
@@ -300,7 +307,9 @@ static void win_settings_save(void)
 	cpu_waitstates = temp_wait_states;
 	cpu = temp_cpu;
 	mem_size = temp_mem_size;
+#ifdef USE_DYNAREC
 	cpu_use_dynarec = temp_dynarec;
+#endif
 	enable_external_fpu = temp_fpu;
 	enable_sync = temp_sync;
 
@@ -382,7 +391,9 @@ static void win_settings_machine_recalc_cpu(HWND hdlg)
 {
 	HWND h;
 	int temp_romset = 0;
+#ifdef USE_DYNAREC
         int cpu_flags;
+#endif
         int cpu_type;
 
 	temp_romset = machine_getromset_ex(temp_machine);
@@ -398,6 +409,7 @@ static void win_settings_machine_recalc_cpu(HWND hdlg)
 		EnableWindow(h, FALSE);
 	}
 
+#ifdef USE_DYNAREC
 	h=GetDlgItem(hdlg, IDC_CHECK_DYNAREC);
 	cpu_flags = machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[temp_cpu].cpu_flags;
 	if (!(cpu_flags & CPU_SUPPORTS_DYNAREC) && (cpu_flags & CPU_REQUIRES_DYNAREC))
@@ -421,6 +433,7 @@ static void win_settings_machine_recalc_cpu(HWND hdlg)
 	{
 		EnableWindow(h, TRUE);
 	}
+#endif
 
 	h = GetDlgItem(hdlg, IDC_CHECK_FPU);
 	cpu_type = machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
@@ -594,8 +607,10 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 
 			SendMessage(h, CB_SETCURSEL, temp_wait_states, 0);
 
+#ifdef USE_DYNAREC
         	        h=GetDlgItem(hdlg, IDC_CHECK_DYNAREC);
 	                SendMessage(h, BM_SETCHECK, temp_dynarec, 0);
+#endif
 
 			h = GetDlgItem(hdlg, IDC_MEMSPIN);
 			SendMessage(h, UDM_SETBUDDY, (WPARAM)GetDlgItem(hdlg, IDC_MEMTEXT), 0);
@@ -654,8 +669,10 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 			lptsTemp = (LPTSTR) malloc(512);
 			stransi = (char *) malloc(512);
 
+#ifdef USE_DYNAREC
         	        h=GetDlgItem(hdlg, IDC_CHECK_DYNAREC);
 			temp_dynarec = SendMessage(h, BM_GETCHECK, 0, 0);
+#endif
 
         	        h=GetDlgItem(hdlg, IDC_CHECK_SYNC);
 			temp_sync = SendMessage(h, BM_GETCHECK, 0, 0);

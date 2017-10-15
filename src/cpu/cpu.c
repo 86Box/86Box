@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.c	1.0.3	2017/10/12
+ * Version:	@(#)cpu.c	1.0.4	2017/10/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -30,11 +30,14 @@
 #include "x86_ops.h"
 #include "../mem.h"
 #include "../pci.h"
+#ifdef USE_DYNAREC
 #include "codegen.h"
+#endif
 
 int isa_cycles;
 static uint8_t ccr0, ccr1, ccr2, ccr3, ccr4, ccr5, ccr6;
 
+#ifdef USE_DYNAREC
 OpFn *x86_dynarec_opcodes;
 OpFn *x86_dynarec_opcodes_0f;
 OpFn *x86_dynarec_opcodes_d8_a16;
@@ -55,6 +58,7 @@ OpFn *x86_dynarec_opcodes_df_a16;
 OpFn *x86_dynarec_opcodes_df_a32;
 OpFn *x86_dynarec_opcodes_REPE;
 OpFn *x86_dynarec_opcodes_REPNE;
+#endif
 
 OpFn *x86_opcodes;
 OpFn *x86_opcodes_0f;
@@ -688,12 +692,19 @@ void cpu_set()
         pclog("hasfpu - %i\n",hasfpu);
         pclog("is486 - %i  %i\n",is486,cpu_s->cpu_type);
 
+#ifdef USE_DYNAREC
         x86_setopcodes(ops_386, ops_386_0f, dynarec_ops_386, dynarec_ops_386_0f);
+#else
+        x86_setopcodes(ops_386, ops_386_0f);
+#endif
         x86_opcodes_REPE = ops_REPE;
         x86_opcodes_REPNE = ops_REPNE;
+#ifdef USE_DYNAREC
         x86_dynarec_opcodes_REPE = dynarec_ops_REPE;
         x86_dynarec_opcodes_REPNE = dynarec_ops_REPNE;
+#endif
 
+#ifdef USE_DYNAREC
         if (hasfpu)
         {
                 x86_dynarec_opcodes_d8_a16 = dynarec_ops_fpu_d8_a16;
@@ -733,6 +744,7 @@ void cpu_set()
                 x86_dynarec_opcodes_df_a32 = dynarec_ops_nofpu_a32;
         }
         codegen_timing_set(&codegen_timing_486);
+#endif
 
         if (hasfpu)
         {
@@ -785,9 +797,14 @@ void cpu_set()
                 break;
                 
                 case CPU_286:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_286, ops_286_0f, dynarec_ops_286, dynarec_ops_286_0f);
+#else
+                x86_setopcodes(ops_286, ops_286_0f);
+#endif
 		if (enable_external_fpu)
 		{
+#ifdef USE_DYNAREC
                 	x86_dynarec_opcodes_d9_a16 = dynarec_ops_fpu_287_d9_a16;
         	        x86_dynarec_opcodes_d9_a32 = dynarec_ops_fpu_287_d9_a32;
                 	x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_287_da_a16;
@@ -802,6 +819,7 @@ void cpu_set()
         	        x86_dynarec_opcodes_de_a32 = dynarec_ops_fpu_287_de_a32;
 	                x86_dynarec_opcodes_df_a16 = dynarec_ops_fpu_287_df_a16;
         	        x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_287_df_a32;
+#endif
 	                x86_opcodes_d9_a16 = ops_fpu_287_d9_a16;
 	                x86_opcodes_d9_a32 = ops_fpu_287_d9_a32;
 	                x86_opcodes_da_a16 = ops_fpu_287_da_a16;
@@ -941,7 +959,11 @@ void cpu_set()
                 break;
                 
                 case CPU_486SLC:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
+#else
+                x86_setopcodes(ops_386, ops_486_0f);
+#endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 3; /*register dest - memory src*/
                 timing_mr  = 5; /*memory dest   - register src*/
@@ -975,7 +997,11 @@ void cpu_set()
                 break;
                 
                 case CPU_486DLC:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
+#else
+                x86_setopcodes(ops_386, ops_486_0f);
+#endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 3; /*register dest - memory src*/
                 timing_mr  = 3; /*memory dest   - register src*/
@@ -1014,7 +1040,11 @@ void cpu_set()
 		cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_VME;
                 case CPU_i486SX:
                 case CPU_i486DX:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
+#else
+                x86_setopcodes(ops_386, ops_486_0f);
+#endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 2; /*register dest - memory src*/
                 timing_mr  = 3; /*memory dest   - register src*/
@@ -1049,7 +1079,11 @@ void cpu_set()
                 case CPU_Am486SX:
                 case CPU_Am486DX:
                 /*AMD timing identical to Intel*/
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
+#else
+                x86_setopcodes(ops_386, ops_486_0f);
+#endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 2; /*register dest - memory src*/
                 timing_mr  = 3; /*memory dest   - register src*/
@@ -1083,7 +1117,11 @@ void cpu_set()
                 
                 case CPU_Cx486S:
                 case CPU_Cx486DX:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
+#else
+                x86_setopcodes(ops_386, ops_486_0f);
+#endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 3; /*register dest - memory src*/
                 timing_mr  = 3; /*memory dest   - register src*/
@@ -1116,7 +1154,11 @@ void cpu_set()
                 break;
                 
                 case CPU_Cx5x86:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
+#else
+                x86_setopcodes(ops_386, ops_486_0f);
+#endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 1; /*register dest - memory src*/
                 timing_mr  = 2; /*memory dest   - register src*/
@@ -1150,7 +1192,11 @@ void cpu_set()
                 break;
 
                 case CPU_WINCHIP:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_winchip_0f, dynarec_ops_386, dynarec_ops_winchip_0f);
+#else
+                x86_setopcodes(ops_386, ops_winchip_0f);
+#endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 2; /*register dest - memory src*/
                 timing_mr  = 2; /*memory dest   - register src*/
@@ -1184,13 +1230,19 @@ void cpu_set()
                 timing_jmp_rm      = 5;
                 timing_jmp_pm      = 7;
                 timing_jmp_pm_gate = 17;
+#ifdef USE_DYNAREC
                 codegen_timing_set(&codegen_timing_winchip);
+#endif
                 timing_misaligned = 2;
                 cpu_cyrix_alignment = 1;
                 break;
 
                 case CPU_PENTIUM:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_pentium_0f, dynarec_ops_386, dynarec_ops_pentium_0f);
+#else
+                x86_setopcodes(ops_386, ops_pentium_0f);
+#endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 2; /*register dest - memory src*/
                 timing_mr  = 3; /*memory dest   - register src*/
@@ -1227,11 +1279,17 @@ void cpu_set()
                 cpu_hasCR4 = 1;
 		cpu_hasVME = 1;
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
+#ifdef USE_DYNAREC
                 codegen_timing_set(&codegen_timing_pentium);
+#endif
                 break;
 
                 case CPU_PENTIUMMMX:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_pentiummmx_0f, dynarec_ops_386, dynarec_ops_pentiummmx_0f);
+#else
+                x86_setopcodes(ops_386, ops_pentiummmx_0f);
+#endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 2; /*register dest - memory src*/
                 timing_mr  = 3; /*memory dest   - register src*/
@@ -1268,11 +1326,17 @@ void cpu_set()
                 cpu_hasCR4 = 1;
 		cpu_hasVME = 1;
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
+#ifdef USE_DYNAREC
                 codegen_timing_set(&codegen_timing_pentium);
+#endif
                 break;
 
   		case CPU_Cx6x86:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_pentium_0f, dynarec_ops_386, dynarec_ops_pentium_0f);
+#else
+                x86_setopcodes(ops_386, ops_pentium_0f);
+#endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 1; /*register dest - memory src*/
                 timing_mr  = 2; /*memory dest   - register src*/
@@ -1307,12 +1371,18 @@ void cpu_set()
                 cpu_hasMMX = 0;
                 cpu_hasMSR = 0;
                 cpu_hasCR4 = 0;
+#ifdef USE_DYNAREC
   		codegen_timing_set(&codegen_timing_686);
+#endif
   		CPUID = 0; /*Disabled on powerup by default*/
                 break;
 
                 case CPU_Cx6x86L:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_pentium_0f, dynarec_ops_386, dynarec_ops_pentium_0f);
+#else
+                x86_setopcodes(ops_386, ops_pentium_0f);
+#endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 1; /*register dest - memory src*/
                 timing_mr  = 2; /*memory dest   - register src*/
@@ -1347,13 +1417,19 @@ void cpu_set()
                 cpu_hasMMX = 0;
                 cpu_hasMSR = 0;
                 cpu_hasCR4 = 0;
+#ifdef USE_DYNAREC
          	codegen_timing_set(&codegen_timing_686);
+#endif
          	ccr4 = 0x80;
                 break;
 
 
                 case CPU_CxGX1:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_pentium_0f, dynarec_ops_386, dynarec_ops_pentium_0f);
+#else
+                x86_setopcodes(ops_386, ops_pentium_0f);
+#endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 1; /*register dest - memory src*/
                 timing_mr  = 2; /*memory dest   - register src*/
@@ -1371,11 +1447,14 @@ void cpu_set()
                 cpu_hasMSR = 1;
                 cpu_hasCR4 = 1;
                 cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_PCE;
+#ifdef USE_DYNAREC
          	codegen_timing_set(&codegen_timing_686);
+#endif
                 break;
 
   
                 case CPU_Cx6x86MX:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_c6x86mx_0f, dynarec_ops_386, dynarec_ops_c6x86mx_0f);
                 x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_686_da_a16;
                 x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_686_da_a32;
@@ -1383,6 +1462,9 @@ void cpu_set()
                 x86_dynarec_opcodes_db_a32 = dynarec_ops_fpu_686_db_a32;
                 x86_dynarec_opcodes_df_a16 = dynarec_ops_fpu_686_df_a16;
                 x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_686_df_a32;
+#else
+                x86_setopcodes(ops_386, ops_c6x86mx_0f);
+#endif
                 x86_opcodes_da_a16 = ops_fpu_686_da_a16;
                 x86_opcodes_da_a32 = ops_fpu_686_da_a32;
                 x86_opcodes_db_a16 = ops_fpu_686_db_a16;
@@ -1424,13 +1506,19 @@ void cpu_set()
                 cpu_hasMSR = 1;
                 cpu_hasCR4 = 1;
                 cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_PCE;
+#ifdef USE_DYNAREC
          	codegen_timing_set(&codegen_timing_686);
+#endif
          	ccr4 = 0x80;
                 break;
 
                 case CPU_K5:
                 case CPU_5K86:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_k6_0f, dynarec_ops_386, dynarec_ops_k6_0f);
+#else
+                x86_setopcodes(ops_386, ops_k6_0f);
+#endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 2; /*register dest - memory src*/
                 timing_mr  = 3; /*memory dest   - register src*/
@@ -1450,7 +1538,11 @@ void cpu_set()
                 break;
 
                 case CPU_K6:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_k6_0f, dynarec_ops_386, dynarec_ops_k6_0f);
+#else
+                x86_setopcodes(ops_386, ops_k6_0f);
+#endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 2; /*register dest - memory src*/
                 timing_mr  = 3; /*memory dest   - register src*/
@@ -1468,10 +1560,13 @@ void cpu_set()
                 cpu_hasCR4 = 1;
 		cpu_hasVME = 1;
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
+#ifdef USE_DYNAREC
                 codegen_timing_set(&codegen_timing_pentium);
+#endif
                 break;
 
                 case CPU_PENTIUMPRO:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_pentiumpro_0f, dynarec_ops_386, dynarec_ops_pentiumpro_0f);
                 x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_686_da_a16;
                 x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_686_da_a32;
@@ -1479,6 +1574,9 @@ void cpu_set()
                 x86_dynarec_opcodes_db_a32 = dynarec_ops_fpu_686_db_a32;
                 x86_dynarec_opcodes_df_a16 = dynarec_ops_fpu_686_df_a16;
                 x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_686_df_a32;
+#else
+                x86_setopcodes(ops_386, ops_pentiumpro_0f);
+#endif
                 x86_opcodes_da_a16 = ops_fpu_686_da_a16;
                 x86_opcodes_da_a32 = ops_fpu_686_da_a32;
                 x86_opcodes_db_a16 = ops_fpu_686_db_a16;
@@ -1502,11 +1600,14 @@ void cpu_set()
                 cpu_hasCR4 = 1;
 		cpu_hasVME = 1;
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
+#ifdef USE_DYNAREC
          	codegen_timing_set(&codegen_timing_686);
+#endif
                 break;
 
 #if 0                
 		case CPU_PENTIUM2:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_pentium2_0f, dynarec_ops_386, dynarec_ops_pentium2_0f);
                 x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_686_da_a16;
                 x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_686_da_a32;
@@ -1514,6 +1615,9 @@ void cpu_set()
                 x86_dynarec_opcodes_db_a32 = dynarec_ops_fpu_686_db_a32;
                 x86_dynarec_opcodes_df_a16 = dynarec_ops_fpu_686_df_a16;
                 x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_686_df_a32;
+#else
+                x86_setopcodes(ops_386, ops_pentium2_0f);
+#endif
                 x86_opcodes_da_a16 = ops_fpu_686_da_a16;
                 x86_opcodes_da_a32 = ops_fpu_686_da_a32;
                 x86_opcodes_db_a16 = ops_fpu_686_db_a16;
@@ -1537,11 +1641,14 @@ void cpu_set()
                 cpu_hasCR4 = 1;
 		cpu_hasVME = 1;
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
+#ifdef USE_DYNAREC
          	codegen_timing_set(&codegen_timing_686);
+#endif
                 break;
 #endif
 
                 case CPU_PENTIUM2D:
+#ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_pentium2d_0f, dynarec_ops_386, dynarec_ops_pentium2d_0f);
                 x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_686_da_a16;
                 x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_686_da_a32;
@@ -1549,6 +1656,9 @@ void cpu_set()
                 x86_dynarec_opcodes_db_a32 = dynarec_ops_fpu_686_db_a32;
                 x86_dynarec_opcodes_df_a16 = dynarec_ops_fpu_686_df_a16;
                 x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_686_df_a32;
+#else
+                x86_setopcodes(ops_386, ops_pentium2d_0f);
+#endif
                 x86_opcodes_da_a16 = ops_fpu_686_da_a16;
                 x86_opcodes_da_a32 = ops_fpu_686_da_a32;
                 x86_opcodes_db_a16 = ops_fpu_686_db_a16;
@@ -1572,7 +1682,9 @@ void cpu_set()
                 cpu_hasCR4 = 1;
 		cpu_hasVME = 1;
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE | CR4_OSFXSR;
+#ifdef USE_DYNAREC
          	codegen_timing_set(&codegen_timing_686);
+#endif
                 break;
 
                 default:
@@ -2464,6 +2576,7 @@ uint8_t cyrix_read(uint16_t addr, void *priv)
         return 0xff;
 }
 
+#ifdef USE_DYNAREC
 void x86_setopcodes(OpFn *opcodes, OpFn *opcodes_0f, OpFn *dynarec_opcodes, OpFn *dynarec_opcodes_0f)
 {
         x86_opcodes = opcodes;
@@ -2471,6 +2584,13 @@ void x86_setopcodes(OpFn *opcodes, OpFn *opcodes_0f, OpFn *dynarec_opcodes, OpFn
         x86_dynarec_opcodes = dynarec_opcodes;
         x86_dynarec_opcodes_0f = dynarec_opcodes_0f;
 }
+#else
+void x86_setopcodes(OpFn *opcodes, OpFn *opcodes_0f)
+{
+        x86_opcodes = opcodes;
+        x86_opcodes_0f = opcodes_0f;
+}
+#endif
 
 void cpu_update_waitstates()
 {

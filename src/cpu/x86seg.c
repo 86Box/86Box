@@ -405,10 +405,12 @@ void loadseg(uint16_t seg, x86seg *s)
                 }
 #endif
                 s->checked = 0;
+#ifdef USE_DYNAREC
                 if (s == &_ds)
                         codegen_flat_ds = 0;
                 if (s == &_ss)
                         codegen_flat_ss = 0;
+#endif
         }
         else
         {
@@ -418,10 +420,12 @@ void loadseg(uint16_t seg, x86seg *s)
                 if (s == &_ss)
                         stack32 = 0;
                 s->checked = 1;
+#ifdef USE_DYNAREC
                 if (s == &_ds)
                         codegen_flat_ds = 0;
                 if (s == &_ss)
                         codegen_flat_ss = 0;
+#endif
         }
         
         if (s == &_ds)

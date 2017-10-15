@@ -100,7 +100,9 @@
 #define IDC_COMBO_CPU		1013
 #define IDC_CHECK_FPU		1014
 #define IDC_COMBO_WS		1015
+#ifdef USE_DYNAREC
 #define IDC_CHECK_DYNAREC	1016
+#endif
 #define IDC_MEMTEXT		1017
 #define IDC_MEMSPIN		1018
 #define IDC_TEXT_MB		IDT_1705

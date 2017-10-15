@@ -14,7 +14,14 @@
 #include "io.h"
 #include "mem.h"
 #include "rom.h"
+#ifdef USE_DYNAREC
 #include "cpu/codegen.h"
+#else
+#define PAGE_MASK_INDEX_MASK 3
+#define PAGE_MASK_INDEX_SHIFT 10
+#define PAGE_MASK_MASK 63
+#define PAGE_MASK_SHIFT 4
+#endif
 
 
 static uint8_t         (*_mem_read_b[0x40000])(uint32_t addr, void *priv);
@@ -112,7 +119,9 @@ void flushmmucache(void)
         pccache=(uint32_t)0xFFFFFFFF;
         pccache2=(uint8_t *)0xFFFFFFFF;
         
+#ifdef USE_DYNAREC
         codegen_flush();
+#endif
 }
 
 void flushmmucache_nopc(void)
@@ -365,7 +374,11 @@ void addwritelookup(uint32_t virt, uint32_t phys)
                 writelookup2[writelookup[writelnext]] = -1;
         }
 
+#ifdef USE_DYNAREC
         if (pages[phys >> 12].block[0] || pages[phys >> 12].block[1] || pages[phys >> 12].block[2] || pages[phys >> 12].block[3] || (phys & ~0xfff) == recomp_page)
+#else
+        if (pages[phys >> 12].block[0] || pages[phys >> 12].block[1] || pages[phys >> 12].block[2] || pages[phys >> 12].block[3])
+#endif
                 page_lookup[virt >> 12] = &pages[phys >> 12];
         else
                 writelookup2[virt>>12] = (uintptr_t)&ram[(uintptr_t)(phys & ~0xFFF) - (uintptr_t)(virt & ~0xfff)];
@@ -944,7 +957,11 @@ uint32_t mem_read_raml(uint32_t addr, void *priv)
 
 void mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *p)
 {      
+#ifdef USE_DYNAREC
         if (val != p->mem[addr & 0xfff] || codegen_in_recompile)
+#else
+        if (val != p->mem[addr & 0xfff])
+#endif
         {
                 uint64_t mask = (uint64_t)1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
                 p->dirty_mask[(addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] |= mask;
@@ -953,7 +970,11 @@ void mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *p)
 }
 void mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *p)
 {
+#ifdef USE_DYNAREC
         if (val != *(uint16_t *)&p->mem[addr & 0xfff] || codegen_in_recompile)
+#else
+        if (val != *(uint16_t *)&p->mem[addr & 0xfff])
+#endif
         {
                 uint64_t mask = (uint64_t)1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
                 if ((addr & 0xf) == 0xf)
@@ -964,7 +985,11 @@ void mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *p)
 }
 void mem_write_raml_page(uint32_t addr, uint32_t val, page_t *p)
 {       
+#ifdef USE_DYNAREC
         if (val != *(uint32_t *)&p->mem[addr & 0xfff] || codegen_in_recompile)
+#else
+        if (val != *(uint32_t *)&p->mem[addr & 0xfff])
+#endif
         {
                 uint64_t mask = (uint64_t)1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
                 if ((addr & 0xf) >= 0xd)

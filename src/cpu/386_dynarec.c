@@ -18,7 +18,9 @@
 #include "../timer.h"
 #include "../floppy/floppy.h"
 #include "../floppy/fdc.h"
+#ifdef USE_DYNAREC
 #include "codegen.h"
+#endif
 #include "386_common.h"
 
 
@@ -500,6 +502,7 @@ static int cpu_cycle_period(void)
 	}
 }
 
+#ifdef USE_DYNAREC
 static int cycles_main = 0;
 void exec386_dynarec(int cycs)
 {
@@ -950,3 +953,4 @@ inrecomp=0;
                 cycles_main -= (cycles_start - cycles);
         }
 }
+#endif

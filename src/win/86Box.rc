@@ -278,12 +278,14 @@ BEGIN
                     12,12
     LTEXT           "MB",IDT_1705,123,64,10,10
     LTEXT           "Memory:",IDT_1706,7,64,30,10
-    CONTROL         "Dynamic Recompiler",IDC_CHECK_DYNAREC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,100,94,10
+    CONTROL         "Enable time sync",IDC_CHECK_SYNC,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,100,102,10
     CONTROL         "Enable FPU",IDC_CHECK_FPU,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,147,100,113,10
-    CONTROL         "Enable time sync",IDC_CHECK_SYNC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,115,102,10
+#ifdef USE_DYNAREC
+    CONTROL         "Dynamic Recompiler",IDC_CHECK_DYNAREC,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,115,94,10
+#endif
 END
 
 DLG_CFG_VIDEO DIALOG DISCARDABLE  97, 0, 267, 63

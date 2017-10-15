@@ -1285,6 +1285,7 @@ buslogic_init(device_t *info)
     uint16_t scam_rom_size;
     FILE *f;
     buslogic_data_t *bl;
+    uint32_t bios_rom_addr;
 
     /* Call common initializer. */
     dev = x54x_init(info);
@@ -1308,7 +1309,13 @@ buslogic_init(device_t *info)
     bl->chip = info->local;
     bl->PCIBase = 0;
     bl->MMIOBase = 0;
-    bl->has_bios = device_get_config_int("bios");
+    if (info->flags & DEVICE_PCI) {
+	bios_rom_addr = 0xd8000;
+	bl->has_bios = device_get_config_int("bios");
+    } else {
+    	bios_rom_addr = device_get_config_hex20("bios_addr");
+	bl->has_bios = !!bios_rom_addr;
+    }
 
     dev->ven_cmd_phase1 = buslogic_cmd_phase1;
     dev->ven_get_host_id = buslogic_get_host_id;
@@ -1390,7 +1397,7 @@ buslogic_init(device_t *info)
 
 	bl->bios_mask = 0xffffc000;
 
-	rom_init(&bl->bios, bios_rom_name, 0xd8000, bios_rom_size, bios_rom_mask, 0, MEM_MAPPING_EXTERNAL);
+	rom_init(&bl->bios, bios_rom_name, bios_rom_addr, bios_rom_size, bios_rom_mask, 0, MEM_MAPPING_EXTERNAL);
 
 	if (has_autoscsi_rom) {
 		f = rom_fopen(autoscsi_rom_name, L"rb");
@@ -1519,9 +1526,26 @@ static device_config_t BT_ISA_Config[] = {
                         }
                 },
         },
-	{
-		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
-	},
+        {
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0,
+                {
+                        {
+                                "Disabled", 0
+                        },
+                        {
+                                "C800H", 0xc8000
+                        },
+                        {
+                                "D000H", 0xd0000
+                        },
+                        {
+                                "D800H", 0xd8000
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
 	{
 		"", "", -1
 	}
