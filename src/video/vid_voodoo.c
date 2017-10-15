@@ -2562,16 +2562,11 @@ static inline void voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t 
                 state->tex_a[0] ^= 0xff;
 }
 
-#ifdef USE_DYNAREC
-#if (defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32) && !(defined __amd64__)
+#if ((defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32) && !(defined __amd64__) && (defined USE_DYNAREC))
 #include "vid_voodoo_codegen_x86.h"
-#elif (defined __amd64__)
+#elif ((defined __amd64__) && (defined USE_DYNAREC))
 #include "vid_voodoo_codegen_x86-64.h"
 #else
-#define NO_CODEGEN
-static int voodoo_recomp = 0;
-#endif
-else
 #define NO_CODEGEN
 static int voodoo_recomp = 0;
 #endif
@@ -2604,7 +2599,9 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
         int dither = params->fbzMode & FBZ_DITHER;*/
         int texels;
         int c;
+#ifndef NO_CODEGEN
         uint8_t (*voodoo_draw)(voodoo_state_t *state, voodoo_params_t *params, int x, int real_y);
+#endif
         int y_diff = SLI_ENABLED ? 2 : 1;
 
         if ((params->textureMode[0] & TEXTUREMODE_MASK) == TEXTUREMODE_PASSTHROUGH ||
