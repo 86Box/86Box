@@ -6,12 +6,12 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implement the VNC renderer.
+ *		Implement the VNC renderer with LibVNCServer.
  *
- * Version:	@(#)win_vnc.c	1.0.2	2017/10/13
+ * Version:	@(#)win_vnc.c	1.0.2	2017/10/14
  *
- * Authors:	RichardG, <richardg867@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Based on raw code by RichardG, <richardg867@gmail.com>
  *
  *		Copyright 2017 Fred N. van Kempen.
  */
@@ -30,11 +30,8 @@
 #include "win_vnc.h"
 
 
-extern void video_blit_complete(void);
-
-
-static rfbScreenInfoPtr	rfbScreen;
-static int	vnc_clients;
+static rfbScreenInfoPtr	rfb = NULL;
+static int	clients;
 static int	updatingSize;
 static int	allowedX,
 		allowedY;
@@ -115,13 +112,12 @@ vnc_clientgone(rfbClientPtr cl)
 {
     pclog("VNC: client disconnected: %s\n", cl->host);
 
-    if (vnc_clients > 0)
-	vnc_clients--;
-    if (vnc_clients == 0) {
+    if (clients > 0)
+	clients--;
+    if (clients == 0) {
 	/* No more clients, pause the emulator. */
-	plat_pause(1);
-
 	pclog("VNC: no clients, pausing..\n");
+	plat_pause(1);
     }
 }
 
@@ -133,7 +129,7 @@ vnc_newclient(rfbClientPtr cl)
     cl->clientGoneHook = vnc_clientgone;
 
     pclog("VNC: new client: %s\n", cl->host);
-    if (++vnc_clients == 1) {
+    if (++clients == 1) {
 	/* We now have clients, un-pause the emulator. */
 	pclog("VNC: unpausing..\n");
 	plat_pause(0);
@@ -149,13 +145,11 @@ vnc_display(rfbClientPtr cl)
     /* Avoid race condition between resize and update. */
     if (!updatingSize && cl->newFBSizePending) {
 	updatingSize = 1;
-	pclog("VNC: updatingSize=1\n");
     } else if (updatingSize && !cl->newFBSizePending) {
 	updatingSize = 0;
-	pclog("VNC: updatingSize=0\n");
 
-	allowedX = rfbScreen->width;
-	allowedY = rfbScreen->height;
+	allowedX = rfb->width;
+	allowedY = rfb->height;
     }
 }
 
@@ -196,35 +190,51 @@ vnc_kbdevent(rfbBool down, rfbKeySym k, rfbClientPtr cl)
 
 
 static void
-vnc_memtoscreen(int x, int y, int y1, int y2, int w, int h)
+vnc_blit(int x, int y, int y1, int y2, int w, int h)
 {
-    int yy, i;
+    uint32_t *p;
+    int yy;
 
-    /* y1 to <y2. */
-    for (yy=y1,i=0; yy<y2; yy++,i++) {
+    for (yy=y1; yy<y2; yy++) {
+	p = (uint32_t *)&(((uint32_t *)rfb->frameBuffer)[yy*2048]);
+
 	if ((y+yy) >= 0 && (y+yy) < 2048)
-		memcpy((uint32_t *) &(((uint8_t *) rfbScreen->frameBuffer)[yy*2048*4]), &(((uint32_t *)buffer32->line[y+yy])[x]), w*4);
+		memcpy(p, &(((uint32_t *)buffer32->line[y+yy])[x]), w*4);
     }
  
     video_blit_complete();
 
     if (! updatingSize)
-	rfbMarkRectAsModified(rfbScreen, 0,0, allowedX,allowedY);
+	rfbMarkRectAsModified(rfb, 0,0, allowedX,allowedY);
 }
 
 
 static void
-vnc_memtoscreen_8(int x, int y, int w, int h)
+vnc_blit8(int x, int y, int w, int h)
 {
-#if 1
-    pclog("VNC: memtoscreen_8 %i,%i %i,%i\n", x, y, w, h);
-#endif
+    uint32_t *p;
+    int xx, yy;
+
+    for (yy = 0; yy < h; yy++) {
+	p = (uint32_t *)&(((uint32_t *)rfb->frameBuffer)[yy*2048]);
+
+	if ((y+yy) >= 0 && (y+yy) < buffer->h) {
+		for (xx=0; xx<w; xx++)
+			p[xx] = pal_lookup[buffer->line[y+yy][x+xx]];
+	}
+    }
+ 
+    video_blit_complete();
+
+    if (! updatingSize)
+	rfbMarkRectAsModified(rfb, 0,0, x+w,y+h);
 }
  
 
 int
 vnc_init(HWND h)
 {
+    static char title[128];
     rfbPixelFormat rpf = {
 	/*
 	 * Screen format:
@@ -238,34 +248,32 @@ vnc_init(HWND h)
 	32, 32, 0, 1, 255,255,255, 16, 8, 0, 0, 0
     };
 
-    if (rfbScreen == NULL) {
+    if (rfb == NULL) {
+	wcstombs(title, set_window_title(NULL), sizeof(title));
 	updatingSize = 0;
 	allowedX = allowedY = 2048;
  
-	rfbScreen = rfbGetScreen(0, NULL, 2048, 2048, 8, 3, 4);
-	rfbScreen->desktopName = "86Box";
-	rfbScreen->frameBuffer = (char *)malloc(2048 * 2048 * 4);
+	rfb = rfbGetScreen(0, NULL, 2048, 2048, 8, 3, 4);
+	rfb->desktopName = title;
+	rfb->frameBuffer = (char *)malloc(2048 * 2048 * 4);
 
-#if 1
-	rfbScreen->serverFormat = rpf;
-#else
-	rfbScreen->serverFormat = {32, 32, 0, 1, 255,255,255, 16, 8, 0, 0, 0};
-#endif
-	rfbScreen->alwaysShared = TRUE;
-	rfbScreen->displayHook = vnc_display;
-	rfbScreen->kbdAddEvent = vnc_kbdevent;
-	rfbScreen->newClientHook = vnc_newclient;
+	rfb->serverFormat = rpf;
+	rfb->alwaysShared = TRUE;
+	rfb->displayHook = vnc_display;
+	rfb->kbdAddEvent = vnc_kbdevent;
+	rfb->newClientHook = vnc_newclient;
  
-	rfbInitServer(rfbScreen);
+	rfbInitServer(rfb);
 
-	rfbRunEventLoop(rfbScreen, -1, TRUE);
+	rfbRunEventLoop(rfb, -1, TRUE);
     }
  
-    video_setblit(vnc_memtoscreen_8, vnc_memtoscreen);
+    /* Set up our BLIT handlers. */
+    video_setblit(vnc_blit8, vnc_blit);
 
     pclog("VNC: init complete.\n");
 
-    vnc_clients = 0;
+    clients = 0;
 
     return(1);
 }
@@ -281,17 +289,21 @@ vnc_close(void)
 void
 vnc_resize(int x, int y)
 {
-    if ((x != rfbScreen->width || y != rfbScreen->height) && x > 160 && y > 0) {
+    rfbClientIteratorPtr iterator;
+    rfbClientPtr cl;
+
+    if (rfb == NULL) return;
+
+    if ((x != rfb->width || y != rfb->height) && x > 160 && y > 0) {
 	pclog("VNC: updating resolution: %dx%d\n", x, y);
  
-	allowedX = (rfbScreen->width < x) ? rfbScreen->width : x;
-	allowedY = (rfbScreen->width < y) ? rfbScreen->width : y;
+	allowedX = (rfb->width < x) ? rfb->width : x;
+	allowedY = (rfb->width < y) ? rfb->width : y;
  
-	rfbScreen->width = x;
-	rfbScreen->height = y;
+	rfb->width = x;
+	rfb->height = y;
  
-	rfbClientPtr cl;
-	rfbClientIteratorPtr iterator = rfbGetClientIterator(rfbScreen);
+	iterator = rfbGetClientIterator(rfb);
 	while ((cl = rfbClientIteratorNext(iterator)) != NULL) {
 		LOCK(cl->updateMutex);
 		cl->newFBSizePending = 1;
@@ -304,7 +316,7 @@ vnc_resize(int x, int y)
 int
 vnc_pause(void)
 {
-    return((vnc_clients > 0) ? 0 : 1);
+    return((clients > 0) ? 0 : 1);
 }
 
 

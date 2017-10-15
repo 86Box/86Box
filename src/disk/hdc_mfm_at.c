@@ -12,7 +12,7 @@
  *		based design. Most cards were WD1003-WA2 or -WAH, where the
  *		-WA2 cards had a floppy controller as well (to save space.)
  *
- * Version:	@(#)hdd_mfm_at.c	1.0.7	2017/10/11
+ * Version:	@(#)hdd_mfm_at.c	1.0.8	2017/10/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -719,7 +719,7 @@ mfm_init(device_t *info)
 	if ((hdd[d].bus == HDD_BUS_MFM) && (hdd[d].mfm_channel < MFM_NUM)) {
 		loadhd(mfm, hdd[d].mfm_channel, d, hdd[d].fn);
 
-		pclog("WD1003(%d): (%S) geometry %d/%d/%d\n", c, hdd[d].fn,
+		pclog("WD1003(%d): (%ls) geometry %d/%d/%d\n", c, hdd[d].fn,
 			(int)hdd[d].tracks, (int)hdd[d].hpc, (int)hdd[d].spt);
 
 		if (++c >= MFM_NUM) break;

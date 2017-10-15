@@ -8,11 +8,12 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.9	2017/10/10
+ * Version:	@(#)scsi.c	1.0.10	2017/10/14
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
@@ -48,7 +49,7 @@ int		scsi_card_current = 0;
 int		scsi_card_last = 0;
 
 uint32_t	SCSI_BufferLength;
-void		*scsiMutex;
+mutex_t		*scsiMutex;
 
 
 typedef struct {

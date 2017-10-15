@@ -8,7 +8,7 @@
  *
  *		Handle SLiRP library processing.
  *
- * Version:	@(#)net_slirp.c	1.0.8	2017/10/11
+ * Version:	@(#)net_slirp.c	1.0.9	2017/10/14
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -32,7 +32,7 @@ static queueADT	slirpq;			/* SLiRP library handle */
 static thread_t	*poll_tid;
 static NETRXCB	poll_rx;		/* network RX function to call */
 static void	*poll_arg;		/* network RX function arg */
-static void	*slirpMutex;
+static mutex_t	*slirpMutex;
 
 
 

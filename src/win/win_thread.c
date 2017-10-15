@@ -8,7 +8,7 @@
  *
  *		Implement threads and mutexes for the Win32 platform.
  *
- * Version:	@(#)win_thread.c	1.0.2	2017/10/10
+ * Version:	@(#)win_thread.c	1.0.3	2017/10/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -46,9 +46,7 @@ thread_create(void (*thread_rout)(void *param), void *param)
 void
 thread_kill(void *handle)
 {
-    if (handle == NULL) {
-	return;
-    }
+    if (handle == NULL) return;
 
     TerminateThread(handle, 0);
 }
@@ -64,117 +62,98 @@ thread_sleep(int t)
 event_t *
 thread_create_event(void)
 {
-    win_event_t *event = malloc(sizeof(win_event_t));
+    win_event_t *ev = malloc(sizeof(win_event_t));
 
-    event->handle = CreateEvent(NULL, FALSE, FALSE, NULL);
+    ev->handle = CreateEvent(NULL, FALSE, FALSE, NULL);
 
-    return((event_t *)event);
+    return((event_t *)ev);
 }
 
 
 void
-thread_set_event(event_t *_event)
+thread_set_event(event_t *arg)
 {
-    if (_event == NULL) {
-	return;
-    }
+    win_event_t *ev = (win_event_t *)arg;
 
-    win_event_t *event = (win_event_t *)_event;
+    if (arg == NULL) return;
 
-    SetEvent(event->handle);
+    SetEvent(ev->handle);
 }
 
 
 void
-thread_reset_event(event_t *_event)
+thread_reset_event(event_t *arg)
 {
-    if (_event == NULL) {
-	return;
-    }
+    win_event_t *ev = (win_event_t *)arg;
 
-    win_event_t *event = (win_event_t *)_event;
+    if (arg == NULL) return;
 
-    ResetEvent(event->handle);
+    ResetEvent(ev->handle);
 }
 
 
 int
-thread_wait_event(event_t *_event, int timeout)
+thread_wait_event(event_t *arg, int timeout)
 {
-    if (_event == NULL) {
-	return 0;
-    }
+    win_event_t *ev = (win_event_t *)arg;
 
-    win_event_t *event = (win_event_t *)_event;
+    if (arg == NULL) return(0);
 
     if (timeout == -1)
 	timeout = INFINITE;
 
-    if (WaitForSingleObject(event->handle, timeout)) return(1);
+    if (WaitForSingleObject(ev->handle, timeout)) return(1);
 
     return(0);
 }
 
 
 void
-thread_destroy_event(event_t *_event)
+thread_destroy_event(event_t *arg)
 {
-    win_event_t *event = (win_event_t *)_event;
+    win_event_t *ev = (win_event_t *)arg;
 
-    if (_event == NULL) {
-	return;
-    }
+    if (arg == NULL) return;
 
-    CloseHandle(event->handle);
+    CloseHandle(ev->handle);
 
-    free(event);
+    free(ev);
 }
 
 
-void *
+mutex_t *
 thread_create_mutex(wchar_t *name)
 {
-    return((void*)CreateMutex(NULL, FALSE, name));
+    return((mutex_t*)CreateMutex(NULL, FALSE, name));
 }
 
 
 void
-thread_close_mutex(void *mutex)
+thread_close_mutex(mutex_t *mutex)
 {
-    if (mutex == NULL) {
-	return;
-    }
+    if (mutex == NULL) return;
 
     CloseHandle((HANDLE)mutex);
 }
 
 
-uint8_t
-thread_wait_mutex(void *mutex)
+int
+thread_wait_mutex(mutex_t *mutex)
 {
-    if (mutex == NULL) {
-	return 0;
-    }
+    if (mutex == NULL) return(0);
 
     DWORD dwres = WaitForSingleObject((HANDLE)mutex, INFINITE);
 
-    switch (dwres) {
-	case WAIT_OBJECT_0:
-		return(1);
+    if (dwres == WAIT_OBJECT_0) return(1);
 
-	case WAIT_ABANDONED:
-	default:
-		return(0);
-    }
+    return(0);
 }
 
 
-uint8_t
-thread_release_mutex(void *mutex)
+int
+thread_release_mutex(mutex_t *mutex)
 {
-    if (mutex == NULL) {
-	return 0;
-    }
+    if (mutex == NULL) return(0);
 
     return(!!ReleaseMutex((HANDLE)mutex));
 }

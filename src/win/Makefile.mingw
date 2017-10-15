@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.61	2017/10/14
+# Version:	@(#)Makefile.mingw	1.0.62	2017/10/14
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -122,6 +122,7 @@ CC		:= gcc -m32
 endif
 WINDRES		:= windres
 DEPS		= -MMD -MF $*.d -c $<
+DEPFILE		:= win/.depends
 
 # Set up the correct toolchain flags.
 OPTS		:= -DWIN32 $(EXTRAS) $(STUFF)
@@ -204,17 +205,22 @@ endif
 ifeq ($(VNC), y)
 CFLAGS		+= -DUSE_VNC
 RFLAGS		+= -DUSE_VNC
-CFLAGS		+= -I$(VNC_PATH)\INCLUDE
-# VNCLIB		:= $(VNC_PATH)\LIB\libvncserver.a
-VNCLIB		:= -lvncserver
+ ifneq ($(VNC_PATH), )
+  CFLAGS	+= -I$(VNC_PATH)\INCLUDE
+  VNCLIB	:= -L$(VNC_PATH)\LIB
+ endif
+VNCLIB		+= -lvncserver
 VNCOBJ		:= win_vnc.o
 endif
 
 ifeq ($(RDP), y)
 CFLAGS		+= -DUSE_RDP
 RFLAGS		+= -DUSE_RDP
-CFLAGS		+= -I$(RDP_PATH)\INCLUDE
-RDPLIB		:= $(RDP_PATH)\LIB\librdp.a
+ ifneq ($(RDP_PATH), )
+  CFLAGS	+= -I$(RDP_PATH)\INCLUDE
+  RDPLIB	:= -L$(RDP_PATH)\LIB
+ endif
+RDPLIB		+= -lrdp
 RDPOBJ		:= win_rdp.o
 endif
 
@@ -241,6 +247,7 @@ ifeq ($(PAS16), y)
 CFLAGS		+= -DUSE_PAS16
 DEVBROBJ	+= snd_pas16.o
 endif
+
 endif
 
 
@@ -483,27 +490,27 @@ endif
 
 clean:
 		@echo Cleaning objects..
-		@-rm *.o 2>NUL
-		@-rm *.res 2>NUL
+		@-rm -f *.o 2>NUL
+		@-rm -f *.res 2>NUL
 
 clobber:	clean
 		@echo Cleaning executables..
-		@-rm *.d 2>NUL
-		@-rm *.exe 2>NUL
-#		@-rm *.depends 2>NUL
+		@-rm -f *.d 2>NUL
+		@-rm -f *.exe 2>NUL
+#		@-rm -f $(DEPFILE) 2>NUL
 
 ifneq ($(AUTODEP), y)
 depclean:
-		@-rm -f .depends 2>NUL
+		@-rm -f $(DEPFILE) 2>NUL
 		@echo Creating dependencies..
-		@echo # Run "make depends" to re-create this file. >.depends
+		@echo # Run "make depends" to re-create this file. $(DEPFILE)
 
 depends:	DEPOBJ=$(OBJ:%.o=%.d)
 depends:	depclean $(OBJ:%.o=%.d)
-		@-cat $(DEPOBJ) >>.depends
+		@-cat $(DEPOBJ) >>$(DEPFILE)
 		@-rm -f $(DEPOBJ)
 
-.depends:
+$(DEPFILE):
 endif
 
 
@@ -512,7 +519,7 @@ ifeq ($(AUTODEP), y)
 #-include $(OBJ:%.o=%.d)  (better, but sloooowwwww)
 -include *.d
 else
-include $(wildcard .depends)
+include $(wildcard $(DEPFILE))
 endif
 
 

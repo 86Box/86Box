@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.23	2017/10/13
+ * Version:	@(#)win.c	1.0.24	2017/10/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1403,7 +1403,7 @@ get_executable_name(wchar_t *s, int size)
 }
 
 
-void
+wchar_t *
 set_window_title(wchar_t *s)
 {
     if (! video_fullscreen) {
@@ -1414,6 +1414,8 @@ set_window_title(wchar_t *s)
 
        	SetWindowText(hwndMain, s);
     }
+
+    return(s);
 }
 
 
@@ -1590,7 +1592,7 @@ take_screenshot(void)
 			ddraw_fs_take_screenshot(path);
 		  else
 			ddraw_take_screenshot(path);
-		pclog("Screenshot: fn='%S'\n", path);
+		pclog("Screenshot: fn='%ls'\n", path);
 		break;
 
 	case 1:		/* d3d9 */
@@ -1600,7 +1602,7 @@ take_screenshot(void)
 			d3d_fs_take_screenshot(path);
 		  else
 			d3d_take_screenshot(path);
-		pclog("Screenshot: fn='%S'\n", path);
+		pclog("Screenshot: fn='%ls'\n", path);
 		break;
 
 #ifdef USE_VNC
@@ -1608,7 +1610,7 @@ take_screenshot(void)
 		wcsftime(fn, 128, L"%Y%m%d_%H%M%S.png", info);
 		append_filename_w(path, cfg_path, fn, 1024);
 		vnc_take_screenshot(path);
-		pclog("Screenshot: fn='%S'\n", path);
+		pclog("Screenshot: fn='%ls'\n", path);
 		break;
 #endif
     }

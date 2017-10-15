@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.6	2017/10/13
+ * Version:	@(#)plat.h	1.0.7	2017/10/14
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -33,7 +33,7 @@ extern void	plat_remove(wchar_t *path);
 extern int	plat_getcwd(wchar_t *bufp, int max);
 extern int	plat_chdir(wchar_t *path);
 extern void	get_executable_name(wchar_t *s, int size);
-extern void	set_window_title(wchar_t *s);
+extern wchar_t	*set_window_title(wchar_t *s);
 extern int	dir_check_exist(wchar_t *path);
 extern int	dir_create(wchar_t *path);
 
@@ -74,9 +74,12 @@ extern void     ioctl_close(uint8_t id);
 /* Thread support. */
 typedef void thread_t;
 typedef void event_t;
+typedef void mutex_t;
 
 extern thread_t	*thread_create(void (*thread_rout)(void *param), void *param);
 extern void	thread_kill(thread_t *handle);
+
+extern void	thread_sleep(int t);
 
 extern event_t	*thread_create_event(void);
 extern void	thread_set_event(event_t *event);
@@ -84,12 +87,10 @@ extern void	thread_reset_event(event_t *_event);
 extern int	thread_wait_event(event_t *event, int timeout);
 extern void	thread_destroy_event(event_t *_event);
 
-extern void	thread_sleep(int t);
-
-extern void	*thread_create_mutex(wchar_t *name);
-extern void	thread_close_mutex(void *mutex);
-extern uint8_t	thread_wait_mutex(void *mutex);
-extern uint8_t	thread_release_mutex(void *mutex);
+extern mutex_t	*thread_create_mutex(wchar_t *name);
+extern void	thread_close_mutex(mutex_t *mutex);
+extern int	thread_wait_mutex(mutex_t *mutex);
+extern int	thread_release_mutex(mutex_t *mutex);
 
 
 /* Other stuff. */

@@ -8,7 +8,7 @@
  *
  *		Implementation of the PCjs JSON floppy image format.
  *
- * Version:	@(#)floppy_json.c	1.0.6	2017/10/12
+ * Version:	@(#)floppy_json.c	1.0.7	2017/10/14
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -496,7 +496,7 @@ json_load(int drive, wchar_t *fn)
 	return;
     }
 
-    pclog("JSON(%d): %S (%i tracks, %i sides, %i sectors)\n",
+    pclog("JSON(%d): %ls (%i tracks, %i sides, %i sectors)\n",
 	drive, fn, img->tracks, img->sides, img->spt[0][0]);
 
     /*

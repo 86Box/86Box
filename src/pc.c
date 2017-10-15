@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.25	2017/10/14
+ * Version:	@(#)pc.c	1.0.26	2017/10/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -250,7 +250,7 @@ usage:
      */
 
     /* Make sure cfg_path has a trailing backslash. */
-    pclog("exe_path=%S\n", exe_path);
+    pclog("exe_path=%ls\n", exe_path);
     if ((cfg_path[wcslen(cfg_path)-1] != L'\\') &&
 	(cfg_path[wcslen(cfg_path)-1] != L'/')) {
 #ifdef WIN32
@@ -259,7 +259,7 @@ usage:
 	wcscat(cfg_path, L"/");
 #endif
     }
-    pclog("cfg_path=%S\n", cfg_path);
+    pclog("cfg_path=%ls\n", cfg_path);
 
     if (cfg != NULL) {
 	/*

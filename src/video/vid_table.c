@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.1	2017/10/10
+ * Version:	@(#)vid_table.c	1.0.2	2017/10/14
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -135,7 +135,7 @@ video_cards[] = {
     {"[PCI] S3 ViRGE/DX",                           "virge375_pci",		&s3_virge_375_pci_device,        	GFX_VIRGEDX_PCI			},
     {"[PCI] S3 ViRGE/DX (VBE 2.0)",                 "virge375_vbe20_pci",	&s3_virge_375_4_pci_device,      	GFX_VIRGEDX4_PCI		},
     {"[PCI] Trident TGUI9440",                      "tgui9440_pci",		&tgui9440_pci_device,            	GFX_TGUI9440_PCI		},
-    {"",                                            "",				NULL,                        		0				}
+    {"",                                            "",				NULL,                        		-1				}
 };
 
 
