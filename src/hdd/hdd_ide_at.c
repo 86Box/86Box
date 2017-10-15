@@ -221,6 +221,7 @@ void ide_irq_lower(IDE *ide)
 	ide->irqstat=0;
 }
 
+#if 0
 void ide_irq_update(IDE *ide)
 {
 	int pending = 0;
@@ -278,6 +279,8 @@ void ide_irq_update(IDE *ide)
 		}
 	}
 }
+#endif
+
 /**
  * Copy a string into a buffer, padding with spaces, and placing characters as
  * if they were packed into 16-bit values, stored little-endian.
@@ -926,7 +929,6 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			ide->lba_addr = (ide->lba_addr & 0x0FFFFFF) | ((val & 0xF) << 24);
 			ide_other->lba_addr = (ide_other->lba_addr & 0x0FFFFFF)|((val & 0xF) << 24);
 
-			ide_irq_update(ide);
 			return;
 
 		case 0x1F7: /* Command register */
@@ -1237,9 +1239,10 @@ ide_bad_command:
 				idecallback[ide_board] = 0;
 				timer_update_outstanding();
 				ide->atastat = ide_other->atastat = BUSY_STAT;
+				ide_irq_lower(ide);
+				ide_irq_lower(ide_other);
 			}
 			ide->fdisk = ide_other->fdisk = val;
-			ide_irq_update(ide);
 			return;
 	}
 }

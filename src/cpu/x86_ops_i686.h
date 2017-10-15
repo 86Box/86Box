@@ -46,6 +46,8 @@ static int opSYSENTER(uint32_t fetchdat)
 	uint16_t sysenter_cs_seg_data[4];
 	uint16_t sysenter_ss_seg_data[4];
 
+        int cycles_old = cycles; UNUSED(cycles_old);
+
 #ifdef SYSENTER_LOG
 	pclog("SYSENTER called\n");
 #endif
@@ -74,20 +76,22 @@ static int opSYSENTER(uint32_t fetchdat)
 	flags &= ~0x0200;
 
 	CS = (cs_msr & 0xFFFC);
-	make_seg_data(sysenter_cs_seg_data, 0, 0xFFFFF, 11, 1, 0, 1, 1, 1, 0);
+	make_seg_data(sysenter_cs_seg_data, 0, 0xFFFFF, 11, 1, 0, 1, 1, 1, 1);
 	do_seg_load(&_cs, sysenter_cs_seg_data);
 	use32 = 0x300;
 
 	SS = ((cs_msr + 8) & 0xFFFC);
-	make_seg_data(sysenter_ss_seg_data, 0, 0xFFFFF, 3, 1, 0, 1, 1, 1, 0);
+	make_seg_data(sysenter_ss_seg_data, 0, 0xFFFFF, 3, 1, 0, 1, 1, 1, 1);
 	do_seg_load(&_ss, sysenter_ss_seg_data);
 	stack32 = 1;
 
-	cycles -= timing_call_pm;
+	cycles -= timing_call_rm;
 
 	optype = 0;
 
 	CPU_BLOCK_END();
+        PREFETCH_RUN(cycles_old-cycles, 7, -1, 0,0,cgate16 ? 2:0,cgate16 ? 0:2, 0);
+        PREFETCH_FLUSH();
 
 #ifdef SYSENTER_LOG
 	pclog("SYSENTER completed:\n");
@@ -104,6 +108,8 @@ static int opSYSEXIT(uint32_t fetchdat)
 {
 	uint16_t sysexit_cs_seg_data[4];
 	uint16_t sysexit_ss_seg_data[4];
+
+        int cycles_old = cycles; UNUSED(cycles_old);
 
 #ifdef SYSEXIT_LOG
 	pclog("SYSEXIT called\n");
@@ -130,21 +136,23 @@ static int opSYSEXIT(uint32_t fetchdat)
         cgate16 = cgate32 = 0;                                                  \
 
 	CS = ((cs_msr + 16) & 0xFFFC) | 3;
-	make_seg_data(sysexit_cs_seg_data, 0, 0xFFFFF, 11, 1, 3, 1, 1, 1, 0);
+	make_seg_data(sysexit_cs_seg_data, 0, 0xFFFFF, 11, 1, 3, 1, 1, 1, 1);
 	do_seg_load(&_cs, sysexit_cs_seg_data);
 	use32 = 0x300;
 
 	SS = CS + 8;
-	make_seg_data(sysexit_ss_seg_data, 0, 0xFFFFF, 3, 1, 3, 1, 1, 1, 0);
+	make_seg_data(sysexit_ss_seg_data, 0, 0xFFFFF, 3, 1, 3, 1, 1, 1, 1);
 	do_seg_load(&_ss, sysexit_ss_seg_data);
 	stack32 = 1;
 
 	flushmmucache_cr3();
 
-	cycles -= timing_call_pm;
+	cycles -= timing_iret_rm;
 
 	optype = 0;
 
+        flags_extract();
+        nmi_enable = 1;
 	CPU_BLOCK_END();
 
 #ifdef SYSEXIT_LOG
@@ -155,7 +163,9 @@ static int opSYSEXIT(uint32_t fetchdat)
 	pclog("Other information: eip=%08X esp=%08X eflags=%04X flags=%04X use32=%04X stack32=%i ECX=%08X EDX=%08X\n", cpu_state.pc, ESP, eflags, flags, use32, stack32, ECX, EDX);
 #endif
 
-	return 0;
+        PREFETCH_RUN(cycles_old-cycles, 1, -1, 0,2,0,0, 1);
+        PREFETCH_FLUSH();
+	return cpu_state.abrt;
 }
 
 static int opFXSAVESTOR_a16(uint32_t fetchdat)

@@ -681,7 +681,7 @@ void trc_init(void)
 {
 	trc_reg = 0;
 
-	io_sethandler(0x0cf9, 0x0001, trc_read, NULL, NULL, trc_write, NULL, NULL, NULL);
+	// io_sethandler(0x0cf9, 0x0001, trc_read, NULL, NULL, trc_write, NULL, NULL, NULL);
 }
 
 void pci_init(int type)
