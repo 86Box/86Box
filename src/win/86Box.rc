@@ -255,7 +255,11 @@ BEGIN
 #endif
 END
 
-DLG_CFG_MACHINE DIALOG DISCARDABLE  97, 0, 267, 132
+#ifdef USE_DYNAREC
+DLG_CFG_MACHINE DIALOG DISCARDABLE  97, 0, 267, 114
+#else
+DLG_CFG_MACHINE DIALOG DISCARDABLE  97, 0, 267, 99
+#endif
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
@@ -279,12 +283,12 @@ BEGIN
     LTEXT           "MB",IDT_1705,123,64,10,10
     LTEXT           "Memory:",IDT_1706,7,64,30,10
     CONTROL         "Enable time sync",IDC_CHECK_SYNC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,100,102,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,81,102,10
     CONTROL         "Enable FPU",IDC_CHECK_FPU,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,147,100,113,10
+                    WS_TABSTOP,147,81,113,10
 #ifdef USE_DYNAREC
     CONTROL         "Dynamic Recompiler",IDC_CHECK_DYNAREC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,115,94,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,96,94,10
 #endif
 END
 
@@ -615,7 +619,11 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 260
         TOPMARGIN, 7
-        BOTTOMMARGIN, 105
+#ifdef USE_DYNAREC
+        BOTTOMMARGIN, 87
+#else
+        BOTTOMMARGIN, 72
+#endif
     END
 
     DLG_CFG_VIDEO, DIALOG
