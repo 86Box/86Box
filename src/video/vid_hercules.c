@@ -1,18 +1,34 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
-/*Hercules emulation*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Hercules emulation.
+ *
+ * Version:	@(#)vid_hercules.c	1.0.2	2017/10/13
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../mem.h"
+#include "../rom.h"
 #include "../io.h"
 #include "../timer.h"
 #include "../device.h"
 #include "video.h"
 #include "vid_hercules.h"
-#ifndef __unix
-# include "../win/win_cgapal.h"		/*YUCK*/
-#endif
 
 
 typedef struct hercules_t
@@ -24,8 +40,8 @@ typedef struct hercules_t
 
         uint8_t ctrl, ctrl2, stat;
 
-        int dispontime, dispofftime;
-        int vidtime;
+        int64_t dispontime, dispofftime;
+        int64_t vidtime;
         
         int firstline, lastline;
 
@@ -34,7 +50,8 @@ typedef struct hercules_t
         uint16_t ma, maback;
         int con, coff, cursoron;
         int dispon, blink;
-        int vsynctime, vadj;
+        int64_t vsynctime;
+	int vadj;
 
         uint8_t *vram;
 } hercules_t;
@@ -120,8 +137,8 @@ void hercules_recalctimings(hercules_t *hercules)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= MDACONST;
         _dispofftime *= MDACONST;
-	hercules->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	hercules->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	hercules->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
+	hercules->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
 }
 
 void hercules_poll(void *p)
@@ -311,7 +328,8 @@ void hercules_poll(void *p)
         }
 }
 
-void *hercules_init()
+
+void *hercules_init(device_t *info)
 {
         int c;
         hercules_t *hercules = malloc(sizeof(hercules_t));
@@ -344,14 +362,12 @@ void *hercules_init()
 
 	overscan_x = overscan_y = 0;
 
-#ifndef __unix
         cga_palette = device_get_config_int("rgb_type") << 1;
 	if (cga_palette > 6)
 	{
 		cga_palette = 0;
 	}
 	cgapal_rebuild();
-#endif
 
         return hercules;
 }
@@ -371,7 +387,6 @@ void hercules_speed_changed(void *p)
         hercules_recalctimings(hercules);
 }
 
-#ifndef __unix
 static device_config_t hercules_config[] =
 {
         {
@@ -398,21 +413,17 @@ static device_config_t hercules_config[] =
                 "", "", -1
         }
 };
-#endif
 
 device_t hercules_device =
 {
         "Hercules",
-        0,
+        DEVICE_ISA, 0,
         hercules_init,
         hercules_close,
+	NULL,
         NULL,
         hercules_speed_changed,
         NULL,
-#ifdef __unix
-        NULL
-#else
-        NULL,
+	NULL,
 	hercules_config
-#endif
 };

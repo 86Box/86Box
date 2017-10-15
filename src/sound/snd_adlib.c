@@ -1,4 +1,8 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mca.h"
@@ -59,7 +63,7 @@ void adlib_mca_write(int port, uint8_t val, void *p)
         adlib->pos_regs[port & 7] = val;
 }
 
-void *adlib_init()
+void *adlib_init(device_t *info)
 {
         adlib_t *adlib = malloc(sizeof(adlib_t));
         memset(adlib, 0, sizeof(adlib_t));
@@ -71,9 +75,9 @@ void *adlib_init()
         return adlib;
 }
 
-void *adlib_mca_init()
+void *adlib_mca_init(device_t *info)
 {
-        adlib_t *adlib = adlib_init();
+        adlib_t *adlib = adlib_init(info);
         
         io_removehandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &adlib->opl);
         mca_add(adlib_mca_read, adlib_mca_write, adlib);
@@ -93,12 +97,10 @@ void adlib_close(void *p)
 device_t adlib_device =
 {
         "AdLib",
-        0,
-        adlib_init,
-        adlib_close,
-        NULL,
-        NULL,
-        NULL,
+        DEVICE_ISA,
+	0,
+        adlib_init, adlib_close, NULL,
+        NULL, NULL, NULL, NULL,
         NULL
 };
 
@@ -106,10 +108,8 @@ device_t adlib_mca_device =
 {
         "AdLib (MCA)",
         DEVICE_MCA,
-        adlib_init,
-        adlib_close,
-        NULL,
-        NULL,
-        NULL,
+	0,
+        adlib_init, adlib_close, NULL,
+        NULL, NULL, NULL, NULL,
         NULL
 };

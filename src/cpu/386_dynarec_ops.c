@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include <math.h>
 #ifndef INFINITY
 # define INFINITY   (__builtin_inff())
@@ -9,6 +13,7 @@
 #include "x87.h"
 #include "x86_flags.h"
 #include "../mem.h"
+#include "../nmi.h"
 #include "codegen.h"
 #include "../pic.h"
 

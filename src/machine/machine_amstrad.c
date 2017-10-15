@@ -1,12 +1,16 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
-#include "../cpu/cpu.h"
 #include "../io.h"
 #include "../nmi.h"
 #include "../mem.h"
+#include "../rom.h"
 #include "../device.h"
 #include "../nvr.h"
-#include "../gameport.h"
+#include "../game/gameport.h"
 #include "../keyboard.h"
 #include "../keyboard_amstrad.h"
 #include "../mouse.h"
@@ -14,7 +18,7 @@
 #include "../floppy/floppy.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
-#include "machine_common.h"
+#include "machine.h"
 
 
 static uint8_t amstrad_dead;
@@ -131,15 +135,17 @@ static void amstrad_init(void)
 }
 
 
-void machine_amstrad_init(void)
+void
+machine_amstrad_init(machine_t *model)
 {
-        AMSTRAD = 1;
+        machine_common_init(model);
 
-        machine_common_init();
-	mem_add_bios();
         amstrad_init();
         keyboard_amstrad_init();
-        nvr_init();
+
+	/* FIXME: make sure this is correct? */
+        nvr_at_init(1);
+
 	nmi_init();
 	fdc_set_dskchg_activelow();
 	if (joystick_type != 7)

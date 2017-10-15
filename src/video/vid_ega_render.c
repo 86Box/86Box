@@ -8,15 +8,18 @@
  *
  *		EGA renderers.
  *
- * Version:	@(#)vid_ega_render.c	1.0.1	2017/06/05
+ * Version:	@(#)vid_ega_render.c	1.0.3	2017/10/10
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
-
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../device.h"
 #include "../mem.h"

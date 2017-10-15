@@ -251,12 +251,15 @@ Note:	the block address is forced to be a multiple of the block size by
 	  ignoring the appropriate number of the least-significant bits
 SeeAlso: #P0178,#P0187
 */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
 #include "../mem.h"
-#include "machine_at.h"
-#include "machine_at_opti495.h"
+#include "machine.h"
 
 
 static uint8_t optiregs[0x10];
@@ -315,8 +318,10 @@ static void opti495_init(void)
 }
 
 
-void machine_at_opti495_init(void)
+void
+machine_at_opti495_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
         opti495_init();
 }

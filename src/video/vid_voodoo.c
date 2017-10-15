@@ -1,5 +1,26 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Emulation of the 3DFX Voodoo Graphics controller.
+ *
+ * Version:	@(#)vid_voodoo.c	1.0.2	2017/10/11
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		leilei
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <wchar.h>
 #include <math.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"
@@ -8,11 +29,12 @@
 #include "../pci.h"
 #include "../timer.h"
 #include "../device.h"
-#include "../win/plat_thread.h"
+#include "../plat.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_voodoo.h"
 #include "vid_voodoo_dither.h"
+
 
 #ifdef MIN
 #undef MIN
@@ -35,12 +57,14 @@
 
 #define TEX_CACHE_MAX 64
 
+
 enum
 {
         VOODOO_1 = 0,
         VOODOO_SB50 = 1,
         VOODOO_2 = 2
 };
+
 
 static uint32_t texture_offset[LOD_MAX+3] =
 {
@@ -218,7 +242,7 @@ typedef struct voodoo_t
         uint16_t dac_pll_regs[16];
         
         float pixel_clock;
-        int line_time;
+        int64_t line_time;
         
         voodoo_params_t params;
         
@@ -252,7 +276,7 @@ typedef struct voodoo_t
         int swap_count;
         
         int disp_buffer, draw_buffer;
-        int timer_count;
+        int64_t timer_count;
         
         int line;
         svga_t *svga;
@@ -261,7 +285,7 @@ typedef struct voodoo_t
         uint32_t videoDimensions;
         uint32_t hSync, vSync;
         
-        int h_total, v_total, v_disp;
+        int64_t h_total, v_total, v_disp;
         int h_disp;
         int v_retrace;
 
@@ -388,9 +412,9 @@ typedef struct voodoo_t
         int fb_write_buffer, fb_draw_buffer;
         int buffer_cutoff;
 
-        int read_time, write_time, burst_time;
+        int64_t read_time, write_time, burst_time;
 
-        int wake_timer;
+        int64_t wake_timer;
                 
         uint8_t thefilter[256][256]; // pixel filter, feeding from one or two
         uint8_t thefilterg[256][256]; // for green
@@ -5763,7 +5787,7 @@ static void voodoo_tex_writel(uint32_t addr, uint32_t val, void *p)
         *(uint32_t *)(&voodoo->tex_mem[tmu][addr & voodoo->texture_mask]) = val;
 }
 
-#define WAKE_DELAY (TIMER_USEC * 100)
+#define WAKE_DELAY (TIMER_USEC * 100LL)
 static inline void wake_fifo_thread(voodoo_t *voodoo)
 {
         if (!voodoo->wake_timer)
@@ -5787,7 +5811,7 @@ static void voodoo_wake_timer(void *p)
 {
         voodoo_t *voodoo = (voodoo_t *)p;
         
-        voodoo->wake_timer = 0;
+        voodoo->wake_timer = 0LL;
 
         thread_set_event(voodoo->wake_fifo_thread); /*Wake up FIFO thread if moving from idle*/
 }
@@ -6098,7 +6122,7 @@ static void voodoo_pixelclock_update(voodoo_t *voodoo)
         int n2 = ((voodoo->dac_pll_regs[0] >> 13) & 0x07);
         float t = (14318184.0 * ((float)m / (float)n1)) / (float)(1 << n2);
         double clock_const;
-        int line_length;
+        int64_t line_length;
         
         if ((voodoo->dac_data[6] & 0xf0) == 0x20 ||
             (voodoo->dac_data[6] & 0xf0) == 0x60 ||
@@ -6112,7 +6136,7 @@ static void voodoo_pixelclock_update(voodoo_t *voodoo)
         voodoo->pixel_clock = t;
 
         clock_const = cpuclock / t;
-        voodoo->line_time = (int)((double)line_length * clock_const * (double)(1 << TIMER_SHIFT));
+        voodoo->line_time = (int64_t)((double)line_length * clock_const * (double)(1 << TIMER_SHIFT));
 }
 
 static void voodoo_writel(uint32_t addr, uint32_t val, void *p)
@@ -7348,7 +7372,7 @@ skip_draw:
         if (voodoo->line_time)
                 voodoo->timer_count += voodoo->line_time;
         else
-                voodoo->timer_count += TIMER_USEC * 32;
+                voodoo->timer_count += TIMER_USEC * 32LL;
 }
 
 static void voodoo_add_status_info(char *s, int max_len, void *p)
@@ -7456,7 +7480,8 @@ static void voodoo_speed_changed(void *p)
 //        pclog("Voodoo read_time=%i write_time=%i burst_time=%i %08x %08x\n", voodoo->read_time, voodoo->write_time, voodoo->burst_time, voodoo->fbiInit1, voodoo->fbiInit4);
 }
 
-void *voodoo_card_init()
+
+void *voodoo_card_init(void)
 {
         int c;
         voodoo_t *voodoo = malloc(sizeof(voodoo_t));
@@ -7593,7 +7618,7 @@ void *voodoo_card_init()
         return voodoo;
 }
 
-void *voodoo_init()
+void *voodoo_init(device_t *info)
 {
         voodoo_set_t *voodoo_set = malloc(sizeof(voodoo_set_t));
         uint32_t tmuConfig = 1;
@@ -7834,8 +7859,10 @@ device_t voodoo_device =
 {
         "3DFX Voodoo Graphics",
         DEVICE_PCI,
+	0,
         voodoo_init,
         voodoo_close,
+	NULL,
         NULL,
         voodoo_speed_changed,
         NULL,

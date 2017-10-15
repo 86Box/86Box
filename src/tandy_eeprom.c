@@ -1,12 +1,17 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "device.h"
 #include "mem.h"
-#include "io.h"
 #include "rom.h"
+#include "io.h"
+#include "nvr.h"
 #include "tandy_eeprom.h"
 
 
@@ -120,7 +125,7 @@ int tandy_eeprom_read(void)
 }
 
 
-static void *tandy_eeprom_init(void)
+static void *tandy_eeprom_init(device_t *info)
 {
         tandy_eeprom_t *eeprom = malloc(sizeof(tandy_eeprom_t));
         FILE *f = NULL;
@@ -131,10 +136,10 @@ static void *tandy_eeprom_init(void)
         switch (romset)
         {
                 case ROM_TANDY1000HX:
-                f = nvrfopen(L"tandy1000hx.bin", L"rb");
+                f = nvr_fopen(L"tandy1000hx.bin", L"rb");
                 break;
                 case ROM_TANDY1000SL2:
-                f = nvrfopen(L"tandy1000sl2.bin", L"rb");
+                f = nvr_fopen(L"tandy1000sl2.bin", L"rb");
                 break;
         }
         if (f)
@@ -159,10 +164,10 @@ void tandy_eeprom_close(void *p)
         switch (eeprom->romset)
         {
                 case ROM_TANDY1000HX:
-                f = nvrfopen(L"tandy1000hx.bin", L"wb");
+                f = nvr_fopen(L"tandy1000hx.bin", L"wb");
                 break;
                 case ROM_TANDY1000SL2:
-                f = nvrfopen(L"tandy1000sl2.bin", L"wb");
+                f = nvr_fopen(L"tandy1000sl2.bin", L"wb");
                 break;
         }
         fwrite(eeprom->store, 128, 1, f);
@@ -175,12 +180,9 @@ void tandy_eeprom_close(void *p)
 device_t tandy_eeprom_device =
 {
         "Tandy EEPROM",
-        0,
+        0, 0,
         tandy_eeprom_init,
         tandy_eeprom_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
+	NULL, NULL, NULL, NULL, NULL,
         NULL
 };

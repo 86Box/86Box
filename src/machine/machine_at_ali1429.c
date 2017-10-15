@@ -1,14 +1,18 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
+#include <stdio.h>
+#include <stdint.h>
 #include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
 #include "../mem.h"
-#include "../hdd/hdd_ide_at.h"
-#include "machine_at.h"
-#include "machine_at_ali1429.h"
+#include "../device.h"
+#include "../disk/hdc.h"
+#include "../disk/hdc_ide.h"
+#include "machine.h"
 
 
 static int ali1429_index;
@@ -89,11 +93,14 @@ static void ali1429_init(void)
         io_sethandler(0x0022, 0x0002, ali1429_read, NULL, NULL, ali1429_write, NULL, NULL, NULL);
 }
 
-void machine_at_ali1429_init(void)
+
+void
+machine_at_ali1429_init(machine_t *model)
 {
         ali1429_reset();
 
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
         ali1429_init();
 
 	secondary_ide_check();

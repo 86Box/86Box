@@ -1,16 +1,35 @@
-/*ET4000/W32p emulation (Diamond Stealth 32)*/
-/*Known bugs :
-
-  - Accelerator doesn't work in planar modes
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		ET4000/W32p emulation (Diamond Stealth 32)
+ *
+ * Known bugs:	Accelerator doesn't work in planar modes
+ *
+ * Version:	@(#)vid_et4000w32.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../pci.h"
 #include "../rom.h"
 #include "../device.h"
-#include "../win/plat_thread.h"
+#include "../plat.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_icd2061.h"
@@ -53,6 +72,7 @@ typedef struct et4000w32p_t
         icd2061_t icd2061;
 
         int index;
+	int pci;
         uint8_t regs[256];
         uint32_t linearbase, linearbase_old;
 
@@ -173,7 +193,7 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
                 }
                 if (svga->crtcreg == 0x30)
                 {
-			if (PCI)
+			if (et4000->pci)
 			{
 				et4000->linearbase &= 0xc0000000;
 				et4000->linearbase = (val & 0xfc) << 22;
@@ -244,8 +264,8 @@ uint8_t et4000w32p_in(uint16_t addr, void *p)
                         return (et4000->regs[0xec] & 0xf) | 0x60; /*ET4000/W32p rev D*/
                 if (et4000->index == 0xef) 
                 {
-                        if (PCI) return et4000->regs[0xef] | 0xe0;       /*PCI*/
-                        else     return et4000->regs[0xef] | 0x60;       /*VESA local bus*/
+                        if (et4000->pci) return et4000->regs[0xef] | 0xe0;       /*PCI*/
+                        else             return et4000->regs[0xef] | 0x60;       /*VESA local bus*/
                 }
                 return et4000->regs[et4000->index];
         }
@@ -1136,7 +1156,7 @@ void et4000w32p_pci_write(int func, int addr, uint8_t val, void *p)
         }
 }
 
-void *et4000w32p_init()
+void *et4000w32p_init(device_t *info)
 {
         int vram_size;
         et4000w32p_t *et4000 = malloc(sizeof(et4000w32p_t));
@@ -1153,7 +1173,8 @@ void *et4000w32p_init()
                    NULL); 
 
         rom_init(&et4000->bios_rom, L"roms/video/et4000w32/et4000w32.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-        if (PCI)
+	et4000->pci = !!(info->flags & DEVICE_PCI);
+        if (info->flags & DEVICE_PCI)
                 mem_mapping_disable(&et4000->bios_rom.mapping);
 
         mem_mapping_add(&et4000->linear_mapping, 0, 0, svga_read_linear, svga_readw_linear, svga_readl_linear, svga_write_linear, svga_writew_linear, svga_writel_linear, NULL, 0, &et4000->svga);
@@ -1161,7 +1182,8 @@ void *et4000w32p_init()
 
         et4000w32p_io_set(et4000);
         
-        pci_add_card(PCI_ADD_VIDEO, et4000w32p_pci_read, et4000w32p_pci_write, et4000);
+        if (info->flags & DEVICE_PCI)
+	        pci_add_card(PCI_ADD_VIDEO, et4000w32p_pci_read, et4000w32p_pci_write, et4000);
 
 	/* Hardwired bits: 00000000 1xx0x0xx */
 	/* R/W bits:                 xx xxxx */
@@ -1185,7 +1207,7 @@ void *et4000w32p_init()
         return et4000;
 }
 
-int et4000w32p_available()
+int et4000w32p_available(void)
 {
         return rom_present(L"roms/video/et4000w32/et4000w32.bin");
 }
@@ -1254,12 +1276,29 @@ static device_config_t et4000w32p_config[] =
         }
 };
 
-device_t et4000w32p_device =
+device_t et4000w32p_vlb_device =
 {
-        "Tseng Labs ET4000/w32p",
-        0,
+        "Tseng Labs ET4000/w32p VLB",
+        DEVICE_VLB,
+	0,
         et4000w32p_init,
         et4000w32p_close,
+	NULL,
+        et4000w32p_available,
+        et4000w32p_speed_changed,
+        et4000w32p_force_redraw,
+        et4000w32p_add_status_info,
+        et4000w32p_config
+};
+
+device_t et4000w32p_pci_device =
+{
+        "Tseng Labs ET4000/w32p PCI",
+        DEVICE_PCI,
+	0,
+        et4000w32p_init,
+        et4000w32p_close,
+	NULL,
         et4000w32p_available,
         et4000w32p_speed_changed,
         et4000w32p_force_redraw,

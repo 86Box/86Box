@@ -1,4 +1,26 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Emulation of the Tandy Model 1000 video.
+ *
+ * Version:	@(#)vid_tandy.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include <math.h>
 #include "../ibm.h"
 #include "../io.h"
@@ -36,10 +58,11 @@ typedef struct tandy_t
         int sc, vc;
         int dispon;
         int con, coff, cursoron, blink;
-        int vsynctime, vadj;
+        int64_t vsynctime;
+	int vadj;
         uint16_t ma, maback;
         
-        int dispontime, dispofftime, vidtime;
+        int64_t dispontime, dispofftime, vidtime;
         int firstline, lastline;
         
         int composite;
@@ -180,8 +203,8 @@ void tandy_recalctimings(tandy_t *tandy)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= CGACONST;
         _dispofftime *= CGACONST;
-	tandy->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	tandy->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	tandy->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
+	tandy->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
 }
 
 void tandy_poll(void *p)
@@ -581,7 +604,8 @@ void tandy_poll(void *p)
         }
 }
 
-void *tandy_init()
+
+static void *tandy_init(device_t *info)
 {
         int display_type;
         tandy_t *tandy = malloc(sizeof(tandy_t));
@@ -606,14 +630,14 @@ void *tandy_init()
         return tandy;
 }
 
-void tandy_close(void *p)
+static void tandy_close(void *p)
 {
         tandy_t *tandy = (tandy_t *)p;
 
         free(tandy);
 }
 
-void tandy_speed_changed(void *p)
+static void tandy_speed_changed(void *p)
 {
         tandy_t *tandy = (tandy_t *)p;
         
@@ -624,11 +648,14 @@ device_t tandy_device =
 {
         "Tandy 1000 (video)",
         0,
+	0,
         tandy_init,
         tandy_close,
+	NULL,
         NULL,
         tandy_speed_changed,
         NULL,
+	NULL,
         NULL
 };
 
@@ -658,8 +685,9 @@ static device_config_t tandy_config[] =
 static device_t tandy1000_device =
 {
         "Tandy 1000",
-        0,
+        0, 0,
         NULL,
+	NULL,
         NULL,
         NULL,
         NULL,
@@ -670,8 +698,9 @@ static device_t tandy1000_device =
 static device_t tandy1000hx_device =
 {
         "Tandy 1000HX",
-        0,
+        0, 0,
         NULL,
+	NULL,
         NULL,
         NULL,
         NULL,

@@ -12,21 +12,20 @@
  *		Windows and UNIX systems, with support for FTDI and Prolific
  *		USB ports. Support for these has been removed.
  *
- * Version:	@(#)win_serial.c	1.0.4	2017/09/12
+ * Version:	@(#)win_serial.c	1.0.6	2017/10/10
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2017 Fred N. van Kempen.
  */
 #include <windows.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "plat_thread.h"
-#define BHTTY_C
-#include "plat_serial.h"
-
-
-extern void	pclog(char *__fmt, ...);
+#define PLAT_SERIAL_C
+#include "../ibm.h"
+#include "../plat.h"
+#include "../plat_serial.h"
 
 
 /* Handle the receiving of data from the host port. */
@@ -324,10 +323,10 @@ int
 bhtty_flush(BHTTY *pp)
 {
     DWORD dwErrs;
-    COMSTAT cs;
+    COMSTAT cst;
 
     /* First, clear any errors. */
-    (void)ClearCommError(pp->handle, &dwErrs, &cs);
+    (void)ClearCommError(pp->handle, &dwErrs, &cst);
 
     /* Now flush all buffers. */
     if (PurgeComm(pp->handle,
@@ -338,7 +337,7 @@ bhtty_flush(BHTTY *pp)
     }
 
     /* Re-clear any errors. */
-    if (ClearCommError(pp->handle, &dwErrs, &cs) == FALSE) {
+    if (ClearCommError(pp->handle, &dwErrs, &cst) == FALSE) {
 	pclog("%s: clear errors: %d\n", pp->name, GetLastError());
 	return(-1);
     }

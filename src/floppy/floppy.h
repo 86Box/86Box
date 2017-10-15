@@ -42,13 +42,14 @@ extern DRIVE	drives[FDD_NUM];
 extern int	curdrive;
 
 extern int	floppy_time;
-extern int	floppy_poll_time[FDD_NUM];
+extern int64_t	floppy_poll_time[FDD_NUM];
 
 
 extern void	floppy_load(int drive, wchar_t *fn);
 extern void	floppy_new(int drive, char *fn);
 extern void	floppy_close(int drive);
 extern void	floppy_init(void);
+extern void	floppy_general_init(void);
 extern void	floppy_reset(void);
 extern void	floppy_poll(int drive);
 extern void	floppy_poll_0(void* priv);
@@ -87,7 +88,7 @@ extern int fdc_ready;
 extern int fdc_indexcount;*/
 
 extern int motorspin;
-extern int motoron[FDD_NUM];
+extern int64_t motoron[FDD_NUM];
 
 extern int swwp;
 extern int disable_write;

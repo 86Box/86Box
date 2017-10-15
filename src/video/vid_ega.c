@@ -9,18 +9,20 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.3	2017/07/21
+ * Version:	@(#)vid_ega.c	1.0.6	2017/10/10
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
- *		akm,
+ *		akm
+ *
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
- *		Copyright 2017-2017 akm.
+ *		Copyright 2016,2017 Miran Grca.
  */
-
+#include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -510,8 +512,8 @@ void ega_recalctimings(ega_t *ega)
         _dispontime  *= crtcconst;
         _dispofftime *= crtcconst;
 
-	ega->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	ega->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	ega->dispontime  = (int64_t)(_dispontime  * (1LL << TIMER_SHIFT));
+	ega->dispofftime = (int64_t)(_dispofftime * (1LL << TIMER_SHIFT));
 }
 
 void ega_poll(void *p)
@@ -1063,10 +1065,10 @@ void *ega_standalone_init()
         }
 
         ega->crtc[0] = 63;
-        ega->dispontime = 1000 * (1 << TIMER_SHIFT);
-        ega->dispofftime = 1000 * (1 << TIMER_SHIFT);
-	ega->dispontime <<= 1;
-	ega->dispofftime <<= 1;
+        ega->dispontime = 1000LL * (1LL << TIMER_SHIFT);
+        ega->dispofftime = 1000LL * (1LL << TIMER_SHIFT);
+	ega->dispontime <<= 1LL;
+	ega->dispofftime <<= 1LL;
 
         ega_init(ega);        
 
@@ -1120,7 +1122,7 @@ void *cpqega_standalone_init()
         return ega;
 }
 
-void *sega_standalone_init()
+void *sega_standalone_init(device_t *info)
 {
         ega_t *ega = malloc(sizeof(ega_t));
         memset(ega, 0, sizeof(ega_t));
@@ -1254,7 +1256,7 @@ static void LoadFontxFile(wchar_t *fname)
 	fclose(mfile);
 }
 
-void *jega_standalone_init()
+void *jega_standalone_init(device_t *info)
 {
         ega_t *ega = (ega_t *) sega_standalone_init();
 
@@ -1267,17 +1269,17 @@ void *jega_standalone_init()
 }
 #endif
 
-static int ega_standalone_available()
+static int ega_standalone_available(void)
 {
         return rom_present(L"roms/video/ega/ibm_6277356_ega_card_u44_27128.bin");
 }
 
-static int cpqega_standalone_available()
+static int cpqega_standalone_available(void)
 {
         return rom_present(L"roms/video/ega/108281-001.bin");
 }
 
-static int sega_standalone_available()
+static int sega_standalone_available(void)
 {
         return rom_present(L"roms/video/ega/lega.vbi");
 }
@@ -1324,9 +1326,11 @@ static device_config_t ega_config[] =
 device_t ega_device =
 {
         "EGA",
-        0,
+        DEVICE_ISA,
+	0,
         ega_standalone_init,
         ega_close,
+	NULL,
         ega_standalone_available,
         ega_speed_changed,
         NULL,
@@ -1337,9 +1341,11 @@ device_t ega_device =
 device_t cpqega_device =
 {
         "Compaq EGA",
-        0,
+        DEVICE_ISA,
+	0,
         cpqega_standalone_init,
         ega_close,
+	NULL,
         cpqega_standalone_available,
         ega_speed_changed,
         NULL,
@@ -1350,9 +1356,11 @@ device_t cpqega_device =
 device_t sega_device =
 {
         "SuperEGA",
-        0,
+        DEVICE_ISA,
+	0,
         sega_standalone_init,
         ega_close,
+	NULL,
         sega_standalone_available,
         ega_speed_changed,
         NULL,
@@ -1364,9 +1372,11 @@ device_t sega_device =
 device_t jega_device =
 {
         "AX JEGA",
-        0,
+        DEVICE_ISA,
+	0,
         jega_standalone_init,
         ega_close,
+	NULL,
         sega_standalone_available,
         ega_speed_changed,
         NULL,

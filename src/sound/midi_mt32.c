@@ -1,15 +1,18 @@
+#include <stdio.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include "munt/c_interface/c_interface.h"
-#include "../win/plat_thread.h"
 #include "../ibm.h"
 #include "../device.h"
 #include "../mem.h"
 #include "../rom.h"
-#include "midi_mt32.h"
-#include "midi.h"
+#include "../plat.h"
 #include "sound.h"
+#include "midi.h"
+#include "midi_mt32.h"
+
 
 extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void pclog(const char *format, ...);
@@ -219,12 +222,12 @@ void* mt32emu_init(wchar_t *control_rom, wchar_t *pcm_rom)
         return dev;
 }
 
-void *mt32_init()
+void *mt32_init(device_t *info)
 {
 	return mt32emu_init(L"roms/sound/mt32/mt32_control.rom", L"roms/sound/mt32/mt32_pcm.rom");
 }
 
-void *cm32l_init()
+void *cm32l_init(device_t *info)
 {
 	return mt32emu_init(L"roms/sound/cm32l/cm32l_control.rom", L"roms/sound/cm32l/cm32l_pcm.rom");
 }
@@ -313,8 +316,10 @@ device_t mt32_device =
 {
         "Roland MT-32 Emulation",
         0,
+        0,
         mt32_init,
         mt32_close,
+	NULL,
         mt32_available,
         NULL,
         NULL,
@@ -326,8 +331,10 @@ device_t cm32l_device =
 {
         "Roland CM-32L Emulation",
         0,
+        0,
         cm32l_init,
         mt32_close,
+	NULL,
         cm32l_available,
         NULL,
         NULL,

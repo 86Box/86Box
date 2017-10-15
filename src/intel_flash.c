@@ -8,21 +8,27 @@
  *
  *		Implementation of the Intel 2 Mbit 8-bit flash devices.
  *
- * Version:	@(#)intel_flash.c	1.0.1	2017/08/23
+ * Version:	@(#)intel_flash.c	1.0.8	2017/10/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
-
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "cpu/cpu.h"
 #include "device.h"
 #include "mem.h"
 #include "machine/machine.h"
-#include "rom.h"
+#include "nvr.h"
+#include "plat.h"
+
 
 #define FLASH_IS_BXB	2
 #define FLASH_INVERT	1
@@ -175,7 +181,7 @@ static void intel_flash_add_mappings_inverted(flash_t *flash)
 void *intel_flash_init(uint8_t type)
 {
         FILE *f;
-	int i;
+	int i, l;
         flash_t *flash;
 	wchar_t *machine_name;
 	wchar_t *flash_name;
@@ -183,14 +189,16 @@ void *intel_flash_init(uint8_t type)
 	flash = malloc(sizeof(flash_t));
         memset(flash, 0, sizeof(flash_t));
 
-	machine_name = (wchar_t *) malloc((strlen(machine_get_internal_name_ex(machine)) << 1) + 2);
-	mbstowcs(machine_name, machine_get_internal_name_ex(machine), strlen(machine_get_internal_name_ex(machine)) + 1);
-	flash_name = (wchar_t *) malloc((wcslen(machine_name) << 1) + 2 + 8);
-	_swprintf(flash_name, L"%s.bin", machine_name);
+	l = strlen(machine_get_internal_name_ex(machine)) + 1;
+	machine_name = (wchar_t *) malloc(l << 1);
+	mbstowcs(machine_name, machine_get_internal_name_ex(machine), l);
+	l = wcslen(machine_name) + 5;
+	flash_name = (wchar_t *) malloc(l << 1);
+	swprintf(flash_name, l, L"%s.bin", machine_name);
 
 	wcscpy(flash_path, flash_name);
 
-	pclog_w(L"Flash path: %s\n", flash_name);
+	pclog("Flash path: %ls\n", flash_name);
 
 	flash->flash_id = (type & FLASH_IS_BXB) ? 0x95 : 0x94;
 	flash->invert_high_pin = (type & FLASH_INVERT);
@@ -252,7 +260,7 @@ void *intel_flash_init(uint8_t type)
         flash->command = CMD_READ_ARRAY;
         flash->status = 0;
 
-        f = nvrfopen(flash_path, L"rb");
+        f = nvr_fopen(flash_path, L"rb");
         if (f)
         {
                 fread(&(flash->array[flash->block_start[BLOCK_MAIN]]), flash->block_len[BLOCK_MAIN], 1, f);
@@ -295,7 +303,7 @@ void intel_flash_close(void *p)
         FILE *f;
         flash_t *flash = (flash_t *)p;
 
-        f = nvrfopen(flash_path, L"wb");
+        f = nvr_fopen(flash_path, L"wb");
         fwrite(&(flash->array[flash->block_start[BLOCK_MAIN]]), flash->block_len[BLOCK_MAIN], 1, f);
         fwrite(&(flash->array[flash->block_start[BLOCK_DATA1]]), flash->block_len[BLOCK_DATA1], 1, f);
         fwrite(&(flash->array[flash->block_start[BLOCK_DATA2]]), flash->block_len[BLOCK_DATA2], 1, f);
@@ -304,54 +312,43 @@ void intel_flash_close(void *p)
         free(flash);
 }
 
+
 device_t intel_flash_bxt_ami_device =
 {
         "Intel 28F001BXT Flash BIOS",
-        0,
+        0, 0,
         intel_flash_bxt_ami_init,
         intel_flash_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
+	NULL,
+        NULL, NULL, NULL, NULL, NULL
 };
 
 device_t intel_flash_bxb_ami_device =
 {
         "Intel 28F001BXB Flash BIOS",
-        0,
+        0, 0,
         intel_flash_bxb_ami_init,
         intel_flash_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
+	NULL,
+        NULL, NULL, NULL, NULL, NULL
 };
 
 device_t intel_flash_bxt_device =
 {
         "Intel 28F001BXT Flash BIOS",
-        0,
+        0, 0,
         intel_flash_bxt_init,
         intel_flash_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
+	NULL,
+        NULL, NULL, NULL, NULL, NULL
 };
 
 device_t intel_flash_bxb_device =
 {
         "Intel 28F001BXB Flash BIOS",
-        0,
+        0, 0,
         intel_flash_bxb_init,
         intel_flash_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
+	NULL,
+        NULL, NULL, NULL, NULL, NULL
 };

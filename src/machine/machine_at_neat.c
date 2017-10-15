@@ -2,11 +2,13 @@
    see COPYING for more details
 */
 /*This is the chipset used in the AMI 286 clone model*/
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
-#include "../cpu/cpu.h"
 #include "../io.h"
-#include "machine_at.h"
-#include "machine_at_neat.h"
+#include "machine.h"
 
 
 static uint8_t neat_regs[256];
@@ -81,8 +83,10 @@ static void neat_init(void)
 }
 
 
-void machine_at_neat_init(void)
+void
+machine_at_neat_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_init(model);
+
         neat_init();
 }

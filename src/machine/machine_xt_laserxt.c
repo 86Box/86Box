@@ -1,10 +1,13 @@
 /*This is the chipset used in the LaserXT series model*/
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
 #include "../mem.h"
-#include "machine_xt.h"
-#include "machine_xt_laserxt.h"
+#include "machine.h"
 
 
 static int laserxt_emspage[4];
@@ -125,8 +128,10 @@ static void laserxt_init(void)
 }
 
 
-void machine_xt_laserxt_init(void)
+void
+machine_xt_laserxt_init(machine_t *model)
 {
-        machine_xt_init();
+        machine_xt_init(model);
+
         laserxt_init();
 }

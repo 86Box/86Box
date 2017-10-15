@@ -1,14 +1,20 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdarg.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "io.h"
 #include "pic.h"
 #include "mem.h"
+#include "device.h"
 #include "pci.h"
 #include "keyboard_at.h"
+#include "cdrom/cdrom.h"
+#include "disk/hdc.h"
+#include "disk/hdc_ide.h"
 #include "floppy/floppy.h"
 #include "floppy/fdc.h"
-#include "hdd/hdd_ide_at.h"
-#include "cdrom/cdrom.h"
 
 
 static uint64_t pci_irq_hold[16];
@@ -650,7 +656,7 @@ static void trc_reset(uint8_t val)
 			pci_reset_handler.super_io_reset();
 		}
 
-		resetide();
+		ide_reset();
 		for (i = 0; i < CDROM_NUM; i++)
 		{
 			if (!cdrom_drives[i].bus_type)

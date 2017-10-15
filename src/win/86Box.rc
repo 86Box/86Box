@@ -8,10 +8,11 @@
  *
  *		Windows resource script.
  *
- * Version:	@(#)86Box.rc	1.0.9	2017/09/07
+ * Version:	@(#)86Box.rc	1.0.17	2017/10/14
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2016,2017 Miran Grca.
  */
 #include <inttypes.h>
@@ -40,13 +41,17 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // Menu
 //
 
-MAINMENU MENU DISCARDABLE 
+MainMenu MENU DISCARDABLE 
 BEGIN
     POPUP "&Action"
     BEGIN
         MENUITEM "&Hard Reset",                 IDM_ACTION_HRESET
+        MENUITEM SEPARATOR
         MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",     IDM_ACTION_RESET_CAD
-		MENUITEM "Ctrl+Alt+&Esc",				IDM_ACTION_CTRL_ALT_ESC
+        MENUITEM SEPARATOR
+	MENUITEM "Ctrl+Alt+&Esc",		IDM_ACTION_CTRL_ALT_ESC
+        MENUITEM SEPARATOR
+        MENUITEM "&Pause",                      IDM_ACTION_PAUSE
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       IDM_ACTION_EXIT
     END
@@ -57,43 +62,49 @@ BEGIN
         MENUITEM SEPARATOR
         POPUP "Re&nderer"
         BEGIN
-            MENUITEM "&DirectDraw",                 IDM_VID_DDRAW
-            MENUITEM "Direct&3D 9",                 IDM_VID_D3D
+            MENUITEM "&DirectDraw",             IDM_VID_DDRAW
+            MENUITEM "Direct&3D 9",             IDM_VID_D3D
+#ifdef USE_VNC
+            MENUITEM "&VNC",                    IDM_VID_VNC
+#endif
+#ifdef USE_RDP
+            MENUITEM "&RDP",                    IDM_VID_RDP
+#endif
         END
         MENUITEM SEPARATOR
         POPUP "&Window scale factor"
         BEGIN
-            MENUITEM "&0.5x",                       IDM_VID_SCALE_1X
-            MENUITEM "&1x",                         IDM_VID_SCALE_2X
-            MENUITEM "1.&5x",                       IDM_VID_SCALE_3X
-            MENUITEM "&2x",                         IDM_VID_SCALE_4X
+            MENUITEM "&0.5x",                   IDM_VID_SCALE_1X
+            MENUITEM "&1x",                     IDM_VID_SCALE_2X
+            MENUITEM "1.&5x",                   IDM_VID_SCALE_3X
+            MENUITEM "&2x",                     IDM_VID_SCALE_4X
         END
         MENUITEM SEPARATOR
         MENUITEM "&Fullscreen\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
         POPUP "Fullscreen &stretch mode"
         BEGIN
-            MENUITEM "&Full screen stretch",        IDM_VID_FS_FULL
-            MENUITEM "&4:3",                        IDM_VID_FS_43
-            MENUITEM "&Square pixels",              IDM_VID_FS_SQ
-            MENUITEM "&Integer scale",              IDM_VID_FS_INT
+            MENUITEM "&Full screen stretch",    IDM_VID_FS_FULL
+            MENUITEM "&4:3",                    IDM_VID_FS_43
+            MENUITEM "&Square pixels",          IDM_VID_FS_SQ
+            MENUITEM "&Integer scale",          IDM_VID_FS_INT
         END
         POPUP "E&GA/(S)VGA settings"
         BEGIN
-            MENUITEM "&Inverted VGA monitor",       IDM_VID_INVERT
-            MENUITEM "E&GA/(S)VGA overscan",        IDM_VID_OVERSCAN
+            MENUITEM "&Inverted VGA monitor",   IDM_VID_INVERT
+            MENUITEM "E&GA/(S)VGA overscan",    IDM_VID_OVERSCAN
             POPUP "VGA screen &type"
             BEGIN
-                MENUITEM "RGB &Color",              IDM_VID_GRAY_RGB
-                MENUITEM "&RGB Grayscale",          IDM_VID_GRAY_MONO
-                MENUITEM "&Amber monitor",          IDM_VID_GRAY_AMBER
-                MENUITEM "&Green monitor",          IDM_VID_GRAY_GREEN
-                MENUITEM "&White monitor",          IDM_VID_GRAY_WHITE
+                MENUITEM "RGB &Color",          IDM_VID_GRAY_RGB
+                MENUITEM "&RGB Grayscale",      IDM_VID_GRAY_MONO
+                MENUITEM "&Amber monitor",      IDM_VID_GRAY_AMBER
+                MENUITEM "&Green monitor",      IDM_VID_GRAY_GREEN
+                MENUITEM "&White monitor",      IDM_VID_GRAY_WHITE
             END
             POPUP "Grayscale &conversion type"
             BEGIN
-                MENUITEM "BT&601 (NTSC/PAL)",       IDM_VID_GRAYCT_601
-                MENUITEM "BT&709 (HDTV)",           IDM_VID_GRAYCT_709
-                MENUITEM "&Average",                IDM_VID_GRAYCT_AVE
+                MENUITEM "BT&601 (NTSC/PAL)",   IDM_VID_GRAYCT_601
+                MENUITEM "BT&709 (HDTV)",       IDM_VID_GRAYCT_709
+                MENUITEM "&Average",            IDM_VID_GRAYCT_AVE
             END
         END
         MENUITEM SEPARATOR
@@ -131,11 +142,9 @@ BEGIN
 # ifdef ENABLE_SERIAL_LOG
         MENUITEM "Enable Serial Port logs\tCtrl+F3", IDM_LOG_SERIAL
 # endif
-#ifdef USE_NETWORK
 # ifdef ENABLE_NIC_LOG
         MENUITEM "Enable Network logs\tCtrl+F9", IDM_LOG_NIC
 # endif
-#endif
 # ifdef ENABLE_LOG_COMMANDS
 #  ifdef ENABLE_LOG_TOGGLES
 	MENUITEM SEPARATOR
@@ -155,13 +164,18 @@ BEGIN
     END
 END
 
+StatusBarMenu MENU DISCARDABLE 
+BEGIN
+    MENUITEM SEPARATOR
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Accelerator
 //
 
-MAINACCEL ACCELERATORS MOVEABLE PURE 
+MainAccel ACCELERATORS MOVEABLE PURE 
 BEGIN
 #ifdef ENABLE_VRAM_DUMP
     VK_F1,   IDM_DUMP_VRAM,          CONTROL, VIRTKEY
@@ -193,6 +207,7 @@ BEGIN
     VK_PRIOR,IDM_VID_FULLSCREEN,     VIRTKEY, CONTROL , ALT
     VK_F11,  IDM_ACTION_SCREENSHOT,  VIRTKEY, CONTROL
     VK_F12,  IDM_ACTION_RESET_CAD,   VIRTKEY, CONTROL
+    VK_PAUSE,IDM_ACTION_PAUSE
 END
 
 
@@ -263,15 +278,14 @@ BEGIN
                     12,12
     LTEXT           "MB",IDT_1705,123,64,10,10
     LTEXT           "Memory:",IDT_1706,7,64,30,10
-    LTEXT           "NVR Path:",IDT_1700,7,83,60,10
-    EDITTEXT        IDC_EDIT_NVR_PATH,71,82,138,12,ES_AUTOHSCROLL
-    PUSHBUTTON      "&Specify...",IDC_BUTTON_NVR_PATH,214,82,46,12
-    CONTROL         "Dynamic Recompiler",IDC_CHECK_DYNAREC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,100,94,10
+    CONTROL         "Enable time sync",IDC_CHECK_SYNC,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,100,102,10
     CONTROL         "Enable FPU",IDC_CHECK_FPU,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,147,100,113,10
-    CONTROL         "Enable time sync",IDC_CHECK_SYNC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,115,102,10
+#ifdef USE_DYNAREC
+    CONTROL         "Dynamic Recompiler",IDC_CHECK_DYNAREC,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,115,94,10
+#endif
 END
 
 DLG_CFG_VIDEO DIALOG DISCARDABLE  97, 0, 267, 63
@@ -338,7 +352,6 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,99,94,10
 END
 
-#ifdef USE_NETWORK
 DLG_CFG_NETWORK DIALOG DISCARDABLE  97, 0, 267, 63
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
@@ -356,7 +369,6 @@ BEGIN
                     WS_TABSTOP
     PUSHBUTTON      "Configure",IDC_CONFIGURE_NET,214,43,46,12
 END
-#endif
 
 DLG_CFG_PORTS DIALOG DISCARDABLE  97, 0, 267, 61
 STYLE DS_CONTROL | WS_CHILD
@@ -529,26 +541,17 @@ END
 177                     ICON    DISCARDABLE     "win/icons/removable_disk_active.ico"
 192                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
 193                     ICON    DISCARDABLE     "win/icons/hard_disk_active.ico"
-#ifdef USE_NETWORK
 208                     ICON    DISCARDABLE     "win/icons/network.ico"
 209                     ICON    DISCARDABLE     "win/icons/network_active.ico"
-#endif
 256                     ICON    DISCARDABLE     "win/icons/machine.ico"
 257                     ICON    DISCARDABLE     "win/icons/display.ico"
 258                     ICON    DISCARDABLE     "win/icons/input_devices.ico"
 259                     ICON    DISCARDABLE     "win/icons/sound.ico"
-#ifdef USE_NETWORK
 260                     ICON    DISCARDABLE     "win/icons/network.ico"
 261                     ICON    DISCARDABLE     "win/icons/ports.ico"
 262                     ICON    DISCARDABLE     "win/icons/other_peripherals.ico"
 263                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
 264                     ICON    DISCARDABLE     "win/icons/removable_devices.ico"
-#else
-260                     ICON    DISCARDABLE     "win/icons/ports.ico"
-261                     ICON    DISCARDABLE     "win/icons/other_peripherals.ico"
-262                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
-263                     ICON    DISCARDABLE     "win/icons/removable_devices.ico"
-#endif
 384                     ICON    DISCARDABLE     "win/icons/floppy_525_empty.ico"
 385                     ICON    DISCARDABLE     "win/icons/floppy_525_empty_active.ico"
 400                     ICON    DISCARDABLE     "win/icons/floppy_35_empty.ico"
@@ -639,7 +642,6 @@ BEGIN
         BOTTOMMARGIN, 109
     END
 
-#ifdef USE_NETWORK
     DLG_CFG_NETWORK, DIALOG
     BEGIN
         LEFTMARGIN, 7
@@ -647,7 +649,6 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 56
     END
-#endif
 
     DLG_CFG_PORTS, DIALOG
     BEGIN
@@ -699,7 +700,7 @@ BEGIN
     IDS_2053	"Invalid number of sectors (valid values are between 1 and 63)"
     IDS_2054	"Invalid number of heads (valid values are between 1 and 16)"
     IDS_2055	"Invalid number of cylinders (valid values are between 1 and 266305)"
-    IDS_2056	"Specify the NVR Path"
+    IDS_2056	"No usable ROM images found!"
     IDS_2057	"(empty)"
     IDS_2058	"(host drive %c:)"
     IDS_2059	"Turbo"
@@ -716,18 +717,11 @@ BEGIN
     IDS_2066	"Display"
     IDS_2067	"Input devices"
     IDS_2068	"Sound"
-#ifdef USE_NETWORK
     IDS_2069	"Network"
     IDS_2070	"Ports (COM & LPT)"
     IDS_2071	"Other peripherals"
     IDS_2072	"Hard disks"
     IDS_2073	"Removable devices"
-#else
-    IDS_2069	"Ports (COM & LPT)"
-    IDS_2070	"Other peripherals"
-    IDS_2071	"Hard disks"
-    IDS_2072	"Removable devices"
-#endif
     IDS_2074	"Use CTRL+ALT+PAGE DOWN to return to windowed mode"
     IDS_2075	"CD-ROM images (*.ISO;*.CUE)\0*.ISO;*.CUE\0All files (*.*)\0*.*\0"
     IDS_2076	"Host CD/DVD Drive (%c:)"
@@ -753,6 +747,7 @@ BEGIN
     IDS_2092	"Bus"
     IDS_2093	"DMA"
     IDS_2094	"KB"
+    IDS_2095	"Neither DirectDraw nor Direct3D available !"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -811,11 +806,9 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-#ifdef USE_NETWORK
     IDS_2139	"PCap failed to set up because it may not be initialized"
     IDS_2140	"No PCap devices found"
     IDS_2141	"Invalid PCap device"
-#endif
     IDS_2142	"&Notify disk change"
     IDS_2143	"Type"
     IDS_2144	"Standard 2-button joystick(s)"
@@ -827,12 +820,12 @@ BEGIN
     IDS_2150	"Thrustmaster Flight Control System"
     IDS_2151	"Disabled"
     IDS_2152	"None"
-    IDS_2153	"AT Fixed Disk Adapter"
-    IDS_2154	"Internal IDE"
+    IDS_2153	"Unable to load Keyboard Accelerators!"
+    IDS_2154	"Unable to register Raw Input!"
     IDS_2155	"IRQ %i"
     IDS_2156	"%" PRIu64
     IDS_2157	"%" PRIu64 " MB (CHS: %" PRIu64 ", %" PRIu64 ", %" PRIu64 ")"
-    IDS_2158	"Floppy %i (%s): %ws"
+    IDS_2158	"Floppy %i (%s): %ls"
     IDS_2159"All floppy images (*.0??;*.12;*.144;*.360;*.720;*.86F;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.JSON;*.TD0;*.VFD;*.XDF)\0*.0??;*.12;*.144;*.360;*.720;*.86F;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.JSON;*.TD0;*.VFD;*.XDF\0Advanced sector-based images (*.IMD;*.TD0)\0*.IMD;*.JSON;*.TD0\0Basic sector-based images (*.0??;*.12;*.144;*.360;*.720;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMG;*.JSON;*.VFD;*.XDF)\0*.0??;*.12;*.144;*.360;*.720;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMG;*.JSON;*.VFD;*.XDF\0Flux images (*.FDI)\0*.FDI\0Surface-based images (*.86F)\0*.86F\0All files (*.*)\0*.*\0"
     IDS_2160	"Configuration files (*.CFG)\0*.CFG\0All files (*.*)\0*.*\0"
     IDS_2161	"&New image..."
@@ -878,7 +871,7 @@ BEGIN
     IDS_4112	"Please enter a valid file name"
     IDS_4113	"Remember to partition and format the new drive"
     IDS_4114	"MFM/RLL or ESDI CD-ROM drives never existed"
-    IDS_4115	"Removable disk %i (SCSI): %ws"
+    IDS_4115	"Removable disk %i (SCSI): %ls"
 
     IDS_4352    "MFM/RLL"
     IDS_4353    "XT IDE"

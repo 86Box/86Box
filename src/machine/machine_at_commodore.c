@@ -1,9 +1,12 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../lpt.h"
 #include "../serial.h"
-#include "machine_at.h"
-#include "machine_at_commodore.h"
+#include "machine.h"
 
 
 static void cbm_io_write(uint16_t port, uint8_t val, void *p)
@@ -38,8 +41,11 @@ static void cbm_io_init()
         io_sethandler(0x0230, 0x0001, NULL,NULL,NULL, cbm_io_write,NULL,NULL, NULL);
 }
 
-void machine_at_cmdpc_init(void)
+
+void
+machine_at_cmdpc_init(machine_t *model)
 {
-	machine_at_ide_top_remap_init();
+	machine_at_ide_top_remap_init(model);
+
 	cbm_io_init();
 }

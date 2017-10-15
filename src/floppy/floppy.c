@@ -9,18 +9,25 @@
  *		Generic floppy disk interface that communicates with the
  *		other handlers.
  *
- * Version:	@(#)floppy.c	1.0.3	2017/09/12
+ * Version:	@(#)floppy.c	1.0.8	2017/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
-#define UNICODE
-#include <windows.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
+#include "../mem.h"
+#include "../rom.h"
 #include "../config.h"
 #include "../timer.h"
+#include "../plat.h"
+#include "../ui.h"
 #include "floppy.h"
 #include "floppy_86f.h"
 #include "floppy_fdi.h"
@@ -36,7 +43,7 @@ extern int driveempty[4];
 
 wchar_t floppyfns[4][512];
 
-int floppy_poll_time[FDD_NUM] = { 16, 16, 16, 16 };
+int64_t floppy_poll_time[FDD_NUM] = { 16LL, 16LL, 16LL, 16LL };
 
 int floppy_track[FDD_NUM];
 int writeprot[FDD_NUM], fwriteprot[FDD_NUM];
@@ -60,7 +67,7 @@ int drive_empty[FDD_NUM] = {1, 1, 1, 1};
 int floppy_changed[FDD_NUM];
 
 int motorspin;
-int motoron[FDD_NUM];
+int64_t motoron[FDD_NUM];
 
 int fdc_indexcount = 52;
 
@@ -130,14 +137,14 @@ void floppy_load(int drive, wchar_t *fn)
         if (!fn) return;
         p = get_extension_w(fn);
         if (!p) return;
-        f = _wfopen(fn, L"rb");
+        f = plat_fopen(fn, L"rb");
         if (!f) return;
         fseek(f, -1, SEEK_END);
         size = ftell(f) + 1;
         fclose(f);        
         while (loaders[c].ext)
         {
-                if (!_wcsicmp(p, loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1))
+                if (!wcscasecmp(p, loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1))
                 {
                         driveloaders[drive] = c;
                         memcpy(floppyfns[drive], fn, (wcslen(fn) << 1) + 2);
@@ -149,11 +156,11 @@ void floppy_load(int drive, wchar_t *fn)
                 }
                 c++;
         }
-        pclog_w(L"Couldn't load %s %s\n",fn,p);
+        pclog("Couldn't load %ls %s\n",fn,p);
         drive_empty[drive] = 1;
 	fdd_set_head(real_drive(drive), 0);
 	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
-	update_status_bar_icon_state(drive, 1);
+	ui_sb_update_icon_state(drive, 1);
 }
 
 void floppy_close(int drive)
@@ -172,7 +179,7 @@ void floppy_close(int drive)
         drives[drive].format = NULL;
         drives[drive].byteperiod = NULL;
 	drives[drive].stop = NULL;
-	update_status_bar_icon_state(drive, 1);
+	ui_sb_update_icon_state(drive, 1);
 }
 
 int floppy_notfound=0;
@@ -238,7 +245,7 @@ void floppy_poll(int drive)
 		fatal("Attempting to poll floppy drive %i that is not supposed to be there\n", drive);
 	}
 
-        floppy_poll_time[drive] += (int) floppy_real_period(drive);
+        floppy_poll_time[drive] += (int64_t) floppy_real_period(drive);
 
         if (drives[drive].poll)
                 drives[drive].poll(drive);
@@ -403,4 +410,19 @@ void floppy_stop(int drive)
         
         if (drives[drive].stop)
                 drives[drive].stop(drive);
+}
+
+void floppy_general_init(void)
+{
+    floppy_init();
+    fdi_init();
+    img_init();
+    d86f_init();
+    td0_init();
+    imd_init();
+
+    floppy_load(0, floppyfns[0]);
+    floppy_load(1, floppyfns[1]);
+    floppy_load(2, floppyfns[2]);
+    floppy_load(3, floppyfns[3]);
 }

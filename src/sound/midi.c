@@ -1,23 +1,25 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include "../device.h"
-#include "midi.h"
 #include "../ibm.h"
-
-#include "../win/plat_midi.h"
-#include "../win/plat_ticks.h"
+#include "../plat.h"
+#include "../plat_midi.h"
+#include "midi.h"
+#include "midi_system.h"
 #ifdef USE_FLUIDSYNTH
 # include "midi_fluidsynth.h"
 #endif
 #ifdef USE_MUNT
 # include "midi_mt32.h"
 #endif
-#include "midi_system.h"
+
 
 int midi_device_current = 0;
 static int midi_device_last = 0;
+
 
 typedef struct
 {

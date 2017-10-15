@@ -21,6 +21,10 @@ PnP registers :
 70 - IRQ
 74 - DMA*/
 
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "io.h"
 #include "lpt.h"

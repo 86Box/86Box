@@ -8,30 +8,32 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.3	2017/09/03
+ * Version:	@(#)sound.c	1.0.5	2017/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
-#include <stdint.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../device.h"
 #include "../timer.h"
 #include "../cdrom/cdrom.h"
-#include "../win/plat_thread.h"
-#include "midi.h"
+#include "../plat.h"
 #include "sound.h"
+#include "midi.h"
 #include "snd_opl.h"
 #include "snd_adlib.h"
 #include "snd_adlibgold.h"
-#ifdef DEV_BRANCH
-# ifdef USE_PAS16
-#  include "snd_pas16.h"
-# endif
+#include "snd_audiopci.h"
+#if defined(DEV_BRANCH) && defined(USE_PAS16)
+# include "snd_pas16.h"
 #endif
 #include "snd_sb.h"
 #include "snd_sb_dsp.h"
@@ -52,25 +54,25 @@ typedef struct
 
 static SOUND_CARD sound_cards[] =
 {
-    { "None",                  "none",		NULL			},
-    { "Adlib",                 "adlib",		&adlib_device		},
-    { "Adlib MCA",             "adlib_mca",	&adlib_mca_device	},
-    { "Sound Blaster 1.0",     "sb",		&sb_1_device		},
-    { "Sound Blaster 1.5",     "sb1.5",		&sb_15_device		},
-    { "Sound Blaster MCV",     "sbmcv",		&sb_mcv_device		},
-    { "Sound Blaster 2.0",     "sb2.0",		&sb_2_device		},
-    { "Sound Blaster Pro v1",  "sbprov1",	&sb_pro_v1_device	},
-    { "Sound Blaster Pro v2",  "sbprov2",	&sb_pro_v2_device	},
-    { "Sound Blaster Pro MCV", "sbpromcv",	&sb_pro_mcv_device	},
-    { "Sound Blaster 16",      "sb16",		&sb_16_device		},
-    { "Sound Blaster AWE32",   "sbawe32",	&sb_awe32_device	},
-    { "Adlib Gold",            "adlibgold",	&adgold_device		},
-    { "Windows Sound System",  "wss",		&wss_device		},
-#ifdef DEV_BRANCH
-#ifdef USE_PAS16
-    { "Pro Audio Spectrum 16", "pas16",		&pas16_device		},
+    { "None",                       "none",	NULL			},
+    { "[ISA] Adlib",                "adlib",	&adlib_device		},
+    { "[ISA] Adlib Gold",           "adlibgold",&adgold_device		},
+    { "[ISA] Sound Blaster 1.0",    "sb",	&sb_1_device		},
+    { "[ISA] Sound Blaster 1.5",    "sb1.5",	&sb_15_device		},
+    { "[ISA] Sound Blaster 2.0",    "sb2.0",	&sb_2_device		},
+    { "[ISA] Sound Blaster Pro v1", "sbprov1",	&sb_pro_v1_device	},
+    { "[ISA] Sound Blaster Pro v2", "sbprov2",	&sb_pro_v2_device	},
+    { "[ISA] Sound Blaster 16",     "sb16",	&sb_16_device		},
+    { "[ISA] Sound Blaster AWE32",  "sbawe32",	&sb_awe32_device	},
+#if defined(DEV_BRANCH) && defined(USE_PAS16)
+    { "[ISA] Pro Audio Spectrum 16","pas16",	&pas16_device		},
 #endif
-#endif
+    { "[ISA] Windows Sound System", "wss",	&wss_device		},
+    { "[MCA] Adlib",                "adlib_mca",	&adlib_mca_device	},
+    { "[MCA] Sound Blaster MCV",    "sbmcv",	&sb_mcv_device		},
+    { "[MCA] Sound Blaster Pro MCV","sbpromcv",	&sb_pro_mcv_device	},
+    { "[PCI] Ensoniq AudioPCI (ES1371)","es1371",    &es1371_device},
+    { "[PCI] Sound Blaster PCI 128",    "sbpci128",  &es1371_device},
     { "",			"",		NULL			}
 };
 
@@ -134,7 +136,7 @@ static struct
 
 static int sound_handlers_num;
 
-static int sound_poll_time = 0, sound_poll_latch;
+static int64_t sound_poll_time = 0LL, sound_poll_latch;
 int sound_pos_global = 0;
 
 int soundon = 1;
@@ -401,7 +403,7 @@ void sound_poll(void *priv)
 
 void sound_speed_changed(void)
 {
-        sound_poll_latch = (int)((double)TIMER_USEC * (1000000.0 / 48000.0));
+        sound_poll_latch = (int64_t)((double)TIMER_USEC * (1000000.0 / 48000.0));
 }
 
 void sound_reset(void)

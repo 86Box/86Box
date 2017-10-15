@@ -1,7 +1,10 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
+#include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "io.h"
 #include "mem.h"
@@ -45,12 +48,16 @@ void keyboard_amstrad_poll(void)
                 keyboard_amstrad.wantirq = 0;
                 keyboard_amstrad.pa = keyboard_amstrad.key_waiting;
                 picint(2);
+#if ENABLE_KEYBOARD_LOG
                 pclog("keyboard_amstrad : take IRQ\n");
+#endif
         }
         if (key_queue_start != key_queue_end && !keyboard_amstrad.pa)
         {
                 keyboard_amstrad.key_waiting = key_queue[key_queue_start];
+#if ENABLE_KEYBOARD_LOG
                 pclog("Reading %02X from the key queue at %i\n", keyboard_amstrad.key_waiting, key_queue_start);
+#endif
                 key_queue_start = (key_queue_start + 1) & 0xf;
                 keyboard_amstrad.wantirq = 1;        
         }                
@@ -59,22 +66,30 @@ void keyboard_amstrad_poll(void)
 void keyboard_amstrad_adddata(uint8_t val)
 {
         key_queue[key_queue_end] = val;
+#if ENABLE_KEYBOARD_LOG
         pclog("keyboard_amstrad : %02X added to key queue at %i\n", val, key_queue_end);
+#endif
         key_queue_end = (key_queue_end + 1) & 0xf;
         return;
 }
 
 void keyboard_amstrad_write(uint16_t port, uint8_t val, void *priv)
 {
+#if ENABLE_KEYBOARD_LOG
         pclog("keyboard_amstrad : write %04X %02X %02X\n", port, val, keyboard_amstrad.pb);
+#endif
 
         switch (port)
         {
                 case 0x61:
+#if ENABLE_KEYBOARD_LOG
                 pclog("keyboard_amstrad : pb write %02X %02X  %i %02X %i\n", val, keyboard_amstrad.pb, !(keyboard_amstrad.pb & 0x40), keyboard_amstrad.pb & 0x40, (val & 0x40));
+#endif
                 if (!(keyboard_amstrad.pb & 0x40) && (val & 0x40)) /*Reset keyboard*/
                 {
+#if ENABLE_KEYBOARD_LOG
                         pclog("keyboard_amstrad : reset keyboard\n");
+#endif
                         keyboard_amstrad_adddata(0xaa);
                 }
                 keyboard_amstrad.pb = val;
@@ -165,7 +180,9 @@ void keyboard_amstrad_reset(void)
 
 void keyboard_amstrad_init(void)
 {
+#if ENABLE_KEYBOARD_LOG
         pclog("keyboard_amstrad_init\n");
+#endif
         io_sethandler(0x0060, 0x0006, keyboard_amstrad_read, NULL, NULL, keyboard_amstrad_write, NULL, NULL,  NULL);
         keyboard_amstrad_reset();
         keyboard_send = keyboard_amstrad_adddata;

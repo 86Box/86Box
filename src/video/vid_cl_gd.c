@@ -1,5 +1,26 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Emulation of select Cirrus Logic cards.
+ *
+ * Version:	@(#)vid_cl_gd.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -879,92 +900,93 @@ void *clgd_common_init(wchar_t *romfn, uint8_t id)
         return clgd;
 }
 
-void *gd6235_init()
+
+void *gd6235_init(device_t *info)
 {
 	return clgd_common_init(L"roms/video/cirruslogic/vga6235.rom", CIRRUS_ID_CLGD6235);
 }
 
-void *gd5422_init()
+void *gd5422_init(device_t *info)
 {
 	return clgd_common_init(L"roms/video/cirruslogic/CL5422.ROM", CIRRUS_ID_CLGD5422);
 }
 
-void *gd5429_init()
+void *gd5429_init(device_t *info)
 {
 	return clgd_common_init(L"roms/video/cirruslogic/5429.vbi", CIRRUS_ID_CLGD5429);
 }
 
-void *gd5430_init()
+void *gd5430_init(device_t *info)
 {
 	return clgd_common_init(L"roms/video/cirruslogic/pci.BIN", CIRRUS_ID_CLGD5430);
 }
 
-void *dia5430_init()
+void *dia5430_init(device_t *info)
 {
 	return clgd_common_init(L"roms/video/cirruslogic/diamondvlbus.BIN", CIRRUS_ID_CLGD5430);
 }
 
-void *gd5434_init()
+void *gd5434_init(device_t *info)
 {
 	return clgd_common_init(L"roms/video/cirruslogic/japan.BIN", CIRRUS_ID_CLGD5434);
 }
 
-void *gd5436_init()
+void *gd5436_init(device_t *info)
 {
 	return clgd_common_init(L"roms/video/cirruslogic/5436.VBI", CIRRUS_ID_CLGD5436);
 }
 
-void *gd5440_init()
+void *gd5440_init(device_t *info)
 {
 	return clgd_common_init(L"roms/video/cirruslogic/5440BIOS.BIN", CIRRUS_ID_CLGD5440);
 }
 
-void *gd5446_init()
+void *gd5446_init(device_t *info)
 {
 	return clgd_common_init(L"roms/video/cirruslogic/5446BV.VBI", CIRRUS_ID_CLGD5446);
 }
 
-static int gd5422_available()
+static int gd5422_available(void)
 {
         return rom_present(L"roms/video/cirruslogic/CL5422.ROM");
 }
 
-static int gd5429_available()
+static int gd5429_available(void)
 {
         return rom_present(L"roms/video/cirruslogic/5429.vbi");
 }
 
-static int gd5430_available()
+static int gd5430_available(void)
 {
         return rom_present(L"roms/video/cirruslogic/pci.BIN");
 }
 
-static int dia5430_available()
+static int dia5430_available(void)
 {
         return rom_present(L"roms/video/cirruslogic/diamondvlbus.BIN");
 }
 
-static int gd5434_available()
+static int gd5434_available(void)
 {
         return rom_present(L"roms/video/cirruslogic/japan.BIN");
 }
 
-static int gd5436_available()
+static int gd5436_available(void)
 {
         return rom_present(L"roms/video/cirruslogic/5436.VBI");
 }
 
-static int gd5440_available()
+static int gd5440_available(void)
 {
         return rom_present(L"roms/video/cirruslogic/5440BIOS.BIN");
 }
 
-static int gd5446_available()
+static int gd5446_available(void)
 {
         return rom_present(L"roms/video/cirruslogic/5446BV.VBI");
 }
 
-static int gd6235_available()
+static int gd6235_available(void)
 {
         return rom_present(L"roms/video/cirruslogic/vga6235.rom");
 }
@@ -1002,116 +1024,134 @@ void clgd_add_status_info(char *s, int max_len, void *p)
 device_t gd5422_device =
 {
         "Cirrus Logic GD5422",
-        // DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         gd5422_init,
         clgd_close,
+	NULL,
         gd5422_available,
         clgd_speed_changed,
         clgd_force_redraw,
-        clgd_add_status_info
+        clgd_add_status_info,
+	NULL
 };
 
 device_t gd5429_device =
 {
         "Cirrus Logic GD5429",
-        // DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         gd5429_init,
         clgd_close,
+	NULL,
         gd5429_available,
         clgd_speed_changed,
         clgd_force_redraw,
-        clgd_add_status_info
+        clgd_add_status_info,
+	NULL
 };
 
 device_t gd5430_device =
 {
         "Cirrus Logic GD5430",
-        // DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         gd5430_init,
         clgd_close,
+	NULL,
         gd5430_available,
         clgd_speed_changed,
         clgd_force_redraw,
-        clgd_add_status_info
+        clgd_add_status_info,
+	NULL
 };
 
 device_t dia5430_device =
 {
         "Diamond CL-GD5430",
-        // DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         dia5430_init,
         clgd_close,
+	NULL,
         dia5430_available,
         clgd_speed_changed,
         clgd_force_redraw,
-        clgd_add_status_info
+        clgd_add_status_info,
+	NULL
 };
 
 device_t gd5434_device =
 {
         "Cirrus Logic GD5434",
-        // DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         gd5434_init,
         clgd_close,
+	NULL,
         gd5434_available,
         clgd_speed_changed,
         clgd_force_redraw,
-        clgd_add_status_info
+        clgd_add_status_info,
+	NULL
 };
 
 device_t gd5436_device =
 {
         "Cirrus Logic GD5436",
-        // DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         gd5436_init,
         clgd_close,
+	NULL,
         gd5436_available,
         clgd_speed_changed,
         clgd_force_redraw,
-        clgd_add_status_info
+        clgd_add_status_info,
+	NULL
 };
 
 device_t gd5440_device =
 {
         "Cirrus Logic GD5440",
-        // DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         gd5440_init,
         clgd_close,
+	NULL,
         gd5440_available,
         clgd_speed_changed,
         clgd_force_redraw,
-        clgd_add_status_info
+        clgd_add_status_info,
+	NULL
 };
 
 device_t gd5446_device =
 {
         "Cirrus Logic GD5446",
-        // DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         gd5446_init,
         clgd_close,
+	NULL,
         gd5446_available,
         clgd_speed_changed,
         clgd_force_redraw,
-        clgd_add_status_info
+        clgd_add_status_info,
+	NULL
 };
 
 device_t gd6235_device =
 {
         "Cirrus Logic GD6235",
-        // DEVICE_NOT_WORKING,
+        DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         gd6235_init,
         clgd_close,
+	NULL,
         gd6235_available,
         clgd_speed_changed,
         clgd_force_redraw,
-        clgd_add_status_info
+        clgd_add_status_info,
+	NULL
 };

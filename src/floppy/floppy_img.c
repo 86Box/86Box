@@ -9,17 +9,22 @@
  *		Implementation of the raw sector-based floppy image format,
  *		as well as the Japanese FDI, CopyQM, and FDF formats.
  *
- * Version:	@(#)floppy_img.c	1.0.1	2017/09/03
+ * Version:	@(#)floppy_img.c	1.0.3	2017/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
 #include "../ibm.h"
 #include "../config.h"
+#include "../plat.h"
 #include "floppy.h"
 #include "floppy_img.h"
 #include "fdc.h"
@@ -346,10 +351,10 @@ void img_load(int drive, wchar_t *fn)
 	d86f_unregister(drive);
 
 	writeprot[drive] = 0;
-        img[drive].f = _wfopen(fn, L"rb+");
+        img[drive].f = plat_fopen(fn, L"rb+");
         if (!img[drive].f)
         {
-                img[drive].f = _wfopen(fn, L"rb");
+                img[drive].f = plat_fopen(fn, L"rb");
                 if (!img[drive].f)
 		{
 			memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
@@ -367,7 +372,7 @@ void img_load(int drive, wchar_t *fn)
 
 	img[drive].interleave = img[drive].skew = 0;
 
-	if (_wcsicmp(ext, L"FDI") == 0)
+	if (! wcscasecmp(ext, L"FDI"))
 	{
 		/* This is a Japanese FDI image, so let's read the header */
 		pclog("img_load(): File is a Japanese FDI image...\n");
@@ -412,7 +417,7 @@ void img_load(int drive, wchar_t *fn)
 			pclog("img_load(): File is a FDF image...\n");
 	                fwriteprot[drive] = writeprot[drive] = 1;
 			fclose(img[drive].f);
-			img[drive].f = _wfopen(fn, L"rb");
+			img[drive].f = plat_fopen(fn, L"rb");
 
 			fdf = 1;
 
@@ -597,7 +602,7 @@ void img_load(int drive, wchar_t *fn)
 			pclog("img_load(): File is a CopyQM image...\n");
 	                fwriteprot[drive] = writeprot[drive] = 1;
 			fclose(img[drive].f);
-			img[drive].f = _wfopen(fn, L"rb");
+			img[drive].f = plat_fopen(fn, L"rb");
 
 			fseek(img[drive].f, 0x03, SEEK_SET);
 			fread(&bpb_bps, 1, 2, img[drive].f);

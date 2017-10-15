@@ -1,15 +1,33 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
-/*S3 ViRGE emulation*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		S3 ViRGE emulation.
+ *
+ * Version:	@(#)vid_s3_virge.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../pci.h"
 #include "../rom.h"
 #include "../device.h"
-#include "../win/plat_thread.h"
+#include "../plat.h"
 #include "video.h"
 #include "vid_s3_virge.h"
 #include "vid_svga.h"
@@ -123,6 +141,7 @@ typedef struct virge_t
         uint8_t pci_regs[256];
 	int card;
 
+	int pci;
         int is_375;
 
         int bilinear_enabled;
@@ -304,7 +323,7 @@ enum
 
 static void s3_virge_update_irqs(virge_t *virge)
 {
-	if (!PCI)
+	if (!virge->pci)
 	{
 		return;
 	}
@@ -438,7 +457,7 @@ static void s3_virge_out(uint16_t addr, uint8_t val, void *p)
                                 case 2: case 3:  svga->bpp = 15; break;
                                 case 4: case 5:  svga->bpp = 16; break;
                                 case 7:  svga->bpp = 24; break;
-                                case 13: svga->bpp = (gfxcard == GFX_VIRGEVX) ? 24 : 32; break;
+                                case 13: svga->bpp = ((gfxcard == GFX_VIRGEVX_VLB) || (gfxcard == GFX_VIRGEVX_PCI)) ? 24 : 32; break;
                                 default: svga->bpp = 8;  break;
                         }
                         break;
@@ -553,7 +572,7 @@ static void s3_virge_recalctimings(svga_t *svga)
                         }
                 }
 
-		if (gfxcard != GFX_VIRGEVX)
+		if ((gfxcard != GFX_VIRGEVX_VLB) && (gfxcard != GFX_VIRGEVX_PCI))
 		{
 	                if ((svga->bpp == 15) || (svga->bpp == 16))
         	        {
@@ -617,7 +636,7 @@ static void s3_virge_recalctimings(svga_t *svga)
         if (((svga->miscout >> 2) & 3) == 3)
         {
                 int n = svga->seqregs[0x12] & 0x1f;
-                int r = (svga->seqregs[0x12] >> 5) & ((virge->is_375 || (gfxcard == GFX_VIRGEVX)) ? 7 : 3);
+                int r = (svga->seqregs[0x12] >> 5) & ((virge->is_375 || ((gfxcard == GFX_VIRGEVX_VLB) || (gfxcard == GFX_VIRGEVX_PCI))) ? 7 : 3);
                 int m = svga->seqregs[0x13] & 0x7f;
                 double freq = (((double)m + 2) / (((double)n + 2) * (double)(1 << r))) * 14318184.0;
 
@@ -3747,7 +3766,7 @@ static void s3_virge_pci_write(int func, int addr, uint8_t val, void *p)
         }
 }
 
-static void *s3_virge_init()
+static void *s3_virge_init(device_t *info)
 {
         virge_t *virge = malloc(sizeof(virge_t));
         memset(virge, 0, sizeof(virge_t));
@@ -3763,8 +3782,10 @@ static void *s3_virge_init()
                    s3_virge_overlay_draw);
 	virge->svga.vblank_start = s3_virge_vblank_start;
 
+	virge->pci = !!(info->flags & DEVICE_PCI);
+
         rom_init(&virge->bios_rom, L"roms/video/s3virge/s3virge.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-        if (PCI)
+        if (info->flags & DEVICE_PCI)
                 mem_mapping_disable(&virge->bios_rom.mapping);
 
         mem_mapping_add(&virge->mmio_mapping,     0, 0, s3_virge_mmio_read,
@@ -3798,13 +3819,13 @@ static void *s3_virge_init()
         io_sethandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
 
         virge->pci_regs[4] = 3;
-        virge->pci_regs[5] = 0;        
+       	virge->pci_regs[5] = 0;        
         virge->pci_regs[6] = 0;
-        virge->pci_regs[7] = 2;
+       	virge->pci_regs[7] = 2;
         virge->pci_regs[0x32] = 0x0c;
-        virge->pci_regs[0x3d] = 1; 
+       	virge->pci_regs[0x3d] = 1; 
         virge->pci_regs[0x3e] = 4;
-        virge->pci_regs[0x3f] = 0xff;
+       	virge->pci_regs[0x3f] = 0xff;
         
         virge->virge_id_high = 0x56;
         virge->virge_id_low = 0x31;
@@ -3828,7 +3849,10 @@ static void *s3_virge_init()
 
         virge->is_375 = 0;
         
-        virge->card = pci_add_card(PCI_ADD_VIDEO, s3_virge_pci_read, s3_virge_pci_write, virge);
+        if (info->flags & DEVICE_PCI)
+	{
+	        virge->card = pci_add_card(PCI_ADD_VIDEO, s3_virge_pci_read, s3_virge_pci_write, virge);
+	}
         
         virge->wake_render_thread = thread_create_event();
         virge->wake_main_thread = thread_create_event();
@@ -3842,7 +3866,7 @@ static void *s3_virge_init()
         return virge;
 }
 
-static void *s3_virge_988_init()
+static void *s3_virge_988_init(device_t *info)
 {
         virge_t *virge = malloc(sizeof(virge_t));
         memset(virge, 0, sizeof(virge_t));
@@ -3857,8 +3881,10 @@ static void *s3_virge_988_init()
                    s3_virge_hwcursor_draw,
                    s3_virge_overlay_draw);
 
+	virge->pci = !!(info->flags & DEVICE_PCI);
+
         rom_init(&virge->bios_rom, L"roms/video/s3virge/diamondstealth3000.VBI", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-        if (PCI)
+        if (info->flags & DEVICE_PCI)
                 mem_mapping_disable(&virge->bios_rom.mapping);
 
         mem_mapping_add(&virge->mmio_mapping,     0, 0, s3_virge_mmio_read,
@@ -3892,13 +3918,13 @@ static void *s3_virge_988_init()
         io_sethandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
 
         virge->pci_regs[4] = 3;
-        virge->pci_regs[5] = 0;        
+       	virge->pci_regs[5] = 0;        
         virge->pci_regs[6] = 0;
-        virge->pci_regs[7] = 2;
+       	virge->pci_regs[7] = 2;
         virge->pci_regs[0x32] = 0x0c;
-        virge->pci_regs[0x3d] = 1; 
+       	virge->pci_regs[0x3d] = 1; 
         virge->pci_regs[0x3e] = 4;
-        virge->pci_regs[0x3f] = 0xff;
+       	virge->pci_regs[0x3f] = 0xff;
         
         virge->virge_id_high = 0x88;
         virge->virge_id_low = 0x3d;
@@ -3922,7 +3948,10 @@ static void *s3_virge_988_init()
 
         virge->is_375 = 0;
         
-        virge->card = pci_add_card(PCI_ADD_VIDEO, s3_virge_pci_read, s3_virge_pci_write, virge);
+        if (info->flags & DEVICE_PCI)
+	{
+	        virge->card = pci_add_card(PCI_ADD_VIDEO, s3_virge_pci_read, s3_virge_pci_write, virge);
+	}
         
         virge->wake_render_thread = thread_create_event();
         virge->wake_main_thread = thread_create_event();
@@ -3936,7 +3965,7 @@ static void *s3_virge_988_init()
         return virge;
 }
 
-static void *s3_virge_375_init(wchar_t *romfn)
+static void *s3_virge_375_init(device_t *info, wchar_t *romfn)
 {
         virge_t *virge = malloc(sizeof(virge_t));
         memset(virge, 0, sizeof(virge_t));
@@ -3951,8 +3980,10 @@ static void *s3_virge_375_init(wchar_t *romfn)
                    s3_virge_hwcursor_draw,
                    s3_virge_overlay_draw);
 
+	virge->pci = !!(info->flags & DEVICE_PCI);
+
         rom_init(&virge->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-        if (PCI)
+        if (info->flags & DEVICE_PCI)
                 mem_mapping_disable(&virge->bios_rom.mapping);
 
         mem_mapping_add(&virge->mmio_mapping,     0, 0, s3_virge_mmio_read,
@@ -3986,13 +4017,13 @@ static void *s3_virge_375_init(wchar_t *romfn)
         io_sethandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
 
         virge->pci_regs[4] = 3;
-        virge->pci_regs[5] = 0;        
+       	virge->pci_regs[5] = 0;        
         virge->pci_regs[6] = 0;
-        virge->pci_regs[7] = 2;
+       	virge->pci_regs[7] = 2;
         virge->pci_regs[0x32] = 0x0c;
-        virge->pci_regs[0x3d] = 1; 
+       	virge->pci_regs[0x3d] = 1; 
         virge->pci_regs[0x3e] = 4;
-        virge->pci_regs[0x3f] = 0xff;
+       	virge->pci_regs[0x3f] = 0xff;
         
         virge->virge_id_high = 0x8a;
         virge->virge_id_low = 0x01;
@@ -4017,7 +4048,10 @@ static void *s3_virge_375_init(wchar_t *romfn)
         
         virge->is_375 = 1;
         
-        virge->card = pci_add_card(PCI_ADD_VIDEO, s3_virge_pci_read, s3_virge_pci_write, virge);
+        if (info->flags & DEVICE_PCI)
+	{
+	        virge->card = pci_add_card(PCI_ADD_VIDEO, s3_virge_pci_read, s3_virge_pci_write, virge);
+	}
  
         virge->wake_render_thread = thread_create_event();
         virge->wake_main_thread = thread_create_event();
@@ -4031,14 +4065,14 @@ static void *s3_virge_375_init(wchar_t *romfn)
         return virge;
 }
 
-static void *s3_virge_375_1_init()
+static void *s3_virge_375_1_init(device_t *info)
 {
-	return s3_virge_375_init(L"roms/video/s3virge/86c375_1.bin");
+	return s3_virge_375_init(info, L"roms/video/s3virge/86c375_1.bin");
 }
 
-static void *s3_virge_375_4_init()
+static void *s3_virge_375_4_init(device_t *info)
 {
-	return s3_virge_375_init(L"roms/video/s3virge/86c375_4.bin");
+	return s3_virge_375_init(info, L"roms/video/s3virge/86c375_4.bin");
 }
 
 static void s3_virge_close(void *p)
@@ -4064,22 +4098,22 @@ static void s3_virge_close(void *p)
         free(virge);
 }
 
-static int s3_virge_available()
+static int s3_virge_available(void)
 {
         return rom_present(L"roms/video/s3virge/s3virge.bin");
 }
 
-static int s3_virge_988_available()
+static int s3_virge_988_available(void)
 {
         return rom_present(L"roms/video/s3virge/diamondstealth3000.VBI");
 }
 
-static int s3_virge_375_1_available()
+static int s3_virge_375_1_available(void)
 {
         return rom_present(L"roms/video/s3virge/86c375_1.bin");
 }
 
-static int s3_virge_375_4_available()
+static int s3_virge_375_4_available(void)
 {
         return rom_present(L"roms/video/s3virge/86c375_4.bin");
 }
@@ -4146,12 +4180,14 @@ static device_config_t s3_virge_config[] =
         }
 };
 
-device_t s3_virge_device =
+device_t s3_virge_vlb_device =
 {
-        "Diamond Stealth 3D 2000 (S3 ViRGE)",
+        "Diamond Stealth 3D 2000 (S3 ViRGE) VLB",
+        DEVICE_VLB,
         0,
         s3_virge_init,
         s3_virge_close,
+	NULL,
         s3_virge_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4159,12 +4195,29 @@ device_t s3_virge_device =
         s3_virge_config
 };
 
-device_t s3_virge_988_device =
+device_t s3_virge_pci_device =
 {
-        "Diamond Stealth 3D 3000 (S3 ViRGE/VX)",
+        "Diamond Stealth 3D 2000 (S3 ViRGE) PCI",
+        DEVICE_PCI,
+        0,
+        s3_virge_init,
+        s3_virge_close,
+	NULL,
+        s3_virge_available,
+        s3_virge_speed_changed,
+        s3_virge_force_redraw,
+        s3_virge_add_status_info,
+        s3_virge_config
+};
+
+device_t s3_virge_988_vlb_device =
+{
+        "Diamond Stealth 3D 3000 (S3 ViRGE/VX) VLB",
+        DEVICE_VLB,
         0,
         s3_virge_988_init,
         s3_virge_close,
+	NULL,
         s3_virge_988_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4172,12 +4225,29 @@ device_t s3_virge_988_device =
         s3_virge_config
 };
 
-device_t s3_virge_375_device =
+device_t s3_virge_988_pci_device =
 {
-        "S3 ViRGE/DX",
+        "Diamond Stealth 3D 3000 (S3 ViRGE/VX) PCI",
+        DEVICE_PCI,
+        0,
+        s3_virge_988_init,
+        s3_virge_close,
+	NULL,
+        s3_virge_988_available,
+        s3_virge_speed_changed,
+        s3_virge_force_redraw,
+        s3_virge_add_status_info,
+        s3_virge_config
+};
+
+device_t s3_virge_375_vlb_device =
+{
+        "S3 ViRGE/DX VLB",
+        DEVICE_VLB,
         0,
         s3_virge_375_1_init,
         s3_virge_close,
+	NULL,
         s3_virge_375_1_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4185,12 +4255,44 @@ device_t s3_virge_375_device =
         s3_virge_config
 };
 
-device_t s3_virge_375_4_device =
+device_t s3_virge_375_pci_device =
 {
-        "S3 ViRGE/DX (VBE 2.0)",
+        "S3 ViRGE/DX PCI",
+        DEVICE_PCI,
+        0,
+        s3_virge_375_1_init,
+        s3_virge_close,
+	NULL,
+        s3_virge_375_1_available,
+        s3_virge_speed_changed,
+        s3_virge_force_redraw,
+        s3_virge_add_status_info,
+        s3_virge_config
+};
+
+device_t s3_virge_375_4_vlb_device =
+{
+        "S3 ViRGE/DX (VBE 2.0) VLB",
+        DEVICE_VLB,
         0,
         s3_virge_375_4_init,
         s3_virge_close,
+	NULL,
+        s3_virge_375_4_available,
+        s3_virge_speed_changed,
+        s3_virge_force_redraw,
+        s3_virge_add_status_info,
+        s3_virge_config
+};
+
+device_t s3_virge_375_4_pci_device =
+{
+        "S3 ViRGE/DX (VBE 2.0) PCI",
+        DEVICE_PCI,
+        0,
+        s3_virge_375_4_init,
+        s3_virge_close,
+	NULL,
         s3_virge_375_4_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,

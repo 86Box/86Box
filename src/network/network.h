@@ -70,6 +70,7 @@ extern void	network_pcap_close(void);
 extern int	network_pcap_test(void);
 extern void	network_pcap_in(uint8_t *, int);
 
+extern void	network_slirp_mutex_init(void);
 extern int	network_slirp_setup(uint8_t *, NETRXCB, void *);
 extern void	network_slirp_close(void);
 extern int	network_slirp_test(void);

@@ -1,11 +1,30 @@
-/* Copyright holders: John Elliott
-   see COPYING for more details
-*/
-/*Hercules InColor emulation*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Hercules InColor emulation.
+ *
+ * Version:	@(#)vid_incolor.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
+#include "../rom.h"
 #include "../timer.h"
 #include "../device.h"
 #include "video.h"
@@ -13,7 +32,6 @@
 
 
 /* extended CRTC registers */
-
 #define INCOLOR_CRTC_XMODE   20 /* xMode register */
 #define INCOLOR_CRTC_UNDER   21	/* Underline */
 #define INCOLOR_CRTC_OVER    22 /* Overstrike */
@@ -150,8 +168,8 @@ typedef struct incolor_t
 
         uint8_t ctrl, ctrl2, stat;
 
-        int dispontime, dispofftime;
-        int vidtime;
+        int64_t dispontime, dispofftime;
+        int64_t vidtime;
         
         int firstline, lastline;
 
@@ -160,7 +178,8 @@ typedef struct incolor_t
         uint16_t ma, maback;
         int con, coff, cursoron;
         int dispon, blink;
-        int vsynctime, vadj;
+        int64_t vsynctime;
+	int vadj;
 
 	uint8_t palette[16];	/* EGA-style 16 -> 64 palette registers */
 	uint8_t palette_idx;	/* Palette write index */
@@ -367,8 +386,8 @@ void incolor_recalctimings(incolor_t *incolor)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= MDACONST;
         _dispofftime *= MDACONST;
-	incolor->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	incolor->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	incolor->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
+	incolor->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
 }
 
 
@@ -1005,7 +1024,7 @@ void incolor_poll(void *p)
         }
 }
 
-void *incolor_init()
+void *incolor_init(device_t *info)
 {
         int c;
         incolor_t *incolor = malloc(sizeof(incolor_t));
@@ -1056,11 +1075,13 @@ void incolor_speed_changed(void *p)
 device_t incolor_device =
 {
         "Hercules InColor",
-        0,
+        DEVICE_ISA, 0,
         incolor_init,
         incolor_close,
+	NULL,
         NULL,
         incolor_speed_changed,
-        NULL,
+	NULL,
+	NULL,
         NULL
 };

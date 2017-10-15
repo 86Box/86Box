@@ -8,10 +8,11 @@
  *
  *		Direct3D 9 rendererer and screenshots taking.
  *
- * Version:	@(#)win_d3d.cc	1.0.1	2017/08/23
+ * Version:	@(#)win_d3d.cc	1.0.4	2017/10/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -19,20 +20,20 @@
 #include "../video/video.h"
 #include "win.h"
 #include "win_d3d.h"
-#include "win_cgapal.h"
 
 
 extern "C" void fatal(const char *format, ...);
 extern "C" void pclog(const char *format, ...);
 
 extern "C" void device_force_redraw(void);
-extern "C" void video_blit_complete(void);
 
+extern "C" void d3d_take_screenshot(wchar_t *fn);
 
 void d3d_init_objects(void);
 void d3d_close_objects(void);
-void d3d_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
-void d3d_blit_memtoscreen_8(int x, int y, int w, int h);
+
+static void blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
+static void blit_memtoscreen_8(int x, int y, int w, int h);
 
 static LPDIRECT3D9             d3d        = NULL;
 static LPDIRECT3DDEVICE9       d3ddev     = NULL; 
@@ -99,9 +100,8 @@ int d3d_init(HWND h)
            fatal("CreateDevice failed\n");
         
         d3d_init_objects();
-        
-        video_blit_memtoscreen_func = d3d_blit_memtoscreen;
-        video_blit_memtoscreen_8_func = d3d_blit_memtoscreen_8;
+
+	video_setblit(blit_memtoscreen_8, blit_memtoscreen);
 
 	return 1;
 }
@@ -228,7 +228,12 @@ void d3d_close()
         }
 }
 
-void d3d_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
+int d3d_pause(void)
+{
+	return(0);
+}
+
+static void blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
         HRESULT hr = D3D_OK;
         VOID* pVoid;
@@ -322,7 +327,7 @@ void d3d_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
                 PostMessage(d3d_hwnd, WM_RESETD3D, 0, 0);
 }
 
-void d3d_blit_memtoscreen_8(int x, int y, int w, int h)
+static void blit_memtoscreen_8(int x, int y, int w, int h)
 {
         VOID* pVoid;
         D3DLOCKED_RECT dr;

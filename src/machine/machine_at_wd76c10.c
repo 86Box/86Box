@@ -1,14 +1,17 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../serial.h"
 #include "../floppy/floppy.h"
 #include "../floppy/fdc.h"
-#include "machine_at.h"
-#include "machine_at_wd76c10.h"
+#include "machine.h"
 
 
 static uint16_t wd76c10_0092;
@@ -131,8 +134,11 @@ static void wd76c10_init(void)
 		      wd76c10_writeb, wd76c10_write, NULL, NULL);
 }
 
-void machine_at_wd76c10_init(void)
+
+void
+machine_at_wd76c10_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
         wd76c10_init();
 }

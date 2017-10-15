@@ -1,5 +1,8 @@
-#include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../dma.h"
@@ -7,6 +10,7 @@
 #include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
+#include "../nvr.h"
 #include "../timer.h"
 #include "../device.h"
 #include "sound.h"
@@ -36,7 +40,7 @@ typedef struct adgold_t
         int16_t adgold_mma_out[2];
         int adgold_mma_intpos[2];
 
-        int adgold_mma_timer_count;
+        int64_t adgold_mma_timer_count;
 
         struct
         {
@@ -575,9 +579,9 @@ void adgold_timer_poll(void *p)
 {
         adgold_t *adgold = (adgold_t *)p;
         
-        while (adgold->adgold_mma_timer_count <= 0)
+        while (adgold->adgold_mma_timer_count <= 0LL)
         {
-                adgold->adgold_mma_timer_count += (int)((double)TIMER_USEC * 1.88964);
+                adgold->adgold_mma_timer_count += (int64_t)((double)TIMER_USEC * 1.88964);
                 if (adgold->adgold_mma_regs[0][8] & 0x01) /*Timer 0*/
                 {
                         adgold->adgold_mma.timer0_count--;
@@ -750,7 +754,7 @@ static void adgold_get_buffer(int32_t *buffer, int len, void *p)
 }
 
 
-void *adgold_init()
+void *adgold_init(device_t *info)
 {
         FILE *f;
         int c;
@@ -773,7 +777,7 @@ void *adgold_init()
         for (; c >= 0; c--)
                 attenuation[c] = 0;
 
-        f = nvrfopen(L"adgold.bin", L"rb");
+        f = nvr_fopen(L"adgold.bin", L"rb");
         if (f)
         {
                 fread(adgold->adgold_eeprom, 0x18, 1, f);
@@ -813,7 +817,7 @@ void adgold_close(void *p)
         FILE *f;
         adgold_t *adgold = (adgold_t *)p;
         
-        f = nvrfopen(L"adgold.bin", L"wb");
+        f = nvr_fopen(L"adgold.bin", L"wb");
         if (f)
         {
                 fwrite(adgold->adgold_eeprom, 0x18, 1, f);
@@ -836,9 +840,10 @@ static device_config_t adgold_config[] =
 device_t adgold_device =
 {
         "AdLib Gold",
-        0,
+        DEVICE_ISA, 0,
         adgold_init,
         adgold_close,
+	NULL,
         NULL,
         NULL,
         NULL,

@@ -1,8 +1,26 @@
-/* Copyright holders: Sarah Walker, Melissa Goad
-   see COPYING for more details
-*/
-/*ATI 18800 emulation (VGA Edge-16)*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		ATI 18800 emulation (VGA Edge-16)
+ *
+ * Version:	@(#)vid_ati18800.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -25,7 +43,8 @@ typedef struct ati18800_t
         int index;
 } ati18800_t;
 
-void ati18800_out(uint16_t addr, uint8_t val, void *p)
+
+static void ati18800_out(uint16_t addr, uint8_t val, void *p)
 {
         ati18800_t *ati18800 = (ati18800_t *)p;
         svga_t *svga = &ati18800->svga;
@@ -99,7 +118,7 @@ void ati18800_out(uint16_t addr, uint8_t val, void *p)
         svga_out(addr, val, svga);
 }
 
-uint8_t ati18800_in(uint16_t addr, void *p)
+static uint8_t ati18800_in(uint16_t addr, void *p)
 {
         ati18800_t *ati18800 = (ati18800_t *)p;
         svga_t *svga = &ati18800->svga;
@@ -158,7 +177,7 @@ void ati18800_recalctimings(svga_t *svga)
         }
 }
 
-void *ati18800_init()
+static void *ati18800_init(device_t *info)
 {
         ati18800_t *ati18800 = malloc(sizeof(ati18800_t));
         memset(ati18800, 0, sizeof(ati18800_t));
@@ -181,12 +200,12 @@ void *ati18800_init()
         return ati18800;
 }
 
-static int ati18800_available()
+static int ati18800_available(void)
 {
         return rom_present(L"roms/video/ati18800/vga88.BIN");
 }
 
-void ati18800_close(void *p)
+static void ati18800_close(void *p)
 {
         ati18800_t *ati18800 = (ati18800_t *)p;
 
@@ -195,21 +214,21 @@ void ati18800_close(void *p)
         free(ati18800);
 }
 
-void ati18800_speed_changed(void *p)
+static void ati18800_speed_changed(void *p)
 {
         ati18800_t *ati18800 = (ati18800_t *)p;
         
         svga_recalctimings(&ati18800->svga);
 }
 
-void ati18800_force_redraw(void *p)
+static void ati18800_force_redraw(void *p)
 {
         ati18800_t *ati18800 = (ati18800_t *)p;
 
         ati18800->svga.fullchange = changeframecount;
 }
 
-void ati18800_add_status_info(char *s, int max_len, void *p)
+static void ati18800_add_status_info(char *s, int max_len, void *p)
 {
         ati18800_t *ati18800 = (ati18800_t *)p;
         
@@ -219,12 +238,13 @@ void ati18800_add_status_info(char *s, int max_len, void *p)
 device_t ati18800_device =
 {
         "ATI-18800",
-        0,
+        DEVICE_ISA, 0,
         ati18800_init,
         ati18800_close,
+	NULL,
         ati18800_available,
         ati18800_speed_changed,
         ati18800_force_redraw,
-        ati18800_add_status_info
+        ati18800_add_status_info,
+	NULL
 };
-

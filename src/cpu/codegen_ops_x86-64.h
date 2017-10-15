@@ -543,7 +543,7 @@ static x86seg *FETCH_EA_16(x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, u
         }
         else
         {
-                int base_reg, index_reg;
+                int base_reg = 0, index_reg = 0;
                 
                 switch (rm)
                 {

@@ -1,15 +1,33 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
-/*Trident TGUI9440 emulation*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Trident TGUI9440 emulation.
+ *
+ * Version:	@(#)vid_tgui9440.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../pci.h"
 #include "../rom.h"
 #include "../device.h"
-#include "../win/plat_thread.h"
+#include "../plat.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
@@ -51,6 +69,7 @@ typedef struct tgui_t
         rom_t bios_rom;
         
         svga_t svga;
+	int pci;
 
         struct
         {
@@ -225,7 +244,7 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
 			case 0x21:
 			if (old != val)
 			{
-                                if (!PCI)
+                                if (!tgui->pci)
                                 {
                                         tgui->linear_base = ((val & 0xf) | ((val >> 2) & 0x30)) << 20;
                                         tgui->linear_size = (val & 0x10) ? 0x200000 : 0x100000;
@@ -503,13 +522,15 @@ void tgui_pci_write(int func, int addr, uint8_t val, void *p)
         }
 }
 
-void *tgui9440_init()
+void *tgui9440_init(device_t *info)
 {
         tgui_t *tgui = malloc(sizeof(tgui_t));
         memset(tgui, 0, sizeof(tgui_t));
         
         tgui->vram_size = device_get_config_int("memory") << 20;
         tgui->vram_mask = tgui->vram_size - 1;
+
+	tgui->pci = !!(info->flags & DEVICE_PCI);
 
         rom_init(&tgui->bios_rom, L"roms/video/tgui9440/9440.vbi", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
@@ -526,7 +547,10 @@ void *tgui9440_init()
         io_sethandler(0x03c0, 0x0020, tgui_in, NULL, NULL, tgui_out, NULL, NULL, tgui);
         io_sethandler(0x43c8, 0x0002, tgui_in, NULL, NULL, tgui_out, NULL, NULL, tgui);
 
-        pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
+	if (info->flags & DEVICE_PCI)
+	{
+	        pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
+	}
 
         tgui->wake_fifo_thread = thread_create_event();
         tgui->fifo_not_full_event = thread_create_event();
@@ -535,7 +559,7 @@ void *tgui9440_init()
         return tgui;
 }
 
-static int tgui9440_available()
+static int tgui9440_available(void)
 {
         return rom_present(L"roms/video/tgui9440/9440.vbi");
 }
@@ -1267,12 +1291,29 @@ static device_config_t tgui9440_config[] =
         }
 };
 
-device_t tgui9440_device =
+device_t tgui9440_vlb_device =
 {
-        "Trident TGUI 9440",
-        0,
+        "Trident TGUI 9440 VLB",
+        DEVICE_VLB,
+	0,
         tgui9440_init,
         tgui_close,
+	NULL,
+        tgui9440_available,
+        tgui_speed_changed,
+        tgui_force_redraw,
+        tgui_add_status_info,
+        tgui9440_config
+};
+
+device_t tgui9440_pci_device =
+{
+        "Trident TGUI 9440 PCI",
+        DEVICE_PCI,
+	0,
+        tgui9440_init,
+        tgui_close,
+	NULL,
         tgui9440_available,
         tgui_speed_changed,
         tgui_force_redraw,

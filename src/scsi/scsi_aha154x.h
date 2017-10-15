@@ -3,6 +3,7 @@
 
 
 extern device_t aha1540b_device;
+extern device_t aha1542c_device;
 extern device_t aha1542cf_device;
 extern device_t aha1640_device;
 

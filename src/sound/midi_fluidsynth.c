@@ -1,22 +1,24 @@
 /* some code borrowed from scummvm */
 #ifdef USE_FLUIDSYNTH
-
-
-#include <stdlib.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include <fluidsynth.h>
 #include "../config.h"
-#include "../win/plat_dynld.h"
-#include "../win/plat_thread.h"
-#include "../win/plat_ui.h"
 #include "../device.h"
-#include "midi_fluidsynth.h"
+#include "../plat.h"
+#include "../plat_dynld.h"
+#include "../ui.h"
 #include "midi.h"
+#include "midi_fluidsynth.h"
 #include "sound.h"
+
 
 #define RENDER_RATE 100
 #define BUFFER_SEGMENTS 10
+
 
 extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void pclog(const char *format, ...);
@@ -213,7 +215,7 @@ void fluidsynth_sysex(uint8_t* data, unsigned int len)
         f_fluid_synth_sysex(d->synth, (const char *) data, len, 0, 0, 0, 0);
 }
 
-void* fluidsynth_init(void)
+void* fluidsynth_init(device_t *info)
 {
         fluidsynth_t* data = &fsdev;
         memset(data, 0, sizeof(fluidsynth_t));
@@ -222,7 +224,7 @@ void* fluidsynth_init(void)
 	fluidsynth_handle = dynld_module("libfluidsynth.dll", fluidsynth_imports);
 	if (fluidsynth_handle == NULL)
 	{
-		plat_msgbox_error(IDS_2171);
+		ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2171);
 		return NULL;
 	}
 
@@ -324,10 +326,20 @@ void fluidsynth_close(void* p)
 
         fluidsynth_t* data = &fsdev;
 
-        if (data->sound_font != -1)
+        if (data->sound_font != -1) {
                 f_fluid_synth_sfunload(data->synth, data->sound_font, 1);
-        f_delete_fluid_synth(data->synth);
-        f_delete_fluid_settings(data->settings);
+		data->sound_font = -1;
+	}
+
+	if (data->synth) {
+	        f_delete_fluid_synth(data->synth);
+		data->synth = NULL;
+	}
+
+	if (data->settings) {
+	        f_delete_fluid_settings(data->settings);
+		data->settings = NULL;
+	}
 
         midi_close();
 
@@ -533,8 +545,10 @@ device_t fluidsynth_device =
 {
         "FluidSynth",
         0,
+        0,
         fluidsynth_init,
         fluidsynth_close,
+        NULL,
         fluidsynth_available,
         NULL,
         NULL,

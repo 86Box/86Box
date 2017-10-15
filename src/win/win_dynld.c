@@ -8,19 +8,20 @@
  *
  *		Try to load a support DLL.
  *
- * Version:	@(#)win_dynld.c	1.0.2	2017/05/24
+ * Version:	@(#)win_dynld.c	1.0.5	2017/10/11
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2017 Fred N. van Kempen
  */
-#include <windows.h>
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
-#include <pcap.h>
-#include "plat_dynld.h"
+#include <stdlib.h>
+#include <wchar.h>
+#include <windows.h>
 #include "../ibm.h"
+#include "../plat_dynld.h"
 
 
 void *
@@ -29,7 +30,6 @@ dynld_module(const char *name, dllimp_t *table)
     HMODULE h;
     dllimp_t *imp;
     void *func;
-    /* char **foo; */
 
     /* See if we can load the desired module. */
     if ((h = LoadLibrary(name)) == NULL) {

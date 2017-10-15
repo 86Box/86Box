@@ -1,8 +1,26 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
-/*ET4000 emulation*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Emulation of the Tseng Labs ET4000.
+ *
+ * Version:	@(#)vid_et4000.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -139,7 +157,7 @@ void et4000_recalctimings(svga_t *svga)
         }
 }
 
-void *et4000_init()
+void *et4000_init(device_t *info)
 {
         et4000_t *et4000 = malloc(sizeof(et4000_t));
         memset(et4000, 0, sizeof(et4000_t));
@@ -157,7 +175,7 @@ void *et4000_init()
         return et4000;
 }
 
-static int et4000_available()
+static int et4000_available(void)
 {
         return rom_present(L"roms/video/et4000/et4000.BIN");
 }
@@ -195,9 +213,11 @@ void et4000_add_status_info(char *s, int max_len, void *p)
 device_t et4000_device =
 {
         "Tseng Labs ET4000AX",
-        0,
+        DEVICE_ISA,
+	0,
         et4000_init,
         et4000_close,
+	NULL,
         et4000_available,
         et4000_speed_changed,
         et4000_force_redraw,

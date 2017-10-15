@@ -8,25 +8,28 @@
  *
  *		Implementation of the Intel 430FX PCISet chip.
  *
- * Version:	@(#)machine_at_430fx.c	1.0.4	2017/09/03
+ * Version:	@(#)machine_at_430fx.c	1.0.6	2017/10/07
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
+#include <stdio.h>
+#include <stdint.h>
 #include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
-#include "../cpu/cpu.h"
 #include "../mem.h"
 #include "../memregs.h"
+#include "../rom.h"
 #include "../pci.h"
 #include "../device.h"
 #include "../piix.h"
 #include "../intel_flash.h"
 #include "../sio.h"
-#include "machine_at.h"
-#include "machine_at_430fx.h"
+#include "machine.h"
 
 
 static uint8_t card_i430fx[256];
@@ -194,9 +197,11 @@ static void i430fx_init(void)
 }
 
 
-void machine_at_p54tp4xe_init(void)
+void
+machine_at_p54tp4xe_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
 	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
@@ -208,13 +213,16 @@ void machine_at_p54tp4xe_init(void)
         i430fx_init();
         piix3_init(7);
         fdc37c665_init();
+
         device_add(&intel_flash_bxt_device);
 }
 
 
-void machine_at_endeavor_init(void)
+void
+machine_at_endeavor_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
 	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
@@ -227,13 +235,16 @@ void machine_at_endeavor_init(void)
         i430fx_init();
         piix_init(7);
         pc87306_init();
+
         device_add(&intel_flash_bxt_ami_device);
 }
 
 
-void machine_at_zappa_init(void)
+void
+machine_at_zappa_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
 	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
@@ -244,13 +255,16 @@ void machine_at_zappa_init(void)
         i430fx_init();
         piix_init(7);
         pc87306_init();
+
         device_add(&intel_flash_bxt_ami_device);
 }
 
 
-void machine_at_mb500n_init(void)
+void
+machine_at_mb500n_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
         pci_init(PCI_CONFIG_TYPE_1);
 	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
 	pci_register_slot(0x14, PCI_CARD_NORMAL, 1, 2, 3, 4);
@@ -261,13 +275,16 @@ void machine_at_mb500n_init(void)
         i430fx_init();
         piix_init(7);
         fdc37c665_init();
+
         device_add(&intel_flash_bxt_device);
 }
 
 
-void machine_at_president_init(void)
+void
+machine_at_president_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
 	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
@@ -279,13 +296,16 @@ void machine_at_president_init(void)
         i430fx_init();
         piix_init(7);
         w83877f_init();
+
         device_add(&intel_flash_bxt_device);
 }
 
 
-void machine_at_thor_init(void)
+void
+machine_at_thor_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
 	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
@@ -298,5 +318,6 @@ void machine_at_thor_init(void)
         i430fx_init();
         piix_init(7);
         pc87306_init();
+
         device_add(&intel_flash_bxt_ami_device);
 }

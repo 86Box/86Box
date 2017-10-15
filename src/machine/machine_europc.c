@@ -2,19 +2,20 @@
    see COPYING for more details
 */
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
-#include "../cpu/cpu.h"
 #include "../io.h"
 #include "../nmi.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
-#include "../gameport.h"
+#include "../nvr.h"
+#include "../game/gameport.h"
 #include "../keyboard_xt.h"
 #include "../lpt.h"
-#include "machine_common.h"
-#include "machine_europc.h"
+#include "machine.h"
 
 
 uint8_t europcdat[16];
@@ -32,7 +33,7 @@ static uint8_t jim_load_nvr(void)
 {
 	FILE *f;
 
-	f = nvrfopen(L"europc_jim.nvr", L"rb");
+	f = nvr_fopen(L"europc_jim.nvr", L"rb");
 	if (f)
 	{
 		fread(europcdat, 1, 16, f);
@@ -49,7 +50,7 @@ void europc_save_nvr(void)
 {
 	FILE *f;
 
-	f = nvrfopen(L"europc_jim.nvr", L"wb");
+	f = nvr_fopen(L"europc_jim.nvr", L"wb");
 	if (f)
 	{
 		fwrite(europcdat, 1, 16, f);
@@ -129,10 +130,11 @@ static void jim_init(void)
 }
 
 
-void machine_europc_init(void)
+void
+machine_europc_init(machine_t *model)
 {
-        machine_common_init();
-	mem_add_bios();
+        machine_common_init(model);
+
 	lpt3_init(0x3bc);
         jim_init();
         keyboard_xt_init();

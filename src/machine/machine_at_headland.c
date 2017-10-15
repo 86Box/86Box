@@ -1,12 +1,15 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
 #include "../mem.h"
-#include "machine_at.h"
-#include "machine_at_headland.h"
+#include "machine.h"
 
 
 static int headland_index;
@@ -52,8 +55,10 @@ static void headland_init(void)
 }
 
 
-void machine_at_headland_init(void)
+void
+machine_at_headland_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
         headland_init();
 }

@@ -5,12 +5,16 @@
 #include <windows.h>
 #include <windowsx.h>
 #undef BITMAP
-
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"
-#include "../gameport.h"
-#include "plat_joystick.h"
+#include "../game/gameport.h"
+#include "../plat.h"
+#include "../plat_joystick.h"
 #include "win.h"
 
 

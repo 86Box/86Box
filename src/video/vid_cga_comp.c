@@ -9,18 +9,20 @@
  *		IBM CGA composite filter, borrowed from reenigne's DOSBox
  *		patch and ported to C.
  *
- * Version:	@(#)vid_cga.c	1.0.0	2017/05/30
+ * Version:	@(#)vid_cga_comp.c	1.0.2	2017/10/10
  *
- * Author:	reenigne,
+ * Authors:	reenigne,
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2015-2017 reenigne.
  *		Copyright 2015-2017 Miran Grca.
  */
-
-#include <stdlib.h>
+#include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include <math.h>
-
 #include "../ibm.h"
 #include "../device.h"
 #include "../mem.h"

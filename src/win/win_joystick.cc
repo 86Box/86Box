@@ -8,23 +8,25 @@
  *
  *		Joystick interface to host device.
  *
- * Version:	@(#)win_joystick.cc	1.0.0	2017/05/30
+ * Version:	@(#)win_joystick.cc	1.0.4	2017/10/12
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
-
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdint.h>
 extern "C" {
 #include "../device.h"
-#include "../gameport.h"
+#include "../game/gameport.h"
 }
-#include "plat_joystick.h"
+#include "../plat.h"
+#include "../plat_joystick.h"
 #include "win.h"
 
 extern "C" int video_fullscreen;
@@ -152,7 +154,7 @@ void joystick_init()
 
                 lpdi_joystick[c]->EnumObjects(DIEnumDeviceObjectsCallback, &plat_joystick_state[c], DIDFT_ALL); 
                 
-                if (FAILED(lpdi_joystick[c]->SetCooperativeLevel(ghwnd, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE)))
+                if (FAILED(lpdi_joystick[c]->SetCooperativeLevel(hwndMain, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE)))
                         fatal("joystick_init : SetCooperativeLevel failed\n");
                 if (FAILED(lpdi_joystick[c]->SetDataFormat(&c_dfDIJoystick)))
                         fatal("joystick_init : SetDataFormat failed\n");

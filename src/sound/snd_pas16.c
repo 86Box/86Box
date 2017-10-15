@@ -1,4 +1,8 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../pic.h"
@@ -7,10 +11,10 @@
 #include "../timer.h"
 #include "../device.h"
 #include "sound.h"
+#include "filters.h"
 #include "snd_opl.h"
 #include "snd_pas16.h"
 #include "snd_sb_dsp.h"
-#include "filters.h"
 
 
 /*      Original PAS uses
@@ -118,7 +122,7 @@ typedef struct pas16_t
         struct
         {
                 uint32_t l[3];
-                int c[3];
+                int64_t c[3];
                 uint8_t m[3];
                 uint8_t ctrl, ctrls[2];
                 int wp, rm[3], wm[3];
@@ -126,7 +130,7 @@ typedef struct pas16_t
                 int thit[3];
                 int delay[3];
                 int rereadlatch[3];
-                int enable[3];
+                int64_t enable[3];
         } pit;
 
         opl_t    opl;
@@ -714,7 +718,8 @@ void pas16_get_buffer(int32_t *buffer, int len, void *p)
         pas16->dsp.pos = 0;
 }
 
-void *pas16_init()
+
+static void *pas16_init(device_t *info)
 {
         pas16_t *pas16 = malloc(sizeof(pas16_t));
         memset(pas16, 0, sizeof(pas16_t));
@@ -731,7 +736,7 @@ void *pas16_init()
         return pas16;
 }
 
-void pas16_close(void *p)
+static void pas16_close(void *p)
 {
         pas16_t *pas16 = (pas16_t *)p;
         
@@ -741,11 +746,9 @@ void pas16_close(void *p)
 device_t pas16_device =
 {
         "Pro Audio Spectrum 16",
-        DEVICE_NOT_WORKING,
-        pas16_init,
-        pas16_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL
+        DEVICE_ISA | DEVICE_NOT_WORKING,
+	0,
+        pas16_init, pas16_close, NULL,
+        NULL, NULL, NULL, NULL,
+	NULL
 };

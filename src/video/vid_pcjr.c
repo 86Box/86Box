@@ -1,4 +1,26 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Video emulation for IBM PCjr.
+ *
+ * Version:	@(#)vid_pcjr.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include <math.h>
 #include "../ibm.h"
 #include "../io.h"
@@ -35,10 +57,11 @@ typedef struct pcjr_t
         int sc, vc;
         int dispon;
         int con, coff, cursoron, blink;
-        int vsynctime, vadj;
+        int64_t vsynctime;
+	int vadj;
         uint16_t ma, maback;
         
-        int dispontime, dispofftime, vidtime;
+        int64_t dispontime, dispofftime, vidtime;
         int firstline, lastline;
         
         int composite;
@@ -162,8 +185,8 @@ void pcjr_recalctimings(pcjr_t *pcjr)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= CGACONST;
         _dispofftime *= CGACONST;
-	pcjr->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	pcjr->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	pcjr->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
+	pcjr->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
 }
 
 
@@ -513,7 +536,8 @@ void pcjr_poll(void *p)
         }
 }
 
-static void *pcjr_video_init()
+
+static void *pcjr_video_init(device_t *info)
 {
         int display_type;
         pcjr_t *pcjr = malloc(sizeof(pcjr_t));
@@ -547,9 +571,10 @@ static void pcjr_speed_changed(void *p)
 device_t pcjr_video_device =
 {
         "IBM PCjr (video)",
-        0,
+        0, 0,
         pcjr_video_init,
         pcjr_video_close,
+	NULL,
         NULL,
         pcjr_speed_changed,
         NULL,
@@ -582,9 +607,10 @@ static device_config_t pcjr_config[] =
 static device_t pcjr_device =
 {
         "IBM PCjr",
-        0,
+        0, 0,
         NULL,
         NULL,
+	NULL,
         NULL,
         NULL,
         NULL,

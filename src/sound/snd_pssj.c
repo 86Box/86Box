@@ -1,4 +1,8 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../dma.h"
@@ -21,8 +25,8 @@ typedef struct pssj_t
         int amplitude;
         
         int irq;
-        int timer_count;
-        int enable;
+        int64_t timer_count;
+        int64_t enable;
         
         int wave_pos;
         int pulse_width;
@@ -164,7 +168,7 @@ static void pssj_callback(void *p)
                 pssj->wave_pos = (pssj->wave_pos + 1) & 31;
         }
 
-        pssj->timer_count += (int)(TIMER_USEC * (1000000.0 / 3579545.0) * (double)(pssj->freq ? pssj->freq : 0x400));
+        pssj->timer_count += (int64_t)(TIMER_USEC * (1000000.0 / 3579545.0) * (double)(pssj->freq ? pssj->freq : 0x400));
 }
 
 static void pssj_get_buffer(int32_t *buffer, int len, void *p)
@@ -180,7 +184,7 @@ static void pssj_get_buffer(int32_t *buffer, int len, void *p)
         pssj->pos = 0;
 }
 
-void *pssj_init()
+void *pssj_init(device_t *info)
 {
         pssj_t *pssj = malloc(sizeof(pssj_t));
         memset(pssj, 0, sizeof(pssj_t));
@@ -204,9 +208,10 @@ void pssj_close(void *p)
 device_t pssj_device =
 {
         "Tandy PSSJ",
-        0,
+        0, 0,
         pssj_init,
         pssj_close,
+	NULL,
         NULL,
         NULL,
         NULL,

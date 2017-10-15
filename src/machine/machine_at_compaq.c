@@ -1,11 +1,14 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../mem.h"
-#include "machine_at.h"
-#include "machine_at_compaq.h"
+#include "machine.h"
 
 
 /* Compaq Deskpro 386 remaps RAM from 0xA0000-0xFFFFF to 0xFA0000-0xFFFFFF */

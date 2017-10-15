@@ -1,4 +1,8 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../pic.h"
@@ -15,7 +19,7 @@ typedef struct ps1_audio_t
         
         uint8_t status, ctrl;
         
-        int timer_latch, timer_count, timer_enable;
+        int64_t timer_latch, timer_count, timer_enable;
         
         uint8_t fifo[2048];
         int fifo_read_idx, fifo_write_idx;
@@ -85,7 +89,7 @@ static void ps1_audio_write(uint16_t port, uint8_t val, void *p)
                 break;
                 case 3: /*Timer reload value*/
                 ps1->timer_latch = val;
-                ps1->timer_count = (0xff-val) * TIMER_USEC;
+                ps1->timer_count = (int64_t) ((0xff-val) * TIMER_USEC);
                 ps1->timer_enable = (val != 0);
                 break;
                 case 4: /*Almost empty*/
@@ -134,7 +138,7 @@ static void ps1_audio_get_buffer(int32_t *buffer, int len, void *p)
         ps1->pos = 0;
 }
 
-static void *ps1_audio_init()
+static void *ps1_audio_init(device_t *info)
 {
         ps1_audio_t *ps1 = malloc(sizeof(ps1_audio_t));
         memset(ps1, 0, sizeof(ps1_audio_t));
@@ -159,9 +163,10 @@ static void ps1_audio_close(void *p)
 device_t ps1_audio_device =
 {
         "PS/1 Audio Card",
-        0,
+        0, 0,
         ps1_audio_init,
         ps1_audio_close,
+	NULL,
         NULL,
         NULL,
         NULL,

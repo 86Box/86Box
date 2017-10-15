@@ -1,10 +1,12 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include <math.h>
 #ifndef INFINITY
 # define INFINITY   (__builtin_inff())
 #endif
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include "../ibm.h"
 #include "cpu.h"
 #include "x86.h"
@@ -39,20 +41,14 @@ x86seg _oldds;
 
 extern int cpl_override;
 
-int has_fpu;
 extern int fpucount;
 uint16_t rds;
 uint16_t ea_rseg;
 
-int is486;
 int cgate32;
 
 uint32_t cr2, cr3, cr4;
 uint32_t dr[8];
-
-
-uint8_t romext[32768];
-uint8_t *ram,*rom;
 
 uint32_t rmdat32;
 #define rmdat rmdat32

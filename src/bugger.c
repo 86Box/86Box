@@ -44,13 +44,18 @@
  *		configuration register (CTRL_SPCFG bit set) but have to
  *		remember that stuff first...
  *
- * Version:	@(#)bugger.c	1.0.4	2017/05/09
+ * Version:	@(#)bugger.c	1.0.7	2017/10/09
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 1989-2017 Fred N. van Kempen.
  */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "io.h"
+#include "ui.h"
 #include "bugger.h"
 
 
@@ -99,7 +104,7 @@ bug_setui(void)
 		(bug_ledr&0x02)?'R':'r', (bug_ledr&0x01)?'R':'r');
 
     /* Send formatted string to the UI. */
-    status_settext(bug_str);
+    ui_sb_set_text(bug_str);
 }
 
 

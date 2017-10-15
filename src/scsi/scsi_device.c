@@ -8,15 +8,21 @@
  *
  *		The generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.c	1.0.2	2017/09/03
+ * Version:	@(#)scsi_device.c	1.0.7	2017/10/10
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
+#include "../device.h"
 #include "../cdrom/cdrom.h"
+#include "../disk/hdd.h"
 #include "scsi.h"
 #include "scsi_disk.h"
 
@@ -40,6 +46,7 @@ static void scsi_device_target_command(int lun_type, uint8_t id, uint8_t *cdb)
 	}
 	else
 	{
+		SCSIPhase = SCSI_PHASE_STATUS;
 		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
 	}
 }
@@ -170,7 +177,7 @@ void scsi_device_type_data(uint8_t scsi_id, uint8_t scsi_lun, uint8_t *type, uin
 	case SCSI_DISK:
 		id = scsi_hard_disks[scsi_id][scsi_lun];
 		*type = 0x00;
-		*rmb = (hdc[id].bus == HDD_BUS_SCSI_REMOVABLE) ? 0x80 : 0x00;
+		*rmb = (hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? 0x80 : 0x00;
 		break;
 	case SCSI_CDROM:
 		*type = 0x05;
@@ -271,7 +278,7 @@ int scsi_device_block_shift(uint8_t scsi_id, uint8_t scsi_lun)
 }
 
 
-void scsi_device_command(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, uint8_t *cdb)
+void scsi_device_command_phase0(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, uint8_t *cdb)
 {
     uint8_t phase = 0;
     uint8_t lun_type = SCSIDevices[scsi_id][scsi_lun].LunType;
@@ -288,7 +295,7 @@ void scsi_device_command(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, uint8_t
 		break;
 	default:
 		id = 0;
-		break;
+		return;
     }
 
     /*
@@ -315,13 +322,46 @@ void scsi_device_command(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, uint8_t
 		scsi_device_target_phase_callback(lun_type, id);
 	} else {
 		/* Command first phase complete - call the callback to execute the second phase. */
-		scsi_device_target_phase_callback(lun_type, id);
-		SCSIStatus = scsi_device_target_err_stat_to_scsi(lun_type, id);
-		/* Command second phase complete - call the callback to complete the command. */
-		scsi_device_target_phase_callback(lun_type, id);
+		if (SCSIPhase == SCSI_PHASE_STATUS)
+		{
+			scsi_device_target_phase_callback(lun_type, id);
+			SCSIStatus = scsi_device_target_err_stat_to_scsi(lun_type, id);
+			/* Command second phase complete - call the callback to complete the command. */
+			scsi_device_target_phase_callback(lun_type, id);
+		}
 	}
     } else {
 	/* Error (Check Condition) - call the phase callback to complete the command. */
 	scsi_device_target_phase_callback(lun_type, id);
     }
+}
+
+void scsi_device_command_phase1(uint8_t scsi_id, uint8_t scsi_lun)
+{
+	uint8_t lun_type = SCSIDevices[scsi_id][scsi_lun].LunType;
+
+	uint8_t id = 0;
+
+	switch (lun_type)
+	{
+		case SCSI_DISK:
+			id = scsi_hard_disks[scsi_id][scsi_lun];
+			break;
+		case SCSI_CDROM:
+			id = scsi_cdrom_drives[scsi_id][scsi_lun];
+			break;
+		default:
+			id = 0;
+			return;
+	}
+
+	scsi_device_target_phase_callback(lun_type, id);
+	SCSIStatus = scsi_device_target_err_stat_to_scsi(lun_type, id);
+	/* Command second phase complete - call the callback to complete the command. */
+	scsi_device_target_phase_callback(lun_type, id);
+}
+
+int32_t *scsi_device_get_buf_len(uint8_t scsi_id, uint8_t scsi_lun)
+{
+	return &SCSIDevices[scsi_id][scsi_lun].BufferLength;
 }

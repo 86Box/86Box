@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "sound.h"
 #include "snd_speaker.h"

@@ -17,10 +17,16 @@
  *		Copyright 2016-2017 Miran Grca.
  */
 
-device_t s3_bahamas64_device;
-device_t s3_9fx_device;
-device_t s3_phoenix_trio32_device;
-device_t s3_phoenix_trio64_device;
-device_t s3_phoenix_vision864_device;
-device_t s3_diamond_stealth64_device;
+device_t s3_bahamas64_vlb_device;
+device_t s3_bahamas64_pci_device;
+device_t s3_9fx_vlb_device;
+device_t s3_9fx_pci_device;
+device_t s3_phoenix_trio32_vlb_device;
+device_t s3_phoenix_trio32_pci_device;
+device_t s3_phoenix_trio64_vlb_device;
+device_t s3_phoenix_trio64_pci_device;
+device_t s3_phoenix_vision864_pci_device;
+device_t s3_phoenix_vision864_vlb_device;
+device_t s3_diamond_stealth64_pci_device;
+device_t s3_diamond_stealth64_vlb_device;
 /* device_t s3_miro_vision964_device; */

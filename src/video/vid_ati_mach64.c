@@ -8,21 +8,26 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.c	1.0.1	2017/06/04
+ * Version:	@(#)vid_ati_mach64.c	1.0.4	2017/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../device.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../pci.h"
 #include "../rom.h"
-#include "../win/plat_thread.h"
+#include "../plat.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
@@ -81,7 +86,7 @@ typedef struct mach64_t
         
         uint8_t regs[256];
         int index;
-        
+
         int type;
         
         uint8_t pci_regs[256];
@@ -3290,7 +3295,7 @@ void mach64_pci_write(int func, int addr, uint8_t val, void *p)
         }
 }
 
-static void *mach64_common_init()
+static void *mach64_common_init(device_t *info)
 {
         mach64_t *mach64 = malloc(sizeof(mach64_t));
         memset(mach64, 0, sizeof(mach64_t));
@@ -3304,7 +3309,7 @@ static void *mach64_common_init()
                    mach64_hwcursor_draw,
                    mach64_overlay_draw);
 
-        if (PCI)
+        if (info->flags & DEVICE_PCI)
                 mem_mapping_disable(&mach64->bios_rom.mapping);
 
         mem_mapping_add(&mach64->linear_mapping,        0,       0,       svga_read_linear, svga_readw_linear, svga_readl_linear, svga_write_linear, svga_writew_linear, svga_writel_linear, NULL, 0, &mach64->svga);
@@ -3315,12 +3320,15 @@ static void *mach64_common_init()
 
         mach64_io_set(mach64);
 
-        mach64->card = pci_add_card(PCI_ADD_VIDEO, mach64_pci_read, mach64_pci_write, mach64);
+	if (info->flags & DEVICE_PCI)
+	{
+	        mach64->card = pci_add_card(PCI_ADD_VIDEO, mach64_pci_read, mach64_pci_write, mach64);
+	}
 
         mach64->pci_regs[PCI_REG_COMMAND] = 3;
-        mach64->pci_regs[0x30] = 0x00;
+       	mach64->pci_regs[0x30] = 0x00;
         mach64->pci_regs[0x32] = 0x0c;
-        mach64->pci_regs[0x33] = 0x00;
+       	mach64->pci_regs[0x33] = 0x00;
                 
         ati68860_ramdac_init(&mach64->ramdac);
                 
@@ -3333,16 +3341,16 @@ static void *mach64_common_init()
         return mach64;
 }
 
-static void *mach64gx_init()
+static void *mach64gx_init(device_t *info)
 {
-        mach64_t *mach64 = mach64_common_init();
+        mach64_t *mach64 = mach64_common_init(info);
 
         mach64->type = MACH64_GX;
         mach64->pci_id = (int)'X' | ((int)'G' << 8);
         mach64->config_chip_id = 0x020000d7;
         mach64->dac_cntl = 5 << 16; /*ATI 68860 RAMDAC*/
         mach64->config_stat0 = (5 << 9) | (3 << 3); /*ATI-68860, 256Kx16 DRAM*/
-        if (PCI)
+        if (info->flags & DEVICE_PCI)
                 mach64->config_stat0 |= 0; /*PCI, 256Kx16 DRAM*/
         else
                 mach64->config_stat0 |= 1; /*VLB, 256Kx16 DRAM*/
@@ -3353,9 +3361,9 @@ static void *mach64gx_init()
                 
         return mach64;
 }
-static void *mach64vt2_init()
+static void *mach64vt2_init(device_t *info)
 {
-        mach64_t *mach64 = mach64_common_init();
+        mach64_t *mach64 = mach64_common_init(info);
         svga_t *svga = &mach64->svga;
 
         mach64->type = MACH64_VT2;
@@ -3374,11 +3382,11 @@ static void *mach64vt2_init()
         return mach64;
 }
 
-int mach64gx_available()
+int mach64gx_available(void)
 {
         return rom_present(L"roms/video/mach64/bios.bin");
 }
-int mach64vt2_available()
+int mach64vt2_available(void)
 {
         return rom_present(L"roms/video/mach64/atimach64vt2pci.bin");
 }
@@ -3503,24 +3511,44 @@ static device_config_t mach64vt2_config[] =
         }
 };
 
-device_t mach64gx_device =
+device_t mach64gx_vlb_device =
 {
-        "ATI Mach64GX",
-        0,
+        "ATI Mach64GX VLB",
+        DEVICE_VLB,
+	0,
         mach64gx_init,
         mach64_close,
+	NULL,
         mach64gx_available,
         mach64_speed_changed,
         mach64_force_redraw,
         mach64_add_status_info,
         mach64gx_config
 };
+
+device_t mach64gx_pci_device =
+{
+        "ATI Mach64GX PCI",
+        DEVICE_PCI,
+	0,
+        mach64gx_init,
+        mach64_close,
+	NULL,
+        mach64gx_available,
+        mach64_speed_changed,
+        mach64_force_redraw,
+        mach64_add_status_info,
+        mach64gx_config
+};
+
 device_t mach64vt2_device =
 {
         "ATI Mach64VT2",
         DEVICE_PCI,
+	0,
         mach64vt2_init,
         mach64_close,
+	NULL,
         mach64vt2_available,
         mach64_speed_changed,
         mach64_force_redraw,

@@ -9,10 +9,11 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.h	1.0.1	2017/06/03
+ * Version:	@(#)cdrom.h	1.0.2	2017/10/12
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2017 Miran Grca.
+ *
+ *		Copyright 2016,2017 Miran Grca.
  */
 #ifndef EMU_CDROM_H
 #define EMU_CDROM_H
@@ -33,14 +34,15 @@
 
 #define CDROM_IMAGE 200
 
-#define IDE_TIME (5 * 100 * (1 << TIMER_SHIFT))
-#define CDROM_TIME (5 * 100 * (1 << TIMER_SHIFT))
+#define IDE_TIME (5LL * 100LL * (1LL << TIMER_SHIFT))
+#define CDROM_TIME (5LL * 100LL * (1LL << TIMER_SHIFT))
 
 
 typedef struct {
 	int (*ready)(uint8_t id);
 	int (*medium_changed)(uint8_t id);
 	int (*media_type_id)(uint8_t id);
+
 	void (*audio_callback)(uint8_t id, int16_t *output, int len);
 	void (*audio_stop)(uint8_t id);
 	int (*readtoc)(uint8_t id, uint8_t *b, uint8_t starttrack, int msf, int maxlen, int single);
@@ -61,10 +63,11 @@ typedef struct {
 	void (*exit)(uint8_t id);
 } CDROM;
 
-#pragma pack(push,1)
 typedef struct {
 	uint8_t previous_command;
+
 	int toctimes;
+	int media_status;
 
 	int is_dma;
 
@@ -130,9 +133,7 @@ typedef struct {
 	
 	int init_length;
 } cdrom_t;
-#pragma pack(pop)
 
-#pragma pack(push,1)
 typedef struct {
 	int max_blocks_at_once;
 
@@ -153,7 +154,6 @@ typedef struct {
 	unsigned int sound_on;
 	unsigned int atapi_dma;
 } cdrom_drive_t;
-#pragma pack(pop)
 
 typedef struct {
 	int image_is_iso;
@@ -227,20 +227,25 @@ int cdrom_lba_to_msf_accurate(int lba);
 }
 #endif
 
-void cdrom_reset(uint8_t id);
-void cdrom_set_signature(int id);
-void cdrom_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length);
-void cdrom_update_cdb(uint8_t *cdb, int lba_pos, int number_of_blocks);
-void cdrom_insert(uint8_t id);
+extern void     cdrom_close(uint8_t id);
+extern void	cdrom_reset(uint8_t id);
+extern void	cdrom_set_signature(int id);
+extern void	cdrom_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length);
+extern void	cdrom_update_cdb(uint8_t *cdb, int lba_pos, int number_of_blocks);
+extern void	cdrom_insert(uint8_t id);
 
-int find_cdrom_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun);
-int cdrom_read_capacity(uint8_t id, uint8_t *cdb, uint8_t *buffer, uint32_t *len);
+extern int	find_cdrom_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun);
+extern int	cdrom_read_capacity(uint8_t id, uint8_t *cdb, uint8_t *buffer, uint32_t *len);
 
 #define cdrom_sense_error cdrom[id].sense[0]
 #define cdrom_sense_key cdrom[id].sense[2]
 #define cdrom_asc cdrom[id].sense[12]
 #define cdrom_ascq cdrom[id].sense[13]
 #define cdrom_drive cdrom_drives[id].host_drive
+
+extern void	cdrom_global_init(void);
+extern void	cdrom_global_reset(void);
+extern void	cdrom_hard_reset(void);
 
 
 #endif	/*EMU_CDROM_H*/

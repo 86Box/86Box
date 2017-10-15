@@ -6,12 +6,13 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Direct3D 9 full screen rendererer and screenshots taking.
+ *		Direct3D 9 full-screen rendererer.
  *
- * Version:	@(#)win_d3d_fs.cc	1.0.2	2017/08/23
+ * Version:	@(#)win_d3d_fs.cc	1.0.6	2017/10/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -21,7 +22,6 @@
 #include "../video/video.h"
 #include "win.h"
 #include "win_d3d.h"
-#include "win_cgapal.h"
 
 
 extern "C" void fatal(const char *format, ...);
@@ -29,12 +29,14 @@ extern "C" void pclog(const char *format, ...);
 
 extern "C" void device_force_redraw(void);
 
+extern "C" void video_blit_complete(void);
+
+extern "C" void d3d_fs_take_screenshot(wchar_t *fn);
+
 static void d3d_fs_init_objects(void);
 static void d3d_fs_close_objects(void);
-static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
-static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h);
-
-extern "C" void video_blit_complete(void);
+static void blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
+static void blit_memtoscreen_8(int x, int y, int w, int h);
 
 
 static LPDIRECT3D9             d3d        = NULL;
@@ -45,8 +47,8 @@ static D3DPRESENT_PARAMETERS d3dpp;
 
 static HWND d3d_hwnd;
 static HWND d3d_device_window;
-
 static int d3d_fs_w, d3d_fs_h;
+
 
 struct CUSTOMVERTEX
 {
@@ -55,58 +57,6 @@ struct CUSTOMVERTEX
      FLOAT tu, tv;
 };
 
-PALETTE cgapal =
-{
-        {0,0,0},{0,42,0},{42,0,0},{42,21,0},
-        {0,0,0},{0,42,42},{42,0,42},{42,42,42},
-        {0,0,0},{21,63,21},{63,21,21},{63,63,21},
-        {0,0,0},{21,63,63},{63,21,63},{63,63,63},
-
-        {0,0,0},{0,0,42},{0,42,0},{0,42,42},
-        {42,0,0},{42,0,42},{42,21,00},{42,42,42},
-        {21,21,21},{21,21,63},{21,63,21},{21,63,63},
-        {63,21,21},{63,21,63},{63,63,21},{63,63,63},
-
-        {0,0,0},{0,21,0},{0,0,42},{0,42,42},
-        {42,0,21},{21,10,21},{42,0,42},{42,0,63},
-        {21,21,21},{21,63,21},{42,21,42},{21,63,63},
-        {63,0,0},{42,42,0},{63,21,42},{41,41,41},
-        
-        {0,0,0},{0,42,42},{42,0,0},{42,42,42},
-        {0,0,0},{0,42,42},{42,0,0},{42,42,42},
-        {0,0,0},{0,63,63},{63,0,0},{63,63,63},
-        {0,0,0},{0,63,63},{63,0,0},{63,63,63},
-};
-
-PALETTE cgapal_mono[6] =
-{
-	{ // 0 - green, 4-color-optimized contrast
-		{0x00,0x00,0x00},{0x00,0x0d,0x03},{0x01,0x17,0x05},{0x01,0x1a,0x06},{0x02,0x28,0x09},{0x02,0x2c,0x0a},{0x03,0x39,0x0d},{0x03,0x3c,0x0e},
-		{0x00,0x07,0x01},{0x01,0x13,0x04},{0x01,0x1f,0x07},{0x01,0x23,0x08},{0x02,0x31,0x0b},{0x02,0x35,0x0c},{0x05,0x3f,0x11},{0x0d,0x3f,0x17},
-	},
-	{ // 1 - green, 16-color-optimized contrast
-		{0x00,0x00,0x00},{0x00,0x0d,0x03},{0x01,0x15,0x05},{0x01,0x17,0x05},{0x01,0x21,0x08},{0x01,0x24,0x08},{0x02,0x2e,0x0b},{0x02,0x31,0x0b},
-		{0x01,0x22,0x08},{0x02,0x28,0x09},{0x02,0x30,0x0b},{0x02,0x32,0x0c},{0x03,0x39,0x0d},{0x03,0x3b,0x0e},{0x09,0x3f,0x14},{0x0d,0x3f,0x17},
-	},
-	{ // 2 - amber, 4-color-optimized contrast
-		{0x00,0x00,0x00},{0x15,0x05,0x00},{0x20,0x0b,0x00},{0x24,0x0d,0x00},{0x33,0x18,0x00},{0x37,0x1b,0x00},{0x3f,0x26,0x01},{0x3f,0x2b,0x06},
-		{0x0b,0x02,0x00},{0x1b,0x08,0x00},{0x29,0x11,0x00},{0x2e,0x14,0x00},{0x3b,0x1e,0x00},{0x3e,0x21,0x00},{0x3f,0x32,0x0a},{0x3f,0x38,0x0d},
-	},
-	{ // 3 - amber, 16-color-optimized contrast
-		{0x00,0x00,0x00},{0x15,0x05,0x00},{0x1e,0x09,0x00},{0x21,0x0b,0x00},{0x2b,0x12,0x00},{0x2f,0x15,0x00},{0x38,0x1c,0x00},{0x3b,0x1e,0x00},
-		{0x2c,0x13,0x00},{0x32,0x17,0x00},{0x3a,0x1e,0x00},{0x3c,0x1f,0x00},{0x3f,0x27,0x01},{0x3f,0x2a,0x04},{0x3f,0x36,0x0c},{0x3f,0x38,0x0d},
-	},
-	{ // 4 - grey, 4-color-optimized contrast
-		{0x00,0x00,0x00},{0x0e,0x0f,0x10},{0x15,0x17,0x18},{0x18,0x1a,0x1b},{0x24,0x25,0x25},{0x27,0x28,0x28},{0x33,0x34,0x32},{0x37,0x38,0x35},
-		{0x09,0x0a,0x0b},{0x11,0x12,0x13},{0x1c,0x1e,0x1e},{0x20,0x22,0x22},{0x2c,0x2d,0x2c},{0x2f,0x30,0x2f},{0x3c,0x3c,0x38},{0x3f,0x3f,0x3b},
-	},
-	{ // 5 - grey, 16-color-optimized contrast
-		{0x00,0x00,0x00},{0x0e,0x0f,0x10},{0x13,0x14,0x15},{0x15,0x17,0x18},{0x1e,0x20,0x20},{0x20,0x22,0x22},{0x29,0x2a,0x2a},{0x2c,0x2d,0x2c},
-		{0x1f,0x21,0x21},{0x23,0x25,0x25},{0x2b,0x2c,0x2b},{0x2d,0x2e,0x2d},{0x34,0x35,0x33},{0x37,0x37,0x34},{0x3e,0x3e,0x3a},{0x3f,0x3f,0x3b},
-	}
-};
-
-uint32_t pal_lookup[256];
 
 static CUSTOMVERTEX d3d_verts[] =
 {
@@ -128,43 +78,6 @@ static CUSTOMVERTEX d3d_verts[] =
 };
 
 
-void cgapal_rebuild(void)
-{
-        int c;
-        for (c = 0; c < 256; c++)
-	{
-		pal_lookup[c] = makecol(video_6to8[cgapal[c].r], video_6to8[cgapal[c].g], video_6to8[cgapal[c].b]);
-	}
-	if ((cga_palette > 1) && (cga_palette < 8))
-	{
-		if (vid_cga_contrast != 0)
-		{
-                        for (c = 0; c < 16; c++)
-                        {
-                                pal_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r], video_6to8[cgapal_mono[cga_palette - 2][c].g], video_6to8[cgapal_mono[cga_palette - 2][c].b]);
-                                pal_lookup[c + 16] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r], video_6to8[cgapal_mono[cga_palette - 2][c].g], video_6to8[cgapal_mono[cga_palette - 2][c].b]);
-                                pal_lookup[c + 32] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r], video_6to8[cgapal_mono[cga_palette - 2][c].g], video_6to8[cgapal_mono[cga_palette - 2][c].b]);
-                                pal_lookup[c + 48] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r], video_6to8[cgapal_mono[cga_palette - 2][c].g], video_6to8[cgapal_mono[cga_palette - 2][c].b]);
-                        }
-                }
-                else
-                {
-                        for (c = 0; c < 16; c++)
-                        {
-                                pal_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r], video_6to8[cgapal_mono[cga_palette - 1][c].g], video_6to8[cgapal_mono[cga_palette - 1][c].b]);
-                                pal_lookup[c + 16] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r], video_6to8[cgapal_mono[cga_palette - 1][c].g], video_6to8[cgapal_mono[cga_palette - 1][c].b]);
-                                pal_lookup[c + 32] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r], video_6to8[cgapal_mono[cga_palette - 1][c].g], video_6to8[cgapal_mono[cga_palette - 1][c].b]);
-                                pal_lookup[c + 48] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r], video_6to8[cgapal_mono[cga_palette - 1][c].g], video_6to8[cgapal_mono[cga_palette - 1][c].b]);
-                        }
-                }
-        }
-
-	if (cga_palette == 8)
-	{
-		pal_lookup[0x16] = makecol(video_6to8[42], video_6to8[42], video_6to8[0]);
-	}
-}
-
 int d3d_fs_init(HWND h)
 {
         int c;
@@ -173,16 +86,15 @@ int d3d_fs_init(HWND h)
         d3d_fs_w = GetSystemMetrics(SM_CXSCREEN);
         d3d_fs_h = GetSystemMetrics(SM_CYSCREEN);
         
+        d3d_hwnd = h;
         for (c = 0; c < 256; c++)
             pal_lookup[c] = makecol(cgapal[c].r << 2, cgapal[c].g << 2, cgapal[c].b << 2);
-
-        d3d_hwnd = h;
 
 	/*FIXME: should be done once, in win.c */
 	_swprintf(emulator_title, L"%s v%s", EMU_NAME_W, EMU_VERSION_W);
         d3d_device_window = CreateWindowEx (
                 0,
-                szSubClassName,
+                SUB_CLASS_NAME,
                 emulator_title,
                 WS_POPUP,
                 CW_USEDEFAULT,
@@ -217,9 +129,8 @@ int d3d_fs_init(HWND h)
            fatal("CreateDevice failed\n");
         
         d3d_fs_init_objects();
-        
-        video_blit_memtoscreen_func   = d3d_fs_blit_memtoscreen;
-        video_blit_memtoscreen_8_func = d3d_fs_blit_memtoscreen_8;
+
+	video_setblit(blit_memtoscreen_8, blit_memtoscreen);
 
 	return 1;
 }
@@ -338,6 +249,11 @@ void d3d_fs_close()
         DestroyWindow(d3d_device_window);
 }
 
+int d3d_fs_pause(void)
+{
+	return(0);
+}
+
 static void d3d_fs_size(RECT window_rect, double *l, double *t, double *r, double *b, int w, int h)
 {
         int ratio_w, ratio_h;
@@ -388,7 +304,7 @@ static void d3d_fs_size(RECT window_rect, double *l, double *t, double *r, doubl
         }
 }
 
-static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
+static void blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
         HRESULT hr = D3D_OK;
         VOID* pVoid;
@@ -497,10 +413,10 @@ static void d3d_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
                 hr = d3ddev->Present(NULL, NULL, d3d_device_window, NULL);
         
         if (hr == D3DERR_DEVICELOST || hr == D3DERR_INVALIDCALL)
-                PostMessage(ghwnd, WM_RESETD3D, 0, 0);
+                PostMessage(hwndMain, WM_RESETD3D, 0, 0);
 }
 
-static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
+static void blit_memtoscreen_8(int x, int y, int w, int h)
 {
         HRESULT hr = D3D_OK;
         VOID* pVoid;
@@ -615,7 +531,7 @@ static void d3d_fs_blit_memtoscreen_8(int x, int y, int w, int h)
                 hr = d3ddev->Present(NULL, NULL, d3d_device_window, NULL);
         
         if (hr == D3DERR_DEVICELOST || hr == D3DERR_INVALIDCALL)
-                PostMessage(ghwnd, WM_RESETD3D, 0, 0);
+                PostMessage(hwndMain, WM_RESETD3D, 0, 0);
 }
 
 

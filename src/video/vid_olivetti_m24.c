@@ -1,9 +1,26 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
-/*Olivetti M24 video emulation
-  Essentially double-res CGA*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Olivetti M24 video emulation- essentially double-res CGA.
+ *
+ * Version:	@(#)vid_olivetti_m24.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -32,13 +49,14 @@ typedef struct m24_t
         int linepos, displine;
         int sc, vc;
         int con, coff, cursoron, blink;
-        int vsynctime, vadj;
+        int64_t vsynctime;
+	int vadj;
         int lineff;
         uint16_t ma, maback;
         int dispon;
         
-        int dispontime, dispofftime;
-	int vidtime;
+        int64_t dispontime, dispofftime;
+	int64_t vidtime;
         
         int firstline, lastline;
 } m24_t;
@@ -131,8 +149,8 @@ void m24_recalctimings(m24_t *m24)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= CGACONST / 2;
         _dispofftime *= CGACONST / 2;
-	m24->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	m24->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	m24->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
+	m24->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
 }
 
 void m24_poll(void *p)
@@ -445,7 +463,9 @@ void m24_poll(void *p)
         }
 }
 
-void *m24_init()
+
+static void *
+m24_init(device_t *info)
 {
         m24_t *m24 = malloc(sizeof(m24_t));
         memset(m24, 0, sizeof(m24_t));
@@ -459,7 +479,9 @@ void *m24_init()
         return m24;
 }
 
-void m24_close(void *p)
+
+static void
+m24_close(void *p)
 {
         m24_t *m24 = (m24_t *)p;
 
@@ -467,21 +489,22 @@ void m24_close(void *p)
         free(m24);
 }
 
-void m24_speed_changed(void *p)
+
+static void
+m24_speed_changed(void *p)
 {
         m24_t *m24 = (m24_t *)p;
         
         m24_recalctimings(m24);
 }
 
+
 device_t m24_device =
 {
         "Olivetti M24 (video)",
-        0,
+        0, 0,
         m24_init,
         m24_close,
-        NULL,
-        m24_speed_changed,
-        NULL,
-        NULL
+	NULL, NULL, m24_speed_changed,
+        NULL, NULL, NULL
 };

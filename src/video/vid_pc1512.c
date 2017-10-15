@@ -1,15 +1,33 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
-/*PC1512 CGA emulation
-
-  The PC1512 extends CGA with a bit-planar 640x200x16 mode.
-  
-  Most CRTC registers are fixed.
-  
-  The Technical Reference Manual lists the video waitstate time as between 12 
-  and 46 cycles. PCem currently always uses the lower number.*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		PC1512 CGA emulation
+ *
+ *		The PC1512 extends CGA with a bit-planar 640x200x16 mode.
+ *		Most CRTC registers are fixed.
+ *
+ *		The Technical Reference Manual lists the video waitstate
+ *		time as between 12 and 46 cycles. We currently always use
+ *		the lower number.
+ *
+ * Version:	@(#)vid_pc1512.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -34,13 +52,14 @@ typedef struct pc1512_t
         int sc, vc;
         int cgadispon;
         int con, coff, cursoron, cgablink;
-        int vsynctime, vadj;
+        int64_t vsynctime;
+	int vadj;
         uint16_t ma, maback;
         int dispon;
         int blink;
         
-        int dispontime, dispofftime;
-	int vidtime;
+        int64_t dispontime, dispofftime;
+	int64_t vidtime;
         int firstline, lastline;
         
         uint8_t *vram;
@@ -154,8 +173,8 @@ static void pc1512_recalctimings(pc1512_t *pc1512)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= CGACONST;
         _dispofftime *= CGACONST;
-	pc1512->dispontime  = (int)(_dispontime * (1 << TIMER_SHIFT));
-	pc1512->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	pc1512->dispontime  = (int64_t)(_dispontime * (1 << TIMER_SHIFT));
+	pc1512->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
 }
 
 static void pc1512_poll(void *p)
@@ -444,7 +463,8 @@ static void pc1512_poll(void *p)
         }
 }
 
-static void *pc1512_init()
+
+static void *pc1512_init(device_t *info)
 {
         pc1512_t *pc1512 = malloc(sizeof(pc1512_t));
         memset(pc1512, 0, sizeof(pc1512_t));
@@ -479,9 +499,10 @@ static void pc1512_speed_changed(void *p)
 device_t pc1512_device =
 {
         "Amstrad PC1512 (video)",
-        0,
+        0, 0,
         pc1512_init,
         pc1512_close,
+	NULL,
         NULL,
         pc1512_speed_changed,
         NULL,

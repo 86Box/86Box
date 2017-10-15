@@ -8,28 +8,30 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)piix.c	1.0.2	2017/08/24
+ *		PRD format :
+ *		    word 0 - base address
+ *		    word 1 - bits 1 - 15 = byte count, bit 31 = end of transfer
+ *
+ * Version:	@(#)piix.c	1.0.5	2017/10/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
-
-/*PRD format :
-        
-        word 0 - base address
-        word 1 - bits 1 - 15 = byte count, bit 31 = end of transfer
-*/
+#include <stdio.h>
+#include <stdint.h>
 #include <string.h>
-
+#include <wchar.h>
 #include "ibm.h"
 #include "dma.h"
 #include "io.h"
+#include "device.h"
 #include "keyboard_at.h"
 #include "mem.h"
 #include "pci.h"
-#include "hdd/hdd_ide_at.h"
+#include "disk/hdc.h"
+#include "disk/hdc_ide.h"
 #include "piix.h"
 
 
@@ -610,7 +612,9 @@ void piix_bus_master_set_irq(int channel)
         piix_busmaster[channel & 0x0F].status |= (channel >> 4);
 }
 
-/* static int reset_reg = 0;
+
+#if 0
+static int reset_reg = 0;
 
 static uint8_t rc_read(uint16_t port, void *priv)
 {
@@ -623,7 +627,7 @@ static void rc_write(uint16_t port, uint8_t val, void *priv)
 	{
 		if (reset_reg & 2)
 		{
-			resetpchard();
+			pc_reset_hard();
 		}
 		else
 		{
@@ -635,12 +639,13 @@ static void rc_write(uint16_t port, uint8_t val, void *priv)
 			{
 				piix_reset();
 			}
-			resetide();
+			ide_reset();
 			softresetx86();
 		}
 	}
 	reset_reg = val;
-} */
+}
+#endif
 
 void piix_reset(void)
 {

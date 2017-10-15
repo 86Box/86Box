@@ -1,8 +1,11 @@
 /* Copyright holders: Sarah Walker, SA1988
    see COPYING for more details
 */
+#include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../timer.h"
@@ -11,7 +14,7 @@
 #include "snd_dbopl.h"
 
 
-/*Interfaces between PCem and the actual OPL emulator*/
+/*Interfaces between 86Box and the actual OPL emulator*/
 
 
 uint8_t opl2_read(uint16_t a, void *priv)
@@ -111,7 +114,7 @@ void ym3812_timer_set_0(void *param, int timer, int64_t period)
 {
         opl_t *opl = (opl_t *)param;
         
-        opl->timers[0][timer] = period * TIMER_USEC * 20;
+        opl->timers[0][timer] = period * TIMER_USEC * 20LL;
         if (!opl->timers[0][timer]) opl->timers[0][timer] = 1;
         opl->timers_enable[0][timer] = period ? 1 : 0;
 }
@@ -119,7 +122,7 @@ void ym3812_timer_set_1(void *param, int timer, int64_t period)
 {
         opl_t *opl = (opl_t *)param;
 
-        opl->timers[1][timer] = period * TIMER_USEC * 20;
+        opl->timers[1][timer] = period * TIMER_USEC * 20LL;
         if (!opl->timers[1][timer]) opl->timers[1][timer] = 1;
         opl->timers_enable[1][timer] = period ? 1 : 0;
 }
@@ -128,7 +131,7 @@ void ymf262_timer_set(void *param, int timer, int64_t period)
 {
         opl_t *opl = (opl_t *)param;
 
-        opl->timers[0][timer] = period * TIMER_USEC * 20;
+        opl->timers[0][timer] = period * TIMER_USEC * 20LL;
         if (!opl->timers[0][timer]) opl->timers[0][timer] = 1;
         opl->timers_enable[0][timer] = period ? 1 : 0;
 }

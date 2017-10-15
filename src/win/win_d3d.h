@@ -8,14 +8,14 @@
  *
  *		Direct3D 9 rendererer and screenshots taking.
  *
- * Version:	@(#)win_d3d.h	1.0.0	2017/05/30
+ * Version:	@(#)win_d3d.h	1.0.2	2017/10/13
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
-
 #ifndef WIN_D3D_H
 # define WIN_D3D_H
 # define UNICODE
@@ -32,12 +32,16 @@ extern "C" {
 extern int	d3d_init(HWND h);
 extern void	d3d_close(void);
 extern void	d3d_reset(void);
+extern int	d3d_pause(void);
 extern void	d3d_resize(int x, int y);
+extern void	d3d_take_screenshot(wchar_t *fn);
 
 extern int	d3d_fs_init(HWND h);
 extern void	d3d_fs_close(void);
 extern void	d3d_fs_reset(void);
+extern int	d3d_fs_pause(void);
 extern void	d3d_fs_resize(int x, int y);
+extern void	d3d_fs_take_screenshot(wchar_t *fn);
 
 #ifdef __cplusplus
 }

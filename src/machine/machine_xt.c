@@ -1,20 +1,22 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../nmi.h"
 #include "../pit.h"
 #include "../mem.h"
 #include "../device.h"
 #include "../bugger.h"
-#include "../gameport.h"
+#include "../game/gameport.h"
 #include "../keyboard_xt.h"
-#include "machine_common.h"
-#include "machine_xt.h"
+#include "machine.h"
 
 
-void machine_xt_init(void)
+void
+machine_xt_init(machine_t *model)
 {
-        machine_common_init();
-
-	mem_add_bios();
+        machine_common_init(model);
 
         pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
 

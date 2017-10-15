@@ -1,14 +1,31 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
-/*The below is (with some removals) a reasonable emulation of the ET4000/W32i blitter.
-  Unfortunately the Diamond Stealth 32 is actually an ET4000/W32p! Which has a different
-  blitter. If only I'd dug out and looked at the card before trying to emulate it.
-
-  This might be of use for an attempt at emulating an ET4000/W32i.
-  */
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		The below is (with some removals) a reasonable emulation
+ *		of the ET4000/W32i blitter.  Unfortunately the Diamond
+ *		Stealth 32 is actually an ET4000/W32p! Which has a different
+ *		blitter. If only I'd dug out and looked at the card before
+ *		trying to emulate it.
+ *
+ *		This might be of use for an attempt at an ET4000/W32i.
+ *
+ * Version:	@(#)vid_et4000w32i.c	1.0.1	2017/10/10
+ *
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ */
 #if 0
 
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "ibm.h"
 
 int et4k_b8000;

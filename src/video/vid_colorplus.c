@@ -1,5 +1,26 @@
-/*Plantronics ColorPlus emulation*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Plantronics ColorPlus emulation.
+ *
+ * Version:	@(#)vid_colorplus.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include <math.h>
 #include "../ibm.h"
 #include "../io.h"
@@ -361,7 +382,7 @@ void colorplus_init(colorplus_t *colorplus)
 	cga_init(&colorplus->cga);
 }
 
-void *colorplus_standalone_init()
+void *colorplus_standalone_init(device_t *info)
 {
         int display_type;
 
@@ -441,10 +462,10 @@ static device_config_t colorplus_config[] =
 device_t colorplus_device =
 {
         "Colorplus",
-        0,
+        DEVICE_ISA, 0,
         colorplus_standalone_init,
         colorplus_close,
-        NULL,
+	NULL, NULL,
         colorplus_speed_changed,
         NULL,
         NULL,

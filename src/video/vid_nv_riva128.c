@@ -1,8 +1,26 @@
-/* Copyright holders: Melissa Goad, Tenshi
-   see COPYING for more details
-*/
-/*nVidia RIVA 128 emulation*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		nVidia RIVA 128 emulation.
+ *
+ * Version:	@(#)vid_nv_riva128.c	1.0.1	2017/10/10
+ *
+ * Author:	Melissa Goad
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2017 Melissa Goad.
+ *		Copyright 2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -11,7 +29,7 @@
 #include "../rom.h"
 #include "../timer.h"
 #include "../device.h"
-#include "../win/plat_thread.h"
+#include "../plat.h"
 #include "video.h"
 #include "vid_nv_riva128.h"
 #include "vid_svga.h"
@@ -225,8 +243,10 @@ typedef struct riva128_t
 		} edid_rom;
 	} i2c;
 
-	int mtime, mfreq;
-	int nvtime, nvfreq;
+	int64_t mtime, mfreq;
+	int64_t nvtime, nvfreq;
+	int64_t menable;
+	int64_t nvenable;
 } riva128_t;
 
 //Internally, the RIVA 128 operates in a weird 38-bit color depth, with 10 bits for RGB, and 8 bits for alpha, according to envytools.
@@ -1632,6 +1652,15 @@ void rivatnt_pgraph_ctx_switch(void *p)
 	riva128_pgraph_interrupt(0, riva128);
 }
 
+void riva128_pgraph_vblank_interrupt(void *p)
+{
+	riva128_t *riva128 = (riva128_t *)p;
+
+	riva128->pgraph.invalid |= (1 << 8);
+
+	riva128_pmc_interrupt(24, riva128);
+}
+
  uint8_t riva128_pramdac_read(uint32_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
@@ -2011,15 +2040,15 @@ void rivatnt_pgraph_ctx_switch(void *p)
 	}
 }
 
- void riva128_ptimer_tick(void *p)
+void riva128_ptimer_tick(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
-	double time = (double)riva128->ptimer.clock_mul / (double)riva128->ptimer.clock_div;
+	double time = ((double)riva128->ptimer.clock_mul * 1000000.0f) / (double)riva128->ptimer.clock_div;
 	uint64_t tmp;
 	int alarm_check;
 
-	time *= 10000;
+	//if(cs == 0x0008 && !riva128->pgraph.beta) pclog("RIVA 128 PTIMER time elapsed %f alarm %08x, time_low %08x\n", time, riva128->ptimer.alarm, riva128->ptimer.time & 0xffffffff);
 
 	tmp = riva128->ptimer.time;
 	riva128->ptimer.time += (uint64_t)time << 5;
@@ -2037,25 +2066,27 @@ void rivatnt_pgraph_ctx_switch(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
-	if(riva128->card_id == 0x03) riva128_ptimer_tick(riva128);
+	if(!riva128->pgraph.beta) pclog("RIVA 128 MCLK poll PMC enable %08x\n", riva128->pmc.enable);
 
-	riva128->mtime += cpuclock / riva128->mfreq;
+	if(!(riva128->pmc.enable & 0x00010000) && riva128->card_id == 0x03) riva128_ptimer_tick(riva128);
+
+	riva128->mtime += (int)((TIMER_USEC * 1000000.0) / riva128->mfreq);
 }
 
  void riva128_nvclk_poll(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
-	if(riva128->card_id < 0x40 && riva128->card_id != 0x03) riva128_ptimer_tick(riva128);
+	if(!(riva128->pmc.enable & 0x00010000) && riva128->card_id < 0x40 && riva128->card_id != 0x03) riva128_ptimer_tick(riva128);
 
-	riva128->nvtime += cpuclock / riva128->nvfreq;
+	riva128->nvtime += (int)((TIMER_USEC * 1000000.0) / riva128->nvfreq);
 }
 
- void riva128_vblank_poll(svga_t *svga)
+ void riva128_vblank_start(svga_t *svga)
 {
 	riva128_t *riva128 = (riva128_t *)svga->p;
 	
-	riva128_pmc_interrupt(24, riva128);
+	riva128_pgraph_vblank_interrupt(riva128);
 }
 
  uint8_t riva128_rma_in(uint16_t addr, void *p)
@@ -2601,9 +2632,9 @@ void rivatnt_pgraph_ctx_switch(void *p)
 		}
 		return;
 
-	/* case 0x3c:
+	case 0x3c:
 		riva128->pci_regs[0x3c] = val & 0x0f;
-		return; */
+		return;
 
 	case 0x40:
 	case 0x41:
@@ -2712,9 +2743,9 @@ void rivatnt_pgraph_ctx_switch(void *p)
 		}
 		return;
 
-	/* case 0x3c:
+	case 0x3c:
 		riva128->pci_regs[0x3c] = val & 0x0f;
-		return; */
+		return;
 
 	case 0x40:
 	case 0x41:
@@ -2782,7 +2813,21 @@ void rivatnt_pgraph_ctx_switch(void *p)
 		svga->clock = cpuclock / freq;
 	}
 
-	freq = 1350.0;
+	freq = 13500000.0;
+
+	if(riva128->pramdac.m_m == 0) freq = 0;
+	else
+	{
+		freq = (freq * riva128->pramdac.m_n) / (1 << riva128->pramdac.m_p) / riva128->pramdac.m_m;
+		//pclog("RIVA 128 Memory clock is %f Hz\n", freq);
+	}
+
+	riva128->mfreq = freq;
+	riva128->menable = 0;
+	riva128->mtime = (int)((TIMER_USEC * 1000000.0) / riva128->mfreq);
+	riva128->menable = 1;
+
+	freq = 13500000.0;
 
 	if(riva128->pramdac.nv_m == 0) freq = 0;
 	else
@@ -2791,21 +2836,14 @@ void rivatnt_pgraph_ctx_switch(void *p)
 		//pclog("RIVA 128 Core clock is %f Hz\n", freq);
 	}
 
-	riva128->mfreq = freq;
-
-	freq = 1350.0;
-
-	if(riva128->pramdac.m_m == 0) freq = 0;
-	else
-	{
-		freq = (freq * riva128->pramdac.m_n) / (1 << riva128->pramdac.m_p) / riva128->pramdac.m_m;
-		//pclog("RIVA 128 Core clock is %f Hz\n", freq);
-	}
-
 	riva128->nvfreq = freq;
+	riva128->nvenable = 0;
+	riva128->nvtime = (int)((TIMER_USEC * 1000000.0) / riva128->nvfreq);
+	riva128->nvenable = 1;
 }
 
- void *riva128_init()
+
+void *riva128_init(device_t *info)
 {
 	riva128_t *riva128 = malloc(sizeof(riva128_t));
 	memset(riva128, 0, sizeof(riva128_t));
@@ -2888,7 +2926,7 @@ void rivatnt_pgraph_ctx_switch(void *p)
 	riva128->ptimer.clock_mul = 1;
 	riva128->ptimer.clock_div = 1;
 
-	//Some bullshit default values so that the emulator won't shit itself trying to boot. These'll be overwritten by the video BIOS anyway.
+	//default values so that the emulator can boot. These'll be overwritten by the video BIOS anyway.
 	riva128->pramdac.m_m = 0x03;
 	riva128->pramdac.m_n = 0xc2;
 	riva128->pramdac.m_p = 0x0d;
@@ -2926,15 +2964,20 @@ void rivatnt_pgraph_ctx_switch(void *p)
 		}
 	}
 
-	timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
-	timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
+	riva128->menable = 0;
+	riva128->nvenable = 0;
 
-	riva128->svga.vblank_start = riva128_vblank_poll;
+	timer_add(riva128_mclk_poll, &riva128->mtime, &riva128->menable, riva128);
+	timer_add(riva128_nvclk_poll, &riva128->nvtime, &riva128->nvenable, riva128);
+
+	riva128->svga.vblank_start = riva128_vblank_start;
+
+	riva128->pgraph.beta = 0xffffffff;
 
 	return riva128;
 }
 
- void riva128_close(void *p)
+void riva128_close(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 	FILE *f = fopen("vram.dmp", "wb");
@@ -2946,12 +2989,12 @@ void rivatnt_pgraph_ctx_switch(void *p)
 	free(riva128);
 }
 
- int riva128_available()
+int riva128_available(void)
 {
 	return rom_present(L"roms/video/nv_riva128/Diamond_V330_rev-e.vbi");
 }
 
- void riva128_speed_changed(void *p)
+void riva128_speed_changed(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
@@ -2996,7 +3039,8 @@ device_config_t riva128_config[] =
 	}
 };
 
-/* device_config_t riva128zx_config[] =
+#if 0
+device_config_t riva128zx_config[] =
 {
 	{
 		.name = "memory",
@@ -3029,14 +3073,17 @@ device_config_t riva128_config[] =
 	{
 		.type = -1
 	}
-};*/
+};
+#endif
 
 device_t riva128_device =
 {
 	"nVidia RIVA 128",
+	DEVICE_PCI,
 	0,
 	riva128_init,
 	riva128_close,
+	NULL,
 	riva128_available,
 	riva128_speed_changed,
 	riva128_force_redraw,
@@ -3044,7 +3091,8 @@ device_t riva128_device =
 	riva128_config
 };
 
- void *rivatnt_init()
+
+void *rivatnt_init(device_t *info)
 {
 	riva128_t *riva128 = malloc(sizeof(riva128_t));
 	memset(riva128, 0, sizeof(riva128_t));
@@ -3111,7 +3159,7 @@ device_t riva128_device =
 
 	riva128->pci_card = pci_add_card(PCI_ADD_VIDEO, riva128_pci_read, rivatnt_pci_write, riva128);
 
-	//Some bullshit default values so that the emulator won't shit itself trying to boot. These'll be overwritten by the video BIOS anyway.
+	//default values so that the emulator can boot. These'll be overwritten by the video BIOS anyway.
 	riva128->pramdac.m_m = 0x03;
 	riva128->pramdac.m_n = 0xc2;
 	riva128->pramdac.m_p = 0x0d;
@@ -3149,15 +3197,18 @@ device_t riva128_device =
 		}
 	}
 
-	timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
-	timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
+	riva128->menable = 0;
+	riva128->nvenable = 0;
 
-	riva128->svga.vblank_start = riva128_vblank_poll;
+	timer_add(riva128_mclk_poll, &riva128->mtime, &riva128->menable, riva128);
+	timer_add(riva128_nvclk_poll, &riva128->nvtime, &riva128->nvenable, riva128);
+
+	riva128->svga.vblank_start = riva128_vblank_start;
 
 	return riva128;
 }
 
- void rivatnt_close(void *p)
+void rivatnt_close(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 	FILE *f = fopen("vram.dmp", "wb");
@@ -3169,33 +3220,33 @@ device_t riva128_device =
 	free(riva128);
 }
 
- int rivatnt_available()
+int rivatnt_available(void)
 {
 	return rom_present(L"roms/video/nv_riva128/NV4_diamond_revB.rom");
 }
 
- void rivatnt_speed_changed(void *p)
+void rivatnt_speed_changed(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
 	svga_recalctimings(&riva128->svga);
 }
 
- void rivatnt_force_redraw(void *p)
+void rivatnt_force_redraw(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
 	riva128->svga.fullchange = changeframecount;
 }
 
- void rivatnt_add_status_info(char *s, int max_len, void *p)
+void rivatnt_add_status_info(char *s, int max_len, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
 	svga_add_status_info(s, max_len, &riva128->svga);
 }
 
- device_config_t rivatnt_config[] =
+device_config_t rivatnt_config[] =
 {
 	{
 		"memory", "Memory size", CONFIG_SELECTION, "", 16,
@@ -3222,9 +3273,11 @@ device_t riva128_device =
 device_t rivatnt_device =
 {
 	"nVidia RIVA TNT",
+	DEVICE_PCI,
 	0,
 	rivatnt_init,
 	rivatnt_close,
+	NULL,
 	rivatnt_available,
 	rivatnt_speed_changed,
 	rivatnt_force_redraw,
@@ -3232,7 +3285,7 @@ device_t rivatnt_device =
 	rivatnt_config
 };
 
- void *rivatnt2_init()
+void *rivatnt2_init(device_t *info)
 {
 	riva128_t *riva128 = malloc(sizeof(riva128_t));
 	memset(riva128, 0, sizeof(riva128_t));
@@ -3312,7 +3365,7 @@ device_t rivatnt_device =
 
 	riva128->pci_card = pci_add_card(PCI_ADD_VIDEO, riva128_pci_read, rivatnt_pci_write, riva128);
 
-	//Some bullshit default values so that the emulator won't shit itself trying to boot. These'll be overwritten by the video BIOS anyway.
+	//default values so that the emulator can boot. These'll be overwritten by the video BIOS anyway.
 	riva128->pramdac.m_m = 0x03;
 	riva128->pramdac.m_n = 0xc2;
 	riva128->pramdac.m_p = 0x0d;
@@ -3350,15 +3403,18 @@ device_t rivatnt_device =
 		}
 	}
 
-	timer_add(riva128_mclk_poll, &riva128->mtime, TIMER_ALWAYS_ENABLED, riva128);
-	timer_add(riva128_nvclk_poll, &riva128->nvtime, TIMER_ALWAYS_ENABLED, riva128);
+	riva128->menable = 0;
+	riva128->nvenable = 0;
 
-	riva128->svga.vblank_start = riva128_vblank_poll;
+	timer_add(riva128_mclk_poll, &riva128->mtime, &riva128->menable, riva128);
+	timer_add(riva128_nvclk_poll, &riva128->nvtime, &riva128->nvenable, riva128);
+
+	riva128->svga.vblank_start = riva128_vblank_start;
 
 	return riva128;
 }
 
- void rivatnt2_close(void *p)
+void rivatnt2_close(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 	FILE *f = fopen("vram.dmp", "wb");
@@ -3370,33 +3426,33 @@ device_t rivatnt_device =
 	free(riva128);
 }
 
- int rivatnt2_available()
+int rivatnt2_available(void)
 {
 	return rom_present(L"roms/video/nv_riva128/NV5diamond.bin") || rom_present(L"roms/video/nv_riva128/inno3d64bit.BIN") || rom_present(L"roms/video/nv_riva128/creative.BIN");
 }
 
- void rivatnt2_speed_changed(void *p)
+void rivatnt2_speed_changed(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
 	svga_recalctimings(&riva128->svga);
 }
 
- void rivatnt2_force_redraw(void *p)
+void rivatnt2_force_redraw(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
 	riva128->svga.fullchange = changeframecount;
 }
 
- void rivatnt2_add_status_info(char *s, int max_len, void *p)
+void rivatnt2_add_status_info(char *s, int max_len, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
 	svga_add_status_info(s, max_len, &riva128->svga);
 }
 
- device_config_t rivatnt2_config[] =
+device_config_t rivatnt2_config[] =
 {
 	{
 		"model", "Card model", CONFIG_SELECTION, "", 0,
@@ -3440,9 +3496,11 @@ device_t rivatnt_device =
 device_t rivatnt2_device =
 {
 	"nVidia RIVA TNT2",
+	DEVICE_PCI,
 	0,
 	rivatnt2_init,
 	rivatnt2_close,
+	NULL,
 	rivatnt2_available,
 	rivatnt2_speed_changed,
 	rivatnt2_force_redraw,

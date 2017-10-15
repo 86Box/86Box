@@ -8,65 +8,57 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.8	2017/09/03
+ * Version:	@(#)pc.c	1.0.27	2017/10/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdarg.h>
+#include <wchar.h>
 #include "86box.h"
 #include "config.h"
 #include "ibm.h"
-#include "mem.h"
-#include "cpu/codegen.h"
 #include "cpu/cpu.h"
+#ifdef USE_DYNAREC
+#include "cpu/codegen.h"
+#endif
+#include "cpu/x86_ops.h"
+#include "io.h"
+#include "mem.h"
+#include "rom.h"
 #include "dma.h"
+#include "pic.h"
+#include "pit.h"
 #include "random.h"
+#include "timer.h"
+#include "mouse.h"
 #include "device.h"
-#include "gameport.h"
-#include "floppy/floppy.h"
-#include "floppy/floppy_86f.h"
-#include "floppy/floppy_fdi.h"
-#include "floppy/floppy_imd.h"
-#include "floppy/floppy_img.h"
-#include "floppy/floppy_td0.h"
-#include "floppy/fdc.h"
-#include "floppy/fdd.h"
-#include "cdrom/cdrom.h"
-#include "cdrom/cdrom_image.h"
-#include "cdrom/cdrom_ioctl.h"
-#include "cdrom/cdrom_null.h"
-#include "hdd/hdd.h"
-#include "hdd/hdd_ide_at.h"
+#include "nvr.h"
+#include "machine/machine.h"
+#include "game/gameport.h"
 #include "keyboard.h"
 #include "keyboard_at.h"
 #include "lpt.h"
-#include "machine/machine.h"
-#include "sound/midi.h"
-#include "mouse.h"
-#ifdef USE_NETWORK
-#include "network/network.h"
-#endif
-#include "nvr.h"
-#include "pic.h"
-#include "pit.h"
-#ifdef WALTJE
-# define UNICODE
-# include "win/plat_dir.h"
-# undef UNICODE
-#endif
-#include "win/plat_joystick.h"
-#include "win/plat_keyboard.h"
-#include "win/plat_midi.h"
-#include "win/plat_mouse.h"
-#include "win/plat_ui.h"
-#include "scsi/scsi.h"
 #include "serial.h"
+#include "cdrom/cdrom.h"
+#include "disk/hdd.h"
+#include "disk/hdc.h"
+#include "disk/hdc_ide.h"
+#include "floppy/floppy.h"
+#include "floppy/fdc.h"
+#include "scsi/scsi.h"
+#include "network/network.h"
 #include "sound/sound.h"
+#include "sound/midi.h"
 #include "sound/snd_cms.h"
 #include "sound/snd_dbopl.h"
 #include "sound/snd_mpu401.h"
@@ -75,45 +67,45 @@
 #include "sound/snd_sb.h"
 #include "sound/snd_speaker.h"
 #include "sound/snd_ssi2001.h"
-#include "timer.h"
 #include "video/video.h"
 #include "video/vid_voodoo.h"
-#include "cpu/x86_ops.h"
+#include "ui.h"
+#include "plat.h"
+#include "plat_joystick.h"
+#include "plat_keyboard.h"
+#include "plat_midi.h"
+#include "plat_mouse.h"
 
 
-wchar_t pcempath[512];
+int	window_w, window_h, window_x, window_y, window_remember;
+int	dump_on_exit = 0;
+int	start_in_fullscreen = 0;
+int	CPUID;
+int	vid_resize, vid_api;
+int	output;
+int	atfullspeed;
+int	cycles_lost = 0;
+int	clockrate;
+int	insc = 0;
+float	mips, flops;
+int	framecount, fps;
+int	win_title_update = 0;
+int	updatestatus = 0;
+int	pollmouse_delay = 2;
+int	mousecapture;
+int	suppress_overscan = 0;
+int	cpuspeed2;
+wchar_t	exe_path[1024];
+wchar_t	cfg_path[1024];
 
-wchar_t nvr_path[1024];
-int path_len;
 
-int window_w, window_h, window_x, window_y, window_remember;
-
-int dump_on_exit = 0;
-int start_in_fullscreen = 0;
-
-int CPUID;
-int vid_resize, vid_api;
-
-int cycles_lost = 0;
-
-int clockrate;
-int insc=0;
-float mips,flops;
 extern int mmuflush;
 extern int readlnum,writelnum;
-void fullspeed();
-
-int framecount,fps;
-
-int output;
-int atfullspeed;
-
-void saveconfig();
-int infocus;
-int mousecapture;
 
 
-void pclog(const char *format, ...)
+/* Log something to the logfile or stdout. */
+void
+pclog(const char *format, ...)
 {
 #ifndef RELEASE_BUILD
    va_list ap;
@@ -124,606 +116,668 @@ void pclog(const char *format, ...)
 #endif
 }
 
-void pclog_w(const wchar_t *format, ...)
-{
-#ifndef RELEASE_BUILD
-   va_list ap;
-   va_start(ap, format);
-   vwprintf(format, ap);
-   va_end(ap);
-   fflush(stdout);
-#endif
-}
 
-#ifndef __unix
-#ifndef _LIBC
-# define __builtin_expect(expr, val)   (expr)
-#endif
-
-#undef memmem
-
-
-/* Return the first occurrence of NEEDLE in HAYSTACK.  */
-void *memmem (const void *haystack, size_t haystack_len, const void *needle, size_t needle_len)
-{
-	const char *begin;
-	const char *const last_possible = (const char *) haystack + haystack_len - needle_len;
-
-	if (needle_len == 0)
-		/* The first occurrence of the empty string is deemed to occur at
-		   the beginning of the string.  */
-		return (void *) haystack;
-
-	/* Sanity check, otherwise the loop might search through the whole
-	   memory.  */
-	if (__builtin_expect (haystack_len < needle_len, 0))
-		return NULL;
-
-	for (begin = (const char *) haystack; begin <= last_possible; ++begin)
-		if (begin[0] == ((const char *) needle)[0] && !memcmp ((const void *) &begin[1], (const void *) ((const char *) needle + 1), needle_len - 1))
-			return (void *) begin;
-
-	return NULL;
-}
-#endif
-
-
-void fatal(const char *format, ...)
+/* Log a fatal error, and display a UI message before exiting. */
+void
+fatal(const char *format, ...)
 {
    char msg[1024];
-#ifndef __unix
-   char *newline;
-#endif
    va_list ap;
+   char *sp;
+
    va_start(ap, format);
    vsprintf(msg, format, ap);
    printf(msg);
    va_end(ap);
    fflush(stdout);
-   savenvr();
-   saveconfig();
-#ifndef __unix
-   newline = memmem(msg, strlen(msg), "\n", strlen("\n"));
-   if (newline != NULL)
-   {
-      *newline = 0;
-   }
-   plat_msgbox_fatal(msg);
-#endif
+
+   nvr_save();
+
+   config_save();
+
    dumppic();
    dumpregs(1);
+
+   /* Make sure the message does not have a trailing newline. */
+   if ((sp = strchr(msg, '\n')) != NULL) *sp = '\0';
+
+   ui_msgbox(MBX_ERROR|MBX_FATAL|MBX_ANSI, msg);
+
    fflush(stdout);
+
    exit(-1);
 }
 
-uint8_t cgastat;
 
-
-int pollmouse_delay = 2;
-void pollmouse(void)
+/*
+ * This function returns the absolute pathname to a file (str)
+ * that is to be found in the user (formerly 'nvr_path' area.
+ */
+wchar_t *
+pc_concat(wchar_t *str)
 {
-        int x, y, z;
-        pollmouse_delay--;
-        if (pollmouse_delay) return;
-        pollmouse_delay = 2;
-        mouse_poll_host();
-        mouse_get_mickeys(&x, &y, &z);
-	mouse_poll(x, y, z, mouse_buttons);
-}
+    static wchar_t temp[1024];
 
-/*PC1512 languages -
-  7=English
-  6=German
-  5=French
-  4=Spanish
-  3=Danish
-  2=Swedish
-  1=Italian
-        3,2,1 all cause the self test to fail for some reason
-  */
+    /* Get the full prefix in place. */
+    memset(temp, 0x00, sizeof(temp));
+    wcscpy(temp, cfg_path);
 
-int cpuspeed2;
+    /* Create the directory if needed. */
+    if (! dir_check_exist(temp))
+	dir_create(temp);
 
-int clocks[3][12][4]=
-{
-        {
-                {4772728,13920,59660,5965},  /*4.77MHz*/
-                {8000000,23333,110000,0}, /*8MHz*/
-                {10000000,29166,137500,0}, /*10MHz*/
-                {12000000,35000,165000,0}, /*12MHz*/
-                {16000000,46666,220000,0}, /*16MHz*/
-        },
-        {
-                {8000000,23333,110000,0}, /*8MHz*/
-                {12000000,35000,165000,0}, /*12MHz*/
-                {16000000,46666,220000,0}, /*16MHz*/
-                {20000000,58333,275000,0}, /*20MHz*/
-                {25000000,72916,343751,0}, /*25MHz*/
-        },
-        {
-                {16000000, 46666,220000,0}, /*16MHz*/
-                {20000000, 58333,275000,0}, /*20MHz*/
-                {25000000, 72916,343751,0}, /*25MHz*/
-                {33000000, 96000,454000,0}, /*33MHz*/
-                {40000000,116666,550000,0}, /*40MHz*/
-                {50000000, 72916*2,343751*2,0}, /*50MHz*/
-                {33000000*2, 96000*2,454000*2,0}, /*66MHz*/
-                {75000000, 72916*3,343751*3,0}, /*75MHz*/
-                {80000000,116666*2,550000*2,0}, /*80MHz*/
-                {100000000, 72916*4,343751*4,0}, /*100MHz*/
-                {120000000,116666*3,550000*3,0}, /*120MHz*/
-                {133000000, 96000*4,454000*4,0}, /*133MHz*/
-        }
-};
-
-int updatestatus;
-int win_title_update=0;
-
-
-void onesec(void)
-{
-        fps=framecount;
-        framecount=0;
-        win_title_update=1;
-}
-
-void pc_reset(void)
-{
-        cpu_set();
-        resetx86();
-        dma_reset();
-        fdc_reset();
-        pic_reset();
-        serial_reset();
-
-        if (AT)
-                setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
-        else
-                setpitclock(14318184.0);
-}
-
-
-#undef printf
-void initpc(int argc, wchar_t *argv[])
-{
-        wchar_t *p;
-        wchar_t *config_file = NULL;
-        int c;
-        get_executable_name(pcempath, 511);
-        pclog("executable_name = %S\n", pcempath);
-        p=get_filename_w(pcempath);
-        *p=L'\0';
-        pclog("path = %S\n", pcempath);        
-#ifdef WALTJE
-	DIR *dir;
-	struct direct *dp;
+    /* Now append the actual filename. */
+#ifdef WIN32
+    wcscat(temp, L"\\");
+#else
+    wcscat(temp, L"/");
 #endif
+    wcscat(temp, str);
 
-        for (c = 1; c < argc; c++)
-        {
-                if (!_wcsicmp(argv[c], L"--help"))
-                {
-                        printf("Command line options :\n\n");
-                        printf("--config file.cfg - use given config file as initial configuration\n");
-                        printf("--dump            - always dump memory on exit\n");
-                        printf("--fullscreen      - start in fullscreen mode\n");
-                        exit(-1);
-                }
-                else if (!_wcsicmp(argv[c], L"--config"))
-                {
-                        if ((c+1) == argc)
-                                break;
-                        config_file = argv[c+1];
-                        c++;
-                }
-                else if (!_wcsicmp(argv[c], L"--dump"))
-                {
-                        dump_on_exit = 1;
-                }
-                else if (!_wcsicmp(argv[c], L"--fullscreen"))
-                {
-                        start_in_fullscreen = 1;
-                }
-                else if (!_wcsicmp(argv[c], L"--test"))
-                {
-			/* some (undocumented) test function here.. */
-#ifdef WALTJE
-			dir = opendirw(pcempath);
-			if (dir != NULL) {
-				printf("Directory '%S':\n", pcempath);
-				for (;;) {
-					dp = readdir(dir);
-					if (dp == NULL) break;
-					printf(">> '%S'\n", dp->d_name);
-				}
-				closedir(dir);
-			} else {
-				printf("Could not open '%S'..\n", pcempath);
-			}
+    return(temp);
+}
+
+
+/*
+ * Perform initial startup of the PC.
+ *
+ * This is the platform-indepenent part of the startup,
+ * where we check commandline arguments and loading a
+ * configuration file.
+ */
+int
+pc_init(int argc, wchar_t *argv[])
+{
+    wchar_t *cfg = NULL, *p;
+    int c;
+
+    /* Grab the executable's full path. */
+    get_executable_name(exe_path, sizeof(exe_path)-1);
+    p = get_filename_w(exe_path);
+    *p = L'\0';
+
+    /*
+     * Get the current working directory.
+     * This is normally the directory from where the
+     * program was run. If we have been started via
+     * a shortcut (desktop icon), however, the CWD
+     * could have been set to something else.
+     */
+    plat_getcwd(cfg_path, sizeof(cfg_path)-1);
+
+    for (c=1; c<argc; c++) {
+	if (argv[c][0] != L'-') break;
+
+	if (!wcscasecmp(argv[c], L"--help") || !wcscasecmp(argv[c], L"-?")) {
+usage:
+		printf("\nUsage: 86box [options] [cfg-file]\n\n");
+		printf("Valid options are:\n\n");
+		printf("-? or --help        - show this information\n");
+		printf("-D or --dump        - dump memory on exit\n");
+		printf("-F or --fullscreen  - start in fullscreen mode\n");
+		printf("-P or --vmpath path - set 'path' to be root for vm\n");
+		printf("\nA config file can be specified. If none is, the default file will be used.\n");
+		return(0);
+	} else if (!wcscasecmp(argv[c], L"--dump") ||
+		   !wcscasecmp(argv[c], L"-D")) {
+		dump_on_exit = 1;
+	} else if (!wcscasecmp(argv[c], L"--fullscreen") ||
+		   !wcscasecmp(argv[c], L"-F")) {
+		start_in_fullscreen = 1;
+	} else if (!wcscasecmp(argv[c], L"--vmpath") ||
+		   !wcscasecmp(argv[c], L"-P")) {
+		if ((c+1) == argc) break;
+
+		wcscpy(cfg_path, argv[++c]);
+	} else if (!wcscasecmp(argv[c], L"--test")) {
+		/* some (undocumented) test function here.. */
+
+		/* .. and then exit. */
+		return(0);
+	}
+
+	/* Uhm... out of options here.. */
+	else goto usage;
+    }
+
+    /* One argument (config file) allowed. */
+    if (c < argc)
+	cfg = argv[c++];
+    if (c != argc) goto usage;
+
+    /*
+     * This is where we start outputting to the log file,
+     * if there is one. Maybe we should log a header with
+     * application build info and such?  --FvK
+     */
+
+    /* Make sure cfg_path has a trailing backslash. */
+    pclog("exe_path=%ls\n", exe_path);
+    if ((cfg_path[wcslen(cfg_path)-1] != L'\\') &&
+	(cfg_path[wcslen(cfg_path)-1] != L'/')) {
+#ifdef WIN32
+	wcscat(cfg_path, L"\\");
+#else
+	wcscat(cfg_path, L"/");
 #endif
+    }
+    pclog("cfg_path=%ls\n", cfg_path);
 
-			/* .. and then exit. */
-			exit(0);
-		}
-        }
-
-	if (config_file == NULL)
-	{
-	        append_filename_w(config_file_default, pcempath, CONFIG_FILE_W, 511);
-	}
-	else
-	{
-	        append_filename_w(config_file_default, pcempath, config_file, 511);
-	}
-
-        loadconfig(config_file);
-        pclog("Config loaded\n");
-}
-
-void initmodules(void)
-{
-	int i;
-
-	/* Initialize modules. */
-        mouse_init();
-#ifdef WALTJE
-	serial_init();
+    if (cfg != NULL) {
+	/*
+	 * The user specified a configuration file.
+	 *
+	 * If this is an absolute path, keep it, as
+	 * they probably have a reason to do that.
+	 * Otherwise, assume the pathname given is
+	 * relative to whatever the cfg_path is.
+	 */
+#ifdef WIN32
+	if ((cfg[1] == L':') ||	/* drive letter present */
+	    (cfg[0] == L'\\'))	/* backslash, root dir */
+#else
+	if (cfg[0] == L'/')	/* slash, root dir */
 #endif
-	random_init();
+		wcscpy(config_file_default, cfg);
+	  else
+		append_filename_w(config_file_default,
+				  cfg_path, cfg, 511);
+	cfg = NULL;
+    } else {
+        append_filename_w(config_file_default, cfg_path, CONFIG_FILE_W, 511);
+    }
 
-        joystick_init();
+    /*
+     * We are about to read the configuration file, which MAY
+     * put data into global variables (the hard- and floppy
+     * disks are an example) so we have to initialize those
+     * modules before we load the config..
+     */
+    hdd_init();
+    network_init();
+    cdrom_global_init();
 
-        cpuspeed2=(AT)?2:1;
-        atfullspeed=0;
+    /* Load the configuration file. */
+    config_load(cfg);
 
-        initvideo();
-        mem_init();
-        loadbios();
-        mem_add_bios();
-
-        codegen_init();
-
-        device_init();        
-                       
-        timer_reset();
-
-	for (i = 0; i < CDROM_NUM; i++)
-	{
-		if (cdrom_drives[i].bus_type)
-		{
-			SCSIReset(cdrom_drives[i].scsi_device_id, cdrom_drives[i].scsi_device_lun);
-		}
-
-		if (cdrom_drives[i].host_drive == 200)
-		{
-			image_open(i, cdrom_image[i].image_path);
-		}
-		else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
-		{
-			ioctl_open(i, cdrom_drives[i].host_drive);
-		}
-		else
-		{
-		        cdrom_null_open(i, cdrom_drives[i].host_drive);
-		}
-	}
-
-        sound_reset();
-	fdc_init();
-	floppy_init();
-	fdi_init();
-        img_init();
-        d86f_init();
-	td0_init();
-	imd_init();
-
-        floppy_load(0, floppyfns[0]);
-        floppy_load(1, floppyfns[1]);
-        floppy_load(2, floppyfns[2]);
-        floppy_load(3, floppyfns[3]);
-                
-        loadnvr();
-        sound_init();
-
-        resetide();
-	scsi_card_init();
-
-	fullspeed();
-        shadowbios=0;
-        
-	for (i = 0; i < CDROM_NUM; i++)
-	{
-		if (cdrom_drives[i].host_drive == 200)
-		{
-			image_reset(i);
-		}
-		else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
-		{
-			ioctl_reset(i);
-		}
-	}
+    /* All good! */
+    return(1);
 }
 
-void resetpc(void)
-{
-        pc_reset();
-        shadowbios=0;
-}
 
-void pc_keyboard_send(uint8_t val)
+void
+pc_full_speed(void)
 {
+    cpuspeed2 = cpuspeed;
+
+    if (! atfullspeed) {
+	pclog("Set fullspeed - %i %i %i\n", is386, AT, cpuspeed2);
 	if (AT)
-	{
-		keyboard_at_adddata_keyboard_raw(val);
+		setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
+	  else
+		setpitclock(14318184.0);
+    }
+    atfullspeed = 1;
+
+    nvr_recalc();
+}
+
+
+void
+pc_speed_changed(void)
+{
+    if (AT)
+	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
+      else
+	setpitclock(14318184.0);
+
+    nvr_recalc();
+}
+
+
+/* Initialize modules, ran once, after pc_init. */
+int
+pc_init_modules(void)
+{
+    int c, i;
+
+    pclog("Scanning for ROM images:\n");
+    c = 0;
+    for (i=0; i<ROM_MAX; i++) {
+	romspresent[i] = rom_load_bios(i);
+	c += romspresent[i];
+    }
+    if (c == 0) {
+	/* No usable ROMs found, aborting. */
+	return(0);
+    }
+    pclog("A total of %d ROM sets have been loaded.\n", c);
+
+    /*
+     * Load the ROMs for the selected machine.
+     *
+     * FIXME:
+     * We should not do that here.  If something turns out
+     * to be wrong with the configuration (such as missing
+     * ROM images, we should just display a fatal message
+     * in the render window's center, let them click OK,
+     * and then exit so they can remedy the situation.
+     */
+again:
+    if (! rom_load_bios(romset)) {
+	/* Whoops, ROMs not found. */
+	if (romset != -1)
+		ui_msgbox(MBX_INFO, (wchar_t *)IDS_2063);
+
+	/* Select another machine to use. */
+	for (c=0; c<ROM_MAX; c++) {
+		if (romspresent[c]) {
+			romset = c;
+			machine = machine_getmachine(romset);
+			config_save();
+
+			/* This can loop if all ROMs are now bad.. */
+			goto again;
+		}
 	}
-	else
-	{
-		keyboard_send(val);
+    }
+        
+    /* Make sure we have a usable video card. */
+    for (c=0; c<GFX_MAX; c++)
+	gfx_present[c] = video_card_available(video_old_to_new(c));
+again2:
+    if (! video_card_available(video_old_to_new(gfxcard))) {
+	if (romset != -1) {
+		ui_msgbox(MBX_INFO, (wchar_t *)IDS_2064);
 	}
+	for (c=GFX_MAX-1; c>=0; c--) {
+		if (gfx_present[c]) {
+			gfxcard = c;
+			config_save();
+
+			/* This can loop if all cards now bad.. */
+			goto again2;
+		}
+	}
+    }
+
+    cpuspeed2 = (AT) ? 2 : 1;
+    atfullspeed = 0;
+
+    random_init();
+
+    mem_init();
+
+#ifdef USE_DYNAREC
+    codegen_init();
+#endif
+
+    mouse_init();
+#ifdef WALTJE
+    serial_init();
+#endif
+    joystick_init();
+    video_init();
+
+    ide_init_first();
+
+    cdrom_global_reset();
+
+    device_init();        
+                       
+    timer_reset();
+
+    sound_reset();
+
+    fdc_init();
+
+    floppy_general_init();
+
+    sound_init();
+
+    hdc_init(hdc_name);
+
+    ide_reset();
+
+    cdrom_hard_reset();
+
+    scsi_card_init();
+
+    pc_full_speed();
+    shadowbios = 0;
+
+    return(1);
 }
 
-void resetpc_cad(void)
+
+/* Insert keystrokes into the machine's keyboard buffer. */
+static void
+pc_keyboard_send(uint8_t val)
 {
-	pc_keyboard_send(29);	/* Ctrl key pressed */
-	pc_keyboard_send(56);	/* Alt key pressed */
-	pc_keyboard_send(83);	/* Delete key pressed */
-	pc_keyboard_send(157);	/* Ctrl key released */
-	pc_keyboard_send(184);	/* Alt key released */
-	pc_keyboard_send(211);	/* Delete key released */
+    if (AT)
+	keyboard_at_adddata_keyboard_raw(val);
+      else
+	keyboard_send(val);
 }
 
 
-void ctrl_alt_esc(void)
+/* Send the machine a Control-Alt-DEL sequence. */
+void
+pc_send_cad(void)
 {
-	pc_keyboard_send(29);	/* Ctrl key pressed */
-	pc_keyboard_send(56);	/* Alt key pressed */
-	pc_keyboard_send(1);	/* Esc key pressed */
-	pc_keyboard_send(157);	/* Ctrl key released */
-	pc_keyboard_send(184);	/* Alt key released */
-	pc_keyboard_send(129);	/* Esc key released */
+    pc_keyboard_send(29);	/* Ctrl key pressed */
+    pc_keyboard_send(56);	/* Alt key pressed */
+    pc_keyboard_send(83);	/* Delete key pressed */
+    pc_keyboard_send(157);	/* Ctrl key released */
+    pc_keyboard_send(184);	/* Alt key released */
+    pc_keyboard_send(211);	/* Delete key released */
 }
 
-int suppress_overscan = 0;
 
-void resetpchard_close(void)
+/* Send the machine a Control-Alt-ESC sequence. */
+void
+pc_send_cae(void)
 {
-	suppress_overscan = 0;
-
-	savenvr();
-
-        device_close_all();
-	mouse_emu_close();
-        closeal();
+    pc_keyboard_send(29);	/* Ctrl key pressed */
+    pc_keyboard_send(56);	/* Alt key pressed */
+    pc_keyboard_send(1);	/* Esc key pressed */
+    pc_keyboard_send(157);	/* Ctrl key released */
+    pc_keyboard_send(184);	/* Alt key released */
+    pc_keyboard_send(129);	/* Esc key released */
 }
 
-void resetpchard_init(void)
+
+void
+pc_reset_hard_close(void)
 {
-	int i = 0;
+    suppress_overscan = 0;
 
-	sound_realloc_buffers();
+    nvr_save();
 
-        initalmain(0,NULL);
+    device_close_all();
+    midi_close();
+    mouse_emu_close();
+    closeal();
+}
 
-        device_init();
-        midi_device_init();
-        inital();
-    
-        timer_reset();
-        sound_reset();
-        mem_resize();
-        fdc_init();
-	floppy_reset();
+
+/*
+ * This is basically the spot where we start up the actual machine,
+ * by issuing a 'hard reset' to the entire configuration. Order is
+ * somewhat important here. Functions here should be named _reset
+ * really, as that is what they do.
+ */
+void
+pc_reset_hard_init(void)
+{
+    /* First, we reset the modules that are not part of the
+     * actual machine, but which support some of the modules
+     * that are.
+     */
+    sound_realloc_buffers();
+    sound_cd_thread_reset();
+    initalmain(0, NULL);
+
+    /* Reset the general machine support modules. */
+    mem_resize();
+    io_init();
+    device_init();
+    timer_reset();
+
+    midi_device_init();
+    inital();
+    sound_reset();
+
+    fdc_init();
+    fdc_update_is_nsc(0);
+    floppy_reset();
 
 #ifndef WALTJE
-	serial_init();
-#endif
-        machine_init();
-        video_init();
-        speaker_init();
-	lpt1_device_init();
-
-	ide_ter_disable();
-	ide_qua_disable();
-
-	if (ide_enable[2])
-	{
-		ide_ter_init();
-	}
-
-	if (ide_enable[3])
-	{
-		ide_qua_init();
-	}
-
-        resetide();
-	scsi_card_init();
-#ifdef USE_NETWORK
-	network_reset();
+    /* This is needed to initialize the serial timer. */
+    serial_init();
 #endif
 
-        sound_card_init();
-        if (mpu401_standalone_enable)
-                mpu401_device_add();
-        if (GUS)
-                device_add(&gus_device);
-        if (GAMEBLASTER)
-                device_add(&cms_device);
-        if (SSI2001)
-                device_add(&ssi2001_device);
-        if (voodoo_enabled)
-                device_add(&voodoo_device);
-	hdd_controller_init(hdd_controller_name);
-        pc_reset();
-	mouse_emu_init();
- 
-        loadnvr();
+    /* Initialize the actual machine and its basic modules. */
+    machine_init();
 
-        shadowbios = 0;
+    /*
+     * Once the machine has been initialized, all that remains
+     * should be resetting all devices set up for it, to their
+     * current configurations !
+     *
+     * For now, we will call their reset functions here, but
+     * that will be a call to device_reset_all() later !
+     */
+
+    /* Reset some basic devices. */
+    speaker_init();
+    serial_reset();
+    lpt1_device_init();
+
+    /* Reset keyboard and/or mouse. */
+    keyboard_at_reset();
+    mouse_emu_init();
         
-        keyboard_at_reset();
-        
-	cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
+    /* Reset the video card. */
+    video_reset();
+    if (voodoo_enabled)
+	device_add(&voodoo_device);
 
-	for (i = 0; i < CDROM_NUM; i++)
-	{
-		if (cdrom_drives[i].host_drive == 200)
-		{
-			image_reset(i);
-		}
-		else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
-		{
-			ioctl_reset(i);
-		}
-	}
+    /* Reset the Floppy Disk controller. */
+    fdc_reset();
 
-	sound_cd_thread_reset();
+    /* Reset the Hard Disk Controller module. */
+    hdc_reset();
+
+    /* Reconfire and reset the IDE layer. */
+    ide_ter_disable();
+    ide_qua_disable();
+    if (ide_enable[2])
+	ide_ter_init();
+    if (ide_enable[3])
+	ide_qua_init();
+    ide_reset();
+
+    /* Reset and reconfigure the SCSI layer. */
+    scsi_card_init();
+
+    cdrom_hard_reset();
+
+    /* Reset and reconfigure the Network Card layer. */
+    network_reset();
+
+    /* Reset and reconfigure the Sound Card layer. */
+    sound_card_init();
+    if (mpu401_standalone_enable)
+	mpu401_device_add();
+    if (GUS)
+	device_add(&gus_device);
+    if (GAMEBLASTER)
+	device_add(&cms_device);
+    if (SSI2001)
+	device_add(&ssi2001_device);
+
+    /* Reset the CPU module. */
+    cpu_set();
+    cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
+    resetx86();
+    dma_reset();
+    pic_reset();
+
+    shadowbios = 0;
+
+    if (AT)
+	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
+      else
+ 	setpitclock(14318184.0);
 }
 
-void resetpchard(void)
+
+void
+pc_reset_hard(void)
 {
-	resetpchard_close();
-	resetpchard_init();
+    pc_reset_hard_close();
+
+    pc_reset_hard_init();
 }
 
+
+void
+pc_close(void)
+{
+    int i;
+
+    for (i=0; i<CDROM_NUM; i++)
+	cdrom_drives[i].handler->exit(i);
+
+    dumppic();
+
+    for (i=0; i<FDD_NUM; i++)
+       floppy_close(i);
+
+    dumpregs(0);
+
+    video_close();
+
+    lpt1_device_close();
+
+    device_close_all();
+
+    midi_close();
+
+    network_close();
+}
+
+
+/*
+ * Run the actual configured PC.
+ */
 int framecountx=0;
 int sndcount=0;
-
 int sreadlnum,swritelnum,segareads,segawrites, scycles_lost;
-
 int serial_fifo_read, serial_fifo_write;
-
 int emu_fps = 0;
 
 static wchar_t wmachine[2048];
 static wchar_t wcpu[2048];
 
-void runpc(void)
-{
-        wchar_t s[200];
-        int done=0;
 
-        startblit();
-        clockrate = machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed;
+static void
+pollmouse(void)
+{
+    int x, y, z;
+
+    if (--pollmouse_delay) return;
+
+    pollmouse_delay = 2;
+
+    mouse_poll_host();
+
+    mouse_get_mickeys(&x, &y, &z);
+
+    mouse_poll(x, y, z, mouse_buttons);
+}
+
+
+void
+pc_run(void)
+{
+    wchar_t temp[200];
+    int done = 0;
+
+    startblit();
+    clockrate = machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed;
         
-        if (is386)   
-        {
-                if (cpu_use_dynarec)
-                        exec386_dynarec(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
-                else
-                        exec386(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
-        }
-        else if (AT)
-	{
-                exec386(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
-	}
-        else
-	{
-                execx86(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
-	}
-        
-                keyboard_process();
-                pollmouse();
-                if (joystick_type != 7)  joystick_poll();
-		endblit();
-
-                framecountx++;
-                framecount++;
-                if (framecountx>=100)
-                {
-                        framecountx=0;
-                        mips=(float)insc/1000000.0f;
-                        insc=0;
-                        flops=(float)fpucount/1000000.0f;
-                        fpucount=0;
-                        sreadlnum=readlnum;
-                        swritelnum=writelnum;
-                        segareads=egareads;
-                        segawrites=egawrites;
-                        scycles_lost = cycles_lost;
-
-                        cpu_recomp_blocks_latched = cpu_recomp_blocks;
-                        cpu_recomp_ins_latched = cpu_state.cpu_recomp_ins;
-                        cpu_recomp_full_ins_latched = cpu_recomp_full_ins;
-                        cpu_new_blocks_latched = cpu_new_blocks;
-                        cpu_recomp_flushes_latched = cpu_recomp_flushes;
-                        cpu_recomp_evicted_latched = cpu_recomp_evicted;
-                        cpu_recomp_reuse_latched = cpu_recomp_reuse;
-                        cpu_recomp_removed_latched = cpu_recomp_removed;
-                        cpu_reps_latched = cpu_reps;
-                        cpu_notreps_latched = cpu_notreps;
-                                                
-                        cpu_recomp_blocks = 0;
-                        cpu_state.cpu_recomp_ins = 0;
-                        cpu_recomp_full_ins = 0;
-                        cpu_new_blocks = 0;
-                        cpu_recomp_flushes = 0;
-                        cpu_recomp_evicted = 0;
-                        cpu_recomp_reuse = 0;
-                        cpu_recomp_removed = 0;
-                        cpu_reps = 0;
-                        cpu_notreps = 0;
-
-                        updatestatus=1;
-                        readlnum=writelnum=0;
-                        egareads=egawrites=0;
-                        cycles_lost = 0;
-                        mmuflush=0;
-                        emu_fps = frames;
-                        frames = 0;
-                }
-                if (win_title_update)
-                {
-                        win_title_update=0;
-			mbstowcs(wmachine, machine_getname(), strlen(machine_getname()) + 1);
-			mbstowcs(wcpu, machines[machine].cpu[cpu_manufacturer].cpus[cpu].name, strlen(machines[machine].cpu[cpu_manufacturer].cpus[cpu].name) + 1);
-                        _swprintf(s, L"%s v%s - %i%% - %s - %s - %s", EMU_NAME_W, EMU_VERSION_W, fps, wmachine, wcpu, (!mousecapture) ? plat_get_string_from_id(IDS_2077) : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? plat_get_string_from_id(IDS_2078) : plat_get_string_from_id(IDS_2079)));
-                        set_window_title(s);
-                }
-                done++;
-}
-
-void fullspeed(void)
-{
-        cpuspeed2=cpuspeed;
-        if (!atfullspeed)
-        {
-                printf("Set fullspeed - %i %i %i\n",is386,AT,cpuspeed2);
-                if (AT)
-                        setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
-                else
-                        setpitclock(14318184.0);
-        }
-        atfullspeed=1;
-        nvr_recalc();
-}
-
-void speedchanged(void)
-{
-        if (AT)
-                setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
-        else
-                setpitclock(14318184.0);
-        nvr_recalc();
-}
-
-void closepc(void)
-{
-	int i = 0;
-	for (i = 0; i < CDROM_NUM; i++)
-	{
-        	cdrom_drives[i].handler->exit(i);
-	}
-        dumppic();
-	for (i = 0; i < FDD_NUM; i++)
-	{
-	        floppy_close(i);
-	}
-        dumpregs(0);
-        closevideo();
-	lpt1_device_close();
-        device_close_all();
-        midi_close();
-#ifdef USE_NETWORK
-	network_close();
+    if (is386)   {
+#ifdef USE_DYNAREC
+	if (cpu_use_dynarec)
+		exec386_dynarec(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
+	else
 #endif
+		exec386(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
+    } else if (AT) {
+	exec386(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
+    } else {
+	execx86(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
+    }
+
+    keyboard_process();
+
+    pollmouse();
+
+    if (joystick_type != 7)
+	joystick_poll();
+
+    endblit();
+
+    framecountx++;
+    framecount++;
+    if (framecountx >= 100) {
+	framecountx = 0;
+	mips = (float)insc/1000000.0f;
+	insc = 0;
+	flops = (float)fpucount/1000000.0f;
+	fpucount = 0;
+	sreadlnum = readlnum;
+	swritelnum = writelnum;
+	segareads = egareads;
+	segawrites = egawrites;
+	scycles_lost = cycles_lost;
+
+#ifdef USE_DYNAREC
+	cpu_recomp_blocks_latched = cpu_recomp_blocks;
+	cpu_recomp_ins_latched = cpu_state.cpu_recomp_ins;
+	cpu_recomp_full_ins_latched = cpu_recomp_full_ins;
+	cpu_new_blocks_latched = cpu_new_blocks;
+	cpu_recomp_flushes_latched = cpu_recomp_flushes;
+	cpu_recomp_evicted_latched = cpu_recomp_evicted;
+	cpu_recomp_reuse_latched = cpu_recomp_reuse;
+	cpu_recomp_removed_latched = cpu_recomp_removed;
+	cpu_reps_latched = cpu_reps;
+	cpu_notreps_latched = cpu_notreps;
+
+	cpu_recomp_blocks = 0;
+	cpu_state.cpu_recomp_ins = 0;
+	cpu_recomp_full_ins = 0;
+	cpu_new_blocks = 0;
+	cpu_recomp_flushes = 0;
+	cpu_recomp_evicted = 0;
+	cpu_recomp_reuse = 0;
+	cpu_recomp_removed = 0;
+	cpu_reps = 0;
+	cpu_notreps = 0;
+#endif
+
+	updatestatus = 1;
+	readlnum = writelnum = 0;
+	egareads = egawrites = 0;
+	cycles_lost = 0;
+	mmuflush = 0;
+	emu_fps = frames;
+	frames = 0;
+    }
+
+    if (win_title_update) {
+	mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
+	mbstowcs(wcpu, machines[machine].cpu[cpu_manufacturer].cpus[cpu].name,
+		 strlen(machines[machine].cpu[cpu_manufacturer].cpus[cpu].name)+1);
+	swprintf(temp, sizeof_w(temp), L"%ls v%ls - %i%% - %ls - %ls - %ls",
+		  EMU_NAME_W, EMU_VERSION_W, fps, wmachine, wcpu,
+		  (!mousecapture) ? plat_get_string(IDS_2077)
+				  : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079)));
+	set_window_title(temp);
+
+	win_title_update = 0;
+    }
+
+    done++;
+}
+
+
+void
+onesec(void)
+{
+    fps = framecount;
+    framecount = 0;
+    win_title_update = 1;
 }

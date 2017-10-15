@@ -1,15 +1,20 @@
 #include <windows.h>
 #include <mmsystem.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../config.h"
 #include "../sound/midi.h"
-#include "plat_midi.h"
+#include "../plat.h"
+#include "../plat_midi.h"
+
 
 int midi_id = 0;
-static HMIDIOUT midi_out_device = NULL;
-
 HANDLE m_event;
 
+static HMIDIOUT midi_out_device = NULL;
 static uint8_t midi_rt_buf[1024];
 static uint8_t midi_cmd_buf[1024];
 static int midi_cmd_pos = 0;

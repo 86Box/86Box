@@ -1,11 +1,15 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"
-#include "filters.h"
-#include "../lpt.h"
-#include "snd_lpt_dss.h"
-#include "sound.h"
 #include "../timer.h"
+#include "../lpt.h"
+#include "sound.h"
+#include "filters.h"
+#include "snd_lpt_dss.h"
 
 typedef struct dss_t
 {
@@ -14,7 +18,7 @@ typedef struct dss_t
         
         uint8_t dac_val;
         
-        int time;
+        int64_t time;
         
         int16_t buffer[SOUNDBUFLEN];
         int pos;
@@ -84,7 +88,7 @@ static void dss_callback(void *p)
                 dss->read_idx++;
         }
         
-        dss->time += (TIMER_USEC * (1000000.0 / 7000.0));
+        dss->time += (int64_t) (TIMER_USEC * (1000000.0 / 7000.0));
 }
 
 static void *dss_init()

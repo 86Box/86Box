@@ -1,17 +1,19 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
-#include "../cpu/cpu.h"
 #include "../io.h"
 #include "../nmi.h"
 #include "../mem.h"
 #include "../device.h"
 #include "../nvr.h"
-#include "../gameport.h"
+#include "../game/gameport.h"
 #include "../keyboard_olim24.h"
-#include "machine_common.h"
-#include "machine_olivetti_m24.h"
+#include "machine.h"
 
 
 static uint8_t olivetti_m24_read(uint16_t port, void *priv)
@@ -33,12 +35,16 @@ static void olivetti_m24_init(void)
 }
 
 
-void machine_olim24_init(void)
+void
+machine_olim24_init(machine_t *model)
 {
-        machine_common_init();
-	mem_add_bios();
+        machine_common_init(model);
+
         keyboard_olim24_init();
-        nvr_init();
+
+	/* FIXME: make sure this is correct?? */
+        nvr_at_init(8);
+
         olivetti_m24_init();
 	nmi_init();
 	if (joystick_type != 7)  device_add(&gameport_device);

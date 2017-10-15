@@ -10,16 +10,18 @@
  *
  *		Based on the "libpcap" examples.
  *
- * Version:	@(#)pcap_if.c	1.0.3	2017/06/04
+ * Version:	@(#)pcap_if.c	1.0.5	2017/10/10
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <ctype.h>
 #include <pcap.h>
-#include "plat_dynld.h"
+#include "../plat_dynld.h"
 
 
 static void	*pcap_handle;		/* handle to WinPcap DLL */

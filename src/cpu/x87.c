@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #define fplog 0
 #include <math.h>
 #include "../ibm.h"

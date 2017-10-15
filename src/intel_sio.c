@@ -6,14 +6,17 @@
  *
  *		Emulation of Intel System I/O PCI chip.
  *
- * Version:	@(#)intel_sio.c	1.0.5	2017/09/03
+ * Version:	@(#)intel_sio.c	1.0.6	2017/09/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
+#include <stdio.h>
+#include <stdint.h>
 #include <string.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "io.h"
 #include "dma.h"

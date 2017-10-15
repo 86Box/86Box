@@ -7,18 +7,22 @@
     CX is loops between bit 4 of $62 changing
     BX is timer difference between calls
   */
-
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "pit.h"
 #include "plat_keyboard.h"
 #include "plat_mouse.h"
 
+
 PPI ppi;
 int ppispeakon;
 
-void ppi_reset()
+
+void ppi_reset(void)
 {
         ppi.pa=0x0;
         ppi.pb=0x40;
 }
-

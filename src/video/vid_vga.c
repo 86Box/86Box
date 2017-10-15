@@ -1,8 +1,26 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
-/*IBM VGA emulation*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		IBM VGA emulation.
+ *
+ * Version:	@(#)vid_vga.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -80,7 +98,8 @@ uint8_t vga_in(uint16_t addr, void *p)
         return temp;
 }
 
-void *vga_init()
+
+static void *vga_init(device_t *info)
 {
         vga_t *vga = malloc(sizeof(vga_t));
         memset(vga, 0, sizeof(vga_t));
@@ -101,8 +120,9 @@ void *vga_init()
         return vga;
 }
 
+
 #ifdef DEV_BRANCH
-void *trigem_unk_init()
+static void *trigem_unk_init(device_t *info)
 {
         vga_t *vga = malloc(sizeof(vga_t));
         memset(vga, 0, sizeof(vga_t));
@@ -129,7 +149,7 @@ void *trigem_unk_init()
 #endif
 
 /*PS/1 uses a standard VGA controller, but with no option ROM*/
-void *ps1vga_init()
+void *ps1vga_init(device_t *info)
 {
         vga_t *vga = malloc(sizeof(vga_t));
         memset(vga, 0, sizeof(vga_t));
@@ -148,7 +168,7 @@ void *ps1vga_init()
         return vga;
 }
 
-static int vga_available()
+static int vga_available(void)
 {
         return rom_present(L"roms/video/vga/ibm_vga.bin");
 }
@@ -186,9 +206,11 @@ void vga_add_status_info(char *s, int max_len, void *p)
 device_t vga_device =
 {
         "VGA",
-        0,
+        DEVICE_ISA,
+	0,
         vga_init,
         vga_close,
+	NULL,
         vga_available,
         vga_speed_changed,
         vga_force_redraw,
@@ -198,9 +220,11 @@ device_t vga_device =
 device_t trigem_unk_device =
 {
         "VGA",
-        0,
+        DEVICE_ISA,
+	0,
         trigem_unk_init,
         vga_close,
+	NULL,
         vga_available,
         vga_speed_changed,
         vga_force_redraw,
@@ -211,8 +235,10 @@ device_t ps1vga_device =
 {
         "PS/1 VGA",
         0,
+	0,
         ps1vga_init,
         vga_close,
+	NULL,
         vga_available,
         vga_speed_changed,
         vga_force_redraw,

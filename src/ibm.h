@@ -8,18 +8,20 @@
  *
  *		General include file.
  *
- * Version:	@(#)ibm.h	1.0.3	2017/09/03
+ * !!!NOTE!!!	The goal is to GET RID of this file.  Do NOT add stuff !!
+ *
+ * Version:	@(#)ibm.h	1.0.8	2017/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <wchar.h>
-#define printf pclog
+#ifndef EMU_IBM_H
+# define EMU_IBM_H
+
+
+#define	printf	pclog
 
 
 /*Memory*/
@@ -286,38 +288,38 @@ extern int cpl_override;
 /*Timer*/
 typedef struct PIT_nr
 {
-        int nr;
+        int64_t nr;
         struct PIT *pit;
 } PIT_nr;
 
 typedef struct PIT
 {
         uint32_t l[3];
-        int c[3];
+        int64_t c[3];
         uint8_t m[3];
         uint8_t ctrl,ctrls[3];
-        int wp,rm[3],wm[3];
+        int64_t wp,rm[3],wm[3];
         uint16_t rl[3];
-        int thit[3];
-        int delay[3];
-        int rereadlatch[3];
-        int gate[3];
-        int out[3];
-        int running[3];
-        int enabled[3];
-        int newcount[3];
-        int count[3];
-        int using_timer[3];
-        int initial[3];
-        int latched[3];
-        int disabled[3];
+        int64_t thit[3];
+        int64_t delay[3];
+        int64_t rereadlatch[3];
+        int64_t gate[3];
+        int64_t out[3];
+        int64_t running[3];
+        int64_t enabled[3];
+        int64_t newcount[3];
+        int64_t count[3];
+        int64_t using_timer[3];
+        int64_t initial[3];
+        int64_t latched[3];
+        int64_t disabled[3];
         
         uint8_t read_status[3];
-        int do_read_status[3];
+        int64_t do_read_status[3];
         
         PIT_nr pit_nr[3];
         
-        void (*set_out_funcs[3])(int new_out, int old_out);
+        void (*set_out_funcs[3])(int64_t new_out, int64_t old_out);
 } PIT;
 
 PIT pit, pit2;
@@ -373,176 +375,80 @@ extern PIC pic, pic2;
 extern int pic_intpending;
 
 
-extern int floppytime;
+extern int64_t floppytime;
 extern wchar_t floppyfns[4][512];
 extern int driveempty[4];
 
 #define MDA ((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_HERCULESPLUS || gfxcard==GFX_INCOLOR || gfxcard==GFX_GENIUS) && (romset<ROM_TANDY || romset>=ROM_IBMAT))
-#define VGA ((gfxcard>=GFX_TVGA || romset==ROM_ACER386) && gfxcard!=GFX_COLORPLUS && gfxcard!=GFX_INCOLOR && gfxcard!=GFX_WY700 && gfxcard!=GFX_GENIUS && gfxcard!=GFX_COMPAQ_EGA && gfxcard!=GFX_SUPER_EGA && gfxcard!=GFX_HERCULESPLUS && romset!=ROM_PC1640 && romset!=ROM_PC1512 && romset!=ROM_TANDY && romset!=ROM_PC200)
-#define PCJR (romset == ROM_IBMPCJR)
-#define AMIBIOS (romset==ROM_AMI386SX || romset==ROM_AMI486 || romset == ROM_WIN486)
+#define VGA ((gfxcard>=GFX_TVGA) && gfxcard!=GFX_COLORPLUS && gfxcard!=GFX_INCOLOR && gfxcard!=GFX_WY700 && gfxcard!=GFX_GENIUS && gfxcard!=GFX_COMPAQ_EGA && gfxcard!=GFX_SUPER_EGA && gfxcard!=GFX_HERCULESPLUS && romset!=ROM_PC1640 && romset!=ROM_PC1512 && romset!=ROM_TANDY && romset!=ROM_PC200)
 
 int GAMEBLASTER, GUS, SSI2001, voodoo_enabled, buslogic_enabled;
 extern int AMSTRAD, AT, is286, is386, PCI, TANDY;
 
-enum
-{
-        ROM_IBMPC = 0,  /*301 keyboard error, 131 cassette (!!!) error*/
-        ROM_IBMXT,      /*301 keyboard error*/
-        ROM_IBMPCJR,
-        ROM_GENXT,      /*'Generic XT BIOS'*/
-        ROM_DTKXT,
-        ROM_EUROPC,
-        ROM_OLIM24,
-        ROM_TANDY,
-        ROM_PC1512,
-        ROM_PC200,
-        ROM_PC1640,
-        ROM_PC2086,
-        ROM_PC3086,        
-        ROM_AMIXT,      /*XT Clone with AMI BIOS*/
-	ROM_LTXT,
-	ROM_LXT3,
-	ROM_PX386,
-        ROM_DTK386,
-        ROM_PXXT,
-        ROM_JUKOPC,
-        ROM_TANDY1000HX,
-        ROM_TANDY1000SL2,
-        ROM_IBMAT,
-        ROM_CMDPC30,
-        ROM_AMI286,
-        ROM_AWARD286,
-        ROM_DELL200,
-        ROM_MISC286,
-        ROM_IBMAT386,
-        ROM_ACER386,
-        ROM_MEGAPC,
-        ROM_AMI386SX,
-        ROM_AMI486,
-        ROM_WIN486,
-        ROM_PCI486,
-        ROM_SIS496,
-        ROM_430VX,
-        ROM_ENDEAVOR,
-        ROM_REVENGE,
-        ROM_IBMPS1_2011,
-        ROM_DESKPRO_386,
-	ROM_PORTABLE,
-#if 0
-	ROM_PORTABLEII,
-	ROM_PORTABLEIII,
-	ROM_PORTABLEIII386, /* The original Compaq Portable III shipped with an Intel 80286 CPU, but later switched to a 386DX. */
-#endif
-        ROM_IBMPS1_2121,
-
-        ROM_AMI386DX_OPTI495,
-        ROM_MR386DX_OPTI495,
-
-	ROM_IBMPS2_M30_286,
-	ROM_IBMPS2_M50,
-	ROM_IBMPS2_M55SX,
-	ROM_IBMPS2_M80,
-
-        ROM_DTK486,     /*DTK PKM-0038S E-2 / SiS 471 / Award BIOS / SiS 85C471*/
-        ROM_VLI486SV2G, /*ASUS VL/I-486SV2G / SiS 471 / Award BIOS / SiS 85C471*/
-        ROM_R418,       /*Rise Computer R418 / SiS 496/497 / Award BIOS / SMC FDC37C665*/
-        ROM_586MC1,     /*Micro Star 586MC1 MS-5103 / 430LX / Award BIOS*/
-	ROM_PLATO,      /*Intel Premiere/PCI II / 430NX / AMI BIOS / SMC FDC37C665*/
-        ROM_MB500N,     /*PC Partner MB500N / 430FX / Award BIOS / SMC FDC37C665*/
-        ROM_P54TP4XE,   /*ASUS P/I-P55TP4XE / 430FX / Award BIOS / SMC FDC37C665*/
-	ROM_AP53,       /*AOpen AP53 / 430HX / AMI BIOS / SMC FDC37C665/669*/
-	ROM_P55T2S,     /*ASUS P/I-P55T2S / 430HX / AMI BIOS / National Semiconductors PC87306*/
-	ROM_ACERM3A,    /*Acer M3A / 430HX / Acer BIOS / SMC FDC37C932FR*/
-	ROM_ACERV35N,   /*Acer V35N / 430HX / Acer BIOS / SMC FDC37C932FR*/
-        ROM_P55T2P4,    /*ASUS P/I-P55T2P4 / 430HX / Award BIOS / Winbond W8387F*/
-        ROM_P55TVP4,    /*ASUS P/I-P55TVP4 / 430HX / Award BIOS / Winbond W8387F*/
-        ROM_P55VA,      /*Epox P55-VA / 430VX / Award BIOS / SMC FDC37C932FR*/
-
-	ROM_440FX,	/*Tyan Titan-Pro AT / 440FX / Award BIOS / SMC FDC37C665*/
-
-        ROM_MARL,	/*Intel Advanced/ML / 430HX / AMI BIOS / National Semiconductors PC87306*/
-        ROM_THOR,	/*Intel Advanced/ATX / 430FX / AMI BIOS / National Semiconductors PC87306*/
-        ROM_MRTHOR,	/*Intel Advanced/ATX / 430FX / MR.BIOS / National Semiconductors PC87306*/
-        ROM_POWERMATE_V,/*NEC PowerMate V / 430FX / Phoenix BIOS / SMC FDC37C665*/
-
-        ROM_IBMPS1_2121_ISA,/*IBM PS/1 Model 2121 with ISA expansion bus*/
-
-        ROM_SPC4200P,	/*Samsung SPC-4200P / SCAT / Phoenix BIOS*/
-        ROM_SUPER286TR,	/*Hyundai Super-286TR / SCAT / Award BIOS*/
-
-        ROM_AWARD386SX_OPTI495,
-        ROM_AWARD386DX_OPTI495,
-        ROM_AWARD486_OPTI495,
-
-        ROM_MEGAPCDX,	/*386DX mdoel of the Mega PC - Note by Tohka: The documentation (that I have in German) clearly says such a model exists.*/
-        ROM_ZAPPA,	/*Intel Advanced/ZP / 430FX / AMI BIOS / National Semiconductors PC87306*/
-
-        ROM_CMDPC60,
-
-        ROM_S1668,      /*Tyan Titan-Pro ATX / 440FX / AMI BIOS / SMC FDC37C669*/
-        ROM_IBMPS1_2133,
-
-        ROM_PRESIDENT,  /*President Award 430FX PCI / 430FX / Award BIOS / Unknown Super I/O chip*/
-	ROM_IBMPS2_M80_486,
-
-        ROM_MAX
-};
-
-extern int romspresent[ROM_MAX];
-
 extern int hasfpu;
-extern int romset;
 
 enum
 {
         GFX_CGA = 0,
         GFX_MDA,
         GFX_HERCULES,
-        GFX_EGA,        /*Using IBM EGA BIOS*/
-        GFX_TVGA,       /*Using Trident TVGA8900D BIOS*/
-        GFX_ET4000,     /*Tseng ET4000*/
-        GFX_ET4000W32,  /*Tseng ET4000/W32p (Diamond Stealth 32)*/
-        GFX_BAHAMAS64,  /*S3 Vision864 (Paradise Bahamas 64)*/
-        GFX_N9_9FX,     /*S3 764/Trio64 (Number Nine 9FX)*/
-        GFX_VIRGE,      /*S3 Virge*/
-        GFX_TGUI9440,   /*Trident TGUI9440*/
-        GFX_VGA,        /*IBM VGA*/        
-        GFX_VGAEDGE16,  /*ATI VGA Edge-16 (18800-1)*/
-        GFX_VGACHARGER, /*ATI VGA Charger (28800-5)*/
-        GFX_OTI067,     /*Oak OTI-067*/
-        GFX_MACH64GX,   /*ATI Graphics Pro Turbo (Mach64)*/
-        GFX_CL_GD5429,  /*Cirrus Logic CL-GD5429*/
-        GFX_VIRGEDX,    /*S3 Virge/DX*/
-        GFX_PHOENIX_TRIO32, /*S3 732/Trio32 (Phoenix)*/
-        GFX_PHOENIX_TRIO64, /*S3 764/Trio64 (Phoenix)*/
-       	GFX_INCOLOR,	/* Hercules InColor */
-	GFX_COLORPLUS,	/* Plantronics ColorPlus */
-	GFX_WY700,	/* Wyse 700 */
-	GFX_GENIUS,	/* MDSI Genius */
-        GFX_MACH64VT2,  /*ATI Mach64 VT2*/
+        GFX_EGA,			/*Using IBM EGA BIOS*/
+        GFX_TVGA,			/*Using Trident TVGA8900D BIOS*/
+        GFX_ET4000,			/*Tseng ET4000*/
+        GFX_ET4000W32_VLB,		/*Tseng ET4000/W32p (Diamond Stealth 32) VLB*/
+        GFX_ET4000W32_PCI,		/*Tseng ET4000/W32p (Diamond Stealth 32) PCI*/
+        GFX_BAHAMAS64_VLB,		/*S3 Vision864 (Paradise Bahamas 64) VLB*/
+        GFX_BAHAMAS64_PCI,		/*S3 Vision864 (Paradise Bahamas 64) PCI*/
+        GFX_N9_9FX_VLB,			/*S3 764/Trio64 (Number Nine 9FX) VLB*/
+        GFX_N9_9FX_PCI,			/*S3 764/Trio64 (Number Nine 9FX) PCI*/
+        GFX_VIRGE_VLB,      		/*S3 Virge VLB*/
+        GFX_VIRGE_PCI,      		/*S3 Virge PCI*/
+        GFX_TGUI9440_VLB,   		/*Trident TGUI9440 VLB*/
+        GFX_TGUI9440_PCI,   		/*Trident TGUI9440 PCI*/
+        GFX_VGA,        		/*IBM VGA*/
+        GFX_VGAEDGE16,  		/*ATI VGA Edge-16 (18800-1)*/
+        GFX_VGACHARGER, 		/*ATI VGA Charger (28800-5)*/
+        GFX_OTI067,     		/*Oak OTI-067*/
+        GFX_MACH64GX_VLB,		/*ATI Graphics Pro Turbo (Mach64) VLB*/
+        GFX_MACH64GX_PCI,		/*ATI Graphics Pro Turbo (Mach64) PCI*/
+        GFX_CL_GD5429,  		/*Cirrus Logic CL-GD5429*/
+        GFX_VIRGEDX_VLB,    		/*S3 Virge/DX VLB*/
+        GFX_VIRGEDX_PCI,    		/*S3 Virge/DX PCI*/
+        GFX_PHOENIX_TRIO32_VLB, 	/*S3 732/Trio32 (Phoenix) VLB*/
+        GFX_PHOENIX_TRIO32_PCI, 	/*S3 732/Trio32 (Phoenix) PCI*/
+        GFX_PHOENIX_TRIO64_VLB, 	/*S3 764/Trio64 (Phoenix) VLB*/
+        GFX_PHOENIX_TRIO64_PCI, 	/*S3 764/Trio64 (Phoenix) PCI*/
+       	GFX_INCOLOR,			/*Hercules InColor*/
+	GFX_COLORPLUS,			/*Plantronics ColorPlus*/
+	GFX_WY700,			/*Wyse 700*/
+	GFX_GENIUS,			/*MDSI Genius*/
+        GFX_MACH64VT2,  		/*ATI Mach64 VT2*/
 
-	GFX_COMPAQ_EGA,	/*Compaq EGA*/
-	GFX_SUPER_EGA,	/*Using Chips & Technologies SuperEGA BIOS*/
-	GFX_COMPAQ_VGA,	/*Compaq/Paradise VGA*/
-        GFX_MIRO_VISION964, /*S3 Vision964 (Miro Crystal)*/
-	GFX_CL_GD5446,	/*Cirrus Logic CL-GD5446*/
-	GFX_VGAWONDERXL,	/*Compaq ATI VGA Wonder XL (28800-5)*/
-	GFX_WD90C11,	/*Paradise WD90C11 Standalone*/
-        GFX_OTI077,     /*Oak OTI-077*/
-	GFX_VGAWONDERXL24,	/*Compaq ATI VGA Wonder XL24 (28800-6)*/
-	GFX_STEALTH64,	/*S3 Vision864 (Diamond Stealth 64)*/
-	GFX_PHOENIX_VISION864,	/*S3 Vision864 (Phoenix)*/
-        GFX_RIVATNT,
-        GFX_RIVA128,
+	GFX_COMPAQ_EGA,			/*Compaq EGA*/
+	GFX_SUPER_EGA,			/*Using Chips & Technologies SuperEGA BIOS*/
+	GFX_COMPAQ_VGA,			/*Compaq/Paradise VGA*/
+	GFX_CL_GD5446,			/*Cirrus Logic CL-GD5446*/
+	GFX_VGAWONDERXL,		/*Compaq ATI VGA Wonder XL (28800-5)*/
+	GFX_WD90C11,			/*Paradise WD90C11 Standalone*/
+        GFX_OTI077,     		/*Oak OTI-077*/
+	GFX_VGAWONDERXL24,		/*Compaq ATI VGA Wonder XL24 (28800-6)*/
+	GFX_STEALTH64_VLB,		/*S3 Vision864 (Diamond Stealth 64) VLB*/
+	GFX_STEALTH64_PCI,		/*S3 Vision864 (Diamond Stealth 64) PCI*/
+	GFX_PHOENIX_VISION864_VLB,	/*S3 Vision864 (Phoenix) VLB*/
+	GFX_PHOENIX_VISION864_PCI,	/*S3 Vision864 (Phoenix) PCI*/
+        GFX_RIVATNT,			/*nVidia Riva TNT*/
+        GFX_RIVATNT2,			/*nVidia Riva TNT2*/
+        GFX_RIVA128,			/*nVidia Riva 128*/
         GFX_HERCULESPLUS,
-        GFX_RIVATNT2,
+        GFX_VIRGEVX_VLB,		/*S3 Virge/VX VLB*/
+        GFX_VIRGEVX_PCI,		/*S3 Virge/VX PCI*/
+        GFX_VIRGEDX4_VLB,		/*S3 Virge/DX (VBE 2.0) VLB*/
+        GFX_VIRGEDX4_PCI,		/*S3 Virge/DX (VBE 2.0) PCI*/
 
-	GFX_TRIGEM_UNK,
-        GFX_OTI037,	/*Oak OTI-037*/
+        GFX_OTI037,			/*Oak OTI-037*/
 
-        GFX_VIRGEVX,    /*S3 Virge/VX*/
-        GFX_VIRGEDX4,   /*S3 Virge/DX (VBE 2.0)*/
+	GFX_TRIGEM_UNK,			/*Unknown TriGem graphics card with Hangeul ROM*/
+        GFX_MIRO_VISION964, 		/*S3 Vision964 (Miro Crystal)*/
 
         GFX_MAX
 };
@@ -585,62 +491,12 @@ extern int gated,speakval,speakon;
 #define SND_WSS   9     /*Windows Sound System*/
 #define SND_PAS16 10    /*Pro Audio Spectrum 16*/
 
-extern wchar_t pcempath[512];
+extern wchar_t exe_path[1024];
+extern wchar_t cfg_path[1024];
 
-
-/*Hard disk*/
-enum
-{
-	HDD_BUS_DISABLED = 0,
-	HDD_BUS_MFM,
-	HDD_BUS_XTIDE,
-	HDD_BUS_ESDI,
-	HDD_BUS_IDE_PIO_ONLY,
-	HDD_BUS_IDE_PIO_AND_DMA,
-	HDD_BUS_SCSI,
-	HDD_BUS_SCSI_REMOVABLE,
-	HDD_BUS_USB
-};
-
-#define HDC_NUM		30
-#define MFM_NUM		2
-#define ESDI_NUM	2
-#define XTIDE_NUM	2
-#define IDE_NUM		8
-#define SCSI_NUM	16	/* Theoretically the controller can have at least 64 devices, or even 128 in case of a wide bus, but
-				   let's not exaggerate with them - 16 ought to be enough for everyone. */
-
-#pragma pack(push,1)
-typedef struct {
-	FILE *f;
-	uint64_t spt,hpc; /*Sectors per track, heads per cylinder*/
-	uint64_t tracks;
-	int is_hdi;
-	int wp;
-	uint32_t base;
-	uint64_t at_spt,at_hpc; /*[Translation] Sectors per track, heads per cylinder*/
-	unsigned int bus;
-	unsigned int mfm_channel;
-	unsigned int esdi_channel;
-	unsigned int xtide_channel;
-	unsigned int ide_channel;
-	unsigned int scsi_id;
-	unsigned int scsi_lun;
-	wchar_t fn[260];
-	wchar_t prev_fn[260];
-} hard_disk_t;
-#pragma pack(pop)
-
-extern hard_disk_t hdc[HDC_NUM];
-
-uint64_t hdt[128][3];
-uint64_t hdt_mfm[128][3];
-
-int image_is_hdi(const wchar_t *s);
-int image_is_hdx(const wchar_t *s, int check_signature);
 
 /*Keyboard*/
-extern int keybsenddelay;
+extern int64_t keybsenddelay;
 
 
 /*CD-ROM*/
@@ -653,7 +509,7 @@ enum
 	CDROM_BUS_USB = 8
 };
 
-extern int idecallback[5];
+extern int64_t idecallback[5];
 
 #define CD_STATUS_EMPTY		0
 #define CD_STATUS_DATA_ONLY	1
@@ -682,10 +538,6 @@ extern uint64_t timer_freq;
 
 extern int infocus;
 
-extern void onesec(void);
-
-extern void resetpc_cad(void);
-extern void ctrl_alt_esc(void);
 
 extern int dump_on_exit;
 extern int start_in_fullscreen;
@@ -704,10 +556,6 @@ extern uint64_t star;
 
 #define FPU_CW_Reserved_Bits (0xe0c0)
 
-extern wchar_t nvr_path[1024];
-extern int path_len;
-
-wchar_t *nvr_concat(wchar_t *to_concat);
 
 extern int mem_a20_state;
 
@@ -735,11 +583,11 @@ extern PCI_RESET pci_reset_handler;
 
 extern void	trc_init(void);
 
-extern int enable_xtide;
 extern int enable_external_fpu;
 
 extern int serial_enabled[2];
 extern int lpt_enabled, bugger_enabled;
+extern int romset;
 
 extern int invert_display;
 
@@ -749,8 +597,24 @@ extern int scale;
 
 
 /* Function prototypes. */
+extern void	pclog(const char *format, ...);
+extern void	fatal(const char *format, ...);
+extern wchar_t	*pc_concat(wchar_t *str);
+extern int	pc_init_modules(void);
+extern int	pc_init(int argc, wchar_t *argv[]);
+extern void	pc_close(void);
+extern void	pc_reset_hard_close(void);
+extern void	pc_reset_hard_init(void);
+extern void	pc_reset_hard(void);
+extern void	pc_full_speed(void);
+extern void	pc_speed_changed(void);
+extern void	pc_send_cad(void);
+extern void	pc_send_cae(void);
+extern void	pc_run(void);
+extern void	onesec(void);
+
+
 extern int	checkio(int port);
-extern void	closepc(void);
 extern void	codegen_block_end(void);
 extern void	codegen_reset(void);
 extern void	cpu_set_edx(void);
@@ -762,12 +626,9 @@ extern void	execx86(int cycs);
 extern void	flushmmucache(void);
 extern void	flushmmucache_cr3(void);
 extern int	idivl(int32_t val);
-extern void	initmodules(void);
-extern void	initpc(int argc, wchar_t *argv[]);
 extern void	loadcscall(uint16_t seg);
 extern void	loadcsjmp(uint16_t seg, uint32_t oxpc);
 extern void	mmu_invalidate(uint32_t addr);
-extern void	pclog(const char *format, ...);
 extern void	pmodeint(int num, int soft);
 extern void	pmoderetf(int is32, uint16_t off);
 extern void	pmodeiret(int is32);
@@ -775,15 +636,9 @@ extern void	port_92_clear_reset(void);
 extern uint8_t	readdacfifo(void);
 extern void	refreshread(void);
 extern void	resetmcr(void);
-extern void	resetpchard_close(void);
-extern void	resetpchard_init(void);
-extern void	resetpchard(void);
 extern void	resetreadlookup(void);
 extern void	resetx86(void);
-extern void	runpc(void);
-extern void	saveconfig(void);
 extern void	softresetx86(void);
-extern void	speedchanged(void);
 extern void	x86_int_sw(int num);
 extern int	x86_int_sw_rm(int num);
 extern void	x86gpf(char *s, uint16_t error);
@@ -793,25 +648,10 @@ extern void	x86ts(char *s, uint16_t error);
 extern void	x87_dumpregs(void);
 extern void	x87_reset(void);
 
-/* Platform functions. */
-extern void	pclog(const char *format, ...);
-extern void	pclog_w(const wchar_t *format, ...);
-extern void	fatal(const char *format, ...);
-
-extern void	update_status_bar_icon(int tag, int active);
-extern void	update_status_bar_icon_state(int tag, int state);
-extern void	status_settextw(wchar_t *wstr);
-extern void	status_settext(char *str);
-
-#define SB_FLOPPY	0x00
-#define SB_CDROM	0x10
-#define SB_RDISK	0x20
-#define SB_HDD		0x40
-#define SB_NETWORK	0x50
-#define SB_TEXT		0x60
-
-#define UNUSED(x) (void)x
 
 /* Configuration values. */
 #define SERIAL_MAX	2
 #define PARALLEL_MAX	1
+
+
+#endif	/*EMU_IBM_H*/

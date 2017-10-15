@@ -8,14 +8,19 @@
  *
  *		Implementation of the PCjs JSON floppy image format.
  *
- * Version:	@(#)floppy_json.c	1.0.1	2017/09/12
+ * Version:	@(#)floppy_json.c	1.0.7	2017/10/14
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2017 Fred N. van Kempen.
  */
-#include <wchar.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
+#include "../plat.h"
 #include "floppy.h"
 #include "fdc.h"
 #include "fdd.h"
@@ -25,7 +30,7 @@
 
 #define NTRACKS			256
 #define NSIDES			2
-#define NSECTORS		128
+#define NSECTORS		256
 
 
 typedef struct {
@@ -122,10 +127,6 @@ handle(json_t *img, char *name, char *str)
 		l >>= 8;
 		*p++ = (l & 0x000000ff);
 	}
-#if 1
-	pclog("JSON: added sector (%d,%d,%d/%d) size=%d pat=%08lx\n",
-		sec->track,sec->side,sec->sector,img->dmf,sec->size,pat);
-#endif
     } else if (! strcmp(name, "data")) {
 	if (sec->data == NULL)
 		sec->data = (uint8_t *)malloc(sec->size);
@@ -135,11 +136,6 @@ handle(json_t *img, char *name, char *str)
 		if (sp != NULL) *sp++ = '\0';
 		l = atol(str);
 
-#if 1
-		if (p==sec->data)
-		    pclog("JSON: added sector (%d,%d,%d/%d) size=%d data=%08lx\n",
-			sec->track,sec->side,sec->sector,img->dmf,sec->size,l);
-#endif
 		*p++ = (l & 0x000000ff);
 		l >>= 8;
 		*p++ = (l & 0x000000ff);
@@ -482,7 +478,7 @@ json_load(int drive, wchar_t *fn)
     memset(img, 0x00, sizeof(json_t));
 
     /* Open the image file. */
-    img->f = _wfopen(fn, L"rb");
+    img->f = plat_fopen(fn, L"rb");
     if (img->f == NULL) {
 	memset(fn, 0x00, sizeof(wchar_t));
 	return;
@@ -500,7 +496,7 @@ json_load(int drive, wchar_t *fn)
 	return;
     }
 
-    pclog("JSON(%d): %S (%i tracks, %i sides, %i sectors)\n",
+    pclog("JSON(%d): %ls (%i tracks, %i sides, %i sectors)\n",
 	drive, fn, img->tracks, img->sides, img->spt[0][0]);
 
     /*

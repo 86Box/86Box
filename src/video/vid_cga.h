@@ -35,8 +35,8 @@ typedef struct cga_t
         uint16_t ma, maback;
         int oddeven;
 
-        int dispontime, dispofftime;
-        int vidtime;
+        int64_t dispontime, dispofftime;
+        int64_t vidtime;
         
         int firstline, lastline;
         
@@ -49,9 +49,7 @@ typedef struct cga_t
 	int revision;
 	int composite;
 	int snow_enabled;
-#ifndef __unix
 	int rgb_type;
-#endif
 } cga_t;
 
 void    cga_init(cga_t *cga);

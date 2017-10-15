@@ -1,7 +1,9 @@
 #define USE_OPENAL
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #ifdef USE_OPENAL
 # undef AL_API
 # undef ALC_API

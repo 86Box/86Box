@@ -1,7 +1,10 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
+#include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "io.h"
 #include "mem.h"
@@ -43,7 +46,7 @@ static int key_queue_start = 0, key_queue_end = 0;
 
 void keyboard_pcjr_poll()
 {
-        keybsenddelay += (220 * TIMER_USEC);
+        keybsenddelay += (220LL * TIMER_USEC);
 
 
         if (key_queue_start != key_queue_end && !keyboard_pcjr.serial_pos && !keyboard_pcjr.latched)

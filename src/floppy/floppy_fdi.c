@@ -9,17 +9,20 @@
  *		Implementation of the FDI floppy stream image format
  *		interface to the FDI2RAW module.
  *
- * Version:	@(#)floppy_fdi.c	1.0.1	2017/09/03
+ * Version:	@(#)floppy_fdi.c	1.0.3	2017/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <wchar.h>
 #include "../ibm.h"
+#include "../plat.h"
 #include "floppy.h"
 #include "floppy_86f.h"
 #include "floppy_img.h"
@@ -263,7 +266,7 @@ void fdi_load(int drive, wchar_t *fn)
 	char header[26];
 
         writeprot[drive] = fwriteprot[drive] = 1;
-        fdi[drive].f = _wfopen(fn, L"rb");
+        fdi[drive].f = plat_fopen(fn, L"rb");
         if (!fdi[drive].f)
 	{
 		memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));

@@ -8,17 +8,20 @@
  *
  *		Mouse interface to host device.
  *
- * Version:	@(#)win_mouse.cc	1.0.1	2017/06/21
+ * Version:	@(#)win_mouse.cc	1.0.4	2017/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
+#include <stdio.h>
 #include <stdint.h>
-#include "plat_mouse.h"
+#include "../plat.h"
+#include "../plat_mouse.h"
 #include "win.h"
 
 
@@ -48,7 +51,7 @@ void mouse_init(void)
                 fatal("mouse_init : DirectInputCreate failed\n"); 
         if (FAILED(lpdi->CreateDevice(GUID_SysMouse, &lpdi_mouse, NULL)))
            fatal("mouse_init : CreateDevice failed\n");
-        if (FAILED(lpdi_mouse->SetCooperativeLevel(ghwnd, DISCL_FOREGROUND | (video_fullscreen ? DISCL_EXCLUSIVE : DISCL_NONEXCLUSIVE))))
+        if (FAILED(lpdi_mouse->SetCooperativeLevel(hwndMain, DISCL_FOREGROUND | (video_fullscreen ? DISCL_EXCLUSIVE : DISCL_NONEXCLUSIVE))))
            fatal("mouse_init : SetCooperativeLevel failed\n");
         if (FAILED(lpdi_mouse->SetDataFormat(&c_dfDIMouse)))
            fatal("mouse_init : SetDataFormat failed\n");

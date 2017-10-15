@@ -1,21 +1,26 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include <math.h>
 #ifndef INFINITY
 # define INFINITY   (__builtin_inff())
 #endif
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include "../ibm.h"
 #include "cpu.h"
 #include "x86.h"
 #include "x86_ops.h"
 #include "x87.h"
 #include "../mem.h"
+#include "../nmi.h"
 #include "../pic.h"
 #include "../timer.h"
 #include "../floppy/floppy.h"
 #include "../floppy/fdc.h"
+#ifdef USE_DYNAREC
 #include "codegen.h"
+#endif
 #include "386_common.h"
 
 
@@ -43,17 +48,11 @@ int trap;
 
 int cpl_override=0;
 
-int has_fpu;
 int fpucount=0;
 uint16_t rds;
 uint16_t ea_rseg;
 
-int is486;
 int cgate32;
-
-
-uint8_t romext[32768];
-uint8_t *ram,*rom;
 
 uint32_t rmdat32;
 uint32_t backupregs[16];
@@ -503,6 +502,7 @@ static int cpu_cycle_period(void)
 	}
 }
 
+#ifdef USE_DYNAREC
 static int cycles_main = 0;
 void exec386_dynarec(int cycs)
 {
@@ -604,6 +604,9 @@ void exec386_dynarec(int cycs)
                                 if (cpu_state.abrt)
                                         CPU_BLOCK_END();
                                 if (trap)
+                                        CPU_BLOCK_END();
+
+                                if (nmi && nmi_enable && nmi_mask)
                                         CPU_BLOCK_END();
 
                                 ins++;
@@ -754,6 +757,9 @@ inrecomp=0;
                                 if (trap)
                                         CPU_BLOCK_END();
 
+                                if (nmi && nmi_enable && nmi_mask)
+                                        CPU_BLOCK_END();
+
 
                                 if (cpu_state.abrt)
                                 {
@@ -822,6 +828,9 @@ inrecomp=0;
                                 if (trap)
                                         CPU_BLOCK_END();
 
+                                if (nmi && nmi_enable && nmi_mask)
+                                        CPU_BLOCK_END();
+
 
                                 if (cpu_state.abrt)
                                 {
@@ -888,6 +897,19 @@ inrecomp=0;
                                 loadcs(readmemw(0,addr+2));
                         }
                 }
+                else if (nmi && nmi_enable && nmi_mask)
+                {
+                        cpu_state.oldpc = cpu_state.pc;
+                        oldcs = CS;
+                        pclog("NMI\n");
+                        x86_int(2);
+                        nmi_enable = 0;
+                        if (nmi_auto_clear)
+                        {
+                                nmi_auto_clear = 0;
+                                nmi = 0;
+                        }
+                }
                 else if ((flags&I_FLAG) && pic_intpending)
                 {
                         temp=picinterrupt();
@@ -931,3 +953,4 @@ inrecomp=0;
                 cycles_main -= (cycles_start - cycles);
         }
 }
+#endif

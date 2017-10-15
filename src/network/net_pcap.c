@@ -8,21 +8,24 @@
  *
  *		Handle WinPcap library processing.
  *
- * Version:	@(#)net_pcap.c	1.0.5	2017/06/04
+ * Version:	@(#)net_pcap.c	1.0.9	2017/10/11
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *		Copyright 2017 Fred N. van Kempen.
  */
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include <pcap.h>
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"
+#include "../plat.h"
+#include "../plat_dynld.h"
 #include "network.h"
-#include "../win/plat_dynld.h"
-#include "../win/plat_thread.h"
 
 
 static void	*pcap_handle;		/* handle to WinPcap DLL */

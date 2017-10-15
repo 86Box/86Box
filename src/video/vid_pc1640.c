@@ -1,9 +1,27 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
-/*PC1640 video emulation.
-  Mostly standard EGA, but with CGA & Hercules emulation*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		PC1640 video emulation.
+ *		Mostly standard EGA, but with CGA & Hercules emulation.
+ *
+ * Version:	@(#)vid_pc1640.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -27,8 +45,8 @@ typedef struct pc1640_t
         rom_t bios_rom;
         
         int cga_enabled;
-        int dispontime, dispofftime;
-	int vidtime;
+        int64_t dispontime, dispofftime;
+	int64_t vidtime;
 } pc1640_t;
 
 void pc1640_out(uint16_t addr, uint8_t val, void *p)
@@ -119,7 +137,8 @@ void pc1640_poll(void *p)
         }
 }
 
-void *pc1640_init()
+
+void *pc1640_init(device_t *info)
 {
         pc1640_t *pc1640 = malloc(sizeof(pc1640_t));
         cga_t *cga = &pc1640->cga;
@@ -141,7 +160,7 @@ void *pc1640_init()
         return pc1640;
 }
 
-void pc1640_close(void *p)
+static void pc1640_close(void *p)
 {
         pc1640_t *pc1640 = (pc1640_t *)p;
 
@@ -149,7 +168,7 @@ void pc1640_close(void *p)
         free(pc1640);
 }
 
-void pc1640_speed_changed(void *p)
+static void pc1640_speed_changed(void *p)
 {
         pc1640_t *pc1640 = (pc1640_t *)p;
         
@@ -159,9 +178,10 @@ void pc1640_speed_changed(void *p)
 device_t pc1640_device =
 {
         "Amstrad PC1640 (video)",
-        0,
+        0, 0,
         pc1640_init,
         pc1640_close,
+	NULL,
         NULL,
         pc1640_speed_changed,
         NULL,

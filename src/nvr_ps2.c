@@ -1,9 +1,14 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "device.h"
 #include "io.h"
 #include "mem.h"
 #include "rom.h"
+#include "nvr.h"
 #include "nvr_ps2.h"
 
 
@@ -49,7 +54,7 @@ static void ps2_nvr_write(uint16_t port, uint8_t val, void *p)
         }
 }
 
-static void *ps2_nvr_init()
+static void *ps2_nvr_init(device_t *info)
 {
         ps2_nvr_t *nvr = (ps2_nvr_t *)malloc(sizeof(ps2_nvr_t));
         FILE *f = NULL;
@@ -60,7 +65,7 @@ static void *ps2_nvr_init()
 
         switch (romset)
         {
-                case ROM_IBMPS2_M80:  f = nvrfopen(L"ibmps2_m80_sec.nvr", L"rb"); break;
+                case ROM_IBMPS2_M80:  f = nvr_fopen(L"ibmps2_m80_sec.nvr", L"rb"); break;
         }
         if (f)
         {
@@ -80,7 +85,7 @@ static void ps2_nvr_close(void *p)
 
         switch (romset)
         {
-                case ROM_IBMPS2_M80:  f = nvrfopen(L"ibmps2_m80_sec.nvr", L"wb"); break;
+                case ROM_IBMPS2_M80:  f = nvr_fopen(L"ibmps2_m80_sec.nvr", L"wb"); break;
         }
         if (f)
         {
@@ -95,10 +100,9 @@ device_t ps2_nvr_device =
 {
         "PS/2 NVRRAM",
         0,
+	0,
         ps2_nvr_init,
         ps2_nvr_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL
+	NULL,
+	NULL, NULL, NULL, NULL
 };

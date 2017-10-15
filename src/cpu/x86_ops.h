@@ -4,8 +4,13 @@
 #ifndef _X86_OPS_H
 #define _X86_OPS_H
 
+
+#define UNUSED(x)	(void)(x)
+
+
 typedef int (*OpFn)(uint32_t fetchdat);
 
+#ifdef USE_DYNAREC
 void x86_setopcodes(OpFn *opcodes, OpFn *opcodes_0f, OpFn *dynarec_opcodes, OpFn *dynarec_opcodes_0f);
 
 extern OpFn *x86_dynarec_opcodes;
@@ -91,6 +96,9 @@ extern OpFn dynarec_ops_fpu_686_df_a32[256];
 
 extern OpFn dynarec_ops_REPE[1024];
 extern OpFn dynarec_ops_REPNE[1024];
+#else
+void x86_setopcodes(OpFn *opcodes, OpFn *opcodes_0f);
+#endif
 
 extern OpFn *x86_opcodes;
 extern OpFn *x86_opcodes_0f;

@@ -1,6 +1,8 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../pic.h"
@@ -42,13 +44,13 @@ typedef struct gus_t
         int16_t buffer[2][SOUNDBUFLEN];
         int pos;
         
-        int samp_timer, samp_latch;
+        int64_t samp_timer, samp_latch;
         
         uint8_t *ram;
         
         int irqnext;
         
-        int timer_1, timer_2;
+        int64_t timer_1, timer_2;
         
         int irq, dma, irq_midi;
         int latch_enable;
@@ -740,7 +742,7 @@ void gus_poll_timer_1(void *p)
 {
         gus_t *gus = (gus_t *)p;
         
-	gus->timer_1 += (TIMER_USEC * 80);
+	gus->timer_1 += (TIMER_USEC * 80LL);
         if (gus->t1on)
         {
                 gus->t1++;
@@ -771,7 +773,7 @@ void gus_poll_timer_2(void *p)
 {
         gus_t *gus = (gus_t *)p;
         
-	gus->timer_2 += (TIMER_USEC * 320);
+	gus->timer_2 += (TIMER_USEC * 320LL);
         if (gus->t2on)
         {
                 gus->t2++;
@@ -993,7 +995,7 @@ static void gus_get_buffer(int32_t *buffer, int len, void *p)
 }
 
 
-void *gus_init()
+void *gus_init(device_t *info)
 {
         int c;
 	double out = 1.0;
@@ -1020,7 +1022,7 @@ void *gus_init()
 	printf("Top volume %f %f %f %f\n",vol16bit[4095],vol16bit[3800],vol16bit[3000],vol16bit[2048]);
 	gus->voices=14;
 
-        gus->samp_timer = gus->samp_latch = (int)(TIMER_USEC * (1000000.0 / 44100.0));
+        gus->samp_timer = gus->samp_latch = (int64_t)(TIMER_USEC * (1000000.0 / 44100.0));
 
         gus->t1l = gus->t2l = 0xff;
                 
@@ -1058,11 +1060,8 @@ void gus_speed_changed(void *p)
 device_t gus_device =
 {
         "Gravis UltraSound",
-        0,
-        gus_init,
-        gus_close,
-        NULL,
-        gus_speed_changed,
-        NULL,
+        0, 0,
+        gus_init, gus_close, NULL, NULL,
+        gus_speed_changed, NULL, NULL,
         NULL
 };

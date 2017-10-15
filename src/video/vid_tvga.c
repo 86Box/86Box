@@ -1,8 +1,26 @@
-/* Copyright holders: Sarah Walker, SA1988
-   see COPYING for more details
-*/
-/*Trident TVGA (8900D) emulation*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Trident TVGA (8900D) emulation.
+ *
+ * Version:	@(#)vid_tvga.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -278,7 +296,8 @@ void tvga_recalctimings(svga_t *svga)
         }
 }
 
-void *tvga8900d_init()
+
+static void *tvga8900d_init(device_t *info)
 {
         tvga_t *tvga = malloc(sizeof(tvga_t));
         memset(tvga, 0, sizeof(tvga_t));
@@ -299,7 +318,7 @@ void *tvga8900d_init()
         return tvga;
 }
 
-static int tvga8900d_available()
+static int tvga8900d_available(void)
 {
         return rom_present(L"roms/video/tvga/TRIDENT.BIN");
 }
@@ -362,9 +381,11 @@ static device_config_t tvga_config[] =
 device_t tvga8900d_device =
 {
         "Trident TVGA 8900D",
-        0,
+        DEVICE_ISA,
+	0,
         tvga8900d_init,
         tvga_close,
+	NULL,
         tvga8900d_available,
         tvga_speed_changed,
         tvga_force_redraw,

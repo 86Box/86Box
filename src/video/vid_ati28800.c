@@ -1,8 +1,26 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
-/*ATI 28800 emulation (VGA Charger)*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		ATI 28800 emulation (VGA Charger)
+ *
+ * Version:	@(#)vid_ati28800.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -27,9 +45,11 @@ typedef struct ati28800_t
         int index;
 } ati28800_t;
 
-void ati28800_svga_recalctimings(ati28800_t *ati28800);
 
-void ati28800_out(uint16_t addr, uint8_t val, void *p)
+static void ati28800_svga_recalctimings(ati28800_t *ati28800);
+
+
+static void ati28800_out(uint16_t addr, uint8_t val, void *p)
 {
         ati28800_t *ati28800 = (ati28800_t *)p;
         svga_t *svga = &ati28800->svga;
@@ -97,7 +117,7 @@ void ati28800_out(uint16_t addr, uint8_t val, void *p)
         svga_out(addr, val, svga);
 }
 
-uint8_t ati28800_in(uint16_t addr, void *p)
+static uint8_t ati28800_in(uint16_t addr, void *p)
 {
         ati28800_t *ati28800 = (ati28800_t *)p;
         svga_t *svga = &ati28800->svga;
@@ -151,7 +171,7 @@ uint8_t ati28800_in(uint16_t addr, void *p)
         return temp;
 }
 
-void ati28800_svga_recalctimings(ati28800_t *ati28800)
+static void ati28800_svga_recalctimings(ati28800_t *ati28800)
 {
         double crtcconst;
         double _dispontime, _dispofftime, disptime;
@@ -303,7 +323,8 @@ void ati28800_svga_recalctimings(ati28800_t *ati28800)
         pclog("svga->render %08X\n", svga->render);*/
 }
 
-void ati28800_recalctimings(svga_t *svga)
+
+static void ati28800_recalctimings(svga_t *svga)
 {
         ati28800_t *ati28800 = (ati28800_t *)svga->p;
         uint8_t clock_sel = (svga->miscout >> 2) & 3;
@@ -350,7 +371,7 @@ void ati28800_recalctimings(svga_t *svga)
         }
 }               
 
-void *ati28800_init()
+static void *ati28800_init(device_t *info)
 {
 	uint32_t memory = 512;
         ati28800_t *ati28800;
@@ -392,22 +413,22 @@ void *ati28800_init()
         return ati28800;
 }
 
-static int ati28800_available()
+static int ati28800_available(void)
 {
         return rom_present(L"roms/video/ati28800/bios.bin");
 }
 
-static int compaq_ati28800_available()
+static int compaq_ati28800_available(void)
 {
         return (rom_present(L"roms/video/ati28800/XLEVEN.bin") && rom_present(L"roms/video/ati28800/XLODD.bin"));
 }
 
-static int ati28800_wonderxl24_available()
+static int ati28800_wonderxl24_available(void)
 {
         return (rom_present(L"roms/video/ati28800/112-14318-102.bin") && rom_present(L"roms/video/ati28800/112-14319-102.bin"));
 }
 
-void ati28800_close(void *p)
+static void ati28800_close(void *p)
 {
         ati28800_t *ati28800 = (ati28800_t *)p;
 
@@ -416,21 +437,21 @@ void ati28800_close(void *p)
         free(ati28800);
 }
 
-void ati28800_speed_changed(void *p)
+static void ati28800_speed_changed(void *p)
 {
         ati28800_t *ati28800 = (ati28800_t *)p;
         
         ati28800_svga_recalctimings(ati28800);
 }
 
-void ati28800_force_redraw(void *p)
+static void ati28800_force_redraw(void *p)
 {
         ati28800_t *ati28800 = (ati28800_t *)p;
 
         ati28800->svga.fullchange = changeframecount;
 }
 
-void ati28800_add_status_info(char *s, int max_len, void *p)
+static void ati28800_add_status_info(char *s, int max_len, void *p)
 {
         ati28800_t *ati28800 = (ati28800_t *)p;
         
@@ -485,9 +506,11 @@ static device_config_t ati28800_wonderxl_config[] =
 device_t ati28800_device =
 {
         "ATI-28800",
-        0,
+        DEVICE_ISA,
+	0,
         ati28800_init,
         ati28800_close,
+	NULL,
         ati28800_available,
         ati28800_speed_changed,
         ati28800_force_redraw,
@@ -498,9 +521,11 @@ device_t ati28800_device =
 device_t compaq_ati28800_device =
 {
         "Compaq ATI-28800",
-        0,
+        DEVICE_ISA,
+	0,
         ati28800_init,
         ati28800_close,
+	NULL,
         compaq_ati28800_available,
         ati28800_speed_changed,
         ati28800_force_redraw,
@@ -511,9 +536,11 @@ device_t compaq_ati28800_device =
 device_t ati28800_wonderxl24_device =
 {
         "ATI-28800 (VGA Wonder XL24)",
-        0,
+        DEVICE_ISA,
+	0,
         ati28800_init,
         ati28800_close,
+	NULL,
         ati28800_wonderxl24_available,
         ati28800_speed_changed,
         ati28800_force_redraw,

@@ -2,7 +2,11 @@
 
   Windows Sound System emulation*/
 
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include <math.h>  
 #include "../ibm.h"
 #include "../io.h"
@@ -73,7 +77,7 @@ static void wss_get_buffer(int32_t *buffer, int len, void *p)
         wss->ad1848.pos = 0;
 }
 
-void *wss_init()
+void *wss_init(device_t *info)
 {
         wss_t *wss = malloc(sizeof(wss_t));
 
@@ -111,11 +115,10 @@ void wss_speed_changed(void *p)
 device_t wss_device =
 {
         "Windows Sound System",
-        0,
-        wss_init,
-        wss_close,
+        DEVICE_ISA, 0,
+        wss_init, wss_close, NULL,
         NULL,
         wss_speed_changed,
-        NULL,
+        NULL, NULL,
         NULL
 };

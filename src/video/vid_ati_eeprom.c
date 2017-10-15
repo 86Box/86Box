@@ -1,9 +1,28 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Emulation of the EEPROM on select ATI cards.
+ *
+ * Version:	@(#)vid_ati_eeprom.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../mem.h"
-#include "../rom.h"
+#include "../nvr.h"
 #include "vid_ati_eeprom.h"
 
 
@@ -39,7 +58,7 @@ void ati_eeprom_load(ati_eeprom_t *eeprom, wchar_t *fn, int type)
         FILE *f;
         eeprom->type = type;
         wcscpy(eeprom->fn, fn);
-        f = nvrfopen(eeprom->fn, L"rb");
+        f = nvr_fopen(eeprom->fn, L"rb");
         if (!f)
         {
                 memset(eeprom->data, 0, eeprom->type ? 512 : 128);
@@ -51,7 +70,7 @@ void ati_eeprom_load(ati_eeprom_t *eeprom, wchar_t *fn, int type)
 
 void ati_eeprom_save(ati_eeprom_t *eeprom)
 {
-        FILE *f = nvrfopen(eeprom->fn, L"wb");
+        FILE *f = nvr_fopen(eeprom->fn, L"wb");
         if (!f) return;
         fwrite(eeprom->data, 1, eeprom->type ? 512 : 128, f);
         fclose(f);

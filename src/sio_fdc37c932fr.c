@@ -8,19 +8,25 @@
  *
  *		Implementation of the SMC FDC37C932FR Super I/O Chip.
  *
- * Version:	@(#)sio_fdc37c932fr.c	1.0.3	2017/09/03
+ * Version:	@(#)sio_fdc37c932fr.c	1.0.5	2017/09/30
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
  */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "io.h"
+#include "device.h"
 #include "lpt.h"
 #include "serial.h"
+#include "disk/hdc.h"
+#include "disk/hdc_ide.h"
 #include "floppy/floppy.h"
 #include "floppy/fdc.h"
 #include "floppy/fdd.h"
-#include "hdd/hdd_ide_at.h"
 #include "sio.h"
 
 

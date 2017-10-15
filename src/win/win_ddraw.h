@@ -15,12 +15,13 @@ extern "C" {
 
 extern int	ddraw_init(HWND h);
 extern void	ddraw_close(void);
+extern int	ddraw_pause(void);
+extern void	ddraw_take_screenshot(wchar_t *fn);
 
 extern int	ddraw_fs_init(HWND h);
 extern void	ddraw_fs_close(void);
-
-extern void	ddraw_common_take_screenshot(wchar_t *fn,
-					     IDirectDrawSurface7 *pDDSurface);
+extern int	ddraw_fs_pause(void);
+extern void	ddraw_fs_take_screenshot(wchar_t *fn);
 
 #ifdef __cplusplus
 }

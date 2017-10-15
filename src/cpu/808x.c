@@ -1,4 +1,4 @@
-/*
+﻿/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -8,34 +8,41 @@
  *
  *		808x CPU emulation.
  *
- * Version:	@(#)808x.c	1.0.0	2017/05/30
+ *		SHR AX,1
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		4 clocks - fetch opcode
+ *		4 clocks - fetch mod/rm
+ *		2 clocks - execute              2 clocks - fetch opcode 1
+ *		                                2 clocks - fetch opcode 2
+ *		                                4 clocks - fetch mod/rm
+ *		2 clocks - fetch opcode 1       2 clocks - execute
+ *		2 clocks - fetch opcode 2  etc
+ *
+ * Version:	@(#)808x.c	1.0.4	2017/10/12
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
-
-/*SHR AX,1
-
-        4 clocks - fetch opcode
-        4 clocks - fetch mod/rm
-        2 clocks - execute              2 clocks - fetch opcode 1
-                                        2 clocks - fetch opcode 2
-                                        4 clocks - fetch mod/rm
-        2 clocks - fetch opcode 1       2 clocks - execute
-        2 clocks - fetch opcode 2  etc*/
 #include <stdio.h>
-#include <unistd.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "cpu.h"
 #include "x86.h"
-#include "../keyboard.h"
 #include "../mem.h"
+#include "../rom.h"
 #include "../nmi.h"
 #include "../pic.h"
 #include "../timer.h"
-#include "../scsi/scsi.h"
+#include "../device.h"		/* for scsi.h */
+#include "../keyboard.h"	/* its WRONG to have this in here!! --FvK */
+#include "../scsi/scsi.h"	/* its WRONG to have this in here!! --FvK */
+#include "../plat.h"
+
 
 int xt_cpu_multi;
 int nmi = 0;
@@ -127,7 +134,10 @@ int noint=0;
 
 int output=0;
 
+#if 0
+/* Also in mem.c */
 int shadowbios=0;
+#endif
 
 int ins=0;
 
@@ -483,7 +493,10 @@ void makeznptable()
                 if (c&0x8000) znptable16[c]|=N_FLAG;
       }      
 }
+#if 1
+/* Also in mem.c */
 int timetolive=0;
+#endif
 
 extern uint32_t oldcs2;
 extern uint32_t oldpc2;
@@ -503,7 +516,7 @@ void dumpregs(int force)
 #ifndef RELEASE_BUILD
         indump = 1;
         output=0;
-	_wchdir(pcempath);
+	(void)plat_chdir(cfg_path);
         nopageerrors=1;
         f=fopen("ram.dmp","wb");
         fwrite(ram,mem_size*1024,1,f);
@@ -600,7 +613,9 @@ void resetx86()
         mmu_perm=4;
         memset(inscounts, 0, sizeof(inscounts));
         x86seg_reset();
+#ifdef USE_DYNAREC
         codegen_reset();
+#endif
         x86_was_reset = 1;
 	port_92_clear_reset();
 	scsi_card_reset();

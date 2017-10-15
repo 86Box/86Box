@@ -39,6 +39,9 @@
  */
 
 #include <stdlib.h>
+#ifndef WIN32
+# include <unistd.h>
+#endif
 #include "slirp.h"
 #include "ip_icmp.h"
 

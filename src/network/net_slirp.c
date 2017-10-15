@@ -8,27 +8,46 @@
  *
  *		Handle SLiRP library processing.
  *
- * Version:	@(#)net_slirp.c	1.0.4	2017/06/14
+ * Version:	@(#)net_slirp.c	1.0.9	2017/10/14
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *		Copyright 2017 Fred N. van Kempen.
  */
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include "slirp/slirp.h"
 #include "slirp/queue.h"
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"
+#include "../plat.h"
 #include "network.h"
-#include "../win/plat_thread.h"
 
 
 static queueADT	slirpq;			/* SLiRP library handle */
 static thread_t	*poll_tid;
 static NETRXCB	poll_rx;		/* network RX function to call */
 static void	*poll_arg;		/* network RX function arg */
+static mutex_t	*slirpMutex;
+
+
+
+static void
+startslirp(void)
+{
+    thread_wait_mutex(slirpMutex);
+}
+
+
+static void
+endslirp(void)
+{
+    thread_release_mutex(slirpMutex);
+}
 
 
 /* Instead of calling this and crashing some times
@@ -128,6 +147,8 @@ poll_thread(void *arg)
     thread_destroy_event(evt);
     evt = poll_tid = NULL;
 
+    thread_close_mutex(slirpMutex);
+
     pclog("SLiRP: polling stopped.\n");
 }
 
@@ -149,6 +170,8 @@ network_slirp_setup(uint8_t *mac, NETRXCB func, void *arg)
     /* Save the callback info. */
     poll_rx = func;
     poll_arg = arg;
+
+    slirpMutex = thread_create_mutex(L"86Box.SLiRPMutex");
 
     poll_data.wake_poll_thread = thread_create_event();
     poll_data.poll_complete = thread_create_event();
@@ -181,6 +204,8 @@ network_slirp_close(void)
 	while (poll_tid != NULL)
 		;
 #endif
+
+        thread_close_mutex(slirpMutex);
 
 	/* OK, now shut down SLiRP itself. */
 	QueueDestroy(sl);

@@ -1,6 +1,10 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
@@ -11,17 +15,17 @@
 #include "../rom.h"
 #include "../device.h"
 #include "../nvr.h"
-#include "../gameport.h"
+#include "../game/gameport.h"
 #include "../lpt.h"
 #include "../serial.h"
 #include "../keyboard_at.h"
+#include "../disk/hdc.h"
+#include "../disk/hdc_ide.h"
 #include "../floppy/floppy.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
-#include "../hdd/hdd_ide_at.h"
 #include "../sound/snd_ps1.h"
-#include "machine_common.h"
-#include "machine_ps1.h"
+#include "machine.h"
 
 
 static rom_t ps1_high_rom;
@@ -149,7 +153,8 @@ void ps1mb_init(void)
         io_sethandler(0x0320, 0x0001, ps1_read, NULL, NULL, ps1_write, NULL, NULL, NULL);
         io_sethandler(0x0322, 0x0001, ps1_read, NULL, NULL, ps1_write, NULL, NULL, NULL);
         io_sethandler(0x0324, 0x0001, ps1_read, NULL, NULL, ps1_write, NULL, NULL, NULL);
-        
+
+#if 0
 	if (!enable_xtide)
 	{
 	        rom_init(&ps1_high_rom,
@@ -160,14 +165,7 @@ void ps1mb_init(void)
                                 0,
                                 MEM_MAPPING_EXTERNAL);
 	}
-/*        rom_init_interleaved(&ps1_high_rom,
-                                L"roms/machines/ibmps1es/ibm_1057757_24-05-90.bin",
-                                L"roms/machines/ibmps1es/ibm_1057757_29-15-90.bin",
-                                0xfc0000,
-                                0x40000,
-                                0x3ffff,
-                                0,
-                                MEM_MAPPING_EXTERNAL);*/
+#endif
         ps1_190 = 0;
         
         lpt1_remove();
@@ -336,12 +334,12 @@ static void ps1mb_m2133_init(void)
         mem_remap_top_384k();
 }
 
-static void machine_ps1_common_init(void)
-{
-        AT = 1;
 
-        machine_common_init();
-	mem_add_bios();
+static void
+machine_ps1_common_init(machine_t *model)
+{
+        machine_common_init(model);
+
         pit_set_out_func(&pit, 1, pit_refresh_timer_at);
         dma16_init();
         if (romset != ROM_IBMPS1_2011)
@@ -349,7 +347,7 @@ static void machine_ps1_common_init(void)
 		ide_init();
 	}
         keyboard_at_init();
-        nvr_init();
+        nvr_at_init(8);
         pic2_init();
 	if (romset != ROM_IBMPS1_2133)
 	{			
@@ -362,22 +360,31 @@ static void machine_ps1_common_init(void)
 		device_add(&gameport_201_device);
 }
 
-void machine_ps1_m2011_init(void)
+
+void
+machine_ps1_m2011_init(machine_t *model)
 {
-        machine_ps1_common_init();
+        machine_ps1_common_init(model);
+
         ps1mb_init();
         mem_remap_top_384k();
 }
 
-void machine_ps1_m2121_init(void)
+
+void
+machine_ps1_m2121_init(machine_t *model)
 {
-        machine_ps1_common_init();
+        machine_ps1_common_init(model);
+
         ps1mb_m2121_init();
         fdc_set_ps1();
 }
 
-void machine_ps1_m2133_init(void)
+
+void
+machine_ps1_m2133_init(machine_t *model)
 {
-        machine_ps1_common_init();
+        machine_ps1_common_init(model);
+
         ps1mb_m2133_init();
 }

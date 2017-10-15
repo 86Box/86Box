@@ -19,9 +19,10 @@
 
 #define STATIC_INLINE
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 
 /* IF UAE */
 /*#include "sysconfig.h"
@@ -37,7 +38,6 @@
 #define VERBOSE
 #undef VERBOSE
 
-#include <assert.h>
 
 #ifdef DEBUG
 static char *datalog(uae_u8 *src, int len)
@@ -1608,7 +1608,7 @@ static void fdi2_decode (FDI *fdi, uint32_t totalavg, uae_u32 *avgp, uae_u32 *mi
 				randval = rand();
 				if (randval < (RAND_MAX / 2)) {
 					if (randval > (RAND_MAX / 4)) {
-						if (randval <= (3 * RAND_MAX / 8))
+						if (randval <= (((3LL*RAND_MAX) / 8)))
 							randval = (2 * randval) - (RAND_MAX /4);
 						else
 							randval = (4 * randval) - RAND_MAX;
@@ -1617,7 +1617,7 @@ static void fdi2_decode (FDI *fdi, uint32_t totalavg, uae_u32 *avgp, uae_u32 *mi
 				} else {
 					randval -= RAND_MAX / 2;
 					if (randval > (RAND_MAX / 4)) {
-						if (randval <= (3 * RAND_MAX / 8))
+						if (randval <= (((3LL*RAND_MAX) / 8)))
 							randval = (2 * randval) - (RAND_MAX /4);
 						else
 							randval = (4 * randval) - RAND_MAX;
@@ -1643,7 +1643,7 @@ static void fdi2_decode (FDI *fdi, uint32_t totalavg, uae_u32 *avgp, uae_u32 *mi
 				randval = rand();
 				if (randval < (RAND_MAX / 2)) {
 					if (randval > (RAND_MAX / 4)) {
-						if (randval <= (3 * RAND_MAX / 8))
+						if (randval <= (((3LL*RAND_MAX) / 8)))
 							randval = (2 * randval) - (RAND_MAX /4);
 						else
 							randval = (4 * randval) - RAND_MAX;
@@ -1652,7 +1652,7 @@ static void fdi2_decode (FDI *fdi, uint32_t totalavg, uae_u32 *avgp, uae_u32 *mi
 				} else {
 					randval -= RAND_MAX / 2;
 					if (randval > (RAND_MAX / 4)) {
-						if (randval <= (3 * RAND_MAX / 8))
+						if (randval <= (((3LL*RAND_MAX) / 8)))
 							randval = (2 * randval) - (RAND_MAX /4);
 						else
 							randval = (4 * randval) - RAND_MAX;

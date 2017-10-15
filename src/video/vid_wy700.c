@@ -1,5 +1,26 @@
-/* Wyse-700 emulation*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Wyse-700 emulation.
+ *
+ * Version:	@(#)vid_wy700.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -190,13 +211,13 @@ typedef struct wy700_t
 	int enabled;		/* Display enabled, 0 or 1 */
 	int detach;		/* Detach cursor, 0 or 1 */
 
-        int dispontime, dispofftime;
-        int vidtime;
+        int64_t dispontime, dispofftime;
+        int64_t vidtime;
         
         int linepos, displine;
         int vc;
         int dispon, blink;
-        int vsynctime;
+        int64_t vsynctime;
 
         uint8_t *vram;
 } wy700_t;
@@ -490,8 +511,8 @@ void wy700_recalctimings(wy700_t *wy700)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= MDACONST;
         _dispofftime *= MDACONST;
-	wy700->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	wy700->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	wy700->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
+	wy700->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
 }
 
 
@@ -871,7 +892,8 @@ void wy700_poll(void *p)
         }
 }
 
-void *wy700_init()
+
+void *wy700_init(device_t *info)
 {
         int c;
         wy700_t *wy700 = malloc(sizeof(wy700_t));
@@ -982,11 +1004,13 @@ void wy700_speed_changed(void *p)
 device_t wy700_device =
 {
         "Wyse 700",
-        0,
+        DEVICE_ISA, 0,
         wy700_init,
         wy700_close,
+	NULL,
         NULL,
         wy700_speed_changed,
         NULL,
+	NULL,
         NULL
 };

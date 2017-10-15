@@ -8,28 +8,29 @@
  *
  *		Emulation of the old and new IBM CGA graphics cards.
  *
- * Version:	@(#)vid_cga.c	1.0.0	2017/05/30
+ * Version:	@(#)vid_cga.c	1.0.5	2017/10/13
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
-
-/*CGA emulation*/
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include <math.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
+#include "../rom.h"
 #include "../timer.h"
 #include "../device.h"
 #include "video.h"
 #include "vid_cga.h"
 #include "vid_cga_comp.h"
-#ifndef __unix
-# include "../win/win_cgapal.h"		/*YUCK*/
-#endif
 
 
 #define CGA_RGB 0
@@ -73,13 +74,13 @@ void cga_out(uint16_t addr, uint8_t val, void *p)
                         cga->cgamode = val;
                         update_cga16_color(cga->cgamode);
                 }
-#ifndef __unix
+
 		if ((cga->cgamode ^ val) & 1)
 		{
 			cga_palette = (cga->rgb_type << 1);
 			cgapal_rebuild();
 		}
-#endif
+
                 cga->cgamode = val;
                 return;
                 case 0x3D9:
@@ -151,8 +152,8 @@ void cga_recalctimings(cga_t *cga)
         _dispofftime = disptime - _dispontime;
         _dispontime *= CGACONST;
         _dispofftime *= CGACONST;
-	cga->dispontime = (int)(_dispontime * (1 << TIMER_SHIFT));
-	cga->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	cga->dispontime = (int64_t)(_dispontime * (1LL << TIMER_SHIFT));
+	cga->dispofftime = (int64_t)(_dispofftime * (1LL << TIMER_SHIFT));
 }
 
 void cga_poll(void *p)
@@ -465,7 +466,7 @@ void cga_init(cga_t *cga)
         cga->composite = 0;
 }
 
-void *cga_standalone_init()
+void *cga_standalone_init(device_t *info)
 {
         int display_type;
         cga_t *cga = malloc(sizeof(cga_t));
@@ -477,7 +478,7 @@ void *cga_standalone_init()
         cga->snow_enabled = device_get_config_int("snow_enabled");
 
         cga->vram = malloc(0x4000);
-                
+
 	cga_comp_init(cga->revision);
         timer_add(cga_poll, &cga->vidtime, TIMER_ALWAYS_ENABLED, cga);
         mem_mapping_add(&cga->mapping, 0xb8000, 0x08000, cga_read, NULL, NULL, cga_write, NULL, NULL,  NULL, MEM_MAPPING_EXTERNAL, cga);
@@ -485,12 +486,10 @@ void *cga_standalone_init()
 
         overscan_x = overscan_y = 16;
 
-#ifndef __unix
         cga->rgb_type = device_get_config_int("rgb_type");
 	cga_palette = (cga->rgb_type << 1);
 	cgapal_rebuild();
-#endif
-		
+
         return cga;
 }
 
@@ -505,7 +504,7 @@ void cga_close(void *p)
 void cga_speed_changed(void *p)
 {
         cga_t *cga = (cga_t *)p;
-        
+
         cga_recalctimings(cga);
 }
 
@@ -539,7 +538,6 @@ static device_config_t cga_config[] =
                         }
                 }
         },
-#ifndef __unix
         {
                 "rgb_type", "RGB type", CONFIG_SELECTION, "", 0,
                 {
@@ -563,7 +561,6 @@ static device_config_t cga_config[] =
                         }
                 }
         },
-#endif
         {
                 "snow_enabled", "Snow emulation", CONFIG_BINARY, "", 1
         },
@@ -575,9 +572,10 @@ static device_config_t cga_config[] =
 device_t cga_device =
 {
         "CGA",
-        0,
+        DEVICE_ISA, 0,
         cga_standalone_init,
         cga_close,
+	NULL,
         NULL,
         cga_speed_changed,
         NULL,

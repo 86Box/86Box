@@ -12,26 +12,31 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.10	2017/06/14
+ * Version:	@(#)network.c	1.0.13	2017/10/09
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *		Copyright 2017 Fred N. van Kempen.
  */
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../device.h"
+#include "../ui.h"
 #include "network.h"
 #include "net_ne2000.h"
-#include "../win/plat_ui.h"
 
 
 static netcard_t net_cards[] = {
     { "None",			"none",		NULL,
       NULL,			NULL					},
+#if defined(DEV_BRANCH) && defined(USE_NE1000)
     { "Novell NE1000",		"ne1k",		&ne1000_device,
       NULL,			NULL					},
+#endif
     { "Novell NE2000",		"ne2k",		&ne2000_device,
       NULL,			NULL					},
     { "Realtek RTL8029AS",	"ne2kpci",	&rtl8029as_device,
@@ -42,12 +47,12 @@ static netcard_t net_cards[] = {
 
 
 /* Global variables. */
-int		network_card;
 int		network_type;
 int		network_ndev;
-int		nic_do_log;
+int		network_card;
 netdev_t	network_devs[32];
 char		network_pcap[512];
+int		nic_do_log;
 
 
 /*
@@ -68,10 +73,9 @@ network_init(void)
     nic_do_log = 0;
 #endif
 
-#if 0
+    /* Initialize to a known state. */
     network_type = NET_TYPE_NONE;
     network_card = 0;
-#endif
 
     /* Create a first device entry that's always there, as needed by UI. */
     strcpy(network_devs[0].device, "none");
@@ -111,7 +115,7 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
 	case NET_TYPE_PCAP:
 		ret = network_pcap_setup(mac, rx, dev);
 		if (ret < 0) {
-			plat_msgbox_error(IDS_2139);
+			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2139);
 			network_type = NET_TYPE_NONE;
 		}
 		break;

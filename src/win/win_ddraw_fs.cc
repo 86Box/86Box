@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include "../video/video.h"
 #include "win_ddraw.h"
-#include "win_cgapal.h"
 
 
 static LPDIRECTDRAW  lpdd  = NULL;
@@ -25,11 +24,14 @@ extern "C" void device_force_redraw(void);
 
 extern "C" int ddraw_fs_init(HWND h);
 extern "C" void ddraw_fs_close(void);
+extern "C" int ddraw_fs_pause(void);
+extern "C" void ddraw_fs_take_screenshot(wchar_t *fn);
  
-extern "C" void video_blit_complete(void);
+extern void ddraw_common_take_screenshot(wchar_t *fn, IDirectDrawSurface7 *pDDSurface);
 
-static void ddraw_fs_blit_memtoscreen(int, int, int, int, int, int);
-static void ddraw_fs_blit_memtoscreen_8(int, int, int, int);
+
+static void blit_memtoscreen(int, int, int, int, int, int);
+static void blit_memtoscreen_8(int, int, int, int);
 
 
 int ddraw_fs_init(HWND h)
@@ -89,8 +91,8 @@ int ddraw_fs_init(HWND h)
            
         pclog("DDRAW_INIT complete\n");
         ddraw_hwnd = h;
-        video_blit_memtoscreen_func   = ddraw_fs_blit_memtoscreen;
-        video_blit_memtoscreen_8_func = ddraw_fs_blit_memtoscreen_8;
+
+        video_setblit(blit_memtoscreen_8, blit_memtoscreen);
 
 	return 1;
 }
@@ -174,7 +176,7 @@ static void ddraw_fs_size(RECT window_rect, RECT *r_dest, int w, int h)
         }
 }
 
-static void ddraw_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
+static void blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
         RECT r_src;
         RECT r_dest;
@@ -242,7 +244,7 @@ static void ddraw_fs_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h
         }
 }
 
-static void ddraw_fs_blit_memtoscreen_8(int x, int y, int w, int h)
+static void blit_memtoscreen_8(int x, int y, int w, int h)
 {
         RECT r_src;
         RECT r_dest;
@@ -312,6 +314,14 @@ static void ddraw_fs_blit_memtoscreen_8(int x, int y, int w, int h)
         
         lpdds_pri->Flip(NULL, DDFLIP_NOVSYNC);        
 }
+
+
+int
+ddraw_fs_pause(void)
+{
+    return(0);
+}
+
 
 void ddraw_fs_take_screenshot(wchar_t *fn)
 {

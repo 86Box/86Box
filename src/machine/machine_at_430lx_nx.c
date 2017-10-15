@@ -8,26 +8,29 @@
  *
  *		Implementation of the Intel 430LX and 430NX PCISet chips.
  *
- * Version:	@(#)machine_at_430lx_nx.c	1.0.4	2017/09/03
+ * Version:	@(#)machine_at_430lx_nx.c	1.0.6	2017/10/07
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
+#include <stdio.h>
+#include <stdint.h>
 #include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
-#include "../cpu/cpu.h"
 #include "../mem.h"
 #include "../memregs.h"
+#include "../rom.h"
 #include "../pci.h"
 #include "../device.h"
 #include "../intel.h"
 #include "../intel_flash.h"
 #include "../intel_sio.h"
 #include "../sio.h"
-#include "machine_at.h"
-#include "machine_at_430lx_nx.h"
+#include "machine.h"
 
 
 static uint8_t card_i430_lx_nx[256];
@@ -206,9 +209,11 @@ static void i430nx_init(void)
 }
 
 
-static void machine_at_premiere_common_init(void)
+static void
+machine_at_premiere_common_init(machine_t *model)
 {
-        machine_at_ide_init();
+        machine_at_ide_init(model);
+
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_2);
 	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
@@ -220,19 +225,24 @@ static void machine_at_premiere_common_init(void)
  	sio_init(2);
         fdc37c665_init();
         intel_batman_init();
+
         device_add(&intel_flash_bxt_ami_device);
 }
 
 
-void machine_at_batman_init(void)
+void
+machine_at_batman_init(machine_t *model)
 {
-	machine_at_premiere_common_init();
+	machine_at_premiere_common_init(model);
+
         i430lx_init();
 }
 
 
-void machine_at_plato_init(void)
+void
+machine_at_plato_init(machine_t *model)
 {
-	machine_at_premiere_common_init();
+	machine_at_premiere_common_init(model);
+
         i430nx_init();
 }

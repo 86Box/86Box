@@ -8,24 +8,30 @@
  *
  *		Generic SVGA handling.
  *
- * Version:	@(#)vid_svga.c	1.0.0	2017/05/30
+ *		This is intended to be used by another SVGA driver,
+ *		and not as a card in it's own right.
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Version:	@(#)vid_svga.c	1.0.5	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
-
-/*This is intended to be used by another SVGA driver, and not as a card in it's own right*/
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
-#ifdef ENABLE_VRAM_DUMP
 #include "../rom.h"
-#endif
 #include "../timer.h"
+#ifdef ENABLE_VRAM_DUMP
+# include "../nvr.h"
+#endif
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
@@ -680,8 +686,8 @@ void svga_recalctimings(svga_t *svga)
         _dispontime *= crtcconst;
         _dispofftime *= crtcconst;
 
-	svga->dispontime = (int)(_dispontime * (1 << TIMER_SHIFT));
-	svga->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	svga->dispontime = (int64_t)(_dispontime * (1 << TIMER_SHIFT));
+	svga->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
 /*        printf("SVGA horiz total %i display end %i vidclock %f\n",svga->crtc[0],svga->crtc[1],svga->clock);
         printf("SVGA vert total %i display end %i max row %i vsync %i\n",svga->vtotal,svga->dispend,(svga->crtc[9]&31)+1,svga->vsyncstart);
         printf("total %f on %i cycles off %i cycles frame %i sec %i %02X\n",disptime*crtcconst,svga->dispontime,svga->dispofftime,(svga->dispontime+svga->dispofftime)*svga->vtotal,(svga->dispontime+svga->dispofftime)*svga->vtotal*70,svga->seqregs[1]);
@@ -1934,7 +1940,7 @@ void svga_dump_vram()
 		return;
 	}
 
-	f = nvrfopen(L"svga_vram.dmp", L"wb");
+	f = nvr_fopen(L"svga_vram.dmp", L"wb");
 	if (f == NULL)
 	{
 		return;

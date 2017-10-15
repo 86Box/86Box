@@ -1,11 +1,33 @@
-/* MDSI Genius VHR emulation*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		MDSI Genius VHR emulation.
+ *
+ * Version:	@(#)vid_genius.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../timer.h"
 #include "../device.h"
+#include "../plat.h"
 #include "video.h"
 #include "vid_genius.h"
 
@@ -14,9 +36,8 @@
 #define GENIUS_YSIZE 1008
 
 
-void updatewindowsize(int x, int y);
-
 extern uint8_t fontdat8x12[256][16];	
+
 
 /* I'm at something of a disadvantage writing this emulation: I don't have an
  * MDSI Genius card, nor do I have the BIOS extension (VHRBIOS.SYS) that came 
@@ -99,13 +120,13 @@ typedef struct genius_t
 	int enabled;		/* Display enabled, 0 or 1 */
 	int detach;		/* Detach cursor, 0 or 1 */
 
-        int dispontime, dispofftime;
-        int vidtime;
+        int64_t dispontime, dispofftime;
+        int64_t vidtime;
         
         int linepos, displine;
         int vc;
         int dispon, blink;
-        int vsynctime;
+        int64_t vsynctime;
 
         uint8_t *vram;
 } genius_t;
@@ -245,8 +266,8 @@ void genius_recalctimings(genius_t *genius)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= MDACONST;
         _dispofftime *= MDACONST;
-	genius->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	genius->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	genius->dispontime  = (int64_t)(_dispontime  * (1LL << TIMER_SHIFT));
+	genius->dispofftime = (int64_t)(_dispofftime * (1LL << TIMER_SHIFT));
 }
 
 
@@ -549,7 +570,7 @@ void genius_poll(void *p)
         }
 }
 
-void *genius_init()
+void *genius_init(device_t *info)
 {
         int c;
         genius_t *genius = malloc(sizeof(genius_t));
@@ -605,7 +626,7 @@ void genius_close(void *p)
         free(genius);
 }
 
-static int genius_available()
+static int genius_available(void)
 {
         return rom_present(L"roms/video/genius/8x12.bin");
 }
@@ -620,11 +641,13 @@ void genius_speed_changed(void *p)
 device_t genius_device =
 {
         "Genius VHR",
-        0,
+        DEVICE_ISA, 0,
         genius_init,
         genius_close,
+	NULL,
         genius_available,
         genius_speed_changed,
+	NULL,
         NULL,
         NULL
 };

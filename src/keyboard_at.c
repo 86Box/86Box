@@ -8,19 +8,23 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.2	2017/09/03
+ * Version:	@(#)keyboard_at.c	1.0.3	2017/09/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
+#include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "ibm.h"
 #include "io.h"
 #include "pic.h"
 #include "pit.h"
 #include "mem.h"
+#include "rom.h"
 #include "timer.h"
 #include "floppy/floppy.h"
 #include "floppy/fdc.h"
@@ -43,7 +47,7 @@
 #define STAT_IFULL      0x02
 #define STAT_OFULL      0x01
 
-#define PS2_REFRESH_TIME (16 * TIMER_USEC)
+#define PS2_REFRESH_TIME (16LL * TIMER_USEC)
 
 #define CCB_UNUSED      0x80
 #define CCB_TRANSLATE   0x40
@@ -84,7 +88,7 @@ struct
         void (*mouse_write)(uint8_t val, void *p);
         void *mouse_p;
         
-        int refresh_time;
+        int64_t refresh_time;
         int refresh;
         
         int is_ps2;
@@ -141,7 +145,7 @@ void keyboard_at_log(const char *format, ...)
 
 static void keyboard_at_poll(void)
 {
-	keybsenddelay += (1000 * TIMER_USEC);
+	keybsenddelay += (1000LL * TIMER_USEC);
 
         if ((keyboard_at.out_new != -1) && !keyboard_at.last_irq)
         {

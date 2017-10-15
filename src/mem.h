@@ -173,26 +173,23 @@ void mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *p);
 void mem_write_raml_page(uint32_t addr, uint32_t val, page_t *p);
 void mem_flush_write_page(uint32_t addr, uint32_t virt);
 
-void mem_reset_page_blocks();
+extern void	mem_reset_page_blocks(void);
 
 extern mem_mapping_t ram_low_mapping;
 extern mem_mapping_t ram_mid_mapping;
  
-void mem_remap_top_256k();
-void mem_remap_top_384k();
+extern void	mem_remap_top_256k(void);
+extern void	mem_remap_top_384k(void);
 
-void flushmmucache_nopc();
+extern void	flushmmucache_nopc(void);
 
-int loadbios();
+extern void	mem_add_bios(void);
 
-void mem_add_bios();
+extern void	mem_init(void);
+extern void	mem_resize(void);
 
-void mem_init();
-void mem_resize();
-
-void port_92_reset();
-
-void port_92_add();
-void port_92_remove();
+extern void	port_92_reset(void);
+extern void	port_92_add(void);
+extern void	port_92_remove(void);
 
 #endif

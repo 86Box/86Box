@@ -10,7 +10,7 @@
  *
  * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.14	2017/09/03
+ * Version:	@(#)net_ne2000.c	1.0.18	2017/10/09
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -18,11 +18,14 @@
  *
  * Based on	@(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
  *		Portions Copyright (C) 2002  MandrakeSoft S.A.
+ *		Copyright 2017 Fred N. van Kempen.
  */
-#include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <wchar.h>
 #include <time.h>
 #include "../config.h"
 #include "../ibm.h"
@@ -33,6 +36,7 @@
 #include "../pic.h"
 #include "../random.h"
 #include "../device.h"
+#include "../ui.h"
 #include "network.h"
 #include "net_ne2000.h"
 #include "bswap.h"
@@ -495,6 +499,7 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 {
     nelog(3, "%s: ASIC write addr=0x%02x, value=0x%04x\n",
 		dev->name, (unsigned)off, (unsigned) val);
+
     switch(off) {
 	case 0x00:	/* Data register - see asic_read for a description */
 		if ((len > 1) && (dev->DCR.wdsize == 0)) {
@@ -502,30 +507,25 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 							dev->name, len);
 			break;
 		}
-		if (dev->remote_bytes == 0) {
+		if (dev->remote_bytes == 0)
 			nelog(3, "%s: DMA write, byte count 0\n", dev->name);
-		}
 
 		chipmem_write(dev, dev->remote_dma, val, len);
-		if (len == 4) {
+		if (len == 4)
 			dev->remote_dma += len;
-		} else {
+		  else
 			dev->remote_dma += (dev->DCR.wdsize + 1);
-		}
 
-		if (dev->remote_dma == dev->page_stop << 8) {
+		if (dev->remote_dma == dev->page_stop << 8)
 			dev->remote_dma = dev->page_start << 8;
-		}
 
-		if (len == 4) {
+		if (len == 4)
 			dev->remote_bytes -= len;
-		} else {
+		  else
 			dev->remote_bytes -= (dev->DCR.wdsize + 1);
-		}
 
-		if (dev->remote_bytes > NE2K_MEMSIZ) {
+		if (dev->remote_bytes > NE2K_MEMSIZ)
 			dev->remote_bytes = 0;
-		}
 
 		/* If all bytes have been written, signal remote-DMA complete */
 		if (dev->remote_bytes == 0) {
@@ -1421,13 +1421,10 @@ nic_update_bios(nic_t *dev)
 	
     reg_bios_enable = 1;
 
-    if (!dev->has_bios) {
-	return;
-    }
+    if (! dev->has_bios) return;
 
-    if (PCI && dev->is_pci) {
+    if (PCI && dev->is_pci)
 	reg_bios_enable = dev->pci_bar[1].addr_regs[0] & 0x01;
-    }
 	
     /* PCI BIOS stuff, just enable_disable. */
     if (reg_bios_enable) {
@@ -1652,26 +1649,22 @@ static int
 mcast_index(const void *dst)
 {
 #define POLYNOMIAL 0x04c11db6
-	unsigned long crc = 0xffffffffL;
-	int carry, i, j;
-	unsigned char b;
-	unsigned char *ep = (unsigned char *) dst;
+    uint32_t crc = 0xffffffffL;
+    int carry, i, j;
+    uint8_t b;
+    uint8_t *ep = (uint8_t *)dst;
 
-	for (i = 6; --i >= 0;)
-	{
-		b = *ep++;
-		for (j = 8; --j >= 0;)
-		{
-			carry = ((crc & 0x80000000L) ? 1 : 0) ^ (b & 0x01);
-			crc <<= 1;
-			b >>= 1;
-			if (carry)
-			{
-				crc = ((crc ^ POLYNOMIAL) | carry);
-			}
-		}
+    for (i=6; --i>=0;) {
+	b = *ep++;
+	for (j = 8; --j >= 0;) {
+		carry = ((crc & 0x80000000L) ? 1 : 0) ^ (b & 0x01);
+		crc <<= 1;
+		b >>= 1;
+		if (carry)
+			crc = ((crc ^ POLYNOMIAL) | carry);
 	}
-	return (crc >> 26);
+    }
+    return(crc >> 26);
 #undef POLYNOMIAL
 }
 
@@ -1679,7 +1672,7 @@ mcast_index(const void *dst)
 static void
 nic_tx(nic_t *dev, uint32_t val)
 {
-    update_status_bar_icon(SB_NETWORK, 1);
+    ui_sb_update_icon(SB_NETWORK, 1);
 
     dev->CR.tx_packet = 0;
     dev->TSR.tx_ok = 1;
@@ -1690,7 +1683,7 @@ nic_tx(nic_t *dev, uint32_t val)
 	nic_interrupt(dev, 1);
     dev->tx_timer_active = 0;
 
-    update_status_bar_icon(SB_NETWORK, 0);
+    ui_sb_update_icon(SB_NETWORK, 0);
 }
 
 
@@ -1711,7 +1704,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
     int idx, nextpage;
     int endbytes;
 
-    update_status_bar_icon(SB_NETWORK, 1);
+    ui_sb_update_icon(SB_NETWORK, 1);
 
     if (io_len != 60)
 	nelog(2, "%s: rx_frame with length %d\n", dev->name, io_len);
@@ -1742,14 +1735,14 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 		) {
 	nelog(1, "%s: no space\n", dev->name);
 
-	update_status_bar_icon(SB_NETWORK, 0);
+	ui_sb_update_icon(SB_NETWORK, 0);
 	return;
     }
 
     if ((io_len < 40/*60*/) && !dev->RCR.runts_ok) {
 	nelog(1, "%s: rejected small packet, length %d\n", dev->name, io_len);
 
-	update_status_bar_icon(SB_NETWORK, 0);
+	ui_sb_update_icon(SB_NETWORK, 0);
 	return;
     }
 
@@ -1771,7 +1764,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 		if (! dev->RCR.broadcast) {
 			nelog(2, "%s: RX BC disabled\n", dev->name);
 
-			update_status_bar_icon(SB_NETWORK, 0);
+			ui_sb_update_icon(SB_NETWORK, 0);
 			return;
 		}
 	}
@@ -1784,7 +1777,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 			nelog(2, "%s: RX MC disabled\n", dev->name);
 #endif
 
-			update_status_bar_icon(SB_NETWORK, 0);
+			ui_sb_update_icon(SB_NETWORK, 0);
 			return;
 		}
 
@@ -1793,7 +1786,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 		if (! (dev->mchash[idx>>3] & (1<<(idx&0x7)))) {
 			nelog(2, "%s: RX MC not listed\n", dev->name);
 
-			update_status_bar_icon(SB_NETWORK, 0);
+			ui_sb_update_icon(SB_NETWORK, 0);
 			return;
 		}
 	}
@@ -1839,7 +1832,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
     if (dev->IMR.rx_inte)
 	nic_interrupt(dev, 1);
 
-    update_status_bar_icon(SB_NETWORK, 0);
+    ui_sb_update_icon(SB_NETWORK, 0);
 }
 
 
@@ -1849,35 +1842,32 @@ nic_rom_init(nic_t *dev, wchar_t *s)
     uint32_t temp;
     FILE *f;
 
-    if (s == NULL)
-    {
+    if (s == NULL) return;
+
+    if (dev->bios_addr == 0) return;
+
+    if ((f = rom_fopen(s, L"rb")) != NULL) {
+	fseek(f, 0L, SEEK_END);
+	temp = ftell(f);
+	fclose(f);
+	dev->bios_size = 0x10000;
+	if (temp <= 0x8000)
+		dev->bios_size = 0x8000;
+	if (temp <= 0x4000)
+		dev->bios_size = 0x4000;
+	if (temp <= 0x2000)
+		dev->bios_size = 0x2000;
+	dev->bios_mask = (dev->bios_size >> 8) & 0xff;
+		dev->bios_mask = (0x100 - dev->bios_mask) & 0xff;
+    } else {
+	dev->bios_addr = 0x00000;
+	dev->bios_size = 0;
 	return;
     }
 
-    if (dev->bios_addr > 0) {
-	if ((f = romfopen(s, L"rb")) != NULL) {
-		fseek(f, 0L, SEEK_END);
-		temp = ftell(f);
-		fclose(f);
-		dev->bios_size = 0x10000;
-		if (temp <= 0x8000)
-			dev->bios_size = 0x8000;
-		if (temp <= 0x4000)
-			dev->bios_size = 0x4000;
-		if (temp <= 0x2000)
-			dev->bios_size = 0x2000;
-		dev->bios_mask = (dev->bios_size >> 8) & 0xff;
-		dev->bios_mask = (0x100 - dev->bios_mask) & 0xff;
-	} else {
-		dev->bios_addr = 0x00000;
-		dev->bios_size = 0;
-		return;
-	}
-
-	/* Create a memory mapping for the space. */
-	rom_init(&dev->bios_rom, s, dev->bios_addr,
-		 dev->bios_size, dev->bios_size-1, 0, MEM_MAPPING_EXTERNAL);
-    }
+    /* Create a memory mapping for the space. */
+    rom_init(&dev->bios_rom, s, dev->bios_addr,
+	     dev->bios_size, dev->bios_size-1, 0, MEM_MAPPING_EXTERNAL);
 
     nelog(1, "%s: BIOS configured at %06lX (size %ld)\n",
 		dev->name, dev->bios_addr, dev->bios_size);
@@ -1885,7 +1875,7 @@ nic_rom_init(nic_t *dev, wchar_t *s)
 
 
 static void *
-nic_init(int board)
+nic_init(device_t *info)
 {
     uint32_t mac;
     wchar_t *rom;
@@ -1898,9 +1888,10 @@ nic_init(int board)
 
     dev = malloc(sizeof(nic_t));
     memset(dev, 0x00, sizeof(nic_t));
-    dev->board = board;
+    dev->board = info->local;
     rom = NULL;
     switch(dev->board) {
+#if defined(DEV_BRANCH) && defined(USE_NE1000)
 	case NE2K_NE1000:
 		strcpy(dev->name, "NE1000");
 		dev->maclocal[0] = 0x00;  /* 00:00:D8 (NE1000 ISA OID) */
@@ -1908,6 +1899,7 @@ nic_init(int board)
 		dev->maclocal[2] = 0xD8;
 		rom = ROM_PATH_NE1000;
 		break;
+#endif
 
 	case NE2K_NE2000:
 		strcpy(dev->name, "NE2000");
@@ -1930,19 +1922,13 @@ nic_init(int board)
     if (dev->is_pci) {
 	dev->base_address = 0x340;
 	dev->base_irq = 10;
+	dev->bios_addr = 0xD0000;
+	dev->has_bios = device_get_config_int("bios");
     } else {
 	dev->base_address = device_get_config_hex16("base");
 	dev->base_irq = device_get_config_int("irq");
-    }
-
-    dev->bios_addr = device_get_config_hex20("bios_addr");
-    if (dev->bios_addr)
-    {
-	dev->has_bios = 1;
-    }
-    else
-    {
-	dev->has_bios = 0;
+	dev->bios_addr = device_get_config_hex20("bios_addr");
+	dev->has_bios = !!dev->bios_addr;
     }
 
     /* See if we have a local MAC address configured. */
@@ -2060,6 +2046,8 @@ nic_init(int board)
     nelog(1, "%s: %s attached IO=0x%X IRQ=%d\n", dev->name,
 	dev->is_pci?"PCI":"ISA", dev->base_address, dev->base_irq);
 
+    ui_sb_update_icon(SB_NETWORK, 0);
+
     return(dev);
 }
 
@@ -2080,27 +2068,7 @@ nic_close(void *priv)
 }
 
 
-static void *
-ne1000_init(void)
-{
-    return(nic_init(NE2K_NE1000));
-}
-
-
-static void *
-ne2000_init(void)
-{
-    return(nic_init(NE2K_NE2000));
-}
-
-
-static void *
-rtl8029as_init(void)
-{
-    return(nic_init(NE2K_RTL8029AS));
-}
-
-
+#if defined(DEV_BRANCH) && defined(USE_NE1000)
 static device_config_t ne1000_config[] =
 {
 	{
@@ -2173,6 +2141,7 @@ static device_config_t ne1000_config[] =
 		"", "", -1
 	}
 };
+#endif
 
 static device_config_t ne2000_config[] =
 {
@@ -2255,31 +2224,8 @@ static device_config_t ne2000_config[] =
 
 static device_config_t rtl8029as_config[] =
 {
-	/*
-	 * WTF.
-	 * Even though it is PCI, the user should still have control
-	 * over whether or not it's Option ROM BIOS will be enabled
-	 * or not.
-	 */
 	{
-		"bios_addr", "BIOS address", CONFIG_HEX20, "", 0,
-		{
-			{
-				"Disabled", 0x00000
-			},
-			{
-				"D000", 0xD0000
-			},
-			{
-				"D800", 0xD8000
-			},
-			{
-				"C800", 0xC8000
-			},
-			{
-				""
-			}
-		},
+		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
 	},
 	{
 		"mac", "MAC Address", CONFIG_MAC, "", -1
@@ -2290,39 +2236,31 @@ static device_config_t rtl8029as_config[] =
 };
 
 
-
+#if defined(DEV_BRANCH) && defined(USE_NE1000)
 device_t ne1000_device = {
     "Novell NE1000",
     0,
-    ne1000_init,
-    nic_close,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    NE2K_NE1000,
+    nic_init, nic_close, NULL,
+    NULL, NULL, NULL, NULL,
     ne1000_config
 };
+#endif
 
 device_t ne2000_device = {
     "Novell NE2000",
-    0,
-    ne2000_init,
-    nic_close,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    DEVICE_AT,
+    NE2K_NE2000,
+    nic_init, nic_close, NULL,
+    NULL, NULL, NULL, NULL,
     ne2000_config
 };
 
 device_t rtl8029as_device = {
     "Realtek RTL8029AS",
-    0,
-    rtl8029as_init,
-    nic_close,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    DEVICE_PCI,
+    NE2K_RTL8029AS,
+    nic_init, nic_close, NULL,
+    NULL, NULL, NULL, NULL,
     rtl8029as_config
 };

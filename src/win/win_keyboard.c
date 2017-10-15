@@ -8,32 +8,29 @@
  *
  *		Windows raw keyboard input handler.
  *
- * Version:	@(#)win_d3d.cc	1.0.0	2017/05/30
+ * Version:	@(#)win_keyboard.c	1.0.2	2017/10/10
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2016-2017 Miran Grca.
  */
-
 #define UNICODE
 #define  _WIN32_WINNT 0x0501
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #include <windowsx.h>
 #undef BITMAP
-
-#include <commctrl.h>
-#include <commdlg.h>
-#include <process.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
+//#include <commctrl.h>
+//#include <commdlg.h>
 #include <stdint.h>
-
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include "../device.h"
-#include "plat_keyboard.h"
-
+#include "../plat.h"
+#include "../plat_keyboard.h"
 #include "win.h"
+
 
 #ifndef MAPVK_VK_TO_VSC
 #define MAPVK_VK_TO_VSC 0

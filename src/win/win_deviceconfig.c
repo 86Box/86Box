@@ -8,27 +8,33 @@
  *
  *		Windows device configuration dialog implementation.
  *
- * Version:	@(#)win_deviceconfig.c	1.0.1	2017/06/19
+ * Version:	@(#)win_deviceconfig.c	1.0.7	2017/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"
-#include "plat_midi.h"
-#define NO_UNICODE		/*FIXME: not Unicode? */
+#include "../plat.h"
+#include "../plat_midi.h"
+#include "../ui.h"
 #include "win.h"
-#include "win_language.h"
 #include <windowsx.h>
 
 
 static device_t *config_device;
 
 
-static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+static BOOL CALLBACK
+deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
 
@@ -42,6 +48,7 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
 	device_config_t *config;
 	char s[80];
 	wchar_t ws[512];
+	LPTSTR lptsTemp;
 
         switch (message)
         {
@@ -49,6 +56,8 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                 {
                         id = IDC_CONFIG_BASE;
                         config = config_device->config;
+
+			lptsTemp = (LPTSTR) malloc(512);
 
                         while (config->type != -1)
                         {
@@ -71,7 +80,8 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                         c = 0;
                                         while (selection->description[0])
                                         {
-                                                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)selection->description);
+						mbstowcs(lptsTemp, selection->description, strlen(selection->description) + 1);
+                                                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
                                                 if (val_int == selection->value)
                                                         SendMessage(h, CB_SETCURSEL, c, 0);
                                                 selection++;
@@ -88,7 +98,8 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                         for (c = 0; c < num; c++)
                                         {
                                                 plat_midi_get_dev_name(c, s);
-                                                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)s);
+						mbstowcs(lptsTemp, s, strlen(s) + 1);
+                                                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
                                                 if (val_int == c)
                                                         SendMessage(h, CB_SETCURSEL, c, 0);
                                         }
@@ -99,15 +110,15 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                         case CONFIG_SPINNER:
                                         val_int = config_get_int(config_device->name, config->name, config->default_int);
 
-                                        sprintf(s, "%i", val_int);
-                                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)s);
+                                        _swprintf(ws, L"%i", val_int);
+                                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)ws);
 
                                         id += 2;
                                         break;
 
                                         case CONFIG_FILE:
                                         {
-                                                char* str = config_get_string(config_device->name, config->name, 0);
+                                                wchar_t* str = config_get_wstring(config_device->name, config->name, 0);
                                                 if (str)
                                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)str);
                                                 id += 3;
@@ -120,7 +131,8 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                         c = 0;
                                         while (selection->description[0])
                                         {
-                                                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)selection->description);
+						mbstowcs(lptsTemp, selection->description, strlen(selection->description) + 1);
+                                                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
                                                 if (val_int == selection->value)
                                                         SendMessage(h, CB_SETCURSEL, c, 0);
                                                 selection++;
@@ -136,7 +148,8 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                         c = 0;
                                         while (selection->description[0])
                                         {
-                                                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)selection->description);
+						mbstowcs(lptsTemp, selection->description, strlen(selection->description) + 1);
+                                                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
                                                 if (val_int == selection->value)
                                                         SendMessage(h, CB_SETCURSEL, c, 0);
                                                 selection++;
@@ -148,6 +161,8 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                 }
                                 config++;
                         }
+
+			free(lptsTemp);
                 }
                 return TRUE;
                 
@@ -220,7 +235,8 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                                 else if (val_int < config->spinner.min)
                                                         val_int = config->spinner.min;
 
-                                                SendMessage(h, WM_GETTEXT, 79, (LPARAM)s);
+                                                SendMessage(h, WM_GETTEXT, 79, (LPARAM)ws);
+						wcstombs(s, ws, 79);
                                                 sscanf(s, "%i", &c);
 
                                                 if (val_int != c)
@@ -266,13 +282,13 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                         return TRUE;
                                 }
 
-                               ret = msgbox_reset(ghwnd);
+                               ret = ui_msgbox(MBX_QUESTION, (wchar_t *)IDS_2051);
                                switch(ret)
                                {
-                                    case IDNO:                                        
+                                    case 1:                                        
 	                                    EndDialog(hdlg, 0);
         	                            return TRUE;
-                                    case IDCANCEL:
+                                    case -1:
                                         return FALSE;
                                     default:
                                         break;
@@ -311,9 +327,8 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                                 break;
 
                                                 case CONFIG_FILE:
-                                                SendMessage(h, WM_GETTEXT, 511, (LPARAM)s);
-
-                                                config_set_string(config_device->name, config->name, s);
+                                                SendMessage(h, WM_GETTEXT, 511, (LPARAM)ws);
+                                                config_set_wstring(config_device->name, config->name, ws);
 
                                                 id += 3;
                                                 break;
@@ -352,9 +367,9 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                         config++;
                                 }
 
-                                saveconfig();
+                                config_save();
                         
-                                resetpchard();
+                                pc_reset_hard();
 
                                 EndDialog(hdlg, 0);
                                 return TRUE;
@@ -433,7 +448,7 @@ static BOOL CALLBACK deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam
                                                                                 ws[c] = 0;
 
                                                                 if (!file_dlg(hdlg, ws, s, 0))
-                                                                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)openfilestring);
+                                                                        SendMessage(h, WM_SETTEXT, 0, (LPARAM)wopenfilestring);
                                                         }
 												}
 												break;

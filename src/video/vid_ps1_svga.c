@@ -1,13 +1,34 @@
-/*Emulation of the SVGA chip in the IBM PS/1 Model 2121, or at least the
-  20 MHz version.
-  
-  I am not entirely sure what this chip actually is, possibly a CF62011? I can
-  not find any documentation on the chip so have implemented enough to pass
-  self-test in the PS/1 BIOS. It has 512kb video memory but I have not found any
-  native drivers for any operating system and there is no VBE implementation, so
-  it's just a VGA for now.
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Emulation of the SVGA chip in the IBM PS/1 Model 2121, or
+ *		at least the 20 MHz version.
+ *
+ *		I am not entirely sure what this chip actually is, possibly
+ *		a CF62011? I can not find any documentation on the chip so
+ *		have implemented enough to pass self-test in the PS/1 BIOS.
+ *		It has 512kb video memory but I have not found any native
+ *		drivers for any operating system and there is no VBE
+ *		implementation, so it's just a VGA for now.
+ *
+ * Version:	@(#)vid_ps1_svga.c	1.0.1	2017/10/10
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -118,7 +139,8 @@ uint8_t ps1_m2121_svga_in(uint16_t addr, void *p)
         return temp;
 }
 
-void *ps1_m2121_svga_init()
+
+static void *ps1_m2121_svga_init(device_t *info)
 {
         ps1_m2121_svga_t *ps1 = malloc(sizeof(ps1_m2121_svga_t));
         memset(ps1, 0, sizeof(ps1_m2121_svga_t));
@@ -172,10 +194,11 @@ void ps1_m2121_svga_add_status_info(char *s, int max_len, void *p)
 device_t ps1_m2121_svga_device =
 {
         "PS/1 Model 2121 SVGA",
-        0,
+        0, 0,
         ps1_m2121_svga_init,
         ps1_m2121_svga_close,
         NULL,
+	NULL,
         ps1_m2121_svga_speed_changed,
         ps1_m2121_svga_force_redraw,
         ps1_m2121_svga_add_status_info

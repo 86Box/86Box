@@ -8,17 +8,20 @@
  *
  *		x86 CPU segment emulation.
  *
- * Version:	@(#)x86seg.c	1.0.0	2017/05/30
+ * Version:	@(#)x86seg.c	1.0.3	2017/10/12
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
-
 #include <stdio.h>
-#include <stdarg.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <wchar.h>
 #include "../ibm.h"
 #include "../mem.h"
 #include "../nvr.h"
@@ -26,6 +29,7 @@
 #include "386.h"
 #include "386_common.h"
 #include "cpu.h"
+
 
 /*Controls whether the accessed bit in a descriptor is set when CS is loaded.*/
 #define CS_ACCESSED
@@ -36,7 +40,6 @@
 int stimes = 0;
 int dtimes = 0;
 int btimes = 0;
-int is486=1;
 
 uint32_t abrt_error;
 int cgate16,cgate32;
@@ -61,7 +64,7 @@ void x86abort(const char *format, ...)
    vprintf(format, ap);
    va_end(ap);
    fflush(stdout);
-   savenvr();
+   nvr_save();
    dumpregs(1);
    fflush(stdout);
    exit(-1);
@@ -402,10 +405,12 @@ void loadseg(uint16_t seg, x86seg *s)
                 }
 #endif
                 s->checked = 0;
+#ifdef USE_DYNAREC
                 if (s == &_ds)
                         codegen_flat_ds = 0;
                 if (s == &_ss)
                         codegen_flat_ss = 0;
+#endif
         }
         else
         {
@@ -415,10 +420,12 @@ void loadseg(uint16_t seg, x86seg *s)
                 if (s == &_ss)
                         stack32 = 0;
                 s->checked = 1;
+#ifdef USE_DYNAREC
                 if (s == &_ds)
                         codegen_flat_ds = 0;
                 if (s == &_ss)
                         codegen_flat_ss = 0;
+#endif
         }
         
         if (s == &_ds)
