@@ -12,6 +12,7 @@
 #include "../device.h"
 #include "sound.h"
 #include "filters.h"
+#include "snd_mpu401.h"
 #include "snd_opl.h"
 #include "snd_pas16.h"
 #include "snd_sb_dsp.h"
