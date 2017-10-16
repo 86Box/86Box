@@ -3766,7 +3766,8 @@ void cdrom_phase_callback(uint8_t id)
 		case CDROM_PHASE_COMMAND:
 			cdrom_log("CD-ROM %i: CDROM_PHASE_COMMAND\n", id);
 			cdrom[id].status = BUSY_STAT | (cdrom[id].status &ERR_STAT);
-			memcpy(cdrom[id].atapi_cdb, (uint8_t *) cdrom[id].buffer, cdrom[id].cdb_len);
+			memcpy(cdrom[id].atapi_cdb, cdbufferb, cdrom[id].cdb_len);
+			cdrom_buf_free(id);
 			cdrom_command(id, cdrom[id].atapi_cdb);
 			return;
 		case CDROM_PHASE_COMPLETE:
@@ -3837,6 +3838,9 @@ uint32_t cdrom_read(uint8_t channel, int length)
 
 	cdbufferw = (uint16_t *) cdbufferb;
 	cdbufferl = (uint32_t *) cdbufferb;
+
+	if (!cdbufferb)
+		return 0;
 
 	switch(length)
 	{
@@ -3910,6 +3914,11 @@ void cdrom_write(uint8_t channel, uint32_t val, int length)
 		return;
 	}
 
+	if (cdrom[id].packet_status == CDROM_PHASE_IDLE) {
+		if (!cdbufferb)
+			cdrom_buf_alloc(id, cdrom[id].cdb_len);
+	}
+
 	cdbufferw = (uint16_t *) cdbufferb;
 	cdbufferl = (uint32_t *) cdbufferb;
 
@@ -3949,7 +3958,6 @@ void cdrom_write(uint8_t channel, uint32_t val, int length)
 			cdrom[id].pos=0;
 			cdrom[id].status = BUSY_STAT;
 			cdrom[id].packet_status = CDROM_PHASE_COMMAND;
-			cdrom_buf_free(id);
 			timer_process();
 			cdrom_phase_callback(id);
 			timer_update_outstanding();
