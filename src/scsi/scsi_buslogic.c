@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.23	2017/10/14
+ * Version:	@(#)scsi_buslogic.c	1.0.24	2017/10/16
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -43,9 +43,6 @@
 #include "scsi_buslogic.h"
 #include "scsi_device.h"
 #include "scsi_x54x.h"
-
-
-#define BUSLOGIC_RESET_DURATION_US UINT64_C(5000)
 
 
 /*
@@ -1301,7 +1298,6 @@ buslogic_init(device_t *info)
     dev->DmaChannel = device_get_config_int("dma");
     dev->HostID = 7;		/* default HA ID */
     dev->setup_info_len = sizeof(buslogic_setup_t);
-    dev->reset_duration = BUSLOGIC_RESET_DURATION_US;
     dev->max_id = 7;
     dev->int_geom_writable = 1;
     dev->cdrom_boot = 0;
@@ -1445,7 +1441,7 @@ buslogic_init(device_t *info)
 	
     buslogic_log("Buslogic on port 0x%04X\n", dev->Base);
 	
-    x54x_reset_ctrl(dev, CTRL_HRST);
+    x54x_device_reset(dev);
 
     if (bl->chip != CHIP_BUSLOGIC_ISA_542) {
 	BuslogicInitializeLocalRAM(bl);

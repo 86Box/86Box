@@ -10,7 +10,7 @@
  *		made by Adaptec, Inc. These controllers were designed for
  *		the ISA bus.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.29	2017/10/14
+ * Version:	@(#)scsi_aha154x.c	1.0.30	2017/10/16
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -47,9 +47,6 @@ enum {
     AHA_154xCP,
     AHA_1640
 };
-
-
-#define AHA_RESET_DURATION_US	UINT64_C(50000)
 
 
 #define CMD_WRITE_EEPROM 0x22		/* UNDOC: Write EEPROM */
@@ -789,7 +786,6 @@ aha_init(device_t *info)
     dev->rom_addr = device_get_config_hex20("bios_addr");
     dev->HostID = 7;		/* default HA ID */
     dev->setup_info_len = sizeof(aha_setup_t);
-    dev->reset_duration = AHA_RESET_DURATION_US;
     dev->max_id = 7;
     dev->int_geom_writable = 0;
     dev->cdrom_boot = 0;
@@ -887,7 +883,7 @@ aha_init(device_t *info)
 
     if (dev->Base != 0) {
 	/* Initialize the device. */
-	x54x_reset_ctrl(dev, CTRL_HRST);
+	x54x_device_reset(dev);
 
         if (!(dev->bus & DEVICE_MCA)) {
 		/* Register our address space. */

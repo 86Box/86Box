@@ -11,7 +11,7 @@
  *		series of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.c	1.0.1	2017/10/14
+ * Version:	@(#)scsi_x54x.c	1.0.2	2017/10/16
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -43,6 +43,9 @@
 #include "scsi_device.h"
 #include "scsi_aha154x.h"
 #include "scsi_x54x.h"
+
+
+#define X54X_RESET_DURATION_US	UINT64_C(50000)
 
 
 static void	x54x_cmd_thread(void *priv);
@@ -164,63 +167,6 @@ clear_irq(x54x_t *dev)
 	}
 	dev->PendingInterrupt = 0;
     }
-}
-
-
-static void
-x54x_reset(x54x_t *dev)
-{
-    dev->ResetCB = 0LL;
-
-    dev->Status = STAT_IDLE | STAT_INIT;
-    dev->Geometry = 0x80;
-    dev->Command = 0xFF;
-    dev->CmdParam = 0;
-    dev->CmdParamLeft = 0;
-    dev->IrqEnabled = 1;
-    dev->MailboxCount = 0;
-    dev->MailboxOutPosCur = 0;
-    dev->MailboxInPosCur = 0;
-    dev->MailboxOutInterrupts = 0;
-    dev->PendingInterrupt = 0;
-
-    if (dev->ven_reset) {
-	dev->ven_reset(dev);
-    }
-
-    clear_irq(dev);
-}
-
-
-void
-x54x_reset_ctrl(x54x_t *dev, uint8_t Reset)
-{
-    /* Only if configured.. */
-    if (dev->Base == 0x0000) return;
-
-    /* Say hello! */
-    x54x_log("%s %s (IO=0x%04X, IRQ=%d, DMA=%d, BIOS @%05lX) ID=%d\n",
-	dev->vendor, dev->name, dev->Base, dev->Irq, dev->DmaChannel,
-	dev->rom_addr, dev->HostID);
-
-    x54x_reset(dev);
-    if (Reset) {
-	dev->Status |= STAT_STST;
-	dev->Status &= ~STAT_IDLE;
-    }
-    dev->ResetCB = dev->reset_duration * TIMER_USEC;
-}
-
-
-static void
-x54x_reset_poll(void *priv)
-{
-    x54x_t *dev = (x54x_t *)priv;
-
-    dev->Status &= ~STAT_STST;
-    dev->Status |= STAT_IDLE;
-
-    dev->ResetCB = 0LL;
 }
 
 
@@ -1397,6 +1343,38 @@ x54x_cmd_thread(void *priv)
 }
 
 
+void
+x54x_busy_set(void)
+{
+    busy = 1;
+}
+
+
+void
+x54x_thread_start(x54x_t *dev)
+{
+    if (!poll_tid) {
+	x54x_log("Starting thread...\n");
+	poll_tid = thread_create(x54x_cmd_thread, dev);
+    }
+}
+
+
+void
+x54x_busy_clear(void)
+{
+    busy = 0;
+    x54x_log("Thread set event - poll complete\n");
+    thread_set_event(poll_complete);
+}
+
+uint8_t
+x54x_busy(void)
+{
+    return !!busy;
+}
+
+
 static uint8_t
 x54x_in(uint16_t port, void *priv)
 {
@@ -1467,35 +1445,56 @@ x54x_readl(uint32_t port, void *priv)
 }
 
 
-void
-x54x_busy_set(void)
+static void
+x54x_reset_poll(void *priv)
 {
-    busy = 1;
+    x54x_t *dev = (x54x_t *)priv;
+
+    dev->Status &= ~STAT_STST;
+    dev->Status |= STAT_IDLE;
+
+    dev->ResetCB = 0LL;
 }
 
 
-void
-x54x_thread_start(x54x_t *dev)
+static void
+x54x_reset(x54x_t *dev)
 {
-    if (!poll_tid) {
-	x54x_log("Starting thread...\n");
-	poll_tid = thread_create(x54x_cmd_thread, dev);
+    dev->Geometry = 0x80;
+    dev->Command = 0xFF;
+    dev->CmdParam = 0;
+    dev->CmdParamLeft = 0;
+    dev->IrqEnabled = 1;
+    dev->MailboxCount = 0;
+    dev->MailboxOutPosCur = 0;
+    dev->MailboxInPosCur = 0;
+    dev->MailboxOutInterrupts = 0;
+    dev->PendingInterrupt = 0;
+
+    if (dev->ven_reset) {
+	dev->ven_reset(dev);
     }
+
+    clear_irq(dev);
 }
 
 
 void
-x54x_busy_clear(void)
+x54x_reset_ctrl(x54x_t *dev, uint8_t Reset)
 {
-    busy = 0;
-    x54x_log("Thread set event - poll complete\n");
-    thread_set_event(poll_complete);
-}
+    /* Say hello! */
+    x54x_log("%s %s (IO=0x%04X, IRQ=%d, DMA=%d, BIOS @%05lX) ID=%d\n",
+	dev->vendor, dev->name, dev->Base, dev->Irq, dev->DmaChannel,
+	dev->rom_addr, dev->HostID);
 
-uint8_t
-x54x_busy(void)
-{
-    return !!busy;
+    x54x_reset(dev);
+
+    if (Reset) {
+	dev->Status = STAT_STST;
+	dev->ResetCB = X54X_RESET_DURATION_US * TIMER_USEC;
+    } else {
+	dev->Status = STAT_INIT | STAT_IDLE;
+    }
 }
 
 
@@ -1525,6 +1524,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 			reset = (val & CTRL_HRST);
 			x54x_log("Reset completed = %x\n", reset);
 			x54x_reset_ctrl(dev, reset);
+			x54x_log("Controller reset: ");
 			x54x_busy_clear();
 			break;
 		}
@@ -1532,6 +1532,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 		if (val & CTRL_IRST) {
 			x54x_busy_set();
 			clear_irq(dev);
+			x54x_log("Interrupt reset: ");
 			x54x_busy_clear();
 		}
 		break;
@@ -1543,6 +1544,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 			dev->MailboxReq++;
 
 			x54x_thread_start(dev);
+			x54x_log("Start SCSI command: ");
 			x54x_busy_clear();
 			return;
 		}
@@ -1628,6 +1630,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 
 					dev->Status &= ~STAT_INIT;
 					dev->DataReplyLeft = 0;
+					x54x_log("Mailbox init: ");
 					x54x_busy_clear();
 					break;
 
@@ -1997,4 +2000,7 @@ x54x_device_reset(void *priv)
     x54x_t *dev = (x54x_t *)priv;
 
     x54x_reset_ctrl(dev, 1);
+
+    dev->ResetCB = 0LL;
+    dev->Status = STAT_IDLE | STAT_INIT;
 }
