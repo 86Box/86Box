@@ -660,6 +660,12 @@ void sb_write(uint16_t a, uint8_t v, void *priv)
                 dsp->sbreset = v;
                 return;
                 case 0xC: /*Command/data write*/
+				if (dsp->uart_midi || dsp->onebyte_midi)
+				{
+					midi_write(v);
+					dsp->onebyte_midi = 0;
+					return;
+				}
                 timer_process();
                 dsp->wb_time = TIMER_USEC * 1LL;
                 dsp->wb_full = 1LL;
