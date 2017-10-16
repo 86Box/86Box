@@ -15,7 +15,7 @@
 #include "mem.h"
 #include "rom.h"
 #ifdef USE_DYNAREC
-#include "cpu/codegen.h"
+# include "cpu/codegen.h"
 #else
 #define PAGE_MASK_INDEX_MASK 3
 #define PAGE_MASK_INDEX_SHIFT 10

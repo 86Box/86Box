@@ -489,6 +489,7 @@ int dontprint=0;
 
 #define CACHE_ON() (!(cr0 & (1 << 30)) /*&& (cr0 & 1)*/ && !(flags & T_FLAG))
 
+#ifdef USE_DYNAREC
 static int cpu_cycle_period(void)
 {
 	switch(cpu_pci_speed)
@@ -502,8 +503,8 @@ static int cpu_cycle_period(void)
 	}
 }
 
-#ifdef USE_DYNAREC
 static int cycles_main = 0;
+
 void exec386_dynarec(int cycs)
 {
         uint8_t temp;

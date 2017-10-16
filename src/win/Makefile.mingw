@@ -87,7 +87,7 @@ ifndef MUNT
 MUNT		:= y
 endif
 ifndef PAS16
-PAS16		= n
+PAS16		:= n
 endif
 ifndef DYNAREC
 DYNAREC		:= y
@@ -280,8 +280,8 @@ MAINOBJ		:= pc.o config.o random.o timer.o io.o dma.o nmi.o pic.o \
 		   intel.o intel_flash.o intel_sio.o
 
 CPUOBJ		:= cpu.o 386.o 386_dynarec.o 808x.o \
-		   x86seg.o x87.o \
-		   $(DYNARECOBJ)
+		    x86seg.o x87.o \
+		    $(DYNARECOBJ)
 
 MCHOBJ		:= machine.o \
 		    machine_common.o \

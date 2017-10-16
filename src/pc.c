@@ -29,7 +29,7 @@
 #include "ibm.h"
 #include "cpu/cpu.h"
 #ifdef USE_DYNAREC
-#include "cpu/codegen.h"
+# include "cpu/codegen.h"
 #endif
 #include "cpu/x86_ops.h"
 #include "io.h"
