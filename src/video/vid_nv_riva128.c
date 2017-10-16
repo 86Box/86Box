@@ -2070,7 +2070,7 @@ void riva128_ptimer_tick(void *p)
 
 	if(!(riva128->pmc.enable & 0x00010000) && riva128->card_id == 0x03) riva128_ptimer_tick(riva128);
 
-	riva128->mtime += (int)((TIMER_USEC * 1000000.0) / riva128->mfreq);
+	riva128->mtime += (int)((TIMER_USEC * 100000000.0) / riva128->mfreq);
 }
 
  void riva128_nvclk_poll(void *p)
@@ -2079,7 +2079,7 @@ void riva128_ptimer_tick(void *p)
 
 	if(!(riva128->pmc.enable & 0x00010000) && riva128->card_id < 0x40 && riva128->card_id != 0x03) riva128_ptimer_tick(riva128);
 
-	riva128->nvtime += (int)((TIMER_USEC * 1000000.0) / riva128->nvfreq);
+	riva128->nvtime += (int)((TIMER_USEC * 100000000.0) / riva128->nvfreq);
 }
 
  void riva128_vblank_start(svga_t *svga)
@@ -2826,7 +2826,7 @@ void riva128_ptimer_tick(void *p)
 
 		riva128->mfreq = freq;
 		riva128->menable = 0;
-		riva128->mtime = (int)((TIMER_USEC * 1000000.0) / riva128->mfreq);
+		riva128->mtime = (int)((TIMER_USEC * 100000000.0) / riva128->mfreq);
 		riva128->menable = 1;
 	}
 	else riva128->menable = 0;
@@ -2844,7 +2844,7 @@ void riva128_ptimer_tick(void *p)
 
 		riva128->nvfreq = freq;
 		riva128->nvenable = 0;
-		riva128->nvtime = (int)((TIMER_USEC * 1000000.0) / riva128->nvfreq);
+		riva128->nvtime = (int)((TIMER_USEC * 100000000.0) / riva128->nvfreq);
 		riva128->nvenable = 1;
 	}
 	else riva128->nvenable = 0;
