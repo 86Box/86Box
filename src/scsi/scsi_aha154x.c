@@ -66,6 +66,7 @@ uint16_t	aha_ports[] = {
 };
 
 
+#pragma pack(push,1)
 typedef struct {
     uint8_t	CustomerSignature[20];
     uint8_t	uAutoRetry;
@@ -74,6 +75,7 @@ typedef struct {
     uint8_t	uUnknown;
     addr24	BIOSMailboxAddress;
 } aha_setup_t;
+#pragma pack(pop)
 
 
 #ifdef ENABLE_AHA154X_LOG

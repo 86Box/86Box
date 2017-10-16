@@ -1450,8 +1450,7 @@ x54x_reset_poll(void *priv)
 {
     x54x_t *dev = (x54x_t *)priv;
 
-    dev->Status &= ~STAT_STST;
-    dev->Status |= STAT_IDLE;
+    dev->Status = STAT_INIT | STAT_IDLE;
 
     dev->ResetCB = 0LL;
 }
@@ -1661,6 +1660,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 
 				case CMD_INQUIRY: /* Inquiry */
 					memcpy(dev->DataBuf, dev->fw_rev, 4);
+					x54x_log("Adapter inquiry: %c %c %c %c\n", dev->fw_rev[0], dev->fw_rev[1], dev->fw_rev[2], dev->fw_rev[3]);
 					dev->DataReplyLeft = 4;
 					break;
 
@@ -1699,13 +1699,14 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 
 				case CMD_RETDEVS: /* return Installed Devices */
 					memset(dev->DataBuf, 0x00, 8);
+
+				        if (dev->ven_get_host_id)
+						host_id = dev->ven_get_host_id(dev);
+
 					for (i=0; i<SCSI_ID_MAX; i++) {
 					    dev->DataBuf[i] = 0x00;
 
 					    /* Skip the HA .. */
-					    if (dev->ven_get_host_id)
-						host_id = dev->ven_get_host_id(dev);
-
 					    if (i == host_id) continue;
 
 					    for (j=0; j<SCSI_LUN_MAX; j++) {
@@ -1735,6 +1736,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 						dev->DataBuf[2] = dev->ven_get_host_id(dev);
 					else
 						dev->DataBuf[2] = dev->HostID;
+					x54x_log("Configuration data: %02X %02X %02X\n", dev->DataBuf[0], dev->DataBuf[1], dev->DataBuf[2]);
 					dev->DataReplyLeft = 3;
 					break;
 

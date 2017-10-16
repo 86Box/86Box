@@ -208,6 +208,7 @@ typedef struct {
 } MailboxInitExtended_t;
 #pragma pack(pop)
 
+#pragma pack(push,1)
 typedef struct {
     rom_t	bios;
     int		ExtendedLUNCCBFormat;
@@ -223,6 +224,7 @@ typedef struct {
     uint8_t     AutoSCSIROM[32768];
     uint8_t     SCAMData[65536];
 } buslogic_data_t;
+#pragma pack(pop)
 
 
 enum {
