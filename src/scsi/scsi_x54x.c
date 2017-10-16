@@ -1087,6 +1087,8 @@ x54x_scsi_cmd(x54x_t *dev)
 
 		SenseBufferFree(req, (SCSIStatus != SCSI_STATUS_OK));
 	}
+    } else {
+	SenseBufferFree(req, (SCSIStatus != SCSI_STATUS_OK));
     }
 
     x54x_set_residue(req, target_data_len);
@@ -1097,10 +1099,10 @@ x54x_scsi_cmd(x54x_t *dev)
 
     if (SCSIStatus == SCSI_STATUS_OK) {
 	x54x_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
-			       CCB_COMPLETE, SCSI_STATUS_OK, MBI_SUCCESS);
+		       CCB_COMPLETE, SCSI_STATUS_OK, MBI_SUCCESS);
     } else if (SCSIStatus == SCSI_STATUS_CHECK_CONDITION) {
 	x54x_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
-			CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION, MBI_ERROR);
+		       CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION, MBI_ERROR);
     }
 
     x54x_log("SCSIStatus = %02X\n", SCSIStatus);
@@ -1143,8 +1145,9 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
     id = req->TargetID;
     lun = req->LUN;
     if ((id > max_id) || (lun > 7)) {
+	x54x_log("SCSI Target ID %i or LUN %i is not valid\n",id,lun);
 	x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock,
-		      CCB_INVALID_CCB, SCSI_STATUS_OK, MBI_ERROR);
+		      CCB_SELECTION_TIMEOUT, SCSI_STATUS_OK, MBI_ERROR);
 	x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
 	x54x_notify(dev);
 	return;
@@ -1157,7 +1160,7 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
     if (! scsi_device_present(id, lun)) {
 	x54x_log("SCSI Target ID %i and LUN %i have no device attached\n",id,lun);
 	x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock,
-		      CCB_SELECTION_TIMEOUT,SCSI_STATUS_OK,MBI_ERROR);
+		       CCB_SELECTION_TIMEOUT, SCSI_STATUS_OK, MBI_ERROR);
 	x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
 	x54x_notify(dev);
     } else {
@@ -1166,9 +1169,29 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 	x54x_log("Transfer Control %02X\n", req->CmdBlock.common.ControlByte);
 	x54x_log("CDB Length %i\n", req->CmdBlock.common.CdbLength);	
 	x54x_log("CCB Opcode %x\n", req->CmdBlock.common.Opcode);		
+	if ((req->CmdBlock.common.Opcode > 0x04) && (req->CmdBlock.common.Opcode != 0x81)) {
+		x54x_log("Invalid opcode: %02X\n",
+			req->CmdBlock.common.ControlByte);
+		x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock, CCB_INVALID_OP_CODE, SCSI_STATUS_OK, MBI_ERROR);
+		x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
+		x54x_notify(dev);
+		return;
+	}
+	if (req->CmdBlock.common.Opcode == 0x81) {
+		x54x_log("Bus reset opcode\n");
+		x54x_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
+			       CCB_COMPLETE, SCSI_STATUS_OK, MBI_SUCCESS);
+		x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
+		x54x_notify(dev);
+		return;
+	}
 	if (req->CmdBlock.common.ControlByte > 0x03) {
 		x54x_log("Invalid control byte: %02X\n",
 			req->CmdBlock.common.ControlByte);
+		x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock, CCB_INVALID_DIRECTION, SCSI_STATUS_OK, MBI_ERROR);
+		x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
+		x54x_notify(dev);
+		return;
 	}
 
 	x54x_log("%s: Callback: Process SCSI request\n", dev->name);
