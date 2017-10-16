@@ -578,12 +578,12 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 
     SCSIStatus = SCSI_STATUS_OK;
 
-    if (!scsi_device_present(ESCSICmd->TargetId, ESCSICmd->LogicalUnit)) {
-	buslogic_log("SCSI Target ID %i and LUN %i have no device attached\n",ESCSICmd->TargetId,ESCSICmd->LogicalUnit);
+    if (!scsi_device_present(ESCSICmd->TargetId, 0)) {
+	buslogic_log("SCSI Target ID %i has no device attached\n",ESCSICmd->TargetId,ESCSICmd->LogicalUnit);
 	DataInBuf[2] = CCB_SELECTION_TIMEOUT;
 	DataInBuf[3] = SCSI_STATUS_OK;
     } else {
-	buslogic_log("SCSI Target ID %i and LUN %i detected and working\n", ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
+	buslogic_log("SCSI Target ID %i detected and working\n", ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
 
 	buslogic_log("Transfer Control %02X\n", ESCSICmd->DataDirection);
 	buslogic_log("CDB Length %i\n", ESCSICmd->CDBLength);	

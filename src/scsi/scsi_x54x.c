@@ -1033,9 +1033,8 @@ x54x_scsi_cmd(x54x_t *dev)
 
 		SenseBufferFree(req, (SCSIStatus != SCSI_STATUS_OK));
 	}
-    } else {
+    } else
 	SenseBufferFree(req, (SCSIStatus != SCSI_STATUS_OK));
-    }
 
     x54x_set_residue(req, target_data_len);
 
@@ -1103,14 +1102,15 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 
     SCSIStatus = SCSI_STATUS_OK;
 
-    if (! scsi_device_present(id, lun)) {
+    /* If there is no device at ID:0, timeout the selection - the LUN is then checked later. */
+    if (! scsi_device_present(id, 0)) {
 	x54x_log("SCSI Target ID %i and LUN %i have no device attached\n",id,lun);
 	x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock,
 		       CCB_SELECTION_TIMEOUT, SCSI_STATUS_OK, MBI_ERROR);
 	x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
 	x54x_notify(dev);
     } else {
-	x54x_log("SCSI Target ID %i and LUN %i detected and working\n", id, lun);
+	x54x_log("SCSI Target ID %i detected and working\n", id);
 
 	x54x_log("Transfer Control %02X\n", req->CmdBlock.common.ControlByte);
 	x54x_log("CDB Length %i\n", req->CmdBlock.common.CdbLength);	

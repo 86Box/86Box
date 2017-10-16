@@ -27,7 +27,7 @@
 #include "scsi_disk.h"
 
 
-static uint8_t scsi_null_device_sense[14] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+static uint8_t scsi_null_device_sense[14] = { 0x70,0,SENSE_ILLEGAL_REQUEST,0,0,0,0,0,0,0,0,0,ASC_INV_LUN,0 };
 
 
 static void scsi_device_target_command(int lun_type, uint8_t id, uint8_t *cdb)
