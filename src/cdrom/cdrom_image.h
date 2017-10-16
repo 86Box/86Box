@@ -19,8 +19,6 @@ extern void image_close(uint8_t id);
 void update_status_bar_icon_state(int tag, int state);
 extern void cdrom_set_null_handler(uint8_t id);
 
-void pclog(const char *format, ...);
-
 #ifdef __cplusplus
 }
 #endif

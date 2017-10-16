@@ -9,11 +9,12 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.h	1.0.3	2017/10/04
+ * Version:	@(#)device.h	1.0.4	2017/10/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2008-2016 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
@@ -92,6 +93,10 @@ typedef struct _device_ {
 } device_t;
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void	device_init(void);
 extern void	device_add(device_t *d);
 extern void	device_close_all(void);
@@ -116,6 +121,10 @@ extern int	device_is_valid(device_t *device, int machine_flags);
 
 extern int	machine_get_config_int(char *s);
 extern char	*machine_get_config_string(char *s);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif	/*EMU_DEVICE_H*/

@@ -15,9 +15,10 @@
  *
  *		Definitions for the BUGGER card.
  *
- * Version:	@(#)bugger.h	1.0.3	2017/04/07
+ * Version:	@(#)bugger.h	1.0.4	2017/10/15
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 1989-2017 Fred N. van Kempen.
  */
 #ifndef BUGGER_H
@@ -29,9 +30,17 @@
 #define BUGGER_ADDRLEN	4
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Functions. */
 extern void bugger_init(void);
 extern void bugger_remove(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif	/*BUGGER_H*/

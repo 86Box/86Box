@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.13	2017/10/09
+ * Version:	@(#)network.c	1.0.14	2017/10/15
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -107,7 +107,7 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
     if (network_card == 0) return(ret);
 
     /* Save the card's callback info. */
-    net_cards[network_card].private = dev;
+    net_cards[network_card].priv = dev;
     net_cards[network_card].rx = rx;
 
     /* Start the platform module. */
