@@ -295,6 +295,8 @@ void scsi_device_command_phase0(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, 
 		break;
 	default:
 		id = 0;
+		SCSIPhase = SCSI_PHASE_STATUS;
+		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
 		return;
     }
 

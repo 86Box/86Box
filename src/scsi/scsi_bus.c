@@ -80,10 +80,10 @@ static int get_dev_id(uint8_t data)
 
 	for (c = 0; c < SCSI_ID_MAX; c++)
 	{
-			if (data & (1 << c))
-			{
-				return c;
-			}
+		if (data & (1 << c))
+		{
+			return c;
+		}
 	}
 	
 	return -1;
@@ -104,16 +104,17 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 			bus->clear_req = bus->change_state_delay = bus->new_req_delay = 0;
 			if ((bus_assert & BUS_SEL) && !(bus_assert & BUS_BSY))
 			{
-					uint8_t sel_data = BUS_GETDATA(bus_assert);
+				uint8_t sel_data = BUS_GETDATA(bus_assert);
+
+				bus->dev_id = get_dev_id(sel_data);
 				
-					bus->dev_id = get_dev_id(sel_data);
-					if (scsi_device_present(bus->dev_id, 0))
-					{
-							bus->bus_out |= BUS_BSY;
-							bus->state = STATE_PHASESEL;
-					}
-					//scsi_bus_log("Device id %i\n", bus->dev_id);
-					break;
+				if ((bus->dev_id != -1) && scsi_device_present(bus->dev_id, 0))
+				{
+					bus->bus_out |= BUS_BSY;
+					bus->state = STATE_PHASESEL;
+				}
+				//scsi_bus_log("Device id %i\n", bus->dev_id);
+				break;
 			}
 			break;
 			
@@ -123,17 +124,17 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 			{
 				if (!(bus_assert & BUS_ATN))
 				{
-					if (scsi_device_present(bus->dev_id, 0))
+					if ((bus->dev_id != -1) && scsi_device_present(bus->dev_id, 0))
 					{
-							bus->state = STATE_COMMAND;
-							bus->bus_out = BUS_BSY | BUS_REQ;
-							bus->command_pos = 0;
-							SET_BUS_STATE(bus, SCSI_PHASE_COMMAND);
+						bus->state = STATE_COMMAND;
+						bus->bus_out = BUS_BSY | BUS_REQ;
+						bus->command_pos = 0;
+						SET_BUS_STATE(bus, SCSI_PHASE_COMMAND);
 					}
 					else
 					{
-							bus->state = STATE_IDLE;
-							bus->bus_out = 0;
+						bus->state = STATE_IDLE;
+						bus->bus_out = 0;
 					}
 				}
 				else
@@ -270,11 +271,11 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 		
 			if ((bus_assert & BUS_ACK) && !(bus->bus_in & BUS_ACK))
 			{	
-					/* scsi_bus_log("Preparing for message in\n"); */
-					bus->bus_out &= ~BUS_REQ;
-					bus->new_state = SCSI_PHASE_MESSAGE_IN;
-					bus->change_state_delay = 4;
-					bus->new_req_delay = 8;
+				/* scsi_bus_log("Preparing for message in\n"); */
+				bus->bus_out &= ~BUS_REQ;
+				bus->new_state = SCSI_PHASE_MESSAGE_IN;
+				bus->change_state_delay = 4;
+				bus->new_req_delay = 8;
 			}
 			break;
                 
@@ -283,9 +284,9 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 		
 			if ((bus_assert & BUS_ACK) && !(bus->bus_in & BUS_ACK))
 			{			
-					bus->bus_out &= ~BUS_REQ;
-					bus->new_state = BUS_IDLE;
-					bus->change_state_delay = 4;
+				bus->bus_out &= ~BUS_REQ;
+				bus->new_state = BUS_IDLE;
+				bus->change_state_delay = 4;
 			}
 			break;
 	}
