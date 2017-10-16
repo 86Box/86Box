@@ -1233,7 +1233,10 @@ x54x_mbo_process(x54x_t *dev)
 		}
 	}
 
-	dev->MailboxReq--;
+	if (dev->MailboxIsBIOS)
+		dev->BIOSMailboxReq--;
+	else
+		dev->MailboxReq--;
 
         return 1;
     }
@@ -1406,6 +1409,7 @@ x54x_in(uint16_t port, void *priv)
 		break;
     }
 
+    x54x_log("%s: Read Port 0x%02X, Value %02X\n", dev->name, port, ret);
     return(ret);
 }
 
@@ -1459,13 +1463,12 @@ x54x_reset_poll(void *priv)
 static void
 x54x_reset(x54x_t *dev)
 {
+    clear_irq(dev);
     dev->Geometry = 0x80;
     dev->Command = 0xFF;
     dev->CmdParam = 0;
     dev->CmdParamLeft = 0;
-    dev->IrqEnabled = 1;
-    dev->MailboxCount = 0;
-    dev->MailboxOutPosCur = 0;
+    dev->Mbx24bit = 1;
     dev->MailboxInPosCur = 0;
     dev->MailboxOutInterrupts = 0;
     dev->PendingInterrupt = 0;
@@ -1473,8 +1476,6 @@ x54x_reset(x54x_t *dev)
     if (dev->ven_reset) {
 	dev->ven_reset(dev);
     }
-
-    clear_irq(dev);
 }
 
 

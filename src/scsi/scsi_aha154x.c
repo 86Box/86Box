@@ -445,19 +445,6 @@ aha_setup_data(void *p)
 
 
 static void
-aha_reset(void *p)
-{
-    x54x_t *dev = (x54x_t *)p;
-
-    dev->Lock = 0;
-    dev->shram_mode = 0;
-    dev->MailboxIsBIOS = 0;
-    dev->BIOSMailboxCount = 0;
-    dev->BIOSMailboxOutPosCur = 0;
-}
-
-
-static void
 aha_do_bios_mail(x54x_t *dev)
 {
     dev->MailboxIsBIOS = 1;
@@ -798,7 +785,6 @@ aha_init(device_t *info)
     dev->get_ven_param_len = aha_param_len;
     dev->ven_cmds = aha_cmds;
     dev->get_ven_data = aha_setup_data;
-    dev->ven_reset = aha_reset;
 
     strcpy(dev->vendor, "Adaptec");
 
