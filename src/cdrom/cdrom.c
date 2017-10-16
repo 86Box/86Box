@@ -2564,7 +2564,17 @@ cdrom_readtoc_fallback:
 				return;
 			}
 
-			cdrom[id].packet_len = alloc_length;
+			if (cdrom_current_mode(id) == 2)
+			{
+				cdrom[id].requested_blocks = max_len;
+				cdrom[id].packet_len = alloc_length;
+			}
+			else
+			{
+				cdrom[id].requested_blocks = 1;
+				cdrom[id].packet_len = max_len * alloc_length;
+			}
+
 			cdrom_set_buf_len(id, BufLen, &cdrom[id].packet_len);
 
 			if (cdrom[id].requested_blocks > 1)
