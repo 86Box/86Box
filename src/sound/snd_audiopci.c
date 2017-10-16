@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -123,6 +124,24 @@ const int32_t codec_attn[]=
 static void es1371_fetch(es1371_t *es1371, int dac_nr);
 static void update_legacy(es1371_t *es1371);
 
+#ifdef ENABLE_AUDIOPCI_LOG
+int audiopci_do_log = ENABLE_AUDIOPCI_LOG;
+#endif
+
+void audiopci_log(const char *format, ...)
+{
+#ifdef ENABLE_AUDIOPCI_LOG
+	if (emu8k_audiopci_log)
+	{
+		va_list ap;
+		va_start(ap, format);
+		vprintf(format, ap);
+		va_end(ap);
+		fflush(stdout);
+	}
+#endif
+}
+
 static void es1371_update_irqs(es1371_t *es1371)
 {
         int irq = 0;
@@ -143,12 +162,12 @@ static void es1371_update_irqs(es1371_t *es1371)
         if (irq)
         {
                 pci_set_irq(es1371->card, PCI_INTA);
-//                pclog("Raise IRQ\n");
+//                audiopci_log("Raise IRQ\n");
         }
         else
         {
                 pci_clear_irq(es1371->card, PCI_INTA);
-//                pclog("Drop IRQ\n");
+//                audiopci_log("Drop IRQ\n");
         }
 }
 
@@ -215,10 +234,10 @@ static uint8_t es1371_inb(uint16_t port, void *p)
                 break;
                 
                 default:
-                pclog("Bad es1371_inb: port=%04x\n", port);
+                audiopci_log("Bad es1371_inb: port=%04x\n", port);
         }
 
-//        pclog("es1371_inb: port=%04x ret=%02x\n", port, ret);
+//        audiopci_log("es1371_inb: port=%04x ret=%02x\n", port, ret);
 //        output = 3;
         return ret;
 }
@@ -238,7 +257,7 @@ static uint16_t es1371_inw(uint16_t port, void *p)
 
                 case 0x18:
                 ret = es1371->legacy_ctrl & 0xffff;
-//                pclog("Read legacy ctrl %04x\n", ret);
+//                audiopci_log("Read legacy ctrl %04x\n", ret);
                 break;
 
                 case 0x26:
@@ -257,7 +276,7 @@ static uint16_t es1371_inw(uint16_t port, void *p)
                         break;
                         
                         default:
-                        pclog("Bad es1371_inw: mem_page=%x port=%04x\n", es1371->mem_page, port);
+                        audiopci_log("Bad es1371_inw: mem_page=%x port=%04x\n", es1371->mem_page, port);
                 }
                 break;
 
@@ -269,15 +288,15 @@ static uint16_t es1371_inw(uint16_t port, void *p)
                         break;
                         
                         default:
-                        pclog("Bad es1371_inw: mem_page=%x port=%04x\n", es1371->mem_page, port);
+                        audiopci_log("Bad es1371_inw: mem_page=%x port=%04x\n", es1371->mem_page, port);
                 }
                 break;
 
                 default:
-                pclog("Bad es1371_inw: port=%04x\n", port);
+                audiopci_log("Bad es1371_inw: port=%04x\n", port);
         }
 
-//        pclog("es1371_inw: port=%04x ret=%04x %04x:%08x\n", port, ret, CS,cpu_state.pc);
+//        audiopci_log("es1371_inw: port=%04x ret=%04x %04x:%08x\n", port, ret, CS,cpu_state.pc);
         return ret;
 }
 static uint32_t es1371_inl(uint16_t port, void *p)
@@ -319,7 +338,7 @@ static uint32_t es1371_inl(uint16_t port, void *p)
                         break;
 
                         default:
-                        pclog("Bad es1371_inl: mem_page=%x port=%04x\n", es1371->mem_page, port);
+                        audiopci_log("Bad es1371_inl: mem_page=%x port=%04x\n", es1371->mem_page, port);
                 }
                 break;
 
@@ -331,15 +350,15 @@ static uint32_t es1371_inl(uint16_t port, void *p)
                         break;
                                                 
                         default:
-                        pclog("Bad es1371_inl: mem_page=%x port=%04x\n", es1371->mem_page, port);
+                        audiopci_log("Bad es1371_inl: mem_page=%x port=%04x\n", es1371->mem_page, port);
                 }
                 break;
                 
                 default:
-                pclog("Bad es1371_inl: port=%04x\n", port);
+                audiopci_log("Bad es1371_inl: port=%04x\n", port);
         }
 
-//        pclog("es1371_inl: port=%04x ret=%08x  %08x\n", port, ret, cpu_state.pc);
+//        audiopci_log("es1371_inl: port=%04x ret=%08x  %08x\n", port, ret, cpu_state.pc);
         return ret;
 }
 
@@ -347,7 +366,7 @@ static void es1371_outb(uint16_t port, uint8_t val, void *p)
 {
         es1371_t *es1371 = (es1371_t *)p;
 
-//        pclog("es1371_outb: port=%04x val=%02x %04x:%08x\n", port, val, cs, cpu_state.pc);
+//        audiopci_log("es1371_outb: port=%04x val=%02x %04x:%08x\n", port, val, cs, cpu_state.pc);
         switch (port & 0x3f)
         {
                 case 0x00:
@@ -416,14 +435,14 @@ static void es1371_outb(uint16_t port, uint8_t val, void *p)
                 break;
                 
                 default:
-                pclog("Bad es1371_outb: port=%04x val=%02x\n", port, val);
+                audiopci_log("Bad es1371_outb: port=%04x val=%02x\n", port, val);
         }
 }
 static void es1371_outw(uint16_t port, uint16_t val, void *p)
 {
         es1371_t *es1371 = (es1371_t *)p;
 
-//        pclog("es1371_outw: port=%04x val=%04x\n", port, val);
+//        audiopci_log("es1371_outw: port=%04x val=%04x\n", port, val);
         switch (port & 0x3f)
         {
                 case 0x0c:
@@ -439,14 +458,14 @@ static void es1371_outw(uint16_t port, uint16_t val, void *p)
                 break;
                 
                 default:
-                pclog("Bad es1371_outw: port=%04x val=%04x\n", port, val);
+                audiopci_log("Bad es1371_outw: port=%04x val=%04x\n", port, val);
         }
 }
 static void es1371_outl(uint16_t port, uint32_t val, void *p)
 {
         es1371_t *es1371 = (es1371_t *)p;
 
-//        pclog("es1371_outl: port=%04x val=%08x %04x:%08x\n", port, val, CS, cpu_state.pc);
+//        audiopci_log("es1371_outl: port=%04x val=%08x %04x:%08x\n", port, val, CS, cpu_state.pc);
         switch (port & 0x3f)
         {
                 case 0x04:
@@ -460,7 +479,7 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
                 es1371->sr_cir = val;
                 if (es1371->sr_cir & SRC_RAM_WE)
                 {
-//                        pclog("Write SR RAM %02x %04x\n", es1371->sr_cir >> 25, val & 0xffff);
+//                        audiopci_log("Write SR RAM %02x %04x\n", es1371->sr_cir >> 25, val & 0xffff);
                         es1371->sr_ram[es1371->sr_cir >> 25] = val & 0xffff;
                         switch (es1371->sr_cir >> 25)
                         {
@@ -506,7 +525,7 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
                 es1371->codec_ctrl = val;
                 if (!(val & CODEC_READ))
                 {
-//                        pclog("Write codec %02x %04x\n", (val >> 16) & 0x3f, val & 0xffff);
+//                        audiopci_log("Write codec %02x %04x\n", (val >> 16) & 0x3f, val & 0xffff);
                         es1371->codec_regs[(val >> 16) & 0x3f] = val & 0xffff;
                         switch ((val >> 16) & 0x3f)
                         {
@@ -553,11 +572,11 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
                         
                         case 0xc:
                         es1371->dac[0].addr_latch = val;
-//                        pclog("DAC1 addr %08x\n", val);
+//                        audiopci_log("DAC1 addr %08x\n", val);
                         break;
                         
                         default:
-                        pclog("Bad es1371_outl: mem_page=%x port=%04x val=%08x\n", es1371->mem_page, port, val);
+                        audiopci_log("Bad es1371_outl: mem_page=%x port=%04x val=%08x\n", es1371->mem_page, port, val);
                 }
                 break;
                 case 0x34:
@@ -581,7 +600,7 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
                         break;
 
                         default:
-                        pclog("Bad es1371_outl: mem_page=%x port=%04x val=%08x\n", es1371->mem_page, port, val);
+                        audiopci_log("Bad es1371_outl: mem_page=%x port=%04x val=%08x\n", es1371->mem_page, port, val);
                 }
                 break;
                 case 0x38:
@@ -600,7 +619,7 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
                         break;
 
                         default:
-                        pclog("Bad es1371_outl: mem_page=%x port=%04x val=%08x\n", es1371->mem_page, port, val);
+                        audiopci_log("Bad es1371_outl: mem_page=%x port=%04x val=%08x\n", es1371->mem_page, port, val);
                 }
                 break;
                 case 0x3c:
@@ -617,12 +636,12 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
                         break;
 
                         default:
-                        pclog("Bad es1371_outl: mem_page=%x port=%04x val=%08x\n", es1371->mem_page, port, val);
+                        audiopci_log("Bad es1371_outl: mem_page=%x port=%04x val=%08x\n", es1371->mem_page, port, val);
                 }
                 break;
 
                 default:
-                pclog("Bad es1371_outl: port=%04x val=%08x\n", port, val);
+                audiopci_log("Bad es1371_outl: port=%04x val=%08x\n", port, val);
         }
 }
 
@@ -637,7 +656,7 @@ static void capture_event(es1371_t *es1371, int type, int rw, uint16_t port)
         es1371->legacy_ctrl |= ((port << LEGACY_EVENT_ADDR_SHIFT) & LEGACY_EVENT_ADDR_MASK);
         es1371->legacy_ctrl &= ~LEGACY_INT;
         nmi = 1;
-//        pclog("Event! %s %04x\n", rw ? "write" : "read", port);
+//        audiopci_log("Event! %s %04x\n", rw ? "write" : "read", port);
 }
 
 static void capture_write_sscape(uint16_t port, uint8_t val, void *p)
@@ -781,7 +800,7 @@ static uint8_t es1371_pci_read(int func, int addr, void *p)
         if (func)
                 return 0;
 
-        //pclog("ES1371 PCI read %08X PC=%08x\n", addr, cpu_state.pc);
+        //audiopci_log("ES1371 PCI read %08X PC=%08x\n", addr, cpu_state.pc);
 
         switch (addr)
         {
@@ -838,7 +857,7 @@ static void es1371_pci_write(int func, int addr, uint8_t val, void *p)
         if (func)
                 return;
 
-//        pclog("ES1371 PCI write %04X %02X PC=%08x\n", addr, val, cpu_state.pc);
+//        audiopci_log("ES1371 PCI write %04X %02X PC=%08x\n", addr, val, cpu_state.pc);
 
         switch (addr)
         {
@@ -885,7 +904,7 @@ static void es1371_pci_write(int func, int addr, uint8_t val, void *p)
                 es1371->pmcsr = (es1371->pmcsr & 0x00ff) | ((val & 0x01) << 8);
                 break;
         }
-//        pclog("es1371->base_addr %08x\n", es1371->base_addr);
+//        audiopci_log("es1371->base_addr %08x\n", es1371->base_addr);
 }
 
 static void es1371_fetch(es1371_t *es1371, int dac_nr)
@@ -894,7 +913,7 @@ static void es1371_fetch(es1371_t *es1371, int dac_nr)
         int pos = es1371->dac[dac_nr].buffer_pos & 63;
         int c;
 
-//pclog("Fetch format=%i %08x %08x  %08x %08x  %08x\n", format, es1371->dac[dac_nr].count, es1371->dac[dac_nr].size,  es1371->dac[dac_nr].curr_samp_ct,es1371->dac[dac_nr].samp_ct, es1371->dac[dac_nr].addr);
+//audiopci_log("Fetch format=%i %08x %08x  %08x %08x  %08x\n", format, es1371->dac[dac_nr].count, es1371->dac[dac_nr].size,  es1371->dac[dac_nr].curr_samp_ct,es1371->dac[dac_nr].samp_ct, es1371->dac[dac_nr].addr);
         switch (format)
         {
                 case FORMAT_MONO_8:
@@ -957,7 +976,7 @@ static void es1371_fetch(es1371_t *es1371, int dac_nr)
                 {
                         es1371->dac[dac_nr].buffer_l[(pos+c) & 63] = mem_readw_phys(es1371->dac[dac_nr].addr);
                         es1371->dac[dac_nr].buffer_r[(pos+c) & 63] = mem_readw_phys(es1371->dac[dac_nr].addr + 2);
-//                        pclog("Fetch %02x %08x  %04x %04x\n", (pos+c) & 63, es1371->dac[dac_nr].addr, es1371->dac[dac_nr].buffer_l[(pos+c) & 63], es1371->dac[dac_nr].buffer_r[(pos+c) & 63]);
+//                        audiopci_log("Fetch %02x %08x  %04x %04x\n", (pos+c) & 63, es1371->dac[dac_nr].addr, es1371->dac[dac_nr].buffer_l[(pos+c) & 63], es1371->dac[dac_nr].buffer_r[(pos+c) & 63]);
                         es1371->dac[dac_nr].addr += 4;
         
                         es1371->dac[dac_nr].buffer_pos_end++;
@@ -982,10 +1001,10 @@ static void es1371_next_sample(es1371_t *es1371, int dac_nr)
 
         es1371->dac[dac_nr].out_l = es1371->dac[dac_nr].buffer_l[es1371->dac[dac_nr].buffer_pos & 63];
         es1371->dac[dac_nr].out_r = es1371->dac[dac_nr].buffer_r[es1371->dac[dac_nr].buffer_pos & 63];
-//        pclog("Use %02x %04x %04x\n", es1371->dac[dac_nr].buffer_pos & 63, es1371->dac[dac_nr].out_l, es1371->dac[dac_nr].out_r);
+//        audiopci_log("Use %02x %04x %04x\n", es1371->dac[dac_nr].buffer_pos & 63, es1371->dac[dac_nr].out_l, es1371->dac[dac_nr].out_r);
         
         es1371->dac[dac_nr].buffer_pos++;
-//        pclog("Next sample %08x %08x  %08x\n", es1371->dac[dac_nr].buffer_pos, es1371->dac[dac_nr].buffer_pos_end, es1371->dac[dac_nr].curr_samp_ct);
+//        audiopci_log("Next sample %08x %08x  %08x\n", es1371->dac[dac_nr].buffer_pos, es1371->dac[dac_nr].buffer_pos_end, es1371->dac[dac_nr].curr_samp_ct);
 }
 
 //static FILE *es1371_f;//,*es1371_f2;
@@ -997,7 +1016,7 @@ static void es1371_poll(void *p)
         
         if (es1371->int_ctrl & INT_DAC1_EN)
         {
-//                pclog("1Samp %i %i  %08x\n", es1371->dac[0].curr_samp_ct, es1371->dac[0].samp_ct, es1371->dac[0].ac);
+//                audiopci_log("1Samp %i %i  %08x\n", es1371->dac[0].curr_samp_ct, es1371->dac[0].samp_ct, es1371->dac[0].ac);
                 es1371->dac[0].ac += es1371->dac[0].vf;
                 if (es1371->dac[0].ac & (~0 << (15+4)))
                 {
@@ -1007,7 +1026,7 @@ static void es1371_poll(void *p)
                         es1371->dac[0].curr_samp_ct++;
                         if (es1371->dac[0].curr_samp_ct == es1371->dac[0].samp_ct)
                         {
-//                                pclog("DAC1 IRQ\n");
+//                                audiopci_log("DAC1 IRQ\n");
                                 es1371->int_status |= INT_STATUS_DAC1;
                                 es1371_update_irqs(es1371);
                         }
@@ -1020,7 +1039,7 @@ static void es1371_poll(void *p)
 
         if (es1371->int_ctrl & INT_DAC2_EN)
         {
-//                pclog("2Samp %i %i  %08x\n", es1371->dac[1].curr_samp_ct, es1371->dac[1].samp_ct, es1371->dac[1].ac);
+//                audiopci_log("2Samp %i %i  %08x\n", es1371->dac[1].curr_samp_ct, es1371->dac[1].samp_ct, es1371->dac[1].ac);
                 es1371->dac[1].ac += es1371->dac[1].vf;
                 if (es1371->dac[1].ac & (~0 << (15+4)))
                 {
@@ -1031,7 +1050,7 @@ static void es1371_poll(void *p)
                         if (es1371->dac[1].curr_samp_ct > es1371->dac[1].samp_ct)
                         {
                                 es1371->dac[1].curr_samp_ct = 0;
-//                                pclog("DAC2 IRQ\n");
+//                                audiopci_log("DAC2 IRQ\n");
                                 es1371->int_status |= INT_STATUS_DAC2;
                                 es1371_update_irqs(es1371);
                         }

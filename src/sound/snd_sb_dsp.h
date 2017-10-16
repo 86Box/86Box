@@ -6,7 +6,7 @@ typedef struct sb_dsp_t
         int sb_8_dmanum;
         int sb_16_length, sb_16_format, sb_16_autoinit, sb_16_pause, sb_16_enable, sb_16_autolen, sb_16_output;
         int sb_16_dmanum;
-        int sb_pausetime;
+        int64_t sb_pausetime;
 
         uint8_t sb_read_data[256];
         int sb_read_wp, sb_read_rp;
@@ -68,6 +68,8 @@ typedef struct sb_dsp_t
         int16_t buffer[SOUNDBUFLEN * 2];
         int pos;
 } sb_dsp_t;
+
+void sb_dsp_set_mpu(mpu_t *src_mpu);
 
 void sb_dsp_init(sb_dsp_t *dsp, int type);
 void sb_dsp_close(sb_dsp_t *dsp);

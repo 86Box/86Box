@@ -126,35 +126,35 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
                         return;
                         
                         case 0x60:
-			pclog("Set IRQ routing: INT A -> %02X\n", val);
+			/* pclog("Set IRQ routing: INT A -> %02X\n", val); */
                         if (val & 0x80)
                                 pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
                         else
                                 pci_set_irq_routing(PCI_INTA, val & 0xf);
                         break;
                         case 0x61:
-			pclog("Set IRQ routing: INT B -> %02X\n", val);
+			/* pclog("Set IRQ routing: INT B -> %02X\n", val); */
                         if (val & 0x80)
                                 pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
                         else
                                 pci_set_irq_routing(PCI_INTB, val & 0xf);
                         break;
                         case 0x62:
-			pclog("Set IRQ routing: INT C -> %02X\n", val);
+			/* pclog("Set IRQ routing: INT C -> %02X\n", val); */
                         if (val & 0x80)
                                 pci_set_irq_routing(PCI_INTC, PCI_IRQ_DISABLED);
                         else
                                 pci_set_irq_routing(PCI_INTC, val & 0xf);
                         break;
                         case 0x63:
-			pclog("Set IRQ routing: INT D -> %02X\n", val);
+			/* pclog("Set IRQ routing: INT D -> %02X\n", val); */
                         if (val & 0x80)
                                 pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
                         else
                                 pci_set_irq_routing(PCI_INTD, val & 0xf);
                         break;
                         case 0x70:
-			pclog("Set MIRQ routing: MIRQ0 -> %02X\n", val);
+			/* pclog("Set MIRQ routing: MIRQ0 -> %02X\n", val); */
                         if (val & 0x80)
                                 pci_set_mirq_routing(PCI_MIRQ0, PCI_IRQ_DISABLED);
                         else
@@ -163,16 +163,18 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
                         case 0x71:
 			if (piix_type == 1)
 			{
-				pclog("Set MIRQ routing: MIRQ1 -> %02X\n", val);
+				/* pclog("Set MIRQ routing: MIRQ1 -> %02X\n", val); */
         	                if (val & 0x80)
                 	                pci_set_mirq_routing(PCI_MIRQ1, PCI_IRQ_DISABLED);
 	                        else
         	                        pci_set_mirq_routing(PCI_MIRQ1, val & 0xf);
 			}
+#if 0
 			else
 			{
 				pclog("Set unused MIRQ routing: MIRQ1 -> %02X\n", val);
 			}
+#endif
                         break;
                 }
 		if (addr == 0x4C)

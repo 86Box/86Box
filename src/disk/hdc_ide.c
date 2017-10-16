@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.12	2017/10/11
+ * Version:	@(#)hdc_ide.c	1.0.13	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -100,7 +100,9 @@ int64_t idecallback[5] = {0LL, 0LL, 0LL, 0LL, 0LL};
 int cur_ide[5];
 
 
-int ide_do_log = 0;
+#ifdef ENABLE_IDE_LOG
+int ide_do_log = ENABLE_IDE_LOG;
+#endif
 
 static void ide_log(const char *format, ...)
 {
@@ -147,7 +149,7 @@ int ide_irq[5] = { 14, 15, 10, 11, 0 };
 
 void ide_irq_raise(IDE *ide)
 {
-	/* pclog("Attempting to raise IRQ %i (board %i)\n", ide_irq[ide->board], ide->board); */
+	/* ide_log("Attempting to raise IRQ %i (board %i)\n", ide_irq[ide->board], ide->board); */
 
 	if ((ide->board > 3) || ide->irqstat)
 	{
@@ -161,9 +163,9 @@ void ide_irq_raise(IDE *ide)
 	
 	if (!(ide->fdisk&2))
 	{
-		if (pci_use_mirq(0) && (ide->board < 2))
+		if (pci_use_mirq(0) && (ide->board == 1))
 		{
-			pci_set_mirq(0, ide->board);
+			pci_set_mirq(0);
 		}
 		else
 		{
@@ -193,9 +195,9 @@ void ide_irq_lower(IDE *ide)
 
 	ide_log("Lowering IRQ %i (board %i)\n", ide_irq[ide->board], ide->board);
 
-	if (pci_use_mirq(0) && (ide->board < 2))
+	if (pci_use_mirq(0) && (ide->board == 1))
 	{
-		pci_clear_mirq(0, ide->board);
+		pci_clear_mirq(0);
 	}
 	else
 	{
@@ -229,9 +231,9 @@ void ide_irq_update(IDE *ide)
 
 	if (ide->irqstat && !pending && !(ide->fdisk & 2))
 	{
-		if (pci_use_mirq(0) && (ide->board < 2))
+		if (pci_use_mirq(0) && (ide->board == 1))
 		{
-			pci_set_mirq(0, ide->board);
+			pci_set_mirq(0);
 		}
 		else
 		{
@@ -248,9 +250,9 @@ void ide_irq_update(IDE *ide)
 	}
 	else if (pending)
 	{
-		if (pci_use_mirq(0) && (ide->board < 2))
+		if (pci_use_mirq(0) && (ide->board == 1))
 		{
-			pci_clear_mirq(0, ide->board);
+			pci_clear_mirq(0);
 		}
 		else
 		{
@@ -637,7 +639,7 @@ void ide_reset(void)
 	idecallback[2]=idecallback[3]=0LL;
 	idecallback[4]=0LL;
 
-	pclog("IDE: loading disks...\n");
+	ide_log("IDE: loading disks...\n");
 	c = 0;
 	for (d = 0; d < HDD_NUM; d++)
 	{
@@ -654,7 +656,7 @@ void ide_reset(void)
 			if (++c >= (IDE_NUM+XTIDE_NUM)) break;
 		}
 	}
-	pclog("IDE: done, loaded %d disks.\n", c);
+	ide_log("IDE: done, loaded %d disks.\n", c);
 
 	for (d = 0; d < IDE_NUM; d++)
 	{

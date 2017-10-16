@@ -44,6 +44,8 @@ static int sbe2dat[4][9] = {
   {  0x01, -0x02,  0x04, -0x08, -0x10,  0x20, -0x40,  0x80,   90 }
 };
 
+static mpu_t *mpu;
+
 static int sb_commands[256]=
 {
         -1, 2,-1,-1, 1, 2,-1, 0, 1,-1,-1,-1,-1,-1, 2, 1,
@@ -142,7 +144,7 @@ void sb_dsp_reset(sb_dsp_t *dsp)
         dsp->sb_read_wp = dsp->sb_read_rp = 0;
         dsp->sb_data_stat = -1;
         dsp->sb_speaker = 0;
-        dsp->sb_pausetime = -1;
+        dsp->sb_pausetime = -1LL;
         dsp->sbe2 = 0xAA;
         dsp->sbe2count = 0;
 
@@ -182,15 +184,15 @@ void sb_doreset(sb_dsp_t *dsp)
 
 void sb_dsp_speed_changed(sb_dsp_t *dsp)
 {
-        if (dsp->sb_timeo < 256)
-                dsp->sblatcho = TIMER_USEC * (256 - dsp->sb_timeo);
+        if (dsp->sb_timeo < 256LL)
+                dsp->sblatcho = TIMER_USEC * (256LL - dsp->sb_timeo);
         else
-                dsp->sblatcho = (int)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_timeo - 256)));
+                dsp->sblatcho = (int)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_timeo - 256LL)));
 
-        if (dsp->sb_timei < 256)
-                dsp->sblatchi = TIMER_USEC * (256 - dsp->sb_timei);
+        if (dsp->sb_timei < 256LL)
+                dsp->sblatchi = TIMER_USEC * (256LL - dsp->sb_timei);
         else
-                dsp->sblatchi = (int)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_timei - 256)));
+                dsp->sblatchi = (int)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_timei - 256LL)));
 }
 
 void sb_add_data(sb_dsp_t *dsp, uint8_t v)
@@ -205,7 +207,7 @@ void sb_add_data(sb_dsp_t *dsp, uint8_t v)
 
 void sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
 {
-        dsp->sb_pausetime = -1;
+        dsp->sb_pausetime = -1LL;
         if (dma8)
         {
                 dsp->sb_8_length = len;
@@ -379,8 +381,8 @@ void sb_exec_command(sb_dsp_t *dsp)
                  * mode does not imply such samplerate. Position is increased in sb_poll_i*/
                 if (dsp->sb_enable_i==0)
                 {
-                        dsp->sb_timei = 256 - 22;
-                        dsp->sblatchi = TIMER_USEC * 22;
+                        dsp->sb_timei = 256LL - 22LL;
+                        dsp->sblatchi = TIMER_USEC * 22LL;
                         temp = 1000000 / 22;
                         dsp->sb_freq = temp;
                         timer_process();
@@ -426,7 +428,7 @@ void sb_exec_command(sb_dsp_t *dsp)
                 dsp->sblatcho = (int)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_data[1] + (dsp->sb_data[0] << 8))));
 //                pclog("Sample rate - %ihz (%i)\n",dsp->sb_data[1]+(dsp->sb_data[0]<<8), dsp->sblatcho);
                 dsp->sb_freq = dsp->sb_data[1] + (dsp->sb_data[0] << 8);
-                dsp->sb_timeo = 256 + dsp->sb_freq;
+                dsp->sb_timeo = 256LL + dsp->sb_freq;
                 dsp->sblatchi = dsp->sblatcho;
                 dsp->sb_timei = dsp->sb_timeo;
                 break;
@@ -659,8 +661,8 @@ void sb_write(uint16_t a, uint8_t v, void *priv)
                 return;
                 case 0xC: /*Command/data write*/
                 timer_process();
-                dsp->wb_time = TIMER_USEC * 1;
-                dsp->wb_full = 1;
+                dsp->wb_time = TIMER_USEC * 1LL;
+                dsp->wb_full = 1LL;
                 timer_update_outstanding();
                 if (dsp->asp_data_len)
                 {
@@ -697,6 +699,10 @@ uint8_t sb_read(uint16_t a, void *priv)
         switch (a & 0xf)
         {
                 case 0xA: /*Read data*/
+		if (dsp->uart_midi)
+		{
+			return MPU401_ReadData(mpu);
+		}
                 dsp->sbreaddat = dsp->sb_read_data[dsp->sb_read_rp];
                 if (dsp->sb_read_rp != dsp->sb_read_wp)
                 {
@@ -728,7 +734,12 @@ static void sb_wb_clear(void *p)
 {
         sb_dsp_t *dsp = (sb_dsp_t *)p;
         
-        dsp->wb_time = 0;
+        dsp->wb_time = 0LL;
+}
+
+void sb_dsp_set_mpu(mpu_t *src_mpu)
+{
+	mpu = src_mpu;
 }
 
 void sb_dsp_init(sb_dsp_t *dsp, int type)
@@ -939,7 +950,7 @@ void pollsb(void *p)
                         sb_irq(dsp, 1);
                 }
         }
-        if (dsp->sb_16_enable && !dsp->sb_16_pause && dsp->sb_pausetime < 0 && dsp->sb_16_output)
+        if (dsp->sb_16_enable && !dsp->sb_16_pause && dsp->sb_pausetime < 0LL && dsp->sb_16_output)
         {
                 sb_dsp_update(dsp);
                 
@@ -975,10 +986,10 @@ void pollsb(void *p)
                         sb_irq(dsp, 0);
                 }
         }
-        if (dsp->sb_pausetime > -1)
+        if (dsp->sb_pausetime > -1LL)
         {
                 dsp->sb_pausetime--;
-                if (dsp->sb_pausetime < 0)
+                if (dsp->sb_pausetime < 0LL)
                 {
                         sb_irq(dsp, 1);
                         dsp->sbenable = dsp->sb_8_enable;
@@ -1054,7 +1065,7 @@ void sb_poll_i(void *p)
                 }
                 processed=1;
         }
-        if (dsp->sb_16_enable && !dsp->sb_16_pause && dsp->sb_pausetime < 0 && !dsp->sb_16_output)
+        if (dsp->sb_16_enable && !dsp->sb_16_pause && dsp->sb_pausetime < 0LL && !dsp->sb_16_output)
         {
                 switch (dsp->sb_16_format)
                 {
@@ -1159,10 +1170,10 @@ void sb_dsp_add_status_info(char *s, int max_len, sb_dsp_t *dsp)
         char temps[128];
         int freq;
 
-        if (dsp->sb_timeo < 256)
-                freq = 1000000 / (256 - dsp->sb_timeo);
+        if (dsp->sb_timeo < 256LL)
+                freq = 1000000 / (256LL - dsp->sb_timeo);
         else
-                freq = dsp->sb_timeo - 256;
+                freq = dsp->sb_timeo - 256LL;
 
         if (dsp->sb_8_enable && dsp->sb_8_output)
         {

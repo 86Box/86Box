@@ -416,7 +416,7 @@ typedef struct {
 		ATBusSpeed;
 
     char	*fw_rev;	/* The 4 bytes of the revision command information + 2 extra bytes for BusLogic */
-    uint8_t	bus;		/* Basically a copy of device flags */
+    uint16_t	bus;		/* Basically a copy of device flags */
     uint8_t	setup_info_len;
     uint8_t	max_id;
     uint8_t	pci_slot;

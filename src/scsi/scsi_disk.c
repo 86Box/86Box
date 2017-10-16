@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.15	2017/10/14
+ * Version:	@(#)scsi_disk.c	1.0.16	2017/10/16
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2017 Miran Grca.
@@ -90,7 +90,10 @@ uint8_t scsi_hd_command_flags[0x100] = {
     0, 0, 0, 0, 0, 0, 0,
     IMPLEMENTED | ALLOW_UA,					/* 0x12 */
     IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,		/* 0x13 */
-    0, 0, 0, 0, 0, 0, 0,
+    0,
+    IMPLEMENTED,						/* 0x15 */
+    0, 0, 0, 0,
+    IMPLEMENTED,
     IMPLEMENTED | CHECK_READY,					/* 0x1B */
     0, 0,
     IMPLEMENTED | CHECK_READY,					/* 0x1E */
@@ -104,7 +107,11 @@ uint8_t scsi_hd_command_flags[0x100] = {
     IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,		/* 0x2F */
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    IMPLEMENTED,						/* 0x55 */
+    0, 0, 0, 0,
+    IMPLEMENTED,						/* 0x5A */
+    0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -439,8 +446,9 @@ uint8_t scsi_hd_mode_sense_pages_saved[HDD_NUM][0x40][0x40] =
 		[0x30] = { 		       0xB0, 0x16, '8', '6', 'B', 'o', 'x', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ' }	}
 };
 
-int scsi_hd_do_log = 0;
-
+#ifdef ENABLE_SCSI_HD_LOG
+int scsi_hd_do_log = ENABLE_SCSI_HD_LOG;
+#endif
 
 void scsi_hd_log(const char *format, ...)
 {
@@ -656,18 +664,21 @@ uint32_t scsi_hd_mode_sense(uint8_t id, uint8_t *buf, uint32_t pos, uint8_t type
 	int j = 0;
 
 	uint8_t msplen;
+	int size = 0;
 
 	type &= 0x3f;
+
+	size = hdd_image_get_last_sector(id);
 
 	if (block_descriptor_len)
 	{
 		buf[pos++] = 1;		/* Density code. */
-		buf[pos++] = 0;		/* Number of blocks (0 = all). */
-		buf[pos++] = 0;
-		buf[pos++] = 0;
+		buf[pos++] = (size >> 16) & 0xff;	/* Number of blocks (0 = all). */
+		buf[pos++] = (size >> 8) & 0xff;
+		buf[pos++] = size & 0xff;
 		buf[pos++] = 0;		/* Reserved. */
-		buf[pos++] = 0;		/* Block length (0x800 = 2048 bytes). */
-		buf[pos++] = 8;
+		buf[pos++] = 0;		/* Block length (0x200 = 512 bytes). */
+		buf[pos++] = 2;
 		buf[pos++] = 0;
 	}
 
@@ -1640,16 +1651,19 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 			shdc[id].current_page_code = cdb[2] & 0x3F;
 
+#if 0
 			if (!(scsi_hd_mode_sense_page_flags[id] & (1LL << shdc[id].current_page_code)))
 			{
 				scsi_hd_invalid_field(id);
 				return;
 			}
+#endif
 			
-			memset(hdbufferb, 0, len);
 			alloc_length = len;
 
-			shdc[id].temp_buffer = (uint8_t *) malloc(256);
+			shdc[id].temp_buffer = (uint8_t *) malloc(65536);
+			memset(shdc[id].temp_buffer, 0, 65536);
+
 			if (cdb[0] == GPCMD_MODE_SENSE_6)
 			{
 				len = scsi_hd_mode_sense(id, shdc[id].temp_buffer, 4, cdb[2], block_desc);
@@ -1661,7 +1675,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				shdc[id].temp_buffer[1] = 0;
 				if (block_desc)
 				{
-					hdbufferb[3] = 8;
+					shdc[id].temp_buffer[3] = 8;
 				}
 			}
 			else
@@ -1793,7 +1807,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 						shdc[id].temp_buffer[idx++] = 0x00;
 						shdc[id].temp_buffer[idx++] = 0x00;
 						shdc[id].temp_buffer[idx++] = 20;
-						ide_padstr8(hdbufferb + idx, 20, "53R141");	/* Serial */
+						ide_padstr8(shdc[id].temp_buffer + idx, 20, "53R141");	/* Serial */
 						idx += 20;
 
 						if (idx + 72 > cdb[4])

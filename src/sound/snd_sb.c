@@ -473,7 +473,7 @@ void sb_ct1335_mixer_write(uint16_t addr, uint8_t val, void *p)
                                 break;
 
                                 default:
-                                pclog("sb_ct1335: Unknown register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                                /* pclog("sb_ct1335: Unknown register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]); */
                                 break;
                         }
                 }
@@ -500,7 +500,7 @@ uint8_t sb_ct1335_mixer_read(uint16_t addr, void *p)
                 case 0x00: case 0x02: case 0x06: case 0x08: case 0x0A:
                 return mixer->regs[mixer->index];
                 default:
-                pclog("sb_ct1335: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                /* pclog("sb_ct1335: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]); */
                 break;
         }
 
@@ -564,7 +564,7 @@ void sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *p)
                                 
                                 
                                 default:
-                                pclog("sb_ct1345: Unknown register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                                /* pclog("sb_ct1345: Unknown register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]); */
                                 break;
                         }
                 }
@@ -624,7 +624,7 @@ uint8_t sb_ct1345_mixer_read(uint16_t addr, void *p)
                 return mixer->regs[mixer->index];
                 
                 default:
-                pclog("sb_ct1345: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                /* pclog("sb_ct1345: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]); */
                 break;
         }
         
@@ -850,7 +850,7 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
                 
                 
                 default:
-                pclog("sb_ct1745: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                /* pclog("sb_ct1745: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]); */
                 break;
         }
 
@@ -869,8 +869,8 @@ static uint16_t sb_mcv_addr[8] = {0x200, 0x210, 0x220, 0x230, 0x240, 0x250, 0x26
 uint8_t sb_mcv_read(int port, void *p)
 {
         sb_t *sb = (sb_t *)p;
-        
-        pclog("sb_mcv_read: port=%04x\n", port);
+
+        /* pclog("sb_mcv_read: port=%04x\n", port); */
         
         return sb->pos_regs[port & 7];
 }
@@ -883,7 +883,7 @@ void sb_mcv_write(int port, uint8_t val, void *p)
         if (port < 0x102)
                 return;
         
-        pclog("sb_mcv_write: port=%04x val=%02x\n", port, val);
+        /* pclog("sb_mcv_write: port=%04x val=%02x\n", port, val); */
 
         addr = sb_mcv_addr[sb->pos_regs[4] & 7];
         io_removehandler(addr+8, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
@@ -909,8 +909,8 @@ static int sb_pro_mcv_irqs[4] = {7, 5, 3, 3};
 uint8_t sb_pro_mcv_read(int port, void *p)
 {
         sb_t *sb = (sb_t *)p;
-        
-        pclog("sb_pro_mcv_read: port=%04x\n", port);
+
+        /* pclog("sb_pro_mcv_read: port=%04x\n", port); */
         
         return sb->pos_regs[port & 7];
 }
@@ -922,8 +922,8 @@ void sb_pro_mcv_write(int port, uint8_t val, void *p)
 
         if (port < 0x102)
                 return;
-        
-        pclog("sb_pro_mcv_write: port=%04x val=%02x\n", port, val);
+
+        /* pclog("sb_pro_mcv_write: port=%04x val=%02x\n", port, val); */
 
         addr = (sb->pos_regs[2] & 0x20) ? 0x220 : 0x240;
         io_removehandler(addr+0, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
@@ -965,6 +965,7 @@ void *sb_1_init()
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
+	sb_dsp_set_mpu(&sb->mpu);
         /* CMS I/O handler is activated on the dedicated sound_cms module
            DSP I/O handler is activated in sb_dsp_setaddr */
         io_sethandler(addr+8, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
@@ -1008,6 +1009,7 @@ void *sb_mcv_init()
         sb_dsp_setaddr(&sb->dsp, 0);//addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
+	sb_dsp_set_mpu(&sb->mpu);
         sound_add_handler(sb_get_buffer_sb2, sb);
         /* I/O handlers activated in sb_mcv_write */
         mca_add(sb_mcv_read, sb_mcv_write, sb);
@@ -1033,6 +1035,7 @@ void *sb_2_init()
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
+	sb_dsp_set_mpu(&sb->mpu);
         sb_ct1335_mixer_reset(sb);
         /* CMS I/O handler is activated on the dedicated sound_cms module
            DSP I/O handler is activated in sb_dsp_setaddr */
@@ -1068,6 +1071,7 @@ void *sb_pro_v1_init()
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
+	sb_dsp_set_mpu(&sb->mpu);
         sb_ct1345_mixer_reset(sb);
         /* DSP I/O handler is activated in sb_dsp_setaddr */
         io_sethandler(addr+0, 0x0002, opl2_l_read, NULL, NULL, opl2_l_write, NULL, NULL, &sb->opl);
@@ -1097,6 +1101,7 @@ void *sb_pro_v2_init()
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
+	sb_dsp_set_mpu(&sb->mpu);
         sb_ct1345_mixer_reset(sb);
         /* DSP I/O handler is activated in sb_dsp_setaddr */
         io_sethandler(addr+0, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
@@ -1151,7 +1156,7 @@ void *sb_16_init()
         io_sethandler(addr+4, 0x0002, sb_ct1745_mixer_read, NULL, NULL, sb_ct1745_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sb16, sb);
         mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
-
+	sb_dsp_set_mpu(&sb->mpu);
 
         return sb;
 }
@@ -1176,6 +1181,7 @@ void *sb_awe32_init()
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
         sb_dsp_setdma16(&sb->dsp, device_get_config_int("dma16"));
+	sb_dsp_set_mpu(&sb->mpu);
         sb_ct1745_mixer_reset(sb);
         io_sethandler(addr, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
         io_sethandler(addr+8, 0x0002, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
@@ -1183,6 +1189,7 @@ void *sb_awe32_init()
         io_sethandler(addr+4, 0x0002, sb_ct1745_mixer_read, NULL, NULL, sb_ct1745_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_emu8k, sb);
         mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
+	sb_dsp_set_mpu(&sb->mpu);
         emu8k_init(&sb->emu8k, emu_addr, onboard_ram);
 
         return sb;

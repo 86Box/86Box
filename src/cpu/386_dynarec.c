@@ -381,7 +381,7 @@ static void prefetch_flush()
 #define PREFETCH_RUN(instr_cycles, bytes, modrm, reads, reads_l, writes, writes_l, ea32) \
         do { if (cpu_prefetch_cycles) prefetch_run(instr_cycles, bytes, modrm, reads, reads_l, writes, writes_l, ea32); } while (0)
 
-#define PREFETCH_PREFIX() prefetch_prefixes++
+#define PREFETCH_PREFIX() do { if (cpu_prefetch_cycles) prefetch_prefixes++; } while (0)
 #define PREFETCH_FLUSH() prefetch_flush()
 
 
@@ -657,7 +657,7 @@ void exec386_dynarec(int cycs)
                         {
                                 codegen_check_flush(page, page->dirty_mask[(phys_addr >> 10) & 3], phys_addr);
                                 page->dirty_mask[(phys_addr >> 10) & 3] = 0;
-                                if (!block->pc)
+                                if (!block->valid)
                                         valid_block = 0;
                         }
                         if (valid_block && block->page_mask2)
@@ -678,7 +678,7 @@ void exec386_dynarec(int cycs)
                                 {
                                         codegen_check_flush(page_2, page_2->dirty_mask[(phys_addr_2 >> 10) & 3], phys_addr_2);
                                         page_2->dirty_mask[(phys_addr_2 >> 10) & 3] = 0;
-                                        if (!block->pc)
+                                        if (!block->valid)
                                                 valid_block = 0;
                                 }
                         }

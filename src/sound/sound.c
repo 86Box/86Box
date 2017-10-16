@@ -32,6 +32,7 @@
 #include "snd_adlib.h"
 #include "snd_adlibgold.h"
 #include "snd_audiopci.h"
+#include "snd_mpu401.h"
 #if defined(DEV_BRANCH) && defined(USE_PAS16)
 # include "snd_pas16.h"
 #endif

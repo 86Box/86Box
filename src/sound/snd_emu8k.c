@@ -1,4 +1,5 @@
 #include <inttypes.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -252,11 +253,11 @@ uint32_t rep_count_w = 0;
                                     } \
                                     if (name == 0) \
                                     { \
-                                        /*pclog("EMU8K READ %04X-%02X(%d): %04X\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice, emu8k->cur_voice,ret);*/ \
+                                        /*emu8k_log("EMU8K READ %04X-%02X(%d): %04X\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice, emu8k->cur_voice,ret);*/ \
                                     } \
                                     else \
                                     { \
-                                        pclog("EMU8K READ %s(%d) (%d): %04X\n",name, (addr&0x2), emu8k->cur_voice, ret); \
+                                        emu8k_log("EMU8K READ %s(%d) (%d): %04X\n",name, (addr&0x2), emu8k->cur_voice, ret); \
                                     }\
                                 }
 # define WRITE16(addr, var, val) WRITE16_SWITCH(addr, var, val) \
@@ -276,11 +277,11 @@ uint32_t rep_count_w = 0;
                                     } \
                                     if (name == 0) \
                                     { \
-                                        /*pclog("EMU8K WRITE %04X-%02X(%d): %04X\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice,emu8k->cur_voice, val);*/ \
+                                        /*emu8k_log("EMU8K WRITE %04X-%02X(%d): %04X\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice,emu8k->cur_voice, val);*/ \
                                     } \
                                     else \
                                     { \
-                                        pclog("EMU8K WRITE %s(%d) (%d): %04X\n",name, (addr&0x2), emu8k->cur_voice,val); \
+                                        emu8k_log("EMU8K WRITE %s(%d) (%d): %04X\n",name, (addr&0x2), emu8k->cur_voice,val); \
                                     }\
                                 }
 
@@ -289,6 +290,24 @@ uint32_t rep_count_w = 0;
 # define WRITE16(addr, var, val) WRITE16_SWITCH(addr, var, val)
 #endif //EMU8K_DEBUG_REGISTERS 
 
+
+#ifdef ENABLE_EMU8K_LOG
+int emu8k_do_log = ENABLE_EMU8K_LOG;
+#endif
+
+void emu8k_log(const char *format, ...)
+{
+#ifdef ENABLE_EMU8K_LOG
+	if (emu8k_do_log)
+	{
+		va_list ap;
+		va_start(ap, format);
+		vprintf(format, ap);
+		va_end(ap);
+		fflush(stdout);
+	}
+#endif
+}
 
 static inline int16_t EMU8K_READ(emu8k_t *emu8k, uint32_t addr)
 {
@@ -360,7 +379,7 @@ uint16_t emu8k_inw(uint16_t addr, void *p)
 #ifdef EMU8K_DEBUG_REGISTERS
         if (addr == 0xE22)
         {
-                pclog("EMU8K READ POINTER: %d\n", 
+                emu8k_log("EMU8K READ POINTER: %d\n", 
                         ((0x80 | ((random_helper + 1) & 0x1F)) << 8) | (emu8k->cur_reg << 5) | emu8k->cur_voice);
         }
         else if ((addr&0xF00) == 0x600)
@@ -368,7 +387,7 @@ uint16_t emu8k_inw(uint16_t addr, void *p)
                 /* These are automatically reported by READ16 */
                 if (rep_count_r>1)
                 {
-                        pclog("EMU8K ...... for %d times\n", rep_count_r);
+                        emu8k_log("EMU8K ...... for %d times\n", rep_count_r);
                         rep_count_r=0;
                 }
                 last_read=0;
@@ -378,7 +397,7 @@ uint16_t emu8k_inw(uint16_t addr, void *p)
                 /* These are automatically reported by READ16 */
                 if (rep_count_r>1)
                 {
-                        pclog("EMU8K ...... for %d times\n", rep_count_r);
+                        emu8k_log("EMU8K ...... for %d times\n", rep_count_r);
                         rep_count_r=0;
                 }
                 last_read=0;
@@ -390,13 +409,13 @@ uint16_t emu8k_inw(uint16_t addr, void *p)
                 {
                         if (rep_count_r>1)
                         {
-                                pclog("EMU8K ...... for %d times\n", rep_count_r);
+                                emu8k_log("EMU8K ...... for %d times\n", rep_count_r);
                                 rep_count_r=0;
                         }
                         last_read=tmpz;
-                        pclog("EMU8K READ RAM I/O or configuration or clock \n");
+                        emu8k_log("EMU8K READ RAM I/O or configuration or clock \n");
                 }
-                //pclog("EMU8K READ %04X-%02X(%d/%d)\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice, emu8k->cur_reg, emu8k->cur_voice); 
+                //emu8k_log("EMU8K READ %04X-%02X(%d/%d)\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice, emu8k->cur_reg, emu8k->cur_voice); 
         }
         else if ((addr&0xF00) == 0xA00 && (emu8k->cur_reg == 2 || emu8k->cur_reg == 3))
         {
@@ -405,13 +424,13 @@ uint16_t emu8k_inw(uint16_t addr, void *p)
                 {
                         if (rep_count_r>1)
                         {
-                                pclog("EMU8K ...... for %d times\n", rep_count_r);
+                                emu8k_log("EMU8K ...... for %d times\n", rep_count_r);
                                 rep_count_r=0;
                         }
                         last_read=tmpz;
-                        pclog("EMU8K READ INIT \n");
+                        emu8k_log("EMU8K READ INIT \n");
                 }
-                //pclog("EMU8K READ %04X-%02X(%d/%d)\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice, emu8k->cur_reg, emu8k->cur_voice); 
+                //emu8k_log("EMU8K READ %04X-%02X(%d/%d)\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice, emu8k->cur_reg, emu8k->cur_voice); 
         }
         else
         { 
@@ -463,15 +482,15 @@ uint16_t emu8k_inw(uint16_t addr, void *p)
                         }
                         if (rep_count_r>1)
                         {
-                                pclog("EMU8K ...... for %d times\n", rep_count_r);
+                                emu8k_log("EMU8K ...... for %d times\n", rep_count_r);
                         }
                         if (name == 0)
                         { 
-                                pclog("EMU8K READ %04X-%02X(%d/%d): %04X\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice, emu8k->cur_reg, emu8k->cur_voice,val); 
+                                emu8k_log("EMU8K READ %04X-%02X(%d/%d): %04X\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice, emu8k->cur_reg, emu8k->cur_voice,val); 
                         }
                         else
                         { 
-                                pclog("EMU8K READ %s (%d): %04X\n",name,emu8k->cur_voice, val); 
+                                emu8k_log("EMU8K READ %s (%d): %04X\n",name,emu8k->cur_voice, val); 
                         }
 
                         rep_count_r=0;
@@ -716,7 +735,7 @@ uint16_t emu8k_inw(uint16_t addr, void *p)
                 random_helper = (random_helper + 1) & 0x1F;
                 return ((0x80 | random_helper) << 8) | (emu8k->cur_reg << 5) | emu8k->cur_voice;
         }
-        pclog("EMU8K READ : Unknown register read: %04X-%02X(%d/%d) \n", addr, (emu8k->cur_reg << 5) | emu8k->cur_voice, emu8k->cur_reg, emu8k->cur_voice);
+        emu8k_log("EMU8K READ : Unknown register read: %04X-%02X(%d/%d) \n", addr, (emu8k->cur_reg << 5) | emu8k->cur_voice, emu8k->cur_reg, emu8k->cur_voice);
         return 0xffff;
 }
 
@@ -731,14 +750,14 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
 #ifdef EMU8K_DEBUG_REGISTERS
         if (addr == 0xE22)
         {
-                //pclog("EMU8K WRITE POINTER: %d\n", val);
+                //emu8k_log("EMU8K WRITE POINTER: %d\n", val);
         }
         else if ((addr&0xF00) == 0x600)
         {
                 /* These are automatically reported by WRITE16 */
                 if (rep_count_w>1)
                 {
-                        pclog("EMU8K ...... for %d times\n", rep_count_w);
+                        emu8k_log("EMU8K ...... for %d times\n", rep_count_w);
                         rep_count_w=0;
                 }
                 last_write=0;
@@ -748,7 +767,7 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                 /* These are automatically reported by WRITE16 */
                 if (rep_count_w>1)
                 {
-                        pclog("EMU8K ...... for %d times\n", rep_count_w);
+                        emu8k_log("EMU8K ...... for %d times\n", rep_count_w);
                         rep_count_w=0;
                 }
                 last_write=0;
@@ -760,13 +779,13 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                 {
                         if (rep_count_w>1)
                         {
-                                pclog("EMU8K ...... for %d times\n", rep_count_w);
+                                emu8k_log("EMU8K ...... for %d times\n", rep_count_w);
                                 rep_count_w=0;
                         }
                         last_write=tmpz;
-                        pclog("EMU8K WRITE RAM I/O or configuration \n");
+                        emu8k_log("EMU8K WRITE RAM I/O or configuration \n");
                 }
-                //pclog("EMU8K WRITE %04X-%02X(%d/%d): %04X\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice,emu8k->cur_reg,emu8k->cur_voice, val); 
+                //emu8k_log("EMU8K WRITE %04X-%02X(%d/%d): %04X\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice,emu8k->cur_reg,emu8k->cur_voice, val); 
         }
         else if ((addr&0xF00) == 0xA00 && (emu8k->cur_reg == 2 || emu8k->cur_reg == 3))
         {
@@ -775,13 +794,13 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                 {
                         if (rep_count_w>1)
                         {
-                                pclog("EMU8K ...... for %d times\n", rep_count_w);
+                                emu8k_log("EMU8K ...... for %d times\n", rep_count_w);
                                 rep_count_w=0;
                         }
                         last_write=tmpz;
-                        pclog("EMU8K WRITE INIT \n");
+                        emu8k_log("EMU8K WRITE INIT \n");
                 }
-                //pclog("EMU8K WRITE %04X-%02X(%d/%d): %04X\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice,emu8k->cur_reg,emu8k->cur_voice, val); 
+                //emu8k_log("EMU8K WRITE %04X-%02X(%d/%d): %04X\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice,emu8k->cur_reg,emu8k->cur_voice, val); 
         }
         else if (addr != 0xE22)
         { 
@@ -805,15 +824,15 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
 
                         if (rep_count_w>1)
                         {
-                                pclog("EMU8K ...... for %d times\n", rep_count_w);
+                                emu8k_log("EMU8K ...... for %d times\n", rep_count_w);
                         }
                         if (name == 0)
                         { 
-                                pclog("EMU8K WRITE %04X-%02X(%d/%d): %04X\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice,emu8k->cur_reg,emu8k->cur_voice, val); 
+                                emu8k_log("EMU8K WRITE %04X-%02X(%d/%d): %04X\n",addr,(emu8k->cur_reg)<<5|emu8k->cur_voice,emu8k->cur_reg,emu8k->cur_voice, val); 
                         }
                         else
                         { 
-                                pclog("EMU8K WRITE %s (%d): %04X\n",name,emu8k->cur_voice, val);
+                                emu8k_log("EMU8K WRITE %s (%d): %04X\n",name,emu8k->cur_voice, val);
                         }
                         
                         rep_count_w=0;
@@ -1481,7 +1500,7 @@ void emu8k_outw(uint16_t addr, uint16_t val, void *p)
                 emu8k->cur_reg   = ((val >> 5) & 7);
                 return;
         }
-        pclog("EMU8K WRITE: Unknown register write: %04X-%02X(%d/%d): %04X \n", addr, (emu8k->cur_reg)<<5|emu8k->cur_voice,
+        emu8k_log("EMU8K WRITE: Unknown register write: %04X-%02X(%d/%d): %04X \n", addr, (emu8k->cur_reg)<<5|emu8k->cur_voice,
                 emu8k->cur_reg,emu8k->cur_voice, val);
 
 }
@@ -2072,10 +2091,10 @@ I've recopilated these sentences to get an idea of how to loop
                 emu_voice->cpf_curr_frac_addr = emu_voice->addr.fract_address;
 
                 //if ( emu_voice->cvcf_curr_volume != old_vol[c]) {
-                //    pclog("EMUVOL (%d):%d\n", c, emu_voice->cvcf_curr_volume);
+                //    emu8k_log("EMUVOL (%d):%d\n", c, emu_voice->cvcf_curr_volume);
                 //    old_vol[c]=emu_voice->cvcf_curr_volume;
                 //}
-                //pclog("EMUFILT :%d\n", emu_voice->cvcf_curr_filt_ctoff);
+                //emu8k_log("EMUFILT :%d\n", emu_voice->cvcf_curr_filt_ctoff);
         }
 
         

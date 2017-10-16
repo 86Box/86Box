@@ -139,7 +139,7 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                         case 2: /*ICW3*/
                         pic.icw3 = val;
-			pclog("PIC1 ICW3 now %02X\n", val);
+			/* pclog("PIC1 ICW3 now %02X\n", val); */
                         if (pic.icw1&1) pic.icw=3;
                         else            pic.icw=0;
                         break;
@@ -271,13 +271,13 @@ void pic2_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                         case 1: /*ICW2*/
                         pic2.vector=val&0xF8;
-			pclog("PIC2 vector now: %02X\n", pic2.vector);
+			/* pclog("PIC2 vector now: %02X\n", pic2.vector); */
                         if (pic2.icw1&2) pic2.icw=3;
                         else            pic2.icw=2;
                         break;
                         case 2: /*ICW3*/
                         pic2.icw3 = val;
-			pclog("PIC2 ICW3 now %02X\n", val);
+			/* pclog("PIC2 ICW3 now %02X\n", val); */
                         if (pic2.icw1&1) pic2.icw=3;
                         else            pic2.icw=0;
                         break;

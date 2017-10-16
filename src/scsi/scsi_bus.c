@@ -38,8 +38,9 @@
 
 uint32_t SCSI_BufferLength;
 
-int scsi_bus_do_log = 0;
-
+#ifdef ENABLE_SCSI_BUS_LOG
+int scsi_bus_do_log = ENABLE_SCSI_BUS_LOG;
+#endif
 
 void scsi_bus_log(const char *format, ...)
 {
@@ -161,17 +162,15 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 
 					dev->BufferLength = -1;
 
-					pclog("(%02X:%02X): Command %02X: Buffer length %i\n", bus->dev_id, lun, bus->command[0], dev->BufferLength);
-
 					scsi_device_command_phase0(bus->dev_id, lun, get_cmd_len(bus->command[0]), bus->command);
 
-					pclog("SCSI Phase: %02X\n", SCSIPhase);
+					scsi_bus_log("(%02X:%02X): Command %02X: Buffer Length %i, SCSI Phase %02X\n", bus->dev_id, lun, bus->command[0], dev->BufferLength, SCSIPhase);
 
 					if ((SCSIPhase == SCSI_PHASE_DATA_IN) || (SCSIPhase == SCSI_PHASE_DATA_OUT))
 					{
-						pclog("dev->CmdBuffer = %08X\n", dev->CmdBuffer);
+						scsi_bus_log("dev->CmdBuffer = %08X\n", dev->CmdBuffer);
 						dev->CmdBuffer = (uint8_t *) malloc(dev->BufferLength);
-						pclog("dev->CmdBuffer = %08X\n", dev->CmdBuffer);
+						scsi_bus_log("dev->CmdBuffer = %08X\n", dev->CmdBuffer);
 					}
 
 					if (SCSIPhase == SCSI_PHASE_DATA_OUT)
@@ -249,7 +248,7 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 
 				if (bus->data_pos >= SCSIDevices[bus->dev_id][lun].BufferLength)
 				{
-					/* pclog("%04X bytes written (%02X %02X)\n", bus->data_pos, bus->command[0], bus->command[1]); */
+					/* scsi_bus_log("%04X bytes written (%02X %02X)\n", bus->data_pos, bus->command[0], bus->command[1]); */
 					scsi_bus_log("Actually executing write command\n");
 					scsi_device_command_phase1(bus->dev_id, lun);
 					free(dev->CmdBuffer);
@@ -271,7 +270,7 @@ int scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 		
 			if ((bus_assert & BUS_ACK) && !(bus->bus_in & BUS_ACK))
 			{	
-					/* pclog("Preparing for message in\n"); */
+					/* scsi_bus_log("Preparing for message in\n"); */
 					bus->bus_out &= ~BUS_REQ;
 					bus->new_state = SCSI_PHASE_MESSAGE_IN;
 					bus->change_state_delay = 4;
@@ -353,12 +352,12 @@ int scsi_bus_read(scsi_bus_t *bus)
 					bus->state = STATE_STATUS;
 					bus->bus_out |= BUS_REQ;
 					bus->bus_out = (bus->bus_out & ~BUS_DATAMASK) | BUS_SETDATA(SCSIStatus) | BUS_DBP;
-					/* pclog("SCSI Status (command %02X): %02X (%08X)\n", bus->command[0], SCSIStatus, bus->bus_out); */
+					/* scsi_bus_log("SCSI Status (command %02X): %02X (%08X)\n", bus->command[0], SCSIStatus, bus->bus_out); */
 					break;
 					
 				case SCSI_PHASE_MESSAGE_IN:
 					scsi_bus_log("Phase message in\n");
-					/* pclog("Message in\n"); */
+					/* scsi_bus_log("Message in\n"); */
 					bus->state = STATE_MESSAGEIN;
 					bus->bus_out = (bus->bus_out & ~BUS_DATAMASK) | BUS_SETDATA(0) | BUS_DBP;
 					break;

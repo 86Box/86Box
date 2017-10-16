@@ -64,9 +64,6 @@ static int last_ssegs;
 
 void codegen_init()
 {
-#if UNUSED
-        int c;
-#endif
 #ifdef __linux__
 	void *start;
 	size_t len;
@@ -127,8 +124,8 @@ static void add_to_block_list(codeblock_t *block)
 
         if (block->next)
         {
-                if (!block->next->pc)
-                        fatal("block->next->pc=0 %p %p %x %x\n", (void *)block->next, (void *)codeblock, block_current, block_pos);
+                if (!block->next->valid)
+                        fatal("block->next->valid=0 %p %p %x %x\n", (void *)block->next, (void *)codeblock, block_current, block_pos);
         }
         
         if (block->page_mask2)
@@ -198,9 +195,9 @@ static void delete_block(codeblock_t *block)
         if (block == codeblock_hash[HASH(block->phys)])
                 codeblock_hash[HASH(block->phys)] = NULL;
 
-        if (!block->pc)
+        if (!block->valid)
                 fatal("Deleting deleted block\n");
-        block->pc = 0;
+        block->valid = 0;
 
         codeblock_tree_delete(block);
         remove_from_block_list(block, old_pc);
@@ -251,7 +248,7 @@ void codegen_block_init(uint32_t phys_addr)
         block_current = (block_current + 1) & BLOCK_MASK;
         block = &codeblock[block_current];
 
-        if (block->pc != 0)
+        if (block->valid != 0)
         {
                 delete_block(block);
                 cpu_recomp_reuse++;
@@ -259,6 +256,7 @@ void codegen_block_init(uint32_t phys_addr)
         block_num = HASH(phys_addr);
         codeblock_hash[block_num] = &codeblock[block_current];
 
+	block->valid = 1;
         block->ins = 0;
         block->pc = cs + cpu_state.pc;
         block->_cs = cs;
@@ -442,8 +440,8 @@ void codegen_block_generate_end_mask()
                                 fatal("!page_mask2\n");
                         if (block->next_2)
                         {
-                                if (!block->next_2->pc)
-                                        fatal("block->next_2->pc=0 %p\n", (void *)block->next_2);
+                                if (!block->next_2->valid)
+                                        fatal("block->next_2->vsalid=0 %p\n", (void *)block->next_2);
                         }
                         
                         block->dirty_mask2 = &page_2->dirty_mask[(block->phys_2 >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK];

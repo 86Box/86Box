@@ -214,31 +214,33 @@ int mmu_page_fault_check(uint32_t addr, int rw, uint32_t flags, int pde, int is_
 
 	uint8_t is_page_fault = 0;
 
-	if (mem_cpl3_check())  error_code = 4;	/* If CPL = 3 and it's not a PDE check, set US bit. */
-	if (rw)  error_code |= 2;		/* If writing and it's not a PDE check, set RW bit. */
+	if (CPL == 3)  error_code = 4;		/* If the page fault has occurred at CPL 3, this should be set. */
+	if (rw)  error_code |= 2;		/* If the page has occurred during a write, this should be set. */
 
+	/* Apparently, this check should not be done on PSE. */
 	if (!(flags & 1))
 	{
 		is_page_fault = 1;
+	} else
+		error_code |= 1;	/* If the page is present, the error must indicate that it is. */
+
+	if (!(flags & 4) && mem_cpl3_check())
+	{
+		/* The user/supervisor check needs to be checked for the table as well, *before* checking it for the page. */
+		is_page_fault = 1;
 	}
 
-	if (!pde)
+	/* Only check the write-protect flag if this is a page directory entry. */
+	if (pde && rw && !(flags & 2) && ((cr0 & WP_FLAG) || mem_cpl3_check()))
 	{
-		if (!(flags & 4) && mem_cpl3_check())
-		{
-			is_page_fault = 1;
-		}
-		if (rw && !(flags & 2) && (mem_cpl3_check() || (cr0 & WP_FLAG)))
-		{
-			is_page_fault = 1;
-		}
+		is_page_fault = 1;
 	}
 
 	if (is_page_fault)
 	{
 		if (is_abrt)
 		{
-			mmu_page_fault(addr, error_code | (flags & 1));
+			mmu_page_fault(addr, error_code);
 		}
 		return -1;
 	}
@@ -276,7 +278,7 @@ uint32_t mmutranslate(uint32_t addr, int rw, int is_abrt)
 	if ((table_flags & 0x80) && (cr4 & CR4_PSE))
 	{
 		/* Do a PDE-style page fault check. */
-		if (mmu_page_fault_check(addr, rw, table_flags & 7, 0, is_abrt) == -1)
+		if (mmu_page_fault_check(addr, rw, table_flags & 7, 1, is_abrt) == -1)
 		{
 			return -1;
 		}
@@ -293,7 +295,7 @@ uint32_t mmutranslate(uint32_t addr, int rw, int is_abrt)
 	else
 	{
 		/* Do a non-PDE-style page fault check. */
-		if (mmu_page_fault_check(addr, rw, table_flags & 7, 1, is_abrt) == -1)
+		if (mmu_page_fault_check(addr, rw, table_flags & 7, 0, is_abrt) == -1)
 		{
 			return -1;
 		}
@@ -305,7 +307,7 @@ uint32_t mmutranslate(uint32_t addr, int rw, int is_abrt)
 	/* Then check the flags of the page table entry. */
 	page_flags = ((uint32_t *)ram)[page_addr >> 2];
 
-	if (mmu_page_fault_check(addr, rw, page_flags & 7, 0, is_abrt) == -1)
+	if (mmu_page_fault_check(addr, rw, page_flags & 7, 1, is_abrt) == -1)
 	{
 		return -1;
 	}

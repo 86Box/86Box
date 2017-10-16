@@ -7,9 +7,9 @@ uint8_t pci_use_mirq(uint8_t mirq);
 
 int pci_irq_is_level(int irq);
 
-void pci_set_mirq(uint8_t mirq, uint8_t channel);
+void pci_set_mirq(uint8_t mirq);
 void pci_set_irq(uint8_t card, uint8_t pci_int);
-void pci_clear_mirq(uint8_t mirq, uint8_t channel);
+void pci_clear_mirq(uint8_t mirq);
 void pci_clear_irq(uint8_t card, uint8_t pci_int);
 
 void pci_reset(void);

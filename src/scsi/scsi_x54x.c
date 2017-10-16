@@ -11,7 +11,7 @@
  *		series of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.c	1.0.0	2017/10/14
+ * Version:	@(#)scsi_x54x.c	1.0.1	2017/10/14
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1283,9 +1283,9 @@ x54x_do_mail(x54x_t *dev)
     if (dev->is_aggressive_mode) {
 	aggressive = dev->is_aggressive_mode(dev);
 	x54x_log("Processing mailboxes in %s mode...\n", aggressive ? "aggressive" : "strict");
-    } else {
+    }/* else {
 	x54x_log("Defaulting to process mailboxes in %s mode...\n", aggressive ? "aggressive" : "strict");
-    }
+    }*/
 
     if (!dev->MailboxCount) {
 	x54x_log("x54x_do_mail(): No Mailboxes\n");
@@ -1832,12 +1832,12 @@ void
 x54x_io_set(x54x_t *dev, uint32_t base)
 {
     if (dev->bus & DEVICE_PCI) {
-	x54x_log("x54x: [PCI] Setting I/O handler at %04X\n", dev->Base);
+	x54x_log("x54x: [PCI] Setting I/O handler at %04X\n", base);
 	io_sethandler(base, 4,
 		      x54x_in, x54x_inw, x54x_inl,
                       x54x_out, x54x_outw, x54x_outl, dev);
     } else {
-	x54x_log("x54x: [ISA] Setting I/O handler at %04X\n", dev->Base);
+	x54x_log("x54x: [ISA] Setting I/O handler at %04X\n", base);
 	io_sethandler(base, 4,
 		      x54x_in, x54x_inw, NULL,
                       x54x_out, x54x_outw, NULL, dev);
@@ -1848,7 +1848,7 @@ x54x_io_set(x54x_t *dev, uint32_t base)
 void
 x54x_io_remove(x54x_t *dev, uint32_t base)
 {
-    x54x_log("x54x: Removing I/O handler at %04X\n", dev->Base);
+    x54x_log("x54x: Removing I/O handler at %04X\n", base);
 
     if (dev->bus & DEVICE_PCI) {
 	io_removehandler(base, 4,

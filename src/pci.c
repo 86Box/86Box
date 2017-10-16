@@ -52,7 +52,9 @@ static int trc_reg = 0;
 
 PCI_RESET pci_reset_handler;
 
-int pci_do_log = 0;
+#ifdef ENABLE_PCI_LOG
+int pci_do_log = ENABLE_PCI_LOG;
+#endif
 
 void pci_log(const char *format, ...)
 {
@@ -149,7 +151,7 @@ static void elcr_write(uint16_t port, uint8_t val, void *priv)
 	}
 	elcr[port & 1] = val;
 
-	printf("ELCR %i: %c %c %c %c %c %c %c %c\n", port & 1, (val & 1) ? 'L' : 'E', (val & 2) ? 'L' : 'E', (val & 4) ? 'L' : 'E', (val & 8) ? 'L' : 'E', (val & 0x10) ? 'L' : 'E', (val & 0x20) ? 'L' : 'E', (val & 0x40) ? 'L' : 'E', (val & 0x80) ? 'L' : 'E');
+	pci_log("ELCR %i: %c %c %c %c %c %c %c %c\n", port & 1, (val & 1) ? 'L' : 'E', (val & 2) ? 'L' : 'E', (val & 4) ? 'L' : 'E', (val & 8) ? 'L' : 'E', (val & 0x10) ? 'L' : 'E', (val & 0x20) ? 'L' : 'E', (val & 0x40) ? 'L' : 'E', (val & 0x80) ? 'L' : 'E');
 }
 
 static uint8_t elcr_read(uint16_t port, void *priv)
@@ -288,68 +290,62 @@ uint8_t pci_use_mirq(uint8_t mirq)
 
 #define pci_mirq_log pci_log
 
-void pci_set_mirq(uint8_t mirq, uint8_t channel)
+void pci_set_mirq(uint8_t mirq)
 {
 	uint8_t irq_line = 0;
 	uint8_t level = 0;
 
-	if (channel > 1)
-	{
-		pci_mirq_log("pci_set_mirq(%02X, %02X): Invalid MIRQ\n", mirq, channel);
-		return;
-	}
-
 	if (!pci_mirqs[mirq].enabled)
 	{
-		pci_mirq_log("pci_set_mirq(%02X, %02X): MIRQ0 disabled\n", mirq, channel);
+		pci_mirq_log("pci_set_mirq(%02X): MIRQ0 disabled\n", mirq);
 		return;
 	}
 
 	if (pci_mirqs[mirq].irq_line > 0x0F)
 	{
-		pci_mirq_log("pci_set_mirq(%02X, %02X): IRQ line is disabled\n", mirq, channel);
+		pci_mirq_log("pci_set_mirq(%02X): IRQ line is disabled\n", mirq);
 		return;
 	}
 	else
 	{
-		irq_line = pci_mirqs[mirq].irq_line ^ (channel ^ 1);
-		pci_mirq_log("pci_set_mirq(%02X, %02X): Using IRQ %i\n", mirq, channel, irq_line);
+		irq_line = pci_mirqs[mirq].irq_line;
+		pci_mirq_log("pci_set_mirq(%02X): Using IRQ %i\n", mirq, irq_line);
 	}
 
-	if (pci_irq_is_level(irq_line) && (pci_irq_hold[irq_line] & (1 << (0x1C + (mirq << 1) + channel))))
+	if (pci_irq_is_level(irq_line) && (pci_irq_hold[irq_line] & (1 << (0x1E + mirq))))
 	{
 		/* IRQ already held, do nothing. */
-		pci_mirq_log("pci_set_mirq(%02X, %02X): MIRQ is already holding the IRQ\n", mirq, channel);
+		pci_mirq_log("pci_set_mirq(%02X): MIRQ is already holding the IRQ\n", mirq);
 		return;
 	}
 	else
 	{
-		pci_mirq_log("pci_set_mirq(%02X, %02X): MIRQ not yet holding the IRQ\n", mirq, channel);
+		pci_mirq_log("pci_set_mirq(%02X): MIRQ not yet holding the IRQ\n", mirq);
 	}
 
 	level = pci_irq_is_level(irq_line);
 
 	if (!level || !pci_irq_hold[irq_line])
 	{
-		pci_mirq_log("pci_set_mirq(%02X, %02X): Issuing %s-triggered IRQ (%sheld)\n", mirq, channel, level ? "level" : "edge", pci_irq_hold[irq_line] ? "" : "not ");
+		pci_mirq_log("pci_set_mirq(%02X): Issuing %s-triggered IRQ (%sheld)\n", mirq, level ? "level" : "edge", pci_irq_hold[irq_line] ? "" : "not ");
 
 		/* Only raise the interrupt if it's edge-triggered or level-triggered and not yet being held. */
 		picintlevel(1 << irq_line);
 	}
 	else if (level && pci_irq_hold[irq_line])
 	{
-		pci_mirq_log("pci_set_mirq(%02X, %02X): IRQ line already being held\n", mirq, channel);
+		pci_mirq_log("pci_set_mirq(%02X): IRQ line already being held\n", mirq);
 	}
 
 	/* If the IRQ is level-triggered, mark that this MIRQ is holding it. */
 	if (level)
 	{
-		pci_mirq_log("pci_set_mirq(%02X, %02X): Marking that this card is holding the IRQ\n", mirq, channel);
-		pci_irq_hold[irq_line] |= (1 << (0x1C + (mirq << 1) + channel));
+		pci_mirq_log("pci_set_mirq(%02X): Marking that this card is holding the IRQ\n", mirq);
+		pci_irq_hold[irq_line] |= (1 << (0x1E + mirq));
 	}
 	else
 	{
-		pci_mirq_log("pci_set_mirq(%02X, %02X): Edge-triggered interrupt, not marking\n", mirq, channel);
+		pci_mirq_log("pci_set_mirq(%02X): Edge-triggered interrupt, not marking\n", mirq);
 	}
 }
 
@@ -442,7 +438,7 @@ void pci_set_irq(uint8_t card, uint8_t pci_int)
 	}
 }
 
-void pci_clear_mirq(uint8_t mirq, uint8_t channel)
+void pci_clear_mirq(uint8_t mirq)
 {
 	uint8_t irq_line = 0;
 	uint8_t level = 0;
@@ -451,31 +447,31 @@ void pci_clear_mirq(uint8_t mirq, uint8_t channel)
 
 	if (mirq > 1)
 	{
-		pci_mirq_log("pci_clear_mirq(%02X %02X): Invalid MIRQ\n", mirq, channel);
+		pci_mirq_log("pci_clear_mirq(%02X): Invalid MIRQ\n", mirq);
 		return;
 	}
 
 	if (!pci_mirqs[mirq].enabled)
 	{
-		pci_mirq_log("pci_clear_mirq(%02X %02X): MIRQ0 disabled\n", mirq, channel);
+		pci_mirq_log("pci_clear_mirq(%02X): MIRQ0 disabled\n", mirq);
 		return;
 	}
 
 	if (pci_mirqs[mirq].irq_line > 0x0F)
 	{
-		pci_mirq_log("pci_clear_mirq(%02X %02X): IRQ line is disabled\n", mirq, channel);
+		pci_mirq_log("pci_clear_mirq(%02X): IRQ line is disabled\n", mirq);
 		return;
 	}
 	else
 	{
-		irq_line = pci_mirqs[mirq].irq_line ^ (channel ^ 1);
-		pci_mirq_log("pci_clear_mirq(%02X %02X): Using IRQ %i\n", mirq, channel, irq_line);
+		irq_line = pci_mirqs[mirq].irq_line;
+		pci_mirq_log("pci_clear_mirq(%02X): Using IRQ %i\n", mirq, irq_line);
 	}
 
-	if (pci_irq_is_level(irq_line) && !(pci_irq_hold[irq_line] & (1 << (0x1C + (mirq << 1) + channel))))
+	if (pci_irq_is_level(irq_line) && !(pci_irq_hold[irq_line] & (1 << (0x1E + mirq))))
 	{
 		/* IRQ not held, do nothing. */
-		pci_mirq_log("pci_clear_mirq(%02X %02X): MIRQ is not holding the IRQ\n", mirq, channel);
+		pci_mirq_log("pci_clear_mirq(%02X): MIRQ is not holding the IRQ\n", mirq);
 		return;
 	}
 
@@ -483,22 +479,22 @@ void pci_clear_mirq(uint8_t mirq, uint8_t channel)
 
 	if (level)
 	{
-		pci_mirq_log("pci_clear_mirq(%02X %02X): Releasing this MIRQ's hold on the IRQ\n", mirq, channel);
-		pci_irq_hold[irq_line] &= ~(1 << (0x1C + (mirq << 1) + channel));
+		pci_mirq_log("pci_clear_mirq(%02X): Releasing this MIRQ's hold on the IRQ\n", mirq);
+		pci_irq_hold[irq_line] &= ~(1 << (0x1E + mirq));
 
                 if (!pci_irq_hold[irq_line])
 		{
-			pci_mirq_log("pci_clear_mirq(%02X %02X): IRQ no longer held by any card, clearing it\n", mirq, channel);
+			pci_mirq_log("pci_clear_mirq(%02X): IRQ no longer held by any card, clearing it\n", mirq);
                	        picintc(1 << irq_line);
 		}
 		else
 		{
-			pci_mirq_log("pci_clear_mirq(%02X %02X): IRQ is still being held\n", mirq, channel);
+			pci_mirq_log("pci_clear_mirq(%02X): IRQ is still being held\n", mirq);
 		}
 	}
 	else
 	{
-		pci_mirq_log("pci_clear_mirq(%02X %02X): Clearing edge-triggered interrupt\n", mirq, channel);
+		pci_mirq_log("pci_clear_mirq(%02X): Clearing edge-triggered interrupt\n", mirq);
 		picintc(1 << irq_line);
 	}
 }
@@ -675,7 +671,7 @@ static void trc_reset(uint8_t val)
 
 static void trc_write(uint16_t port, uint8_t val, void *priv)
 {
-	/* pclog("TRC Write: %02X\n", val); */
+	/* pci_log("TRC Write: %02X\n", val); */
 	if (!(trc_reg & 4) && (val & 4))
 	{
 		trc_reset(val);

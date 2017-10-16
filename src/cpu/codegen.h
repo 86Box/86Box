@@ -55,7 +55,9 @@ typedef struct codeblock_t
         
         int pnt;
         int ins;
-        
+
+	int valid;
+
         int was_recompiled;
         int TOP;
 

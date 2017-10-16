@@ -117,7 +117,7 @@ typedef struct {
 
 	int request_pos;
 
-	uint16_t buffer[390144];
+	uint8_t *buffer;
 
 	int times;
 
