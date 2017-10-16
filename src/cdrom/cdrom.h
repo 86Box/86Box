@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.h	1.0.2	2017/10/12
+ * Version:	@(#)cdrom.h	1.0.3	2017/10/15
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -198,34 +198,37 @@ extern cdrom_t		cdrom[CDROM_NUM];
 extern cdrom_drive_t	cdrom_drives[CDROM_NUM];
 extern uint8_t		atapi_cdrom_drives[8];
 extern uint8_t		scsi_cdrom_drives[16][8];
-       cdrom_image_t	cdrom_image[CDROM_NUM];
-       cdrom_ioctl_t	cdrom_ioctl[CDROM_NUM];
+extern cdrom_image_t	cdrom_image[CDROM_NUM];
+extern cdrom_ioctl_t	cdrom_ioctl[CDROM_NUM];
 
-extern int (*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length);
-extern int (*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length);
-extern void (*ide_bus_master_set_irq)(int channel);
-extern void ioctl_close(uint8_t id);
+#define cdrom_sense_error cdrom[id].sense[0]
+#define cdrom_sense_key cdrom[id].sense[2]
+#define cdrom_asc cdrom[id].sense[12]
+#define cdrom_ascq cdrom[id].sense[13]
+#define cdrom_drive cdrom_drives[id].host_drive
 
-extern uint32_t cdrom_mode_sense_get_channel(uint8_t id, int channel);
-extern uint32_t cdrom_mode_sense_get_volume(uint8_t id, int channel);
-extern void build_atapi_cdrom_map(void);
-extern void build_scsi_cdrom_map(void);
-extern int cdrom_CDROM_PHASE_to_scsi(uint8_t id);
-extern int cdrom_atapi_phase_to_scsi(uint8_t id);
-extern void cdrom_command(uint8_t id, uint8_t *cdb);
-extern void cdrom_phase_callback(uint8_t id);
-extern uint32_t cdrom_read(uint8_t channel, int length);
-extern void cdrom_write(uint8_t channel, uint32_t val, int length);
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int cdrom_lba_to_msf_accurate(int lba);
+extern int	(*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length);
+extern int	(*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length);
+extern void	(*ide_bus_master_set_irq)(int channel);
+extern void	ioctl_close(uint8_t id);
 
-#ifdef __cplusplus
-}
-#endif
+extern uint32_t	cdrom_mode_sense_get_channel(uint8_t id, int channel);
+extern uint32_t	cdrom_mode_sense_get_volume(uint8_t id, int channel);
+extern void	build_atapi_cdrom_map(void);
+extern void	build_scsi_cdrom_map(void);
+extern int	cdrom_CDROM_PHASE_to_scsi(uint8_t id);
+extern int	cdrom_atapi_phase_to_scsi(uint8_t id);
+extern void	cdrom_command(uint8_t id, uint8_t *cdb);
+extern void	cdrom_phase_callback(uint8_t id);
+extern uint32_t	cdrom_read(uint8_t channel, int length);
+extern void	cdrom_write(uint8_t channel, uint32_t val, int length);
+
+extern int	cdrom_lba_to_msf_accurate(int lba);
 
 extern void     cdrom_close(uint8_t id);
 extern void	cdrom_reset(uint8_t id);
@@ -237,15 +240,13 @@ extern void	cdrom_insert(uint8_t id);
 extern int	find_cdrom_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun);
 extern int	cdrom_read_capacity(uint8_t id, uint8_t *cdb, uint8_t *buffer, uint32_t *len);
 
-#define cdrom_sense_error cdrom[id].sense[0]
-#define cdrom_sense_key cdrom[id].sense[2]
-#define cdrom_asc cdrom[id].sense[12]
-#define cdrom_ascq cdrom[id].sense[13]
-#define cdrom_drive cdrom_drives[id].host_drive
-
 extern void	cdrom_global_init(void);
 extern void	cdrom_global_reset(void);
 extern void	cdrom_hard_reset(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif	/*EMU_CDROM_H*/

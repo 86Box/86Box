@@ -8,7 +8,7 @@
  *
  *		Definitions for the network module.
  *
- * Version:	@(#)network.h	1.0.7	2017/06/03
+ * Version:	@(#)network.h	1.0.8	2017/10/15
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -35,7 +35,7 @@ typedef struct {
     char	name[64];
     char	internal_name[32];
     device_t	*device;
-    void	*private;
+    void	*priv;
     int		(*poll)(void *);
     NETRXCB	rx;
 } netcard_t;

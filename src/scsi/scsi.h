@@ -8,11 +8,12 @@
  *
  *		SCSI controller handler header.
  *
- * Version:	@(#)scsi_h	1.0.7	2017/10/07
+ * Version:	@(#)scsi_h	1.0.8	2017/10/15
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2016,2017 TheCollector1995.
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
@@ -215,7 +216,7 @@ extern uint8_t	SCSIStatus;
 extern uint8_t	SCSIPhase;
 extern uint8_t	scsi_cdrom_id;
 
-struct {
+struct _scsisense_ {
     uint8_t	SenseBuffer[18];
     uint8_t	SenseLength;	
     uint8_t	UnitAttention;

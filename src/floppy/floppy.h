@@ -9,10 +9,11 @@
  *		Generic floppy disk interface that communicates with the
  *		other handlers.
  *
- * Version:	@(#)floppy.h	1.0.3	2017/09/03
+ * Version:	@(#)floppy.h	1.0.4	2017/10/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -176,17 +177,17 @@ void d86f_reset_index_hole_pos(int drive, int side);
 uint16_t d86f_prepare_pretrack(int drive, int side, int iso);
 uint16_t d86f_prepare_sector(int drive, int side, int prev_pos, uint8_t *id_buf, uint8_t *data_buf, int data_len, int gap2, int gap3, int deleted, int bad_crc);
 
-int gap3_sizes[5][8][48];
+extern int gap3_sizes[5][8][48];
 
 void null_writeback(int drive);
 void null_write_data(int drive, int side, uint16_t pos, uint8_t data);
 int null_format_conditions(int drive);
 void d86f_unregister(int drive);
 
-uint8_t dmf_r[21];
-uint8_t xdf_physical_sectors[2][2];
-uint8_t xdf_gap3_sizes[2][2];
-uint16_t xdf_trackx_spos[2][8];
+extern uint8_t dmf_r[21];
+extern uint8_t xdf_physical_sectors[2][2];
+extern uint8_t xdf_gap3_sizes[2][2];
+extern uint16_t xdf_trackx_spos[2][8];
 
 typedef struct
 {
@@ -200,8 +201,8 @@ typedef union
 	xdf_id_t id;
 } xdf_sector_t;
 
-xdf_sector_t xdf_img_layout[2][2][46];
-xdf_sector_t xdf_disk_layout[2][2][38];
+extern xdf_sector_t xdf_img_layout[2][2][46];
+extern xdf_sector_t xdf_disk_layout[2][2][38];
 
 uint32_t td0_get_raw_tsize(int side_flags, int slower_rpm);
 

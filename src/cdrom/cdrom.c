@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.17	2017/10/14
+ * Version:	@(#)cdrom.c	1.0.18	2017/10/15
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -50,8 +50,10 @@
 #define ABRT_ERR		0x04 /* Command aborted */
 #define MCR_ERR			0x08 /* Media change request */
 
-cdrom_t cdrom[CDROM_NUM];
-cdrom_drive_t cdrom_drives[CDROM_NUM];
+cdrom_t		cdrom[CDROM_NUM];
+cdrom_image_t	cdrom_image[CDROM_NUM];
+cdrom_ioctl_t	cdrom_ioctl[CDROM_NUM];
+cdrom_drive_t	cdrom_drives[CDROM_NUM];
 uint8_t atapi_cdrom_drives[8] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 uint8_t scsi_cdrom_drives[16][8] =	{	{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
 						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },

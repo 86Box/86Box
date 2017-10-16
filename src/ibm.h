@@ -10,7 +10,7 @@
  *
  * !!!NOTE!!!	The goal is to GET RID of this file.  Do NOT add stuff !!
  *
- * Version:	@(#)ibm.h	1.0.8	2017/10/04
+ * Version:	@(#)ibm.h	1.0.9	2017/10/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -129,7 +129,7 @@ typedef union MMX_REG
         int8_t   sb[8];
 } MMX_REG;
 
-struct
+struct _cpustate_
 {
         x86reg regs[8];
 
@@ -235,7 +235,7 @@ extern uint8_t *pccache2;
 void loadseg(uint16_t seg, x86seg *s);
 void loadcs(uint16_t seg);
 
-union
+union _cr0_
 {
         uint32_t l;
         uint16_t w;
@@ -597,6 +597,10 @@ extern int scale;
 
 
 /* Function prototypes. */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void	pclog(const char *format, ...);
 extern void	fatal(const char *format, ...);
 extern wchar_t	*pc_concat(wchar_t *str);
@@ -647,6 +651,10 @@ extern void	x86ss(char *s, uint16_t error);
 extern void	x86ts(char *s, uint16_t error);
 extern void	x87_dumpregs(void);
 extern void	x87_reset(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 /* Configuration values. */

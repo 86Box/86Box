@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.7	2017/10/14
+ * Version:	@(#)plat.h	1.0.8	2017/10/15
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -25,6 +25,7 @@ extern "C" {
 #endif
 
 /* Global variables residing in the platform module. */
+extern int	dopause;
 
 
 /* System-related functions. */
@@ -38,6 +39,7 @@ extern int	dir_check_exist(wchar_t *path);
 extern int	dir_create(wchar_t *path);
 
 extern void	leave_fullscreen(void);
+extern void	plat_pc_reset(int hard);
 extern void	plat_pause(int p);
 
 

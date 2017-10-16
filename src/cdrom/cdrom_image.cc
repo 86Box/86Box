@@ -42,6 +42,10 @@ int cdrom_image_do_log = 0;
 
 CDROM_Interface_Image* cdimg[CDROM_NUM] = { NULL, NULL, NULL, NULL };
 
+
+extern "C" void pclog(const char *fmt, ...);
+
+
 void cdrom_image_log(const char *format, ...)
 {
 #ifdef ENABLE_CDROM_IMAGE_LOG
