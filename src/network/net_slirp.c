@@ -32,22 +32,7 @@ static queueADT	slirpq;			/* SLiRP library handle */
 static thread_t	*poll_tid;
 static NETRXCB	poll_rx;		/* network RX function to call */
 static void	*poll_arg;		/* network RX function arg */
-static mutex_t	*slirpMutex;
 
-
-
-static void
-startslirp(void)
-{
-    thread_wait_mutex(slirpMutex);
-}
-
-
-static void
-endslirp(void)
-{
-    thread_release_mutex(slirpMutex);
-}
 
 
 /* Instead of calling this and crashing some times
@@ -82,25 +67,6 @@ slirp_tic(void)
 }
 
 
-static struct
-{
-        int busy;
-	int queue_in_use;
-
-        event_t *wake_poll_thread;
-        event_t *poll_complete;
-        event_t *queue_not_in_use;
-} poll_data;
-
-
-void network_slirp_wait_for_poll()
-{
-        while (poll_data.busy)
-                thread_wait_event(poll_data.poll_complete, -1);
-        thread_reset_event(poll_data.poll_complete);
-}
-
-
 /* Handle the receiving of frames. */
 static void
 poll_thread(void *arg)
@@ -114,9 +80,9 @@ poll_thread(void *arg)
     evt = thread_create_event();
 
     while (slirpq != NULL) {
-	startslirp();
+	startnet();
 
-	network_slirp_wait_for_poll();
+	network_wait_for_poll();
 
 	/* See if there is any work. */
 	slirp_tic();
@@ -141,13 +107,13 @@ poll_thread(void *arg)
 	/* Done with this one. */
 	free(qp);
 
-	endslirp();
+	endnet();
     }
 
     thread_destroy_event(evt);
     evt = poll_tid = NULL;
 
-    thread_close_mutex(slirpMutex);
+    network_mutex_close();
 
     pclog("SLiRP: polling stopped.\n");
 }
@@ -171,10 +137,7 @@ network_slirp_setup(uint8_t *mac, NETRXCB func, void *arg)
     poll_rx = func;
     poll_arg = arg;
 
-    slirpMutex = thread_create_mutex(L"86Box.SLiRPMutex");
-
-    poll_data.wake_poll_thread = thread_create_event();
-    poll_data.poll_complete = thread_create_event();
+    network_thread_init();
 
     pclog("SLiRP: starting thread..\n");
     poll_tid = thread_create(poll_thread, mac);
@@ -205,7 +168,7 @@ network_slirp_close(void)
 		;
 #endif
 
-        thread_close_mutex(slirpMutex);
+        network_mutex_close();
 
 	/* OK, now shut down SLiRP itself. */
 	QueueDestroy(sl);
@@ -238,12 +201,11 @@ void
 network_slirp_in(uint8_t *pkt, int pkt_len)
 {
     if (slirpq != NULL) {
-	poll_data.busy = 1;
+	network_busy_set();
 
 	slirp_input((const uint8_t *)pkt, pkt_len);
 
-	poll_data.busy = 0;
-	thread_set_event(poll_data.poll_complete);
+	network_busy_clear();
     }
 }
 

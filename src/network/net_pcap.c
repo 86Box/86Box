@@ -78,6 +78,10 @@ poll_thread(void *arg)
 
     /* As long as the channel is open.. */
     while (pcap != NULL) {
+	startnet();
+
+	network_wait_for_poll();
+
 	/* Wait for the next packet to arrive. */
 	data = f_pcap_next(pcap, &h);
 	if (data != NULL) {
@@ -101,10 +105,14 @@ poll_thread(void *arg)
 	/* If we did not get anything, wait a while. */
 	if (data == NULL)
 		thread_wait_event(evt, 10);
+
+	endnet();
     }
 
     thread_destroy_event(evt);
     poll_tid = NULL;
+
+    network_mutex_close();
 
     pclog("PCAP: polling stopped.\n");
 }
@@ -233,6 +241,8 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
     poll_rx = func;
     poll_arg = arg;
 
+    network_thread_init();
+
     pclog(" Starting thread..\n");
     poll_tid = thread_create(poll_thread, mac);
 
@@ -262,6 +272,8 @@ network_pcap_close(void)
 	while (poll_tid != NULL)
 		;
 #endif
+
+	network_mutex_close();
 
 	/* OK, now shut down WinPcap itself. */
 	f_pcap_close(pc);
@@ -390,6 +402,11 @@ network_pcap_test(void)
 void
 network_pcap_in(uint8_t *bufp, int len)
 {
-    if (pcap != NULL)
+    if (pcap != NULL) {
+	network_busy_set();
+
 	f_pcap_sendpacket(pcap, bufp, len);
+
+	network_busy_clear();
+    }
 }

@@ -25,6 +25,7 @@
 #include <wchar.h>
 #include "../ibm.h"
 #include "../device.h"
+#include "../plat.h"
 #include "../ui.h"
 #include "network.h"
 #include "net_ne2000.h"
@@ -53,6 +54,79 @@ int		network_card;
 netdev_t	network_devs[32];
 char		network_pcap[512];
 int		nic_do_log;
+static mutex_t	*netMutex;
+
+
+static struct
+{
+        int busy;
+	int queue_in_use;
+
+        event_t *wake_poll_thread;
+        event_t *poll_complete;
+        event_t *queue_not_in_use;
+} poll_data;
+
+
+void
+startnet(void)
+{
+    thread_wait_mutex(netMutex);
+}
+
+
+void
+endnet(void)
+{
+    thread_release_mutex(netMutex);
+}
+
+
+void
+network_wait_for_poll()
+{
+    while (poll_data.busy)
+	thread_wait_event(poll_data.poll_complete, -1);
+    thread_reset_event(poll_data.poll_complete);
+}
+
+
+void
+network_mutex_init()
+{
+    netMutex = thread_create_mutex(L"86Box.NetMutex");
+}
+
+
+void
+network_mutex_close()
+{
+    thread_close_mutex(netMutex);
+}
+
+
+void
+network_thread_init()
+{
+    network_mutex_init();
+
+    poll_data.wake_poll_thread = thread_create_event();
+    poll_data.poll_complete = thread_create_event();
+}
+
+void
+network_busy_set()
+{
+    poll_data.busy = 1;
+}
+
+
+void
+network_busy_clear()
+{
+    poll_data.busy = 0;
+    thread_set_event(poll_data.poll_complete);
+}
 
 
 /*

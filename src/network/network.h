@@ -56,6 +56,15 @@ extern char	network_pcap[512];
 
 
 /* Function prototypes. */
+extern void	startnet(void);
+extern void	endnet(void);
+extern void	network_wait_for_poll();
+extern void	network_mutex_init();
+extern void	network_mutex_close();
+extern void	network_thread_init();
+extern void	network_busy_set();
+extern void	network_busy_clear();
+
 extern void	network_init(void);
 extern int	network_attach(void *, uint8_t *, NETRXCB);
 extern void	network_close(void);
