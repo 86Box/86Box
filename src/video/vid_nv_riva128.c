@@ -2813,33 +2813,41 @@ void riva128_ptimer_tick(void *p)
 		svga->clock = cpuclock / freq;
 	}
 
-	freq = 13500000.0;
-
-	if(riva128->pramdac.m_m == 0) freq = 0;
-	else
+	if(riva128->card_id == 0x03)
 	{
-		freq = (freq * riva128->pramdac.m_n) / (1 << riva128->pramdac.m_p) / riva128->pramdac.m_m;
-		//pclog("RIVA 128 Memory clock is %f Hz\n", freq);
+		freq = 13500000.0;
+
+		if(riva128->pramdac.m_m == 0) freq = 0;
+		else
+		{
+			freq = (freq * riva128->pramdac.m_n) / (1 << riva128->pramdac.m_p) / riva128->pramdac.m_m;
+			//pclog("RIVA 128 Memory clock is %f Hz\n", freq);
+		}
+
+		riva128->mfreq = freq;
+		riva128->menable = 0;
+		riva128->mtime = (int)((TIMER_USEC * 1000000.0) / riva128->mfreq);
+		riva128->menable = 1;
 	}
+	else riva128->menable = 0;
 
-	riva128->mfreq = freq;
-	riva128->menable = 0;
-	riva128->mtime = (int)((TIMER_USEC * 1000000.0) / riva128->mfreq);
-	riva128->menable = 1;
-
-	freq = 13500000.0;
-
-	if(riva128->pramdac.nv_m == 0) freq = 0;
-	else
+	if(riva128->card_id >= 0x04)
 	{
-		freq = (freq * riva128->pramdac.nv_n) / (1 << riva128->pramdac.nv_p) / riva128->pramdac.nv_m;
-		//pclog("RIVA 128 Core clock is %f Hz\n", freq);
-	}
+		freq = 13500000.0;
 
-	riva128->nvfreq = freq;
-	riva128->nvenable = 0;
-	riva128->nvtime = (int)((TIMER_USEC * 1000000.0) / riva128->nvfreq);
-	riva128->nvenable = 1;
+		if(riva128->pramdac.nv_m == 0) freq = 0;
+		else
+		{
+			freq = (freq * riva128->pramdac.nv_n) / (1 << riva128->pramdac.nv_p) / riva128->pramdac.nv_m;
+			//pclog("RIVA 128 Core clock is %f Hz\n", freq);
+		}
+
+		riva128->nvfreq = freq;
+		riva128->nvenable = 0;
+		riva128->nvtime = (int)((TIMER_USEC * 1000000.0) / riva128->nvfreq);
+		riva128->nvenable = 1;
+	}
+	else riva128->nvenable = 0;
 }
 
 
