@@ -16,7 +16,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include "../plat.h"
+#include "../../plat.h"
 #include "SampleRateConverter.h"
 
 #include "Synth.h"
