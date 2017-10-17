@@ -423,7 +423,7 @@ typedef struct {
     uint8_t	setup_info_len;
     uint8_t	max_id;
     uint8_t	pci_slot;
-    uint8_t	mca32;
+    uint8_t	bit32;
 
     mem_mapping_t mmio_mapping;
 

@@ -760,6 +760,7 @@ aha_init(device_t *info)
     dev->max_id = 7;
     dev->int_geom_writable = 0;
     dev->cdrom_boot = 0;
+    dev->bit32 = 0;
 
     dev->ven_thread = aha_thread;
     dev->ven_cmd_is_fast = aha_cmd_is_fast;

@@ -1472,6 +1472,9 @@ x54x_reset(x54x_t *dev)
     dev->MailboxInPosCur = 0;
     dev->MailboxOutInterrupts = 0;
     dev->PendingInterrupt = 0;
+    dev->IrqEnabled = 1;
+    dev->MailboxCount = 0;
+    dev->MailboxOutPosCur = 0;
 
     if (dev->ven_reset) {
 	dev->ven_reset(dev);
@@ -1864,7 +1867,7 @@ x54x_io_set(x54x_t *dev, uint32_t base)
 
     if (dev->bus & DEVICE_PCI)
 	bit32 = 1;
-    else if ((dev->bus & DEVICE_MCA) && dev->mca32)
+    else if ((dev->bus & DEVICE_MCA) && dev->bit32)
 	bit32 = 1;
 
     if (bit32) {
@@ -1888,7 +1891,7 @@ x54x_io_remove(x54x_t *dev, uint32_t base)
 
     if (dev->bus & DEVICE_PCI)
 	bit32 = 1;
-    else if ((dev->bus & DEVICE_MCA) && dev->mca32)
+    else if ((dev->bus & DEVICE_MCA) && dev->bit32)
 	bit32 = 1;
 
     x54x_log("x54x: Removing I/O handler at %04X\n", base);
@@ -1912,7 +1915,7 @@ x54x_mem_init(x54x_t *dev, uint32_t addr)
 
     if (dev->bus & DEVICE_PCI)
 	bit32 = 1;
-    else if ((dev->bus & DEVICE_MCA) && dev->mca32)
+    else if ((dev->bus & DEVICE_MCA) && dev->bit32)
 	bit32 = 1;
 
     if (bit32) {

@@ -73,6 +73,7 @@ static SCSI_CARD scsi_cards[] = {
     { "[MCA] Adaptec AHA-1640",	"aha1640",	&aha1640_device,      x54x_device_reset   },
     { "[MCA] BusLogic BT-640A",	"bt640a",	&buslogic_640a_device,BuslogicDeviceReset },
     { "[PCI] BusLogic BT-958D",	"bt958d",	&buslogic_pci_device, BuslogicDeviceReset },
+    { "[VLB] BusLogic BT-445S",	"bt445s",	&buslogic_445s_device,BuslogicDeviceReset },
     { "",			"",		NULL,		      NULL		  },
 };
 

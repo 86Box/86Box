@@ -267,10 +267,8 @@ BuslogicGetNVRFileName(buslogic_data_t *bl)
 			return L"bt545s.nvr";
 		case CHIP_BUSLOGIC_MCA:
 			return L"bt640a.nvr";
-#ifdef BUSLOGIC_NOT_WORKING
 		case CHIP_BUSLOGIC_VLB:
 			return L"bt445s.nvr";
-#endif
 		case CHIP_BUSLOGIC_PCI:
 			return L"bt958d.nvr";
 		default:
@@ -305,11 +303,9 @@ BuslogicAutoSCSIRamSetDefaults(x54x_t *dev, uint8_t safe)
 	case CHIP_BUSLOGIC_MCA:
 		memcpy(&(HALR->structured.autoSCSIData.aHostAdaptertype[1]), "640A", 4);
 		break;
-#ifdef BUSLOGIC_NOT_WORKING
 	case CHIP_BUSLOGIC_VLB:
 		memcpy(&(HALR->structured.autoSCSIData.aHostAdaptertype[1]), "445S", 4);
 		break;
-#endif
 	case CHIP_BUSLOGIC_PCI:
 		memcpy(&(HALR->structured.autoSCSIData.aHostAdaptertype[1]), "958D", 4);
 		break;
@@ -794,9 +790,7 @@ buslogic_cmds(void *p)
 		switch (bl->chip) {
 			case CHIP_BUSLOGIC_ISA_542:
 			case CHIP_BUSLOGIC_ISA:
-#ifdef BUSLOGIC_NOT_WORKING
 			case CHIP_BUSLOGIC_VLB:
-#endif
 				ReplyIESI->uBusType = 'A';				   /* ISA style */
 				break;
 			case CHIP_BUSLOGIC_MCA:
@@ -993,11 +987,9 @@ buslogic_setup_data(void *p)
 	case CHIP_BUSLOGIC_MCA:
 		bl_setup->uHostBusType = 'B';
 		break;
-#ifdef BUSLOGIC_NOT_WORKING
 	case CHIP_BUSLOGIC_VLB:
 		bl_setup->uHostBusType = 'E';
 		break;
-#endif
 	case CHIP_BUSLOGIC_PCI:
 		bl_setup->uHostBusType = 'F';
 		break;
@@ -1434,7 +1426,7 @@ buslogic_init(device_t *info)
     dev->max_id = 7;
     dev->int_geom_writable = 1;
     dev->cdrom_boot = 0;
-    dev->mca32 = 0;
+    dev->bit32 = 0;
 
     bl->chip = info->local;
     bl->PCIBase = 0;
@@ -1499,11 +1491,23 @@ buslogic_init(device_t *info)
 		has_autoscsi_rom = 0;
 		has_scam_rom = 0;
 		dev->fw_rev = "BA150";
-		dev->mca32 = 1;
+		dev->bit32 = 1;
 		bl->fAggressiveRoundRobinMode = 1;
 		dev->pos_regs[0] = 0x08;	/* MCA board ID */
 		dev->pos_regs[1] = 0x07;	
 		mca_add(buslogic_mca_read, buslogic_mca_write, dev);
+		break;
+	case CHIP_BUSLOGIC_VLB:
+		strcpy(dev->name, "BT-445S");
+		bios_rom_name = L"roms/scsi/buslogic/BT-445S_BIOS.rom";
+		bios_rom_size = 0x4000;
+		bios_rom_mask = 0x3fff;
+		has_autoscsi_rom = 1;
+		autoscsi_rom_name = L"roms/scsi/buslogic/BT-445S_AutoSCSI.rom";
+		autoscsi_rom_size = 0x4000;
+		has_scam_rom = 0;
+		dev->fw_rev = "AA421E";
+		dev->bit32 = 1;
 		break;
 	case CHIP_BUSLOGIC_PCI:
 		strcpy(dev->name, "BT-958D");
@@ -1518,6 +1522,7 @@ buslogic_init(device_t *info)
 		scam_rom_size = 0x0200;
 		dev->fw_rev = "AA507B";
 		dev->cdrom_boot = 1;
+		dev->bit32 = 1;
 		break;
     }
 
@@ -1751,6 +1756,15 @@ device_t buslogic_640a_device = {
 	buslogic_init, x54x_close, NULL,
 	NULL, NULL, NULL, NULL,
 	NULL
+};
+
+device_t buslogic_445s_device = {
+	"Buslogic BT-445S ISA",
+	DEVICE_VLB,
+	CHIP_BUSLOGIC_ISA,
+	buslogic_init, x54x_close, NULL,
+	NULL, NULL, NULL, NULL,
+	BT_ISA_Config
 };
 
 device_t buslogic_pci_device = {
