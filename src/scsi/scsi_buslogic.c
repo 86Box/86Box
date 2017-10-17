@@ -359,7 +359,7 @@ BuslogicAutoSCSIRamSetDefaults(x54x_t *dev, uint8_t safe)
     }
     HALR->structured.autoSCSIData.fIrqAutoConfiguration = (bl->chip == CHIP_BUSLOGIC_PCI) ? 0 : 1;
 
-    HALR->structured.autoSCSIData.uDMATransferRate = ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_ISA)) ? 1 : 0;
+    HALR->structured.autoSCSIData.uDMATransferRate = (bl->chip == CHIP_BUSLOGIC_PCI) ? 0 : 1;
 
     HALR->structured.autoSCSIData.uSCSIId = 7;
     HALR->structured.autoSCSIData.uSCSIConfiguration = 0x3F;
@@ -475,7 +475,7 @@ buslogic_get_dma(void *p)
     HALocalRAM *HALR = &bl->LocalRAM;
 
     if (bl->chip == CHIP_BUSLOGIC_PCI)
-	return dev->DmaChannel;
+	return (dev->Base ? 7 : 0);
     else
 	return bl_dma[HALR->structured.autoSCSIData.uDMAChannel];
 }
@@ -805,7 +805,7 @@ buslogic_cmds(void *p)
 		ReplyIESI->cMailbox = dev->MailboxCount;
 		ReplyIESI->uMailboxAddressBase = dev->MailboxOutAddr;
 		ReplyIESI->fHostWideSCSI = 1;						  /* This should be set for the BT-542B as well. */
-		if (bl->chip != CHIP_BUSLOGIC_ISA_542)
+		if ((bl->chip != CHIP_BUSLOGIC_ISA_542) && (bl->chip != CHIP_BUSLOGIC_MCA))
 			ReplyIESI->fLevelSensitiveInterrupt = bl->LocalRAM.structured.autoSCSIData.fLevelSensitiveInterrupt;
 		if (bl->chip == CHIP_BUSLOGIC_PCI)
 			ReplyIESI->fHostUltraSCSI = 1;
@@ -813,7 +813,7 @@ buslogic_cmds(void *p)
 		buslogic_log("Return Extended Setup Information: %d\n", dev->CmdBuf[0]);
 		break;
 	case 0x8F:
-		if (bl->chip == CHIP_BUSLOGIC_ISA_542)
+		if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_MCA))
 			bl->fAggressiveRoundRobinMode = dev->CmdBuf[0] & 1;
 		else
 			bl->LocalRAM.structured.autoSCSIData.fAggressiveRoundRobinMode = dev->CmdBuf[0] & 1;
@@ -867,7 +867,7 @@ buslogic_cmds(void *p)
 		}
 		break;
 	case 0x94:
-		if (bl->chip == CHIP_BUSLOGIC_ISA_542) {
+		if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_MCA)) {
 			dev->DataReplyLeft = 0;
 			dev->Status |= STAT_INVCMD;
 			break;
@@ -1004,7 +1004,7 @@ buslogic_is_aggressive_mode(void *p)
     buslogic_data_t *bl = (buslogic_data_t *) dev->ven_data;
 
     HALocalRAM *HALR = &bl->LocalRAM;
-    if (bl->chip == CHIP_BUSLOGIC_ISA_542)
+    if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_MCA))
 	return bl->fAggressiveRoundRobinMode;
     else
 	return HALR->structured.autoSCSIData.fAggressiveRoundRobinMode;
@@ -1017,7 +1017,7 @@ buslogic_interrupt_type(void *p)
     x54x_t *dev = (x54x_t *)p;
     buslogic_data_t *bl = (buslogic_data_t *) dev->ven_data;
 
-    if (bl->chip == CHIP_BUSLOGIC_ISA_542)
+    if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_MCA))
 	return 0;
     else
 	return !!bl->LocalRAM.structured.autoSCSIData.fLevelSensitiveInterrupt;
@@ -1228,7 +1228,8 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 		if (val != 0xFF) {
 			buslogic_log("BusLogic IRQ now: %i\n", val);
 			dev->Irq = val;
-		}
+		} else
+			dev->Irq = 0;
 		return;
     }
 }
@@ -1385,7 +1386,7 @@ BuslogicDeviceReset(void *p)
     x54x_t *dev = (x54x_t *) p;
     buslogic_data_t *bl = (buslogic_data_t *) dev->ven_data;
 
-    x54x_reset_ctrl(dev, 1);
+    x54x_device_reset(dev);
 
     BuslogicInitializeLocalRAM(bl);
     BuslogicInitializeAutoSCSIRam(dev);
@@ -1419,8 +1420,10 @@ buslogic_init(device_t *info)
 
     dev->bus = info->flags;
     dev->Base = device_get_config_hex16("base");
-    dev->Irq = device_get_config_int("irq");
-    dev->DmaChannel = device_get_config_int("dma");
+    if ((info->flags != DEVICE_MCA) && (info->flags != DEVICE_PCI)) {
+	    dev->Irq = device_get_config_int("irq");
+	    dev->DmaChannel = device_get_config_int("dma");
+    }
     dev->HostID = 7;		/* default HA ID */
     dev->setup_info_len = sizeof(buslogic_setup_t);
     dev->max_id = 7;
@@ -1454,10 +1457,6 @@ buslogic_init(device_t *info)
     dev->ven_reset = buslogic_reset;
 
     strcpy(dev->vendor, "BusLogic");
-
-    if ((dev->Base != 0) && !(dev->bus & DEVICE_MCA)) {
-	x54x_io_set(dev, dev->Base);
-    }
 
     switch(bl->chip)
     {
@@ -1526,6 +1525,10 @@ buslogic_init(device_t *info)
 		break;
     }
 
+    if ((dev->Base != 0) && !(dev->bus & DEVICE_MCA)) {
+	x54x_io_set(dev, dev->Base);
+    }
+
     memset(bl->AutoSCSIROM, 0xff, 32768);
 
     memset(bl->SCAMData, 0x00, 65536);
@@ -1587,7 +1590,7 @@ buslogic_init(device_t *info)
 	
     x54x_device_reset(dev);
 
-    if (bl->chip != CHIP_BUSLOGIC_ISA_542) {
+    if ((bl->chip != CHIP_BUSLOGIC_ISA_542) && (bl->chip != CHIP_BUSLOGIC_MCA)) {
 	BuslogicInitializeLocalRAM(bl);
 	BuslogicInitializeAutoSCSIRam(dev);
     }

@@ -1409,7 +1409,9 @@ x54x_in(uint16_t port, void *priv)
 		break;
     }
 
+#if 0
     x54x_log("%s: Read Port 0x%02X, Value %02X\n", dev->name, port, ret);
+#endif
     return(ret);
 }
 
