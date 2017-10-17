@@ -130,6 +130,10 @@ static void i440fx_write(int func, int addr, uint8_t val, void *priv)
                 if ((card_i440fx[0x5f] ^ val) & 0xf0)
                         i440fx_map(0xec000, 0x04000, val >> 4);
                 break;
+		case 0x72: /*SMRAM*/
+                if ((card_i440fx[0x72] ^ val) & 0x48)
+                        i440fx_map(0xa0000, 0x20000, ((val & 0x48) == 0x48) ? 3 : 0);
+		break;
         }
                 
         card_i440fx[addr] = val;
@@ -175,6 +179,7 @@ static void i440fx_reset(void)
 static void i440fx_pci_reset(void)
 {
 	i440fx_write(0, 0x59, 0x00, NULL);
+	i440fx_write(0, 0x72, 0x02, NULL);
 }
 
 

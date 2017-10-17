@@ -148,10 +148,6 @@ void herculesplus_write(uint32_t addr, uint8_t val, void *p)
 
         egawrites++;
 
-	/* Horrible hack, I know, but it's the only way to fix the 440FX BIOS filling the VRAM with garbage until Tom fixes the memory emulation. */
-	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF2F) && (romset == ROM_440FX))  return;
-	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF77) && (romset == ROM_440FX))  return;
-
 	addr &= 0xFFFF;
 
 	herculesplus->vram[addr] = val;

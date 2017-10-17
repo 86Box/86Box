@@ -133,6 +133,10 @@ static void i430vx_write(int func, int addr, uint8_t val, void *priv)
                         i430vx_map(0xec000, 0x04000, val >> 4);
                 /* pclog("i430vx_write : PAM6 write %02X\n", val); */
                 break;
+		case 0x72: /*SMRAM*/
+                if ((card_i430vx[0x72] ^ val) & 0x48)
+                        i430vx_map(0xa0000, 0x20000, ((val & 0x48) == 0x48) ? 3 : 0);
+		break;
         }
                 
         card_i430vx[addr] = val;
@@ -174,6 +178,7 @@ static void i430vx_reset(void)
 static void i430vx_pci_reset(void)
 {
 	i430vx_write(0, 0x59, 0x00, NULL);
+	i430vx_write(0, 0x72, 0x02, NULL);
 }
 
 
