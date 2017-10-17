@@ -265,9 +265,9 @@ BuslogicGetNVRFileName(buslogic_data_t *bl)
 			return L"bt542bh.nvr";
 		case CHIP_BUSLOGIC_ISA:
 			return L"bt545s.nvr";
-#ifdef BUSLOGIC_NOT_WORKING
 		case CHIP_BUSLOGIC_MCA:
 			return L"bt640a.nvr";
+#ifdef BUSLOGIC_NOT_WORKING
 		case CHIP_BUSLOGIC_VLB:
 			return L"bt445s.nvr";
 #endif
@@ -302,12 +302,12 @@ BuslogicAutoSCSIRamSetDefaults(x54x_t *dev, uint8_t safe)
 	case CHIP_BUSLOGIC_ISA:
 		memcpy(&(HALR->structured.autoSCSIData.aHostAdaptertype[1]), "545S", 4);
 		break;
+	case CHIP_BUSLOGIC_MCA:
+		memcpy(&(HALR->structured.autoSCSIData.aHostAdaptertype[1]), "640A", 4);
+		break;
 #ifdef BUSLOGIC_NOT_WORKING
 	case CHIP_BUSLOGIC_VLB:
 		memcpy(&(HALR->structured.autoSCSIData.aHostAdaptertype[1]), "445S", 4);
-		break;
-	case CHIP_BUSLOGIC_MCA:
-		memcpy(&(HALR->structured.autoSCSIData.aHostAdaptertype[1]), "640A", 4);
 		break;
 #endif
 	case CHIP_BUSLOGIC_PCI:
@@ -794,7 +794,9 @@ buslogic_cmds(void *p)
 		switch (bl->chip) {
 			case CHIP_BUSLOGIC_ISA_542:
 			case CHIP_BUSLOGIC_ISA:
+#ifdef BUSLOGIC_NOT_WORKING
 			case CHIP_BUSLOGIC_VLB:
+#endif
 				ReplyIESI->uBusType = 'A';				   /* ISA style */
 				break;
 			case CHIP_BUSLOGIC_MCA:
@@ -969,9 +971,13 @@ buslogic_setup_data(void *p)
     ReplyInquireSetupInformation *ReplyISI;
     buslogic_setup_t *bl_setup;
     buslogic_data_t *bl = (buslogic_data_t *) dev->ven_data;
+    HALocalRAM *HALR = &bl->LocalRAM;
 
     ReplyISI = (ReplyInquireSetupInformation *)dev->DataBuf;
     bl_setup = (buslogic_setup_t *)ReplyISI->VendorSpecificData;
+
+    ReplyISI->fSynchronousInitiationEnabled = HALR->structured.autoSCSIData.u16SynchronousPermittedMask ? 1 : 0;
+    ReplyISI->fParityCheckingEnabled = (HALR->structured.autoSCSIData.uSCSIConfiguration & 2) ? 1 : 0;
 
     bl_setup->uSignature = 'B';
     /* The 'D' signature prevents Buslogic's OS/2 drivers from getting too
@@ -984,10 +990,10 @@ buslogic_setup_data(void *p)
 	case CHIP_BUSLOGIC_ISA:
 		bl_setup->uHostBusType = 'A';
 		break;
-#ifdef BUSLOGIC_NOT_WORKING
 	case CHIP_BUSLOGIC_MCA:
 		bl_setup->uHostBusType = 'B';
 		break;
+#ifdef BUSLOGIC_NOT_WORKING
 	case CHIP_BUSLOGIC_VLB:
 		bl_setup->uHostBusType = 'E';
 		break;
@@ -1256,6 +1262,131 @@ BuslogicInitializeLocalRAM(buslogic_data_t *bl)
 }
 
 
+static uint8_t
+buslogic_mca_read(int port, void *priv)
+{
+    x54x_t *dev = (x54x_t *)priv;
+
+    return(dev->pos_regs[port & 7]);
+}
+
+
+static void
+buslogic_mca_write(int port, uint8_t val, void *priv)
+{
+    x54x_t *dev = (x54x_t *) priv;
+    buslogic_data_t *bl = (buslogic_data_t *) dev->ven_data;
+
+    HALocalRAM *HALR = &bl->LocalRAM;
+
+    /* MCA does not write registers below 0x0100. */
+    if (port < 0x0102) return;
+
+    /* Save the MCA register value. */
+    dev->pos_regs[port & 7] = val;
+
+    /* This is always necessary so that the old handler doesn't remain. */
+    x54x_io_remove(dev, dev->Base);
+
+    /* Get the new assigned I/O base address. */
+    dev->Base = dev->pos_regs[1] << 8;
+    dev->Base |= ((dev->pos_regs[0] & 0x10) ? 4 : 0);
+
+    /* Save the new IRQ and DMA channel values. */
+    dev->Irq = ((dev->pos_regs[0] >> 1) & 0x07) + 8;
+    dev->DmaChannel = dev->pos_regs[3] & 0x0f;	
+
+    /* Extract the BIOS ROM address info. */
+    if (dev->pos_regs[0] & 0xe0)  switch(dev->pos_regs[0] & 0xe0) {
+		case 0xe0: /* [0]=111x xxxx */
+		bl->bios_addr = 0xDC000;
+		break;
+
+		case 0x00: /* [0]=000x xxxx */
+		bl->bios_addr = 0;
+		break;
+		
+		case 0xc0: /* [0]=110x xxxx */
+		bl->bios_addr = 0xD8000;
+		break;
+
+		case 0xa0: /* [0]=101x xxxx */
+		bl->bios_addr = 0xD4000;
+		break;
+
+		case 0x80: /* [0]=100x xxxx */
+		bl->bios_addr = 0xD0000;
+		break;
+
+		case 0x60: /* [0]=011x xxxx */
+		bl->bios_addr = 0xCC000;
+		break;
+
+		case 0x40: /* [0]=010x xxxx */
+		bl->bios_addr = 0xC8000;
+		break;
+
+		case 0x20: /* [0]=001x xxxx */
+		bl->bios_addr = 0xC4000;
+		break;
+    } else {
+	/* Disabled. */
+	bl->bios_addr = 0x000000;
+    }
+
+    /*
+     * Get misc SCSI config stuff.  For now, we are only
+     * interested in the configured HA target ID:
+     *
+     *  pos[2]=111xxxxx = 7
+     *  pos[2]=000xxxxx = 0
+     */
+    dev->HostID = (dev->pos_regs[2] >> 5) & 0x07;
+
+    /*
+     * SYNC mode is pos[2]=xxxxxx1x.
+     *
+     * SCSI Parity is pos[2]=xxx1xxxx.
+     *
+     * DOS Disk Space > 1GBytes is pos[2] = xxxx1xxx.
+     */
+    /* Parity. */
+    HALR->structured.autoSCSIData.uSCSIConfiguration &= ~2;
+    HALR->structured.autoSCSIData.uSCSIConfiguration |= (dev->pos_regs[2] & 2);
+
+    /* Sync. */
+    HALR->structured.autoSCSIData.u16SynchronousPermittedMask = (dev->pos_regs[2] & 0x10) ? 0xffff : 0x0000;
+
+    /* DOS Disk Space > 1GBytes */
+    HALR->structured.autoSCSIData.uBIOSConfiguration &= ~4;
+    HALR->structured.autoSCSIData.uBIOSConfiguration |= (dev->pos_regs[2] & 8) ? 4 : 0;
+
+    /*
+     * The PS/2 Model 80 BIOS always enables a card if it finds one,
+     * even if no resources were assigned yet (because we only added
+     * the card, but have not run AutoConfig yet...)
+     *
+     * So, remove current address, if any.
+     */
+    mem_mapping_disable(&dev->bios.mapping);
+
+    /* Initialize the device if fully configured. */
+    if (dev->pos_regs[2] & 0x01) {
+	/* Card enabled; register (new) I/O handler. */
+	x54x_io_set(dev, dev->Base);
+
+	/* Reset the device. */
+	x54x_reset_ctrl(dev, CTRL_HRST);
+
+	/* Enable or disable the BIOS ROM. */
+	if (bl->has_bios && (bl->bios_addr != 0x000000)) {
+		mem_mapping_enable(&bl->bios.mapping);
+		mem_mapping_set_addr(&bl->bios.mapping, bl->bios_addr, ROM_SIZE);
+	}
+    }
+}
+
+
 void
 BuslogicDeviceReset(void *p)
 {
@@ -1303,6 +1434,7 @@ buslogic_init(device_t *info)
     dev->max_id = 7;
     dev->int_geom_writable = 1;
     dev->cdrom_boot = 0;
+    dev->mca32 = 0;
 
     bl->chip = info->local;
     bl->PCIBase = 0;
@@ -1310,6 +1442,9 @@ buslogic_init(device_t *info)
     if (info->flags & DEVICE_PCI) {
 	bios_rom_addr = 0xd8000;
 	bl->has_bios = device_get_config_int("bios");
+    } else if (info->flags & DEVICE_MCA) {
+	bios_rom_addr = 0xd8000;
+	bl->has_bios = 1;
     } else {
     	bios_rom_addr = device_get_config_hex20("bios_addr");
 	bl->has_bios = !!bios_rom_addr;
@@ -1356,19 +1491,20 @@ buslogic_init(device_t *info)
 		has_scam_rom = 0;
 		dev->fw_rev = "AA421E";
 		break;
-#ifdef BUSLOGIC_NOT_WORKING
 	case CHIP_BUSLOGIC_MCA:
 		strcpy(dev->name, "BT-640A");
-		bios_rom_name = L"roms/scsi/buslogic/BT-640_BIOS.rom";
+		bios_rom_name = L"roms/scsi/buslogic/BT-640A_BIOS.rom";
 		bios_rom_size = 0x4000;
 		bios_rom_mask = 0x3fff;
-		has_autoscsi_rom = 1;
-		autoscsi_rom_name = L"roms/scsi/buslogic/BT-640_AutoSCSI.rom";
-		autoscsi_rom_size = 0x4000;
+		has_autoscsi_rom = 0;
 		has_scam_rom = 0;
-		dev->fw_rev = "BA421E";
+		dev->fw_rev = "BA150";
+		dev->mca32 = 1;
+		bl->fAggressiveRoundRobinMode = 1;
+		dev->pos_regs[0] = 0x08;	/* MCA board ID */
+		dev->pos_regs[1] = 0x07;	
+		mca_add(buslogic_mca_read, buslogic_mca_write, dev);
 		break;
-#endif
 	case CHIP_BUSLOGIC_PCI:
 		strcpy(dev->name, "BT-958D");
 		bios_rom_name = L"roms/scsi/buslogic/BT-958D_BIOS.rom";
@@ -1437,9 +1573,10 @@ buslogic_init(device_t *info)
 
 	x54x_mem_init(dev, 0xfffd0000);
 	x54x_mem_disable(dev);
-
-	mem_mapping_disable(&bl->bios.mapping);
     }
+
+    if ((bl->chip == CHIP_BUSLOGIC_MCA) || (bl->chip == CHIP_BUSLOGIC_PCI))
+	mem_mapping_disable(&bl->bios.mapping);
 	
     buslogic_log("Buslogic on port 0x%04X\n", dev->Base);
 	
@@ -1605,6 +1742,15 @@ device_t buslogic_545s_device = {
 	buslogic_init, x54x_close, NULL,
 	NULL, NULL, NULL, NULL,
 	BT_ISA_Config
+};
+
+device_t buslogic_640a_device = {
+	"Buslogic BT-640A MCA",
+	DEVICE_MCA,
+	CHIP_BUSLOGIC_ISA,
+	buslogic_init, x54x_close, NULL,
+	NULL, NULL, NULL, NULL,
+	NULL
 };
 
 device_t buslogic_pci_device = {

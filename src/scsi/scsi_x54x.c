@@ -1860,7 +1860,14 @@ x54x_writel(uint32_t port, uint32_t val, void *priv)
 void
 x54x_io_set(x54x_t *dev, uint32_t base)
 {
-    if (dev->bus & DEVICE_PCI) {
+    int bit32 = 0;
+
+    if (dev->bus & DEVICE_PCI)
+	bit32 = 1;
+    else if ((dev->bus & DEVICE_MCA) && dev->mca32)
+	bit32 = 1;
+
+    if (bit32) {
 	x54x_log("x54x: [PCI] Setting I/O handler at %04X\n", base);
 	io_sethandler(base, 4,
 		      x54x_in, x54x_inw, x54x_inl,
@@ -1877,9 +1884,16 @@ x54x_io_set(x54x_t *dev, uint32_t base)
 void
 x54x_io_remove(x54x_t *dev, uint32_t base)
 {
+    int bit32 = 0;
+
+    if (dev->bus & DEVICE_PCI)
+	bit32 = 1;
+    else if ((dev->bus & DEVICE_MCA) && dev->mca32)
+	bit32 = 1;
+
     x54x_log("x54x: Removing I/O handler at %04X\n", base);
 
-    if (dev->bus & DEVICE_PCI) {
+    if (bit32) {
 	io_removehandler(base, 4,
 		      x54x_in, x54x_inw, x54x_inl,
                       x54x_out, x54x_outw, x54x_outl, dev);
@@ -1894,7 +1908,14 @@ x54x_io_remove(x54x_t *dev, uint32_t base)
 void
 x54x_mem_init(x54x_t *dev, uint32_t addr)
 {
-    if (dev->bus & DEVICE_PCI) {
+    int bit32 = 0;
+
+    if (dev->bus & DEVICE_PCI)
+	bit32 = 1;
+    else if ((dev->bus & DEVICE_MCA) && dev->mca32)
+	bit32 = 1;
+
+    if (bit32) {
 	mem_mapping_add(&dev->mmio_mapping, addr, 0x20,
 		        x54x_read, x54x_readw, x54x_readl,
 			x54x_write, x54x_writew, x54x_writel,

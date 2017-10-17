@@ -399,6 +399,9 @@ typedef struct {
 
     uint8_t	shram_mode;
 
+    uint8_t	sync;
+    uint8_t	parity;
+
     volatile
     uint8_t	dma_buffer[128];
 
@@ -420,6 +423,7 @@ typedef struct {
     uint8_t	setup_info_len;
     uint8_t	max_id;
     uint8_t	pci_slot;
+    uint8_t	mca32;
 
     mem_mapping_t mmio_mapping;
 

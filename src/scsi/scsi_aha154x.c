@@ -438,6 +438,9 @@ aha_setup_data(void *p)
     ReplyISI = (ReplyInquireSetupInformation *)dev->DataBuf;
     aha_setup = (aha_setup_t *)ReplyISI->VendorSpecificData;
 
+    ReplyISI->fSynchronousInitiationEnabled = dev->sync & 1;
+    ReplyISI->fParityCheckingEnabled = dev->parity & 1;
+
     U32_TO_ADDR(aha_setup->BIOSMailboxAddress, dev->BIOSMailboxOutAddr);
     aha_setup->uChecksum = 0xA3;
     aha_setup->uUnknown = 0xC2;
@@ -496,35 +499,12 @@ aha_mca_write(int port, uint8_t val, void *priv)
     /* Save the MCA register value. */
     dev->pos_regs[port & 7] = val;
 
-    /* Get the new assigned I/O base address. */
-    switch(dev->pos_regs[3] & 0xc7) {
-	case 0x01:		/* [1]=00xx x001 */
-		dev->Base = 0x0130;
-		break;
-
-	case 0x02:		/* [1]=00xx x010 */
-		dev->Base = 0x0230;
-		break;
-
-	case 0x03:		/* [1]=00xx x011 */
-		dev->Base = 0x0330;
-		break;
-
-	case 0x41:
-		dev->Base = 0x0134;
-		break;
-
-	case 0x42:		/* [1]=01xx x010 */
-		dev->Base = 0x0234;
-		break;
-
-	case 0x43:		/* [1]=01xx x011 */
-		dev->Base = 0x0334;
-		break;
-    }
-
     /* This is always necessary so that the old handler doesn't remain. */
     x54x_io_remove(dev, dev->Base);
+
+    /* Get the new assigned I/O base address. */
+    dev->Base = (dev->pos_regs[3] & 7) << 8;
+    dev->Base |= ((dev->pos_regs[3] & 0xc0) ? 4 : 0);
 
     /* Save the new IRQ and DMA channel values. */
     dev->Irq = (dev->pos_regs[4] & 0x07) + 8;
@@ -567,13 +547,15 @@ aha_mca_write(int port, uint8_t val, void *priv)
      *  pos[2]=111xxxxx = 7
      *  pos[2]=000xxxxx = 0
      */
-    dev->HostID = (dev->pos_regs[4] >> 5) & 0x07;
+    dev->HostID = (dev->pos_regs[2] >> 5) & 0x07;
 
     /*
      * SYNC mode is pos[2]=xxxx1xxx.
      *
      * SCSI Parity is pos[2]=xxx1xxxx.
      */
+    dev->sync = (dev->pos_regs[2] >> 3) & 1;
+    dev->parity = (dev->pos_regs[2] >> 4) & 1;
 
     /*
      * The PS/2 Model 80 BIOS always enables a card if it finds one,
