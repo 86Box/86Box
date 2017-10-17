@@ -78,7 +78,7 @@ poll_thread(void *arg)
 
     /* As long as the channel is open.. */
     while (pcap != NULL) {
-	startnet();
+	network_mutex_wait(1);
 
 	network_wait_for_poll();
 
@@ -106,13 +106,11 @@ poll_thread(void *arg)
 	if (data == NULL)
 		thread_wait_event(evt, 10);
 
-	endnet();
+	network_mutex_wait(0);
     }
 
     thread_destroy_event(evt);
     poll_tid = NULL;
-
-    network_mutex_close();
 
     pclog("PCAP: polling stopped.\n");
 }
@@ -273,8 +271,6 @@ network_pcap_close(void)
 		;
 #endif
 
-	network_mutex_close();
-
 	/* OK, now shut down WinPcap itself. */
 	f_pcap_close(pc);
 	pc = pcap = NULL;
@@ -403,10 +399,10 @@ void
 network_pcap_in(uint8_t *bufp, int len)
 {
     if (pcap != NULL) {
-	network_busy_set();
+	network_busy(1);
 
 	f_pcap_sendpacket(pcap, bufp, len);
 
-	network_busy_clear();
+	network_busy(0);
     }
 }

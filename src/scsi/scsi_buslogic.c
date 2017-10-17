@@ -692,7 +692,7 @@ buslogic_cmds(void *p)
 			dev->IrqEnabled = 1;
 		return 1;
 	case 0x81:
-		x54x_busy_set();
+		x54x_busy(1);
 		dev->Mbx24bit = 0;
 
 		MailboxInitE = (MailboxInitExtended_t *)dev->CmdBuf;
@@ -709,7 +709,7 @@ buslogic_cmds(void *p)
 
 		dev->Status &= ~STAT_INIT;
 		dev->DataReplyLeft = 0;
-		x54x_busy_clear();
+		x54x_busy(0);
 		break;
 	case 0x83:
 		if (dev->CmdParam == 12) {

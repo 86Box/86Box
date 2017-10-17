@@ -265,11 +265,11 @@ aha_fast_cmds(void *p, uint8_t cmd)
     x54x_t *dev = (x54x_t *)p;
 
     if (cmd == CMD_BIOS_SCSI) {
-	x54x_busy_set();
+	x54x_busy(1);
 	dev->BIOSMailboxReq++;
 
 	x54x_thread_start(dev);
-	x54x_busy_clear();
+	x54x_busy(0);
 	return 1;
     }
 
@@ -361,7 +361,7 @@ aha_cmds(void *p)
 
 		case CMD_BIOS_MBINIT: /* BIOS Mailbox Initialization */
 			/* Sent by CF BIOS. */
-			x54x_busy_set();
+			x54x_busy(1);
 			dev->Mbx24bit = 1;
 
 			mbi = (MailboxInit_t *)dev->CmdBuf;
@@ -377,7 +377,7 @@ aha_cmds(void *p)
 
 			dev->Status &= ~STAT_INIT;
 			dev->DataReplyLeft = 0;
-			x54x_busy_clear();
+			x54x_busy(0);
 			break;
 
 		case CMD_MEMORY_MAP_1:	/* AHA memory mapper */

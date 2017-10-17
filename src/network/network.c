@@ -54,31 +54,30 @@ int		network_card;
 netdev_t	network_devs[32];
 char		network_pcap[512];
 int		nic_do_log;
-static mutex_t	*netMutex;
+static volatile
+mutex_t	*netMutex;
 
 
 static struct
 {
-        int busy;
-	int queue_in_use;
+    volatile int
+    busy,
+    queue_in_use;
 
-        event_t *wake_poll_thread;
-        event_t *poll_complete;
-        event_t *queue_not_in_use;
+    volatile event_t
+    *wake_poll_thread,
+    *poll_complete,
+    *queue_not_in_use;
 } poll_data;
 
 
 void
-startnet(void)
+network_mutex_wait(uint8_t wait)
 {
-    thread_wait_mutex(netMutex);
-}
-
-
-void
-endnet(void)
-{
-    thread_release_mutex(netMutex);
+    if (wait)
+	thread_wait_mutex((mutex_t *) netMutex);
+    else
+	thread_release_mutex((mutex_t *) netMutex);
 }
 
 
@@ -86,46 +85,24 @@ void
 network_wait_for_poll()
 {
     while (poll_data.busy)
-	thread_wait_event(poll_data.poll_complete, -1);
-    thread_reset_event(poll_data.poll_complete);
+	thread_wait_event((event_t *) poll_data.poll_complete, -1);
+    thread_reset_event((event_t *) poll_data.poll_complete);
 }
 
 
 void
-network_mutex_init()
+network_thread_init(void)
 {
-    netMutex = thread_create_mutex(L"86Box.NetMutex");
-}
-
-
-void
-network_mutex_close()
-{
-    thread_close_mutex(netMutex);
-}
-
-
-void
-network_thread_init()
-{
-    network_mutex_init();
-
     poll_data.wake_poll_thread = thread_create_event();
     poll_data.poll_complete = thread_create_event();
 }
 
 void
-network_busy_set()
+network_busy(uint8_t set)
 {
-    poll_data.busy = 1;
-}
-
-
-void
-network_busy_clear()
-{
-    poll_data.busy = 0;
-    thread_set_event(poll_data.poll_complete);
+    poll_data.busy = !!set;
+    if (!set)
+	thread_set_event((event_t *) poll_data.poll_complete);
 }
 
 
@@ -184,6 +161,8 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
     net_cards[network_card].priv = dev;
     net_cards[network_card].rx = rx;
 
+    netMutex = thread_create_mutex(L"86Box.NetMutex");
+
     /* Start the platform module. */
     switch(network_type) {
 	case NET_TYPE_PCAP:
@@ -216,6 +195,8 @@ network_close(void)
 		network_slirp_close();
 		break;
     }
+
+    thread_close_mutex((event_t *) netMutex);
 }
 
 

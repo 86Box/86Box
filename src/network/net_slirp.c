@@ -80,7 +80,7 @@ poll_thread(void *arg)
     evt = thread_create_event();
 
     while (slirpq != NULL) {
-	startnet();
+	network_mutex_wait(1);
 
 	network_wait_for_poll();
 
@@ -107,13 +107,11 @@ poll_thread(void *arg)
 	/* Done with this one. */
 	free(qp);
 
-	endnet();
+	network_mutex_wait(0);
     }
 
     thread_destroy_event(evt);
     evt = poll_tid = NULL;
-
-    network_mutex_close();
 
     pclog("SLiRP: polling stopped.\n");
 }
@@ -168,8 +166,6 @@ network_slirp_close(void)
 		;
 #endif
 
-        network_mutex_close();
-
 	/* OK, now shut down SLiRP itself. */
 	QueueDestroy(sl);
 	slirp_exit(0);
@@ -201,11 +197,11 @@ void
 network_slirp_in(uint8_t *pkt, int pkt_len)
 {
     if (slirpq != NULL) {
-	network_busy_set();
+	network_busy(1);
 
 	slirp_input((const uint8_t *)pkt, pkt_len);
 
-	network_busy_clear();
+	network_busy(0);
     }
 }
 
