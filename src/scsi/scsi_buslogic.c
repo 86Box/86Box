@@ -1752,7 +1752,7 @@ device_t buslogic_545s_device = {
 device_t buslogic_640a_device = {
 	"Buslogic BT-640A MCA",
 	DEVICE_MCA,
-	CHIP_BUSLOGIC_ISA,
+	CHIP_BUSLOGIC_MCA,
 	buslogic_init, x54x_close, NULL,
 	NULL, NULL, NULL, NULL,
 	NULL
@@ -1761,7 +1761,7 @@ device_t buslogic_640a_device = {
 device_t buslogic_445s_device = {
 	"Buslogic BT-445S ISA",
 	DEVICE_VLB,
-	CHIP_BUSLOGIC_ISA,
+	CHIP_BUSLOGIC_VLB,
 	buslogic_init, x54x_close, NULL,
 	NULL, NULL, NULL, NULL,
 	BT_ISA_Config
