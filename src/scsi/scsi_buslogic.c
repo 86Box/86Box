@@ -508,6 +508,8 @@ buslogic_param_len(void *p)
 		return 2;
 	case 0x94:
 		return 3;
+	case 0x93: /* Valid only for VLB */
+		return (bl->chip == CHIP_BUSLOGIC_VLB) ? 1 : 0;
 	case 0x95: /* Valid only for PCI */
 		return (bl->chip == CHIP_BUSLOGIC_PCI) ? 1 : 0;
 	case 0x97: /* Valid only for PCI */
@@ -837,8 +839,14 @@ buslogic_cmds(void *p)
 
 		dev->DataReply = 0;
 		break;
+	case 0x93:
+		if (bl->chip != CHIP_BUSLOGIC_VLB) {
+			dev->DataReplyLeft = 0;
+			dev->Status |= STAT_INVCMD;
+			break;
+		}
 	case 0x92:
-		if (bl->chip == CHIP_BUSLOGIC_ISA_542) {
+		if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_MCA)) {
 			dev->DataReplyLeft = 0;
 			dev->Status |= STAT_INVCMD;
 			break;
