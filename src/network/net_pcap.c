@@ -8,7 +8,7 @@
  *
  *		Handle WinPcap library processing.
  *
- * Version:	@(#)net_pcap.c	1.0.9	2017/10/11
+ * Version:	@(#)net_pcap.c	1.0.10	2017/10/16
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <pcap.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"

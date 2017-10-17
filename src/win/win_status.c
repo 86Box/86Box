@@ -9,13 +9,15 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../mem.h"
 #include "../cpu/x86_ops.h"
 #ifdef USE_DYNAREC
-#include "../cpu/codegen.h"
+# include "../cpu/codegen.h"
 #endif
 #include "../device.h"
+#include "../plat.h"
 #include "win.h"
 
 
@@ -41,7 +43,7 @@ StatusWindowProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		/*FALLTHROUGH*/
 
 	case WM_USER:
-		new_time = timer_read();
+		new_time = plat_timer_read();
 		status_diff = new_time - status_time;
 		status_time = new_time;
 		sprintf(temp,

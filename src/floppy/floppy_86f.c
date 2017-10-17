@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)floppy_86f.c	1.0.7	2017/10/12
+ * Version:	@(#)floppy_86f.c	1.0.8	2017/10/16
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -23,6 +23,7 @@
 #include <assert.h>
 #include <wchar.h>
 #include "../lzf/lzf.h"
+#include "../86box.h"
 #include "../ibm.h"
 #include "../config.h"
 #include "../dma.h"

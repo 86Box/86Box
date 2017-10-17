@@ -14,17 +14,20 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdint.h>
+#include <stdio.h>
+#include "../plat.h"
 #include "SampleRateConverter.h"
 
 #include "Synth.h"
 
 using namespace MT32Emu;
 
-static inline void *createDelegate(Synth &synth, double targetSampleRate, SamplerateConversionQuality quality) {
+static inline void *createDelegate(UNUSED(Synth &synth), UNUSED(double targetSampleRate), UNUSED(SamplerateConversionQuality quality)) {
         return 0;
 }
 
-AnalogOutputMode SampleRateConverter::getBestAnalogOutputMode(double targetSampleRate) {
+AnalogOutputMode SampleRateConverter::getBestAnalogOutputMode(UNUSED(double targetSampleRate)) {
 	return AnalogOutputMode_COARSE;
 }
 

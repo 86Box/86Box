@@ -10,7 +10,7 @@
  *
  * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.18	2017/10/09
+ * Version:	@(#)net_ne2000.c	1.0.19	2017/10/16
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -27,6 +27,7 @@
 #include <stdarg.h>
 #include <wchar.h>
 #include <time.h>
+#include "../86box.h"
 #include "../config.h"
 #include "../ibm.h"
 #include "../io.h"

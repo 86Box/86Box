@@ -8,7 +8,7 @@
  *
  *		Windows raw keyboard input handler.
  *
- * Version:	@(#)win_keyboard.c	1.0.2	2017/10/10
+ * Version:	@(#)win_keyboard.c	1.0.3	2017/10/16
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -20,12 +20,11 @@
 #include <windows.h>
 #include <windowsx.h>
 #undef BITMAP
-//#include <commctrl.h>
-//#include <commdlg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "../86box.h"
 #include "../device.h"
 #include "../plat.h"
 #include "../plat_keyboard.h"

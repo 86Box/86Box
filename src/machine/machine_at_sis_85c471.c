@@ -9,7 +9,7 @@
  *		SiS sis85c471 Super I/O Chip
  *		Used by DTK PKM-0038S E-2
  *
- * Version:	@(#)sis85c471.c	1.0.6	2017/10/07
+ * Version:	@(#)sis85c471.c	1.0.7	2017/10/16
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../memregs.h"

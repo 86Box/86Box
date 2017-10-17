@@ -8,7 +8,7 @@
  *
  *		Define the various UI functions.
  *
- * Version:	@(#)ui.h	1.0.3	2017/10/14
+ * Version:	@(#)ui.h	1.0.4	2017/10/16
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -51,6 +51,7 @@ extern int	ui_msgbox(int type, void *arg);
 #define SB_NETWORK      0x50
 #define SB_TEXT         0x60
 
+extern wchar_t  *ui_window_title(wchar_t *s);
 extern int	ui_sb_find_part(int tag);
 extern void	ui_sb_update_panes(void);
 extern void	ui_sb_update_tip(int meaning);

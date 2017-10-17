@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <fluidsynth.h>
+#include "../86box.h"
 #include "../config.h"
 #include "../device.h"
 #include "../plat.h"

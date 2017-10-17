@@ -8,7 +8,7 @@
  *
  *		Handling of hard disk image files.
  *
- * Version:	@(#)hdd_image.c	1.0.5	2017/11/13
+ * Version:	@(#)hdd_image.c	1.0.5	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -28,6 +28,7 @@
 #include <stdarg.h>
 #include <wchar.h>
 #include <errno.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../plat.h"
 #include "hdd.h"

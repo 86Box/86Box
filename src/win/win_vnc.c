@@ -8,7 +8,7 @@
  *
  *		Implement the VNC renderer with LibVNCServer.
  *
- * Version:	@(#)win_vnc.c	1.0.2	2017/10/14
+ * Version:	@(#)win_vnc.c	1.0.3	2017/10/16
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Based on raw code by RichardG, <richardg867@gmail.com>
@@ -17,7 +17,7 @@
  */
 #include <stdio.h>
 #include <stdint.h>
-#include "../ibm.h"
+#include "../86box.h"
 #include "../device.h"
 #include "../video/video.h"
 #include "../plat.h"
@@ -249,7 +249,7 @@ vnc_init(HWND h)
     };
 
     if (rfb == NULL) {
-	wcstombs(title, set_window_title(NULL), sizeof(title));
+	wcstombs(title, ui_window_title(NULL), sizeof(title));
 	updatingSize = 0;
 	allowedX = allowedY = 2048;
  

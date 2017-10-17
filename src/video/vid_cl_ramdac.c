@@ -8,7 +8,7 @@
  *
  *		Emulation of the Cirrus Logic RAMDAC.
  *
- * Version:	@(#)vid_cl_ramdac.c	1.0.1	2017/10/10
+ * Version:	@(#)vid_cl_ramdac.c	1.0.1	2017/10/16
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../mem.h"
 #include "../rom.h"

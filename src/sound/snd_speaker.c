@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "sound.h"
 #include "snd_speaker.h"

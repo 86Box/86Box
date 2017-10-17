@@ -30,6 +30,7 @@
 #include "zfile.h"*/
 /* ELSE */
 #define xmalloc malloc
+#include "../86box.h"
 #include "../ibm.h"
 #include "fdi2raw.h"
 

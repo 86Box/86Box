@@ -8,7 +8,7 @@
  *
  *		Emulation of the 3DFX Voodoo Graphics controller.
  *
- * Version:	@(#)vid_voodoo.c	1.0.2	2017/10/11
+ * Version:	@(#)vid_voodoo.c	1.0.3	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei
@@ -22,6 +22,7 @@
 #include <stddef.h>
 #include <wchar.h>
 #include <math.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../device.h"
@@ -3489,7 +3490,7 @@ static void render_thread(void *param, int odd_even)
 
                 while (!(odd_even ? PARAM_EMPTY_2 : PARAM_EMPTY_1))
                 {
-                        uint64_t start_time = timer_read();
+                        uint64_t start_time = plat_timer_read();
                         uint64_t end_time;
                         voodoo_params_t *params = &voodoo->params_buffer[voodoo->params_read_idx[odd_even] & PARAM_MASK];
                         
@@ -3500,7 +3501,7 @@ static void render_thread(void *param, int odd_even)
                         if ((odd_even ? PARAM_ENTRIES_2 : PARAM_ENTRIES_1) > (PARAM_SIZE - 10))
                                 thread_set_event(voodoo->render_not_full_event[odd_even]);
 
-                        end_time = timer_read();
+                        end_time = plat_timer_read();
                         voodoo->render_time[odd_even] += end_time - start_time;
                 }
 
@@ -6494,7 +6495,7 @@ static void fifo_thread(void *param)
                 voodoo->voodoo_busy = 1;
                 while (!FIFO_EMPTY)
                 {
-                        uint64_t start_time = timer_read();
+                        uint64_t start_time = plat_timer_read();
                         uint64_t end_time;
                         fifo_entry_t *fifo = &voodoo->fifo[voodoo->fifo_read_idx & FIFO_MASK];
 
@@ -6522,13 +6523,13 @@ static void fifo_thread(void *param)
                         if (FIFO_ENTRIES > 0xe000)
                                 thread_set_event(voodoo->fifo_not_full_event);
 
-                        end_time = timer_read();
+                        end_time = plat_timer_read();
                         voodoo->time += end_time - start_time;
                 }
 
                 while (voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr)
                 {
-                        uint64_t start_time = timer_read();
+                        uint64_t start_time = plat_timer_read();
                         uint64_t end_time;
                         uint32_t header = cmdfifo_get(voodoo);
                         uint32_t addr;
@@ -6698,7 +6699,7 @@ static void fifo_thread(void *param)
                                 pclog("Bad CMDFIFO packet %08x %08x\n", header, voodoo->cmdfifo_rp);
                         }
 
-                        end_time = timer_read();
+                        end_time = plat_timer_read();
                         voodoo->time += end_time - start_time;
                 }
                 voodoo->voodoo_busy = 0;
@@ -7388,7 +7389,7 @@ static void voodoo_add_status_info(char *s, int max_len, void *p)
         int texel_count_current[2];
         int texel_count_total;
         int render_time[2];
-        uint64_t new_time = timer_read();
+        uint64_t new_time = plat_timer_read();
         uint64_t status_diff = new_time - status_time;
         status_time = new_time;
 
