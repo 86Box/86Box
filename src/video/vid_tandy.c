@@ -8,7 +8,7 @@
  *
  *		Emulation of the Tandy Model 1000 video.
  *
- * Version:	@(#)vid_tandy.c	1.0.1	2017/10/10
+ * Version:	@(#)vid_tandy.c	1.0.1	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <math.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"

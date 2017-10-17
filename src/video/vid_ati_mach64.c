@@ -8,7 +8,7 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.c	1.0.4	2017/10/10
+ * Version:	@(#)vid_ati_mach64.c	1.0.5	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../device.h"
 #include "../io.h"
@@ -879,7 +880,7 @@ static void fifo_thread(void *param)
                 mach64->blitter_busy = 1;
                 while (!FIFO_EMPTY)
                 {
-                        uint64_t start_time = timer_read();
+                        uint64_t start_time = plat_timer_read();
                         uint64_t end_time;
                         fifo_entry_t *fifo = &mach64->fifo[mach64->fifo_read_idx & FIFO_MASK];
 
@@ -902,7 +903,7 @@ static void fifo_thread(void *param)
                         if (FIFO_ENTRIES > 0xe000)
                                 thread_set_event(mach64->fifo_not_full_event);
 
-                        end_time = timer_read();
+                        end_time = plat_timer_read();
                         mach64->blitter_time += end_time - start_time;
                 }
                 mach64->blitter_busy = 0;
@@ -3422,7 +3423,7 @@ void mach64_add_status_info(char *s, int max_len, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;
         char temps[256];
-        uint64_t new_time = timer_read();
+        uint64_t new_time = plat_timer_read();
         uint64_t status_diff = new_time - mach64->status_time;
         mach64->status_time = new_time;
 

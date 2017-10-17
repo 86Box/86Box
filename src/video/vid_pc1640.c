@@ -9,7 +9,7 @@
  *		PC1640 video emulation.
  *		Mostly standard EGA, but with CGA & Hercules emulation.
  *
- * Version:	@(#)vid_pc1640.c	1.0.1	2017/10/10
+ * Version:	@(#)vid_pc1640.c	1.0.1	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"

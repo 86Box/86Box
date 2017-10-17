@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.5	2017/10/10
+ * Version:	@(#)vid_svga.c	1.0.5	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -24,6 +24,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"

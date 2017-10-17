@@ -25,6 +25,7 @@ PnP registers :
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "86box.h"
 #include "ibm.h"
 #include "io.h"
 #include "lpt.h"

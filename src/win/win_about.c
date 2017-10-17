@@ -8,7 +8,7 @@
  *
  *		Handle the About dialog.
  *
- * Version:	@(#)win_about.c	1.0.3	2017/10/13
+ * Version:	@(#)win_about.c	1.0.4	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

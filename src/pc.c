@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.27	2017/10/14
+ * Version:	@(#)pc.c	1.0.28	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -90,7 +90,7 @@ int	insc = 0;
 float	mips, flops;
 int	framecount, fps;
 int	win_title_update = 0;
-int	updatestatus = 0;
+int	status_update_needed = 0;
 int	pollmouse_delay = 2;
 int	mousecapture;
 int	suppress_overscan = 0;
@@ -150,35 +150,6 @@ fatal(const char *format, ...)
 
 
 /*
- * This function returns the absolute pathname to a file (str)
- * that is to be found in the user (formerly 'nvr_path' area.
- */
-wchar_t *
-pc_concat(wchar_t *str)
-{
-    static wchar_t temp[1024];
-
-    /* Get the full prefix in place. */
-    memset(temp, 0x00, sizeof(temp));
-    wcscpy(temp, cfg_path);
-
-    /* Create the directory if needed. */
-    if (! dir_check_exist(temp))
-	dir_create(temp);
-
-    /* Now append the actual filename. */
-#ifdef WIN32
-    wcscat(temp, L"\\");
-#else
-    wcscat(temp, L"/");
-#endif
-    wcscat(temp, str);
-
-    return(temp);
-}
-
-
-/*
  * Perform initial startup of the PC.
  *
  * This is the platform-indepenent part of the startup,
@@ -192,8 +163,8 @@ pc_init(int argc, wchar_t *argv[])
     int c;
 
     /* Grab the executable's full path. */
-    get_executable_name(exe_path, sizeof(exe_path)-1);
-    p = get_filename_w(exe_path);
+    plat_get_exe_name(exe_path, sizeof(exe_path)-1);
+    p = plat_get_filename(exe_path);
     *p = L'\0';
 
     /*
@@ -280,11 +251,10 @@ usage:
 #endif
 		wcscpy(config_file_default, cfg);
 	  else
-		append_filename_w(config_file_default,
-				  cfg_path, cfg, 511);
+		plat_append_filename(config_file_default, cfg_path, cfg, 511);
 	cfg = NULL;
     } else {
-        append_filename_w(config_file_default, cfg_path, CONFIG_FILE_W, 511);
+        plat_append_filename(config_file_default, cfg_path, CONFIG_FILE_W, 511);
     }
 
     /*
@@ -623,6 +593,26 @@ pc_reset_hard(void)
 
 
 void
+pc_reset(int hard)
+{
+    plat_pause(1);
+
+    plat_delay_ms(100);
+
+    nvr_save();
+
+    config_save();
+
+    if (hard)
+        pc_reset_hard();
+      else
+        pc_send_cad();
+
+    plat_pause(0);
+}
+
+
+void
 pc_close(void)
 {
     int i;
@@ -748,7 +738,7 @@ pc_run(void)
 	cpu_notreps = 0;
 #endif
 
-	updatestatus = 1;
+	status_update_needed = 1;
 	readlnum = writelnum = 0;
 	egareads = egawrites = 0;
 	cycles_lost = 0;
@@ -765,7 +755,7 @@ pc_run(void)
 		  EMU_NAME_W, EMU_VERSION_W, fps, wmachine, wcpu,
 		  (!mousecapture) ? plat_get_string(IDS_2077)
 				  : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079)));
-	set_window_title(temp);
+	ui_window_title(temp);
 
 	win_title_update = 0;
     }

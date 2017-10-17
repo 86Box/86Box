@@ -8,7 +8,7 @@
  *
  *		Driver for the ESDI controller (WD1007-vse1) for PC/AT.
  *
- * Version:	@(#)hdc_esdi_at.c	1.0.4	2017/10/09
+ * Version:	@(#)hdc_esdi_at.c	1.0.5	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../device.h"
 #include "../io.h"

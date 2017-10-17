@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.3	2017/10/09
+ * Version:	@(#)win_stbar.c	1.0.3	2017/10/16
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -28,6 +28,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../config.h"
 #include "../ibm.h"
 #include "../cpu/cpu.h"

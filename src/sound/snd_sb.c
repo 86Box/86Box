@@ -8,11 +8,12 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.c	1.0.2	2017/10/04
+ * Version:	@(#)sound_sb.c	1.0.3	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -21,6 +22,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../mca.h"

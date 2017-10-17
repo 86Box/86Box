@@ -255,6 +255,7 @@ SeeAlso: #P0178,#P0187
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../io.h"

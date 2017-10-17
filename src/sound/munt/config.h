@@ -35,4 +35,6 @@
  */
 #define MT32EMU_EXPORTS_TYPE  3
 
+#define MT32EMU_API_TYPE      0
+
 #endif

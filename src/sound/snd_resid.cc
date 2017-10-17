@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "resid-fp/sid.h"
+#include "../plat.h"
 #include "snd_resid.h"
 
 
@@ -58,14 +59,14 @@ void *sid_init(void)
         return (void *)psid;
 }
 
-void sid_close(void *p)
+void sid_close(UNUSED(void *p))
 {
 //        psid_t *psid = (psid_t *)p;
         delete psid->sid;
 //        free(psid);
 }
 
-void sid_reset(void *p)
+void sid_reset(UNUSED(void *p))
 {
 //        psid_t *psid = (psid_t *)p;
         int c;
@@ -77,7 +78,7 @@ void sid_reset(void *p)
 }
 
 
-uint8_t sid_read(uint16_t addr, void *p)
+uint8_t sid_read(uint16_t addr, UNUSED(void *p))
 {
 //        psid_t *psid = (psid_t *)p;
         
@@ -85,7 +86,7 @@ uint8_t sid_read(uint16_t addr, void *p)
 //        return 0xFF;
 }
 
-void sid_write(uint16_t addr, uint8_t val, void *p)
+void sid_write(uint16_t addr, uint8_t val, UNUSED(void *p))
 {
 //        psid_t *psid = (psid_t *)p;
         
@@ -102,7 +103,7 @@ static void fillbuf2(int& count, int16_t *buf, int len)
                 *buf = psid->last_sample;
         psid->last_sample = *buf;
 }
-void sid_fillbuf(int16_t *buf, int len, void *p)
+void sid_fillbuf(int16_t *buf, int len, UNUSED(void *p))
 {
 //        psid_t *psid = (psid_t *)p;
         int x = CLOCK_DELTA(len);

@@ -32,10 +32,11 @@
  *		Based on an early driver for MINIX 1.5.
  *		Based on the 86Box PS/2 mouse driver as a framework.
  *
- * Version:	@(#)mouse_bus.c	1.0.9	2017/09/24
+ * Version:	@(#)mouse_bus.c	1.0.10	2017/10/16
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		TheCollector1995
+ *
  *		Copyright 1989-2017 Fred N. van Kempen.
  */
 #include <stdio.h>
@@ -43,6 +44,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "86box.h"
 #include "ibm.h"
 #include "io.h"
 #include "pic.h"

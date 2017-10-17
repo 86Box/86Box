@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.1	2017/10/10
+ * Version:	@(#)vid_s3.c	1.0.2	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../device.h"
 #include "../io.h"
@@ -711,7 +712,7 @@ static void fifo_thread(void *param)
                 s3->blitter_busy = 1;
                 while (!FIFO_EMPTY)
                 {
-                        uint64_t start_time = timer_read();
+                        uint64_t start_time = plat_timer_read();
                         uint64_t end_time;
                         fifo_entry_t *fifo = &s3->fifo[s3->fifo_read_idx & FIFO_MASK];
 
@@ -743,7 +744,7 @@ static void fifo_thread(void *param)
                         if (FIFO_ENTRIES > 0xe000)
                                 thread_set_event(s3->fifo_not_full_event);
 
-                        end_time = timer_read();
+                        end_time = plat_timer_read();
                         s3->blitter_time += end_time - start_time;
                 }
                 s3->blitter_busy = 0;
@@ -2357,7 +2358,7 @@ static void s3_add_status_info(char *s, int max_len, void *p)
 {
         s3_t *s3 = (s3_t *)p;
         char temps[256];
-        uint64_t new_time = timer_read();
+        uint64_t new_time = plat_timer_read();
         uint64_t status_diff = new_time - s3->status_time;
         s3->status_time = new_time;
 

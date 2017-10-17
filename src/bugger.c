@@ -44,7 +44,7 @@
  *		configuration register (CTRL_SPCFG bit set) but have to
  *		remember that stuff first...
  *
- * Version:	@(#)bugger.c	1.0.7	2017/10/09
+ * Version:	@(#)bugger.c	1.0.8	2017/10/16
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 1989-2017 Fred N. van Kempen.
@@ -53,6 +53,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "86box.h"
 #include "ibm.h"
 #include "io.h"
 #include "ui.h"

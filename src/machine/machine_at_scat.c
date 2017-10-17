@@ -10,7 +10,7 @@
  *
  *		Re-worked version based on the 82C235 datasheet and errata.
  *
- * Version:	@(#)at_scat.c	1.0.2	2017/10/07
+ * Version:	@(#)at_scat.c	1.0.3	2017/10/16
  *
  * Authors:	Original by GreatPsycho for PCem.
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../cpu/x86.h"

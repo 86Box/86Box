@@ -57,6 +57,8 @@ void cdrom_image_log(const char *format, ...)
 		va_end(ap);
 		fflush(stdout);
    }
+#else
+   (void)format;
 #endif
 }
 
@@ -211,7 +213,7 @@ static int image_ready(uint8_t id)
         return 1;
 }
 
-static int image_get_last_block(uint8_t id, uint8_t starttrack, int msf, int maxlen, int single)
+static int image_get_last_block(uint8_t id, UNUSED(uint8_t starttrack), UNUSED(int msf), UNUSED(int maxlen), UNUSED(int single))
 {
         int c;
         uint32_t lb=0;
@@ -321,12 +323,12 @@ static uint8_t image_getcurrentsubchannel(uint8_t id, uint8_t *b, int msf)
         return ret;
 }
 
-static void image_eject(uint8_t id)
+static void image_eject(UNUSED(uint8_t id))
 {
     return;
 }
 
-static void image_load(uint8_t id)
+static void image_load(UNUSED(uint8_t id))
 {
     return;
 }
@@ -965,7 +967,7 @@ static int image_status(uint8_t id)
         return CD_STATUS_DATA_ONLY;
 }
 
-void image_reset(uint8_t id)
+void image_reset(UNUSED(uint8_t id))
 {
 	return;
 }
@@ -998,7 +1000,7 @@ int image_open(uint8_t id, wchar_t *fn)
 		swprintf(cdrom_image[id].image_path, sizeof(cdrom_image[id].image_path)/sizeof(wchar_t), L"%ls", fn);
 	}
 
-	if (! wcscasecmp(get_extension_w(fn), L"ISO"))
+	if (! wcscasecmp(plat_get_extension(fn), L"ISO"))
 	{
 		cdrom_image[id].image_is_iso = 1;
 	}

@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.21	2017/10/13
+ * Version:	@(#)config.c	1.0.22	2017/10/16
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <inttypes.h>
+#include "86box.h"
 #include "ibm.h"
 #include "cpu/cpu.h"
 #include "nvr.h"
@@ -1987,59 +1988,4 @@ config_set_wstring(char *head, char *name, wchar_t *val)
 
     memcpy(ent->wdata, val, sizeof_w(ent->wdata));
     wcstombs(ent->data, ent->wdata, sizeof(ent->data));
-}
-
-
-/* FIXME: should be moved elsewhere. --FvK */
-wchar_t *
-get_filename_w(wchar_t *s)
-{
-    int c = wcslen(s) - 1;
-
-    while (c > 0) {
-	if (s[c] == L'/' || s[c] == L'\\')
-	   return(&s[c+1]);
-       c--;
-    }
-
-    return(s);
-}
-
-
-/* FIXME: should be moved elsewhere. --FvK */
-void
-append_filename_w(wchar_t *dest, wchar_t *s1, wchar_t *s2, int size)
-{
-    wcscat(dest, s1);
-    wcscat(dest, s2);
-}
-
-
-/* FIXME: should be moved elsewhere. --FvK */
-void
-put_backslash_w(wchar_t *s)
-{
-    int c = wcslen(s) - 1;
-
-    if (s[c] != L'/' && s[c] != L'\\')
-	   s[c] = L'/';
-}
-
-
-/* FIXME: should be moved elsewhere. --FvK */
-wchar_t
-*get_extension_w(wchar_t *s)
-{
-    int c = wcslen(s) - 1;
-
-    if (c <= 0)
-	return(s);
-
-    while (c && s[c] != L'.')
-		c--;
-
-    if (!c)
-	return(&s[wcslen(s)]);
-
-    return(&s[c+1]);
 }

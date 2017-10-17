@@ -8,7 +8,7 @@
  *
  *		Handle the platform-side of CDROM drives.
  *
- * Version:	@(#)win_cdrom.c	1.0.3	2017/10/09
+ * Version:	@(#)win_cdrom.c	1.0.4	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

@@ -8,7 +8,7 @@
  *
  *		Windows device configuration dialog implementation.
  *
- * Version:	@(#)win_deviceconfig.c	1.0.7	2017/10/10
+ * Version:	@(#)win_deviceconfig.c	1.0.8	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,7 +20,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "../ibm.h"
+#include "../86box.h"
 #include "../config.h"
 #include "../device.h"
 #include "../plat.h"

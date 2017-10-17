@@ -10,7 +10,7 @@
  *
  * !!!NOTE!!!	The goal is to GET RID of this file.  Do NOT add stuff !!
  *
- * Version:	@(#)ibm.h	1.0.9	2017/10/15
+ * Version:	@(#)ibm.h	1.0.10	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -285,6 +285,7 @@ extern int CPUID;
 
 extern int cpl_override;
 
+
 /*Timer*/
 typedef struct PIT_nr
 {
@@ -382,9 +383,8 @@ extern int driveempty[4];
 #define MDA ((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || gfxcard==GFX_HERCULESPLUS || gfxcard==GFX_INCOLOR || gfxcard==GFX_GENIUS) && (romset<ROM_TANDY || romset>=ROM_IBMAT))
 #define VGA ((gfxcard>=GFX_TVGA) && gfxcard!=GFX_COLORPLUS && gfxcard!=GFX_INCOLOR && gfxcard!=GFX_WY700 && gfxcard!=GFX_GENIUS && gfxcard!=GFX_COMPAQ_EGA && gfxcard!=GFX_SUPER_EGA && gfxcard!=GFX_HERCULESPLUS && romset!=ROM_PC1640 && romset!=ROM_PC1512 && romset!=ROM_TANDY && romset!=ROM_PC200)
 
-int GAMEBLASTER, GUS, SSI2001, voodoo_enabled, buslogic_enabled;
+int GAMEBLASTER, GUS, SSI2001, voodoo_enabled;
 extern int AMSTRAD, AT, is286, is386, PCI, TANDY;
-
 extern int hasfpu;
 
 enum
@@ -462,9 +462,6 @@ int cpuspeed;
 
 /*Video*/
 extern int egareads,egawrites;
-extern int vid_resize;
-extern int vid_api;
-extern int winsizex,winsizey;
 extern int changeframecount;
 
 
@@ -490,9 +487,6 @@ extern int gated,speakval,speakon;
 #define SADGOLD   8     /*AdLib Gold*/
 #define SND_WSS   9     /*Windows Sound System*/
 #define SND_PAS16 10    /*Pro Audio Spectrum 16*/
-
-extern wchar_t exe_path[1024];
-extern wchar_t cfg_path[1024];
 
 
 /*Keyboard*/
@@ -531,18 +525,6 @@ extern int nmi_auto_clear;
 
 extern float isa_timing, bus_timing;
 
-
-extern uint64_t timer_read(void);
-extern uint64_t timer_freq;
-
-
-extern int infocus;
-
-
-extern int dump_on_exit;
-extern int start_in_fullscreen;
-extern int window_w, window_h, window_x, window_y, window_remember;
-
 extern uint64_t pmc[2];
 
 extern uint16_t temp_seg_data[4];
@@ -559,18 +541,6 @@ extern uint64_t star;
 
 extern int mem_a20_state;
 
-
-#ifdef ENABLE_LOG_TOGGLES
-extern int buslogic_do_log;
-extern int cdrom_do_log;
-extern int d86f_do_log;
-extern int fdc_do_log;
-extern int ide_do_log;
-extern int serial_do_log;
-extern int nic_do_log;
-#endif
-
-extern int suppress_overscan;
 
 typedef struct PCI_RESET
 {
@@ -589,11 +559,7 @@ extern int serial_enabled[2];
 extern int lpt_enabled, bugger_enabled;
 extern int romset;
 
-extern int invert_display;
-
 uint32_t svga_color_transform(uint32_t color);
-
-extern int scale;
 
 
 /* Function prototypes. */
@@ -601,22 +567,7 @@ extern int scale;
 extern "C" {
 #endif
 
-extern void	pclog(const char *format, ...);
-extern void	fatal(const char *format, ...);
-extern wchar_t	*pc_concat(wchar_t *str);
-extern int	pc_init_modules(void);
-extern int	pc_init(int argc, wchar_t *argv[]);
-extern void	pc_close(void);
-extern void	pc_reset_hard_close(void);
-extern void	pc_reset_hard_init(void);
-extern void	pc_reset_hard(void);
-extern void	pc_full_speed(void);
-extern void	pc_speed_changed(void);
-extern void	pc_send_cad(void);
-extern void	pc_send_cae(void);
-extern void	pc_run(void);
 extern void	onesec(void);
-
 
 extern int	checkio(int port);
 extern void	codegen_block_end(void);

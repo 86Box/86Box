@@ -13,6 +13,7 @@
 # include <AL/alc.h>
 # include <AL/alext.h>
 #endif
+#include "../86box.h"
 #include "../ibm.h"
 #include "sound.h"
 

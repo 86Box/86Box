@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.14	2017/10/15
+ * Version:	@(#)network.c	1.0.15	2017/10/16
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../device.h"
 #include "../plat.h"
