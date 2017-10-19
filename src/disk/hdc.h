@@ -27,7 +27,7 @@
 				 * least 7 devices, with each device being
 				 * able to support 8 units, but hey... */
 
-extern char	hdc_name[16];
+extern char	*hdc_name;
 extern int	hdc_current;
 
 

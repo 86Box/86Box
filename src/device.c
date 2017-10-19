@@ -45,7 +45,7 @@ device_init(void)
 }
 
 
-void
+void *
 device_add(device_t *d)
 {
     void *priv = NULL;
@@ -65,7 +65,9 @@ device_add(device_t *d)
     }
 
     devices[c] = d;
-    device_priv[c] = priv;        
+    device_priv[c] = priv;
+
+    return priv;
 }
 
 

@@ -427,6 +427,22 @@ void sound_reset(void)
 	}
 }
 
+void sound_cd_thread_end(void)
+{
+	if (sound_cd_thread_h) {
+		pclog("Waiting for CD Audio thread to terminate...\n");
+		thread_wait(sound_cd_thread_h, -1);
+		pclog("CD Audio thread terminated...\n");
+
+		if (sound_cd_event) {
+			thread_destroy_event(sound_cd_event);
+			sound_cd_event = NULL;
+		}
+
+		sound_cd_thread_h = NULL;
+	}
+}
+
 void sound_cd_thread_reset(void)
 {
 	int i = 0;
@@ -447,9 +463,7 @@ void sound_cd_thread_reset(void)
 	}
 	else if (!available_cdrom_drives && cd_thread_enable)
 	{
-		thread_destroy_event(sound_cd_event);
-		thread_kill(sound_cd_thread_h);
-		sound_cd_thread_h = NULL;
+		sound_cd_thread_end();
 	}
 
 	cd_thread_enable = available_cdrom_drives ? 1 : 0;

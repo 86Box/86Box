@@ -59,6 +59,20 @@ thread_sleep(int t)
 }
 
 
+int
+thread_wait(thread_t *arg, int timeout)
+{
+    if (arg == NULL) return(0);
+
+    if (timeout == -1)
+	timeout = INFINITE;
+
+    if (WaitForSingleObject(arg, timeout)) return(1);
+
+    return(0);
+}
+
+
 event_t *
 thread_create_event(void)
 {
@@ -98,6 +112,8 @@ thread_wait_event(event_t *arg, int timeout)
     win_event_t *ev = (win_event_t *)arg;
 
     if (arg == NULL) return(0);
+
+    if (ev->handle == NULL) return(0);
 
     if (timeout == -1)
 	timeout = INFINITE;

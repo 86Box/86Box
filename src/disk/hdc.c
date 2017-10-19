@@ -28,7 +28,7 @@
 #include "hdc.h"
 
 
-char	hdc_name[16];		/* configured HDC name */
+char	*hdc_name;		/* configured HDC name */
 int	hdc_current;
 
 
@@ -73,8 +73,8 @@ static device_t inthdc_device = {
 
 
 static struct {
-    char	name[50];
-    char	internal_name[16];
+    char	*name;
+    char	*internal_name;
     device_t	*device;
     int		is_mfm;
 } controllers[] = {

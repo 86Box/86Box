@@ -32,6 +32,8 @@
 
 static device_t *config_device;
 
+static uint8_t deviceconfig_changed = 0;
+
 
 static BOOL CALLBACK
 deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -39,7 +41,6 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	HWND h;
 
 	int val_int;
-	int ret;
 	int id;
 	int c;
     int num;
@@ -278,21 +279,12 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                 
                                 if (!changed)
                                 {
+					deviceconfig_changed = 0;
                                         EndDialog(hdlg, 0);
                                         return TRUE;
                                 }
 
-                               ret = ui_msgbox(MBX_QUESTION, (wchar_t *)IDS_2051);
-                               switch(ret)
-                               {
-                                    case 1:                                        
-	                                    EndDialog(hdlg, 0);
-        	                            return TRUE;
-                                    case -1:
-                                        return FALSE;
-                                    default:
-                                        break;
-                                }
+				deviceconfig_changed = 1;
 
                                 id = IDC_CONFIG_BASE;
                                 config = config_device->config;
@@ -367,15 +359,12 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                         config++;
                                 }
 
-                                config_save();
-                        
-                                pc_reset_hard();
-
                                 EndDialog(hdlg, 0);
                                 return TRUE;
                     }
                     else if (cid == IDCANCEL)
                     {
+			    deviceconfig_changed = 0;
                             EndDialog(hdlg, 0);
                             return TRUE;
                     }
@@ -462,7 +451,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
         return FALSE;
 }
 
-void deviceconfig_open(HWND hwnd, device_t *device)
+uint8_t deviceconfig_open(HWND hwnd, device_t *device)
 {
         device_config_t *config = device->config;
         uint16_t *data_block = malloc(16384);
@@ -471,6 +460,8 @@ void deviceconfig_open(HWND hwnd, device_t *device)
         DLGITEMTEMPLATE *item;
         int y = 10;
         int id = IDC_CONFIG_BASE;
+
+	deviceconfig_changed = 0;
 
         memset(data_block, 0, 4096);
         
@@ -731,4 +722,6 @@ void deviceconfig_open(HWND hwnd, device_t *device)
         DialogBoxIndirect(hinstance, dlg, hwnd, deviceconfig_dlgproc);
 
         free(data_block);
+
+	return deviceconfig_changed;
 }

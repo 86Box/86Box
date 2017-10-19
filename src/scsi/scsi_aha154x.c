@@ -269,7 +269,9 @@ aha_fast_cmds(void *p, uint8_t cmd)
 	x54x_busy(1);
 	dev->BIOSMailboxReq++;
 
+#if 0
 	x54x_thread_start(dev);
+#endif
 	x54x_busy(0);
 	return 1;
     }
