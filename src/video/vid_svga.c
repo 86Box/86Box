@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.5	2017/10/16
+ * Version:	@(#)vid_svga.c	1.0.7	2017/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1617,30 +1617,13 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
                 return;
         }
 
-        if (((wx!=xsize) || ((wy + 1)!=ysize)) && !vid_resize)
+        if (((wx!=xsize) || ((wy+1)!=ysize)))
         {
-                xsize=wx;
-                ysize=wy+1;
-                if (xsize<64) xsize=640;
-                if (ysize<32) ysize=200;
-
-		if ((xsize > 2032) || (ysize > 2032))
-		{
-			x_add = 0;
-			y_add = 0;
-			suppress_overscan = 1;
-		}
-		else
-		{
-			suppress_overscan = 0;
-		}
-
-                updatewindowsize(xsize + x_add,ysize + y_add);
-        }
-        if (vid_resize)
-        {
+		/* Screen res has changed.. fix up, and let them know. */
                 xsize = wx;
-                ysize = wy + 1;
+                ysize = wy+1;
+                if (xsize<64) xsize = 640;
+                if (ysize<32) ysize = 200;
 
 		if ((xsize > 2032) || (ysize > 2032))
 		{
@@ -1652,6 +1635,8 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 		{
 			suppress_overscan = 0;
 		}
+
+                set_screen_size(xsize+x_add,ysize+y_add);
         }
 
 	if (enable_overscan && !suppress_overscan)

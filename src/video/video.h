@@ -57,8 +57,6 @@ extern int	video_res_x,
 		video_res_y,
 		video_bpp;
 extern int	vid_resize;
-extern int	winsizex,
-		winsizey;
 extern int	cga_palette;
 extern int	vid_cga_contrast;
 extern int	video_grayscale;

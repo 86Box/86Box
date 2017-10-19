@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.2	2017/10/13
+ * Version:	@(#)video.c	1.0.4	2017/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -73,33 +73,35 @@ enum {
 };
 
 
-int		vid_cga_contrast = 0;
+BITMAP		*screen = NULL;
+BITMAP		*buffer= NULL,
+		*buffer32= NULL;
+uint8_t		fontdat[256][8];		/* IBM CGA font */
+uint8_t		fontdatm[256][16];		/* IBM MDA font */
+uint8_t		fontdatw[512][32];		/* Wyse700 font */
+uint8_t		fontdat8x12[256][16];		/* MDSI Genius font */
+uint32_t	pal_lookup[256];
+int		xsize = 1,
+		ysize = 1;
 int		cga_palette = 0;
-int		video_fullscreen = 0,
-		video_fullscreen_scale,
-		video_fullscreen_first;
-uint32_t	*video_6to8,
-		*video_15to32,
-		*video_16to32;
-BITMAP		*screen;
+uint32_t	*video_6to8 = NULL,
+		*video_15to32 = NULL,
+		*video_16to32 = NULL;
 int		egareads = 0,
 		egawrites = 0,
 		changeframecount = 2;
 uint8_t		rotatevga[8][256];
 int		frames = 0;
-int		fullchange;
+int		fullchange = 0;
 uint8_t		edatlookup[4][4];
-int		enable_overscan;
-int		overscan_x,
-		overscan_y;
-int		force_43;
-int		video_timing_b,
-		video_timing_w,
-		video_timing_l;
-int		video_res_x,
-		video_res_y,
-		video_bpp;
-int		video_speed = 0;
+int		overscan_x = 0,
+		overscan_y = 0;
+int		video_timing_b = 0,
+		video_timing_w = 0,
+		video_timing_l = 0;
+int		video_res_x = 0,
+		video_res_y = 0,
+		video_bpp = 0;
 int		video_timing[6][4] = {
     { VIDEO_ISA, 8, 16, 32	},
     { VIDEO_ISA, 6,  8, 16	},
@@ -108,14 +110,6 @@ int		video_timing[6][4] = {
     { VIDEO_BUS, 4,  5, 10	},
     { VIDEO_BUS, 3,  3,  4	}
 };
-BITMAP		*buffer,
-		*buffer32;
-uint8_t		fontdat[256][8];
-uint8_t		fontdatm[256][16];
-uint8_t		fontdatw[512][32];	/* Wyse700 font */
-uint8_t		fontdat8x12[256][16];	/* MDSI Genius font */
-int		xsize=1,
-		ysize=1;
 PALETTE		cgapal = {
     {0,0,0},    {0,42,0},   {42,0,0},   {42,21,0},
     {0,0,0},    {0,42,42},  {42,0,42},  {42,42,42},
@@ -181,7 +175,6 @@ PALETTE		cgapal_mono[6] = {
 	{0x34,0x35,0x33},{0x37,0x37,0x34},{0x3e,0x3e,0x3a},{0x3f,0x3f,0x3b},
     }
 };
-uint32_t	pal_lookup[256];
 
 
 static struct {
@@ -193,11 +186,11 @@ static struct {
     event_t	*wake_blit_thread;
     event_t	*blit_complete;
     event_t	*buffer_not_in_use;
-} blit_data;
+}		blit_data;
 
 
-static void (*memtoscreen_func)(int x, int y, int y1, int y2, int w, int h);
-static void (*memtoscreen_8_func)(int x, int y, int w, int h);
+static void (*blit_func)(int x, int y, int y1, int y2, int w, int h);
+static void (*blit8_func)(int x, int y, int w, int h);
 
 
 static
@@ -208,9 +201,9 @@ void blit_thread(void *param)
 	thread_reset_event(blit_data.wake_blit_thread);
 
 	if (blit_data.blit8)
-		memtoscreen_8_func(blit_data.x, blit_data.y, blit_data.w, blit_data.h);
+		blit8_func(blit_data.x, blit_data.y, blit_data.w, blit_data.h);
 	else
-		memtoscreen_func(blit_data.x, blit_data.y, blit_data.y1, blit_data.y2, blit_data.w, blit_data.h);
+		blit_func(blit_data.x, blit_data.y, blit_data.y1, blit_data.y2, blit_data.w, blit_data.h);
 
 	blit_data.busy = 0;
 	thread_set_event(blit_data.blit_complete);
@@ -221,8 +214,8 @@ void blit_thread(void *param)
 void
 video_setblit(void(*blit8)(int,int,int,int),void(*blit)(int,int,int,int,int,int))
 {
-    memtoscreen_func = blit;
-    memtoscreen_8_func = blit8;
+    blit_func = blit;
+    blit8_func = blit8;
 }
 
 
@@ -296,6 +289,9 @@ void
 cgapal_rebuild(void)
 {
     int c;
+
+    /* We cannot do this (yet) if we have not been enabled yet. */
+    if (video_6to8 == NULL) return;
 
     for (c=0; c<256; c++) {
 	pal_lookup[c] = makecol(video_6to8[cgapal[c].r],
@@ -482,6 +478,8 @@ video_init(void)
 {
     int c, d, e;
 
+    pclog("VIDEO: initializing..\n");
+
     /* Account for overscan. */
     buffer32 = create_bitmap(2048, 2048);
 
@@ -583,7 +581,10 @@ loadfont(wchar_t *s, int format)
     int c,d;
 
     f = rom_fopen(s, L"rb");
-    if (f == NULL) return;
+    if (f == NULL) {
+	pclog("VIDEO: cannot load font '%ls', fmt=%d\n", s, format);
+	return;
+    }
 
     switch (format) {
 	case 0:		/* MDA */

@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.22	2017/10/16
+ * Version:	@(#)config.c	1.0.24	2017/10/18
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -101,7 +101,30 @@ typedef struct {
 }
 
 
+/* Commandline options. */
+int	dump_on_exit = 0;			/* (O) dump regs on exit */
+int	start_in_fullscreen = 0;		/* (O) start in fullscreen */
+
+/* Configuration values. */
+int	window_w, window_h,			/* (C) window size and */
+	window_x, window_y,			/*     position info */
+	window_remember,
+	vid_resize,				/* (C) allow resizing */
+	invert_display,				/* (C) invert the display */
+	suppress_overscan = 0;			/* (C) suppress overscans */
+int	scale = 0;				/* (C) screen scale factor */
+int	vid_api = 0;				/* (C) video renderer */
+int	vid_cga_contrast = 0,			/* (C) video */
+	video_fullscreen = 0,			/* (C) video */
+	video_fullscreen_scale = 0,		/* (C) video */
+	video_fullscreen_first = 0,		/* (C) video */
+	enable_overscan = 0,			/* (C) video */
+	force_43 = 0,				/* (C) video */
+	video_speed = 0;			/* (C) video */
+
+
 wchar_t config_file_default[256];
+
 
 static list_t	config_head;
 
@@ -416,23 +439,8 @@ load_general(void)
     vid_resize = !!config_get_int(cat, "vid_resize", 0);
 
     memset(temp, '\0', sizeof(temp));
-    p = config_get_string(cat, "vid_renderer", "d3d9");
-    if (p != NULL)
-	strcpy(temp, p);
-    if (! strcmp(temp, "ddraw"))
-	vid_api = 0;
-      else if (! strcmp(temp, "d3d9"))
-	vid_api = 1;
-#ifdef USE_VNC
-      else if (! strcmp(temp, "vnc"))
-	vid_api = 2;
-#endif
-#ifdef USE_RDP
-      else if (! strcmp(temp, "rdp"))
-	vid_api = 3;
-#endif
-      else
-	vid_api = 1;		/* default to d3d9 on invalid values */
+    p = config_get_string(cat, "vid_renderer", "default");
+    vid_api = plat_vidapi(p);
     config_delete_var(cat, "vid_api");
 
     video_fullscreen_scale = config_get_int(cat, "video_fullscreen_scale", 0);

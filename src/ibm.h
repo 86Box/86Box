@@ -567,8 +567,6 @@ uint32_t svga_color_transform(uint32_t color);
 extern "C" {
 #endif
 
-extern void	onesec(void);
-
 extern int	checkio(int port);
 extern void	codegen_block_end(void);
 extern void	codegen_reset(void);
@@ -606,11 +604,6 @@ extern void	x87_reset(void);
 #ifdef __cplusplus
 }
 #endif
-
-
-/* Configuration values. */
-#define SERIAL_MAX	2
-#define PARALLEL_MAX	1
 
 
 #endif	/*EMU_IBM_H*/

@@ -15,7 +15,7 @@
  *		time as between 12 and 46 cycles. We currently always use
  *		the lower number.
  *
- * Version:	@(#)vid_pc1512.c	1.0.1	2017/10/16
+ * Version:	@(#)vid_pc1512.c	1.0.3	2017/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -419,7 +419,7 @@ static void pc1512_poll(void *p)
                                         ysize = pc1512->lastline - pc1512->firstline;
                                         if (xsize < 64) xsize = 656;
                                         if (ysize < 32) ysize = 200;
-                                        updatewindowsize(xsize, (ysize << 1) + 16);
+                                        set_screen_size(xsize, (ysize << 1) + 16);
                                 }
 
                                 video_blit_memtoscreen_8(0, pc1512->firstline - 4, xsize, (pc1512->lastline - pc1512->firstline) + 8);

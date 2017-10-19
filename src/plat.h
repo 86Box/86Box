@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.9	2017/10/16
+ * Version:	@(#)plat.h	1.0.11	2017/10/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -33,7 +33,14 @@ extern "C" {
 #endif
 
 /* Global variables residing in the platform module. */
-GLOBAL int	dopause;
+GLOBAL int	dopause,			/* system is paused */
+		doresize,			/* screen resize requested */
+		quited,				/* system exit requested */
+		leave_fullscreen_flag;		/* windowed-mode requested */
+GLOBAL uint64_t	timer_freq;
+//GLOBAL int	efwinsizey;
+GLOBAL int	infocus;
+GLOBAL int	mousecapture;
 
 
 /* System-related functions. */
@@ -52,6 +59,10 @@ extern uint64_t	plat_timer_read(void);
 extern uint32_t	plat_get_ticks(void);
 extern void	plat_delay_ms(uint32_t count);
 extern void	plat_pause(int p);
+extern int	plat_vidapi(char *name);
+extern int	plat_setvid(int api);
+extern void	plat_setfullscreen(int on);
+extern void	plat_resize(int max_x, int max_y);
 
 
 /* Return the size (in wchar's) of a wchar_t array. */
@@ -71,7 +82,6 @@ extern wchar_t	*plat_get_string_from_string(char *str);
 /* Platform-specific device support. */
 extern uint8_t	host_cdrom_drive_available[26];
 extern uint8_t	host_cdrom_drive_available_num;
-extern uint32_t	cdrom_capacity;
 
 extern void	cdrom_init_host_drives(void);
 extern void	cdrom_eject(uint8_t id);
@@ -109,8 +119,6 @@ extern int	thread_release_mutex(mutex_t *mutex);
 /* Other stuff. */
 extern void	startblit(void);
 extern void	endblit(void);
-extern void	updatewindowsize(int x, int y);
-extern void	uws_natural(void);
 extern void	leave_fullscreen(void);
 extern void	take_screenshot(void);
 

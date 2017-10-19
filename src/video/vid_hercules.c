@@ -8,7 +8,7 @@
  *
  *		Hercules emulation.
  *
- * Version:	@(#)vid_hercules.c	1.0.2	2017/10/16
+ * Version:	@(#)vid_hercules.c	1.0.4	2017/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -290,7 +290,7 @@ void hercules_poll(void *p)
 //                                                printf("Resize to %i,%i - R1 %i\n",xsize,ysize,crtcm[1]);
                                                 if (xsize < 64) xsize = 656;
                                                 if (ysize < 32) ysize = 200;
-                                                updatewindowsize(xsize, ysize);
+                                                set_screen_size(xsize, ysize);
                                         }
                                         video_blit_memtoscreen_8(0, hercules->firstline, xsize, ysize);
                                         frames++;

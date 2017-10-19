@@ -8,7 +8,7 @@
  *
  *		Emulation of the old and new IBM CGA graphics cards.
  *
- * Version:	@(#)vid_cga.c	1.0.5	2017/10/16
+ * Version:	@(#)vid_cga.c	1.0.7	2017/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -402,7 +402,7 @@ void cga_poll(void *p)
                                                 ysize = cga->lastline - cga->firstline;
                                                 if (xsize < 64) xsize = 656;
                                                 if (ysize < 32) ysize = 200;
-                                                updatewindowsize(xsize, (ysize << 1) + 16);
+                                                set_screen_size(xsize, (ysize << 1) + 16);
                                         }
                                         
                                         if (cga->composite) 

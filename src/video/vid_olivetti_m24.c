@@ -8,7 +8,7 @@
  *
  *		Olivetti M24 video emulation- essentially double-res CGA.
  *
- * Version:	@(#)vid_olivetti_m24.c	1.0.1	2017/10/16
+ * Version:	@(#)vid_olivetti_m24.c	1.0.3	2017/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -410,7 +410,7 @@ void m24_poll(void *p)
                                                         ysize = m24->lastline - m24->firstline;
                                                         if (xsize < 64) xsize = 656;
                                                         if (ysize < 32) ysize = 200;
-                                                        updatewindowsize(xsize, ysize + 16);
+                                                        set_screen_size(xsize, ysize + 16);
                                                 }
 
                                                 video_blit_memtoscreen_8(0, m24->firstline - 8, xsize, (m24->lastline - m24->firstline) + 16);

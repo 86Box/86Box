@@ -8,7 +8,7 @@
  *
  *		Emulation of the Tandy Model 1000/SL video.
  *
- * Version:	@(#)vid_tandysl.c	1.0.1	2017/10/16
+ * Version:	@(#)vid_tandysl.c	1.0.3	2017/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -615,7 +615,7 @@ static void tandysl_poll(void *p)
                                                 ysize = tandy->lastline - tandy->firstline;
                                                 if (xsize < 64) xsize = 656;
                                                 if (ysize < 32) ysize = 200;
-                                                updatewindowsize(xsize, (ysize << 1) + 16);
+                                                set_screen_size(xsize, (ysize << 1) + 16);
                                         }
 
                                         video_blit_memtoscreen_8(0, tandy->firstline-4, xsize, (tandy->lastline - tandy->firstline) + 8);

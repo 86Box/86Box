@@ -6,9 +6,9 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Main emulator include file.
+ *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.4	2017/10/16
+ * Version:	@(#)86box.h	1.0.6	2017/10/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -23,6 +23,19 @@
 /* Configuration values. */
 #define SERIAL_MAX	2
 #define PARALLEL_MAX	1
+#define SCREEN_RES_X	640
+#define SCREEN_RES_Y	480
+
+/* Version info. */
+#define EMU_NAME	"86Box"
+#define EMU_NAME_W	L"86Box"
+#define EMU_VERSION	"2.00"
+#define EMU_VERSION_W	L"2.00"
+
+/* Filename and pathname info. */
+#define CONFIG_FILE_W	L"86box.cfg"
+#define NVR_PATH        L"nvr"
+#define SCREENSHOT_PATH L"screenshots"
 
 
 #if defined(ENABLE_BUSLOGIC_LOG) || \
@@ -38,57 +51,56 @@
 # define ENABLE_LOG_COMMANDS	1
 #endif
 
-#define EMU_VERSION	"2.00"
-#define EMU_VERSION_W	L"2.00"
 
-#define EMU_NAME	"86Box"
-#define EMU_NAME_W	L"86Box"
-
-#define CONFIG_FILE_W	L"86box.cfg"
-
-#define NVR_PATH        L"nvr"
-#define SCREENSHOT_PATH L"screenshots"
-
-
-/* Global variables. */
-#ifdef ENABLE_LOG_TOGGLES
-extern int buslogic_do_log;
-extern int cdrom_do_log;
-extern int d86f_do_log;
-extern int fdc_do_log;
-extern int ide_do_log;
-extern int serial_do_log;
-extern int nic_do_log;
-#endif
-
-extern int suppress_overscan;
-extern int invert_display;
-extern int scale;
-extern int vid_api;
-extern int vid_resize;
-extern int winsizex,winsizey;
-
-extern wchar_t exe_path[1024];
-extern wchar_t cfg_path[1024];
-
-extern uint64_t timer_freq;		/* plat.h */
-extern int infocus;			/* plat.h */
-
-extern int dump_on_exit;
-extern int start_in_fullscreen;
-extern int window_w, window_h, window_x, window_y, window_remember;
-
-
-/* Function prototypes. */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/* Global variables. */
+extern int	dump_on_exit;			/* (O) dump regs on exit*/
+extern int	start_in_fullscreen;		/* (O) start in fullscreen */
+
+extern int	window_w, window_h,		/* (C) window size and */
+		window_x, window_y,		/*     position info */
+		window_remember,
+		vid_resize,			/* (C) allow resizing */
+		invert_display,			/* (C) invert the display */
+		suppress_overscan;		/* (C) suppress overscans */
+extern int	scale;				/* (C) screen scale factor */
+extern int	vid_api;			/* (C) video renderer */
+extern int	vid_cga_contrast,		/* (C) video */
+		video_fullscreen,		/* (C) video */
+		video_fullscreen_first,		/* (C) video */
+		video_fullscreen_scale,		/* (C) video */
+		enable_overscan,		/* (C) video */
+		force_43,			/* (C) video */
+		video_speed;			/* (C) video */
+
+
+#ifdef ENABLE_LOG_TOGGLES
+extern int	buslogic_do_log;
+extern int	cdrom_do_log;
+extern int	d86f_do_log;
+extern int	fdc_do_log;
+extern int	ide_do_log;
+extern int	serial_do_log;
+extern int	nic_do_log;
+#endif
+
+extern wchar_t	exe_path[1024];			/* path (dir) of executable */
+extern wchar_t	cfg_path[1024];			/* path (dir) of user data */
+extern int	scrnsz_x,			/* current screen size, X */
+		scrnsz_y;			/* current screen size, Y */
+
+
+/* Function prototypes. */
 extern void	pclog(const char *format, ...);
 extern void	fatal(const char *format, ...);
+extern void	set_screen_size(int x, int y);
+extern void	set_screen_size_natural(void);
 extern int	pc_init_modules(void);
 extern int	pc_init(int argc, wchar_t *argv[]);
-extern void	pc_close(void);
+extern void	pc_close(void *threadid);
 extern void	pc_reset_hard_close(void);
 extern void	pc_reset_hard_init(void);
 extern void	pc_reset_hard(void);
@@ -97,7 +109,9 @@ extern void	pc_full_speed(void);
 extern void	pc_speed_changed(void);
 extern void	pc_send_cad(void);
 extern void	pc_send_cae(void);
-extern void	pc_run(void);
+extern void	pc_thread(void *param);
+extern void	pc_start(void);
+extern void	pc_onesec(void);
 
 #ifdef __cplusplus
 }

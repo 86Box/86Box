@@ -8,23 +8,31 @@
  *
  *		Definitions for the VNC renderer.
  *
- * Version:	@(#)win_vnc.h	1.0.1	2017/10/13
+ * Version:	@(#)vnc.h	1.0.3	2017/10/18
  *
  * Authors:	RichardG, <richardg867@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2017 Fred N. van Kempen.
  */
-#ifndef WIN_VNC_H
-# define WIN_VNC_H
+#ifndef EMU_VNC_H
+# define EMU_VNC_H
 
 
-extern int	vnc_init(HWND h);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern int	vnc_init(void *);
 extern void	vnc_close(void);
 extern void	vnc_resize(int x, int y);
 extern int	vnc_pause(void);
 
 extern void	vnc_take_screenshot(wchar_t *fn);
 
+#ifdef __cplusplus
+}
+#endif
 
-#endif	/*WIN_VNC_H*/
+
+#endif	/*EMU_VNC_H*/

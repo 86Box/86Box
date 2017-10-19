@@ -8,7 +8,7 @@
  *
  *		MDSI Genius VHR emulation.
  *
- * Version:	@(#)vid_genius.c	1.0.1	2017/10/16
+ * Version:	@(#)vid_genius.c	1.0.3	2017/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -557,7 +557,7 @@ void genius_poll(void *p)
                                 ysize = GENIUS_YSIZE;
                                 if (xsize < 64) xsize = 656;
                                 if (ysize < 32) ysize = 200;
-                                updatewindowsize(xsize, ysize);
+                                set_screen_size(xsize, ysize);
                         }
                         video_blit_memtoscreen_8(0, 0, xsize, ysize);
 

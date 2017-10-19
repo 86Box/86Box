@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)pc.c	1.0.28	2017/10/16
+ * Version:	@(#)pc.c	1.0.29	2017/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -77,30 +77,44 @@
 #include "plat_mouse.h"
 
 
-int	window_w, window_h, window_x, window_y, window_remember;
-int	dump_on_exit = 0;
-int	start_in_fullscreen = 0;
+/* Statistics. */
+extern int	mmuflush,
+		readlnum,
+		writelnum;
+
+
+/* Statistics. */
+int	sndcount = 0;
+int	sreadlnum,
+	swritelnum,
+	segareads,
+	segawrites,
+	scycles_lost;
+float	mips, flops;
+int	cycles_lost = 0;			// video
+int	insc = 0;				// cpu
+int	emu_fps = 0, fps;			// video
+int	framecount;
+
 int	CPUID;
-int	vid_resize, vid_api;
 int	output;
 int	atfullspeed;
-int	cycles_lost = 0;
-int	clockrate;
-int	insc = 0;
-float	mips, flops;
-int	framecount, fps;
-int	win_title_update = 0;
-int	status_update_needed = 0;
-int	pollmouse_delay = 2;
-int	mousecapture;
-int	suppress_overscan = 0;
 int	cpuspeed2;
-wchar_t	exe_path[1024];
-wchar_t	cfg_path[1024];
+int	clockrate;
+
+int	gfx_present[GFX_MAX];			// should not be here
+
+wchar_t	exe_path[1024];				/* path (dir) of executable */
+wchar_t	cfg_path[1024];				/* path (dir) of user data */
+int	scrnsz_x = SCREEN_RES_X,		/* current screen size, X */
+	scrnsz_y = SCREEN_RES_Y;		/* current screen size, Y */
+int	title_update;
+int	mousecapture;
+int64_t	main_time;
 
 
-extern int mmuflush;
-extern int readlnum,writelnum;
+static int	unscaled_size_x = SCREEN_RES_X,	/* current unscaled size X */
+		unscaled_size_y = SCREEN_RES_Y;	/* current unscaled size Y */
 
 
 /* Log something to the logfile or stdout. */
@@ -146,6 +160,95 @@ fatal(const char *format, ...)
    fflush(stdout);
 
    exit(-1);
+}
+
+
+void
+set_screen_size(int x, int y)
+{
+    int owsx = scrnsz_x;
+    int owsy = scrnsz_y;
+    int temp_overscan_x = overscan_x;
+    int temp_overscan_y = overscan_y;
+    double dx, dy, dtx, dty;
+    int efscrnsz_y;
+
+    /* Make sure we keep usable values. */
+    pclog("SetScreenSize(%d, %d) resize=%d\n", x, y, vid_resize);
+    if (x < 320) x = 320;
+    if (y < 200) y = 200;
+    if (x > 2048) x = 2048;
+    if (y > 2048) y = 2048;
+
+    /* Save the new values as "real" (unscaled) resolution. */
+    unscaled_size_x = x;
+    efscrnsz_y = y;
+
+    if (suppress_overscan)
+	temp_overscan_x = temp_overscan_y = 0;
+
+    if (force_43) {
+	dx = (double)x;
+	dtx = (double)temp_overscan_x;
+
+	dy = (double)y;
+	dty = (double)temp_overscan_y;
+
+	/* Account for possible overscan. */
+	if (temp_overscan_y == 16) {
+		/* CGA */
+		dy = (((dx - dtx) / 4.0) * 3.0) + dty;
+	} else if (temp_overscan_y < 16) {
+		/* MDA/Hercules */
+		dy = (x / 4.0) * 3.0;
+	} else {
+		if (enable_overscan) {
+			/* EGA/(S)VGA with overscan */
+			dy = (((dx - dtx) / 4.0) * 3.0) + dty;
+		} else {
+			/* EGA/(S)VGA without overscan */
+			dy = (x / 4.0) * 3.0;
+		}
+	}
+	unscaled_size_y = (int)dy;
+    } else {
+	unscaled_size_y = efscrnsz_y;
+    }
+
+    switch(scale) {
+	case 0:		/* 50% */
+		scrnsz_x = (unscaled_size_x>>1);
+		scrnsz_y = (unscaled_size_y>>1);
+		break;
+
+	case 1:		/* 100% */
+		scrnsz_x = unscaled_size_x;
+		scrnsz_y = unscaled_size_y;
+		break;
+
+	case 2:		/* 150% */
+		scrnsz_x = ((unscaled_size_x*3)>>1);
+		scrnsz_y = ((unscaled_size_y*3)>>1);
+		break;
+
+	case 3:		/* 200% */
+		scrnsz_x = (unscaled_size_x<<1);
+		scrnsz_y = (unscaled_size_y<<1);
+		break;
+    }
+
+    /* If the resolution has changed, let the main thread handle it. */
+    if ((owsx != scrnsz_x) || (owsy != scrnsz_y))
+	doresize = 1;
+      else
+	doresize = 0;
+}
+
+
+void
+set_screen_size_natural(void)
+{
+    set_screen_size(unscaled_size_x, unscaled_size_y);
 }
 
 
@@ -312,8 +415,7 @@ pc_init_modules(void)
     int c, i;
 
     pclog("Scanning for ROM images:\n");
-    c = 0;
-    for (i=0; i<ROM_MAX; i++) {
+    for (c=0,i=0; i<ROM_MAX; i++) {
 	romspresent[i] = rom_load_bios(i);
 	c += romspresent[i];
     }
@@ -323,23 +425,23 @@ pc_init_modules(void)
     }
     pclog("A total of %d ROM sets have been loaded.\n", c);
 
-    /*
-     * Load the ROMs for the selected machine.
-     *
-     * FIXME:
-     * We should not do that here.  If something turns out
-     * to be wrong with the configuration (such as missing
-     * ROM images, we should just display a fatal message
-     * in the render window's center, let them click OK,
-     * and then exit so they can remedy the situation.
-     */
+    /* Load the ROMs for the selected machine. */
 again:
     if (! rom_load_bios(romset)) {
 	/* Whoops, ROMs not found. */
 	if (romset != -1)
 		ui_msgbox(MBX_INFO, (wchar_t *)IDS_2063);
 
-	/* Select another machine to use. */
+	/*
+	 * Select another machine to use.
+	 *
+	 * FIXME:
+	 * We should not do that here.  If something turns out
+	 * to be wrong with the configuration (such as missing
+	 * ROM images, we should just display a fatal message
+	 * in the render window's center, let them click OK,
+	 * and then exit so they can remedy the situation.
+	 */
 	for (c=0; c<ROM_MAX; c++) {
 		if (romspresent[c]) {
 			romset = c;
@@ -613,9 +715,34 @@ pc_reset(int hard)
 
 
 void
-pc_close(void)
+pc_close(thread_t *ptr)
 {
     int i;
+
+    /* Wait a while so things can shut down. */
+    plat_delay_ms(200);
+
+    /* Claim the video blitter. */
+    startblit();
+
+    /* Terminate the main thread. */
+    if (ptr != NULL) {
+	thread_kill(ptr);
+
+	/* Wait some more. */
+	plat_delay_ms(200);
+    }
+
+    nvr_save();
+
+    config_save();
+
+#if 0
+    if (mousecapture) {
+        ClipCursor(&oldclip);
+        ShowCursor(TRUE);
+    }
+#endif
 
     for (i=0; i<CDROM_NUM; i++)
 	cdrom_drives[i].handler->exit(i);
@@ -640,134 +767,216 @@ pc_close(void)
 
 
 /*
- * Run the actual configured PC.
+ * The main thread runs the actual emulator code.
+ *
+ * We basically run until the upper layers terminate us, by
+ * setting the variable 'quited' there to 1. We get a pointer
+ * to that variable as our function argument.
  */
-int framecountx=0;
-int sndcount=0;
-int sreadlnum,swritelnum,segareads,segawrites, scycles_lost;
-int serial_fifo_read, serial_fifo_write;
-int emu_fps = 0;
-
-static wchar_t wmachine[2048];
-static wchar_t wcpu[2048];
-
-
-static void
-pollmouse(void)
-{
-    int x, y, z;
-
-    if (--pollmouse_delay) return;
-
-    pollmouse_delay = 2;
-
-    mouse_poll_host();
-
-    mouse_get_mickeys(&x, &y, &z);
-
-    mouse_poll(x, y, z, mouse_buttons);
-}
-
-
 void
-pc_run(void)
+pc_thread(void *param)
 {
-    wchar_t temp[200];
-    int done = 0;
+    wchar_t temp[200], wcpu[2048];
+    wchar_t wmachine[2048];
+    uint64_t start_time, end_time;
+    uint32_t old_time, new_time;
+    int status_update_needed;
+    int done, drawits, frames;
+    int *quitp = (int *)param;
+    int framecountx;
 
-    startblit();
-    clockrate = machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed;
-        
-    if (is386)   {
-#ifdef USE_DYNAREC
-	if (cpu_use_dynarec)
-		exec386_dynarec(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
-	else
+    pclog("PC: starting main thread...\n");
+
+    main_time = 0;
+    framecountx = 0;
+    status_update_needed = title_update = 1;
+    old_time = plat_get_ticks();
+    done = drawits = frames = 0;
+    while (! *quitp) {
+	/* Update the Stat(u)s window with the current info. */
+	if (status_update_needed) {
+#if 1
+		pclog("Updating STATS window..\n");
+//		ui_status_update();
 #endif
-		exec386(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
-    } else if (AT) {
-	exec386(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
-    } else {
-	execx86(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed / 100);
-    }
+		status_update_needed = 0;
+	}
 
-    keyboard_process();
+	/* See if it is time to run a frame of code. */
+	new_time = plat_get_ticks();
+	drawits += (new_time - old_time);
+	old_time = new_time;
+	if (drawits > 0 && !dopause) {
+		/* Yes, so do one frame now. */
+		start_time = plat_timer_read();
+		drawits -= 10;
+		if (drawits > 50)
+			drawits = 0;
 
-    pollmouse();
+		/* Run a block of code. */
+		startblit();
+		clockrate = machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed;
 
-    if (joystick_type != 7)
-	joystick_poll();
+		if (is386) {
+#ifdef USE_DYNAREC
+			if (cpu_use_dynarec)
+				exec386_dynarec(clockrate/100);
+			  else
+#endif
+				exec386(clockrate/100);
+		} else if (AT) {
+			exec386(clockrate/100);
+		} else {
+			execx86(clockrate/100);
+		}
 
-    endblit();
+		keyboard_process();
 
-    framecountx++;
-    framecount++;
-    if (framecountx >= 100) {
-	framecountx = 0;
-	mips = (float)insc/1000000.0f;
-	insc = 0;
-	flops = (float)fpucount/1000000.0f;
-	fpucount = 0;
-	sreadlnum = readlnum;
-	swritelnum = writelnum;
-	segareads = egareads;
-	segawrites = egawrites;
-	scycles_lost = cycles_lost;
+		mouse_process();
+
+		joystick_process();
+
+		endblit();
+
+		/* Done with this frame, update statistics. */
+		framecount++;
+		if (++framecountx >= 100) {
+			framecountx = 0;
+
+			/* FIXME: all this should go into a "stats" struct! */
+			mips = (float)insc/1000000.0f;
+			insc = 0;
+			flops = (float)fpucount/1000000.0f;
+			fpucount = 0;
+			sreadlnum = readlnum;
+			swritelnum = writelnum;
+			segareads = egareads;
+			segawrites = egawrites;
+			scycles_lost = cycles_lost;
 
 #ifdef USE_DYNAREC
-	cpu_recomp_blocks_latched = cpu_recomp_blocks;
-	cpu_recomp_ins_latched = cpu_state.cpu_recomp_ins;
-	cpu_recomp_full_ins_latched = cpu_recomp_full_ins;
-	cpu_new_blocks_latched = cpu_new_blocks;
-	cpu_recomp_flushes_latched = cpu_recomp_flushes;
-	cpu_recomp_evicted_latched = cpu_recomp_evicted;
-	cpu_recomp_reuse_latched = cpu_recomp_reuse;
-	cpu_recomp_removed_latched = cpu_recomp_removed;
-	cpu_reps_latched = cpu_reps;
-	cpu_notreps_latched = cpu_notreps;
+			cpu_recomp_blocks_latched = cpu_recomp_blocks;
+			cpu_recomp_ins_latched = cpu_state.cpu_recomp_ins;
+			cpu_recomp_full_ins_latched = cpu_recomp_full_ins;
+			cpu_new_blocks_latched = cpu_new_blocks;
+			cpu_recomp_flushes_latched = cpu_recomp_flushes;
+			cpu_recomp_evicted_latched = cpu_recomp_evicted;
+			cpu_recomp_reuse_latched = cpu_recomp_reuse;
+			cpu_recomp_removed_latched = cpu_recomp_removed;
+			cpu_reps_latched = cpu_reps;
+			cpu_notreps_latched = cpu_notreps;
 
-	cpu_recomp_blocks = 0;
-	cpu_state.cpu_recomp_ins = 0;
-	cpu_recomp_full_ins = 0;
-	cpu_new_blocks = 0;
-	cpu_recomp_flushes = 0;
-	cpu_recomp_evicted = 0;
-	cpu_recomp_reuse = 0;
-	cpu_recomp_removed = 0;
-	cpu_reps = 0;
-	cpu_notreps = 0;
+			cpu_recomp_blocks = 0;
+			cpu_state.cpu_recomp_ins = 0;
+			cpu_recomp_full_ins = 0;
+			cpu_new_blocks = 0;
+			cpu_recomp_flushes = 0;
+			cpu_recomp_evicted = 0;
+			cpu_recomp_reuse = 0;
+			cpu_recomp_removed = 0;
+			cpu_reps = 0;
+			cpu_notreps = 0;
 #endif
 
-	status_update_needed = 1;
-	readlnum = writelnum = 0;
-	egareads = egawrites = 0;
-	cycles_lost = 0;
-	mmuflush = 0;
-	emu_fps = frames;
-	frames = 0;
-    }
+			readlnum = writelnum = 0;
+			egareads = egawrites = 0;
+			cycles_lost = 0;
+			mmuflush = 0;
+			emu_fps = frames;
+			frames = 0;
 
-    if (win_title_update) {
-	mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
-	mbstowcs(wcpu, machines[machine].cpu[cpu_manufacturer].cpus[cpu].name,
-		 strlen(machines[machine].cpu[cpu_manufacturer].cpus[cpu].name)+1);
-	swprintf(temp, sizeof_w(temp), L"%ls v%ls - %i%% - %ls - %ls - %ls",
-		  EMU_NAME_W, EMU_VERSION_W, fps, wmachine, wcpu,
-		  (!mousecapture) ? plat_get_string(IDS_2077)
+			/* We need a Status window update now. */
+			status_update_needed = 1;
+		}
+
+		if (title_update) {
+			mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
+			mbstowcs(wcpu, machines[machine].cpu[cpu_manufacturer].cpus[cpu].name,
+				 strlen(machines[machine].cpu[cpu_manufacturer].cpus[cpu].name)+1);
+			swprintf(temp, sizeof_w(temp),
+				 L"%ls v%ls - %i%% - %ls - %ls - %ls",
+				 EMU_NAME_W,EMU_VERSION_W,fps,wmachine,wcpu,
+				 (!mousecapture) ? plat_get_string(IDS_2077)
 				  : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079)));
-	ui_window_title(temp);
 
-	win_title_update = 0;
+			ui_window_title(temp);
+
+			title_update = 0;
+		}
+
+		/* One more frame done! */
+		done++;
+
+		/* Every 200 frames we save the machine status. */
+		if (++frames >= 200 && nvr_dosave) {
+			nvr_save();
+			nvr_dosave = 0;
+			frames = 0;
+		}
+
+		end_time = plat_timer_read();
+		main_time += (end_time - start_time);
+	} else {
+		/* Just so we dont overload the host OS. */
+		plat_delay_ms(1);
+	}
+
+	/* If needed, hand a screen resize. */
+	if (!video_fullscreen && doresize && (scrnsz_x>0) && (scrnsz_y>0)) {
+#if 1
+		plat_resize(scrnsz_x, scrnsz_y);
+#else
+		SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM)sb_borders);
+		GetWindowRect(hwndMain, &r);
+		MoveWindow(hwndRender, 0, 0, scrnsz_x, scrnsz_y, TRUE);
+		GetWindowRect(hwndRender, &r);
+		MoveWindow(hwndSBAR,
+			   0, r.bottom+GetSystemMetrics(SM_CYEDGE),
+			   scrnsz_x, 17, TRUE);
+		GetWindowRect(hwndMain, &r);
+
+		MoveWindow(hwndMain, r.left, r.top,
+			   scrnsz_x+(GetSystemMetrics(vid_resize ? SM_CXSIZEFRAME : SM_CXFIXEDFRAME) * 2),
+			   scrnsz_y+(GetSystemMetrics(SM_CYEDGE)*2)+(GetSystemMetrics(vid_resize?SM_CYSIZEFRAME:SM_CYFIXEDFRAME)*2)+GetSystemMetrics(SM_CYMENUSIZE)+GetSystemMetrics(SM_CYCAPTION)+17+sb_borders[1]+1,
+			   TRUE);
+
+		if (mousecapture) {
+			GetWindowRect(hwndRender, &r);
+			ClipCursor(&r);
+		}
+#endif
+
+		doresize = 0;
+	}
+
+	/* If requested, leave full-screen mode. */
+	if (leave_fullscreen_flag) {
+#if 1
+		pclog("Leaving full-screen mode..\n");
+//		plat_fullscreen(0);
+#else
+		SendMessage(hwndMain, WM_LEAVEFULLSCREEN, 0, 0);
+#endif
+		leave_fullscreen_flag = 0;
+	}
+
+#if 0
+	/* Do we really need this all the time? */
+	if (video_fullscreen && infocus)
+		SetCursorPos(9999, 9999);
+#endif
     }
 
-    done++;
+    pclog("PC: main thread done.\n");
 }
 
 
+/* Handler for the 1-second timer to refresh the window title. */
 void
-onesec(void)
+pc_onesec(void)
 {
     fps = framecount;
     framecount = 0;
-    win_title_update = 1;
+
+    title_update = 1;
 }

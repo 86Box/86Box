@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.25	2017/10/16
+ * Version:	@(#)win.c	1.0.27	2017/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -59,11 +59,7 @@
 #include "../plat_midi.h"
 #include "../ui.h"
 #include "win.h"
-#include "win_ddraw.h"
 #include "win_d3d.h"
-#ifdef USE_VNC
-# include "win_vnc.h"
-#endif
 
 
 #define TIMER_1SEC	1
@@ -74,32 +70,18 @@ typedef struct {
 } rc_str_t;
 
 
-extern int	status_update_needed;
-
-
-/* Public data, more or less non-specific to platform. */
-int		scale = 0;
-uint64_t	timer_freq;
-int		winsizex = 640,
-		winsizey = 480;
-int		efwinsizey = 480;
-int		gfx_present[GFX_MAX];
-int		drawits = 0;
-int		mousecapture = 0;
-uint64_t	main_time;
-
-/* Public data, specific to platform. */
-HWND		hwndMain;
-HMENU		menuMain;
+/* Platform Public data, specific (defined in lnx.h.) */
+HINSTANCE	hinstance;		/* application instance */
+HWND		hwndMain,		/* application main window */
+		hwndRender;		/* machine render window */
+HMENU		menuMain;		/* application main menu */
 HANDLE		ghMutex;
-HINSTANCE	hinstance;
-HICON		hIcon[512];
-RECT		oldclip;
-LCID		dwLanguage;
+HICON		hIcon[512];		/* icon data loaded from resources */
+LCID		lang_id;		/* current language ID used */
+DWORD		dwSubLangID;
+RECT		oldclip;		/* mouse rect */
 int		infocus = 1;
-int		recv_key[272];
-uint32_t	dwLangID,
-		dwSubLangID;
+int		recv_key[272];		/* keyboard input buffer */
 
 char		openfilestring[260];
 WCHAR		wopenfilestring[260];
@@ -107,19 +89,11 @@ WCHAR		wopenfilestring[260];
 
 /* Local data. */
 static HANDLE	thMain;
-static HWND	hwndRender;		/* machine render window */
 static wchar_t	wTitle[512];
 static RAWINPUTDEVICE	device;
 static HHOOK	hKeyboardHook;
 static int	hook_enabled = 0;
 static int	save_window_pos = 0;
-static int	doresize = 0;
-static int	quited;
-static int	leave_fullscreen_flag = 0;
-static int	unscaled_size_x = 0;
-static int	unscaled_size_y = 0;
-static uint64_t	start_time;
-static uint64_t	end_time;
 static wchar_t	**argv;
 static int	argc;
 static wchar_t	*argbuf;
@@ -132,42 +106,6 @@ static rc_str_t	*lpRCstr2048,
 		*lpRCstr5376,
 		*lpRCstr5632,
 		*lpRCstr6144;
-static struct {
-    int		local;
-    int		(*init)(HWND h);
-    void	(*close)(void);
-    void	(*resize)(int x, int y);
-    int		(*pause)(void);
-} vid_apis[2][4] = {
-  {
-    {	1, ddraw_init, ddraw_close, NULL, ddraw_pause		},
-    {	1, d3d_init, d3d_close, d3d_resize, d3d_pause		},
-#ifdef USE_VNC
-    {	0, vnc_init, vnc_close, vnc_resize, vnc_pause		},
-#else
-    {	0, NULL, NULL, NULL, NULL				},
-#endif
-#ifdef USE_RDP
-    {	0, rdp_init, rdp_close, rdp_resize, rdp_pause		}
-#else
-    {	0, NULL, NULL, NULL, NULL				}
-#endif
-  },
-  {
-    {	1, ddraw_fs_init, ddraw_fs_close, NULL, ddraw_fs_pause	},
-    {	1, d3d_fs_init, d3d_fs_close, NULL, d3d_fs_pause	},
-#ifdef USE_VNC
-    {	0, vnc_init, vnc_close, vnc_resize, vnc_pause		},
-#else
-    {	0, NULL, NULL, NULL, NULL				},
-#endif
-#ifdef USE_RDP
-    {	0, rdp_init, rdp_close, rdp_resize, rdp_pause		}
-#else
-    {	0, NULL, NULL, NULL, NULL				}
-#endif
-  }
-};
 
 
 HICON
@@ -216,80 +154,6 @@ video_toggle_option(HMENU h, int *val, int id)
     endblit();
     config_save();
     device_force_redraw();
-}
-
-
-/* The main thread runs the actual emulator code. */
-static void
-MainThread(LPVOID param)
-{
-    int sb_borders[3];
-    DWORD old_time, new_time;
-    int frames = 0;
-    RECT r;
-
-    drawits = 0;
-    old_time = plat_get_ticks();
-    while (! quited) {
-	if (status_update_needed) {
-		if (hwndStatus != NULL)
-			SendMessage(hwndStatus, WM_USER, 0, 0);
-		status_update_needed = 0;
-	}
-
-	new_time = plat_get_ticks();
-	drawits += new_time - old_time;
-	old_time = new_time;
-	if (drawits > 0 && !dopause) {
-		start_time = plat_timer_read();
-		drawits -= 10;
-		if (drawits > 50) drawits = 0;
-		pc_run();
-
-		if (++frames >= 200 && nvr_dosave) {
-			frames = 0;
-			nvr_save();
-			nvr_dosave = 0;
-		}
-
-		end_time = plat_timer_read();
-		main_time += end_time - start_time;
-	} else
-		plat_delay_ms(1);
-
-	if (!video_fullscreen && vid_apis[0][vid_api].local &&
-	    doresize && (winsizex>0) && (winsizey>0)) {
-		SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
-		GetWindowRect(hwndMain, &r);
-		MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
-		GetWindowRect(hwndRender, &r);
-		MoveWindow(hwndSBAR,
-			   0, r.bottom + GetSystemMetrics(SM_CYEDGE),
-			   winsizex, 17, TRUE);
-		GetWindowRect(hwndMain, &r);
-
-		MoveWindow(hwndMain, r.left, r.top,
-			   winsizex + (GetSystemMetrics(vid_resize ? SM_CXSIZEFRAME : SM_CXFIXEDFRAME) * 2),
-			   winsizey + (GetSystemMetrics(SM_CYEDGE) * 2) + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 17 + sb_borders[1] + 1,
-			   TRUE);
-
-		if (mousecapture) {
-			GetWindowRect(hwndRender, &r);
-			ClipCursor(&r);
-		}
-
-		doresize = 0;
-	}
-
-	if (leave_fullscreen_flag) {
-		leave_fullscreen_flag = 0;
-
-		SendMessage(hwndMain, WM_LEAVEFULLSCREEN, 0, 0);
-	}
-
-	if (video_fullscreen && infocus)
-		SetCursorPos(9999, 9999);
-    }
 }
 
 
@@ -399,7 +263,7 @@ static LRESULT CALLBACK
 LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     BOOL bControlKeyDown;
-    KBDLLHOOKSTRUCT* p;
+    KBDLLHOOKSTRUCT *p;
 
     if (nCode < 0 || nCode != HC_ACTION)
 	return(CallNextHookEx(hKeyboardHook, nCode, wParam, lParam));
@@ -528,42 +392,12 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 #ifdef USE_RDP
 			case IDM_VID_RDP:
 #endif
-				startblit();
-				video_wait_for_blit();
-				CheckMenuItem(hmenu, IDM_VID_DDRAW+vid_api, MF_UNCHECKED);
-				vid_apis[0][vid_api].close();
-				vid_api = LOWORD(wParam) - IDM_VID_DDRAW;
-				if (vid_apis[0][vid_api].local)
-					ShowWindow(hwndRender, SW_SHOW);
-				  else
-					ShowWindow(hwndRender, SW_HIDE);
-				CheckMenuItem(hmenu, IDM_VID_DDRAW+vid_api, MF_CHECKED);
-				vid_apis[0][vid_api].init(hwndRender);
-				endblit();
-				device_force_redraw();
-				cgapal_rebuild();
+				plat_setvid(LOWORD(wParam) - IDM_VID_DDRAW);
 				config_save();
 				break;
 
 			case IDM_VID_FULLSCREEN:
-				if (video_fullscreen == 1) break;
-
-				if (video_fullscreen_first) {
-					video_fullscreen_first = 0;
-					ui_msgbox(MBX_INFO, (wchar_t *)IDS_2074);
-				}
-
-				startblit();
-				video_wait_for_blit();
-				mouse_close();
-				vid_apis[0][vid_api].close();
-				video_fullscreen = 1;
-				vid_apis[1][vid_api].init(hwndMain);
-				mouse_init();
-				leave_fullscreen_flag = 0;
-				endblit();
-				device_force_redraw();
-				cgapal_rebuild();
+				plat_setfullscreen(1);
 				config_save();
 				break;
 
@@ -802,28 +636,17 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_SIZE:
-		winsizex = (lParam & 0xFFFF);
-		winsizey = (lParam >> 16) - (17 + 6);
-		if (winsizey < 0)
-			winsizey = 0;
+		scrnsz_x = (lParam & 0xFFFF);
+		scrnsz_y = (lParam >> 16) - (17 + 6);
+		if (scrnsz_y < 0)
+			scrnsz_y = 0;
 
-		MoveWindow(hwndSBAR, 0, winsizey + 6, winsizex, 17, TRUE);
+		plat_resize(scrnsz_x, scrnsz_y);
 
-		if (vid_apis[0][vid_api].local && (hwndRender != NULL)) {
-			MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
+		if (mousecapture) {
+			GetWindowRect(hwndRender, &rect);
 
-			if (vid_apis[video_fullscreen][vid_api].resize) {
-				startblit();
-				video_wait_for_blit();
-				vid_apis[video_fullscreen][vid_api].resize(winsizex, winsizey);
-				endblit();
-			}
-
-			if (mousecapture) {
-				GetWindowRect(hwndRender, &rect);
-
-				ClipCursor(&rect);
-			}
+			ClipCursor(&rect);
 		}
 
 		if (window_remember) {
@@ -851,7 +674,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 
 	case WM_TIMER:
 		if (wParam == TIMER_1SEC) {
-			onesec();
+			pc_onesec();
 		}
 		break;
 
@@ -865,15 +688,8 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_LEAVEFULLSCREEN:
-		startblit();
-		mouse_close();
-		vid_apis[1][vid_api].close();
-		video_fullscreen = 0;
+		plat_setfullscreen(0);
 		config_save();
-		vid_apis[0][vid_api].init(hwndRender);
-		mouse_init();
-		endblit();
-		device_force_redraw();
 		cgapal_rebuild();
 		break;
 
@@ -1080,7 +896,15 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     HWND hwnd;				/* handle for our window */
     HACCEL haccel;			/* handle to accelerator table */
     int bRet;
-    LARGE_INTEGER qpc_freq;
+
+    /* We need this later. */
+    hinstance = hInst;
+
+    /* First, set our (default) language. */
+    set_language(0x0409);
+
+    /* Load common strings from the resource file. */
+    LoadCommonStrings();
 
 #ifdef USE_CONSOLE
     /* Create console window. */
@@ -1099,20 +923,14 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 	return(1);
     }
 
-    /* We need this later. */
-    hinstance = hInst;
-
-    /* Load common strings from the resource file. */
-    LoadCommonStrings();
-
     /* Create our main window's class and register it. */
-    wincl.hInstance = hInst;
+    wincl.hInstance = hinstance;
     wincl.lpszClassName = CLASS_NAME;
     wincl.lpfnWndProc = MainWindowProcedure;
     wincl.style = CS_DBLCLKS;		/* Catch double-clicks */
     wincl.cbSize = sizeof(WNDCLASSEX);
-    wincl.hIcon = LoadIcon(hInst, (LPCTSTR)100);
-    wincl.hIconSm = LoadIcon(hInst, (LPCTSTR)100);
+    wincl.hIcon = LoadIcon(hinstance, (LPCTSTR)100);
+    wincl.hIconSm = LoadIcon(hinstance, (LPCTSTR)100);
     wincl.hCursor = NULL;
     wincl.lpszMenuName = NULL;
     wincl.cbClsExtra = 0;
@@ -1126,7 +944,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 			return(2);
 
     /* Load the Window Menu(s) from the resources. */
-    menuMain = LoadMenu(hInst, MENU_NAME);
+    menuMain = LoadMenu(hinstance, MENU_NAME);
 
     /* Set the initial title for the program's main window. */
     _swprintf(title, L"%s v%s", EMU_NAME_W, EMU_VERSION_W);
@@ -1139,17 +957,17 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 		(WS_OVERLAPPEDWINDOW & ~WS_SIZEBOX) | DS_3DLOOK,
 		CW_USEDEFAULT,		/* Windows decides the position */
 		CW_USEDEFAULT,		/* where window ends up on the screen */
-		640+(GetSystemMetrics(SM_CXFIXEDFRAME)*2),	/* width */
-		480+(GetSystemMetrics(SM_CYFIXEDFRAME)*2)+GetSystemMetrics(SM_CYMENUSIZE)+GetSystemMetrics(SM_CYCAPTION)+1,	/* and height in pixels */
+		scrnsz_x+(GetSystemMetrics(SM_CXFIXEDFRAME)*2),	/* width */
+		scrnsz_y+(GetSystemMetrics(SM_CYFIXEDFRAME)*2)+GetSystemMetrics(SM_CYMENUSIZE)+GetSystemMetrics(SM_CYCAPTION)+1,	/* and height in pixels */
 		HWND_DESKTOP,		/* window is a child to desktop */
 		menuMain,		/* menu */
-		hInst,			/* Program Instance handler */
+		hinstance,		/* Program Instance handler */
 		NULL);			/* no Window Creation data */
     hwndMain = hwnd;
 
     ui_window_title(title);
 
-    /* Resize the window if needed. */
+    /* Set up main window for resizing if configured. */
     if (vid_resize)
 	SetWindowLongPtr(hwnd, GWL_STYLE,
 			(WS_OVERLAPPEDWINDOW&~WS_MINIMIZEBOX));
@@ -1157,6 +975,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 	SetWindowLongPtr(hwnd, GWL_STYLE,
 			(WS_OVERLAPPEDWINDOW&~WS_SIZEBOX&~WS_THICKFRAME&~WS_MAXIMIZEBOX&~WS_MINIMIZEBOX));
 
+    /* Move to the last-saved position if needed. */
     if (window_remember)
 	MoveWindow(hwnd, window_x, window_y, window_w, window_h, TRUE);
 
@@ -1167,7 +986,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     ShowWindow(hwnd, nFunsterStil);
 
     /* Load the accelerator table */
-    haccel = LoadAccelerators(hInst, ACCEL_NAME);
+    haccel = LoadAccelerators(hinstance, ACCEL_NAME);
     if (haccel == NULL) {
 	MessageBox(hwndMain,
 		   plat_get_string(IDS_2053),
@@ -1192,7 +1011,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     get_registry_key_map();
 
     /* Create the status bar window. */
-    StatusBarCreate(hwndMain, IDC_STATUS, hInst);
+    StatusBarCreate(hwndMain, IDC_STATUS, hinstance);
 
     /*
      * Before we can create the Render window, we first have
@@ -1203,24 +1022,18 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     /* Create the Machine Rendering window. */
     hwndRender = CreateWindow(L"STATIC", NULL, WS_CHILD|SS_BITMAP,
 			      0, 0, 1, 1, hwnd, NULL, hInst, NULL);
-    MoveWindow(hwndRender, 0, 0, winsizex, winsizey, TRUE);
+    MoveWindow(hwndRender, 0, 0, scrnsz_x, scrnsz_y, TRUE);
 
-    /* If this is a local renderer, enable it. */
-    if (vid_apis[0][vid_api].local)
-	ShowWindow(hwndRender, SW_SHOW);
-
-    /* Select the best system renderer available. */
-    if (! vid_apis[0][vid_api].init(hwndRender)) {
-	vid_api ^= 1;
-	if (! vid_apis[0][vid_api].init(hwndRender)) {
-		MessageBox(hwnd,
-			   plat_get_string(IDS_2095),
-			   plat_get_string(IDS_2050),
-			   MB_OK | MB_ICONERROR);
-		return(5);
-	}
+    /* Initialize the configured Video API. */
+    if (! plat_setvid(vid_api)) {
+	MessageBox(hwnd,
+		   plat_get_string(IDS_2095),
+		   plat_get_string(IDS_2050),
+		   MB_OK | MB_ICONERROR);
+	return(5);
     }
 
+#if 0
     /* Initialize the rendering window, or fullscreen. */
     if (start_in_fullscreen) {
 	startblit();
@@ -1231,11 +1044,10 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 	endblit();
 	device_force_redraw();
     }
-    if (vid_apis[video_fullscreen][vid_api].resize) {
-	startblit();
-	vid_apis[video_fullscreen][vid_api].resize(winsizex, winsizey);
-	endblit();
-    }
+#endif
+
+    /* Set up the current window size. */
+    plat_resize(scrnsz_x, scrnsz_y);
 
     /* All done, fire up the actual emulated machine. */
     if (! pc_init_modules()) {
@@ -1253,23 +1065,18 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     /* Set the PAUSE mode depending on the renderer. */
     plat_pause(0);
 
+    /* Initialize raw keyboard input buffer. */
+    memset(recv_key, 0x00, sizeof(recv_key));
+
     /*
      * Everything has been configured, and all seems to work,
      * so now it is time to start the main thread to do some
      * real work, and we will hang in here, dealing with the
      * UI until we're done.
      */
-    timeBeginPeriod(1);
-    QueryPerformanceFrequency(&qpc_freq);
-    timer_freq = qpc_freq.QuadPart;
-
-    atexit(releasemouse);
-
-    thMain = (HANDLE)_beginthread(MainThread, 0, NULL);
-    SetThreadPriority(thMain, THREAD_PRIORITY_HIGHEST);
+    do_start();
 
     /* Run the message loop. It will run until GetMessage() returns 0 */
-    quited = 0;
     while (! quited) {
 	bRet = GetMessage(&messages, NULL, 0, 0);
 	if ((bRet == 0) || quited) break;
@@ -1288,33 +1095,21 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
                 DispatchMessage(&messages);
 	}
 
-	if (recv_key[0x58] && recv_key[0x42] && mousecapture) {
+	if (mousecapture && recv_key[0x58] && recv_key[0x42]) {
 		ClipCursor(&oldclip);
 		ShowCursor(TRUE);
 		mousecapture = 0;
         }
 
-         if ((recv_key[0x1D] || recv_key[0x9D]) &&
+	if (video_fullscreen &&
+	     (recv_key[0x1D] || recv_key[0x9D]) &&
 	     (recv_key[0x38] || recv_key[0xB8]) &&
-	     (recv_key[0x51] || recv_key[0xD1]) && video_fullscreen) {
-		leave_fullscreen();
+	     (recv_key[0x51] || recv_key[0xD1])) {
+		/* Signal "exit fullscreen mode". */
+		plat_setfullscreen(0);
 	}
     }
 
-    /* Why start??? --FvK */
-    startblit();
-
-    Sleep(200);
-    TerminateThread(thMain, 0);
-
-    nvr_save();
-
-    config_save();
-
-    pc_close();
-
-    vid_apis[video_fullscreen][vid_api].close();
-        
     timeEndPeriod(1);
 
     if (mousecapture) {
@@ -1322,24 +1117,100 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 	ShowCursor(TRUE);
     }
         
-    UnregisterClass(SUB_CLASS_NAME, hInst);
-    UnregisterClass(CLASS_NAME, hInst);
+    UnregisterClass(SUB_CLASS_NAME, hinstance);
+    UnregisterClass(CLASS_NAME, hinstance);
+
+    /* Close down the emulator. */
+    do_stop();
 
     return(messages.wParam);
 }
 
 
-FILE *
-plat_fopen(wchar_t *path, wchar_t *mode)
+wchar_t *
+ui_window_title(wchar_t *s)
 {
-    return(_wfopen(path, mode));
+    if (! video_fullscreen) {
+	if (s != NULL)
+		wcscpy(wTitle, s);
+	  else
+		s = wTitle;
+
+       	SetWindowText(hwndMain, s);
+    }
+
+    return(s);
+}
+
+
+/* Set (or re-set) the language for the application. */
+void
+set_language(int id)
+{
+    LCID lcidNew = MAKELCID(id, dwSubLangID);
+
+    if (lang_id != lcidNew) {
+	/* Set our new language ID. */
+	lang_id = lcidNew;
+
+	SetThreadLocale(lang_id);
+
+	/* Load the strings table for this ID. */
+	LoadCommonStrings();
+
+#if 0
+	/* Update the menus for this ID. */
+	MenuUpdate();
+#endif
+    }
+}
+
+
+/*
+ * We do this here since there is platform-specific stuff
+ * going on here, and we do it in a function separate from
+ * main() so we can call it from the UI module as well.
+ */
+void
+do_start(void)
+{
+    LARGE_INTEGER qpc;
+
+    /* We have not stopped yet. */
+    quited = 0;
+
+    /* Initialize the high-precision timer. */
+    timeBeginPeriod(1);
+    QueryPerformanceFrequency(&qpc);
+    timer_freq = qpc.QuadPart;
+    pclog("Main timer precision: %llu\n", timer_freq);
+
+    atexit(releasemouse);
+
+    /* Start the emulator, really. */
+    thMain = thread_create(pc_thread, &quited);
+    SetThreadPriority(thMain, THREAD_PRIORITY_HIGHEST);
+}
+
+
+/* Cleanly stop the emulator. */
+void
+do_stop(void)
+{
+    quited = 1;
+
+    plat_delay_ms(100);
+
+    pc_close(thMain);
+
+    thMain = NULL;
 }
 
 
 void
-plat_remove(wchar_t *path)
+plat_get_exe_name(wchar_t *s, int size)
 {
-    _wremove(path);
+    GetModuleFileName(hinstance, s, size);
 }
 
 
@@ -1359,10 +1230,17 @@ plat_chdir(wchar_t *path)
 }
 
 
-void
-plat_get_exe_name(wchar_t *s, int size)
+FILE *
+plat_fopen(wchar_t *path, wchar_t *mode)
 {
-    GetModuleFileName(hinstance, s, size);
+    return(_wfopen(path, mode));
+}
+
+
+void
+plat_remove(wchar_t *path)
+{
+    _wremove(path);
 }
 
 
@@ -1417,22 +1295,6 @@ plat_put_backslash(wchar_t *s)
 }
 
 
-wchar_t *
-ui_window_title(wchar_t *s)
-{
-    if (! video_fullscreen) {
-	if (s != NULL)
-		wcscpy(wTitle, s);
-	  else
-		s = wTitle;
-
-       	SetWindowText(hwndMain, s);
-    }
-
-    return(s);
-}
-
-
 int
 plat_dir_check(wchar_t *path)
 {
@@ -1477,53 +1339,23 @@ plat_delay_ms(uint32_t count)
 
 /* We should have the language ID as a parameter. */
 void
-win_set_language(void)
-{
-    SetThreadLocale(dwLanguage);
-}
-
-
-/* Update the global language used. This needs a parameter.. */
-void
-win_language_update(void)
-{
-    win_set_language();
-#if 0
-    MenuUpdate();
-#endif
-    LoadCommonStrings();
-}
-
-
-void
-win_language_check(void)
-{
-    LCID dwLanguageNew = MAKELCID(dwLangID, dwSubLangID);
-
-    if (dwLanguageNew != dwLanguage) {
-	dwLanguage = dwLanguageNew;
-
-	win_language_update();
-    }
-}
-
-
-void
 plat_pause(int p)
 {
-    static wchar_t oldtitle[512];
+    static wchar_t oldtitle[128];
+    wchar_t title[128];
 
     /* If un-pausing, as the renderer if that's OK. */
     if (p == 0)
-	p = vid_apis[video_fullscreen][vid_api].pause();
+	p = get_vidpause();
 
     /* If already so, done. */
     if (dopause == p) return;
 
     if (p) {
-	wcscpy(oldtitle, wTitle);
-	wcscat(wTitle, L" - PAUSED -");
-	ui_window_title(NULL);
+	wcscpy(oldtitle, ui_window_title(NULL));
+	wcscpy(title, oldtitle);
+	wcscat(title, L" - PAUSED -");
+	ui_window_title(title);
     } else {
 	ui_window_title(oldtitle);
     }
@@ -1531,7 +1363,8 @@ plat_pause(int p)
     dopause = p;
 
     /* Update the actual menu. */
-    CheckMenuItem(menuMain, IDM_ACTION_PAUSE, (dopause)?MF_CHECKED:MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_ACTION_PAUSE,
+		  (dopause) ? MF_CHECKED : MF_UNCHECKED);
 }
 
 
@@ -1568,170 +1401,4 @@ wchar_t *
 plat_get_string_from_string(char *str)
 {
     return(plat_get_string(atoi(str)));
-}
-
-
-void
-take_screenshot(void)
-{
-    wchar_t path[1024], fn[128];
-    struct tm *info;
-    time_t now;
-
-    pclog("Screenshot: video API is: %i\n", vid_api);
-    if ((vid_api < 0) || (vid_api > 1)) return;
-
-    memset(fn, 0, sizeof(fn));
-    memset(path, 0, sizeof(path));
-
-    (void)time(&now);
-    info = localtime(&now);
-
-    plat_append_filename(path, cfg_path, SCREENSHOT_PATH, sizeof(path)-2);
-
-    if (! plat_dir_check(path))
-	plat_dir_create(path);
-
-#ifdef WIN32
-    wcscat(path, L"\\");
-#else
-    wcscat(path, L"/");
-#endif
-
-    switch(vid_api) {
-	case 0:		/* ddraw */
-		wcsftime(path, 128, L"%Y%m%d_%H%M%S.bmp", info);
-		plat_append_filename(path, cfg_path, fn, 1024);
-		if (video_fullscreen)
-			ddraw_fs_take_screenshot(path);
-		  else
-			ddraw_take_screenshot(path);
-		pclog("Screenshot: fn='%ls'\n", path);
-		break;
-
-	case 1:		/* d3d9 */
-		wcsftime(fn, 128, L"%Y%m%d_%H%M%S.png", info);
-		plat_append_filename(path, cfg_path, fn, 1024);
-		if (video_fullscreen)
-			d3d_fs_take_screenshot(path);
-		  else
-			d3d_take_screenshot(path);
-		pclog("Screenshot: fn='%ls'\n", path);
-		break;
-
-#ifdef USE_VNC
-	case 2:		/* vnc */
-		wcsftime(fn, 128, L"%Y%m%d_%H%M%S.png", info);
-		plat_append_filename(path, cfg_path, fn, 1024);
-		vnc_take_screenshot(path);
-		pclog("Screenshot: fn='%ls'\n", path);
-		break;
-#endif
-    }
-}
-
-
-void
-startblit(void)
-{
-    WaitForSingleObject(ghMutex, INFINITE);
-}
-
-
-void
-endblit(void)
-{
-    ReleaseMutex(ghMutex);
-}
-
-
-void
-updatewindowsize(int x, int y)
-{
-    int owsx = winsizex;
-    int owsy = winsizey;
-    int temp_overscan_x = overscan_x;
-    int temp_overscan_y = overscan_y;
-    double dx, dy, dtx, dty;
-
-    if (vid_resize) return;
-
-    if (x < 160)  x = 160;
-    if (y < 100)  y = 100;
-    if (x > 2048) x = 2048;
-    if (y > 2048) y = 2048;
-
-    if (suppress_overscan)
-	temp_overscan_x = temp_overscan_y = 0;
-
-    unscaled_size_x=x; efwinsizey=y;
-
-    if (force_43) {
-	dx = (double) x;
-	dtx = (double) temp_overscan_x;
-
-	dy = (double) y;
-	dty = (double) temp_overscan_y;
-
-	/* Account for possible overscan. */
-	if (temp_overscan_y == 16) {
-		/* CGA */
-		dy = (((dx - dtx) / 4.0) * 3.0) + dty;
-	} else if (temp_overscan_y < 16) {
-		/* MDA/Hercules */
-		dy = (x / 4.0) * 3.0;
-	} else {
-		if (enable_overscan) {
-			/* EGA/(S)VGA with overscan */
-			dy = (((dx - dtx) / 4.0) * 3.0) + dty;
-		} else {
-			/* EGA/(S)VGA without overscan */
-			dy = (x / 4.0) * 3.0;
-		}
-	}
-	unscaled_size_y = (int) dy;
-    } else {
-	unscaled_size_y = efwinsizey;
-    }
-
-    switch(scale) {
-	case 0:
-		winsizex = unscaled_size_x >> 1;
-		winsizey = unscaled_size_y >> 1;
-		break;
-
-	case 1:
-		winsizex = unscaled_size_x;
-		winsizey = unscaled_size_y;
-		break;
-
-	case 2:
-		winsizex = (unscaled_size_x * 3) >> 1;
-		winsizey = (unscaled_size_y * 3) >> 1;
-		break;
-
-	case 3:
-		winsizex = unscaled_size_x << 1;
-		winsizey = unscaled_size_y << 1;
-		break;
-    }
-
-    if ((owsx != winsizex) || (owsy != winsizey))
-	doresize = 1;
-      else
-	doresize = 0;
-}
-
-
-void
-uws_natural(void)
-{
-    updatewindowsize(unscaled_size_x, efwinsizey);
-}
-
-
-void
-leave_fullscreen(void)
-{
-    leave_fullscreen_flag = 1;
 }
