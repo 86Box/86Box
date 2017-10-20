@@ -1,7 +1,8 @@
-#include <stdarg.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include "../86box.h"
 #include "../ibm.h"
 #include "../device.h"
@@ -12,7 +13,8 @@
 #include "sound.h"
 #include "snd_audiopci.h"
 
-typedef struct es1371_t
+
+typedef struct 
 {
         uint8_t pci_command, pci_serr;
         
@@ -129,10 +131,10 @@ static void update_legacy(es1371_t *es1371);
 int audiopci_do_log = ENABLE_AUDIOPCI_LOG;
 #endif
 
-void audiopci_log(const char *format, ...)
+static void audiopci_log(const char *format, ...)
 {
 #ifdef ENABLE_AUDIOPCI_LOG
-	if (emu8k_audiopci_log)
+	if (audiopci_do_log)
 	{
 		va_list ap;
 		va_start(ap, format);

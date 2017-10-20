@@ -9,7 +9,7 @@
  *		Implementation of the NCR 5380 series of SCSI Host Adapters
  *		made by NCR. These controllers were designed for the ISA bus.
  *
- * Version:	@(#)scsi_ncr5380.c	1.0.4	2017/10/16
+ * Version:	@(#)scsi_ncr5380.c	1.0.5	2017/10/19
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -35,9 +35,6 @@
 #include "scsi.h"
 #include "scsi_device.h"
 #include "scsi_ncr5380.h"
-
-
-//#define ENABLE_NCR5380_LOG	1
 
 
 #define LCS6821N_ROM	L"roms/scsi/ncr5380/Longshine LCS-6821N - BIOS version 1.04.bin"
@@ -155,7 +152,7 @@ int ncr5380_do_log = ENABLE_NCR5380_LOG;
 static void
 ncr_log(const char *fmt, ...)
 {
-#if ENABLE_NCR5380_LOG
+#ifdef ENABLE_NCR5380_LOG
     va_list ap;
 
     if (ncr5380_do_log) {

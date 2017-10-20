@@ -168,7 +168,9 @@ int floppyrate[4];
 
 int floppyint;
 
-int fdc_do_log = 0;
+#ifdef ENABLE_FDC_LOG
+int fdc_do_log = ENABLE_FDC_LOG;
+#endif
 
 void fdc_log(const char *format, ...)
 {

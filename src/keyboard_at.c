@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.4	2017/10/16
+ * Version:	@(#)keyboard_at.c	1.0.5	2017/10/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -18,7 +18,9 @@
  */
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <wchar.h>
 #include "86box.h"
 #include "ibm.h"
@@ -129,7 +131,9 @@ static uint8_t nont_to_t[256] = {	0xFF, 0x43, 0x41, 0x3F, 0x3D, 0x3B, 0x3C, 0x58
 					0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
 					0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF	};
 
-int keyboard_at_do_log = 0;
+#ifdef ENABLE_KEYBOARD_AT_LOG
+int keyboard_at_do_log = ENABLE_KEYBOARD_AT_LOG;
+#endif
 
 void keyboard_at_log(const char *format, ...)
 {

@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)floppy_86f.c	1.0.8	2017/10/16
+ * Version:	@(#)floppy_86f.c	1.0.9	2017/10/19
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -113,36 +113,24 @@ enum
 
 static uint16_t CRCTable[256];
 
-#ifdef __MSC__
-# pragma pack(push,1)
+#pragma pack(push,1)
 typedef struct
-#else
-typedef struct __attribute__((__packed__))
-#endif
 {
 	uint8_t buffer[10];
 	uint32_t pos;
 	uint32_t len;
 } sliding_buffer_t;
-#ifdef __MSC__
-# pragma pack(pop)
-#endif
+#pragma pack(pop)
 
-#ifdef __MSC__
-# pragma pack(push,1)
+#pragma pack(push,1)
 typedef struct
-#else
-typedef struct __attribute__((__packed__))
-#endif
 {
 	uint32_t sync_marks;
 	uint32_t bits_obtained;
 	uint32_t bytes_obtained;
 	uint32_t sync_pos;
 } find_t;
-#ifdef __MSC__
-# pragma pack(pop)
-#endif
+#pragma pack(pop)
 
 uint8_t encoded_fm[64] = {	0xAA, 0xAB, 0xAE, 0xAF, 0xBA, 0xBB, 0xBE, 0xBF, 0xEA, 0xEB, 0xEE, 0xEF, 0xFA, 0xFB, 0xFE, 0xFF,
 				0xAA, 0xAB, 0xAE, 0xAF, 0xBA, 0xBB, 0xBE, 0xBF, 0xEA, 0xEB, 0xEE, 0xEF, 0xFA, 0xFB, 0xFE, 0xFF,
@@ -176,19 +164,13 @@ enum
 	FMT_POSTTRK_GAP4
 };
 
-#ifdef __MSC__
-# pragma pack(push,1)
+#pragma pack(push,1)
 typedef struct
-#else
-typedef struct __attribute__((__packed__))
-#endif
 {
 	unsigned nibble0	:4;
 	unsigned nibble1	:4;
 } split_byte_t;
-#ifdef __MSC__
-# pragma pack(pop)
-#endif
+#pragma pack(pop)
 
 typedef union {
 	uint8_t byte;
@@ -206,12 +188,8 @@ typedef union {
 	       Bits 10, 9	Zone type (3 = Commodore 64 zoned, 2 = Apple zoned, 1 = Pre-Apple zoned #2, 0 = Pre-Apple zoned #1)
 	       Bit 11		Data and surface bits are stored in reverse byte endianness */
 
-#ifdef __MSC__
-# pragma pack(push,1)
+#pragma pack(push,1)
 struct
-#else
-struct __attribute__((__packed__))
-#endif
 {
         FILE *f;
 	uint16_t version;
@@ -256,11 +234,11 @@ struct __attribute__((__packed__))
 	int turbo_pos;
 	uint16_t sector_id_bit_field[2][256][256][256];
 } d86f[FDD_NUM];
-#ifdef __MSC__
-# pragma pack(pop)
-#endif
+#pragma pack(pop)
 
-int d86f_do_log = 0;
+#ifdef ENABLE_D86F_LOG
+int d86f_do_log = ENABLE_D86F_LOG;
+#endif
 
 void d86f_log(const char *format, ...)
 {

@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.15	2017/10/16
+ * Version:	@(#)network.c	1.0.16	2017/10/19
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -54,9 +54,10 @@ int		network_ndev;
 int		network_card;
 netdev_t	network_devs[32];
 char		network_pcap[512];
-int		nic_do_log;
-static volatile
-mutex_t	*netMutex;
+#ifdef ENABLE_NIC_LOG
+int		nic_do_log = ENABLE_NIC_LOG;
+#endif
+static volatile mutex_t	*netMutex;
 
 
 static struct
@@ -118,12 +119,6 @@ void
 network_init(void)
 {
     int i;
-
-#if ENABLE_NIC_LOG
-    nic_do_log = ENABLE_NIC_LOG;
-#else
-    nic_do_log = 0;
-#endif
 
     /* Initialize to a known state. */
     network_type = NET_TYPE_NONE;
