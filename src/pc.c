@@ -6,9 +6,9 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Emulation core dispatcher.
+ *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.29	2017/10/18
+ * Version:	@(#)pc.c	1.0.29	2017/10/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -77,13 +77,34 @@
 #include "plat_mouse.h"
 
 
-/* Statistics. */
-extern int	mmuflush,
-		readlnum,
-		writelnum;
+/* Commandline options. */
+int	dump_on_exit = 0;			/* (O) dump regs on exit */
+int	start_in_fullscreen = 0;		/* (O) start in fullscreen */
+
+/* Configuration values. */
+int	window_w, window_h,			/* (C) window size and */
+	window_x, window_y,			/*     position info */
+	window_remember,
+	vid_resize,				/* (C) allow resizing */
+	invert_display,				/* (C) invert the display */
+	suppress_overscan = 0;			/* (C) suppress overscans */
+int	scale = 0;				/* (C) screen scale factor */
+int	vid_api = 0;				/* (C) video renderer */
+int	vid_cga_contrast = 0,			/* (C) video */
+	video_fullscreen = 0,			/* (C) video */
+	video_fullscreen_scale = 0,		/* (C) video */
+	video_fullscreen_first = 0,		/* (C) video */
+	enable_overscan = 0,			/* (C) video */
+	force_43 = 0,				/* (C) video */
+	video_speed = 0;			/* (C) video */
 
 
 /* Statistics. */
+extern int
+	mmuflush,
+	readlnum,
+	writelnum;
+
 int	sndcount = 0;
 int	sreadlnum,
 	swritelnum,
