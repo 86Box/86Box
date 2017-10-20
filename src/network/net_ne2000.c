@@ -1884,8 +1884,10 @@ nic_init(device_t *info)
     int i;
 
     /* Get the desired debug level. */
+#ifdef ENABLE_NIC_LOG
     i = device_get_config_int("debug");
     if (i > 0) nic_do_log = i;
+#endif
 
     dev = malloc(sizeof(nic_t));
     memset(dev, 0x00, sizeof(nic_t));
