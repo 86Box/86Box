@@ -87,8 +87,25 @@ void
 network_wait_for_poll()
 {
     while (poll_data.busy)
-	thread_wait_event((event_t *) poll_data.poll_complete, -1);
-    thread_reset_event((event_t *) poll_data.poll_complete);
+	thread_wait_event((event_t *) poll_data.wake_poll_thread, -1);
+    thread_reset_event((event_t *) poll_data.wake_poll_thread);
+}
+
+
+void
+network_wait_for_end(void *handle)
+{
+	thread_wait((event_t *) handle, -1);
+
+	if (poll_data.wake_poll_thread) {
+		thread_destroy_event((event_t *) poll_data.wake_poll_thread);
+		poll_data.wake_poll_thread = NULL;
+	}
+
+	if (poll_data.poll_complete) {
+		thread_destroy_event((event_t *) poll_data.poll_complete);
+		poll_data.poll_complete = NULL;
+	}
 }
 
 
@@ -104,6 +121,13 @@ network_busy(uint8_t set)
 {
     poll_data.busy = !!set;
     if (!set)
+	thread_set_event((event_t *) poll_data.wake_poll_thread);
+}
+
+
+void
+network_end(void)
+{
 	thread_set_event((event_t *) poll_data.poll_complete);
 }
 
@@ -182,6 +206,8 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
 void
 network_close(void)
 {
+    thread_close_mutex((mutex_t *) netMutex);
+
     switch(network_type) {
 	case NET_TYPE_PCAP:
 		network_pcap_close();
@@ -191,8 +217,6 @@ network_close(void)
 		network_slirp_close();
 		break;
     }
-
-    thread_close_mutex((event_t *) netMutex);
 }
 
 

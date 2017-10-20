@@ -102,6 +102,7 @@ typedef void mutex_t;
 extern thread_t	*thread_create(void (*thread_rout)(void *param), void *param);
 extern void	thread_kill(thread_t *handle);
 
+extern int	thread_wait(thread_t *arg, int timeout);
 extern void	thread_sleep(int t);
 
 extern event_t	*thread_create_event(void);

@@ -714,7 +714,10 @@ load_other_peripherals(void)
       else
 	scsi_card_current = 0;
 
-    memset(hdc_name, '\0', sizeof(hdc_name));
+    if (hdc_name) {
+	free(hdc_name);
+	hdc_name = NULL;
+    }
     p = config_get_string(cat, "hdc", NULL);
     if (p == NULL) {
 	p = config_get_string(cat, "hdd_controller", NULL);
@@ -722,12 +725,17 @@ load_other_peripherals(void)
 		config_delete_var(cat, "hdd_controller");
     }
     if (p == NULL) {
-	if (machines[machine].flags & MACHINE_HAS_HDC)
+	if (machines[machine].flags & MACHINE_HAS_HDC) {
+		hdc_name = (char *) malloc((strlen("internal") + 1) * sizeof(char));
 		strcpy(hdc_name, "internal");
-	  else
+	} else {
+		hdc_name = (char *) malloc((strlen("none") + 1) * sizeof(char));
 		strcpy(hdc_name, "none");
-    } else
+	}
+    } else {
+	hdc_name = (char *) malloc((strlen(p) + 1) * sizeof(char));
 	strcpy(hdc_name, p);
+    }
     config_set_string(cat, "hdc", hdc_name);
 
     memset(temp, '\0', sizeof(temp));
@@ -1142,6 +1150,11 @@ config_load(wchar_t *fn)
 	vid_api = 1;
 	enable_sync = 1;
 	joystick_type = 7;
+	if (hdc_name) {
+		free(hdc_name);
+		hdc_name = NULL;
+	}
+	hdc_name = (char *) malloc((strlen("none") + 1) * sizeof(char));
 	strcpy(hdc_name, "none");
 	serial_enabled[0] = 0;
 	serial_enabled[1] = 0;

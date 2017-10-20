@@ -8,7 +8,7 @@
  *
  *		Platform support defintions for Win32.
  *
- * Version:	@(#)win.h	1.0.6	2017/10/18
+ * Version:	@(#)win.h	1.0.7	2017/10/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -78,7 +78,7 @@ extern void	set_language(int id);
 extern int	get_vidpause(void);
 
 #ifdef EMU_DEVICE_H
-extern void	deviceconfig_open(HWND hwnd, device_t *device);
+extern uint8_t	deviceconfig_open(HWND hwnd, device_t *device);
 #endif
 extern void	joystickconfig_open(HWND hwnd, int joy_nr, int type);
 

@@ -46,6 +46,7 @@ void sound_realloc_buffers(void);
 void sound_init();
 void sound_reset();
 
+void sound_cd_thread_end();
 void sound_cd_thread_reset();
 
 void closeal(void);
