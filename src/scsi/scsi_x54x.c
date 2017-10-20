@@ -57,6 +57,8 @@ int	busy;
 
 static volatile
 event_t	*evt;
+static volatile
+event_t	*wait_evt;
 
 static volatile
 event_t	*wake_poll_thread;
@@ -1318,7 +1320,7 @@ x54x_cmd_thread(void *priv)
 
 	if ((dev->Status & STAT_INIT) || (!dev->MailboxInit && !dev->BIOSMailboxInit) || (!dev->MailboxReq && !dev->BIOSMailboxReq)) {
 		/* If we did not get anything, wait a while. */
-		thread_wait_event((event_t *) evt, 10);
+		thread_wait_event((event_t *) wait_evt, 10);
 
 		scsi_mutex_wait(0);
 		continue;
@@ -1365,6 +1367,13 @@ uint8_t
 x54x_is_busy(void)
 {
     return !!busy;
+}
+
+
+void
+x54x_set_wait_event(void)
+{
+    thread_set_event((event_t *) wait_evt);
 }
 
 
@@ -1537,6 +1546,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 		if ((val == CMD_START_SCSI) && (dev->Command == 0xff)) {
 			x54x_busy(1);
 			dev->MailboxReq++;
+			x54x_set_wait_event();
 			x54x_log("Start SCSI command: ");
 			x54x_busy(0);
 			return;
@@ -1969,6 +1979,7 @@ x54x_init(device_t *info)
 
     /* Create a waitable event. */
     evt = thread_create_event();
+    wait_evt = thread_create_event();
 
     x54x_thread_start(dev);
     thread_wait_event((event_t *) thread_started, -1);
@@ -2004,6 +2015,11 @@ x54x_close(void *priv)
 
 	if (dev->ven_data)
 		free(dev->ven_data);
+
+	if (wait_evt) {
+		thread_destroy_event((event_t *) evt);
+		evt = NULL;
+	}
 
 	if (evt) {
 		thread_destroy_event((event_t *) evt);
