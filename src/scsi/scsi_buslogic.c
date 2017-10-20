@@ -962,6 +962,10 @@ buslogic_cmds(void *p)
 
 		dev->DataReply = 0;
 		break;
+	default:
+		dev->DataReplyLeft = 0;
+		dev->Status |= STAT_INVCMD;
+		break;
     }
     return 0;
 }

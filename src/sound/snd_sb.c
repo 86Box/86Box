@@ -792,8 +792,22 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
         }
         switch (mixer->index)
         {
-                case 0x00: case 0x04: case 0x0A: case 0x22: case 0x26: case 0x28: case 0x2E:
+                case 0x00:
                 return mixer->regs[mixer->index];
+
+                /*SB Pro compatibility*/                        
+                case 0x04:
+                return ((mixer->regs[0x33] >> 4) & 0x0f) | (mixer->regs[0x32] & 0xf0);
+                case 0x0a:
+                return (mixer->regs[0x2a] - 10) / 3;
+                case 0x22:
+                return ((mixer->regs[0x31] >> 4) & 0x0f) | (mixer->regs[0x30] & 0xf0);
+                case 0x26:
+                return ((mixer->regs[0x35] >> 4) & 0x0f) | (mixer->regs[0x34] & 0xf0);
+                case 0x28:
+                return ((mixer->regs[0x37] >> 4) & 0x0f) | (mixer->regs[0x36] & 0xf0);
+                case 0x2e:
+                return ((mixer->regs[0x39] >> 4) & 0x0f) | (mixer->regs[0x38] & 0xf0);
                 
                 case 0x48: 
                 // Undocumented. The Creative Windows Mixer calls this after calling 3C (input selector). even when writing.

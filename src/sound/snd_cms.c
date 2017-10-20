@@ -27,6 +27,8 @@ typedef struct cms_t
         uint16_t noisefreq[2][2];
         int noisecount[2][2];
         int noisetype[2][2];
+       
+        uint8_t latched_data;
 
         int16_t buffer[SOUNDBUFLEN * 2];
 
@@ -111,12 +113,16 @@ void cms_write(uint16_t addr, uint8_t val, void *p)
         int voice;
         int chip = (addr & 2) >> 1;
         
-        pclog("cms_write : addr %04X val %02X\n", addr, val);
-        
-        if (addr & 1)
-           cms->addrs[chip] = val & 31;
-        else
+        switch (addr & 0xf)
         {
+                case 1:
+                cms->addrs[0] = val & 31;
+                break;
+                case 3:
+                cms->addrs[1] = val & 31;
+                break;
+                
+                case 0: case 2:
                 cms_update(cms);
                 cms->regs[chip][cms->addrs[chip] & 31] = val;
                 switch (cms->addrs[chip] & 31)
@@ -145,18 +151,29 @@ void cms_write(uint16_t addr, uint8_t val, void *p)
                         cms->noisetype[chip][1] = (val >> 4) & 3;
                         break;
                 }
+                break;
+                case 0x6: case 0x7:
+                cms->latched_data = val;
+                break;
         }
 }
 
 uint8_t cms_read(uint16_t addr, void *p)
 {
         cms_t *cms = (cms_t *)p;
-        int chip = (addr & 2) >> 1;
-        
-        if (addr & 1) 
-                return cms->addrs[chip];
-                
-        return cms->regs[chip][cms->addrs[chip] & 31];
+
+        switch (addr & 0xf)
+        {
+                case 0x1:
+                return cms->addrs[0];
+                case 0x3:
+                return cms->addrs[1];
+                case 0x4:
+                return 0x7f;
+                case 0xa: case 0xb:
+                return cms->latched_data;
+        }
+        return 0xff;
 }
 
 void *cms_init(device_t *info)
@@ -165,7 +182,7 @@ void *cms_init(device_t *info)
         memset(cms, 0, sizeof(cms_t));
 
         pclog("cms_init\n");
-        io_sethandler(0x0220, 0x0004, cms_read, NULL, NULL, cms_write, NULL, NULL, cms);
+        io_sethandler(0x0220, 0x0010, cms_read, NULL, NULL, cms_write, NULL, NULL, cms);
         sound_add_handler(cms_get_buffer, cms);
         return cms;
 }
