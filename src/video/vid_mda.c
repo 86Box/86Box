@@ -243,13 +243,16 @@ void mda_poll(void *p)
                                 {
                                         x = mda->crtc[1] * 9;
                                         mda->lastline++;
-                                        if (x != xsize || (mda->lastline - mda->firstline) != ysize)
+                                        if ((x != xsize) || ((mda->lastline - mda->firstline) != ysize) || video_force_resize_get())
                                         {
                                                 xsize = x;
                                                 ysize = mda->lastline - mda->firstline;
                                                 if (xsize < 64) xsize = 656;
                                                 if (ysize < 32) ysize = 200;
                                                 set_screen_size(xsize, ysize);
+
+						if (video_force_resize_get())
+							video_force_resize_set(0);
                                         }
                                         video_blit_memtoscreen_8(0, mda->firstline, xsize, mda->lastline - mda->firstline);
                                         frames++;

@@ -18,6 +18,7 @@
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #include <windowsx.h>
+#include <commctrl.h>
 #undef BITMAP
 #include <stdio.h>
 #include <stdint.h>
@@ -277,17 +278,31 @@ endblit(void)
 void
 plat_resize(int x, int y)
 {
+    int sb_borders[3];
+    RECT r;
+
+#if 0
 pclog("PLAT: VID[%d,%d] resizing to %dx%d\n", video_fullscreen, vid_api, x, y);
+#endif
     /* First, see if we should resize the UI window. */
-    if (vid_resize) {
-	/* Move the main window. */
+    if (!vid_resize) {
+	SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
+	GetWindowRect(hwndMain, &r);
+	MoveWindow(hwndRender, 0, 0, x, y, TRUE);
+	GetWindowRect(hwndRender, &r);
+	MoveWindow(hwndSBAR,
+		   0, r.bottom + GetSystemMetrics(SM_CYEDGE),
+		   x, 17, TRUE);
+	GetWindowRect(hwndMain, &r);
 
-	/* Move the status bar with it. */
-	MoveWindow(hwndSBAR, 0, y+6, x, 17, TRUE);
+	MoveWindow(hwndMain, r.left, r.top,
+		   x + (GetSystemMetrics(vid_resize ? SM_CXSIZEFRAME : SM_CXFIXEDFRAME) * 2),
+		   y + (GetSystemMetrics(SM_CYEDGE) * 2) + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 17 + sb_borders[1] + 1,
+		   TRUE);
 
-	/* Move the render window if we have one. */
-	if (vid_apis[0][vid_api].local && (hwndRender != NULL)) {
-		MoveWindow(hwndRender, 0, 0, x, y, TRUE);
+	if (mousecapture) {
+		GetWindowRect(hwndRender, &r);
+		ClipCursor(&r);
 	}
     }
 

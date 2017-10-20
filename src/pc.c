@@ -195,7 +195,9 @@ set_screen_size(int x, int y)
     int efscrnsz_y;
 
     /* Make sure we keep usable values. */
+#if 0
     pclog("SetScreenSize(%d, %d) resize=%d\n", x, y, vid_resize);
+#endif
     if (x < 320) x = 320;
     if (y < 200) y = 200;
     if (x > 2048) x = 2048;
@@ -216,10 +218,10 @@ set_screen_size(int x, int y)
 	dty = (double)temp_overscan_y;
 
 	/* Account for possible overscan. */
-	if (temp_overscan_y == 16) {
+	if (!(VGA) && (temp_overscan_y == 16)) {
 		/* CGA */
 		dy = (((dx - dtx) / 4.0) * 3.0) + dty;
-	} else if (temp_overscan_y < 16) {
+	} else if (!(VGA) && (temp_overscan_y < 16)) {
 		/* MDA/Hercules */
 		dy = (x / 4.0) * 3.0;
 	} else {
@@ -816,7 +818,7 @@ pc_thread(void *param)
     while (! *quitp) {
 	/* Update the Stat(u)s window with the current info. */
 	if (status_update_needed) {
-#if 1
+#if 0
 		pclog("Updating STATS window..\n");
 //		ui_status_update();
 #endif

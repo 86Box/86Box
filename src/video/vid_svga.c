@@ -1617,7 +1617,7 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
                 return;
         }
 
-        if (((wx!=xsize) || ((wy+1)!=ysize)))
+	if ((wx != xsize) || ((wy + 1) != ysize) || video_force_resize_get())
         {
 		/* Screen res has changed.. fix up, and let them know. */
                 xsize = wx;
@@ -1625,18 +1625,13 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
                 if (xsize<64) xsize = 640;
                 if (ysize<32) ysize = 200;
 
-		if ((xsize > 2032) || (ysize > 2032))
-		{
-			x_add = 0;
-			y_add = 0;
-			suppress_overscan = 1;
-		}
-		else
-		{
-			suppress_overscan = 0;
-		}
-
                 set_screen_size(xsize+x_add,ysize+y_add);
+
+		if (video_force_resize_get())
+		{
+			pclog("Scroll: %02X (%i, %i, %i, %i, %i, %i)\n", (svga->crtc[8] & 0x1f), enable_overscan, suppress_overscan, wx, wy + 1, x_add, y_add);
+			video_force_resize_set(0);
+		}
         }
 
 	if (enable_overscan && !suppress_overscan)

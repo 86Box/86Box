@@ -420,11 +420,13 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				scale = LOWORD(wParam) - IDM_VID_SCALE_1X;
 				CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_CHECKED);
 				device_force_redraw();
+				video_force_resize_set(1);
 				config_save();
 				break;
 
 			case IDM_VID_FORCE43:
 				video_toggle_option(hmenu, &force_43, IDM_VID_FORCE43);
+				video_force_resize_set(1);
 				break;
 
 			case IDM_VID_INVERT:
@@ -434,6 +436,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_OVERSCAN:
 				update_overscan = 1;
 				video_toggle_option(hmenu, &enable_overscan, IDM_VID_OVERSCAN);
+				video_force_resize_set(1);
 				break;
 
 			case IDM_VID_CGACON:

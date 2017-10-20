@@ -177,6 +177,8 @@ void fdc37c665_write(uint16_t port, uint8_t val, void *priv)
                         if (val == 0xaa)
                                 write_lock(val);
                         else
+				fdc37c665_curreg = val;
+#if 0
 				if (fdc37c665_curreg != 0)
 				{
 	                                fdc37c665_curreg = val & 0xf;
@@ -186,9 +188,13 @@ void fdc37c665_write(uint16_t port, uint8_t val, void *priv)
 					/* Hardcode the IDE to AT type. */
 	                                fdc37c665_curreg = (val & 0xf) | 2;
 				}
+#endif
                 }
                 else
                 {
+			if (fdc37c665_curreg > 15)
+				return;
+
 			valxor = val ^ fdc37c665_regs[fdc37c665_curreg];
                         fdc37c665_regs[fdc37c665_curreg] = val;
                         

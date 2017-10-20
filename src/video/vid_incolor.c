@@ -980,13 +980,16 @@ void incolor_poll(void *p)
                                                x = incolor->crtc[1] * 9;
 					}
                                         incolor->lastline++;
-                                        if (x != xsize || (incolor->lastline - incolor->firstline) != ysize)
+                                        if ((x != xsize) || ((incolor->lastline - incolor->firstline) != ysize) || video_force_resize_get())
                                         {
                                                 xsize = x;
                                                 ysize = incolor->lastline - incolor->firstline;
                                                 if (xsize < 64) xsize = 656;
                                                 if (ysize < 32) ysize = 200;
                                                 set_screen_size(xsize, ysize);
+
+						if (video_force_resize_get())
+							video_force_resize_set(0);
                                         }
 					video_blit_memtoscreen(0, incolor->firstline, 0, incolor->lastline - incolor->firstline, xsize, incolor->lastline - incolor->firstline);
                                         frames++;

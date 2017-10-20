@@ -633,13 +633,16 @@ void herculesplus_poll(void *p)
                                                x = herculesplus->crtc[1] * 9;
 					}
                                         herculesplus->lastline++;
-                                        if (x != xsize || (herculesplus->lastline - herculesplus->firstline) != ysize)
+                                        if ((x != xsize) || ((herculesplus->lastline - herculesplus->firstline) != ysize) || video_force_resize_get())
                                         {
                                                 xsize = x;
                                                 ysize = herculesplus->lastline - herculesplus->firstline;
                                                 if (xsize < 64) xsize = 656;
                                                 if (ysize < 32) ysize = 200;
                                                 set_screen_size(xsize, ysize);
+
+						if (video_force_resize_get())
+							video_force_resize_set(0);
                                         }
 					video_blit_memtoscreen(0, herculesplus->firstline, 0, herculesplus->lastline - herculesplus->firstline, xsize, herculesplus->lastline - herculesplus->firstline);
                                         frames++;

@@ -413,13 +413,16 @@ static void pc1512_poll(void *p)
                                 x = 640 + 16;
                                 pc1512->lastline++;
                                 
-                                if (x != xsize || (pc1512->lastline - pc1512->firstline) != ysize)
+                                if ((x != xsize) || ((pc1512->lastline - pc1512->firstline) != ysize) || video_force_resize_get())
                                 {
                                         xsize = x;
                                         ysize = pc1512->lastline - pc1512->firstline;
                                         if (xsize < 64) xsize = 656;
                                         if (ysize < 32) ysize = 200;
                                         set_screen_size(xsize, (ysize << 1) + 16);
+
+					if (video_force_resize_get())
+						video_force_resize_set(0);
                                 }
 
                                 video_blit_memtoscreen_8(0, pc1512->firstline - 4, xsize, (pc1512->lastline - pc1512->firstline) + 8);

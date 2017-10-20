@@ -551,13 +551,16 @@ void genius_poll(void *p)
 		if (genius->displine == 1008)
                 {
 /* Hardcode GENIUS_XSIZE * GENIUS_YSIZE window size */
-			if (GENIUS_XSIZE != xsize || GENIUS_YSIZE != ysize)
+			if ((GENIUS_XSIZE != xsize) || (GENIUS_YSIZE != ysize) || video_force_resize_get())
 			{
                                 xsize = GENIUS_XSIZE;
                                 ysize = GENIUS_YSIZE;
                                 if (xsize < 64) xsize = 656;
                                 if (ysize < 32) ysize = 200;
                                 set_screen_size(xsize, ysize);
+
+				if (video_force_resize_get())
+					video_force_resize_set(0);
                         }
                         video_blit_memtoscreen_8(0, 0, xsize, ysize);
 

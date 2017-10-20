@@ -404,13 +404,16 @@ void m24_poll(void *p)
                                                 if (m24->cgamode & 1) x = (m24->crtc[1] << 3) + 16;
                                                 else                  x = (m24->crtc[1] << 4) + 16;
                                                 m24->lastline++;
-                                                if (x != xsize || (m24->lastline - m24->firstline) != ysize)
+                                                if ((x != xsize) || ((m24->lastline - m24->firstline) != ysize) || video_force_resize_get())
                                                 {
                                                         xsize = x;
                                                         ysize = m24->lastline - m24->firstline;
                                                         if (xsize < 64) xsize = 656;
                                                         if (ysize < 32) ysize = 200;
                                                         set_screen_size(xsize, ysize + 16);
+
+							if (video_force_resize_get())
+								video_force_resize_set(0);
                                                 }
 
                                                 video_blit_memtoscreen_8(0, m24->firstline - 8, xsize, (m24->lastline - m24->firstline) + 16);

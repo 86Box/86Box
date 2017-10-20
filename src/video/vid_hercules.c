@@ -283,7 +283,7 @@ void hercules_poll(void *p)
                                         if ((hercules->ctrl & 2) && (hercules->ctrl2 & 1)) x = hercules->crtc[1] << 4;
                                         else                                               x = hercules->crtc[1] * 9;
                                         hercules->lastline++;
-                                        if (x != xsize || (hercules->lastline - hercules->firstline) != ysize)
+                                        if ((x != xsize) || ((hercules->lastline - hercules->firstline) != ysize) || video_force_resize_get())
                                         {
                                                 xsize = x;
                                                 ysize = hercules->lastline - hercules->firstline;
@@ -291,6 +291,9 @@ void hercules_poll(void *p)
                                                 if (xsize < 64) xsize = 656;
                                                 if (ysize < 32) ysize = 200;
                                                 set_screen_size(xsize, ysize);
+
+						if (video_force_resize_get())
+							video_force_resize_set(0);
                                         }
                                         video_blit_memtoscreen_8(0, hercules->firstline, xsize, ysize);
                                         frames++;

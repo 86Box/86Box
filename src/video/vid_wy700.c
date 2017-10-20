@@ -860,13 +860,16 @@ void wy700_poll(void *p)
 		if (wy700->displine == 800)
                 {
 /* Hardcode 1280x800 window size */
-			if (WY700_XSIZE != xsize || WY700_YSIZE != ysize)
+			if ((WY700_XSIZE != xsize) || (WY700_YSIZE != ysize) || video_force_resize_get())
 			{
                                 xsize = WY700_XSIZE;
                                 ysize = WY700_YSIZE;
                                 if (xsize < 64) xsize = 656;
                                 if (ysize < 32) ysize = 200;
                                 set_screen_size(xsize, ysize);
+
+				if (video_force_resize_get())
+					video_force_resize_set(0);
                         }
                         video_blit_memtoscreen_8(0, 0, xsize, ysize);
 

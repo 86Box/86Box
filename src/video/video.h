@@ -107,6 +107,8 @@ extern void	updatewindowsize(int x, int y);
 extern void	video_init(void);
 extern void	video_close(void);
 extern void	video_reset(void);
+extern uint8_t	video_force_resize_get(void);
+extern void	video_force_resize_set(uint8_t res);
 extern void	video_reset_device(int, int);
 extern void	video_update_timing(void);
 

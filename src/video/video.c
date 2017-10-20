@@ -110,6 +110,7 @@ int		video_timing[6][4] = {
     { VIDEO_BUS, 4,  5, 10	},
     { VIDEO_BUS, 3,  3,  4	}
 };
+static int	video_force_resize;
 PALETTE		cgapal = {
     {0,0,0},    {0,42,0},   {42,0,0},   {42,21,0},
     {0,0,0},    {0,42,42},  {42,0,42},  {42,42,42},
@@ -571,6 +572,20 @@ video_reset(void)
      * This will soon be moved into machine.c.
      */
     video_reset_device(romset, gfxcard);
+}
+
+
+uint8_t
+video_force_resize_get(void)
+{
+    return video_force_resize;
+}
+
+
+void
+video_force_resize_set(uint8_t res)
+{
+    video_force_resize = res;
 }
 
 

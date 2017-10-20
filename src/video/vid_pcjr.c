@@ -503,13 +503,16 @@ void pcjr_poll(void *p)
                                         if (pcjr->array[0] & 1) x = (pcjr->crtc[1] << 3) + 16;
                                         else                    x = (pcjr->crtc[1] << 4) + 16;
                                         pcjr->lastline++;
-                                        if (x != xsize || (pcjr->lastline - pcjr->firstline) != ysize)
+                                        if ((x != xsize) || ((pcjr->lastline - pcjr->firstline) != ysize) || video_force_resize_get())
                                         {
                                                 xsize = x;
                                                 ysize = pcjr->lastline - pcjr->firstline;
                                                 if (xsize < 64) xsize = 656;
                                                 if (ysize < 32) ysize = 200;
                                                 set_screen_size(xsize, (ysize << 1) + 16);
+
+						if (video_force_resize_get())
+							video_force_resize_set(0);
                                         }
 
                                         if (pcjr->composite) 

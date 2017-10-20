@@ -1881,7 +1881,9 @@ nic_init(device_t *info)
     uint32_t mac;
     wchar_t *rom;
     nic_t *dev;
+#ifdef ENABLE_NIC_LOG
     int i;
+#endif
 
     /* Get the desired debug level. */
 #ifdef ENABLE_NIC_LOG

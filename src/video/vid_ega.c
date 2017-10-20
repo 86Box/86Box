@@ -664,7 +664,7 @@ void ega_poll(void *p)
                         if (ega->interlace && !ega->oddeven) ega->lastline++;
                         if (ega->interlace &&  ega->oddeven) ega->firstline--;
 
-                        if ((x != xsize || (ega->lastline - ega->firstline + 1) != ysize) || update_overscan)
+                        if ((x != xsize || (ega->lastline - ega->firstline + 1) != ysize) || update_overscan || video_force_resize_get())
                         {
                                 xsize = x;
                                 ysize = ega->lastline - ega->firstline + 1;
@@ -690,6 +690,9 @@ void ega_poll(void *p)
                                         set_screen_size(xsize + x_add_ex, (ysize << 1) + y_add_ex);
                                 else
                                         set_screen_size(xsize + x_add_ex, ysize + y_add_ex);
+
+				if (video_force_resize_get())
+					video_force_resize_set(0);
                         }
 
 			if (enable_overscan)
