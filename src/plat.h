@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.11	2017/10/18
+ * Version:	@(#)plat.h	1.0.12	2017/10/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -38,7 +38,6 @@ GLOBAL int	dopause,			/* system is paused */
 		quited,				/* system exit requested */
 		leave_fullscreen_flag;		/* windowed-mode requested */
 GLOBAL uint64_t	timer_freq;
-//GLOBAL int	efwinsizey;
 GLOBAL int	infocus;
 GLOBAL int	mousecapture;
 
@@ -99,28 +98,24 @@ typedef void thread_t;
 typedef void event_t;
 typedef void mutex_t;
 
-extern thread_t	*thread_create(void (*thread_rout)(void *param), void *param);
-extern void	thread_kill(thread_t *handle);
-
+extern thread_t	*thread_create(void (*thread_func)(void *param), void *param);
+extern void	thread_kill(thread_t *arg);
 extern int	thread_wait(thread_t *arg, int timeout);
-extern void	thread_sleep(int t);
-
 extern event_t	*thread_create_event(void);
-extern void	thread_set_event(event_t *event);
-extern void	thread_reset_event(event_t *_event);
-extern int	thread_wait_event(event_t *event, int timeout);
-extern void	thread_destroy_event(event_t *_event);
+extern void	thread_set_event(event_t *arg);
+extern void	thread_reset_event(event_t *arg);
+extern int	thread_wait_event(event_t *arg, int timeout);
+extern void	thread_destroy_event(event_t *arg);
 
 extern mutex_t	*thread_create_mutex(wchar_t *name);
-extern void	thread_close_mutex(mutex_t *mutex);
-extern int	thread_wait_mutex(mutex_t *mutex);
+extern void	thread_close_mutex(mutex_t *arg);
+extern int	thread_wait_mutex(mutex_t *arg);
 extern int	thread_release_mutex(mutex_t *mutex);
 
 
 /* Other stuff. */
 extern void	startblit(void);
 extern void	endblit(void);
-extern void	leave_fullscreen(void);
 extern void	take_screenshot(void);
 
 #ifdef __cplusplus

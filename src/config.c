@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.25	2017/10/19
+ * Version:	@(#)config.c	1.0.25	2017/10/21
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -328,8 +328,9 @@ config_read(wchar_t *fn)
     }
 
     (void)fclose(f);
-	
-    config_dump();
+
+    if (do_dump_config)
+	config_dump();
 
     return(1);
 }
